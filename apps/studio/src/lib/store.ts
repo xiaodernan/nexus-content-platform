@@ -4,6 +4,7 @@ import {
   History,
   createEmptyDocument,
   diffFromBatch,
+  layoutPage,
   ops,
   subtreeIds,
   childIdList,
@@ -20,6 +21,7 @@ import {
   type Point,
 } from '@nexus/design-model';
 import { ModelRouter } from '@nexus/ai-providers';
+import { boundsOf, computeAlign, computeDistribute, type AlignMode, type DistributeAxis } from './align';
 
 export type Tool = 'select' | 'frame' | 'rectangle' | 'ellipse' | 'text';
 
@@ -103,6 +105,8 @@ interface StudioState {
   duplicateSelection: () => void;
   bringForward: () => void;
   sendBackward: () => void;
+  align: (mode: AlignMode) => void;
+  distribute: (axis: DistributeAxis) => void;
 
   addPage: () => void;
   switchPage: (id: string) => void;
@@ -334,6 +338,36 @@ export const useStudio = create<StudioState>((set, get) => ({
   bringForward: () => reorderSelection(get, 'max'),
   sendBackward: () => reorderSelection(get, 'min'),
 
+  align: (mode) => {
+    const { doc, selection, activePageId } = get();
+    const page = safePage(doc, activePageId);
+    const layout = layoutPage(doc, page);
+    const items = selection
+      .map((id) => ({ id, rect: layout[id] }))
+      .filter((x) => x.rect && isAlignable(doc, x.id));
+    if (!items.length) return;
+    const pageRect = layout[page];
+    const ref = items.length === 1 && pageRect ? pageRect : boundsOf(items.map((i) => ({ id: i.id, rect: i.rect! })));
+    if (!ref) return;
+    const deltas = computeAlign(items.map((i) => ({ id: i.id, rect: i.rect! })), ref, mode);
+    commitDeltas(get, deltas, `Align ${mode}`);
+  },
+
+  distribute: (axis) => {
+    const { doc, selection, activePageId } = get();
+    const page = safePage(doc, activePageId);
+    const layout = layoutPage(doc, page);
+    const items = selection
+      .map((id) => ({ id, rect: layout[id] }))
+      .filter((x): x is { id: string; rect: NonNullable<typeof x.rect> } => Boolean(x.rect) && isAlignable(doc, x.id));
+    if (items.length < 3) {
+      set({ status: 'Distribute needs three or more selected layers.' });
+      return;
+    }
+    const deltas = computeDistribute(items, axis);
+    commitDeltas(get, deltas, `Distribute ${axis}`);
+  },
+
   addPage: () => {
     const { doc } = get();
     const pages = childIdList(doc.nodes[doc.rootId]!);
@@ -412,6 +446,22 @@ export const useStudio = create<StudioState>((set, get) => ({
 }));
 
 // ---- helpers -------------------------------------------------------------
+function isAlignable(doc: DesignDocument, id: string): boolean {
+  const n = doc.nodes[id];
+  return !!n && !n.locked && n.parentId !== null && n.type !== 'page' && n.type !== 'document';
+}
+function commitDeltas(get: () => StudioState, deltas: Record<string, { dx: number; dy: number }>, summary: string): void {
+  const { doc } = get();
+  const opList: Op[] = [];
+  for (const [id, { dx, dy }] of Object.entries(deltas)) {
+    const n = doc.nodes[id];
+    if (!n) continue;
+    const nx = Math.round(n.x + dx);
+    const ny = Math.round(n.y + dy);
+    if (nx !== n.x || ny !== n.y) opList.push(ops.updateNode(id, { x: nx, y: ny }));
+  }
+  if (opList.length) get().commitOps(opList, summary);
+}
 function hasSelectedAncestor(doc: DesignDocument, id: string, selection: string[]): boolean {
   let cur = doc.nodes[id]?.parentId;
   while (cur) {

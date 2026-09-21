@@ -3,6 +3,7 @@ import { useEffect } from 'react';
 import Toolbar from './Toolbar';
 import Canvas from './Canvas';
 import PageTabs from './PageTabs';
+import AlignBar from './AlignBar';
 import LayersPanel from './LayersPanel';
 import PropertiesPanel from './PropertiesPanel';
 import DesignSystemPanel from './DesignSystemPanel';
@@ -64,6 +65,7 @@ export default function Studio() {
 
         <main style={{ flex: 1, minWidth: 0, position: 'relative', display: 'flex', flexDirection: 'column' }}>
           <PageTabs />
+          <AlignBar />
           <div style={{ flex: 1, minHeight: 0, position: 'relative' }}>
             <Canvas />
           </div>

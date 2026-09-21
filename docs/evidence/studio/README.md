@@ -13,7 +13,7 @@ npm run build lint typecheck test     # via turbo, 9/9 tasks pass
 | ------------------ | ------ |
 | @nexus/design-model| 11/11 vitest, tsc clean |
 | @nexus/ai-providers| 7/7 vitest, tsc clean |
-| @nexus/studio      | 13/13 vitest (`snap.test.ts` + `persist.test.ts`) · tsc `--noEmit` clean · eslint `--max-warnings=0` clean · `next build` ✓ (4/4 static pages, `/` = 22.4 kB) |
+| @nexus/studio      | 22/22 vitest (`snap.test.ts` + `persist.test.ts` + `align.test.ts`) · tsc `--noEmit` clean · eslint `--max-warnings=0` clean · `next build` ✓ (4/4 static pages, `/` = 23.4 kB) |
 
 ## Headless pipeline proof
 
@@ -59,6 +59,17 @@ hidden viewport: write a valid snapshot envelope to `localStorage['nexus.studio.
 PageTabs strip shows its `PersistedPage` (proving `activePageId` resolved via the staleness guard),
 the prior "My First World / Page 1" is gone, and the status reads `Restored from local snapshot`.
 The test artifact was then cleared.
+
+### Alignment + distribution
+
+`lib/align.ts` is pure geometry over selection/page rects, covered by 9 headless unit tests
+(align-left/center-to-page, align-to-selection-bounds, equal-gap distribute x & y pinning the
+extremes, out-of-order sorting, <3-item no-op). The `AlignBar` mount was verified in the running
+bundle: all 8 buttons render and are correctly **disabled** with no selection, and the hint reads
+"Select layers to align". The store glue (`align`/`distribute`) reuses the same reversible
+`commitOps`→History→diff→persistence path already proven for move/resize/duplicate, so each click
+is a single undoable batch — the actual canvas-select→click gesture is gated by the hidden-viewport
+limitation below and is therefore not asserted as a screenshot here (§60 honesty).
 
 ## Model-derived visual artifacts
 

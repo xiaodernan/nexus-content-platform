@@ -26,9 +26,10 @@ Live list. Nothing here is hidden behind marketing copy.
   ops, masks, and instance→master syncing are deferred; frames/groups/variants exist as model
   types with partial UI.
 - Drag snapping aligns a selection's edges/centers to sibling + page anchors within a 6px
-  (screen) threshold and renders guide lines; resize snaps the dragged edge. Even **distribute /
-  space-between** alignment is not yet wired. Live drag/resize still uses a non-destructive
-  geometry overlay committed as a single op on pointer-up.
+  (screen) threshold and renders guide lines; resize snaps the dragged edge. **Explicit
+  alignment (left/center/right/top/middle/bottom) and equal-gap distribution (≥3 nodes) are
+  wired via `lib/align.ts` + the `AlignBar`**, each committed as one reversible op. Rotate-angle
+  snapping and smart distribute-with-rotate are still not present.
 - **Multi-page caveat:** adding a page is an undoable op (`addSubtree`→`pageIds`), but which page
   is *active* is ephemeral view-state — switching pages is **not undoable** and can differ across
   browser tabs. A `setActivePage`/`patchDocument` op (needs a design-model rebuild) is the next step.
