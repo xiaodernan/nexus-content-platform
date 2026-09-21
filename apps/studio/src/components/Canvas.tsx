@@ -13,6 +13,7 @@ import {
 } from '@nexus/design-model';
 import { drawScene, handlePoints, type Marquee } from '@/lib/render';
 import { resolveTextStyle } from '@/lib/paint';
+import { rectCenter, rotationFromDrag, rotateHandlePoint, snapAngleDeg, ROTATE_HANDLE_GAP } from '@/lib/rotate';
 import { computeSnap } from '@/lib/snap';
 import { instanceView, useStudio, type LiveGeom } from '@/lib/store';
 
@@ -57,12 +58,16 @@ export default function Canvas() {
   const [draft, setDraft] = useState('');
 
   const drag = useRef<{
-    kind: 'idle' | 'pan' | 'move' | 'resize' | 'marquee' | 'maybeMove';
+    kind: 'idle' | 'pan' | 'move' | 'resize' | 'rotate' | 'marquee' | 'maybeMove';
     startClient: Point;
     startWorld: Point;
     baseGeoms: Record<string, LiveGeom>;
     resizeId?: string;
     corner?: string;
+    rotateId?: string;
+    rotateCenter?: Point;
+    rotateStart?: Point;
+    rotateStartDeg?: number;
     additive?: boolean;
     moved: boolean;
     spaceHeld: boolean;
@@ -123,6 +128,7 @@ export default function Canvas() {
         marquee,
         guides: s.guides,
         hideId: s.editingId,
+        rotations: s.rotations,
         showChrome: true,
       },
       cssW,
@@ -240,6 +246,20 @@ export default function Canvas() {
       const r = layout[id];
       if (r) {
         const tol = 8 / s.viewport.zoom;
+        const authored = s.doc.nodes[id];
+        if (authored && !authored.locked) {
+          const rot = authored.rotation ?? 0;
+          const grip = rotateHandlePoint(r, rot, ROTATE_HANDLE_GAP / s.viewport.zoom);
+          if (Math.hypot(world.x - grip.x, world.y - grip.y) <= tol) {
+            d.kind = 'rotate';
+            d.rotateId = id;
+            d.rotateCenter = rectCenter(r);
+            d.rotateStart = world;
+            d.rotateStartDeg = rot;
+            s.setRotations({ [id]: rot });
+            return;
+          }
+        }
         for (const [hx, hy, corner] of handlePoints(r)) {
           if (Math.abs(world.x - hx) <= tol && Math.abs(world.y - hy) <= tol) {
             d.kind = 'resize';
@@ -312,6 +332,13 @@ export default function Canvas() {
 
     if (d.kind === 'pan') {
       s.setViewport({ ...s.viewport, x: s.viewport.x + (e.movementX ?? 0), y: s.viewport.y + (e.movementY ?? 0) });
+      return;
+    }
+
+    if (d.kind === 'rotate' && d.rotateId && d.rotateCenter && d.rotateStart) {
+      let deg = rotationFromDrag(d.rotateCenter, d.rotateStart, world, d.rotateStartDeg ?? 0);
+      if (e.shiftKey) deg = snapAngleDeg(deg);
+      s.setRotations({ [d.rotateId]: deg });
       return;
     }
 
@@ -393,6 +420,14 @@ export default function Canvas() {
       const dy = live && base ? Math.round(live.y - base.y) : 0;
       s.clearLiveGeom();
       if (dx || dy) s.moveSelectionBy(dx, dy);
+    } else if (d.kind === 'rotate' && d.rotateId) {
+      const deg = s.rotations[d.rotateId];
+      const startDeg = Math.round(d.rotateStartDeg ?? 0);
+      s.clearLiveGeom(); // also clears the transient rotations map
+      if (deg !== undefined) {
+        const committed = Math.round(deg);
+        if (committed !== startDeg) s.updateNode(d.rotateId, { rotation: committed });
+      }
     } else if (d.kind === 'resize' && d.resizeId) {
       const g = s.liveGeom[d.resizeId];
       s.clearLiveGeom();
@@ -403,6 +438,10 @@ export default function Canvas() {
     d.kind = 'idle';
     d.resizeId = undefined;
     d.corner = undefined;
+    d.rotateId = undefined;
+    d.rotateCenter = undefined;
+    d.rotateStart = undefined;
+    d.rotateStartDeg = undefined;
     d.baseGeoms = {};
     d.moved = false;
   };

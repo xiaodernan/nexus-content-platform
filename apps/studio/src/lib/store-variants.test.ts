@@ -130,3 +130,27 @@ describe('store: instance overrides', () => {
     expect(inst(instId).overrides.text?.[textId]).toBeUndefined();
   });
 });
+
+describe('store: rotation', () => {
+  it('committing rotation through updateNode is reversible end to end', () => {
+    st().addShape('rectangle', { x: 100, y: 100 });
+    const id = st().selection[0]!;
+    const before = st().doc.nodes[id]!.rotation ?? 0;
+    st().updateNode(id, { rotation: 30 });
+    expect(st().doc.nodes[id]!.rotation).toBe(30);
+    st().undo();
+    expect(st().doc.nodes[id]!.rotation ?? 0).toBe(before);
+    st().redo();
+    expect(st().doc.nodes[id]!.rotation).toBe(30);
+  });
+
+  it('the transient rotations map previews and is cleared with live geometry', () => {
+    st().addShape('rectangle', { x: 100, y: 100 });
+    const id = st().selection[0]!;
+    st().setRotations({ [id]: 45 });
+    expect(st().rotations[id]).toBe(45);
+    st().clearLiveGeom();
+    expect(st().rotations).toEqual({});
+    expect(st().doc.nodes[id]!.rotation ?? 0).toBe(0); // preview never touches the doc
+  });
+});

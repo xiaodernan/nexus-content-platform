@@ -10,6 +10,9 @@ layers, components, responsive layouts, annotations, comments, code layers, live
 
 **Implemented in the slice:** zoom (wheel/keys), pan (space-drag/middle-drag), click select,
 marquee multi-select, drag-move, grab-a-frame-moves-its-subtree, corner resize handles,
+**rotate via the grip above the single selection** (free-angle drag, Shift snaps to 15°; the angle
+commits to the model's `rotation` through one reversible op and the renderer turns the node about
+its own centre — selection chrome, corner handles and the grip all rotate with it),
 **magnetic snapping to sibling + page anchors with pink smart guides** (drag aligns
 edges/centers, resize snaps the dragged edge), **alignment + distribution actions** (align
 left/center/right/top/middle/bottom against the page or selection bounds, and distribute ≥3
@@ -29,7 +32,7 @@ overrides** section in the Properties panel (`InstanceOverrides.tsx`): editing a
 there calls `setInstanceOverride`, which merges keyed by the *master* child id into that instance's
 `overrides` (geometry and text kept in separate maps) and commits one reversible op — the change
 re-projects onto that instance's clones only, never the master or sibling instances.
-**Deferred:** rotate handles, nested-instance sub-selection (drill-in past a nested instance — detach
+**Deferred:** nested-instance sub-selection (drill-in past a nested instance — detach
 is the escape hatch for those), on-canvas comments, code-layer
 bidirectional sync (§9), live agent edits streaming, undoable page switching (needs a `setActivePage`
 op, ADR 0014).

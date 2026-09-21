@@ -18,6 +18,7 @@ Live list. Nothing here is hidden behind marketing copy.
   The AI-diff card now pairs its semantic counts with **before/after thumbnails** (`lib/thumbnail.ts`).
   These are deterministic SVG snapshots from `layoutPage` + token resolution — model-derived geometry,
   *not* pixel screenshots (§60), so they render even under the hidden-viewport harness.
+  A **rotate handle + rotation-aware canvas rendering** (`lib/rotate.ts`) now ship too — caveats below.
 - "Publish" in the slice means **local export** only. Hosted public URLs `/n/{user}/{project}`,
   accounts, and SEO (SSR/OpenGraph) land with M7/community + the `nexus-api` service.
 - Persistence is **local-first `localStorage`** (whole-model snapshot, debounced save, hydrate
@@ -41,8 +42,18 @@ Live list. Nothing here is hidden behind marketing copy.
 - Drag snapping aligns a selection's edges/centers to sibling + page anchors within a 6px
   (screen) threshold and renders guide lines; resize snaps the dragged edge. **Explicit
   alignment (left/center/right/top/middle/bottom) and equal-gap distribution (≥3 nodes) are
-  wired via `lib/align.ts` + the `AlignBar`**, each committed as one reversible op. Rotate-angle
-  snapping and smart distribute-with-rotate are still not present.
+  wired via `lib/align.ts` + the `AlignBar`**, each committed as one reversible op. Smart
+  distribute-with-rotate is still not present.
+- **Rotation is visual-precise but hit-testing stays AABB (ADR 0005 amended):** the renderer
+  rotates each node about its own centre (`lib/rotate.ts` math, `rotations` live-preview map,
+  rotated chrome + grip), and the rotate grip drags free angles with Shift 15° snapping. But
+  `layoutPage`/`hitTest` deliberately remain axis-aligned: a rotated node is *selected* by its
+  unrotated bounding box, and container subtrees rotate *individually* (each child about its own
+  centre) rather than rigidly as a group. Rigid subtree rotation and rotated hit bounds need a
+  design-model geometry change + rebuild — deferred. The interactive grip drag itself is covered
+  by pure-math tests, a recording fake-`ctx` render test and the store op path, plus the
+  Properties-panel Rotation field end-to-end in the real browser (set → undo → redo → reload
+  persists); pixel screenshots of the rotated canvas are not claimable under the §60 harness.
 - **Multi-page caveat:** adding a page is an undoable op (`addSubtree`→`pageIds`), but which page
   is *active* is ephemeral view-state — switching pages is **not undoable** and can differ across
   browser tabs. A `setActivePage`/`patchDocument` op (needs a design-model rebuild) is the next step.

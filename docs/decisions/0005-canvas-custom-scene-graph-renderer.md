@@ -38,3 +38,13 @@ move to WebGL/WebGPU (spec §45, §50) for 3D/games without touching the model o
 - (−) Rich text editing on Canvas 2D is limited. Mitigated: text nodes render measured
   glyphs on-canvas; *editing* text uses an in-place DOM overlay input that writes back a
   text-update op — canvas stays canonical, editing stays ergonomic.
+
+## Amendment — 2026-09-22 (rotation, no decision change)
+When the rotate handle landed, geometry (`layoutPage`/`hitTest`) was deliberately kept
+**axis-aligned**: rotation is a *render-time* transform per node (about its own AABB centre,
+`lib/rotate.ts` + a transient `rotations` preview map in the studio store), committed through the
+existing reversible `updateNode(id,{rotation})` op. Selection chrome, corner handles and the grip
+rotate with the node; click/marquee hit-testing still use the unrotated box, and children of a
+rotated container rotate individually rather than rigidly. Making hit bounds rotated and subtree
+rotation rigid would need a design-model geometry change (new package tests + rebuild) — that is
+the *next* step if it ever earns its cost; nothing in this ADR changes.

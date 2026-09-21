@@ -86,6 +86,8 @@ interface StudioState {
   interaction: Interaction;
   liveGeom: Record<string, LiveGeom>;
   guides: Guides;
+  /** Transient live-rotate preview (node id → degrees) shown while dragging the rotate grip. */
+  rotations: Record<string, number>;
   previewOpen: boolean;
   aiBusy: boolean;
   lastDiff: DiffSummary | null;
@@ -139,6 +141,7 @@ interface StudioState {
   setLiveGeom: (g: Record<string, LiveGeom>) => void;
   clearLiveGeom: () => void;
   setGuides: (g: Guides) => void;
+  setRotations: (r: Record<string, number>) => void;
   setPreview: (open: boolean) => void;
   setStatus: (s: string) => void;
 
@@ -217,6 +220,7 @@ export const useStudio = create<StudioState>((set, get) => ({
   interaction: { type: 'idle' },
   liveGeom: {},
   guides: { xs: [], ys: [] },
+  rotations: {},
   previewOpen: false,
   aiBusy: false,
   lastDiff: null,
@@ -558,8 +562,9 @@ export const useStudio = create<StudioState>((set, get) => ({
 
   setInteraction: (i) => set({ interaction: i }),
   setLiveGeom: (g) => set({ liveGeom: g }),
-  clearLiveGeom: () => set({ liveGeom: {}, guides: { xs: [], ys: [] } }),
+  clearLiveGeom: () => set({ liveGeom: {}, guides: { xs: [], ys: [] }, rotations: {} }),
   setGuides: (g) => set({ guides: g }),
+  setRotations: (r) => set({ rotations: r }),
   setPreview: (open) => set({ previewOpen: open }),
   setStatus: (s) => set({ status: s }),
 

@@ -2,9 +2,11 @@ import {
   childIdList,
   type AbsRect,
   type DesignDocument,
+  type Point,
   type TextNode,
 } from '@nexus/design-model';
 import { paintToCss, resolveTextStyle, strokeToCss } from './paint';
+import { rectCenter, rotateHandlePoint, ROTATE_HANDLE_GAP } from './rotate';
 import type { Viewport } from './store';
 
 export interface Marquee {
@@ -25,10 +27,21 @@ export interface Scene {
   guides?: { xs: number[]; ys: number[] };
   /** Text node id currently edited on-canvas — its glyphs are replaced by the DOM overlay. */
   hideId?: string | null;
+  /** Transient live-rotate preview (id → degrees); overrides each node's authored rotation while dragging. */
+  rotations?: Record<string, number>;
   showChrome: boolean;
 }
 
 const PAGE_PAD = 40;
+const DEG = Math.PI / 180;
+
+/** Rotate a point about `c` by `deg` (clockwise/y-down, matching ctx.rotate). */
+function rotPoint(c: Point, deg: number, px: number, py: number): Point {
+  const rad = deg * DEG;
+  const dx = px - c.x;
+  const dy = py - c.y;
+  return { x: c.x + Math.cos(rad) * dx - Math.sin(rad) * dy, y: c.y + Math.sin(rad) * dx + Math.cos(rad) * dy };
+}
 
 function roundRect(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, r: number): void {
   const rr = Math.max(0, Math.min(r, w / 2, h / 2));
@@ -71,7 +84,7 @@ export function drawScene(ctx: CanvasRenderingContext2D, scene: Scene, cssW: num
     ctx.beginPath();
     if (page) ctx.rect(page.x, page.y, page.width, page.height);
     ctx.clip();
-    for (const cid of childIdList(root)) drawNode(ctx, doc, layout, cid, viewport.zoom, scene.hideId);
+    for (const cid of childIdList(root)) drawNode(ctx, doc, layout, cid, viewport.zoom, scene.hideId, scene.rotations);
     ctx.restore();
   }
 
@@ -132,7 +145,7 @@ function drawGrid(ctx: CanvasRenderingContext2D, v: Viewport, cssW: number, cssH
   }
 }
 
-function drawNode(ctx: CanvasRenderingContext2D, doc: DesignDocument, layout: Record<string, AbsRect>, id: string, zoom: number, hideId?: string | null): void {
+function drawNode(ctx: CanvasRenderingContext2D, doc: DesignDocument, layout: Record<string, AbsRect>, id: string, zoom: number, hideId?: string | null, rotations?: Record<string, number>): void {
   const node = doc.nodes[id];
   const r = layout[id];
   if (!node || !r || !node.visible) return;
@@ -141,6 +154,14 @@ function drawNode(ctx: CanvasRenderingContext2D, doc: DesignDocument, layout: Re
   ctx.save();
   ctx.globalAlpha = node.opacity;
   const { x, y, width, height } = r;
+  // Rotate the node about its own centre (per-node visual; container subtrees rotate individually).
+  const rot = rotations?.[id] ?? node.rotation;
+  if (rot) {
+    const c = rectCenter(r);
+    ctx.translate(c.x, c.y);
+    ctx.rotate(rot * DEG);
+    ctx.translate(-c.x, -c.y);
+  }
   const radius = 'cornerRadius' in node ? node.cornerRadius : 0;
 
   if (node.type === 'text') {
@@ -184,7 +205,7 @@ function drawNode(ctx: CanvasRenderingContext2D, doc: DesignDocument, layout: Re
   }
   ctx.restore();
 
-  for (const cid of childIdList(node)) drawNode(ctx, doc, layout, cid, zoom, hideId);
+  for (const cid of childIdList(node)) drawNode(ctx, doc, layout, cid, zoom, hideId, rotations);
 }
 
 function drawImagePlaceholder(ctx: CanvasRenderingContext2D, w: number, h: number, zoom: number): void {
@@ -234,7 +255,7 @@ function wrapText(ctx: CanvasRenderingContext2D, text: string, maxWidth: number)
 }
 
 function drawChrome(ctx: CanvasRenderingContext2D, scene: Scene): void {
-  const { layout, selection, hoverId, viewport, doc } = scene;
+  const { layout, selection, hoverId, viewport, doc, rotations } = scene;
   const z = viewport.zoom;
   if (hoverId && !selection.includes(hoverId) && layout[hoverId]) {
     const r = layout[hoverId];
@@ -245,24 +266,42 @@ function drawChrome(ctx: CanvasRenderingContext2D, scene: Scene): void {
   for (const id of selection) {
     const r = layout[id];
     if (!r) continue;
+    const rot = rotations?.[id] ?? doc.nodes[id]?.rotation ?? 0;
+    const c = rectCenter(r);
+    const corners = handlePoints(r).map(([hx, hy]) => rotPoint(c, rot, hx, hy));
     ctx.strokeStyle = '#6ea8fe';
     ctx.lineWidth = 1.5 / z;
-    ctx.strokeRect(r.x, r.y, r.width, r.height);
+    ctx.beginPath();
+    corners.forEach((p, i) => (i === 0 ? ctx.moveTo(p.x, p.y) : ctx.lineTo(p.x, p.y)));
+    ctx.closePath();
+    ctx.stroke();
     if (selection.length === 1) {
       const hs = 8 / z;
-      ctx.fillStyle = '#0b0e14';
-      for (const [hx, hy] of handlePoints(r)) {
+      for (const p of corners) {
         ctx.beginPath();
-        ctx.rect(hx - hs / 2, hy - hs / 2, hs, hs);
+        ctx.rect(p.x - hs / 2, p.y - hs / 2, hs, hs);
         ctx.fillStyle = '#ffffff';
         ctx.fill();
         ctx.strokeStyle = '#6ea8fe';
         ctx.lineWidth = 1 / z;
         ctx.stroke();
       }
+      // Rotate grip: stem from the top-edge midpoint out to a grab circle, carried with rotation.
+      const topMid = rotPoint(c, rot, c.x, r.y);
+      const grip = rotateHandlePoint(r, rot, ROTATE_HANDLE_GAP / z);
+      ctx.strokeStyle = '#6ea8fe';
+      ctx.lineWidth = 1 / z;
+      ctx.beginPath();
+      ctx.moveTo(topMid.x, topMid.y);
+      ctx.lineTo(grip.x, grip.y);
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.arc(grip.x, grip.y, 4 / z, 0, Math.PI * 2);
+      ctx.fillStyle = '#ffffff';
+      ctx.fill();
+      ctx.stroke();
     }
   }
-  void doc;
 }
 
 export function handlePoints(r: AbsRect): [number, number, string][] {

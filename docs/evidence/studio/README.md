@@ -13,7 +13,7 @@ npm run build lint typecheck test     # via turbo, 10/10 tasks pass
 | ------------------ | ------ |
 | @nexus/design-model| 19/19 vitest (`design-model` 11 + `instances` 8), tsc clean |
 | @nexus/ai-providers| 7/7 vitest, tsc clean |
-| @nexus/studio      | 34/34 vitest (`snap` + `persist` + `align` + `store-variants` + `thumbnail`) · tsc `--noEmit` clean · eslint `--max-warnings=0` clean · `next build` ✓ (4/4 static pages) |
+| @nexus/studio      | 49/49 vitest (`snap` + `persist` + `align` + `store-variants` + `thumbnail` + `rotate` + `render`) · tsc `--noEmit` clean · eslint `--max-warnings=0` clean · `next build` ✓ (4/4 static pages) |
 
 ## Headless pipeline proof
 
@@ -123,6 +123,23 @@ so the live **AI/Edit diff card** renders two `<img>` thumbnails side by side. I
 `data:image/svg+xml` images labelled `before` and `after`; decoded, **before** is an empty page
 (1 background rect) while **after** carries the composed result (9 rects + 7 texts + 1 ellipse) —
 they differ and the "after" mirrors the Design Model. **No console errors.**
+
+### Rotate handle + rotation-aware rendering (ADR 0005 amendment)
+
+`lib/rotate.ts` is pure math (8 unit tests): centre/normalise/snap, grip placement
+`rotateHandlePoint` (matches the painter's clockwise y-down convention), `rotationFromDrag`
+(quarter-turn drag → exactly 90°), `hitRotated` point-in-rotated-rect. `render.test.ts` (5 tests)
+drives the real `drawScene` against a **recording fake 2D context**: a node authored at 90° calls
+`ctx.rotate(90·π/180)` after translating to its own centre; a 0° node never rotates; the transient
+`rotations` preview map overrides the authored value mid-drag; single selection paints the grip
+`arc()` at the rotated handle point; rotated chrome renders without throwing. The store proves the
+commit path: `updateNode(id,{rotation})` round-trips through undo/redo, and `clearLiveGeom` drops
+the preview without touching the doc.
+
+In the running `next dev` bundle (real React, no rAF needed): select a layer → set the Properties
+**Rotation** field to 30 → Ctrl+Z returns 0 → Shift+Ctrl+Z restores 30 → **reload** → still 30
+(whole-model snapshot). **No console errors.** Per §60: the interactive grip *drag gesture* is
+proven through the pure/render/store layers, not a pixel screenshot of the hidden canvas.
 
 ## Model-derived visual artifacts
 
