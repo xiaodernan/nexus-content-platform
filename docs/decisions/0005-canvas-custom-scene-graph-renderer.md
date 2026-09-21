@@ -48,3 +48,18 @@ rotate with the node; click/marquee hit-testing still use the unrotated box, and
 rotated container rotate individually rather than rigidly. Making hit bounds rotated and subtree
 rotation rigid would need a design-model geometry change (new package tests + rebuild) — that is
 the *next* step if it ever earns its cost; nothing in this ADR changes.
+
+## Amendment 2 — 2026-09-22 (rotation-aware hit bounds in the model)
+The deferred geometry change has now landed. `hitTest` in the design model resolves each candidate
+through an exported **`containsRotated(rect, rotation, point)`** predicate (inverse-rotate the
+point about the rect centre, then AABB-test; identity fast path at 0°). Hit bounds therefore match
+what is painted — the previously "vacated" corners of a rotated node's AABB no longer select it,
+and points outside the old AABB but inside the rotated body do. `layoutPage` remains axis-aligned
+storage (positions/sizes are still unrotated boxes); only the *hit predicate* is rotation-aware.
+Consequences kept as-is: resize math still commits AABB deltas (`width/height/x/y` of the
+unrotated box), subtrees still rotate per-node rather than rigidly, and instances offer no
+per-clone rotation. The studio's `lib/rotate.ts` `hitRotated` now delegates to the model, and
+`handleHitTest` inverse-rotates the pointer before the corner test so resize grabs match the
+rotated chrome exactly. No op-log or type changes; a design-model rebuild was required (23/23
+package tests green, incl. three new rotated-hit cases).
+

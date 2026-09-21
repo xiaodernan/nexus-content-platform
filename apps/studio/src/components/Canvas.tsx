@@ -10,9 +10,9 @@ import {
   type Point,
   type TextNode,
 } from '@nexus/design-model';
-import { drawScene, handlePoints, type Marquee } from '@/lib/render';
+import { drawScene, type Marquee } from '@/lib/render';
 import { resolveTextStyle } from '@/lib/paint';
-import { rectCenter, rotationFromDrag, rotateHandlePoint, snapAngleDeg, ROTATE_HANDLE_GAP } from '@/lib/rotate';
+import { handleHitTest, rectCenter, rotationFromDrag, rotateHandlePoint, snapAngleDeg, ROTATE_HANDLE_GAP } from '@/lib/rotate';
 import { computeSnap } from '@/lib/snap';
 import { instanceView, useStudio, type LiveGeom } from '@/lib/store';
 
@@ -279,8 +279,9 @@ export default function Canvas() {
       if (r) {
         const tol = 8 / s.viewport.zoom;
         const authored = s.doc.nodes[id];
+        // clones have no authored entry; their projected node carries the master's rotation
+        const rot = (authored ?? viewDoc.nodes[id])?.rotation ?? 0;
         if (authored && !authored.locked) {
-          const rot = authored.rotation ?? 0;
           const grip = rotateHandlePoint(r, rot, ROTATE_HANDLE_GAP / s.viewport.zoom);
           if (Math.hypot(world.x - grip.x, world.y - grip.y) <= tol) {
             d.kind = 'rotate';
@@ -292,15 +293,14 @@ export default function Canvas() {
             return;
           }
         }
-        for (const [hx, hy, corner] of handlePoints(r)) {
-          if (Math.abs(world.x - hx) <= tol && Math.abs(world.y - hy) <= tol) {
-            d.kind = 'resize';
-            d.resizeId = id;
-            d.corner = corner;
-            d.baseGeoms[id] = { x: r.x, y: r.y, width: r.width, height: r.height };
-            s.setLiveGeom({ [id]: d.baseGeoms[id]! });
-            return;
-          }
+        const grabbed = handleHitTest(r, rot, world, tol);
+        if (grabbed) {
+          d.kind = 'resize';
+          d.resizeId = id;
+          d.corner = grabbed[2];
+          d.baseGeoms[id] = { x: r.x, y: r.y, width: r.width, height: r.height };
+          s.setLiveGeom({ [id]: d.baseGeoms[id]! });
+          return;
         }
       }
     }

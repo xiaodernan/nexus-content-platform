@@ -1,4 +1,5 @@
 import type { AbsRect, Point } from '@nexus/design-model';
+import { containsRotated } from '@nexus/design-model';
 
 const DEG = Math.PI / 180;
 
@@ -41,15 +42,42 @@ export function rotationFromDrag(center: Point, start: Point, current: Point, st
   return normalizeDeg(startRotationDeg + (a1 - a0) / DEG);
 }
 
-/** Point-in-rotated-rect: inverse-rotate the point about the centre, then AABB test. */
+/** Point-in-rotated-rect — the canonical hit predicate now lives in the model (ADR 0005 amended). */
 export function hitRotated(r: AbsRect, rotationDeg: number, p: Point): boolean {
+  return containsRotated(r, rotationDeg, p);
+}
+
+/** The four resize corners of an (unrotated) rect as [x, y, corner-name] triples. */
+export function handlePoints(r: AbsRect): [number, number, string][] {
+  const { x, y, width: w, height: h } = r;
+  return [
+    [x, y, 'nw'],
+    [x + w, y, 'ne'],
+    [x, y + h, 'sw'],
+    [x + w, y + h, 'se'],
+  ];
+}
+
+/**
+ * Which resize corner is grabbed, matching the *painted* (rotation-aware) chrome:
+ * the pointer is inverse-rotated about the node centre before the corner test.
+ */
+export function handleHitTest(
+  r: AbsRect,
+  rotationDeg: number,
+  p: Point,
+  tol: number,
+): (readonly [number, number, string]) | null {
   const c = rectCenter(r);
-  const rad = rotationDeg * DEG;
+  const rad = -rotationDeg * DEG;
   const dx = p.x - c.x;
   const dy = p.y - c.y;
-  const cos = Math.cos(rad);
-  const sin = Math.sin(rad);
-  const lx = cos * dx + sin * dy;
-  const ly = -sin * dx + cos * dy;
-  return Math.abs(lx) <= r.width / 2 && Math.abs(ly) <= r.height / 2;
+  const lp: Point = {
+    x: c.x + dx * Math.cos(rad) - dy * Math.sin(rad),
+    y: c.y + dx * Math.sin(rad) + dy * Math.cos(rad),
+  };
+  for (const [hx, hy, corner] of handlePoints(r)) {
+    if (Math.abs(lp.x - hx) <= tol && Math.abs(lp.y - hy) <= tol) return [hx, hy, corner];
+  }
+  return null;
 }

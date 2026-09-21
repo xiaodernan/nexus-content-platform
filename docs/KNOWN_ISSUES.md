@@ -19,7 +19,8 @@ Live list. Nothing here is hidden behind marketing copy.
   The AI-diff card now pairs its semantic counts with **before/after thumbnails** (`lib/thumbnail.ts`).
   These are deterministic SVG snapshots from `layoutPage` + token resolution — model-derived geometry,
   *not* pixel screenshots (§60), so they render even under the hidden-viewport harness.
-  A **rotate handle + rotation-aware canvas rendering** (`lib/rotate.ts`) now ship too — caveats below.
+  A **rotate handle + rotation-aware canvas rendering *and hit-testing*** (`lib/rotate.ts` +
+  design-model `containsRotated`) now ship too — caveats below.
   A bottom-left **minimap** (`lib/minimap.ts` pure fit math + a small painted canvas) previews the
   page/nodes/viewport rect; click or drag recenters the main viewport at the current zoom.
 - "Publish" in the slice means **local export** only. Hosted public URLs `/n/{user}/{project}`,
@@ -58,16 +59,23 @@ Live list. Nothing here is hidden behind marketing copy.
   alignment (left/center/right/top/middle/bottom) and equal-gap distribution (≥3 nodes) are
   wired via `lib/align.ts` + the `AlignBar`**, each committed as one reversible op. Smart
   distribute-with-rotate is still not present.
-- **Rotation is visual-precise but hit-testing stays AABB (ADR 0005 amended):** the renderer
+- **Rotation is visual-precise *and* hit-precise (ADR 0005 Amendment 2):** the renderer
   rotates each node about its own centre (`lib/rotate.ts` math, `rotations` live-preview map,
-  rotated chrome + grip), and the rotate grip drags free angles with Shift 15° snapping. But
-  `layoutPage`/`hitTest` deliberately remain axis-aligned: a rotated node is *selected* by its
-  unrotated bounding box, and container subtrees rotate *individually* (each child about its own
-  centre) rather than rigidly as a group. Rigid subtree rotation and rotated hit bounds need a
-  design-model geometry change + rebuild — deferred. The interactive grip drag itself is covered
-  by pure-math tests, a recording fake-`ctx` render test and the store op path, plus the
-  Properties-panel Rotation field end-to-end in the real browser (set → undo → redo → reload
-  persists); pixel screenshots of the rotated canvas are not claimable under the §60 harness.
+  rotated chrome + grip), and the rotate grip drags free angles with Shift 15° snapping.
+  `hitTest` is now **rotation-aware through the canonical model**: design-model exports
+  `containsRotated` (inverse-rotate the point about the node centre, then AABB-test) and uses it
+  in `hitChildren`, so a rotated node selects by its *turned* outline — vacated AABB corners no
+  longer hit, and points outside the old box but inside the rotated body do (marquee selection
+  still intersects the unrotated boxes). Studio resize grabs
+  match the painted chrome via `handleHitTest` (same inverse rotation), and `hitRotated` now just
+  delegates to the model. Remaining caveats: `layoutPage` storage stays axis-aligned, so resize
+  *math* still commits AABB deltas (width/height/x/y of the unrotated box); container subtrees
+  rotate *individually* (each child about its own centre) rather than rigidly as a group — rigid
+  subtree rotation stays deferred; instance clones offer no per-clone rotation. The interactive
+  grip drag is covered by pure-math tests, a recording fake-`ctx` render test and the store op
+  path, plus the Properties-panel Rotation field end-to-end in the real browser (set → undo →
+  redo → reload persists); pixel screenshots of the rotated canvas are not claimable under the
+  §60 harness.
 - **Multi-page caveat:** adding a page is an undoable op (`addSubtree`→`pageIds`), but which page
   is *active* is ephemeral view-state — switching pages is **not undoable** and can differ across
   browser tabs. A `setActivePage`/`patchDocument` op (needs a design-model rebuild) is the next step.

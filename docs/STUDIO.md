@@ -12,7 +12,9 @@ layers, components, responsive layouts, annotations, comments, code layers, live
 marquee multi-select, drag-move, grab-a-frame-moves-its-subtree, corner resize handles,
 **rotate via the grip above the single selection** (free-angle drag, Shift snaps to 15°; the angle
 commits to the model's `rotation` through one reversible op and the renderer turns the node about
-its own centre — selection chrome, corner handles and the grip all rotate with it),
+its own centre — selection chrome, corner handles and the grip all rotate with it; hit-testing is
+rotation-aware in the canonical model (`containsRotated`), so click-select and resize grabs follow
+the turned outline),
 **magnetic snapping to sibling + page anchors with pink smart guides** (drag aligns
 edges/centers, resize snaps the dragged edge), **alignment + distribution actions** (align
 left/center/right/top/middle/bottom against the page or selection bounds, and distribute ≥3

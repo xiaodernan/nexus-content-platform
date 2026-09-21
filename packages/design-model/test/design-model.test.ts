@@ -173,6 +173,53 @@ describe('design model: geometry + layout', () => {
     expect(hitTest(doc, layout, pageId(doc), { x: 90, y: 90 })).toBe(bg.id);
     expect(hitTest(doc, layout, pageId(doc), { x: 500, y: 500 })).toBeNull();
   });
+
+  it('hit-tests rotated nodes by their rotated shape, not the AABB', () => {
+    let doc = createEmptyDocument();
+    const bar = rectNode('bar');
+    bar.x = 100; bar.y = 100; bar.width = 200; bar.height = 40;
+    bar.rotation = 90; // stands up: occupies x∈[180,220], y∈[0,240] about centre (200,120)
+    bar.parentId = pageId(doc);
+    doc = applyBatch(doc, userBatch([ops.addSubtree(pageId(doc), 0, [bar])]));
+    const layout = layoutPage(doc, pageId(doc));
+    // layout stays the authored AABB
+    expect(layout[bar.id]).toEqual({ x: 100, y: 100, width: 200, height: 40 });
+    // inside the rotated shape (was outside the flat AABB)
+    expect(hitTest(doc, layout, pageId(doc), { x: 200, y: 20 })).toBe(bar.id);
+    // vacated AABB corner now misses
+    expect(hitTest(doc, layout, pageId(doc), { x: 110, y: 105 })).toBeNull();
+    // centre always hits
+    expect(hitTest(doc, layout, pageId(doc), { x: 200, y: 120 })).toBe(bar.id);
+  });
+
+  it('a 0° node hit-tests exactly like the plain AABB (regression)', () => {
+    let doc = createEmptyDocument();
+    const r = rectNode('r');
+    r.x = 0; r.y = 0; r.width = 50; r.height = 50;
+    r.rotation = 0;
+    r.parentId = pageId(doc);
+    doc = applyBatch(doc, userBatch([ops.addSubtree(pageId(doc), 0, [r])]));
+    const layout = layoutPage(doc, pageId(doc));
+    expect(hitTest(doc, layout, pageId(doc), { x: 49, y: 49 })).toBe(r.id);
+    expect(hitTest(doc, layout, pageId(doc), { x: 51, y: 49 })).toBeNull();
+  });
+
+  it('children of a rotated container keep their own unrotated hit region (individual rotation)', () => {
+    let doc = createEmptyDocument();
+    const frame = frameNode('Box');
+    frame.x = 0; frame.y = 0; frame.width = 100; frame.height = 100;
+    frame.rotation = 45;
+    const kid = rectNode('kid');
+    kid.x = 10; kid.y = 10; kid.width = 20; kid.height = 20;
+    kid.parentId = frame.id;
+    frame.childIds = [kid.id];
+    doc = applyBatch(doc, userBatch([ops.addSubtree(pageId(doc), 0, [frame, kid])]));
+    const layout = layoutPage(doc, pageId(doc));
+    // a point inside the kid is also inside the rotated frame's body → kid wins (topmost)
+    expect(hitTest(doc, layout, pageId(doc), { x: 20, y: 20 })).toBe(kid.id);
+    // the frame's AABB corner region is chopped away by the 45° rotation
+    expect(hitTest(doc, layout, pageId(doc), { x: 1, y: 1 })).toBeNull();
+  });
 });
 
 describe('design model: text + tokens', () => {

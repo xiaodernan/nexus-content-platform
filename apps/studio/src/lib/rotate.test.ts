@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { hitRotated, normalizeDeg, rectCenter, rotateHandlePoint, rotationFromDrag, snapAngleDeg } from './rotate';
+import { handleHitTest, handlePoints, hitRotated, normalizeDeg, rectCenter, rotateHandlePoint, rotationFromDrag, snapAngleDeg } from './rotate';
 
 const R = { x: 0, y: 0, width: 200, height: 100 }; // centre (100,50)
 
@@ -56,5 +56,26 @@ describe('rotate: point-in-rotated-rect', () => {
     expect(hitRotated(R, 90, { x: 180, y: 50 })).toBe(false);
     // ...while a point near the top edge (inside after the turn) now hits.
     expect(hitRotated(R, 90, { x: 100, y: 120 })).toBe(true);
+  });
+});
+
+describe('rotate: rotation-aware resize-handle hits', () => {
+  it('at 0° it matches the plain corner test', () => {
+    expect(handleHitTest(R, 0, { x: 2, y: 2 }, 5)?.[2]).toBe('nw');
+    expect(handleHitTest(R, 0, { x: 100, y: 50 }, 5)).toBeNull();
+  });
+
+  it('after a 90° turn the grip of the painted nw corner still grabs', () => {
+    // rotPoint(centre,(0,0),90°) paints nw at (150,-50); the inverse rotation must map it back.
+    const hit = handleHitTest(R, 90, { x: 150, y: -50 }, 2);
+    expect(hit?.[2]).toBe('nw');
+    expect(hit?.[0]).toBeCloseTo(0, 6);
+    expect(hit?.[1]).toBeCloseTo(0, 6);
+    // the *old* AABB corner location is empty space now — no accidental resize
+    expect(handleHitTest(R, 90, { x: 0, y: 0 }, 2)).toBeNull();
+  });
+
+  it('handlePoints returns the four local corners in nw/ne/sw/se order', () => {
+    expect(handlePoints(R).map(([, , c]) => c)).toEqual(['nw', 'ne', 'sw', 'se']);
   });
 });

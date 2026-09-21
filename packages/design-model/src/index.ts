@@ -32,7 +32,7 @@ export {
   nodePathNames,
   type TreeNode,
 } from './selectors.js';
-export { layoutPage, hitTest, boundsOfSubtree, type AbsRect } from './geometry.js';
+export { layoutPage, hitTest, boundsOfSubtree, containsRotated, type AbsRect } from './geometry.js';
 export {
   expandComponentInstances,
   ownerInstanceId,

@@ -53,6 +53,26 @@ function contains(r: AbsRect | Rect, p: Point): boolean {
   return p.x >= r.x && p.x <= r.x + r.width && p.y >= r.y && p.y <= r.y + r.height;
 }
 
+/**
+ * Hit test honoring the node's authored `rotation` (degrees, clockwise y-down — the same
+ * convention the canvas renderer turns nodes about their own centre). The point is
+ * inverse-rotated into the node's local frame, then the axis-aligned test applies.
+ * `layoutPage` still emits the unrotated AABB; only picking is rotation-aware (ADR 0005).
+ */
+export function containsRotated(r: AbsRect, rotationDeg: number, p: Point): boolean {
+  if (!rotationDeg) return contains(r, p);
+  const cx = r.x + r.width / 2;
+  const cy = r.y + r.height / 2;
+  const rad = (rotationDeg * Math.PI) / 180;
+  const dx = p.x - cx;
+  const dy = p.y - cy;
+  const cos = Math.cos(rad);
+  const sin = Math.sin(rad);
+  const lx = cos * dx + sin * dy;
+  const ly = -sin * dx + cos * dy;
+  return Math.abs(lx) <= r.width / 2 && Math.abs(ly) <= r.height / 2;
+}
+
 /** Topmost visible node under a page-space point. */
 export function hitTest(doc: DesignDocument, layout: Record<NexusId, AbsRect>, pageId: NexusId, p: Point): NexusId | null {
   const page = doc.nodes[pageId];
@@ -68,7 +88,7 @@ function hitChildren(doc: DesignDocument, layout: Record<NexusId, AbsRect>, cont
   for (let i = kids.length - 1; i >= 0; i--) {
     const k = kids[i]!;
     const r = layout[k.id];
-    if (!r || !contains(r, p)) continue;
+    if (!r || !containsRotated(r, k.rotation ?? 0, p)) continue;
     const deeper = hitChildren(doc, layout, k, p);
     return deeper ?? k.id;
   }

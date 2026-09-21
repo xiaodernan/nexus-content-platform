@@ -11,9 +11,9 @@ npm run build lint typecheck test     # via turbo, 10/10 tasks pass
 
 | Package            | Result |
 | ------------------ | ------ |
-| @nexus/design-model| 20/20 vitest (`design-model` 11 + `instances` 9 incl. x/y delta overrides), tsc clean |
+| @nexus/design-model| 23/23 vitest (`design-model` 14 incl. 3 rotated-hitTest cases + `instances` 9 incl. x/y delta overrides), tsc clean |
 | @nexus/ai-providers| 7/7 vitest, tsc clean |
-| @nexus/studio      | 62/62 vitest (`snap` + `persist` + `align` + `store-variants` incl. sub-selection + `thumbnail` + `rotate` + `render` + `minimap`) · tsc `--noEmit` clean · eslint `--max-warnings=0` clean · `next build` ✓ (4/4 static pages) |
+| @nexus/studio      | 65/65 vitest (`snap` + `persist` + `align` + `store-variants` incl. sub-selection + `thumbnail` + `rotate` incl. rotated handle hit-tests + `render` + `minimap`) · tsc `--noEmit` clean · eslint `--max-warnings=0` clean · `next build` ✓ (4/4 static pages) |
 
 ## Headless pipeline proof
 
@@ -140,6 +140,31 @@ In the running `next dev` bundle (real React, no rAF needed): select a layer →
 **Rotation** field to 30 → Ctrl+Z returns 0 → Shift+Ctrl+Z restores 30 → **reload** → still 30
 (whole-model snapshot). **No console errors.** Per §60: the interactive grip *drag gesture* is
 proven through the pure/render/store layers, not a pixel screenshot of the hidden canvas.
+
+### Rotated hit bounds (model-level `containsRotated` + studio handle grabs)
+
+Follow-up to the rotation pass (closes the "hit-test stays AABB" caveat, ADR 0005 Amendment 2).
+Design-model layer (+3 → `design-model.test.ts` 14): a 200×40 bar at 90° **misses** its vacated
+AABB corner (110,105) and **hits** (200,20)/(200,120) on the turned outline; a 0° node keeps the
+old AABB behaviour (regression); a rotated frame still yields its child on top when the point is
+inside both. `hitChildren` now routes every candidate through the exported `containsRotated`
+(inverse-rotate about the centre → AABB test). Studio layer (`rotate.test.ts`, +3 → 11):
+`handleHitTest` at 90° grabs the *painted* nw corner world point (150,−50) for a centre-(100,50)
+rect and refuses the empty old-AABB corner (0,0); at 0° it matches the plain corner test.
+`hitRotated` delegates to the model so there is exactly one rotated-hit predicate. `handlePoints`
+moved from `render.ts` to `rotate.ts` (pure geometry; render keeps importing it).
+
+Real-browser proof (fresh `next dev` reload so the new bundle is live; synthetic events, no rAF):
+draw a 160×120 rectangle at world (1300,100) with the ▭ tool → Properties **Rotation** = 90 →
+click world (1305,105), *inside the old AABB but outside the turned shape* → selection clears
+(Rotation field gone); click (1380,230), *outside the old AABB but inside the turned shape* →
+the Rectangle selects again; drag from (1440,80), the **painted** nw corner → history shows
+`Resize Rectangle` and the model commits exactly the AABB delta `{x:1336,y:136,w:124,h:84}`
+with rotation intact, persisted to the `localStorage` snapshot. Ctrl+Z ×3 returns the document
+to Dashboard-only. **No console errors.** Harness caveat re-confirmed: pointer **move/up must be
+dispatched on the canvas element itself** — the handlers are React props on the wrapper, so
+events sent to `window` never reach `finishDrag` (a first resize attempt silently no-oped until
+re-dispatched on the element).
 
 ### Minimap (viewport overview + click-to-recenter)
 

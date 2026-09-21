@@ -6,7 +6,7 @@ import {
   type TextNode,
 } from '@nexus/design-model';
 import { paintToCss, resolveTextStyle, strokeToCss } from './paint';
-import { rectCenter, rotateHandlePoint, ROTATE_HANDLE_GAP } from './rotate';
+import { handlePoints, rectCenter, rotateHandlePoint, ROTATE_HANDLE_GAP } from './rotate';
 import type { Viewport } from './store';
 
 export interface Marquee {
@@ -302,14 +302,4 @@ function drawChrome(ctx: CanvasRenderingContext2D, scene: Scene): void {
       ctx.stroke();
     }
   }
-}
-
-export function handlePoints(r: AbsRect): [number, number, string][] {
-  const { x, y, width: w, height: h } = r;
-  return [
-    [x, y, 'nw'],
-    [x + w, y, 'ne'],
-    [x, y + h, 'sw'],
-    [x + w, y + h, 'se'],
-  ];
 }
