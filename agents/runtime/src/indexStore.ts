@@ -113,3 +113,66 @@ export function rescanIndex(previous: CodeIndex | null, previousFp: Fingerprints
   }
   return { index: { files: entries, chunks }, fingerprints: fp, rechunked };
 }
+
+export interface IndexProviderOptions {
+  /** The file set to index (the host keeps it in sync with the workspace it registers). */
+  files: Record<string, string>;
+  /** Optional snapshot JSON path, loaded on first use and persisted after every refresh. */
+  snapshotFile?: string;
+  /** Required with snapshotFile: the writable fs used to persist it. */
+  fsLike?: FsWriteLike;
+}
+
+export interface IndexProvider {
+  /** Re-reads (fingerprints only) on demand; returns the current index. */
+  refresh(): CodeIndex;
+  index(): CodeIndex;
+  /** Files re-chunked by the most recent refresh — 0 means pure reuse (§60 observability). */
+  lastRechunked(): string[];
+}
+
+/**
+ * v5: the snapshot layer behind `fs.index`. First refresh prefers the persisted snapshot
+ * (cold-verifying it against current fingerprints); later refreshes are incremental rescans,
+ * so an unchanged file set costs ~0 re-chunking instead of a full rebuild.
+ */
+export function createIndexProvider(opts: IndexProviderOptions): IndexProvider {
+  let current: CodeIndex | null = null;
+  let fps: Fingerprints = {};
+  let rechunked: string[] = [];
+
+  const persist = (index: CodeIndex): void => {
+    if (opts.snapshotFile && opts.fsLike) saveIndex(opts.fsLike, opts.snapshotFile, index, fps);
+  };
+
+  return {
+    refresh() {
+      const want = fingerprintFiles(opts.files);
+      if (!current && opts.snapshotFile && opts.fsLike) {
+        const loaded = loadIndex(opts.fsLike, opts.snapshotFile);
+        if (loaded.ok) {
+          const r = rescanIndex(loaded.index, loaded.fingerprints, opts.files);
+          current = r.index;
+          fps = r.fingerprints;
+          rechunked = r.rechunked;
+          persist(current);
+          return current;
+        }
+      }
+      const r: RescanResult = current
+        ? rescanIndex(current, fps, opts.files)
+        : { index: buildIndex(opts.files), fingerprints: want, rechunked: Object.keys(want).sort() };
+      current = r.index;
+      fps = r.fingerprints;
+      rechunked = r.rechunked;
+      persist(current);
+      return current;
+    },
+    index() {
+      return current ?? this.refresh();
+    },
+    lastRechunked() {
+      return [...rechunked];
+    },
+  };
+}

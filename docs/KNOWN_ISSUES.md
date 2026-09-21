@@ -106,7 +106,9 @@ Live list. Nothing here is hidden behind marketing copy.
   durability: schema-versioned memory JSON + the first real-disk tools `disk.read/write/list`,
   each confined to one host-chosen root by `guardedJoin` with checkpoint-gated writes; v4 adds
   persisted index snapshots with fingerprint rescan (incremental output provably equals a cold
-  rebuild). It is
+  rebuild). v5 wires the snapshots into `fs.index` via `createIndexProvider` (host keeps the
+  provider's file set in sync with the workspace; default rebuild-per-call remains the
+  out-of-the-box path). It is
   still *not* a general coding agent: no process execution, browser, git, or out-of-jail disk
   access — those §63 duties stay unimplemented until ADR 0013's exec sandbox exists. Known
   limits, stated not hidden (§60): `fs.index` still rebuilds per call (snapshots are a

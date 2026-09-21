@@ -8,13 +8,14 @@ every emitted artifact (`provenance.mode = "demo"`).
 ## Reproducible gates
 
 ```
-npm test          # turbo: @nexus/agent-runtime 51/51 vitest among all packages
+npm test          # turbo: @nexus/agent-runtime 56/56 vitest among all packages
 npm run build     # tsc dist for agents/runtime (build order via ^build deps)
 node docs/evidence/agents/agent-proof.mjs
 node docs/evidence/agents/code-index-proof.mjs   # requires `npm run build` first
 node docs/evidence/agents/memory-proof.mjs       # requires `npm run build` first
 node docs/evidence/agents/durability-proof.mjs   # requires `npm run build` first
 node docs/evidence/agents/index-store-proof.mjs  # requires `npm run build` first
+node docs/evidence/agents/provider-proof.mjs     # requires `npm run build` first
 ```
 
 ## Unit tests (vitest, `agents/runtime/test`)
@@ -28,7 +29,7 @@ node docs/evidence/agents/index-store-proof.mjs  # requires `npm run build` firs
 | `realfs.test.ts` (4) | extension/skip filtering with sorted slash keys, custom skipDirs + maxFiles cap, maxBytes drop, deterministic output independent of walk order — all against a fake fs (no host disk touched) |
 | `memory.test.ts` (6) | save/list/recall scoping, deterministic tie-broken recall bounded by k, forget/clear counts, clone-in/clone-out immutability, registry round-trip with `"path:startLine"` refs, denied `memory.save` leaves memory empty + arg validation |
 | `durability.test.ts` (8) | memory serialize/deserialize round-trip + version/schema rejection, `restore()` id high-water mark, save/load through an injected writable fake disk, corrupt-file honest failure, `guardedJoin` jail (absolute/`..`/drive-letter rejection, backslash folding), `disk.write` checkpoint gate + escape touches nothing, `disk.read`/`disk.list` confinement |
-| `indexStore.test.ts` (6) | index snapshot serialize→deserialize verbatim + version/chunk schema rejection, save/load via injected fs, cold rescan equals `buildIndex`, unchanged files reuse chunks / edits rechunk exactly the changed paths / removals drop out, query ranking snapshot-independent |
+| `indexStore.test.ts` (11) | index snapshot serialize→deserialize verbatim + version/chunk schema rejection, save/load via injected fs, cold rescan equals `buildIndex`, unchanged files reuse chunks / edits rechunk exactly the changed paths / removals drop out, query ranking snapshot-independent; v5 provider: cold-first-build equals plain build, incremental refresh 0 re-chunked, edited file sole re-chunk, cross-provider snapshot restore, corrupt-snapshot fallback + repair, `fs.index` provider/default parity |
 
 ## Headless proof (`agent-proof.mjs`) against the built `dist/`
 
@@ -93,13 +94,22 @@ re-chunks exactly that file and the result deep-equals a full cold rebuild (whic
 re-chunk all 129); the edited file's new symbol is queryable immediately. Corrupting the
 snapshot file yields `{ok:false, reason:'not valid JSON'}` — no half-load.
 
+## Provider proof (`provider-proof.mjs`, M2 v5)
+
+One `createIndexProvider` serves two agent tasks over the real repo (129 files): task 1
+cold-builds (129 re-chunked) and persists the snapshot; task 2's research is answered from
+the same provider with **0 re-chunked files and deep-equal hits**. A brand-new provider —
+the stand-in for a fresh process — restores the persisted snapshot cold with 0 re-chunked
+files; a corrupted snapshot triggers an honest full rebuild and repairs the file.
+`fs.index` with and without a provider returns identical hits, so the seam cannot silently
+change retrieval behavior.
+
 ## Scope honesty
 
 §63/§26 items *not* implemented (stated, not faked): general real-fs write tools (only
 `disk.write` inside an explicit jail root, always checkpoint-gated), process execution,
-**automatic snapshot reuse inside `fs.index`** (snapshots are a host-side layer; the tool
-still rebuilds per call — wiring the provider into the tool loop is v5 candidate #1),
 browser automation, visual QA, git commit, live-model planning, multi-agent registry. The
 `test.run` verification is a host-injected predicate — it verifies what the host checks.
 Memory recall is lexical (`lexicalScore` over query+summary), a stand-in for the pgvector
-hybrid retrieval of ADR 0012.
+hybrid retrieval of ADR 0012. The provider must be kept in sync with the workspace by the
+host; it only ever sees the host-supplied file set (§60).

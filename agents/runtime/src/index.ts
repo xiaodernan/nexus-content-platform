@@ -12,7 +12,13 @@ export {
   type QueryHit,
 } from './codeIndex.js';
 export { ToolRegistry, DANGEROUS, type Checkpoint, type CheckpointRequest, type ToolImpl, type InvokeOptions } from './registry.js';
-export { InMemoryWorkspace, WORKSPACE_TOOL_SPECS, registerWorkspaceTools, type SearchHit } from './workspace.js';
+export {
+  InMemoryWorkspace,
+  WORKSPACE_TOOL_SPECS,
+  registerWorkspaceTools,
+  type SearchHit,
+  type WorkspaceToolOptions,
+} from './workspace.js';
 export {
   collectTextFiles,
   DEFAULT_SKIP_DIRS,
@@ -43,6 +49,7 @@ export {
 } from './durability.js';
 export {
   INDEX_SCHEMA_VERSION,
+  createIndexProvider,
   deserializeIndex,
   fingerprintFiles,
   loadIndex,
@@ -51,6 +58,8 @@ export {
   serializeIndex,
   type Fingerprints,
   type IndexLoad,
+  type IndexProvider,
+  type IndexProviderOptions,
   type PersistedIndex,
   type RescanResult,
 } from './indexStore.js';

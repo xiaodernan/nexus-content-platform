@@ -1,4 +1,5 @@
 import { buildIndex, queryIndex } from './codeIndex.js';
+import type { IndexProvider } from './indexStore.js';
 import type { ToolRegistry } from './registry.js';
 import type { ToolSpec } from './types.js';
 
@@ -107,7 +108,16 @@ export const WORKSPACE_TOOL_SPECS: ToolSpec[] = [
   },
 ];
 
-export function registerWorkspaceTools(registry: ToolRegistry, ws: InMemoryWorkspace): ToolRegistry {
+export interface WorkspaceToolOptions {
+  /**
+   * v5: when given, `fs.index` answers from this snapshot-backed provider (refreshed per
+   * call — incremental when unchanged) instead of rebuilding over the workspace each time.
+   * The host must keep the provider's file set in sync with the workspace it registers.
+   */
+  indexProvider?: IndexProvider;
+}
+
+export function registerWorkspaceTools(registry: ToolRegistry, ws: InMemoryWorkspace, opts: WorkspaceToolOptions = {}): ToolRegistry {
   for (const spec of WORKSPACE_TOOL_SPECS) {
     registry.register(spec, (args) => {
       switch (spec.name) {
@@ -117,8 +127,11 @@ export function registerWorkspaceTools(registry: ToolRegistry, ws: InMemoryWorks
           return { content: ws.read(String(args.path)) };
         case 'fs.search':
           return { hits: ws.search(String(args.term)) };
-        case 'fs.index':
-          return { hits: queryIndex(buildIndex(ws.snapshot()), String(args.query), args.topK === undefined ? 5 : Number(args.topK)) };
+        case 'fs.index': {
+          const topK = args.topK === undefined ? 5 : Number(args.topK);
+          const index = opts.indexProvider ? opts.indexProvider.refresh() : buildIndex(ws.snapshot());
+          return { hits: queryIndex(index, String(args.query), topK) };
+        }
         case 'fs.write':
           ws.write(String(args.path), String(args.content));
           return { path: String(args.path), bytes: String(args.content).length };

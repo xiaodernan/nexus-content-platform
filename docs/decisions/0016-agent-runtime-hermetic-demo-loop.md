@@ -133,3 +133,21 @@ two fresh runs, checkpoint denial leaving the workspace byte-identical).
   (proof persists through `saveIndex` directly). Provider-injection into the tool loop is the
   first v5 candidate, stated in the evidence README rather than half-wired now.
 - **Proof:** `docs/evidence/agents/index-store-proof.mjs` + 6 unit tests → 51/51.
+
+## Amendment 5 — v5: snapshot-backed `IndexProvider` wired into `fs.index`, 2026-09
+- **What landed:** `createIndexProvider({ files, snapshotFile?, fsLike? })` in `indexStore.ts`
+  — first refresh prefers the persisted snapshot (verified against current fingerprints),
+  later refreshes are incremental fingerprint rescans, and every refresh persists.
+  `registerWorkspaceTools(registry, ws, { indexProvider })` routes `fs.index` through the
+  provider; omitting it keeps the v1 rebuild-per-call behavior unchanged (default untouched →
+  all prior tests/proofs stay green verbatim). Orchestrator/planner never touched: same tool,
+  same `{hits:[{path}]}` contract.
+- **Observability (§60):** `lastRechunked()` reports exactly what each refresh did;
+  provider-vs-default `fs.index` results are asserted deep-equal, so the seam cannot
+  silently alter retrieval. A corrupt snapshot falls back to a cold build and repairs the
+  file rather than half-loading.
+- **Contract with the host:** the provider serves only the host-supplied file set; keeping it
+  in sync with the registered workspace is the host's job, stated in the tool docs.
+- **Proof:** `docs/evidence/agents/provider-proof.mjs` — task 1 cold (129 chunked) persists
+  the snapshot; task 2 same-session 0 re-chunked with identical hits; a fresh provider
+  (new-process stand-in) restores with 0 re-chunked; corruption controls. Tests 56/56.

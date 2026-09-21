@@ -17,18 +17,20 @@
   first jailed real-disk tools `disk.read/write/list` — every path confined to one host-chosen
   root by `guardedJoin`, writes checkpoint-gated. v4 adds `src/indexStore.ts`: schema-versioned
   index snapshots (`saveIndex/loadIndex`) + fingerprint incremental `rescanIndex` whose output
-  deep-equals a cold rebuild (unchanged repo: 0 files re-chunked in ~3 ms).
-  Proof: `agents/runtime/test` (vitest 51/51), `node docs/evidence/agents/agent-proof.mjs`
-  (deterministic transcript + honest denial), `code-index-proof.mjs`, `memory-proof.mjs`
-  (two-run discovery→recall), `durability-proof.mjs` (cross-process reload in a fresh
-  node child + escape/corruption controls) and `index-store-proof.mjs` (cold reload identical,
-  incremental rescan exact).
+  deep-equals a cold rebuild (unchanged repo: 0 files re-chunked in ~3 ms). v5 wires those
+  snapshots into `fs.index` via `createIndexProvider` + `registerWorkspaceTools(..., {
+  indexProvider })` — second-task research re-chunks 0 files, provider/default hits are
+  provably identical, corrupt snapshots fall back honestly (default rebuild-per-call stays
+  the out-of-the-box behavior).
+  Proof: `agents/runtime/test` (vitest 56/56) plus five headless proofs in
+  `docs/evidence/agents/` (agent, code-index, memory, durability, index-store, provider).
 
 Still placeholder (§24): the multi-agent Registry (roster/handoff). Long-term memory (§26) is
 now durable across processes (v3: schema-versioned JSON via the injected fs + jail-rooted
 `disk.write`); vector-backed recall still pending.
 Not yet implemented from §63: general real-fs write tools (writes are jailed to one root,
-text-only, checkpoint-gated), process runner, browser automation, visual QA,
+text-only, checkpoint-gated; v5 persists index snapshots but executes nothing),
+process runner, browser automation, visual QA,
 git commit — all gated on ADR 0013 approval machinery. The M1 Design "agent" remains the
 deterministic composer inside `packages/ai-providers` (DEMO MODE), which emits the same structured
 `OpBatch` contract a live-model agent will use.

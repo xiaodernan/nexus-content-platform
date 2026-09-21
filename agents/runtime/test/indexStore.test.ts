@@ -1,6 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import { buildIndex, queryIndex } from '../src/codeIndex.js';
+import { InMemoryWorkspace, registerWorkspaceTools } from '../src/workspace.js';
+import { ToolRegistry } from '../src/registry.js';
 import {
+  createIndexProvider,
   deserializeIndex,
   fingerprintFiles,
   loadIndex,
@@ -97,5 +100,64 @@ describe('indexStore: incremental rescan', () => {
     const edited = { ...FILES, 'src/c.ts': 'export function gamma() { return rotate(); }\n' };
     const v2 = rescanIndex(v1.index, v1.fingerprints, edited);
     expect(queryIndex(v2.index, 'rotate widgets', 2)).toEqual(queryIndex(buildIndex(edited), 'rotate widgets', 2));
+  });
+});
+
+describe('indexStore: createIndexProvider (v5)', () => {
+  it('cold first refresh equals a plain buildIndex; later refreshes re-chunk nothing', () => {
+    const p = createIndexProvider({ files: FILES });
+    expect(p.index()).toEqual(buildIndex(FILES));
+    expect(p.lastRechunked().sort()).toEqual(Object.keys(FILES).sort());
+    expect(p.refresh()).toEqual(buildIndex(FILES));
+    expect(p.lastRechunked()).toEqual([]); // unchanged set: pure reuse
+  });
+
+  it('edited file is the only re-chunk on refresh, hits see the change', () => {
+    const files = { ...FILES };
+    const p = createIndexProvider({ files });
+    p.refresh();
+    files['src/b.ts'] = 'export const BETA = 99;\nexport function brandNew() { return 1; }\n';
+    p.refresh();
+    expect(p.lastRechunked()).toEqual(['src/b.ts']);
+    expect(queryIndex(p.index(), 'brandNew', 1)[0]!.path).toBe('src/b.ts');
+  });
+
+  it('a fresh provider restores from the persisted snapshot (0 re-chunked) via injected fs', () => {
+    const disk = new FakeDisk();
+    const first = createIndexProvider({ files: FILES, snapshotFile: 'state/index.json', fsLike: disk });
+    first.refresh();
+    expect(disk.files.has('state/index.json')).toBe(true);
+    expect(first.lastRechunked().length).toBe(Object.keys(FILES).length);
+
+    const second = createIndexProvider({ files: FILES, snapshotFile: 'state/index.json', fsLike: disk });
+    second.refresh();
+    expect(second.lastRechunked()).toEqual([]); // snapshot hit: nothing re-chunked
+    expect(second.index()).toEqual(buildIndex(FILES));
+  });
+
+  it('corrupt snapshot falls back to a cold build without crashing', () => {
+    const disk = new FakeDisk();
+    disk.writeFileSync('state/index.json', 'nope');
+    const p = createIndexProvider({ files: FILES, snapshotFile: 'state/index.json', fsLike: disk });
+    p.refresh();
+    expect(p.index()).toEqual(buildIndex(FILES));
+    expect(p.lastRechunked().length).toBeGreaterThan(0);
+    // fallback rewrote a valid snapshot
+    expect(loadIndex(disk, 'state/index.json').ok).toBe(true);
+  });
+
+  it('fs.index answers from the provider when registered (default untouched otherwise)', async () => {
+    const ws = new InMemoryWorkspace(FILES);
+    const p = createIndexProvider({ files: FILES });
+    const registry = registerWorkspaceTools(new ToolRegistry(), ws, { indexProvider: p });
+    const res = await registry.invoke({ callId: 'c1', tool: 'fs.index', args: { query: 'rotate widgets' } }, {});
+    expect(res.ok).toBe(true);
+    expect(p.lastRechunked().length).toBeGreaterThan(0);
+    const hits = (res.output as { hits: { path: string }[] }).hits;
+    expect(hits[0]!.path).toBe('docs/guide.md');
+
+    const plain = registerWorkspaceTools(new ToolRegistry(), new InMemoryWorkspace(FILES));
+    const res2 = await plain.invoke({ callId: 'c2', tool: 'fs.index', args: { query: 'rotate widgets' } }, {});
+    expect(res2.output).toEqual(res.output); // identical answers either way
   });
 });
