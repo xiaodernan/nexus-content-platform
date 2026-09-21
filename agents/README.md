@@ -1,9 +1,16 @@
-# agents/ — Agent Runtime & roles (Scaffolded)
+# agents/ — Agent Runtime & roles
 
-Placeholder for the first-class Agent Runtime (§23): orchestrator, Agent Registry (§24),
-structured handoff schemas (§25), and memory (§26). See [`../docs/AGENTS.md`](../docs/AGENTS.md).
+- `runtime/` — **`@nexus/agent-runtime` (M2 v0, ADR 0016): implemented.** A hermetic agent loop:
+  Task/Plan/Step/ToolCall contracts (§25), a permission-scoped Tool Registry with Human-Checkpoint
+  gating (§27/§28, the executable subset of ADR 0013), an in-memory workspace exposing
+  `fs.list/read/search/write/append` (repo understanding without a real fs), a deterministic
+  DEMO-MODE planner (research → read → annotate → verify), and an orchestrator with `@ref`
+  dataflow, host-injected `test.run` verification, bounded auto-fix rounds and a step budget.
+  Proof: `agents/runtime/test` (vitest 18/18) and
+  `node docs/evidence/agents/agent-proof.mjs` (deterministic transcript + honest denial).
 
-Not implemented yet — the Design "agent" for the Milestone 1 slice is the deterministic
-heuristic composer inside `packages/ai-providers` (DEMO MODE), which already emits the same
-structured `OpBatch` contract a real agent will use. Implementation begins at M2 (agentic
-coding) / M6 (autonomous build).
+Still placeholder (§24/§26): the Agent Registry (multi-agent roster/handoff) and long-term memory.
+Not yet implemented from §63: real fs/exec tools, process runner, browser automation, visual QA,
+git commit — all gated on ADR 0013 approval machinery. The M1 Design "agent" remains the
+deterministic composer inside `packages/ai-providers` (DEMO MODE), which emits the same structured
+`OpBatch` contract a live-model agent will use.

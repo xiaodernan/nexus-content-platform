@@ -40,8 +40,9 @@ Status: **Milestone 0/1.** This document describes the target architecture and m
 ```
 
 **Built now:** `apps/studio` canvas + panels + in-browser Design Model/Ops;
-`packages/design-model`; `packages/ai-providers` (DemoProvider).
-**Scaffolded now, implemented in later milestones:** `services/*`, `agents/*`,
+`packages/design-model`; `packages/ai-providers` (DemoProvider); `agents/runtime`
+(M2 v0 hermetic agent loop, ADR 0016).
+**Scaffolded now, implemented in later milestones:** `services/*`, agent Registry/memory,
 Postgres/Redis/MinIO (`docker-compose.yml`), sandbox, community, RAG persistence. The Studio
 runs end-to-end with **no** backend for the slice.
 

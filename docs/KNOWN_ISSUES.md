@@ -100,10 +100,15 @@ Live list. Nothing here is hidden behind marketing copy.
   the canvas paints, snaps, edits in place and exports PNG.
 
 ## Architecture
-- `services/*` and `agents/*` are **scaffolded shells** with contracts only; they are not yet
-  implemented. The Studio intentionally does not depend on them for the slice.
-- Sandbox/security enforcement (ADR 0013) is **Proposed**, not built — no untrusted code path
-  exists in the slice to protect.
+- `agents/runtime` (`@nexus/agent-runtime`) is now **implemented** as the M2 v0 core (ADR 0016) —
+  but hermetically: in-memory workspace tools, a host-injected `test.run` predicate, and template
+  demo planning. It is *not* a coding agent that touches the real fs, runs processes, browses, or
+  commits — those §63 duties stay unimplemented until ADR 0013's exec sandbox exists.
+- `services/*` are still **README-only shells** (a real `packages/contracts` does not exist yet);
+  the Studio intentionally does not depend on them for the slice.
+- Sandbox/security enforcement (ADR 0013) is **partially realized**: the permission-scoped Tool
+  Registry + Human-Checkpoint gate are executable and tested; container isolation is not built —
+  there is still no untrusted code path to protect against, because the runtime has no real I/O.
 
 ## Tooling
 - Package manager is **npm workspaces**, not pnpm: `corepack` cannot write the global pnpm

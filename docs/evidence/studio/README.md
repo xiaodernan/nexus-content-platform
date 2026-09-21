@@ -6,13 +6,14 @@ fabricated results. Where the environment limited a check, that is stated honest
 ## Reproducible gates (all green)
 
 ```
-npm run build lint typecheck test     # via turbo, 10/10 tasks pass
+npm run build lint typecheck test     # via turbo: build 4/4 · lint 3/3 · typecheck 6/6 · test 6/6
 ```
 
 | Package            | Result |
 | ------------------ | ------ |
 | @nexus/design-model| 28/28 vitest (`design-model` 16 incl. 3 rotated-hitTest + 2 rigid-geometry cases + `instances` 12 incl. x/y delta + absolute rotation overrides + rigid rotation bake), tsc clean |
 | @nexus/ai-providers| 7/7 vitest, tsc clean |
+| @nexus/agent-runtime| 18/18 vitest (M2 v0: registry 7 + workspace 4 + planner/orchestrator 7) · tsc clean — see `docs/evidence/agents/README.md` |
 | @nexus/studio      | 71/71 vitest (`snap` + `persist` + `align` + `store-variants` 18 incl. sub-selection + clone-rotation override + rigid subtree flatten + `thumbnail` + `rotate` 14 incl. rotated handle hit-tests + rigid plan cases + `render` + `minimap`) · tsc `--noEmit` clean · eslint `--max-warnings=0` clean · `next build` ✓ (4/4 static pages) |
 
 ## Headless pipeline proof
