@@ -12,7 +12,7 @@
 - [x] docs 体系（PRODUCT / ARCHITECTURE / DESIGN_SYSTEM / STUDIO / RUNTIME / AGENTS / SECURITY / TESTING）
 - [x] monorepo 脚手架（npm workspaces：`@nexus/design-model` `@nexus/schemas` `@nexus/web`）
 - [x] 基础设施容器（pgvector 已起于 55433；redis/minio 在 `full` profile，按需启动）
-- [x] `@nexus/design-model` 类型 + 布局求解 + Command 事务 + 测试（64 tests green，`npx vitest run`）
+- [x] `@nexus/design-model` 类型 + 布局求解 + Command 事务 + 测试（86 tests green，`npx vitest run`）
 - [x] 数据库 Schema + 迁移（29 表 / 149 语句，`scripts/db-migrate.mts` 已在空库验证幂等）
 
 ## M1 — NEXUS STUDIO 竖向切片（§181）
@@ -24,16 +24,25 @@ Create Project → Prompt → AI Design → Canvas → Layers → Properties
 → Design System → AI Edit → Code → Live Preview → Screenshot → Publish
 ```
 
-- [ ] Studio 布局（顶栏 / 左面板 / Canvas / 右属性面板 / 底部 AI 命令栏）
-- [ ] Canvas：zoom / pan / select / multi-select / drag / resize / snapping / grid / guides / viewport 切换
-- [ ] 直接操作：属性编辑即时回写 design model（§15-16）
-- [ ] Undo / Redo，AI 操作作为单个可撤销事务（§148-150）
-- [ ] AI Service：Provider 抽象 + Model Router + Mock（DEMO MODE 明确标注）
+- [x] Studio 布局（顶栏 / 左面板 / Canvas / 右属性面板 / 底部 AI 命令栏）
+- [x] Canvas：zoom / pan / select / multi-select（框选）/ drag / resize / snapping / grid / guides / viewport 切换
+- [x] 直接操作：属性编辑即时回写 design model（§15-16）
+- [x] Undo / Redo，AI 操作作为单个可撤销事务（§148-150）
+- [x] Mock AI（DEMO MODE 明确标注，补丁双端 schema 校验，§160）
+- [x] Live Preview 只读投影 + 截图脚本（§33/87，`scripts/capture-studio.mts`）
+- [ ] Design System 面板（token 浏览/编辑；当前只在属性面板显示概览与绑定选择器）
+- [ ] AI Service：独立进程 Provider 抽象 + Model Router + 任务队列（§6）
 - [ ] Design Agent：意图 → Plan → design patch → 画布更新 → AI Diff 说明（§20/25/151）
 - [ ] Design → Code（React + TS + Tailwind）；Code → Design（受限 JSX 解析，不可逆区域保留为 code-only，§17-19）
-- [ ] Live Preview（隔离渲染）+ Playwright 截图（§33/87）
-- [ ] Snapshot / Version History / Branch / 多方案比较（§27-29）
+- [ ] Snapshot / Version History / Branch / 多方案比较（§27-29，现有历史面板仅本地会话内）
 - [ ] 免注册首次体验（§137）→ 注册保存；Publish + 分享 URL（§56-57）
+
+**M1 进度记录（2026-09-22）**：Studio 工作台竖向切片已验证——
+`npm test` 86 tests、`npm run test:e2e:smoke` 6 @smoke（`playwright.config.ts` 已固定 `workers: 1`）、
+`npm run lint`（= 四个 tsconfig 全量 typecheck）通过，
+截图检查（`screenshots/studio.png` / `studio-mobile.png` / `preview.png`）确认：
+文本与按钮文案已投影到画布与预览；按钮 `fills` 作背景、`typography.color` 作字色；
+hug 尺寸把 padding 计入；响应式断点下属性面板如实显示实际帧尺寸。
 
 **M1 验收**：新开项目输入一句 prompt，60 秒内（§138）在画布上看到可编辑设计，改属性能落库，
 点 Code 能看到可编译的 React，点 Preview 能在 iframe 里真实运行，Screenshot 能出图，Publish 能拿到可访问 URL。
@@ -86,3 +95,10 @@ Create Project → Prompt → AI Design → Canvas → Layers → Properties
 
 ## 当前阻塞项
 - `[!]` 真实 AI provider key（文本/图像/视频）— 用户提供前，全部生成类能力以 DEMO MODE 交付，UI 明确标注，不伪装真实结果。
+
+## 已知技术债（不伪装成已完成）
+- `Layout.gap / padding / cornerRadius` 类型是 `number`，但属性面板的 token 绑定会写入 `"{space.4}"` 这类字符串；
+  运行时 TokenStore 能解析，类型层面在说谎。需要把这三处放宽为 `number | TokenKey` 并在 validate/layout 统一解析。
+- ESLint 目前只有 `npm run lint` = typecheck 的占位配置，缺真实规则集。
+- 资产（image/video paint）尚未渲染：`render.ts` 明确跳过，等任务 #9 的资产服务落地。
+- 历史面板只在浏览器会话内可撤销，刷新即失；服务端 Snapshot 属于任务 #8。

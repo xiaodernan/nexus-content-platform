@@ -274,6 +274,9 @@ export function resolveLayout(
     "webgl",
   ]);
 
+  /** 自身承载文案、按内容测量的叶子节点（按钮与输入框的文字来自 text 字段） */
+  const TEXT_LIKE_TYPES = new Set(["text", "button", "input"]);
+
   const intrinsicRaster = (node: DesignNode, avail: Box2): Box => {
     const fallback = node.type === "svg" ? 24 : 120;
     const w = axisSize(node.size.width);
@@ -389,20 +392,26 @@ export function resolveLayout(
     const crossPadX = pad.left + pad.right;
     const crossPadY = pad.top + pad.bottom;
 
-    if (node.type === "text") {
-      const wrapWidth = typeof width === "number" ? width : avail.width;
+    if (TEXT_LIKE_TYPES.has(node.type)) {
+      // 按钮 / 输入框的文案同样参与测量；hug 尺寸要把 padding 算进去，否则内边距会吃掉文字
+      const wrapWidth =
+        typeof width === "number"
+          ? Math.max(0, width - crossPadX)
+          : avail.width === null
+            ? null
+            : Math.max(0, avail.width - crossPadX);
       const measured = measureTextNode(node, wrapWidth);
       const w =
         width === "hug"
-          ? measured.width
+          ? measured.width + crossPadX
           : width === "fill"
-            ? (avail.width ?? measured.width)
+            ? (avail.width ?? measured.width + crossPadX)
             : (width as number);
       const h =
         height === "hug"
-          ? measured.height
+          ? measured.height + crossPadY
           : height === "fill"
-            ? (avail.height ?? measured.height)
+            ? (avail.height ?? measured.height + crossPadY)
             : (height as number);
       return { width: w, height: h };
     }
@@ -828,7 +837,10 @@ export function resolveLayout(
     ? { width: BREAKPOINT_WIDTH[breakpoint], height: null }
     : { width: null, height: null };
   const rootBox = measure(root, rootAvail, 0);
-  const finalRoot: Box = {
+  // viewport 预览（§14）：根画框跟随断点宽度重新求解，模型本身不被改写。
+  // 高度只在没有显式裁剪时撑到内容高度，否则预览会切掉响应式换行后的内容。
+  const viewportWidth = breakpoint ? BREAKPOINT_WIDTH[breakpoint] : null;
+  const modelRoot: Box = {
     width:
       axisSize(root.size.width) === "hug"
         ? rootBox.width
@@ -839,6 +851,12 @@ export function resolveLayout(
         : (axisSize(root.size.height) as number) ||
           rootBox.height ||
           page.height,
+  };
+  const finalRoot: Box = {
+    width: viewportWidth ?? modelRoot.width,
+    height: root.layout.clipContent
+      ? modelRoot.height
+      : Math.max(modelRoot.height, rootBox.height),
   };
   place(root, 0, 0, finalRoot, 0);
 
@@ -892,7 +910,7 @@ export interface Rect {
   height: number;
 }
 
-export function boundsOf(layout: ResolvedLayout, ids: string[]): Rect | null {
+export function boundsOf(layout: ResolvedLayout, ids: readonly string[]): Rect | null {
   let minX = Infinity;
   let minY = Infinity;
   let maxX = -Infinity;

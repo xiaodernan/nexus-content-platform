@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { createDocument, createNode, findPage } from "../src/nodes";
+import { createDocument, createNode, createPage, findPage } from "../src/nodes";
 import {
   applyPatch,
   collectSubtree,
@@ -199,6 +199,42 @@ describe("diffPatch (§151)", () => {
       kind: "token",
       path: "tokens.color.primary",
     });
+  });
+});
+
+describe("page-level patches (§5 Pages)", () => {
+  it("adds a page and undo removes it again", () => {
+    const { doc } = seed();
+    const store = new DesignStore(doc);
+    const page = createPage("Pricing");
+    store.execute(manualCommand("新建页面", { ops: [{ op: "addPage", page }] }));
+    expect(store.getDocument().pages).toHaveLength(2);
+    store.undo();
+    expect(store.getDocument().pages).toHaveLength(1);
+    expect(store.getDocument().pages[0]!.id).toBe(doc.pages[0]!.id);
+  });
+
+  it("restores the active page when undoing a removal", () => {
+    const { doc } = seed();
+    const store = new DesignStore(doc);
+    const page = createPage("Pricing");
+    store.execute(manualCommand("新建页面", { ops: [{ op: "addPage", page, setActive: true }] }));
+    expect(store.getDocument().activePageId).toBe(page.id);
+    store.execute(manualCommand("删除页面", { ops: [{ op: "removePage", pageId: page.id }] }));
+    expect(store.getDocument().activePageId).toBe(doc.pages[0]!.id);
+    store.undo();
+    const restored = store.getDocument();
+    expect(restored.pages.map((p) => p.id)).toContain(page.id);
+    expect(restored.activePageId).toBe(page.id);
+  });
+
+  it("refuses to remove the last page instead of silently corrupting the document", () => {
+    const { doc } = seed();
+    const result = applyPatch(doc, {
+      ops: [{ op: "removePage", pageId: doc.pages[0]!.id }],
+    });
+    expect(result.document.pages).toHaveLength(1);
+    expect(result.skipped.some((s) => s.reason.includes("last page"))).toBe(true);
   });
 });
 

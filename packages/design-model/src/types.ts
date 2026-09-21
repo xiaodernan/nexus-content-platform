@@ -136,6 +136,8 @@ export interface Typography {
   verticalAlign: "top" | "middle" | "bottom";
   decoration?: "none" | "underline" | "line-through";
   textCase?: "original" | "upper" | "lower" | "title";
+  /** 字色。text 节点沿用 fills[0]；button / input 的 fills 是背景，字色只能走这里 */
+  color?: ColorValue;
   /** 富文本局部样式；按字符偏移切分，未覆盖部分沿用整段样式 */
   runs?: TextRun[];
 }

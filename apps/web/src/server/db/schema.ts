@@ -35,15 +35,16 @@ const tsvector = customType<{ data: string }>({
 const now = () => timestamp('created_at', { withTimezone: true }).notNull().defaultNow();
 
 export const UserRole = pgEnum('user_role', ['creator', 'admin']);
+/** 取值与 @nexus/design-model 的 ProjectType 完全一致，避免两套词汇（§9 模型即真值） */
 export const ProjectKind = pgEnum('project_kind', [
   'website',
-  'web_app',
-  'mobile_ui',
+  'webapp',
+  'mobile-ui',
   'game',
-  'interactive_story',
-  'experience_3d',
+  'interactive-story',
+  '3d-experience',
   'dashboard',
-  'design_system',
+  'design-system',
   'prototype',
   'world',
   'video',
@@ -70,7 +71,8 @@ export const users = pgTable(
   'users',
   {
     id: uuid('id').primaryKey().defaultRandom(),
-    email: text('email').notNull(),
+    /** guest 用户没有邮箱（§137），所以列可空；Postgres 唯一索引允许多个 NULL */
+    email: text('email'),
     passwordHash: text('password_hash'),
     displayName: text('display_name').notNull(),
     handle: text('handle'),
@@ -121,7 +123,7 @@ export const projects = pgTable(
     visibility: Visibility('visibility').notNull().default('private'),
     /** Remix / fork 血缘（§58） */
     forkOf: uuid('fork_of').references((): any => projects.id, { onDelete: 'set null' }),
-    activePageId: uuid('active_page_id'),
+    activePageId: text('active_page_id'),
     /** 当前生效快照，指向 snapshots；外键在迁移里后补，避免循环定义 */
     currentSnapshotId: uuid('current_snapshot_id'),
     /** 项目级硬约束：Brand Kit / Visual DNA（§119 / §172-174） */
@@ -180,7 +182,8 @@ export const snapshots = pgTable(
 export const pages = pgTable(
   'pages',
   {
-    id: uuid('id').primaryKey().defaultRandom(),
+    /** 主键直接用设计模型里的 page id：模型即真值，不允许二次发号（§9） */
+    id: text('id').primaryKey(),
     projectId: uuid('project_id')
       .notNull()
       .references(() => projects.id, { onDelete: 'cascade' }),
@@ -201,7 +204,7 @@ export const designNodes = pgTable(
   'design_nodes',
   {
     id: text('id').notNull(),
-    pageId: uuid('page_id')
+    pageId: text('page_id')
       .notNull()
       .references(() => pages.id, { onDelete: 'cascade' }),
     parentId: text('parent_id'),
@@ -246,12 +249,12 @@ export const designTokens = pgTable(
 export const components = pgTable(
   'components',
   {
-    id: uuid('id').primaryKey().defaultRandom(),
+    id: text('id').primaryKey(),
     projectId: uuid('project_id')
       .notNull()
       .references(() => projects.id, { onDelete: 'cascade' }),
     name: text('name').notNull(),
-    pageId: uuid('page_id').references(() => pages.id, { onDelete: 'cascade' }),
+    pageId: text('page_id').references(() => pages.id, { onDelete: 'cascade' }),
     rootNodeId: text('root_node_id').notNull(),
     variants: jsonb('variants'),
     props: jsonb('props'),

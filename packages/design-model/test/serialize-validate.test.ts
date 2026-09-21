@@ -75,6 +75,19 @@ describe("validateDocument", () => {
     expect(validateDocument(createDocument("Ok"))).toEqual([]);
   });
 
+  it("starter page has a hero whose colours all come from tokens", () => {
+    const page = createDocument("Starter").pages[0]!;
+    const hero = Object.values(page.nodes).find((n) => n.name === "Hero");
+    const headline = Object.values(page.nodes).find((n) => n.name === "Headline");
+    expect(hero?.type).toBe("section");
+    expect(headline?.typography?.fontSize).toBeGreaterThanOrEqual(28);
+    for (const node of Object.values(page.nodes)) {
+      for (const paint of node.style.fills) {
+        if (paint.kind === "solid") expect(String(paint.color)).toMatch(/^\{.+\}$/);
+      }
+    }
+  });
+
   it("flags orphan nodes and dangling children", () => {
     const doc = createDocument("Dirty");
     const page = doc.pages[0]!;

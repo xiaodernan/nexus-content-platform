@@ -4,7 +4,7 @@ CREATE TYPE "public"."capability_status" AS ENUM('real', 'demo', 'unavailable');
 CREATE TYPE "public"."memory_scope" AS ENUM('session', 'character', 'world', 'user');--> statement-breakpoint
 CREATE TYPE "public"."message_role" AS ENUM('user', 'assistant', 'system', 'tool');--> statement-breakpoint
 CREATE TYPE "public"."moderation_status" AS ENUM('pending', 'approved', 'rejected', 'flagged');--> statement-breakpoint
-CREATE TYPE "public"."project_kind" AS ENUM('website', 'web_app', 'mobile_ui', 'game', 'interactive_story', 'experience_3d', 'dashboard', 'design_system', 'prototype', 'world', 'video');--> statement-breakpoint
+CREATE TYPE "public"."project_kind" AS ENUM('website', 'webapp', 'mobile-ui', 'game', 'interactive-story', '3d-experience', 'dashboard', 'design-system', 'prototype', 'world', 'video');--> statement-breakpoint
 CREATE TYPE "public"."snapshot_source" AS ENUM('manual', 'ai', 'import', 'publish', 'branch');--> statement-breakpoint
 CREATE TYPE "public"."task_status" AS ENUM('queued', 'planning', 'running', 'awaiting_approval', 'succeeded', 'failed', 'cancelled');--> statement-breakpoint
 CREATE TYPE "public"."user_role" AS ENUM('creator', 'admin');--> statement-breakpoint
@@ -118,10 +118,10 @@ CREATE TABLE "comments" (
 );
 --> statement-breakpoint
 CREATE TABLE "components" (
-	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
+	"id" text PRIMARY KEY NOT NULL,
 	"project_id" uuid NOT NULL,
 	"name" text NOT NULL,
-	"page_id" uuid,
+	"page_id" text,
 	"root_node_id" text NOT NULL,
 	"variants" jsonb,
 	"props" jsonb,
@@ -142,7 +142,7 @@ CREATE TABLE "conversations" (
 --> statement-breakpoint
 CREATE TABLE "design_nodes" (
 	"id" text NOT NULL,
-	"page_id" uuid NOT NULL,
+	"page_id" text NOT NULL,
 	"parent_id" text,
 	"node_type" text NOT NULL,
 	"name" text NOT NULL,
@@ -241,7 +241,7 @@ CREATE TABLE "messages" (
 );
 --> statement-breakpoint
 CREATE TABLE "pages" (
-	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
+	"id" text PRIMARY KEY NOT NULL,
 	"project_id" uuid NOT NULL,
 	"name" text NOT NULL,
 	"root_node_id" text NOT NULL,
@@ -263,7 +263,7 @@ CREATE TABLE "projects" (
 	"description" text,
 	"visibility" "visibility" DEFAULT 'private' NOT NULL,
 	"fork_of" uuid,
-	"active_page_id" uuid,
+	"active_page_id" text,
 	"current_snapshot_id" uuid,
 	"brand_kit" jsonb,
 	"visual_dna" jsonb,
@@ -346,7 +346,7 @@ CREATE TABLE "usage" (
 --> statement-breakpoint
 CREATE TABLE "users" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
-	"email" text NOT NULL,
+	"email" text,
 	"password_hash" text,
 	"display_name" text NOT NULL,
 	"handle" text,

@@ -1,5 +1,5 @@
 {
-  "id": "2ad9e5a2-2473-4263-9b00-1cd474424e77",
+  "id": "7581a5c4-7491-41c8-991a-45a2a64b93d3",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "version": "7",
   "dialect": "postgresql",
@@ -1144,10 +1144,9 @@
       "columns": {
         "id": {
           "name": "id",
-          "type": "uuid",
+          "type": "text",
           "primaryKey": true,
-          "notNull": true,
-          "default": "gen_random_uuid()"
+          "notNull": true
         },
         "project_id": {
           "name": "project_id",
@@ -1163,7 +1162,7 @@
         },
         "page_id": {
           "name": "page_id",
-          "type": "uuid",
+          "type": "text",
           "primaryKey": false,
           "notNull": false
         },
@@ -1406,7 +1405,7 @@
         },
         "page_id": {
           "name": "page_id",
-          "type": "uuid",
+          "type": "text",
           "primaryKey": false,
           "notNull": true
         },
@@ -2454,10 +2453,9 @@
       "columns": {
         "id": {
           "name": "id",
-          "type": "uuid",
+          "type": "text",
           "primaryKey": true,
-          "notNull": true,
-          "default": "gen_random_uuid()"
+          "notNull": true
         },
         "project_id": {
           "name": "project_id",
@@ -2649,7 +2647,7 @@
         },
         "active_page_id": {
           "name": "active_page_id",
-          "type": "uuid",
+          "type": "text",
           "primaryKey": false,
           "notNull": false
         },
@@ -3616,7 +3614,7 @@
           "name": "email",
           "type": "text",
           "primaryKey": false,
-          "notNull": true
+          "notNull": false
         },
         "password_hash": {
           "name": "password_hash",
@@ -3927,13 +3925,13 @@
       "schema": "public",
       "values": [
         "website",
-        "web_app",
-        "mobile_ui",
+        "webapp",
+        "mobile-ui",
         "game",
-        "interactive_story",
-        "experience_3d",
+        "interactive-story",
+        "3d-experience",
         "dashboard",
-        "design_system",
+        "design-system",
         "prototype",
         "world",
         "video"

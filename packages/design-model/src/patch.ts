@@ -21,7 +21,9 @@ export type PatchOp =
   | { op: "addToken"; token: DesignDocument["tokens"][number] }
   | { op: "removeToken"; key: string }
   | { op: "addComponent"; component: DesignDocument["components"][number] }
-  | { op: "addAsset"; asset: DesignDocument["assets"][number] };
+  | { op: "addAsset"; asset: DesignDocument["assets"][number] }
+  | { op: "addPage"; page: Page; setActive?: boolean }
+  | { op: "removePage"; pageId: string };
 
 export interface DesignPatch {
   /** 事务标识：同一次 AI 操作共享一个 id（§149） */
@@ -256,6 +258,22 @@ function applyToPage(
   });
 }
 
+/** 作用于 document（而非单个 page）的 op */
+function isDocumentOp(op: PatchOp): boolean {
+  switch (op.op) {
+    case "setToken":
+    case "addToken":
+    case "removeToken":
+    case "addComponent":
+    case "addAsset":
+    case "addPage":
+    case "removePage":
+      return true;
+    default:
+      return false;
+  }
+}
+
 function applyDocumentOp(
   document: DesignDocument,
   op: PatchOp,
@@ -263,6 +281,24 @@ function applyDocumentOp(
   index: number,
 ): void {
   switch (op.op) {
+    case "addPage": {
+      const at = document.pages.findIndex((p) => p.id === op.page.id);
+      if (at >= 0) document.pages[at] = op.page;
+      else document.pages.push(op.page);
+      if (op.setActive) document.activePageId = op.page.id;
+      break;
+    }
+    case "removePage": {
+      if (document.pages.length <= 1) {
+        skipped.push({ index, reason: "cannot remove the last page" });
+        break;
+      }
+      document.pages = document.pages.filter((p) => p.id !== op.pageId);
+      if (document.activePageId === op.pageId) {
+        document.activePageId = document.pages[0]?.id ?? "";
+      }
+      break;
+    }
     case "setToken": {
       const token = document.tokens.find((t) => t.key === op.key);
       if (!token) {
@@ -344,21 +380,9 @@ export function applyPatch(
       skipped: [{ index: 0, reason: "page not found" }],
     };
   }
-  const pageOps: PatchOp[] = [];
-  const docOps: PatchOp[] = [];
-  for (const op of patch.ops) {
-    if (
-      op.op === "setToken" ||
-      op.op === "addToken" ||
-      op.op === "removeToken" ||
-      op.op === "addComponent" ||
-      op.op === "addAsset"
-    )
-      docOps.push(op);
-    else pageOps.push(op);
-  }
+  const pageOps: PatchOp[] = patch.ops.filter((op) => !isDocumentOp(op));
   applyToPage(page, pageOps, skipped, touched, next);
-  // docOps 的 index 需与原始 ops 对齐以便定位，这里单独走一遍
+  // document 级 op 单独走一遍，index 与原始 ops 对齐以便定位
   const offsetIndexSkips: { index: number; reason: string }[] = [];
   applyDocumentOpsWithIndex(next, patch.ops, offsetIndexSkips);
   skipped.push(...offsetIndexSkips);
@@ -372,15 +396,7 @@ function applyDocumentOpsWithIndex(
   skipped: { index: number; reason: string }[],
 ): void {
   ops.forEach((op, index) => {
-    if (
-      op.op === "setToken" ||
-      op.op === "addToken" ||
-      op.op === "removeToken" ||
-      op.op === "addComponent" ||
-      op.op === "addAsset"
-    ) {
-      applyDocumentOp(document, op, skipped, index);
-    }
+    if (isDocumentOp(op)) applyDocumentOp(document, op, skipped, index);
   });
 }
 
@@ -520,6 +536,21 @@ export function invertPatch(
         if (existing) ops.push({ op: "addAsset", asset: clone(existing) });
         break;
       }
+      case "addPage": {
+        ops.push({ op: "removePage", pageId: op.page.id });
+        break;
+      }
+      case "removePage": {
+        const existing = document.pages.find((p) => p.id === op.pageId);
+        if (existing)
+          ops.push({
+            op: "addPage",
+            page: clone(existing),
+            // 删除时若它就是当前页，撤销要把它重新设为当前页
+            setActive: document.activePageId === op.pageId,
+          });
+        break;
+      }
     }
   }
   return {
@@ -641,6 +672,26 @@ export function diffPatch(
         });
         break;
       }
+      case "addPage":
+        entries.push({
+          nodeId: "document",
+          nodeName: "Pages",
+          path: "pages",
+          before: undefined,
+          after: op.page.name,
+          kind: "added",
+        });
+        break;
+      case "removePage":
+        entries.push({
+          nodeId: "document",
+          nodeName: "Pages",
+          path: "pages",
+          before: document.pages.find((p) => p.id === op.pageId)?.name ?? op.pageId,
+          after: undefined,
+          kind: "removed",
+        });
+        break;
       default:
         break;
     }

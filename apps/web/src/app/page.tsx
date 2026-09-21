@@ -1,4 +1,9 @@
 import { getAiCapabilities } from '@/lib/env';
+import { requireUser } from '@/server/domain/session';
+import { listProjects } from '@/server/domain/projects';
+import { NewProjectForm } from '@/components/NewProjectForm';
+
+export const dynamic = 'force-dynamic';
 
 const MODALITIES = [
   { key: 'text', label: '文本 / 设计生成' },
@@ -6,8 +11,10 @@ const MODALITIES = [
   { key: 'video', label: '视频生成' },
 ] as const;
 
-export default function HomePage() {
+export default async function HomePage() {
   const caps = getAiCapabilities();
+  const user = await requireUser();
+  const projects = await listProjects(user.id);
 
   return (
     <main className="mx-auto flex min-h-screen max-w-[820px] flex-col gap-[var(--nexus-space-8)] px-[var(--nexus-space-6)] py-[var(--nexus-space-12)]">
@@ -23,6 +30,31 @@ export default function HomePage() {
           {caps.live ? 'LIVE PROVIDER' : 'DEMO MODE'}
         </span>
       </header>
+
+      <section className="border-t border-[var(--nexus-color-border-subtle)] pt-[var(--nexus-space-6)]">
+        <h2 className="mb-[var(--nexus-space-3)] text-[var(--nexus-font-size-16)] font-medium">项目</h2>
+        <NewProjectForm />
+        {projects.length ? (
+          <ul className="mt-[var(--nexus-space-4)] grid gap-[var(--nexus-space-2)]">
+            {projects.map((project) => (
+              <li key={project.id}>
+                <a
+                  href={`/studio/${project.id}`}
+                  className="flex items-center justify-between rounded-[var(--nexus-radius-sm)] bg-bg-1 px-[var(--nexus-space-4)] py-[var(--nexus-space-3)] hover:bg-bg-2"
+                  data-project-row={project.id}
+                >
+                  <span className="text-[var(--nexus-font-size-14)]">{project.name}</span>
+                  <span className="font-mono text-[var(--nexus-font-size-12)] text-fg-3">
+                    {project.kind} · {new Date(project.updatedAt).toLocaleString('zh-CN', { hour12: false })}
+                  </span>
+                </a>
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <p className="mt-[var(--nexus-space-3)] text-[var(--nexus-font-size-13)] text-fg-3">还没有项目。创建一个即可进入 Studio 画布。</p>
+        )}
+      </section>
 
       <section className="border-t border-[var(--nexus-color-border-subtle)] pt-[var(--nexus-space-6)]">
         <h2 className="mb-[var(--nexus-space-3)] text-[var(--nexus-font-size-16)] font-medium">Provider 就绪状态</h2>

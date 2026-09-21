@@ -253,12 +253,166 @@ export function createPage(name: string, width = 1440, height = 900): Page {
   };
 }
 
+/**
+ * 新项目起手页。空画布没法验证任何链路，所以给一段最小可用的 hero；
+ * 所有可见值都引用 token（§12），AI mock 也靠它的命名找到 hero。
+ */
+export function starterPage(name = "Home"): Page {
+  const page = createPage(name);
+  const root = page.nodes[page.rootId]!;
+
+  const add = (input: CreateNodeInput, parent: DesignNode): DesignNode => {
+    const node = createNode({ ...input, parentId: parent.id });
+    page.nodes[node.id] = node;
+    parent.children.push(node.id);
+    return node;
+  };
+
+  const hero = add(
+    {
+      type: "section",
+      name: "Hero",
+      size: { width: "fill", height: "hug" },
+      layout: {
+        mode: "vertical",
+        gap: 24,
+        padding: { top: 64, right: 40, bottom: 64, left: 40 },
+        items: "start",
+      },
+      style: { fills: [{ kind: "solid", color: "{color.surface}" }] },
+    },
+    root,
+  );
+
+  add(
+    {
+      type: "text",
+      name: "Eyebrow",
+      text: "NEXUS STUDIO",
+      size: { width: "hug", height: "hug" },
+      style: { fills: [{ kind: "solid", color: "{color.accent}" }] },
+      typography: {
+        fontFamily: "{font.mono}",
+        fontSize: 12,
+        fontWeight: 500,
+        lineHeight: 1.5,
+        letterSpacing: 2,
+        align: "left",
+        verticalAlign: "top",
+      },
+    },
+    hero,
+  );
+
+  add(
+    {
+      type: "text",
+      name: "Headline",
+      text: "从一句话到一个可发布的产品",
+      size: { width: "fill", height: "hug" },
+      style: { fills: [{ kind: "solid", color: "{color.text}" }] },
+      typography: {
+        fontFamily: "{font.heading}",
+        fontSize: 56,
+        fontWeight: 700,
+        lineHeight: 1.1,
+        letterSpacing: -1.5,
+        align: "left",
+        verticalAlign: "top",
+      },
+    },
+    hero,
+  );
+
+  add(
+    {
+      type: "text",
+      name: "Subhead",
+      text: "画布、代码与预览都是同一份设计模型的投影。改模型，三处一起更新。",
+      size: { width: "fill", height: "hug" },
+      style: { fills: [{ kind: "solid", color: "{color.text-muted}" }] },
+      typography: {
+        fontFamily: "{font.body}",
+        fontSize: 18,
+        fontWeight: 400,
+        lineHeight: 1.6,
+        letterSpacing: 0,
+        align: "left",
+        verticalAlign: "top",
+      },
+    },
+    hero,
+  );
+
+  const actions = add(
+    {
+      type: "container",
+      name: "Actions",
+      size: { width: "hug", height: "hug" },
+      layout: { mode: "horizontal", gap: 12, items: "center" },
+    },
+    hero,
+  );
+
+  add(
+    {
+      type: "button",
+      name: "Primary CTA",
+      text: "开始设计",
+      size: { width: "hug", height: "hug" },
+      layout: { padding: { top: 12, right: 24, bottom: 12, left: 24 } },
+      style: {
+        fills: [{ kind: "solid", color: "{color.primary}" }],
+        cornerRadius: { topLeft: 10, topRight: 10, bottomRight: 10, bottomLeft: 10 },
+      },
+      typography: {
+        fontFamily: "{font.body}",
+        fontSize: 15,
+        fontWeight: 600,
+        lineHeight: 1.5,
+        letterSpacing: 0,
+        align: "center",
+        verticalAlign: "top",
+        color: "{color.on-primary}",
+      },
+    },
+    actions,
+  );
+
+  add(
+    {
+      type: "button",
+      name: "Secondary CTA",
+      text: "查看文档",
+      size: { width: "hug", height: "hug" },
+      layout: { padding: { top: 12, right: 24, bottom: 12, left: 24 } },
+      style: {
+        strokes: [{ paints: [{ kind: "solid", color: "{color.border}" }], width: 1, position: "inside" }],
+        cornerRadius: { topLeft: 10, topRight: 10, bottomRight: 10, bottomLeft: 10 },
+      },
+      typography: {
+        fontFamily: "{font.body}",
+        fontSize: 15,
+        fontWeight: 500,
+        lineHeight: 1.5,
+        letterSpacing: 0,
+        align: "center",
+        verticalAlign: "top",
+        color: "{color.text}",
+      },
+    },
+    actions,
+  );
+
+  return page;
+}
+
 export function createDocument(
   name: string,
   projectType: DesignDocument["metadata"]["projectType"] = "website",
 ): DesignDocument {
   const now = new Date().toISOString();
-  const page = createPage("Home");
+  const page = starterPage("Home");
   return {
     id: uid("doc"),
     schemaVersion: 1,
@@ -318,6 +472,12 @@ export const DEFAULT_TOKENS: Token[] = [
     modes: { light: "#5b3df5", dark: "#7c5cff" },
   },
   { key: "color.accent", type: "color", value: "#22d3ee" },
+  {
+    key: "color.on-primary",
+    type: "color",
+    value: "#ffffff",
+    modes: { light: "#ffffff", dark: "#ffffff" },
+  },
   {
     key: "color.border",
     type: "color",

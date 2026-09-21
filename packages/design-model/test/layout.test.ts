@@ -252,6 +252,30 @@ describe("resolveLayout — text", () => {
     expect(layout.nodes[node.id]!.width).toBeLessThanOrEqual(200);
     expect(layout.nodes[node.id]!.height).toBeGreaterThan(30);
   });
+
+  it("sizes a button by its label plus padding, not just padding", () => {
+    const button = createNode({
+      type: "button",
+      name: "cta",
+      text: "开始设计",
+      size: { width: "hug", height: "hug" },
+      layout: { padding: { top: 12, right: 24, bottom: 12, left: 24 } },
+      typography: {
+        fontFamily: "Inter",
+        fontSize: 20,
+        fontWeight: 600,
+        lineHeight: 1.5,
+        letterSpacing: 0,
+        align: "center",
+        verticalAlign: "top",
+      },
+    });
+    const layout = resolveLayout(verticalFrame([button]));
+    const resolved = layout.nodes[button.id]!;
+    // 4 个全角字 * 20 * 1.04 + 48 横向 padding
+    expect(resolved.width).toBe(132);
+    expect(resolved.height).toBe(54);
+  });
 });
 
 describe("resolveLayout — responsive breakpoints (§14)", () => {
@@ -274,6 +298,14 @@ describe("resolveLayout — responsive breakpoints (§14)", () => {
     expect(
       resolveLayout(page, { breakpoint: "wide" }).nodes[child.id]!.width,
     ).toBe(120);
+  });
+
+  it("reflows the root frame to the preview viewport without touching the model", () => {
+    const layout = resolveLayout(page, { breakpoint: "mobile" });
+    expect(layout.width).toBe(375);
+    expect(layout.nodes[page.rootId]!.width).toBe(375);
+    // 模型仍然是设计宽度
+    expect(page.nodes[page.rootId]!.size.width).toBe(400);
   });
 
   it("maps widths to breakpoint names", () => {

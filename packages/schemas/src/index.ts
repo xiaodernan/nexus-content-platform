@@ -30,6 +30,8 @@ export const PatchOpSchema = z.discriminatedUnion('op', [
   z.object({ op: z.literal('removeToken'), key: z.string() }),
   z.object({ op: z.literal('addComponent'), component: z.record(z.string(), z.unknown()) }),
   z.object({ op: z.literal('addAsset'), asset: z.record(z.string(), z.unknown()) }),
+  z.object({ op: z.literal('addPage'), page: z.record(z.string(), z.unknown()), setActive: z.boolean().optional() }),
+  z.object({ op: z.literal('removePage'), pageId: z.string() }),
 ]);
 export type PatchOpPayload = z.infer<typeof PatchOpSchema>;
 

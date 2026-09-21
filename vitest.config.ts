@@ -14,6 +14,7 @@ export default defineConfig({
     alias: {
       '@nexus/design-model': from('./packages/design-model/src/index.ts'),
       '@nexus/schemas': from('./packages/schemas/src/index.ts'),
+      '@': from('./apps/web/src'),
       '@web': from('./apps/web/src'),
     },
   },
