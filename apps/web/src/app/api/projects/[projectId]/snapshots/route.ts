@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { requireUser } from '@/server/domain/session';
 import { projectBelongsTo } from '@/server/domain/projects';
+import { currentBranchId, listBranches } from '@/server/domain/branches';
 import { createSnapshot, listSnapshots } from '@/server/domain/snapshots';
 import { parseDocument } from '@/server/validation';
 import { badRequest, failure, jsonError, notFound, readJson } from '@/server/http';
@@ -9,13 +10,20 @@ interface RouteContext {
   params: Promise<{ projectId: string }>;
 }
 
-/** §27：快照列表只回元信息，文档体在需要时单独取 */
+/**
+ * §27：快照列表只回元信息，文档体在需要时单独取。
+ * 分支一起返回：历史面板同时画这两样，拆成两个请求只会让面板多一处会不同步的状态。
+ */
 export async function GET(_req: Request, ctx: RouteContext): Promise<NextResponse> {
   const { projectId } = await ctx.params;
   try {
     const user = await requireUser();
     if (!(await projectBelongsTo(projectId, user.id))) return notFound();
-    return NextResponse.json({ snapshots: await listSnapshots(projectId) });
+    const [snapshotList, branchList] = await Promise.all([
+      listSnapshots(projectId),
+      listBranches(projectId),
+    ]);
+    return NextResponse.json({ snapshots: snapshotList, branches: branchList });
   } catch (error) {
     return failure(error, `GET /api/projects/${projectId}/snapshots`);
   }
@@ -50,6 +58,9 @@ export async function POST(req: Request, ctx: RouteContext): Promise<NextRespons
       label: typeof label === 'string' ? label : null,
       summary: typeof summary === 'string' ? summary : null,
       createdById: user.id,
+      // 手动/AI 快照落在当前分支上，并推进它的 head（§28）；
+      // 没有分支行（历史项目）时返回 null，快照就留在分支线之外，仍可恢复。
+      branchId: await currentBranchId(projectId),
     });
     return NextResponse.json({ ok: true, snapshot });
   } catch (error) {

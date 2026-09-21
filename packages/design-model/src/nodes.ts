@@ -454,6 +454,46 @@ export function createDocument(
   };
 }
 
+/**
+ * §27 Duplicate：复制成一份可独立存在的新文档。
+ * 页面 id 和组件 id 在存储层是全局主键，副本必须换号；节点 id 只在页面内唯一，
+ * 跟着页面走，所以保持不变。整棵子树做字符串替换而不是只改已知字段——
+ * 引用页面的地方还会随功能增加（交互目标、变量作用域……），点名式重写迟早漏一处。
+ */
+export function duplicateDocument(
+  source: DesignDocument,
+  name?: string,
+): DesignDocument {
+  const copy = clone(source);
+  const pages = new Map<string, string>();
+  for (const page of copy.pages) {
+    const next = uid("p");
+    pages.set(page.id, next);
+    page.id = next;
+  }
+  const componentIds = new Map<string, string>();
+  for (const component of copy.components) {
+    const next = uid("cmp");
+    componentIds.set(component.id, next);
+    component.id = next;
+  }
+  const remap = (value: unknown): unknown => {
+    if (typeof value === "string") return pages.get(value) ?? componentIds.get(value) ?? value;
+    if (Array.isArray(value)) return value.map(remap);
+    if (value !== null && typeof value === "object") {
+      const out: Record<string, unknown> = {};
+      for (const [key, item] of Object.entries(value as Record<string, unknown>)) {
+        out[key] = remap(item);
+      }
+      return out;
+    }
+    return value;
+  };
+  const rekeyed = remap(copy) as DesignDocument;
+  if (name) rekeyed.name = name;
+  return rekeyed;
+}
+
 /** 内置默认 token 集（§12）；用户 Design System 覆盖同名 key */
 export const DEFAULT_TOKENS: Token[] = [
   {

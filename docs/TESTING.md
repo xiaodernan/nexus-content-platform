@@ -31,7 +31,8 @@
 7  Code 页 → 生成的 React 可编译；改一处代码 → 画布同步；不可映射片段标为 code-only（§19）
 8  Preview iframe 只读渲染 + Mobile/Tablet/Desktop/Wide 切换无横向溢出（§14）
 9  Screenshot 出图并出现在 Activity 与视觉 QA 结果里（§33/§87）
-10 注册 → 保存项目 → Snapshot → 分支 A/B/C 比较（§27-29）
+10 保存项目 → Snapshot 创建/比较/恢复 → 开分支并来回切换 → Duplicate 成新项目（§27/§28，已覆盖）
+10b 多方案 Concept A/B/C 生成 + 并排比较、"取 A 的布局 + C 的视觉"（§29，待落地）
 11  Publish 过 Quality Gate → /n/<user>/<slug> 可访问（private/unlisted/public 语义正确，§56-57/§179）
 12 导出 ZIP 含 .nexus/ 结构，能在干净实例导入还原（§102-104/§144）
 ```
@@ -61,6 +62,14 @@
   因为 jsonb 会重排对象键顺序，任何用 `JSON.stringify` 判等的实现只有在真库里才会露出来
 - Compare 的不变量（§27/§151）：`diff.test.ts` 断言同一份文档零差异、键顺序不同零差异、
   差异停在最浅的不同层、结构改动归为 added/removed/moved、超限如实截断
+- Branch 的不变量（§28）：`branches.integration.test.ts` 打真实 Postgres 断言——当前分支只能由
+  `projects.currentSnapshotId` 推出（每条分支各自持有 head 快照）、分支来回切换后各自的现场必须还在原分支上、
+  内容没变时反复切换不堆噪音快照（切换本身仍留一条历史）、从历史快照开分支起点是那份快照、
+  老项目自动补 main 并收养无主快照、同名分支在不同项目间互不影响
+- Duplicate 的不变量（§27）：`duplicate.test.ts` 断言副本页面/组件全部换号而节点 id 不变，
+  且 `activePageId`、`component.pageId`、变量 `refId`、交互 `target` 都指向副本而不是源项目；
+  e2e 断言复制后 URL 的项目 id 真的变了（不能用 `/studio/[^/]+` 匹配，副本同样满足）、
+  当前视觉方向被带走、副本只有一条 main 分支和一份初始快照、源项目不受影响
 - 每个里程碑一次 commit 前至少跑：`npm run lint && npm test && npm run test:e2e:smoke`
 - 改了 `packages/schemas` 必须重跑 `npm run contract:export`，否则契约漂移测试会红
 - 动了 ai-service 再加：`npm run test:ai-service`（Windows 控制台建议前置 `PYTHONUTF8=1`）

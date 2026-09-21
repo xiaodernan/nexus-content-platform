@@ -154,6 +154,102 @@ await page.click('[data-panel-tab="history"]');
 await page.screenshot({ path: `${out}history-restored.png` });
 await page.click('[data-panel-tab="layers"]');
 
+/**
+ * §28 分支 + §27 Duplicate：一条分支放一个方向，切来切去各自的现场都要在；
+ * 副本则是另一个项目。断言只看画布上量得到的字号。
+ */
+const setHeadlineSize = async (value: string): Promise<void> => {
+  await page.click('[data-view="canvas"]');
+  await page.click(`[data-node-id="${headlineId}"]`);
+  await page.fill('[data-prop="typography.fontSize"]', value);
+  await page.waitForFunction(
+    (expected) => {
+      const el = [...document.querySelectorAll('[data-canvas-frame] [data-node-id]')].find(
+        (node) => node.textContent?.includes('从一句话到一个可发布的产品'),
+      );
+      return !!el && getComputedStyle(el).fontSize === `${expected}px`;
+    },
+    value,
+    { timeout: 30_000, polling: 300 },
+  );
+  await page.waitForFunction(
+    () => document.querySelector('[data-save-state]')?.textContent?.includes('已保存'),
+    undefined,
+    { timeout: 30_000 },
+  );
+};
+const expectHeadlineSize = async (value: string, where: string): Promise<void> => {
+  await page.click('[data-view="canvas"]');
+  await page.waitForSelector('[data-canvas-frame] [data-node-id]', { timeout: 30_000 });
+  const seen = await headlineFontSize();
+  if (seen !== `${value}px`) throw new Error(`${where} 的标题字号应该是 ${value}px，实际是 ${seen || '找不到节点'}`);
+};
+const clickBranch = async (name: string): Promise<void> => {
+  await page.click('[data-panel-tab="history"]');
+  await page.click(`[data-branch][data-branch-name="${name}"]`);
+  await page.waitForFunction(
+    (target) => {
+      const chip = document.querySelector(`[data-branch][data-branch-name="${target}"]`);
+      return chip?.getAttribute('data-branch-current') === 'true';
+    },
+    name,
+    { timeout: 30_000, polling: 300 },
+  );
+};
+
+await page.click('[data-panel-tab="history"]');
+await page.fill('[data-branch-input]', 'design-v2');
+await page.click('[data-branch-create]');
+await page.waitForFunction(
+  () => document.querySelector('[data-branch][data-branch-name="design-v2"]')?.getAttribute('data-branch-current') === 'true',
+  undefined,
+  { timeout: 30_000, polling: 300 },
+);
+if (await page.locator('[data-snapshot-error]').count()) {
+  throw new Error(`分支操作报错：${(await page.locator('[data-snapshot-error]').textContent()) ?? ''}`);
+}
+await page.screenshot({ path: `${out}history-branch.png` });
+// 带着现场切到新分支，然后在这条线上做另一个方向
+await setHeadlineSize('30');
+await clickBranch('main');
+await expectHeadlineSize('56', '切回 main');
+await page.click('[data-panel-tab="history"]');
+await page.screenshot({ path: `${out}history-branch-main.png` });
+await clickBranch('design-v2');
+await expectHeadlineSize('30', '切回 design-v2');
+
+// Duplicate：副本是另一个项目，带着当前分支的内容，源项目的分支线不受影响
+await page.click('[data-panel-tab="history"]');
+await page.fill('[data-duplicate-input]', '另一种可能');
+await page.click('[data-duplicate-create]');
+await page.waitForFunction(
+  (origin) => {
+    const root = document.querySelector('[data-studio-root]');
+    const id = root?.getAttribute('data-project-id') ?? '';
+    return !!id && id !== origin;
+  },
+  projectId,
+  { timeout: 60_000, polling: 300 },
+);
+await page.waitForSelector('[data-canvas-frame] [data-node-id]', { timeout: 60_000 });
+const copyProjectId = await page.evaluate(
+  () => document.querySelector('[data-studio-root]')?.getAttribute('data-project-id') ?? '',
+);
+if (!copyProjectId || copyProjectId === projectId) throw new Error('复制项目后没有跳到副本');
+const copyName = (await page.locator('[data-project-name]').textContent()) ?? '';
+if (!copyName.includes('另一种可能')) throw new Error(`副本名字没落到顶栏：${copyName}`);
+const copySize = await headlineFontSize();
+if (copySize !== '30px') throw new Error(`副本没有带上当前内容：${copySize || '找不到标题节点'}`);
+await page.screenshot({ path: `${out}duplicate-project.png` });
+await page.goto(`${base}/studio/${projectId}`, { waitUntil: 'domcontentloaded' });
+await page.waitForSelector('[data-canvas-frame] [data-node-id]', { timeout: 60_000 });
+await page.click('[data-panel-tab="history"]');
+// 分支线是刷新后异步拉回来的：先等它出现，再数条数（否则会拿到 0 而误判成副本污染了源项目）
+await page.waitForSelector('[data-branch]', { timeout: 30_000 });
+const branchChips = await page.locator('[data-branch]').count();
+if (branchChips !== 2) throw new Error(`源项目的分支线不该被副本改动，实际有 ${branchChips} 条`);
+await page.click('[data-panel-tab="layers"]');
+
 await page.click('[data-viewport="mobile"]');
 await page.waitForTimeout(400);
 await page.screenshot({ path: `${out}studio-mobile.png` });

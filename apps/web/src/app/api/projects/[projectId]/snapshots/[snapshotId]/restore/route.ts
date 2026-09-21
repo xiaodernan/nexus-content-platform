@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { requireUser } from '@/server/domain/session';
 import { projectBelongsTo } from '@/server/domain/projects';
+import { currentBranchId } from '@/server/domain/branches';
 import { restoreSnapshot } from '@/server/domain/snapshots';
 import { badRequest, failure, notFound } from '@/server/http';
 
@@ -17,7 +18,10 @@ export async function POST(_req: Request, ctx: RouteContext): Promise<NextRespon
   try {
     const user = await requireUser();
     if (!(await projectBelongsTo(projectId, user.id))) return notFound();
-    const result = await restoreSnapshot(projectId, snapshotId);
+    const result = await restoreSnapshot(projectId, snapshotId, {
+      createdById: user.id,
+      branchId: await currentBranchId(projectId),
+    });
     if (!result) return badRequest(['快照或项目不存在']);
     return NextResponse.json({ ok: true, ...result });
   } catch (error) {

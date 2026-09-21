@@ -38,8 +38,30 @@ Create Project → Prompt → AI Design → Canvas → Layers → Properties
 - [x] Code → Design（受限 JSX 解析，不可逆区域保留为 code-only，§17-19，`packages/design-model/src/code-parse.ts`）
 - [x] Snapshot 服务端：列表 / 创建 / 恢复，恢复自身留下一条历史（§27/§108）
 - [x] Compare：快照与当前文档的字段级差异，复用 AI Diff 的条目形状（§27/§151）
-- [ ] Branch / Duplicate / 多方案 A-B-C 并排比较（§28-29，`branches` 表已有，无接口）
+- [x] Branch / Duplicate：分支线、切换、整份项目副本（§27/§28）
+- [ ] 多方案 A-B-C 并排比较（§29，依赖分支：分支已可用，并排比较视图还没有）
 - [ ] 免注册首次体验（§137）→ 注册保存；Publish + 分享 URL（§56-57）
+
+**M1 进度记录（2026-09-22，Branch / Duplicate）**：§28 的分支线 = `branches` 表里一条有名字的快照线，
+`apps/web/src/server/domain/branches.ts` 提供 list / create / switch / duplicate。**没有加"当前分支"这一列**：
+`projects.currentSnapshotId` 已经说明工作区停在哪份快照上，head 指回它的就是当前分支——多存一份状态就多一处会漂移。
+代价是新分支必须有自己那条 head 快照（否则两条分支同时指回同一个 id，"当前分支"就由查询顺序决定了），
+所以开分支会留下一条"开分支「X」"历史，这条记录本身也是用户想知道的（从哪儿分出来的）。
+这条代价不是理论问题：第一版先插分支行、后建 head 快照，中间那一刻 main 与新分支都指着起点快照，
+`currentBranchId()` 的 `.limit(1)` 于是随机挑中新分支，"把现场存回原分支"被当成没必要而跳过——
+切回 main 就看不到自己刚做的东西。单测跑一遍过、跑第二遍才偶发。**现在改成插入时 head 留空、由
+`createSnapshot` 补上，并且先问清"离开的是哪条分支"再插入**；`currentBranchId` 也按 `createdAt` 排序，
+真撞上脏数据时答案是可复现的而不是随机的。集成测试里加了一条"各分支 head 必须互不相同"的断言钉住它。
+语义按 `checkout -b` 对齐：不指定起点就带着当前现场切过去；指定 `fromSnapshotId` 就落到那份快照上，
+而离开前的现场先存回原分支（`source: 'branch'`，"分出「X」前的现场"）——两种情况都不丢东西。
+内容与该分支 head 一致时不重复存，所以反复切换只多两条"切换到「X」"标记，不会堆噪音。
+Duplicate（§27）走 `duplicateDocument`：页面 id 与组件 id 在库里是全局主键，副本必须换号，
+连 interaction 目标、变量作用域这类引用一起重映射（点名式重写迟早漏一处，所以整棵树扫）。
+验证：`npm test` 172（新增 8 条分支集成测试 + 3 条 `duplicateDocument` 单测）、9 @smoke
+（新增"开分支 → 两个方向 → 来回切换各自现场仍在 → 副本是另一个项目且源项目没被动过"）、
+截图 `history-branch.png` / `history-branch-main.png` / `duplicate-project.png` 人眼确认。
+已知边界：切分支与恢复一样会清空本地撤销栈（如实提示）；快照列表仍按时间全量展示并在每行标出所属分支，
+"只看当前分支"与 §29 的并排比较视图没做。
 
 **M1 进度记录（2026-09-22，Compare）**：§27 的"比较"落在 `packages/design-model/src/diff.ts` 的
 `diffDocuments(before, after)`：产出与 AI Diff（§151）同样的 `DiffEntry[]`，所以历史面板两套清单共用一个行组件。
@@ -150,8 +172,9 @@ Studio 顶栏下新增 画布/代码 切换（`CodePanel`），选中的元素�
   运行时 TokenStore 能解析，类型层面在说谎。需要把这三处放宽为 `number | TokenKey` 并在 validate/layout 统一解析。
 - ESLint 目前只有 `npm run lint` = typecheck 的占位配置，缺真实规则集。
 - 资产（image/video paint）尚未渲染：`render.ts` 明确跳过，等任务 #9 的资产服务落地。
-- 历史面板的 Ctrl+Z 只在浏览器会话内，刷新即失；服务端快照已经能创建 / 比较 / 恢复（§27），
-  但 Branch 与 Duplicate（§28）还没有接口。
+- 历史面板的 Ctrl+Z 只在浏览器会话内，刷新即失；服务端快照与 Branch / Duplicate（§27/§28）已经打通。
+  还缺的是 §29 的多方案 A-B-C 并排比较视图（分支线已经能承载多个方向），
+  以及快照列表的「只看当前分支」筛选——现在仍按时间全量展示、每行标出所属分支。
 - `loadDocument` 不恢复 `document.activeMode` 与 `metadata.modes`（库里没有对应列）：
   主题模式在保存-重载后会退回默认值，快照恢复同样带不回它。要加列 + 迁移才能修。
 - 代码投影（`codegen.ts`）与画布一样只覆盖几何/样式/文字：`typography.runs`、`animation`、`interactions`、

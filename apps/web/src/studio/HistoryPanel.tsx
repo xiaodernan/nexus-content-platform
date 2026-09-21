@@ -53,6 +53,102 @@ function DiffRow({ entry }: { entry: DiffEntry }) {
 }
 
 /**
+ * §28 分支 + §27 Duplicate。
+ * 分支是"有名字的快照线"，用来并排放几个设计方向；副本是另一个项目，用来单独发布或改造。
+ * 两个动作都不会丢东西：切换前服务端会先把当前现场存回原分支。
+ */
+function BranchSection() {
+  const state = useStudio();
+  const [name, setName] = useState('');
+  const [copyName, setCopyName] = useState('');
+  const current = state.branches.find((branch) => branch.current);
+
+  const create = async () => {
+    const text = name.trim();
+    if (!text) return;
+    const created = await studio.createBranch(text);
+    if (created) setName('');
+  };
+
+  const duplicate = async () => {
+    const id = await studio.duplicateProject(copyName.trim());
+    if (id) window.location.href = `/studio/${id}`;
+  };
+
+  return (
+    <div className="flex shrink-0 flex-col gap-[var(--nexus-space-1)] border-b border-[var(--nexus-color-border-subtle)] px-[var(--nexus-space-3)] py-[var(--nexus-space-2)]">
+      <div className="flex flex-wrap items-center gap-[var(--nexus-space-1)]">
+        <span className="shrink-0 text-11 text-fg-3">分支</span>
+        {state.branches.map((branch) => (
+          <button
+            key={branch.id}
+            type="button"
+            onClick={() => {
+              if (!branch.current) void studio.switchBranch(branch.id);
+            }}
+            disabled={state.snapshotBusy || branch.current}
+            title={branch.current ? '当前分支' : `切到 ${branch.name}（当前现场会先存回${current ? `「${current.name}」` : '原分支'}）`}
+            className={cn(
+              'rounded border px-[6px] py-[1px] font-mono text-11 disabled:cursor-default',
+              branch.current
+                ? 'border-transparent bg-accent-2 text-bg-0'
+                : 'border-[var(--nexus-color-border-subtle)] text-fg-3 hover:bg-bg-2',
+            )}
+            data-branch={branch.id}
+            data-branch-name={branch.name}
+            data-branch-current={branch.current ? 'true' : undefined}
+          >
+            {branch.name}
+          </button>
+        ))}
+        <input
+          value={name}
+          onChange={(event) => setName(event.target.value)}
+          onKeyDown={(event) => {
+            if (event.key === 'Enter') void create();
+          }}
+          placeholder="新分支名"
+          aria-label="新分支名"
+          className="w-[84px] min-w-0 bg-transparent text-11 text-fg-1 outline-none placeholder:text-fg-3"
+          data-branch-input
+        />
+        <button
+          type="button"
+          onClick={() => void create()}
+          disabled={state.snapshotBusy || !name.trim()}
+          className="shrink-0 rounded border border-[var(--nexus-color-border-subtle)] px-[6px] py-[1px] text-11 text-fg-3 hover:bg-bg-2 disabled:opacity-50"
+          data-branch-create
+        >
+          开分支
+        </button>
+      </div>
+      <div className="flex items-center gap-[var(--nexus-space-1)]">
+        <input
+          value={copyName}
+          onChange={(event) => setCopyName(event.target.value)}
+          onKeyDown={(event) => {
+            if (event.key === 'Enter') void duplicate();
+          }}
+          placeholder="副本名称（可留空）"
+          aria-label="副本名称"
+          className="min-w-0 flex-1 bg-transparent text-11 text-fg-1 outline-none placeholder:text-fg-3"
+          data-duplicate-input
+        />
+        <button
+          type="button"
+          onClick={() => void duplicate()}
+          disabled={state.snapshotBusy}
+          className="shrink-0 rounded border border-[var(--nexus-color-border-subtle)] px-[6px] py-[1px] text-11 text-fg-3 hover:bg-bg-2 disabled:opacity-50"
+          data-duplicate-create
+        >
+          复制为项目
+        </button>
+      </div>
+    </div>
+  );
+}
+
+/**
  * 服务端快照（§27 / §108）：这是用户项目历史，和上面的本地事务栈、以及 git 的开发历史是三件事。
  * 恢复前服务端会为当前状态补一条快照，所以恢复不会丢东西；但本地撤销栈会清空，这里不假装还能 Ctrl+Z。
  */
@@ -60,6 +156,7 @@ function SnapshotSection() {
   const state = useStudio();
   const [label, setLabel] = useState('');
   const [pending, setPending] = useState<string | null>(null);
+  const branchNames = new Map(state.branches.map((branch) => [branch.id, branch.name]));
 
   const create = async () => {
     const text = label.trim() || `快照 ${new Date().toLocaleString('zh-CN', { hour12: false })}`;
@@ -77,7 +174,8 @@ function SnapshotSection() {
   };
 
   return (
-    <div className="flex min-h-0 flex-[2] flex-col border-t border-[var(--nexus-color-border-subtle)]">
+    <div className="flex min-h-0 flex-[3] flex-col border-t border-[var(--nexus-color-border-subtle)]">
+      <BranchSection />
       <div className="flex shrink-0 items-center gap-[var(--nexus-space-2)] border-b border-[var(--nexus-color-border-subtle)] px-[var(--nexus-space-3)] py-[var(--nexus-space-2)]">
         <input
           value={label}
@@ -121,6 +219,11 @@ function SnapshotSection() {
               <span className="min-w-0 flex-1 truncate text-12 text-fg-2">
                 {snapshot.label ?? snapshot.id.slice(0, 8)}
               </span>
+              {branchNames.get(snapshot.branchId ?? '') ? (
+                <span className="shrink-0 font-mono text-11 text-fg-3" data-snapshot-branch={snapshot.branchId ?? ''}>
+                  {branchNames.get(snapshot.branchId ?? '')}
+                </span>
+              ) : null}
             </span>
             <span className="flex items-center gap-[var(--nexus-space-1)]">
               <span className="min-w-0 flex-1 truncate font-mono text-11 text-fg-3">
@@ -209,10 +312,10 @@ export function HistoryPanel() {
     <div className="flex h-full min-h-0 flex-col">
       <div className="border-b border-[var(--nexus-color-border-subtle)] px-[var(--nexus-space-3)] py-[var(--nexus-space-2)]">
         <p className="text-12 text-fg-3">
-          本地事务（Ctrl+Z / Ctrl+Shift+Z）。展开一条可以看到它改了什么；下方服务端快照可比较、可恢复（恢复会清空本地撤销栈）。
+          本地事务（Ctrl+Z / Ctrl+Shift+Z）。展开一条可以看变更；下方分支线可开可切，快照可比较、可恢复（切换与恢复都会清空本地撤销栈）。
         </p>
       </div>
-      <ol className="min-h-0 flex-[3] overflow-auto">
+      <ol className="min-h-0 flex-[2] overflow-auto">
         {state.history.map((entry) => (
           <li key={entry.id}>
             <div className="flex items-stretch">

@@ -1,7 +1,7 @@
 import { and, desc, eq, isNull } from 'drizzle-orm';
 import type { DesignDocument } from '@nexus/design-model';
 import { getDb } from '../db/client';
-import { projects, snapshots } from '../db/schema';
+import { branches, projects, snapshots } from '../db/schema';
 import { loadDocument, saveDocument } from './projects';
 
 /**
@@ -19,6 +19,7 @@ export interface SnapshotMeta {
   source: SnapshotSource;
   summary: string | null;
   parentId: string | null;
+  branchId: string | null;
   createdAt: string;
 }
 
@@ -26,14 +27,19 @@ export interface SnapshotEntry extends SnapshotMeta {
   document: DesignDocument;
 }
 
-export interface CreateSnapshotInput {
+/** 谁在写快照：归属人 + 落在哪条分支（§28） */
+export interface SnapshotActor {
+  createdById?: string | null;
+  branchId?: string | null;
+}
+
+export interface CreateSnapshotInput extends SnapshotActor {
   document: DesignDocument;
   source: SnapshotSource;
   label?: string | null;
   summary?: string | null;
   /** AI 事务的补丁清单（§151）：快照本身存全量文档，patch 只用于展示 diff 来源 */
   patch?: unknown;
-  createdById?: string | null;
 }
 
 /**
@@ -60,17 +66,34 @@ function toMeta(row: typeof snapshots.$inferSelect): SnapshotMeta {
     source: row.source as SnapshotSource,
     summary: row.summary,
     parentId: row.parentId,
+    branchId: row.branchId,
     createdAt: row.createdAt.toISOString(),
   };
 }
 
+/** 两份文档的"实质内容"是否一致（页面 + 令牌，键顺序无关） */
+export function documentsMatch(a: DesignDocument, b: DesignDocument): boolean {
+  return (
+    stableKey(a.pages) === stableKey(b.pages) && stableKey(a.tokens) === stableKey(b.tokens)
+  );
+}
+
 /** 列表不带 document：一份文档可能有几 MB，历史面板只要元信息 */
-export async function listSnapshots(projectId: string): Promise<SnapshotMeta[]> {
+export async function listSnapshots(
+  projectId: string,
+  filter?: { branchId?: string | null },
+): Promise<SnapshotMeta[]> {
   const db = getDb();
+  const conditions = [eq(snapshots.projectId, projectId)];
+  if (filter && 'branchId' in filter) {
+    conditions.push(
+      filter.branchId ? eq(snapshots.branchId, filter.branchId) : isNull(snapshots.branchId),
+    );
+  }
   const rows = await db
     .select()
     .from(snapshots)
-    .where(eq(snapshots.projectId, projectId))
+    .where(and(...conditions))
     .orderBy(desc(snapshots.createdAt), desc(snapshots.id))
     .limit(200);
   return rows.map(toMeta);
@@ -81,16 +104,21 @@ export async function createSnapshot(
   input: CreateSnapshotInput,
 ): Promise<SnapshotMeta> {
   const db = getDb();
+  // 父指针跟着分支走：分支上的历史是一条线，不能被别的分支插进来
+  const parentFilter = input.branchId
+    ? and(eq(snapshots.projectId, projectId), eq(snapshots.branchId, input.branchId))
+    : eq(snapshots.projectId, projectId);
   const [head] = await db
     .select({ id: snapshots.id })
     .from(snapshots)
-    .where(eq(snapshots.projectId, projectId))
+    .where(parentFilter)
     .orderBy(desc(snapshots.createdAt), desc(snapshots.id))
     .limit(1);
   const [row] = await db
     .insert(snapshots)
     .values({
       projectId,
+      branchId: input.branchId ?? null,
       label: input.label?.slice(0, 120) ?? null,
       source: input.source,
       summary: input.summary?.slice(0, 500) ?? null,
@@ -104,6 +132,13 @@ export async function createSnapshot(
     .update(projects)
     .set({ currentSnapshotId: row!.id })
     .where(eq(projects.id, projectId));
+  if (input.branchId) {
+    // 分支的 head 就是"这条线最新的那一份"，切换分支靠它
+    await db
+      .update(branches)
+      .set({ headSnapshotId: row!.id })
+      .where(eq(branches.id, input.branchId));
+  }
   return toMeta(row!);
 }
 
@@ -137,7 +172,7 @@ export interface RestoreResult {
 export async function restoreSnapshot(
   projectId: string,
   snapshotId: string,
-  createdById?: string | null,
+  actor: SnapshotActor = {},
 ): Promise<RestoreResult | null> {
   const target = await readSnapshot(projectId, snapshotId);
   if (!target) return null;
@@ -152,17 +187,14 @@ export async function restoreSnapshot(
     .limit(1);
   if (!alive.length) return null;
 
-  const same =
-    stableKey(current.pages) === stableKey(target.document.pages) &&
-    stableKey(current.tokens) === stableKey(target.document.tokens);
-  const safetySnapshot = same
+  const safetySnapshot = documentsMatch(current, target.document)
     ? null
     : await createSnapshot(projectId, {
         document: current,
         source: 'manual',
         label: '恢复前自动保存',
         summary: `恢复点：${target.label ?? target.id}`,
-        createdById,
+        ...actor,
       });
 
   const restored: DesignDocument = { ...target.document, id: projectId };
@@ -172,7 +204,7 @@ export async function restoreSnapshot(
     source: 'manual',
     label: `恢复到「${target.label ?? target.id}」`,
     summary: `来源快照 ${target.id}`,
-    createdById,
+    ...actor,
   });
   return { document: (await loadDocument(projectId)) ?? restored, snapshot, safetySnapshot };
 }

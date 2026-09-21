@@ -1,5 +1,6 @@
 import { and, eq, inArray, isNull } from 'drizzle-orm';
 import {
+  clone,
   createDocument,
   createPage,
   type ComponentDefinition,
@@ -10,7 +11,7 @@ import {
   type Token,
 } from '@nexus/design-model';
 import { getDb } from '../db/client';
-import { components, designNodes, designTokens, pages, projects, snapshots } from '../db/schema';
+import { branches, components, designNodes, designTokens, pages, projects, snapshots } from '../db/schema';
 
 /**
  * 领域写入的唯一入口（ADR-0001：M6 之后由 Java 侧接管，接口形状保持不变）。
@@ -47,11 +48,15 @@ export interface CreateProjectInput {
   kind: ProjectType;
   /** 首屏 prompt，仅用于给页面命名等轻量上下文，不做假生成 */
   seedDesign?: boolean;
+  /** Duplicate（§27）：以这份文档为起点，而不是空白起手页 */
+  fromDocument?: DesignDocument;
 }
 
 export async function createProject(ownerId: string, input: CreateProjectInput): Promise<DesignDocument> {
   const db = getDb();
-  const document = createDocument(input.name, input.kind);
+  const document = input.fromDocument
+    ? { ...clone(input.fromDocument), name: input.name }
+    : createDocument(input.name, input.kind);
   const slugBase = slugify(input.name);
   let slug = slugBase;
   for (let i = 2; i < 50; i += 1) {
@@ -73,13 +78,24 @@ export async function createProject(ownerId: string, input: CreateProjectInput):
     projectId = row!.id;
     document.id = projectId;
     await writeDocument(tx, projectId, document);
-    await tx.insert(snapshots).values({
-      projectId,
-      label: '初始版本',
-      source: 'manual',
-      document: document as unknown as Record<string, unknown>,
-      summary: '项目创建',
-    });
+    // §28：项目一开始就有 main 分支，快照挂在它下面，head 指向初始版本
+    const [branch] = await tx
+      .insert(branches)
+      .values({ projectId, name: 'main', isDefault: true })
+      .returning({ id: branches.id });
+    const [initial] = await tx
+      .insert(snapshots)
+      .values({
+        projectId,
+        branchId: branch!.id,
+        label: '初始版本',
+        source: 'manual',
+        document: document as unknown as Record<string, unknown>,
+        summary: '项目创建',
+      })
+      .returning({ id: snapshots.id });
+    await tx.update(branches).set({ headSnapshotId: initial!.id }).where(eq(branches.id, branch!.id));
+    await tx.update(projects).set({ currentSnapshotId: initial!.id }).where(eq(projects.id, projectId));
   });
 
   // 返回从库里读回来的那份，而不是内存里的那份：创建路径本身也要被验证

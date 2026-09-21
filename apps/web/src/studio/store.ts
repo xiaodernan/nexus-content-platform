@@ -27,6 +27,7 @@ import {
 } from '@nexus/design-model';
 import type { DesignPatchPayload } from '@nexus/schemas';
 import type { SnapshotEntry, SnapshotMeta } from '@/server/domain/snapshots';
+import type { BranchMeta } from '@/server/domain/branches';
 
 /**
  * Studio 客户端状态：唯一真值仍然是 DesignStore 里的 DesignDocument（§9/§16）。
@@ -79,6 +80,8 @@ export interface StudioSnapshot {
   snapshotError: string | null;
   /** §27 Compare：某份快照与当前文档的字段级差异（方向是"从快照到现在"） */
   compare: CompareResult | null;
+  /** §28 分支线；当前分支 = head 停在 currentSnapshotId 的那条，由服务端推导 */
+  branches: readonly BranchMeta[];
   revision: number;
   activeMode: string | null;
 }
@@ -125,6 +128,7 @@ export class StudioStore {
   private snapshotBusyValue = false;
   private snapshotErrorValue: string | null = null;
   private compareValue: CompareResult | null = null;
+  private branchList: BranchMeta[] = [];
 
   constructor() {
     this.design.subscribe(() => this.commit());
@@ -183,6 +187,7 @@ export class StudioStore {
       snapshotBusy: this.snapshotBusyValue,
       snapshotError: this.snapshotErrorValue,
       compare: this.compareValue,
+      branches: this.branchList,
       revision: state.revision,
       activeMode: document.activeMode ?? null,
     };
@@ -308,17 +313,19 @@ export class StudioStore {
 
   // ---- 服务端快照（§27 / §108：用户项目历史，不是 git 开发历史） ----
 
-  /** 失败只记录原因，不打断编辑（§159 不静默失败） */
+  /** 失败只记录原因，不打断编辑（§159 不静默失败）。§28 的分支列表随快照一起回来 */
   async refreshSnapshots(): Promise<void> {
     if (!this.projectId || !this.ready) return;
     try {
       const res = await fetch(`/api/projects/${this.projectId}/snapshots`, { cache: 'no-store' });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const body = (await res.json()) as { snapshots?: SnapshotMeta[] };
+      const body = (await res.json()) as { snapshots?: SnapshotMeta[]; branches?: BranchMeta[] };
       this.snapshotList = body.snapshots ?? [];
+      this.branchList = body.branches ?? [];
       this.snapshotErrorValue = null;
     } catch (error) {
       this.snapshotList = [];
+      this.branchList = [];
       this.snapshotErrorValue = error instanceof Error ? error.message : String(error);
     }
     this.commit();
@@ -440,6 +447,114 @@ export class StudioStore {
     } finally {
       this.snapshotBusyValue = false;
       this.commit();
+    }
+  }
+
+  // ---- 分支与副本（§28 / §27 Duplicate） ----
+
+  /**
+   * 开分支并切过去继续做（等价于 checkout -b）。
+   * 当前没进快照的改动会先被服务端存回原分支，所以不会因为这个动作消失。
+   */
+  async createBranch(name: string): Promise<BranchMeta | null> {
+    if (!this.projectId || !this.ready) return null;
+    this.snapshotBusyValue = true;
+    this.snapshotErrorValue = null;
+    this.commit();
+    try {
+      await this.save();
+      if (this.saveStateValue === 'error') throw new Error(this.saveError ?? '保存失败');
+      const res = await fetch(`/api/projects/${this.projectId}/branches`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ name: name.slice(0, 40) }),
+      });
+      const body = (await res.json().catch(() => null)) as
+        | { branch?: BranchMeta; message?: string; issues?: string[] }
+        | null;
+      if (!res.ok || !body?.branch) {
+        throw new Error(body?.issues?.join('；') ?? body?.message ?? `HTTP ${res.status}`);
+      }
+      // 工作区内容没变（就是带着现场过来的），所以只刷列表，不 reset 文档
+      await this.refreshSnapshots();
+      return body.branch;
+    } catch (error) {
+      this.snapshotErrorValue = error instanceof Error ? error.message : String(error);
+      return null;
+    } finally {
+      this.snapshotBusyValue = false;
+      this.commit();
+    }
+  }
+
+  /**
+   * 切分支：服务端先存当前现场再落到目标分支的 head 上。
+   * 文档整体换了，所以本地撤销栈清空——这和恢复一样是如实结果。
+   */
+  async switchBranch(branchId: string): Promise<boolean> {
+    if (!this.projectId || !this.ready) return false;
+    this.snapshotBusyValue = true;
+    this.snapshotErrorValue = null;
+    this.commit();
+    try {
+      this.flushSave();
+      await this.save();
+      if (this.saveStateValue === 'error') throw new Error(this.saveError ?? '保存失败');
+      const res = await fetch(
+        `/api/projects/${this.projectId}/branches/${branchId}/switch`,
+        { method: 'POST' },
+      );
+      const body = (await res.json().catch(() => null)) as
+        | { ok?: boolean; document?: DesignDocument; issues?: string[]; message?: string; error?: string }
+        | null;
+      if (!res.ok || !body?.ok || !body.document) {
+        throw new Error(body?.issues?.join('；') ?? body?.message ?? body?.error ?? `HTTP ${res.status}`);
+      }
+      this.design.reset(body.document);
+      this.selection = [];
+      this.dirty = false;
+      this.saveStateValue = 'saved';
+      this.savedAt = new Date().toISOString();
+      this.compareValue = null;
+      await this.refreshSnapshots();
+      return true;
+    } catch (error) {
+      this.snapshotErrorValue = error instanceof Error ? error.message : String(error);
+      return false;
+    } finally {
+      this.snapshotBusyValue = false;
+      this.commit();
+    }
+  }
+
+  /** Duplicate（§27）：整份项目复制成新项目并跳过去编辑副本 */
+  async duplicateProject(name: string): Promise<string | null> {
+    if (!this.projectId || !this.ready) return null;
+    this.snapshotBusyValue = true;
+    this.snapshotErrorValue = null;
+    this.commit();
+    try {
+      this.flushSave();
+      await this.save();
+      if (this.saveStateValue === 'error') throw new Error(this.saveError ?? '保存失败');
+      const res = await fetch(`/api/projects/${this.projectId}/duplicate`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ name: name.slice(0, 80) }),
+      });
+      const body = (await res.json().catch(() => null)) as
+        | { projectId?: string; issues?: string[]; message?: string; error?: string }
+        | null;
+      if (!res.ok || !body?.projectId) {
+        throw new Error(body?.issues?.join('；') ?? body?.message ?? body?.error ?? `HTTP ${res.status}`);
+      }
+      return body.projectId;
+    } catch (error) {
+      this.snapshotErrorValue = error instanceof Error ? error.message : String(error);
+      this.commit();
+      return null;
+    } finally {
+      this.snapshotBusyValue = false;
     }
   }
 

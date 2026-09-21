@@ -101,7 +101,7 @@ describe('快照领域层（真实数据库）', () => {
     await saveDocument(id, document!);
     expect(await hasNode(id, bannerId)).toBe(false);
 
-    const result = await restoreSnapshot(id, point.id, ownerId);
+    const result = await restoreSnapshot(id, point.id, { createdById: ownerId });
     expect(result).not.toBeNull();
     expect(result!.safetySnapshot).not.toBeNull();
     expect(await hasNode(id, bannerId)).toBe(true);
@@ -124,7 +124,7 @@ describe('快照领域层（真实数据库）', () => {
       label: '基线',
     });
     const before = await listSnapshots(id);
-    const result = await restoreSnapshot(id, point.id, ownerId);
+    const result = await restoreSnapshot(id, point.id, { createdById: ownerId });
     expect(result!.safetySnapshot).toBeNull();
     const after = await listSnapshots(id);
     expect(after).toHaveLength(before.length + 1);
@@ -141,7 +141,7 @@ describe('快照领域层（真实数据库）', () => {
     });
     expect(snapshot).toBeDefined();
     expect(await readSnapshot(b.id, point.id)).toBeNull();
-    expect(await restoreSnapshot(b.id, point.id, ownerId)).toBeNull();
+    expect(await restoreSnapshot(b.id, point.id, { createdById: ownerId })).toBeNull();
     // A 的列表不会混进 B 的快照
     expect((await listSnapshots(b.id)).every((s) => s.label !== 'A 专属')).toBe(true);
   });

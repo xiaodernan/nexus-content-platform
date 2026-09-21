@@ -137,6 +137,90 @@ test('@smoke studio slice: server snapshot is created and restored through the d
   await expect(page.locator('[data-prop="typography.fontSize"]')).toHaveValue('56');
 });
 
+/**
+ * §28 分支 + §27 Duplicate：一条分支 = 一个设计方向，切来切去各自的现场都要在。
+ * 断言只用用户可见的结果：画布上的字号、分支徽标、地址栏里的项目 id。
+ */
+test('@smoke studio slice: branches keep each design direction and duplicate forks the project', async ({ page }) => {
+  test.setTimeout(180_000);
+  await createProject(page, `分支 ${Date.now().toString(36)}`);
+  const originId = new URL(page.url()).pathname.split('/').pop()!;
+
+  const headline = async () => {
+    // 图层树和属性面板都在 layers 页签下，切分支/开分支后要重新打开
+    await page.click('[data-panel-tab="layers"]');
+    const id = await layerId(page, 'Headline');
+    await page.click(`[data-node-id="${id}"]`);
+    return page.locator('[data-prop="typography.fontSize"]');
+  };
+  const setFontSize = async (value: string) => {
+    const size = await headline();
+    await size.fill(value);
+    await expect(page.locator('[data-save-state]')).toContainText('已保存', { timeout: 20_000 });
+  };
+  const expectFontSize = async (value: string) => {
+    const size = await headline();
+    await expect(size).toHaveValue(value);
+  };
+  const switchBranchTo = async (name: string) => {
+    await page.click('[data-panel-tab="history"]');
+    await page.click(`[data-branch][data-branch-name="${name}"]`);
+    await expect(page.locator(`[data-branch][data-branch-name="${name}"]`)).toHaveAttribute(
+      'data-branch-current',
+      'true',
+      { timeout: 30_000 },
+    );
+  };
+
+  await setFontSize('72');
+
+  await page.click('[data-panel-tab="history"]');
+  await expect(page.locator('[data-branch][data-branch-name="main"]')).toHaveAttribute('data-branch-current', 'true');
+  await page.fill('[data-branch-input]', 'design-v2');
+  await page.click('[data-branch-create]');
+  // 开分支 = checkout -b：带着当前现场切过去，所以画布仍是 72
+  await expect(page.locator('[data-branch][data-branch-name="design-v2"]')).toHaveAttribute('data-branch-current', 'true');
+  await expect(page.locator('[data-snapshot-error]')).toHaveCount(0);
+  await expect(page.locator(`[data-snapshot-item]:has-text("开分支「design-v2」")`)).toBeVisible();
+  await setFontSize('30');
+
+  // 切回 main：看到的是 main 自己的现场，不是 v2 的
+  await switchBranchTo('main');
+  await expectFontSize('72');
+  // 再切回 v2：那边的改动还在
+  await switchBranchTo('design-v2');
+  await expectFontSize('30');
+  // 刷新也还是 30：切换真的落在库里
+  await page.reload();
+  await expect(page.locator('[data-canvas-frame]')).toBeVisible({ timeout: 30_000 });
+  await expectFontSize('30');
+
+  // Duplicate：整份项目变成另一个项目，副本带着当前内容，源项目不受影响
+  await page.click('[data-panel-tab="history"]');
+  await page.fill('[data-duplicate-input]', '另一个方向');
+  await page.click('[data-duplicate-create]');
+  const root = page.locator('[data-studio-root]');
+  // 不能用 waitForURL(/\/studio\/[^/]+$/)：副本的 URL 也满足同一个模式，会立刻通过
+  await expect(root).not.toHaveAttribute('data-project-id', originId, { timeout: 60_000 });
+  const copyId = (await root.getAttribute('data-project-id'))!;
+  expect(copyId).toBeTruthy();
+  await waitForCanvas(page);
+  await expectFontSize('30');
+  await expect(page.locator('[data-project-name]')).toHaveText('另一个方向');
+  await page.click('[data-panel-tab="history"]');
+  // 副本是独立的项目：自己的 main、自己的一条初始快照，不带着源项目的分支线
+  await expect(page.locator('[data-branch][data-branch-name="main"]')).toHaveAttribute('data-branch-current', 'true');
+  await expect(page.locator('[data-branch]')).toHaveCount(1);
+  await expect(page.locator('[data-snapshot-item]')).toHaveCount(1);
+
+  // 回到源项目：分支线和内容都没被副本动过
+  await page.goto(`/studio/${originId}`);
+  await waitForCanvas(page);
+  await expectFontSize('30');
+  await page.click('[data-panel-tab="history"]');
+  await expect(page.locator('[data-branch]')).toHaveCount(2);
+});
+
 test('@smoke studio slice: AI command bar runs in DEMO MODE as one undoable transaction', async ({ page }) => {
   test.setTimeout(120_000);
   await createProject(page, `AI ${Date.now().toString(36)}`);

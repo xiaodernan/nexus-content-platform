@@ -71,6 +71,15 @@ DEMO 路径不在 ai-service 里：确定性 Mock 需要 design model 才能产�
    五个抽象接口 + Model Router；任何业务代码不得直接 import 具体 SDK。
 6. **不可逆代码保留**：Code→Design 无法安全映射的片段不回写设计模型（§19）——结构性改动只在代码视图里
    如实报告，模型侧的原文区域用 `code` 节点（`node.code.content`）按字面承载，生成与解析都原样透传。
+7. **分支不设"当前"列**（§28）：分支是带名字、带 head 的快照线，当前分支 = head 指回
+   `projects.currentSnapshotId` 的那一条。少一个状态就少一处会漂移的地方，代价是新分支必须自带 head 快照，
+   所以"开分支"必然留下一条历史。推论：**任何时刻只能有一条分支的 head 指着 `currentSnapshotId`**——
+   所以插入分支行时 head 留空，等它自己的 head 快照建好再由 `createSnapshot` 补上，并且"离开的是哪条分支"
+   必须在插入之前问清楚，否则两条线共用一个 head，`currentBranchId()` 的答案就变成查询顺序决定的了。
+   切分支与恢复同构：先把离开的现场存回原分支（内容已等于 head 时跳过，避免噪音快照），再落到目标 head。
+8. **副本必须换号**（§27 Duplicate）：`duplicateDocument` 重发页面 id 与组件 id（存储层的全局主键）并重写
+   全部引用，节点 id 只在页面内唯一、跟着页面走所以不变。整棵子树做替换而不是点名式重写——会引用页面/组件
+   的地方还会随功能增加，点名迟早漏一处。
 
 ## Design ↔ Code 双通道
 
