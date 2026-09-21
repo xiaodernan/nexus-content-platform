@@ -12,7 +12,7 @@ import {
 } from '@nexus/design-model';
 import { drawScene, type Marquee } from '@/lib/render';
 import { resolveTextStyle } from '@/lib/paint';
-import { handleHitTest, rectCenter, rotationFromDrag, rotateHandlePoint, snapAngleDeg, ROTATE_HANDLE_GAP } from '@/lib/rotate';
+import { handleHitTest, rectCenter, rotationFromDrag, rotateHandlePoint, snapAngleDeg, subtreeRotatePlan, ROTATE_HANDLE_GAP } from '@/lib/rotate';
 import { computeSnap } from '@/lib/snap';
 import { instanceView, useStudio, type LiveGeom } from '@/lib/store';
 
@@ -91,6 +91,7 @@ export default function Canvas() {
     rotateCenter?: Point;
     rotateStart?: Point;
     rotateStartDeg?: number;
+    rotateRigid?: boolean;
     additive?: boolean;
     moved: boolean;
     spaceHeld: boolean;
@@ -290,6 +291,9 @@ export default function Canvas() {
             d.rotateCenter = rectCenter(r);
             d.rotateStart = world;
             d.rotateStartDeg = rot;
+            // authored nodes rotate their subtree rigidly; a focused clone keeps its
+            // single-clone absolute override (its "subtree" commits would target clones)
+            d.rotateRigid = !isCloneId(meta, id);
             s.setRotations({ [id]: rot });
             return;
           }
@@ -402,7 +406,19 @@ export default function Canvas() {
     if (d.kind === 'rotate' && d.rotateId && d.rotateCenter && d.rotateStart) {
       let deg = rotationFromDrag(d.rotateCenter, d.rotateStart, world, d.rotateStartDeg ?? 0);
       if (e.shiftKey) deg = snapAngleDeg(deg);
-      s.setRotations({ [d.rotateId]: deg });
+      const rot: Record<string, number> = { [d.rotateId]: deg };
+      const geom: Record<string, LiveGeom> = {};
+      if (d.rotateRigid) {
+        const { doc: viewDoc } = instanceView(s.doc);
+        const layout = layoutPage(viewDoc, pageId);
+        const delta = deg - (d.rotateStartDeg ?? 0);
+        for (const [pid, p] of Object.entries(subtreeRotatePlan(viewDoc, layout, d.rotateId, delta))) {
+          rot[pid] = p.rotation;
+          geom[pid] = { x: p.x, y: p.y, width: p.width, height: p.height };
+        }
+      }
+      s.setRotations(rot);
+      s.setLiveGeom(geom);
       return;
     }
 
@@ -493,8 +509,11 @@ export default function Canvas() {
         if (committed !== startDeg) {
           const { meta } = instanceView(s.doc);
           const m = meta[d.rotateId];
-          if (m && m.instanceId !== d.rotateId) s.setInstanceOverride(m.instanceId, m.masterId, { rotation: committed });
-          else s.updateNode(d.rotateId, { rotation: committed });
+          if (m && m.instanceId !== d.rotateId) {
+            // clone: the override stays *local* — the projection bake adds the instance angle back
+            const instRot = s.doc.nodes[m.instanceId]?.rotation ?? 0;
+            s.setInstanceOverride(m.instanceId, m.masterId, { rotation: committed - instRot });
+          } else s.rotateSubtree(d.rotateId, committed);
         }
       }
     } else if (d.kind === 'resize' && d.resizeId) {
@@ -511,6 +530,7 @@ export default function Canvas() {
     d.rotateCenter = undefined;
     d.rotateStart = undefined;
     d.rotateStartDeg = undefined;
+    d.rotateRigid = undefined;
     d.baseGeoms = {};
     d.moved = false;
   };

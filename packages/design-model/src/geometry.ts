@@ -73,6 +73,27 @@ export function containsRotated(r: AbsRect, rotationDeg: number, p: Point): bool
   return Math.abs(lx) <= r.width / 2 && Math.abs(ly) <= r.height / 2;
 }
 
+/** Rotate a point clockwise (y-down screen convention) about a pivot by `deg` degrees. */
+export function rotatePointAbout(p: Point, pivot: Point, deg: number): Point {
+  if (!deg) return { x: p.x, y: p.y };
+  const rad = (deg * Math.PI) / 180;
+  const cos = Math.cos(rad);
+  const sin = Math.sin(rad);
+  const dx = p.x - pivot.x;
+  const dy = p.y - pivot.y;
+  return { x: pivot.x + cos * dx - sin * dy, y: pivot.y + sin * dx + cos * dy };
+}
+
+/**
+ * Rigid one-node step of a subtree rotation: keep the node's own size, move its centre on a
+ * circle around `pivot`, so the returned rect is where its AABB must sit once the whole group
+ * has been turned by `deg`. A node's drawn rotation is composed separately (`rotation + deg`).
+ */
+export function rigidRotateRect(r: AbsRect, pivot: Point, deg: number): AbsRect {
+  const c = rotatePointAbout({ x: r.x + r.width / 2, y: r.y + r.height / 2 }, pivot, deg);
+  return { x: c.x - r.width / 2, y: c.y - r.height / 2, width: r.width, height: r.height };
+}
+
 /** Topmost visible node under a page-space point. */
 export function hitTest(doc: DesignDocument, layout: Record<NexusId, AbsRect>, pageId: NexusId, p: Point): NexusId | null {
   const page = doc.nodes[pageId];

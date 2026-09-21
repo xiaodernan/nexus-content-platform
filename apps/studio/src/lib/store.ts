@@ -30,6 +30,7 @@ import {
 } from '@nexus/design-model';
 import { ModelRouter } from '@nexus/ai-providers';
 import { boundsOf, computeAlign, computeDistribute, type AlignMode, type DistributeAxis } from './align';
+import { subtreeRotatePlan } from './rotate';
 
 export type Tool = 'select' | 'frame' | 'rectangle' | 'ellipse' | 'text';
 
@@ -120,6 +121,8 @@ interface StudioState {
   moveSelectionBy: (dx: number, dy: number) => void;
   resizeTo: (id: string, g: LiveGeom) => void;
   updateNode: (id: string, patch: Record<string, unknown>) => void;
+  /** Rigid rotation: turns a node's whole subtree about its centre as one reversible op (§8). */
+  rotateSubtree: (id: string, deg: number) => void;
   deleteSelection: () => void;
   duplicateSelection: () => void;
   bringForward: () => void;
@@ -411,6 +414,38 @@ export const useStudio = create<StudioState>((set, get) => ({
   },
 
   updateNode: (id, patch) => get().commitOps([ops.updateNode(id, patch)], `Edit ${get().doc.nodes[id]?.name ?? 'node'}`),
+
+  rotateSubtree: (id, deg) => {
+    const { doc, activePageId } = get();
+    const n = doc.nodes[id];
+    if (!n || n.locked) return;
+    // an instance rotates as a unit: the projection bake (ADR 0005 amendment 3) turns its clones
+    if (n.type === 'instance') {
+      get().commitOps([ops.updateNode(id, { rotation: deg })], `Rotate ${n.name}`);
+      return;
+    }
+    const { doc: view } = instanceView(doc);
+    const layout = layoutPage(view, activePageId);
+    const delta = deg - n.rotation;
+    const opList: Op[] = [ops.updateNode(id, { rotation: deg })];
+    if (layout[id] && delta) {
+      const plan = subtreeRotatePlan(view, layout, id, delta);
+      for (const [pid, p] of Object.entries(plan)) {
+        const a = doc.nodes[pid];
+        if (!a?.parentId) continue; // projected clone: the instance bake reproduces the preview
+        const anchor = plan[a.parentId] ?? layout[a.parentId];
+        if (!anchor) continue;
+        opList.push(
+          ops.updateNode(pid, {
+            x: Math.round(p.x - anchor.x),
+            y: Math.round(p.y - anchor.y),
+            rotation: Math.round(p.rotation),
+          }),
+        );
+      }
+    }
+    get().commitOps(opList, `Rotate ${n.name}`);
+  },
 
   deleteSelection: () => {
     const { doc, selection } = get();

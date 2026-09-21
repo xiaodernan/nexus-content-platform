@@ -11,9 +11,9 @@ npm run build lint typecheck test     # via turbo, 10/10 tasks pass
 
 | Package            | Result |
 | ------------------ | ------ |
-| @nexus/design-model| 24/24 vitest (`design-model` 14 incl. 3 rotated-hitTest cases + `instances` 10 incl. x/y delta + absolute rotation overrides), tsc clean |
+| @nexus/design-model| 28/28 vitest (`design-model` 16 incl. 3 rotated-hitTest + 2 rigid-geometry cases + `instances` 12 incl. x/y delta + absolute rotation overrides + rigid rotation bake), tsc clean |
 | @nexus/ai-providers| 7/7 vitest, tsc clean |
-| @nexus/studio      | 66/66 vitest (`snap` + `persist` + `align` + `store-variants` 16 incl. sub-selection + clone-rotation override + `thumbnail` + `rotate` 11 incl. rotated handle hit-tests + `render` + `minimap`) · tsc `--noEmit` clean · eslint `--max-warnings=0` clean · `next build` ✓ (4/4 static pages) |
+| @nexus/studio      | 71/71 vitest (`snap` + `persist` + `align` + `store-variants` 18 incl. sub-selection + clone-rotation override + rigid subtree flatten + `thumbnail` + `rotate` 14 incl. rotated handle hit-tests + rigid plan cases + `render` + `minimap`) · tsc `--noEmit` clean · eslint `--max-warnings=0` clean · `next build` ✓ (4/4 static pages) |
 
 ## Headless pipeline proof
 
@@ -206,7 +206,7 @@ drag the clone → history `Move 1 node(s)`, snapshot shows `overrides[fr_…] =
 not register (React renders between tasks — events must be dispatched in separate evaluations);
 clone selection intentionally shows no Properties-panel fields.
 
-### Per-clone rotation (absolute `rotation` override, ADR 0015 amendment 3)
+### Per-clone rotation (`rotation` override with absolute replacement semantics, ADR 0015 amendment 3)
 
 Closes the "rotate handles not offered on clones" deferral. Design-model layer
 (`instances.test.ts`, +1 → 10): an `{ rotation: 90 }` override **replaces** the master child's
@@ -227,6 +227,35 @@ select the instance → drill in → *Instance overrides* panel **Rotation** inp
 (828.85, 51.15) to (1050, 500) commits 116° — matching the hand-computed expected angle 116.05 —
 again as one override op. Ctrl+Z ×2 returns the instance to authored state (only the pre-existing
 sub-selection `{x:73,y:50}` override remains). **No console errors.**
+
+### Rigid subtree rotation (commit-flatten + projection bake, ADR 0005 amendment 3)
+
+Turning a container now turns its subtree as a unit, with the renderer, hit-test and `layoutPage`
+untouched. Model layer (+4 → 28/28): `geometry.ts` exports pure `rotatePointAbout` /
+`rigidRotateRect` (y-down clockwise convention matching `ctx.rotate`); `expandComponentInstances`
+gains `bakeInstanceRotation` — after projection, every visible clone's position rotates about the
+instance centre and `clone.rotation += instance.rotation`, so a 90° instance hit-tests on the
+*turned* clone body while the master record stays untouched, and a pre-existing (local) clone
+rotation override composes (30 → 120 at instance 90°). Studio layer (+5 → 71/71):
+`subtreeRotatePlan` tests (descendants turned + rel-to-turned-parent coords, root excluded,
+locked/hidden skipped, flow containers stop descent, 0° → empty) and `rotateSubtree` store tests
+(one reversible batch flattens authored x/y + rotation; for an instance it commits the single
+`rotation` op and the *bake* reproduces the preview — rotated clone hit-tests outside its old
+AABB; undo restores both paths). The grip drag previews through the same plan via the existing
+`liveGeom`/`rotations` maps; the *Instance overrides* row and clone-grip commit now subtract
+`instance.rotation` (overrides are instance-local).
+
+Real-browser proof (synthetic events on `#nexus-canvas`, no rAF): the generated DEMO dashboard is
+**entirely auto-layout** (every frame flow, all authored x/y are 0), so the proof injected an
+absolutely positioned subtree into the `localStorage` snapshot first — frame `rigidF` at
+(600,600,300×200) with `rigidA` rel(20,20,60²) and `rigidB` rel(200,120,60²). Select → grip at
+world (750, 556.4) → drag to (893.6, 700) = exactly +90° → pointerup persists
+`rigidF.rotation=90`, `rigidA={x:170,y:-30,rotation:90}`, `rigidB={x:70,y:150,rotation:90}` —
+both hand-predicted from the rigid math — as a single `Rotate Rigid frame` history row; Ctrl+Z
+restores all three nodes exactly. **No console errors.** Harness notes: synthetic pointer events
+must reuse `pointerId:1` (the mouse pointer) or `setPointerCapture` throws and the handler aborts
+silently; and the detached `next dev` background process died twice mid-session — restart + 200-poll
+before browser proofs.
 
 ## Model-derived visual artifacts
 

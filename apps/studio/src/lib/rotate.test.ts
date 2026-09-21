@@ -1,5 +1,14 @@
 import { describe, expect, it } from 'vitest';
-import { handleHitTest, handlePoints, hitRotated, normalizeDeg, rectCenter, rotateHandlePoint, rotationFromDrag, snapAngleDeg } from './rotate';
+import {
+  applyBatch,
+  createEmptyDocument,
+  frameNode,
+  layoutPage,
+  ops,
+  rectNode,
+  type OpBatch,
+} from '@nexus/design-model';
+import { handleHitTest, handlePoints, hitRotated, normalizeDeg, rectCenter, rotateHandlePoint, rotationFromDrag, snapAngleDeg, subtreeRotatePlan } from './rotate';
 
 const R = { x: 0, y: 0, width: 200, height: 100 }; // centre (100,50)
 
@@ -77,5 +86,68 @@ describe('rotate: rotation-aware resize-handle hits', () => {
 
   it('handlePoints returns the four local corners in nw/ne/sw/se order', () => {
     expect(handlePoints(R).map(([, , c]) => c)).toEqual(['nw', 'ne', 'sw', 'se']);
+  });
+});
+
+const batch = (opsList: OpBatch['ops']): OpBatch => ({
+  id: 'b',
+  ops: opsList,
+  provenance: { mode: 'user' },
+  timestamp: 0,
+  summary: 'test',
+});
+
+describe('subtreeRotatePlan (rigid rotation)', () => {
+  function fixture() {
+    let doc = createEmptyDocument();
+    const frame = frameNode('Box', undefined, { x: 100, y: 100, width: 200, height: 200 });
+    const a = rectNode('a', { x: 10, y: 10, width: 40, height: 40 });
+    const lock = rectNode('lock', { x: 120, y: 120, width: 40, height: 40 });
+    lock.locked = true;
+    const hid = rectNode('hid', { x: 60, y: 60, width: 20, height: 20 });
+    hid.visible = false;
+    const row = frameNode('Row', {
+      mode: 'horizontal',
+      gap: 5,
+      padding: { top: 0, right: 0, bottom: 0, left: 0 },
+      primaryAxis: 'start',
+      counterAxis: 'start',
+    }, { x: 40, y: 140, width: 120, height: 40 });
+    const kid = rectNode('kid', { x: 0, y: 0, width: 20, height: 20 });
+    kid.parentId = row.id;
+    row.childIds = [kid.id];
+    a.parentId = lock.parentId = hid.parentId = row.parentId = frame.id;
+    frame.childIds = [a.id, lock.id, hid.id, row.id];
+    doc = applyBatch(doc, batch([ops.addSubtree(doc.activePageId, 0, [frame, a, lock, hid, row, kid])]));
+    return { doc, frame, a, lock, hid, row, kid };
+  }
+
+  it('turns every descendant centre about the root centre and composes rotation', () => {
+    const { doc, frame, a } = fixture();
+    const layout = layoutPage(doc, doc.activePageId);
+    const plan = subtreeRotatePlan(doc, layout, frame.id, 90);
+    // a: abs centre (130,130) about pivot (200,200) → (270,130) → top-left (250,110)
+    const pa = plan[a.id]!;
+    expect(pa.x).toBeCloseTo(250);
+    expect(pa.y).toBeCloseTo(110);
+    expect(pa.width).toBe(40);
+    expect(pa.rotation).toBeCloseTo(90);
+    expect(plan[frame.id]).toBeUndefined(); // the root is not part of its own plan
+  });
+
+  it('skips locked and hidden nodes, and stops at flow-placed children', () => {
+    const { doc, frame, lock, hid, row, kid } = fixture();
+    const layout = layoutPage(doc, doc.activePageId);
+    const plan = subtreeRotatePlan(doc, layout, frame.id, 90);
+    expect(plan[lock.id]).toBeUndefined();
+    expect(plan[hid.id]).toBeUndefined();
+    expect(plan[row.id]).toBeTruthy(); // the flow container itself is absolutely placed → rigid
+    expect(plan[kid.id]).toBeUndefined(); // its children are flow-placed → x/y would be ignored
+  });
+
+  it('is empty at 0° (identity short-circuit)', () => {
+    const { doc, frame } = fixture();
+    const layout = layoutPage(doc, doc.activePageId);
+    expect(subtreeRotatePlan(doc, layout, frame.id, 0)).toEqual({});
   });
 });

@@ -19,8 +19,8 @@ Live list. Nothing here is hidden behind marketing copy.
   The AI-diff card now pairs its semantic counts with **before/after thumbnails** (`lib/thumbnail.ts`).
   These are deterministic SVG snapshots from `layoutPage` + token resolution — model-derived geometry,
   *not* pixel screenshots (§60), so they render even under the hidden-viewport harness.
-  A **rotate handle + rotation-aware canvas rendering *and hit-testing*** (`lib/rotate.ts` +
-  design-model `containsRotated`) now ship too — caveats below.
+  A **rotate handle + rotation-aware canvas rendering *and hit-testing* + rigid subtree rotation**
+  (`lib/rotate.ts` + design-model `containsRotated`/`rotateSubtree`) now ship too — caveats below.
   A bottom-left **minimap** (`lib/minimap.ts` pure fit math + a small painted canvas) previews the
   page/nodes/viewport rect; click or drag recenters the main viewport at the current zoom.
 - "Publish" in the slice means **local export** only. Hosted public URLs `/n/{user}/{project}`,
@@ -43,7 +43,8 @@ Live list. Nothing here is hidden behind marketing copy.
   derived). **Sub-selection (drill-in) now works** (ADR 0015 amendment 2): double-click enters the
   instance and selects the clicked clone; while focused, clone move/resize/arrows/on-canvas text edit
   commit as `overrides` ops on the owning instance (`x`/`y` are *deltas* off the master position).
-  **Clone rotation now works too** (ADR 0015 amendment 3): a `rotation` override (absolute degrees)
+  **Clone rotation now works too** (ADR 0015 amendment 3): a `rotation` override (degrees, local to
+  the instance's own angle — the projection bake composes them)
   plus the rotate grip on a focused clone, and a Rotation input per row of the *Instance overrides*
   panel. Remaining gaps: per-instance geometry override
   beyond x/y/width/height/rotation (fills/radius editable only via detach), and a dedicated off-page
@@ -60,7 +61,7 @@ Live list. Nothing here is hidden behind marketing copy.
   alignment (left/center/right/top/middle/bottom) and equal-gap distribution (≥3 nodes) are
   wired via `lib/align.ts` + the `AlignBar`**, each committed as one reversible op. Smart
   distribute-with-rotate is still not present.
-- **Rotation is visual-precise *and* hit-precise (ADR 0005 Amendment 2):** the renderer
+- **Rotation is visual-precise *and* hit-precise (ADR 0005 Amendments 2–3):** the renderer
   rotates each node about its own centre (`lib/rotate.ts` math, `rotations` live-preview map,
   rotated chrome + grip), and the rotate grip drags free angles with Shift 15° snapping.
   `hitTest` is now **rotation-aware through the canonical model**: design-model exports
@@ -69,18 +70,23 @@ Live list. Nothing here is hidden behind marketing copy.
   longer hit, and points outside the old box but inside the rotated body do (marquee selection
   still intersects the unrotated boxes). Studio resize grabs
   match the painted chrome via `handleHitTest` (same inverse rotation), and `hitRotated` now just
-  delegates to the model. Remaining caveats: `layoutPage` storage stays axis-aligned, so resize
-  *math* still commits AABB deltas (width/height/x/y of the unrotated box); container subtrees
-  rotate *individually* (each child about its own centre) rather than rigidly as a group — rigid
-  subtree rotation stays deferred. Instance clones rotate too via an absolute `rotation` override
+  delegates to the model. **Subtrees now turn rigidly** (ADR 0005 amendment 3): rotating a
+  container/shape rewrites its descendants' positions as one reversible step (`rotateSubtree`
+  commit-flattens authored nodes; the instance projection bakes clone positions about the
+  instance centre). Remaining caveats: `layoutPage` storage stays axis-aligned, so resize
+  *math* still commits AABB deltas (width/height/x/y of the unrotated box); **flow (auto-layout)
+  containers** keep their children's slot placement when rotated — rigidity applies to absolutely
+  positioned subtrees only; a per-clone `rotation` override stays *local* (it composes on top of
+  the instance's own angle). Instance clones rotate too via that override
   (ADR 0015 amendment 3), but note `hitChildren` descends only while an ancestor's *own* rect
   contains the point: a rotated clone that sticks out past its (unrotated) container's box stays
   unreachable outside that box — same pre-existing container-overflow rule as moved/resized clones.
   The interactive
   grip drag is covered by pure-math tests, a recording fake-`ctx` render test and the store op
-  path, plus the Properties-panel Rotation field end-to-end in the real browser (set → undo →
-  redo → reload persists); pixel screenshots of the rotated canvas are not claimable under the
-  §60 harness.
+  path, plus the Properties-panel Rotation field and a real-browser rigid grip-drag on an
+  absolutely positioned frame (90° → children flatten to the predicted rel x/y + rotation,
+  single history row, Ctrl+Z restores exactly); pixel screenshots of the rotated canvas are not
+  claimable under the §60 harness.
 - **Multi-page caveat:** adding a page is an undoable op (`addSubtree`→`pageIds`), but which page
   is *active* is ephemeral view-state — switching pages is **not undoable** and can differ across
   browser tabs. A `setActivePage`/`patchDocument` op (needs a design-model rebuild) is the next step.

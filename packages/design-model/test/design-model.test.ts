@@ -11,6 +11,8 @@ import {
   ops,
   rectNode,
   resolveToken,
+  rigidRotateRect,
+  rotatePointAbout,
   solid,
   textNode,
   OpValidationError,
@@ -219,6 +221,33 @@ describe('design model: geometry + layout', () => {
     expect(hitTest(doc, layout, pageId(doc), { x: 20, y: 20 })).toBe(kid.id);
     // the frame's AABB corner region is chopped away by the 45° rotation
     expect(hitTest(doc, layout, pageId(doc), { x: 1, y: 1 })).toBeNull();
+  });
+
+  it('rotatePointAbout turns clockwise (y-down) and is identity at 0°', () => {
+    const a = rotatePointAbout({ x: 1, y: 0 }, { x: 0, y: 0 }, 0);
+    expect(a.x).toBe(1);
+    expect(a.y).toBe(0);
+    const q = rotatePointAbout({ x: 1, y: 0 }, { x: 0, y: 0 }, 90);
+    expect(q.x).toBeCloseTo(0);
+    expect(q.y).toBeCloseTo(1);
+    const h = rotatePointAbout({ x: 3, y: 5 }, { x: 1, y: 1 }, 180);
+    expect(h.x).toBeCloseTo(-1);
+    expect(h.y).toBeCloseTo(-3);
+  });
+
+  it('rigidRotateRect keeps size and moves the centre on a circle about the pivot', () => {
+    const r = { x: 0, y: 0, width: 100, height: 40 };
+    const self = rigidRotateRect(r, { x: 50, y: 20 }, 90); // pivot at its own centre → (near) fixed point
+    expect(self.x).toBeCloseTo(0);
+    expect(self.y).toBeCloseTo(0);
+    expect(self.width).toBe(100);
+    expect(self.height).toBe(40);
+    // centre (50,20) about origin → (−20,50) → top-left (−70,30)
+    const t = rigidRotateRect(r, { x: 0, y: 0 }, 90);
+    expect(t.x).toBeCloseTo(-70);
+    expect(t.y).toBeCloseTo(30);
+    expect(t.width).toBe(100);
+    expect(t.height).toBe(40);
   });
 });
 

@@ -1,5 +1,5 @@
-import type { AbsRect, Point } from '@nexus/design-model';
-import { containsRotated } from '@nexus/design-model';
+import type { AbsRect, ContainerNode, DesignDocument, Point } from '@nexus/design-model';
+import { childIdList, containsRotated, rigidRotateRect } from '@nexus/design-model';
 
 const DEG = Math.PI / 180;
 
@@ -80,4 +80,44 @@ export function handleHitTest(
     if (Math.abs(lp.x - hx) <= tol && Math.abs(lp.y - hy) <= tol) return [hx, hy, corner];
   }
   return null;
+}
+
+export interface RigidPlanEntry {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  rotation: number;
+}
+
+/**
+ * Where every *descendant* of `rootId` must sit (and turn) when the whole subtree rotates rigidly
+ * by `deg` about the centre of `rootId`. Reads base (pre-drag) absolute layout rects and walks the
+ * projected view document (ADR 0015), so instance clones are covered too — the commit path filters
+ * to authored ids and lets the projection bake reproduce the rest. Locked/hidden nodes are skipped
+ * (matching move behaviour); flow-placed (auto-layout) children stop the descent because their
+ * positions are not x/y-authorable.
+ */
+export function subtreeRotatePlan(
+  view: DesignDocument,
+  layout: Record<string, AbsRect>,
+  rootId: string,
+  deg: number,
+): Record<string, RigidPlanEntry> {
+  const out: Record<string, RigidPlanEntry> = {};
+  const rootN = view.nodes[rootId];
+  const root = layout[rootId];
+  if (!rootN || !root || !deg) return out;
+  const pivot = rectCenter(root);
+  const walk = (id: string): void => {
+    const node = view.nodes[id];
+    if (!node || !node.visible || node.locked) return;
+    const r = layout[id];
+    if (!r) return;
+    out[id] = { ...rigidRotateRect(r, pivot, deg), rotation: node.rotation + deg };
+    if ((node as ContainerNode).layout) return;
+    for (const cid of childIdList(node)) walk(cid);
+  };
+  for (const cid of childIdList(rootN)) walk(cid);
+  return out;
 }

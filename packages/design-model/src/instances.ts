@@ -1,5 +1,6 @@
-import type { DesignDocument, DesignNode, InstanceNode, NexusId } from './types.js';
+import type { ContainerNode, DesignDocument, DesignNode, InstanceNode, NexusId, Point } from './types.js';
 import { childIdList } from './selectors.js';
+import { rotatePointAbout } from './geometry.js';
 
 /**
  * Component → instance projection (ADR 0015).
@@ -73,6 +74,36 @@ function applyOverrides(
   if (t !== undefined && clone.type === 'text') clone.characters = t;
 }
 
+/**
+ * Rigid bake: an instance's own `rotation` turns its *whole* materialized subtree — each clone's
+ * position rotates about the instance centre and its rotation is incremented — so rotating the
+ * unit reads as one solid body instead of a frozen stencil over turning rectangles. Authored
+ * masters are never touched; per-clone override rotations stay *local* (the bake composes the
+ * instance angle on top). Flow-placed (auto-layout) children are the existing exception: their
+ * positions are not x/y-authorable, so they keep the old individually-rotated behavior.
+ */
+function bakeInstanceRotation(projected: Record<NexusId, DesignNode>, instId: NexusId): void {
+  const inst = projected[instId];
+  if (!inst || inst.type !== 'instance') return;
+  const theta = inst.rotation;
+  if (!theta) return;
+  const pivot: Point = { x: inst.width / 2, y: inst.height / 2 };
+  const walk = (id: NexusId, parentLocal: Point, parentNew: Point): void => {
+    const node = projected[id];
+    if (!node || !node.visible) return;
+    const local: Point = { x: parentLocal.x + node.x, y: parentLocal.y + node.y };
+    const center: Point = { x: local.x + node.width / 2, y: local.y + node.height / 2 };
+    const newCenter = rotatePointAbout(center, pivot, theta);
+    const newTopLeft: Point = { x: newCenter.x - node.width / 2, y: newCenter.y - node.height / 2 };
+    node.x = newTopLeft.x - parentNew.x;
+    node.y = newTopLeft.y - parentNew.y;
+    node.rotation = (node.rotation ?? 0) + theta;
+    if ((node as ContainerNode).layout) return;
+    for (const cid of childIdList(node)) walk(cid, local, newTopLeft);
+  };
+  for (const cid of childIdList(inst)) walk(cid, { x: 0, y: 0 }, { x: 0, y: 0 });
+}
+
 export function expandComponentInstances(doc: DesignDocument): ExpandedInstances {
   const projected: Record<NexusId, DesignNode> = { ...doc.nodes };
   const meta: Record<NexusId, InstanceMeta> = {};
@@ -129,6 +160,7 @@ export function expandComponentInstances(doc: DesignDocument): ExpandedInstances
     projected[node.id] = copy;
     meta[node.id] = { instanceId: node.id, masterId: copy.componentId };
     expandInstance(node.id, node.id, []);
+    bakeInstanceRotation(projected, node.id);
   }
 
   return { doc: { ...doc, nodes: projected }, meta };

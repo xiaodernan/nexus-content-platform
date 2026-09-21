@@ -128,5 +128,12 @@ studio offers the rotate grip on a focused clone (drag commits via `setInstanceO
 *Instance overrides* panel gains a per-row Rotation input. Known boundary (accepted): hit
 descent requires each ancestor's own rect to contain the point, so a rotated clone overhanging
 its unrotated container's box is unreachable in the overhang — the same pre-existing
-container-overflow rule as moved/resized clones; rigid subtree rotation stays deferred.
+container-overflow rule as moved/resized clones.
 Design-model tests 24/24 (new rotation-override case), studio 66/66.
+
+**Follow-up (ADR 0005 Amendment 3, same day):** "rigid subtree rotation stays deferred" is now
+**superseded** — rotating an instance bakes its clones' positions rigidly in the projection, and
+authored subtrees commit-flatten via `rotateSubtree`. One semantic refinement: because the bake adds
+the instance's own angle on top, an override `rotation` is absolute *within the instance frame* —
+i.e. **local** to the instance. The *Instance overrides* input and the clone-grip commit therefore
+subtract `instance.rotation` for display/authoring, matching how x/y deltas are already master-local.

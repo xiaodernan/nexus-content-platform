@@ -37,7 +37,8 @@ export default function InstanceOverrides({ instance }: { instance: InstanceNode
             type: node.type,
             characters: node.type === 'text' ? node.characters : undefined,
             width: node.width,
-            rotation: node.rotation ?? 0,
+            // the projection bake composes the instance's own angle on top; show/edit the local one
+            rotation: node.rotation - instance.rotation,
           });
         }
         walk(cid);
@@ -45,7 +46,7 @@ export default function InstanceOverrides({ instance }: { instance: InstanceNode
     };
     walk(instance.id);
     return out;
-  }, [doc, instance.id]);
+  }, [doc, instance.id, instance.rotation]);
 
   if (!rows.length) return null;
 

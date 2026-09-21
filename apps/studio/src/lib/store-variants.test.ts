@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it } from 'vitest';
-import { hitTest, layoutPage, type InstanceNode } from '@nexus/design-model';
+import { frameNode, hitTest, layoutPage, ops, rectNode, type InstanceNode } from '@nexus/design-model';
 import { instanceView, useStudio } from './store';
 
 const st = () => useStudio.getState();
@@ -257,5 +257,55 @@ describe('store: sub-selection (drill-in editing via overrides)', () => {
     st().setInstanceOverride(instId, rectId, { x: 10 });
     const layout = layoutPage(instanceView(st().doc).doc, st().activePageId);
     expect(layout[cloneId]!.x).toBe(40 + st().doc.nodes[rectId]!.x + 10);
+  });
+});
+
+describe('store: rigid subtree rotation (ADR 0005 amendment 3)', () => {
+  it('rotating a frame flattens the turn into every authored descendant, as one undoable step', () => {
+    st().newProject();
+    const frame = frameNode('Box', undefined, { x: 100, y: 100, width: 200, height: 200 });
+    const a = rectNode('a', { x: 10, y: 10, width: 40, height: 40 });
+    a.parentId = frame.id;
+    frame.childIds = [a.id];
+    st().commitOps([ops.addSubtree(st().activePageId, 0, [frame, a])], 'fixture');
+    st().rotateSubtree(frame.id, 90);
+    expect(st().doc.nodes[frame.id]!.rotation).toBe(90);
+    // kid abs centre (130,130) turns about (200,200) → (270,130) → authored rel to the frame's
+    // still-(100,100) AABB = (150,10)
+    const kid = st().doc.nodes[a.id]!;
+    expect(kid.x).toBe(150);
+    expect(kid.y).toBe(10);
+    expect(kid.rotation).toBe(90);
+    st().undo();
+    expect(st().doc.nodes[frame.id]!.rotation).toBe(0);
+    expect(st().doc.nodes[a.id]!.x).toBe(10);
+    expect(st().doc.nodes[a.id]!.y).toBe(10);
+    expect(st().doc.nodes[a.id]!.rotation).toBe(0);
+  });
+
+  it('rotating an instance commits only the unit rotation; the projection bakes the clones', () => {
+    st().newProject();
+    st().addShape('rectangle', { x: 100, y: 100 });
+    const rectId = st().selection[0]!;
+    st().select([rectId]);
+    st().createComponent();
+    const instId = st().selection[0]!;
+    const cloneId = `${instId}::${rectId}`;
+    st().setInstanceOverride(instId, rectId, { x: -30 });
+    st().rotateSubtree(instId, 90);
+    expect(st().doc.nodes[instId]!.rotation).toBe(90);
+    const view = instanceView(st().doc).doc;
+    const clone = view.nodes[cloneId]!;
+    expect(clone.rotation).toBe(90);
+    expect(clone.y).toBeCloseTo(-30); // local centre (50,60) about pivot (80,60) → (80,30)
+    const layout = layoutPage(view, st().activePageId);
+    // (200,200) is outside the clone AABB (y>190) but inside the turned rigid body
+    expect(hitTest(view, layout, st().activePageId, { x: 200, y: 200 })).toBe(cloneId);
+    st().undo();
+    expect(st().doc.nodes[instId]!.rotation).toBe(0);
+    const after = instanceView(st().doc).doc.nodes[cloneId]!;
+    expect(after.y).toBe(0);
+    expect(after.x).toBe(-30); // the override step is untouched by this undo
+    expect(after.rotation).toBe(0);
   });
 });

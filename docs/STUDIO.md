@@ -14,7 +14,12 @@ marquee multi-select, drag-move, grab-a-frame-moves-its-subtree, corner resize h
 commits to the model's `rotation` through one reversible op and the renderer turns the node about
 its own centre — selection chrome, corner handles and the grip all rotate with it; hit-testing is
 rotation-aware in the canonical model (`containsRotated`), so click-select and resize grabs follow
-the turned outline),
+the turned outline; **rotating a node turns its subtree rigidly** (ADR 0005 amendment 3):
+`rotateSubtree` rewrites each absolutely positioned descendant's rel x/y + rotation as one
+reversible batch (grip drag and the panel Rotation field both route through it, with a live
+`subtreeRotatePlan` preview), and the instance projection bakes clone positions about the
+instance centre so instances rotate rigidly for free — flow/auto-layout containers keep their
+children's slot placement by design),
 **magnetic snapping to sibling + page anchors with pink smart guides** (drag aligns
 edges/centers, resize snaps the dragged edge), **alignment + distribution actions** (align
 left/center/right/top/middle/bottom against the page or selection bounds, and distribute ≥3
@@ -45,8 +50,9 @@ off the master position (so masters keep authoring freedom), `width`/`height` ab
 into `overrides.text`. Escape, the chip's *Exit* button, double-clicking the instance body, or
 clicking empty canvas drills back out and selects the whole unit. The focus state is studio-local
 view state (ADR 0014): not persisted, not undoable. **Clone rotation:** the *Instance overrides*
-panel has a per-row Rotation input and the rotate grip works on a focused clone — it commits an
-**absolute** `rotation` override (degrees) on the owning instance (ADR 0015 amendment 3), so the
+panel has a per-row Rotation input and the rotate grip works on a focused clone — it commits a
+**local** `rotation` override (degrees relative to the instance's own angle, since the projection
+bake composes the two, ADR 0015 amendment 3 + ADR 0005 amendment 3) on the owning instance, so the
 master and sibling instances stay untouched and hit-testing follows the turned clone. Note a
 rotated clone that overhangs its (unrotated) container box is unreachable outside that box —
 the same pre-existing container-overflow rule as moved/resized clones.

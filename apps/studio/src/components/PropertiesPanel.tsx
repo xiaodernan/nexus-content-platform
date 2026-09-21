@@ -36,6 +36,7 @@ function fillSummary(node: DesignNode): string {
 function NodeEditor({ node }: { node: DesignNode }) {
   const doc = useStudio((s) => s.doc);
   const updateNode = useStudio((s) => s.updateNode);
+  const rotateSubtree = useStudio((s) => s.rotateSubtree);
 
   const firstFill = node.fills[0];
   const currentHex = (() => {
@@ -73,7 +74,7 @@ function NodeEditor({ node }: { node: DesignNode }) {
           <NumberField label="Y" value={node.y} onCommit={(n) => updateNode(node.id, { y: Math.round(n) })} />
           <NumberField label="W" value={node.width} min={1} onCommit={(n) => updateNode(node.id, { width: Math.round(Math.max(1, n)) })} />
           <NumberField label="H" value={node.height} min={1} onCommit={(n) => updateNode(node.id, { height: Math.round(Math.max(1, n)) })} />
-          <NumberField label="Rotation" value={node.rotation} onCommit={(n) => updateNode(node.id, { rotation: n })} />
+          <NumberField label="Rotation" value={node.rotation} onCommit={(n) => rotateSubtree(node.id, n)} />
           <NumberField label="Opacity" value={node.opacity} min={0} max={1} step={0.05} onCommit={(n) => updateNode(node.id, { opacity: Math.min(1, Math.max(0, n)) })} />
         </div>
       </div>

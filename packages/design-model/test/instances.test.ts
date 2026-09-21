@@ -163,6 +163,49 @@ describe('instances: multiple + overrides', () => {
   });
 });
 
+describe('instances: rigid rotation bake (ADR 0005 amendment 3)', () => {
+  it('a rotated instance turns its whole clone subtree about its centre', () => {
+    let doc = createEmptyDocument();
+    const { cmp, r, t } = buttonMaster();
+    doc = seed(doc, doc.rootId, cmp, r, t);
+    const inst = instanceNode('B', 'cmp', { id: 'i5', x: 0, y: 0, width: 140, height: 140, rotation: 90 });
+    inst.overrides = { 'cmp::label': { visible: false } };
+    doc = seed(doc, doc.activePageId, inst);
+    const { doc: out } = expandComponentInstances(doc);
+    const clone = out.nodes['i5::cmp::rect']!;
+    // master rect 120×40 at (0,0): local centre (60,20) about pivot (70,70) turns to (120,60)
+    expect(clone.rotation).toBe(90);
+    expect(clone.x).toBeCloseTo(60);
+    expect(clone.y).toBeCloseTo(40);
+    // masters are never touched
+    expect(doc.nodes['cmp::rect']!.x).toBe(0);
+    expect(doc.nodes['cmp::rect']!.rotation ?? 0).toBe(0);
+    // hit-testing follows the turned body: (120,90) is outside the clone AABB (y>80) but inside
+    // the rotated rect — only a rigid bake + composed rotation can produce this
+    const layout = layoutPage(out, doc.activePageId);
+    expect(hitTest(out, layout, doc.activePageId, { x: 120, y: 90 })).toBe('i5::cmp::rect');
+  });
+
+  it('the bake composes with x/y deltas and keeps overrides local', () => {
+    let doc = createEmptyDocument();
+    const { cmp, r, t } = buttonMaster();
+    doc = seed(doc, doc.rootId, cmp, r, t);
+    const inst = instanceNode('B', 'cmp', { id: 'i6', x: 0, y: 0, width: 140, height: 140, rotation: 90 });
+    inst.overrides = { 'cmp::rect': { x: 10 }, 'cmp::label': { rotation: 30 } };
+    doc = seed(doc, doc.activePageId, inst);    const { doc: out } = expandComponentInstances(doc);
+    const clone = out.nodes['i6::cmp::rect']!;
+    // delta applied first (local centre (70,20)), then the bake: → centre (120,70), top-left (60,50)
+    expect(clone.x).toBeCloseTo(60);
+    expect(clone.y).toBeCloseTo(50);
+    expect(clone.rotation).toBe(90);
+    // a per-clone rotation override stays *local*: the instance angle composes on top of it
+    const label = out.nodes['i6::cmp::label']!;
+    expect(label.rotation).toBe(120);
+    // the authored override record is untouched by the bake
+    expect(inst.overrides['cmp::rect']).toEqual({ x: 10 });
+  });
+});
+
 describe('instances: nesting + cycles + meta', () => {
   it('expands a nested instance one level deep', () => {
     let doc = createEmptyDocument();

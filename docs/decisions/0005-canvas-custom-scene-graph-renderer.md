@@ -63,3 +63,30 @@ per-clone rotation. The studio's `lib/rotate.ts` `hitRotated` now delegates to t
 rotated chrome exactly. No op-log or type changes; a design-model rebuild was required (23/23
 package tests green, incl. three new rotated-hit cases).
 
+## Amendment 3 — 2026-09-22 (rigid subtree rotation: flatten + bake)
+The second deferred consequence — "subtrees rotate per-node rather than rigidly" — has now landed.
+Turning a container turns its whole subtree as a unit, with **no change to the renderer, hit-test
+or `layoutPage`** (which stays axis-aligned storage; ADR 0005's core decision is untouched). The
+rigidity lives in *where the numbers get written*:
+
+- **Authored subtrees — commit-flatten.** `lib/rotate.ts` exports a pure `subtreeRotatePlan(view,
+  layout, rootId, Δ)` that maps every visible, unlocked descendant to its rigidly-turned AABB
+  (`rigidRotateRect` about the root's centre in `@nexus/design-model/geometry`). The store action
+  `rotateSubtree(id, deg)` then rewrites each authored descendant's *parent-relative* x/y (plan
+  absolute rect minus the turned parent's rect) plus `rotation + Δ` in **one reversible op batch**.
+  After the commit the per-node self-rotation renderer reproduces the preview exactly.
+- **Instances — projection bake.** Rotating an instance stays a single `updateNode(id,{rotation})`
+  op; `expandComponentInstances` post-processes each instance's projected clones
+  (`bakeInstanceRotation`), rotating their positions about the instance centre and adding the
+  instance angle to each clone — so clones, hit-testing and export rigidify for free, and the
+  master is never touched. The two compose: baking a freshly-rotated instance equals applying the
+  same rigid transform to an already-baked subtree (proved by the composition test).
+- **Caveats (accepted).** Auto-layout (flow) containers place children by cursor, ignoring x/y, so
+  the plan *stops descending* at nodes with a `layout` — a flow container's children keep their
+  slot placement (their own `rotation` still gains Δ). Per-clone `rotation` overrides stay *local*
+  (the bake composes the instance angle on top), so the overrides panel and clone-grip commit
+  subtract the instance rotation. Locked/hidden nodes are skipped by both mechanisms.
+
+Design-model rebuild with 5 new tests (28/28 green); studio gains `subtreeRotatePlan` +
+`rotateSubtree` + grip-drag live preview through the same plan (71/71 green).
+
