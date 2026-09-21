@@ -15,6 +15,9 @@ Live list. Nothing here is hidden behind marketing copy.
   pass adds **on-canvas text editing, magnetic snapping + smart guides, multi-page
   add/switch, local-first persistence with a History/Snapshots panel** (ADR 0014), and
   **component → instance authoring** (create/insert/detach + per-instance text/width overrides, ADR 0015).
+  The AI-diff card now pairs its semantic counts with **before/after thumbnails** (`lib/thumbnail.ts`).
+  These are deterministic SVG snapshots from `layoutPage` + token resolution — model-derived geometry,
+  *not* pixel screenshots (§60), so they render even under the hidden-viewport harness.
 - "Publish" in the slice means **local export** only. Hosted public URLs `/n/{user}/{project}`,
   accounts, and SEO (SSR/OpenGraph) land with M7/community + the `nexus-api` service.
 - Persistence is **local-first `localStorage`** (whole-model snapshot, debounced save, hydrate

@@ -36,8 +36,11 @@ op, ADR 0014).
 
 ## Live preview & persistence
 Live Preview renders the same Design Model as clean, token-driven HTML/CSS (a projection), plus a
-PNG screenshot export used as proof-of-work (§30/§32). The document auto-saves to `localStorage`
-(debounced) and rehydrates on load — see ADR 0014 for why this is local-first for the slice and
+PNG screenshot export used as proof-of-work (§30/§32). The **AI/Edit diff card** now shows **before/
+after thumbnails** alongside its semantic counts (§36): both are self-contained SVG snapshots produced
+by `lib/thumbnail.ts` (`docToSvg`) from `layoutPage` + token resolution — the same geometry the canvas
+paints, not pixel captures — so a generate/edit previews its visual result even in DEMO MODE. The
+document auto-saves to `localStorage` (debounced) and rehydrates on load — see ADR 0014 for why this is local-first for the slice and
 how it later folds into the hosted store of ADR 0012.
 
 Status: running in-browser, no backend required. See KNOWN_ISSUES for the honest scope.

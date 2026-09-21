@@ -136,6 +136,8 @@ export default function PropertiesPanel() {
   const doc = useStudio((s) => s.doc);
   const selection = useStudio((s) => s.selection);
   const lastDiff = useStudio((s) => s.lastDiff);
+  const lastBefore = useStudio((s) => s.lastBefore);
+  const lastPageId = useStudio((s) => s.lastPageId);
   const setStatus = useStudio((s) => s.setStatus);
 
   return (
@@ -171,7 +173,7 @@ export default function PropertiesPanel() {
         </div>
       )}
       <div style={{ margin: 12 }}>
-        <DiffCard diff={lastDiff} onClose={() => setStatus(useStudio.getState().status)} />
+        <DiffCard diff={lastDiff} before={lastBefore} after={doc} pageId={lastPageId ?? doc.activePageId} onClose={() => setStatus(useStudio.getState().status)} />
       </div>
     </div>
   );

@@ -69,6 +69,10 @@ export interface HistoryLogEntry {
   summary: string;
   provenance: 'user' | 'demo' | 'live';
   diff: DiffSummary;
+  /** Page snapshots for the visual before/after diff (ADR 0005 geometry → §36 thumbnail). */
+  before: DesignDocument;
+  after: DesignDocument;
+  pageId: string;
 }
 
 interface StudioState {
@@ -85,6 +89,8 @@ interface StudioState {
   previewOpen: boolean;
   aiBusy: boolean;
   lastDiff: DiffSummary | null;
+  lastBefore: DesignDocument | null;
+  lastPageId: string | null;
   historyLog: HistoryLogEntry[];
   historyCursor: number;
   mode: 'demo' | 'live';
@@ -214,6 +220,8 @@ export const useStudio = create<StudioState>((set, get) => ({
   previewOpen: false,
   aiBusy: false,
   lastDiff: null,
+  lastBefore: null,
+  lastPageId: null,
   historyLog: [],
   historyCursor: 0,
   mode: router.mode,
@@ -261,11 +269,13 @@ export const useStudio = create<StudioState>((set, get) => ({
     const selection = state.selection.filter((id) => next.nodes[id] && !removed.has(id));
     // truncate any redo tail, then append this batch to the mirror log
     const log = state.historyLog.slice(0, state.historyCursor);
-    log.push({ summary: b.summary ?? 'Edit', provenance: b.provenance.mode, diff: summary });
+    log.push({ summary: b.summary ?? 'Edit', provenance: b.provenance.mode, diff: summary, before, after: next, pageId: safePage(next, state.activePageId) });
     set({
       doc: next,
       activePageId: safePage(next, state.activePageId),
       lastDiff: summary,
+      lastBefore: before,
+      lastPageId: safePage(next, state.activePageId),
       selection,
       editingId: state.editingId && next.nodes[state.editingId] ? state.editingId : null,
       historyLog: log,
@@ -284,6 +294,8 @@ export const useStudio = create<StudioState>((set, get) => ({
       selection: s.selection.filter((id) => next.nodes[id]),
       historyCursor: Math.max(0, s.historyCursor - 1),
       lastDiff: null,
+      lastBefore: null,
+      lastPageId: null,
     }));
   },
   redo: () => {
@@ -298,6 +310,8 @@ export const useStudio = create<StudioState>((set, get) => ({
         selection: s.selection.filter((id) => next.nodes[id]),
         historyCursor: cursor,
         lastDiff: s.historyLog[cursor - 1]?.diff ?? null,
+        lastBefore: s.historyLog[cursor - 1]?.before ?? null,
+        lastPageId: s.historyLog[cursor - 1]?.pageId ?? null,
       };
     });
   },
@@ -551,7 +565,7 @@ export const useStudio = create<StudioState>((set, get) => ({
 
   loadDocument: (doc) => {
     history = new History(doc);
-    set({ doc, activePageId: safePage(doc, doc.activePageId), selection: [], editingId: null, lastDiff: null, historyLog: [], historyCursor: 0, status: 'Restored from local snapshot' });
+    set({ doc, activePageId: safePage(doc, doc.activePageId), selection: [], editingId: null, lastDiff: null, lastBefore: null, lastPageId: null, historyLog: [], historyCursor: 0, status: 'Restored from local snapshot' });
   },
 
   generate: async (prompt) => {
@@ -564,13 +578,15 @@ export const useStudio = create<StudioState>((set, get) => ({
       const summary = diffFromBatch(before, after, res.batch);
       const state = get();
       const log = state.historyLog.slice(0, state.historyCursor);
-      log.push({ summary: res.batch.summary ?? 'Generate', provenance: 'demo', diff: summary });
+      log.push({ summary: res.batch.summary ?? 'Generate', provenance: 'demo', diff: summary, before, after, pageId: after.activePageId });
       set({
         doc: after,
         activePageId: safePage(after, after.activePageId),
         aiBusy: false,
         mode: router.mode,
         lastDiff: summary,
+        lastBefore: before,
+        lastPageId: after.activePageId,
         historyLog: log,
         historyCursor: log.length,
         status: `${res.usage.model} → ${res.batch.summary}`,
@@ -594,8 +610,8 @@ export const useStudio = create<StudioState>((set, get) => ({
       const summary = diffFromBatch(before, after, res.batch);
       const state = get();
       const log = state.historyLog.slice(0, state.historyCursor);
-      log.push({ summary: res.batch.summary ?? 'AI edit', provenance: 'demo', diff: summary });
-      set({ doc: after, aiBusy: false, mode: router.mode, lastDiff: summary, historyLog: log, historyCursor: log.length, status: res.batch.summary ?? 'AI edit applied' });
+      log.push({ summary: res.batch.summary ?? 'AI edit', provenance: 'demo', diff: summary, before, after, pageId: after.activePageId });
+      set({ doc: after, aiBusy: false, mode: router.mode, lastDiff: summary, lastBefore: before, lastPageId: after.activePageId, historyLog: log, historyCursor: log.length, status: res.batch.summary ?? 'AI edit applied' });
     } catch (e) {
       set({ aiBusy: false, status: 'Edit failed: ' + (e instanceof Error ? e.message : '') });
     }
@@ -604,7 +620,7 @@ export const useStudio = create<StudioState>((set, get) => ({
   newProject: () => {
     history = new History(createEmptyDocument('Untitled Project'));
     const d = history.current;
-    set({ doc: d, activePageId: d.activePageId, selection: [], editingId: null, lastDiff: null, historyLog: [], historyCursor: 0, status: 'New project' });
+    set({ doc: d, activePageId: d.activePageId, selection: [], editingId: null, lastDiff: null, lastBefore: null, lastPageId: null, historyLog: [], historyCursor: 0, status: 'New project' });
   },
 }));
 

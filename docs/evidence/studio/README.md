@@ -13,7 +13,7 @@ npm run build lint typecheck test     # via turbo, 10/10 tasks pass
 | ------------------ | ------ |
 | @nexus/design-model| 19/19 vitest (`design-model` 11 + `instances` 8), tsc clean |
 | @nexus/ai-providers| 7/7 vitest, tsc clean |
-| @nexus/studio      | 29/29 vitest (`snap` + `persist` + `align` + `store-variants`) · tsc `--noEmit` clean · eslint `--max-warnings=0` clean · `next build` ✓ (4/4 static pages) |
+| @nexus/studio      | 34/34 vitest (`snap` + `persist` + `align` + `store-variants` + `thumbnail`) · tsc `--noEmit` clean · eslint `--max-warnings=0` clean · `next build` ✓ (4/4 static pages) |
 
 ## Headless pipeline proof
 
@@ -108,6 +108,21 @@ width field to a new value round-trips through `setInstanceOverride` → the mem
 controlled input and persists in the real React bundle. **No console errors** through the whole
 sequence. The projection itself is pure and headless-proven, so canvas paint (rAF, gated by the hidden
 viewport) is not asserted as a pixel screenshot (§60).
+
+### Visual before/after AI-diff thumbnails (§36)
+
+`lib/thumbnail.ts` is a **pure** model→SVG projection (`docToSvg` reuses `layoutPage` + token
+resolution — the same geometry the canvas paints; no DOM, no pixel capture) plus an `svgToDataUri`
+encoder. Covered by 5 headless unit tests: rect/ellipse/text shapes + a page-sized `viewBox` from real
+layout; XML escaping of `<`, `>`, `&` in text; invisible nodes are skipped; an empty page yields a
+minimal placeholder SVG; and the data URI decodes back to the exact markup.
+
+The store now caches a `before`/`after` document + `pageId` on every edit (dispatch/generate/AI-edit),
+so the live **AI/Edit diff card** renders two `<img>` thumbnails side by side. In the running
+`next dev` bundle (no rAF needed): New → generate "an analytics dashboard" mounts exactly two
+`data:image/svg+xml` images labelled `before` and `after`; decoded, **before** is an empty page
+(1 background rect) while **after** carries the composed result (9 rects + 7 texts + 1 ellipse) —
+they differ and the "after" mirrors the Design Model. **No console errors.**
 
 ## Model-derived visual artifacts
 
