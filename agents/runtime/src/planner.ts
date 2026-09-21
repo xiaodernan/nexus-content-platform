@@ -17,6 +17,8 @@ export interface PlannerOptions {
   hasVerify: boolean;
   /** Whether the hybrid `fs.index` tool is registered; without it, plain line search. */
   hasIndex?: boolean;
+  /** Whether `memory.recall` is registered; prior findings beat re-researching (§26). */
+  hasMemory?: boolean;
   seed?: number;
 }
 
@@ -30,10 +32,13 @@ export function planTask(task: AgentTask, opts: PlannerOptions): Plan {
   const term = goalKeyword(task.goal);
   const target = task.targetPath ?? '@search.hits.0.path';
   const note = `NOTE (DEMO MODE · agent ${task.id} · seed ${seed}): goal "${task.goal}"`;
-  const steps: Step[] = [
-    opts.hasIndex
+  const research: Step = opts.hasMemory
+    ? { stepId: 'search', tool: 'memory.recall', args: { query: task.goal }, rationale: 'recall prior findings from memory' }
+    : opts.hasIndex
       ? { stepId: 'search', tool: 'fs.index', args: { query: task.goal }, rationale: 'hybrid index query for the goal' }
-      : { stepId: 'search', tool: 'fs.search', args: { term }, rationale: `locate content matching "${term}"` },
+      : { stepId: 'search', tool: 'fs.search', args: { term }, rationale: `locate content matching "${term}"` };
+  const steps: Step[] = [
+    research,
     { stepId: 'read', tool: 'fs.read', args: { path: target }, rationale: 'inspect the target file' },
     { stepId: 'annotate', tool: 'fs.append', args: { path: target, text: note }, rationale: 'record that the goal was addressed' },
   ];

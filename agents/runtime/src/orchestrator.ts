@@ -50,7 +50,11 @@ export async function runTask(task: AgentTask, opts: RunOptions): Promise<RunOut
     events.push({ ...e, at: at++ } as AgentEvent);
   };
 
-  const plan: Plan = planTask(task, { hasVerify: registry.has('test.run'), hasIndex: registry.has('fs.index') });
+  const plan: Plan = planTask(task, {
+    hasVerify: registry.has('test.run'),
+    hasIndex: registry.has('fs.index'),
+    hasMemory: registry.has('memory.recall'),
+  });
   emit({ type: 'plan', plan });
 
   const resolveArgs = (step: Step): Record<string, unknown> => {

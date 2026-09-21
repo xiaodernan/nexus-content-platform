@@ -100,15 +100,19 @@ Live list. Nothing here is hidden behind marketing copy.
   the canvas paints, snaps, edits in place and exports PNG.
 
 ## Architecture
-- `agents/runtime` (`@nexus/agent-runtime`) is now **implemented** as the M2 v0 core (ADR 0016) —
-  but hermetically: in-memory workspace tools, a host-injected `test.run` predicate, and template
-  demo planning. It is *not* a coding agent that touches the real fs, runs processes, browses, or
-  commits — those §63 duties stay unimplemented until ADR 0013's exec sandbox exists.
+- `agents/runtime` (`@nexus/agent-runtime`) is now **implemented** through M2 v0–v2 (ADR 0016):
+  the loop, permission-gated registry, hermetic workspace tools, hybrid code index (`fs.index`),
+  read-only real-directory ingestion (injected fs adapter) and a first §26 memory slice
+  (scoped/inspectable/deletable, checkpoint-gated writes). It is still *not* a coding agent that
+  writes the real fs, runs processes, browses, or commits — those §63 duties stay unimplemented
+  until ADR 0013's exec sandbox exists. Known limits, stated not hidden (§60): memory and index
+  are in-process only (no cross-run persistence), recall is lexical, and the template planner
+  fails honestly (`failed_verification`) when both memory and the index are absent.
 - `services/*` are still **README-only shells** (a real `packages/contracts` does not exist yet);
   the Studio intentionally does not depend on them for the slice.
 - Sandbox/security enforcement (ADR 0013) is **partially realized**: the permission-scoped Tool
   Registry + Human-Checkpoint gate are executable and tested; container isolation is not built —
-  there is still no untrusted code path to protect against, because the runtime has no real I/O.
+  the runtime's only host surface is a read-only, injected fs used by `collectTextFiles`.
 
 ## Tooling
 - Package manager is **npm workspaces**, not pnpm: `corepack` cannot write the global pnpm

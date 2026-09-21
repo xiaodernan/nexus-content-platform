@@ -3,6 +3,7 @@ import { ToolRegistry, type Checkpoint } from '../src/registry.js';
 import { InMemoryWorkspace, registerWorkspaceTools } from '../src/workspace.js';
 import { goalKeyword, planTask } from '../src/planner.js';
 import { runTask } from '../src/orchestrator.js';
+import { MemoryStore, registerMemoryTools } from '../src/memory.js';
 import type { AgentTask } from '../src/types.js';
 
 const SEED_DOC = '# Alpha\n\nnotes about widgets here\n';
@@ -97,6 +98,29 @@ describe('orchestrator: gates and failures are honest', () => {
     registry.register({ name: 'test.run', description: '', permissions: ['exec'], args: [] }, () => noteTest(ws));
     const out = await runTask({ id: 't2', goal: 'add widget docs' }, { registry, checkpoint: () => true });
     expect(out.plan.steps[0]!.tool).toBe('fs.index');
+    expect(out.status).toBe('completed');
+    expect((out.results[0]!.output as { hits: { path: string }[] }).hits[0]!.path).toBe('docs/a.md');
+    expect(ws.read('docs/a.md')).toContain('NOTE (DEMO MODE');
+  });
+
+  it('prefers memory.recall over fs.index when memory is warm', async () => {
+    const ws = new InMemoryWorkspace({ 'docs/a.md': SEED_DOC });
+    const store = new MemoryStore();
+    store.save({
+      scope: 'demo',
+      runId: 'r0',
+      query: 'widget docs',
+      summary: 'previous run: widget docs live in docs/a.md',
+      refs: [{ path: 'docs/a.md', startLine: 1 }],
+    });
+    const registry = registerMemoryTools(
+      registerWorkspaceTools(new ToolRegistry(), ws),
+      store,
+      'demo',
+    );
+    registry.register({ name: 'test.run', description: '', permissions: ['exec'], args: [] }, () => noteTest(ws));
+    const out = await runTask({ id: 't3', goal: 'add widget docs' }, { registry, checkpoint: () => true });
+    expect(out.plan.steps[0]!.tool).toBe('memory.recall');
     expect(out.status).toBe('completed');
     expect((out.results[0]!.output as { hits: { path: string }[] }).hits[0]!.path).toBe('docs/a.md');
     expect(ws.read('docs/a.md')).toContain('NOTE (DEMO MODE');

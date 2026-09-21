@@ -69,5 +69,32 @@ two fresh runs, checkpoint denial leaving the workspace byte-identical).
   `fs.index` is available, keeping `stepId: 'search'` and the `{hits:[{path}]}` shape so all
   existing `@search.hits.0.path` dataflow is unchanged.
 - **Proof:** `docs/evidence/agents/code-index-proof.mjs` indexes the real repository from disk
-  (121 files / 523 chunks) and asserts definition files appear in the top 5 for three
-  identifier-precise queries plus run-to-run determinism. Test count rises to 26/26.
+  (125 files / 540 chunks as of the v2 commit) and asserts definition files appear in the top 5
+  for three identifier-precise queries plus run-to-run determinism. Test count rises to 26/26.
+
+## Amendment 2 — v2: real-repo ingestion + scoped memory (`realfs.ts`, `memory.ts`), 2026-09
+- **`collectTextFiles(root, fsLike, opts)`** walks a real directory through an **injected**
+  minimal fs adapter (node:fs satisfies it), so the package keeps zero fs imports: pure,
+  hermetically testable against a fake fs, host side-effects confined to the caller. Filters:
+  skip-dir set, extension regex, per-file byte cap, total file cap; sorted slash-relative keys.
+  Ingestion is strictly **read-only** — annotations land in the in-memory workspace copy, never
+  on disk (§9).
+- **Memory (§26 first slice):** `MemoryStore` records `{id, scope, runId, query, summary, refs}`
+  saved/cloned so callers cannot mutate stored state; `recall(query, {scope, k})` scores
+  records with `lexicalScore` over their query+summary (deterministic, ties by id then path);
+  `forget`/`clear` make memory deletable, `list` inspectable — all three §26 properties.
+- **Governance:** memory access goes through registry tools — `memory.save`/`memory.forget` are
+  **write**-permission (checkpoint-gated), `memory.recall`/`memory.list` read. The *host* decides
+  what persists; nothing ghost-writes.
+- **Planner priority:** research step = `memory.recall` when registered, else `fs.index`, else
+  `fs.search` — all keep `stepId: 'search'` and the `{hits:[{path,…}]}` shape, so `@ref`
+  dataflow is untouched. Known template limit (honest, §60): with cold memory **and** no index
+  the research step returns no hits and the run fails (`failed_verification`) rather than
+  fabricating — a fallback-research step is a later increment.
+- **Proof:** `docs/evidence/agents/memory-proof.mjs` — run A discovers
+  `agents/runtime/src/codeIndex.ts:121` in the real repo and the host persists it via gated
+  `memory.save`; run B, with no index registered, completes from `memory.recall`; transcripts
+  deterministic; after `clear(scope)` the task fails honestly. Tests 37/37.
+- **Tradeoffs:** memory is in-process and lexical-only — a stand-in for the persisted
+  vector hybrid retrieval of ADR 0012, chosen because it is real, testable machinery today
+  without a database.
