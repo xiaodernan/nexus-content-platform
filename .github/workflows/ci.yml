@@ -1,0 +1,34 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  quality:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Install (workspace root)
+        run: npm ci || npm install
+      - name: ADR index integrity
+        run: |
+          shopt -s nullglob
+          for f in docs/decisions/[0-9]*.md; do
+            id=$(basename "$f" | grep -oE '^[0-9]+')
+            grep -q "$id" docs/decisions/README.md || { echo "ADR $id not indexed"; exit 1; }
+          done
+          echo "All ADR files are indexed."
+      - name: Typecheck
+        run: npm run typecheck
+      - name: Lint
+        run: npm run lint
+      - name: Test
+        run: npm run test
+      - name: Build
+        run: npm run build
