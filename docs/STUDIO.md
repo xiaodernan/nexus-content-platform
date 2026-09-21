@@ -44,9 +44,14 @@ work on clones; each commit lands as one `overrides` op on the owning instance �
 off the master position (so masters keep authoring freedom), `width`/`height` absolute, `characters`
 into `overrides.text`. Escape, the chip's *Exit* button, double-clicking the instance body, or
 clicking empty canvas drills back out and selects the whole unit. The focus state is studio-local
-view state (ADR 0014): not persisted, not undoable.
-**Deferred:** per-instance **rotation** of clones (would target a non-canonical id — detach is the
-escape hatch), on-canvas comments, code-layer
+view state (ADR 0014): not persisted, not undoable. **Clone rotation:** the *Instance overrides*
+panel has a per-row Rotation input and the rotate grip works on a focused clone — it commits an
+**absolute** `rotation` override (degrees) on the owning instance (ADR 0015 amendment 3), so the
+master and sibling instances stay untouched and hit-testing follows the turned clone. Note a
+rotated clone that overhangs its (unrotated) container box is unreachable outside that box —
+the same pre-existing container-overflow rule as moved/resized clones.
+**Deferred:** per-instance geometry overrides beyond x/y/width/height/rotation (fills, radius —
+detach is the escape hatch), on-canvas comments, code-layer
 bidirectional sync (§9), live agent edits streaming, undoable page switching (needs a `setActivePage`
 op, ADR 0014).
 

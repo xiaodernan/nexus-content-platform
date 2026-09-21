@@ -279,9 +279,10 @@ export default function Canvas() {
       if (r) {
         const tol = 8 / s.viewport.zoom;
         const authored = s.doc.nodes[id];
-        // clones have no authored entry; their projected node carries the master's rotation
-        const rot = (authored ?? viewDoc.nodes[id])?.rotation ?? 0;
-        if (authored && !authored.locked) {
+        // clones have no authored entry; their projected node carries the (possibly overridden) rotation
+        const node = authored ?? viewDoc.nodes[id];
+        const rot = node?.rotation ?? 0;
+        if (node && !node.locked) {
           const grip = rotateHandlePoint(r, rot, ROTATE_HANDLE_GAP / s.viewport.zoom);
           if (Math.hypot(world.x - grip.x, world.y - grip.y) <= tol) {
             d.kind = 'rotate';
@@ -489,7 +490,12 @@ export default function Canvas() {
       s.clearLiveGeom(); // also clears the transient rotations map
       if (deg !== undefined) {
         const committed = Math.round(deg);
-        if (committed !== startDeg) s.updateNode(d.rotateId, { rotation: committed });
+        if (committed !== startDeg) {
+          const { meta } = instanceView(s.doc);
+          const m = meta[d.rotateId];
+          if (m && m.instanceId !== d.rotateId) s.setInstanceOverride(m.instanceId, m.masterId, { rotation: committed });
+          else s.updateNode(d.rotateId, { rotation: committed });
+        }
       }
     } else if (d.kind === 'resize' && d.resizeId) {
       const g = s.liveGeom[d.resizeId];

@@ -11,9 +11,9 @@ npm run build lint typecheck test     # via turbo, 10/10 tasks pass
 
 | Package            | Result |
 | ------------------ | ------ |
-| @nexus/design-model| 23/23 vitest (`design-model` 14 incl. 3 rotated-hitTest cases + `instances` 9 incl. x/y delta overrides), tsc clean |
+| @nexus/design-model| 24/24 vitest (`design-model` 14 incl. 3 rotated-hitTest cases + `instances` 10 incl. x/y delta + absolute rotation overrides), tsc clean |
 | @nexus/ai-providers| 7/7 vitest, tsc clean |
-| @nexus/studio      | 65/65 vitest (`snap` + `persist` + `align` + `store-variants` incl. sub-selection + `thumbnail` + `rotate` incl. rotated handle hit-tests + `render` + `minimap`) · tsc `--noEmit` clean · eslint `--max-warnings=0` clean · `next build` ✓ (4/4 static pages) |
+| @nexus/studio      | 66/66 vitest (`snap` + `persist` + `align` + `store-variants` 16 incl. sub-selection + clone-rotation override + `thumbnail` + `rotate` 11 incl. rotated handle hit-tests + `render` + `minimap`) · tsc `--noEmit` clean · eslint `--max-warnings=0` clean · `next build` ✓ (4/4 static pages) |
 
 ## Headless pipeline proof
 
@@ -80,12 +80,14 @@ limitation below and is therefore not asserted as a screenshot here (§60 honest
 ### Components & instances (ADR 0015)
 
 Two layers of evidence:
-- **Pure projection unit tests** (`instances.test.ts`, 8): single expansion keeps page layout
+- **Pure projection unit tests** (`instances.test.ts`, 10 — later additions detailed in the
+  sub-selection and per-clone-rotation sections below): single expansion keeps page layout
   consistent; two instances get **disjoint** clone ids; text + width overrides patch the clone and
   leave the master; nested instances expand one level; a component **cycle** terminates with the
   guarded instance childless; `ownerInstanceId` maps every clone to its top-level owner; a doc with
   no instances is returned with node object **identity preserved**.
-- **Store action tests** (`store-variants.test.ts`, 7) drive the real zustand store headless:
+- **Store action tests** (`store-variants.test.ts`, 16 — later additions detailed in the
+  sub-selection and per-clone-rotation sections below) drive the real zustand store headless:
   *create component* wraps the selection into a master + one instance and re-parents the layers;
   *undo/redo* restores the two original page shapes exactly (lossless); *insert instance* gives a
   second, disjoint materialization sharing the master; *detach* promotes the projected clones to a
@@ -203,6 +205,28 @@ drag the clone → history `Move 1 node(s)`, snapshot shows `overrides[fr_…] =
 **No console errors.** Honest caveats: the first drag attempt in a single synchronous script did
 not register (React renders between tasks — events must be dispatched in separate evaluations);
 clone selection intentionally shows no Properties-panel fields.
+
+### Per-clone rotation (absolute `rotation` override, ADR 0015 amendment 3)
+
+Closes the "rotate handles not offered on clones" deferral. Design-model layer
+(`instances.test.ts`, +1 → 10): an `{ rotation: 90 }` override **replaces** the master child's
+authored rotation on that instance's clone only (master stays 0°); the clone's layout box is the
+axis-aligned bounding box of the turned rect (120×40 → w/h swap); `hitTest` on the expanded doc
+selects the rotated clone at (60,70), and at the vacated corner (5,5) the point falls through to
+the **instance body** — `hitChildren` descends only while an ancestor's own rect contains the
+point, so a rotated clone overhanging its unrotated container box stays unreachable there (same
+pre-existing container-overflow rule as moved/resized clones, now documented). Studio layer
+(`store-variants.test.ts`, +1 → 16): `setInstanceOverride(id, mid, {rotation})` is **absolute**
+(45 then 90 → `{rotation:90}`, not additive), one reversible op, the projected clone hit-tests
+rotated, and undo ×2 empties the override.
+
+Real-browser proof on the generated dashboard (synthetic events on the canvas element, no rAF):
+select the instance → drill in → *Instance overrides* panel **Rotation** input = 45 → the
+`localStorage` snapshot shows `overrides = {fr_1oq17ly:{rotation:45}}` and history row
+`Set instance override`; then the **rotate grip** on the focused clone: drag from screen
+(828.85, 51.15) to (1050, 500) commits 116° — matching the hand-computed expected angle 116.05 —
+again as one override op. Ctrl+Z ×2 returns the instance to authored state (only the pre-existing
+sub-selection `{x:73,y:50}` override remains). **No console errors.**
 
 ## Model-derived visual artifacts
 

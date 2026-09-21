@@ -9,6 +9,7 @@ interface Row {
   type: DesignNode['type'];
   characters?: string;
   width: number;
+  rotation: number;
 }
 
 /**
@@ -36,6 +37,7 @@ export default function InstanceOverrides({ instance }: { instance: InstanceNode
             type: node.type,
             characters: node.type === 'text' ? node.characters : undefined,
             width: node.width,
+            rotation: node.rotation ?? 0,
           });
         }
         walk(cid);
@@ -78,6 +80,17 @@ export default function InstanceOverrides({ instance }: { instance: InstanceNode
                 onChange={(e) => {
                   const n = parseFloat(e.target.value);
                   if (!Number.isNaN(n)) setInstanceOverride(instance.id, r.masterId, { width: n });
+                }}
+              />
+              <span style={{ fontSize: 11, color: 'var(--nexus-muted)' }}>Rotation</span>
+              <input
+                className="field"
+                type="number"
+                style={{ width: 64 }}
+                value={Math.round(r.rotation)}
+                onChange={(e) => {
+                  const n = parseFloat(e.target.value);
+                  if (!Number.isNaN(n)) setInstanceOverride(instance.id, r.masterId, { rotation: n });
                 }}
               />
             </div>

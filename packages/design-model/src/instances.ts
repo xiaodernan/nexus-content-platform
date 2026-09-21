@@ -36,6 +36,8 @@ interface GeometryOverride {
   /** Position deltas relative to the master child's authored x/y. */
   x?: number;
   y?: number;
+  /** Absolute rotation in degrees, replacing the master child's authored rotation. */
+  rotation?: number;
 }
 
 function readOverrides(inst: InstanceNode): {
@@ -65,6 +67,7 @@ function applyOverrides(
     if (geom.visible !== undefined) clone.visible = geom.visible;
     if (geom.x !== undefined) clone.x += geom.x;
     if (geom.y !== undefined) clone.y += geom.y;
+    if (geom.rotation !== undefined) clone.rotation = geom.rotation;
   }
   const t = text[masterId];
   if (t !== undefined && clone.type === 'text') clone.characters = t;

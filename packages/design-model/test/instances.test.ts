@@ -3,6 +3,7 @@ import {
   componentNode,
   createEmptyDocument,
   expandComponentInstances,
+  hitTest,
   instanceNode,
   layoutPage,
   ownerInstanceId,
@@ -139,6 +140,26 @@ describe('instances: multiple + overrides', () => {
     // layout places the shifted clone relative to the instance origin
     const layout = layoutPage(out, doc.activePageId);
     expect(layout['i2::cmp::rect']!.x).toBe(20 + masterRect.x + 10);
+  });
+
+  it('applies rotation overrides as an absolute replacement, hit-tested rotated', () => {
+    let doc = createEmptyDocument();
+    const { cmp, r, t } = buttonMaster();
+    doc = seed(doc, doc.rootId, cmp, r, t);
+    const inst = instanceNode('B', 'cmp', { id: 'i3', x: 0, y: 0, width: 140, height: 140 });
+    inst.overrides = { 'cmp::rect': { rotation: 90 }, 'cmp::label': { visible: false } };
+    doc = seed(doc, doc.activePageId, inst);
+    const { doc: out } = expandComponentInstances(doc);
+    const clone = out.nodes['i3::cmp::rect']!;
+    expect(clone.rotation).toBe(90);
+    expect(doc.nodes['cmp::rect']?.rotation ?? 0).toBe(0); // master untouched
+    // the renderer's hit path agrees: the turned body hits, a vacated AABB corner misses
+    const layout = layoutPage(out, doc.activePageId);
+    const box = layout['i3::cmp::rect']!; // 120x40 at (0,0) → turned occupies x∈[40,80], y∈[-40,80]
+    expect(box).toEqual({ x: 0, y: 0, width: 120, height: 40 });
+    expect(hitTest(out, layout, doc.activePageId, { x: 60, y: 70 })).toBe(clone.id);
+    // the vacated AABB corner falls through the clone to the instance body (unit selection)
+    expect(hitTest(out, layout, doc.activePageId, { x: 5, y: 5 })).toBe('i3');
   });
 });
 

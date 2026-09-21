@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it } from 'vitest';
-import { layoutPage, type InstanceNode } from '@nexus/design-model';
+import { hitTest, layoutPage, type InstanceNode } from '@nexus/design-model';
 import { instanceView, useStudio } from './store';
 
 const st = () => useStudio.getState();
@@ -221,6 +221,25 @@ describe('store: sub-selection (drill-in editing via overrides)', () => {
     const after = layoutPage(instanceView(st().doc).doc, st().activePageId)[cloneId]!;
     expect(after.x).toBe(before.x);
     expect(after.y).toBe(before.y);
+  });
+
+  it('a rotation override is absolute, reversible, and hit-tested on the clone', () => {
+    const { rectId, instId, cloneId } = drilledIn();
+    st().setInstanceOverride(instId, rectId, { rotation: 45 });
+    expect(overridesOf(instId, rectId)).toEqual({ rotation: 45 });
+    st().setInstanceOverride(instId, rectId, { rotation: 90 });
+    expect(overridesOf(instId, rectId)).toEqual({ rotation: 90 });
+    const view = instanceView(st().doc).doc;
+    expect(view.nodes[cloneId]!.rotation).toBe(90);
+    expect(st().doc.nodes[rectId]!.rotation ?? 0).toBe(0); // master untouched
+    const layout = layoutPage(view, st().activePageId);
+    // clone AABB (100,100,160,120) turned 90° stands at x∈[120,240], y∈[80,240] about (180,160)
+    expect(hitTest(view, layout, st().activePageId, { x: 180, y: 160 })).toBe(cloneId);
+    // vacated AABB corner: the clone is skipped, the click falls through to the instance body
+    expect(hitTest(view, layout, st().activePageId, { x: 105, y: 105 })).toBe(instId);
+    st().undo();
+    st().undo();
+    expect(overridesOf(instId, rectId)).toBeUndefined();
   });
 
   it('focus state is set, guarded against staleness by Canvas, and reset by newProject', () => {

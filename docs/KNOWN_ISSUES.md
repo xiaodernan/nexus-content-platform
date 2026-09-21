@@ -43,9 +43,10 @@ Live list. Nothing here is hidden behind marketing copy.
   derived). **Sub-selection (drill-in) now works** (ADR 0015 amendment 2): double-click enters the
   instance and selects the clicked clone; while focused, clone move/resize/arrows/on-canvas text edit
   commit as `overrides` ops on the owning instance (`x`/`y` are *deltas* off the master position).
-  Remaining gaps: **clone rotation** (the rotate grip is intentionally hidden on clones — a rotation
-  op would target a non-canonical id; *Detach* is the escape hatch), per-instance geometry override
-  beyond x/y/width/height (fills/radius editable only via detach), and a dedicated off-page
+  **Clone rotation now works too** (ADR 0015 amendment 3): a `rotation` override (absolute degrees)
+  plus the rotate grip on a focused clone, and a Rotation input per row of the *Instance overrides*
+  panel. Remaining gaps: per-instance geometry override
+  beyond x/y/width/height/rotation (fills/radius editable only via detach), and a dedicated off-page
   "library" container.
 - **Sub-selection caveats:** the focused instance is studio-local view state (like active page —
   *not* persisted, *not* undoable; deliberate, ADR 0014). While a clone is selected the Properties
@@ -71,7 +72,11 @@ Live list. Nothing here is hidden behind marketing copy.
   delegates to the model. Remaining caveats: `layoutPage` storage stays axis-aligned, so resize
   *math* still commits AABB deltas (width/height/x/y of the unrotated box); container subtrees
   rotate *individually* (each child about its own centre) rather than rigidly as a group — rigid
-  subtree rotation stays deferred; instance clones offer no per-clone rotation. The interactive
+  subtree rotation stays deferred. Instance clones rotate too via an absolute `rotation` override
+  (ADR 0015 amendment 3), but note `hitChildren` descends only while an ancestor's *own* rect
+  contains the point: a rotated clone that sticks out past its (unrotated) container's box stays
+  unreachable outside that box — same pre-existing container-overflow rule as moved/resized clones.
+  The interactive
   grip drag is covered by pure-math tests, a recording fake-`ctx` render test and the store op
   path, plus the Properties-panel Rotation field end-to-end in the real browser (set → undo →
   redo → reload persists); pixel screenshots of the rotated canvas are not claimable under the

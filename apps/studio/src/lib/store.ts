@@ -136,7 +136,7 @@ interface StudioState {
   setInstanceOverride: (
     instanceId: string,
     masterId: string,
-    patch: { x?: number; y?: number; width?: number; height?: number; visible?: boolean; characters?: string },
+    patch: { x?: number; y?: number; width?: number; height?: number; visible?: boolean; rotation?: number; characters?: string },
   ) => void;
 
   setInteraction: (i: Interaction) => void;
@@ -602,15 +602,16 @@ export const useStudio = create<StudioState>((set, get) => ({
     const n = doc.nodes[instanceId];
     if (!n || n.type !== 'instance') return;
     const next: InstanceNode['overrides'] = { ...n.overrides };
-    const geom: { x?: number; y?: number; width?: number; height?: number; visible?: boolean } = { ...(next[masterId] ?? {}) };
+    const geom: { x?: number; y?: number; width?: number; height?: number; visible?: boolean; rotation?: number } = { ...(next[masterId] ?? {}) };
     let touched = false;
     if (patch.x !== undefined) { geom.x = Math.round(patch.x); touched = true; }
     if (patch.y !== undefined) { geom.y = Math.round(patch.y); touched = true; }
     if (patch.width !== undefined) { geom.width = Math.round(Math.max(1, patch.width)); touched = true; }
     if (patch.height !== undefined) { geom.height = Math.round(Math.max(1, patch.height)); touched = true; }
     if (patch.visible !== undefined) { geom.visible = patch.visible; touched = true; }
+    if (patch.rotation !== undefined) { geom.rotation = Math.round(patch.rotation); touched = true; }
     if (!touched) {
-      const isEmpty = geom.x === undefined && geom.y === undefined && geom.width === undefined && geom.height === undefined && geom.visible === undefined;
+      const isEmpty = geom.x === undefined && geom.y === undefined && geom.width === undefined && geom.height === undefined && geom.visible === undefined && geom.rotation === undefined;
       if (isEmpty) delete next[masterId];
     } else {
       next[masterId] = geom;

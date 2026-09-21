@@ -117,3 +117,16 @@ clone still collapses to *its own* top-level owner per rule 3 of the original de
 the outer reveals the inner as a single unit; a further double-click enters it (ids stay namespaced
 and disjoint). Rotate handles are intentionally not offered on clones (rotation would have to target
 a non-canonical id); Detach remains the escape hatch for anything overrides cannot express.
+
+## Amendment 3 — 2026-09-22 (per-clone rotation)
+"Rotate handles are intentionally not offered on clones" from Amendment 2 is **superseded**.
+`overrides[mid]` gains an absolute `rotation?: number` (degrees) alongside the x/y deltas and
+w/h sizes — the rotation targets the *master id* through the projection, so the non-canonical-id
+objection no longer applies (the op is still one `updateNode(instance, { overrides })`).
+Applied in `applyOverrides` (clone.rotation = override, replacing the master's authored value);
+studio offers the rotate grip on a focused clone (drag commits via `setInstanceOverride`) and the
+*Instance overrides* panel gains a per-row Rotation input. Known boundary (accepted): hit
+descent requires each ancestor's own rect to contain the point, so a rotated clone overhanging
+its unrotated container's box is unreachable in the overhang — the same pre-existing
+container-overflow rule as moved/resized clones; rigid subtree rotation stays deferred.
+Design-model tests 24/24 (new rotation-override case), studio 66/66.
