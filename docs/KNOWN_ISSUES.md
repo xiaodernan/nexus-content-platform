@@ -14,7 +14,8 @@ Live list. Nothing here is hidden behind marketing copy.
   AI-diff and local export (JSON / standalone HTML / canvas PNG) are all functional. This
   pass adds **on-canvas text editing, magnetic snapping + smart guides, multi-page
   add/switch, local-first persistence with a History/Snapshots panel** (ADR 0014), and
-  **component → instance authoring** (create/insert/detach + per-instance text/width overrides, ADR 0015).
+  **component → instance authoring** (create/insert/detach + per-instance text/width overrides, ADR 0015)
+  and **instance sub-selection** (drill-in clone move/resize/text via x/y-delta + text overrides).
   The AI-diff card now pairs its semantic counts with **before/after thumbnails** (`lib/thumbnail.ts`).
   These are deterministic SVG snapshots from `layoutPage` + token resolution — model-derived geometry,
   *not* pixel screenshots (§60), so they render even under the hidden-viewport harness.
@@ -38,9 +39,20 @@ Live list. Nothing here is hidden behind marketing copy.
   the Properties panel that edits a leaf's text/width via `setInstanceOverride` (merged by master id
   into that instance's `overrides`, one reversible op, applied to its clones only, never the master or
   sibling instances). Live instance→master sync on master edits *is* present (the projection is
-  derived). Remaining gaps: nested-instance sub-selection (drill-in past a nested instance — *Detach*
-  is the escape hatch there), override editing beyond text/width, and a dedicated off-page "library"
-  container.
+  derived). **Sub-selection (drill-in) now works** (ADR 0015 amendment 2): double-click enters the
+  instance and selects the clicked clone; while focused, clone move/resize/arrows/on-canvas text edit
+  commit as `overrides` ops on the owning instance (`x`/`y` are *deltas* off the master position).
+  Remaining gaps: **clone rotation** (the rotate grip is intentionally hidden on clones — a rotation
+  op would target a non-canonical id; *Detach* is the escape hatch), per-instance geometry override
+  beyond x/y/width/height (fills/radius editable only via detach), and a dedicated off-page
+  "library" container.
+- **Sub-selection caveats:** the focused instance is studio-local view state (like active page —
+  *not* persisted, *not* undoable; deliberate, ADR 0014). While a clone is selected the Properties
+  panel shows nothing for it (it reads canonical nodes; clones have none — the chip + on-canvas
+  editing are the edit surfaces). Undoing a drill-in edit reverts the override but does not re-open
+  the drill state. Browser-validated end-to-end: make component → drill chip appears → text clone
+  edit persists `overrides.text` → Escape drills out → clone drag persists `overrides[mid] =
+  {x,y}` deltas into the `localStorage` snapshot.
 - Drag snapping aligns a selection's edges/centers to sibling + page anchors within a 6px
   (screen) threshold and renders guide lines; resize snaps the dragged edge. **Explicit
   alignment (left/center/right/top/middle/bottom) and equal-gap distribution (≥3 nodes) are

@@ -11,9 +11,9 @@ npm run build lint typecheck test     # via turbo, 10/10 tasks pass
 
 | Package            | Result |
 | ------------------ | ------ |
-| @nexus/design-model| 19/19 vitest (`design-model` 11 + `instances` 8), tsc clean |
+| @nexus/design-model| 20/20 vitest (`design-model` 11 + `instances` 9 incl. x/y delta overrides), tsc clean |
 | @nexus/ai-providers| 7/7 vitest, tsc clean |
-| @nexus/studio      | 56/56 vitest (`snap` + `persist` + `align` + `store-variants` + `thumbnail` + `rotate` + `render` + `minimap`) · tsc `--noEmit` clean · eslint `--max-warnings=0` clean · `next build` ✓ (4/4 static pages) |
+| @nexus/studio      | 62/62 vitest (`snap` + `persist` + `align` + `store-variants` incl. sub-selection + `thumbnail` + `rotate` + `render` + `minimap`) · tsc `--noEmit` clean · eslint `--max-warnings=0` clean · `next build` ✓ (4/4 static pages) |
 
 ## Headless pipeline proof
 
@@ -157,6 +157,27 @@ pixels (`getImageData` hash moves during the drag, stable after `pointerup`) —
 `setViewport` → repaint loop is live end to end. **No app console errors.** Caveat found while
 verifying: running `next build` while `next dev` serves the same directory 404s the dev server's
 chunks (React event handlers silently stop) — dev must be restarted afterwards (§60 honesty note).
+
+### Sub-selection (drill into an instance, edit clones via overrides)
+
+Design-model layer (`instances.test.ts`, +1): `overrides[mid].x/y` apply as **deltas** off the
+master's authored position and compose with width overrides; the master and the authored doc stay
+untouched (20/20). Studio layer (`store-variants.test.ts`, +6 → 15): clone move accumulates x/y
+override deltas, a mixed clone+authored selection commits as **one** reversible step, clone resize
+works in layout space (a moved instance must not skew the delta — regression covered), focus state
+resets with `newProject`, and the override composes into `layoutPage` (instance.x + master.x + Δ).
+The store's selection/edit **liveness** now prunes against the *projected* doc, not `doc.nodes` —
+canonical-only pruning dropped clone selections on every commit.
+
+Real-browser golden path on the restored dashboard (synthetic events, no rAF): select the page-child
+frame → *Make component* → history `Create component Dashboard` → double-click the instance →
+**`#nexus-focus-chip`** ("Editing inside Dashboard") renders → double-click the KPI text clone →
+overlay editor opens, Ctrl+Enter commits → history `Set instance override`, `overrides.text` lands
+in the `localStorage` snapshot → Escape drills out (chip gone, instance selected) → re-enter and
+drag the clone → history `Move 1 node(s)`, snapshot shows `overrides[fr_…] = {x:73,y:50}`.
+**No console errors.** Honest caveats: the first drag attempt in a single synchronous script did
+not register (React renders between tasks — events must be dispatched in separate evaluations);
+clone selection intentionally shows no Properties-panel fields.
 
 ## Model-derived visual artifacts
 

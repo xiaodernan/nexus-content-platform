@@ -85,3 +85,35 @@ rides the exact projection contract already defined here (overrides apply by mas
 never the master or siblings) and the existing reversible-op path — so no new op type, no schema change,
 and no rebuild. What stays deferred from this ADR is nested-instance *sub-selection* (drill-in past a
 nested instance); Detach remains the escape hatch for those internals.
+
+## Amendment — 2026-09-22 (sub-selection + x/y delta overrides)
+The deferred drill-in is now implemented **without changing the Decision** — it is purely a studio
+interaction layer over the same projection + overrides contract, plus one schema *extension* (not a
+semantic change):
+
+1. **`overrides[mid]` gains `x`/`y`** — as **deltas** relative to the master's authored position
+   (`clone.x += geom.x` in `applyOverrides`). Deltas (rather than absolute layout coords) keep the
+   instance following master moves, which is the point of components. Absolute semantics stay for
+   `width`/`height`; `text` is unchanged. This required a design-model rebuild (`types.ts` /
+   `instances.ts` + `instances.test.ts` now cover delta composition).
+2. **Focus state is studio-local view state** (ADR 0014): `focusedInstanceId` in the store, set/cleared
+   by progressive double-click and Escape, never persisted and deliberately **not** undoable.
+3. **Hit resolution keeps clone ids when the owning instance is focused**; otherwise clones still
+   collapse to their top-level instance exactly as before (`resolveHit` in `Canvas.tsx`).
+   Progressive drill: 1st double-click on any part enters the instance and selects the clicked clone;
+   a second double-click on a *text* clone starts on-canvas editing inside it; double-clicking the
+   instance itself again (or Escape, or clicking empty canvas) drills out. A breadcrumb chip
+   (`#nexus-focus-chip`) makes the focused state visible and exitable.
+4. **Every clone edit commits as one `updateNode(instance, { overrides })` op** — move (arrow keys or
+   drag, accumulated across multiple selected clones of the same instance), resize (layout-space
+   deltas + absolute w/h) and text (`characters` → `overrides.text`). History/undo/diff behavior is
+   unchanged from ADR 0006; the canonical model still contains no clone nodes.
+5. **Selection liveness** now checks the *projected* doc (memoized), because a clone id legitimately
+   survives many commits while being absent from `doc.nodes` — canonical-only pruning deselected the
+   user from their own edit on every commit.
+
+Nested instances work one level at a time: while an outer instance is focused, a nested instance's
+clone still collapses to *its own* top-level owner per rule 3 of the original decision — so entering
+the outer reveals the inner as a single unit; a further double-click enters it (ids stay namespaced
+and disjoint). Rotate handles are intentionally not offered on clones (rotation would have to target
+a non-canonical id); Detach remains the escape hatch for anything overrides cannot express.

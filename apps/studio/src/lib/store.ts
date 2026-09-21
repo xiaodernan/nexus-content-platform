@@ -88,6 +88,8 @@ interface StudioState {
   guides: Guides;
   /** Transient live-rotate preview (node id → degrees) shown while dragging the rotate grip. */
   rotations: Record<string, number>;
+  /** Instance drilled into for sub-selection; hit-testing keeps projected clone ids while set. */
+  focusedInstanceId: string | null;
   previewOpen: boolean;
   aiBusy: boolean;
   lastDiff: DiffSummary | null;
@@ -134,7 +136,7 @@ interface StudioState {
   setInstanceOverride: (
     instanceId: string,
     masterId: string,
-    patch: { width?: number; height?: number; visible?: boolean; characters?: string },
+    patch: { x?: number; y?: number; width?: number; height?: number; visible?: boolean; characters?: string },
   ) => void;
 
   setInteraction: (i: Interaction) => void;
@@ -142,6 +144,7 @@ interface StudioState {
   clearLiveGeom: () => void;
   setGuides: (g: Guides) => void;
   setRotations: (r: Record<string, number>) => void;
+  setFocused: (id: string | null) => void;
   setPreview: (open: boolean) => void;
   setStatus: (s: string) => void;
 
@@ -221,6 +224,7 @@ export const useStudio = create<StudioState>((set, get) => ({
   liveGeom: {},
   guides: { xs: [], ys: [] },
   rotations: {},
+  focusedInstanceId: null,
   previewOpen: false,
   aiBusy: false,
   lastDiff: null,
@@ -270,7 +274,9 @@ export const useStudio = create<StudioState>((set, get) => ({
     const summary = diffFromBatch(before, next, b);
     const removed = new Set(summary.removed);
     const state = get();
-    const selection = state.selection.filter((id) => next.nodes[id] && !removed.has(id));
+    // selection/editing may reference projected clone ids, so liveness is checked on the instance view
+    const alive = instanceView(next).doc.nodes;
+    const selection = state.selection.filter((id) => alive[id] && !removed.has(id));
     // truncate any redo tail, then append this batch to the mirror log
     const log = state.historyLog.slice(0, state.historyCursor);
     log.push({ summary: b.summary ?? 'Edit', provenance: b.provenance.mode, diff: summary, before, after: next, pageId: safePage(next, state.activePageId) });
@@ -281,7 +287,7 @@ export const useStudio = create<StudioState>((set, get) => ({
       lastBefore: before,
       lastPageId: safePage(next, state.activePageId),
       selection,
-      editingId: state.editingId && next.nodes[state.editingId] ? state.editingId : null,
+      editingId: state.editingId && alive[state.editingId] ? state.editingId : null,
       historyLog: log,
       historyCursor: log.length,
       mode: router.mode,
@@ -292,10 +298,11 @@ export const useStudio = create<StudioState>((set, get) => ({
     if (!history.canUndo) return;
     history.undo();
     const next = history.current;
+    const alive = instanceView(next).doc.nodes;
     set((s) => ({
       doc: next,
       activePageId: safePage(next, s.activePageId),
-      selection: s.selection.filter((id) => next.nodes[id]),
+      selection: s.selection.filter((id) => alive[id]),
       historyCursor: Math.max(0, s.historyCursor - 1),
       lastDiff: null,
       lastBefore: null,
@@ -306,12 +313,13 @@ export const useStudio = create<StudioState>((set, get) => ({
     if (!history.canRedo) return;
     history.redo();
     const next = history.current;
+    const alive = instanceView(next).doc.nodes;
     set((s) => {
       const cursor = Math.min(s.historyLog.length, s.historyCursor + 1);
       return {
         doc: next,
         activePageId: safePage(next, s.activePageId),
-        selection: s.selection.filter((id) => next.nodes[id]),
+        selection: s.selection.filter((id) => alive[id]),
         historyCursor: cursor,
         lastDiff: s.historyLog[cursor - 1]?.diff ?? null,
         lastBefore: s.historyLog[cursor - 1]?.before ?? null,
@@ -343,17 +351,61 @@ export const useStudio = create<StudioState>((set, get) => ({
 
   moveSelectionBy: (dx, dy) => {
     const { doc, selection } = get();
+    const { meta } = instanceView(doc);
     const opList: Op[] = [];
+    // selected projected clones have no authored node — their move becomes accumulated x/y overrides
+    const cloneDeltas = new Map<string, Map<string, { x: number; y: number }>>();
     for (const id of selection) {
+      const m = meta[id];
+      if (m && m.instanceId !== id) {
+        const byMaster = cloneDeltas.get(m.instanceId) ?? new Map();
+        const cur = byMaster.get(m.masterId) ?? { x: 0, y: 0 };
+        byMaster.set(m.masterId, { x: cur.x + dx, y: cur.y + dy });
+        cloneDeltas.set(m.instanceId, byMaster);
+        continue;
+      }
       const n = doc.nodes[id];
       if (!n || n.locked) continue;
       opList.push(ops.updateNode(id, { x: Math.round(n.x + dx), y: Math.round(n.y + dy) }));
+    }
+    for (const [instanceId, byMaster] of cloneDeltas) {
+      const inst = doc.nodes[instanceId];
+      if (!inst || inst.type !== 'instance' || inst.locked) continue;
+      const next: InstanceNode['overrides'] = { ...inst.overrides };
+      for (const [masterId, d] of byMaster) {
+        const geom = { ...(next[masterId] ?? {}) };
+        geom.x = Math.round((geom.x ?? 0) + d.x);
+        geom.y = Math.round((geom.y ?? 0) + d.y);
+        next[masterId] = geom;
+      }
+      opList.push(ops.updateNode(instanceId, { overrides: next }));
     }
     if (opList.length) get().commitOps(opList, `Move ${opList.length} node(s)`);
   },
 
   resizeTo: (id, g) => {
-    const n = get().doc.nodes[id];
+    const { doc, activePageId } = get();
+    const { doc: view, meta } = instanceView(doc);
+    const m = meta[id];
+    if (m && m.instanceId !== id) {
+      const inst = doc.nodes[m.instanceId];
+      const clone = view.nodes[id];
+      // g arrives in absolute page-layout space (Canvas liveGeom), so compare against the
+      // clone's *layout* rect, not its node coords — the difference is the instance offset.
+      const layout = layoutPage(view, activePageId);
+      const cur = layout[id];
+      if (!inst || inst.type !== 'instance' || inst.locked || !clone || !cur) return;
+      const next: InstanceNode['overrides'] = { ...inst.overrides };
+      const geom = { ...(next[m.masterId] ?? {}) };
+      geom.x = Math.round((geom.x ?? 0) + (g.x - cur.x));
+      geom.y = Math.round((geom.y ?? 0) + (g.y - cur.y));
+      geom.width = Math.round(Math.max(1, g.width));
+      geom.height = Math.round(Math.max(1, g.height));
+      next[m.masterId] = geom;
+      get().commitOps([ops.updateNode(m.instanceId, { overrides: next })], `Resize ${clone.name}`);
+      return;
+    }
+    const n = doc.nodes[id];
     if (!n || n.locked) return;
     get().commitOps([ops.updateNode(id, { x: Math.round(g.x), y: Math.round(g.y), width: Math.round(g.width), height: Math.round(g.height) })], `Resize ${n.name}`);
   },
@@ -550,12 +602,19 @@ export const useStudio = create<StudioState>((set, get) => ({
     const n = doc.nodes[instanceId];
     if (!n || n.type !== 'instance') return;
     const next: InstanceNode['overrides'] = { ...n.overrides };
-    const geom: { width?: number; height?: number; visible?: boolean } = { ...(next[masterId] ?? {}) };
+    const geom: { x?: number; y?: number; width?: number; height?: number; visible?: boolean } = { ...(next[masterId] ?? {}) };
     let touched = false;
+    if (patch.x !== undefined) { geom.x = Math.round(patch.x); touched = true; }
+    if (patch.y !== undefined) { geom.y = Math.round(patch.y); touched = true; }
     if (patch.width !== undefined) { geom.width = Math.round(Math.max(1, patch.width)); touched = true; }
     if (patch.height !== undefined) { geom.height = Math.round(Math.max(1, patch.height)); touched = true; }
     if (patch.visible !== undefined) { geom.visible = patch.visible; touched = true; }
-    if (touched) next[masterId] = geom;
+    if (!touched) {
+      const isEmpty = geom.x === undefined && geom.y === undefined && geom.width === undefined && geom.height === undefined && geom.visible === undefined;
+      if (isEmpty) delete next[masterId];
+    } else {
+      next[masterId] = geom;
+    }
     if (patch.characters !== undefined) next.text = { ...(next.text ?? {}), [masterId]: patch.characters };
     get().commitOps([ops.updateNode(instanceId, { overrides: next })], 'Set instance override');
   },
@@ -565,12 +624,13 @@ export const useStudio = create<StudioState>((set, get) => ({
   clearLiveGeom: () => set({ liveGeom: {}, guides: { xs: [], ys: [] }, rotations: {} }),
   setGuides: (g) => set({ guides: g }),
   setRotations: (r) => set({ rotations: r }),
+  setFocused: (id) => set({ focusedInstanceId: id }),
   setPreview: (open) => set({ previewOpen: open }),
   setStatus: (s) => set({ status: s }),
 
   loadDocument: (doc) => {
     history = new History(doc);
-    set({ doc, activePageId: safePage(doc, doc.activePageId), selection: [], editingId: null, lastDiff: null, lastBefore: null, lastPageId: null, historyLog: [], historyCursor: 0, status: 'Restored from local snapshot' });
+    set({ doc, activePageId: safePage(doc, doc.activePageId), selection: [], editingId: null, focusedInstanceId: null, lastDiff: null, lastBefore: null, lastPageId: null, historyLog: [], historyCursor: 0, status: 'Restored from local snapshot' });
   },
 
   generate: async (prompt) => {
@@ -625,7 +685,7 @@ export const useStudio = create<StudioState>((set, get) => ({
   newProject: () => {
     history = new History(createEmptyDocument('Untitled Project'));
     const d = history.current;
-    set({ doc: d, activePageId: d.activePageId, selection: [], editingId: null, lastDiff: null, lastBefore: null, lastPageId: null, historyLog: [], historyCursor: 0, status: 'New project' });
+    set({ doc: d, activePageId: d.activePageId, selection: [], editingId: null, focusedInstanceId: null, lastDiff: null, lastBefore: null, lastPageId: null, historyLog: [], historyCursor: 0, status: 'New project' });
   },
 }));
 

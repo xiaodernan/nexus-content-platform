@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it } from 'vitest';
-import type { InstanceNode } from '@nexus/design-model';
+import { layoutPage, type InstanceNode } from '@nexus/design-model';
 import { instanceView, useStudio } from './store';
 
 const st = () => useStudio.getState();
@@ -152,5 +152,91 @@ describe('store: rotation', () => {
     st().clearLiveGeom();
     expect(st().rotations).toEqual({});
     expect(st().doc.nodes[id]!.rotation ?? 0).toBe(0); // preview never touches the doc
+  });
+});
+
+describe('store: sub-selection (drill-in editing via overrides)', () => {
+  function drilledIn() {
+    st().newProject();
+    st().addShape('rectangle', { x: 100, y: 100 });
+    const rectId = st().selection[0]!;
+    st().addShape('ellipse', { x: 300, y: 100 });
+    st().select([rectId]);
+    st().createComponent();
+    const instId = st().selection[0]!;
+    const cloneId = `${instId}::${rectId}`;
+    return { rectId, instId, cloneId };
+  }
+  const overridesOf = (instId: string, masterId: string) => (st().doc.nodes[instId] as InstanceNode).overrides[masterId];
+
+  it('moving a selected clone commits accumulated x/y overrides on its instance', () => {
+    const { rectId, instId, cloneId } = drilledIn();
+    st().select([cloneId]);
+    st().moveSelectionBy(5, 7);
+    expect(overridesOf(instId, rectId)).toEqual({ x: 5, y: 7 });
+    st().moveSelectionBy(2, 0);
+    expect(overridesOf(instId, rectId)!.x).toBe(7);
+    st().moveSelectionBy(0, 2);
+    expect(overridesOf(instId, rectId)!.y).toBe(9);
+    const { doc: view } = instanceView(st().doc);
+    const authored = st().doc.nodes[rectId]!;
+    expect(view.nodes[cloneId]!.x).toBe(authored.x + 7);
+    expect(view.nodes[cloneId]!.y).toBe(authored.y + 9);
+    expect(authored.x).toBe(0); // createComponent rebased the master; it stays untouched
+  });
+
+  it('one move with a clone + an authored node is a single reversible step', () => {
+    const { rectId, instId, cloneId } = drilledIn();
+    st().addShape('rectangle', { x: 0, y: 300 });
+    const plain = st().selection[0]!;
+    st().select([cloneId, plain]);
+    const beforeX = st().doc.nodes[plain]!.x;
+    st().moveSelectionBy(10, 0);
+    expect(st().doc.nodes[plain]!.x).toBe(beforeX + 10);
+    expect(overridesOf(instId, rectId)).toEqual({ x: 10, y: 0 });
+    st().undo();
+    expect(st().doc.nodes[plain]!.x).toBe(beforeX);
+    expect(overridesOf(instId, rectId)).toBeUndefined();
+  });
+
+  it('resizeTo on a clone bakes absolute width/height plus an x/y delta into overrides', () => {
+    const { rectId, instId, cloneId } = drilledIn();
+    st().select([cloneId]);
+    // g is in absolute page-layout space; the clone sits at the instance position (100,100)
+    st().resizeTo(cloneId, { x: 100, y: 100, width: 220, height: 60 });
+    expect(overridesOf(instId, rectId)).toEqual({ x: 0, y: 0, width: 220, height: 60 });
+    const { doc: view } = instanceView(st().doc);
+    expect(view.nodes[cloneId]!.width).toBe(220);
+    expect(st().doc.nodes[rectId]!.width).toBe(160); // master untouched
+    st().undo();
+    expect(overridesOf(instId, rectId)).toBeUndefined();
+  });
+
+  it('resizing a clone of a moved instance does not jump (layout-space deltas)', () => {
+    const { rectId, instId, cloneId } = drilledIn();
+    st().updateNode(instId, { x: 150, y: 150 });
+    const before = layoutPage(instanceView(st().doc).doc, st().activePageId)[cloneId]!;
+    st().resizeTo(cloneId, { x: before.x, y: before.y, width: 200, height: 50 });
+    expect(overridesOf(instId, rectId)).toEqual({ x: 0, y: 0, width: 200, height: 50 });
+    const after = layoutPage(instanceView(st().doc).doc, st().activePageId)[cloneId]!;
+    expect(after.x).toBe(before.x);
+    expect(after.y).toBe(before.y);
+  });
+
+  it('focus state is set, guarded against staleness by Canvas, and reset by newProject', () => {
+    const { instId } = drilledIn();
+    expect(st().focusedInstanceId).toBeNull();
+    st().setFocused(instId);
+    expect(st().focusedInstanceId).toBe(instId);
+    st().newProject();
+    expect(st().focusedInstanceId).toBeNull();
+  });
+
+  it('an x override composes with the instance position in layout', () => {
+    const { rectId, instId, cloneId } = drilledIn();
+    st().updateNode(instId, { x: 40, y: 50 });
+    st().setInstanceOverride(instId, rectId, { x: 10 });
+    const layout = layoutPage(instanceView(st().doc).doc, st().activePageId);
+    expect(layout[cloneId]!.x).toBe(40 + st().doc.nodes[rectId]!.x + 10);
   });
 });

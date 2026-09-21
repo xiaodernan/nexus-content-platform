@@ -5,7 +5,6 @@ import {
   childIdList,
   hitTest,
   layoutPage,
-  ownerInstanceId,
   subtreeIds,
   type AbsRect,
   type Point,
@@ -29,6 +28,29 @@ function rectIntersects(a: AbsRect, m: Marquee): boolean {
 
 function applyMove(base: AbsRect, dx: number, dy: number): LiveGeom {
   return { x: base.x + dx, y: base.y + dy, width: base.width, height: base.height };
+}
+
+type HitMeta = Record<string, { instanceId: string; masterId: string }>;
+type StudioState = ReturnType<typeof useStudio.getState>;
+
+/** Focused instance id, guarded against staleness after undo/page switches. */
+function liveFocus(s: StudioState): string | null {
+  return s.focusedInstanceId && s.doc.nodes[s.focusedInstanceId]?.type === 'instance' ? s.focusedInstanceId : null;
+}
+
+/** Collapse a clone hit to its owning instance — except when that instance is focused (sub-select). */
+function resolveHit(rawHit: string | null, meta: HitMeta, focus: string | null): string | null {
+  if (!rawHit) return null;
+  const owner = meta[rawHit]?.instanceId ?? null;
+  if (owner === null) return rawHit;
+  if (focus && owner === focus) return rawHit;
+  return owner;
+}
+
+/** True for projected clone ids (they exist only in the view-time projection). */
+function isCloneId(meta: HitMeta, id: string): boolean {
+  const m = meta[id];
+  return !!m && m.instanceId !== id;
 }
 
 function applyResize(base: AbsRect, corner: string, dx: number, dy: number): LiveGeom {
@@ -55,6 +77,7 @@ export default function Canvas() {
   const viewport = useStudio((s) => s.viewport);
   const activePageId = useStudio((s) => s.activePageId);
   const editingId = useStudio((s) => s.editingId);
+  const focusedInstanceId = useStudio((s) => s.focusedInstanceId);
   const [draft, setDraft] = useState('');
 
   const drag = useRef<{
@@ -75,7 +98,8 @@ export default function Canvas() {
 
   useEffect(() => {
     if (!editingId) return;
-    const n = useStudio.getState().doc.nodes[editingId];
+    // editing may target a projected text clone, so read characters from the instance view
+    const n = instanceView(useStudio.getState().doc).doc.nodes[editingId];
     setDraft(n && n.type === 'text' ? n.characters : '');
   }, [editingId]);
 
@@ -164,6 +188,14 @@ export default function Canvas() {
       if (e.code === 'Space') {
         drag.current.spaceHeld = true;
         e.preventDefault();
+        return;
+      }
+      if (e.key === 'Escape' && st.focusedInstanceId) {
+        e.preventDefault();
+        const id = st.focusedInstanceId;
+        st.setEditing(null);
+        st.setFocused(null);
+        st.select([id]);
         return;
       }
       if (mod && e.key.toLowerCase() === 'z') {
@@ -274,18 +306,26 @@ export default function Canvas() {
     }
 
     const rawHit = hitTest(viewDoc, layout, pageId, world);
-    const hit = rawHit ? (ownerInstanceId(meta, rawHit) ?? rawHit) : null;
+    const hit = resolveHit(rawHit, meta, liveFocus(s));
     if (hit) {
       const inSel = s.selection.includes(hit);
       if (e.shiftKey) s.toggleInSelection(hit);
       else if (!inSel) s.select([hit]);
       const sel = useStudio.getState().selection;
-      // grab a frame/parent → move its whole subtree as a unit
+      // grab a frame/parent → move its whole subtree as a unit; a selected clone moves by itself
+      // (its projected descendants follow through layout placement automatically)
       const dragSet = new Set<string>();
-      for (const id of sel) for (const sub of subtreeIds(s.doc, id)) dragSet.add(sub);
+      for (const id of sel) {
+        if (isCloneId(meta, id)) {
+          dragSet.add(id);
+          continue;
+        }
+        for (const sub of subtreeIds(s.doc, id)) dragSet.add(sub);
+      }
       for (const id of dragSet) {
         const r = layout[id];
-        if (r && !s.doc.nodes[id]?.locked) d.baseGeoms[id] = { x: r.x, y: r.y, width: r.width, height: r.height };
+        const nd = s.doc.nodes[id] ?? viewDoc.nodes[id];
+        if (r && !nd?.locked) d.baseGeoms[id] = { x: r.x, y: r.y, width: r.width, height: r.height };
       }
       d.kind = 'maybeMove';
       return;
@@ -301,14 +341,37 @@ export default function Canvas() {
     const s = useStudio.getState();
     if (s.tool !== 'select') return;
     const world = toWorld(e.clientX, e.clientY);
-    const layout = layoutPage(s.doc, s.activePageId);
-    const hit = hitTest(s.doc, layout, s.activePageId, world);
-    if (!hit) return;
-    const n = s.doc.nodes[hit];
-    if (n && n.type === 'text' && !n.locked) {
-      s.select([hit]);
-      s.setEditing(hit);
+    const { doc: viewDoc, meta } = instanceView(s.doc);
+    const layout = layoutPage(viewDoc, s.activePageId);
+    const rawHit = hitTest(viewDoc, layout, s.activePageId, world);
+    const focus = liveFocus(s);
+    if (!rawHit) {
+      if (focus) {
+        s.setFocused(null);
+        s.clearSelection();
+      }
+      return;
     }
+    const n = viewDoc.nodes[rawHit];
+    const owner = meta[rawHit]?.instanceId ?? null;
+    // progressive drill: 1st dbl-click on an instance enters it (selecting the clicked clone),
+    // dbl-clicking text inside the focused instance (or plain text) starts on-canvas editing
+    if (n && n.type === 'text' && !n.locked && (!owner || owner === focus)) {
+      s.select([rawHit]);
+      s.setEditing(rawHit);
+      return;
+    }
+    if (owner) {
+      if (focus === owner && rawHit === owner) {
+        s.setFocused(null);
+        s.select([owner]);
+        return;
+      }
+      s.setFocused(owner);
+      s.select([rawHit === owner ? owner : rawHit]);
+      return;
+    }
+    s.select([rawHit]);
   };
 
   const onPointerMove = (e: React.PointerEvent) => {
@@ -325,7 +388,7 @@ export default function Canvas() {
       const { doc: viewDoc, meta } = instanceView(s.doc);
       const layout = layoutPage(viewDoc, pageId);
       const rawHit = hitTest(viewDoc, layout, pageId, world);
-      const hit = rawHit ? (ownerInstanceId(meta, rawHit) ?? rawHit) : null;
+      const hit = resolveHit(rawHit, meta, liveFocus(s));
       if (hit !== s.hoverId) s.setHover(hit);
       return;
     }
@@ -393,8 +456,8 @@ export default function Canvas() {
       const ids = Array.from(
         new Set(
           hits
-            .map((id) => ownerInstanceId(meta, id) ?? id)
-            .filter((id) => id !== pageId && viewDoc.nodes[id]?.type !== 'document' && viewDoc.nodes[id]?.type !== 'page'),
+            .map((id) => resolveHit(id, meta, liveFocus(s)))
+            .filter((id): id is string => id !== null && id !== pageId && viewDoc.nodes[id]?.type !== 'document' && viewDoc.nodes[id]?.type !== 'page'),
         ),
       );
       s.select(ids, d.additive);
@@ -477,17 +540,24 @@ export default function Canvas() {
   };
 
   // ---- on-canvas text editing overlay -------------------------------------
-  const editingNode = editingId ? (doc.nodes[editingId] as TextNode | undefined) : undefined;
+  // The edited node may be a projected clone, so everything here reads from the instance view;
+  // commits on clones become `characters` overrides keyed by the master id.
+  const { doc: viewDoc, meta: viewMeta } = instanceView(doc);
+  const editingNode = editingId ? (viewDoc.nodes[editingId] as TextNode | undefined) : undefined;
   let overlay: React.ReactNode = null;
   if (editingNode && editingNode.type === 'text') {
-    const r = layoutPage(doc, activePageId)[editingNode.id];
+    const r = layoutPage(viewDoc, activePageId)[editingNode.id];
     if (r) {
-      const st = resolveTextStyle(doc, editingNode.style);
+      const st = resolveTextStyle(viewDoc, editingNode.style);
       const color = editingNode.fills[0]?.kind === 'solid' ? `rgb(${Math.round(editingNode.fills[0].color.r * 255)},${Math.round(editingNode.fills[0].color.g * 255)},${Math.round(editingNode.fills[0].color.b * 255)})` : '#e6ecf5';
       const commit = (cancel: boolean) => {
         const id = editingNode.id;
         const s = useStudio.getState();
-        if (!cancel && draft !== editingNode.characters) s.updateNode(id, { characters: draft });
+        if (!cancel && draft !== editingNode.characters) {
+          const m = viewMeta[id];
+          if (m && m.instanceId !== id) s.setInstanceOverride(m.instanceId, m.masterId, { characters: draft });
+          else s.updateNode(id, { characters: draft });
+        }
         s.setEditing(null);
       };
       overlay = (
@@ -540,6 +610,10 @@ export default function Canvas() {
     }
   }
 
+  // Sub-select breadcrumb: shown while double-click has drilled into an instance.
+  const focusedNode = focusedInstanceId && doc.nodes[focusedInstanceId]?.type === 'instance' ? focusedInstanceId : null;
+  const focusLabel = focusedNode ? viewDoc.nodes[focusedNode]?.name : null;
+
   return (
     <div ref={wrapRef} style={{ position: 'absolute', inset: 0, overflow: 'hidden', cursor: editingId ? 'text' : 'crosshair' }}>
       <canvas
@@ -554,6 +628,39 @@ export default function Canvas() {
         onWheel={onWheel}
       />
       {overlay}
+      {focusedNode && (
+        <div
+          id="nexus-focus-chip"
+          style={{
+            position: 'absolute',
+            top: 10,
+            left: 12,
+            display: 'flex',
+            alignItems: 'center',
+            gap: 8,
+            padding: '4px 8px',
+            background: 'rgba(11,14,20,0.85)',
+            border: '1px solid var(--nexus-border, #2a3345)',
+            borderRadius: 6,
+            fontSize: 12,
+            color: '#e6ecf5',
+          }}
+        >
+          <span style={{ opacity: 0.7 }}>Editing inside</span>
+          <strong>{focusLabel ?? focusedNode}</strong>
+          <button
+            className="btn"
+            onClick={() => {
+              const s = useStudio.getState();
+              s.setEditing(null);
+              s.setFocused(null);
+              s.select([focusedNode]);
+            }}
+          >
+            Exit (Esc)
+          </button>
+        </div>
+      )}
       <div style={{ position: 'absolute', right: 12, bottom: 12, display: 'flex', gap: 6, alignItems: 'center' }}>
         <button className="btn" onClick={() => zoomAtCenter(1 / 1.2)}>−</button>
         <button className="btn" style={{ minWidth: 64 }} onClick={fitToContent} title="Zoom to fit">{Math.round(zoom * 100)}%</button>

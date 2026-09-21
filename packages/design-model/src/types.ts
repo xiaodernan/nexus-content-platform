@@ -123,11 +123,11 @@ export interface ImageNode extends NodeBase {
   fit: 'cover' | 'contain' | 'stretch';
 }
 
-/** Instance references a component; `overrides` patch specific properties. */
+/** Instance references a component; `overrides` patch specific properties. `x`/`y` are deltas relative to the master's authored position. */
 export interface InstanceNode extends NodeBase {
   type: 'instance';
   componentId: NexusId;
-  overrides: Record<NexusId, Partial<Pick<NodeBase, 'width' | 'height' | 'visible'>>> & {
+  overrides: Record<NexusId, Partial<Pick<NodeBase, 'width' | 'height' | 'visible' | 'x' | 'y'>>> & {
     text?: Record<NexusId, string>;
   };
 }

@@ -120,6 +120,26 @@ describe('instances: multiple + overrides', () => {
     // untouched master stays as authored
     expect(doc.nodes['cmp::label']?.characters).toBe('Save');
   });
+
+  it('applies x/y overrides as deltas off the master authored position', () => {
+    let doc = createEmptyDocument();
+    const { cmp, r, t } = buttonMaster();
+    doc = seed(doc, doc.rootId, cmp, r, t);
+    const masterRect = doc.nodes['cmp::rect']!;
+    const inst = instanceNode('B', 'cmp', { id: 'i2', x: 20, y: 30 });
+    inst.overrides = { 'cmp::rect': { x: 10, y: -5, width: 300 } };
+    doc = seed(doc, doc.activePageId, inst);
+    const { doc: out } = expandComponentInstances(doc);
+    const clone = out.nodes['i2::cmp::rect']!;
+    expect(clone.x).toBe(masterRect.x + 10);
+    expect(clone.y).toBe(masterRect.y - 5);
+    expect(clone.width).toBe(300); // composes with absolute size overrides
+    // master untouched; the authored instance node carries no clone geometry
+    expect(doc.nodes['cmp::rect']!.x).toBe(masterRect.x);
+    // layout places the shifted clone relative to the instance origin
+    const layout = layoutPage(out, doc.activePageId);
+    expect(layout['i2::cmp::rect']!.x).toBe(20 + masterRect.x + 10);
+  });
 });
 
 describe('instances: nesting + cycles + meta', () => {

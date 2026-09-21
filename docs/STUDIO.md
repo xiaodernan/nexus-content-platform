@@ -35,8 +35,16 @@ overrides** section in the Properties panel (`InstanceOverrides.tsx`): editing a
 there calls `setInstanceOverride`, which merges keyed by the *master* child id into that instance's
 `overrides` (geometry and text kept in separate maps) and commits one reversible op — the change
 re-projects onto that instance's clones only, never the master or sibling instances.
-**Deferred:** nested-instance sub-selection (drill-in past a nested instance — detach
-is the escape hatch for those), on-canvas comments, code-layer
+**Sub-selection (drill-in):** double-clicking a part of an instance *enters* it — the clicked clone
+becomes the selection (a breadcrumb chip names the focused instance). While inside, hit-testing keeps
+clone ids, so drag-move (with snapping), corner resize, arrow keys and on-canvas text editing all
+work on clones; each commit lands as one `overrides` op on the owning instance — `x`/`y` as **deltas**
+off the master position (so masters keep authoring freedom), `width`/`height` absolute, `characters`
+into `overrides.text`. Escape, the chip's *Exit* button, double-clicking the instance body, or
+clicking empty canvas drills back out and selects the whole unit. The focus state is studio-local
+view state (ADR 0014): not persisted, not undoable.
+**Deferred:** per-instance **rotation** of clones (would target a non-canonical id — detach is the
+escape hatch), on-canvas comments, code-layer
 bidirectional sync (§9), live agent edits streaming, undoable page switching (needs a `setActivePage`
 op, ADR 0014).
 
