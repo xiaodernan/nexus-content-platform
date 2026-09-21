@@ -31,9 +31,12 @@
   v8 opens §24: `roles.ts` (role = data: allowed-tool globs → `registry.scope` projections,
   capability-by-absence) with three demo roles, and `evaluate.ts` (`scoreRun`: five
   weighted deterministic rubric marks over RunOutcome data + JSONL persistence).
-  Proof: `agents/runtime/test` (vitest 86/86) plus the nine headless proofs in
+  v9 adds `pipeline.ts` — §25 as durable data: a researcher session produces a structured
+  HandoffRecord the host persists into scoped memory (optionally to JSON), and an editor
+  run completes memory-first, even in a separate process (`pipeline-proof.mjs`).
+  Proof: `agents/runtime/test` (vitest 91/91) plus the ten headless proofs in
   `docs/evidence/agents/` (agent, code-index, memory, durability, index-store, provider,
-  recall, changes, roles).
+  recall, changes, roles, pipeline).
 
 Still placeholder (§24): the multi-agent Registry (roster/handoff). Long-term memory (§26) is
 now durable across processes (v3: schema-versioned JSON via the injected fs + jail-rooted

@@ -202,3 +202,21 @@ two fresh runs, checkpoint denial leaving the workspace byte-identical).
   reproducible from the logged data alone, and the proof demonstrates role strength
   changing the score (1.00 vs 0.20) on an identical task.
 - **Proof:** `docs/evidence/agents/roles-proof.mjs`. Tests 86/86 (+12).
+
+## Amendment 9 — v9: §25 role pipeline as durable data (`pipeline.ts`), 2026-09
+- **What landed:** `runRolePipeline(task, opts)` — a researcher tool-session (`fs.index`/
+  `fs.search` through the role's *scoped* registry) produces a `HandoffRecord`
+  `{from, to, goal, via, refs[], runId}`: structured data, never chat (§25). The **host**
+  persists the handoff into scoped §26 memory (optionally flushed to JSON via
+  `saveMemory`), then an editor-scoped `runTask` picks it up — the planner's memory-first
+  tier means the editor researches *from the handoff*, not a cold index. The editor run is
+  scored (§63 rubric) and both outcome + evaluation append to the JSONL files.
+- **No new privileges:** every stage goes through the same registry gates; failure modes
+  return stated reasons (`no research tool`, `research failed: …`, `no refs`) rather than
+  invented handoffs (§60).
+- **Cross-process:** with `memoryFile` + `fsLike` the handoff JSON loads in a *separate
+  process* — `docs/evidence/agents/pipeline-proof.mjs` spawns a node child that completes
+  the editor stage from the persisted handoff alone (score 1, `steps[0] = memory.recall`).
+  This is multi-agent cooperation as durable data, still honestly demo-mode machinery.
+- **Tests:** 91/91 (+5 pipeline cases: happy path, denied checkpoint, durable reload,
+  missing-capability reason, determinism).

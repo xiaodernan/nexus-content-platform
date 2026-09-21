@@ -29,8 +29,11 @@ memory recall (zero token overlap ⇒ exactly 0), plus listed, idempotent memory
 exact inverse patches, git-style unified diffs persisted through the jailed `disk.write`,
 and an append-only JSONL run ledger; v8 starts §24 — roles as data (`RoleRegistry` +
 `registry.scope` capability projections where missing tools are *unknown*, not denied) and
-§63 evaluation (`scoreRun`'s five weighted deterministic rubric marks, persisted as JSONL).
-Driven by a deterministic DEMO-MODE planner.
-Remaining scaffolds: the multi-agent Registry's roster/handoff beyond demo roles (§24),
+§63 evaluation (`scoreRun`'s five weighted deterministic rubric marks, persisted as JSONL);
+v9 makes §25 handoffs real data — `runRolePipeline` turns a researcher's scoped tool-session
+into a HandoffRecord the host persists to scoped memory, and an editor run completes
+memory-first, in-process or in a separate process (pipeline-proof). Driven by a
+deterministic DEMO-MODE planner.
+Remaining scaffolds: the multi-agent Registry's roster/handoff beyond the demo pipeline (§24),
 true vector-store recall (§63/ADR 0012), general exec/browser/git tools (land with the
 ADR 0013 sandbox); the full runtime matures across M2/M6.

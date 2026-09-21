@@ -8,7 +8,7 @@ every emitted artifact (`provenance.mode = "demo"`).
 ## Reproducible gates
 
 ```
-npm test          # turbo: @nexus/agent-runtime 86/86 vitest among all packages
+npm test          # turbo: @nexus/agent-runtime 91/91 vitest among all packages
 npm run build     # tsc dist for agents/runtime (build order via ^build deps)
 node docs/evidence/agents/agent-proof.mjs
 node docs/evidence/agents/code-index-proof.mjs   # requires `npm run build` first
@@ -19,6 +19,7 @@ node docs/evidence/agents/provider-proof.mjs     # requires `npm run build` firs
 node docs/evidence/agents/recall-proof.mjs       # requires `npm run build` first
 node docs/evidence/agents/changes-proof.mjs      # requires `npm run build` first
 node docs/evidence/agents/roles-proof.mjs        # requires `npm run build` first
+node docs/evidence/agents/pipeline-proof.mjs    # requires `npm run build` first
 ```
 
 ## Unit tests (vitest, `agents/runtime/test`)
@@ -36,6 +37,7 @@ node docs/evidence/agents/roles-proof.mjs        # requires `npm run build` firs
 | `ledger.test.ts` (3) | RunOutcome JSONL round-trip + junk rejection with reasons, append-only growth with parent mkdir, order + malformed counting + `last` tail trim + missing-file empty read |
 | `roles.test.ts` (7) | `matchesTool` glob semantics, scope projection exposes/excludes (unknown ≠ denied), child copy can't mutate parent, role register unique + sorted list + ghost role ⇒ empty, researcher-vs-editor write behavior, plan tier follows role capabilities, capability gap fails honestly leaving files untouched |
 | `evaluate.test.ts` (5) | clean run scores 1 with named marks, failures degrade by weight (deterministic), last verify decides, change-economy budget option, append/reload order + corrupt-file reasons |
+| `pipeline.test.ts` (5) | researcher→editor handoff happy path (refs from `fs.index`, editor plans memory-first, score 1), denied checkpoint leaves the handoff real but the run denied, durable mode writes memory+ledger+evaluation JSONL that reload cold, missing research tool ⇒ stated reason (no invented refs), full determinism across identical pipelines |
 | `durability.test.ts` (8) | memory serialize/deserialize round-trip + version/schema rejection, `restore()` id high-water mark, save/load through an injected writable fake disk, corrupt-file honest failure, `guardedJoin` jail (absolute/`..`/drive-letter rejection, backslash folding), `disk.write` checkpoint gate + escape touches nothing, `disk.read`/`disk.list` confinement |
 | `indexStore.test.ts` (11) | index snapshot serialize→deserialize verbatim + version/chunk schema rejection, save/load via injected fs, cold rescan equals `buildIndex`, unchanged files reuse chunks / edits rechunk exactly the changed paths / removals drop out, query ranking snapshot-independent; v5 provider: cold-first-build equals plain build, incremental refresh 0 re-chunked, edited file sole re-chunk, cross-provider snapshot restore, corrupt-snapshot fallback + repair, `fs.index` provider/default parity |
 
@@ -139,6 +141,14 @@ capabilities are absent, not denied — while the `editor` completes and scores 
 five-mark rubric. The weaker run scores 0.20 on the identical rubric; both evaluations
 reload from JSONL in order. Rubric output is pure data over the RunOutcome — deterministic
 by construction, no model judging a model (§60).
+
+## Pipeline proof (`pipeline-proof.mjs`, M2 v9)
+
+§25 as durable data: a researcher session over the real repo hands off its top refs
+(`{from, to, goal, via, refs}` — no chat) to an editor stage; the parent run scores 1.00,
+then a **separate node child process** loads only the persisted handoff JSON + the target
+file, completes the editor stage memory-first (`plan.steps[0].tool === 'memory.recall'`)
+and scores 1 too. Ledger and evaluation files record the stages; the jail is cleaned after.
 
 ## Scope honesty
 
