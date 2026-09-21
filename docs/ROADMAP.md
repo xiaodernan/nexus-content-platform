@@ -34,7 +34,8 @@ Create Project → Prompt → AI Design → Canvas → Layers → Properties
 - [x] AI Service（FastAPI, `apps/ai-service`）：契约强制 + Provider 抽象 + Model Router + OpenAI 兼容适配器 + 删除类审批门
 - [ ] AI Service 任务队列 / 异步生成作业（Redis）与 embedding/RAG、图像/视频 provider（随 M2/M3 落地）
 - [ ] Design Agent：意图 → Plan → design patch → 画布更新 → AI Diff 说明（§20/25/151）
-- [ ] Design → Code（React + TS + Tailwind）；Code → Design（受限 JSX 解析，不可逆区域保留为 code-only，§17-19）
+- [x] Design → Code（React + TS + Tailwind，`packages/design-model/src/codegen.ts` + Studio 代码视图）
+- [ ] Code → Design（受限 JSX 解析，不可逆区域保留为 code-only，§17-19）
 - [ ] Snapshot / Version History / Branch / 多方案比较（§27-29，现有历史面板仅本地会话内）
 - [ ] 免注册首次体验（§137）→ 注册保存；Publish + 分享 URL（§56-57）
 
@@ -50,6 +51,15 @@ hug 尺寸把 padding 计入；响应式断点下属性面板如实显示实际�
 契约由 zod 单一来源导出到 `contracts/`，Python 侧 `jsonschema` 运行期校验，漂移由单测拦截。
 验证：pytest 26 项、`npm test` 103 项、`npm run test:e2e:smoke` 6 项，首页 `home.png` 显示
 AI Service 行与逐 provider 能力/原因。真实 key 到位前，真机 provider 调用只做过 httpx 传输层桩验证。
+
+**M1 进度记录（2026-09-22，Design → Code）**：`generateProject()` 从设计模型确定性产出
+`styles/tokens.css` + 每页一个 `components/nexus/<Page>.tsx` + 索引；token 引用写成 `var(--nx-*)`
+（前缀刻意避开 Studio 自己的 `--nexus-*`），几何只来自模型的 size/layout/style/typography/responsive。
+Studio 顶栏下新增 画布/代码 切换（`CodePanel`），选中的元素会在代码里高亮并滚动到自己那一行。
+验证：`npm test` 121 项（新增 18 项 codegen 单测，含用 `ts.transpileModule` 证明生成的 TSX 无语法诊断）、
+`npm run test:e2e:smoke` 7 项、`npm run lint` 通过；`screenshots/code.png` 人眼检查后修掉了
+浮层遮挡文件标签的问题，并补 `app/icon.svg` 消除 dev overlay 报的 favicon 404。
+**代码视图当前是只读投影**：编辑回写需要受限 JSX 解析器，未实现前界面明确写"只读投影"，不假装可改。
 
 **M1 验收**：新开项目输入一句 prompt，60 秒内（§138）在画布上看到可编辑设计，改属性能落库，
 点 Code 能看到可编译的 React，点 Preview 能在 iframe 里真实运行，Screenshot 能出图，Publish 能拿到可访问 URL。
@@ -109,3 +119,7 @@ AI Service 行与逐 provider 能力/原因。真实 key 到位前，真机 prov
 - ESLint 目前只有 `npm run lint` = typecheck 的占位配置，缺真实规则集。
 - 资产（image/video paint）尚未渲染：`render.ts` 明确跳过，等任务 #9 的资产服务落地。
 - 历史面板只在浏览器会话内可撤销，刷新即失；服务端 Snapshot 属于任务 #8。
+- 代码投影（`codegen.ts`）与画布一样只覆盖几何/样式/文字：`typography.runs`、`animation`、`interactions`、
+  `states`、`bindings` 都还没实现——渲染层也没有，所以两边一致地缺失，不是生成器单独偷懒。
+- 生成的页面组件之间没有共享组件抽取：`component`/`instance` 节点会被展开成内联子树，
+  等 §13 组件系统的实例语义稳定后再收敛成 `<Component />` 引用。

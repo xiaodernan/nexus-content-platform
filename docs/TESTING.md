@@ -52,6 +52,8 @@
 - 测试文件与被测文件同目录 `*.test.ts` / `tests/test_*.py`
 - 不因"难测"跳过；难测处优先重构出纯函数（design-model 就是为此存在）
 - 截图对比失败时**必须人眼看图**再决定更新基线，不允许盲目 approve
+- 生成的代码要用真实编译器验证：`codegen.test.ts` 用 `ts.transpileModule` 断言零语法诊断；
+  e2e 断言代码视图与画布同源（选中节点 → 高亮它对应的那一行）
 - 每个里程碑一次 commit 前至少跑：`npm run lint && npm test && npm run test:e2e:smoke`
 - 改了 `packages/schemas` 必须重跑 `npm run contract:export`，否则契约漂移测试会红
 - 动了 ai-service 再加：`npm run test:ai-service`（Windows 控制台建议前置 `PYTHONUTF8=1`）

@@ -121,6 +121,28 @@ test('@smoke studio slice: mobile viewport reflows the same model', async ({ pag
   await expect(page.locator('[data-node-type="button"]').first()).toHaveCSS('color', 'rgb(255, 255, 255)');
 });
 
+test('@smoke studio slice: code view is a projection of the same model', async ({ page }) => {
+  test.setTimeout(90_000);
+  const errors: string[] = [];
+  page.on('console', (m) => {
+    if (m.type() === 'error') errors.push(m.text());
+  });
+  page.on('pageerror', (e) => errors.push(String(e)));
+
+  await createProject(page, `代码 ${Date.now().toString(36)}`);
+  const ctaId = await layerId(page, 'Primary CTA');
+  await page.click(`[data-node-id="${ctaId}"]`);
+  await page.click('[data-view="code"]');
+
+  // 选中的元素在代码里定位到自己那一行：两块投影同源（§16）
+  await expect(page.locator('[data-code-line="selected"]')).toContainText(ctaId);
+  // token 走 CSS 变量引用，不把值烤死（§12）
+  await expect(page.locator('[data-code-view]')).toContainText('var(--nx-color-primary)');
+  // 编辑回写要等 JSX 解析器：视图必须如实说明只读（§19/§159）
+  await expect(page.locator('[data-code-hint]')).toContainText('只读投影');
+  expect(errors).toEqual([]);
+});
+
 test('@smoke studio slice: preview route is a read-only projection', async ({ page }) => {
   test.setTimeout(90_000);
   const projectId = await createProject(page, `预览 ${Date.now().toString(36)}`);

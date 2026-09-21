@@ -77,6 +77,13 @@ Code → Design：受限 JSX 解析（自有组件与 Tailwind 白名单子集�
 AI 只负责"改设计"（产出 design patch），不直接产出整页代码文本；页面代码由生成器从设计模型派生。
 这样 §17 的双向闭环可验证、可 diff、可撤销。
 
+**Design → Code 已落地（M1）**：`packages/design-model/src/codegen.ts` 是纯函数投影，产出
+`styles/tokens.css`（token → `var(--nx-*)`，含 `[data-theme]` mode 块）+ 每页一个 `.tsx` + 页面索引。
+尺寸语义按父容器轴向映射（flex 主轴 fill→`flex-1`、交叉轴→`self-stretch`、hug→无类），
+`mode=none/stack` 的子节点用 `absolute left/top`，与画布共用同一份模型几何。
+Studio 的 代码 视图（`apps/web/src/studio/CodePanel.tsx`）只读展示并定位选中节点所在行。
+**Code → Design 未实现**：代码视图因此标为只读，不做假的可编辑回写。
+
 ## 运行时与预览（§81-83）
 
 生成代码**绝不在主机执行**。预览路径：
