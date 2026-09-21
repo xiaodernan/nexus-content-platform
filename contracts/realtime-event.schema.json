@@ -1,0 +1,369 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "oneOf": [
+    {
+      "type": "object",
+      "properties": {
+        "type": {
+          "type": "string",
+          "const": "agent.plan"
+        },
+        "projectId": {
+          "type": "string"
+        },
+        "taskId": {
+          "type": "string"
+        },
+        "plan": {
+          "type": "object",
+          "properties": {
+            "goal": {
+              "type": "string"
+            },
+            "constraints": {
+              "default": [],
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "tasks": {
+              "default": [],
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "string"
+                  },
+                  "title": {
+                    "type": "string"
+                  },
+                  "agent": {
+                    "type": "string"
+                  },
+                  "status": {
+                    "default": "pending",
+                    "type": "string",
+                    "enum": [
+                      "pending",
+                      "running",
+                      "done",
+                      "failed",
+                      "skipped"
+                    ]
+                  },
+                  "dependsOn": {
+                    "default": [],
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "artifact": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "id",
+                  "title",
+                  "agent",
+                  "status",
+                  "dependsOn"
+                ],
+                "additionalProperties": false
+              }
+            },
+            "dependencies": {
+              "default": [],
+              "type": "array",
+              "items": {
+                "type": "array",
+                "prefixItems": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "string"
+                  }
+                ],
+                "items": false,
+                "minItems": 2,
+                "maxItems": 2
+              }
+            },
+            "risks": {
+              "default": [],
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "validation": {
+              "default": [],
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          },
+          "required": [
+            "goal",
+            "constraints",
+            "tasks",
+            "dependencies",
+            "risks",
+            "validation"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "required": [
+        "type",
+        "projectId",
+        "taskId",
+        "plan"
+      ],
+      "additionalProperties": false
+    },
+    {
+      "type": "object",
+      "properties": {
+        "type": {
+          "type": "string",
+          "const": "agent.step"
+        },
+        "projectId": {
+          "type": "string"
+        },
+        "taskId": {
+          "type": "string"
+        },
+        "stepId": {
+          "type": "string"
+        },
+        "status": {
+          "type": "string",
+          "enum": [
+            "started",
+            "running",
+            "completed",
+            "failed"
+          ]
+        },
+        "summary": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "type",
+        "projectId",
+        "taskId",
+        "stepId",
+        "status",
+        "summary"
+      ],
+      "additionalProperties": false
+    },
+    {
+      "type": "object",
+      "properties": {
+        "type": {
+          "type": "string",
+          "const": "agent.activity"
+        },
+        "projectId": {
+          "type": "string"
+        },
+        "taskId": {
+          "type": "string"
+        },
+        "activity": {
+          "type": "object",
+          "properties": {
+            "stage": {
+              "type": "string"
+            },
+            "status": {
+              "type": "string",
+              "enum": [
+                "started",
+                "running",
+                "completed",
+                "failed",
+                "info"
+              ]
+            },
+            "summary": {
+              "type": "string",
+              "maxLength": 400
+            },
+            "counts": {
+              "type": "object",
+              "propertyNames": {
+                "type": "string"
+              },
+              "additionalProperties": {
+                "type": "number"
+              }
+            },
+            "artifactRef": {
+              "type": "string"
+            },
+            "at": {
+              "type": "string",
+              "format": "date-time",
+              "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+            }
+          },
+          "required": [
+            "stage",
+            "status",
+            "summary"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "required": [
+        "type",
+        "projectId",
+        "taskId",
+        "activity"
+      ],
+      "additionalProperties": false
+    },
+    {
+      "type": "object",
+      "properties": {
+        "type": {
+          "type": "string",
+          "const": "generation.progress"
+        },
+        "projectId": {
+          "type": "string"
+        },
+        "taskId": {
+          "type": "string"
+        },
+        "kind": {
+          "type": "string",
+          "enum": [
+            "image",
+            "video",
+            "3d",
+            "agent"
+          ]
+        },
+        "progress": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "message": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "type",
+        "projectId",
+        "taskId",
+        "kind",
+        "progress"
+      ],
+      "additionalProperties": false
+    },
+    {
+      "type": "object",
+      "properties": {
+        "type": {
+          "type": "string",
+          "const": "build.status"
+        },
+        "projectId": {
+          "type": "string"
+        },
+        "status": {
+          "type": "string",
+          "enum": [
+            "idle",
+            "building",
+            "ok",
+            "failed"
+          ]
+        },
+        "log": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "type",
+        "projectId",
+        "status"
+      ],
+      "additionalProperties": false
+    },
+    {
+      "type": "object",
+      "properties": {
+        "type": {
+          "type": "string",
+          "const": "preview.status"
+        },
+        "projectId": {
+          "type": "string"
+        },
+        "status": {
+          "type": "string",
+          "enum": [
+            "idle",
+            "starting",
+            "ready",
+            "failed"
+          ]
+        },
+        "url": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "type",
+        "projectId",
+        "status"
+      ],
+      "additionalProperties": false
+    },
+    {
+      "type": "object",
+      "properties": {
+        "type": {
+          "type": "string",
+          "const": "notification"
+        },
+        "projectId": {
+          "type": "string"
+        },
+        "level": {
+          "type": "string",
+          "enum": [
+            "info",
+            "success",
+            "warning",
+            "error"
+          ]
+        },
+        "title": {
+          "type": "string"
+        },
+        "body": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "type",
+        "level",
+        "title"
+      ],
+      "additionalProperties": false
+    }
+  ]
+}

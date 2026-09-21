@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { AiRequestSchema, AiResponseSchema } from '@nexus/schemas';
 import { getAiCapabilities } from '@/lib/env';
 import { mockProvider } from '@/server/ai/mock';
+import { runAiService } from '@/server/ai/client';
 import { requireUser } from '@/server/domain/session';
 import { badRequest, failure, jsonError } from '@/server/http';
 
@@ -27,39 +28,10 @@ export async function POST(req: Request): Promise<NextResponse> {
     await requireUser();
     const caps = getAiCapabilities();
     if (caps.text === 'real') {
-      // 检测到真实 key，但适配器尚未接入：明确报不可用，绝不拿 Mock 冒充真模型（§159）
-      return NextResponse.json(
-        {
-          requestId: parsed.data.requestId,
-          capability: 'unavailable',
-          provider: 'none',
-          model: 'none',
-          plans: [],
-          patches: [],
-          labels: [],
-          activities: [],
-          explanation: '',
-          usage: {
-            provider: 'none',
-            model: 'none',
-            modelClass: parsed.data.modelClass,
-            tokensIn: 0,
-            tokensOut: 0,
-            latencyMs: 0,
-            costUsd: 0,
-            toolCalls: 0,
-            demoMode: false,
-          },
-          approvals: [],
-          error: {
-            code: 'provider-unavailable',
-            message: '已检测到 provider key，但真实 provider 适配器还没接入',
-            hint: '当前只提供标注过的确定性 Mock；真实链路在 AI Service（FastAPI）落地后接管。',
-            retryable: false,
-          },
-        },
-        { status: 503 },
-      );
+      // 检测到真实 key：交给 ai-service 调真模型；拿不到服务就明确报不可用，绝不拿 Mock 冒充（§159）
+      const result = await runAiService(parsed.data);
+      if (!result.ok) return NextResponse.json(result.error, { status: result.status ?? 503 });
+      return NextResponse.json(result.response);
     }
 
     const response = await mockProvider.run(parsed.data);

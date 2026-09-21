@@ -1,0 +1,241 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "requestId": {
+      "type": "string"
+    },
+    "intent": {
+      "default": "design-edit",
+      "type": "string",
+      "enum": [
+        "design-generate",
+        "design-edit",
+        "style-transfer",
+        "component-create",
+        "code-from-design",
+        "critique",
+        "research",
+        "freeform"
+      ]
+    },
+    "prompt": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 4000
+    },
+    "modelClass": {
+      "default": "balanced",
+      "type": "string",
+      "enum": [
+        "fast",
+        "balanced",
+        "reasoning",
+        "vision",
+        "image",
+        "video",
+        "embedding",
+        "reranker"
+      ]
+    },
+    "variants": {
+      "default": 1,
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 4
+    },
+    "context": {
+      "type": "object",
+      "properties": {
+        "projectId": {
+          "type": "string"
+        },
+        "pageId": {
+          "type": "string"
+        },
+        "viewport": {
+          "type": "string",
+          "enum": [
+            "mobile",
+            "tablet",
+            "desktop",
+            "wide"
+          ]
+        },
+        "selection": {
+          "default": [],
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "selectionDigest": {
+          "default": [],
+          "type": "array",
+          "items": {
+            "type": "object",
+            "propertyNames": {
+              "type": "string"
+            },
+            "additionalProperties": {}
+          }
+        },
+        "designSystemDigest": {
+          "default": {
+            "tokens": [],
+            "components": []
+          },
+          "type": "object",
+          "properties": {
+            "tokens": {
+              "default": [],
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "key": {
+                    "type": "string"
+                  },
+                  "type": {
+                    "type": "string"
+                  },
+                  "value": {}
+                },
+                "required": [
+                  "key",
+                  "type",
+                  "value"
+                ]
+              }
+            },
+            "components": {
+              "default": [],
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "string"
+                  },
+                  "name": {
+                    "type": "string"
+                  },
+                  "props": {
+                    "default": {},
+                    "type": "object",
+                    "propertyNames": {
+                      "type": "string"
+                    },
+                    "additionalProperties": {}
+                  }
+                },
+                "required": [
+                  "id",
+                  "name"
+                ]
+              }
+            }
+          }
+        },
+        "document": {
+          "type": "object",
+          "propertyNames": {
+            "type": "string"
+          },
+          "additionalProperties": {}
+        },
+        "recentChanges": {
+          "default": [],
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "label": {
+                "type": "string"
+              },
+              "source": {
+                "type": "string",
+                "enum": [
+                  "manual",
+                  "ai",
+                  "system",
+                  "import"
+                ]
+              }
+            },
+            "required": [
+              "label",
+              "source"
+            ]
+          }
+        },
+        "brandKit": {
+          "type": "object",
+          "propertyNames": {
+            "type": "string"
+          },
+          "additionalProperties": {}
+        },
+        "visualDna": {
+          "type": "object",
+          "propertyNames": {
+            "type": "string"
+          },
+          "additionalProperties": {}
+        }
+      },
+      "required": [
+        "projectId"
+      ]
+    },
+    "references": {
+      "default": [],
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "assetId": {
+            "type": "string"
+          },
+          "dataUrl": {
+            "type": "string"
+          },
+          "kind": {
+            "default": "screenshot",
+            "type": "string",
+            "enum": [
+              "screenshot",
+              "photo",
+              "moodboard",
+              "url"
+            ]
+          }
+        }
+      }
+    },
+    "approvalPolicy": {
+      "default": [],
+      "type": "array",
+      "items": {
+        "type": "string",
+        "enum": [
+          "delete",
+          "publish-public",
+          "spend-credits",
+          "send-message",
+          "deploy-production",
+          "payment"
+        ]
+      }
+    },
+    "dryRun": {
+      "default": false,
+      "type": "boolean"
+    }
+  },
+  "required": [
+    "requestId",
+    "prompt",
+    "context"
+  ]
+}

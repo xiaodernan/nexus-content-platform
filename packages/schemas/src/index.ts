@@ -209,7 +209,17 @@ export const HealthResponseSchema = z.object({
   version: z.string(),
   capability: CapabilityStatus,
   providers: z
-    .array(z.object({ kind: z.enum(['llm', 'image', 'video', 'embedding', 'speech']), name: z.string(), status: CapabilityStatus, models: z.array(z.string()).default([]) }))
+    .array(
+      z
+        .object({
+          kind: z.enum(['llm', 'image', 'video', 'embedding', 'speech']),
+          name: z.string(),
+          status: CapabilityStatus,
+          models: z.array(z.string()).default([]),
+          /** 为什么是 demo/unavailable；给就绪面板直接显示原因，不藏在服务端日志里 */
+          reason: z.string().optional(),
+        }),
+    )
     .default([]),
   queue: z.object({ pending: z.number().int().default(0), running: z.number().int().default(0) }).default({ pending: 0, running: 0 }),
 });

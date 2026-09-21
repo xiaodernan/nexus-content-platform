@@ -1,0 +1,104 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "capability": {
+      "type": "string",
+      "enum": [
+        "real",
+        "demo",
+        "unavailable"
+      ]
+    },
+    "imageBase64": {
+      "type": "string"
+    },
+    "storageKey": {
+      "type": "string"
+    },
+    "width": {
+      "type": "number"
+    },
+    "height": {
+      "type": "number"
+    },
+    "issues": {
+      "default": [],
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "kind": {
+            "type": "string",
+            "enum": [
+              "overflow",
+              "low-contrast",
+              "misaligned",
+              "clipped-text",
+              "empty-region",
+              "inconsistent-spacing",
+              "tap-target",
+              "layout-shift"
+            ]
+          },
+          "severity": {
+            "type": "string",
+            "enum": [
+              "error",
+              "warning",
+              "info"
+            ]
+          },
+          "nodeId": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          },
+          "recommendation": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "kind",
+          "severity",
+          "message"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "consoleErrors": {
+      "default": [],
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "metrics": {
+      "type": "object",
+      "properties": {
+        "lcpMs": {
+          "type": "number"
+        },
+        "cls": {
+          "type": "number"
+        },
+        "inpMs": {
+          "type": "number"
+        },
+        "bundleBytes": {
+          "type": "number"
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "required": [
+    "capability",
+    "width",
+    "height",
+    "issues",
+    "consoleErrors"
+  ],
+  "additionalProperties": false
+}

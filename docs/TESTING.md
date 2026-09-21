@@ -10,8 +10,8 @@
 | 层 | 工具 | 范围 | 何时跑 |
 | --- | --- | --- | --- |
 | 单元 | Vitest | design-model 布局求解、Command 事务、token 解析、codegen IR、schema | 每次改动 |
-| 契约 | Vitest + zod fixtures | web ↔ ai-service 报文双向校验，样例版本化在 `packages/schemas/__fixtures__/` | 每次改动 |
-| 服务 | pytest | provider 抽象、Mock/真实切换、failover、成本记录、审批门、工具权限 | ai-service 改动 |
+| 契约 | Vitest + `contracts/*.schema.json` | web ↔ ai-service 报文：zod 为权威，导出 JSON Schema 供 Python 运行期校验，测试保证导出文件不漂移 | 每次改动 |
+| 服务 | pytest（`apps/ai-service/tests`） | 契约校验、Model Router、provider 成功/失败/噪声、审批门、dryRun、体积上限 | ai-service 改动 |
 | 集成 | Vitest + 真 Postgres(容器) | 项目 CRUD、snapshot/branch、publish、usage | 每里程碑 |
 | 端到端 | Playwright | Studio 全流程竖向切片（见下 Golden Path） | 每里程碑 + 发布前 |
 | 视觉 | Playwright screenshot + Visual Benchmark | 渲染快照、AI Diff 前后对比、参考图 vs 生成图 | Studio/渲染器改动 |
@@ -53,3 +53,5 @@
 - 不因"难测"跳过；难测处优先重构出纯函数（design-model 就是为此存在）
 - 截图对比失败时**必须人眼看图**再决定更新基线，不允许盲目 approve
 - 每个里程碑一次 commit 前至少跑：`npm run lint && npm test && npm run test:e2e:smoke`
+- 改了 `packages/schemas` 必须重跑 `npm run contract:export`，否则契约漂移测试会红
+- 动了 ai-service 再加：`npm run test:ai-service`（Windows 控制台建议前置 `PYTHONUTF8=1`）

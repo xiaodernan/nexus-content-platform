@@ -31,7 +31,8 @@ Create Project → Prompt → AI Design → Canvas → Layers → Properties
 - [x] Mock AI（DEMO MODE 明确标注，补丁双端 schema 校验，§160）
 - [x] Live Preview 只读投影 + 截图脚本（§33/87，`scripts/capture-studio.mts`）
 - [ ] Design System 面板（token 浏览/编辑；当前只在属性面板显示概览与绑定选择器）
-- [ ] AI Service：独立进程 Provider 抽象 + Model Router + 任务队列（§6）
+- [x] AI Service（FastAPI, `apps/ai-service`）：契约强制 + Provider 抽象 + Model Router + OpenAI 兼容适配器 + 删除类审批门
+- [ ] AI Service 任务队列 / 异步生成作业（Redis）与 embedding/RAG、图像/视频 provider（随 M2/M3 落地）
 - [ ] Design Agent：意图 → Plan → design patch → 画布更新 → AI Diff 说明（§20/25/151）
 - [ ] Design → Code（React + TS + Tailwind）；Code → Design（受限 JSX 解析，不可逆区域保留为 code-only，§17-19）
 - [ ] Snapshot / Version History / Branch / 多方案比较（§27-29，现有历史面板仅本地会话内）
@@ -43,6 +44,12 @@ Create Project → Prompt → AI Design → Canvas → Layers → Properties
 截图检查（`screenshots/studio.png` / `studio-mobile.png` / `preview.png`）确认：
 文本与按钮文案已投影到画布与预览；按钮 `fills` 作背景、`typography.color` 作字色；
 hug 尺寸把 padding 计入；响应式断点下属性面板如实显示实际帧尺寸。
+
+**M1 进度记录（2026-09-22，AI Service）**：`apps/ai-service`（FastAPI, 3200）已跑起来并通过
+`/healthz` 与 `/v1/ai/run` 的真实进程验证（无 key 时如实返回 `provider-unavailable`）；
+契约由 zod 单一来源导出到 `contracts/`，Python 侧 `jsonschema` 运行期校验，漂移由单测拦截。
+验证：pytest 26 项、`npm test` 103 项、`npm run test:e2e:smoke` 6 项，首页 `home.png` 显示
+AI Service 行与逐 provider 能力/原因。真实 key 到位前，真机 provider 调用只做过 httpx 传输层桩验证。
 
 **M1 验收**：新开项目输入一句 prompt，60 秒内（§138）在画布上看到可编辑设计，改属性能落库，
 点 Code 能看到可编译的 React，点 Preview 能在 iframe 里真实运行，Screenshot 能出图，Publish 能拿到可访问 URL。

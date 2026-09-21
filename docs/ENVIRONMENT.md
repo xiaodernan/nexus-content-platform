@@ -37,7 +37,7 @@
 
 `careeros-postgres`(5432), `careeros-redis`, `careeros-minio`(19000), `nexus-seed-verify`(55432)。
 
-因此 NEXUS 使用**独立端口段**避免冲突：Postgres `55433`、Redis `56379`、MinIO `59000/59001`、AI Service `8000`、Web `3100`。
+因此 NEXUS 使用**独立端口段**避免冲突：Postgres `55433`、Redis `56379`、MinIO `59000/59001`、AI Service `3200`、Web `3100`。
 容器统一前缀 `nexus-`，compose project name 为 `nexus`。
 
 > 端口 `3000` 已被机器上另一个项目的 Next dev server 占用（`D:\求职平台\frontend`，属外部进程，禁止终止），
@@ -48,6 +48,23 @@
 环境中存在 `ANTHROPIC_BASE_URL` / `ANTHROPIC_AUTH_TOKEN`，它们属于 IDE Agent 运行时的会话凭据，
 **不得**挪用为本平台 provider key。真实 provider 由用户通过 `apps/ai-service/.env`（不入库）自行提供；
 未配置时系统运行在明确标注的 **DEMO MODE**（§159-160）。
+
+## AI Service（FastAPI）本地运行
+
+```
+npm run dev:ai            # infra/dev-ai.sh：建 venv → 装依赖 → uvicorn 127.0.0.1:3200
+curl http://127.0.0.1:3200/healthz
+npm run test:ai-service   # pytest（26 项）
+npm run contract:export   # 改了 packages/schemas 后必须重跑，导出 contracts/*.json
+```
+
+- 依赖装在 `apps/ai-service/.venv`（gitignore 已排除），版本钉在 `requirements.txt`。
+- 契约来自仓库根 `contracts/`：Python 侧运行期用 `jsonschema` 校验，
+  `packages/schemas/test/contract.test.ts` 保证导出文件与 zod 定义不漂移。
+- Windows 控制台跑 pytest 建议 `PYTHONUTF8=1`，否则中文断言输出会乱码（源码本身按 UTF-8 读，无影响）。
+- web 通过 `NEXUS_AI_SERVICE_URL`（本地写在 `apps/web/.env.local`）访问；未设置时首页显示"未配置"，
+  设置但连不上显示"不可达"，绝不显示成可用。
+- 内存约束：`next dev` + `uvicorn` + Postgres 已接近 2.5GB 空闲上限，Playwright 跑 e2e 时不要另开浏览器。
 
 ## Git Hooks（重要）
 

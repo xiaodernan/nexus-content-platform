@@ -1,0 +1,311 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "id": {
+      "type": "string"
+    },
+    "summary": {
+      "type": "string",
+      "maxLength": 500
+    },
+    "pageId": {
+      "type": "string"
+    },
+    "ops": {
+      "maxItems": 4000,
+      "type": "array",
+      "items": {
+        "oneOf": [
+          {
+            "type": "object",
+            "properties": {
+              "op": {
+                "type": "string",
+                "const": "set"
+              },
+              "nodeId": {
+                "type": "string"
+              },
+              "path": {
+                "type": "string"
+              },
+              "value": {}
+            },
+            "required": [
+              "op",
+              "nodeId",
+              "path",
+              "value"
+            ]
+          },
+          {
+            "type": "object",
+            "properties": {
+              "op": {
+                "type": "string",
+                "const": "merge"
+              },
+              "nodeId": {
+                "type": "string"
+              },
+              "path": {
+                "default": "",
+                "type": "string"
+              },
+              "value": {
+                "type": "object",
+                "propertyNames": {
+                  "type": "string"
+                },
+                "additionalProperties": {}
+              }
+            },
+            "required": [
+              "op",
+              "nodeId",
+              "value"
+            ]
+          },
+          {
+            "type": "object",
+            "properties": {
+              "op": {
+                "type": "string",
+                "const": "insert"
+              },
+              "node": {
+                "type": "object",
+                "propertyNames": {
+                  "type": "string"
+                },
+                "additionalProperties": {}
+              },
+              "parentId": {
+                "type": "string"
+              },
+              "index": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9007199254740991
+              }
+            },
+            "required": [
+              "op",
+              "node",
+              "parentId"
+            ]
+          },
+          {
+            "type": "object",
+            "properties": {
+              "op": {
+                "type": "string",
+                "const": "remove"
+              },
+              "nodeId": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "op",
+              "nodeId"
+            ]
+          },
+          {
+            "type": "object",
+            "properties": {
+              "op": {
+                "type": "string",
+                "const": "reparent"
+              },
+              "nodeId": {
+                "type": "string"
+              },
+              "parentId": {
+                "type": "string"
+              },
+              "index": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9007199254740991
+              }
+            },
+            "required": [
+              "op",
+              "nodeId",
+              "parentId"
+            ]
+          },
+          {
+            "type": "object",
+            "properties": {
+              "op": {
+                "type": "string",
+                "const": "reorder"
+              },
+              "parentId": {
+                "type": "string"
+              },
+              "from": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9007199254740991
+              },
+              "to": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9007199254740991
+              }
+            },
+            "required": [
+              "op",
+              "parentId",
+              "from",
+              "to"
+            ]
+          },
+          {
+            "type": "object",
+            "properties": {
+              "op": {
+                "type": "string",
+                "const": "setToken"
+              },
+              "key": {
+                "type": "string"
+              },
+              "value": {},
+              "mode": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "op",
+              "key",
+              "value"
+            ]
+          },
+          {
+            "type": "object",
+            "properties": {
+              "op": {
+                "type": "string",
+                "const": "addToken"
+              },
+              "token": {
+                "type": "object",
+                "propertyNames": {
+                  "type": "string"
+                },
+                "additionalProperties": {}
+              }
+            },
+            "required": [
+              "op",
+              "token"
+            ]
+          },
+          {
+            "type": "object",
+            "properties": {
+              "op": {
+                "type": "string",
+                "const": "removeToken"
+              },
+              "key": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "op",
+              "key"
+            ]
+          },
+          {
+            "type": "object",
+            "properties": {
+              "op": {
+                "type": "string",
+                "const": "addComponent"
+              },
+              "component": {
+                "type": "object",
+                "propertyNames": {
+                  "type": "string"
+                },
+                "additionalProperties": {}
+              }
+            },
+            "required": [
+              "op",
+              "component"
+            ]
+          },
+          {
+            "type": "object",
+            "properties": {
+              "op": {
+                "type": "string",
+                "const": "addAsset"
+              },
+              "asset": {
+                "type": "object",
+                "propertyNames": {
+                  "type": "string"
+                },
+                "additionalProperties": {}
+              }
+            },
+            "required": [
+              "op",
+              "asset"
+            ]
+          },
+          {
+            "type": "object",
+            "properties": {
+              "op": {
+                "type": "string",
+                "const": "addPage"
+              },
+              "page": {
+                "type": "object",
+                "propertyNames": {
+                  "type": "string"
+                },
+                "additionalProperties": {}
+              },
+              "setActive": {
+                "type": "boolean"
+              }
+            },
+            "required": [
+              "op",
+              "page"
+            ]
+          },
+          {
+            "type": "object",
+            "properties": {
+              "op": {
+                "type": "string",
+                "const": "removePage"
+              },
+              "pageId": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "op",
+              "pageId"
+            ]
+          }
+        ]
+      }
+    }
+  },
+  "required": [
+    "ops"
+  ]
+}

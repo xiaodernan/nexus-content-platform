@@ -17,6 +17,7 @@ const context = await browser.newContext({ viewport: { width: 1440, height: 900 
 const page = await context.newPage();
 
 await page.goto(`${base}/`);
+await page.screenshot({ path: `${out}home.png` });
 await page.fill('[data-project-name-input]', `截图 ${new Date().toISOString().slice(11, 19)}`);
 // 等 React 接管表单：hydrate 之前 fill 不会进 state，按钮会一直 disabled
 await page.waitForFunction(() => !document.querySelector('[data-create-project]')?.hasAttribute('disabled'));

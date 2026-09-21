@@ -43,13 +43,27 @@ infra/
 docs/           本目录；adr/ 存放决策记录
 ```
 
+### AI Service 现状（M1）
+
+已落地：`/healthz` 与 `/v1/capabilities` 能力矩阵、`/v1/ai/run`（请求契约校验 → Model Router →
+provider 调用 → 补丁结构校验 → 删除类动作审批门 → 响应自校验）、OpenAI 兼容适配器、双端契约强制。
+
+未落地（不假装）：异步生成作业与任务队列（随 M2 图像/视频 + Redis 落地）、embedding/RAG、
+截图与视觉评测、Anthropic/Gemini 适配器（检测到 key 会在 `/healthz` 里如实标 unavailable）。
+
+DEMO 路径不在 ai-service 里：确定性 Mock 需要 design model 才能产出合法补丁，因此留在 web，
+输出恒带 `capability: 'demo'`（§160）；ai-service 只说真话——要么真调用，要么 `provider-unavailable`。
+
 ## 边界纪律
 
 1. **设计模型不依赖渲染**：`packages/design-model` 不允许 import React/DOM/Node fs。渲染层与代码生成层各自依赖它。
 2. **AI Service 不写业务库**：它只接收上下文、返回计划与补丁；持久化由 web 完成。避免双写与权限蔓延（§73）。
 3. **所有编辑走 Command**：画布、属性面板、AI 补丁、代码回写一律通过 `Command{execute,undo,redo}`（§150），
    一次 AI 操作是一个事务（§149）。撤销栈是唯一的历史来源，Snapshot 由事务边界生成。
-4. **契约单点定义**：web ↔ ai-service 的报文只能用 `@nexus/schemas` 中的 zod schema 描述，两侧编译期共享。
+4. **契约单点定义**：web ↔ ai-service 的报文只在 `@nexus/schemas` 里用 zod 定义；
+   `npm run contract:export` 导出 `contracts/*.schema.json`，Python 侧用 `jsonschema` 做运行期校验，
+   `packages/schemas/test/contract.test.ts` 保证导出文件与 zod 不漂移。补丁的**语义**校验（节点是否存在、
+   尺寸是否重算）仍只在 web 做，因为它才持有 design model。
 5. **Provider 可替换**（§76-79）：`LLMProvider / ImageProvider / VideoProvider / EmbeddingProvider / SpeechProvider`
    五个抽象接口 + Model Router；任何业务代码不得直接 import 具体 SDK。
 6. **不可逆代码保留**：Code→Design 无法安全映射时，节点标记 `codeOnly` 区域，编辑仍可视，但不回写设计模型（§19）。

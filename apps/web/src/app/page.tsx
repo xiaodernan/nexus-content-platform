@@ -1,4 +1,5 @@
 import { getAiCapabilities } from '@/lib/env';
+import { aiServiceUrl, fetchAiServiceHealth } from '@/server/ai/client';
 import { requireUser } from '@/server/domain/session';
 import { listProjects } from '@/server/domain/projects';
 import { NewProjectForm } from '@/components/NewProjectForm';
@@ -15,6 +16,10 @@ export default async function HomePage() {
   const caps = getAiCapabilities();
   const user = await requireUser();
   const projects = await listProjects(user.id);
+  const serviceUrl = aiServiceUrl();
+  const health = serviceUrl ? await fetchAiServiceHealth() : null;
+  const serviceState = !serviceUrl ? 'missing' : health ? 'ready' : 'unreachable';
+  const serviceLabel = !serviceUrl ? '未配置' : health ? `在线 · ${health.capability}` : '不可达';
 
   return (
     <main className="mx-auto flex min-h-screen max-w-[820px] flex-col gap-[var(--nexus-space-8)] px-[var(--nexus-space-6)] py-[var(--nexus-space-12)]">
@@ -68,7 +73,24 @@ export default async function HomePage() {
               <span className="font-mono text-[var(--nexus-font-size-12)] uppercase text-fg-2">{caps[m.key]}</span>
             </li>
           ))}
+          <li className="flex items-center justify-between rounded-[var(--nexus-radius-sm)] bg-bg-1 px-[var(--nexus-space-4)] py-[var(--nexus-space-3)]" data-ai-service={serviceState}>
+            <span className="text-[var(--nexus-font-size-14)]">
+              AI Service
+              <span className="ml-[var(--nexus-space-2)] font-mono text-[var(--nexus-font-size-12)] text-fg-3">{serviceUrl ?? '未配置 NEXUS_AI_SERVICE_URL'}</span>
+            </span>
+            <span className="font-mono text-[var(--nexus-font-size-12)] uppercase text-fg-2">{serviceLabel}</span>
+          </li>
         </ul>
+        {health ? (
+          <ul className="mt-[var(--nexus-space-2)] grid gap-[var(--nexus-space-1)]">
+            {health.providers.map((p) => (
+              <li key={`${p.kind}:${p.name}`} className="flex items-center justify-between px-[var(--nexus-space-4)] font-mono text-[var(--nexus-font-size-12)]">
+                <span className="text-fg-3">{p.kind} · {p.name}{p.models.length ? ` · ${p.models.join('/')}` : ''}</span>
+                <span className="uppercase text-fg-2" title={p.reason}>{p.status}</span>
+              </li>
+            ))}
+          </ul>
+        ) : null}
       </section>
     </main>
   );
