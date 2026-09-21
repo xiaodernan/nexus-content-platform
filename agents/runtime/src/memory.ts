@@ -42,6 +42,13 @@ export class MemoryStore {
     return this.recs.filter((r) => scope === undefined || r.scope === scope).map((r) => structuredClone(r));
   }
 
+  /** v3 persistence re-import: restores a previously saved record verbatim (id preserved). */
+  restore(rec: MemoryRecord): void {
+    this.recs.push(structuredClone(rec));
+    const n = Number(/^mem-(\d+)$/.exec(rec.id)?.[1] ?? 0);
+    if (Number.isFinite(n) && n > this.seq) this.seq = n;
+  }
+
   /** Query tokens matched against each record's query+summary; refs inherit the record score. */
   recall(query: string, opts: { scope?: string; k?: number } = {}): RecallHit[] {
     const k = opts.k ?? 5;

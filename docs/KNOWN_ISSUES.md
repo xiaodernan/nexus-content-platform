@@ -100,19 +100,23 @@ Live list. Nothing here is hidden behind marketing copy.
   the canvas paints, snaps, edits in place and exports PNG.
 
 ## Architecture
-- `agents/runtime` (`@nexus/agent-runtime`) is now **implemented** through M2 v0–v2 (ADR 0016):
+- `agents/runtime` (`@nexus/agent-runtime`) is now **implemented** through M2 v0–v3 (ADR 0016):
   the loop, permission-gated registry, hermetic workspace tools, hybrid code index (`fs.index`),
-  read-only real-directory ingestion (injected fs adapter) and a first §26 memory slice
-  (scoped/inspectable/deletable, checkpoint-gated writes). It is still *not* a coding agent that
-  writes the real fs, runs processes, browses, or commits — those §63 duties stay unimplemented
-  until ADR 0013's exec sandbox exists. Known limits, stated not hidden (§60): memory and index
-  are in-process only (no cross-run persistence), recall is lexical, and the template planner
-  fails honestly (`failed_verification`) when both memory and the index are absent.
+  read-only real-directory ingestion, §26 memory (scoped/inspectable/deletable) and v3
+  durability: schema-versioned memory JSON + the first real-disk tools `disk.read/write/list`,
+  each confined to one host-chosen root by `guardedJoin` with checkpoint-gated writes. It is
+  still *not* a general coding agent: no process execution, browser, git, or out-of-jail disk
+  access — those §63 duties stay unimplemented until ADR 0013's exec sandbox exists. Known
+  limits, stated not hidden (§60): the code index is rebuilt per call (not persisted), recall is
+  lexical, the jail is a path check + human gate rather than container isolation, and the
+  template planner fails honestly (`failed_verification`) when both memory and the index are
+  absent.
 - `services/*` are still **README-only shells** (a real `packages/contracts` does not exist yet);
   the Studio intentionally does not depend on them for the slice.
 - Sandbox/security enforcement (ADR 0013) is **partially realized**: the permission-scoped Tool
-  Registry + Human-Checkpoint gate are executable and tested; container isolation is not built —
-  the runtime's only host surface is a read-only, injected fs used by `collectTextFiles`.
+  Registry + Human-Checkpoint gate are executable and tested; the v3 disk jail is path-level
+  only — container isolation for untrusted code is still not built (and nothing runs untrusted
+  code today).
 
 ## Tooling
 - Package manager is **npm workspaces**, not pnpm: `corepack` cannot write the global pnpm

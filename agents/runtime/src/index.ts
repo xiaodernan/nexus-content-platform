@@ -28,5 +28,18 @@ export {
   type MemoryRef,
   type RecallHit,
 } from './memory.js';
+export {
+  DISK_TOOL_SPECS,
+  MEMORY_SCHEMA_VERSION,
+  deserializeMemory,
+  guardedJoin,
+  loadMemoryStore,
+  registerDiskTools,
+  saveMemory,
+  serializeMemory,
+  type DiskToolOptions,
+  type FsWriteLike,
+  type LoadResult,
+} from './durability.js';
 export { planTask, goalKeyword, type PlannerOptions } from './planner.js';
 export { runTask, type RunOptions } from './orchestrator.js';

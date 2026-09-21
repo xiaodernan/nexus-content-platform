@@ -98,3 +98,23 @@ two fresh runs, checkpoint denial leaving the workspace byte-identical).
 - **Tradeoffs:** memory is in-process and lexical-only — a stand-in for the persisted
   vector hybrid retrieval of ADR 0012, chosen because it is real, testable machinery today
   without a database.
+
+## Amendment 3 — v3: durability + the first jailed real-disk write (`durability.ts`), 2026-09
+- **Memory persistence:** `serializeMemory/deserializeMemory` (pure, `schemaVersion` +
+  per-record structural validation, reasons not exceptions) and `saveMemory/loadMemoryStore`
+  over an extended injected `FsWriteLike` (adds `mkdirSync`/`writeFileSync`; node:fs satisfies
+  it directly, the package still imports no node:fs). `MemoryStore.restore()` re-imports
+  records verbatim and bumps the id high-water mark.
+- **`disk.read`/`disk.write`/`disk.list`:** the runtime's first real-I/O tools, jailed to one
+  explicit root by `guardedJoin` (no absolute paths, no drive letters, any `..` rejected —
+  even mid-path). `disk.write` carries the **write** permission class, so nothing lands on
+  disk without the checkpoint gate; denials and escapes return `ok:false`.
+- **Why this is still honest (§60/ADR 0013):** the "sandbox" is a path jail plus a human
+  gate, not container isolation — acceptable because the only writable surface is a root the
+  *host* chose, and the demo planner never emits disk ops unless a host registers them.
+- **Proof:** `docs/evidence/agents/durability-proof.mjs` — a finding persists through
+  `memory.save` → `disk.write` into `%TEMP%/nexus-durability-proof`, and a **separate node
+  child process** reloads and recalls it; escape write provably never creates a file;
+  corrupt JSON fails honestly. Tests 45/45 (8 new durability cases).
+- **Tradeoffs:** the code index remains per-call in-memory (persisting a serializable index is
+  the obvious v4 candidate); recall stays lexical; writes are text-only and single-root.

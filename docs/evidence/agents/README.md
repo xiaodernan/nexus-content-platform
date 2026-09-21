@@ -1,4 +1,4 @@
-# M2 evidence — @nexus/agent-runtime (v0 loop + v1 code index + v2 ingestion & memory)
+# M2 evidence — @nexus/agent-runtime (v0 loop · v1 index · v2 memory · v3 durability)
 
 All checks are headless, offline, key-free, and reproducible from the repo root. Nothing here
 claims model-quality planning or neural retrieval (§60): the planner is a deterministic
@@ -8,11 +8,12 @@ every emitted artifact (`provenance.mode = "demo"`).
 ## Reproducible gates
 
 ```
-npm test          # turbo: @nexus/agent-runtime 37/37 vitest among all packages
+npm test          # turbo: @nexus/agent-runtime 45/45 vitest among all packages
 npm run build     # tsc dist for agents/runtime (build order via ^build deps)
 node docs/evidence/agents/agent-proof.mjs
 node docs/evidence/agents/code-index-proof.mjs   # requires `npm run build` first
 node docs/evidence/agents/memory-proof.mjs       # requires `npm run build` first
+node docs/evidence/agents/durability-proof.mjs   # requires `npm run build` first
 ```
 
 ## Unit tests (vitest, `agents/runtime/test`)
@@ -25,6 +26,7 @@ node docs/evidence/agents/memory-proof.mjs       # requires `npm run build` firs
 | `codeIndex.test.ts` (7) | extension → kind, TS symbol + markdown heading extraction, heading-section vs 40-line-window chunking, sorted file entries + coverage, hybrid query ranks the relevant chunk first and is deterministic, symbol query finds its file, empty index → no hits |
 | `realfs.test.ts` (4) | extension/skip filtering with sorted slash keys, custom skipDirs + maxFiles cap, maxBytes drop, deterministic output independent of walk order — all against a fake fs (no host disk touched) |
 | `memory.test.ts` (6) | save/list/recall scoping, deterministic tie-broken recall bounded by k, forget/clear counts, clone-in/clone-out immutability, registry round-trip with `"path:startLine"` refs, denied `memory.save` leaves memory empty + arg validation |
+| `durability.test.ts` (8) | memory serialize/deserialize round-trip + version/schema rejection, `restore()` id high-water mark, save/load through an injected writable fake disk, corrupt-file honest failure, `guardedJoin` jail (absolute/`..`/drive-letter rejection, backslash folding), `disk.write` checkpoint gate + escape touches nothing, `disk.read`/`disk.list` confinement |
 
 ## Headless proof (`agent-proof.mjs`) against the built `dist/`
 
@@ -67,13 +69,24 @@ very evidence README, which quotes them — legitimately outrank definitions. De
 - **§26 deletable:** after `store.clear(scope)`, the same run-B task *fails honestly*
   (`failed_verification`) instead of fabricating a result (§60).
 
+## Durability proof (`durability-proof.mjs`, M2 v3)
+
+The only NEXUS surface that writes the real disk anywhere in this repo: a `disk.write` call
+confined by `guardedJoin` to a jailed temp root (`%TEMP%/nexus-durability-proof`, removed at
+the end). Flow: run 1 completes a task with cold memory, the host persists the finding via
+checkpoint-gated `memory.save`, then flushes `serializeMemory` to `state/memory.json`
+through **`disk.write`** (gate observed as `disk.write:write`). A **separate `node` child
+process** then reloads that file with `loadMemoryStore` and recalls the right path —
+genuine cross-process durability, not an in-memory illusion. Two negative controls:
+`../../nexus-escape.txt` is refused and provably never created, and a corrupted JSON file
+returns `{ok:false, reason:'not valid JSON'}` instead of half-loading.
+
 ## Scope honesty
 
-§63/§26 items *not* implemented (stated, not faked): real fs/exec **write** tools (ingestion
-is read-only injection; the runtime never touches the host disk), persisted memory (the
-store lives in-process — cross-run durability here is proven within one process), persisted
-code index (rebuilt per `fs.index` call), browser automation, visual QA, git commit,
-live-model planning, multi-agent registry. The `test.run` verification is a host-injected
-predicate — it verifies what the host checks. Memory recall is lexical
-(`lexicalScore` over query+summary), which is a stand-in for the pgvector hybrid retrieval
-of ADR 0012.
+§63/§26 items *not* implemented (stated, not faked): general real-fs write tools (only
+`disk.write` inside an explicit jail root, always checkpoint-gated), process execution,
+persisted code index (rebuilt per `fs.index` call), browser automation, visual QA, git
+commit, live-model planning, multi-agent registry. The `test.run` verification is a
+host-injected predicate — it verifies what the host checks. Memory recall is lexical
+(`lexicalScore` over query+summary), a stand-in for the pgvector hybrid retrieval of
+ADR 0012.

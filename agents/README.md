@@ -11,16 +11,21 @@
   when it is registered the planner routes its research step through it (same `hits.0.path`
   dataflow). v2 adds `src/realfs.ts` (read-only real-directory ingestion through an injected fs
   adapter) and `src/memory.ts` (§26 first slice: scoped, inspectable, deletable `MemoryStore`
-  with checkpoint-gated `memory.save`/`memory.forget` and lexical `memory.recall`; planner
-  research priority memory → index → line search).
-  Proof: `agents/runtime/test` (vitest 37/37), `node docs/evidence/agents/agent-proof.mjs`
-  (deterministic transcript + honest denial), `node docs/evidence/agents/code-index-proof.mjs`
-  and `node docs/evidence/agents/memory-proof.mjs` (two-run discovery→recall over the real repo).
+  with checkpoint-gated `memory.save`/`memory.forget` and lexical `memory.recall; planner
+  research priority memory → index → line search). v3 adds `src/durability.ts`: schema-versioned
+  memory serialization, `saveMemory`/`loadMemoryStore` through an injected writable fs, and the
+  first jailed real-disk tools `disk.read/write/list` — every path confined to one host-chosen
+  root by `guardedJoin`, writes checkpoint-gated.
+  Proof: `agents/runtime/test` (vitest 45/45), `node docs/evidence/agents/agent-proof.mjs`
+  (deterministic transcript + honest denial), `code-index-proof.mjs`, `memory-proof.mjs`
+  (two-run discovery→recall) and `durability-proof.mjs` (cross-process reload in a fresh
+  node child + escape/corruption controls).
 
-Still placeholder (§24): the multi-agent Registry (roster/handoff). Long-term memory (§26) has
-its first scoped slice in v2 (in-process store; persistence across processes pending).
-Not yet implemented from §63: real fs/exec write tools (v2 ingestion is read-only injection),
-process runner, browser automation, visual QA,
+Still placeholder (§24): the multi-agent Registry (roster/handoff). Long-term memory (§26) is
+now durable across processes (v3: schema-versioned JSON via the injected fs + jail-rooted
+`disk.write`); vector-backed recall still pending.
+Not yet implemented from §63: general real-fs write tools (writes are jailed to one root,
+text-only, checkpoint-gated), process runner, browser automation, visual QA,
 git commit — all gated on ADR 0013 approval machinery. The M1 Design "agent" remains the
 deterministic composer inside `packages/ai-providers` (DEMO MODE), which emits the same structured
 `OpBatch` contract a live-model agent will use.
