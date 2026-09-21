@@ -1,0 +1,110 @@
+/* NEXUS 产品 UI 设计 token 权威定义（§11-13, §120）。
+   命名空间：color / font / space / radius / shadow / motion / z / breakpoint。
+   组件只允许引用这些变量，禁止写死 hex/px —— design lint（§121）会检查。 */
+
+:root {
+  /* 表面：由深到浅 4 级 */
+  --nexus-color-bg-0: #0a0b10;
+  --nexus-color-bg-1: #101219;
+  --nexus-color-bg-2: #171a24;
+  --nexus-color-bg-3: #1f2330;
+
+  /* 文本：主 / 次 / 占位 */
+  --nexus-color-fg-1: #eef1f6;
+  --nexus-color-fg-2: #a4adc0;
+  --nexus-color-fg-3: #6b7488;
+
+  /* 品牌与强调 */
+  --nexus-color-brand: #5b6cff;
+  --nexus-color-brand-fg: #ffffff;
+  --nexus-color-accent-1: #8b5cf6;
+  --nexus-color-accent-2: #22d3ee;
+
+  /* 语义色 */
+  --nexus-color-danger: #f2555a;
+  --nexus-color-warn: #f5a623;
+  --nexus-color-info: #3b82f6;
+  --nexus-color-success: #22c55e;
+
+  /* 描边 */
+  --nexus-color-border-subtle: #262b3a;
+  --nexus-color-border-strong: #3a4056;
+
+  /* 字体 */
+  --nexus-font-sans: 'Inter', ui-sans-serif, system-ui, 'PingFang SC', 'Microsoft YaHei', sans-serif;
+  --nexus-font-mono: 'JetBrains Mono', ui-monospace, Consolas, monospace;
+
+  /* 字号阶梯（8 档） */
+  --nexus-font-size-12: 12px;
+  --nexus-font-size-13: 13px;
+  --nexus-font-size-14: 14px;
+  --nexus-font-size-16: 16px;
+  --nexus-font-size-18: 18px;
+  --nexus-font-size-21: 21px;
+  --nexus-font-size-24: 24px;
+  --nexus-font-size-28: 28px;
+
+  /* 间距：4 的倍数步进 */
+  --nexus-space-1: 4px;
+  --nexus-space-2: 8px;
+  --nexus-space-3: 12px;
+  --nexus-space-4: 16px;
+  --nexus-space-5: 20px;
+  --nexus-space-6: 24px;
+  --nexus-space-8: 32px;
+  --nexus-space-10: 40px;
+  --nexus-space-12: 48px;
+
+  /* 圆角 */
+  --nexus-radius-sm: 6px;
+  --nexus-radius-md: 10px;
+  --nexus-radius-lg: 16px;
+  --nexus-radius-full: 9999px;
+
+  /* 阴影 */
+  --nexus-shadow-sm: 0 1px 2px rgb(0 0 0 / 0.35);
+  --nexus-shadow-md: 0 6px 20px rgb(0 0 0 / 0.4);
+  --nexus-shadow-lg: 0 18px 48px rgb(0 0 0 / 0.5);
+  --nexus-shadow-glow: 0 0 0 1px var(--nexus-color-brand), 0 8px 32px rgb(91 108 255 / 0.35);
+
+  /* 动效（§122） */
+  --nexus-motion-fast: 120ms;
+  --nexus-motion-base: 200ms;
+  --nexus-motion-slow: 360ms;
+  --nexus-motion-ease: cubic-bezier(0.22, 1, 0.36, 1);
+
+  /* 层级 */
+  --nexus-z-canvas: 0;
+  --nexus-z-panel: 10;
+  --nexus-z-toolbar: 20;
+  --nexus-z-overlay: 30;
+  --nexus-z-toast: 40;
+
+  /* 断点（仅供 JS 读取；CSS 媒体查询用同名常量约定） */
+  --nexus-breakpoint-sm: 640px;
+  --nexus-breakpoint-md: 768px;
+  --nexus-breakpoint-lg: 1024px;
+  --nexus-breakpoint-xl: 1280px;
+  --nexus-breakpoint-2xl: 1536px;
+}
+
+/* 浅色主题：只覆盖需要变化的表面/文本层 */
+[data-nexus-theme='light'] {
+  --nexus-color-bg-0: #f7f8fb;
+  --nexus-color-bg-1: #ffffff;
+  --nexus-color-bg-2: #eef0f6;
+  --nexus-color-bg-3: #e3e7f0;
+  --nexus-color-fg-1: #12141c;
+  --nexus-color-fg-2: #4a5265;
+  --nexus-color-fg-3: #8a92a6;
+  --nexus-color-border-subtle: #dfe3ec;
+  --nexus-color-border-strong: #c3c9d6;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --nexus-motion-fast: 0ms;
+    --nexus-motion-base: 0ms;
+    --nexus-motion-slow: 0ms;
+  }
+}

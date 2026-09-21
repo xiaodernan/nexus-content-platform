@@ -21,7 +21,7 @@ npm run infra:down     # 停止（不删卷）
 ```
 
 端口固定（详见 `docs/ENVIRONMENT.md`，避免与本机已有容器冲突）：
-web `3000` · ai-service `8000` · postgres `55433` · redis `56379` · minio `59000/59001`。
+web `3100` · ai-service `8000` · postgres `55433` · redis `56379` · minio `59000/59001`。
 
 ## 作品运行时（§55）
 

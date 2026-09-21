@@ -34,7 +34,7 @@ Create Project → Prompt → AI Design → Canvas → Layers → Properties →
 ```bash
 npm install
 npm run infra:up      # Postgres+pgvector (55433) / Redis (56379)
-npm run dev           # Web Studio  → http://localhost:3000
+npm run dev           # Web Studio  → http://localhost:3100
 npm run dev:ai        # AI Service   → http://localhost:8000
 ```
 

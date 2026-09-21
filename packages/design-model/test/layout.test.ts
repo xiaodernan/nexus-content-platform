@@ -1,0 +1,361 @@
+import { describe, expect, it } from "vitest";
+import { createDocument, createNode, createPage, uid } from "../src/nodes";
+import {
+  breakpointForWidth,
+  heuristicMeasure,
+  hitTest,
+  resolveLayout,
+} from "../src/layout";
+import type { DesignNode, Page } from "../src/types";
+import { radius } from "../src/nodes";
+
+function pageWith(
+  rootOverrides: Partial<DesignNode>,
+  children: DesignNode[],
+): Page {
+  const page = createPage("Test", 1000, 1000);
+  const root = page.nodes[page.rootId]!;
+  Object.assign(root, rootOverrides);
+  root.children = [];
+  children.forEach((child, index) => {
+    child.parentId = root.id;
+    child.position = {
+      x: child.position.x ?? 0,
+      y: index === 0 && child.position.y === undefined ? 0 : child.position.y,
+    };
+    page.nodes[child.id] = child;
+    root.children.push(child.id);
+  });
+  return page;
+}
+
+const shape = (
+  name: string,
+  width: number,
+  height: number,
+  extra: Partial<DesignNode> = {},
+): DesignNode =>
+  createNode({
+    type: "shape",
+    name,
+    size: { width, height },
+    ...({} as object),
+    ...(extra as object),
+  }) as DesignNode;
+
+function fixedShape(
+  name: string,
+  width: number | "fill" | "hug",
+  height: number | "fill" | "hug",
+): DesignNode {
+  const node = createNode({ type: "shape", name, size: { width, height } });
+  node.size = { width, height };
+  return node;
+}
+
+const verticalFrame = (
+  children: DesignNode[],
+  opts: Partial<DesignNode> = {},
+): Page =>
+  pageWith(
+    {
+      size: { width: 400, height: 200 },
+      layout: {
+        mode: "vertical",
+        gap: 0,
+        padding: { top: 0, right: 0, bottom: 0, left: 0 },
+        justify: "start",
+        items: "start",
+        clipContent: false,
+        scroll: "none",
+      },
+      ...opts,
+    },
+    children,
+  );
+
+describe("resolveLayout — vertical auto layout", () => {
+  const childA = fixedShape("A", 100, 50);
+  const childB = fixedShape("B", 100, 50);
+  const childC = fixedShape("C", 100, 50);
+  const page = pageWith(
+    {
+      size: { width: 400, height: "hug" },
+      layout: {
+        mode: "vertical",
+        gap: 10,
+        padding: { top: 20, right: 20, bottom: 20, left: 20 },
+        justify: "start",
+        items: "start",
+        clipContent: false,
+        scroll: "none",
+      },
+    },
+    [childA, childB, childC],
+  );
+  const layout = resolveLayout(page);
+
+  it("hugs content height including padding and gaps", () => {
+    // 3*50 + 2*10 + 2*20
+    expect(layout.height).toBe(210);
+    expect(layout.width).toBe(400);
+  });
+
+  it("stacks children on the main axis with gaps", () => {
+    expect(layout.nodes[childA.id]!.y).toBe(20);
+    expect(layout.nodes[childB.id]!.y).toBe(80);
+    expect(layout.nodes[childC.id]!.y).toBe(140);
+    expect(layout.nodes[childA.id]!.x).toBe(20);
+  });
+
+  it("records parent-child links in resolved order", () => {
+    expect(layout.nodes[childA.id]!.parentId).toBe(page.rootId);
+    expect(layout.nodes[page.rootId]!.children).toEqual([
+      childA.id,
+      childB.id,
+      childC.id,
+    ]);
+  });
+});
+
+describe("resolveLayout — distribution", () => {
+  it("splits remaining main space among fill children", () => {
+    const left = fixedShape("left", "fill", "fill");
+    const right = fixedShape("right", "fill", "fill");
+    const page = pageWith(
+      {
+        size: { width: 400, height: 100 },
+        layout: {
+          mode: "horizontal",
+          gap: 10,
+          padding: { top: 0, right: 0, bottom: 0, left: 0 },
+          justify: "start",
+          items: "start",
+          clipContent: false,
+          scroll: "none",
+        },
+      },
+      [left, right],
+    );
+    const layout = resolveLayout(page);
+    expect(layout.nodes[left.id]!.width).toBeCloseTo(195, 6);
+    expect(layout.nodes[right.id]!.width).toBeCloseTo(195, 6);
+    expect(layout.nodes[right.id]!.x).toBeCloseTo(205, 6);
+    expect(layout.nodes[left.id]!.height).toBe(100);
+  });
+
+  it("centers on the main axis with justify", () => {
+    const only = fixedShape("only", 100, 50);
+    const page = verticalFrame([only]);
+    page.nodes[page.rootId]!.layout.justify = "center";
+    const layout = resolveLayout(page);
+    expect(layout.nodes[only.id]!.y).toBe(75);
+  });
+
+  it("centers on the cross axis with items", () => {
+    const only = fixedShape("only", 100, 50);
+    const page = verticalFrame([only]);
+    page.nodes[page.rootId]!.layout.mode = "horizontal";
+    page.nodes[page.rootId]!.layout.items = "center";
+    const layout = resolveLayout(page);
+    expect(layout.nodes[only.id]!.x).toBe(0);
+    expect(layout.nodes[only.id]!.y).toBe(75);
+  });
+
+  it("spreads with space-between", () => {
+    const a = fixedShape("a", 100, 40);
+    const b = fixedShape("b", 100, 40);
+    const page = verticalFrame([a, b]);
+    page.nodes[page.rootId]!.layout.justify = "space-between";
+    const layout = resolveLayout(page);
+    expect(layout.nodes[a.id]!.y).toBe(0);
+    expect(layout.nodes[b.id]!.y).toBe(160);
+  });
+});
+
+describe("resolveLayout — grid and absolute", () => {
+  it("lays out a 3 column grid with row wrapping", () => {
+    const cells = Array.from({ length: 6 }, (_, i) =>
+      fixedShape(`c${i}`, "fill", 40),
+    );
+    const page = pageWith(
+      {
+        size: { width: 300, height: "hug" },
+        layout: {
+          mode: "grid",
+          gap: 10,
+          columns: 3,
+          padding: { top: 0, right: 0, bottom: 0, left: 0 },
+          justify: "start",
+          items: "start",
+          clipContent: false,
+          scroll: "none",
+        },
+      },
+      cells,
+    );
+    const layout = resolveLayout(page);
+    const cellW = (300 - 20) / 3;
+    expect(layout.nodes[cells[0]!.id]!.x).toBeCloseTo(0, 6);
+    expect(layout.nodes[cells[1]!.id]!.x).toBeCloseTo(cellW + 10, 6);
+    expect(layout.nodes[cells[3]!.id]!.y).toBeCloseTo(50, 6);
+    expect(layout.height).toBeCloseTo(90, 6);
+  });
+
+  it("honours explicit positions when layout mode is none", () => {
+    const free = fixedShape("free", 50, 50);
+    free.position = { x: 30, y: 40 };
+    const page = verticalFrame([free]);
+    page.nodes[page.rootId]!.layout.mode = "none";
+    const layout = resolveLayout(page);
+    expect(layout.nodes[free.id]!.x).toBe(30);
+    expect(layout.nodes[free.id]!.y).toBe(40);
+  });
+});
+
+describe("resolveLayout — text", () => {
+  const textNode = (): DesignNode => {
+    const node = createNode({
+      type: "text",
+      name: "title",
+      text: "Hello",
+      size: { width: "hug", height: "hug" },
+    });
+    node.typography = {
+      fontFamily: "Inter",
+      fontSize: 20,
+      fontWeight: 400,
+      lineHeight: 1.5,
+      letterSpacing: 0,
+      align: "left",
+      verticalAlign: "top",
+    };
+    return node;
+  };
+
+  it("measures with the injected heuristic", () => {
+    const node = textNode();
+    const page = verticalFrame([node]);
+    const layout = resolveLayout(page);
+    const resolved = layout.nodes[node.id]!;
+    // 5 chars * 0.55 * 20
+    expect(resolved.width).toBe(55);
+    expect(resolved.height).toBe(30);
+  });
+
+  it("wraps inside the available width instead of overflowing", () => {
+    const node = textNode();
+    node.text = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
+    const page = verticalFrame([node]);
+    page.nodes[page.rootId]!.size.width = 200;
+    const layout = resolveLayout(page);
+    expect(layout.nodes[node.id]!.width).toBeLessThanOrEqual(200);
+    expect(layout.nodes[node.id]!.height).toBeGreaterThan(30);
+  });
+});
+
+describe("resolveLayout — responsive breakpoints (§14)", () => {
+  const child = fixedShape("box", 300, 50);
+  child.responsive = [
+    { breakpoint: "tablet", patch: { size: { width: 120 } } },
+  ];
+  const page = verticalFrame([child]);
+
+  it("ignores tablet rules at desktop-width-less contexts", () => {
+    expect(
+      resolveLayout(page, { breakpoint: "mobile" }).nodes[child.id]!.width,
+    ).toBe(300);
+  });
+
+  it("applies tablet rules from tablet upward", () => {
+    expect(
+      resolveLayout(page, { breakpoint: "tablet" }).nodes[child.id]!.width,
+    ).toBe(120);
+    expect(
+      resolveLayout(page, { breakpoint: "wide" }).nodes[child.id]!.width,
+    ).toBe(120);
+  });
+
+  it("maps widths to breakpoint names", () => {
+    expect(breakpointForWidth(375)).toBe("mobile");
+    expect(breakpointForWidth(800)).toBe("tablet");
+    expect(breakpointForWidth(1280)).toBe("desktop");
+    expect(breakpointForWidth(1920)).toBe("wide");
+  });
+});
+
+describe("hitTest", () => {
+  const child = fixedShape("child", 100, 100);
+  child.position = { x: 20, y: 20 };
+  const page = (() => {
+    const p = verticalFrame([child]);
+    p.nodes[p.rootId]!.layout.mode = "none";
+    return p;
+  })();
+  const layout = resolveLayout(page);
+
+  it("returns the deepest node under the pointer", () => {
+    expect(hitTest(layout, 60, 60)).toBe(child.id);
+  });
+
+  it("falls back to the page root", () => {
+    expect(hitTest(layout, 350, 350)).toBe(page.rootId);
+  });
+
+  it("skips locked and hidden nodes", () => {
+    child.locked = true;
+    expect(hitTest(resolveLayout(page), 60, 60)).toBe(page.rootId);
+    child.locked = false;
+    child.visible = false;
+    expect(hitTest(resolveLayout(page), 60, 60)).toBe(page.rootId);
+    child.visible = true;
+  });
+});
+
+describe("heuristicMeasure", () => {
+  const typo = {
+    fontFamily: "x",
+    fontSize: 16,
+    fontWeight: 400,
+    lineHeight: 1.5,
+    letterSpacing: 0,
+    align: "left",
+    verticalAlign: "top",
+    nowrap: false,
+  } as const;
+
+  it("treats CJK as full width", () => {
+    const latin = heuristicMeasure("中", { ...typo }, null).width;
+    const ascii = heuristicMeasure("a", { ...typo }, null).width;
+    expect(latin).toBe(Math.ceil(16));
+    expect(ascii).toBe(Math.ceil(16 * 0.55));
+  });
+
+  it("counts wrapped lines", () => {
+    const result = heuristicMeasure("word ".repeat(40).trim(), { ...typo }, 80);
+    expect(result.lines!).toBeGreaterThan(3);
+  });
+});
+
+describe("document factories", () => {
+  it("creates a usable document with default tokens", () => {
+    const doc = createDocument("Demo", "website");
+    expect(doc.pages).toHaveLength(1);
+    expect(doc.tokens.length).toBeGreaterThan(10);
+    expect(doc.pages[0]!.nodes[doc.pages[0]!.rootId]!.type).toBe("frame");
+    expect(doc.metadata.modes).toEqual(["light", "dark"]);
+  });
+
+  it("generates distinct ids", () => {
+    expect(new Set([uid("n"), uid("n"), uid("n")]).size).toBe(3);
+  });
+
+  it("defaults radius helper", () => {
+    expect(radius(8)).toEqual({
+      topLeft: 8,
+      topRight: 8,
+      bottomRight: 8,
+      bottomLeft: 8,
+    });
+  });
+});

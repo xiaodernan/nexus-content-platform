@@ -10,10 +10,10 @@
 - [x] 环境勘察 → `docs/ENVIRONMENT.md`
 - [x] Git 仓库 + hooks 约束确认
 - [x] docs 体系（PRODUCT / ARCHITECTURE / DESIGN_SYSTEM / STUDIO / RUNTIME / AGENTS / SECURITY / TESTING）
-- [~] monorepo 脚手架（npm workspaces）
-- [ ] 基础设施容器（pgvector / redis / minio，nexus- 前缀独立端口）
-- [ ] `@nexus/design-model` 类型 + 布局求解 + Command 事务 + 测试
-- [ ] 数据库 Schema + Drizzle 迁移
+- [x] monorepo 脚手架（npm workspaces：`@nexus/design-model` `@nexus/schemas` `@nexus/web`）
+- [x] 基础设施容器（pgvector 已起于 55433；redis/minio 在 `full` profile，按需启动）
+- [x] `@nexus/design-model` 类型 + 布局求解 + Command 事务 + 测试（64 tests green，`npx vitest run`）
+- [x] 数据库 Schema + 迁移（29 表 / 149 语句，`scripts/db-migrate.mts` 已在空库验证幂等）
 
 ## M1 — NEXUS STUDIO 竖向切片（§181）
 

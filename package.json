@@ -1,0 +1,41 @@
+{
+  "name": "nexus",
+  "version": "0.0.0",
+  "private": true,
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "npm run dev -w @nexus/web",
+    "dev:ai": "bash infra/dev-ai.sh",
+    "build": "npm run build -w @nexus/web",
+    "start": "npm run start -w @nexus/web",
+    "typecheck": "tsc -p packages/design-model/tsconfig.json --noEmit && tsc -p packages/schemas/tsconfig.json --noEmit && tsc -p apps/web/tsconfig.json --noEmit && tsc -p e2e/tsconfig.json --noEmit",
+    "lint": "npm run typecheck",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:e2e": "playwright test",
+    "test:e2e:smoke": "playwright test --grep @smoke",
+    "db:generate": "drizzle-kit generate",
+    "db:migrate": "tsx scripts/db-migrate.mts",
+    "db:push": "drizzle-kit push",
+    "db:seed": "tsx scripts/db-seed.mts",
+    "db:studio": "drizzle-kit studio",
+    "infra:up": "docker compose -f infra/docker-compose.yml --profile core up -d",
+    "infra:up:full": "docker compose -f infra/docker-compose.yml --profile full up -d",
+    "infra:down": "docker compose -f infra/docker-compose.yml --profile core --profile full down",
+    "format": "prettier --write \"apps/**/*.{ts,tsx,css,md}\" \"packages/**/*.{ts,tsx}\""
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.56.0",
+    "@types/node": "^24.0.0",
+    "prettier": "^3.6.0",
+    "tsx": "^4.20.0",
+    "typescript": "^5.9.0",
+    "vitest": "^3.2.0"
+  },
+  "engines": {
+    "node": ">=22"
+  }
+}

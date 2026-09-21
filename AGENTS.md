@@ -46,7 +46,7 @@
 
 Windows 11 / Node 24 / npm workspaces（无 pnpm）/ Python 3.11 / Java 25 + Maven / Docker Desktop 运行中 /
 16GB 内存**空闲仅约 2.5GB** → 服务按需启动，别同时拉起全部栈。
-端口：web 3000 · ai 8000 · postgres 55433 · redis 56379 · minio 59000/59001。
+端口：web 3100 · ai 8000 · postgres 55433 · redis 56379 · minio 59000/59001。
 
 ## 记录
 

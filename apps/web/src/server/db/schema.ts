@@ -1,0 +1,676 @@
+import { sql } from 'drizzle-orm';
+import {
+  bigint,
+  boolean,
+  customType,
+  index,
+  integer,
+  jsonb,
+  pgEnum,
+  pgTable,
+  primaryKey,
+  real,
+  smallint,
+  text,
+  timestamp,
+  uniqueIndex,
+  uuid,
+  vector,
+} from 'drizzle-orm/pg-core';
+
+/** drizzle-orm 0.45 尚未内置 tsvector，用 customType 声明（§93 混合检索需要它） */
+const tsvector = customType<{ data: string }>({
+  dataType() {
+    return 'tsvector';
+  },
+});
+
+/**
+ * NEXUS 数据模型（§92 PostgreSQL + §93 pgvector）。
+ * 命名一律 snake_case，便于 M6 之后 Java/JPA 侧按同一套表接管领域写入（ADR-0001）。
+ * 设计文档的权威结构在 pages / design_nodes / design_tokens / components；
+ * snapshots.document 只是"某一时刻的完整序列化"，用于历史与分支（§27-28）。
+ */
+
+const now = () => timestamp('created_at', { withTimezone: true }).notNull().defaultNow();
+
+export const UserRole = pgEnum('user_role', ['creator', 'admin']);
+export const ProjectKind = pgEnum('project_kind', [
+  'website',
+  'web_app',
+  'mobile_ui',
+  'game',
+  'interactive_story',
+  'experience_3d',
+  'dashboard',
+  'design_system',
+  'prototype',
+  'world',
+  'video',
+]);
+export const Visibility = pgEnum('visibility', ['private', 'unlisted', 'public']);
+export const AssetKind = pgEnum('asset_kind', ['image', 'video', 'audio', 'model', 'font', 'other']);
+export const AssetSource = pgEnum('asset_source', ['upload', 'generated', 'import']);
+export const TaskStatus = pgEnum('task_status', [
+  'queued',
+  'planning',
+  'running',
+  'awaiting_approval',
+  'succeeded',
+  'failed',
+  'cancelled',
+]);
+export const MessageRole = pgEnum('message_role', ['user', 'assistant', 'system', 'tool']);
+export const CapabilityStatus = pgEnum('capability_status', ['real', 'demo', 'unavailable']);
+export const SnapshotSource = pgEnum('snapshot_source', ['manual', 'ai', 'import', 'publish', 'branch']);
+export const ModerationStatus = pgEnum('moderation_status', ['pending', 'approved', 'rejected', 'flagged']);
+export const MemoryScope = pgEnum('memory_scope', ['session', 'character', 'world', 'user']);
+
+export const users = pgTable(
+  'users',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    email: text('email').notNull(),
+    passwordHash: text('password_hash'),
+    displayName: text('display_name').notNull(),
+    handle: text('handle'),
+    avatarUrl: text('avatar_url'),
+    role: UserRole('role').notNull().default('creator'),
+    /** 免注册首次体验（§137）：guest 可创建项目，注册后认领 */
+    guest: boolean('guest').notNull().default(false),
+    claimedAt: timestamp('claimed_at', { withTimezone: true }),
+    createdAt: now(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }),
+    deletedAt: timestamp('deleted_at', { withTimezone: true }),
+  },
+  (t) => [
+    uniqueIndex('users_email_key').on(sql`lower(${t.email})`),
+    uniqueIndex('users_handle_key').on(t.handle),
+    index('users_guest_idx').on(t.guest).where(sql`${t.deletedAt} is null`),
+  ],
+);
+
+export const sessions = pgTable(
+  'sessions',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    /** 只存哈希，绝不存明文 token（§80） */
+    tokenHash: text('token_hash').notNull(),
+    userAgent: text('user_agent'),
+    ip: text('ip'),
+    expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
+    createdAt: now(),
+  },
+  (t) => [uniqueIndex('sessions_token_hash_key').on(t.tokenHash), index('sessions_user_idx').on(t.userId)],
+);
+
+export const projects = pgTable(
+  'projects',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    ownerId: uuid('owner_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'restrict' }),
+    slug: text('slug').notNull(),
+    name: text('name').notNull(),
+    kind: ProjectKind('kind').notNull().default('website'),
+    description: text('description'),
+    visibility: Visibility('visibility').notNull().default('private'),
+    /** Remix / fork 血缘（§58） */
+    forkOf: uuid('fork_of').references((): any => projects.id, { onDelete: 'set null' }),
+    activePageId: uuid('active_page_id'),
+    /** 当前生效快照，指向 snapshots；外键在迁移里后补，避免循环定义 */
+    currentSnapshotId: uuid('current_snapshot_id'),
+    /** 项目级硬约束：Brand Kit / Visual DNA（§119 / §172-174） */
+    brandKit: jsonb('brand_kit'),
+    visualDna: jsonb('visual_dna'),
+    createdAt: now(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+    deletedAt: timestamp('deleted_at', { withTimezone: true }),
+  },
+  (t) => [
+    uniqueIndex('projects_owner_slug_key').on(t.ownerId, t.slug),
+    index('projects_owner_idx').on(t.ownerId),
+    index('projects_visibility_idx').on(t.visibility).where(sql`${t.deletedAt} is null`),
+    index('projects_fork_of_idx').on(t.forkOf),
+  ],
+);
+
+export const branches = pgTable(
+  'branches',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    projectId: uuid('project_id')
+      .notNull()
+      .references(() => projects.id, { onDelete: 'cascade' }),
+    name: text('name').notNull(),
+    headSnapshotId: uuid('head_snapshot_id'),
+    isDefault: boolean('is_default').notNull().default(false),
+    createdAt: now(),
+  },
+  (t) => [uniqueIndex('branches_project_name_key').on(t.projectId, t.name), index('branches_project_idx').on(t.projectId)],
+);
+
+export const snapshots = pgTable(
+  'snapshots',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    projectId: uuid('project_id')
+      .notNull()
+      .references(() => projects.id, { onDelete: 'cascade' }),
+    branchId: uuid('branch_id').references(() => branches.id, { onDelete: 'set null' }),
+    parentId: uuid('parent_id').references((): any => snapshots.id, { onDelete: 'set null' }),
+    label: text('label'),
+    source: SnapshotSource('source').notNull().default('manual'),
+    /** DesignDocument 的完整序列化（.nexus/ 格式同源，§102） */
+    document: jsonb('document').notNull(),
+    /** AI 变更说明与 diff 摘要（§151） */
+    summary: text('summary'),
+    patch: jsonb('patch'),
+    taskId: uuid('task_id'),
+    createdById: uuid('created_by').references(() => users.id, { onDelete: 'set null' }),
+    createdAt: now(),
+  },
+  (t) => [index('snapshots_project_created_idx').on(t.projectId, t.createdAt)],
+);
+
+export const pages = pgTable(
+  'pages',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    projectId: uuid('project_id')
+      .notNull()
+      .references(() => projects.id, { onDelete: 'cascade' }),
+    name: text('name').notNull(),
+    rootNodeId: text('root_node_id').notNull(),
+    sortIndex: integer('sort_index').notNull().default(0),
+    width: integer('width').notNull().default(1440),
+    height: integer('height').notNull().default(1024),
+    backgroundColor: text('background_color'),
+    layout: jsonb('layout'),
+    createdAt: now(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [uniqueIndex('pages_project_name_key').on(t.projectId, t.name), index('pages_project_sort_idx').on(t.projectId, t.sortIndex)],
+);
+
+export const designNodes = pgTable(
+  'design_nodes',
+  {
+    id: text('id').notNull(),
+    pageId: uuid('page_id')
+      .notNull()
+      .references(() => pages.id, { onDelete: 'cascade' }),
+    parentId: text('parent_id'),
+    nodeType: text('node_type').notNull(),
+    name: text('name').notNull(),
+    sortIndex: integer('sort_index').notNull().default(0),
+    /** 几何 / 样式 / 排版 / 动效 / 交互等易变属性；结构列用于查询 */
+    data: jsonb('data').notNull(),
+    componentId: uuid('component_id'),
+    visible: boolean('visible').notNull().default(true),
+    locked: boolean('locked').notNull().default(false),
+    createdAt: now(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    primaryKey({ columns: [t.pageId, t.id] }),
+    index('design_nodes_page_idx').on(t.pageId),
+    index('design_nodes_parent_idx').on(t.pageId, t.parentId),
+    index('design_nodes_type_idx').on(t.pageId, t.nodeType),
+  ],
+);
+
+export const designTokens = pgTable(
+  'design_tokens',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    projectId: uuid('project_id')
+      .notNull()
+      .references(() => projects.id, { onDelete: 'cascade' }),
+    /** 点号键：color.primary / space.4 / motion.fast（§12） */
+    key: text('key').notNull(),
+    type: text('type').notNull(),
+    value: jsonb('value').notNull(),
+    /** 多主题值：{ light: '#...', dark: '#...' } */
+    modes: jsonb('modes'),
+    description: text('description'),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [uniqueIndex('design_tokens_project_key_key').on(t.projectId, t.key), index('design_tokens_project_idx').on(t.projectId)],
+);
+
+export const components = pgTable(
+  'components',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    projectId: uuid('project_id')
+      .notNull()
+      .references(() => projects.id, { onDelete: 'cascade' }),
+    name: text('name').notNull(),
+    pageId: uuid('page_id').references(() => pages.id, { onDelete: 'cascade' }),
+    rootNodeId: text('root_node_id').notNull(),
+    variants: jsonb('variants'),
+    props: jsonb('props'),
+    slots: jsonb('slots'),
+    description: text('description'),
+    createdAt: now(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [uniqueIndex('components_project_name_key').on(t.projectId, t.name), index('components_project_idx').on(t.projectId)],
+);
+
+export const assets = pgTable(
+  'assets',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    projectId: uuid('project_id').references(() => projects.id, { onDelete: 'cascade' }),
+    kind: AssetKind('kind').notNull(),
+    name: text('name').notNull(),
+    /** S3/MinIO object key；绝不存可公开枚举的路径（§80 文件上传安全） */
+    storageKey: text('storage_key').notNull(),
+    mime: text('mime'),
+    bytes: bigint('bytes', { mode: 'number' }),
+    width: integer('width'),
+    height: integer('height'),
+    checksum: text('checksum'),
+    source: AssetSource('source').notNull().default('upload'),
+    /** 生成参数（prompt / provider / model / seed / 角色一致性引用，§38-39） */
+    genMeta: jsonb('gen_meta'),
+    characterId: uuid('character_id'),
+    createdById: uuid('created_by').references(() => users.id, { onDelete: 'set null' }),
+    createdAt: now(),
+  },
+  (t) => [
+    uniqueIndex('assets_storage_key_key').on(t.storageKey),
+    index('assets_project_idx').on(t.projectId),
+    index('assets_kind_idx').on(t.kind),
+  ],
+);
+
+export const files = pgTable(
+  'files',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    projectId: uuid('project_id')
+      .notNull()
+      .references(() => projects.id, { onDelete: 'cascade' }),
+    /** .nexus/ 相对路径或 code/ 路径（§102 / §105） */
+    path: text('path').notNull(),
+    kind: text('kind').notNull().default('code'),
+    content: text('content'),
+    bytes: bigint('bytes', { mode: 'number' }),
+    checksum: text('checksum'),
+    /** code-only region：无法安全回转成设计节点时保留原文（§19） */
+    codeOnly: boolean('code_only').notNull().default(false),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [uniqueIndex('files_project_path_key').on(t.projectId, t.path), index('files_project_idx').on(t.projectId)],
+);
+
+export const agents = pgTable(
+  'agents',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    key: text('key').notNull(),
+    name: text('name').notNull(),
+    capabilities: text('capabilities').array().notNull().default(sql`'{}'`),
+    tools: text('tools').array().notNull().default(sql`'{}'`),
+    modelClass: text('model_class').notNull().default('fast'),
+    maxSteps: smallint('max_steps').notNull().default(12),
+    output: text('output'),
+    enabled: boolean('enabled').notNull().default(true),
+    createdAt: now(),
+  },
+  (t) => [uniqueIndex('agents_key_key').on(t.key)],
+);
+
+export const conversations = pgTable(
+  'conversations',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    projectId: uuid('project_id').references(() => projects.id, { onDelete: 'cascade' }),
+    userId: uuid('user_id').references(() => users.id, { onDelete: 'set null' }),
+    title: text('title'),
+    createdAt: now(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [index('conversations_project_idx').on(t.projectId), index('conversations_user_idx').on(t.userId)],
+);
+
+export const agentTasks = pgTable(
+  'agent_tasks',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    projectId: uuid('project_id').references(() => projects.id, { onDelete: 'cascade' }),
+    conversationId: uuid('conversation_id').references(() => conversations.id, { onDelete: 'set null' }),
+    agentKey: text('agent_key').notNull(),
+    status: TaskStatus('status').notNull().default('queued'),
+    /** §25：Goal / Constraints / Tasks / Dependencies / Risks / Validation */
+    plan: jsonb('plan'),
+    input: jsonb('input'),
+    result: jsonb('result'),
+    error: text('error'),
+    /** §74/§177 高危动作需人工批准 */
+    requiresApproval: boolean('requires_approval').notNull().default(false),
+    approvedBy: uuid('approved_by').references(() => users.id, { onDelete: 'set null' }),
+    approvedAt: timestamp('approved_at', { withTimezone: true }),
+    capability: CapabilityStatus('capability'),
+    attempt: smallint('attempt').notNull().default(1),
+    createdById: uuid('created_by').references(() => users.id, { onDelete: 'set null' }),
+    startedAt: timestamp('started_at', { withTimezone: true }),
+    finishedAt: timestamp('finished_at', { withTimezone: true }),
+    createdAt: now(),
+  },
+  (t) => [
+    index('agent_tasks_project_idx').on(t.projectId),
+    index('agent_tasks_status_idx').on(t.status),
+    index('agent_tasks_created_idx').on(t.createdAt),
+  ],
+);
+
+export const agentEvents = pgTable(
+  'agent_events',
+  {
+    id: bigint('id', { mode: 'number' }).primaryKey().generatedAlwaysAsIdentity(),
+    taskId: uuid('task_id')
+      .notNull()
+      .references(() => agentTasks.id, { onDelete: 'cascade' }),
+    seq: integer('seq').notNull(),
+    /** §26：只允许 stage / status / summary / counts / artifactRef，禁止透传隐藏推理 */
+    stage: text('stage').notNull(),
+    status: text('status').notNull(),
+    summary: text('summary'),
+    counts: jsonb('counts'),
+    artifactRef: text('artifact_ref'),
+    createdAt: now(),
+  },
+  (t) => [uniqueIndex('agent_events_task_seq_key').on(t.taskId, t.seq), index('agent_events_task_idx').on(t.taskId)],
+);
+
+export const messages = pgTable(
+  'messages',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    conversationId: uuid('conversation_id')
+      .notNull()
+      .references(() => conversations.id, { onDelete: 'cascade' }),
+    role: MessageRole('role').notNull(),
+    content: text('content').notNull(),
+    /** 本条消息产生的设计补丁与其能力标记（§151 / §160） */
+    patch: jsonb('patch'),
+    taskId: uuid('task_id').references(() => agentTasks.id, { onDelete: 'set null' }),
+    capability: CapabilityStatus('capability'),
+    createdAt: now(),
+  },
+  (t) => [index('messages_conversation_idx').on(t.conversationId, t.createdAt)],
+);
+
+export const usage = pgTable(
+  'usage',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    userId: uuid('user_id').references(() => users.id, { onDelete: 'set null' }),
+    projectId: uuid('project_id').references(() => projects.id, { onDelete: 'set null' }),
+    taskId: uuid('task_id').references(() => agentTasks.id, { onDelete: 'set null' }),
+    provider: text('provider').notNull(),
+    model: text('model').notNull(),
+    kind: text('kind').notNull(),
+    tokensIn: integer('tokens_in'),
+    tokensOut: integer('tokens_out'),
+    latencyMs: integer('latency_ms'),
+    costEstimate: real('cost_estimate'),
+    demoMode: boolean('demo_mode').notNull().default(true),
+    createdAt: now(),
+  },
+  (t) => [index('usage_user_created_idx').on(t.userId, t.createdAt), index('usage_task_idx').on(t.taskId)],
+);
+
+export const publishedProjects = pgTable(
+  'published_projects',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    projectId: uuid('project_id')
+      .notNull()
+      .references(() => projects.id, { onDelete: 'cascade' }),
+    snapshotId: uuid('snapshot_id').references(() => snapshots.id, { onDelete: 'set null' }),
+    /** /n/<handle>/<slug>（§56） */
+    path: text('path').notNull(),
+    visibility: Visibility('visibility').notNull().default('public'),
+    version: integer('version').notNull().default(1),
+    moderation: ModerationStatus('moderation').notNull().default('pending'),
+    publishedById: uuid('published_by').references(() => users.id, { onDelete: 'set null' }),
+    views: bigint('views', { mode: 'number' }).notNull().default(0),
+    publishedAt: timestamp('published_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [uniqueIndex('published_path_key').on(t.path), index('published_project_idx').on(t.projectId)],
+);
+
+export const worlds = pgTable(
+  'worlds',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    projectId: uuid('project_id').references(() => projects.id, { onDelete: 'cascade' }),
+    ownerId: uuid('owner_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'restrict' }),
+    name: text('name').notNull(),
+    summary: text('summary'),
+    /** Lore / History / Geography / Factions / Items / Quests（§44） */
+    lore: jsonb('lore'),
+    createdAt: now(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [index('worlds_owner_idx').on(t.ownerId), index('worlds_project_idx').on(t.projectId)],
+);
+
+export const characters = pgTable(
+  'characters',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    worldId: uuid('world_id').references(() => worlds.id, { onDelete: 'cascade' }),
+    projectId: uuid('project_id').references(() => projects.id, { onDelete: 'cascade' }),
+    ownerId: uuid('owner_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'restrict' }),
+    name: text('name').notNull(),
+    /** 外观 / 性格 / 目标 / 恐惧 / 关系（§46） */
+    profile: jsonb('profile'),
+    /** 视觉一致性锚点：参考图 + 特征描述（§39） */
+    visual: jsonb('visual'),
+    voice: jsonb('voice'),
+    createdAt: now(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [index('characters_world_idx').on(t.worldId), index('characters_owner_idx').on(t.ownerId)],
+);
+
+export const memories = pgTable(
+  'memories',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    scope: MemoryScope('scope').notNull(),
+    /** 归属主体：user_id / character_id / world_id / session id */
+    subjectId: text('subject_id').notNull(),
+    content: text('content').notNull(),
+    embedding: vector('embedding', { dimensions: 1536 }),
+    meta: jsonb('meta'),
+    createdAt: now(),
+  },
+  (t) => [index('memories_subject_idx').on(t.scope, t.subjectId)],
+);
+
+export const knowledgeChunks = pgTable(
+  'knowledge_chunks',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    projectId: uuid('project_id').references(() => projects.id, { onDelete: 'cascade' }),
+    worldId: uuid('world_id').references(() => worlds.id, { onDelete: 'cascade' }),
+    /** lore / character / history / location / item / quest / document / code / design */
+    sourceType: text('source_type').notNull(),
+    sourceId: text('source_id').notNull(),
+    chunkIndex: integer('chunk_index').notNull().default(0),
+    content: text('content').notNull(),
+    tokens: integer('tokens'),
+    embedding: vector('embedding', { dimensions: 1536 }),
+    /** 混合检索：向量 + 全文（§49 / §93） */
+    /** PostgreSQL 的生成列默认即 STORED，可被 GIN 索引（§93 混合检索） */
+    tsv: tsvector('tsv').generatedAlwaysAs(sql`to_tsvector('simple', content)`),
+    meta: jsonb('meta'),
+    createdAt: now(),
+  },
+  (t) => [
+    uniqueIndex('knowledge_chunks_source_key').on(t.sourceType, t.sourceId, t.chunkIndex),
+    index('knowledge_chunks_project_idx').on(t.projectId),
+    index('knowledge_chunks_tsv_idx').using('gin', t.tsv),
+    index('knowledge_chunks_embedding_idx').using('hnsw', t.embedding.op('vector_cosine_ops')),
+  ],
+);
+
+export const stories = pgTable(
+  'stories',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    projectId: uuid('project_id').references(() => projects.id, { onDelete: 'cascade' }),
+    worldId: uuid('world_id').references(() => worlds.id, { onDelete: 'set null' }),
+    title: text('title').notNull(),
+    /** 场景 / 分支 / 节点图（§42 / §47） */
+    script: jsonb('script'),
+    createdAt: now(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [index('stories_project_idx').on(t.projectId)],
+);
+
+export const games = pgTable(
+  'games',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    projectId: uuid('project_id').references(() => projects.id, { onDelete: 'cascade' }),
+    title: text('title').notNull(),
+    gameKind: text('game_kind').notNull().default('2d'),
+    /** Player / Enemy / Item / Quest / Trigger / Camera 等实体（§54） */
+    entities: jsonb('entities'),
+    scene: jsonb('scene'),
+    createdAt: now(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [index('games_project_idx').on(t.projectId)],
+);
+
+export const likes = pgTable(
+  'likes',
+  {
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    projectId: uuid('project_id')
+      .notNull()
+      .references(() => projects.id, { onDelete: 'cascade' }),
+    createdAt: now(),
+  },
+  (t) => [primaryKey({ columns: [t.userId, t.projectId] }), index('likes_project_idx').on(t.projectId)],
+);
+
+export const comments = pgTable(
+  'comments',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    projectId: uuid('project_id')
+      .notNull()
+      .references(() => projects.id, { onDelete: 'cascade' }),
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    parentId: uuid('parent_id').references((): any => comments.id, { onDelete: 'cascade' }),
+    /** 画布批注定位（§111）：指向设计节点 */
+    nodeId: text('node_id'),
+    body: text('body').notNull(),
+    createdAt: now(),
+  },
+  (t) => [index('comments_project_idx').on(t.projectId, t.createdAt)],
+);
+
+export const follows = pgTable(
+  'follows',
+  {
+    followerId: uuid('follower_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    followeeId: uuid('followee_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    createdAt: now(),
+  },
+  (t) => [primaryKey({ columns: [t.followerId, t.followeeId] }), index('follows_followee_idx').on(t.followeeId)],
+);
+
+export const remixes = pgTable(
+  'remixes',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    sourceProjectId: uuid('source_project_id')
+      .notNull()
+      .references(() => projects.id, { onDelete: 'cascade' }),
+    forkedProjectId: uuid('forked_project_id')
+      .notNull()
+      .references(() => projects.id, { onDelete: 'cascade' }),
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    createdAt: now(),
+  },
+  (t) => [uniqueIndex('remixes_fork_key').on(t.forkedProjectId), index('remixes_source_idx').on(t.sourceProjectId)],
+);
+
+/** 审计事件（§80 / §84）：谁在什么时候做了什么，含被拒绝的越权尝试 */
+export const auditEvents = pgTable(
+  'audit_events',
+  {
+    id: bigint('id', { mode: 'number' }).primaryKey().generatedAlwaysAsIdentity(),
+    actorId: uuid('actor_id').references(() => users.id, { onDelete: 'set null' }),
+    action: text('action').notNull(),
+    targetType: text('target_type'),
+    targetId: text('target_id'),
+    allowed: boolean('allowed').notNull().default(true),
+    detail: jsonb('detail'),
+    ip: text('ip'),
+    createdAt: now(),
+  },
+  (t) => [index('audit_actor_idx').on(t.actorId, t.createdAt), index('audit_action_idx').on(t.action)],
+);
+
+export const schema = {
+  users,
+  sessions,
+  projects,
+  branches,
+  snapshots,
+  pages,
+  designNodes,
+  designTokens,
+  components,
+  assets,
+  files,
+  agents,
+  conversations,
+  agentTasks,
+  agentEvents,
+  messages,
+  usage,
+  publishedProjects,
+  worlds,
+  characters,
+  memories,
+  knowledgeChunks,
+  stories,
+  games,
+  likes,
+  comments,
+  follows,
+  remixes,
+  auditEvents,
+};

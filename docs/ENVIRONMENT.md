@@ -27,15 +27,21 @@
 | Maven | 3.9.15 | OK |
 | Python | 3.11.1 + pip 25.3 | OK |
 | Docker Desktop | 29.1.3（daemon 运行中） | OK |
-| Chrome | 已安装 | Playwright 可复用 |
+| Chrome | 已安装 | Playwright 复用系统 Chrome（`channel: 'chrome'`） |
 | psql / redis-cli | — | 本机无，仅通过容器访问 |
+
+> **Playwright 约束**：本机网络无法下载 Playwright 自带的 Chromium/headless-shell（`npx playwright install` 失败）。
+> 截图与 e2e 一律用系统 Chrome：`chromium.launch({ channel: 'chrome' })`。已实测可渲染并截图成功。
 
 ## 已有容器（不属于本项目，禁止复用/删除）
 
 `careeros-postgres`(5432), `careeros-redis`, `careeros-minio`(19000), `nexus-seed-verify`(55432)。
 
-因此 NEXUS 使用**独立端口段**避免冲突：Postgres `55433`、Redis `56379`、MinIO `59000/59001`、AI Service `8000`、Web `3000`。
+因此 NEXUS 使用**独立端口段**避免冲突：Postgres `55433`、Redis `56379`、MinIO `59000/59001`、AI Service `8000`、Web `3100`。
 容器统一前缀 `nexus-`，compose project name 为 `nexus`。
+
+> 端口 `3000` 已被机器上另一个项目的 Next dev server 占用（`D:\求职平台\frontend`，属外部进程，禁止终止），
+> 因此 NEXUS Web 固定使用 **3100**，e2e / 预览 / 截图脚本都以 `http://localhost:3100` 为基准。
 
 ## 凭据现状
 

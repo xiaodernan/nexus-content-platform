@@ -1,0 +1,65 @@
+@import 'tailwindcss';
+@import '../styles/tokens.css';
+
+/* 把 §DESIGN_SYSTEM 的 token 映射成 Tailwind 工具类；组件里只允许出现这些语义名。 */
+@theme {
+  --color-bg-0: var(--nexus-color-bg-0);
+  --color-bg-1: var(--nexus-color-bg-1);
+  --color-bg-2: var(--nexus-color-bg-2);
+  --color-bg-3: var(--nexus-color-bg-3);
+
+  --color-fg-1: var(--nexus-color-fg-1);
+  --color-fg-2: var(--nexus-color-fg-2);
+  --color-fg-3: var(--nexus-color-fg-3);
+
+  --color-brand: var(--nexus-color-brand);
+  --color-accent-1: var(--nexus-color-accent-1);
+  --color-accent-2: var(--nexus-color-accent-2);
+  --color-danger: var(--nexus-color-danger);
+  --color-warn: var(--nexus-color-warn);
+  --color-info: var(--nexus-color-info);
+  --color-success: var(--nexus-color-success);
+
+  --color-border-subtle: var(--nexus-color-border-subtle);
+  --color-border-strong: var(--nexus-color-border-strong);
+
+  --font-sans: var(--nexus-font-sans);
+  --font-mono: var(--nexus-font-mono);
+
+  --text-12: var(--nexus-font-size-12);
+  --text-13: var(--nexus-font-size-13);
+  --text-14: var(--nexus-font-size-14);
+  --text-16: var(--nexus-font-size-16);
+  --text-18: var(--nexus-font-size-18);
+  --text-21: var(--nexus-font-size-21);
+  --text-24: var(--nexus-font-size-24);
+  --text-28: var(--nexus-font-size-28);
+
+  --radius-sm: var(--nexus-radius-sm);
+  --radius-md: var(--nexus-radius-md);
+  --radius-lg: var(--nexus-radius-lg);
+
+  --shadow-panel: var(--nexus-shadow-md);
+  --shadow-glow: var(--nexus-shadow-glow);
+}
+
+@layer base {
+  html,
+  body {
+    height: 100%;
+  }
+
+  body {
+    background: var(--nexus-color-bg-0);
+    color: var(--nexus-color-fg-1);
+    font-family: var(--nexus-font-sans);
+    font-size: var(--nexus-font-size-14);
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* 焦点环始终可见（§90） */
+  :focus-visible {
+    outline: 2px solid var(--nexus-color-brand);
+    outline-offset: 1px;
+  }
+}
