@@ -61,6 +61,8 @@ DEMO 路径不在 ai-service 里：确定性 Mock 需要 design model 才能产�
 3. **所有编辑走 Command**：画布、属性面板、AI 补丁、代码回写一律通过 `Command{execute,undo,redo}`（§150），
    一次 AI 操作是一个事务（§149）。本地撤销栈负责 Ctrl+Z；用户项目历史（§27/§108）是服务端 `snapshots`
    表里的整份 `DesignDocument`，两者不是一回事：恢复快照会清空撤销栈，且恢复前后各留一条快照。
+   Compare（§27）用 `diffDocuments` 把两份文档比成同一形状的 `DiffEntry[]`，
+   所以 AI Diff 与快照比较共用一套展示；三者都建立在 `sameValue`（键顺序无关）之上。
 4. **契约单点定义**：web ↔ ai-service 的报文只在 `@nexus/schemas` 里用 zod 定义；
    `npm run contract:export` 导出 `contracts/*.schema.json`，Python 侧用 `jsonschema` 做运行期校验，
    `packages/schemas/test/contract.test.ts` 保证导出文件与 zod 不漂移。补丁的**语义**校验（节点是否存在、

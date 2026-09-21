@@ -49,6 +49,27 @@ export function clone<T>(value: T): T {
   return structuredClone(value);
 }
 
+/**
+ * 深度相等，且不受键顺序影响。文档一旦经过服务端 schema 校验或 jsonb 存取，
+ * 对象的键顺序就和构造时的字面量顺序不同了；用 JSON.stringify 比较会把"没有改动"
+ * 判成一次真实改动（假回写、假 diff、假快照都会从这里长出来）。
+ */
+export function sameValue(a: unknown, b: unknown): boolean {
+  if (a === b) return true;
+  if (a === null || b === null || typeof a !== "object" || typeof b !== "object") return false;
+  if (Array.isArray(a) || Array.isArray(b)) {
+    if (!Array.isArray(a) || !Array.isArray(b) || a.length !== b.length) return false;
+    return a.every((item, i) => sameValue(item, (b as unknown[])[i]));
+  }
+  const left = a as Record<string, unknown>;
+  const right = b as Record<string, unknown>;
+  const keys = Object.keys(left);
+  if (keys.length !== Object.keys(right).length) return false;
+  return keys.every(
+    (key) => Object.prototype.hasOwnProperty.call(right, key) && sameValue(left[key], right[key]),
+  );
+}
+
 export function uid(prefix = "n"): string {
   const rand = Math.random().toString(36).slice(2, 8);
   return `${prefix}_${Date.now().toString(36)}${rand}`;

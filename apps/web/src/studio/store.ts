@@ -7,6 +7,7 @@ import {
   clone,
   createNode,
   createPage,
+  diffDocuments,
   findPage,
   hitTest,
   isDescendant,
@@ -16,6 +17,7 @@ import {
   type DesignDocument,
   type DesignNode,
   type DesignPatch,
+  type DocumentDiff,
   type HistoryEntry,
   type NodeId,
   type NodeType,
@@ -24,7 +26,7 @@ import {
   type ResolvedLayout,
 } from '@nexus/design-model';
 import type { DesignPatchPayload } from '@nexus/schemas';
-import type { SnapshotMeta } from '@/server/domain/snapshots';
+import type { SnapshotEntry, SnapshotMeta } from '@/server/domain/snapshots';
 
 /**
  * Studio 客户端状态：唯一真值仍然是 DesignStore 里的 DesignDocument（§9/§16）。
@@ -38,6 +40,14 @@ import type { SnapshotMeta } from '@/server/domain/snapshots';
 export type ViewportMode = 'design' | BreakpointName;
 
 export type SaveState = 'idle' | 'saving' | 'saved' | 'error';
+
+/** Compare（§27）的一份结果：比较的快照 + 与当前文档的字段级差异 */
+export interface CompareResult {
+  snapshotId: string;
+  label: string | null;
+  createdAt: string;
+  diff: DocumentDiff;
+}
 
 export interface StudioSnapshot {
   ready: boolean;
@@ -67,6 +77,8 @@ export interface StudioSnapshot {
   snapshots: readonly SnapshotMeta[];
   snapshotBusy: boolean;
   snapshotError: string | null;
+  /** §27 Compare：某份快照与当前文档的字段级差异（方向是"从快照到现在"） */
+  compare: CompareResult | null;
   revision: number;
   activeMode: string | null;
 }
@@ -112,6 +124,7 @@ export class StudioStore {
   private snapshotList: SnapshotMeta[] = [];
   private snapshotBusyValue = false;
   private snapshotErrorValue: string | null = null;
+  private compareValue: CompareResult | null = null;
 
   constructor() {
     this.design.subscribe(() => this.commit());
@@ -169,6 +182,7 @@ export class StudioStore {
       snapshots: this.snapshotList,
       snapshotBusy: this.snapshotBusyValue,
       snapshotError: this.snapshotErrorValue,
+      compare: this.compareValue,
       revision: state.revision,
       activeMode: document.activeMode ?? null,
     };
@@ -381,11 +395,48 @@ export class StudioStore {
       this.dirty = false;
       this.saveStateValue = 'saved';
       this.savedAt = new Date().toISOString();
+      // 恢复之后当前文档已经变了，之前的比较结果不再对应任何东西
+      this.compareValue = null;
       await this.refreshSnapshots();
       return true;
     } catch (error) {
       this.snapshotErrorValue = error instanceof Error ? error.message : String(error);
       return false;
+    } finally {
+      this.snapshotBusyValue = false;
+      this.commit();
+    }
+  }
+
+  /**
+   * §27 Compare：取一份快照的全量文档，与当前文档做字段级比较。
+   * 方向是"从那份快照到现在改了什么"，和 AI Diff 用同一套条目，所以展示也共用。
+   */
+  async compareSnapshot(snapshotId: string): Promise<void> {
+    if (!this.projectId || !this.ready) return;
+    if (this.compareValue?.snapshotId === snapshotId) {
+      this.compareValue = null;
+      this.commit();
+      return;
+    }
+    this.snapshotBusyValue = true;
+    this.snapshotErrorValue = null;
+    this.commit();
+    try {
+      const res = await fetch(`/api/projects/${this.projectId}/snapshots/${snapshotId}`, {
+        cache: 'no-store',
+      });
+      const body = (await res.json().catch(() => null)) as { snapshot?: SnapshotEntry } | null;
+      if (!res.ok || !body?.snapshot?.document) throw new Error(`HTTP ${res.status}`);
+      this.compareValue = {
+        snapshotId,
+        label: body.snapshot.label,
+        createdAt: body.snapshot.createdAt,
+        diff: diffDocuments(body.snapshot.document, this.design.getDocument()),
+      };
+    } catch (error) {
+      this.compareValue = null;
+      this.snapshotErrorValue = error instanceof Error ? error.message : String(error);
     } finally {
       this.snapshotBusyValue = false;
       this.commit();

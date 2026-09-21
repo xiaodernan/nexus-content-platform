@@ -37,8 +37,18 @@ Create Project → Prompt → AI Design → Canvas → Layers → Properties
 - [x] Design → Code（React + TS + Tailwind，`packages/design-model/src/codegen.ts` + Studio 代码视图）
 - [x] Code → Design（受限 JSX 解析，不可逆区域保留为 code-only，§17-19，`packages/design-model/src/code-parse.ts`）
 - [x] Snapshot 服务端：列表 / 创建 / 恢复，恢复自身留下一条历史（§27/§108）
-- [ ] Version History 的 Compare（两份快照并排）/ Branch / 多方案比较（§27-29）
+- [x] Compare：快照与当前文档的字段级差异，复用 AI Diff 的条目形状（§27/§151）
+- [ ] Branch / Duplicate / 多方案 A-B-C 并排比较（§28-29，`branches` 表已有，无接口）
 - [ ] 免注册首次体验（§137）→ 注册保存；Publish + 分享 URL（§56-57）
+
+**M1 进度记录（2026-09-22，Compare）**：§27 的"比较"落在 `packages/design-model/src/diff.ts` 的
+`diffDocuments(before, after)`：产出与 AI Diff（§151）同样的 `DiffEntry[]`，所以历史面板两套清单共用一个行组件。
+差异停在"最浅的、真正不同的那一层"（`style.fills` 变了就报这一条，不拆成 `fills[0].color.value`），
+增删整节点归为 added/removed 并给摘要而不是倾倒整个对象，父子关系与 children 变化归为 moved；
+超过 300 条时截断并如实标 `truncated` + 总数（§159）。快照行新增"比较"，方向是"从那份快照到现在改了什么"。
+`sameValue` 从 code-parse 提到 `nodes.ts` 共用——假回写、假 diff、假快照是同一个 bug 的三张脸。
+验证：`diff.test.ts` 11 条（含"键顺序不同不算改动"）、`npm test` 161、8 @smoke（快照用例现在覆盖创建 → 比较 → 恢复 → 刷新）、
+截图 `history-compare.png` 人眼确认窄面板下路径不被截断。
 
 **M1 进度记录（2026-09-22，Snapshot 服务端）**：§27/§108 的"用户项目历史"落到 `snapshots` 表：
 `apps/web/src/server/domain/snapshots.ts`（list / create / read / restore）+
@@ -140,8 +150,8 @@ Studio 顶栏下新增 画布/代码 切换（`CodePanel`），选中的元素�
   运行时 TokenStore 能解析，类型层面在说谎。需要把这三处放宽为 `number | TokenKey` 并在 validate/layout 统一解析。
 - ESLint 目前只有 `npm run lint` = typecheck 的占位配置，缺真实规则集。
 - 资产（image/video paint）尚未渲染：`render.ts` 明确跳过，等任务 #9 的资产服务落地。
-- 历史面板的 Ctrl+Z 只在浏览器会话内，刷新即失；服务端快照已经能创建/恢复（§27），
-  但 Compare（两份快照并排）与 Branch（§28）还没有接口。
+- 历史面板的 Ctrl+Z 只在浏览器会话内，刷新即失；服务端快照已经能创建 / 比较 / 恢复（§27），
+  但 Branch 与 Duplicate（§28）还没有接口。
 - `loadDocument` 不恢复 `document.activeMode` 与 `metadata.modes`（库里没有对应列）：
   主题模式在保存-重载后会退回默认值，快照恢复同样带不回它。要加列 + 迁移才能修。
 - 代码投影（`codegen.ts`）与画布一样只覆盖几何/样式/文字：`typography.runs`、`animation`、`interactions`、

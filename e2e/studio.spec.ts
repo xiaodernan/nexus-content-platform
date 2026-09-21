@@ -110,7 +110,14 @@ test('@smoke studio slice: server snapshot is created and restored through the d
   await expect(page.locator(`[data-node-id="${headlineId}"]`)).toHaveCSS('font-size', '72px');
   await expect(page.locator('[data-save-state]')).toContainText('已保存', { timeout: 20_000 });
 
+  // Compare（§27）：这份快照与当前文档差在哪，必须一眼能看到
   await page.click('[data-panel-tab="history"]');
+  await baseline.locator('[data-snapshot-compare]').click();
+  const compareList = page.locator('[data-snapshot-diff-list]');
+  await expect(compareList).toBeVisible();
+  await expect(compareList).toContainText('typography.fontSize');
+  await expect(compareList).toContainText('共 1 处');
+
   await baseline.locator('[data-snapshot-restore]').click();
   await baseline.locator('[data-snapshot-restore]').click();
   await expect(page.locator('[data-node-id]')).toHaveCount(8);

@@ -122,6 +122,15 @@ await page.waitForFunction(
 );
 
 await page.click('[data-panel-tab="history"]');
+// §27 Compare：先看这份快照与当前文档差在哪，再决定恢复
+await page.locator('[data-snapshot-item]:has-text("截图基线") [data-snapshot-compare]').click();
+const compareList = page.locator('[data-snapshot-diff-list]');
+await compareList.waitFor({ state: 'visible', timeout: 30_000 });
+const compareText = (await compareList.textContent()) ?? '';
+if (!compareText.includes('typography.fontSize')) {
+  throw new Error(`快照比较没有列出字段级差异：${compareText.slice(0, 120)}`);
+}
+await page.screenshot({ path: `${out}history-compare.png` });
 await page.locator('[data-snapshot-item]:has-text("截图基线") [data-snapshot-restore]').click();
 await page.locator('[data-snapshot-item]:has-text("截图基线") [data-snapshot-restore]').click();
 await page.waitForFunction(

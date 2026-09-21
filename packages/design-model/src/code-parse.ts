@@ -9,7 +9,7 @@
  * 本包禁止 import React / DOM / fs；也不 import typescript —— 解析器要打进 Studio 的包。
  */
 
-import { childrenOf, clone, getByPath, setOnObject } from "./nodes";
+import { childrenOf, clone, getByPath, sameValue, setOnObject } from "./nodes";
 import { generatePageComponent } from "./codegen";
 import type { PatchOp } from "./patch";
 import type {
@@ -1446,26 +1446,6 @@ function allowedTags(node: DesignNode): string[] {
     default:
       return ["div", "main", "span", "article", "aside", "nav", "header", "footer", "label", "figure"];
   }
-}
-
-/**
- * 深度相等，且不受键顺序影响。模型经服务端 schema 校验/序列化后，对象的键顺序会和
- * 构造时的字面量顺序不同；用 JSON 字符串比较会把"没有改动"误判成一次回写。
- */
-function sameValue(a: unknown, b: unknown): boolean {
-  if (a === b) return true;
-  if (a === null || b === null || typeof a !== "object" || typeof b !== "object") return false;
-  if (Array.isArray(a) || Array.isArray(b)) {
-    if (!Array.isArray(a) || !Array.isArray(b) || a.length !== b.length) return false;
-    return a.every((item, i) => sameValue(item, (b as unknown[])[i]));
-  }
-  const left = a as Record<string, unknown>;
-  const right = b as Record<string, unknown>;
-  const keys = Object.keys(left);
-  if (keys.length !== Object.keys(right).length) return false;
-  return keys.every(
-    (key) => Object.prototype.hasOwnProperty.call(right, key) && sameValue(left[key], right[key]),
-  );
 }
 
 /** 只为校验用：把 set 类补丁就地打到页面上 */

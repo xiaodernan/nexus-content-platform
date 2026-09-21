@@ -3,6 +3,7 @@ export * from "./tokens";
 export * from "./nodes";
 export * from "./layout";
 export * from "./patch";
+export * from "./diff";
 export * from "./commands";
 export * from "./components";
 export * from "./serialize";
