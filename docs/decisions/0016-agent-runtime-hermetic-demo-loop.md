@@ -166,3 +166,20 @@ two fresh runs, checkpoint denial leaving the workspace byte-identical).
   real-repo findings: deterministic hybrid top, printed lexical-baseline comparison,
   duplicate research consolidated (5→4) with the probe answer surviving. Tests 62/62
   (+6: 4 embedding-seam, 2 consolidation).
+
+## Amendment 7 — v7: change-sets, reviewable patches, run ledger (`changes.ts`, `ledger.ts`), 2026-09
+- **`changes.ts`:** pure line-LCS `computeFilePatch` (budget-capped → whole-file replace on
+  huge inputs), `applyPatch` that *refuses* mismatched replays instead of corrupting,
+  `inversePatch`, `createChangeSet(before, after)` over snapshots, and `formatUnifiedDiff`
+  (git-style headers + hunk ranges + context). Round-trip identity: forward then inverse
+  reproduces both endpoints exactly.
+- **Orchestrator seam:** `RunOptions.snapshot?: () => Record<string,string>` — when the host
+  supplies it, `RunOutcome.changeSet` carries the *observed* file effects of the run
+  (nothing claimed that didn't happen; absent ⇒ zero behavior change, §60).
+- **`ledger.ts`:** append-only JSONL of full `RunOutcome`s through the injected fs —
+  order-preserving audit trail; junk lines are counted, never trusted; `last: N` tail reads.
+- **Why this instead of a git tool:** emitting a reviewable patch + human `git apply` keeps
+  ADR 0013's approval posture intact — the runtime still executes no processes and writes
+  only inside the jail (`disk.write`, checkpointed). The patch files are the handoff (§25).
+- **Proof:** `docs/evidence/agents/changes-proof.mjs` (2 runs → jailed patches, exact
+  reverts, ledger reload). Tests 74/74 (+12).

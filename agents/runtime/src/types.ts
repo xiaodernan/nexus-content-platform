@@ -85,4 +85,6 @@ export interface RunOutcome {
   results: ToolResult[];
   events: AgentEvent[];
   status: TaskStatus;
+  /** v7: present when the host supplied a workspace snapshot fn; observed file effects. */
+  changeSet?: import('./changes.js').ChangeSet;
 }

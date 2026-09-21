@@ -1,4 +1,4 @@
-# M2 evidence — @nexus/agent-runtime (v0 loop · v1 index · v2 memory · v3 durability · v4 snapshots · v5 provider · v6 hybrid recall)
+# M2 evidence — @nexus/agent-runtime (v0 loop → v7 change-sets: index, memory, durability, snapshots, provider, hybrid recall, patches+ledger)
 
 All checks are headless, offline, key-free, and reproducible from the repo root. Nothing here
 claims model-quality planning or neural retrieval (§60): the planner is a deterministic
@@ -8,7 +8,7 @@ every emitted artifact (`provenance.mode = "demo"`).
 ## Reproducible gates
 
 ```
-npm test          # turbo: @nexus/agent-runtime 62/62 vitest among all packages
+npm test          # turbo: @nexus/agent-runtime 74/74 vitest among all packages
 npm run build     # tsc dist for agents/runtime (build order via ^build deps)
 node docs/evidence/agents/agent-proof.mjs
 node docs/evidence/agents/code-index-proof.mjs   # requires `npm run build` first
@@ -17,6 +17,7 @@ node docs/evidence/agents/durability-proof.mjs   # requires `npm run build` firs
 node docs/evidence/agents/index-store-proof.mjs  # requires `npm run build` first
 node docs/evidence/agents/provider-proof.mjs     # requires `npm run build` first
 node docs/evidence/agents/recall-proof.mjs       # requires `npm run build` first
+node docs/evidence/agents/changes-proof.mjs      # requires `npm run build` first
 ```
 
 ## Unit tests (vitest, `agents/runtime/test`)
@@ -25,11 +26,13 @@ node docs/evidence/agents/recall-proof.mjs       # requires `npm run build` firs
 | ---- | ------ |
 | `registry.test.ts` (7) | arg validation (missing/unknown/type), unknown tool, checkpoint required for write/exec, deny ⇒ implementation never runs, approve ⇒ runs, impl throw ⇒ `ok:false` (never rejects), double-register refused |
 | `workspace.test.ts` (4) | sorted/prefix listing, case-insensitive 1-based `search`, append/missing-file throw, registry wiring incl. gated `fs.write` |
-| `agent.test.ts` (9) | stopword-aware keyword, plan determinism + seed stamp, golden path event order + `@search.hits.0.path` dataflow + note in file, denial leaves file untouched, failing verify → 1 fix round → pass, persistent failure → `failed_verification` after `maxFixRounds`, `maxSteps` → `budget_exhausted`, planner routes step 0 through `fs.index` when registered, warm memory outranks the index (`memory.recall` first) |
+| `agent.test.ts` (10) | stopword-aware keyword, plan determinism + seed stamp, golden path event order + `@search.hits.0.path` dataflow + note in file, denial leaves file untouched, failing verify → 1 fix round → pass, persistent failure → `failed_verification` after `maxFixRounds`, `maxSteps` → `budget_exhausted`, planner routes step 0 through `fs.index` when registered, warm memory outranks the index (`memory.recall` first), snapshot hook yields an observed changeSet (absent without hook) |
 | `codeIndex.test.ts` (7) | extension → kind, TS symbol + markdown heading extraction, heading-section vs 40-line-window chunking, sorted file entries + coverage, hybrid query ranks the relevant chunk first and is deterministic, symbol query finds its file, empty index → no hits |
 | `realfs.test.ts` (4) | extension/skip filtering with sorted slash keys, custom skipDirs + maxFiles cap, maxBytes drop, deterministic output independent of walk order — all against a fake fs (no host disk touched) |
 | `memory.test.ts` (8) | save/list/recall scoping, deterministic tie-broken recall bounded by k, forget/clear counts, clone-in/clone-out immutability, registry round-trip with `"path:startLine"` refs, denied `memory.save` leaves memory empty + arg validation; v6 `compact()`: ≥50% ref-overlap merges within scope (listed, idempotent), cross-scope isolation |
 | `embedding.test.ts` (4) | tokenizer rules, zero-shared-tokens ⇒ score exactly 0, more shared tokens ⇒ strictly higher, unit-length embeddings |
+| `changes.test.ts` (8) | LCS patch round-trip forward/inverse, no-op patch, create/remove all-add/all-del, mismatched input refuses, sorted changed-paths change set, unified-diff headers/hunk ranges/context, whole-snapshot round-trip through patches |
+| `ledger.test.ts` (3) | RunOutcome JSONL round-trip + junk rejection with reasons, append-only growth with parent mkdir, order + malformed counting + `last` tail trim + missing-file empty read |
 | `durability.test.ts` (8) | memory serialize/deserialize round-trip + version/schema rejection, `restore()` id high-water mark, save/load through an injected writable fake disk, corrupt-file honest failure, `guardedJoin` jail (absolute/`..`/drive-letter rejection, backslash folding), `disk.write` checkpoint gate + escape touches nothing, `disk.read`/`disk.list` confinement |
 | `indexStore.test.ts` (11) | index snapshot serialize→deserialize verbatim + version/chunk schema rejection, save/load via injected fs, cold rescan equals `buildIndex`, unchanged files reuse chunks / edits rechunk exactly the changed paths / removals drop out, query ranking snapshot-independent; v5 provider: cold-first-build equals plain build, incremental refresh 0 re-chunked, edited file sole re-chunk, cross-provider snapshot restore, corrupt-snapshot fallback + repair, `fs.index` provider/default parity |
 
@@ -114,6 +117,16 @@ index embed and score tokens") recalls the right record with identical results a
 the printed comparison shows the hybrid top against the lexical-only baseline. `compact()`
 then merges the duplicate-research records (`mem-5→mem-1`, 5→4) — every merge listed, and
 the probe's answer survives consolidation unchanged.
+
+## Changes + ledger proof (`changes-proof.mjs`, M2 v7)
+
+Two agent runs over a mini workspace produce observed change-sets (orchestrator `snapshot`
+hook → `createChangeSet`). Each renders as a git-style unified diff (`--- a/… @@ -2,3 +2,4
+@@`), lands in the jailed patches dir through checkpoint-gated `disk.write`, and reverts
+exactly under `applyPatch(after, inversePatch(f))`. Full `RunOutcome`s append to a JSONL
+ledger that a fresh reader reloads in order (`malformed: 0`, `last: 1` trims to newest).
+This is the honest substitute for a "git commit tool": the runtime emits reviewable
+patches; applying them stays a human/git action outside it (§60, ADR 0013 pending).
 
 ## Scope honesty
 

@@ -64,5 +64,24 @@ export {
   type PersistedIndex,
   type RescanResult,
 } from './indexStore.js';
+export {
+  applyPatch,
+  computeFilePatch,
+  createChangeSet,
+  formatUnifiedDiff,
+  inversePatch,
+  type ChangeSet,
+  type FilePatch,
+  type LineOp,
+  type OpType,
+} from './changes.js';
+export {
+  appendLedger,
+  formatLedgerLine,
+  loadLedger,
+  parseLedgerLine,
+  type LedgerLine,
+  type LedgerRead,
+} from './ledger.js';
 export { planTask, goalKeyword, type PlannerOptions } from './planner.js';
 export { runTask, type RunOptions } from './orchestrator.js';

@@ -1,3 +1,4 @@
+import { createChangeSet } from './changes.js';
 import type { Checkpoint, ToolRegistry } from './registry.js';
 import { planTask } from './planner.js';
 import type {
@@ -18,6 +19,8 @@ export interface RunOptions {
   checkpoint?: Checkpoint;
   maxSteps?: number;
   maxFixRounds?: number;
+  /** v7: workspace snapshot hook; when given, the outcome carries an observed ChangeSet. */
+  snapshot?: () => Record<string, string>;
 }
 
 const PROVENANCE: Provenance = { mode: 'demo', runtime: 'nexus-agent-runtime', version: '0.1.0' };
@@ -44,6 +47,12 @@ export async function runTask(task: AgentTask, opts: RunOptions): Promise<RunOut
   const events: AgentEvent[] = [];
   const results: ToolResult[] = [];
   const byStep = new Map<string, ToolResult>();
+  const beforeSnapshot = opts.snapshot?.();
+  const finishRun = (status: TaskStatus): RunOutcome => {
+    const out = finish(task, plan, results, events, status);
+    if (opts.snapshot && beforeSnapshot) out.changeSet = createChangeSet(task.id, beforeSnapshot, opts.snapshot());
+    return out;
+  };
   let at = 0;
   let stepsUsed = 0;
   const emit = (e: AgentEventBody): void => {
@@ -85,7 +94,7 @@ export async function runTask(task: AgentTask, opts: RunOptions): Promise<RunOut
     if (stepsUsed >= maxSteps) {
       emit({ type: 'budget_exhausted', stepsUsed });
       emit({ type: 'done', status: 'budget_exhausted' });
-      return finish(task, plan, results, events, 'budget_exhausted');
+      return finishRun( 'budget_exhausted');
     }
     const res = await invoke(step);
     if (!res.ok) {
@@ -93,7 +102,7 @@ export async function runTask(task: AgentTask, opts: RunOptions): Promise<RunOut
       emit({ type: 'checkpoint', stepId: step.stepId, tool: step.tool, granted: false });
       const status: TaskStatus = denied ? 'denied' : 'failed_verification';
       emit({ type: 'done', status });
-      return finish(task, plan, results, events, status);
+      return finishRun( status);
     }
     if (step.stepId !== 'verify') continue;
     const verdict = res.output as { ok?: boolean; detail?: string };
@@ -120,16 +129,16 @@ export async function runTask(task: AgentTask, opts: RunOptions): Promise<RunOut
       emit({ type: 'verify', ok: v2.ok === true, detail: String(v2.detail ?? '') });
       if (again.ok && v2.ok === true) {
         emit({ type: 'done', status: 'completed' });
-        return finish(task, plan, results, events, 'completed');
+        return finishRun( 'completed');
       }
     }
     if (verdict.ok !== true) {
       emit({ type: 'done', status: 'failed_verification' });
-      return finish(task, plan, results, events, 'failed_verification');
+      return finishRun( 'failed_verification');
     }
   }
   emit({ type: 'done', status: 'completed' });
-  return finish(task, plan, results, events, 'completed');
+  return finishRun( 'completed');
 }
 
 function finish(

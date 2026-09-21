@@ -125,4 +125,17 @@ describe('orchestrator: gates and failures are honest', () => {
     expect((out.results[0]!.output as { hits: { path: string }[] }).hits[0]!.path).toBe('docs/a.md');
     expect(ws.read('docs/a.md')).toContain('NOTE (DEMO MODE');
   });
+
+  it('attaches an observed changeSet when the host supplies a snapshot hook', async () => {
+    const h = harness(noteTest);
+    const out = await runTask(h.task, { registry: h.registry, checkpoint: h.checkpoint, snapshot: () => h.ws.snapshot() });
+    expect(out.status).toBe('completed');
+    expect(out.changeSet).toBeDefined();
+    expect(out.changeSet!.runId).toBe('t1');
+    expect(out.changeSet!.files.map((f) => f.path)).toEqual(['docs/a.md']);
+    expect(out.changeSet!.files[0]!.removed).toBe(0);
+    expect(out.changeSet!.files[0]!.added).toBeGreaterThan(0);
+    const outNoSnap = await runTask(h.task, { registry: h.registry, checkpoint: h.checkpoint });
+    expect(outNoSnap.changeSet).toBeUndefined();
+  });
 });

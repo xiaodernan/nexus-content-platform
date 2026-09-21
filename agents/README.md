@@ -24,8 +24,13 @@
   the out-of-the-box behavior). v6 extracts the shared `embedding.ts` seam (`hybridScore`:
   token-bag cosine + coverage, zero-overlap ⇒ 0) used by BOTH index queries and memory
   recall, and adds `MemoryStore.compact()` (listed, idempotent, ≥50% ref-overlap merges).
-  Proof: `agents/runtime/test` (vitest 62/62) plus six headless proofs in
-  `docs/evidence/agents/` (agent, code-index, memory, durability, index-store, provider, recall).
+  v7 adds `changes.ts` (pure line-LCS patches, refusing `applyPatch`, exact inverses,
+  git-style `formatUnifiedDiff`), an orchestrator `snapshot` hook that records observed
+  `RunOutcome.changeSet`s, and `ledger.ts` (append-only JSONL audit trail) — agent output now
+  ships as reviewable patch files written to the jail, the honest stand-in for a git tool.
+  Proof: `agents/runtime/test` (vitest 74/74) plus the eight headless proofs in
+  `docs/evidence/agents/` (agent, code-index, memory, durability, index-store, provider,
+  recall, changes).
 
 Still placeholder (§24): the multi-agent Registry (roster/handoff). Long-term memory (§26) is
 now durable across processes (v3: schema-versioned JSON via the injected fs + jail-rooted

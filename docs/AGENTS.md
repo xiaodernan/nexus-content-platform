@@ -25,7 +25,9 @@ checkpoint-gated), and v4 persisted index snapshots (`saveIndex/loadIndex` + fin
 through `createIndexProvider` (0 re-chunk on unchanged repos; default behavior untouched).
 v6 unifies retrieval scoring: one shared `hybridScore` seam drives both index queries and
 memory recall (zero token overlap ⇒ exactly 0), plus listed, idempotent memory
-`compact()` consolidation. Driven by a deterministic DEMO-MODE planner.
+`compact()` consolidation; v7 turns runs into §25-grade handoffs: pure change-sets with
+exact inverse patches, git-style unified diffs persisted through the jailed `disk.write`,
+and an append-only JSONL run ledger. Driven by a deterministic DEMO-MODE planner.
 Remaining scaffolds: the multi-agent Registry (§24),
 true vector-store recall (§63/ADR 0012), general exec/browser/git tools (land with the
 ADR 0013 sandbox); the full runtime matures across M2/M6.
