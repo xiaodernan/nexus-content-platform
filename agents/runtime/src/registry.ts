@@ -16,6 +16,13 @@ export interface InvokeOptions {
 
 export const DANGEROUS: PermissionClass[] = ['write', 'exec', 'network'];
 
+/** Exact name or trailing-glob match (`fs.*` covers `fs.read`; `*` covers everything). */
+export function matchesTool(pattern: string, name: string): boolean {
+  if (pattern === '*') return true;
+  if (pattern.endsWith('.*')) return name.startsWith(pattern.slice(0, -1));
+  return pattern === name;
+}
+
 function typeOf(value: unknown): ArgType | null {
   if (typeof value === 'string') return 'string';
   if (typeof value === 'number') return 'number';
@@ -64,6 +71,20 @@ export class ToolRegistry {
 
   list(): ToolSpec[] {
     return [...this.tools.values()].map((t) => t.spec);
+  }
+
+  /**
+   * v8 (§24 role capability scoping): a read-only projection containing only tools whose
+   * names match one of `allowed` (exact or trailing glob). The child never mutates the
+   * parent; invoking an excluded tool returns `unknown tool`, not a permission error —
+   * capabilities are absent, not merely denied.
+   */
+  scope(allowed: string[]): ToolRegistry {
+    const projected = new ToolRegistry();
+    for (const [name, entry] of this.tools) {
+      if (allowed.some((p) => matchesTool(p, name))) projected.register(entry.spec, entry.impl);
+    }
+    return projected;
   }
 
   async invoke(call: ToolCall, opts: InvokeOptions = {}): Promise<ToolResult> {

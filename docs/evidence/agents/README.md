@@ -8,7 +8,7 @@ every emitted artifact (`provenance.mode = "demo"`).
 ## Reproducible gates
 
 ```
-npm test          # turbo: @nexus/agent-runtime 74/74 vitest among all packages
+npm test          # turbo: @nexus/agent-runtime 86/86 vitest among all packages
 npm run build     # tsc dist for agents/runtime (build order via ^build deps)
 node docs/evidence/agents/agent-proof.mjs
 node docs/evidence/agents/code-index-proof.mjs   # requires `npm run build` first
@@ -18,6 +18,7 @@ node docs/evidence/agents/index-store-proof.mjs  # requires `npm run build` firs
 node docs/evidence/agents/provider-proof.mjs     # requires `npm run build` first
 node docs/evidence/agents/recall-proof.mjs       # requires `npm run build` first
 node docs/evidence/agents/changes-proof.mjs      # requires `npm run build` first
+node docs/evidence/agents/roles-proof.mjs        # requires `npm run build` first
 ```
 
 ## Unit tests (vitest, `agents/runtime/test`)
@@ -33,6 +34,8 @@ node docs/evidence/agents/changes-proof.mjs      # requires `npm run build` firs
 | `embedding.test.ts` (4) | tokenizer rules, zero-shared-tokens ⇒ score exactly 0, more shared tokens ⇒ strictly higher, unit-length embeddings |
 | `changes.test.ts` (8) | LCS patch round-trip forward/inverse, no-op patch, create/remove all-add/all-del, mismatched input refuses, sorted changed-paths change set, unified-diff headers/hunk ranges/context, whole-snapshot round-trip through patches |
 | `ledger.test.ts` (3) | RunOutcome JSONL round-trip + junk rejection with reasons, append-only growth with parent mkdir, order + malformed counting + `last` tail trim + missing-file empty read |
+| `roles.test.ts` (7) | `matchesTool` glob semantics, scope projection exposes/excludes (unknown ≠ denied), child copy can't mutate parent, role register unique + sorted list + ghost role ⇒ empty, researcher-vs-editor write behavior, plan tier follows role capabilities, capability gap fails honestly leaving files untouched |
+| `evaluate.test.ts` (5) | clean run scores 1 with named marks, failures degrade by weight (deterministic), last verify decides, change-economy budget option, append/reload order + corrupt-file reasons |
 | `durability.test.ts` (8) | memory serialize/deserialize round-trip + version/schema rejection, `restore()` id high-water mark, save/load through an injected writable fake disk, corrupt-file honest failure, `guardedJoin` jail (absolute/`..`/drive-letter rejection, backslash folding), `disk.write` checkpoint gate + escape touches nothing, `disk.read`/`disk.list` confinement |
 | `indexStore.test.ts` (11) | index snapshot serialize→deserialize verbatim + version/chunk schema rejection, save/load via injected fs, cold rescan equals `buildIndex`, unchanged files reuse chunks / edits rechunk exactly the changed paths / removals drop out, query ranking snapshot-independent; v5 provider: cold-first-build equals plain build, incremental refresh 0 re-chunked, edited file sole re-chunk, cross-provider snapshot restore, corrupt-snapshot fallback + repair, `fs.index` provider/default parity |
 
@@ -127,6 +130,15 @@ exactly under `applyPatch(after, inversePatch(f))`. Full `RunOutcome`s append to
 ledger that a fresh reader reloads in order (`malformed: 0`, `last: 1` trims to newest).
 This is the honest substitute for a "git commit tool": the runtime emits reviewable
 patches; applying them stays a human/git action outside it (§60, ADR 0013 pending).
+
+## Roles + evaluation proof (`roles-proof.mjs`, M2 v8)
+
+One host registry, two §24 role projections, the same task: the `researcher` (no write
+capabilities) fails with `unknown tool "fs.append"` *even with an approving checkpoint* —
+capabilities are absent, not denied — while the `editor` completes and scores 1.00 on the
+five-mark rubric. The weaker run scores 0.20 on the identical rubric; both evaluations
+reload from JSONL in order. Rubric output is pure data over the RunOutcome — deterministic
+by construction, no model judging a model (§60).
 
 ## Scope honesty
 

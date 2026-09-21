@@ -28,9 +28,12 @@
   git-style `formatUnifiedDiff`), an orchestrator `snapshot` hook that records observed
   `RunOutcome.changeSet`s, and `ledger.ts` (append-only JSONL audit trail) — agent output now
   ships as reviewable patch files written to the jail, the honest stand-in for a git tool.
-  Proof: `agents/runtime/test` (vitest 74/74) plus the eight headless proofs in
+  v8 opens §24: `roles.ts` (role = data: allowed-tool globs → `registry.scope` projections,
+  capability-by-absence) with three demo roles, and `evaluate.ts` (`scoreRun`: five
+  weighted deterministic rubric marks over RunOutcome data + JSONL persistence).
+  Proof: `agents/runtime/test` (vitest 86/86) plus the nine headless proofs in
   `docs/evidence/agents/` (agent, code-index, memory, durability, index-store, provider,
-  recall, changes).
+  recall, changes, roles).
 
 Still placeholder (§24): the multi-agent Registry (roster/handoff). Long-term memory (§26) is
 now durable across processes (v3: schema-versioned JSON via the injected fs + jail-rooted

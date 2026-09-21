@@ -183,3 +183,22 @@ two fresh runs, checkpoint denial leaving the workspace byte-identical).
   only inside the jail (`disk.write`, checkpointed). The patch files are the handoff (§25).
 - **Proof:** `docs/evidence/agents/changes-proof.mjs` (2 runs → jailed patches, exact
   reverts, ledger reload). Tests 74/74 (+12).
+
+## Amendment 8 — v8: role registry (§24) + deterministic run evaluation (§63), 2026-09
+- **`registry.scope(allowed)` + `matchesTool`:** glob-aware projections (`*`, `fs.*`, exact).
+  Excluded tools answer `unknown tool` — capability-by-absence rather than permission
+  errors, so a role can't even probe what it shouldn't have. A scope is a copy; children
+  never mutate the parent registry.
+- **`roles.ts`:** `RoleDefinition` is plain data (id/name/description/allowedTools) in a
+  `RoleRegistry`; `scopedRegistry(roleId, host)` resolves a role's whole world. Ships three
+  `DEMO_ROLES` (researcher / editor / archivist). The planner needs no change: it already
+  picks its research tier from `registry.has(...)`, so a scoped registry honestly changes
+  the plan. Unknown role ⇒ empty scope ⇒ honest failure, never a silent widening.
+- **`evaluate.ts`:** `scoreRun` — five weighted deterministic checks over RunOutcome data
+  (completed 0.4, all-steps-ok 0.15, final-verify 0.25, ≤1 fix round 0.1, change-economy
+  ≤40 added lines 0.1), each mark carrying the plain `detail` that decided it. Appended to
+  its own JSONL through the injected fs; reload keeps order.
+- **Why rubric-not-LLM (§60):** an LLM judge here would be pretending; every score is
+  reproducible from the logged data alone, and the proof demonstrates role strength
+  changing the score (1.00 vs 0.20) on an identical task.
+- **Proof:** `docs/evidence/agents/roles-proof.mjs`. Tests 86/86 (+12).

@@ -27,7 +27,10 @@ v6 unifies retrieval scoring: one shared `hybridScore` seam drives both index qu
 memory recall (zero token overlap ⇒ exactly 0), plus listed, idempotent memory
 `compact()` consolidation; v7 turns runs into §25-grade handoffs: pure change-sets with
 exact inverse patches, git-style unified diffs persisted through the jailed `disk.write`,
-and an append-only JSONL run ledger. Driven by a deterministic DEMO-MODE planner.
-Remaining scaffolds: the multi-agent Registry (§24),
+and an append-only JSONL run ledger; v8 starts §24 — roles as data (`RoleRegistry` +
+`registry.scope` capability projections where missing tools are *unknown*, not denied) and
+§63 evaluation (`scoreRun`'s five weighted deterministic rubric marks, persisted as JSONL).
+Driven by a deterministic DEMO-MODE planner.
+Remaining scaffolds: the multi-agent Registry's roster/handoff beyond demo roles (§24),
 true vector-store recall (§63/ADR 0012), general exec/browser/git tools (land with the
 ADR 0013 sandbox); the full runtime matures across M2/M6.

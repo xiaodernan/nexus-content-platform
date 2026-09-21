@@ -12,7 +12,18 @@ export {
   type IndexChunk,
   type QueryHit,
 } from './codeIndex.js';
-export { ToolRegistry, DANGEROUS, type Checkpoint, type CheckpointRequest, type ToolImpl, type InvokeOptions } from './registry.js';
+export { ToolRegistry, DANGEROUS, matchesTool, type Checkpoint, type CheckpointRequest, type ToolImpl, type InvokeOptions } from './registry.js';
+export { RoleRegistry, DEMO_ROLES, type RoleDefinition } from './roles.js';
+export {
+  appendEvaluation,
+  formatEvaluationLine,
+  loadEvaluations,
+  scoreRun,
+  type EvalLoad,
+  type EvaluationMark,
+  type RubricOptions,
+  type RunEvaluation,
+} from './evaluate.js';
 export {
   InMemoryWorkspace,
   WORKSPACE_TOOL_SPECS,
