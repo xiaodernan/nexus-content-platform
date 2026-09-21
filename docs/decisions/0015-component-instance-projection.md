@@ -74,3 +74,14 @@ step 8) and leaves a single source of truth — the authored `componentId` + `ov
 - (−) Masters stored under the root (in `pageIds`-adjacent storage) rather than a dedicated library
   field is a small semantic wart; the type-based filtering that makes it safe is centralized, and a
   first-class `library` container is deferred with the `setActivePage` op.
+
+## Amendment — 2026-09-22 (follow-up increment, no decision change)
+The first tradeoff above ("cannot yet edit per-instance text from the Properties panel") is now
+resolved without touching the Decision: selecting an instance renders an *Instance overrides* section
+(`InstanceOverrides.tsx`) that walks the projected clones, keys each field by its **master** child id,
+and calls `setInstanceOverride` (store) — which merges `width`/`height`/`visible` into `overrides[mid]`
+and text into `overrides.text[mid]` and commits a single `updateNode(instance, { overrides })` op. This
+rides the exact projection contract already defined here (overrides apply by master id to clones only,
+never the master or siblings) and the existing reversible-op path — so no new op type, no schema change,
+and no rebuild. What stays deferred from this ADR is nested-instance *sub-selection* (drill-in past a
+nested instance); Detach remains the escape hatch for those internals.

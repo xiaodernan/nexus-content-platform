@@ -23,6 +23,7 @@ import {
   type DesignNode,
   type DiffSummary,
   type InstanceMeta,
+  type InstanceNode,
   type Op,
   type OpBatch,
   type Point,
@@ -122,6 +123,11 @@ interface StudioState {
   createComponent: () => void;
   insertInstance: (componentId: string) => void;
   detachInstance: () => void;
+  setInstanceOverride: (
+    instanceId: string,
+    masterId: string,
+    patch: { width?: number; height?: number; visible?: boolean; characters?: string },
+  ) => void;
 
   setInteraction: (i: Interaction) => void;
   setLiveGeom: (g: Record<string, LiveGeom>) => void;
@@ -519,6 +525,21 @@ export const useStudio = create<StudioState>((set, get) => ({
       `Detach ${inst.name}`,
     );
     set({ selection: [groupId] });
+  },
+
+  setInstanceOverride: (instanceId, masterId, patch) => {
+    const { doc } = get();
+    const n = doc.nodes[instanceId];
+    if (!n || n.type !== 'instance') return;
+    const next: InstanceNode['overrides'] = { ...n.overrides };
+    const geom: { width?: number; height?: number; visible?: boolean } = { ...(next[masterId] ?? {}) };
+    let touched = false;
+    if (patch.width !== undefined) { geom.width = Math.round(Math.max(1, patch.width)); touched = true; }
+    if (patch.height !== undefined) { geom.height = Math.round(Math.max(1, patch.height)); touched = true; }
+    if (patch.visible !== undefined) { geom.visible = patch.visible; touched = true; }
+    if (touched) next[masterId] = geom;
+    if (patch.characters !== undefined) next.text = { ...(next.text ?? {}), [masterId]: patch.characters };
+    get().commitOps([ops.updateNode(instanceId, { overrides: next })], 'Set instance override');
   },
 
   setInteraction: (i) => set({ interaction: i }),

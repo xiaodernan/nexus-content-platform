@@ -24,9 +24,13 @@ component (master stored off-page, never painted on a page) and drops an instanc
 instances that share the master; *Detach* converts an instance back into editable layers. Instances
 are materialized by a pure **view-time projection** (`expandComponentInstances`) — the canonical
 model stores only `componentId` + `overrides`, and clicking any part of an instance selects the whole
-unit (clone hits collapse to the owner via `meta`).
-**Deferred:** rotate handles, per-instance override editing from the Properties panel and
-nested-instance sub-selection (detach is the current escape hatch), on-canvas comments, code-layer
+unit (clone hits collapse to the owner via `meta`). Selecting an instance surfaces an **Instance
+overrides** section in the Properties panel (`InstanceOverrides.tsx`): editing a leaf's text or width
+there calls `setInstanceOverride`, which merges keyed by the *master* child id into that instance's
+`overrides` (geometry and text kept in separate maps) and commits one reversible op — the change
+re-projects onto that instance's clones only, never the master or sibling instances.
+**Deferred:** rotate handles, nested-instance sub-selection (drill-in past a nested instance — detach
+is the escape hatch for those), on-canvas comments, code-layer
 bidirectional sync (§9), live agent edits streaming, undoable page switching (needs a `setActivePage`
 op, ADR 0014).
 

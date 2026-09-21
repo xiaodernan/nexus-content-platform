@@ -14,7 +14,7 @@ Live list. Nothing here is hidden behind marketing copy.
   AI-diff and local export (JSON / standalone HTML / canvas PNG) are all functional. This
   pass adds **on-canvas text editing, magnetic snapping + smart guides, multi-page
   add/switch, local-first persistence with a History/Snapshots panel** (ADR 0014), and
-  **component → instance authoring** (create/insert/detach, ADR 0015).
+  **component → instance authoring** (create/insert/detach + per-instance text/width overrides, ADR 0015).
 - "Publish" in the slice means **local export** only. Hosted public URLs `/n/{user}/{project}`,
   accounts, and SEO (SSR/OpenGraph) land with M7/community + the `nexus-api` service.
 - Persistence is **local-first `localStorage`** (whole-model snapshot, debounced save, hydrate
@@ -27,11 +27,14 @@ Live list. Nothing here is hidden behind marketing copy.
   ops, and masks are deferred.
 - **Components & instances (ADR 0015) work end-to-end** but are intentionally *atomic at the
   selection layer*: an instance materializes through a pure view-time projection
-  (`expandComponentInstances`), clicking any part selects the whole instance, and there is **no
-  per-instance override editing in the Properties panel yet** (edit the master, or *Detach* the
-  instance to get concrete layers). Live instance→master sync on master edits *is* present (the
-  projection is derived); nested-instance sub-selection and a dedicated off-page "library"
-  container are the next steps.
+  (`expandComponentInstances`) and clicking any part selects the whole instance. **Per-instance
+  override editing is now present** — selecting an instance shows an *Instance overrides* section in
+  the Properties panel that edits a leaf's text/width via `setInstanceOverride` (merged by master id
+  into that instance's `overrides`, one reversible op, applied to its clones only, never the master or
+  sibling instances). Live instance→master sync on master edits *is* present (the projection is
+  derived). Remaining gaps: nested-instance sub-selection (drill-in past a nested instance — *Detach*
+  is the escape hatch there), override editing beyond text/width, and a dedicated off-page "library"
+  container.
 - Drag snapping aligns a selection's edges/centers to sibling + page anchors within a 6px
   (screen) threshold and renders guide lines; resize snaps the dragged edge. **Explicit
   alignment (left/center/right/top/middle/bottom) and equal-gap distribution (≥3 nodes) are

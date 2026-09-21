@@ -1,7 +1,8 @@
 'use client';
-import { hexToRgba, rgbaToCss, resolveToken, type DesignNode, type Paint } from '@nexus/design-model';
+import { hexToRgba, rgbaToCss, resolveToken, type DesignNode, type InstanceNode, type Paint } from '@nexus/design-model';
 import { useStudio } from '@/lib/store';
 import { DiffCard } from '@/components/DiffCard';
+import InstanceOverrides from '@/components/InstanceOverrides';
 
 function NumberField({ label, value, onCommit, min = -100000, max = 100000, step = 1 }: { label: string; value: number; onCommit: (n: number) => void; min?: number; max?: number; step?: number }) {
   return (
@@ -152,7 +153,14 @@ export default function PropertiesPanel() {
           Use a tool in the top bar to add shapes, or type a prompt below to generate a design in DEMO MODE.
         </div>
       )}
-      {selection.length === 1 && doc.nodes[selection[0]!] && <NodeEditor node={doc.nodes[selection[0]!]!} />}
+      {selection.length === 1 && doc.nodes[selection[0]!] && (
+        <>
+          <NodeEditor node={doc.nodes[selection[0]!]!} />
+          {doc.nodes[selection[0]!]!.type === 'instance' && (
+            <InstanceOverrides instance={doc.nodes[selection[0]!]! as InstanceNode} />
+          )}
+        </>
+      )}
       {selection.length > 1 && (
         <div style={{ padding: 16, fontSize: 13, color: 'var(--nexus-muted)' }}>
           {selection.length} layers selected.

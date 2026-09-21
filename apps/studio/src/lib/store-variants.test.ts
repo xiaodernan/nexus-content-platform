@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it } from 'vitest';
+import type { InstanceNode } from '@nexus/design-model';
 import { instanceView, useStudio } from './store';
 
 const st = () => useStudio.getState();
@@ -84,5 +85,48 @@ describe('store: detach instance', () => {
     expect(count('instance')).toBe(1);
     expect(count('group')).toBe(0);
     expect(st().doc.nodes[compId]).toBeTruthy();
+  });
+});
+
+describe('store: instance overrides', () => {
+  function madeOneComponent() {
+    st().newProject();
+    st().addShape('rectangle', { x: 100, y: 100 });
+    const a = st().selection[0]!;
+    st().addShape('text', { x: 100, y: 240 });
+    const textId = st().selection[0]!;
+    st().setEditing(null);
+    st().select([a, textId]);
+    st().createComponent();
+    const instId = st().selection[0]!;
+    return { a, textId, instId };
+  }
+  const inst = (id: string) => st().doc.nodes[id] as InstanceNode;
+
+  it('a width override changes the projected clone, not the master', () => {
+    const { a, instId } = madeOneComponent();
+    st().setInstanceOverride(instId, a, { width: 300 });
+    const { doc: view } = instanceView(st().doc);
+    expect(view.nodes[`${instId}::${a}`]!.width).toBe(300);
+    expect(inst(instId).overrides[a]!.width).toBe(300);
+    expect(st().doc.nodes[a]!.width).toBe(160); // master untouched
+  });
+
+  it('merges a later visible override without dropping the width key', () => {
+    const { a, instId } = madeOneComponent();
+    st().setInstanceOverride(instId, a, { width: 250 });
+    st().setInstanceOverride(instId, a, { visible: false });
+    expect(inst(instId).overrides[a]).toEqual({ width: 250, visible: false });
+  });
+
+  it('a text override lands in the text map and reverses on undo', () => {
+    const { a, textId, instId } = madeOneComponent();
+    st().setInstanceOverride(instId, textId, { characters: 'Hello' });
+    expect(inst(instId).overrides.text?.[textId]).toBe('Hello');
+    const { doc: view } = instanceView(st().doc);
+    expect((view.nodes[`${instId}::${textId}`] as { characters?: string }).characters).toBe('Hello');
+    st().undo();
+    expect(inst(instId).overrides[a]).toBeUndefined();
+    expect(inst(instId).overrides.text?.[textId]).toBeUndefined();
   });
 });

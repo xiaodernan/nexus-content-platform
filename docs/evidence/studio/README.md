@@ -13,7 +13,7 @@ npm run build lint typecheck test     # via turbo, 10/10 tasks pass
 | ------------------ | ------ |
 | @nexus/design-model| 19/19 vitest (`design-model` 11 + `instances` 8), tsc clean |
 | @nexus/ai-providers| 7/7 vitest, tsc clean |
-| @nexus/studio      | 26/26 vitest (`snap` + `persist` + `align` + `store-variants`) · tsc `--noEmit` clean · eslint `--max-warnings=0` clean · `next build` ✓ (4/4 static pages) |
+| @nexus/studio      | 29/29 vitest (`snap` + `persist` + `align` + `store-variants`) · tsc `--noEmit` clean · eslint `--max-warnings=0` clean · `next build` ✓ (4/4 static pages) |
 
 ## Headless pipeline proof
 
@@ -85,11 +85,16 @@ Two layers of evidence:
   leave the master; nested instances expand one level; a component **cycle** terminates with the
   guarded instance childless; `ownerInstanceId` maps every clone to its top-level owner; a doc with
   no instances is returned with node object **identity preserved**.
-- **Store action tests** (`store-variants.test.ts`, 4) drive the real zustand store headless:
+- **Store action tests** (`store-variants.test.ts`, 7) drive the real zustand store headless:
   *create component* wraps the selection into a master + one instance and re-parents the layers;
   *undo/redo* restores the two original page shapes exactly (lossless); *insert instance* gives a
   second, disjoint materialization sharing the master; *detach* promotes the projected clones to a
-  concrete editable group while the master survives for other instances.
+  concrete editable group while the master survives for other instances. Three more cover
+  *per-instance overrides*: a `width` override re-projects onto that instance's clone
+  (`${instId}::${masterId}`) while the master keeps its authored width; a second `{ visible:false }`
+  call **merges** into the same override key without dropping the prior width; a text override lands
+  in the `overrides.text` map, applies to the projected clone, and `undo()` restores an empty
+  override — all reversible through the same op path.
 
 The **Components** panel and its full golden path were driven in the running `next dev` bundle via
 DOM structure (no rAF needed): with an empty selection, *Make component* / *Detach* are disabled and
@@ -97,9 +102,12 @@ the "No components yet" hint shows; after generating a design and pressing **Ctr
 all on page), *Make component* enables; clicking it drops the hint and reveals a component row with an
 *Insert* button, and *Detach* enables (the new instance is auto-selected); *Insert* keeps the master
 listed; *Detach* disables *Detach* again (a concrete group is now selected) while the master and its
-*Insert* action survive. **No console errors** through the whole sequence. The projection itself is
-pure and headless-proven, so canvas paint (rAF, gated by the hidden viewport) is not asserted as a
-pixel screenshot (§60).
+*Insert* action survive. Selecting that instance also reveals the **Instance overrides** section in the
+Properties panel (its "stored on this instance only, not the master" hint is present); editing a leaf
+width field to a new value round-trips through `setInstanceOverride` → the memoized projection → the
+controlled input and persists in the real React bundle. **No console errors** through the whole
+sequence. The projection itself is pure and headless-proven, so canvas paint (rAF, gated by the hidden
+viewport) is not asserted as a pixel screenshot (§60).
 
 ## Model-derived visual artifacts
 
