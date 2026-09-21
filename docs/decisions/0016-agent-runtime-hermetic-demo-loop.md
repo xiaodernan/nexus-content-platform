@@ -118,3 +118,18 @@ two fresh runs, checkpoint denial leaving the workspace byte-identical).
   corrupt JSON fails honestly. Tests 45/45 (8 new durability cases).
 - **Tradeoffs:** the code index remains per-call in-memory (persisting a serializable index is
   the obvious v4 candidate); recall stays lexical; writes are text-only and single-root.
+
+## Amendment 4 — v4: persisted index snapshots + incremental rescan (`indexStore.ts`), 2026-09
+- **What landed:** `serializeIndex/deserializeIndex` (schemaVersion + structural validation of
+  file entries and chunks — reasons, never throws) and `saveIndex/loadIndex` over the same
+  injected `FsWriteLike`; `fingerprintFiles` (per-file `hashString` over path+content) enables
+  `rescanIndex(previous, previousFp, files)`: unchanged files reuse their stored entry+chunks,
+  changed/new files re-chunk, removals drop out, and the result **deep-equals a cold
+  `buildIndex`** so snapshot use can never silently change query ranking. `rechunked` is
+  returned, not hidden — the host can see exactly what the incremental path did (§60).
+- **Measured (this repo, 129 files):** unchanged rescan ~3 ms re-chunking 0 files; one-file
+  edit re-chunks exactly 1 and lands in ~4 ms vs full cold rebuild of 129.
+- **Deliberate limit:** `fs.index` still rebuilds per call; snapshots are a host-side layer
+  (proof persists through `saveIndex` directly). Provider-injection into the tool loop is the
+  first v5 candidate, stated in the evidence README rather than half-wired now.
+- **Proof:** `docs/evidence/agents/index-store-proof.mjs` + 6 unit tests → 51/51.

@@ -1,4 +1,4 @@
-# M2 evidence — @nexus/agent-runtime (v0 loop · v1 index · v2 memory · v3 durability)
+# M2 evidence — @nexus/agent-runtime (v0 loop · v1 index · v2 memory · v3 durability · v4 snapshots)
 
 All checks are headless, offline, key-free, and reproducible from the repo root. Nothing here
 claims model-quality planning or neural retrieval (§60): the planner is a deterministic
@@ -8,12 +8,13 @@ every emitted artifact (`provenance.mode = "demo"`).
 ## Reproducible gates
 
 ```
-npm test          # turbo: @nexus/agent-runtime 45/45 vitest among all packages
+npm test          # turbo: @nexus/agent-runtime 51/51 vitest among all packages
 npm run build     # tsc dist for agents/runtime (build order via ^build deps)
 node docs/evidence/agents/agent-proof.mjs
 node docs/evidence/agents/code-index-proof.mjs   # requires `npm run build` first
 node docs/evidence/agents/memory-proof.mjs       # requires `npm run build` first
 node docs/evidence/agents/durability-proof.mjs   # requires `npm run build` first
+node docs/evidence/agents/index-store-proof.mjs  # requires `npm run build` first
 ```
 
 ## Unit tests (vitest, `agents/runtime/test`)
@@ -27,6 +28,7 @@ node docs/evidence/agents/durability-proof.mjs   # requires `npm run build` firs
 | `realfs.test.ts` (4) | extension/skip filtering with sorted slash keys, custom skipDirs + maxFiles cap, maxBytes drop, deterministic output independent of walk order — all against a fake fs (no host disk touched) |
 | `memory.test.ts` (6) | save/list/recall scoping, deterministic tie-broken recall bounded by k, forget/clear counts, clone-in/clone-out immutability, registry round-trip with `"path:startLine"` refs, denied `memory.save` leaves memory empty + arg validation |
 | `durability.test.ts` (8) | memory serialize/deserialize round-trip + version/schema rejection, `restore()` id high-water mark, save/load through an injected writable fake disk, corrupt-file honest failure, `guardedJoin` jail (absolute/`..`/drive-letter rejection, backslash folding), `disk.write` checkpoint gate + escape touches nothing, `disk.read`/`disk.list` confinement |
+| `indexStore.test.ts` (6) | index snapshot serialize→deserialize verbatim + version/chunk schema rejection, save/load via injected fs, cold rescan equals `buildIndex`, unchanged files reuse chunks / edits rechunk exactly the changed paths / removals drop out, query ranking snapshot-independent |
 
 ## Headless proof (`agent-proof.mjs`) against the built `dist/`
 
@@ -81,12 +83,23 @@ genuine cross-process durability, not an in-memory illusion. Two negative contro
 `../../nexus-escape.txt` is refused and provably never created, and a corrupted JSON file
 returns `{ok:false, reason:'not valid JSON'}` instead of half-loading.
 
+## Index snapshot proof (`index-store-proof.mjs`, M2 v4)
+
+Cold-builds the real repo's index (129 files), serializes it via `saveIndex` through
+`node:fs` into a jailed temp root, and reloads with a cold `loadIndex`: the index is
+byte-identical and `queryIndex` rankings deep-equal. Incremental `rescanIndex` with
+fingerprints: unchanged repo rescan re-chunks **0 files in ~3 ms**; a one-file edit
+re-chunks exactly that file and the result deep-equals a full cold rebuild (which would
+re-chunk all 129); the edited file's new symbol is queryable immediately. Corrupting the
+snapshot file yields `{ok:false, reason:'not valid JSON'}` — no half-load.
+
 ## Scope honesty
 
 §63/§26 items *not* implemented (stated, not faked): general real-fs write tools (only
 `disk.write` inside an explicit jail root, always checkpoint-gated), process execution,
-persisted code index (rebuilt per `fs.index` call), browser automation, visual QA, git
-commit, live-model planning, multi-agent registry. The `test.run` verification is a
-host-injected predicate — it verifies what the host checks. Memory recall is lexical
-(`lexicalScore` over query+summary), a stand-in for the pgvector hybrid retrieval of
-ADR 0012.
+**automatic snapshot reuse inside `fs.index`** (snapshots are a host-side layer; the tool
+still rebuilds per call — wiring the provider into the tool loop is v5 candidate #1),
+browser automation, visual QA, git commit, live-model planning, multi-agent registry. The
+`test.run` verification is a host-injected predicate — it verifies what the host checks.
+Memory recall is lexical (`lexicalScore` over query+summary), a stand-in for the pgvector
+hybrid retrieval of ADR 0012.

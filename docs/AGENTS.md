@@ -20,7 +20,8 @@ Human-Checkpoint gating and an in-memory workspace, a deterministic hybrid **cod
 ingestion (`collectTextFiles`, injected fs), §26 memory (scoped, inspectable, deletable; recall
 is the planner's top research tier) and v3 durability: schema-versioned memory save/load plus the
 first **jailed** real-disk tools (`disk.read/write/list`, `guardedJoin` root jail, writes
-checkpoint-gated). Driven by a deterministic DEMO-MODE planner.
-Remaining scaffolds: the multi-agent Registry (§24), vector-backed recall + persisted index
-(§63/ADR 0012), general exec/browser/git tools (land with the
+checkpoint-gated), and v4 persisted index snapshots (`saveIndex/loadIndex` + fingerprint
+`rescanIndex` that provably equals a cold rebuild). Driven by a deterministic DEMO-MODE planner.
+Remaining scaffolds: the multi-agent Registry (§24), snapshot reuse inside `fs.index`,
+vector-backed recall (§63/ADR 0012), general exec/browser/git tools (land with the
 ADR 0013 sandbox); the full runtime matures across M2/M6.

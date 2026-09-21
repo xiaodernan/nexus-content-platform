@@ -104,10 +104,13 @@ Live list. Nothing here is hidden behind marketing copy.
   the loop, permission-gated registry, hermetic workspace tools, hybrid code index (`fs.index`),
   read-only real-directory ingestion, §26 memory (scoped/inspectable/deletable) and v3
   durability: schema-versioned memory JSON + the first real-disk tools `disk.read/write/list`,
-  each confined to one host-chosen root by `guardedJoin` with checkpoint-gated writes. It is
+  each confined to one host-chosen root by `guardedJoin` with checkpoint-gated writes; v4 adds
+  persisted index snapshots with fingerprint rescan (incremental output provably equals a cold
+  rebuild). It is
   still *not* a general coding agent: no process execution, browser, git, or out-of-jail disk
   access — those §63 duties stay unimplemented until ADR 0013's exec sandbox exists. Known
-  limits, stated not hidden (§60): the code index is rebuilt per call (not persisted), recall is
+  limits, stated not hidden (§60): `fs.index` still rebuilds per call (snapshots are a
+  host-side layer until v5 wires the provider), recall is
   lexical, the jail is a path check + human gate rather than container isolation, and the
   template planner fails honestly (`failed_verification`) when both memory and the index are
   absent.

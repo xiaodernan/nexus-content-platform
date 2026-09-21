@@ -41,5 +41,18 @@ export {
   type FsWriteLike,
   type LoadResult,
 } from './durability.js';
+export {
+  INDEX_SCHEMA_VERSION,
+  deserializeIndex,
+  fingerprintFiles,
+  loadIndex,
+  rescanIndex,
+  saveIndex,
+  serializeIndex,
+  type Fingerprints,
+  type IndexLoad,
+  type PersistedIndex,
+  type RescanResult,
+} from './indexStore.js';
 export { planTask, goalKeyword, type PlannerOptions } from './planner.js';
 export { runTask, type RunOptions } from './orchestrator.js';

@@ -15,11 +15,14 @@
   research priority memory → index → line search). v3 adds `src/durability.ts`: schema-versioned
   memory serialization, `saveMemory`/`loadMemoryStore` through an injected writable fs, and the
   first jailed real-disk tools `disk.read/write/list` — every path confined to one host-chosen
-  root by `guardedJoin`, writes checkpoint-gated.
-  Proof: `agents/runtime/test` (vitest 45/45), `node docs/evidence/agents/agent-proof.mjs`
+  root by `guardedJoin`, writes checkpoint-gated. v4 adds `src/indexStore.ts`: schema-versioned
+  index snapshots (`saveIndex/loadIndex`) + fingerprint incremental `rescanIndex` whose output
+  deep-equals a cold rebuild (unchanged repo: 0 files re-chunked in ~3 ms).
+  Proof: `agents/runtime/test` (vitest 51/51), `node docs/evidence/agents/agent-proof.mjs`
   (deterministic transcript + honest denial), `code-index-proof.mjs`, `memory-proof.mjs`
-  (two-run discovery→recall) and `durability-proof.mjs` (cross-process reload in a fresh
-  node child + escape/corruption controls).
+  (two-run discovery→recall), `durability-proof.mjs` (cross-process reload in a fresh
+  node child + escape/corruption controls) and `index-store-proof.mjs` (cold reload identical,
+  incremental rescan exact).
 
 Still placeholder (§24): the multi-agent Registry (roster/handoff). Long-term memory (§26) is
 now durable across processes (v3: schema-versioned JSON via the injected fs + jail-rooted
