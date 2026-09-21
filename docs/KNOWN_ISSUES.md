@@ -19,6 +19,8 @@ Live list. Nothing here is hidden behind marketing copy.
   These are deterministic SVG snapshots from `layoutPage` + token resolution — model-derived geometry,
   *not* pixel screenshots (§60), so they render even under the hidden-viewport harness.
   A **rotate handle + rotation-aware canvas rendering** (`lib/rotate.ts`) now ship too — caveats below.
+  A bottom-left **minimap** (`lib/minimap.ts` pure fit math + a small painted canvas) previews the
+  page/nodes/viewport rect; click or drag recenters the main viewport at the current zoom.
 - "Publish" in the slice means **local export** only. Hosted public URLs `/n/{user}/{project}`,
   accounts, and SEO (SSR/OpenGraph) land with M7/community + the `nexus-api` service.
 - Persistence is **local-first `localStorage`** (whole-model snapshot, debounced save, hydrate
@@ -75,3 +77,6 @@ Live list. Nothing here is hidden behind marketing copy.
 ## Tooling
 - Package manager is **npm workspaces**, not pnpm: `corepack` cannot write the global pnpm
   shim without admin rights in this environment (EPERM). Layout stays pnpm-compatible.
+- Never run `next build` while `next dev` serves the same directory: the build rewrites `.next`
+  and the live dev page silently loses its chunks (404 `main-app.js`, React handlers dead).
+  Restart dev (or clear `.next`) after any build gate.

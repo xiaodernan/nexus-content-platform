@@ -5,6 +5,7 @@ import Canvas from './Canvas';
 import PageTabs from './PageTabs';
 import AlignBar from './AlignBar';
 import LayersPanel from './LayersPanel';
+import Minimap from './Minimap';
 import PropertiesPanel from './PropertiesPanel';
 import DesignSystemPanel from './DesignSystemPanel';
 import ComponentsPanel from './ComponentsPanel';
@@ -72,6 +73,9 @@ export default function Studio() {
           <AlignBar />
           <div style={{ flex: 1, minHeight: 0, position: 'relative' }}>
             <Canvas />
+            <div style={{ position: 'absolute', left: 12, bottom: 12, zIndex: 5 }}>
+              <Minimap />
+            </div>
           </div>
           <PromptBar />
         </main>

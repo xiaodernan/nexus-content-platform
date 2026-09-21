@@ -13,7 +13,7 @@ npm run build lint typecheck test     # via turbo, 10/10 tasks pass
 | ------------------ | ------ |
 | @nexus/design-model| 19/19 vitest (`design-model` 11 + `instances` 8), tsc clean |
 | @nexus/ai-providers| 7/7 vitest, tsc clean |
-| @nexus/studio      | 49/49 vitest (`snap` + `persist` + `align` + `store-variants` + `thumbnail` + `rotate` + `render`) · tsc `--noEmit` clean · eslint `--max-warnings=0` clean · `next build` ✓ (4/4 static pages) |
+| @nexus/studio      | 56/56 vitest (`snap` + `persist` + `align` + `store-variants` + `thumbnail` + `rotate` + `render` + `minimap`) · tsc `--noEmit` clean · eslint `--max-warnings=0` clean · `next build` ✓ (4/4 static pages) |
 
 ## Headless pipeline proof
 
@@ -140,6 +140,23 @@ In the running `next dev` bundle (real React, no rAF needed): select a layer →
 **Rotation** field to 30 → Ctrl+Z returns 0 → Shift+Ctrl+Z restores 30 → **reload** → still 30
 (whole-model snapshot). **No console errors.** Per §60: the interactive grip *drag gesture* is
 proven through the pure/render/store layers, not a pixel screenshot of the hidden canvas.
+
+### Minimap (viewport overview + click-to-recenter)
+
+`lib/minimap.ts` is pure geometry, covered by 7 headless unit tests: `fitPage` scales a page into a
+padded box touching exactly one axis and centring the slack on the other; `projectRect`/
+`unprojectPoint` round-trip at rect centres; `viewportWorldRect` inverts the viewport transform
+(`{x:100,y:50,zoom:2}` + 800×600 → world `(-50,-25,400,300)`); `intersectRects` clips the visible
+region to the page; `viewportCenteredAt` re-centres at constant zoom. The `Minimap` component paints
+page + node tiles + the clipped viewport rect in a plain `useEffect` (no rAF), so it renders even
+under the hidden-viewport harness.
+
+Real-browser proof (no rAF needed): the minimap canvas exists (200×150) over the generated
+dashboard; a synthetic `pointerdown`+`pointermove` drag over it changes the minimap's own painted
+pixels (`getImageData` hash moves during the drag, stable after `pointerup`) — i.e. the handler →
+`setViewport` → repaint loop is live end to end. **No app console errors.** Caveat found while
+verifying: running `next build` while `next dev` serves the same directory 404s the dev server's
+chunks (React event handlers silently stop) — dev must be restarted afterwards (§60 honesty note).
 
 ## Model-derived visual artifacts
 

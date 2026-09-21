@@ -21,7 +21,10 @@ positioned DOM overlay that commits one reversible op; the model stays canonical
 layer reordering, add/duplicate/delete nodes, select-all (Cmd/Ctrl+A), **multi-page add/switch with
 per-page layout isolation**, **local-first persistence** (whole-model snapshot → `localStorage`,
 hydrate on load), a **History/Snapshots panel** (mirror log; each row's diff is the AI-diff, restore
-drives undo/redo), undo/redo, and prompt→generate.
+drives undo/redo), undo/redo, and prompt→generate. A bottom-left **minimap** projects the page, its
+visible nodes (frames as outlines, leaves as tiles) and the current viewport rect (`lib/minimap.ts`
+pure fit/invert math); clicking or dragging it recenters the viewport through the existing
+`setViewport` state at the unchanged zoom.
 **Components & instances (ADR 0015):** the **Components** panel turns selected layers into a
 component (master stored off-page, never painted on a page) and drops an instance; *Insert* adds more
 instances that share the master; *Detach* converts an instance back into editable layers. Instances
