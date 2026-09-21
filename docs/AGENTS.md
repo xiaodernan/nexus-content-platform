@@ -13,8 +13,11 @@ permission-controlled.
 `OpBatch` objects (ADR 0006) that the reducer validates. In DEMO MODE the "agent" is the
 deterministic heuristic composer — same interface, real ops, no pretending (§60).
 
-Status: **M2 v0 has landed** — `agents/runtime` (`@nexus/agent-runtime`, ADR 0016) implements the
+Status: **M2 v0+v1 have landed** — `agents/runtime` (`@nexus/agent-runtime`, ADR 0016) implements the
 orchestrator loop, Task/Plan/ToolCall handoff contracts, the permission-scoped Tool Registry with
-Human-Checkpoint gating and an in-memory workspace, driven by a deterministic DEMO-MODE planner.
-Remaining scaffolds: the multi-agent Registry (§24), memory (§26), real fs/exec/browser/git tools
-(land with the ADR 0013 sandbox); the full runtime matures across M2/M6.
+Human-Checkpoint gating and an in-memory workspace, and (v1) a deterministic hybrid **code index**
+(`fs.index`: chunking + symbol extraction + token-bag hash embeddings) that the planner uses for
+repo understanding (§63). Driven by a deterministic DEMO-MODE planner.
+Remaining scaffolds: the multi-agent Registry (§24), memory (§26), persisted/vector-store-backed
+retrieval, real fs/exec/browser/git tools (land with the ADR 0013 sandbox); the full runtime
+matures across M2/M6.

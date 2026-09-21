@@ -90,4 +90,15 @@ describe('orchestrator: gates and failures are honest', () => {
     expect(out.status).toBe('budget_exhausted');
     expect(out.events.at(-2)).toMatchObject({ type: 'budget_exhausted', stepsUsed: 3 });
   });
+
+  it('plans the research step through fs.index when it is registered', async () => {
+    const ws = new InMemoryWorkspace({ 'docs/a.md': SEED_DOC });
+    const registry = registerWorkspaceTools(new ToolRegistry(), ws);
+    registry.register({ name: 'test.run', description: '', permissions: ['exec'], args: [] }, () => noteTest(ws));
+    const out = await runTask({ id: 't2', goal: 'add widget docs' }, { registry, checkpoint: () => true });
+    expect(out.plan.steps[0]!.tool).toBe('fs.index');
+    expect(out.status).toBe('completed');
+    expect((out.results[0]!.output as { hits: { path: string }[] }).hits[0]!.path).toBe('docs/a.md');
+    expect(ws.read('docs/a.md')).toContain('NOTE (DEMO MODE');
+  });
 });

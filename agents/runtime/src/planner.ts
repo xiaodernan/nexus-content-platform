@@ -15,6 +15,8 @@ export function goalKeyword(goal: string): string {
 export interface PlannerOptions {
   /** Whether a `test.run` verification tool is registered (host decides). */
   hasVerify: boolean;
+  /** Whether the hybrid `fs.index` tool is registered; without it, plain line search. */
+  hasIndex?: boolean;
   seed?: number;
 }
 
@@ -29,7 +31,9 @@ export function planTask(task: AgentTask, opts: PlannerOptions): Plan {
   const target = task.targetPath ?? '@search.hits.0.path';
   const note = `NOTE (DEMO MODE · agent ${task.id} · seed ${seed}): goal "${task.goal}"`;
   const steps: Step[] = [
-    { stepId: 'search', tool: 'fs.search', args: { term }, rationale: `locate content matching "${term}"` },
+    opts.hasIndex
+      ? { stepId: 'search', tool: 'fs.index', args: { query: task.goal }, rationale: 'hybrid index query for the goal' }
+      : { stepId: 'search', tool: 'fs.search', args: { term }, rationale: `locate content matching "${term}"` },
     { stepId: 'read', tool: 'fs.read', args: { path: target }, rationale: 'inspect the target file' },
     { stepId: 'annotate', tool: 'fs.append', args: { path: target, text: note }, rationale: 'record that the goal was addressed' },
   ];

@@ -1,8 +1,9 @@
-// NEXUS M2 v0 — agent-runtime proof-of-work (§32/§60, ADR 0016).
+// NEXUS M2 v0/v1 — agent-runtime proof-of-work (§32/§60, ADR 0016).
 // Runs headlessly against the BUILT packages (no browser, no network, no AI keys).
 // Proves: deterministic plan -> registry-gated acts -> observed dataflow ->
-// bounded auto-fix -> honest denial without a checkpoint. Run from the repo root:
-//   node docs/evidence/agents/agent-proof.mjs
+// bounded auto-fix -> honest denial without a checkpoint. Since v1 the research step
+// routes through the hybrid code index (fs.index) when it is registered. Run from the
+// repo root:  node docs/evidence/agents/agent-proof.mjs
 import assert from 'node:assert/strict';
 import { pathToFileURL } from 'node:url';
 
@@ -41,8 +42,9 @@ assert.ok(h.ws.read('docs/widget.md').includes('NOTE (DEMO MODE · agent proof-1
 assert.ok(h.ws.read('docs/widget.md').includes('FIX (DEMO MODE · attempt 1)'), 'fix written');
 assert.ok(h.seenPermissions.includes('fs.append:write') && h.seenPermissions.includes('test.run:exec'), 'gates visited');
 
-// 2) Observed dataflow: the read/annotate targets came from the live search hit.
-const searchResult = out.results.find((r) => r.tool === 'fs.search');
+// 2) Observed dataflow: the read/annotate targets came from the live index hit.
+assert.equal(out.plan.steps[0].tool, 'fs.index', 'v1 planner uses the code index when registered');
+const searchResult = out.results.find((r) => r.tool === 'fs.index');
 assert.equal(searchResult.output.hits[0].path, 'docs/widget.md');
 assert.ok(out.results.every((r) => r.ok), 'all invocations succeeded');
 

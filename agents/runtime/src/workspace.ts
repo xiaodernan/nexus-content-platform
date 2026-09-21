@@ -1,3 +1,4 @@
+import { buildIndex, queryIndex } from './codeIndex.js';
 import type { ToolRegistry } from './registry.js';
 import type { ToolSpec } from './types.js';
 
@@ -78,6 +79,15 @@ export const WORKSPACE_TOOL_SPECS: ToolSpec[] = [
     args: [{ name: 'term', type: 'string', required: true }],
   },
   {
+    name: 'fs.index',
+    description: 'Hybrid code-index query over the workspace (chunk-level top hits).',
+    permissions: ['read'],
+    args: [
+      { name: 'query', type: 'string', required: true },
+      { name: 'topK', type: 'number' },
+    ],
+  },
+  {
     name: 'fs.write',
     description: 'Create or overwrite a file.',
     permissions: ['write'],
@@ -107,6 +117,8 @@ export function registerWorkspaceTools(registry: ToolRegistry, ws: InMemoryWorks
           return { content: ws.read(String(args.path)) };
         case 'fs.search':
           return { hits: ws.search(String(args.term)) };
+        case 'fs.index':
+          return { hits: queryIndex(buildIndex(ws.snapshot()), String(args.query), args.topK === undefined ? 5 : Number(args.topK)) };
         case 'fs.write':
           ws.write(String(args.path), String(args.content));
           return { path: String(args.path), bytes: String(args.content).length };
