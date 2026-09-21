@@ -45,7 +45,38 @@ if (!lineText?.includes(`"${ctaId}"`)) {
   throw new Error(`代码高亮行不是选中节点：${lineText ?? '无'}`);
 }
 await page.screenshot({ path: `${out}code.png` });
+
+// §19 Code → Design：改一个类名，应用，看回写报告是否如实说明改了什么
+await page.click('[data-code-edit]');
+await page.waitForSelector('[data-code-editor]', { timeout: 30_000 });
+const editor = page.locator('[data-code-editor]');
+const original = await editor.inputValue();
+if (!original.includes('text-[56px]')) throw new Error('代码编辑器里没有预期的字号类名');
+await editor.fill(original.replace('text-[56px]', 'text-[40px]'));
+await page.click('[data-code-apply]');
+await page.waitForSelector('[data-code-report]', { timeout: 30_000 });
+const reportText = await page.textContent('[data-code-report]');
+if (!reportText?.includes('typography.fontSize')) {
+  throw new Error(`回写报告没有说明改了什么：${reportText ?? '无'}`);
+}
+await page.screenshot({ path: `${out}code-applied.png` });
+
+// 撤销代码回写：一次应用 = 一个可撤销事务（§149）
 await page.click('[data-view="canvas"]');
+await page.waitForSelector('[data-canvas-frame] [data-node-id]', { timeout: 30_000 });
+const headlineFontSize = (): Promise<string> =>
+  page.evaluate(() => {
+    const hit = [...document.querySelectorAll('[data-canvas-frame] [data-node-type="text"]')].find(
+      (el) => el.textContent?.includes('从一句话到一个可发布的产品'),
+    );
+    return hit ? getComputedStyle(hit).fontSize : '';
+  });
+const applied = await headlineFontSize();
+if (applied !== '40px') throw new Error(`代码回写没有反映到画布：${applied || '找不到标题节点'}`);
+await page.keyboard.press('Control+z');
+await page.waitForTimeout(400);
+const undone = await headlineFontSize();
+if (undone !== '56px') throw new Error(`撤销代码回写失败：${undone || '找不到标题节点'}`);
 
 await page.click('[data-viewport="mobile"]');
 await page.waitForTimeout(400);

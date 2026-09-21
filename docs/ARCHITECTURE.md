@@ -66,7 +66,8 @@ DEMO 路径不在 ai-service 里：确定性 Mock 需要 design model 才能产�
    尺寸是否重算）仍只在 web 做，因为它才持有 design model。
 5. **Provider 可替换**（§76-79）：`LLMProvider / ImageProvider / VideoProvider / EmbeddingProvider / SpeechProvider`
    五个抽象接口 + Model Router；任何业务代码不得直接 import 具体 SDK。
-6. **不可逆代码保留**：Code→Design 无法安全映射时，节点标记 `codeOnly` 区域，编辑仍可视，但不回写设计模型（§19）。
+6. **不可逆代码保留**：Code→Design 无法安全映射的片段不回写设计模型（§19）——结构性改动只在代码视图里
+   如实报告，模型侧的原文区域用 `code` 节点（`node.code.content`）按字面承载，生成与解析都原样透传。
 
 ## Design ↔ Code 双通道
 
@@ -81,8 +82,14 @@ AI 只负责"改设计"（产出 design patch），不直接产出整页代码�
 `styles/tokens.css`（token → `var(--nx-*)`，含 `[data-theme]` mode 块）+ 每页一个 `.tsx` + 页面索引。
 尺寸语义按父容器轴向映射（flex 主轴 fill→`flex-1`、交叉轴→`self-stretch`、hug→无类），
 `mode=none/stack` 的子节点用 `absolute left/top`，与画布共用同一份模型几何。
-Studio 的 代码 视图（`apps/web/src/studio/CodePanel.tsx`）只读展示并定位选中节点所在行。
-**Code → Design 未实现**：代码视图因此标为只读，不做假的可编辑回写。
+Studio 的 代码 视图（`apps/web/src/studio/CodePanel.tsx`）展示投影并定位选中节点所在行。
+**Code → Design 已落地（M1）**：`packages/design-model/src/code-parse.ts` 自带一个不依赖 React/TS 编译器的
+受限 JSX 扫描器，只接受生成器自己产出的那一类元素，把类名反解成同一份模型属性，产出**仅含 `set` 的补丁**，
+经 `studio.execute('代码编辑', ops)` 作为单个可撤销事务写回模型。三条不妥协的边界：
+①结构性变更（加/删节点、改标签、重排、改父级）不回写，如实报告并留在代码里；
+②每个识别结果都要能被重投影复现（`checked` 类名逐条核对），核对不过就放弃该节点的回写而不是半改；
+③吃不下的片段一律进 `unmapped`/`issues` 清单显示给用户（§159），界面不假装可改。
+关键验收是往返恒等：`codeToPageOps(generatePage(page), page)` 必须零补丁、零 unmapped（单测覆盖）。
 
 ## 运行时与预览（§81-83）
 

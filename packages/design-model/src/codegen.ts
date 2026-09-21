@@ -34,7 +34,8 @@ export interface CodegenOptions {
 }
 
 const HEADER =
-  "// 由 NEXUS 从设计模型生成。要改设计请回到 Studio；直接改代码会被下一次生成覆盖（§19）\n";
+  "// 由 NEXUS 从设计模型生成。页面组件可以在 Studio 的代码视图里改，应用后写回模型；" +
+  "解析不了的片段会在下一次生成时被模型覆盖（§19）\n";
 
 const BREAKPOINT_CLASS: Record<BreakpointName, string> = {
   mobile: "",

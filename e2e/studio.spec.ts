@@ -121,7 +121,7 @@ test('@smoke studio slice: mobile viewport reflows the same model', async ({ pag
   await expect(page.locator('[data-node-type="button"]').first()).toHaveCSS('color', 'rgb(255, 255, 255)');
 });
 
-test('@smoke studio slice: code view is a projection of the same model', async ({ page }) => {
+test('@smoke studio slice: code view is an editable projection of the same model', async ({ page }) => {
   test.setTimeout(90_000);
   const errors: string[] = [];
   page.on('console', (m) => {
@@ -131,6 +131,7 @@ test('@smoke studio slice: code view is a projection of the same model', async (
 
   await createProject(page, `代码 ${Date.now().toString(36)}`);
   const ctaId = await layerId(page, 'Primary CTA');
+  const headlineId = await layerId(page, 'Headline');
   await page.click(`[data-node-id="${ctaId}"]`);
   await page.click('[data-view="code"]');
 
@@ -138,8 +139,36 @@ test('@smoke studio slice: code view is a projection of the same model', async (
   await expect(page.locator('[data-code-line="selected"]')).toContainText(ctaId);
   // token 走 CSS 变量引用，不把值烤死（§12）
   await expect(page.locator('[data-code-view]')).toContainText('var(--nx-color-primary)');
-  // 编辑回写要等 JSX 解析器：视图必须如实说明只读（§19/§159）
-  await expect(page.locator('[data-code-hint]')).toContainText('只读投影');
+  // 视图说明自己可以反向回写，同时讲清楚哪些改动回不去（§19）
+  await expect(page.locator('[data-code-hint]')).toContainText('写回模型');
+
+  // Code → Design：改类名，应用后画布与检查器立即跟着模型走（§19）
+  await page.click('[data-code-edit]');
+  const editor = page.locator('[data-code-editor]');
+  await expect(editor).toBeVisible();
+  const original = await editor.inputValue();
+  await editor.fill(original.replace('text-[56px]', 'text-[40px]'));
+  await page.click('[data-code-apply]');
+  await expect(page.locator('[data-code-report-applied]')).toContainText('Headline → typography.fontSize');
+  await expect(page.locator('[data-code-view]')).toContainText('text-[40px]');
+
+  await page.click('[data-view="canvas"]');
+  await page.click(`[data-node-id="${headlineId}"]`);
+  await expect(page.locator('[data-prop="typography.fontSize"]')).toHaveValue('40');
+  // 一次应用 = 一个可撤销事务（§149）
+  await page.getByTitle('撤销（Ctrl+Z）').click();
+  await expect(page.locator('[data-prop="typography.fontSize"]')).toHaveValue('56');
+
+  // 结构性改动不回写：如实报告，代码里保留用户写的那一段（§19/§159）
+  await page.click('[data-view="code"]');
+  await page.click('[data-code-edit]');
+  const withExtra = (await editor.inputValue()).replace(
+    '<section',
+    '<aside className="w-fit">临时插进来的元素</aside>\n      <section',
+  );
+  await editor.fill(withExtra);
+  await page.click('[data-code-apply]');
+  await expect(page.locator('[data-code-report-issues]')).toContainText('code-only');
   expect(errors).toEqual([]);
 });
 
