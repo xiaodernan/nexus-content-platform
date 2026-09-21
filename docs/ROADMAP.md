@@ -36,8 +36,22 @@ Create Project → Prompt → AI Design → Canvas → Layers → Properties
 - [ ] Design Agent：意图 → Plan → design patch → 画布更新 → AI Diff 说明（§20/25/151）
 - [x] Design → Code（React + TS + Tailwind，`packages/design-model/src/codegen.ts` + Studio 代码视图）
 - [x] Code → Design（受限 JSX 解析，不可逆区域保留为 code-only，§17-19，`packages/design-model/src/code-parse.ts`）
-- [ ] Snapshot / Version History / Branch / 多方案比较（§27-29，现有历史面板仅本地会话内）
+- [x] Snapshot 服务端：列表 / 创建 / 恢复，恢复自身留下一条历史（§27/§108）
+- [ ] Version History 的 Compare（两份快照并排）/ Branch / 多方案比较（§27-29）
 - [ ] 免注册首次体验（§137）→ 注册保存；Publish + 分享 URL（§56-57）
+
+**M1 进度记录（2026-09-22，Snapshot 服务端）**：§27/§108 的"用户项目历史"落到 `snapshots` 表：
+`apps/web/src/server/domain/snapshots.ts`（list / create / read / restore）+
+`/api/projects/[id]/snapshots[/…/restore]` 三条路由（归属先过 `projectBelongsTo`，跨项目读一律 404）。
+快照存整份 `DesignDocument`，所以恢复 = 原样写回而不是回放补丁；恢复前服务端先把当前状态存成
+"恢复前自动保存"，恢复动作自己再留一条"恢复到「X」"——恢复永远不丢东西，也不假装没发生过。
+历史面板底部新增快照区（命名创建 + 两步确认恢复），并如实说明恢复会清空本地撤销栈；
+客户端恢复前先 `flushSave() + save()`，避免把未落库的编辑静默丢掉。
+验证：`npm test` 150（含 5 条真实数据库快照集成测试）、`npm run test:e2e:smoke` 8 @smoke
+（新增"创建 → 编辑 → 恢复 → 刷新仍是恢复值"）、截图脚本 `history-snapshot.png` / `history-restored.png` 人眼确认。
+踩到的坑：`restore` 用 `JSON.stringify` 判断"当前是否等于目标"会误判——jsonb 不保留对象键顺序，
+`loadDocument` 重建的文档键顺序是代码里的字面顺序，快照里那份是 Postgres 重排后的顺序，
+于是每次恢复都多写一条无用快照；改为键顺序无关、且忽略 `undefined` 字段的比较（`stableKey`）。
 
 **M1 进度记录（2026-09-22）**：Studio 工作台竖向切片已验证——
 `npm test` 86 tests、`npm run test:e2e:smoke` 6 @smoke（`playwright.config.ts` 已固定 `workers: 1`）、
@@ -126,7 +140,10 @@ Studio 顶栏下新增 画布/代码 切换（`CodePanel`），选中的元素�
   运行时 TokenStore 能解析，类型层面在说谎。需要把这三处放宽为 `number | TokenKey` 并在 validate/layout 统一解析。
 - ESLint 目前只有 `npm run lint` = typecheck 的占位配置，缺真实规则集。
 - 资产（image/video paint）尚未渲染：`render.ts` 明确跳过，等任务 #9 的资产服务落地。
-- 历史面板只在浏览器会话内可撤销，刷新即失；服务端 Snapshot 属于任务 #8。
+- 历史面板的 Ctrl+Z 只在浏览器会话内，刷新即失；服务端快照已经能创建/恢复（§27），
+  但 Compare（两份快照并排）与 Branch（§28）还没有接口。
+- `loadDocument` 不恢复 `document.activeMode` 与 `metadata.modes`（库里没有对应列）：
+  主题模式在保存-重载后会退回默认值，快照恢复同样带不回它。要加列 + 迁移才能修。
 - 代码投影（`codegen.ts`）与画布一样只覆盖几何/样式/文字：`typography.runs`、`animation`、`interactions`、
   `states`、`bindings` 都还没实现——渲染层也没有，所以两边一致地缺失，不是生成器单独偷懒。
 - 生成的页面组件之间没有共享组件抽取：`component`/`instance` 节点会被展开成内联子树，

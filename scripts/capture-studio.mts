@@ -90,6 +90,61 @@ if (!diffText.includes('typography.fontSize')) {
 await page.screenshot({ path: `${out}history-diff.png` });
 await page.click('[data-panel-tab="layers"]');
 
+// §27 / §108 服务端快照：创建 → 继续改 → 恢复，整圈必须真的走数据库
+await page.click('[data-panel-tab="history"]');
+await page.fill('[data-snapshot-input]', '截图基线');
+await page.click('[data-snapshot-create]');
+const baseline = page.locator('[data-snapshot-item]:has-text("截图基线")');
+await baseline.waitFor({ state: 'visible', timeout: 30_000 });
+await page.screenshot({ path: `${out}history-snapshot.png` });
+
+const headlineId = await page.evaluate(() => {
+  const hits = [...document.querySelectorAll('[data-canvas-frame] [data-node-type="text"]')].filter(
+    (el) => el.textContent?.includes('从一句话到一个可发布的产品'),
+  );
+  return hits.length ? hits[hits.length - 1]!.getAttribute('data-node-id') : null;
+});
+if (!headlineId) throw new Error('找不到标题节点，无法验证快照恢复');
+await page.click('[data-view="canvas"]');
+await page.click(`[data-node-id="${headlineId}"]`);
+await page.fill('[data-prop="typography.fontSize"]', '30');
+await page.waitForFunction(() => {
+  const el = [...document.querySelectorAll('[data-canvas-frame] [data-node-id]')].find(
+    (node) => node.textContent?.includes('从一句话到一个可发布的产品'),
+  );
+  return !!el && getComputedStyle(el).fontSize === '30px';
+}, undefined, { timeout: 30_000 });
+// 等自动保存落库：否则服务端看到的"当前状态"还是旧的，恢复就不会留下安全快照
+await page.waitForFunction(
+  () => document.querySelector('[data-save-state]')?.textContent?.includes('已保存'),
+  undefined,
+  { timeout: 30_000 },
+);
+
+await page.click('[data-panel-tab="history"]');
+await page.locator('[data-snapshot-item]:has-text("截图基线") [data-snapshot-restore]').click();
+await page.locator('[data-snapshot-item]:has-text("截图基线") [data-snapshot-restore]').click();
+await page.waitForFunction(
+  () => {
+    const el = [...document.querySelectorAll('[data-canvas-frame] [data-node-id]')].find(
+      (node) => node.textContent?.includes('从一句话到一个可发布的产品'),
+    );
+    return !!el && getComputedStyle(el).fontSize === '56px';
+  },
+  undefined,
+  { timeout: 30_000, polling: 300 },
+);
+// 恢复动作自己留下历史，恢复前的状态也被存下来了
+await page.locator('[data-snapshot-item]:has-text("恢复到「截图基线」")').waitFor({ state: 'visible', timeout: 30_000 });
+await page.locator('[data-snapshot-item]:has-text("恢复前自动保存")').waitFor({ state: 'visible', timeout: 30_000 });
+await page.goto(`${base}/studio/${projectId}`, { waitUntil: 'domcontentloaded' });
+await page.waitForSelector('[data-canvas-frame] [data-node-id]', { timeout: 60_000 });
+const afterReload = await headlineFontSize();
+if (afterReload !== '56px') throw new Error(`恢复没有落库：刷新后是 ${afterReload || '找不到标题节点'}`);
+await page.click('[data-panel-tab="history"]');
+await page.screenshot({ path: `${out}history-restored.png` });
+await page.click('[data-panel-tab="layers"]');
+
 await page.click('[data-viewport="mobile"]');
 await page.waitForTimeout(400);
 await page.screenshot({ path: `${out}studio-mobile.png` });

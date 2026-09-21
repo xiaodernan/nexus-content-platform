@@ -24,6 +24,7 @@ import {
   type ResolvedLayout,
 } from '@nexus/design-model';
 import type { DesignPatchPayload } from '@nexus/schemas';
+import type { SnapshotMeta } from '@/server/domain/snapshots';
 
 /**
  * Studio 客户端状态：唯一真值仍然是 DesignStore 里的 DesignDocument（§9/§16）。
@@ -62,6 +63,10 @@ export interface StudioSnapshot {
   redoLabel: string | null;
   history: readonly HistoryEntry[];
   lastEntry: HistoryEntry | null;
+  /** §27 服务端快照：与本地事务栈分开，恢复后本地栈会清空 */
+  snapshots: readonly SnapshotMeta[];
+  snapshotBusy: boolean;
+  snapshotError: string | null;
   revision: number;
   activeMode: string | null;
 }
@@ -104,6 +109,9 @@ export class StudioStore {
   private saveTimer: ReturnType<typeof setTimeout> | null = null;
   private inflight: Promise<void> | null = null;
   private loadedFor: string | null = null;
+  private snapshotList: SnapshotMeta[] = [];
+  private snapshotBusyValue = false;
+  private snapshotErrorValue: string | null = null;
 
   constructor() {
     this.design.subscribe(() => this.commit());
@@ -158,6 +166,9 @@ export class StudioStore {
       redoLabel: state.redoLabel,
       history: [...history.undo, ...history.redo.reverse()],
       lastEntry: state.lastEntry,
+      snapshots: this.snapshotList,
+      snapshotBusy: this.snapshotBusyValue,
+      snapshotError: this.snapshotErrorValue,
       revision: state.revision,
       activeMode: document.activeMode ?? null,
     };
@@ -205,6 +216,7 @@ export class StudioStore {
       this.saveStateValue = 'idle';
       this.ready = true;
       this.commit();
+      void this.refreshSnapshots();
     } catch (error) {
       this.loadError = error instanceof Error ? error.message : String(error);
       this.ready = false;
@@ -278,6 +290,106 @@ export class StudioStore {
       this.saveTimer = null;
     }
     if (this.dirty) void this.save();
+  }
+
+  // ---- 服务端快照（§27 / §108：用户项目历史，不是 git 开发历史） ----
+
+  /** 失败只记录原因，不打断编辑（§159 不静默失败） */
+  async refreshSnapshots(): Promise<void> {
+    if (!this.projectId || !this.ready) return;
+    try {
+      const res = await fetch(`/api/projects/${this.projectId}/snapshots`, { cache: 'no-store' });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const body = (await res.json()) as { snapshots?: SnapshotMeta[] };
+      this.snapshotList = body.snapshots ?? [];
+      this.snapshotErrorValue = null;
+    } catch (error) {
+      this.snapshotList = [];
+      this.snapshotErrorValue = error instanceof Error ? error.message : String(error);
+    }
+    this.commit();
+  }
+
+  /** 命名快照：先确保当前状态已落库，快照与保存状态不能分叉 */
+  async createSnapshot(label: string): Promise<SnapshotMeta | null> {
+    if (!this.projectId || !this.ready) return null;
+    this.snapshotBusyValue = true;
+    this.snapshotErrorValue = null;
+    this.commit();
+    try {
+      await this.save();
+      if (this.saveStateValue === 'error') throw new Error(this.saveError ?? '保存失败');
+      const res = await fetch(`/api/projects/${this.projectId}/snapshots`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({
+          document: this.design.getDocument(),
+          label: label.slice(0, 120),
+          source: 'manual',
+        }),
+      });
+      const body = (await res.json().catch(() => null)) as
+        | { snapshot?: SnapshotMeta; issues?: string[] }
+        | null;
+      if (!res.ok || !body?.snapshot) throw new Error(body?.issues?.join('；') ?? `HTTP ${res.status}`);
+      await this.refreshSnapshots();
+      return body.snapshot;
+    } catch (error) {
+      this.snapshotErrorValue = error instanceof Error ? error.message : String(error);
+      return null;
+    } finally {
+      this.snapshotBusyValue = false;
+      this.commit();
+    }
+  }
+
+  /**
+   * 恢复：服务端先把当前状态存成快照，再用目标文档覆盖项目。
+   * 本地撤销栈随之清空 —— 这是恢复的语义，不假装还能 Ctrl+Z 回去。
+   */
+  async restoreSnapshot(snapshotId: string): Promise<boolean> {
+    if (!this.projectId || !this.ready) return false;
+    this.snapshotBusyValue = true;
+    this.snapshotErrorValue = null;
+    this.commit();
+    try {
+      // 先把未保存的编辑落库再恢复：否则服务端的"当前状态"是旧的，
+      // 这次点击会静默丢掉用户刚改的东西（§159 不静默丢失）
+      this.flushSave();
+      await this.save();
+      if (this.saveStateValue === 'error') throw new Error(this.saveError ?? '保存失败');
+      const res = await fetch(
+        `/api/projects/${this.projectId}/snapshots/${snapshotId}/restore`,
+        { method: 'POST' },
+      );
+      const body = (await res.json().catch(() => null)) as
+        | {
+            ok?: boolean;
+            document?: DesignDocument;
+            issues?: string[];
+            message?: string;
+            error?: string;
+          }
+        | null;
+      if (!res.ok || !body?.ok || !body.document) {
+        throw new Error(
+          body?.issues?.join('；') ?? body?.message ?? body?.error ?? `HTTP ${res.status}`,
+        );
+      }
+      this.design.reset(body.document);
+      this.selection = [];
+      this.dirty = false;
+      this.saveStateValue = 'saved';
+      this.savedAt = new Date().toISOString();
+      await this.refreshSnapshots();
+      return true;
+    } catch (error) {
+      this.snapshotErrorValue = error instanceof Error ? error.message : String(error);
+      return false;
+    } finally {
+      this.snapshotBusyValue = false;
+      this.commit();
+    }
   }
 
   // ---- 视图态 ----

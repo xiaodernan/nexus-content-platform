@@ -56,6 +56,9 @@
   e2e 断言代码视图与画布同源（选中节点 → 高亮它对应的那一行）
 - Code → Design 的双向不变量：`code-parse.test.ts` 断言 `parse(generate(page))` 零补丁零 unmapped（往返恒等），
   并逐条断言结构性改动**只报告不回写**；e2e 断言改类名 → 应用 → 画布与属性面板同步 → 一次 Ctrl+Z 全回滚
+- Snapshot 的不变量（§27/§108）：恢复必须真的改到库里（e2e 恢复后 `reload()` 仍是恢复值），
+  恢复前后各留一条快照，且"当前 == 目标"时不多写安全快照 —— `snapshots.integration.test.ts` 直接打真实 Postgres，
+  因为 jsonb 会重排对象键顺序，任何用 `JSON.stringify` 判等的实现只有在真库里才会露出来
 - 每个里程碑一次 commit 前至少跑：`npm run lint && npm test && npm run test:e2e:smoke`
 - 改了 `packages/schemas` 必须重跑 `npm run contract:export`，否则契约漂移测试会红
 - 动了 ai-service 再加：`npm run test:ai-service`（Windows 控制台建议前置 `PYTHONUTF8=1`）

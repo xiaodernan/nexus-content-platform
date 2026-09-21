@@ -59,7 +59,8 @@ DEMO 路径不在 ai-service 里：确定性 Mock 需要 design model 才能产�
 1. **设计模型不依赖渲染**：`packages/design-model` 不允许 import React/DOM/Node fs。渲染层与代码生成层各自依赖它。
 2. **AI Service 不写业务库**：它只接收上下文、返回计划与补丁；持久化由 web 完成。避免双写与权限蔓延（§73）。
 3. **所有编辑走 Command**：画布、属性面板、AI 补丁、代码回写一律通过 `Command{execute,undo,redo}`（§150），
-   一次 AI 操作是一个事务（§149）。撤销栈是唯一的历史来源，Snapshot 由事务边界生成。
+   一次 AI 操作是一个事务（§149）。本地撤销栈负责 Ctrl+Z；用户项目历史（§27/§108）是服务端 `snapshots`
+   表里的整份 `DesignDocument`，两者不是一回事：恢复快照会清空撤销栈，且恢复前后各留一条快照。
 4. **契约单点定义**：web ↔ ai-service 的报文只在 `@nexus/schemas` 里用 zod 定义；
    `npm run contract:export` 导出 `contracts/*.schema.json`，Python 侧用 `jsonschema` 做运行期校验，
    `packages/schemas/test/contract.test.ts` 保证导出文件与 zod 不漂移。补丁的**语义**校验（节点是否存在、

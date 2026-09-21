@@ -85,6 +85,51 @@ test('@smoke studio slice: select, edit a property, undo, autosave', async ({ pa
   await expect(page.locator('[data-prop="typography.fontSize"]')).toHaveValue('72');
 });
 
+/**
+ * §27 / §108：Snapshot 是用户项目历史，落在服务端，和 Ctrl+Z 的本地事务栈是两件事。
+ * 这里验的是"创建 → 继续编辑 → 恢复"整圈真的走数据库，而不是只换内存。
+ */
+test('@smoke studio slice: server snapshot is created and restored through the database', async ({ page }) => {
+  test.setTimeout(150_000);
+  const label = `基线 ${Date.now().toString(36)}`;
+  await createProject(page, `快照 ${Date.now().toString(36)}`);
+
+  await page.click('[data-panel-tab="history"]');
+  await page.fill('[data-snapshot-input]', label);
+  await page.click('[data-snapshot-create]');
+  // 创建项目时已有一条"初始版本"，手动快照接在它后面
+  await expect(page.locator('[data-snapshot-item]')).toHaveCount(2);
+  const baseline = page.locator(`[data-snapshot-item]:has-text("${label}")`);
+  await expect(baseline).toBeVisible();
+  await expect(page.locator('[data-snapshot-error]')).toHaveCount(0);
+
+  await page.click('[data-panel-tab="layers"]');
+  const headlineId = await layerId(page, 'Headline');
+  await page.click(`[data-node-id="${headlineId}"]`);
+  await page.fill('[data-prop="typography.fontSize"]', '72');
+  await expect(page.locator(`[data-node-id="${headlineId}"]`)).toHaveCSS('font-size', '72px');
+  await expect(page.locator('[data-save-state]')).toContainText('已保存', { timeout: 20_000 });
+
+  await page.click('[data-panel-tab="history"]');
+  await baseline.locator('[data-snapshot-restore]').click();
+  await baseline.locator('[data-snapshot-restore]').click();
+  await expect(page.locator('[data-node-id]')).toHaveCount(8);
+  // 恢复动作自己也是一条历史，且恢复前当前状态被存下来了
+  await expect(page.locator(`[data-snapshot-item]:has-text("恢复到「${label}」")`)).toBeVisible();
+  await expect(page.locator('[data-snapshot-item]:has-text("恢复前自动保存")')).toBeVisible();
+  // 本地撤销栈随之清空：这是恢复的语义，不假装还能 Ctrl+Z 回去
+  await expect(page.locator('[data-history-entry]')).toHaveCount(0);
+
+  await page.click('[data-panel-tab="layers"]');
+  await page.click(`[data-node-id="${headlineId}"]`);
+  await expect(page.locator('[data-prop="typography.fontSize"]')).toHaveValue('56');
+
+  await page.reload();
+  await expect(page.locator('[data-canvas-frame]')).toBeVisible({ timeout: 30_000 });
+  await page.click(`[data-node-id="${headlineId}"]`);
+  await expect(page.locator('[data-prop="typography.fontSize"]')).toHaveValue('56');
+});
+
 test('@smoke studio slice: AI command bar runs in DEMO MODE as one undoable transaction', async ({ page }) => {
   test.setTimeout(120_000);
   await createProject(page, `AI ${Date.now().toString(36)}`);
