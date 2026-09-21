@@ -1,0 +1,90 @@
+# ARCHITECTURE
+
+## 全局形态
+
+NEXUS 是 **AI-native 创作平台**：自然语言 → 设计模型 → 代码 → 可运行产物 → 发布。
+权威表达（source of truth）永远是 **Nexus Design Model**，不是 DOM、不是代码（§16）。
+
+```
+                        ┌──────────────────────────────┐
+  浏览器               │  apps/web  (Next.js 15)      │
+  ────────────────────►│  · Studio (Canvas/Layers/Props)
+                        │  · Explore / Runtime / Share │
+                        │  · Route Handlers = BFF/API  │
+                        │  · Drizzle → Postgres        │
+                        └───────┬──────────────┬───────┘
+                                │ HTTP/WS      │ design patch (JSON)
+                        ┌───────▼──────────────▼───────┐
+                        │ apps/ai-service (FastAPI)    │
+                        │ · Agent Runtime / Orchestrator│
+                        │ · Providers (LLM/Image/Video/Embed) │
+                        │ · RAG / Evaluation / Screenshot (Playwright) │
+                        └───────┬──────────────────────┘
+                                │
+        ┌───────────────┬───────┴────────┬───────────────┐
+   Postgres+pgvector   Redis         MinIO(S3)      Provider APIs
+   (领域 + 向量)     (队列/缓存/WS)  (资产/导出)      (外部，可替换)
+```
+
+M6 起增加 `apps/api`（Java Spring Boot）作为用户/项目/社区/权限/计费的**权威写入服务**，
+Next.js 退化为纯表现层并改为通过它读写。此边界现在就要在文档与模块划分上预留，见下"边界纪律"。
+
+## 目录
+
+```
+apps/
+  web/          Next.js App Router：Studio + 站点 + BFF route handlers
+  ai-service/   FastAPI：agent 编排、provider 抽象、RAG、评测、截图
+packages/
+  design-model/ @nexus/design-model：设计对象模型、布局求解、Command 事务、序列化（纯 TS，无 IO）
+  schemas/      @nexus/schemas：跨端 zod 契约（AI 请求/响应、事件、补丁操作）
+infra/
+  docker-compose.yml   postgres+pgvector / redis / minio（端口见 ENVIRONMENT.md）
+docs/           本目录；adr/ 存放决策记录
+```
+
+## 边界纪律
+
+1. **设计模型不依赖渲染**：`packages/design-model` 不允许 import React/DOM/Node fs。渲染层与代码生成层各自依赖它。
+2. **AI Service 不写业务库**：它只接收上下文、返回计划与补丁；持久化由 web 完成。避免双写与权限蔓延（§73）。
+3. **所有编辑走 Command**：画布、属性面板、AI 补丁、代码回写一律通过 `Command{execute,undo,redo}`（§150），
+   一次 AI 操作是一个事务（§149）。撤销栈是唯一的历史来源，Snapshot 由事务边界生成。
+4. **契约单点定义**：web ↔ ai-service 的报文只能用 `@nexus/schemas` 中的 zod schema 描述，两侧编译期共享。
+5. **Provider 可替换**（§76-79）：`LLMProvider / ImageProvider / VideoProvider / EmbeddingProvider / SpeechProvider`
+   五个抽象接口 + Model Router；任何业务代码不得直接 import 具体 SDK。
+6. **不可逆代码保留**：Code→Design 无法安全映射时，节点标记 `codeOnly` 区域，编辑仍可视，但不回写设计模型（§19）。
+
+## Design ↔ Code 双通道
+
+```
+Design → Code：DesignNode 树 → IR（组件/tokens/类名）→ React+TS+Tailwind（确定性模板，不靠模型自由发挥）
+Code → Design：受限 JSX 解析（自有组件与 Tailwind 白名单子集）→ DesignNode 补丁
+```
+AI 只负责"改设计"（产出 design patch），不直接产出整页代码文本；页面代码由生成器从设计模型派生。
+这样 §17 的双向闭环可验证、可 diff、可撤销。
+
+## 运行时与预览（§81-83）
+
+生成代码**绝不在主机执行**。预览路径：
+
+```
+design model → 构建产物(HTML/JS bundle) → 沙箱 iframe（独立 origin/随机子域，CSP 收紧，无 same-origin）
+                                          └ 构建在 ai-service 的临时目录内完成，超时+资源限制
+```
+M1 允许"受限渲染器"模式：预览由设计模型直读渲染，不执行用户代码；一旦引入真实代码执行，必须走 §SECURITY.md 的沙箱清单。
+
+## 数据（§92-94）
+
+Postgres 为领域库 + pgvector 为检索；Redis 做队列/缓存/限流/实时；MinIO 存资产。
+事件（§95）以 `events` 表 + Redis Stream 承载，命名 `domain.verb`（如 `design.updated`）。
+
+## 实时（§163）
+
+WebSocket（Next.js route handler 升级 / M6 后由 Java 侧承载）推送：
+`agent.plan` `agent.step` `agent.activity` `generation.progress` `build.status` `preview.status`。
+活动流只展示安全的工作状态，不暴露模型隐藏推理（§26）。
+
+## 性能分层（§146-147）
+
+100 节点：DOM 直渲；1000：虚拟化 + memo + 图层缓存；10000：scene graph + worker 布局 + 增量渲染 + 仅渲染视口。
+渲染后端预留 `CanvasRenderer`（DOM / Canvas2D / WebGL）接口，M1 用 DOM 实现，后续替换不动模型层。

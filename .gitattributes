@@ -1,0 +1,14 @@
+* text=auto eol=lf
+*.png binary
+*.jpg binary
+*.webp binary
+*.zip binary
+*.psd binary
+*.glb binary
+*.gltf binary
+*.mp4 binary
+*.wav binary
+*.ico binary
+# Windows 批处理必须保持 CRLF
+*.bat text eol=crlf
+*.cmd text eol=crlf

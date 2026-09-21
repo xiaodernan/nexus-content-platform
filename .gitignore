@@ -1,0 +1,39 @@
+# dependencies
+node_modules/
+.pnpm-store/
+.venv/
+__pycache__/
+*.py[cod]
+
+# builds
+.next/
+out/
+dist/
+build/
+*.tsbuildinfo
+.turbo/
+
+# local runtime
+.env
+.env.local
+.env.*.local
+*.pid
+.DS_Store
+
+# nexus local data
+.nexus-store/
+storage/
+screenshots/
+.playwright-profile/
+coverage/
+test-results/
+playwright-report/
+
+# editors
+.idea/
+.vscode/
+*.swp
+
+# logs
+logs/
+*.log
