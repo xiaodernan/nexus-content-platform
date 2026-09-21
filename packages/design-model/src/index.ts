@@ -33,4 +33,10 @@ export {
   type TreeNode,
 } from './selectors.js';
 export { layoutPage, hitTest, boundsOfSubtree, type AbsRect } from './geometry.js';
+export {
+  expandComponentInstances,
+  ownerInstanceId,
+  type InstanceMeta,
+  type ExpandedInstances,
+} from './instances.js';
 export { resolveToken, flattenTokens, parseDimension, colorToCss } from './tokens.js';

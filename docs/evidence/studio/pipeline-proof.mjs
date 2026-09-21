@@ -81,6 +81,41 @@ assert.ok(Object.values(revived.nodes).some((n) => n.type === 'page'), 'revived 
 const revivedLayout = layoutPage(revived, revived.activePageId);
 assert.ok(Object.keys(revivedLayout).length >= 1, 'revived doc lays out identically');
 
+// 8) Component -> instance projection (ADR 0015): two instances of one component materialize
+//    into DISJOINT clone subtrees, each mapped back to its owning instance; the master itself is
+//    never a page child and stays untouched (purity).
+const { expandComponentInstances, ownerInstanceId, componentNode, rectNode, textNode, instanceNode } = dm;
+{
+  const doc8 = createEmptyDocument('Variants Proof');
+  const page = doc8.activePageId;
+  const childIds = ['mrect', 'mtext'];
+  const comp = componentNode('Card', { id: 'comp1', width: 200, height: 80, parentId: doc8.rootId });
+  comp.childIds = childIds;
+  const mrect = rectNode('bg', { id: 'mrect', parentId: 'comp1', width: 200, height: 80 });
+  const mtext = textNode('label', 'Hello', {
+    fontFamilyToken: 'font.family.body', sizeToken: 'font.size.base', weight: 400,
+    lineHeight: 1.2, letterSpacing: 0, align: 'left',
+  }, { id: 'mtext', parentId: 'comp1', width: 200, height: 80 });
+  const i1 = instanceNode('Card A', 'comp1', { id: 'inst1', x: 20, y: 20, width: 200, height: 80 });
+  const i2 = instanceNode('Card B', 'comp1', { id: 'inst2', x: 240, y: 20, width: 200, height: 80 });
+  i2.overrides = { 'mtext': {}, text: { mtext: 'World' } };
+  const nodes = { ...doc8.nodes, comp1: comp, mrect, mtext, inst1: i1, inst2: i2 };
+  const pg = { ...nodes[page], childIds: ['inst1', 'inst2'] };
+  const doc8b = { ...doc8, nodes: { ...nodes, [page]: pg } };
+
+  const { doc: view, meta } = expandComponentInstances(doc8b);
+  const c1 = view.nodes['inst1'].childIds;
+  const c2 = view.nodes['inst2'].childIds;
+  assert.equal(c1.length, 2, 'instance 1 materializes 2 master children');
+  assert.ok(!c1.some((id) => c2.includes(id)), 'two instances materialize to DISJOINT clone ids');
+  assert.equal(view.nodes['inst2::mtext'].characters, 'World', 'text override applies to the clone, not the master');
+  assert.equal(view.nodes['mtext'].characters, 'Hello', 'master text stays untouched (purity)');
+  assert.equal(ownerInstanceId(meta, 'inst2::mrect'), 'inst2', 'a clone maps to its owning instance');
+  assert.ok(!pg.childIds.includes('comp1'), 'master is not a page child');
+  // master lives under root but is skipped by per-page layout (never painted on a page)
+  assert.ok(layoutPage(view, page)['inst1'], 'instance participates in page layout');
+}
+
 console.log(
   JSON.stringify(
     {
@@ -91,6 +126,7 @@ console.log(
       addedByCompose: diff.added.length,
       contentNodesWithLayout: ids.length,
       pagesAfterAdd: twoPageIds.length,
+      instanceProjection: '2 instances -> disjoint clones, override + purity verified',
       sampleNodeTypes: [...new Set(ids.map((i) => after.nodes[i].type))].slice(0, 8),
       usage: res.usage,
     },

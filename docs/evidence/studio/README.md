@@ -6,14 +6,14 @@ fabricated results. Where the environment limited a check, that is stated honest
 ## Reproducible gates (all green)
 
 ```
-npm run build lint typecheck test     # via turbo, 9/9 tasks pass
+npm run build lint typecheck test     # via turbo, 10/10 tasks pass
 ```
 
 | Package            | Result |
 | ------------------ | ------ |
-| @nexus/design-model| 11/11 vitest, tsc clean |
+| @nexus/design-model| 19/19 vitest (`design-model` 11 + `instances` 8), tsc clean |
 | @nexus/ai-providers| 7/7 vitest, tsc clean |
-| @nexus/studio      | 22/22 vitest (`snap.test.ts` + `persist.test.ts` + `align.test.ts`) · tsc `--noEmit` clean · eslint `--max-warnings=0` clean · `next build` ✓ (4/4 static pages, `/` = 23.4 kB) |
+| @nexus/studio      | 26/26 vitest (`snap` + `persist` + `align` + `store-variants`) · tsc `--noEmit` clean · eslint `--max-warnings=0` clean · `next build` ✓ (4/4 static pages) |
 
 ## Headless pipeline proof
 
@@ -22,7 +22,9 @@ against the **built** packages, asserting the full loop:
 
 ```
 { ok: true, mode: "demo", nodesBefore: 2, nodesAfter: 18, addedByCompose: 16,
-  contentNodesWithLayout: 16, sampleNodeTypes: ["frame","text","ellipse","rectangle"],
+  contentNodesWithLayout: 16, pagesAfterAdd: 2,
+  instanceProjection: "2 instances -> disjoint clones, override + purity verified",
+  sampleNodeTypes: ["frame","text","ellipse","rectangle"],
   usage: { provider: "nexus-demo", model: "demo-composer:dashboard", mode: "demo",
            inputTokens: 0, outputTokens: 0, estimatedCostUsd: 0 } }
 ```
@@ -38,6 +40,10 @@ Proven end-to-end with assertions:
    lays out in isolation (`layoutPage` returns only its rect), and undo removes it again.
 8. **persistence round-trip at the model level** — serialize → JSON → revalidate root + page →
    the revived doc lays out identically (mirrors `lib/persist.ts` guarantees).
+9. **component → instance projection (ADR 0015)** — `expandComponentInstances` materializes two
+   instances of one master into **disjoint** clone subtrees, applies a text `override` to the clone
+   while the master stays untouched (purity), maps each clone back to its owning instance, and the
+   off-page master never appears in page layout.
 
 ## In-browser golden path (live React app)
 
@@ -70,6 +76,30 @@ bundle: all 8 buttons render and are correctly **disabled** with no selection, a
 `commitOps`→History→diff→persistence path already proven for move/resize/duplicate, so each click
 is a single undoable batch — the actual canvas-select→click gesture is gated by the hidden-viewport
 limitation below and is therefore not asserted as a screenshot here (§60 honesty).
+
+### Components & instances (ADR 0015)
+
+Two layers of evidence:
+- **Pure projection unit tests** (`instances.test.ts`, 8): single expansion keeps page layout
+  consistent; two instances get **disjoint** clone ids; text + width overrides patch the clone and
+  leave the master; nested instances expand one level; a component **cycle** terminates with the
+  guarded instance childless; `ownerInstanceId` maps every clone to its top-level owner; a doc with
+  no instances is returned with node object **identity preserved**.
+- **Store action tests** (`store-variants.test.ts`, 4) drive the real zustand store headless:
+  *create component* wraps the selection into a master + one instance and re-parents the layers;
+  *undo/redo* restores the two original page shapes exactly (lossless); *insert instance* gives a
+  second, disjoint materialization sharing the master; *detach* promotes the projected clones to a
+  concrete editable group while the master survives for other instances.
+
+The **Components** panel and its full golden path were driven in the running `next dev` bundle via
+DOM structure (no rAF needed): with an empty selection, *Make component* / *Detach* are disabled and
+the "No components yet" hint shows; after generating a design and pressing **Ctrl/Cmd+A** (select
+all on page), *Make component* enables; clicking it drops the hint and reveals a component row with an
+*Insert* button, and *Detach* enables (the new instance is auto-selected); *Insert* keeps the master
+listed; *Detach* disables *Detach* again (a concrete group is now selected) while the master and its
+*Insert* action survive. **No console errors** through the whole sequence. The projection itself is
+pure and headless-proven, so canvas paint (rAF, gated by the hidden viewport) is not asserted as a
+pixel screenshot (§60).
 
 ## Model-derived visual artifacts
 

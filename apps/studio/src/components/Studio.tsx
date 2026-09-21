@@ -7,6 +7,7 @@ import AlignBar from './AlignBar';
 import LayersPanel from './LayersPanel';
 import PropertiesPanel from './PropertiesPanel';
 import DesignSystemPanel from './DesignSystemPanel';
+import ComponentsPanel from './ComponentsPanel';
 import HistoryPanel from './HistoryPanel';
 import PromptBar from './PromptBar';
 import PreviewOverlay from './PreviewOverlay';
@@ -57,6 +58,9 @@ export default function Studio() {
           </div>
           <div style={{ flex: 1, minHeight: 0, overflow: 'auto' }}>
             <LayersPanel />
+          </div>
+          <div style={{ borderTop: '1px solid var(--nexus-border)' }}>
+            <ComponentsPanel />
           </div>
           <div style={{ borderTop: '1px solid var(--nexus-border)' }}>
             <DesignSystemPanel />

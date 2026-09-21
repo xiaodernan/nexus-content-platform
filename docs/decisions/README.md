@@ -24,3 +24,4 @@ An ADR is immutable once Accepted. Later reversals are recorded as a new ADR tha
 | 0012  | Persistence: PostgreSQL + pgvector + Redis                  | Accepted |
 | 0013  | Sandbox & security model                                    | Proposed |
 | 0014  | Local-first snapshot persistence & Studio view-state         | Accepted |
+| 0015  | Component → instance projection at view time                 | Accepted |

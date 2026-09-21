@@ -2,20 +2,27 @@
 import { create } from 'zustand';
 import {
   History,
+  boundsOfSubtree,
   createEmptyDocument,
   diffFromBatch,
+  expandComponentInstances,
   layoutPage,
   ops,
   subtreeIds,
   childIdList,
+  newId,
   pageNode,
   rectNode,
   ellipseNode,
   frameNode,
+  groupNode,
   textNode,
+  componentNode,
+  instanceNode,
   type DesignDocument,
   type DesignNode,
   type DiffSummary,
+  type InstanceMeta,
   type Op,
   type OpBatch,
   type Point,
@@ -90,6 +97,7 @@ interface StudioState {
   select: (ids: string[], additive?: boolean) => void;
   clearSelection: () => void;
   toggleInSelection: (id: string) => void;
+  selectAllOnPage: () => void;
 
   commitOps: (ops: Op[], summary: string, provenance?: OpBatch['provenance']) => void;
   dispatch: (batch: OpBatch) => void;
@@ -111,6 +119,10 @@ interface StudioState {
   addPage: () => void;
   switchPage: (id: string) => void;
 
+  createComponent: () => void;
+  insertInstance: (componentId: string) => void;
+  detachInstance: () => void;
+
   setInteraction: (i: Interaction) => void;
   setLiveGeom: (g: Record<string, LiveGeom>) => void;
   clearLiveGeom: () => void;
@@ -126,6 +138,17 @@ interface StudioState {
 
 let history = new History(createEmptyDocument('My First World'));
 export const router = new ModelRouter();
+
+// Memoized component→instance projection (ADR 0015). Recomputes only when the
+// canonical document object changes identity, so the rAF render loop stays cheap.
+// It is a pure superset: instance/page rects are unchanged, only clone nodes are added.
+let projCache: { src: DesignDocument; doc: DesignDocument; meta: Record<string, InstanceMeta> } | null = null;
+export function instanceView(doc: DesignDocument): { doc: DesignDocument; meta: Record<string, InstanceMeta> } {
+  if (projCache && projCache.src === doc) return { doc: projCache.doc, meta: projCache.meta };
+  const out = expandComponentInstances(doc);
+  projCache = { src: doc, doc: out.doc, meta: out.meta };
+  return { doc: out.doc, meta: out.meta };
+}
 
 const uid = () => 'u_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
 const userProvenance: OpBatch['provenance'] = { mode: 'user' };
@@ -206,6 +229,12 @@ export const useStudio = create<StudioState>((set, get) => ({
   select: (ids, additive) =>
     set((s) => ({ selection: additive ? Array.from(new Set([...s.selection, ...ids])) : ids })),
   clearSelection: () => set({ selection: [] }),
+  selectAllOnPage: () => {
+    const { doc, activePageId } = get();
+    const page = safePage(doc, activePageId);
+    const kids = childIdList(doc.nodes[page]!).filter((id) => doc.nodes[id]?.visible);
+    set({ selection: kids });
+  },
   toggleInSelection: (id) =>
     set((s) => ({ selection: s.selection.includes(id) ? s.selection.filter((x) => x !== id) : [...s.selection, id] })),
 
@@ -370,13 +399,126 @@ export const useStudio = create<StudioState>((set, get) => ({
 
   addPage: () => {
     const { doc } = get();
-    const pages = childIdList(doc.nodes[doc.rootId]!);
-    const page = pageNode(`Page ${pages.length + 1}`, { x: 0, y: 0, width: 1440, height: 900 });
-    get().commitOps([ops.addSubtree(doc.rootId, pages.length, [page])], `Add ${page.name}`);
+    const rootKids = childIdList(doc.nodes[doc.rootId]!);
+    const pageCount = rootKids.filter((id) => doc.nodes[id]?.type === 'page').length;
+    const page = pageNode(`Page ${pageCount + 1}`, { x: 0, y: 0, width: 1440, height: 900 });
+    get().commitOps([ops.addSubtree(doc.rootId, rootKids.length, [page])], `Add ${page.name}`);
     set({ activePageId: page.id, selection: [] });
   },
   switchPage: (id) => {
     if (get().doc.nodes[id]?.type === 'page') set({ activePageId: id, selection: [], editingId: null });
+  },
+
+  createComponent: () => {
+    const { doc, selection, activePageId } = get();
+    const page = safePage(doc, activePageId);
+    const targets = selection.filter((id) => doc.nodes[id]?.parentId === page && !doc.nodes[id]?.locked);
+    if (!targets.length) {
+      set({ status: 'Select layers on the page to make a component.' });
+      return;
+    }
+    const layout = layoutPage(doc, page);
+    const bb = boundsOfSubtree(layout, targets);
+    if (!bb) return;
+    const compId = newId('cmp');
+    const instId = newId('ins');
+    const name = doc.nodes[targets[0]!]?.name ?? 'Component';
+    const comp = componentNode(name, {
+      id: compId,
+      x: Math.round(bb.x),
+      y: Math.round(bb.y),
+      width: Math.round(bb.width),
+      height: Math.round(bb.height),
+      fills: [],
+    });
+    const rootKids = childIdList(doc.nodes[doc.rootId]!);
+    const pageKids = childIdList(doc.nodes[page]!);
+    const opList: Op[] = [ops.addSubtree(doc.rootId, rootKids.length, [comp])];
+    targets.forEach((id, i) => {
+      const n = doc.nodes[id]!;
+      opList.push(ops.reparent(id, compId, i));
+      opList.push(ops.updateNode(id, { x: Math.round(n.x - bb.x), y: Math.round(n.y - bb.y) }));
+    });
+    const inst = instanceNode(name, compId, {
+      id: instId,
+      x: Math.round(bb.x),
+      y: Math.round(bb.y),
+      width: Math.round(bb.width),
+      height: Math.round(bb.height),
+    });
+    opList.push(ops.addSubtree(page, pageKids.length, [inst]));
+    get().commitOps(opList, `Create component ${name}`);
+    set({ selection: [instId] });
+  },
+
+  insertInstance: (componentId) => {
+    const { doc, activePageId } = get();
+    const page = safePage(doc, activePageId);
+    const comp = doc.nodes[componentId];
+    if (!comp || comp.type !== 'component') {
+      set({ status: 'Unknown component.' });
+      return;
+    }
+    const id = newId('ins');
+    const onPage = childIdList(doc.nodes[page]!).length;
+    const inst = instanceNode(comp.name, componentId, {
+      id,
+      x: 80 + onPage * 24,
+      y: 80 + onPage * 24,
+      width: comp.width,
+      height: comp.height,
+    });
+    get().commitOps([ops.addSubtree(page, onPage, [inst])], `Insert ${comp.name}`);
+    set({ selection: [id] });
+  },
+
+  detachInstance: () => {
+    const { doc, selection, activePageId } = get();
+    const instId = selection.find((id) => doc.nodes[id]?.type === 'instance');
+    if (!instId) {
+      set({ status: 'Select an instance to detach.' });
+      return;
+    }
+    const page = safePage(doc, activePageId);
+    const { doc: view } = instanceView(doc);
+    const inst = view.nodes[instId];
+    if (!inst) return;
+    const ir = layoutPage(view, page)[instId] ?? { x: inst.x, y: inst.y };
+    const groupId = newId('grp');
+    const group = groupNode(inst.name, {
+      id: groupId,
+      x: Math.round(ir.x),
+      y: Math.round(ir.y),
+      width: Math.round(inst.width),
+      height: Math.round(inst.height),
+    });
+    const collected: DesignNode[] = [group];
+    const convert = (cid: string, parentId: string): string => {
+      const src = view.nodes[cid]!;
+      const nid = newId(src.type.slice(0, 2));
+      const copy = JSON.parse(JSON.stringify(src)) as DesignNode;
+      copy.id = nid;
+      copy.parentId = parentId;
+      if (copy.type === 'instance') {
+        // detach keeps concrete geometry, not a live sub-instance
+        const g = copy as unknown as Record<string, unknown>;
+        g.type = 'group';
+        g.clipContent = false;
+        delete g.componentId;
+        delete g.overrides;
+      }
+      copy.childIds = src.childIds.map((k) => convert(k, nid));
+      collected.push(copy);
+      return nid;
+    };
+    group.childIds = inst.childIds.map((cid) => convert(cid, groupId));
+    const pageKids = childIdList(doc.nodes[page]!);
+    const idx = Math.max(0, pageKids.indexOf(instId));
+    get().commitOps(
+      [ops.addSubtree(page, idx, collected), ops.removeSubtree(instId)],
+      `Detach ${inst.name}`,
+    );
+    set({ selection: [groupId] });
   },
 
   setInteraction: (i) => set({ interaction: i }),

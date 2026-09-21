@@ -5,6 +5,7 @@ import {
   childIdList,
   hitTest,
   layoutPage,
+  ownerInstanceId,
   subtreeIds,
   type AbsRect,
   type Point,
@@ -13,7 +14,7 @@ import {
 import { drawScene, handlePoints, type Marquee } from '@/lib/render';
 import { resolveTextStyle } from '@/lib/paint';
 import { computeSnap } from '@/lib/snap';
-import { useStudio, type LiveGeom } from '@/lib/store';
+import { instanceView, useStudio, type LiveGeom } from '@/lib/store';
 
 const MOVE_THRESHOLD = 3; // px on screen before a click becomes a drag
 
@@ -99,7 +100,8 @@ export default function Canvas() {
 
     const s = useStudio.getState();
     const pageId = s.activePageId;
-    const base = layoutPage(s.doc, pageId);
+    const viewDoc = instanceView(s.doc).doc; // materialize component instances for paint only
+    const base = layoutPage(viewDoc, pageId);
     const layout: Record<string, AbsRect> = { ...base };
     for (const [id, g] of Object.entries(s.liveGeom)) {
       if (layout[id]) layout[id] = { ...layout[id], ...g };
@@ -112,7 +114,7 @@ export default function Canvas() {
     drawScene(
       ctx,
       {
-        doc: s.doc,
+        doc: viewDoc,
         pageId,
         layout,
         viewport: s.viewport,
@@ -169,6 +171,11 @@ export default function Canvas() {
         st.duplicateSelection();
         return;
       }
+      if (mod && e.key.toLowerCase() === 'a') {
+        e.preventDefault();
+        st.selectAllOnPage();
+        return;
+      }
       if (e.key === 'Delete' || e.key === 'Backspace') {
         e.preventDefault();
         st.deleteSelection();
@@ -220,7 +227,8 @@ export default function Canvas() {
     }
 
     const pageId = s.activePageId;
-    const layout = layoutPage(s.doc, pageId);
+    const { doc: viewDoc, meta } = instanceView(s.doc);
+    const layout = layoutPage(viewDoc, pageId);
 
     if (e.button === 1 || d.spaceHeld) {
       d.kind = 'pan';
@@ -245,7 +253,8 @@ export default function Canvas() {
       }
     }
 
-    const hit = hitTest(s.doc, layout, pageId, world);
+    const rawHit = hitTest(viewDoc, layout, pageId, world);
+    const hit = rawHit ? (ownerInstanceId(meta, rawHit) ?? rawHit) : null;
     if (hit) {
       const inSel = s.selection.includes(hit);
       if (e.shiftKey) s.toggleInSelection(hit);
@@ -293,8 +302,10 @@ export default function Canvas() {
     const pageId = s.activePageId;
 
     if (d.kind === 'idle') {
-      const layout = layoutPage(s.doc, pageId);
-      const hit = hitTest(s.doc, layout, pageId, world);
+      const { doc: viewDoc, meta } = instanceView(s.doc);
+      const layout = layoutPage(viewDoc, pageId);
+      const rawHit = hitTest(viewDoc, layout, pageId, world);
+      const hit = rawHit ? (ownerInstanceId(meta, rawHit) ?? rawHit) : null;
       if (hit !== s.hoverId) s.setHover(hit);
       return;
     }
@@ -347,11 +358,18 @@ export default function Canvas() {
     if (d.kind === 'marquee') {
       s.setInteraction({ type: 'marquee', start: d.startWorld, current: world });
       const m: Marquee = { x0: d.startWorld.x, y0: d.startWorld.y, x1: world.x, y1: world.y };
-      const layout = layoutPage(s.doc, pageId);
-      const ids = Object.entries(layout)
+      const { doc: viewDoc, meta } = instanceView(s.doc);
+      const layout = layoutPage(viewDoc, pageId);
+      const hits = Object.entries(layout)
         .filter(([, r]) => rectIntersects(r, m))
-        .map(([id]) => id)
-        .filter((id) => id !== pageId && s.doc.nodes[id]?.type !== 'document');
+        .map(([id]) => id);
+      const ids = Array.from(
+        new Set(
+          hits
+            .map((id) => ownerInstanceId(meta, id) ?? id)
+            .filter((id) => id !== pageId && viewDoc.nodes[id]?.type !== 'document' && viewDoc.nodes[id]?.type !== 'page'),
+        ),
+      );
       s.select(ids, d.additive);
       return;
     }
