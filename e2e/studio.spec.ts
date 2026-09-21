@@ -100,6 +100,13 @@ test('@smoke studio slice: AI command bar runs in DEMO MODE as one undoable tran
     .poll(() => page.evaluate(() => document.querySelectorAll('[data-node-id]').length))
     .toBeGreaterThan(before);
 
+  // AI Diff（§151）：展开最新事务，看到人可读的字段级变更清单
+  await page.click('[data-panel-tab="history"]');
+  await page.locator('[data-history-toggle]').last().click();
+  const diffList = page.locator('[data-history-diff-list]').last();
+  await expect(diffList).toBeVisible();
+  await expect(diffList).toContainText('增');
+
   // 一次 AI 操作 = 一个事务：一次撤销回到 AI 动手之前
   await page.getByTitle('撤销（Ctrl+Z）').click();
   await expect

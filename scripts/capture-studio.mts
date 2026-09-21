@@ -78,6 +78,18 @@ await page.waitForTimeout(400);
 const undone = await headlineFontSize();
 if (undone !== '56px') throw new Error(`撤销代码回写失败：${undone || '找不到标题节点'}`);
 
+// §151 AI Diff：展开刚才那次事务，确认变更清单是人能读的
+await page.click('[data-panel-tab="history"]');
+await page.locator('[data-history-toggle]').last().click();
+const diffList = page.locator('[data-history-diff-list]').last();
+await diffList.waitFor({ state: 'visible', timeout: 30_000 });
+const diffText = (await diffList.textContent()) ?? '';
+if (!diffText.includes('typography.fontSize')) {
+  throw new Error(`变更清单没有列出字段：${diffText.slice(0, 80)}`);
+}
+await page.screenshot({ path: `${out}history-diff.png` });
+await page.click('[data-panel-tab="layers"]');
+
 await page.click('[data-viewport="mobile"]');
 await page.waitForTimeout(400);
 await page.screenshot({ path: `${out}studio-mobile.png` });
