@@ -151,3 +151,18 @@ two fresh runs, checkpoint denial leaving the workspace byte-identical).
 - **Proof:** `docs/evidence/agents/provider-proof.mjs` — task 1 cold (129 chunked) persists
   the snapshot; task 2 same-session 0 re-chunked with identical hits; a fresh provider
   (new-process stand-in) restores with 0 re-chunked; corruption controls. Tests 56/56.
+
+## Amendment 6 — v6: shared hybrid-embedding seam + memory consolidation, 2026-09
+- **`src/embedding.ts`:** `tokenize`/`embedTokens`/`hybridScore` extracted from the v1 index
+  into the single seam both retrieval surfaces use — `queryIndex` behavior is unchanged by
+  construction (56/56 suite green across the refactor without touching index tests), and
+  `memory.recall` upgrades from pure Jaccard to the same `0.6 × cosine + 0.4 × coverage`.
+- **Zero-overlap ⇒ exactly 0:** cosine noise alone can never rank a candidate in (index or
+  memory) — retrieval honesty (§60) enforced at the scorer, not per-caller.
+- **`MemoryStore.compact()`:** greedily merges same-scope records whose ref-path Jaccard ≥
+  0.5; survivor keeps the oldest id, summaries concatenate, refs union deterministically;
+  every merge is *returned and listed* (§26 inspectability), and it is idempotent.
+- **Proof:** `docs/evidence/agents/recall-proof.mjs` — paraphrased probe over seeded
+  real-repo findings: deterministic hybrid top, printed lexical-baseline comparison,
+  duplicate research consolidated (5→4) with the probe answer surviving. Tests 62/62
+  (+6: 4 embedding-seam, 2 consolidation).

@@ -1,4 +1,4 @@
-# M2 evidence — @nexus/agent-runtime (v0 loop · v1 index · v2 memory · v3 durability · v4 snapshots)
+# M2 evidence — @nexus/agent-runtime (v0 loop · v1 index · v2 memory · v3 durability · v4 snapshots · v5 provider · v6 hybrid recall)
 
 All checks are headless, offline, key-free, and reproducible from the repo root. Nothing here
 claims model-quality planning or neural retrieval (§60): the planner is a deterministic
@@ -8,7 +8,7 @@ every emitted artifact (`provenance.mode = "demo"`).
 ## Reproducible gates
 
 ```
-npm test          # turbo: @nexus/agent-runtime 56/56 vitest among all packages
+npm test          # turbo: @nexus/agent-runtime 62/62 vitest among all packages
 npm run build     # tsc dist for agents/runtime (build order via ^build deps)
 node docs/evidence/agents/agent-proof.mjs
 node docs/evidence/agents/code-index-proof.mjs   # requires `npm run build` first
@@ -16,6 +16,7 @@ node docs/evidence/agents/memory-proof.mjs       # requires `npm run build` firs
 node docs/evidence/agents/durability-proof.mjs   # requires `npm run build` first
 node docs/evidence/agents/index-store-proof.mjs  # requires `npm run build` first
 node docs/evidence/agents/provider-proof.mjs     # requires `npm run build` first
+node docs/evidence/agents/recall-proof.mjs       # requires `npm run build` first
 ```
 
 ## Unit tests (vitest, `agents/runtime/test`)
@@ -27,7 +28,8 @@ node docs/evidence/agents/provider-proof.mjs     # requires `npm run build` firs
 | `agent.test.ts` (9) | stopword-aware keyword, plan determinism + seed stamp, golden path event order + `@search.hits.0.path` dataflow + note in file, denial leaves file untouched, failing verify → 1 fix round → pass, persistent failure → `failed_verification` after `maxFixRounds`, `maxSteps` → `budget_exhausted`, planner routes step 0 through `fs.index` when registered, warm memory outranks the index (`memory.recall` first) |
 | `codeIndex.test.ts` (7) | extension → kind, TS symbol + markdown heading extraction, heading-section vs 40-line-window chunking, sorted file entries + coverage, hybrid query ranks the relevant chunk first and is deterministic, symbol query finds its file, empty index → no hits |
 | `realfs.test.ts` (4) | extension/skip filtering with sorted slash keys, custom skipDirs + maxFiles cap, maxBytes drop, deterministic output independent of walk order — all against a fake fs (no host disk touched) |
-| `memory.test.ts` (6) | save/list/recall scoping, deterministic tie-broken recall bounded by k, forget/clear counts, clone-in/clone-out immutability, registry round-trip with `"path:startLine"` refs, denied `memory.save` leaves memory empty + arg validation |
+| `memory.test.ts` (8) | save/list/recall scoping, deterministic tie-broken recall bounded by k, forget/clear counts, clone-in/clone-out immutability, registry round-trip with `"path:startLine"` refs, denied `memory.save` leaves memory empty + arg validation; v6 `compact()`: ≥50% ref-overlap merges within scope (listed, idempotent), cross-scope isolation |
+| `embedding.test.ts` (4) | tokenizer rules, zero-shared-tokens ⇒ score exactly 0, more shared tokens ⇒ strictly higher, unit-length embeddings |
 | `durability.test.ts` (8) | memory serialize/deserialize round-trip + version/schema rejection, `restore()` id high-water mark, save/load through an injected writable fake disk, corrupt-file honest failure, `guardedJoin` jail (absolute/`..`/drive-letter rejection, backslash folding), `disk.write` checkpoint gate + escape touches nothing, `disk.read`/`disk.list` confinement |
 | `indexStore.test.ts` (11) | index snapshot serialize→deserialize verbatim + version/chunk schema rejection, save/load via injected fs, cold rescan equals `buildIndex`, unchanged files reuse chunks / edits rechunk exactly the changed paths / removals drop out, query ranking snapshot-independent; v5 provider: cold-first-build equals plain build, incremental refresh 0 re-chunked, edited file sole re-chunk, cross-provider snapshot restore, corrupt-snapshot fallback + repair, `fs.index` provider/default parity |
 
@@ -61,8 +63,8 @@ very evidence README, which quotes them — legitimately outrank definitions. De
 ## Real-repo ingestion + memory proof (`memory-proof.mjs`, M2 v2)
 
 - **Run A (cold memory):** `collectTextFiles('.', node:fs)` ingests the real repository
-  read-only (125 files as of this writing), the planner researches via `fs.index` →
-  `agents/runtime/src/codeIndex.ts:121`, annotates the **in-memory copy only** (§9 — the
+  read-only (130+ files as of this writing), the planner researches via `fs.index` →
+  `agents/runtime/src/embedding.ts` (v6 moved the scoring seam), annotates the **in-memory copy only** (§9 — the
   host disk is never written), verifies via the host predicate, and the host persists the
   finding through checkpoint-gated `memory.save` (gate observed as `memory.save:write`).
 - **Run B (warm memory):** a fresh registry with **no `fs.index`** and a near-empty
@@ -104,12 +106,21 @@ files; a corrupted snapshot triggers an honest full rebuild and repairs the file
 `fs.index` with and without a provider returns identical hits, so the seam cannot silently
 change retrieval behavior.
 
+## Recall + consolidation proof (`recall-proof.mjs`, M2 v6)
+
+Seeds five memory records from real-repo `fs.index` research (four distinct questions plus
+one realistic rediscovery of the first finding). A **paraphrased probe** ("how does the code
+index embed and score tokens") recalls the right record with identical results across runs;
+the printed comparison shows the hybrid top against the lexical-only baseline. `compact()`
+then merges the duplicate-research records (`mem-5→mem-1`, 5→4) — every merge listed, and
+the probe's answer survives consolidation unchanged.
+
 ## Scope honesty
 
 §63/§26 items *not* implemented (stated, not faked): general real-fs write tools (only
 `disk.write` inside an explicit jail root, always checkpoint-gated), process execution,
 browser automation, visual QA, git commit, live-model planning, multi-agent registry. The
 `test.run` verification is a host-injected predicate — it verifies what the host checks.
-Memory recall is lexical (`lexicalScore` over query+summary), a stand-in for the pgvector
-hybrid retrieval of ADR 0012. The provider must be kept in sync with the workspace by the
+Memory recall (v6) shares the index's deterministic token-bag hybrid score — a real
+signature scheme, but still a stand-in for the pgvector hybrid retrieval of ADR 0012. The provider must be kept in sync with the workspace by the
 host; it only ever sees the host-supplied file set (§60).

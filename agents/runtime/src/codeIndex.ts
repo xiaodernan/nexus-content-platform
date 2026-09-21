@@ -1,4 +1,4 @@
-import { cosine, hashEmbed, EMBED_DIM } from '@nexus/ai-providers';
+import { hybridScore } from './embedding.js';
 
 export type FileKind = 'markdown' | 'typescript' | 'json' | 'css' | 'other';
 
@@ -115,44 +115,15 @@ export function buildIndex(files: Record<string, string>): CodeIndex {
   return { files: entries, chunks };
 }
 
-function tokenize(s: string): string[] {
-  return s
-    .toLowerCase()
-    .split(/[^\p{L}\p{N}]+/u)
-    .filter((t) => t.length > 1);
-}
-
 /**
- * Bag-of-tokens embedding: L2-normalised mean of per-token hash embeddings. Unlike hashing the
- * whole string (which is indistinguishable noise from any other string), shared tokens genuinely
- * raise the cosine — deterministic "semantics" without pretending (§60).
- */
-function embedTokens(text: string): number[] {
-  const tokens = tokenize(text);
-  const v = new Array<number>(EMBED_DIM).fill(0);
-  for (const t of tokens.length > 0 ? tokens : [text]) {
-    const e = hashEmbed(t);
-    for (let i = 0; i < EMBED_DIM; i++) v[i]! += e[i]!;
-  }
-  const m = Math.sqrt(v.reduce((s, x) => s + x * x, 0)) || 1;
-  return v.map((x) => x / m);
-}
-
-/**
- * Hybrid retrieval — 0.6 × embedding cosine over token bags + 0.4 × query-token coverage
- * (fraction of query tokens present in the chunk; unlike Jaccard this does not punish long chunks).
- * Fully deterministic (ADR 0010); ties break by path then line, never by insertion order.
+ * Hybrid retrieval via the shared `hybridScore` seam (embedding pull + query-token coverage,
+ * zero-overlap texts score 0). Fully deterministic (ADR 0010); ties break by path then line,
+ * never by insertion order.
  */
 export function queryIndex(index: CodeIndex, query: string, k = 5): QueryHit[] {
-  const qv = embedTokens(query);
-  const qt = new Set(tokenize(query));
   const hits: QueryHit[] = index.chunks.map((c) => {
     const hay = `${c.heading ?? ''} ${c.text}`;
-    const dt = new Set(tokenize(hay));
-    let shared = 0;
-    for (const t of qt) if (dt.has(t)) shared++;
-    const coverage = qt.size === 0 ? 0 : shared / qt.size;
-    const hybrid = 0.6 * cosine(qv, embedTokens(hay)) + 0.4 * coverage;
+    const hybrid = hybridScore(query, hay);
     return { path: c.path, startLine: c.startLine, heading: c.heading, score: hybrid, snippet: c.text.replace(/\s+/g, ' ').trim().slice(0, 120) };
   });
   hits.sort((a, b) => b.score - a.score || a.path.localeCompare(b.path) || a.startLine - b.startLine);

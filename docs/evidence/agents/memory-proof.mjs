@@ -31,7 +31,7 @@ function allowAll(seen) {
 const files = collectTextFiles('.', fs); // injects node:fs into the pure ingestion module
 assert.ok(Object.keys(files).length > 50, 'expected to ingest the repo from disk');
 const EXPECTED = rt.queryIndex(rt.buildIndex(files), GOAL_A, 1)[0]; // pre-computed: the verifier runs mid-loop
-assert.match(EXPECTED.path, /agents\/runtime\/src\/codeIndex\.ts$/, `"${GOAL_A}" should surface the code index module, got ${EXPECTED.path}`);
+assert.match(EXPECTED.path, /agents\/runtime\/src\/(embedding|codeIndex)\.ts$/, `"${GOAL_A}" should surface the embedding seam or the index module, got ${EXPECTED.path}`);
 
 const wsA = new InMemoryWorkspace(files);
 const seenA = [];

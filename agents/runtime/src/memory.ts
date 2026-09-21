@@ -1,4 +1,4 @@
-import { lexicalScore } from '@nexus/ai-providers';
+import { hybridScore } from './embedding.js';
 import type { ToolRegistry } from './registry.js';
 import type { ToolSpec } from './types.js';
 
@@ -28,6 +28,15 @@ export interface RecallHit {
   summary: string;
 }
 
+function pathOverlap(a: MemoryRef[], b: MemoryRef[]): number {
+  const sa = new Set(a.map((r) => r.path));
+  const sb = new Set(b.map((r) => r.path));
+  let inter = 0;
+  for (const p of sa) if (sb.has(p)) inter++;
+  const union = new Set([...sa, ...sb]).size;
+  return union === 0 ? 0 : inter / union;
+}
+
 export class MemoryStore {
   private recs: MemoryRecord[] = [];
   private seq = 0;
@@ -49,12 +58,12 @@ export class MemoryStore {
     if (Number.isFinite(n) && n > this.seq) this.seq = n;
   }
 
-  /** Query tokens matched against each record's query+summary; refs inherit the record score. */
+  /** v6 hybrid: same token-bag score the code index uses (zero shared tokens ⇒ never recalled). */
   recall(query: string, opts: { scope?: string; k?: number } = {}): RecallHit[] {
     const k = opts.k ?? 5;
     const scored = this.recs
       .filter((r) => opts.scope === undefined || r.scope === opts.scope)
-      .map((r) => ({ r, score: lexicalScore(query, `${r.query} ${r.summary}`) }))
+      .map((r) => ({ r, score: hybridScore(query, `${r.query} ${r.summary}`) }))
       .filter((s) => s.score > 0);
     const hits: RecallHit[] = scored.flatMap(({ r, score }) =>
       r.refs.map((ref) => ({ memId: r.id, path: ref.path, score, summary: r.summary })),
@@ -67,6 +76,36 @@ export class MemoryStore {
     const before = this.recs.length;
     this.recs = this.recs.filter((r) => r.id !== id);
     return this.recs.length !== before;
+  }
+
+  /**
+   * v6 consolidation: greedily merge same-scope records whose ref path sets overlap ≥50%
+   * (Jaccard). The survivor keeps the oldest id; merges are listed, never silent (§26).
+   */
+  compact(): { merged: { into: string; from: string[] }[] } {
+    const merged: { into: string; from: string[] }[] = [];
+    const out: MemoryRecord[] = [];
+    for (const rec of this.recs) {
+      const target = out.find((o) => o.scope === rec.scope && pathOverlap(o.refs, rec.refs) >= 0.5);
+      if (target) {
+        const paths = new Set([...target.refs.map((r) => r.path), ...rec.refs.map((r) => r.path)]);
+        target.refs = [...paths].sort().map((path) => {
+          const withLine = [...target.refs, ...rec.refs].find((r) => r.path === path && r.startLine !== undefined);
+          return withLine ? { path, startLine: withLine.startLine } : { path };
+        });
+        target.summary = `${target.summary} | ${rec.summary}`;
+        let entry = merged.find((m) => m.into === target.id);
+        if (!entry) {
+          entry = { into: target.id, from: [] };
+          merged.push(entry);
+        }
+        entry.from.push(rec.id);
+      } else {
+        out.push(structuredClone(rec));
+      }
+    }
+    if (merged.length > 0) this.recs = out;
+    return { merged };
   }
 
   clear(scope?: string): number {

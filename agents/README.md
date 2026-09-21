@@ -21,9 +21,11 @@
   snapshots into `fs.index` via `createIndexProvider` + `registerWorkspaceTools(..., {
   indexProvider })` — second-task research re-chunks 0 files, provider/default hits are
   provably identical, corrupt snapshots fall back honestly (default rebuild-per-call stays
-  the out-of-the-box behavior).
-  Proof: `agents/runtime/test` (vitest 56/56) plus five headless proofs in
-  `docs/evidence/agents/` (agent, code-index, memory, durability, index-store, provider).
+  the out-of-the-box behavior). v6 extracts the shared `embedding.ts` seam (`hybridScore`:
+  token-bag cosine + coverage, zero-overlap ⇒ 0) used by BOTH index queries and memory
+  recall, and adds `MemoryStore.compact()` (listed, idempotent, ≥50% ref-overlap merges).
+  Proof: `agents/runtime/test` (vitest 62/62) plus six headless proofs in
+  `docs/evidence/agents/` (agent, code-index, memory, durability, index-store, provider, recall).
 
 Still placeholder (§24): the multi-agent Registry (roster/handoff). Long-term memory (§26) is
 now durable across processes (v3: schema-versioned JSON via the injected fs + jail-rooted

@@ -1,4 +1,5 @@
 export * from './types.js';
+export { embedTokens, hybridScore, tokenize } from './embedding.js';
 export {
   buildIndex,
   chunkFile,

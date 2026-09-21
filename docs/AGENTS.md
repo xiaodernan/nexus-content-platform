@@ -23,7 +23,9 @@ first **jailed** real-disk tools (`disk.read/write/list`, `guardedJoin` root jai
 checkpoint-gated), and v4 persisted index snapshots (`saveIndex/loadIndex` + fingerprint
 `rescanIndex` that provably equals a cold rebuild), with v5 wiring them into `fs.index`
 through `createIndexProvider` (0 re-chunk on unchanged repos; default behavior untouched).
-Driven by a deterministic DEMO-MODE planner.
+v6 unifies retrieval scoring: one shared `hybridScore` seam drives both index queries and
+memory recall (zero token overlap ⇒ exactly 0), plus listed, idempotent memory
+`compact()` consolidation. Driven by a deterministic DEMO-MODE planner.
 Remaining scaffolds: the multi-agent Registry (§24),
-vector-backed recall (§63/ADR 0012), general exec/browser/git tools (land with the
+true vector-store recall (§63/ADR 0012), general exec/browser/git tools (land with the
 ADR 0013 sandbox); the full runtime matures across M2/M6.

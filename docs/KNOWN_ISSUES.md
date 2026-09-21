@@ -100,22 +100,22 @@ Live list. Nothing here is hidden behind marketing copy.
   the canvas paints, snaps, edits in place and exports PNG.
 
 ## Architecture
-- `agents/runtime` (`@nexus/agent-runtime`) is now **implemented** through M2 v0–v3 (ADR 0016):
+- `agents/runtime` (`@nexus/agent-runtime`) is now **implemented** through M2 v0–v6 (ADR 0016):
   the loop, permission-gated registry, hermetic workspace tools, hybrid code index (`fs.index`),
   read-only real-directory ingestion, §26 memory (scoped/inspectable/deletable) and v3
   durability: schema-versioned memory JSON + the first real-disk tools `disk.read/write/list`,
-  each confined to one host-chosen root by `guardedJoin` with checkpoint-gated writes; v4 adds
-  persisted index snapshots with fingerprint rescan (incremental output provably equals a cold
-  rebuild). v5 wires the snapshots into `fs.index` via `createIndexProvider` (host keeps the
-  provider's file set in sync with the workspace; default rebuild-per-call remains the
-  out-of-the-box path). It is
+  each confined to one host-chosen root by `guardedJoin` with checkpoint-gated writes; v4/v5
+  add persisted index snapshots with fingerprint rescan wired into `fs.index` via
+  `createIndexProvider` (default rebuild-per-call remains the out-of-the-box path); v6 unifies
+  retrieval scoring behind one `hybridScore` seam (index + memory; zero token overlap ⇒
+  exactly 0) and adds listed, idempotent memory `compact()`.
+  It is
   still *not* a general coding agent: no process execution, browser, git, or out-of-jail disk
   access — those §63 duties stay unimplemented until ADR 0013's exec sandbox exists. Known
-  limits, stated not hidden (§60): `fs.index` still rebuilds per call (snapshots are a
-  host-side layer until v5 wires the provider), recall is
-  lexical, the jail is a path check + human gate rather than container isolation, and the
-  template planner fails honestly (`failed_verification`) when both memory and the index are
-  absent.
+  limits, stated not hidden (§60): the "embeddings" are deterministic hash token-bags, not
+  trained vectors; the jail is a path check + human gate rather than container isolation; and
+  the template planner fails honestly (`failed_verification`) when both memory and the index
+  are absent.
 - `services/*` are still **README-only shells** (a real `packages/contracts` does not exist yet);
   the Studio intentionally does not depend on them for the slice.
 - Sandbox/security enforcement (ADR 0013) is **partially realized**: the permission-scoped Tool

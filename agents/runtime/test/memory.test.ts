@@ -47,6 +47,28 @@ describe('MemoryStore (§26: scoped, inspectable, deletable)', () => {
     expect(m.list()[0]!.refs).toHaveLength(1);
     expect(m.list()[0]!.summary).toBe('x');
   });
+
+  it('compact merges ≥50% ref-overlap records within scope and lists every merge', () => {
+    const m = new MemoryStore();
+    m.save({ scope: 'a', runId: 'r1', query: 'rotation guide', summary: 'first', refs: [{ path: 'docs/rotate.md' }, { path: 'src/geom.ts' }] });
+    m.save({ scope: 'a', runId: 'r2', query: 'rotation follow-up', summary: 'second', refs: [{ path: 'docs/rotate.md' }] });
+    m.save({ scope: 'a', runId: 'r3', query: 'cooking', summary: 'unrelated', refs: [{ path: 'cook.md' }] });
+    const res = m.compact();
+    expect(res.merged).toEqual([{ into: 'mem-1', from: ['mem-2'] }]);
+    const list = m.list('a');
+    expect(list).toHaveLength(2);
+    expect(list[0]!.summary).toBe('first | second');
+    expect(m.compact().merged).toEqual([]); // idempotent
+    expect(m.recall('rotation guide').map((h) => h.memId)).toEqual(['mem-1', 'mem-1']);
+  });
+
+  it('compact never merges across scopes', () => {
+    const m = new MemoryStore();
+    m.save({ scope: 'a', runId: 'r', query: 'same', summary: 'same topic', refs: [{ path: 'x.ts' }] });
+    m.save({ scope: 'b', runId: 'r', query: 'same', summary: 'same topic', refs: [{ path: 'x.ts' }] });
+    expect(m.compact().merged).toEqual([]);
+    expect(m.list()).toHaveLength(2);
+  });
 });
 
 describe('memory tools through the registry (permissions enforced)', () => {
