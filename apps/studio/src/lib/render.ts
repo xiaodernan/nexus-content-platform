@@ -23,6 +23,8 @@ export interface Scene {
   hoverId?: string | null;
   marquee?: Marquee | null;
   guides?: { xs: number[]; ys: number[] };
+  /** Text node id currently edited on-canvas — its glyphs are replaced by the DOM overlay. */
+  hideId?: string | null;
   showChrome: boolean;
 }
 
@@ -69,7 +71,7 @@ export function drawScene(ctx: CanvasRenderingContext2D, scene: Scene, cssW: num
     ctx.beginPath();
     if (page) ctx.rect(page.x, page.y, page.width, page.height);
     ctx.clip();
-    for (const cid of childIdList(root)) drawNode(ctx, doc, layout, cid, viewport.zoom);
+    for (const cid of childIdList(root)) drawNode(ctx, doc, layout, cid, viewport.zoom, scene.hideId);
     ctx.restore();
   }
 
@@ -130,10 +132,12 @@ function drawGrid(ctx: CanvasRenderingContext2D, v: Viewport, cssW: number, cssH
   }
 }
 
-function drawNode(ctx: CanvasRenderingContext2D, doc: DesignDocument, layout: Record<string, AbsRect>, id: string, zoom: number): void {
+function drawNode(ctx: CanvasRenderingContext2D, doc: DesignDocument, layout: Record<string, AbsRect>, id: string, zoom: number, hideId?: string | null): void {
   const node = doc.nodes[id];
   const r = layout[id];
   if (!node || !r || !node.visible) return;
+  // While a text node is edited on-canvas, the DOM overlay replaces its glyphs.
+  if (hideId && id === hideId && node.type === 'text') return;
   ctx.save();
   ctx.globalAlpha = node.opacity;
   const { x, y, width, height } = r;
@@ -180,7 +184,7 @@ function drawNode(ctx: CanvasRenderingContext2D, doc: DesignDocument, layout: Re
   }
   ctx.restore();
 
-  for (const cid of childIdList(node)) drawNode(ctx, doc, layout, cid, zoom);
+  for (const cid of childIdList(node)) drawNode(ctx, doc, layout, cid, zoom, hideId);
 }
 
 function drawImagePlaceholder(ctx: CanvasRenderingContext2D, w: number, h: number, zoom: number): void {

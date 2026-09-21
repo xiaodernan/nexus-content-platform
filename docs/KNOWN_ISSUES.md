@@ -8,25 +8,38 @@ Live list. Nothing here is hidden behind marketing copy.
   functional (produces real Design Model ops) but is **not** model-quality. The Studio shows
   a persistent "DEMO MODE" badge.
 
-## Studio (Milestone 1 core — working, see docs/evidence/studio)
+## Studio (Milestone 1 — polished slice, see docs/evidence/studio)
 - The Design Model, infinite Canvas (2D scene-graph renderer), layers tree, properties
   editor, design-system token panel, DEMO-MODE generate + AI-edit, live preview, undo/redo,
-  AI-diff and local export (JSON / standalone HTML / canvas PNG) are all functional.
+  AI-diff and local export (JSON / standalone HTML / canvas PNG) are all functional. This
+  pass adds **on-canvas text editing, magnetic snapping + smart guides, multi-page
+  add/switch, and local-first persistence with a History/Snapshots panel** (ADR 0014).
 - "Publish" in the slice means **local export** only. Hosted public URLs `/n/{user}/{project}`,
   accounts, and SEO (SSR/OpenGraph) land with M7/community + the `nexus-api` service.
-- History is **in-memory** (op-log) for the slice; snapshots do not yet persist to
-  `localStorage`/server. Persistence is M7+ / `nexus-api`.
-- Text is edited via a Properties-panel textarea; no on-canvas in-place text entry yet, and
-  no per-span rich text. Pen/vector, boolean ops, masks, and instance→master syncing are
-  deferred; frames/groups/variants exist as model types with partial UI.
-- Live drag/resize updates a non-destructive geometry overlay that is committed as a single
-  op on pointer-up; snapping/guides render but magnetic snapping is still rudimentary.
+- Persistence is **local-first `localStorage`** (whole-model snapshot, debounced save, hydrate
+  on load; ADR 0014). It is per-browser, unauthenticated and ~5 MB-capped — **not** the hosted,
+  versioned server store of ADR 0012, which supersedes it at M7. The op-log *snapshot* timeline
+  (branch/fork/compare at a point in time) is mirrored read-only by the History panel; the panel
+  restores via undo/redo rather than a separate replay engine.
+- Text is edited **on-canvas** (double-click → positioned overlay that commits one reversible
+  op), *and* via the Properties panel. No per-span/inline rich text yet. Pen/vector, boolean
+  ops, masks, and instance→master syncing are deferred; frames/groups/variants exist as model
+  types with partial UI.
+- Drag snapping aligns a selection's edges/centers to sibling + page anchors within a 6px
+  (screen) threshold and renders guide lines; resize snaps the dragged edge. Even **distribute /
+  space-between** alignment is not yet wired. Live drag/resize still uses a non-destructive
+  geometry overlay committed as a single op on pointer-up.
+- **Multi-page caveat:** adding a page is an undoable op (`addSubtree`→`pageIds`), but which page
+  is *active* is ephemeral view-state — switching pages is **not undoable** and can differ across
+  browser tabs. A `setActivePage`/`patchDocument` op (needs a design-model rebuild) is the next step.
 - **Visual QA automation caveat:** the Qoder in-app browser reports `document.hidden=true`
   with a `0×0` viewport, suspending `requestAnimationFrame` and refusing pointer/screenshot
   actions. Canvas paint and clicks were therefore validated through DOM structure, the
   headless pipeline proof, the model→preview HTML, and model→SVG artifacts (see
-  `docs/evidence/studio/README.md`). In a normal visible browser via `npm run dev` the canvas
-  paints and exports PNG normally.
+  `docs/evidence/studio/README.md`). The persistence + multi-page **hydrate path was verified
+  in the real browser bundle** (write snapshot → reload → toolbar shows the restored doc name and
+  PageTabs shows its page) since it needs no rAF. In a normal visible browser via `npm run dev`
+  the canvas paints, snaps, edits in place and exports PNG.
 
 ## Architecture
 - `services/*` and `agents/*` are **scaffolded shells** with contracts only; they are not yet

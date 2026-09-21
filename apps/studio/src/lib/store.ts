@@ -6,11 +6,12 @@ import {
   diffFromBatch,
   ops,
   subtreeIds,
+  childIdList,
+  pageNode,
   rectNode,
   ellipseNode,
   frameNode,
   textNode,
-  childIdList,
   type DesignDocument,
   type DesignNode,
   type DiffSummary,
@@ -48,22 +49,40 @@ export interface LiveGeom {
   height: number;
 }
 
+export interface Guides {
+  xs: number[];
+  ys: number[];
+}
+
+/** A single, cached mirror-log entry for the History panel (§35 UI over the op log). */
+export interface HistoryLogEntry {
+  summary: string;
+  provenance: 'user' | 'demo' | 'live';
+  diff: DiffSummary;
+}
+
 interface StudioState {
   doc: DesignDocument;
+  activePageId: string;
   selection: string[];
   hoverId: string | null;
+  editingId: string | null;
   viewport: Viewport;
   tool: Tool;
   interaction: Interaction;
   liveGeom: Record<string, LiveGeom>;
+  guides: Guides;
   previewOpen: boolean;
   aiBusy: boolean;
   lastDiff: DiffSummary | null;
+  historyLog: HistoryLogEntry[];
+  historyCursor: number;
   mode: 'demo' | 'live';
   status: string;
 
   setTool: (t: Tool) => void;
   setHover: (id: string | null) => void;
+  setEditing: (id: string | null) => void;
   setViewport: (v: Viewport) => void;
   zoomAt: (factor: number, screenPt: Point) => void;
   select: (ids: string[], additive?: boolean) => void;
@@ -74,6 +93,7 @@ interface StudioState {
   dispatch: (batch: OpBatch) => void;
   undo: () => void;
   redo: () => void;
+  restoreTo: (cursor: number) => void;
 
   addShape: (kind: Tool, at: Point) => void;
   moveSelectionBy: (dx: number, dy: number) => void;
@@ -84,12 +104,17 @@ interface StudioState {
   bringForward: () => void;
   sendBackward: () => void;
 
+  addPage: () => void;
+  switchPage: (id: string) => void;
+
   setInteraction: (i: Interaction) => void;
   setLiveGeom: (g: Record<string, LiveGeom>) => void;
   clearLiveGeom: () => void;
+  setGuides: (g: Guides) => void;
   setPreview: (open: boolean) => void;
   setStatus: (s: string) => void;
 
+  loadDocument: (doc: DesignDocument) => void;
   generate: (prompt: string) => Promise<void>;
   editSelection: (instruction: string) => Promise<void>;
   newProject: () => void;
@@ -103,6 +128,13 @@ const userProvenance: OpBatch['provenance'] = { mode: 'user' };
 
 function mkBatch(opsList: Op[], summary: string, provenance: OpBatch['provenance'] = userProvenance): OpBatch {
   return { id: uid(), ops: opsList, provenance, timestamp: Date.now(), summary };
+}
+
+/** Resolve a usable page id, guarding against a stale id after undo removes the current page. */
+function safePage(doc: DesignDocument, preferred: string | undefined): string {
+  if (preferred && doc.nodes[preferred]?.type === 'page') return preferred;
+  const pages = childIdList(doc.nodes[doc.rootId]!);
+  return pages.find((p) => doc.nodes[p]?.type === 'page') ?? doc.activePageId;
 }
 
 /** Deep-clone a subtree with fresh ids, offset by (dx,dy); returns ordered top-first nodes. */
@@ -121,7 +153,6 @@ function cloneSubtree(doc: DesignDocument, rootId: string, dx: number, dy: numbe
     c.y += dy;
     return c;
   });
-  // return top-first so addSubtree wires correctly
   clones.sort((a, b) => depthOf(doc, a.id) - depthOf(doc, b.id));
   return clones.map((c) => (c.id === idMap.get(rootId) ? { ...c, parentId: doc.nodes[rootId]!.parentId } : c));
 }
@@ -138,20 +169,26 @@ function depthOf(doc: DesignDocument, id: string): number {
 
 export const useStudio = create<StudioState>((set, get) => ({
   doc: history.current,
+  activePageId: history.current.activePageId,
   selection: [],
   hoverId: null,
+  editingId: null,
   viewport: { x: 60, y: 48, zoom: 0.55 },
   tool: 'select',
   interaction: { type: 'idle' },
   liveGeom: {},
+  guides: { xs: [], ys: [] },
   previewOpen: false,
   aiBusy: false,
   lastDiff: null,
+  historyLog: [],
+  historyCursor: 0,
   mode: router.mode,
   status: 'Ready',
 
   setTool: (t) => set({ tool: t }),
   setHover: (id) => set({ hoverId: id }),
+  setEditing: (id) => set({ editingId: id }),
   setViewport: (v) => set({ viewport: v }),
 
   zoomAt: (factor, screenPt) => {
@@ -181,22 +218,60 @@ export const useStudio = create<StudioState>((set, get) => ({
     }
     const summary = diffFromBatch(before, next, b);
     const removed = new Set(summary.removed);
-    const selection = get().selection.filter((id) => next.nodes[id] && !removed.has(id));
-    set({ doc: next, lastDiff: summary, selection, mode: router.mode });
+    const state = get();
+    const selection = state.selection.filter((id) => next.nodes[id] && !removed.has(id));
+    // truncate any redo tail, then append this batch to the mirror log
+    const log = state.historyLog.slice(0, state.historyCursor);
+    log.push({ summary: b.summary ?? 'Edit', provenance: b.provenance.mode, diff: summary });
+    set({
+      doc: next,
+      activePageId: safePage(next, state.activePageId),
+      lastDiff: summary,
+      selection,
+      editingId: state.editingId && next.nodes[state.editingId] ? state.editingId : null,
+      historyLog: log,
+      historyCursor: log.length,
+      mode: router.mode,
+    });
   },
 
   undo: () => {
+    if (!history.canUndo) return;
     history.undo();
-    set((s) => ({ doc: history.current, selection: s.selection.filter((id) => history.current.nodes[id]), lastDiff: null }));
+    const next = history.current;
+    set((s) => ({
+      doc: next,
+      activePageId: safePage(next, s.activePageId),
+      selection: s.selection.filter((id) => next.nodes[id]),
+      historyCursor: Math.max(0, s.historyCursor - 1),
+      lastDiff: null,
+    }));
   },
   redo: () => {
+    if (!history.canRedo) return;
     history.redo();
-    set((s) => ({ doc: history.current, selection: s.selection.filter((id) => history.current.nodes[id]), lastDiff: null }));
+    const next = history.current;
+    set((s) => {
+      const cursor = Math.min(s.historyLog.length, s.historyCursor + 1);
+      return {
+        doc: next,
+        activePageId: safePage(next, s.activePageId),
+        selection: s.selection.filter((id) => next.nodes[id]),
+        historyCursor: cursor,
+        lastDiff: s.historyLog[cursor - 1]?.diff ?? null,
+      };
+    });
+  },
+  restoreTo: (cursor) => {
+    const target = Math.max(0, Math.min(get().historyLog.length, cursor));
+    let guard = 0;
+    while (get().historyCursor > target && guard++ < 1000) get().undo();
+    while (get().historyCursor < target && guard++ < 1000) get().redo();
   },
 
   addShape: (kind, at) => {
-    const { doc } = get();
-    const page = doc.activePageId;
+    const { doc, activePageId } = get();
+    const page = safePage(doc, activePageId);
     const base = { x: Math.round(at.x), y: Math.round(at.y) };
     let node: DesignNode | undefined;
     if (kind === 'rectangle') node = rectNode('Rectangle', { ...base, width: 160, height: 120, cornerRadius: 10, fills: [{ kind: 'token', ref: 'color.surfaceAlt' }] });
@@ -206,7 +281,7 @@ export const useStudio = create<StudioState>((set, get) => ({
       node = textNode('Text', 'Type something', { fontFamilyToken: 'font.family.body', sizeToken: 'font.size.lg', weight: 500, lineHeight: 1.3, letterSpacing: 0, align: 'left' }, { ...base, width: 220, height: 32, fills: [{ kind: 'token', ref: 'color.text' }] });
     if (!node) return;
     get().commitOps([ops.addSubtree(page, childIdList(doc.nodes[page]!).length, [node])], `Add ${node.name}`);
-    set({ selection: [node.id], tool: 'select' });
+    set({ selection: [node.id], tool: 'select', editingId: kind === 'text' ? node.id : null });
   },
 
   moveSelectionBy: (dx, dy) => {
@@ -232,7 +307,7 @@ export const useStudio = create<StudioState>((set, get) => ({
     const { doc, selection } = get();
     const targets = selection.filter((id) => {
       const n = doc.nodes[id];
-      return n && n.parentId !== null && !hasSelectedAncestor(doc, id, selection);
+      return n && n.parentId !== null && n.type !== 'page' && !hasSelectedAncestor(doc, id, selection);
     });
     if (!targets.length) return;
     get().commitOps(targets.map((id) => ops.removeSubtree(id)), `Delete ${targets.length} node(s)`);
@@ -246,7 +321,7 @@ export const useStudio = create<StudioState>((set, get) => ({
     const created: string[] = [];
     for (const id of selection) {
       const n = doc.nodes[id];
-      if (!n?.parentId) continue;
+      if (!n?.parentId || n.type === 'page') continue;
       const clones = cloneSubtree(doc, id, 24, 24);
       const idx = childIdList(doc.nodes[n.parentId]!).indexOf(id) + 1;
       opList.push(ops.addSubtree(n.parentId, idx, clones));
@@ -256,14 +331,31 @@ export const useStudio = create<StudioState>((set, get) => ({
     set({ selection: created });
   },
 
-  bringForward: () => reorderSelection(get, set, 'max'),
-  sendBackward: () => reorderSelection(get, set, 'min'),
+  bringForward: () => reorderSelection(get, 'max'),
+  sendBackward: () => reorderSelection(get, 'min'),
+
+  addPage: () => {
+    const { doc } = get();
+    const pages = childIdList(doc.nodes[doc.rootId]!);
+    const page = pageNode(`Page ${pages.length + 1}`, { x: 0, y: 0, width: 1440, height: 900 });
+    get().commitOps([ops.addSubtree(doc.rootId, pages.length, [page])], `Add ${page.name}`);
+    set({ activePageId: page.id, selection: [] });
+  },
+  switchPage: (id) => {
+    if (get().doc.nodes[id]?.type === 'page') set({ activePageId: id, selection: [], editingId: null });
+  },
 
   setInteraction: (i) => set({ interaction: i }),
   setLiveGeom: (g) => set({ liveGeom: g }),
-  clearLiveGeom: () => set({ liveGeom: {} }),
+  clearLiveGeom: () => set({ liveGeom: {}, guides: { xs: [], ys: [] } }),
+  setGuides: (g) => set({ guides: g }),
   setPreview: (open) => set({ previewOpen: open }),
   setStatus: (s) => set({ status: s }),
+
+  loadDocument: (doc) => {
+    history = new History(doc);
+    set({ doc, activePageId: safePage(doc, doc.activePageId), selection: [], editingId: null, lastDiff: null, historyLog: [], historyCursor: 0, status: 'Restored from local snapshot' });
+  },
 
   generate: async (prompt) => {
     if (!prompt.trim()) return;
@@ -272,11 +364,18 @@ export const useStudio = create<StudioState>((set, get) => ({
       const res = await router.generateDesign({ prompt, document: history.current });
       const before = history.current;
       const after = history.dispatch(res.batch);
+      const summary = diffFromBatch(before, after, res.batch);
+      const state = get();
+      const log = state.historyLog.slice(0, state.historyCursor);
+      log.push({ summary: res.batch.summary ?? 'Generate', provenance: 'demo', diff: summary });
       set({
         doc: after,
+        activePageId: safePage(after, after.activePageId),
         aiBusy: false,
         mode: router.mode,
-        lastDiff: diffFromBatch(before, after, res.batch),
+        lastDiff: summary,
+        historyLog: log,
+        historyCursor: log.length,
         status: `${res.usage.model} → ${res.batch.summary}`,
       });
     } catch (e) {
@@ -295,7 +394,11 @@ export const useStudio = create<StudioState>((set, get) => ({
       const res = await router.editDesign({ instruction, document: history.current, selectedNodeIds: get().selection });
       const before = history.current;
       const after = history.dispatch(res.batch);
-      set({ doc: after, aiBusy: false, mode: router.mode, lastDiff: diffFromBatch(before, after, res.batch), status: res.batch.summary ?? 'AI edit applied' });
+      const summary = diffFromBatch(before, after, res.batch);
+      const state = get();
+      const log = state.historyLog.slice(0, state.historyCursor);
+      log.push({ summary: res.batch.summary ?? 'AI edit', provenance: 'demo', diff: summary });
+      set({ doc: after, aiBusy: false, mode: router.mode, lastDiff: summary, historyLog: log, historyCursor: log.length, status: res.batch.summary ?? 'AI edit applied' });
     } catch (e) {
       set({ aiBusy: false, status: 'Edit failed: ' + (e instanceof Error ? e.message : '') });
     }
@@ -303,7 +406,8 @@ export const useStudio = create<StudioState>((set, get) => ({
 
   newProject: () => {
     history = new History(createEmptyDocument('Untitled Project'));
-    set({ doc: history.current, selection: [], lastDiff: null, status: 'New project' });
+    const d = history.current;
+    set({ doc: d, activePageId: d.activePageId, selection: [], editingId: null, lastDiff: null, historyLog: [], historyCursor: 0, status: 'New project' });
   },
 }));
 
@@ -316,7 +420,7 @@ function hasSelectedAncestor(doc: DesignDocument, id: string, selection: string[
   }
   return false;
 }
-function reorderSelection(get: () => StudioState, set: (p: Partial<StudioState>) => void, dir: 'min' | 'max'): void {
+function reorderSelection(get: () => StudioState, dir: 'min' | 'max'): void {
   const { doc, selection } = get();
   const opList: Op[] = [];
   for (const id of selection) {
@@ -327,5 +431,4 @@ function reorderSelection(get: () => StudioState, set: (p: Partial<StudioState>)
     if (sibs[target] !== id) opList.push(ops.reorder(id, n.parentId, target));
   }
   if (opList.length) get().commitOps(opList, dir === 'max' ? 'Bring forward' : 'Send backward');
-  void set;
 }

@@ -13,6 +13,7 @@ const TOOLS: { id: Tool; label: string; icon: string; key: string }[] = [
 
 export default function Toolbar() {
   const doc = useStudio((s) => s.doc);
+  const activePageId = useStudio((s) => s.activePageId);
   const tool = useStudio((s) => s.tool);
   const setTool = useStudio((s) => s.setTool);
   const mode = useStudio((s) => s.mode);
@@ -77,7 +78,7 @@ export default function Toolbar() {
           {mode === 'demo' ? 'DEMO MODE' : 'LIVE'}
         </span>
         <button className="btn" onClick={exportPng}>PNG</button>
-        <button className="btn" onClick={() => exportHtml(renderPreviewHtml(doc, doc.activePageId), slug(doc.name))}>HTML</button>
+        <button className="btn" onClick={() => exportHtml(renderPreviewHtml(doc, activePageId), slug(doc.name))}>HTML</button>
         <button className="btn" onClick={() => exportJson(doc)}>JSON</button>
         <button className="btn" onClick={newProject}>New</button>
         <button className="btn btn-primary" onClick={() => setPreview(true)}>Preview</button>

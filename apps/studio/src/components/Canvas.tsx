@@ -1,13 +1,18 @@
 'use client';
-import { useCallback, useEffect, useRef } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   boundsOfSubtree,
+  childIdList,
   hitTest,
   layoutPage,
+  subtreeIds,
   type AbsRect,
   type Point,
+  type TextNode,
 } from '@nexus/design-model';
 import { drawScene, handlePoints, type Marquee } from '@/lib/render';
+import { resolveTextStyle } from '@/lib/paint';
+import { computeSnap } from '@/lib/snap';
 import { useStudio, type LiveGeom } from '@/lib/store';
 
 const MOVE_THRESHOLD = 3; // px on screen before a click becomes a drag
@@ -43,7 +48,13 @@ export default function Canvas() {
   const wrapRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
-  // Mutable interaction scratch that must not trigger re-render per mousemove.
+  // Reactive slice the DOM overlay needs (the canvas itself draws from getState in rAF).
+  const doc = useStudio((s) => s.doc);
+  const viewport = useStudio((s) => s.viewport);
+  const activePageId = useStudio((s) => s.activePageId);
+  const editingId = useStudio((s) => s.editingId);
+  const [draft, setDraft] = useState('');
+
   const drag = useRef<{
     kind: 'idle' | 'pan' | 'move' | 'resize' | 'marquee' | 'maybeMove';
     startClient: Point;
@@ -55,6 +66,12 @@ export default function Canvas() {
     moved: boolean;
     spaceHeld: boolean;
   }>({ kind: 'idle', startClient: { x: 0, y: 0 }, startWorld: { x: 0, y: 0 }, baseGeoms: {}, moved: false, spaceHeld: false });
+
+  useEffect(() => {
+    if (!editingId) return;
+    const n = useStudio.getState().doc.nodes[editingId];
+    setDraft(n && n.type === 'text' ? n.characters : '');
+  }, [editingId]);
 
   const toWorld = useCallback((clientX: number, clientY: number): Point => {
     const el = canvasRef.current!;
@@ -81,9 +98,8 @@ export default function Canvas() {
     if (!ctx) return;
 
     const s = useStudio.getState();
-    const pageId = s.doc.activePageId;
+    const pageId = s.activePageId;
     const base = layoutPage(s.doc, pageId);
-    // overlay live geometry for smooth drag/resize without mutating the doc
     const layout: Record<string, AbsRect> = { ...base };
     for (const [id, g] of Object.entries(s.liveGeom)) {
       if (layout[id]) layout[id] = { ...layout[id], ...g };
@@ -95,7 +111,18 @@ export default function Canvas() {
     }
     drawScene(
       ctx,
-      { doc: s.doc, pageId, layout, viewport: s.viewport, selection: s.selection, hoverId: s.hoverId, marquee, showChrome: true },
+      {
+        doc: s.doc,
+        pageId,
+        layout,
+        viewport: s.viewport,
+        selection: s.selection,
+        hoverId: s.hoverId,
+        marquee,
+        guides: s.guides,
+        hideId: s.editingId,
+        showChrome: true,
+      },
       cssW,
       cssH,
       dpr,
@@ -186,23 +213,20 @@ export default function Canvas() {
     d.moved = false;
     d.baseGeoms = {};
 
-    // shape tools: drop a shape and return to select
     if (s.tool !== 'select') {
       s.addShape(s.tool, world);
       d.kind = 'idle';
       return;
     }
 
-    const pageId = s.doc.activePageId;
+    const pageId = s.activePageId;
     const layout = layoutPage(s.doc, pageId);
 
-    // middle button or space => pan
     if (e.button === 1 || d.spaceHeld) {
       d.kind = 'pan';
       return;
     }
 
-    // resize handles on single selection
     if (s.selection.length === 1) {
       const id = s.selection[0]!;
       const r = layout[id];
@@ -226,9 +250,11 @@ export default function Canvas() {
       const inSel = s.selection.includes(hit);
       if (e.shiftKey) s.toggleInSelection(hit);
       else if (!inSel) s.select([hit]);
-      // begin a possible move of whatever is now selected
       const sel = useStudio.getState().selection;
-      for (const id of sel) {
+      // grab a frame/parent → move its whole subtree as a unit
+      const dragSet = new Set<string>();
+      for (const id of sel) for (const sub of subtreeIds(s.doc, id)) dragSet.add(sub);
+      for (const id of dragSet) {
         const r = layout[id];
         if (r && !s.doc.nodes[id]?.locked) d.baseGeoms[id] = { x: r.x, y: r.y, width: r.width, height: r.height };
       }
@@ -236,23 +262,37 @@ export default function Canvas() {
       return;
     }
 
-    // empty space: marquee
     d.kind = 'marquee';
     d.additive = e.shiftKey;
     s.setInteraction({ type: 'marquee', start: world, current: world });
     if (!e.shiftKey) s.clearSelection();
   };
 
+  const onDoubleClick = (e: React.MouseEvent) => {
+    const s = useStudio.getState();
+    if (s.tool !== 'select') return;
+    const world = toWorld(e.clientX, e.clientY);
+    const layout = layoutPage(s.doc, s.activePageId);
+    const hit = hitTest(s.doc, layout, s.activePageId, world);
+    if (!hit) return;
+    const n = s.doc.nodes[hit];
+    if (n && n.type === 'text' && !n.locked) {
+      s.select([hit]);
+      s.setEditing(hit);
+    }
+  };
+
   const onPointerMove = (e: React.PointerEvent) => {
     const s = useStudio.getState();
     const d = drag.current;
     const world = toWorld(e.clientX, e.clientY);
-    const dx = e.clientX - d.startClient.x;
-    const dy = e.clientY - d.startClient.y;
-    if (!d.moved && Math.hypot(dx, dy) > MOVE_THRESHOLD) d.moved = true;
+    const dxScreen = e.clientX - d.startClient.x;
+    const dyScreen = e.clientY - d.startClient.y;
+    if (!d.moved && Math.hypot(dxScreen, dyScreen) > MOVE_THRESHOLD) d.moved = true;
+
+    const pageId = s.activePageId;
 
     if (d.kind === 'idle') {
-      const pageId = s.doc.activePageId;
       const layout = layoutPage(s.doc, pageId);
       const hit = hitTest(s.doc, layout, pageId, world);
       if (hit !== s.hoverId) s.setHover(hit);
@@ -273,8 +313,26 @@ export default function Canvas() {
     const wy = world.y - d.startWorld.y;
 
     if (d.kind === 'move') {
+      const layout = layoutPage(s.doc, pageId);
+      const page = layout[pageId];
+      const dragIds = Object.keys(d.baseGeoms);
+      const selSet = new Set(s.selection);
+      let sx = 0;
+      let sy = 0;
+      let guides: { xs: number[]; ys: number[] } = { xs: [], ys: [] };
+      if (page && dragIds.length) {
+        const moving = dragIds.map((id) => applyMove(d.baseGeoms[id]!, wx, wy));
+        const others = childIdList(s.doc.nodes[pageId]!)
+          .filter((id) => !selSet.has(id) && layout[id])
+          .map((id) => layout[id]!);
+        const snap = computeSnap(moving, others, page, 6 / s.viewport.zoom);
+        sx = snap.dx;
+        sy = snap.dy;
+        guides = { xs: snap.xs, ys: snap.ys };
+      }
+      s.setGuides(guides);
       const next: Record<string, LiveGeom> = {};
-      for (const [id, b] of Object.entries(d.baseGeoms)) next[id] = applyMove(b, wx, wy);
+      for (const [id, b] of Object.entries(d.baseGeoms)) next[id] = applyMove(b, wx + sx, wy + sy);
       s.setLiveGeom(next);
       return;
     }
@@ -289,7 +347,6 @@ export default function Canvas() {
     if (d.kind === 'marquee') {
       s.setInteraction({ type: 'marquee', start: d.startWorld, current: world });
       const m: Marquee = { x0: d.startWorld.x, y0: d.startWorld.y, x1: world.x, y1: world.y };
-      const pageId = s.doc.activePageId;
       const layout = layoutPage(s.doc, pageId);
       const ids = Object.entries(layout)
         .filter(([, r]) => rectIntersects(r, m))
@@ -308,13 +365,16 @@ export default function Canvas() {
     } catch {
       /* already released */
     }
-    const world = toWorld(e.clientX, e.clientY);
 
     if (d.kind === 'move') {
-      const wx = Math.round(world.x - d.startWorld.x);
-      const wy = Math.round(world.y - d.startWorld.y);
+      // Commit the *snapped* delta baked into liveGeom, not the raw pointer delta.
+      const id = Object.keys(d.baseGeoms)[0];
+      const live = id ? s.liveGeom[id] : undefined;
+      const base = id ? d.baseGeoms[id] : undefined;
+      const dx = live && base ? Math.round(live.x - base.x) : 0;
+      const dy = live && base ? Math.round(live.y - base.y) : 0;
       s.clearLiveGeom();
-      if (wx || wy) s.moveSelectionBy(wx, wy);
+      if (dx || dy) s.moveSelectionBy(dx, dy);
     } else if (d.kind === 'resize' && d.resizeId) {
       const g = s.liveGeom[d.resizeId];
       s.clearLiveGeom();
@@ -332,7 +392,6 @@ export default function Canvas() {
   const onWheel = (e: React.WheelEvent) => {
     const s = useStudio.getState();
     if (e.ctrlKey || !e.shiftKey) {
-      // zoom toward cursor
       const rect = canvasRef.current!.getBoundingClientRect();
       const factor = e.deltaY < 0 ? 1.1 : 1 / 1.1;
       s.zoomAt(factor, { x: e.clientX - rect.left, y: e.clientY - rect.top });
@@ -341,7 +400,6 @@ export default function Canvas() {
     }
   };
 
-  // zoom controls overlay
   const zoom = useStudio((s) => s.viewport.zoom);
   const zoomAtCenter = (factor: number) => {
     const wrap = wrapRef.current;
@@ -352,7 +410,7 @@ export default function Canvas() {
     const s = useStudio.getState();
     const wrap = wrapRef.current;
     if (!wrap) return;
-    const pageId = s.doc.activePageId;
+    const pageId = s.activePageId;
     const layout = layoutPage(s.doc, pageId);
     const bb = boundsOfSubtree(layout, [pageId]) ?? layout[pageId];
     if (!bb) return;
@@ -361,8 +419,72 @@ export default function Canvas() {
     s.setViewport({ zoom: z, x: (wrap.clientWidth - bb.width * z) / 2 - bb.x * z, y: (wrap.clientHeight - bb.height * z) / 2 - bb.y * z });
   };
 
+  // ---- on-canvas text editing overlay -------------------------------------
+  const editingNode = editingId ? (doc.nodes[editingId] as TextNode | undefined) : undefined;
+  let overlay: React.ReactNode = null;
+  if (editingNode && editingNode.type === 'text') {
+    const r = layoutPage(doc, activePageId)[editingNode.id];
+    if (r) {
+      const st = resolveTextStyle(doc, editingNode.style);
+      const color = editingNode.fills[0]?.kind === 'solid' ? `rgb(${Math.round(editingNode.fills[0].color.r * 255)},${Math.round(editingNode.fills[0].color.g * 255)},${Math.round(editingNode.fills[0].color.b * 255)})` : '#e6ecf5';
+      const commit = (cancel: boolean) => {
+        const id = editingNode.id;
+        const s = useStudio.getState();
+        if (!cancel && draft !== editingNode.characters) s.updateNode(id, { characters: draft });
+        s.setEditing(null);
+      };
+      overlay = (
+        <div
+          style={{
+            position: 'absolute',
+            left: r.x * viewport.zoom + viewport.x,
+            top: r.y * viewport.zoom + viewport.y,
+            width: r.width * viewport.zoom,
+            height: r.height * viewport.zoom,
+            pointerEvents: 'auto',
+          }}
+        >
+          <div style={{ transform: `scale(${viewport.zoom})`, transformOrigin: '0 0', width: r.width, height: r.height }}>
+            <textarea
+              autoFocus
+              value={draft}
+              onChange={(ev) => setDraft(ev.target.value)}
+              onBlur={() => commit(false)}
+              onKeyDown={(ev) => {
+                if (ev.key === 'Escape') {
+                  ev.preventDefault();
+                  commit(true);
+                } else if (ev.key === 'Enter' && (ev.metaKey || ev.ctrlKey)) {
+                  ev.preventDefault();
+                  commit(false);
+                }
+                ev.stopPropagation();
+              }}
+              style={{
+                width: r.width,
+                height: r.height,
+                margin: 0,
+                padding: 0,
+                border: '1px solid #6ea8fe',
+                outline: 'none',
+                resize: 'none',
+                background: 'rgba(11,14,20,0.35)',
+                color,
+                font: st.font,
+                lineHeight: String(st.lineHeight),
+                letterSpacing: `${st.letterSpacing}px`,
+                textAlign: st.align,
+                overflow: 'hidden',
+              }}
+            />
+          </div>
+        </div>
+      );
+    }
+  }
+
   return (
-    <div ref={wrapRef} style={{ position: 'absolute', inset: 0, overflow: 'hidden', cursor: 'crosshair' }}>
+    <div ref={wrapRef} style={{ position: 'absolute', inset: 0, overflow: 'hidden', cursor: editingId ? 'text' : 'crosshair' }}>
       <canvas
         id="nexus-canvas"
         ref={canvasRef}
@@ -371,8 +493,10 @@ export default function Canvas() {
         onPointerMove={onPointerMove}
         onPointerUp={finishDrag}
         onPointerCancel={finishDrag}
+        onDoubleClick={onDoubleClick}
         onWheel={onWheel}
       />
+      {overlay}
       <div style={{ position: 'absolute', right: 12, bottom: 12, display: 'flex', gap: 6, alignItems: 'center' }}>
         <button className="btn" onClick={() => zoomAtCenter(1 / 1.2)}>−</button>
         <button className="btn" style={{ minWidth: 64 }} onClick={fitToContent} title="Zoom to fit">{Math.round(zoom * 100)}%</button>

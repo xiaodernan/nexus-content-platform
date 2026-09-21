@@ -5,8 +5,9 @@ import { useStudio } from '@/lib/store';
 
 export default function PreviewOverlay() {
   const doc = useStudio((s) => s.doc);
+  const activePageId = useStudio((s) => s.activePageId);
   const setPreview = useStudio((s) => s.setPreview);
-  const html = useMemo(() => renderPreviewHtml(doc, doc.activePageId), [doc]);
+  const html = useMemo(() => renderPreviewHtml(doc, activePageId), [doc, activePageId]);
 
   return (
     <div

@@ -23,3 +23,4 @@ An ADR is immutable once Accepted. Later reversals are recorded as a new ADR tha
 | 0011  | Backend service boundaries (Node/Spring/FastAPI)            | Accepted |
 | 0012  | Persistence: PostgreSQL + pgvector + Redis                  | Accepted |
 | 0013  | Sandbox & security model                                    | Proposed |
+| 0014  | Local-first snapshot persistence & Studio view-state         | Accepted |

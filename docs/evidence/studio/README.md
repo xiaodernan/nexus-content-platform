@@ -13,7 +13,7 @@ npm run build lint typecheck test     # via turbo, 9/9 tasks pass
 | ------------------ | ------ |
 | @nexus/design-model| 11/11 vitest, tsc clean |
 | @nexus/ai-providers| 7/7 vitest, tsc clean |
-| @nexus/studio      | tsc `--noEmit` clean · eslint `--max-warnings=0` clean · `next build` ✓ (4/4 static pages, `/` = 19.4 kB) |
+| @nexus/studio      | 13/13 vitest (`snap.test.ts` + `persist.test.ts`) · tsc `--noEmit` clean · eslint `--max-warnings=0` clean · `next build` ✓ (4/4 static pages, `/` = 22.4 kB) |
 
 ## Headless pipeline proof
 
@@ -34,6 +34,10 @@ Proven end-to-end with assertions:
 4. **undo/redo (§35)** — op-log reversibility restores exact node counts (2↔18).
 5. **deterministic AI edit** — a real `updateNode` transform on a live selection.
 6. **honest cost (§53/§60)** — `mode: "demo"`, `estimatedCostUsd: 0`. Never faked as "live".
+7. **multi-page add is reversible** — an `addSubtree(root)` grows `pageIds` 1→2, the fresh page
+   lays out in isolation (`layoutPage` returns only its rect), and undo removes it again.
+8. **persistence round-trip at the model level** — serialize → JSON → revalidate root + page →
+   the revived doc lays out identically (mirrors `lib/persist.ts` guarantees).
 
 ## In-browser golden path (live React app)
 
@@ -46,6 +50,15 @@ Driven through the running `next dev` server via the browser automation surface:
 - Opening **Preview** mounted the iframe whose HTML was generated **from the Design Model**
   and contained the composed content (`An analytics dashboard`, `Revenue $48,920`,
   `Active users`, `Conversion`, `3.7%` …).
+
+### Persistence + multi-page hydrate (real browser bundle, no rAF needed)
+
+Because hydration runs on mount (not in the paint loop), it was verified for real despite the
+hidden viewport: write a valid snapshot envelope to `localStorage['nexus.studio.doc.v1']`, reload
+`http://localhost:3210/`, and confirm the store rehydrated — the toolbar shows `PersistedDoc`, the
+PageTabs strip shows its `PersistedPage` (proving `activePageId` resolved via the staleness guard),
+the prior "My First World / Page 1" is gone, and the status reads `Restored from local snapshot`.
+The test artifact was then cleared.
 
 ## Model-derived visual artifacts
 

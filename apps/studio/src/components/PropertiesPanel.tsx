@@ -1,6 +1,7 @@
 'use client';
 import { hexToRgba, rgbaToCss, resolveToken, type DesignNode, type Paint } from '@nexus/design-model';
 import { useStudio } from '@/lib/store';
+import { DiffCard } from '@/components/DiffCard';
 
 function NumberField({ label, value, onCommit, min = -100000, max = 100000, step = 1 }: { label: string; value: number; onCommit: (n: number) => void; min?: number; max?: number; step?: number }) {
   return (
@@ -130,33 +131,11 @@ function NodeEditor({ node }: { node: DesignNode }) {
 
 const sectionTitle: React.CSSProperties = { fontSize: 11, textTransform: 'uppercase', letterSpacing: 0.6, color: 'var(--nexus-muted)', marginBottom: 6 };
 
-function DiffCard() {
-  const diff = useStudio((s) => s.lastDiff);
-  const setStatus = useStudio((s) => s.setStatus);
-  if (!diff) return null;
-  return (
-    <div style={{ margin: 12, padding: 10, borderRadius: 8, background: 'rgba(110,168,254,0.08)', border: '1px solid var(--nexus-border)' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <b style={{ fontSize: 12 }}>AI / Edit Diff</b>
-        <button className="btn" style={{ fontSize: 10, padding: '2px 6px' }} onClick={() => setStatus(useStudio.getState().status)}>✕</button>
-      </div>
-      <div style={{ fontSize: 12, marginTop: 6, display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-        <span style={{ color: '#63f0a4' }}>+{diff.added.length}</span>
-        <span style={{ color: '#ff7a7a' }}>−{diff.removed.length}</span>
-        <span style={{ color: 'var(--nexus-brand)' }}>~{diff.modified.length}</span>
-        {diff.moved.length > 0 && <span style={{ color: 'var(--nexus-accent)' }}>⇅{diff.moved.length}</span>}
-        {diff.tokensChanged && <span style={{ color: 'var(--nexus-muted)' }}>tokens</span>}
-      </div>
-      <div style={{ fontSize: 11, color: 'var(--nexus-muted)', marginTop: 4 }}>
-        {diff.nodeCountBefore} → {diff.nodeCountAfter} nodes
-      </div>
-    </div>
-  );
-}
-
 export default function PropertiesPanel() {
   const doc = useStudio((s) => s.doc);
   const selection = useStudio((s) => s.selection);
+  const lastDiff = useStudio((s) => s.lastDiff);
+  const setStatus = useStudio((s) => s.setStatus);
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100%' }}>
@@ -183,7 +162,9 @@ export default function PropertiesPanel() {
           </div>
         </div>
       )}
-      <DiffCard />
+      <div style={{ margin: 12 }}>
+        <DiffCard diff={lastDiff} onClose={() => setStatus(useStudio.getState().status)} />
+      </div>
     </div>
   );
 }

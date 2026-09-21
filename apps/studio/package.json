@@ -9,6 +9,8 @@
     "start": "next start -p 3000",
     "typecheck": "tsc --noEmit",
     "lint": "eslint . --max-warnings=0",
+    "test": "vitest run",
+    "test:watch": "vitest",
     "clean": "rm -rf .next .turbo *.tsbuildinfo"
   },
   "dependencies": {
@@ -28,6 +30,7 @@
     "eslint": "^9.17.0",
     "eslint-config-next": "^15.1.4",
     "tailwindcss": "^4.0.0",
-    "typescript": "^5.7.2"
+    "typescript": "^5.7.2",
+    "vitest": "^2.1.8"
   }
 }

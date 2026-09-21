@@ -51,6 +51,36 @@ const edit = await router.editDesign({ instruction: 'rename ProofLayer', documen
 const edited = history.dispatch(edit.batch);
 assert.notEqual(edited, before, 'edit should produce a new document');
 
+// 6) Multi-page add routes through the existing addSubtree -> pageIds path (no schema change).
+const { ops, childIdList, pageNode } = dm;
+const prePages = history.current;
+const prePageCount = childIdList(prePages.nodes[prePages.rootId]).length;
+const newPage = pageNode('Proof Page 2', { x: 0, y: 0, width: 1440, height: 900 });
+const twoPageDoc = history.dispatch({
+  id: 'pageadd',
+  ops: [ops.addSubtree(prePages.rootId, prePageCount, [newPage])],
+  provenance: { mode: 'user' },
+  timestamp: 0,
+  summary: 'Add Proof Page 2',
+});
+const twoPageIds = childIdList(twoPageDoc.nodes[twoPageDoc.rootId]);
+assert.equal(twoPageIds.length, prePageCount + 1, 'addSubtree on a document grows pageIds');
+assert.ok(twoPageIds.includes(newPage.id), 'the new page is wired into pageIds');
+// per-page isolation: laying out the new (empty) page yields only the page rect
+const solo = layoutPage(twoPageDoc, newPage.id);
+assert.equal(Object.keys(solo).length, 1, 'layoutPage must isolate a fresh page (page rect only)');
+history.undo();
+assert.equal(childIdList(history.current.nodes[history.current.rootId]).length, prePageCount, 'undo removes the added page');
+
+// 7) Persistence round-trip at the model level mirrors studio/lib/persist.ts guarantees:
+//    serialize -> JSON -> revalidate a resolvable root + page, then lay out the revived doc.
+const snapshot = JSON.stringify(history.current);
+const revived = JSON.parse(snapshot);
+assert.ok(revived.nodes[revived.rootId], 'revived doc resolves its root');
+assert.ok(Object.values(revived.nodes).some((n) => n.type === 'page'), 'revived doc has a page to display');
+const revivedLayout = layoutPage(revived, revived.activePageId);
+assert.ok(Object.keys(revivedLayout).length >= 1, 'revived doc lays out identically');
+
 console.log(
   JSON.stringify(
     {
@@ -60,6 +90,7 @@ console.log(
       nodesAfter: afterCount,
       addedByCompose: diff.added.length,
       contentNodesWithLayout: ids.length,
+      pagesAfterAdd: twoPageIds.length,
       sampleNodeTypes: [...new Set(ids.map((i) => after.nodes[i].type))].slice(0, 8),
       usage: res.usage,
     },

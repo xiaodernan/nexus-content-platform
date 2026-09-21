@@ -26,11 +26,12 @@ function Row({ tree, doc, depth }: { tree: TreeNode; doc: DesignDocument; depth:
   const toggleInSelection = useStudio((s) => s.toggleInSelection);
   const setHover = useStudio((s) => s.setHover);
   const updateNode = useStudio((s) => s.updateNode);
+  const activePageId = useStudio((s) => s.activePageId);
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(node.name);
 
   const selected = selection.includes(node.id);
-  const isRoot = node.id === doc.activePageId;
+  const isRoot = node.id === activePageId;
   const container = children.length > 0;
   const [collapsed, setCollapsed] = useState(false);
 
@@ -126,10 +127,12 @@ const iconBtn: React.CSSProperties = {
 
 export default function LayersPanel() {
   const doc = useStudio((s) => s.doc);
+  const activePageId = useStudio((s) => s.activePageId);
   const tree = buildTree(doc);
   if (!tree) return null;
   // Only show the active page subtree to keep the panel focused.
-  const pageNode: TreeNode = { node: doc.nodes[doc.activePageId]!, children: childIdList(doc.nodes[doc.activePageId]!).map((id) => buildTree(doc, id)).filter((t): t is TreeNode => Boolean(t)) };
+  const page = doc.nodes[activePageId] ?? doc.nodes[doc.activePageId]!;
+  const pageNode: TreeNode = { node: page, children: childIdList(page).map((id) => buildTree(doc, id)).filter((t): t is TreeNode => Boolean(t)) };
   void tree;
   return (
     <div>
