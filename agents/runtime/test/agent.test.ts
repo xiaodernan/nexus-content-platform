@@ -3,6 +3,7 @@ import { ToolRegistry, type Checkpoint } from '../src/registry.js';
 import { InMemoryWorkspace, registerWorkspaceTools } from '../src/workspace.js';
 import { goalKeyword, planTask } from '../src/planner.js';
 import { runTask } from '../src/orchestrator.js';
+import { registerUiTools } from '../src/domkit.js';
 import { MemoryStore, registerMemoryTools } from '../src/memory.js';
 import type { AgentTask } from '../src/types.js';
 
@@ -137,5 +138,40 @@ describe('orchestrator: gates and failures are honest', () => {
     expect(out.changeSet!.files[0]!.added).toBeGreaterThan(0);
     const outNoSnap = await runTask(h.task, { registry: h.registry, checkpoint: h.checkpoint });
     expect(outNoSnap.changeSet).toBeUndefined();
+  });
+});
+
+describe('runTask drives the UI plan (v20)', () => {
+  const PAGE = [
+    { kind: 'input', label: 'analytics dashboard' },
+    { kind: 'button', label: 'Compose' },
+  ];
+  function driver() {
+    const calls = [];
+    const reg = registerUiTools(new ToolRegistry(), { elements: () => PAGE, click: (i) => { calls.push(`click:${PAGE[i].label}`); return calls.join('|'); }, type: (i, t) => { calls.push(`type:${PAGE[i].label}=${t}`); return calls.join('|'); } });
+    return { reg, calls };
+  }
+  it('plans observe→type→click and executes with per-step checkpoints', async () => {
+    const { reg, calls } = driver();
+    const asked = [];
+    const out = await runTask({ id: 'ui-1', goal: 'an analytics dashboard' }, {
+      registry: reg,
+      checkpoint: async ({ call }) => { asked.push(call.tool); return call.tool !== 'ui.click' || true; },
+      uiInputLabel: 'analytics dashboard',
+      uiButtonLabel: 'Compose',
+    });
+    expect(out.status).toBe('completed');
+    expect(out.plan.steps.map((s) => s.tool)).toEqual(['ui.observe', 'ui.type', 'ui.click']);
+    expect(calls).toEqual(['type:analytics dashboard=an analytics dashboard', 'click:Compose']);
+    expect(asked).toEqual(['ui.type', 'ui.click']);
+    expect(out.planner).toEqual({ backend: 'demo' });
+  });
+
+  it('denied click stops the loop honestly: earlier actions stand, status denied', async () => {
+    const { reg, calls } = driver();
+    const out = await runTask({ id: 'ui-2', goal: 'g' }, { registry: reg, checkpoint: ({ call }) => call.tool !== 'ui.click', uiInputLabel: 'analytics dashboard', uiButtonLabel: 'Compose' });
+    expect(out.status).toBe('denied');
+    expect(calls).toEqual(['type:analytics dashboard=g']);
+    expect(out.results.at(-1)!.error).toContain('denied at checkpoint');
   });
 });

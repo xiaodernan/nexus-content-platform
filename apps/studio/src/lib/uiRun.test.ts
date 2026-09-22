@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { runUiDrive, uiScript, type UiRunResult } from './uiRun';
+import { runUiDrive, runUiTask, uiScript, type UiRunResult } from './uiRun';
 import type { UiDriver, UiElement } from '@nexus/agent-runtime';
 
 class FakeDriver implements UiDriver {
@@ -57,5 +57,24 @@ describe('uiRun (v16 gated agent UI drive, headless driver)', () => {
     const res = await runUiDrive(d, uiScript('g'), async () => { asked++; return true; });
     expect(res).toMatchObject({ ok: false, stoppedAt: 'analytics dashboard', reason: 'label not found on page' });
     expect(asked).toBe(0);
+  });
+});
+
+describe('runUiTask (v20 orchestrator-driven)', () => {
+  it('demo planner drives the fake page end-to-end with per-step decisions', async () => {
+    const d = new FakeDriver(PAGE);
+    const asked: string[] = [];
+    const { outcome, actions } = await runUiTask(d, 'an analytics dashboard', async (p) => { asked.push(p.tool); return true; });
+    expect(outcome.status).toBe('completed');
+    expect(outcome.plan.steps.map((s) => s.tool)).toEqual(['ui.observe', 'ui.type', 'ui.click']);
+    expect(actions).toEqual(['type:analytics dashboard=an analytics dashboard', 'click:Compose']);
+    expect(asked).toEqual(['ui.type', 'ui.click']);
+  });
+
+  it('denied click ⇒ status denied, typed action stands', async () => {
+    const d = new FakeDriver(PAGE);
+    const { outcome, actions } = await runUiTask(d, 'g', async (p) => p.tool !== 'ui.click');
+    expect(outcome.status).toBe('denied');
+    expect(actions).toEqual(['type:analytics dashboard=g']);
   });
 });

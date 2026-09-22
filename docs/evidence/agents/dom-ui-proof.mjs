@@ -33,9 +33,8 @@ async function runUi(steps, decide) {
   const registry = registerUiTools(new ToolRegistry(), d);
   const actions = [];
   for (const step of steps) {
-    const index = findLabel(d.elements(), step.label);
-    if (index < 0) return { ok: false, actions, d, stoppedAt: step.label, reason: 'label not found on page' };
-    const args = step.tool === 'ui.type' ? { index, text: step.text } : { index };
+    if (findLabel(d.elements(), step.label) < 0) return { ok: false, actions, d, stoppedAt: step.label, reason: 'label not found on page' };
+    const args = step.tool === 'ui.type' ? { label: step.label, text: step.text } : { label: step.label };
     const res = await registry.invoke(
       { callId: `ui:${step.label}`, tool: step.tool, args },
       { checkpoint: async ({ call }) => decide({ tool: call.tool, label: step.label }) },

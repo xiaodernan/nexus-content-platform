@@ -27,20 +27,26 @@ export const UI_TOOL_SPECS: ToolSpec[] = [
   },
   {
     name: 'ui.click',
-    description: 'Click the element at the given index. Requires human checkpoint.',
+    description: 'Click the element whose label matches (exact, then substring). Requires human checkpoint.',
     permissions: ['exec'],
-    args: [{ name: 'index', type: 'number', required: true }],
+    args: [{ name: 'label', type: 'string', required: true }],
   },
   {
     name: 'ui.type',
-    description: 'Type text into the input at the given index. Requires human checkpoint.',
+    description: 'Type text into the matching input. Requires human checkpoint.',
     permissions: ['exec'],
     args: [
-      { name: 'index', type: 'number', required: true },
+      { name: 'label', type: 'string', required: true },
       { name: 'text', type: 'string', required: true },
     ],
   },
 ];
+
+/** v20: exact match first, then substring (real placeholders carry extra hint text). */
+export function locate(els: UiElement[], label: string): number {
+  const exact = els.findIndex((e) => e.label === label);
+  return exact >= 0 ? exact : els.findIndex((e) => e.label.includes(label));
+}
 
 export function registerUiTools(registry: ToolRegistry, driver: UiDriver): ToolRegistry {
   for (const spec of UI_TOOL_SPECS) {
@@ -50,14 +56,14 @@ export function registerUiTools(registry: ToolRegistry, driver: UiDriver): ToolR
         case 'ui.observe':
           return { elements: els.map((e, i) => ({ index: i, ...e })) };
         case 'ui.click': {
-          const i = Number(args.index);
-          if (!Number.isInteger(i) || i < 0 || i >= els.length) throw new Error(`index ${args.index} out of range (0..${els.length - 1})`);
+          const i = locate(els, String(args.label));
+          if (i < 0) throw new Error(`no element matches label "${String(args.label)}"`);
           return { clicked: els[i]!.label, log: driver.click(i) };
         }
         case 'ui.type': {
-          const i = Number(args.index);
-          if (!Number.isInteger(i) || i < 0 || i >= els.length) throw new Error(`index ${args.index} out of range (0..${els.length - 1})`);
-          if (els[i]!.kind !== 'input') throw new Error(`element ${i} is a ${els[i]!.kind}, cannot type`);
+          const i = locate(els, String(args.label));
+          if (i < 0) throw new Error(`no element matches label "${String(args.label)}"`);
+          if (els[i]!.kind !== 'input') throw new Error(`element "${els[i]!.label}" is a ${els[i]!.kind}, cannot type`);
           return { into: els[i]!.label, log: driver.type(i, String(args.text)) };
         }
         default:

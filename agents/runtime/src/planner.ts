@@ -19,6 +19,10 @@ export interface PlannerOptions {
   hasIndex?: boolean;
   /** Whether `memory.recall` is registered; prior findings beat re-researching (§26). */
   hasMemory?: boolean;
+  /** v20: UI-driving capabilities registered; plans observe→type→click over labels. */
+  hasUi?: boolean;
+  uiInputLabel?: string;
+  uiButtonLabel?: string;
   seed?: number;
 }
 
@@ -37,6 +41,15 @@ export function planTask(task: AgentTask, opts: PlannerOptions): Plan {
     : opts.hasIndex
       ? { stepId: 'search', tool: 'fs.index', args: { query: task.goal }, rationale: 'hybrid index query for the goal' }
       : { stepId: 'search', tool: 'fs.search', args: { term }, rationale: `locate content matching "${term}"` };
+  if (opts.hasUi) {
+    const uiSteps: Step[] = [
+      { stepId: 'search', tool: 'ui.observe', args: {}, rationale: 'see what the page offers' },
+      { stepId: 'annotate', tool: 'ui.type', args: { label: opts.uiInputLabel ?? 'prompt', text: task.goal }, rationale: 'type the goal into the composer' },
+      { stepId: 'act', tool: 'ui.click', args: { label: opts.uiButtonLabel ?? 'Compose' }, rationale: 'press the action' },
+    ];
+    if (opts.hasVerify) uiSteps.push({ stepId: 'verify', tool: 'test.run', args: {}, rationale: 'host verification of the UI effect' });
+    return { goal: task.goal, seed, steps: uiSteps };
+  }
   const steps: Step[] = [
     research,
     { stepId: 'read', tool: 'fs.read', args: { path: target }, rationale: 'inspect the target file' },

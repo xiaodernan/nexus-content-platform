@@ -57,7 +57,9 @@
   v19 wires those vectors into §26 memory: `toVectorDb`/`recallVectors` + a persisted
   vectorsFile for `memory.recall` with a stated `engine` field and honest inline fallback
   (the dock persists vectors on every approval).
-  Proof: `agents/runtime/test` (vitest 126/126) plus the seventeen headless proofs in
+  v20: the orchestrator ITSELF drives the page (hasUi plan template + label-addressed ui
+  tools; dock Agent UI run = runTask loop, one Allow dialog per action).
+  Proof: `agents/runtime/test` (vitest 128/128) plus the seventeen headless proofs in
   `docs/evidence/agents/` (agent, code-index, memory, durability, index-store, provider,
   recall, changes, roles, pipeline, qa, repair, rolechain).
 

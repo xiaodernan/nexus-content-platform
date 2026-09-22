@@ -35,7 +35,7 @@ describe('domkit (v16 gated UI vocabulary)', () => {
   it('click/type are exec-gated: no checkpoint ⇒ nothing happens', async () => {
     const d = driver();
     const reg = registerUiTools(new ToolRegistry(), d);
-    const denied = await reg.invoke({ callId: 'c1', tool: 'ui.click', args: { index: 0 } }, {});
+    const denied = await reg.invoke({ callId: 'c1', tool: 'ui.click', args: { label: 'Compose' } }, {});
     expect(denied.ok).toBe(false);
     expect(denied.error).toContain('checkpoint required');
     expect(d.calls).toEqual([]);
@@ -44,18 +44,18 @@ describe('domkit (v16 gated UI vocabulary)', () => {
   it('approved actions flow through the driver and log', async () => {
     const d = driver();
     const reg = registerUiTools(new ToolRegistry(), d);
-    const click = await reg.invoke({ callId: 'c1', tool: 'ui.click', args: { index: 0 } }, { checkpoint: () => true });
+    const click = await reg.invoke({ callId: 'c1', tool: 'ui.click', args: { label: 'Compose' } }, { checkpoint: () => true });
     expect(click.output).toEqual({ clicked: 'Compose', log: 'click:Compose' });
-    const typed = await reg.invoke({ callId: 'c2', tool: 'ui.type', args: { index: 1, text: 'hi' } }, { checkpoint: () => true });
+    const typed = await reg.invoke({ callId: 'c2', tool: 'ui.type', args: { label: 'prompt', text: 'hi' } }, { checkpoint: () => true });
     expect(typed.output).toEqual({ into: 'prompt', log: 'click:Compose|type:prompt=hi' });
   });
 
   it('out-of-range and wrong-kind targets fail as results, never throws', async () => {
     const reg = registerUiTools(new ToolRegistry(), driver());
-    const oob = await reg.invoke({ callId: 'c', tool: 'ui.click', args: { index: 9 } }, { checkpoint: () => true });
+    const oob = await reg.invoke({ callId: 'c', tool: 'ui.click', args: { label: 'Nope' } }, { checkpoint: () => true });
     expect(oob.ok).toBe(false);
-    expect(oob.error).toContain('out of range');
-    const wrongKind = await reg.invoke({ callId: 'c2', tool: 'ui.type', args: { index: 0, text: 'x' } }, { checkpoint: () => true });
+    expect(oob.error).toContain('no element matches');
+    const wrongKind = await reg.invoke({ callId: 'c2', tool: 'ui.type', args: { label: 'Compose', text: 'x' } }, { checkpoint: () => true });
     expect(wrongKind.error).toContain('cannot type');
   });
 

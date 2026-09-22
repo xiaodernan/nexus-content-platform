@@ -1,4 +1,4 @@
-import { ToolRegistry, registerUiTools, type UiDriver, type UiElement } from '@nexus/agent-runtime';
+import { ToolRegistry, registerUiTools, runTask, type RunOutcome, type UiDriver, type UiElement } from '@nexus/agent-runtime';
 
 /**
  * M2 v16 (§63 browser automation *by* the agent, in-page edition): a deterministic UI
@@ -65,9 +65,8 @@ export async function runUiDrive(
   const actions: string[] = [];
   for (const step of steps) {
     const els = driver.elements();
-    const index = locate(els, step.label);
-    if (index < 0) return { ok: false, actions, stoppedAt: step.label, reason: 'label not found on page' };
-    const args = step.tool === 'ui.type' ? { index, text: step.text ?? '' } : { index };
+    if (locate(els, step.label) < 0) return { ok: false, actions, stoppedAt: step.label, reason: 'label not found on page' };
+    const args = step.tool === 'ui.type' ? { label: step.label, text: step.text ?? '' } : { label: step.label };
     const res = await registry.invoke(
       { callId: `ui:${step.label}`, tool: step.tool, args },
       {
@@ -79,4 +78,30 @@ export async function runUiDrive(
     actions.push(String((res.output as { log: string }).log));
   }
   return { ok: true, actions };
+}
+
+/** v20: the SAME orchestrator loop drives the page — plan (observe→type→click) comes from
+ * the demo planner, every exec step passes the injected human decider via the checkpoint. */
+export async function runUiTask(
+  driver: UiDriver,
+  goal: string,
+  decide: (plan: { tool: string; label: string; detail: string }) => Promise<boolean>,
+  labels: { input: string; button: string } = { input: 'analytics dashboard', button: 'Compose' },
+): Promise<{ outcome: RunOutcome; actions: string[] }> {
+  const registry = registerUiTools(new ToolRegistry(), driver);
+  const actions: string[] = [];
+  const origInvoke = registry.invoke.bind(registry);
+  registry.invoke = async (call, opts) => {
+    const res = await origInvoke(call, {
+      ...opts,
+      checkpoint: async () => {
+        const label = String(call.args.label ?? 'page');
+        return decide({ tool: call.tool, label, detail: call.tool === 'ui.type' ? `type “${call.args.text}”` : 'one click' });
+      },
+    });
+    if (res.ok && (call.tool === 'ui.click' || call.tool === 'ui.type')) actions.push(String((res.output as { log: string }).log));
+    return res;
+  };
+  const outcome = await runTask({ id: `ui-task-${Date.now()}`, goal }, { registry, checkpoint: () => true, uiInputLabel: labels.input, uiButtonLabel: labels.button });
+  return { outcome, actions };
 }

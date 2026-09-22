@@ -23,6 +23,8 @@ export interface RunOptions {
   snapshot?: () => Record<string, string>;
   /** v17: planning backend (default: the deterministic demo planner). */
   planner?: PlanBackend;
+  uiInputLabel?: string;
+  uiButtonLabel?: string;
 }
 
 const PROVENANCE: Provenance = { mode: 'demo', runtime: 'nexus-agent-runtime', version: '0.1.0' };
@@ -65,7 +67,7 @@ export async function runTask(task: AgentTask, opts: RunOptions): Promise<RunOut
   const plannerBackend = opts.planner ?? demoPlanner;
   const planned = await plannerBackend.plan(
     task,
-    { hasVerify: registry.has('test.run'), hasIndex: registry.has('fs.index'), hasMemory: registry.has('memory.recall') },
+    { hasVerify: registry.has('test.run'), hasIndex: registry.has('fs.index'), hasMemory: registry.has('memory.recall'), hasUi: registry.has('ui.click'), uiInputLabel: opts.uiInputLabel, uiButtonLabel: opts.uiButtonLabel },
     (name) => registry.has(name),
   );
   const plan: Plan = planned.plan;

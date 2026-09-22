@@ -18,7 +18,7 @@ import {
   type RepairPlan,
 } from '@/lib/agentDock';
 import type { ChainStageHandoff, QaReport } from '@nexus/agent-runtime';
-import { createDomDriver, runUiDrive, uiScript, type UiRunResult } from '@/lib/uiRun';
+import { createDomDriver, runUiTask } from '@/lib/uiRun';
 
 type Phase = 'idle' | 'planning' | 'awaiting' | 'done';
 
@@ -55,11 +55,11 @@ export default function AgentPanel() {
         decider.current = resolve;
         setUiAsk(plan);
       });
-    const res: UiRunResult = await runUiDrive(createDomDriver(), uiScript(goal || 'an analytics dashboard'), decide);
+    const { outcome, actions } = await runUiTask(createDomDriver(), goal || 'an analytics dashboard', decide);
     setUiAsk(null);
     setUiBusy(false);
-    setUiLog(res.actions);
-    setNote(res.ok ? 'Agent UI run finished — every action passed your checkpoint.' : `stopped at ‘{res.stoppedAt}’: {res.reason}`);
+    setUiLog(actions);
+    setNote(outcome.status === 'completed' ? 'Agent UI task finished — every action passed your checkpoint.' : `UI task stopped: ${outcome.status}`);
   };
 
   const answerUi = (v: boolean) => {
