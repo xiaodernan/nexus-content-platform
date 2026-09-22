@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { requireUser } from '@/server/domain/session';
 import { projectBelongsTo } from '@/server/domain/projects';
 import { createBranch } from '@/server/domain/branches';
+import { csrfOk } from '@/server/security/csrf';
 import { badRequest, failure, jsonError, notFound, readJson } from '@/server/http';
 
 interface RouteContext {
@@ -14,6 +15,7 @@ interface RouteContext {
  * 列表不在这儿单开一个 GET：历史面板要同时画快照和分支，分两个请求只会多一处会不同步的状态。
  */
 export async function POST(req: Request, ctx: RouteContext): Promise<NextResponse> {
+  if (!(await csrfOk(req))) return jsonError(403, 'csrf_failed', { message: 'CSRF 校验未通过' });
   const { projectId } = await ctx.params;
   const body = await readJson(req);
   if (!body || typeof body !== 'object') return badRequest(['请求体必须是 JSON 对象']);

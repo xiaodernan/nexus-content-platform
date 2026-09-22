@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { requireUser } from '@/server/domain/session';
 import { projectBelongsTo } from '@/server/domain/projects';
 import { mergeVariants } from '@/server/domain/variants';
+import { csrfOk } from '@/server/security/csrf';
 import { badRequest, failure, jsonError, notFound, readJson } from '@/server/http';
 
 interface RouteContext {
@@ -13,6 +14,7 @@ interface RouteContext {
  * 结果作为一条新分支加入比较板——合成不是覆盖，用户随时能切回两个来源。
  */
 export async function POST(req: Request, ctx: RouteContext): Promise<NextResponse> {
+  if (!(await csrfOk(req))) return jsonError(403, 'csrf_failed', { message: 'CSRF 校验未通过' });
   const { projectId } = await ctx.params;
   const body = await readJson(req);
   if (!body || typeof body !== 'object' || Array.isArray(body)) return badRequest(['请求体必须是 JSON 对象']);

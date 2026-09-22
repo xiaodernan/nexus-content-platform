@@ -1,7 +1,8 @@
 import { NextResponse } from 'next/server';
 import { deleteAsset } from '@/server/domain/assets';
 import { requireUser } from '@/server/domain/session';
-import { failure, notFound } from '@/server/http';
+import { csrfOk } from '@/server/security/csrf';
+import { failure, jsonError, notFound } from '@/server/http';
 
 interface RouteContext {
   params: Promise<{ assetId: string }>;
@@ -14,7 +15,8 @@ interface RouteContext {
  * 设计模型里引用它的 paint 由用户自己删；撤销能恢复引用，但字节回不来——
  * 界面提示里把这一点写明白，不让它悄悄发生（§159）。
  */
-export async function DELETE(_req: Request, ctx: RouteContext): Promise<NextResponse> {
+export async function DELETE(req: Request, ctx: RouteContext): Promise<NextResponse> {
+  if (!(await csrfOk(req))) return jsonError(403, 'csrf_failed', { message: 'CSRF 校验未通过' });
   const { assetId } = await ctx.params;
   try {
     const user = await requireUser();

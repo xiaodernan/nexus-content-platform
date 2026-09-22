@@ -2,7 +2,8 @@ import { NextResponse } from 'next/server';
 import { requireUser } from '@/server/domain/session';
 import { projectBelongsTo } from '@/server/domain/projects';
 import { duplicateProject } from '@/server/domain/branches';
-import { badRequest, failure, notFound, readJson } from '@/server/http';
+import { csrfOk } from '@/server/security/csrf';
+import { badRequest, failure, jsonError, notFound, readJson } from '@/server/http';
 
 interface RouteContext {
   params: Promise<{ projectId: string }>;
@@ -14,6 +15,7 @@ interface RouteContext {
  * 要拿去单独发布、分享或改造 → 副本。
  */
 export async function POST(req: Request, ctx: RouteContext): Promise<NextResponse> {
+  if (!(await csrfOk(req))) return jsonError(403, 'csrf_failed', { message: 'CSRF 校验未通过' });
   const { projectId } = await ctx.params;
   const body = await readJson(req);
   if (body !== null && body !== undefined && (typeof body !== 'object' || Array.isArray(body))) {

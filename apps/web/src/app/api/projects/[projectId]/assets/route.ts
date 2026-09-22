@@ -3,6 +3,7 @@ import { requireUser } from '@/server/domain/session';
 import { projectBelongsTo } from '@/server/domain/projects';
 import { listProjectAssets, uploadImageAsset } from '@/server/domain/assets';
 import { MAX_IMAGE_BYTES } from '@/server/storage/images';
+import { csrfOk } from '@/server/security/csrf';
 import { failure, jsonError, notFound } from '@/server/http';
 
 interface RouteContext {
@@ -26,6 +27,7 @@ export async function GET(_req: Request, ctx: RouteContext): Promise<NextRespons
  * 先按 Content-Length 拒掉明显超量的请求，避免先把 50MB 缓冲进内存。
  */
 export async function POST(req: Request, ctx: RouteContext): Promise<NextResponse> {
+  if (!(await csrfOk(req))) return jsonError(403, 'csrf_failed', { message: 'CSRF 校验未通过' });
   const { projectId } = await ctx.params;
   try {
     const user = await requireUser();

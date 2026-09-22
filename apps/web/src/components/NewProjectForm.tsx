@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { csrfHeaders } from '@/lib/csrf';
 
 const KINDS: { value: string; label: string }[] = [
   { value: 'website', label: '网站' },
@@ -31,7 +32,7 @@ export function NewProjectForm() {
     try {
       const res = await fetch('/api/projects', {
         method: 'POST',
-        headers: { 'content-type': 'application/json' },
+        headers: { 'content-type': 'application/json', ...csrfHeaders() },
         body: JSON.stringify({ name: name.trim(), kind }),
       });
       const body = (await res.json().catch(() => null)) as { projectId?: string; issues?: string[]; message?: string } | null;

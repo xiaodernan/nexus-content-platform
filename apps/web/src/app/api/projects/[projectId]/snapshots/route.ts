@@ -4,6 +4,7 @@ import { projectBelongsTo } from '@/server/domain/projects';
 import { currentBranchId, listBranches } from '@/server/domain/branches';
 import { createSnapshot, listSnapshots } from '@/server/domain/snapshots';
 import { parseDocument } from '@/server/validation';
+import { csrfOk } from '@/server/security/csrf';
 import { badRequest, failure, jsonError, notFound, readJson } from '@/server/http';
 
 interface RouteContext {
@@ -33,6 +34,7 @@ export async function GET(_req: Request, ctx: RouteContext): Promise<NextRespons
 const CLIENT_SOURCES = new Set(['manual', 'ai']);
 
 export async function POST(req: Request, ctx: RouteContext): Promise<NextResponse> {
+  if (!(await csrfOk(req))) return jsonError(403, 'csrf_failed', { message: 'CSRF 校验未通过' });
   const { projectId } = await ctx.params;
   const body = await readJson(req);
   if (!body || typeof body !== 'object') return badRequest(['请求体必须是 JSON 对象']);

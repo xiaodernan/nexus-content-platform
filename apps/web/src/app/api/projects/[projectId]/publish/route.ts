@@ -2,7 +2,8 @@ import { NextResponse } from 'next/server';
 import { requireUser } from '@/server/domain/session';
 import { projectBelongsTo } from '@/server/domain/projects';
 import { getPublication, publishProject, unpublishProject, type Visibility } from '@/server/domain/publish';
-import { badRequest, failure, notFound, readJson } from '@/server/http';
+import { csrfOk } from '@/server/security/csrf';
+import { badRequest, failure, jsonError, notFound, readJson } from '@/server/http';
 
 interface RouteContext {
   params: Promise<{ projectId: string }>;
@@ -24,6 +25,7 @@ export async function GET(_req: Request, ctx: RouteContext): Promise<NextRespons
 
 /** §57 Publish：选 Public / Unlisted / Private，门禁不过就挡住并列出原因 */
 export async function POST(req: Request, ctx: RouteContext): Promise<NextResponse> {
+  if (!(await csrfOk(req))) return jsonError(403, 'csrf_failed', { message: 'CSRF 校验未通过' });
   const { projectId } = await ctx.params;
   const body = await readJson(req);
   if (!body || typeof body !== 'object' || Array.isArray(body)) return badRequest(['请求体必须是 JSON 对象']);
@@ -49,7 +51,8 @@ export async function POST(req: Request, ctx: RouteContext): Promise<NextRespons
 }
 
 /** 取消发布：URL 立刻失效，历史快照留着 */
-export async function DELETE(_req: Request, ctx: RouteContext): Promise<NextResponse> {
+export async function DELETE(req: Request, ctx: RouteContext): Promise<NextResponse> {
+  if (!(await csrfOk(req))) return jsonError(403, 'csrf_failed', { message: 'CSRF 校验未通过' });
   const { projectId } = await ctx.params;
   try {
     const user = await requireUser();

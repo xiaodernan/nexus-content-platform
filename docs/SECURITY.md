@@ -16,8 +16,9 @@
 算法封在 `apps/web/src/server/domain/password.ts` 一处，`verifyPassword` 按 `$2` 前缀分派——将来接 Argon2id 只改这一处，
 旧串仍可验证；换之前不声称已是 Argon2id。会话 HttpOnly+SameSite=Lax cookie、服务端校验、可吊销，且**提权即轮换**
 （register/login 删旧 token 会话行、发新随机 token，防会话固定；guest 会话由 middleware 用客户端可见 cookie 签发，
-所以轮换不是可选项）。CSRF 双提交（`nexus_csrf` 非 HttpOnly cookie + `x-csrf-token` 头比对）**目前只在 auth 路由强制**，
-其余写接口暂靠 SameSite=Lax 兜底，铺开是后续项。限流是 `RateLimiter` 接口 + **内存滑动窗口**（单实例正确，
+所以轮换不是可选项）。CSRF 双提交（`nexus_csrf` 非 HttpOnly cookie + `x-csrf-token` 头比对）**覆盖全部 mutation 路由**——
+auth 之外的 projects/snapshots/restore/branches/switch/duplicate/variants/merge/publish/assets/ai-run 一律先过 `csrfOk` 再动作，
+不过即 `403 csrf_failed`；客户端统一由 `src/lib/csrf.ts` 的 `csrfHeaders()` 带该头。会话 cookie 的 SameSite=Lax 仍是第一道防线。限流是 `RateLimiter` 接口 + **内存滑动窗口**（单实例正确，
 形状对齐 Redis 有序集，多实例部署前需接 Redis）。登录对"邮箱不存在"也跑 dummy-hash 比较以对齐时序，防账号枚举。
 详见 `docs/adr/0002-password-hashing-and-csrf.md`。
 

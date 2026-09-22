@@ -2,7 +2,8 @@ import { z } from 'zod';
 import { NextResponse } from 'next/server';
 import { requireUser } from '@/server/domain/session';
 import { PROJECT_KINDS, createProject, listProjects } from '@/server/domain/projects';
-import { badRequest, failure, readJson } from '@/server/http';
+import { csrfOk } from '@/server/security/csrf';
+import { badRequest, failure, jsonError, readJson } from '@/server/http';
 
 const CreateProjectSchema = z.object({
   name: z.string().trim().min(1).max(80),
@@ -19,6 +20,7 @@ export async function GET(): Promise<NextResponse> {
 }
 
 export async function POST(req: Request): Promise<NextResponse> {
+  if (!(await csrfOk(req))) return jsonError(403, 'csrf_failed', { message: 'CSRF 校验未通过' });
   const body = await readJson(req);
   const parsed = CreateProjectSchema.safeParse(body);
   if (!parsed.success) {

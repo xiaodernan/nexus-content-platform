@@ -4,12 +4,14 @@ import { getAiCapabilities } from '@/lib/env';
 import { mockProvider } from '@/server/ai/mock';
 import { runAiService } from '@/server/ai/client';
 import { requireUser } from '@/server/domain/session';
+import { csrfOk } from '@/server/security/csrf';
 import { badRequest, failure, jsonError } from '@/server/http';
 
 /** 设计文档可能很大；给请求体一个明确上限，超过就拒绝而不是慢慢吃内存 */
 const MAX_BODY_BYTES = 6 * 1024 * 1024;
 
 export async function POST(req: Request): Promise<NextResponse> {
+  if (!(await csrfOk(req))) return jsonError(403, 'csrf_failed', { message: 'CSRF 校验未通过' });
   let raw: unknown;
   try {
     const text = await req.text();

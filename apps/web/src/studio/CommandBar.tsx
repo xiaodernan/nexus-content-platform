@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 import type { AgentActivity, AgentPlan, AiResponse, ModelClass } from '@nexus/schemas';
 import { DesignPatchSchema } from '@nexus/schemas';
 import { cn } from '@/lib/cn';
+import { csrfHeaders } from '@/lib/csrf';
 import { studio, toModelPatches, useStudioReady } from './store';
 
 const MODES: { id: ModelClass; label: string }[] = [
@@ -83,7 +84,7 @@ export function CommandBar() {
     try {
       const res = await fetch('/api/ai/run', {
         method: 'POST',
-        headers: { 'content-type': 'application/json' },
+        headers: { 'content-type': 'application/json', ...csrfHeaders() },
         body: JSON.stringify(body),
       });
       const payload = (await res.json().catch(() => null)) as (Partial<AiResponse> & { issues?: string[]; message?: string; error?: string }) | null;

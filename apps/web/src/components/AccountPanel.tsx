@@ -2,17 +2,12 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { csrfToken } from '@/lib/csrf';
 
 interface Identity {
   displayName: string;
   email: string | null;
   guest: boolean;
-}
-
-/** 双提交 CSRF：从 cookie 读出 nexus_csrf，随状态变更请求的头一起带回。 */
-function csrfToken(): string {
-  const match = document.cookie.match(/(?:^|;\s*)nexus_csrf=([a-f0-9]+)/);
-  return match?.[1] ?? '';
 }
 
 export function AccountPanel({ user }: { user: Identity }) {

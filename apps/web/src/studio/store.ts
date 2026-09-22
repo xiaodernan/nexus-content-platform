@@ -32,6 +32,7 @@ import type { BranchMeta } from '@/server/domain/branches';
 import type { VariantEntry } from '@/server/domain/variants';
 import type { GateReport, Publication, Visibility } from '@/server/domain/publish';
 import { apiAssetUrl, assetContextFor, type AssetUrlContext } from './assets';
+import { csrfHeaders } from '@/lib/csrf';
 
 /**
  * Studio 客户端状态：唯一真值仍然是 DesignStore 里的 DesignDocument（§9/§16）。
@@ -318,7 +319,7 @@ export class StudioStore {
       try {
         const res = await fetch(`/api/projects/${this.projectId}`, {
           method: 'PUT',
-          headers: { 'content-type': 'application/json' },
+          headers: { 'content-type': 'application/json', ...csrfHeaders() },
           body: JSON.stringify(document),
         });
         const body = (await res.json().catch(() => null)) as {
@@ -391,7 +392,7 @@ export class StudioStore {
       if (this.saveStateValue === 'error') throw new Error(this.saveError ?? '保存失败');
       const res = await fetch(`/api/projects/${this.projectId}/snapshots`, {
         method: 'POST',
-        headers: { 'content-type': 'application/json' },
+        headers: { 'content-type': 'application/json', ...csrfHeaders() },
         body: JSON.stringify({
           document: this.design.getDocument(),
           label: label.slice(0, 120),
@@ -430,7 +431,7 @@ export class StudioStore {
       if (this.saveStateValue === 'error') throw new Error(this.saveError ?? '保存失败');
       const res = await fetch(
         `/api/projects/${this.projectId}/snapshots/${snapshotId}/restore`,
-        { method: 'POST' },
+        { method: 'POST', headers: csrfHeaders() },
       );
       const body = (await res.json().catch(() => null)) as
         | {
@@ -517,7 +518,7 @@ export class StudioStore {
       if (this.saveStateValue === 'error') throw new Error(this.saveError ?? '保存失败');
       const res = await fetch(`/api/projects/${this.projectId}/branches`, {
         method: 'POST',
-        headers: { 'content-type': 'application/json' },
+        headers: { 'content-type': 'application/json', ...csrfHeaders() },
         body: JSON.stringify({ name: name.slice(0, 40) }),
       });
       const body = (await res.json().catch(() => null)) as
@@ -553,7 +554,7 @@ export class StudioStore {
       if (this.saveStateValue === 'error') throw new Error(this.saveError ?? '保存失败');
       const res = await fetch(
         `/api/projects/${this.projectId}/branches/${branchId}/switch`,
-        { method: 'POST' },
+        { method: 'POST', headers: csrfHeaders() },
       );
       const body = (await res.json().catch(() => null)) as
         | { ok?: boolean; document?: DesignDocument; issues?: string[]; message?: string; error?: string }
@@ -592,7 +593,7 @@ export class StudioStore {
       if (this.saveStateValue === 'error') throw new Error(this.saveError ?? '保存失败');
       const res = await fetch(`/api/projects/${this.projectId}/duplicate`, {
         method: 'POST',
-        headers: { 'content-type': 'application/json' },
+        headers: { 'content-type': 'application/json', ...csrfHeaders() },
         body: JSON.stringify({ name: name.slice(0, 80) }),
       });
       const body = (await res.json().catch(() => null)) as
@@ -641,7 +642,7 @@ export class StudioStore {
       if (this.saveStateValue === 'error') throw new Error(this.saveError ?? '保存失败');
       const res = await fetch(`/api/projects/${this.projectId}/variants`, {
         method: 'POST',
-        headers: { 'content-type': 'application/json' },
+        headers: { 'content-type': 'application/json', ...csrfHeaders() },
         body: JSON.stringify({ count }),
       });
       const body = (await res.json().catch(() => null)) as
@@ -675,7 +676,7 @@ export class StudioStore {
     try {
       const res = await fetch(`/api/projects/${this.projectId}/variants/merge`, {
         method: 'POST',
-        headers: { 'content-type': 'application/json' },
+        headers: { 'content-type': 'application/json', ...csrfHeaders() },
         body: JSON.stringify({ layoutBranchId, visualBranchId, name: name?.trim() || null }),
       });
       const body = (await res.json().catch(() => null)) as
@@ -732,7 +733,7 @@ export class StudioStore {
       if (this.saveStateValue === 'error') throw new Error(this.saveError ?? '保存失败');
       const res = await fetch(`/api/projects/${this.projectId}/publish`, {
         method: 'POST',
-        headers: { 'content-type': 'application/json' },
+        headers: { 'content-type': 'application/json', ...csrfHeaders() },
         body: JSON.stringify({ visibility }),
       });
       const body = (await res.json().catch(() => null)) as
@@ -760,7 +761,7 @@ export class StudioStore {
     this.publishErrorValue = null;
     this.commit();
     try {
-      const res = await fetch(`/api/projects/${this.projectId}/publish`, { method: 'DELETE' });
+      const res = await fetch(`/api/projects/${this.projectId}/publish`, { method: 'DELETE', headers: csrfHeaders() });
       const body = (await res.json().catch(() => null)) as { removed?: boolean; message?: string } | null;
       if (!res.ok) throw new Error(body?.message ?? `HTTP ${res.status}`);
       this.publicationValue = null;
@@ -949,7 +950,7 @@ export class StudioStore {
     try {
       const form = new FormData();
       form.append('file', file);
-      const res = await fetch(`/api/projects/${this.projectId}/assets`, { method: 'POST', body: form });
+      const res = await fetch(`/api/projects/${this.projectId}/assets`, { method: 'POST', headers: csrfHeaders(), body: form });
       const body = (await res.json().catch(() => null)) as
         | { asset?: AssetRef; removed?: string[]; reason?: string; issues?: string[] }
         | null;

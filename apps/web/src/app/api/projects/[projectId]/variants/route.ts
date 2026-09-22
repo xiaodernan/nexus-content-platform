@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { requireUser } from '@/server/domain/session';
 import { projectBelongsTo } from '@/server/domain/projects';
 import { generateVariants, listVariants } from '@/server/domain/variants';
+import { csrfOk } from '@/server/security/csrf';
 import { badRequest, failure, jsonError, notFound, readJson } from '@/server/http';
 
 interface RouteContext {
@@ -29,6 +30,7 @@ export async function GET(_req: Request, ctx: RouteContext): Promise<NextRespons
  * 换掉的是"往哪个方向改"，落地方式仍然是"一条分支一份 head 快照"。
  */
 export async function POST(req: Request, ctx: RouteContext): Promise<NextResponse> {
+  if (!(await csrfOk(req))) return jsonError(403, 'csrf_failed', { message: 'CSRF 校验未通过' });
   const { projectId } = await ctx.params;
   const body = await readJson(req);
   if (body !== null && body !== undefined && (typeof body !== 'object' || Array.isArray(body))) {

@@ -3,7 +3,8 @@ import { requireUser } from '@/server/domain/session';
 import { projectBelongsTo } from '@/server/domain/projects';
 import { currentBranchId } from '@/server/domain/branches';
 import { restoreSnapshot } from '@/server/domain/snapshots';
-import { badRequest, failure, notFound } from '@/server/http';
+import { csrfOk } from '@/server/security/csrf';
+import { badRequest, failure, jsonError, notFound } from '@/server/http';
 
 interface RouteContext {
   params: Promise<{ projectId: string; snapshotId: string }>;
@@ -13,7 +14,8 @@ interface RouteContext {
  * Restore（§27）：把当前状态先存成快照，再用目标快照覆盖项目。
  * 返回恢复后的文档，客户端用它重置工作台——本地撤销栈会清空，这是如实结果而不是丢功能。
  */
-export async function POST(_req: Request, ctx: RouteContext): Promise<NextResponse> {
+export async function POST(req: Request, ctx: RouteContext): Promise<NextResponse> {
+  if (!(await csrfOk(req))) return jsonError(403, 'csrf_failed', { message: 'CSRF 校验未通过' });
   const { projectId, snapshotId } = await ctx.params;
   try {
     const user = await requireUser();
