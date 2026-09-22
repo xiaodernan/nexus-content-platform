@@ -70,7 +70,7 @@ export async function runTask(task: AgentTask, opts: RunOptions): Promise<RunOut
   const plannerBackend = opts.planner ?? demoPlanner;
   const planned = await plannerBackend.plan(
     task,
-    { hasVerify: registry.has('test.run'), hasIndex: registry.has('fs.index'), hasMemory: registry.has('memory.recall'), hasUi: registry.has('ui.click'), uiInputLabel: opts.uiInputLabel, uiButtonLabel: opts.uiButtonLabel },
+    { hasVerify: registry.has('test.run'), hasIndex: registry.has('fs.index'), hasMemory: registry.has('memory.recall'), hasUi: registry.has('ui.click'), hasCommit: registry.has('git.commit'), uiInputLabel: opts.uiInputLabel, uiButtonLabel: opts.uiButtonLabel },
     (name) => registry.has(name),
   );
   const plan: Plan = planned.plan;
@@ -108,6 +108,7 @@ export async function runTask(task: AgentTask, opts: RunOptions): Promise<RunOut
   };
 
   for (const step of plan.steps) {
+    if (byStep.has(step.stepId)) continue; // v36: fix-round steps already ran inline — never twice
     if (stepsUsed >= maxSteps) {
       emit({ type: 'budget_exhausted', stepsUsed });
       emit({ type: 'done', status: 'budget_exhausted' });
@@ -124,8 +125,9 @@ export async function runTask(task: AgentTask, opts: RunOptions): Promise<RunOut
     if (step.stepId !== 'verify') continue;
     const verdict = res.output as { ok?: boolean; detail?: string };
     emit({ type: 'verify', ok: verdict.ok === true, detail: String(verdict.detail ?? '') });
+    let green = verdict.ok === true;
     let attempt = 0;
-    while (verdict.ok !== true && attempt < maxFixRounds && stepsUsed < maxSteps) {
+    while (!green && attempt < maxFixRounds && stepsUsed < maxSteps) {
       attempt++;
       const fixStep: Step = {
         stepId: `fix-${attempt}`,
@@ -144,15 +146,14 @@ export async function runTask(task: AgentTask, opts: RunOptions): Promise<RunOut
       const again = await invoke(rerun);
       const v2 = again.output as { ok?: boolean; detail?: string };
       emit({ type: 'verify', ok: v2.ok === true, detail: String(v2.detail ?? '') });
-      if (again.ok && v2.ok === true) {
-        emit({ type: 'done', status: 'completed' });
-        return finishRun( 'completed');
-      }
+      if (again.ok && v2.ok === true) green = true;
     }
-    if (verdict.ok !== true) {
+    if (!green) {
       emit({ type: 'done', status: 'failed_verification' });
       return finishRun( 'failed_verification');
     }
+    // v36: green — keep walking the plan. A `git.commit` step was only ever appended
+    // after verify, so it is reached on green runs (first try OR after a fix round).
   }
   emit({ type: 'done', status: 'completed' });
   return finishRun( 'completed');

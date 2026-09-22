@@ -21,6 +21,12 @@ export interface PlannerOptions {
   hasMemory?: boolean;
   /** v20: UI-driving capabilities registered; plans observe→type→click over labels. */
   hasUi?: boolean;
+  /**
+   * v36: whether the exec-host `git.commit` tool is registered. Only meaningful WITH
+   * hasVerify — a commit step is appended AFTER verify and the loop only reaches it on
+   * green. Staging itself remains a human act: the tool commits whatever the index holds.
+   */
+  hasCommit?: boolean;
   uiInputLabel?: string;
   uiButtonLabel?: string;
   seed?: number;
@@ -57,6 +63,17 @@ export function planTask(task: AgentTask, opts: PlannerOptions): Plan {
   ];
   if (opts.hasVerify) {
     steps.push({ stepId: 'verify', tool: 'test.run', args: {}, rationale: 'host-injected verification hook' });
+    // v36 "commit after green": a step appended AFTER verify is only ever reached when
+    // the loop is green (a failed verify returns early), and the tool itself commits
+    // whatever the HUMAN staged — the plan proposes, §28 disposes.
+    if (opts.hasCommit) {
+      steps.push({
+        stepId: 'commit',
+        tool: 'git.commit',
+        args: { message: `chore(agent): verified run ${task.id} · seed ${seed}` },
+        rationale: 'commit the human-staged index — reached only after green verification',
+      });
+    }
   }
   return { goal: task.goal, seed, steps };
 }

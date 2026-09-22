@@ -37,6 +37,18 @@ describe('planner: deterministic templates', () => {
     const noVerify = planTask({ id: 't', goal: 'add widget docs' }, { hasVerify: false });
     expect(noVerify.steps.map((s) => s.tool)).toEqual(['fs.search', 'fs.read', 'fs.append']);
   });
+
+  it('v36: hasCommit appends a git.commit step ONLY after a verify step', () => {
+    const withVerify = planTask({ id: 't', goal: 'add widget docs' }, { hasVerify: true, hasCommit: true });
+    expect(withVerify.steps.map((s) => s.stepId)).toEqual(['search', 'read', 'annotate', 'verify', 'commit']);
+    expect(withVerify.steps[4]!.tool).toBe('git.commit');
+    expect(String(withVerify.steps[4]!.args.message)).toContain('verified run t');
+    // no verify → nothing to be "green" about → never a commit step
+    const noVerify = planTask({ id: 't', goal: 'add widget docs' }, { hasVerify: false, hasCommit: true });
+    expect(noVerify.steps.map((s) => s.tool)).not.toContain('git.commit');
+    // determinism holds with the commit step too
+    expect(planTask({ id: 't', goal: 'add widget docs' }, { hasVerify: true, hasCommit: true })).toEqual(withVerify);
+  });
 });
 
 describe('orchestrator: golden path', () => {
@@ -138,6 +150,79 @@ describe('orchestrator: gates and failures are honest', () => {
     expect(out.changeSet!.files[0]!.added).toBeGreaterThan(0);
     const outNoSnap = await runTask(h.task, { registry: h.registry, checkpoint: h.checkpoint });
     expect(outNoSnap.changeSet).toBeUndefined();
+  });
+});
+
+describe('orchestrator: commit after green (v36)', () => {
+  function commitHarness(testImpl: (ws: InMemoryWorkspace) => unknown, checkpoint: Checkpoint | undefined = () => true) {
+    const h = harness(testImpl, checkpoint);
+    const commits: string[] = [];
+    h.registry.register(
+      { name: 'git.commit', description: 'fake commit tool', permissions: ['exec'], args: [{ name: 'message', type: 'string' }] },
+      (args) => {
+        commits.push(String(args.message));
+        return { ok: true, detail: `fake commit ${commits.length}` };
+      },
+    );
+    return { ...h, commits };
+  }
+
+  it('a green run reaches the commit step; the tool sees the planned message', async () => {
+    const h = commitHarness(noteTest);
+    const out = await runTask(h.task, h);
+    expect(out.status).toBe('completed');
+    expect(out.plan.steps.map((s) => s.stepId)).toEqual(['search', 'read', 'annotate', 'verify', 'commit']);
+    expect(h.commits).toHaveLength(1);
+    expect(h.commits[0]).toContain(`seed ${out.plan.seed}`);
+    // the commit step went THROUGH the registry (exec → checkpoint asked with the real call)
+    expect(out.results.at(-1)!.tool).toBe('git.commit');
+    expect(out.results.at(-1)!.ok).toBe(true);
+  });
+
+  it('denied at the checkpoint: earlier annotated work stands, nothing commits, status denied', async () => {
+    const h = commitHarness(noteTest, ({ call }) => call.tool !== 'git.commit');
+    const out = await runTask(h.task, h);
+    expect(out.status).toBe('denied');
+    expect(h.commits).toHaveLength(0);
+    expect(h.ws.read('docs/a.md')).toContain('NOTE (DEMO'); // the run's earlier steps already landed
+    expect(out.events.some((e) => e.type === 'checkpoint' && e.tool === 'git.commit' && !e.granted)).toBe(true);
+  });
+
+  it('green AFTER a fix round still commits — and fix steps never run twice', async () => {
+    const fixTest = (ws: InMemoryWorkspace) => ({ ok: ws.read('docs/a.md').includes('FIX'), detail: 'needs a FIX line' });
+    const h = commitHarness(fixTest);
+    const out = await runTask(h.task, h);
+    expect(out.status).toBe('completed');
+    // fix steps are APPENDED to the plan after commit (history of what happened);
+    // what matters is the EXECUTION order — commit runs only once the re-verify is green
+    expect(out.results.map((r) => r.callId)).toEqual(['t1:search', 't1:read', 't1:annotate', 't1:verify', 't1:fix-1', 't1:verify-2', 't1:commit']);
+    expect(h.commits).toHaveLength(1);
+    // each fix-round step invoked exactly once despite the loop revisiting the plan array
+    const callIds = out.results.map((r) => r.callId);
+    expect(callIds.filter((c) => c === 't1:fix-1')).toHaveLength(1);
+    expect(callIds.filter((c) => c === 't1:verify-2')).toHaveLength(1);
+    expect(callIds.filter((c) => c === 't1:verify')).toHaveLength(1);
+  });
+
+  it('a run that never verifies green NEVER commits', async () => {
+    const h = commitHarness(() => ({ ok: false, detail: 'never passes' }));
+    const out = await runTask(h.task, { registry: h.registry, checkpoint: h.checkpoint, maxFixRounds: 1 });
+    expect(out.status).toBe('failed_verification');
+    expect(h.commits).toHaveLength(0);
+    expect(out.results.at(-1)!.tool).toBe('test.run');
+  });
+
+  it('a failing commit (impl throws) is honest status, not a silent green', async () => {
+    const h = harness(noteTest);
+    h.registry.register(
+      { name: 'git.commit', description: 'broken', permissions: ['exec'], args: [{ name: 'message', type: 'string' }] },
+      () => {
+        throw new Error('policy refused');
+      },
+    );
+    const out = await runTask(h.task, h);
+    expect(out.status).toBe('failed_verification');
+    expect(out.results.at(-1)!.error).toContain('policy refused');
   });
 });
 

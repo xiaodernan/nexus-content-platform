@@ -1,21 +1,21 @@
-# M2 evidence — agent stack (v0 loop → v35 the first write through the sandbox: a real git commit; all ADR 0016 amendments)
+# M2 evidence — agent stack (v0 loop → v36 commit-after-green: the loop itself reaches a §28 commit only when verified; all ADR 0016 amendments)
 
 All checks are headless, offline, key-free, and reproducible from the repo root. Nothing here
 claims model-quality planning or neural retrieval (§60): the planner is a deterministic
 template and the index embedder is a hash-based bag-of-tokens stand-in — both say so in
-every emitted artifact (`provenance.mode = "demo"`). The honest exceptions since v30/v32/v34/v35:
+every emitted artifact (`provenance.mode = "demo"`). The honest exceptions since v30/v32/v34/v35/v36:
 `exec-host-proof.mjs` and `git-aware-proof.mjs` spawn a few read-only local commands
 (`git status --short`, `git diff --stat`), `execsuite-proof.mjs` runs the repo's OWN
 @nexus/design-model vitest suite through the confined host (vitest's cache under
-`node_modules` is the only thing it writes), and `commit-proof.mjs` performs REAL
-`git commit`s — only inside a throwaway `os.tmpdir()` repo with hooks/signing neutralized
-LOCALLY there, never in this repository — still offline, still key-free, and everything
-else in the stack spawns nothing.
+`node_modules` is the only thing it writes), and `commit-proof.mjs` + `greencommit-proof.mjs`
+perform REAL `git commit`s — only inside throwaway `os.tmpdir()` repos with hooks/signing
+neutralized LOCALLY there, never in this repository — still offline, still key-free, and
+everything else in the stack spawns nothing.
 
 ## Reproducible gates
 
 ```
-npm test          # turbo: @nexus/agent-runtime 207/207 + @nexus/exec-host 57/57 vitest among all packages
+npm test          # turbo: @nexus/agent-runtime 213/213 + @nexus/exec-host 57/57 vitest among all packages
 npm run build     # tsc dist for agents/runtime + agents/exec-host (build order via ^build deps)
 node docs/evidence/agents/agent-proof.mjs
 node docs/evidence/agents/code-index-proof.mjs   # requires `npm run build` first
@@ -42,6 +42,7 @@ node docs/evidence/agents/exectest-proof.mjs       # requires `npm run build` fi
 node docs/evidence/agents/git-aware-proof.mjs      # requires `npm run build` first
 node docs/evidence/agents/execsuite-proof.mjs      # requires `npm run build` first (boots the real design-model vitest suite, ~11s)
 node docs/evidence/agents/commit-proof.mjs         # requires `npm run build` first (REAL commits, but ONLY in a throwaway os.tmpdir repo)
+node docs/evidence/agents/greencommit-proof.mjs    # requires `npm run build` first (red/denied commit nothing; green-after-fix commits exactly once)
 ```
 
 ## Unit tests (vitest, `agents/runtime/test`)
@@ -50,7 +51,7 @@ node docs/evidence/agents/commit-proof.mjs         # requires `npm run build` fi
 | ---- | ------ |
 | `registry.test.ts` (7) | arg validation (missing/unknown/type), unknown tool, checkpoint required for write/exec, deny ⇒ implementation never runs, approve ⇒ runs, impl throw ⇒ `ok:false` (never rejects), double-register refused |
 | `workspace.test.ts` (4) | sorted/prefix listing, case-insensitive 1-based `search`, append/missing-file throw, registry wiring incl. gated `fs.write` |
-| `agent.test.ts` (10) | stopword-aware keyword, plan determinism + seed stamp, golden path event order + `@search.hits.0.path` dataflow + note in file, denial leaves file untouched, failing verify → 1 fix round → pass, persistent failure → `failed_verification` after `maxFixRounds`, `maxSteps` → `budget_exhausted`, planner routes step 0 through `fs.index` when registered, warm memory outranks the index (`memory.recall` first), snapshot hook yields an observed changeSet (absent without hook) |
+| `agent.test.ts` (19) | stopword-aware keyword, plan determinism + seed stamp, golden path event order + `@search.hits.0.path` dataflow + note in file, denial leaves file untouched, failing verify → 1 fix round → pass, persistent failure → `failed_verification` after `maxFixRounds`, `maxSteps` → `budget_exhausted`, planner routes step 0 through `fs.index` when registered, warm memory outranks the index (`memory.recall` first), snapshot hook yields an observed changeSet (absent without hook); v36: `hasCommit` appends the commit step ONLY behind a verify step (and deterministically), a green run reaches it with the planned message, checkpoint DENY ⇒ status denied with earlier work standing and zero commits, green AFTER a fix round still commits with fix steps never re-run (execution order asserted), a red run never commits, a throwing commit tool is honest non-green |
 | `codeIndex.test.ts` (7) | extension → kind, TS symbol + markdown heading extraction, heading-section vs 40-line-window chunking, sorted file entries + coverage, hybrid query ranks the relevant chunk first and is deterministic, symbol query finds its file, empty index → no hits |
 | `realfs.test.ts` (4) | extension/skip filtering with sorted slash keys, custom skipDirs + maxFiles cap, maxBytes drop, deterministic output independent of walk order — all against a fake fs (no host disk touched) |
 | `memory.test.ts` (8) | save/list/recall scoping, deterministic tie-broken recall bounded by k, forget/clear counts, clone-in/clone-out immutability, registry round-trip with `"path:startLine"` refs, denied `memory.save` leaves memory empty + arg validation; v6 `compact()`: ≥50% ref-overlap merges within scope (listed, idempotent), cross-scope isolation |
@@ -341,6 +342,23 @@ commit" line), and the entire run spawns exactly TWO sandboxed processes. The fi
 assertion is the one that matters for this repo: the HOME repository's HEAD is
 byte-identical before and after.
 
+## Green-commit proof (`greencommit-proof.mjs`, M2 v36)
+
+v35 gave the loop a door; v36 teaches it WHEN to knock — and proves it still cannot force
+its way in. Pure plan data first: `planTask` appends the `git.commit` step ONLY when the
+host has BOTH a verify runner and a registered commit tool, and the step's message states
+its own run (`chore(agent): verified run <id> · seed <n>`). Then the three-state story in
+a throwaway `os.tmpdir()` repo (hooks/signing/identity neutralized LOCALLY there, §9):
+a RED run carries the commit in its plan but reaches 0 steps past verify and 0 spawns; a
+DENIED checkpoint (the human who never stages) records `denied at checkpoint (exec)` with
+still 0 spawns; a GREEN-AFTER-FIX run — the case the old loop structurally skipped — walks
+`search→read→annotate→verify→fix-1→verify-2→commit` in that exact EXECUTED order and
+commits the ONE human-staged deliverable, argv `['commit','-m',msg]` verbatim in the jailed
+cwd with exactly the scrubbed env keys. The proof's cumulative spawn counter is the honest
+headline: red + denied together cost ZERO processes; each approved commit costs exactly
+ONE. The ledger then replays `record.hash` from JSONL, `rev-list --count` agrees with
+git's own eye, and the final assertion again byte-compares THIS repo's HEAD.
+
 ## v20 note — orchestrator-driven UI
 
 The dock's Agent UI run now executes the demo planner's `observe→type→click` plan through the UNCHANGED runTask loop; ui tools address labels (exact, then substring). Browser: two per-action Allow dialogs, then the composed dashboard — live plan→act→verify, fully gated.
@@ -513,6 +531,21 @@ come AFTER the stat). §9 discipline: `commit-proof.mjs` performs real commits O
 throwaway `os.tmpdir()` repo with hooks/signing neutralized locally there, and closes by
 byte-comparing THIS repo's HEAD before/after — the agent can commit; this repository's
 history remains the user's. Runtime untouched (spawn-free); exec-host 41/41 → 57/57.
+
+## v36 note — commit after green: position in the plan IS the safety
+
+The commit step became a PLANNED step: `PlannerOptions.hasCommit` (only meaningful with
+`hasVerify`) appends `{stepId:'commit', tool:'git.commit'}` after the verify step, so a
+plan only ever PROPOSES a commit at the one position that is structurally behind green —
+§28 disposes. Executing it needed an orchestrator rewrite: the old verify block
+early-returned `completed` on green-via-fix-round, which would have skipped the trailing
+commit forever. Now a `green` flag replaces the early return, fix-round steps stay
+appended to the plan array, and a `byStep`-executed check at the loop top guarantees an
+inline-run `fix-N`/`verify-N` never runs twice when the loop keeps walking. Event streams
+of every pre-v36 run are unchanged (207/207 passed BEFORE the new tests). Honest bounds:
+Studio registers no exec-host tool, so no browser plan can contain a commit — this is
+runtime + evidence only; agent-led STAGING remains out of design scope (the checkpoint
+callback is WHERE the human stages); runtime 207/207 → 213/213, exec-host unchanged.
 
 ## Scope honesty
 

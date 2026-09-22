@@ -703,3 +703,29 @@ two fresh runs, checkpoint denial leaving the workspace byte-identical).
   hope — and byte-compares the HOME repo's HEAD before/after as the final assertion.
   Runtime unchanged (spawn-free); exec-host 41/41 → 57/57 (16 gitCommitTool cases);
   twenty-five proofs (27 scripts) green.
+
+## Amendment 36 — v36: commit after green — the loop learns WHEN to knock, 2026-09
+- **v35 built the door; v36 decides when to knock at it.** The demo planner gains
+  `hasCommit` (detected via `registry.has('git.commit')`, like `hasIndex`/`hasUi`
+  before it): when a verify tool is ALSO present, a `commit` step is appended AFTER
+  `verify`. Position is the whole safety story — the loop returns
+  `failed_verification` at the verify step, so a red run can never reach the commit,
+  no matter what the plan carried.
+- **The fix-round rewrite this needed is the real product change:** until now a run
+  that turned green inside a fix round RETURNED `completed` immediately, skipping any
+  later step. The verify block now tracks a `green` flag and lets the outer loop keep
+  walking; steps already executed inline during fix rounds (`fix-1`, `verify-2`) are
+  recognized via the by-step result map and skipped — never run twice. Existing plans
+  are event-for-event unchanged (v0's golden-path assertions still hold), and a
+  verified-via-fix run now commits too, which is exactly what "after green" promised.
+- **§28 stays the human's seat — staging included:** the commit step's checkpoint IS
+  where a person reviews and STAGES what they want; the tool then commits that index
+  and nothing else. A denial stops the run with status `denied` and zero spawns; a
+  throwing commit implementation surfaces as honest non-green, never a silent pass.
+- **Studio is untouched by construction:** the browser registers no exec-host tools,
+  so `hasCommit` is false there and no plan gains a commit step — 99/99 unchanged
+  proves it. Runtime 207/207 → 213/213 (1 planner + 5 orchestrator cases, fake spawn
+  free); the 26th proof (`greencommit-proof.mjs`) runs the whole story against a REAL
+  throwaway `os.tmpdir()` repo: red → 0 spawns, denied → 0 spawns, green-after-fix →
+  exactly ONE spawn whose argv/env/cwd are asserted verbatim, and the JSONL ledger
+  replays the landed commit hash to a cold reader. Home-repo HEAD byte-checked again.
