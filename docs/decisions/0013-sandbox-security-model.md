@@ -44,6 +44,11 @@ agentic-coding milestone implements it rather than retrofitting.
 > `gitCommitPolicy` allows — the agent can commit a HUMAN-staged index behind §28, but
 > still cannot stage, push, or run any other git verb; real-commit demos live strictly
 > in throwaway `os.tmpdir()` repos so this repo's history stays the user's own.
+> Amendment 37 closed the circle with a bounded READ-BACK: `git log --oneline -n <count>`
+> is the only argv `gitLogPolicy` allows (the `'*'` wildcard's second production wiring,
+> this time read-side) — after a §28-granted commit the agent can verify its own history
+> landed, while `git show`/`--all`/any write verb stays default-deny; a keyed door for
+> reads can never borrow the commit host's powers even with `preApproved:true`.
 
 ## Tradeoffs
 - (−) Container cold-start latency per job; mitigated by a warm pool in Redis-backed queue.

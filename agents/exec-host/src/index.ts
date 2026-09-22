@@ -15,6 +15,14 @@ export {
 } from './execHost.js';
 export { execTestRunner, type ExecTestRunnerOptions } from './execTestRunner.js';
 export {
+  GIT_LOG_TOOL_SPECS,
+  GIT_LOG_MAX_COUNT,
+  gitLogPolicy,
+  parseGitLog,
+  registerGitLogTool,
+  type GitLogEntry,
+} from './gitLogTool.js';
+export {
   GIT_COMMIT_TOOL_SPECS,
   gitCommitPolicy,
   parseCommitOutput,

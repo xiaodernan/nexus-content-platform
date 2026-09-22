@@ -1,21 +1,21 @@
-# M2 evidence — agent stack (v0 loop → v36 commit-after-green: the loop itself reaches a §28 commit only when verified; all ADR 0016 amendments)
+# M2 evidence — agent stack (v0 loop → v37 git.log read-back: see → touch → confirm, each behind its own keyed door; all ADR 0016 amendments)
 
 All checks are headless, offline, key-free, and reproducible from the repo root. Nothing here
 claims model-quality planning or neural retrieval (§60): the planner is a deterministic
 template and the index embedder is a hash-based bag-of-tokens stand-in — both say so in
-every emitted artifact (`provenance.mode = "demo"`). The honest exceptions since v30/v32/v34/v35/v36:
+every emitted artifact (`provenance.mode = "demo"`). The honest exceptions since v30/v32/v34/v35/v36/v37:
 `exec-host-proof.mjs` and `git-aware-proof.mjs` spawn a few read-only local commands
 (`git status --short`, `git diff --stat`), `execsuite-proof.mjs` runs the repo's OWN
 @nexus/design-model vitest suite through the confined host (vitest's cache under
 `node_modules` is the only thing it writes), and `commit-proof.mjs` + `greencommit-proof.mjs`
-perform REAL `git commit`s — only inside throwaway `os.tmpdir()` repos with hooks/signing
-neutralized LOCALLY there, never in this repository — still offline, still key-free, and
-everything else in the stack spawns nothing.
++ `gitlog-proof.mjs` perform REAL `git commit`s — only inside throwaway `os.tmpdir()` repos
+with hooks/signing neutralized LOCALLY there, never in this repository — still offline,
+still key-free, and everything else in the stack spawns nothing.
 
 ## Reproducible gates
 
 ```
-npm test          # turbo: @nexus/agent-runtime 213/213 + @nexus/exec-host 57/57 vitest among all packages
+npm test          # turbo: @nexus/agent-runtime 213/213 + @nexus/exec-host 71/71 vitest among all packages
 npm run build     # tsc dist for agents/runtime + agents/exec-host (build order via ^build deps)
 node docs/evidence/agents/agent-proof.mjs
 node docs/evidence/agents/code-index-proof.mjs   # requires `npm run build` first
@@ -43,6 +43,7 @@ node docs/evidence/agents/git-aware-proof.mjs      # requires `npm run build` fi
 node docs/evidence/agents/execsuite-proof.mjs      # requires `npm run build` first (boots the real design-model vitest suite, ~11s)
 node docs/evidence/agents/commit-proof.mjs         # requires `npm run build` first (REAL commits, but ONLY in a throwaway os.tmpdir repo)
 node docs/evidence/agents/greencommit-proof.mjs    # requires `npm run build` first (red/denied commit nothing; green-after-fix commits exactly once)
+node docs/evidence/agents/gitlog-proof.mjs         # requires `npm run build` first (REAL commit + read-back, ONLY in a throwaway os.tmpdir repo)
 ```
 
 ## Unit tests (vitest, `agents/runtime/test`)
@@ -78,6 +79,7 @@ node docs/evidence/agents/greencommit-proof.mjs    # requires `npm run build` fi
 | `exec-host/execTestRunner.test.ts` (9) | v31 (fake spawn, zero real processes): exit 0 → passing report whose engine NAMES the argv, exit 1 + stderr → failure message verbatim, timeout kill → `killed at timeout budget (SIGTERM)` never noise, policy refusal → FAILING report with the stated reason and no spawn, missing `preApproved` → the exact `checkpoint required for exec (§28)` message, `only` miss → vacuous total-0 without paying for a spawn, through `registerTestTools` the granted call states the exec-host engine and an unknown `only` is a tool ERROR, runTask e2e verifies with a real COMMAND and journals the report |
 | `exec-host/gitTools.test.ts` (17) | v32 (fake spawn): `parseGitStatus` XY→named statuses + counts + rename keeps NEW path + junk XY = `other`; `parseGitDiff` per-file hunk/add/delete tallies with `+++`/`---` excluded and preamble ignored; `parseDiffStat` footer groups / empty / junk→null; policy allows EXACTLY `git status --short`/`git diff`/`git diff --stat` and default-denies push/commit/path-scoped diff; `gitEnv` picks only named vars; tools both exec-permission, no-checkpoint never reaches host (0 spawns), granted `git.status` returns PARSED entries and the spawn env is policy-scrubbed (`TOKEN` never seen), `stat:true` swaps argv, exit 128 is ok:false DATA not a throw, escaping cwd = stated tool ERROR, truncation labeled in detail |
 | `exec-host/gitCommitTool.test.ts` (16) | v35 (fake spawn): `parseCommitOutput` reads `[branch (root-commit)? hash] subject` + stat footer (create-mode lines AFTER the stat), insertions-only, non-echo → null; `gitCommitPolicy` allows EXACTLY `git commit -m <msg>` (incl. a message literally `*` — the v29 `'*'` ARG wildcard, first production wiring) and default-denies bare `git commit`, `-m a b`, `-am`, `--no-verify -m x`, `add`, `push`, `rm -rf /`; blank message throws BEFORE the policy with ZERO spawns; granted commit hands argv verbatim (`['commit','-m',msg]`, multi-line/quoted message intact, env scrubbed) and renders `git.commit → exit 0: master@0a1b2c3 · N file(s) +I −D`; nothing-staged exit 1 is ok:false DATA carrying git's first stderr line; escaping cwd = tool ERROR 0 spawns; a message smuggling `--no-verify -a` stays ONE argv token |
+| `exec-host/gitLogTool.test.ts` (14) | v37 (fake spawn): `parseGitLog` reads `<hash> <subject>` lines newest-first (leading-space tolerant), merge subjects kept verbatim, blank lines free, a hashless line is COUNTED (`skipped`) never guessed, empty stdout = honest empty log; `gitLogPolicy` allows EXACTLY `git log --oneline -n <count>` (the wildcard's second production wiring) and default-denies bare `git log`, no `-n`, no count, a trailing ref, `--all`, `git show`, `git commit`, `git push`; `git.log` is exec-permission (a read still spawns) — no checkpoint ⇒ 0 spawns, granted ⇒ default window 10 with argv `['log','--oneline','-n','10']` and scrubbed env, explicit count rides the wildcard token verbatim; junk counts (0, −3, 1.5, >100, NaN) throw the bounded-read-back error with the spawn counter frozen; empty-repo exit 128 is ok:false DATA quoting git's stderr line; escaping cwd = tool ERROR 0 spawns; skipped lines surface in detail as "counted not guessed" |
 | `durability.test.ts` (8) | memory serialize/deserialize round-trip + version/schema rejection, `restore()` id high-water mark, save/load through an injected writable fake disk, corrupt-file honest failure, `guardedJoin` jail (absolute/`..`/drive-letter rejection, backslash folding), `disk.write` checkpoint gate + escape touches nothing, `disk.read`/`disk.list` confinement |
 | `indexStore.test.ts` (11) | index snapshot serialize→deserialize verbatim + version/chunk schema rejection, save/load via injected fs, cold rescan equals `buildIndex`, unchanged files reuse chunks / edits rechunk exactly the changed paths / removals drop out, query ranking snapshot-independent; v5 provider: cold-first-build equals plain build, incremental refresh 0 re-chunked, edited file sole re-chunk, cross-provider snapshot restore, corrupt-snapshot fallback + repair, `fs.index` provider/default parity |
 | `indexVectors.test.ts` (11) | v23: `indexToVectorDb` shape (one entry per chunk, id `path#startLine`, real dim-64 vectors), vector-vs-inline hit-for-hit parity across five query shapes + stated engine, null db ⇒ honest inline; cold merge ≡ cold build, unchanged chunks reuse the identical vector object / only touched windows re-embed / removals drop out; tampered-text, missing-id and wrong-dim drift each send the WHOLE query inline with real inline hits; persisted provider: lazy `vectors()`, byte-identical reuse by a cold second provider, corrupt-file self-repair, `fs.index` engine labels with/without vectorsFile, edits tracked through the provider lifecycle |
@@ -359,6 +361,21 @@ headline: red + denied together cost ZERO processes; each approved commit costs 
 ONE. The ledger then replays `record.hash` from JSONL, `rev-list --count` agrees with
 git's own eye, and the final assertion again byte-compares THIS repo's HEAD.
 
+## Git-log proof (`gitlog-proof.mjs`, M2 v37)
+
+See → touch → CONFIRM, all three verbs now real and all three behind keyed doors. ONE
+registry, TWO hosts: a log host that can only read its one argv shape
+(`git log --oneline -n <count>` — the wildcard's second production wiring, count bounded
+1–100 by the tool itself) and a commit host that can only write v35's. In a throwaway
+`os.tmpdir()` repo the story runs straight through: an empty repo answers exit-128 DATA
+(not a crash), a HUMAN seeds history outside any sandbox, the agent commits the staged
+file through §28 — then `git.log` reads the ledger back and must AGREE byte-for-byte:
+newest logged hash+subject === the `GitCommitRecord` the commit tool handed back, with
+the human commit sitting below (history shared, never overwritten). The gate negatives
+are as loud as the positive: a denied checkpoint, an unbounded count, and `git push`
+handed directly to the LOG host with `preApproved:true` all cost ZERO processes — the
+whole true story spends exactly 3 spawns. HOME HEAD byte-identical, temp repo deleted.
+
 ## v20 note — orchestrator-driven UI
 
 The dock's Agent UI run now executes the demo planner's `observe→type→click` plan through the UNCHANGED runTask loop; ui tools address labels (exact, then substring). Browser: two per-action Allow dialogs, then the composed dashboard — live plan→act→verify, fully gated.
@@ -547,6 +564,22 @@ Studio registers no exec-host tool, so no browser plan can contain a commit — 
 runtime + evidence only; agent-led STAGING remains out of design scope (the checkpoint
 callback is WHERE the human stages); runtime 207/207 → 213/213, exec-host unchanged.
 
+## v37 note — git.log: the read side earns its own keyed door
+
+`gitLogPolicy(root)` allowlists EXACTLY `['git','log','--oneline','-n','*']` — the v29
+`'*'` ARG wildcard's SECOND production wiring, this time on the read side: shape fixed,
+count floats, arity enforced. `registerGitLogTool` exposes §28-gated `git.log` — a
+READ that still spawns a real process, so the checkpoint still sits on it — and the tool
+bounds the WINDOW (count 1–100, default 10) while the policy fixes the SHAPE: junk
+counts are rejected before the policy is consulted, zero spawns. `parseGitLog` renders
+`<hash> <subject>` lines into ordered entries and COUNTS hashless echo lines instead of
+guessing them; an empty repo is git's exit-128 stderr quoted as DATA. The proof's money
+assertion is self-verification: after a granted commit, `git.log`'s newest entry equals
+the `GitCommitRecord` hash+subject byte-for-byte — the agent can CHECK, not just claim.
+A log host handed `git push` with `preApproved:true` still refuses: keyed doors do not
+borrow each other's powers. Runtime 213/213 UNCHANGED (no runtime code moved);
+exec-host 57/57 → 71/71 (14 gitLogTool cases).
+
 ## Scope honesty
 
 §63/§26 items *not* implemented (stated, not faked): general real-fs write tools (only
@@ -559,7 +592,9 @@ command CAN answer `test.run` (`execTestRunner`), and v34 proved it once for rea
 wired by default outside that evidence file, and the runtime package itself stays
 spawn-free by audited design. Since v35 the git write surface is ONE argv wide
 (`git commit -m <msg>` via a separate `gitCommitPolicy`, staged-index-only, never `add`/
-`push`) — the v32 see-don't-touch policy stands for everything else, and real-commit
+`push`), and since v37 the git read surface has grown exactly one bounded window
+(`git log --oneline -n <count≤100>` via `gitLogPolicy` — still no `show`, no `--all`, no
+refs) — the v32 see-don't-touch policy stands for everything else, and real-commit
 demos live only in throwaway temp repos. Agent-led STAGING (choosing what enters the
 index) remains unimplemented by design: staging stays a human/`disk`-side act,
 live-model planning (the seam exists, the model needs keys), multi-agent registry.

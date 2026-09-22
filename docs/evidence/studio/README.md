@@ -13,7 +13,7 @@ npm run build lint typecheck test     # via turbo: build 4/4 · lint 3/3 · type
 | ------------------ | ------ |
 | @nexus/design-model| 28/28 vitest (`design-model` 16 incl. 3 rotated-hitTest + 2 rigid-geometry cases + `instances` 12 incl. x/y delta + absolute rotation overrides + rigid rotation bake), tsc clean |
 | @nexus/ai-providers| 7/7 vitest, tsc clean |
-| @nexus/agent-runtime| 213/213 + @nexus/exec-host 57/57 vitest (M2 v0–v36, ADR 0016 am. 1–36; am. 33–34 changed no agent-stack code; am. 35 added the git.commit write slice in exec-host only — runtime stays spawn-free; am. 36 taught the loop to propose a §28 commit after green — runtime change, studio plans unaffected) · tsc clean — see `docs/evidence/agents/README.md` |
+| @nexus/agent-runtime| 213/213 + @nexus/exec-host 71/71 vitest (M2 v0–v37, ADR 0016 am. 1–37; am. 33–34 changed no agent-stack code; am. 35 added the git.commit write slice in exec-host only — runtime stays spawn-free; am. 36 taught the loop to propose a §28 commit after green; am. 37 added the git.log read-back door in exec-host only — runtime and studio plans unaffected) · tsc clean — see `docs/evidence/agents/README.md` |
 | @nexus/studio      | 99/99 vitest (`snap` `persist` `align` `store-variants` 18 `thumbnail` `rotate` 14 `render` `minimap` `agentDock` 17 `webfs` 3 `uiRun` 8) · tsc `--noEmit` clean · eslint `--max-warnings=0` clean · `next build` ✓ (4/4 static pages) |
 
 ## Headless pipeline proof

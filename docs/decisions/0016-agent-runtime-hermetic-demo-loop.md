@@ -729,3 +729,30 @@ two fresh runs, checkpoint denial leaving the workspace byte-identical).
   throwaway `os.tmpdir()` repo: red → 0 spawns, denied → 0 spawns, green-after-fix →
   exactly ONE spawn whose argv/env/cwd are asserted verbatim, and the JSONL ledger
   replays the landed commit hash to a cold reader. Home-repo HEAD byte-checked again.
+
+## Amendment 37 — v37: git.log read-back — see → touch → CONFIRM, 2026-09
+- **The circle closes in `@nexus/exec-host`; the runtime stays untouched.** v32 gave the
+  agent EYES on the working tree, v35 gave it the one-argv HAND, v36 taught it WHEN to
+  reach — v37 gives it the last step: reading its own history back. `gitLogPolicy(root)`
+  allowlists EXACTLY `['git','log','--oneline','-n','*']` — the SECOND production wiring
+  of the v29 `'*'` ARG wildcard, this time on the read side: shape fixed, count floats,
+  arity enforced (`git log`, `--all`, a trailing ref, `git show`, `git commit`, `git push`
+  all default-deny). `registerGitLogTool` exposes §28-gated `git.log` (an exec-permission
+  read: nothing is written, but a REAL process still spawns, so the checkpoint still sits
+  on it); the tool's OWN bound (count 1–100, default 10) rejects junk before the policy
+  ever sees it — the policy fixes the SHAPE, the tool bounds the WINDOW.
+- **`parseGitLog` is honest echo math:** `<hash> <subject>` per line into ordered
+  `GitLogEntry[]`; a hashless line is COUNTED (`skipped`), never guessed into a commit;
+  an empty repo is git's exit-128 DATA quoted verbatim, not a crash.
+- **The 27th proof (`gitlog-proof.mjs`) is the self-verification story** in a throwaway
+  `os.tmpdir()` repo (§9; hooks/signing/identity neutralized LOCALLY there): ONE registry
+  behind TWO keyed doors — a log host that can only read and a commit host that can only
+  write its one shape — and even `preApproved:true` through the log host cannot spawn a
+  push. Sequence: empty repo → exit-128 data; HUMAN seed commit outside the sandbox; agent
+  commits the staged file through §28; `git.log -n 2` then agrees BYTE-FOR-BYTE — newest
+  logged hash+subject === the `GitCommitRecord` the commit tool handed back, human seed
+  sitting below. Denied checkpoints, out-of-bound counts and out-of-policy argv cost zero
+  processes (3 spawns for the whole true story); HOME HEAD byte-identical before/after.
+- exec-host 57/57 → 71/71 (14 gitLogTool cases); runtime 213/213 UNCHANGED (spawn-free by
+  audited design — no product code in the runtime moved); studio 99/99 unchanged;
+  twenty-seven proofs (29 scripts) green.
