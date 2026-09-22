@@ -73,7 +73,7 @@ Duplicate（§27）走 `duplicateDocument`：页面 id 与组件 id 在库里是
 居中开场 / 左右分栏 / 三卡并列 / 导航开场，只动节点）与**视觉语言**（`CONCEPT_LANGUAGES`：
 编辑部 / 影院 / 赛博 / 暖阳，只动 token 与 visualDna）。拆成两轴是为了让"取 A 的布局 + C 的视觉"
 这句话有指代；前提是节点颜色一律引用 token（§12），否则换语言就得逐节点改写。
-圆角没有做成可换的旋钮：起手页的圆角是写死在节点上的，声称能换就是假的（见技术债）。
+圆角与间距也是可换的旋钮：`ConceptLanguage.geometry` 落 `radius.*` / `space.*`（任务 #25 之前这里是句谎话）。
 `generateVariants` / `mergeVariants` 都**不动工作区**（`createSnapshot` 新增 `advanceWorkspace:false`），
 所以"生成 4 个方案"不会把用户手上的稿子换掉；点"切到这个方向"才走 §28 的切换。
 比较板是第三个视图（画布 / 方案 / 代码），每张卡用与画布、预览同源的 `resolveLayout + nodeStyle` 投影，
@@ -285,6 +285,26 @@ warm 方向奶油字压亮橙 3.35:1、cyber 的 light 模式是深底配深字 
 验证：`npm test` 313（克隆的 `undefined` 键 / 数组空洞 / 非纯对象回落，以及"一次 execute 只应用一遍"各一条回归）、
 17 条 @smoke 全绿（编辑—撤销—自动保存那条走的就是被改过的路径）。
 
+**M2 进度记录（2026-09-23，几何 token 化，任务 #25）**：修掉一处"声称能做其实做不到"。
+§29 的视觉语言此前只带颜色与字体，`cyber` 写着「直角」、`warm` 写着「圆角」，
+而节点上的 `cornerRadius: 10` 是钉死的数字——那两个词没有指代（§159）。现在：
+起手页 / 四个结构方向新增的区块 / DEMO 配方生成的 section 全部引用 `{space.*}` 与 `{radius.*}`
+（默认栅格补了 `space.20=80`、`space.24=96`），`ConceptLanguage.geometry` 成为第三个旋钮。
+三件配套缺一不可，否则就是新的谎：
+1. `lintDesign` 的 `hardcoded-style` 扩展到几何（非零的 gap/padding/cornerRadius 字面量），
+   起手页必须 0 命中——这条规则是"以后不许再钉死"的守门人，而不是一次性清洁；
+2. `code-parse` 学会把 `var(--nx-space-6)` 反解回 `{space.6}`。此前 gap/padding/圆角**只认 px 字面量**，
+   几何一旦绑 token，§19 的往返恒等（`parse(generate(page))` 零补丁零 unmapped）在起手页上就破了；
+   认回**引用**而不是认成数字，才既保住恒等又不会把绑定改写成常量（删掉 token 绑定的圆角类不再写 0，有测试钉住）；
+3. DNA 的 `radius` / `spacingScale` 改为从落好 token 的文档里读，不再抄一份常量表——
+   否则"项目遵循的视觉语言"会停在抄的那份数字上。
+顺手修掉一处面板说谎：Design System 的输入框草稿提交后不清除，撤销或 AI 改动之后仍显示旧数字；
+现在 blur 即丢草稿。
+验证：`npm test` 320（新增 6 条：旋钮落 token、两套语言在同一份结构上给出不同圆角、DNA 从文档读、
+新增卡片也引用 token、起手页无硬编码几何、字面几何会被记下来）、17 条 @smoke 全绿；
+浏览器实测方案板 `main 10px / editorial 2px / cinematic 8px / cyber 0px / warm 20px`，
+改 `radius.md=26` 画布按钮立刻 26px、撤销回 10px 且面板显示真值。
+
 ## M3 — 世界 / 角色 / RAG（§183）
 - [ ] World Builder（Lore/History/Geography/Factions/Characters/Creatures/Items/Quests/Story）
 - [ ] World Graph 可视化 + 可拖拽节点（§45）
@@ -369,9 +389,19 @@ warm 方向奶油字压亮橙 3.35:1、cyber 的 light 模式是深底配深字 
   以及快照列表的「只看当前分支」筛选——现在仍按时间全量展示、每行标出所属分支。
 - 主题 mode 的持久化债已还（迁移 `0001_theme_mode`：`projects.active_mode` / `modes` 两列，
   保存-重载与快照恢复都带得回 `document.activeMode`）。
-- 起手页的圆角、间距是写死在节点上的数字（`cornerRadius: 10`、`padding.top: 64`），没绑到 `radius.*` /
+- ~~起手页的圆角、间距是写死在节点上的数字（`cornerRadius: 10`、`padding.top: 64`），没绑到 `radius.*` /
   `space.*` token。后果具体可见：§29 的视觉语言只能换颜色与字体，"换一套圆角"这种旋钮做不了——
-  做不了就别在 UI 上声称能做。等上面那条 token 类型债一起修。
+  做不了就别在 UI 上声称能做。~~
+  **已还（2026-09-23，任务 #25）**：起手页、四个结构方向新增的区块、DEMO 配方生成的 section
+  全部改成引用 `{space.*}` / `{radius.*}`（为此给默认栅格补了 `space.20=80` / `space.24=96`）。
+  `ConceptLanguage` 多了 `geometry` 旋钮，四套语言各自给出圆角与间距刻度——
+  cyber 的「直角」现在真的是 0px，warm 的「圆角」是 20px，不再只是形容词。
+  配套三件：`lintDesign` 的 `hardcoded-style` 覆盖未绑 token 的非零 gap/padding/cornerRadius
+  （0 是默认值不算硬编码）；`code-parse` 学会把 `var(--nx-space-6)` 反解回 `{space.6}`
+  （只认 px 字面量会让 §19 的往返恒等在第一份起手页上就破，而认回**引用**才不会把绑定改写成常量）；
+  DNA 的 `radius` / `spacingScale` 从落好 token 的文档里读，不再抄一份常量表。
+  顺带修掉设计系统面板的一处说谎：输入框的草稿在提交后不清除，撤销/AI 改动之后面板仍显示旧数字——
+  现在 blur 即丢草稿，屏幕上的读数与模型一致（§16）。
 - 项目健康与 Quality Gate 已落地（任务 #23，§178/§179，见 `docs/adr/0005-health-score-and-gate.md`）。
   它"没做到"的部分是刻意留下的，逐条说清，免得下一个人把它当成全绿：
   1. **Performance 行是静态预算**（节点数、树深、位图字节、缺尺寸图片、动效数），不是 LCP/CLS 实测。

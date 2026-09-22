@@ -318,8 +318,13 @@ export function starterPage(name = "Home"): Page {
       size: { width: "fill", height: "hug" },
       layout: {
         mode: "vertical",
-        gap: 24,
-        padding: { top: 64, right: 40, bottom: 64, left: 40 },
+        gap: "{space.6}",
+        padding: {
+          top: "{space.16}",
+          right: "{space.8}",
+          bottom: "{space.16}",
+          left: "{space.8}",
+        },
         items: "start",
       },
       style: { fills: [{ kind: "solid", color: "{color.surface}" }] },
@@ -392,7 +397,7 @@ export function starterPage(name = "Home"): Page {
       type: "container",
       name: "Actions",
       size: { width: "hug", height: "hug" },
-      layout: { mode: "horizontal", gap: 12, items: "center" },
+      layout: { mode: "horizontal", gap: "{space.3}", items: "center" },
     },
     hero,
   );
@@ -403,10 +408,22 @@ export function starterPage(name = "Home"): Page {
       name: "Primary CTA",
       text: "开始设计",
       size: { width: "hug", height: "hug" },
-      layout: { padding: { top: 12, right: 24, bottom: 12, left: 24 } },
+      layout: {
+        padding: {
+          top: "{space.3}",
+          right: "{space.6}",
+          bottom: "{space.3}",
+          left: "{space.6}",
+        },
+      },
       style: {
         fills: [{ kind: "solid", color: "{color.primary}" }],
-        cornerRadius: { topLeft: 10, topRight: 10, bottomRight: 10, bottomLeft: 10 },
+        cornerRadius: {
+          topLeft: "{radius.md}",
+          topRight: "{radius.md}",
+          bottomRight: "{radius.md}",
+          bottomLeft: "{radius.md}",
+        },
       },
       typography: {
         fontFamily: "{font.body}",
@@ -428,10 +445,22 @@ export function starterPage(name = "Home"): Page {
       name: "Secondary CTA",
       text: "查看文档",
       size: { width: "hug", height: "hug" },
-      layout: { padding: { top: 12, right: 24, bottom: 12, left: 24 } },
+      layout: {
+        padding: {
+          top: "{space.3}",
+          right: "{space.6}",
+          bottom: "{space.3}",
+          left: "{space.6}",
+        },
+      },
       style: {
         strokes: [{ paints: [{ kind: "solid", color: "{color.border}" }], width: 1, position: "inside" }],
-        cornerRadius: { topLeft: 10, topRight: 10, bottomRight: 10, bottomLeft: 10 },
+        cornerRadius: {
+          topLeft: "{radius.md}",
+          topRight: "{radius.md}",
+          bottomRight: "{radius.md}",
+          bottomLeft: "{radius.md}",
+        },
       },
       typography: {
         fontFamily: "{font.body}",
@@ -629,6 +658,8 @@ export const DEFAULT_TOKENS: Token[] = [
   { key: "space.8", type: "dimension", value: 32 },
   { key: "space.12", type: "dimension", value: 48 },
   { key: "space.16", type: "dimension", value: 64 },
+  { key: "space.20", type: "dimension", value: 80 },
+  { key: "space.24", type: "dimension", value: 96 },
   { key: "radius.sm", type: "dimension", value: 6 },
   { key: "radius.md", type: "dimension", value: 10 },
   { key: "radius.lg", type: "dimension", value: 16 },

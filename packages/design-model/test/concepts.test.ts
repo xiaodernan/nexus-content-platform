@@ -9,6 +9,7 @@ import {
   createDocument,
   findPage,
   mergeConceptDocuments,
+  TokenStore,
   validateDocument,
   type DesignDocument,
   type Page,
@@ -203,5 +204,54 @@ describe("多方案生成（§29）", () => {
     const frozen = JSON.stringify(shapeOf(findPage(doc, doc.activePageId)!)) + tokenValues(doc);
     buildConcepts(doc, 4);
     expect(JSON.stringify(shapeOf(findPage(doc, doc.activePageId)!)) + tokenValues(doc)).toBe(frozen);
+  });
+});
+
+describe("视觉语言的几何旋钮（§12 / §29）", () => {
+  const languageOf = (key: string) => CONCEPT_LANGUAGES.find((l) => l.key === key)!;
+  const tokenValue = (doc: DesignDocument, key: string) =>
+    doc.tokens.find((t) => t.key === key)?.value;
+  const nodeNamed = (doc: DesignDocument, name: string) =>
+    Object.values(findPage(doc)!.nodes).find((n) => n.name === name)!;
+
+  it("「直角」把 radius.* 压成 0：节点上的引用不用改就跟着变", () => {
+    const doc = createDocument("旋钮");
+    expect(tokenValue(doc, "radius.md")).toBe(10);
+    const { document: cyber, notes } = applyConceptLanguage(doc, languageOf("cyber"));
+    expect(notes).toEqual([]);
+    expect(tokenValue(cyber, "radius.md")).toBe(0);
+    // 节点仍然只存引用（不是被改写成 0 这个数字）——这是"改一处、全局生效"的前提
+    expect(nodeNamed(cyber, "Primary CTA").style.cornerRadius.topLeft).toBe("{radius.md}");
+    expect(new TokenStore(cyber.tokens).resolveValue("{radius.md}", null)).toBe(0);
+  });
+
+  it("同一份结构在 warm 与 editorial 下圆角不同：语言轴真的换得动几何", () => {
+    const source = createDocument("同一份结构");
+    const warm = applyConceptLanguage(source, languageOf("warm")).document;
+    const editorial = applyConceptLanguage(source, languageOf("editorial")).document;
+    expect(new TokenStore(warm.tokens).resolveValue("{radius.md}", null)).toBe(20);
+    expect(new TokenStore(editorial.tokens).resolveValue("{radius.md}", null)).toBe(2);
+    expect(new TokenStore(warm.tokens).resolveValue("{space.16}", null)).toBe(72);
+    expect(new TokenStore(editorial.tokens).resolveValue("{space.16}", null)).toBe(80);
+  });
+
+  it("DNA 的 radius / spacingScale 从落好 token 的文档里读，不是抄一份常量", () => {
+    const { document } = applyConceptLanguage(createDocument("DNA"), languageOf("cinematic"));
+    expect(document.visualDna?.radius).toBe(14);
+    const scale = document.tokens
+      .filter((t) => t.key.startsWith("space.") && typeof t.value === "number")
+      .map((t) => t.value as number)
+      .sort((a, b) => a - b);
+    expect(document.visualDna?.spacingScale).toEqual(scale);
+    expect(scale).toContain(96);
+  });
+
+  it("结构方向新增的卡片也引用 token：它跟着语言换圆角，而不是钉死", () => {
+    const cards = CONCEPT_STRUCTURES.find((s) => s.key === "cards")!;
+    const { document } = applyConceptStructure(createDocument("三卡"), cards);
+    const card = nodeNamed(document, "Highlight 1");
+    expect(card.style.cornerRadius.topLeft).toBe("{radius.md}");
+    const warm = applyConceptLanguage(document, languageOf("warm")).document;
+    expect(new TokenStore(warm.tokens).resolveValue("{radius.md}", null)).toBe(20);
   });
 });

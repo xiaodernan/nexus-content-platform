@@ -240,7 +240,13 @@ const RULES: Rule[] = [
         type: 'section',
         name: `${topic} Section`,
         size: { width: 'fill', height: 'hug' },
-        layout: { mode: 'vertical', gap: 24, padding: { top: 96, right: 40, bottom: 96, left: 40 }, justify: 'center', items: 'center' },
+        layout: {
+          mode: 'vertical',
+          gap: '{space.6}',
+          padding: { top: '{space.24}', right: '{space.8}', bottom: '{space.24}', left: '{space.8}' },
+          justify: 'center',
+          items: 'center',
+        },
         style: { fills: [{ kind: 'solid', color: '{color.surface}' }] },
       });
       ops.push({ op: 'insert', node: section, parentId: root.id });
@@ -265,7 +271,7 @@ const RULES: Rule[] = [
         type: 'grid',
         name: `${topic} 列表`,
         size: { width: 'fill', height: 'hug' },
-        layout: { mode: 'grid', columns: 3, gap: 24, padding: { top: 0, right: 0, bottom: 0, left: 0 }, justify: 'start', items: 'stretch' },
+        layout: { mode: 'grid', columns: 3, gap: '{space.6}', padding: { top: 0, right: 0, bottom: 0, left: 0 }, justify: 'start', items: 'stretch' },
       });
       ops.push({ op: 'insert', node: row, parentId: section.id });
       for (let i = 0; i < 3; i += 1) {
@@ -273,10 +279,21 @@ const RULES: Rule[] = [
           type: 'card',
           name: `${topic} ${i + 1}`,
           size: { width: 'fill', height: 'hug' },
-          layout: { mode: 'vertical', gap: 12, padding: { top: 24, right: 24, bottom: 24, left: 24 }, justify: 'start', items: 'start' },
+          layout: {
+            mode: 'vertical',
+            gap: '{space.3}',
+            padding: { top: '{space.6}', right: '{space.6}', bottom: '{space.6}', left: '{space.6}' },
+            justify: 'start',
+            items: 'start',
+          },
           style: {
             fills: [{ kind: 'solid', color: '{color.surface-2}' }],
-            cornerRadius: { topLeft: 16, topRight: 16, bottomRight: 16, bottomLeft: 16 },
+            cornerRadius: {
+            topLeft: '{radius.lg}',
+            topRight: '{radius.lg}',
+            bottomRight: '{radius.lg}',
+            bottomLeft: '{radius.lg}',
+          },
           },
         });
         ops.push({ op: 'insert', node: card, parentId: row.id });
@@ -297,7 +314,12 @@ const RULES: Rule[] = [
         size: { width: 'hug', height: 48 },
         style: {
           fills: [{ kind: 'solid', color: '{color.primary}' }],
-          cornerRadius: { topLeft: 10, topRight: 10, bottomRight: 10, bottomLeft: 10 },
+          cornerRadius: {
+          topLeft: '{radius.md}',
+          topRight: '{radius.md}',
+          bottomRight: '{radius.md}',
+          bottomLeft: '{radius.md}',
+        },
         },
         typography: { fontFamily: '{font.body}', fontSize: 15, fontWeight: 600, lineHeight: 1.2, letterSpacing: 0, align: 'center', verticalAlign: 'top' },
       });

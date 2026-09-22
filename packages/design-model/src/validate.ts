@@ -263,6 +263,7 @@ export function lintDesign(
         }
       }
       // 间距对齐 4px 栅格：padding 与 gap/rowGap/crossGap 同属栅格间距，一视同仁
+      const literalSpacing: string[] = [];
       const spacings: Array<[string, number | string | undefined]> = [
         ["layout.gap", node.layout.gap],
         ["layout.rowGap", node.layout.rowGap],
@@ -273,6 +274,7 @@ export function lintDesign(
       ];
       for (const [path, value] of spacings) {
         if (value === undefined) continue;
+        if (typeof value === "number" && value !== 0) literalSpacing.push(path);
         const resolved =
           typeof value === "number"
             ? value
@@ -288,6 +290,33 @@ export function lintDesign(
             suggestion: "吸附到最近的 4 的倍数",
           });
         }
+      }
+      // §12：几何也得引用 token。写死的数字换不动——视觉语言里"圆角/紧凑间距"那些描述词
+      // 之所以是谎话，就是因为节点上钉着 10、64 这样的常量。0 是默认值，不算硬编码。
+      if (literalSpacing.length) {
+        issues.push({
+          code: "hardcoded-style",
+          severity: "info",
+          message: `${node.name} 的 ${literalSpacing.join("、")} 是写死的数字，没有引用 space.* token`,
+          pageId: page.id,
+          nodeId: node.id,
+          path: literalSpacing[0]!,
+          suggestion: "换成 {space.N}：换一套视觉语言时间距节奏才会跟着变",
+        });
+      }
+      const literalRadius = Object.entries(node.style.cornerRadius).filter(
+        ([, value]) => typeof value === "number" && value !== 0,
+      );
+      if (literalRadius.length) {
+        issues.push({
+          code: "hardcoded-style",
+          severity: "info",
+          message: `${node.name} 的圆角是写死的 ${literalRadius.map(([, v]) => v).join("/")}px，没有引用 radius.* token`,
+          pageId: page.id,
+          nodeId: node.id,
+          path: "style.cornerRadius",
+          suggestion: "换成 {radius.sm|md|lg}：这样「直角 / 圆角」这类语言描述才真的落得下来",
+        });
       }
       // 文本对比度（§90）：解析 token、沿祖先链合成真实背景，测不出来的不报（§159）
       const contrast = measureContrast(page, node, tokens, document.activeMode);

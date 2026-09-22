@@ -134,6 +134,13 @@ describe("类名 → 模型属性", () => {
 
   it("删除类名等于取消该属性：rounded-[10px] 去掉后圆角归零", () => {
     const page = starterPage();
+    // 先退回字面数值：token 绑定的节点走的是另一条保护，见下一个用例
+    page.nodes[nodeId(page, "Primary CTA")]!.style.cornerRadius = {
+      topLeft: 10,
+      topRight: 10,
+      bottomRight: 10,
+      bottomLeft: 10,
+    };
     const code = replace(source(page), " rounded-[10px]", "");
     const result = parse(page, code);
     const ops = result.ops.filter((op) => op.nodeId === nodeId(page, "Primary CTA"));
@@ -147,11 +154,22 @@ describe("类名 → 模型属性", () => {
     ]);
   });
 
+  it("删掉 token 绑定的圆角类不会把绑定写成 0：反向同步不破坏 §12 的绑定", () => {
+    const page = starterPage();
+    const code = replace(source(page), " rounded-[var(--nx-radius-md)]", "");
+    const result = parse(page, code);
+    const cta = nodeId(page, "Primary CTA");
+    expect(
+      result.ops.filter((op) => op.nodeId === cta && "path" in op && op.path === "style.cornerRadius"),
+    ).toEqual([]);
+    expect(page.nodes[cta]!.style.cornerRadius.topLeft).toBe("{radius.md}");
+  });
+
   it("统一 padding 展开成四条边", () => {
     const page = starterPage();
     const code = replace(
       source(page),
-      "pt-[64px] pr-[40px] pb-[64px] pl-[40px]",
+      "pt-[var(--nx-space-16)] pr-[var(--nx-space-8)] pb-[var(--nx-space-16)] pl-[var(--nx-space-8)]",
       "p-[32px]",
     );
     const result = parse(page, code);

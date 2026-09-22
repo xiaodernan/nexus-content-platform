@@ -28,6 +28,12 @@ export interface ConceptLanguage {
    */
   colors: Record<string, { value: string; light?: string; dark?: string }>;
   fonts: Record<string, string>;
+  /**
+   * 圆角与间距的旋钮：key 就是 token 名（`radius.*` / `space.*`），值是数值。
+   * 没有这一项，"直角""圆角"这类描述词就只是形容词——节点上的几何是写死的数字时，
+   * 换语言换不动它（§12 要求几何也引用 token，正是为了让这里换得动）。
+   */
+  geometry: Record<string, number>;
   descriptors: string[];
   motion: VisualDna["motion"];
 }
@@ -75,6 +81,18 @@ export const CONCEPT_LANGUAGES: ConceptLanguage[] = [
       "color.border": { value: "#ddd7c9", light: "#ddd7c9", dark: "#332f29" },
     },
     fonts: { "font.heading": SERIF, "font.body": SANS },
+    // 纸面：几乎不做圆角，纵向节奏放宽（间距一律 4 的倍数，不然会撞上自己的栅格规则）
+    geometry: {
+      "radius.sm": 2,
+      "radius.md": 2,
+      "radius.lg": 6,
+      "space.16": 80,
+      "space.12": 56,
+      "space.8": 36,
+      "space.6": 28,
+      "space.4": 16,
+      "space.3": 12,
+    },
     descriptors: ["纸面", "衬线标题", "深绿主色", "克制"],
     motion: { character: "slow-cinematic", notes: ["淡入", "不做弹跳"] },
   },
@@ -93,6 +111,17 @@ export const CONCEPT_LANGUAGES: ConceptLanguage[] = [
       "color.border": { value: "#1f2735", light: "#c9cfdb", dark: "#1f2735" },
     },
     fonts: { "font.heading": SANS, "font.body": SANS },
+    geometry: {
+      "radius.sm": 4,
+      "radius.md": 8,
+      "radius.lg": 14,
+      "space.16": 96,
+      "space.12": 64,
+      "space.8": 40,
+      "space.6": 24,
+      "space.4": 16,
+      "space.3": 12,
+    },
     descriptors: ["近黑底", "琥珀主色", "大字号", "电影感"],
     motion: { character: "slow-cinematic", notes: ["缓慢推近", "长淡入"] },
   },
@@ -112,6 +141,19 @@ export const CONCEPT_LANGUAGES: ConceptLanguage[] = [
       "color.border": { value: "#17293c", light: "#b9c6d4", dark: "#17293c" },
     },
     fonts: { "font.heading": MONO, "font.body": MONO },
+    // "直角" 在这里是真的：radius.* 全压成 0，节点上的引用跟着变
+    geometry: {
+      "radius.sm": 0,
+      "radius.md": 0,
+      "radius.lg": 0,
+      "space.16": 48,
+      "space.12": 32,
+      "space.8": 20,
+      "space.6": 12,
+      "space.4": 8,
+      "space.3": 8,
+      "space.2": 4,
+    },
     descriptors: ["等宽字体", "青色霓虹", "直角", "终端感"],
     motion: { character: "snappy", notes: ["瞬时切换", "扫描线"] },
   },
@@ -131,6 +173,17 @@ export const CONCEPT_LANGUAGES: ConceptLanguage[] = [
       "color.border": { value: "#f0dcc8", light: "#f0dcc8", dark: "#3d2c1f" },
     },
     fonts: { "font.heading": ROUNDED, "font.body": ROUNDED },
+    geometry: {
+      "radius.sm": 12,
+      "radius.md": 20,
+      "radius.lg": 32,
+      "space.16": 72,
+      "space.12": 48,
+      "space.8": 32,
+      "space.6": 24,
+      "space.4": 16,
+      "space.3": 12,
+    },
     descriptors: ["奶油底", "橙色主色", "圆角", "亲和"],
     motion: { character: "playful", notes: ["轻微弹性", "错峰入场"] },
   },
@@ -188,10 +241,15 @@ export const CONCEPT_STRUCTURES: ConceptStructure[] = [
       hero.layout = {
         ...hero.layout,
         mode: "vertical",
-        gap: 20,
+        gap: "{space.4}",
         items: "center",
         justify: "center",
-        padding: { top: 112, right: 48, bottom: 112, left: 48 },
+        padding: {
+          top: "{space.24}",
+          right: "{space.12}",
+          bottom: "{space.24}",
+          left: "{space.12}",
+        },
       };
       for (const text of textKids(page, hero)) {
         if (text.typography) text.typography = { ...text.typography, align: "center" };
@@ -216,7 +274,7 @@ export const CONCEPT_STRUCTURES: ConceptStructure[] = [
         type: "container",
         name: "Copy",
         size: { width: "fill", height: "hug" },
-        layout: { mode: "vertical", gap: 18, items: "start", padding: { top: 0, right: 0, bottom: 0, left: 0 } },
+        layout: { mode: "vertical", gap: "{space.4}", items: "start", padding: { top: 0, right: 0, bottom: 0, left: 0 } },
       });
       add(page, hero, copy);
       reparent(page, hero, copyIds, copy);
@@ -224,10 +282,27 @@ export const CONCEPT_STRUCTURES: ConceptStructure[] = [
         type: "card",
         name: "Visual",
         size: { width: 560, height: 380 },
-        layout: { mode: "vertical", gap: 8, items: "center", justify: "center", padding: { top: 24, right: 24, bottom: 24, left: 24 } },
+        layout: {
+          mode: "vertical",
+          gap: "{space.2}",
+          items: "center",
+          justify: "center",
+          padding: {
+            top: "{space.6}",
+            right: "{space.6}",
+            bottom: "{space.6}",
+            left: "{space.6}",
+          },
+        },
         style: {
           fills: [{ kind: "solid", color: "{color.surface-2}" }],
           strokes: [{ paints: [{ kind: "solid", color: "{color.border}" }], width: 1, position: "inside" }],
+          cornerRadius: {
+            topLeft: "{radius.lg}",
+            topRight: "{radius.lg}",
+            bottomRight: "{radius.lg}",
+            bottomLeft: "{radius.lg}",
+          },
         },
       });
       add(page, hero, visual);
@@ -254,10 +329,15 @@ export const CONCEPT_STRUCTURES: ConceptStructure[] = [
       hero.layout = {
         ...hero.layout,
         mode: "horizontal",
-        gap: 56,
+        gap: "{space.12}",
         items: "center",
         justify: "space-between",
-        padding: { top: 96, right: 64, bottom: 96, left: 64 },
+        padding: {
+          top: "{space.24}",
+          right: "{space.16}",
+          bottom: "{space.24}",
+          left: "{space.16}",
+        },
       };
       // 顺序：先放文案再放视觉主体，reparent 之后 hero.children 只剩 visual
       hero.children = [copy.id, visual.id];
@@ -278,9 +358,14 @@ export const CONCEPT_STRUCTURES: ConceptStructure[] = [
         size: { width: "fill", height: "hug" },
         layout: {
           mode: "vertical",
-          gap: 28,
+          gap: "{space.6}",
           items: "stretch",
-          padding: { top: 72, right: 64, bottom: 88, left: 64 },
+          padding: {
+            top: "{space.16}",
+            right: "{space.16}",
+            bottom: "{space.20}",
+            left: "{space.16}",
+          },
         },
         style: { fills: [{ kind: "solid", color: "{color.background}" }] },
       });
@@ -309,7 +394,7 @@ export const CONCEPT_STRUCTURES: ConceptStructure[] = [
         type: "grid",
         name: "Highlights Grid",
         size: { width: "fill", height: "hug" },
-        layout: { mode: "grid", columns: 3, gap: 24, items: "stretch" },
+        layout: { mode: "grid", columns: 3, gap: "{space.6}", items: "stretch" },
       });
       add(page, section, grid);
       const titles = ["设计模型即真值", "代码与画布同源", "发布前有质检"];
@@ -325,13 +410,24 @@ export const CONCEPT_STRUCTURES: ConceptStructure[] = [
           size: { width: "fill", height: "hug" },
           layout: {
             mode: "vertical",
-            gap: 12,
+            gap: "{space.3}",
             items: "start",
-            padding: { top: 28, right: 28, bottom: 28, left: 28 },
+            padding: {
+              top: "{space.6}",
+              right: "{space.6}",
+              bottom: "{space.6}",
+              left: "{space.6}",
+            },
           },
           style: {
             fills: [{ kind: "solid", color: "{color.surface}" }],
             strokes: [{ paints: [{ kind: "solid", color: "{color.border}" }], width: 1, position: "inside" }],
+            cornerRadius: {
+              topLeft: "{radius.md}",
+              topRight: "{radius.md}",
+              bottomRight: "{radius.md}",
+              bottomLeft: "{radius.md}",
+            },
           },
         });
         add(page, grid, card);
@@ -393,10 +489,15 @@ export const CONCEPT_STRUCTURES: ConceptStructure[] = [
         size: { width: "fill", height: "hug" },
         layout: {
           mode: "horizontal",
-          gap: 24,
+          gap: "{space.6}",
           items: "center",
           justify: "space-between",
-          padding: { top: 20, right: 48, bottom: 20, left: 48 },
+          padding: {
+            top: "{space.4}",
+            right: "{space.12}",
+            bottom: "{space.4}",
+            left: "{space.12}",
+          },
         },
         style: {
           fills: [{ kind: "solid", color: "{color.surface}" }],
@@ -428,7 +529,7 @@ export const CONCEPT_STRUCTURES: ConceptStructure[] = [
         type: "container",
         name: "Nav",
         size: { width: "hug", height: "hug" },
-        layout: { mode: "horizontal", gap: 28, items: "center" },
+        layout: { mode: "horizontal", gap: "{space.6}", items: "center" },
       });
       add(page, bar, links);
       for (const label of ["产品", "模板", "定价"]) {
@@ -461,8 +562,23 @@ export const CONCEPT_STRUCTURES: ConceptStructure[] = [
           name: "Nav CTA",
           text: "开始使用",
           size: { width: "hug", height: 40 },
-          layout: { padding: { top: 8, right: 20, bottom: 8, left: 20 } },
-          style: { fills: [{ kind: "solid", color: "{color.primary}" }] },
+          layout: {
+            padding: {
+              top: "{space.2}",
+              right: "{space.4}",
+              bottom: "{space.2}",
+              left: "{space.4}",
+            },
+          },
+          style: {
+            fills: [{ kind: "solid", color: "{color.primary}" }],
+            cornerRadius: {
+              topLeft: "{radius.md}",
+              topRight: "{radius.md}",
+              bottomRight: "{radius.md}",
+              bottomLeft: "{radius.md}",
+            },
+          },
           typography: {
             fontFamily: "{font.body}",
             fontSize: 14,
@@ -477,7 +593,7 @@ export const CONCEPT_STRUCTURES: ConceptStructure[] = [
       );
       hero.layout = {
         ...hero.layout,
-        padding: { ...hero.layout.padding, top: 56 },
+        padding: { ...hero.layout.padding, top: "{space.12}" },
       };
       return [];
     },
@@ -507,6 +623,7 @@ export function applyConceptLanguage(
   const wanted: [string, unknown][] = [
     ...Object.entries(language.colors).map(([key, spec]) => [key, spec.value] as [string, unknown]),
     ...Object.entries(language.fonts),
+    ...Object.entries(language.geometry),
   ];
   const applied: string[] = [];
   for (const [key, value] of wanted) {
@@ -541,8 +658,12 @@ export function applyConceptLanguage(
       { role: "heading", fontFamily: heading ?? SANS, fontSize: 56, fontWeight: 700 },
       { role: "body", fontFamily: language.fonts["font.body"] ?? SANS, fontSize: 16, fontWeight: 400 },
     ],
-    spacingScale: [4, 8, 12, 16, 24, 32, 48, 64, 96],
-    // 圆角照抄文档自己的 token：语言不假装能换圆角——起手页的圆角是写死在节点上的
+    // 栅格与圆角都从落好 token 的文档里读：语言换了，DNA 就得跟着换，
+    // 否则"这套语言的间距节奏"只是描述词，没有指代（§12/§174）
+    spacingScale: document.tokens
+      .filter((t) => t.key.startsWith("space.") && typeof t.value === "number")
+      .map((t) => t.value as number)
+      .sort((a, b) => a - b),
     radius: typeof radiusToken === "number" ? radiusToken : 16,
     shadow: "0 8px 24px rgba(0,0,0,.32)",
     motion: language.motion,

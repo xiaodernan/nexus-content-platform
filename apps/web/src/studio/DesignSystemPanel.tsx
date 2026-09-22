@@ -78,8 +78,19 @@ export function DesignSystemPanel() {
     return counts;
   }, [document]);
 
-  const setTokenValue = (token: Token, raw: string, mode?: string) => {
-    const parsed = parseInput(token.type, raw);
+  /**
+   * 提交后丢掉草稿：输入框只在自己编辑的那一会儿持有未落库的内容。
+   * 留着不清会让面板在撤销 / AI 改动之后仍显示旧值——屏幕上说的就和模型不一致了（§16）。
+   */
+  const dropDraft = (key: string) =>
+    setDrafts((d) => {
+      if (!(key in d)) return d;
+      const next = { ...d };
+      delete next[key];
+      return next;
+    });
+
+  const setTokenValue = (token: Token, raw: string, mode?: string) => {    const parsed = parseInput(token.type, raw);
     if (parsed === null) {
       setDrafts((d) => ({ ...d, [`${token.key}|${mode ?? ''}`]: raw }));
       return;
@@ -292,6 +303,7 @@ export function DesignSystemPanel() {
                           onBlur={() => {
                             const raw = drafts[`${token.key}|`];
                             if (raw !== undefined && raw !== valueInput(token)) setTokenValue(token, raw);
+                            dropDraft(`${token.key}|`);
                           }}
                           onKeyDown={(e) => {
                             if (e.key === 'Enter') (e.target as HTMLInputElement).blur();
@@ -323,6 +335,7 @@ export function DesignSystemPanel() {
                                   onBlur={() => {
                                     const raw = drafts[`${token.key}|${mode}`];
                                     if (raw !== undefined && raw !== String(value)) setTokenValue(token, raw, mode);
+                                    dropDraft(`${token.key}|${mode}`);
                                   }}
                                   onKeyDown={(e) => {
                                     if (e.key === 'Enter') (e.target as HTMLInputElement).blur();

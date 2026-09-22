@@ -103,15 +103,17 @@ describe("Design → Code（§17-19）", () => {
     expect(secondary).toContain("text-[var(--nx-color-text)]");
   });
 
-  it("几何只来自模型：padding / gap / 尺寸都写成任意值类", () => {
-    const hero = lineWith(page.contents, "pt-[64px]");
+  it("几何只来自模型：token 绑定写成 CSS 变量，字面数值写成任意值类", () => {
+    // 起手页的间距/圆角绑的是 space.* / radius.*（§12），所以生成的代码里出现的是变量而不是烤死的 px
+    const hero = lineWith(page.contents, "pt-[var(--nx-space-16)]");
     expect(hero).toContain("flex flex-col");
-    expect(hero).toContain("gap-[24px]");
+    expect(hero).toContain("gap-[var(--nx-space-6)]");
     expect(hero).toContain("justify-start");
     expect(hero).toContain("items-start");
-    expect(hero).toContain("pr-[40px]");
-    expect(hero).toContain("pb-[64px]");
-    expect(hero).toContain("pl-[40px]");
+    expect(hero).toContain("pr-[var(--nx-space-8)]");
+    expect(hero).toContain("pb-[var(--nx-space-16)]");
+    expect(hero).toContain("pl-[var(--nx-space-8)]");
+    expect(attrsBefore(page.contents, "开始设计")).toContain("rounded-[var(--nx-radius-md)]");
     const root = lineWith(page.contents, "<main");
     expect(root).toContain("w-[1440px]");
     expect(root).toContain("h-[900px]");

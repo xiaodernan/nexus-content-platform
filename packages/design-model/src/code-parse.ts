@@ -488,6 +488,21 @@ function numberOf(raw: string): number | null {
   return m ? Number(m[1]) : null;
 }
 
+/**
+ * gap / padding / 圆角：px 数值，或本生成器写出的 dimension token 引用
+ * （`var(--nx-space-6)` → `{space.6}`）。后者必须认：模型里的几何现在绑的就是 token（§12），
+ * 只认 px 字面量会让 §19 的往返恒等在第一份起手页上就破；而认回引用（不是认成数字）
+ * 才不会把已有的 token 绑定改写成常量。
+ */
+function lengthOrTokenOf(raw: string, ctx: Ctx): number | string | null {
+  const ref = tokenRefOf(raw, ctx);
+  if (ref) {
+    const token = ctx.byKey.get(ref.slice(1, -1));
+    return token && (token.type === "dimension" || token.type === "number") ? ref : null;
+  }
+  return numberOf(raw);
+}
+
 function colorOf(raw: string, ctx: Ctx): ColorValue | null {
   const ref = tokenRefOf(raw, ctx);
   if (ref) return ref;
@@ -609,8 +624,8 @@ function decodeVariant(
   }
   const gap = takeUtility(list, "gap");
   for (const hit of gap.all) {
-    const n = numberOf(hit.value);
-    if (n === null) note(hit.literal, "gap 需要 px 数值");
+    const n = lengthOrTokenOf(hit.value, ctx);
+    if (n === null) note(hit.literal, "gap 需要 px 数值或 space.* token");
     else {
       layout.gap = n;
       out.checked.push(hit.literal);
@@ -937,8 +952,8 @@ function decodeClasses(
   }
   if (gapHits.all.length) {
     const hit = gapHits.all[0]!;
-    const n = numberOf(hit.value);
-    if (n === null) note(hit.literal, "gap 需要 px 数值");
+    const n = lengthOrTokenOf(hit.value, ctx);
+    if (n === null) note(hit.literal, "gap 需要 px 数值或 space.* token");
     else {
       write(hit.literal, "layout.gap", n);
       d.checked.push(hit.literal);
@@ -954,21 +969,26 @@ function decodeClasses(
     paddings.left.all[0],
   ].filter((hit): hit is Hit => Boolean(hit));
   if (padHits.length) {
-    const pad = { top: 0, right: 0, bottom: 0, left: 0 };
+    const pad: Record<"top" | "right" | "bottom" | "left", number | string> = {
+      top: 0,
+      right: 0,
+      bottom: 0,
+      left: 0,
+    };
     let ok = true;
     const read = (hit: Hit | undefined, side: keyof typeof pad): void => {
       if (!hit) return;
-      const n = numberOf(hit.value);
+      const n = lengthOrTokenOf(hit.value, ctx);
       if (n === null) {
         ok = false;
-        note(hit.literal, `padding ${side} 需要 px 数值`);
+        note(hit.literal, `padding ${side} 需要 px 数值或 space.* token`);
         return;
       }
       pad[side] = n;
     };
     if (paddings.uniform.all.length) {
-      const n = numberOf(paddings.uniform.all[0]!.value);
-      if (n === null) note(paddings.uniform.all[0]!.literal, "padding 需要 px 数值");
+      const n = lengthOrTokenOf(paddings.uniform.all[0]!.value, ctx);
+      if (n === null) note(paddings.uniform.all[0]!.literal, "padding 需要 px 数值或 space.* token");
       else {
         pad.top = pad.right = pad.bottom = pad.left = n;
         d.checked.push(paddings.uniform.all[0]!.literal);
@@ -1030,8 +1050,8 @@ function decodeClasses(
     ["rounded-bl", "bottomLeft"],
   ] as const) {
     for (const hit of takeUtility(list, utility).all) {
-      const n = numberOf(hit.value);
-      if (n === null) note(hit.literal, "圆角需要 px 数值");
+      const n = lengthOrTokenOf(hit.value, ctx);
+      if (n === null) note(hit.literal, "圆角需要 px 数值或 radius.* token");
       else {
         corners[side] = n;
         d.checked.push(hit.literal);
@@ -1041,8 +1061,8 @@ function decodeClasses(
   const rounded = takeUtility(list, "rounded");
   if (rounded.all.length) {
     const hit = rounded.all[0]!;
-    const n = numberOf(hit.value);
-    if (n === null) note(hit.literal, "圆角需要 px 数值（token 绑定请在画布上做）");
+    const n = lengthOrTokenOf(hit.value, ctx);
+    if (n === null) note(hit.literal, "圆角需要 px 数值或 radius.* token");
     else {
       write(hit.literal, "style.cornerRadius", { topLeft: n, topRight: n, bottomRight: n, bottomLeft: n });
       d.checked.push(hit.literal);

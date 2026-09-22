@@ -33,6 +33,14 @@ breakpoint.sm 640 / md 768 / lg 1024 / xl 1280 / 2xl 1536
 真值定义在 `apps/web/src/styles/tokens.css`（CSS 变量）与 `tailwind` 配置双向映射；
 组件**只允许**引用 token，不允许写死 hex/px。Design lint（§121）检查这一点。
 
+设计模型这一侧同样成立，而且不只是颜色：`lintDesign` 的 `hardcoded-style` 也覆盖**未绑 token 的几何**
+（非零的 `layout.gap` / `padding` / `style.cornerRadius` 字面量；0 是默认值，不算硬编码）。
+这不是风格洁癖——§29 的视觉语言带的是 `geometry` 旋钮（`radius.*` / `space.*`），
+节点上钉着 `10`、`64` 这样的数字时，"换一套圆角"就没有指代。因此：
+起手页、结构方向新增的区块、DEMO 配方生成的 section 一律写 `{radius.md}`、`{space.16}` 这样的引用；
+Code → Design 反向同步会把生成代码里的 `var(--nx-space-6)` 认回 `{space.6}`（认成数字会把绑定改坏）。
+默认栅格：`space.1 … 24`（4 的倍数：4/8/12/16/24/32/48/64/80/96）、`radius.sm 6 / md 10 / lg 16 / full 999`。
+
 ## 排版
 
 UI 文本：系统无衬线栈（Inter 优先，中文回落 PingFang SC / Microsoft YaHei）。

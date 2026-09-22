@@ -423,6 +423,23 @@ test('@smoke studio slice: design system panel edits tokens and the canvas follo
   await page.keyboard.press('Control+z');
   await expect.poll(ctaColor).toBe(before);
 
+  // 几何走同一条路：起手页的圆角/间距绑的是 radius.* / space.*，所以改 token 画布就变（§12/§29）
+  const ctaRadius = () =>
+    page.evaluate(() => {
+      const el = Array.from(document.querySelectorAll('[data-canvas-frame] [data-node-type="button"]')).find((n) =>
+        n.textContent?.includes('开始设计'),
+      );
+      return el ? getComputedStyle(el).borderTopLeftRadius : '';
+    });
+  expect(await ctaRadius()).toBe('10px');
+  await page.fill('[data-token-value="radius.md"]', '26');
+  await page.press('[data-token-value="radius.md"]', 'Enter');
+  await expect.poll(ctaRadius).toBe('26px');
+  await page.keyboard.press('Control+z');
+  await expect.poll(ctaRadius).toBe('10px');
+  // 撤销之后输入框必须回到真值：留着刚才那串草稿，面板就在说谎（§16）
+  await expect(page.locator('[data-token-value="radius.md"]')).toHaveValue('10');
+
   // 自定义 token：加进来 → 删得掉；名字非法时如实拒绝
   await page.click('[data-token-add-open]');
   await page.fill('[data-token-new-key]', 'Bad Key');

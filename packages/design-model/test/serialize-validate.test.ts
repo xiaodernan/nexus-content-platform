@@ -398,3 +398,29 @@ describe("token bindings survive patching (§12)", () => {  it("a token edit is 
     ).toBe("#ff0000");
   });
 });
+
+describe("几何也要引用 token（§12 / §121）", () => {
+  const hardcodedGeometry = (doc: ReturnType<typeof createDocument>) =>
+    lintDesign(doc).filter(
+      (i) => i.code === "hardcoded-style" && /^(style\.cornerRadius|layout\.)/.test(i.path ?? ""),
+    );
+
+  it("起手页的圆角与间距全绑在 token 上：体检里不该有硬编码几何", () => {
+    expect(hardcodedGeometry(createDocument("起手页"))).toEqual([]);
+  });
+
+  it("写死的圆角与非零 padding 会被记下来；0 是默认值，不算硬编码", () => {
+    const doc = createDocument("钉死");
+    const page = doc.pages[0]!;
+    const node = createNode({ type: "section", name: "Block", parentId: page.rootId });
+    node.style.cornerRadius = { topLeft: 14, topRight: 14, bottomRight: 14, bottomLeft: 14 };
+    node.layout.padding = { top: 18, right: 0, bottom: 0, left: 0 };
+    page.nodes[node.id] = node;
+    page.nodes[page.rootId]!.children = [node.id];
+    const hits = hardcodedGeometry(doc);
+    expect(hits.map((i) => i.path)).toEqual(expect.arrayContaining(["style.cornerRadius", "layout.padding.top"]));
+    const spacing = hits.find((i) => i.path === "layout.padding.top");
+    expect(spacing?.message).toContain("layout.padding.top");
+    expect(spacing?.message).not.toContain("layout.padding.right");
+  });
+});
