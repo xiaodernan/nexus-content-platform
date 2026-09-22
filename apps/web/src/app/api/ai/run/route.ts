@@ -26,9 +26,9 @@ export async function POST(req: Request): Promise<NextResponse> {
 
   try {
     await requireUser();
-    const caps = getAiCapabilities();
+    const caps = await getAiCapabilities();
     if (caps.text === 'real') {
-      // 检测到真实 key：交给 ai-service 调真模型；拿不到服务就明确报不可用，绝不拿 Mock 冒充（§159）
+      // ai-service /healthz 报告其 llm provider 就绪：交给它调真模型；拿不到服务就明确报不可用，绝不拿 Mock 冒充（§159）
       const result = await runAiService(parsed.data);
       if (!result.ok) return NextResponse.json(result.error, { status: result.status ?? 503 });
       return NextResponse.json(result.response);

@@ -14,11 +14,11 @@ const MODALITIES = [
 ] as const;
 
 export default async function HomePage() {
-  const caps = getAiCapabilities();
   const user = await requireUser();
   const projects = await listProjects(user.id);
   const serviceUrl = aiServiceUrl();
   const health = serviceUrl ? await fetchAiServiceHealth() : null;
+  const caps = await getAiCapabilities(health);
   const serviceState = !serviceUrl ? 'missing' : health ? 'ready' : 'unreachable';
   const serviceLabel = !serviceUrl ? '未配置' : health ? `在线 · ${health.capability}` : '不可达';
 
@@ -70,7 +70,7 @@ export default async function HomePage() {
       <section className="border-t border-[var(--nexus-color-border-subtle)] pt-[var(--nexus-space-6)]">
         <h2 className="mb-[var(--nexus-space-3)] text-[var(--nexus-font-size-16)] font-medium">Provider 就绪状态</h2>
         <p className="mb-[var(--nexus-space-4)] text-[var(--nexus-font-size-13)] text-fg-3">
-          读取自进程环境变量。未配置真实 key 时，生成链路走标注过的确定性 Mock，而不是伪装成功能可用（§159-160）。
+          读取自 AI Service 的 /healthz（provider key 只存在于 ai-service 进程，web 不持有）。未配置真实 key 时，生成链路走标注过的确定性 Mock，而不是伪装成功能可用（§159-160）。
         </p>
         <ul className="grid gap-[var(--nexus-space-2)]">
           {MODALITIES.map((m) => (

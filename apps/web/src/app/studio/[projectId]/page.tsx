@@ -14,5 +14,5 @@ export default async function StudioPage({ params }: Props) {
   const { projectId } = await params;
   const user = await requireUser();
   if (!(await projectBelongsTo(projectId, user.id))) notFound();
-  return <StudioShell projectId={projectId} demoMode={isDemoMode()} />;
+  return <StudioShell projectId={projectId} demoMode={await isDemoMode()} />;
 }
