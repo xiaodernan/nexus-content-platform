@@ -1,0 +1,32 @@
+{
+  "name": "@nexus/exec-host",
+  "version": "0.1.0",
+  "private": true,
+  "description": "NEXUS M2 v30: the ONE package allowed to touch child_process. Executes @nexus/agent-runtime's inert v29 ExecPlans under the §28 checkpoint with the plan's own budgets; the runtime itself stays spawn-free (§60 audit in docs/evidence).",
+  "type": "module",
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "files": ["dist", "src"],
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "clean": "rm -rf dist .turbo *.tsbuildinfo"
+  },
+  "dependencies": {
+    "@nexus/agent-runtime": "*"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.5",
+    "typescript": "^5.7.2",
+    "vitest": "^2.1.8"
+  }
+}

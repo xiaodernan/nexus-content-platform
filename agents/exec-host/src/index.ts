@@ -1,0 +1,15 @@
+export {
+  EXEC_HOST_TOOL_SPECS,
+  NODE_SPAWN,
+  appendExecRun,
+  createExecHost,
+  formatExecLine,
+  loadExecRuns,
+  registerExecHostTools,
+  type ExecChild,
+  type ExecHost,
+  type ExecJournalDisk,
+  type ExecRunResult,
+  type ExecSpawnOptions,
+  type SpawnLike,
+} from './execHost.js';

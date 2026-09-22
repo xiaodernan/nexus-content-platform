@@ -554,3 +554,28 @@ two fresh runs, checkpoint denial leaving the workspace byte-identical).
 - Runtime 204/204 (+18 execSandbox cases), studio 96/96 untouched (dock wiring deferred until
   an executor exists — a plan nobody runs would be dead UI); twentieth proof added
   (`exec-sandbox-proof.mjs`); twenty proofs.
+
+## Amendment 30 — v30: the sandboxed exec host — a SEPARATE package owns the key, 2026-09
+- **Why a new package:** v29's most valuable property is that `@nexus/agent-runtime`
+  provably CANNOT spawn (the proof greps every dist module for `child_process`). Wiring an
+  executor in there would trade a checked guarantee for a comment. `@nexus/exec-host` holds
+  the capability instead, and `exec-host-proof.mjs` audits the boundary BOTH WAYS: runtime
+  dist stays clean, and exactly one exec-host module may name `child_process`.
+- **Only-approved-plans execute:** the host's `run()` starts at `planExec` — a policy
+  refusal returns structured data and spawns nothing even behind an approving checkpoint
+  (the policy outranks the human, not vice versa). Execution is argv-as-data through
+  `shell: false`; no string is ever re-parsed. The plan's OWN budgets are enforced: total
+  stdout+stderr hard-capped at `maxOutputBytes` (over-run marked `truncated`), `timeoutMs`
+  kills marked `killedByBudget`, and the scrubbed env is what the process actually gets.
+- **§28 single-gate contract:** a DIRECT `host.run` must carry a checkpoint (or explicitly
+  `preApproved`); no gate = stated refusal, nothing spawns. Via `registerExecHostTools`
+  the registry's exec gate is that one checkpoint — refusals and denials surface as tool
+  ERRORS, never silent successes; exits report as `{ok, detail, result}` data and every
+  run round-trips through append-only JSONL (`appendExecRun`/`loadExecRuns`).
+- **Real, honestly labeled:** the proof executes ONE read-only `git status --short` under
+  NODE_SPAWN through the same machinery (§60: it is one command, not a sandbox escape
+  claim — container/network isolation per ADR 0013 remains open; the ADR's status moves to
+  Accepted-partial only when the docs team ratifies, for now it stays Proposed with the
+  v29/v30 landed-slice note).
+- Runtime 204/204 UNCHANGED (no runtime source touched), NEW @nexus/exec-host 15/15,
+  studio 96/96 untouched; twenty-first proof added (`exec-host-proof.mjs`); twenty-one proofs.

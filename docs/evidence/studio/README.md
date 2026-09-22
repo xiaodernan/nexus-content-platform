@@ -13,7 +13,7 @@ npm run build lint typecheck test     # via turbo: build 4/4 · lint 3/3 · type
 | ------------------ | ------ |
 | @nexus/design-model| 28/28 vitest (`design-model` 16 incl. 3 rotated-hitTest + 2 rigid-geometry cases + `instances` 12 incl. x/y delta + absolute rotation overrides + rigid rotation bake), tsc clean |
 | @nexus/ai-providers| 7/7 vitest, tsc clean |
-| @nexus/agent-runtime| 204/204 vitest (M2 v0–v29, ADR 0016 am. 1–29) · tsc clean — see `docs/evidence/agents/README.md` |
+| @nexus/agent-runtime| 204/204 + @nexus/exec-host 15/15 vitest (M2 v0–v30, ADR 0016 am. 1–30) · tsc clean — see `docs/evidence/agents/README.md` |
 | @nexus/studio      | 96/96 vitest (`snap` `persist` `align` `store-variants` 18 `thumbnail` `rotate` 14 `render` `minimap` `agentDock` 14 `webfs` 3 `uiRun` 8) · tsc `--noEmit` clean · eslint `--max-warnings=0` clean · `next build` ✓ (4/4 static pages) |
 
 ## Headless pipeline proof

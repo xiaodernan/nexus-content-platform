@@ -24,13 +24,19 @@ Milestone 0/1 executes nothing untrusted (Studio is a client-side design editor 
 provider), so there is no untrusted-code path to sandbox yet. Documented up front so the
 agentic-coding milestone implements it rather than retrofitting.
 
-> **Update (2026-09, v29):** the first portable slice has landed as PURE DATA —
+> **Update (2026-09, v29 + v30):** the first two portable slices have landed.
 > `agents/runtime/src/execSandbox.ts` (ADR 0016 amendment 29) implements the default-deny
 > argv allowlist, bare-name executables, jail-confined cwd, env scrubbing and capped
-> budgets, and `planExec` emits only INERT plans (`executes: false` in the type; the
-> evidence gate proves zero `child_process` in the built bundle). No container, no
-> executor — so this ADR stays **Proposed** until a sandboxed runner is designed and
-> wired behind the §28 checkpoint.
+> budgets, and `planExec` emits only INERT plans (`executes: false` in the type).
+> `agents/exec-host` (amendment 30) adds the confined executor: the ONLY module in the
+> agent stack that names `child_process` (audited both ways by `exec-host-proof.mjs`),
+> which runs nothing but a policy-approved plan, under the §28 checkpoint, with the
+> plan's own timeout/output budgets enforced and `shell: false`. What still keeps this ADR
+> **Proposed**: ephemeral containers/gVisor, default-deny EGRESS network policy, per-job
+> secret injection from `services/ai-svc`, and warm-pool queueing — none of which exist or
+> are reachable from a key-free, browser-first repo. The host here is a POLICY sandbox,
+> not an OS sandbox; untrusted code still has nowhere to run (§28 + exact-argv are the
+> containment until containers do).
 
 ## Tradeoffs
 - (−) Container cold-start latency per job; mitigated by a warm pool in Redis-backed queue.
