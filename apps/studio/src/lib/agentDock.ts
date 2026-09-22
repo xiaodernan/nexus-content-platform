@@ -198,8 +198,8 @@ export function qaForDoc(doc: DesignDocument, pageId: string): QaReport {
   if (!input) return { verdict: 'ok', checked: 0, flags: [] };
   // v24: the dock opts into the near-miss lints at a tight 2px — measurable slips only.
   // v26 adds the even-gap distribution lint at the same 2px (a 1–2px spacing wobble in a
-  // chain of ≥3 siblings is arithmetic, not taste).
-  return runVisualQa({ ...input, alignTolerance: 2, centerTolerance: 2, gapTolerance: 2 });
+  // chain of ≥3 siblings is arithmetic, not taste). v27 adds the near-edge snap lint.
+  return runVisualQa({ ...input, alignTolerance: 2, centerTolerance: 2, gapTolerance: 2, edgeTolerance: 2 });
 }
 
 /* ---- v12: QA → deterministic repair proposals, dispatched through the same op path ---- */
@@ -222,7 +222,7 @@ export function planRepairs(doc: DesignDocument, pageId: string, goal: string): 
   }
   // v25: the dock opts into alignment nudges at the same 2px as qaForDoc — but they land
   // as ordinary repair proposals, still gated behind §28 Approve; nothing moves on its own.
-  const res = proposeRepairs({ page: { x: page.x, y: page.y, width: page.width, height: page.height }, rects, alignTolerance: 2, centerTolerance: 2 }, { alignRepairs: true });
+  const res = proposeRepairs({ page: { x: page.x, y: page.y, width: page.width, height: page.height }, rects, alignTolerance: 2, centerTolerance: 2, edgeTolerance: 2 }, { alignRepairs: true });
   if (res.repairs.length === 0) return { repairs: [], remaining: res.remaining, batch: { id: newId(), ops: [], provenance: { mode: 'demo', provider: 'nexus-agent-runtime', label: 'studio repair (no-op)' }, timestamp: Date.now(), summary: 'Agent repair: nothing safely fixable' } };
   const batch: OpBatch = {
     id: newId(),

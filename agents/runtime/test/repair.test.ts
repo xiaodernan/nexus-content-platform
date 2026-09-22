@@ -102,3 +102,46 @@ describe('alignment nudges (v25, opt-in repair of the v24 near-miss lints)', () 
     expect(runVisualQa({ page: PAGE, rects: applied, alignTolerance: 2 }).flags).toEqual([]);
   });
 });
+
+describe('edge-snap nudges (v27, near-edge slips snap flush — opt-in, proposals only)', () => {
+  it('default OFF: a visible near-edge lint still earns no repair proposal without the opt-in', () => {
+    const res = proposeRepairs({ page: PAGE, rects: { n: r(1.5, 300, 200, 50) }, edgeTolerance: 2 });
+    expect(res.repairs).toEqual([]);
+    expect(res.remaining.flags.map((f) => f.code)).toEqual(['near-edge']);
+  });
+
+  it('left slip on opt-in: edge-snap moves x flush to the page, y untouched, px stated', () => {
+    const res = proposeRepairs({ page: PAGE, rects: { n: r(1.5, 300, 200, 50) }, edgeTolerance: 2 }, { alignRepairs: true });
+    expect(res.repairs).toHaveLength(1);
+    expect(res.repairs[0]).toMatchObject({ targetId: 'n', action: 'edge-snap' });
+    expect(res.repairs[0]!.to.x).toBe(0);
+    expect(res.repairs[0]!.to.y).toBe(300);
+    expect(res.repairs[0]!.reason).toContain('left edge 1.5px off the page, snapped flush');
+    expect(res.remaining.verdict).toBe('ok');
+  });
+
+  it('right slip snaps against the right edge: x = page.width − width', () => {
+    const res = proposeRepairs({ page: PAGE, rects: { n: r(1050, 100, 148.5, 50) }, edgeTolerance: 2 }, { alignRepairs: true });
+    expect(res.repairs[0]!.to.x).toBeCloseTo(1051.5, 10);
+    expect(res.repairs[0]!.reason).toContain('right edge 1.5px');
+  });
+
+  it('a near-flush corner snaps the fixed-order side first and stops honestly with the rest', () => {
+    const res = proposeRepairs({ page: PAGE, rects: { c: r(1, 1, 200, 50) }, edgeTolerance: 2 }, { alignRepairs: true });
+    expect(res.repairs).toHaveLength(1);
+    expect(res.repairs[0]!.to.x).toBe(0); // left went first
+    expect(res.repairs[0]!.to.y).toBe(1); // top still 1px off — reported, not chased forever
+    expect(res.remaining.flags.map((f) => f.code)).toEqual(['near-edge']);
+    expect(res.remaining.flags[0]!.detail).toContain('top edge');
+  });
+
+  it('two independent slips both snap in one run; deterministic and clean after applying', () => {
+    const input = { page: PAGE, rects: { n1: r(1.5, 300, 200, 50), n2: r(1050, 100, 148.5, 50) }, edgeTolerance: 2 };
+    const first = proposeRepairs(input, { alignRepairs: true });
+    expect(proposeRepairs(input, { alignRepairs: true })).toEqual(first);
+    expect(first.repairs.map((p) => p.targetId)).toEqual(['n1', 'n2']);
+    const applied: Record<string, QaRect> = { ...input.rects };
+    for (const p of first.repairs) applied[p.targetId] = p.to;
+    expect(runVisualQa({ page: PAGE, rects: applied, edgeTolerance: 2 }).flags).toEqual([]);
+  });
+});

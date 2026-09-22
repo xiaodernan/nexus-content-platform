@@ -7,6 +7,8 @@
  * coincident" geometry, explicitly NOT an aesthetic opinion. v26 extends the family with
  * `uneven-gaps`: a run of ≥3 rects whose consecutive gaps ALMOST match (spread > 0 and
  * ≤ the opt-in tolerance) lints warn — spacing variance is arithmetic, taste is not.
+ * v27 adds `near-edge`: a rect a hair's breadth (>0 and ≤ `edgeTolerance`) away from
+ * sitting flush on a page edge — exact 0px placement is intent, the 1.5px gap is the slip.
  */
 /** CSS hex (`#rgb`/`#rrggbb`) or an rgb/rgba() string; anything unparsable yields no flag. */
 export type QaColor = string;
@@ -48,12 +50,17 @@ export interface QaInput {
    * `uneven-gaps`. Default 0 ⇒ rule OFF.
    */
   gapTolerance?: number;
+  /**
+   * v27: a rect whose gap to a page edge is > 0 but ≤ this many px is flagged
+   * `near-edge` (it ALMOST sits flush — exact 0px placement passes). Default 0 ⇒ OFF.
+   */
+  edgeTolerance?: number;
 }
 
 export type QaSeverity = 'error' | 'warn';
 
 export interface QaFlag {
-  code: 'zero-size' | 'off-page' | 'overlap' | 'overflow' | 'low-contrast' | 'near-align' | 'near-center' | 'uneven-gaps';
+  code: 'zero-size' | 'off-page' | 'overlap' | 'overflow' | 'low-contrast' | 'near-align' | 'near-center' | 'uneven-gaps' | 'near-edge';
   severity: QaSeverity;
   ids: string[];
   detail: string;
@@ -233,6 +240,28 @@ export function runVisualQa(input: QaInput): QaReport {
           severity: 'warn',
           ids: run,
           detail: `${run.join('/')} along ${axis}: gaps ${gaps.map((g) => `${g.toFixed(1)}px`).join(', ')} — ${spread.toFixed(1)}px uneven (≤ ${gapTol}px — distribute evenly)`,
+        });
+      }
+    }
+  }
+
+  const edgeTol = input.edgeTolerance ?? 0;
+  if (edgeTol > 0) {
+    for (const id of usable) {
+      const r = input.rects[id]!;
+      const margins: Array<[string, number]> = [
+        ['left', r.x - page.x],
+        ['right', page.x + page.width - (r.x + r.width)],
+        ['top', r.y - page.y],
+        ['bottom', page.y + page.height - (r.y + r.height)],
+      ];
+      const near = margins.filter(([, m]) => m > 0 && m <= edgeTol);
+      if (near.length > 0) {
+        flags.push({
+          code: 'near-edge',
+          severity: 'warn',
+          ids: [id],
+          detail: `${id} ${near.map(([n, m]) => `${n} edge ${m.toFixed(1)}px off the page`).join(', ')} (≤ ${edgeTol}px — snap flush)`,
         });
       }
     }

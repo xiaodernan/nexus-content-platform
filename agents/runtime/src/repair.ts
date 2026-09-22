@@ -6,10 +6,11 @@ import { runVisualQa, type QaInput, type QaRect, type QaReport } from './visualQ
  * repairs, and what they FIX is stated per repair. No aesthetic claims (§60): repairs
  * only undo geometry the QA flagged. v25 adds opt-in alignment nudges for the v24
  * near-miss lints — deterministic mover choice, stated px, still never automatic.
+ * v27 extends the same opt-in to `near-edge` slips (`edge-snap`, flush to the page).
  */
 export interface Repair {
   targetId: string;
-  action: 'move-inside' | 'nudge-below' | 'resize-min' | 'align-nudge' | 'center-nudge';
+  action: 'move-inside' | 'nudge-below' | 'resize-min' | 'align-nudge' | 'center-nudge' | 'edge-snap';
   from: QaRect;
   to: QaRect;
   reason: string;
@@ -114,6 +115,29 @@ export function proposeRepairs(input: QaInput, opts: RepairOptions = {}): Repair
         if (axes.length > 0) {
           to = clampInside(to, page);
           repairs.push({ targetId: id, action: 'center-nudge', from: clone(m), to, reason: `near-center: centered ${axes.join(' and ')}` });
+          rects[id] = to;
+        }
+      } else if (flag.code === 'near-edge' && opts.alignRepairs) {
+        const id = flag.ids[0]!;
+        const m = rects[id]!;
+        const pg = input.page;
+        const etol = input.edgeTolerance ?? 0;
+        const margins: Array<['left' | 'right' | 'top' | 'bottom', number]> = [
+          ['left', m.x - pg.x],
+          ['right', pg.x + pg.width - (m.x + m.width)],
+          ['top', m.y - pg.y],
+          ['bottom', pg.y + pg.height - (m.y + m.height)],
+        ];
+        const hit = margins.find(([, mg]) => mg > 0 && mg <= etol); // fixed order: first near-flush side snaps
+        if (hit) {
+          const [side, mg] = hit;
+          const moved =
+            side === 'left' ? { ...m, x: pg.x } :
+            side === 'right' ? { ...m, x: pg.x + pg.width - m.width } :
+            side === 'top' ? { ...m, y: pg.y } :
+            { ...m, y: pg.y + pg.height - m.height };
+          const to = clampInside(moved, pg);
+          repairs.push({ targetId: id, action: 'edge-snap', from: clone(m), to, reason: `near-edge: ${side} edge ${mg.toFixed(1)}px off the page, snapped flush` });
           rects[id] = to;
         }
       } else if (flag.code === 'off-page' || flag.code === 'overflow') {

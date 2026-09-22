@@ -1,4 +1,4 @@
-# M2 evidence — @nexus/agent-runtime (v0 loop → v26 even-gap lint; all ADR 0016 amendments)
+# M2 evidence — @nexus/agent-runtime (v0 loop → v27 near-edge snap; all ADR 0016 amendments)
 
 All checks are headless, offline, key-free, and reproducible from the repo root. Nothing here
 claims model-quality planning or neural retrieval (§60): the planner is a deterministic
@@ -8,7 +8,7 @@ every emitted artifact (`provenance.mode = "demo"`).
 ## Reproducible gates
 
 ```
-npm test          # turbo: @nexus/agent-runtime 160/160 vitest among all packages
+npm test          # turbo: @nexus/agent-runtime 171/171 vitest among all packages
 npm run build     # tsc dist for agents/runtime (build order via ^build deps)
 node docs/evidence/agents/agent-proof.mjs
 node docs/evidence/agents/code-index-proof.mjs   # requires `npm run build` first
@@ -53,8 +53,10 @@ node docs/evidence/agents/index-vectors-proof.mjs  # requires `npm run build` fi
 | `visualQa.test.ts` +contrast (3) | black/white passes, grey pair flags warn, rgb()/rgba() parse, junk colors yield no flag, 21:1 math |
 | `visualQa.test.ts` +near-miss (6) | v24: default OFF (no opt-in no flags), 3px pair flags once with real px gaps in detail, boundaries (exact 0 passes, >tol passes, ==tol flags), near-center 2px-off vs exact/edge-touching, zero-size+off-page rects never collect near-miss noise, determinism |
 | `visualQa.test.ts` +even-gap (6) | v26: default OFF, exactly-even spacing passes with the rule ON, a 1px-wobble row flags once per axis naming run+gaps+spread, boundaries (spread ==tol flags, >tol passes, 2-rect chain is not a distribution), non-positive gaps keep the chain in overlap territory, a zero-size member breaks the usable chain, determinism |
+| `visualQa.test.ts` +near-edge (6) | v27: default OFF, near-flush left edge names side+margin, exact flush passes / >tol passes / ==tol flags, a corner lints ONCE naming both sides, hangover (negative margin) and off-page rects never collect near-edge noise, determinism |
 | `repair.test.ts` (5) | clean input no-op, off-page pulled inside then QA-clean, overlap nudged below with gutter, zero-size grown, dedupe + determinism + "apply all repairs → zero error flags" |
 | `repair.test.ts` +nudges (6) | v25: near-miss lints unproposed by default, equal-area mover tie broken by id with exact stated reason, smaller-area layer moves, center-nudge to page mid-line (other axis untouched, px stated), a/b/c chain where only the in-tolerance pair snaps, apply-all clears all flags, determinism |
+| `repair.test.ts` +edge-snap (5) | v27: near-edge unproposed by default, opt-in snaps x flush with y untouched and px stated, right-edge snap uses page.width − width, a corner snaps the fixed-order side first and reports the other honestly in `remaining`, two independent slips both snap clean + determinism |
 | `durability.test.ts` (8) | memory serialize/deserialize round-trip + version/schema rejection, `restore()` id high-water mark, save/load through an injected writable fake disk, corrupt-file honest failure, `guardedJoin` jail (absolute/`..`/drive-letter rejection, backslash folding), `disk.write` checkpoint gate + escape touches nothing, `disk.read`/`disk.list` confinement |
 | `indexStore.test.ts` (11) | index snapshot serialize→deserialize verbatim + version/chunk schema rejection, save/load via injected fs, cold rescan equals `buildIndex`, unchanged files reuse chunks / edits rechunk exactly the changed paths / removals drop out, query ranking snapshot-independent; v5 provider: cold-first-build equals plain build, incremental refresh 0 re-chunked, edited file sole re-chunk, cross-provider snapshot restore, corrupt-snapshot fallback + repair, `fs.index` provider/default parity |
 | `indexVectors.test.ts` (11) | v23: `indexToVectorDb` shape (one entry per chunk, id `path#startLine`, real dim-64 vectors), vector-vs-inline hit-for-hit parity across five query shapes + stated engine, null db ⇒ honest inline; cold merge ≡ cold build, unchanged chunks reuse the identical vector object / only touched windows re-embed / removals drop out; tampered-text, missing-id and wrong-dim drift each send the WHOLE query inline with real inline hits; persisted provider: lazy `vectors()`, byte-identical reuse by a cold second provider, corrupt-file self-repair, `fs.index` engine labels with/without vectorsFile, edits tracked through the provider lifecycle |
@@ -169,7 +171,7 @@ then a **separate node child process** loads only the persisted handoff JSON + t
 file, completes the editor stage memory-first (`plan.steps[0].tool === 'memory.recall'`)
 and scores 1 too. Ledger and evaluation files record the stages; the jail is cleaned after.
 
-## QA proof (`qa-proof.mjs`, M2 v11 + v24 + v26)
+## QA proof (`qa-proof.mjs`, M2 v11 + v24 + v26 + v27)
 
 Synthetic triad (clean / stacked / off-page) plus real `layoutPage` data: a banner over a
 hero on a sized page is `ok`; a zero-height layer is flagged `zero-size`, not tolerated.
@@ -179,10 +181,12 @@ absent by DEFAULT, a single `near-align` warn names the measured gaps, a 1px-off
 lints `near-center`, and zero-size/off-page rects never collect noise. v26 adds
 `uneven-gaps`: an 11px/12px row lints with the real spread in the detail, an
 exactly-even row and a spread beyond tolerance pass, and a chain with a crushed
-(non-positive) gap stays the overlap rule's business. Stated limit (§60):
-structural geometry only — no pixel or aesthetic claims.
+(non-positive) gap stays the overlap rule's business. v27 adds `near-edge`: a 1.5px
+page margin lints naming the side, exact-flush placement passes on purpose, and a
+rect hanging PAST the edge is overflow's business, never near-edge noise. Stated
+limit (§60): structural geometry only — no pixel or aesthetic claims.
 
-## Repair proof (`repair-proof.mjs`, M2 v12 + v25)
+## Repair proof (`repair-proof.mjs`, M2 v12 + v25 + v27)
 
 Three simultaneous problems (off-page, stacked pair, zero-size) → `proposeRepairs` emits
 one deduped, sorted repair per node; applying all repairs clears every ERROR flag on the
@@ -194,7 +198,10 @@ to exact (`align-nudge`, smaller area moves) and the 1px-off rect to the page mi
 (`center-nudge`), leaves the 140px-away node alone, clears all flags on re-run, mutates
 nothing itself, and is byte-identical on repeat. In the dock this closes end-to-end:
 flagged banner → Propose repairs → Approve → status `QA now flagged/ok` + `repairs:N`
-journaled.
+journaled. v27 adds the edge-snap section: the near-edge lint is silent without the
+opt-in; with it a corner snaps its LEFT edge first (fixed order, stated px) and the loop
+stops honestly reporting the still-1px top in `remaining`, while two slips on opposite
+edges both flush in one run — apply-all → zero flags, byte-identical repeats.
 
 ## Role-chain proof (`rolechain-proof.mjs`, M2 v14 + v22)
 
@@ -294,6 +301,17 @@ edge form a gap chain; all gaps positive and a max−min spread of >0 up to
 same 2px. No repair action exists for it on purpose: re-spacing a whole chain is a
 bigger call than snapping one slipped edge, so the loop answers "nothing safely
 fixable" while the chip states the measurement (§28/§60).
+
+## v27 note — near-edge lint and its gated edge-snap nudge
+
+Fourth opt-in rule: `edgeTolerance` lints a rect whose page margin is >0 but ≤ tolerance
+(exact flush = intent, passes; a negative margin is overflow's domain, never near-edge
+noise). Unlike v26 this one DOES ride the v25 nudge machinery: under
+`{alignRepairs:true}` an `edge-snap` proposal moves the first near-flush side (fixed
+left→right→top→bottom order) flush with the px stated, and multi-edge corners stop
+honestly after one snap (`remaining` reports the rest). The dock opts both QA and repair
+into the same 2px — the flush slip shows a chip, earns exactly one proposal, and the
+document only changes through §28 Approve → op path.
 
 ## Scope honesty
 

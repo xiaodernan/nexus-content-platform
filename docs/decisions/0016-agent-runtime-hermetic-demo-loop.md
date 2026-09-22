@@ -487,3 +487,19 @@ two fresh runs, checkpoint denial leaving the workspace byte-identical).
   `qa-proof.mjs` extended (defaults-off, exact-even passes, 11/12px row flags with the
   real spread in the detail, >tol passes, crushed chain stays overlap's business);
   eighteen proofs.
+
+## Amendment 27 — v27: near-edge lint + edge-snap nudge — the page edge joins the near-miss family, 2026-09
+- **`near-edge` in `visualQa.ts`:** a usable rect whose margin to a page edge is >0 and ≤
+  `edgeTolerance` (default 0 ⇒ OFF, same no-silent-flags contract) lints warn once per
+  rect, naming every near-flush side with the measured px. Exact flush placement is
+  intent and passes; a NEGATIVE margin is overflow/off-page territory and never collects
+  near-edge noise (usable/margin-sign guards, asserted).
+- **`edge-snap` rides the v25 opt-in machinery:** under `{alignRepairs:true}` the fixed
+  side order (left→right→top→bottom) snaps the first near-flush edge flush, stated px in
+  the reason; a corner that is near TWO edges snaps the first and then STOPS HONESTLY —
+  `remaining` reports the other side instead of chasing it. Still proposals only (§28).
+- **Dock:** `qaForDoc` and `planRepairs` opt into the same tight 2px, so a 1.5px page
+  margin shows a chip and earns exactly one gated flush proposal (studio test asserts the
+  doc is untouched until the batch goes through the op path, then `ok`).
+- Runtime 171/171 (+6 visualQa, +5 repair cases), studio 94/94 (+1 edge-snap dock case);
+  `qa-proof.mjs` and `repair-proof.mjs` extended; eighteen proofs.

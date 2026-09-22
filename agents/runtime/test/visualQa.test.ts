@@ -176,3 +176,41 @@ describe('even-gap distribution lint (v26, opt-in arithmetic on spacing chains)'
     expect(runVisualQa(shuffled)).toEqual(runVisualQa(input(rects, { gapTolerance: 2 })));
   });
 });
+
+describe('near-edge lint (v27, almost-flush to the page — measurable, opt-in)', () => {
+  it('off by default: a 1.5px page margin gains NO flags without edgeTolerance', () => {
+    expect(runVisualQa(input({ f: { x: 1.5, y: 300, width: 200, height: 50 } })).flags).toEqual([]);
+  });
+
+  it('opt-in: near-flush left edge flags once, naming the side and the real margin', () => {
+    const rep = runVisualQa(input({ f: { x: 1.5, y: 300, width: 200, height: 50 } }, { edgeTolerance: 2 }));
+    expect(rep.flags).toHaveLength(1);
+    expect(rep.flags[0]).toMatchObject({ code: 'near-edge', severity: 'warn', ids: ['f'] });
+    expect(rep.flags[0]!.detail).toContain('left edge 1.5px off the page');
+  });
+
+  it('exact flush passes; a margin beyond tolerance passes; spread == tolerance flags', () => {
+    expect(runVisualQa(input({ f: { x: 0, y: 300, width: 200, height: 50 } }, { edgeTolerance: 2 })).flags).toEqual([]);
+    expect(runVisualQa(input({ f: { x: 3, y: 300, width: 200, height: 50 } }, { edgeTolerance: 2 })).flags).toEqual([]);
+    expect(runVisualQa(input({ f: { x: 2, y: 300, width: 200, height: 50 } }, { edgeTolerance: 2 })).flags.map((x) => x.code)).toEqual(['near-edge']);
+  });
+
+  it('a near-flush corner lints ONCE naming both sides', () => {
+    const rep = runVisualQa(input({ c: { x: 1, y: 1, width: 200, height: 50 } }, { edgeTolerance: 2 }));
+    expect(rep.flags).toHaveLength(1);
+    expect(rep.flags[0]!.detail).toContain('left edge 1.0px');
+    expect(rep.flags[0]!.detail).toContain('top edge 1.0px');
+  });
+
+  it('hangover and stronger flags own their rects: a rect past the edge never collects near-edge noise', () => {
+    const rep = runVisualQa(input({ o: { x: 1190, y: 100, width: 30, height: 50 }, gone: { x: 9000, y: 9000, width: 40, height: 40 } }, { edgeTolerance: 2 }));
+    expect(rep.flags.map((f) => f.code).sort()).toEqual(['off-page', 'overflow']); // right margin is NEGATIVE — overflow's business
+    expect(rep.flags.some((f) => f.code === 'near-edge')).toBe(false);
+  });
+
+  it('deterministic: identical inputs, identical reports', () => {
+    const i = input({ f: { x: 1050, y: 300, width: 148.5, height: 50 }, g: { x: 100, y: 798.5, width: 100, height: 1 } }, { edgeTolerance: 2 });
+    expect(runVisualQa(i)).toEqual(runVisualQa(i));
+    expect(runVisualQa(i).flags.every((x) => x.code === 'near-edge')).toBe(true);
+  });
+});

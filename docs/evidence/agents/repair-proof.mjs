@@ -1,4 +1,4 @@
-// NEXUS M2 v12+v25 — QA→repair closed-loop proof (ADR 0016 amendments 12 and 25).
+// NEXUS M2 v12+v25+v27 — QA→repair closed-loop proof (ADR 0016 amendments 12, 25 and 27).
 // Synthetic flagged layouts are fed to proposeRepairs; applying the returned moves must
 // clear every ERROR flag, the result must be deterministic, and irreducible cases must
 // stop honestly with `remaining` instead of looping. v25 section: the near-miss lints
@@ -84,4 +84,26 @@ assert.equal(slips.slip.x, 61.5, 'proposeRepairs must not move anything itself')
 assert.deepEqual(proposeRepairs({ page, rects: slips, ...TOL }, { alignRepairs: true }), on);
 console.log(`[repair-proof] v25 nudges: default-off ${off.remaining.flags.length} lints unprompted → opt-in ${on.repairs.length} proposals (slip 1.5px→exact, solo 1px→center, drift untouched)`);
 
-console.log('[repair-proof] ALL ASSERTIONS PASSED (deterministic structural auto-fix loop, honest stopping, gated v25 nudges)');
+// 5) v27 edge-snap: the near-edge lint rides the SAME opt-in machinery — default-off
+//    proposes nothing; with alignRepairs the flusher snaps to the page edge (fixed order:
+//    a corner snaps left first and stops honestly with the top still reported).
+const EDGE = { edgeTolerance: 2 };
+const flushIn = { page, rects: { c: { x: 1, y: 1, width: 200, height: 50 } }, ...EDGE };
+assert.deepEqual(proposeRepairs(flushIn).repairs, [], 'near-edge must not be repaired without the opt-in');
+const snap = proposeRepairs(flushIn, { alignRepairs: true });
+assert.equal(snap.repairs.length, 1);
+assert.equal(snap.repairs[0].action, 'edge-snap');
+assert.equal(snap.repairs[0].to.x, 0); // left first
+assert.equal(snap.repairs[0].to.y, 1); // top still 1px off — remaining reports it, no infinite chase
+assert.match(snap.repairs[0].reason, /left edge 1\.0px off the page, snapped flush/);
+assert.deepEqual(snap.remaining.flags.map((f) => f.code), ['near-edge']);
+const twoOff = { page, rects: { n1: { x: 1.5, y: 300, width: 200, height: 50 }, n2: { x: 1050, y: 100, width: 148.5, height: 50 } }, ...EDGE };
+const both = proposeRepairs(twoOff, { alignRepairs: true });
+assert.deepEqual(both.repairs.map((p) => p.targetId), ['n1', 'n2']);
+const landed = { ...twoOff.rects };
+for (const p of both.repairs) landed[p.targetId] = p.to;
+assert.deepEqual(runVisualQa({ page, rects: landed, ...EDGE }).flags, []);
+assert.deepEqual(proposeRepairs(twoOff, { alignRepairs: true }), both);
+console.log(`[repair-proof] v27 edge-snap: default-off quiet · corner snaps left first (top stated in remaining) · ${both.repairs.length} flush proposals, apply-all → zero flags`);
+
+console.log('[repair-proof] ALL ASSERTIONS PASSED (deterministic structural auto-fix loop, honest stopping, gated v25/v27 nudges)');

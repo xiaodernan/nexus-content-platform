@@ -1,4 +1,4 @@
-// NEXUS M2 v11 — visual-QA proof (ADR 0016 amendments 11, 24 and 26).
+// NEXUS M2 v11 — visual-QA proof (ADR 0016 amendments 11, 24, 26 and 27).
 // Structural geometry checks only — no pixels, no canvas, no pretending (§60). Feeds
 // synthetic rect sets (clean / stacked / off-page) AND a real Studio-style scenario:
 // layout the empty document's page rects by hand, then verify the QA verdict the dock
@@ -76,4 +76,18 @@ assert.ok(!crushed.flags.some((f) => f.code === 'uneven-gaps'), 'a chain with a 
 assert.ok(crushed.flags.some((f) => f.code === 'overlap'));
 console.log(`[qa-proof] v26 distribution: opt-in only · ${uneven.flags[0].detail}`);
 
-console.log('[qa-proof] ALL ASSERTIONS PASSED (structural QA on real layout data + v24 near-miss lints + v26 even-gap lint, §60 no pixel claims)');
+// 6) v27 near-edge lint: a rect a hair (>0, ≤ edgeTolerance) off sitting flush on a page
+//    edge lints warn with the measured margin; exact flush placement is intent and passes.
+const flusher = { f: { x: 1.5, y: 300, width: 200, height: 50 } };
+assert.deepEqual(runVisualQa({ page, rects: flusher }).flags, [], 'edgeTolerance default 0: no silent flags');
+const edgeRep = runVisualQa({ page, rects: flusher, edgeTolerance: 2 });
+assert.equal(edgeRep.flags.length, 1);
+assert.equal(edgeRep.flags[0].code, 'near-edge');
+assert.equal(edgeRep.flags[0].severity, 'warn');
+assert.match(edgeRep.flags[0].detail, /left edge 1\.5px off the page/);
+assert.deepEqual(runVisualQa({ page, rects: { f: { x: 0, y: 300, width: 200, height: 50 } }, edgeTolerance: 2 }).flags, [], 'flush on purpose passes');
+const hangover = runVisualQa({ page, rects: { o: { x: 1190, y: 100, width: 30, height: 50 } }, edgeTolerance: 2 });
+assert.ok(!hangover.flags.some((f) => f.code === 'near-edge'), 'a NEGATIVE margin is overflow territory, not a near-edge slip');
+console.log(`[qa-proof] v27 near-edge: opt-in only · ${edgeRep.flags[0].detail}`);
+
+console.log('[qa-proof] ALL ASSERTIONS PASSED (structural QA on real layout data + v24 near-miss lints + v26 even-gap lint + v27 near-edge lint, §60 no pixel claims)');

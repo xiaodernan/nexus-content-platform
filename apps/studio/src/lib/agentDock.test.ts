@@ -195,6 +195,18 @@ describe('agentDock visual QA (v11)', () => {
     expect(plan!.repairs).toEqual([]); // wob-1 gets no invented nudge; the loop reports "nothing safely fixable"
   });
 
+  it('v27 edge-snap: a 1.5px page-margin slip lints AND earns a flush proposal that only lands after the op path', () => {
+    const { doc, pageId } = seededDoc();
+    const flusher = rectNode('Flusher', { id: 'flush-1', x: 1.5, y: 400, width: 200, height: 50 });
+    const withFlush = applyBatch(doc, { id: newId(), ops: [ops.addSubtree(pageId, childIdList(doc.nodes[pageId]!).length, [flusher])], provenance: { mode: 'user' }, timestamp: 9 });
+    expect(qaForDoc(withFlush, pageId).flags.some((f) => f.code === 'near-edge' && f.ids.includes('flush-1'))).toBe(true);
+    const plan = planRepairs(withFlush, pageId, 'snap to edge');
+    expect(plan!.repairs.map((p) => p.targetId)).toEqual(['flush-1']);
+    expect(plan!.repairs[0]!.action).toBe('edge-snap');
+    const fixed = applyBatch(withFlush, plan!.batch);
+    expect(qaForDoc(fixed, pageId).verdict).toBe('ok'); // flush-on-purpose passes the lint
+  });
+
   it('planRepairs closes the loop: applying its batch through the op path clears QA errors (v12)', () => {
     const { doc, pageId } = seededDoc();
     const strayed = rectNode('Lost', { id: 'lost-1', x: 5000, y: 200, width: 100, height: 50 });
