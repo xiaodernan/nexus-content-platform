@@ -281,7 +281,7 @@ export default function AgentPanel() {
           {entries.map((e, i) => (
             <div key={i} style={{ ...label, display: 'flex', gap: 6 }}>
               <span style={{ color: e.approved ? '#7dd97d' : '#ff7a7a' }}>{e.approved ? 'approved' : 'denied'}</span>
-              <span style={{ flex: 1 }}>{e.goal.slice(0, 26)}{e.qa ? ` · qa:${e.qa}` : ''}{e.repairs !== undefined ? ` · fix×${e.repairs}` : ''}{e.tests ? ` · ${e.tests}` : ''}</span>
+              <span style={{ flex: 1 }}>{e.goal.slice(0, 26)}{e.qa ? ` · qa:${e.qa}` : ''}{e.repairs !== undefined ? ` · fix×${e.repairs}` : ''}{e.tests ? ` · ${e.tests}` : ''}{e.gate ? ` · ${e.gate}` : ''}</span>
             </div>
           ))}
         </div>

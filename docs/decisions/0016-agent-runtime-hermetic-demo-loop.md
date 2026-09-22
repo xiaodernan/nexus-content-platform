@@ -844,3 +844,25 @@ two fresh runs, checkpoint denial leaving the workspace byte-identical).
 - runtime 224/224 → 232/232 (NEW checkpointPolicy.test.ts, 8 cases incl. a runTask
   end-to-end through policy gates); exec-host 71/71 and studio 99/99 unchanged (no
   exec-host or browser code moved); thirty proofs (32 scripts) green.
+
+## Amendment 41 — v41: the dock grows a second §28 face — human clicks and table receipts side by side, 2026-09
+- **`apps/studio/src/lib/dockPolicy.ts` is the seam:** `faceCheckpoint({mode:'human'|'policy'})`
+  adapts EITHER face into the registry's unchanged `Checkpoint`, recording every verdict
+  (`GateVerdict{tool, granted, by, reason}`) — the policy face delegates to v40's
+  `policyCheckpoint` (validation at construction, receipts quoting `rule <matched>:
+  <reason>`), the human face wraps exactly the pre-v41 per-action callback. `gateLineFor`
+  renders who spoke: `human: …` / `policy: …` / `mixed: …` / the honest `no gated calls`.
+- **`runUiTask` gained an optional `face` and a `gate` line in its ledger entry.**
+  Default remains the live human — the pre-v41 consultation set and order are asserted
+  UNCHANGED in tests; with `{mode:'policy'}` the visitor is never consulted and the
+  table's receipts journal into the same ledger the RECENT DECISIONS timeline reads
+  (LedgerEntry gains optional `gate` — the lenient reader still only requires goal +
+  approved). A policy that forgets `test.run` gets vetoed by its own DEFAULT row and the
+  run lands `denied`, never a silent green: the two faces share one registry, one gate.
+- **Honest bounds (§60, no UI theater):** the mode toggle is NOT in the dock UI yet —
+  today only tests construct the policy face; the browser still shows Allow-once for
+  humans. The Studio stays spawn-free and registers no exec-host tools.
+- studio 99/99 → 105/105 (NEW dockPolicy.test.ts, 6 cases); runtime 232/232 and
+  exec-host 71/71 UNCHANGED (no product code moved there); thirty proofs (32 scripts)
+  green — this increment's evidence is headless vitest, so no new node proof (studio lib
+  is app code, not a built package).

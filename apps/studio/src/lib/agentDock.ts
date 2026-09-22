@@ -328,6 +328,8 @@ export interface LedgerEntry {
   repairs?: number;
   /** v33: the LAST §63 verification report as stated data — `engine passed/total ok|fail`. */
   tests?: string;
+  /** v41: WHO passed §28 and how — `human: ui.type granted · …` / `policy: …` / `mixed: …`. */
+  gate?: string;
   at: number;
 }
 

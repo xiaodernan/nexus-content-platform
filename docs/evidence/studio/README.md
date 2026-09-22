@@ -13,8 +13,8 @@ npm run build lint typecheck test     # via turbo: build 4/4 · lint 3/3 · type
 | ------------------ | ------ |
 | @nexus/design-model| 28/28 vitest (`design-model` 16 incl. 3 rotated-hitTest + 2 rigid-geometry cases + `instances` 12 incl. x/y delta + absolute rotation overrides + rigid rotation bake), tsc clean |
 | @nexus/ai-providers| 7/7 vitest, tsc clean |
-| @nexus/agent-runtime| 232/232 + @nexus/exec-host 71/71 vitest (M2 v0–v40, ADR 0016 am. 1–40; am. 33–34 changed no agent-stack code; am. 35 added the git.commit write slice in exec-host only — runtime stays spawn-free; am. 36 taught the loop to propose a §28 commit after green; am. 37 added the git.log read-back door in exec-host only; am. 38 wired that door into the PLAN; am. 39 added the memory.save remember tail behind the confirmed arc + @refs inside array args; am. 40 added checkpoint-policy-as-data in the runtime — a new ALTERNATIVE §28 face, the dock's live Allow-once human unchanged) · tsc clean — see `docs/evidence/agents/README.md` |
-| @nexus/studio      | 99/99 vitest (`snap` `persist` `align` `store-variants` 18 `thumbnail` `rotate` 14 `render` `minimap` `agentDock` 17 `webfs` 3 `uiRun` 8) · tsc `--noEmit` clean · eslint `--max-warnings=0` clean · `next build` ✓ (4/4 static pages) |
+| @nexus/agent-runtime| 232/232 + @nexus/exec-host 71/71 vitest (M2 v0–v41, ADR 0016 am. 1–41; am. 33–34 changed no agent-stack code; am. 35 added the git.commit write slice in exec-host only — runtime stays spawn-free; am. 36 taught the loop to propose a §28 commit after green; am. 37 added the git.log read-back door in exec-host only; am. 38 wired that door into the PLAN; am. 39 added the memory.save remember tail behind the confirmed arc + @refs inside array args; am. 40 added checkpoint-policy-as-data in the runtime; am. 41 gave the DOCK a second face — runUiTask policy mode + gate receipts in the ledger, human Allow-once still the default) · tsc clean — see `docs/evidence/agents/README.md` |
+| @nexus/studio      | 105/105 vitest (`snap` `persist` `align` `store-variants` 18 `thumbnail` `rotate` 14 `render` `minimap` `agentDock` 17 `webfs` 3 `uiRun` 8 `dockPolicy` 6) · tsc `--noEmit` clean · eslint `--max-warnings=0` clean · `next build` ✓ (4/4 static pages) |
 
 ## Headless pipeline proof
 
@@ -371,3 +371,19 @@ behind the exec sandbox, no `child_process` in the browser). The §28 ledger gai
 optional `tests` field (`<engine> passed/total ok|FAIL` from the last report);
 report-less plans add no field and old ledger lines still parse. Studio 99/99 (+3
 agentDock cases), runtime/exec-host untouched.
+
+## Two §28 faces — human clicks and table receipts (M2 v41, headless)
+
+v40 made checkpoint decisions DATA in the runtime; v41 gives the dock a seam to either
+face: `faceCheckpoint({mode:'human'|'policy'})` in `src/lib/dockPolicy.ts` adapts the
+live per-action Allow-once callback OR a v40 policy table into the unchanged registry
+`Checkpoint`, recording every verdict (`by`, `granted`, `reason` — policy receipts quote
+`rule <matched>: <reason>` verbatim). `runUiTask` gained an optional `face` and always
+journals a `gate` line (`human: …` / `policy: …` / `mixed: …`) into the RECENT DECISIONS
+ledger — the lenient reader still only requires goal+approved, so every pre-v41 line
+parses. Tests prove the sharp edges: default human consultation is byte-for-byte the
+pre-v41 set and order; a policy face NEVER asks the human yet completes the task; a
+table that forgets `test.run` is vetoed by its OWN default row and the run lands
+`denied`, never silent green. Honest bounds (§60): the mode toggle is NOT in the dock UI
+yet — today only tests construct the policy face; the browser still shows Allow-once.
+Studio 99/99 → 105/105 (new `dockPolicy.test.ts`, 6 cases); runtime/exec-host untouched.

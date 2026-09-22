@@ -1,5 +1,6 @@
 import { ToolRegistry, predicateRunner, registerTestTools, registerUiTools, runTask, scoreRun, type RunOutcome, type UiDriver, type UiElement } from '@nexus/agent-runtime';
 import { AGENT_LEDGER_KEY, type KvLike } from './agentDock';
+import { faceCheckpoint, gateLineFor, type DockFace } from './dockPolicy';
 
 /**
  * M2 v16 (§63 browser automation *by* the agent, in-page edition): a deterministic UI
@@ -82,14 +83,18 @@ export async function runUiDrive(
 }
 
 /** v20: the SAME orchestrator loop drives the page — plan (observe→type→click) comes from
- * the demo planner, every exec step passes the injected human decider via the checkpoint. */
+ * the demo planner, every exec step passes the injected human decider via the checkpoint.
+ * v41: an optional `face` swaps the per-action human for a v40 policy TABLE
+ * (`{mode:'policy', policy}` — pre-authored, reason-carrying); verdicts from either
+ * face journal into the ledger's `gate` field, so a reader always sees WHO decided. */
 export async function runUiTask(
   driver: UiDriver,
   goal: string,
   decide: (plan: { tool: string; label: string; detail: string }) => Promise<boolean>,
   labels: { input: string; button: string } = { input: 'analytics dashboard', button: 'Compose' },
   kv?: KvLike,
-): Promise<{ outcome: RunOutcome; actions: string[]; score: number }> {
+  face?: DockFace,
+): Promise<{ outcome: RunOutcome; actions: string[]; score: number; gate: string }> {
   const registry = registerUiTools(new ToolRegistry(), driver);
   const baseline = driver.layerCount ? driver.layerCount() : 0;
   if (driver.layerCount) {
@@ -103,25 +108,29 @@ export async function runUiTask(
     );
   }
   const actions: string[] = [];
-  const origInvoke = registry.invoke.bind(registry);
-  registry.invoke = async (call, opts) => {
-    const res = await origInvoke(call, {
-      ...opts,
-      checkpoint: async () => {
+  const gate = faceCheckpoint(
+    face ?? {
+      mode: 'human',
+      decide: ({ call }) => {
         const label = String(call.args.label ?? 'page');
         return decide({ tool: call.tool, label, detail: call.tool === 'ui.type' ? `type “${call.args.text}”` : 'one click' });
       },
-    });
+    },
+  );
+  const origInvoke = registry.invoke.bind(registry);
+  registry.invoke = async (call, opts) => {
+    const res = await origInvoke(call, { ...opts, checkpoint: gate.checkpoint });
     if (res.ok && (call.tool === 'ui.click' || call.tool === 'ui.type')) actions.push(String((res.output as { log: string }).log));
     return res;
   };
   const outcome = await runTask({ id: `ui-task-${Date.now()}`, goal }, { registry, checkpoint: () => true, uiInputLabel: labels.input, uiButtonLabel: labels.button });
   const evaluation = scoreRun(outcome);
+  const gateLine = gateLineFor(gate.verdicts);
   if (kv) {
-    const entry = { goal: `ui-task: ${goal}`, target: labels.button, via: 'ui', score: evaluation.score, approved: outcome.status === 'completed', reason: `status=${outcome.status} planner=${outcome.planner?.backend ?? 'demo'}`, at: Date.now() };
+    const entry = { goal: `ui-task: ${goal}`, target: labels.button, via: 'ui', score: evaluation.score, approved: outcome.status === 'completed', reason: `status=${outcome.status} planner=${outcome.planner?.backend ?? 'demo'}`, gate: gateLine, at: Date.now() };
     const cur = kv.getItem(AGENT_LEDGER_KEY) ?? '';
     const sep = cur === '' || cur.endsWith('\n') ? '' : '\n';
     kv.setItem(AGENT_LEDGER_KEY, `${cur}${sep}${JSON.stringify(entry)}\n`);
   }
-  return { outcome, actions, score: evaluation.score };
+  return { outcome, actions, score: evaluation.score, gate: gateLine };
 }
