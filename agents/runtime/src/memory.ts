@@ -58,8 +58,10 @@ export class MemoryStore {
     if (Number.isFinite(n) && n > this.seq) this.seq = n;
   }
 
-  /** v6 hybrid: same token-bag score the code index uses (zero shared tokens ⇒ never recalled). */
-  recall(query: string, opts: { scope?: string; k?: number } = {}): RecallHit[] {
+  /** v6 hybrid: same token-bag score the index uses (zero shared tokens ⇒ never recalled).
+   * Deterministic: score desc, then memId (asc; `newestFirst` flips it for role chains,
+   * §25). Refs keep insertion order — Array.sort is stable, so a record's first ref stays first. */
+  recall(query: string, opts: { scope?: string; k?: number; newestFirst?: boolean } = {}): RecallHit[] {
     const k = opts.k ?? 5;
     const scored = this.recs
       .filter((r) => opts.scope === undefined || r.scope === opts.scope)
@@ -68,7 +70,7 @@ export class MemoryStore {
     const hits: RecallHit[] = scored.flatMap(({ r, score }) =>
       r.refs.map((ref) => ({ memId: r.id, path: ref.path, score, summary: r.summary })),
     );
-    hits.sort((a, b) => b.score - a.score || a.memId.localeCompare(b.memId) || a.path.localeCompare(b.path));
+    hits.sort((a, b) => b.score - a.score || (opts.newestFirst ? b.memId.localeCompare(a.memId) : a.memId.localeCompare(b.memId)));
     return hits.slice(0, k);
   }
 

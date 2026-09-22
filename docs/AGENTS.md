@@ -13,7 +13,7 @@ permission-controlled.
 `OpBatch` objects (ADR 0006) that the reducer validates. In DEMO MODE the "agent" is the
 deterministic heuristic composer — same interface, real ops, no pretending (§60).
 
-Status: **M2 v0–v3 have landed** — `agents/runtime` (`@nexus/agent-runtime`, ADR 0016) implements the
+Status: **M2 v0–v14 have landed** — `agents/runtime` (`@nexus/agent-runtime`, ADR 0016) implements the
 orchestrator loop, Task/Plan/ToolCall handoff contracts, the permission-scoped Tool Registry with
 Human-Checkpoint gating and an in-memory workspace, a deterministic hybrid **code index**
 (`fs.index`: chunking + symbol extraction + token-bag hash embeddings), read-only real-repo
@@ -25,8 +25,10 @@ checkpoint-gated), v4 persisted index snapshots (`saveIndex/loadIndex` + fingerp
 `fs.index`, v6 a shared `hybridScore` seam + memory `compact()`, v7 observed change-sets /
 unified-diff patches / JSONL ledger, v8 §24 role scopes + rubric scoring, v9 §25
 memory-first pipelines proven across a process boundary, v10 the in-product Studio dock
-(§28 Approve/Deny), v11 structural visual QA, and v12 the QA→repair loop (deterministic,
-bounded, honest residuals). Driven by a deterministic DEMO-MODE planner.
+(§28 Approve/Deny), v11 structural visual QA, v12 the QA→repair loop (deterministic,
+bounded, honest residuals), v13 browser-durable memory via a localStorage `FsWriteLike`
+plus the §26 Memory panel, and v14 the four-role `runRoleChain` (§24/§25) with computed
+WCAG-contrast QA. Driven by a deterministic DEMO-MODE planner.
 Remaining scaffolds: the multi-agent Registry's roster/handoff beyond the demo pipeline (§24),
 true vector-store recall (§63/ADR 0012), general exec/browser/git tools (land with the
 ADR 0013 sandbox); the full runtime matures across M2/M6.

@@ -15,8 +15,26 @@ export {
 } from './codeIndex.js';
 export { ToolRegistry, DANGEROUS, matchesTool, type Checkpoint, type CheckpointRequest, type ToolImpl, type InvokeOptions } from './registry.js';
 export { RoleRegistry, DEMO_ROLES, type RoleDefinition } from './roles.js';
-export { runRolePipeline, type HandoffRecord, type PipelineOptions, type PipelineResult } from './pipeline.js';
-export { runVisualQa, type QaFlag, type QaInput, type QaRect, type QaReport, type QaSeverity } from './visualQa.js';
+export {
+  runRoleChain,
+  runRolePipeline,
+  type ChainOptions,
+  type ChainResult,
+  type ChainStageHandoff,
+  type HandoffRecord,
+  type PipelineOptions,
+  type PipelineResult,
+} from './pipeline.js';
+export {
+  contrastRatio,
+  relativeLuminance,
+  runVisualQa,
+  type QaFlag,
+  type QaInput,
+  type QaRect,
+  type QaReport,
+  type QaSeverity,
+} from './visualQa.js';
 export { proposeRepairs, type Repair, type RepairResult } from './repair.js';
 export {
   appendEvaluation,

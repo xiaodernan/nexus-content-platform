@@ -95,6 +95,10 @@ geometry, not taste: contrast/aesthetic judgment remains explicitly out of scope
 Since v13 the dock's findings are **browser-durable**: `lib/webfs.ts` implements the
 runtime's `FsWriteLike` seam over `localStorage`, so the same `saveMemory/loadMemoryStore`
 JSON proven in Node reloads on every Plan, and a Memory (§26) panel lists stored
-findings with per-record **forget**.
+findings with per-record **forget**. v14 extends QA with a **computed WCAG 2.1 contrast**
+rule (hex/rgb resolved through design tokens — arithmetic, never opinion) and the runtime
+gained `runRoleChain`: researcher → designer → qa → editor, each step a typed handoff
+record with stage-named honest failure (see ADR 0016 amendment 14; the dock itself still
+runs the two-stage pipeline).
 Everything is DEMO MODE-labeled: the agent proposes, the model stays canonical
 (§8), and no document mutation happens without the human checkpoint (§28).

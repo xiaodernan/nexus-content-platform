@@ -39,6 +39,8 @@ export class RoleRegistry {
 
 export const DEMO_ROLES: RoleDefinition[] = [
   { id: 'researcher', name: 'Research role', description: 'Read-only discovery: index/search + memory recall and inspection.', allowedTools: ['fs.list', 'fs.read', 'fs.search', 'fs.index', 'memory.recall', 'memory.list'] },
+  { id: 'designer', name: 'Designer role', description: 'Research plus design-brief annotation (write-class, checkpoint-gated).', allowedTools: ['fs.list', 'fs.read', 'fs.search', 'fs.index', 'fs.append', 'memory.recall', 'memory.list'] },
+  { id: 'qa', name: 'QA role', description: 'Reads artifacts and reports computed structural/contrast findings; writes nothing.', allowedTools: ['fs.read', 'fs.search', 'fs.index', 'memory.recall', 'memory.list'] },
   { id: 'editor', name: 'Editor role', description: 'Research plus workspace annotation (write-class, checkpoint-gated) and host verification.', allowedTools: ['fs.*', 'memory.recall', 'memory.list', 'test.run'] },
   { id: 'archivist', name: 'Archivist role', description: 'Memory curation only: recall, inspect, save, forget.', allowedTools: ['memory.*'] },
 ];

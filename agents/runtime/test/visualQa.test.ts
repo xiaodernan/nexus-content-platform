@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { runVisualQa, type QaInput } from '../src/visualQa.js';
+import { contrastRatio, runVisualQa, type QaInput } from '../src/visualQa.js';
 
 const PAGE = { x: 0, y: 0, width: 1200, height: 800 };
 
@@ -47,5 +47,28 @@ describe('visualQa (v11, structural geometry only)', () => {
   it('deterministic: identical reports for identical inputs', () => {
     const i = input({ a: { x: 0, y: 0, width: 300, height: 300 }, b: { x: 10, y: 10, width: 100, height: 100 } });
     expect(runVisualQa(i)).toEqual(runVisualQa(i));
+  });
+});
+
+describe('contrast rule (v14, computed WCAG 2.1 — not taste)', () => {
+  it('black/white passes; low-contrast greys flag as warn', () => {
+    const good = runVisualQa({ page: PAGE, rects: { t: { x: 10, y: 10, width: 50, height: 20, fill: '#000', bg: '#fff' } } });
+    expect(good.flags).toEqual([]);
+    const bad = runVisualQa({ page: PAGE, rects: { t: { x: 10, y: 10, width: 50, height: 20, fill: '#777', bg: '#888' } } });
+    expect(bad.flags[0]).toMatchObject({ code: 'low-contrast', severity: 'warn' });
+    expect(bad.flags[0]!.detail).toContain('contrast');
+  });
+
+  it('parses rgb()/rgba() css forms; unparsable colors produce no flag', () => {
+    const fn = runVisualQa({ page: PAGE, rects: { t: { x: 0, y: 0, width: 40, height: 40, fill: 'rgba(120, 120, 120, 1)', bg: '#7d7d7d' } } });
+    expect(fn.flags.some((f) => f.code === 'low-contrast')).toBe(true);
+    const junk = runVisualQa({ page: PAGE, rects: { t: { x: 0, y: 0, width: 40, height: 40, fill: 'linear-gradient', bg: 'red' } } });
+    expect(junk.flags).toEqual([]);
+  });
+
+  it('contrastRatio math: 21:1 for black/white, ~1:1 for identical, null for junk', () => {
+    expect(contrastRatio('#000', '#fff')).toBeCloseTo(21, 0);
+    expect(contrastRatio('#fff', '#fff')).toBeCloseTo(1, 5);
+    expect(contrastRatio('#zzz', '#fff')).toBeNull();
   });
 });

@@ -8,7 +8,7 @@ every emitted artifact (`provenance.mode = "demo"`).
 ## Reproducible gates
 
 ```
-npm test          # turbo: @nexus/agent-runtime 101/101 vitest among all packages
+npm test          # turbo: @nexus/agent-runtime 108/108 vitest among all packages
 npm run build     # tsc dist for agents/runtime (build order via ^build deps)
 node docs/evidence/agents/agent-proof.mjs
 node docs/evidence/agents/code-index-proof.mjs   # requires `npm run build` first
@@ -22,6 +22,7 @@ node docs/evidence/agents/roles-proof.mjs        # requires `npm run build` firs
 node docs/evidence/agents/pipeline-proof.mjs    # requires `npm run build` first
 node docs/evidence/agents/qa-proof.mjs          # requires `npm run build` first
 node docs/evidence/agents/repair-proof.mjs        # requires `npm run build` first
+node docs/evidence/agents/rolechain-proof.mjs    # requires `npm run build` first
 ```
 
 ## Unit tests (vitest, `agents/runtime/test`)
@@ -41,6 +42,8 @@ node docs/evidence/agents/repair-proof.mjs        # requires `npm run build` fir
 | `evaluate.test.ts` (5) | clean run scores 1 with named marks, failures degrade by weight (deterministic), last verify decides, change-economy budget option, append/reload order + corrupt-file reasons |
 | `pipeline.test.ts` (5) | researcher→editor handoff happy path (refs from `fs.index`, editor plans memory-first, score 1), denied checkpoint leaves the handoff real but the run denied, durable mode writes memory+ledger+evaluation JSONL that reload cold, missing research tool ⇒ stated reason (no invented refs), full determinism across identical pipelines |
 | `visualQa.test.ts` (5) | clean layout ok, zero-size/off-page/overlap detection with severities, error-before-warn deterministic ordering, tolerances as explicit inputs, identical reports for identical inputs |
+| `chain.test.ts` (4) | four-stage researcher→designer→qa→editor order + handoff records, QA honest-empty without host rects, designer denial stops the chain naming its stage, determinism |
+| `visualQa.test.ts` +contrast (3) | black/white passes, grey pair flags warn, rgb()/rgba() parse, junk colors yield no flag, 21:1 math |
 | `repair.test.ts` (5) | clean input no-op, off-page pulled inside then QA-clean, overlap nudged below with gutter, zero-size grown, dedupe + determinism + "apply all repairs → zero error flags" |
 | `durability.test.ts` (8) | memory serialize/deserialize round-trip + version/schema rejection, `restore()` id high-water mark, save/load through an injected writable fake disk, corrupt-file honest failure, `guardedJoin` jail (absolute/`..`/drive-letter rejection, backslash folding), `disk.write` checkpoint gate + escape touches nothing, `disk.read`/`disk.list` confinement |
 | `indexStore.test.ts` (11) | index snapshot serialize→deserialize verbatim + version/chunk schema rejection, save/load via injected fs, cold rescan equals `buildIndex`, unchanged files reuse chunks / edits rechunk exactly the changed paths / removals drop out, query ranking snapshot-independent; v5 provider: cold-first-build equals plain build, incremental refresh 0 re-chunked, edited file sole re-chunk, cross-provider snapshot restore, corrupt-snapshot fallback + repair, `fs.index` provider/default parity |
@@ -170,6 +173,15 @@ QA re-run; identical inputs give byte-identical output; an unsolvable stack (two
 full-page siblings) stops after bounded passes and reports what remains — the loop quits
 honestly instead of thrashing. In the dock this closes end-to-end: flagged banner →
 Propose repairs → Approve → status `QA now flagged/ok` + `repairs:N` journaled.
+
+## Role-chain proof (`rolechain-proof.mjs`, M2 v14)
+
+Four §24 roles run one goal in sequence (researcher → designer → qa → editor): three typed
+`ChainStageHandoff` records, the designer's brief appended under checkpoint, the QA stage
+**computing** WCAG 2.1 contrast on real hex pairs (`#777/#888` flagged warn,
+`#000/#fff` 21:1 passes), and the editor completing memory-first with score 1.00. A
+denied designer checkpoint stops the chain at exactly `stage:'designer'` with the prior
+handoff intact. Contrast is arithmetic, not opinion (§60); unparsable colors produce no flag.
 
 ## Scope honesty
 

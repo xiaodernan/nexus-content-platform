@@ -300,3 +300,21 @@ two fresh runs, checkpoint denial leaving the workspace byte-identical).
   the defining sources out of top-5 (v1's README even ranked above geometry). The prior
   is stated here, in the scorer's doc-comment, and in the unit README — not hidden —
   and definition files now rank #2/#2/#1 for the three proof queries.
+
+## Amendment 14 — v14: four-role chain + computed WCAG-contrast QA, 2026-09
+- **`runRoleChain(task, opts)`:** §24's roster in motion — researcher (read scope) →
+  designer (append brief, write-gated) → qa (computes `runVisualQa` over host-supplied
+  rect data) → editor (full memory-first loop). Each transition is a typed
+  `ChainStageHandoff` record; every stage persists a scoped memory record; failure returns
+  `{ok:false, stage, reason}` naming the exact stage (no silent degradation).
+- **Contrast as arithmetic:** `relativeLuminance`/`contrastRatio` (WCAG 2.1) over hex and
+  rgb/rgba strings; `low-contrast` warn flag below a configurable floor (default 3, the
+  large-text line). Unparsable colors yield NO flag — absence of data is never faked as a
+  verdict (§60). The Studio dock resolves node/page fills through design-model tokens so
+  real documents feed real colors into QA.
+- **Recall ordering fix found by the chain:** refs previously tie-broke alphabetically,
+  letting `docs/extra.md` beat a record's primary target; ordering is now score → memId
+  (stable refs keep insertion order), with an optional `newestFirst` for chain semantics.
+- **Proof/tests:** `rolechain-proof.mjs` (4 stages + denial stops at designer), runtime
+  108/108 (+7), studio 81/81 unchanged; dock browser path re-verified (chips render,
+  console clean).

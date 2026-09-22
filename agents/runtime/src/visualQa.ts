@@ -4,11 +4,17 @@
  * dependencies on the Design Model and nothing here pretends to look at pixels (§60):
  * these are structural checks a canvas screenshot cannot beat but also never contradicts.
  */
+/** CSS hex (`#rgb`/`#rrggbb`) or an rgb/rgba() string; anything unparsable yields no flag. */
+export type QaColor = string;
+
 export interface QaRect {
   x: number;
   y: number;
   width: number;
   height: number;
+  /** Optional solid colors; when both are present a computed WCAG 2.1 ratio is checked. */
+  fill?: QaColor;
+  bg?: QaColor;
 }
 
 export interface QaInput {
@@ -19,12 +25,14 @@ export interface QaInput {
   overlapThreshold?: number;
   /** How far a rect may hang off the page before it is flagged. Default 8. */
   overflowTolerance?: number;
+  /** Minimum contrast ratio to pass. Default 3 (WCAG 2.1 large-text floor). */
+  minContrast?: number;
 }
 
 export type QaSeverity = 'error' | 'warn';
 
 export interface QaFlag {
-  code: 'zero-size' | 'off-page' | 'overlap' | 'overflow';
+  code: 'zero-size' | 'off-page' | 'overlap' | 'overflow' | 'low-contrast';
   severity: QaSeverity;
   ids: string[];
   detail: string;
@@ -37,6 +45,42 @@ export interface QaReport {
 }
 
 const area = (r: QaRect): number => Math.max(0, r.width) * Math.max(0, r.height);
+
+/** WCAG 2.1 relative luminance of `#rgb`/`#rrggbb`/`rgb()`/`rgba()`; unparsable ⇒ null (no flag invented). */
+export function relativeLuminance(color: QaColor): number | null {
+  const s = color.trim();
+  let r: number;
+  let g: number;
+  let b: number;
+  const hex = /^#?([0-9a-f]{3}|[0-9a-f]{6})$/i.exec(s);
+  if (hex) {
+    let h = hex[1]!;
+    if (h.length === 3) h = h.split('').map((c) => c + c).join('');
+    r = parseInt(h.slice(0, 2), 16);
+    g = parseInt(h.slice(2, 4), 16);
+    b = parseInt(h.slice(4, 6), 16);
+  } else {
+    const fn = /^rgba?\(\s*([\d.]+)[,\s]+([\d.]+)[,\s]+([\d.]+)/i.exec(s);
+    if (!fn) return null;
+    r = Number(fn[1]);
+    g = Number(fn[2]);
+    b = Number(fn[3]);
+  }
+  if (![r, g, b].every((v) => Number.isFinite(v) && v >= 0 && v <= 255)) return null;
+  const chan = (v: number): number => {
+    const c = v / 255;
+    return c <= 0.03928 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4);
+  };
+  return 0.2126 * chan(r) + 0.7152 * chan(g) + 0.0722 * chan(b);
+}
+
+export function contrastRatio(a: string, b: string): number | null {
+  const la = relativeLuminance(a);
+  const lb = relativeLuminance(b);
+  if (la === null || lb === null) return null;
+  const [hi, lo] = la >= lb ? [la, lb] : [lb, la];
+  return (hi + 0.05) / (lo + 0.05);
+}
 
 function intersect(a: QaRect, b: QaRect): number {
   const w = Math.min(a.x + a.width, b.x + b.width) - Math.max(a.x, b.x);
@@ -82,6 +126,14 @@ export function runVisualQa(input: QaInput): QaReport {
   }
 
   const order: Record<QaSeverity, number> = { error: 0, warn: 1 };
+  for (const id of ids) {
+    const r = input.rects[id]!;
+    if (!r.fill || !r.bg) continue;
+    const ratio = contrastRatio(r.fill, r.bg);
+    if (ratio !== null && ratio < (input.minContrast ?? 3)) {
+      flags.push({ code: 'low-contrast', severity: 'warn', ids: [id], detail: `${id} text ${r.fill} on ${r.bg} has contrast ${ratio.toFixed(2)} (< ${String(input.minContrast ?? 3)})` });
+    }
+  }
   const sorted = flags.sort((p, q) => order[p.severity] - order[q.severity] || p.code.localeCompare(q.code) || p.ids.join().localeCompare(q.ids.join()));
   return { verdict: sorted.length === 0 ? 'ok' : 'flagged', checked: ids.length, flags: sorted };
 }

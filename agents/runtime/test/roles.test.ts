@@ -44,7 +44,7 @@ describe('RoleRegistry (§24 slice)', () => {
     const roles = new RoleRegistry();
     DEMO_ROLES.forEach((r) => roles.register(r));
     expect(() => roles.register(DEMO_ROLES[0]!)).toThrow('already registered');
-    expect(roles.list().map((r) => r.id)).toEqual(['archivist', 'editor', 'researcher']);
+    expect(roles.list().map((r) => r.id)).toEqual(['archivist', 'designer', 'editor', 'qa', 'researcher']);
     const scoped = roles.scopedRegistry('ghost', hostRegistry());
     expect(scoped.list()).toEqual([]);
   });
