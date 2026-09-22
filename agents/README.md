@@ -54,7 +54,10 @@
   v18 adds `vectordb.ts`: persisted token-bag vectors with exact-scan hybrid queries whose
   ranking provably equals inline scoring after a cold reload (mechanics, not trained
   embeddings — §60; `vector-store-proof.mjs`).
-  Proof: `agents/runtime/test` (vitest 124/124) plus the sixteen headless proofs in
+  v19 wires those vectors into §26 memory: `toVectorDb`/`recallVectors` + a persisted
+  vectorsFile for `memory.recall` with a stated `engine` field and honest inline fallback
+  (the dock persists vectors on every approval).
+  Proof: `agents/runtime/test` (vitest 126/126) plus the seventeen headless proofs in
   `docs/evidence/agents/` (agent, code-index, memory, durability, index-store, provider,
   recall, changes, roles, pipeline, qa, repair, rolechain).
 

@@ -37,6 +37,8 @@ import {
 } from '@nexus/design-model';
 
 import { browserStorage } from './storage';
+import { saveVectors } from '@nexus/agent-runtime';
+export const STUDIO_VECTORS_FILE = 'agent/vectors-studio.json';
 import { createWebFs } from './webfs';
 
 /**
@@ -144,6 +146,7 @@ export async function planAgentRun(doc: DesignDocument, pageId: string, goal: st
 
   const targetId = res.handoff.refs[0]!.path;
   saveMemory(store, webFs, STUDIO_MEMORY_FILE); // v13: handoffs now survive page refreshes
+  saveVectors(webFs, STUDIO_VECTORS_FILE, store.toVectorDb()); // v19: persisted vectors back recall after reloads
   return {
     goal: trimmed,
     pageId,
@@ -257,11 +260,12 @@ export async function planAgentChain(doc: DesignDocument, pageId: string, goal: 
   const roles = new RoleRegistry();
   DEMO_ROLES.forEach((r) => roles.register(r));
   const qaInput = qaInputForDoc(doc, pageId) ?? { page: { x: 0, y: 0, width: 0, height: 0 }, rects: {} };
-  const res = await runRoleChain({ id: `studio-chain-${Date.now()}`, goal: trimmed }, {
+  const res = await runRoleChain({ id: `studio-chain-${Date.now()}`, goal: trimmed }, { // v19 vectors persisted by the pipeline path below on approve
     roles, registry, store, scope: 'studio', checkpoint: () => true, snapshot: () => ws.snapshot(),
     memoryFile: STUDIO_MEMORY_FILE, fsLike: webFs, qaInput,
   });
   if (!res.ok) return { ok: false, reason: `${res.stage}: ${res.reason}` };
+  saveVectors(webFs, STUDIO_VECTORS_FILE, store.toVectorDb()); // v19: chain memories are vectorized too
   const first = res.handoffs[0]!;
   return {
     goal: trimmed,

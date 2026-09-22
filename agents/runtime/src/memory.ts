@@ -1,4 +1,5 @@
 import { hybridScore } from './embedding.js';
+import { buildVectorDb, loadVectors, queryVectors, type VectorDb } from './vectordb.js';
 import type { ToolRegistry } from './registry.js';
 import type { ToolSpec } from './types.js';
 
@@ -72,6 +73,29 @@ export class MemoryStore {
     );
     hits.sort((a, b) => b.score - a.score || (opts.newestFirst ? b.memId.localeCompare(a.memId) : a.memId.localeCompare(b.memId)));
     return hits.slice(0, k);
+  }
+
+  /** v19: export this store's records as a persistable vector db (ids = record ids). */
+  toVectorDb(): VectorDb {
+    return buildVectorDb(
+      this.recs.map((r) => ({ id: r.id, text: `${r.query} ${r.summary}`, meta: { scope: r.scope, paths: r.refs.map((f) => f.path).join(','), lines: r.refs.length } })),
+    );
+  }
+
+  /**
+   * v19 vector-backed recall: ranking comes from `queryVectors` over stored vectors
+   * (identical score function, so parity with inline `recall` is total — asserted in tests).
+   */
+  recallVectors(db: VectorDb, query: string, opts: { scope?: string; k?: number } = {}): RecallHit[] {
+    const scoped = new Set(this.recs.filter((r) => opts.scope === undefined || r.scope === opts.scope).map((r) => r.id));
+    const hits: RecallHit[] = [];
+    for (const vh of queryVectors(db, query, { k: this.recs.length + 1 })) {
+      if (!scoped.has(vh.id)) continue;
+      const rec = this.recs.find((r) => r.id === vh.id);
+      if (!rec) continue;
+      for (const ref of rec.refs) hits.push({ memId: rec.id, path: ref.path, score: vh.score, summary: rec.summary });
+    }
+    return hits.slice(0, opts.k ?? 5);
   }
 
   forget(id: string): boolean {
@@ -157,7 +181,11 @@ function parseRef(raw: string): MemoryRef {
   return m ? { path: m[1]!, startLine: Number(m[2]) } : { path: raw };
 }
 
-export function registerMemoryTools(registry: ToolRegistry, store: MemoryStore, scope = 'default'): ToolRegistry {
+export interface MemoryToolOptions { scope?: string; vectorsFile?: string; fsLike?: { readFileSync(p: string, e: 'utf8'): string } }
+
+export function registerMemoryTools(registry: ToolRegistry, store: MemoryStore, scopeOrOpts: string | MemoryToolOptions = 'default'): ToolRegistry {
+  const o: MemoryToolOptions = typeof scopeOrOpts === 'string' ? { scope: scopeOrOpts } : scopeOrOpts;
+  const scope = o.scope ?? 'default';
   for (const spec of MEMORY_TOOL_SPECS) {
     registry.register(spec, (args) => {
       switch (spec.name) {
@@ -169,8 +197,14 @@ export function registerMemoryTools(registry: ToolRegistry, store: MemoryStore, 
             summary: String(args.summary),
             refs: (args.refs as unknown[]).map((r) => parseRef(String(r))),
           });
-        case 'memory.recall':
-          return { hits: store.recall(String(args.query), { scope, k: args.k === undefined ? 5 : Number(args.k) }) };
+        case 'memory.recall': {
+          const k = args.k === undefined ? 5 : Number(args.k);
+          if (o.vectorsFile && o.fsLike) {
+            const loaded = loadVectors(o.fsLike, o.vectorsFile);
+            if (loaded.ok) return { engine: 'vectors', hits: store.recallVectors(loaded.db, String(args.query), { scope, k }) };
+          }
+          return { engine: 'inline', hits: store.recall(String(args.query), { scope, k }) };
+        }
         case 'memory.list':
           return { records: store.list(scope) };
         case 'memory.forget':

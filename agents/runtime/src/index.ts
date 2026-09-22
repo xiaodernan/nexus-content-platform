@@ -78,6 +78,7 @@ export {
   MemoryStore,
   MEMORY_TOOL_SPECS,
   registerMemoryTools,
+  type MemoryToolOptions,
   type MemoryRecord,
   type MemoryRef,
   type RecallHit,

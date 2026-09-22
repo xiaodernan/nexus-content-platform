@@ -8,7 +8,7 @@ every emitted artifact (`provenance.mode = "demo"`).
 ## Reproducible gates
 
 ```
-npm test          # turbo: @nexus/agent-runtime 124/124 vitest among all packages
+npm test          # turbo: @nexus/agent-runtime 126/126 vitest among all packages
 npm run build     # tsc dist for agents/runtime (build order via ^build deps)
 node docs/evidence/agents/agent-proof.mjs
 node docs/evidence/agents/code-index-proof.mjs   # requires `npm run build` first
@@ -26,6 +26,7 @@ node docs/evidence/agents/rolechain-proof.mjs    # requires `npm run build` firs
 node docs/evidence/agents/dom-ui-proof.mjs         # requires `npm run build` first
 node docs/evidence/agents/planner-proof.mjs        # requires `npm run build` first
 node docs/evidence/agents/vector-store-proof.mjs   # requires `npm run build` first
+node docs/evidence/agents/memory-vectors-proof.mjs # requires `npm run build` first
 ```
 
 ## Unit tests (vitest, `agents/runtime/test`)
@@ -202,6 +203,10 @@ live with two Allow-once dialogs after which the composed dashboard appeared.
 trained model, §60) persisted to a jailed JSON, cold-loaded in ~3 ms, exact cosine scan
 matching inline scoring to 1e-12 across three queries; corrupt file rejected with a
 reason. Exact scan is stated as the algorithm (correct at this scale), not hidden as ANN.
+
+## Memory-vectors proof (`memory-vectors-proof.mjs`, M2 v19)
+
+Cold reader (restored store + persisted vectors) reproduces inline ranking exactly; `memory.recall` reports its engine, and a corrupted vector file falls back to inline computation while saying `engine:'inline'`. The Studio dock persists `agent/vectors-studio.json` on every approval, so refreshed pages recall from cold vectors.
 
 ## Scope honesty
 

@@ -1,5 +1,16 @@
 import { describe, expect, it } from 'vitest';
 import { MemoryStore, registerMemoryTools } from '../src/memory.js';
+import { serializeVectors } from '../src/vectordb.js';
+import type { FsDirentLike } from '../src/realfs.js';
+
+class MemDisk {
+  files = new Map<string, string>();
+  readdirSync(dir: string): FsDirentLike[] { return []; }
+  statSync(p: string): { size: number } { throw new Error('no such file'); }
+  readFileSync(p: string): string { const c = this.files.get(p); if (c === undefined) throw new Error('no such file'); return c; }
+  mkdirSync(): void {}
+  writeFileSync(p: string, d: string): void { this.files.set(p, d); }
+}
 import { ToolRegistry } from '../src/registry.js';
 
 describe('MemoryStore (§26: scoped, inspectable, deletable)', () => {
@@ -117,5 +128,32 @@ describe('memory tools through the registry (permissions enforced)', () => {
     const bad = await registry.invoke({ callId: 'c2', tool: 'memory.save', args: { runId: 'r', query: 'q', summary: 's', refs: 'a.ts' } }, { checkpoint: allow });
     expect(bad.ok).toBe(false);
     expect(bad.error).toContain('expected string[]');
+  });
+});
+
+describe('vector-backed recall (v19)', () => {
+  it('recallVectors matches inline recall exactly', () => {
+    const m = new MemoryStore();
+    m.save({ scope: 'a', runId: 'r1', query: 'rotation baking guide', summary: 'from docs/rotate.md', refs: [{ path: 'docs/rotate.md', startLine: 9 }, { path: 'src/rot.ts' }] });
+    m.save({ scope: 'a', runId: 'r2', query: 'cooking soup', summary: 'kitchen only', refs: [{ path: 'cook.md' }] });
+    m.save({ scope: 'b', runId: 'r3', query: 'rotation widget tuning', summary: 'widgets spin', refs: [{ path: 'widget.md' }] });
+    const q = 'rotation baking guide';
+    expect(m.recallVectors(m.toVectorDb(), q, { scope: 'a' })).toEqual(m.recall(q, { scope: 'a' }));
+    expect(m.recallVectors(m.toVectorDb(), q)).toEqual(m.recall(q));
+    expect(m.recallVectors(m.toVectorDb(), 'nothing matches qqq')).toEqual([]);
+  });
+
+  it('memory.recall reports the engine and vector path survives a fresh store', async () => {
+    const store = new MemoryStore();
+    store.save({ scope: 'default', runId: 'r', query: 'embed tokens', summary: 'hit embedding.ts', refs: [{ path: 'embedding.ts', startLine: 1 }] });
+    const disk = new MemDisk();
+    disk.writeFileSync('vectors.json', serializeVectors(store.toVectorDb()));
+    const registry = registerMemoryTools(new ToolRegistry(), store, { vectorsFile: 'vectors.json', fsLike: disk });
+    const viaVectors = await registry.invoke({ callId: 'c1', tool: 'memory.recall', args: { query: 'embed tokens' } }, {});
+    expect((viaVectors.output as { engine: string }).engine).toBe('vectors');
+    expect(((viaVectors.output as { hits: { path: string }[] }).hits)[0].path).toBe('embedding.ts');
+    const noFile = registerMemoryTools(new ToolRegistry(), new MemoryStore(), { vectorsFile: 'gone.json', fsLike: disk });
+    const inline = await noFile.invoke({ callId: 'c2', tool: 'memory.recall', args: { query: 'anything at all' } }, {});
+    expect((inline.output as { engine: string }).engine).toBe('inline');
   });
 });

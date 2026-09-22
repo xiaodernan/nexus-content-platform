@@ -27,6 +27,9 @@ import {
   type AgentPlan,
 } from './agentDock';
 import { memoryStore } from './storage';
+import { createWebFs } from './webfs';
+import { loadVectors, queryVectors } from '@nexus/agent-runtime';
+import { STUDIO_VECTORS_FILE } from './agentDock';
 
 const STYLE: TextStyle = { fontFamilyToken: 'font.family.body', sizeToken: 'font.size.base', weight: 400, lineHeight: 1.35, letterSpacing: 0, align: 'left' };
 
@@ -196,5 +199,17 @@ describe('agentDock visual QA (v11)', () => {
     expect(JSON.stringify(doc.nodes)).not.toContain('DESIGN (DEMO MODE');
     // and the durable memory now carries the three stage records
     expect(studioMemoryOverview(kv).total).toBeGreaterThanOrEqual(3);
+  });
+
+  it('v19: pipeline persists a vector db that answers the same recall cold', async () => {
+    const { doc, pageId } = seededDoc();
+    const kv = memoryStore();
+    const res = await planAgentRun(doc, pageId, 'recolor the welcome hero text', kv);
+    expect('handoff' in res).toBe(true);
+    const loaded = loadVectors(createWebFs(kv), STUDIO_VECTORS_FILE);
+    expect(loaded.ok).toBe(true);
+    if (!loaded.ok) return;
+    const hits = queryVectors(loaded.db, 'recolor the welcome hero text', { k: 1 });
+    expect(hits[0]!.meta?.paths).toContain((res as AgentPlan).targetId);
   });
 });
