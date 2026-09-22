@@ -260,6 +260,45 @@ export async function switchBranch(
   };
 }
 
+/**
+ * §29：把一份算好的候选方案落成一条新分支，**工作区不动**。
+ * 候选方向是给人挑的，不是自动采纳：四条方案各自躺在自己的分支线上，
+ * 用户点"切到这个方向"才走 switchBranch。所以这里的快照 advanceWorkspace=false。
+ */
+export async function createVariantBranch(
+  projectId: string,
+  input: {
+    name: string;
+    document: DesignDocument;
+    label: string;
+    summary?: string;
+    createdById?: string | null;
+  },
+): Promise<BranchMeta | null> {
+  const db = getDb();
+  await ensureDefaultBranch(projectId);
+  const clash = await db
+    .select({ id: branches.id })
+    .from(branches)
+    .where(and(eq(branches.projectId, projectId), eq(branches.name, input.name)))
+    .limit(1);
+  if (clash.length) return null;
+  const [row] = await db
+    .insert(branches)
+    .values({ projectId, name: input.name, headSnapshotId: null })
+    .returning();
+  const head = await createSnapshot(projectId, {
+    document: input.document,
+    source: 'branch',
+    label: input.label,
+    summary: input.summary,
+    branchId: row!.id,
+    createdById: input.createdById,
+    advanceWorkspace: false,
+  });
+  return { ...toMeta(row!, null), headSnapshotId: head.id, current: false };
+}
+
 /** §27 Duplicate：整份项目复制成一个新项目（同一份设计内容，新 id、新分支线） */
 export async function duplicateProject(
   ownerId: string,

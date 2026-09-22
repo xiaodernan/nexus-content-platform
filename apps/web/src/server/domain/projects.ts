@@ -229,6 +229,8 @@ export async function loadDocument(projectId: string): Promise<DesignDocument | 
   }
   document.pages = rebuilt.length ? rebuilt : [createPage('Home')];
   document.activePageId = rebuilt.some((p) => p.id === project.activePageId) ? project.activePageId! : document.pages[0]!.id;
+  // createDocument 把 createdAt 写成了"现在"：不覆盖回来的话，每次载入都在谎报这份文档刚被创建
+  document.metadata.createdAt = project.createdAt.toISOString();
   document.metadata.updatedAt = project.updatedAt.toISOString();
   return document;
 }

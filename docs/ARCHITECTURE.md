@@ -80,6 +80,12 @@ DEMO 路径不在 ai-service 里：确定性 Mock 需要 design model 才能产�
 8. **副本必须换号**（§27 Duplicate）：`duplicateDocument` 重发页面 id 与组件 id（存储层的全局主键）并重写
    全部引用，节点 id 只在页面内唯一、跟着页面走所以不变。整棵子树做替换而不是点名式重写——会引用页面/组件
    的地方还会随功能增加，点名迟早漏一处。
+9. **方案不另立存储**（§29）：一条候选方案 = 一条分支 + 它 head 上的那份文档，没有"变体表"。
+   方向被拆成两个各自能搬走的轴——结构（只动 `pages/nodes`）与视觉语言（只动 `tokens` + `visualDna`），
+   所以"A 的布局 + C 的视觉"是一次真实的合并而不是重新生成；前提仍然是节点颜色引用 token（§12）。
+   生成与合成**不推进 `projects.currentSnapshotId`**（`createSnapshot` 的 `advanceWorkspace:false`）：
+   候选是给人挑的，采纳才走 §28 的切换。比较板与画布、预览共用 `resolveLayout + nodeStyle`，
+   看到的必须等于切过去之后看到的。
 
 ## Design ↔ Code 双通道
 

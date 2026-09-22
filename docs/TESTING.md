@@ -32,7 +32,8 @@
 8  Preview iframe 只读渲染 + Mobile/Tablet/Desktop/Wide 切换无横向溢出（§14）
 9  Screenshot 出图并出现在 Activity 与视觉 QA 结果里（§33/§87）
 10 保存项目 → Snapshot 创建/比较/恢复 → 开分支并来回切换 → Duplicate 成新项目（§27/§28，已覆盖）
-10b 多方案 Concept A/B/C 生成 + 并排比较、"取 A 的布局 + C 的视觉"（§29，待落地）
+10b 生成 4 条方案 → 并排比较 → "A 的布局 + C 的视觉"合成 → 采纳才换画布（§29，已覆盖）
+10c 真实 provider 生成方案方向（现在是确定性配方，UI 常驻 DEMO MODE）
 11  Publish 过 Quality Gate → /n/<user>/<slug> 可访问（private/unlisted/public 语义正确，§56-57/§179）
 12 导出 ZIP 含 .nexus/ 结构，能在干净实例导入还原（§102-104/§144）
 ```
@@ -70,6 +71,13 @@
   且 `activePageId`、`component.pageId`、变量 `refId`、交互 `target` 都指向副本而不是源项目；
   e2e 断言复制后 URL 的项目 id 真的变了（不能用 `/studio/[^/]+` 匹配，副本同样满足）、
   当前视觉方向被带走、副本只有一条 main 分支和一份初始快照、源项目不受影响
-- 每个里程碑一次 commit 前至少跑：`npm run lint && npm test && npm run test:e2e:smoke`
-- 改了 `packages/schemas` 必须重跑 `npm run contract:export`，否则契约漂移测试会红
+- 多方案的不变量（§29）：`concepts.test.ts` 断言两个轴各自搬得动——视觉语言只改 token 不碰节点、
+  结构方向只改节点不碰 token、同一份输入两次生成得到同一组方向（没有随机数）、每条方案仍是合法文档；
+  `variants.integration.test.ts` 打真实 Postgres 断言生成与合成**不推进工作区指针**、
+  重复生成自动加序号不撞名、合成结果的结构等于布局来源而配色等于视觉来源、来源不存在时如实拒绝
+- 比较板上的卡是投影不是图片：e2e 断言每张卡里能查到 `[data-node-id]`，
+  并且"采纳才换画布"（生成后画布仍是 8 个节点，切到左右分栏那条才变 11 个）
+- 打真库的用例共用一个 Postgres，整套并行时一条往返会排在别人的连接后面，
+  所以 `vitest.config.ts` 把 `testTimeout` 提到 30s（默认 5s 会把这种排队误报成超时失败）
+- 每个里程碑一次 commit 前至少跑：`npm run lint && npm test && npm run test:e2e:smoke`- 改了 `packages/schemas` 必须重跑 `npm run contract:export`，否则契约漂移测试会红
 - 动了 ai-service 再加：`npm run test:ai-service`（Windows 控制台建议前置 `PYTHONUTF8=1`）

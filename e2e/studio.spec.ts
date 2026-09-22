@@ -221,6 +221,103 @@ test('@smoke studio slice: branches keep each design direction and duplicate for
   await expect(page.locator('[data-branch]')).toHaveCount(2);
 });
 
+/**
+ * §29 多方案：一次生成几条方向、并排比较、再"取 A 的布局 + C 的视觉"合成一条。
+ * 关键不变量用用户可见的结果断言：生成不能动画布，采纳才会动。
+ */
+test('@smoke studio slice: variants generate side by side and combine into a new direction', async ({ page }) => {
+  test.setTimeout(240_000);
+  await createProject(page, `方案 ${Date.now().toString(36)}`);
+
+  // 先在 main 上留一个可识别的现场：生成方案不该动它
+  await page.click('[data-panel-tab="layers"]');
+  const headlineId = await layerId(page, 'Headline');
+  await page.click(`[data-node-id="${headlineId}"]`);
+  await page.fill('[data-prop="typography.fontSize"]', '72');
+  await expect(page.locator('[data-save-state]')).toContainText('已保存', { timeout: 20_000 });
+
+  const cardList = async () =>
+    page.evaluate(() =>
+      Array.from(document.querySelectorAll<HTMLElement>('[data-variant-card]')).map((el) => ({
+        id: el.dataset.variantCard ?? '',
+        name: el.querySelector('[data-variant-name]')?.textContent?.trim() ?? '',
+        current: el.dataset.variantCurrent === 'true',
+      })),
+    );
+
+  await page.click('[data-view="variants"]');
+  await expect(page.locator('[data-variants-board]')).toBeVisible();
+  // 一开始只有手上这一条线
+  await expect(page.locator('[data-variant-card]')).toHaveCount(1);
+  await expect(page.locator('[data-variant-demo-mode]')).toHaveText('DEMO MODE');
+
+  await page.click('[data-variant-generate]');
+  await expect(page.locator('[data-variant-card]')).toHaveCount(5, { timeout: 60_000 });
+  await expect(page.locator('[data-variant-error]')).toHaveCount(0);
+  const generated = await cardList();
+  expect(generated.map((c) => c.name).sort()).toEqual(['concept-a', 'concept-b', 'concept-c', 'concept-d', 'main']);
+  expect(generated.filter((c) => c.current).map((c) => c.name)).toEqual(['main']);
+  // 每张卡都是真投影出来的页面，不是占位框
+  for (const card of generated.filter((c) => c.name !== 'main')) {
+    await expect(page.locator(`[data-variant-card="${card.id}"] [data-node-id]`).first()).toBeVisible();
+  }
+  // 每条方案都写下了自己的历史，且都挂在自己的分支上
+  await page.click('[data-panel-tab="history"]');
+  await expect(page.locator('[data-snapshot-item]').filter({ hasText: '生成方案' })).toHaveCount(4);
+  await expect(page.locator('[data-branch]')).toHaveCount(5);
+
+  // 回到比较板：生成没有动工作区
+  await page.click('[data-view="variants"]');
+  await page.click('[data-view="canvas"]');
+  await expect(page.locator('[data-canvas-frame] [data-node-id]')).toHaveCount(8);
+  await page.click('[data-panel-tab="layers"]');
+  await page.click(`[data-node-id="${headlineId}"]`);
+  await expect(page.locator('[data-prop="typography.fontSize"]')).toHaveValue('72');
+
+  // Combine：A 的布局 + C 的视觉
+  const byName = (name: string) => generated.find((c) => c.name === name)!.id;
+  await page.click('[data-view="variants"]');
+  await page.selectOption('[data-variant-layout]', byName('concept-a'));
+  await page.selectOption('[data-variant-visual]', byName('concept-c'));
+  await page.click('[data-variant-merge]');
+  await expect(page.locator('[data-variant-card]')).toHaveCount(6, { timeout: 60_000 });
+  // 合成本身要收工：按钮卡在"生成中…"说明 busy 状态没随刷新落回去
+  await expect(page.locator('[data-variant-generate]')).toBeEnabled({ timeout: 30_000 });
+  const merged = (await cardList()).find((c) => c.name === 'mix-a-c');
+  expect(merged).toBeTruthy();
+  expect(merged!.current).toBe(false);
+  await expect(page.locator(`[data-variant-card="${merged!.id}"] [data-variant-desc]`)).toContainText('concept-a');
+
+  // 采纳一条方案才会换掉工作区：B 是左右分栏，节点数会变
+  await page.click(`[data-variant-adopt="${byName('concept-b')}"]`);
+  await expect(page.locator(`[data-variant-card="${byName('concept-b')}"]`)).toHaveAttribute(
+    'data-variant-current',
+    'true',
+    { timeout: 60_000 },
+  );
+  await page.click('[data-view="canvas"]');
+  await expect(page.locator('[data-canvas-frame] [data-node-type="card"]')).toHaveCount(1);
+  await expect(page.locator('[data-canvas-frame] [data-node-id]')).toHaveCount(11);
+  // 采纳保留用户写过的内容，只换排布与配色
+  await page.click('[data-panel-tab="layers"]');
+  await page.click(`[data-node-id="${headlineId}"]`);
+  await expect(page.locator('[data-prop="typography.fontSize"]')).toHaveValue('72');
+
+  // 切回 main：手上那一版回来，方案 B 的东西留在它自己那条线上
+  await page.click('[data-view="variants"]');
+  const mainId = (await cardList()).find((c) => c.name === 'main')!.id;
+  await page.click(`[data-variant-adopt="${mainId}"]`);
+  await expect(page.locator(`[data-variant-card="${mainId}"]`)).toHaveAttribute('data-variant-current', 'true', {
+    timeout: 60_000,
+  });
+  await page.click('[data-view="canvas"]');
+  await expect(page.locator('[data-canvas-frame] [data-node-id]')).toHaveCount(8);
+  // 刷新后仍然停在 main：采纳真的落了库
+  await page.reload();
+  await expect(page.locator('[data-canvas-frame]')).toBeVisible({ timeout: 30_000 });
+  await expect(page.locator('[data-canvas-frame] [data-node-id]')).toHaveCount(8);
+});
+
 test('@smoke studio slice: AI command bar runs in DEMO MODE as one undoable transaction', async ({ page }) => {
   test.setTimeout(120_000);
   await createProject(page, `AI ${Date.now().toString(36)}`);

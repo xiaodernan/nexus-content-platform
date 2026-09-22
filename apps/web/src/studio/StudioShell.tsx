@@ -9,6 +9,7 @@ import { HistoryPanel } from './HistoryPanel';
 import { PropertiesPanel } from './PropertiesPanel';
 import { CanvasStage } from './CanvasStage';
 import { CodePanel } from './CodePanel';
+import { VariantsBoard } from './VariantsBoard';
 import { CommandBar } from './CommandBar';
 
 type PanelTab = 'layers' | 'history';
@@ -51,7 +52,7 @@ export function StudioShell({ projectId, demoMode }: { projectId: string; demoMo
 /** 只在 load 完成后挂载：子组件因此可以假定 document / page / layout 存在 */
 function StudioWorkspace({ zoom, demoMode }: { zoom: number; demoMode: boolean }) {
   const [tab, setTab] = useState<PanelTab>('layers');
-  const [view, setView] = useState<'canvas' | 'code'>('canvas');
+  const [view, setView] = useState<'canvas' | 'code' | 'variants'>('canvas');
   const [railOpen, setRailOpen] = useState(true);
   const [inspectorOpen, setInspectorOpen] = useState(false);
 
@@ -95,7 +96,7 @@ function StudioWorkspace({ zoom, demoMode }: { zoom: number; demoMode: boolean }
             {/* 视图切换与 DEMO 标识常驻在同一行：浮层会盖住代码视图的文件标签（§160） */}
             <div className="flex shrink-0 items-center gap-2 border-b border-[var(--nexus-color-border-subtle)] bg-bg-1 px-[var(--nexus-space-2)] py-1">
               <span className="flex items-center gap-1" data-view-switch>
-                {(['canvas', 'code'] as const).map((id) => (
+                {(['canvas', 'variants', 'code'] as const).map((id) => (
                   <button
                     key={id}
                     type="button"
@@ -107,7 +108,7 @@ function StudioWorkspace({ zoom, demoMode }: { zoom: number; demoMode: boolean }
                       view === id ? 'bg-bg-3 text-fg-1' : 'text-fg-3 hover:bg-bg-2',
                     )}
                   >
-                    {id === 'canvas' ? '画布' : '代码'}
+                    {id === 'canvas' ? '画布' : id === 'variants' ? '方案' : '代码'}
                   </button>
                 ))}
               </span>
@@ -126,9 +127,12 @@ function StudioWorkspace({ zoom, demoMode }: { zoom: number; demoMode: boolean }
                 {demoMode ? 'DEMO MODE' : 'LIVE PROVIDER'}
               </span>
             </div>
-            <div className="relative min-h-0 flex-1">{view === 'canvas' ? <CanvasStage /> : <CodePanel />}</div>
+            <div className="relative min-h-0 flex-1">
+              {view === 'canvas' ? <CanvasStage /> : view === 'variants' ? <VariantsBoard /> : <CodePanel />}
+            </div>
           </div>
-          <CommandBar />
+          {/* 比较板是只读的：AI 命令栏改的是工作区那一份，在这儿会让人以为改的是某张卡 */}
+          {view === 'variants' ? null : <CommandBar />}
         </main>
 
         {inspectorOpen ? (

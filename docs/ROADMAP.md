@@ -39,7 +39,8 @@ Create Project → Prompt → AI Design → Canvas → Layers → Properties
 - [x] Snapshot 服务端：列表 / 创建 / 恢复，恢复自身留下一条历史（§27/§108）
 - [x] Compare：快照与当前文档的字段级差异，复用 AI Diff 的条目形状（§27/§151）
 - [x] Branch / Duplicate：分支线、切换、整份项目副本（§27/§28）
-- [ ] 多方案 A-B-C 并排比较（§29，依赖分支：分支已可用，并排比较视图还没有）
+- [x] 多方案 A-B-C 并排比较 + "取 A 的布局 + C 的视觉"合成（§29）
+- [ ] 方案生成的真实 provider 路径（现在是确定性配方，见下方进度记录）
 - [ ] 免注册首次体验（§137）→ 注册保存；Publish + 分享 URL（§56-57）
 
 **M1 进度记录（2026-09-22，Branch / Duplicate）**：§28 的分支线 = `branches` 表里一条有名字的快照线，
@@ -61,7 +62,27 @@ Duplicate（§27）走 `duplicateDocument`：页面 id 与组件 id 在库里是
 （新增"开分支 → 两个方向 → 来回切换各自现场仍在 → 副本是另一个项目且源项目没被动过"）、
 截图 `history-branch.png` / `history-branch-main.png` / `duplicate-project.png` 人眼确认。
 已知边界：切分支与恢复一样会清空本地撤销栈（如实提示）；快照列表仍按时间全量展示并在每行标出所属分支，
-"只看当前分支"与 §29 的并排比较视图没做。
+"只看当前分支"没做。（§29 的并排比较见下一条记录。）
+
+**M1 进度记录（2026-09-22，多方案 §29）**：一条方案 = 一条分支 + 它 head 上的那份文档，
+没有另立"变体表"——§28 已经规定方向是分支线，再造一套并行状态就多一处会漂移的地方。
+`packages/design-model/src/concepts.ts` 把"方向"拆成两个能各自搬走的轴：**结构**（`CONCEPT_STRUCTURES`：
+居中开场 / 左右分栏 / 三卡并列 / 导航开场，只动节点）与**视觉语言**（`CONCEPT_LANGUAGES`：
+编辑部 / 影院 / 赛博 / 暖阳，只动 token 与 visualDna）。拆成两轴是为了让"取 A 的布局 + C 的视觉"
+这句话有指代；前提是节点颜色一律引用 token（§12），否则换语言就得逐节点改写。
+圆角没有做成可换的旋钮：起手页的圆角是写死在节点上的，声称能换就是假的（见技术债）。
+`generateVariants` / `mergeVariants` 都**不动工作区**（`createSnapshot` 新增 `advanceWorkspace:false`），
+所以"生成 4 个方案"不会把用户手上的稿子换掉；点"切到这个方向"才走 §28 的切换。
+比较板是第三个视图（画布 / 方案 / 代码），每张卡用与画布、预览同源的 `resolveLayout + nodeStyle` 投影，
+命令栏在这个视图里收起来——它改的是工作区那一份，摆在这儿会让人以为改的是某张卡。
+过程中修掉三处真实问题：① 采纳一条方案会顺手把项目改名（方案名属于分支与快照，不属于文档）；
+② `mergeVariants` 的 finally 少一次 commit，按钮永远停在"生成中…"；
+③ `loadDocument` 每次都把 `metadata.createdAt` 写成"现在"（createDocument 的默认值没被覆盖回来）。
+验证：`npm test` 192（新增 12 条 concepts 单测 + 8 条方案集成测试）、10 @smoke
+（"生成四条 → 都是真投影 → 工作区没被动过 → 合成 A 布局 + C 视觉 → 采纳才换画布 → 切回 main 原样"）、
+截图 `variants-board.png` / `variants-merged.png` / `variants-adopted.png` 人眼确认。
+已知边界：方案来自确定性配方（UI 常驻 DEMO MODE 说明），不是模型输出；真实 provider 接入后
+换掉的是"往哪个方向改"，落地方式仍然是一条分支一份 head 快照。
 
 **M1 进度记录（2026-09-22，Compare）**：§27 的"比较"落在 `packages/design-model/src/diff.ts` 的
 `diffDocuments(before, after)`：产出与 AI Diff（§151）同样的 `DiffEntry[]`，所以历史面板两套清单共用一个行组件。
@@ -177,6 +198,10 @@ Studio 顶栏下新增 画布/代码 切换（`CodePanel`），选中的元素�
   以及快照列表的「只看当前分支」筛选——现在仍按时间全量展示、每行标出所属分支。
 - `loadDocument` 不恢复 `document.activeMode` 与 `metadata.modes`（库里没有对应列）：
   主题模式在保存-重载后会退回默认值，快照恢复同样带不回它。要加列 + 迁移才能修。
+  （`metadata.createdAt` 以前每次载入都被写成"现在"，已修；`modes` 这两个仍然没修。）
+- 起手页的圆角、间距是写死在节点上的数字（`cornerRadius: 10`、`padding.top: 64`），没绑到 `radius.*` /
+  `space.*` token。后果具体可见：§29 的视觉语言只能换颜色与字体，"换一套圆角"这种旋钮做不了——
+  做不了就别在 UI 上声称能做。等上面那条 token 类型债一起修。
 - 代码投影（`codegen.ts`）与画布一样只覆盖几何/样式/文字：`typography.runs`、`animation`、`interactions`、
   `states`、`bindings` 都还没实现——渲染层也没有，所以两边一致地缺失，不是生成器单独偷懒。
 - 生成的页面组件之间没有共享组件抽取：`component`/`instance` 节点会被展开成内联子树，

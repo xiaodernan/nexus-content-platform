@@ -28,6 +28,7 @@ import {
 import type { DesignPatchPayload } from '@nexus/schemas';
 import type { SnapshotEntry, SnapshotMeta } from '@/server/domain/snapshots';
 import type { BranchMeta } from '@/server/domain/branches';
+import type { VariantEntry } from '@/server/domain/variants';
 
 /**
  * Studio 客户端状态：唯一真值仍然是 DesignStore 里的 DesignDocument（§9/§16）。
@@ -82,6 +83,10 @@ export interface StudioSnapshot {
   compare: CompareResult | null;
   /** §28 分支线；当前分支 = head 停在 currentSnapshotId 的那条，由服务端推导 */
   branches: readonly BranchMeta[];
+  /** §29 多方案：每条分支 head 上的文档，用于并排比较 */
+  variants: readonly VariantEntry[];
+  /** 上一次生成/合成时"没能落上去"的部分（§159：不静默丢弃） */
+  variantNotes: readonly string[];
   revision: number;
   activeMode: string | null;
 }
@@ -129,6 +134,8 @@ export class StudioStore {
   private snapshotErrorValue: string | null = null;
   private compareValue: CompareResult | null = null;
   private branchList: BranchMeta[] = [];
+  private variantList: VariantEntry[] = [];
+  private variantNotes: string[] = [];
 
   constructor() {
     this.design.subscribe(() => this.commit());
@@ -188,6 +195,8 @@ export class StudioStore {
       snapshotError: this.snapshotErrorValue,
       compare: this.compareValue,
       branches: this.branchList,
+      variants: this.variantList,
+      variantNotes: this.variantNotes,
       revision: state.revision,
       activeMode: document.activeMode ?? null,
     };
@@ -405,6 +414,8 @@ export class StudioStore {
       // 恢复之后当前文档已经变了，之前的比较结果不再对应任何东西
       this.compareValue = null;
       await this.refreshSnapshots();
+      // 工作区换了版本：比较板上的 head 与"当前"标记都要跟着刷新
+      await this.refreshVariants();
       return true;
     } catch (error) {
       this.snapshotErrorValue = error instanceof Error ? error.message : String(error);
@@ -517,6 +528,8 @@ export class StudioStore {
       this.savedAt = new Date().toISOString();
       this.compareValue = null;
       await this.refreshSnapshots();
+      // 工作区换了版本：比较板上的 head 与"当前"标记都要跟着刷新
+      await this.refreshVariants();
       return true;
     } catch (error) {
       this.snapshotErrorValue = error instanceof Error ? error.message : String(error);
@@ -555,6 +568,95 @@ export class StudioStore {
       return null;
     } finally {
       this.snapshotBusyValue = false;
+      this.commit();
+    }
+  }
+
+  // ---- 多方案（§29：一条方案 = 一条分支 + 它 head 上的文档） ----
+
+  /** 比较板要的是每份方案的完整文档，所以列表与文档一次拿全，不分两次请求 */
+  async refreshVariants(): Promise<void> {
+    if (!this.projectId || !this.ready) return;
+    try {
+      const res = await fetch(`/api/projects/${this.projectId}/variants`, { cache: 'no-store' });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const body = (await res.json()) as { variants?: VariantEntry[] };
+      this.variantList = body.variants ?? [];
+      this.snapshotErrorValue = null;
+    } catch (error) {
+      this.variantList = [];
+      this.snapshotErrorValue = error instanceof Error ? error.message : String(error);
+    }
+    this.commit();
+  }
+
+  /** 生成候选方案：工作区不动，所以本地撤销栈与画布都不该有任何变化 */
+  async generateVariants(count: number): Promise<number> {
+    if (!this.projectId || !this.ready) return 0;
+    this.snapshotBusyValue = true;
+    this.snapshotErrorValue = null;
+    this.commit();
+    try {
+      await this.save();
+      if (this.saveStateValue === 'error') throw new Error(this.saveError ?? '保存失败');
+      const res = await fetch(`/api/projects/${this.projectId}/variants`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ count }),
+      });
+      const body = (await res.json().catch(() => null)) as
+        | { variants?: VariantEntry[]; notes?: string[]; message?: string; issues?: string[] }
+        | null;
+      if (!res.ok) throw new Error(body?.issues?.join('；') ?? body?.message ?? `HTTP ${res.status}`);
+      this.variantNotes = body?.notes ?? [];
+      // POST 只回来刚生成的那几条：比较板要的是全部方向（含 main 上的当前版本），重新拉一次
+      await this.refreshVariants();
+      await this.refreshSnapshots();
+      return this.variantList.length;
+    } catch (error) {
+      this.snapshotErrorValue = error instanceof Error ? error.message : String(error);
+      return 0;
+    } finally {
+      this.snapshotBusyValue = false;
+      this.commit();
+    }
+  }
+
+  /** §29 "Combine A's layout with C's visual style"：结果同样落在一条新分支上 */
+  async mergeVariants(
+    layoutBranchId: string,
+    visualBranchId: string,
+    name?: string,
+  ): Promise<VariantEntry | null> {
+    if (!this.projectId || !this.ready) return null;
+    this.snapshotBusyValue = true;
+    this.snapshotErrorValue = null;
+    this.commit();
+    try {
+      const res = await fetch(`/api/projects/${this.projectId}/variants/merge`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ layoutBranchId, visualBranchId, name: name?.trim() || null }),
+      });
+      const body = (await res.json().catch(() => null)) as
+        | { variant?: VariantEntry; notes?: string[]; message?: string; issues?: string[] }
+        | null;
+      if (!res.ok || !body?.variant) {
+        throw new Error(body?.issues?.join('；') ?? body?.message ?? `HTTP ${res.status}`);
+      }
+      this.variantNotes = body.notes ?? [];
+      await this.refreshVariants();
+      await this.refreshSnapshots();
+      return body.variant;
+    } catch (error) {
+      this.snapshotErrorValue = error instanceof Error ? error.message : String(error);
+      this.commit();
+      return null;
+    } finally {
+      this.snapshotBusyValue = false;
+      // 不 commit 的话，refreshVariants 期间产出的最后一次快照会带着 busy=true 留在界面上，
+      // 按钮就永远停在"生成中…"
+      this.commit();
     }
   }
 

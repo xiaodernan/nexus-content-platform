@@ -40,6 +40,12 @@ export interface CreateSnapshotInput extends SnapshotActor {
   summary?: string | null;
   /** AI 事务的补丁清单（§151）：快照本身存全量文档，patch 只用于展示 diff 来源 */
   patch?: unknown;
+  /**
+   * 默认 true：快照通常是"工作区现在就停在这儿"的记录。§29 的多方案不是——
+   * 四条候选要各自落在分支上等人挑，但用户手上的那一版不能被换掉，
+   * 所以这类快照写进分支线、不动 projects.currentSnapshotId（当前分支因此仍然成立）。
+   */
+  advanceWorkspace?: boolean;
 }
 
 /**
@@ -128,10 +134,12 @@ export async function createSnapshot(
       createdById: input.createdById ?? null,
     })
     .returning();
-  await db
-    .update(projects)
-    .set({ currentSnapshotId: row!.id })
-    .where(eq(projects.id, projectId));
+  if (input.advanceWorkspace !== false) {
+    await db
+      .update(projects)
+      .set({ currentSnapshotId: row!.id })
+      .where(eq(projects.id, projectId));
+  }
   if (input.branchId) {
     // 分支的 head 就是"这条线最新的那一份"，切换分支靠它
     await db

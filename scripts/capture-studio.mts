@@ -250,6 +250,77 @@ const branchChips = await page.locator('[data-branch]').count();
 if (branchChips !== 2) throw new Error(`源项目的分支线不该被副本改动，实际有 ${branchChips} 条`);
 await page.click('[data-panel-tab="layers"]');
 
+// §29 多方案：生成四条方向并排比较 → 合成一条 → 采纳一条才换画布
+await page.click('[data-view="variants"]');
+await page.waitForSelector('[data-variant-card]', { timeout: 30_000 });
+const idle = () =>
+  page.waitForFunction(
+    () => !(document.querySelector('[data-variant-generate]') as HTMLButtonElement | null)?.disabled,
+    undefined,
+    { timeout: 60_000, polling: 300 },
+  );
+const cardsAtLeast = async (min: number, label: string): Promise<void> => {
+  try {
+    await page.waitForFunction(
+      (n) => document.querySelectorAll('[data-variant-card]').length >= n,
+      min,
+      { timeout: 60_000, polling: 300 },
+    );
+  } catch {
+    const seen = await page.locator('[data-variant-card]').count();
+    const error = (await page.locator('[data-variant-error]').textContent()) ?? '';
+    throw new Error(`${label}：期望至少 ${min} 张方案卡，实际 ${seen} 张${error ? `；页面报错：${error}` : ''}`);
+  }
+};
+const cardsBefore = await page.locator('[data-variant-card]').count();
+await page.click('[data-variant-generate]');
+await cardsAtLeast(cardsBefore + 4, '生成四条方案');
+await idle();
+if (await page.locator('[data-variant-error]').count()) {
+  throw new Error(`方案生成报错：${(await page.locator('[data-variant-error]').textContent()) ?? ''}`);
+}
+await page.screenshot({ path: `${out}variants-board.png` });
+
+const variantCards = await page.evaluate(() =>
+  [...document.querySelectorAll<HTMLElement>('[data-variant-card]')].map((el) => ({
+    id: el.dataset.variantCard ?? '',
+    name: el.querySelector('[data-variant-name]')?.textContent?.trim() ?? '',
+  })),
+);
+const pick = (name: string): string => {
+  const hit = variantCards.find((v) => v.name === name);
+  if (!hit) throw new Error(`比较板里没有 ${name}`);
+  return hit.id;
+};
+await page.selectOption('[data-variant-layout]', pick('concept-a'));
+await page.selectOption('[data-variant-visual]', pick('concept-c'));
+const beforeMerge = await page.locator('[data-variant-card]').count();
+await page.click('[data-variant-merge]');
+await cardsAtLeast(beforeMerge + 1, '合成 A 布局 + C 视觉');
+await idle();
+const mergedCard = page.locator('[data-variant-card]').filter({ hasText: 'mix-a-c' });
+await mergedCard.scrollIntoViewIfNeeded();
+await page.screenshot({ path: `${out}variants-merged.png` });
+
+await page.click(`[data-variant-adopt="${pick('concept-b')}"]`);
+await page.waitForFunction(
+  (id) => document.querySelector(`[data-variant-card="${id}"]`)?.getAttribute('data-variant-current') === 'true',
+  pick('concept-b'),
+  { timeout: 60_000, polling: 300 },
+);
+await page.click('[data-view="canvas"]');
+await page.waitForSelector('[data-canvas-frame] [data-node-type="card"]', { timeout: 30_000 });
+await page.screenshot({ path: `${out}variants-adopted.png` });
+// 回到 main：截图链路不该把项目留在某个候选方向上
+await page.click('[data-view="variants"]');
+await page.click(`[data-variant-adopt="${pick('main')}"]`);
+await page.waitForFunction(
+  (id) => document.querySelector(`[data-variant-card="${id}"]`)?.getAttribute('data-variant-current') === 'true',
+  pick('main'),
+  { timeout: 60_000, polling: 300 },
+);
+await page.click('[data-view="canvas"]');
+await page.waitForSelector('[data-canvas-frame] [data-node-id]', { timeout: 30_000 });
 await page.click('[data-viewport="mobile"]');
 await page.waitForTimeout(400);
 await page.screenshot({ path: `${out}studio-mobile.png` });
