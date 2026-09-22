@@ -818,3 +818,29 @@ two fresh runs, checkpoint denial leaving the workspace byte-identical).
   refs/targetPath variants and all three tier-removal omissions, plus five orchestrator
   semantics; that file is now 30 tests); exec-host 71/71 UNCHANGED (no exec-host code
   moved); studio 99/99 unchanged; twenty-nine proofs (31 scripts) green.
+
+## Amendment 40 — v40: checkpoint policy as pure data — §28 becomes a table you can diff, 2026-09
+- **The human in §28 was always a closure; v40 makes the DECISION inspectable.**
+  `checkpointPolicy.ts` is a pure runtime module: an ordered `CheckpointRule[]`
+  (tool pattern — exact/trailing-glob/`*`, reusing the registry's own `matchesTool` —
+  plus `grant` and a REQUIRED `reason`), an EXPLICIT default (no implicit verdicts),
+  `decide` = pure first-match, and `policyCheckpoint(policy)` adapting it to the
+  registry's unchanged `Checkpoint` type while keeping a receipt (`CheckpointDecision`)
+  for every single gated call. `validateCheckpointPolicy` throws at CONSTRUCTION on a
+  missing reason, non-boolean grant or duplicate pattern (a duplicate means the later
+  rule is dead code — the table says what it means, or it does not gate).
+- **Honest bounds (§60):** a policy auto-approving is exactly as trusted as the human
+  who wrote it — the module changes WHERE judgment lives, not WHO owns it; the receipts
+  exist so no decision can later be claimed silently. Read-permission calls never reach
+  the checkpoint (gates stay on hands, not eyes), and no host is switched to policy mode
+  by this amendment — the dock's live Allow-once human stays the default §28 face; this
+  is the pre-authorizable, auditable ALTERNATIVE, proven side by side.
+- **The 30th proof (`policygate-proof.mjs`) runs the SAME plan+tools under TWO tables**
+  against REAL git in a throwaway `os.tmpdir()` repo (§9): the closed table denies the
+  commit with 0 spawns and HEAD unmoved; the open table commits exactly once; the two
+  audit trails are the same length and differ on EXACTLY one line — `git.commit` — each
+  receipt quoting its rule's stated reason verbatim. An unlisted exec-capability falls
+  to the default row and never runs. HOME HEAD byte-identical.
+- runtime 224/224 → 232/232 (NEW checkpointPolicy.test.ts, 8 cases incl. a runTask
+  end-to-end through policy gates); exec-host 71/71 and studio 99/99 unchanged (no
+  exec-host or browser code moved); thirty proofs (32 scripts) green.
