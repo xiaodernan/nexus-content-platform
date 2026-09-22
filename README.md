@@ -18,6 +18,7 @@ AI-native 创作 + 娱乐 + 设计 + 游戏创建平台。把想法变成可以�
 | `docs/RUNTIME.md` | 本地按需启动、预览沙箱、事件、发布、导出 |
 | `docs/SECURITY.md` | 硬约束清单：沙箱、SSRF、注入、上传、prompt 注入、内容安全 |
 | `docs/TESTING.md` | 测试分层 + M1 Golden Path 12 步验收 |
+| `docs/PERFORMANCE.md` | §146/§147 规模基准：100/1000/10000 节点的实测数字与还没做的部分 |
 | `docs/ENVIRONMENT.md` | 本机勘察结论与端口/内存约束 |
 
 ## 当前状态

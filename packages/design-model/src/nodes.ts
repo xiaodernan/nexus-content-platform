@@ -45,8 +45,30 @@ export function setOnObject<T extends Record<string, unknown>>(
   return target;
 }
 
+/**
+ * 深拷贝。设计文档是纯 JSON（它要过 JSONB 与 JSON.stringify），所以自己走一遍
+ * 比 structuredClone 快一个量级——每次编辑都要整份克隆，10k 节点的文档上这曾是主要开销。
+ * 非纯数据的对象（Date / Map / 类实例）仍交给 structuredClone，不假装能处理。
+ */
+function fastClone<T>(value: T): T {
+  if (Array.isArray(value)) {
+    const out: unknown[] = new Array(value.length);
+    for (let i = 0; i < value.length; i += 1) out[i] = fastClone(value[i]);
+    return out as T;
+  }
+  if (value && typeof value === "object") {
+    const proto = Object.getPrototypeOf(value) as unknown;
+    if (proto !== Object.prototype && proto !== null) return structuredClone(value);
+    const source = value as Record<string, unknown>;
+    const out: Record<string, unknown> = {};
+    for (const key of Object.keys(source)) out[key] = fastClone(source[key]);
+    return out as T;
+  }
+  return value;
+}
+
 export function clone<T>(value: T): T {
-  return structuredClone(value);
+  return fastClone(value);
 }
 
 /**

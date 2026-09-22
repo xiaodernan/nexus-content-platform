@@ -263,12 +263,27 @@ warm 方向奶油字压亮橙 3.35:1、cyber 的 light 模式是深底配深字 
 按比值重算色板而不是下调 80 分线，`nodes.ts` / `concepts.ts` 的默认值因此变了（codegen/render/e2e 三处钉死旧色值的断言同步更新）。
 `applyConceptLanguage` 另修一处：语言只给 `value` 时上一套配色的 light/dark 会漏进来，现在收敛到该语言自己的值。
 
-验证：`npm test` 310（新增 `health.test.ts` 11 条：门槛两侧 82/76、error 一票否决、40 条截断与 omitted、
-凭据脱敏后报文里查不到原文、localhost 不算明文外链、断链不崩；`measureContrast` 5 条：token 解析、
-祖先合成、半透明先合成、按钮取正文色、渐变返回 null）、17 条 @smoke 全绿；
+验证：`npm test` 313（本项新增 16 条：`health.test.ts` 11 条——门槛两侧 82/76、error 一票否决、
+40 条截断与 omitted、凭据脱敏后报文里查不到原文、localhost 不算明文外链、断链不崩；
+`measureContrast` 5 条——token 解析、祖先合成、半透明先合成、按钮取正文色、渐变返回 null）、17 条 @smoke 全绿；
 浏览器实测：起手页七行全过 → 把 `color.text/on-primary` 压成暗灰 → Accessibility 掉到 76 并列出
 "Headline 2.06:1（#454a58 on #12151d）" → 点发布被挡（`门禁未通过：Accessibility 76 分，低于门槛 80`）
 → 同一份文档切私有放行、报告照旧列失败项。取舍见 `docs/adr/0005-health-score-and-gate.md`。
+
+**M2 进度记录（2026-09-23，规模基准 §146 / 热点路径 §147）**：`scripts/perf-baseline.mts` 造 100/1000/10000
+节点的文档，对七条模型层热点路径取 median-of-3，数字与噪声说明一起进 `docs/PERFORMANCE.md`
+（**不断言阈值**：这台机器上 median-of-3 的散布就有 ±30%，写死断言的下场是被人删掉）。
+第一轮实测就把真问题挖出来了：`execute + undo` 在 10k 节点上要 861ms/次——`runPatches` 应用一遍补丁、
+`buildEntry` 为求逆与算 diff 又从头应用一遍，而 `applyPatch` 每条补丁 `structuredClone` 整份文档。
+改成"`buildEntry` 顺带把过程中的文档交回来"（一次编辑一次应用）+ `clone()` 走自写递归拷贝
+（纯对象/数组走快路，`Date`/`Map`/类实例仍回落 `structuredClone`；**保留 `undefined` 键与数组空洞**——
+`JSON.parse(JSON.stringify())` 会丢，undo 之后节点形状就变了，这条有回归测试）。
+净效果：一次编辑 + 撤销，100 节点 4.0ms→0.54ms、10k 节点 861ms→129ms；
+其余路径前后的差落在测量噪声内，文档里明说了别把它们读成回归。
+§147 剩下的如实挂着：整份拷贝仍是那 129ms 的主体（下一步是结构共享）、画布没有虚拟化/增量渲染、
+没有 worker、浏览器端指标一个数字都还没有——所以 `docs/PERFORMANCE.md` 里也不写任何浏览器端数字。
+验证：`npm test` 313（克隆的 `undefined` 键 / 数组空洞 / 非纯对象回落，以及"一次 execute 只应用一遍"各一条回归）、
+17 条 @smoke 全绿（编辑—撤销—自动保存那条走的就是被改过的路径）。
 
 ## M3 — 世界 / 角色 / RAG（§183）
 - [ ] World Builder（Lore/History/Geography/Factions/Characters/Creatures/Items/Quests/Story）
@@ -307,6 +322,8 @@ warm 方向奶油字压亮橙 3.35:1、cyber 的 light 模式是深底配深字 
 - Agent 工具注册表 + 权限 + 人工审批门（§72-74/177）
 - Context Engine / Code Index / Design Index / Project Graph（§66-71）
 - Observability / Evaluation / Visual Benchmark（§84-86/156）
+- 规模基准与热点路径（§146/§147）— 模型层有 `scripts/perf-baseline.mts`，实测数字与"还没做的部分"记在
+  `docs/PERFORMANCE.md`；画布虚拟化、worker、浏览器端指标仍未做，所以那些数字一个都没有。
 - 沙箱预览与生成代码隔离执行（§81-83）
 - Design Critic + Visual QA + 无障碍/性能门禁（§32-33/90-91/178-179）—
   门禁与七行健康度已落地（`analyzeHealth`，见 M2 进度记录与 `docs/adr/0005-…`）；

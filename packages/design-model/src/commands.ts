@@ -151,7 +151,7 @@ export class DesignStore {
     if (!this.openTransaction) throw new Error("no open transaction");
     const { command, snapshot } = this.openTransaction;
     this.openTransaction = null;
-    const entry = this.buildEntry(command, snapshot);
+    const entry = this.buildEntry(command, snapshot)?.entry ?? null;
     if (entry) {
       this.undoStack.push(entry);
       if (this.undoStack.length > this.limit) this.undoStack.shift();
@@ -172,18 +172,19 @@ export class DesignStore {
   }
 
   private runPatches(command: Command): HistoryEntry | null {
-    const snapshot = this.document;
-    for (const patch of command.patches) {
-      this.document = applyPatch(this.document, patch).document;
-    }
-    return this.buildEntry(command, snapshot);
+    // 只应用一遍：buildEntry 本来就要按顺序跑补丁才能求逆与算 diff，
+    // 这里再跑一次等于每次编辑都做两遍全量克隆（§146 的 10k 节点上肉眼可见）
+    const built = this.buildEntry(command, this.document);
+    if (!built) return null;
+    this.document = built.document;
+    return built.entry;
   }
 
   /** 逆序求逆：事务内后做的补丁要先撤销 */
   private buildEntry(
     command: Command,
     before: DesignDocument,
-  ): HistoryEntry | null {
+  ): { entry: HistoryEntry; document: DesignDocument } | null {
     const applied: DesignPatch[] = [];
     const inverse: DesignPatch[] = [];
     const touched = new Set<string>();
@@ -202,16 +203,19 @@ export class DesignStore {
     if (!applied.length) return null;
     void anySkipped;
     return {
-      id: command.id,
-      label: command.label,
-      source: command.source,
-      patchCount: applied.length,
-      applied,
-      inverse,
-      touchedNodeIds: [...touched],
-      diff,
-      createdAt: new Date().toISOString(),
-      capability: command.capability,
+      document: cursor,
+      entry: {
+        id: command.id,
+        label: command.label,
+        source: command.source,
+        patchCount: applied.length,
+        applied,
+        inverse,
+        touchedNodeIds: [...touched],
+        diff,
+        createdAt: new Date().toISOString(),
+        capability: command.capability,
+      },
     };
   }
 

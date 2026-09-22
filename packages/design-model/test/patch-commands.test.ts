@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { createDocument, createNode, createPage, findPage } from "../src/nodes";
+import { clone, createDocument, createNode, createPage, findPage } from "../src/nodes";
 import {
   applyPatch,
   collectSubtree,
@@ -480,5 +480,50 @@ describe("setVisualDna（§30/§174）", () => {
     const after = applyPatch(doc, { ops: [{ op: "setVisualDna", dna: mutable }] }).document;
     mutable.descriptors.push("被事后篡改");
     expect(after.visualDna?.descriptors).toEqual(["暗色底"]);
+  });
+});
+
+describe("clone（§146：每次编辑都要整份拷贝文档，所以它在热点路径上）", () => {
+  it("保留值为 undefined 的键——JSON 往返会丢，undo 之后节点形状不能变", () => {
+    const source = {
+      a: 1,
+      b: undefined,
+      nested: { list: [1, undefined, { c: undefined }], d: undefined },
+    } as unknown as Record<string, unknown>;
+    const copy = clone(source);
+    expect(Object.keys(copy)).toEqual(["a", "b", "nested"]);
+    expect("b" in copy).toBe(true);
+    expect(copy.b).toBeUndefined();
+    const nested = copy.nested as Record<string, unknown>;
+    expect(Object.keys(nested)).toEqual(["list", "d"]);
+    const list = nested.list as unknown[];
+    expect(list.length).toBe(3);
+    expect(0 in list).toBe(true);
+    // 真的脱钩：改副本不能碰到原件（undo 栈里存的就是原件）
+    nested.d = "改了";
+    (list[2] as Record<string, unknown>).c = "改了";
+    expect((source.nested as Record<string, unknown>).d).toBeUndefined();
+  });
+
+  it("非纯数据对象仍走 structuredClone", () => {
+    const when = new Date("2026-09-23T00:00:00.000Z");
+    const copy = clone({ when, map: new Map([["k", 1]]) });
+    expect(copy.when).toBeInstanceOf(Date);
+    expect(copy.when).not.toBe(when);
+    expect(copy.map.get("k")).toBe(1);
+  });
+
+  it("一次 execute 只把补丁应用一遍：插入类补丁不会留下重复节点", () => {
+    const { doc, hero } = seed();
+    const store = new DesignStore(doc);
+    const extra = createNode({ type: "text", name: "Once", text: "只插一次", parentId: hero.id });
+    store.execute(
+      manualCommand("插入一段", { ops: [{ op: "insert", node: extra, parentId: hero.id }] }),
+    );
+    const after = findPage(store.getDocument())!;
+    expect(Object.values(after.nodes).filter((n) => n.id === extra.id).length).toBe(1);
+    expect(after.nodes[hero.id]!.children.filter((id) => id === extra.id).length).toBe(1);
+    store.undo();
+    expect(findPage(store.getDocument())!.nodes[extra.id]).toBeUndefined();
   });
 });
