@@ -318,6 +318,77 @@ test('@smoke studio slice: variants generate side by side and combine into a new
   await expect(page.locator('[data-canvas-frame] [data-node-id]')).toHaveCount(8);
 });
 
+/**
+ * §56 / §57 发布与分享：公开 URL 锁的是发布那一刻的快照，
+ * 重新发布才换出去，取消发布立刻 404。全部用第二个标签页验证"别人看到的"。
+ */
+test('@smoke studio slice: publish pins the released snapshot behind a share URL', async ({ page }) => {
+  test.setTimeout(240_000);
+  const projectName = `发布 ${Date.now().toString(36)}`;
+  await createProject(page, projectName);
+  const visitor = await page.context().newPage();
+
+  const headlineSize = async (target: Page) =>
+    target.evaluate(() => {
+      const hit = Array.from(document.querySelectorAll('[data-node-type="text"]')).find((el) =>
+        el.textContent?.includes('从一句话到一个可发布的产品'),
+      );
+      return hit ? getComputedStyle(hit).fontSize : '';
+    });
+
+  const setSize = async (value: string) => {
+    await page.click('[data-panel-tab="layers"]');
+    const id = await layerId(page, 'Headline');
+    await page.click(`[data-node-id="${id}"]`);
+    await page.fill('[data-prop="typography.fontSize"]', value);
+    await expect(page.locator('[data-save-state]')).toContainText('已保存', { timeout: 20_000 });
+  };
+
+  const openPublish = async () => {
+    // 发布成功后面板不会自己收起：只在没打开时点一下，否则这一下会把面板关掉
+    if (await page.locator('[data-publish-submit]').isVisible()) return;
+    await page.click('[data-publish-open]');
+    await expect(page.locator('[data-publish-submit]')).toBeVisible();
+  };
+
+  await setSize('66');
+  await openPublish();
+  await page.click('[data-publish-choice="public"]');
+  await page.click('[data-publish-submit]');
+  const url = page.locator('[data-publish-url]');
+  await expect(url).toBeVisible({ timeout: 30_000 });
+  await expect(page.locator('[data-publish-gate]')).toContainText('门禁通过');
+  // 没运行的门禁要如实列出来，不能显示成"全绿"
+  await expect(page.locator('[data-gate-not-run]')).toContainText('未运行');
+  const path = (await url.getAttribute('href'))!;
+  expect(path).toMatch(/^\/n\/[^/]+\/发布-/);
+
+  await visitor.goto(path);
+  await expect(visitor.locator('[data-published-frame] [data-node-id]')).toHaveCount(8);
+  await expect(visitor.locator('[data-published-title]')).toContainText(projectName);
+  await expect.poll(() => headlineSize(visitor), { timeout: 20_000 }).toBe('66px');
+
+  // 发布之后继续改：公开链接不该跟着动
+  await setSize('22');
+  await visitor.reload();
+  await expect.poll(() => headlineSize(visitor), { timeout: 20_000 }).toBe('66px');
+
+  // 重新发布才换出去，并且版本 +1、URL 不变
+  await openPublish();
+  await page.click('[data-publish-submit]');
+  await expect(page.locator('[data-publish-result]')).toContainText('第 2 版', { timeout: 30_000 });
+  await visitor.reload();
+  await expect.poll(() => headlineSize(visitor), { timeout: 20_000 }).toBe('22px');
+
+  // 取消发布：同一个 URL 立刻 404
+  await openPublish();
+  await page.click('[data-publish-off]');
+  await expect(page.locator('[data-publish-result]')).toHaveCount(0, { timeout: 30_000 });
+  const gone = await visitor.goto(path);
+  expect(gone?.status()).toBe(404);
+  await visitor.close();
+});
+
 test('@smoke studio slice: AI command bar runs in DEMO MODE as one undoable transaction', async ({ page }) => {
   test.setTimeout(120_000);
   await createProject(page, `AI ${Date.now().toString(36)}`);

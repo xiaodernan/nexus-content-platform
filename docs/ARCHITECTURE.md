@@ -86,6 +86,10 @@ DEMO 路径不在 ai-service 里：确定性 Mock 需要 design model 才能产�
    生成与合成**不推进 `projects.currentSnapshotId`**（`createSnapshot` 的 `advanceWorkspace:false`）：
    候选是给人挑的，采纳才走 §28 的切换。比较板与画布、预览共用 `resolveLayout + nodeStyle`，
    看到的必须等于切过去之后看到的。
+10. **发布的是快照不是工作区**（§56/§57）：`published_projects` 一行对应一条 `/n/<handle>/<slug>`，
+   指向一份 `source='publish'` 的快照；重新发布就地换版本（path 有唯一索引），
+   所以作者之后怎么改都不会把已经发出去的链接换掉。公开页不鉴权也不读工作区。
+   门禁只报告真跑过的检查，没实现的列进"未运行"；`moderation` 停在 `pending`，不假装审核过。
 
 ## Design ↔ Code 双通道
 

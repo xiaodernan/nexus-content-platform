@@ -41,7 +41,9 @@ Create Project → Prompt → AI Design → Canvas → Layers → Properties
 - [x] Branch / Duplicate：分支线、切换、整份项目副本（§27/§28）
 - [x] 多方案 A-B-C 并排比较 + "取 A 的布局 + C 的视觉"合成（§29）
 - [ ] 方案生成的真实 provider 路径（现在是确定性配方，见下方进度记录）
-- [ ] 免注册首次体验（§137）→ 注册保存；Publish + 分享 URL（§56-57）
+- [x] Publish + 分享 URL `/n/<handle>/<slug>`：Public/Unlisted/Private、发布锁定快照、取消发布即失效（§56-57）
+- [x] 免注册首次体验（§137）：guest 会话即可 Create → Design → Publish
+- [ ] 注册 / 登录 + 认领 guest 项目（schema 有 `users.password_hash` / `claimed_at`，还没有接口与页面）
 
 **M1 进度记录（2026-09-22，Branch / Duplicate）**：§28 的分支线 = `branches` 表里一条有名字的快照线，
 `apps/web/src/server/domain/branches.ts` 提供 list / create / switch / duplicate。**没有加"当前分支"这一列**：
@@ -83,6 +85,22 @@ Duplicate（§27）走 `duplicateDocument`：页面 id 与组件 id 在库里是
 截图 `variants-board.png` / `variants-merged.png` / `variants-adopted.png` 人眼确认。
 已知边界：方案来自确定性配方（UI 常驻 DEMO MODE 说明），不是模型输出；真实 provider 接入后
 换掉的是"往哪个方向改"，落地方式仍然是一条分支一份 head 快照。
+
+**M1 进度记录（2026-09-22，Publish / Share）**：§56 的 `/n/<handle>/<slug>` 与 §57 的三档可见性落地，
+`apps/web/src/server/domain/publish.ts` + `publish` 路由 + 公开页 `app/n/[handle]/[slug]/page.tsx`。
+一条 path 只有一行 `published_projects`（唯一索引），重新发布是就地换版本，
+URL 指向的是**发布那一刻的快照**（`snapshot_id`）而不是工作区——所以作者之后怎么改都不会把已发出去的链接换掉，
+这条用第二个浏览器标签页实测过（改成 22px → 公开页仍是 66px → 重新发布才变）。
+private 的公开 URL 对所有人 404，包括作者本人（作者看自己那一版走 /studio），不靠"看身份放行"。
+guest 首次发布时补一个稳定 handle（`u<id 前 8 位>`），URL 才真的能分享。
+门禁只列真能自动跑的三项（模型自洽 / 对比度等 lint / 有内容），
+性能预算、键盘可达性、视觉回归明确列在"未运行"里（§179 要求全绿，§159 要求别假装绿——
+现在的做法是：能查的查并挡住，查不了的说出来，不把没查的写成通过）。
+`moderation` 仍然写 'pending' 并在面板上注明"审核管线尚未接入"。
+过程中修掉一处真实遮挡：顶栏下拉被右侧属性面板（同为 z-50）盖住，点不到——发布面板需要 z-[60]/[70]。
+验证：`npm test` 199（新增 7 条发布集成测试）、11 @smoke
+（"发布 → 第二标签页看到 66px → 改成 22px 公开页不动 → 重新发布换版本 → 取消发布 404"）、
+截图 `publish-panel.png` / `published-page.png` 人眼确认。
 
 **M1 进度记录（2026-09-22，Compare）**：§27 的"比较"落在 `packages/design-model/src/diff.ts` 的
 `diffDocuments(before, after)`：产出与 AI Diff（§151）同样的 `DiffEntry[]`，所以历史面板两套清单共用一个行组件。

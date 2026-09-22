@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { cn } from '@/lib/cn';
 import { studio, useStudioReady, type ViewportMode } from './store';
+import { PublishPanel } from './PublishPanel';
 
 const VIEWPORTS: { id: ViewportMode; label: string; hint: string }[] = [
   { id: 'design', label: '设计', hint: '模型原始画布宽度' },
@@ -43,7 +44,7 @@ export function TopBar({ onOpenRail }: { onOpenRail: () => void }) {
             : '已同步';
 
   return (
-    <header className="flex h-[var(--nexus-space-10)] shrink-0 items-center gap-[var(--nexus-space-3)] border-b border-[var(--nexus-color-border-subtle)] bg-bg-1 px-[var(--nexus-space-3)]">
+    <header className="relative z-[60] flex h-[var(--nexus-space-10)] shrink-0 items-center gap-[var(--nexus-space-3)] border-b border-[var(--nexus-color-border-subtle)] bg-bg-1 px-[var(--nexus-space-3)]">
       <button
         type="button"
         onClick={onOpenRail}
@@ -120,6 +121,7 @@ export function TopBar({ onOpenRail }: { onOpenRail: () => void }) {
           ))}
         </select>
         <TopButton label="网格" shortcut="Ctrl+G" active={state.grid} onClick={() => studio.toggleGrid()} />
+        <PublishPanel />
         <a
           href={`/preview/${state.projectId}`}
           className="rounded-[var(--nexus-radius-sm)] border border-[var(--nexus-color-border-strong)] px-[var(--nexus-space-3)] py-1 text-13 text-fg-2"

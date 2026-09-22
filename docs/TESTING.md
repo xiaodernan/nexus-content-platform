@@ -44,6 +44,11 @@
 `Accessibility`（对比度 + 键盘 + ARIA，§90）· `Visual QA`（无回归，§33）。
 任一未达标 → Publish 阻塞并列出原因，不允许静默跳过。
 
+当前实现状态（如实）：Publish 面板里自动运行的只有三项——设计模型自洽（`validateDocument`）、
+对比度/点击目标/间距（`lintDesign`）、有可发布的内容；错误挡住发布。
+Build/Tests、性能预算、键盘与完整 ARIA、视觉回归**还没接进这道门**，面板上以"未运行"列出，
+不写成通过。审核管线同样未接入（`published_projects.moderation` 停在 `pending`）。
+
 ## 性能测试（§146-147）
 
 设计文档规模基准：100 / 1000 / 10000 节点。度量并记录：首帧渲染时间、pan/zoom 帧率（目标 ≥55fps）、
@@ -79,5 +84,9 @@
   并且"采纳才换画布"（生成后画布仍是 8 个节点，切到左右分栏那条才变 11 个）
 - 打真库的用例共用一个 Postgres，整套并行时一条往返会排在别人的连接后面，
   所以 `vitest.config.ts` 把 `testTimeout` 提到 30s（默认 5s 会把这种排队误报成超时失败）
+- 发布的不变量（§56/§57）：`publish.integration.test.ts` 打真实 Postgres 断言——公开 URL 锁的是
+  发布那一刻的快照（改完工作区再解析仍是旧内容）、重新发布就地换版本不多出一行、
+  private 的 URL 对任何人都不通、取消发布立刻解析不到而历史快照留着、门禁挡住时既不写发布记录也不留快照；
+  e2e 用第二个标签页验证"访客看到的"和"作者改的"是两回事，并断言面板把"未运行的门禁"列出来
 - 每个里程碑一次 commit 前至少跑：`npm run lint && npm test && npm run test:e2e:smoke`- 改了 `packages/schemas` 必须重跑 `npm run contract:export`，否则契约漂移测试会红
 - 动了 ai-service 再加：`npm run test:ai-service`（Windows 控制台建议前置 `PYTHONUTF8=1`）

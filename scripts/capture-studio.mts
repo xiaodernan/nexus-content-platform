@@ -328,5 +328,21 @@ await page.goto(`${base}/preview/${projectId}`, { waitUntil: 'domcontentloaded' 
 await page.waitForSelector('[data-preview-frame] [data-node-id]');
 await page.screenshot({ path: `${out}preview.png` });
 
+// §56 / §57 发布：顶栏面板 → 门禁清单 → 用另一个标签页打开公开链接
+await page.goto(`${base}/studio/${projectId}`, { waitUntil: 'domcontentloaded' });
+await page.waitForSelector('[data-canvas-frame] [data-node-id]', { timeout: 60_000 });
+await page.click('[data-publish-open]');
+await page.click('[data-publish-choice="public"]');
+await page.click('[data-publish-submit]');
+await page.waitForSelector('[data-publish-url]', { timeout: 30_000 });
+const publishedPath = await page.getAttribute('[data-publish-url]', 'href');
+if (!publishedPath) throw new Error('发布后没有拿到分享链接');
+await page.screenshot({ path: `${out}publish-panel.png` });
+const visitor = await context.newPage();
+await visitor.goto(`${base}${publishedPath}`, { waitUntil: 'domcontentloaded' });
+await visitor.waitForSelector('[data-published-frame] [data-node-id]', { timeout: 30_000 });
+await visitor.screenshot({ path: `${out}published-page.png` });
+await visitor.close();
+
 await browser.close();
 console.log(`saved screenshots for ${projectId}`);

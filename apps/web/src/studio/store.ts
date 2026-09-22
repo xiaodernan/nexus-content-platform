@@ -29,6 +29,7 @@ import type { DesignPatchPayload } from '@nexus/schemas';
 import type { SnapshotEntry, SnapshotMeta } from '@/server/domain/snapshots';
 import type { BranchMeta } from '@/server/domain/branches';
 import type { VariantEntry } from '@/server/domain/variants';
+import type { GateReport, Publication, Visibility } from '@/server/domain/publish';
 
 /**
  * Studio 客户端状态：唯一真值仍然是 DesignStore 里的 DesignDocument（§9/§16）。
@@ -87,6 +88,12 @@ export interface StudioSnapshot {
   variants: readonly VariantEntry[];
   /** 上一次生成/合成时"没能落上去"的部分（§159：不静默丢弃） */
   variantNotes: readonly string[];
+  /** §56/§57 发布状态：null 表示从没发布过 */
+  publication: Publication | null;
+  publishBusy: boolean;
+  publishError: string | null;
+  /** 最近一次门禁报告：通过与否都要摊开给用户看 */
+  publishGate: GateReport | null;
   revision: number;
   activeMode: string | null;
 }
@@ -136,6 +143,10 @@ export class StudioStore {
   private branchList: BranchMeta[] = [];
   private variantList: VariantEntry[] = [];
   private variantNotes: string[] = [];
+  private publicationValue: Publication | null = null;
+  private publishBusyValue = false;
+  private publishErrorValue: string | null = null;
+  private publishGateValue: GateReport | null = null;
 
   constructor() {
     this.design.subscribe(() => this.commit());
@@ -197,6 +208,10 @@ export class StudioStore {
       branches: this.branchList,
       variants: this.variantList,
       variantNotes: this.variantNotes,
+      publication: this.publicationValue,
+      publishBusy: this.publishBusyValue,
+      publishError: this.publishErrorValue,
+      publishGate: this.publishGateValue,
       revision: state.revision,
       activeMode: document.activeMode ?? null,
     };
@@ -245,6 +260,7 @@ export class StudioStore {
       this.ready = true;
       this.commit();
       void this.refreshSnapshots();
+      void this.refreshPublication();
     } catch (error) {
       this.loadError = error instanceof Error ? error.message : String(error);
       this.ready = false;
@@ -656,6 +672,80 @@ export class StudioStore {
       this.snapshotBusyValue = false;
       // 不 commit 的话，refreshVariants 期间产出的最后一次快照会带着 busy=true 留在界面上，
       // 按钮就永远停在"生成中…"
+      this.commit();
+    }
+  }
+
+  // ---- 发布与分享（§56 / §57） ----
+
+  async refreshPublication(): Promise<void> {
+    if (!this.projectId || !this.ready) return;
+    try {
+      const res = await fetch(`/api/projects/${this.projectId}/publish`, { cache: 'no-store' });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const body = (await res.json()) as { publication?: Publication | null };
+      this.publicationValue = body.publication ?? null;
+    } catch {
+      // 读不到发布状态不该挡住编辑：顶栏显示"未发布"，真正发布时会再问一次
+      this.publicationValue = null;
+    }
+    this.commit();
+  }
+
+  /**
+   * 发布 = 把当前这一版存成快照，并让公开 URL 指向它。
+   * 先 save 再 publish：发出去的和屏幕上看到的必须是同一份（§16）。
+   */
+  async publish(visibility: Visibility): Promise<Publication | null> {
+    if (!this.projectId || !this.ready) return null;
+    this.publishBusyValue = true;
+    this.publishErrorValue = null;
+    this.publishGateValue = null;
+    this.commit();
+    try {
+      this.flushSave();
+      await this.save();
+      if (this.saveStateValue === 'error') throw new Error(this.saveError ?? '保存失败');
+      const res = await fetch(`/api/projects/${this.projectId}/publish`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ visibility }),
+      });
+      const body = (await res.json().catch(() => null)) as
+        | { publication?: Publication; gate?: GateReport; message?: string; issues?: string[] }
+        | null;
+      this.publishGateValue = body?.gate ?? null;
+      if (!res.ok || !body?.publication) {
+        throw new Error(body?.issues?.join('；') ?? body?.message ?? `HTTP ${res.status}`);
+      }
+      this.publicationValue = body.publication;
+      await this.refreshSnapshots();
+      return body.publication;
+    } catch (error) {
+      this.publishErrorValue = error instanceof Error ? error.message : String(error);
+      return null;
+    } finally {
+      this.publishBusyValue = false;
+      this.commit();
+    }
+  }
+
+  async unpublish(): Promise<boolean> {
+    if (!this.projectId || !this.ready) return false;
+    this.publishBusyValue = true;
+    this.publishErrorValue = null;
+    this.commit();
+    try {
+      const res = await fetch(`/api/projects/${this.projectId}/publish`, { method: 'DELETE' });
+      const body = (await res.json().catch(() => null)) as { removed?: boolean; message?: string } | null;
+      if (!res.ok) throw new Error(body?.message ?? `HTTP ${res.status}`);
+      this.publicationValue = null;
+      return !!body?.removed;
+    } catch (error) {
+      this.publishErrorValue = error instanceof Error ? error.message : String(error);
+      return false;
+    } finally {
+      this.publishBusyValue = false;
       this.commit();
     }
   }
