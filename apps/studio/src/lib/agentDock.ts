@@ -197,7 +197,9 @@ export function qaForDoc(doc: DesignDocument, pageId: string): QaReport {
   const input = qaInputForDoc(doc, pageId);
   if (!input) return { verdict: 'ok', checked: 0, flags: [] };
   // v24: the dock opts into the near-miss lints at a tight 2px — measurable slips only.
-  return runVisualQa({ ...input, alignTolerance: 2, centerTolerance: 2 });
+  // v26 adds the even-gap distribution lint at the same 2px (a 1–2px spacing wobble in a
+  // chain of ≥3 siblings is arithmetic, not taste).
+  return runVisualQa({ ...input, alignTolerance: 2, centerTolerance: 2, gapTolerance: 2 });
 }
 
 /* ---- v12: QA → deterministic repair proposals, dispatched through the same op path ---- */

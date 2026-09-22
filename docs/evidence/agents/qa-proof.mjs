@@ -1,4 +1,4 @@
-// NEXUS M2 v11 — visual-QA proof (ADR 0016 amendments 11 and 24).
+// NEXUS M2 v11 — visual-QA proof (ADR 0016 amendments 11, 24 and 26).
 // Structural geometry checks only — no pixels, no canvas, no pretending (§60). Feeds
 // synthetic rect sets (clean / stacked / off-page) AND a real Studio-style scenario:
 // layout the empty document's page rects by hand, then verify the QA verdict the dock
@@ -59,4 +59,21 @@ const noisy = runVisualQa({ page, rects: { z: { x: 100, y: 100, width: 0, height
 assert.deepEqual(noisy.flags.map((f) => f.code).sort(), ['off-page', 'zero-size'], 'zero-size/off-page rects carry their stronger flags, not near-miss noise');
 console.log(`[qa-proof] v24 near-miss: opt-in only · ${aligned.flags[0].detail}`);
 
-console.log('[qa-proof] ALL ASSERTIONS PASSED (structural QA on real layout data + v24 near-miss lints, §60 no pixel claims)');
+// 5) v26 even-gap distribution lint: a spacing chain of ≥3 rects whose consecutive gaps
+//    ALMOST match (spread > 0 and ≤ gapTolerance) lints — still arithmetic, still opt-in.
+const row = (x1, x2) => ({ a: { x: 100, y: 100, width: 200, height: 50 }, b: { x: x1, y: 100, width: 200, height: 50 }, c: { x: x2, y: 100, width: 200, height: 50 } });
+assert.deepEqual(runVisualQa({ page, rects: row(311, 523) }).flags, [], 'gapTolerance default 0: an almost-even row stays silent');
+assert.deepEqual(runVisualQa({ page, rects: row(311, 522), gapTolerance: 2 }).flags, [], 'exactly-even spacing passes even with the rule ON');
+const uneven = runVisualQa({ page, rects: row(311, 523), gapTolerance: 2 }); // x gaps 11, 12 → 1px wobble
+assert.equal(uneven.flags.length, 1);
+assert.equal(uneven.flags[0].code, 'uneven-gaps');
+assert.equal(uneven.flags[0].severity, 'warn');
+assert.deepEqual(uneven.flags[0].ids, ['a', 'b', 'c']);
+assert.match(uneven.flags[0].detail, /along x: gaps 11\.0px, 12\.0px — 1\.0px uneven/);
+assert.deepEqual(runVisualQa({ page, rects: row(310, 523), gapTolerance: 2 }).flags, [], 'spread 3 > tolerance 2 is design freedom, not drift');
+const crushed = runVisualQa({ page, rects: { a: { x: 100, y: 100, width: 300, height: 50 }, b: { x: 420, y: 100, width: 200, height: 50 }, c: { x: 450, y: 110, width: 50, height: 30 } }, gapTolerance: 2 });
+assert.ok(!crushed.flags.some((f) => f.code === 'uneven-gaps'), 'a chain with a non-positive gap is overlap territory — no invented distribution');
+assert.ok(crushed.flags.some((f) => f.code === 'overlap'));
+console.log(`[qa-proof] v26 distribution: opt-in only · ${uneven.flags[0].detail}`);
+
+console.log('[qa-proof] ALL ASSERTIONS PASSED (structural QA on real layout data + v24 near-miss lints + v26 even-gap lint, §60 no pixel claims)');

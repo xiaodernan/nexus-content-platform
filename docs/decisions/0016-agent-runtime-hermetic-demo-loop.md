@@ -469,3 +469,21 @@ two fresh runs, checkpoint denial leaving the workspace byte-identical).
   case); `repair-proof.mjs` extended (default-off, 1.5px slip → exact with stated mover,
   1px center snap, 140px gap untouched, apply-all → zero flags, non-mutation, determinism);
   eighteen proofs.
+
+## Amendment 26 — v26: even-gap distribution lint — the near-miss family grows a third member, 2026-09
+- **`uneven-gaps` in `visualQa.ts`:** per axis, the usable rects are sorted by start edge
+  (ties by id); the consecutive gaps must ALL be positive (a broken chain is overlap
+  territory, not distribution), and when ≥3 rects give a gap set whose max−min spread is
+  >0 and ≤ `gapTolerance`, one warn flag names the run, the real gaps and the spread.
+  Exact-even spacing (spread 0) passes — this lints the 1px wobble, not the design.
+- **Same opt-in contract as v24 (`gapTolerance ?? 0` ⇒ OFF):** hosts that never pass the
+  tolerance provably gain no flags; zero-size/off-page rects stay out via the usable set.
+  The Studio dock opts in at the same tight 2px in `qaForDoc`.
+- **Lint, not auto-fix (§28 + §60):** `proposeRepairs` deliberately has no `distribute`
+  action — even re-spacing of a whole chain is a bigger human call than snapping one
+  slipped edge; the dock stays honest with "nothing safely fixable" while the chip shows
+  the measured wobble.
+- Runtime 160/160 (+6 distribution cases), studio 93/93 (+1 dock chip case);
+  `qa-proof.mjs` extended (defaults-off, exact-even passes, 11/12px row flags with the
+  real spread in the detail, >tol passes, crushed chain stays overlap's business);
+  eighteen proofs.

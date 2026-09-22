@@ -4,7 +4,9 @@
  * dependencies on the Design Model and nothing here pretends to look at pixels (§60):
  * these are structural checks a canvas screenshot cannot beat but also never contradicts.
  * v24 adds the opt-in near-miss lints (`near-align`, `near-center`) — measurable "almost
- * coincident" geometry, explicitly NOT an aesthetic opinion.
+ * coincident" geometry, explicitly NOT an aesthetic opinion. v26 extends the family with
+ * `uneven-gaps`: a run of ≥3 rects whose consecutive gaps ALMOST match (spread > 0 and
+ * ≤ the opt-in tolerance) lints warn — spacing variance is arithmetic, taste is not.
  */
 /** CSS hex (`#rgb`/`#rrggbb`) or an rgb/rgba() string; anything unparsable yields no flag. */
 export type QaColor = string;
@@ -40,12 +42,18 @@ export interface QaInput {
    * > 0 and ≤ this many px) is flagged. Default 0 ⇒ rule OFF.
    */
   centerTolerance?: number;
+  /**
+   * v26: a sorted run of ≥3 on-page rects whose consecutive gaps along an axis all
+   * positive and whose max−min spread is > 0 but ≤ this many px is flagged
+   * `uneven-gaps`. Default 0 ⇒ rule OFF.
+   */
+  gapTolerance?: number;
 }
 
 export type QaSeverity = 'error' | 'warn';
 
 export interface QaFlag {
-  code: 'zero-size' | 'off-page' | 'overlap' | 'overflow' | 'low-contrast' | 'near-align' | 'near-center';
+  code: 'zero-size' | 'off-page' | 'overlap' | 'overflow' | 'low-contrast' | 'near-align' | 'near-center' | 'uneven-gaps';
   severity: QaSeverity;
   ids: string[];
   detail: string;
@@ -195,6 +203,36 @@ export function runVisualQa(input: QaInput): QaReport {
           severity: 'warn',
           ids: [id],
           detail: `${id} is ${axes.map(([n, g]) => `${g.toFixed(1)}px off ${n} center`).join(', ')} (≤ ${centerTol}px — center it)`,
+        });
+      }
+    }
+  }
+
+  const gapTol = input.gapTolerance ?? 0;
+  if (gapTol > 0) {
+    for (const axis of ['x', 'y'] as const) {
+      const start = (r: QaRect): number => (axis === 'x' ? r.x : r.y);
+      const end = (r: QaRect): number => (axis === 'x' ? r.x + r.width : r.y + r.height);
+      const run = [...usable].sort((p, q) => start(input.rects[p]!) - start(input.rects[q]!) || p.localeCompare(q));
+      if (run.length < 3) continue;
+      const gaps: number[] = [];
+      let spaced = true;
+      for (let i = 0; i + 1 < run.length; i++) {
+        const g = start(input.rects[run[i + 1]!]!) - end(input.rects[run[i]!]!);
+        if (g <= 0) {
+          spaced = false; // a true gap chain needs positive gaps — overlaps are the overlap rule's business
+          break;
+        }
+        gaps.push(g);
+      }
+      if (!spaced) continue;
+      const spread = Math.max(...gaps) - Math.min(...gaps);
+      if (spread > 0 && spread <= gapTol) {
+        flags.push({
+          code: 'uneven-gaps',
+          severity: 'warn',
+          ids: run,
+          detail: `${run.join('/')} along ${axis}: gaps ${gaps.map((g) => `${g.toFixed(1)}px`).join(', ')} — ${spread.toFixed(1)}px uneven (≤ ${gapTol}px — distribute evenly)`,
         });
       }
     }

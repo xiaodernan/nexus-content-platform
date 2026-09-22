@@ -129,3 +129,50 @@ describe('near-miss lints (v24, opt-in geometry — measurable, not taste)', () 
     expect(rep.flags.every((f) => f.severity === 'warn')).toBe(true);
   });
 });
+
+describe('even-gap distribution lint (v26, opt-in arithmetic on spacing chains)', () => {
+  const row = (x1: number, x2: number) => ({
+    a: { x: 100, y: 100, width: 200, height: 50 },
+    b: { x: x1, y: 100, width: 200, height: 50 },
+    c: { x: x2, y: 100, width: 200, height: 50 },
+  });
+
+  it('off by default: an almost-even 1px-uneven row gains NO flags without gapTolerance', () => {
+    expect(runVisualQa(input(row(311, 523))).flags).toEqual([]);
+  });
+
+  it('exact-even spacing passes even with the rule ON (spread 0 is distribution, not drift)', () => {
+    expect(runVisualQa(input(row(311, 522), { gapTolerance: 2 })).flags).toEqual([]);
+  });
+
+  it('almost-even row flags once per axis, naming the run, the real gaps and the spread', () => {
+    const rep = runVisualQa(input(row(311, 523), { gapTolerance: 2 })); // x gaps 11, 12 → 1px uneven; y chain overlaps → skipped
+    expect(rep.flags).toHaveLength(1);
+    const f = rep.flags[0]!;
+    expect(f).toMatchObject({ code: 'uneven-gaps', severity: 'warn', ids: ['a', 'b', 'c'] });
+    expect(f.detail).toContain('along x');
+    expect(f.detail).toContain('11.0px, 12.0px');
+    expect(f.detail).toContain('1.0px uneven');
+  });
+
+  it('boundaries: spread == tolerance flags, spread > tolerance passes, a two-rect chain is not a distribution', () => {
+    expect(runVisualQa(input(row(310, 522), { gapTolerance: 2 })).flags.map((f) => f.code)).toEqual(['uneven-gaps']); // 10/12 → 2 == tol
+    expect(runVisualQa(input(row(310, 523), { gapTolerance: 2 })).flags).toEqual([]); // 10/13 → 3 > tol
+    const pair = { a: { x: 100, y: 100, width: 50, height: 20 }, b: { x: 200, y: 100, width: 50, height: 20 } };
+    expect(runVisualQa(input(pair, { gapTolerance: 4 })).flags).toEqual([]);
+  });
+
+  it('a chain with a non-positive gap is overlap territory, not distribution: no uneven-gaps invented', () => {
+    const rep = runVisualQa(input({ a: { x: 100, y: 100, width: 300, height: 50 }, b: { x: 420, y: 100, width: 200, height: 50 }, c: { x: 450, y: 110, width: 50, height: 30 } }, { gapTolerance: 2 }));
+    expect(rep.flags.map((f) => f.code)).not.toContain('uneven-gaps');
+    expect(rep.flags.map((f) => f.code)).toContain('overlap'); // b swallows c — stronger flag owns it
+  });
+
+  it('a zero-size member breaks the usable chain (no invented distribution) and reports stay deterministic', () => {
+    const rects = { a: { x: 100, y: 100, width: 200, height: 50 }, b: { x: 311, y: 100, width: 200, height: 0 }, c: { x: 523, y: 100, width: 200, height: 50 } };
+    const rep = runVisualQa(input(rects, { gapTolerance: 2 }));
+    expect(rep.flags.map((f) => f.code)).toEqual(['zero-size']); // usable chain shrinks to two — not a distribution
+    const shuffled = input({ c: rects.c, a: rects.a, b: rects.b }, { gapTolerance: 2 });
+    expect(runVisualQa(shuffled)).toEqual(runVisualQa(input(rects, { gapTolerance: 2 })));
+  });
+});

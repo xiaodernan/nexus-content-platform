@@ -13,8 +13,8 @@ npm run build lint typecheck test     # via turbo: build 4/4 · lint 3/3 · type
 | ------------------ | ------ |
 | @nexus/design-model| 28/28 vitest (`design-model` 16 incl. 3 rotated-hitTest + 2 rigid-geometry cases + `instances` 12 incl. x/y delta + absolute rotation overrides + rigid rotation bake), tsc clean |
 | @nexus/ai-providers| 7/7 vitest, tsc clean |
-| @nexus/agent-runtime| 154/154 vitest (M2 v0–v25, ADR 0016 am. 1–25) · tsc clean — see `docs/evidence/agents/README.md` |
-| @nexus/studio      | 92/92 vitest (`snap` `persist` `align` `store-variants` 18 `thumbnail` `rotate` 14 `render` `minimap` `agentDock` 11 `webfs` 3 `uiRun` 3) · tsc `--noEmit` clean · eslint `--max-warnings=0` clean · `next build` ✓ (4/4 static pages) |
+| @nexus/agent-runtime| 160/160 vitest (M2 v0–v26, ADR 0016 am. 1–26) · tsc clean — see `docs/evidence/agents/README.md` |
+| @nexus/studio      | 93/93 vitest (`snap` `persist` `align` `store-variants` 18 `thumbnail` `rotate` 14 `render` `minimap` `agentDock` 12 `webfs` 3 `uiRun` 3) · tsc `--noEmit` clean · eslint `--max-warnings=0` clean · `next build` ✓ (4/4 static pages) |
 
 ## Headless pipeline proof
 
@@ -328,11 +328,15 @@ sandbox corpus, the document is untouched until Approve. Post-approve a RECENT D
 timeline shows `approved · <goal> · qa:flagged` newest-first from the localStorage ledger.
 Headless: +1 agentDock chain case (82/82 studio).
 
-## Near-miss lints → gated nudges (M2 v24 + v25, headless)
+## Near-miss lints → gated nudges → distribution chip (M2 v24 + v25 + v26, headless)
 
 `qaForDoc` opts the dock into the v24 near-miss lints at a tight 2px, so the chip row can
 show `near-align`/`near-center` after every Approve. v25 wires `planRepairs` to
 `proposeRepairs(…, {alignRepairs:true})` with the same tolerances: a 1.5px slip now
 previews as an explicit `align-nudge` proposal (smallest layer moves, stated px) — and the
 agentDock test asserts the document is UNTOUCHED until the batch goes through the normal
-§28 Approve → op path, after which `qaForDoc` comes back `ok` (studio 92/92, agentDock 11).
+§28 Approve → op path, after which `qaForDoc` comes back `ok`. v26 adds the third opt-in
+at the same 2px: a 1px spacing wobble across a 3-layer chain surfaces as exactly one
+`uneven-gaps` warn naming the run and the measured spread — and, stated honestly, gets NO
+repair proposal (`planRepairs` returns "nothing safely fixable"; re-spacing a whole chain
+is a bigger human call than snapping one edge). (studio 93/93, agentDock 12).

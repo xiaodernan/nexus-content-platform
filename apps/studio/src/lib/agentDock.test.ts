@@ -179,6 +179,22 @@ describe('agentDock visual QA (v11)', () => {
     expect(qaForDoc(fixed, pageId).verdict).toBe('ok');
   });
 
+  it('v26 distribution chip: a 1px spacing wobble across a 3-layer chain surfaces as uneven-gaps, nothing more', () => {
+    const { doc, pageId, heroId, cardId } = seededDoc();
+    const wob = rectNode('Wobble', { id: 'wob-1', x: 60, y: 241, width: 200, height: 20 }); // y gaps 40 then 41 — 1px uneven
+    const withWob = applyBatch(doc, { id: newId(), ops: [ops.addSubtree(pageId, childIdList(doc.nodes[pageId]!).length, [wob])], provenance: { mode: 'user' }, timestamp: 8 });
+    const rep = qaForDoc(withWob, pageId);
+    const uneven = rep.flags.filter((f) => f.code === 'uneven-gaps');
+    expect(uneven).toHaveLength(1);
+    expect(uneven[0]!.ids).toEqual([heroId, cardId, 'wob-1']); // sorted by y-start, the real chain
+    expect(uneven[0]!.detail).toContain('along y');
+    expect(uneven[0]!.detail).toContain('1.0px uneven');
+    expect(rep.flags.every((f) => f.code === 'uneven-gaps' || f.severity === 'warn')).toBe(true);
+    // and it is a LINT, not a repair: the v26 rule has no auto-fix — planRepairs stays honest
+    const plan = planRepairs(withWob, pageId, 'fix spacing');
+    expect(plan!.repairs).toEqual([]); // wob-1 gets no invented nudge; the loop reports "nothing safely fixable"
+  });
+
   it('planRepairs closes the loop: applying its batch through the op path clears QA errors (v12)', () => {
     const { doc, pageId } = seededDoc();
     const strayed = rectNode('Lost', { id: 'lost-1', x: 5000, y: 200, width: 100, height: 50 });

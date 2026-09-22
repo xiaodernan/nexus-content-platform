@@ -1,4 +1,4 @@
-# M2 evidence — @nexus/agent-runtime (v0 loop → v25 gated alignment nudges; all ADR 0016 amendments)
+# M2 evidence — @nexus/agent-runtime (v0 loop → v26 even-gap lint; all ADR 0016 amendments)
 
 All checks are headless, offline, key-free, and reproducible from the repo root. Nothing here
 claims model-quality planning or neural retrieval (§60): the planner is a deterministic
@@ -8,7 +8,7 @@ every emitted artifact (`provenance.mode = "demo"`).
 ## Reproducible gates
 
 ```
-npm test          # turbo: @nexus/agent-runtime 154/154 vitest among all packages
+npm test          # turbo: @nexus/agent-runtime 160/160 vitest among all packages
 npm run build     # tsc dist for agents/runtime (build order via ^build deps)
 node docs/evidence/agents/agent-proof.mjs
 node docs/evidence/agents/code-index-proof.mjs   # requires `npm run build` first
@@ -52,6 +52,7 @@ node docs/evidence/agents/index-vectors-proof.mjs  # requires `npm run build` fi
 | `chain.test.ts` (6) | four-stage researcher→designer→qa→editor order + handoff records, QA honest-empty without host rects, designer denial stops the chain naming its stage, determinism; v22: ui-driver editor stage drives observe→type→click→verify with `editor→host` engine handoff, per-action denial leaves the page unclicked and states the partial engine |
 | `visualQa.test.ts` +contrast (3) | black/white passes, grey pair flags warn, rgb()/rgba() parse, junk colors yield no flag, 21:1 math |
 | `visualQa.test.ts` +near-miss (6) | v24: default OFF (no opt-in no flags), 3px pair flags once with real px gaps in detail, boundaries (exact 0 passes, >tol passes, ==tol flags), near-center 2px-off vs exact/edge-touching, zero-size+off-page rects never collect near-miss noise, determinism |
+| `visualQa.test.ts` +even-gap (6) | v26: default OFF, exactly-even spacing passes with the rule ON, a 1px-wobble row flags once per axis naming run+gaps+spread, boundaries (spread ==tol flags, >tol passes, 2-rect chain is not a distribution), non-positive gaps keep the chain in overlap territory, a zero-size member breaks the usable chain, determinism |
 | `repair.test.ts` (5) | clean input no-op, off-page pulled inside then QA-clean, overlap nudged below with gutter, zero-size grown, dedupe + determinism + "apply all repairs → zero error flags" |
 | `repair.test.ts` +nudges (6) | v25: near-miss lints unproposed by default, equal-area mover tie broken by id with exact stated reason, smaller-area layer moves, center-nudge to page mid-line (other axis untouched, px stated), a/b/c chain where only the in-tolerance pair snaps, apply-all clears all flags, determinism |
 | `durability.test.ts` (8) | memory serialize/deserialize round-trip + version/schema rejection, `restore()` id high-water mark, save/load through an injected writable fake disk, corrupt-file honest failure, `guardedJoin` jail (absolute/`..`/drive-letter rejection, backslash folding), `disk.write` checkpoint gate + escape touches nothing, `disk.read`/`disk.list` confinement |
@@ -168,14 +169,17 @@ then a **separate node child process** loads only the persisted handoff JSON + t
 file, completes the editor stage memory-first (`plan.steps[0].tool === 'memory.recall'`)
 and scores 1 too. Ledger and evaluation files record the stages; the jail is cleaned after.
 
-## QA proof (`qa-proof.mjs`, M2 v11 + v24)
+## QA proof (`qa-proof.mjs`, M2 v11 + v24 + v26)
 
 Synthetic triad (clean / stacked / off-page) plus real `layoutPage` data: a banner over a
 hero on a sized page is `ok`; a zero-height layer is flagged `zero-size`, not tolerated.
 The Studio dock runs exactly this after every Approve (verdict + flag chips, `qa` field in
 the ledger). v24 adds the opt-in near-miss lints: same 1.5px-slip pair proves flags are
 absent by DEFAULT, a single `near-align` warn names the measured gaps, a 1px-off rect
-lints `near-center`, and zero-size/off-page rects never collect noise. Stated limit (§60):
+lints `near-center`, and zero-size/off-page rects never collect noise. v26 adds
+`uneven-gaps`: an 11px/12px row lints with the real spread in the detail, an
+exactly-even row and a spread beyond tolerance pass, and a chain with a crushed
+(non-positive) gap stays the overlap rule's business. Stated limit (§60):
 structural geometry only — no pixel or aesthetic claims.
 
 ## Repair proof (`repair-proof.mjs`, M2 v12 + v25)
@@ -280,6 +284,16 @@ the measured px (§60). Default OFF stays provably OFF: without the opt-in the s
 yields zero nudge repairs. The dock wires it in `planRepairs` (mirroring `qaForDoc`'s 2px
 tolerances) — but a nudge still only lands after the human Approves and the op path
 applies it (§28); `proposeRepairs` never mutates the input rects.
+
+## v26 note — even-gap distribution lint, deliberately without an auto-fix
+
+Third member of the opt-in near-miss family: per axis, the usable rects sorted by start
+edge form a gap chain; all gaps positive and a max−min spread of >0 up to
+`gapTolerance` flags one `uneven-gaps` warn naming the run, the gaps and the spread
+(exact-even passes — this is the 1px wobble, not the design). `qaForDoc` opts in at the
+same 2px. No repair action exists for it on purpose: re-spacing a whole chain is a
+bigger call than snapping one slipped edge, so the loop answers "nothing safely
+fixable" while the chip states the measurement (§28/§60).
 
 ## Scope honesty
 
