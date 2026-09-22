@@ -27,6 +27,12 @@ export interface PlannerOptions {
    * green. Staging itself remains a human act: the tool commits whatever the index holds.
    */
   hasCommit?: boolean;
+  /**
+   * v38: whether the exec-host `git.log` read-back tool is registered. Only meaningful
+   * WITH hasCommit — a confirm step trails the commit so the plan itself ends
+   * see→touch→confirm, letting the run read its own history back after green.
+   */
+  hasConfirm?: boolean;
   uiInputLabel?: string;
   uiButtonLabel?: string;
   seed?: number;
@@ -73,6 +79,15 @@ export function planTask(task: AgentTask, opts: PlannerOptions): Plan {
         args: { message: `chore(agent): verified run ${task.id} · seed ${seed}` },
         rationale: 'commit the human-staged index — reached only after green verification',
       });
+      // v38 "confirm after commit": the plan's LAST word is git's own echo, not our claim.
+      if (opts.hasConfirm) {
+        steps.push({
+          stepId: 'confirm',
+          tool: 'git.log',
+          args: { count: 2 },
+          rationale: 'read the log back — the newest entry must equal the commit record',
+        });
+      }
     }
   }
   return { goal: task.goal, seed, steps };

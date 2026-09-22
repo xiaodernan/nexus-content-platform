@@ -756,3 +756,34 @@ two fresh runs, checkpoint denial leaving the workspace byte-identical).
 - exec-host 57/57 → 71/71 (14 gitLogTool cases); runtime 213/213 UNCHANGED (spawn-free by
   audited design — no product code in the runtime moved); studio 99/99 unchanged;
   twenty-seven proofs (29 scripts) green.
+
+## Amendment 38 — v38: confirm after commit — the PLAN itself ends in git's own words, 2026-09
+- **v37 built the read-back door; v38 walks the agent through it automatically.** The demo
+  planner gains `hasConfirm` — nested INSIDE the `hasCommit` block, which is itself nested
+  inside `hasVerify`: the `confirm` step (a `git.log` read of the last 2 commits) exists
+  only where a commit exists, which exists only where green verification exists. Position
+  in the plan IS the safety, one tier deeper than v36 ever took it. The orchestrator's
+  control flow did NOT change at all — v36's green-flag walk already executes whatever
+  trails verify; the only runtime edit is capability detection
+  (`hasConfirm: registry.has('git.log')`). A run outcome now ENDS with git's verdict on
+  the agent's own work instead of the agent's claim about it.
+- **Denied confirm is honest bookkeeping, not amnesia.** If the human vetoes the read-back
+  AFTER the commit landed, the run says `denied` — and the landed commit's `ok:true` result
+  STANDS in `results` a slot earlier: the truthful story is "it wrote, and could not
+  verify". Tests assert exactly that pair (status denied + commit result + commit executed
+  once + vetoed read spawned nothing). A throwing `git.log` after a green commit keeps the
+  v36 contract: the run ends `failed_verification`, never a silent green.
+- **The 28th proof (`confirm-proof.mjs`) is the first where `runTask` — the REAL loop, not
+  a hand-called tool — drives REAL `git.commit` + REAL `git.log`** over a throwaway
+  `os.tmpdir()` repo (§9; hooks/signing/identity neutralized LOCALLY there). Granted run:
+  executed callIds `search→read→annotate→verify→commit→confirm`, and the money assertion
+  is cross-tool — the log's newest hash+subject equals the `GitCommitRecord` the commit
+  tool reported, byte for byte, with the human seed below. Full-SHA nuance stated in the
+  proof itself: `rev-parse` prints 40 chars, git's own echoes abbreviate — prefix, not
+  equality. Denied confirm: history moved once, run still says denied. Red run: the plan
+  PROPOSED the arc and neither tail executed. The ledger replays commit record AND read-back
+  to a cold reader. HOME HEAD byte-identical before/after.
+- runtime 213/213 → 218/218 (5 new agent.test.ts cases — planner nesting + determinism and
+  the four orchestrator semantics; that file is now 24 tests); exec-host 71/71 UNCHANGED
+  (no product code moved there); studio 99/99 unchanged; twenty-eight proofs
+  (30 scripts) green.

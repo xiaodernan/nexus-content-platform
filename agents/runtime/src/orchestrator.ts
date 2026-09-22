@@ -70,7 +70,7 @@ export async function runTask(task: AgentTask, opts: RunOptions): Promise<RunOut
   const plannerBackend = opts.planner ?? demoPlanner;
   const planned = await plannerBackend.plan(
     task,
-    { hasVerify: registry.has('test.run'), hasIndex: registry.has('fs.index'), hasMemory: registry.has('memory.recall'), hasUi: registry.has('ui.click'), hasCommit: registry.has('git.commit'), uiInputLabel: opts.uiInputLabel, uiButtonLabel: opts.uiButtonLabel },
+    { hasVerify: registry.has('test.run'), hasIndex: registry.has('fs.index'), hasMemory: registry.has('memory.recall'), hasUi: registry.has('ui.click'), hasCommit: registry.has('git.commit'), hasConfirm: registry.has('git.log'), uiInputLabel: opts.uiInputLabel, uiButtonLabel: opts.uiButtonLabel },
     (name) => registry.has(name),
   );
   const plan: Plan = planned.plan;
@@ -154,6 +154,8 @@ export async function runTask(task: AgentTask, opts: RunOptions): Promise<RunOut
     }
     // v36: green — keep walking the plan. A `git.commit` step was only ever appended
     // after verify, so it is reached on green runs (first try OR after a fix round).
+    // v38: the trailing `git.log` confirm rides that same walk — a denial there yields
+    // status `denied` while the landed commit's result honestly STANDS in `results`.
   }
   emit({ type: 'done', status: 'completed' });
   return finishRun( 'completed');

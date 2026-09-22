@@ -49,6 +49,19 @@ describe('planner: deterministic templates', () => {
     // determinism holds with the commit step too
     expect(planTask({ id: 't', goal: 'add widget docs' }, { hasVerify: true, hasCommit: true })).toEqual(withVerify);
   });
+
+  it('v38: hasConfirm trails a git.log step after the commit — and NEVER without one', () => {
+    const full = planTask({ id: 't', goal: 'add widget docs' }, { hasVerify: true, hasCommit: true, hasConfirm: true });
+    expect(full.steps.map((s) => s.stepId)).toEqual(['search', 'read', 'annotate', 'verify', 'commit', 'confirm']);
+    expect(full.steps[5]!.tool).toBe('git.log');
+    expect(full.steps[5]!.args).toEqual({ count: 2 });
+    // confirm without commit is reading history nobody wrote — the nesting refuses it
+    const noCommit = planTask({ id: 't', goal: 'add widget docs' }, { hasVerify: true, hasConfirm: true });
+    expect(noCommit.steps.map((s) => s.tool)).not.toContain('git.log');
+    const noVerify = planTask({ id: 't', goal: 'add widget docs' }, { hasVerify: false, hasCommit: true, hasConfirm: true });
+    expect(noVerify.steps.map((s) => s.tool)).not.toContain('git.log');
+    expect(planTask({ id: 't', goal: 'add widget docs' }, { hasVerify: true, hasCommit: true, hasConfirm: true })).toEqual(full);
+  });
 });
 
 describe('orchestrator: golden path', () => {
@@ -216,6 +229,75 @@ describe('orchestrator: commit after green (v36)', () => {
     const h = harness(noteTest);
     h.registry.register(
       { name: 'git.commit', description: 'broken', permissions: ['exec'], args: [{ name: 'message', type: 'string' }] },
+      () => {
+        throw new Error('policy refused');
+      },
+    );
+    const out = await runTask(h.task, h);
+    expect(out.status).toBe('failed_verification');
+    expect(out.results.at(-1)!.error).toContain('policy refused');
+  });
+});
+
+describe('orchestrator: confirm after commit (v38)', () => {
+  function confirmHarness(testImpl: (ws: InMemoryWorkspace) => unknown, checkpoint: Checkpoint | undefined = () => true) {
+    const h = harness(testImpl, checkpoint);
+    const actions: string[] = [];
+    h.registry.register(
+      { name: 'git.commit', description: 'fake commit tool', permissions: ['exec'], args: [{ name: 'message', type: 'string' }] },
+      () => {
+        actions.push('commit');
+        return { ok: true, detail: 'fake commit landed' };
+      },
+    );
+    h.registry.register(
+      { name: 'git.log', description: 'fake read-back', permissions: ['exec'], args: [{ name: 'count', type: 'number' }] },
+      (args) => {
+        actions.push(`log:${args.count}`);
+        return { ok: true, detail: 'fake log: newest entry matches the fake commit', commits: [{ hash: '0a1b2c3', subject: 'chore(agent): fake' }] };
+      },
+    );
+    return { ...h, actions };
+  }
+
+  it('a green run now ends commit→confirm, in that order, reading back with the planned window', async () => {
+    const h = confirmHarness(noteTest);
+    const out = await runTask(h.task, h);
+    expect(out.status).toBe('completed');
+    expect(out.plan.steps.map((s) => s.stepId)).toEqual(['search', 'read', 'annotate', 'verify', 'commit', 'confirm']);
+    expect(h.actions).toEqual(['commit', 'log:2']); // confirm ran AFTER the commit, never before
+    expect(out.results.at(-1)!.tool).toBe('git.log');
+    expect(out.results.at(-1)!.ok).toBe(true);
+  });
+
+  it('green AFTER a fix round still walks to commit and confirm — executed order is the contract', async () => {
+    const fixTest = (ws: InMemoryWorkspace) => ({ ok: ws.read('docs/a.md').includes('FIX'), detail: 'needs a FIX line' });
+    const h = confirmHarness(fixTest);
+    const out = await runTask(h.task, h);
+    expect(out.status).toBe('completed');
+    expect(out.results.map((r) => r.callId)).toEqual(['t1:search', 't1:read', 't1:annotate', 't1:verify', 't1:fix-1', 't1:verify-2', 't1:commit', 't1:confirm']);
+    expect(h.actions).toEqual(['commit', 'log:2']);
+  });
+
+  it('a DENIED confirm after a landed commit: status denied, the commit result honestly STANDS', async () => {
+    const h = confirmHarness(noteTest, ({ call }) => call.tool !== 'git.log');
+    const out = await runTask(h.task, h);
+    expect(out.status).toBe('denied');
+    expect(h.actions).toEqual(['commit']); // the read-back never ran — but the commit already ran
+    const commitResult = out.results.at(-2)!;
+    expect(commitResult.tool).toBe('git.commit');
+    expect(commitResult.ok).toBe(true);
+    expect(out.results.at(-1)!.error).toContain('denied at checkpoint');
+  });
+
+  it('a throwing git.log is honest non-green — completed never rides on a broken read-back', async () => {
+    const h = harness(noteTest);
+    h.registry.register(
+      { name: 'git.commit', description: 'fake', permissions: ['exec'], args: [{ name: 'message', type: 'string' }] },
+      () => ({ ok: true, detail: 'fake commit landed' }),
+    );
+    h.registry.register(
+      { name: 'git.log', description: 'broken', permissions: ['exec'], args: [{ name: 'count', type: 'number' }] },
       () => {
         throw new Error('policy refused');
       },
