@@ -47,7 +47,9 @@
   the dock's Memory (§26) panel can list and forget records (amendment 13). v14 adds
   `runRoleChain` (researcher → designer → qa → editor, typed stage handoffs, denial names
   its stage) + a computed WCAG-contrast QA rule (`contrastRatio`; arithmetic, no opinions).
-  Proof: `agents/runtime/test` (vitest 108/108) plus the thirteen headless proofs in
+  v16 adds `domkit.ts` (`ui.observe/click/type` — exec-gated, DOM injected by the host, no
+  puppeteer anywhere; the dock drives real page elements one Allow-once dialog at a time).
+  Proof: `agents/runtime/test` (vitest 113/113) plus the fourteen headless proofs in
   `docs/evidence/agents/` (agent, code-index, memory, durability, index-store, provider,
   recall, changes, roles, pipeline, qa, repair, rolechain).
 

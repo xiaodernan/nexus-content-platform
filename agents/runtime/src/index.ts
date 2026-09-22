@@ -36,6 +36,7 @@ export {
   type QaSeverity,
 } from './visualQa.js';
 export { proposeRepairs, type Repair, type RepairResult } from './repair.js';
+export { findLabel, registerUiTools, UI_TOOL_SPECS, type UiDriver, type UiElement } from './domkit.js';
 export {
   appendEvaluation,
   formatEvaluationLine,

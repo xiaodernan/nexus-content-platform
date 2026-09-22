@@ -8,7 +8,7 @@ every emitted artifact (`provenance.mode = "demo"`).
 ## Reproducible gates
 
 ```
-npm test          # turbo: @nexus/agent-runtime 108/108 vitest among all packages
+npm test          # turbo: @nexus/agent-runtime 113/113 vitest among all packages
 npm run build     # tsc dist for agents/runtime (build order via ^build deps)
 node docs/evidence/agents/agent-proof.mjs
 node docs/evidence/agents/code-index-proof.mjs   # requires `npm run build` first
@@ -23,6 +23,7 @@ node docs/evidence/agents/pipeline-proof.mjs    # requires `npm run build` first
 node docs/evidence/agents/qa-proof.mjs          # requires `npm run build` first
 node docs/evidence/agents/repair-proof.mjs        # requires `npm run build` first
 node docs/evidence/agents/rolechain-proof.mjs    # requires `npm run build` first
+node docs/evidence/agents/dom-ui-proof.mjs         # requires `npm run build` first
 ```
 
 ## Unit tests (vitest, `agents/runtime/test`)
@@ -182,6 +183,14 @@ Four §24 roles run one goal in sequence (researcher → designer → qa → edi
 `#000/#fff` 21:1 passes), and the editor completing memory-first with score 1.00. A
 denied designer checkpoint stops the chain at exactly `stage:'designer'` with the prior
 handoff intact. Contrast is arithmetic, not opinion (§60); unparsable colors produce no flag.
+
+## Dom-UI proof (`dom-ui-proof.mjs`, M2 v16)
+
+The runtime's `ui.*` tools drive an injected fake page through the SAME checkpoint gate as
+every write: allowed runs log each gated action in order; denying the second step stops the
+run with the first action kept and the third never happening; a missing label fails BEFORE
+asking a human (no invented UI). In the Studio the same tools drive real DOM — verified
+live with two Allow-once dialogs after which the composed dashboard appeared.
 
 ## Scope honesty
 

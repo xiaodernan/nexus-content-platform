@@ -102,6 +102,9 @@ record with stage-named honest failure (see ADR 0016 amendment 14; the dock itse
 runs the two-stage pipeline). v15: a **role chain checkbox** switches Plan to
 `planAgentChain` — the awaiting card lists all three typed handoffs and the pre-approval
 QA verdict (the designer brief stays sandbox-only until you approve), and a newest-first
-**recent decisions** timeline renders from the ledger (ADR 0016 amendment 15).
+**recent decisions** timeline renders from the ledger (ADR 0016 amendment 15). v16: the
+**Agent UI run** button lets the agent drive the page itself via the runtime's exec-gated
+`ui.*` tools — every single type/click pauses in an 'Allow once / Deny' card naming the
+element first (§28 as product UX; ADR 0016 amendment 16).
 Everything is DEMO MODE-labeled: the agent proposes, the model stays canonical
 (§8), and no document mutation happens without the human checkpoint (§28).

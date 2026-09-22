@@ -332,3 +332,19 @@ two fresh runs, checkpoint denial leaving the workspace byte-identical).
 - **Browser-verified** (hidden surface, async evaluate script): compose → checkbox →
   Plan → three `→` handoff lines + pre-approval QA + Approve → banner in Layers +
   `RECENT DECISIONS · approved · … · qa:flagged`. Studio 82/82; runtime unchanged 108/108.
+
+## Amendment 16 — v16: the agent drives the UI, one gated action at a time, 2026-09
+- **First §63 'browser automation *by* the agent' slice:** `domkit.ts` adds `ui.observe`
+  (read) and `ui.click`/`ui.type` (**exec**) to the runtime — the package touches no DOM;
+  the Studio injects a `UiDriver` over real buttons/inputs (`uiRun.ts`). Because these are
+  registry tools with the exec class, EVERY click/type passes the Human Checkpoint — in
+  the product this renders as an 'Allow once / Deny' card naming the exact element and
+  effect before anything happens.
+- **Proven twice:** `dom-ui-proof.mjs` (fake driver: allow-all → two logged gated actions;
+  deny the second → first stands and the run stops `denied at checkpoint`; missing label →
+  fails before asking anyone) and the live browser: Agent UI run → two sequential dialogs
+  → the agent typed into the real composer and clicked Compose — dashboard layers appeared,
+  console clean.
+- **Honest framing (§60):** the driving script is deterministic and demo-labeled, not model
+  planning; automation capability ≠ autonomy — the gate is the point, and the runtime stays
+  browser-free/unit-testable (113/113 runtime +5 `domkit`, 85/85 studio +3 `uiRun`).

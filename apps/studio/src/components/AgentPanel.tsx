@@ -1,5 +1,5 @@
 'use client';
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { useStudio } from '@/lib/store';
 import { browserStorage } from '@/lib/storage';
 import {
@@ -18,6 +18,7 @@ import {
   type RepairPlan,
 } from '@/lib/agentDock';
 import type { ChainStageHandoff, QaReport } from '@nexus/agent-runtime';
+import { createDomDriver, runUiDrive, uiScript, type UiRunResult } from '@/lib/uiRun';
 
 type Phase = 'idle' | 'planning' | 'awaiting' | 'done';
 
@@ -40,6 +41,31 @@ export default function AgentPanel() {
   const [handoffList, setHandoffList] = useState<ChainStageHandoff[]>([]);
   const [previewQa, setPreviewQa] = useState<QaReport | null>(null);
   const [entries, setEntries] = useState<LedgerEntry[]>([]);
+  const [uiAsk, setUiAsk] = useState<{ tool: string; label: string; detail: string } | null>(null);
+  const [uiLog, setUiLog] = useState<string[]>([]);
+  const [uiBusy, setUiBusy] = useState(false);
+  const decider = useRef<(v: boolean) => void>(() => {});
+
+  const agentUiRun = async () => {
+    if (uiBusy) return;
+    setUiBusy(true);
+    setUiLog([]);
+    const decide = (plan: { tool: string; label: string; detail: string }) =>
+      new Promise<boolean>((resolve) => {
+        decider.current = resolve;
+        setUiAsk(plan);
+      });
+    const res: UiRunResult = await runUiDrive(createDomDriver(), uiScript(goal || 'an analytics dashboard'), decide);
+    setUiAsk(null);
+    setUiBusy(false);
+    setUiLog(res.actions);
+    setNote(res.ok ? 'Agent UI run finished — every action passed your checkpoint.' : `stopped at ‘{res.stoppedAt}’: {res.reason}`);
+  };
+
+  const answerUi = (v: boolean) => {
+    decider.current(v);
+    if (!v) setUiLog((l) => [...l, '(denied — the run stops here)']);
+  };
 
   const syncLedger = () => setEntries(readAgentLedger(browserStorage()).entries.slice(-8).reverse());
 
@@ -140,6 +166,19 @@ export default function AgentPanel() {
           {phase === 'planning' ? '…' : 'Plan'}
         </button>
       </div>
+      <button className="btn" onClick={() => void agentUiRun()} disabled={uiBusy} data-testid="agent-ui-run" style={{ alignSelf: 'flex-start' }}>
+        {uiBusy ? 'Agent acting…' : 'Agent UI run (§63 · you gate each action)'}
+      </button>
+      {uiAsk && (
+        <div style={{ border: '1px solid #ffd24a', borderRadius: 8, padding: 6, display: 'flex', flexDirection: 'column', gap: 4 }}>
+          <div style={{ fontSize: 11 }}>Agent wants to <b>{uiAsk.tool === 'ui.click' ? 'click' : 'type into'}</b> &ldquo;{uiAsk.label}&rdquo; ({uiAsk.detail}). Allow this single action?</div>
+          <div style={{ display: 'flex', gap: 6 }}>
+            <button className="btn btn-primary" onClick={() => answerUi(true)} data-testid="ui-allow">Allow once</button>
+            <button className="btn" onClick={() => answerUi(false)} data-testid="ui-deny">Deny</button>
+          </div>
+        </div>
+      )}
+      {uiLog.length > 0 && <div style={label}>gated actions: {uiLog.join(' → ')}</div>}
       <label style={{ ...label, display: 'flex', gap: 6, alignItems: 'center', cursor: 'pointer' }}>
         <input type="checkbox" checked={chainMode} onChange={(e) => setChainMode(e.target.checked)} />
         role chain (researcher → designer → qa → editor, §24)
