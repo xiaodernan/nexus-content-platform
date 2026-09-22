@@ -7,6 +7,7 @@ import type { MemoryRef, MemoryStore } from './memory.js';
 import type { Checkpoint, ToolRegistry } from './registry.js';
 import type { RoleRegistry } from './roles.js';
 import { appendEvaluation, scoreRun, type RunEvaluation } from './evaluate.js';
+import { registerUiTools, type UiDriver } from './domkit.js';
 import type { AgentTask, Provenance, RunOutcome } from './types.js';
 
 /**
@@ -111,6 +112,13 @@ export interface ChainStageHandoff {
 export interface ChainOptions extends PipelineOptions {
   /** Host-supplied rect data for the QA stage; absent ⇒ QA honestly checks nothing. */
   qaInput?: QaInput;
+  /**
+   * v22: when the host provides a UI driver, the editor stage gains the gated `ui.*` tools
+   * (capability by presence, §24). Every click/type still passes the Human Checkpoint (§28).
+   */
+  uiDriver?: UiDriver;
+  uiInputLabel?: string;
+  uiButtonLabel?: string;
 }
 
 export type ChainResult =
@@ -128,8 +136,14 @@ export async function runRoleChain(task: AgentTask, opts: ChainOptions): Promise
   const scope = opts.scope ?? 'pipeline';
   const handoffs: ChainStageHandoff[] = [];
 
+  // v22: a host-supplied driver grants the chain UI capabilities on a copy (scope(['*']) is
+  // the existing full projection) — the caller's registry is never mutated. Roles without
+  // `ui.*` in their definition (researcher/designer/qa) still cannot see these tools (§24).
+  const host = opts.uiDriver && !opts.registry.has('ui.click') ? opts.registry.scope(['*']) : opts.registry;
+  if (opts.uiDriver && host !== opts.registry) registerUiTools(host, opts.uiDriver);
+
   // 1) researcher: discovery through the read-only scope.
-  const research = opts.roles.scopedRegistry('researcher', opts.registry);
+  const research = opts.roles.scopedRegistry('researcher', host);
   const via = research.has('fs.index') ? 'fs.index' : research.has('fs.search') ? 'fs.search' : null;
   if (!via) return { ok: false, stage: 'researcher', reason: 'no research tool in scope', handoffs };
   const rArgs = via === 'fs.search' ? { term: goalKeyword(task.goal) } : { query: task.goal };
@@ -142,7 +156,7 @@ export async function runRoleChain(task: AgentTask, opts: ChainOptions): Promise
   opts.store.save({ scope, runId: task.id, query: `${task.goal} — research`, summary: `research refs: ${refs.map((p) => p.path).join(', ')}`, refs });
 
   // 2) designer: records the layout intent (a write ⇒ checkpoint-gated).
-  const designer = opts.roles.scopedRegistry('designer', opts.registry);
+  const designer = opts.roles.scopedRegistry('designer', host);
   const brief = `DESIGN (DEMO MODE · ${task.id}): plan for "${task.goal}" over ${refs.map((p) => p.path).join(', ')}`;
   const dRes = await designer.invoke({ callId: `${task.id}:brief`, tool: 'fs.append', args: { path: refs[0]!.path, text: brief } }, { checkpoint: opts.checkpoint });
   if (!dRes.ok) return { ok: false, stage: 'designer', reason: `designer blocked: ${dRes.error}`, handoffs };
@@ -156,10 +170,16 @@ export async function runRoleChain(task: AgentTask, opts: ChainOptions): Promise
   // QA records the FILES (refs) plus what it found (summary) — flag ids are rect labels, not paths.
   opts.store.save({ scope, runId: task.id, query: `${task.goal} — qa`, summary: `qa ${qa.verdict}: ${qa.flags.map((f) => f.code).join(', ') || 'clean'} on ${refs.map((p) => p.path).join(', ')}`, refs });
 
-  // 4) editor: full loop, memory-first thanks to the three records above.
-  const editor = opts.roles.scopedRegistry('editor', opts.registry);
-  const editorOutcome = await runTask(task, { registry: editor, checkpoint: opts.checkpoint, snapshot: opts.snapshot, maxSteps: opts.maxSteps, maxFixRounds: opts.maxFixRounds });
+  // 4) editor: full loop, memory-first thanks to the three records above. With a UI driver
+  // present, the planner switches to the observe→type→click(→verify) template (v20/v22).
+  const editor = opts.roles.scopedRegistry('editor', host);
+  const editorOutcome = await runTask(task, { registry: editor, checkpoint: opts.checkpoint, snapshot: opts.snapshot, maxSteps: opts.maxSteps, maxFixRounds: opts.maxFixRounds, uiInputLabel: opts.uiInputLabel, uiButtonLabel: opts.uiButtonLabel });
   const evaluation = scoreRun(editorOutcome);
+  // The engine the editor actually acted through is recorded, not assumed (§60).
+  const uiUsed = editorOutcome.results.filter((r) => r.ok && r.tool.startsWith('ui.')).map((r) => r.tool);
+  if (uiUsed.length > 0) {
+    handoffs.push({ from: 'editor', to: 'host', goal: task.goal, via: `ui:${[...new Set(uiUsed)].join('+')}`, refs, runId: task.id });
+  }
   if (opts.fsLike) {
     if (opts.ledgerFile) appendLedger(opts.fsLike, opts.ledgerFile, editorOutcome);
     if (opts.evaluationFile) appendEvaluation(opts.fsLike, opts.evaluationFile, evaluation);

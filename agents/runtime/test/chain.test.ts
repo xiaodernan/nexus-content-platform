@@ -4,6 +4,7 @@ import { InMemoryWorkspace, registerWorkspaceTools } from '../src/workspace.js';
 import { MemoryStore, registerMemoryTools } from '../src/memory.js';
 import { RoleRegistry, DEMO_ROLES } from '../src/roles.js';
 import { runRoleChain } from '../src/pipeline.js';
+import type { UiDriver } from '../src/domkit.js';
 
 const SEED = {
   'docs/widget.md': '# Widget\n\nwidget rotation notes\n',
@@ -70,3 +71,73 @@ describe('runRoleChain (v14 §24 four-stage pipeline)', () => {
 function hostShim(h: ReturnType<typeof host>) {
   return { roles: h.roles, registry: h.registry, store: h.store, scope: 'chain', checkpoint: () => true };
 }
+
+/* ---- v22: the editor stage can act through gated ui tools ---- */
+
+function uiHost() {
+  const ws = new InMemoryWorkspace(SEED);
+  const store = new MemoryStore();
+  const registry = registerMemoryTools(registerWorkspaceTools(new ToolRegistry(), ws), store, 'chain');
+  const els = [
+    { kind: 'input' as const, label: 'goal composer' },
+    { kind: 'button' as const, label: 'Compose' },
+  ];
+  const page = { prompt: '', layers: 1 };
+  const driver: UiDriver = {
+    elements: () => els,
+    click: (i) => {
+      if (page.prompt.length > 0 && els[i]!.kind === 'button') page.layers++;
+      return `click:${els[i]!.label} layers=${page.layers}`;
+    },
+    type: (i, t) => {
+      page.prompt = t;
+      return `type:${els[i]!.label}=${t}`;
+    },
+    layerCount: () => page.layers,
+  };
+  registry.register({ name: 'test.run', description: '', permissions: ['exec'], args: [] }, () => ({
+    ok: page.layers > 1,
+    detail: `layers now ${page.layers}`,
+  }));
+  const roles = new RoleRegistry();
+  DEMO_ROLES.forEach((r) => roles.register(r));
+  return { ws, store, registry, roles, driver, page };
+}
+
+describe('runRoleChain with a UI driver (v22)', () => {
+  it('editor stage drives the page observe→type→click and the host verify confirms the effect', async () => {
+    const h = uiHost();
+    const res = await runRoleChain(task, {
+      roles: h.roles, registry: h.registry, store: h.store, scope: 'chain', checkpoint: () => true,
+      uiDriver: h.driver, uiInputLabel: 'goal composer', uiButtonLabel: 'Compose',
+    });
+    expect(res.ok).toBe(true);
+    if (!res.ok) return;
+    expect(res.editorOutcome.status).toBe('completed');
+    expect(res.editorOutcome.plan.steps.map((s) => s.tool)).toEqual(['ui.observe', 'ui.type', 'ui.click', 'test.run']);
+    expect(h.page.prompt).toBe(task.goal);
+    expect(h.page.layers).toBe(2);
+    expect(res.handoffs.map((x) => `${x.from}→${x.to}`)).toEqual(['researcher→designer', 'designer→qa', 'qa→editor', 'editor→host']);
+    expect(res.handoffs[3]!.via).toBe('ui:ui.observe+ui.type+ui.click');
+  });
+
+  it('denying ui.click at the checkpoint stops the editor mid-plan; earlier actions still ran and are stated', async () => {
+    const h = uiHost();
+    const gated: string[] = [];
+    const res = await runRoleChain(task, {
+      roles: h.roles, registry: h.registry, store: h.store, scope: 'chain',
+      checkpoint: ({ call }) => {
+        if (call.tool.startsWith('ui.')) gated.push(call.tool);
+        return call.tool !== 'ui.click';
+      },
+      uiDriver: h.driver, uiInputLabel: 'goal composer', uiButtonLabel: 'Compose',
+    });
+    expect(res.ok).toBe(true);
+    if (!res.ok) return;
+    expect(res.editorOutcome.status).toBe('denied');
+    expect(gated).toEqual(['ui.type', 'ui.click']); // ui.observe is read-class: never checkpointed
+    expect(h.page.prompt).toBe(task.goal); // typing happened before the denial
+    expect(h.page.layers).toBe(1); // the button was never pressed
+    expect(res.handoffs[3]!.via).toBe('ui:ui.observe+ui.type'); // recorded honestly, without the click
+  });
+});

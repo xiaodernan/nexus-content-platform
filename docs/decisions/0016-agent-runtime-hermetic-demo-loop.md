@@ -398,3 +398,21 @@ two fresh runs, checkpoint denial leaving the workspace byte-identical).
   reason:'status=… planner=demo'}` line to the existing agent ledger and is scored by
   `scoreRun` — UI actions join the same §26/§63 audit stream as design proposals.
 - Runtime 129/129 (+1 verified-plan case), studio 90/90 (+2), verify dialog also gated.
+
+## Amendment 22 — v22: the chain's editor stage can act through gated ui tools, 2026-09
+- **`ChainOptions.uiDriver?` (+ label options):** capability by PRESENCE — the ui tools are
+  registered only when the host hands the chain a driver, and they go onto a copy
+  (`registry.scope(['*'])`, the existing full projection) so the caller's registry is never
+  mutated. The editor role's definition gains `ui.*`; researcher/designer/qa do not, so for
+  them the tools remain unknown, not denied (§24 unchanged).
+- **The v20 UI plan template now fires inside the chain:** with a driver the unmodified
+  runTask loop plans observe→type(goal)→click(→verify) for the editor stage, and each
+  exec action still passes the same Human Checkpoint as everywhere else (§28).
+- **Engine recorded, not assumed (§60):** when ui results succeed, the chain appends an
+  `editor→host` handoff whose `via` lists exactly the ui tools that ran
+  (e.g. `ui:ui.observe+ui.type+ui.click`). Denying `ui.click` mid-plan yields
+  `ui:ui.observe+ui.type` and status `denied` — the page is never clicked, and the audit
+  trail says which actions DID happen.
+- Runtime 131/131 (+2 chain-ui cases); `rolechain-proof.mjs` extended (completion,
+  per-action denial, registry-immutability, researcher-absence assertions); seventeen
+  proofs.

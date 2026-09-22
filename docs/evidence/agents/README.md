@@ -8,7 +8,7 @@ every emitted artifact (`provenance.mode = "demo"`).
 ## Reproducible gates
 
 ```
-npm test          # turbo: @nexus/agent-runtime 129/129 vitest among all packages
+npm test          # turbo: @nexus/agent-runtime 131/131 vitest among all packages
 npm run build     # tsc dist for agents/runtime (build order via ^build deps)
 node docs/evidence/agents/agent-proof.mjs
 node docs/evidence/agents/code-index-proof.mjs   # requires `npm run build` first
@@ -48,7 +48,7 @@ node docs/evidence/agents/memory-vectors-proof.mjs # requires `npm run build` fi
 | `vectordb.test.ts` (4) | build sorts + dim-checks, persist→cold reload ranking bit-identical to inline hybridScore + zero-match empty, filterIds + determinism, rejection matrix (bad JSON/version/dim/entries/missing file) |
 | `planBackend.test.ts` (7) | valid provider plan adopted end-to-end (backend stamped, @refs resolved), unknown tool/dup id/object args/empty/oversize/non-object rejections, throwing provider falls back with stated reason, default = demo with no fallback field |
 | `visualQa.test.ts` (5) | clean layout ok, zero-size/off-page/overlap detection with severities, error-before-warn deterministic ordering, tolerances as explicit inputs, identical reports for identical inputs |
-| `chain.test.ts` (4) | four-stage researcher→designer→qa→editor order + handoff records, QA honest-empty without host rects, designer denial stops the chain naming its stage, determinism |
+| `chain.test.ts` (6) | four-stage researcher→designer→qa→editor order + handoff records, QA honest-empty without host rects, designer denial stops the chain naming its stage, determinism; v22: ui-driver editor stage drives observe→type→click→verify with `editor→host` engine handoff, per-action denial leaves the page unclicked and states the partial engine |
 | `visualQa.test.ts` +contrast (3) | black/white passes, grey pair flags warn, rgb()/rgba() parse, junk colors yield no flag, 21:1 math |
 | `repair.test.ts` (5) | clean input no-op, off-page pulled inside then QA-clean, overlap nudged below with gutter, zero-size grown, dedupe + determinism + "apply all repairs → zero error flags" |
 | `durability.test.ts` (8) | memory serialize/deserialize round-trip + version/schema rejection, `restore()` id high-water mark, save/load through an injected writable fake disk, corrupt-file honest failure, `guardedJoin` jail (absolute/`..`/drive-letter rejection, backslash folding), `disk.write` checkpoint gate + escape touches nothing, `disk.read`/`disk.list` confinement |
@@ -180,7 +180,7 @@ full-page siblings) stops after bounded passes and reports what remains — the 
 honestly instead of thrashing. In the dock this closes end-to-end: flagged banner →
 Propose repairs → Approve → status `QA now flagged/ok` + `repairs:N` journaled.
 
-## Role-chain proof (`rolechain-proof.mjs`, M2 v14)
+## Role-chain proof (`rolechain-proof.mjs`, M2 v14 + v22)
 
 Four §24 roles run one goal in sequence (researcher → designer → qa → editor): three typed
 `ChainStageHandoff` records, the designer's brief appended under checkpoint, the QA stage
@@ -211,6 +211,15 @@ Cold reader (restored store + persisted vectors) reproduces inline ranking exact
 ## v20 note — orchestrator-driven UI
 
 The dock's Agent UI run now executes the demo planner's `observe→type→click` plan through the UNCHANGED runTask loop; ui tools address labels (exact, then substring). Browser: two per-action Allow dialogs, then the composed dashboard — live plan→act→verify, fully gated.
+
+## v22 note — UI-capable role-chain editor
+
+`runRoleChain` accepts an optional `uiDriver`: the ui tools are registered on a registry COPY
+(caller's registry asserted unchanged), the editor role alone gains `ui.*` (researcher absence
+asserted — unknown tool, not denied), and the v20 UI template fires for the editor stage. The
+chain then appends an `editor→host` handoff recording exactly which ui tools SUCCEEDED
+(`ui:ui.observe+ui.type+ui.click`); refusing `ui.click` yields `ui:ui.observe+ui.type` with
+status `denied` and the page never clicked (§60: the audit names the real engine).
 
 ## Scope honesty
 
