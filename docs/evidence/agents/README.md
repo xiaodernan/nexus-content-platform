@@ -1,19 +1,21 @@
-# M2 evidence — agent stack (v0 loop → v34 a real test suite through the sandbox; all ADR 0016 amendments)
+# M2 evidence — agent stack (v0 loop → v35 the first write through the sandbox: a real git commit; all ADR 0016 amendments)
 
 All checks are headless, offline, key-free, and reproducible from the repo root. Nothing here
 claims model-quality planning or neural retrieval (§60): the planner is a deterministic
 template and the index embedder is a hash-based bag-of-tokens stand-in — both say so in
-every emitted artifact (`provenance.mode = "demo"`). The honest exceptions since v30/v32/v34:
+every emitted artifact (`provenance.mode = "demo"`). The honest exceptions since v30/v32/v34/v35:
 `exec-host-proof.mjs` and `git-aware-proof.mjs` spawn a few read-only local commands
-(`git status --short`, `git diff --stat`) and `execsuite-proof.mjs` runs the repo's OWN
+(`git status --short`, `git diff --stat`), `execsuite-proof.mjs` runs the repo's OWN
 @nexus/design-model vitest suite through the confined host (vitest's cache under
-`node_modules` is the only thing it writes) — still offline, still
-key-free, and everything else in the stack spawns nothing.
+`node_modules` is the only thing it writes), and `commit-proof.mjs` performs REAL
+`git commit`s — only inside a throwaway `os.tmpdir()` repo with hooks/signing neutralized
+LOCALLY there, never in this repository — still offline, still key-free, and everything
+else in the stack spawns nothing.
 
 ## Reproducible gates
 
 ```
-npm test          # turbo: @nexus/agent-runtime 207/207 + @nexus/exec-host 41/41 vitest among all packages
+npm test          # turbo: @nexus/agent-runtime 207/207 + @nexus/exec-host 57/57 vitest among all packages
 npm run build     # tsc dist for agents/runtime + agents/exec-host (build order via ^build deps)
 node docs/evidence/agents/agent-proof.mjs
 node docs/evidence/agents/code-index-proof.mjs   # requires `npm run build` first
@@ -39,6 +41,7 @@ node docs/evidence/agents/exec-host-proof.mjs      # requires `npm run build` fi
 node docs/evidence/agents/exectest-proof.mjs       # requires `npm run build` first
 node docs/evidence/agents/git-aware-proof.mjs      # requires `npm run build` first
 node docs/evidence/agents/execsuite-proof.mjs      # requires `npm run build` first (boots the real design-model vitest suite, ~11s)
+node docs/evidence/agents/commit-proof.mjs         # requires `npm run build` first (REAL commits, but ONLY in a throwaway os.tmpdir repo)
 ```
 
 ## Unit tests (vitest, `agents/runtime/test`)
@@ -73,6 +76,7 @@ node docs/evidence/agents/execsuite-proof.mjs      # requires `npm run build` fi
 | `exec-host/execHost.test.ts` (15) | v30 (@nexus/exec-host, injected fake spawn — zero real processes in vitest): allowlisted run spawns argv-as-data with the plan cwd/env verbatim, arg tokens never re-tokenized, policy refusal spawns NOTHING even behind an approving checkpoint, no-checkpoint direct call = stated `checkpoint required for exec (§28)`, deny = `planned:true` + `checkpoint denied`, checkpoint asked with an exec ToolCall carrying the plan, output budget hard-caps stdout+stderr total and marks `truncated`, timeout kills marked `killedByBudget` + SIGTERM, ENOENT surfaces as structured `spawnError` not a crash, `exec.run` registry-gated (deny never reaches host; granted → `{ok, detail, result}`; refusal = tool ERROR; nonzero exit = ok:false data with stderr), JSONL journal round-trip with malformed + shape-wrong counting + last-N + missing-file empty |
 | `exec-host/execTestRunner.test.ts` (9) | v31 (fake spawn, zero real processes): exit 0 → passing report whose engine NAMES the argv, exit 1 + stderr → failure message verbatim, timeout kill → `killed at timeout budget (SIGTERM)` never noise, policy refusal → FAILING report with the stated reason and no spawn, missing `preApproved` → the exact `checkpoint required for exec (§28)` message, `only` miss → vacuous total-0 without paying for a spawn, through `registerTestTools` the granted call states the exec-host engine and an unknown `only` is a tool ERROR, runTask e2e verifies with a real COMMAND and journals the report |
 | `exec-host/gitTools.test.ts` (17) | v32 (fake spawn): `parseGitStatus` XY→named statuses + counts + rename keeps NEW path + junk XY = `other`; `parseGitDiff` per-file hunk/add/delete tallies with `+++`/`---` excluded and preamble ignored; `parseDiffStat` footer groups / empty / junk→null; policy allows EXACTLY `git status --short`/`git diff`/`git diff --stat` and default-denies push/commit/path-scoped diff; `gitEnv` picks only named vars; tools both exec-permission, no-checkpoint never reaches host (0 spawns), granted `git.status` returns PARSED entries and the spawn env is policy-scrubbed (`TOKEN` never seen), `stat:true` swaps argv, exit 128 is ok:false DATA not a throw, escaping cwd = stated tool ERROR, truncation labeled in detail |
+| `exec-host/gitCommitTool.test.ts` (16) | v35 (fake spawn): `parseCommitOutput` reads `[branch (root-commit)? hash] subject` + stat footer (create-mode lines AFTER the stat), insertions-only, non-echo → null; `gitCommitPolicy` allows EXACTLY `git commit -m <msg>` (incl. a message literally `*` — the v29 `'*'` ARG wildcard, first production wiring) and default-denies bare `git commit`, `-m a b`, `-am`, `--no-verify -m x`, `add`, `push`, `rm -rf /`; blank message throws BEFORE the policy with ZERO spawns; granted commit hands argv verbatim (`['commit','-m',msg]`, multi-line/quoted message intact, env scrubbed) and renders `git.commit → exit 0: master@0a1b2c3 · N file(s) +I −D`; nothing-staged exit 1 is ok:false DATA carrying git's first stderr line; escaping cwd = tool ERROR 0 spawns; a message smuggling `--no-verify -a` stays ONE argv token |
 | `durability.test.ts` (8) | memory serialize/deserialize round-trip + version/schema rejection, `restore()` id high-water mark, save/load through an injected writable fake disk, corrupt-file honest failure, `guardedJoin` jail (absolute/`..`/drive-letter rejection, backslash folding), `disk.write` checkpoint gate + escape touches nothing, `disk.read`/`disk.list` confinement |
 | `indexStore.test.ts` (11) | index snapshot serialize→deserialize verbatim + version/chunk schema rejection, save/load via injected fs, cold rescan equals `buildIndex`, unchanged files reuse chunks / edits rechunk exactly the changed paths / removals drop out, query ranking snapshot-independent; v5 provider: cold-first-build equals plain build, incremental refresh 0 re-chunked, edited file sole re-chunk, cross-provider snapshot restore, corrupt-snapshot fallback + repair, `fs.index` provider/default parity |
 | `indexVectors.test.ts` (11) | v23: `indexToVectorDb` shape (one entry per chunk, id `path#startLine`, real dim-64 vectors), vector-vs-inline hit-for-hit parity across five query shapes + stated engine, null db ⇒ honest inline; cold merge ≡ cold build, unchanged chunks reuse the identical vector object / only touched windows re-embed / removals drop out; tampered-text, missing-id and wrong-dim drift each send the WHOLE query inline with real inline hits; persisted provider: lazy `vectors()`, byte-identical reuse by a cold second provider, corrupt-file self-repair, `fs.index` engine labels with/without vectorsFile, edits tracked through the provider lifecycle |
@@ -169,6 +173,8 @@ exactly under `applyPatch(after, inversePatch(f))`. Full `RunOutcome`s append to
 ledger that a fresh reader reloads in order (`malformed: 0`, `last: 1` trims to newest).
 This is the honest substitute for a "git commit tool": the runtime emits reviewable
 patches; applying them stays a human/git action outside it (§60, ADR 0013 pending).
+(Amendment 35 later shipped a real `git.commit` tool — ONE argv, staged-index-only,
+§28-gated — without retiring this in-jail patch flow.)
 
 ## Roles + evaluation proof (`roles-proof.mjs`, M2 v8)
 
@@ -317,6 +323,24 @@ predicates. What this does NOT claim: no OS/container isolation (ADR 0013's othe
 open) and no suite is wired by DEFAULT anywhere else — this is the policy CHOICE made
 once, visibly.
 
+## Commit proof (`commit-proof.mjs`, M2 v35)
+
+The first WRITE any agent tool has ever performed through the sandbox — and it is careful
+about it. Policy math first: `gitCommitPolicy` plans ONLY `git commit -m <msg>` (the
+message rides the v29 `'*'` ARG wildcard — shape fixed, content floats, arity enforced)
+while bare `git commit`, `-am`, `--no-verify -m x`, `git add .`, `git push` and
+`rm -rf /` all default-deny; a blank message is refused BEFORE the policy and before any
+process could spawn. Then the REAL demo, §9-safe by construction: a throwaway repo under
+`os.tmpdir()`, where `core.hooksPath`, `commit.gpgsign` and identity are set LOCALLY
+(that repo only — the global codex hooks and the user's real git config are neither
+bypassed nor touched). Through the §28 registry gate the granted `git.commit` commits
+EXACTLY the staged file — stat says `1 file`, while an unstaged edit (` M a.txt`) and a
+never-staged file survive the commit untouched, proven by porcelain, not by hope — a
+second commit with an empty index returns honest `ok:false` DATA (git's own "nothing to
+commit" line), and the entire run spawns exactly TWO sandboxed processes. The final
+assertion is the one that matters for this repo: the HOME repository's HEAD is
+byte-identical before and after.
+
 ## v20 note — orchestrator-driven UI
 
 The dock's Agent UI run now executes the demo planner's `observe→type→click` plan through the UNCHANGED runTask loop; ui tools address labels (exact, then substring). Browser: two per-action Allow dialogs, then the composed dashboard — live plan→act→verify, fully gated.
@@ -451,7 +475,8 @@ evidence-only wiring of a real suite).
 
 `gitReadOnlyPolicy(root)` allows exactly three argv (`git status --short`, `git diff`,
 `git diff --stat`) — §9 holds BY POLICY, and the write tools (`git commit`) are
-deliberately a later, separately-gated slice. `registerGitTools(registry, host, {env})`
+deliberately a later, separately-gated slice (Amendment 35 later landed exactly that
+slice, still default-deny for everything but one argv — see below). `registerGitTools(registry, host, {env})`
 exposes them as exec-permission `git.status`/`git.diff` (§28 gates the PROCESS even though
 the repo is read-only; the registry checkpoint stays the single gate), always via the v30
 host: planExec refusals become tool errors, env is policy-scrubbed, cwd stays jailed,
@@ -472,6 +497,23 @@ allowlisted env at the jailed cwd. Honest bounds unchanged: POLICY sandbox (no O
 container/egress), subprocess reports are one exit-zero check carrying the suite's own
 summary verbatim, and nothing outside the proof wires a real suite by default.
 
+## v35 note — git.commit: the first write through the sandbox, one argv wide
+
+`gitCommitPolicy(root)` allowlists EXACTLY `['git','commit','-m','*']` — the first
+production wiring of the v29 `'*'` ARG wildcard: the shape is fixed, only the message
+floats, and `argvMatches` arity keeps `-m a b` out. The tool commits ONLY the
+human-staged index: no `add`, no `push`, no flag combinations — §28 stays double-gated
+(stage is human, commit is the checkpointed call). Under `shell:false` argv-as-data even
+a message literally containing `--no-verify -a` is ONE token that git reads as prose,
+never as flags — proven in test. Blank messages throw before the policy (0 spawns);
+refusals and escaping cwds are tool ERRORS; a real nonzero exit ("nothing staged") is
+ok:false DATA with git's first stderr line. `parseCommitOutput` renders success into a
+`GitCommitRecord` (branch/hash/root-commit/subject + stat footer, create-mode lines
+come AFTER the stat). §9 discipline: `commit-proof.mjs` performs real commits ONLY in a
+throwaway `os.tmpdir()` repo with hooks/signing neutralized locally there, and closes by
+byte-comparing THIS repo's HEAD before/after — the agent can commit; this repository's
+history remains the user's. Runtime untouched (spawn-free); exec-host 41/41 → 57/57.
+
 ## Scope honesty
 
 §63/§26 items *not* implemented (stated, not faked): general real-fs write tools (only
@@ -482,8 +524,11 @@ sandbox (ADR 0013's egress/secret/containers half is open); v31 added the bridge
 command CAN answer `test.run` (`execTestRunner`), and v34 proved it once for real —
 `execsuite-proof.mjs` runs the design-model suite through the host — but NO repo suite is
 wired by default outside that evidence file, and the runtime package itself stays
-spawn-free by audited design. The git COMMIT write tool (v32 shipped
-read-only awareness only — see/don't-touch by policy),
+spawn-free by audited design. Since v35 the git write surface is ONE argv wide
+(`git commit -m <msg>` via a separate `gitCommitPolicy`, staged-index-only, never `add`/
+`push`) — the v32 see-don't-touch policy stands for everything else, and real-commit
+demos live only in throwaway temp repos. Agent-led STAGING (choosing what enters the
+index) remains unimplemented by design: staging stays a human/`disk`-side act,
 live-model planning (the seam exists, the model needs keys), multi-agent registry.
 Memory recall (v6) shares the index's deterministic token-bag hybrid score — a real
 signature scheme, but still a stand-in for the pgvector hybrid retrieval of ADR 0012. The provider must be kept in sync with the workspace by the

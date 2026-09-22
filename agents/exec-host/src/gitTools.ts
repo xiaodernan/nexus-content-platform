@@ -9,7 +9,8 @@ import type { ExecHost, ExecRunResult } from './execHost.js';
  * write. The git COMMIT tool is deliberately NOT part of this slice.
  */
 
-const GIT_ENV_NAMES = ['PATH', 'SYSTEMROOT', 'HOME', 'USERPROFILE'];
+/** The handful of vars git actually needs — shared with the v35 commit slice. */
+export const GIT_ENV_NAMES = ['PATH', 'SYSTEMROOT', 'HOME', 'USERPROFILE'];
 
 /** The three commands this policy knows, and NOTHING else (default-deny). */
 export function gitReadOnlyPolicy(root: string, options: { timeoutMs?: number; maxOutputBytes?: number } = {}): ExecPolicy {

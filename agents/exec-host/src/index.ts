@@ -15,6 +15,13 @@ export {
 } from './execHost.js';
 export { execTestRunner, type ExecTestRunnerOptions } from './execTestRunner.js';
 export {
+  GIT_COMMIT_TOOL_SPECS,
+  gitCommitPolicy,
+  parseCommitOutput,
+  registerGitCommitTool,
+  type GitCommitRecord,
+} from './gitCommitTool.js';
+export {
   GIT_TOOL_SPECS,
   gitEnv,
   gitReadOnlyPolicy,

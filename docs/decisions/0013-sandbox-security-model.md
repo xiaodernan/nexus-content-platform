@@ -39,7 +39,11 @@ agentic-coding milestone implements it rather than retrofitting.
 > containment until containers do). Amendment 31 later let a policy-approved command
 > ANSWER `test.run` (exec-host `execTestRunner`), and amendment 32 shipped the first
 > domain consumer: read-only git awareness (`git.status`/`git.diff` through a
-> three-exact-argv allowlist) — see-what-changed with no path to write.
+> three-exact-argv allowlist) — see-what-changed with no path to write. Amendment 35
+> added the FIRST write through the sandbox: `git commit -m <msg>` as the only argv
+> `gitCommitPolicy` allows — the agent can commit a HUMAN-staged index behind §28, but
+> still cannot stage, push, or run any other git verb; real-commit demos live strictly
+> in throwaway `os.tmpdir()` repos so this repo's history stays the user's own.
 
 ## Tradeoffs
 - (−) Container cold-start latency per job; mitigated by a warm pool in Redis-backed queue.

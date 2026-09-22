@@ -671,3 +671,35 @@ two fresh runs, checkpoint denial leaving the workspace byte-identical).
 - NO product code changed — runtime 207/207, exec-host 41/41, studio 99/99 all
   UNCHANGED; this is the v29–v31 machinery doing exactly what it was built to do.
   Twenty-four proofs (26 scripts with the two studio evidence files) re-run green.
+
+## Amendment 35 — v35: git.commit, the staged index behind §28 and the first '*' arg wildcard, 2026-09
+- **The v32 caveat closes on its own terms:** read-only git awareness shipped with the
+  deliberate note that a COMMIT tool would be "a separately-gated slice, not an
+  oversight". v35 lands exactly that slice in `agents/exec-host/src/gitCommitTool.ts`:
+  `gitCommitPolicy(root)` allowlists ONE argv shape — `git commit -m <message>` — and
+  nothing else. No `add`, no `push`, no flag combinations: the tool commits ONLY what
+  a human already staged, so the §28 checkpoint keeps the highest-stakes call in the
+  loop twice over (stage = human; commit = checkpointed tool call).
+- **First production use of the `'*'` ARG wildcard (v29 design, v35 first wiring):**
+  `argvMatches` lets `*` match exactly one token and never the executable, so the
+  message floats while the shape stays fixed. The sneaky case is proven: a message
+  literally containing `--no-verify -a` arrives as ONE argv element under
+  `shell: false` — git sees it as the commit message, never as flags. Policy
+  default-deny covers `git commit` (no `-m`), `-m a b` (arity), `-am`, `--no-verify -m x`,
+  `add`, `push`, `rm`. A blank/whitespace message throws BEFORE the policy — git needs
+  something to say, and no process is ever born for an empty string.
+- **Refusals are data, exits are data:** §28 absence/denial, cwd escape and
+  default-deny surface as tool ERRORS (nothing ran); a real nonzero git exit (e.g.
+  "nothing staged") returns `ok:false` WITH git's first stderr line — the agent learns,
+  the process table stays honest. Success parses `[branch (root-commit)? hash] subject`
+  + the stat footer (`parseCommitOutput` knows create-mode lines come AFTER the stat)
+  into a `GitCommitRecord`.
+- **§9 proves itself where it bites hardest:** the 25th proof (`commit-proof.mjs`)
+  performs REAL commits only inside a throwaway `os.tmpdir()` repo — local
+  `core.hooksPath`/`commit.gpgsign false`/identity set INSIDE that repo so the global
+  codex hooks and the user's real git config are never touched or bypassed. It commits
+  ONE staged file while an unstaged edit (` M a.txt`) and a never-staged file survive
+  untouched — staged-only semantics demonstrated by the porcelain, not asserted by
+  hope — and byte-compares the HOME repo's HEAD before/after as the final assertion.
+  Runtime unchanged (spawn-free); exec-host 41/41 → 57/57 (16 gitCommitTool cases);
+  twenty-five proofs (27 scripts) green.
