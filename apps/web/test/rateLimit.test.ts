@@ -1,0 +1,72 @@
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { clientIp, getRateLimiter, rateKey } from '../src/server/security/rateLimit';
+
+/** 滑动窗口限流（SECURITY.md 认证节：按 用户 + IP + 路由）。 */
+describe('rateLimit（内存滑动窗口）', () => {
+  beforeEach(() => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-09-22T00:00:00Z'));
+    getRateLimiter().reset();
+  });
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it('窗口内放行到上限，之后挡住', () => {
+    const rl = getRateLimiter();
+    const key = rateKey('auth/login', '1.2.3.4', 'a@b.c');
+    for (let i = 0; i < 5; i += 1) expect(rl.hit(key, 5, 60_000).allowed).toBe(true);
+    const blocked = rl.hit(key, 5, 60_000);
+    expect(blocked.allowed).toBe(false);
+    expect(blocked.count).toBe(5);
+    expect(blocked.retryAfterMs).toBeGreaterThan(0);
+  });
+
+  it('被挡下的请求不计入窗口（否则限流形同加速自锁）', () => {
+    const rl = getRateLimiter();
+    const key = 'route|anon|ip';
+    rl.hit(key, 2, 60_000);
+    rl.hit(key, 2, 60_000);
+    expect(rl.hit(key, 2, 60_000).allowed).toBe(false);
+    expect(rl.hit(key, 2, 60_000).count).toBe(2); // 仍是 2，没被拒请求顶上去
+  });
+
+  it('窗口滑过后名额重新放出', () => {
+    const rl = getRateLimiter();
+    const key = 'route|user|ip';
+    rl.hit(key, 2, 60_000);
+    rl.hit(key, 2, 60_000);
+    expect(rl.hit(key, 2, 60_000).allowed).toBe(false);
+    vi.advanceTimersByTime(60_001);
+    expect(rl.hit(key, 2, 60_000).allowed).toBe(true);
+  });
+
+  it('不同键互不影响（按 用户+IP+路由 分桶）', () => {
+    const rl = getRateLimiter();
+    expect(rl.hit('a', 1, 60_000).allowed).toBe(true);
+    expect(rl.hit('a', 1, 60_000).allowed).toBe(false);
+    expect(rl.hit('b', 1, 60_000).allowed).toBe(true);
+  });
+
+  it('reset(key) 只清一个桶', () => {
+    const rl = getRateLimiter();
+    rl.hit('x', 1, 60_000);
+    rl.hit('y', 1, 60_000);
+    rl.reset('x');
+    expect(rl.hit('x', 1, 60_000).allowed).toBe(true);
+    expect(rl.hit('y', 1, 60_000).allowed).toBe(false);
+  });
+});
+
+describe('限流键与 IP 提取', () => {
+  it('rateKey 把路由 / 身份 / IP 拼成稳定桶键', () => {
+    expect(rateKey('auth/login', '9.9.9.9', 'u')).toBe('auth/login|u|9.9.9.9');
+    expect(rateKey('auth/register', null)).toBe('auth/register|anon|no-ip');
+  });
+
+  it('clientIp 取 x-forwarded-for 第一段，回落 x-real-ip', () => {
+    expect(clientIp(new Request('http://x', { headers: { 'x-forwarded-for': '1.1.1.1, 2.2.2.2' } }))).toBe('1.1.1.1');
+    expect(clientIp(new Request('http://x', { headers: { 'x-real-ip': '3.3.3.3' } }))).toBe('3.3.3.3');
+    expect(clientIp(new Request('http://x'))).toBeNull();
+  });
+});

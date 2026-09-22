@@ -12,6 +12,15 @@
 - 每个 route handler 必须显式声明所需权限，默认拒绝（deny by default），不靠 UI 隐藏
 - 速率限制：Redis 滑动窗口，按用户 + IP + 路由；生成类接口按 credits 配额
 
+**实现现状（任务 #9d，认证竖向切片）**：口令哈希走本文件允许的 **bcrypt 回落分支**（`bcryptjs` 纯 JS，cost=10），
+算法封在 `apps/web/src/server/domain/password.ts` 一处，`verifyPassword` 按 `$2` 前缀分派——将来接 Argon2id 只改这一处，
+旧串仍可验证；换之前不声称已是 Argon2id。会话 HttpOnly+SameSite=Lax cookie、服务端校验、可吊销，且**提权即轮换**
+（register/login 删旧 token 会话行、发新随机 token，防会话固定；guest 会话由 middleware 用客户端可见 cookie 签发，
+所以轮换不是可选项）。CSRF 双提交（`nexus_csrf` 非 HttpOnly cookie + `x-csrf-token` 头比对）**目前只在 auth 路由强制**，
+其余写接口暂靠 SameSite=Lax 兜底，铺开是后续项。限流是 `RateLimiter` 接口 + **内存滑动窗口**（单实例正确，
+形状对齐 Redis 有序集，多实例部署前需接 Redis）。登录对"邮箱不存在"也跑 dummy-hash 比较以对齐时序，防账号枚举。
+详见 `docs/adr/0002-password-hashing-and-csrf.md`。
+
 ## 生成代码执行（§81，最高优先）
 
 用户/Agent 产出的代码**绝不在主机进程执行**。允许的执行路径只有：

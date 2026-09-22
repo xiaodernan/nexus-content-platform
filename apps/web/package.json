@@ -12,6 +12,7 @@
   "dependencies": {
     "@nexus/design-model": "*",
     "@nexus/schemas": "*",
+    "bcryptjs": "^3.0.3",
     "clsx": "^2.1.1",
     "drizzle-orm": "^0.45.3",
     "lucide-react": "^0.544.0",

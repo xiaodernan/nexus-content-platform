@@ -3,6 +3,7 @@ import { aiServiceUrl, fetchAiServiceHealth } from '@/server/ai/client';
 import { requireUser } from '@/server/domain/session';
 import { listProjects } from '@/server/domain/projects';
 import { NewProjectForm } from '@/components/NewProjectForm';
+import { AccountPanel } from '@/components/AccountPanel';
 
 export const dynamic = 'force-dynamic';
 
@@ -35,6 +36,11 @@ export default async function HomePage() {
           {caps.live ? 'LIVE PROVIDER' : 'DEMO MODE'}
         </span>
       </header>
+
+      <section className="border-t border-[var(--nexus-color-border-subtle)] pt-[var(--nexus-space-6)]">
+        <h2 className="mb-[var(--nexus-space-3)] text-[var(--nexus-font-size-16)] font-medium">账号</h2>
+        <AccountPanel user={user} />
+      </section>
 
       <section className="border-t border-[var(--nexus-color-border-subtle)] pt-[var(--nexus-space-6)]">
         <h2 className="mb-[var(--nexus-space-3)] text-[var(--nexus-font-size-16)] font-medium">项目</h2>
