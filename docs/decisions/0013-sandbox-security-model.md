@@ -36,7 +36,10 @@ agentic-coding milestone implements it rather than retrofitting.
 > secret injection from `services/ai-svc`, and warm-pool queueing — none of which exist or
 > are reachable from a key-free, browser-first repo. The host here is a POLICY sandbox,
 > not an OS sandbox; untrusted code still has nowhere to run (§28 + exact-argv are the
-> containment until containers do).
+> containment until containers do). Amendment 31 later let a policy-approved command
+> ANSWER `test.run` (exec-host `execTestRunner`), and amendment 32 shipped the first
+> domain consumer: read-only git awareness (`git.status`/`git.diff` through a
+> three-exact-argv allowlist) — see-what-changed with no path to write.
 
 ## Tradeoffs
 - (−) Container cold-start latency per job; mitigated by a warm pool in Redis-backed queue.

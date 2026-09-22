@@ -14,3 +14,14 @@ export {
   type SpawnLike,
 } from './execHost.js';
 export { execTestRunner, type ExecTestRunnerOptions } from './execTestRunner.js';
+export {
+  GIT_TOOL_SPECS,
+  gitEnv,
+  gitReadOnlyPolicy,
+  parseDiffStat,
+  parseGitDiff,
+  parseGitStatus,
+  registerGitTools,
+  type GitDiffFile,
+  type GitStatusFile,
+} from './gitTools.js';

@@ -602,3 +602,24 @@ two fresh runs, checkpoint denial leaving the workspace byte-identical).
   counts spawns per granted verify — exactly one, none for denials.
 - Runtime 207/207 (+3 async-seam cases), @nexus/exec-host 24/24 (+9 bridge cases), studio
   96/96 untouched; twenty-second proof added (`exectest-proof.mjs`); twenty-two proofs.
+
+## Amendment 32 — v32: read-only git awareness on the confined host, 2026-09
+- **See, don't touch:** the agent stack learns the repo's state through REAL git
+  commands — `git.status` (porcelain) and `git.diff` (per-file tallies or `--stat`
+  summary) — while §9 holds BY POLICY: `gitReadOnlyPolicy(root)` allows exactly three
+  exact argv (`git status --short`, `git diff`, `git diff --stat`) and default-denies
+  everything else, verified against `git push` / `git commit -m` / path-scoped diffs.
+  The git COMMIT write tool is deliberately NOT this slice.
+- **No new machinery, only wiring:** every run goes through the v30 host unchanged —
+  planExec first (a refusal is a tool error), the registry's exec permission is the one
+  §28 checkpoint (read-only for the repo still means a PROCESS spawns), the policy
+  env-allowlist scrubs git's environment (`TOKEN` never reaches it), and the jail's
+  `cwd` refusal holds even for status/diff. Truncation and nonzero exits are labeled
+  data, never silent and never crashes.
+- **Structured, not blobby:** pure parsers (`parseGitStatus`/`parseGitDiff`/
+  `parseDiffStat`) turn stdout into entries+counts / file→hunk tallies / stat summaries
+  BEFORE anything sees them; renames report the new path, `+++`/`---` headers never
+  count as changes, junk stat footers say `null`.
+- Runtime 207/207 UNCHANGED (nothing in agent-runtime was touched), @nexus/exec-host
+  41/41 (+17 gitTools cases), studio 96/96 untouched; twenty-third proof added
+  (`git-aware-proof.mjs`, incl. real read-only status+diff-stat demos); twenty-three proofs.
