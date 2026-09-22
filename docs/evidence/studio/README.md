@@ -13,8 +13,8 @@ npm run build lint typecheck test     # via turbo: build 4/4 · lint 3/3 · type
 | ------------------ | ------ |
 | @nexus/design-model| 28/28 vitest (`design-model` 16 incl. 3 rotated-hitTest + 2 rigid-geometry cases + `instances` 12 incl. x/y delta + absolute rotation overrides + rigid rotation bake), tsc clean |
 | @nexus/ai-providers| 7/7 vitest, tsc clean |
-| @nexus/agent-runtime| 96/96 vitest (M2 v11: + visualQa 5 over v9's 91) · tsc clean — see `docs/evidence/agents/README.md` |
-| @nexus/studio      | 76/76 vitest (`snap` + `persist` + `align` + `store-variants` 18 incl. sub-selection + clone-rotation override + rigid subtree flatten + `thumbnail` + `rotate` 14 incl. rotated handle hit-tests + rigid plan cases + `render` + `minimap` + `agentDock` 5 + qa case) · tsc `--noEmit` clean · eslint `--max-warnings=0` clean · `next build` ✓ (4/4 static pages) |
+| @nexus/agent-runtime| 101/101 vitest (M2 v12: + repair 5 over v11's 96) · tsc clean — see `docs/evidence/agents/README.md` |
+| @nexus/studio      | 77/77 vitest (`snap` + `persist` + `align` + `store-variants` 18 incl. sub-selection + clone-rotation override + rigid subtree flatten + `thumbnail` + `rotate` 14 incl. rotated handle hit-tests + rigid plan cases + `render` + `minimap` + `agentDock` 5 + qa case) · tsc `--noEmit` clean · eslint `--max-warnings=0` clean · `next build` ✓ (4/4 static pages) |
 
 ## Headless pipeline proof
 
@@ -299,3 +299,12 @@ banner genuinely overlaps the composed hero (`overlap`, `overflow` chips) — an
 line gains `"qa":"flagged"`. On a roomy page the same run reports `visual QA: ok`. QA is
 structural geometry over `layoutPage` rects (`runVisualQa`), explicitly NOT pixel or
 taste judgment (see ADR 0016 amendment 11's stated limit).
+
+## Repair loop golden path (M2 v12, in-browser)
+
+With the v11 flags live, "Propose repairs" previewed the single deterministic nudge
+(banner below its overlap anchor, 16px gutter); Approve dispatched one reversible
+updateNode batch and journaled `"repairs":1` with the post-repair qa verdict. The verdict
+remained `flagged` — honestly: the composed sections exceed the starter page height and no
+MOVE can fix that; the loop reports the residual rather than pretending. Repairable
+geometry was repaired.

@@ -18,6 +18,7 @@ import {
   corpusFromDoc,
   ledgerLine,
   planAgentRun,
+  planRepairs,
   qaForDoc,
   readAgentLedger,
   type AgentPlan,
@@ -144,5 +145,22 @@ describe('agentDock visual QA (v11)', () => {
     expect(rep.verdict).toBe('flagged');
     const overlap = rep.flags.find((f) => f.code === 'overlap');
     expect(overlap?.ids).toContain(cardId);
+  });
+
+  it('planRepairs closes the loop: applying its batch through the op path clears QA errors (v12)', () => {
+    const { doc, pageId } = seededDoc();
+    const strayed = rectNode('Lost', { id: 'lost-1', x: 5000, y: 200, width: 100, height: 50 });
+    const broken = applyBatch(doc, { id: newId(), ops: [ops.addSubtree(pageId, childIdList(doc.nodes[pageId]!).length, [strayed])], provenance: { mode: 'user' }, timestamp: 4 });
+    expect(qaForDoc(broken, pageId).verdict).toBe('flagged');
+
+    const plan = planRepairs(broken, pageId, 'fix layout');
+    expect(plan).not.toBeNull();
+    expect(plan!.repairs.map((p) => p.targetId)).toContain('lost-1');
+    const fixed = applyBatch(broken, plan!.batch);
+    const after = qaForDoc(fixed, pageId);
+    expect(after.flags.filter((f) => f.severity === 'error')).toEqual([]);
+    // and it is reversible through the same op path (invert against the pre-repair doc)
+    const reverted = applyBatch(fixed, { id: newId(), ops: plan!.batch.ops.map((op) => invertOp(broken, op)).reverse() as Op[], provenance: { mode: 'user' }, timestamp: 5 });
+    expect(qaForDoc(reverted, pageId).flags.some((f) => f.code === 'off-page')).toBe(true);
   });
 });

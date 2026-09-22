@@ -261,3 +261,21 @@ two fresh runs, checkpoint denial leaving the workspace byte-identical).
   `docs/evidence/agents/qa-proof.mjs` (synthetic triad + real `layoutPage` data).
 - **Limit stated:** this is geometry QA, not visual-quality judgment (contrast, hierarchy,
   brand fit need model or human eyes — §60 keeps that claim out).
+
+## Amendment 12 — v12: QA→repair closed loop (dock auto-fix proposals), 2026-09
+- **`repair.ts`:** `proposeRepairs({page, rects})` — pure deterministic rect math over the
+  QA report: zero-size → grow to 8px min; overlap → nudge the later node below with a
+  16px gutter; off-page/overflow → clamp back inside the page. Deduped to one final
+  repair per node (sorted ids), bounded to 3 passes, **stopping with `remaining` reported
+  when no progress is possible** — an honest quit, not a thrash loop.
+- **Dock:** when QA flags, "Propose repairs" previews each move (target, action,
+  to-coords, reason); Approve dispatches them as one reversible `updateNode` OpBatch
+  through the normal op path; the ledger line gains `repairs:N` plus post-repair `qa`.
+- **Browser-verified end-to-end:** compose → Plan → Approve (flagged) → Propose repairs
+  (1 nudge) → Approve repairs → status `Agent repairs applied (undoable) · QA now
+  flagged` — flagged *correctly*: the composed sections are taller than the starter page,
+  which no move can fix; the loop reported the residual instead of pretending (§60).
+  Geometry that CAN move was moved and cleared.
+- **Stated limits:** repairs are heuristics (order by sorted ids, gutter 16px), they never
+  resize content to fit a small page, and they are proposals only — the §28 human gate
+  still decides. Runtime 101/101 (+5), studio 77/77 (+1); `repair-proof.mjs`.

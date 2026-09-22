@@ -115,7 +115,9 @@ Live list. Nothing here is hidden behind marketing copy.
   limits, stated not hidden (§60): the "embeddings" are deterministic hash token-bags, not
   trained vectors; the jail is a path check + human gate rather than container isolation; and
   the template planner fails honestly (`failed_verification`) when both memory and the index
-  are absent.
+  are absent. Dock repairs (v12) are heuristic moves (nudge/clamp/grow, 16px gutter): they
+  never resize content, so residuals no move can fix (a section taller than the page) stay
+  flagged — stated in the panel, not hidden.
 - `services/*` are still **README-only shells** (a real `packages/contracts` does not exist yet);
   the Studio intentionally does not depend on them for the slice.
 - Sandbox/security enforcement (ADR 0013) is **partially realized**: the permission-scoped Tool

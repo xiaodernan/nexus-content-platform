@@ -84,7 +84,13 @@ in-browser over a *corpus view* of the current page (one pseudo-file per layer �
 decision appends a line to the `nexus.agentLedger.v1` localStorage audit log that survives
 reload. Since v11 the dock also runs **structural visual QA** after approval
 (`runVisualQa` over `layoutPage` rects — zero-size/off-page/overlap/overflow), showing a
-verdict chip plus flag chips and journaling `qa: ok|flagged` in the ledger. This is
+verdict chip plus flag chips and journaling `qa: ok|flagged` in the ledger. Since v12, a
+flagged verdict offers **Propose repairs**: `proposeRepairs` (pure rect math in the
+runtime) previews deterministic moves — nudge overlaps below with a 16px gutter, clamp
+off-page nodes inside, grow zero-size layers — and Approve dispatches them as one
+reversible `updateNode` batch, journaling `repairs:N`. When no move can fix a flag (e.g. a
+section taller than the page), the loop stops honestly and the residual flags stay visible.
+This is
 geometry, not taste: contrast/aesthetic judgment remains explicitly out of scope (§60).
 Everything is DEMO MODE-labeled: the agent proposes, the model stays canonical
 (§8), and no document mutation happens without the human checkpoint (§28).

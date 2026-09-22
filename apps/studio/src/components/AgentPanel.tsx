@@ -6,9 +6,11 @@ import {
   appendLedgerLine,
   ledgerLine,
   planAgentRun,
+  planRepairs,
   qaForDoc,
   readAgentLedger,
   type AgentPlan,
+  type RepairPlan,
 } from '@/lib/agentDock';
 import type { QaReport } from '@nexus/agent-runtime';
 
@@ -26,6 +28,7 @@ export default function AgentPanel() {
   const [plan, setPlan] = useState<AgentPlan | null>(null);
   const [note, setNote] = useState('');
   const [qa, setQa] = useState<QaReport | null>(null);
+  const [repair, setRepair] = useState<RepairPlan | null>(null);
   const [ledgerLen, setLedgerLen] = useState(0);
 
   const runPlan = async () => {
@@ -50,6 +53,22 @@ export default function AgentPanel() {
     setLedgerLen(readAgentLedger(browserStorage()).entries.length);
     setStatus(`Agent banner applied (undoable) · ${plan.targetName} · QA ${report.verdict === 'ok' ? 'clean' : `${report.flags.length} flag(s)`}`);
     setPhase('done');
+  };
+
+  const proposeRepairs = () => {
+    if (!plan) return;
+    setRepair(planRepairs(useStudio.getState().doc, plan.pageId, plan.goal));
+  };
+
+  const approveRepairs = () => {
+    if (!repair || !plan || repair.repairs.length === 0) return;
+    commitOps(repair.batch.ops, repair.batch.summary ?? 'Agent repair', repair.batch.provenance);
+    const after = qaForDoc(useStudio.getState().doc, plan.pageId);
+    setQa(after);
+    appendLedgerLine(browserStorage(), ledgerLine(plan, true, undefined, after, repair.repairs.length));
+    setLedgerLen(readAgentLedger(browserStorage()).entries.length);
+    setStatus(`Agent repairs applied (undoable) · QA now ${after.verdict}`);
+    setRepair(null);
   };
 
   const deny = () => {
@@ -109,6 +128,29 @@ export default function AgentPanel() {
                   {f.code}
                 </span>
               ))}
+              {qa.verdict === 'flagged' && !repair && (
+                <button className="btn" style={{ fontSize: 10, padding: '1px 8px' }} onClick={proposeRepairs} data-testid="agent-repair">
+                  Propose repairs
+                </button>
+              )}
+            </div>
+          )}
+          {phase === 'done' && repair && (
+            <div style={{ border: '1px solid var(--nexus-border)', borderRadius: 8, padding: 6, marginBottom: 4, display: 'flex', flexDirection: 'column', gap: 4 }}>
+              <div style={{ fontSize: 11 }}>
+                {repair.repairs.length === 0 ? 'Nothing safely fixable — flags remain by design.' : `${repair.repairs.length} deterministic repair move(s):`}
+              </div>
+              {repair.repairs.slice(0, 4).map((p) => (
+                <div key={p.targetId} style={label}>
+                  {p.targetId.slice(0, 10)}… {p.action} → ({Math.round(p.to.x)}, {Math.round(p.to.y)}) · {p.reason}
+                </div>
+              ))}
+              {repair.repairs.length > 0 && (
+                <div style={{ display: 'flex', gap: 6 }}>
+                  <button className="btn btn-primary" onClick={approveRepairs} data-testid="repair-approve">Approve repairs</button>
+                  <button className="btn" onClick={() => setRepair(null)}>Dismiss</button>
+                </div>
+              )}
             </div>
           )}
           {phase === 'done' ? 'Applied — undo (Cmd/Ctrl+Z) reverts the banner. ' : ''}

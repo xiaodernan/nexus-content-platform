@@ -20,22 +20,13 @@ Human-Checkpoint gating and an in-memory workspace, a deterministic hybrid **cod
 ingestion (`collectTextFiles`, injected fs), §26 memory (scoped, inspectable, deletable; recall
 is the planner's top research tier) and v3 durability: schema-versioned memory save/load plus the
 first **jailed** real-disk tools (`disk.read/write/list`, `guardedJoin` root jail, writes
-checkpoint-gated), and v4 persisted index snapshots (`saveIndex/loadIndex` + fingerprint
-`rescanIndex` that provably equals a cold rebuild), with v5 wiring them into `fs.index`
-through `createIndexProvider` (0 re-chunk on unchanged repos; default behavior untouched).
-v6 unifies retrieval scoring: one shared `hybridScore` seam drives both index queries and
-memory recall (zero token overlap ⇒ exactly 0), plus listed, idempotent memory
-`compact()` consolidation; v7 turns runs into §25-grade handoffs: pure change-sets with
-exact inverse patches, git-style unified diffs persisted through the jailed `disk.write`,
-and an append-only JSONL run ledger; v8 starts §24 — roles as data (`RoleRegistry` +
-`registry.scope` capability projections where missing tools are *unknown*, not denied) and
-§63 evaluation (`scoreRun`'s five weighted deterministic rubric marks, persisted as JSONL);
-v9 makes §25 handoffs real data — `runRolePipeline` turns a researcher's scoped tool-session
-into a HandoffRecord the host persists to scoped memory, and an editor run completes
-memory-first, in-process or in a separate process (pipeline-proof); v10 lands §28 *in the
-product* — the Studio Agent dock runs the same pipeline in-browser over a layer corpus and
-only applies proposals after the user approves (reversible op path, localStorage decision
-ledger). Driven by a deterministic DEMO-MODE planner.
+checkpoint-gated), v4 persisted index snapshots (`saveIndex/loadIndex` + fingerprint
+`rescanIndex` that provably equals a cold rebuild), v5 snapshot-backed `IndexProvider` in
+`fs.index`, v6 a shared `hybridScore` seam + memory `compact()`, v7 observed change-sets /
+unified-diff patches / JSONL ledger, v8 §24 role scopes + rubric scoring, v9 §25
+memory-first pipelines proven across a process boundary, v10 the in-product Studio dock
+(§28 Approve/Deny), v11 structural visual QA, and v12 the QA→repair loop (deterministic,
+bounded, honest residuals). Driven by a deterministic DEMO-MODE planner.
 Remaining scaffolds: the multi-agent Registry's roster/handoff beyond the demo pipeline (§24),
 true vector-store recall (§63/ADR 0012), general exec/browser/git tools (land with the
 ADR 0013 sandbox); the full runtime matures across M2/M6.

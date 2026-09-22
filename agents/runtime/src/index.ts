@@ -16,6 +16,7 @@ export { ToolRegistry, DANGEROUS, matchesTool, type Checkpoint, type CheckpointR
 export { RoleRegistry, DEMO_ROLES, type RoleDefinition } from './roles.js';
 export { runRolePipeline, type HandoffRecord, type PipelineOptions, type PipelineResult } from './pipeline.js';
 export { runVisualQa, type QaFlag, type QaInput, type QaRect, type QaReport, type QaSeverity } from './visualQa.js';
+export { proposeRepairs, type Repair, type RepairResult } from './repair.js';
 export {
   appendEvaluation,
   formatEvaluationLine,

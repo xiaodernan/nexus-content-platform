@@ -39,8 +39,10 @@
   Design Model when the user clicks Approve — §28 as product UI, decisions journaled to a
   localStorage ledger (ADR 0016 amendment 10). v11 adds `visualQa.ts` — structural rect
   checks (zero-size/off-page/overlap/overflow) that the dock runs on the applied document,
-  rendering verdict chips and journaling the QA verdict (amendment 11).
-  Proof: `agents/runtime/test` (vitest 96/96) plus the eleven headless proofs in
+  rendering verdict chips and journaling the QA verdict (amendment 11). v12 closes the
+  loop: `repair.ts` turns QA flags into deterministic, deduped repair moves (bounded
+  passes, honest `remaining`), previewed and dispatched through the dock's §28 gate.
+  Proof: `agents/runtime/test` (vitest 101/101) plus the twelve headless proofs in
   `docs/evidence/agents/` (agent, code-index, memory, durability, index-store, provider,
   recall, changes, roles, pipeline).
 

@@ -1,4 +1,4 @@
-# M2 evidence — @nexus/agent-runtime (v0 loop → v7 change-sets: index, memory, durability, snapshots, provider, hybrid recall, patches+ledger)
+# M2 evidence — @nexus/agent-runtime (v0 loop → v12 repair loop; all ADR 0016 amendments)
 
 All checks are headless, offline, key-free, and reproducible from the repo root. Nothing here
 claims model-quality planning or neural retrieval (§60): the planner is a deterministic
@@ -8,7 +8,7 @@ every emitted artifact (`provenance.mode = "demo"`).
 ## Reproducible gates
 
 ```
-npm test          # turbo: @nexus/agent-runtime 96/96 vitest among all packages
+npm test          # turbo: @nexus/agent-runtime 101/101 vitest among all packages
 npm run build     # tsc dist for agents/runtime (build order via ^build deps)
 node docs/evidence/agents/agent-proof.mjs
 node docs/evidence/agents/code-index-proof.mjs   # requires `npm run build` first
@@ -21,6 +21,7 @@ node docs/evidence/agents/changes-proof.mjs      # requires `npm run build` firs
 node docs/evidence/agents/roles-proof.mjs        # requires `npm run build` first
 node docs/evidence/agents/pipeline-proof.mjs    # requires `npm run build` first
 node docs/evidence/agents/qa-proof.mjs          # requires `npm run build` first
+node docs/evidence/agents/repair-proof.mjs        # requires `npm run build` first
 ```
 
 ## Unit tests (vitest, `agents/runtime/test`)
@@ -40,6 +41,7 @@ node docs/evidence/agents/qa-proof.mjs          # requires `npm run build` first
 | `evaluate.test.ts` (5) | clean run scores 1 with named marks, failures degrade by weight (deterministic), last verify decides, change-economy budget option, append/reload order + corrupt-file reasons |
 | `pipeline.test.ts` (5) | researcher→editor handoff happy path (refs from `fs.index`, editor plans memory-first, score 1), denied checkpoint leaves the handoff real but the run denied, durable mode writes memory+ledger+evaluation JSONL that reload cold, missing research tool ⇒ stated reason (no invented refs), full determinism across identical pipelines |
 | `visualQa.test.ts` (5) | clean layout ok, zero-size/off-page/overlap detection with severities, error-before-warn deterministic ordering, tolerances as explicit inputs, identical reports for identical inputs |
+| `repair.test.ts` (5) | clean input no-op, off-page pulled inside then QA-clean, overlap nudged below with gutter, zero-size grown, dedupe + determinism + "apply all repairs → zero error flags" |
 | `durability.test.ts` (8) | memory serialize/deserialize round-trip + version/schema rejection, `restore()` id high-water mark, save/load through an injected writable fake disk, corrupt-file honest failure, `guardedJoin` jail (absolute/`..`/drive-letter rejection, backslash folding), `disk.write` checkpoint gate + escape touches nothing, `disk.read`/`disk.list` confinement |
 | `indexStore.test.ts` (11) | index snapshot serialize→deserialize verbatim + version/chunk schema rejection, save/load via injected fs, cold rescan equals `buildIndex`, unchanged files reuse chunks / edits rechunk exactly the changed paths / removals drop out, query ranking snapshot-independent; v5 provider: cold-first-build equals plain build, incremental refresh 0 re-chunked, edited file sole re-chunk, cross-provider snapshot restore, corrupt-snapshot fallback + repair, `fs.index` provider/default parity |
 
@@ -158,6 +160,15 @@ Synthetic triad (clean / stacked / off-page) plus real `layoutPage` data: a bann
 hero on a sized page is `ok`; a zero-height layer is flagged `zero-size`, not tolerated.
 The Studio dock runs exactly this after every Approve (verdict + flag chips, `qa` field in
 the ledger). Stated limit (§60): structural geometry only — no pixel or aesthetic claims.
+
+## Repair proof (`repair-proof.mjs`, M2 v12)
+
+Three simultaneous problems (off-page, stacked pair, zero-size) → `proposeRepairs` emits
+one deduped, sorted repair per node; applying all repairs clears every ERROR flag on the
+QA re-run; identical inputs give byte-identical output; an unsolvable stack (two
+full-page siblings) stops after bounded passes and reports what remains — the loop quits
+honestly instead of thrashing. In the dock this closes end-to-end: flagged banner →
+Propose repairs → Approve → status `QA now flagged/ok` + `repairs:N` journaled.
 
 ## Scope honesty
 

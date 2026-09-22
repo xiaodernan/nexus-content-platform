@@ -8,8 +8,10 @@ import {
   registerWorkspaceTools,
   runRolePipeline,
   runVisualQa,
+  proposeRepairs,
   type HandoffRecord,
   type QaReport,
+  type Repair,
   type RunEvaluation,
   type RunOutcome,
 } from '@nexus/agent-runtime';
@@ -152,6 +154,38 @@ export function qaForDoc(doc: DesignDocument, pageId: string): QaReport {
   return runVisualQa({ page: { x: page.x, y: page.y, width: page.width, height: page.height }, rects });
 }
 
+/* ---- v12: QA → deterministic repair proposals, dispatched through the same op path ---- */
+
+export interface RepairPlan {
+  repairs: Repair[];
+  remaining: QaReport;
+  batch: OpBatch;
+}
+
+export function planRepairs(doc: DesignDocument, pageId: string, goal: string): RepairPlan | null {
+  const qa = qaForDoc(doc, pageId);
+  if (qa.verdict === 'ok') return null;
+  const layout = layoutPage(doc, pageId);
+  const page = layout[pageId]!;
+  const rects: Record<string, QaRectLike> = {};
+  for (const id of childIdList(doc.nodes[pageId]!)) {
+    const r = layout[id];
+    if (r) rects[id] = { x: r.x, y: r.y, width: r.width, height: r.height };
+  }
+  const res = proposeRepairs({ page: { x: page.x, y: page.y, width: page.width, height: page.height }, rects });
+  if (res.repairs.length === 0) return { repairs: [], remaining: res.remaining, batch: { id: newId(), ops: [], provenance: { mode: 'demo', provider: 'nexus-agent-runtime', label: 'studio repair (no-op)' }, timestamp: Date.now(), summary: 'Agent repair: nothing safely fixable' } };
+  const batch: OpBatch = {
+    id: newId(),
+    ops: res.repairs.map((p) => ops.updateNode(p.targetId, { x: Math.round(p.to.x), y: Math.round(p.to.y), width: Math.round(p.to.width), height: Math.round(p.to.height) })),
+    provenance: { mode: 'demo', provider: 'nexus-agent-runtime', label: `studio repair for ${goal}` },
+    timestamp: Date.now(),
+    summary: `Agent repair: ${res.repairs.length} fix(es)`,
+  };
+  return { repairs: res.repairs, remaining: res.remaining, batch };
+}
+
+type QaRectLike = { x: number; y: number; width: number; height: number };
+
 /* ---- §28 audit trail: JSONL ledger through the studio's KvStore seam ---- */
 export interface LedgerEntry {
   goal: string;
@@ -161,10 +195,11 @@ export interface LedgerEntry {
   approved: boolean;
   reason?: string;
   qa?: 'ok' | 'flagged';
+  repairs?: number;
   at: number;
 }
 
-export function ledgerLine(plan: AgentPlan, approved: boolean, reason?: string, qa?: QaReport): string {
+export function ledgerLine(plan: AgentPlan, approved: boolean, reason?: string, qa?: QaReport, repairs?: number): string {
   const e: LedgerEntry = {
     goal: plan.goal,
     target: plan.targetId,
@@ -173,6 +208,7 @@ export function ledgerLine(plan: AgentPlan, approved: boolean, reason?: string, 
     approved,
     ...(reason ? { reason } : {}),
     ...(qa ? { qa: qa.verdict } : {}),
+    ...(repairs !== undefined ? { repairs } : {}),
     at: Date.now(),
   };
   return JSON.stringify(e);
