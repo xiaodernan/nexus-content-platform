@@ -21,8 +21,11 @@ import {
   planRepairs,
   qaForDoc,
   readAgentLedger,
+  studioMemoryForget,
+  studioMemoryOverview,
   type AgentPlan,
 } from './agentDock';
+import { memoryStore } from './storage';
 
 const STYLE: TextStyle = { fontFamilyToken: 'font.family.body', sizeToken: 'font.size.base', weight: 400, lineHeight: 1.35, letterSpacing: 0, align: 'left' };
 
@@ -162,5 +165,19 @@ describe('agentDock visual QA (v11)', () => {
     // and it is reversible through the same op path (invert against the pre-repair doc)
     const reverted = applyBatch(fixed, { id: newId(), ops: plan!.batch.ops.map((op) => invertOp(broken, op)).reverse() as Op[], provenance: { mode: 'user' }, timestamp: 5 });
     expect(qaForDoc(reverted, pageId).flags.some((f) => f.code === 'off-page')).toBe(true);
+  });
+
+  it('v13 durability: a second planAgentRun sees the first run’s memory through the injected kv', async () => {
+    const { doc, pageId } = seededDoc();
+    const kv = memoryStore();
+    const first = await planAgentRun(doc, pageId, 'recolor the welcome hero text', kv);
+    expect('handoff' in first).toBe(true);
+    const overview = studioMemoryOverview(kv);
+    expect(overview.total).toBe(1);
+    expect(overview.records[0]!.paths).toContain((first as AgentPlan).targetId);
+    // forget is real: the durable file loses exactly that record
+    expect(studioMemoryForget(overview.records[0]!.id, kv)).toBe(true);
+    expect(studioMemoryOverview(kv).total).toBe(0);
+    expect(studioMemoryForget('mem-999', kv)).toBe(false);
   });
 });

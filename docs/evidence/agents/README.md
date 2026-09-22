@@ -57,14 +57,15 @@ node docs/evidence/agents/repair-proof.mjs        # requires `npm run build` fir
 
 ## Real-repo index proof (`code-index-proof.mjs`, M2 v1)
 
-Indexes the actual repository from disk via `node:fs` (125 files, 540 chunks as of this
+Indexes the actual repository from disk via `node:fs` (150 files, 648 chunks as of this
 writing; skips `node_modules/.git/.next/dist` and files > 256 KB) and answers
-identifier-precise queries with the built hybrid scorer:
+identifier-precise queries with the built hybrid scorer × `sourcePrior` (src/lib 1.2,
+docs/tests 0.85 — quoting docs no longer crowd out the code they describe):
 
 | Query | Definition file rank |
 | ----- | -------------------- |
-| `rigidRotateRect rotatePointAbout` | `packages/design-model/src/geometry.ts` #4 |
-| `deserializeApp schemaVersion localStorage` | `apps/studio/src/lib/persist.ts` #4 |
+| `rigidRotateRect rotatePointAbout` | `packages/design-model/src/geometry.ts` #2 |
+| `deserializeApp schemaVersion localStorage` | `apps/studio/src/lib/persist.ts` #2 |
 | `DANGEROUS checkpoint ToolRegistry invoke` | `agents/runtime/src/registry.ts` #1 |
 
 Top-5 (not top-1) is asserted deliberately: the demo scorer has no source-vs-test or

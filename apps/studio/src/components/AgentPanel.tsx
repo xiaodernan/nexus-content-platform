@@ -9,7 +9,10 @@ import {
   planRepairs,
   qaForDoc,
   readAgentLedger,
+  studioMemoryForget,
+  studioMemoryOverview,
   type AgentPlan,
+  type MemoryOverview,
   type RepairPlan,
 } from '@/lib/agentDock';
 import type { QaReport } from '@nexus/agent-runtime';
@@ -30,6 +33,13 @@ export default function AgentPanel() {
   const [qa, setQa] = useState<QaReport | null>(null);
   const [repair, setRepair] = useState<RepairPlan | null>(null);
   const [ledgerLen, setLedgerLen] = useState(0);
+  const [memory, setMemory] = useState<MemoryOverview | null>(null);
+
+  const refreshMemory = () => setMemory(studioMemoryOverview());
+  const forget = (id: string) => {
+    studioMemoryForget(id);
+    refreshMemory();
+  };
 
   const runPlan = async () => {
     setPhase('planning');
@@ -116,45 +126,54 @@ export default function AgentPanel() {
           </div>
         </div>
       )}
-      {(phase === 'done' || ledgerLen > 0) && (
-        <div style={label}>
-          {phase === 'done' && qa && (
-            <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 4 }}>
-              <span style={{ fontSize: 10, padding: '1px 6px', borderRadius: 8, border: '1px solid var(--nexus-border)' }}>
-                visual QA: {qa.verdict} · {qa.checked} checked
-              </span>
-              {qa.flags.slice(0, 3).map((f) => (
-                <span key={f.code + f.ids.join()} style={{ fontSize: 10, padding: '1px 6px', borderRadius: 8, border: '1px solid var(--nexus-border)', color: f.severity === 'error' ? '#ff7a7a' : '#ffd24a' }}>
-                  {f.code}
-                </span>
-              ))}
-              {qa.verdict === 'flagged' && !repair && (
-                <button className="btn" style={{ fontSize: 10, padding: '1px 8px' }} onClick={proposeRepairs} data-testid="agent-repair">
-                  Propose repairs
-                </button>
-              )}
+      {phase === 'done' && qa && (
+        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+          <span style={{ fontSize: 10, padding: '1px 6px', borderRadius: 8, border: '1px solid var(--nexus-border)' }}>
+            visual QA: {qa.verdict} · {qa.checked} checked
+          </span>
+          {qa.flags.slice(0, 3).map((f) => (
+            <span key={f.code + f.ids.join()} style={{ fontSize: 10, padding: '1px 6px', borderRadius: 8, border: '1px solid var(--nexus-border)', color: f.severity === 'error' ? '#ff7a7a' : '#ffd24a' }}>
+              {f.code}
+            </span>
+          ))}
+          {qa.verdict === 'flagged' && !repair && (
+            <button className="btn" style={{ fontSize: 10, padding: '1px 8px' }} onClick={proposeRepairs} data-testid="agent-repair">
+              Propose repairs
+            </button>
+          )}
+        </div>
+      )}
+      {phase === 'done' && repair && (
+        <div style={{ border: '1px solid var(--nexus-border)', borderRadius: 8, padding: 6, display: 'flex', flexDirection: 'column', gap: 4 }}>
+          <div style={{ fontSize: 11 }}>
+            {repair.repairs.length === 0 ? 'Nothing safely fixable — flags remain by design.' : `${repair.repairs.length} deterministic repair move(s):`}
+          </div>
+          {repair.repairs.slice(0, 4).map((p) => (
+            <div key={p.targetId} style={label}>
+              {p.targetId.slice(0, 10)}… {p.action} → ({Math.round(p.to.x)}, {Math.round(p.to.y)}) · {p.reason}
+            </div>
+          ))}
+          {repair.repairs.length > 0 && (
+            <div style={{ display: 'flex', gap: 6 }}>
+              <button className="btn btn-primary" onClick={approveRepairs} data-testid="repair-approve">Approve repairs</button>
+              <button className="btn" onClick={() => setRepair(null)}>Dismiss</button>
             </div>
           )}
-          {phase === 'done' && repair && (
-            <div style={{ border: '1px solid var(--nexus-border)', borderRadius: 8, padding: 6, marginBottom: 4, display: 'flex', flexDirection: 'column', gap: 4 }}>
-              <div style={{ fontSize: 11 }}>
-                {repair.repairs.length === 0 ? 'Nothing safely fixable — flags remain by design.' : `${repair.repairs.length} deterministic repair move(s):`}
-              </div>
-              {repair.repairs.slice(0, 4).map((p) => (
-                <div key={p.targetId} style={label}>
-                  {p.targetId.slice(0, 10)}… {p.action} → ({Math.round(p.to.x)}, {Math.round(p.to.y)}) · {p.reason}
-                </div>
-              ))}
-              {repair.repairs.length > 0 && (
-                <div style={{ display: 'flex', gap: 6 }}>
-                  <button className="btn btn-primary" onClick={approveRepairs} data-testid="repair-approve">Approve repairs</button>
-                  <button className="btn" onClick={() => setRepair(null)}>Dismiss</button>
-                </div>
-              )}
+        </div>
+      )}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+        <button className="btn" style={{ fontSize: 10, padding: '1px 8px' }} onClick={refreshMemory} data-testid="memory-refresh">Memory (§26)</button>
+        <span style={label}>ledger: {ledgerLen} decision(s)</span>
+      </div>
+      {memory && (
+        <div style={{ border: '1px solid var(--nexus-border)', borderRadius: 8, padding: 6, display: 'flex', flexDirection: 'column', gap: 4 }}>
+          <div style={{ fontSize: 11 }}>{memory.total === 0 ? 'No stored findings yet — durable across refresh once a plan runs.' : `${memory.total} durable record(s):`}</div>
+          {memory.records.slice(0, 6).map((r) => (
+            <div key={r.id} style={{ ...label, display: 'flex', gap: 6, alignItems: 'baseline' }}>
+              <span style={{ flex: 1 }}>{r.query.slice(0, 34)} · {r.paths.length} ref(s)</span>
+              <button className="btn" style={{ fontSize: 10, padding: '0 6px' }} onClick={() => forget(r.id)} data-testid={`forget-${r.id}`}>forget</button>
             </div>
-          )}
-          {phase === 'done' ? 'Applied — undo (Cmd/Ctrl+Z) reverts the banner. ' : ''}
-          ledger: {ledgerLen} checkpoint decision(s) on this device.
+          ))}
         </div>
       )}
     </div>

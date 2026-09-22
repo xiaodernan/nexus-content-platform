@@ -14,7 +14,7 @@ npm run build lint typecheck test     # via turbo: build 4/4 · lint 3/3 · type
 | @nexus/design-model| 28/28 vitest (`design-model` 16 incl. 3 rotated-hitTest + 2 rigid-geometry cases + `instances` 12 incl. x/y delta + absolute rotation overrides + rigid rotation bake), tsc clean |
 | @nexus/ai-providers| 7/7 vitest, tsc clean |
 | @nexus/agent-runtime| 101/101 vitest (M2 v12: + repair 5 over v11's 96) · tsc clean — see `docs/evidence/agents/README.md` |
-| @nexus/studio      | 77/77 vitest (`snap` + `persist` + `align` + `store-variants` 18 incl. sub-selection + clone-rotation override + rigid subtree flatten + `thumbnail` + `rotate` 14 incl. rotated handle hit-tests + rigid plan cases + `render` + `minimap` + `agentDock` 5 + qa case) · tsc `--noEmit` clean · eslint `--max-warnings=0` clean · `next build` ✓ (4/4 static pages) |
+| @nexus/studio      | 81/81 vitest (`snap` + `persist` + `align` + `store-variants` 18 incl. sub-selection + clone-rotation override + rigid subtree flatten + `thumbnail` + `rotate` 14 incl. rotated handle hit-tests + rigid plan cases + `render` + `minimap` + `agentDock` 6 + qa case + `webfs` 3) · tsc `--noEmit` clean · eslint `--max-warnings=0` clean · `next build` ✓ (4/4 static pages) |
 
 ## Headless pipeline proof
 
@@ -308,3 +308,12 @@ updateNode batch and journaled `"repairs":1` with the post-repair qa verdict. Th
 remained `flagged` — honestly: the composed sections exceed the starter page height and no
 MOVE can fix that; the loop reports the residual rather than pretending. Repairable
 geometry was repaired.
+
+## Browser-durable memory (M2 v13, in-browser)
+
+`createWebFs(localStorage)` reuses the exact `FsWriteLike` seam from the Node durability
+proofs. Verified live: after one Approve, `nexus.agentFs.v1:agent/memory-studio.json`
+holds `{schemaVersion:1, records:1}`; the Memory (§26) panel lists it; **forget** empties
+the durable file to 0 records and the panel shows the honest empty message. Cold-restore
+runs on every Plan, so findings survive refreshes. Headless coverage: webfs 3 + agentDock
+durability/forget case on an injected Map store (studio 81/81).

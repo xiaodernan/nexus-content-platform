@@ -279,3 +279,24 @@ two fresh runs, checkpoint denial leaving the workspace byte-identical).
 - **Stated limits:** repairs are heuristics (order by sorted ids, gutter 16px), they never
   resize content to fit a small page, and they are proposals only — the §28 human gate
   still decides. Runtime 101/101 (+5), studio 77/77 (+1); `repair-proof.mjs`.
+
+## Amendment 13 — v13: browser-durable memory (`webfs.ts`) + §26 memory panel, 2026-09
+- **What landed:** `createWebFs(localStorage-backed KvStore)` implements the SAME
+  `FsWriteLike` seam the Node proofs inject — so v3's `saveMemory/loadMemoryStore` run
+  unchanged in the page. `planAgentRun` now cold-restores `agent/memory-studio.json` on
+  every run and persists after handoff; `studioMemoryOverview`/`studioMemoryForget`
+  expose inspection and deletion (§26: scoped, inspectable, deletable), and the dock's
+  Memory panel lists records with a per-row forget button. All dock functions accept an
+  injectable `Kv` — unit tests run headlessly against a Map fake (3 new webfs + 1 new
+  agentDock cases; studio 81/81).
+- **Proven in-browser:** compose → Plan → Approve stores one durable record (localStorage
+  shows `schemaVersion 1, records 1`), the panel lists it, forget empties the file to 0
+  and the panel states "No stored findings yet" — the same JSON the separate-process
+  reload test covers in Node, now surviving a page refresh path in the product.
+- **No drift by design:** zero runtime changes in v13 for the seam itself; the one runtime
+  tweak proved necessary is `sourcePrior(path)` in `queryIndex` — a transparent metadata
+  weight (src/lib ×1.2, docs/tests/READMEs ×0.85). Reason discovered by the proofs
+  themselves: as the evidence corpus grows, docs that merely *quote* identifiers crowded
+  the defining sources out of top-5 (v1's README even ranked above geometry). The prior
+  is stated here, in the scorer's doc-comment, and in the unit README — not hidden —
+  and definition files now rank #2/#2/#1 for the three proof queries.

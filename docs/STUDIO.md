@@ -92,5 +92,9 @@ reversible `updateNode` batch, journaling `repairs:N`. When no move can fix a fl
 section taller than the page), the loop stops honestly and the residual flags stay visible.
 This is
 geometry, not taste: contrast/aesthetic judgment remains explicitly out of scope (§60).
+Since v13 the dock's findings are **browser-durable**: `lib/webfs.ts` implements the
+runtime's `FsWriteLike` seam over `localStorage`, so the same `saveMemory/loadMemoryStore`
+JSON proven in Node reloads on every Plan, and a Memory (§26) panel lists stored
+findings with per-record **forget**.
 Everything is DEMO MODE-labeled: the agent proposes, the model stays canonical
 (§8), and no document mutation happens without the human checkpoint (§28).

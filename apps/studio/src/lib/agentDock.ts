@@ -4,11 +4,15 @@ import {
   MemoryStore,
   RoleRegistry,
   ToolRegistry,
+  deserializeMemory,
   registerMemoryTools,
   registerWorkspaceTools,
   runRolePipeline,
   runVisualQa,
   proposeRepairs,
+  saveMemory,
+  loadMemoryStore,
+  serializeMemory,
   type HandoffRecord,
   type QaReport,
   type Repair,
@@ -28,6 +32,9 @@ import {
   type TextStyle,
 } from '@nexus/design-model';
 
+import { browserStorage } from './storage';
+import { createWebFs } from './webfs';
+
 /**
  * M2 v10 — the Studio Agent dock (§23/§25/§28). The @nexus/agent-runtime pipeline runs
  * over a *corpus view* of the Design Model (every layer → one text "file"), so research,
@@ -36,6 +43,8 @@ import {
  * The user is the Human Checkpoint: nothing touches the op path without Approve.
  */
 export const AGENT_LEDGER_KEY = 'nexus.agentLedger.v1';
+/** v13: the dock's §26 memory lives on the web-fs seam — the same JSON format the node proofs reload. */
+export const STUDIO_MEMORY_FILE = 'agent/memory-studio.json';
 
 export interface AgentPlan {
   goal: string;
@@ -101,14 +110,16 @@ export function agentBatchFor(doc: DesignDocument, pageId: string, goal: string,
   };
 }
 
-export async function planAgentRun(doc: DesignDocument, pageId: string, goal: string): Promise<AgentPlan | PlanFailure> {
+export async function planAgentRun(doc: DesignDocument, pageId: string, goal: string, kv: Kv = browserStorage()): Promise<AgentPlan | PlanFailure> {
   const trimmed = goal.trim();
   if (!trimmed) return { ok: false, reason: 'type a goal first' };
   const corpus = corpusFromDoc(doc, pageId);
   if (Object.keys(corpus).length === 0) return { ok: false, reason: 'this page has no layers to research' };
 
   const ws = new InMemoryWorkspace(corpus);
+  const webFs = createWebFs(kv);
   const store = new MemoryStore();
+  loadMemoryStore(store, webFs, STUDIO_MEMORY_FILE); // cold restore across refreshes; missing file is fine
   const registry = registerMemoryTools(registerWorkspaceTools(new ToolRegistry(), ws), store, 'studio');
   registry.register({ name: 'test.run', description: 'host verification', permissions: ['exec'], args: [] }, () => ({
     ok: Object.values(ws.snapshot()).some((c) => c.includes('NOTE (DEMO MODE')),
@@ -128,6 +139,7 @@ export async function planAgentRun(doc: DesignDocument, pageId: string, goal: st
   if (!res.ok) return { ok: false, reason: res.reason };
 
   const targetId = res.handoff.refs[0]!.path;
+  saveMemory(store, webFs, STUDIO_MEMORY_FILE); // v13: handoffs now survive page refreshes
   return {
     goal: trimmed,
     pageId,
@@ -239,4 +251,40 @@ export function readAgentLedger(kv: Kv): { entries: LedgerEntry[]; malformed: nu
     }
   }
   return { entries, malformed };
+}
+
+/* ---- v13: §26 memory inspection for the dock (scoped, inspectable, deletable) ---- */
+
+export interface MemoryOverview {
+  total: number;
+  records: { id: string; query: string; paths: string[] }[];
+}
+
+export function studioMemoryOverview(kv: Kv = browserStorage()): MemoryOverview {
+  const store = new MemoryStore();
+  const res = loadMemoryStore(store, createWebFs(kv), STUDIO_MEMORY_FILE);
+  if (!res.ok) return { total: 0, records: [] };
+  const records = store
+    .list('studio')
+    .map((r) => ({ id: r.id, query: r.query, paths: r.refs.map((f) => f.path) }));
+  return { total: records.length, records };
+}
+
+/** Delete one memory record by id (user-initiated; returns whether it existed). */
+export function studioMemoryForget(id: string, kv: Kv = browserStorage()): boolean {
+  const webFs = createWebFs(kv);
+  let json: string;
+  try {
+    json = webFs.readFileSync(STUDIO_MEMORY_FILE, 'utf8');
+  } catch {
+    return false;
+  }
+  const parsed = deserializeMemory(json);
+  if (!parsed.ok) return false;
+  const keep = parsed.records.filter((r) => r.id !== id);
+  if (keep.length === parsed.records.length) return false;
+  const store = new MemoryStore();
+  for (const r of keep) store.restore(r);
+  webFs.writeFileSync(STUDIO_MEMORY_FILE, serializeMemory(store), 'utf8');
+  return true;
 }

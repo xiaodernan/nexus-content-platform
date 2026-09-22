@@ -117,13 +117,21 @@ export function buildIndex(files: Record<string, string>): CodeIndex {
 
 /**
  * Hybrid retrieval via the shared `hybridScore` seam (embedding pull + query-token coverage,
- * zero-overlap texts score 0). Fully deterministic (ADR 0010); ties break by path then line,
- * never by insertion order.
+ * zero-overlap texts score 0) times a transparent source prior: real source files
+ * (`src/`, `lib/`) ×1.2, docs/tests/READMEs ×0.85 — documentation that merely *quotes*
+ * identifiers otherwise outranks the code it describes. Fully deterministic (ADR 0010);
+ * ties break by path then line, never by insertion order.
  */
+export function sourcePrior(path: string): number {
+  if (/(^|\/)(src|lib)\//.test(path) && !/\.test\.|\.spec\./.test(path)) return 1.2;
+  if (/(^|\/)docs\/|\.test\.|\.spec\.|README/i.test(path)) return 0.85;
+  return 1;
+}
+
 export function queryIndex(index: CodeIndex, query: string, k = 5): QueryHit[] {
   const hits: QueryHit[] = index.chunks.map((c) => {
     const hay = `${c.heading ?? ''} ${c.text}`;
-    const hybrid = hybridScore(query, hay);
+    const hybrid = hybridScore(query, hay) * sourcePrior(c.path);
     return { path: c.path, startLine: c.startLine, heading: c.heading, score: hybrid, snippet: c.text.replace(/\s+/g, ' ').trim().slice(0, 120) };
   });
   hits.sort((a, b) => b.score - a.score || a.path.localeCompare(b.path) || a.startLine - b.startLine);

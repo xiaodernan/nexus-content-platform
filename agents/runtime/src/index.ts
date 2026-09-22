@@ -6,6 +6,7 @@ export {
   extractSymbols,
   fileKind,
   queryIndex,
+  sourcePrior,
   type CodeIndex,
   type FileEntry,
   type FileKind,

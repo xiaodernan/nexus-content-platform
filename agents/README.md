@@ -42,6 +42,9 @@
   rendering verdict chips and journaling the QA verdict (amendment 11). v12 closes the
   loop: `repair.ts` turns QA flags into deterministic, deduped repair moves (bounded
   passes, honest `remaining`), previewed and dispatched through the dock's §28 gate.
+  v13 brings v3 durability into the browser: `apps/studio/src/lib/webfs.ts` implements the
+  same `FsWriteLike` over localStorage, so agent memory persists across page refreshes and
+  the dock's Memory (§26) panel can list and forget records (amendment 13).
   Proof: `agents/runtime/test` (vitest 101/101) plus the twelve headless proofs in
   `docs/evidence/agents/` (agent, code-index, memory, durability, index-store, provider,
   recall, changes, roles, pipeline).
