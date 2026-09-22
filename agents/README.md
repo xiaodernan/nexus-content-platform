@@ -59,7 +59,7 @@
   (the dock persists vectors on every approval).
   v20: the orchestrator ITSELF drives the page (hasUi plan template + label-addressed ui
   tools; dock Agent UI run = runTask loop, one Allow dialog per action).
-  Proof: `agents/runtime/test` (vitest 128/128) plus the seventeen headless proofs in
+  Proof: `agents/runtime/test` (vitest 129/129) plus the seventeen headless proofs in
   `docs/evidence/agents/` (agent, code-index, memory, durability, index-store, provider,
   recall, changes, roles, pipeline, qa, repair, rolechain).
 
