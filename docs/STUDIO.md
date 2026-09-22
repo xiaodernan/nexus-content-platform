@@ -36,6 +36,8 @@ Pages · Layers · Components · Assets · Variables · Design System · AI Agen
 - Assets 卡片上的「提取视觉语言」把这张参考图变成 `document.visualDna`（§30/§174，详见「参考输入」一节）；
   只有图片卡片可点，非位图与解不了的编码都会拿到读得懂的原因而不是假结论
 - History 列出 snapshot / branch / AI 事务，可 View / Compare / Restore / Duplicate / Branch（§27）
+- Health 页签是 §178 那七行的常驻读数：改一下文档就重算，点某行展开它的真实发现与"这项检查了什么"
+  （Publish 弹层里是同一个组件、同一个函数，见「项目健康」一节）
 
 ## 右面板（§6）
 
@@ -104,8 +106,31 @@ Preview 在隔离 iframe 中运行（见 SECURITY.md），不共享主站 origin
 
 ## 项目健康（§178）与 Quality Gate（§179）
 
-Publish 前展示：Build · Tests · Accessibility · Performance · Visual QA · AI QA · Security。
-未达阈值时 Publish 按钮给出具体阻塞项（不静默降级、不假装通过）。
+七行读数：Build · Tests · Accessibility · Performance · Visual QA · AI QA · Security。
+两处显示、一份算法：左栏「健康」实时按当前文档算（`HealthRail`），Publish 弹层里同一份 `HealthPanel`；
+服务端 `runPublishGate` 调的也是同一个 `analyzeHealth`（`packages/design-model/src/health.ts`），
+所以"屏幕上 76 分"和"服务器上挡住发布"不可能是两套数（§16）。
+
+分数怎么来的（不是拍脑袋）：
+- 每行把 `validateDocument` + `lintDesign` + 静态预算规则的真实发现归到自己名下，
+  `100 - Σ扣分`，error 扣 25 / warning 扣 6 / info 扣 1；
+- 门槛线集中在 `HEALTH_THRESHOLDS`：Accessibility 80 · Performance 70 · Visual QA 60；
+  Build 与 Security 没有分数线——有一条 error 级发现即挡；
+- 每条发现都能展开看（`basis` 说明这项到底检查了什么），单行最多列 40 条，
+  剩下的计数成 `omitted` 并写明"另有 N 条未列出（计分已计入）"，截的是显示不是问题。
+
+诚实边界（§159）：Tests 与 AI QA 至今没有任何本地可算的信号，状态是第三种——
+`not-run`，显示"未评估"、`score = null`、`gating = false`，UI 用 `—` 而不是 ✓。
+"没有发现"和"没检查过"是两件事，把前者当后者就是假绿。
+性能行同理：`basis` 明写这是静态预算（节点数/树深/位图字节/缺尺寸图片），不是 LCP/CLS 实测。
+
+门禁只管往外公开的方向：切成 `private` 是下架动作，即使门禁没过也允许，
+否则一份坏页面会收不回来；这时报告仍然如实带出全部失败项，面板上写一句为什么放行。
+
+对比度这条是本轮唯一"改设计而不是改阈值"的地方：`measureContrast` 先解析 token 引用、
+沿祖先链合成真实背景（按钮取 `typography.color` 而不是自己的填充），算不出来就返回 null 不报。
+修好之后暴露出内置起手页与四套概念语言自己就不达标（白字压 `#7c5cff` 只有 4.35:1 等），
+按 WCAG 重算了色板，而不是把 80 分线往下调。
 
 ## 版本 / 分支 / 多方案（§27-29）
 

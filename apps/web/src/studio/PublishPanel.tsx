@@ -1,15 +1,18 @@
 'use client';
 
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
+import { analyzeHealth } from '@nexus/design-model';
 import { cn } from '@/lib/cn';
 import type { Visibility } from '@/server/domain/publish';
+import { HealthPanel } from './HealthPanel';
 import { studio, useStudioReady } from './store';
 
 /**
  * §57 Publish：选 Public / Unlisted / Private，然后如实报告门禁。
  *
- * 门禁只列我们真能自动检查的项（设计模型自洽、对比度/点击目标、有内容），
- * 没实现的（性能预算、键盘可达性、视觉回归）明确写在"未运行"里——
+ * §179 的门禁就是 `analyzeHealth`，Studio 实时看的那份和服务器挡发布用的是同一个函数，
+ * 所以这里的数字不是"发布失败后才回传的残骸"，而是随时能读到的当前状态。
+ * 测不了的（性能实测、视觉回归、AI 评审）明确落在"未运行"里——
  * 一条都没检查却显示"门禁通过"就是假绿（§159）。
  */
 
@@ -24,7 +27,10 @@ export function PublishPanel() {
   const [open, setOpen] = useState(false);
   const [visibility, setVisibility] = useState<Visibility>('public');
   const publication = state.publication;
-  const gate = state.publishGate;
+  const health = useMemo(
+    () => (state.document ? analyzeHealth(state.document) : null),
+    [state.document],
+  );
 
   const statusLabel = publication
     ? `${publication.visibility === 'private' ? '已停' : '已发布'} v${publication.version}`
@@ -46,7 +52,7 @@ export function PublishPanel() {
       </button>
 
       {open ? (
-        <div className="absolute right-0 top-[calc(100%+6px)] z-[70] w-[400px] rounded-[var(--nexus-radius-md)] border border-[var(--nexus-color-border-strong)] bg-bg-1 p-[var(--nexus-space-3)] shadow-2xl">
+        <div className="absolute right-0 top-[calc(100%+6px)] z-[70] max-h-[72vh] w-[440px] overflow-auto rounded-[var(--nexus-radius-md)] border border-[var(--nexus-color-border-strong)] bg-bg-1 p-[var(--nexus-space-3)] shadow-2xl">
           <p className="mb-2 font-mono text-12 text-fg-3">§56 / §57 发布与分享</p>
           <div className="mb-[var(--nexus-space-3)] flex flex-col gap-1">
             {CHOICES.map((choice) => (
@@ -66,30 +72,13 @@ export function PublishPanel() {
             ))}
           </div>
 
-          {gate ? (
+          {health ? (
             <div className="mb-[var(--nexus-space-3)] rounded-[var(--nexus-radius-sm)] bg-bg-2 p-2" data-publish-gate>
-              <p className="mb-1 text-11 text-fg-3">
-                门禁{gate.passed ? '通过' : '未通过'} · 已运行的检查：
-              </p>
-              <ul className="flex flex-col gap-[2px]">
-                {gate.checks.map((check) => (
-                  <li key={check.name} className={cn('text-11', check.passed ? 'text-fg-2' : 'text-danger')} data-gate-check={check.name}>
-                    {check.passed ? '✓' : '✗'} {check.name}
-                    <span className="text-fg-3"> · {check.detail}</span>
-                  </li>
-                ))}
-              </ul>
-              <p className="mt-1 text-11 text-warn" data-gate-not-run>
-                未运行：{gate.notRun.join('、')}
-              </p>
-              {gate.blockers.length ? (
-                <ul className="mt-1 flex flex-col gap-[2px]">
-                  {gate.blockers.map((b) => (
-                    <li key={b} className="text-11 text-danger">
-                      · {b}
-                    </li>
-                  ))}
-                </ul>
+              <HealthPanel report={health} />
+              {visibility === 'private' ? (
+                <p className="mt-1 text-11 text-fg-3" data-publish-private-note>
+                  切成私有是下架动作：即使门禁没过也允许，把链接收回来永远比挡住它安全。
+                </p>
               ) : null}
             </div>
           ) : null}

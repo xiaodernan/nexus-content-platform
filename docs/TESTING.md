@@ -44,10 +44,21 @@
 `Accessibility`（对比度 + 键盘 + ARIA，§90）· `Visual QA`（无回归，§33）。
 任一未达标 → Publish 阻塞并列出原因，不允许静默跳过。
 
-当前实现状态（如实）：Publish 面板里自动运行的只有三项——设计模型自洽（`validateDocument`）、
-对比度/点击目标/间距（`lintDesign`）、有可发布的内容；错误挡住发布。
-Build/Tests、性能预算、键盘与完整 ARIA、视觉回归**还没接进这道门**，面板上以"未运行"列出，
-不写成通过。审核管线同样未接入（`published_projects.moderation` 停在 `pending`）。
+当前实现状态（如实）：`packages/design-model/src/health.ts` 的 `analyzeHealth()` 一次算出七行，
+Studio「健康」页签、Publish 弹层与服务端 `runPublishGate()` 用的是同一个函数（§16）。
+Build（`validateDocument`）· Accessibility（对比度/alt/按钮名称/点击目标）· Performance（**静态预算**：
+节点数、树深、位图字节、缺尺寸图片、动效数——不是 LCP/CLS/INP 实测）· Visual QA（token 绑定、栅格、
+越出画布、零尺寸）· Security（模型内可查：疑似明文凭据、code 节点危险写法、http 外链——不是漏洞扫描）。
+分数线：Accessibility 80 · Performance 70 · Visual QA 60；Build 与 Security 有一条 error 即挡。
+**Tests 与 AI QA 没有本地可算信号，状态是 `not-run`、显示"未评估"、不参与门禁**——
+不是待补的空位，而是"这里还没被检查过"的可见表达（§159）。审核管线同样未接入
+（`published_projects.moderation` 停在 `pending`）。唯一刻意放行的是切成 `private`：下架不该被挡。
+
+回归锁在哪里：`health.test.ts` 断言七行齐全、未评估行 `score = null` 且 `gating = false`、
+门槛两侧（3 条 warning 82 通过 / 4 条 76 挡住）、error 一票否决、40 条截断后 `omitted` 计数与全量扣分、
+凭据发现脱敏（整份报告 JSON 里查不到原文）、localhost 不算明文外链；
+`publish.integration.test.ts` 断言挡住时不写发布记录也不留快照、同一份坏文档切私有放行；
+e2e 断言面板把"未运行的检查"列出来，而不是显示全绿。
 
 ## 性能测试（§146-147）
 

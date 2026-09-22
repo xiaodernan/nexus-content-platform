@@ -495,7 +495,7 @@ test('@smoke studio slice: mobile viewport reflows the same model', async ({ pag
   // 检查器要如实说明当前断点下的实际尺寸，而不是继续显示页面声明尺寸
   await expect(page.locator('[data-page-resolved-size]')).toContainText('375');
   // 按钮的 fills 是背景、字色来自 typography：在真实浏览器里确认这条投影契约
-  await expect(page.locator('[data-node-type="button"]').first()).toHaveCSS('background-color', 'rgb(124, 92, 255)');
+  await expect(page.locator('[data-node-type="button"]').first()).toHaveCSS('background-color', 'rgb(107, 79, 240)');
   await expect(page.locator('[data-node-type="button"]').first()).toHaveCSS('color', 'rgb(255, 255, 255)');
 });
 

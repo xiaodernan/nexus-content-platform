@@ -71,7 +71,7 @@ export const CONCEPT_LANGUAGES: ConceptLanguage[] = [
       "color.text-muted": { value: "#6b6558", light: "#6b6558", dark: "#a8a094" },
       "color.primary": { value: "#1f4d3a", light: "#1f4d3a", dark: "#79c2a0" },
       "color.on-primary": { value: "#ffffff", light: "#ffffff", dark: "#0f1f18" },
-      "color.accent": { value: "#b3542f" },
+      "color.accent": { value: "#9c4525", light: "#9c4525", dark: "#e08a5f" },
       "color.border": { value: "#ddd7c9", light: "#ddd7c9", dark: "#332f29" },
     },
     fonts: { "font.heading": SERIF, "font.body": SANS },
@@ -86,10 +86,10 @@ export const CONCEPT_LANGUAGES: ConceptLanguage[] = [
       "color.surface": { value: "#0d1018", light: "#141824", dark: "#0d1018" },
       "color.surface-2": { value: "#171d2b", light: "#1d2434", dark: "#171d2b" },
       "color.text": { value: "#f5f7ff", light: "#eef1f8", dark: "#f5f7ff" },
-      "color.text-muted": { value: "#98a2bd", light: "#6f7a93", dark: "#98a2bd" },
+      "color.text-muted": { value: "#98a2bd", light: "#93a0ba", dark: "#98a2bd" },
       "color.primary": { value: "#f5b451", light: "#c9821b", dark: "#f5b451" },
       "color.on-primary": { value: "#1b1205", light: "#1b1205", dark: "#1b1205" },
-      "color.accent": { value: "#7dd3fc" },
+      "color.accent": { value: "#7dd3fc", light: "#7dd3fc", dark: "#7dd3fc" },
       "color.border": { value: "#1f2735", light: "#c9cfdb", dark: "#1f2735" },
     },
     fonts: { "font.heading": SANS, "font.body": SANS },
@@ -100,14 +100,15 @@ export const CONCEPT_LANGUAGES: ConceptLanguage[] = [
     key: "cyber",
     label: "赛博 · 霓虹",
     colors: {
-      "color.background": { value: "#04070d", light: "#0a1018", dark: "#04070d" },
+      // light 模式三件套要成套：背景给浅底，否则浅底 surface + 深墨字压在深底上直接不可读
+      "color.background": { value: "#04070d", light: "#f5f8fb", dark: "#04070d" },
       "color.surface": { value: "#0a1220", light: "#e6edf5", dark: "#0a1220" },
       "color.surface-2": { value: "#101c2e", light: "#d5dfeb", dark: "#101c2e" },
       "color.text": { value: "#e6f7ff", light: "#0b1a24", dark: "#e6f7ff" },
       "color.text-muted": { value: "#7f9bb3", light: "#4c6274", dark: "#7f9bb3" },
-      "color.primary": { value: "#22d3ee", light: "#0891b2", dark: "#22d3ee" },
-      "color.on-primary": { value: "#04252b", light: "#04252b", dark: "#04252b" },
-      "color.accent": { value: "#a3ff12" },
+      "color.primary": { value: "#22d3ee", light: "#0b6a84", dark: "#22d3ee" },
+      "color.on-primary": { value: "#04252b", light: "#ffffff", dark: "#04252b" },
+      "color.accent": { value: "#a3ff12", light: "#2d5f0a", dark: "#a3ff12" },
       "color.border": { value: "#17293c", light: "#b9c6d4", dark: "#17293c" },
     },
     fonts: { "font.heading": MONO, "font.body": MONO },
@@ -124,8 +125,9 @@ export const CONCEPT_LANGUAGES: ConceptLanguage[] = [
       "color.text": { value: "#2a1a12", light: "#2a1a12", dark: "#ffeee0" },
       "color.text-muted": { value: "#8a6a58", light: "#8a6a58", dark: "#c0a08c" },
       "color.primary": { value: "#ea580c", light: "#ea580c", dark: "#fb923c" },
-      "color.on-primary": { value: "#fff7ed", light: "#fff7ed", dark: "#2b1102" },
-      "color.accent": { value: "#14b8a6" },
+      // 亮橙按钮上白字只有 3.35:1，过不了 AA：这套语言的按钮字改深棕
+      "color.on-primary": { value: "#2b1204", light: "#2b1204", dark: "#2b1102" },
+      "color.accent": { value: "#0f766e", light: "#0f766e", dark: "#5eead4" },
       "color.border": { value: "#f0dcc8", light: "#f0dcc8", dark: "#3d2c1f" },
     },
     fonts: { "font.heading": ROUNDED, "font.body": ROUNDED },
@@ -516,8 +518,11 @@ export function applyConceptLanguage(
     token.value = value;
     const spec = language.colors[key];
     if (token.modes && spec) {
+      // 语言没给某个 mode 就退回它自己的基准值：留着上一个 mode 值等于让上一套配色
+      // 从主题的缝里渗出来，那样"换视觉语言"就没换干净
       for (const mode of Object.keys(token.modes)) {
-        const next = mode === "light" ? spec.light : mode === "dark" ? spec.dark : undefined;
+        const next =
+          mode === "light" ? (spec.light ?? spec.value) : mode === "dark" ? (spec.dark ?? spec.value) : undefined;
         if (next) token.modes[mode] = next;
       }
     }

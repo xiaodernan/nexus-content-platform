@@ -8,19 +8,21 @@ import { LayersPanel } from './LayersPanel';
 import { HistoryPanel } from './HistoryPanel';
 import { DesignSystemPanel } from './DesignSystemPanel';
 import { AssetsPanel } from './AssetsPanel';
+import { HealthRail } from './HealthPanel';
 import { PropertiesPanel } from './PropertiesPanel';
 import { CanvasStage } from './CanvasStage';
 import { CodePanel } from './CodePanel';
 import { VariantsBoard } from './VariantsBoard';
 import { CommandBar } from './CommandBar';
 
-type PanelTab = 'layers' | 'design' | 'assets' | 'history';
+type PanelTab = 'layers' | 'design' | 'assets' | 'history' | 'health';
 
 const TABS: { id: PanelTab; label: string }[] = [
   { id: 'layers', label: '图层' },
   { id: 'design', label: '设计系统' },
   { id: 'assets', label: '资产库' },
   { id: 'history', label: '历史' },
+  { id: 'health', label: '健康' },
 ];
 
 /** §4 Studio 外壳：负责载入与保存时机，不做布局细节 */
@@ -98,6 +100,8 @@ function StudioWorkspace({ zoom, demoMode }: { zoom: number; demoMode: boolean }
             <DesignSystemPanel />
           ) : tab === 'assets' ? (
             <AssetsPanel />
+          ) : tab === 'health' ? (
+            <HealthRail />
           ) : (
             <HistoryPanel />
           )}

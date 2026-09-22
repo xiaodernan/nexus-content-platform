@@ -69,19 +69,26 @@ describe('发布与分享（真实数据库）', () => {
     const good = createDocument('可以发布');
     const gate = runPublishGate(good);
     expect(gate.passed).toBe(true);
-    expect(gate.checks.map((c) => c.name)).toEqual([
-      '设计模型自洽',
-      '对比度 / 点击目标 / 间距',
-      '有可发布的内容',
+    expect(gate.checks.map((c) => c.id)).toEqual([
+      'build',
+      'tests',
+      'accessibility',
+      'performance',
+      'visual-qa',
+      'ai-qa',
+      'security',
     ]);
-    expect(gate.notRun.length).toBeGreaterThan(0);
+    // 没跑成的行是第三种状态：既不是 ✓ 也不是 ✗，更不许拿着分数冒充通过（§159）
+    expect(gate.notRun).toEqual(['Tests', 'AI QA']);
+    expect(gate.checks.filter((c) => c.state === 'not-run').every((c) => c.score === null && !c.gating)).toBe(true);
+    expect(gate.checks.filter((c) => c.state === 'pass').every((c) => c.score !== null)).toBe(true);
 
     const empty = createDocument('空的');
     empty.pages = [];
     empty.activePageId = '';
     const blocked = runPublishGate(empty);
     expect(blocked.passed).toBe(false);
-    expect(blocked.blockers.join('')).toContain('文档没有任何页面');
+    expect(blocked.blockers.join('')).toContain('页面里还没有可见内容');
   });
 
   it('发布：生成 /n/<handle>/<slug>，并留下一条 publish 快照', async () => {
@@ -182,12 +189,18 @@ describe('发布与分享（真实数据库）', () => {
     if (!result) throw new Error('项目应当存在');
     expect(result.ok).toBe(false);
     if (result.ok) throw new Error('空内容不该发布成功');
-    expect(result.gate.checks.find((c) => c.name === '有可发布的内容')?.passed).toBe(false);
+    expect(result.gate.checks.find((c) => c.id === 'build')?.state).toBe('fail');
     expect(result.reason).toContain('门禁未通过');
     expect(await getPublication(id)).toBeNull();
     expect((await listSnapshots(id)).length).toBe(before.length);
     const rows = await db.select({ id: publishedProjects.id }).from(publishedProjects).where(eq(publishedProjects.projectId, id));
     expect(rows).toEqual([]);
+
+    // 下架方向永远不挡：门禁只管"往外公开"，切成私有是把链接收回来
+    const takedown = await publishProject(id, { visibility: 'private', createdById: ownerId });
+    expect(takedown?.ok).toBe(true);
+    if (!takedown?.ok) throw new Error('空文档切成私有应当成功');
+    expect(await resolvePublishedPath(takedown.publication.path)).toBeNull();
   });
 
   it('浏览量只在公开访问上累加', async () => {

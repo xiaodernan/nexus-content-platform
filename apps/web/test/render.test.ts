@@ -27,7 +27,7 @@ function withFills(base: ResolvedNode, fills: DesignNode['style']['fills']): Res
 describe('nodeStyle', () => {
   it('paints a button fill as background and reads its label color from typography', () => {
     const style = nodeStyle(byName('Primary CTA'), { tokens, mode: null });
-    expect(style.backgroundColor).toBe('#7c5cff');
+    expect(style.backgroundColor).toBe('#6b4ff0');
     expect(style.color).toBe('#ffffff');
   });
 
@@ -46,7 +46,7 @@ describe('nodeStyle', () => {
   it('resolves colors through the active mode', () => {
     const dark = nodeStyle(byName('Primary CTA'), { tokens, mode: null }).backgroundColor;
     const light = nodeStyle(byName('Primary CTA'), { tokens, mode: 'light' }).backgroundColor;
-    expect(dark).toBe('#7c5cff');
+    expect(dark).toBe('#6b4ff0');
     expect(light).toBe('#5b3df5');
   });
 });

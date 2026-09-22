@@ -27,11 +27,11 @@ import {
   type ResolvedLayout,
   type VisualDna,
 } from '@nexus/design-model';
-import { VisualDnaSchema, type DesignPatchPayload } from '@nexus/schemas';
+import { ProjectHealthReportSchema, VisualDnaSchema, type DesignPatchPayload } from '@nexus/schemas';
 import type { SnapshotEntry, SnapshotMeta } from '@/server/domain/snapshots';
 import type { BranchMeta } from '@/server/domain/branches';
 import type { VariantEntry } from '@/server/domain/variants';
-import type { GateReport, Publication, Visibility } from '@/server/domain/publish';
+import type { Publication, Visibility } from '@/server/domain/publish';
 import { apiAssetUrl, assetContextFor, type AssetUrlContext } from './assets';
 import { csrfHeaders } from '@/lib/csrf';
 
@@ -96,8 +96,6 @@ export interface StudioSnapshot {
   publication: Publication | null;
   publishBusy: boolean;
   publishError: string | null;
-  /** 最近一次门禁报告：通过与否都要摊开给用户看 */
-  publishGate: GateReport | null;
   /** §38 资产清单（文档级）：字节在对象存储，这里只有目录 */
   assets: readonly AssetRef[];
   /**
@@ -161,7 +159,6 @@ export class StudioStore {
   private publicationValue: Publication | null = null;
   private publishBusyValue = false;
   private publishErrorValue: string | null = null;
-  private publishGateValue: GateReport | null = null;
   private assetBusyValue = false;
   private assetErrorValue: string | null = null;
   private assetNoticeValue: string | null = null;
@@ -232,7 +229,6 @@ export class StudioStore {
       publication: this.publicationValue,
       publishBusy: this.publishBusyValue,
       publishError: this.publishErrorValue,
-      publishGate: this.publishGateValue,
       assets: document.assets,
       assetContext,
       assetBusy: this.assetBusyValue,
@@ -726,7 +722,6 @@ export class StudioStore {
     if (!this.projectId || !this.ready) return null;
     this.publishBusyValue = true;
     this.publishErrorValue = null;
-    this.publishGateValue = null;
     this.commit();
     try {
       this.flushSave();
@@ -738,9 +733,19 @@ export class StudioStore {
         body: JSON.stringify({ visibility }),
       });
       const body = (await res.json().catch(() => null)) as
-        | { publication?: Publication; gate?: GateReport; message?: string; issues?: string[] }
+        | { publication?: Publication; gate?: unknown; message?: string; issues?: string[] }
         | null;
-      this.publishGateValue = body?.gate ?? null;
+      // 门禁报告照样过 zod：契约不符就说明两端算的不是同一件事，宁可报错也不猜
+      if (body?.gate !== undefined) {
+        const parsed = ProjectHealthReportSchema.safeParse(body.gate);
+        if (!parsed.success) {
+          throw new Error(
+            `门禁结果不符合契约：${parsed.error.issues
+              .map((i) => `${i.path.join('.')}: ${i.message}`)
+              .join('；')}`,
+          );
+        }
+      }
       if (!res.ok || !body?.publication) {
         throw new Error(body?.issues?.join('；') ?? body?.message ?? `HTTP ${res.status}`);
       }

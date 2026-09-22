@@ -561,10 +561,16 @@ export const DEFAULT_TOKENS: Token[] = [
   {
     key: "color.primary",
     type: "color",
-    value: "#7c5cff",
-    modes: { light: "#5b3df5", dark: "#7c5cff" },
+    value: "#6b4ff0",
+    modes: { light: "#5b3df5", dark: "#6b4ff0" },
   },
-  { key: "color.accent", type: "color", value: "#22d3ee" },
+  {
+    key: "color.accent",
+    type: "color",
+    value: "#22d3ee",
+    // accent 会被当小字号文本用（Eyebrow 那一类），浅底上必须自己暗下来
+    modes: { light: "#0b6f78", dark: "#22d3ee" },
+  },
   {
     key: "color.on-primary",
     type: "color",

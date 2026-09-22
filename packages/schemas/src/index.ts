@@ -284,4 +284,45 @@ export const VisualDnaResponseSchema = z.object({
 });
 export type VisualDnaResponse = z.infer<typeof VisualDnaResponseSchema>;
 
+/**
+ * §178 项目健康 / §179 Quality Gate 的跨端形状。
+ *
+ * 算法只有一份（`@nexus/design-model` 的 analyzeHealth），但 Studio 实时显示的那份和
+ * 服务器挡下发布时返回的那份要能对齐，所以报文照样过 zod。Issue.code 在这里刻意用
+ * string 而不是枚举：枚举由设计模型定义，抄一份到 schema 就是多一处会漂移的地方。
+ */
+export const ProjectHealthFindingSchema = z.object({
+  code: z.string(),
+  severity: z.enum(['error', 'warning', 'info']),
+  message: z.string(),
+  pageId: z.string().optional(),
+  nodeId: z.string().optional(),
+  path: z.string().optional(),
+  suggestion: z.string().optional(),
+});
+export type ProjectHealthFinding = z.infer<typeof ProjectHealthFindingSchema>;
+
+export const ProjectHealthCheckSchema = z.object({
+  id: z.enum(['build', 'tests', 'accessibility', 'performance', 'visual-qa', 'ai-qa', 'security']),
+  label: z.string(),
+  /** null = 这一项没测。不许用 0 或 100 冒充它 */
+  score: z.number().min(0).max(100).nullable(),
+  gating: z.boolean(),
+  threshold: z.number().min(0).max(100).nullable(),
+  state: z.enum(['pass', 'fail', 'not-run']),
+  basis: z.string(),
+  findings: z.array(ProjectHealthFindingSchema).default([]),
+  omitted: z.number().int().min(0).default(0),
+  metrics: z.array(z.object({ label: z.string(), value: z.string() })).default([]),
+});
+export type ProjectHealthCheck = z.infer<typeof ProjectHealthCheckSchema>;
+
+export const ProjectHealthReportSchema = z.object({
+  checks: z.array(ProjectHealthCheckSchema),
+  passed: z.boolean(),
+  blockers: z.array(z.string()).default([]),
+  notRun: z.array(z.string()).default([]),
+});
+export type ProjectHealthReport = z.infer<typeof ProjectHealthReportSchema>;
+
 export { NodeTypeEnum as DesignNodeType };

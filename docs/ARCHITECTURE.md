@@ -89,7 +89,10 @@ DEMO 路径不在 ai-service 里：确定性 Mock 需要 design model 才能产�
 10. **发布的是快照不是工作区**（§56/§57）：`published_projects` 一行对应一条 `/n/<handle>/<slug>`，
    指向一份 `source='publish'` 的快照；重新发布就地换版本（path 有唯一索引），
    所以作者之后怎么改都不会把已经发出去的链接换掉。公开页不鉴权也不读工作区。
-   门禁只报告真跑过的检查，没实现的列进"未运行"；`moderation` 停在 `pending`，不假装审核过。
+   门禁是 `@nexus/design-model` 的 `analyzeHealth()`（§178/§179），Studio 实时读数与服务器挡发布共用它，
+   所以两端的分不可能对不上；没跑的检查是第三种状态 `not-run`（显示"未评估"、不参与门禁），
+   不写成通过。切成 `private` 放行——门禁只管往外公开的方向，下架永远该能做成。
+   `moderation` 停在 `pending`，不假装审核过。
 11. **设计里不存字节，只存引用**（§16/§38/§64/§101）：节点 paint 只持 `assetId`，object key 由服务端按 id 生成，
     文件名只是展示文本。"这个 id 能不能显示"由**文档自己的资产清单**回答（`assetContextFor`），
     画布 / 变体 / 预览 / 公开页四条投影据此跳过清单外的层而不是画破图。字节走 `StorageDriver` 接口

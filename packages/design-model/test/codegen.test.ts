@@ -78,13 +78,13 @@ describe("Design → Code（§17-19）", () => {
 
   it("token 引用生成 CSS 变量，而不是把值烤死进代码（§12）", () => {
     const tokens = generateTokenCss(doc.tokens);
-    expect(tokens).toContain("--nx-color-primary: #7c5cff;");
+    expect(tokens).toContain("--nx-color-primary: #6b4ff0;");
     expect(tokens).toContain("--nx-motion-fast: 120ms;");
     expect(tokens).toContain("--nx-space-4: 16px;");
     expect(tokens).toContain('[data-theme="light"]');
     expect(tokens).toContain("--nx-color-primary: #5b3df5;");
     expect(page.contents).toContain("bg-[var(--nx-color-surface)]");
-    expect(page.contents).not.toContain("#7c5cff");
+    expect(page.contents).not.toContain("#6b4ff0");
   });
 
   it("按钮背景来自 fills，字色来自 typography.color；文本节点反过来", () => {

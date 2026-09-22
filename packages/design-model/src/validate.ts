@@ -1,5 +1,5 @@
-import type { DesignDocument, DesignNode, NodeId, Page } from "./types";
-import { TokenStore, contrastRatio, parseHex, tokenRefKey } from "./tokens";
+import type { ColorValue, DesignDocument, DesignNode, NodeId, Page, RGBA } from "./types";
+import { TokenStore, contrastRatio, parseHex, toHex, tokenRefKey } from "./tokens";
 import { collectSubtree } from "./patch";
 import { DEFAULT_TOKENS } from "./nodes";
 
@@ -19,7 +19,21 @@ export type IssueCode =
   | "tap-target-small"
   | "unreachable-node"
   | "invalid-node-type"
-  | "bad-binding";
+  | "bad-binding"
+  // 下面这些由健康层（health.ts）产出，不来自 lintDesign 的规则：
+  // §178 的 Performance / Security / Visual QA 三行需要静态指标，
+  // 放在一起是为了共用 Issue 形状，方便 UI 与 AI Critic 消费。
+  | "node-count"
+  | "tree-depth"
+  | "asset-bytes"
+  | "image-no-dims"
+  | "animation-count"
+  | "page-count"
+  | "off-canvas"
+  | "zero-size"
+  | "credential-text"
+  | "unsafe-code"
+  | "insecure-url";
 
 export interface Issue {
   code: IssueCode;
@@ -229,7 +243,6 @@ export function lintDesign(
     }
   }
   for (const page of document.pages) {
-    const background = resolveBackground(document, page);
     for (const node of Object.values(page.nodes)) {
       if (!node.visible) continue;
       // token 优先：字面颜色视为硬编码（§12）
@@ -276,10 +289,9 @@ export function lintDesign(
           });
         }
       }
-      // 文本对比度（§90）
-      const textColor = firstSolid(node.style.fills);
-      if (node.type === "text" && textColor && background) {
-        const ratio = contrastRatio(textColor, background);
+      // 文本对比度（§90）：解析 token、沿祖先链合成真实背景，测不出来的不报（§159）
+      const contrast = measureContrast(page, node, tokens, document.activeMode);
+      if (contrast) {
         const fontSize = Number(
           tokens.resolveValue(
             node.typography?.fontSize ?? 16,
@@ -290,11 +302,11 @@ export function lintDesign(
           fontSize >= 24 || (node.typography?.fontWeight ?? 400) >= 700
             ? 3
             : 4.5;
-        if (ratio < required) {
+        if (contrast.ratio < required) {
           issues.push({
             code: "low-contrast",
             severity: "warning",
-            message: `${node.name} 文本对比度 ${ratio.toFixed(2)}:1，低于 ${required}:1`,
+            message: `${node.name} 文本对比度 ${contrast.ratio.toFixed(2)}:1，低于 ${required}:1（${contrast.foreground} on ${contrast.background}）`,
             pageId: page.id,
             nodeId: node.id,
             suggestion: "调亮文本或压暗背景",
@@ -357,35 +369,128 @@ export function lintDesign(
   return issues;
 }
 
-function resolveBackground(
-  document: DesignDocument,
+/**
+ * 一处文字与它真正落在什么颜色上的对比度（§90）。
+ *
+ * 三条纪律：
+ * 1. token 引用必须先解析——不解析的话 `{color.text}` 会被当成"解析失败"，
+ *    而 `contrastRatio` 对解析失败返回 1，于是每个正确使用 token 的设计都被误判成 1:1；
+ * 2. 背景沿祖先链一层层合成，直到遇到不透明层——只看页面根会把卡片上的字比到页面底色上；
+ * 3. 任何一边算不出来（渐变、图片填充、坏 token、最底层是半透明且身后无依据）就返回 null。
+ *    算不出来却报一个数是造假，静默不报 + 交给 missing-token 那条发现才是诚实。
+ */
+export function measureContrast(
   page: Page,
-): string | null {
-  const root = page.nodes[page.rootId];
-  const fill = root ? firstSolid(root.style.fills) : null;
-  const candidate = fill ?? (page.backgroundColor as string | null);
-  if (!candidate) return null;
-  const resolved =
-    typeof candidate === "string" && tokenRefKey(candidate)
-      ? new TokenStore(document.tokens).resolveValue(
-          candidate,
-          document.activeMode,
-        )
-      : candidate;
-  return typeof resolved === "string" ? resolved : null;
+  node: DesignNode,
+  tokens: TokenStore,
+  mode?: string | null,
+): { ratio: number; foreground: string; background: string } | null {
+  const foreground =
+    node.type === "text"
+      ? solidRgba(node, tokens, mode)
+      : node.type === "button" || node.type === "input" || node.type === "card"
+        ? solidColorValue(node.typography?.color, tokens, mode)
+        : null;
+  if (!foreground) return null;
+  // 容器上没有字就没有可读性可言：只有真带文字（或直接子里有 text）才检查
+  const hasText =
+    node.type === "text" ||
+    (node.text ?? "").trim().length > 0 ||
+    node.children.some((id) => page.nodes[id]?.type === "text");
+  if (!hasText) return null;
+
+  const chain =
+    node.type === "text" ? ancestorsOf(page, node) : [node, ...ancestorsOf(page, node)];
+  const background = effectiveBackground(page, chain, tokens, mode);
+  if (!background) return null;
+  const settled =
+    foreground.a >= 0.999 ? foreground : compositeOver(foreground, background);
+  const ratio = contrastRatio(settled, background);
+  return { ratio, foreground: toHex(settled), background: toHex(background) };
 }
 
-function firstSolid(node: DesignNode["style"]["fills"]): string | null {
-  for (const paint of node) {
-    if (paint.kind !== "solid" || paint.visible === false) continue;
-    const color = paint.color;
-    if (typeof color === "string") return color;
-    const r = Math.round(color.r);
-    const g = Math.round(color.g);
-    const b = Math.round(color.b);
-    return `#${[r, g, b].map((n) => n.toString(16).padStart(2, "0")).join("")}`;
+/** 由近到远的祖先链；父子数据坏掉时按链长上限停住，不跟着死循环 */
+function ancestorsOf(page: Page, node: DesignNode): DesignNode[] {
+  const out: DesignNode[] = [];
+  const seen = new Set<string>([node.id]);
+  let currentId = node.parentId;
+  while (currentId && out.length < 64) {
+    if (seen.has(currentId)) break;
+    const parent = page.nodes[currentId];
+    if (!parent) break;
+    seen.add(currentId);
+    out.push(parent);
+    currentId = parent.parentId;
+  }
+  return out;
+}
+
+function solidColorValue(
+  color: ColorValue | undefined,
+  tokens: TokenStore,
+  mode?: string | null,
+): RGBA | null {
+  if (color === undefined) return null;
+  const resolved = tokens.resolveValue(color, mode);
+  if (typeof resolved === "string") return parseHex(resolved);
+  if (resolved && typeof resolved === "object" && "r" in resolved) {
+    const rgba = resolved as RGBA;
+    return Number.isFinite(rgba.r) && Number.isFinite(rgba.g) && Number.isFinite(rgba.b)
+      ? rgba
+      : null;
   }
   return null;
+}
+
+/** 节点第一个实心填充，含 paint 与节点自身的不透明度 */
+function solidRgba(
+  node: DesignNode,
+  tokens: TokenStore,
+  mode?: string | null,
+): RGBA | null {
+  for (const paint of node.style.fills) {
+    if (paint.kind !== "solid" || paint.visible === false) continue;
+    const base = solidColorValue(paint.color, tokens, mode);
+    if (!base) return null;
+    const alpha =
+      base.a * (paint.opacity ?? 1) * (node.style.opacity ?? 1);
+    return { ...base, a: Math.max(0, Math.min(1, alpha)) };
+  }
+  return null;
+}
+
+/** 从近到远叠加背景，撞到不透明层即止；页面底色兜底 */
+function effectiveBackground(
+  page: Page,
+  nearToFar: DesignNode[],
+  tokens: TokenStore,
+  mode?: string | null,
+): RGBA | null {
+  const layers: RGBA[] = [];
+  for (const node of nearToFar) {
+    const fill = solidRgba(node, tokens, mode);
+    if (!fill) continue;
+    layers.push(fill);
+    if (fill.a >= 0.999) break;
+  }
+  const pageBase = solidColorValue(page.backgroundColor, tokens, mode);
+  if (pageBase) layers.push(pageBase);
+  if (!layers.length) return null;
+  const deepest = layers[layers.length - 1]!;
+  if (deepest.a < 0.999) return null;
+  let acc = deepest;
+  for (let i = layers.length - 2; i >= 0; i -= 1) acc = compositeOver(layers[i]!, acc);
+  return acc;
+}
+
+function compositeOver(fg: RGBA, bg: RGBA): RGBA {
+  const a = Math.max(0, Math.min(1, fg.a));
+  return {
+    r: fg.r * a + bg.r * (1 - a),
+    g: fg.g * a + bg.g * (1 - a),
+    b: fg.b * a + bg.b * (1 - a),
+    a: Math.min(1, a + bg.a * (1 - a)),
+  };
 }
 
 /** 收集节点内所有 token 引用（点号 key） */

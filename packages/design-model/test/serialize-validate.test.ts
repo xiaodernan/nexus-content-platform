@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { createDocument, createNode, findPage } from "../src/nodes";
+import { createDocument, createNode, createPage, findPage } from "../src/nodes";
 import {
   fromProjectFiles,
   toProjectFiles,
@@ -7,10 +7,12 @@ import {
   deserializeDocument,
 } from "../src/serialize";
 import { applyPatch } from "../src/patch";
+import { TokenStore, contrastRatio, parseHex, toHex } from "../src/tokens";
 import {
   collectTokenRefs,
   hasErrors,
   lintDesign,
+  measureContrast,
   summarizeIssues,
   validateDocument,
 } from "../src/validate";
@@ -252,8 +254,122 @@ describe("lintDesign (§32 / §121)", () => {
   });
 });
 
-describe("token bindings survive patching (§12)", () => {
-  it("a token edit is the single change point for every bound node", () => {
+describe("measureContrast（§90：测不出来就不报，绝不编一个 1:1）", () => {
+  const tokenHex = (doc: ReturnType<typeof createDocument>, key: string) => {
+    const token = doc.tokens.find((t) => t.key === key);
+    return toHex(token!.value);
+  };
+  /** 起手页自带 hero 文案，会混进体检结果；这些用例只要一张白纸 */
+  const bareDoc = (name: string) => {
+    const doc = createDocument(name);
+    const page = createPage("Home");
+    doc.pages = [page];
+    doc.activePageId = page.id;
+    return doc;
+  };
+  /** 默认主题是深底浅字，这几个用例把纸面钉成白底，就得自己钉一个深色正文 */
+  const setTextToken = (doc: ReturnType<typeof createDocument>, hex: string) => {
+    doc.tokens = doc.tokens.map((t) =>
+      t.key === "color.text" ? { ...t, value: hex, modes: undefined } : t,
+    );
+  };
+
+  it("token 引用先解析：正确使用 token 的设计不会被误判成 1:1", () => {
+    const doc = bareDoc("Tokens");
+    setTextToken(doc, "#111111");
+    const page = doc.pages[0]!;
+    const root = page.nodes[page.rootId]!;
+    root.style.fills = [{ kind: "solid", color: "#ffffff" }];
+    const text = createNode({ type: "text", name: "Body", text: "正文", parentId: root.id });
+    text.style.fills = [{ kind: "solid", color: "{color.text}" }];
+    page.nodes[text.id] = text;
+    root.children = [text.id];
+
+    const measured = measureContrast(page, text, new TokenStore(doc.tokens), doc.activeMode);
+    expect(measured).not.toBeNull();
+    expect(measured!.foreground).toBe(tokenHex(doc, "color.text"));
+    expect(measured!.background).toBe("#ffffff");
+    expect(measured!.ratio).toBeCloseTo(contrastRatio(measured!.foreground, "#ffffff"), 5);
+    expect(lintDesign(doc).some((i) => i.code === "low-contrast")).toBe(false);
+  });
+
+  it("背景沿祖先链取：卡片上的字比的是卡片，不是页面底色", () => {
+    const doc = bareDoc("Ancestors");
+    setTextToken(doc, "#111111");
+    const page = doc.pages[0]!;
+    const root = page.nodes[page.rootId]!;
+    root.style.fills = [{ kind: "solid", color: "#ffffff" }];
+    const card = createNode({ type: "section", name: "Card", parentId: root.id });
+    card.style.fills = [{ kind: "solid", color: "#000000" }];
+    const text = createNode({ type: "text", name: "OnCard", text: "卡片里", parentId: card.id });
+    text.style.fills = [{ kind: "solid", color: "{color.text}" }];
+    page.nodes[card.id] = card;
+    page.nodes[text.id] = text;
+    root.children = [card.id];
+    card.children = [text.id];
+
+    const measured = measureContrast(page, text, new TokenStore(doc.tokens), doc.activeMode)!;
+    expect(measured.background).toBe("#000000");
+    // 深色 token 文字放进黑卡片 = 真不达标，这条必须报出来
+    expect(measured.ratio).toBeLessThan(4.5);
+    expect(lintDesign(doc).find((i) => i.code === "low-contrast")?.message).toContain("#000000");
+  });
+
+  it("半透明层先合成再比：不把 rgba 当成它自己的颜色", () => {
+    const doc = bareDoc("Composite");
+    const page = doc.pages[0]!;
+    const root = page.nodes[page.rootId]!;
+    root.style.fills = [{ kind: "solid", color: "#ffffff" }];
+    const veil = createNode({ type: "section", name: "Veil", parentId: root.id });
+    veil.style.fills = [{ kind: "solid", color: { r: 0, g: 0, b: 0, a: 0.5 } }];
+    const text = createNode({ type: "text", name: "Under", text: "纱层下", parentId: veil.id });
+    text.style.fills = [{ kind: "solid", color: "#ffffff" }];
+    page.nodes[veil.id] = veil;
+    page.nodes[text.id] = text;
+    root.children = [veil.id];
+    veil.children = [text.id];
+
+    const measured = measureContrast(page, text, new TokenStore(doc.tokens), doc.activeMode)!;
+    const bg = parseHex(measured.background)!;
+    expect(bg.r).toBeGreaterThan(120);
+    expect(bg.r).toBeLessThan(136);
+    expect(measured.ratio).toBeLessThan(4.5);
+  });
+
+  it("按钮的正文颜色取 typography.color，不是它自己的填充", () => {
+    const doc = bareDoc("Button");
+    const page = doc.pages[0]!;
+    const root = page.nodes[page.rootId]!;
+    root.style.fills = [{ kind: "solid", color: "#ffffff" }];
+    const button = createNode({ type: "button", name: "CTA", text: "开始", parentId: root.id });
+    button.style.fills = [{ kind: "solid", color: "{color.primary}" }];
+    button.typography = { ...button.typography!, color: "{color.on-primary}" };
+    page.nodes[button.id] = button;
+    root.children = [button.id];
+
+    const measured = measureContrast(page, button, new TokenStore(doc.tokens), doc.activeMode)!;
+    expect(measured.foreground).toBe(tokenHex(doc, "color.on-primary"));
+    expect(measured.background).toBe(tokenHex(doc, "color.primary"));
+  });
+
+  it("渐变文字算不出前景色：返回 null，不报也不假装达标", () => {
+    const doc = bareDoc("Gradient");
+    const page = doc.pages[0]!;
+    const root = page.nodes[page.rootId]!;
+    root.style.fills = [{ kind: "solid", color: "#ffffff" }];
+    const text = createNode({ type: "text", name: "Shiny", text: "渐变字", parentId: root.id });
+    text.style.fills = [
+      { kind: "gradient", type: "linear", stops: [{ at: 0, color: "#ffffff" }, { at: 1, color: "#000000" }] },
+    ];
+    page.nodes[text.id] = text;
+    root.children = [text.id];
+
+    expect(measureContrast(page, text, new TokenStore(doc.tokens), doc.activeMode)).toBeNull();
+    expect(lintDesign(doc).some((i) => i.code === "low-contrast")).toBe(false);
+  });
+});
+
+describe("token bindings survive patching (§12)", () => {  it("a token edit is the single change point for every bound node", () => {
     const doc = createDocument("Bound");
     const page = doc.pages[0]!;
     const a = createNode({ type: "section", name: "A", parentId: page.rootId });

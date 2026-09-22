@@ -1,5 +1,5 @@
 import { and, desc, eq, isNull, sql as rawSql } from 'drizzle-orm';
-import { lintDesign, validateDocument, type DesignDocument } from '@nexus/design-model';
+import { analyzeHealth, type DesignDocument, type HealthReport } from '@nexus/design-model';
 import { getDb } from '../db/client';
 import { projects, publishedProjects, users } from '../db/schema';
 import { loadDocument } from './projects';
@@ -18,20 +18,12 @@ import { createSnapshot, readSnapshot } from './snapshots';
 
 export type Visibility = 'private' | 'unlisted' | 'public';
 
-export interface GateCheck {
-  name: string;
-  passed: boolean;
-  detail: string;
-}
-
-export interface GateReport {
-  passed: boolean;
-  checks: GateCheck[];
-  /** 挡下发布的具体问题（最多列 8 条，其余只报数量） */
-  blockers: string[];
-  /** §179 里我们还没实现成自动门禁的项：宁可写出来，也不假装全绿 */
-  notRun: string[];
-}
+/**
+ * §179 Quality Gate：门禁 = §178 健康度里参与 gating 的那几行。
+ * 两者共用 `analyzeHealth` 一份算法，所以 Studio 里实时显示的分和服务器挡下发布时
+ * 算的分是同一个数——分开算迟早对不上。
+ */
+export type GateReport = HealthReport;
 
 export interface Publication {
   id: string;
@@ -45,46 +37,9 @@ export interface Publication {
   publishedAt: string;
 }
 
-export const GATES_NOT_RUN = [
-  '构建与测试（Build / Tests）',
-  '性能预算 LCP / CLS / INP / bundle',
-  '键盘可达性与完整 ARIA 检查',
-  '视觉回归与 Design Critic',
-];
-
-function slugList(issues: { message: string }[]): string[] {
-  return issues.slice(0, 8).map((i) => i.message);
-}
-
 /** 发布门禁：只报告我们真能自动检查的项，其余列进 notRun（§159 不谎称已验证） */
 export function runPublishGate(document: DesignDocument): GateReport {
-  const structural = validateDocument(document);
-  const design = lintDesign(document);
-  const errors = [...structural, ...design].filter((i) => i.severity === 'error');
-  const warnings = [...structural, ...design].filter((i) => i.severity === 'warning');
-  const hasContent = document.pages.some((page) =>
-    Object.values(page.nodes).some((node) => node.id !== page.rootId && node.visible),
-  );
-
-  const checks: GateCheck[] = [
-    {
-      name: '设计模型自洽',
-      passed: structural.every((i) => i.severity !== 'error'),
-      detail: structural.length ? `${structural.length} 条问题（其中 error ${structural.filter((i) => i.severity === 'error').length}）` : '无错误',
-    },
-    {
-      name: '对比度 / 点击目标 / 间距',
-      passed: design.every((i) => i.severity !== 'error'),
-      detail: design.length ? `${design.length} 条（warning ${warnings.length}）` : '无发现',
-    },
-    { name: '有可发布的内容', passed: hasContent, detail: hasContent ? `${document.pages.length} 个页面` : '页面是空的' },
-  ];
-  return {
-    passed: checks.every((c) => c.passed),
-    checks,
-    blockers: errors.map((e) => e.message),
-    notRun: [...GATES_NOT_RUN],
-  };
+  return analyzeHealth(document);
 }
 
 function toPublication(row: typeof publishedProjects.$inferSelect): Publication {
@@ -140,7 +95,9 @@ export async function publishProject(
   const document = await loadDocument(projectId);
   if (!document) return null;
   const gate = runPublishGate(document);
-  if (!gate.passed) {
+  // 门禁只管"往外公开"的方向：切成 private 是把链接收回来的下架动作，
+  // 拿质量标准去挡住作者下架，等于逼着一个不合格的页面继续挂在公网上的反面
+  if (input.visibility !== 'private' && !gate.passed) {
     return { ok: false, reason: `门禁未通过：${gate.blockers[0] ?? '见检查清单'}`, gate };
   }
 

@@ -94,9 +94,10 @@ URL 指向的是**发布那一刻的快照**（`snapshot_id`）而不是工作�
 这条用第二个浏览器标签页实测过（改成 22px → 公开页仍是 66px → 重新发布才变）。
 private 的公开 URL 对所有人 404，包括作者本人（作者看自己那一版走 /studio），不靠"看身份放行"。
 guest 首次发布时补一个稳定 handle（`u<id 前 8 位>`），URL 才真的能分享。
-门禁只列真能自动跑的三项（模型自洽 / 对比度等 lint / 有内容），
+门禁当时只列真能自动跑的三项（模型自洽 / 对比度等 lint / 有内容），
 性能预算、键盘可达性、视觉回归明确列在"未运行"里（§179 要求全绿，§159 要求别假装绿——
 现在的做法是：能查的查并挡住，查不了的说出来，不把没查的写成通过）。
+这三项后来被 `analyzeHealth()` 的七行取代，口径不变（见 M2 的 §178/§179 进度记录）。
 `moderation` 仍然写 'pending' 并在面板上注明"审核管线尚未接入"。
 过程中修掉一处真实遮挡：顶栏下拉被右侧属性面板（同为 z-50）盖住，点不到——发布面板需要 z-[60]/[70]。
 验证：`npm test` 199（新增 7 条发布集成测试）、11 @smoke
@@ -238,6 +239,37 @@ key 只活在 ai-service 进程（符合 SECURITY.md「web 永不接触 key」�
   要真视觉模型才能给，随 line 43 的 provider 授权补齐。
 - [ ] 角色一致性生成（§39）
 
+**M2 进度记录（2026-09-23，项目健康 §178 / Quality Gate §179）**：`packages/design-model/src/health.ts`
+的 `analyzeHealth()` 是这一项唯一的算法出口：七行读数、0-100 分、`state = pass | fail | not-run`。
+Studio 左栏「健康」页签与 Publish 弹层显示它，服务端 `runPublishGate()` 也调它——
+屏幕上那分和服务器上挡发布的那份是同一个函数算的，不会各说一套（§16）。
+检查规则没有重造轮子：结构走 `validateDocument`，设计体检走 `lintDesign`，
+再补上只有设计模型就能静态算的性能预算（节点数/树深/位图字节/缺尺寸位图/动效数）
+和模型内可查的风险（疑似明文凭据、code 节点危险写法、http 明文外链）。
+
+三条不能商量的口径：
+1. **没测的不能是绿勾**——Tests 与 AI QA 至今没有本地可算信号，`score = null` + `not-run` + `gating = false`，
+   UI 显示"未评估"；把"没有发现"写成"通过"就是 §159 禁止的假绿；
+2. **分数来历要能读**——每行带 `basis`（这项到底检查了什么）与可展开的真实发现，
+   单行最多列 40 条、其余计进 `omitted` 并写明"另有 N 条（计分已计入）"，截的是显示不是问题；
+3. **门禁只挡往外公开的方向**——切成 `private` 是下架，门禁没过也放行，否则坏页面收不回来。
+
+顺带修掉一个真 bug（不是新增功能）：`lintDesign` 的对比度规则把未解析的 `"{color.text}"` 直接喂给
+`contrastRatio`，而它对解析失败返回 1:1 —— 于是**每一处正确使用 token 的文本都被误判成不达标**，
+同时按钮是拿自己的背景填充当文字颜色在比。新增 `measureContrast()`：先解析 token、沿祖先链合成真实背景、
+按钮/输入卡取 `typography.color`，任何一边算不出来就返回 null 不报（算不出却报个数是造假）。
+修好后暴露出内置起手页与四套概念语言自己就不达 WCAG（白字压 `#7c5cff` 只有 4.35:1、
+warm 方向奶油字压亮橙 3.35:1、cyber 的 light 模式是深底配深字 1.08:1）——
+按比值重算色板而不是下调 80 分线，`nodes.ts` / `concepts.ts` 的默认值因此变了（codegen/render/e2e 三处钉死旧色值的断言同步更新）。
+`applyConceptLanguage` 另修一处：语言只给 `value` 时上一套配色的 light/dark 会漏进来，现在收敛到该语言自己的值。
+
+验证：`npm test` 310（新增 `health.test.ts` 11 条：门槛两侧 82/76、error 一票否决、40 条截断与 omitted、
+凭据脱敏后报文里查不到原文、localhost 不算明文外链、断链不崩；`measureContrast` 5 条：token 解析、
+祖先合成、半透明先合成、按钮取正文色、渐变返回 null）、17 条 @smoke 全绿；
+浏览器实测：起手页七行全过 → 把 `color.text/on-primary` 压成暗灰 → Accessibility 掉到 76 并列出
+"Headline 2.06:1（#454a58 on #12151d）" → 点发布被挡（`门禁未通过：Accessibility 76 分，低于门槛 80`）
+→ 同一份文档切私有放行、报告照旧列失败项。取舍见 `docs/adr/0005-health-score-and-gate.md`。
+
 ## M3 — 世界 / 角色 / RAG（§183）
 - [ ] World Builder（Lore/History/Geography/Factions/Characters/Creatures/Items/Quests/Story）
 - [ ] World Graph 可视化 + 可拖拽节点（§45）
@@ -276,7 +308,9 @@ key 只活在 ai-service 进程（符合 SECURITY.md「web 永不接触 key」�
 - Context Engine / Code Index / Design Index / Project Graph（§66-71）
 - Observability / Evaluation / Visual Benchmark（§84-86/156）
 - 沙箱预览与生成代码隔离执行（§81-83）
-- Design Critic + Visual QA + 无障碍/性能门禁（§32-33/90-91/178-179）
+- Design Critic + Visual QA + 无障碍/性能门禁（§32-33/90-91/178-179）—
+  门禁与七行健康度已落地（`analyzeHealth`，见 M2 进度记录与 `docs/adr/0005-…`）；
+  Design Critic 的**自动修复建议**仍只有 lint 的 `suggestion` 字段，没有对话式评审。
 
 ## 当前阻塞项
 - `[!]` 真实 AI provider key（文本/图像/视频）— 用户提供前，全部生成类能力以 DEMO MODE 交付，UI 明确标注，不伪装真实结果。
@@ -321,6 +355,22 @@ key 只活在 ai-service 进程（符合 SECURITY.md「web 永不接触 key」�
 - 起手页的圆角、间距是写死在节点上的数字（`cornerRadius: 10`、`padding.top: 64`），没绑到 `radius.*` /
   `space.*` token。后果具体可见：§29 的视觉语言只能换颜色与字体，"换一套圆角"这种旋钮做不了——
   做不了就别在 UI 上声称能做。等上面那条 token 类型债一起修。
+- 项目健康与 Quality Gate 已落地（任务 #23，§178/§179，见 `docs/adr/0005-health-score-and-gate.md`）。
+  它"没做到"的部分是刻意留下的，逐条说清，免得下一个人把它当成全绿：
+  1. **Performance 行是静态预算**（节点数、树深、位图字节、缺尺寸图片、动效数），不是 LCP/CLS 实测。
+     `basis` 里明写了这句。要真测得在预览浏览器里打点，再把结果作为 options 传进 `analyzeHealth`。
+  2. **Tests / AI QA 两行会一直是"未评估"**。前者需要项目自己的测试跑起来（平台自身的测试对用户的页面没有信号），
+     后者需要真实模型评审内容——两者都不是"再写点代码就能补上"的空位，而是需要新能力。
+     它们留在表里、以第三种状态出现，正是 §178 的价值：让人看见哪里没被检查过。
+  3. **Security 行是模型内的正则级检查**（疑似明文凭据、code 节点危险写法、http 明文外链），
+     不是漏洞扫描，也不覆盖生成代码在沙箱内的行为（那是 §81-83 的隔离执行线）。
+     凭据类发现只报节点与字段路径，绝不把命中的内容抄进报告。
+  4. **阈值是工程判断不是标准**：80/70/60 只写在 `HEALTH_THRESHOLDS` 一处，Build/Security 按"有无 error"判。
+     改线必须同时改 `health.test.ts` 里门槛两侧（82 通过 / 76 挡住）的断言。
+  5. 健康度按整份文档算（每页解析一次排版），Studio 里每次改动都重算。8 节点的起手页无感，
+     几百节点之后需要增量或缓存——`analyzeHealth` 已经接受外部传入 `layouts`，就是为了那一天。
+  6. 几何类发现（越出画布、零尺寸、点击目标）依赖该页能排版成功；结构坏掉的页面会跳过排版，
+     问题由 Build 行负责报出来，不会静默消失。
 - 代码投影（`codegen.ts`）与画布一样只覆盖几何/样式/文字：`typography.runs`、`animation`、`interactions`、
   `states`、`bindings` 都还没实现——渲染层也没有，所以两边一致地缺失，不是生成器单独偷懒。
 - 生成的页面组件之间没有共享组件抽取：`component`/`instance` 节点会被展开成内联子树，
