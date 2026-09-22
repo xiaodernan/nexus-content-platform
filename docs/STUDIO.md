@@ -39,6 +39,10 @@ Pages · Layers · Components · Assets · Variables · Design System · AI Agen
   与画布那份设计文档是两份真值：九类条目可增删改，失焦即写库。
   没接真 provider 之前只有「创建世界骨架（模板）」——九类各一条空条目，正文留空；
   AI 生成世界内容属于假生成，这里不做（§159）。世界编辑不进画布的 Ctrl+Z 栈，面板脚注明说
+- Characters 面板（§46）编辑角色档案：名字 / 外观 / 性格 / 背景 / 目标 / 恐惧 / 关系 / 声音 / 视觉标识。
+  建档只给名字，其余留空（AI 生成设定要真 provider，不塞假性格）；关系从世界条目的下拉里选目标，不手抄 id。
+  保存是显式的：角色编辑不进画布的 Ctrl+Z 栈，自动保存会把没写完的档案写进库而撤销救不回来。
+  档案里没有 memory 字段——记忆是 §48 的独立存储，放个文本框就会造出第二个真值
 - History 列出 snapshot / branch / AI 事务，可 View / Compare / Restore / Duplicate / Branch（§27）
 - Health 页签是 §178 那七行的常驻读数：改一下文档就重算，点某行展开它的真实发现与"这项检查了什么"
   （Publish 弹层里是同一个组件、同一个函数，见「项目健康」一节）

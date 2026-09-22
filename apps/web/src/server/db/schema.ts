@@ -487,11 +487,13 @@ export const characters = pgTable(
       .notNull()
       .references(() => users.id, { onDelete: 'restrict' }),
     name: text('name').notNull(),
-    /** 外观 / 性格 / 目标 / 恐惧 / 关系（§46） */
+    /**
+     * §46 角色档案（@nexus/world-model 的 CharacterProfile 序列化）。
+     * 原来 profile / visual / voice 三列各装一个 jsonb 杂物袋、谁也没读过——
+     * 档案现在有一份契约，合成一列存（迁移 0003），读写都过 zod。
+     * 名字单独留一列是为了列表与搜索不必解析 JSONB。
+     */
     profile: jsonb('profile'),
-    /** 视觉一致性锚点：参考图 + 特征描述（§39） */
-    visual: jsonb('visual'),
-    voice: jsonb('voice'),
     createdAt: now(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
   },

@@ -1,5 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import {
+  CharacterCreateRequestSchema,
+  CharacterSchema,
+  CharacterUpdateRequestSchema,
   WorldDocumentSchema,
   WorldKindSchema,
   WorldSaveRequestSchema,
@@ -48,5 +51,33 @@ describe('世界文档契约（§44）', () => {
       document: { ...world, nodes: [{ ...world.nodes[0]!, body: 'x'.repeat(20_001) }] },
     }).success).toBe(false);
     expect(WorldSaveRequestSchema.safeParse({ document: { ...world, name: '' } }).success).toBe(false);
+  });
+});
+
+describe('角色档案契约（§46）', () => {
+  it('模型造的档案过得了契约；契约不认的目标类型也不放过', async () => {
+    const { createCharacter, addRelationship, withProfile } = await import('@nexus/world-model');
+    let c = createCharacter({ name: '守夜人', projectId: 'p-1', worldId: null });
+    c = withProfile(c, { goals: ['看到下一次日出'], fears: ['失去更多名字'] });
+    c = addRelationship(c, { target: 'wn-1', kind: '效忠' });
+    expect(CharacterSchema.safeParse(c).success).toBe(true);
+
+    const badGoals = { ...c, profile: { ...c.profile, goals: ['   '] } };
+    expect(CharacterSchema.safeParse(badGoals).success).toBe(false);
+    const tooLong = { ...c, profile: { ...c.profile, backstory: 'x'.repeat(20_001) } };
+    expect(CharacterSchema.safeParse(tooLong).success).toBe(false);
+  });
+
+  it('建档请求只收名字与世界 id，不收"生成的性格"', async () => {
+    expect(CharacterCreateRequestSchema.safeParse({ name: '拾荒王' }).success).toBe(true);
+    expect(CharacterCreateRequestSchema.safeParse({ name: '  ' }).success).toBe(false);
+    expect(CharacterCreateRequestSchema.safeParse({ name: '拾荒王', personality: '他其实很温柔' }).success).toBe(true);
+    // 多给的字段被剥掉：请求体里没有塞档案的口子，档案只能建完之后逐份改
+    const parsed = CharacterCreateRequestSchema.parse({ name: '拾荒王', personality: '他其实很温柔' });
+    expect(Object.keys(parsed)).toEqual(['name']);
+  });
+
+  it('更新请求必须带整份 profile', () => {
+    expect(CharacterUpdateRequestSchema.safeParse({ profile: { name: 'x' } }).success).toBe(false);
   });
 });

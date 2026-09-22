@@ -39,11 +39,14 @@ export async function loadWorld(projectId: string): Promise<WorldResult | null> 
         .join('；')}`,
     };
   }
-  const structural = validateWorld(parsed.data as WorldDocument);
+  const stored = parsed.data as WorldDocument;
+  const structural = validateWorld(stored);
   if (structural.length) {
     return { ok: false, reason: `库里的世界文档结构不完整：${structural[0]!.message}` };
   }
-  return { ok: true, document: parsed.data as WorldDocument };
+  // 一份世界只有一个 id：行的 uuid。文档自带的那个字符串只是建档时的临时值，
+  // 读出来就换掉，否则角色挂的 worldId 与世界文档的 id 会变成两个说法。
+  return { ok: true, document: { ...stored, id: row.id } };
 }
 
 /**
@@ -97,17 +100,20 @@ export async function saveWorld(
       .where(eq(worlds.id, existing.id))
       .returning({ id: worlds.id });
     if (!row) return { ok: false, reason: '保存世界文档时没写到任何行' };
-    return { ok: true, document: stamped };
+    return { ok: true, document: { ...stamped, id: row.id } };
   }
 
-  await db.insert(worlds).values({
-    projectId,
-    ownerId,
-    name: stamped.name,
-    summary: stamped.summary,
-    document: stamped,
-  });
-  return { ok: true, document: stamped };
+  const [inserted] = await db
+    .insert(worlds)
+    .values({
+      projectId,
+      ownerId,
+      name: stamped.name,
+      summary: stamped.summary,
+      document: stamped,
+    })
+    .returning({ id: worlds.id });
+  return { ok: true, document: { ...stamped, id: inserted!.id } };
 }
 
 /** 项目被删时 worlds 靠外键级联；这里只给测试与运维一个明确的断言入口 */

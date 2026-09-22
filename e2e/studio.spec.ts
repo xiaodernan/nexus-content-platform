@@ -889,3 +889,54 @@ test('@smoke 世界图：连线、拖拽、刷新后关系与位置都还在（�
   await expect(page.locator('[data-graph-edge]')).toHaveCount(0);
   await expect(page.locator('[data-graph-count]')).toContainText('0 条关系');
 });
+
+/**
+ * §46 Character System：建档只给名字，其余由用户填；关系指向世界条目。
+ * 断言 reload 之后仍是库里那份，不是内存里的草稿。
+ */
+test('@smoke 角色：建档、填档案、连一条世界关系、刷新仍在（§46）', async ({ page }) => {
+  test.setTimeout(180_000);
+  await createProject(page, `角色 ${Date.now().toString(36)}`);
+
+  // 先有世界，关系才有可指向的条目
+  await page.click('[data-panel-tab="world"]');
+  await expect(page.locator('[data-world-empty]')).toBeVisible({ timeout: 40_000 });
+  await page.click('[data-world-create]');
+  await expect(page.locator('[data-world-node]')).toHaveCount(9);
+  await expect(page.locator('[data-world-pending]')).toHaveAttribute('data-world-pending', 'false', { timeout: 20_000 });
+
+  await page.click('[data-panel-tab="characters"]');
+  await expect(page.locator('[data-character-empty]')).toBeVisible();
+  await page.fill('[data-character-new-name]', '守夜人');
+  await page.click('[data-character-create]');
+  await expect(page.locator('[data-character-count]')).toHaveText('1');
+  // 建档不许替用户编性格：除了名字，其它字段都是空的
+  await expect(page.locator('[data-character-field="personality"]')).toHaveValue('');
+  await expect(page.locator('[data-character-save]')).toHaveText('没有改动');
+
+  await page.fill('[data-character-field="personality"]', '话少，但记得每一条巡逻路。');
+  await page.fill('[data-character-list="goals"]', '看到下一次日出\n把名字还给她');
+  await page.fill('[data-character-voice="register"]', '低而平');
+  await page.fill('[data-character-visual="palette"]', '#1b1205 #f5b451');
+  await page.fill('[data-character-relationship-kind]', '效忠');
+  await page.locator('[data-character-relationship-target]').selectOption({ index: 1 });
+  await expect(page.locator('[data-character-relationship]')).toHaveCount(1);
+  await expect(page.locator('[data-character-save]')).toHaveText('保存档案');
+  await page.click('[data-character-save]');
+  await expect(page.locator('[data-character-save]')).toHaveText('没有改动', { timeout: 20_000 });
+  await expect(page.locator('[data-character-issues]')).toHaveCount(0);
+
+  await page.reload();
+  await expect(page.locator('[data-canvas-frame]')).toBeVisible({ timeout: 30_000 });
+  await page.click('[data-panel-tab="characters"]');
+  await expect(page.locator('[data-character-tab]')).toHaveCount(1);
+  await page.click('[data-character-tab] >> nth=0');
+  await expect(page.locator('[data-character-field="personality"]')).toHaveValue('话少，但记得每一条巡逻路。');
+  await expect(page.locator('[data-character-list="goals"]')).toHaveValue('看到下一次日出\n把名字还给她');
+  await expect(page.locator('[data-character-relationship]')).toHaveCount(1);
+  await expect(page.locator('[data-character-relationship] >> nth=0')).toContainText('效忠');
+
+  await page.click('[data-character-delete]');
+  await expect(page.locator('[data-character-count]')).toHaveText('0');
+  await expect(page.locator('[data-character-empty]')).toBeVisible();
+});

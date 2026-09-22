@@ -388,4 +388,55 @@ export type WorldDocumentPayload = z.infer<typeof WorldDocumentSchema>;
 export const WorldSaveRequestSchema = z.object({ document: WorldDocumentSchema });
 export type WorldSaveRequest = z.infer<typeof WorldSaveRequestSchema>;
 
+/**
+ * §46 角色档案的跨端形状。权威在 @nexus/world-model，这里是传输层。
+ * 没有 memory 字段不是漏了：§48 的记忆是独立存储，档案里塞一个"记忆"文本框
+ * 就会造出第二个记忆真值（两边迟早对不上）。
+ */
+export const CharacterRelationshipSchema = z.object({
+  target: z.string().trim().max(128),
+  kind: z.string().trim().max(120),
+  note: z.string().max(2000),
+});
+
+export const CharacterProfileSchema = z.object({
+  name: z.string().trim().max(120),
+  appearance: z.string().max(8000),
+  personality: z.string().max(8000),
+  backstory: z.string().max(20_000),
+  goals: z.array(z.string().trim().min(1).max(500)).max(100),
+  fears: z.array(z.string().trim().min(1).max(500)).max(100),
+  relationships: z.array(CharacterRelationshipSchema).max(200),
+  voice: z.object({
+    register: z.string().max(500),
+    pace: z.string().max(500),
+    catchphrases: z.array(z.string().trim().min(1).max(500)).max(100),
+    notes: z.string().max(8000),
+  }),
+  visualIdentity: z.object({
+    palette: z.array(z.string().max(32)).max(24),
+    silhouette: z.string().max(2000),
+    motifs: z.array(z.string().trim().min(1).max(500)).max(100),
+    referenceAssetId: z.string().max(128).nullable(),
+  }),
+});
+
+export const CharacterSchema = z.object({
+  id: z.string().min(1).max(128),
+  projectId: z.string().max(128).nullable(),
+  worldId: z.string().max(128).nullable(),
+  profile: CharacterProfileSchema,
+  createdAt: z.string().min(1),
+  updatedAt: z.string().min(1),
+});
+export type CharacterPayload = z.infer<typeof CharacterSchema>;
+
+/** 建档只给名字，其余字段留空：AI 生成角色设定要真 provider，这里不做假生成（§159） */
+export const CharacterCreateRequestSchema = z.object({
+  name: z.string().trim().min(1).max(120),
+  worldId: z.string().max(128).nullable().optional(),
+});
+
+export const CharacterUpdateRequestSchema = z.object({ profile: CharacterProfileSchema });
+
 export { NodeTypeEnum as DesignNodeType };
