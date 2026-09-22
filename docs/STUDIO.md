@@ -71,3 +71,16 @@ document auto-saves to `localStorage` (debounced) and rehydrates on load — see
 how it later folds into the hosted store of ADR 0012.
 
 Status: running in-browser, no backend required. See KNOWN_ISSUES for the honest scope.
+
+## Agent dock (§23/§25/§28, ADR 0016 amendment 10)
+The right rail hosts `AgentPanel`: type a goal, press **Plan**, and the real
+`@nexus/agent-runtime` pipeline (`runRolePipeline`: researcher session → structured
+`HandoffRecord` → memory-first editor run, scored by the deterministic rubric) runs
+in-browser over a *corpus view* of the current page (one pseudo-file per layer —
+`lib/agentDock.ts`). The panel then shows exactly what the pipeline found
+(target layer, research path, pipeline status, score, op count) and waits on **you**:
+**Approve** dispatches the proposal as one reversible `OpBatch` through the normal op path
+(history, AI-diff, undo all behave as for any edit); **Deny** changes nothing. Every
+decision appends a line to the `nexus.agentLedger.v1` localStorage audit log that survives
+reload. Everything is DEMO MODE-labeled: the agent proposes, the model stays canonical
+(§8), and no document mutation happens without the human checkpoint (§28).

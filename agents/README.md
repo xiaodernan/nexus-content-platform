@@ -33,7 +33,11 @@
   weighted deterministic rubric marks over RunOutcome data + JSONL persistence).
   v9 adds `pipeline.ts` — §25 as durable data: a researcher session produces a structured
   HandoffRecord the host persists into scoped memory (optionally to JSON), and an editor
-  run completes memory-first, even in a separate process (`pipeline-proof.mjs`).
+  run completes memory-first, even in a separate process (`pipeline-proof.mjs`). v10 lands
+  that pipeline **inside the Studio**: `apps/studio/src/lib/agentDock.ts` + `AgentPanel`
+  run the same `runRolePipeline` over a per-layer corpus view, and proposals only reach the
+  Design Model when the user clicks Approve — §28 as product UI, decisions journaled to a
+  localStorage ledger (ADR 0016 amendment 10).
   Proof: `agents/runtime/test` (vitest 91/91) plus the ten headless proofs in
   `docs/evidence/agents/` (agent, code-index, memory, durability, index-store, provider,
   recall, changes, roles, pipeline).

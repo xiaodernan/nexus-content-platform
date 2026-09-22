@@ -10,6 +10,7 @@ import PropertiesPanel from './PropertiesPanel';
 import DesignSystemPanel from './DesignSystemPanel';
 import ComponentsPanel from './ComponentsPanel';
 import HistoryPanel from './HistoryPanel';
+import AgentPanel from './AgentPanel';
 import PromptBar from './PromptBar';
 import PreviewOverlay from './PreviewOverlay';
 import { useStudio } from '@/lib/store';
@@ -83,6 +84,9 @@ export default function Studio() {
         <aside className="panel" style={{ width: 300, borderRight: 'none', borderBottom: 'none', borderTop: 'none', display: 'flex', flexDirection: 'column', minHeight: 0 }}>
           <div style={{ flex: '1 1 55%', minHeight: 0, overflow: 'auto' }}>
             <PropertiesPanel />
+          </div>
+          <div style={{ borderTop: '1px solid var(--nexus-border)' }}>
+            <AgentPanel />
           </div>
           <div style={{ flex: '1 1 45%', minHeight: 0, overflow: 'auto', borderTop: '1px solid var(--nexus-border)' }}>
             <HistoryPanel />

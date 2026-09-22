@@ -220,3 +220,26 @@ two fresh runs, checkpoint denial leaving the workspace byte-identical).
   This is multi-agent cooperation as durable data, still honestly demo-mode machinery.
 - **Tests:** 91/91 (+5 pipeline cases: happy path, denied checkpoint, durable reload,
   missing-capability reason, determinism).
+
+## Amendment 10 — v10: Studio Agent dock — §28 human checkpoint in-product, 2026-09
+- **What landed:** `apps/studio/src/lib/agentDock.ts` (pure) + `AgentPanel.tsx` (right rail).
+  The Design Model is projected into a deterministic *corpus view* (one pseudo-file per
+  layer, text content included); `planAgentRun` runs the REAL v9 `runRolePipeline`
+  (researcher → HandoffRecord → editor, memory-first) over that view inside the browser;
+  the proposal surfaces as an `OpBatch` preview with **Approve / Deny** — the user is the
+  §28 Human Checkpoint. Approve dispatches through the existing reversible op path
+  (undo reverts it; history/diff panels show it normally); Deny changes nothing. Either
+  decision appends a JSONL line to the `nexus.agentLedger.v1` KvStore entry — the audit
+  trail persists across reloads.
+- **Honesty (§60/§8):** every card carries the DEMO MODE badge and states its research
+  path + pipeline status + score; the dock only *proposes* — the Design Model remains the
+  single source of truth, and the pipeline runs on a copy of layer data, never mutating
+  the document before approval. The machine checkpoint inside the pipeline is explicitly
+  labeled as such in code; the human gate is the panel.
+- **Proven in-browser** (dev server, hidden-canvas environment): compose → Plan (proposal
+  "proposed for title · research: fs.index → … · score 1.00 · 1 op(s), reversible") →
+  Approve → banner layer appears + ledger line `{approved:true}` → toolbar undo removes
+  it while the ledger keeps the decision. Console clean.
+- **Coupling:** studio now depends on `@nexus/agent-runtime` (transpilePackages); no
+  runtime package changes were needed — the browser bundle proves the same modules the
+  CLI proofs exercise. Tests 75/75 studio vitest (+4 `agentDock.test.ts`).
