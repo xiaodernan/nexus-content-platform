@@ -12,10 +12,12 @@ import {
   readAgentLedger,
   studioMemoryForget,
   studioMemoryOverview,
+  testChipsFor,
   type AgentPlan,
   type LedgerEntry,
   type MemoryOverview,
   type RepairPlan,
+  type TestChip,
 } from '@/lib/agentDock';
 import type { ChainStageHandoff, QaReport } from '@nexus/agent-runtime';
 import { createDomDriver, runUiTask } from '@/lib/uiRun';
@@ -23,6 +25,25 @@ import { createDomDriver, runUiTask } from '@/lib/uiRun';
 type Phase = 'idle' | 'planning' | 'awaiting' | 'done';
 
 const label: React.CSSProperties = { fontSize: 11, color: 'var(--nexus-muted)' };
+
+/** v33: verification chips — every §63 report on a RunOutcome, stated by its engine. */
+function TestChips({ chips }: { chips: TestChip[] }) {
+  if (chips.length === 0) return <div style={label}>verified by: (no test.run in this host)</div>;
+  return (
+    <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }} data-testid="agent-test-chips">
+      {chips.map((c, i) => (
+        <span
+          key={`${c.engine}-${i}`}
+          data-testid="agent-test-chip"
+          title={c.firstFailure ?? 'all predicates passed'}
+          style={{ fontSize: 10, padding: '1px 6px', borderRadius: 8, border: '1px solid var(--nexus-border)', color: c.ok ? '#7dd97d' : '#ff7a7a' }}
+        >
+          {c.ok ? '✓' : '✗'} {c.engine} {c.passed}/{c.total}
+        </span>
+      ))}
+    </div>
+  );
+}
 
 export default function AgentPanel() {
   const doc = useStudio((s) => s.doc);
@@ -43,6 +64,7 @@ export default function AgentPanel() {
   const [entries, setEntries] = useState<LedgerEntry[]>([]);
   const [uiAsk, setUiAsk] = useState<{ tool: string; label: string; detail: string } | null>(null);
   const [uiLog, setUiLog] = useState<string[]>([]);
+  const [uiReports, setUiReports] = useState<TestChip[]>([]);
   const [uiBusy, setUiBusy] = useState(false);
   const decider = useRef<(v: boolean) => void>(() => {});
 
@@ -60,6 +82,7 @@ export default function AgentPanel() {
     setUiAsk(null);
     setUiBusy(false);
     setUiLog(actions);
+    setUiReports(testChipsFor(outcome));
     setNote(outcome.status === 'completed' ? 'Agent UI task finished — every action passed your checkpoint.' : `UI task stopped: ${outcome.status}`);
   };
 
@@ -180,6 +203,7 @@ export default function AgentPanel() {
         </div>
       )}
       {uiLog.length > 0 && <div style={label}>gated actions: {uiLog.join(' → ')}</div>}
+      {uiReports.length > 0 && <TestChips chips={uiReports} />}
       <label style={{ ...label, display: 'flex', gap: 6, alignItems: 'center', cursor: 'pointer' }}>
         <input type="checkbox" checked={chainMode} onChange={(e) => setChainMode(e.target.checked)} />
         role chain (researcher → designer → qa → editor, §24)
@@ -194,6 +218,7 @@ export default function AgentPanel() {
           <div style={label}>
             pipeline status {plan.outcome.status} · score {plan.evaluation.score.toFixed(2)} · {plan.batch.ops.length} op(s), reversible
           </div>
+          <TestChips chips={testChipsFor(plan.outcome)} />
           {chainMode && handoffList.length > 0 && (
             <div style={{ borderTop: '1px solid var(--nexus-border)', paddingTop: 4, display: 'flex', flexDirection: 'column', gap: 2 }}>
               <div style={label}>stage handoffs (the designer brief stays in the sandbox corpus — only the banner is proposed to your document):</div>
@@ -256,7 +281,7 @@ export default function AgentPanel() {
           {entries.map((e, i) => (
             <div key={i} style={{ ...label, display: 'flex', gap: 6 }}>
               <span style={{ color: e.approved ? '#7dd97d' : '#ff7a7a' }}>{e.approved ? 'approved' : 'denied'}</span>
-              <span style={{ flex: 1 }}>{e.goal.slice(0, 26)}{e.qa ? ` · qa:${e.qa}` : ''}{e.repairs !== undefined ? ` · fix×${e.repairs}` : ''}</span>
+              <span style={{ flex: 1 }}>{e.goal.slice(0, 26)}{e.qa ? ` · qa:${e.qa}` : ''}{e.repairs !== undefined ? ` · fix×${e.repairs}` : ''}{e.tests ? ` · ${e.tests}` : ''}</span>
             </div>
           ))}
         </div>

@@ -623,3 +623,26 @@ two fresh runs, checkpoint denial leaving the workspace byte-identical).
 - Runtime 207/207 UNCHANGED (nothing in agent-runtime was touched), @nexus/exec-host
   41/41 (+17 gitTools cases), studio 96/96 untouched; twenty-third proof added
   (`git-aware-proof.mjs`, incl. real read-only status+diff-stat demos); twenty-three proofs.
+
+## Amendment 33 — v33: the dock makes WHO-VERIFIED visible (test-report chips), 2026-09
+- **Verification is data, not vibes:** every `RunOutcome` already journals
+  `testReports` (v28), but the Studio dock dropped them on the floor. `testChipsFor`
+  (pure, in `agentDock.ts`) maps each report to a chip — `<engine> passed/total`,
+  green/red by verdict, first failure in the tooltip — so the panel states WHICH engine
+  proved the run instead of the user trusting a bare "status completed".
+- **Annotation-land only, stated plainly (§60):** the dock hosts register only the
+  in-process `annotation-landed` predicate — the chips say exactly that
+  (`in-process-predicates 1/1 ok`), and a run whose host registered no tests shows
+  "(no test.run in this host)" rather than an empty row that could be misread as
+  "verified". Real suite runs stay behind the exec sandbox (`execTestRunner`, am. 31);
+  no `child_process` crossed into the browser.
+- **The ledger learns the verdict too:** `ledgerLine` gains an optional `tests` field
+  taken from the LAST report of the plan's outcome (engine + tally + ok/FAIL); plans
+  with no reports add no field, and `readAgentLedger`'s only required keys stay
+  `goal`+`approved`, so v10-era lines still parse.
+- Runtime 207/207 and @nexus/exec-host 41/41 UNCHANGED (no agents-package edits),
+  studio 99/99 (+3 agentDock cases: pure chip mapping incl. a failing report, a real
+  pipeline plan yielding exactly one honest ok chip, the ledger `tests` field present
+  and absent); chips are plain React renders of the tested selector — the hidden-
+  viewport harness caveat still applies to pixel claims. Twenty-three proofs re-run
+  green (25 scripts incl. the two studio evidence scripts).

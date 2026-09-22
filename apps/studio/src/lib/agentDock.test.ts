@@ -24,6 +24,7 @@ import {
   readAgentLedger,
   studioMemoryForget,
   studioMemoryOverview,
+  testChipsFor,
   type AgentPlan,
 } from './agentDock';
 import { memoryStore } from './storage';
@@ -121,6 +122,47 @@ describe('agentDock pipeline (§23/§25/§28)', () => {
     const last = reports![reports!.length - 1]!;
     expect(last).toMatchObject({ engine: 'in-process-predicates', ok: true, total: 1, passed: 1 });
     expect(last.failures).toEqual([]);
+  });
+
+  it('v33: testChipsFor states WHO verified a run — passing AND failing reports become chips with named engines', () => {
+    const outcome = {
+      status: 'completed',
+      testReports: [
+        { engine: 'in-process-predicates', ok: true, total: 2, passed: 2, detail: '', failures: [] },
+        { engine: 'exec-host:node check.js', ok: false, total: 1, passed: 0, detail: '', failures: [{ name: 'exit-zero', message: 'exit 1 · boom' }] },
+      ],
+    } as never;
+    expect(testChipsFor(outcome)).toEqual([
+      { engine: 'in-process-predicates', ok: true, passed: 2, total: 2, firstFailure: null },
+      { engine: 'exec-host:node check.js', ok: false, passed: 0, total: 1, firstFailure: 'exit-zero: exit 1 · boom' },
+    ]);
+    expect(testChipsFor({ status: 'completed' } as never)).toEqual([]); // hosts without test.run say so, they don't fake chips
+  });
+
+  it('v33: a real pipeline plan yields exactly one honest ok chip', async () => {
+    const { doc, pageId } = seededDoc();
+    const res = await planAgentRun(doc, pageId, 'recolor the welcome hero text');
+    if (!('handoff' in res)) throw new Error('plan unexpectedly rejected');
+    const chips = testChipsFor(res.outcome);
+    expect(chips).toEqual([{ engine: 'in-process-predicates', ok: true, passed: 1, total: 1, firstFailure: null }]);
+  });
+
+  it('v33: the ledger records the verification verdict beside the decision; report-less plans add no field', () => {
+    const { pageId } = seededDoc();
+    const base = {
+      goal: 'g',
+      pageId,
+      handoff: { from: 'researcher', to: 'editor', goal: 'g', via: 'fs.index', refs: [{ path: 'n1' }], runId: 'r' },
+      targetId: 'n1',
+      targetName: 'N1',
+      evaluation: { score: 1 },
+      batch: { id: 'b', ops: [], timestamp: 0 },
+    };
+    const withReport = { ...base, outcome: { status: 'completed', testReports: [{ engine: 'in-process-predicates', ok: true, total: 1, passed: 1, detail: '', failures: [] }] } } as unknown as AgentPlan;
+    const entry = JSON.parse(ledgerLine(withReport, true));
+    expect(entry.tests).toBe('in-process-predicates 1/1 ok');
+    const without = JSON.parse(ledgerLine({ ...base, outcome: { status: 'completed' } } as unknown as AgentPlan, false, 'denied'));
+    expect('tests' in without).toBe(false);
   });
 
   it('ledger lines round-trip through the KvStore seam and count malformed', () => {

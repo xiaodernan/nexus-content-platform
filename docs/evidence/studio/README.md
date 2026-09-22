@@ -13,8 +13,8 @@ npm run build lint typecheck test     # via turbo: build 4/4 · lint 3/3 · type
 | ------------------ | ------ |
 | @nexus/design-model| 28/28 vitest (`design-model` 16 incl. 3 rotated-hitTest + 2 rigid-geometry cases + `instances` 12 incl. x/y delta + absolute rotation overrides + rigid rotation bake), tsc clean |
 | @nexus/ai-providers| 7/7 vitest, tsc clean |
-| @nexus/agent-runtime| 207/207 + @nexus/exec-host 41/41 vitest (M2 v0–v32, ADR 0016 am. 1–32) · tsc clean — see `docs/evidence/agents/README.md` |
-| @nexus/studio      | 96/96 vitest (`snap` `persist` `align` `store-variants` 18 `thumbnail` `rotate` 14 `render` `minimap` `agentDock` 14 `webfs` 3 `uiRun` 8) · tsc `--noEmit` clean · eslint `--max-warnings=0` clean · `next build` ✓ (4/4 static pages) |
+| @nexus/agent-runtime| 207/207 + @nexus/exec-host 41/41 vitest (M2 v0–v33, ADR 0016 am. 1–33; am. 33 is dock-side surfacing only — both packages untouched) · tsc clean — see `docs/evidence/agents/README.md` |
+| @nexus/studio      | 99/99 vitest (`snap` `persist` `align` `store-variants` 18 `thumbnail` `rotate` 14 `render` `minimap` `agentDock` 17 `webfs` 3 `uiRun` 8) · tsc `--noEmit` clean · eslint `--max-warnings=0` clean · `next build` ✓ (4/4 static pages) |
 
 ## Headless pipeline proof
 
@@ -358,3 +358,16 @@ in-process, exec-checkpoint-gated as before). New studio assertions: each run's
 masquerade as green (§60 — this is NOT a real test-suite run; that stays behind the
 ADR 0013 exec sandbox). Runtime 186/186 (+15), studio 96/96 (+2); `testrunner-proof.mjs`
 added — nineteen proofs.
+
+## Verification chips — who proved this run? (M2 v33, headless)
+
+`RunOutcome.testReports` (journaled since v28) was invisible in the dock; v33 adds the
+pure selector `testChipsFor` and a `TestChips` row. The awaiting card and the UI-run area
+now show e.g. `✓ in-process-predicates 1/1` (engine-named, green/red by verdict, first
+failure in the tooltip), and a host that registered no tests states
+`(no test.run in this host)` instead of an ambiguous empty row — chips say WHO verified,
+never pretend to be more (§60: annotation-land predicates only; real suite runs stay
+behind the exec sandbox, no `child_process` in the browser). The §28 ledger gains an
+optional `tests` field (`<engine> passed/total ok|FAIL` from the last report);
+report-less plans add no field and old ledger lines still parse. Studio 99/99 (+3
+agentDock cases), runtime/exec-host untouched.

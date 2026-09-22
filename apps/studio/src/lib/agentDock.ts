@@ -81,6 +81,31 @@ const ANNOTATION_LANDED: TestPredicate = {
 };
 const dockTestRunner = (ws: InMemoryWorkspace) => predicateRunner('in-process-predicates', [ANNOTATION_LANDED], () => ws.snapshot());
 
+/**
+ * v33: WHAT VERIFIED each run, made visible. The §63 reports already journal on the
+ * RunOutcome (v28) — the dock renders them as chips so a green banner can always be
+ * traced to the engine that proved it, and a failure names itself. Pure selector:
+ * no state, no I/O, trivially testable.
+ */
+export interface TestChip {
+  engine: string;
+  ok: boolean;
+  passed: number;
+  total: number;
+  /** `name: message` of the first failure, or null when the report passed. */
+  firstFailure: string | null;
+}
+
+export function testChipsFor(outcome: RunOutcome): TestChip[] {
+  return (outcome.testReports ?? []).map((r) => ({
+    engine: r.engine,
+    ok: r.ok,
+    passed: r.passed,
+    total: r.total,
+    firstFailure: r.failures[0] ? `${r.failures[0].name}: ${r.failures[0].message}` : null,
+  }));
+}
+
 const TEXT_STYLE: TextStyle = {
   fontFamilyToken: 'font.family.body',
   sizeToken: 'font.size.base',
@@ -301,10 +326,14 @@ export interface LedgerEntry {
   reason?: string;
   qa?: 'ok' | 'flagged';
   repairs?: number;
+  /** v33: the LAST §63 verification report as stated data — `engine passed/total ok|fail`. */
+  tests?: string;
   at: number;
 }
 
 export function ledgerLine(plan: AgentPlan, approved: boolean, reason?: string, qa?: QaReport, repairs?: number): string {
+  const reports = plan.outcome.testReports ?? [];
+  const last = reports.length > 0 ? reports[reports.length - 1] : undefined;
   const e: LedgerEntry = {
     goal: plan.goal,
     target: plan.targetId,
@@ -314,6 +343,7 @@ export function ledgerLine(plan: AgentPlan, approved: boolean, reason?: string, 
     ...(reason ? { reason } : {}),
     ...(qa ? { qa: qa.verdict } : {}),
     ...(repairs !== undefined ? { repairs } : {}),
+    ...(last ? { tests: `${last.engine} ${last.passed}/${last.total} ${last.ok ? 'ok' : 'FAIL'}` } : {}),
     at: Date.now(),
   };
   return JSON.stringify(e);
