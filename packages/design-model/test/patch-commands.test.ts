@@ -163,7 +163,62 @@ describe("invertPatch", () => {
     // 子节点必须重新挂回父级
     expect(page.nodes[hero.id]!.children.length).toBe(2);
   });
+
+  it("removeAsset 清清单 + 剥图片填充 + 清节点 assetId，且 invert 完整还原", () => {
+    const { doc, hero } = seed();
+    const page = doc.pages[0]!;
+    const asset = {
+      id: "a1",
+      name: "bg.png",
+      kind: "image" as const,
+      storageKey: "projects/p/a1",
+      mimeType: "image/png",
+      createdAt: "2026-01-01T00:00:00.000Z",
+    };
+    doc.assets.push(asset);
+    hero.style.fills = [
+      { kind: "solid", color: "#ffffff" },
+      { kind: "image", assetId: "a1", fit: "cover" },
+    ];
+    const img = createNode({ type: "image", name: "Pic", parentId: page.rootId });
+    img.assetId = "a1";
+    img.src = "/api/assets/a1/file";
+    page.nodes[img.id] = img;
+    page.nodes[page.rootId]!.children = [hero.id, img.id];
+
+    const patch: DesignPatch = { ops: [{ op: "removeAsset", assetId: "a1" }] };
+    const removed = applyPatch(doc, patch).document;
+    // 清单里没了
+    expect(removed.assets.some((a) => a.id === "a1")).toBe(false);
+    // 只剩 solid，image 填充被剥掉
+    expect(removed.pages[0]!.nodes[hero.id]!.style.fills).toEqual([
+      { kind: "solid", color: "#ffffff" },
+    ]);
+    // image 节点的引用也清掉了
+    expect(removed.pages[0]!.nodes[img.id]!.assetId).toBeUndefined();
+    expect(removed.pages[0]!.nodes[img.id]!.src).toBeUndefined();
+
+    const inverse = invertPatch(doc, patch);
+    expect(inverse.ops[0]!.op).toBe("restoreAsset");
+    const restored = applyPatch(removed, inverse).document;
+    expect(restored.assets).toEqual([asset]);
+    expect(restored.pages[0]!.nodes[hero.id]!.style.fills).toEqual([
+      { kind: "solid", color: "#ffffff" },
+      { kind: "image", assetId: "a1", fit: "cover" },
+    ]);
+    expect(restored.pages[0]!.nodes[img.id]!.assetId).toBe("a1");
+    expect(restored.pages[0]!.nodes[img.id]!.src).toBe("/api/assets/a1/file");
+  });
+
+  it("removeAsset 对不存在的资产记 skipped，不静默", () => {
+    const { doc } = seed();
+    const result = applyPatch(doc, {
+      ops: [{ op: "removeAsset", assetId: "nope" }],
+    });
+    expect(result.skipped[0]?.reason).toContain("nope");
+  });
 });
+
 
 describe("diffPatch (§151)", () => {
   it("summarizes before/after per path", () => {

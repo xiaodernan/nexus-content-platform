@@ -1,4 +1,4 @@
-import type { DesignDocument, DesignNode, Page } from "./types";
+import type { AssetRef, DesignDocument, DesignNode, Page, Paint } from "./types";
 import { clone, findPage, requireNode } from "./nodes";
 
 /**
@@ -22,6 +22,14 @@ export type PatchOp =
   | { op: "removeToken"; key: string }
   | { op: "addComponent"; component: DesignDocument["components"][number] }
   | { op: "addAsset"; asset: DesignDocument["assets"][number] }
+  | { op: "removeAsset"; assetId: string }
+  /** removeAsset 的逆：把资产放回清单，并还原它当时被引用处的 paints / 节点 assetId。 */
+  | {
+      op: "restoreAsset";
+      asset: AssetRef;
+      paints: { pageId: string; nodeId: string; fills: Paint[] }[];
+      nodes: { pageId: string; nodeId: string; assetId: string; src?: string }[];
+    }
   | { op: "addPage"; page: Page; setActive?: boolean }
   | { op: "removePage"; pageId: string };
 
@@ -266,6 +274,8 @@ function isDocumentOp(op: PatchOp): boolean {
     case "removeToken":
     case "addComponent":
     case "addAsset":
+    case "removeAsset":
+    case "restoreAsset":
     case "addPage":
     case "removePage":
       return true;
@@ -332,6 +342,47 @@ function applyDocumentOp(
       const at = document.assets.findIndex((a) => a.id === op.asset.id);
       if (at >= 0) document.assets[at] = op.asset;
       else document.assets.push(op.asset);
+      break;
+    }
+    case "removeAsset": {
+      // 有 document 全域可达，所以引用清理放在这里：删清单条目 + 剥掉所有页面上引用它的
+      // 图片填充与 image/video 节点，绝不留下"清单没了但画布还指着它"的悬空引用（§159）。
+      if (!document.assets.some((a) => a.id === op.assetId)) {
+        skipped.push({ index, reason: `asset ${op.assetId} not found` });
+        break;
+      }
+      document.assets = document.assets.filter((a) => a.id !== op.assetId);
+      for (const page of document.pages) {
+        for (const node of Object.values(page.nodes)) {
+          if (Array.isArray(node.style.fills)) {
+            const kept = node.style.fills.filter(
+              (p) => !(p.kind === "image" && p.assetId === op.assetId),
+            );
+            if (kept.length !== node.style.fills.length) node.style.fills = kept;
+          }
+          if (node.assetId === op.assetId) {
+            node.assetId = undefined;
+            node.src = undefined;
+          }
+        }
+      }
+      break;
+    }
+    case "restoreAsset": {
+      if (!document.assets.some((a) => a.id === op.asset.id)) {
+        document.assets = [...document.assets, clone(op.asset)];
+      }
+      for (const r of op.paints) {
+        const node = document.pages.find((p) => p.id === r.pageId)?.nodes[r.nodeId];
+        if (node) node.style.fills = clone(r.fills);
+      }
+      for (const r of op.nodes) {
+        const node = document.pages.find((p) => p.id === r.pageId)?.nodes[r.nodeId];
+        if (node) {
+          node.assetId = r.assetId;
+          if (r.src !== undefined) node.src = r.src;
+        }
+      }
       break;
     }
     default:
@@ -534,6 +585,33 @@ export function invertPatch(
       case "addAsset": {
         const existing = document.assets.find((a) => a.id === op.asset.id);
         if (existing) ops.push({ op: "addAsset", asset: clone(existing) });
+        break;
+      }
+      case "removeAsset": {
+        const asset = document.assets.find((a) => a.id === op.assetId);
+        if (!asset) break;
+        const paints: { pageId: string; nodeId: string; fills: Paint[] }[] = [];
+        const nodes: { pageId: string; nodeId: string; assetId: string; src?: string }[] =
+          [];
+        for (const page of document.pages) {
+          for (const node of Object.values(page.nodes)) {
+            if (
+              Array.isArray(node.style.fills) &&
+              node.style.fills.some((p) => p.kind === "image" && p.assetId === op.assetId)
+            ) {
+              paints.push({ pageId: page.id, nodeId: node.id, fills: clone(node.style.fills) });
+            }
+            if (node.assetId === op.assetId) {
+              nodes.push({
+                pageId: page.id,
+                nodeId: node.id,
+                assetId: op.assetId,
+                src: node.src === undefined ? undefined : clone(node.src),
+              });
+            }
+          }
+        }
+        ops.push({ op: "restoreAsset", asset: clone(asset), paints, nodes });
         break;
       }
       case "addPage": {
