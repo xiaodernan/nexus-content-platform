@@ -8,7 +8,7 @@ every emitted artifact (`provenance.mode = "demo"`).
 ## Reproducible gates
 
 ```
-npm test          # turbo: @nexus/agent-runtime 120/120 vitest among all packages
+npm test          # turbo: @nexus/agent-runtime 124/124 vitest among all packages
 npm run build     # tsc dist for agents/runtime (build order via ^build deps)
 node docs/evidence/agents/agent-proof.mjs
 node docs/evidence/agents/code-index-proof.mjs   # requires `npm run build` first
@@ -25,6 +25,7 @@ node docs/evidence/agents/repair-proof.mjs        # requires `npm run build` fir
 node docs/evidence/agents/rolechain-proof.mjs    # requires `npm run build` first
 node docs/evidence/agents/dom-ui-proof.mjs         # requires `npm run build` first
 node docs/evidence/agents/planner-proof.mjs        # requires `npm run build` first
+node docs/evidence/agents/vector-store-proof.mjs   # requires `npm run build` first
 ```
 
 ## Unit tests (vitest, `agents/runtime/test`)
@@ -43,6 +44,7 @@ node docs/evidence/agents/planner-proof.mjs        # requires `npm run build` fi
 | `roles.test.ts` (7) | `matchesTool` glob semantics, scope projection exposes/excludes (unknown ≠ denied), child copy can't mutate parent, role register unique + sorted list + ghost role ⇒ empty, researcher-vs-editor write behavior, plan tier follows role capabilities, capability gap fails honestly leaving files untouched |
 | `evaluate.test.ts` (5) | clean run scores 1 with named marks, failures degrade by weight (deterministic), last verify decides, change-economy budget option, append/reload order + corrupt-file reasons |
 | `pipeline.test.ts` (5) | researcher→editor handoff happy path (refs from `fs.index`, editor plans memory-first, score 1), denied checkpoint leaves the handoff real but the run denied, durable mode writes memory+ledger+evaluation JSONL that reload cold, missing research tool ⇒ stated reason (no invented refs), full determinism across identical pipelines |
+| `vectordb.test.ts` (4) | build sorts + dim-checks, persist→cold reload ranking bit-identical to inline hybridScore + zero-match empty, filterIds + determinism, rejection matrix (bad JSON/version/dim/entries/missing file) |
 | `planBackend.test.ts` (7) | valid provider plan adopted end-to-end (backend stamped, @refs resolved), unknown tool/dup id/object args/empty/oversize/non-object rejections, throwing provider falls back with stated reason, default = demo with no fallback field |
 | `visualQa.test.ts` (5) | clean layout ok, zero-size/off-page/overlap detection with severities, error-before-warn deterministic ordering, tolerances as explicit inputs, identical reports for identical inputs |
 | `chain.test.ts` (4) | four-stage researcher→designer→qa→editor order + handoff records, QA honest-empty without host rects, designer denial stops the chain naming its stage, determinism |
@@ -193,6 +195,13 @@ every write: allowed runs log each gated action in order; denying the second ste
 run with the first action kept and the third never happening; a missing label fails BEFORE
 asking a human (no invented UI). In the Studio the same tools drive real DOM — verified
 live with two Allow-once dialogs after which the composed dashboard appeared.
+
+## Vector-store proof (`vector-store-proof.mjs`, M2 v18)
+
+219 real repo-chunk vectors (token-bag hash embeddings — the store is mechanics, not a
+trained model, §60) persisted to a jailed JSON, cold-loaded in ~3 ms, exact cosine scan
+matching inline scoring to 1e-12 across three queries; corrupt file rejected with a
+reason. Exact scan is stated as the algorithm (correct at this scale), not hidden as ANN.
 
 ## Scope honesty
 

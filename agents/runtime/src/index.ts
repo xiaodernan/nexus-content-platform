@@ -38,6 +38,19 @@ export {
 export { proposeRepairs, type Repair, type RepairResult } from './repair.js';
 export { findLabel, registerUiTools, UI_TOOL_SPECS, type UiDriver, type UiElement } from './domkit.js';
 export {
+  VECTOR_SCHEMA_VERSION,
+  buildVectorDb,
+  deserializeVectors,
+  loadVectors,
+  queryVectors,
+  saveVectors,
+  serializeVectors,
+  type VectorDb,
+  type VectorEntry,
+  type VectorHit,
+  type VectorsLoad,
+} from './vectordb.js';
+export {
   appendEvaluation,
   formatEvaluationLine,
   loadEvaluations,

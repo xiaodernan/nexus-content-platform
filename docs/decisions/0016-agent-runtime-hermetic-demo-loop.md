@@ -363,3 +363,16 @@ two fresh runs, checkpoint denial leaving the workspace byte-identical).
 - **What this is NOT:** no model, no keys, no autonomy claim. Planning became pluggable;
   the demo planner remains the only producer in this repo (`planner-proof.mjs` shows a
   fake provider adopted when valid, rejected with a stated reason when not). Runtime 120/120 (+7), fifteen proofs.
+
+## Amendment 18 — v18: local persisted vector store (exact scan, honest limits), 2026-09
+- **`vectordb.ts`:** `VectorEntry {id, text, vector}` where the vectors are the SAME
+  deterministic token-bag embeddings as everywhere (hash seam, explicitly NOT trained —
+  the store provides vector MECHANICS, not model semantics, §60). `buildVectorDb` sorts by
+  id; `serialize/deserialize` enforce schemaVersion, dim === 64, per-entry structural
+  checks (short vectors, NaNs, junk rejected with reasons); save/load over the injected fs.
+- **`queryVectors`:** exact cosine scan over stored vectors + query-token coverage, zero
+  overlap ⇒ 0, ties by id — asserted equal to inline `hybridScore` to 1e-12, so
+  persistence cannot drift the ranking. Exact scan is stated, not hidden behind ANN buzz.
+- **Measured:** real-repo proof — 219 chunk vectors, 391 KB JSON, 3.4 ms cold load, three
+  queries with sane top hits, corrupt file honest.
+- Runtime 124/124 (+4 `vectordb.test.ts`); `vector-store-proof.mjs`; sixteen proofs.

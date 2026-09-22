@@ -51,7 +51,10 @@
   puppeteer anywhere; the dock drives real page elements one Allow-once dialog at a time).
   v17 makes planning a seam (`planBackend.ts`: demo default, provider plans validated
   totally, invalid ⇒ explicit reason-carrying fallback recorded in `RunOutcome.planner`).
-  Proof: `agents/runtime/test` (vitest 120/120) plus the fifteen headless proofs in
+  v18 adds `vectordb.ts`: persisted token-bag vectors with exact-scan hybrid queries whose
+  ranking provably equals inline scoring after a cold reload (mechanics, not trained
+  embeddings — §60; `vector-store-proof.mjs`).
+  Proof: `agents/runtime/test` (vitest 124/124) plus the sixteen headless proofs in
   `docs/evidence/agents/` (agent, code-index, memory, durability, index-store, provider,
   recall, changes, roles, pipeline, qa, repair, rolechain).
 
