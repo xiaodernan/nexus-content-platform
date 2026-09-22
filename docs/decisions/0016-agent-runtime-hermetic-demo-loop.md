@@ -348,3 +348,18 @@ two fresh runs, checkpoint denial leaving the workspace byte-identical).
 - **Honest framing (§60):** the driving script is deterministic and demo-labeled, not model
   planning; automation capability ≠ autonomy — the gate is the point, and the runtime stays
   browser-free/unit-testable (113/113 runtime +5 `domkit`, 85/85 studio +3 `uiRun`).
+
+## Amendment 17 — v17: planner backend seam (seam ≠ capability), 2026-09
+- **`planBackend.ts`:** `PlanBackend { name; plan(task, ctx, knownTool) → Planned }`;
+  `demoPlanner` wraps the v0 template planner and REMAINS the default everywhere
+  (all prior tests/proofs unchanged, determinism preserved). `runTask` gains
+  `planner?: PlanBackend` and every outcome now carries `planner: {backend, fellBack?}`.
+- **`routerPlanner(provider, fallback)`:** the ModelRouter-ready shape — provider output is
+  accepted only after `validatePlan` totality: non-empty ≤ 12 steps, unique step ids, tools
+  that exist in the receiving registry, primitive-only args. Anything else (or a throw)
+  falls back to demo and RECORDS `{from:'provider', reason}` in the outcome — a rejected
+  plan is visible, never silently swapped (§60). The `@ref` dataflow still works because
+  steps are ordinary `Step` objects.
+- **What this is NOT:** no model, no keys, no autonomy claim. Planning became pluggable;
+  the demo planner remains the only producer in this repo (`planner-proof.mjs` shows a
+  fake provider adopted when valid, rejected with a stated reason when not). Runtime 120/120 (+7), fifteen proofs.

@@ -49,7 +49,9 @@
   its stage) + a computed WCAG-contrast QA rule (`contrastRatio`; arithmetic, no opinions).
   v16 adds `domkit.ts` (`ui.observe/click/type` — exec-gated, DOM injected by the host, no
   puppeteer anywhere; the dock drives real page elements one Allow-once dialog at a time).
-  Proof: `agents/runtime/test` (vitest 113/113) plus the fourteen headless proofs in
+  v17 makes planning a seam (`planBackend.ts`: demo default, provider plans validated
+  totally, invalid ⇒ explicit reason-carrying fallback recorded in `RunOutcome.planner`).
+  Proof: `agents/runtime/test` (vitest 120/120) plus the fifteen headless proofs in
   `docs/evidence/agents/` (agent, code-index, memory, durability, index-store, provider,
   recall, changes, roles, pipeline, qa, repair, rolechain).
 

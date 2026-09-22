@@ -87,4 +87,6 @@ export interface RunOutcome {
   status: TaskStatus;
   /** v7: present when the host supplied a workspace snapshot fn; observed file effects. */
   changeSet?: import('./changes.js').ChangeSet;
+  /** v17: which planning backend produced the plan (and any explicit fallback). */
+  planner?: { backend: string; fellBack?: { from: string; reason: string } };
 }

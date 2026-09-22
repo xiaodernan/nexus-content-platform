@@ -1,6 +1,6 @@
 import { createChangeSet } from './changes.js';
+import { demoPlanner, type PlanBackend } from './planBackend.js';
 import type { Checkpoint, ToolRegistry } from './registry.js';
-import { planTask } from './planner.js';
 import type {
   AgentEvent,
   AgentEventBody,
@@ -21,6 +21,8 @@ export interface RunOptions {
   maxFixRounds?: number;
   /** v7: workspace snapshot hook; when given, the outcome carries an observed ChangeSet. */
   snapshot?: () => Record<string, string>;
+  /** v17: planning backend (default: the deterministic demo planner). */
+  planner?: PlanBackend;
 }
 
 const PROVENANCE: Provenance = { mode: 'demo', runtime: 'nexus-agent-runtime', version: '0.1.0' };
@@ -51,6 +53,7 @@ export async function runTask(task: AgentTask, opts: RunOptions): Promise<RunOut
   const finishRun = (status: TaskStatus): RunOutcome => {
     const out = finish(task, plan, results, events, status);
     if (opts.snapshot && beforeSnapshot) out.changeSet = createChangeSet(task.id, beforeSnapshot, opts.snapshot());
+    out.planner = plannerMeta;
     return out;
   };
   let at = 0;
@@ -59,11 +62,16 @@ export async function runTask(task: AgentTask, opts: RunOptions): Promise<RunOut
     events.push({ ...e, at: at++ } as AgentEvent);
   };
 
-  const plan: Plan = planTask(task, {
-    hasVerify: registry.has('test.run'),
-    hasIndex: registry.has('fs.index'),
-    hasMemory: registry.has('memory.recall'),
-  });
+  const plannerBackend = opts.planner ?? demoPlanner;
+  const planned = await plannerBackend.plan(
+    task,
+    { hasVerify: registry.has('test.run'), hasIndex: registry.has('fs.index'), hasMemory: registry.has('memory.recall') },
+    (name) => registry.has(name),
+  );
+  const plan: Plan = planned.plan;
+  const plannerMeta: RunOutcome['planner'] = planned.fellBack
+    ? { backend: planned.backend, fellBack: planned.fellBack }
+    : { backend: planned.backend };
   emit({ type: 'plan', plan });
 
   const resolveArgs = (step: Step): Record<string, unknown> => {

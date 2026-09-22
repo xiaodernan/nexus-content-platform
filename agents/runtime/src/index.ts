@@ -118,4 +118,5 @@ export {
   type LedgerRead,
 } from './ledger.js';
 export { planTask, goalKeyword, type PlannerOptions } from './planner.js';
+export { demoPlanner, routerPlanner, validatePlan, type PlanBackend, type Planned, type ProviderLike } from './planBackend.js';
 export { runTask, type RunOptions } from './orchestrator.js';
