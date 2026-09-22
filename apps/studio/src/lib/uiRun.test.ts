@@ -100,6 +100,20 @@ describe('runUiTask v21 (host-verified + ledger)', () => {
     expect(entry.reason).toContain('planner=demo');
   });
 
+  it('v28: the design-model check travels as a structured, engine-stated report on the outcome', async () => {
+    let layers = 0;
+    const d = {
+      elements: () => PAGE,
+      click: (i: number) => { layers = 5; return `click:${PAGE[i]!.label}`; },
+      type: (i: number, t: string) => `type:${PAGE[i]!.label}=${t}`,
+      layerCount: () => layers,
+    };
+    const r = await runUiTask(d, 'an analytics dashboard', async () => true);
+    expect(r.outcome.testReports).toHaveLength(1);
+    expect(r.outcome.testReports![0]).toMatchObject({ engine: 'in-process-predicates', ok: true, total: 1, passed: 1 });
+    expect(r.outcome.testReports![0]!.failures).toEqual([]);
+  });
+
   it('without a state reporter, no verify step is invented', async () => {
     const d = new FakeDriver(PAGE);
     const r = await runUiTask(d, 'g', async () => true);

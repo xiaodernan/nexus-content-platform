@@ -5,7 +5,9 @@ import {
   RoleRegistry,
   ToolRegistry,
   deserializeMemory,
+  predicateRunner,
   registerMemoryTools,
+  registerTestTools,
   registerWorkspaceTools,
   runRoleChain,
   runRolePipeline,
@@ -20,6 +22,7 @@ import {
   type Repair,
   type RunEvaluation,
   type RunOutcome,
+  type TestPredicate,
 } from '@nexus/agent-runtime';
 import {
   childIdList,
@@ -66,6 +69,17 @@ export interface AgentPlan {
 export type PlanFailure = { ok: false; reason: string };
 
 const token = (ref: string): Paint => ({ kind: 'token', ref } as Paint);
+
+/**
+ * v28: the dock verifies through the runtime's shared predicate engine — both plan modes
+ * register the SAME named check (no more ad-hoc, one-off `test.run` bodies). The check
+ * runs in-process over the corpus copy; the document itself is still untouched until §28.
+ */
+const ANNOTATION_LANDED: TestPredicate = {
+  name: 'annotation-landed',
+  check: (files) => (Object.values(files).some((c) => c.includes('NOTE (DEMO MODE')) ? null : 'the annotation must land in the corpus copy'),
+};
+const dockTestRunner = (ws: InMemoryWorkspace) => predicateRunner('in-process-predicates', [ANNOTATION_LANDED], () => ws.snapshot());
 
 const TEXT_STYLE: TextStyle = {
   fontFamilyToken: 'font.family.body',
@@ -127,10 +141,7 @@ export async function planAgentRun(doc: DesignDocument, pageId: string, goal: st
   const store = new MemoryStore();
   loadMemoryStore(store, webFs, STUDIO_MEMORY_FILE); // cold restore across refreshes; missing file is fine
   const registry = registerMemoryTools(registerWorkspaceTools(new ToolRegistry(), ws), store, 'studio');
-  registry.register({ name: 'test.run', description: 'host verification', permissions: ['exec'], args: [] }, () => ({
-    ok: Object.values(ws.snapshot()).some((c) => c.includes('NOTE (DEMO MODE')),
-    detail: 'the annotation must land in the corpus view',
-  }));
+  registerTestTools(registry, dockTestRunner(ws));
   const roles = new RoleRegistry();
   DEMO_ROLES.forEach((r) => roles.register(r));
 
@@ -258,10 +269,7 @@ export async function planAgentChain(doc: DesignDocument, pageId: string, goal: 
   const store = new MemoryStore();
   loadMemoryStore(store, webFs, STUDIO_MEMORY_FILE);
   const registry = registerMemoryTools(registerWorkspaceTools(new ToolRegistry(), ws), store, 'studio');
-  registry.register({ name: 'test.run', description: 'host verification', permissions: ['exec'], args: [] }, () => ({
-    ok: Object.values(ws.snapshot()).some((c) => c.includes('NOTE (DEMO MODE')),
-    detail: 'the annotation must land in the corpus copy',
-  }));
+  registerTestTools(registry, dockTestRunner(ws));
   const roles = new RoleRegistry();
   DEMO_ROLES.forEach((r) => roles.register(r));
   const qaInput = qaInputForDoc(doc, pageId) ?? { page: { x: 0, y: 0, width: 0, height: 0 }, rects: {} };

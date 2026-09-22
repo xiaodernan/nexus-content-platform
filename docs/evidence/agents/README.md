@@ -1,4 +1,4 @@
-# M2 evidence — @nexus/agent-runtime (v0 loop → v27 near-edge snap; all ADR 0016 amendments)
+# M2 evidence — @nexus/agent-runtime (v0 loop → v28 test-run seam; all ADR 0016 amendments)
 
 All checks are headless, offline, key-free, and reproducible from the repo root. Nothing here
 claims model-quality planning or neural retrieval (§60): the planner is a deterministic
@@ -8,7 +8,7 @@ every emitted artifact (`provenance.mode = "demo"`).
 ## Reproducible gates
 
 ```
-npm test          # turbo: @nexus/agent-runtime 171/171 vitest among all packages
+npm test          # turbo: @nexus/agent-runtime 186/186 vitest among all packages
 npm run build     # tsc dist for agents/runtime (build order via ^build deps)
 node docs/evidence/agents/agent-proof.mjs
 node docs/evidence/agents/code-index-proof.mjs   # requires `npm run build` first
@@ -28,6 +28,7 @@ node docs/evidence/agents/planner-proof.mjs        # requires `npm run build` fi
 node docs/evidence/agents/vector-store-proof.mjs   # requires `npm run build` first
 node docs/evidence/agents/memory-vectors-proof.mjs # requires `npm run build` first
 node docs/evidence/agents/index-vectors-proof.mjs  # requires `npm run build` first
+node docs/evidence/agents/testrunner-proof.mjs     # requires `npm run build` first
 ```
 
 ## Unit tests (vitest, `agents/runtime/test`)
@@ -57,6 +58,7 @@ node docs/evidence/agents/index-vectors-proof.mjs  # requires `npm run build` fi
 | `repair.test.ts` (5) | clean input no-op, off-page pulled inside then QA-clean, overlap nudged below with gutter, zero-size grown, dedupe + determinism + "apply all repairs → zero error flags" |
 | `repair.test.ts` +nudges (6) | v25: near-miss lints unproposed by default, equal-area mover tie broken by id with exact stated reason, smaller-area layer moves, center-nudge to page mid-line (other axis untouched, px stated), a/b/c chain where only the in-tolerance pair snaps, apply-all clears all flags, determinism |
 | `repair.test.ts` +edge-snap (5) | v27: near-edge unproposed by default, opt-in snaps x flush with y untouched and px stated, right-edge snap uses page.width − width, a corner snaps the fixed-order side first and reports the other honestly in `remaining`, two independent slips both snap clean + determinism |
+| `testRunner.test.ts` (15) | v28: predicate engine semantics (all-pass detail, VERBATIM failure messages, throw→`threw:` without crashing, name-order + first-registration duplicate wins, empty pack = stated vacuous failure, `only` filter + miss), tool contract (exec-gated without checkpoint, `{ok, detail}` + structured report when granted, unknown `only` errors), lazy file re-read after a write, runTask end-to-end (completed run journals 1 ok report; never-passing predicate → 3 honest reports + `failed_verification`; hosts without the tool keep the field absent), JSONL append/reload with malformed counting + last-N + missing-file empty |
 | `durability.test.ts` (8) | memory serialize/deserialize round-trip + version/schema rejection, `restore()` id high-water mark, save/load through an injected writable fake disk, corrupt-file honest failure, `guardedJoin` jail (absolute/`..`/drive-letter rejection, backslash folding), `disk.write` checkpoint gate + escape touches nothing, `disk.read`/`disk.list` confinement |
 | `indexStore.test.ts` (11) | index snapshot serialize→deserialize verbatim + version/chunk schema rejection, save/load via injected fs, cold rescan equals `buildIndex`, unchanged files reuse chunks / edits rechunk exactly the changed paths / removals drop out, query ranking snapshot-independent; v5 provider: cold-first-build equals plain build, incremental refresh 0 re-chunked, edited file sole re-chunk, cross-provider snapshot restore, corrupt-snapshot fallback + repair, `fs.index` provider/default parity |
 | `indexVectors.test.ts` (11) | v23: `indexToVectorDb` shape (one entry per chunk, id `path#startLine`, real dim-64 vectors), vector-vs-inline hit-for-hit parity across five query shapes + stated engine, null db ⇒ honest inline; cold merge ≡ cold build, unchanged chunks reuse the identical vector object / only touched windows re-embed / removals drop out; tampered-text, missing-id and wrong-dim drift each send the WHOLE query inline with real inline hits; persisted provider: lazy `vectors()`, byte-identical reuse by a cold second provider, corrupt-file self-repair, `fs.index` engine labels with/without vectorsFile, edits tracked through the provider lifecycle |
@@ -313,12 +315,28 @@ honestly after one snap (`remaining` reports the rest). The dock opts both QA an
 into the same 2px — the flush slip shows a chip, earns exactly one proposal, and the
 document only changes through §28 Approve → op path.
 
+## v28 note — the test-run seam: one predicate engine instead of ad-hoc verify bodies
+
+Until v28 every host hand-rolled its own `test.run` tool body (the dock's corpus check and
+the UI runner's layer-count were duplicate ideas). Now the runtime ships the seam:
+`registerTestTools(registry, predicateRunner(engine, predicates, files))` — deterministic
+name-ordered evaluation, VERBATIM failure messages, throwing predicates reported as
+`threw: …` instead of crashing, an empty pack as a stated `vacuous` failure (never green),
+and an unknown `only` filter as an error (never a vacuous pass). The orchestrator
+journals every report onto `RunOutcome.testReports` — verify AND fix-round re-checks —
+and `appendTestReport` persists verdicts as JSONL with the ledger's malformed-line
+discipline. Both dock modes and the UI runner were converted to the shared factory.
+§60 line that must never be crossed: this runs in-process predicates, NOT a real test
+suite — actually executing `npm test`/git awaits the ADR 0013 exec sandbox.
+`testrunner-proof.mjs` asserts all of it against the built dist.
+
 ## Scope honesty
 
 §63/§26 items *not* implemented (stated, not faked): general real-fs write tools (only
-`disk.write` inside an explicit jail root, always checkpoint-gated), process execution,
-browser automation, visual QA, git commit, live-model planning, multi-agent registry. The
-`test.run` verification is a host-injected predicate — it verifies what the host checks.
+`disk.write` inside an explicit jail root, always checkpoint-gated), process execution
+(since v28 the `test.run` verification is the runtime's shared IN-PROCESS predicate
+engine — running a real test suite needs the ADR 0013 exec sandbox first), git commit,
+live-model planning (the seam exists, the model needs keys), multi-agent registry.
 Memory recall (v6) shares the index's deterministic token-bag hybrid score — a real
 signature scheme, but still a stand-in for the pgvector hybrid retrieval of ADR 0012. The provider must be kept in sync with the workspace by the
 host; it only ever sees the host-supplied file set (§60).

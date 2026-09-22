@@ -89,4 +89,9 @@ export interface RunOutcome {
   changeSet?: import('./changes.js').ChangeSet;
   /** v17: which planning backend produced the plan (and any explicit fallback). */
   planner?: { backend: string; fellBack?: { from: string; reason: string } };
+  /**
+   * v28: structured TestReports from every `test.run` step that answered with one,
+   * in execution order (verify, re-verifies, plain calls). Absent when no report ran.
+   */
+  testReports?: import('./testRunner.js').TestReport[];
 }

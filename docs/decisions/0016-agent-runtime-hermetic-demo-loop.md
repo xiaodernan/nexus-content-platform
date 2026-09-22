@@ -503,3 +503,31 @@ two fresh runs, checkpoint denial leaving the workspace byte-identical).
   doc is untouched until the batch goes through the op path, then `ok`).
 - Runtime 171/171 (+6 visualQa, +5 repair cases), studio 94/94 (+1 edge-snap dock case);
   `qa-proof.mjs` and `repair-proof.mjs` extended; eighteen proofs.
+
+## Amendment 28 — v28: the test-run seam — `test.run` graduates from ad-hoc bodies to a shared predicate engine, 2026-09
+- **Why a seam, not a runner:** the M2 line says "test", but spawning real processes is
+  forbidden until the ADR 0013 exec sandbox exists (§9, §60). So v28 formalizes what the
+  hosts were already doing — hand-rolling one-off `test.run` tool bodies — into a port:
+  a `TestRunner` whose default implementation executes host-registered **in-process
+  predicates** over a file snapshot. Nothing here runs a real test suite, and every
+  report carries its engine string so it can never masquerade as one.
+- **`testRunner.ts`:** `runPredicates(engine, predicates, files, only?)` is deterministic
+  (name-ordered, stable — first registration wins a duplicate name), verbatim (a returned
+  string IS the failure message), throw-safe (an exception becomes `threw: …`, the run
+  continues) and honest at the edges: an EMPTY pack is a stated `vacuous: no predicate
+  ran` failure, never a green pass; an unknown `only` filter is an ERROR at the tool
+  level, not a vacuous pass. `registerTestTools` keeps the loop's `{ok, detail}` contract
+  and adds a structured `report`; `predicateRunner` reads files LAZILY so a later write
+  changes the next verdict with no re-registration.
+- **Journalled verification:** the orchestrator collects every `test.run` report onto
+  `RunOutcome.testReports` in execution order — verify AND each fix-round re-check are on
+  record; hosts without the tool keep the old shape (field absent, no fake data).
+  `appendTestReport`/`loadTestReports` persist verdicts as append-only JSONL with the
+  ledger's counted-never-trusted malformed-line discipline.
+- **Hosts converted:** the studio dock (both plan modes share the named
+  `annotation-landed` predicate) and the UI runner (a `layers-grew` predicate closing
+  over the design-model reporter) now use the runtime factory — §8 stays true: the check
+  runs against the canonical model, in-process, checkpoint-gated `exec` as before.
+- Runtime 186/186 (+15 testRunner cases), studio 96/96 (+1 dock +1 uiRun report cases);
+  `testrunner-proof.mjs` added (predicates · tool contract · e2e loop journalling ·
+  JSONL durability); nineteen proofs.

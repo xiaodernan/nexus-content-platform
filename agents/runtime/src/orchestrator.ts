@@ -1,6 +1,7 @@
 import { createChangeSet } from './changes.js';
 import { demoPlanner, type PlanBackend } from './planBackend.js';
 import type { Checkpoint, ToolRegistry } from './registry.js';
+import type { TestReport } from './testRunner.js';
 import type {
   AgentEvent,
   AgentEventBody,
@@ -51,11 +52,13 @@ export async function runTask(task: AgentTask, opts: RunOptions): Promise<RunOut
   const events: AgentEvent[] = [];
   const results: ToolResult[] = [];
   const byStep = new Map<string, ToolResult>();
+  const testReports: TestReport[] = [];
   const beforeSnapshot = opts.snapshot?.();
   const finishRun = (status: TaskStatus): RunOutcome => {
     const out = finish(task, plan, results, events, status);
     if (opts.snapshot && beforeSnapshot) out.changeSet = createChangeSet(task.id, beforeSnapshot, opts.snapshot());
     out.planner = plannerMeta;
+    if (testReports.length > 0) out.testReports = [...testReports];
     return out;
   };
   let at = 0;
@@ -96,6 +99,10 @@ export async function runTask(task: AgentTask, opts: RunOptions): Promise<RunOut
     );
     byStep.set(step.stepId, res);
     results.push(res);
+    if (res.ok && step.tool === 'test.run') {
+      const rep = (res.output as { report?: TestReport } | undefined)?.report;
+      if (rep) testReports.push(rep);
+    }
     emit({ type: 'step_result', stepId: step.stepId, result: res });
     return res;
   };

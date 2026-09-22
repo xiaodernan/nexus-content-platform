@@ -1,4 +1,4 @@
-import { ToolRegistry, registerUiTools, runTask, scoreRun, type RunOutcome, type UiDriver, type UiElement } from '@nexus/agent-runtime';
+import { ToolRegistry, predicateRunner, registerTestTools, registerUiTools, runTask, scoreRun, type RunOutcome, type UiDriver, type UiElement } from '@nexus/agent-runtime';
 import { AGENT_LEDGER_KEY, type KvLike } from './agentDock';
 
 /**
@@ -93,10 +93,14 @@ export async function runUiTask(
   const registry = registerUiTools(new ToolRegistry(), driver);
   const baseline = driver.layerCount ? driver.layerCount() : 0;
   if (driver.layerCount) {
-    registry.register({ name: 'test.run', description: 'host verification against the design model', permissions: ['exec'], args: [] }, () => ({
-      ok: driver.layerCount!() > baseline,
-      detail: `layers ${baseline} → ${driver.layerCount!()}`,
-    }));
+    // v28: the same shared predicate engine the dock uses — the check closes over the
+    // design model instead of the corpus, and the report states its engine.
+    registerTestTools(
+      registry,
+      predicateRunner('in-process-predicates', [
+        { name: 'layers-grew', check: () => (driver.layerCount!() > baseline ? null : `layers stayed at ${baseline}`) },
+      ]),
+    );
   }
   const actions: string[] = [];
   const origInvoke = registry.invoke.bind(registry);

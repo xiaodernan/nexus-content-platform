@@ -13,8 +13,8 @@ npm run build lint typecheck test     # via turbo: build 4/4 · lint 3/3 · type
 | ------------------ | ------ |
 | @nexus/design-model| 28/28 vitest (`design-model` 16 incl. 3 rotated-hitTest + 2 rigid-geometry cases + `instances` 12 incl. x/y delta + absolute rotation overrides + rigid rotation bake), tsc clean |
 | @nexus/ai-providers| 7/7 vitest, tsc clean |
-| @nexus/agent-runtime| 171/171 vitest (M2 v0–v27, ADR 0016 am. 1–27) · tsc clean — see `docs/evidence/agents/README.md` |
-| @nexus/studio      | 94/94 vitest (`snap` `persist` `align` `store-variants` 18 `thumbnail` `rotate` 14 `render` `minimap` `agentDock` 13 `webfs` 3 `uiRun` 3) · tsc `--noEmit` clean · eslint `--max-warnings=0` clean · `next build` ✓ (4/4 static pages) |
+| @nexus/agent-runtime| 186/186 vitest (M2 v0–v28, ADR 0016 am. 1–28) · tsc clean — see `docs/evidence/agents/README.md` |
+| @nexus/studio      | 96/96 vitest (`snap` `persist` `align` `store-variants` 18 `thumbnail` `rotate` 14 `render` `minimap` `agentDock` 14 `webfs` 3 `uiRun` 8) · tsc `--noEmit` clean · eslint `--max-warnings=0` clean · `next build` ✓ (4/4 static pages) |
 
 ## Headless pipeline proof
 
@@ -344,3 +344,17 @@ a layer sitting 1.5px off the page edge surfaces as a `near-edge` chip and earns
 `edge-snap` flush proposal through the same gated §28 path (a corner that is near-flush on
 two sides snaps one and states the other in `remaining` — honest progress, not magic).
 (studio 94/94, agentDock 13).
+
+## Shared test-run seam in the dock (M2 v28, headless)
+
+The dock's and the UI runner's verification steps were duplicate hand-rolled `test.run`
+bodies; v28 converts all three hosts (plan mode, chain mode, ui task) to the runtime's
+shared `predicateRunner`/`registerTestTools` factory — the dock registers the named
+`annotation-landed` predicate over the corpus copy, the UI runner a `layers-grew`
+predicate over the design-model reporter (§8: checks run against the canonical model,
+in-process, exec-checkpoint-gated as before). New studio assertions: each run's
+`outcome.testReports` carries the engine-stated structured report
+(`in-process-predicates: 1/1 passed`), and empty packs/unknown filters can never
+masquerade as green (§60 — this is NOT a real test-suite run; that stays behind the
+ADR 0013 exec sandbox). Runtime 186/186 (+15), studio 96/96 (+2); `testrunner-proof.mjs`
+added — nineteen proofs.

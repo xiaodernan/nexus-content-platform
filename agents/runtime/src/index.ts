@@ -36,6 +36,19 @@ export {
   type QaSeverity,
 } from './visualQa.js';
 export { proposeRepairs, type Repair, type RepairResult } from './repair.js';
+export {
+  TEST_TOOL_SPECS,
+  appendTestReport,
+  formatTestLine,
+  loadTestReports,
+  predicateRunner,
+  registerTestTools,
+  runPredicates,
+  type TestFailure,
+  type TestPredicate,
+  type TestReport,
+  type TestRunner,
+} from './testRunner.js';
 export { findLabel, registerUiTools, UI_TOOL_SPECS, type UiDriver, type UiElement } from './domkit.js';
 export {
   VECTOR_SCHEMA_VERSION,

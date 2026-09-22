@@ -112,6 +112,17 @@ describe('agentDock pipeline (§23/§25/§28)', () => {
     expect(Object.keys(undone.nodes).length).toBe(Object.keys(doc.nodes).length);
   });
 
+  it('v28: the dock verifies with the shared predicate engine of the runtime — reports travel on the outcome', async () => {
+    const { doc, pageId } = seededDoc();
+    const res = await planAgentRun(doc, pageId, 'recolor the welcome hero text');
+    if (!('handoff' in res)) throw new Error('plan unexpectedly rejected');
+    const reports = res.outcome.testReports;
+    expect(reports).toBeDefined();
+    const last = reports![reports!.length - 1]!;
+    expect(last).toMatchObject({ engine: 'in-process-predicates', ok: true, total: 1, passed: 1 });
+    expect(last.failures).toEqual([]);
+  });
+
   it('ledger lines round-trip through the KvStore seam and count malformed', () => {
     const { pageId } = seededDoc();    const kv = new FakeKv();
     const fake = {
