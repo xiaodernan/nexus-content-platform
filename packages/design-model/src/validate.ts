@@ -249,8 +249,17 @@ export function lintDesign(
           });
         }
       }
-      // 间距对齐 4px 栅格
-      for (const [side, value] of Object.entries(node.layout.padding)) {
+      // 间距对齐 4px 栅格：padding 与 gap/rowGap/crossGap 同属栅格间距，一视同仁
+      const spacings: Array<[string, number | string | undefined]> = [
+        ["layout.gap", node.layout.gap],
+        ["layout.rowGap", node.layout.rowGap],
+        ["layout.crossGap", node.layout.crossGap],
+        ...Object.entries(node.layout.padding).map(
+          ([side, value]) => [`layout.padding.${side}`, value] as [string, number | string],
+        ),
+      ];
+      for (const [path, value] of spacings) {
+        if (value === undefined) continue;
         const resolved =
           typeof value === "number"
             ? value
@@ -259,10 +268,10 @@ export function lintDesign(
           issues.push({
             code: "off-px-spacing",
             severity: "info",
-            message: `${node.name} 的 padding.${side}=${resolved} 不在 4px 栅格上`,
+            message: `${node.name} 的 ${path}=${resolved} 不在 4px 栅格上`,
             pageId: page.id,
             nodeId: node.id,
-            path: `layout.padding.${side}`,
+            path,
             suggestion: "吸附到最近的 4 的倍数",
           });
         }

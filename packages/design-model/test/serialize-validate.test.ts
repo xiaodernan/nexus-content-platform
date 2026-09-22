@@ -151,6 +151,37 @@ describe("lintDesign (§32 / §121)", () => {
     expect(codes).toContain("off-px-spacing");
   });
 
+  it("把 off-grid 判定扩展到 gap（含 token 绑定的解析值），而不只是 padding", () => {
+    const doc = createDocument("Gap Grid");
+    const page = doc.pages[0]!;
+    const node = createNode({ type: "section", name: "Row", parentId: page.rootId });
+    // gap 落在栅格外（18），rowGap 是 token 且解析出的值也偏格
+    doc.tokens.push({ key: "space.test6", type: "dimension", value: 6 });
+    node.layout.gap = 18;
+    node.layout.rowGap = "{space.test6}";
+    page.nodes[node.id] = node;
+    page.nodes[page.rootId]!.children = [node.id];
+    const spacingPaths = lintDesign(doc)
+      .filter((i) => i.code === "off-px-spacing")
+      .map((i) => i.path);
+    expect(spacingPaths).toContain("layout.gap");
+    expect(spacingPaths).toContain("layout.rowGap");
+  });
+
+  it("gap 绑到 4 的倍数 token 时不报 off-grid", () => {
+    const doc = createDocument("Gap On Grid");
+    const page = doc.pages[0]!;
+    const node = createNode({ type: "section", name: "Row", parentId: page.rootId });
+    node.layout.gap = "{space.4}";
+    node.layout.padding = { top: 0, right: 0, bottom: 0, left: 0 };
+    page.nodes[node.id] = node;
+    page.nodes[page.rootId]!.children = [node.id];
+    const paths = lintDesign(doc)
+      .filter((i) => i.code === "off-px-spacing")
+      .map((i) => i.path);
+    expect(paths).not.toContain("layout.gap");
+  });
+
   it("flags low contrast text against the page background", () => {
     const doc = createDocument("Contrast");
     const page = doc.pages[0]!;
