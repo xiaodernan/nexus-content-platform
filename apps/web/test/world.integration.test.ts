@@ -103,3 +103,48 @@ describe('世界文档读写（真实数据库）', () => {
     expect(rows).toEqual([]);
   });
 });
+
+describe('世界文档的形状演进（§45 加字段之后）', () => {
+  it('上一版存的世界没有 links / positions，照样读得出来：default 不是摆设', async () => {
+    const db = getDb();
+    const id = await newProject('World Legacy');
+    const legacy = createWorld('旧版形状', id) as unknown as Record<string, unknown>;
+    delete legacy.links;
+    delete legacy.positions;
+    await db
+      .insert(worlds)
+      .values({ projectId: id, ownerId, name: '旧版形状', summary: '', document: legacy });
+
+    const loaded = await loadWorld(id);
+    expect(loaded?.ok).toBe(true);
+    if (!loaded?.ok) throw new Error(loaded && !loaded.ok ? loaded.reason : '旧形状读不出来');
+    expect(loaded.document.links).toEqual([]);
+    expect(loaded.document.positions).toEqual({});
+    expect(loaded.document.nodes).toHaveLength(9);
+  });
+});
+
+describe('并发写入的次序（卸载时会有两个 PUT 在飞）', () => {
+  it('更旧的写被拒，更新的版本留着：乱序到达不能让旧内容赢', async () => {
+    const id = await newProject('World Ordering');
+    const fresh = addWorldNode(createWorld('新的那份', id), { kind: 'story', title: '结局' });
+    const saved = await saveWorld(id, ownerId, fresh);
+    expect(saved.ok).toBe(true);
+    if (!saved.ok) throw new Error(saved.reason);
+
+    // 一份时间戳更早的文档：这是"卸载时补发的那次旧请求"的替身
+    const stale: typeof fresh = {
+      ...fresh,
+      name: '旧的那份',
+      updatedAt: '2000-01-01T00:00:00.000Z',
+    };
+    const rejected = await saveWorld(id, ownerId, stale);
+    expect(rejected.ok).toBe(false);
+    if (rejected.ok) throw new Error('更旧的写入不该成功');
+    expect(rejected.reason).toContain('更新的世界');
+
+    const loaded = await loadWorld(id);
+    expect(loaded?.ok && loaded.document.name).toBe('新的那份');
+    expect(loaded?.ok && loaded.document.nodes.some((n) => n.title === '结局')).toBe(true);
+  });
+});

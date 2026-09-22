@@ -3,8 +3,17 @@ import {
   WORLD_KINDS,
   WORLD_KIND_LABELS,
   addWorldNode,
+  GRAPH_COLUMN_GAP,
+  GRAPH_ORIGIN,
+  GRAPH_ROW_GAP,
+  autoLayout,
+  countLinksFor,
   createWorld,
   findWorldNode,
+  linkWorldNodes,
+  setWorldNodePosition,
+  worldGraph,
+  worldPositions,
   nodesOfKind,
   removeWorldNode,
   updateWorldNode,
@@ -107,5 +116,101 @@ describe("validateWorld", () => {
 
   it("没名字的世界是结构性问题，单独报一条", () => {
     expect(validateWorld(broken({ name: "  " })).map((i) => i.code)).toContain("missing-name");
+  });
+});
+
+describe("§45 关系与图投影", () => {
+  const withCast = () => {
+    let world = createWorld("诸王纪元");
+    world = addWorldNode(world, { kind: "characters", title: "守夜人" });
+    world = addWorldNode(world, { kind: "factions", title: "苍雪盟约" });
+    return {
+      world,
+      character: world.nodes.find((n) => n.title === "守夜人")!,
+      faction: world.nodes.find((n) => n.title === "苍雪盟约")!,
+    };
+  };
+
+  it("连一条有向边：文档换新的，端点与标签都记下来", () => {
+    const { world, character, faction } = withCast();
+    const { document, reason } = linkWorldNodes(world, character.id, faction.id, "效忠");
+    expect(reason).toBeNull();
+    expect(document.links).toHaveLength(1);
+    expect(document.links[0]).toMatchObject({ from: character.id, to: faction.id, label: "效忠" });
+    expect(world.links).toHaveLength(0);
+  });
+
+  it("自环、端点不存在、重复关系都不写库，但一定给出原因（§159 不静默丢弃）", () => {
+    const { world, character, faction } = withCast();
+    const self = linkWorldNodes(world, character.id, character.id);
+    expect(self.reason).toContain("自己");
+    expect(self.document).toBe(world);
+
+    const ghost = linkWorldNodes(world, character.id, "wn-不存在");
+    expect(ghost.reason).toContain("不在这个世界");
+    expect(ghost.document).toBe(world);
+
+    const once = linkWorldNodes(world, character.id, faction.id, "效忠").document;
+    const twice = linkWorldNodes(once, character.id, faction.id, "效忠");
+    expect(twice.reason).toContain("已经这样连着");
+    expect(twice.document.links).toHaveLength(1);
+    // 反向是另一条关系：有向图不把它当重复
+    expect(linkWorldNodes(once, faction.id, character.id, "册封").reason).toBeNull();
+  });
+
+  it("删条目会带走挂在它身上的边和位置", () => {
+    const { world, character, faction } = withCast();
+    let doc = linkWorldNodes(world, character.id, faction.id, "效忠").document;
+    doc = setWorldNodePosition(doc, character.id, { x: 10, y: 20 });
+    doc = setWorldNodePosition(doc, faction.id, { x: 30, y: 40 });
+    expect(countLinksFor(doc, character.id)).toBe(1);
+    const after = removeWorldNode(doc, character.id);
+    expect(after.links).toEqual([]);
+    expect(after.positions[character.id]).toBeUndefined();
+    expect(after.positions[faction.id]).toEqual({ x: 30, y: 40 });
+    expect(validateWorld(after)).toEqual([]);
+  });
+
+  it("autoLayout 是确定的：同类同列、按加入顺序往下堆，两次调用一模一样", () => {
+    const { world } = withCast();
+    const a = autoLayout(world);
+    const b = autoLayout(world);
+    expect(a).toEqual(b);
+    const lore = world.nodes.filter((n) => n.kind === "lore").map((n) => a[n.id]!);
+    const history = world.nodes.filter((n) => n.kind === "history").map((n) => a[n.id]!);
+    const characters = world.nodes.filter((n) => n.kind === "characters").map((n) => a[n.id]!);
+    expect(lore[0]!.x).toBe(GRAPH_ORIGIN.x);
+    expect(history[0]!.x).toBe(GRAPH_ORIGIN.x + GRAPH_COLUMN_GAP);
+    // 同一类里的第二条排在第一条下面
+    expect(characters).toHaveLength(2);
+    expect(characters[1]!.y - characters[0]!.y).toBe(GRAPH_ROW_GAP);
+    expect(characters[1]!.x).toBe(GRAPH_ORIGIN.x + WORLD_KINDS.indexOf("characters") * GRAPH_COLUMN_GAP);
+  });
+
+  it("拖过的位置优先于 autoLayout", () => {
+    const { world, character } = withCast();
+    const moved = setWorldNodePosition(world, character.id, { x: 999, y: 888 });
+    expect(worldPositions(moved)[character.id]).toEqual({ x: 999, y: 888 });
+    // 没拖过的仍然按自动排布给坐标，图不会空
+    const untouched = moved.nodes.find((n) => n.id !== character.id)!;
+    expect(worldPositions(moved)[untouched.id]).toEqual(autoLayout(moved)[untouched.id]);
+    expect(setWorldNodePosition(moved, "wn-不存在", { x: 1, y: 2 })).toBe(moved);
+  });
+
+  it("worldGraph 给出带坐标的节点与边；断链画不出来，但校验会报", () => {
+    const { world, character, faction } = withCast();
+    const linked = linkWorldNodes(world, character.id, faction.id, "效忠").document;
+    const graph = worldGraph(linked);
+    expect(graph.nodes.length).toBe(linked.nodes.length);
+    expect(graph.edges).toHaveLength(1);
+    expect(graph.edges[0]!.from.title).toBe("守夜人");
+    expect(graph.edges[0]!.to.x).toBeGreaterThan(0);
+
+    const dangling: WorldDocument = {
+      ...linked,
+      nodes: linked.nodes.filter((n) => n.id !== faction.id),
+    };
+    expect(worldGraph(dangling).edges).toEqual([]);
+    expect(validateWorld(dangling).map((i) => i.code)).toContain("missing-endpoint");
   });
 });

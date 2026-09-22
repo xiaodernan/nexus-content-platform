@@ -43,6 +43,18 @@ Pages · Layers · Components · Assets · Variables · Design System · AI Agen
 - Health 页签是 §178 那七行的常驻读数：改一下文档就重算，点某行展开它的真实发现与"这项检查了什么"
   （Publish 弹层里是同一个组件、同一个函数，见「项目健康」一节）
 
+## 主区视图（画布 / 方案 / 代码 / 世界图）
+
+四个视图是同一批真值的不同投影，切换不复制数据：
+
+- 画布 = 设计文档（`pages/nodes`）；方案 = 各分支 head 上的文档（只读比较板，命令栏在这个视图收起）；
+  代码 = `codegen` 对同一份文档的投影；世界图 = 世界文档的关系与位置（§45）
+- 「世界图」读的是**另一份真值**（`@nexus/world-model`，存在 `worlds.document`），与画布那份设计文档互不影响；
+  左侧「世界」面板与这张图共用同一个 store，不会两处各存一份世界
+- 图上：点两个节点连线（顺序就是箭头方向）、拖节点改位置（松手即写库）、点边删除关系；
+  没拖过的按类分列自动排布（确定性，不是随机数）
+- DEMO MODE / LIVE PROVIDER 标识在四个视图里都常驻（§160）
+
 ## 右面板（§6）
 
 选中元素后分区：Design · Layout · Typography · Color · Effects · Spacing · Responsive · Animation ·

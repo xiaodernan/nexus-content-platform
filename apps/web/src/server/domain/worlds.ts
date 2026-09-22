@@ -78,6 +78,14 @@ export async function saveWorld(
   const stamped: WorldDocument = { ...document, projectId };
   const existing = await currentRow(projectId);
   if (existing) {
+    const stored = WorldDocumentSchema.safeParse(existing.document);
+    // 拒绝"更旧的写"：卸载时可能同时有两个 PUT 在飞，乱序到达不能让旧版本赢
+    if (stored.success && stored.data.updatedAt > stamped.updatedAt) {
+      return {
+        ok: false,
+        reason: `库里已有一份比这次更新的世界（${stored.data.updatedAt} > ${stamped.updatedAt}），这次写入被拒。`,
+      };
+    }
     const [row] = await db
       .update(worlds)
       .set({

@@ -46,6 +46,22 @@ export interface WorldNode {
   updatedAt: string;
 }
 
+/**
+ * §45 的一条关系。有向：`守夜人 → 效忠 → 苍雪盟约` 与反向不是同一件事。
+ * label 可以留空（图上不写字），但端点必须是真的条目。
+ */
+export interface WorldLink {
+  id: string;
+  from: string;
+  to: string;
+  label: string;
+}
+
+export interface WorldPoint {
+  x: number;
+  y: number;
+}
+
 export interface WorldDocument {
   id: string;
   /** 世界属于哪个项目；独立世界（还没挂到项目上）时为 null */
@@ -53,6 +69,13 @@ export interface WorldDocument {
   name: string;
   summary: string;
   nodes: WorldNode[];
+  /** §45 的边 */
+  links: WorldLink[];
+  /**
+   * §45 的拖拽位置。故意与条目内容分开：位置是视图事实，
+   * 换一台设备或重排一次图不该把谁写过的正文改掉。
+   */
+  positions: Record<string, WorldPoint>;
   createdAt: string;
   updatedAt: string;
 }
@@ -63,7 +86,10 @@ export interface WorldIssue {
     | "empty-title"
     | "duplicate-id"
     | "missing-name"
-    | "bad-timestamp";
+    | "bad-timestamp"
+    | "self-link"
+    | "missing-endpoint"
+    | "duplicate-link";
   message: string;
   nodeId?: string;
 }
@@ -105,6 +131,8 @@ export function createWorld(name: string, projectId: string | null = null): Worl
       body: "",
       updatedAt: at,
     })),
+    links: [],
+    positions: {},
     createdAt: at,
     updatedAt: at,
   };
@@ -161,15 +189,156 @@ export function updateWorldNode(
 /**
  * 删掉一个条目。九类骨架允许被删空——用户不想要"生物"这一类是合法选择，
  * 面板上再靠 `createWorld` 之外的入口补回来（addWorldNode 什么类都能加）。
+ *
+ * 挂在它身上的边一起消失（留着就是指向不存在条目的箭头，图上画不出来、
+ * 校验也过不去）；位置同理。删之前想知道会掉几条边，用 `countLinksFor`。
  */
 export function removeWorldNode(document: WorldDocument, nodeId: string): WorldDocument {
   if (!findWorldNode(document, nodeId)) return document;
   const at = stamp();
+  const { [nodeId]: _dropped, ...positions } = document.positions ?? {};
   return {
     ...document,
     nodes: document.nodes.filter((node) => node.id !== nodeId),
+    links: (document.links ?? []).filter((link) => link.from !== nodeId && link.to !== nodeId),
+    positions,
     updatedAt: at,
   };
+}
+
+/** 删条目前的提示用：会连带去掉几条关系 */
+export function countLinksFor(document: WorldDocument, nodeId: string): number {
+  return (document.links ?? []).filter((link) => link.from === nodeId || link.to === nodeId).length;
+}
+
+/**
+ * 连一条有向边。端点不存在、自己连自己、同一对再来一条，都不写进去——
+ * 但绝不静默：`reason` 带回那句原因，调用方（面板 / AI 补丁）负责把它显示出来。
+ */
+export function linkWorldNodes(
+  document: WorldDocument,
+  from: string,
+  to: string,
+  label = "",
+): { document: WorldDocument; reason: string | null } {
+  if (from === to) return { document, reason: "一条关系需要两个不同的条目：不能自己连自己。" };
+  const source = findWorldNode(document, from);
+  const target = findWorldNode(document, to);
+  if (!source || !target) {
+    return { document, reason: "关系的端点不在这个世界里，没有连。" };
+  }
+  const exists = (document.links ?? []).some(
+    (link) => link.from === from && link.to === to && link.label === label.trim(),
+  );
+  if (exists) return { document, reason: `${source.title} 已经这样连着 ${target.title} 了。` };
+  const link: WorldLink = {
+    id: uid("wl"),
+    from,
+    to,
+    label: label.trim(),
+  };
+  return {
+    document: { ...document, links: [...(document.links ?? []), link], updatedAt: stamp() },
+    reason: null,
+  };
+}
+
+export function removeWorldLink(document: WorldDocument, linkId: string): WorldDocument {
+  const links = document.links ?? [];
+  if (!links.some((link) => link.id === linkId)) return document;
+  return { ...document, links: links.filter((link) => link.id !== linkId), updatedAt: stamp() };
+}
+
+/** 拖拽落点。只记位置，不碰条目内容、也不碰 updatedAt 之外的任何东西 */
+export function setWorldNodePosition(
+  document: WorldDocument,
+  nodeId: string,
+  point: WorldPoint,
+): WorldDocument {
+  if (!findWorldNode(document, nodeId)) return document;
+  return {
+    ...document,
+    positions: { ...(document.positions ?? {}), [nodeId]: { x: point.x, y: point.y } },
+    updatedAt: stamp(),
+  };
+}
+
+/** 图上排布的间距：一列一类，同类里往下堆 */
+export const GRAPH_COLUMN_GAP = 220;
+export const GRAPH_ROW_GAP = 96;
+export const GRAPH_ORIGIN = { x: 90, y: 72 };
+
+/**
+ * 给没有位置的条目一个确定性的排布（按类分列、列内按加入顺序堆叠）。
+ * 确定性很重要：同一份文档每次都排成同一个样子，"拖完刷新又乱跑"会被当成 bug。
+ */
+export function autoLayout(document: WorldDocument): Record<string, WorldPoint> {
+  const out: Record<string, WorldPoint> = {};
+  const columns = new Map<WorldKind, number>();
+  for (const node of document.nodes) {
+    const kindIndex = WORLD_KINDS.indexOf(node.kind);
+    if (kindIndex < 0) continue;
+    const row = columns.get(node.kind) ?? 0;
+    columns.set(node.kind, row + 1);
+    out[node.id] = {
+      x: GRAPH_ORIGIN.x + kindIndex * GRAPH_COLUMN_GAP,
+      y: GRAPH_ORIGIN.y + row * GRAPH_ROW_GAP,
+    };
+  }
+  return out;
+}
+
+/** 落库位置优先，缺的按 autoLayout 补：图视图与测试都读这份投影 */
+export function worldPositions(document: WorldDocument): Record<string, WorldPoint> {
+  return { ...autoLayout(document), ...(document.positions ?? {}) };
+}
+
+export interface WorldGraphNode {
+  id: string;
+  title: string;
+  kind: WorldKind;
+  x: number;
+  y: number;
+}
+
+export interface WorldGraphEdge {
+  id: string;
+  label: string;
+  from: WorldGraphNode;
+  to: WorldGraphNode;
+}
+
+/**
+ * §45 的图投影：节点 + 边 + 坐标。
+ * 指向已删条目的边在这里被自然丢掉（渲染层不该看到画不出来的东西），
+ * 而 validateWorld 会同时把它作为 `missing-endpoint` 报出来——两件事都要有。
+ */
+export function worldGraph(document: WorldDocument): {
+  nodes: WorldGraphNode[];
+  edges: WorldGraphEdge[];
+} {
+  const positions = worldPositions(document);
+  const byId = new Map<string, WorldGraphNode>();
+  const nodes = document.nodes.map((node) => {
+    const at = positions[node.id] ?? GRAPH_ORIGIN;
+    const view: WorldGraphNode = {
+      id: node.id,
+      title: node.title,
+      kind: node.kind,
+      x: Math.round(at.x),
+      y: Math.round(at.y),
+    };
+    byId.set(node.id, view);
+    return view;
+  });
+  const edges: WorldGraphEdge[] = [];
+  for (const link of document.links ?? []) {
+    const from = byId.get(link.from);
+    const to = byId.get(link.to);
+    if (!from || !to) continue;
+    edges.push({ id: link.id, label: link.label, from, to });
+  }
+  return { nodes, edges };
 }
 
 /** 结构校验：不合法的内容不该进库，也不该在面板上假装存在 */
@@ -212,6 +381,32 @@ export function validateWorld(document: WorldDocument): WorldIssue[] {
         nodeId: node.id,
       });
     }
+  }
+  const seenPair = new Set<string>();
+  for (const link of document.links ?? []) {
+    if (link.from === link.to) {
+      issues.push({
+        code: "self-link",
+        message: `有条关系把自己连到了自己身上（${link.from}）`,
+        nodeId: link.from,
+      });
+    }
+    if (!seen.has(link.from) || !seen.has(link.to)) {
+      issues.push({
+        code: "missing-endpoint",
+        message: `有条关系连到了不存在的世界条目（${link.from} → ${link.to}）`,
+        nodeId: link.from,
+      });
+    }
+    const pair = `${link.from}→${link.to}#${link.label}`;
+    if (seenPair.has(pair)) {
+      issues.push({
+        code: "duplicate-link",
+        message: `同一对条目之间重复写了同样的关系（${link.from} → ${link.to}）`,
+        nodeId: link.from,
+      });
+    }
+    seenPair.add(pair);
   }
   return issues;
 }

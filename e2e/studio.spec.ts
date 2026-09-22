@@ -814,10 +814,78 @@ test('@smoke 世界：建骨架、填一条、加一条、刷新仍在（§44）
   await page.selectOption('[data-world-new-kind]', 'characters');
   await page.click('[data-world-add="characters"]');
   await expect(page.locator('[data-world-node]')).toHaveCount(10);
+  // 等这次写库落地再刷新：不靠"卸载时补发"那条路（那条由世界图那条用例专门验）
+  await expect(page.locator('[data-world-pending]')).toHaveAttribute('data-world-pending', 'false', { timeout: 20_000 });
 
   await page.reload();
   await expect(page.locator('[data-canvas-frame]')).toBeVisible({ timeout: 30_000 });
   await page.click('[data-panel-tab="world"]');
   await expect(page.locator(`[data-world-body="${loreId}"]`)).toHaveValue('王城在第七次日蚀下投降。');
   await expect(page.locator('[data-world-node]')).toHaveCount(10);
+});
+
+/**
+ * §45 World Graph：关系与位置存在世界文档里，拖完刷新还在。
+ * 断言的是"库里那份图"（reload 之后重读），不是内存里的临时状态。
+ */
+test('@smoke 世界图：连线、拖拽、刷新后关系与位置都还在（§45）', async ({ page }) => {
+  test.setTimeout(180_000);
+  await createProject(page, `世界图 ${Date.now().toString(36)}`);
+  await page.click('[data-panel-tab="world"]');
+  await expect(page.locator('[data-world-empty]')).toBeVisible({ timeout: 40_000 });
+  await page.click('[data-world-create]');
+  await expect(page.locator('[data-world-node]')).toHaveCount(9);
+
+  await page.click('[data-view="graph"]');
+  await expect(page.locator('[data-graph-canvas]')).toBeVisible({ timeout: 40_000 });
+  await expect(page.locator('[data-graph-node]')).toHaveCount(9);
+  await expect(page.locator('[data-graph-edge]')).toHaveCount(0);
+
+  const ids: string[] = await page.evaluate(() =>
+    Array.from(document.querySelectorAll<HTMLElement>('[data-graph-node]')).map((el) => el.dataset.graphNode!),
+  );
+  await page.click(`[data-graph-node="${ids[0]}"]`);
+  await page.click(`[data-graph-node="${ids[3]}"]`);
+  await page.fill('[data-graph-label]', '起源于');
+  await page.click('[data-graph-connect]');
+  await expect(page.locator('[data-graph-edge]')).toHaveCount(1);
+  await expect(page.locator('[data-graph-count]')).toContainText('1 条关系');
+  // 连线这一次写库要等它落地，否则后面的 reload 会把它和拖拽的写库挤掉
+  await expect(page.locator('[data-graph-pending]')).toHaveAttribute('data-graph-pending', 'false', { timeout: 20_000 });
+
+  const box = (await page.locator(`[data-graph-node="${ids[1]}"]`).boundingBox())!;
+  await page.mouse.move(box.x + 40, box.y + 20);
+  await page.mouse.down();
+  await page.mouse.move(box.x + 260, box.y + 170, { steps: 8 });
+  await page.mouse.up();
+  const moved = await page.evaluate(
+    (id) => document.querySelector(`[data-graph-node="${id}"]`)?.getAttribute('transform') ?? '',
+    ids[1],
+  );
+  expect(moved).not.toBe('');
+  // 拖一下不该顺手把节点选成连线端点：拖 ≠ 选
+  await expect(page.locator(`[data-graph-node="${ids[1]}"]`)).toHaveAttribute('data-graph-picked', 'false');
+
+  // 拖完立刻刷新：这次保存还在飞，keepalive 必须让它落库（否则用户看到"已保存"其实是丢的）
+  await page.reload();
+  await expect(page.locator('[data-canvas-frame]')).toBeVisible({ timeout: 30_000 });
+  await page.click('[data-view="graph"]');
+  await expect(page.locator('[data-graph-edge]')).toHaveCount(1);
+  await expect(page.locator('[data-graph-count]')).toContainText('1 条关系');
+  await expect
+    .poll(
+      () =>
+        page.evaluate(
+          (id) => document.querySelector(`[data-graph-node="${id}"]`)?.getAttribute('transform') ?? '',
+          ids[1],
+        ),
+      { timeout: 20_000 },
+    )
+    .toBe(moved);
+
+  // 点边能删：删完关系归零，位置仍然留着
+  await page.locator(`[data-graph-edge="${await page.evaluate(() => document.querySelector('[data-graph-edge]')!.getAttribute('data-graph-edge'))}"] line`).first().click({ force: true });
+  await page.click('[data-graph-remove-edge]');
+  await expect(page.locator('[data-graph-edge]')).toHaveCount(0);
+  await expect(page.locator('[data-graph-count]')).toContainText('0 条关系');
 });

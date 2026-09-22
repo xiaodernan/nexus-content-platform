@@ -356,12 +356,29 @@ export const WorldNodeSchema = z.object({
 });
 export type WorldNodePayload = z.infer<typeof WorldNodeSchema>;
 
+export const WorldPointSchema = z.object({
+  x: z.number().finite().min(-100_000).max(100_000),
+  y: z.number().finite().min(-100_000).max(100_000),
+});
+
+export const WorldLinkSchema = z.object({
+  id: z.string().min(1).max(128),
+  from: z.string().min(1).max(128),
+  to: z.string().min(1).max(128),
+  label: z.string().max(120),
+});
+export type WorldLinkPayload = z.infer<typeof WorldLinkSchema>;
+
 export const WorldDocumentSchema = z.object({
   id: z.string().min(1).max(128),
   projectId: z.string().max(128).nullable(),
   name: z.string().trim().min(1).max(120),
   summary: z.string().max(2000),
   nodes: z.array(WorldNodeSchema).max(5000),
+  // default 不是偷懒：上一版存进来的世界没有这两项，缺字段必须仍然读得出来，
+  // 而不是让老项目一打开面板就报"契约不符"。
+  links: z.array(WorldLinkSchema).max(5000).default([]),
+  positions: z.record(z.string(), WorldPointSchema).default({}),
   createdAt: z.string().min(1),
   updatedAt: z.string().min(1),
 });
