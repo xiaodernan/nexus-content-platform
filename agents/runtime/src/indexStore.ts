@@ -2,6 +2,8 @@ import { hashString } from '@nexus/ai-providers';
 import type { CodeIndex, IndexChunk } from './codeIndex.js';
 import { buildIndex, chunkFile, extractSymbols, fileKind } from './codeIndex.js';
 import type { FsWriteLike } from './durability.js';
+import { loadVectors, saveVectors, type VectorDb } from './vectordb.js';
+import { mergeIndexVectors } from './indexVectors.js';
 
 /**
  * M2 v4: serializable index snapshots + fingerprint-based incremental rescan (ADR 0016
@@ -119,7 +121,9 @@ export interface IndexProviderOptions {
   files: Record<string, string>;
   /** Optional snapshot JSON path, loaded on first use and persisted after every refresh. */
   snapshotFile?: string;
-  /** Required with snapshotFile: the writable fs used to persist it. */
+  /** v23: chunk-vectors JSON path, refreshed incrementally with every snapshot persist. */
+  vectorsFile?: string;
+  /** Required with snapshotFile/vectorsFile: the writable fs used to persist them. */
   fsLike?: FsWriteLike;
 }
 
@@ -129,6 +133,8 @@ export interface IndexProvider {
   index(): CodeIndex;
   /** Files re-chunked by the most recent refresh — 0 means pure reuse (§60 observability). */
   lastRechunked(): string[];
+  /** v23: chunk vectors when `vectorsFile` backs the provider; null ⇒ callers score inline. */
+  vectors(): VectorDb | null;
 }
 
 /**
@@ -140,9 +146,23 @@ export function createIndexProvider(opts: IndexProviderOptions): IndexProvider {
   let current: CodeIndex | null = null;
   let fps: Fingerprints = {};
   let rechunked: string[] = [];
+  let vdb: VectorDb | null = null;
 
   const persist = (index: CodeIndex): void => {
     if (opts.snapshotFile && opts.fsLike) saveIndex(opts.fsLike, opts.snapshotFile, index, fps);
+  };
+
+  // v23: vectors ride the snapshot lifecycle — cold-load once, then only re-embed chunks
+  // whose (id, text) changed; a corrupt vectors file rebuilds fully and repairs the file.
+  const syncVectors = (index: CodeIndex): void => {
+    if (!opts.vectorsFile || !opts.fsLike) return;
+    if (!vdb) {
+      const loaded = loadVectors(opts.fsLike, opts.vectorsFile);
+      if (loaded.ok) vdb = loaded.db;
+    }
+    const merged = mergeIndexVectors(vdb, index);
+    vdb = merged.db;
+    saveVectors(opts.fsLike, opts.vectorsFile, vdb);
   };
 
   return {
@@ -156,6 +176,7 @@ export function createIndexProvider(opts: IndexProviderOptions): IndexProvider {
           fps = r.fingerprints;
           rechunked = r.rechunked;
           persist(current);
+          syncVectors(current);
           return current;
         }
       }
@@ -166,6 +187,7 @@ export function createIndexProvider(opts: IndexProviderOptions): IndexProvider {
       fps = r.fingerprints;
       rechunked = r.rechunked;
       persist(current);
+      syncVectors(current);
       return current;
     },
     index() {
@@ -173,6 +195,10 @@ export function createIndexProvider(opts: IndexProviderOptions): IndexProvider {
     },
     lastRechunked() {
       return [...rechunked];
+    },
+    vectors() {
+      if (!current) this.refresh();
+      return opts.vectorsFile && opts.fsLike ? vdb : null;
     },
   };
 }

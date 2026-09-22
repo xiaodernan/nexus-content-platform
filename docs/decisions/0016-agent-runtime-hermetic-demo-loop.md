@@ -416,3 +416,22 @@ two fresh runs, checkpoint denial leaving the workspace byte-identical).
 - Runtime 131/131 (+2 chain-ui cases); `rolechain-proof.mjs` extended (completion,
   per-action denial, registry-immutability, researcher-absence assertions); seventeen
   proofs.
+
+## Amendment 23 — v23: persisted chunk vectors become a real scoring path inside fs.index, 2026-09
+- **`indexVectors.ts` — vectors ride the index lifecycle:** each chunk gets a stored vector
+  under id `path#startLine` with text `heading + ' ' + text` — exactly the string `queryIndex`
+  scores inline. `mergeIndexVectors` reuses stored vectors verbatim for unchanged (id, text)
+  pairs and re-embeds only touched windows; the merged db is asserted deep-equal to a cold
+  `indexToVectorDb` build. `createIndexProvider` gains `vectorsFile` + `vectors()`: cold-load
+  once, incremental merge on every refresh, persist each time; a corrupt vectors file rebuilds
+  and repairs.
+- **Parity by construction, engine stated (§60):** `queryIndexWithVectors` re-derives the
+  exact `hybridScore × sourcePrior` formula from the STORED vector (same zero-shared ⇒ 0 rule,
+  same tiebreaks, same snippets) — tests and proof assert hit-for-hit equality with
+  `queryIndex`. `fs.index` output is now `{engine:'inline'|'vectors', hits}`; if ANY chunk
+  lacks a matching vector (drifted, tampered or wrong-dim db) the WHOLE query falls back to
+  inline scoring and says `engine:'inline'` — never a silently half-vector ranking.
+- Runtime 142/142 (+11 `indexVectors.test.ts` cases); new `index-vectors-proof.mjs` over the
+  real repo (711 chunk vectors: cold persistence, 4-query parity, byte-identical cold reuse,
+  one-line edit re-embedded 1/711, tamper ⇒ stated inline fallback, corrupt ⇒ repair,
+  tool-surface engine labels); eighteen proofs.

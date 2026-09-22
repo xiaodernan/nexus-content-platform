@@ -51,6 +51,14 @@ export {
   type VectorsLoad,
 } from './vectordb.js';
 export {
+  indexHay,
+  indexToVectorDb,
+  indexVectorId,
+  mergeIndexVectors,
+  queryIndexWithVectors,
+  type IndexedQuery,
+} from './indexVectors.js';
+export {
   appendEvaluation,
   formatEvaluationLine,
   loadEvaluations,

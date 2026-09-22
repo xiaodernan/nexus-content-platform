@@ -1,4 +1,5 @@
 import { buildIndex, queryIndex } from './codeIndex.js';
+import { queryIndexWithVectors } from './indexVectors.js';
 import type { IndexProvider } from './indexStore.js';
 import type { ToolRegistry } from './registry.js';
 import type { ToolSpec } from './types.js';
@@ -81,7 +82,7 @@ export const WORKSPACE_TOOL_SPECS: ToolSpec[] = [
   },
   {
     name: 'fs.index',
-    description: 'Hybrid code-index query over the workspace (chunk-level top hits).',
+    description: 'Hybrid code-index query over the workspace (chunk-level top hits; output states its scoring engine).',
     permissions: ['read'],
     args: [
       { name: 'query', type: 'string', required: true },
@@ -129,8 +130,12 @@ export function registerWorkspaceTools(registry: ToolRegistry, ws: InMemoryWorks
           return { hits: ws.search(String(args.term)) };
         case 'fs.index': {
           const topK = args.topK === undefined ? 5 : Number(args.topK);
-          const index = opts.indexProvider ? opts.indexProvider.refresh() : buildIndex(ws.snapshot());
-          return { hits: queryIndex(index, String(args.query), topK) };
+          if (opts.indexProvider) {
+            const index = opts.indexProvider.refresh();
+            const r = queryIndexWithVectors(index, opts.indexProvider.vectors(), String(args.query), topK);
+            return { engine: r.engine, hits: r.hits };
+          }
+          return { engine: 'inline' as const, hits: queryIndex(buildIndex(ws.snapshot()), String(args.query), topK) };
         }
         case 'fs.write':
           ws.write(String(args.path), String(args.content));

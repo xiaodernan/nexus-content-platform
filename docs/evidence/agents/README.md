@@ -8,7 +8,7 @@ every emitted artifact (`provenance.mode = "demo"`).
 ## Reproducible gates
 
 ```
-npm test          # turbo: @nexus/agent-runtime 131/131 vitest among all packages
+npm test          # turbo: @nexus/agent-runtime 142/142 vitest among all packages
 npm run build     # tsc dist for agents/runtime (build order via ^build deps)
 node docs/evidence/agents/agent-proof.mjs
 node docs/evidence/agents/code-index-proof.mjs   # requires `npm run build` first
@@ -27,6 +27,7 @@ node docs/evidence/agents/dom-ui-proof.mjs         # requires `npm run build` fi
 node docs/evidence/agents/planner-proof.mjs        # requires `npm run build` first
 node docs/evidence/agents/vector-store-proof.mjs   # requires `npm run build` first
 node docs/evidence/agents/memory-vectors-proof.mjs # requires `npm run build` first
+node docs/evidence/agents/index-vectors-proof.mjs  # requires `npm run build` first
 ```
 
 ## Unit tests (vitest, `agents/runtime/test`)
@@ -53,6 +54,7 @@ node docs/evidence/agents/memory-vectors-proof.mjs # requires `npm run build` fi
 | `repair.test.ts` (5) | clean input no-op, off-page pulled inside then QA-clean, overlap nudged below with gutter, zero-size grown, dedupe + determinism + "apply all repairs → zero error flags" |
 | `durability.test.ts` (8) | memory serialize/deserialize round-trip + version/schema rejection, `restore()` id high-water mark, save/load through an injected writable fake disk, corrupt-file honest failure, `guardedJoin` jail (absolute/`..`/drive-letter rejection, backslash folding), `disk.write` checkpoint gate + escape touches nothing, `disk.read`/`disk.list` confinement |
 | `indexStore.test.ts` (11) | index snapshot serialize→deserialize verbatim + version/chunk schema rejection, save/load via injected fs, cold rescan equals `buildIndex`, unchanged files reuse chunks / edits rechunk exactly the changed paths / removals drop out, query ranking snapshot-independent; v5 provider: cold-first-build equals plain build, incremental refresh 0 re-chunked, edited file sole re-chunk, cross-provider snapshot restore, corrupt-snapshot fallback + repair, `fs.index` provider/default parity |
+| `indexVectors.test.ts` (11) | v23: `indexToVectorDb` shape (one entry per chunk, id `path#startLine`, real dim-64 vectors), vector-vs-inline hit-for-hit parity across five query shapes + stated engine, null db ⇒ honest inline; cold merge ≡ cold build, unchanged chunks reuse the identical vector object / only touched windows re-embed / removals drop out; tampered-text, missing-id and wrong-dim drift each send the WHOLE query inline with real inline hits; persisted provider: lazy `vectors()`, byte-identical reuse by a cold second provider, corrupt-file self-repair, `fs.index` engine labels with/without vectorsFile, edits tracked through the provider lifecycle |
 
 ## Headless proof (`agent-proof.mjs`) against the built `dist/`
 
@@ -208,6 +210,20 @@ reason. Exact scan is stated as the algorithm (correct at this scale), not hidde
 
 Cold reader (restored store + persisted vectors) reproduces inline ranking exactly; `memory.recall` reports its engine, and a corrupted vector file falls back to inline computation while saying `engine:'inline'`. The Studio dock persists `agent/vectors-studio.json` on every approval, so refreshed pages recall from cold vectors.
 
+## Index-vectors proof (`index-vectors-proof.mjs`, M2 v23)
+
+711 real repo-chunk vectors (ids `path#startLine`, token-bag embeddings — mechanics, not a
+trained model, §60) persisted through the `createIndexProvider` lifecycle into a jailed dir:
+the cold file deep-equals a direct `indexToVectorDb` build; four queries rank hit-for-hit
+identical to inline `queryIndex` while stating `engine:'vectors'`; a COLD second provider
+re-chunks 0 files and rewrites a **byte-identical** vectors file (pure reuse, provable);
+appending one line to one file re-embeds exactly 1 of 711 vectors and the new symbol is
+immediately queryable through the vector path. Negative controls: a tampered entry sends the
+WHOLE query to `engine:'inline'` with the real inline ranking (never half-vector), and a
+corrupt file self-repairs on refresh. On the tool surface `fs.index` returns
+`{engine:'vectors'}` with a vector-backed provider and `{engine:'inline'}` without — same
+hits either way, honest label either way.
+
 ## v20 note — orchestrator-driven UI
 
 The dock's Agent UI run now executes the demo planner's `observe→type→click` plan through the UNCHANGED runTask loop; ui tools address labels (exact, then substring). Browser: two per-action Allow dialogs, then the composed dashboard — live plan→act→verify, fully gated.
@@ -220,6 +236,17 @@ asserted — unknown tool, not denied), and the v20 UI template fires for the ed
 chain then appends an `editor→host` handoff recording exactly which ui tools SUCCEEDED
 (`ui:ui.observe+ui.type+ui.click`); refusing `ui.click` yields `ui:ui.observe+ui.type` with
 status `denied` and the page never clicked (§60: the audit names the real engine).
+
+## v23 note — persisted chunk vectors as an fs.index scoring path
+
+`createIndexProvider` now syncs a `vectorsFile` alongside the snapshot: vectors are merged
+incrementally per refresh (only touched chunk windows re-embed) and the provider exposes
+`vectors()`. `fs.index` scores from those stored vectors via `queryIndexWithVectors` —
+the SAME hybrid formula, asserted hit-for-hit identical to inline — and states its engine in
+the output (`{engine:'vectors'|'inline', hits}`). Any drift between db and index (tampered
+text, missing id, wrong dim) falls the whole query back to inline scoring, stated. Still the
+deterministic token-bag stand-in (§60): this is real vector-store mechanics, not neural
+retrieval.
 
 ## Scope honesty
 
