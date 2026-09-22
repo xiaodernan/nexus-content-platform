@@ -1,4 +1,4 @@
-// NEXUS M2 v11 — visual-QA proof (ADR 0016 amendment 11).
+// NEXUS M2 v11 — visual-QA proof (ADR 0016 amendments 11 and 24).
 // Structural geometry checks only — no pixels, no canvas, no pretending (§60). Feeds
 // synthetic rect sets (clean / stacked / off-page) AND a real Studio-style scenario:
 // layout the empty document's page rects by hand, then verify the QA verdict the dock
@@ -44,4 +44,19 @@ const doc2 = dm.applyBatch(sized, { id: 'y', ops: [dm.ops.addSubtree(pageId, 0, 
 const l2 = dm.layoutPage(doc2, pageId);
 const rep2 = runVisualQa({ page: { x: pg.x, y: pg.y, width: pg.width, height: pg.height }, rects: { z1: (({ x, y, width, height }) => ({ x, y, width, height }))(l2.z1) } });
 assert.equal(rep2.flags[0].code, 'zero-size');
-console.log('[qa-proof] ALL ASSERTIONS PASSED (structural QA on real layout data, §60 no pixel claims)');
+// 4) v24 near-miss lints: OFF unless a tolerance is passed; when opted in they flag the
+//    measured slip, and rects with stronger flags never collect noise.
+const slip = { page, rects: { a: { x: 100, y: 100, width: 200, height: 50 }, b: { x: 101.5, y: 400, width: 200, height: 50 } } };
+assert.deepEqual(runVisualQa(slip).flags, [], 'default must stay opt-in: existing hosts gain no flags');
+const aligned = runVisualQa({ ...slip, alignTolerance: 2 });
+assert.equal(aligned.flags.length, 1);
+assert.equal(aligned.flags[0].code, 'near-align');
+assert.equal(aligned.flags[0].severity, 'warn');
+assert.match(aligned.flags[0].detail, /left 1\.5px apart/);
+const centered = runVisualQa({ page, rects: { m: { x: 401, y: 350, width: 399, height: 100 } }, centerTolerance: 2 });
+assert.equal(centered.flags[0].code, 'near-center', `1px off horizontal center should lint: ${JSON.stringify(centered.flags)}`);
+const noisy = runVisualQa({ page, rects: { z: { x: 100, y: 100, width: 0, height: 50 }, gone: { x: 101.5, y: 9000, width: 100, height: 50 }, a: { x: 100, y: 100, width: 200, height: 50 } }, alignTolerance: 2, centerTolerance: 2 });
+assert.deepEqual(noisy.flags.map((f) => f.code).sort(), ['off-page', 'zero-size'], 'zero-size/off-page rects carry their stronger flags, not near-miss noise');
+console.log(`[qa-proof] v24 near-miss: opt-in only · ${aligned.flags[0].detail}`);
+
+console.log('[qa-proof] ALL ASSERTIONS PASSED (structural QA on real layout data + v24 near-miss lints, §60 no pixel claims)');

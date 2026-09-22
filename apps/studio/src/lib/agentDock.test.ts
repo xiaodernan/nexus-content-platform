@@ -154,6 +154,17 @@ describe('agentDock visual QA (v11)', () => {
     expect(overlap?.ids).toContain(cardId);
   });
 
+  it('v24 near-miss opt-in: a 1.5px edge slip yields near-align chips; exact alignment yields none', () => {
+    const { doc, pageId, heroId, cardId } = seededDoc();
+    const slipped = rectNode('Slip', { id: 'slip-1', x: 41.5, y: 300, width: 250, height: 40 });
+    const withSlip = applyBatch(doc, { id: newId(), ops: [ops.addSubtree(pageId, childIdList(doc.nodes[pageId]!).length, [slipped])], provenance: { mode: 'user' }, timestamp: 6 });
+    const near = qaForDoc(withSlip, pageId).flags.filter((f) => f.code === 'near-align');
+    // slip shares a left edge 1.5px off BOTH seed layers — and the seed pair itself (exact x=40) never flags
+    expect(near).toHaveLength(2);
+    expect(near.some((f) => f.ids.includes(heroId) && f.ids.includes(cardId))).toBe(false);
+    expect(near.every((f) => f.ids.includes('slip-1') && f.severity === 'warn')).toBe(true);
+  });
+
   it('planRepairs closes the loop: applying its batch through the op path clears QA errors (v12)', () => {
     const { doc, pageId } = seededDoc();
     const strayed = rectNode('Lost', { id: 'lost-1', x: 5000, y: 200, width: 100, height: 50 });

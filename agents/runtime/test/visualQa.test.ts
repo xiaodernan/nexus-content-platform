@@ -72,3 +72,60 @@ describe('contrast rule (v14, computed WCAG 2.1 — not taste)', () => {
     expect(contrastRatio('#zzz', '#fff')).toBeNull();
   });
 });
+
+describe('near-miss lints (v24, opt-in geometry — measurable, not taste)', () => {
+  it('off by default: an almost-coincident pair gains NO flags without tolerances', () => {
+    const rects = { a: { x: 100, y: 100, width: 200, height: 50 }, b: { x: 103, y: 400, width: 200, height: 50 } };
+    expect(runVisualQa(input(rects)).flags).toEqual([]);
+  });
+
+  it('near-align: edges within alignTolerance (but not exact) flag once per pair with the real gaps', () => {
+    const rects = { a: { x: 100, y: 100, width: 200, height: 50 }, b: { x: 103, y: 400, width: 200, height: 50 } };
+    const rep = runVisualQa(input(rects, { alignTolerance: 4 }));
+    expect(rep.flags).toHaveLength(1);
+    const f = rep.flags[0]!;
+    expect(f).toMatchObject({ code: 'near-align', severity: 'warn', ids: ['a', 'b'] });
+    expect(f.detail).toContain('left 3.0px'); // left AND right edges both 3px off
+    expect(f.detail).toContain('right 3.0px');
+  });
+
+  it('near-align boundaries: exact 0px gap passes, gap > tolerance passes, gap == tolerance flags', () => {
+    const exact = { a: { x: 100, y: 100, width: 50, height: 20 }, b: { x: 100, y: 400, width: 50, height: 20 } };
+    expect(runVisualQa(input(exact, { alignTolerance: 4 })).flags).toEqual([]);
+    const beyond = { a: exact.a, b: { x: 105, y: 400, width: 50, height: 20 } };
+    expect(runVisualQa(input(beyond, { alignTolerance: 4 })).flags).toEqual([]);
+    const boundary = { a: exact.a, b: { x: 104, y: 400, width: 50, height: 20 } };
+    expect(runVisualQa(input(boundary, { alignTolerance: 4 })).flags.map((f) => f.code)).toEqual(['near-align']);
+  });
+
+  it('near-center: 2px off horizontal center flags; exact center, edge-touching and wide rects with non-positive margins stay clean', () => {
+    const almost = { m: { x: 401, y: 350, width: 400, height: 100 } }; // gaps 401/399 → 2px off h; exact v
+    const rep = runVisualQa(input(almost, { centerTolerance: 3 }));
+    expect(rep.flags).toHaveLength(1);
+    expect(rep.flags[0]).toMatchObject({ code: 'near-center', ids: ['m'] });
+    expect(rep.flags[0]!.detail).toContain('horizontally');
+    expect(rep.flags[0]!.detail).not.toContain('vertically');
+    const exact = { m: { x: 400, y: 350, width: 400, height: 100 } };
+    expect(runVisualQa(input(exact, { centerTolerance: 3 })).flags).toEqual([]);
+    const touching = { m: { x: 0, y: 350, width: 400, height: 100 } }; // leftGap 0 → centering was never the intent
+    expect(runVisualQa(input(touching, { centerTolerance: 3 })).flags).toEqual([]);
+  });
+
+  it('stronger flags win: zero-size and off-page rects never also collect near-miss noise', () => {
+    const rep = runVisualQa(
+      input(
+        { z: { x: 100, y: 100, width: 0, height: 50 }, gone: { x: 103, y: 5000, width: 100, height: 50 }, a: { x: 100, y: 100, width: 200, height: 50 } },
+        { alignTolerance: 4 },
+      ),
+    );
+    expect(rep.flags.map((f) => f.code).sort()).toEqual(['off-page', 'zero-size']);
+  });
+
+  it('deterministic: identical inputs produce identical reports', () => {
+    const i = input({ a: { x: 100, y: 100, width: 200, height: 50 }, b: { x: 103, y: 402, width: 194, height: 50 } }, { alignTolerance: 4, centerTolerance: 3 });
+    expect(runVisualQa(i)).toEqual(runVisualQa(i));
+    const rep = runVisualQa(i);
+    expect(rep.verdict).toBe('flagged');
+    expect(rep.flags.every((f) => f.severity === 'warn')).toBe(true);
+  });
+});

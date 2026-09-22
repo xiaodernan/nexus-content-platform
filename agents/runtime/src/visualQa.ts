@@ -3,6 +3,8 @@
  * studio feeds it `layoutPage` output; tests feed literals), so the runtime keeps zero
  * dependencies on the Design Model and nothing here pretends to look at pixels (§60):
  * these are structural checks a canvas screenshot cannot beat but also never contradicts.
+ * v24 adds the opt-in near-miss lints (`near-align`, `near-center`) — measurable "almost
+ * coincident" geometry, explicitly NOT an aesthetic opinion.
  */
 /** CSS hex (`#rgb`/`#rrggbb`) or an rgb/rgba() string; anything unparsable yields no flag. */
 export type QaColor = string;
@@ -27,12 +29,23 @@ export interface QaInput {
   overflowTolerance?: number;
   /** Minimum contrast ratio to pass. Default 3 (WCAG 2.1 large-text floor). */
   minContrast?: number;
+  /**
+   * v24 near-miss lint: pairs whose edges ALMOST coincide (gap > 0 and ≤ this many px)
+   * are flagged. Default 0 ⇒ rule OFF — tolerances are explicit host inputs, so layouts
+   * that never opted in gain no new flags.
+   */
+  alignTolerance?: number;
+  /**
+   * v24: a rect ALMOST centered on an axis (|leftGap − rightGap| or |topGap − bottomGap|
+   * > 0 and ≤ this many px) is flagged. Default 0 ⇒ rule OFF.
+   */
+  centerTolerance?: number;
 }
 
 export type QaSeverity = 'error' | 'warn';
 
 export interface QaFlag {
-  code: 'zero-size' | 'off-page' | 'overlap' | 'overflow' | 'low-contrast';
+  code: 'zero-size' | 'off-page' | 'overlap' | 'overflow' | 'low-contrast' | 'near-align' | 'near-center';
   severity: QaSeverity;
   ids: string[];
   detail: string;
@@ -134,6 +147,59 @@ export function runVisualQa(input: QaInput): QaReport {
       flags.push({ code: 'low-contrast', severity: 'warn', ids: [id], detail: `${id} text ${r.fill} on ${r.bg} has contrast ${ratio.toFixed(2)} (< ${String(input.minContrast ?? 3)})` });
     }
   }
+
+  /* v24 — near-miss lints, arithmetic only (§60: "almost coincident" is measurable; taste is not).
+   * Both are opt-in: tolerance 0/absent ⇒ the rule never fires, so existing hosts gain no flags.
+   * Rects already zero-size or fully off-page are skipped — they carry stronger flags. */
+  const usable = ids.filter((id) => {
+    const r = input.rects[id]!;
+    return r.width > 0 && r.height > 0 && intersect(r, page) > 0;
+  });
+  const alignTol = input.alignTolerance ?? 0;
+  if (alignTol > 0) {
+    for (let i = 0; i < usable.length; i++) {
+      for (let j = i + 1; j < usable.length; j++) {
+        const a = input.rects[usable[i]!]!;
+        const b = input.rects[usable[j]!]!;
+        const edges: Array<[string, number]> = [
+          ['left', Math.abs(a.x - b.x)],
+          ['right', Math.abs(a.x + a.width - (b.x + b.width))],
+          ['top', Math.abs(a.y - b.y)],
+          ['bottom', Math.abs(a.y + a.height - (b.y + b.height))],
+        ];
+        const near = edges.filter(([, gap]) => gap > 0 && gap <= alignTol);
+        if (near.length > 0) {
+          flags.push({
+            code: 'near-align',
+            severity: 'warn',
+            ids: [usable[i]!, usable[j]!].sort(),
+            detail: `${usable[i]!}/${usable[j]!} ${near.map(([n, g]) => `${n} ${g.toFixed(1)}px apart`).join(', ')} (≤ ${alignTol}px — nudge to align)`,
+          });
+        }
+      }
+    }
+  }
+  const centerTol = input.centerTolerance ?? 0;
+  if (centerTol > 0) {
+    for (const id of usable) {
+      const r = input.rects[id]!;
+      const hGap = Math.abs(r.x - page.x - (page.x + page.width - (r.x + r.width))); // |leftGap − rightGap|
+      const vGap = Math.abs(r.y - page.y - (page.y + page.height - (r.y + r.height))); // |topGap − bottomGap|
+      const axes: Array<[string, number]> = [];
+      // "almost centered" only means something once a rect is centered-ish: both margins positive.
+      if (hGap > 0 && hGap <= centerTol && r.x - page.x > 0 && page.x + page.width - (r.x + r.width) > 0) axes.push(['horizontally', hGap]);
+      if (vGap > 0 && vGap <= centerTol && r.y - page.y > 0 && page.y + page.height - (r.y + r.height) > 0) axes.push(['vertically', vGap]);
+      if (axes.length > 0) {
+        flags.push({
+          code: 'near-center',
+          severity: 'warn',
+          ids: [id],
+          detail: `${id} is ${axes.map(([n, g]) => `${g.toFixed(1)}px off ${n} center`).join(', ')} (≤ ${centerTol}px — center it)`,
+        });
+      }
+    }
+  }
+
   const sorted = flags.sort((p, q) => order[p.severity] - order[q.severity] || p.code.localeCompare(q.code) || p.ids.join().localeCompare(q.ids.join()));
   return { verdict: sorted.length === 0 ? 'ok' : 'flagged', checked: ids.length, flags: sorted };
 }

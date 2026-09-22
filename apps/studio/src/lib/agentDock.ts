@@ -196,7 +196,8 @@ export function qaInputForDoc(doc: DesignDocument, pageId: string): { page: QaRe
 export function qaForDoc(doc: DesignDocument, pageId: string): QaReport {
   const input = qaInputForDoc(doc, pageId);
   if (!input) return { verdict: 'ok', checked: 0, flags: [] };
-  return runVisualQa(input);
+  // v24: the dock opts into the near-miss lints at a tight 2px — measurable slips only.
+  return runVisualQa({ ...input, alignTolerance: 2, centerTolerance: 2 });
 }
 
 /* ---- v12: QA → deterministic repair proposals, dispatched through the same op path ---- */

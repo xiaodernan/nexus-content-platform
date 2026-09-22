@@ -435,3 +435,20 @@ two fresh runs, checkpoint denial leaving the workspace byte-identical).
   real repo (711 chunk vectors: cold persistence, 4-query parity, byte-identical cold reuse,
   one-line edit re-embedded 1/711, tamper ⇒ stated inline fallback, corrupt ⇒ repair,
   tool-surface engine labels); eighteen proofs.
+
+## Amendment 24 — v24: opt-in near-miss lints — measurable "almost aligned", never taste, 2026-09
+- **Two new structural rules in `visualQa.ts`:** `near-align` (a pair whose left/right/top/
+  bottom edges differ by >0 and ≤ `alignTolerance` px — exact coincidence passes, big design
+  freedom passes, only the 1–2px slip that every designer recognizes lints) and `near-center`
+  (a fully-on-page rect whose |leftGap − rightGap| or |topGap − bottomGap| is >0 and ≤
+  `centerTolerance`). Pure arithmetic on the same rect inputs (§60: nothing claims taste).
+- **Opt-in by default (`tolerance ?? 0` ⇒ rule OFF):** existing hosts provably gain zero new
+  flags — asserted. The Studio dock explicitly opts in at a tight 2px in `qaForDoc`, so the
+  chip row can now show `near-align`/`near-center` after every Approve; the generic
+  flag renderer needed no change. Rects already carrying `zero-size`/`off-page` are excluded
+  from near-miss noise (usable-set guard, asserted).
+- **Repair stays honest:** `proposeRepairs` does NOT touch near-miss flags — "nudge to align"
+  is a human call by default (§28), and the loop never invents a fix it can't justify.
+- Runtime 148/148 (+6 near-miss cases), studio 91/91 (+1 dock opt-in case);
+  `qa-proof.mjs` extended (defaults-off, real px gaps in details, noise guard); eighteen
+  proofs.

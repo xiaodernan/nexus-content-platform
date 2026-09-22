@@ -8,7 +8,7 @@ every emitted artifact (`provenance.mode = "demo"`).
 ## Reproducible gates
 
 ```
-npm test          # turbo: @nexus/agent-runtime 142/142 vitest among all packages
+npm test          # turbo: @nexus/agent-runtime 148/148 vitest among all packages
 npm run build     # tsc dist for agents/runtime (build order via ^build deps)
 node docs/evidence/agents/agent-proof.mjs
 node docs/evidence/agents/code-index-proof.mjs   # requires `npm run build` first
@@ -51,6 +51,7 @@ node docs/evidence/agents/index-vectors-proof.mjs  # requires `npm run build` fi
 | `visualQa.test.ts` (5) | clean layout ok, zero-size/off-page/overlap detection with severities, error-before-warn deterministic ordering, tolerances as explicit inputs, identical reports for identical inputs |
 | `chain.test.ts` (6) | four-stage researcher→designer→qa→editor order + handoff records, QA honest-empty without host rects, designer denial stops the chain naming its stage, determinism; v22: ui-driver editor stage drives observe→type→click→verify with `editor→host` engine handoff, per-action denial leaves the page unclicked and states the partial engine |
 | `visualQa.test.ts` +contrast (3) | black/white passes, grey pair flags warn, rgb()/rgba() parse, junk colors yield no flag, 21:1 math |
+| `visualQa.test.ts` +near-miss (6) | v24: default OFF (no opt-in no flags), 3px pair flags once with real px gaps in detail, boundaries (exact 0 passes, >tol passes, ==tol flags), near-center 2px-off vs exact/edge-touching, zero-size+off-page rects never collect near-miss noise, determinism |
 | `repair.test.ts` (5) | clean input no-op, off-page pulled inside then QA-clean, overlap nudged below with gutter, zero-size grown, dedupe + determinism + "apply all repairs → zero error flags" |
 | `durability.test.ts` (8) | memory serialize/deserialize round-trip + version/schema rejection, `restore()` id high-water mark, save/load through an injected writable fake disk, corrupt-file honest failure, `guardedJoin` jail (absolute/`..`/drive-letter rejection, backslash folding), `disk.write` checkpoint gate + escape touches nothing, `disk.read`/`disk.list` confinement |
 | `indexStore.test.ts` (11) | index snapshot serialize→deserialize verbatim + version/chunk schema rejection, save/load via injected fs, cold rescan equals `buildIndex`, unchanged files reuse chunks / edits rechunk exactly the changed paths / removals drop out, query ranking snapshot-independent; v5 provider: cold-first-build equals plain build, incremental refresh 0 re-chunked, edited file sole re-chunk, cross-provider snapshot restore, corrupt-snapshot fallback + repair, `fs.index` provider/default parity |
@@ -166,12 +167,15 @@ then a **separate node child process** loads only the persisted handoff JSON + t
 file, completes the editor stage memory-first (`plan.steps[0].tool === 'memory.recall'`)
 and scores 1 too. Ledger and evaluation files record the stages; the jail is cleaned after.
 
-## QA proof (`qa-proof.mjs`, M2 v11)
+## QA proof (`qa-proof.mjs`, M2 v11 + v24)
 
 Synthetic triad (clean / stacked / off-page) plus real `layoutPage` data: a banner over a
 hero on a sized page is `ok`; a zero-height layer is flagged `zero-size`, not tolerated.
 The Studio dock runs exactly this after every Approve (verdict + flag chips, `qa` field in
-the ledger). Stated limit (§60): structural geometry only — no pixel or aesthetic claims.
+the ledger). v24 adds the opt-in near-miss lints: same 1.5px-slip pair proves flags are
+absent by DEFAULT, a single `near-align` warn names the measured gaps, a 1px-off rect
+lints `near-center`, and zero-size/off-page rects never collect noise. Stated limit (§60):
+structural geometry only — no pixel or aesthetic claims.
 
 ## Repair proof (`repair-proof.mjs`, M2 v12)
 
@@ -247,6 +251,16 @@ the output (`{engine:'vectors'|'inline', hits}`). Any drift between db and index
 text, missing id, wrong dim) falls the whole query back to inline scoring, stated. Still the
 deterministic token-bag stand-in (§60): this is real vector-store mechanics, not neural
 retrieval.
+
+## v24 note — opt-in near-miss lints in the QA rule pack
+
+`runVisualQa` gained `alignTolerance`/`centerTolerance` (default 0 = OFF — asserted, so no
+host silently gains flags): `near-align` fires per pair when an edge gap is >0 but ≤ the
+tolerance (exact alignment and wide-open layouts pass), `near-center` when a fully-on-page
+rect's opposing page margins differ by 1–2px. Both warn-only, deterministic, and excluded
+for rects that already carry zero-size/off-page errors. The Studio dock opts in at 2px in
+`qaForDoc`; `proposeRepairs` deliberately does NOT auto-fix these — nudging alignment is a
+human call (§28), which the dock shows honestly as "Nothing safely fixable".
 
 ## Scope honesty
 
