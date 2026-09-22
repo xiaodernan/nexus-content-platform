@@ -55,7 +55,8 @@ export default function AgentPanel() {
         decider.current = resolve;
         setUiAsk(plan);
       });
-    const { outcome, actions } = await runUiTask(createDomDriver(), goal || 'an analytics dashboard', decide);
+    const driver = { ...createDomDriver(), layerCount: () => Object.keys(useStudio.getState().doc.nodes).length };
+    const { outcome, actions } = await runUiTask(driver, goal || 'an analytics dashboard', decide, undefined, browserStorage());
     setUiAsk(null);
     setUiBusy(false);
     setUiLog(actions);

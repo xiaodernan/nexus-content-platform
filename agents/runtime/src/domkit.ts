@@ -16,6 +16,8 @@ export interface UiDriver {
   elements(): UiElement[];
   click(index: number): string;
   type(index: number, text: string): string;
+  /** v21 (optional): count of real artifacts the host can verify against (e.g. Design Model layers). */
+  layerCount?(): number;
 }
 
 export const UI_TOOL_SPECS: ToolSpec[] = [

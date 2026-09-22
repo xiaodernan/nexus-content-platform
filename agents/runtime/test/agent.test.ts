@@ -167,6 +167,22 @@ describe('runTask drives the UI plan (v20)', () => {
     expect(out.planner).toEqual({ backend: 'demo' });
   });
 
+  it('with a state-reporting driver, the plan gains a host-verified verify step', async () => {
+    const PAGE = [{ kind: 'input' as const, label: 'prompt' }, { kind: 'button' as const, label: 'Go' }];
+    let layers = 0;
+    const reg = registerUiTools(new ToolRegistry(), {
+      elements: () => PAGE,
+      click: () => { layers = 3; return 'clicked'; },
+      type: (_i, t) => `typed:${t}`,
+      layerCount: () => layers,
+    });
+    reg.register({ name: 'test.run', description: '', permissions: ['exec'], args: [] }, () => ({ ok: layers > 0, detail: `layers=${layers}` }));
+    const out = await runTask({ id: 'ui-v', goal: 'g' }, { registry: reg, checkpoint: () => true, uiInputLabel: 'prompt', uiButtonLabel: 'Go' });
+    expect(out.status).toBe('completed');
+    expect(out.plan.steps.map((s) => s.tool)).toEqual(['ui.observe', 'ui.type', 'ui.click', 'test.run']);
+    expect(out.events.some((e) => e.type === 'verify' && e.ok)).toBe(true);
+  });
+
   it('denied click stops the loop honestly: earlier actions stand, status denied', async () => {
     const { reg, calls } = driver();
     const out = await runTask({ id: 'ui-2', goal: 'g' }, { registry: reg, checkpoint: ({ call }) => call.tool !== 'ui.click', uiInputLabel: 'analytics dashboard', uiButtonLabel: 'Compose' });

@@ -1,4 +1,5 @@
-import { ToolRegistry, registerUiTools, runTask, type RunOutcome, type UiDriver, type UiElement } from '@nexus/agent-runtime';
+import { ToolRegistry, registerUiTools, runTask, scoreRun, type RunOutcome, type UiDriver, type UiElement } from '@nexus/agent-runtime';
+import { AGENT_LEDGER_KEY, type KvLike } from './agentDock';
 
 /**
  * M2 v16 (§63 browser automation *by* the agent, in-page edition): a deterministic UI
@@ -87,8 +88,16 @@ export async function runUiTask(
   goal: string,
   decide: (plan: { tool: string; label: string; detail: string }) => Promise<boolean>,
   labels: { input: string; button: string } = { input: 'analytics dashboard', button: 'Compose' },
-): Promise<{ outcome: RunOutcome; actions: string[] }> {
+  kv?: KvLike,
+): Promise<{ outcome: RunOutcome; actions: string[]; score: number }> {
   const registry = registerUiTools(new ToolRegistry(), driver);
+  const baseline = driver.layerCount ? driver.layerCount() : 0;
+  if (driver.layerCount) {
+    registry.register({ name: 'test.run', description: 'host verification against the design model', permissions: ['exec'], args: [] }, () => ({
+      ok: driver.layerCount!() > baseline,
+      detail: `layers ${baseline} → ${driver.layerCount!()}`,
+    }));
+  }
   const actions: string[] = [];
   const origInvoke = registry.invoke.bind(registry);
   registry.invoke = async (call, opts) => {
@@ -103,5 +112,12 @@ export async function runUiTask(
     return res;
   };
   const outcome = await runTask({ id: `ui-task-${Date.now()}`, goal }, { registry, checkpoint: () => true, uiInputLabel: labels.input, uiButtonLabel: labels.button });
-  return { outcome, actions };
+  const evaluation = scoreRun(outcome);
+  if (kv) {
+    const entry = { goal: `ui-task: ${goal}`, target: labels.button, via: 'ui', score: evaluation.score, approved: outcome.status === 'completed', reason: `status=${outcome.status} planner=${outcome.planner?.backend ?? 'demo'}`, at: Date.now() };
+    const cur = kv.getItem(AGENT_LEDGER_KEY) ?? '';
+    const sep = cur === '' || cur.endsWith('\n') ? '' : '\n';
+    kv.setItem(AGENT_LEDGER_KEY, `${cur}${sep}${JSON.stringify(entry)}\n`);
+  }
+  return { outcome, actions, score: evaluation.score };
 }

@@ -387,3 +387,14 @@ two fresh runs, checkpoint denial leaving the workspace byte-identical).
 - **planTask gains the UI template** (`hasUi`: ui.observe → ui.type(goal) → ui.click, optional verify); domkit's ui tools now address elements by LABEL (exact, then substring) so plan args are pure data — no index math leaks into the planner, and the unmodified runTask loop executes them with per-step exec checkpoints.
 - **Dock:** 'Agent UI run' switched from the scripted drive to `runUiTask` — the demo planner's plan, the orchestrator's loop, the human gate per action. Browser-verified end-to-end: two Allow-once dialogs naming element + payload, then the composed dashboard in Layers and 'Agent UI task finished' — a genuine plan→act→verify cycle on live DOM, still 100% human-gated (§28) and demo-labeled (§60).
 - Runtime 128/128 (+2 ui-plan cases), studio uiRun +2 orchestrator cases (88/88 target).
+
+## Amendment 21 — v21: host-verified UI runs + ledger journaling, 2026-09
+- **`UiDriver.layerCount?()` (optional):** when the host can report real artifact count
+  (the dock passes Design Model node count — §8 canonical, not DOM scraping), the studio
+  `runUiTask` registers a host `test.run`, so the SAME demo planner grows a 4th
+  `verify` step: completion means the design model actually changed, not that buttons
+  were clicked. Without a state reporter, NO verify step is invented (asserted).
+- **Ledger journaling:** every UI run appends a `{goal:'ui-task: …', approved, score,
+  reason:'status=… planner=demo'}` line to the existing agent ledger and is scored by
+  `scoreRun` — UI actions join the same §26/§63 audit stream as design proposals.
+- Runtime 129/129 (+1 verified-plan case), studio 90/90 (+2), verify dialog also gated.

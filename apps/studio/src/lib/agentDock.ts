@@ -306,10 +306,11 @@ export function ledgerLine(plan: AgentPlan, approved: boolean, reason?: string, 
   return JSON.stringify(e);
 }
 
-interface Kv {
+export interface KvLike {
   getItem(key: string): string | null;
   setItem(key: string, value: string): void;
 }
+type Kv = KvLike;
 
 export function appendLedgerLine(kv: Kv, line: string): void {
   const cur = kv.getItem(AGENT_LEDGER_KEY) ?? '';

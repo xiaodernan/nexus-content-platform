@@ -78,3 +78,31 @@ describe('runUiTask (v20 orchestrator-driven)', () => {
     expect(actions).toEqual(['type:analytics dashboard=g']);
   });
 });
+
+describe('runUiTask v21 (host-verified + ledger)', () => {
+  it('state-reporting driver adds the verify step and journals one ledger line', async () => {
+    let layers = 0;
+    const d = {
+      elements: () => PAGE,
+      click: (i: number) => { layers = 5; return `click:${PAGE[i]!.label}`; },
+      type: (i: number, t: string) => `type:${PAGE[i]!.label}=${t}`,
+      layerCount: () => layers,
+    };
+    const kv = { map: new Map<string, string>(), getItem(k: string) { return this.map.get(k) ?? null; }, setItem(k: string, v: string) { this.map.set(k, v); } };
+    const r = await runUiTask(d, 'an analytics dashboard', async () => true, undefined, kv as never);
+    expect(r.outcome.status).toBe('completed');
+    expect(r.outcome.plan.steps.map((s) => s.tool)).toEqual(['ui.observe', 'ui.type', 'ui.click', 'test.run']);
+    expect(r.score).toBe(1);
+    const lines = (kv.getItem('nexus.agentLedger.v1') ?? '').trim().split(String.fromCharCode(10));
+    expect(lines).toHaveLength(1);
+    const entry = JSON.parse(lines[0]!);
+    expect(entry).toMatchObject({ goal: 'ui-task: an analytics dashboard', approved: true });
+    expect(entry.reason).toContain('planner=demo');
+  });
+
+  it('without a state reporter, no verify step is invented', async () => {
+    const d = new FakeDriver(PAGE);
+    const r = await runUiTask(d, 'g', async () => true);
+    expect(r.outcome.plan.steps.map((s) => s.tool)).toEqual(['ui.observe', 'ui.type', 'ui.click']);
+  });
+});

@@ -8,7 +8,7 @@ every emitted artifact (`provenance.mode = "demo"`).
 ## Reproducible gates
 
 ```
-npm test          # turbo: @nexus/agent-runtime 128/128 vitest among all packages
+npm test          # turbo: @nexus/agent-runtime 129/129 vitest among all packages
 npm run build     # tsc dist for agents/runtime (build order via ^build deps)
 node docs/evidence/agents/agent-proof.mjs
 node docs/evidence/agents/code-index-proof.mjs   # requires `npm run build` first
