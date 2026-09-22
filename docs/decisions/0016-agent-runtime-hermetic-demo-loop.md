@@ -646,3 +646,28 @@ two fresh runs, checkpoint denial leaving the workspace byte-identical).
   and absent); chips are plain React renders of the tested selector — the hidden-
   viewport harness caveat still applies to pixel claims. Twenty-three proofs re-run
   green (25 scripts incl. the two studio evidence scripts).
+
+## Amendment 34 — v34: a repo test suite really verifies through the exec sandbox, 2026-09
+- **A caveat retires by DEMONSTRATION:** since v31 the README stated "running the repo's
+  real test suites through the host remains a future policy choice, not current
+  behavior". v34 makes that choice once and proves it: the 24th proof
+  (`execsuite-proof.mjs`) boots the ACTUAL @nexus/design-model vitest suite through
+  `createExecHost` + `execTestRunner` + the §28 registry gate — policy allowlists ONE
+  five-token argv (`node node_modules/vitest/vitest.mjs run --root
+  packages/design-model`), budgets capped (180s / 1 MiB, request-clamp shown), env
+  confined to eight named vars (the proof asserts the spawn saw EXACTLY the policy
+  list), cwd jailed. The suite passed: exit 0 in ~11s, engine
+  `exec-host:node …vitest…` named verbatim in the report.
+- **Zero wasted spawns is COUNTED, not claimed:** a wrapper around the real
+  `NODE_SPAWN` tallies every process ever born during the proof — §28 absence, human
+  denial, cwd escape, whole-repo widening (and the vacuous `only` filter) all return
+  honest FAILING reports with the counter unmoved; exactly ONE granted verify moves it
+  by one.
+- **§60 stays exact:** a subprocess report is ONE named exit-zero check whose detail
+  carries vitest's own summary verbatim (ANSI included) — it is not a predicate pack,
+  the label never pretends otherwise; the sandbox is still POLICY-level (no OS
+  container, ADR 0013 egress/containers open); running tests writes vitest's cache
+  under `node_modules` (ordinary dev behavior) and touches no source file (§9 intact).
+- NO product code changed — runtime 207/207, exec-host 41/41, studio 99/99 all
+  UNCHANGED; this is the v29–v31 machinery doing exactly what it was built to do.
+  Twenty-four proofs (26 scripts with the two studio evidence files) re-run green.

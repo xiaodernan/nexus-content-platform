@@ -1,11 +1,13 @@
-# M2 evidence — agent stack (v0 loop → v32 read-only git awareness; all ADR 0016 amendments)
+# M2 evidence — agent stack (v0 loop → v34 a real test suite through the sandbox; all ADR 0016 amendments)
 
 All checks are headless, offline, key-free, and reproducible from the repo root. Nothing here
 claims model-quality planning or neural retrieval (§60): the planner is a deterministic
 template and the index embedder is a hash-based bag-of-tokens stand-in — both say so in
-every emitted artifact (`provenance.mode = "demo"`). The honest exceptions since v30/v32:
+every emitted artifact (`provenance.mode = "demo"`). The honest exceptions since v30/v32/v34:
 `exec-host-proof.mjs` and `git-aware-proof.mjs` spawn a few read-only local commands
-(`git status --short`, `git diff --stat`) through the confined host — still offline, still
+(`git status --short`, `git diff --stat`) and `execsuite-proof.mjs` runs the repo's OWN
+@nexus/design-model vitest suite through the confined host (vitest's cache under
+`node_modules` is the only thing it writes) — still offline, still
 key-free, and everything else in the stack spawns nothing.
 
 ## Reproducible gates
@@ -36,6 +38,7 @@ node docs/evidence/agents/exec-sandbox-proof.mjs   # requires `npm run build` fi
 node docs/evidence/agents/exec-host-proof.mjs      # requires `npm run build` first
 node docs/evidence/agents/exectest-proof.mjs       # requires `npm run build` first
 node docs/evidence/agents/git-aware-proof.mjs      # requires `npm run build` first
+node docs/evidence/agents/execsuite-proof.mjs      # requires `npm run build` first (boots the real design-model vitest suite, ~11s)
 ```
 
 ## Unit tests (vitest, `agents/runtime/test`)
@@ -296,6 +299,24 @@ exit 128 as data and label truncated reads partial. Finally the §60 honesty ste
 REAL repo: `git.status` and `git.diff --stat` through the same machinery, counted entries
 agreeing with their own totals — the agent can SEE the repo; it still cannot TOUCH it.
 
+## Exec-suite proof (`execsuite-proof.mjs`, M2 v34)
+
+The first time a repo test suite answers `test.run` for real. Policy math up front: ONE
+five-token argv (`node node_modules/vitest/vitest.mjs run --root
+packages/design-model`) plans — inert, env-scrubbed, budgets clamped to the policy caps —
+while whole-repo widening, other packages, wrong arity and `git push` all default-deny.
+Every gate then runs against the REAL host with a counting wrapper around `NODE_SPAWN`:
+§28 absence, human denial, an escaping cwd and a widened argv each return an honest
+FAILING report while the spawn counter stays at zero; a vacuous `only` filter never even
+pays for a process. Then the granted verify: the design-model vitest suite boots (~11s),
+exits 0, and the counter moves exactly once — spawn cwd is the jail root and the spawn
+env is EXACTLY the eight allowlisted names. §60 stays exact in the report itself: one
+named exit-zero check whose detail carries vitest's own ANSI summary verbatim under the
+engine label `exec-host:node …vitest…` — a command's verdict, never masquerading as
+predicates. What this does NOT claim: no OS/container isolation (ADR 0013's other half is
+open) and no suite is wired by DEFAULT anywhere else — this is the policy CHOICE made
+once, visibly.
+
 ## v20 note — orchestrator-driven UI
 
 The dock's Agent UI run now executes the demo planner's `observe→type→click` plan through the UNCHANGED runTask loop; ui tools address labels (exact, then substring). Browser: two per-action Allow dialogs, then the composed dashboard — live plan→act→verify, fully gated.
@@ -422,8 +443,9 @@ half remains open, and untrusted generated code still has nowhere to run.
 ∧ not killed ∧ no spawn error. Refusals become honest FAILING reports (policy reason,
 missing §28 gate, timeout kill), never crashes, never spawns. Through `registerTestTools`
 the registry's exec permission remains the single checkpoint. This is the seam that lets a
-real suite answer `test.run` — no repo suite is wired by default (§60: the bridge proves
-the mechanics, not anyone's tests).
+real suite answer `test.run` — no repo suite is wired by default ANYWHERE else (§60: the
+bridge proves the mechanics; v34's `execsuite-proof.mjs` is the one deliberate,
+evidence-only wiring of a real suite).
 
 ## v32 note — read-only git awareness: see, don't touch
 
@@ -439,6 +461,17 @@ labeled. `gitEnv()` picks the handful of vars git needs (`PATH`, `SYSTEMROOT`, `
 `USERPROFILE`) out of any source. Nothing in `@nexus/agent-runtime` changed: 207/207
 holds, the runtime stays provably spawn-free.
 
+## v34 note — a repo test suite really verifies through the sandbox
+
+No product code changed; v34 is the POLICY CHOICE the v31 note said was pending, made
+once in `execsuite-proof.mjs`: the design-model vitest suite boots through
+`createExecHost` + `execTestRunner` + the §28 registry gate under a ONE-argv policy,
+exits 0 in ~11s, and the counting `NODE_SPAWN` wrapper proves every denial spawned
+nothing while the granted verify spawned exactly one process with EXACTLY the
+allowlisted env at the jailed cwd. Honest bounds unchanged: POLICY sandbox (no OS
+container/egress), subprocess reports are one exit-zero check carrying the suite's own
+summary verbatim, and nothing outside the proof wires a real suite by default.
+
 ## Scope honesty
 
 §63/§26 items *not* implemented (stated, not faked): general real-fs write tools (only
@@ -446,9 +479,10 @@ holds, the runtime stays provably spawn-free.
 execution — since v30 `@nexus/exec-host` can run EXACT allowlisted argv under §28 with
 plan budgets, but there is no arbitrary-command path, no shell, and no OS/container
 sandbox (ADR 0013's egress/secret/containers half is open); v31 added the bridge by which a
-command CAN answer `test.run` (`execTestRunner`), but running the repo's real test suites
-through the host remains a future policy choice, not current behavior; the runtime
-package itself stays spawn-free by audited design. The git COMMIT write tool (v32 shipped
+command CAN answer `test.run` (`execTestRunner`), and v34 proved it once for real —
+`execsuite-proof.mjs` runs the design-model suite through the host — but NO repo suite is
+wired by default outside that evidence file, and the runtime package itself stays
+spawn-free by audited design. The git COMMIT write tool (v32 shipped
 read-only awareness only — see/don't-touch by policy),
 live-model planning (the seam exists, the model needs keys), multi-agent registry.
 Memory recall (v6) shares the index's deterministic token-bag hybrid score — a real
