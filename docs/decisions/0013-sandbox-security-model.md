@@ -24,5 +24,13 @@ Milestone 0/1 executes nothing untrusted (Studio is a client-side design editor 
 provider), so there is no untrusted-code path to sandbox yet. Documented up front so the
 agentic-coding milestone implements it rather than retrofitting.
 
+> **Update (2026-09, v29):** the first portable slice has landed as PURE DATA —
+> `agents/runtime/src/execSandbox.ts` (ADR 0016 amendment 29) implements the default-deny
+> argv allowlist, bare-name executables, jail-confined cwd, env scrubbing and capped
+> budgets, and `planExec` emits only INERT plans (`executes: false` in the type; the
+> evidence gate proves zero `child_process` in the built bundle). No container, no
+> executor — so this ADR stays **Proposed** until a sandboxed runner is designed and
+> wired behind the §28 checkpoint.
+
 ## Tradeoffs
 - (−) Container cold-start latency per job; mitigated by a warm pool in Redis-backed queue.

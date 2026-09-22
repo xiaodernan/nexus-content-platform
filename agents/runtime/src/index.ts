@@ -49,6 +49,17 @@ export {
   type TestReport,
   type TestRunner,
 } from './testRunner.js';
+export {
+  EXEC_TOOL_SPECS,
+  planExec,
+  registerExecTools,
+  validatePolicy,
+  type ExecDecision,
+  type ExecPlan,
+  type ExecPolicy,
+  type ExecRequest,
+  type ExecRule,
+} from './execSandbox.js';
 export { findLabel, registerUiTools, UI_TOOL_SPECS, type UiDriver, type UiElement } from './domkit.js';
 export {
   VECTOR_SCHEMA_VERSION,

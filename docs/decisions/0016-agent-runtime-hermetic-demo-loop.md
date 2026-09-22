@@ -531,3 +531,26 @@ two fresh runs, checkpoint denial leaving the workspace byte-identical).
 - Runtime 186/186 (+15 testRunner cases), studio 96/96 (+1 dock +1 uiRun report cases);
   `testrunner-proof.mjs` added (predicates · tool contract · e2e loop journalling ·
   JSONL durability); nineteen proofs.
+
+## Amendment 29 — v29: exec-sandbox policy as PURE DATA — ADR 0013 first slice, 2026-09
+- **Why data first:** ADR 0013 (sandbox security) is still `Proposed`, and this repo has no
+  Docker/host-exec surface to guard. The portable half of the design — the POLICY — is pure
+  arithmetic on strings and can be built, tested and proven today; the executor is deliberately
+  NOT wired until the policy itself is battle-proven (§60: no half-built process pipes).
+- **`execSandbox.ts`:** `planExec(request, policy)` returns `{ok:true, plan}` or
+  `{ok:false, reason}`. Pillars, all default-deny: exact-argv allowlist (`'*'` matches one
+  ARGUMENT token, never the executable), bare-name executables only (any path separator is
+  refused before matching), cwd confined through the proven v3 `guardedJoin` jail, env scrubbed
+  to a named allowlist with every dropped var LISTED, and timeout/output budgets clamped to
+  policy ceilings the request cannot raise. `validatePolicy` fires at `registerExecTools` time:
+  a wildcard-executable policy is a programmer error and dies at registration, not at decision.
+- **Type-level honesty:** `ExecPlan.executes` is the literal `false` IN THE TYPE — every plan
+  this module can produce says so. The `exec.plan` tool is `read`-permission (it decides, it
+  does not execute — §28 has nothing to gate) and its refusals still succeed AS tool calls
+  (`planned:false` + stated reason), matching the loop's never-rejects contract.
+- **The claim is CHECKED, not claimed:** `exec-sandbox-proof.mjs` scans every built
+  `agents/runtime/dist/*.js` for `child_process` and finds none — "nothing in the runtime can
+  spawn" is now an assertion the evidence gate re-proves on every run.
+- Runtime 204/204 (+18 execSandbox cases), studio 96/96 untouched (dock wiring deferred until
+  an executor exists — a plan nobody runs would be dead UI); twentieth proof added
+  (`exec-sandbox-proof.mjs`); twenty proofs.
