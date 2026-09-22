@@ -5,8 +5,10 @@ import {
   createNode,
   duplicateDocument,
   findPage,
+  remapAssetIds,
   starterPage,
   uid,
+  type AssetRef,
   type ComponentDefinition,
   type DesignDocument,
 } from "../src/index";
@@ -88,5 +90,48 @@ describe("duplicateDocument", () => {
     expect(source).toEqual(untouched);
     // token 是要跟着副本走的（同一套设计语言），key 不应变
     expect(renamed.tokens.map((t) => t.key)).toEqual(source.tokens.map((t) => t.key));
+  });
+});
+
+describe("remapAssetIds（§27 Duplicate 的资产一半）", () => {
+  const asset = (id: string): AssetRef => ({
+    id,
+    name: `${id}.png`,
+    kind: "image",
+    storageKey: `projects/p/${id}.png`,
+    mimeType: "image/png",
+    createdAt: "2026-01-01T00:00:00.000Z",
+  });
+
+  const docWithImage = (): DesignDocument => {
+    const doc = createDocument("带图");
+    const home = findPage(doc, doc.activePageId)!;
+    const frame = createNode({ type: "frame", name: "封面", parentId: home.rootId });
+    frame.style.fills = [{ kind: "image", assetId: "a-old", fit: "cover" }];
+    home.nodes[frame.id] = frame;
+    home.nodes[home.rootId]!.children = [...home.nodes[home.rootId]!.children, frame.id];
+    doc.assets = [asset("a-old")];
+    return doc;
+  };
+
+  it("清单与 paint 引用一起换号，且不动源文档", () => {
+    const source = docWithImage();
+    const untouched = clone(source);
+    const copy = remapAssetIds(source, new Map([["a-old", "a-new"]]));
+    expect(copy.assets.map((a) => a.id)).toEqual(["a-new"]);
+    const frame = Object.values(findPage(copy, copy.activePageId)!.nodes).find(
+      (n) => n.name === "封面",
+    )!;
+    const paint = frame.style.fills[0]!;
+    expect(paint.kind === "image" && paint.assetId).toBe("a-new");
+    expect(paint.kind === "image" && paint.fit).toBe("cover");
+    // 源文档保持原样：换号只发生在返回的新副本上
+    expect(source).toEqual(untouched);
+  });
+
+  it("空映射返回等价副本；Record 与 Map 两种入参等价", () => {
+    const source = docWithImage();
+    expect(remapAssetIds(source, new Map())).toEqual(source);
+    expect(remapAssetIds(source, { "a-old": "a-x" })).toEqual(remapAssetIds(source, new Map([["a-old", "a-x"]])));
   });
 });

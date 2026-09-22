@@ -339,7 +339,7 @@ export function CanvasStage() {
   const screenSelection = selectedBox ? toScreen(selectedBox) : null;
   const screenLive = liveBox ? toScreen({ x: liveBox.x, y: liveBox.y, width: liveBox.width, height: liveBox.height }) : null;
   const insertionLine = preview.insertion ? insertionRect(layout, preview.insertion, toScreen) : null;
-  const ctx = { tokens: state.tokens, mode: state.activeMode };
+  const ctx = { tokens: state.tokens, mode: state.activeMode, assets: state.assetContext };
 
   return (
     <div

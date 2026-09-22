@@ -22,7 +22,11 @@ build/
 
 # nexus local data
 .nexus-store/
-storage/
+# 必须锚定到仓库根：不写前导 `/` 的 `storage/` 会把
+# apps/web/src/server/storage/（存储驱动源码）也一起忽略掉，代码就悄悄丢了
+/storage/
+# 未配置 NEXUS_S3_* 时本地存储驱动的兜底目录（§101），以及各测试独占的临时目录
+.nexus-storage*
 screenshots/
 .playwright-profile/
 coverage/

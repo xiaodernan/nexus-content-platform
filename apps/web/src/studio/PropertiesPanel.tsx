@@ -8,10 +8,45 @@ import {
   tokenRefKey,
   toHex,
   type DesignNode,
+  type Paint,
   type Token,
 } from '@nexus/design-model';
 import { cn } from '@/lib/cn';
 import { studio, useStudio, useStudioReady } from './store';
+
+const FITS: { value: NonNullable<Extract<Paint, { kind: 'image' }>['fit']>; label: string }[] = [
+  { value: 'cover', label: '覆盖' },
+  { value: 'contain', label: '包含' },
+  { value: 'fill', label: '拉伸' },
+  { value: 'tile', label: '平铺' },
+];
+
+/** 触发一次图片上传的文件选择器：选中即走 studio 的上传事务，选完清空以便重选同一文件 */
+function ImageUploadButton({ nodeId, label }: { nodeId: string; label: string }) {
+  const { assetBusy } = useStudio();
+  return (
+    <label
+      className={cn(
+        'shrink-0 rounded-[var(--nexus-radius-sm)] bg-bg-2 px-2 py-1 text-12 text-fg-2',
+        assetBusy ? 'cursor-wait opacity-50' : 'cursor-pointer hover:bg-bg-3',
+      )}
+      data-asset-upload={nodeId}
+    >
+      {assetBusy ? '上传中…' : label}
+      <input
+        type="file"
+        accept="image/png,image/jpeg,image/webp,image/gif"
+        className="hidden"
+        disabled={assetBusy}
+        onChange={(event) => {
+          const file = event.target.files?.[0];
+          event.target.value = '';
+          if (file) void studio.uploadImageAsFill(nodeId, file);
+        }}
+      />
+    </label>
+  );
+}
 
 const LAYOUT_MODES = [
   { value: 'none', label: '绝对定位' },
@@ -413,12 +448,93 @@ function FillList(props: {
   colorTokens: Token[];
 }) {
   const { nodes, read, write, colorTokens } = props;
+  const { assetError, assetNotice, assetContext } = useStudio();
   const fills = (nodes[0]?.style.fills ?? []).slice(0, 3);
   const [draft, setDraft] = useState<Record<number, string>>({});
-  if (!fills.length) {
-    return (
+  const removeAt = (index: number) =>
+    write('style.fills', nodes[0]!.style.fills.filter((_, i) => i !== index));
+
+  const body = !fills.length ? (
+    <span className="text-12 text-fg-3">无填充</span>
+  ) : (
+    fills.map((paint, index) => {
+      if (paint.kind === 'image') {
+        const url = assetContext.assetUrl(paint.assetId);
+        return (
+          <div key={index} className="flex flex-col gap-1" data-fill-image={index}>
+            <div className="flex items-center gap-2">
+              <span className="grid h-7 w-8 shrink-0 place-items-center overflow-hidden rounded-[var(--nexus-radius-sm)] bg-bg-2">
+                {url ? (
+                  <img src={url} alt="" className="h-full w-full object-cover" />
+                ) : (
+                  <span className="text-9 text-fg-3">?</span>
+                )}
+              </span>
+              <span className="min-w-0 flex-1 truncate font-mono text-11 text-fg-3">
+                {url ? `图片 ${paint.assetId.slice(0, 8)}` : '图片资产不在本项目清单'}
+              </span>
+              <select
+                value={paint.fit ?? 'cover'}
+                onChange={(e) => write(`style.fills.${index}.fit`, e.target.value)}
+                className="rounded-[var(--nexus-radius-sm)] bg-bg-2 px-1 py-1 text-11 text-fg-2"
+                data-fill-fit={index}
+              >
+                {FITS.map((f) => (
+                  <option key={f.value} value={f.value}>
+                    {f.label}
+                  </option>
+                ))}
+              </select>
+              <button type="button" onClick={() => removeAt(index)} className="px-1 text-12 text-fg-3 hover:text-danger" title="移除该填充层">
+                ×
+              </button>
+            </div>
+            <div className="pl-10">
+              <ImageUploadButton nodeId={nodes[0]!.id} label="换一张图" />
+            </div>
+          </div>
+        );
+      }
+      const path = `style.fills.${index}.color`;
+      const current = read(path);
+      const bound = isTokenRef(current) ? tokenRefKey(current) : null;
+      const hex = bound ? toHex(String(props.tokens.resolveValue(bound, props.mode)) ?? '#000') : toHex((current as never) ?? '#000');
+      const value = draft[index] ?? (typeof current === 'string' ? current : hex);
+      return (
+        <div key={index} className="flex items-center gap-2">
+          <input
+            type="color"
+            value={/^#[0-9a-f]{6}$/i.test(hex) ? hex : '#000000'}
+            onChange={(e) => {
+              setDraft({ ...draft, [index]: e.target.value });
+            }}
+            onBlur={() => {
+              const next = draft[index];
+              if (next) write(path, next);
+              setDraft({ ...draft, [index]: '' });
+            }}
+            className="h-7 w-8 shrink-0 cursor-pointer rounded-[var(--nexus-radius-sm)] bg-transparent p-0"
+            data-prop={path}
+          />
+          <span className="min-w-0 flex-1 truncate font-mono text-11 text-fg-3">{bound ? `{${bound}}` : value}</span>
+          <TokenBindButton active={Boolean(bound)} tokens={colorTokens} onPick={(key) => write(path, makeTokenRef(key))} />
+          <button
+            type="button"
+            onClick={() => removeAt(index)}
+            className="px-1 text-12 text-fg-3 hover:text-danger"
+            title="移除该填充层"
+          >
+            ×
+          </button>
+        </div>
+      );
+    })
+  );
+
+  return (
+    <div className="flex flex-col gap-[var(--nexus-space-2)]">
+      {body}
       <div className="flex items-center gap-2">
-        <span className="text-12 text-fg-3">无填充</span>
         <button
           type="button"
           onClick={() => write('style.fills', [{ kind: 'solid', color: '#8b5cf6' }, ...((nodes[0]?.style.fills as unknown[]) ?? [])])}
@@ -426,46 +542,18 @@ function FillList(props: {
         >
           + 颜色
         </button>
+        <ImageUploadButton nodeId={nodes[0]!.id} label="+ 图片" />
       </div>
-    );
-  }
-  return (
-    <div className="flex flex-col gap-[var(--nexus-space-2)]">
-      {fills.map((paint, index) => {
-        const path = `style.fills.${index}.color`;
-        const current = read(path);
-        const bound = isTokenRef(current) ? tokenRefKey(current) : null;
-        const hex = bound ? toHex(String(props.tokens.resolveValue(bound, props.mode)) ?? '#000') : toHex((current as never) ?? '#000');
-        const value = draft[index] ?? (typeof current === 'string' ? current : hex);
-        return (
-          <div key={index} className="flex items-center gap-2">
-            <input
-              type="color"
-              value={/^#[0-9a-f]{6}$/i.test(hex) ? hex : '#000000'}
-              onChange={(e) => {
-                setDraft({ ...draft, [index]: e.target.value });
-              }}
-              onBlur={() => {
-                const next = draft[index];
-                if (next) write(path, next);
-                setDraft({ ...draft, [index]: '' });
-              }}
-              className="h-7 w-8 shrink-0 cursor-pointer rounded-[var(--nexus-radius-sm)] bg-transparent p-0"
-              data-prop={path}
-            />
-            <span className="min-w-0 flex-1 truncate font-mono text-11 text-fg-3">{bound ? `{${bound}}` : value}</span>
-            <TokenBindButton active={Boolean(bound)} tokens={colorTokens} onPick={(key) => write(path, makeTokenRef(key))} />
-            <button
-              type="button"
-              onClick={() => write('style.fills', nodes[0]!.style.fills.filter((_, i) => i !== index))}
-              className="px-1 text-12 text-fg-3 hover:text-danger"
-              title="移除该填充层"
-            >
-              ×
-            </button>
-          </div>
-        );
-      })}
+      {assetError ? (
+        <p className="rounded-[var(--nexus-radius-sm)] bg-danger/10 px-2 py-1 text-11 text-danger" data-asset-error>
+          {assetError}
+        </p>
+      ) : null}
+      {assetNotice && !assetError ? (
+        <p className="rounded-[var(--nexus-radius-sm)] bg-bg-2 px-2 py-1 text-11 text-fg-3" data-asset-notice>
+          {assetNotice}
+        </p>
+      ) : null}
     </div>
   );
 }

@@ -2,6 +2,7 @@ import { notFound } from 'next/navigation';
 import { TokenStore, findPage, resolveLayout, type BreakpointName, type DesignDocument } from '@nexus/design-model';
 import { requireUser } from '@/server/domain/session';
 import { loadDocument, projectBelongsTo } from '@/server/domain/projects';
+import { apiAssetUrl, assetContextFor } from '@/studio/assets';
 import { nodeStyle } from '@/studio/render';
 
 export const dynamic = 'force-dynamic';
@@ -33,6 +34,8 @@ export default async function PreviewPage({ params, searchParams }: Props) {
   const tokens = new TokenStore(document.tokens);
   const layout = resolveLayout(page, { tokens, mode: document.activeMode ?? null, breakpoint: breakpoint ?? undefined });
   const zoom = Math.min(1, Math.max(0.25, Number(query.zoom ?? 1) || 1));
+  // 预览是同源的鉴权场景：图走作者自己的资产路由（§38）
+  const assets = assetContextFor(document, apiAssetUrl);
 
   return (
     <main className="min-h-screen w-full overflow-auto bg-bg-0 pb-[var(--nexus-space-10)]" data-preview-root data-page={page.name}>
@@ -62,7 +65,7 @@ export default async function PreviewPage({ params, searchParams }: Props) {
             const resolved = layout.nodes[id];
             if (!resolved) return null;
             return (
-              <div key={id} data-node-id={id} data-node-type={resolved.node.type} style={nodeStyle(resolved, { tokens, mode: document.activeMode ?? null })}>
+              <div key={id} data-node-id={id} data-node-type={resolved.node.type} style={nodeStyle(resolved, { tokens, mode: document.activeMode ?? null, assets })}>
                 {resolved.node.text ?? null}
               </div>
             );

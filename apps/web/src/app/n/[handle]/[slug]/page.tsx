@@ -1,6 +1,7 @@
 import { notFound } from 'next/navigation';
 import { TokenStore, findPage, resolveLayout } from '@nexus/design-model';
 import { recordView, resolvePublishedPath } from '@/server/domain/publish';
+import { assetContextFor, publicAssetUrl } from '@/studio/assets';
 import { nodeStyle } from '@/studio/render';
 
 export const dynamic = 'force-dynamic';
@@ -33,6 +34,8 @@ export default async function PublishedPage({ params, searchParams }: Props) {
   const tokens = new TokenStore(document.tokens);
   const mode = document.activeMode ?? null;
   const layout = resolveLayout(page, { tokens, mode });
+  // 匿名访客的图走公共资产路由：可见性由"这一版发布确实引用了它"决定（§57）
+  const assets = assetContextFor(document, (assetId) => publicAssetUrl(decodeURIComponent(handle), assetId));
   await recordView(publication.id).catch(() => undefined);
 
   return (
@@ -64,7 +67,7 @@ export default async function PublishedPage({ params, searchParams }: Props) {
             const resolved = layout.nodes[id];
             if (!resolved) return null;
             return (
-              <div key={id} data-node-id={id} data-node-type={resolved.node.type} style={nodeStyle(resolved, { tokens, mode })}>
+              <div key={id} data-node-id={id} data-node-type={resolved.node.type} style={nodeStyle(resolved, { tokens, mode, assets })}>
                 {resolved.node.text ?? null}
               </div>
             );

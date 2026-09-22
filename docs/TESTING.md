@@ -76,6 +76,15 @@ Build/Tests、性能预算、键盘与完整 ARIA、视觉回归**还没接进�
   且 `activePageId`、`component.pageId`、变量 `refId`、交互 `target` 都指向副本而不是源项目；
   e2e 断言复制后 URL 的项目 id 真的变了（不能用 `/studio/[^/]+` 匹配，副本同样满足）、
   当前视觉方向被带走、副本只有一条 main 分支和一份初始快照、源项目不受影响
+- 资产的不变量（§38/§80/§182）：`image-safety.test.ts` 用手搓的合法容器断言——只认 magic bytes（扩展名/Content-Type 不算数）、
+  四种格式的 EXIF/XMP/IPTC/注释段都被剥掉且**剥完仍能读出原宽高**（WebP 还要断言 RIFF 声明长度被重写对）、
+  截断的 PNG 宁可抛错也不存坏图；`assets.integration.test.ts` 打真库+独占临时存储目录，断言识别→剥离→落库、
+  非位图被拒、同项目重复上传复用同一行、作者能取非作者返回 null、公开取字节要"发布行 + 钉住快照确实引用"两条都满足、
+  删本人成功删他人拒绝、`copyProjectAssets` 让副本各持自己的行与字节（删源不影响副本）；
+  `remapAssetIds`（`duplicate.test.ts`）断言清单与 paint 引用一起换号且不动源文档。
+  e2e 守的是投影同源：上传后画布节点的计算样式里有真实资产 URL、面板缩略图 `naturalWidth>0`
+  （证明**剥离后的字节真能被浏览器解码**，而不是只挂了个 URL）、一次上传撤销后图片层与清单条目一起消失、
+  预览路由看到同一份投影
 - 多方案的不变量（§29）：`concepts.test.ts` 断言两个轴各自搬得动——视觉语言只改 token 不碰节点、
   结构方向只改节点不碰 token、同一份输入两次生成得到同一组方向（没有随机数）、每条方案仍是合法文档；
   `variants.integration.test.ts` 打真实 Postgres 断言生成与合成**不推进工作区指针**、

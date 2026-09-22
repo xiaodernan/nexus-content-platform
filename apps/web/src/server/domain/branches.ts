@@ -1,8 +1,9 @@
 import { and, asc, desc, eq, isNull } from 'drizzle-orm';
-import { duplicateDocument, type DesignDocument } from '@nexus/design-model';
+import { duplicateDocument, remapAssetIds, type DesignDocument } from '@nexus/design-model';
 import { getDb } from '../db/client';
 import { branches, projects, snapshots } from '../db/schema';
 import { createProject, loadDocument, saveDocument } from './projects';
+import { copyProjectAssets } from './assets';
 import {
   createSnapshot,
   documentsMatch,
@@ -308,10 +309,20 @@ export async function duplicateProject(
   const source = await loadDocument(projectId);
   if (!source) return null;
   const trimmed = (name ?? '').trim();
-  return createProject(ownerId, {
-    name: (trimmed || `${source.name} 副本`).slice(0, 120),
+  const copyName = (trimmed || `${source.name} 副本`).slice(0, 120);
+  const created = await createProject(ownerId, {
+    name: copyName,
     kind: source.metadata.projectType ?? 'website',
     // 副本必须换页面/组件 id：它们在库里是全局主键（§27）
-    fromDocument: duplicateDocument(source, trimmed || `${source.name} 副本`),
+    fromDocument: duplicateDocument(source, copyName),
   });
+  // 资产同样换号并复制字节：行上的 project_id 是 cascade 外键，共享一份记录
+  // 等于"删掉源项目就把副本的图片一起删了"，而且所有权判定会认不出副本（§80）
+  const copied = await loadDocument(created.id);
+  if (!copied) return created;
+  const idMap = await copyProjectAssets(projectId, created.id, ownerId);
+  if (!idMap.size) return copied;
+  const rekeyed = remapAssetIds(copied, idMap);
+  await saveDocument(created.id, rekeyed);
+  return rekeyed;
 }

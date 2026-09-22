@@ -13,6 +13,7 @@ import {
   isDescendant,
   manualCommand,
   resolveLayout,
+  type AssetRef,
   type BreakpointName,
   type DesignDocument,
   type DesignNode,
@@ -30,6 +31,7 @@ import type { SnapshotEntry, SnapshotMeta } from '@/server/domain/snapshots';
 import type { BranchMeta } from '@/server/domain/branches';
 import type { VariantEntry } from '@/server/domain/variants';
 import type { GateReport, Publication, Visibility } from '@/server/domain/publish';
+import { apiAssetUrl, assetContextFor, type AssetUrlContext } from './assets';
 
 /**
  * Studio 客户端状态：唯一真值仍然是 DesignStore 里的 DesignDocument（§9/§16）。
@@ -94,6 +96,17 @@ export interface StudioSnapshot {
   publishError: string | null;
   /** 最近一次门禁报告：通过与否都要摊开给用户看 */
   publishGate: GateReport | null;
+  /** §38 资产清单（文档级）：字节在对象存储，这里只有目录 */
+  assets: readonly AssetRef[];
+  /**
+   * 投影用的 assetId → URL 解析器。清单里没有的 id 一律返回 null，
+   * 渲染层据此跳过该层——不画破图占位（§159）。
+   */
+  assetContext: AssetUrlContext;
+  assetBusy: boolean;
+  assetError: string | null;
+  /** 上传成功后的一次性回执，例如"已剥离 EXIF"；下一次动作即清除 */
+  assetNotice: string | null;
   revision: number;
   activeMode: string | null;
 }
@@ -147,6 +160,9 @@ export class StudioStore {
   private publishBusyValue = false;
   private publishErrorValue: string | null = null;
   private publishGateValue: GateReport | null = null;
+  private assetBusyValue = false;
+  private assetErrorValue: string | null = null;
+  private assetNoticeValue: string | null = null;
 
   constructor() {
     this.design.subscribe(() => this.commit());
@@ -177,6 +193,9 @@ export class StudioStore {
     const tokens = new TokenStore(document.tokens);
     const layout = page ? this.resolveFor(page, document, tokens) : null;
     const history = this.design.history();
+    // 资产解析器按清单构造：清单来自文档（§16），所以"能不能显示"与
+    // "设计里有没有这条资产"是同一件事，不需要再问一次网络。
+    const assetContext = assetContextFor(document, apiAssetUrl);
     return {
       ready: this.ready,
       projectId: this.projectId,
@@ -212,6 +231,11 @@ export class StudioStore {
       publishBusy: this.publishBusyValue,
       publishError: this.publishErrorValue,
       publishGate: this.publishGateValue,
+      assets: document.assets,
+      assetContext,
+      assetBusy: this.assetBusyValue,
+      assetError: this.assetErrorValue,
+      assetNotice: this.assetNoticeValue,
       revision: state.revision,
       activeMode: document.activeMode ?? null,
     };
@@ -903,6 +927,56 @@ export class StudioStore {
 
   setSizeValue(nodeId: NodeId, axis: 'width' | 'height', value: number | 'hug' | 'fill'): void {
     this.execute(`设置${axis === 'width' ? '宽' : '高'}`, [{ op: 'set', nodeId, path: `size.${axis}`, value }]);
+  }
+
+  /**
+   * §38 上传一张图片，并把它作为最上层填充贴到指定元素上。
+   *
+   * 一次点击 = 一次事务：`addAsset`（进清单）与 `set(style.fills)`（贴上去）绑在
+   * 一起撤销，不会出现"清单里有图但没人引用"或反过来的半截状态（§149）。
+   * 上传失败不产生任何事务，原因原样摊在面板上，不静默（§159）。
+   */
+  async uploadImageAsFill(
+    nodeId: NodeId,
+    file: File,
+    fit: 'cover' | 'contain' | 'fill' | 'tile' = 'cover',
+  ): Promise<boolean> {
+    if (!this.projectId) return false;
+    this.assetBusyValue = true;
+    this.assetErrorValue = null;
+    this.assetNoticeValue = null;
+    this.commit();
+    try {
+      const form = new FormData();
+      form.append('file', file);
+      const res = await fetch(`/api/projects/${this.projectId}/assets`, { method: 'POST', body: form });
+      const body = (await res.json().catch(() => null)) as
+        | { asset?: AssetRef; removed?: string[]; reason?: string; issues?: string[] }
+        | null;
+      if (!res.ok || !body?.asset) {
+        throw new Error(body?.issues?.join('；') ?? body?.reason ?? `HTTP ${res.status}`);
+      }
+      const node = this.snapshot.page?.nodes[nodeId];
+      if (!node) throw new Error(`图片已存进项目资产，但目标元素不在了，没有贴上去`);
+      const asset = body.asset;
+      if (body.removed?.length) this.assetNoticeValue = `已存入并剥离元数据：${body.removed.join('、')}`;
+      this.execute(`填充图片 ${asset.name}`, [
+        { op: 'addAsset', asset },
+        {
+          op: 'set',
+          nodeId,
+          path: 'style.fills',
+          value: [{ kind: 'image', assetId: asset.id, fit }, ...(node.style.fills as unknown[])],
+        },
+      ]);
+      return true;
+    } catch (error) {
+      this.assetErrorValue = error instanceof Error ? error.message : String(error);
+      return false;
+    } finally {
+      this.assetBusyValue = false;
+      this.commit();
+    }
   }
 
   rename(nodeId: NodeId, name: string): void {

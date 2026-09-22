@@ -35,6 +35,21 @@ export function publicAssetUrl(handle: string, assetId: string): string {
   return `/api/public/${encodeURIComponent(handle)}/assets/${encodeURIComponent(assetId)}`;
 }
 
+/**
+ * 由文档的资产清单构造解析器（§16：清单在模型里，解析器只是它的投影）。
+ *
+ * 清单里没有的 id 返回 null → 渲染层跳过这一层。这是刻意的：
+ * 画布上出现一个引用了不存在资产的 paint（撤销到一半、快照来自别处）时，
+ * 宁可不画，也不给访客看一个 404 破图（§159）。
+ */
+export function assetContextFor(
+  document: { assets: readonly { id: string }[] },
+  urlFor: (assetId: string) => string,
+): AssetUrlContext {
+  const ids = new Set(document.assets.map((asset) => asset.id));
+  return { assetUrl: (assetId) => (ids.has(assetId) ? urlFor(assetId) : null) };
+}
+
 /** fit → CSS background-size 的确定性映射（不可映射的组合一律显式报错，不猜） */
 export function fitToBackgroundSize(fit: AssetFit | undefined): string {
   switch (fit) {

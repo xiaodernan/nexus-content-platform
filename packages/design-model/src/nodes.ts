@@ -455,10 +455,36 @@ export function createDocument(
 }
 
 /**
+ * 整棵子树做字符串替换而不是只改已知字段——引用一个 id 的地方会随功能增加
+ * （交互目标、变量作用域、填充里的 assetId……），点名式重写迟早漏一处。
+ * 只有"整串等于某个旧 id"才会被换掉，所以名字里恰好含这些字符的文本不受影响。
+ */
+function deepReplaceIds(value: unknown, maps: Map<string, string>[]): unknown {
+  const remap = (item: unknown): unknown => {
+    if (typeof item === "string") {
+      for (const map of maps) {
+        const next = map.get(item);
+        if (next) return next;
+      }
+      return item;
+    }
+    if (Array.isArray(item)) return item.map(remap);
+    if (item !== null && typeof item === "object") {
+      const out: Record<string, unknown> = {};
+      for (const [key, child] of Object.entries(item as Record<string, unknown>)) {
+        out[key] = remap(child);
+      }
+      return out;
+    }
+    return item;
+  };
+  return remap(value);
+}
+
+/**
  * §27 Duplicate：复制成一份可独立存在的新文档。
  * 页面 id 和组件 id 在存储层是全局主键，副本必须换号；节点 id 只在页面内唯一，
- * 跟着页面走，所以保持不变。整棵子树做字符串替换而不是只改已知字段——
- * 引用页面的地方还会随功能增加（交互目标、变量作用域……），点名式重写迟早漏一处。
+ * 跟着页面走，所以保持不变。
  */
 export function duplicateDocument(
   source: DesignDocument,
@@ -477,21 +503,27 @@ export function duplicateDocument(
     componentIds.set(component.id, next);
     component.id = next;
   }
-  const remap = (value: unknown): unknown => {
-    if (typeof value === "string") return pages.get(value) ?? componentIds.get(value) ?? value;
-    if (Array.isArray(value)) return value.map(remap);
-    if (value !== null && typeof value === "object") {
-      const out: Record<string, unknown> = {};
-      for (const [key, item] of Object.entries(value as Record<string, unknown>)) {
-        out[key] = remap(item);
-      }
-      return out;
-    }
-    return value;
-  };
-  const rekeyed = remap(copy) as DesignDocument;
+  const rekeyed = deepReplaceIds(copy, [pages, componentIds]) as DesignDocument;
   if (name) rekeyed.name = name;
   return rekeyed;
+}
+
+/**
+ * 资产换号（§27 Duplicate 的另一半）。
+ *
+ * 资产 id 在存储层也是全局主键，副本必须指向**自己**的那份字节：
+ * 共享一份记录会让"删除项目"的级联删掉别人的素材，也会让所有权判定失效
+ * （鉴权路由按 projectId 认人，§80）。这里只改模型里的引用，
+ * 字节与行的复制在 web 层做，映射表由那边生成。
+ */
+export function remapAssetIds(source: DesignDocument, map: Map<string, string> | Record<string, string>): DesignDocument {
+  const entries = map instanceof Map ? map : new Map(Object.entries(map));
+  if (!entries.size) return clone(source);
+  const copy = clone(source);
+  copy.assets = copy.assets.map((asset) =>
+    entries.has(asset.id) ? { ...asset, id: entries.get(asset.id)! } : asset,
+  );
+  return deepReplaceIds(copy, [entries]) as DesignDocument;
 }
 
 /** 内置默认 token 集（§12）；用户 Design System 覆盖同名 key */

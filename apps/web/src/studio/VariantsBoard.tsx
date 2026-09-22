@@ -34,6 +34,8 @@ function usePreview(variant: VariantEntry | undefined): Preview | null {
 
 function VariantFrame({ variant, height = 260 }: { variant: VariantEntry; height?: number }) {
   const preview = usePreview(variant);
+  // 资产目录取项目级的那一份：候选文档是分支 head，图却还是同一个项目上传的
+  const { assetContext } = useStudio();
   if (!preview) {
     return (
       <div className="flex h-[260px] items-center justify-center bg-bg-0 text-12 text-fg-3" data-variant-empty>
@@ -63,7 +65,7 @@ function VariantFrame({ variant, height = 260 }: { variant: VariantEntry; height
           const resolved = layout.nodes[id];
           if (!resolved) return null;
           return (
-            <div key={id} data-node-id={id} data-node-type={resolved.node.type} style={nodeStyle(resolved, { tokens, mode })}>
+            <div key={id} data-node-id={id} data-node-type={resolved.node.type} style={nodeStyle(resolved, { tokens, mode, assets: assetContext })}>
               {resolved.node.text ?? null}
             </div>
           );

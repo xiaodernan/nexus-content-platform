@@ -1,3 +1,4 @@
+import { deflateSync } from 'node:zlib';
 import { expect, test, type Page } from '@playwright/test';
 
 /**
@@ -558,4 +559,104 @@ test('@smoke studio slice: preview route is a read-only projection', async ({ pa
   await expect(page.locator('[data-node-type="text"]').filter({ hasText: 'NEXUS STUDIO' })).toBeVisible();
   // 预览里没有编辑控件
   await expect(page.locator('[data-ai-input]')).toHaveCount(0);
+});
+
+/** 手搓一张**真正可解码**的 PNG（正确 CRC + zlib 压缩像素），并带一个 eXIf 块 */
+function pngWithExif(width = 40, height = 40): Buffer {
+  const CRC_TABLE = (() => {
+    const table = new Int32Array(256);
+    for (let n = 0; n < 256; n += 1) {
+      let c = n;
+      for (let k = 0; k < 8; k += 1) c = c & 1 ? 0xedb88320 ^ (c >>> 1) : c >>> 1;
+      table[n] = c;
+    }
+    return table;
+  })();
+  const crc32 = (buf: Buffer): number => {
+    let c = ~0;
+    for (const byte of buf) c = (CRC_TABLE[(c ^ byte) & 0xff] ?? 0) ^ (c >>> 8);
+    return ~c >>> 0;
+  };
+  const chunk = (type: string, data: Buffer): Buffer => {
+    const len = Buffer.alloc(4);
+    len.writeUInt32BE(data.length, 0);
+    const body = Buffer.concat([Buffer.from(type, 'ascii'), data]);
+    const crc = Buffer.alloc(4);
+    crc.writeUInt32BE(crc32(body), 0);
+    return Buffer.concat([len, body, crc]);
+  };
+
+  const ihdr = Buffer.alloc(13);
+  ihdr.writeUInt32BE(width, 0);
+  ihdr.writeUInt32BE(height, 4);
+  ihdr[8] = 8; // bit depth
+  ihdr[9] = 6; // RGBA
+  // 每行：1 字节 filter(0) + width*4 像素，填一个醒目的青色
+  const raw = Buffer.alloc(height * (1 + width * 4));
+  for (let y = 0; y < height; y += 1) {
+    const rowStart = y * (1 + width * 4);
+    raw[rowStart] = 0;
+    for (let x = 0; x < width; x += 1) {
+      const px = rowStart + 1 + x * 4;
+      raw[px] = 0x14;
+      raw[px + 1] = 0xb8;
+      raw[px + 2] = 0xa6;
+      raw[px + 3] = 0xff;
+    }
+  }
+  const exif = Buffer.from('Exif\x00\x00MM\x00*GPS:37.77,-122.41', 'binary');
+  return Buffer.concat([
+    Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]),
+    chunk('IHDR', ihdr),
+    chunk('eXIf', exif),
+    chunk('IDAT', deflateSync(raw)),
+    chunk('IEND', Buffer.alloc(0)),
+  ]);
+}
+
+test('@smoke 上传图片：落画布、剥元数据回执、可撤销、预览同源', async ({ page }) => {
+  test.setTimeout(120_000);
+  const projectId = await createProject(page, `图片 ${Date.now().toString(36)}`);
+
+  // 用图层行的 onClick 选中（比画布命中测试确定）。刚建好项目时首击偶发被 hydration 抢掉，
+  // 用 toPass 重试到属性面板确实挂出上传控件为止。
+  const targetId = await layerId(page, 'Headline');
+  await expect(async () => {
+    await page.click(`[data-layer-id="${targetId}"]`);
+    await expect(page.locator('[data-asset-upload]').first()).toBeAttached({ timeout: 4_000 });
+  }).toPass({ timeout: 30_000 });
+  const node = page.locator(`[data-node-id="${targetId}"]`);
+  // 上传前这个节点没有图片背景
+  await expect(node).not.toHaveCSS('background-image', /\/api\/assets\//);
+
+  await page.setInputFiles('[data-asset-upload] input[type="file"]', {
+    name: 'hero.png',
+    mimeType: 'image/png',
+    buffer: pngWithExif(),
+  });
+
+  // 上传即成为最上层图片，节点投影出真实资产 URL（不是破图占位）
+  await expect(node).toHaveCSS('background-image', /\/api\/assets\/[^/]+\/file/, { timeout: 20_000 });
+  // 剥离回执：告诉用户 eXIf 已被去掉
+  await expect(page.locator('[data-asset-notice]')).toContainText('eXIf');
+  // 填充区出现图片行，缩略图与画布同一资产
+  const imageRow = page.locator('[data-fill-image="0"]');
+  await expect(imageRow).toBeVisible();
+  await expect(imageRow.locator('img')).toHaveAttribute('src', /\/api\/assets\/[^/]+\/file/);
+  // 关键：证明剥离元数据后存下来的字节**真能被浏览器解码**（不是只挂了个 URL）
+  await expect
+    .poll(async () => imageRow.locator('img').evaluate((el) => (el as HTMLImageElement).naturalWidth), { timeout: 20_000 })
+    .toBeGreaterThan(0);
+  // §192 Inspect：把"图片已经落在画布上"这一刻截下来，供人眼复核
+  await node.screenshot({ path: 'screenshots/asset-on-canvas.png' });
+
+  // 撤销：一次上传 = 一个事务，图片层与清单条目一起消失
+  await page.getByTitle('撤销（Ctrl+Z）').click();
+  await expect(node).not.toHaveCSS('background-image', /\/api\/assets\//, { timeout: 20_000 });
+
+  // 重做后保存，走预览路由（另一条投影，同一份模型）
+  await page.getByTitle('重做（Ctrl+Shift+Z）').click();
+  await expect(page.locator('[data-save-state]')).toContainText('已保存', { timeout: 20_000 });
+  await page.goto(`/preview/${projectId}`);
+  await expect(page.locator(`[data-node-id="${targetId}"]`)).toHaveCSS('background-image', /\/api\/assets\/[^/]+\/file/, { timeout: 20_000 });
 });

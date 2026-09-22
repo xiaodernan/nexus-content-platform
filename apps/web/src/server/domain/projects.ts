@@ -1,8 +1,9 @@
-import { and, eq, inArray, isNull } from 'drizzle-orm';
+import { and, asc, eq, inArray, isNull } from 'drizzle-orm';
 import {
   clone,
   createDocument,
   createPage,
+  type AssetRef,
   type ComponentDefinition,
   type DesignDocument,
   type DesignNode,
@@ -11,7 +12,7 @@ import {
   type Token,
 } from '@nexus/design-model';
 import { getDb } from '../db/client';
-import { branches, components, designNodes, designTokens, pages, projects, snapshots } from '../db/schema';
+import { assets, branches, components, designNodes, designTokens, pages, projects, snapshots } from '../db/schema';
 
 /**
  * 领域写入的唯一入口（ADR-0001：M6 之后由 Java 侧接管，接口形状保持不变）。
@@ -192,6 +193,36 @@ export async function projectBelongsTo(projectId: string, ownerId: string): Prom
   return rows.length > 0;
 }
 
+/**
+ * assets 行 → 模型里的 AssetRef（§16）。
+ *
+ * 这份映射只此一处：资产服务返回给前端的、载入文档时水合的，都用同一个形状，
+ * 免得两处各自演化出"清单里有但模型里字段不一样"的资产。
+ */
+export function assetRowToRef(row: typeof assets.$inferSelect): AssetRef {
+  const gen = (row.genMeta ?? {}) as Record<string, unknown>;
+  const generatedBy =
+    row.source === 'generated' && typeof gen.prompt === 'string'
+      ? {
+          provider: String(gen.provider ?? 'unknown'),
+          model: String(gen.model ?? 'unknown'),
+          prompt: gen.prompt,
+        }
+      : undefined;
+  return {
+    id: row.id,
+    name: row.name,
+    kind: row.kind as AssetRef['kind'],
+    storageKey: row.storageKey,
+    width: row.width ?? undefined,
+    height: row.height ?? undefined,
+    mimeType: row.mime ?? 'application/octet-stream',
+    sizeBytes: row.bytes ?? undefined,
+    ...(generatedBy ? { generatedBy } : {}),
+    createdAt: row.createdAt.toISOString(),
+  };
+}
+
 export async function loadDocument(projectId: string): Promise<DesignDocument | null> {
   const db = getDb();
   const [project] = await db.select().from(projects).where(and(eq(projects.id, projectId), isNull(projects.deletedAt))).limit(1);
@@ -200,6 +231,11 @@ export async function loadDocument(projectId: string): Promise<DesignDocument | 
   const pageRows = await db.select().from(pages).where(eq(pages.projectId, projectId)).orderBy(pages.sortIndex);
   const tokenRows = await db.select().from(designTokens).where(eq(designTokens.projectId, projectId));
   const componentRows = await db.select().from(components).where(eq(components.projectId, projectId));
+  const assetRows = await db
+    .select()
+    .from(assets)
+    .where(eq(assets.projectId, projectId))
+    .orderBy(asc(assets.createdAt));
 
   const document = createDocument(project.name, kindToProjectType(project.kind));
   document.id = projectId;
@@ -220,6 +256,12 @@ export async function loadDocument(projectId: string): Promise<DesignDocument | 
     props: (row.props as ComponentDefinition['props']) ?? undefined,
     slots: (row.slots as ComponentDefinition['slots']) ?? undefined,
   }));
+
+  // §38/§101 资产清单：字节在对象存储，行在 assets 表，这里把清单读回模型，
+  // 让投影与 Agent 上下文（§66）知道"这个项目有哪些素材、多大、什么类型"。
+  // 反向不写：saveDocument 不碰 assets 表，入库只由资产服务在上传/生成时做——
+  // 否则一次自动保存就可能把客户端传来的 storageKey 当成事实写回存储层（§80）。
+  document.assets = assetRows.map(assetRowToRef);
 
   const rebuilt: Page[] = [];
   for (const row of pageRows) {

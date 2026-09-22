@@ -90,6 +90,12 @@ DEMO 路径不在 ai-service 里：确定性 Mock 需要 design model 才能产�
    指向一份 `source='publish'` 的快照；重新发布就地换版本（path 有唯一索引），
    所以作者之后怎么改都不会把已经发出去的链接换掉。公开页不鉴权也不读工作区。
    门禁只报告真跑过的检查，没实现的列进"未运行"；`moderation` 停在 `pending`，不假装审核过。
+11. **设计里不存字节，只存引用**（§16/§38/§64/§101）：节点 paint 只持 `assetId`，object key 由服务端按 id 生成，
+    文件名只是展示文本。"这个 id 能不能显示"由**文档自己的资产清单**回答（`assetContextFor`），
+    画布 / 变体 / 预览 / 公开页四条投影据此跳过清单外的层而不是画破图。字节走 `StorageDriver` 接口
+    （S3 兼容实现 + 本地目录兜底，§64 provider 可替换），鉴权分两套 URL 面：作者会话取
+    `/api/assets/[id]/file`，匿名访客取 `/api/public/[handle]/assets/[id]` 且必须"发布行 + 钉住快照确实引用"才放行。
+    持久化在 web 层，AI Service 仍不写业务库（生成图将来也是返回计划/补丁，落库走同一入口）。
 
 ## Design ↔ Code 双通道
 

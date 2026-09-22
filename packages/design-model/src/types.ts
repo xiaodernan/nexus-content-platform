@@ -470,7 +470,11 @@ export interface BrandKit {
 export interface AssetRef {
   id: string;
   name: string;
-  kind: "image" | "video" | "audio" | "model" | "font" | "svg" | "document";
+  /**
+   * `other` 与存储层的 asset_kind 枚举对齐：库里能存的东西，模型必须能表达，
+   * 否则载入时只能靠猜（或悄悄丢掉这一条）。
+   */
+  kind: "image" | "video" | "audio" | "model" | "font" | "svg" | "document" | "other";
   /** 存储键（S3 兼容存储） */
   storageKey: string;
   width?: number;
