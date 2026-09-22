@@ -30,7 +30,7 @@ Create Project → Prompt → AI Design → Canvas → Layers → Properties
 - [x] Undo / Redo，AI 操作作为单个可撤销事务（§148-150）
 - [x] Mock AI（DEMO MODE 明确标注，补丁双端 schema 校验，§160）
 - [x] Live Preview 只读投影 + 截图脚本（§33/87，`scripts/capture-studio.mts`）
-- [ ] Design System 面板（token 浏览/编辑；当前只在属性面板显示概览与绑定选择器）
+- [x] Design System 面板（§12/§13：token 分组浏览、改值/改 mode、引用计数、增删自定义 token，全部可撤销）
 - [x] AI Service（FastAPI, `apps/ai-service`）：契约强制 + Provider 抽象 + Model Router + OpenAI 兼容适配器 + 删除类审批门
 - [ ] AI Service 任务队列 / 异步生成作业（Redis）与 embedding/RAG、图像/视频 provider（随 M2/M3 落地）
 - [ ] Design Agent：意图 → Plan → design patch → 画布更新 → AI Diff 说明（§20/25/151）
@@ -101,6 +101,19 @@ guest 首次发布时补一个稳定 handle（`u<id 前 8 位>`），URL 才真�
 验证：`npm test` 199（新增 7 条发布集成测试）、11 @smoke
 （"发布 → 第二标签页看到 66px → 改成 22px 公开页不动 → 重新发布换版本 → 取消发布 404"）、
 截图 `publish-panel.png` / `published-page.png` 人眼确认。
+
+**M1 进度记录（2026-09-22，Design System 面板）**：左侧第三个页签（图层 / 设计系统 / 历史），
+`apps/web/src/studio/DesignSystemPanel.tsx`。按类型分组列出 token，每行给：色块、key、
+**被多少节点引用**、默认值输入框、色值取色器，以及该 token 有 modes 时的 light/dark 输入行。
+所有改动都走 `studio.execute`（`setToken` / `addToken` / `removeToken`），所以改 token 与改节点一样
+进撤销栈——实测改 `color.primary` → 绑定的按钮立刻变粉 → Ctrl+Z 立刻回到原色。
+内置 token 的删除按钮禁用（改值可以，删掉会留下断链）；自定义 token 只在引用数为 0 时可删。
+引用计数匹配的是 `"{color.primary}"` 这种花括号绑定而不是裸 key——第一版按裸 key 数，
+结果满屏"未使用"，而画布上明明正用着它。
+验证：12 @smoke（新增一条：引用计数 → 改值全线跟随 → 撤销 → 非法名如实拒绝 → 自定义 token 增删 →
+刷新后仍在库里）、截图 `design-system.png` / `design-system-applied.png`（后者按像素扫过 #ff4d6d 确认
+按钮真的换了色）。已知边界：还不能新建带 modes 的 token（表单只填默认值），也没有"哪些节点在用它"的
+点选跳转。
 
 **M1 进度记录（2026-09-22，Compare）**：§27 的"比较"落在 `packages/design-model/src/diff.ts` 的
 `diffDocuments(before, after)`：产出与 AI Diff（§151）同样的 `DiffEntry[]`，所以历史面板两套清单共用一个行组件。

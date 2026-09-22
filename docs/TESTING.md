@@ -27,7 +27,7 @@
 3  拖动 + 缩放 + 框选多选 + Ctrl+Z/Ctrl+Shift+Z（§8/§148）
 4  AI 命令栏："Make the hero 30% taller." → Plan 可见 → Activity 流式 → AI Diff → 一次 Ctrl+Z 全回滚（§7/§25-26/§149-151）
 5  Layers 重命名/显隐/锁定/拖拽改父级
-6  Design System：改 color.primary token → 所有绑定节点更新（§12）
+6  设计系统：改 color.primary token → 所有绑定节点更新 → Ctrl+Z 回滚（§12/§13，已覆盖）
 7  Code 页 → 生成的 React 可编译；改一处代码 → 画布同步；不可映射片段标为 code-only（§19）
 8  Preview iframe 只读渲染 + Mobile/Tablet/Desktop/Wide 切换无横向溢出（§14）
 9  Screenshot 出图并出现在 Activity 与视觉 QA 结果里（§33/§87）
@@ -88,5 +88,9 @@ Build/Tests、性能预算、键盘与完整 ARIA、视觉回归**还没接进�
   发布那一刻的快照（改完工作区再解析仍是旧内容）、重新发布就地换版本不多出一行、
   private 的 URL 对任何人都不通、取消发布立刻解析不到而历史快照留着、门禁挡住时既不写发布记录也不留快照；
   e2e 用第二个标签页验证"访客看到的"和"作者改的"是两回事，并断言面板把"未运行的门禁"列出来
+- 设计系统的不变量（§12/§13）：e2e 断言"改一个 token，绑定它的节点全线跟随"（取计算样式而不是看 DOM 属性）、
+  改 token 与改节点一样在撤销栈里（Ctrl+Z 后按钮回到原色）、引用计数按花括号绑定统计
+  （按裸 key 数会满屏"未使用"，而画布明明在用）、内置 token 不可删、自定义 token 只在 0 引用时可删、
+  新增的 token 刷新后仍在库里
 - 每个里程碑一次 commit 前至少跑：`npm run lint && npm test && npm run test:e2e:smoke`- 改了 `packages/schemas` 必须重跑 `npm run contract:export`，否则契约漂移测试会红
 - 动了 ai-service 再加：`npm run test:ai-service`（Windows 控制台建议前置 `PYTHONUTF8=1`）

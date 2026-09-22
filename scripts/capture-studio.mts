@@ -328,6 +328,43 @@ await page.goto(`${base}/preview/${projectId}`, { waitUntil: 'domcontentloaded' 
 await page.waitForSelector('[data-preview-frame] [data-node-id]');
 await page.screenshot({ path: `${out}preview.png` });
 
+// §12 / §13 设计系统面板：改一个颜色 token，画布上绑定它的节点一起变
+await page.goto(`${base}/studio/${projectId}`, { waitUntil: 'domcontentloaded' });
+await page.waitForSelector('[data-canvas-frame] [data-node-id]', { timeout: 60_000 });
+await page.click('[data-panel-tab="design"]');
+await page.waitForSelector('[data-token-row="color.primary"]', { timeout: 30_000 });
+await page.screenshot({ path: `${out}design-system.png` });
+const ctaBackground = (): Promise<string> =>
+  page.evaluate(() => {
+    const el = Array.from(document.querySelectorAll('[data-canvas-frame] [data-node-type="button"]')).find((n) =>
+      n.textContent?.includes('开始设计'),
+    );
+    return el ? getComputedStyle(el).backgroundColor : '';
+  });
+const originalCta = await ctaBackground();
+await page.fill('[data-token-value="color.primary"]', '#ff4d6d');
+await page.press('[data-token-value="color.primary"]', 'Enter');
+await page.waitForFunction(
+  () =>
+    Array.from(document.querySelectorAll('[data-canvas-frame] [data-node-type="button"]')).some(
+      (n) => n.textContent?.includes('开始设计') && getComputedStyle(n).backgroundColor === 'rgb(255, 77, 109)',
+    ),
+  { timeout: 30_000 },
+);
+await page.click('[data-view="canvas"]');
+await page.screenshot({ path: `${out}design-system-applied.png` });
+// 撤销回去：截图链路不该把项目留在改过的配色上
+await page.click('[data-canvas-surface]', { position: { x: 5, y: 5 } });
+await page.keyboard.press('Control+z');
+await page.waitForFunction(
+  (expected) =>
+    Array.from(document.querySelectorAll('[data-canvas-frame] [data-node-type="button"]')).some(
+      (n) => n.textContent?.includes('开始设计') && getComputedStyle(n).backgroundColor === expected,
+    ),
+  originalCta,
+  { timeout: 30_000 },
+);
+
 // §56 / §57 发布：顶栏面板 → 门禁清单 → 用另一个标签页打开公开链接
 await page.goto(`${base}/studio/${projectId}`, { waitUntil: 'domcontentloaded' });
 await page.waitForSelector('[data-canvas-frame] [data-node-id]', { timeout: 60_000 });

@@ -389,6 +389,65 @@ test('@smoke studio slice: publish pins the released snapshot behind a share URL
   await visitor.close();
 });
 
+/**
+ * §12 / §13 设计系统面板：token 是真值，改一处全线跟着动，而且和改节点一样可撤销。
+ */
+test('@smoke studio slice: design system panel edits tokens and the canvas follows', async ({ page }) => {
+  test.setTimeout(150_000);
+  await createProject(page, `设计系统 ${Date.now().toString(36)}`);
+
+  await page.click('[data-panel-tab="design"]');
+  await expect(page.locator('[data-token-row="color.primary"]')).toBeVisible();
+  await expect(page.locator('[data-token-usage="color.primary"]')).toContainText('处引用');
+  // 内置 token 不给删（改了值还能改回来，删了会留下断链）
+  await expect(page.locator('[data-token-remove="color.primary"]')).toBeDisabled();
+
+  const ctaColor = () =>
+    page.evaluate(() => {
+      const el = Array.from(document.querySelectorAll('[data-canvas-frame] [data-node-type="button"]')).find((n) =>
+        n.textContent?.includes('开始设计'),
+      );
+      return el ? getComputedStyle(el).backgroundColor : '';
+    });
+  const before = await ctaColor();
+  expect(before).not.toBe('');
+
+  await page.fill('[data-token-value="color.primary"]', '#ff0000');
+  await page.press('[data-token-value="color.primary"]', 'Enter');
+  // 只改了一个 token，绑定它的节点全部跟着变（§12）
+  await expect.poll(ctaColor).toBe('rgb(255, 0, 0)');
+  // 改 token 和改节点一样在撤销栈里（§148）
+  await page.click('[data-view="canvas"]');
+  await page.click('[data-canvas-surface]', { position: { x: 5, y: 5 } });
+  await page.keyboard.press('Control+z');
+  await expect.poll(ctaColor).toBe(before);
+
+  // 自定义 token：加进来 → 删得掉；名字非法时如实拒绝
+  await page.click('[data-token-add-open]');
+  await page.fill('[data-token-new-key]', 'Bad Key');
+  await page.fill('[data-token-new-value]', '#123456');
+  await page.click('[data-token-new-submit]');
+  await expect(page.locator('[data-token-form-error]')).toContainText('小写字母开头');
+  await page.fill('[data-token-new-key]', 'color.brand');
+  await page.click('[data-token-new-submit]');
+  await expect(page.locator('[data-token-row="color.brand"]')).toBeVisible();
+  await expect(page.locator('[data-token-usage="color.brand"]')).toHaveText('未使用');
+  await page.click('[data-token-remove="color.brand"]');
+  await expect(page.locator('[data-token-row="color.brand"]')).toHaveCount(0);
+
+  // 加回来并刷新：token 表的改动会随自动保存落库
+  await page.click('[data-token-add-open]');
+  await page.fill('[data-token-new-key]', 'color.brand');
+  await page.fill('[data-token-new-value]', '#123456');
+  await page.click('[data-token-new-submit]');
+  await expect(page.locator('[data-save-state]')).toContainText('已保存', { timeout: 20_000 });
+  await page.reload();
+  await expect(page.locator('[data-canvas-frame]')).toBeVisible({ timeout: 30_000 });
+  await page.click('[data-panel-tab="design"]');
+  await expect(page.locator('[data-token-row="color.brand"]')).toBeVisible();
+  await expect(page.locator('[data-token-value="color.brand"]')).toHaveValue('#123456');
+});
+
 test('@smoke studio slice: AI command bar runs in DEMO MODE as one undoable transaction', async ({ page }) => {
   test.setTimeout(120_000);
   await createProject(page, `AI ${Date.now().toString(36)}`);
