@@ -1,12 +1,14 @@
 import {
   createNode,
   findPage,
+  isTokenRef,
   lintDesign,
   summarizeIssues,
   validateDocument,
   TokenStore,
   type DesignDocument,
   type DesignNode,
+  type LengthValue,
   type Page,
 } from '@nexus/design-model';
 import type { AgentActivity, AgentPlan, AiRequest, AiResponse, DesignPatchPayload, ModelClass } from '@nexus/schemas';
@@ -83,6 +85,16 @@ function percentOf(prompt: string): number | null {
 function fontSizeOf(node: DesignNode, tokens: TokenStore, mode?: string | null): number {
   const value = Number(tokens.resolveValue(node.typography?.fontSize ?? 0, mode));
   return Number.isFinite(value) ? value : 0;
+}
+
+/**
+ * 移动端折叠时推导 gap。gap 可能是 `{space.*}` token 引用——那就原样保留引用，
+ * 让移动端继续跟随同一档间距 token；不能像旧代码那样 `Number("{space.4}")` 静默变 NaN 再兜成 16。
+ * 只有字面数值才做「移动端不小于 12」的下限。
+ */
+function mobileGap(gap: LengthValue): LengthValue {
+  if (typeof gap === 'string') return isTokenRef(gap) ? gap : mobileGap(Number(gap) || 16);
+  return Math.max(12, gap || 16);
 }
 
 function opsPatch(ops: PatchOp[], summary: string, pageId: string): DesignPatchPayload {
@@ -165,7 +177,7 @@ const RULES: Rule[] = [
             {
               breakpoint: 'mobile',
               patch: {
-                layout: { mode: 'vertical', columns: 1, gap: Math.max(12, Number(n.layout.gap) || 16) },
+                layout: { mode: 'vertical', columns: 1, gap: mobileGap(n.layout.gap) },
                 size: { width: 'fill' },
               },
             },

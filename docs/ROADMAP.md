@@ -216,6 +216,12 @@ Canvas → Layers → Properties → Design System → AI Edit → Code → Prev
 UI 常驻 DEMO MODE。**唯一未闭合的是 line 43「方案/AI 生成的真实 provider 路径」——需要付费 provider 授权（§194 暂停条件），
 用户提供 key 前不伪装真实生成。** line 35（Redis 任务队列 / embedding / RAG）是 M2/M3 前置，随其落地。
 
+就绪判定已做到 correct-by-design（ADR 0003，commit 45880e8）：web 侧的 `getAiCapabilities`/`isDemoMode`
+和 `/api/ai/run` 的路由不再看 web 自己进程有没有 key，而是查询 ai-service `/healthz` 的 provider 就绪状态——
+key 只活在 ai-service 进程（符合 SECURITY.md「web 永不接触 key」）。所以 line 43 一旦闭合，
+用户只需给 ai-service 配 `NEXUS_OPENAI_API_KEY`（+ 可选 `NEXUS_MODEL_FAST/BALANCED/REASONING/VISION`），
+无需在 web 重复配置，首页能力行与 DEMO MODE 标识会自动翻到 real。
+
 ## M2 — 图像与资产（§182）
 - [ ] Nexus Image Studio（text→image / image→image / sketch→image / reference→variation / character→scene）
 - [ ] Asset Library（图片/视频/音频/3D/组件/设计系统统一编目）
@@ -266,8 +272,15 @@ UI 常驻 DEMO MODE。**唯一未闭合的是 line 43「方案/AI 生成的真�
 - `[!]` 真实 AI provider key（文本/图像/视频）— 用户提供前，全部生成类能力以 DEMO MODE 交付，UI 明确标注，不伪装真实结果。
 
 ## 已知技术债（不伪装成已完成）
-- `Layout.gap / padding / cornerRadius` 类型是 `number`，但属性面板的 token 绑定会写入 `"{space.4}"` 这类字符串；
-  运行时 TokenStore 能解析，类型层面在说谎。需要把这三处放宽为 `number | TokenKey` 并在 validate/layout 统一解析。
+- ~~`Layout.gap / padding / cornerRadius` 类型是 `number`，但属性面板的 token 绑定会写入 `"{space.4}"` 这类字符串~~
+  **已修（2026-09-23）**：三处几何字段放宽为 `LengthValue = number | TokenKey`（types.ts），与运行时真相一致。
+  验证发现 widening 没让任何消费者报错——因为 layout/render/codegen 早就经 `resolveNum`/`TokenStore` 解析，
+  类型谎报从没被编译检查覆盖到。真正被它掩盖的是一个语义 bug：`server/ai/mock.ts` 的「移动端优化」配方
+  `Number(gap) || 16` 会把 token 引用静默 coerce 成 NaN→16，已改为「token 引用原样保留、仅字面数值做下限」。
+  补 design-model 单测锁住 `{space.*}` 参与真实排布、缺 store 时回落有限值不产生 NaN。
+  **仍欠（如实记）**：Code → Design 反向同步（`code-parse.ts`）对 gap/padding/cornerRadius 仍只认 `px` 字面量，
+  不像 `size` 走 `lengthOf` 能把 `var(--nx-space-…)` 反解回 `{space.*}`——所以在代码视图里手改这些属性会把 token 绑定丢成数字。
+  这是 §17-19「可逆区域」的一条已知缺口，需要给 code-parse 补一条与 size 对称的长度回解路径。
 - ESLint 目前只有 `npm run lint` = typecheck 的占位配置，缺真实规则集。
 - 资产服务已落地（任务 #9c，§38/§80/§101/§182）：图片上传 → magic-bytes 判定 → 元数据剥离 → 对象存储 → 鉴权路由 →
   画布/预览/发布四条投影同源。仍欠的两笔如实记下：

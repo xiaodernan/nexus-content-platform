@@ -8,6 +8,7 @@ import {
 } from "../src/layout";
 import type { DesignNode, Page } from "../src/types";
 import { radius } from "../src/nodes";
+import { TokenStore } from "../src/tokens";
 
 function pageWith(
   rootOverrides: Partial<DesignNode>,
@@ -389,5 +390,52 @@ describe("document factories", () => {
       bottomRight: 8,
       bottomLeft: 8,
     });
+  });
+});
+
+// 属性面板的 token 绑定会把 "{space.*}" 写进 gap / padding / cornerRadius。
+// 这些字段类型曾是纯 number（谎报），运行时却已按 TokenStore 解析——这里锁住解析行为，
+// 并钉死"缺 TokenStore 时回落有限值、不产生 NaN 尺寸"这条不变量（§12/§16）。
+describe("resolveLayout — token 绑定的几何", () => {
+  const tokens = new TokenStore([
+    { key: "space.2", type: "dimension", value: 8 },
+    { key: "space.3", type: "dimension", value: 12 },
+  ]);
+
+  const build = () => {
+    const a = fixedShape("A", 100, 50);
+    const b = fixedShape("B", 100, 50);
+    const page = pageWith(
+      {
+        size: { width: 400, height: "hug" },
+        layout: {
+          mode: "vertical",
+          gap: "{space.2}",
+          padding: { top: "{space.3}", right: 0, bottom: "{space.3}", left: 0 },
+          justify: "start",
+          items: "start",
+          clipContent: false,
+          scroll: "none",
+        },
+      },
+      [a, b],
+    );
+    return { page, a, b };
+  };
+
+  it("把 {space.*} 引用解析成真实 px 参与排布", () => {
+    const { page, a, b } = build();
+    const layout = resolveLayout(page, { tokens });
+    // 2*50 + 1*gap(8) + 2*padding(12)
+    expect(layout.height).toBe(132);
+    expect(layout.nodes[a.id]!.y).toBe(12); // padding.top = space.3
+    expect(layout.nodes[b.id]!.y).toBe(70); // 12 + 50 + gap(8)
+  });
+
+  it("缺 TokenStore 时引用解析不出数字，回落有限值而不是 NaN 尺寸", () => {
+    const { page, a } = build();
+    const layout = resolveLayout(page);
+    expect(Number.isFinite(layout.height)).toBe(true);
+    expect(layout.nodes[a.id]!.y).toBe(0);
   });
 });

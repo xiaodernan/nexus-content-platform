@@ -120,10 +120,10 @@ export interface Effect {
 }
 
 export interface CornerRadius {
-  topLeft: number;
-  topRight: number;
-  bottomRight: number;
-  bottomLeft: number;
+  topLeft: LengthValue;
+  topRight: LengthValue;
+  bottomRight: LengthValue;
+  bottomLeft: LengthValue;
 }
 
 export interface Typography {
@@ -230,12 +230,24 @@ export interface Binding {
 export type LayoutMode =
   "none" | "vertical" | "horizontal" | "grid" | "stack" | "wrap";
 
+/**
+ * 几何长度：字面 px 数值，或 `{space.*}` / `{radius.*}` 这类 token 引用。
+ * 运行时统一经 TokenStore.resolveValue 解析（layout/render/codegen 都已支持），
+ * 类型层如实反映这一点，别再谎报成纯 number（§16 设计模型即真值）。
+ */
+export type LengthValue = number | TokenKey;
+
 export interface Layout {
   mode: LayoutMode;
-  gap: number;
-  rowGap?: number;
-  crossGap?: number;
-  padding: { top: number; right: number; bottom: number; left: number };
+  gap: LengthValue;
+  rowGap?: LengthValue;
+  crossGap?: LengthValue;
+  padding: {
+    top: LengthValue;
+    right: LengthValue;
+    bottom: LengthValue;
+    left: LengthValue;
+  };
   justify:
     | "start"
     | "center"
