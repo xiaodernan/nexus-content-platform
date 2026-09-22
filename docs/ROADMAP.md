@@ -224,7 +224,10 @@ key 只活在 ai-service 进程（符合 SECURITY.md「web 永不接触 key」�
 
 ## M2 — 图像与资产（§182）
 - [ ] Nexus Image Studio（text→image / image→image / sketch→image / reference→variation / character→scene）
-- [ ] Asset Library（图片/视频/音频/3D/组件/设计系统统一编目）
+- [x] Asset Library（图片/视频/音频/3D/组件/设计系统统一编目）— 清单在模型里（`document.assets`），
+  Studio「资产库」面板只是它的投影：列出/缩略图预览/引用计数/删除。删除走 `removeAsset` 模型级事务，
+  跨所有页面剥引用、可撤销；字节清除是尽力而为的第二步（撤销恢复不了文件，回执如实说明）。
+  非位图 kind 目前无摄取通道，见下方资产服务债 2。
 - [ ] Reference Image → Visual DNA 提取（§30/172-174）
 - [ ] 角色一致性生成（§39）
 
@@ -288,8 +291,8 @@ key 只活在 ai-service 进程（符合 SECURITY.md「web 永不接触 key」�
   画布/预览/发布四条投影同源。仍欠的两笔如实记下：
   1. `stripImageMetadata` 只做**结构化剥离**（PNG/JPEG/WebP/GIF 的 EXIF/XMP/IPTC/注释段），没有重新编码/缩略图/有损统一化——
      SECURITY.md 期望的"重编码去元数据"要等 provider 层落地时替换本实现（见 `docs/SECURITY.md` 的资产小节与本文件说明）。
-  2. 目前只接受位图，视频/音频/3D 显式拒绝；`DELETE /api/assets/[id]` 有服务端与集成测试，但**还没有 UI 入口**——
-     删除按钮挂到 M2 的 Asset Library，届时一并补 e2e。
+  2. 目前只接受位图，视频/音频/3D 显式拒绝；`DELETE /api/assets/[id]` 有服务端与集成测试，UI 入口已随
+     Asset Library 面板补上（任务 #21，含 e2e：上传→清单可见→删除跨页剥引用→撤销恢复引用但字节已 404）。
 - 认证已落地（任务 #9d，§137/§80）：bcrypt 口令哈希、会话轮换/吊销、双提交 CSRF、内存滑动窗口限流、就地升级认领 guest 项目。
   三笔债里 CSRF 已还清，另两笔如实记下，替换点各自单一（见 `docs/adr/0002-password-hashing-and-csrf.md`）：
   1. 口令用的是 SECURITY.md 允许的 **bcrypt 回落分支**，不是首选的 Argon2id（原生/wasm 包与"Windows 免编译 + 零原生依赖"冲突）。

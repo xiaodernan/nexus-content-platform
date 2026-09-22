@@ -660,3 +660,57 @@ test('@smoke 上传图片：落画布、剥元数据回执、可撤销、预览�
   await page.goto(`/preview/${projectId}`);
   await expect(page.locator(`[data-node-id="${targetId}"]`)).toHaveCSS('background-image', /\/api\/assets\/[^/]+\/file/, { timeout: 20_000 });
 });
+
+test('@smoke 资产库：上传后可见、删除跨画布生效、撤销恢复引用', async ({ page }) => {
+  test.setTimeout(150_000);
+  const projectId = await createProject(page, `资产库 ${Date.now().toString(36)}`);
+
+  const targetId = await layerId(page, 'Headline');
+  await expect(async () => {
+    await page.click(`[data-layer-id="${targetId}"]`);
+    await expect(page.locator('[data-asset-upload]').first()).toBeAttached({ timeout: 4_000 });
+  }).toPass({ timeout: 30_000 });
+  await page.setInputFiles('[data-asset-upload] input[type="file"]', {
+    name: 'library.png',
+    mimeType: 'image/png',
+    buffer: pngWithExif(),
+  });
+  const node = page.locator(`[data-node-id="${targetId}"]`);
+  await expect(node).toHaveCSS('background-image', /\/api\/assets\//, { timeout: 20_000 });
+  // 记住这一个 assetId，删除/撤销都拿它做断言，避免"换了张图"混过测试
+  const assetId = await node.evaluate((el) => {
+    const match = /\/api\/assets\/([^/]+)\/file/.exec(getComputedStyle(el).backgroundImage);
+    return match?.[1] ?? '';
+  });
+  expect(assetId).toMatch(/^[a-z0-9_-]+$/i);
+
+  // 切到资产库标签：清单来自模型，投影出的卡片与画布引用同一个 assetId
+  await page.click('[data-panel-tab="assets"]');
+  const card = page.locator(`[data-asset-card="${assetId}"]`);
+  await expect(card).toBeVisible();
+  await expect(card.locator('img')).toHaveAttribute('src', `/api/assets/${assetId}/file`);
+  await expect
+    .poll(async () => card.locator('img').evaluate((el) => (el as HTMLImageElement).naturalWidth), { timeout: 20_000 })
+    .toBeGreaterThan(0);
+  await expect(card).toContainText('引用 1');
+  await page.screenshot({ path: 'screenshots/asset-library.png' });
+
+  // 删除：一次事务同时清掉清单条目与画布上的图片填充（§149 跨页可达）
+  await card.locator(`[data-asset-delete="${assetId}"]`).click();
+  await expect(node).not.toHaveCSS('background-image', /\/api\/assets\//, { timeout: 20_000 });
+  await expect(page.locator(`[data-asset-card="${assetId}"]`)).toHaveCount(0);
+  // 回执必须明说撤销的边界，不假装撤销能找回字节（§159）。
+  // 属性面板也用 data-asset-notice，所以限定在资产库面板内。
+  await expect(page.locator('[data-assets-panel] [data-asset-notice]')).toContainText('不会回来');
+
+  // 撤销：引用回来了，但文件已经不在存储里 —— 模型与存储的非对称要能被看见
+  await page.getByTitle('撤销（Ctrl+Z）').click();
+  await expect(page.locator(`[data-asset-card="${assetId}"]`)).toBeVisible();
+  await expect(node).toHaveCSS('background-image', new RegExp(`/api/assets/${assetId}/file`), { timeout: 20_000 });
+  const status = await page.request.get(`/api/assets/${assetId}/file`);
+  expect(status.status()).toBe(404);
+
+  await page.getByTitle('重做（Ctrl+Shift+Z）').click();
+  await expect(node).not.toHaveCSS('background-image', /\/api\/assets\//, { timeout: 20_000 });
+  await expect(page.locator('[data-save-state]')).toContainText('已保存', { timeout: 20_000 });
+});

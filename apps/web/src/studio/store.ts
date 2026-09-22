@@ -980,6 +980,40 @@ export class StudioStore {
     }
   }
 
+  /**
+   * Asset Library 删除（M2 line 227）：一次可撤销事务把资产移出清单，并让模型顺带剥掉
+   * 所有页面上引用它的图片填充 / 节点（removeAsset 有 document 全域可达，§149）。
+   *
+   * 字节删除是尽力而为的第二步：撤销能恢复清单里的引用，但服务端删掉的字节回不来——
+   * 这一非对称如实写进回执，不假装撤销万能的（§159）。purge 失败也不回滚已生效的移除，
+   * 只把原因摊在面板上，让用户知道清单已干净、字节成了孤儿可稍后重试。
+   */
+  async deleteAssetFromLibrary(assetId: string): Promise<boolean> {
+    if (!this.projectId) return false;
+    const asset = this.design.getDocument().assets.find((a) => a.id === assetId);
+    if (!asset) return false;
+    this.assetBusyValue = true;
+    this.assetErrorValue = null;
+    this.assetNoticeValue = null;
+    this.commit();
+    this.execute(`删除资产 ${asset.name}`, [{ op: 'removeAsset', assetId }]);
+    try {
+      const res = await fetch(`/api/assets/${assetId}`, { method: 'DELETE', headers: csrfHeaders() });
+      const body = (await res.json().catch(() => null)) as { removed?: string; message?: string } | null;
+      if (!res.ok) throw new Error(body?.message ?? `HTTP ${res.status}`);
+      this.assetNoticeValue = `已删除「${asset.name}」并从画布移除引用。注意：撤销可恢复引用，但存储里的文件字节不会回来。`;
+      return true;
+    } catch (error) {
+      this.assetErrorValue = `引用已从项目移除（可撤销），但服务器删除文件失败：${
+        error instanceof Error ? error.message : String(error)
+      }`;
+      return false;
+    } finally {
+      this.assetBusyValue = false;
+      this.commit();
+    }
+  }
+
   rename(nodeId: NodeId, name: string): void {
     this.execute('重命名', [{ op: 'set', nodeId, path: 'name', value: name.slice(0, 80) }]);
   }

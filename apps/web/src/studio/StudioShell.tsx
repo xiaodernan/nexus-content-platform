@@ -7,17 +7,19 @@ import { TopBar } from './TopBar';
 import { LayersPanel } from './LayersPanel';
 import { HistoryPanel } from './HistoryPanel';
 import { DesignSystemPanel } from './DesignSystemPanel';
+import { AssetsPanel } from './AssetsPanel';
 import { PropertiesPanel } from './PropertiesPanel';
 import { CanvasStage } from './CanvasStage';
 import { CodePanel } from './CodePanel';
 import { VariantsBoard } from './VariantsBoard';
 import { CommandBar } from './CommandBar';
 
-type PanelTab = 'layers' | 'design' | 'history';
+type PanelTab = 'layers' | 'design' | 'assets' | 'history';
 
 const TABS: { id: PanelTab; label: string }[] = [
   { id: 'layers', label: '图层' },
   { id: 'design', label: '设计系统' },
+  { id: 'assets', label: '资产库' },
   { id: 'history', label: '历史' },
 ];
 
@@ -90,7 +92,15 @@ function StudioWorkspace({ zoom, demoMode }: { zoom: number; demoMode: boolean }
           )}
           data-left-panel
         >
-          {tab === 'layers' ? <LayersPanel /> : tab === 'design' ? <DesignSystemPanel /> : <HistoryPanel />}
+          {tab === 'layers' ? (
+            <LayersPanel />
+          ) : tab === 'design' ? (
+            <DesignSystemPanel />
+          ) : tab === 'assets' ? (
+            <AssetsPanel />
+          ) : (
+            <HistoryPanel />
+          )}
         </aside>
 
         <main className="flex min-w-0 flex-1 flex-col">

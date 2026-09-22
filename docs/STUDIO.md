@@ -31,6 +31,8 @@ import screenshots / codebase context / design ↔ code），但**不复刻其 U
 Pages · Layers · Components · Assets · Variables · Design System · AI Agents · Code · History
 - 同一时刻只展开一个面板主体，图标栏常驻
 - Layers 树支持：重命名、显隐、锁定、拖拽改父级、多选、搜索、按类型过滤
+- Assets 列 `document.assets`（清单本身在模型里，§16）：缩略图走鉴权路由、显示体积与引用计数；
+  删除 = 一个 `removeAsset` 事务，跨所有页面剥引用且可撤销——但服务端字节撤不回来，回执明说这条非对称（§159）
 - History 列出 snapshot / branch / AI 事务，可 View / Compare / Restore / Duplicate / Branch（§27）
 
 ## 右面板（§6）
