@@ -1,4 +1,4 @@
-import type { AssetRef, DesignDocument, DesignNode, Page, Paint } from "./types";
+import type { AssetRef, DesignDocument, DesignNode, Page, Paint, VisualDna } from "./types";
 import { clone, findPage, requireNode } from "./nodes";
 
 /**
@@ -31,7 +31,9 @@ export type PatchOp =
       nodes: { pageId: string; nodeId: string; assetId: string; src?: string }[];
     }
   | { op: "addPage"; page: Page; setActive?: boolean }
-  | { op: "removePage"; pageId: string };
+  | { op: "removePage"; pageId: string }
+  /** §30/§174：整份替换项目的视觉 DNA（null = 清掉）。DNA 是文档级真值，不是节点属性 */
+  | { op: "setVisualDna"; dna: VisualDna | null };
 
 export interface DesignPatch {
   /** 事务标识：同一次 AI 操作共享一个 id（§149） */
@@ -278,6 +280,7 @@ function isDocumentOp(op: PatchOp): boolean {
     case "restoreAsset":
     case "addPage":
     case "removePage":
+    case "setVisualDna":
       return true;
     default:
       return false;
@@ -307,6 +310,12 @@ function applyDocumentOp(
       if (document.activePageId === op.pageId) {
         document.activePageId = document.pages[0]?.id ?? "";
       }
+      break;
+    }
+    case "setVisualDna": {
+      // 整份替换而不是逐字段 merge：DNA 是一组互相耦合的约束，拼半套会自相矛盾
+      if (op.dna === null) delete document.visualDna;
+      else document.visualDna = clone(op.dna);
       break;
     }
     case "setToken": {
@@ -612,6 +621,14 @@ export function invertPatch(
           }
         }
         ops.push({ op: "restoreAsset", asset: clone(asset), paints, nodes });
+        break;
+      }
+      case "setVisualDna": {
+        // 之前没有 DNA 时逆操作是 null（清掉），而不是留着一份"看起来像但其实是新的"约束
+        ops.push({
+          op: "setVisualDna",
+          dna: document.visualDna ? clone(document.visualDna) : null,
+        });
         break;
       }
       case "addPage": {

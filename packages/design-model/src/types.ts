@@ -312,23 +312,37 @@ export interface Style {
   aspectRatio?: number;
 }
 
-/** §30 / §174 从参考图提取的视觉语言，作为 AI 生成的硬约束 */
+/**
+ * §30 / §174 从参考图提取的视觉语言，作为 AI 生成的硬约束。
+ *
+ * 字段按"能不能被如实测出来"分组：`palette` 与 `descriptors` 任何来源都能给；
+ * 排版 / 间距 / 圆角 / 阴影 / 动效 / 层级是**看不准就不写**的——本地像素统计测不出
+ * 字号和缓动曲线，硬填等于造假（§159），所以它们一律可选，由能给出证据的来源填。
+ */
 export interface VisualDna {
+  /** 这份 DNA 的出处：本地像素统计 / 视觉模型 / 概念语言，三者可信度不同，不能互相冒充 */
+  source?: {
+    assetId?: string;
+    method: "pixel-stats" | "vision-model" | "concept-language";
+    extractedAt: string;
+    /** 用到的格式/维度等限制，例如"只支持非隔行 8bit PNG" */
+    notes?: string[];
+  };
   palette: { role: string; color: ColorValue }[];
-  typography: {
+  typography?: {
     role: string;
     fontFamily: string;
     fontSize: number;
     fontWeight: number;
   }[];
-  spacingScale: number[];
-  radius: number;
-  shadow: string;
-  motion: {
+  spacingScale?: number[];
+  radius?: number;
+  shadow?: string;
+  motion?: {
     character: "slow-cinematic" | "snappy" | "playful" | "minimal";
     notes: string[];
   };
-  hierarchy: string[];
+  hierarchy?: string[];
   descriptors: string[];
 }
 

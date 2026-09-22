@@ -530,6 +530,7 @@ export function applyConceptLanguage(
   const heading = language.fonts["font.heading"];
   const radiusToken = document.tokens.find((t) => t.key === "radius.lg")?.value;
   document.visualDna = {
+    source: { method: "concept-language", extractedAt: new Date().toISOString() },
     palette,
     typography: [
       { role: "heading", fontFamily: heading ?? SANS, fontSize: 56, fontWeight: 700 },

@@ -443,3 +443,42 @@ describe("DesignStore (§148-150)", () => {
     expect(revisions).toBe(1);
   });
 });
+
+describe("setVisualDna（§30/§174）", () => {
+  const dna = {
+    source: { method: "pixel-stats" as const, extractedAt: "2026-09-22T00:00:00.000Z" },
+    palette: [{ role: "background", color: "#0b0d12" }],
+    descriptors: ["暗色底", "高对比"],
+  };
+
+  it("写入后是文档级真值，撤销回到没有 DNA 的状态", () => {
+    const { doc } = seed();
+    const patch: DesignPatch = { ops: [{ op: "setVisualDna", dna }] };
+    const after = applyPatch(doc, patch).document;
+    expect(after.visualDna?.descriptors).toEqual(["暗色底", "高对比"]);
+    const restored = applyPatch(after, invertPatch(doc, patch)).document;
+    // 之前根本没有 DNA，撤销必须把它整个删掉，而不是留一个空壳冒充"有但为空"
+    expect(restored.visualDna).toBeUndefined();
+  });
+
+  it("覆盖另一份 DNA 时，撤销恢复的是原来那份", () => {
+    const { doc } = seed();
+    const first: DesignPatch = {
+      ops: [{ op: "setVisualDna", dna: { ...dna, descriptors: ["浅色底"] } }],
+    };
+    const withFirst = applyPatch(doc, first).document;
+    const second: DesignPatch = { ops: [{ op: "setVisualDna", dna }] };
+    const withSecond = applyPatch(withFirst, second).document;
+    expect(withSecond.visualDna?.descriptors).toEqual(["暗色底", "高对比"]);
+    const back = applyPatch(withSecond, invertPatch(withFirst, second)).document;
+    expect(back.visualDna?.descriptors).toEqual(["浅色底"]);
+  });
+
+  it("存进去的 DNA 与调用方对象脱钩，改不动历史", () => {
+    const { doc } = seed();
+    const mutable = { ...dna, descriptors: ["暗色底"] };
+    const after = applyPatch(doc, { ops: [{ op: "setVisualDna", dna: mutable }] }).document;
+    mutable.descriptors.push("被事后篡改");
+    expect(after.visualDna?.descriptors).toEqual(["暗色底"]);
+  });
+});
