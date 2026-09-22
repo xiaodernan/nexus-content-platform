@@ -101,10 +101,20 @@ export function AssetsPanel() {
                       ) : null}
                       <button
                         type="button"
+                        onClick={() => void studio.extractVisualDnaFromAsset(asset.id)}
+                        disabled={state.assetBusy || asset.kind !== 'image'}
+                        title={asset.kind === 'image' ? '把这张图当作参考图，提取项目的 Visual DNA（§30）' : '目前只有位图可提取'}
+                        data-asset-dna={asset.id}
+                        className="ml-auto rounded-[var(--nexus-radius-sm)] px-2 py-[2px] font-mono text-11 text-fg-3 hover:bg-bg-3 disabled:opacity-50"
+                      >
+                        提取视觉语言
+                      </button>
+                      <button
+                        type="button"
                         onClick={() => void studio.deleteAssetFromLibrary(asset.id)}
                         disabled={state.assetBusy}
                         data-asset-delete={asset.id}
-                        className="ml-auto rounded-[var(--nexus-radius-sm)] px-2 py-[2px] font-mono text-11 text-fg-3 hover:bg-bg-3 disabled:opacity-50"
+                        className="rounded-[var(--nexus-radius-sm)] px-2 py-[2px] font-mono text-11 text-fg-3 hover:bg-bg-3 disabled:opacity-50"
                       >
                         删除
                       </button>

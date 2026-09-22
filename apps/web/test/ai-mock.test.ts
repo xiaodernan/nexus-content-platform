@@ -93,4 +93,35 @@ describe('DeterministicMockProvider', () => {
     expect(response.error?.code).toBe('provider-unavailable');
     expect(response.patches.length).toBe(0);
   });
+
+  it('§174 项目已有 Visual DNA 时，配色遵循 DNA 而不是内置配方', async () => {
+    const document = createDocument('契约测试', 'website');
+    document.visualDna = {
+      source: { method: 'pixel-stats', extractedAt: '2026-09-22T00:00:00.000Z' },
+      palette: [
+        { role: 'background', color: '#101418' },
+        { role: 'foreground', color: '#f5f7ff' },
+        { role: 'accent', color: '#ff7a1a' },
+      ],
+      descriptors: ['暗色底'],
+    };
+    const response = await mockProvider.run(request('make it cinematic', {}, document));
+    const tokenOps = response.patches
+      .flatMap((p) => p.ops)
+      .filter((op): op is { op: 'setToken'; key: string; value: unknown; mode?: string } => op.op === 'setToken')
+      .map((op) => [op.key, op.value] as const);
+    const byKey = Object.fromEntries(tokenOps);
+    expect(byKey['color.background']).toBe('#101418');
+    expect(byKey['color.primary']).toBe('#ff7a1a');
+    // 内置 cinematic 配方不得混进来：DNA 里没有 surface，就不该被顺手改掉
+    expect(byKey['color.surface']).toBeUndefined();
+    expect(JSON.stringify(response.patches)).toContain('项目 DNA');
+  });
+
+  it('没有 DNA 时仍走内置配方，且如实标注来源', async () => {
+    const response = await mockProvider.run(request('make it cinematic'));
+    const ops = response.patches.flatMap((p) => p.ops);
+    expect(JSON.stringify(ops)).toContain('#05060a');
+    expect(JSON.stringify(response.patches)).not.toContain('项目 DNA');
+  });
 });

@@ -61,6 +61,30 @@ const PALETTES: Record<string, Record<string, string>> = {
   },
 };
 
+/**
+ * §174：项目一旦有 Visual DNA，它就是配色的真值，生成必须遵循它。
+ *
+ * 角色 → token 的映射只认这三个常见键，且只覆盖文档里**已存在**的 token；
+ * DNA 里没有的角色一律不填，也不从内置配方借色——借色就等于假装遵循。
+ */
+function dnaPaletteOf(document: DesignDocument): Record<string, string> | null {
+  const dna = document.visualDna;
+  if (!dna?.palette.length) return null;
+  const roleToToken: Record<string, string> = {
+    background: 'color.background',
+    foreground: 'color.text',
+    accent: 'color.primary',
+  };
+  const out: Record<string, string> = {};
+  for (const entry of dna.palette) {
+    const tokenKey = roleToToken[entry.role];
+    const existing = document.tokens.find((t) => t.key === tokenKey);
+    if (!tokenKey || !existing || typeof entry.color !== 'string') continue;
+    out[tokenKey] = entry.color;
+  }
+  return Object.keys(out).length ? out : null;
+}
+
 function targetNode(input: { page: Page; request: AiRequest }): DesignNode | null {
   const { page, request } = input;
   for (const id of request.context.selection) {
@@ -134,8 +158,9 @@ const RULES: Rule[] = [
     id: 'palette-transfer',
     match: (p) => /(cinematic|电影感|dark fantasy|暗黑|cyber|赛博|visual style|视觉风格)/i.test(p),
     apply: ({ document, page, request }) => {
+      const fromDna = dnaPaletteOf(document);
       const key = Object.keys(PALETTES).find((k) => new RegExp(k, 'i').test(request.prompt)) ?? 'cinematic';
-      const palette = PALETTES[key]!;
+      const palette = fromDna ?? PALETTES[key]!;
       const ops: PatchOp[] = Object.entries(palette)
         .filter(([tokenKey]) => document.tokens.some((t) => t.key === tokenKey))
         .map(([tokenKey, value]) => ({ op: 'setToken', key: tokenKey, value }));
@@ -149,11 +174,13 @@ const RULES: Rule[] = [
       }
       if (!ops.length) return null;
       return {
-        summary: `切换到 ${key} 配色`,
-        explanation: `改写 ${Object.keys(palette).length} 个颜色 token（不逐节点硬编码），标题加上字距与更紧的行高。`,
-        patches: [opsPatch(ops, `视觉风格：${key}`, page.id)],
-        activities: ['提取配色意图', '写 token', '标题排版微调'],
-        label: key,
+        summary: fromDna ? '按项目 Visual DNA 换色' : `切换到 ${key} 配色`,
+        explanation: fromDna
+          ? `项目已有从参考图提取的 Visual DNA，配色按它的 ${Object.keys(palette).length} 个角色写入 token（不逐节点硬编码）。`
+          : `改写 ${Object.keys(palette).length} 个颜色 token（不逐节点硬编码），标题加上字距与更紧的行高。`,
+        patches: [opsPatch(ops, fromDna ? '视觉语言：项目 DNA' : `视觉风格：${key}`, page.id)],
+        activities: [fromDna ? '读取项目 Visual DNA' : '提取配色意图', '写 token', '标题排版微调'],
+        label: fromDna ? 'project-dna' : key,
       };
     },
   },

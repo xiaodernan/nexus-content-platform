@@ -30,6 +30,16 @@ export const PatchOpSchema = z.discriminatedUnion('op', [
   z.object({ op: z.literal('removeToken'), key: z.string() }),
   z.object({ op: z.literal('addComponent'), component: z.record(z.string(), z.unknown()) }),
   z.object({ op: z.literal('addAsset'), asset: z.record(z.string(), z.unknown()) }),
+  // 资产删除有 document 全域可达（清单 + 所有页面的引用一起清理），逆操作带回原样
+  z.object({ op: z.literal('removeAsset'), assetId: z.string() }),
+  z.object({
+    op: z.literal('restoreAsset'),
+    asset: z.record(z.string(), z.unknown()),
+    paints: z.array(z.record(z.string(), z.unknown())).default([]),
+    nodes: z.array(z.record(z.string(), z.unknown())).default([]),
+  }),
+  // §30/§174：Visual DNA 是文档级约束，null 表示清掉
+  z.object({ op: z.literal('setVisualDna'), dna: z.record(z.string(), z.unknown()).nullable() }),
   z.object({ op: z.literal('addPage'), page: z.record(z.string(), z.unknown()), setActive: z.boolean().optional() }),
   z.object({ op: z.literal('removePage'), pageId: z.string() }),
 ]);
@@ -224,5 +234,54 @@ export const HealthResponseSchema = z.object({
   queue: z.object({ pending: z.number().int().default(0), running: z.number().int().default(0) }).default({ pending: 0, running: 0 }),
 });
 export type HealthResponse = z.infer<typeof HealthResponseSchema>;
+
+/**
+ * §30 参考图 → Visual DNA 的提取请求/响应（浏览器 ↔ web 服务端）。
+ * 提取在 web 服务端做（它才拿得到存储里的字节），客户端只负责把结果作为一个
+ * 可撤销事务写回模型——所以这里传的是 DNA 本身，不是"已经保存好了"的谎话。
+ */
+export const VisualDnaRequestSchema = z.object({
+  assetId: z.string().min(1).max(128),
+});
+export type VisualDnaRequest = z.infer<typeof VisualDnaRequestSchema>;
+
+export const VisualDnaSchema = z.object({
+  source: z
+    .object({
+      assetId: z.string().optional(),
+      method: z.enum(['pixel-stats', 'vision-model', 'concept-language']),
+      extractedAt: z.string(),
+      notes: z.array(z.string()).default([]),
+    })
+    .optional(),
+  palette: z.array(z.object({ role: z.string(), color: z.string() })).default([]),
+  typography: z.array(z.record(z.string(), z.unknown())).optional(),
+  spacingScale: z.array(z.number()).optional(),
+  radius: z.number().optional(),
+  shadow: z.string().optional(),
+  motion: z.record(z.string(), z.unknown()).optional(),
+  hierarchy: z.array(z.string()).optional(),
+  descriptors: z.array(z.string()).default([]),
+});
+export type VisualDnaPayload = z.infer<typeof VisualDnaSchema>;
+
+export const VisualDnaResponseSchema = z.object({
+  ok: z.literal(true),
+  assetId: z.string(),
+  dna: VisualDnaSchema,
+  /** 实测数字一并回给客户端：描述符必须能被追溯到统计量，不让人对着形容词猜 */
+  stats: z.object({
+    width: z.number().int(),
+    height: z.number().int(),
+    samples: z.number().int(),
+    meanLuminance: z.number(),
+    luminanceStdev: z.number(),
+    meanSaturation: z.number(),
+    edgeDensity: z.number(),
+    warmth: z.number(),
+    palette: z.array(z.object({ color: z.string(), share: z.number() })).default([]),
+  }),
+});
+export type VisualDnaResponse = z.infer<typeof VisualDnaResponseSchema>;
 
 export { NodeTypeEnum as DesignNodeType };

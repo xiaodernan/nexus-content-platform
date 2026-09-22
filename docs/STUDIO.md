@@ -33,6 +33,8 @@ Pages · Layers · Components · Assets · Variables · Design System · AI Agen
 - Layers 树支持：重命名、显隐、锁定、拖拽改父级、多选、搜索、按类型过滤
 - Assets 列 `document.assets`（清单本身在模型里，§16）：缩略图走鉴权路由、显示体积与引用计数；
   删除 = 一个 `removeAsset` 事务，跨所有页面剥引用且可撤销——但服务端字节撤不回来，回执明说这条非对称（§159）
+- Assets 卡片上的「提取视觉语言」把这张参考图变成 `document.visualDna`（§30/§174，详见「参考输入」一节）；
+  只有图片卡片可点，非位图与解不了的编码都会拿到读得懂的原因而不是假结论
 - History 列出 snapshot / branch / AI 事务，可 View / Compare / Restore / Duplicate / Branch（§27）
 
 ## 右面板（§6）
@@ -116,3 +118,14 @@ Publish 前展示：Build · Tests · Accessibility · Performance · Visual QA 
 上传截图/照片/moodboard → 提取 Visual DNA（layout / color / typography / spacing / hierarchy / motion）
 → 转为设计指令而非复制。输入 URL → fetch/analyze/screenshot/structure extraction → 受启发的结构重建，
 不得复制受版权保护的内容。
+
+当前落地（任务 #22）：资产库面板图片卡片上的「提取视觉语言」→ `POST /api/projects/:id/visual-dna` →
+服务端**本地像素统计**（只解 8 bit 非隔行 PNG：亮度/对比/饱和/冷暖/留白/边缘密度 + 主色板与角色）→
+结果落成 `document.visualDna`，走的是一条 `setVisualDna` 事务，所以可撤销；分析层不写业务库（§149/§150）。
+Design System 面板顶部展示它并标出 `source.method`（本地像素统计 / 视觉模型 / 概念语言三者可分辨，不互相冒充）。
+像素测不出来的字段一律留空并写进 `source.notes`：排版、圆角、动效位图统计给不出，§173 那种
+"Cinematic / Soft glass / Slow motion" 形容词要真视觉模型才谈得上（随真实 provider 授权补齐）。
+不支持的编码（16 bit / 隔行 / 非 PNG 的 JPEG 与 WebP）以及整张透明的图，返回一句中文原因，不返回半截 DNA；
+带 alpha 的 PNG 支持，只是 alpha<128 的像素一律跳过，不污染背景判断。
+§174「所有 AI 生成内容遵循它」已是可验证事实而非口号：DEMO MODE 的换色规则读文档 DNA 而非内置色板，
+e2e 用参考图的 `#14b8a6` 压过内置 cinematic `#05060a` 做回归。**URL 参考输入仍未实现**，别当作已有能力。

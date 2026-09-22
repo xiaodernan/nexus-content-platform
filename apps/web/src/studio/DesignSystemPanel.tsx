@@ -132,6 +132,49 @@ export function DesignSystemPanel() {
         </button>
       </div>
 
+      {document.visualDna ? (
+        <section className="shrink-0 border-b border-[var(--nexus-color-border-subtle)] px-[var(--nexus-space-3)] py-2" data-visual-dna>
+          <div className="flex items-center gap-2">
+            <span className="font-mono text-11 uppercase tracking-wide text-fg-3">Visual DNA</span>
+            <span className="font-mono text-10 text-fg-3">
+              {document.visualDna.source?.method === 'pixel-stats'
+                ? '本地像素统计'
+                : document.visualDna.source?.method === 'vision-model'
+                  ? '视觉模型'
+                  : document.visualDna.source?.method === 'concept-language'
+                    ? '概念语言'
+                    : '来源未知'}
+            </span>
+            <button
+              type="button"
+              onClick={() => studio.execute('清除 Visual DNA', [{ op: 'setVisualDna', dna: null }])}
+              data-visual-dna-clear
+              className="ml-auto rounded-[var(--nexus-radius-sm)] px-2 py-[2px] font-mono text-11 text-fg-3 hover:bg-bg-3"
+            >
+              清除
+            </button>
+          </div>
+          <div className="mt-1 flex flex-wrap gap-1">
+            {document.visualDna.palette.map((entry) => (
+              <span key={entry.role} className="flex items-center gap-1 rounded bg-bg-2 px-1 py-[2px] font-mono text-10 text-fg-3">
+                <span
+                  className="inline-block h-3 w-3 rounded-[2px] border border-[var(--nexus-color-border-subtle)]"
+                  style={{ background: typeof entry.color === 'string' ? entry.color : undefined }}
+                />
+                {entry.role}
+              </span>
+            ))}
+          </div>
+          <p className="mt-1 text-11 text-fg-2" data-visual-dna-descriptors>
+            {document.visualDna.descriptors.join(' · ')}
+          </p>
+          {/* 测不出来的字段一律留白说明，而不是补一个看起来完整的假值（§159） */}
+          {document.visualDna.source?.notes?.length ? (
+            <p className="mt-1 text-10 text-fg-3">{document.visualDna.source.notes.join(' ')}</p>
+          ) : null}
+        </section>
+      ) : null}
+
       {adding ? (
         <div className="shrink-0 border-b border-[var(--nexus-color-border-subtle)] bg-bg-2 p-[var(--nexus-space-2)]">
           <div className="flex gap-1">

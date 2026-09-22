@@ -25,8 +25,9 @@ import {
   type Page,
   type PatchOp,
   type ResolvedLayout,
+  type VisualDna,
 } from '@nexus/design-model';
-import type { DesignPatchPayload } from '@nexus/schemas';
+import { VisualDnaSchema, type DesignPatchPayload } from '@nexus/schemas';
 import type { SnapshotEntry, SnapshotMeta } from '@/server/domain/snapshots';
 import type { BranchMeta } from '@/server/domain/branches';
 import type { VariantEntry } from '@/server/domain/variants';
@@ -1007,6 +1008,41 @@ export class StudioStore {
       this.assetErrorValue = `引用已从项目移除（可撤销），但服务器删除文件失败：${
         error instanceof Error ? error.message : String(error)
       }`;
+      return false;
+    } finally {
+      this.assetBusyValue = false;
+      this.commit();
+    }
+  }
+
+  /**
+   * §30 从一张参考图提取 Visual DNA：服务端只算不写，结果在这里落成一个可撤销事务。
+   *
+   * 响应先过 `VisualDnaSchema` 再打进模型——服务端返回什么形状不由它自己说了算（§159）。
+   */
+  async extractVisualDnaFromAsset(assetId: string): Promise<boolean> {
+    if (!this.projectId) return false;
+    this.assetBusyValue = true;
+    this.assetErrorValue = null;
+    this.assetNoticeValue = null;
+    this.commit();
+    try {
+      const res = await fetch(`/api/projects/${this.projectId}/visual-dna`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json', ...csrfHeaders() },
+        body: JSON.stringify({ assetId }),
+      });
+      const payload = (await res.json().catch(() => null)) as { dna?: unknown; message?: string } | null;
+      if (!res.ok) throw new Error(payload?.message ?? `HTTP ${res.status}`);
+      const parsed = VisualDnaSchema.safeParse(payload?.dna);
+      if (!parsed.success) {
+        throw new Error(`提取结果不符合契约：${parsed.error.issues.map((i) => `${i.path.join('.')}: ${i.message}`).join('；')}`);
+      }
+      this.execute('从参考图提取 Visual DNA', [{ op: 'setVisualDna', dna: parsed.data as VisualDna }]);
+      this.assetNoticeValue = `已提取视觉语言：${parsed.data.descriptors.join('、')}。它现在约束后续生成，可撤销。`;
+      return true;
+    } catch (error) {
+      this.assetErrorValue = error instanceof Error ? error.message : String(error);
       return false;
     } finally {
       this.assetBusyValue = false;

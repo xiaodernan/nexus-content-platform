@@ -714,3 +714,58 @@ test('@smoke 资产库：上传后可见、删除跨画布生效、撤销恢复�
   await expect(node).not.toHaveCSS('background-image', /\/api\/assets\//, { timeout: 20_000 });
   await expect(page.locator('[data-save-state]')).toContainText('已保存', { timeout: 20_000 });
 });
+
+test('@smoke 参考图 → Visual DNA：提取、展示、约束生成、可撤销（§30/§174）', async ({ page }) => {
+  test.setTimeout(180_000);
+  const projectId = await createProject(page, `视觉语言 ${Date.now().toString(36)}`);
+  expect(projectId).toBeTruthy();
+
+  const targetId = await layerId(page, 'Headline');
+  await expect(async () => {
+    await page.click(`[data-layer-id="${targetId}"]`);
+    await expect(page.locator('[data-asset-upload]').first()).toBeAttached({ timeout: 4_000 });
+  }).toPass({ timeout: 30_000 });
+  await page.setInputFiles('[data-asset-upload] input[type="file"]', {
+    name: 'reference.png',
+    mimeType: 'image/png',
+    buffer: pngWithExif(),
+  });
+  const node = page.locator(`[data-node-id="${targetId}"]`);
+  await expect(node).toHaveCSS('background-image', /\/api\/assets\//, { timeout: 20_000 });
+  const assetId = await node.evaluate((el) => {
+    const match = /\/api\/assets\/([^/]+)\/file/.exec(getComputedStyle(el).backgroundImage);
+    return match?.[1] ?? '';
+  });
+  expect(assetId).toMatch(/^[a-z0-9_-]+$/i);
+
+  // 提取：服务端只算不写，结果作为一个可撤销事务回到模型（§150）
+  await page.click('[data-panel-tab="assets"]');
+  await page.locator(`[data-asset-dna="${assetId}"]`).click();
+  await expect(page.locator('[data-assets-panel] [data-asset-notice]')).toContainText('已提取视觉语言', { timeout: 20_000 });
+
+  // 设计系统面板把 DNA 摊开：描述符必须能回指到实测统计，不是形容词
+  await page.click('[data-panel-tab="design"]');
+  const dnaBlock = page.locator('[data-visual-dna]');
+  await expect(dnaBlock).toBeVisible();
+  await expect(dnaBlock).toContainText('本地像素统计');
+  await expect(dnaBlock.locator('[data-visual-dna-descriptors]')).toContainText('高饱和');
+  await expect(dnaBlock.locator('[data-visual-dna-descriptors]')).toContainText('冷色倾向');
+  await page.screenshot({ path: 'screenshots/visual-dna.png' });
+
+  // §174：生成必须遵循它。提示词写 cinematic，但配色取自参考图，而不是内置配方
+  const backgroundValue = () => page.locator('[data-token-value="color.background"]').inputValue();
+  const beforeColor = await backgroundValue();
+  await page.fill('[data-ai-input]', 'make it cinematic');
+  await page.click('[data-ai-submit]');
+  await expect(page.locator('[data-ai-result]')).toBeVisible({ timeout: 20_000 });
+  await expect.poll(backgroundValue).not.toBe(beforeColor);
+  await expect(backgroundValue()).resolves.toMatch(/#14b8a6/i);
+
+  // 撤销两次：先撤生成，再撤提取 —— DNA 面板随之消失，不留半套约束
+  await page.getByTitle('撤销（Ctrl+Z）').click();
+  await expect(backgroundValue()).resolves.toBe(beforeColor);
+  await page.getByTitle('撤销（Ctrl+Z）').click();
+  await expect(page.locator('[data-visual-dna]')).toHaveCount(0);
+
+  await expect(page.locator('[data-save-state]')).toContainText('已保存', { timeout: 20_000 });
+});

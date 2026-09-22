@@ -151,8 +151,13 @@ export async function openAssetFile(assetId: string): Promise<AssetFile | null> 
   return { bytes: found.bytes, mime: row.mime ?? found.contentType ?? 'application/octet-stream', name: row.name };
 }
 
-/** 作者视角取图：非本人项目一律 null，路由据此回 404（403 会泄露"这个 id 存在"） */
-export async function openAssetForOwner(assetId: string, ownerId: string): Promise<AssetFile | null> {
+/** 资产属于哪个项目（不存在则 null）。DNA 提取用它守住"只能提本项目的图" */
+export async function assetProjectId(assetId: string): Promise<string | null> {
+  const row = await rowById(assetId);
+  return row?.projectId ?? null;
+}
+
+/** 作者视角取图：非本人项目一律 null，路由据此回 404（403 会泄露"这个 id 存在"） */export async function openAssetForOwner(assetId: string, ownerId: string): Promise<AssetFile | null> {
   const row = await rowById(assetId);
   if (!row?.projectId) return null;
   if (!(await projectBelongsTo(row.projectId, ownerId))) return null;
