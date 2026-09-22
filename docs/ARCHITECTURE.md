@@ -37,7 +37,8 @@ apps/
   ai-service/   FastAPI：agent 编排、provider 抽象、RAG、评测、截图
 packages/
   design-model/ @nexus/design-model：设计对象模型、布局求解、Command 事务、序列化（纯 TS，无 IO）
-  schemas/      @nexus/schemas：跨端 zod 契约（AI 请求/响应、事件、补丁操作）
+  schemas/      @nexus/schemas：跨端 zod 契约（AI 请求/响应、事件、补丁操作、世界文档）
+  world-model/  @nexus/world-model：§44 世界文档（九类条目 + 校验），纯 TS 无 IO，浏览器与服务端同一份
 infra/
   docker-compose.yml   postgres+pgvector / redis / minio（端口见 ENVIRONMENT.md）
 docs/           本目录；adr/ 存放决策记录

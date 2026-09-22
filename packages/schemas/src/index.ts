@@ -325,4 +325,50 @@ export const ProjectHealthReportSchema = z.object({
 });
 export type ProjectHealthReport = z.infer<typeof ProjectHealthReportSchema>;
 
+/**
+ * §44 世界文档的跨端形状（M3 第一切片）。
+ *
+ * 权威在 `@nexus/world-model`（类型与结构校验都那儿），这里只负责传输层：
+ * 路由收到的 JSON 必须先过这份 zod 才允许落库。九类的清单在两处各有一份是没办法的事
+ * （z.enum 要字面量），所以 `test/world-contract.test.ts` 拿模型对齐它们——漂移会在测试里炸，
+ * 而不是变成"模型认得、库里存不下"的静默不一致。
+ */
+export const WorldKindSchema = z.enum([
+  'lore',
+  'history',
+  'geography',
+  'factions',
+  'characters',
+  'creatures',
+  'items',
+  'quests',
+  'story',
+]);
+export type WorldKindPayload = z.infer<typeof WorldKindSchema>;
+
+export const WorldNodeSchema = z.object({
+  id: z.string().min(1).max(128),
+  kind: WorldKindSchema,
+  // trim 之后才算非空：'  ' 过 min(1) 是 zod 的默认行为，不 trim 就等于允许没有名字的条目进库
+  title: z.string().trim().min(1).max(200),
+  body: z.string().max(20_000),
+  updatedAt: z.string().min(1),
+});
+export type WorldNodePayload = z.infer<typeof WorldNodeSchema>;
+
+export const WorldDocumentSchema = z.object({
+  id: z.string().min(1).max(128),
+  projectId: z.string().max(128).nullable(),
+  name: z.string().trim().min(1).max(120),
+  summary: z.string().max(2000),
+  nodes: z.array(WorldNodeSchema).max(5000),
+  createdAt: z.string().min(1),
+  updatedAt: z.string().min(1),
+});
+export type WorldDocumentPayload = z.infer<typeof WorldDocumentSchema>;
+
+/** PUT 的请求体：整个文档一起换（世界文档比设计文档小得多，不需要增量补丁） */
+export const WorldSaveRequestSchema = z.object({ document: WorldDocumentSchema });
+export type WorldSaveRequest = z.infer<typeof WorldSaveRequestSchema>;
+
 export { NodeTypeEnum as DesignNodeType };

@@ -15,6 +15,13 @@
       "when": 1790092800000,
       "tag": "0001_theme_mode",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1790179200000,
+      "tag": "0002_world_document",
+      "breakpoints": true
     }
   ]
 }

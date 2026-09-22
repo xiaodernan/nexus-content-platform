@@ -465,8 +465,12 @@ export const worlds = pgTable(
       .references(() => users.id, { onDelete: 'restrict' }),
     name: text('name').notNull(),
     summary: text('summary'),
-    /** Lore / History / Geography / Factions / Items / Quests（§44） */
-    lore: jsonb('lore'),
+    /**
+     * §44 世界文档（@nexus/world-model 的 WorldDocument 序列化）。
+     * 原来那列叫 lore、装一个 jsonb 杂物袋，谁也没读过——九类内容需要一份有契约的文档，
+     * 所以换成 document（迁移 0002）。和 snapshots 一样按 JSON 存，读写都过 zod。
+     */
+    document: jsonb('document'),
     createdAt: now(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
   },

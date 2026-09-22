@@ -35,6 +35,10 @@ Pages · Layers · Components · Assets · Variables · Design System · AI Agen
   删除 = 一个 `removeAsset` 事务，跨所有页面剥引用且可撤销——但服务端字节撤不回来，回执明说这条非对称（§159）
 - Assets 卡片上的「提取视觉语言」把这张参考图变成 `document.visualDna`（§30/§174，详见「参考输入」一节）；
   只有图片卡片可点，非位图与解不了的编码都会拿到读得懂的原因而不是假结论
+- World 面板（§44）读的是**世界文档**（`@nexus/world-model`，存在 `worlds.document`），
+  与画布那份设计文档是两份真值：九类条目可增删改，失焦即写库。
+  没接真 provider 之前只有「创建世界骨架（模板）」——九类各一条空条目，正文留空；
+  AI 生成世界内容属于假生成，这里不做（§159）。世界编辑不进画布的 Ctrl+Z 栈，面板脚注明说
 - History 列出 snapshot / branch / AI 事务，可 View / Compare / Restore / Duplicate / Branch（§27）
 - Health 页签是 §178 那七行的常驻读数：改一下文档就重算，点某行展开它的真实发现与"这项检查了什么"
   （Publish 弹层里是同一个组件、同一个函数，见「项目健康」一节）

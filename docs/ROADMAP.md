@@ -306,11 +306,38 @@ warm 方向奶油字压亮橙 3.35:1、cyber 的 light 模式是深底配深字 
 改 `radius.md=26` 画布按钮立刻 26px、撤销回 10px 且面板显示真值。
 
 ## M3 — 世界 / 角色 / RAG（§183）
-- [ ] World Builder（Lore/History/Geography/Factions/Characters/Creatures/Items/Quests/Story）
+- [~] World Builder（Lore/History/Geography/Factions/Characters/Creatures/Items/Quests/Story）—
+  世界文档（九类）+ 存储 + Studio「世界」面板已落地，见下方进度记录；
+  **§44 的 AI 生成那半没做**（要真 provider），没接之前面板只给模板骨架，正文一律留空。
 - [ ] World Graph 可视化 + 可拖拽节点（§45）
 - [ ] Character System + Character Agent 对话（§46-47）
 - [ ] Memory 四类（Session/Character/World/User）可查看可删除（§48）
 - [ ] pgvector RAG：hybrid retrieval + rerank（§49/93）
+
+**M3 进度记录（2026-09-23，World Builder 第一切片，§44）**：新开一个纯模型包
+`packages/world-model`（与 design-model 同一条纪律：无 React / 无 IO，浏览器与服务端跑同一份校验）。
+世界文档 = 九类条目（lore/history/geography/factions/characters/creatures/items/quests/story），
+每类若干条 `{id, kind, title, body, updatedAt}`；改动一律换出新文档，不原地改。
+存储：`worlds` 表那列从没被读过的 `lore` jsonb 换成 `document`（迁移 `0002_world_document`），
+整份 JSON 存——世界文档是文字为主的小文档，没有按节点查询的需求，
+拆成规范化行只会多一处会不同步的地方（设计文档拆行是因为它要按页/节点取）。
+读写都过 `@nexus/schemas` 的 zod + `validateWorld`，**库里躺着读不出来的东西不可接受**：
+契约不符时 GET 返回 500 + 可读原因，面板显示错误而不是假装"还没有世界"。
+`packages/schemas/test/world-contract.test.ts` 逐字对齐九类清单（z.enum 要字面量，
+两处各有一份是没办法的事，漂移必须在测试里炸）。
+
+两条刻意的边界，界面上也写着：
+1. **不做假生成**：§44 的示例是「Create a dark fantasy world」→ AI 填出九类内容，那要真 provider。
+   没接之前面板只给**模板骨架**（九类各一条空条目、正文一律空串），文案里明说这是模板不是内容；
+   集成测试断言"除我加的那条，其余正文仍为空"，防止哪天有人往模板里塞预设世界观。
+2. **不进撤销栈**：§150 的 Command 事务目前只覆盖设计文档，世界编辑用显式"保存到库"（失焦即写），
+   面板脚注写明 Ctrl+Z 只管画布。等世界也要事务化时再做，不假装已经符合。
+
+`GET` 不写库：没有世界返回 null，由面板上的「创建世界骨架」发起一次 PUT——
+"还没有"和"有一份空的"是两件事，而 GET 顺手建数据会让每次刷新都在库里留痕。
+验证：`npm run lint`（typecheck 多了 world-model 一项）、`npm test` 339
+（world-model 12 条 + 契约 4 条 + 真库集成 5 条）、@smoke 18 条全绿
+（新增一条：建骨架→填一条→加一条→reload 后仍是库里那份）。
 
 ## M4 — 3D 与游戏（§184）
 - [ ] Three.js / React Three Fiber 运行时

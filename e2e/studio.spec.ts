@@ -786,3 +786,38 @@ test('@smoke 参考图 → Visual DNA：提取、展示、约束生成、可撤�
 
   await expect(page.locator('[data-save-state]')).toContainText('已保存', { timeout: 20_000 });
 });
+
+/**
+ * §44 世界文档的第一条竖向切片：建骨架 → 填内容 → 刷新后还在。
+ * 断言的是"库里那份"（reload 之后重读），不是内存里的临时状态。
+ */
+test('@smoke 世界：建骨架、填一条、加一条、刷新仍在（§44）', async ({ page }) => {
+  test.setTimeout(150_000);
+  await createProject(page, `世界 ${Date.now().toString(36)}`);
+
+  await page.click('[data-panel-tab="world"]');
+  // 第一次进这条路由，dev 模式要现编译：给足冷启动时间，别把编译等成失败
+  await expect(page.locator('[data-world-empty]')).toBeVisible({ timeout: 40_000 });
+  // 界面上明说这是模板、AI 生成还没接
+  await expect(page.locator('[data-world-empty]')).toContainText('假生成');
+  await page.click('[data-world-create]');
+  await expect(page.locator('[data-world-group="lore"]')).toBeVisible();
+  await expect(page.locator('[data-world-node]')).toHaveCount(9);
+  await expect(page.locator('[data-world-state]')).toHaveText('已保存');
+
+  const loreBody = page.locator('[data-world-group="lore"] [data-world-body]').first();
+  const loreId = (await loreBody.getAttribute('data-world-body'))!;
+  await loreBody.fill('王城在第七次日蚀下投降。');
+  await page.click('[data-world-name]');
+  await expect(page.locator('[data-world-state]')).toHaveText('已保存', { timeout: 20_000 });
+
+  await page.selectOption('[data-world-new-kind]', 'characters');
+  await page.click('[data-world-add="characters"]');
+  await expect(page.locator('[data-world-node]')).toHaveCount(10);
+
+  await page.reload();
+  await expect(page.locator('[data-canvas-frame]')).toBeVisible({ timeout: 30_000 });
+  await page.click('[data-panel-tab="world"]');
+  await expect(page.locator(`[data-world-body="${loreId}"]`)).toHaveValue('王城在第七次日蚀下投降。');
+  await expect(page.locator('[data-world-node]')).toHaveCount(10);
+});
