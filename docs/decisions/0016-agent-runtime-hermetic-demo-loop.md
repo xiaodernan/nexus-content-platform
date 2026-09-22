@@ -452,3 +452,20 @@ two fresh runs, checkpoint denial leaving the workspace byte-identical).
 - Runtime 148/148 (+6 near-miss cases), studio 91/91 (+1 dock opt-in case);
   `qa-proof.mjs` extended (defaults-off, real px gaps in details, noise guard); eighteen
   proofs.
+
+## Amendment 25 — v25: near-miss slips become gated align-nudge proposals, 2026-09
+- **`proposeRepairs(input, opts)` gains `{alignRepairs?: boolean}` (default OFF):** with the
+  opt-in, a `near-align` flag produces an `align-nudge` — the deterministic mover (smaller
+  area moves; equal area ⇒ localeCompare-later id) snaps the first flagged edge (fixed order
+  left/right/top/bottom, gap ≤ `alignTolerance`) to exact, and a `near-center` flag produces
+  a `center-nudge` to the page mid-line per axis (both margins positive required). Reasons
+  state the exact px snapped (§60); without the opt-in the v24 behavior is provably
+  unchanged — lints surface, zero nudge repairs proposed.
+- **Still only proposals (§28):** nudges flow through the same planRepairs → Approve → op
+  path as every other repair; `proposeRepairs` itself never mutates input rects (asserted).
+  The dock mirrors `qaForDoc`'s 2px tolerances into the repair input so the internal QA
+  re-run sees the same lints the user saw.
+- Runtime 154/154 (+6 repair nudge cases), studio 92/92 (+1 "proposals, not magic" dock
+  case); `repair-proof.mjs` extended (default-off, 1.5px slip → exact with stated mover,
+  1px center snap, 140px gap untouched, apply-all → zero flags, non-mutation, determinism);
+  eighteen proofs.

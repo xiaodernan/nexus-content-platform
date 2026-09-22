@@ -1,4 +1,4 @@
-# M2 evidence — @nexus/agent-runtime (v0 loop → v12 repair loop; all ADR 0016 amendments)
+# M2 evidence — @nexus/agent-runtime (v0 loop → v25 gated alignment nudges; all ADR 0016 amendments)
 
 All checks are headless, offline, key-free, and reproducible from the repo root. Nothing here
 claims model-quality planning or neural retrieval (§60): the planner is a deterministic
@@ -8,7 +8,7 @@ every emitted artifact (`provenance.mode = "demo"`).
 ## Reproducible gates
 
 ```
-npm test          # turbo: @nexus/agent-runtime 148/148 vitest among all packages
+npm test          # turbo: @nexus/agent-runtime 154/154 vitest among all packages
 npm run build     # tsc dist for agents/runtime (build order via ^build deps)
 node docs/evidence/agents/agent-proof.mjs
 node docs/evidence/agents/code-index-proof.mjs   # requires `npm run build` first
@@ -53,6 +53,7 @@ node docs/evidence/agents/index-vectors-proof.mjs  # requires `npm run build` fi
 | `visualQa.test.ts` +contrast (3) | black/white passes, grey pair flags warn, rgb()/rgba() parse, junk colors yield no flag, 21:1 math |
 | `visualQa.test.ts` +near-miss (6) | v24: default OFF (no opt-in no flags), 3px pair flags once with real px gaps in detail, boundaries (exact 0 passes, >tol passes, ==tol flags), near-center 2px-off vs exact/edge-touching, zero-size+off-page rects never collect near-miss noise, determinism |
 | `repair.test.ts` (5) | clean input no-op, off-page pulled inside then QA-clean, overlap nudged below with gutter, zero-size grown, dedupe + determinism + "apply all repairs → zero error flags" |
+| `repair.test.ts` +nudges (6) | v25: near-miss lints unproposed by default, equal-area mover tie broken by id with exact stated reason, smaller-area layer moves, center-nudge to page mid-line (other axis untouched, px stated), a/b/c chain where only the in-tolerance pair snaps, apply-all clears all flags, determinism |
 | `durability.test.ts` (8) | memory serialize/deserialize round-trip + version/schema rejection, `restore()` id high-water mark, save/load through an injected writable fake disk, corrupt-file honest failure, `guardedJoin` jail (absolute/`..`/drive-letter rejection, backslash folding), `disk.write` checkpoint gate + escape touches nothing, `disk.read`/`disk.list` confinement |
 | `indexStore.test.ts` (11) | index snapshot serialize→deserialize verbatim + version/chunk schema rejection, save/load via injected fs, cold rescan equals `buildIndex`, unchanged files reuse chunks / edits rechunk exactly the changed paths / removals drop out, query ranking snapshot-independent; v5 provider: cold-first-build equals plain build, incremental refresh 0 re-chunked, edited file sole re-chunk, cross-provider snapshot restore, corrupt-snapshot fallback + repair, `fs.index` provider/default parity |
 | `indexVectors.test.ts` (11) | v23: `indexToVectorDb` shape (one entry per chunk, id `path#startLine`, real dim-64 vectors), vector-vs-inline hit-for-hit parity across five query shapes + stated engine, null db ⇒ honest inline; cold merge ≡ cold build, unchanged chunks reuse the identical vector object / only touched windows re-embed / removals drop out; tampered-text, missing-id and wrong-dim drift each send the WHOLE query inline with real inline hits; persisted provider: lazy `vectors()`, byte-identical reuse by a cold second provider, corrupt-file self-repair, `fs.index` engine labels with/without vectorsFile, edits tracked through the provider lifecycle |
@@ -177,14 +178,19 @@ absent by DEFAULT, a single `near-align` warn names the measured gaps, a 1px-off
 lints `near-center`, and zero-size/off-page rects never collect noise. Stated limit (§60):
 structural geometry only — no pixel or aesthetic claims.
 
-## Repair proof (`repair-proof.mjs`, M2 v12)
+## Repair proof (`repair-proof.mjs`, M2 v12 + v25)
 
 Three simultaneous problems (off-page, stacked pair, zero-size) → `proposeRepairs` emits
 one deduped, sorted repair per node; applying all repairs clears every ERROR flag on the
 QA re-run; identical inputs give byte-identical output; an unsolvable stack (two
 full-page siblings) stops after bounded passes and reports what remains — the loop quits
-honestly instead of thrashing. In the dock this closes end-to-end: flagged banner →
-Propose repairs → Approve → status `QA now flagged/ok` + `repairs:N` journaled.
+honestly instead of thrashing. v25 adds the nudge section: with the near-miss lints
+visible, the DEFAULT run proposes zero nudges; `{alignRepairs:true}` snaps the 1.5px slip
+to exact (`align-nudge`, smaller area moves) and the 1px-off rect to the page mid-line
+(`center-nudge`), leaves the 140px-away node alone, clears all flags on re-run, mutates
+nothing itself, and is byte-identical on repeat. In the dock this closes end-to-end:
+flagged banner → Propose repairs → Approve → status `QA now flagged/ok` + `repairs:N`
+journaled.
 
 ## Role-chain proof (`rolechain-proof.mjs`, M2 v14 + v22)
 
@@ -261,6 +267,19 @@ rect's opposing page margins differ by 1–2px. Both warn-only, deterministic, a
 for rects that already carry zero-size/off-page errors. The Studio dock opts in at 2px in
 `qaForDoc`; `proposeRepairs` deliberately does NOT auto-fix these — nudging alignment is a
 human call (§28), which the dock shows honestly as "Nothing safely fixable".
+(Amendment 25 later made the nudge itself an opt-in, still-gated PROPOSAL — see below;
+the default-off behavior asserted here is unchanged.)
+
+## v25 note — near-miss slips become gated align-nudge proposals
+
+`proposeRepairs(input, {alignRepairs:true})` turns the v24 lints into explicit repairs:
+`align-nudge` snaps the flagged edge (fixed left→right→top→bottom check order) of the
+deterministic mover — smaller area, later id on ties — to exact, and `center-nudge`
+centers a near-center rect per axis at `page.x + (page.width − w)/2`. Every reason states
+the measured px (§60). Default OFF stays provably OFF: without the opt-in the same input
+yields zero nudge repairs. The dock wires it in `planRepairs` (mirroring `qaForDoc`'s 2px
+tolerances) — but a nudge still only lands after the human Approves and the op path
+applies it (§28); `proposeRepairs` never mutates the input rects.
 
 ## Scope honesty
 

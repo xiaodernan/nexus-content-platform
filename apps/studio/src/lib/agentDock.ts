@@ -218,7 +218,9 @@ export function planRepairs(doc: DesignDocument, pageId: string, goal: string): 
     const r = layout[id];
     if (r) rects[id] = { x: r.x, y: r.y, width: r.width, height: r.height };
   }
-  const res = proposeRepairs({ page: { x: page.x, y: page.y, width: page.width, height: page.height }, rects });
+  // v25: the dock opts into alignment nudges at the same 2px as qaForDoc — but they land
+  // as ordinary repair proposals, still gated behind §28 Approve; nothing moves on its own.
+  const res = proposeRepairs({ page: { x: page.x, y: page.y, width: page.width, height: page.height }, rects, alignTolerance: 2, centerTolerance: 2 }, { alignRepairs: true });
   if (res.repairs.length === 0) return { repairs: [], remaining: res.remaining, batch: { id: newId(), ops: [], provenance: { mode: 'demo', provider: 'nexus-agent-runtime', label: 'studio repair (no-op)' }, timestamp: Date.now(), summary: 'Agent repair: nothing safely fixable' } };
   const batch: OpBatch = {
     id: newId(),

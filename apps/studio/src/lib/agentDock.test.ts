@@ -165,6 +165,20 @@ describe('agentDock visual QA (v11)', () => {
     expect(near.every((f) => f.ids.includes('slip-1') && f.severity === 'warn')).toBe(true);
   });
 
+  it('v25 nudges are proposals, not magic: the dock offers an align-nudge batch that clears QA only once applied', () => {
+    const { doc, pageId } = seededDoc();
+    const slipped = rectNode('Slip', { id: 'slip-1', x: 41.5, y: 300, width: 250, height: 40 });
+    const withSlip = applyBatch(doc, { id: newId(), ops: [ops.addSubtree(pageId, childIdList(doc.nodes[pageId]!).length, [slipped])], provenance: { mode: 'user' }, timestamp: 7 });
+    const plan = planRepairs(withSlip, pageId, 'fix alignment');
+    expect(plan).not.toBeNull();
+    expect(plan!.repairs.every((p) => p.action === 'align-nudge')).toBe(true);
+    expect(plan!.repairs.map((p) => p.targetId)).toEqual(['slip-1']); // the smallest layer is the one that moves
+    // proposing changes nothing on disk until the batch goes through the op path (§28):
+    expect(qaForDoc(withSlip, pageId).flags.some((f) => f.code === 'near-align')).toBe(true);
+    const fixed = applyBatch(withSlip, plan!.batch);
+    expect(qaForDoc(fixed, pageId).verdict).toBe('ok');
+  });
+
   it('planRepairs closes the loop: applying its batch through the op path clears QA errors (v12)', () => {
     const { doc, pageId } = seededDoc();
     const strayed = rectNode('Lost', { id: 'lost-1', x: 5000, y: 200, width: 100, height: 50 });

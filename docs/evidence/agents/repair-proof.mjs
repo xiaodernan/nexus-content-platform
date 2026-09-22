@@ -1,7 +1,10 @@
-// NEXUS M2 v12 — QA→repair closed-loop proof (ADR 0016 amendment 12).
+// NEXUS M2 v12+v25 — QA→repair closed-loop proof (ADR 0016 amendments 12 and 25).
 // Synthetic flagged layouts are fed to proposeRepairs; applying the returned moves must
 // clear every ERROR flag, the result must be deterministic, and irreducible cases must
-// stop honestly with `remaining` instead of looping. Run after `npm run build`:
+// stop honestly with `remaining` instead of looping. v25 section: the near-miss lints
+// (amendment 24) gain opt-in alignment nudges — deterministic mover, stated px, and
+// still only proposals: nothing moves until a human approves (§28).
+// Run after `npm run build`:
 //   node docs/evidence/agents/repair-proof.mjs
 import assert from 'node:assert/strict';
 import { pathToFileURL } from 'node:url';
@@ -40,4 +43,45 @@ const imp = proposeRepairs({ page, rects: impossible });
 assert.ok(imp.passes >= 1 && imp.passes <= 3);
 console.log(`[repair-proof] unsolvable stack: passes=${imp.passes}, repairs=${imp.repairs.length}, remaining=${imp.remaining.flags.map((f) => f.code).join(',') || 'ok'}`);
 
-console.log('[repair-proof] ALL ASSERTIONS PASSED (deterministic structural auto-fix loop, honest stopping)');
+// 4) v25 near-miss nudges: opt-in, deterministic, and still only proposals.
+const TOL = { alignTolerance: 2, centerTolerance: 2 };
+const slips = {
+  hero: { x: 60, y: 60, width: 400, height: 60 },
+  slip: { x: 61.5, y: 300, width: 300, height: 40 }, // 1.5px left-edge slip vs hero
+  solo: { x: 401, y: 100, width: 399, height: 50 }, // 1px off horizontal center
+  drift: { x: 200, y: 500, width: 300, height: 40 }, // 140px away — beyond any lint, must stay untouched
+};
+
+// 4a) Honest default: even when the host's QA sees the lints, proposeRepairs without
+//     { alignRepairs: true } must not invent nudges.
+const off = proposeRepairs({ page, rects: slips, ...TOL });
+assert.deepEqual(off.repairs, [], 'nudges must not appear without the opt-in');
+assert.deepEqual(off.remaining.flags.map((f) => f.code).sort(), ['near-align', 'near-center']);
+
+// 4b) Opt-in: smaller-area layer snaps to exact, center slip snaps to the page mid-line,
+//     and the beyond-tolerance node is left alone.
+const on = proposeRepairs({ page, rects: slips, ...TOL }, { alignRepairs: true });
+assert.deepEqual(on.repairs.map((p) => p.targetId), ['slip', 'solo'], 'one nudge per flagged node, sorted');
+const [slipNudge, soloNudge] = on.repairs;
+assert.equal(slipNudge.action, 'align-nudge');
+assert.equal(slipNudge.to.x, 60); // exact match with hero's left edge
+assert.equal(slipNudge.to.y, 300); // only the flagged axis moves
+assert.match(slipNudge.reason, /near-align with hero: 1\.5px left slip snapped to exact/);
+assert.equal(soloNudge.action, 'center-nudge');
+assert.equal(soloNudge.to.x, 400.5); // (1200 − 399) / 2
+assert.equal(soloNudge.to.y, 100);
+assert.match(soloNudge.reason, /centered horizontally \(1\.0px\)/);
+assert.ok(!on.repairs.some((p) => p.targetId === 'drift'), 'a 140px gap is not a lint and gets no nudge');
+
+// 4c) The loop closes: applying all proposed nudges leaves zero flags at the same tolerances.
+const snapped = { ...slips };
+for (const p of on.repairs) snapped[p.targetId] = p.to;
+assert.deepEqual(runVisualQa({ page, rects: snapped, ...TOL }).flags, []);
+
+// 4d) §28 and determinism: the input rects are never mutated (proposals ≠ application),
+//     and identical inputs produce byte-identical nudges.
+assert.equal(slips.slip.x, 61.5, 'proposeRepairs must not move anything itself');
+assert.deepEqual(proposeRepairs({ page, rects: slips, ...TOL }, { alignRepairs: true }), on);
+console.log(`[repair-proof] v25 nudges: default-off ${off.remaining.flags.length} lints unprompted → opt-in ${on.repairs.length} proposals (slip 1.5px→exact, solo 1px→center, drift untouched)`);
+
+console.log('[repair-proof] ALL ASSERTIONS PASSED (deterministic structural auto-fix loop, honest stopping, gated v25 nudges)');
