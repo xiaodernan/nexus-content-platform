@@ -18,6 +18,7 @@ import {
   corpusFromDoc,
   ledgerLine,
   planAgentRun,
+  qaForDoc,
   readAgentLedger,
   type AgentPlan,
 } from './agentDock';
@@ -25,17 +26,23 @@ import {
 const STYLE: TextStyle = { fontFamilyToken: 'font.family.body', sizeToken: 'font.size.base', weight: 400, lineHeight: 1.35, letterSpacing: 0, align: 'left' };
 
 function seededDoc(): { doc: DesignDocument; pageId: string; heroId: string; cardId: string } {
-  const base = createEmptyDocument('dock test');
-  const pageId = base.activePageId;
+  const created = createEmptyDocument('dock test');
+  const pageId = created.activePageId;
+  const sized = applyBatch(created, {
+    id: newId(),
+    ops: [ops.updateNode(pageId, { x: 0, y: 0, width: 1200, height: 800 })],
+    provenance: { mode: 'user' },
+    timestamp: 0,
+  });
   const heroId = newId();
   const cardId = newId();
   const hero = textNode('Hero title', 'welcome to the widget showcase', STYLE, { id: heroId, x: 40, y: 40, width: 300, height: 40 });
   const card = rectNode('CTA card', { id: cardId, x: 40, y: 120, width: 200, height: 80 });
-  const doc = applyBatch(base, {
+  const doc = applyBatch(sized, {
     id: newId(),
     ops: [
-      ops.addSubtree(pageId, childIdList(base.nodes[pageId]!).length, [hero]),
-      ops.addSubtree(pageId, childIdList(base.nodes[pageId]!).length + 1, [card]),
+      ops.addSubtree(pageId, childIdList(sized.nodes[pageId]!).length, [hero]),
+      ops.addSubtree(pageId, childIdList(sized.nodes[pageId]!).length + 1, [card]),
     ],
     provenance: { mode: 'user' },
     timestamp: 1,
@@ -98,8 +105,7 @@ describe('agentDock pipeline (§23/§25/§28)', () => {
   });
 
   it('ledger lines round-trip through the KvStore seam and count malformed', () => {
-    const { pageId } = seededDoc();
-    const kv = new FakeKv();
+    const { pageId } = seededDoc();    const kv = new FakeKv();
     const fake = {
       goal: 'g',
       pageId,
@@ -117,5 +123,26 @@ describe('agentDock pipeline (§23/§25/§28)', () => {
     expect(entries.map((e) => e.approved)).toEqual([true, false]);
     expect(entries[1]!.reason).toBe('denied at human checkpoint');
     expect(malformed).toBe(1);
+  });
+});
+
+describe('agentDock visual QA (v11)', () => {
+  it('seeded page is structurally clean; stacking a copy over a layer flags overlap', () => {
+    const { doc, pageId, cardId } = seededDoc();
+    const clean = qaForDoc(doc, pageId);
+    expect(clean.verdict).toBe('ok');
+    expect(clean.checked).toBe(2);
+
+    const copy = rectNode('CTA copy', { id: 'copy-1', x: 45, y: 125, width: 190, height: 70 });
+    const stacked = applyBatch(doc, {
+      id: newId(),
+      ops: [ops.addSubtree(pageId, childIdList(doc.nodes[pageId]!).length, [copy])],
+      provenance: { mode: 'user' },
+      timestamp: 3,
+    });
+    const rep = qaForDoc(stacked, pageId);
+    expect(rep.verdict).toBe('flagged');
+    const overlap = rep.flags.find((f) => f.code === 'overlap');
+    expect(overlap?.ids).toContain(cardId);
   });
 });

@@ -13,8 +13,8 @@ npm run build lint typecheck test     # via turbo: build 4/4 · lint 3/3 · type
 | ------------------ | ------ |
 | @nexus/design-model| 28/28 vitest (`design-model` 16 incl. 3 rotated-hitTest + 2 rigid-geometry cases + `instances` 12 incl. x/y delta + absolute rotation overrides + rigid rotation bake), tsc clean |
 | @nexus/ai-providers| 7/7 vitest, tsc clean |
-| @nexus/agent-runtime| 91/91 vitest (M2 v9: + pipeline 5 over v8's 86) · tsc clean — see `docs/evidence/agents/README.md` |
-| @nexus/studio      | 75/75 vitest (`snap` + `persist` + `align` + `store-variants` 18 incl. sub-selection + clone-rotation override + rigid subtree flatten + `thumbnail` + `rotate` 14 incl. rotated handle hit-tests + rigid plan cases + `render` + `minimap` + `agentDock` 4) · tsc `--noEmit` clean · eslint `--max-warnings=0` clean · `next build` ✓ (4/4 static pages) |
+| @nexus/agent-runtime| 96/96 vitest (M2 v11: + visualQa 5 over v9's 91) · tsc clean — see `docs/evidence/agents/README.md` |
+| @nexus/studio      | 76/76 vitest (`snap` + `persist` + `align` + `store-variants` 18 incl. sub-selection + clone-rotation override + rigid subtree flatten + `thumbnail` + `rotate` 14 incl. rotated handle hit-tests + rigid plan cases + `render` + `minimap` + `agentDock` 5 + qa case) · tsc `--noEmit` clean · eslint `--max-warnings=0` clean · `next build` ✓ (4/4 static pages) |
 
 ## Headless pipeline proof
 
@@ -291,3 +291,11 @@ el_…, fr_… · pipeline status completed · score 1.00 · 1 op(s), reversible
 while the ledger keeps the decision (audit is persistent, edits are not). Empty-page
 honesty verified too: Plan on a blank page reports "this page has no layers to research".
 Console clean (single React DevTools info line).
+
+## Visual QA chips (M2 v11, in-browser)
+
+After Approve the dock renders `visual QA: flagged · 2 checked` with flag chips when the
+banner genuinely overlaps the composed hero (`overlap`, `overflow` chips) — and the ledger
+line gains `"qa":"flagged"`. On a roomy page the same run reports `visual QA: ok`. QA is
+structural geometry over `layoutPage` rects (`runVisualQa`), explicitly NOT pixel or
+taste judgment (see ADR 0016 amendment 11's stated limit).

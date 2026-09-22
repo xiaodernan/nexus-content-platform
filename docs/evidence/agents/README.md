@@ -8,7 +8,7 @@ every emitted artifact (`provenance.mode = "demo"`).
 ## Reproducible gates
 
 ```
-npm test          # turbo: @nexus/agent-runtime 91/91 vitest among all packages
+npm test          # turbo: @nexus/agent-runtime 96/96 vitest among all packages
 npm run build     # tsc dist for agents/runtime (build order via ^build deps)
 node docs/evidence/agents/agent-proof.mjs
 node docs/evidence/agents/code-index-proof.mjs   # requires `npm run build` first
@@ -20,6 +20,7 @@ node docs/evidence/agents/recall-proof.mjs       # requires `npm run build` firs
 node docs/evidence/agents/changes-proof.mjs      # requires `npm run build` first
 node docs/evidence/agents/roles-proof.mjs        # requires `npm run build` first
 node docs/evidence/agents/pipeline-proof.mjs    # requires `npm run build` first
+node docs/evidence/agents/qa-proof.mjs          # requires `npm run build` first
 ```
 
 ## Unit tests (vitest, `agents/runtime/test`)
@@ -38,6 +39,7 @@ node docs/evidence/agents/pipeline-proof.mjs    # requires `npm run build` first
 | `roles.test.ts` (7) | `matchesTool` glob semantics, scope projection exposes/excludes (unknown ≠ denied), child copy can't mutate parent, role register unique + sorted list + ghost role ⇒ empty, researcher-vs-editor write behavior, plan tier follows role capabilities, capability gap fails honestly leaving files untouched |
 | `evaluate.test.ts` (5) | clean run scores 1 with named marks, failures degrade by weight (deterministic), last verify decides, change-economy budget option, append/reload order + corrupt-file reasons |
 | `pipeline.test.ts` (5) | researcher→editor handoff happy path (refs from `fs.index`, editor plans memory-first, score 1), denied checkpoint leaves the handoff real but the run denied, durable mode writes memory+ledger+evaluation JSONL that reload cold, missing research tool ⇒ stated reason (no invented refs), full determinism across identical pipelines |
+| `visualQa.test.ts` (5) | clean layout ok, zero-size/off-page/overlap detection with severities, error-before-warn deterministic ordering, tolerances as explicit inputs, identical reports for identical inputs |
 | `durability.test.ts` (8) | memory serialize/deserialize round-trip + version/schema rejection, `restore()` id high-water mark, save/load through an injected writable fake disk, corrupt-file honest failure, `guardedJoin` jail (absolute/`..`/drive-letter rejection, backslash folding), `disk.write` checkpoint gate + escape touches nothing, `disk.read`/`disk.list` confinement |
 | `indexStore.test.ts` (11) | index snapshot serialize→deserialize verbatim + version/chunk schema rejection, save/load via injected fs, cold rescan equals `buildIndex`, unchanged files reuse chunks / edits rechunk exactly the changed paths / removals drop out, query ranking snapshot-independent; v5 provider: cold-first-build equals plain build, incremental refresh 0 re-chunked, edited file sole re-chunk, cross-provider snapshot restore, corrupt-snapshot fallback + repair, `fs.index` provider/default parity |
 
@@ -149,6 +151,13 @@ by construction, no model judging a model (§60).
 then a **separate node child process** loads only the persisted handoff JSON + the target
 file, completes the editor stage memory-first (`plan.steps[0].tool === 'memory.recall'`)
 and scores 1 too. Ledger and evaluation files record the stages; the jail is cleaned after.
+
+## QA proof (`qa-proof.mjs`, M2 v11)
+
+Synthetic triad (clean / stacked / off-page) plus real `layoutPage` data: a banner over a
+hero on a sized page is `ok`; a zero-height layer is flagged `zero-size`, not tolerated.
+The Studio dock runs exactly this after every Approve (verdict + flag chips, `qa` field in
+the ledger). Stated limit (§60): structural geometry only — no pixel or aesthetic claims.
 
 ## Scope honesty
 

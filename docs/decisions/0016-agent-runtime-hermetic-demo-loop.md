@@ -243,3 +243,21 @@ two fresh runs, checkpoint denial leaving the workspace byte-identical).
 - **Coupling:** studio now depends on `@nexus/agent-runtime` (transpilePackages); no
   runtime package changes were needed — the browser bundle proves the same modules the
   CLI proofs exercise. Tests 75/75 studio vitest (+4 `agentDock.test.ts`).
+
+## Amendment 11 — v11: structural visual QA + dock verdict chips, 2026-09
+- **`visualQa.ts`:** pure rect-data checks — `zero-size`, `off-page` (error), `overflow`
+  (tolerance-parameterized warn), `overlap` (≥50% of the smaller area, error) — sorted
+  deterministically (severity → code → ids). The runtime stays decoupled from the Design
+  Model: callers pass `{page, rects}`; nothing here looks at pixels (§60).
+- **Dock integration:** after Approve, `qaForDoc` feeds `layoutPage` rects into
+  `runVisualQa`; the panel renders a verdict chip + up to three flag chips, and the
+  ledger line gains `qa: 'ok'|'flagged'` — the audit trail now records what the change
+  *did to the composition*, not just that it happened.
+- **Browser evidence:** applying the agent banner over a composed dashboard honestly
+  reports `visual QA: flagged · 2 checked` with `overlap` + `overflow` chips (the banner
+  genuinely overlaps the hero strip; composed sections exceed the starter page height) —
+  a real finding surfaced by structural checks in-product, not a mock.
+- **Tests/proof:** runtime 96/96 (+5 `visualQa.test.ts`), studio 76/76 (+1 QA case),
+  `docs/evidence/agents/qa-proof.mjs` (synthetic triad + real `layoutPage` data).
+- **Limit stated:** this is geometry QA, not visual-quality judgment (contrast, hierarchy,
+  brand fit need model or human eyes — §60 keeps that claim out).

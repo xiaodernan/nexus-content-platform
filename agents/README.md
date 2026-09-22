@@ -37,8 +37,10 @@
   that pipeline **inside the Studio**: `apps/studio/src/lib/agentDock.ts` + `AgentPanel`
   run the same `runRolePipeline` over a per-layer corpus view, and proposals only reach the
   Design Model when the user clicks Approve — §28 as product UI, decisions journaled to a
-  localStorage ledger (ADR 0016 amendment 10).
-  Proof: `agents/runtime/test` (vitest 91/91) plus the ten headless proofs in
+  localStorage ledger (ADR 0016 amendment 10). v11 adds `visualQa.ts` — structural rect
+  checks (zero-size/off-page/overlap/overflow) that the dock runs on the applied document,
+  rendering verdict chips and journaling the QA verdict (amendment 11).
+  Proof: `agents/runtime/test` (vitest 96/96) plus the eleven headless proofs in
   `docs/evidence/agents/` (agent, code-index, memory, durability, index-store, provider,
   recall, changes, roles, pipeline).
 

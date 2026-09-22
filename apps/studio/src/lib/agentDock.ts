@@ -7,12 +7,15 @@ import {
   registerMemoryTools,
   registerWorkspaceTools,
   runRolePipeline,
+  runVisualQa,
   type HandoffRecord,
+  type QaReport,
   type RunEvaluation,
   type RunOutcome,
 } from '@nexus/agent-runtime';
 import {
   childIdList,
+  layoutPage,
   newId,
   ops,
   textNode,
@@ -135,6 +138,20 @@ export async function planAgentRun(doc: DesignDocument, pageId: string, goal: st
   };
 }
 
+/* ---- v11: structural visual QA over the applied document (§63, no pixel claims) ---- */
+
+export function qaForDoc(doc: DesignDocument, pageId: string): QaReport {
+  const layout = layoutPage(doc, pageId);
+  const page = layout[pageId];
+  if (!page) return { verdict: 'ok', checked: 0, flags: [] };
+  const rects: Record<string, { x: number; y: number; width: number; height: number }> = {};
+  for (const id of childIdList(doc.nodes[pageId]!)) {
+    const r = layout[id];
+    if (r) rects[id] = { x: r.x, y: r.y, width: r.width, height: r.height };
+  }
+  return runVisualQa({ page: { x: page.x, y: page.y, width: page.width, height: page.height }, rects });
+}
+
 /* ---- §28 audit trail: JSONL ledger through the studio's KvStore seam ---- */
 export interface LedgerEntry {
   goal: string;
@@ -143,10 +160,11 @@ export interface LedgerEntry {
   score: number;
   approved: boolean;
   reason?: string;
+  qa?: 'ok' | 'flagged';
   at: number;
 }
 
-export function ledgerLine(plan: AgentPlan, approved: boolean, reason?: string): string {
+export function ledgerLine(plan: AgentPlan, approved: boolean, reason?: string, qa?: QaReport): string {
   const e: LedgerEntry = {
     goal: plan.goal,
     target: plan.targetId,
@@ -154,6 +172,7 @@ export function ledgerLine(plan: AgentPlan, approved: boolean, reason?: string):
     score: plan.evaluation.score,
     approved,
     ...(reason ? { reason } : {}),
+    ...(qa ? { qa: qa.verdict } : {}),
     at: Date.now(),
   };
   return JSON.stringify(e);

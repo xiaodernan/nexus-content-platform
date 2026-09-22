@@ -82,5 +82,9 @@ in-browser over a *corpus view* of the current page (one pseudo-file per layer �
 **Approve** dispatches the proposal as one reversible `OpBatch` through the normal op path
 (history, AI-diff, undo all behave as for any edit); **Deny** changes nothing. Every
 decision appends a line to the `nexus.agentLedger.v1` localStorage audit log that survives
-reload. Everything is DEMO MODE-labeled: the agent proposes, the model stays canonical
+reload. Since v11 the dock also runs **structural visual QA** after approval
+(`runVisualQa` over `layoutPage` rects — zero-size/off-page/overlap/overflow), showing a
+verdict chip plus flag chips and journaling `qa: ok|flagged` in the ledger. This is
+geometry, not taste: contrast/aesthetic judgment remains explicitly out of scope (§60).
+Everything is DEMO MODE-labeled: the agent proposes, the model stays canonical
 (§8), and no document mutation happens without the human checkpoint (§28).

@@ -6,9 +6,11 @@ import {
   appendLedgerLine,
   ledgerLine,
   planAgentRun,
+  qaForDoc,
   readAgentLedger,
   type AgentPlan,
 } from '@/lib/agentDock';
+import type { QaReport } from '@nexus/agent-runtime';
 
 type Phase = 'idle' | 'planning' | 'awaiting' | 'done';
 
@@ -23,6 +25,7 @@ export default function AgentPanel() {
   const [phase, setPhase] = useState<Phase>('idle');
   const [plan, setPlan] = useState<AgentPlan | null>(null);
   const [note, setNote] = useState('');
+  const [qa, setQa] = useState<QaReport | null>(null);
   const [ledgerLen, setLedgerLen] = useState(0);
 
   const runPlan = async () => {
@@ -41,9 +44,11 @@ export default function AgentPanel() {
   const approve = () => {
     if (!plan) return;
     commitOps(plan.batch.ops, plan.batch.summary ?? 'Agent proposal', plan.batch.provenance);
-    appendLedgerLine(browserStorage(), ledgerLine(plan, true));
+    const report = qaForDoc(useStudio.getState().doc, plan.pageId);
+    setQa(report);
+    appendLedgerLine(browserStorage(), ledgerLine(plan, true, undefined, report));
     setLedgerLen(readAgentLedger(browserStorage()).entries.length);
-    setStatus(`Agent banner applied (undoable) · ${plan.targetName}`);
+    setStatus(`Agent banner applied (undoable) · ${plan.targetName} · QA ${report.verdict === 'ok' ? 'clean' : `${report.flags.length} flag(s)`}`);
     setPhase('done');
   };
 
@@ -94,6 +99,18 @@ export default function AgentPanel() {
       )}
       {(phase === 'done' || ledgerLen > 0) && (
         <div style={label}>
+          {phase === 'done' && qa && (
+            <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 4 }}>
+              <span style={{ fontSize: 10, padding: '1px 6px', borderRadius: 8, border: '1px solid var(--nexus-border)' }}>
+                visual QA: {qa.verdict} · {qa.checked} checked
+              </span>
+              {qa.flags.slice(0, 3).map((f) => (
+                <span key={f.code + f.ids.join()} style={{ fontSize: 10, padding: '1px 6px', borderRadius: 8, border: '1px solid var(--nexus-border)', color: f.severity === 'error' ? '#ff7a7a' : '#ffd24a' }}>
+                  {f.code}
+                </span>
+              ))}
+            </div>
+          )}
           {phase === 'done' ? 'Applied — undo (Cmd/Ctrl+Z) reverts the banner. ' : ''}
           ledger: {ledgerLen} checkpoint decision(s) on this device.
         </div>
