@@ -1,4 +1,4 @@
-# M2 evidence — agent stack (v0 loop → v30 confined exec host; all ADR 0016 amendments)
+# M2 evidence — agent stack (v0 loop → v31 command-backed verification; all ADR 0016 amendments)
 
 All checks are headless, offline, key-free, and reproducible from the repo root. Nothing here
 claims model-quality planning or neural retrieval (§60): the planner is a deterministic
@@ -11,7 +11,7 @@ stack spawns nothing.
 ## Reproducible gates
 
 ```
-npm test          # turbo: @nexus/agent-runtime 204/204 + @nexus/exec-host 15/15 vitest among all packages
+npm test          # turbo: @nexus/agent-runtime 207/207 + @nexus/exec-host 24/24 vitest among all packages
 npm run build     # tsc dist for agents/runtime + agents/exec-host (build order via ^build deps)
 node docs/evidence/agents/agent-proof.mjs
 node docs/evidence/agents/code-index-proof.mjs   # requires `npm run build` first
@@ -34,6 +34,7 @@ node docs/evidence/agents/index-vectors-proof.mjs  # requires `npm run build` fi
 node docs/evidence/agents/testrunner-proof.mjs     # requires `npm run build` first
 node docs/evidence/agents/exec-sandbox-proof.mjs   # requires `npm run build` first
 node docs/evidence/agents/exec-host-proof.mjs      # requires `npm run build` first
+node docs/evidence/agents/exectest-proof.mjs       # requires `npm run build` first
 ```
 
 ## Unit tests (vitest, `agents/runtime/test`)
@@ -63,9 +64,10 @@ node docs/evidence/agents/exec-host-proof.mjs      # requires `npm run build` fi
 | `repair.test.ts` (5) | clean input no-op, off-page pulled inside then QA-clean, overlap nudged below with gutter, zero-size grown, dedupe + determinism + "apply all repairs → zero error flags" |
 | `repair.test.ts` +nudges (6) | v25: near-miss lints unproposed by default, equal-area mover tie broken by id with exact stated reason, smaller-area layer moves, center-nudge to page mid-line (other axis untouched, px stated), a/b/c chain where only the in-tolerance pair snaps, apply-all clears all flags, determinism |
 | `repair.test.ts` +edge-snap (5) | v27: near-edge unproposed by default, opt-in snaps x flush with y untouched and px stated, right-edge snap uses page.width − width, a corner snaps the fixed-order side first and reports the other honestly in `remaining`, two independent slips both snap clean + determinism |
-| `testRunner.test.ts` (15) | v28: predicate engine semantics (all-pass detail, VERBATIM failure messages, throw→`threw:` without crashing, name-order + first-registration duplicate wins, empty pack = stated vacuous failure, `only` filter + miss), tool contract (exec-gated without checkpoint, `{ok, detail}` + structured report when granted, unknown `only` errors), lazy file re-read after a write, runTask end-to-end (completed run journals 1 ok report; never-passing predicate → 3 honest reports + `failed_verification`; hosts without the tool keep the field absent), JSONL append/reload with malformed counting + last-N + missing-file empty |
+| `testRunner.test.ts` (18) | v28: predicate engine semantics (all-pass detail, VERBATIM failure messages, throw→`threw:` without crashing, name-order + first-registration duplicate wins, empty pack = stated vacuous failure, `only` filter + miss), tool contract (exec-gated without checkpoint, `{ok, detail}` + structured report when granted, unknown `only` errors), lazy file re-read after a write, runTask end-to-end (completed run journals 1 ok report; never-passing predicate → 3 honest reports + `failed_verification`; hosts without the tool keep the field absent), JSONL append/reload with malformed counting + last-N + missing-file empty; v31: the tool AWAITS an async runner with an identical report shape, a REJECTING async runner surfaces as a tool error not a crash, runTask journals async-runner reports like any other |
 | `execSandbox.test.ts` (18) | v29: allowlisted argv → inert plan (jail-resolved cwd, rule budgets, `matchedRule`, `executes:false` asserted field-for-field), default-deny refusal quoting the argv, `'*'` as argument wildcard matches but arity is fixed and shell-shaped single tokens still deny, path/separators in the executable refused before matching, malformed requests (non-array/empty/non-string tokens), cwd `..`+absolute+drive-letter refused via `guardedJoin` while missing cwd means the root, env scrubbed to allowlist with dropped names sorted, budgets clamped to policy ceilings, empty allow array denies everything, determinism + plan owns its data (no shared refs), invalid policy refused before the request and `registerExecTools` throws at registration, `exec.plan` callable WITHOUT a checkpoint (read perm) with `executes:false` in the output, refusals succeed as tool calls (`planned:false` + reason), registry `string[]` validation on argv |
 | `exec-host/execHost.test.ts` (15) | v30 (@nexus/exec-host, injected fake spawn — zero real processes in vitest): allowlisted run spawns argv-as-data with the plan cwd/env verbatim, arg tokens never re-tokenized, policy refusal spawns NOTHING even behind an approving checkpoint, no-checkpoint direct call = stated `checkpoint required for exec (§28)`, deny = `planned:true` + `checkpoint denied`, checkpoint asked with an exec ToolCall carrying the plan, output budget hard-caps stdout+stderr total and marks `truncated`, timeout kills marked `killedByBudget` + SIGTERM, ENOENT surfaces as structured `spawnError` not a crash, `exec.run` registry-gated (deny never reaches host; granted → `{ok, detail, result}`; refusal = tool ERROR; nonzero exit = ok:false data with stderr), JSONL journal round-trip with malformed + shape-wrong counting + last-N + missing-file empty |
+| `exec-host/execTestRunner.test.ts` (9) | v31 (fake spawn, zero real processes): exit 0 → passing report whose engine NAMES the argv, exit 1 + stderr → failure message verbatim, timeout kill → `killed at timeout budget (SIGTERM)` never noise, policy refusal → FAILING report with the stated reason and no spawn, missing `preApproved` → the exact `checkpoint required for exec (§28)` message, `only` miss → vacuous total-0 without paying for a spawn, through `registerTestTools` the granted call states the exec-host engine and an unknown `only` is a tool ERROR, runTask e2e verifies with a real COMMAND and journals the report |
 | `durability.test.ts` (8) | memory serialize/deserialize round-trip + version/schema rejection, `restore()` id high-water mark, save/load through an injected writable fake disk, corrupt-file honest failure, `guardedJoin` jail (absolute/`..`/drive-letter rejection, backslash folding), `disk.write` checkpoint gate + escape touches nothing, `disk.read`/`disk.list` confinement |
 | `indexStore.test.ts` (11) | index snapshot serialize→deserialize verbatim + version/chunk schema rejection, save/load via injected fs, cold rescan equals `buildIndex`, unchanged files reuse chunks / edits rechunk exactly the changed paths / removals drop out, query ranking snapshot-independent; v5 provider: cold-first-build equals plain build, incremental refresh 0 re-chunked, edited file sole re-chunk, cross-provider snapshot restore, corrupt-snapshot fallback + repair, `fs.index` provider/default parity |
 | `indexVectors.test.ts` (11) | v23: `indexToVectorDb` shape (one entry per chunk, id `path#startLine`, real dim-64 vectors), vector-vs-inline hit-for-hit parity across five query shapes + stated engine, null db ⇒ honest inline; cold merge ≡ cold build, unchanged chunks reuse the identical vector object / only touched windows re-embed / removals drop out; tampered-text, missing-id and wrong-dim drift each send the WHOLE query inline with real inline hits; persisted provider: lazy `vectors()`, byte-identical reuse by a cold second provider, corrupt-file self-repair, `fs.index` engine labels with/without vectorsFile, edits tracked through the provider lifecycle |
@@ -267,6 +269,18 @@ counted. Then the §60 honesty step: exactly ONE real read-only command (`git st
 the boundary audit BOTH WAYS: all 25 runtime dist modules clean of `child_process`, and in
 exec-host the capability is confined to `execHost.js` alone.
 
+## ExecTest proof (`exectest-proof.mjs`, M2 v31)
+
+All against FAKE spawns (the real-command demo already lives in `exec-host-proof.mjs`):
+exit 0 maps to a passing report whose engine is literally `exec-host:node app.js`, exit 1
+carries the stderr VERBATIM, a timeout kill says `killed at timeout budget (SIGTERM)`.
+Denials are data: a policy refusal fails with its stated reason and zero spawns, no
+`preApproved` yields the exact §28 string, an `only` miss is vacuous without paying for a
+process. Through `registerTestTools` the registry's exec gate is the ONE checkpoint —
+granted verify = exactly one spawn, and a `runTask` completes with its §63 verify step
+answered by a COMMAND and journalled. Finally `runtime/dist/testRunner.js` is grepped for
+`child_process` again: the async seam did not smuggle a spawn into the runtime.
+
 ## v20 note — orchestrator-driven UI
 
 The dock's Agent UI run now executes the demo planner's `observe→type→click` plan through the UNCHANGED runTask loop; ui tools address labels (exact, then substring). Browser: two per-action Allow dialogs, then the composed dashboard — live plan→act→verify, fully gated.
@@ -384,14 +398,27 @@ against a fake child, then executes ONE real read-only `git status --short` unde
 checkpoint), NOT an OS/container sandbox; ADR 0013's egress/secret-injection/containers
 half remains open, and untrusted generated code still has nowhere to run.
 
+## v31 note — verification by REAL commands: the async seam + the exec-host bridge
+
+`TestRunner.run(only?)` may now return a Promise and `registerTestTools` awaits it;
+`predicateRunner` stays sync so every v28 host is untouched. `execTestRunner(host, argv,
+{name, preApproved, cwd, env})` — in `@nexus/exec-host`, never in the runtime — maps an
+`ExecRunResult` to a `TestReport` verbatim: engine `exec-host:<argv>`, pass = ran ∧ exit 0
+∧ not killed ∧ no spawn error. Refusals become honest FAILING reports (policy reason,
+missing §28 gate, timeout kill), never crashes, never spawns. Through `registerTestTools`
+the registry's exec permission remains the single checkpoint. This is the seam that lets a
+real suite answer `test.run` — no repo suite is wired by default (§60: the bridge proves
+the mechanics, not anyone's tests).
+
 ## Scope honesty
 
 §63/§26 items *not* implemented (stated, not faked): general real-fs write tools (only
 `disk.write` inside an explicit jail root, always checkpoint-gated), GENERAL process
 execution — since v30 `@nexus/exec-host` can run EXACT allowlisted argv under §28 with
 plan budgets, but there is no arbitrary-command path, no shell, and no OS/container
-sandbox (ADR 0013's egress/secret/containers half is open); running the repo's real test
-suites through the host is a future policy choice, not current behavior; the runtime
+sandbox (ADR 0013's egress/secret/containers half is open); v31 added the bridge by which a
+command CAN answer `test.run` (`execTestRunner`), but running the repo's real test suites
+through the host remains a future policy choice, not current behavior; the runtime
 package itself stays spawn-free by audited design. git commit,
 live-model planning (the seam exists, the model needs keys), multi-agent registry.
 Memory recall (v6) shares the index's deterministic token-bag hybrid score — a real

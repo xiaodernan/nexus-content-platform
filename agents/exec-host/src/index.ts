@@ -13,3 +13,4 @@ export {
   type ExecSpawnOptions,
   type SpawnLike,
 } from './execHost.js';
+export { execTestRunner, type ExecTestRunnerOptions } from './execTestRunner.js';

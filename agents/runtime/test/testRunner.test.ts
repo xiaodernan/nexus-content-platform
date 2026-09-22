@@ -157,6 +157,35 @@ describe('runTask end-to-end (v28: structured reports journalled on the outcome)
   });
 });
 
+describe('v31 async runners — the seam widened, the sync hosts unchanged', () => {
+  it('the tool AWAITS an async TestRunner and the report shape is identical', async () => {
+    const registry = new ToolRegistry();
+    registerTestTools(registry, { name: 'async-engine', run: async () => runPredicates('async-engine', [pass('a')], FILES) });
+    const res = await registry.invoke({ callId: 'a1', tool: 'test.run', args: {} }, { checkpoint: () => true });
+    expect(res.ok).toBe(true);
+    const out = res.output as { report: { engine: string; ok: boolean } };
+    expect(out.report).toMatchObject({ engine: 'async-engine', ok: true });
+  });
+
+  it('an async runner that REJECTS surfaces as a tool error, never a crash', async () => {
+    const registry = new ToolRegistry();
+    registerTestTools(registry, { name: 'bad', run: async (): Promise<never> => { throw new Error('command blew up'); } });
+    const res = await registry.invoke({ callId: 'a2', tool: 'test.run', args: {} }, { checkpoint: () => true });
+    expect(res.ok).toBe(false);
+    expect(res.error).toContain('command blew up');
+  });
+
+  it('runTask journals reports from an async runner like any other', async () => {
+    const ws = new InMemoryWorkspace({ 'docs/alpha.md': 'notes about alpha\n' });
+    const registry = registerWorkspaceTools(new ToolRegistry(), ws);
+    registerTestTools(registry, { name: 'async', run: async () => runPredicates('async', [{ name: 'p', check: (f) => (Object.values(f).some((c) => c.includes('NOTE (DEMO MODE')) ? null : 'no note') }], ws.snapshot()) });
+    const out = await runTask({ id: 'a3', goal: 'annotate the alpha doc', targetPath: 'docs/alpha.md' }, { registry, checkpoint: () => true });
+    expect(out.status).toBe('completed');
+    expect(out.testReports).toHaveLength(1);
+    expect(out.testReports![0]!.engine).toBe('async');
+  });
+});
+
 describe('test report JSONL durability (same discipline as the ledger)', () => {
   it('append → reload counts records; malformed lines are counted, never trusted', () => {
     const disk = new MemDisk();

@@ -579,3 +579,26 @@ two fresh runs, checkpoint denial leaving the workspace byte-identical).
   v29/v30 landed-slice note).
 - Runtime 204/204 UNCHANGED (no runtime source touched), NEW @nexus/exec-host 15/15,
   studio 96/96 untouched; twenty-first proof added (`exec-host-proof.mjs`); twenty-one proofs.
+
+## Amendment 31 — v31: verification by REAL commands — the async seam + the exec-host bridge, 2026-09
+- **The seam widened, not forked:** `TestRunner.run(only?)` may now return
+  `TestReport | Promise<TestReport>` and `registerTestTools` AWAITS it. `predicateRunner`
+  stays synchronous, so every v28 host is untouched — the type change is backward
+  compatible and the studio/dock tests prove it (96/96 unchanged).
+- **The bridge lives where the key lives:** `execTestRunner(host, argv, {name, preApproved,
+  cwd, env})` is in `@nexus/exec-host`, NOT in the runtime — the v29/v30 "runtime cannot
+  spawn" audit survives, and `exectest-proof.mjs` re-checks `testRunner.js` for
+  `child_process` anyway. It maps an `ExecRunResult` to a `TestReport` VERBATIM: the
+  engine label is `exec-host:<argv>` (nobody can mistake a command verdict for a
+  predicate), pass means `ran && exit 0 && not killed && no spawn error`, and every
+  failure message carries the exit code, the streams and the budget flags as observed.
+- **Refusals are data, not drama:** an unlisted argv produces a FAILING report stating
+  the policy reason and ZERO spawns; no `preApproved` and no checkpoint yields the exact
+  `checkpoint required for exec (§28)` string; an `only` filter miss returns the vacuous
+  total-0 shape, which the `test.run` tool converts into its stated error — the bridge
+  never even pays for a spawn on a name nobody registered.
+- **§28 stays a SINGLE gate:** wired through `registerTestTools`, the registry's exec
+  permission is the checkpoint, and the bridge runs with `preApproved: true`; the proof
+  counts spawns per granted verify — exactly one, none for denials.
+- Runtime 207/207 (+3 async-seam cases), @nexus/exec-host 24/24 (+9 bridge cases), studio
+  96/96 untouched; twenty-second proof added (`exectest-proof.mjs`); twenty-two proofs.

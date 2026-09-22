@@ -32,8 +32,12 @@ export interface TestReport {
 
 export interface TestRunner {
   name: string;
-  /** `only` runs the single predicate with that exact name; a miss yields total 0. */
-  run(only?: string): TestReport;
+  /**
+   * `only` runs the single predicate with that exact name; a miss yields total 0.
+   * v31: a runner MAY be async (the exec-host bridge verifies via real commands);
+   * `predicateRunner` stays sync and every existing host is unaffected.
+   */
+  run(only?: string): TestReport | Promise<TestReport>;
 }
 
 /**
@@ -101,9 +105,9 @@ export const TEST_TOOL_SPECS: ToolSpec[] = [
  */
 export function registerTestTools(registry: ToolRegistry, runner: TestRunner): ToolRegistry {
   for (const spec of TEST_TOOL_SPECS) {
-    registry.register(spec, (args) => {
+    registry.register(spec, async (args) => {
       const only = args.only === undefined ? undefined : String(args.only);
-      const report = runner.run(only);
+      const report = await runner.run(only);
       if (only !== undefined && report.total === 0) throw new Error(`no test predicate named "${only}"`);
       return { ok: report.ok, detail: report.detail, report };
     });
