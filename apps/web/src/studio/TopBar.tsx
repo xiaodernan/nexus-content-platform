@@ -110,6 +110,7 @@ export function TopBar({ onOpenRail }: { onOpenRail: () => void }) {
         <select
           value={state.activeMode ?? 'default'}
           onChange={(e) => studio.setMode(e.target.value === 'default' ? null : e.target.value)}
+          data-theme-mode
           className="rounded-[var(--nexus-radius-sm)] bg-bg-2 px-2 py-1 text-12 text-fg-2"
           title="Token 主题 mode"
         >

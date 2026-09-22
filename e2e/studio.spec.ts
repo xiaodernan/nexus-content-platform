@@ -446,6 +446,13 @@ test('@smoke studio slice: design system panel edits tokens and the canvas follo
   await page.click('[data-panel-tab="design"]');
   await expect(page.locator('[data-token-row="color.brand"]')).toBeVisible();
   await expect(page.locator('[data-token-value="color.brand"]')).toHaveValue('#123456');
+
+  // §12 主题 mode：切到 dark 后刷新仍在——它以前只活在浏览器会话里，重载就退回默认值
+  await page.selectOption('[data-theme-mode]', 'dark');
+  await expect(page.locator('[data-save-state]')).toContainText('已保存', { timeout: 20_000 });
+  await page.reload();
+  await expect(page.locator('[data-canvas-frame]')).toBeVisible({ timeout: 30_000 });
+  await expect(page.locator('[data-theme-mode]')).toHaveValue('dark');
 });
 
 test('@smoke studio slice: AI command bar runs in DEMO MODE as one undoable transaction', async ({ page }) => {

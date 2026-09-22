@@ -73,7 +73,16 @@ export async function createProject(ownerId: string, input: CreateProjectInput):
   await db.transaction(async (tx) => {
     const [row] = await tx
       .insert(projects)
-      .values({ ownerId, slug, name: input.name, kind: input.kind, activePageId: document.activePageId })
+      .values({
+        ownerId,
+        slug,
+        name: input.name,
+        kind: input.kind,
+        activePageId: document.activePageId,
+        // 起点文档自带的主题 mode 也要落库，否则 Duplicate 一份带主题的项目会丢掉它
+        activeMode: document.activeMode ?? null,
+        modes: document.metadata.modes ?? null,
+      })
       .returning({ id: projects.id });
     projectId = row!.id;
     document.id = projectId;
@@ -232,6 +241,9 @@ export async function loadDocument(projectId: string): Promise<DesignDocument | 
   // createDocument 把 createdAt 写成了"现在"：不覆盖回来的话，每次载入都在谎报这份文档刚被创建
   document.metadata.createdAt = project.createdAt.toISOString();
   document.metadata.updatedAt = project.updatedAt.toISOString();
+  // §12 主题 mode：库里没有对应列时它只活在浏览器会话里，刷新就退回默认值
+  document.activeMode = project.activeMode ?? null;
+  if (Array.isArray(project.modes)) document.metadata.modes = project.modes as string[];
   return document;
 }
 
@@ -246,6 +258,9 @@ export async function saveDocument(projectId: string, document: DesignDocument):
         activePageId: document.activePageId,
         brandKit: (document.brandKit ?? null) as unknown as Record<string, unknown>,
         visualDna: (document.visualDna ?? null) as unknown as Record<string, unknown>,
+        // §12：主题 mode 是文档状态，不存下来就会在保存-重载后悄悄退回默认值
+        activeMode: document.activeMode ?? null,
+        modes: document.metadata.modes ?? null,
         updatedAt: new Date(),
       })
       .where(eq(projects.id, projectId));

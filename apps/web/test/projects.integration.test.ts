@@ -84,6 +84,35 @@ describe('项目领域层（真实数据库）', () => {
     expect(Object.keys(reloadedB!.pages[0]!.nodes).length).toBeGreaterThan(0);
   });
 
+  it('主题 mode 与 mode 名单存得下来（§12）', async () => {
+    const { document, id } = await newProject('Theme Site');
+    expect(document.activeMode).toBeNull();
+    expect(document.metadata.modes).toEqual(['light', 'dark']);
+
+    const extra = await loadDocument(id);
+    extra!.metadata.modes = ['light', 'dark', 'high-contrast'];
+    extra!.activeMode = 'high-contrast';
+    await saveDocument(id, extra!);
+
+    const loaded = await loadDocument(id);
+    expect(loaded!.activeMode).toBe('high-contrast');
+    expect(loaded!.metadata.modes).toEqual(['light', 'dark', 'high-contrast']);
+    // 回到默认主题也要存得住，而不是"null 就等于没改"
+    loaded!.activeMode = null;
+    await saveDocument(id, loaded!);
+    expect((await loadDocument(id))!.activeMode).toBeNull();
+  });
+
+  it('metadata.createdAt 是项目真正被创建的时间，不是每次读到的"现在"', async () => {
+    const { document, id } = await newProject('Timestamped');
+    const first = await loadDocument(id);
+    const before = Date.now();
+    const second = await loadDocument(id);
+    expect(second!.metadata.createdAt).toBe(first!.metadata.createdAt);
+    expect(Date.parse(second!.metadata.createdAt)).toBeLessThanOrEqual(before);
+    expect(Date.parse(document.metadata.createdAt)).toBeLessThanOrEqual(before);
+  });
+
   it('同一作者下重名项目会得到不同 slug', async () => {
     const first = await newProject('Duplicate Name');
     const second = await newProject('Duplicate Name');

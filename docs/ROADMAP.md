@@ -227,9 +227,8 @@ Studio 顶栏下新增 画布/代码 切换（`CodePanel`），选中的元素�
 - 历史面板的 Ctrl+Z 只在浏览器会话内，刷新即失；服务端快照与 Branch / Duplicate（§27/§28）已经打通。
   还缺的是 §29 的多方案 A-B-C 并排比较视图（分支线已经能承载多个方向），
   以及快照列表的「只看当前分支」筛选——现在仍按时间全量展示、每行标出所属分支。
-- `loadDocument` 不恢复 `document.activeMode` 与 `metadata.modes`（库里没有对应列）：
-  主题模式在保存-重载后会退回默认值，快照恢复同样带不回它。要加列 + 迁移才能修。
-  （`metadata.createdAt` 以前每次载入都被写成"现在"，已修；`modes` 这两个仍然没修。）
+- 主题 mode 的持久化债已还（迁移 `0001_theme_mode`：`projects.active_mode` / `modes` 两列，
+  保存-重载与快照恢复都带得回 `document.activeMode`）。
 - 起手页的圆角、间距是写死在节点上的数字（`cornerRadius: 10`、`padding.top: 64`），没绑到 `radius.*` /
   `space.*` token。后果具体可见：§29 的视觉语言只能换颜色与字体，"换一套圆角"这种旋钮做不了——
   做不了就别在 UI 上声称能做。等上面那条 token 类型债一起修。

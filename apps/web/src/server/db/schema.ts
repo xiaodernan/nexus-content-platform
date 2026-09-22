@@ -129,6 +129,9 @@ export const projects = pgTable(
     /** 项目级硬约束：Brand Kit / Visual DNA（§119 / §172-174） */
     brandKit: jsonb('brand_kit'),
     visualDna: jsonb('visual_dna'),
+    /** §12 主题：当前 mode（null = 用 token 默认值）与 mode 名单 */
+    activeMode: text('active_mode'),
+    modes: jsonb('modes'),
     createdAt: now(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
     deletedAt: timestamp('deleted_at', { withTimezone: true }),
