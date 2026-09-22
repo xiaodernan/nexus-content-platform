@@ -13,8 +13,8 @@ npm run build lint typecheck test     # via turbo: build 4/4 · lint 3/3 · type
 | ------------------ | ------ |
 | @nexus/design-model| 28/28 vitest (`design-model` 16 incl. 3 rotated-hitTest + 2 rigid-geometry cases + `instances` 12 incl. x/y delta + absolute rotation overrides + rigid rotation bake), tsc clean |
 | @nexus/ai-providers| 7/7 vitest, tsc clean |
-| @nexus/agent-runtime| 101/101 vitest (M2 v12: + repair 5 over v11's 96) · tsc clean — see `docs/evidence/agents/README.md` |
-| @nexus/studio      | 85/85 vitest (+3 `uiRun` gated-drive cases on a fake driver; (`snap` + `persist` + `align` + `store-variants` 18 incl. sub-selection + clone-rotation override + rigid subtree flatten + `thumbnail` + `rotate` 14 incl. rotated handle hit-tests + rigid plan cases + `render` + `minimap` + `agentDock` 6 + qa case + `webfs` 3) · tsc `--noEmit` clean · eslint `--max-warnings=0` clean · `next build` ✓ (4/4 static pages) |
+| @nexus/agent-runtime| 126/126 vitest (M2 v0–v19, ADR 0016 am. 1–19) · tsc clean — see `docs/evidence/agents/README.md` |
+| @nexus/studio      | 86/86 vitest (`snap` `persist` `align` `store-variants` 18 `thumbnail` `rotate` 14 `render` `minimap` `agentDock` 7 `webfs` 3 `uiRun` 3) · tsc `--noEmit` clean · eslint `--max-warnings=0` clean · `next build` ✓ (4/4 static pages) |
 
 ## Headless pipeline proof
 
