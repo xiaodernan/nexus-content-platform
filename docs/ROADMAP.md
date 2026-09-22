@@ -278,9 +278,11 @@ key 只活在 ai-service 进程（符合 SECURITY.md「web 永不接触 key」�
   类型谎报从没被编译检查覆盖到。真正被它掩盖的是一个语义 bug：`server/ai/mock.ts` 的「移动端优化」配方
   `Number(gap) || 16` 会把 token 引用静默 coerce 成 NaN→16，已改为「token 引用原样保留、仅字面数值做下限」。
   补 design-model 单测锁住 `{space.*}` 参与真实排布、缺 store 时回落有限值不产生 NaN。
-  **仍欠（如实记）**：Code → Design 反向同步（`code-parse.ts`）对 gap/padding/cornerRadius 仍只认 `px` 字面量，
-  不像 `size` 走 `lengthOf` 能把 `var(--nx-space-…)` 反解回 `{space.*}`——所以在代码视图里手改这些属性会把 token 绑定丢成数字。
-  这是 §17-19「可逆区域」的一条已知缺口，需要给 code-parse 补一条与 size 对称的长度回解路径。
+  **边界（非缺陷，如实说明）**：Code → Design 反向同步（`code-parse.ts`）对 gap/padding/cornerRadius
+  **刻意只认 px 字面量**——代码里把这些属性写成 `var(--nx-space-…)` 时，`parse` 会给出 note 提示
+  「token 绑定请在画布上做」并**不产出补丁**，因此模型里已有的 token 绑定不会被改坏（不是"丢成数字"）。
+  这与 `size` 走 `lengthOf` 能把 `var(--nx-space-8)` 反解回 `{space.8}` 是两条不同的策略：`size` 支持、
+  gap/padding/radius 不支持，是有意为之的可逆/不可逆区域划分（§17-19），不是待补的 bug。
 - ESLint 目前只有 `npm run lint` = typecheck 的占位配置，缺真实规则集。
 - 资产服务已落地（任务 #9c，§38/§80/§101/§182）：图片上传 → magic-bytes 判定 → 元数据剥离 → 对象存储 → 鉴权路由 →
   画布/预览/发布四条投影同源。仍欠的两笔如实记下：
