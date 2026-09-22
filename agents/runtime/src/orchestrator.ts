@@ -70,7 +70,7 @@ export async function runTask(task: AgentTask, opts: RunOptions): Promise<RunOut
   const plannerBackend = opts.planner ?? demoPlanner;
   const planned = await plannerBackend.plan(
     task,
-    { hasVerify: registry.has('test.run'), hasIndex: registry.has('fs.index'), hasMemory: registry.has('memory.recall'), hasUi: registry.has('ui.click'), hasCommit: registry.has('git.commit'), hasConfirm: registry.has('git.log'), uiInputLabel: opts.uiInputLabel, uiButtonLabel: opts.uiButtonLabel },
+    { hasVerify: registry.has('test.run'), hasIndex: registry.has('fs.index'), hasMemory: registry.has('memory.recall'), hasUi: registry.has('ui.click'), hasCommit: registry.has('git.commit'), hasConfirm: registry.has('git.log'), hasRemember: registry.has('memory.save'), uiInputLabel: opts.uiInputLabel, uiButtonLabel: opts.uiButtonLabel },
     (name) => registry.has(name),
   );
   const plan: Plan = planned.plan;
@@ -80,13 +80,16 @@ export async function runTask(task: AgentTask, opts: RunOptions): Promise<RunOut
   emit({ type: 'plan', plan });
 
   const resolveArgs = (step: Step): Record<string, unknown> => {
-    const out: Record<string, unknown> = {};
-    for (const [k, v] of Object.entries(step.args)) {
+    const resolve = (v: unknown): unknown => {
       if (typeof v === 'string' && v.startsWith('@')) {
         const [stepId, ...path] = v.slice(1).split('.');
-        out[k] = dig(byStep.get(stepId!)?.output, path);
-      } else out[k] = v;
-    }
+        return dig(byStep.get(stepId!)?.output, path);
+      }
+      // v39: @refs resolve INSIDE array args too (memory.save refs carry the live search hit).
+      return Array.isArray(v) ? v.map(resolve) : v;
+    };
+    const out: Record<string, unknown> = {};
+    for (const [k, v] of Object.entries(step.args)) out[k] = resolve(v);
     return out;
   };
 
@@ -156,6 +159,8 @@ export async function runTask(task: AgentTask, opts: RunOptions): Promise<RunOut
     // after verify, so it is reached on green runs (first try OR after a fix round).
     // v38: the trailing `git.log` confirm rides that same walk — a denial there yields
     // status `denied` while the landed commit's result honestly STANDS in `results`.
+    // v39: the trailing `memory.save` remember rides it too — §26 memory only ever sees
+    // an arc that verified, committed AND confirmed; a denial there says so, loudly.
   }
   emit({ type: 'done', status: 'completed' });
   return finishRun( 'completed');

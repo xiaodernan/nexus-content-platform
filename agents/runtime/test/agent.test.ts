@@ -62,6 +62,29 @@ describe('planner: deterministic templates', () => {
     expect(noVerify.steps.map((s) => s.tool)).not.toContain('git.log');
     expect(planTask({ id: 't', goal: 'add widget docs' }, { hasVerify: true, hasCommit: true, hasConfirm: true })).toEqual(full);
   });
+
+  it('v39: hasRemember trails memory.save ONLY after the confirmed commit — never earlier', () => {
+    const fullOpts = { hasVerify: true, hasCommit: true, hasConfirm: true, hasRemember: true };
+    const full = planTask({ id: 't', goal: 'add widget docs' }, fullOpts);
+    expect(full.steps.map((s) => s.stepId)).toEqual(['search', 'read', 'annotate', 'verify', 'commit', 'confirm', 'remember']);
+    const remember = full.steps.at(-1)!;
+    expect(remember.tool).toBe('memory.save');
+    expect(remember.args.runId).toBe('t');
+    expect(String(remember.args.query)).toBe('add widget docs');
+    expect(String(remember.args.summary)).toContain('COMMITTED+CONFIRMED');
+    expect(String(remember.args.summary)).toContain(`seed ${full.seed}`);
+    expect(remember.args.refs).toEqual(['@search.hits.0.path']); // resolved from the LIVE search at invoke time
+    expect(planTask({ id: 't', goal: 'add widget docs', targetPath: 'docs/a.md' }, fullOpts).steps.at(-1)!.args.refs).toEqual(['docs/a.md']);
+    // the nesting: pull ANY earlier tier and the remember step vanishes with it
+    for (const opts of [
+      { hasVerify: true, hasCommit: true, hasRemember: true }, // no confirm tier
+      { hasVerify: true, hasRemember: true }, // no commit tier
+      { hasRemember: true }, // no verify → nothing green to remember
+    ]) {
+      expect(planTask({ id: 't', goal: 'add widget docs' }, opts).steps.map((s) => s.tool)).not.toContain('memory.save');
+    }
+    expect(planTask({ id: 't', goal: 'add widget docs' }, fullOpts)).toEqual(full);
+  });
 });
 
 describe('orchestrator: golden path', () => {
@@ -305,6 +328,114 @@ describe('orchestrator: confirm after commit (v38)', () => {
     const out = await runTask(h.task, h);
     expect(out.status).toBe('failed_verification');
     expect(out.results.at(-1)!.error).toContain('policy refused');
+  });
+});
+
+describe('orchestrator: remembered victory after confirm (v39)', () => {
+  function rememberHarness(testImpl: (ws: InMemoryWorkspace) => unknown, checkpoint: Checkpoint | undefined = () => true) {
+    const h = harness(testImpl, checkpoint);
+    const saves: Record<string, unknown>[] = [];
+    h.registry.register(
+      { name: 'git.commit', description: 'fake commit tool', permissions: ['exec'], args: [{ name: 'message', type: 'string' }] },
+      () => ({ ok: true, detail: 'fake commit landed', record: { hash: '0a1b2c3', subject: 'chore(agent): fake', stat: { files: 1 } } }),
+    );
+    h.registry.register(
+      { name: 'git.log', description: 'fake read-back', permissions: ['exec'], args: [{ name: 'count', type: 'number' }] },
+      () => ({ ok: true, detail: 'fake log agrees', commits: [{ hash: '0a1b2c3', subject: 'chore(agent): fake' }] }),
+    );
+    h.registry.register(
+      {
+        name: 'memory.save',
+        description: 'fake §26 memory',
+        permissions: ['write'],
+        args: [
+          { name: 'runId', type: 'string' },
+          { name: 'query', type: 'string' },
+          { name: 'summary', type: 'string' },
+          { name: 'refs', type: 'string[]' },
+        ],
+      },
+      (args) => {
+        saves.push(args);
+        return { id: `mem-${saves.length}` };
+      },
+    );
+    return { ...h, saves };
+  }
+
+  it('a green run ends commit→confirm→remember, and memory.save got the LIVE search ref', async () => {
+    const h = rememberHarness(noteTest);
+    const out = await runTask(h.task, h);
+    expect(out.status).toBe('completed');
+    expect(out.results.map((r) => r.callId)).toEqual(['t1:search', 't1:read', 't1:annotate', 't1:verify', 't1:commit', 't1:confirm', 't1:remember']);
+    expect(h.saves).toHaveLength(1);
+    const saved = h.saves[0]!;
+    expect(saved.runId).toBe('t1');
+    expect(String(saved.summary)).toContain('COMMITTED+CONFIRMED');
+    // v39 resolveArgs extends @refs INSIDE array args: the planned ref became the live hit
+    expect(saved.refs).toEqual(['docs/a.md']);
+    expect(out.results.at(-1)!.ok).toBe(true);
+  });
+
+  it('green AFTER a fix round also remembers exactly once', async () => {
+    const fixTest = (ws: InMemoryWorkspace) => ({ ok: ws.read('docs/a.md').includes('FIX'), detail: 'needs a FIX line' });
+    const h = rememberHarness(fixTest);
+    const out = await runTask(h.task, h);
+    expect(out.status).toBe('completed');
+    expect(out.results.map((r) => r.callId).slice(-3)).toEqual(['t1:commit', 't1:confirm', 't1:remember']);
+    expect(h.saves).toHaveLength(1);
+    expect(out.results.filter((r) => r.callId === 't1:remember')).toHaveLength(1);
+  });
+
+  it('a DENIED confirm means nothing to remember — memory.save never runs', async () => {
+    const h = rememberHarness(noteTest, ({ call }) => call.tool !== 'git.log');
+    const out = await runTask(h.task, h);
+    expect(out.status).toBe('denied');
+    expect(out.results.at(-2)!.tool).toBe('git.commit');
+    expect(out.results.at(-2)!.ok).toBe(true); // the landed commit still STANDS…
+    expect(h.saves).toHaveLength(0); // …but an UNconfirmed arc never becomes a "victory"
+    expect(out.results.at(-1)!.tool).toBe('git.log');
+  });
+
+  it('a DENIED remember: commit+confirm results stand, memory stays empty, status denied', async () => {
+    const h = rememberHarness(noteTest, ({ call }) => call.tool !== 'memory.save');
+    const out = await runTask(h.task, h);
+    expect(out.status).toBe('denied');
+    expect(h.saves).toHaveLength(0); // deny ⇒ the fake impl never ran
+    expect(out.results.at(-2)!.tool).toBe('git.log');
+    expect(out.results.at(-2)!.ok).toBe(true);
+    expect(out.results.at(-1)!.error).toContain('denied at checkpoint');
+  });
+
+  it('a throwing memory.save is honest non-green — a claimed victory nobody stored never completes', async () => {
+    const h = harness(noteTest);
+    h.registry.register(
+      { name: 'git.commit', description: 'fake', permissions: ['exec'], args: [{ name: 'message', type: 'string' }] },
+      () => ({ ok: true, detail: 'fake commit landed' }),
+    );
+    h.registry.register(
+      { name: 'git.log', description: 'fake', permissions: ['exec'], args: [{ name: 'count', type: 'number' }] },
+      () => ({ ok: true, detail: 'fake log agrees' }),
+    );
+    h.registry.register(
+      {
+        name: 'memory.save',
+        description: 'broken',
+        permissions: ['write'],
+        args: [
+          { name: 'runId', type: 'string' },
+          { name: 'query', type: 'string' },
+          { name: 'summary', type: 'string' },
+          { name: 'refs', type: 'string[]' },
+        ],
+      },
+      () => {
+        throw new Error('memory disk full');
+      },
+    );
+    const out = await runTask(h.task, h);
+    expect(out.status).toBe('failed_verification');
+    expect(out.results.at(-1)!.error).toContain('memory disk full');
   });
 });
 

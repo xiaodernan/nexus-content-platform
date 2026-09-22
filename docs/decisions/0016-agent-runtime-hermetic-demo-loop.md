@@ -787,3 +787,34 @@ two fresh runs, checkpoint denial leaving the workspace byte-identical).
   the four orchestrator semantics; that file is now 24 tests); exec-host 71/71 UNCHANGED
   (no product code moved there); studio 99/99 unchanged; twenty-eight proofs
   (30 scripts) green.
+
+## Amendment 39 — v39: remembered victories — memory only ever holds what the loop PROVED, 2026-09
+- **Position-is-safety reaches its fourth tier, and the runtime does it WITHOUT git.**
+  `PlannerOptions.hasRemember` nests a `remember` step (tool `memory.save`) INSIDE the
+  hasConfirm block inside the hasCommit block inside the hasVerify block: the ONLY
+  position in any demo plan where a memory write exists is the tail of the FULL
+  verify→commit→confirm arc. A red run, a denied commit, even a DENIED CONFIRM cannot
+  produce a remembered victory — the summary string `COMMITTED+CONFIRMED` is therefore
+  not a claim but a consequence of where the step sits. The orchestrator gained exactly
+  two things: capability detection (`hasRemember: registry.has('memory.save')`) and the
+  dataflow upgrade `resolveArgs` now resolves `@refs` INSIDE array args — the planned
+  `refs:['@search.hits.0.path']` became the LIVE workspace path at invoke time, the same
+  channel v0's read step has always used, just widened to lists.
+- **Denied-remember is §26's delete-key promise pointed inward:** the human can veto even
+  the ACT OF REMEMBERING a real, confirmed victory — status `denied`, the commit and the
+  agreeing read-back still STAND in results, and the store provably never saw the write
+  (deny ⇒ impl never runs). A throwing `memory.save` ends `failed_verification`: an arc
+  nobody stored never closes as completed either.
+- **The 29th proof (`remember-proof.mjs`) closes the loop for real:** ONE throwaway
+  `os.tmpdir()` repo, REAL sandbox commit+log hosts, a REAL `MemoryStore` alive across
+  FOUR full `runTask` runs. Run 1 wins (executed order ends commit→confirm→remember;
+  exactly one record `mem-1`, refs resolved to the live path, 2 spawns). Run 2's research
+  step is `memory.recall` — and it RECALLS run 1's victory FROM the memory that victory
+  wrote, then meets a denied commit: no second win stored, zero spawns. Run 3 vetoes the
+  remembering itself; run 4 goes red. The ledger then replays COLD: the JSONL reader's
+  last result IS the `memory.save` whose `output.id` equals the live store's record id —
+  memory, ledger and git history tell ONE joinable story. HOME HEAD byte-identical.
+- runtime 218/218 → 224/224 (6 new agent.test.ts cases — planner nesting with the
+  refs/targetPath variants and all three tier-removal omissions, plus five orchestrator
+  semantics; that file is now 30 tests); exec-host 71/71 UNCHANGED (no exec-host code
+  moved); studio 99/99 unchanged; twenty-nine proofs (31 scripts) green.

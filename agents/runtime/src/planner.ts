@@ -33,6 +33,13 @@ export interface PlannerOptions {
    * see→touch→confirm, letting the run read its own history back after green.
    */
   hasConfirm?: boolean;
+  /**
+   * v39: whether a `memory.save` tool is registered. Only meaningful WITH hasConfirm —
+   * a remember step trails the confirmed commit so §26 memory only ever records an arc
+   * that VERIFIED, LANDED and READ BACK AGREEING. Position in the plan is the safety:
+   * no earlier failure or denial can produce a "remembered victory" that didn't happen.
+   */
+  hasRemember?: boolean;
   uiInputLabel?: string;
   uiButtonLabel?: string;
   seed?: number;
@@ -87,6 +94,23 @@ export function planTask(task: AgentTask, opts: PlannerOptions): Plan {
           args: { count: 2 },
           rationale: 'read the log back — the newest entry must equal the commit record',
         });
+        // v39 "remembered victory": the ONLY place a memory.save is ever planned is the
+        // tail of the full verify→commit→confirm arc — position is the safety, so §26
+        // memory can never hold a "victory" that didn't verify, land, and read back
+        // agreeing. The record names its run; the ledger carries the hash it confirmed.
+        if (opts.hasRemember) {
+          steps.push({
+            stepId: 'remember',
+            tool: 'memory.save',
+            args: {
+              runId: task.id,
+              query: task.goal,
+              summary: `COMMITTED+CONFIRMED (DEMO MODE · seed ${seed}): goal "${task.goal}" — git.commit landed and git.log read-back agreed`,
+              refs: [target],
+            },
+            rationale: 'journal the confirmed arc into §26 memory — reached only after commit AND confirm both passed',
+          });
+        }
       }
     }
   }

@@ -1,23 +1,23 @@
-# M2 evidence — agent stack (v0 loop → v38 confirm-after-commit: the plan itself ends see→touch→confirm, every step behind its own keyed door; all ADR 0016 amendments)
+# M2 evidence — agent stack (v0 loop → v39 remembered victories: memory only ever holds what the loop verified, committed AND confirmed; all ADR 0016 amendments)
 
 All checks are headless, offline, key-free, and reproducible from the repo root. Nothing here
 claims model-quality planning or neural retrieval (§60): the planner is a deterministic
 template and the index embedder is a hash-based bag-of-tokens stand-in — both say so in
-every emitted artifact (`provenance.mode = "demo"`). The honest exceptions since v30/v32/v34/v35/v36/v37/v38:
+every emitted artifact (`provenance.mode = "demo"`). The honest exceptions since v30/v32/v34/v35/v36/v37/v38/v39:
 `exec-host-proof.mjs` and `git-aware-proof.mjs` spawn a few read-only local commands
 (`git status --short`, `git diff --stat`), `execsuite-proof.mjs` runs the repo's OWN
 @nexus/design-model vitest suite through the confined host (vitest's cache under
 `node_modules` is the only thing it writes), `commit-proof.mjs` + `greencommit-proof.mjs`
-+ `gitlog-proof.mjs` + `confirm-proof.mjs` perform REAL `git commit`s (and since v37/v38
++ `gitlog-proof.mjs` + `confirm-proof.mjs` + `remember-proof.mjs` perform REAL `git commit`s (and since v37/v38
 real `git log` read-backs — v38's for the first time driven by `runTask` itself, not a
-hand-called tool) — only inside throwaway `os.tmpdir()` repos
+hand-called tool; v39's runTask additionally writes a REAL in-process `MemoryStore`) — only inside throwaway `os.tmpdir()` repos
 with hooks/signing neutralized LOCALLY there, never in this repository — still offline,
 still key-free, and everything else in the stack spawns nothing.
 
 ## Reproducible gates
 
 ```
-npm test          # turbo: @nexus/agent-runtime 218/218 + @nexus/exec-host 71/71 vitest among all packages
+npm test          # turbo: @nexus/agent-runtime 224/224 + @nexus/exec-host 71/71 vitest among all packages
 npm run build     # tsc dist for agents/runtime + agents/exec-host (build order via ^build deps)
 node docs/evidence/agents/agent-proof.mjs
 node docs/evidence/agents/code-index-proof.mjs   # requires `npm run build` first
@@ -47,6 +47,7 @@ node docs/evidence/agents/commit-proof.mjs         # requires `npm run build` fi
 node docs/evidence/agents/greencommit-proof.mjs    # requires `npm run build` first (red/denied commit nothing; green-after-fix commits exactly once)
 node docs/evidence/agents/gitlog-proof.mjs         # requires `npm run build` first (REAL commit + read-back, ONLY in a throwaway os.tmpdir repo)
 node docs/evidence/agents/confirm-proof.mjs        # requires `npm run build` first (v38: runTask itself drives REAL commit→confirm in a throwaway os.tmpdir repo)
+node docs/evidence/agents/remember-proof.mjs       # requires `npm run build` first (v39: four real loop runs; the confirmed arc journals itself into a REAL MemoryStore — and run 2 recalls it)
 ```
 
 ## Unit tests (vitest, `agents/runtime/test`)
@@ -55,7 +56,7 @@ node docs/evidence/agents/confirm-proof.mjs        # requires `npm run build` fi
 | ---- | ------ |
 | `registry.test.ts` (7) | arg validation (missing/unknown/type), unknown tool, checkpoint required for write/exec, deny ⇒ implementation never runs, approve ⇒ runs, impl throw ⇒ `ok:false` (never rejects), double-register refused |
 | `workspace.test.ts` (4) | sorted/prefix listing, case-insensitive 1-based `search`, append/missing-file throw, registry wiring incl. gated `fs.write` |
-| `agent.test.ts` (24) | stopword-aware keyword, plan determinism + seed stamp, golden path event order + `@search.hits.0.path` dataflow + note in file, denial leaves file untouched, failing verify → 1 fix round → pass, persistent failure → `failed_verification` after `maxFixRounds`, `maxSteps` → `budget_exhausted`, planner routes step 0 through `fs.index` when registered, warm memory outranks the index (`memory.recall` first), snapshot hook yields an observed changeSet (absent without hook); v36: `hasCommit` appends the commit step ONLY behind a verify step (and deterministically), a green run reaches it with the planned message, checkpoint DENY ⇒ status denied with earlier work standing and zero commits, green AFTER a fix round still commits with fix steps never re-run (execution order asserted), a red run never commits, a throwing commit tool is honest non-green; v38: `hasConfirm` trails a `git.log` step after the commit and NEVER plans one without a commit (or without verify — nested tail, determinism asserted), green ends commit→confirm in executed order, green-after-fix reaches confirm too, DENIED confirm ⇒ status denied while the landed commit's ok:true result STANDS a slot earlier, a throwing `git.log` is honest non-green |
+| `agent.test.ts` (30) | stopword-aware keyword, plan determinism + seed stamp, golden path event order + `@search.hits.0.path` dataflow + note in file, denial leaves file untouched, failing verify → 1 fix round → pass, persistent failure → `failed_verification` after `maxFixRounds`, `maxSteps` → `budget_exhausted`, planner routes step 0 through `fs.index` when registered, warm memory outranks the index (`memory.recall` first), snapshot hook yields an observed changeSet (absent without hook); v36: `hasCommit` appends the commit step ONLY behind a verify step (and deterministically), a green run reaches it with the planned message, checkpoint DENY ⇒ status denied with earlier work standing and zero commits, green AFTER a fix round still commits with fix steps never re-run (execution order asserted), a red run never commits, a throwing commit tool is honest non-green; v38: `hasConfirm` trails a `git.log` step after the commit and NEVER plans one without a commit (or without verify — nested tail, determinism asserted), green ends commit→confirm in executed order, green-after-fix reaches confirm too, DENIED confirm ⇒ status denied while the landed commit's ok:true result STANDS a slot earlier, a throwing `git.log` is honest non-green; v39: `hasRemember` trails `memory.save` ONLY after the confirmed commit (all three tier-removals omit it, refs/targetPath arg shapes, determinism), a green run ends commit→confirm→remember with the planned `@search.hits.0.path` resolved INSIDE the array arg to the live path, green-after-fix remembers once, DENIED confirm means nothing to remember (0 saves), DENIED remember leaves commit+confirm standing and the store empty, a throwing `memory.save` is honest non-green |
 | `codeIndex.test.ts` (7) | extension → kind, TS symbol + markdown heading extraction, heading-section vs 40-line-window chunking, sorted file entries + coverage, hybrid query ranks the relevant chunk first and is deterministic, symbol query finds its file, empty index → no hits |
 | `realfs.test.ts` (4) | extension/skip filtering with sorted slash keys, custom skipDirs + maxFiles cap, maxBytes drop, deterministic output independent of walk order — all against a fake fs (no host disk touched) |
 | `memory.test.ts` (8) | save/list/recall scoping, deterministic tie-broken recall bounded by k, forget/clear counts, clone-in/clone-out immutability, registry round-trip with `"path:startLine"` refs, denied `memory.save` leaves memory empty + arg validation; v6 `compact()`: ≥50% ref-overlap merges within scope (listed, idempotent), cross-scope isolation |
@@ -397,6 +398,24 @@ the whole arc and neither tail ran. The ledger replays commit record AND read-ba
 cold reader on the same page. Total sandbox processes for the true story: 3. HOME HEAD
 byte-identical, temp repo deleted.
 
+## Remember proof (`remember-proof.mjs`, M2 v39)
+
+The memory loop closes: ONE throwaway `os.tmpdir()` repo, REAL sandbox commit+log hosts
+and a REAL `MemoryStore` alive across FOUR full `runTask` runs. Pure plan data first:
+`memory.save` is planned ONLY as the tail of verify→commit→confirm — pull any earlier
+tier (confirm, commit, or verify) and the step vanishes with it. Then the story: run 1
+wins (executed order ends `commit→confirm→remember`; exactly ONE record in scope
+`agent-runs`, its planned `@search.hits.0.path` ref resolved to the LIVE workspace path,
+2 spawns). Run 2's research step is `memory.recall` — it RECALLS run 1's victory FROM the
+memory that victory wrote — then meets a denied commit: no second win stored, zero
+spawns, HEAD unmoved. Run 3 vetoes the ACT OF REMEMBERING itself after a landed,
+confirmed commit: status denied, the agreeing read-back STANDS in results, the store
+provably never saw the write. Run 4 goes red: the plan proposes the whole arc and
+commits, confirms and remembers NOTHING. The ledger replays cold: the JSONL reader's
+last result IS the `memory.save` whose `output.id` equals the live store's record id —
+memory, ledger and git history tell ONE joinable story. 4 sandbox processes total; HOME
+HEAD byte-identical, temp repo deleted.
+
 ## v20 note — orchestrator-driven UI
 
 The dock's Agent UI run now executes the demo planner's `observe→type→click` plan through the UNCHANGED runTask loop; ui tools address labels (exact, then substring). Browser: two per-action Allow dialogs, then the composed dashboard — live plan→act→verify, fully gated.
@@ -616,6 +635,23 @@ silent green. Honest bounds: Studio registers no exec-host tool so no browser pl
 confirm anything — runtime + evidence only; staging remains a human act; agent-led
 STAGING, `git push` and a real model behind the planner seam remain OUT.
 Runtime 213/213 → 218/218 (5 new agent.test.ts cases); exec-host 71/71 unchanged.
+
+## v39 note — remembered victories: memory holds only what the loop proved
+
+`PlannerOptions.hasRemember` — nested inside hasConfirm, inside hasCommit, inside
+hasVerify — puts the ONLY planned `memory.save` at the tail of the full arc, so the
+summary string `COMMITTED+CONFIRMED` is a CONSEQUENCE of position, not a claim (§60):
+red, denied-commit and even denied-confirm all structurally cannot write memory. The
+orchestrator gained capability detection plus one dataflow upgrade — `resolveArgs` now
+resolves `@refs` INSIDE array args, so the planned `refs:['@search.hits.0.path']` becomes
+the live workspace path at invoke time (the same channel v0's read step always used,
+widened to lists). Denied-remember points §26's delete-key promise inward: the human can
+veto even remembering a real victory — status denied, commit and read-back still standing,
+store provably untouched. Honest bounds: Studio registers no exec-host tools so no browser
+plan reaches the remember tier at all; the recorded summary carries seed+mode, and the
+commit HASH stays in results/ledger (joinable by `runId`) rather than being copied into
+memory text. Runtime 218/218 → 224/224 (6 new agent.test.ts cases); exec-host 71/71 and
+studio 99/99 unchanged — no exec-host or browser-side code moved.
 
 ## Scope honesty
 
