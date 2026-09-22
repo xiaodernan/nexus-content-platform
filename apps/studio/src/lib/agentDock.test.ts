@@ -17,6 +17,7 @@ import {
   appendLedgerLine,
   corpusFromDoc,
   ledgerLine,
+  planAgentChain,
   planAgentRun,
   planRepairs,
   qaForDoc,
@@ -179,5 +180,21 @@ describe('agentDock visual QA (v11)', () => {
     expect(studioMemoryForget(overview.records[0]!.id, kv)).toBe(true);
     expect(studioMemoryOverview(kv).total).toBe(0);
     expect(studioMemoryForget('mem-999', kv)).toBe(false);
+  });
+
+  it('v15 chain mode: three typed handoffs, QA preview present, doc untouched pre-approval', async () => {
+    const { doc, pageId } = seededDoc();
+    const kv = memoryStore();
+    const res = await planAgentChain(doc, pageId, 'recolor the welcome hero text', kv);
+    expect('handoffs' in res).toBe(true);
+    if (!('handoffs' in res)) return;
+    expect(res.handoffs.map((h) => `${h.from}→${h.to}`)).toEqual(['researcher→designer', 'designer→qa', 'qa→editor']);
+    expect(res.qa.checked).toBeGreaterThanOrEqual(2);
+    expect(res.outcome.status).toBe('completed');
+    expect(res.batch.ops).toHaveLength(1);
+    // the real document never saw the designer brief — only the sandbox corpus did (§60/§28)
+    expect(JSON.stringify(doc.nodes)).not.toContain('DESIGN (DEMO MODE');
+    // and the durable memory now carries the three stage records
+    expect(studioMemoryOverview(kv).total).toBeGreaterThanOrEqual(3);
   });
 });

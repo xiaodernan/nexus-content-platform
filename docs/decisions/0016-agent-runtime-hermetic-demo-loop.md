@@ -318,3 +318,17 @@ two fresh runs, checkpoint denial leaving the workspace byte-identical).
 - **Proof/tests:** `rolechain-proof.mjs` (4 stages + denial stops at designer), runtime
   108/108 (+7), studio 81/81 unchanged; dock browser path re-verified (chips render,
   console clean).
+
+## Amendment 15 — v15: chain mode + decisions timeline in the dock, 2026-09
+- **What landed:** `planAgentChain` in the studio dock — same corpus-view machinery as
+  `planAgentRun` but running `runRoleChain` end-to-end, with QA fed the REAL page
+  (`qaInputForDoc` now shared, colors token-resolved). The panel's chain checkbox shows
+  all three typed handoffs and the pre-approval QA verdict BEFORE any dispatch; Approve
+  still proposes only the editor banner — the designer's brief provably lives solely in
+  the sandbox corpus (unit test asserts the document never sees `DESIGN (DEMO MODE`).
+- **Decisions timeline:** `readAgentLedger` entries render newest-first (goal,
+  approved/denied, qa verdict, repair count) — the §28 audit trail becomes visible
+  product UI, no new persistence layer (same JSONL in localStorage).
+- **Browser-verified** (hidden surface, async evaluate script): compose → checkbox →
+  Plan → three `→` handoff lines + pre-approval QA + Approve → banner in Layers +
+  `RECENT DECISIONS · approved · … · qa:flagged`. Studio 82/82; runtime unchanged 108/108.

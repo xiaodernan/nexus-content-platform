@@ -5,6 +5,7 @@ import { browserStorage } from '@/lib/storage';
 import {
   appendLedgerLine,
   ledgerLine,
+  planAgentChain,
   planAgentRun,
   planRepairs,
   qaForDoc,
@@ -12,10 +13,11 @@ import {
   studioMemoryForget,
   studioMemoryOverview,
   type AgentPlan,
+  type LedgerEntry,
   type MemoryOverview,
   type RepairPlan,
 } from '@/lib/agentDock';
-import type { QaReport } from '@nexus/agent-runtime';
+import type { ChainStageHandoff, QaReport } from '@nexus/agent-runtime';
 
 type Phase = 'idle' | 'planning' | 'awaiting' | 'done';
 
@@ -34,6 +36,12 @@ export default function AgentPanel() {
   const [repair, setRepair] = useState<RepairPlan | null>(null);
   const [ledgerLen, setLedgerLen] = useState(0);
   const [memory, setMemory] = useState<MemoryOverview | null>(null);
+  const [chainMode, setChainMode] = useState(false);
+  const [handoffList, setHandoffList] = useState<ChainStageHandoff[]>([]);
+  const [previewQa, setPreviewQa] = useState<QaReport | null>(null);
+  const [entries, setEntries] = useState<LedgerEntry[]>([]);
+
+  const syncLedger = () => setEntries(readAgentLedger(browserStorage()).entries.slice(-8).reverse());
 
   const refreshMemory = () => setMemory(studioMemoryOverview());
   const forget = (id: string) => {
@@ -44,13 +52,32 @@ export default function AgentPanel() {
   const runPlan = async () => {
     setPhase('planning');
     setNote('');
-    const res = await planAgentRun(doc, activePageId, goal);
+    const res = chainMode ? await planAgentChain(doc, activePageId, goal) : await planAgentRun(doc, activePageId, goal);
     if ('ok' in res && res.ok === false) {
       setPhase('idle');
       setNote(res.reason);
       return;
     }
-    setPlan(res as AgentPlan);
+    if (chainMode) {
+      const c = res as import('@/lib/agentDock').ChainPlan;
+      const first = c.handoffs[0]!;
+      setHandoffList(c.handoffs);
+      setPreviewQa(c.qa);
+      setPlan({
+        goal: c.goal,
+        pageId: c.pageId,
+        handoff: { from: 'researcher', to: 'editor', goal: c.goal, via: first.via, refs: first.refs, runId: 'chain' },
+        targetId: first.refs[0]?.path ?? '',
+        targetName: doc.nodes[first.refs[0]?.path ?? '']?.name ?? first.refs[0]?.path ?? '?',
+        outcome: c.outcome,
+        evaluation: c.evaluation,
+        batch: c.batch,
+      });
+    } else {
+      setHandoffList([]);
+      setPreviewQa(null);
+      setPlan(res as AgentPlan);
+    }
     setPhase('awaiting');
   };
 
@@ -61,6 +88,7 @@ export default function AgentPanel() {
     setQa(report);
     appendLedgerLine(browserStorage(), ledgerLine(plan, true, undefined, report));
     setLedgerLen(readAgentLedger(browserStorage()).entries.length);
+    syncLedger();
     setStatus(`Agent banner applied (undoable) · ${plan.targetName} · QA ${report.verdict === 'ok' ? 'clean' : `${report.flags.length} flag(s)`}`);
     setPhase('done');
   };
@@ -77,6 +105,7 @@ export default function AgentPanel() {
     setQa(after);
     appendLedgerLine(browserStorage(), ledgerLine(plan, true, undefined, after, repair.repairs.length));
     setLedgerLen(readAgentLedger(browserStorage()).entries.length);
+    syncLedger();
     setStatus(`Agent repairs applied (undoable) · QA now ${after.verdict}`);
     setRepair(null);
   };
@@ -86,6 +115,7 @@ export default function AgentPanel() {
       appendLedgerLine(browserStorage(), ledgerLine(plan, false, 'denied at human checkpoint'));
       setLedgerLen(readAgentLedger(browserStorage()).entries.length);
     }
+    syncLedger();
     setStatus('Agent proposal denied — nothing changed.');
     setPhase('idle');
     setPlan(null);
@@ -110,6 +140,10 @@ export default function AgentPanel() {
           {phase === 'planning' ? '…' : 'Plan'}
         </button>
       </div>
+      <label style={{ ...label, display: 'flex', gap: 6, alignItems: 'center', cursor: 'pointer' }}>
+        <input type="checkbox" checked={chainMode} onChange={(e) => setChainMode(e.target.checked)} />
+        role chain (researcher → designer → qa → editor, §24)
+      </label>
       {note && <div style={label}>{note}</div>}
       {phase === 'awaiting' && plan && (
         <div style={{ border: '1px solid var(--nexus-border)', borderRadius: 8, padding: 8, display: 'flex', flexDirection: 'column', gap: 6 }}>
@@ -120,6 +154,17 @@ export default function AgentPanel() {
           <div style={label}>
             pipeline status {plan.outcome.status} · score {plan.evaluation.score.toFixed(2)} · {plan.batch.ops.length} op(s), reversible
           </div>
+          {chainMode && handoffList.length > 0 && (
+            <div style={{ borderTop: '1px solid var(--nexus-border)', paddingTop: 4, display: 'flex', flexDirection: 'column', gap: 2 }}>
+              <div style={label}>stage handoffs (the designer brief stays in the sandbox corpus — only the banner is proposed to your document):</div>
+              {handoffList.map((h) => (
+                <div key={h.from + h.to} style={label}>· {h.from} → {h.to} via {h.via} [{h.refs.map((r) => r.path).join(', ')}]</div>
+              ))}
+              {previewQa && (
+                <div style={label}>pre-approval QA: {previewQa.verdict} {previewQa.flags.map((f) => f.code).slice(0, 3).join(', ')}</div>
+              )}
+            </div>
+          )}
           <div style={{ display: 'flex', gap: 6 }}>
             <button className="btn btn-primary" onClick={approve} data-testid="agent-approve">Approve</button>
             <button className="btn" onClick={deny} data-testid="agent-deny">Deny</button>
@@ -165,6 +210,17 @@ export default function AgentPanel() {
         <button className="btn" style={{ fontSize: 10, padding: '1px 8px' }} onClick={refreshMemory} data-testid="memory-refresh">Memory (§26)</button>
         <span style={label}>ledger: {ledgerLen} decision(s)</span>
       </div>
+      {entries.length > 0 && (
+        <div style={{ borderTop: '1px solid var(--nexus-border)', paddingTop: 4, display: 'flex', flexDirection: 'column', gap: 2 }}>
+          <div style={{ fontSize: 10, letterSpacing: 1, color: 'var(--nexus-muted)' }}>RECENT DECISIONS</div>
+          {entries.map((e, i) => (
+            <div key={i} style={{ ...label, display: 'flex', gap: 6 }}>
+              <span style={{ color: e.approved ? '#7dd97d' : '#ff7a7a' }}>{e.approved ? 'approved' : 'denied'}</span>
+              <span style={{ flex: 1 }}>{e.goal.slice(0, 26)}{e.qa ? ` · qa:${e.qa}` : ''}{e.repairs !== undefined ? ` · fix×${e.repairs}` : ''}</span>
+            </div>
+          ))}
+        </div>
+      )}
       {memory && (
         <div style={{ border: '1px solid var(--nexus-border)', borderRadius: 8, padding: 6, display: 'flex', flexDirection: 'column', gap: 4 }}>
           <div style={{ fontSize: 11 }}>{memory.total === 0 ? 'No stored findings yet — durable across refresh once a plan runs.' : `${memory.total} durable record(s):`}</div>

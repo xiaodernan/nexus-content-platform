@@ -99,6 +99,9 @@ findings with per-record **forget**. v14 extends QA with a **computed WCAG 2.1 c
 rule (hex/rgb resolved through design tokens — arithmetic, never opinion) and the runtime
 gained `runRoleChain`: researcher → designer → qa → editor, each step a typed handoff
 record with stage-named honest failure (see ADR 0016 amendment 14; the dock itself still
-runs the two-stage pipeline).
+runs the two-stage pipeline). v15: a **role chain checkbox** switches Plan to
+`planAgentChain` — the awaiting card lists all three typed handoffs and the pre-approval
+QA verdict (the designer brief stays sandbox-only until you approve), and a newest-first
+**recent decisions** timeline renders from the ledger (ADR 0016 amendment 15).
 Everything is DEMO MODE-labeled: the agent proposes, the model stays canonical
 (§8), and no document mutation happens without the human checkpoint (§28).

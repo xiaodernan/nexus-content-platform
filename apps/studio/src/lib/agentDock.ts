@@ -7,12 +7,14 @@ import {
   deserializeMemory,
   registerMemoryTools,
   registerWorkspaceTools,
+  runRoleChain,
   runRolePipeline,
   runVisualQa,
   proposeRepairs,
   saveMemory,
   loadMemoryStore,
   serializeMemory,
+  type ChainStageHandoff,
   type HandoffRecord,
   type QaReport,
   type Repair,
@@ -21,9 +23,11 @@ import {
 } from '@nexus/agent-runtime';
 import {
   childIdList,
+  colorToCss,
   layoutPage,
   newId,
   ops,
+  resolveToken,
   textNode,
   type DesignDocument,
   type DesignNode,
@@ -154,16 +158,42 @@ export async function planAgentRun(doc: DesignDocument, pageId: string, goal: st
 
 /* ---- v11: structural visual QA over the applied document (§63, no pixel claims) ---- */
 
-export function qaForDoc(doc: DesignDocument, pageId: string): QaReport {
+/** First solid-resolvable paint as a CSS color string (token refs followed), else undefined. */
+function firstColor(doc: DesignDocument, paints: Paint[] | undefined): string | undefined {
+  for (const p of paints ?? []) {
+    if (p.kind === 'solid') return colorToCss(p.color);
+    if (p.kind === 'token') {
+      const v = resolveToken(doc.tokens, p.ref);
+      if (v !== undefined) {
+        const css = colorToCss(v);
+        if (css) return css;
+      }
+    }
+  }
+  return undefined;
+}
+
+export function qaInputForDoc(doc: DesignDocument, pageId: string): { page: QaRectLike; rects: Record<string, QaRectLike> } | null {
   const layout = layoutPage(doc, pageId);
   const page = layout[pageId];
-  if (!page) return { verdict: 'ok', checked: 0, flags: [] };
-  const rects: Record<string, { x: number; y: number; width: number; height: number }> = {};
+  if (!page) return null;
+  const pageBg = firstColor(doc, (doc.nodes[pageId] as { fills?: Paint[] } | undefined)?.fills);
+  const rects: Record<string, QaRectLike> = {};
   for (const id of childIdList(doc.nodes[pageId]!)) {
     const r = layout[id];
-    if (r) rects[id] = { x: r.x, y: r.y, width: r.width, height: r.height };
+    const node = doc.nodes[id] as { fills?: Paint[] } | undefined;
+    if (r && node) {
+      const fill = firstColor(doc, node.fills);
+      rects[id] = { x: r.x, y: r.y, width: r.width, height: r.height, ...(fill ? { fill, ...(pageBg ? { bg: pageBg } : {}) } : {}) };
+    }
   }
-  return runVisualQa({ page: { x: page.x, y: page.y, width: page.width, height: page.height }, rects });
+  return { page: { x: page.x, y: page.y, width: page.width, height: page.height }, rects };
+}
+
+export function qaForDoc(doc: DesignDocument, pageId: string): QaReport {
+  const input = qaInputForDoc(doc, pageId);
+  if (!input) return { verdict: 'ok', checked: 0, flags: [] };
+  return runVisualQa(input);
 }
 
 /* ---- v12: QA → deterministic repair proposals, dispatched through the same op path ---- */
@@ -196,7 +226,53 @@ export function planRepairs(doc: DesignDocument, pageId: string, goal: string): 
   return { repairs: res.repairs, remaining: res.remaining, batch };
 }
 
-type QaRectLike = { x: number; y: number; width: number; height: number };
+type QaRectLike = { x: number; y: number; width: number; height: number; fill?: string; bg?: string };
+
+/* ---- v15: four-role chain mode for the dock (§24 handoffs visible before approval) ---- */
+
+export interface ChainPlan {
+  goal: string;
+  pageId: string;
+  handoffs: ChainStageHandoff[];
+  qa: QaReport;
+  outcome: RunOutcome;
+  evaluation: RunEvaluation;
+  batch: OpBatch;
+}
+
+export async function planAgentChain(doc: DesignDocument, pageId: string, goal: string, kv: Kv = browserStorage()): Promise<ChainPlan | PlanFailure> {
+  const trimmed = goal.trim();
+  if (!trimmed) return { ok: false, reason: 'type a goal first' };
+  const corpus = corpusFromDoc(doc, pageId);
+  if (Object.keys(corpus).length === 0) return { ok: false, reason: 'this page has no layers to research' };
+  const ws = new InMemoryWorkspace(corpus);
+  const webFs = createWebFs(kv);
+  const store = new MemoryStore();
+  loadMemoryStore(store, webFs, STUDIO_MEMORY_FILE);
+  const registry = registerMemoryTools(registerWorkspaceTools(new ToolRegistry(), ws), store, 'studio');
+  registry.register({ name: 'test.run', description: 'host verification', permissions: ['exec'], args: [] }, () => ({
+    ok: Object.values(ws.snapshot()).some((c) => c.includes('NOTE (DEMO MODE')),
+    detail: 'the annotation must land in the corpus copy',
+  }));
+  const roles = new RoleRegistry();
+  DEMO_ROLES.forEach((r) => roles.register(r));
+  const qaInput = qaInputForDoc(doc, pageId) ?? { page: { x: 0, y: 0, width: 0, height: 0 }, rects: {} };
+  const res = await runRoleChain({ id: `studio-chain-${Date.now()}`, goal: trimmed }, {
+    roles, registry, store, scope: 'studio', checkpoint: () => true, snapshot: () => ws.snapshot(),
+    memoryFile: STUDIO_MEMORY_FILE, fsLike: webFs, qaInput,
+  });
+  if (!res.ok) return { ok: false, reason: `${res.stage}: ${res.reason}` };
+  const first = res.handoffs[0]!;
+  return {
+    goal: trimmed,
+    pageId,
+    handoffs: res.handoffs,
+    qa: res.qa,
+    outcome: res.editorOutcome,
+    evaluation: res.evaluation,
+    batch: agentBatchFor(doc, pageId, trimmed, { from: 'researcher', to: 'editor', goal: trimmed, via: first.via, refs: first.refs, runId: first.runId }),
+  };
+}
 
 /* ---- §28 audit trail: JSONL ledger through the studio's KvStore seam ---- */
 export interface LedgerEntry {
