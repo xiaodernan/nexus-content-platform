@@ -510,15 +510,24 @@ drizzle 把整个拼接结果当成**单个绑定参数**，生成的 SQL 是 `o
 
 ## M6 — 社区（§186）
 - [~] 社区与发现（§59 / §61）— **2026-09-24 第一片落地**：公开作品页上有 Like / Comment / Follow / Remix / Share
-  （`apps/web/src/domain/social.ts` → `apps/web/src/server/domain/social.ts`，路由 `/api/published/interact`、
+  （`apps/web/src/server/domain/social.ts`，路由 `/api/published/interact`、
   `/api/follow`、`/api/discover`），发现页 `/discover` 三个排得出来的标签（最新 / 最多人看与赞 / 我关注的作者）。
   三条写进代码与界面的边界：**评论走发布机检同一份红线词表**（命中就不发出去，不"先发再等人看"）；
   **Remix 分叉的是发布出去的那一版快照**，作者工作区里没公开的改动不会跟着出去（§58，测试专门钉这条）；
   **Trending 与 AI Picks 排不出来就写在页面上**（前者要互动时间序列、我们只有累计数；后者要模型），
   不拿累计浏览数改个名字冒充热度。
-  仍欠：Save（要一张收藏表，界面上没留假按钮）、§60 创作者主页、Trending / AI Picks、
-  §132 的 block / mute、以及评论的画布定位批注（§111，comments.node_id 那一列还没有写它的地方）
-- [ ] Creator Profile + Analytics（§60/168）
+  Save 与 §60 创作者主页也在同一批落地（见下一条），所以 §59 的六个动作现在是全的：
+  Like / Comment / Follow / Remix / Share / Save
+- [~] 收藏与创作者主页（§59 的 Save + §60）— **2026-09-24 落地**：
+  `saves` 表（迁移 0006，挂 publication_id 而不是 project_id —— 收下的是"这一版"，
+  作者重新发布不该把收藏里的内容换掉；作者下架或被拒绝之后收藏**仍列出**并写明点不开的原因，
+  不悄悄消失）；`/u/<handle>` 主页给 Avatar / Bio / 公开作品 / 世界 / 角色 / 游戏 / 粉丝与关注数。
+  可见性边界是这一条的重点：主页只列公网上传着的作品，世界与角色只列**属于这些公开作品**的
+  且只给名字与一句 tagline —— 世界文档、角色档案（声音、关系、记忆）在作者项目里，
+  发布一张设计稿不等于把它们放上公网（测试专门放了一段"只该存在于项目里"的文字去试泄露）。
+  简介会过发布机检同一份红线词表，命中就不保存。游戏栏现在是 0 并写明 M5 未开工，而不是省掉。
+  仍欠：§168 Analytics（主页上那几个数是浏览量，不是分析）、头像上传（users.avatar_url 还没有写它的地方）、
+  Trending / AI Picks、§132 的 block / mute、§111 的画布定位批注
 - [~] 发布审核流水线（§131）+ 举报（§132 的一部分）— **2026-09-24 落地**：
   `publish → 机检（红线词表 + 资产出处）→ clear/review/blocked → 发布或挂人工队列`，
   机检只升级不认证（`moderation` 停在 pending，只有 role=admin 的人工裁决能写 approved/rejected，

@@ -12,7 +12,7 @@ import type { PublicationState } from '@/server/domain/social';
  * - 评论被机检挡下时，界面写的是"这条没发出去 + 为什么"，不写"发送失败"糊过去；
  * - 评论发出去时把机检的限度一起显示出来（没命中不等于合规）；
  * - Remix 明确说是"分叉一份改编"，不是改原作者的东西（§58）；
- * - Share 就是复制链接；Save 我们还没做，界面上不留一个点了没反应的按钮。
+ * - Share 就是复制链接；Save 收下的是"这一版"，作者重新发布不会把收藏里的内容换掉。
  */
 export function PublicationActions({ state }: { state: PublicationState }) {
   const router = useRouter();
@@ -24,6 +24,7 @@ export function PublicationActions({ state }: { state: PublicationState }) {
   const [busy, setBusy] = useState(false);
   const [following, setFollowing] = useState(state.followingOwner);
   const [followers, setFollowers] = useState(state.followers);
+  const [saved, setSaved] = useState(false);
 
   const act = async (payload: Record<string, unknown>): Promise<Record<string, unknown> | null> => {
     setBusy(true);
@@ -60,6 +61,11 @@ export function PublicationActions({ state }: { state: PublicationState }) {
     } else {
       setNotice(String(body.reason ?? '这条评论没发出去'));
     }
+  };
+
+  const onSave = async (): Promise<void> => {
+    const body = await act({ action: 'save' });
+    if (body?.ok) setSaved(body.saved === true);
   };
 
   const onRemix = async (): Promise<void> => {
@@ -129,6 +135,20 @@ export function PublicationActions({ state }: { state: PublicationState }) {
         <button type="button" disabled={busy} onClick={() => void onRemix()} className="rounded bg-bg-2 px-2 py-1 text-11 text-fg-1 disabled:opacity-50" data-action-remix>
           Remix 成我的改编
         </button>
+        <button
+          type="button"
+          disabled={busy}
+          onClick={() => void onSave()}
+          className="rounded bg-bg-2 px-2 py-1 text-11 text-fg-1 disabled:opacity-50"
+          data-action-save={saved ? 'on' : 'off'}
+        >
+          {saved ? '已收藏' : '收藏这一版'}
+        </button>
+        {state.ownerHandle ? (
+          <a href={`/u/${state.ownerHandle}`} className="text-11 text-accent-2 underline" data-action-author>
+            作者主页
+          </a>
+        ) : null}
         <button type="button" onClick={() => void share()} className="rounded px-2 py-1 text-11 text-fg-3 hover:bg-bg-2" data-action-share>
           复制链接
         </button>

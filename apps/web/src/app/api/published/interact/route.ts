@@ -1,12 +1,13 @@
 import { NextResponse } from 'next/server';
 import { requireUser } from '@/server/domain/session';
 import { addComment, publicRefByPath, remixPublication, toggleLike } from '@/server/domain/social';
+import { toggleSave } from '@/server/domain/profile';
 import { csrfOk } from '@/server/security/csrf';
 import { clientIp, getRateLimiter, rateKey } from '@/server/security/rateLimit';
 import { jsonError } from '@/server/http';
 
 /**
- * §59 作品页上的动作：Like / Comment / Remix 走同一个入口。
+ * §59 作品页上的动作：Like / Comment / Remix / Save 走同一个入口。
  *
  * 合成一个而不是三个，是因为这三件事共享同一条边界：必须是登录身份 + 必须过 CSRF +
  * 必须限流（公开页的互动是匿名访客最容易刷的东西）。分开写三份，早晚有一份忘了限流。
@@ -14,7 +15,7 @@ import { jsonError } from '@/server/http';
  * Share 没有服务端动作（就是把链接复制走），Save 需要一张收藏表——两件事都如实记在 ROADMAP 里，
  * 不在这里假装"支持"。
  */
-const ACTIONS = ['like', 'comment', 'remix'] as const;
+const ACTIONS = ['like', 'comment', 'remix', 'save'] as const;
 
 /** 每个身份每分钟最多 20 次互动；评论更严：每小时 30 条 */
 const RATE_PER_MINUTE = 20;
@@ -37,8 +38,8 @@ export async function POST(req: Request): Promise<NextResponse> {
   const ref = await publicRefByPath(path);
   if (!ref) return jsonError(404, 'not_found', { message: '这个作品现在不公开' });
 
-  if (action === 'like') {
-    const state = await toggleLike(user.id, ref.publicationId);
+  if (action === 'like' || action === 'save') {
+    const state = action === 'like' ? await toggleLike(user.id, ref.publicationId) : await toggleSave(user.id, ref.publicationId);
     return NextResponse.json({ ok: true, action, ...state });
   }
 

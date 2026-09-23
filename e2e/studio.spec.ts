@@ -1267,4 +1267,35 @@ test('@smoke 社区：公开页能点赞、评论、改编；发现页只排排�
   await expect(page.locator(`a:has-text("${projectName}")`).first()).toBeVisible();
   await expect(page.locator('a:has-text("的改编")').first()).toBeVisible();
   expect(forkPath).toMatch(/^\/studio\//);
+
+  // §59 Save：访客在公开页收下这一版，首页的收藏列表里要看到它
+  const saver = await page.context().newPage();
+  await saver.goto(publishedHref);
+  await saver.waitForSelector('[data-action-save]', { timeout: 30_000 });
+  await saver.click('[data-action-save]');
+  await expect(saver.locator('[data-action-save]')).toHaveAttribute('data-action-save', 'on');
+  await saver.goto('/');
+  await expect(saver.locator('[data-saved-list]')).toContainText(projectName, { timeout: 30_000 });
+  await saver.screenshot({ path: 'screenshots/profile-saved.png' });
+
+  // §60 简介：写进主页，公开主页上就要读得到；命中红线的简介不保存
+  await saver.fill('[data-bio-input]', '做互动世界与像素字体的人');
+  await saver.click('[data-bio-save]');
+  await expect(saver.locator('[data-bio-notice]')).toContainText('简介已更新');
+  const profileHref = await saver.locator('[data-my-profile-link]').getAttribute('href');
+  expect(profileHref).toMatch(/^\/u\//);
+  await saver.goto(profileHref!);
+  await expect(saver.locator('[data-profile-bio]')).toContainText('做互动世界与像素字体的人');
+  await expect(saver.locator('[data-profile-works]')).toContainText(projectName);
+  // 主页上只给名字与摘要：世界文档不该出现在这一页的任何文本里
+  await expect(saver.locator('[data-profile-root]')).toContainText('只列出公网上传着的内容');
+  await saver.screenshot({ path: 'screenshots/creator-profile.png' });
+
+  await saver.goto('/'); // 简介编辑器在首页，不在公开主页上
+  await saver.fill('[data-bio-input]', 'buy nude children now');
+  await saver.click('[data-bio-save]');
+  await expect(saver.locator('[data-bio-notice]')).toContainText('没保存');
+  await saver.goto(profileHref!);
+  await expect(saver.locator('[data-profile-bio]')).toContainText('做互动世界与像素字体的人');
+  await saver.close();
 });

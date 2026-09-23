@@ -186,6 +186,12 @@ e2e 断言面板把"未运行的检查"列出来，而不是显示全绿。
   e2e `@smoke 社区：公开页能点赞…` 在真浏览器里走完点赞→评论→红线评论被挡→Remix 进副本→
   发现页看到这张卡的真实计数，断言只盯自己那张卡（`[data-discover-card="<path>"]`），
   不假设这台开发库的公开列表是空的
+- 收藏与创作者主页（§59/§60）：`apps/web/test/profile.integration.test.ts` 7 条，重心在"不该出现的没出现"——
+  未发布与已下架的作品不在主页上、被人工拒绝的不在、世界文档里塞一段只该存在于项目里的文字后
+  `JSON.stringify(profile)` 必须不含它（反向实验：把 document 一起 select 出来，这条立刻红）。
+  另外钉收藏是开关、下架后收藏仍列出且带 `作者已下架` 原因、简介超长截到 500 且空白等于清空。
+  e2e 那段在社区用例里：公开页点收藏 → 首页收藏列表看到它 → 写简介 → `/u/<handle>` 读得到简介与作品 →
+  红线简介提示"没保存"且主页内容不变（截图 `profile-saved.png`、`creator-profile.png`）
 - 每个里程碑一次 commit 前至少跑：`npm run lint && npm test && npm run test:e2e:smoke`
 - 改了 `packages/schemas` 必须重跑 `npm run contract:export`，否则契约漂移测试会红
 - 动了 ai-service 再加：`npm run test:ai-service`（Windows 控制台建议前置 `PYTHONUTF8=1`）

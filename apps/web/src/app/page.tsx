@@ -4,6 +4,8 @@ import { requireUser } from '@/server/domain/session';
 import { listProjects } from '@/server/domain/projects';
 import { NewProjectForm } from '@/components/NewProjectForm';
 import { AccountPanel } from '@/components/AccountPanel';
+import { ProfileEditor } from '@/components/ProfileEditor';
+import { accountOf, listSaves } from '@/server/domain/profile';
 
 export const dynamic = 'force-dynamic';
 
@@ -16,6 +18,8 @@ const MODALITIES = [
 export default async function HomePage() {
   const user = await requireUser();
   const projects = await listProjects(user.id);
+  // §60 / §59：主页信息与"我收藏的那些版本"。都是按当前身份读的，不是全局缓存
+  const [account, saved] = await Promise.all([accountOf(user.id), listSaves(user.id, 8)]);
   const serviceUrl = aiServiceUrl();
   const health = serviceUrl ? await fetchAiServiceHealth() : null;
   const caps = await getAiCapabilities(health);
@@ -64,6 +68,58 @@ export default async function HomePage() {
           </ul>
         ) : (
           <p className="mt-[var(--nexus-space-3)] text-[var(--nexus-font-size-13)] text-fg-3">还没有项目。创建一个即可进入 Studio 画布。</p>
+        )}
+      </section>
+
+      <section className="border-t border-[var(--nexus-color-border-subtle)] pt-[var(--nexus-space-6)]">
+        <h2 className="mb-[var(--nexus-space-3)] text-[var(--nexus-font-size-16)] font-medium">我的主页</h2>
+        {account.handle ? (
+          <p className="mb-[var(--nexus-space-3)] text-[var(--nexus-font-size-13)]">
+            <a href={`/u/${account.handle}`} className="text-accent-2 underline" data-my-profile-link>
+              /u/{account.handle}
+            </a>
+            <span className="ml-[var(--nexus-space-2)] text-fg-3">这里只会出现你公开过的作品</span>
+          </p>
+        ) : (
+          <p className="mb-[var(--nexus-space-3)] text-[var(--nexus-font-size-13)] text-fg-3" data-my-profile-link="none">
+            你还没有可用于主页的地址（handle 在首次发布时生成）。
+          </p>
+        )}
+        <ProfileEditor initialBio={account.bio} />
+
+        <h3 className="mb-[var(--nexus-space-2)] mt-[var(--nexus-space-5)] text-[var(--nexus-font-size-14)] font-medium">
+          我收藏的版本（{saved.length}）
+        </h3>
+        {saved.length ? (
+          <ul className="grid gap-[var(--nexus-space-2)]" data-saved-list>
+            {saved.map((card) => (
+              <li key={card.publicationId} data-saved-row={card.publicationId}>
+                {card.unavailableReason ? (
+                  <span className="flex items-center justify-between rounded-[var(--nexus-radius-sm)] bg-bg-1 px-[var(--nexus-space-4)] py-[var(--nexus-space-3)] text-fg-3">
+                    <span>{card.name}</span>
+                    <span className="font-mono text-12">{card.unavailableReason}</span>
+                  </span>
+                ) : (
+                  <a
+                    href={card.path}
+                    className="flex items-center justify-between rounded-[var(--nexus-radius-sm)] bg-bg-1 px-[var(--nexus-space-4)] py-[var(--nexus-space-3)] hover:bg-bg-2"
+                  >
+                    <span className="text-[var(--nexus-font-size-14)]">
+                      {card.name}
+                      <span className="ml-[var(--nexus-space-2)] text-12 text-fg-3">by {card.owner}</span>
+                    </span>
+                    <span className="font-mono text-12 text-fg-3">
+                      {card.views} 浏览 · {card.likes} 赞 · 收藏于 {new Date(card.savedAt).toLocaleDateString('zh-CN')}
+                    </span>
+                  </a>
+                )}
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <p className="text-[var(--nexus-font-size-13)] text-fg-3" data-saved-empty>
+            还没有收藏。在任意公开作品页点「收藏这一版」，收下的就是那一刻的那一版——作者之后重新发布不会换掉它。
+          </p>
         )}
       </section>
 

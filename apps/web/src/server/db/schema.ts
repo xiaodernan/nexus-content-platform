@@ -90,6 +90,8 @@ export const users = pgTable(
     displayName: text('display_name').notNull(),
     handle: text('handle'),
     avatarUrl: text('avatar_url'),
+    /** §60 主页上那段自我介绍。没有版本也没有归属争议，所以直接放这一行而不是另建 1:1 表 */
+    bio: text('bio'),
     role: UserRole('role').notNull().default('creator'),
     /** 免注册首次体验（§137）：guest 可创建项目，注册后认领 */
     guest: boolean('guest').notNull().default(false),
@@ -683,6 +685,21 @@ export const auditEvents = pgTable(
   (t) => [index('audit_actor_idx').on(t.actorId, t.createdAt), index('audit_action_idx').on(t.action)],
 );
 
+/** §59 Save：收下的是"这一版公开页"，所以挂 publication_id 而不是 project_id */
+export const saves = pgTable(
+  'saves',
+  {
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    publicationId: uuid('publication_id')
+      .notNull()
+      .references(() => publishedProjects.id, { onDelete: 'cascade' }),
+    createdAt: now(),
+  },
+  (t) => [primaryKey({ columns: [t.userId, t.publicationId] }), index('saves_user_idx').on(t.userId, t.createdAt)],
+);
+
 /**
  * §131 发布审核：upload → 机检 → 风险分级 → 发布或人工复核。
  *
@@ -770,4 +787,5 @@ export const schema = {
   auditEvents,
   moderationCases,
   abuseReports,
+  saves,
 };
