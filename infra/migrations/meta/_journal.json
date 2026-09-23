@@ -29,6 +29,13 @@
       "when": 1790265600000,
       "tag": "0003_character_profile",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1790352000000,
+      "tag": "0004_memory_ownership",
+      "breakpoints": true
     }
   ]
 }

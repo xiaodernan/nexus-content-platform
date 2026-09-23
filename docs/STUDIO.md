@@ -43,6 +43,10 @@ Pages · Layers · Components · Assets · Variables · Design System · AI Agen
   建档只给名字，其余留空（AI 生成设定要真 provider，不塞假性格）；关系从世界条目的下拉里选目标，不手抄 id。
   保存是显式的：角色编辑不进画布的 Ctrl+Z 栈，自动保存会把没写完的档案写进库而撤销救不回来。
   档案里没有 memory 字段——记忆是 §48 的独立存储，放个文本框就会造出第二个真值
+- Memory 面板（§48）：四类记忆（本次会话 / 角色 / 世界 / 我的偏好）可查看、可单条删除、可按类清空。
+  归属是硬边界——每行都记着 owner，别人的既列不出来也删不掉（迁移 0004 补的列）。
+  没有"全部抹掉"按钮（§48 只要求按类删除），也没有搜索框：语义检索要 embedding 与真 provider（§49），
+  没接之前那一列是 null，界面上就写"不假装能搜"
 - History 列出 snapshot / branch / AI 事务，可 View / Compare / Restore / Duplicate / Branch（§27）
 - Health 页签是 §178 那七行的常驻读数：改一下文档就重算，点某行展开它的真实发现与"这项检查了什么"
   （Publish 弹层里是同一个组件、同一个函数，见「项目健康」一节）

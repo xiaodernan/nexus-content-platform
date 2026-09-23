@@ -313,7 +313,8 @@ warm 方向奶油字压亮橙 3.35:1、cyber 的 light 模式是深底配深字 
   Studio 第四个视图「世界图」画出来；见下方进度记录。自动避障 / 缩放 / 多选没做，不在 §45 的验收里。
 - [~] Character System + Character Agent 对话（§46-47）— §46 档案（含关系、声音、视觉标识）已落地，
   见下方进度记录；§47 的"跟角色说话"要真 provider，没接之前不做假对话。
-- [ ] Memory 四类（Session/Character/World/User）可查看可删除（§48）
+- [x] Memory 四类（Session/Character/World/User）可查看可删除（§48）— 见下方进度记录。
+  四类都能记、能列、能单条删、能按类清空；**没有"全部抹掉"的入口，也没有搜索框**（检索要 embedding，§49）。
 - [ ] pgvector RAG：hybrid retrieval + rerank（§49/93）
 
 **M3 进度记录（2026-09-23，World Builder 第一切片，§44）**：新开一个纯模型包
@@ -393,6 +394,32 @@ store 新增 3 条时序用例）、@smoke 19 条全绿；浏览器实测截图�
 
 验证：`npm test` 368（world-model +8 档案/关系/断链用例、契约 +3、真库集成 +7）、
 @smoke 20 条全绿（新增：建档→填档案→连一条世界关系→reload 仍是库里那份→删除）；面板截图人眼确认。
+
+**M3 进度记录（2026-09-23，§48 Memory 四类）**：`memories` 表原来只有 `scope + subject_id`——
+**没有归属列**，意味着任何人拿到 id 就能读能删，也没法按项目列出"我的"这批。
+迁移 0004 补 `owner_id`（NOT NULL，硬边界）与 `project_id`（user / session 类不挂项目，留 null）+ 两个索引；
+域层每个查询都带 owner 条件，跨用户既读不到也删不掉（集成测试逐条钉住）。
+
+四类：本次会话 / 角色 / 世界 / 我的偏好。主体默认值讲清楚：user 类就是本人、
+session 类跟着项目的工作过程走（`project:<id>`），world / character 类必须指明主体——
+否则会长出"不知道在说哪个世界"的孤儿记忆。Studio「记忆」面板按类分组列出、
+可记一条、可单条删、可"清空这一类"；**没有一键抹掉全部**：§48 要的是按类删除，
+误点一次就清光用户全部记忆的按钮不该存在。
+
+不假装能搜：面板上没有搜索框，`embedding` 没有 provider 时就是 null，
+`embedded` 字段如实带在返回里。§49 的检索等真 embedding 接入再做。
+
+过程中修掉两处自己造的 bug：
+1. `POST /api/projects/:id/memories/clear` 与 `/memories/[memoryId]` 路径撞车，
+   Next 把 clear 当成 memoryId 路由 → 405。改成 `DELETE /memories?scope=…`（集合上的 DELETE），
+   少一个易撞车的段，也更贴 REST。
+2. 世界类记忆的主体一度存进组件 state：切到别的类型再切回来时 state 被清空而 effect 依赖没变，
+   「记下」按钮永远点不动。改成**推导**（`scope === 'world'` 时取当前世界 id），
+   不存就不存在过期的一刻；e2e 现在专门"切走再切回来"记一条，把这个坑钉住。
+
+验证：`npm test` 374（真库集成 +6：四类计数、主体必填、陌生人看不见删不掉、
+跨项目只见全局不见项目记忆、按类清空、删项目后项目记忆级联消失而偏好留着）、
+@smoke 21 条全绿；面板截图人眼确认三类分组、主体标签与清空入口。
 
 ## M4 — 3D 与游戏（§184）
 - [ ] Three.js / React Three Fiber 运行时

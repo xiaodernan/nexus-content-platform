@@ -940,3 +940,58 @@ test('@smoke 角色：建档、填档案、连一条世界关系、刷新仍在�
   await expect(page.locator('[data-character-count]')).toHaveText('0');
   await expect(page.locator('[data-character-empty]')).toBeVisible();
 });
+
+/**
+ * §48 记忆：四类都可查看、可删除。断言 reload 之后仍是库里那份，
+ * 以及"清空这一类"只清那一类——不存在一键抹掉全部记忆的入口。
+ */
+test('@smoke 记忆：记三类、刷新仍在、按类清空（§48）', async ({ page }) => {
+  test.setTimeout(180_000);
+  await createProject(page, `记忆 ${Date.now().toString(36)}`);
+  // 世界类记忆要有主体，先建世界骨架
+  await page.click('[data-panel-tab="world"]');
+  await expect(page.locator('[data-world-empty]')).toBeVisible({ timeout: 40_000 });
+  await page.click('[data-world-create]');
+  await expect(page.locator('[data-world-node]')).toHaveCount(9);
+
+  await page.click('[data-panel-tab="memory"]');
+  await expect(page.locator('[data-memory-panel]')).toBeVisible();
+  // 没有搜索框：语义检索要真 provider，这里不假装能搜
+  await expect(page.locator('[data-memory-note]')).toContainText('不假装能搜');
+  await expect(page.locator('[data-memory-content]')).toBeVisible();
+
+  await page.fill('[data-memory-content]', '王城在第七次日蚀下投降。');
+  await page.click('[data-memory-add]');
+  await expect(page.locator('[data-memory-entry]')).toHaveCount(1);
+  await expect(page.locator('[data-memory-group="world"] [data-memory-entry]')).toHaveCount(1);
+
+  await page.selectOption('[data-memory-scope]', 'user');
+  await page.fill('[data-memory-content]', '回答一律用中文。');
+  await page.click('[data-memory-add]');
+  await expect(page.locator('[data-memory-entry]')).toHaveCount(2);
+  await expect(page.locator('[data-memory-total]')).toHaveText('2');
+
+  // 切走再切回来：世界类记忆的主体是推导出来的，不该出现"按钮永远点不动"
+  await page.selectOption('[data-memory-scope]', 'world');
+  await page.fill('[data-memory-content]', '第七次日蚀后再没有日出。');
+  await page.click('[data-memory-add]');
+  await expect(page.locator('[data-memory-group="world"] [data-memory-entry]')).toHaveCount(2);
+
+  await page.reload();
+  await expect(page.locator('[data-canvas-frame]')).toBeVisible({ timeout: 30_000 });
+  await page.click('[data-panel-tab="memory"]');
+  await expect(page.locator('[data-memory-entry]')).toHaveCount(3);
+
+  // 只清「我的偏好」这一类，世界类那条必须还留着
+  await page.click('[data-memory-clear="user"]');
+  await expect(page.locator('[data-memory-group="user"] [data-memory-entry]')).toHaveCount(0);
+  await expect(page.locator('[data-memory-group="world"] [data-memory-entry]')).toHaveCount(2);
+  await expect(page.locator('[data-memory-total]')).toHaveText('2');
+
+  // 单条删除：删掉世界类两条之后就空了
+  for (const _ of [0, 1]) {
+    await page.click('[data-memory-group="world"] [data-memory-remove] >> nth=0');
+  }
+  await expect(page.locator('[data-memory-entry]')).toHaveCount(0);
+  await expect(page.locator('[data-memory-empty="world"]')).toBeVisible();
+});

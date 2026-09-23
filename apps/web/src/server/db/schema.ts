@@ -507,12 +507,27 @@ export const memories = pgTable(
     scope: MemoryScope('scope').notNull(),
     /** 归属主体：user_id / character_id / world_id / session id */
     subjectId: text('subject_id').notNull(),
+    /**
+     * §48 的硬边界：owner_id 决定谁能看与删（迁移 0004 补的）。
+     * 只有 scope + subjectId 时，任何人拿着 id 都能读到别人的记忆——"可查看可删除"
+     * 也就没有可归属的口径。project_id 让项目面板列得出自己这批；
+     * user / session 两类不属于任何项目，留 null。
+     */
+    projectId: uuid('project_id').references(() => projects.id, { onDelete: 'cascade' }),
+    ownerId: uuid('owner_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
     content: text('content').notNull(),
+    /** 没有 provider 就是 null：这里只保证可查看可删除，不假装已经能语义检索（§159） */
     embedding: vector('embedding', { dimensions: 1536 }),
     meta: jsonb('meta'),
     createdAt: now(),
   },
-  (t) => [index('memories_subject_idx').on(t.scope, t.subjectId)],
+  (t) => [
+    index('memories_subject_idx').on(t.scope, t.subjectId),
+    index('memories_owner_idx').on(t.ownerId),
+    index('memories_project_idx').on(t.projectId),
+  ],
 );
 
 export const knowledgeChunks = pgTable(
