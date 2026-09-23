@@ -1,5 +1,5 @@
 import type { ExecPolicy, ToolRegistry, ToolSpec } from '@nexus/agent-runtime';
-import { GIT_DIFF_FLAGS, GIT_ENV_NAMES, cutNotAbsence, gitEnv, gitVerdict, parseDiffStat, quoteVerdict, refusedNotAbsence, unmergedNotAbsence, unmergedNotice } from './gitTools.js';
+import { budgetFlags, GIT_DIFF_FLAGS, GIT_ENV_NAMES, cutNotAbsence, gitEnv, gitVerdict, parseDiffStat, quoteVerdict, refusedNotAbsence, unmergedNotAbsence, unmergedNotice, stdoutWasCut } from './gitTools.js';
 import type { ExecHost, ExecRunResult } from './execHost.js';
 
 /**
@@ -120,7 +120,7 @@ export const GIT_STAGED_TOOL_SPECS: ToolSpec[] = [
 
 export function registerGitStagedTool(registry: ToolRegistry, host: ExecHost, options: { env?: Record<string, string> } = {}): ToolRegistry {
   const env = gitEnv(options.env ?? process.env); // v46: whatever the caller needs, PLUS the isolation — a caller cannot opt out
-  const flags = (r: { truncated: boolean; killedByBudget: boolean }): string => `${r.truncated ? ' · output truncated at budget' : ''}${r.killedByBudget ? ' · killed at timeout budget' : ''}`;
+  const flags = budgetFlags; // v56: the ONE budget sentence, naming the pipe that was cut
 
   registry.register(GIT_STAGED_TOOL_SPECS[0]!, async (args) => {
     const stat = args.stat === true;
@@ -146,7 +146,7 @@ export function registerGitStagedTool(registry: ToolRegistry, host: ExecHost, op
       index.files.length === 0
         ? notice.length > 0
           ? `git.staged → exit 0: ${unmergedNotAbsence(notice)} — the index is NOT empty, and a granted git.commit right now would be refused by git itself${flags(result)}`
-          : result.truncated
+          : stdoutWasCut(result)
             ? `git.staged → exit 0: ${cutNotAbsence('the index has nothing staged for the §28 ask')}${flags(result)}`
             : `git.staged → exit 0: the index is EMPTY — nothing is staged, so a granted git.commit right now would have nothing to record${flags(result)}`
         : `git.staged → exit 0: index holds ${index.totals.files} change(s): ${tally} · +${index.totals.additions} −${index.totals.deletions} across ${index.totals.hunks} hunk(s)${index.totals.binary > 0 ? ` · ${index.totals.binary} binary change(s) with no lines claimed` : ''}${flags(result)}`;

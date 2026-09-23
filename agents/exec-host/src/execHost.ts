@@ -77,6 +77,16 @@ export interface ExecRunResult {
    * door's sentence names whichever of the two applies.
    */
   truncated: boolean;
+  /**
+   * M2 v56 (ADR 0016 amendment 56): WHICH pipe the budget actually cut — present exactly when
+   * `truncated` is true. The aggregate flag alone was measurably misleading: a command that prints a
+   * 32-byte answer on stdout and floods stderr under a 1 024-byte ceiling produced
+   * `exec node -e … → exit 0 (output truncated)` beside a stdout that was BYTE-IDENTICAL to the
+   * answer, so the door cast doubt on the one thing it had received whole. Read doors have the
+   * sharper version: v48's "no complete line survived the output budget" is a claim about the stream
+   * the door parsed, and a cut on the OTHER stream must not trigger it.
+   */
+  truncatedStreams?: Array<'stdout' | 'stderr'>;
   /** True when the host killed the process IT started because the plan's timeout expired. */
   killedByBudget: boolean;
   /**
@@ -295,6 +305,7 @@ export function createExecHost(policy: ExecPolicy, options: ExecHostOptions = {}
         }, plan.timeoutMs);
         child.onEnd((e) => {
           clearTimeout(timer);
+          const streams = (['stdout', 'stderr'] as const).filter((s) => cut[s]);
           const result: ExecRunResult = {
             ran: true,
             planned: true,
@@ -306,6 +317,7 @@ export function createExecHost(policy: ExecPolicy, options: ExecHostOptions = {}
             stdout: textOf('stdout'),
             stderr: textOf('stderr'),
             truncated,
+            ...(streams.length > 0 ? { truncatedStreams: [...streams] } : {}),
             killedByBudget: killed,
             ...(descendants === undefined ? {} : { descendantsStopped: descendants }),
             spawnError: e.error ?? '',
@@ -343,7 +355,7 @@ export function registerExecHostTools(registry: ToolRegistry, host: ExecHost): T
       if (!result.ran) throw new Error(result.reason || 'run refused');
       if (result.spawnError !== '') throw new Error(`spawn failed: ${result.spawnError}`);
       const ok = result.exitCode === 0 && !result.killedByBudget;
-      const detail = `exec ${result.argv.join(' ')} → exit ${result.exitCode}${result.killedByBudget ? ' (killed at timeout budget)' : ''}${result.descendantsStopped === undefined || result.descendantsStopped === 'reaped' ? '' : ` (descendants: ${result.descendantsStopped})`}${result.truncated ? ' (output truncated)' : ''}`;
+      const detail = `exec ${result.argv.join(' ')} → exit ${result.exitCode}${result.killedByBudget ? ' (killed at timeout budget)' : ''}${result.descendantsStopped === undefined || result.descendantsStopped === 'reaped' ? '' : ` (descendants: ${result.descendantsStopped})`}${result.truncated ? ` (output truncated${result.truncatedStreams && result.truncatedStreams.length > 0 ? `: ${result.truncatedStreams.join(' + ')}` : ''})` : ''}`;
       return { ok, detail, result };
     });
   }

@@ -164,6 +164,29 @@ describe('createExecHost (v30: only what planExec approved ever spawns)', () => 
     expect(r.truncated).toBe(true); // the host's own claim: bytes were dropped, not that none existed
   });
 
+  // M2 v56 (ADR 0016 amendment 56): `truncated` alone could not say WHICH pipe overflowed, so a door
+  // cast doubt on an answer it had received whole. The host now reports the streams it cut, in a
+  // stable order, and says nothing at all when it cut nothing.
+  it('the host names the pipe it cut, in a stable order, and is silent when it cut nothing', async () => {
+    const oneSided = await harness({ code: 0, signal: null }, [['stdout', 'ab\ncd\n'], ['stderr', 'efghij\n']]).host.run({ argv: ['git', 'status', '--short'] }, OK_GATE);
+    expect(oneSided.stdout).toBe('ab\ncd\n'); // the answer arrived whole
+    expect(oneSided.truncatedStreams).toEqual(['stderr']); // and the sentence can now say whose it was
+    const both = await harness({ code: 0, signal: null }, [['stderr', 'efghij\n'], ['stdout', 'ab\ncd\nef\n']]).host.run({ argv: ['git', 'status', '--short'] }, OK_GATE);
+    expect(both.truncatedStreams).toEqual(['stdout', 'stderr']); // order follows the streams, not the arrival order
+    const clean = await harness({ code: 0, signal: null }, [['stdout', 'ok\n']]).host.run({ argv: ['node', 'app.js'] }, OK_GATE);
+    expect('truncatedStreams' in clean).toBe(false); // absent, not []: nothing was cut, so there is nothing to name
+  });
+
+  it('exec.run says WHICH output was truncated — the sentence a human reads before approving', async () => {
+    const h = harness({ code: 0, signal: null }, [['stdout', 'ab\ncd\n'], ['stderr', 'efghij\n']]);
+    const registry = new ToolRegistry();
+    registerExecHostTools(registry, h.host);
+    const res = await registry.invoke({ callId: 't9', tool: 'exec.run', args: { argv: ['git', 'status', '--short'] } }, OK_GATE);
+    const detail = (res.output as { detail: string }).detail;
+    expect(detail).toContain('output truncated: stderr');
+    expect(detail).not.toContain('stdout)'); // the intact stream is not implicated
+  });
+
   // M2 v48: the budget is measured in bytes, but it spends them on LINES. What it cannot fit it
   // does not report — an earlier shape decoded chunk-by-chunk and cut at the byte, so a truncated
   // read handed parsers a line the program never printed (measured against real git: an

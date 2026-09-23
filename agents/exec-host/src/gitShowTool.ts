@@ -1,5 +1,5 @@
 import type { ExecPolicy, ToolRegistry, ToolSpec } from '@nexus/agent-runtime';
-import { GIT_DIFF_FLAGS, GIT_ENV_NAMES, cutNotAbsence, gitEnv, gitVerdict, quoteVerdict, refusedNotAbsence } from './gitTools.js';
+import { budgetFlags, GIT_DIFF_FLAGS, GIT_ENV_NAMES, cutNotAbsence, gitEnv, gitVerdict, quoteVerdict, refusedNotAbsence, stdoutWasCut } from './gitTools.js';
 import type { ExecHost, ExecRunResult } from './execHost.js';
 
 /**
@@ -92,7 +92,7 @@ export function registerGitShowTool(registry: ToolRegistry, host: ExecHost, opti
     const result: ExecRunResult = await host.run({ argv: ['git', 'show', ...GIT_DIFF_FLAGS, '--format=', '--', path], cwd: args.cwd, env }, { preApproved: true }); // the registry's exec gate is the one §28 checkpoint
     if (!result.ran) throw new Error(result.reason || 'run refused');
     if (result.spawnError !== '') throw new Error(`spawn failed: ${result.spawnError}`);
-    const flags = `${result.truncated ? ' · output truncated at budget' : ''}${result.killedByBudget ? ' · killed at timeout budget' : ''}`;
+    const flags = budgetFlags(result);
     if (result.exitCode !== 0 || result.killedByBudget) {
       const verdict = gitVerdict(result.stdout, result.stderr, { truncated: result.truncated || result.killedByBudget });
       return { ok: false, detail: `git.show → exit ${result.exitCode}: ${quoteVerdict(verdict)} · ${refusedNotAbsence(`HEAD touches nothing at ${path}`)}${flags}`, exitCode: result.exitCode, path, addedLines: [], truncated: result.truncated };
@@ -103,7 +103,7 @@ export function registerGitShowTool(registry: ToolRegistry, host: ExecHost, opti
       ? `git.show → exit 0: HEAD touches ${path} as a BINARY change (+${change.additions} −${change.deletions}) — git printed no hunks, so no lines are claimed${flags}`
       : touched
         ? `git.show → exit 0: HEAD changed ${path} · +${change.additions} −${change.deletions} across ${change.hunks} hunk(s)${flags}`
-        : result.truncated
+        : stdoutWasCut(result)
           ? `git.show → exit 0: ${cutNotAbsence(`HEAD touched ${path}`)}${flags}`
           : `git.show → exit 0: HEAD touches nothing at ${path} (empty diff — git recorded no change for this path in HEAD)${flags}`;
     return {

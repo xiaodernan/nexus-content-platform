@@ -30,7 +30,7 @@ function reportFrom(name: string, engine: string, r: ExecRunResult): TestReport 
     parts.push(`exit ${r.exitCode}`);
     const output = r.stderr.trim() !== '' ? r.stderr.trim() : r.stdout.trim();
     if (output !== '') parts.push(output);
-    if (r.truncated) parts.push('output truncated at budget');
+    if (r.truncated) parts.push(`output truncated at budget${r.truncatedStreams && r.truncatedStreams.length > 0 ? ` (${r.truncatedStreams.join(' + ')})` : ''}`); // v56: WHICH pipe the suite overflowed
   }
   const passed = r.ran && r.exitCode === 0 && !r.killedByBudget && r.spawnError === '';
   const message = parts.join(' · ');

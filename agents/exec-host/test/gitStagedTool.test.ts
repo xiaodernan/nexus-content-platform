@@ -241,6 +241,29 @@ describe('git.staged as a registry tool (the index behind §28 — a process sti
     expect((res.output as { detail: string }).detail).toContain('git.staged → exit 128: fatal: .git/index: index file smaller than expected');
   });
 
+  // v56: the door's EMPTY claim is about STDOUT, so a flood on the other pipe must not hedge it.
+  // Before this increment the door said "no complete line survived the output budget — this is NOT a
+  // statement that the index has nothing staged" while the index genuinely was empty: the budget had
+  // eaten a line the door never parses. Now it says the truth it is allowed to say, and names who cut.
+  it('v56: a cut on stderr does not put the EMPTY verdict in doubt — and the sentence says (stderr)', async () => {
+    const h = harness('', 'warning: some progress noise that will not fit at all\n', { code: 0, signal: null }, 6);
+    const res = await h.registry.invoke({ callId: 'i2f', tool: 'git.staged', args: {} }, h.grant);
+    const d = (res.output as { detail: string; truncated: boolean }).detail;
+    expect(res.output).toMatchObject({ ok: true, files: [], truncated: true });
+    expect(d).toContain('the index is EMPTY — nothing is staged');
+    expect(d).toContain('output truncated at budget (stderr)');
+    expect(d).not.toContain('no complete line survived');
+  });
+
+  it('v56: a cut on stdout still IS the hedge — the two cases stay distinguishable', async () => {
+    const h = harness(ADDED, '', { code: 0, signal: null }, 4); // `diff`, no newline inside the window
+    const res = await h.registry.invoke({ callId: 'i2g', tool: 'git.staged', args: {} }, h.grant);
+    const d = (res.output as { detail: string }).detail;
+    expect(d).toContain('no complete line survived the output budget');
+    expect(d).toContain('output truncated at budget (stdout)');
+    expect(d).not.toContain('the index is EMPTY');
+  });
+
   it('v48: a budget so tight no whole line survives says the CUT, not "the index is EMPTY"', async () => {
     const h = harness(ADDED, '', { code: 0, signal: null }, 4); // 4 bytes = `diff`, no newline survives
     const res = await h.registry.invoke({ callId: 'i2b', tool: 'git.staged', args: {} }, h.grant);

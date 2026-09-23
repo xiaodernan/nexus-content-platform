@@ -1,5 +1,5 @@
 import type { ExecPolicy, ToolRegistry, ToolSpec } from '@nexus/agent-runtime';
-import { GIT_ENV_NAMES, gitEnv, gitVerdict, quoteVerdict } from './gitTools.js';
+import { budgetFlags, GIT_ENV_NAMES, gitEnv, gitVerdict, quoteVerdict } from './gitTools.js';
 import type { ExecHost, ExecRunResult } from './execHost.js';
 
 /**
@@ -70,7 +70,7 @@ export function registerGitCommitTool(registry: ToolRegistry, host: ExecHost, op
     const result: ExecRunResult = await host.run({ argv: ['git', 'commit', '-m', message], cwd: args.cwd, env }, { preApproved: true }); // the registry's exec gate is the one §28 checkpoint
     if (!result.ran) throw new Error(result.reason || 'run refused');
     if (result.spawnError !== '') throw new Error(`spawn failed: ${result.spawnError}`);
-    const flags = `${result.truncated ? ' · output truncated at budget' : ''}${result.killedByBudget ? ' · killed at timeout budget' : ''}`;
+    const flags = budgetFlags(result);
     if (result.exitCode !== 0 || result.killedByBudget) {
       const verdict = gitVerdict(result.stdout, result.stderr, { truncated: result.truncated || result.killedByBudget });
       return { ok: false, detail: `git.commit → exit ${result.exitCode}: ${quoteVerdict(verdict)}${flags}`, exitCode: result.exitCode, message, truncated: result.truncated };

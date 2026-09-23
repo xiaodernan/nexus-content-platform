@@ -1843,3 +1843,64 @@ take 56, because a claim is made by committing the section, not by naming a task
   OS's force-kill values when reaping is on; nothing in Studio registers an exec host, so no user
   surface shows any of this (§60); and DEMO MODE is unaffected — this is about how much of a process
   tree the sandbox can honestly stop, not about what the agent is allowed to plan.
+
+## Amendment 56 — v56 (exec-host): the budget names the PIPE it cut — one bit was doubting an answer that had arrived whole, 2026-09
+
+_Numbering: 56 was free when this was written (checked against this file's headings, the task list and
+`git log --oneline -1`). 53 gave each stream its own ceiling; this is the half of that story the
+ceiling could not tell._
+
+- **The measurement that made this an increment rather than a nit.** One real program, run through the
+  SHIPPED `exec.run` door under a 1 024-byte ceiling: 28 bytes of answer on stdout, 8 000 bytes of
+  progress on stderr. It came back with the answer BYTE-IDENTICAL to what the same command prints
+  uncapped, and this sentence: `exec node -e … → exit 0 (output truncated)`. The door was casting
+  doubt on the one thing it had received whole. Swap the pipes with a 8-byte ceiling and the answer
+  really IS gone — and the sentence is the same. One bit about two pipes, and both readings of it are
+  wrong half the time.
+- **The fix is a fact, not a policy: `truncatedStreams`.** The host already knew which stream it cut
+  — v48 keeps a per-stream `cut` map to do the whole-line trim — it just never said so. Now
+  `ExecRunResult` carries `truncatedStreams?: Array<'stdout' | 'stderr'>`, present exactly when
+  something was cut and in a STABLE order (streams, not arrival), and absent when nothing was cut
+  rather than an empty array: the host does not answer a question nobody asked, and a reader can tell
+  "no cut" from "cut, but I cannot say whose".
+- **The second bug was worse than the cosmetic one, and it is about a claim, not a sentence.** v48's
+  hedge — `no complete line survived the output budget — this is NOT a statement that …` — is a
+  statement about the stream the door PARSED. It was keyed off the aggregate flag, so a door reading a
+  genuinely EMPTY stdout whose OTHER pipe had overflowed said the index might have had something in it
+  after all. v52's `gitVerdict` `cut` rule had the same aggregate key. Both now ask
+  `stdoutWasCut(result)`: the hedge appears exactly when nothing survived TO PARSE, which §4 of the
+  proof measures across real budgets (10 sampled, 5 of them emptied the stream, and the hedge appears
+  on precisely those 5 and on none of the other 5).
+- **Six doors, one sentence — the duplication v52 counted is gone.** `budgetFlags(result)` is now the
+  single builder of the two budget clauses (truncation + timeout kill) that five doors each
+  re-assembled locally and the sixth (`execTestRunner`) spelled a fifth way. Removing that copy is
+  what makes the naming impossible to forget in a door added later — the same argument v51 made for
+  writing the journal inside `run()`.
+- **45th proof `docs/evidence/agents/pipes-proof.mjs`.** §1 the intact answer with the clause naming
+  the other pipe, cross-checked against an uncapped control run; §2 the mirror at 8 bytes, where
+  `truncatedStreams` is `['stdout', 'stderr']` and the answer really is gone; §3 asserts the two
+  sentences DIFFER (the increment in one line) and that with no stream evidence the builder names
+  NOTHING rather than guessing; §4 drives a real `git.staged` over 24 multibyte staged lines at
+  budgets DERIVED from git's own byte offsets, including four that land inside the very first line;
+  §5 measures where the hazard actually lives — five shipped read doors all answered on stdout with
+  zero bytes on stderr, so the git doors are exposed through a cut STDOUT only, which is exactly what
+  §4 exercises; §6 shows the v51 audit record carrying the same naming, so "whose bytes were dropped"
+  is answerable a week later from the file alone; §7/§9: everything under `os.tmpdir`, home HEAD
+  byte-identical.
+- **What did not move:** the ceilings themselves (v53's per-stream accounting is untouched), the
+  trim-to-whole-lines rule, any policy field or clamp, any argv, any gate, the aggregate
+  `truncated` flag and every existing prefix of its sentence — which is why 44 already-committed
+  proofs stayed green without edit. exec-host **170/170 → 177/177** (7 new cases: 2 in
+  `execHost.test.ts`, 3 in `gitTools.test.ts`, 2 in `gitStagedTool.test.ts` — the last pair being
+  the false-hedge case and its mirror).
+- Honest bounds: the new field is only as good as the host's own bookkeeping, so a run that never
+  reached the byte counter reports nothing rather than "nothing was cut" for a stream it did not read;
+  `budgetFlags` deliberately prints the bare clause (no parentheses) when `truncated` arrived without
+  stream evidence — an old-shaped input gets an honest old-shaped sentence, never a guess;
+  `stdoutWasCut` reads absence as false, which is correct for the shipped host and would UNDER-report
+  if some future writer set `truncated` alone; the proof's §5 finding is a statement about git 2.52
+  on this box, not a promise that a git read never writes to stderr (a warning-bearing read would
+  simply exercise the naming, which is the point of having it); the doors' sentences are longer by one
+  parenthetical and nothing parses them for meaning (v52's rules key off git's words, not off
+  `flags()`); and DEMO MODE is unaffected — no Studio surface runs an exec host, so the naming is
+  visible in proofs and unit tests and no panel claims otherwise.

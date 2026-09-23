@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { ToolRegistry, planExec } from '@nexus/agent-runtime';
 import type { SpawnLike } from '@nexus/agent-runtime';
 import { createExecHost, type ExecChild } from '../src/execHost.js';
-import { GIT_TOOL_SPECS, GIT_DIFF_FLAGS, gitEnv, gitReadOnlyPolicy, gitVerdict, parseDiffStat, parseGitDiff, parseGitStatus, quoteVerdict, refusedNotAbsence, registerGitTools, unmergedNotice, unmergedNotAbsence } from '../src/gitTools.js';
+import { GIT_TOOL_SPECS, GIT_DIFF_FLAGS, budgetFlags, gitEnv, gitReadOnlyPolicy, gitVerdict, parseDiffStat, parseGitDiff, parseGitStatus, quoteVerdict, refusedNotAbsence, registerGitTools, stdoutWasCut, unmergedNotice, unmergedNotAbsence } from '../src/gitTools.js';
 import { GIT_ABSENT_CONFIG, GIT_FORCED_CONFIG, GIT_ISOLATION_ENV, GIT_PASS_THROUGH_ENV_NAMES, forcedConfigEnv } from '../src/gitEnvIsolation.js';
 
 describe('parseGitStatus (porcelain v1, pure data)', () => {
@@ -290,6 +290,33 @@ describe('gitVerdict — one rule for which line is git saying something (v52, r
 
   it('refusedNotAbsence is the read doors twin of cutNotAbsence, phrased as a refusal', () => {
     expect(refusedNotAbsence('the tree has no changes')).toBe('git REFUSED this command — this is NOT a statement that the tree has no changes');
+  });
+});
+
+/**
+ * M2 v56 (ADR 0016 amendment 56): the budget sentence names the PIPE, and a claim about the parsed
+ * stream may not be triggered by the other one.
+ */
+describe('budgetFlags / stdoutWasCut — who the budget actually cut (v56)', () => {
+  const r = (over: Partial<{ truncated: boolean; truncatedStreams: Array<'stdout' | 'stderr'>; killedByBudget: boolean }>) => ({ truncated: false, killedByBudget: false, ...over });
+
+  it('nothing cut, one cut, the other cut, both cut — four different sentences', () => {
+    expect(budgetFlags(r({}))).toBe('');
+    expect(budgetFlags(r({ truncated: true, truncatedStreams: ['stdout'] }))).toBe(' · output truncated at budget (stdout)');
+    expect(budgetFlags(r({ truncated: true, truncatedStreams: ['stderr'] }))).toBe(' · output truncated at budget (stderr)');
+    expect(budgetFlags(r({ truncated: true, truncatedStreams: ['stdout', 'stderr'] }))).toBe(' · output truncated at budget (stdout + stderr)');
+    expect(budgetFlags(r({ killedByBudget: true }))).toBe(' · killed at timeout budget');
+  });
+
+  it('a bare truncated flag with no stream evidence still says so, and names nothing', () => {
+    expect(budgetFlags(r({ truncated: true }))).toBe(' · output truncated at budget'); // never a guess about which
+  });
+
+  it('stdoutWasCut answers only about stdout — the other pipe is not this door’s business', () => {
+    expect(stdoutWasCut(r({ truncated: true, truncatedStreams: ['stderr'] }))).toBe(false);
+    expect(stdoutWasCut(r({ truncated: true, truncatedStreams: ['stdout'] }))).toBe(true);
+    expect(stdoutWasCut(r({ truncated: true }))).toBe(false);
+    expect(stdoutWasCut({})).toBe(false);
   });
 });
 

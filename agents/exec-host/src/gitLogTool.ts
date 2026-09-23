@@ -1,5 +1,5 @@
 import type { ExecPolicy, ToolRegistry, ToolSpec } from '@nexus/agent-runtime';
-import { GIT_ENV_NAMES, cutNotAbsence, gitEnv, gitVerdict, quoteVerdict, refusedNotAbsence } from './gitTools.js';
+import { budgetFlags, GIT_ENV_NAMES, cutNotAbsence, gitEnv, gitVerdict, quoteVerdict, refusedNotAbsence, stdoutWasCut } from './gitTools.js';
 import type { ExecHost, ExecRunResult } from './execHost.js';
 
 /**
@@ -67,14 +67,14 @@ export function registerGitLogTool(registry: ToolRegistry, host: ExecHost, optio
     const result: ExecRunResult = await host.run({ argv: ['git', 'log', '--oneline', '-n', String(count)], cwd: args.cwd, env }, { preApproved: true }); // the registry's exec gate is the one §28 checkpoint
     if (!result.ran) throw new Error(result.reason || 'run refused');
     if (result.spawnError !== '') throw new Error(`spawn failed: ${result.spawnError}`);
-    const flags = `${result.truncated ? ' · output truncated at budget' : ''}${result.killedByBudget ? ' · killed at timeout budget' : ''}`;
+    const flags = budgetFlags(result);
     if (result.exitCode !== 0 || result.killedByBudget) {
       const verdict = gitVerdict(result.stdout, result.stderr, { truncated: result.truncated || result.killedByBudget });
       return { ok: false, detail: `git.log → exit ${result.exitCode}: ${quoteVerdict(verdict)} · ${refusedNotAbsence('the repo has no commits')}${flags}`, exitCode: result.exitCode, count, commits: [], truncated: result.truncated };
     }
     const { commits, skipped } = parseGitLog(result.stdout);
     const top = commits[0];
-    const detail = `git.log → exit 0: ${commits.length} commit(s)${top ? ` · newest ${top.hash} "${top.subject}"` : result.truncated ? ` · ${cutNotAbsence('the repository has no commits')}` : ' (empty log)'}${skipped > 0 ? ` · ${skipped} line(s) without a hash, counted not guessed` : ''}${flags}`;
+    const detail = `git.log → exit 0: ${commits.length} commit(s)${top ? ` · newest ${top.hash} "${top.subject}"` : stdoutWasCut(result) ? ` · ${cutNotAbsence('the repository has no commits')}` : ' (empty log)'}${skipped > 0 ? ` · ${skipped} line(s) without a hash, counted not guessed` : ''}${flags}`;
     return { ok: true, detail, exitCode: 0, count, commits, ...(skipped > 0 ? { skipped } : {}), truncated: result.truncated };
   });
   return registry;

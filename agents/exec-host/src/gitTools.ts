@@ -72,6 +72,22 @@ export function quoteVerdict(v: GitVerdict): string {
 }
 
 /**
+ * M2 v56 (ADR 0016 amendment 56): the ONE budget sentence every door appends, naming WHICH pipe was
+ * actually cut. Before this, six doors each re-assembled the same two clauses from the aggregate
+ * flag, so "output truncated at budget" appeared next to an answer that had arrived whole simply
+ * because the noise stream overflowed.
+ */
+export const budgetFlags = (r: { truncated: boolean; truncatedStreams?: Array<'stdout' | 'stderr'>; killedByBudget: boolean }): string =>
+  `${r.truncated ? ` · output truncated at budget${r.truncatedStreams && r.truncatedStreams.length > 0 ? ` (${r.truncatedStreams.join(' + ')})` : ''}` : ''}${r.killedByBudget ? ' · killed at timeout budget' : ''}`;
+
+/**
+ * M2 v56: was the stream this door PARSED the one that lost bytes? Absence of evidence is NOT read
+ * as evidence of a cut — `stdoutWasCut` is false for a run that lost nothing, and v48's
+ * `cutNotAbsence` / the `cut` verdict rule then fire only on the stream they describe.
+ */
+export const stdoutWasCut = (r: { truncatedStreams?: Array<'stdout' | 'stderr'> }): boolean => r.truncatedStreams?.includes('stdout') ?? false;
+
+/**
  * M2 v52: the read doors' twin of v48's `cutNotAbsence`. A command that FAILED reads nothing for a
  * reason that says nothing about the repository — `git status` on a corrupt index exits 128 with an
  * EMPTY stdout, and "0 entries" is a count of what the door read, never a claim that the tree is
@@ -221,7 +237,7 @@ export function registerGitTools(registry: ToolRegistry, host: ExecHost, options
     if (result.spawnError !== '') throw new Error(`spawn failed: ${result.spawnError}`);
     return result;
   };
-  const flags = (r: { truncated: boolean; killedByBudget: boolean }): string => `${r.truncated ? ' · output truncated at budget' : ''}${r.killedByBudget ? ' · killed at timeout budget' : ''}`;
+  const flags = budgetFlags; // v56: ONE sentence for every door, naming the stream that was cut
 
   registry.register(GIT_TOOL_SPECS[0]!, async (args) => {
     const result = await runGit(['git', 'status', '--short'], args.cwd);
