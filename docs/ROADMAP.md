@@ -653,6 +653,16 @@ drizzle 把整个拼接结果当成**单个绑定参数**，生成的 SQL 是 `o
   门禁与七行健康度已落地（`analyzeHealth`，见 M2 进度记录与 `docs/adr/0005-…`）；
   Design Critic 的**自动修复建议**仍只有 lint 的 `suggestion` 字段，没有对话式评审。
 
+- [ ] 实时通道（§163）：WebSocket 显示 generation / agent / build / preview 四类进度。
+  `RealtimeEventSchema` 早就在 `packages/schemas` 里并导出成契约，但**没有任何代码发过这些事件**——
+  现在界面上的进度都靠轮询或一次性回话。要做的决定：App Router 的 route handler 承载不了 WebSocket，
+  是加一个独立 WS 进程（配 Redis pub/sub，§94 指定 Redis 做 realtime）还是先做 SSE ——
+  这个取舍要先写 ADR，不能默默改掉 §163 写的"WebSocket"。
+- [ ] 通知中心（§164）：Generation / Build / Agent task / Publish complete 四类。
+  现在只有各面板自己的一次性回执；`auditEvents` 那张表能当来源之一，但没人订阅。
+- [ ] 全平台搜索（§165）：projects / users / worlds（清单在 §165 原文）。
+  现在只有 §49 的项目内混合检索与 §61 发现页的三个排序，没有跨平台的搜索入口。
+
 ## 当前阻塞项
 - `[!]` 真实 AI provider key（文本/图像/视频）— 用户提供前，全部生成类能力以 DEMO MODE 交付，UI 明确标注，不伪装真实结果。
 
