@@ -112,18 +112,34 @@ export function createExecHost(policy: ExecPolicy, options: { spawnLike?: SpawnL
       }
       return await new Promise<ExecRunResult>((resolve) => {
         const budget = plan.maxOutputBytes;
-        let out = '';
-        let err = '';
+        // M2 v48 (ADR 0016 amendment 48): the budget accumulates RAW BYTES and decodes once.
+        // Decoding per chunk turned a multibyte character straddling a chunk boundary into
+        // U+FFFD, and cutting at a byte landed INSIDE a line — so a truncated read handed the
+        // agent a line the program never printed, which every downstream parser then counted as
+        // content. A cut stream therefore keeps only whole lines.
+        const chunks: Record<'stdout' | 'stderr', Buffer[]> = { stdout: [], stderr: [] };
+        const cut: Record<'stdout' | 'stderr', boolean> = { stdout: false, stderr: false };
+        let kept = 0;
         let truncated = false;
         let killed = false;
         const append = (target: 'stdout' | 'stderr', chunk: Buffer | string) => {
-          const text = typeof chunk === 'string' ? chunk : chunk.toString('utf8');
-          const usedBytes = Buffer.byteLength(out, 'utf8') + Buffer.byteLength(err, 'utf8');
-          const room = Math.max(0, budget - usedBytes);
-          const keep = Buffer.byteLength(text, 'utf8') <= room ? text : Buffer.from(text, 'utf8').subarray(0, room).toString('utf8');
-          if (keep.length < text.length) truncated = true;
-          if (target === 'stdout') out += keep;
-          else err += keep;
+          const buf = Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk, 'utf8');
+          const room = Math.max(0, budget - kept);
+          const keep = buf.byteLength <= room ? buf : buf.subarray(0, room);
+          if (keep.byteLength < buf.byteLength) {
+            truncated = true;
+            cut[target] = true;
+          }
+          if (keep.byteLength > 0) {
+            chunks[target].push(keep);
+            kept += keep.byteLength;
+          }
+        };
+        const textOf = (target: 'stdout' | 'stderr') => {
+          const text = Buffer.concat(chunks[target]).toString('utf8');
+          if (!cut[target]) return text; // an uncut stream keeps its final line even without a newline
+          const lastBreak = text.lastIndexOf('\n');
+          return lastBreak < 0 ? '' : text.slice(0, lastBreak + 1);
         };
         const child = spawnLike(plan.argv[0]!, plan.argv.slice(1), { cwd: plan.cwd, env: plan.env });
         child.onData(append);
@@ -141,8 +157,8 @@ export function createExecHost(policy: ExecPolicy, options: { spawnLike?: SpawnL
             cwd: plan.cwd,
             exitCode: e.code,
             signal: e.signal,
-            stdout: out,
-            stderr: err,
+            stdout: textOf('stdout'),
+            stderr: textOf('stderr'),
             truncated,
             killedByBudget: killed,
             spawnError: e.error ?? '',

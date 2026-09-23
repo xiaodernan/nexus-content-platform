@@ -22,6 +22,14 @@ export const GIT_DIFF_FLAGS = ['--no-ext-diff', '--no-textconv'];
 /** The handful of vars git actually needs — shared with the v35 commit slice. */
 export const GIT_ENV_NAMES = [...GIT_PASS_THROUGH_ENV_NAMES, ...GIT_ISOLATION_ENV_NAMES];
 
+/**
+ * M2 v48 (ADR 0016 amendment 48): since a cut stream is trimmed to its last WHOLE line, a tight
+ * budget can leave NOTHING to parse. A door may say "0 entries" — a count of what it read — but it
+ * may not assert that the repository/index/HEAD HAS nothing, because the reason it read nothing is
+ * the budget. Doors that would otherwise phrase an absence route that sentence through here.
+ */
+export const cutNotAbsence = (what: string): string => `no complete line survived the output budget — this is NOT a statement that ${what}`;
+
 /** The three commands this policy knows, and NOTHING else (default-deny). */
 export function gitReadOnlyPolicy(root: string, options: { timeoutMs?: number; maxOutputBytes?: number } = {}): ExecPolicy {
   const timeoutMs = options.timeoutMs ?? 10_000;

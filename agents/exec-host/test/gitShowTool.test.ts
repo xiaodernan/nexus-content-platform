@@ -119,7 +119,7 @@ class FakeChild implements ExecChild {
   }
 }
 
-function harness(stdout = '', stderr = '', end: { code: number | null; signal: string | null } = { code: 0, signal: null }) {
+function harness(stdout = '', stderr = '', end: { code: number | null; signal: string | null } = { code: 0, signal: null }, maxOutputBytes?: number) {
   const calls: { args: string[]; env: Record<string, string> }[] = [];
   const spawnLike: SpawnLike = (_command, args, opts) => {
     calls.push({ args, env: opts.env });
@@ -127,7 +127,7 @@ function harness(stdout = '', stderr = '', end: { code: number | null; signal: s
     queueMicrotask(() => c.fire(end, [...(stdout ? [['stdout', stdout] as ['stdout', string]] : []), ...(stderr ? [['stderr', stderr] as ['stderr', string]] : [])]));
     return c;
   };
-  const host = createExecHost(gitShowPolicy('X:/repo'), { spawnLike });
+  const host = createExecHost(gitShowPolicy('X:/repo', { maxOutputBytes }), { spawnLike });
   const registry = registerGitShowTool(new ToolRegistry(), host, { env: { PATH: '/bin', TOKEN: 'secret' } });
   return { calls, registry, grant: { checkpoint: () => true } };
 }
@@ -198,6 +198,16 @@ describe('git.show as a registry tool (content behind §28 — a process still s
     const res = await h.registry.invoke({ callId: 's4', tool: 'git.show', args: { path: 'a.md' } }, h.grant);
     expect(res.output).toMatchObject({ ok: true, exitCode: 0, hunks: 0, addedLines: [] });
     expect((res.output as { detail: string }).detail).toBe('git.show → exit 0: HEAD touches nothing at a.md (empty diff — git recorded no change for this path in HEAD)');
+  });
+
+  it('v48: a budget so tight no whole line survives says the CUT, not "HEAD touches nothing"', async () => {
+    const h = harness(NEW_FILE_DIFF, '', { code: 0, signal: null }, 4); // 4 bytes = `diff`, no newline survives
+    const res = await h.registry.invoke({ callId: 's4b', tool: 'git.show', args: { path: 'notes/widget.md' } }, h.grant);
+    expect(res.output).toMatchObject({ ok: true, exitCode: 0, hunks: 0, addedLines: [], truncated: true });
+    const d = (res.output as { detail: string }).detail;
+    expect(d).toContain('no complete line survived the output budget');
+    expect(d).not.toContain('touches nothing'); // v48: a cut is not an absence (§60)
+    expect(d).toContain('output truncated at budget');
   });
 
   it('junk paths and escaping cwds are rejected BEFORE any spawn', async () => {

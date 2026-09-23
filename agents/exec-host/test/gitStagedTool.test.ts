@@ -150,7 +150,7 @@ class FakeChild implements ExecChild {
   }
 }
 
-function harness(stdout = '', stderr = '', end: { code: number | null; signal: string | null } = { code: 0, signal: null }) {
+function harness(stdout = '', stderr = '', end: { code: number | null; signal: string | null } = { code: 0, signal: null }, maxOutputBytes?: number) {
   const calls: { args: string[]; env: Record<string, string> }[] = [];
   const spawnLike: SpawnLike = (_command, args, opts) => {
     calls.push({ args, env: opts.env });
@@ -158,7 +158,7 @@ function harness(stdout = '', stderr = '', end: { code: number | null; signal: s
     queueMicrotask(() => c.fire(end, [...(stdout ? [['stdout', stdout] as ['stdout', string]] : []), ...(stderr ? [['stderr', stderr] as ['stderr', string]] : [])]));
     return c;
   };
-  const host = createExecHost(gitStagedPolicy('X:/repo'), { spawnLike });
+  const host = createExecHost(gitStagedPolicy('X:/repo', { maxOutputBytes }), { spawnLike });
   const registry = registerGitStagedTool(new ToolRegistry(), host, { env: { PATH: '/bin', TOKEN: 'secret' } });
   return { calls, registry, grant: { checkpoint: () => true } };
 }
@@ -211,6 +211,16 @@ describe('git.staged as a registry tool (the index behind §28 — a process sti
     const res = await h.registry.invoke({ callId: 'i2', tool: 'git.staged', args: {} }, h.grant);
     expect(res.output).toMatchObject({ ok: true, exitCode: 0, files: [], totals: { files: 0 } });
     expect((res.output as { detail: string }).detail).toContain('the index is EMPTY — nothing is staged, so a granted git.commit right now would have nothing to record');
+  });
+
+  it('v48: a budget so tight no whole line survives says the CUT, not "the index is EMPTY"', async () => {
+    const h = harness(ADDED, '', { code: 0, signal: null }, 4); // 4 bytes = `diff`, no newline survives
+    const res = await h.registry.invoke({ callId: 'i2b', tool: 'git.staged', args: {} }, h.grant);
+    expect(res.output).toMatchObject({ ok: true, exitCode: 0, files: [], truncated: true });
+    const d = (res.output as { detail: string }).detail;
+    expect(d).toContain('no complete line survived the output budget');
+    expect(d).not.toContain('index is EMPTY'); // v48: a cut is not an absence (§60)
+    expect(d).toContain('output truncated at budget');
   });
 
   it('a binary staged change is counted and no lines are claimed (§60)', async () => {

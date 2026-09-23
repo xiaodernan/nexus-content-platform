@@ -59,12 +59,15 @@ assert.deepEqual(spawns[0], { command: 'node', args: ['app.js'], opts: { cwd: 'X
 assert.equal(spawns[0].opts.env.SECRET, undefined, 'the scrubbed env is what the process ACTUALLY gets');
 const capped = await host.createExecHost(POLICY, {
   spawnLike: (cmd, args, opts) => {
-    const c = fakeChild({ code: 0, signal: null }, [['stdout', 'abcd'], ['stderr', 'efghij']]);
+    const c = fakeChild({ code: 0, signal: null }, [['stdout', 'ab\ncd\n'], ['stderr', 'ef\ngh\n']]);
     queueMicrotask(() => c.fire());
     return c;
   },
 }).run({ argv: ['git', 'status', '--short'] }, { checkpoint: () => true });
-assert.deepEqual([capped.stdout, capped.stderr, capped.truncated], ['abcd', 'ef', true], '6-byte budget cut across both streams');
+// v30 asserted ['abcd','ef',true] here: a 6-byte budget that kept `ef` — HALF a line, presented
+// as content. v48 (ADR 0016 amendment 48) is the correction: the budget still bites exactly as
+// hard, but a stream that lost bytes answers in WHOLE lines, and the starved stream says nothing.
+assert.deepEqual([capped.stdout, capped.stderr, capped.truncated], ['ab\ncd\n', '', true], '6-byte budget across both streams: whole lines kept, half a line refused');
 const timedOut = await host.createExecHost(POLICY, {
   spawnLike: () => fakeChild(null), // never ends on its own
 }).run({ argv: ['git', 'status', '--short'] }, { checkpoint: () => true });

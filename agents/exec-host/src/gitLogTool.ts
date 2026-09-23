@@ -1,5 +1,5 @@
 import type { ExecPolicy, ToolRegistry, ToolSpec } from '@nexus/agent-runtime';
-import { GIT_ENV_NAMES, gitEnv } from './gitTools.js';
+import { GIT_ENV_NAMES, cutNotAbsence, gitEnv } from './gitTools.js';
 import type { ExecHost, ExecRunResult } from './execHost.js';
 
 /**
@@ -74,7 +74,7 @@ export function registerGitLogTool(registry: ToolRegistry, host: ExecHost, optio
     }
     const { commits, skipped } = parseGitLog(result.stdout);
     const top = commits[0];
-    const detail = `git.log → exit 0: ${commits.length} commit(s)${top ? ` · newest ${top.hash} "${top.subject}"` : ' (empty log)'}${skipped > 0 ? ` · ${skipped} line(s) without a hash, counted not guessed` : ''}${flags}`;
+    const detail = `git.log → exit 0: ${commits.length} commit(s)${top ? ` · newest ${top.hash} "${top.subject}"` : result.truncated ? ` · ${cutNotAbsence('the repository has no commits')}` : ' (empty log)'}${skipped > 0 ? ` · ${skipped} line(s) without a hash, counted not guessed` : ''}${flags}`;
     return { ok: true, detail, exitCode: 0, count, commits, ...(skipped > 0 ? { skipped } : {}), truncated: result.truncated };
   });
   return registry;

@@ -69,7 +69,7 @@ class FakeChild implements ExecChild {
   }
 }
 
-function harness(stdout = '', stderr = '', end: { code: number | null; signal: string | null } = { code: 0, signal: null }) {
+function harness(stdout = '', stderr = '', end: { code: number | null; signal: string | null } = { code: 0, signal: null }, maxOutputBytes?: number) {
   const calls: { args: string[]; env: Record<string, string> }[] = [];
   const spawnLike: SpawnLike = (_command, args, opts) => {
     calls.push({ args, env: opts.env });
@@ -77,7 +77,7 @@ function harness(stdout = '', stderr = '', end: { code: number | null; signal: s
     queueMicrotask(() => c.fire(end, [...(stdout ? [['stdout', stdout] as ['stdout', string]] : []), ...(stderr ? [['stderr', stderr] as ['stderr', string]] : [])]));
     return c;
   };
-  const host = createExecHost(gitLogPolicy('X:/repo'), { spawnLike });
+  const host = createExecHost(gitLogPolicy('X:/repo', { maxOutputBytes }), { spawnLike });
   const registry = registerGitLogTool(new ToolRegistry(), host, { env: { PATH: '/bin', TOKEN: 'secret' } });
   return { calls, registry, grant: { checkpoint: () => true } };
 }
@@ -146,5 +146,14 @@ describe('git.log as a registry tool (read-back behind §28 — a process still 
     expect((res.output as { commits: unknown[] }).commits).toEqual([{ hash: '0a1b2c3', subject: 'real' }]);
     expect(res.output).toMatchObject({ skipped: 1 });
     expect((res.output as { detail: string }).detail).toContain('1 line(s) without a hash, counted not guessed');
+  });
+
+  it('v48: a budget so tight no whole line survives says the CUT, not "empty log"', async () => {
+    const h = harness('0a1b2c3 real\n', '', { code: 0, signal: null }, 4);
+    const res = await h.registry.invoke({ callId: 'g6', tool: 'git.log', args: {} }, h.grant);
+    const d = (res.output as { detail: string; truncated: boolean }).detail;
+    expect(res.output).toMatchObject({ ok: true, exitCode: 0, commits: [], truncated: true });
+    expect(d).toContain('no complete line survived the output budget');
+    expect(d).not.toContain('empty log'); // v48: a cut is not an absence (§60)
   });
 });

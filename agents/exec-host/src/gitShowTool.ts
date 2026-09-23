@@ -1,5 +1,5 @@
 import type { ExecPolicy, ToolRegistry, ToolSpec } from '@nexus/agent-runtime';
-import { GIT_DIFF_FLAGS, GIT_ENV_NAMES, gitEnv } from './gitTools.js';
+import { GIT_DIFF_FLAGS, GIT_ENV_NAMES, cutNotAbsence, gitEnv } from './gitTools.js';
 import type { ExecHost, ExecRunResult } from './execHost.js';
 
 /**
@@ -103,7 +103,9 @@ export function registerGitShowTool(registry: ToolRegistry, host: ExecHost, opti
       ? `git.show → exit 0: HEAD touches ${path} as a BINARY change (+${change.additions} −${change.deletions}) — git printed no hunks, so no lines are claimed${flags}`
       : touched
         ? `git.show → exit 0: HEAD changed ${path} · +${change.additions} −${change.deletions} across ${change.hunks} hunk(s)${flags}`
-        : `git.show → exit 0: HEAD touches nothing at ${path} (empty diff — git recorded no change for this path in HEAD)${flags}`;
+        : result.truncated
+          ? `git.show → exit 0: ${cutNotAbsence(`HEAD touched ${path}`)}${flags}`
+          : `git.show → exit 0: HEAD touches nothing at ${path} (empty diff — git recorded no change for this path in HEAD)${flags}`;
     return {
       ok: true,
       detail,

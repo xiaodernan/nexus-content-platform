@@ -52,6 +52,7 @@ export {
   GIT_DIFF_FLAGS,
   GIT_ENV_NAMES,
   GIT_TOOL_SPECS,
+  cutNotAbsence,
   gitEnv,
   gitReadOnlyPolicy,
   parseDiffStat,

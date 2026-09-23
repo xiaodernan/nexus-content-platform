@@ -47,7 +47,7 @@ interface Harness {
 }
 
 /** spawnLike that starts NOTHING: the child is fake and auto-exits on a microtask. */
-function harness(end: { code?: number | null; signal?: string | null } = { code: 0, signal: null }, chunks: ['stdout' | 'stderr', string][] = []): Harness {
+function harness(end: { code?: number | null; signal?: string | null } = { code: 0, signal: null }, chunks: ['stdout' | 'stderr', Buffer | string][] = []): Harness {
   const calls: Harness['calls'] = [];
   let child: FakeChild | undefined;
   const spawnLike: SpawnLike = (command, args, opts) => {
@@ -112,12 +112,48 @@ describe('createExecHost (v30: only what planExec approved ever spawns)', () => 
     expect(seen).toEqual([{ call: { callId: 'exec-host', tool: 'exec.run', args: { argv: ['node', 'app.js'], cwd: 'X:/jail' } }, permissions: ['exec'] }]);
   });
 
-  it('output budget: total stdout+stderr is hard-capped, the cut is marked truncated', async () => {
-    const h = harness({ code: 0, signal: null }, [['stdout', 'abcd'], ['stderr', 'efghij']]);
+  it('output budget: total stdout+stderr is hard-capped, the cut is marked truncated (v48: a cut stream ends on a LINE boundary)', async () => {
+    const h = harness({ code: 0, signal: null }, [['stdout', 'ab\ncd\n'], ['stderr', 'ef\ngh\n']]);
     const r = await h.host.run({ argv: ['git', 'status', '--short'] }, OK_GATE); // rule caps at 6 bytes
-    expect(r.stdout).toBe('abcd');
-    expect(r.stderr).toBe('ef');
+    expect(r.stdout).toBe('ab\ncd\n'); // the whole 6-byte budget went to stdout, and every byte of it is a printed line
+    expect(r.stderr).toBe(''); // v30 kept the byte prefix `ef`; v48 refuses to call half a line content
     expect(r.truncated).toBe(true);
+  });
+
+  // M2 v48: the budget is measured in bytes, but it spends them on LINES. What it cannot fit it
+  // does not report — an earlier shape decoded chunk-by-chunk and cut at the byte, so a truncated
+  // read handed parsers a line the program never printed (measured against real git: an
+  // `addedLines` entry of `line 5 — 中`, and one with a U+FFFD inside it).
+  it('a cut stream keeps whole lines and drops the partial one, in bytes not characters', async () => {
+    const h = harness({ code: 0, signal: null }, [['stdout', 'l1\nl2\nl3']]); // 3+3+2 bytes against a 6-byte cap
+    const r = await h.host.run({ argv: ['git', 'status', '--short'] }, OK_GATE);
+    expect(r.stdout).toBe('l1\nl2\n');
+    expect(r.truncated).toBe(true);
+  });
+
+  it('an UNCUT stream keeps its final line even when it never got a newline (verbatim, not trimmed)', async () => {
+    const h = harness({ code: 0, signal: null }, [['stdout', 'no trailing newline']]);
+    const r = await h.host.run({ argv: ['node', 'app.js'] }, OK_GATE); // this rule caps at 1 000 bytes
+    expect(r.stdout).toBe('no trailing newline');
+    expect(r.truncated).toBe(false);
+  });
+
+  it('the cut is per-stream: starved stderr loses its partial line while intact stdout keeps its own', async () => {
+    const h = harness({ code: 0, signal: null }, [['stdout', 'abcd\n'], ['stderr', 'efgh']]); // 5 kept, 1 byte of room left
+    const r = await h.host.run({ argv: ['git', 'status', '--short'] }, OK_GATE);
+    expect(r.stdout).toBe('abcd\n');
+    expect(r.stderr).toBe('');
+    expect(r.truncated).toBe(true);
+  });
+
+  it('a multibyte character split across CHUNK boundaries is one character, not U+FFFD (bytes are decoded once, at the end)', async () => {
+    const han = Buffer.from('汉', 'utf8'); // E6 B1 89 — deliberately torn between its first and last byte
+    const zi = Buffer.from('字\n', 'utf8');
+    const h = harness({ code: 0, signal: null }, [['stdout', han.subarray(0, 2)], ['stdout', Buffer.concat([han.subarray(2), zi])]]);
+    const r = await h.host.run({ argv: ['node', 'app.js'] }, OK_GATE);
+    expect(r.stdout).toBe('汉字\n');
+    expect(r.stdout.includes(String.fromCodePoint(0xfffd))).toBe(false);
+    expect(r.truncated).toBe(false);
   });
 
   it('timeout budget: a child that never ends is killed, and killedByBudget flips the verdict data', async () => {

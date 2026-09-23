@@ -1,5 +1,5 @@
 import type { ExecPolicy, ToolRegistry, ToolSpec } from '@nexus/agent-runtime';
-import { GIT_DIFF_FLAGS, GIT_ENV_NAMES, gitEnv, parseDiffStat } from './gitTools.js';
+import { GIT_DIFF_FLAGS, GIT_ENV_NAMES, cutNotAbsence, gitEnv, parseDiffStat } from './gitTools.js';
 import type { ExecHost, ExecRunResult } from './execHost.js';
 
 /**
@@ -142,7 +142,9 @@ export function registerGitStagedTool(registry: ToolRegistry, host: ExecHost, op
     const tally = tallyStagedCounts(index.counts);
     const detail =
       index.files.length === 0
-        ? `git.staged → exit 0: the index is EMPTY — nothing is staged, so a granted git.commit right now would have nothing to record${flags(result)}`
+        ? result.truncated
+          ? `git.staged → exit 0: ${cutNotAbsence('the index has nothing staged for the §28 ask')}${flags(result)}`
+          : `git.staged → exit 0: the index is EMPTY — nothing is staged, so a granted git.commit right now would have nothing to record${flags(result)}`
         : `git.staged → exit 0: index holds ${index.totals.files} change(s): ${tally} · +${index.totals.additions} −${index.totals.deletions} across ${index.totals.hunks} hunk(s)${index.totals.binary > 0 ? ` · ${index.totals.binary} binary change(s) with no lines claimed` : ''}${flags(result)}`;
     return {
       ok: true,

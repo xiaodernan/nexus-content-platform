@@ -1211,6 +1211,81 @@ two fresh runs, checkpoint denial leaving the workspace byte-identical).
   it has never been shown; and DEMO MODE still plans by template — v47 moved an order into data and
   gave it an owner, it did not make the runtime decide anything.
 
+## Amendment 48 — v48 (exec-host): budgets that bite — a cut answer may only speak in WHOLE lines, 2026-09
+
+_Sequencing note: this is the exec-host lane the concurrent runtime slice (amendment 49) reserved
+48 for. It is orthogonal to that lane — it touches no runtime or studio file — but it moves what
+every git door says, so proofs from v30 onward are re-read below rather than assumed green._
+
+- **The numbers were always right; the sentence was wrong.** v29 put two budgets in every plan and
+  v30 made the host honour them to the byte, and the unit tests checked exactly that. Nobody asked
+  what the AGENT HEARD when a budget bit. Probing real git for this amendment answered it the ugly
+  way: a `maxOutputBytes` landing inside a line made a truncated `git.staged` hand back
+  `addedLines: ["staged line 01 \ufffd"]` — a line no human staged and git never printed, complete
+  with a replacement character, counted as content by v43's parser and shown to a human one step
+  before a §28 ask to commit it. Measured, §2 of the new proof: at **16 budgets that land inside a
+  line (8 of them inside a single CHARACTER)** the pre-v48 prefix invented a bogus staged line at
+  every one — 16/16 — while the shipped door claimed only whole staged lines, in order, as a
+  PREFIX of what the human staged, at all sixteen.
+- **Two independent defects, not one.** The byte cap was not the only liar: `run()` decoded each
+  chunk with its own `toString('utf8')`, so any multibyte character straddling a pipe-chunk boundary
+  became U+FFFD even with **no budget pressure at all**. §3 measures it with the cap RAISED past
+  the output (4 MB against a ~107 KB diff, so the decoder is on trial, not the budget): the read
+  arrives in ~10-15 real chunks, re-joins byte-for-byte equal to `git show :big.md`, and decoding
+  each chunk on its own is computed HERE and shown to differ — the corruption is not hypothetical.
+- **Fixed at the one layer that owns budgets.** `ExecHost.run` now accumulates raw `Buffer`s,
+  decodes ONCE at the end, and trims a stream that lost bytes back to its last newline. Not N
+  parsers: only the layer that drops bytes knows a drop happened, every parser downstream is
+  line-based, and a fifth door added later inherits the guarantee for free. An UNcut stream keeps
+  its final unterminated line (git's own output normally ends in `\n`; the difference is pinned in
+  `execHost.test.ts`), and the cap is shared across both streams, so the per-stream cases are
+  pinned too: `stdout 'abcd\n'` survives while a starved `stderr` says nothing.
+- **§60, turned on my own fix: a cut is not an absence.** Trimming to whole lines can leave NOTHING
+  to parse — and three doors read "zero lines" as a fact about the repository: `git.staged` declared
+  "the index is EMPTY — nothing is staged", `git.show` declared "HEAD touches nothing at <path>",
+  `git.log` declared "(empty log)". Each of those is the exact opposite of what a starved budget
+  means, and the first is a sentence a human weighs before approving a commit. So `gitTools.ts`
+  exports one shared `cutNotAbsence(what)` and all three now answer *"no complete line survived the
+  output budget — this is NOT a statement that …"* when (and only when) `truncated` is set. §2b
+  measures both halves against real git through the same door in the same repo: a 4-byte budget
+  (`diff`, no newline) names the cut, while a genuinely clean index — no budget pressure — is still
+  stated EMPTY, in the old words, with no budget wording attached.
+- **What did not move: no number, no argv, no gate.** Door defaults are still 65_536 bytes and
+  10_000 ms (§1 asserts it, and asserts a rule can still never raise its own cap above the policy
+  ceiling); every argv shape is byte-identical to v46's; no tool, role, plan step, runtime or studio
+  file changed; the timeout still kills with SIGTERM and still relays `exit null` rather than
+  inventing a code. `git.status`/`git.diff` keep their "0 entries"/"0 files" wording on purpose —
+  those are counts of lines that survived, and they carry the `output truncated at budget` flag
+  beside them, which is not the same claim as an empty repository.
+- **One committed proof had to be rewritten, which is the point of writing it down.**
+  `exec-host-proof.mjs`'s v30 case asserted `[stdout, stderr, truncated] === ['abcd','ef',true]` —
+  the byte-prefix contract pinned AS the desired behavior, half a line presented as content. It now
+  asserts `['ab\ncd\n','',true]` with the reason in a comment. A fix that leaves a proof asserting
+  the old lie is a fix that will be reverted by the next person who trusts the proof.
+- **38th proof `docs/evidence/agents/budgets-proof.mjs`** does all of the above with real git in
+  `os.tmpdir()` (one human seed commit, `core.hooksPath` neutralized INSIDE the throwaway,
+  `core.autocrlf=false` so staged bytes are the bytes git records), plus §4's timeout face: the
+  SAME allowlisted vitest argv run twice — killed at 400 ms into a FAILING `TestReport` that names
+  `killed at timeout budget (SIGTERM) · exit null` with `passed: 0` in ~0.4 s, then green under a
+  180 s budget — so "the budget caused it" is a controlled comparison, not a story. 19 git/vitest
+  processes spent in §2's arithmetic, all counted on the wire; home HEAD byte-identical; throwaways
+  deleted in `finally` (§9). exec-host **123/123 → 130/130** (`execHost.test.ts` 15 → 19, plus one
+  cut-is-not-absence case in each of the three affected door suites: `gitLogTool` 14 → 15,
+  `gitShowTool` 19 → 20, `gitStagedTool` 20 → 21). Sweep note, stated rather than smoothed over:
+  every script in `docs/evidence/agents` ran green on this tree, and that tree carried the
+  concurrent lane's in-flight work — so the runtime/studio counts quoted there are the WORKTREE's,
+  not this commit's; my lane is checked on its own at 130/130 so neither side inherits the other's
+  red.
+- Honest bounds: line-oriented trimming is correct for LINE consumers, which is every parser here —
+  a command whose whole answer is one enormous line yields nothing at all under any cut (that is the
+  starved case, and it is now worded as a cut); budgets are still shared across both streams, so a
+  chatty stderr can starve stdout to zero, which the per-stream test pins but does not prevent; the
+  timeout bounds OUR waiting, not the process tree — a killed `node` may leave grandchildren
+  running, and no reaping is claimed; `exit null` is relayed, not explained; decoding is UTF-8
+  single-shot, so a command in another charset is as wrong as it ever was (just never mid-character
+  wrong); and DEMO MODE still plans by template — v48 made an answer honest about being short, it
+  did not make the runtime decide anything.
+
 ## Amendment 49 — v49 (runtime): the arc survives its process — a role that committed left no trace a cold reader could find, 2026-09
 
 _Sequencing note: amendment 48 is the concurrent exec-host lane (budgets that bite); this runtime
