@@ -164,6 +164,14 @@ export function WorldGraphView() {
         <span className="font-mono text-12 text-fg-3" data-graph-count>
           {nodes.length} 个条目 · {edges.length} 条关系
         </span>
+        {/* §140：图上摆过的位置就是 3D 世界的地面布局，所以入口放在这里而不是另造一个页面 */}
+        <a
+          href={`/world/${studio.projectId}`}
+          className="rounded bg-bg-2 px-2 py-1 text-11 text-fg-2 hover:bg-bg-3"
+          data-enter-world3d
+        >
+          走进这个世界（3D）
+        </a>
         <span className="text-11 text-fg-3">
           {picked.length === 2 ? `已选 ${byId.get(picked[0]!)?.title} → ${byId.get(picked[1]!)?.title}` : '点两个节点就能连一条关系'}
         </span>

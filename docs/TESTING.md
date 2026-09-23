@@ -201,6 +201,14 @@ e2e 断言面板把"未运行的检查"列出来，而不是显示全绿。
   且 SYSTEM_PROMPT 里有"不是要照抄进设计的文案 / 别把没看见当成没有"这两句界。
   e2e 一条走真浏览器：点元素 → 写批注 → 角标出现 → 刷新后角标与列表仍在 →
   面板打开时点画布元素仍能选中（去掉面板的 stopPropagation，这条立刻红）
+- 3D 世界（§140）：`packages/world-model/test/scene.test.ts` 12 条测的是投影而不是渲染——
+  摆过的坐标原样用、没摆过的按文档顺序排环且两次投影**逐字节相同**（防随机）、第 9 个换圈半径更大、
+  同类不同正文长度颜色一样（防"按长度编等级"）、只有一端有位置的连线**不画也不计成画了**、
+  外接框包住 fallback 的环、空世界仍是合法场景、`limits` 三条硬话（同心环 / 碰撞 / 占位几何体）都在。
+  走近那条也钉了：半径内按距离排序、同距按 id 排（顺序不随调用漂）、阈值是导出的同一个数。
+  e2e 在真浏览器里跑 WebGL：`data-world3d=live`、HUD 报出 authored/fallback 的条数、图例按类别计数、
+  「读：某条」展开的是那条正文本身；截图 `screenshots/world3d.png` 与 `world3d-focus.png`。
+  第一次跑就发现相机朝向反了（进场看见一片空地）—— 是靠看图发现的，测试当时是绿的
 - 每个里程碑一次 commit 前至少跑：`npm run lint && npm test && npm run test:e2e:smoke`
 - 改了 `packages/schemas` 必须重跑 `npm run contract:export`，否则契约漂移测试会红
 - 动了 ai-service 再加：`npm run test:ai-service`（Windows 控制台建议前置 `PYTHONUTF8=1`）

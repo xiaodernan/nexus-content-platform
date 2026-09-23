@@ -421,3 +421,5 @@ export function worldCounts(document: WorldDocument): Record<WorldKind, number> 
 }
 
 export * from "./character";
+
+export * from "./scene";

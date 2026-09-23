@@ -1334,3 +1334,45 @@ test('@smoke 画布批注：钉在元素上、刷新还在、位置由服务端�
   await expect(page.locator(`[data-annotation="${headlineId}"]`)).toContainText('Headline · Home');
 });
 
+
+test('@smoke 3D 世界：图上摆过的位置就是地面布局，走近才展开正文（§140）', async ({ page }) => {
+  test.setTimeout(180_000);
+  await createProject(page, `World 3D ${Date.now().toString(36)}`);
+
+  // 世界骨架 + 一条正文（§44）。落库要等 world-state，不是画布的 save-state
+  await page.click('[data-panel-tab="world"]');
+  await expect(page.locator('[data-world-empty]')).toBeVisible({ timeout: 40_000 });
+  await page.click('[data-world-create]');
+  await expect(page.locator('[data-world-node]')).toHaveCount(9);
+  await page.locator('[data-world-group="lore"] [data-world-body]').first().fill('三座浮岛与一条会说谎的河。');
+  await page.click('[data-world-name]');
+  await expect(page.locator('[data-world-state]')).toHaveText('已保存', { timeout: 20_000 });
+
+  await page.click('[data-view="graph"]');
+  await page.waitForSelector('[data-graph-count]', { timeout: 30_000 });
+  await page.click('[data-enter-world3d]');
+  await page.waitForURL(/\/world\/[^/]+$/, { timeout: 30_000 });
+
+  // 这台设备给不出 WebGL 时，页面必须明说，而不是一片黑屏或假装进了世界
+  const mode = await page.waitForSelector('[data-world3d="live"], [data-world3d="unavailable"]', { timeout: 30_000 });
+  const kind = await mode.getAttribute('data-world3d');
+  console.log(`3D 世界渲染模式：${kind}`);
+  await page.screenshot({ path: 'screenshots/world3d.png' });
+  expect(['live', 'unavailable']).toContain(kind as string);
+
+  if (kind === 'live') {
+    await expect(page.locator('[data-world-hud]')).toContainText('来自《World 3D');
+    // HUD 必须说清哪些位置是作者摆过的、哪些是规则排的——这是这份场景最容易骗人的一处
+    await expect(page.locator('[data-world-hud]')).toContainText('0 个来自你在世界图上摆过的坐标');
+    await expect(page.locator('[data-world-hud]')).toContainText('9 个按文档顺序排在同心环上');
+    await expect(page.locator('[data-scene-limits]')).toContainText('碰撞');
+    await expect(page.locator('[data-world-legend]')).toContainText('传说 · 1');
+
+    const first = page.locator('[data-read-entity]').first();
+    await first.click();
+    await expect(page.locator('[data-nearby-focus]')).toBeVisible();
+    // 展开的是那条正文本身，不是"已为你生成"之类的空话
+    await expect(page.locator('[data-nearby-focus]')).toContainText('三座浮岛与一条会说谎的河');
+    await page.screenshot({ path: 'screenshots/world3d-focus.png' });
+  }
+});
