@@ -296,16 +296,38 @@ for (const scale of scales) {
     continue;
   }
   const runs: number[] = [];
-  for (let run = 0; run < RUNS; run += 1) runs.push(await reloadAndMeasureFirstNode());
-  record(`首帧（${built} 节点）`, 'ms', runs);
-  // 自检：文档变大了，画布也必须真的变多。不检查这一条，"N 节点档"随时是在量别的
+  let loadFailure = '';
+  for (let run = 0; run < RUNS; run += 1) {
+    try {
+      runs.push(await reloadAndMeasureFirstNode());
+    } catch (error) {
+      // 这一档可能根本加载不完（4000 节点就是这样：画布已经只画 18 个，页面仍然出不来）。
+      // 那要作为"没测到 + 为什么"记下来，而不是让整个脚本抛掉前面所有档的数字
+      loadFailure = error instanceof Error ? error.message : String(error);
+      console.log(`  ${built} 节点这一档首帧没量到：${loadFailure}`);
+      break;
+    }
+  }
+  if (runs.length >= 2) record(`首帧（${built} 节点）`, 'ms', runs);
+  // 自检：文档真的变大了吗？图层树读的是整份文档、不受视口裁剪影响，所以拿它当"文档侧"的证据；
+  // 画布 DOM 那一侧则要看有没有按视口裁剪（§147），两种情况分别核对，不能一概要求"DOM ≈ 文档"。
   const counts = await canvasNodeCounts();
-  console.log(`  ${built} 节点这一档：画布 DOM 渲染了 ${counts.dom} 个，图层树 ${counts.layers} 行`);
-  if (counts.dom < built * 0.9) {
+  const badge = await page.locator('[data-canvas-virtualized]').count();
+  console.log(
+    `  ${built} 节点这一档：图层树 ${counts.layers} 行、画布 DOM ${counts.dom} 个、视口裁剪 ${badge ? '开着' : '没开'}`,
+  );
+  if (counts.layers < built * 0.9) {
     throw new Error(
-      `压测没生效：文档里 ${built} 个节点，画布只渲染了 ${counts.dom} 个。` +
+      `压测没生效：想让文档到 ${built} 个节点，图层树只列得出 ${counts.layers} 行。` +
         `这时量出来的任何数都不能当成"${built} 节点的性能"。`,
     );
+  }
+  if (loadFailure) console.log(`  提示：这一档还有"没测到"的项，写进文档时不能只挑量到的那几个数。`);
+  if (built > 400 && badge === 0) {
+    throw new Error(`文档 ${built} 个节点却没过视口裁剪（DOM ${counts.dom}）：§147 那条改动没生效`);
+  }
+  if (built <= 400 && counts.dom < built * 0.9) {
+    throw new Error(`小文档不该被裁：${built} 个节点，画布只渲染了 ${counts.dom} 个`);
   }
   record(`画布 DOM 节点数（${built} 节点文档）`, '个', [counts.dom, counts.dom, counts.dom]);
 

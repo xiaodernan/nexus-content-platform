@@ -211,6 +211,12 @@ e2e 断言面板把"未运行的检查"列出来，而不是显示全绿。
   "0 个来自你摆过的坐标"变成"1 个 / 8 个按顺序排"，且那个条目的标签 `data-placed="authored"`。
   图例按类别计数、点标签展开的是那条正文本身；截图 `screenshots/world3d.png` 与 `world3d-focus.png`。
   第一次跑就发现相机朝向反了（进场看见一片空地）—— 是靠看图发现的，测试当时是绿的
+- 画布视口裁剪（§147）：`packages/design-model/test/viewport.test.ts` 6 条，每条都对着一种"会让用户误判"的失败——
+  小文档不裁（DOM 有没有节点是可观察行为）、过阈值才裁且**根框永远留着**（裁了页面背景就没了）、
+  视口外扩一圈余量、视口还没量到时宁可不裁（否则首帧一片空白）、paintOrder 里有幽灵 id 要丢掉而不是抛、
+  裁剪不许打乱叠放次序。压测脚本自己核对三件事：图层树行数（文档侧证据）、画布 DOM 数、裁剪徽标在不在，
+  对不上就抛错——**某一档首帧量不到时改成记下"没测到 + 原因"并继续**，
+  免得一个档超时把前面所有档的数字一起丢掉
 - 残缺节点不许白屏（§146 压测撞出来的）：`packages/design-model/test/malformed-node.test.ts` 5 条 ——
   `lintDesign` / `resolveLayout` 遇到缺 `style.cornerRadius` / `layout.padding` 的节点**不抛**
   （读路径崩了用户看到的是整页白屏，而不是"这个节点有问题"），`validateDocument` 按 error 报出节点名；
