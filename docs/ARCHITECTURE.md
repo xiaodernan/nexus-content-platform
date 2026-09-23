@@ -36,7 +36,7 @@ apps/
   web/          Next.js App Router：Studio + 站点 + BFF route handlers
   ai-service/   FastAPI：agent 编排、provider 抽象、RAG、评测、截图
 packages/
-  design-model/ @nexus/design-model：设计对象模型、布局求解、Command 事务、序列化（纯 TS，无 IO）
+  design-model/ @nexus/design-model：设计对象模型、布局求解、Command 事务、序列化、上下文目录（§70）（纯 TS，无 IO）
   schemas/      @nexus/schemas：跨端 zod 契约（AI 请求/响应、事件、补丁操作、世界文档）
   world-model/  @nexus/world-model：§44 世界文档（九类条目 + 校验），纯 TS 无 IO，浏览器与服务端同一份
 infra/
@@ -100,6 +100,15 @@ DEMO 路径不在 ai-service 里：确定性 Mock 需要 design model 才能产�
     （S3 兼容实现 + 本地目录兜底，§64 provider 可替换），鉴权分两套 URL 面：作者会话取
     `/api/assets/[id]/file`，匿名访客取 `/api/public/[handle]/assets/[id]` 且必须"发布行 + 钉住快照确实引用"才放行。
     持久化在 web 层，AI Service 仍不写业务库（生成图将来也是返回计划/补丁，落库走同一入口）。
+12. **上下文只在一处装配，发出去的是目录不是文档**（§66-68/§70）：
+    `buildDesignIndex`（`@nexus/design-model`，纯函数）把文档投影成目录（页面/框/组件/资产/token/交互 + 跨引用边 + totals），
+    `fitIndexToBudget` 按字符预算裁剪；服务端 `buildProjectContext`（`apps/web/src/server/domain/context.ts`）
+    再把目录与世界/角色/记忆/资产/语料/快照/发布摘要和 §71 七分支状态拼成一份 `ProjectContext`，
+    Studio 面板与将来的 Agent 请求共用这一处。三条硬规矩：
+    裁剪只丢条目、**`totals` 永远来自未裁的那一份**，丢了什么以 `trimmed`/`dropped` 随报文一起出去；
+    没落地的分支写 `not-indexed` 而不是留白；装配只读，不顺手写库。
+    为什么必须有预算：10k 节点的目录不套预算是 71 万字符（实测见 `docs/PERFORMANCE.md`），
+    "索引过"从来不等价于"塞得进上下文"。取舍与踩坑记录在 `docs/adr/0006-design-index-char-budget.md`。
 
 ## Design ↔ Code 双通道
 

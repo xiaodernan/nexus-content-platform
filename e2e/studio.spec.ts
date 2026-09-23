@@ -1035,3 +1035,47 @@ test('@smoke 检索：世界条目进索引、中文子串命中、说明向量�
   await page.click('[data-retrieve-rebuild]');
   await expect(page.locator('[data-knowledge-total]')).toHaveText(before ?? '0 块', { timeout: 20_000 });
 });
+
+/**
+ * §66-71 上下文面板：一次装配把画布本地状态与服务端目录拼在一起。
+ * 断言的重点是"看得见的大小对比"和"没做的如实写着没做"，不是排版。
+ */
+test('@smoke 上下文：目录尺寸、预算裁剪与未索引分支都写在脸上（§66-71）', async ({ page }) => {
+  test.setTimeout(180_000);
+  await createProject(page, `上下文 ${Date.now().toString(36)}`);
+
+  const headlineId = await layerId(page, 'Headline');
+  await page.click(`[data-node-id="${headlineId}"]`);
+
+  await page.click('[data-panel-tab="context"]');
+  await expect(page.locator('[data-context-panel]')).toBeVisible();
+
+  // §66 的三项来自画布：刚选中的节点要立刻体现在这里
+  await expect(page.locator('[data-context-local]')).toContainText('当前页面');
+  await expect(page.locator('[data-context-local]')).toContainText('1 个：Headline');
+
+  // 目录与整份文档的尺寸对比：这是 §68 那句"别整个塞进去"的可核对版本
+  await expect(page.locator('[data-context-chars]')).toContainText('字符（');
+  await expect(page.locator('[data-context-page="Home"]')).toContainText('8 节点');
+  // 刚起步的项目：世界确实还没有，面板不该拿一份空文档装作有
+  await expect(page.locator('[data-context-panel]')).toContainText('还没有世界文档');
+
+  // 把预算压到装不下：裁剪必须逐条交代，而不是静默变短
+  await page.fill('[data-context-budget]', '300');
+  await page.click('[data-context-apply-budget]');
+  await expect(page.locator('[data-context-trimmed]').first()).toBeVisible({ timeout: 20_000 });
+  await expect(page.locator('[data-context-trimmed]').first()).toContainText('文字预览');
+
+  // 放回宽裕预算：裁剪说明就该消失（同一份文档，两种预算，结论不同且都说得清）
+  await page.fill('[data-context-budget]', '200000');
+  await page.click('[data-context-apply-budget]');
+  await expect(page.locator('[data-context-trimmed]')).toHaveCount(0, { timeout: 20_000 });
+  await expect(page.locator('[data-context-panel]')).toContainText('这次没触发裁剪');
+
+  // §71 七个分支：做了什么写什么，没做的标未索引
+  await expect(page.locator('[data-context-branch="Design"]')).toContainText('已索引');
+  await expect(page.locator('[data-context-branch="Code"]')).toContainText('未索引');
+  await expect(page.locator('[data-context-branch="Publishing"]')).toContainText('未索引');
+  // 没带的信息逐条列出，读的人不必猜边界
+  await expect(page.locator('[data-context-unavailable]').first()).toContainText('画布的本地状态');
+});

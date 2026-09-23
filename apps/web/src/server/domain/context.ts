@@ -1,0 +1,182 @@
+import {
+  DEFAULT_INDEX_CHAR_BUDGET,
+  buildDesignIndex,
+  designDocumentChars,
+  designIndexChars,
+  fitIndexToBudget,
+} from '@nexus/design-model';
+import { worldCounts } from '@nexus/world-model';
+import { ProjectContextSchema, type ProjectContextPayload } from '@nexus/schemas';
+import { listProjectAssets } from './assets';
+import { listCharacters } from './characters';
+import { knowledgeStats } from './knowledge';
+import { countMemoriesByScope } from './memories';
+import { loadDocument } from './projects';
+import { getPublication } from './publish';
+import { listSnapshots } from './snapshots';
+import { loadWorld } from './worlds';
+
+/**
+ * §67 Context Engine 的服务端装配。
+ *
+ * 为什么要有这一处而不是各处现拼：§66 要求 Agent 每次都拿到同一批上下文（选中、页面、
+ * 视口、设计系统、项目文件、资产、用户请求），而 §68 禁止把整份文档/整个 repo 塞进去。
+ * 这两条只有在**一处**装配时才可能同时被验证——所以这里产出的是可核对的目录 + 摘要，
+ * 面板与（将来的）Agent 请求都从同一份出发。
+ *
+ * 三条边界（§159）：
+ * 1. 装配只读，不写库、不顺手创建任何东西；
+ * 2. 读不出来的域（世界文档坏了、角色行不合规）不静默消失，原因随报文一起出去；
+ * 3. §71 的七个分支里没做的就写 `not-indexed`，不拿"暂时还没有"冒充"已经索引好了"。
+ */
+
+export interface BuildContextOptions {
+  /** 设计目录的字符预算；超了按固定优先级裁，裁剪结果随报文出去 */
+  maxIndexChars?: number;
+  recentChangeLimit?: number;
+}
+
+export type ContextResult =
+  | { ok: true; context: ProjectContextPayload }
+  | { ok: false; reason: string };
+
+const RECENT_DEFAULT = 8;
+
+function tally<T extends string>(items: T[]): { kind: T; count: number }[] {
+  const counts = new Map<T, number>();
+  for (const item of items) counts.set(item, (counts.get(item) ?? 0) + 1);
+  return [...counts.entries()]
+    .map(([kind, count]) => ({ kind, count }))
+    .sort((a, b) => b.count - a.count || a.kind.localeCompare(b.kind));
+}
+
+export async function buildProjectContext(
+  projectId: string,
+  ownerId: string,
+  options: BuildContextOptions = {},
+): Promise<ContextResult> {
+  const maxIndexChars = options.maxIndexChars ?? DEFAULT_INDEX_CHAR_BUDGET;
+  const recentLimit = options.recentChangeLimit ?? RECENT_DEFAULT;
+
+  const document = await loadDocument(projectId);
+  if (!document) return { ok: false, reason: '这个项目读不出设计文档（不存在或已删除），目录无从算起。' };
+
+  const fullIndex = buildDesignIndex(document);
+  const index = fitIndexToBudget(fullIndex, maxIndexChars);
+
+  const [world, characters, memoryCounts, assetRows, knowledge, snapshots, publication] =
+    await Promise.all([
+      loadWorld(projectId),
+      listCharacters(projectId),
+      countMemoriesByScope(ownerId, projectId),
+      listProjectAssets(projectId),
+      knowledgeStats(projectId),
+      listSnapshots(projectId),
+      getPublication(projectId),
+    ]);
+
+  const unavailable = [
+    '当前选中 / 页面 / 视口是画布的本地状态，由浏览器侧的 Context Engine 补上（§66 那三项不在这里）',
+    'Code Index（§69）：还没落地，Agent 现在找不到"真正相关的代码"，只能拿到生成代码的全量',
+    '语义检索与相关性排序：要 embedding provider，§49 只落了全文 + 子串',
+    '资产像素内容：只带元数据与引用计数',
+  ];
+
+  const context: ProjectContextPayload = {
+    projectId,
+    generatedAt: new Date().toISOString(),
+    sizes: {
+      fullDocumentChars: designDocumentChars(document),
+      indexChars: designIndexChars(index),
+      budgetChars: maxIndexChars,
+    },
+    design: index,
+    world: world?.ok
+      ? {
+          present: true,
+          name: world.document.name,
+          kinds: Object.entries(worldCounts(world.document))
+            .map(([kind, count]) => ({ kind, count }))
+            .sort((a, b) => b.count - a.count || a.kind.localeCompare(b.kind)),
+          links: world.document.links.length,
+          reason: null,
+        }
+      : { present: false, name: null, kinds: [], links: 0, reason: world ? world.reason : null },
+    characters: {
+      count: characters.items.length,
+      items: characters.items.map((character) => ({
+        id: character.id,
+        name: character.profile.name,
+        relationships: character.profile.relationships.length,
+      })),
+      unreadable: characters.unreadable,
+    },
+    memory: {
+      scopes: Object.entries(memoryCounts).map(([scope, count]) => ({ scope, count })),
+      total: Object.values(memoryCounts).reduce((a, b) => a + b, 0),
+    },
+    assets: {
+      count: assetRows.length,
+      kinds: tally(assetRows.map((asset) => asset.kind)),
+    },
+    knowledge: {
+      chunks: knowledge.total,
+      vectorized: knowledge.vectorized,
+      vectorAvailable: knowledge.vectorized > 0,
+      sources: Object.entries(knowledge.bySource).map(([sourceType, count]) => ({ sourceType, count })),
+    },
+    recentChanges: snapshots.slice(0, recentLimit).map((snapshot) => ({
+      label: snapshot.label,
+      source: snapshot.source,
+      summary: snapshot.summary,
+      createdAt: snapshot.createdAt,
+    })),
+    publishing: {
+      published: Boolean(publication),
+      visibility: publication?.visibility ?? null,
+      path: publication?.path ?? null,
+      version: publication?.version ?? 0,
+      views: publication?.views ?? 0,
+      publishedAt: publication?.publishedAt ?? null,
+    },
+    branches: [
+      { name: 'Design', status: 'indexed', note: `页面/结构/组件/资产/token/交互 + 跨引用边（§70）` },
+      {
+        name: 'Code',
+        status: 'not-indexed',
+        note: '能生成（codegen），但没有 §69 的 File/Symbol/Function/Dependency 索引',
+      },
+      {
+        name: 'Assets',
+        status: 'partial',
+        note: `只有元数据与引用计数：${assetRows.length} 个资产，其中 ${index.totals.orphanAssets} 个没被设计引用`,
+      },
+      { name: 'Agents', status: 'not-indexed', note: 'Agent 的活动与产出还没进装配（§26 事件流在 ai-service 侧）' },
+      {
+        name: 'Data',
+        status: 'partial',
+        note: `世界 ${world?.ok ? '有' : '没有'}、角色 ${characters.items.length}、记忆 ${Object.values(memoryCounts).reduce((a, b) => a + b, 0)} 条：只带条数与标题，正文按 id 取`,
+      },
+      { name: 'Runtime', status: 'not-indexed', note: '预览跑在沙箱里，运行期指标（§82/§83）还没回流到上下文' },
+      {
+        name: 'Publishing',
+        status: publication ? 'partial' : 'not-indexed',
+        note: publication
+          ? `已发布为 ${publication.visibility}（${publication.path}，v${publication.version}）`
+          : '还没有发布记录，也就没有可引用的发布态',
+      },
+    ],
+    unavailable,
+  };
+
+  const parsed = ProjectContextSchema.safeParse(context);
+  if (!parsed.success) {
+    return {
+      ok: false,
+      reason: `上下文装配不符合契约：${parsed.error.issues
+        .map((issue) => `${issue.path.join('.')}: ${issue.message}`)
+        .join('；')}`,
+    };
+  }
+  return { ok: true, context: parsed.data };
+}

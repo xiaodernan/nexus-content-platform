@@ -439,4 +439,198 @@ export const CharacterCreateRequestSchema = z.object({
 
 export const CharacterUpdateRequestSchema = z.object({ profile: CharacterProfileSchema });
 
+/**
+ * §70 Design Index 的线格式。
+ *
+ * 权威在 `@nexus/design-model`（怎么算是那儿决定的），这里只规定"出了进程长什么样"。
+ * 形状里刻意带上 `dropped` / `trimmed` / `omissions`：一次裁剪必须随报文一起出去，
+ * 否则客户端只能靠猜知道这份目录被压过（§159）。
+ */
+export const DesignIndexTotalsSchema = z.object({
+  pages: z.number().int().min(0),
+  nodes: z.number().int().min(0),
+  reachableNodes: z.number().int().min(0),
+  unreachableNodes: z.number().int().min(0),
+  frames: z.number().int().min(0),
+  sections: z.number().int().min(0),
+  components: z.number().int().min(0),
+  unusedComponents: z.number().int().min(0),
+  instances: z.number().int().min(0),
+  assets: z.number().int().min(0),
+  orphanAssets: z.number().int().min(0),
+  tokens: z.number().int().min(0),
+  unusedTokens: z.number().int().min(0),
+  undeclaredTokenRefs: z.number().int().min(0),
+  interactions: z.number().int().min(0),
+  edges: z.number().int().min(0),
+  textChars: z.number().int().min(0),
+});
+
+export const DesignIndexSchema = z.object({
+  schemaVersion: z.literal(1),
+  generatedFrom: z.object({
+    documentId: z.string(),
+    documentName: z.string(),
+    updatedAt: z.string(),
+  }),
+  pages: z.array(
+    z.object({
+      id: z.string(),
+      name: z.string(),
+      route: z.string().nullable(),
+      nodeCount: z.number().int().min(0),
+      reachable: z.number().int().min(0),
+      frames: z.number().int().min(0),
+      sections: z.number().int().min(0),
+      textChars: z.number().int().min(0),
+      components: z.array(z.string()),
+      assets: z.array(z.string()),
+      tokens: z.number().int().min(0),
+      interactions: z.number().int().min(0),
+      maxDepth: z.number().int().min(0),
+      viewport: z.object({ width: z.number(), height: z.number() }),
+    }),
+  ),
+  frames: z.array(
+    z.object({
+      id: z.string(),
+      name: z.string(),
+      kind: z.enum(['frame', 'section']),
+      pageId: z.string(),
+      pageName: z.string(),
+      parent: z.string().nullable(),
+      depth: z.number().int().min(0),
+      childCount: z.number().int().min(0),
+      layoutMode: z.string(),
+      size: z.object({ width: z.union([z.number(), z.string()]), height: z.union([z.number(), z.string()]) }),
+      textPreview: z.string(),
+    }),
+  ),
+  components: z.array(
+    z.object({
+      id: z.string(),
+      name: z.string(),
+      definedOnPage: z.string().nullable(),
+      props: z.array(z.string()),
+      variants: z.number().int().min(0),
+      slots: z.array(z.string()),
+      instances: z.number().int().min(0),
+      usedOnPages: z.array(z.string()),
+      unused: z.boolean(),
+    }),
+  ),
+  assets: z.array(
+    z.object({
+      id: z.string(),
+      name: z.string(),
+      kind: z.string(),
+      usedByNodes: z.number().int().min(0),
+      usedOnPages: z.array(z.string()),
+      orphaned: z.boolean(),
+    }),
+  ),
+  tokens: z.array(
+    z.object({
+      key: z.string(),
+      type: z.string(),
+      group: z.string().nullable(),
+      value: z.union([z.string(), z.number(), z.boolean(), z.null()]),
+      modes: z.number().int().min(0),
+      usedByNodes: z.number().int().min(0),
+      via: z.array(z.enum(['binding', 'value'])),
+      used: z.boolean(),
+    }),
+  ),
+  interactions: z.array(
+    z.object({
+      id: z.string(),
+      pageId: z.string(),
+      pageName: z.string(),
+      nodeId: z.string(),
+      nodeName: z.string(),
+      trigger: z.string(),
+      action: z.string(),
+      target: z.string().nullable(),
+      targetName: z.string().nullable(),
+    }),
+  ),
+  edges: z.array(
+    z.object({ from: z.string(), to: z.string(), kind: z.enum(['instance', 'asset', 'token', 'interaction']) }),
+  ),
+  totals: DesignIndexTotalsSchema,
+  omissions: z.array(z.string()),
+  dropped: z
+    .object({
+      frames: z.number().int().min(0),
+      edges: z.number().int().min(0),
+      interactions: z.number().int().min(0),
+      textPreviews: z.number().int().min(0),
+    })
+    .optional(),
+  trimmed: z.array(z.string()).optional(),
+});
+export type DesignIndexPayload = z.infer<typeof DesignIndexSchema>;
+
+/** §67 Context Engine 的一次装配：设计目录 + 世界/角色/记忆/资产/索引/近况的摘要 */
+export const ProjectContextSchema = z.object({
+  projectId: z.string(),
+  generatedAt: z.string(),
+  /** 尺寸对比：§68 的"别整个塞进去"要能被量出来 */
+  sizes: z.object({
+    fullDocumentChars: z.number().int().min(0),
+    indexChars: z.number().int().min(0),
+    budgetChars: z.number().int().min(0),
+  }),
+  design: DesignIndexSchema,
+  world: z.object({
+    present: z.boolean(),
+    name: z.string().nullable(),
+    kinds: z.array(z.object({ kind: z.string(), count: z.number().int().min(0) })),
+    links: z.number().int().min(0),
+    /** 读不出来时的原因；不能因为它缺了就当项目没有世界（§159） */
+    reason: z.string().nullable(),
+  }),
+  characters: z.object({
+    count: z.number().int().min(0),
+    items: z.array(z.object({ id: z.string(), name: z.string(), relationships: z.number().int().min(0) })),
+    unreadable: z.array(z.string()),
+  }),
+  memory: z.object({
+    scopes: z.array(z.object({ scope: z.string(), count: z.number().int().min(0) })),
+    total: z.number().int().min(0),
+  }),
+  assets: z.object({
+    count: z.number().int().min(0),
+    kinds: z.array(z.object({ kind: z.string(), count: z.number().int().min(0) })),
+  }),
+  knowledge: z.object({
+    chunks: z.number().int().min(0),
+    vectorized: z.number().int().min(0),
+    vectorAvailable: z.boolean(),
+    sources: z.array(z.object({ sourceType: z.string(), count: z.number().int().min(0) })),
+  }),
+  recentChanges: z.array(
+    z.object({ label: z.string().nullable(), source: z.string(), summary: z.string().nullable(), createdAt: z.string() }),
+  ),
+  /** §71 Project Graph：这七个分支这次各自带到什么程度。没带的如实标 not-indexed */
+  publishing: z.object({
+    published: z.boolean(),
+    visibility: z.string().nullable(),
+    path: z.string().nullable(),
+    version: z.number().int().min(0),
+    views: z.number().int().min(0),
+    publishedAt: z.string().nullable(),
+  }),
+  branches: z.array(
+    z.object({
+      name: z.string(),
+      status: z.enum(['indexed', 'partial', 'not-indexed']),
+      note: z.string(),
+    }),
+  ),
+  /** 这次装配没带、也暂时给不了的东西，原样列出来（§66 的清单要能核对缺哪一项） */
+  unavailable: z.array(z.string()),
+});
+export type ProjectContextPayload = z.infer<typeof ProjectContextSchema>;
+
 export { NodeTypeEnum as DesignNodeType };

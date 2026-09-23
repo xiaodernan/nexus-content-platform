@@ -522,7 +522,17 @@ drizzle 把整个拼接结果当成**单个绑定参数**，生成的 SQL 是 `o
 
 ## 横向能力（随里程碑推进，不单列里程碑）
 - Agent 工具注册表 + 权限 + 人工审批门（§72-74/177）
-- Context Engine / Code Index / Design Index / Project Graph（§66-71）
+- Context Engine / Design Index / Project Graph（§66-71）— **第一切片已落地（2026-09-24）**：
+  `buildDesignIndex`（`packages/design-model/src/context-index.ts`）把一份设计文档投影成**目录**
+  （页面 / 框 / 组件 / 资产 / token / 交互 + 跨引用边 + totals，纯函数、不含正文），
+  `fitIndexToBudget` 按字符预算裁剪，并且**逐条交代裁掉了什么**（totals 始终来自未裁的那一份，宁可少列条目不少报数）；
+  服务端 `buildProjectContext`（`apps/web/src/server/domain/context.ts`）一次装配出设计目录 + 世界/角色/记忆/资产/语料/快照/发布的摘要 +
+  §71 七个分支各自的索引状态，过 `ProjectContextSchema` 后由 `GET /api/projects/[id]/context` 出去；
+  Studio 的「上下文」面板与（将来的）Agent 请求从同一份装配出发，面板上还给出「目录 vs 整份文档」的字符对比与可改的预算。
+  仍欠的三笔如实记下：① `CommandBar` 现在仍把**整份文档**塞进 AI 请求——§68 的缺口，下一步换成这份目录；
+  ② Code Index（§69）以及 Agents / Runtime 分支未落地，面板上写的是「未索引」而不是空白；
+  ③ 语义相关性与重排要 embedding provider（§49 的向量半）。
+  实测尺寸/耗时见 `docs/PERFORMANCE.md`，预算为什么取 20000 见 `docs/adr/0006-design-index-char-budget.md`。
 - Observability / Evaluation / Visual Benchmark（§84-86/156）
 - 规模基准与热点路径（§146/§147）— 模型层有 `scripts/perf-baseline.mts`，实测数字与"还没做的部分"记在
   `docs/PERFORMANCE.md`；画布虚拟化、worker、浏览器端指标仍未做，所以那些数字一个都没有。

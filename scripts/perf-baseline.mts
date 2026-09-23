@@ -2,10 +2,14 @@ import { performance } from 'node:perf_hooks';
 import {
   DesignStore,
   analyzeHealth,
+  buildDesignIndex,
   createDocument,
   createNode,
   createPage,
+  designDocumentChars,
+  designIndexChars,
   diffDocuments,
+  fitIndexToBudget,
   generateProject,
   lintDesign,
   manualCommand,
@@ -91,6 +95,7 @@ for (const n of SIZES) {
   const page = document.pages[0]!;
   const tokens = new TokenStore(document.tokens);
   const cells: Record<string, number[]> = {};
+  let lastIndexChars = 0;
 
   let sizes: Record<string, { width: number; height: number }> = {};
   cells['resolveLayout'] = measure('resolveLayout', () => {
@@ -102,6 +107,12 @@ for (const n of SIZES) {
   cells['lintDesign'] = measure('lint', () => lintDesign(document, sizes));
   cells['analyzeHealth'] = measure('health', () => analyzeHealth(document));
   cells['generateProject'] = measure('codegen', () => generateProject(document, {}));
+  /** §70 Design Index：Agent 上下文里带的是这份目录，所以它的成本与尺寸都要可测（§68） */
+  const indexRuns = measure('designIndex', () => {
+    const built = buildDesignIndex(document);
+    lastIndexChars = designIndexChars(built);
+  });
+  cells['buildDesignIndex'] = indexRuns;
 
   const store = new DesignStore(document);
   const target = Object.keys(page.nodes).find((id) => page.nodes[id]!.type === 'text')!;
@@ -132,8 +143,13 @@ for (const n of SIZES) {
   );
   console.log(`\n${n} 个节点（实建 ${Object.keys(page.nodes).length}，改动 ${touched} 处）`);
   for (const [label, r] of Object.entries(cells)) console.log(`  ${label.padEnd(18)} ${time(r)}`);
+  const docChars = designDocumentChars(document);
+  const fittedChars = designIndexChars(fitIndexToBudget(buildDesignIndex(document)));
+  console.log(
+    `  索引尺寸           ${lastIndexChars} 字符 / 文档 ${docChars} 字符（${((lastIndexChars / docChars) * 100).toFixed(1)}%），压进预算后 ${fittedChars} 字符（${((fittedChars / docChars) * 100).toFixed(1)}%）`,
+  );
 }
 
-const header = `| 节点数 | ${['resolveLayout', 'validateDocument', 'lintDesign', 'analyzeHealth', 'generateProject', 'execute + undo', 'diffDocuments'].join(' | ')} | 合计 |`;
-console.log(`\n${header}\n|---|${'---|'.repeat(8)}`);
+const header = `| 节点数 | ${['resolveLayout', 'validateDocument', 'lintDesign', 'analyzeHealth', 'generateProject', 'buildDesignIndex', 'execute + undo', 'diffDocuments'].join(' | ')} | 合计 |`;
+console.log(`\n${header}\n|---|${'---|'.repeat(9)}`);
 console.log(rows.join('\n'));

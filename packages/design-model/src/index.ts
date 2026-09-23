@@ -9,6 +9,7 @@ export * from "./components";
 export * from "./serialize";
 export * from "./validate";
 export * from "./health";
+export * from "./context-index";
 export * from "./codegen";
 export * from "./code-parse";
 export * from "./concepts";
