@@ -4,6 +4,7 @@ import {
   designDocumentChars,
   designIndexChars,
   fitIndexToBudget,
+  type DesignDocument,
 } from '@nexus/design-model';
 import { worldCounts } from '@nexus/world-model';
 import { ProjectContextSchema, type ProjectContextPayload } from '@nexus/schemas';
@@ -37,7 +38,15 @@ export interface BuildContextOptions {
 }
 
 export type ContextResult =
-  | { ok: true; context: ProjectContextPayload }
+  | {
+      ok: true;
+      context: ProjectContextPayload;
+      /**
+       * 装配过程中读到的那份权威文档。目录本来就是它的投影，再让调用方 loadDocument 一次
+       * 就是白白重跑一遍全表重建（10k 节点那一档实测最贵的就是这一步），所以顺手带出去。
+       */
+      document: DesignDocument;
+    }
   | { ok: false; reason: string };
 
 const RECENT_DEFAULT = 8;
@@ -178,5 +187,5 @@ export async function buildProjectContext(
         .join('；')}`,
     };
   }
-  return { ok: true, context: parsed.data };
+  return { ok: true, context: parsed.data, document };
 }

@@ -164,6 +164,19 @@ async function writeDocument(tx: Tx, projectId: string, document: DesignDocument
   }
 }
 
+/**
+ * 单条 INSERT 的参数上限是 65,535，节点行每行 9 个参数 —— 不切块的话，
+ * 一个页面超过约 7,200 个节点就**整体存不下去**（`MAX_PARAMETERS_EXCEEDED`），
+ * 而 §146 的规模目标正是 10,000 节点。切块只改"几条语句"，不改事务语义。
+ */
+const INSERT_CHUNK = 500;
+
+function chunked<T>(items: T[], size = INSERT_CHUNK): T[][] {
+  const out: T[][] = [];
+  for (let i = 0; i < items.length; i += size) out.push(items.slice(i, i + size));
+  return out;
+}
+
 async function writeNodes(tx: Tx, page: Page): Promise<void> {
   const rows = Object.values(page.nodes).map((node, index) => ({
     id: node.id,
@@ -176,7 +189,7 @@ async function writeNodes(tx: Tx, page: Page): Promise<void> {
     visible: node.visible,
     locked: node.locked,
   }));
-  if (rows.length) await tx.insert(designNodes).values(rows);
+  for (const part of chunked(rows)) await tx.insert(designNodes).values(part);
 }
 
 /**

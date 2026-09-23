@@ -44,7 +44,7 @@ export async function POST(req: Request): Promise<NextResponse> {
       return NextResponse.json(result.response);
     }
 
-    const response = await mockProvider.run(assembled.wire, { document: assembled.toolDocument ?? undefined });
+    const response = await mockProvider.run(assembled.wire, { document: assembled.toolDocument });
     const validated = AiResponseSchema.safeParse(response);
     if (!validated.success) {
       return failure(new Error(`provider 输出不符合契约：${validated.error.issues.map((i) => `${i.path.join('.')}: ${i.message}`).join('；')}`), 'POST /api/ai/run');

@@ -544,6 +544,9 @@ drizzle 把整个拼接结果当成**单个绑定参数**，生成的 SQL 是 `o
 - Observability / Evaluation / Visual Benchmark（§84-86/156）
 - 规模基准与热点路径（§146/§147）— 模型层有 `scripts/perf-baseline.mts`，实测数字与"还没做的部分"记在
   `docs/PERFORMANCE.md`；画布虚拟化、worker、浏览器端指标仍未做，所以那些数字一个都没有。
+  2026-09-24 补：持久层第一次进表，当场挖出一条硬断链 —— 一个页面超过约 **7,281 个节点就整体存不下去**
+  （`writeNodes` 拼单条 INSERT 撞上 Postgres 65,535 参数上限），而 §146 的目标正是 10,000 节点。
+  模型层基准只在内存里造文档，所以它从没暴露过这件事。改成 500 行切块并补了回归测试。
 - 沙箱预览与生成代码隔离执行（§81-83）
 - Design Critic + Visual QA + 无障碍/性能门禁（§32-33/90-91/178-179）—
   门禁与七行健康度已落地（`analyzeHealth`，见 M2 进度记录与 `docs/adr/0005-…`）；

@@ -144,6 +144,34 @@ describe('项目领域层（真实数据库）', () => {
     expect(Date.parse(document.metadata.createdAt)).toBeLessThanOrEqual(before);
   });
 
+  /**
+   * 单条 INSERT 的参数上限是 65,535，节点行 9 个参数 → 不切块时一个页面超过约 7,281 个节点
+   * 就**整体存不下去**（MAX_PARAMETERS_EXCEEDED）。§146 的规模目标正是 10,000 节点，
+   * 而模型层的基准只测内存里的文档，所以这条断链一直没人碰到。
+   */
+  it('一个页面 8,000 个节点仍然存得下来也读得回来（§146 规模）', async () => {
+    const { document, id } = await newProject('Scale Page');
+    const page = document.pages[0]!;
+    const existing = Object.keys(page.nodes).length;
+    let prev = page.rootId;
+    const ids: string[] = [];
+    for (let i = 0; i < 8000; i += 1) {
+      const node = createNode({ type: 'text', name: `t${i}` });
+      node.parentId = prev;
+      page.nodes[node.id] = node;
+      ids.push(node.id);
+      if (i % 50 === 0) prev = node.id;
+    }
+    await saveDocument(id, document);
+
+    const loaded = await loadDocument(id);
+    const nodes = loaded!.pages[0]!.nodes;
+    expect(Object.keys(nodes)).toHaveLength(existing + 8000);
+    // 切块插入不能改变行的内容，也不能丢掉最后一条父子关系
+    expect(nodes[ids[7999]!]?.name).toBe('t7999');
+    expect(nodes[ids[7999]!]?.parentId).toBeTruthy();
+  }, 120_000);
+
   it('同一作者下重名项目会得到不同 slug', async () => {
     const first = await newProject('Duplicate Name');
     const second = await newProject('Duplicate Name');

@@ -78,8 +78,8 @@ describe('assembleAiRequest（§67/§68：装配在服务端，文档不上线�
     expect('document' in result.wire.context).toBe(false);
     // 目录确实比文档小，而且落在预算内
     expect(result.wire.context.indexChars!).toBeLessThanOrEqual(result.wire.context.budgetChars!);
-    // 工具侧读的是权威文档本身，它不进报文
-    expect(result.toolDocument?.pages.length).toBeGreaterThan(0);
+    // 工具侧读的是权威文档本身，它不进报文；而且和目录出自同一次读取（两者必须互相对得上）
+    expect(result.toolDocument.pages.length).toBe(result.wire.context.designIndex?.totals.pages);
   });
 
   it('客户端塞整份文档会被拒，而不是被静默忽略', async () => {
@@ -116,7 +116,7 @@ describe('assembleAiRequest（§67/§68：装配在服务端，文档不上线�
     const assembled = await assembleAiRequest(aiRequest(id, 'make it cinematic'), owner);
     if (!assembled.ok) throw new Error(`装配失败：${assembled.message}`);
 
-    const response = await mockProvider.run(assembled.wire, { document: assembled.toolDocument ?? undefined });
+    const response = await mockProvider.run(assembled.wire, { document: assembled.toolDocument });
     expect(response.error).toBeUndefined();
     expect(response.capability).toBe('demo');
     // 配色配方要读整份文档的 token 表：证明"上下文发目录 + 工具读权威文档"这条路真的通

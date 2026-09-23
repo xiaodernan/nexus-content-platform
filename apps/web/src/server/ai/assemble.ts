@@ -1,7 +1,7 @@
 import type { AiRequest } from '@nexus/schemas';
 import type { DesignDocument } from '@nexus/design-model';
 import { buildProjectContext } from '@/server/domain/context';
-import { loadDocument, projectBelongsTo } from '@/server/domain/projects';
+import { projectBelongsTo } from '@/server/domain/projects';
 
 /**
  * §68 的落地半：AI 请求的上下文由**服务端装配**，客户端只报"我在哪、选了什么"。
@@ -20,8 +20,8 @@ export type AssembleResult =
       ok: true;
       /** 转发给 provider 的那一份：带目录，不带文档 */
       wire: AiRequest;
-      /** 只给 web 进程内的确定性工具用 */
-      toolDocument: DesignDocument | null;
+      /** 只给 web 进程内的确定性工具用；就是装配目录时读到的那一份，没有第二次读取 */
+      toolDocument: DesignDocument;
     }
   | { ok: false; status: 400 | 404 | 409; code: string; message: string };
 
@@ -46,10 +46,9 @@ export async function assembleAiRequest(request: AiRequest, ownerId: string): Pr
     return { ok: false, status: 409, code: 'context_unavailable', message: assembled.reason };
   }
 
-  const toolDocument = await loadDocument(projectId);
   return {
     ok: true,
-    toolDocument,
+    toolDocument: assembled.document,
     wire: {
       ...request,
       context: {
