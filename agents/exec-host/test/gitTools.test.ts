@@ -2,7 +2,8 @@ import { describe, expect, it } from 'vitest';
 import { ToolRegistry, planExec } from '@nexus/agent-runtime';
 import type { SpawnLike } from '@nexus/agent-runtime';
 import { createExecHost, type ExecChild } from '../src/execHost.js';
-import { GIT_TOOL_SPECS, gitEnv, gitReadOnlyPolicy, parseDiffStat, parseGitDiff, parseGitStatus, registerGitTools } from '../src/gitTools.js';
+import { GIT_TOOL_SPECS, GIT_DIFF_FLAGS, gitEnv, gitReadOnlyPolicy, parseDiffStat, parseGitDiff, parseGitStatus, registerGitTools } from '../src/gitTools.js';
+import { GIT_ABSENT_CONFIG, GIT_FORCED_CONFIG, GIT_ISOLATION_ENV, GIT_PASS_THROUGH_ENV_NAMES, forcedConfigEnv } from '../src/gitEnvIsolation.js';
 
 describe('parseGitStatus (porcelain v1, pure data)', () => {
   it('maps XY codes to named statuses and counts per status', () => {
@@ -62,7 +63,7 @@ describe('parseGitDiff / parseDiffStat (line tallies, headers never count)', () 
 
 describe('gitReadOnlyPolicy (three exact argv, NOTHING else)', () => {
   const policy = gitReadOnlyPolicy('X:/repo');
-  it.each([['git', 'status', '--short'], ['git', 'diff'], ['git', 'diff', '--stat']])('allows exactly %j', (...argv) => {
+  it.each([['git', 'status', '--short'], ['git', 'diff', ...GIT_DIFF_FLAGS], ['git', 'diff', ...GIT_DIFF_FLAGS, '--stat']])('allows exactly %j', (...argv) => {
     const d = planExec({ argv }, policy);
     expect(d.ok).toBe(true);
   });
@@ -72,8 +73,26 @@ describe('gitReadOnlyPolicy (three exact argv, NOTHING else)', () => {
       expect(d.ok).toBe(false);
     }
   });
-  it('gitEnv picks only the named vars out of a source', () => {
-    expect(gitEnv({ PATH: '/bin', SYSTEMROOT: 'C:/w', TOKEN: 'secret', HOME: undefined })).toEqual({ PATH: '/bin', SYSTEMROOT: 'C:/w' });
+  it('v46: the pre-hardening shapes are now UNLISTED — a diff that may run an external driver is not a read', () => {
+    for (const argv of [['git', 'diff'], ['git', 'diff', '--stat'], ['git', 'diff', '--ext-diff'], ['git', 'diff', '--textconv'], ['git', 'diff', '--no-ext-diff', '--ext-diff']]) {
+      const d = planExec({ argv }, policy);
+      expect(d.ok).toBe(false);
+      expect(d.reason).toMatch(/default-deny/);
+    }
+  });
+  it('gitEnv passes through only the named vars git needs — and imposes the isolation on top', () => {
+    const env = gitEnv({ PATH: '/bin', SYSTEMROOT: 'C:/w', TOKEN: 'secret', HOME: undefined });
+    expect(Object.keys(env).filter((k) => GIT_PASS_THROUGH_ENV_NAMES.includes(k))).toEqual(['PATH', 'SYSTEMROOT']);
+    expect(env.TOKEN).toBeUndefined();
+    expect(env).toMatchObject(GIT_ISOLATION_ENV, forcedConfigEnv());
+  });
+  it('a caller cannot opt out: even a source that names the pinned keys gets OUR values', () => {
+    const env = gitEnv({ PATH: '/bin', GIT_CONFIG_GLOBAL: '/home/human/.gitconfig', GIT_CONFIG_COUNT: '9', GIT_CONFIG_KEY_0: 'diff.external', GIT_CONFIG_VALUE_0: 'evil' });
+    expect(env.GIT_CONFIG_GLOBAL).toBe(GIT_ABSENT_CONFIG);
+    expect(env.GIT_CONFIG_COUNT).toBe(String(Object.keys(GIT_FORCED_CONFIG).length));
+    expect(env['GIT_CONFIG_KEY_0']).toBe('core.attributesFile'); // slots are numbered from zero in sorted key order
+    expect(env['GIT_CONFIG_VALUE_0']).toBe(''); // the caller's `evil` driver never reaches git
+    expect(env.GIT_CONFIG_COUNT).toBe('4'); // and the count is OURS, so a smuggled fifth key is not read
   });
 });
 
@@ -132,7 +151,7 @@ describe('git.status / git.diff as registry tools (§28 gates the process; the r
     expect(out.counts).toEqual({ modified: 1, untracked: 1 });
     expect(out.files).toHaveLength(2);
     expect(out.detail).toContain('git.status → exit 0: 2 entries');
-    expect(h.calls[0]).toEqual({ args: ['status', '--short'], env: { PATH: '/bin' } }); // TOKEN dropped by the policy, never seen by git
+    expect(h.calls[0]).toEqual({ args: ['status', '--short'], env: gitEnv({ PATH: '/bin' }) }); // TOKEN dropped by the pass-through list, and git still runs under the isolation
   });
 
   it('git.diff full mode tallies lines; stat:true swaps to the `--stat` argv and parses the footer', async () => {
@@ -141,7 +160,8 @@ describe('git.status / git.diff as registry tools (§28 gates the process; the r
     expect((res1.output as { totals: { files: number } }).totals.files).toBe(1);
     const stat = harness(' x.ts | 2 +-\n 1 file changed, 1 insertion(+), 1 deletion(-)\n');
     const res2 = await stat.registry.invoke({ callId: 'c3', tool: 'git.diff', args: { stat: true } }, stat.grant);
-    expect(stat.calls[0]!.args).toEqual(['diff', '--stat']);
+    expect(stat.calls[0]!.args).toEqual(['diff', ...GIT_DIFF_FLAGS, '--stat']);
+    expect(full.calls[0]!.args).toEqual(['diff', ...GIT_DIFF_FLAGS]); // the shape git actually received cannot run an external driver
     expect((res2.output as { summary: unknown }).summary).toEqual({ files: 1, insertions: 1, deletions: 1 });
   });
 

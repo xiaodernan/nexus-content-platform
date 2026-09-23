@@ -1,5 +1,6 @@
 import type { ExecPolicy, ToolRegistry, ToolSpec } from '@nexus/agent-runtime';
 import type { ExecHost, ExecRunResult } from './execHost.js';
+import { GIT_ISOLATION_ENV_NAMES, GIT_PASS_THROUGH_ENV_NAMES, forcedConfigEnv, GIT_ISOLATION_ENV } from './gitEnvIsolation.js';
 
 /**
  * M2 v32 (ADR 0016 amendment 32): READ-ONLY git awareness on the confined host.
@@ -7,10 +8,19 @@ import type { ExecHost, ExecRunResult } from './execHost.js';
  * through the exact same policy + checkpoint + budget machinery as v30 — no shell,
  * fixed exact-argv allowlist, and §9 holds by construction: nothing in here can
  * write. The git COMMIT tool is deliberately NOT part of this slice.
+ *
+ * M2 v46 (ADR 0016 amendment 46) hardened both halves of that claim: the diff shapes
+ * now carry `--no-ext-diff`/`--no-textconv`, and every door runs under the pinned
+ * environment from gitEnvIsolation.ts.
  */
 
+/** The diff flags that keep a READ from EXECUTING: a configured external diff or
+ * gitattributes textconv filter is a third-party program, and git runs it with exit 0
+ * while handing back an EMPTY diff — the worst answer a read-only door can give. */
+export const GIT_DIFF_FLAGS = ['--no-ext-diff', '--no-textconv'];
+
 /** The handful of vars git actually needs — shared with the v35 commit slice. */
-export const GIT_ENV_NAMES = ['PATH', 'SYSTEMROOT', 'HOME', 'USERPROFILE'];
+export const GIT_ENV_NAMES = [...GIT_PASS_THROUGH_ENV_NAMES, ...GIT_ISOLATION_ENV_NAMES];
 
 /** The three commands this policy knows, and NOTHING else (default-deny). */
 export function gitReadOnlyPolicy(root: string, options: { timeoutMs?: number; maxOutputBytes?: number } = {}): ExecPolicy {
@@ -20,8 +30,8 @@ export function gitReadOnlyPolicy(root: string, options: { timeoutMs?: number; m
     root,
     allow: [
       { argv: ['git', 'status', '--short'], timeoutMs, maxOutputBytes },
-      { argv: ['git', 'diff'], timeoutMs, maxOutputBytes },
-      { argv: ['git', 'diff', '--stat'], timeoutMs, maxOutputBytes },
+      { argv: ['git', 'diff', ...GIT_DIFF_FLAGS], timeoutMs, maxOutputBytes },
+      { argv: ['git', 'diff', ...GIT_DIFF_FLAGS, '--stat'], timeoutMs, maxOutputBytes },
     ],
     envAllow: GIT_ENV_NAMES,
     maxTimeoutMs: timeoutMs,
@@ -32,8 +42,8 @@ export function gitReadOnlyPolicy(root: string, options: { timeoutMs?: number; m
 /** Pick the few vars git actually needs out of an env source (default: this process). */
 export function gitEnv(source: Record<string, string | undefined> = process.env): Record<string, string> {
   const env: Record<string, string> = {};
-  for (const k of GIT_ENV_NAMES) if (typeof source[k] === 'string') env[k] = source[k];
-  return env;
+  for (const k of GIT_PASS_THROUGH_ENV_NAMES) if (typeof source[k] === 'string') env[k] = source[k];
+  return Object.assign(env, GIT_ISOLATION_ENV, forcedConfigEnv());
 }
 
 export interface GitStatusFile {
@@ -114,7 +124,7 @@ export const GIT_TOOL_SPECS: ToolSpec[] = [
   },
   {
     name: 'git.diff',
-    description: 'Read-only change awareness: `git diff` (per-file line tallies) or `git diff --stat` (summary) through the confined exec host. Exact argv only — no paths, no shell.',
+    description: 'Read-only change awareness: `git diff --no-ext-diff --no-textconv` (per-file line tallies) or the same shape plus `--stat` (summary) through the confined exec host. Exact argv only — no paths, no shell, and no external diff driver (see gitEnvIsolation).',
     permissions: ['exec'],
     args: [
       { name: 'stat', type: 'boolean' },
@@ -124,7 +134,7 @@ export const GIT_TOOL_SPECS: ToolSpec[] = [
 ];
 
 export function registerGitTools(registry: ToolRegistry, host: ExecHost, options: { env?: Record<string, string> } = {}): ToolRegistry {
-  const env = options.env ?? gitEnv();
+  const env = gitEnv(options.env ?? process.env); // v46: whatever the caller needs, PLUS the isolation — a caller cannot opt out
   const runGit = async (argv: string[], cwd: unknown): Promise<ExecRunResult> => {
     const result = await host.run({ argv, cwd, env }, { preApproved: true }); // the registry's exec gate is the one §28 checkpoint
     if (!result.ran) throw new Error(result.reason || 'run refused');
@@ -146,7 +156,7 @@ export function registerGitTools(registry: ToolRegistry, host: ExecHost, options
 
   registry.register(GIT_TOOL_SPECS[1]!, async (args) => {
     const stat = args.stat === true;
-    const result = await runGit(stat ? ['git', 'diff', '--stat'] : ['git', 'diff'], args.cwd);
+    const result = await runGit(stat ? ['git', 'diff', ...GIT_DIFF_FLAGS, '--stat'] : ['git', 'diff', ...GIT_DIFF_FLAGS], args.cwd);
     const ok = result.exitCode === 0 && !result.killedByBudget;
     if (stat) {
       const summary = parseDiffStat(result.stdout);

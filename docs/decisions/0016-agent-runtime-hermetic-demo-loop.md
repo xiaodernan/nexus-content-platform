@@ -1059,3 +1059,76 @@ two fresh runs, checkpoint denial leaving the workspace byte-identical).
   now visibly so — the read is unconditional, so an empty index still walks into a refused
   commit; the agent reads the index and never writes it; and v45's remembered sentence is
   deliberately weaker than v39's, because it is the first version that is always true.
+
+## Amendment 46 — v46 (exec-host): the environment is part of the policy — the argv shape confined what git may SAY, this confines what git may DO, 2026-09
+
+- **A perfectly-shaped argv is not a safe command.** v29–v43 confined the process thoroughly:
+  exact tokens, `'*'` only in argument positions, cwd jailed to the policy root, budgets clamped,
+  secrets dropped from the env. None of that confines what git *decides to do* with a command that
+  passed every check, because git consults config this process never chose to read —
+  `~/.gitconfig` (reached through the `HOME`/`USERPROFILE` we must pass through or git cannot run
+  at all) and the repository's own `.git/config` and `.gitattributes`, both of which §9 puts
+  off-limits. Measured against real git 2.52 on this machine, with **exit code 0 throughout** — the
+  failures were silent, not loud: `[diff] external = <program>` made `git diff` and
+  `git diff --cached` *execute* that program and return an **empty** answer, so the agent's read-only
+  door reported "0 files" about a dirty tree while running code; `[core] fsmonitor = <command>`
+  made `git status` run a command mid-scan; `[core] excludesFile` pointing at a file of `*`, and
+  `[status] showUntrackedFiles = no`, both hid untracked files from a "complete" status.
+- **Two layers, because they cover two different sources — and the proof names which layer closes
+  which hole.** Layer one is the ENV: `GIT_CONFIG_GLOBAL`/`GIT_CONFIG_SYSTEM` aimed at a path that
+  does not exist (naming a file git cannot open is how you tell git to read NOTHING from a source),
+  plus `GIT_CONFIG_NOSYSTEM`, `GIT_ATTR_NOSYSTEM`, `GIT_PAGER=cat`, `GIT_TERMINAL_PROMPT=0` and
+  `GIT_OPTIONAL_LOCKS=0`, plus git's own counted override (`GIT_CONFIG_COUNT` /
+  `GIT_CONFIG_KEY_n`/`VALUE_n`) forcing `core.fsmonitor=`, `core.excludesFile=`,
+  `core.attributesFile=`, `status.showUntrackedFiles=all`. Measured: that override does beat
+  repo-local `.git/config`. Measured, and stated in the proof's own output, what it does NOT beat:
+  **repo DATA** — §3a runs the *shipped* hardened env against v42's own `git show` shape in a repo
+  whose committed `.gitattributes` names a diff driver whose `textconv` is a command, and the
+  command **still executes** and the diff comes back **empty**. Layer two is the argv shape, and
+  that is the only thing that reaches this hole.
+- **Two of my own assumptions died in measurement (§60).** 1) `git show --format=` is *immune* to
+  `[diff] external` (added and modified paths, measured) — the first draft of the tool's header
+  claimed otherwise and was rewritten. It does honour a `.gitattributes`-named driver, so
+  `--no-textconv` is not decorative insurance for the content door; it is the only defence it has.
+  2) `textconv` fires only on files git treats as **binary**, which is why three probes looked like
+  a negative result before the fixture was right. Pinned, a binary change now reports
+  `binary: true` with `addedLines: []` and a detail that says BINARY — it does not invent text
+  lines to fill the gap.
+- **`diff.external` is deliberately ABSENT from the forced-config table**, because measurement
+  found no inert value for it: empty makes `git diff` exit 128 (git re-invokes itself as the
+  "driver"), and `true`/`false`/`none`/`default` each change the diff's bytes. So that key is
+  confined by the shape instead — and `gitEnvIsolation.test.ts` asserts its absence from
+  `GIT_FORCED_CONFIG` while the door tests assert `--ext-diff` plans as default-deny, so nobody
+  "fixes" the hole back into the env and nobody forgets which layer owns it.
+- **No opt-out, by construction.** `gitEnv()` is applied at tool *registration*, not per call: a
+  caller passes secrets in and gets `PATH`/`SYSTEMROOT`/`HOME`/`USERPROFILE` back, scrubbed, plus
+  the isolation. The allowlist and the emitter are derived from the same modules, so they cannot
+  drift apart silently — `planExec` is asked to plan every door with `gitEnv()`'s own output and
+  asserts `plan.env` is byte-identical to what was emitted, with the injected `GITHUB_TOKEN` in
+  `droppedEnv`, and `GIT_CONFIG_COUNT` equal to the size of the forced table. `existsSync` of the
+  absent-config path is asserted `false` (the trick is that the file is not there).
+- **What did not move: nothing the human relies on.** No new tool, no new gate, no runtime or
+  studio file. Five doors, five policies, five keyed hosts, every exec still a §28 ask. The
+  hardening is invisible to a clean repo — the new argv are the old ones plus two no-flags, and
+  §5 asserts `.git/index`'s mtime is unchanged by three more reads (`GIT_OPTIONAL_LOCKS=0`) and
+  that the file the human staged still has its original bytes. Push is still out; staging is still
+  a human act.
+- **exec-host 110/110 → 123/123** (new `gitEnvIsolation.test.ts` at 11; the five door suites now
+  allow only the hardened shapes and pin the pre-v46 ones as *default-denied*, so a loosening
+  cannot pass as a refactor). runtime and studio unchanged. **35th proof
+  `docs/evidence/agents/config-proof.mjs`** runs both faces in one throwaway `os.tmpdir()` repo:
+  §2a is a *legacy control* — v43's exact argv with v43's exact 4-name allowlist against a hostile
+  `.git/config`, which is the bug reproduced on the record (exit 0, empty stdout, tripwire files
+  from two doors, an untracked file vanished) — and §2b runs the shipped doors in the same repo to
+  the opposite result: 5 pinned processes, **0 programs executed**, diffs byte-equal to the clean
+  diff captured from the same repo after the config is cleared. §4 repeats the trick for a hostile
+  `$HOME/.gitconfig`, each face asserting its own tripwire outcome so the control cannot quietly
+  become the test. Four already-committed proofs (`git-aware`, `staged`, `show`, `inspect`) were
+  re-greened under the new argv because they pin argv strings — which is exactly the cost a door
+  hardening should have to pay in writing rather than in surprises. 37-script sweep green. Honest
+  bounds: this confines git's *config-reading*, not git itself — it is still a real process with
+  real filesystem access inside a policy-rooted cwd, not a syscall sandbox; the vectors closed are
+  the four measured here on git 2.52 (a future git that reads a new source could open a new hole
+  no test in this repo would notice); the proofs run against whatever `git` is on `PATH`; and the
+  agent's *conclusions* from a clean diff are still only as good as the repo it was pointed at —
+  the env makes the read trustworthy, it does not make the repository honest.

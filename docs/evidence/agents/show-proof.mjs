@@ -6,6 +6,9 @@
 // on the hash, and git.show hands back the exact lines git kept, compared against what the
 // human wrote (not against what we hope was written). Then it shows the same read-back
 // refusing to be widened: another commit, another path, or nothing at all.
+// v46 (ADR amendment 46) widened the ONE shape this proof pins: `--no-ext-diff --no-textconv`
+// are now part of it, after a committed .gitattributes was measured making the bare
+// `git show --format=` run a third-party command and print an EMPTY diff about a real change.
 // Run after `npm run build`:  node docs/evidence/agents/show-proof.mjs
 import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';
@@ -17,11 +20,12 @@ import { pathToFileURL } from 'node:url';
 const rt = await import(pathToFileURL('./agents/runtime/dist/index.js').href);
 const eh = await import(pathToFileURL('./agents/exec-host/dist/index.js').href);
 const { ToolRegistry, planExec } = rt;
-const { NODE_SPAWN, createExecHost, gitCommitPolicy, gitEnv, gitLogPolicy, gitShowPolicy, registerGitCommitTool, registerGitLogTool, registerGitShowTool, validateShowPath, parseShowDiff } = eh;
+const { GIT_DIFF_FLAGS, NODE_SPAWN, createExecHost, gitCommitPolicy, gitEnv, gitLogPolicy, gitShowPolicy, registerGitCommitTool, registerGitLogTool, registerGitShowTool, validateShowPath, parseShowDiff } = eh;
+const F = GIT_DIFF_FLAGS.join(' ');
 
 // 1) PURE DATA FIRST: one argv shape, HEAD pinned BY OMISSION, one path token floating.
 const showPolicy = gitShowPolicy('X:/repo');
-for (const argv of [['git', 'show', '--format=', '--', 'notes/widget.md'], ['git', 'show', '--format=', '--', 'README.md'], ['git', 'show', '--format=', '--', '*']]) {
+for (const argv of [['git', 'show', ...GIT_DIFF_FLAGS, '--format=', '--', 'notes/widget.md'], ['git', 'show', ...GIT_DIFF_FLAGS, '--format=', '--', 'README.md'], ['git', 'show', ...GIT_DIFF_FLAGS, '--format=', '--', '*']]) {
   assert.equal(planExec({ argv }, showPolicy).ok, true, `${argv.join(' ')} is the shape we allow`);
 }
 for (const argv of [
@@ -31,6 +35,8 @@ for (const argv of [
   ['git', 'show', '--format=', 'HEAD~1:README.md'], // blob syntax reaches into ANOTHER commit
   ['git', 'show', '--format=', '--', 'a.md', 'b.md'], // two paths = a wider question
   ['git', 'show', '--format=', '--', 'a.md', 'main'], // a ref is not absorbed
+  ['git', 'show', '--format=', '--', 'notes/widget.md'], // v46: THIS was the shipped shape, until a committed .gitattributes was measured running its textconv command here
+  ['git', 'show', ...GIT_DIFF_FLAGS, '--format=', '--', 'a.md', '--textconv'], // an escalation flag cancels the pin
   ['git', 'log', '--oneline', '-n', '2'], // the hash read-back is v37's own policy
   ['git', 'commit', '-m', 'x'], // the write is v35's own policy
   ['git', 'add', '.'], // staging is a HUMAN act and appears in no policy of ours
@@ -106,7 +112,7 @@ try {
   assert.deepEqual([show.output.additions, show.output.deletions, show.output.hunks], [3, 0, 1], 'a file ADDED at HEAD: every line of it is an addition');
   assert.equal(show.output.detail, 'git.show → exit 0: HEAD changed notes/widget.md · +3 −0 across 1 hunk(s)');
   assert.deepEqual(gates, ['git.commit:exec', 'git.log:exec', 'git.show:exec'], 'every read-back is its own §28 gate — spawning is never a free pass');
-  assert.equal(spawns[2], 'show --format= -- notes/widget.md', 'git saw exactly the pinned argv, in one token per argument');
+  assert.equal(spawns[2], `show ${F} --format= -- notes/widget.md`, 'git saw exactly the pinned argv, in one token per argument');
   console.log(`[show-proof] REAL: commit ${commit.output.record.hash} → log agrees → git.show read back ${show.output.addedLines.length} staged lines (+3 −0), 3 gates, 3 spawns`);
 
   // 2b) A PARTIAL change is stated as partial — never passed off as the whole file (§60).
@@ -145,14 +151,14 @@ try {
   assert.match(escape.error, /cwd refused/, 'the jail still holds for a read: cwd is confined by the policy root, not by good manners');
 
   // 2e) THE PARSER IS THE TOOL'S OWN CODE (§8): real git bytes in, same answer out.
-  const raw = execFileSync('git', ['-C', dir, 'show', '--format=', '--', 'notes/widget.md'], { encoding: 'utf8' });
+  const raw = execFileSync('git', ['-C', dir, 'show', ...GIT_DIFF_FLAGS, '--format=', '--', 'notes/widget.md'], { encoding: 'utf8' });
   assert.deepEqual(parseShowDiff(raw, 'notes/widget.md').addedLines, ['touched by the agent run'], 'no second implementation — the proof and the tool read diff with the same function');
   assert.deepEqual(parseShowDiff('', 'notes/widget.md'), { path: 'notes/widget.md', hunks: 0, additions: 0, deletions: 0, addedLines: [], binary: false }, 'empty stdout is an honest empty change');
   const empty = await registry.invoke({ callId: 'c10', tool: 'git.show', args: { path: 'README.md' } }, { checkpoint: human });
   assert.equal(empty.output.detail, 'git.show → exit 0: HEAD touches nothing at README.md (empty diff — git recorded no change for this path in HEAD)');
   assert.equal(empty.output.addedLines.length, 0, 'a file in the repo but untouched by HEAD says so, instead of inventing content');
 
-  assert.ok(spawns.every((a) => a.startsWith('commit -m ') || a.startsWith('log --oneline') || a.startsWith('show --format= -- ')), `every process born here was one of the three pinned shapes: ${JSON.stringify([...new Set(spawns.map((s) => s.split(' ')[0]))])}`);
+  assert.ok(spawns.every((a) => a.startsWith('commit -m ') || a.startsWith('log --oneline') || a.startsWith(`show ${F} --format= -- `)), `every process born here was one of the three pinned shapes: ${JSON.stringify([...new Set(spawns.map((s) => s.split(' ')[0]))])}`);
 } finally {
   rmSync(dir, { recursive: true, force: true });
   assert.ok(!existsSync(dir), 'the throwaway repo is gone');

@@ -58,7 +58,7 @@ export const GIT_LOG_TOOL_SPECS: ToolSpec[] = [
 ];
 
 export function registerGitLogTool(registry: ToolRegistry, host: ExecHost, options: { env?: Record<string, string> } = {}): ToolRegistry {
-  const env = options.env ?? gitEnv();
+  const env = gitEnv(options.env ?? process.env); // v46: whatever the caller needs, PLUS the isolation — a caller cannot opt out
   registry.register(GIT_LOG_TOOL_SPECS[0]!, async (args) => {
     const count = args.count === undefined ? 10 : args.count;
     if (typeof count !== 'number' || !Number.isInteger(count) || count < 1 || count > GIT_LOG_MAX_COUNT) {

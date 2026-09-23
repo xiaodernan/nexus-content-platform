@@ -2,6 +2,8 @@ import { describe, expect, it } from 'vitest';
 import { ToolRegistry, planExec } from '@nexus/agent-runtime';
 import { createExecHost, type ExecChild, type SpawnLike } from '../src/execHost.js';
 import { GIT_SHOW_TOOL_SPECS, gitShowPolicy, parseShowDiff, registerGitShowTool, validateShowPath } from '../src/gitShowTool.js';
+import { GIT_DIFF_FLAGS } from '../src/gitTools.js';
+import { gitEnv } from '../src/gitTools.js';
 
 const NEW_FILE_DIFF = `diff --git a/notes/widget.md b/notes/widget.md
 new file mode 100644
@@ -70,15 +72,17 @@ describe('validateShowPath (one repo-relative path, nothing else)', () => {
 describe('gitShowPolicy (ONE argv shape; HEAD is pinned by omission)', () => {
   const policy = gitShowPolicy('X:/repo');
   it.each([
-    ['git', 'show', '--format=', '--', 'notes/widget.md'],
-    ['git', 'show', '--format=', '--', 'README.md'],
-    ['git', 'show', '--format=', '--', '*'],
+    ['git', 'show', ...GIT_DIFF_FLAGS, '--format=', '--', 'notes/widget.md'],
+    ['git', 'show', ...GIT_DIFF_FLAGS, '--format=', '--', 'README.md'],
+    ['git', 'show', ...GIT_DIFF_FLAGS, '--format=', '--', '*'],
   ])('allows exactly %j (the * matches ONE path token)', (...argv) => {
     expect(planExec({ argv }, policy).ok).toBe(true);
   });
 
   it('default-denies every other show, every other verb and any widened argv', () => {
     for (const argv of [
+      ['git', 'show', '--format=', '--', 'notes/widget.md'], // v42's shape: no flag pin, so a configured diff.external answers for git
+      ['git', 'show', ...GIT_DIFF_FLAGS, '--ext-diff', '--format=', '--', 'a.md'], // an escalation flag cancels the pin
       ['git', 'show'],
       ['git', 'show', 'HEAD'], // no format pin: the commit header would come back
       ['git', 'show', '--format=', 'HEAD'], // no `--`: a revision is being named
@@ -157,8 +161,8 @@ describe('git.show as a registry tool (content behind §28 — a process still s
     const h = harness(NEW_FILE_DIFF);
     const res = await h.registry.invoke({ callId: 's1', tool: 'git.show', args: { path: 'notes/widget.md' } }, h.grant);
     expect(res.ok).toBe(true);
-    expect(h.calls[0]!.args).toEqual(['show', '--format=', '--', 'notes/widget.md']);
-    expect(h.calls[0]!.env).toEqual({ PATH: '/bin' }); // TOKEN scrubbed before git ever saw it
+    expect(h.calls[0]!.args).toEqual(['show', ...GIT_DIFF_FLAGS, '--format=', '--', 'notes/widget.md']);
+    expect(h.calls[0]!.env).toEqual(gitEnv({ PATH: '/bin' })); // TOKEN scrubbed before git ever saw it; v46's isolation rides along on every door
     expect(res.output).toMatchObject({
       ok: true,
       exitCode: 0,

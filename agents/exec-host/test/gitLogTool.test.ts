@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { ToolRegistry, planExec } from '@nexus/agent-runtime';
 import { createExecHost, type ExecChild, type SpawnLike } from '../src/execHost.js';
 import { GIT_LOG_MAX_COUNT, GIT_LOG_TOOL_SPECS, gitLogPolicy, parseGitLog, registerGitLogTool } from '../src/gitLogTool.js';
+import { gitEnv } from '../src/gitTools.js';
 
 describe('parseGitLog (--oneline echo → structured entries, pure data)', () => {
   it('hash + multi-word subjects parse newest-first, exactly as git echoed them', () => {
@@ -105,7 +106,7 @@ describe('git.log as a registry tool (read-back behind §28 — a process still 
     const res = await h.registry.invoke({ callId: 'g1', tool: 'git.log', args: {} }, h.grant);
     expect(res.ok).toBe(true);
     expect(h.calls[0]!.args).toEqual(['log', '--oneline', '-n', '10']);
-    expect(h.calls[0]!.env).toEqual({ PATH: '/bin' }); // TOKEN scrubbed before git ever saw it
+    expect(h.calls[0]!.env).toEqual(gitEnv({ PATH: '/bin' })); // TOKEN scrubbed before git ever saw it; v46's isolation rides along on every door
     expect(res.output).toMatchObject({ ok: true, exitCode: 0, count: 10, commits: [{ hash: '0a1b2c3', subject: 'proof: agent commit' }, { hash: 'deadbeef', subject: 'human seed commit' }] });
     expect((res.output as { detail: string }).detail).toContain('2 commit(s) · newest 0a1b2c3 "proof: agent commit"');
   });

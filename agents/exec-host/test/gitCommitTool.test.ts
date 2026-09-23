@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { ToolRegistry, planExec } from '@nexus/agent-runtime';
 import { createExecHost, type ExecChild, type SpawnLike } from '../src/execHost.js';
 import { GIT_COMMIT_TOOL_SPECS, gitCommitPolicy, parseCommitOutput, registerGitCommitTool } from '../src/gitCommitTool.js';
+import { gitEnv } from '../src/gitTools.js';
 
 describe('parseCommitOutput (git echo → structured record, pure data)', () => {
   it('branch@hash + subject + stat, even with create-mode lines after the stat', () => {
@@ -110,7 +111,7 @@ describe('git.commit as a registry tool (history writes ONLY behind §28, from t
     const res = await h.registry.invoke({ callId: 'k1', tool: 'git.commit', args: { message } }, h.grant);
     expect(res.ok).toBe(true);
     expect(h.calls[0]!.args).toEqual(['commit', '-m', message]);
-    expect(h.calls[0]!.env).toEqual({ PATH: '/bin' }); // TOKEN scrubbed before git ever saw it
+    expect(h.calls[0]!.env).toEqual(gitEnv({ PATH: '/bin' })); // TOKEN scrubbed before git ever saw it; v46's isolation rides along on every door
     expect(res.output).toMatchObject({ ok: true, exitCode: 0, record: { branch: 'master', hash: '0a1b2c3' } });
     expect((res.output as { detail: string }).detail).toContain('git.commit → exit 0: master@0a1b2c3 · 1 file(s) +2 −0');
   });

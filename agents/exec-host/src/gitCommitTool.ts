@@ -63,7 +63,7 @@ export const GIT_COMMIT_TOOL_SPECS: ToolSpec[] = [
 ];
 
 export function registerGitCommitTool(registry: ToolRegistry, host: ExecHost, options: { env?: Record<string, string> } = {}): ToolRegistry {
-  const env = options.env ?? gitEnv();
+  const env = gitEnv(options.env ?? process.env); // v46: whatever the caller needs, PLUS the isolation — a caller cannot opt out
   registry.register(GIT_COMMIT_TOOL_SPECS[0]!, async (args) => {
     const message = typeof args.message === 'string' ? args.message.trim() : '';
     if (message === '') throw new Error('commit message must be a non-empty string (git needs something to say)');

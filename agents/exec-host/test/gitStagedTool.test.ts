@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { ToolRegistry, planExec } from '@nexus/agent-runtime';
 import { createExecHost, type ExecChild, type SpawnLike } from '../src/execHost.js';
 import { GIT_STAGED_TOOL_SPECS, gitStagedPolicy, parseStagedDiff, registerGitStagedTool, tallyStagedCounts } from '../src/gitStagedTool.js';
+import { GIT_DIFF_FLAGS, gitEnv } from '../src/gitTools.js';
 
 const ADDED = `diff --git a/notes/widget.md b/notes/widget.md
 new file mode 100644
@@ -95,10 +96,10 @@ describe('tallyStagedCounts (canonical sentence order, absent kinds unspoken)', 
 
 describe('gitStagedPolicy (TWO exact argv shapes; git\'s own escalations are not on the menu)', () => {
   const policy = gitStagedPolicy('X:/repo');
-  it('allows exactly `git diff --cached` and its --stat form', () => {
+  it('allows exactly the cached diff with the execution flags pinned off, and its --stat form', () => {
     for (const argv of [
-      ['git', 'diff', '--cached'],
-      ['git', 'diff', '--cached', '--stat'],
+      ['git', 'diff', ...GIT_DIFF_FLAGS, '--cached'],
+      ['git', 'diff', ...GIT_DIFF_FLAGS, '--cached', '--stat'],
     ]) {
       const d = planExec({ argv }, policy);
       expect(d.ok, argv.join(' ')).toBe(true);
@@ -108,6 +109,8 @@ describe('gitStagedPolicy (TWO exact argv shapes; git\'s own escalations are not
   it('default-denies the unstaged diff (v32\'s door), every path-scoped form and the option-widenings that change what git CAN do', () => {
     for (const argv of [
       ['git', 'diff'], // v32's read-only policy, not this one
+      ['git', 'diff', '--cached'], // v43's own shape, pinned BEFORE v46: no --no-ext-diff, so the repo's
+      ['git', 'diff', '--cached', '--stat'], // .git/config could make git run a helper and return nothing
       ['git', 'diff', '--stat'],
       ['git', 'diff', '--cached', 'README.md'], // a path is a different question, and a scoping surface
       ['git', 'diff', '--cached', '--name-only'], // a third flag is not on the menu
@@ -189,8 +192,8 @@ describe('git.staged as a registry tool (the index behind §28 — a process sti
     const h = harness(`${ADDED}${MODIFIED}`);
     const res = await h.registry.invoke({ callId: 'i1', tool: 'git.staged', args: {} }, h.grant);
     expect(res.ok).toBe(true);
-    expect(h.calls[0]!.args).toEqual(['diff', '--cached']);
-    expect(h.calls[0]!.env).toEqual({ PATH: '/bin' }); // TOKEN scrubbed before git ever saw it
+    expect(h.calls[0]!.args).toEqual(['diff', ...GIT_DIFF_FLAGS, '--cached']);
+    expect(h.calls[0]!.env).toEqual(gitEnv({ PATH: '/bin' })); // TOKEN scrubbed before git ever saw it; v46's isolation rides along on every door
     expect(res.output).toMatchObject({
       ok: true,
       exitCode: 0,
@@ -220,7 +223,7 @@ describe('git.staged as a registry tool (the index behind §28 — a process sti
   it('stat mode asks the SECOND argv shape and reports git\'s own footer', async () => {
     const h = harness(' notes/widget.md | 3 +++\n 1 file changed, 3 insertions(+)\n');
     const res = await h.registry.invoke({ callId: 'i4', tool: 'git.staged', args: { stat: true } }, h.grant);
-    expect(h.calls[0]!.args).toEqual(['diff', '--cached', '--stat']);
+    expect(h.calls[0]!.args).toEqual(['diff', ...GIT_DIFF_FLAGS, '--cached', '--stat']);
     expect(res.output).toMatchObject({ ok: true, mode: 'stat', summary: { files: 1, insertions: 3, deletions: 0 } });
     expect((res.output as { detail: string }).detail).toBe('git.staged --stat → exit 0: index holds 1 file(s) · +3 −0');
   });
@@ -255,6 +258,6 @@ describe('git.staged as a registry tool (the index behind §28 — a process sti
     expect(h.calls).toHaveLength(0);
     const omitted = await h.registry.invoke({ callId: 'i9', tool: 'git.staged', args: {} }, h.grant);
     expect(omitted.ok).toBe(true); // the no-flag call is the ONE default argv
-    expect(h.calls[0]!.args).toEqual(['diff', '--cached']);
+    expect(h.calls[0]!.args).toEqual(['diff', ...GIT_DIFF_FLAGS, '--cached']);
   });
 });

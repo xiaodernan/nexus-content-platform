@@ -1,5 +1,5 @@
 import type { ExecPolicy, ToolRegistry, ToolSpec } from '@nexus/agent-runtime';
-import { GIT_ENV_NAMES, gitEnv, parseDiffStat } from './gitTools.js';
+import { GIT_DIFF_FLAGS, GIT_ENV_NAMES, gitEnv, parseDiffStat } from './gitTools.js';
 import type { ExecHost, ExecRunResult } from './execHost.js';
 
 /**
@@ -13,6 +13,12 @@ import type { ExecHost, ExecRunResult } from './execHost.js';
  * and `--textconv` make git EXECUTE a configured helper (code execution wearing a read-only
  * costume), `--output=<file>` makes a "read" WRITE. Still read-only, still a real process,
  * so §28 still gates it.
+ *
+ * M2 v46 (ADR 0016 amendment 46) finished that sentence: refusing to NAME `--ext-diff`
+ * does not stop a repository whose own `.git/config` already sets `diff.external` — git
+ * then runs the helper for a shape this policy invented, and hands back an EMPTY diff with
+ * exit 0. So the shapes now carry the negations (`--no-ext-diff --no-textconv`) and the
+ * spawn runs under the pinned environment from gitEnvIsolation.ts.
  */
 export function gitStagedPolicy(root: string, options: { timeoutMs?: number; maxOutputBytes?: number } = {}): ExecPolicy {
   const timeoutMs = options.timeoutMs ?? 10_000;
@@ -20,8 +26,8 @@ export function gitStagedPolicy(root: string, options: { timeoutMs?: number; max
   return {
     root,
     allow: [
-      { argv: ['git', 'diff', '--cached'], timeoutMs, maxOutputBytes },
-      { argv: ['git', 'diff', '--cached', '--stat'], timeoutMs, maxOutputBytes },
+      { argv: ['git', 'diff', ...GIT_DIFF_FLAGS, '--cached'], timeoutMs, maxOutputBytes },
+      { argv: ['git', 'diff', ...GIT_DIFF_FLAGS, '--cached', '--stat'], timeoutMs, maxOutputBytes },
     ],
     envAllow: GIT_ENV_NAMES,
     maxTimeoutMs: timeoutMs,
@@ -103,7 +109,7 @@ export const GIT_STAGED_TOOL_SPECS: ToolSpec[] = [
   {
     name: 'git.staged',
     description:
-      'Read what the HUMAN staged, through the confined exec host (`git diff --cached`, or `git diff --cached --stat` when stat is true — the only two argv the policy allows; no paths, no flags). Plain git.diff cannot see staged content, so this is the pre-commit intent window: an empty index is stated as such. Read-only, but a real process spawns, so the §28 checkpoint applies.',
+      'Read what the HUMAN staged, through the confined exec host (`git diff --no-ext-diff --no-textconv --cached`, or the same plus `--stat` — the only two argv the policy allows; no paths, no other flags). Plain git.diff cannot see staged content, so this is the pre-commit intent window: an empty index is stated as such. Read-only, but a real process spawns, so the §28 checkpoint applies.',
     permissions: ['exec'],
     args: [
       { name: 'stat', type: 'boolean' },
@@ -113,12 +119,12 @@ export const GIT_STAGED_TOOL_SPECS: ToolSpec[] = [
 ];
 
 export function registerGitStagedTool(registry: ToolRegistry, host: ExecHost, options: { env?: Record<string, string> } = {}): ToolRegistry {
-  const env = options.env ?? gitEnv();
+  const env = gitEnv(options.env ?? process.env); // v46: whatever the caller needs, PLUS the isolation — a caller cannot opt out
   const flags = (r: { truncated: boolean; killedByBudget: boolean }): string => `${r.truncated ? ' · output truncated at budget' : ''}${r.killedByBudget ? ' · killed at timeout budget' : ''}`;
 
   registry.register(GIT_STAGED_TOOL_SPECS[0]!, async (args) => {
     const stat = args.stat === true;
-    const result: ExecRunResult = await host.run({ argv: stat ? ['git', 'diff', '--cached', '--stat'] : ['git', 'diff', '--cached'], cwd: args.cwd, env }, { preApproved: true }); // the registry's exec gate is the one §28 checkpoint
+    const result: ExecRunResult = await host.run({ argv: stat ? ['git', 'diff', ...GIT_DIFF_FLAGS, '--cached', '--stat'] : ['git', 'diff', ...GIT_DIFF_FLAGS, '--cached'], cwd: args.cwd, env }, { preApproved: true }); // the registry's exec gate is the one §28 checkpoint
     if (!result.ran) throw new Error(result.reason || 'run refused');
     if (result.spawnError !== '') throw new Error(`spawn failed: ${result.spawnError}`);
     if (result.exitCode !== 0 || result.killedByBudget) {

@@ -1,5 +1,5 @@
 import type { ExecPolicy, ToolRegistry, ToolSpec } from '@nexus/agent-runtime';
-import { GIT_ENV_NAMES, gitEnv } from './gitTools.js';
+import { GIT_DIFF_FLAGS, GIT_ENV_NAMES, gitEnv } from './gitTools.js';
 import type { ExecHost, ExecRunResult } from './execHost.js';
 
 /**
@@ -10,13 +10,22 @@ import type { ExecHost, ExecRunResult } from './execHost.js';
  * content git kept. The policy allows ONE argv shape with one floating token, the revision
  * is pinned to HEAD by omission, and there is no way to name another commit, another
  * repository or a write — read-only like v32, still a real process, so §28 still gates it.
+ *
+ * M2 v46 (ADR 0016 amendment 46) revises that ONE shape. Measured against real git 2.52:
+ * `git show --format=` ignores `[diff] external` (checked on both an added and a modified
+ * path), but it DOES honour a diff driver named by a committed `.gitattributes`, and such a
+ * driver's `textconv` is a COMMAND. Against a binary path HEAD really changed, the unpinned
+ * shape ran that command twice and printed an EMPTY diff with exit 0 — so the door reported
+ * "HEAD touches nothing here" about a recorded change, and both sides had converted to the
+ * same text on the way. `--no-ext-diff --no-textconv` are now part of the pinned shape: the
+ * answer comes from git's builtin diff machinery, and a binary change says BINARY (§60).
  */
 export function gitShowPolicy(root: string, options: { timeoutMs?: number; maxOutputBytes?: number } = {}): ExecPolicy {
   const timeoutMs = options.timeoutMs ?? 10_000;
   const maxOutputBytes = options.maxOutputBytes ?? 65_536;
   return {
     root,
-    allow: [{ argv: ['git', 'show', '--format=', '--', '*'], timeoutMs, maxOutputBytes }],
+    allow: [{ argv: ['git', 'show', ...GIT_DIFF_FLAGS, '--format=', '--', '*'], timeoutMs, maxOutputBytes }],
     envAllow: GIT_ENV_NAMES,
     maxTimeoutMs: timeoutMs,
     maxOutputBytes,
@@ -66,7 +75,7 @@ export const GIT_SHOW_TOOL_SPECS: ToolSpec[] = [
   {
     name: 'git.show',
     description:
-      'Read back WHAT a commit recorded, through the confined exec host (`git show --format= -- <path>` — the only argv the policy allows; the revision is HEAD by construction, so no other commit is reachable). Returns HEAD\'s added lines and +/− tally for that one path. Read-only, but a real process spawns, so the §28 checkpoint applies.',
+      'Read back WHAT a commit recorded, through the confined exec host (`git show --no-ext-diff --no-textconv --format= -- <path>` — the only argv the policy allows; the revision is HEAD by construction, so no other commit is reachable, and no configured diff helper can answer for git). Returns HEAD\'s added lines and +/− tally for that one path. Read-only, but a real process spawns, so the §28 checkpoint applies.',
     permissions: ['exec'],
     args: [
       { name: 'path', type: 'string', required: true },
@@ -76,11 +85,11 @@ export const GIT_SHOW_TOOL_SPECS: ToolSpec[] = [
 ];
 
 export function registerGitShowTool(registry: ToolRegistry, host: ExecHost, options: { env?: Record<string, string> } = {}): ToolRegistry {
-  const env = options.env ?? gitEnv();
+  const env = gitEnv(options.env ?? process.env); // v46: whatever the caller needs, PLUS the isolation — a caller cannot opt out
   const spec = GIT_SHOW_TOOL_SPECS[0]!;
   registry.register(spec, async (args) => {
     const path = validateShowPath(args.path);
-    const result: ExecRunResult = await host.run({ argv: ['git', 'show', '--format=', '--', path], cwd: args.cwd, env }, { preApproved: true }); // the registry's exec gate is the one §28 checkpoint
+    const result: ExecRunResult = await host.run({ argv: ['git', 'show', ...GIT_DIFF_FLAGS, '--format=', '--', path], cwd: args.cwd, env }, { preApproved: true }); // the registry's exec gate is the one §28 checkpoint
     if (!result.ran) throw new Error(result.reason || 'run refused');
     if (result.spawnError !== '') throw new Error(`spawn failed: ${result.spawnError}`);
     const flags = `${result.truncated ? ' · output truncated at budget' : ''}${result.killedByBudget ? ' · killed at timeout budget' : ''}`;

@@ -10,7 +10,8 @@ import { pathToFileURL } from 'node:url';
 const rt = await import(pathToFileURL('./agents/runtime/dist/index.js').href);
 const eh = await import(pathToFileURL('./agents/exec-host/dist/index.js').href);
 const { ToolRegistry } = rt;
-const { createExecHost, gitEnv, gitReadOnlyPolicy, parseDiffStat, parseGitDiff, parseGitStatus, registerGitTools } = eh;
+const { GIT_DIFF_FLAGS, createExecHost, gitEnv, gitReadOnlyPolicy, parseDiffStat, parseGitDiff, parseGitStatus, registerGitTools } = eh;
+const F = GIT_DIFF_FLAGS.join(' ');
 
 // 1) Pure parsers first: the structured view exists before any process does.
 const st = parseGitStatus(' M src/a.ts\nR  old/x.md -> new/x.md\n?? pipeout.bin\nUU conflict.ts\n');
@@ -24,15 +25,20 @@ console.log('[git-aware-proof] parsers: porcelain + line tallies + stat footer a
 
 // 2) The policy says THREE exact commands and nothing else — checked before any spawn.
 const policy = gitReadOnlyPolicy('X:/repo');
-for (const argv of [['git', 'status', '--short'], ['git', 'diff'], ['git', 'diff', '--stat']]) {
+for (const argv of [['git', 'status', '--short'], ['git', 'diff', ...GIT_DIFF_FLAGS], ['git', 'diff', ...GIT_DIFF_FLAGS, '--stat']]) {
   assert.equal(rt.planExec({ argv }, policy).ok, true, `allowlisted ${argv.join(' ')} plans`);
 }
-for (const argv of [['git', 'push'], ['git', 'commit', '-m', 'x'], ['git', 'diff', '--', 'a.env'], ['git', 'status']]) {
+for (const argv of [
+  ['git', 'push'], ['git', 'commit', '-m', 'x'], ['git', 'diff', '--', 'a.env'], ['git', 'status'],
+  ['git', 'diff'], // v46: the shape this proof shipped until a repo config was measured EXECUTING a helper and returning nothing
+  ['git', 'diff', '--stat'], // same, in stat mode
+  ['git', 'diff', ...GIT_DIFF_FLAGS, '--ext-diff'], // an escalation flag cancels the pin
+]) {
   const d = rt.planExec({ argv }, policy);
   assert.equal(d.ok, false);
   assert.match(d.reason, /default-deny/, `${argv.join(' ')} must NEVER plan`);
 }
-console.log('[git-aware-proof] policy: exactly 3 argv allowed · push/commit/path-scoped diff all default-deny');
+console.log('[git-aware-proof] policy: 3 argv allowed (2 flag-pinned by v46) · push/commit/unpinned-diff/path-scoped all default-deny');
 
 // 3) Fake-spawn tool path: gates, env scrubbing, structured outputs.
 const spawns = [];
@@ -56,7 +62,7 @@ assert.equal(spawns.length, 0, 'exec permission means EXEC — gate-free calls s
 const granted = await gate.registry.invoke({ callId: 'g1', tool: 'git.status', args: {} }, gate.grant);
 assert.equal(granted.output.ok, true);
 assert.deepEqual(granted.output.files, [{ xy: ' M', status: 'modified', path: 'a.ts' }], 'the agent gets PARSED state, not a string');
-assert.deepEqual(spawns[0].env, { PATH: '/bin' }, 'the policy scrubbed TOKEN before git ever saw it');
+assert.deepEqual(spawns[0].env, gitEnv({ PATH: '/bin' }), 'the scrubber dropped TOKEN, and v46 ADDED the isolation: a caller cannot opt out');
 const escape = await gate.registry.invoke({ callId: 'g2', tool: 'git.diff', args: { cwd: '../outside' } }, gate.grant);
 assert.match(escape.error, /cwd refused/, 'the jail holds even for a read-only command');
 const nope = fakeHost('', { code: 128, signal: null });

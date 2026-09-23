@@ -49,6 +49,8 @@ export {
   type GitCommitRecord,
 } from './gitCommitTool.js';
 export {
+  GIT_DIFF_FLAGS,
+  GIT_ENV_NAMES,
   GIT_TOOL_SPECS,
   gitEnv,
   gitReadOnlyPolicy,
@@ -59,3 +61,11 @@ export {
   type GitDiffFile,
   type GitStatusFile,
 } from './gitTools.js';
+export {
+  GIT_ABSENT_CONFIG,
+  GIT_FORCED_CONFIG,
+  GIT_ISOLATION_ENV,
+  GIT_ISOLATION_ENV_NAMES,
+  GIT_PASS_THROUGH_ENV_NAMES,
+  forcedConfigEnv,
+} from './gitEnvIsolation.js';

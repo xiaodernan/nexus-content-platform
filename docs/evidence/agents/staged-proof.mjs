@@ -20,6 +20,7 @@ const rt = await import(pathToFileURL('./agents/runtime/dist/index.js').href);
 const eh = await import(pathToFileURL('./agents/exec-host/dist/index.js').href);
 const { ToolRegistry, planExec } = rt;
 const {
+  GIT_DIFF_FLAGS,
   NODE_SPAWN,
   createExecHost,
   gitCommitPolicy,
@@ -34,15 +35,18 @@ const {
   registerGitTools,
   tallyStagedCounts,
 } = eh;
+const F = GIT_DIFF_FLAGS.join(' ');
 
 // 1) PURE DATA FIRST: two argv shapes, and the option-widenings that would change what git
 //    can DO (not just what it prints) named and refused on the record.
 const stagedPolicy = gitStagedPolicy('X:/repo');
-for (const argv of [['git', 'diff', '--cached'], ['git', 'diff', '--cached', '--stat']]) {
+for (const argv of [['git', 'diff', ...GIT_DIFF_FLAGS, '--cached'], ['git', 'diff', ...GIT_DIFF_FLAGS, '--cached', '--stat']]) {
   assert.equal(planExec({ argv }, stagedPolicy).ok, true, `${argv.join(' ')} is the shape we allow`);
 }
 for (const argv of [
   ['git', 'diff'], // v32's door — this one is about the INDEX
+  ['git', 'diff', '--cached'], // v46: THIS was the shipped shape, until [diff] external was measured blinding it
+  ['git', 'diff', '--cached', '--stat'], // same, in stat mode
   ['git', 'diff', '--cached', 'README.md'], // a path is a scoping surface, not on the menu
   ['git', 'diff', '--cached', '--name-only'],
   ['git', 'diff', '--cached', '--ext-diff'], // git EXECUTES a configured helper: code running in a read-only costume
@@ -122,7 +126,7 @@ try {
   assert.equal(seen.output.files[0].change, 'added', 'git said `new file mode`: the intent is to ADD');
   assert.deepEqual(seen.output.files[0].addedLines, INTENT, 'and the lines it will record are read back VERBATIM — quotes, double spaces, the §60 banner');
   assert.equal(`${seen.output.files[0].addedLines.join('\n')}\n`, indexBytes, 're-joining them reproduces the INDEX bytes, not the working file, not our hopes');
-  assert.equal(spawns[1], 'diff --cached', 'git saw exactly the pinned argv');
+  assert.equal(spawns[1], `diff ${F} --cached`, 'git saw exactly the pinned argv, flags and all');
   assert.equal(seen.output.detail, 'git.staged → exit 0: index holds 1 change(s): 1 added · +3 −0 across 1 hunk(s)');
   console.log(`[staged-proof] REAL: git.diff sees ${blind.output.totals.files} file(s) while git.staged reads 1 added change with ${seen.output.files[0].addedLines.length} verbatim lines — the gap exists and is now closed`);
 
@@ -155,7 +159,7 @@ try {
   // 2d) THE HUMAN STAGES THE REST: the kind flips as history says, and --stat answers too.
   git('add', 'intent.md');
   const stat = await registry.invoke({ callId: 'd9', tool: 'git.staged', args: { stat: true } }, { checkpoint: human });
-  assert.equal(spawns[spawns.length - 1], 'diff --cached --stat', 'stat mode asks the SECOND pinned argv, and only that one');
+  assert.equal(spawns[spawns.length - 1], `diff ${F} --cached --stat`, 'stat mode asks the SECOND pinned argv, and only that one');
   assert.deepEqual(stat.output.summary, { files: 1, insertions: 1, deletions: 0 }, 'git\'s own footer, parsed not paraphrased');
   const secondRound = await registry.invoke({ callId: 'd10', tool: 'git.staged', args: {} }, { checkpoint: human });
   assert.equal(secondRound.output.files[0].change, 'modified', 'the file exists in HEAD now, so the same staged line is a MODIFICATION — kind follows git\'s metadata, not our memory');
@@ -180,7 +184,7 @@ try {
 
   // 2f) §28 IS PER-CAPABILITY: four reads, four writes, four separate gate lines.
   assert.deepEqual(gates, ['git.diff:exec', 'git.staged:exec', 'git.staged:exec', 'git.diff:exec', 'git.commit:exec', 'git.staged:exec', 'git.show:exec', 'git.diff:exec', 'git.staged:exec', 'git.staged:exec', 'git.staged:exec'], 'every gate call is on the record, in order — and the spec-level refusal is NOT, because it never reached a checkpoint');
-  assert.ok(spawns.every((a) => a === 'diff' || a === 'diff --stat' || a === 'diff --cached' || a === 'diff --cached --stat' || a.startsWith('commit -m ') || a.startsWith('show --format= -- ')), `every process born here was a pinned shape: ${JSON.stringify([...new Set(spawns)])}`);
+  assert.ok(spawns.every((a) => a === `diff ${F}` || a === `diff ${F} --stat` || a === `diff ${F} --cached` || a === `diff ${F} --cached --stat` || a.startsWith('commit -m ') || a.startsWith(`show ${F} --format= -- `)), `every process born here was a pinned shape: ${JSON.stringify([...new Set(spawns)])}`);
 } finally {
   rmSync(dir, { recursive: true, force: true });
   assert.ok(!existsSync(dir), 'the throwaway repo is gone');

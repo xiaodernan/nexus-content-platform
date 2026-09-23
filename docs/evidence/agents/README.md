@@ -1,9 +1,9 @@
-# M2 evidence — agent stack (v0 loop → v43 staged-intent door: the agent can read what a human meant to record; all ADR 0016 amendments)
+# M2 evidence — agent stack (v0 loop → v46 config-isolated git doors: a read-only door can no longer execute a program; all ADR 0016 amendments)
 
 All checks are headless, offline, key-free, and reproducible from the repo root. Nothing here
 claims model-quality planning or neural retrieval (§60): the planner is a deterministic
 template and the index embedder is a hash-based bag-of-tokens stand-in — both say so in
-every emitted artifact (`provenance.mode = "demo"`). The honest exceptions since v30/v32/v34/v35/v36/v37/v38/v39/v40/v42/v43:
+every emitted artifact (`provenance.mode = "demo"`). The honest exceptions since v30/v32/v34/v35/v36/v37/v38/v39/v40/v42/v43/v44/v45/v46:
 `exec-host-proof.mjs` and `git-aware-proof.mjs` spawn a few read-only local commands
 (`git status --short`, `git diff --stat`), `execsuite-proof.mjs` runs the repo's OWN
 @nexus/design-model vitest suite through the confined host (vitest's cache under
@@ -18,12 +18,17 @@ content read, and v45's `intent-proof.mjs` the first where the PLAN ITSELF reads
 step before asking to record it, so the loop — not the proof — decides both to look and to look
 first) — only inside throwaway `os.tmpdir()` repos
 with hooks/signing neutralized LOCALLY there, never in this repository — still offline,
-still key-free, and everything else in the stack spawns nothing.
+still key-free, and everything else in the stack spawns nothing. `config-proof.mjs` (v46) is
+the one place here where a proof DELIBERATELY makes git execute a program: its unpinned
+control faces write a hostile `.git/config`, `.gitattributes` and `$HOME/.gitconfig` into
+throwaway repos so the pre-v46 hole is REPRODUCED on the record instead of asserted (the
+tripwire is a `touch` inside `os.tmpdir`, removed in `finally`), and every shipped door in the
+same file is then asserted to run ZERO programs.
 
 ## Reproducible gates
 
 ```
-npm test          # turbo: @nexus/agent-runtime 246/246 + @nexus/exec-host 110/110 vitest among all packages
+npm test          # turbo: @nexus/agent-runtime 246/246 + @nexus/exec-host 123/123 vitest among all packages
 npm run build     # tsc dist for agents/runtime + agents/exec-host (build order via ^build deps)
 node docs/evidence/agents/agent-proof.mjs
 node docs/evidence/agents/code-index-proof.mjs   # requires `npm run build` first
@@ -59,12 +64,18 @@ node docs/evidence/agents/show-proof.mjs           # requires `npm run build` fi
 node docs/evidence/agents/staged-proof.mjs         # requires `npm run build` first (v43: git.diff sees 0 files while git.staged recites the staged lines; the intent read BEFORE the commit equals the content read AFTER it, throwaway os.tmpdir repo only)
 node docs/evidence/agents/inspect-proof.mjs        # requires `npm run build` first (v44: the PLAN's own tail ends in git.show — four §28 gates, human-staged lines read back byte-for-byte, an empty diff and an unborn-HEAD 128 both carried as DATA, throwaway os.tmpdir repos only)
 node docs/evidence/agents/intent-proof.mjs         # requires `npm run build` first (v45: the PLAN reads the INDEX before asking to record it — five §28 gates, staged intent BEFORE and HEAD content AFTER byte-equal in one run, a denied read costing zero commits, an empty index stated one step before git's blunt first line)
+node docs/evidence/agents/config-proof.mjs         # requires `npm run build` first (v46: hostile .git/config + .gitattributes + $HOME/.gitconfig in throwaway repos — the pre-v46 control REALLY executes a tripwire program and reports an empty diff; the shipped doors report git's builtin answer with ZERO programs, and .git/index keeps its mtime)
 ```
 
 A note on `spawns[…]` assertions: they pin the argv SHAPE a plan step is allowed to produce
 (`diff` … `--cached` … no pathspec), not the current flag list. Exec-host's own contract tests
 `agents/exec-host/test/*` are the authority on the exact argv; a proof that re-pinned it would
-turn green only by agreeing with whatever the door was last edited to say.
+turn green only by agreeing with whatever the door was last edited to say. v46 put that rule to
+work: hardening the diffing doors (`--no-ext-diff --no-textconv`) reddened four already-committed
+proofs that had hard-coded the old strings, and they now interpolate the door's own exported
+`GIT_DIFF_FLAGS` — so the literal list is pinned in exactly two places that exist to witness it
+(`gitEnvIsolation.test.ts` and `config-proof.mjs` §1), while every other suite and proof pins only
+the SHAPE around it. One source, and no way for a loosening to look like a refactor.
 
 ## Unit tests (vitest, `agents/runtime/test`)
 
@@ -98,11 +109,12 @@ turn green only by agreeing with whatever the door was last edited to say.
 | `execSandbox.test.ts` (18) | v29: allowlisted argv → inert plan (jail-resolved cwd, rule budgets, `matchedRule`, `executes:false` asserted field-for-field), default-deny refusal quoting the argv, `'*'` as argument wildcard matches but arity is fixed and shell-shaped single tokens still deny, path/separators in the executable refused before matching, malformed requests (non-array/empty/non-string tokens), cwd `..`+absolute+drive-letter refused via `guardedJoin` while missing cwd means the root, env scrubbed to allowlist with dropped names sorted, budgets clamped to policy ceilings, empty allow array denies everything, determinism + plan owns its data (no shared refs), invalid policy refused before the request and `registerExecTools` throws at registration, `exec.plan` callable WITHOUT a checkpoint (read perm) with `executes:false` in the output, refusals succeed as tool calls (`planned:false` + reason), registry `string[]` validation on argv |
 | `exec-host/execHost.test.ts` (15) | v30 (@nexus/exec-host, injected fake spawn — zero real processes in vitest): allowlisted run spawns argv-as-data with the plan cwd/env verbatim, arg tokens never re-tokenized, policy refusal spawns NOTHING even behind an approving checkpoint, no-checkpoint direct call = stated `checkpoint required for exec (§28)`, deny = `planned:true` + `checkpoint denied`, checkpoint asked with an exec ToolCall carrying the plan, output budget hard-caps stdout+stderr total and marks `truncated`, timeout kills marked `killedByBudget` + SIGTERM, ENOENT surfaces as structured `spawnError` not a crash, `exec.run` registry-gated (deny never reaches host; granted → `{ok, detail, result}`; refusal = tool ERROR; nonzero exit = ok:false data with stderr), JSONL journal round-trip with malformed + shape-wrong counting + last-N + missing-file empty |
 | `exec-host/execTestRunner.test.ts` (9) | v31 (fake spawn, zero real processes): exit 0 → passing report whose engine NAMES the argv, exit 1 + stderr → failure message verbatim, timeout kill → `killed at timeout budget (SIGTERM)` never noise, policy refusal → FAILING report with the stated reason and no spawn, missing `preApproved` → the exact `checkpoint required for exec (§28)` message, `only` miss → vacuous total-0 without paying for a spawn, through `registerTestTools` the granted call states the exec-host engine and an unknown `only` is a tool ERROR, runTask e2e verifies with a real COMMAND and journals the report |
-| `exec-host/gitTools.test.ts` (17) | v32 (fake spawn): `parseGitStatus` XY→named statuses + counts + rename keeps NEW path + junk XY = `other`; `parseGitDiff` per-file hunk/add/delete tallies with `+++`/`---` excluded and preamble ignored; `parseDiffStat` footer groups / empty / junk→null; policy allows EXACTLY `git status --short`/`git diff`/`git diff --stat` and default-denies push/commit/path-scoped diff; `gitEnv` picks only named vars; tools both exec-permission, no-checkpoint never reaches host (0 spawns), granted `git.status` returns PARSED entries and the spawn env is policy-scrubbed (`TOKEN` never seen), `stat:true` swaps argv, exit 128 is ok:false DATA not a throw, escaping cwd = stated tool ERROR, truncation labeled in detail |
-| `exec-host/gitCommitTool.test.ts` (16) | v35 (fake spawn): `parseCommitOutput` reads `[branch (root-commit)? hash] subject` + stat footer (create-mode lines AFTER the stat), insertions-only, non-echo → null; `gitCommitPolicy` allows EXACTLY `git commit -m <msg>` (incl. a message literally `*` — the v29 `'*'` ARG wildcard, first production wiring) and default-denies bare `git commit`, `-m a b`, `-am`, `--no-verify -m x`, `add`, `push`, `rm -rf /`; blank message throws BEFORE the policy with ZERO spawns; granted commit hands argv verbatim (`['commit','-m',msg]`, multi-line/quoted message intact, env scrubbed) and renders `git.commit → exit 0: master@0a1b2c3 · N file(s) +I −D`; nothing-staged exit 1 is ok:false DATA carrying git's first stderr line; escaping cwd = tool ERROR 0 spawns; a message smuggling `--no-verify -a` stays ONE argv token |
-| `exec-host/gitLogTool.test.ts` (14) | v37 (fake spawn): `parseGitLog` reads `<hash> <subject>` lines newest-first (leading-space tolerant), merge subjects kept verbatim, blank lines free, a hashless line is COUNTED (`skipped`) never guessed, empty stdout = honest empty log; `gitLogPolicy` allows EXACTLY `git log --oneline -n <count>` (the wildcard's second production wiring) and default-denies bare `git log`, no `-n`, no count, a trailing ref, `--all`, `git show`, `git commit`, `git push`; `git.log` is exec-permission (a read still spawns) — no checkpoint ⇒ 0 spawns, granted ⇒ default window 10 with argv `['log','--oneline','-n','10']` and scrubbed env, explicit count rides the wildcard token verbatim; junk counts (0, −3, 1.5, >100, NaN) throw the bounded-read-back error with the spawn counter frozen; empty-repo exit 128 is ok:false DATA quoting git's stderr line; escaping cwd = tool ERROR 0 spawns; skipped lines surface in detail as "counted not guessed" |
-| `exec-host/gitShowTool.test.ts` (19) | v42 (fake spawn): `parseShowDiff` yields HEAD's `addedLines` for ONE path (a new file = its whole content), `+++`/`---` and mode/rename/similarity lines are never content, `\ No newline` skipped, `Binary files … differ` → `binary:true` with no lines claimed, empty stdout = honest empty change; `validateShowPath` accept/refuse matrix (blank, whitespace, newline, leading `-`, absolute incl. `C:\`, any `..` segment); `gitShowPolicy` allows EXACTLY `git show --format= -- <path>` (revision pinned BY OMISSION, `--` forces pathspec semantics) and default-denies bare `git show`, `show HEAD`, a named rev, `HEAD~9:file` blob syntax, 0/2/3 path tokens, `git log`/`commit`/`add`; no checkpoint ⇒ 0 spawns, denied ⇒ 0 spawns, granted ⇒ argv `['show','--format=','--',path]` with scrubbed env and the exact detail string; exit 128 is ok:false DATA quoting git's stderr; escaping cwd refused before any spawn |
-| `exec-host/gitStagedTool.test.ts` (20) | v43 (fake spawn): `parseStagedDiff` reads the INDEX — change KIND from git's own metadata (`new file mode`→added, `deleted file mode`→deleted, `rename from`→renamed with the NEW path, `copy from`→copied, else modified), per-file hunks/additions/deletions/`addedLines`/binary, multi-file tallies, preamble ignored, `\ No newline` not a line, empty stdout = honest zero changes; `tallyStagedCounts` in canonical order regardless of key order; `gitStagedPolicy` allows EXACTLY `git diff --cached` and `--cached --stat` and default-denies the unstaged `git diff`, path-scoped and `--name-only` forms, `--ext-diff`/`--textconv` (git EXECUTES a helper), `--output=<file>` (a read that WRITES), `--stat --ext-diff`, `-c diff.external=evil …`, `add`/`commit`/`log`/`show`; `git.staged` is exec-permission — no checkpoint ⇒ 0 spawns, denied ⇒ 0 spawns, granted ⇒ argv `['diff','--cached']` (or `--cached --stat`) with scrubbed env, counts/totals/paths and a byte-exact detail; an EMPTY index is spelled out as "nothing is staged, so a granted git.commit right now would have nothing to record"; binary counted with no lines claimed; exit 129 ok:false DATA; escaping cwd and a non-boolean `stat` refused with zero spawns |
+| `exec-host/gitTools.test.ts` (19) | v32 (fake spawn): `parseGitStatus` XY→named statuses + counts + rename keeps NEW path + junk XY = `other`; `parseGitDiff` per-file hunk/add/delete tallies with `+++`/`---` excluded and preamble ignored; `parseDiffStat` footer groups / empty / junk→null; policy allows EXACTLY `git status --short`/`git diff`/`git diff --stat` and default-denies push/commit/path-scoped diff; `gitEnv` picks only named vars; tools both exec-permission, no-checkpoint never reaches host (0 spawns), granted `git.status` returns PARSED entries and the spawn env is policy-scrubbed (`TOKEN` never seen), `stat:true` swaps argv, exit 128 is ok:false DATA not a throw, escaping cwd = stated tool ERROR, truncation labeled in detail; v46: the two diffing argv carry `--no-ext-diff --no-textconv`, `gitEnv` additionally EMITS the isolation (config sources pointed at a nonexistent file + the counted forced-config slots), and v32's own flag-free `git diff` shapes are now asserted DEFAULT-DENIED |
+| `exec-host/gitCommitTool.test.ts` (16) | v35 (fake spawn): `parseCommitOutput` reads `[branch (root-commit)? hash] subject` + stat footer (create-mode lines AFTER the stat), insertions-only, non-echo → null; `gitCommitPolicy` allows EXACTLY `git commit -m <msg>` (incl. a message literally `*` — the v29 `'*'` ARG wildcard, first production wiring) and default-denies bare `git commit`, `-m a b`, `-am`, `--no-verify -m x`, `add`, `push`, `rm -rf /`; blank message throws BEFORE the policy with ZERO spawns; granted commit hands argv verbatim (`['commit','-m',msg]`, multi-line/quoted message intact, env scrubbed) and renders `git.commit → exit 0: master@0a1b2c3 · N file(s) +I −D`; nothing-staged exit 1 is ok:false DATA carrying git's first stderr line; escaping cwd = tool ERROR 0 spawns; a message smuggling `--no-verify -a` stays ONE argv token; v46: this door's argv is untouched — every measured escalation was a command that GENERATES a diff — but its spawn env now comes from `gitEnv()`, and `config-proof.mjs` deliberately does not claim to have tested commit under a hostile config |
+| `exec-host/gitLogTool.test.ts` (14) | v37 (fake spawn): `parseGitLog` reads `<hash> <subject>` lines newest-first (leading-space tolerant), merge subjects kept verbatim, blank lines free, a hashless line is COUNTED (`skipped`) never guessed, empty stdout = honest empty log; `gitLogPolicy` allows EXACTLY `git log --oneline -n <count>` (the wildcard's second production wiring) and default-denies bare `git log`, no `-n`, no count, a trailing ref, `--all`, `git show`, `git commit`, `git push`; `git.log` is exec-permission (a read still spawns) — no checkpoint ⇒ 0 spawns, granted ⇒ default window 10 with argv `['log','--oneline','-n','10']` and scrubbed env, explicit count rides the wildcard token verbatim; junk counts (0, −3, 1.5, >100, NaN) throw the bounded-read-back error with the spawn counter frozen; empty-repo exit 128 is ok:false DATA quoting git's stderr line; escaping cwd = tool ERROR 0 spawns; skipped lines surface in detail as "counted not guessed"; v46: argv unchanged, spawn env now `gitEnv()`-isolated (`GIT_OPTIONAL_LOCKS=0` means even a read leaves `.git/index`'s mtime alone — asserted in the proof, not assumed) |
+| `exec-host/gitShowTool.test.ts` (19) | v42 (fake spawn): `parseShowDiff` yields HEAD's `addedLines` for ONE path (a new file = its whole content), `+++`/`---` and mode/rename/similarity lines are never content, `\ No newline` skipped, `Binary files … differ` → `binary:true` with no lines claimed, empty stdout = honest empty change; `validateShowPath` accept/refuse matrix (blank, whitespace, newline, leading `-`, absolute incl. `C:\`, any `..` segment); `gitShowPolicy` allows EXACTLY `git show --no-ext-diff --no-textconv --format= -- <path>` (revision pinned BY OMISSION, `--` forces pathspec semantics; v46 unpinned the two no-flags are what keep a `.gitattributes`-named diff driver from EXECUTING its `textconv` command — env pinning cannot reach repo DATA) and default-denies bare `git show`, v42's own flag-free shape, a named rev, `HEAD~9:file` blob syntax, 0/2/3 path tokens, `--textconv` smuggled back on, `git log`/`commit`/`add`; no checkpoint ⇒ 0 spawns, denied ⇒ 0 spawns, granted ⇒ argv `['show','--no-ext-diff','--no-textconv','--format=','--',path]` with the isolated env and the exact detail string; exit 128 is ok:false DATA quoting git's stderr; escaping cwd refused before any spawn |
+| `exec-host/gitStagedTool.test.ts` (20) | v43 (fake spawn): `parseStagedDiff` reads the INDEX — change KIND from git's own metadata (`new file mode`→added, `deleted file mode`→deleted, `rename from`→renamed with the NEW path, `copy from`→copied, else modified), per-file hunks/additions/deletions/`addedLines`/binary, multi-file tallies, preamble ignored, `\ No newline` not a line, empty stdout = honest zero changes; `tallyStagedCounts` in canonical order regardless of key order; `gitStagedPolicy` allows EXACTLY `git diff --no-ext-diff --no-textconv --cached` and the same `+ --stat` (v46: a staged diff is still a DIFF, so `[diff] external` in the repo's own config could make this read EXECUTE and answer "0 files" about a real index) and default-denies v43's own flag-free shapes, the unstaged `git diff`, path-scoped and `--name-only` forms, `--ext-diff`/`--textconv` (git EXECUTES a helper), `--output=<file>` (a read that WRITES), `--stat --ext-diff`, `-c diff.external=evil …`, `add`/`commit`/`log`/`show`; `git.staged` is exec-permission — no checkpoint ⇒ 0 spawns, denied ⇒ 0 spawns, granted ⇒ argv `['diff',...GIT_DIFF_FLAGS,'--cached']` (or `+ '--stat'`) with the isolated env, counts/totals/paths and a byte-exact detail; an EMPTY index is spelled out as "nothing is staged, so a granted git.commit right now would have nothing to record"; binary counted with no lines claimed; exit 129 ok:false DATA; escaping cwd and a non-boolean `stat` refused with zero spawns |
+| `exec-host/gitEnvIsolation.test.ts` (11) | v46 (pure data, zero processes): `forcedConfigEnv()` numbers its slots in SORTED key order and `GIT_CONFIG_COUNT` equals the table size (`{}` → `COUNT: '0'`, not an absent key); the four forced keys are exactly the ones measurement found reachable from config (`core.fsmonitor`, `core.excludesFile`, `core.attributesFile`, `status.showUntrackedFiles`) — and `diff.external` is asserted ABSENT, because no inert value exists for it (empty → exit 128, `true`/`false`/`none`/`default` each change the bytes) so the argv shape owns that hole; `GIT_DIFF_FLAGS` carries both no-flags literally; `GIT_ENV_NAMES` is complete through `planExec` (a door planned with `gitEnv()`'s own output loses NOTHING to the scrubber, and an injected `GITHUB_TOKEN` still lands in `droppedEnv`); `existsSync(GIT_ABSENT_CONFIG)` is false — naming a file git cannot open is how the read is told to read nothing; `gitEnv` idempotent and order-stable |
 | `durability.test.ts` (8) | memory serialize/deserialize round-trip + version/schema rejection, `restore()` id high-water mark, save/load through an injected writable fake disk, corrupt-file honest failure, `guardedJoin` jail (absolute/`..`/drive-letter rejection, backslash folding), `disk.write` checkpoint gate + escape touches nothing, `disk.read`/`disk.list` confinement |
 | `indexStore.test.ts` (11) | index snapshot serialize→deserialize verbatim + version/chunk schema rejection, save/load via injected fs, cold rescan equals `buildIndex`, unchanged files reuse chunks / edits rechunk exactly the changed paths / removals drop out, query ranking snapshot-independent; v5 provider: cold-first-build equals plain build, incremental refresh 0 re-chunked, edited file sole re-chunk, cross-provider snapshot restore, corrupt-snapshot fallback + repair, `fs.index` provider/default parity |
 | `indexVectors.test.ts` (11) | v23: `indexToVectorDb` shape (one entry per chunk, id `path#startLine`, real dim-64 vectors), vector-vs-inline hit-for-hit parity across five query shapes + stated engine, null db ⇒ honest inline; cold merge ≡ cold build, unchanged chunks reuse the identical vector object / only touched windows re-embed / removals drop out; tampered-text, missing-id and wrong-dim drift each send the WHOLE query inline with real inline hits; persisted provider: lazy `vectors()`, byte-identical reuse by a cold second provider, corrupt-file self-repair, `fs.index` engine labels with/without vectorsFile, edits tracked through the provider lifecycle |
@@ -792,13 +804,64 @@ the read is unconditional, so an empty index still walks into a refused commit; 
 index and never writes it; and the remembered sentence is now deliberately weaker than v39's,
 because it is the first version that is always true.
 
+## v46 note — the environment is part of the policy: a read-only door could EXECUTE, and answer "0 files" about a dirty tree
+
+v29–v43 confined the argv thoroughly, and every one of those confinements held — right up against
+the fact that git decides what to DO by reading config this process never chose to read. Measured
+against real git 2.52 on this machine, always with **exit code 0** (the failures were silent):
+`[diff] external = <program>` makes `git diff` and `git diff --cached` run that program INSTEAD of
+diffing and hand back an EMPTY answer, so v32's "read-only awareness" reported *0 files* about a
+real change while executing code; `[core] fsmonitor = <command>` makes `git status` run a command
+mid-scan; `[core] excludesFile` aimed at a file of `*`, and `[status] showUntrackedFiles = no`,
+each make untracked files vanish from a status that still looked complete. Two layers close it,
+because two SOURCES are involved: `gitEnv()` pins the machine's config inert (`GIT_CONFIG_GLOBAL`/
+`GIT_CONFIG_SYSTEM` → a path that does not exist, `GIT_CONFIG_NOSYSTEM`, `GIT_ATTR_NOSYSTEM`,
+`GIT_PAGER=cat`, `GIT_TERMINAL_PROMPT=0`, `GIT_OPTIONAL_LOCKS=0`, plus git's own counted override
+`GIT_CONFIG_COUNT`/`KEY_n`/`VALUE_n` forcing `core.fsmonitor`, `core.excludesFile`,
+`core.attributesFile`, `status.showUntrackedFiles`) — and the counted override is measured to beat
+even the repo's own `.git/config`. What env CANNOT reach is repo **data**: a committed
+`.gitattributes` naming a diff driver whose `textconv` is a command. §3a of `config-proof.mjs` says
+so in its own output — shipped hardened env + v42's own `git show` shape → the command ran and the
+diff came back empty — so the second layer is the argv shape (`GIT_DIFF_FLAGS =
+['--no-ext-diff','--no-textconv']` on the three diffing doors), which is also where it belongs. Two
+assumptions died in measurement: `git show --format=` IGNORES `[diff] external` but HONOURES a
+`.gitattributes` driver, so `--no-textconv` is not decorative for the content door; and textconv
+fires only on files git treats as BINARY, which is why a pinned binary change now states
+`binary:true` with `addedLines: []` instead of inventing text (§60). `diff.external` is deliberately
+ABSENT from the forced table — no inert value exists for it (empty → exit 128; `true`/`false`/
+`none`/`default` each change the diff's bytes) — and `gitEnvIsolation.test.ts` asserts its absence
+so the hole cannot be "fixed" back into the env and out of the shape. `gitEnv()` is applied at
+REGISTRATION, so a caller cannot opt out; the tools' gates, argv, parse-and-report contracts, the
+five doors / five policies / five keyed hosts, human-only staging and no-push are all unchanged,
+and on a CLEAN repo the hardened argv are the old ones plus two no-flags. exec-host 110/110 →
+**123/123** (new `gitEnvIsolation.test.ts` 11; `gitTools.test.ts` 17 → 19; every door suite now
+asserts its PRE-hardening shape as DEFAULT-DENIED, so a loosening cannot pass as a refactor);
+runtime and studio untouched. `config-proof.mjs` (35th) keeps both faces in one throwaway repo: 2a
+is a LEGACY control — v43's exact argv with v43's exact 4-name allowlist against a hostile
+`.git/config`, i.e. the bug reproduced rather than described (exit 0, empty stdout, tripwire files
+from two doors, an untracked file gone) — and 2b runs the shipped doors in the SAME repo to the
+opposite answer (5 pinned processes, 0 programs, diffs byte-equal to the clean builtin diff captured
+from the same repo after the config is cleared); §4 repeats the trick for a hostile `$HOME/.gitconfig`
+and each face asserts ITS OWN tripwire outcome, so a control can never quietly become the test; §5
+closes with `.git/index`'s mtime unchanged by three more reads and the human's staged bytes intact.
+Honest bounds: this confines git's CONFIG-READING, not git — still a real process with real
+filesystem access inside a policy-rooted cwd, not a syscall sandbox; the closed vectors are the four
+measured here, and a future git that reads a new source could open one no test in this repo would
+notice; proofs run against whatever `git` is on `PATH`; and the commit door is NOT among the tested
+commands, because every escalation measured generates a diff; a clean diff from a trustworthy read
+is still only as honest as the repository it was pointed at.
+
 ## Scope honesty
 
 §63/§26 items *not* implemented (stated, not faked): general real-fs write tools (only
 `disk.write` inside an explicit jail root, always checkpoint-gated), GENERAL process
 execution — since v30 `@nexus/exec-host` can run EXACT allowlisted argv under §28 with
 plan budgets, but there is no arbitrary-command path, no shell, and no OS/container
-sandbox (ADR 0013's egress/secret/containers half is open); v31 added the bridge by which a
+sandbox (ADR 0013's egress/secret/containers half is open); since v46 the ENVIRONMENT a
+confined command inherits is part of the policy too (`gitEnv()` makes machine config inert
+and the argv shape confines repo config/data), which is still allowlist confinement — git
+runs as a real process with real read access inside the jailed cwd, not inside a jail the OS
+enforces; v31 added the bridge by which a
 command CAN answer `test.run` (`execTestRunner`), and v34 proved it once for real —
 `execsuite-proof.mjs` runs the design-model suite through the host — but NO repo suite is
 wired by default outside that evidence file, and the runtime package itself stays
@@ -812,7 +875,8 @@ into the plan's tail, and v44 does the same for v42's content door — still ONE
 walked by the plan itself instead of a hand; since v43 the INDEX is readable through a two-shape door
 (`git diff --cached` / `--cached --stat` via `gitStagedPolicy` — no paths, and specifically
 no `--ext-diff`/`--textconv`/`--output`, which would let a "read" execute a helper or write a
-file) — the v32 see-don't-touch policy
+file; since v46 all three DIFFING doors carry `--no-ext-diff --no-textconv` IN their shape,
+because measurement proved env pinning cannot reach repo DATA — only the shape can) — the v32 see-don't-touch policy
 stands for everything else, and real-commit
 demos live only in throwaway temp repos. Agent-led STAGING (choosing what enters the
 index) remains unimplemented by design: staging stays a human/`disk`-side act,

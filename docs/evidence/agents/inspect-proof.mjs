@@ -21,7 +21,9 @@ import { pathToFileURL } from 'node:url';
 const rt = await import(pathToFileURL('./agents/runtime/dist/index.js').href);
 const eh = await import(pathToFileURL('./agents/exec-host/dist/index.js').href);
 const { ToolRegistry, InMemoryWorkspace, registerWorkspaceTools, planTask, predicateRunner, registerTestTools, runTask, appendLedger, loadLedger } = rt;
-const { NODE_SPAWN, createExecHost, gitCommitPolicy, gitEnv, gitLogPolicy, gitShowPolicy, registerGitCommitTool, registerGitLogTool, registerGitShowTool } = eh;
+const { GIT_DIFF_FLAGS, NODE_SPAWN, createExecHost, gitCommitPolicy, gitEnv, gitLogPolicy, gitShowPolicy, registerGitCommitTool, registerGitLogTool, registerGitShowTool } = eh;
+const F = GIT_DIFF_FLAGS.join(' ');
+
 
 // 1) PURE plan data: inspect rides ONLY behind confirm, which rides ONLY behind commit+verify.
 const full = planTask({ id: 'ic', goal: 'add widget docs' }, { hasVerify: true, hasCommit: true, hasConfirm: true, hasContent: true });
@@ -100,7 +102,7 @@ try {
   const inspectOut = greenRun.results.at(-1).output;
   assert.deepEqual(inspectOut.addedLines, STAGED, 'THE MONEY ASSERTION: the PLANNED content read-back returns, byte for byte, the lines the HUMAN staged — the run finishes its own sentence');
   assert.equal(inspectOut.detail, 'git.show → exit 0: HEAD changed notes/widget.md · +3 −0 across 1 hunk(s)', 'the planned @ref resolved to the live target path and git\'s answer states its scope');
-  assert.equal(spawns[2], 'show --format= -- notes/widget.md', 'git saw exactly the pinned argv — one token per argument, the path came from the LIVE search hit');
+  assert.equal(spawns[2], `show ${F} --format= -- notes/widget.md`, 'git saw exactly the pinned argv — one token per argument, the path came from the LIVE search hit');
   console.log(`[inspect-proof] REAL: loop-driven commit→confirm→inspect read back ${STAGED.length} human-staged lines at ${commitRec.hash} · ${gates.length} §28 gates, 3 sandbox processes`);
 
   // 2b) DENIED INSPECT after a landed+hash-confirmed commit: denied status, arc STANDS, zero spawns.
@@ -130,7 +132,7 @@ try {
   assert.deepEqual([oddOut.hunks, oddOut.additions, oddOut.deletions], [0, 0, 0], 'zero hunks in, zero claims out');
   assert.deepEqual(oddOut.addedLines, [], 'and the run claims NO content it did not read (§60)');
   assert.equal(oddOut.detail, 'git.show → exit 0: HEAD touches nothing at never-staged.md (empty diff — git recorded no change for this path in HEAD)', 'the answer states its own emptiness instead of hedging toward a landed change');
-  assert.equal(spawns[spawns.length - 1], 'show --format= -- never-staged.md', 'the pinned shape held even for the blunt answer');
+  assert.equal(spawns[spawns.length - 1], `show ${F} --format= -- never-staged.md`, 'the pinned shape held even for the blunt answer');
 
   // 2d) RED: the plan carries the WHOLE tail; a red run reaches none of it.
   const spawnsAtRed = spawns.length;
@@ -162,7 +164,7 @@ try {
     assert.equal(blunt.output.exitCode, 128);
     assert.match(blunt.output.detail, /^git\.show → exit 128: fatal: your current branch .* does not have any commits yet/);
     assert.deepEqual(blunt.output.addedLines, [], 'no content claimed from a history that has none');
-    assert.deepEqual(bareSpawns, ['show --format= -- notes/widget.md'], 'one real git process, pinned argv, inside a second throwaway repo');
+    assert.deepEqual(bareSpawns, [`show ${F} --format= -- notes/widget.md`], 'one real git process, pinned argv, inside a second throwaway repo');
   } finally {
     rmSync(bareDir, { recursive: true, force: true });
     assert.ok(!existsSync(bareDir), 'and that one is gone too');
