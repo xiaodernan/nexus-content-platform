@@ -3,8 +3,9 @@ import { ToolRegistry } from '../src/registry.js';
 import { InMemoryWorkspace, registerWorkspaceTools } from '../src/workspace.js';
 import { MemoryStore, registerMemoryTools } from '../src/memory.js';
 import { RoleRegistry, DEMO_ROLES } from '../src/roles.js';
-import { GIT_ARC_TOOLS } from '../src/gitArc.js';
+import { GIT_ARC_TOOLS, RELEASE_ROLE } from '../src/gitArc.js';
 import { runRoleChain } from '../src/pipeline.js';
+import { loadLedger, parseLedgerLine } from '../src/ledger.js';
 import type { CheckpointRequest } from '../src/registry.js';
 import type { UiDriver } from '../src/domkit.js';
 
@@ -319,4 +320,124 @@ describe('runRoleChain release stage (v47)', () => {
     expect(res.evaluation.score).toBe(1); // scored on what the editor DID, not on the release after it
   });
 });
+
+/* ---- v49: the arc's own walk is durable, not just returned ---- */
+
+class MemDisk {
+  files = new Map<string, string>();
+  readFileSync(p: string): string {
+    const c = this.files.get(p);
+    if (c === undefined) throw new Error(`no such file: ${p}`);
+    return c;
+  }
+  mkdirSync(): void {}
+  writeFileSync(p: string, data: string): void {
+    this.files.set(p, data);
+  }
+}
+
+const LEDGER = 'state/chain-ledger.jsonl';
+
+function durableOptions(h: ReturnType<typeof arcHost>, disk: MemDisk, checkpoint?: (req: CheckpointRequest) => boolean) {
+  return { ...arcOptions(h), fsLike: disk, ledgerFile: LEDGER, ...(checkpoint ? { checkpoint } : {}) };
+}
+
+describe('runRoleChain ledger records (v49)', () => {
+  it('a green chain writes its run line AND an arc line, in that order, joined by runId', async () => {
+    const h = arcHost();
+    const disk = new MemDisk();
+    const res = await runRoleChain(task, durableOptions(h, disk));
+    expect(res.ok).toBe(true);
+    expect(disk.readFileSync(LEDGER).trimEnd().split('\n')).toHaveLength(2);
+    const { runs, arcs, malformed } = loadLedger(disk, LEDGER);
+    expect(malformed).toBe(0);
+    expect(runs.map((r) => r.task.id)).toEqual([task.id]);
+    expect(arcs).toHaveLength(1);
+    const arc = arcs[0]!;
+    expect(arc.kind).toBe('git-arc');
+    expect(arc.runId).toBe(runs[0]!.task.id);
+    expect(arc.role).toBe(RELEASE_ROLE);
+    expect(arc.provenance.mode).toBe('demo');
+    expect(arc.goal).toBe(task.goal);
+    // The durable walk IS the returned walk — byte for byte, not a summary of it.
+    expect(arc.arc).toEqual(res.release);
+    expect(arc.arc.steps.map((s) => s.stepId)).toEqual(['staged', 'commit', 'confirm', 'inspect']);
+    expect(arc.arc.results.map((r) => (r.output as { detail: string }).detail)).toEqual([
+      'git.staged: walked', 'git.commit: walked', 'git.log: walked', 'git.show: walked',
+    ]);
+  });
+
+  it('§60 anti-fold on disk: the run line still holds no git step, so neither record lies about its stage', async () => {
+    const h = arcHost();
+    const disk = new MemDisk();
+    await runRoleChain(task, durableOptions(h, disk));
+    const { runs, arcs } = loadLedger(disk, LEDGER);
+    expect(runs[0]!.plan.steps.some((s) => s.tool.startsWith('git.'))).toBe(false);
+    expect(runs[0]!.results.some((r) => r.tool.startsWith('git.'))).toBe(false);
+    expect(arcs[0]!.arc.steps.every((s) => s.tool.startsWith('git.'))).toBe(true);
+    // The arc line is the ONLY place a cold reader learns the four doors, and its callIds name the stage.
+    expect(arcs[0]!.arc.results[1]!.callId).toBe(`${task.id}:release:commit`);
+  });
+
+  it('a stopped arc is durable AS stopped: the doors that passed and the refusal both survive', async () => {
+    const h = arcHost();
+    const disk = new MemDisk();
+    const res = await runRoleChain(task, durableOptions(h, disk, (req) => req.call.tool !== 'git.log'));
+    expect(res.ok).toBe(true);
+    if (!res.ok) return;
+    const { arcs } = loadLedger(disk, LEDGER);
+    expect(arcs[0]!.arc.status).toBe('stopped');
+    expect(arcs[0]!.arc.stoppedAt).toBe('confirm');
+    expect(arcs[0]!.arc.reason).toBe('denied at confirm: denied at checkpoint (exec)');
+    expect(arcs[0]!.arc.results.map((r) => r.ok)).toEqual([true, true, false]);
+    expect(arcs[0]!.arc.doors).toEqual([...GIT_ARC_TOOLS]); // the doors it COULD walk, not the ones it did
+  });
+
+  it('a red chain journals the release it was REFUSED — an absent arc line would hide the ask', async () => {
+    const h = arcHost({ green: false });
+    const disk = new MemDisk();
+    const res = await runRoleChain(task, durableOptions(h, disk));
+    expect(res.ok).toBe(true);
+    if (!res.ok) return;
+    const { arcs } = loadLedger(disk, LEDGER);
+    expect(arcs).toHaveLength(1);
+    expect(arcs[0]!.arc.status).toBe('no-arc');
+    expect(arcs[0]!.arc.doors).toEqual([]);
+    expect(arcs[0]!.arc.reason).toContain('the arc lives behind verification');
+    // No door was opened, and the ledger says so rather than leaving a gap to interpret.
+    expect(res.editorOutcome.status).toBe('failed_verification');
+  });
+
+  it('without `release` the ledger keeps exactly the v14 shape: one run line, no arc line', async () => {
+    const h = arcHost();
+    const disk = new MemDisk();
+    const res = await runRoleChain(task, { roles: h.roles, registry: h.registry, store: h.store, scope: 'chain', checkpoint: () => true, fsLike: disk, ledgerFile: LEDGER });
+    expect(res.ok).toBe(true);
+    const { runs, arcs } = loadLedger(disk, LEDGER);
+    expect(runs).toHaveLength(1);
+    expect(arcs).toEqual([]);
+  });
+
+  it('append-only across runs: two chains, four lines, each arc joins its own run', async () => {
+    const disk = new MemDisk();
+    const h1 = arcHost();
+    const h2 = arcHost();
+    await runRoleChain(task, durableOptions(h1, disk));
+    await runRoleChain({ id: 'chain-2', goal: 'annotate widget rotation docs' }, durableOptions(h2, disk));
+    const { runs, arcs, malformed } = loadLedger(disk, LEDGER);
+    expect(malformed).toBe(0);
+    expect(runs.map((r) => r.task.id)).toEqual(['chain-1', 'chain-2']);
+    expect(arcs.map((a) => a.runId)).toEqual(['chain-1', 'chain-2']);
+    // `last` trims trailing RECORDS across both kinds: the last thing written was chain-2's arc.
+    expect(loadLedger(disk, LEDGER, 1).runs).toEqual([]);
+    expect(loadLedger(disk, LEDGER, 1).arcs.map((a) => a.runId)).toEqual(['chain-2']);
+    expect(loadLedger(disk, LEDGER, 2).runs.map((r) => r.task.id)).toEqual(['chain-2']);
+    expect(loadLedger(disk, LEDGER, 2).arcs.map((a) => a.runId)).toEqual(['chain-2']);
+    // A cold reader who only has the file can still name the door each walk stopped at.
+    const lines = disk.readFileSync(LEDGER).trimEnd().split('\n');
+    const kinds = lines.map((l) => (parseLedgerLine(l).ok ? (JSON.parse(l).kind ?? 'run') : 'junk'));
+    expect(kinds).toEqual(['run', 'git-arc', 'run', 'git-arc']);
+  });
+});
+
 

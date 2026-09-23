@@ -1,5 +1,5 @@
 import { goalKeyword } from './planner.js';
-import { runGitArc, type GitArcOutcome } from './gitArc.js';
+import { runGitArc, RELEASE_ROLE, type GitArcOutcome } from './gitArc.js';
 import { runTask } from './orchestrator.js';
 import { saveMemory, type FsWriteLike } from './durability.js';
 import { appendLedger } from './ledger.js';
@@ -202,7 +202,7 @@ export async function runRoleChain(task: AgentTask, opts: ChainOptions): Promise
   if (opts.release) {
     release = editorOutcome.status !== 'completed'
       ? { doors: [], steps: [], results: [], status: 'no-arc', notes: [], reason: `the editor stage ended ${editorOutcome.status} — the arc lives behind verification (v36)` }
-      : await runGitArc(opts.roles.scopedRegistry('releaser', host), {
+      : await runGitArc(opts.roles.scopedRegistry(RELEASE_ROLE, host), {
           callId: `${task.id}:release`,
           message: `chore(agent): verified chain ${task.id} · seed ${editorOutcome.plan.seed}`,
           // Same priority the plan's own ref follows: the task's stated target, else the LIVE
@@ -211,9 +211,9 @@ export async function runRoleChain(task: AgentTask, opts: ChainOptions): Promise
           checkpoint: opts.checkpoint,
         });
     const walked = release.steps.map((s) => s.stepId).join('→');
-    handoffs.push({ from: 'editor', to: 'releaser', goal: task.goal, via: `git.arc:${release.doors.join('+') || 'none'}`, refs, runId: task.id });
+    handoffs.push({ from: 'editor', to: RELEASE_ROLE, goal: task.goal, via: `git.arc:${release.doors.join('+') || 'none'}`, refs, runId: task.id });
     if (release.doors.length > 0) {
-      handoffs.push({ from: 'releaser', to: 'host', goal: task.goal, via: `git:${walked || 'nothing'}${release.status === 'completed' ? '' : `!${release.status}`}`, refs, runId: task.id });
+      handoffs.push({ from: RELEASE_ROLE, to: 'host', goal: task.goal, via: `git:${walked || 'nothing'}${release.status === 'completed' ? '' : `!${release.status}`}`, refs, runId: task.id });
     }
     // §26 keeps its own governance: the HOST records what the arc did; the releaser role cannot.
     opts.store.save({
@@ -226,7 +226,14 @@ export async function runRoleChain(task: AgentTask, opts: ChainOptions): Promise
   }
 
   if (opts.fsLike) {
-    if (opts.ledgerFile) appendLedger(opts.fsLike, opts.ledgerFile, editorOutcome);
+    if (opts.ledgerFile) {
+      appendLedger(opts.fsLike, opts.ledgerFile, editorOutcome);
+      // v49: the arc is a record too, written RIGHT AFTER the run it followed and joined to it by
+      // `runId`. It is NOT merged into the run line above — that plan never held a git step (§60).
+      // `release: true` is journaled even when it walked nothing: a cold reader should be able to
+      // see that a release was asked for and refused, not just the arcs that succeeded.
+      if (release) appendLedger(opts.fsLike, opts.ledgerFile, { kind: 'git-arc', provenance: PROVENANCE, runId: task.id, goal: task.goal, role: RELEASE_ROLE, arc: release });
+    }
     if (opts.evaluationFile) appendEvaluation(opts.fsLike, opts.evaluationFile, evaluation);
   }
   if (opts.memoryFile && opts.fsLike) saveMemory(opts.store, opts.fsLike, opts.memoryFile);

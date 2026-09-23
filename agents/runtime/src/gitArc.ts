@@ -16,6 +16,12 @@ export const GIT_ARC_TOOLS = ['git.staged', 'git.commit', 'git.log', 'git.show']
 
 export type GitArcTool = (typeof GIT_ARC_TOOLS)[number];
 
+/**
+ * The ONE role allowed to walk the arc (§24). Named here, next to the doors it owns, so the role
+ * registry, the chain stage and the durable ledger record cannot disagree about who released.
+ */
+export const RELEASE_ROLE = 'releaser';
+
 /** Which door each tool is called as inside a plan (and in a chain handoff). */
 const STEP_ID: Record<GitArcTool, string> = {
   'git.staged': 'staged',

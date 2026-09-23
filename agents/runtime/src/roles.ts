@@ -1,3 +1,4 @@
+import { GIT_ARC_TOOLS, RELEASE_ROLE } from './gitArc.js';
 import type { ToolRegistry } from './registry.js';
 
 /**
@@ -45,6 +46,8 @@ export const DEMO_ROLES: RoleDefinition[] = [
   { id: 'archivist', name: 'Archivist role', description: 'Memory curation only: recall, inspect, save, forget.', allowedTools: ['memory.*'] },
   // v47 (§24 least privilege): the git arc belongs to a NAMED role instead of quietly widening
   // `editor`. Four doors only — the writes are §28's, the index is the human's (v35), and memory
-  // stays §26's (the host records the arc; this role cannot remember or forget).
-  { id: 'releaser', name: 'Release role', description: 'Walks the git arc a verified run earned: read what the human staged, commit it behind §28, read the hash back, read the content back. Cannot stage, push, or touch memory.', allowedTools: ['git.staged', 'git.commit', 'git.log', 'git.show'] },
+  // stays §26's (the host records the arc; this role cannot remember or forget). v49: the door list
+  // and the role's own name are READ FROM the arc's data module, so the grant cannot drift from the
+  // walk it licenses.
+  { id: RELEASE_ROLE, name: 'Release role', description: 'Walks the git arc a verified run earned: read what the human staged, commit it behind §28, read the hash back, read the content back. Cannot stage, push, or touch memory.', allowedTools: [...GIT_ARC_TOOLS] },
 ];

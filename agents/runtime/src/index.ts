@@ -159,8 +159,11 @@ export {
 export {
   appendLedger,
   formatLedgerLine,
+  isArcRecord,
   loadLedger,
   parseLedgerLine,
+  type GitArcLedgerRecord,
+  type LedgerEntry,
   type LedgerLine,
   type LedgerRead,
 } from './ledger.js';
@@ -170,6 +173,7 @@ export {
   gitArcDoors,
   gitArcSteps,
   runGitArc,
+  RELEASE_ROLE,
   type GitArcOptions,
   type GitArcOutcome,
   type GitArcPresence,

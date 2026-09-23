@@ -3,7 +3,7 @@ import { matchesTool, ToolRegistry } from '../src/registry.js';
 import { DEMO_ROLES, RoleRegistry } from '../src/roles.js';
 import { InMemoryWorkspace, registerWorkspaceTools } from '../src/workspace.js';
 import { planTask } from '../src/planner.js';
-import { GIT_ARC_TOOLS, runGitArc } from '../src/gitArc.js';
+import { GIT_ARC_TOOLS, RELEASE_ROLE, runGitArc } from '../src/gitArc.js';
 import { runTask } from '../src/orchestrator.js';
 
 function hostRegistry(): ToolRegistry {
@@ -158,5 +158,13 @@ describe('DEMO_ROLES × the git arc (v47)', () => {
     expect(editor.results).toEqual([]);
     expect(editor.reason).toContain('no git.commit in this scope');
     expect(gates).toHaveLength(4); // the editor scope knocked on nothing — not even a denial
+  });
+
+  it('v49: the grant is DERIVED from the arc\'s data, so a privilege cannot drift from the walk it licenses', () => {
+    const role = DEMO_ROLES.find((r) => r.id === RELEASE_ROLE);
+    expect(role?.allowedTools).toEqual([...GIT_ARC_TOOLS]);
+    // Widening the arc would widen the role automatically — and the ledger's `role` field is the
+    // same constant, so nobody can journal an arc under a name the registry never granted.
+    expect(RELEASE_ROLE).toBe('releaser');
   });
 });

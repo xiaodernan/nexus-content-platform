@@ -1210,3 +1210,82 @@ two fresh runs, checkpoint denial leaving the workspace byte-identical).
   trick proves the arc reads the path it was handed, not that a chained agent can find a real file
   it has never been shown; and DEMO MODE still plans by template — v47 moved an order into data and
   gave it an owner, it did not make the runtime decide anything.
+
+## Amendment 49 — v49 (runtime): the arc survives its process — a role that committed left no trace a cold reader could find, 2026-09
+
+_Sequencing note: amendment 48 is the concurrent exec-host lane (budgets that bite); this runtime
+slice deliberately takes 49 so the two lanes cannot collide on a number, and the file may briefly
+show a gap. History, not a mistake._
+
+- **The hole was in v47's last honest-bound sentence.** A released chain wrote ONE ledger line: the
+  editor's `RunOutcome`. That record contains no git step — correctly, because the editor's scope
+  never held one — so a cold reader of `nexus-ledger.jsonl` looked at the audit trail of a chain
+  that had really committed and found a run that searched, annotated and verified, and nothing else.
+  The plan face has journaled every door since v36 (that is how `confirm-proof`/`intent-proof` can
+  replay an arc at all); the role face journaled the arc's _summary_ into §26 memory and its _data_
+  nowhere. Asymmetry between two faces of the same safety property is how an audit trail becomes
+  decoration: the strongest record in the file was the one that was silent.
+- **One stream, two record kinds — and nothing folded together.** The obvious cheap fix was to
+  splice the arc's steps into the editor's `RunOutcome` before appending. Refused: that plan never
+  contained a git step, and back-filling it would be a false record of what that stage planned —
+  exactly the §60 line v47 drew. Instead `ledger.ts` now carries a discriminated record: a run line
+  is written EXACTLY as v7 wrote it (no `kind` field, so every pre-v49 file still parses — asserted,
+  not assumed), and `GitArcLedgerRecord`
+  (`{kind:'git-arc', provenance, runId, goal, role, arc}`) is appended immediately after the run
+  line it followed, joined to it by `runId`. `appendLedger`/`formatLedgerLine` widened to the
+  union; `loadLedger` gained `arcs` beside `runs`; `last` now trims trailing **records** across both
+  kinds, because "the last thing that happened" is a question about the stream, not about one shape.
+- **A claim is not a record.** `parseLedgerLine` checks the arc's shape before believing it: a line
+  whose `kind` says `git-arc` but whose `status` is not one of `completed|stopped|no-arc`, whose
+  `doors|steps|results|notes` are not arrays, whose `role` is missing, or whose
+  `provenance.mode !== 'demo'` is `{ok:false, reason:'not a complete git-arc record'}` and counts
+  toward `malformed`. The discrimination is one-directional on purpose: a self-labelled arc is
+  **never** re-read as a run (that is how a corrupt record would smuggle itself into a report), and
+  a run-shaped line is never upgraded into an arc. `isArcRecord` is exported so consumers narrow
+  instead of casting.
+- **`RELEASE_ROLE`: the name in the ledger is the name the registry granted.** Who owns the arc was
+  a string literal in three files. It is now one constant in `gitArc.ts`, next to the doors it
+  names: `DEMO_ROLES` builds the releaser's `allowedTools` from `[...GIT_ARC_TOOLS]` and its `id`
+  from `RELEASE_ROLE`, the chain scopes `roles.scopedRegistry(RELEASE_ROLE, host)`, and the durable
+  record's `role` field is that same constant. A privilege can no longer drift from the walk it
+  licenses, and no run can be journalled under a name the role pack never granted.
+- **The REQUEST is journalled, not just the successes.** `release: true` writes an arc line even
+  when the walk was refused: a red chain's line carries `status:'no-arc'`, `doors: []` and the
+  reason naming the editor's status. An absent line would leave a reader to guess between "nobody
+  asked for a release" and "the ask was refused" — the two are different facts about the human, and
+  §28's history is exactly the difference between them.
+- **37th proof `docs/evidence/agents/durable-arc-proof.mjs`.** §1 pins the contract on hand-written
+  lines (pre-v49 run parses; arc round-trips; five tampered arcs each rejected with the reason
+  quoted). §2 then runs `runRoleChain` itself over the four REAL keyed doors against a throwaway
+  `os.tmpdir()` repo, with `fsLike` = the real `node:fs`, and reads the file back afterwards: 2a
+  asserts the durable walk is `deepEqual` to the returned one (steps, callIds, git's own
+  `exit 0` details) AND that the repository signs off on it — the durable commit hash compared to
+  `git rev-parse HEAD` measured OUTSIDE the loop (abbreviated-vs-full, so `startsWith` with the
+  length difference asserted too, per the v38 lesson), the intent read's `addedLines` and the
+  content read's `addedLines` both byte-equal to what the human staged, and the run line still
+  carrying no git step from either side. 2b vetoes the confirm door: the stopped arc is durable
+  AS stopped — reason, per-door `ok` array and `doors.length === 4` (what the role COULD walk, so a
+  shorter walk reads as a veto and not a missing grant) all survive, while the already-granted
+  commit remains HEAD. 2c journals a red chain's refusal and shows it spends zero processes, zero
+  commits and leaves `git diff --cached --name-only` still naming the human's file. 2d appends a
+  forged arc line to the real file: `malformed` becomes 1, it surfaces in no array, and the three
+  good arcs still load. 2e reads a v7-shaped single-line file back: `arcs` is `[]` and nothing else
+  changed. Home HEAD byte-identical; the repo and the ledger inside it are deleted in `finally` (§9).
+- runtime 279/279 → **290/290** (`ledger.test.ts` 3 → 7: arc round-trip, the five rejections,
+  one-stream two-kinds with cross-kind `last`, the runId join and the on-record anti-fold;
+  `chain.test.ts` 14 → 20: two lines in write order, anti-fold on disk, a stopped arc durable as
+  stopped, a red chain's refusal journalled, no-`release` ⇒ v14 shape, append-only across two
+  chains; `roles.test.ts` 10 → 11 for the derivation guard). `loadLedger`'s read shape gained
+  `arcs`; every consumer outside `ledger.ts` reads `.runs`, and the thirty-six proofs that existed
+  before this amendment stayed green untouched — an additive field, asserted by the seven
+  pre-existing ledger-reading proofs (`changes`/`confirm`/`greencommit`/`inspect`/`intent`/
+  `pipeline`/`remember`) rather than by a promise. exec-host, studio, all doors and policies UNCHANGED: no new capability, no new
+  gate, nothing the human can see differently. Honest bounds: this journals what the runtime ASKED
+  and what git ANSWERED, not what the human decided — the §28 receipts of v40/v41 still live on the
+  dock's own face and are not written beside the arc, so a ledger reader sees a refusal's _effect_
+  but not the decider's _reason_; the two-role `runRolePipeline` has no release stage, so it writes
+  no arc line; nothing in the Studio dock reads `arcs` yet (§60: no panel pretends to); the `kind`
+  discrimination is a shape check, not a signature — a writer that forges a COMPLETE arc record is
+  believed, because the ledger's threat model is accident and drift, not adversary; and the
+  durability proven here is "the bytes on disk replay correctly in a cold reader", already the same
+  standard as v7's ledger — the cross-process face remains `pipeline-proof.mjs`'s.
