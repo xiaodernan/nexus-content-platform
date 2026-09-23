@@ -256,10 +256,24 @@ describe('gitVerdict — one rule for which line is git saying something (v52, r
     expect(gitVerdict('', REAL.conflicted.stderr).line).not.toContain('hint:');
   });
 
-  it('one line with no prefix is simply what git said; zero lines says git printed nothing', () => {
+  it('git printing NOTHING at all is stated as that; git being CUT off mid-word is stated as that too', () => {
     expect(gitVerdict(REAL.hookSpoke.stdout, REAL.hookSpoke.stderr)).toEqual({ line: 'hook speaks on stdout', rule: 'sole', lines: 1 });
     expect(gitVerdict(REAL.silent.stdout, REAL.silent.stderr)).toEqual({ line: '', rule: 'none', lines: 0 });
     expect(quoteVerdict(gitVerdict('', ''))).toBe('git printed no output at all');
+    // v53: the same empty strings mean something else entirely when the budget spoke first
+    expect(gitVerdict('', '', { truncated: true })).toEqual({ line: '', rule: 'cut', lines: 0 });
+    expect(quoteVerdict(gitVerdict('', '', { truncated: true }))).toContain('no WHOLE line survived the output budget');
+    expect(quoteVerdict(gitVerdict('', '', { truncated: true }))).toContain('NOT a statement that it said nothing');
+    expect(quoteVerdict(gitVerdict('partial without newline', '', { truncated: true }))).toBe('partial without newline'); // v48: bytes survive ⇒ the rules above still apply
+  });
+
+  it('a door facing a fully-cut refusal says CUT, never "printed no output at all"', async () => {
+    const h = harness('no newline in the kept window at all', { code: 128, signal: null }, 6);
+    const res = await h.registry.invoke({ callId: 'v5', tool: 'git.status', args: {} }, h.grant);
+    const detail = String((res.output as { detail: string }).detail);
+    expect(detail).toContain('no WHOLE line survived the output budget');
+    expect(detail).not.toContain('git printed no output at all');
+    expect(detail).toContain('output truncated at budget');
   });
 
   it('git indents with tabs and spaces — the quote carries the words, not the layout', () => {

@@ -63,6 +63,11 @@ export interface ExecRunResult {
   signal: string | null;
   stdout: string;
   stderr: string;
+  /**
+   * SOME stream lost bytes. Since v53 `maxOutputBytes` is a PER-STREAM ceiling, so this flag says
+   * nothing about the other stream — v48 trims each cut stream to whole lines independently, and a
+   * door's sentence names whichever of the two applies.
+   */
   truncated: boolean;
   killedByBudget: boolean;
   /** Spawn-layer failure (ENOENT, EPERM…); '' when the process reported its own exit. */
@@ -159,14 +164,26 @@ export function createExecHost(policy: ExecPolicy, options: ExecHostOptions = {}
         // U+FFFD, and cutting at a byte landed INSIDE a line — so a truncated read handed the
         // agent a line the program never printed, which every downstream parser then counted as
         // content. A cut stream therefore keeps only whole lines.
+        // M2 v53 (ADR 0016 amendment 53): `budget` is now a PER-STREAM ceiling, so the host may hold
+        // up to 2 × maxOutputBytes in total — that doubling is the honest price, and it is stated
+        // here, in the policy docs and in the proof. Measured with real processes before choosing it:
+        // one program writing 9 KB to stderr and then 19 B of answer to stdout, and the same program
+        // in the opposite order, at one shared 4 KB budget. Under v30's single counter the
+        // stderr-first order returned `stdout 0 B / stderr 0 B` (the big line spent the whole budget,
+        // then v48 trimmed the partial line, so NOTHING survived) while stdout-first returned the
+        // answer: whether an agent saw a command's output depended on WHICH PIPE FLUSHED FIRST. A
+        // split-with-lending design was tried and rejected by the same reasoning — a fast stream can
+        // always spend borrowed ground before the other one reaches it, so a borrowed share is not a
+        // guarantee. What each stream gets is its own ceiling and nothing another program wrote can
+        // take it away, which is also why every assertion below is order-independent.
         const chunks: Record<'stdout' | 'stderr', Buffer[]> = { stdout: [], stderr: [] };
         const cut: Record<'stdout' | 'stderr', boolean> = { stdout: false, stderr: false };
-        let kept = 0;
+        const kept: Record<'stdout' | 'stderr', number> = { stdout: 0, stderr: 0 };
         let truncated = false;
         let killed = false;
         const append = (target: 'stdout' | 'stderr', chunk: Buffer | string) => {
           const buf = Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk, 'utf8');
-          const room = Math.max(0, budget - kept);
+          const room = Math.max(0, budget - kept[target]);
           const keep = buf.byteLength <= room ? buf : buf.subarray(0, room);
           if (keep.byteLength < buf.byteLength) {
             truncated = true;
@@ -174,7 +191,7 @@ export function createExecHost(policy: ExecPolicy, options: ExecHostOptions = {}
           }
           if (keep.byteLength > 0) {
             chunks[target].push(keep);
-            kept += keep.byteLength;
+            kept[target] += keep.byteLength;
           }
         };
         const textOf = (target: 'stdout' | 'stderr') => {

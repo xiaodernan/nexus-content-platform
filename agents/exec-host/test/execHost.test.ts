@@ -115,12 +115,50 @@ describe('createExecHost (v30: only what planExec approved ever spawns)', () => 
     expect(seen).toEqual([{ call: { callId: 'exec-host', tool: 'exec.run', args: { argv: ['node', 'app.js'], cwd: 'X:/jail' } }, permissions: ['exec'] }]);
   });
 
-  it('output budget: total stdout+stderr is hard-capped, the cut is marked truncated (v48: a cut stream ends on a LINE boundary)', async () => {
-    const h = harness({ code: 0, signal: null }, [['stdout', 'ab\ncd\n'], ['stderr', 'ef\ngh\n']]);
+  it('output budget: EACH stream is hard-capped on its own, the cut is marked truncated (v48 lines, v53 per-stream)', async () => {
+    const h = harness({ code: 0, signal: null }, [['stdout', 'ab\ncd\n'], ['stderr', 'efghij\n']]); // 6-byte cap: stdout fits, stderr loses a byte
     const r = await h.host.run({ argv: ['git', 'status', '--short'] }, OK_GATE); // rule caps at 6 bytes
-    expect(r.stdout).toBe('ab\ncd\n'); // the whole 6-byte budget went to stdout, and every byte of it is a printed line
-    expect(r.stderr).toBe(''); // v30 kept the byte prefix `ef`; v48 refuses to call half a line content
+    expect(r.stdout).toBe('ab\ncd\n'); // v53: stdout keeps its full 6 bytes — stderr's overflow no longer reaches it
+    expect(r.stderr).toBe(''); // the 6 kept bytes end mid-line, and v48 refuses to call half a line content
+    expect(r.truncated).toBe(true); // one flag, two possible causes: the cut is attributed per stream
+  });
+
+  // M2 v53 (ADR 0016 amendment 53): that 6-byte cap used to be a SINGLE counter shared by both
+  // pipes, which meant the order a program wrote in decided who was heard at all. Measured against
+  // real processes before the change: 9 KB to stderr then 19 B of answer to stdout, at a 4 KB
+  // budget, returned `stdout 0 B / stderr 0 B` (the big line spent everything, then v48 trimmed the
+  // partial line, so nothing survived) while the same program writing stdout first returned the
+  // answer. Each stream now has its own ceiling — the cost is that the host can hold 2 × cap, and
+  // that is what the totals case below pins.
+  it('write order no longer decides who is heard: the same bytes, both orders, same answer', async () => {
+    const answer = 'RESULT-LINE\nsecond\n';
+    const loud = `${'E'.repeat(99)}\n`.repeat(91); // 9 100 B of progress lines on ONE stream
+    const loudFirst = harness({ code: 0, signal: null }, [['stderr', loud], ['stdout', answer]]);
+    const quietFirst = harness({ code: 0, signal: null }, [['stdout', answer], ['stderr', loud]]);
+    const a = await loudFirst.host.run({ argv: ['node', 'app.js'] }, OK_GATE); // rule caps at 1 000 bytes
+    const b = await quietFirst.host.run({ argv: ['node', 'app.js'] }, OK_GATE);
+    expect(a.stdout).toBe(answer);
+    expect(b.stdout).toBe(answer);
+    expect(a.stdout).toBe(b.stdout); // the pre-v53 assertion that could not be made: order-independence
+    expect(Buffer.byteLength(a.stderr, 'utf8')).toBe(1000); // the loud stream is the one that got cut, to its own ceiling
+    expect(a.truncated).toBe(true);
+  });
+
+  it('the ceiling is per stream, so the host holds at most 2 × the policy number', async () => {
+    const flooded = `${'x'.repeat(99)}\n`.repeat(51); // 5 100 B, newline every 100 B
+    const h = harness({ code: 0, signal: null }, [['stderr', flooded], ['stdout', flooded]]);
+    const r = await h.host.run({ argv: ['node', 'app.js'] }, OK_GATE); // 1 000-byte cap on EACH stream
+    expect(Buffer.byteLength(r.stdout, 'utf8')).toBe(1000);
+    expect(Buffer.byteLength(r.stderr, 'utf8')).toBe(1000);
     expect(r.truncated).toBe(true);
+    expect(r.stdout.endsWith('\n')).toBe(true); // v48 still owns the shape of a cut: whole lines only
+  });
+
+  it('an entirely-cut stream is stated as CUT, not as a program that said nothing (v53 × v52)', async () => {
+    const h = harness({ code: 1, signal: null }, [['stdout', 'no newline at all and it keeps going']]);
+    const r = await h.host.run({ argv: ['git', 'status', '--short'] }, OK_GATE); // 6 bytes, no \n inside them
+    expect(r.stdout).toBe('');
+    expect(r.truncated).toBe(true); // the host's own claim: bytes were dropped, not that none existed
   });
 
   // M2 v48: the budget is measured in bytes, but it spends them on LINES. What it cannot fit it
@@ -141,12 +179,15 @@ describe('createExecHost (v30: only what planExec approved ever spawns)', () => 
     expect(r.truncated).toBe(false);
   });
 
-  it('the cut is per-stream: starved stderr loses its partial line while intact stdout keeps its own', async () => {
-    const h = harness({ code: 0, signal: null }, [['stdout', 'abcd\n'], ['stderr', 'efgh']]); // 5 kept, 1 byte of room left
+  it('v53: a cut on one stream no longer touches the other (the old test here proved the OPPOSITE)', async () => {
+    // Pre-v53 this fed stdout 5 B and stderr 4 B through a 6-byte SHARED counter and asserted
+    // `stdout 'abcd\n', stderr ''` — the very order-dependence v53 removes. Each stream now holds
+    // its own 6-byte ceiling, so a 4-byte stderr that fits is kept verbatim.
+    const h = harness({ code: 0, signal: null }, [['stdout', 'abcd\n'], ['stderr', 'efgh']]);
     const r = await h.host.run({ argv: ['git', 'status', '--short'] }, OK_GATE);
     expect(r.stdout).toBe('abcd\n');
-    expect(r.stderr).toBe('');
-    expect(r.truncated).toBe(true);
+    expect(r.stderr).toBe('efgh'); // v30/v48 dropped this because stdout had spent the shared budget
+    expect(r.truncated).toBe(false); // nothing was cut: each stream was inside its own ceiling
   });
 
   it('a multibyte character split across CHUNK boundaries is one character, not U+FFFD (bytes are decoded once, at the end)', async () => {

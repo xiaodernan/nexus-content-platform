@@ -72,7 +72,7 @@ export function registerGitCommitTool(registry: ToolRegistry, host: ExecHost, op
     if (result.spawnError !== '') throw new Error(`spawn failed: ${result.spawnError}`);
     const flags = `${result.truncated ? ' · output truncated at budget' : ''}${result.killedByBudget ? ' · killed at timeout budget' : ''}`;
     if (result.exitCode !== 0 || result.killedByBudget) {
-      const verdict = gitVerdict(result.stdout, result.stderr);
+      const verdict = gitVerdict(result.stdout, result.stderr, { truncated: result.truncated || result.killedByBudget });
       return { ok: false, detail: `git.commit → exit ${result.exitCode}: ${quoteVerdict(verdict)}${flags}`, exitCode: result.exitCode, message, truncated: result.truncated };
     }
     const record = parseCommitOutput(result.stdout);

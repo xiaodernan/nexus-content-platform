@@ -94,7 +94,7 @@ export function registerGitShowTool(registry: ToolRegistry, host: ExecHost, opti
     if (result.spawnError !== '') throw new Error(`spawn failed: ${result.spawnError}`);
     const flags = `${result.truncated ? ' · output truncated at budget' : ''}${result.killedByBudget ? ' · killed at timeout budget' : ''}`;
     if (result.exitCode !== 0 || result.killedByBudget) {
-      const verdict = gitVerdict(result.stdout, result.stderr);
+      const verdict = gitVerdict(result.stdout, result.stderr, { truncated: result.truncated || result.killedByBudget });
       return { ok: false, detail: `git.show → exit ${result.exitCode}: ${quoteVerdict(verdict)} · ${refusedNotAbsence(`HEAD touches nothing at ${path}`)}${flags}`, exitCode: result.exitCode, path, addedLines: [], truncated: result.truncated };
     }
     const change = parseShowDiff(result.stdout, path);

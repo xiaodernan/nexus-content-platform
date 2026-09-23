@@ -69,7 +69,7 @@ export function registerGitLogTool(registry: ToolRegistry, host: ExecHost, optio
     if (result.spawnError !== '') throw new Error(`spawn failed: ${result.spawnError}`);
     const flags = `${result.truncated ? ' · output truncated at budget' : ''}${result.killedByBudget ? ' · killed at timeout budget' : ''}`;
     if (result.exitCode !== 0 || result.killedByBudget) {
-      const verdict = gitVerdict(result.stdout, result.stderr);
+      const verdict = gitVerdict(result.stdout, result.stderr, { truncated: result.truncated || result.killedByBudget });
       return { ok: false, detail: `git.log → exit ${result.exitCode}: ${quoteVerdict(verdict)} · ${refusedNotAbsence('the repo has no commits')}${flags}`, exitCode: result.exitCode, count, commits: [], truncated: result.truncated };
     }
     const { commits, skipped } = parseGitLog(result.stdout);

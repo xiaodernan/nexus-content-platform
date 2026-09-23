@@ -65,9 +65,22 @@ const capped = await host.createExecHost(POLICY, {
   },
 }).run({ argv: ['git', 'status', '--short'] }, { checkpoint: () => true });
 // v30 asserted ['abcd','ef',true] here: a 6-byte budget that kept `ef` — HALF a line, presented
-// as content. v48 (ADR 0016 amendment 48) is the correction: the budget still bites exactly as
-// hard, but a stream that lost bytes answers in WHOLE lines, and the starved stream says nothing.
-assert.deepEqual([capped.stdout, capped.stderr, capped.truncated], ['ab\ncd\n', '', true], '6-byte budget across both streams: whole lines kept, half a line refused');
+// as content. v48 (ADR 0016 amendment 48) is the first correction: a stream that lost bytes
+// answers in WHOLE lines. v53 (ADR 0016 amendment 53) is the second: that 6 bytes is now EACH
+// stream's own ceiling, because under one SHARED counter this very fixture had stderr arrive second
+// and be refused entirely — the answer a program put on stdout depended on which pipe flushed first.
+// Both streams fit their own ceiling here, so neither is cut and neither is trimmed.
+assert.deepEqual([capped.stdout, capped.stderr, capped.truncated], ['ab\ncd\n', 'ef\ngh\n', false], '6 bytes per stream: each keeps its whole lines, nothing was cut');
+const loud = await host.createExecHost(POLICY, {
+  spawnLike: (cmd, args, opts) => {
+    const c = fakeChild({ code: 0, signal: null }, [['stderr', 'E'.repeat(99) + '\n'], ['stdout', 'ab\ncd\n']]);
+    queueMicrotask(() => c.fire());
+    return c;
+  },
+}).run({ argv: ['git', 'status', '--short'] }, { checkpoint: () => true });
+// the loud stream is the one that gets cut, and the quiet stream is not punished for it
+assert.deepEqual([loud.stdout, loud.truncated], ['ab\ncd\n', true], 'v53: a 100-byte stderr against a 6-byte ceiling loses 94 of its own bytes and ZERO of stdout');
+assert.equal(Buffer.byteLength(loud.stderr, 'utf8'), 0, 'the stderr that remains is whole lines only — here none of one long line fits, so it reports nothing (v48) without taking stdout down with it (v53)');
 const timedOut = await host.createExecHost(POLICY, {
   spawnLike: () => fakeChild(null), // never ends on its own
 }).run({ argv: ['git', 'status', '--short'] }, { checkpoint: () => true });

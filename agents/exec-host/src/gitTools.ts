@@ -39,27 +39,35 @@ export const cutNotAbsence = (what: string): string => `no complete line survive
  * a §28 decision could be weighed on a banner, and the two read doors quoted nothing at all.
  */
 export interface GitVerdict {
-  /** git's own words, verbatim; empty only when git printed none */
+  /** git's own words, verbatim; empty when git printed none, or when the budget ate all of them */
   line: string;
   /** WHICH rule picked it — the sentence says so, because the rules differ in what they prove */
-  rule: 'prefixed' | 'sole' | 'last' | 'none';
-  /** how many non-empty lines git actually printed, across BOTH streams */
+  rule: 'prefixed' | 'sole' | 'last' | 'none' | 'cut';
+  /** how many non-empty lines survive in what the host handed back, across BOTH streams */
   lines: number;
 }
 
-export function gitVerdict(stdout: string, stderr: string): GitVerdict {
+/**
+ * M2 v53: `truncated` is the host's own flag, and it changes what an EMPTY answer means. Without it
+ * a door that lost every byte to a budget said "git printed no output at all" beside "output
+ * truncated at budget" — two clauses that contradict each other, in the one sentence a §28 reviewer
+ * reads. v48's `cutNotAbsence` already says this about a parsed tally; this says it about git's words.
+ */
+export function gitVerdict(stdout: string, stderr: string, options: { truncated?: boolean } = {}): GitVerdict {
   // stderr first: a conflicted commit puts its reason there and a status letter on stdout
   const lines = [...stderr.split('\n'), ...stdout.split('\n')].filter((l) => l.trim() !== '').map((l) => l.trim());
   const prefixed = lines.find((l) => /^(fatal|error|warning):/.test(l));
   if (prefixed !== undefined) return { line: prefixed, rule: 'prefixed', lines: lines.length };
   if (lines.length === 1) return { line: lines[0]!, rule: 'sole', lines: 1 };
   if (lines.length > 1) return { line: lines.at(-1)!, rule: 'last', lines: lines.length };
+  if (options.truncated) return { line: '', rule: 'cut', lines: 0 };
   return { line: '', rule: 'none', lines: 0 };
 }
 
 /** The clause a door quotes: git's words, plus how much of git's output the quote is NOT. */
 export function quoteVerdict(v: GitVerdict): string {
   if (v.rule === 'none') return 'git printed no output at all';
+  if (v.rule === 'cut') return 'no WHOLE line survived the output budget — git may have printed more; this is NOT a statement that it said nothing';
   return v.lines > 1 ? `${v.line} · git's ${v.rule} line of the ${v.lines} it printed` : v.line;
 }
 
@@ -224,7 +232,7 @@ export function registerGitTools(registry: ToolRegistry, host: ExecHost, options
       .join(', ');
     const detail = ok
       ? `git.status → exit ${result.exitCode}: ${files.length} entries${tally === '' ? '' : ` (${tally})`}${flags(result)}`
-      : `git.status → exit ${result.exitCode}: ${quoteVerdict(gitVerdict(result.stdout, result.stderr))} · ${files.length} entries parsed · ${refusedNotAbsence('the working tree is clean or empty')}${flags(result)}`;
+      : `git.status → exit ${result.exitCode}: ${quoteVerdict(gitVerdict(result.stdout, result.stderr, { truncated: result.truncated || result.killedByBudget }))} · ${files.length} entries parsed · ${refusedNotAbsence('the working tree is clean or empty')}${flags(result)}`;
     return { ok, detail, exitCode: result.exitCode, files, counts, truncated: result.truncated };
   });
 
@@ -239,7 +247,7 @@ export function registerGitTools(registry: ToolRegistry, host: ExecHost, options
       const mention = notice.length > 0 ? ` · ${unmergedNotAbsence(notice)}` : '';
       const detail = ok
         ? `git.diff --stat → exit 0: ${parsed}${mention}${flags(result)}`
-        : `git.diff --stat → exit ${result.exitCode}: ${quoteVerdict(gitVerdict(result.stdout, result.stderr))} · ${parsed} · ${refusedNotAbsence('nothing changed')}${flags(result)}`;
+        : `git.diff --stat → exit ${result.exitCode}: ${quoteVerdict(gitVerdict(result.stdout, result.stderr, { truncated: result.truncated || result.killedByBudget }))} · ${parsed} · ${refusedNotAbsence('nothing changed')}${flags(result)}`;
       return { ok, detail, exitCode: result.exitCode, mode: 'stat', summary, text: result.stdout, truncated: result.truncated };
     }
     const { files, totals } = parseGitDiff(result.stdout);
@@ -247,7 +255,7 @@ export function registerGitTools(registry: ToolRegistry, host: ExecHost, options
     const tally = `${totals.files} files, +${totals.additions} −${totals.deletions} (${totals.hunks} hunks)`;
     const detail = ok
       ? `git.diff → exit 0: ${tally}${notice.length > 0 ? ` · ${unmergedNotAbsence(notice)}` : ''}${flags(result)}`
-      : `git.diff → exit ${result.exitCode}: ${quoteVerdict(gitVerdict(result.stdout, result.stderr))} · ${tally} · ${refusedNotAbsence('the tree has no changes')}${flags(result)}`;
+      : `git.diff → exit ${result.exitCode}: ${quoteVerdict(gitVerdict(result.stdout, result.stderr, { truncated: result.truncated || result.killedByBudget }))} · ${tally} · ${refusedNotAbsence('the tree has no changes')}${flags(result)}`;
     return { ok, detail, exitCode: result.exitCode, mode: 'full', files, totals, truncated: result.truncated };
   });
 

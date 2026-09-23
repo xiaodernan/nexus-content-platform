@@ -1614,6 +1614,85 @@ SAY about what git did._
   sentence, and every repo here lives in `os.tmpdir`.
 
 
+## Amendment 53 — v53 (exec-host): the output budget is PER STREAM — a limit may stop a pipe, it may not decide who gets heard, 2026-09
+
+_Sequencing note: the runtime lane is at 54 and this lane took 52, so 53 was the gap between them —
+checked against this file's own headings before claiming it. The policy NUMBER is unchanged; what
+changed is what it means, where the memory goes, and what a door is allowed to conclude from an
+empty answer._
+
+- **The measurement first, because the bug was not visible in any door.** One real program, run twice
+  through `ExecHost.run` with the same 4 096-byte budget: it writes 9 100 bytes to stderr and then
+  4 000 bytes of answer to stdout. Written stderr-first the host returned **nothing at all on either
+  stream** — stderr spent the whole counter, and v48's whole-line trim then discarded the partial line
+  it had cut, so the answer that had not even been asked for was gone. Written stdout-first the same
+  command returned the answer. Same argv, same cwd, same env, same ceiling: the outcome was decided by
+  **which pipe flushed first**, which means the same command could answer differently twice in a row,
+  and no test at any level above the host could have caught that by pinning expected strings.
+- **One line of accounting, and the rejected alternative named.** `append` now measures a chunk
+  against `budget - kept[target]` instead of `budget - keptTotal`. A split-with-lending design
+  (half guaranteed to each, either stream free to spend the other's unused half) was implemented
+  first and rejected by this file's own logic: a fast stream spends borrowed ground before the slow
+  one reaches it, so a borrowed share is not a guarantee — it is the same race with better manners.
+  The shipped rule is that each stream has its own ceiling and nothing another stream wrote can
+  consume it.
+- **The cost, stated as a number rather than as a footnote.** The host can now retain up to
+  **2 × `maxOutputBytes`** where it retained `maxOutputBytes`: 128 KiB per run at the default 64 KiB,
+  2 MiB where `execsuite-proof` asks for 1 MiB. The policy field, its default, its per-rule override
+  and v29's clamp (`Math.min(rule.cap, policy.cap)`) are untouched — §4 of the proof asserts a rule
+  still cannot raise its own ceiling, so what changed is the meaning of the number, not who may set
+  it. Doubling a bounded bound is a real trade; it buys the property that a refusal to show output is
+  never an accident of scheduling.
+- **v52's verdict rule gets the half of itself the budget used to eat.** `gitVerdict` now takes
+  `{ truncated }`, and when nothing survives AND the budget bit, the rule is `cut`: the door says
+  *"no WHOLE line survived the output budget — git may have printed more; this is NOT a statement
+  that it said nothing."* Without that, v52's own `none` rule produced the sentence `git.commit →
+  exit 1: git printed no output at all · output truncated at budget` — two clauses that contradict
+  each other, in the one line a §28 reviewer reads. This is the third member of a family v48 started:
+  `cutNotAbsence` (a parsed tally), `refusedNotAbsence` (a git refusal), and now `cut` (git's words).
+- **43rd proof `docs/evidence/agents/streams-proof.mjs`.** §1 runs the mute and its absence: both
+  write orders, raw control outside the sandbox, and the old model **excluded by arithmetic on this
+  run's own numbers** — 4 000 bytes kept on stdout plus 4 000 on stderr is 8 000 bytes against a
+  4 096-byte ceiling, which a single shared counter cannot produce at all (this deliberately does not
+  re-implement v30's counter to "win" the comparison; the totals say it). §2 measures the opposite
+  worry: six shipped git reads at their real ceilings, `truncated: false` on all six, no cut or
+  refusal wording anywhere — the change costs a well-behaved command nothing. §3 is a real refusal
+  built the way a noisy tool misbehaves: a `pre-commit` hook that emits 20 000 bytes with **no
+  newline anywhere**, at a ceiling that fits and one that does not; the second sentence says CUT,
+  never "printed no output at all", and the host's own v51 records show the sharper truth — at the
+  tight ceiling the RECORD holds nothing either, because the ceiling bounds what anyone downstream can
+  ever see, which is exactly why the sentence has to say it. §4 asserts the stated worst case
+  (≤ 2 × ceiling, both streams trimmed to whole lines) and the unchanged clamp. §5 runs the same
+  command five times and asserts one outcome — a determinism claim the pre-v53 code could not honestly
+  make. §6: everything under `os.tmpdir`, home HEAD byte-identical.
+- **Two committed assertions encoded the shared counter, and both were rewritten in this commit.**
+  `execHost.test.ts`'s "the cut is per-stream: starved stderr loses its partial line while intact
+  stdout keeps its own" asserted, as its own expectation, the thing v53 removes — it now asserts that
+  a 4-byte stderr is kept whole (`truncated: false`), with the old expectation quoted in the comment
+  so the reversal is auditable. `exec-host-proof.mjs` §budgets asserted `['ab\ncd\n', '', true]` for
+  the same reason and now asserts `['ab\ncd\n', 'ef\ngh\n', false]` plus a second case where the loud
+  stream alone pays. That is the third increment running in this pattern (v46's flags, v48's byte
+  prefixes, v52's sentences, now v53's totals): **an assertion that encodes the old contract will
+  quietly undo the fix**, so the fix is not done until the old assertions are read, not just green.
+- **What did not move:** no policy field, default, clamp, argv shape, env list, gate, checkpoint, door
+  sentence (beyond the `cut` clause), timeout, journal shape or record kind. exec-host
+  **159/159 → 163/163** (26 → 29 in `execHost.test.ts`, 36 → 37 in `gitTools.test.ts`), all 43 agent
+  proofs green, and the four root gates green.
+- Honest bounds: the worst-case retention doubles, and nothing in this repo makes that operator-settable
+  per stream — an operator who needs the old total must halve the number they write; `truncated` is
+  still ONE flag for two streams, so a caller learns that something was cut and not what that cost the
+  other side (the two strings are the evidence, and a per-stream flag is a real future change rather
+  than this one); a program that writes 30 KB on a single stream is still cut to its ceiling — v53
+  stops one stream silencing another, it does not raise anybody's limit; the shipped git doors were
+  **not** silently muted before this (git merges a failing hook's output onto stderr, and the real
+  suite prints on stdout), which §2 measures instead of claiming, so the honest description of this
+  increment is "the host is no longer order-dependent", not "a door was lying"; `test.run` is where a
+  program with two busy streams is most likely to appear, and it inherits the fix without a change of
+  its own; what the timeout actually stops — a killed parent with a living process tree — is still
+  unmeasured and stays queued; and DEMO MODE is untouched: no Studio surface runs an exec host, so this
+  whole file is enforced in unit tests and proofs, and nothing pretends otherwise.
+
+
 ## Amendment 54 — v54 (runtime): the run line answers for its own gates — v50 named this gap in its own last sentence, 2026-09
 
 _Sequencing note: v50 closed v49's bound and, in the same breath, stated the one this increment

@@ -128,7 +128,7 @@ export function registerGitStagedTool(registry: ToolRegistry, host: ExecHost, op
     if (!result.ran) throw new Error(result.reason || 'run refused');
     if (result.spawnError !== '') throw new Error(`spawn failed: ${result.spawnError}`);
     if (result.exitCode !== 0 || result.killedByBudget) {
-      const verdict = gitVerdict(result.stdout, result.stderr);
+      const verdict = gitVerdict(result.stdout, result.stderr, { truncated: result.truncated || result.killedByBudget });
       return { ok: false, detail: `git.staged → exit ${result.exitCode}: ${quoteVerdict(verdict)} · ${refusedNotAbsence('the index holds nothing staged for the §28 ask')}${flags(result)}`, exitCode: result.exitCode, stat, files: [], truncated: result.truncated };
     }
     if (stat) {
