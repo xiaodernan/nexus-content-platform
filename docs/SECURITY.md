@@ -102,8 +102,10 @@ PostMessage 是唯一跨界通道：校验 `origin` + `source`，schema 校验�
 审核入口本身还有一个附带边界：`/api/admin/*` 用 `currentUserOrNull()` 而不是 `requireUser()` 读会话——
 后者会为无会话的请求现造一个 guest 身份（§137 的首次体验），那正好让任何人反复探测 admin 端点就能白手造用户行。
 
-谁是 admin：目前只能由运维直接改 `users.role`，平台没有自助提权路径。人工裁决的 UI 也还没有
-（队列只能 `GET /api/admin/moderation` 看 JSON）——这是 §131 剩下的一块，记在 ROADMAP。
+谁是 admin：目前只能由运维直接改 `users.role`，平台没有自助提权路径。
+复核台在 `/admin/moderation`：非审核员（包括项目作者本人）看到的是一句拒绝，队列内容与案子数都不给。
+2026-09-24 在真浏览器里核对过整圈：挂起 → 队列里看到命中证据 → 放行后离开队列 →
+再发一版并拒绝 → 那个公开 URL 立刻 404。
 
 ## 密钥与配置（§80）
 

@@ -1194,4 +1194,11 @@ test('@smoke 发布机检与公开页举报：挡下要说清凭什么，举报�
   await page.screenshot({ path: 'screenshots/publish-scan-blocked.png' });
   // 挡下之后仍挂着上一次成功发布的那一版：不能因为"这次没发出去"就假装 URL 消失了
   await expect(page.locator('[data-publish-result]')).toContainText('第 1 版');
+
+  // §131 的复核台默认拒绝：作者本人（guest/creator）看不到队列，连案子数都不给
+  await page.goto('/admin/moderation');
+  await expect(page.locator('[data-admin-denied]')).toHaveAttribute('data-admin-denied', 'not-admin');
+  await expect(page.locator('[data-admin-queue]')).toHaveCount(0);
+  await expect(page.locator('[data-queue-case]')).toHaveCount(0);
+  await page.screenshot({ path: 'screenshots/admin-queue-denied.png' });
 });

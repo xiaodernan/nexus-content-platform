@@ -179,6 +179,8 @@ export interface QueueEntry {
   projectName: string;
   ownerName: string;
   publicationId: string | null;
+  /** 那一版的公开路径；被挡下的发布没有路径可给 */
+  path: string | null;
   publicationVersion: number;
   visibility: string;
   decision: ModerationDecision;
@@ -198,6 +200,7 @@ export async function listReviewQueue(limit = 50): Promise<QueueEntry[]> {
       projectName: projects.name,
       ownerName: users.displayName,
       publicationId: moderationCases.publicationId,
+      path: publishedProjects.path,
       publicationVersion: moderationCases.publicationVersion,
       visibility: moderationCases.visibility,
       decision: moderationCases.decision,
@@ -210,6 +213,7 @@ export async function listReviewQueue(limit = 50): Promise<QueueEntry[]> {
     .innerJoin(projects, eq(projects.id, moderationCases.projectId))
     .innerJoin(users, eq(users.id, projects.ownerId))
     .leftJoin(abuseReports, eq(abuseReports.publicationId, moderationCases.publicationId))
+    .leftJoin(publishedProjects, eq(publishedProjects.id, moderationCases.publicationId))
     .where(and(eq(moderationCases.reviewRequired, true), isNull(moderationCases.resolvedAt)))
     .orderBy(desc(moderationCases.createdAt))
     .limit(limit * 4);
@@ -222,6 +226,7 @@ export async function listReviewQueue(limit = 50): Promise<QueueEntry[]> {
       projectName: row.projectName,
       ownerName: row.ownerName,
       publicationId: row.publicationId,
+      path: row.path ?? null,
       publicationVersion: row.publicationVersion,
       visibility: row.visibility,
       decision: row.decision as ModerationDecision,

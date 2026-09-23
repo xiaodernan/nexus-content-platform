@@ -517,8 +517,10 @@ drizzle 把整个拼接结果当成**单个绑定参数**，生成的 SQL 是 `o
   机检只升级不认证（`moderation` 停在 pending，只有 role=admin 的人工裁决能写 approved/rejected，
   rejected 立刻让公开 URL 404），扫描自带 limits + rulesVersion 一路显示到发布面板，
   被挡下的发布也立案。取舍与限度见 `docs/adr/0008-moderation-escalates-never-certifies.md`。
-  仍欠：人工裁决的 UI（队列现在只有 `GET /api/admin/moderation` 的 JSON）、图像/视频内容模型、
-  版权比对、block / mute（要等 M7 的关系面有承载处）
+  复核台 `/admin/moderation` 也已落地（非审核员连队列长度都看不到），整圈在真浏览器里核对过：
+  挂起 → 看到命中证据 → 放行离开队列 → 拒绝后公开 URL 立刻 404（截图 `screenshots/admin-*.png`）。
+  仍欠：图像/视频内容模型、版权比对、block / mute（要等 M7 的关系面有承载处）、
+  以及审核员提权目前只能改库（没有管理界面，也没有审计页）
 - [ ] **Java Spring Boot 领域服务在此落地**（用户/项目/社区/权限/计费的权威写入方）
 
 ## M7 — 创作者经济（§187）
