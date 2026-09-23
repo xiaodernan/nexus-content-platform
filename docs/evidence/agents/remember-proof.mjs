@@ -27,7 +27,7 @@ assert.deepEqual(full.steps.map((s) => s.stepId), ['search', 'read', 'annotate',
 const remember = full.steps.at(-1);
 assert.equal(remember.tool, 'memory.save');
 assert.equal(remember.args.runId, 'rm');
-assert.ok(String(remember.args.summary).includes('COMMITTED+CONFIRMED') && String(remember.args.summary).includes(`seed ${full.seed}`), 'the summary STATES the mode and the arc it remembers');
+assert.ok(String(remember.args.summary).includes('ARC-COMPLETE') && String(remember.args.summary).includes(`seed ${full.seed}`), 'the summary STATES the mode and the arc it remembers (v45 corrected the wording: the arc is what position guarantees, the landing is git\'s answer)');
 assert.deepEqual(remember.args.refs, ['@search.hits.0.path'], 'refs ride the same @ref dataflow as the read step');
 for (const minus of [
   { hasVerify: true, hasCommit: true, hasRemember: true }, // no confirm tier
@@ -85,7 +85,7 @@ try {
   assert.equal(rec.length, 1, 'exactly ONE remembered victory — nothing ghost-written');
   assert.equal(rec[0].runId, 'rm1');
   assert.equal(rec[0].query, 'add widget docs');
-  assert.ok(rec[0].summary.includes('COMMITTED+CONFIRMED'), 'the record says WHAT happened: verified, landed, read back agreeing');
+  assert.ok(rec[0].summary.includes('ARC-COMPLETE'), 'the record says the ARC was walked — and the run\'s own results carry git\'s answer for whether anything landed (HERE: it did, `winRecord` below)');
   assert.deepEqual(rec[0].refs, [{ path: 'notes/widget.md' }], 'the planned @ref resolved to the LIVE workspace path at invoke time');
   const winRecord = win.results.at(-3).output.record; // [-1] remember, [-2] confirm, [-3] commit
   assert.ok(winRecord.hash, 'the confirmed commit carries its hash — the ledger (section 3) is the join target');
@@ -97,7 +97,7 @@ try {
   assert.equal(win2.status, 'denied');
   assert.equal(win2.plan.steps[0].tool, 'memory.recall', 'with memory registered, research routes through it first (§26)');
   const recalled = win2.results[0].output.hits;
-  assert.ok(recalled.length > 0 && recalled[0].summary.includes('COMMITTED+CONFIRMED'), 'run 2 RECALLS run 1\'s remembered victory');
+  assert.ok(recalled.length > 0 && recalled[0].summary.includes('ARC-COMPLETE'), 'run 2 RECALLS run 1\'s remembered victory');
   assert.equal(recalled[0].path, 'notes/widget.md');
   assert.equal(countOf(win2, 'git.commit'), 1);
   assert.equal(win2.results.find((r) => r.tool === 'git.commit').ok, false, 'the denial is recorded honestly…');

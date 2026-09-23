@@ -795,7 +795,11 @@ two fresh runs, checkpoint denial leaving the workspace byte-identical).
   position in any demo plan where a memory write exists is the tail of the FULL
   verify→commit→confirm arc. A red run, a denied commit, even a DENIED CONFIRM cannot
   produce a remembered victory — the summary string `COMMITTED+CONFIRMED` is therefore
-  not a claim but a consequence of where the step sits. The orchestrator gained exactly
+  not a claim but a consequence of where the step sits. **(Amendment 45 corrects this
+  sentence: position guarantees the doors were WALKED, not that git RECORDED anything —
+  a §28-granted commit over an EMPTY index exits 1, and the string said otherwise.
+  The planned summary now reads `ARC-COMPLETE` and cites git's own answer for the
+  landing; `remember-proof.mjs` was re-greened on the new wording.)** The orchestrator gained exactly
   two things: capability detection (`hasRemember: registry.has('memory.save')`) and the
   dataflow upgrade `resolveArgs` now resolves `@refs` INSIDE array args — the planned
   `refs:['@search.hits.0.path']` became the LIVE workspace path at invoke time, the same
@@ -999,3 +1003,59 @@ two fresh runs, checkpoint denial leaving the workspace byte-identical).
   bounds: this is still DEMO MODE template planning — the tail is a fixed template, not a
   model's decision; `git.show` reads HEAD's change for ONE path in ONE policy-rooted repo; the
   agent still cannot stage, and a red or denied run never reaches any of it.
+
+## Amendment 45 — v45 (runtime): intent before the ask — the plan reads the index it is about to be asked to record, 2026-09
+
+- **A door nobody opens is not a capability.** v43 built `git.staged` and left it hand-invoked
+  ("a door, not yet a plan step", its own README words). This amendment moves it into the PLAN:
+  `PlannerOptions.hasStaged` inserts a `staged` step (tool `git.staged`, args `{stat:false}`)
+  INSIDE the hasCommit block and IMMEDIATELY BEFORE the commit push, so a green run's tail reads
+  verify→staged→commit→confirm→inspect→remember and the §28 ask to RECORD is preceded by the
+  agent's own read of what the human put in the index. Every other nesting holds: pull verify or
+  commit and the read vanishes with them; a host without the door gets the v44 plan
+  byte-for-byte (asserted both ways).
+- **Why the position carries the meaning twice over.** Forward: refusing the READ stops the walk
+  BEFORE the write — a human who withholds the intent also withholds the commit, at zero spawns,
+  with history untouched and the staged change still sitting unrecorded where the human left it.
+  Backward: git's own answer to a refused commit is the FIRST line of its output, and for an
+  empty index that line is `On branch master` — a header, not a reason. The sentence that
+  explains the refusal is the one the plan spoke one step earlier: *"the index is EMPTY — nothing
+  is staged, so a granted git.commit right now would have nothing to record."* The read exists
+  precisely because the write's answer is not enough.
+- **A §60 finding, fixed rather than filed.** 2c runs the static plan against an EMPTY index with
+  everything granted: the loop walks into the commit anyway, git exits 1 as `ok:false` DATA,
+  `record` is absent, `rev-list --count` does not move — and v39's planned summary asserted a
+  landing. That has been a false claim since the day a human staged nothing; nobody had run it.
+  The sentence is now `ARC-COMPLETE (DEMO MODE · seed N): goal "…" — verify, git.commit and
+  git.log all ran under §28; whether anything LANDED is git's own answer, in this run's results`.
+  Position may claim an ARC; only git may claim a commit. `remember-proof.mjs` (v39's) was
+  re-greened on the new wording, and the tests that pinned the old one say why.
+- **No control flow moved.** The orchestrator gained exactly one capability detection
+  (`hasStaged: registry.has('git.staged')`); v36's green-walk executes the new step because it
+  walks the plan, and a `git.staged` that answers EMPTY is DATA, not a branch — the demo planner
+  has no conditionals, and this increment says so in the open rather than smuggling an `if` into
+  the loop. The human at the gate IS the conditional; that is §28's whole design.
+- **34th proof `docs/evidence/agents/intent-proof.mjs`** runs `runTask` itself over FOUR keyed
+  doors in a throwaway `os.tmpdir()` repo (hooks/signing/autocrlf neutralized LOCALLY there).
+  2a's money assertion is a three-way agreement: the `addedLines` the plan read out of the index
+  BEFORE the commit are byte-equal the lines `git.show` returns AFTER it, byte-equal what the
+  human staged — with FIVE §28 gates firing (`test.run`, `git.staged`, `git.commit`, `git.log`,
+  `git.show`) and the first git process of the tail being a diff of the INDEX (`--cached`, with no
+  pathspec — the whole index, not one path the agent chose). 2b:
+  denied read ⇒ zero spawns and zero commits. 2c: the empty index above, its confirm step
+  honestly reading back 2a's hash because nothing new landed, and the remembered sentence
+  claiming only the arc. 2d: red spends none of the tail. Section 3: the cold ledger replays
+  both ends of the agreement in the executed order `git.staged→git.commit→git.log→git.show`;
+  `rev-list --count` ends at 2 (human seed + 2a), both throwaways gone in `finally`, home HEAD
+  byte-identical (§9).
+- runtime 239/239 → **246/246** (1 planner + 6 orchestrator cases, one of them pinning the
+  EMPTY-index limit in the unit face too); exec-host and studio UNCHANGED by this amendment —
+  no tool, policy or UI file moved, because the door was already built and only the PLAN changed.
+  Thirty-fourth proof; the 36-script sweep green against this commit's own tree, and the proof
+  asserts an argv SHAPE (`diff` … `--cached` … no pathspec) rather than exec-host's current flag
+  list — the door's exact argv is its own contract tests' business, so hardening the door cannot
+  silently redden a plan proof, and a plan proof cannot launder a door change into a green.
+  Honest bounds: DEMO MODE template planning still, and
+  now visibly so — the read is unconditional, so an empty index still walks into a refused
+  commit; the agent reads the index and never writes it; and v45's remembered sentence is
+  deliberately weaker than v39's, because it is the first version that is always true.

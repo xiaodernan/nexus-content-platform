@@ -9,19 +9,21 @@ every emitted artifact (`provenance.mode = "demo"`). The honest exceptions since
 @nexus/design-model vitest suite through the confined host (vitest's cache under
 `node_modules` is the only thing it writes), `commit-proof.mjs` + `greencommit-proof.mjs`
 + `gitlog-proof.mjs` + `confirm-proof.mjs` + `remember-proof.mjs` + `policygate-proof.mjs`
-+ `show-proof.mjs` + `staged-proof.mjs` + `inspect-proof.mjs` perform REAL `git commit`s (and since v37/v38
++ `show-proof.mjs` + `staged-proof.mjs` + `inspect-proof.mjs` + `intent-proof.mjs` perform REAL `git commit`s (and since v37/v38
 real `git log` read-backs — v38's for the first time driven by `runTask` itself, not a
 hand-called tool; v39's runTask additionally writes a REAL in-process `MemoryStore`; v42 adds a real
 `git show` content read-back and v43 a real `git diff --cached` index read, both HUMAN-staged
 content only; v44's `inspect-proof.mjs` is the first where the PLAN ITSELF schedules that
-content read, so the loop — not the proof — decides to look) — only inside throwaway `os.tmpdir()` repos
+content read, and v45's `intent-proof.mjs` the first where the PLAN ITSELF reads the INDEX one
+step before asking to record it, so the loop — not the proof — decides both to look and to look
+first) — only inside throwaway `os.tmpdir()` repos
 with hooks/signing neutralized LOCALLY there, never in this repository — still offline,
 still key-free, and everything else in the stack spawns nothing.
 
 ## Reproducible gates
 
 ```
-npm test          # turbo: @nexus/agent-runtime 239/239 + @nexus/exec-host 110/110 vitest among all packages
+npm test          # turbo: @nexus/agent-runtime 246/246 + @nexus/exec-host 110/110 vitest among all packages
 npm run build     # tsc dist for agents/runtime + agents/exec-host (build order via ^build deps)
 node docs/evidence/agents/agent-proof.mjs
 node docs/evidence/agents/code-index-proof.mjs   # requires `npm run build` first
@@ -56,7 +58,13 @@ node docs/evidence/agents/policygate-proof.mjs     # requires `npm run build` fi
 node docs/evidence/agents/show-proof.mjs           # requires `npm run build` first (v42: commit → hash → CONTENT read-back; git.show lines byte-equal what the human staged, throwaway os.tmpdir repo only)
 node docs/evidence/agents/staged-proof.mjs         # requires `npm run build` first (v43: git.diff sees 0 files while git.staged recites the staged lines; the intent read BEFORE the commit equals the content read AFTER it, throwaway os.tmpdir repo only)
 node docs/evidence/agents/inspect-proof.mjs        # requires `npm run build` first (v44: the PLAN's own tail ends in git.show — four §28 gates, human-staged lines read back byte-for-byte, an empty diff and an unborn-HEAD 128 both carried as DATA, throwaway os.tmpdir repos only)
+node docs/evidence/agents/intent-proof.mjs         # requires `npm run build` first (v45: the PLAN reads the INDEX before asking to record it — five §28 gates, staged intent BEFORE and HEAD content AFTER byte-equal in one run, a denied read costing zero commits, an empty index stated one step before git's blunt first line)
 ```
+
+A note on `spawns[…]` assertions: they pin the argv SHAPE a plan step is allowed to produce
+(`diff` … `--cached` … no pathspec), not the current flag list. Exec-host's own contract tests
+`agents/exec-host/test/*` are the authority on the exact argv; a proof that re-pinned it would
+turn green only by agreeing with whatever the door was last edited to say.
 
 ## Unit tests (vitest, `agents/runtime/test`)
 
@@ -727,7 +735,8 @@ without staging: `git.diff` sees the new +1, `git.staged` still recites the stag
 and closes the arc across the write — the intent read BEFORE a §28-granted commit is
 BYTE-IDENTICAL to the content `git.show` reads AFTER it, while the line nobody staged is
 stated as NOT recorded. exec-host 90/90 → 110/110 (new `gitStagedTool.test.ts`, 20 cases);
-runtime 232/232 and studio 105/105 unchanged — a door, not yet a plan step.
+runtime 232/232 and studio 105/105 unchanged — a door, not yet a plan step. **(v45 opened it from
+the plan side: the `staged` read now runs INSIDE the commit block, one step before the §28 ask.)**
 
 ## v44 note — the plan walks through the content door: `inspect` trails `confirm`, and git's blank answers stay blank
 
@@ -740,7 +749,8 @@ a commit that a hash confirm already agreed on. The step carries a `@search.hits
 not a path the planner invents: it reads back whatever the run actually found and a human actually
 staged (§28 keeps staging human). Two bounds hold the line: `memory.save` still says
 COMMITTED+CONFIRMED and nothing about content (a test fails if the summary grows the word
-`CONTENT`), and git's two BLANK answers are DATA — an unmatched path exits 0 with an empty diff
+`CONTENT`) — v45 RETIRED that wording for the reason given in its own note below, while
+keeping the no-content guard exactly as it was, and git's two BLANK answers are DATA — an unmatched path exits 0 with an empty diff
 (zero hunks, zero lines, detail stating its own emptiness), while a non-zero git (unborn HEAD,
 exit 128) reads as `ok:false` and never as a green. `inspect-proof.mjs` (33rd) runs `runTask` over
 three keyed hosts in a throwaway os.tmpdir repo: four §28 gates per granted run (`test.run`,
@@ -751,6 +761,36 @@ SECOND repo (the loop cannot produce it at `inspect`, since its own commit creat
 ledger replaying record + hash + content to a cold reader. runtime 232/232 → 239/239 (1 planner +
 6 orchestrator cases); exec-host 110/110 and studio 105/105 unchanged — the only source change
 there is v42's empty-diff sentence, which now says only what git said.
+
+## v45 note — intent before the ask: the plan reads the INDEX one step before §28 is asked to record it
+
+v43's door sat unused by the plan, so the loop still walked into its commit door blind: `git.diff`
+cannot see a staged change, and `git.commit` records exactly what the index holds. `planTask` now
+takes `hasStaged` (orchestrator: `registry.has('git.staged')`) and pushes
+`{stepId:'staged', tool:'git.staged', args:{stat:false}}` INSIDE the `hasCommit` block and
+IMMEDIATELY BEFORE the commit push — a green run's tail is
+`verify → staged → commit → confirm → inspect (→ remember)`, five §28 gates where four used to
+fire, and the first git process of the tail is a diff of the INDEX (`--cached`, with no pathspec —
+the whole index rather than one path the agent chose). Position does two
+jobs at once: refusing the READ stops the walk BEFORE the write (2b: zero spawns, no commit, the
+human's staged change still sitting unrecorded where they left it, nothing remembered), and the
+sentence explaining a refused commit comes from the run itself, because git's own first line for an
+empty index is `On branch master` — a header, not a reason. **And a §60 debt got paid:** with
+everything granted and nothing staged, the STATIC plan still asks the commit (the demo planner has
+no conditionals — stated, not smuggled), git exits 1 as `ok:false` DATA with no `record`, and
+`rev-list --count` does not move, yet v39's remembered summary asserted "git.commit landed".
+Position guarantees an ARC was walked; only git may claim a commit. The planned sentence is now
+`ARC-COMPLETE … whether anything LANDED is git's own answer, in this run's results`, the no-`CONTENT`
+guard stands untouched, and `remember-proof.mjs` was re-greened on it. `intent-proof.mjs` (34th)
+runs `runTask` over FOUR keyed doors in a throwaway os.tmpdir repo: the money assertion is a
+three-way agreement — the `addedLines` read out of the index BEFORE the commit are byte-equal the
+lines `git.show` returns AFTER it, byte-equal what the human staged — with red spending none of the
+tail and the cold ledger replaying both ends in the executed order. runtime 239/239 → **246/246**
+(1 planner + 6 orchestrator cases, one pinning the EMPTY-index limit in the unit face too);
+exec-host and studio UNCHANGED — no tool, policy or UI file moved, only the PLAN. Honest bounds:
+the read is unconditional, so an empty index still walks into a refused commit; the agent reads the
+index and never writes it; and the remembered sentence is now deliberately weaker than v39's,
+because it is the first version that is always true.
 
 ## Scope honesty
 
@@ -776,7 +816,8 @@ file) — the v32 see-don't-touch policy
 stands for everything else, and real-commit
 demos live only in throwaway temp repos. Agent-led STAGING (choosing what enters the
 index) remains unimplemented by design: staging stays a human/`disk`-side act,
-and v43 makes that act LEGIBLE to the agent (read the index, never write it),
+and v43 makes that act LEGIBLE to the agent (read the index, never write it) — v45 put that
+read IN THE PLAN, so the intent is spoken out loud one step before the §28 ask to record it,
 live-model planning (the seam exists, the model needs keys), multi-agent registry.
 Memory recall (v6) shares the index's deterministic token-bag hybrid score — a real
 signature scheme, but still a stand-in for the pgvector hybrid retrieval of ADR 0012. The provider must be kept in sync with the workspace by the

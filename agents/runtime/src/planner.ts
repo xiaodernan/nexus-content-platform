@@ -28,6 +28,13 @@ export interface PlannerOptions {
    */
   hasCommit?: boolean;
   /**
+   * v45: whether the exec-host `git.staged` index-read tool is registered. Only meaningful
+   * WITH hasCommit — a staged step is inserted BEFORE the commit it informs, so the plan asks
+   * "what did the human stage?" one step before §28 asks permission to record it. The agent
+   * reads the index; it never writes it (staging stays the human act of v35).
+   */
+  hasStaged?: boolean;
+  /**
    * v38: whether the exec-host `git.log` read-back tool is registered. Only meaningful
    * WITH hasCommit — a confirm step trails the commit so the plan itself ends
    * see→touch→confirm, letting the run read its own history back after green.
@@ -42,8 +49,10 @@ export interface PlannerOptions {
   /**
    * v39: whether a `memory.save` tool is registered. Only meaningful WITH hasConfirm —
    * a remember step trails the confirmed commit so §26 memory only ever records an arc
-   * that VERIFIED, LANDED and READ BACK AGREEING. Position in the plan is the safety:
-   * no earlier failure or denial can produce a "remembered victory" that didn't happen.
+   * that VERIFIED and walked BOTH git doors. Position in the plan is the safety: no
+   * earlier failure or denial can produce a "remembered victory" that didn't happen.
+   * v45's limit, stated: walking the commit door is not the same as git recording
+   * something, so the planned summary names the ARC and cites git's answer for the rest.
    */
   hasRemember?: boolean;
   uiInputLabel?: string;
@@ -86,6 +95,21 @@ export function planTask(task: AgentTask, opts: PlannerOptions): Plan {
     // the loop is green (a failed verify returns early), and the tool itself commits
     // whatever the HUMAN staged — the plan proposes, §28 disposes.
     if (opts.hasCommit) {
+      // v45 "intent before the ask": the plan reads the INDEX one step before it is asked to
+      // record it. `git.diff` cannot see a staged change (v43), so without this the agent is
+      // handed a permission to commit contents it has no way to read. Position carries the
+      // meaning: refusing this read stops the walk BEFORE the commit, so a human who withholds
+      // the intent also withholds the write. The planner has no conditionals, so an EMPTY
+      // index still walks into the commit — and git's own "nothing staged" answer is the data
+      // the run carries (§60: the read makes that gap visible, it does not paper over it).
+      if (opts.hasStaged) {
+        steps.push({
+          stepId: 'staged',
+          tool: 'git.staged',
+          args: { stat: false },
+          rationale: 'read what the HUMAN staged — the intent the next step would record, read before it is recorded',
+        });
+      }
       steps.push({
         stepId: 'commit',
         tool: 'git.commit',
@@ -116,6 +140,9 @@ export function planTask(task: AgentTask, opts: PlannerOptions): Plan {
         // tail of the full verify→commit→confirm arc — position is the safety, so §26
         // memory can never hold a "victory" that didn't verify, land, and read back
         // agreeing. The record names its run; the ledger carries the hash it confirmed.
+        // v45 corrects the SENTENCE: position guarantees the doors were walked, not that
+        // git recorded anything (a granted commit of an EMPTY index exits 1), so the
+        // summary says ARC-COMPLETE and leaves the landing to git's own answer in results.
         if (opts.hasRemember) {
           steps.push({
             stepId: 'remember',
@@ -123,7 +150,7 @@ export function planTask(task: AgentTask, opts: PlannerOptions): Plan {
             args: {
               runId: task.id,
               query: task.goal,
-              summary: `COMMITTED+CONFIRMED (DEMO MODE · seed ${seed}): goal "${task.goal}" — git.commit landed and git.log read-back agreed`,
+              summary: `ARC-COMPLETE (DEMO MODE · seed ${seed}): goal "${task.goal}" — verify, git.commit and git.log all ran under §28; whether anything LANDED is git's own answer, in this run's results`,
               refs: [target],
             },
             rationale: 'journal the confirmed arc into §26 memory — reached only after commit AND confirm both passed',

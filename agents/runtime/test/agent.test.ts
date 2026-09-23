@@ -71,7 +71,8 @@ describe('planner: deterministic templates', () => {
     expect(remember.tool).toBe('memory.save');
     expect(remember.args.runId).toBe('t');
     expect(String(remember.args.query)).toBe('add widget docs');
-    expect(String(remember.args.summary)).toContain('COMMITTED+CONFIRMED');
+    expect(String(remember.args.summary)).toContain('ARC-COMPLETE');
+    expect(String(remember.args.summary)).not.toContain('landed'); // v45: the claim is the ARC, the landing is git's answer
     expect(String(remember.args.summary)).toContain(`seed ${full.seed}`);
     expect(remember.args.refs).toEqual(['@search.hits.0.path']); // resolved from the LIVE search at invoke time
     expect(planTask({ id: 't', goal: 'add widget docs', targetPath: 'docs/a.md' }, fullOpts).steps.at(-1)!.args.refs).toEqual(['docs/a.md']);
@@ -106,6 +107,25 @@ describe('planner: deterministic templates', () => {
     const both = planTask({ id: 't', goal: 'add widget docs' }, { ...fullOpts, hasRemember: true });
     expect(both.steps.map((s) => s.stepId)).toEqual(['search', 'read', 'annotate', 'verify', 'commit', 'confirm', 'inspect', 'remember']);
     expect(planTask({ id: 't', goal: 'add widget docs' }, fullOpts)).toEqual(full);
+  });
+
+  it('v45: hasStaged reads the index BEFORE the commit — and NEVER without one', () => {
+    const opts = { hasVerify: true, hasCommit: true, hasStaged: true };
+    const steps = planTask({ id: 't', goal: 'add widget docs' }, opts).steps;
+    expect(steps.map((s) => s.stepId)).toEqual(['search', 'read', 'annotate', 'verify', 'staged', 'commit']);
+    expect(steps[4]!.tool).toBe('git.staged');
+    expect(steps[4]!.args).toEqual({ stat: false }); // the whole diff, not just its stat footer
+    // the whole v44 tail still hangs off the commit, one tier later than the intent read
+    const everything = planTask({ id: 't', goal: 'add widget docs' }, { hasVerify: true, hasCommit: true, hasStaged: true, hasConfirm: true, hasContent: true, hasRemember: true });
+    expect(everything.steps.map((s) => s.stepId)).toEqual(['search', 'read', 'annotate', 'verify', 'staged', 'commit', 'confirm', 'inspect', 'remember']);
+    // pull the commit and the read vanishes with it — nobody is asked what nobody will record
+    for (const o of [{ hasVerify: true, hasStaged: true }, { hasStaged: true }, { hasCommit: true, hasStaged: true }]) {
+      expect(planTask({ id: 't', goal: 'add widget docs' }, o).steps.map((s) => s.tool)).not.toContain('git.staged');
+    }
+    // hosts without the door keep the v44 face byte-for-byte
+    expect(planTask({ id: 't', goal: 'add widget docs' }, { hasVerify: true, hasCommit: true, hasConfirm: true, hasContent: true, hasStaged: false })).toEqual(
+      planTask({ id: 't', goal: 'add widget docs' }, { hasVerify: true, hasCommit: true, hasConfirm: true, hasContent: true }),
+    );
   });
 });
 
@@ -393,7 +413,7 @@ describe('orchestrator: remembered victory after confirm (v39)', () => {
     expect(h.saves).toHaveLength(1);
     const saved = h.saves[0]!;
     expect(saved.runId).toBe('t1');
-    expect(String(saved.summary)).toContain('COMMITTED+CONFIRMED');
+    expect(String(saved.summary)).toContain('ARC-COMPLETE');
     // v39 resolveArgs extends @refs INSIDE array args: the planned ref became the live hit
     expect(saved.refs).toEqual(['docs/a.md']);
     expect(out.results.at(-1)!.ok).toBe(true);
@@ -500,7 +520,7 @@ describe('orchestrator: content confirmation after the hash confirm (v44)', () =
     expect((inspect.output as { addedLines: string[] }).addedLines).toHaveLength(3);
   });
 
-  it('inspect sits BEFORE remember, and the memory text still claims only COMMITTED+CONFIRMED (§60: content lives in results, not in the claim)', async () => {
+  it('inspect sits BEFORE remember, and the memory text still claims only the ARC (§60: content and landing live in results, not in the claim)', async () => {
     const h = inspectHarness(noteTest);
     const saves: Record<string, unknown>[] = [];
     h.registry.register(
@@ -523,8 +543,9 @@ describe('orchestrator: content confirmation after the hash confirm (v44)', () =
     const out = await runTask(h.task, h);
     expect(out.status).toBe('completed');
     expect(out.results.map((r) => r.tool).slice(-3)).toEqual(['git.log', 'git.show', 'memory.save']);
-    expect(String(saves[0]!.summary)).toContain('COMMITTED+CONFIRMED');
+    expect(String(saves[0]!.summary)).toContain('ARC-COMPLETE');
     expect(String(saves[0]!.summary)).not.toContain('CONTENT'); // no tier overclaims what the next tier only PROPOSED to read
+    expect(String(saves[0]!.summary)).not.toContain('COMMITTED+CONFIRMED'); // v45: position walks doors, it does not read git's answer
   });
 
   it('a DENIED inspect after a landed+confirmed commit: status denied, both earlier results STAND, git.show never ran', async () => {
@@ -585,6 +606,108 @@ describe('orchestrator: content confirmation after the hash confirm (v44)', () =
     const out = await runTask(h.task, { registry: h.registry, checkpoint: h.checkpoint, maxFixRounds: 1 });
     expect(out.status).toBe('failed_verification');
     expect(h.actions).toEqual([]); // no commit, no confirm, no show — the tail is unreachable from red
+  });
+});
+
+describe('orchestrator: the index is read BEFORE the write is asked (v45)', () => {
+  const STAGED_ANSWER = {
+    ok: true,
+    detail: 'git.staged → exit 0: index holds 1 change(s): 1 modified · +3 −0 across 1 hunk(s)',
+    paths: ['docs/a.md'],
+    addedLines: ['notes about widgets here', 'two more lines', 'the human wrote this'],
+  };
+
+  function intentHarness(
+    testImpl: (ws: InMemoryWorkspace) => unknown,
+    checkpoint: Checkpoint | undefined = () => true,
+    staged: () => unknown = () => STAGED_ANSWER,
+  ) {
+    const h = harness(testImpl, checkpoint);
+    const actions: string[] = [];
+    const gates: string[] = [];
+    h.registry.register(
+      { name: 'git.staged', description: 'fake index read', permissions: ['exec'], args: [{ name: 'stat', type: 'boolean' }] },
+      (args) => {
+        actions.push(`staged:${String(args.stat)}`);
+        return staged();
+      },
+    );
+    h.registry.register(
+      { name: 'git.commit', description: 'fake commit tool', permissions: ['exec'], args: [{ name: 'message', type: 'string' }] },
+      () => {
+        actions.push('commit');
+        return { ok: true, detail: 'fake commit landed' };
+      },
+    );
+    h.registry.register(
+      { name: 'git.log', description: 'fake read-back', permissions: ['exec'], args: [{ name: 'count', type: 'number' }] },
+      () => {
+        actions.push('log');
+        return { ok: true, detail: 'fake log agrees' };
+      },
+    );
+    const wrapped: Checkpoint = (ask) => {
+      if (ask.permissions.includes('exec')) gates.push(ask.call.tool);
+      return checkpoint ? checkpoint(ask) : false;
+    };
+    return { ...h, actions, gates, checkpoint: wrapped };
+  }
+
+  it('a green run reads the index immediately before the commit, with the planned stat flag', async () => {
+    const h = intentHarness(noteTest);
+    const out = await runTask(h.task, h);
+    expect(out.status).toBe('completed');
+    expect(out.plan.steps.map((s) => s.stepId)).toEqual(['search', 'read', 'annotate', 'verify', 'staged', 'commit', 'confirm']);
+    expect(h.actions).toEqual(['staged:false', 'commit', 'log'], 'the read ran BEFORE the write it informs');
+    expect(out.results.map((r) => r.callId)).toEqual(['t1:search', 't1:read', 't1:annotate', 't1:verify', 't1:staged', 't1:commit', 't1:confirm']);
+    expect(out.results.at(-3)!.tool).toBe('git.staged');
+    expect((out.results.at(-3)!.output as { paths: string[] }).paths).toEqual(['docs/a.md']);
+  });
+
+  it('every exec step is its own §28 gate, and the intent read is asked before the commit', async () => {
+    const h = intentHarness(noteTest);
+    await runTask(h.task, h);
+    expect(h.gates).toEqual(['test.run', 'git.staged', 'git.commit', 'git.log']);
+  });
+
+  it('a DENIED index read stops the walk BEFORE the commit — withholding the intent withholds the write', async () => {
+    const h = intentHarness(noteTest, ({ call }) => call.tool !== 'git.staged');
+    const out = await runTask(h.task, h);
+    expect(out.status).toBe('denied');
+    expect(h.actions).toEqual([], 'the commit was never even asked: the plan reads before it records');
+    expect(out.results.at(-1)!.error).toContain('denied at checkpoint');
+    expect(out.results.at(-2)!.tool).toBe('test.run');
+    expect(h.ws.read('docs/a.md')).toContain('NOTE (DEMO'); // the earlier work still stands
+  });
+
+  it('an EMPTY index is stated DATA, and the static plan still walks into the commit (§60 limit, pinned)', async () => {
+    const h = intentHarness(noteTest, () => true, () => ({
+      ok: true,
+      detail: 'git.staged → exit 0: the index is EMPTY — nothing is staged, so a granted git.commit right now would have nothing to record',
+      paths: [],
+      addedLines: [],
+    }));
+    const out = await runTask(h.task, h);
+    expect(out.status).toBe('completed');
+    expect(h.actions).toEqual(['staged:false', 'commit', 'log'], 'the demo planner has no conditional: the read INFORMS the human at the gate, it does not branch the plan');
+    expect((out.results.at(-3)!.output as { detail: string }).detail).toContain('index is EMPTY');
+  });
+
+  it('a throwing git.staged is honest non-green — a commit nobody could inspect never rides quietly', async () => {
+    const h = intentHarness(noteTest, () => true, () => {
+      throw new Error('policy refused');
+    });
+    const out = await runTask(h.task, h);
+    expect(out.status).toBe('failed_verification');
+    expect(out.results.at(-1)!.error).toContain('policy refused');
+    expect(h.actions).toEqual(['staged:false'], 'the commit and the confirm never ran');
+  });
+
+  it('a run that never verifies green NEVER reads the index', async () => {
+    const h = intentHarness(() => ({ ok: false, detail: 'never passes' }));
+    const out = await runTask(h.task, { registry: h.registry, checkpoint: h.checkpoint, maxFixRounds: 1 });
+    expect(out.status).toBe('failed_verification');
+    expect(h.actions).toEqual([]);
   });
 });
 
