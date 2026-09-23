@@ -15,6 +15,7 @@
     "lint": "npm run typecheck",
     "test": "vitest run",
     "test:watch": "vitest",
+    "perf:browser": "tsx scripts/perf-browser.mts",
     "test:ai-service": "apps\\ai-service\\.venv\\Scripts\\python.exe -m pytest apps/ai-service/tests -q",
     "contract:export": "tsx scripts/export-ai-contract.mts",
     "test:e2e": "playwright test",
