@@ -191,6 +191,8 @@ describe('git.show as a registry tool (content behind §28 — a process still s
     expect(res.ok).toBe(true);
     expect(res.output).toMatchObject({ ok: false, exitCode: 128, addedLines: [] });
     expect((res.output as { detail: string }).detail).toContain('git.show → exit 128: fatal: your current branch');
+    // v52: an empty `addedLines` after a refusal is a count of what git refused to say, not a finding
+    expect((res.output as { detail: string }).detail).toContain('git REFUSED this command — this is NOT a statement that HEAD touches nothing at nope.md');
   });
 
   it('an empty diff (nothing recorded for this path in HEAD) states the nothing', async () => {

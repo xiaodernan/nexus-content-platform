@@ -213,6 +213,34 @@ describe('git.staged as a registry tool (the index behind §28 — a process sti
     expect((res.output as { detail: string }).detail).toContain('the index is EMPTY — nothing is staged, so a granted git.commit right now would have nothing to record');
   });
 
+  // v52, measured on real git: in a CONFLICTED index `git diff --cached` exits 0 and prints a NOTICE
+  // instead of a diff. Zero parsed files is a fact about the parser, not about the index — and this
+  // is the sentence a human weighs one step before approving a commit over it.
+  it('v52: an exit-0 unmerged NOTICE is never reported as an empty index', async () => {
+    const h = harness('* Unmerged path file.md\n');
+    const res = await h.registry.invoke({ callId: 'i2c', tool: 'git.staged', args: {} }, h.grant);
+    const d = (res.output as { detail: string }).detail;
+    expect(res.output).toMatchObject({ ok: true, exitCode: 0, files: [] });
+    expect(d).toContain('git reported 1 UNMERGED path(s) (file.md) instead of a diff');
+    expect(d).toContain('the index is NOT empty');
+    expect(d).not.toContain('the index is EMPTY');
+  });
+
+  it('v52: the same notice in --stat shape keeps its footer AND names the conflict', async () => {
+    const h = harness(' file.md | Unmerged\n 0 files changed\n');
+    const res = await h.registry.invoke({ callId: 'i2d', tool: 'git.staged', args: { stat: true } }, h.grant);
+    const d = (res.output as { detail: string }).detail;
+    expect(d).toContain('git.staged --stat → exit 0: index holds 0 file(s)');
+    expect(d).toContain('UNMERGED path(s) (file.md)');
+  });
+
+  it('v52: a refused read quotes the fatal line, not the first banner line', async () => {
+    const h = harness('', 'fatal: .git/index: index file smaller than expected\n', { code: 128, signal: null });
+    const res = await h.registry.invoke({ callId: 'i2e', tool: 'git.staged', args: {} }, h.grant);
+    expect(res.output).toMatchObject({ ok: false, exitCode: 128 });
+    expect((res.output as { detail: string }).detail).toContain('git.staged → exit 128: fatal: .git/index: index file smaller than expected');
+  });
+
   it('v48: a budget so tight no whole line survives says the CUT, not "the index is EMPTY"', async () => {
     const h = harness(ADDED, '', { code: 0, signal: null }, 4); // 4 bytes = `diff`, no newline survives
     const res = await h.registry.invoke({ callId: 'i2b', tool: 'git.staged', args: {} }, h.grant);

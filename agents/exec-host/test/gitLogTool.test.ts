@@ -124,12 +124,14 @@ describe('git.log as a registry tool (read-back behind §28 — a process still 
     expect(h.calls).toHaveLength(1); // the junk counts never reached the policy, let alone a process
   });
 
-  it('an empty repo is honest DATA: git exits 128 and its first stderr line is the answer, not a crash', async () => {
+  it('an empty repo is honest DATA: git exits 128 and its own fatal line is the answer, not a crash', async () => {
     const h = harness('', "fatal: your current branch 'master' does not have any commits yet\n", { code: 128, signal: null });
     const res = await h.registry.invoke({ callId: 'g3', tool: 'git.log', args: {} }, h.grant);
     expect(res.ok).toBe(true);
     expect(res.output).toMatchObject({ ok: false, exitCode: 128, commits: [] });
     expect((res.output as { detail: string }).detail).toContain("git.log → exit 128: fatal: your current branch 'master' does not have any commits yet");
+    // v52: `commits: []` here is a count of what git REFUSED to answer, not a finding about history
+    expect((res.output as { detail: string }).detail).toContain('git REFUSED this command — this is NOT a statement that the repo has no commits');
   });
 
   it('an escaping cwd is a stated ERROR with zero spawns — read-only still lives in the jail', async () => {

@@ -1601,3 +1601,95 @@ argv, no policy table, no checkpoint semantics and no planner template moved._
   machine-checkable and not yet human-visible, and no panel pretends otherwise. And DEMO MODE is
   intact — planning is still template-driven; v54 made a second batch of decisions auditable, it did
   not make the runtime make one.
+
+## Amendment 52 — v52 (exec-host): a door quotes what git MEANT, says how much of it it left out, and never reads a refusal or a notice as an empty repository, 2026-09
+
+_Sequencing note: the concurrent runtime lane wrote amendment 54 while this one was still measuring;
+52 and 53 were unclaimed by either lane at the time of writing (checked against this file's headings),
+so this slice takes 52 and sits where the numbering puts it. No policy, no argv, no env list, no
+budget, no gate and no host file moved — this is entirely about what the six git doors are allowed to
+SAY about what git did._
+
+- **Probed before designed, and the probe changed the shape of the fix.** Eleven real failure states
+  were built in throwaway `os.tmpdir()` repos and run with the EXACT argv each shipped door uses
+  (the harness plays the human: init, seed commits, staging, a real conflicting merge, a lock file, a
+  truncated `.git/index`, a failing `pre-commit` hook). They sorted into three complaints, and only
+  the first was the one queued for this increment:
+  1. a refusal's REASON is the line git prefixes (`fatal:`/`error:`/`warning:`) — but the single most
+     common refusal has no prefix at all. `git commit` over an unchanged tree answers, on **stdout**,
+     `On branch master` / `nothing to commit, working tree clean`. Every door quoted line 1, so the
+     sentence a human weighs at §28 was the banner;
+  2. the two v32 READ doors quoted NOTHING on a nonzero exit. They parsed the empty stdout and
+     returned a tally: a corrupt index answered `git.status → exit 128: 0 entries`, which reads as
+     "clean";
+  3. git can exit 0 and still not answer — see the notice bullet below.
+- **One rule, exported once, used by every door.** `gitVerdict(stdout, stderr)` looks at stderr first
+  (a conflicted commit puts its reason there and a status letter on stdout), folds git's own
+  indentation, and returns `{line, rule, lines}` by four directional cases: `prefixed` — the earliest
+  `fatal:`/`error:`/`warning:` line, because that is where git puts a diagnosis; `sole` — one line
+  total is simply what git said; `last` — with no prefix, git's LAST line is the actionable summary
+  and its first is a header; `none` — git printed nothing, which is stated as that and not as a
+  reason. `quoteVerdict` then says how much of git the quote is NOT: `· git's last line of the 6 it
+  printed`. Before this, four doors carried the same hand-rolled line-1 expression and two carried no
+  quoting at all — six doors, seven sentences, one rule now.
+- **A refusal is never a tally.** `refusedNotAbsence(what)` is the sibling of v48's `cutNotAbsence`,
+  and it went on every door that returns parsed-empty data after a nonzero exit: `git.status`
+  ("NOT a statement that the working tree is clean or empty"), `git.diff`, `git.diff --stat`,
+  `git.staged`, `git.log` ("…that the repo has no commits"), `git.show` ("…that HEAD touches nothing
+  at `<path>`"). The parsed arrays still ride along — the shape callers read did not change — but the
+  sentence now says the zero is a count of what was refused, not a finding about the repository.
+- **`exit 0` is not an answer either, and that one was found mid-increment.** In a conflicted index
+  git exits 0 and prints a NOTICE in place of a diff. Three shapes, all measured: `git diff --cached`
+  says `* Unmerged path file.md` and nothing else; `git diff --cached --stat` says ` file.md |
+  Unmerged` then ` 0 files changed`; plain `git diff` emits a COMBINED `diff --cc file.md` body for
+  which the v32 parser finds no `diff --git` header. All three parse to ZERO, and `git.staged` — the
+  door v43 built and v45 put one step before the §28 commit ask, the door whose whole purpose is to
+  tell a human whether there is anything to record — said **"the index is EMPTY"**. That is the exact
+  opposite of the truth: an unmerged path is the one thing a granted commit cannot record. One shared
+  detector (`unmergedNotice`) now covers all three shapes and the three diffing doors name the
+  conflict instead of claiming absence.
+- **41st proof `docs/evidence/agents/verdict-proof.mjs`.** Every case has a CONTROL: the same argv is
+  run RAW, outside the sandbox, by the harness, so each quote is checked against git's own bytes
+  rather than against the door's memory of them. §1 banner → verdict, verbatim, and the banner
+  asserted ABSENT from the caller's sentence. §2 the six-line refusal, plus a §28 DENY that costs no
+  process and therefore no words. §3 a real `index.lock`: the door quotes the fatal line naming the
+  lock file, the lock is still there afterwards (the door only spoke), and the SAME door over the
+  SAME human-staged index succeeds once the human removes it — so the refusal was about the lock and
+  not about the door. §4 one corrupt index, FOUR read doors, five assertions each, including the
+  sharpest technique in the file: strip the disclaimer from the detail and no bare absence claim
+  (`is EMPTY`, `clean`) may survive outside it. §5 the three notice shapes across three doors, with
+  the conflict verified still-unresolved afterwards. §6 states the limit by measuring it: outside a
+  repository `git diff --cached` degrades to `--no-index` mode and fails on the FLAG with a 132-line
+  usage page, so the door quotes `error: unknown option \`cached'` and NOT "not a git repository" —
+  a door relays git, it does not upgrade a relay into a diagnosis git did not offer (and two commands
+  in the SAME directory produce two different git complaints, each quoted as git spoke it). §7 joins
+  v51 to v52: one refusal, two memories — the host's record keeps the banner because a record that
+  summarizes stops being one, the door's sentence drops it, and the two differing on purpose is the
+  design. Home HEAD byte-identical; every repo deleted in `finally` (§9).
+- **Two already-committed proofs pinned the old sentence and had to follow it** — v45's
+  `intent-proof.mjs` asserted `git.commit → exit 1: On branch master` EQUAL, and v51's own
+  `spawnlog-proof.mjs` asserted the reason was NOT in the caller's sentence. A proof that pins last
+  week's wording undoes this fix, so both now assert the new one, with the reason for the change in
+  the comment beside them. That is the second time this has happened in this lane (v48 reddened four
+  proofs the same way) and it is the strongest argument for the README's rule that proofs quote
+  SHAPE, not shipped strings — the two cases here are quoted prose, and prose is a shape too.
+- **What did not move:** no policy factory, argv shape, env list, budget, truncation rule, checkpoint
+  or ledger format; `ExecHost` is untouched (v51's journal is why §7 could be written at all); the
+  runtime and Studio parse none of these sentences (checked by grep — the orchestrator relays `detail`
+  as text), so no planned step changed. exec-host **137/137 → 159/159** (`gitTools.test.ts` 19 → 36,
+  `gitStagedTool.test.ts` 21 → 24, `gitCommitTool.test.ts` 16 → 18, and two existing 128-cases in
+  `gitLogTool`/`gitShowTool` extended rather than added), 41/41 agent proofs green, home repo gates
+  green.
+- Honest bounds: the rule reads git's ENGLISH diagnostics, and it works because v46's env pinning
+  passes only `PATH`/`SYSTEMROOT`/`HOME`/`USERPROFILE` — a caller cannot hand git a `LANG` it would
+  answer in, but neither has anyone measured a git built with translated messages; the quoted phrases
+  in the door tests are git 2.52's bytes and will age with git (the proof cross-checks them against
+  raw git in the same run precisely so a wording change reddens an assertion instead of silently
+  changing what an agent reads); `prefixed` can name a symptom rather than a cause (§6's real case:
+  the flag was fine, the repository was missing); v48 and v52 interact — if the budget trimmed the
+  notice line away, no door can name it, and the truncation clause is what says so; `git.status` still
+  labels an unmerged entry `other` (v32's honest junk-XY bucket) because naming it there would mean
+  teaching the porcelain parser a new status family, which is a separate claim; the door relays one
+  line and the host record keeps them all, so an audit reader who wants everything must read the v51
+  file, which no UI shows (§60); and DEMO MODE is intact — no Studio surface renders a git door's
+  sentence, and every repo here lives in `os.tmpdir`.

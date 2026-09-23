@@ -59,12 +59,18 @@ export {
   cutNotAbsence,
   gitEnv,
   gitReadOnlyPolicy,
+  gitVerdict,
   parseDiffStat,
   parseGitDiff,
   parseGitStatus,
+  quoteVerdict,
+  refusedNotAbsence,
   registerGitTools,
+  unmergedNotice,
+  unmergedNotAbsence,
   type GitDiffFile,
   type GitStatusFile,
+  type GitVerdict,
 } from './gitTools.js';
 export {
   GIT_ABSENT_CONFIG,

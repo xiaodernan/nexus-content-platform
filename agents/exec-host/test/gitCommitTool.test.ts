@@ -124,12 +124,31 @@ describe('git.commit as a registry tool (history writes ONLY behind §28, from t
     expect(h.calls).toHaveLength(0);
   });
 
-  it('nothing staged → git exits nonzero and says so as DATA (the call itself succeeded; history untouched)', async () => {
-    const h = harness('', 'no changes added to commit\n', { code: 1, signal: null });
+  // v52: this fixture used to be ONE invented line. It is now git 2.52's OWN bytes for a commit over
+  // an unchanged tree — banner first, verdict last — which is the case that made the door quote a
+  // banner where a human reads a reason (the same bytes are driven for real in verdict-proof.mjs).
+  it('nothing staged → git exits nonzero and says so as DATA, quoting the verdict and not the banner', async () => {
+    const h = harness('On branch master\nnothing to commit, working tree clean\n', '', { code: 1, signal: null });
     const res = await h.registry.invoke({ callId: 'k3', tool: 'git.commit', args: { message: 'x' } }, h.grant);
     expect(res.ok).toBe(true);
     expect(res.output).toMatchObject({ ok: false, exitCode: 1 });
-    expect((res.output as { detail: string }).detail).toContain('git.commit → exit 1: no changes added to commit');
+    const detail = (res.output as { detail: string }).detail;
+    expect(detail).toContain('git.commit → exit 1: nothing to commit, working tree clean · git\'s last line of the 2 it printed');
+    expect(detail).not.toContain('On branch master'); // what a pre-v52 door handed a §28 reviewer
+  });
+
+  it('a conflicted merge: git puts the reason on stderr and a status letter on stdout, and the door quotes the reason', async () => {
+    const h = harness('U\tfile.md\n', "error: Committing is not possible because you have unmerged files.\nhint: Fix them up in the work tree, and then use 'git add/rm <file>'\nfatal: Exiting because of an unresolved conflict.\n", { code: 128, signal: null });
+    const res = await h.registry.invoke({ callId: 'k3b', tool: 'git.commit', args: { message: 'x' } }, h.grant);
+    const detail = (res.output as { detail: string }).detail;
+    expect(detail).toContain('git.commit → exit 128: error: Committing is not possible because you have unmerged files. · git\'s prefixed line of the 4 it printed');
+    expect(detail).not.toContain('U\tfile.md');
+  });
+
+  it('git printing NOTHING at all is stated as that, not as a reason', async () => {
+    const h = harness('', '', { code: 137, signal: 'SIGKILL' });
+    const res = await h.registry.invoke({ callId: 'k3c', tool: 'git.commit', args: { message: 'x' } }, h.grant);
+    expect((res.output as { detail: string }).detail).toContain('git.commit → exit 137: git printed no output at all');
   });
 
   it('an escaping cwd is a stated ERROR with zero spawns; the jail confines writes too', async () => {

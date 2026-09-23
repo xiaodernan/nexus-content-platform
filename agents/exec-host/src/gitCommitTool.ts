@@ -1,5 +1,5 @@
 import type { ExecPolicy, ToolRegistry, ToolSpec } from '@nexus/agent-runtime';
-import { GIT_ENV_NAMES, gitEnv } from './gitTools.js';
+import { GIT_ENV_NAMES, gitEnv, gitVerdict, quoteVerdict } from './gitTools.js';
 import type { ExecHost, ExecRunResult } from './execHost.js';
 
 /**
@@ -72,8 +72,8 @@ export function registerGitCommitTool(registry: ToolRegistry, host: ExecHost, op
     if (result.spawnError !== '') throw new Error(`spawn failed: ${result.spawnError}`);
     const flags = `${result.truncated ? ' · output truncated at budget' : ''}${result.killedByBudget ? ' · killed at timeout budget' : ''}`;
     if (result.exitCode !== 0 || result.killedByBudget) {
-      const why = (result.stderr.trim() !== '' ? result.stderr : result.stdout).trim().split('\n')[0] ?? '';
-      return { ok: false, detail: `git.commit → exit ${result.exitCode}: ${why === '' ? 'no output' : why}${flags}`, exitCode: result.exitCode, message, truncated: result.truncated };
+      const verdict = gitVerdict(result.stdout, result.stderr);
+      return { ok: false, detail: `git.commit → exit ${result.exitCode}: ${quoteVerdict(verdict)}${flags}`, exitCode: result.exitCode, message, truncated: result.truncated };
     }
     const record = parseCommitOutput(result.stdout);
     const detail = record

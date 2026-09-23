@@ -30,6 +30,70 @@ export const GIT_ENV_NAMES = [...GIT_PASS_THROUGH_ENV_NAMES, ...GIT_ISOLATION_EN
  */
 export const cutNotAbsence = (what: string): string => `no complete line survived the output budget — this is NOT a statement that ${what}`;
 
+/**
+ * M2 v52 (ADR 0016 amendment 52): WHICH of git's own lines is its VERDICT — one rule, six doors.
+ * Measured against real git across 11 failure states (`verdict-proof.mjs`): when git refuses, the
+ * reason is the line it PREFIXED (`fatal:`/`error:`/`warning:`); when it prefixes nothing, its LAST
+ * line is the actionable summary and its FIRST is a banner (`On branch master` then
+ * `nothing to commit, working tree clean`). Every door used to quote line 1 of stderr-or-stdout, so
+ * a §28 decision could be weighed on a banner, and the two read doors quoted nothing at all.
+ */
+export interface GitVerdict {
+  /** git's own words, verbatim; empty only when git printed none */
+  line: string;
+  /** WHICH rule picked it — the sentence says so, because the rules differ in what they prove */
+  rule: 'prefixed' | 'sole' | 'last' | 'none';
+  /** how many non-empty lines git actually printed, across BOTH streams */
+  lines: number;
+}
+
+export function gitVerdict(stdout: string, stderr: string): GitVerdict {
+  // stderr first: a conflicted commit puts its reason there and a status letter on stdout
+  const lines = [...stderr.split('\n'), ...stdout.split('\n')].filter((l) => l.trim() !== '').map((l) => l.trim());
+  const prefixed = lines.find((l) => /^(fatal|error|warning):/.test(l));
+  if (prefixed !== undefined) return { line: prefixed, rule: 'prefixed', lines: lines.length };
+  if (lines.length === 1) return { line: lines[0]!, rule: 'sole', lines: 1 };
+  if (lines.length > 1) return { line: lines.at(-1)!, rule: 'last', lines: lines.length };
+  return { line: '', rule: 'none', lines: 0 };
+}
+
+/** The clause a door quotes: git's words, plus how much of git's output the quote is NOT. */
+export function quoteVerdict(v: GitVerdict): string {
+  if (v.rule === 'none') return 'git printed no output at all';
+  return v.lines > 1 ? `${v.line} · git's ${v.rule} line of the ${v.lines} it printed` : v.line;
+}
+
+/**
+ * M2 v52: the read doors' twin of v48's `cutNotAbsence`. A command that FAILED reads nothing for a
+ * reason that says nothing about the repository — `git status` on a corrupt index exits 128 with an
+ * EMPTY stdout, and "0 entries" is a count of what the door read, never a claim that the tree is
+ * clean. Before this, both read doors answered a refusal with exactly such a tally.
+ */
+export const refusedNotAbsence = (what: string): string => `git REFUSED this command — this is NOT a statement that ${what}`;
+
+/**
+ * M2 v52: the OTHER way a door can be lied to by a success — git exits 0 and prints a NOTICE in place
+ * of a diff. Measured in a conflicted repository (`verdict-proof.mjs` §5): `git diff --cached` says
+ * `* Unmerged path file.md` and nothing else, `git diff --cached --stat` says ` file.md | Unmerged`
+ * then ` 0 files changed`, and plain `git diff` emits a COMBINED `diff --cc file.md` body that the
+ * v32 parser finds no `diff --git` header for. Every one of those parses to ZERO — and a door that
+ * reads zero as "nothing here" states the exact opposite of what git meant (an unmerged path is the
+ * one thing a granted `git.commit` cannot record). Doors that diff therefore name the notice.
+ */
+export function unmergedNotice(stdout: string): string[] {
+  const paths = new Set<string>();
+  for (const line of stdout.split('\n')) {
+    for (const re of [/^\*\s+Unmerged path\s+(.+)$/, /^(.+?)\s*\|\s*Unmerged$/, /^diff --cc (.+)$/]) {
+      const m = re.exec(line);
+      if (m?.[1]) paths.add(m[1].trim());
+    }
+  }
+  return [...paths].sort();
+}
+
+export const unmergedNotAbsence = (paths: string[]): string =>
+  `git reported ${paths.length} UNMERGED path(s) (${paths.join(', ')}) instead of a diff — a conflicted index, so a zero tally here is NOT a statement that nothing changed`;
+
 /** The three commands this policy knows, and NOTHING else (default-deny). */
 export function gitReadOnlyPolicy(root: string, options: { timeoutMs?: number; maxOutputBytes?: number } = {}): ExecPolicy {
   const timeoutMs = options.timeoutMs ?? 10_000;
@@ -158,7 +222,9 @@ export function registerGitTools(registry: ToolRegistry, host: ExecHost, options
     const tally = Object.entries(counts)
       .map(([k, v]) => `${v} ${k}`)
       .join(', ');
-    const detail = `git.status → exit ${result.exitCode}: ${files.length} entries${tally === '' ? '' : ` (${tally})`}${flags(result)}`;
+    const detail = ok
+      ? `git.status → exit ${result.exitCode}: ${files.length} entries${tally === '' ? '' : ` (${tally})`}${flags(result)}`
+      : `git.status → exit ${result.exitCode}: ${quoteVerdict(gitVerdict(result.stdout, result.stderr))} · ${files.length} entries parsed · ${refusedNotAbsence('the working tree is clean or empty')}${flags(result)}`;
     return { ok, detail, exitCode: result.exitCode, files, counts, truncated: result.truncated };
   });
 
@@ -168,11 +234,20 @@ export function registerGitTools(registry: ToolRegistry, host: ExecHost, options
     const ok = result.exitCode === 0 && !result.killedByBudget;
     if (stat) {
       const summary = parseDiffStat(result.stdout);
-      const detail = `git.diff --stat → exit ${result.exitCode}${summary ? `: ${summary.files} files, +${summary.insertions} −${summary.deletions}` : ': unparseable stat footer'}${flags(result)}`;
+      const notice = unmergedNotice(result.stdout);
+      const parsed = summary ? `${summary.files} files, +${summary.insertions} −${summary.deletions}` : 'unparseable stat footer';
+      const mention = notice.length > 0 ? ` · ${unmergedNotAbsence(notice)}` : '';
+      const detail = ok
+        ? `git.diff --stat → exit 0: ${parsed}${mention}${flags(result)}`
+        : `git.diff --stat → exit ${result.exitCode}: ${quoteVerdict(gitVerdict(result.stdout, result.stderr))} · ${parsed} · ${refusedNotAbsence('nothing changed')}${flags(result)}`;
       return { ok, detail, exitCode: result.exitCode, mode: 'stat', summary, text: result.stdout, truncated: result.truncated };
     }
     const { files, totals } = parseGitDiff(result.stdout);
-    const detail = `git.diff → exit ${result.exitCode}: ${totals.files} files, +${totals.additions} −${totals.deletions} (${totals.hunks} hunks)${flags(result)}`;
+    const notice = unmergedNotice(result.stdout);
+    const tally = `${totals.files} files, +${totals.additions} −${totals.deletions} (${totals.hunks} hunks)`;
+    const detail = ok
+      ? `git.diff → exit 0: ${tally}${notice.length > 0 ? ` · ${unmergedNotAbsence(notice)}` : ''}${flags(result)}`
+      : `git.diff → exit ${result.exitCode}: ${quoteVerdict(gitVerdict(result.stdout, result.stderr))} · ${tally} · ${refusedNotAbsence('the tree has no changes')}${flags(result)}`;
     return { ok, detail, exitCode: result.exitCode, mode: 'full', files, totals, truncated: result.truncated };
   });
 

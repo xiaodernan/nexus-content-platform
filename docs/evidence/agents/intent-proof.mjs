@@ -188,7 +188,8 @@ try {
   const emptyCommit = out(emptyRun, 'git.commit');
   assert.equal(emptyCommit.ok, false, 'the write ran and git refused it — the refusal is DATA the run carries, not a crash');
   assert.equal(emptyCommit.exitCode, 1);
-  assert.equal(emptyCommit.detail, 'git.commit → exit 1: On branch master', 'git\'s FIRST line is a header, not a reason — which is exactly what v45\'s step before it exists to make legible');
+  assert.match(emptyCommit.detail, /^git\.commit → exit 1: no changes added to commit \(use "git add" and\/or "git commit -a"\) · git's last line of the \d+ it printed$/, 'v52 moved this sentence: it quotes git VERDICT line now, where pre-v52 it quoted the FIRST line (`On branch master`, a header). v45 read the INDEX one step earlier for the same reason — the reason matters more than the banner');
+  assert.equal(/On branch master/.test(emptyCommit.detail), false, 'and the banner is gone from the caller-visible sentence, not merely out front of it');
   assert.equal(emptyCommit.record, undefined, 'no record, because nothing was recorded');
   assert.equal(commitsAt(), commitsAtEmpty, 'HEAD unmoved through the whole granted walk');
   assert.equal(out(emptyRun, 'git.log').commits[0].hash, commitOut.record.hash, 'the confirm step still read back honestly: the newest commit is 2a\'s, because nothing new landed');
@@ -197,7 +198,7 @@ try {
   assert.equal(emptyMemory.length, 1);
   assert.ok(!String(emptyMemory[0].summary).includes('COMMITTED+CONFIRMED'), '§60: the remembered sentence does NOT claim a landing that git refused — amendment 45 retires the wording amendment 39 could not support');
   assert.match(String(emptyMemory[0].summary), /whether anything LANDED is git\'s own answer/);
-  console.log('[intent-proof] REAL: denied read = 0 spawns and no commit · an EMPTY index is stated one step before git answers "On branch master" with history unmoved');
+  console.log('[intent-proof] REAL: denied read = 0 spawns and no commit · an EMPTY index is stated one step before git answers "no changes added to commit" with history unmoved');
 
   // 2d) RED: the plan carries the whole tail; a red run never knocks on the first door.
   const spawnsAtRed = spawns.length;

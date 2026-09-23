@@ -1,5 +1,5 @@
 import type { ExecPolicy, ToolRegistry, ToolSpec } from '@nexus/agent-runtime';
-import { GIT_DIFF_FLAGS, GIT_ENV_NAMES, cutNotAbsence, gitEnv, parseDiffStat } from './gitTools.js';
+import { GIT_DIFF_FLAGS, GIT_ENV_NAMES, cutNotAbsence, gitEnv, gitVerdict, parseDiffStat, quoteVerdict, refusedNotAbsence, unmergedNotAbsence, unmergedNotice } from './gitTools.js';
 import type { ExecHost, ExecRunResult } from './execHost.js';
 
 /**
@@ -128,23 +128,27 @@ export function registerGitStagedTool(registry: ToolRegistry, host: ExecHost, op
     if (!result.ran) throw new Error(result.reason || 'run refused');
     if (result.spawnError !== '') throw new Error(`spawn failed: ${result.spawnError}`);
     if (result.exitCode !== 0 || result.killedByBudget) {
-      const why = (result.stderr.trim() !== '' ? result.stderr : result.stdout).trim().split('\n')[0] ?? '';
-      return { ok: false, detail: `git.staged → exit ${result.exitCode}: ${why === '' ? 'no output' : why}${flags(result)}`, exitCode: result.exitCode, stat, files: [], truncated: result.truncated };
+      const verdict = gitVerdict(result.stdout, result.stderr);
+      return { ok: false, detail: `git.staged → exit ${result.exitCode}: ${quoteVerdict(verdict)} · ${refusedNotAbsence('the index holds nothing staged for the §28 ask')}${flags(result)}`, exitCode: result.exitCode, stat, files: [], truncated: result.truncated };
     }
     if (stat) {
       const summary = parseDiffStat(result.stdout);
+      const notice = unmergedNotice(result.stdout);
       const detail = summary
-        ? `git.staged --stat → exit 0: index holds ${summary.files} file(s) · +${summary.insertions} −${summary.deletions}${flags(result)}`
-        : `git.staged --stat → exit 0: git printed no stat footer — stated, not guessed${flags(result)}`;
+        ? `git.staged --stat → exit 0: index holds ${summary.files} file(s) · +${summary.insertions} −${summary.deletions}${notice.length > 0 ? ` · ${unmergedNotAbsence(notice)}` : ''}${flags(result)}`
+        : `git.staged --stat → exit 0: git printed no stat footer — stated, not guessed${notice.length > 0 ? ` · ${unmergedNotAbsence(notice)}` : ''}${flags(result)}`;
       return { ok: true, detail, exitCode: 0, stat: true, mode: 'stat', summary, text: result.stdout, truncated: result.truncated };
     }
     const index = parseStagedDiff(result.stdout);
+    const notice = unmergedNotice(result.stdout);
     const tally = tallyStagedCounts(index.counts);
     const detail =
       index.files.length === 0
-        ? result.truncated
-          ? `git.staged → exit 0: ${cutNotAbsence('the index has nothing staged for the §28 ask')}${flags(result)}`
-          : `git.staged → exit 0: the index is EMPTY — nothing is staged, so a granted git.commit right now would have nothing to record${flags(result)}`
+        ? notice.length > 0
+          ? `git.staged → exit 0: ${unmergedNotAbsence(notice)} — the index is NOT empty, and a granted git.commit right now would be refused by git itself${flags(result)}`
+          : result.truncated
+            ? `git.staged → exit 0: ${cutNotAbsence('the index has nothing staged for the §28 ask')}${flags(result)}`
+            : `git.staged → exit 0: the index is EMPTY — nothing is staged, so a granted git.commit right now would have nothing to record${flags(result)}`
         : `git.staged → exit 0: index holds ${index.totals.files} change(s): ${tally} · +${index.totals.additions} −${index.totals.deletions} across ${index.totals.hunks} hunk(s)${index.totals.binary > 0 ? ` · ${index.totals.binary} binary change(s) with no lines claimed` : ''}${flags(result)}`;
     return {
       ok: true,

@@ -1,5 +1,5 @@
 import type { ExecPolicy, ToolRegistry, ToolSpec } from '@nexus/agent-runtime';
-import { GIT_DIFF_FLAGS, GIT_ENV_NAMES, cutNotAbsence, gitEnv } from './gitTools.js';
+import { GIT_DIFF_FLAGS, GIT_ENV_NAMES, cutNotAbsence, gitEnv, gitVerdict, quoteVerdict, refusedNotAbsence } from './gitTools.js';
 import type { ExecHost, ExecRunResult } from './execHost.js';
 
 /**
@@ -94,8 +94,8 @@ export function registerGitShowTool(registry: ToolRegistry, host: ExecHost, opti
     if (result.spawnError !== '') throw new Error(`spawn failed: ${result.spawnError}`);
     const flags = `${result.truncated ? ' · output truncated at budget' : ''}${result.killedByBudget ? ' · killed at timeout budget' : ''}`;
     if (result.exitCode !== 0 || result.killedByBudget) {
-      const why = (result.stderr.trim() !== '' ? result.stderr : result.stdout).trim().split('\n')[0] ?? '';
-      return { ok: false, detail: `git.show → exit ${result.exitCode}: ${why === '' ? 'no output' : why}${flags}`, exitCode: result.exitCode, path, addedLines: [], truncated: result.truncated };
+      const verdict = gitVerdict(result.stdout, result.stderr);
+      return { ok: false, detail: `git.show → exit ${result.exitCode}: ${quoteVerdict(verdict)} · ${refusedNotAbsence(`HEAD touches nothing at ${path}`)}${flags}`, exitCode: result.exitCode, path, addedLines: [], truncated: result.truncated };
     }
     const change = parseShowDiff(result.stdout, path);
     const touched = change.hunks > 0 || change.additions > 0 || change.deletions > 0;

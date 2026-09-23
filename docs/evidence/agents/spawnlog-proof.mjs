@@ -1,6 +1,6 @@
 // NEXUS M2 v51 (exec-host) — THE HOST KEEPS ITS OWN RECORD proof (ADR 0016 amendment 51).
 // Measured before writing anything: every process this stack ever pays for is born inside ONE
-// function (ExecHost.run — eight call sites, all of them inside @nexus/exec-host: the six git
+// function (ExecHost.run — seven call sites, all of them inside @nexus/exec-host: the six git
 // doors, execTestRunner, and the generic exec.run tool), and that function kept no record of its
 // own. `appendExecRun` has existed since v30, and product code called it EXACTLY ZERO times: the
 // only writers of a spawn record were a proof and a unit test. So the single strongest safety event
@@ -195,11 +195,13 @@ try {
   assert.equal(failed.rule, 2, 'the same commit rule answered, and said no on the program’s behalf');
   assert.equal(failed.exitCode, 1);
   assert.match(failed.stdout, /nothing to commit|nothing added to commit|no changes added/, "git's own verdict survives in the record");
-  // Measured, not assumed: git's FIRST stdout line is a branch banner, and the door quotes the
-  // first line — so the caller's sentence names where it is, not why it failed.
-  assert.match(again.output.detail, /On branch master/, 'what the caller got: git FIRST line, a banner rather than the reason');
+  // Measured, not assumed: git's FIRST stdout line is a branch banner and its LAST is the reason.
+  // v52 moved the door from the first to the last, so the caller's sentence finally says WHY — while
+  // this record keeps BOTH, because a record that summarizes stops being one.
+  assert.match(again.output.detail, /nothing to commit, working tree clean/, 'what the caller got: git VERDICT line (v52)');
+  assert.equal(/On branch master/.test(again.output.detail), false, 'the banner left the sentence and stayed in the record — the two files differ on purpose');
   assert.match(again.output.detail, /exit 1/);
-  assert.equal(/nothing (to commit|added)/.test(again.output.detail), false, 'and the actual reason is NOT in the caller sentence');
+  assert.match(failed.stdout, /On branch master/, 'the record still carries the banner the door dropped');
   assert.equal(spawns.length, beforeSpawns + 1, 'two more records, ONE more process: the refusal cost nothing and the failed commit cost exactly what it did');
   console.log(`[spawnlog-proof] §3 human said yes, policy said no → 1 durable line (rule null, planned false, 0 spawns) · a failed commit keeps ${failed.stdout.split('\n').filter((l) => l.trim() !== '').length} lines of git's own words where the door states 1 ("${again.output.detail}")`);
 

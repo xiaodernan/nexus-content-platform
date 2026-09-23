@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { ToolRegistry, planExec } from '@nexus/agent-runtime';
 import type { SpawnLike } from '@nexus/agent-runtime';
 import { createExecHost, type ExecChild } from '../src/execHost.js';
-import { GIT_TOOL_SPECS, GIT_DIFF_FLAGS, gitEnv, gitReadOnlyPolicy, parseDiffStat, parseGitDiff, parseGitStatus, registerGitTools } from '../src/gitTools.js';
+import { GIT_TOOL_SPECS, GIT_DIFF_FLAGS, gitEnv, gitReadOnlyPolicy, gitVerdict, parseDiffStat, parseGitDiff, parseGitStatus, quoteVerdict, refusedNotAbsence, registerGitTools, unmergedNotice, unmergedNotAbsence } from '../src/gitTools.js';
 import { GIT_ABSENT_CONFIG, GIT_FORCED_CONFIG, GIT_ISOLATION_ENV, GIT_PASS_THROUGH_ENV_NAMES, forcedConfigEnv } from '../src/gitEnvIsolation.js';
 
 describe('parseGitStatus (porcelain v1, pure data)', () => {
@@ -114,12 +114,12 @@ class FakeChild implements ExecChild {
   }
 }
 
-function harness(stdout = '', end: { code: number | null; signal: string | null } = { code: 0, signal: null }, maxOut?: number) {
+function harness(stdout = '', end: { code: number | null; signal: string | null } = { code: 0, signal: null }, maxOut?: number, stderr = '') {
   const calls: { args: string[]; env: Record<string, string> }[] = [];
   const spawnLike: SpawnLike = (_command, args, opts) => {
     calls.push({ args, env: opts.env });
     const c = new FakeChild();
-    queueMicrotask(() => c.fire(end, [['stdout', stdout]]));
+    queueMicrotask(() => c.fire(end, stderr === '' ? [['stdout', stdout]] : [['stderr', stderr], ['stdout', stdout]]));
     return c;
   };
   const host = createExecHost(gitReadOnlyPolicy('X:/repo', maxOut === undefined ? {} : { maxOutputBytes: maxOut }), { spawnLike });
@@ -186,5 +186,182 @@ describe('git.status / git.diff as registry tools (§28 gates the process; the r
     const out = res.output as { detail: string; truncated: boolean };
     expect(out.truncated).toBe(true);
     expect(out.detail).toContain('output truncated at budget');
+  });
+});
+
+/**
+ * M2 v52 (ADR 0016 amendment 52): WHICH line of git is its verdict, and what a refusal is allowed
+ * to claim. EVERY fixture below is git 2.52 for Windows speaking for itself — captured by a
+ * throwaway probe running the SAME argv the shipped doors run, in an os.tmpdir repo (the doors
+ * themselves are driven against real git in docs/evidence/agents/verdict-proof.mjs; only the paths
+ * inside these bytes are generic). Before this, the door tests could only ever feed one line, and a
+ * one-line fixture cannot distinguish a verdict from a banner.
+ */
+const REAL = {
+  cleanTree: { code: 1, stdout: 'On branch master\nnothing to commit, working tree clean\n', stderr: '' },
+  notStaged: {
+    code: 1,
+    stdout: 'On branch master\nChanges not staged for commit:\n  (use "git add <file>..." to update what will be committed)\n  (use "git restore <file>..." to discard changes in working directory)\n\tmodified:   seed.md\n\nno changes added to commit (use "git add" and/or "git commit -a")\n',
+    stderr: '',
+  },
+  indexLock: {
+    code: 128,
+    stdout: '',
+    stderr: "fatal: Unable to create 'X:/repo/.git/index.lock': File exists.\nAnother git process seems to be running in this repository, e.g.\nan editor opened by 'git commit'. Please make sure all processes\nare terminated then try again. If it still fails, a git process\nmay have crashed in this repository earlier:\nremove the file manually to continue.\n",
+  },
+  conflicted: {
+    code: 128,
+    stdout: 'U\tfile.md\n',
+    stderr: "error: Committing is not possible because you have unmerged files.\nhint: Fix them up in the work tree, and then use 'git add/rm <file>'\nhint: as appropriate to mark resolution and make a commit.\nfatal: Exiting because of an unresolved conflict.\n",
+  },
+  corruptIndex: { code: 128, stdout: '', stderr: 'fatal: .git/index: index file smaller than expected\n' },
+  hookSpoke: { code: 1, stdout: '', stderr: 'hook speaks on stdout\n' },
+  unborn: { code: 128, stdout: '', stderr: "fatal: your current branch 'master' does not have any commits yet\n" },
+  silent: { code: 128, stdout: '', stderr: '' },
+  // outside a repo, `git diff --cached` degrades to --no-index mode and dumps its usage: 132 lines
+  usageDump: { code: 129, stdout: '', stderr: "error: unknown option `cached'\nusage: git diff --no-index [<options>] <path> <path> [<pathspec>...]\n" + '    --verbose        description\n'.repeat(130) },
+};
+
+describe('gitVerdict — one rule for which line is git saying something (v52, real bytes)', () => {
+  it('a prefixed line outranks everything else, including an earlier stdout letter', () => {
+    const v = gitVerdict(REAL.conflicted.stdout, REAL.conflicted.stderr);
+    expect(v).toEqual({
+      line: 'error: Committing is not possible because you have unmerged files.',
+      rule: 'prefixed',
+      lines: 5,
+    });
+    expect(v.line).not.toContain('U\tfile.md'); // stdout carried a status letter; the reason is on stderr
+  });
+
+  it('with six lines and no prefix, the verdict is the LAST one — the first is a banner', () => {
+    const v = gitVerdict(REAL.cleanTree.stdout, REAL.cleanTree.stderr);
+    expect(v.rule).toBe('last');
+    expect(v.line).toBe('nothing to commit, working tree clean');
+    expect(v.line).not.toBe('On branch master'); // what every pre-v52 door quoted
+    expect(v.lines).toBe(2);
+  });
+
+  it('the six-line refusal a human weighs before approving a commit ends in what to do', () => {
+    const v = gitVerdict(REAL.notStaged.stdout, REAL.notStaged.stderr);
+    expect(v).toMatchObject({ rule: 'last', lines: 6 });
+    expect(v.line).toBe('no changes added to commit (use "git add" and/or "git commit -a")');
+  });
+
+  it('the FIRST prefixed line wins among six, and hint: lines are not prefixes', () => {
+    expect(gitVerdict(REAL.indexLock.stdout, REAL.indexLock.stderr)).toMatchObject({
+      line: "fatal: Unable to create 'X:/repo/.git/index.lock': File exists.",
+      rule: 'prefixed',
+      lines: 6,
+    });
+    expect(gitVerdict('', REAL.conflicted.stderr).line).not.toContain('hint:');
+  });
+
+  it('one line with no prefix is simply what git said; zero lines says git printed nothing', () => {
+    expect(gitVerdict(REAL.hookSpoke.stdout, REAL.hookSpoke.stderr)).toEqual({ line: 'hook speaks on stdout', rule: 'sole', lines: 1 });
+    expect(gitVerdict(REAL.silent.stdout, REAL.silent.stderr)).toEqual({ line: '', rule: 'none', lines: 0 });
+    expect(quoteVerdict(gitVerdict('', ''))).toBe('git printed no output at all');
+  });
+
+  it('git indents with tabs and spaces — the quote carries the words, not the layout', () => {
+    expect(gitVerdict('\t\tmodified:   seed.md\n', '   fatal: leading whitespace\n').line).toBe('fatal: leading whitespace');
+  });
+
+  it('a quote says how much of git it is NOT, and stays silent when there is nothing to suppress', () => {
+    expect(quoteVerdict(gitVerdict(REAL.cleanTree.stdout, ''))).toBe('nothing to commit, working tree clean · git\'s last line of the 2 it printed');
+    expect(quoteVerdict(gitVerdict(REAL.hookSpoke.stdout, REAL.hookSpoke.stderr))).toBe('hook speaks on stdout');
+    const big = quoteVerdict(gitVerdict(REAL.usageDump.stdout, REAL.usageDump.stderr));
+    expect(big).toContain("error: unknown option `cached'");
+    expect(big).toContain("git's prefixed line of the 132 it printed");
+  });
+
+  it('refusedNotAbsence is the read doors twin of cutNotAbsence, phrased as a refusal', () => {
+    expect(refusedNotAbsence('the tree has no changes')).toBe('git REFUSED this command — this is NOT a statement that the tree has no changes');
+  });
+});
+
+/**
+ * M2 v52 §5 of the proof: git can exit 0 and still not ANSWER. These three shapes are git 2.52's
+ * own bytes from a conflicted repository — one per door family — and all three parse to ZERO files.
+ */
+const UNMERGED_BYTES = {
+  stagedNotice: '* Unmerged path file.md\n',
+  statNotice: ' file.md | Unmerged\n 0 files changed\n',
+  combinedDiff: 'diff --cc file.md\nindex ba2906d,2299c37..0000000\n@@@ -1,1 -1,1 +1,5 @@@\n++<<<<<<< HEAD\n +main\n++=======\n+ side\n++>>>>>>> side\n',
+  ordinaryDiff: 'diff --git a/x.ts b/x.ts\nindex 111..222 100644\n--- a/x.ts\n+++ b/x.ts\n@@ -1 +1 @@\n-a\n+b\n',
+};
+
+describe('unmergedNotice — an exit-0 notice is not an empty answer (v52)', () => {
+  it('all three of git unmerged shapes name the path, and a normal diff names none', () => {
+    expect(unmergedNotice(UNMERGED_BYTES.stagedNotice)).toEqual(['file.md']);
+    expect(unmergedNotice(UNMERGED_BYTES.statNotice)).toEqual(['file.md']);
+    expect(unmergedNotice(UNMERGED_BYTES.combinedDiff)).toEqual(['file.md']);
+    expect(unmergedNotice(UNMERGED_BYTES.ordinaryDiff)).toEqual([]);
+    expect(unmergedNotice('')).toEqual([]);
+  });
+
+  it('the notice sentence says what the tally is NOT, and names every path', () => {
+    expect(unmergedNotAbsence(['a.md', 'b.md'])).toBe(
+      'git reported 2 UNMERGED path(s) (a.md, b.md) instead of a diff — a conflicted index, so a zero tally here is NOT a statement that nothing changed',
+    );
+  });
+
+  it('git.diff on a combined (conflicted) diff refuses to call its own 0-file tally an answer', async () => {
+    const h = harness(UNMERGED_BYTES.combinedDiff); // git exits 0 here — no refusal, just a notice
+    const res = await h.registry.invoke({ callId: 'u1', tool: 'git.diff', args: {} }, h.grant);
+    const out = res.output as { ok: boolean; detail: string; totals: { files: number } };
+    expect(out.ok).toBe(true);
+    expect(out.totals.files).toBe(0); // v32 parser: no `diff --git` header, so no files — stated, not fixed
+    expect(out.detail).toContain('0 files, +0 −0 (0 hunks)');
+    expect(out.detail).toContain('git reported 1 UNMERGED path(s) (file.md) instead of a diff');
+  });
+
+  it('git.diff --stat sees the Unmerged footer line beside its own summary', async () => {
+    const h = harness(UNMERGED_BYTES.statNotice);
+    const detail = String(((await h.registry.invoke({ callId: 'u2', tool: 'git.diff', args: { stat: true } }, h.grant)).output as { detail: string }).detail);
+    expect(detail).toContain('git.diff --stat → exit 0: 0 files, +0 −0');
+    expect(detail).toContain('git reported 1 UNMERGED path(s) (file.md)');
+  });
+
+  it('a healthy diff carries no notice clause at all', async () => {
+    const h = harness(UNMERGED_BYTES.ordinaryDiff);
+    const detail = String(((await h.registry.invoke({ callId: 'u3', tool: 'git.diff', args: {} }, h.grant)).output as { detail: string }).detail);
+    expect(detail).toContain('1 files, +1 −1 (1 hunks)');
+    expect(detail).not.toContain('UNMERGED');
+  });
+});
+
+describe('every git door quotes that verdict, and a refusal is never a tally (v52)', () => {
+  const detailOf = (res: { output?: unknown; error?: string }): string => String((res.output as { detail: string } | undefined)?.detail ?? res.error ?? '');
+
+  it('git.status on a corrupt index names the refusal instead of reporting a clean count', async () => {
+    const h = harness(REAL.corruptIndex.stdout, { code: REAL.corruptIndex.code, signal: null }, undefined, REAL.corruptIndex.stderr);
+    const res = await h.registry.invoke({ callId: 'v1', tool: 'git.status', args: {} }, h.grant);
+    const detail = detailOf(res);
+    expect(res.ok).toBe(true); // the CALL succeeded; git refused
+    expect(detail).toContain('git.status → exit 128: fatal: .git/index: index file smaller than expected');
+    expect(detail).toContain('0 entries parsed');
+    expect(detail).toContain('this is NOT a statement that the working tree is clean or empty');
+  });
+
+  it('git.diff on the same broken repo keeps its tally AND disclaims it', async () => {
+    const h = harness(REAL.corruptIndex.stdout, { code: 128, signal: null }, undefined, REAL.corruptIndex.stderr);
+    const detail = detailOf(await h.registry.invoke({ callId: 'v2', tool: 'git.diff', args: {} }, h.grant));
+    expect(detail).toContain('0 files, +0 −0 (0 hunks)');
+    expect(detail).toContain('this is NOT a statement that the tree has no changes');
+  });
+
+  it('git.diff --stat on a 132-line usage dump quotes line 1 and SAYS it quoted 1 of 132', async () => {
+    const h = harness(REAL.usageDump.stdout, { code: 129, signal: null }, undefined, REAL.usageDump.stderr);
+    const detail = detailOf(await h.registry.invoke({ callId: 'v3', tool: 'git.diff', args: { stat: true } }, h.grant));
+    expect(detail).toContain("error: unknown option `cached'");
+    expect(detail).toContain("git's prefixed line of the 132 it printed");
+    expect(detail).toContain('this is NOT a statement that nothing changed');
+  });
+
+  it('a SUCCESSFUL read carries no refusal sentence at all — the disclaimer cannot leak into an answer', async () => {    const h = harness(' M a.ts\n?? b.bin\n');
+    const detail = detailOf(await h.registry.invoke({ callId: 'v4', tool: 'git.status', args: {} }, h.grant));
+    expect(detail).toBe('git.status → exit 0: 2 entries (1 modified, 1 untracked)');
+    expect(detail).not.toContain('REFUSED');
+    expect(detail).not.toContain('NOT a statement');
   });
 });
