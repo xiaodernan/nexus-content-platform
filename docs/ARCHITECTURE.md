@@ -174,6 +174,14 @@ DEMO 路径不在 ai-service 里：确定性 Mock 需要 design model 才能产�
     发现列表同理复用 `resolvePublishedPath` 的可见性口径（private / rejected 一律不出现），
     排不出来的排序（Trending 要时间序列、AI Picks 要模型）随结果返回"为什么排不出来"，不拿累计数改名冒充。
 
+19. **批注是"现场"的一部分，所以也只能由服务端回答**（§111 + §68）：画布批注存在 `comments.node_id`
+    （与 §59 的公开评论同一张表，靠 `node_id` 是否为空区分——两处各存一份迟早对不上）。
+    发给模型时它和 `selectionDigest` 走同一个派生函数 `deriveContextFromDocument`：
+    页面归属、元素名一律按权威文档重算，客户端上传 `annotations` / `annotationsNote` 一律 400；
+    钉在已删除节点上的批注**不带上**并写进 note（"钉在一个不存在的元素上"只会让模型去猜那个 id 像什么）。
+    UI 侧一条容易漏的：浮在画布上的面板必须 `stopPropagation`，否则点面板里的控件会被画布
+    当成"点了空白处"而清空选中——批注就没地方钉了（这条有反向实验钉着）。
+
 ## Design ↔ Code 双通道
 
 ```

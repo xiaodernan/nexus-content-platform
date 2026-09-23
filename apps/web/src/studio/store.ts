@@ -27,6 +27,7 @@ import {
   type ResolvedLayout,
   type VisualDna,
 } from '@nexus/design-model';
+import type { Annotation } from '@/server/domain/annotations';
 import { ModerationScanSchema, ProjectHealthReportSchema, VisualDnaSchema, type DesignPatchPayload, type ModerationScan } from '@nexus/schemas';
 import type { SnapshotEntry, SnapshotMeta } from '@/server/domain/snapshots';
 import type { BranchMeta } from '@/server/domain/branches';
@@ -94,6 +95,8 @@ export interface StudioSnapshot {
   variantNotes: readonly string[];
   /** §56/§57 发布状态：null 表示从没发布过 */
   publication: Publication | null;
+  /** §111 画布批注：钉在节点上的评论。服务端算得出它挂在哪个页面，客户端不猜 */
+  annotations: Annotation[];
   publishBusy: boolean;
   publishError: string | null;
   /** §131 最近一次发布的机检结果（含 limits）。null = 这次会话里还没发布过，不是"机检说没问题" */
@@ -159,6 +162,7 @@ export class StudioStore {
   private variantList: VariantEntry[] = [];
   private variantNotes: string[] = [];
   private publicationValue: Publication | null = null;
+  private annotationsValue: Annotation[] = [];
   private publishBusyValue = false;
   private publishErrorValue: string | null = null;
   private publishScanValue: ModerationScan | null = null;
@@ -230,6 +234,7 @@ export class StudioStore {
       variants: this.variantList,
       variantNotes: this.variantNotes,
       publication: this.publicationValue,
+      annotations: this.annotationsValue,
       publishBusy: this.publishBusyValue,
       publishError: this.publishErrorValue,
       publishScan: this.publishScanValue,
@@ -287,6 +292,7 @@ export class StudioStore {
       this.commit();
       void this.refreshSnapshots();
       void this.refreshPublication();
+      void this.refreshAnnotations();
     } catch (error) {
       this.loadError = error instanceof Error ? error.message : String(error);
       this.ready = false;
@@ -734,6 +740,45 @@ export class StudioStore {
       this.publicationValue = null;
     }
     this.commit();
+  }
+
+  /** §111：批注单独一条请求。它不属于设计文档，改文档不该把它冲掉 */
+  async refreshAnnotations(): Promise<void> {
+    if (!this.projectId) return;
+    try {
+      const res = await fetch(`/api/projects/${this.projectId}/annotations`, { cache: 'no-store' });
+      const body = (await res.json().catch(() => null)) as { items?: Annotation[] } | null;
+      if (!res.ok || !body?.items) return;
+      this.annotationsValue = body.items;
+      this.commit();
+    } catch {
+      // 列不出来就不显示：批注是辅助信息，不能因为它把画布卡住；面板上会显示"没有批注"
+    }
+  }
+
+  async addAnnotation(nodeId: string, text: string): Promise<string | null> {
+    if (!this.projectId) return '还没载入项目';
+    const res = await fetch(`/api/projects/${this.projectId}/annotations`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json', ...csrfHeaders() },
+      body: JSON.stringify({ nodeId, text }),
+    });
+    const body = (await res.json().catch(() => null)) as { annotation?: Annotation; issues?: string[]; message?: string } | null;
+    if (!res.ok || !body?.annotation) return body?.issues?.join('；') ?? body?.message ?? `HTTP ${res.status}`;
+    this.annotationsValue = [body.annotation, ...this.annotationsValue];
+    this.commit();
+    return null;
+  }
+
+  async removeAnnotation(annotationId: string): Promise<string | null> {
+    const res = await fetch(`/api/annotations/${annotationId}`, { method: 'DELETE', headers: csrfHeaders() });
+    if (!res.ok) {
+      const body = (await res.json().catch(() => null)) as { message?: string } | null;
+      return body?.message ?? `HTTP ${res.status}`;
+    }
+    this.annotationsValue = this.annotationsValue.filter((a) => a.id !== annotationId);
+    this.commit();
+    return null;
   }
 
   /**

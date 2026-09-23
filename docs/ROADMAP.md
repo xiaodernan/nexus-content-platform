@@ -527,7 +527,14 @@ drizzle 把整个拼接结果当成**单个绑定参数**，生成的 SQL 是 `o
   发布一张设计稿不等于把它们放上公网（测试专门放了一段"只该存在于项目里"的文字去试泄露）。
   简介会过发布机检同一份红线词表，命中就不保存。游戏栏现在是 0 并写明 M5 未开工，而不是省掉。
   仍欠：§168 Analytics（主页上那几个数是浏览量，不是分析）、头像上传（users.avatar_url 还没有写它的地方）、
-  Trending / AI Picks、§132 的 block / mute、§111 的画布定位批注
+  Trending / AI Picks、§132 的 block / mute
+- [x] 画布批注（§111）— **2026-09-24 落地**：点中元素 → 写一句话钉在它上面（`comments.node_id`，
+  不另起一张表）。定位由服务端按文档算（页面、元素名），节点被删后批注仍列得出并标明悬空；
+  随 AI 请求上线走 §68 那条路（客户端上传 `annotations` 一律 400，超出 20 条与悬空都写进
+  `annotationsNote`），提示词里写清"批注回答该动哪个元素，不是要照抄进设计的文案"。
+  还没做：`@Agent` 提及解析、批注的已解决状态、回复线程（`parent_id` 还没有写它的地方）。
+  验证：`annotations.integration.test.ts` 8 条 + 一条画布 e2e（含刷新后仍在、以及
+  "浮层挡住画布点击"这条反向实验——去掉 stopPropagation 那条断言立刻红）
 - [~] 发布审核流水线（§131）+ 举报（§132 的一部分）— **2026-09-24 落地**：
   `publish → 机检（红线词表 + 资产出处）→ clear/review/blocked → 发布或挂人工队列`，
   机检只升级不认证（`moderation` 停在 pending，只有 role=admin 的人工裁决能写 approved/rejected，

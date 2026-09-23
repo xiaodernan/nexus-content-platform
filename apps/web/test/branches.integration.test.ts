@@ -128,14 +128,17 @@ describe('分支与副本（真实数据库）', () => {
     await switchBranch(id, main!.id);
     await switchBranch(id, v2.branch.id);
     const after = await listSnapshots(id);
-    // 两条"切换到"标记是如实历史；不该再出现"切到 X 前的现场"
-    expect(after.filter((s) => s.label?.startsWith('切到'))).toHaveLength(0);
+    // 分支头是什么状态，直接决定 stashCurrent 会不会写那条"前的现场"：出问题时这就是现场证据
+    const heads = (await listBranches(id)).map((b) => `${b.name}:${b.headSnapshotId ? '有头' : '无头'}`).join(' / ');
     const created = after
       .filter((s) => !before.some((b) => b.id === s.id))
       .map((s) => s.label ?? '(无标签)');
-    // 断言写成"新增的就是这两条切换标记"，而不是只比长度：
-    // 只比长度时偶发失败只会说 expected 5 to be 4，看不出多出来的是哪一条
-    expect(created).toEqual([expect.stringMatching(/^切换到/), expect.stringMatching(/^切换到/)]);
+    // 两条"切换到"标记是如实历史；不该出现"切到 X 前的现场"。
+    // 只比长度看不出多出来的是哪一条（这条偶发过一次，见 docs/TESTING.md 已知偶发第二笔），
+    // 所以按 label 分类断言，并把分支头现状打进失败信息里。
+    expect(created.filter((label) => label.startsWith('切到'))).toEqual([]);
+    expect(created.filter((label) => label.startsWith('切换到'))).toHaveLength(2);
+    expect(created.length, `新增的应当只有两条切换标记；分支头现状：${heads}`).toBe(2);
   });
 
   it('从历史快照开分支：起点是那份快照，当前现场先存回原分支', async () => {

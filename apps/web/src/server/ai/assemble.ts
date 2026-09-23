@@ -2,6 +2,7 @@ import type { AiRequest } from '@nexus/schemas';
 import type { DesignDocument } from '@nexus/design-model';
 import { buildCodeDigest, DEFAULT_CODE_CHAR_BUDGET } from '@/server/domain/code-index';
 import { deriveContextFromDocument } from '@/server/ai/derive-context';
+import { listAnnotations } from '@/server/domain/annotations';
 import { buildProjectContext } from '@/server/domain/context';
 import { projectBelongsTo } from '@/server/domain/projects';
 
@@ -27,11 +28,13 @@ export type AssembleResult =
     }
   | { ok: false; status: 400 | 404 | 409; code: string; message: string };
 
-/** 客户端上传即拒绝的三份：都是"现场描述"，服务端能自己算，让客户端发就等于让请求方定义现实 */
+/** 客户端上传即拒绝的几份：都是"现场描述"，服务端能自己算，让客户端发就等于让请求方定义现实 */
 const SERVER_DERIVED = {
   document: '整份设计文档',
   selectionDigest: '选中节点的描述',
   designSystemDigest: '设计系统摘要',
+  annotations: '元素上留下的批注',
+  annotationsNote: '批注被省略的说明',
 } as const;
 
 /**
@@ -44,13 +47,17 @@ export async function assembleAiRequest(request: AiRequest, ownerId: string): Pr
     document: clientDocument,
     selectionDigest: clientSelection,
     designSystemDigest: clientSystem,
+    annotations: clientAnnotations,
+    annotationsNote: clientAnnotationsNote,
     ...context
   } = request.context;
-  // 这三份契约上都刻意没有默认值：`!== undefined` 就是"客户端确实发了这一份"
+  // 这几份契约上都刻意没有默认值：`!== undefined` 就是"客户端确实发了这一份"
   for (const [value, field] of [
     [clientDocument, 'document'],
     [clientSelection, 'selectionDigest'],
     [clientSystem, 'designSystemDigest'],
+    [clientAnnotations, 'annotations'],
+    [clientAnnotationsNote, 'annotationsNote'],
   ] as const) {
     if (value !== undefined) {
       return {
@@ -87,7 +94,12 @@ export async function assembleAiRequest(request: AiRequest, ownerId: string): Pr
   }
 
   const document = assembled.document;
-  const derived = deriveContextFromDocument(document, context);
+  // §111：批注从库里按项目读，再由 derive 按文档核对定位——客户端说的 nodeId 不算数
+  const stored = await listAnnotations(projectId);
+  const derived = deriveContextFromDocument(document, {
+    ...context,
+    annotations: stored.map((a) => ({ nodeId: a.nodeId, body: a.body })),
+  });
   return {
     ok: true,
     toolDocument: document,
@@ -101,6 +113,8 @@ export async function assembleAiRequest(request: AiRequest, ownerId: string): Pr
         budgetChars: assembled.context.sizes.budgetChars,
         selectionDigest: derived.selectionDigest,
         designSystemDigest: derived.designSystemDigest,
+        annotations: derived.annotations,
+        ...(derived.annotationsNote ? { annotationsNote: derived.annotationsNote } : {}),
       },
     },
   };

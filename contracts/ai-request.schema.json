@@ -289,6 +289,40 @@
             }
           }
         },
+        "annotations": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "nodeId": {
+                "type": "string"
+              },
+              "pageId": {
+                "type": "string"
+              },
+              "pageName": {
+                "type": "string"
+              },
+              "nodeName": {
+                "type": "string"
+              },
+              "body": {
+                "type": "string",
+                "maxLength": 1000
+              }
+            },
+            "required": [
+              "nodeId",
+              "pageId",
+              "pageName",
+              "nodeName",
+              "body"
+            ]
+          }
+        },
+        "annotationsNote": {
+          "type": "string"
+        },
         "designIndex": {
           "type": "object",
           "properties": {

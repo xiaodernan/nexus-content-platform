@@ -44,8 +44,17 @@ export function buildAiRequestFixture(): AiRequest {
     pageId: page.id,
     nodeIds: [headline.id],
   });
-  // 现场那一份（选中了什么 / 设计系统里有什么）走服务端同一个函数：夹具不是手抄出来的
-  const derived = deriveContextFromDocument(document, { pageId: page.id, selection: [headline.id] });
+  // 现场那一份（选中了什么 / 设计系统里有什么 / 元素上留了什么话）走服务端同一个函数：
+  // 夹具不是手抄出来的。第二条批注故意钉在一个不存在的节点上，
+  // 让"过期的批注不会被带上、并且会说明"这条行为在 Python 侧的提示词测试里也看得见
+  const derived = deriveContextFromDocument(document, {
+    pageId: page.id,
+    selection: [headline.id],
+    annotations: [
+      { nodeId: headline.id, body: '这个标题太大，压到下面的卡片了' },
+      { nodeId: 'node_already_deleted', body: '这条应该带不上来' },
+    ],
+  });
   return AiRequestSchema.parse({
     requestId: 'req_fixture',
     intent: 'design-edit',
@@ -59,6 +68,8 @@ export function buildAiRequestFixture(): AiRequest {
       selection: [headline.id],
       selectionDigest: derived.selectionDigest,
       designSystemDigest: derived.designSystemDigest,
+      annotations: derived.annotations,
+      ...(derived.annotationsNote ? { annotationsNote: derived.annotationsNote } : {}),
       designIndex: index,
       codeDigest: digest,
       indexChars: JSON.stringify(index).length,

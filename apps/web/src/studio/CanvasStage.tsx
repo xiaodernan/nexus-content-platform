@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState, type CSSProperties } from 're
 import { boundsOf } from '@nexus/design-model';
 import { studio, useStudio } from './store';
 import { nodeStyle } from './render';
+import { AnnotationsPanel } from './AnnotationsPanel';
 
 type Handle = 'nw' | 'n' | 'ne' | 'e' | 'se' | 's' | 'sw' | 'w';
 
@@ -403,8 +404,40 @@ export function CanvasStage() {
         })}
       </div>
 
-      {/* overlay：选择框 / 手柄 / 参考线，独立层，不触发节点重绘 */}
+      {/* overlay：选择框 / 手柄 / 参考线 / 批注标记，独立层，不触发节点重绘 */}
       <div data-canvas-overlay style={{ position: 'absolute', inset: 0, pointerEvents: 'none' }}>
+        {/* §111：钉了批注的节点在右上角挂一个角标，点了就选中那个元素。
+            位置取布局算出来的框，所以缩放平移时角标跟着走，不会飘在别处 */}
+        {state.annotations.map((a) => {
+          const box = layout.nodes[a.nodeId];
+          if (!box || (a.pageId && a.pageId !== state.page?.id)) return null;
+          const p = toScreen({ x: box.x + box.width, y: box.y, width: 0, height: 0 });
+          return (
+            <button
+              key={a.id}
+              type="button"
+              data-annotation-badge={a.nodeId}
+              title={`${a.nodeName}：${a.body}`}
+              onPointerDown={(e) => e.stopPropagation()}
+              onClick={() => studio.select([a.nodeId])}
+              style={{
+                position: 'absolute',
+                left: p.x - 7,
+                top: p.y - 7,
+                width: 14,
+                height: 14,
+                pointerEvents: 'auto',
+                borderRadius: 999,
+                background: 'var(--nexus-color-brand)',
+                border: '1px solid var(--nexus-color-bg-0)',
+                cursor: 'pointer',
+              }}
+            />
+          );
+        })}
+        <div style={{ pointerEvents: 'auto' }}>
+          <AnnotationsPanel />
+        </div>
         {preview.guides?.map((guide, i) => {
           const p = toScreen({ x: guide.at, y: guide.at, width: 0, height: 0 });
           return (

@@ -1299,3 +1299,38 @@ test('@smoke 社区：公开页能点赞、评论、改编；发现页只排排�
   await expect(saver.locator('[data-profile-bio]')).toContainText('做互动世界与像素字体的人');
   await saver.close();
 });
+
+test('@smoke 画布批注：钉在元素上、刷新还在、位置由服务端算（§111）', async ({ page }) => {
+  test.setTimeout(150_000);
+  await createProject(page, `Annotate ${Date.now().toString(36)}`);
+
+  const headlineId = await layerId(page, 'Headline');
+  await page.click(`[data-node-id="${headlineId}"]`);
+  await page.click('[data-annotations-toggle]');
+  await expect(page.locator('[data-annotations-panel]')).toBeVisible();
+  // 面板要说清这条会钉在哪个元素上——包括它的 id，出问题时这是唯一能核对的东西
+  await expect(page.locator('[data-annotations-panel]')).toContainText(headlineId);
+
+  await page.fill('[data-annotation-input]', '这个标题太大，压到下面的卡片了');
+  await page.click('[data-annotation-submit]');
+  await expect(page.locator(`[data-annotation="${headlineId}"]`)).toContainText('这个标题太大');
+  await expect(page.locator(`[data-annotation-badge="${headlineId}"]`)).toBeVisible();
+  await page.screenshot({ path: 'screenshots/canvas-annotation.png' });
+
+  // 刷新：批注来自库里，不是内存里的临时状态
+  await page.reload();
+  await page.waitForSelector('[data-canvas-frame] [data-node-id]', { timeout: 30_000 });
+  await expect(page.locator(`[data-annotation-badge="${headlineId}"]`)).toBeVisible({ timeout: 30_000 });
+  await page.click('[data-annotations-toggle]');
+  await expect(page.locator('[data-annotations-toggle]')).toContainText('批注 1 条');
+
+  // 刷新后**在画布上点元素**仍然要能选中（面板收起时点节点 → 打开面板 → 说清钉在哪个 id 上）。
+  // 这条不是多余的：这块浮层压在画布上，一旦它的 pointerdown 冒泡到画布，
+  // 点面板里的控件就会被当成"点了空白处"而清空选中，批注就没地方钉了。
+  // 面板上一步已经打开了，这里只点画布上的元素：选中态要立刻反映到"钉在哪个 id 上"
+  await page.click(`[data-node-id="${headlineId}"]`);
+  await expect(page.locator('[data-annotations-panel]')).toContainText(headlineId);
+  // 已存在的那条批注仍然列着，且写明它钉在 Headline 上
+  await expect(page.locator(`[data-annotation="${headlineId}"]`)).toContainText('Headline · Home');
+});
+

@@ -48,6 +48,10 @@ ops 只允许以下形状（字段名与取值必须严格一致）：
    尺寸里的 "hug" / "fill" 是模型里的意图，不是量出来的像素。
 4. 不改变没有提到的节点；不要输出解释文字、Markdown 或代码块。
 5. 无法用这些 op 表达的诉求（例如需要生成图片/视频），在 explanation 里说明做不了，patches 留空。
+6. `annotations` 是用户在某个元素上留下的原话（§111），每条带 nodeId / 页面 / 元素名 / 正文。
+   它回答"该动哪个元素"，不是要照抄进设计的文案——"这个按钮太大"是要你改尺寸，不是把这句话写进按钮。
+   批注与本轮诉求冲突时以诉求为准，并在 explanation 里说一句冲突在哪；
+   `annotationsNote` 说明有哪些批注没带上来（过期节点或超出条数上限），别把没看见当成没有。
 """
 
 
@@ -129,6 +133,9 @@ def build_prompt(request: dict[str, Any]) -> tuple[str, str]:
         # 服务端派生的一份目录（entries / missing / unreachable / dropped / omissions）；
         # 空对象只可能来自手写请求，正常装配一定会带上它
         "selectionDigest": context.get("selectionDigest") or {},
+        # §111：钉在元素上的用户原话，服务端按文档核对过定位
+        "annotations": context.get("annotations") or [],
+        **({"annotationsNote": context["annotationsNote"]} if context.get("annotationsNote") else {}),
         "recentChanges": context.get("recentChanges") or [],
     }
     # 这个进程自己又裁的每一刀，最后一起写进 promptTruncated（§159：短了要说，别默默变短）

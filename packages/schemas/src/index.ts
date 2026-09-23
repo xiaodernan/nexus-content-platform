@@ -374,6 +374,20 @@ export const SelectionDigestSchema = z.object({
 });
 export type SelectionDigestPayload = z.infer<typeof SelectionDigestSchema>;
 
+/**
+ * §111 画布批注随上下文发给模型的那一份。
+ * 与 selectionDigest 同一条纪律：由服务端按库里的批注 + 权威文档算出来，
+ * 客户端上传一律 400 —— 否则"我在某个元素上留过话"就成了请求方自述。
+ */
+export const AnnotationContextSchema = z.object({
+  nodeId: z.string(),
+  pageId: z.string(),
+  pageName: z.string(),
+  nodeName: z.string(),
+  body: z.string().max(1000),
+});
+export type AnnotationContext = z.infer<typeof AnnotationContextSchema>;
+
 /** §66 Design Context：Agent 必须拿到上下文而不是每次重推 */
 export const DesignContextSchema = z.object({
   projectId: z.string(),
@@ -393,6 +407,13 @@ export const DesignContextSchema = z.object({
       components: z.array(z.object({ id: z.string(), name: z.string(), props: z.record(z.string(), z.unknown()).default({}) })).default([]),
     })
     .optional(),
+  /**
+   * §111：这一轮要请模型看的批注（钉在节点上的用户原话）。
+   * 服务端注入，客户端上传会被拒（同 document / selectionDigest）。
+   */
+  annotations: z.array(AnnotationContextSchema).optional(),
+  /** 超出上限没带上的批注怎么说：条数与原因，不留"看起来是全的"的错觉 */
+  annotationsNote: z.string().optional(),
   /**
    * §70 的设计目录（服务端 Context Engine 装配时注入，预算内）。
    * 这是 provider 真正能看到的那一份；`document` 不是（见下）。

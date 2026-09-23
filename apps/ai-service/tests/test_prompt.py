@@ -65,6 +65,28 @@ def test_selection_digest_reaches_the_model_as_the_server_wrote_it() -> None:
     assert digest["omissions"], "没说明这份目录省略了什么，等于让模型以为看到了全部"
 
 
+def test_annotations_reach_the_prompt_with_their_locations() -> None:
+    """§111：批注要带着"钉在哪个元素"一起进提示，否则模型只知道有人抱怨过。"""
+    request = _fixture_request()
+    payload = _user_payload(request)
+    annotations = request["context"]["annotations"]
+    assert payload["annotations"] == annotations
+    assert annotations, "夹具里就该有一条批注，否则这条断言是空的"
+    assert {"nodeId", "pageId", "pageName", "nodeName", "body"} <= set(annotations[0])
+    # 钉在已删除节点上的那条不该出现，而且要说明为什么少了一条
+    assert all("已经不在文档里" not in a["body"] for a in annotations)
+    assert "annotationsNote" in payload
+    assert "节点已经不在文档里" in payload["annotationsNote"]
+
+
+def test_prompt_tells_the_model_not_to_copy_an_annotation_into_the_design() -> None:
+    """批注是需求描述，不是文案。提示词里没这条界，模型就会把"这个按钮太大"写进按钮。"""
+    from ai_service.design_prompt import SYSTEM_PROMPT
+
+    assert "不是要照抄进设计的文案" in SYSTEM_PROMPT
+    assert "别把没看见当成没有" in SYSTEM_PROMPT
+
+
 def test_unrecognised_selection_ids_are_reported_not_dropped() -> None:
     """客户端谎报一个文档里没有的 id：服务端会把它记进 missing，模型要看得见"这个动不了"。"""
     request = _fixture_request()

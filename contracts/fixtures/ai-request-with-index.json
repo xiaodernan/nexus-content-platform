@@ -238,6 +238,16 @@
       ],
       "components": []
     },
+    "annotations": [
+      {
+        "nodeId": "fx004",
+        "pageId": "fx009",
+        "pageName": "Home",
+        "nodeName": "Headline",
+        "body": "这个标题太大，压到下面的卡片了"
+      }
+    ],
+    "annotationsNote": "1 条批注钉的节点已经不在文档里，没有带上——批注要能定位才有意义",
     "designIndex": {
       "schemaVersion": 1,
       "generatedFrom": {
