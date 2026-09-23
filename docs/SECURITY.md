@@ -81,8 +81,29 @@ PostMessage 是唯一跨界通道：校验 `origin` + `source`，schema 校验�
 ## 内容安全（§129-132）
 
 不得生成：非自愿亲密影像、涉未成年性内容、用于欺骗的身份冒充、违法内容。
-发布流水线：`upload → automated moderation → risk classification → publish or human review`。
-社区能力：report / block / mute / moderation。版权：不复制受保护的角色、资产、剧情、网站内容，只提取风格 DNA。
+发布流水线（§131）已落地在 `apps/web/src/server/domain/moderation.ts`：
+`publish → 机检（词表红线 + 资产出处）→ clear / review / blocked → 发布或挂人工队列`。
+四条边界写在这里，不只在代码注释里：
+
+- **机检只升级，不认证。** `clear` 不把 `published_projects.moderation` 写成 `approved`；
+  那个值只能由 `role='admin'` 的人工裁决改（`POST /api/admin/moderation/[caseId]`，登录 + admin + CSRF 三样都要）。
+  被拒绝的那一版公开 URL 立刻不可达（`resolvePublishedPath` 认这一列）。
+- **词表能挡什么、挡不住什么都随结果发出去。** 扫描自带 `limits`（覆盖不到的部分）与 `rulesVersion`，
+  发布面板逐条显示；"没命中规则"在 UI 上就写成"这次没命中规则"，不写成"内容合规"。
+- **命中红线也留案。** 被挡下的那次发布没有 publication 行可挂，但 `moderation_cases` 仍记一行
+  `decision='blocked'` + 证据（哪段文字、在哪个节点）——否则连"有人试过发这个"都查不到。
+- **下架方向永远放行。** 切成 private 不受门禁与机检阻挡：把链接收回来比挡住收回安全。
+
+社区能力：report 已落地（公开页 `POST /api/published/report`，限流 10 次/小时/身份，
+命中三条硬红线的举报自动挂人工复核案并按案子去重）；block / mute 还没有——它们要的是社区关系面，
+在 M7 的 like/comment 之后才有承载处。版权（§129 copyright safeguards）只有原则没有比对：
+没有指纹库或外部检索，平台判断不了一段文字或一张图是不是抄的。
+
+审核入口本身还有一个附带边界：`/api/admin/*` 用 `currentUserOrNull()` 而不是 `requireUser()` 读会话——
+后者会为无会话的请求现造一个 guest 身份（§137 的首次体验），那正好让任何人反复探测 admin 端点就能白手造用户行。
+
+谁是 admin：目前只能由运维直接改 `users.role`，平台没有自助提权路径。人工裁决的 UI 也还没有
+（队列只能 `GET /api/admin/moderation` 看 JSON）——这是 §131 剩下的一块，记在 ROADMAP。
 
 ## 密钥与配置（§80）
 

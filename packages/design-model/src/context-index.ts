@@ -202,8 +202,12 @@ function nodeName(page: Page, id: string | null | undefined): string | null {
   return page.nodes[id]?.name ?? null;
 }
 
-/** 一个节点引用到的资产：assetId 字段，或 fills / strokes 里的 image paint */
-function nodeAssetIds(node: DesignNode): string[] {
+/**
+ * 一个节点引用到的资产：assetId 字段，或 fills / strokes 里的 image paint。
+ * 导出是给 §131 的发布扫描复用同一套口径用的——"哪些资产真的被公开页面用到"这件事
+ * 不该有第二份算法，否则目录说没用到、审核说用到了。
+ */
+export function nodeAssetIds(node: DesignNode): string[] {
   const ids = new Set<string>();
   if (node.assetId) ids.add(node.assetId);
   const paints = [...node.style.fills, ...node.style.strokes.flatMap((s) => s.paints)];

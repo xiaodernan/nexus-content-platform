@@ -3,6 +3,7 @@ import { TokenStore, findPage, resolveLayout } from '@nexus/design-model';
 import { recordView, resolvePublishedPath } from '@/server/domain/publish';
 import { assetContextFor, publicAssetUrl } from '@/studio/assets';
 import { nodeStyle } from '@/studio/render';
+import { ReportControl } from './ReportControl';
 
 export const dynamic = 'force-dynamic';
 
@@ -49,7 +50,11 @@ export default async function PublishedPage({ params, searchParams }: Props) {
           {publication.visibility === 'public' ? '公开' : '仅链接可见'} ·{' '}
           {new Date(publication.publishedAt).toLocaleString('zh-CN', { hour12: false })}
         </span>
-        <span className="ml-auto font-mono text-11 text-fg-3">Built with NEXUS</span>
+        {/* §132：公开页要有人能举报，否则 §129 的红线只能靠作者自觉 */}
+        <span className="ml-auto flex items-center gap-2">
+          <ReportControl path={publication.path} />
+          <span className="font-mono text-11 text-fg-3">Built with NEXUS</span>
+        </span>
       </header>
       <div className="w-full overflow-x-auto p-[var(--nexus-space-4)]">
         <div

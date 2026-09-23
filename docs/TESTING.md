@@ -165,6 +165,18 @@ e2e 断言面板把"未运行的检查"列出来，而不是显示全绿。
   → 9/9 通过（含"换一个 store 仍然读得到"这条内存后端做不到的事）；不设这个变量时那一条**显式 skip**，
   跳过理由打在 pytest 输出里，不是静默通过。
   反向实验两次：计数器改回写死 0 → 非法请求那条红；worker 改成"无论 HTTP 什么都算 completed" → 失败作业那条红
+- 发布审核（§131/§132）：`apps/web/test/moderation.integration.test.ts` 16 条，钉的是四条会被含糊掉的边界，
+  不是"能不能算出个对象"：① 命中红线时**真的没有** publication 行、但 `moderation_cases` 留了一行
+  `decision='blocked'`（挡下也要可追溯）；② `review` 档照发，而 `moderation` 仍是 `pending` —— 机检不许替人认证；
+  ③ `rejected` 之后 `resolvePublishedPath` 返回 null（裁决要真能撤下内容），同案不能裁两次；
+  ④ 切成 private 时红线文档也发得出去（下架永远可行）且不立案。
+  词表那几条带**正向对照**：`Kid-friendly lesson plan for ages 6-10` 必须 clear（证明规则不是"出现 kid 就挡"）、
+  图层名里有红线词但访客看不到必须 clear（只有 node.text / node.alt 参与判定）、
+  项目里存着上传图但这一版没引用也必须 clear。举报侧钉去重：已有待复核案时同类举报不再开第二条
+  （否则队列会被同一件事灌满）。
+  e2e 那一条（`@smoke 发布机检与公开页举报`）在真浏览器里走完"发布 → 面板显示机检结论与 limits →
+  访客在公开页举报并看到'不会立刻撤下内容' → 改成红线文案再发布 → 面板说清被挡下并列出命中证据"，
+  截图在 `screenshots/publish-scan-*.png` 与 `published-report.png`
 - 每个里程碑一次 commit 前至少跑：`npm run lint && npm test && npm run test:e2e:smoke`
 - 改了 `packages/schemas` 必须重跑 `npm run contract:export`，否则契约漂移测试会红
 - 动了 ai-service 再加：`npm run test:ai-service`（Windows 控制台建议前置 `PYTHONUTF8=1`）
@@ -179,3 +191,10 @@ e2e 断言面板把"未运行的检查"列出来，而不是显示全绿。
   原来的断言只比长度，报错信息是 `expected 5 to be 4`，看不出是谁。已改成按 label 列新增项
   （`expect.stringMatching(/^切换到/)`），下次失败会直接说出多出来那条叫什么。**没有**改成 `toBeGreaterThanOrEqual`
   之类的宽松比较：噪音快照正是这条测试要抓的东西。
+- **已知偶发（第三笔）**：2026-09-24 加 §131 那次，两套各出现过一次"整套并行时 1 条失败、单跑与重跑全绿"：
+  ① e2e 的「§49 检索：世界条目进索引」在 24 条并行 smoke 里失败一次，单独跑 3.9s 通过，
+  随后整套重跑 24/24；② `npm test`（45 文件 / 479 条）同一小时内失败一次，
+  但那次输出被截断，**没能记下是哪一条**——随后连跑四次全绿。
+  两条都不改断言、不放宽超时：②尤其要说白——"抓不到名字"就是当时的事实，
+  下次再遇到必须先把 `FAIL` 那一行留在日志里再动手（`npx vitest run > /tmp/vt.log 2>&1`）。
+  怀疑方向与第一笔相同：这台机器同时跑着别的项目的容器，并行时是 CPU 争用而不是逻辑变了。

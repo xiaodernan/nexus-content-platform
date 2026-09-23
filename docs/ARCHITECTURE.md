@@ -157,6 +157,15 @@ DEMO 路径不在 ai-service 里：确定性 Mock 需要 design model 才能产�
     队列没跑起来就报 `backend: "none"` + `capacity: 0`，而不是 500 堆栈。
     `progress` 只在有真进度来源时才给，单次 LLM 调用恒为 `null`（§159：不编一条 0.2→0.9 的假刻度）。
 
+17. **审核只能升级，不能认证**（§131）：机检（词表红线 + 资产出处）产出 `clear / review / blocked` 三档，
+    其中只有 `blocked` 会改变行为（挡下这次发布），而 `published_projects.moderation` 停在 `'pending'`
+    直到有人裁决——把"没查出问题"写成 `approved` 就是假状态（§159）。所以三个设计决定是绑在一起的：
+    ① 扫描结果自带 `limits` 与 `rulesVersion`，随报文一路发到发布面板，"能挡什么/挡不住什么"不是注释里的口头话；
+    ② 被挡下的发布也立案（那次没有 publication 行可挂，`publication_id` 就允许为空）；
+    ③ 唯一能写 `approved/rejected` 的入口按 `role='admin'` 门控，且 rejected 真的让公开 URL 变 404。
+    同一个入口还顺手改掉一个老隐患：admin 路由读会话用 `currentUserOrNull()`（不自动造 guest），
+    否则探测者靠一个未登录 GET 就能刷出成堆的 guest 用户行。
+
 ## Design ↔ Code 双通道
 
 ```

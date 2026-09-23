@@ -512,7 +512,13 @@ drizzle 把整个拼接结果当成**单个绑定参数**，生成的 SQL 是 `o
 - [ ] Explore / Discovery / Trending / AI Picks（§59-61）
 - [ ] Like / Comment / Follow / Remix / Save / Share
 - [ ] Creator Profile + Analytics（§60/168）
-- [ ] 内容安全与发布审核流水线（§129-132）
+- [~] 发布审核流水线（§131）+ 举报（§132 的一部分）— **2026-09-24 落地**：
+  `publish → 机检（红线词表 + 资产出处）→ clear/review/blocked → 发布或挂人工队列`，
+  机检只升级不认证（`moderation` 停在 pending，只有 role=admin 的人工裁决能写 approved/rejected，
+  rejected 立刻让公开 URL 404），扫描自带 limits + rulesVersion 一路显示到发布面板，
+  被挡下的发布也立案。取舍与限度见 `docs/adr/0008-moderation-escalates-never-certifies.md`。
+  仍欠：人工裁决的 UI（队列现在只有 `GET /api/admin/moderation` 的 JSON）、图像/视频内容模型、
+  版权比对、block / mute（要等 M7 的关系面有承载处）
 - [ ] **Java Spring Boot 领域服务在此落地**（用户/项目/社区/权限/计费的权威写入方）
 
 ## M7 — 创作者经济（§187）

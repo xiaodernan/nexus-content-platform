@@ -466,6 +466,46 @@ export const AiResponseSchema = z.object({
 export type AiResponse = z.infer<typeof AiResponseSchema>;
 
 /**
+ * §131 机检结果。放在 schemas 而不是 web 内部类型：发布面板要把它原样画出来，
+ * 客户端拿到的一份如果和服务端算的那份形状不同，"几项待人工复核"就变成一个猜出来的数。
+ */
+export const ModerationFindingSchema = z.object({
+  rule: z.string(),
+  /** 只有这两档：机检不下"安全"的结论（§159） */
+  level: z.enum(['review', 'blocked']),
+  /** 命中的原文片段或资产名：复核的人要能看到凭什么说的 */
+  quote: z.string(),
+  /** 在文档里的位置（节点 id 或 asset:id），要能跳回去看 */
+  where: z.string(),
+  why: z.string(),
+});
+export type ModerationFinding = z.infer<typeof ModerationFindingSchema>;
+
+export const ModerationScanSchema = z.object({
+  rulesVersion: z.string(),
+  decision: z.enum(['clear', 'review', 'blocked']),
+  findings: z.array(ModerationFindingSchema).default([]),
+  /** 这一轮机检覆盖不到的部分。缺了它，decision:'clear' 会被读成"内容没问题" */
+  limits: z.array(z.string()).default([]),
+  scanned: z.object({
+    pages: z.number().int().min(0),
+    textNodes: z.number().int().min(0),
+    /** 文档引用到的**不同**资产数（不是引用次数） */
+    assetRefs: z.number().int().min(0),
+  }),
+});
+export type ModerationScan = z.infer<typeof ModerationScanSchema>;
+
+/** §132 举报：公开页上真能提交的那一份 */
+export const AbuseReportRequestSchema = z.object({
+  path: z.string().min(3).max(200),
+  reason: z.enum(['minor_safety', 'intimate_nonconsensual', 'impersonation', 'illegal', 'ip', 'spam', 'other']),
+  detail: z.string().max(2000).optional(),
+});
+export type AbuseReportRequest = z.infer<typeof AbuseReportRequestSchema>;
+
+
+/**
  * §162 作业队列：图片 / 视频 / 3D / 复杂 Agent 任务不能挂在一个 HTTP 请求上等结果，
  * 所以走 Queue → Worker → Progress → Result。这两份是 ai-service ↔ web 之间的报文。
  */

@@ -83,6 +83,42 @@ export function PublishPanel() {
             </div>
           ) : null}
 
+          {state.publishScan ? (
+            <div className="mb-[var(--nexus-space-3)] rounded-[var(--nexus-radius-sm)] bg-bg-2 p-2" data-publish-scan>
+              <p className="text-11 text-fg-3" data-scan-decision={state.publishScan.decision}>
+                {state.publishScan.decision === 'clear'
+                  ? `机检（${state.publishScan.rulesVersion}）：这次没命中规则。`
+                  : state.publishScan.decision === 'review'
+                    ? `机检（${state.publishScan.rulesVersion}）：${state.publishScan.findings.length} 项挂人工复核，页面已发出去。`
+                    : `机检（${state.publishScan.rulesVersion}）：命中硬红线，这次没有发出去。`}
+              </p>
+              <p className="text-11 text-fg-3">
+                扫过：{state.publishScan.scanned.pages} 页 / {state.publishScan.scanned.textNodes} 段可见文字 /{' '}
+                {state.publishScan.scanned.assetRefs} 个引用资产
+              </p>
+              {state.publishScan.findings.length ? (
+                <ul className="mt-1 space-y-1">
+                  {state.publishScan.findings.map((finding, i) => (
+                    <li className="text-11 text-fg-2" data-scan-finding={finding.rule} key={`${finding.rule}-${i}`}>
+                      <span className="font-mono text-fg-3">{finding.rule}</span> · {finding.why}
+                      <span className="block text-fg-3">
+                        位置 {finding.where} · 「{finding.quote}」
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              ) : null}
+              {/* §159：没命中不等于合规。机检覆盖不到的部分必须和结论一起出现 */}
+              <ul className="mt-1 space-y-[2px]">
+                {state.publishScan.limits.map((limit) => (
+                  <li className="text-11 text-fg-3" data-scan-limit key={limit}>
+                    · {limit}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ) : null}
+
           {state.publishError ? (
             <p className="mb-2 text-11 text-danger" data-publish-error>
               {state.publishError}
@@ -103,7 +139,14 @@ export function PublishPanel() {
               </a>
               <p className="mt-1 text-11 text-fg-3">
                 发布的是那一刻的快照：之后在 Studio 里改的东西要点"发布"才会换出去。
-                {publication.moderation === 'pending' ? ' 内容审核管线尚未接入。' : ''}
+                {' '}
+                {publication.moderation === 'pending'
+                  ? '人工审核还没看过这一版（机检不能替它下结论）。'
+                  : publication.moderation === 'approved'
+                    ? '人工审核：已放行。'
+                    : publication.moderation === 'rejected'
+                      ? '人工审核：已拒绝，公开地址不再可访问。'
+                      : `人工审核状态：${publication.moderation}。`}
               </p>
             </div>
           ) : null}

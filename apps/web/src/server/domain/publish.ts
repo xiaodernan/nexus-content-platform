@@ -1,7 +1,8 @@
 import { and, desc, eq, isNull, sql as rawSql } from 'drizzle-orm';
 import { analyzeHealth, type DesignDocument, type HealthReport } from '@nexus/design-model';
 import { getDb } from '../db/client';
-import { projects, publishedProjects, users } from '../db/schema';
+import { assets, projects, publishedProjects, users } from '../db/schema';
+import { recordScan, scanPublication, type AssetProvenance, type ModerationScan } from './moderation';
 import { loadDocument } from './projects';
 import { currentBranchId } from './branches';
 import { createSnapshot, readSnapshot } from './snapshots';
@@ -12,8 +13,11 @@ import { createSnapshot, readSnapshot } from './snapshots';
  * 一条 path 只有一行 published_projects（唯一索引），重复发布是"就地换版本"，
  * 历史由 snapshots（source='publish'）承担——那里已经有整份文档，不必再存一份。
  *
- * 刻意不做的事：moderation 仍写 'pending'。平台还没有审核管线，
- * 把它写成 'approved' 就是假状态；UI 里如实显示"审核：未接入"。
+ * §131 落地后的 moderation 语义：机检只升级不认证。
+ * 每一次"往外公开"的发布都会跑一遍机检并留下一行 moderation_cases；
+ * 命中硬红线（blocked）的发布直接被挡下，需要人看的（review）照常发布但进人工队列，
+ * 而 published_projects.moderation 仍然停在 'pending' —— 只有 role='admin' 的人工裁决
+ * 才把它写成 approved / rejected（见 resolveCase）。所以"机检跑过"绝不能读成"审核通过"。
  */
 
 export type Visibility = 'private' | 'unlisted' | 'public';
@@ -77,8 +81,17 @@ export interface PublishActor {
 }
 
 export type PublishResult =
-  | { ok: true; publication: Publication; gate: GateReport; snapshotId: string }
-  | { ok: false; reason: string; gate: GateReport };
+  | { ok: true; publication: Publication; gate: GateReport; scan: ModerationScan; snapshotId: string }
+  | { ok: false; reason: string; gate: GateReport; scan: ModerationScan };
+
+/** 公开页引用到的资产出处（§130：机检判断不了画面，只能知道它是从外面进来的） */
+async function assetProvenance(projectId: string): Promise<AssetProvenance[]> {
+  const rows = await getDb()
+    .select({ id: assets.id, name: assets.name, kind: assets.kind, source: assets.source })
+    .from(assets)
+    .where(eq(assets.projectId, projectId));
+  return rows.map((row) => ({ id: row.id, name: row.name, kind: row.kind, source: row.source as AssetProvenance['source'] }));
+}
 
 export async function publishProject(
   projectId: string,
@@ -95,14 +108,10 @@ export async function publishProject(
   const document = await loadDocument(projectId);
   if (!document) return null;
   const gate = runPublishGate(document);
-  // 门禁只管"往外公开"的方向：切成 private 是把链接收回来的下架动作，
-  // 拿质量标准去挡住作者下架，等于逼着一个不合格的页面继续挂在公网上的反面
-  if (input.visibility !== 'private' && !gate.passed) {
-    return { ok: false, reason: `门禁未通过：${gate.blockers[0] ?? '见检查清单'}`, gate };
-  }
-
-  const handle = await ensureHandle(project.ownerId);
-  const path = `/n/${handle}/${project.slug}`;
+  // 门禁与机检都只管"往外公开"的方向：切成 private 是把链接收回来的下架动作，
+  // 拿质量标准或审核去挡住作者下架，等于逼着一个不合格/有问题的页面继续挂在公网上的反面
+  const outward = input.visibility !== 'private';
+  // 一条 path 一行、换版本而不是新增，所以"这次是第几版"要先问出来（机检挡下时也要记在这个版本号上）
   const [existing] = await db
     .select()
     .from(publishedProjects)
@@ -110,6 +119,30 @@ export async function publishProject(
     .orderBy(desc(publishedProjects.version))
     .limit(1);
   const version = (existing?.version ?? 0) + 1;
+  const scan = scanPublication(document, await assetProvenance(projectId));
+  if (outward && !gate.passed) {
+    return { ok: false, reason: `门禁未通过：${gate.blockers[0] ?? '见检查清单'}`, gate, scan };
+  }
+  if (outward && scan.decision === 'blocked') {
+    // 挡下也要立案：这次没有 publication 行可挂，所以 publicationId 为 null
+    await recordScan({
+      projectId,
+      publicationId: null,
+      publicationVersion: version,
+      visibility: input.visibility,
+      scan,
+    });
+    const hit = scan.findings.find((f) => f.level === 'blocked');
+    return {
+      ok: false,
+      reason: `发布被机检挡下（${hit?.rule ?? 'redline'}）：${hit?.why ?? '命中 §129 硬红线'}`,
+      gate,
+      scan,
+    };
+  }
+
+  const handle = await ensureHandle(project.ownerId);
+  const path = `/n/${handle}/${project.slug}`;
   const snapshot = await createSnapshot(projectId, {
     document,
     source: 'publish',
@@ -147,7 +180,16 @@ export async function publishProject(
       .returning();
   }
   await db.update(projects).set({ visibility: input.visibility }).where(eq(projects.id, projectId));
-  return { ok: true, publication: toPublication(row!), gate, snapshotId: snapshot.id };
+  if (outward) {
+    await recordScan({
+      projectId,
+      publicationId: row!.id,
+      publicationVersion: version,
+      visibility: input.visibility,
+      scan,
+    });
+  }
+  return { ok: true, publication: toPublication(row!), gate, scan, snapshotId: snapshot.id };
 }
 
 export async function getPublication(projectId: string): Promise<Publication | null> {
@@ -193,6 +235,8 @@ export async function resolvePublishedPath(path: string): Promise<PublishedPage 
     .where(eq(publishedProjects.path, path))
     .limit(1);
   if (!row) return null;
+  // §131：人工裁决 rejected 之后，公开 URL 立刻不可达（下架由这里生效，不靠删行）
+  if (row.pub.moderation === 'rejected') return null;
   if (row.pub.visibility === 'private') return null;
   if (row.project.deletedAt) return null;
   if (!row.pub.snapshotId) return null;

@@ -2,7 +2,7 @@ import { and, eq, isNull, sql } from 'drizzle-orm';
 import { getDb } from '../db/client';
 import { projects, users } from '../db/schema';
 import { hashPassword, verifyPassword } from './password';
-import { rotateSession, type CurrentUser } from './session';
+import { rotateSession, toCurrentUser, type CurrentUser } from './session';
 
 /**
  * 注册 / 登录 / 认领 的领域逻辑（§137 免注册首次体验的后半段）。
@@ -37,10 +37,6 @@ async function findByEmail(email: string) {
     .where(and(sql`lower(${users.email}) = ${email}`, isNull(users.deletedAt)))
     .limit(1);
   return row ?? null;
-}
-
-function toCurrentUser(user: typeof users.$inferSelect): CurrentUser {
-  return { id: user.id, displayName: user.displayName, email: user.email, guest: user.guest };
 }
 
 async function countProjects(userId: string): Promise<number> {

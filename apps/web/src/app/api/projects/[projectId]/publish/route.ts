@@ -23,7 +23,11 @@ export async function GET(_req: Request, ctx: RouteContext): Promise<NextRespons
   }
 }
 
-/** §57 Publish：选 Public / Unlisted / Private，门禁不过就挡住并列出原因 */
+/**
+ * §57 Publish：选 Public / Unlisted / Private，门禁不过就挡住并列出原因。
+ * §131 之后还要过一遍机检：命中硬红线同样挡住，需要人看的照发但进人工队列。
+ * 两种回话都把 scan 原样带回去（含 limits），让"机检看到了什么、看不到什么"是能在 UI 上核对的。
+ */
 export async function POST(req: Request, ctx: RouteContext): Promise<NextResponse> {
   if (!(await csrfOk(req))) return jsonError(403, 'csrf_failed', { message: 'CSRF 校验未通过' });
   const { projectId } = await ctx.params;
@@ -40,11 +44,11 @@ export async function POST(req: Request, ctx: RouteContext): Promise<NextRespons
     if (!result) return notFound();
     if (!result.ok) {
       return NextResponse.json(
-        { ok: false, message: result.reason, gate: result.gate },
+        { ok: false, message: result.reason, gate: result.gate, scan: result.scan },
         { status: 400 },
       );
     }
-    return NextResponse.json({ ok: true, publication: result.publication, gate: result.gate });
+    return NextResponse.json({ ok: true, publication: result.publication, gate: result.gate, scan: result.scan });
   } catch (error) {
     return failure(error, `POST /api/projects/${projectId}/publish`);
   }

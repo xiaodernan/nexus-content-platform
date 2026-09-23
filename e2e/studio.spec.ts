@@ -1137,3 +1137,61 @@ test('@smoke 上下文：目录尺寸、预算裁剪与未索引分支都写在�
     page.locator('[data-context-unavailable]').filter({ hasText: '代码正文' }),
   ).toBeVisible();
 });
+
+test('@smoke 发布机检与公开页举报：挡下要说清凭什么，举报要说清之后会发生什么（§131/§132）', async ({ page }) => {
+  test.setTimeout(150_000);
+  const projectName = `Moderation ${Date.now().toString(36)}`;
+  await createProject(page, projectName);
+
+  const openPublish = async (): Promise<void> => {
+    for (let i = 0; i < 6; i += 1) {
+      if (await page.locator('[data-publish-submit]').isVisible()) return;
+      await page.click('[data-publish-open]');
+      await expect(page.locator('[data-publish-submit]')).toBeVisible();
+    }
+  };
+
+  // 干净的起手页：机检跑过并且如实说"这次没命中规则"，同时把覆盖不到的部分一起列出来
+  await openPublish();
+  await page.click('[data-publish-choice="public"]');
+  await page.click('[data-publish-submit]');
+  await expect(page.locator('[data-publish-url]')).toBeVisible({ timeout: 30_000 });
+  const scan = page.locator('[data-publish-scan]');
+  await expect(scan).toBeVisible();
+  await expect(scan.locator('[data-scan-decision]')).toHaveAttribute('data-scan-decision', 'clear');
+  await expect(scan).toContainText('这次没命中规则');
+  // §159：没命中不等于合规，limits 必须和结论一起出现
+  await expect(scan.locator('[data-scan-limit]').first()).toContainText('换个说法');
+  await page.screenshot({ path: 'screenshots/publish-scan-clear.png' });
+
+  // 公开页上访客真能举报，而且回复说清了"不会立刻撤下"
+  const publishedHref = (await page.locator('[data-publish-url]').getAttribute('href'))!;
+  const visitor = await page.context().newPage();
+  // baseURL 在 playwright.config 里，相对路径就够：不要在测试里再拼一个端口
+  await visitor.goto(publishedHref);
+  await visitor.waitForSelector('[data-published-frame] [data-node-id]', { timeout: 30_000 });
+  await visitor.click('[data-report-open]');
+  await visitor.selectOption('[data-report-reason]', 'other');
+  await visitor.fill('[data-report-detail]', '测试举报：这一页像假冒的活动页');
+  await visitor.click('[data-report-submit]');
+  await expect(visitor.locator('[data-report-notice]')).toContainText('举报已记录', { timeout: 30_000 });
+  await expect(visitor.locator('[data-report-notice]')).toContainText('需要人看完再决定');
+  await visitor.screenshot({ path: 'screenshots/published-report.png' });
+  await visitor.close();
+
+  // 改成命中硬红线的文案后再发布：机检挡下，页面不更新版本号，原因写在错误里
+  const headlineId = await layerId(page, 'Headline');
+  await page.click('[data-view="canvas"]');
+  await page.click(`[data-node-id="${headlineId}"]`);
+  await page.fill('[data-prop="text"]', 'buy nude children now');
+  await expect(page.locator('[data-save-state]')).toContainText('已保存', { timeout: 30_000 });
+  await openPublish();
+  await page.click('[data-publish-choice="public"]');
+  await page.click('[data-publish-submit]');
+  await expect(page.locator('[data-publish-error]')).toContainText('redline.minor_safety', { timeout: 30_000 });
+  await expect(page.locator('[data-scan-decision]')).toHaveAttribute('data-scan-decision', 'blocked');
+  await expect(page.locator('[data-scan-finding="redline.minor_safety"]')).toBeVisible();
+  await page.screenshot({ path: 'screenshots/publish-scan-blocked.png' });
+  // 挡下之后仍挂着上一次成功发布的那一版：不能因为"这次没发出去"就假装 URL 消失了
+  await expect(page.locator('[data-publish-result]')).toContainText('第 1 版');
+});

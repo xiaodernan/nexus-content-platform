@@ -23,6 +23,8 @@ export interface CurrentUser {
   displayName: string;
   email: string | null;
   guest: boolean;
+  /** §131：谁能做人工裁决。默认拒绝——只有 'admin' 能进审核队列，其余一律 403 */
+  role: 'creator' | 'admin';
 }
 
 /**
@@ -84,6 +86,26 @@ async function createUserSession(token: string) {
  * 所以每次身份变化都删除旧 token 的会话行、换发新 token，并返回给调用方写 cookie。
  * 传入 currentToken（当前请求的 cookie 值）以便吊销它。
  */
+/**
+ * 只读版本的会话解析：**不**替无会话的请求造 guest 身份。
+ *
+ * requireUser 会自动签发 guest（§137 的首次体验），那正好不该出现在审核入口上——
+ * 否则任何人反复探测 /api/admin/* 就能白手造出一堆用户与会话行。
+ */
+export async function currentUserOrNull(): Promise<CurrentUser | null> {
+  const token = (await cookies()).get(SESSION_COOKIE)?.value;
+  if (!token) return null;
+  const [row] = await getDb()
+    .select({ user: users, session: sessions })
+    .from(sessions)
+    .innerJoin(users, eq(users.id, sessions.userId))
+    .where(eq(sessions.tokenHash, hashToken(token)))
+    .limit(1);
+  if (!row) return null;
+  if (row.session.expiresAt.getTime() <= Date.now()) return null;
+  return toCurrentUser(row.user);
+}
+
 export async function rotateSession(
   userId: string,
   currentToken: string | null,
@@ -115,6 +137,6 @@ export async function currentSessionToken(): Promise<string | null> {
   return store.get(SESSION_COOKIE)?.value ?? null;
 }
 
-function toCurrentUser(user: typeof users.$inferSelect): CurrentUser {
-  return { id: user.id, displayName: user.displayName, email: user.email, guest: user.guest };
+export function toCurrentUser(user: typeof users.$inferSelect): CurrentUser {
+  return { id: user.id, displayName: user.displayName, email: user.email, guest: user.guest, role: user.role };
 }

@@ -27,7 +27,7 @@ import {
   type ResolvedLayout,
   type VisualDna,
 } from '@nexus/design-model';
-import { ProjectHealthReportSchema, VisualDnaSchema, type DesignPatchPayload } from '@nexus/schemas';
+import { ModerationScanSchema, ProjectHealthReportSchema, VisualDnaSchema, type DesignPatchPayload, type ModerationScan } from '@nexus/schemas';
 import type { SnapshotEntry, SnapshotMeta } from '@/server/domain/snapshots';
 import type { BranchMeta } from '@/server/domain/branches';
 import type { VariantEntry } from '@/server/domain/variants';
@@ -96,6 +96,8 @@ export interface StudioSnapshot {
   publication: Publication | null;
   publishBusy: boolean;
   publishError: string | null;
+  /** §131 最近一次发布的机检结果（含 limits）。null = 这次会话里还没发布过，不是"机检说没问题" */
+  publishScan: ModerationScan | null;
   /** §38 资产清单（文档级）：字节在对象存储，这里只有目录 */
   assets: readonly AssetRef[];
   /**
@@ -159,6 +161,7 @@ export class StudioStore {
   private publicationValue: Publication | null = null;
   private publishBusyValue = false;
   private publishErrorValue: string | null = null;
+  private publishScanValue: ModerationScan | null = null;
   private assetBusyValue = false;
   private assetErrorValue: string | null = null;
   private assetNoticeValue: string | null = null;
@@ -229,6 +232,7 @@ export class StudioStore {
       publication: this.publicationValue,
       publishBusy: this.publishBusyValue,
       publishError: this.publishErrorValue,
+      publishScan: this.publishScanValue,
       assets: document.assets,
       assetContext,
       assetBusy: this.assetBusyValue,
@@ -740,6 +744,7 @@ export class StudioStore {
     if (!this.projectId || !this.ready) return null;
     this.publishBusyValue = true;
     this.publishErrorValue = null;
+    this.publishScanValue = null;
     this.commit();
     try {
       this.flushSave();
@@ -751,8 +756,20 @@ export class StudioStore {
         body: JSON.stringify({ visibility }),
       });
       const body = (await res.json().catch(() => null)) as
-        | { publication?: Publication; gate?: unknown; message?: string; issues?: string[] }
+        | { publication?: Publication; gate?: unknown; scan?: unknown; message?: string; issues?: string[] }
         | null;
+      // 机检结果同样过 zod：挡下发布的那次回话里，reason 是不是来自真扫描要能核对
+      if (body?.scan !== undefined) {
+        const parsedScan = ModerationScanSchema.safeParse(body.scan);
+        if (!parsedScan.success) {
+          throw new Error(
+            `机检结果不符合契约：${parsedScan.error.issues
+              .map((i) => `${i.path.join('.')}: ${i.message}`)
+              .join('；')}`,
+          );
+        }
+        this.publishScanValue = parsedScan.data;
+      }
       // 门禁报告照样过 zod：契约不符就说明两端算的不是同一件事，宁可报错也不猜
       if (body?.gate !== undefined) {
         const parsed = ProjectHealthReportSchema.safeParse(body.gate);

@@ -5,7 +5,7 @@ import { login, register, type AuthError, type Authenticated } from '../src/serv
 import { createProject } from '../src/server/domain/projects';
 import { getDb } from '../src/server/db/client';
 import { projects, sessions, users } from '../src/server/db/schema';
-import type { CurrentUser } from '../src/server/domain/session';
+import { toCurrentUser } from '../src/server/domain/session';
 
 /**
  * 认证打真库（docs/TESTING.md 禁止 mock 数据库）。先 `npm run infra:up && npm run db:migrate`。
@@ -18,9 +18,6 @@ const uniq = () => `${Date.now().toString(36)}${Math.random().toString(36).slice
 const emailBox: string[] = [];
 const userIds: string[] = [];
 
-function asGuest(user: typeof users.$inferSelect): CurrentUser {
-  return { id: user.id, displayName: user.displayName, email: user.email, guest: user.guest };
-}
 function unwrap<T>(r: T | AuthError): T {
   if (r && typeof r === 'object' && 'code' in r) throw new Error(`unexpected ${JSON.stringify(r)}`);
   return r as T;
@@ -67,7 +64,7 @@ describe('register（§137 认领 guest 项目）', () => {
     await db.insert(sessions).values({ userId: user.id, tokenHash: sha(oldToken), expiresAt: new Date(Date.now() + 60_000) });
 
     const result = unwrap(
-      await register(asGuest(user), { email, password: 'super-secret-1' }, { currentToken: oldToken }),
+      await register(toCurrentUser(user), { email, password: 'super-secret-1' }, { currentToken: oldToken }),
     ) as Authenticated & { claimedProjects: number };
 
     expect(result.user.guest).toBe(false);
@@ -103,7 +100,7 @@ describe('register（§137 认领 guest 项目）', () => {
       .values({ displayName: 'Real', email, guest: false, passwordHash: 'x' })
       .returning();
     userIds.push(row!.id);
-    const r = await register(asGuest(row!), { email: `another-${uniq()}@nexus.test`, password: 'whatever-123' });
+    const r = await register(toCurrentUser(row!), { email: `another-${uniq()}@nexus.test`, password: 'whatever-123' });
     expect(r).toEqual({ code: 'already_registered', status: 409 });
   });
 
@@ -117,7 +114,7 @@ describe('register（§137 认领 guest 项目）', () => {
       .returning();
     userIds.push(existing!.id);
     const { user } = await makeGuest(false);
-    const r = await register(asGuest(user), { email, password: 'whatever-123' });
+    const r = await register(toCurrentUser(user), { email, password: 'whatever-123' });
     expect(r).toEqual({ code: 'email_taken', status: 409 });
     const [unchanged] = await db.select().from(users).where(eq(users.id, existing!.id));
     expect(unchanged!.passwordHash).toBe('keepme');
@@ -129,7 +126,7 @@ describe('login（口令校验 + 账号枚举兜底）', () => {
     const email = `flow-${uniq()}@nexus.test`;
     emailBox.push(email);
     const { user } = await makeGuest(false);
-    unwrap(await register(asGuest(user), { email, password: 'flow-pass-1' }));
+    unwrap(await register(toCurrentUser(user), { email, password: 'flow-pass-1' }));
     const result = unwrap(await login({ email: email.toUpperCase(), password: 'flow-pass-1' }));
     expect(result.user.email).toBe(email);
     expect(result.user.guest).toBe(false);
@@ -139,7 +136,7 @@ describe('login（口令校验 + 账号枚举兜底）', () => {
     const email = `known-${uniq()}@nexus.test`;
     emailBox.push(email);
     const { user } = await makeGuest(false);
-    unwrap(await register(asGuest(user), { email, password: 'known-pass-1' }));
+    unwrap(await register(toCurrentUser(user), { email, password: 'known-pass-1' }));
 
     const wrong = await login({ email, password: 'nope-nope-nope' });
     expect(wrong).toEqual({ code: 'invalid_credentials', status: 401 });

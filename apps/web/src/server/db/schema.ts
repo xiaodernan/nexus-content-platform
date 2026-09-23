@@ -65,6 +65,19 @@ export const MessageRole = pgEnum('message_role', ['user', 'assistant', 'system'
 export const CapabilityStatus = pgEnum('capability_status', ['real', 'demo', 'unavailable']);
 export const SnapshotSource = pgEnum('snapshot_source', ['manual', 'ai', 'import', 'publish', 'branch']);
 export const ModerationStatus = pgEnum('moderation_status', ['pending', 'approved', 'rejected', 'flagged']);
+/** §131 机检的三档结论。注意没有 "safe"：词表扫过不等于安全（§159） */
+export const ModerationCaseDecision = pgEnum('moderation_case_decision', ['clear', 'review', 'blocked']);
+/** §132 举报类别，与 §129 的四条硬红线对齐，另加两类常见的 */
+export const ReportReason = pgEnum('report_reason', [
+  'minor_safety',
+  'intimate_nonconsensual',
+  'impersonation',
+  'illegal',
+  'ip',
+  'spam',
+  'other',
+]);
+export const ReportStatus = pgEnum('report_status', ['open', 'reviewing', 'closed']);
 export const MemoryScope = pgEnum('memory_scope', ['session', 'character', 'world', 'user']);
 
 export const users = pgTable(
@@ -670,6 +683,61 @@ export const auditEvents = pgTable(
   (t) => [index('audit_actor_idx').on(t.actorId, t.createdAt), index('audit_action_idx').on(t.action)],
 );
 
+/**
+ * §131 发布审核：upload → 机检 → 风险分级 → 发布或人工复核。
+ *
+ * 一行 = 一次发布扫描。`reviewRequired` 才进人工队列，所以 clear 不会把队列淹掉，
+ * 而 `resolution` 只能由人（role='admin'）写：机检永远不把 published_projects.moderation
+ * 改成 approved —— 那是把"没查出问题"说成"审核通过"。
+ */
+export const moderationCases = pgTable(
+  'moderation_cases',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    projectId: uuid('project_id')
+      .notNull()
+      .references(() => projects.id, { onDelete: 'cascade' }),
+    /** 被挡下的那次发布根本没有 publication 行，所以可空 */
+    publicationId: uuid('publication_id').references(() => publishedProjects.id, { onDelete: 'set null' }),
+    publicationVersion: integer('publication_version').notNull(),
+    visibility: Visibility('visibility').notNull(),
+    decision: ModerationCaseDecision('decision').notNull(),
+    reviewRequired: boolean('review_required').notNull().default(false),
+    /** [{rule, level, quote, where, why}]：证据要能指回文档里的哪一处，否则人无从复核 */
+    findings: jsonb('findings').notNull().default([]),
+    /** 哪一版规则扫的：规则会改，改了以后旧案要能说清当时看到了什么 */
+    rulesVersion: text('rules_version').notNull(),
+    resolvedBy: uuid('resolved_by').references(() => users.id, { onDelete: 'set null' }),
+    resolution: ModerationStatus('resolution'),
+    resolutionNote: text('resolution_note'),
+    resolvedAt: timestamp('resolved_at', { withTimezone: true }),
+    createdAt: now(),
+  },
+  (t) => [
+    index('moderation_case_project_idx').on(t.projectId, t.createdAt),
+    index('moderation_case_queue_idx').on(t.reviewRequired, t.resolvedAt),
+  ],
+);
+
+/** §132 社区举报：公开页上真的能提交，提交后有人能看见（admin 队列），不是丢进黑洞 */
+export const abuseReports = pgTable(
+  'abuse_reports',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    publicationId: uuid('publication_id')
+      .notNull()
+      .references(() => publishedProjects.id, { onDelete: 'cascade' }),
+    /** 举报按 URL 进来，冗余存一份路径：取消发布后行还在，复盘时对得上 */
+    path: text('path').notNull(),
+    reason: ReportReason('reason').notNull(),
+    detail: text('detail'),
+    reporterId: uuid('reporter_id').references(() => users.id, { onDelete: 'set null' }),
+    status: ReportStatus('status').notNull().default('open'),
+    createdAt: now(),
+  },
+  (t) => [index('abuse_report_publication_idx').on(t.publicationId), index('abuse_report_status_idx').on(t.status)],
+);
+
 export const schema = {
   users,
   sessions,
@@ -700,4 +768,6 @@ export const schema = {
   follows,
   remixes,
   auditEvents,
+  moderationCases,
+  abuseReports,
 };
