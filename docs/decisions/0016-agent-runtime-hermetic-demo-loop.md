@@ -1520,88 +1520,6 @@ file moved._
   in Studio registers an exec host, so a journaled host exists in unit tests and proofs only — no
   panel shows this file, and none pretends to.
 
-## Amendment 54 — v54 (runtime): the run line answers for its own gates — v50 named this gap in its own last sentence, 2026-09
-
-_Sequencing note: v50 closed v49's bound and, in the same breath, stated the one this increment
-closes: "the editor's `fs.append` and `test.run` gates are still nowhere in the file, since the
-anti-fold cuts both ways." A cold reader could ask WHO allowed the commit and get a receipt; the same
-reader asking who allowed the WRITE that commit recorded got silence. Nothing about what the runtime
-decided changed here — what changed is that the other half of the file is now answerable. No door, no
-argv, no policy table, no checkpoint semantics and no planner template moved._
-
-- **The rule was lifted, not copied.** v50's private `receiptsFor` (and its `NO_RECEIPTS_NOTE`
-  sentence) moved out of `gitArc.ts` into `checkpointPolicy.ts` as `receiptsOrNote` + `gatedCallIds`
-  (+9/−22 in the arc, +43/−2 in the policy module), and BOTH record kinds now call it. That is the
-  design claim: if the run line and the arc line each had their own matcher, `decisions: []` could
-  come to mean one thing on a line and another thing on the next, in the same file, with no reader
-  able to tell. The same move replaced the chain's two separate durability questions with ONE
-  `durable` flag in `runRoleChain`, which both the run line and the arc line now obey.
-- **Ownership comes from the record's own transcript.** `gatedCallIds(registry, outcome.results)`
-  asks, for each call this record actually made, whether the tool it names carries a
-  `DANGEROUS` permission **in the registry that record acted through** — the editor's scoped view,
-  never the host's wider set. Reads (`fs.index`, `fs.search`, `memory.recall`) therefore can never
-  acquire a receipt, because §28 was never consulted for them, and a run line cannot claim a verdict
-  on a tool its own role could not see.
-- **`RunOutcome.decisions?` and `RunOutcome.decisionsNote?`, additive, with the three silences kept
-  distinct** (empty list = gated nothing, which owes no explanation; empty list + the shared sentence
-  = this face keeps no readable list; no field at all = pre-v54 or not headed for a ledger). The
-  returned outcome IS the appended one — v49's identity, extended to the run face and asserted by
-  `expect(run).toEqual(res.editorOutcome)`.
-- **The ownership rule is now CHECKED on read, not only followed by construction.** `receiptsOwned`
-  in `ledger.ts` makes a receipt whose call id is absent from that record's own `results` condemn the
-  WHOLE line, for both kinds (`isRunOutcome` and `isArcShape` share it). Construction was already
-  sound; construction is invisible to a cold reader, and v50's stated bound — "a COMPLETE forged line
-  is still believed" — is closed for the paste variant by this. Tightening a gate an already-committed
-  proof leaned on has a price, and it is paid in this same commit: `receipts-proof.mjs`'s §1 fixture
-  had to learn to make the call it answers for (`results: []` beside a receipt is no longer a compact
-  example, it is a paste), and its §2e tamper block grew a second forged line — `malformed 1 → 2`, one
-  half-receipt and one complete-but-borrowed one.
-- **The dock is byte-identical, from both directions.** `apps/studio/src` contains **zero**
-  occurrences of `ledgerFile` (grep), and `agentDock.ts:303` hands the chain `memoryFile` + `fsLike`
-  only — so `durable` is false and no new field exists to render. The runtime face asserts it too:
-  an in-memory chain carries neither `decisions` nor `decisionsNote` nor a note in `release`.
-- **41st proof `docs/evidence/agents/runreceipts-proof.mjs`.** §1 is the data face with no process:
-  five calls of three permission classes yield three gated ids (so the reads are silent for a reason
-  a reader can check), a face holding two decisions yields ONE receipt for the owned call (the
-  paste-proof runs in both directions now, run→arc and arc→run), and the three silences are told
-  apart. §2 runs the REAL chain over four keyed sandbox doors in a throwaway `os.tmpdir()` repo and
-  triangulates SIX independent sources rather than trusting the runtime's memory: the durable run
-  line, the durable arc line, the decider's own seven-decision list in ask order, the workspace the
-  granted write actually changed, the git processes counted on the `spawnLike` seam, and the commits
-  counted by `git rev-list` — plus the §26 memory file read cold off real disk, which names the
-  editor's denial in its own words. The arithmetic is the headline: **7 face gates = 2 run receipts +
-  4 arc receipts + 1 unowned brief**, asserted as a set equation, with the face's order pinned to
-  `['rr-1:brief', annotate, verify, staged, commit, confirm, inspect]`. A vetoed `test.run` is
-  durable with the human's sentence beside a grant it cannot erase, at 0 processes and 0 commits; a
-  bare closure puts one exported sentence in `decisionsNote` on one line and `notes` on the next while
-  the walk spends the same four processes and lands the same hash; and the whole file is re-read
-  cold, with v54's invariant re-derived by the reader rather than re-asserted by the writer.
-- **What did not move:** `runTask`'s control flow is untouched — the receipts are derived from the
-  outcome at the append site, never inside the loop, so no call order, event or budget changed; the
-  arc's door order and its four tools are unchanged; `git.log`/`git.show`/`git.status` and every
-  policy row are unchanged; the 40 previously-committed agent proofs pass untouched except the two
-  fixtures named above. Runtime unit tests 305/305 → **323/323** across 25 files (ledger 10→15, chain
-  25→30, checkpointPolicy 8→13, pipeline 5→8; `gitArc.test.ts` 29 with an import move only, count
-  unchanged), source diff +121/−37 across six files. Full sweep at this commit: 43 scripts (41 agents
-  + 2 studio), **41 green**. The two red ones — `intent-proof.mjs`, `spawnlog-proof.mjs` — are NOT
-  this amendment's: they assert git's banner as a door's failure line, and the worktree holds a
-  concurrent, uncommitted exec-host change (`gitVerdict`/`quoteVerdict`, that lane's v52) that quotes
-  the verdict instead. Attribution is mechanical, not remembered: the offending sentence is built by
-  `gitVerdict`/`quoteVerdict`, and `git grep -c "gitVerdict" HEAD -- agents/exec-host` returns **no
-  match** while the worktree has them in two files — and `dist/`, which is what the proofs actually
-  import, is gitignored, so a clean rebuild at this commit is green. This commit touches neither.
-- Honest bounds: a chained stage's own call — the designer's `${id}:brief`, a gated `fs.append` — is
-  journaled on **no** record, because no record owns the chain as such; v54 is what makes that gap
-  countable (the arithmetic above), and the fix is a third record kind for stage-level calls, not a
-  paste onto someone else's line. The ledger's defence remains shape, not signature: a complete line
-  whose receipts match its OWN fabricated transcript is still believed, and only an external witness
-  (the proof's spawn counter and `rev-list`) catches that. An Allow-once human session still journals
-  the note rather than a name — closing that needs the dock's release toggle, which does not exist
-  (#100's lane). Nothing in Studio renders `decisions`, on either record kind: this history is
-  machine-checkable and not yet human-visible, and no panel pretends otherwise. And DEMO MODE is
-  intact — planning is still template-driven; v54 made a second batch of decisions auditable, it did
-  not make the runtime make one.
-
 ## Amendment 52 — v52 (exec-host): a door quotes what git MEANT, says how much of it it left out, and never reads a refusal or a notice as an empty repository, 2026-09
 
 _Sequencing note: the concurrent runtime lane wrote amendment 54 while this one was still measuring;
@@ -1693,3 +1611,86 @@ SAY about what git did._
   line and the host record keeps them all, so an audit reader who wants everything must read the v51
   file, which no UI shows (§60); and DEMO MODE is intact — no Studio surface renders a git door's
   sentence, and every repo here lives in `os.tmpdir`.
+
+
+## Amendment 54 — v54 (runtime): the run line answers for its own gates — v50 named this gap in its own last sentence, 2026-09
+
+_Sequencing note: v50 closed v49's bound and, in the same breath, stated the one this increment
+closes: "the editor's `fs.append` and `test.run` gates are still nowhere in the file, since the
+anti-fold cuts both ways." A cold reader could ask WHO allowed the commit and get a receipt; the same
+reader asking who allowed the WRITE that commit recorded got silence. Nothing about what the runtime
+decided changed here — what changed is that the other half of the file is now answerable. No door, no
+argv, no policy table, no checkpoint semantics and no planner template moved._
+
+- **The rule was lifted, not copied.** v50's private `receiptsFor` (and its `NO_RECEIPTS_NOTE`
+  sentence) moved out of `gitArc.ts` into `checkpointPolicy.ts` as `receiptsOrNote` + `gatedCallIds`
+  (+9/−22 in the arc, +43/−2 in the policy module), and BOTH record kinds now call it. That is the
+  design claim: if the run line and the arc line each had their own matcher, `decisions: []` could
+  come to mean one thing on a line and another thing on the next, in the same file, with no reader
+  able to tell. The same move replaced the chain's two separate durability questions with ONE
+  `durable` flag in `runRoleChain`, which both the run line and the arc line now obey.
+- **Ownership comes from the record's own transcript.** `gatedCallIds(registry, outcome.results)`
+  asks, for each call this record actually made, whether the tool it names carries a
+  `DANGEROUS` permission **in the registry that record acted through** — the editor's scoped view,
+  never the host's wider set. Reads (`fs.index`, `fs.search`, `memory.recall`) therefore can never
+  acquire a receipt, because §28 was never consulted for them, and a run line cannot claim a verdict
+  on a tool its own role could not see.
+- **`RunOutcome.decisions?` and `RunOutcome.decisionsNote?`, additive, with the three silences kept
+  distinct** (empty list = gated nothing, which owes no explanation; empty list + the shared sentence
+  = this face keeps no readable list; no field at all = pre-v54 or not headed for a ledger). The
+  returned outcome IS the appended one — v49's identity, extended to the run face and asserted by
+  `expect(run).toEqual(res.editorOutcome)`.
+- **The ownership rule is now CHECKED on read, not only followed by construction.** `receiptsOwned`
+  in `ledger.ts` makes a receipt whose call id is absent from that record's own `results` condemn the
+  WHOLE line, for both kinds (`isRunOutcome` and `isArcShape` share it). Construction was already
+  sound; construction is invisible to a cold reader, and v50's stated bound — "a COMPLETE forged line
+  is still believed" — is closed for the paste variant by this. Tightening a gate an already-committed
+  proof leaned on has a price, and it is paid in this same commit: `receipts-proof.mjs`'s §1 fixture
+  had to learn to make the call it answers for (`results: []` beside a receipt is no longer a compact
+  example, it is a paste), and its §2e tamper block grew a second forged line — `malformed 1 → 2`, one
+  half-receipt and one complete-but-borrowed one.
+- **The dock is byte-identical, from both directions.** `apps/studio/src` contains **zero**
+  occurrences of `ledgerFile` (grep), and `agentDock.ts:303` hands the chain `memoryFile` + `fsLike`
+  only — so `durable` is false and no new field exists to render. The runtime face asserts it too:
+  an in-memory chain carries neither `decisions` nor `decisionsNote` nor a note in `release`.
+- **41st proof `docs/evidence/agents/runreceipts-proof.mjs`.** §1 is the data face with no process:
+  five calls of three permission classes yield three gated ids (so the reads are silent for a reason
+  a reader can check), a face holding two decisions yields ONE receipt for the owned call (the
+  paste-proof runs in both directions now, run→arc and arc→run), and the three silences are told
+  apart. §2 runs the REAL chain over four keyed sandbox doors in a throwaway `os.tmpdir()` repo and
+  triangulates SIX independent sources rather than trusting the runtime's memory: the durable run
+  line, the durable arc line, the decider's own seven-decision list in ask order, the workspace the
+  granted write actually changed, the git processes counted on the `spawnLike` seam, and the commits
+  counted by `git rev-list` — plus the §26 memory file read cold off real disk, which names the
+  editor's denial in its own words. The arithmetic is the headline: **7 face gates = 2 run receipts +
+  4 arc receipts + 1 unowned brief**, asserted as a set equation, with the face's order pinned to
+  `['rr-1:brief', annotate, verify, staged, commit, confirm, inspect]`. A vetoed `test.run` is
+  durable with the human's sentence beside a grant it cannot erase, at 0 processes and 0 commits; a
+  bare closure puts one exported sentence in `decisionsNote` on one line and `notes` on the next while
+  the walk spends the same four processes and lands the same hash; and the whole file is re-read
+  cold, with v54's invariant re-derived by the reader rather than re-asserted by the writer.
+- **What did not move:** `runTask`'s control flow is untouched — the receipts are derived from the
+  outcome at the append site, never inside the loop, so no call order, event or budget changed; the
+  arc's door order and its four tools are unchanged; `git.log`/`git.show`/`git.status` and every
+  policy row are unchanged; the 40 previously-committed agent proofs pass untouched except the two
+  fixtures named above. Runtime unit tests 305/305 → **323/323** across 25 files (ledger 10→15, chain
+  25→30, checkpointPolicy 8→13, pipeline 5→8; `gitArc.test.ts` 29 with an import move only, count
+  unchanged), source diff +121/−37 across six files. Full sweep at this commit: 43 scripts (41 agents
+  + 2 studio), **41 green**. The two red ones — `intent-proof.mjs`, `spawnlog-proof.mjs` — are NOT
+  this amendment's: they assert git's banner as a door's failure line, and the worktree holds a
+  concurrent, uncommitted exec-host change (`gitVerdict`/`quoteVerdict`, that lane's v52) that quotes
+  the verdict instead. Attribution is mechanical, not remembered: the offending sentence is built by
+  `gitVerdict`/`quoteVerdict`, and `git grep -c "gitVerdict" HEAD -- agents/exec-host` returns **no
+  match** while the worktree has them in two files — and `dist/`, which is what the proofs actually
+  import, is gitignored, so a clean rebuild at this commit is green. This commit touches neither.
+- Honest bounds: a chained stage's own call — the designer's `${id}:brief`, a gated `fs.append` — is
+  journaled on **no** record, because no record owns the chain as such; v54 is what makes that gap
+  countable (the arithmetic above), and the fix is a third record kind for stage-level calls, not a
+  paste onto someone else's line. The ledger's defence remains shape, not signature: a complete line
+  whose receipts match its OWN fabricated transcript is still believed, and only an external witness
+  (the proof's spawn counter and `rev-list`) catches that. An Allow-once human session still journals
+  the note rather than a name — closing that needs the dock's release toggle, which does not exist
+  (#100's lane). Nothing in Studio renders `decisions`, on either record kind: this history is
+  machine-checkable and not yet human-visible, and no panel pretends otherwise. And DEMO MODE is
+  intact — planning is still template-driven; v54 made a second batch of decisions auditable, it did
+  not make the runtime make one.
