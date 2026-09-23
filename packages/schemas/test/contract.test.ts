@@ -13,6 +13,8 @@ describe('contracts/ 导出', () => {
       'ai-request.schema.json',
       'ai-response.schema.json',
       'ai-error.schema.json',
+      'ai-job-accepted.schema.json',
+      'ai-job-status.schema.json',
       'design-patch.schema.json',
       'health.schema.json',
       'screenshot-request.schema.json',

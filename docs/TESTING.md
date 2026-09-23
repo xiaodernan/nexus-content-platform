@@ -152,6 +152,19 @@ e2e 断言面板把"未运行的检查"列出来，而不是显示全绿。
   反向实验三次都咬住：`assemble.ts` 去掉两条拒绝 → 那条 400 测试红；`buildSelectionDigest` 去掉排序 →
   顺序相关的 2 条红；把 `missing.push` 改成静默 `continue` → 谎报那条红；`build_prompt` 不再带 digest →
   Python 侧新增的 2 条红
+- 作业队列（§162）：`apps/ai-service/tests/test_jobs.py` 钉的是四件事，而不只是"能不能返回 202"：
+  ① 同一份请求，作业 `result` 与同步 `/v1/ai/run` 的响应体**逐字段相同**（异步路径漏做任何一步校验都会红）；
+  ② 失败要留在作业里 —— 没配 provider 时 `status: failed` + `error.code: provider-unavailable` 且**没有** `result` 字段，
+  不许出现"看起来完成了但什么都没带"；③ `progress` 全程为 `null`（没有真进度来源就不给刻度），
+  而里程碑（排队 / 领取 / 结束）三条都在；④ 并发上限是真的 —— `capacity=1` 时用一个会卡的 provider
+  测出 `max_in_flight == 1`。
+  `/healthz.queue` 的 `pending`/`running` 现在带**正向对照**：先证明计数器能到非零，
+  才允许用"这里仍是 0"去说"非法请求没进队列"（否则就是一条空断言）。
+  Redis 后端要连真服务测（假客户端只会测到我给自己写的假行为）：
+  `NEXUS_REDIS_URL=redis://127.0.0.1:6380/0 python -m pytest apps/ai-service/tests/test_jobs.py -q`
+  → 9/9 通过（含"换一个 store 仍然读得到"这条内存后端做不到的事）；不设这个变量时那一条**显式 skip**，
+  跳过理由打在 pytest 输出里，不是静默通过。
+  反向实验两次：计数器改回写死 0 → 非法请求那条红；worker 改成"无论 HTTP 什么都算 completed" → 失败作业那条红
 - 每个里程碑一次 commit 前至少跑：`npm run lint && npm test && npm run test:e2e:smoke`
 - 改了 `packages/schemas` 必须重跑 `npm run contract:export`，否则契约漂移测试会红
 - 动了 ai-service 再加：`npm run test:ai-service`（Windows 控制台建议前置 `PYTHONUTF8=1`）

@@ -160,7 +160,7 @@ describe('fetchAiServiceHealth', () => {
   it('解析健康响应；坏数据一律当作不可用', async () => {
     await withUrl('http://127.0.0.1:3200', async () => {
       const good = stubFetch(() =>
-        Response.json({ service: 'nexus-ai-service', version: '0.1.0', capability: 'real', providers: [{ kind: 'llm', name: 'openai-compatible', status: 'real', models: ['gpt-x'], reason: '' }], queue: { pending: 0, running: 1 } }),
+        Response.json({ service: 'nexus-ai-service', version: '0.1.0', capability: 'real', providers: [{ kind: 'llm', name: 'openai-compatible', status: 'real', models: ['gpt-x'], reason: '' }], queue: { backend: 'memory', pending: 0, running: 1, capacity: 1, note: '内存后端：重启即失' } }),
       );
       const health = await fetchAiServiceHealth(good.impl);
       expect(health?.providers[0]?.models).toEqual(['gpt-x']);

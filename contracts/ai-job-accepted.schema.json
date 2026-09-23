@@ -1,0 +1,46 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "jobId": {
+      "type": "string"
+    },
+    "requestId": {
+      "type": "string"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "queued",
+        "running",
+        "completed",
+        "failed"
+      ]
+    },
+    "backend": {
+      "type": "string",
+      "enum": [
+        "none",
+        "memory",
+        "redis"
+      ]
+    },
+    "note": {
+      "type": "string"
+    },
+    "capacity": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 9007199254740991
+    }
+  },
+  "required": [
+    "jobId",
+    "requestId",
+    "status",
+    "backend",
+    "note",
+    "capacity"
+  ],
+  "additionalProperties": false
+}

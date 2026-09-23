@@ -43,6 +43,12 @@
 > 端口 `3000` 已被机器上另一个项目的 Next dev server 占用（`D:\求职平台\frontend`，属外部进程，禁止终止），
 > 因此 NEXUS Web 固定使用 **3100**，e2e / 预览 / 截图脚本都以 `http://localhost:3100` 为基准。
 
+> 2026-09-24 实测的 Redis 端口不一致：compose 与本文件都写 `56379`，但**当前在跑的** `nexus-redis`
+> 映射的是 `127.0.0.1:6380`（`docker port nexus-redis` 可核对；`56379` 那时没有监听）。
+> §162 的队列默认走内存后端，所以这个差异不影响功能；要用 Redis 后端时按实测填
+> `NEXUS_REDIS_URL=redis://127.0.0.1:6380/0`。以容器现状为准还是重建到 `56379`，留待下次动 infra 时一起决定，
+> 现在先不擅自重启别人的容器。
+
 ## 凭据现状
 
 环境中存在 `ANTHROPIC_BASE_URL` / `ANTHROPIC_AUTH_TOKEN`，它们属于 IDE Agent 运行时的会话凭据，

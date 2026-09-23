@@ -65,11 +65,22 @@
     },
     "queue": {
       "default": {
+        "backend": "none",
         "pending": 0,
-        "running": 0
+        "running": 0,
+        "capacity": 0,
+        "note": ""
       },
       "type": "object",
       "properties": {
+        "backend": {
+          "type": "string",
+          "enum": [
+            "none",
+            "memory",
+            "redis"
+          ]
+        },
         "pending": {
           "default": 0,
           "type": "integer",
@@ -81,11 +92,24 @@
           "type": "integer",
           "minimum": -9007199254740991,
           "maximum": 9007199254740991
+        },
+        "capacity": {
+          "default": 0,
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "note": {
+          "default": "",
+          "type": "string"
         }
       },
       "required": [
+        "backend",
         "pending",
-        "running"
+        "running",
+        "capacity",
+        "note"
       ],
       "additionalProperties": false
     }

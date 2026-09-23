@@ -146,6 +146,17 @@ DEMO 路径不在 ai-service 里：确定性 Mock 需要 design model 才能产�
     这条连同"没有浏览器量出来的盒模型"一起写在 `omissions` 里。派生函数是纯函数，
     所以跨语言夹具与真实装配走的是同一份代码，没有第二处手抄。
 
+16. **异步与同步共用一条执行管线**（§162）：`apps/ai-service/src/ai_service/execution.py` 是唯一那份
+    "校验 → 选模型 → 调 provider → 校验补丁 → 挂审批 → 组装契约响应"。同步 `/v1/ai/run` 与
+    `/v1/ai/jobs` 的 worker 都只调它 —— 两条路各写一遍，早晚变成"队列里的作业其实没做补丁校验"，
+    而测试两边都绿。钉法不是"看起来一样"，是**逐字段相等**：
+    `test_async_result_is_the_same_pipeline_as_the_sync_route` 把同一请求的同步响应体与作业 `result` 直接对比。
+    队列后端两种（`memory` / `redis`），限制**写在报文里**（`note`：内存后端只此进程可见、重启即失），
+    配了 `NEXUS_REDIS_URL` 却连不上是启动失败而不是退回内存装没事。
+    `/healthz.queue` 的 `pending`/`running` 必须来自真计数器（以前写死 0，等于宣称有一个永远为空的队列）；
+    队列没跑起来就报 `backend: "none"` + `capacity: 0`，而不是 500 堆栈。
+    `progress` 只在有真进度来源时才给，单次 LLM 调用恒为 `null`（§159：不编一条 0.2→0.9 的假刻度）。
+
 ## Design ↔ Code 双通道
 
 ```

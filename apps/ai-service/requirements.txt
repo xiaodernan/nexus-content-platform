@@ -2,4 +2,6 @@ fastapi==0.115.6
 uvicorn==0.34.0
 httpx==0.28.1
 jsonschema==4.26.0
+# §162 作业队列的 Redis 后端（不配 NEXUS_REDIS_URL 时用内存后端，这个依赖不会被导入）
+redis==5.2.1
 pytest==9.1.1

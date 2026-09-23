@@ -25,10 +25,27 @@ def test_healthz_matches_contract() -> None:
     body = client.get("/healthz").json()
     _validate("health.schema.json", body)
     assert body["capability"] == "unavailable"
-    assert body["queue"] == {"pending": 0, "running": 0}
+    # §162：队列没启动就如实报 none + capacity 0，并说清同步路径不受影响。
+    # 以前这里是一个写死的 {"pending": 0, "running": 0} —— 等于宣称"有一个永远为空的队列"
+    queue = body["queue"]
+    assert queue["backend"] == "none"
+    assert queue["capacity"] == 0
+    assert (queue["pending"], queue["running"]) == (0, 0)
+    assert "作业队列未启动" in queue["note"]
     llm = [p for p in body["providers"] if p["kind"] == "llm"][0]
     assert llm["status"] == "unavailable"
     assert "NEXUS_OPENAI_API_KEY" in llm["reason"]
+
+
+def test_healthz_queue_reports_the_started_worker(monkeypatch: pytest.MonkeyPatch) -> None:
+    """走 lifespan（uvicorn 正常启动就是这样）之后，backend / capacity 必须变成真的那一份。"""
+    monkeypatch.delenv("NEXUS_REDIS_URL", raising=False)
+    settings = Settings()
+    with TestClient(create_app(settings, registry=Registry(settings, llm=FakeProvider("{}")))) as client:
+        queue = client.get("/healthz").json()["queue"]
+    assert queue["backend"] == "memory"
+    assert queue["capacity"] >= 1
+    assert "重启即失" in queue["note"]
 
 
 def test_healthz_reports_configured_provider_as_real() -> None:

@@ -465,6 +465,50 @@ export const AiResponseSchema = z.object({
 });
 export type AiResponse = z.infer<typeof AiResponseSchema>;
 
+/**
+ * §162 作业队列：图片 / 视频 / 3D / 复杂 Agent 任务不能挂在一个 HTTP 请求上等结果，
+ * 所以走 Queue → Worker → Progress → Result。这两份是 ai-service ↔ web 之间的报文。
+ */
+export const AiJobStatusSchema = z.enum(['queued', 'running', 'completed', 'failed']);
+export type AiJobStatusValue = z.infer<typeof AiJobStatusSchema>;
+
+export const AiJobBackend = z.enum(['none', 'memory', 'redis']);
+export type AiJobBackend = z.infer<typeof AiJobBackend>;
+
+export const AiJobAcceptedSchema = z.object({
+  jobId: z.string(),
+  requestId: z.string(),
+  status: AiJobStatusSchema,
+  /** 作业存在哪儿：memory = 只有这一个进程看得到、重启即失；redis = 跨进程可见 */
+  backend: AiJobBackend,
+  /** 后端带来的限制写在报文里，不能让人以为刷新页面还能找回这个 job */
+  note: z.string(),
+  /** 这条队列同时在跑几件活：让调用方能判断"要不要现在提交" */
+  capacity: z.number().int().min(1),
+});
+export type AiJobAccepted = z.infer<typeof AiJobAcceptedSchema>;
+
+export const AiJobStatusResponseSchema = z.object({
+  jobId: z.string(),
+  requestId: z.string(),
+  backend: AiJobBackend,
+  status: AiJobStatusSchema,
+  queuedAt: z.string().datetime(),
+  startedAt: z.string().datetime().nullable(),
+  finishedAt: z.string().datetime().nullable(),
+  /**
+   * 0..1。只有**真知道**进度才给：单次 LLM 调用没有可观测的中间态，所以那种作业一直是 null，
+   * 而不是先给 0.2 再给 0.9 的假刻度（§159）。
+   */
+  progress: z.number().min(0).max(1).nullable(),
+  /** 队列与执行各自的里程碑；与 AiResponse.activities 同一形状 */
+  activities: z.array(AgentActivitySchema).default([]),
+  /** completed 时是完整的 AiResponse（与同步 /v1/ai/run 同一份契约）；failed 时只有 error */
+  result: AiResponseSchema.optional(),
+  error: AiErrorSchema.optional(),
+});
+export type AiJobStatusResponse = z.infer<typeof AiJobStatusResponseSchema>;
+
 /** §163 实时事件（WebSocket） */
 export const RealtimeEventSchema = z.discriminatedUnion('type', [
   z.object({ type: z.literal('agent.plan'), projectId: z.string(), taskId: z.string(), plan: AgentPlanSchema }),
@@ -527,7 +571,18 @@ export const HealthResponseSchema = z.object({
         }),
     )
     .default([]),
-  queue: z.object({ pending: z.number().int().default(0), running: z.number().int().default(0) }).default({ pending: 0, running: 0 }),
+  /** §162：队列的真实状态。这里的 pending 必须来自真计数器，写死一个 0 就是谎报（§159） */
+  queue: z
+    .object({
+      backend: z.enum(['none', 'memory', 'redis']),
+      pending: z.number().int().default(0),
+      running: z.number().int().default(0),
+      /** 同时在跑的 worker 数；0 = 队列没启动（此时 pending/running 必为 0，note 说明原因） */
+      capacity: z.number().int().min(0).default(0),
+      /** 后端带来的限制（memory = 只此进程可见、重启即失），写进报文而不是只写日志 */
+      note: z.string().default(''),
+    })
+    .default({ backend: 'none', pending: 0, running: 0, capacity: 0, note: '' }),
 });
 export type HealthResponse = z.infer<typeof HealthResponseSchema>;
 

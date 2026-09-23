@@ -1,6 +1,8 @@
 import { z } from 'zod';
 import {
   AiErrorSchema,
+  AiJobAcceptedSchema,
+  AiJobStatusResponseSchema,
   AiRequestSchema,
   AiResponseSchema,
   DesignPatchSchema,
@@ -21,6 +23,8 @@ export const CONTRACT_EXPORTS: { file: string; schema: z.ZodType; io: 'input' | 
   { file: 'ai-request.schema.json', schema: AiRequestSchema, io: 'input' },
   { file: 'ai-response.schema.json', schema: AiResponseSchema, io: 'output' },
   { file: 'ai-error.schema.json', schema: AiErrorSchema, io: 'output' },
+  { file: 'ai-job-accepted.schema.json', schema: AiJobAcceptedSchema, io: 'output' },
+  { file: 'ai-job-status.schema.json', schema: AiJobStatusResponseSchema, io: 'output' },
   { file: 'design-patch.schema.json', schema: DesignPatchSchema, io: 'input' },
   { file: 'health.schema.json', schema: HealthResponseSchema, io: 'output' },
   { file: 'screenshot-request.schema.json', schema: ScreenshotRequestSchema, io: 'input' },

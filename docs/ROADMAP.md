@@ -32,7 +32,7 @@ Create Project → Prompt → AI Design → Canvas → Layers → Properties
 - [x] Live Preview 只读投影 + 截图脚本（§33/87，`scripts/capture-studio.mts`）
 - [x] Design System 面板（§12/§13：token 分组浏览、改值/改 mode、引用计数、增删自定义 token，全部可撤销）
 - [x] AI Service（FastAPI, `apps/ai-service`）：契约强制 + Provider 抽象 + Model Router + OpenAI 兼容适配器 + 删除类审批门
-- [ ] AI Service 任务队列 / 异步生成作业（Redis）与 embedding/RAG、图像/视频 provider（随 M2/M3 落地）
+- [~] AI Service 任务队列 / 异步生成作业（§162 Redis 后端已落地，见进度记录第五段）；embedding/RAG、图像/视频 provider 仍未接
 - [x] Design Agent：意图 → Plan → design patch → 画布更新 → AI Diff 说明（§20/25/151，DEMO MODE 确定性规则；真实模型规划待 line 43 的 provider）
 - [x] Design → Code（React + TS + Tailwind，`packages/design-model/src/codegen.ts` + Studio 代码视图）
 - [x] Code → Design（受限 JSX 解析，不可逆区域保留为 code-only，§17-19，`packages/design-model/src/code-parse.ts`）
@@ -40,7 +40,9 @@ Create Project → Prompt → AI Design → Canvas → Layers → Properties
 - [x] Compare：快照与当前文档的字段级差异，复用 AI Diff 的条目形状（§27/§151）
 - [x] Branch / Duplicate：分支线、切换、整份项目副本（§27/§28）
 - [x] 多方案 A-B-C 并排比较 + "取 A 的布局 + C 的视觉"合成（§29）
-- [ ] 方案生成的真实 provider 路径（现在是确定性配方，见下方进度记录）
+- [!] 方案生成的真实 provider 路径：代码这一侧已经全通（`providers/openai_compatible.py` + Model Router +
+  契约校验 + §162 队列，`/healthz` 会按 key 如实报 real/unavailable），差的是**一份真凭据**与联网联调。
+  没 key 时不假装跑过：DEMO MODE 标注常驻（§160），队列里那种请求会如实落成 `failed / provider-unavailable`
 - [x] Publish + 分享 URL `/n/<handle>/<slug>`：Public/Unlisted/Private、发布锁定快照、取消发布即失效（§56-57）
 - [x] 免注册首次体验（§137）：guest 会话即可 Create → Design → Publish
 - [x] 资产服务（位图）：上传 → magic-bytes 判定 → 元数据剥离 → 对象存储 → 鉴权路由 → 画布/预览/发布四条投影同源（§38/§80/§101/§182）
@@ -575,6 +577,21 @@ drizzle 把整个拼接结果当成**单个绑定参数**，生成的 SQL 是 `o
   Agents / Runtime 两个分支仍未落地，面板上写的是「未索引」而不是空白；
   ② 语义相关性与重排要 embedding provider（§49 的向量半）；
   实测尺寸/耗时见 `docs/PERFORMANCE.md`，预算为什么取 20000 见 `docs/adr/0006-design-index-char-budget.md`。
+- 作业队列（§162）— **ai-service 这一侧已落地（2026-09-24）**：`POST /v1/ai/jobs` 收同一份 AiRequest，
+  校验通过就入队并回 202 + jobId，`GET /v1/ai/jobs/{id}` 回 Queue→领取→结束三段里程碑与最终结果。
+  关键的一条设计是**不给第二条执行路径**：worker 调的就是同步 `/v1/ai/run` 那个 `execute_ai_request`
+  （从 app.py 里抽出来的 `execution.py`），所以"异步的作业其实没校验补丁"这种分叉从结构上不可能出现，
+  而被 `test_async_result_is_the_same_pipeline_as_the_sync_route` 钉成"两份响应体必须逐字段相同"。
+  后端两种，且**限制写在报文里**：`memory`（默认，只此进程可见、重启即失）与
+  `redis`（配 `NEXUS_REDIS_URL`；LPOP 保证同一个作业不会被两个 worker 领走，跨 store 读得到）。
+  配了 Redis 却连不上 → 启动直接失败，不会悄悄退回内存后端。`/healthz` 里那个写死的
+  `pending: 0` 换成了真计数（`backend`/`capacity`/`note` 一起报），没跑 lifespan 时报 `backend: none` 而不是崩。
+  `progress` 在没有真进度来源时恒为 `null` —— 不编一条 0.2→0.9 的假刻度。
+  仍欠的两笔：① **web 侧还没有消费者**（`/api/ai/run` 仍走同步路径），所以这条队列今天对产品行为没有影响，
+  它是图片/视频/3D 那条链的前置；② §163 的 WebSocket 实时推送还没做，进度只能靠轮询查。
+  验证：45 条 pytest（新增 9 条）+ 真 Redis 跑通 9/9（`NEXUS_REDIS_URL=redis://127.0.0.1:6380/0`），
+  真 uvicorn 起服务手工核对过 202→failed(provider-unavailable)→404 三种回话；
+  两次反向实验（计数器写死 0、worker 无论什么都算完成）各自打中对应用例。
 - Observability / Evaluation / Visual Benchmark（§84-86/156）
 - 规模基准与热点路径（§146/§147）— 模型层有 `scripts/perf-baseline.mts`，实测数字与"还没做的部分"记在
   `docs/PERFORMANCE.md`；画布虚拟化、worker、浏览器端指标仍未做，所以那些数字一个都没有。
