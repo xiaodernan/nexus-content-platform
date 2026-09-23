@@ -94,6 +94,49 @@ describe('语料索引与检索（真实数据库）', () => {
     expect(result.totalChunks).toBeGreaterThan(0);
   });
 
+  /**
+   * 多词条查询的回归护栏。
+   *
+   * 这条用例是补上一个**真实漏过 bug 的覆盖缺口**：早前检索条件把词条拼成一个
+   * 字符串塞进 drizzle 的 sql 模板，drizzle 把它当单个文本参数绑定，生成
+   * `or $N`；文本参数落在布尔位置时**不报错**，而是恒为 false——
+   * 于是"任一词条命中"这一支成了死代码。
+   *
+   * 后果不是崩溃，是**静默返回空**：查「盐海 沉船」什么都查不到，
+   * 而查单个「盐海」正常。原来的 6 条用例全是单词条查询，所以一条都没抓到。
+   * 下面刻意用空格分隔的多词条，并且让每个词单独出现、整句不出现。
+   */
+  it('多词条查询：整句不匹配但各词条命中时，必须能查到（曾静默返回空）', async () => {
+    const id = await newProject('RAG Multi Term');
+    await saveWorld(id, owner, worldWithText(id));
+
+    // 「盐海」与「沉船」在同一条正文里，但「盐海 沉船」这个整句并不出现
+    const byWholePhrase = await retrieveProjectKnowledge(id, '盐海 沉船');
+    expect(byWholePhrase.items.length).toBeGreaterThan(0);
+    expect(byWholePhrase.items.some((item) => item.snippet.includes('盐海'))).toBe(true);
+
+    // 词序反过来也必须命中（词条命中与顺序无关）
+    const reversed = await retrieveProjectKnowledge(id, '沉船 盐海');
+    expect(reversed.items.length).toBeGreaterThan(0);
+
+    // 两个词条各自单独查，也都得命中——对照组，确保不是"整句恰好匹配"蒙对的
+    expect((await retrieveProjectKnowledge(id, '盐海')).items.length).toBeGreaterThan(0);
+    expect((await retrieveProjectKnowledge(id, '沉船')).items.length).toBeGreaterThan(0);
+
+    // 词覆盖度必须是真实算出来的：两个词都命中的块，coverage 高于只命中一个词的
+    const both = await retrieveProjectKnowledge(id, '盐海 沉船');
+    const top = both.items[0]!;
+    expect(top.parts.coverage).toBeGreaterThan(0);
+  });
+
+  it('多词条里混入不存在的词：仍按命中部分返回，不整条丢掉', async () => {
+    const id = await newProject('RAG Partial Term');
+    await saveWorld(id, owner, worldWithText(id));
+    const result = await retrieveProjectKnowledge(id, '盐海 会说话的月亮桥');
+    expect(result.items.length).toBeGreaterThan(0);
+    expect(result.items.some((item) => item.snippet.includes('盐海'))).toBe(true);
+  });
+
   it('角色档案与记忆也进索引，删掉记忆后不再命中', async () => {
     const id = await newProject('RAG Sources');
     const savedWorld = await saveWorld(id, owner, worldWithText(id));
