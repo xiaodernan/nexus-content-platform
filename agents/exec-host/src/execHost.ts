@@ -1,4 +1,4 @@
-import { spawn as nodeSpawnLib } from 'node:child_process';
+import { spawn as nodeSpawnLib, spawnSync as spawnSyncLib } from 'node:child_process';
 import type { Checkpoint, ExecPlan, ExecPolicy, ExecRequest, ToolRegistry, ToolCall, ToolSpec } from '@nexus/agent-runtime';
 import { planExec } from '@nexus/agent-runtime';
 
@@ -20,6 +20,13 @@ export interface ExecChild {
   onData(listener: (stream: 'stdout' | 'stderr', chunk: Buffer | string) => void): void;
   onEnd(listener: (end: { code: number | null; signal: string | null; error?: string }) => void): void;
   kill(): void;
+  /**
+   * M2 v55 (ADR 0016 amendment 55): the OS pid, when the adapter knows it. Its absence is the
+   * honest answer for a fake; its PRESENCE is what makes "kill the tree, not just the child"
+   * possible at all — before v55 the host had no handle on the process it started, so a timeout
+   * could only ever stop the direct child and report whatever a detached grandchild then did.
+   */
+  pid?: number;
 }
 
 export type SpawnLike = (command: string, args: string[], opts: ExecSpawnOptions) => ExecChild;
@@ -44,6 +51,7 @@ export const NODE_SPAWN: SpawnLike = (command, args, opts) => {
   child.on('error', (e: Error) => end({ code: null, signal: null, error: e.message }));
   child.on('exit', (code, signal) => end({ code, signal }));
   return {
+    pid: child.pid,
     onData: (l) => dataListeners.push(l),
     onEnd: (l) => endListeners.push(l),
     kill: () => {
@@ -69,10 +77,55 @@ export interface ExecRunResult {
    * door's sentence names whichever of the two applies.
    */
   truncated: boolean;
+  /** True when the host killed the process IT started because the plan's timeout expired. */
   killedByBudget: boolean;
+  /**
+   * M2 v55 (ADR 0016 amendment 55): whether anything the command SPAWNED is also stopped. Present
+   * exactly when a timeout kill happened. `killedByBudget` has always been a claim about ONE
+   * process, and measurement showed it being read as a claim about the tree: a program that leaves
+   * a detached child behind kept writing 6 more heartbeats AFTER the host reported
+   * `killedByBudget: true, signal: SIGTERM`. Absent otherwise rather than defaulted, so every
+   * pre-v55 record and reader keeps parsing (one-directional compatibility, as in v51).
+   */
+  descendantsStopped?: DescendantsStopped;
   /** Spawn-layer failure (ENOENT, EPERM…); '' when the process reported its own exit. */
   spawnError: string;
 }
+
+/**
+ * M2 v55: what the host achieved against the process TREE. The failure names are deliberately not
+ * collapsed into one "no" — an operator who asked for reaping needs to know whether the reason is
+ * this platform, a missing handle, or a reaper call that failed.
+ */
+export type DescendantsStopped =
+  | 'reaped' /** the tree reaper reported success and the survivor was silenced (measured, win32) */
+  | 'reaper-failed' /** asked for, ran, reported failure */
+  | 'no-pid' /** the adapter gave the host no process handle, so a tree kill is impossible */
+  | 'unsupported-platform' /** no reaper is implemented here, and none was pretended */
+  | 'not-attempted'; /** the host killed only its own child — v30's behaviour, still the default */
+
+/** Injectable so the tree behaviour is unit-testable without an OS process. */
+export type TreeReaper = (pid: number) => boolean;
+
+/**
+ * win32: `taskkill /PID <pid> /T /F`, and the ORDER is the finding. Measured on this box, calling it
+ * AFTER `child.kill()` returns 128 ("not found") and the detached survivor keeps writing — a dead
+ * parent has no children left to enumerate. Issued INSTEAD of `child.kill()` it returns 0 and the
+ * survivor goes silent. So the host reaps by substitution, never in addition; the exit fields then
+ * carry what the OS reported (code 1, signal null) beside `killedByBudget: true`, because the host
+ * knows it killed the run and the process knows it was force-terminated.
+ * Anywhere else: no implementation, and no pretending — the answer is `unsupported-platform`.
+ */
+export const DEFAULT_TREE_REAPER: (pid: number) => boolean = (pid) => {
+  if (process.platform !== 'win32') return false;
+  try {
+    return spawnSyncLib('taskkill', ['/PID', String(pid), '/T', '/F'], { windowsHide: true, encoding: 'utf8' }).status === 0;
+  } catch {
+    return false;
+  }
+};
+/** False on any platform where the host has no tree reaper, so `unsupported-platform` can be told apart from a failed call. */
+export const TREE_REAPER_AVAILABLE = process.platform === 'win32';
 
 const noRun = (over: Partial<ExecRunResult>): ExecRunResult => ({
   ran: false,
@@ -124,11 +177,21 @@ export interface ExecHostOptions {
   spawnLike?: SpawnLike;
   /** Absent by design: a host keeps no records unless its operator asks for a file (§9 — no writes by default). */
   journal?: ExecJournalRef;
+  /**
+   * M2 v55: on a timeout, stop the process TREE instead of only the process the host started.
+   * Default OFF, exactly as v51's journal — a host built without it behaves byte-identically to
+   * v30-v53, which is what lets every already-committed proof be the assertion that nothing moved.
+   */
+  reapTree?: boolean;
+  /** The reaper itself, injectable so the tree behaviour is testable without an OS process. */
+  reaper?: TreeReaper;
 }
 
 export function createExecHost(policy: ExecPolicy, options: ExecHostOptions = {}): ExecHost {
   const spawnLike = options.spawnLike ?? NODE_SPAWN;
   const journal = options.journal;
+  const reapTree = options.reapTree ?? false;
+  const reaper = options.reaper ?? DEFAULT_TREE_REAPER;
   let seq = 0;
   return {
     policy,
@@ -181,6 +244,7 @@ export function createExecHost(policy: ExecPolicy, options: ExecHostOptions = {}
         const kept: Record<'stdout' | 'stderr', number> = { stdout: 0, stderr: 0 };
         let truncated = false;
         let killed = false;
+        let descendants: DescendantsStopped | undefined;
         const append = (target: 'stdout' | 'stderr', chunk: Buffer | string) => {
           const buf = Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk, 'utf8');
           const room = Math.max(0, budget - kept[target]);
@@ -204,7 +268,30 @@ export function createExecHost(policy: ExecPolicy, options: ExecHostOptions = {}
         child.onData(append);
         const timer = setTimeout(() => {
           killed = true;
-          child.kill();
+          // M2 v55: `child.kill()` stops the process the host started and NOTHING else. When the
+          // operator asked for a tree kill, the reaper is issued INSTEAD of that call — measured on
+          // this box, kill-then-reap finds no children (the parent is already gone) while reap-in-place
+          // silences a detached survivor. When reaping cannot happen at all, the host falls back to
+          // what it always did AND SAYS SO in `descendantsStopped`; it never upgrades its own reach.
+          if (!reapTree) {
+            descendants = 'not-attempted';
+            child.kill();
+          } else if (child.pid === undefined) {
+            descendants = 'no-pid';
+            child.kill();
+          } else if (!TREE_REAPER_AVAILABLE) {
+            descendants = 'unsupported-platform';
+            child.kill();
+          } else {
+            // A reaper that throws is a FAILED reaper, not a crashed host: the run already ran, and
+            // the fallback kill still happens below.
+            try {
+              descendants = reaper(child.pid!) ? 'reaped' : 'reaper-failed';
+            } catch {
+              descendants = 'reaper-failed';
+            }
+            if (descendants !== 'reaped') child.kill(); // a failed tree call still stops the child it can reach
+          }
         }, plan.timeoutMs);
         child.onEnd((e) => {
           clearTimeout(timer);
@@ -220,6 +307,7 @@ export function createExecHost(policy: ExecPolicy, options: ExecHostOptions = {}
             stderr: textOf('stderr'),
             truncated,
             killedByBudget: killed,
+            ...(descendants === undefined ? {} : { descendantsStopped: descendants }),
             spawnError: e.error ?? '',
           };
           try {
@@ -255,7 +343,7 @@ export function registerExecHostTools(registry: ToolRegistry, host: ExecHost): T
       if (!result.ran) throw new Error(result.reason || 'run refused');
       if (result.spawnError !== '') throw new Error(`spawn failed: ${result.spawnError}`);
       const ok = result.exitCode === 0 && !result.killedByBudget;
-      const detail = `exec ${result.argv.join(' ')} → exit ${result.exitCode}${result.killedByBudget ? ' (killed at timeout budget)' : ''}${result.truncated ? ' (output truncated)' : ''}`;
+      const detail = `exec ${result.argv.join(' ')} → exit ${result.exitCode}${result.killedByBudget ? ' (killed at timeout budget)' : ''}${result.descendantsStopped === undefined || result.descendantsStopped === 'reaped' ? '' : ` (descendants: ${result.descendantsStopped})`}${result.truncated ? ' (output truncated)' : ''}`;
       return { ok, detail, result };
     });
   }

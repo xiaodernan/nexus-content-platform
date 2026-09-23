@@ -1693,6 +1693,7 @@ empty answer._
   whole file is enforced in unit tests and proofs, and nothing pretends otherwise.
 
 
+
 ## Amendment 54 — v54 (runtime): the run line answers for its own gates — v50 named this gap in its own last sentence, 2026-09
 
 _Sequencing note: v50 closed v49's bound and, in the same breath, stated the one this increment
@@ -1774,3 +1775,71 @@ argv, no policy table, no checkpoint semantics and no planner template moved._
   machine-checkable and not yet human-visible, and no panel pretends otherwise. And DEMO MODE is
   intact — planning is still template-driven; v54 made a second batch of decisions auditable, it did
   not make the runtime make one.
+
+## Amendment 55 — v55 (exec-host): a killed parent is not a killed tree — the host now says which it stopped, and can stop more when asked, 2026-09
+
+_Numbering: 55 was free when this was written (checked against this file's headings and the task
+list). The runtime lane had it as a CANDIDATE for stage-level ledger records; that candidate should
+take 56, because a claim is made by committing the section, not by naming a task._
+
+- **The claim that was being over-read.** `killedByBudget: true, signal: 'SIGTERM'` has meant one
+  thing since v30 — the process the host started was terminated — and it has been read as another:
+  the run is over. Measured with real processes before writing code: a program that leaves a
+  **detached** child behind kept writing **7 more heartbeats after the host reported the kill**, and
+  the `os.tmpdir` directory it wrote into could not be deleted, because a live process still held it
+  open — the sandbox's own cleanup was being outlived by the thing it had killed.
+- **The abstraction was the obstacle, so the abstraction changed first.** `ExecChild` (v30's minimal
+  fakeable process view: `onData`/`onEnd`/`kill`) carried NO process id, so the host structurally
+  could not reach anything but its own child, however much it wanted to. `pid?: number` is now part
+  of the contract; a fake that reports none is answered `no-pid` rather than a pretend success.
+- **Reaping is a SUBSTITUTION, never an addition, and the proof measures why.** §3 runs
+  `taskkill /PID <pid> /T /F` against a pid the host had already killed: it returns **128** (not
+  found — a dead parent has no enumerable children) while the survivor's heartbeats keep growing, so
+  "kill, then tidy up the tree" is a no-op that LOOKS like hygiene. Issued instead of the kill, the
+  same call returns 0 and the survivor goes silent. That ordering is the finding, and it is now in the
+  code comment where the timer fires.
+- **Opt-in, so v30-v54 behaviour is byte-identical.** `createExecHost(policy, { reapTree: true })` —
+  default OFF, exactly like v51's journal, which is what lets the other 43 committed scripts be the
+  assertion that nothing else moved. A reaper that fails or throws is `reaper-failed` AND the host
+  still performs the kill it can do: a failed tree call may degrade reach, never the guarantee.
+- **`descendantsStopped` is present exactly when a kill happened, and is absent otherwise.** The five
+  values (`reaped` / `reaper-failed` / `no-pid` / `unsupported-platform` / `not-attempted`) are not
+  collapsed into a boolean: an operator who asked for reaping needs to know whether the reason was
+  this platform, a missing handle, or a call that failed. Optional rather than defaulted keeps the
+  v30 and v51 readers byte-compatible (asserted: `malformed 0` when the new field rides past them),
+  and the field is present in the v51 record of a killed run, where it sits beside `killedByBudget`
+  because those are the two facts an audit reader needs together.
+- **What the reaper costs, in visibility.** A force-killed tree reports `exit 1 / signal null`
+  instead of `signal SIGTERM`, because that is what the OS says — so opting in changes the exit
+  fields a run carries while leaving `killedByBudget` (the host's own knowledge) intact. The proof
+  asserts both halves rather than smoothing the difference, and `execTestRunner`'s
+  `killed at timeout budget (SIGTERM)` wording follows the signal it was given.
+- **Scope, measured not assumed.** §5 runs the same parent with a NON-detached child: it dies with
+  its parent, so the default was never a bug — it is a limit, and this increment states the limit and
+  sells the escape hatch. Anything claiming "kills all descendants" would be over-reading again: a
+  process that re-parents itself, or one already gone, is outside what any single call can promise,
+  and no such promise is made here.
+- **Platform honesty is a value, not a rumour.** `TREE_REAPER_AVAILABLE` exists so the proof can
+  assert the branch that is TRUE on this box instead of hoping: on win32 it measures silence, and the
+  `unsupported-platform` branch — the one any POSIX box would take — is exercised in unit tests
+  rather than claimed as observed. `DEFAULT_TREE_REAPER(0)` is asserted to return `false` and not
+  throw, because an unreachable pid is a failed call, not a success.
+- **44th proof `docs/evidence/agents/reap-proof.mjs`.** Real processes throughout: the harness writes
+  `parent.js`/`grand.js` into a throwaway `os.tmpdir` dir and the SHIPPED host runs them under a
+  700 ms budget. §1 the survivor + `not-attempted`; §2 reaped + silence; §3 the ordering control;
+  §4 the platform value; §5 the attached control; §6 the v51 record carrying both claims; and the
+  `finally` block reaps the trees it started BEFORE deleting the directory — the finding applied to
+  the proof itself, with a bounded retry and a hard assertion that nothing was left behind.
+- **What did not move:** no policy field, argv shape, env list, gate, checkpoint, door, budget or
+  truncation rule (v48/v52/v53 are untouched); `exec.run`'s and every door's existing sentences are
+  byte-identical unless a run was killed AND reaping was asked for. exec-host **163/163 → 170/170**
+  (7 new tree cases in `execHost.test.ts`), 44/44 agent proofs and the four root gates green.
+- Honest bounds: the host reports what IT did, never what the whole machine did, so `reaped` means
+  "the reaper said 0 and the survivor was observed silent", not "no descendant anywhere survives";
+  the win32 reaper shells out to `taskkill` — a second binary the host may run, which is exactly why
+  reaping is opt-in and why the argv it uses is fixed and built from an integer pid; POSIX is
+  `unsupported-platform`, stated rather than silently absent, and adding it there needs a
+  group-kill-and-detach story measured on a POSIX box; a killed run's `exitCode`/`signal` become the
+  OS's force-kill values when reaping is on; nothing in Studio registers an exec host, so no user
+  surface shows any of this (§60); and DEMO MODE is unaffected — this is about how much of a process
+  tree the sandbox can honestly stop, not about what the agent is allowed to plan.

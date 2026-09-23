@@ -2,7 +2,9 @@ import { describe, expect, it } from 'vitest';
 import { ToolRegistry } from '@nexus/agent-runtime';
 import type { ExecPolicy, SpawnLike } from '@nexus/agent-runtime';
 import {
+  DEFAULT_TREE_REAPER,
   EXEC_HOST_TOOL_SPECS,
+  TREE_REAPER_AVAILABLE,
   appendExecRun,
   createExecHost,
   formatExecLine,
@@ -13,6 +15,7 @@ import {
   type ExecChild,
   type ExecJournalRef,
   type ExecRunResult,
+  type TreeReaper,
 } from '../src/execHost.js';
 
 const POLICY: ExecPolicy = {
@@ -268,8 +271,98 @@ describe('the exec.run tool in the gated registry (§28 at the registry, budgets
   });
 });
 
-class MemDisk {
-  files = new Map<string, string>();
+/**
+ * M2 v55 (ADR 0016 amendment 55): a fake that models the OS fact the increment is about — the
+ * direct child does NOT end just because it was told to; what ends it is the reaper (or nothing).
+ * `reaped` records exactly which pid the host tried, because the ORDER of the two calls is the
+ * whole finding: kill-then-reap reaches no one, reap-instead-of-kill silences the survivor.
+ */
+function treeHarness(options: { pid?: number; reapTree?: boolean; reaperResult?: boolean; reaperThrows?: boolean }) {
+  const reaped: (number | 'threw')[] = [];
+  let kills = 0;
+  let child: FakeChild | undefined;
+  const spawnLike: SpawnLike = () => {
+    const c = new FakeChild();
+    c.kill = () => {
+      kills += 1;
+      c.killed = true;
+      c.emitEnd({ code: null, signal: 'SIGTERM' });
+    }; // like the real FakeChild: the direct kill ends THIS process, and only this one
+    child = c;
+    return options.pid === undefined ? { onData: (l) => c.onData(l), onEnd: (l) => c.onEnd(l), kill: c.kill } : { onData: (l) => c.onData(l), onEnd: (l) => c.onEnd(l), kill: c.kill, pid: options.pid };
+  };
+  const reaper: TreeReaper = (pid) => {
+    reaped.push(pid);
+    if (options.reaperThrows) throw new Error('taskkill unavailable');
+    if (options.reaperResult ?? true) queueMicrotask(() => child!.emitEnd({ code: 1, signal: null }));
+    return options.reaperResult ?? true;
+  };
+  const host = createExecHost(POLICY, { spawnLike, reapTree: options.reapTree, reaper });
+  return { host, reaped, killsOf: () => kills, lastChild: () => child! };
+}
+
+describe('the process tree (v55): what a timeout kill stops, and what it says it stopped', () => {
+  const run = async (h: ReturnType<typeof treeHarness>) => h.host.run({ argv: ['git', 'status', '--short'] }, OK_GATE); // the rule with the 20 ms timeout
+
+  it('by default the host kills its OWN child and says the tree was not attempted', async () => {
+    const h = treeHarness({ pid: 4242 });
+    const r = await run(h);
+    expect(r.killedByBudget).toBe(true);
+    expect(r.descendantsStopped).toBe('not-attempted');
+    expect(h.reaped).toEqual([]); // no reaper was called: v30-v53 behaviour is byte-identical
+    expect(h.killsOf()).toBe(1);
+  });
+
+  it('when reaping happens it is issued INSTEAD of the direct kill, on the pid the adapter reported', async () => {
+    const h = treeHarness({ pid: 4242, reapTree: true });
+    const r = await run(h);
+    expect(h.reaped).toEqual([4242]);
+    expect(h.killsOf()).toBe(0); // kill-then-reap is the shape that silently fails (measured: status 128, survivor writes on)
+    expect(r).toMatchObject({ ran: true, killedByBudget: true, descendantsStopped: 'reaped', exitCode: 1, signal: null });
+  });
+
+  it('a failed tree call still stops the child it CAN reach, and names the difference', async () => {
+    const h = treeHarness({ pid: 4242, reapTree: true, reaperResult: false });
+    const r = await run(h);
+    expect(h.reaped).toEqual([4242]);
+    expect(r.descendantsStopped).toBe('reaper-failed');
+    expect(r.signal).toBe('SIGTERM'); // the fallback kill is what ended the run
+    expect(h.killsOf()).toBe(1);
+  });
+
+  it('a reaper that throws is a stated failure, never a crash of the CALL', async () => {
+    const h = treeHarness({ pid: 4242, reapTree: true, reaperThrows: true });
+    const r = await run(h);
+    expect(r.descendantsStopped).toBe('reaper-failed');
+    expect(r.killedByBudget).toBe(true);
+  });
+
+  it('an adapter that reports no pid is answered honestly: no handle, no tree claim', async () => {
+    const h = treeHarness({ reapTree: true }); // no pid on the ExecChild
+    const r = await run(h);
+    expect(r.descendantsStopped).toBe('no-pid');
+    expect(h.reaped).toEqual([]);
+    expect(h.killsOf()).toBe(1);
+  });
+
+  it('a run that was never killed carries no claim about descendants at all', async () => {
+    const host = createExecHost(POLICY, {
+      spawnLike: () => ({ onData: () => {}, onEnd: (l) => queueMicrotask(() => l({ code: 0, signal: null })), kill: () => {}, pid: 4242 }),
+      reapTree: true,
+      reaper: () => true,
+    });
+    const r = await host.run({ argv: ['node', 'app.js'] }, OK_GATE);
+    expect(r.killedByBudget).toBe(false);
+    expect('descendantsStopped' in r).toBe(false); // absent, not defaulted: the host does not answer a question it was not asked
+  });
+
+  it('the platform answer is a value the operator can read, not a silent no', async () => {
+    expect(typeof TREE_REAPER_AVAILABLE).toBe('boolean');
+    expect(DEFAULT_TREE_REAPER(0)).toBe(false); // pid 0 is not somebody elus process; and the call must not throw
+  });
+});
+
+class MemDisk {  files = new Map<string, string>();
   readFileSync(p: string): string {
     const c = this.files.get(p);
     if (c === undefined) throw new Error(`no such file: ${p}`);
