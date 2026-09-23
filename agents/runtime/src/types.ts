@@ -94,4 +94,16 @@ export interface RunOutcome {
    * in execution order (verify, re-verifies, plain calls). Absent when no report ran.
    */
   testReports?: import('./testRunner.js').TestReport[];
+  /**
+   * v54: the §28 receipts for the calls THIS run issued, in ask order — each naming the rule (or
+   * `default`) that decided and quoting its reason. Only present on a run headed for a ledger, and
+   * only ever for this run's own calls: the release arc's doors (v50) and a chaining stage's brief
+   * belong to their own records, so one file cannot paste one stage's yes onto another's work (§60).
+   */
+  decisions?: import('./checkpointPolicy.js').CheckpointDecision[];
+  /**
+   * v54: why `decisions` is empty although this run gated calls — the checkpoint face keeps no
+   * readable audit list. Absent when the list arrived, when nothing was gated, or when not durable.
+   */
+  decisionsNote?: string;
 }

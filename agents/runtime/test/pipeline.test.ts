@@ -4,6 +4,7 @@ import { InMemoryWorkspace, registerWorkspaceTools } from '../src/workspace.js';
 import { MemoryStore, registerMemoryTools } from '../src/memory.js';
 import { RoleRegistry, DEMO_ROLES } from '../src/roles.js';
 import { runRolePipeline } from '../src/pipeline.js';
+import { NO_RECEIPTS_NOTE, policyCheckpoint } from '../src/checkpointPolicy.js';
 import { loadMemoryStore } from '../src/durability.js';
 import { loadLedger } from '../src/ledger.js';
 import { loadEvaluations } from '../src/evaluate.js';
@@ -109,3 +110,51 @@ describe('runRolePipeline (§25 handoff as data)', () => {
 function hostShim(h: ReturnType<typeof host>) {
   return { roles: h.roles, registry: h.registry, store: h.store, checkpoint: () => true };
 }
+
+/* ---- v54: the two-role face gets the same durable answer the chain learned in v50 ---- */
+
+describe('runRolePipeline run-line receipts (v54)', () => {
+  const policy = () =>
+    policyCheckpoint({
+      rules: [
+        { tool: 'fs.*', grant: true, reason: 'the demo workspace is open to every stage' },
+        { tool: 'memory.*', grant: true, reason: 'recall is not a write' },
+        { tool: 'test.run', grant: true, reason: 'verification is always welcome' },
+      ],
+      default: { grant: false, reason: 'unlisted tools are refused' },
+    });
+
+  it('the durable run line names the rule behind each of its own two gates', async () => {
+    const disk = new MemDisk();
+    const h = host();
+    const res = await runRolePipeline(task, { roles: h.roles, registry: h.registry, store: h.store, checkpoint: policy(), fsLike: disk, ledgerFile: 'state/ledger.jsonl' });
+    expect(res.ok).toBe(true);
+    const read = loadLedger(disk, 'state/ledger.jsonl');
+    expect(read.malformed).toBe(0);
+    expect(read.runs[0]).toEqual(res.editorOutcome); // the line in the file IS the outcome handed back
+    expect(read.runs[0]!.decisions!.map((d) => [d.call.callId, d.call.tool, d.granted, d.matched])).toEqual([
+      ['pipe-1:annotate', 'fs.append', true, 'fs.*'],
+      ['pipe-1:verify', 'test.run', true, 'test.run'],
+    ]);
+    // fs.index and memory.recall are read-permission: §28 never spoke for them, so nothing is claimed.
+    expect(read.runs[0]!.results.length).toBeGreaterThan(read.runs[0]!.decisions!.length);
+  });
+
+  it('a bare closure answers for nothing on a stored line, and says so in the same sentence the arc uses', async () => {
+    const disk = new MemDisk();
+    const h = host();
+    await runRolePipeline(task, { roles: h.roles, registry: h.registry, store: h.store, checkpoint: () => true, fsLike: disk, ledgerFile: 'state/ledger.jsonl' });
+    const run = loadLedger(disk, 'state/ledger.jsonl').runs[0]!;
+    expect(run.decisions).toEqual([]);
+    expect(run.decisionsNote).toBe(NO_RECEIPTS_NOTE);
+  });
+
+  it('an in-memory pipeline — the dock\'s face — carries neither field', async () => {
+    const h = host();
+    const res = await runRolePipeline(task, { roles: h.roles, registry: h.registry, store: h.store, checkpoint: policy() });
+    expect(res.ok).toBe(true);
+    if (!res.ok) return;
+    expect('decisions' in res.editorOutcome).toBe(false);
+    expect('decisionsNote' in res.editorOutcome).toBe(false);
+  });
+});

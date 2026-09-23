@@ -13,6 +13,10 @@
 // match its four processes and whose hash matches HEAD, a table-vetoed content door whose reason
 // sits beside a commit it cannot undo, a closed table that stops the walk at the first door with
 // ONE receipt naming `default`, and a hand-forged half-receipt counted as junk rather than trusted.
+// v54 tightened the door this proof walks through, and two fixtures here are its cost: `results` is
+// now read as the record's OWN transcript, so a line may only carry receipts for calls IT made —
+// §1's arc line shows that, and §2e forges a COMPLETE but pasted receipt next to the reason-less one
+// to prove a cold reader checks it rather than admiring the fields.
 // §9: every write here is inside os.tmpdir and deleted below; git PUSH never happens; staging the
 // index stays a HUMAN act — the doors read it, none of them write it.
 // Run after `npm run build`:  node docs/evidence/agents/receipts-proof.mjs
@@ -108,7 +112,9 @@ const ARC_CALLS = (id) => ['staged', 'commit', 'confirm', 'inspect'].map((s) => 
   assert.deepEqual([doorless.status, doorless.decisions, doorless.notes], ['no-arc', [], []], 'a walk that gated NOTHING owes no explanation for an empty list');
 
   const receipt = { call: { callId: 'c1:release:commit', tool: 'git.commit', args: { message: 'm' } }, granted: true, matched: 'git.*', reason: 'the release window is open today' };
-  const arcLine = { kind: 'git-arc', provenance: { mode: 'demo', runtime: 'nexus-agent-runtime', version: '0.1.0' }, runId: 'c1', goal: 'g', role: RELEASE_ROLE, arc: { doors: [...GIT_ARC_TOOLS], steps: [], results: [], status: 'completed', notes: [], decisions: [receipt] } };
+  // v54 reads `results` as the walk's own transcript, so this fixture shows a line that MADE the call
+  // it answers for — a receipt beside an empty transcript is now a paste, not a compact example.
+  const arcLine = { kind: 'git-arc', provenance: { mode: 'demo', runtime: 'nexus-agent-runtime', version: '0.1.0' }, runId: 'c1', goal: 'g', role: RELEASE_ROLE, arc: { doors: [...GIT_ARC_TOOLS], steps: [], results: [{ callId: 'c1:release:commit', tool: 'git.commit', ok: true, output: { record: { hash: 'abc1234' } } }], status: 'completed', notes: [], decisions: [receipt] } };
   assert.deepEqual(parseLedgerLine(formatLedgerLine(arcLine)), { ok: true, entry: arcLine }, 'a complete receipt round-trips through the file');
   for (const tamper of [[{ ...receipt, reason: undefined }], [{ ...receipt, granted: 'yes' }], [{ call: { tool: 'git.commit' }, granted: true, matched: 'git.*', reason: 'r' }], 'not an array']) {
     assert.deepEqual(
@@ -117,6 +123,12 @@ const ARC_CALLS = (id) => ['staged', 'commit', 'confirm', 'inspect'].map((s) => 
       `a half-recorded decision makes the WHOLE line malformed (${JSON.stringify(tamper)})`,
     );
   }
+  // v54's half of the same rule, on the shape v50 introduced: every field present, and still junk.
+  assert.deepEqual(
+    parseLedgerLine(JSON.stringify({ ...arcLine, arc: { ...arcLine.arc, decisions: [{ ...receipt, call: { callId: 'c1:release:never-knocked', tool: 'git.commit', args: {} } }] } })),
+    { ok: false, reason: 'not a complete git-arc record' },
+    'a COMPLETE receipt for a call this line never made is a paste, and a reader cannot see it from the fields alone',
+  );
   const preV50 = { ...arcLine, arc: { doors: [], steps: [], results: [], status: 'no-arc', notes: [] } };
   assert.equal(parseLedgerLine(formatLedgerLine(preV50)).ok, true, 'a v49 line without the field still parses — the field is additive, not a migration');
   console.log('[receipts] data: receipts cloned, call-scoped, shape-checked — and absent unless the walk is durable');
@@ -285,14 +297,17 @@ try {
   assert.equal('decisions' in mem.release, false, 'an in-memory chain stores nothing, so it records nothing — the dock\'s face is untouched by this amendment');
   assert.deepEqual(mem.release.notes, [], '…and gets no note either');
 
-  // 2e) TAMPER: a forged half-receipt appended to a real ledger. The reader counts it and keeps
-  //     reading — an audit trail that trusted the writer's word would not be one.
+  // 2e) TAMPER: a forged half-receipt AND a forged complete one appended to a real ledger. The
+  //     reader counts both and keeps reading — an audit trail that trusted the writer's word would
+  //     not be one, and since v54 "trusted" includes "believed a line owns the calls it lists".
   const goodArcs = cold().arcs.map((a) => a.runId);
   const forged = { kind: 'git-arc', provenance: { mode: 'demo', runtime: 'nexus-agent-runtime', version: '0.1.0' }, runId: 'forged', goal: 'g', role: RELEASE_ROLE, arc: { doors: [], steps: [], results: [], status: 'completed', notes: [], decisions: [{ call: { callId: 'f:release:commit', tool: 'git.commit', args: {} }, granted: true, matched: 'git.*' }] } };
-  writeFileSync(LEDGER_FILE, `${fs.readFileSync(LEDGER_FILE, 'utf8')}${JSON.stringify(forged)}\n`, 'utf8');
+  // Every field v50 demanded is here. Only the transcript disagrees with it: this arc called nothing.
+  const pasted = { ...forged, runId: 'pasted', arc: { ...forged.arc, decisions: [{ call: { callId: 'rc-1:release:commit', tool: 'git.commit', args: { message: 'm' } }, granted: true, matched: 'git.*', reason: 'the release window is open today' }] } };
+  writeFileSync(LEDGER_FILE, `${fs.readFileSync(LEDGER_FILE, 'utf8')}${JSON.stringify(forged)}\n${JSON.stringify(pasted)}\n`, 'utf8');
   const after = cold();
-  assert.equal(after.malformed, 1, 'a receipt with no reason is not a receipt: the whole line is counted as junk');
-  assert.deepEqual(after.arcs.map((a) => a.runId), goodArcs, 'and it surfaces nowhere — no arc, no grant, no borrowed approval');
+  assert.equal(after.malformed, 2, 'a receipt with no reason is not a receipt, and a receipt for a call the line never made is a paste: both lines count as junk');
+  assert.deepEqual(after.arcs.map((a) => a.runId), goodArcs, 'and neither surfaces anywhere — no arc, no grant, no borrowed approval');
   assert.equal(after.arcs.every((a) => a.arc.decisions.every((d) => typeof d.reason === 'string' && d.reason !== '')), true, 'every receipt a cold reader DOES get holds a non-empty reason');
   assert.deepEqual(after.runs.map((r) => r.task.id), ['rc-1', 'rc-2', 'rc-3', 'rc-4'], 'the run lines around it keep loading — one bad record poisons nothing');
 } finally {

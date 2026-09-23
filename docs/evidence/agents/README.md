@@ -1,4 +1,4 @@
-# M2 evidence — agent stack (v0 loop → v50 the durable arc names its decider → v51 the host keeps its own spawn record; all ADR 0016 amendments)
+# M2 evidence — agent stack (v0 loop → v50 the durable arc names its decider → v51 the host keeps its own spawn record → v54 the run line answers for its own gates; all ADR 0016 amendments)
 
 All checks are headless, offline, key-free, and reproducible from the repo root. Nothing here
 claims model-quality planning or neural retrieval (§60): the planner is a deterministic
@@ -15,7 +15,8 @@ one HUMAN seed commit inside a throwaway `os.tmpdir()` repo and then stage (neve
 content they measure, `commit-proof.mjs` + `greencommit-proof.mjs`
 + `gitlog-proof.mjs` + `confirm-proof.mjs` + `remember-proof.mjs` + `policygate-proof.mjs`
 + `show-proof.mjs` + `staged-proof.mjs` + `inspect-proof.mjs` + `intent-proof.mjs`
-+ `role-arc-proof.mjs` + `durable-arc-proof.mjs` + `receipts-proof.mjs` + `spawnlog-proof.mjs` perform REAL `git commit`s (and since v37/v38
++ `role-arc-proof.mjs` + `durable-arc-proof.mjs` + `receipts-proof.mjs` + `spawnlog-proof.mjs`
++ `runreceipts-proof.mjs` perform REAL `git commit`s (and since v37/v38
 real `git log` read-backs — v38's for the first time driven by `runTask` itself, not a
 hand-called tool; v39's runTask additionally writes a REAL in-process `MemoryStore`; v42 adds a real
 `git show` content read-back and v43 a real `git diff --cached` index read, both HUMAN-staged
@@ -30,7 +31,10 @@ trail is a real `node:fs` JSONL file — created inside that same throwaway repo
 where the file is written by the HOST itself rather than by a caller that remembered to, it records
 the REFUSALS no ledger line ever mentioned, and it deliberately lives in a sibling tmp directory
 OUTSIDE the repo git is watching — because §9 caught that a journal inside the watched tree becomes
-an untracked file that git then reports about itself) — only inside throwaway `os.tmpdir()` repos
+an untracked file that git then reports about itself; v54's `runreceipts-proof.mjs` walks the same
+four doors and is the first where the RUN line's own gates live in that same file — who allowed the
+write that the commit recorded, checked not against the runtime's memory but against the workspace the
+granted write changed and the commits `git rev-list` counts) — only inside throwaway `os.tmpdir()` repos
 with hooks/signing neutralized LOCALLY there, never in this repository — still offline,
 still key-free, and everything else in the stack spawns nothing. `config-proof.mjs` (v46) is
 the one place here where a proof DELIBERATELY makes git execute a program: its unpinned
@@ -42,7 +46,7 @@ same file is then asserted to run ZERO programs.
 ## Reproducible gates
 
 ```
-npm test          # turbo: @nexus/agent-runtime 305/305 + @nexus/exec-host 137/137 vitest among all packages
+npm test          # turbo: @nexus/agent-runtime 323/323 + @nexus/exec-host 137/137 vitest among all packages
 npm run build     # tsc dist for agents/runtime + agents/exec-host (build order via ^build deps)
 node docs/evidence/agents/agent-proof.mjs
 node docs/evidence/agents/code-index-proof.mjs   # requires `npm run build` first
@@ -84,6 +88,7 @@ node docs/evidence/agents/budgets-proof.mjs        # requires `npm run build` fi
 node docs/evidence/agents/durable-arc-proof.mjs    # requires `npm run build` first (v49: the real `runRoleChain` writes a real `node:fs` JSONL ledger INSIDE a throwaway os.tmpdir repo and a cold reader replays it — the durable commit hash compared against `git rev-parse HEAD` measured OUTSIDE the loop, a veto durable AS stopped, a red chain's refusal durable as a refusal at zero spawns, a hand-forged arc line counted as `malformed` while the good lines keep loading)
 node docs/evidence/agents/receipts-proof.mjs       # requires `npm run build` first (v50: the same face, now answering WHO allowed each door — 4 durable §28 receipts ↔ 4 doors ↔ 4 counted git processes ↔ HEAD, one row veto's reason read back verbatim beside the commit it could not undo, a closed table's receipt naming `default`, a bare-closure face that can only say it keeps no list, and a forged half-receipt that makes its whole line junk)
 node docs/evidence/agents/spawnlog-proof.mjs       # requires `npm run build` first (v51: 4 REAL git processes ↔ 4 host-written journal lines whose argv is byte-identical to a counting spawn seam, PLUS the refusals no ledger line ever mentioned — a human-yes/policy-no `git push` that spent 0 processes, a §28 veto that costs 0 lines, and a cold reader given nothing but the file)
+node docs/evidence/agents/runreceipts-proof.mjs    # requires `npm run build` first (v54: the SAME chain, now answering for the run's own gates — 2 run receipts + 4 arc receipts + 1 unowned brief = 7 face gates as a set equation, a vetoed `test.run` durable with the human's sentence beside a grant it cannot erase at 0 processes and 0 commits, one exported note sentence living in `decisionsNote` on one line and `notes` on the next, and a reader that re-derives ownership instead of trusting the writer — a receipt for a call the line never made is junk on BOTH kinds)
 ```
 
 A note on `spawns[…]` assertions: they pin the argv SHAPE a plan step is allowed to produce
@@ -99,14 +104,14 @@ the SHAPE around it. One source, and no way for a loosening to look like a refac
 ## Unit tests (vitest, `agents/runtime/test`)
 
 The parenthesized counts below are the committed state, and they are checkable rather than
-decorative: the runtime rows sum to exactly **305** (25 files) and the `exec-host/*` rows to exactly
+decorative: the runtime rows sum to exactly **323** (25 files) and the `exec-host/*` rows to exactly
 **137** (8 files) — the same totals `npm test` prints. A row whose number drifts from its file is a
 documentation bug, so an increment that adds a case updates its row in the same commit.
 
 | File | Covers |
 | ---- | ------ |
 | `registry.test.ts` (7) | arg validation (missing/unknown/type), unknown tool, checkpoint required for write/exec, deny ⇒ implementation never runs, approve ⇒ runs, impl throw ⇒ `ok:false` (never rejects), double-register refused |
-| `checkpointPolicy.test.ts` (8) | v40: first-match-wins ordering, `matchesTool` glob semantics shared with role scoping (`fs.*`, `*`), unmatched ⇒ EXPLICIT default (never an invented verdict), `decide` purity (byte-identical JSON, policy not mutated), `validateCheckpointPolicy` rejection matrix (missing reason / empty pattern / non-boolean grant / duplicate pattern = dead rule / mute default) thrown at CONSTRUCTION, `policyCheckpoint` receipts in executed order quoting rule reasons verbatim, registry contract unchanged (policy denial == `denied at checkpoint (write)`), runTask end-to-end through policy gates (granted work STANDS under a later veto; read steps produce NO verdicts — §28 gates hands, not eyes) |
+| `checkpointPolicy.test.ts` (13) | v54: `receiptsOrNote` answering for BOTH record kinds from one function (an owned call in ⇒ one receipt out, and the face's OTHER decision — same tool, different stage — stays off the line), `gatedCallIds` naming only calls whose tool carries a DANGEROUS permission in the registry that record acted through (reads never acquire a receipt, and a scoped view cannot borrow the host's wider list), the clone-out and the three silences told apart (owned-empty with no sentence / empty plus the one exported sentence / nothing gated ⇒ no sentence at all); v40: first-match-wins ordering, `matchesTool` glob semantics shared with role scoping (`fs.*`, `*`), unmatched ⇒ EXPLICIT default (never an invented verdict), `decide` purity (byte-identical JSON, policy not mutated), `validateCheckpointPolicy` rejection matrix (missing reason / empty pattern / non-boolean grant / duplicate pattern = dead rule / mute default) thrown at CONSTRUCTION, `policyCheckpoint` receipts in executed order quoting rule reasons verbatim, registry contract unchanged (policy denial == `denied at checkpoint (write)`), runTask end-to-end through policy gates (granted work STANDS under a later veto; read steps produce NO verdicts — §28 gates hands, not eyes) |
 | `workspace.test.ts` (4) | sorted/prefix listing, case-insensitive 1-based `search`, append/missing-file throw, registry wiring incl. gated `fs.write` |
 | `agent.test.ts` (44) | stopword-aware keyword, plan determinism + seed stamp, golden path event order + `@search.hits.0.path` dataflow + note in file, denial leaves file untouched, failing verify → 1 fix round → pass, persistent failure → `failed_verification` after `maxFixRounds`, `maxSteps` → `budget_exhausted`, planner routes step 0 through `fs.index` when registered, warm memory outranks the index (`memory.recall` first), snapshot hook yields an observed changeSet (absent without hook); v36: `hasCommit` appends the commit step ONLY behind a verify step (and deterministically), a green run reaches it with the planned message, checkpoint DENY ⇒ status denied with earlier work standing and zero commits, green AFTER a fix round still commits with fix steps never re-run (execution order asserted), a red run never commits, a throwing commit tool is honest non-green; v38: `hasConfirm` trails a `git.log` step after the commit and NEVER plans one without a commit (or without verify — nested tail, determinism asserted), green ends commit→confirm in executed order, green-after-fix reaches confirm too, DENIED confirm ⇒ status denied while the landed commit's ok:true result STANDS a slot earlier, a throwing `git.log` is honest non-green; v39: `hasRemember` trails `memory.save` ONLY after the confirmed commit (all three tier-removals omit it, refs/targetPath arg shapes, determinism), a green run ends commit→confirm→remember with the planned `@search.hits.0.path` resolved INSIDE the array arg to the live path, green-after-fix remembers once, DENIED confirm means nothing to remember (0 saves), DENIED remember leaves commit+confirm standing and the store empty, a throwing `memory.save` is honest non-green; v44: `hasContent` trails a `git.show` inspect AFTER the hash confirm and BEFORE remember (nested tail — pull commit, confirm or verify and the content step vanishes with it; the planned `{path:'@search.hits.0.path'}` becomes the LIVE hit, and a `targetPath` task plans that path instead), green ends commit→confirm→inspect in executed order, the remembered summary still asserts NO content (never the word `CONTENT` — §60: memory keeps only what v39 could prove), DENIED inspect ⇒ status denied with the landed+confirmed arc standing a slot earlier, git answering "touches nothing" is DATA the walk completes on, a throwing `git.show` is honest non-green, a red run plans the tail and spends none of it; v45: `hasStaged` reads the index BEFORE the commit and NEVER without one, every exec step is its own §28 gate with the intent asked first, a DENIED index read stops the walk before the write, an EMPTY index is stated DATA that the static plan still walks into (§60 limit pinned), a throwing `git.staged` means a commit nobody could inspect never rides quietly, and a run that never verifies green never reads the index at all |
 | `codeIndex.test.ts` (7) | extension → kind, TS symbol + markdown heading extraction, heading-section vs 40-line-window chunking, sorted file entries + coverage, hybrid query ranks the relevant chunk first and is deterministic, symbol query finds its file, empty index → no hits |
@@ -114,16 +119,16 @@ documentation bug, so an increment that adds a case updates its row in the same 
 | `memory.test.ts` (10) | save/list/recall scoping, deterministic tie-broken recall bounded by k, forget/clear counts, clone-in/clone-out immutability, registry round-trip with `"path:startLine"` refs, denied `memory.save` leaves memory empty + arg validation; v6 `compact()`: ≥50% ref-overlap merges within scope (listed, idempotent), cross-scope isolation; v19: `recallVectors` equals inline recall exactly, and `memory.recall` states its `engine` with the vector path surviving a fresh store |
 | `embedding.test.ts` (4) | tokenizer rules, zero-shared-tokens ⇒ score exactly 0, more shared tokens ⇒ strictly higher, unit-length embeddings |
 | `changes.test.ts` (8) | LCS patch round-trip forward/inverse, no-op patch, create/remove all-add/all-del, mismatched input refuses, sorted changed-paths change set, unified-diff headers/hunk ranges/context, whole-snapshot round-trip through patches |
-| `ledger.test.ts` (10) | RunOutcome JSONL round-trip + junk rejection with reasons, append-only growth with parent mkdir, order + malformed counting + `last` tail trim + missing-file empty read; v49: an arc record round-trips through one line (walk, callIds and git's answers included), a line that CLAIMS `kind:'git-arc'` is shape-checked before it is believed (unknown status / non-array parts / missing role / non-demo provenance ⇒ `not a complete git-arc record`, never promoted into `runs`), one stream with two kinds keeps append order and `last` trims trailing RECORDS across kinds, the arc joins its run by `runId` while the run line still holds no git step (§60 anti-fold on disk), and a pre-v49 file gains `arcs: []` and nothing else; v50: complete receipts round-trip and an EMPTY list is data about a walk that gated nothing, a half-recorded decision (no reason, no verdict, no `call.callId`) makes the WHOLE line malformed, and a veto's reason reads back off the file |
+| `ledger.test.ts` (15) | v54: the run line held to the arc line's standard — `decisions`/`decisionsNote` round-trip for both verdicts, the same half-receipt matrix is malformed on either kind, `receiptsOwned` rejects a COMPLETE receipt naming a call the record never made (in both directions, and one genuine receipt plus one borrowed one still condemns the whole line), a run line and an arc line from one chain each answer for their own calls and the two lists are disjoint; v49/v50 fixtures now show records that MADE the calls they answer for; RunOutcome JSONL round-trip + junk rejection with reasons, append-only growth with parent mkdir, order + malformed counting + `last` tail trim + missing-file empty read; v49: an arc record round-trips through one line (walk, callIds and git's answers included), a line that CLAIMS `kind:'git-arc'` is shape-checked before it is believed (unknown status / non-array parts / missing role / non-demo provenance ⇒ `not a complete git-arc record`, never promoted into `runs`), one stream with two kinds keeps append order and `last` trims trailing RECORDS across kinds, the arc joins its run by `runId` while the run line still holds no git step (§60 anti-fold on disk), and a pre-v49 file gains `arcs: []` and nothing else; v50: complete receipts round-trip and an EMPTY list is data about a walk that gated nothing, a half-recorded decision (no reason, no verdict, no `call.callId`) makes the WHOLE line malformed, and a veto's reason reads back off the file |
 | `gitArc.test.ts` (29) | v47: the nesting as ONE piece of data (`gitArcDoors` — no commit door ⇒ no arc; intent read precedes the commit it informs; hash after the commit; content after the hash; every subset ordered and never orphaned), an ANTI-DRIFT table running eight presence combinations through `planTask` and `gitArcSteps` demanding `deepEqual` (two copies of an order is an order waiting to drift), deferred `@ref` path tokens passing through UNtouched, `git.commit` asking for the human-staged index with no conditionals; `runGitArc` walks whatever registry it is handed — one §28 gate PER door (never a blanket approval), a denial stops at that door while the grants before it STAND, no checkpoint at all stops at the first door with a stated reason, git answering red is DATA the walk completes on (parity with the plan face), a throwing door stops the walk with git's words preserved, a content door with no live path is SKIPPED with a note while an absent door needs none (capability by absence is the scope's business); v50: a durable walk carries its own §28 receipts (rule, verdict, reason, in ask order), matched by CALL ID so an earlier stage's gate on the SAME tool cannot be pasted on, cloned out of the face so a running process cannot rewrite what it reported, `[]` + `NO_RECEIPTS_NOTE` for a face that keeps no list, `[]` and no note for a walk that gated nothing, and NO field at all when nothing is headed for a ledger |
 | `roles.test.ts` (11) | `matchesTool` glob semantics, scope projection exposes/excludes (unknown ≠ denied), child copy can't mutate parent, role register unique + sorted list + ghost role ⇒ empty, researcher-vs-editor write behavior, plan tier follows role capabilities, capability gap fails honestly leaving files untouched; v47: exactly ONE demo role can see a git door (`releaser`) and the arc refuses to run through the `editor` scope; v49: that role's grant is DERIVED from `GIT_ARC_TOOLS`, so the name on a ledger line cannot name a privilege the registry never gave |
 | `evaluate.test.ts` (5) | clean run scores 1 with named marks, failures degrade by weight (deterministic), last verify decides, change-economy budget option, append/reload order + corrupt-file reasons |
-| `pipeline.test.ts` (5) | researcher→editor handoff happy path (refs from `fs.index`, editor plans memory-first, score 1), denied checkpoint leaves the handoff real but the run denied, durable mode writes memory+ledger+evaluation JSONL that reload cold, missing research tool ⇒ stated reason (no invented refs), full determinism across identical pipelines |
+| `pipeline.test.ts` (8) | v54: the two-role face gets the same durable answer the chain learned in v50 — the stored run line names the rule behind each of ITS two gates (and `results.length > decisions.length`, because reads were never gated), a bare closure stores the one note sentence, and an in-memory pipeline carries NEITHER field; researcher→editor handoff happy path (refs from `fs.index`, editor plans memory-first, score 1), denied checkpoint leaves the handoff real but the run denied, durable mode writes memory+ledger+evaluation JSONL that reload cold, missing research tool ⇒ stated reason (no invented refs), full determinism across identical pipelines |
 | `domkit.test.ts` (5) | v16/v20 DOM driver kit: `ui.observe` is read-only and indexed, `click`/`type` are exec-gated (no checkpoint ⇒ nothing happens), approved actions flow through the injected driver and log, out-of-range/wrong-kind targets fail as RESULTS rather than throwing, `findLabel` total + deterministic |
 | `vectordb.test.ts` (4) | build sorts + dim-checks, persist→cold reload ranking bit-identical to inline hybridScore + zero-match empty, filterIds + determinism, rejection matrix (bad JSON/version/dim/entries/missing file) |
 | `planBackend.test.ts` (7) | valid provider plan adopted end-to-end (backend stamped, @refs resolved), unknown tool/dup id/object args/empty/oversize/non-object rejections, throwing provider falls back with stated reason, default = demo with no fallback field |
 | `visualQa.test.ts` (5) | clean layout ok, zero-size/off-page/overlap detection with severities, error-before-warn deterministic ordering, tolerances as explicit inputs, identical reports for identical inputs |
-| `chain.test.ts` (25) | four-stage researcher→designer→qa→editor order + handoff records, QA honest-empty without host rects, designer denial stops the chain naming its stage, determinism; v22: ui-driver editor stage drives observe→type→click→verify with `editor→host` engine handoff, per-action denial leaves the page unclicked and states the partial engine; v47: `release` is opt-out by default (without it the chain is byte-for-byte the v14/v22 chain), a green chain walks all four doors through the `releaser` scope one gate each, the content door reads the path an EARLIER stage returned (never one this stage chose), a red chain never reaches the arc and the refusal names the editor's status, a veto at the content door stops the walk while the landed commit STANDS, a doorless host yields `no-arc` with no ask, and the arc is its OWN stage — the editor plan and results never claim git steps; v49: the chain writes its run line AND an arc line in that order joined by `runId`, the anti-fold holds on disk, a stopped arc is durable AS stopped, a red chain journals the release it was REFUSED, no `release` ⇒ one run line and no arc line, and append-only across two chains leaves four lines; v50: a policy face's verdicts land on the durable line (four receipts, all git, the face holding more than the arc claims), the veto's rule + reason survive in the file, `durability is what asks for receipts` (the same policy with no ledger path writes the v47 shape), a face that keeps no list states that on the line instead of leaving a gap, and a red chain gated NOTHING so its durable no-arc line carries `[]` and no note |
+| `chain.test.ts` (30) | v54: the durable run line carries its OWN two gates and no git door, the arithmetic of one chain closes (face decisions = journaled + the designer's unowned brief, counted rather than waved), a veto of the run's own verification is durable with its reason beside a grant it cannot erase while the arc's `[]` is empty because nothing was gated, not durable ⇒ neither field on either kind, and a bare closure says the same sentence on both kinds of line; four-stage researcher→designer→qa→editor order + handoff records, QA honest-empty without host rects, designer denial stops the chain naming its stage, determinism; v22: ui-driver editor stage drives observe→type→click→verify with `editor→host` engine handoff, per-action denial leaves the page unclicked and states the partial engine; v47: `release` is opt-out by default (without it the chain is byte-for-byte the v14/v22 chain), a green chain walks all four doors through the `releaser` scope one gate each, the content door reads the path an EARLIER stage returned (never one this stage chose), a red chain never reaches the arc and the refusal names the editor's status, a veto at the content door stops the walk while the landed commit STANDS, a doorless host yields `no-arc` with no ask, and the arc is its OWN stage — the editor plan and results never claim git steps; v49: the chain writes its run line AND an arc line in that order joined by `runId`, the anti-fold holds on disk, a stopped arc is durable AS stopped, a red chain journals the release it was REFUSED, no `release` ⇒ one run line and no arc line, and append-only across two chains leaves four lines; v50: a policy face's verdicts land on the durable line (four receipts, all git, the face holding more than the arc claims), the veto's rule + reason survive in the file, `durability is what asks for receipts` (the same policy with no ledger path writes the v47 shape), a face that keeps no list states that on the line instead of leaving a gap, and a red chain gated NOTHING so its durable no-arc line carries `[]` and no note |
 | `visualQa.test.ts` +contrast (3) | black/white passes, grey pair flags warn, rgb()/rgba() parse, junk colors yield no flag, 21:1 math |
 | `visualQa.test.ts` +near-miss (6) | v24: default OFF (no opt-in no flags), 3px pair flags once with real px gaps in detail, boundaries (exact 0 passes, >tol passes, ==tol flags), near-center 2px-off vs exact/edge-touching, zero-size+off-page rects never collect near-miss noise, determinism |
 | `visualQa.test.ts` +even-gap (6) | v26: default OFF, exactly-even spacing passes with the rule ON, a 1px-wobble row flags once per axis naming run+gaps+spread, boundaries (spread ==tol flags, >tol passes, 2-rect chain is not a distribution), non-positive gaps keep the chain in overlap territory, a zero-size member breaks the usable chain, determinism |
@@ -1102,6 +1107,49 @@ journal inside the watched tree is an untracked file that git then reports about
 Home HEAD byte-identical; repo and journal deleted in `finally`; `git push` never happens and
 staging stays a human act.
 
+## Run-receipts proof (`runreceipts-proof.mjs`, M2 v54 — the run line answers for its own gates)
+
+41st script in this directory (40 before it; the exec-host lane's `spawnlog-proof.mjs` took 40th).
+v50's honest-bounds list ended with its own replacement: "the editor's `fs.append` and `test.run`
+gates are still nowhere in the file, since the anti-fold cuts both ways." So a cold reader of
+`nexus-chain-ledger.jsonl` could ask WHO allowed the commit and read a receipt, and ask who allowed
+the WRITE that commit recorded and read nothing. Nothing about what the runtime decided changed; what
+changed is that the other half of the file became answerable.
+
+§1 keeps the rule in one place, which is the whole design claim: v50's private matcher was LIFTED out
+of `gitArc.ts` into `checkpointPolicy.ts` (`receiptsOrNote` + `gatedCallIds`, +9/−22 there, +43/−2
+here) rather than copied, because two matchers let `decisions: []` mean one thing on an arc line and
+another on a run line in the same file. Five calls of three permission classes gate THREE ids — a
+read-permission call cannot acquire a receipt, because §28 was never consulted for it — and a face
+holding two decisions yields ONE receipt, proving the paste runs in both directions now (v50 proved
+the arc cannot borrow a stage's yes; this proves a run cannot borrow the arc's, and vice versa). Then
+the ledger's side of it: `receiptsOwned` makes a receipt naming a call the record never made condemn
+the WHOLE line on EITHER kind. The runtime already derived receipts that way by construction — but
+construction is invisible to a reader, and v50's bound "a COMPLETE forged line is still believed" is
+only narrower once the file checks it.
+
+§2 runs the REAL chain over four keyed sandbox doors in a throwaway `os.tmpdir()` repo with a real
+`node:fs` ledger, and refuses to let the runtime grade its own homework: SIX sources must agree — the
+durable run line, the durable arc line, the decider's own list in ask order, the workspace the granted
+write actually changed, the git processes counted on the `spawnLike` seam, and the commits counted by
+`git rev-list` — with a seventh, the §26 memory file, read cold off real disk. The headline is
+arithmetic: **7 face gates = 2 run receipts + 4 arc receipts + 1 unowned brief**, pinned as a set
+equation and an order (`brief, annotate, verify, staged, commit, confirm, inspect`), because that
+single uncounted gate is the honest exception this amendment makes VISIBLE rather than the one it
+hides. A vetoed `test.run` (2b) is durable with the human's sentence beside a grant it cannot erase,
+at zero processes and zero commits, while the arc's `[]` sits on the next line as the third kind of
+emptiness — nothing gated, not nothing said, and no note owed. A chain with no ledger file (2c) gains
+neither field and no line in the file; a bare closure (2d) puts one exported sentence in
+`decisionsNote` on the run line and in `notes` on the arc line while spending the same four processes
+and landing the same hash. Home HEAD byte-identical; repo, ledger and memory file deleted (§9);
+`git push` never happens and staging stays a human act.
+
+Two costs are paid in this same commit rather than deferred. `receipts-proof.mjs`'s §1 fixture had an
+empty `results` beside one receipt — compact before, a paste now — so it learned to make the call it
+answers for; and its §2e tamper block grew a second forged line (`malformed 1 → 2`), one half-receipt
+and one complete-but-borrowed. A proof that encoded the looser contract had to be rewritten when the
+contract tightened: that is the price a gate change should pay in writing, not in surprises.
+
 ## Scope honesty
 
 §63/§26 items *not* implemented (stated, not faked): general real-fs write tools (only
@@ -1139,9 +1187,12 @@ and v47 gave the whole arc its ONLY owner (`releaser`: exactly the four doors, n
 push, no `memory.save`, so it cannot journal its own success) behind an EXPLICIT host flag
 (`ChainOptions.release`) — nothing in the Studio dock sets it, so the dock still cannot commit and
 no UI pretends otherwise (§60); v49 made a chained arc durable in the ledger and v50 made the §28
-receipts for its own doors durable beside it, but `loadLedger().arcs` still has no reader in the
-browser, so that history is machine-checkable and not yet human-visible (§60 again — no panel
-pretends); and v51 moved journalling INTO the host — every `run()` outcome, refusals included, is
+receipts for its own doors durable beside it, and v54 gave the RUN line its own receipts on the same
+terms — but `loadLedger().arcs` still has no reader in the browser and nothing renders `decisions` on
+either kind, so that history is machine-checkable and not yet human-visible (§60 again — no panel
+pretends). One gate is still journaled nowhere, and v54 is what makes it countable: a chained stage's
+own call (the designer's `${id}:brief`, a gated `fs.append`) belongs to no `RunOutcome` and no arc, so
+the honest fix is a THIRD record kind for stage-level calls, not a paste onto someone else's line; and v51 moved journalling INTO the host — every `run()` outcome, refusals included, is
 now its own durable event when a caller passes a sink — but no host anywhere in this repo is built
 with one outside `spawnlog-proof.mjs` and the exec-host unit tests, nothing reads such a file in the
 browser, and the append is read-then-rewrite, so a crash mid-write can still cost the last line: the

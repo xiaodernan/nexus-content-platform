@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { ToolRegistry, type CheckpointRequest } from '../src/registry.js';
 import { InMemoryWorkspace, registerWorkspaceTools } from '../src/workspace.js';
-import { decide, policyCheckpoint, validateCheckpointPolicy, type CheckpointPolicy } from '../src/checkpointPolicy.js';
+import { decide, gatedCallIds, NO_RECEIPTS_NOTE, policyCheckpoint, receiptsOrNote, validateCheckpointPolicy, type CheckpointPolicy } from '../src/checkpointPolicy.js';
 import { runTask } from '../src/orchestrator.js';
 import type { AgentTask } from '../src/types.js';
 
@@ -106,5 +106,64 @@ describe('checkpoint policy (§28 as data)', () => {
     // only DANGEROUS calls ever reach a checkpoint — the two read steps produced no verdicts
     expect(opened.cp.decisions.map((d) => d.call.tool)).toEqual(['fs.append', 'test.run', 'git.commit']);
     // search+read are read-permission: the policy never spoke for them (§28 gates writes, not eyes)
+  });
+});
+
+/* ---- v54: the ownership rule lifted out of the git arc, so every record kind shares it ---- */
+
+describe('receiptsOrNote + gatedCallIds (v54)', () => {
+  const call = (id: string, tool: string) => ({ call: { callId: id, tool, args: {} }, permissions: ['write'] as ['write'] });
+
+  it('takes only the receipts whose call id this record issued, in the order they were asked', () => {
+    const cp = policyCheckpoint(POLICY);
+    cp(call('a:annotate', 'fs.append'));
+    cp(call('other:annotate', 'fs.append')); // an earlier stage of the same process, same tool
+    cp(call('a:write', 'fs.write'));
+    const owned = ['a:annotate', 'a:write'];
+    const { decisions, note } = receiptsOrNote(cp, owned);
+    expect(decisions.map((d) => d.call.callId)).toEqual(['a:annotate', 'a:write']);
+    expect(note).toBeUndefined();
+  });
+
+  it('hands out COPIES, so a running process cannot edit what a record already reported', () => {
+    const cp = policyCheckpoint(POLICY);
+    cp(call('a:annotate', 'fs.append'));
+    const { decisions } = receiptsOrNote(cp, ['a:annotate']);
+    const before = JSON.stringify(decisions);
+    cp.decisions[0]!.granted = false;
+    cp.decisions[0]!.reason = 'rewritten after the fact';
+    expect(JSON.stringify(decisions)).toBe(before);
+  });
+
+  it('an empty list from a face that KEEPS one is a fact, not a gap needing a sentence', () => {
+    const cp = policyCheckpoint(POLICY);
+    cp(call('elsewhere:x', 'fs.append'));
+    const { decisions, note } = receiptsOrNote(cp, ['a:nothing-mine']);
+    expect(decisions).toEqual([]);
+    expect(note).toBeUndefined();
+  });
+
+  it('three silences stay three different answers: no list + gates ⇒ note, no list + no gates ⇒ quiet', () => {
+    const bare = () => true;
+    expect(receiptsOrNote(bare, ['a:annotate'])).toEqual({ decisions: [], note: NO_RECEIPTS_NOTE });
+    expect(receiptsOrNote(undefined, ['a:annotate'])).toEqual({ decisions: [], note: NO_RECEIPTS_NOTE });
+    expect(receiptsOrNote(bare, [])).toEqual({ decisions: [] });
+    // A walk of pure reads asked §28 nothing, so an empty list IS the whole report (§60).
+    expect(receiptsOrNote(bare, []).note).toBeUndefined();
+  });
+
+  it('gatedCallIds counts the calls §28 would actually have seen — absence is not a denial', () => {
+    const reg = new ToolRegistry();
+    reg.register({ name: 'fs.read', description: '', permissions: ['read'], args: [] }, () => 'x');
+    reg.register({ name: 'fs.append', description: '', permissions: ['write'], args: [] }, () => 'x');
+    reg.register({ name: 'test.run', description: '', permissions: ['exec'], args: [] }, () => 'x');
+    const calls = [
+      { callId: 'r:search', tool: 'fs.read' },
+      { callId: 'r:annotate', tool: 'fs.append' },
+      { callId: 'r:verify', tool: 'test.run' },
+      { callId: 'r:ghost', tool: 'git.commit' }, // not in THIS scope: capability by absence (§24)
+    ];
+    expect(gatedCallIds(reg, calls)).toEqual(['r:annotate', 'r:verify']);
+    expect(gatedCallIds(reg, [])).toEqual([]);
   });
 });

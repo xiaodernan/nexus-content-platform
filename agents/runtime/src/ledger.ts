@@ -49,7 +49,14 @@ function isRunOutcome(o: Partial<RunOutcome>): o is RunOutcome {
     Array.isArray(o.plan?.steps) &&
     Array.isArray(o.results) &&
     Array.isArray(o.events) &&
-    o.provenance?.mode === 'demo'
+    o.provenance?.mode === 'demo' &&
+    // v54: the run line is held to the SAME standard as the arc line — a half-recorded decision
+    // ("granted", no reason) is malformed, not merely thin, a note that is not a sentence is not a
+    // note, and a receipt for a call this record never made is not a receipt but a paste. Absent
+    // means pre-v54 (or non-durable), which still parses.
+    (o.decisions === undefined || (Array.isArray(o.decisions) && o.decisions.every(isReceipt))) &&
+    receiptsOwned(o.results, o.decisions) &&
+    (o.decisionsNote === undefined || typeof o.decisionsNote === 'string')
   );
 }
 
@@ -64,6 +71,18 @@ function isReceipt(d: Partial<CheckpointDecision> | undefined): d is CheckpointD
   );
 }
 
+/**
+ * A record may only answer for the calls IT made (M2 v54). `results` is each record's own transcript
+ * of what it invoked, so a receipt whose call id is not in that transcript is the line claiming
+ * authority over a call it never issued — the paste a reader cannot see from the outside. The runtime
+ * already derives receipts this way; checking it here means a cold reader no longer has to trust that.
+ */
+function receiptsOwned(results: readonly { callId: string }[] | undefined, decisions: readonly CheckpointDecision[] | undefined): boolean {
+  if (decisions === undefined) return true;
+  const made = new Set((results ?? []).map((r) => r.callId));
+  return decisions.every((d) => made.has(d.call?.callId));
+}
+
 function isArcShape(a: Partial<GitArcOutcome> | undefined): a is GitArcOutcome {
   return (
     !!a &&
@@ -73,8 +92,10 @@ function isArcShape(a: Partial<GitArcOutcome> | undefined): a is GitArcOutcome {
     Array.isArray(a.notes) &&
     // v50: a walk that CLAIMS its §28 receipts must claim COMPLETE ones. A half-recorded decision
     // ("granted", no reason) is exactly the document an auditor is later told to trust, so it is
-    // malformed rather than trusted — same rule as the arc around it.
+    // malformed rather than trusted — same rule as the arc around it. v54 adds the ownership half of
+    // that rule: the receipts must name doors this arc's own transcript shows it knocked on.
     (a.decisions === undefined || (Array.isArray(a.decisions) && a.decisions.every(isReceipt))) &&
+    receiptsOwned(a.results, a.decisions) &&
     (a.status === 'completed' || a.status === 'stopped' || a.status === 'no-arc')
   );
 }

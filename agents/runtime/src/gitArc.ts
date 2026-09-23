@@ -1,3 +1,4 @@
+import { receiptsOrNote } from './checkpointPolicy.js';
 import type { Checkpoint, ToolRegistry } from './registry.js';
 import type { CheckpointDecision } from './checkpointPolicy.js';
 import type { Step, ToolResult } from './types.js';
@@ -128,24 +129,11 @@ export interface GitArcOutcome {
   decisions?: CheckpointDecision[];
 }
 
-/** Stated in `notes` when a durable walk cannot name its decider — never a silent empty list. */
-export const NO_RECEIPTS_NOTE =
-  '§28 receipts unavailable: the checkpoint handed to this chain keeps no audit list the runtime can read, so this line carries git\'s answers without the decider\'s reason (§60)';
-
 /**
- * The receipts belonging to one walk, taken from a checkpoint that keeps them (v40's
- * `policyCheckpoint` exposes `.decisions`; a bare closure does not). Matched by CALL ID, not by
- * tool name: the same tool can be gated by another stage of the same chain, and a receipt from the
- * editor's `test.run` pasted onto the arc would be a borrowed alibi. `undefined` means the face
- * records nothing at all — distinct from `[]`, which means it recorded every ask and none was this
- * arc's.
+ * The receipts belonging to one walk live in `receiptsOrNote` (v54 lifted them out of this module so
+ * the durable RUN line could be answered by the same ownership rule): matched by CALL ID, cloned out
+ * of the face, and explained when the face keeps no list.
  */
-function receiptsFor(checkpoint: Checkpoint | undefined, callIds: string[]): CheckpointDecision[] | undefined {
-  const decisions = (checkpoint as (Checkpoint & { decisions?: CheckpointDecision[] }) | undefined)?.decisions;
-  if (!Array.isArray(decisions)) return undefined;
-  const owned = new Set(callIds);
-  return decisions.filter((d) => owned.has(d.call?.callId)).map((d) => structuredClone(d));
-}
 
 /**
  * Walk the git arc through whatever registry the caller holds — used by the role-chain release
@@ -178,15 +166,14 @@ export async function runGitArc(registry: ToolRegistry, opts: GitArcOptions): Pr
   const steps = gitArcSteps({ present, message: opts.message, showPath: opts.showPath ?? '' });
   const callIds = steps.map((s) => `${opts.callId}:${s.stepId}`);
   /**
-   * A durable walk answers WHO allowed each door, not merely that it opened. `decisions` arrives
-   * only from a face that keeps a list (v40's policy checkpoint); a face that keeps none gets a
-   * note, because a silently absent field would read as "no decisions were made".
+   * A durable walk answers WHO allowed each door, not merely that it opened — and the three answers
+   * (its own receipts / an empty list plus the reason / an empty list it owes nothing for) come from
+   * the same function the run line uses in v54, so "empty" cannot mean two things in one file.
    */
   const durable = (o: GitArcOutcome): GitArcOutcome => {
     if (!opts.recordReceipts) return o;
-    const decisions = receiptsFor(opts.checkpoint, callIds);
-    if (decisions) return { ...o, decisions };
-    return { ...o, decisions: [], notes: [...o.notes, NO_RECEIPTS_NOTE] };
+    const { decisions, note } = receiptsOrNote(opts.checkpoint, callIds);
+    return { ...o, decisions, notes: note ? [...o.notes, note] : o.notes };
   };
   const results: ToolResult[] = [];
   for (const step of steps) {

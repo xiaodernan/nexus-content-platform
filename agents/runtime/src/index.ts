@@ -14,7 +14,7 @@ export {
   type QueryHit,
 } from './codeIndex.js';
 export { ToolRegistry, DANGEROUS, matchesTool, type Checkpoint, type CheckpointRequest, type ToolImpl, type InvokeOptions } from './registry.js';
-export { validateCheckpointPolicy, decide, policyCheckpoint, type CheckpointRule, type CheckpointPolicy, type CheckpointDecision } from './checkpointPolicy.js';
+export { validateCheckpointPolicy, decide, policyCheckpoint, receiptsOrNote, gatedCallIds, NO_RECEIPTS_NOTE, type CheckpointRule, type CheckpointPolicy, type CheckpointDecision, type ReceiptState } from './checkpointPolicy.js';
 export { RoleRegistry, DEMO_ROLES, type RoleDefinition } from './roles.js';
 export {
   runRoleChain,
@@ -174,7 +174,6 @@ export {
   gitArcSteps,
   runGitArc,
   RELEASE_ROLE,
-  NO_RECEIPTS_NOTE,
   type GitArcOptions,
   type GitArcOutcome,
   type GitArcPresence,

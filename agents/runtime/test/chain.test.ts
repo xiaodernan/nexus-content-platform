@@ -3,7 +3,8 @@ import { ToolRegistry } from '../src/registry.js';
 import { InMemoryWorkspace, registerWorkspaceTools } from '../src/workspace.js';
 import { MemoryStore, registerMemoryTools } from '../src/memory.js';
 import { RoleRegistry, DEMO_ROLES } from '../src/roles.js';
-import { GIT_ARC_TOOLS, NO_RECEIPTS_NOTE, RELEASE_ROLE } from '../src/gitArc.js';
+import { GIT_ARC_TOOLS, RELEASE_ROLE } from '../src/gitArc.js';
+import { NO_RECEIPTS_NOTE } from '../src/checkpointPolicy.js';
 import { policyCheckpoint } from '../src/checkpointPolicy.js';
 import { runRoleChain } from '../src/pipeline.js';
 import { loadLedger, parseLedgerLine } from '../src/ledger.js';
@@ -537,6 +538,109 @@ describe('runRoleChain arc receipts on the ledger (v50)', () => {
     // An empty receipt list with zero asks is the truth, so no note is owed beside it.
     expect(durable.decisions).toEqual([]);
     expect(durable.notes).toEqual([]);
+  });
+});
+
+/* ---- v54: the RUN line answers for its own gates too, by the same rule ---- */
+
+/** The two calls the editor loop actually made, in the order §28 disposed of them. */
+const runCallIds = ['annotate', 'verify'].map((s) => `${task.id}:${s}`);
+const openRun = () => policyCheckpoint({ rules: [...STAGE_RULES, { tool: 'git.*', grant: true, reason: 'the release window is open today' }], default: { grant: false, reason: 'unlisted tools are refused' } });
+
+describe('runRoleChain run-line receipts (v54)', () => {
+  it('the durable run line carries its OWN two gates, naming the row that decided each', async () => {
+    const h = arcHost();
+    const disk = new MemDisk();
+    const cp = openRun();
+    const res = await runRoleChain(task, durableOptions(h, disk, cp));
+    expect(res.ok).toBe(true);
+    if (!res.ok) return;
+    const { runs, arcs, malformed } = loadLedger(disk, LEDGER);
+    expect(malformed).toBe(0);
+    const run = runs[0]!;
+    // v49's identity, now on the run face: the line in the file IS the outcome the caller got.
+    expect(run).toEqual(res.editorOutcome);
+    expect(run.decisions!.map((d) => d.call.callId)).toEqual(runCallIds);
+    expect(run.decisions!.map((d) => [d.call.tool, d.granted, d.matched, d.reason])).toEqual([
+      ['fs.append', true, 'fs.*', 'the demo workspace is open to every stage'],
+      ['test.run', true, 'test.run', 'verification is always welcome'],
+    ]);
+    // The arc's four doors are NOT folded in, though the same face decided them minutes earlier.
+    expect(run.decisions!.some((d) => d.call.tool.startsWith('git.'))).toBe(false);
+    expect(arcs[0]!.arc.decisions!.map((d) => d.call.callId)).toEqual(arcCallIds);
+    expect(new Set([...run.decisions!, ...arcs[0]!.arc.decisions!].map((d) => d.call.callId)).size).toBe(6);
+  });
+
+  it('the arithmetic of one chain: every gate lands on the record that owns it, and the brief on none', async () => {
+    const h = arcHost();
+    const disk = new MemDisk();
+    const cp = openRun();
+    const res = await runRoleChain(task, durableOptions(h, disk, cp));
+    expect(res.ok).toBe(true);
+    if (!res.ok) return;
+    const { runs, arcs } = loadLedger(disk, LEDGER);
+    const journaled = new Set([...runs[0]!.decisions!, ...arcs[0]!.arc.decisions!].map((d) => d.call.callId));
+    // The designer's brief WAS gated (it is a write) and appears in NO durable record: a chained
+    // stage's own call is neither the editor's plan nor the release's arc. Stated, not smoothed over.
+    expect(cp.decisions.map((d) => d.call.callId)).toContain(`${task.id}:brief`);
+    expect(journaled.has(`${task.id}:brief`)).toBe(false);
+    expect(cp.decisions.length).toBe(journaled.size + 1);
+    expect(cp.decisions.every((d) => d.call.callId === `${task.id}:brief` || journaled.has(d.call.callId))).toBe(true);
+  });
+
+  it('a veto of the run\'s OWN verification is recorded with its reason, beside a grant it cannot erase', async () => {
+    const h = arcHost();
+    const disk = new MemDisk();
+    // The veto REPLACES the `test.run` row rather than shadowing it — v40's validator refuses a
+    // duplicate pattern precisely because a shadowed rule is dead code nobody can see.
+    const vetoVerify = policyCheckpoint({
+      rules: [
+        { tool: 'test.run', grant: false, reason: 'this host runs no verification the agent may invoke' },
+        ...STAGE_RULES.filter((r) => r.tool !== 'test.run'),
+        { tool: 'git.*', grant: true, reason: 'the release window is open today' },
+      ],
+      default: { grant: false, reason: 'unlisted tools are refused' },
+    });
+    const res = await runRoleChain(task, durableOptions(h, disk, vetoVerify));
+    expect(res.ok).toBe(true); // the chain reports honestly: the stages ran, the run did not finish
+    if (!res.ok) return;
+    expect(res.editorOutcome.status).toBe('denied');
+    const { runs, arcs, malformed } = loadLedger(disk, LEDGER);
+    expect(malformed).toBe(0);
+    expect(runs[0]!.decisions!.map((d) => [d.call.tool, d.granted, d.matched])).toEqual([
+      ['fs.append', true, 'fs.*'],
+      ['test.run', false, 'test.run'],
+    ]);
+    expect(runs[0]!.decisions![1]!.reason).toBe('this host runs no verification the agent may invoke');
+    // The granted write stands in the receipts AND on disk: a later veto did not pretend otherwise.
+    expect(h.ws.read('docs/widget.md')).toContain('NOTE (DEMO MODE');
+    // Behind a red editor there is no arc — and its own empty list is the truth, not a gap.
+    expect(arcs[0]!.arc.status).toBe('no-arc');
+    expect(arcs[0]!.arc.decisions).toEqual([]);
+    expect(arcs[0]!.arc.notes).toEqual([]);
+  });
+
+  it('not durable ⇒ the run line carries nothing, exactly as the arc line learned in v50', async () => {
+    const h = arcHost();
+    const res = await runRoleChain(task, { ...arcOptions(h), checkpoint: openRun() });
+    expect(res.ok).toBe(true);
+    if (!res.ok) return;
+    expect('decisions' in res.editorOutcome).toBe(false);
+    expect('decisionsNote' in res.editorOutcome).toBe(false);
+    expect('decisions' in res.release!).toBe(false);
+  });
+
+  it('a face with no audit list says so on BOTH kinds of line, in the same sentence', async () => {
+    const h = arcHost();
+    const disk = new MemDisk();
+    const res = await runRoleChain(task, durableOptions(h, disk));
+    expect(res.ok).toBe(true);
+    if (!res.ok) return;
+    const { runs, arcs } = loadLedger(disk, LEDGER);
+    expect(runs[0]!.decisions).toEqual([]);
+    expect(runs[0]!.decisionsNote).toBe(NO_RECEIPTS_NOTE);
+    expect(arcs[0]!.arc.decisions).toEqual([]);
+    expect(arcs[0]!.arc.notes).toEqual([NO_RECEIPTS_NOTE]);
   });
 });
 

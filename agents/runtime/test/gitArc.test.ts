@@ -2,7 +2,8 @@ import { describe, expect, it } from 'vitest';
 import { ToolRegistry } from '../src/registry.js';
 import { policyCheckpoint } from '../src/checkpointPolicy.js';
 import { planTask } from '../src/planner.js';
-import { GIT_ARC_TOOLS, NO_RECEIPTS_NOTE, gitArcDoors, gitArcSteps, runGitArc, type GitArcPresence } from '../src/gitArc.js';
+import { GIT_ARC_TOOLS, gitArcDoors, gitArcSteps, runGitArc, type GitArcPresence } from '../src/gitArc.js';
+import { NO_RECEIPTS_NOTE } from '../src/checkpointPolicy.js';
 import type { AgentTask } from '../src/types.js';
 
 const TASK: AgentTask = { id: 'arc-1', goal: 'add widget docs', targetPath: 'docs/a.md' };

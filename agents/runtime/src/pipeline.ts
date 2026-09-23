@@ -1,4 +1,5 @@
 import { goalKeyword } from './planner.js';
+import { gatedCallIds, receiptsOrNote } from './checkpointPolicy.js';
 import { runGitArc, RELEASE_ROLE, type GitArcOutcome } from './gitArc.js';
 import { runTask } from './orchestrator.js';
 import { saveMemory, type FsWriteLike } from './durability.js';
@@ -61,6 +62,19 @@ interface RawHit {
   line?: number;
 }
 
+/**
+ * A run line headed for the ledger answers for its OWN gates (M2 v54, ADR 0016 amendment 54).
+ * v50 gave the arc line its receipts; this is the same rule on the other record kind, and the same
+ * function underneath, so `decisions: []` cannot mean one thing on an arc line and another on a run
+ * line. Ownership comes from the outcome's own `results` — the calls the loop actually made — so a
+ * chaining stage's brief and a release stage's doors stay off it by construction, not by vigilance.
+ * The returned outcome IS the line that gets appended: v49's identity, extended to the run face.
+ */
+function withRunReceipts(outcome: RunOutcome, registry: ToolRegistry, checkpoint: Checkpoint | undefined): RunOutcome {
+  const { decisions, note } = receiptsOrNote(checkpoint, gatedCallIds(registry, outcome.results));
+  return note ? { ...outcome, decisions, decisionsNote: note } : { ...outcome, decisions };
+}
+
 export async function runRolePipeline(task: AgentTask, opts: PipelineOptions): Promise<PipelineResult> {
   const scope = opts.scope ?? 'pipeline';
   const research = opts.roles.scopedRegistry('researcher', opts.registry);
@@ -91,12 +105,15 @@ export async function runRolePipeline(task: AgentTask, opts: PipelineOptions): P
   });
   const evaluation = scoreRun(editorOutcome);
 
+  // v54: only a line ABOUT to be stored carries receipts. An in-memory pipeline (the dock's face)
+  // keeps its pre-v54 outcome byte-for-byte — a receipt nobody reads is a cost with no benefit.
+  const runLine = opts.fsLike && opts.ledgerFile ? withRunReceipts(editorOutcome, editor, opts.checkpoint) : editorOutcome;
   if (opts.fsLike) {
-    if (opts.ledgerFile) appendLedger(opts.fsLike, opts.ledgerFile, editorOutcome);
+    if (opts.ledgerFile) appendLedger(opts.fsLike, opts.ledgerFile, runLine);
     if (opts.evaluationFile) appendEvaluation(opts.fsLike, opts.evaluationFile, evaluation);
   }
 
-  return { ok: true, provenance: PROVENANCE, handoff, editorOutcome, evaluation };
+  return { ok: true, provenance: PROVENANCE, handoff, editorOutcome: runLine, evaluation };
 }
 
 /* ---- v14: four-role chain (researcher → designer → qa → editor), §24/§25; v47 adds an opt-in fifth stage ---- */
@@ -147,6 +164,12 @@ export type ChainResult =
 export async function runRoleChain(task: AgentTask, opts: ChainOptions): Promise<ChainResult> {
   const scope = opts.scope ?? 'pipeline';
   const handoffs: ChainStageHandoff[] = [];
+  /**
+   * ONE durability question, asked once (v50/v54): a record headed for `ledgerFile` must answer for
+   * its own §28 gates; a record that exists only in the caller's memory answers for nothing, because
+   * nothing will read the answer. Both the run line and the arc line follow this one flag.
+   */
+  const durable = Boolean(opts.fsLike && opts.ledgerFile);
 
   // v22: a host-supplied driver grants the chain UI capabilities on a copy (scope(['*']) is
   // the existing full projection) — the caller's registry is never mutated. Roles without
@@ -203,9 +226,8 @@ export async function runRoleChain(task: AgentTask, opts: ChainOptions): Promise
     // v50: a walk headed for the ledger answers for its own gates, so the durable line and the
     // returned one carry the receipts together (v49's identity: the durable walk IS the returned
     // walk). Not durable ⇒ the v47/v49 outcome shape, byte for byte.
-    const durableArc = Boolean(opts.fsLike && opts.ledgerFile);
     release = editorOutcome.status !== 'completed'
-      ? { doors: [], steps: [], results: [], status: 'no-arc', notes: [], ...(durableArc ? { decisions: [] } : {}), reason: `the editor stage ended ${editorOutcome.status} — the arc lives behind verification (v36)` }
+      ? { doors: [], steps: [], results: [], status: 'no-arc', notes: [], ...(durable ? { decisions: [] } : {}), reason: `the editor stage ended ${editorOutcome.status} — the arc lives behind verification (v36)` }
       : await runGitArc(opts.roles.scopedRegistry(RELEASE_ROLE, host), {
           callId: `${task.id}:release`,
           message: `chore(agent): verified chain ${task.id} · seed ${editorOutcome.plan.seed}`,
@@ -213,7 +235,7 @@ export async function runRoleChain(task: AgentTask, opts: ChainOptions): Promise
           // hit the editor's search step actually returned. Never a path this stage invents.
           showPath: task.targetPath ?? (editorOutcome.results.filter((r) => r.callId.endsWith(':search')).at(-1)?.output as { hits?: RawHit[] } | undefined)?.hits?.[0]?.path,
           checkpoint: opts.checkpoint,
-          recordReceipts: durableArc,
+          recordReceipts: durable,
         });
     const walked = release.steps.map((s) => s.stepId).join('→');
     handoffs.push({ from: 'editor', to: RELEASE_ROLE, goal: task.goal, via: `git.arc:${release.doors.join('+') || 'none'}`, refs, runId: task.id });
@@ -230,9 +252,13 @@ export async function runRoleChain(task: AgentTask, opts: ChainOptions): Promise
     });
   }
 
+  // v54: the chain's run line gets the same treatment the arc line got in v50 — and from the same
+  // function, with the same ownership boundary. The editor's `test.run` and any `fs.append` fix step
+  // it walked through are THIS line's calls; the four git doors two lines below are not.
+  const runLine = durable ? withRunReceipts(editorOutcome, editor, opts.checkpoint) : editorOutcome;
   if (opts.fsLike) {
     if (opts.ledgerFile) {
-      appendLedger(opts.fsLike, opts.ledgerFile, editorOutcome);
+      appendLedger(opts.fsLike, opts.ledgerFile, runLine);
       // v49: the arc is a record too, written RIGHT AFTER the run it followed and joined to it by
       // `runId`. It is NOT merged into the run line above — that plan never held a git step (§60).
       // `release: true` is journaled even when it walked nothing: a cold reader should be able to
@@ -242,5 +268,5 @@ export async function runRoleChain(task: AgentTask, opts: ChainOptions): Promise
     if (opts.evaluationFile) appendEvaluation(opts.fsLike, opts.evaluationFile, evaluation);
   }
   if (opts.memoryFile && opts.fsLike) saveMemory(opts.store, opts.fsLike, opts.memoryFile);
-  return { ok: true, provenance: PROVENANCE, handoffs, qa, editorOutcome, evaluation, ...(release ? { release } : {}) };
+  return { ok: true, provenance: PROVENANCE, handoffs, qa, editorOutcome: runLine, evaluation, ...(release ? { release } : {}) };
 }
