@@ -1434,3 +1434,88 @@ policy, no argv, no exec-host or studio file moved._
   caller passed a ledger path, which is a real subtlety of the API and not a hidden one; nothing in
   the Studio dock renders `arcs` yet (§60: no panel pretends to); and DEMO MODE still plans by
   template — v50 made a decision auditable, it did not make the runtime make one.
+
+## Amendment 51 — v51 (exec-host): the host journals its own outcomes — a caller could forget `appendExecRun`, this cannot be forgotten, 2026-09
+
+_Sequencing note: this closes the bound v30 stated about itself. v30 shipped a JSONL writer
+(`appendExecRun`) and a reader (`loadExecRuns`) and wired neither: the measurement that chose this
+increment was a grep. `appendExecRun` had **zero** callers — only its own definition and a barrel
+export — while `host.run` had **seven** call sites, all inside this package (`execTestRunner`,
+`gitTools`, `gitCommitTool`, `gitLogTool`, `gitShowTool`, `gitStagedTool`, and the `exec.run` tool
+itself) — so "which processes actually ran, and which did you refuse?" was only
+inferable from parsing the doors' prose. No policy, no argv, no budget, no checkpoint and no door
+file moved._
+
+- **Journalling became a behavior of the host, not an API a caller may forget.** The fix is one
+  closure (`audit`) inside the one function every process is born through, called from every return
+  path in it. That is the whole design claim, and it is why the change is +88/−12 in ONE source file
+  instead of one line in each of seven callers: a door added next month cannot escape a record that
+  its own entry
+  point writes. It is also why the option is `journal?: ExecJournalRef` and **default OFF** — the
+  39 pre-existing headless proofs run hosts with no sink, so they are the assertion that nothing
+  else moved (all 39 still pass, byte-identical output).
+- **Every outcome is a record, refusals included.** A default-deny rejection, a `checkpoint required
+  for exec (§28)`, a `checkpoint denied`, and a completed run are all events the host knows about
+  and nobody else does. §3 of the proof asks for `git push` behind an **approving** checkpoint to
+  separate the two doors: the human said yes, the policy said no, and the line that lands carries
+  `rule: null, planned: false` and costs 0 processes. That is the record a reader most wants and the
+  one a per-tool caller would most likely skip.
+- **`ExecAuditRecord = ExecRunResult & { seq, rule }`, and the pair carries an invariant.** `rule` is
+  the index into `policy.allow` that authorized the argv, and `null` **if and only if**
+  `planned === false`. `isExecAuditRecord` re-checks that bidirectionally, so a line that claims a
+  matched rule while saying nothing was planned is rejected rather than believed; `seq` counts from 1
+  within one host instance and is incremented BEFORE the write, so a record that fails to land
+  leaves a gap — which is what a gap should mean.
+- **A sink that cannot write fails the CALL.** Loudly, on both paths, and with both facts in the
+  message: `exec audit failed for "git commit -m …" (the process ran and exited 0; the record did
+  not land)`. A host that was asked to keep an audit trail must not report success about something it
+  could not record — the alternative is a green result and a silently missing line, which is §60 in
+  the shape of a bug. Asserted against a throwing disk on the run path and the refusal path.
+- **Compatibility is one-directional, and the direction is stated.** A v51 line still loads under the
+  v30 reader (it is a superset; the extra fields ride past `isExecRunResult`). A v30 line does NOT
+  load under the v51 reader — it has no `seq`/`rule`, so it is counted `malformed`. That is the right
+  trade for a file with no product writers yet; it is not free, and a deployment that already has
+  v30-era journals must keep the old reader for them.
+- **40th proof `docs/evidence/agents/spawnlog-proof.mjs`.** One host holding six rules **derived from
+  the four shipped policy factories** (`gitStagedPolicy`'s two, `gitCommitPolicy`, `gitLogPolicy`,
+  `gitShowPolicy`, `gitReadOnlyPolicy`) — no flag string is re-typed here, so the proof stops being
+  true on the same day the flag moves, which is the point. §2 walks a real throwaway `os.tmpdir()`
+  repo through four REAL git processes and joins three sources: the journal's argv, a counting
+  `spawnLike` wrapper's own sink, and the doors' returned records — `argv` byte-identical line for
+  line, `rules [0,2,3,4]` with 2 of 6 rules measured as never used, and the five keys plus `rule`
+  that exist ONLY in the host record (the door's caller-visible output has no `rule` at all, which is
+  what makes the host the only complete witness). §4 is a cold reader with nothing but the file:
+  contiguous `seq`, `malformed 0`, and the commit hash that `git rev-parse HEAD` reports from outside
+  the sandbox appearing inside the host's own bytes. §6 states the cost honestly — 2357 bytes of
+  journal for 642 bytes of captured output, under `os.tmpdir`.
+- **§9 bit, and the lesson is in the proof rather than in prose.** The first draft of this journal
+  lived inside the throwaway repo, so the file it was writing became an untracked file that git then
+  reported about itself. Two things came out of that: the journal now lives in a sibling tmp
+  directory with an assertion that it is NOT inside the repo it watches, and a sharper statement of
+  what a door's failure sentence is worth (next bullet).
+- **A door's one-line failure prose and the host's verbatim record disagree, on purpose, and the
+  proof measures the gap.** A no-changes commit makes git print a banner then the reason;
+  `git.commit` relays the FIRST line, so the caller reads `git.commit → exit 1: On branch master`
+  while the journal keeps both lines. This increment leaves that prose asymmetry in place — it is a
+  real limit of a door that quotes rather than summarizes, and quoting the verdict line instead of
+  the banner is the next candidate here, not a silent fix buried in an audit increment.
+- **What did not move:** no door, no policy factory, no argv, no env list, no budget, no checkpoint
+  semantics; `loadExecRuns`' contract is unchanged for existing callers. exec-host unit tests
+  130/130 → **137/137** (7 new: four-outcomes/one-process, record ≡ result + two fields, no-journal
+  writes nothing, both compatibility directions, the throwing sink on both paths, two hosts on one
+  file repeating `seq` because file order — not `seq` — is the record across hosts).
+- Honest bounds: a §28 veto at the **registry** never reaches `host.run`, so it leaves no host line at
+  all — that record is v50's ledger receipt, and the two files are deliberately not merged (§60: two
+  subjects, one fact each; §5 of the proof asserts 0 lines and 0 processes for a veto). `seq` is
+  per-host, so a shared file has repeated numbers by design. There is no clock: ordering is
+  append-order, and a reader that needs wall time must add it outside this record. An argv the policy
+  refused has `argv: []` with the refused command only inside `reason`, so a search for
+  `"git push"` in the argv column finds nothing — stated, not hidden. Output is verbatim, so the file
+  grows without rotation and can carry repo content: **location is an operator decision with a
+  confidentiality consequence**, and §9's rule (outside any watched repo, in `os.tmpdir`) is what
+  proofs use, not what a deployment must choose. Appending is read-then-rewrite, so a crash
+  mid-write can cost the last line — inherited from v30 and unchanged. `rule` is an INDEX, so
+  reordering `policy.allow` changes the meaning of old lines; a reader that needs permanence must
+  re-derive rules from the shipped factories the way the proof does. And DEMO MODE is intact: nothing
+  in Studio registers an exec host, so a journaled host exists in unit tests and proofs only — no
+  panel shows this file, and none pretends to.

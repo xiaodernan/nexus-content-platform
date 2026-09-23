@@ -92,25 +92,67 @@ export interface ExecHost {
    * `preApproved`, that the caller's registry already gated it) — no gate means no
    * spawn, default-deny. `planned:false` refusals never spawn, whatever the checkpoint
    * says: the policy outranks the human, not the other way round.
+   *
+   * M2 v51: EVERY outcome of this method — including a refusal — is an audited event.
    */
   run(request: ExecRequest, opts?: { checkpoint?: Checkpoint; preApproved?: boolean; callId?: string }): Promise<ExecRunResult>;
 }
 
-export function createExecHost(policy: ExecPolicy, options: { spawnLike?: SpawnLike } = {}): ExecHost {
+/**
+ * M2 v51 (ADR 0016 amendment 51): what the host appends when it is asked to keep records.
+ * An `ExecRunResult` plus the two things only the host knows: its own order, and WHICH
+ * allowlist rule let the command through (`null` exactly when the policy said no).
+ */
+export interface ExecAuditRecord extends ExecRunResult {
+  /** Order within ONE host instance, from 1. The file's own line order is the record order across hosts. */
+  seq: number;
+  /** Index into `policy.allow`; non-null ⟺ `planned: true` — the invariant the reader re-checks. */
+  rule: number | null;
+}
+
+export interface ExecJournalRef {
+  disk: ExecJournalDisk;
+  file: string;
+}
+
+export interface ExecHostOptions {
+  spawnLike?: SpawnLike;
+  /** Absent by design: a host keeps no records unless its operator asks for a file (§9 — no writes by default). */
+  journal?: ExecJournalRef;
+}
+
+export function createExecHost(policy: ExecPolicy, options: ExecHostOptions = {}): ExecHost {
   const spawnLike = options.spawnLike ?? NODE_SPAWN;
+  const journal = options.journal;
+  let seq = 0;
   return {
     policy,
     async run(request, opts = {}) {
+      // v51: the record is written by the ONE function every process is born through, so no
+      // caller can forget it and no door added later can escape it. A sink that cannot write
+      // makes the CALL fail: a host asked to keep an audit trail never reports success about
+      // something it could not record.
+      const audit = (result: ExecRunResult, rule: number | null): void => {
+        if (!journal) return;
+        seq += 1; // BEFORE the write: a record that fails to land leaves a gap, which is what a gap should mean
+        const record: ExecAuditRecord = { ...result, seq, rule };
+        appendExecRun(journal.disk, journal.file, record);
+      };
+      const refuse = (over: Partial<ExecRunResult>, rule: number | null): ExecRunResult => {
+        const result = noRun(over);
+        audit(result, rule);
+        return result;
+      };
       const decision = planExec(request, policy);
-      if (!decision.ok) return noRun({ reason: decision.reason });
+      if (!decision.ok) return refuse({ reason: decision.reason }, null);
       const plan: ExecPlan = decision.plan;
       if (!opts.preApproved) {
-        if (!opts.checkpoint) return noRun({ planned: true, reason: 'checkpoint required for exec (§28)' });
+        if (!opts.checkpoint) return refuse({ planned: true, reason: 'checkpoint required for exec (§28)' }, plan.matchedRule);
         const call: ToolCall = { callId: opts.callId ?? 'exec-host', tool: 'exec.run', args: { argv: plan.argv, cwd: plan.cwd } };
         const approved = await opts.checkpoint({ call, permissions: ['exec'] });
-        if (!approved) return noRun({ planned: true, reason: 'checkpoint denied', argv: plan.argv, cwd: plan.cwd });
+        if (!approved) return refuse({ planned: true, reason: 'checkpoint denied', argv: plan.argv, cwd: plan.cwd }, plan.matchedRule);
       }
-      return await new Promise<ExecRunResult>((resolve) => {
+      return await new Promise<ExecRunResult>((resolve, reject) => {
         const budget = plan.maxOutputBytes;
         // M2 v48 (ADR 0016 amendment 48): the budget accumulates RAW BYTES and decodes once.
         // Decoding per chunk turned a multibyte character straddling a chunk boundary into
@@ -149,7 +191,7 @@ export function createExecHost(policy: ExecPolicy, options: { spawnLike?: SpawnL
         }, plan.timeoutMs);
         child.onEnd((e) => {
           clearTimeout(timer);
-          resolve({
+          const result: ExecRunResult = {
             ran: true,
             planned: true,
             reason: '',
@@ -162,7 +204,14 @@ export function createExecHost(policy: ExecPolicy, options: { spawnLike?: SpawnL
             truncated,
             killedByBudget: killed,
             spawnError: e.error ?? '',
-          });
+          };
+          try {
+            audit(result, plan.matchedRule); // written BEFORE the caller resumes, so a reader can always see the run it just did
+          } catch (e) {
+            reject(new Error(`exec audit failed for "${result.argv.join(' ')}" (the process ran and exited ${result.exitCode}; the record did not land): ${e instanceof Error ? e.message : String(e)}`));
+            return;
+          }
+          resolve(result);
         });
       });
     },
@@ -225,14 +274,30 @@ function isExecRunResult(raw: unknown): raw is ExecRunResult {
   return typeof r.ran === 'boolean' && typeof r.planned === 'boolean' && Array.isArray(r.argv) && typeof r.truncated === 'boolean';
 }
 
-export function loadExecRuns(disk: { readFileSync(file: string, encoding: 'utf8'): string }, file: string, last?: number): { runs: ExecRunResult[]; malformed: number } {
+/**
+ * v51: an audit line must LOOK like one, and must OBEY the invariant the writer guarantees —
+ * a rule number exactly when the policy approved. A record that claims `planned:true` with no
+ * rule (or the reverse) was not written by this host; counting it malformed beats trusting it.
+ */
+function isExecAuditRecord(raw: unknown): raw is ExecAuditRecord {
+  if (!isExecRunResult(raw)) return false;
+  const r = raw as unknown as Record<string, unknown>;
+  if (typeof r.seq !== 'number') return false;
+  if (!(r.rule === null || typeof r.rule === 'number')) return false;
+  return r.planned === (r.rule !== null);
+}
+
+type JournalDisk = { readFileSync(file: string, encoding: 'utf8'): string };
+
+/** One append-only JSONL reader, two shapes: a line that fails its own gate is `malformed`, never upgraded. */
+function readJournal<T>(disk: JournalDisk, file: string, guard: (raw: unknown) => raw is T, last?: number): { rows: T[]; malformed: number } {
   let text: string;
   try {
     text = disk.readFileSync(file, 'utf8');
   } catch {
-    return { runs: [], malformed: 0 };
+    return { rows: [], malformed: 0 };
   }
-  const runs: ExecRunResult[] = [];
+  const rows: T[] = [];
   let malformed = 0;
   for (const line of text.split('\n')) {
     if (line.trim() === '') continue;
@@ -243,8 +308,19 @@ export function loadExecRuns(disk: { readFileSync(file: string, encoding: 'utf8'
       malformed += 1;
       continue;
     }
-    if (isExecRunResult(raw)) runs.push(raw);
+    if (guard(raw)) rows.push(raw);
     else malformed += 1;
   }
-  return { runs: last === undefined ? runs : runs.slice(Math.max(0, runs.length - last)), malformed };
+  return { rows: last === undefined ? rows : rows.slice(Math.max(0, rows.length - last)), malformed };
+}
+
+export function loadExecRuns(disk: JournalDisk, file: string, last?: number): { runs: ExecRunResult[]; malformed: number } {
+  const { rows, malformed } = readJournal(disk, file, isExecRunResult, last);
+  return { runs: rows, malformed };
+}
+
+/** v51 reader: every outcome the host reported, in the order the host reported it. */
+export function loadExecAudits(disk: JournalDisk, file: string, last?: number): { records: ExecAuditRecord[]; malformed: number } {
+  const { rows, malformed } = readJournal(disk, file, isExecAuditRecord, last);
+  return { records: rows, malformed };
 }

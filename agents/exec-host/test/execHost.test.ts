@@ -6,9 +6,12 @@ import {
   appendExecRun,
   createExecHost,
   formatExecLine,
+  loadExecAudits,
   loadExecRuns,
   registerExecHostTools,
+  type ExecAuditRecord,
   type ExecChild,
+  type ExecJournalRef,
   type ExecRunResult,
 } from '../src/execHost.js';
 
@@ -47,7 +50,7 @@ interface Harness {
 }
 
 /** spawnLike that starts NOTHING: the child is fake and auto-exits on a microtask. */
-function harness(end: { code?: number | null; signal?: string | null } = { code: 0, signal: null }, chunks: ['stdout' | 'stderr', Buffer | string][] = []): Harness {
+function harness(end: { code?: number | null; signal?: string | null } = { code: 0, signal: null }, chunks: ['stdout' | 'stderr', Buffer | string][] = [], journal?: ExecJournalRef): Harness {
   const calls: Harness['calls'] = [];
   let child: FakeChild | undefined;
   const spawnLike: SpawnLike = (command, args, opts) => {
@@ -60,7 +63,7 @@ function harness(end: { code?: number | null; signal?: string | null } = { code:
     });
     return c;
   };
-  return { host: createExecHost(POLICY, { spawnLike }), calls, lastChild: () => child! };
+  return { host: createExecHost(POLICY, { spawnLike, journal }), calls, lastChild: () => child! };
 }
 
 const OK_GATE = { checkpoint: () => true };
@@ -258,5 +261,110 @@ describe('exec journal (append-only JSONL, ledger discipline)', () => {
     expect(loadExecRuns(disk, 'x/e.jsonl', 1).runs).toEqual([deniedRun]);
     expect(loadExecRuns(disk, 'x/none.jsonl')).toEqual({ runs: [], malformed: 0 });
     expect(formatExecLine(okRun).split('\n')).toHaveLength(1);
+  });
+});
+
+/**
+ * M2 v51 (ADR 0016 amendment 51): the journal above existed since v30 as an API — and NOTHING in
+ * product code ever called it, so the sandbox's own most consequential act (a policy refusal) left
+ * no trace, and "which processes really ran" was recoverable only from the agent's narrated results
+ * one layer up. Now the record is written BY the host, inside run(). On trial here: every outcome
+ * lands exactly once, in the host's own order, refusal included; the record hides nothing from and
+ * adds nothing to what the caller was told; a line that breaks the writer's invariant is refused
+ * rather than trusted; and a sink that cannot write makes the CALL fail, because a host asked to
+ * keep an audit trail must never report success about something it could not record.
+ */
+describe('exec audit journal (v51): run() records its own outcomes, refusals included', () => {
+  const FILE = 'logs/exec-audit.jsonl';
+
+  it('four outcomes, four records, one process: the refusals are on the record too', async () => {
+    const disk = new MemDisk();
+    const h = harness({ code: 0, signal: null }, [['stdout', 'ok']], { disk, file: FILE });
+    const refused = await h.host.run({ argv: ['curl', 'http://evil.test'] }, OK_GATE); // policy: no rule matched
+    const ungated = await h.host.run({ argv: ['node', 'app.js'] }); // §28: no gate, so nothing spawns
+    const denied = await h.host.run({ argv: ['node', 'app.js'] }, { checkpoint: () => false }); // human: no
+    const ran = await h.host.run({ argv: ['git', 'status', '--short'] }, OK_GATE);
+    expect([refused.ran, ungated.ran, denied.ran, ran.ran]).toEqual([false, false, false, true]);
+    expect(h.calls).toHaveLength(1); // three refusals, one process — and FOUR records
+
+    const { records, malformed } = loadExecAudits(disk, FILE);
+    expect(malformed).toBe(0);
+    expect(records.map((r) => r.seq)).toEqual([1, 2, 3, 4]);
+    // `rule` is the allowlist index, so it is a number EXACTLY when the policy said yes
+    expect(records.map((r) => r.rule)).toEqual([null, 0, 0, 1]);
+    expect(records.map((r) => [r.planned, r.reason])).toEqual([
+      [false, expect.stringContaining('default-deny')],
+      [true, 'checkpoint required for exec (§28)'],
+      [true, 'checkpoint denied'],
+      [true, ''],
+    ]);
+    expect(records.map((r) => r.argv)).toEqual([[], [], ['node', 'app.js'], ['git', 'status', '--short']]);
+  });
+
+  it('the record says what the caller was told — the journal adds two fields and hides nothing', async () => {
+    const disk = new MemDisk();
+    const h = harness({ code: 0, signal: null }, [['stdout', 'ok']], { disk, file: FILE });
+    const ran = await h.host.run({ argv: ['git', 'status', '--short'] }, OK_GATE);
+    const { records } = loadExecAudits(disk, FILE);
+    const { seq, rule, ...without } = records[0] as ExecAuditRecord;
+    expect(without).toEqual(ran);
+    expect([seq, rule]).toEqual([1, 1]);
+  });
+
+  it('a host with no journal configured writes NOTHING anywhere (the default is today, unchanged)', async () => {
+    const disk = new MemDisk();
+    const h = harness({ code: 0, signal: null }, [['stdout', 'ok']]); // no journal argument at all
+    await h.host.run({ argv: ['node', 'app.js'] }, OK_GATE);
+    await h.host.run({ argv: ['curl', 'x'] }, OK_GATE);
+    expect(disk.files.size).toBe(0);
+    expect(h.calls).toHaveLength(1);
+  });
+
+  it('v30 and v51 read each other in ONE direction, and the direction is the honest one', () => {
+    const disk = new MemDisk();
+    const v30Line: ExecRunResult = { ran: true, planned: true, reason: '', argv: ['node', 'app.js'], cwd: 'X:/jail', exitCode: 0, signal: null, stdout: 'x', stderr: '', truncated: false, killedByBudget: false, spawnError: '' };
+    appendExecRun(disk, FILE, v30Line); // a pre-v51 line: no seq, no rule
+    disk.files.set(FILE, `${disk.files.get(FILE)!}${formatExecLine({ ...v30Line, seq: 1, rule: 0 } as unknown as ExecRunResult)}\n`);
+    expect(loadExecRuns(disk, FILE).runs).toHaveLength(2); // v30's reader: extra keys are nobody's business
+    const audits = loadExecAudits(disk, FILE);
+    expect(audits.records.map((r) => r.seq)).toEqual([1]); // v51's reader refuses a line it cannot order
+    expect(audits.malformed).toBe(1);
+  });
+
+  it('the writer invariant is a GATE, not a comment: a hand-edited line is counted, never trusted', () => {
+    const disk = new MemDisk();
+    const base = { ran: true, planned: true, reason: '', argv: ['node', 'app.js'], cwd: 'X:/jail', exitCode: 0, signal: null, stdout: '', stderr: '', truncated: false, killedByBudget: false, spawnError: '' };
+    disk.files.set(FILE, [
+      { ...base, seq: 1, rule: null }, // claims a run the policy never approved
+      { ...base, planned: false, seq: 2, rule: 0 }, // claims a refusal that DID match a rule
+      { ...base, rule: 0, seq: 'one' }, // not even a number
+    ].map((r) => JSON.stringify(r)).join('\n') + '\n');
+    const audits = loadExecAudits(disk, FILE);
+    expect(audits.records).toEqual([]);
+    expect(audits.malformed).toBe(3);
+    expect(loadExecRuns(disk, FILE).runs).toHaveLength(3); // the old reader would have believed all three (§60)
+  });
+
+  it('a sink that cannot write fails the CALL, loudly, on both paths — and never pretends the process did not run', async () => {
+    const disk = new MemDisk();
+    disk.writeFileSync = (): void => {
+      throw new Error('disk full');
+    };
+    const h = harness({ code: 0, signal: null }, [['stdout', 'ok']], { disk, file: FILE });
+    await expect(h.host.run({ argv: ['curl', 'x'] }, OK_GATE)).rejects.toThrow('disk full'); // refusal path: before any spawn
+    await expect(h.host.run({ argv: ['node', 'app.js'] }, OK_GATE)).rejects.toThrow(/exec audit failed.*the process ran and exited 0/);
+    expect(h.calls).toHaveLength(1); // the command DID run: the failure is the record's, not the command's
+    expect(disk.files.size).toBe(0);
+  });
+
+  it('two hosts sharing a file: seq orders one host, so the line order of the file is the record', async () => {
+    const disk = new MemDisk();
+    const a = harness({ code: 0, signal: null }, [['stdout', 'A']], { disk, file: 'two.jsonl' });
+    const b = harness({ code: 0, signal: null }, [['stdout', 'B']], { disk, file: 'two.jsonl' });
+    await a.host.run({ argv: ['node', 'app.js'] }, OK_GATE);
+    await b.host.run({ argv: ['node', 'app.js'] }, OK_GATE);
+    const { records } = loadExecAudits(disk, 'two.jsonl');
+    expect(records.map((r) => r.stdout)).toEqual(['A', 'B']); // write order survives
+    expect(records.map((r) => r.seq)).toEqual([1, 1]); // and the reader is TOLD seq is per-host
   });
 });

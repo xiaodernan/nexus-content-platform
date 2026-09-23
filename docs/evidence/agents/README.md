@@ -1,9 +1,9 @@
-# M2 evidence — agent stack (v0 loop → v49 the arc survives its process → v50 the durable arc names its decider; all ADR 0016 amendments)
+# M2 evidence — agent stack (v0 loop → v50 the durable arc names its decider → v51 the host keeps its own spawn record; all ADR 0016 amendments)
 
 All checks are headless, offline, key-free, and reproducible from the repo root. Nothing here
 claims model-quality planning or neural retrieval (§60): the planner is a deterministic
 template and the index embedder is a hash-based bag-of-tokens stand-in — both say so in
-every emitted artifact (`provenance.mode = "demo"`). The honest exceptions since v30/v32/v34/v35/v36/v37/v38/v39/v40/v42/v43/v44/v45/v46/v47/v48/v49/v50:
+every emitted artifact (`provenance.mode = "demo"`). The honest exceptions since v30/v32/v34/v35/v36/v37/v38/v39/v40/v42/v43/v44/v45/v46/v47/v48/v49/v50/v51:
 `exec-host-proof.mjs` and `git-aware-proof.mjs` spawn a few read-only local commands
 (`git status --short`, `git diff --stat`), `execsuite-proof.mjs` runs the repo's OWN
 @nexus/design-model vitest suite through the confined host (vitest's cache under
@@ -15,7 +15,7 @@ one HUMAN seed commit inside a throwaway `os.tmpdir()` repo and then stage (neve
 content they measure, `commit-proof.mjs` + `greencommit-proof.mjs`
 + `gitlog-proof.mjs` + `confirm-proof.mjs` + `remember-proof.mjs` + `policygate-proof.mjs`
 + `show-proof.mjs` + `staged-proof.mjs` + `inspect-proof.mjs` + `intent-proof.mjs`
-+ `role-arc-proof.mjs` + `durable-arc-proof.mjs` + `receipts-proof.mjs` perform REAL `git commit`s (and since v37/v38
++ `role-arc-proof.mjs` + `durable-arc-proof.mjs` + `receipts-proof.mjs` + `spawnlog-proof.mjs` perform REAL `git commit`s (and since v37/v38
 real `git log` read-backs — v38's for the first time driven by `runTask` itself, not a
 hand-called tool; v39's runTask additionally writes a REAL in-process `MemoryStore`; v42 adds a real
 `git show` content read-back and v43 a real `git diff --cached` index read, both HUMAN-staged
@@ -26,7 +26,11 @@ first; v47's `role-arc-proof.mjs` is the first where that decision belongs to a 
 (`releaser`, four doors and nothing else) walking a green chain's tail; v49's
 `durable-arc-proof.mjs` and v50's `receipts-proof.mjs` are the first where the chain's OWN audit
 trail is a real `node:fs` JSONL file — created inside that same throwaway repo, read back by a cold
-`loadLedger` after the chain returns, and deleted with it) — only inside throwaway `os.tmpdir()` repos
+`loadLedger` after the chain returns, and deleted with it; v51's `spawnlog-proof.mjs` is the first
+where the file is written by the HOST itself rather than by a caller that remembered to, it records
+the REFUSALS no ledger line ever mentioned, and it deliberately lives in a sibling tmp directory
+OUTSIDE the repo git is watching — because §9 caught that a journal inside the watched tree becomes
+an untracked file that git then reports about itself) — only inside throwaway `os.tmpdir()` repos
 with hooks/signing neutralized LOCALLY there, never in this repository — still offline,
 still key-free, and everything else in the stack spawns nothing. `config-proof.mjs` (v46) is
 the one place here where a proof DELIBERATELY makes git execute a program: its unpinned
@@ -38,7 +42,7 @@ same file is then asserted to run ZERO programs.
 ## Reproducible gates
 
 ```
-npm test          # turbo: @nexus/agent-runtime 305/305 + @nexus/exec-host 130/130 vitest among all packages
+npm test          # turbo: @nexus/agent-runtime 305/305 + @nexus/exec-host 137/137 vitest among all packages
 npm run build     # tsc dist for agents/runtime + agents/exec-host (build order via ^build deps)
 node docs/evidence/agents/agent-proof.mjs
 node docs/evidence/agents/code-index-proof.mjs   # requires `npm run build` first
@@ -79,6 +83,7 @@ node docs/evidence/agents/role-arc-proof.mjs       # requires `npm run build` fi
 node docs/evidence/agents/budgets-proof.mjs        # requires `npm run build` first (v48: byte budgets DERIVED from real git's own output — 16 cuts that land INSIDE a line, 8 of them INSIDE one character — where the shipped door keeps whole staged lines and the legacy prefix is recomputed at the same cuts to show it invented content; a 4-byte budget that survives NO whole line names the cut instead of calling the index empty, while a genuinely clean index through the same door is still stated EMPTY; a ~107 KB read arriving in a dozen-plus chunks re-joins byte-exact; and the REAL design-model vitest suite KILLED at a 400 ms budget (SIGTERM, `exit null`, FAILING report) against the same argv green at 180 s)
 node docs/evidence/agents/durable-arc-proof.mjs    # requires `npm run build` first (v49: the real `runRoleChain` writes a real `node:fs` JSONL ledger INSIDE a throwaway os.tmpdir repo and a cold reader replays it — the durable commit hash compared against `git rev-parse HEAD` measured OUTSIDE the loop, a veto durable AS stopped, a red chain's refusal durable as a refusal at zero spawns, a hand-forged arc line counted as `malformed` while the good lines keep loading)
 node docs/evidence/agents/receipts-proof.mjs       # requires `npm run build` first (v50: the same face, now answering WHO allowed each door — 4 durable §28 receipts ↔ 4 doors ↔ 4 counted git processes ↔ HEAD, one row veto's reason read back verbatim beside the commit it could not undo, a closed table's receipt naming `default`, a bare-closure face that can only say it keeps no list, and a forged half-receipt that makes its whole line junk)
+node docs/evidence/agents/spawnlog-proof.mjs       # requires `npm run build` first (v51: 4 REAL git processes ↔ 4 host-written journal lines whose argv is byte-identical to a counting spawn seam, PLUS the refusals no ledger line ever mentioned — a human-yes/policy-no `git push` that spent 0 processes, a §28 veto that costs 0 lines, and a cold reader given nothing but the file)
 ```
 
 A note on `spawns[…]` assertions: they pin the argv SHAPE a plan step is allowed to produce
@@ -95,7 +100,7 @@ the SHAPE around it. One source, and no way for a loosening to look like a refac
 
 The parenthesized counts below are the committed state, and they are checkable rather than
 decorative: the runtime rows sum to exactly **305** (25 files) and the `exec-host/*` rows to exactly
-**130** (8 files) — the same totals `npm test` prints. A row whose number drifts from its file is a
+**137** (8 files) — the same totals `npm test` prints. A row whose number drifts from its file is a
 documentation bug, so an increment that adds a case updates its row in the same commit.
 
 | File | Covers |
@@ -128,7 +133,7 @@ documentation bug, so an increment that adds a case updates its row in the same 
 | `repair.test.ts` +edge-snap (5) | v27: near-edge unproposed by default, opt-in snaps x flush with y untouched and px stated, right-edge snap uses page.width − width, a corner snaps the fixed-order side first and reports the other honestly in `remaining`, two independent slips both snap clean + determinism |
 | `testRunner.test.ts` (18) | v28: predicate engine semantics (all-pass detail, VERBATIM failure messages, throw→`threw:` without crashing, name-order + first-registration duplicate wins, empty pack = stated vacuous failure, `only` filter + miss), tool contract (exec-gated without checkpoint, `{ok, detail}` + structured report when granted, unknown `only` errors), lazy file re-read after a write, runTask end-to-end (completed run journals 1 ok report; never-passing predicate → 3 honest reports + `failed_verification`; hosts without the tool keep the field absent), JSONL append/reload with malformed counting + last-N + missing-file empty; v31: the tool AWAITS an async runner with an identical report shape, a REJECTING async runner surfaces as a tool error not a crash, runTask journals async-runner reports like any other |
 | `execSandbox.test.ts` (18) | v29: allowlisted argv → inert plan (jail-resolved cwd, rule budgets, `matchedRule`, `executes:false` asserted field-for-field), default-deny refusal quoting the argv, `'*'` as argument wildcard matches but arity is fixed and shell-shaped single tokens still deny, path/separators in the executable refused before matching, malformed requests (non-array/empty/non-string tokens), cwd `..`+absolute+drive-letter refused via `guardedJoin` while missing cwd means the root, env scrubbed to allowlist with dropped names sorted, budgets clamped to policy ceilings, empty allow array denies everything, determinism + plan owns its data (no shared refs), invalid policy refused before the request and `registerExecTools` throws at registration, `exec.plan` callable WITHOUT a checkpoint (read perm) with `executes:false` in the output, refusals succeed as tool calls (`planned:false` + reason), registry `string[]` validation on argv |
-| `exec-host/execHost.test.ts` (19) | v30 + v48 (@nexus/exec-host, injected fake spawn — zero real processes in vitest): allowlisted run spawns argv-as-data with the plan cwd/env verbatim, arg tokens never re-tokenized, policy refusal spawns NOTHING even behind an approving checkpoint, no-checkpoint direct call = stated `checkpoint required for exec (§28)`, deny = `planned:true` + `checkpoint denied`, checkpoint asked with an exec ToolCall carrying the plan, output budget hard-caps stdout+stderr total and marks `truncated`, timeout kills marked `killedByBudget` + SIGTERM, ENOENT surfaces as structured `spawnError` not a crash, `exec.run` registry-gated (deny never reaches host; granted → `{ok, detail, result}`; refusal = tool ERROR; nonzero exit = ok:false data with stderr), JSONL journal round-trip with malformed + shape-wrong counting + last-N + missing-file empty. v48 rewrites the budget case and adds four: a cut stream keeps only WHOLE lines (`'ab\ncd\n'` at 6 bytes, where v30 kept the half-line `ef`), a cut that lands mid-FIRST-line yields `''` rather than a fragment, an UNCUT stream still keeps its unterminated final line verbatim (v28/v31's verbatim failure messages depend on it), the drop is per-stream (a stdout that fit is not punished for a stderr that did not), and a multibyte character split across CHUNKS decodes without U+FFFD |
+| `exec-host/execHost.test.ts` (26) | v30 + v48 + v51 (@nexus/exec-host, injected fake spawn — zero real processes in vitest): allowlisted run spawns argv-as-data with the plan cwd/env verbatim, arg tokens never re-tokenized, policy refusal spawns NOTHING even behind an approving checkpoint, no-checkpoint direct call = stated `checkpoint required for exec (§28)`, deny = `planned:true` + `checkpoint denied`, checkpoint asked with an exec ToolCall carrying the plan, output budget hard-caps stdout+stderr total and marks `truncated`, timeout kills marked `killedByBudget` + SIGTERM, ENOENT surfaces as structured `spawnError` not a crash, `exec.run` registry-gated (deny never reaches host; granted → `{ok, detail, result}`; refusal = tool ERROR; nonzero exit = ok:false data with stderr), JSONL journal round-trip with malformed + shape-wrong counting + last-N + missing-file empty. v48 rewrites the budget case and adds four: a cut stream keeps only WHOLE lines (`'ab\ncd\n'` at 6 bytes, where v30 kept the half-line `ef`), a cut that lands mid-FIRST-line yields `''` rather than a fragment, an UNCUT stream still keeps its unterminated final line verbatim (v28/v31's verbatim failure messages depend on it), the drop is per-stream (a stdout that fit is not punished for a stderr that did not), and a multibyte character split across CHUNKS decodes without U+FFFD. v51 adds seven for the host writing its OWN record: four outcomes (deny, §28-required, §28-denied, ran) make four lines with `seq [1,2,3,4]` and `rule [null,0,0,1]` for ONE process, a record is the caller's result plus exactly `seq`+`rule`, no sink means no bytes, v30 lines and v51 lines are compatible in one direction only (stated), three forged lines — a `rule` with `planned:false`, a `seq` that isn't a number, `rule` as a string — are `malformed` for the audit reader while the v30 reader believes all three, a sink that throws fails the CALL on both paths with the run's own exit code in the message, and two hosts on one file repeat `seq` because append order, not the counter, is the record |
 | `exec-host/execTestRunner.test.ts` (9) | v31 (fake spawn, zero real processes): exit 0 → passing report whose engine NAMES the argv, exit 1 + stderr → failure message verbatim, timeout kill → `killed at timeout budget (SIGTERM)` never noise, policy refusal → FAILING report with the stated reason and no spawn, missing `preApproved` → the exact `checkpoint required for exec (§28)` message, `only` miss → vacuous total-0 without paying for a spawn, through `registerTestTools` the granted call states the exec-host engine and an unknown `only` is a tool ERROR, runTask e2e verifies with a real COMMAND and journals the report |
 | `exec-host/gitTools.test.ts` (19) | v32 (fake spawn): `parseGitStatus` XY→named statuses + counts + rename keeps NEW path + junk XY = `other`; `parseGitDiff` per-file hunk/add/delete tallies with `+++`/`---` excluded and preamble ignored; `parseDiffStat` footer groups / empty / junk→null; policy allows EXACTLY `git status --short`/`git diff`/`git diff --stat` and default-denies push/commit/path-scoped diff; `gitEnv` picks only named vars; tools both exec-permission, no-checkpoint never reaches host (0 spawns), granted `git.status` returns PARSED entries and the spawn env is policy-scrubbed (`TOKEN` never seen), `stat:true` swaps argv, exit 128 is ok:false DATA not a throw, escaping cwd = stated tool ERROR, truncation labeled in detail; v46: the two diffing argv carry `--no-ext-diff --no-textconv`, `gitEnv` additionally EMITS the isolation (config sources pointed at a nonexistent file + the counted forced-config slots), and v32's own flag-free `git diff` shapes are now asserted DEFAULT-DENIED |
 | `exec-host/gitCommitTool.test.ts` (16) | v35 (fake spawn): `parseCommitOutput` reads `[branch (root-commit)? hash] subject` + stat footer (create-mode lines AFTER the stat), insertions-only, non-echo → null; `gitCommitPolicy` allows EXACTLY `git commit -m <msg>` (incl. a message literally `*` — the v29 `'*'` ARG wildcard, first production wiring) and default-denies bare `git commit`, `-m a b`, `-am`, `--no-verify -m x`, `add`, `push`, `rm -rf /`; blank message throws BEFORE the policy with ZERO spawns; granted commit hands argv verbatim (`['commit','-m',msg]`, multi-line/quoted message intact, env scrubbed) and renders `git.commit → exit 0: master@0a1b2c3 · N file(s) +I −D`; nothing-staged exit 1 is ok:false DATA carrying git's first stderr line; escaping cwd = tool ERROR 0 spawns; a message smuggling `--no-verify -a` stays ONE argv token; v46: this door's argv is untouched — every measured escalation was a command that GENERATES a diff — but its spawn env now comes from `gitEnv()`, and `config-proof.mjs` deliberately does not claim to have tested commit under a hostile config |
@@ -1054,6 +1059,49 @@ runs the same policy WITHOUT a ledger file and gets neither field nor note — d
 reader does get holds a non-empty reason. Home HEAD byte-identical; repo and ledger deleted (§9);
 `git push` never happens and staging stays a human act.
 
+## Spawnlog proof (`spawnlog-proof.mjs`, M2 v51 — the host remembers what it did, including the times it said no)
+
+40th script in this directory (39 before it; the runtime lane's `receipts-proof.mjs` took 39th). The
+measurement that chose this increment was a grep, and it is worth stating plainly because it is the
+kind of gap a test suite cannot see: v30 shipped `appendExecRun` and `loadExecRuns` and wired
+**neither** — zero callers, only the definition and a barrel export — while `host.run` had seven
+call sites, all inside this package.
+So the sandbox could tell a caller what a command answered, and could not tell anyone which
+processes it had actually started or which requests it had refused. Every "what ran?" question since
+v32 has been answered by parsing the doors' prose.
+
+§1 refuses to hard-code a single git flag. Six rules are lifted out of the FOUR shipped policy
+factories (`gitStagedPolicy`'s two, `gitCommitPolicy`, `gitLogPolicy`, `gitShowPolicy`,
+`gitReadOnlyPolicy`), so this proof goes stale on the same day the flags move, which is the only
+honest schedule. §2 then walks a throwaway `os.tmpdir()` repo through four REAL git processes and
+makes three witnesses agree line for line: the journal's `argv`, a counting `spawnLike` wrapper's own
+sink, and the doors' returned records — with `rules [0,2,3,4]` (2 of 6 rules measured as never used,
+which is a fact about the walk and not about the policy) and with the five keys that exist ONLY in the
+host record (`argv`, `cwd`, `signal`, `spawnError`, `killedByBudget`) plus `rule`: a door's
+caller-visible output carries none of them, which is exactly why the host is the only complete
+witness. §3 separates the two doors deliberately — it asks for `git push` behind an APPROVING
+checkpoint, so the line that lands carries `rule: null, planned: false` and 0 processes: human yes,
+policy no, and that combination is invisible in every other file this stack writes.
+
+§4 is the reader that matters: a cold process given nothing but the file. `seq` contiguous 1-6,
+`malformed 0`, every granted record fitting the argv SHAPE of the rule its own `rule` field names
+(the pattern read back from the shipped factories, not re-typed), and `git rev-parse HEAD` measured
+OUTSIDE the sandbox appearing inside the host's own bytes — joined to the short hash the door
+reported, so the two records of one fact must corroborate. §6 states the cost: 2357 bytes of journal
+for 642 bytes of captured output, because the record is verbatim.
+
+Two assertions here exist because reality refused to agree with the draft. §5: a §28 veto at the
+REGISTRY adds 0 lines and 0 processes — the human's act is journalled in v50's ledger receipts, not
+in the host's file, and the two are deliberately not merged (two records, two subjects). §3's second
+half: a no-changes `git commit` makes git print a banner and then the reason, so the door's
+caller-visible sentence is `git.commit → exit 1: On branch master` while the journal keeps BOTH
+lines — a door quotes git, it does not summarize it, and quoting the verdict line instead of the
+banner is the next increment's business, not this one's. The same accident is why the journal now
+lives in a SIBLING tmp directory with an assertion that it is not inside the repo git is watching: a
+journal inside the watched tree is an untracked file that git then reports about itself (§9).
+Home HEAD byte-identical; repo and journal deleted in `finally`; `git push` never happens and
+staging stays a human act.
+
 ## Scope honesty
 
 §63/§26 items *not* implemented (stated, not faked): general real-fs write tools (only
@@ -1093,7 +1141,11 @@ push, no `memory.save`, so it cannot journal its own success) behind an EXPLICIT
 no UI pretends otherwise (§60); v49 made a chained arc durable in the ledger and v50 made the §28
 receipts for its own doors durable beside it, but `loadLedger().arcs` still has no reader in the
 browser, so that history is machine-checkable and not yet human-visible (§60 again — no panel
-pretends);
+pretends); and v51 moved journalling INTO the host — every `run()` outcome, refusals included, is
+now its own durable event when a caller passes a sink — but no host anywhere in this repo is built
+with one outside `spawnlog-proof.mjs` and the exec-host unit tests, nothing reads such a file in the
+browser, and the append is read-then-rewrite, so a crash mid-write can still cost the last line: the
+guarantee is "the CALL either has its record or fails loudly", not "the file survives any failure";
 live-model planning (the seam exists, the model needs keys), multi-agent registry.
 Memory recall (v6) shares the index's deterministic token-bag hybrid score — a real
 signature scheme, but still a stand-in for the pgvector hybrid retrieval of ADR 0012. The provider must be kept in sync with the workspace by the
