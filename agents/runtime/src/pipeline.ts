@@ -1,4 +1,5 @@
 import { goalKeyword } from './planner.js';
+import { runGitArc, type GitArcOutcome } from './gitArc.js';
 import { runTask } from './orchestrator.js';
 import { saveMemory, type FsWriteLike } from './durability.js';
 import { appendLedger } from './ledger.js';
@@ -98,7 +99,7 @@ export async function runRolePipeline(task: AgentTask, opts: PipelineOptions): P
   return { ok: true, provenance: PROVENANCE, handoff, editorOutcome, evaluation };
 }
 
-/* ---- v14: four-role chain (researcher → designer → qa → editor), §24/§25 ---- */
+/* ---- v14: four-role chain (researcher → designer → qa → editor), §24/§25; v47 adds an opt-in fifth stage ---- */
 
 export interface ChainStageHandoff {
   from: string;
@@ -119,6 +120,15 @@ export interface ChainOptions extends PipelineOptions {
   uiDriver?: UiDriver;
   uiInputLabel?: string;
   uiButtonLabel?: string;
+  /**
+   * v47: hand a GREEN chain to the `releaser` role so the git arc (v36/38/44/45) has a role face
+   * at all — until now no demo role carried a git capability, so a chained run could verify and
+   * annotate but never read the index, commit, or read anything back.
+   * EXPLICITLY opt-in: commit power is never granted by mere presence, and the role's scope is
+   * still only four doors (no `git.add`, no push, no memory). Each door asks §28 for itself.
+   * Absent ⇒ the chain is byte-for-byte the v14/v22 chain, including its handoffs.
+   */
+  release?: boolean;
 }
 
 export type ChainResult =
@@ -130,6 +140,8 @@ export type ChainResult =
       qa: QaReport;
       editorOutcome: RunOutcome;
       evaluation: RunEvaluation;
+      /** v47: present only when `release` was asked for — the arc's own walk, door by door. */
+      release?: GitArcOutcome;
     };
 
 export async function runRoleChain(task: AgentTask, opts: ChainOptions): Promise<ChainResult> {
@@ -180,10 +192,43 @@ export async function runRoleChain(task: AgentTask, opts: ChainOptions): Promise
   if (uiUsed.length > 0) {
     handoffs.push({ from: 'editor', to: 'host', goal: task.goal, via: `ui:${[...new Set(uiUsed)].join('+')}`, refs, runId: task.id });
   }
+
+  // 5) v47 releaser: the git arc, now with a role that owns it. POSITION still carries the
+  // safety (a red chain never reaches this line as an arc — it reaches it as a stated refusal),
+  // the scope carries the privilege (four doors, nothing else), and §28 carries the consent
+  // (one gate per door, never one for the arc). The arc's results are NOT folded into
+  // `editorOutcome`: that plan never contained them, and rewriting it would be a lie (§60).
+  let release: GitArcOutcome | undefined;
+  if (opts.release) {
+    release = editorOutcome.status !== 'completed'
+      ? { doors: [], steps: [], results: [], status: 'no-arc', notes: [], reason: `the editor stage ended ${editorOutcome.status} — the arc lives behind verification (v36)` }
+      : await runGitArc(opts.roles.scopedRegistry('releaser', host), {
+          callId: `${task.id}:release`,
+          message: `chore(agent): verified chain ${task.id} · seed ${editorOutcome.plan.seed}`,
+          // Same priority the plan's own ref follows: the task's stated target, else the LIVE
+          // hit the editor's search step actually returned. Never a path this stage invents.
+          showPath: task.targetPath ?? (editorOutcome.results.filter((r) => r.callId.endsWith(':search')).at(-1)?.output as { hits?: RawHit[] } | undefined)?.hits?.[0]?.path,
+          checkpoint: opts.checkpoint,
+        });
+    const walked = release.steps.map((s) => s.stepId).join('→');
+    handoffs.push({ from: 'editor', to: 'releaser', goal: task.goal, via: `git.arc:${release.doors.join('+') || 'none'}`, refs, runId: task.id });
+    if (release.doors.length > 0) {
+      handoffs.push({ from: 'releaser', to: 'host', goal: task.goal, via: `git:${walked || 'nothing'}${release.status === 'completed' ? '' : `!${release.status}`}`, refs, runId: task.id });
+    }
+    // §26 keeps its own governance: the HOST records what the arc did; the releaser role cannot.
+    opts.store.save({
+      scope,
+      runId: task.id,
+      query: `${task.goal} — release`,
+      summary: `release ${release.status}: ${walked || 'no doors walked'}${release.reason ? ` — ${release.reason}` : ''}${release.notes.length ? ` (${release.notes.join('; ')})` : ''}`,
+      refs,
+    });
+  }
+
   if (opts.fsLike) {
     if (opts.ledgerFile) appendLedger(opts.fsLike, opts.ledgerFile, editorOutcome);
     if (opts.evaluationFile) appendEvaluation(opts.fsLike, opts.evaluationFile, evaluation);
   }
   if (opts.memoryFile && opts.fsLike) saveMemory(opts.store, opts.fsLike, opts.memoryFile);
-  return { ok: true, provenance: PROVENANCE, handoffs, qa, editorOutcome, evaluation };
+  return { ok: true, provenance: PROVENANCE, handoffs, qa, editorOutcome, evaluation, ...(release ? { release } : {}) };
 }

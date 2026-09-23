@@ -1,4 +1,5 @@
 import { hashString } from '@nexus/ai-providers';
+import { gitArcSteps } from './gitArc.js';
 import type { AgentTask, Plan, Step } from './types.js';
 
 const STOPWORDS = new Set([
@@ -91,71 +92,37 @@ export function planTask(task: AgentTask, opts: PlannerOptions): Plan {
   ];
   if (opts.hasVerify) {
     steps.push({ stepId: 'verify', tool: 'test.run', args: {}, rationale: 'host-injected verification hook' });
-    // v36 "commit after green": a step appended AFTER verify is only ever reached when
-    // the loop is green (a failed verify returns early), and the tool itself commits
-    // whatever the HUMAN staged — the plan proposes, §28 disposes.
+    // v36 "commit after green": a step appended AFTER verify is only ever reached when the loop
+    // is green (a failed verify returns early), and the tool itself commits whatever the HUMAN
+    // staged — the plan proposes, §28 disposes. v38/44/45 nested the rest of the git doors here;
+    // v47 moved that order into `gitArc.ts` so the role-chain release stage walks the SAME data.
+    // The plan's shape is unchanged: every door the host registered, in canonical order, behind
+    // green — and every one of them still has to ask §28 for itself.
     if (opts.hasCommit) {
-      // v45 "intent before the ask": the plan reads the INDEX one step before it is asked to
-      // record it. `git.diff` cannot see a staged change (v43), so without this the agent is
-      // handed a permission to commit contents it has no way to read. Position carries the
-      // meaning: refusing this read stops the walk BEFORE the commit, so a human who withholds
-      // the intent also withholds the write. The planner has no conditionals, so an EMPTY
-      // index still walks into the commit — and git's own "nothing staged" answer is the data
-      // the run carries (§60: the read makes that gap visible, it does not paper over it).
-      if (opts.hasStaged) {
+      steps.push(...gitArcSteps({
+        present: { 'git.staged': !!opts.hasStaged, 'git.commit': true, 'git.log': !!opts.hasConfirm, 'git.show': !!opts.hasContent },
+        message: `chore(agent): verified run ${task.id} · seed ${seed}`,
+        showPath: target,
+      }));
+      // v39 "remembered victory": the ONLY place a memory.save is ever planned is the
+      // tail of the full verify→commit→confirm arc — position is the safety, so §26
+      // memory can never hold a "victory" that didn't verify, land, and read back
+      // agreeing. The record names its run; the ledger carries the hash it confirmed.
+      // v45 corrects the SENTENCE: position guarantees the doors were walked, not that
+      // git recorded anything (a granted commit of an EMPTY index exits 1), so the
+      // summary says ARC-COMPLETE and leaves the landing to git's own answer in results.
+      if (opts.hasConfirm && opts.hasRemember) {
         steps.push({
-          stepId: 'staged',
-          tool: 'git.staged',
-          args: { stat: false },
-          rationale: 'read what the HUMAN staged — the intent the next step would record, read before it is recorded',
+          stepId: 'remember',
+          tool: 'memory.save',
+          args: {
+            runId: task.id,
+            query: task.goal,
+            summary: `ARC-COMPLETE (DEMO MODE · seed ${seed}): goal "${task.goal}" — verify, git.commit and git.log all ran under §28; whether anything LANDED is git's own answer, in this run's results`,
+            refs: [target],
+          },
+          rationale: 'journal the confirmed arc into §26 memory — reached only after commit AND confirm both passed',
         });
-      }
-      steps.push({
-        stepId: 'commit',
-        tool: 'git.commit',
-        args: { message: `chore(agent): verified run ${task.id} · seed ${seed}` },
-        rationale: 'commit the human-staged index — reached only after green verification',
-      });
-      // v38 "confirm after commit": the plan's LAST word is git's own echo, not our claim.
-      if (opts.hasConfirm) {
-        steps.push({
-          stepId: 'confirm',
-          tool: 'git.log',
-          args: { count: 2 },
-          rationale: 'read the log back — the newest entry must equal the commit record',
-        });
-        // v44 "content confirmation": git's own diff echo for the target path trails the
-        // hash confirm. A denial here stops the walk like any tail step; git answering
-        // "HEAD touches nothing at <path>" is honest DATA — the run reads WHAT landed,
-        // it does not choose it (staging remains the human act of v35).
-        if (opts.hasContent) {
-          steps.push({
-            stepId: 'inspect',
-            tool: 'git.show',
-            args: { path: target },
-            rationale: 'read HEAD\'s change for the target path — reached only after commit AND confirm',
-          });
-        }
-        // v39 "remembered victory": the ONLY place a memory.save is ever planned is the
-        // tail of the full verify→commit→confirm arc — position is the safety, so §26
-        // memory can never hold a "victory" that didn't verify, land, and read back
-        // agreeing. The record names its run; the ledger carries the hash it confirmed.
-        // v45 corrects the SENTENCE: position guarantees the doors were walked, not that
-        // git recorded anything (a granted commit of an EMPTY index exits 1), so the
-        // summary says ARC-COMPLETE and leaves the landing to git's own answer in results.
-        if (opts.hasRemember) {
-          steps.push({
-            stepId: 'remember',
-            tool: 'memory.save',
-            args: {
-              runId: task.id,
-              query: task.goal,
-              summary: `ARC-COMPLETE (DEMO MODE · seed ${seed}): goal "${task.goal}" — verify, git.commit and git.log all ran under §28; whether anything LANDED is git's own answer, in this run's results`,
-              refs: [target],
-            },
-            rationale: 'journal the confirmed arc into §26 memory — reached only after commit AND confirm both passed',
-          });
-        }
       }
     }
   }

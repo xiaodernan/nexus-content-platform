@@ -43,4 +43,8 @@ export const DEMO_ROLES: RoleDefinition[] = [
   { id: 'qa', name: 'QA role', description: 'Reads artifacts and reports computed structural/contrast findings; writes nothing.', allowedTools: ['fs.read', 'fs.search', 'fs.index', 'memory.recall', 'memory.list'] },
   { id: 'editor', name: 'Editor role', description: 'Research plus workspace annotation (write-class, checkpoint-gated), host verification, and — only when the chain was given a UI driver — gated page actions.', allowedTools: ['fs.*', 'memory.recall', 'memory.list', 'test.run', 'ui.*'] },
   { id: 'archivist', name: 'Archivist role', description: 'Memory curation only: recall, inspect, save, forget.', allowedTools: ['memory.*'] },
+  // v47 (§24 least privilege): the git arc belongs to a NAMED role instead of quietly widening
+  // `editor`. Four doors only — the writes are §28's, the index is the human's (v35), and memory
+  // stays §26's (the host records the arc; this role cannot remember or forget).
+  { id: 'releaser', name: 'Release role', description: 'Walks the git arc a verified run earned: read what the human staged, commit it behind §28, read the hash back, read the content back. Cannot stage, push, or touch memory.', allowedTools: ['git.staged', 'git.commit', 'git.log', 'git.show'] },
 ];

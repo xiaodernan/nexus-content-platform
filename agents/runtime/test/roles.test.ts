@@ -3,6 +3,7 @@ import { matchesTool, ToolRegistry } from '../src/registry.js';
 import { DEMO_ROLES, RoleRegistry } from '../src/roles.js';
 import { InMemoryWorkspace, registerWorkspaceTools } from '../src/workspace.js';
 import { planTask } from '../src/planner.js';
+import { GIT_ARC_TOOLS, runGitArc } from '../src/gitArc.js';
 import { runTask } from '../src/orchestrator.js';
 
 function hostRegistry(): ToolRegistry {
@@ -44,7 +45,7 @@ describe('RoleRegistry (§24 slice)', () => {
     const roles = new RoleRegistry();
     DEMO_ROLES.forEach((r) => roles.register(r));
     expect(() => roles.register(DEMO_ROLES[0]!)).toThrow('already registered');
-    expect(roles.list().map((r) => r.id)).toEqual(['archivist', 'designer', 'editor', 'qa', 'researcher']);
+    expect(roles.list().map((r) => r.id)).toEqual(['archivist', 'designer', 'editor', 'qa', 'releaser', 'researcher']);
     const scoped = roles.scopedRegistry('ghost', hostRegistry());
     expect(scoped.list()).toEqual([]);
   });
@@ -90,5 +91,72 @@ describe('RoleRegistry (§24 slice)', () => {
     const failed = out.results.find((r) => !r.ok)!;
     expect(failed.error).toContain('unknown tool');
     expect(ws.read('docs/a.md')).not.toContain('NOTE');
+  });
+});
+
+/* ---- v47: the git arc gains an OWNER — and nobody else gains it by accident ---- */
+
+/** The four real doors, declared with the args the arc actually sends. */
+function gitHost(): ToolRegistry {
+  const reg = hostRegistry();
+  const door = (name: string, arg: { name: string; type: 'boolean' | 'string' | 'number' }) =>
+    reg.register({ name, description: '', permissions: ['exec'], args: [arg] }, () => ({ ok: true, detail: `${name}: walked` }));
+  door('git.staged', { name: 'stat', type: 'boolean' });
+  door('git.commit', { name: 'message', type: 'string' });
+  door('git.log', { name: 'count', type: 'number' });
+  door('git.show', { name: 'path', type: 'string' });
+  return reg;
+}
+
+function roles6(): RoleRegistry {
+  const roles = new RoleRegistry();
+  DEMO_ROLES.forEach((r) => roles.register(r));
+  return roles;
+}
+
+describe('DEMO_ROLES × the git arc (v47)', () => {
+  it('exactly ONE demo role can see a git door; the other five could not commit if they wanted to', () => {
+    const roles = roles6();
+    const host = gitHost();
+    const owners = DEMO_ROLES.map((r) => r.id).filter((id) => GIT_ARC_TOOLS.some((t) => roles.scopedRegistry(id, host).has(t)));
+    expect(owners).toEqual(['releaser']);
+    for (const id of ['researcher', 'designer', 'qa', 'editor', 'archivist']) {
+      const scoped = roles.scopedRegistry(id, host);
+      expect(GIT_ARC_TOOLS.filter((t) => scoped.has(t))).toEqual([]);
+    }
+  });
+
+  it("the releaser's whole privilege IS the arc: no fs write, no memory, no staging, no push", async () => {
+    const scoped = roles6().scopedRegistry('releaser', gitHost());
+    expect(scoped.list().map((s) => s.name)).toEqual([...GIT_ARC_TOOLS]);
+    for (const tool of ['fs.append', 'memory.save', 'memory.recall', 'test.run']) {
+      const res = await scoped.invoke({ callId: `x:${tool}`, tool, args: {} }, { checkpoint: () => true });
+      expect(res.error).toContain('unknown tool');
+    }
+  });
+
+  it('the arc runs through the releaser scope, one §28 gate per door — and refuses to run through the editor scope', async () => {
+    const roles = roles6();
+    const host = gitHost();
+    const gates: string[] = [];
+    const walked = await runGitArc(roles.scopedRegistry('releaser', host), {
+      callId: 'r1:release',
+      message: 'chore(agent): verified chain r1',
+      showPath: 'docs/a.md',
+      checkpoint: ({ call }) => {
+        gates.push(call.tool);
+        return true;
+      },
+    });
+    expect(walked.status).toBe('completed');
+    expect(walked.results.map((r) => r.tool)).toEqual([...GIT_ARC_TOOLS]);
+    expect(walked.results.map((r) => r.callId)).toEqual(['r1:release:staged', 'r1:release:commit', 'r1:release:confirm', 'r1:release:inspect']);
+    expect(gates).toEqual([...GIT_ARC_TOOLS]);
+
+    const editor = await runGitArc(roles.scopedRegistry('editor', host), { callId: 'r2:release', message: 'm', showPath: 'docs/a.md', checkpoint: () => true });
+    expect(editor.status).toBe('no-arc');
+    expect(editor.results).toEqual([]);
+    expect(editor.reason).toContain('no git.commit in this scope');
+    expect(gates).toHaveLength(4); // the editor scope knocked on nothing — not even a denial
   });
 });

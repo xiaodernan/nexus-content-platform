@@ -165,5 +165,15 @@ export {
   type LedgerRead,
 } from './ledger.js';
 export { planTask, goalKeyword, type PlannerOptions } from './planner.js';
+export {
+  GIT_ARC_TOOLS,
+  gitArcDoors,
+  gitArcSteps,
+  runGitArc,
+  type GitArcOptions,
+  type GitArcOutcome,
+  type GitArcPresence,
+  type GitArcTool,
+} from './gitArc.js';
 export { demoPlanner, routerPlanner, validatePlan, type PlanBackend, type Planned, type ProviderLike } from './planBackend.js';
 export { runTask, type RunOptions } from './orchestrator.js';

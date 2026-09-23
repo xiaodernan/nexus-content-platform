@@ -1,22 +1,24 @@
-# M2 evidence — agent stack (v0 loop → v46 config-isolated git doors: a read-only door can no longer execute a program; all ADR 0016 amendments)
+# M2 evidence — agent stack (v0 loop → v47 the git arc gains a ROLE: ten amendments of doors no scoped role could see; all ADR 0016 amendments)
 
 All checks are headless, offline, key-free, and reproducible from the repo root. Nothing here
 claims model-quality planning or neural retrieval (§60): the planner is a deterministic
 template and the index embedder is a hash-based bag-of-tokens stand-in — both say so in
-every emitted artifact (`provenance.mode = "demo"`). The honest exceptions since v30/v32/v34/v35/v36/v37/v38/v39/v40/v42/v43/v44/v45/v46:
+every emitted artifact (`provenance.mode = "demo"`). The honest exceptions since v30/v32/v34/v35/v36/v37/v38/v39/v40/v42/v43/v44/v45/v46/v47:
 `exec-host-proof.mjs` and `git-aware-proof.mjs` spawn a few read-only local commands
 (`git status --short`, `git diff --stat`), `execsuite-proof.mjs` runs the repo's OWN
 @nexus/design-model vitest suite through the confined host (vitest's cache under
 `node_modules` is the only thing it writes), `commit-proof.mjs` + `greencommit-proof.mjs`
 + `gitlog-proof.mjs` + `confirm-proof.mjs` + `remember-proof.mjs` + `policygate-proof.mjs`
-+ `show-proof.mjs` + `staged-proof.mjs` + `inspect-proof.mjs` + `intent-proof.mjs` perform REAL `git commit`s (and since v37/v38
++ `show-proof.mjs` + `staged-proof.mjs` + `inspect-proof.mjs` + `intent-proof.mjs`
++ `role-arc-proof.mjs` perform REAL `git commit`s (and since v37/v38
 real `git log` read-backs — v38's for the first time driven by `runTask` itself, not a
 hand-called tool; v39's runTask additionally writes a REAL in-process `MemoryStore`; v42 adds a real
 `git show` content read-back and v43 a real `git diff --cached` index read, both HUMAN-staged
 content only; v44's `inspect-proof.mjs` is the first where the PLAN ITSELF schedules that
 content read, and v45's `intent-proof.mjs` the first where the PLAN ITSELF reads the INDEX one
 step before asking to record it, so the loop — not the proof — decides both to look and to look
-first) — only inside throwaway `os.tmpdir()` repos
+first; v47's `role-arc-proof.mjs` is the first where that decision belongs to a NAMED ROLE
+(`releaser`, four doors and nothing else) walking a green chain's tail) — only inside throwaway `os.tmpdir()` repos
 with hooks/signing neutralized LOCALLY there, never in this repository — still offline,
 still key-free, and everything else in the stack spawns nothing. `config-proof.mjs` (v46) is
 the one place here where a proof DELIBERATELY makes git execute a program: its unpinned
@@ -28,7 +30,7 @@ same file is then asserted to run ZERO programs.
 ## Reproducible gates
 
 ```
-npm test          # turbo: @nexus/agent-runtime 246/246 + @nexus/exec-host 123/123 vitest among all packages
+npm test          # turbo: @nexus/agent-runtime 279/279 + @nexus/exec-host 123/123 vitest among all packages
 npm run build     # tsc dist for agents/runtime + agents/exec-host (build order via ^build deps)
 node docs/evidence/agents/agent-proof.mjs
 node docs/evidence/agents/code-index-proof.mjs   # requires `npm run build` first
@@ -65,6 +67,7 @@ node docs/evidence/agents/staged-proof.mjs         # requires `npm run build` fi
 node docs/evidence/agents/inspect-proof.mjs        # requires `npm run build` first (v44: the PLAN's own tail ends in git.show — four §28 gates, human-staged lines read back byte-for-byte, an empty diff and an unborn-HEAD 128 both carried as DATA, throwaway os.tmpdir repos only)
 node docs/evidence/agents/intent-proof.mjs         # requires `npm run build` first (v45: the PLAN reads the INDEX before asking to record it — five §28 gates, staged intent BEFORE and HEAD content AFTER byte-equal in one run, a denied read costing zero commits, an empty index stated one step before git's blunt first line)
 node docs/evidence/agents/config-proof.mjs         # requires `npm run build` first (v46: hostile .git/config + .gitattributes + $HOME/.gitconfig in throwaway repos — the pre-v46 control REALLY executes a tripwire program and reports an empty diff; the shipped doors report git's builtin answer with ZERO programs, and .git/index keeps its mtime)
+node docs/evidence/agents/role-arc-proof.mjs       # requires `npm run build` first (v47: `runRoleChain` + the `releaser` role over four REAL keyed doors — a ROLE reads the human's staged lines before the commit and the SAME lines back from HEAD after it, four git gates, a veto at the content door that leaves the granted commit standing, a red chain that spends no ask at all, and a chain without `release` that is the v14/v22 chain byte-for-byte; throwaway os.tmpdir repo only)
 ```
 
 A note on `spawns[…]` assertions: they pin the argv SHAPE a plan step is allowed to produce
@@ -851,6 +854,54 @@ notice; proofs run against whatever `git` is on `PATH`; and the commit door is N
 commands, because every escalation measured generates a diff; a clean diff from a trustworthy read
 is still only as honest as the repository it was pointed at.
 
+## Role-arc proof (`role-arc-proof.mjs`, M2 v47 — the arc finally gains a role)
+
+Ten amendments of git doors that no scoped role could see. §24's question — *who is allowed to do
+what* — had no answer for `git.*`: `DEMO_ROLES` was researcher/designer/qa/editor/archivist, none
+of them naming a git tool, so `roles.scopedRegistry(anything, host).has('git.commit')` was `false`
+for every role in the project and a chained run could research, brief, check and annotate forever
+without ever reading an index or recording anything. Widening `editor` would have handed commit
+power to every chained run by mere presence — the opposite of §28 — so v47 did two things instead.
+
+**The order became data first.** `gitArc.ts` now owns the nesting (`gitArcDoors`: no commit door ⇒
+no arc, intent read before the commit it informs, hash after the commit, content after the hash),
+the step objects (`gitArcSteps`) and a walker (`runGitArc`) that takes ANY registry. `planTask`'s
+git block is a call into it, and an anti-drift case runs eight presence combinations through both
+faces demanding `deepEqual` — an order kept in two places is an order waiting to drift.
+**Ownership became a name.** The new `releaser` role's grant IS `GIT_ARC_TOOLS`: four doors, no
+`git.add` (staging stays human), no push (out of scope), no `memory.save` (the arc cannot journal
+its own success — the host does). The fifth chain stage is `release?: boolean`, explicitly opt-in.
+
+§1 of the proof pins all of that as data (one git-role in the pack, its grant exactly the four
+doors, the nesting table, the two-face identity). §3 then runs `runRoleChain` against FOUR REAL
+keyed doors in a throwaway `os.tmpdir()` repo whose `docs/widget.md` deliberately shares a path
+with the chain's in-memory corpus — so the path the arc reads back is the one the chain's own
+research handed it. 3a repeats v45's three-way agreement from the other direction: a scoped ROLE
+reads the human's staged lines out of the index before the commit and reads the SAME bytes back out
+of HEAD after it, with four git gates, four processes, `rev-list --count` +1, and the handoff tail
+`editor→releaser` then `releaser→host` via `git:staged→commit→confirm→inspect`. 3b vetoes the
+content door: the walk stops, the already-granted commit STANDS as history (§28 answers doors, one
+at a time — a later veto does not undo an earlier grant), the refused door was still ASKED, one
+process spared. 3c runs the same host WITHOUT `release`: three handoffs, no field, zero processes.
+3d stages something for a RED chain and shows it spends no ask, no process and no commit, the
+human's staged file still showing in `git diff --cached --name-only`. 3e: a doorless host gets
+`no-arc`, reasoning that "the arc belongs to no role by absence (§24)". §9 holds: home HEAD
+byte-identical, throwaway deleted.
+
+§60 kept its own two boundaries here. The arc's results are NOT folded into `editorOutcome` — that
+stage never had git in its scope, and back-filling its plan would be a false record of what it
+planned; the proof asserts the absence from both sides. And a UI chain hands the arc no path (its
+`search` step is `ui.observe`, which returns a page, not refs), so the content door is dropped
+**with a note** rather than a guessed path. runtime 246/246 → **279/279** (`gitArc.test.ts` 22 new;
+`roles.test.ts` 7 → 10; `chain.test.ts` 6 → 14); exec-host and studio untouched, because the doors
+were already built and only their ownership and a second walking face are new. `rolechain-proof.mjs`
+grew a non-interference block and its role-id pin moved with the pack — a proof that refuses to
+notice a new role would be asserting a fiction. Honest bounds: nothing in the Studio dock sets
+`release` yet, so the dock still cannot commit (the capability exists, the button does not); the
+role face has no `remember` door, so a chained release is journalled by the host's own record; and
+the arc's results ride on `ChainResult.release` rather than the ledger, so a cold JSONL reader sees
+the editor's run and not the stage after it.
+
 ## Scope honesty
 
 §63/§26 items *not* implemented (stated, not faked): general real-fs write tools (only
@@ -882,6 +933,10 @@ demos live only in throwaway temp repos. Agent-led STAGING (choosing what enters
 index) remains unimplemented by design: staging stays a human/`disk`-side act,
 and v43 makes that act LEGIBLE to the agent (read the index, never write it) — v45 put that
 read IN THE PLAN, so the intent is spoken out loud one step before the §28 ask to record it,
+and v47 gave the whole arc its ONLY owner (`releaser`: exactly the four doors, no `git.add`, no
+push, no `memory.save`, so it cannot journal its own success) behind an EXPLICIT host flag
+(`ChainOptions.release`) — nothing in the Studio dock sets it, so the dock still cannot commit and
+no UI pretends otherwise (§60);
 live-model planning (the seam exists, the model needs keys), multi-agent registry.
 Memory recall (v6) shares the index's deterministic token-bag hybrid score — a real
 signature scheme, but still a stand-in for the pgvector hybrid retrieval of ADR 0012. The provider must be kept in sync with the workspace by the

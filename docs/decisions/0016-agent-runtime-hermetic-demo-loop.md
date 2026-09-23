@@ -1132,3 +1132,81 @@ two fresh runs, checkpoint denial leaving the workspace byte-identical).
   no test in this repo would notice); the proofs run against whatever `git` is on `PATH`; and the
   agent's *conclusions* from a clean diff are still only as good as the repo it was pointed at —
   the env makes the read trustworthy, it does not make the repository honest.
+
+## Amendment 47 — v47 (runtime): the arc gains a role — ten amendments of git doors that no scoped role could see, 2026-09
+
+- **The hole was structural, not cosmetic.** v36–v45 nested four §28-gated doors into the plan and
+  v46 confined the environment behind them, but §24's role pack — the face the pipeline, the chain
+  and the Studio dock actually run — granted `git.*` to NOBODY. `DEMO_ROLES` was
+  researcher/designer/qa/editor/archivist, and none of the five names a git tool, so
+  `roles.scopedRegistry(anything, host).has('git.commit')` was `false` for every role in the
+  project. A chained run could research, brief, check and annotate forever and could not read an
+  index, commit anything, or read a word back: the most powerful thing the runtime had learned to
+  do was invisible to the abstraction the docs describe as "who is allowed to do what" (§24).
+  Widening `editor` was the wrong fix — it would hand commit power to every chained run by mere
+  presence, which is the opposite of §28's "explicitly asked for".
+- **The order moved into DATA before the capability was added.** `gitArcDoors(present)` now owns
+  the nesting that lived inline in `planTask` (no commit door ⇒ no arc; the intent read precedes
+  the commit it informs; the hash trails the commit; the content trails the hash),
+  `gitArcSteps({present,message,showPath})` owns the step objects (stepIds, args, rationales), and
+  `runGitArc(registry, opts)` walks them through ANY registry. `planTask`'s git block is now a
+  call to that module, and the `agent.test.ts`/`gitArc.test.ts` anti-drift case runs the SAME
+  eight presence combinations through both faces and requires `deepEqual` — so the two ways of
+  reaching a door cannot disagree silently. `runGitArc` invents nothing: doors absent from the
+  scope are absent from the walk (§24), a `git.show` with no live path is dropped **with a note**
+  ("a path the walker invented would be a guess"), each door keeps its own `callId`
+  (`<run>:release:<step>`), and the SAME `Checkpoint` answers every ask — one gate per door, never
+  one for the arc.
+- **One owner, four doors, nothing else.** The new `releaser` role's `allowedTools` is exactly
+  `GIT_ARC_TOOLS`: no `git.add` (staging stays the human act of v35), no push (out of scope by
+  design), no `memory.save` — so the arc cannot journal its own success; the HOST records it into
+  §26 and governance stays outside the actor. The role's grant is asserted to be *the arc and only
+  the arc*, and every other role is asserted to see no door at all.
+- **Opt-in, because commit power is never granted by mere presence.** `ChainOptions.release?:
+  boolean` adds a fifth stage AFTER the v22 editor handoff; absent, the chain is the v14/v22 chain
+  byte-for-byte — same three handoffs, no `release` field on the result, zero git processes
+  (asserted in the unit face, in `rolechain-proof.mjs`'s new non-interference block, and against
+  real git in 3c of the new proof). A chain whose editor stage did not END `completed` gets
+  `status:'no-arc'` naming that status and spends not even a §28 ask: position, not permission,
+  refused it — the same safety the plan face has had since v36, arrived at by a different route.
+- **§60: the arc is a stage, not an edit to somebody else's plan.** `runGitArc`'s results are NOT
+  merged into `editorOutcome`; the editor never had git in its scope, and back-filling its plan or
+  results to make the story look complete would be a false record of what that stage planned. The
+  proof asserts the absence from both sides (no `git.*` step in that plan, no `git.*` result, while
+  the release's own four results are on the page), and `evaluation.score` still measures only what
+  the editor did.
+- **36th proof `docs/evidence/agents/role-arc-proof.mjs`** runs `runRoleChain` itself over the four
+  REAL keyed doors in a throwaway `os.tmpdir()` repo whose `docs/widget.md` deliberately shares a
+  path with the chain's in-memory corpus — so the path the arc reads back is the one the chain's
+  own research handed it, not one this proof chose. 3a is v45's three-way agreement reached the
+  OTHER way round: the lines a scoped ROLE pulled out of the index before the commit are byte-equal
+  the lines `git.show` returns after it, byte-equal what the human staged, with four git gates
+  firing, four processes spent, `rev-list --count` moving by exactly one, and the handoff tail
+  reading `editor→releaser` then `releaser→host` via `git:staged→commit→confirm→inspect`. 3b vetoes
+  the content door: the walk stops, the already-granted commit STANDS as history (a later veto does
+  not roll back an earlier grant — §28 answers doors, one at a time), the refused door was still
+  ASKED, and exactly one process is spared. 3c runs the same host WITHOUT `release`: three
+  handoffs, no field, zero processes. 3d stages something for a red chain and shows a failed run
+  spends no ask, no process and no commit, leaving `git diff --cached --name-only` still naming the
+  human's file. 3e: a host with no doors gets `no-arc` saying *"the arc belongs to no role by
+  absence (§24)"*. Home HEAD byte-identical, throwaway deleted in `finally` (§9).
+- runtime 246/246 → **279/279** (new `gitArc.test.ts` at 22 — nesting table, the two-face anti-drift
+  loop, walker order/callIds, one-gate-per-door, denial stops, the PARITY case where a granted door
+  returns git's red answer as DATA and the walk continues exactly as the plan face does, plus
+  skipped-content notes; `roles.test.ts` +3 (7 → 10) for the new owner and the arc walked through the
+  releaser scope but refusing to exist in the editor scope; `chain.test.ts` +8 covering the fifth
+  stage's opt-out, green walk, live-path derivation, red refusal, mid-arc veto, doorless host and
+  §60 non-folding). `rolechain-proof.mjs`'s role-id pin moved with the pack — a proof that refuses
+  to notice a new role would be asserting a fiction. exec-host and studio UNCHANGED by this
+  amendment; no door, policy or dock file moved, because the doors were already built and only
+  their OWNERSHIP and a second walking face are new. Thirty-sixth proof; 38-script sweep green.
+  Honest bounds: `release` is a host flag, so a chain that does not set it still cannot commit —
+  the capability exists but nothing in the Studio dock asks for it yet (§60: the dock has no
+  release button, and this increment does not pretend it does); the role face has no `remember`
+  door, so a chained release is journalled by the host's record rather than by a plan step; the
+  arc's results ride on `ChainResult.release` and are not (yet) appended to the ledger, so a cold
+  reader of `nexus-ledger.jsonl` sees the editor's run and not the stage after it; the proof's four
+  doors are the real sandbox tools but the corpus is an in-memory workspace, so the shared-path
+  trick proves the arc reads the path it was handed, not that a chained agent can find a real file
+  it has never been shown; and DEMO MODE still plans by template — v47 moved an order into data and
+  gave it an owner, it did not make the runtime decide anything.

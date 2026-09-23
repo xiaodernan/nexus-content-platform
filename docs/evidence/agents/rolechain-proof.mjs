@@ -20,7 +20,10 @@ const {
 
 const roles = new RoleRegistry();
 DEMO_ROLES.forEach((r) => roles.register(r));
-assert.deepEqual(roles.list().map((r) => r.id), ['archivist', 'designer', 'editor', 'qa', 'researcher']);
+// v47 grew the pack by one: `releaser` is the sole owner of the git arc. Its own face — the arc
+// walked against REAL git — is docs/evidence/agents/role-arc-proof.mjs; this proof stays on the
+// four stages it has always exercised, and asserts below that they still cannot see a door.
+assert.deepEqual(roles.list().map((r) => r.id), ['archivist', 'designer', 'editor', 'qa', 'releaser', 'researcher']);
 
 function host() {
   const ws = new InMemoryWorkspace({ 'docs/widget.md': '# Widget\n\nwidget rotation notes\n', 'docs/extra.md': '# Extra\n\nmisc\n' });
@@ -131,4 +134,15 @@ assert.equal(hd.page.prompt, uiGoal.goal, 'the earlier, approved typing did happ
 assert.equal(dres.handoffs[3].via, 'ui:ui.observe+ui.type');
 console.log('[rolechain] v22 per-action denial honored; partial engine stated:', dres.handoffs[3].via);
 
-console.log('[rolechain] ALL ASSERTIONS PASSED (§24 four-role chain as data, computed WCAG contrast, honest stops, v22 gated UI editor)');
+// ── v47: the new `releaser` role changes NOTHING about the four stages above ────────────
+// The release stage is opt-in, so a chain that never asked for it must be the chain this file
+// has asserted since v14 — same handoffs, no `release` field, and no git door in any of the
+// four original scopes. (The arc against real git is role-arc-proof's job.)
+assert.deepEqual(h.registry.get('git.commit'), undefined, 'this host registered no git tools at all');
+for (const id of ['researcher', 'designer', 'qa', 'editor']) {
+  assert.ok(!roles.scopedRegistry(id, h.registry).has('git.commit'), `${id} still cannot attempt a commit (§24 absence)`);
+}
+assert.ok(roles.scopedRegistry('releaser', h.registry).has('git.commit') === false, 'even the arc OWNER has no door in a host that registered none — capability comes from the host, the role only names it');
+assert.equal('release' in res, false, 'the chain above ran without `release`: no field, so no implied arc');
+
+console.log('[rolechain] ALL ASSERTIONS PASSED (§24 four-role chain as data, computed WCAG contrast, honest stops, v22 gated UI editor, v47 non-interference)');
