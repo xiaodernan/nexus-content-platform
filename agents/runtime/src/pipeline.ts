@@ -200,8 +200,12 @@ export async function runRoleChain(task: AgentTask, opts: ChainOptions): Promise
   // `editorOutcome`: that plan never contained them, and rewriting it would be a lie (§60).
   let release: GitArcOutcome | undefined;
   if (opts.release) {
+    // v50: a walk headed for the ledger answers for its own gates, so the durable line and the
+    // returned one carry the receipts together (v49's identity: the durable walk IS the returned
+    // walk). Not durable ⇒ the v47/v49 outcome shape, byte for byte.
+    const durableArc = Boolean(opts.fsLike && opts.ledgerFile);
     release = editorOutcome.status !== 'completed'
-      ? { doors: [], steps: [], results: [], status: 'no-arc', notes: [], reason: `the editor stage ended ${editorOutcome.status} — the arc lives behind verification (v36)` }
+      ? { doors: [], steps: [], results: [], status: 'no-arc', notes: [], ...(durableArc ? { decisions: [] } : {}), reason: `the editor stage ended ${editorOutcome.status} — the arc lives behind verification (v36)` }
       : await runGitArc(opts.roles.scopedRegistry(RELEASE_ROLE, host), {
           callId: `${task.id}:release`,
           message: `chore(agent): verified chain ${task.id} · seed ${editorOutcome.plan.seed}`,
@@ -209,6 +213,7 @@ export async function runRoleChain(task: AgentTask, opts: ChainOptions): Promise
           // hit the editor's search step actually returned. Never a path this stage invents.
           showPath: task.targetPath ?? (editorOutcome.results.filter((r) => r.callId.endsWith(':search')).at(-1)?.output as { hits?: RawHit[] } | undefined)?.hits?.[0]?.path,
           checkpoint: opts.checkpoint,
+          recordReceipts: durableArc,
         });
     const walked = release.steps.map((s) => s.stepId).join('→');
     handoffs.push({ from: 'editor', to: RELEASE_ROLE, goal: task.goal, via: `git.arc:${release.doors.join('+') || 'none'}`, refs, runId: task.id });

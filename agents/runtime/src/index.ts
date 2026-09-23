@@ -174,6 +174,7 @@ export {
   gitArcSteps,
   runGitArc,
   RELEASE_ROLE,
+  NO_RECEIPTS_NOTE,
   type GitArcOptions,
   type GitArcOutcome,
   type GitArcPresence,

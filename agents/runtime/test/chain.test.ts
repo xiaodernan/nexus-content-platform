@@ -3,10 +3,11 @@ import { ToolRegistry } from '../src/registry.js';
 import { InMemoryWorkspace, registerWorkspaceTools } from '../src/workspace.js';
 import { MemoryStore, registerMemoryTools } from '../src/memory.js';
 import { RoleRegistry, DEMO_ROLES } from '../src/roles.js';
-import { GIT_ARC_TOOLS, RELEASE_ROLE } from '../src/gitArc.js';
+import { GIT_ARC_TOOLS, NO_RECEIPTS_NOTE, RELEASE_ROLE } from '../src/gitArc.js';
+import { policyCheckpoint } from '../src/checkpointPolicy.js';
 import { runRoleChain } from '../src/pipeline.js';
 import { loadLedger, parseLedgerLine } from '../src/ledger.js';
-import type { CheckpointRequest } from '../src/registry.js';
+import type { Checkpoint, CheckpointRequest } from '../src/registry.js';
 import type { UiDriver } from '../src/domkit.js';
 
 const SEED = {
@@ -338,7 +339,7 @@ class MemDisk {
 
 const LEDGER = 'state/chain-ledger.jsonl';
 
-function durableOptions(h: ReturnType<typeof arcHost>, disk: MemDisk, checkpoint?: (req: CheckpointRequest) => boolean) {
+function durableOptions(h: ReturnType<typeof arcHost>, disk: MemDisk, checkpoint?: Checkpoint) {
   return { ...arcOptions(h), fsLike: disk, ledgerFile: LEDGER, ...(checkpoint ? { checkpoint } : {}) };
 }
 
@@ -437,6 +438,105 @@ describe('runRoleChain ledger records (v49)', () => {
     const lines = disk.readFileSync(LEDGER).trimEnd().split('\n');
     const kinds = lines.map((l) => (parseLedgerLine(l).ok ? (JSON.parse(l).kind ?? 'run') : 'junk'));
     expect(kinds).toEqual(['run', 'git-arc', 'run', 'git-arc']);
+  });
+});
+
+/* ---- v50: the durable arc also answers WHO allowed each door ---- */
+
+/** The stages BEFORE the release must pass the same table, or the chain never reaches the arc. */
+const STAGE_RULES = [
+  { tool: 'fs.*', grant: true, reason: 'the demo workspace is open to every stage' },
+  { tool: 'memory.*', grant: true, reason: 'recalling the past is not writing the repo' },
+  { tool: 'test.run', grant: true, reason: 'verification is always welcome' },
+];
+const openArc = () => policyCheckpoint({ rules: [...STAGE_RULES, { tool: 'git.*', grant: true, reason: 'the release window is open today' }], default: { grant: false, reason: 'unlisted tools are refused' } });
+const vetoInspect = () => policyCheckpoint({
+  rules: [...STAGE_RULES, { tool: 'git.show', grant: false, reason: 'only the human reads HEAD\'s contents' }, { tool: 'git.*', grant: true, reason: 'the release window is open today' }],
+  default: { grant: false, reason: 'unlisted tools are refused' },
+});
+const arcCallIds = ['staged', 'commit', 'confirm', 'inspect'].map((s) => `${task.id}:release:${s}`);
+
+describe('runRoleChain arc receipts on the ledger (v50)', () => {
+  it('a policy face\'s verdicts ride on the durable line: one receipt per door, rule and reason verbatim', async () => {
+    const h = arcHost();
+    const disk = new MemDisk();
+    const cp = openArc();
+    const res = await runRoleChain(task, durableOptions(h, disk, cp));
+    expect(res.ok).toBe(true);
+    if (!res.ok) return;
+    const durable = loadLedger(disk, LEDGER).arcs[0]!.arc;
+    // v49's identity EXTENDS to the receipts: the durable walk is the returned walk, field for field.
+    expect(durable.decisions).toEqual(res.release!.decisions);
+    expect(durable.decisions!.map((d) => d.call.callId)).toEqual(arcCallIds);
+    expect(durable.decisions!.map((d) => [d.call.tool, d.granted, d.matched])).toEqual([
+      ['git.staged', true, 'git.*'],
+      ['git.commit', true, 'git.*'],
+      ['git.log', true, 'git.*'],
+      ['git.show', true, 'git.*'],
+    ]);
+    expect([...new Set(durable.decisions!.map((d) => d.reason))]).toEqual(['the release window is open today']);
+    // The arc claims ONLY its own gates. The editor's fs/test decisions are not its alibi (§60).
+    expect(cp.decisions.length).toBeGreaterThan(durable.decisions!.length);
+    expect(durable.decisions!.every((d) => d.call.tool.startsWith('git.'))).toBe(true);
+    expect(h.calls.map((c) => c.tool)).toEqual([...GIT_ARC_TOOLS]);
+  });
+
+  it('the veto\'s REASON sits beside the commit it could not undo — the file answers who said no', async () => {
+    const h = arcHost();
+    const disk = new MemDisk();
+    const res = await runRoleChain(task, durableOptions(h, disk, vetoInspect()));
+    expect(res.ok).toBe(true);
+    if (!res.ok) return;
+    const durable = loadLedger(disk, LEDGER).arcs[0]!.arc;
+    expect(durable.status).toBe('stopped');
+    expect(durable.stoppedAt).toBe('inspect');
+    expect(durable.results.map((r) => r.ok)).toEqual([true, true, true, false]);
+    expect(durable.decisions!.map((d) => d.granted)).toEqual([true, true, true, false]);
+    expect(durable.decisions!.at(-1)).toMatchObject({
+      call: { tool: 'git.show', callId: `${task.id}:release:inspect` },
+      matched: 'git.show',
+      reason: 'only the human reads HEAD\'s contents',
+    });
+    // The three granted doors are recorded as granted BY THE TABLE, not by silence.
+    expect(durable.decisions!.slice(0, 3).map((d) => d.matched)).toEqual(['git.*', 'git.*', 'git.*']);
+  });
+
+  it('durability is what asks for receipts: the same policy without a ledger writes the v47 shape', async () => {
+    const h = arcHost();
+    const res = await runRoleChain(task, { ...arcOptions(h), checkpoint: openArc() });
+    expect(res.ok).toBe(true);
+    if (!res.ok) return;
+    expect(res.release!.status).toBe('completed');
+    expect('decisions' in res.release!).toBe(false);
+    expect(res.release!.notes).toEqual([]);
+  });
+
+  it('a face that keeps no list states that on the durable line instead of leaving a gap to interpret', async () => {
+    const h = arcHost();
+    const disk = new MemDisk();
+    await runRoleChain(task, durableOptions(h, disk));
+    const durable = loadLedger(disk, LEDGER).arcs[0]!.arc;
+    expect(durable.decisions).toEqual([]);
+    expect(durable.notes).toEqual([NO_RECEIPTS_NOTE]);
+    // Not durable ⇒ the same plain closure produces the v47/v49 outcome: no field, no note.
+    const h2 = arcHost();
+    const mem = await runRoleChain(task, arcOptions(h2));
+    expect(mem.ok).toBe(true);
+    if (!mem.ok) return;
+    expect('decisions' in mem.release!).toBe(false);
+    expect(mem.release!.notes).toEqual([]);
+  });
+
+  it('a red chain gated NOTHING, so its durable no-arc line carries an empty list and no note', async () => {
+    const h = arcHost({ green: false });
+    const disk = new MemDisk();
+    const res = await runRoleChain(task, durableOptions(h, disk));
+    expect(res.ok).toBe(true);
+    const durable = loadLedger(disk, LEDGER).arcs[0]!.arc;
+    expect(durable.status).toBe('no-arc');
+    // An empty receipt list with zero asks is the truth, so no note is owed beside it.
+    expect(durable.decisions).toEqual([]);
+    expect(durable.notes).toEqual([]);
   });
 });
 

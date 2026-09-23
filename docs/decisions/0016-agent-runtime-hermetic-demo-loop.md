@@ -1364,3 +1364,73 @@ show a gap. History, not a mistake._
   believed, because the ledger's threat model is accident and drift, not adversary; and the
   durability proven here is "the bytes on disk replay correctly in a cold reader", already the same
   standard as v7's ledger — the cross-process face remains `pipeline-proof.mjs`'s.
+
+## Amendment 50 — v50 (runtime): the durable arc names its decider — v49 recorded what git answered, this records what the human decided, 2026-09
+
+_Sequencing note: this closes the bound amendment 49 stated about itself ("a ledger reader sees a
+refusal's _effect_ but not the decider's _reason_"). It is the runtime lane's own work: no door, no
+policy, no argv, no exec-host or studio file moved._
+
+- **Two records that answered different questions.** v40 made §28 a table with a REQUIRED reason per
+  row and a receipt per verdict; v41 put those receipts in the dock's memory. v49 put the walk in
+  the file. Neither answered the other's question: `nexus-chain-ledger.jsonl` could show a
+  `git.show` door with a red result and no output while saying nothing about whether a human clicked
+  Deny, whether a row vetoed it, or WHICH row. `GitArcOutcome.decisions` is that answer, and it is
+  this walk's own answer — the receipts for the four callIds it knocked on, in ask order.
+- **Matched by CALL ID, not by tool name.** One chain gates the same tool twice: the editor stage
+  can pass a `git.commit` ask that has nothing to do with the release stage's, and v40's face keeps
+  a flat list. Filtering by tool would paste the earlier stage's yes onto the arc's door — a
+  borrowed alibi, which is exactly what §60 forbids. `receiptsFor` (`gitArc.ts`) builds the set of
+  callIds the walk itself issued (``${opts.callId}:${stepId}``) and keeps only those. §1 of the
+  proof sets the trap and measures it: a face holding FIVE decisions, one of them an earlier stage's
+  `git.commit`, yields FOUR on the arc line, each carrying the release prefix.
+- **A copy, not a window.** Every receipt leaves the face through `structuredClone`, so a walk's
+  durable record cannot be edited afterwards by the process that produced it. §1 asserts it by
+  asking the face for one more door AND flipping `open.decisions[0].granted` after the arc returned,
+  then comparing JSON snapshots: an audit trail is a snapshot of a moment, or it is nothing.
+- **`[]` and "nothing to give" are different facts, so they are stated differently.** A durable walk
+  whose checkpoint keeps no list (the live dock's Allow-once human is a bare closure) gets
+  `decisions: []` plus a `notes` line naming the limit — `NO_RECEIPTS_NOTE`, exported so the sentence
+  has one source. A walk that gated nothing (no doors at all) gets `[]` and NO note, because there
+  was no decision to lose. `undefined` stays reserved for "not headed for the ledger".
+- **Nothing is recorded unless it is stored.** `runRoleChain` passes `recordReceipts` only when BOTH
+  `opts.fsLike` and `opts.ledgerFile` are present: a receipt nobody stores is a cost with no
+  benefit, and the rule keeps the dock's in-memory chains byte-identical to v47/v49. Asserted twice,
+  from both faces — `'decisions' in outcome === false` in `gitArc.test.ts`, and §2d running the same
+  policy table with and without a ledger path.
+- **The ledger refuses half a receipt.** `isArcShape` now validates `decisions` when present: an
+  array whose every element carries a `call.callId`, a `call.tool`, a boolean `granted`, a
+  `matched` and a `reason`. §1 feeds it four tampers (no reason, `granted: 'yes'`, a call with no
+  callId, a string instead of an array) and each makes the WHOLE line malformed — a receipt without
+  its reason is not a lighter receipt, it is not a receipt, and a reader must never be left to guess
+  which one it got.
+- **39th proof `docs/evidence/agents/receipts-proof.mjs`.** §2 runs the real chain over the four REAL
+  keyed doors against a throwaway `os.tmpdir()` repo with a real `node:fs` ledger, and checks three
+  sources against each other instead of against the runtime's own memory. 2a: four receipts line up
+  one-for-one with the four doors, with the four git PROCESSES counted on the spawn seam, and with
+  the commit hash compared to `git rev-parse HEAD` measured OUTSIDE the loop — and the content
+  door's path is cross-checked against the search hit in the SAME file's run line, so the two
+  durable records must agree or the proof fails. 2b vetoes `git.show` with a ROW and reads
+  `matched: 'git.show'` and the human's sentence back verbatim, sitting beside the commit that veto
+  could not undo, with three grants ahead of it and ZERO processes spent on the refusal. 2c closes
+  the table: one ask, one receipt, `matched: 'default'` — the row nobody wrote a tool into still has
+  to explain itself — and no spawn, no commit, the human's staging still unread. 2d hands the same
+  walk a bare closure and gets the note instead of a name. 2e appends a forged receipt with no
+  reason: `malformed` 1, it surfaces in no array, every receipt a cold reader DOES get holds a
+  non-empty reason, and the four run lines around it keep loading. Home HEAD byte-identical; the
+  repo and its ledger are deleted in `finally` (§9).
+- runtime 290/290 → **305/305** (`gitArc.test.ts` 22 → 29, `chain.test.ts` 20 → 25,
+  `ledger.test.ts` 7 → 10), every pre-v50 ledger still parsing (asserted: a v49 line has no
+  `decisions` field and loads). Four files changed: `gitArc.ts` (the option, the field,
+  `receiptsFor`, the note), `pipeline.ts` (one `durableArc` flag), `ledger.ts` (`isReceipt`),
+  `index.ts` (export the note constant). v49's anti-fold still holds and is asserted on disk: the
+  editor's run line gains no `decisions` either, because that plan never contained these doors.
+  Honest bounds: receipts exist only when the host's face KEEPS a list, so a real Studio session
+  running on the Allow-once human still journals the note rather than a name — closing that is the
+  dock's lane (a release toggle is #100, and none exists), not this one; the shape check is still
+  accident-and-drift defence and not a signature, so a writer that forges a COMPLETE arc line is
+  believed; only the release walk carries receipts, so the editor's `fs.append` and `test.run` gates
+  remain nowhere in the file; whether `ChainResult.release` has the field depends on whether the
+  caller passed a ledger path, which is a real subtlety of the API and not a hidden one; nothing in
+  the Studio dock renders `arcs` yet (§60: no panel pretends to); and DEMO MODE still plans by
+  template — v50 made a decision auditable, it did not make the runtime make one.

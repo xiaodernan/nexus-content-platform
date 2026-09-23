@@ -1,5 +1,6 @@
 import type { FsWriteLike } from './durability.js';
 import type { GitArcOutcome } from './gitArc.js';
+import type { CheckpointDecision } from './checkpointPolicy.js';
 import type { Provenance, RunOutcome } from './types.js';
 
 /**
@@ -21,7 +22,8 @@ export interface GitArcLedgerRecord {
   goal: string;
   /** Which named role walked it, so a cold reader knows this was a scoped stage, not the host's own plan. */
   role: string;
-  /** The walk verbatim: doors, steps, git's own answers, where it stopped, and what it declined to do. */
+  /** The walk verbatim: doors, steps, git's own answers, where it stopped, what it declined to do —
+   *  and since v50, the §28 receipts that disposed of its doors when the face kept them. */
   arc: GitArcOutcome;
 }
 
@@ -51,6 +53,17 @@ function isRunOutcome(o: Partial<RunOutcome>): o is RunOutcome {
   );
 }
 
+function isReceipt(d: Partial<CheckpointDecision> | undefined): d is CheckpointDecision {
+  return (
+    !!d &&
+    typeof d.call?.callId === 'string' &&
+    typeof d.call?.tool === 'string' &&
+    typeof d.granted === 'boolean' &&
+    typeof d.matched === 'string' &&
+    typeof d.reason === 'string'
+  );
+}
+
 function isArcShape(a: Partial<GitArcOutcome> | undefined): a is GitArcOutcome {
   return (
     !!a &&
@@ -58,6 +71,10 @@ function isArcShape(a: Partial<GitArcOutcome> | undefined): a is GitArcOutcome {
     Array.isArray(a.steps) &&
     Array.isArray(a.results) &&
     Array.isArray(a.notes) &&
+    // v50: a walk that CLAIMS its §28 receipts must claim COMPLETE ones. A half-recorded decision
+    // ("granted", no reason) is exactly the document an auditor is later told to trust, so it is
+    // malformed rather than trusted — same rule as the arc around it.
+    (a.decisions === undefined || (Array.isArray(a.decisions) && a.decisions.every(isReceipt))) &&
     (a.status === 'completed' || a.status === 'stopped' || a.status === 'no-arc')
   );
 }

@@ -146,3 +146,53 @@ describe('ledger × git-arc records (v49)', () => {
     expect(arcs[0]!.arc.steps.map((s) => s.tool)).toEqual(['git.staged', 'git.commit']);
   });
 });
+
+/* ---- v50: the arc's §28 receipts are part of the record, and part of the shape check ---- */
+
+const receipt = (over: Record<string, unknown> = {}) => ({
+  call: { callId: 'c1:release:commit', tool: 'git.commit', args: { message: 'chore(agent): verified chain c1' } },
+  granted: true,
+  matched: 'git.*',
+  reason: 'the release window is open today',
+  ...over,
+});
+const arcWith = (decisions: unknown) => JSON.stringify({ ...arcRecord(), arc: { ...arc(), decisions } });
+
+describe('ledger × §28 receipts (v50)', () => {
+  it('complete receipts round-trip, and an EMPTY list is data about a walk that gated nothing', () => {
+    const granted = [receipt(), receipt({ call: { callId: 'c1:release:staged', tool: 'git.staged', args: {} } })];
+    const parsed = parseLedgerLine(arcWith(granted));
+    expect(parsed.ok).toBe(true);
+    if (!parsed.ok || !isArcRecord(parsed.entry)) throw new Error('a complete receipt list must parse');
+    expect(parsed.entry.arc.decisions).toEqual(granted);
+    expect(parsed.entry.arc.decisions![1]!.call.tool).toBe('git.staged');
+    expect(parseLedgerLine(arcWith([])).ok).toBe(true);
+    // A pre-v50 line carries no field at all — and still parses, because the field is additive.
+    const before = parseLedgerLine(formatLedgerLine(arcRecord()));
+    if (!before.ok || !isArcRecord(before.entry)) throw new Error('a pre-v50 arc line must still parse as an arc');
+    expect('decisions' in before.entry.arc).toBe(false);
+  });
+
+  it('a half-recorded decision makes the whole line malformed: no reason, no verdict, no grant', () => {
+    const broken = [
+      [receipt({ reason: undefined })],
+      [receipt({ granted: 'yes' })],
+      [receipt({ matched: undefined })],
+      [{ call: { tool: 'git.commit' }, granted: true, matched: 'git.*', reason: 'r' }],
+      { not: 'an array' },
+    ];
+    for (const d of broken) {
+      expect(parseLedgerLine(arcWith(d))).toEqual({ ok: false, reason: 'not a complete git-arc record' });
+    }
+  });
+
+  it('a refused door survives the file: the veto\'s reason is readable by a cold reader', () => {
+    const disk = new MemDisk();
+    const vetoed = receipt({ call: { callId: 'c1:release:inspect', tool: 'git.show', args: { path: 'docs/a.md' } }, granted: false, matched: 'git.show', reason: 'only the human reads HEAD\'s contents' });
+    appendLedger(disk, 'l.jsonl', { ...arcRecord(), arc: { ...arc('stopped'), stoppedAt: 'inspect', decisions: [receipt(), vetoed] } });
+    const read = loadLedger(disk, 'l.jsonl');
+    expect(read.malformed).toBe(0);
+    expect(read.arcs[0]!.arc.stoppedAt).toBe('inspect');
+    expect(read.arcs[0]!.arc.decisions!.at(-1)).toMatchObject({ granted: false, matched: 'git.show', reason: 'only the human reads HEAD\'s contents' });
+  });
+});

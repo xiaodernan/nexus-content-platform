@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import { ToolRegistry } from '../src/registry.js';
+import { policyCheckpoint } from '../src/checkpointPolicy.js';
 import { planTask } from '../src/planner.js';
-import { GIT_ARC_TOOLS, gitArcDoors, gitArcSteps, runGitArc, type GitArcPresence } from '../src/gitArc.js';
+import { GIT_ARC_TOOLS, NO_RECEIPTS_NOTE, gitArcDoors, gitArcSteps, runGitArc, type GitArcPresence } from '../src/gitArc.js';
 import type { AgentTask } from '../src/types.js';
 
 const TASK: AgentTask = { id: 'arc-1', goal: 'add widget docs', targetPath: 'docs/a.md' };
@@ -162,5 +163,86 @@ describe('runGitArc — a role-scoped walk of the same doors', () => {
     expect(out.doors).toEqual(['git.staged', 'git.commit', 'git.log']);
     expect(out.notes).toEqual([]);
     expect(out.results).toHaveLength(3);
+  });
+});
+
+/* ---- v50: a walk headed for the ledger answers for its own gates (§28 receipts) ---- */
+
+/** One rule for the arc, everything else refused by the explicit default. */
+const OPEN = { rules: [{ tool: 'git.*', grant: true, reason: 'the release window is open today' }], default: { grant: false, reason: 'nothing outside git is allowed' } };
+/** A table that decides EACH door separately — the shape a real auditor writes. */
+const MIXED = {
+  rules: [
+    { tool: 'git.staged', grant: true, reason: 'reading the human\'s index is always allowed' },
+    { tool: 'git.commit', grant: true, reason: 'the verified change may be recorded' },
+    { tool: 'git.log', grant: true, reason: 'confirming one\'s own commit is allowed' },
+    { tool: 'git.show', grant: false, reason: 'only the human reads HEAD\'s contents' },
+  ],
+  default: { grant: false, reason: 'unlisted tools are refused' },
+};
+const ask = (cp: ReturnType<typeof policyCheckpoint>, callId: string, tool: string) => cp({ call: { callId, tool, args: {} }, permissions: ['exec'] });
+
+describe('runGitArc receipts (v50: WHO allowed each door, not just that it opened)', () => {
+  it('NOT headed for the ledger ⇒ the v47/v49 outcome byte-for-byte: no field, no note', async () => {
+    const out = await runGitArc(doorHost(FULL), { callId: 'c', message: 'm', showPath: 'p', checkpoint: policyCheckpoint(OPEN) });
+    expect(out.status).toBe('completed');
+    expect('decisions' in out).toBe(false);
+    expect(out.notes).toEqual([]);
+  });
+
+  it('a durable walk records the rule that disposed of each door, in ask order, reason verbatim', async () => {
+    const out = await runGitArc(doorHost(FULL), { callId: 'r', message: 'm', showPath: 'p', checkpoint: policyCheckpoint(MIXED), recordReceipts: true });
+    expect(out.status).toBe('stopped');
+    expect(out.reason).toContain('denied at inspect');
+    expect(out.decisions?.map((d) => [d.call.tool, d.granted, d.matched])).toEqual([
+      ['git.staged', true, 'git.staged'],
+      ['git.commit', true, 'git.commit'],
+      ['git.log', true, 'git.log'],
+      ['git.show', false, 'git.show'],
+    ]);
+    // One receipt per gate, aligned with the doors themselves — the pair IS the audit trail.
+    expect(out.decisions?.map((d) => d.call.callId)).toEqual(out.results.map((r) => r.callId));
+    expect(out.decisions?.at(-1)?.reason).toBe('only the human reads HEAD\'s contents');
+  });
+
+  it('matched by CALL ID, not by tool: another stage\'s gate over the same tool is not this arc\'s alibi', async () => {
+    const cp = policyCheckpoint(MIXED);
+    ask(cp, 'r:verify', 'git.commit'); // an EARLIER stage knocked on the very same door
+    const out = await runGitArc(doorHost(FULL), { callId: 'r:release', message: 'm', showPath: 'p', checkpoint: cp, recordReceipts: true });
+    expect(cp.decisions).toHaveLength(5);
+    expect(out.decisions).toHaveLength(4);
+    expect(out.decisions!.every((d) => d.call.callId.startsWith('r:release:'))).toBe(true);
+  });
+
+  it('the recorded list is a COPY — the process cannot rewrite its own audit trail afterwards', async () => {
+    const cp = policyCheckpoint(OPEN);
+    const out = await runGitArc(doorHost(FULL), { callId: 'x', message: 'm', showPath: 'p', checkpoint: cp, recordReceipts: true });
+    const written = JSON.stringify(out.decisions);
+    expect(out.decisions).toHaveLength(4);
+    ask(cp, 'x:release:commit', 'git.commit'); // a late ask under an arc callId
+    cp.decisions[0]!.granted = false; // and a direct edit of a receipt already handed over
+    expect(JSON.stringify(out.decisions)).toBe(written);
+  });
+
+  it('a face that keeps no list says so in notes: an empty receipt set is STATED, never silently absent', async () => {
+    const out = await runGitArc(doorHost(FULL), { callId: 'n', message: 'm', showPath: 'p', checkpoint: () => true, recordReceipts: true });
+    expect(out.decisions).toEqual([]);
+    expect(out.notes).toEqual([NO_RECEIPTS_NOTE]);
+    expect(NO_RECEIPTS_NOTE).toContain('without the decider\'s reason');
+  });
+
+  it('no checkpoint at all, durable: the walk stops at the first door AND states it has no receipts', async () => {
+    const out = await runGitArc(doorHost(FULL), { callId: 'a', message: 'm', showPath: 'p', recordReceipts: true });
+    expect(out.status).toBe('stopped');
+    expect(out.reason).toContain('denied at staged');
+    expect(out.decisions).toEqual([]);
+    expect(out.notes).toEqual([NO_RECEIPTS_NOTE]);
+  });
+
+  it('a doorless arc gated NOTHING, so an empty list is the truth and no note is owed', async () => {
+    const out = await runGitArc(doorHost({}), { callId: 'z', message: 'm', showPath: 'p', checkpoint: () => true, recordReceipts: true });
+    expect(out.status).toBe('no-arc');
+    expect(out.decisions).toEqual([]);
+    expect(out.notes).toEqual([]);
   });
 });

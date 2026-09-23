@@ -1,4 +1,5 @@
 import type { Checkpoint, ToolRegistry } from './registry.js';
+import type { CheckpointDecision } from './checkpointPolicy.js';
 import type { Step, ToolResult } from './types.js';
 
 /**
@@ -98,6 +99,12 @@ export interface GitArcOptions {
   showPath?: string;
   /** The SAME human Checkpoint the plan faces uses — one gate per door, never one for the arc. */
   checkpoint?: Checkpoint;
+  /**
+   * v50: the caller says this walk is HEADED FOR THE LEDGER, so it must carry the §28 decisions that
+   * disposed of its own doors — or say in `notes` why it cannot. Absent (the in-memory face, the
+   * dock, every pre-v50 call) ⇒ the outcome is the v47/v49 shape byte-for-byte.
+   */
+  recordReceipts?: boolean;
 }
 
 export interface GitArcOutcome {
@@ -112,6 +119,32 @@ export interface GitArcOutcome {
   reason?: string;
   /** What the arc deliberately did NOT do, and why — never a silent omission. */
   notes: string[];
+  /**
+   * v50: the receipts of the doors THIS walk knocked on, in ask order, each naming the rule (or
+   * `default`) that decided and its reason verbatim. Only present on a durable walk: git's answer
+   * says WHAT happened, the receipt says WHO allowed it — and a refusal without its reason is half
+   * an audit (§60).
+   */
+  decisions?: CheckpointDecision[];
+}
+
+/** Stated in `notes` when a durable walk cannot name its decider — never a silent empty list. */
+export const NO_RECEIPTS_NOTE =
+  '§28 receipts unavailable: the checkpoint handed to this chain keeps no audit list the runtime can read, so this line carries git\'s answers without the decider\'s reason (§60)';
+
+/**
+ * The receipts belonging to one walk, taken from a checkpoint that keeps them (v40's
+ * `policyCheckpoint` exposes `.decisions`; a bare closure does not). Matched by CALL ID, not by
+ * tool name: the same tool can be gated by another stage of the same chain, and a receipt from the
+ * editor's `test.run` pasted onto the arc would be a borrowed alibi. `undefined` means the face
+ * records nothing at all — distinct from `[]`, which means it recorded every ask and none was this
+ * arc's.
+ */
+function receiptsFor(checkpoint: Checkpoint | undefined, callIds: string[]): CheckpointDecision[] | undefined {
+  const decisions = (checkpoint as (Checkpoint & { decisions?: CheckpointDecision[] }) | undefined)?.decisions;
+  if (!Array.isArray(decisions)) return undefined;
+  const owned = new Set(callIds);
+  return decisions.filter((d) => owned.has(d.call?.callId)).map((d) => structuredClone(d));
 }
 
 /**
@@ -137,17 +170,32 @@ export async function runGitArc(registry: ToolRegistry, opts: GitArcOptions): Pr
   }
   const doors = gitArcDoors(present);
   if (doors.length === 0) {
-    return { doors, steps: [], results: [], status: 'no-arc', notes, reason: 'no git.commit in this scope — the arc belongs to no role by absence (§24)' };
+    const bare: GitArcOutcome = { doors, steps: [], results: [], status: 'no-arc', notes, reason: 'no git.commit in this scope — the arc belongs to no role by absence (§24)' };
+    // Nothing was gated, so an EMPTY receipt list is the truth rather than a gap — and no note is
+    // owed: there was no decision to lose.
+    return opts.recordReceipts ? { ...bare, decisions: [] } : bare;
   }
   const steps = gitArcSteps({ present, message: opts.message, showPath: opts.showPath ?? '' });
+  const callIds = steps.map((s) => `${opts.callId}:${s.stepId}`);
+  /**
+   * A durable walk answers WHO allowed each door, not merely that it opened. `decisions` arrives
+   * only from a face that keeps a list (v40's policy checkpoint); a face that keeps none gets a
+   * note, because a silently absent field would read as "no decisions were made".
+   */
+  const durable = (o: GitArcOutcome): GitArcOutcome => {
+    if (!opts.recordReceipts) return o;
+    const decisions = receiptsFor(opts.checkpoint, callIds);
+    if (decisions) return { ...o, decisions };
+    return { ...o, decisions: [], notes: [...o.notes, NO_RECEIPTS_NOTE] };
+  };
   const results: ToolResult[] = [];
   for (const step of steps) {
     const res = await registry.invoke({ callId: `${opts.callId}:${step.stepId}`, tool: step.tool, args: step.args }, { checkpoint: opts.checkpoint });
     results.push(res);
     if (!res.ok) {
       const denied = (res.error ?? '').includes('checkpoint');
-      return { doors, steps, results, status: 'stopped', stoppedAt: step.stepId, notes, reason: denied ? `denied at ${step.stepId}: ${res.error}` : `${step.stepId} did not pass: ${res.error}` };
+      return durable({ doors, steps, results, status: 'stopped', stoppedAt: step.stepId, notes, reason: denied ? `denied at ${step.stepId}: ${res.error}` : `${step.stepId} did not pass: ${res.error}` });
     }
   }
-  return { doors, steps, results, status: 'completed', notes };
+  return durable({ doors, steps, results, status: 'completed', notes });
 }
