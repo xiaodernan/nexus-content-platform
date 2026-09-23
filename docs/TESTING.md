@@ -206,8 +206,10 @@ e2e 断言面板把"未运行的检查"列出来，而不是显示全绿。
   同类不同正文长度颜色一样（防"按长度编等级"）、只有一端有位置的连线**不画也不计成画了**、
   外接框包住 fallback 的环、空世界仍是合法场景、`limits` 三条硬话（同心环 / 碰撞 / 占位几何体）都在。
   走近那条也钉了：半径内按距离排序、同距按 id 排（顺序不随调用漂）、阈值是导出的同一个数。
-  e2e 在真浏览器里跑 WebGL：`data-world3d=live`、HUD 报出 authored/fallback 的条数、图例按类别计数、
-  「读：某条」展开的是那条正文本身；截图 `screenshots/world3d.png` 与 `world3d-focus.png`。
+  e2e 在真浏览器里跑 WebGL，并且把 §45→§140 的连续性当成人来验：
+  **在世界图上拖一个节点 → 等 `data-graph-pending=false` → 进 3D**，HUD 必须从
+  "0 个来自你摆过的坐标"变成"1 个 / 8 个按顺序排"，且那个条目的标签 `data-placed="authored"`。
+  图例按类别计数、点标签展开的是那条正文本身；截图 `screenshots/world3d.png` 与 `world3d-focus.png`。
   第一次跑就发现相机朝向反了（进场看见一片空地）—— 是靠看图发现的，测试当时是绿的
 - 每个里程碑一次 commit 前至少跑：`npm run lint && npm test && npm run test:e2e:smoke`
 - 改了 `packages/schemas` 必须重跑 `npm run contract:export`，否则契约漂移测试会红

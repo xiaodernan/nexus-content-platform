@@ -1350,6 +1350,18 @@ test('@smoke 3D 世界：图上摆过的位置就是地面布局，走近才展�
 
   await page.click('[data-view="graph"]');
   await page.waitForSelector('[data-graph-count]', { timeout: 30_000 });
+
+  // 在世界图上摆一个位置，再进 3D：§45 与 §140 用的是同一份坐标，
+  // 这里要的是"图里拖过的那一个，走进世界就是它摆的位置"这条端到端连续性
+  const dragged = page.locator('[data-graph-node]').first();
+  const draggedId = (await dragged.getAttribute('data-graph-node'))!;
+  const box = (await dragged.boundingBox())!;
+  await page.mouse.move(box.x + 10, box.y + 10);
+  await page.mouse.down();
+  await page.mouse.move(box.x + 90, box.y + 60, { steps: 8 });
+  await page.mouse.up();
+  await expect(page.locator('[data-graph-pending]')).toHaveAttribute('data-graph-pending', 'false', { timeout: 20_000 });
+
   await page.click('[data-enter-world3d]');
   await page.waitForURL(/\/world\/[^/]+$/, { timeout: 30_000 });
 
@@ -1363,8 +1375,9 @@ test('@smoke 3D 世界：图上摆过的位置就是地面布局，走近才展�
   if (kind === 'live') {
     await expect(page.locator('[data-world-hud]')).toContainText('来自《World 3D');
     // HUD 必须说清哪些位置是作者摆过的、哪些是规则排的——这是这份场景最容易骗人的一处
-    await expect(page.locator('[data-world-hud]')).toContainText('0 个来自你在世界图上摆过的坐标');
-    await expect(page.locator('[data-world-hud]')).toContainText('9 个按文档顺序排在同心环上');
+    await expect(page.locator('[data-world-hud]')).toContainText('1 个来自你在世界图上摆过的坐标');
+    await expect(page.locator('[data-world-hud]')).toContainText('8 个按文档顺序排在同心环上');
+    await expect(page.locator(`[data-world-label="${draggedId}"]`)).toHaveAttribute('data-placed', 'authored');
     await expect(page.locator('[data-scene-limits]')).toContainText('碰撞');
     await expect(page.locator('[data-world-legend]')).toContainText('传说 · 1');
 
