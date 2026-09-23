@@ -88,6 +88,15 @@ export const budgetFlags = (r: { truncated: boolean; truncatedStreams?: Array<'s
 export const stdoutWasCut = (r: { truncatedStreams?: Array<'stdout' | 'stderr'> }): boolean => r.truncatedStreams?.includes('stdout') ?? false;
 
 /**
+ * M2 v57: the third member of the "git said a thing the tally hides" family, for the door that
+ * reports the WORKING TREE. `counts` is a census of entries; an unmerged entry is not a change the
+ * index is ready to record, it is a stop sign — so the door names the paths rather than letting
+ * "1 added" read like a commit waiting to happen.
+ */
+export const unmergedStatusNotice = (paths: string[]): string =>
+  `git reported ${paths.length} UNMERGED path(s) (${paths.join(', ')}) — a conflicted working tree, so these entries are NOT a staged change and a granted git.commit right now would be refused by git itself`;
+
+/**
  * M2 v52: the read doors' twin of v48's `cutNotAbsence`. A command that FAILED reads nothing for a
  * reason that says nothing about the repository — `git status` on a corrupt index exits 128 with an
  * EMPTY stdout, and "0 entries" is a count of what the door read, never a claim that the tree is
@@ -148,6 +157,15 @@ export interface GitStatusFile {
   path: string;
 }
 
+/**
+ * M2 v57 (ADR 0016 amendment 57): the seven porcelain codes git's own spec calls UNMERGED. v32's
+ * table matched a substring per row, which got `UU`/`AU`/`UA`/`DU`/`UD` right but let `AA` fall to
+ * the `A` row and `DD` to the `D` row. Measured on a real add/add merge: `git status --short` prints
+ * `AA new.md`, and the door reported it as `1 added` — in a repository where a granted `git.commit`
+ * would be REFUSED outright. Checked BEFORE the table, so no other row can win an unmerged pair.
+ */
+export const UNMERGED_XY: ReadonlySet<string> = new Set(['UU', 'AA', 'DD', 'AU', 'UA', 'DU', 'UD']);
+
 const STATUS_ORDER: [string, string][] = [
   ['?', 'untracked'],
   ['U', 'unmerged'],
@@ -168,8 +186,8 @@ export function parseGitStatus(stdout: string): { files: GitStatusFile[]; counts
     let rest = line.slice(2).trim();
     const arrow = rest.indexOf(' -> ');
     if (arrow >= 0) rest = rest.slice(arrow + 4);
-    const hit = STATUS_ORDER.find(([code]) => xy.includes(code));
-    const status = hit ? hit[1] : 'other';
+    const hit = UNMERGED_XY.has(xy) ? undefined : STATUS_ORDER.find(([code]) => xy.includes(code));
+    const status = hit ? hit[1] : UNMERGED_XY.has(xy) ? 'unmerged' : 'other';
     files.push({ xy, status, path: rest });
     counts[status] = (counts[status] ?? 0) + 1;
   }
@@ -246,8 +264,9 @@ export function registerGitTools(registry: ToolRegistry, host: ExecHost, options
     const tally = Object.entries(counts)
       .map(([k, v]) => `${v} ${k}`)
       .join(', ');
+    const conflicted = files.filter((f) => f.status === 'unmerged').map((f) => f.path);
     const detail = ok
-      ? `git.status → exit ${result.exitCode}: ${files.length} entries${tally === '' ? '' : ` (${tally})`}${flags(result)}`
+      ? `git.status → exit ${result.exitCode}: ${files.length} entries${tally === '' ? '' : ` (${tally})`}${conflicted.length > 0 ? ` · ${unmergedStatusNotice(conflicted)}` : ''}${flags(result)}`
       : `git.status → exit ${result.exitCode}: ${quoteVerdict(gitVerdict(result.stdout, result.stderr, { truncated: result.truncated || result.killedByBudget }))} · ${files.length} entries parsed · ${refusedNotAbsence('the working tree is clean or empty')}${flags(result)}`;
     return { ok, detail, exitCode: result.exitCode, files, counts, truncated: result.truncated };
   });

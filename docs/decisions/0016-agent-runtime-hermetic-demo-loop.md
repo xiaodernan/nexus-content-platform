@@ -1904,3 +1904,58 @@ ceiling could not tell._
   parenthetical and nothing parses them for meaning (v52's rules key off git's words, not off
   `flags()`); and DEMO MODE is unaffected — no Studio surface runs an exec host, so the naming is
   visible in proofs and unit tests and no panel claims otherwise.
+
+## Amendment 57 — v57 (exec-host): one conflicted repository, one story — `AA` was being counted as "added", in a tree no commit can record, 2026-09
+
+_Numbering: 57 was free when this was written (checked against this file's headings, the task list and
+`git log --oneline -1`). v52 named an unmerged path in the DIFF-family doors and left this bound in
+its own list: "`git.status` still labels an unmerged entry `other`". It was worse than that bound,
+and only measuring each conflict shape showed it._
+
+- **The classification had a hole in the middle of its own table.** v32's porcelain mapper looked for
+  a code in order — `?` untracked, then `U` unmerged, then `A` added, `R`, `C`, `D`, `M` — and
+  asked whether the two-character field CONTAINED it. That made `UU`, `AU`, `UA`, `DU` and `UD`
+  unmerged correctly, because they contain a `U`; it also made **`AA` report as `added` and `DD`
+  report as `deleted`**, because the pair's first letter is the row that matched. Git's own porcelain
+  spec lists exactly seven unmerged codes — those five plus `AA` and `DD`.
+- **Why that is a safety problem and not a taxonomy nit.** Measured on a real add/add merge (two
+  branches creating the same path with different content): `git status --short` prints `AA new.md`,
+  and the door reported `1 entries (1 added)` — of a repository where `git commit` answers exit 128
+  with "Committing is not possible because you have unmerged files". So the agent's first read of a
+  conflicted tree described it as WORK WAITING TO BE COMMITTED, in the same plan whose `git.staged`
+  step (v52) said the index was conflicted. Two doors, one repository, two contradictory stories, and
+  the optimistic one came first.
+- **The fix is git's set, checked first.** `UNMERGED_XY` (the seven) is consulted BEFORE the table, so
+  no row can win a conflict pair; `A ` and `D ` keep meaning added and deleted, and an unknown code
+  still reports `other` — v32's honesty about junk is the point of the ordering, not collateral of it.
+  The door then says what the tally hides: `git reported 1 UNMERGED path(s) (new.md) — a conflicted
+  working tree, so these entries are NOT a staged change and a granted git.commit right now would be
+  refused by git itself`.
+- **46th proof `docs/evidence/agents/conflict-proof.mjs` does not take that sentence on trust.** §2
+  builds three conflict shapes for real (both-modified, both-added, delete/modify), and for each:
+  asserts what raw `git status --short` actually prints (the shape labels were corrected by that
+  control — the third is `DU` on this box, not `UD`), asserts the door classifies it as unmerged and
+  names the path, then ASKS FOR THE COMMIT the door says will be refused and asserts git refuses it
+  (all three exit 128, with git's own reason quoted). §3 is the point of the increment: one add/add
+  repository, two doors, one word — status "1 entries (1 unmerged)", staged "git reported 1 UNMERGED
+  path…", with the staged parser still finding zero per-file diffs and STILL refusing to call that an
+  empty index. §4 is the control that keeps §2 honest: a clean tree gets no conflict clause, and the
+  SAME commit door lands a real commit there — so the refusals were about the conflict, not about the
+  door. §5 reads `MERGE_HEAD` from disk and checks it against `git rev-parse MERGE_HEAD`: the conflict
+  is a fact in the repository, not an artefact of parsing.
+- **What did not move:** the porcelain SHAPE of the result (`files`/`counts` keep their fields; only
+  a `status` VALUE changed for two codes), every policy, argv, gate, budget and door sentence except
+  the new clause, and the v52 notice machinery the new clause deliberately parallels rather than
+  duplicates. exec-host **181/181** (4 new cases in `gitTools.test.ts`: the seven codes, the two
+  narrow non-regressions, and both door sides), 46/46 agent proofs green, all four root gates green.
+- **A migration note, said plainly:** anything that counted `added` in a conflicted repo counted
+  wrongly and now counts differently. Nothing in this repo depended on that number — the sweep proved
+  it (46/46 unchanged) rather than the prose assuming it — but a downstream consumer reading
+  `counts.added` across a merge conflict will see it move into `counts.unmerged`, which is the fix,
+  not a regression.
+- Honest bounds: `parseGitStatus` still reports one status per entry, so a path unmerged by BOTH sides
+  being deleted carries no more information than `DD` (git's own stage-1/2/3 rows are a deeper read
+  that no door here asks for); the notice lists paths verbatim from git, so a rename-with-conflict
+  shows the new path as v32 decided; nothing here teaches the Studio dock to render a conflict, and
+  DEMO MODE is unaffected — no Studio surface runs an exec host, so the whole of v57 is enforced in
+  unit tests and proofs, and no panel pretends otherwise.

@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { ToolRegistry, planExec } from '@nexus/agent-runtime';
 import type { SpawnLike } from '@nexus/agent-runtime';
 import { createExecHost, type ExecChild } from '../src/execHost.js';
-import { GIT_TOOL_SPECS, GIT_DIFF_FLAGS, budgetFlags, gitEnv, gitReadOnlyPolicy, gitVerdict, parseDiffStat, parseGitDiff, parseGitStatus, quoteVerdict, refusedNotAbsence, registerGitTools, stdoutWasCut, unmergedNotice, unmergedNotAbsence } from '../src/gitTools.js';
+import { GIT_TOOL_SPECS, GIT_DIFF_FLAGS, budgetFlags, gitEnv, gitReadOnlyPolicy, gitVerdict, parseDiffStat, parseGitDiff, parseGitStatus, quoteVerdict, refusedNotAbsence, registerGitTools, stdoutWasCut, UNMERGED_XY, unmergedNotice, unmergedNotAbsence, unmergedStatusNotice } from '../src/gitTools.js';
 import { GIT_ABSENT_CONFIG, GIT_FORCED_CONFIG, GIT_ISOLATION_ENV, GIT_PASS_THROUGH_ENV_NAMES, forcedConfigEnv } from '../src/gitEnvIsolation.js';
 
 describe('parseGitStatus (porcelain v1, pure data)', () => {
@@ -24,6 +24,22 @@ describe('parseGitStatus (porcelain v1, pure data)', () => {
 
   it('unknown XY codes say `other`, never silently match a known family', () => {
     expect(parseGitStatus('!  weird\n').files[0]).toMatchObject({ status: 'other' });
+  });
+
+  // v57: measured on real merges — `git status --short` prints AA for an add/add conflict and DD for
+  // a delete/delete one, and BOTH used to fall through to the single-letter rows, so the door
+  // reported a conflicted path as `1 added` in a repo where `git.commit` would be refused.
+  it('all SEVEN unmerged codes are unmerged, including the two same-letter pairs', () => {
+    const porcelain = ['UU both.md', 'AA added.md', 'DD deleted.md', 'AU ours-added.md', 'UA theirs-added.md', 'DU ours-deleted.md', 'UD theirs-deleted.md'];
+    const { files, counts } = parseGitStatus(porcelain.map((l) => `${l}\n`).join(''));
+    expect(files.map((f) => [f.xy, f.status])).toEqual(porcelain.map((l) => [l.slice(0, 2), 'unmerged']));
+    expect(counts).toEqual({ unmerged: 7 });
+    expect([...UNMERGED_XY]).toEqual(['UU', 'AA', 'DD', 'AU', 'UA', 'DU', 'UD']);
+  });
+
+  it('the clean single-letter codes keep their v32 names — the unmerged set is not a sledgehammer', () => {
+    const { files } = parseGitStatus('A  new.md\nD  gone.md\nM  mod.md\nR  old -> new2.md\n?? free.md\n!! junk.md\n');
+    expect(files.map((f) => f.status)).toEqual(['added', 'deleted', 'modified', 'renamed', 'untracked', 'other']);
   });
 });
 
@@ -367,6 +383,27 @@ describe('unmergedNotice — an exit-0 notice is not an empty answer (v52)', () 
     const h = harness(UNMERGED_BYTES.ordinaryDiff);
     const detail = String(((await h.registry.invoke({ callId: 'u3', tool: 'git.diff', args: {} }, h.grant)).output as { detail: string }).detail);
     expect(detail).toContain('1 files, +1 −1 (1 hunks)');
+    expect(detail).not.toContain('UNMERGED');
+  });
+
+  // v57: the door that reports the WORKING TREE now names a conflict too, so the same repository is
+  // described one way by git.status and one way by git.staged — measured trigger: an add/add merge,
+  // where `AA new.md` used to be reported as `1 added`.
+  it('git.status on an add/add conflict says UNMERGED and names the path, not "1 added"', async () => {
+    const h = harness('AA new.md\n M other.md\n');
+    const res = await h.registry.invoke({ callId: 'u4', tool: 'git.status', args: {} }, h.grant);
+    const out = res.output as { ok: boolean; counts: Record<string, number>; detail: string; files: { status: string }[] };
+    expect(out.ok).toBe(true);
+    expect(out.counts).toEqual({ unmerged: 1, modified: 1 });
+    expect(out.detail).toContain('git reported 1 UNMERGED path(s) (new.md)');
+    expect(out.detail).toContain('a granted git.commit right now would be refused by git itself');
+    expect(out.detail).not.toContain('2 added');
+  });
+
+  it('a clean working tree gets no conflict clause (the notice cannot leak into an ordinary answer)', async () => {
+    const h = harness(' M a.ts\n?? b.bin\n');
+    const detail = String(((await h.registry.invoke({ callId: 'u5', tool: 'git.status', args: {} }, h.grant)).output as { detail: string }).detail);
+    expect(detail).toBe('git.status → exit 0: 2 entries (1 modified, 1 untracked)');
     expect(detail).not.toContain('UNMERGED');
   });
 });
