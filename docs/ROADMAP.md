@@ -522,7 +522,7 @@ drizzle 把整个拼接结果当成**单个绑定参数**，生成的 SQL 是 `o
 
 ## 横向能力（随里程碑推进，不单列里程碑）
 - Agent 工具注册表 + 权限 + 人工审批门（§72-74/177）
-- Context Engine / Design Index / Project Graph（§66-71）— **四切片已落地（2026-09-24）**：
+- Context Engine / Design Index / Project Graph（§66-71）— **五切片已落地（2026-09-24）**：
   `buildDesignIndex`（`packages/design-model/src/context-index.ts`）把一份设计文档投影成**目录**
   （页面 / 框 / 组件 / 资产 / token / 交互 + 跨引用边 + totals，纯函数、不含正文），
   `fitIndexToBudget` 按字符预算裁剪，并且**逐条交代裁掉了什么**（totals 始终来自未裁的那一份，宁可少列条目不少报数）；
@@ -558,12 +558,22 @@ drizzle 把整个拼接结果当成**单个绑定参数**，生成的 SQL 是 `o
   钉住它的是 `apps/ai-service/tests/test_prompt.py`，夹具由 `npm run contract:export` 用**同一套装配代码**
   现算（id 固定化后两次导出字节相同），所以 TS 侧改了目录形状、Python 侧的测试会先红，
   不会出现两端各自演化。反向验证过：换回旧 `build_prompt`，9 条里 6 条立刻失败。
-  仍欠的三笔如实记下：① Code Index 的**后半截**——"按 path 取正文"的通道还没有，Agent 知道有哪份文件、里面有什么符号，
+  第五切片把 §68 剩下的最后一块"客户端说了算"拿走：`selectionDigest` / `designSystemDigest` 以前是浏览器
+  算好发上来、服务端照单收下。不算越权（读的是自己的项目），但模型看到的"现场"是请求方自述的——
+  谎报一个不存在的 nodeId、或者用点击顺序暗示哪个更重要，服务端没有任何办法发现。
+  现在命令栏只发 `projectId / pageId / viewport / selection`（id），两份摘要由
+  `apps/web/src/server/ai/derive-context.ts` 从**权威文档**现算（`buildSelectionDigest` + token/组件表），
+  上传任一份摘要和上传整份文档同罪：400 `context_selectionDigest_not_allowed`（§12 的第 12 条边界）。
+  `buildSelectionDigest` 比原来那份客户端摘要多交代三件事：认不出的 id 进 `missing`、文档里有但走不到的
+  进 `unreachable`（`depth: null`，样式信息仍如实给出）、超出 12 条的进 `dropped`；
+  顺序改成"当前页优先 + 文档位置"，客户端的点击次序不再参与。文字/尺寸/字号沿用模型里的意图值
+  （`hug` / `fill` / `{token}` 不换算成像素），token 引用与目录、lint、health 同一个 `collectTokenRefs`。
+  夹具那一路也跟着改：`scripts/ai-request-fixture.ts` 直接调 `deriveContextFromDocument`，
+  摘要不再手抄——导出来的 `contracts/fixtures/*.json` 里那份就是服务端真会发出去的那份。
+  仍欠的两笔如实记下：① Code Index 的**后半截**——"按 path 取正文"的通道还没有，Agent 知道有哪份文件、里面有什么符号，
   读不到实现；这条在面板的 `unavailable` 列表里，e2e 有断言，不会因为目录做完就被划掉。
   Agents / Runtime 两个分支仍未落地，面板上写的是「未索引」而不是空白；
   ② 语义相关性与重排要 embedding provider（§49 的向量半）；
-  ③ `selectionDigest` / `designSystemDigest` 仍由客户端算好发上来，服务端照单收下 —— 真 provider 上线前要把它们改成服务端派生，
-  否则"选中了什么"这件事由请求方说了算（不构成越权，但会让模型的注意力被客户端谎报带偏）。
   实测尺寸/耗时见 `docs/PERFORMANCE.md`，预算为什么取 20000 见 `docs/adr/0006-design-index-char-budget.md`。
 - Observability / Evaluation / Visual Benchmark（§84-86/156）
 - 规模基准与热点路径（§146/§147）— 模型层有 `scripts/perf-baseline.mts`，实测数字与"还没做的部分"记在

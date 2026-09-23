@@ -338,20 +338,61 @@ export const CodeDigestSchema = z.object({
 });
 export type CodeDigestPayload = z.infer<typeof CodeDigestSchema>;
 
+/**
+ * §68：这一轮的"现场"由服务端从权威文档算出来，客户端只报 pageId + selection 这些 id。
+ * 所以这份结构是**服务端 → ai-service** 的方向；客户端在请求里带它会被 `/api/ai/run` 拒掉。
+ */
+export const SelectionDigestSchema = z.object({
+  schemaVersion: z.literal(1),
+  requested: z.number().int().min(0),
+  limit: z.number().int().min(0),
+  entries: z.array(
+    z.object({
+      nodeId: z.string(),
+      pageId: z.string(),
+      pageName: z.string(),
+      type: z.string(),
+      name: z.string(),
+      parent: z.string().nullable(),
+      /** null = 文档里有这个节点，但从页面根走不到（孤儿）；不是"不存在" */
+      depth: z.number().int().min(0).nullable(),
+      childCount: z.number().int().min(0),
+      size: z.object({ width: z.union([z.number(), z.string()]), height: z.union([z.number(), z.string()]) }),
+      text: z.string().nullable(),
+      /** 数字是绝对值；字符串表示这里引用了 token（形如 `{typography.h1}`），模型应当沿用而不是写死 */
+      fontSize: z.union([z.number(), z.string()]).nullable(),
+      tokenRefs: z.array(z.string()),
+      componentOf: z.string().nullable(),
+      assetRef: z.string().nullable(),
+    }),
+  ),
+  /** 文档里根本没有的 id：如实带出去，模型才知道"这几个改不了"而不是凭空造 */
+  missing: z.array(z.string()),
+  unreachable: z.array(z.string()),
+  dropped: z.array(z.string()),
+  omissions: z.array(z.string()),
+});
+export type SelectionDigestPayload = z.infer<typeof SelectionDigestSchema>;
+
 /** §66 Design Context：Agent 必须拿到上下文而不是每次重推 */
 export const DesignContextSchema = z.object({
   projectId: z.string(),
   pageId: z.string().optional(),
   viewport: z.enum(['mobile', 'tablet', 'desktop', 'wide']).optional(),
   selection: z.array(z.string()).default([]),
-  /** 选中节点的紧凑描述（类型/名称/尺寸/关键样式），避免整文档塞进模型（§68） */
-  selectionDigest: z.array(z.record(z.string(), z.unknown())).default([]),
+  /**
+   * 选中节点的紧凑描述（类型/名称/尺寸/引用了哪些 token），避免整文档塞进模型（§68）。
+   * **由服务端装配注入**，客户端不许上传——所以这里刻意没有 `.default()`：
+   * 装了默认值就分不清"客户端没发"和"客户端发了空"，而这条边界要能拒绝（同 `document`）。
+   */
+  selectionDigest: SelectionDigestSchema.optional(),
+  /** 设计系统摘要（token / 组件），同样由服务端从权威文档派生，客户端上传会被拒 */
   designSystemDigest: z
     .object({
       tokens: z.array(z.object({ key: z.string(), type: z.string(), value: z.unknown() })).default([]),
       components: z.array(z.object({ id: z.string(), name: z.string(), props: z.record(z.string(), z.unknown()).default({}) })).default([]),
     })
-    .default({ tokens: [], components: [] }),
+    .optional(),
   /**
    * §70 的设计目录（服务端 Context Engine 装配时注入，预算内）。
    * 这是 provider 真正能看到的那一份；`document` 不是（见下）。

@@ -35,13 +35,17 @@ ops 只允许以下形状（字段名与取值必须严格一致）：
 
 规则：
 1. 输入可能是**目录**（contextSource=designIndex）而不是整份文档：目录只列页面、框与段（frames）、
-   token、组件、资产、交互，以及本轮被选中的节点（selectionDigest）。
-   只能引用这些里面出现的 nodeId / pageId / token key。
+   token、组件、资产、交互。本轮选中的节点在 `selectionDigest.entries` 里（每项有 nodeId、名称、
+   尺寸、字号、文字与它引用了哪些 token）；只能引用这些地方出现的 nodeId / pageId / token key。
+   `selectionDigest.missing` 是服务端在文档里**认不出来**的 id：不要动它们，也别另挑一个像样的 id 假装改了，
+   在 explanation 里说清楚哪个 id 找不到。`unreachable` 是文档里有、但从页面根走不到的节点（孤儿）；
+   `dropped` 是选中太多、这次没展开列出的 id。
    叶子节点（文本、按钮、图片）如果没在目录里出现，就没有可引用的 id——需要动它时，
-   用它的父框或 selectionDigest 里那个 id 来表达；确实表达不了的，在 explanation 里说做不了，
+   用它的父框或 entries 里那个 nodeId 来表达；确实表达不了的，在 explanation 里说做不了，
    不要凭空造一个 id 假装改了。要**新增**节点时例外：那时由你起一个新 id（不能撞目录里已有的）。
 2. `omissions` 写明这份目录没带什么（例如逐节点样式）。没列出来不等于不存在，也不等于可以乱猜。
 3. 颜色与尺寸优先引用 token（形如 "{color.primary}"），不要硬编码十六进制，除非诉求明确要求。
+   尺寸里的 "hug" / "fill" 是模型里的意图，不是量出来的像素。
 4. 不改变没有提到的节点；不要输出解释文字、Markdown 或代码块。
 5. 无法用这些 op 表达的诉求（例如需要生成图片/视频），在 explanation 里说明做不了，patches 留空。
 """
@@ -122,7 +126,9 @@ def build_prompt(request: dict[str, Any]) -> tuple[str, str]:
         "viewport": context.get("viewport"),
         "pageId": page_id,
         "selection": context.get("selection") or [],
-        "selectionDigest": context.get("selectionDigest") or [],
+        # 服务端派生的一份目录（entries / missing / unreachable / dropped / omissions）；
+        # 空对象只可能来自手写请求，正常装配一定会带上它
+        "selectionDigest": context.get("selectionDigest") or {},
         "recentChanges": context.get("recentChanges") or [],
     }
     # 这个进程自己又裁的每一刀，最后一起写进 promptTruncated（§159：短了要说，别默默变短）

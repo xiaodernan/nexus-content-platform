@@ -1,6 +1,7 @@
 import type { AiRequest } from '@nexus/schemas';
 import type { DesignDocument } from '@nexus/design-model';
 import { buildCodeDigest, DEFAULT_CODE_CHAR_BUDGET } from '@/server/domain/code-index';
+import { deriveContextFromDocument } from '@/server/ai/derive-context';
 import { buildProjectContext } from '@/server/domain/context';
 import { projectBelongsTo } from '@/server/domain/projects';
 
@@ -26,15 +27,41 @@ export type AssembleResult =
     }
   | { ok: false; status: 400 | 404 | 409; code: string; message: string };
 
+/** 客户端上传即拒绝的三份：都是"现场描述"，服务端能自己算，让客户端发就等于让请求方定义现实 */
+const SERVER_DERIVED = {
+  document: '整份设计文档',
+  selectionDigest: '选中节点的描述',
+  designSystemDigest: '设计系统摘要',
+} as const;
+
+/**
+ * 由权威文档派生"这一轮的现场"：见 `derive-context.ts`。那里同时是夹具生成脚本的入口，
+ * 所以这条派生逻辑全仓库只有一份。
+ */
+
 export async function assembleAiRequest(request: AiRequest, ownerId: string): Promise<AssembleResult> {
-  const { document: clientDocument, ...context } = request.context;
-  if (clientDocument !== undefined) {
-    return {
-      ok: false,
-      status: 400,
-      code: 'context_document_not_allowed',
-      message: '上下文里的整份设计文档由服务端装配，客户端不再上传（§68）。只发 projectId/pageId/selection 就够了。',
-    };
+  const {
+    document: clientDocument,
+    selectionDigest: clientSelection,
+    designSystemDigest: clientSystem,
+    ...context
+  } = request.context;
+  // 这三份契约上都刻意没有默认值：`!== undefined` 就是"客户端确实发了这一份"
+  for (const [value, field] of [
+    [clientDocument, 'document'],
+    [clientSelection, 'selectionDigest'],
+    [clientSystem, 'designSystemDigest'],
+  ] as const) {
+    if (value !== undefined) {
+      return {
+        ok: false,
+        status: 400,
+        code: `context_${field}_not_allowed`,
+        message:
+          `上下文里的${SERVER_DERIVED[field]}由服务端按库里的权威文档装配，客户端不再上传（§68）。` +
+          '只发 projectId/pageId/selection 就够了。',
+      };
+    }
   }
 
   const { projectId } = context;
@@ -59,9 +86,11 @@ export async function assembleAiRequest(request: AiRequest, ownerId: string): Pr
     codeDigest.trimmed.push('上下文里的代码目录被预算裁过：排序只看得到裁剩的符号，被裁掉的那部分不参与命中');
   }
 
+  const document = assembled.document;
+  const derived = deriveContextFromDocument(document, context);
   return {
     ok: true,
-    toolDocument: assembled.document,
+    toolDocument: document,
     wire: {
       ...request,
       context: {
@@ -70,6 +99,8 @@ export async function assembleAiRequest(request: AiRequest, ownerId: string): Pr
         codeDigest,
         indexChars: assembled.context.sizes.indexChars,
         budgetChars: assembled.context.sizes.budgetChars,
+        selectionDigest: derived.selectionDigest,
+        designSystemDigest: derived.designSystemDigest,
       },
     },
   };

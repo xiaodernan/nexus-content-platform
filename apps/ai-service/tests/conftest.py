@@ -63,7 +63,36 @@ def ai_request(**overrides) -> dict:
             "pageId": "pg_1",
             "viewport": "desktop",
             "selection": ["n_headline"],
-            "selectionDigest": [{"nodeId": "n_headline", "type": "text", "name": "Headline"}],
+            # 服务端派生的形状（§68）：一条 entry 对应文档里那个节点，字段与 buildSelectionDigest 一致
+            "selectionDigest": {
+                "schemaVersion": 1,
+                "requested": 1,
+                "limit": 12,
+                "entries": [
+                    {
+                        "nodeId": "n_headline",
+                        "pageId": "pg_1",
+                        "pageName": "Home",
+                        "type": "text",
+                        "name": "Headline",
+                        "parent": "Home",
+                        "depth": 1,
+                        "childCount": 0,
+                        "size": {"width": "hug", "height": "hug"},
+                        "text": "从一句话到一个可发布的产品",
+                        "fontSize": 56,
+                        "tokenRefs": ["color.text"],
+                        "componentOf": None,
+                        "assetRef": None,
+                    }
+                ],
+                "missing": [],
+                "unreachable": [],
+                "dropped": [],
+                # 手写的合成请求：omissions 只占个位。真·那三条中文说明由
+                # buildSelectionDigest 生成，跟着 contracts/fixtures/ 的夹具走，不在这里抄一份。
+                "omissions": ["（合成请求，未展开 omission 文案）"],
+            },
             "designSystemDigest": {
                 "tokens": [{"key": "color.primary", "type": "color", "value": "#7c5cff"}],
                 "components": [],

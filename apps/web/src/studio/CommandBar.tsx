@@ -57,19 +57,6 @@ export function CommandBar() {
       setBusy(false);
       return;
     }
-    const selectionDigest = state.selection.map((id) => {
-      const node = state.page.nodes[id];
-      const box = state.layout.nodes[id];
-      if (!node || !box) return { id };
-      return {
-        id: node.id,
-        type: node.type,
-        name: node.name,
-        width: Math.round(box.width),
-        height: Math.round(box.height),
-        text: node.text,
-      };
-    });
     const body = {
       requestId: `req_${Date.now().toString(36)}`,
       intent: 'design-edit',
@@ -80,14 +67,10 @@ export function CommandBar() {
         projectId: state.projectId,
         pageId: state.page.id,
         viewport: state.viewport === 'design' ? undefined : state.viewport,
+        // 只报 id：这一轮"现场长什么样"由服务端按库里的权威文档回答（§68）。
+        // 客户端上传文档、选中节点的描述或设计系统摘要，都会被 /api/ai/run 拒掉——
+        // 那些字段服务端算得出来，让请求方发就等于让请求方定义现实。
         selection: state.selection,
-        selectionDigest,
-        designSystemDigest: {
-          tokens: state.document.tokens.map((t) => ({ key: t.key, type: t.type, value: t.value })),
-          components: state.document.components.map((c) => ({ id: c.id, name: c.name })),
-        },
-        // 整份文档不在这里发：§68 要的是"检索 + 摘要 + 索引"，服务端装配时会带上预算过的
-        // Design Index（见 server/ai/assemble.ts），客户端上传全文等于绕过那条边界。
       },
     };
     try {

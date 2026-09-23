@@ -28,7 +28,6 @@ const request: AiRequest = {
     projectId: 'prj_1',
     pageId: 'pg_1',
     selection: [],
-    selectionDigest: [],
     designSystemDigest: { tokens: [], components: [] },
     recentChanges: [],
   },

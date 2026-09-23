@@ -61,8 +61,6 @@ function aiRequest(
     context: {
       projectId,
       selection: [],
-      selectionDigest: [],
-      designSystemDigest: { tokens: [], components: [] },
       recentChanges: [],
       ...extra,
       ...(document === undefined ? {} : { document: document as Record<string, unknown> }),
@@ -70,8 +68,41 @@ function aiRequest(
   };
 }
 
-describe('assembleAiRequest（§67/§68：装配在服务端，文档不上线）', () => {
-  it('发出去的是目录：带 designIndex 与字符数，不带整份文档', async () => {
+/**
+ * 一份**形状合法**的假 digest：形状不对的话 zod 那关就先拦了，
+ * 测到的就不是"服务端照单收下还是自己算"这条边界。
+ */
+function fakeSelectionDigest(nodeId: string): NonNullable<AiRequest['context']['selectionDigest']> {
+  return {
+    schemaVersion: 1,
+    requested: 1,
+    limit: 12,
+    entries: [
+      {
+        nodeId,
+        pageId: 'p_我编的页',
+        pageName: '谎言页',
+        type: 'text',
+        name: '客户端说它叫什么',
+        parent: null,
+        depth: 0,
+        childCount: 0,
+        size: { width: 100, height: 20 },
+        text: '客户端自己写的文字',
+        fontSize: 999,
+        tokenRefs: [],
+        componentOf: null,
+        assetRef: null,
+      },
+    ],
+    missing: [],
+    unreachable: [],
+    dropped: [],
+    omissions: [],
+  };
+}
+
+describe('assembleAiRequest（§67/§68：装配在服务端，文档不上线）', () => {  it('发出去的是目录：带 designIndex 与字符数，不带整份文档', async () => {
     const id = await newProject('Assemble Wire');
     const result = await assembleAiRequest(aiRequest(id, 'Make the hero 30% taller.'), owner);
     if (!result.ok) throw new Error(`装配失败：${result.message}`);
@@ -148,6 +179,50 @@ describe('assembleAiRequest（§67/§68：装配在服务端，文档不上线�
     expect(result.status).toBe(400);
     expect(result.code).toBe('context_document_not_allowed');
     expect(result.message).toContain('§68');
+  });
+
+  it('上传"现场描述"同样被拒：选中了什么、设计系统里有什么，只有服务端能回答', async () => {
+    const id = await newProject('Assemble Client Digest');
+    const cases: Array<[string, Partial<AiRequest['context']>]> = [
+      ['selectionDigest', { selectionDigest: fakeSelectionDigest('n_我编的') }],
+      [
+        'designSystemDigest',
+        { designSystemDigest: { tokens: [{ key: 'color.hacked', type: 'color', value: '#000000' }], components: [] } },
+      ],
+    ];
+    for (const [field, extra] of cases) {
+      const result = await assembleAiRequest(aiRequest(id, 'make it cinematic', undefined, extra), owner);
+      expect(result.ok).toBe(false);
+      if (result.ok) throw new Error(`${field} 不该被收下`);
+      expect(result.status).toBe(400);
+      expect(result.code).toBe(`context_${field}_not_allowed`);
+      expect(result.message).toContain('只发 projectId/pageId/selection');
+    }
+  });
+
+  it('selectionDigest 由文档回答：认得出的给出事实，谎报的记进 missing', async () => {
+    const id = await newProject('Assemble Server Selection');
+    const document = (await loadDocument(id))!;
+    const page = document.pages.find((p) => p.id === document.activePageId) ?? document.pages[0]!;
+    const target = Object.values(page.nodes).find((n) => n.type === 'text') ?? page.nodes[page.rootId]!;
+
+    const result = await assembleAiRequest(
+      aiRequest(id, '把主标题改大一点', undefined, { pageId: page.id, selection: [target.id, 'n_不存在'] }),
+      owner,
+    );
+    if (!result.ok) throw new Error(`装配失败：${result.message}`);
+    const digest = result.wire.context.selectionDigest;
+    expect(digest).toBeTruthy();
+    expect(digest!.requested).toBe(2);
+    expect(digest!.entries.map((e) => e.nodeId)).toEqual([target.id]);
+    expect(digest!.missing).toEqual(['n_不存在']);
+    expect(digest!.entries[0]!.pageId).toBe(page.id);
+    // 这份 digest 描述的就是文档里那个节点，不是客户端的说法
+    expect(digest!.entries[0]!.name).toBe(target.name);
+    expect(digest!.entries[0]!.depth).toBeTypeOf('number');
+    // 设计系统摘要同源：token 条数与权威文档一致
+    expect(result.wire.context.designSystemDigest?.tokens.length).toBe(document.tokens.length);
+    expect(JSON.stringify(result.wire.context.designSystemDigest)).not.toContain('color.hacked');
   });
 
   it('别人的项目：404，不泄露它的目录有多大', async () => {

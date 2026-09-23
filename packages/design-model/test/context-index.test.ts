@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 import {
+  SELECTION_DIGEST_LIMIT,
   buildDesignIndex,
+  buildSelectionDigest,
   createDocument,
   createNode,
   createPage,
@@ -334,3 +336,181 @@ function starterDoc(): DesignDocument {
   const document = createDocument("起手");
   return document;
 }
+
+describe("buildSelectionDigest（§68 第三笔：现场由服务端按权威文档回答）", () => {
+  /** Hero 框 + 一个引用了 token 的标题，够覆盖"层级 / 意图尺寸 / token 来源"三类事实 */
+  function heroWithHeadline(document: DesignDocument) {
+    const hero = add(document, { type: "frame", name: "Hero", size: { width: "fill", height: "hug" } });
+    const headline = add(document, {
+      type: "text",
+      name: "Headline",
+      parentId: hero.id,
+      text: "从一句话到一个可发布的产品",
+      typography: { fontFamily: "{font.body}", fontSize: 56, fontWeight: 700 },
+      style: { fills: [{ kind: "solid", color: "{color.primary}" }] },
+    });
+    return { hero, headline };
+  }
+
+  it("认得的 id 给出一组可核对的事实，不是只有个 id", () => {
+    const document = doc();
+    const { hero, headline } = heroWithHeadline(document);
+    const digest = buildSelectionDigest(document, {
+      pageId: page(document)!.id,
+      selection: [headline.id, hero.id],
+    });
+
+    expect(digest.schemaVersion).toBe(1);
+    expect(digest.requested).toBe(2);
+    expect(digest.missing).toEqual([]);
+    expect(digest.unreachable).toEqual([]);
+
+    const byId = new Map(digest.entries.map((e) => [e.nodeId, e]));
+    const h = byId.get(headline.id)!;
+    expect(h.pageId).toBe(page(document)!.id);
+    expect(h.pageName).toBe("Home");
+    expect(h.type).toBe("text");
+    expect(h.parent).toBe("Hero"); // 给名字：模型引用上一层时不用反查 id
+    expect(h.depth).toBe(2); // 页面根 → Hero → Headline
+    expect(h.childCount).toBe(0);
+    expect(h.text).toBe("从一句话到一个可发布的产品");
+    expect(h.fontSize).toBe(56);
+    // 与 collectTokenRefs 同一口径：默认字体那条 {font.body} 引用也算，不挑只挑"显式改过的"
+    expect(h.tokenRefs).toEqual(["color.primary", "font.body"]);
+    // 尺寸是**意图**不是像素：hug / fill 原样带出，换算要浏览器参与
+    expect(byId.get(hero.id)!.size).toEqual({ width: "fill", height: "hug" });
+  });
+
+  it("谎报的 id 记进 missing：不静默丢，也不换一个像样的顶上", () => {
+    const document = doc();
+    const { headline } = heroWithHeadline(document);
+    const digest = buildSelectionDigest(document, {
+      pageId: page(document)!.id,
+      selection: ["node_不存在", headline.id, "node_不存在"],
+    });
+
+    expect(digest.missing).toEqual(["node_不存在"]);
+    expect(digest.requested).toBe(2); // 去重后仍有两条：谎报那条也计数
+    expect(digest.entries.map((e) => e.nodeId)).toEqual([headline.id]);
+  });
+
+  it("文档里有但走不到的节点：标 unreachable + depth null，样式信息照给", () => {
+    const document = doc();
+    const p = page(document)!;
+    const orphan = createNode({ type: "text", name: "Orphan", text: "挂在 nodes 里，没有父节点指向它" });
+    p.nodes[orphan.id] = orphan; // 刻意不进任何 children —— 就是 totals.unreachableNodes 那类
+
+    const digest = buildSelectionDigest(document, { pageId: p.id, selection: [orphan.id] });
+    expect(digest.unreachable).toEqual([orphan.id]);
+    expect(digest.missing).toEqual([]); // 它确实在文档里，说"不存在"就是谎报
+
+    const [entry] = digest.entries;
+    expect(entry!.depth).toBeNull();
+    expect(entry!.parent).toBeNull();
+    expect(entry!.text).toBe("挂在 nodes 里，没有父节点指向它");
+  });
+
+  it("条目顺序由文档位置定，客户端用点击顺序带节奏无效", () => {
+    const document = doc();
+    const { hero, headline } = heroWithHeadline(document);
+    const footer = add(document, { type: "text", name: "Footer", text: "页脚" });
+    const ids = [footer.id, headline.id, hero.id];
+    const p = page(document)!.id;
+
+    const scrambled = buildSelectionDigest(document, { pageId: p, selection: ids });
+    const ordered = buildSelectionDigest(document, { pageId: p, selection: [...ids].reverse() });
+    expect(scrambled.entries.map((e) => e.nodeId)).toEqual(ordered.entries.map((e) => e.nodeId));
+    expect(ordered.entries.map((e) => e.name)).toEqual(["Hero", "Headline", "Footer"]);
+  });
+
+  it("当前页排在前面；超出 limit 的进 dropped，requested 记的是全部", () => {
+    const document = doc();
+    const { headline } = heroWithHeadline(document);
+    document.pages.push(createPage("Pricing"));
+    const other = add(document, { type: "text", name: "OnPricing", text: "另一页的一段" }, 1);
+
+    const digest = buildSelectionDigest(document, {
+      pageId: page(document)!.id,
+      selection: [other.id, headline.id],
+      limit: 1,
+    });
+    expect(digest.entries.map((e) => e.pageName)).toEqual(["Home"]);
+    expect(digest.dropped).toEqual([other.id]);
+    expect(digest.requested).toBe(2);
+    expect(digest.limit).toBe(1);
+  });
+
+  it("字号引用 token 时给的是那个引用；显式绑定也算引用（与目录同一口径）", () => {
+    const document = doc();
+    const tokenized = add(document, {
+      type: "text",
+      name: "H1",
+      text: "标题",
+      typography: { fontFamily: "{font.body}", fontSize: "{typography.h1}", fontWeight: 700 },
+    });
+    const bound = add(document, { type: "text", name: "Bound", text: "绑定" });
+    bound.bindingsMap = { cornerRadius: "radius.lg" }; // 裸 key 形态的显式绑定
+
+    const digest = buildSelectionDigest(document, { pageId: null, selection: [tokenized.id, bound.id] });
+    const byId = new Map(digest.entries.map((e) => [e.nodeId, e]));
+    expect(byId.get(tokenized.id)!.fontSize).toBe("{typography.h1}");
+    expect(byId.get(tokenized.id)!.tokenRefs).toContain("typography.h1");
+    expect(byId.get(bound.id)!.tokenRefs).toContain("radius.lg");
+  });
+
+  it("实例与资产给名字；名字查不到时退回 id，而不是 null 假装没绑", () => {
+    const document = doc();
+    const component: ComponentDefinition = {
+      id: "cmp_1",
+      name: "PrimaryButton",
+      rootId: "n_ghost",
+      props: [],
+      variants: [],
+      slots: [],
+    };
+    document.components.push(component);
+    const instance = add(document, { type: "frame", name: "Instance" });
+    instance.componentId = component.id;
+    const dangling = add(document, { type: "frame", name: "Dangling" });
+    dangling.componentId = "cmp_gone";
+    dangling.assetId = "ast_gone";
+
+    const digest = buildSelectionDigest(document, { selection: [instance.id, dangling.id] });
+    const byId = new Map(digest.entries.map((e) => [e.nodeId, e]));
+    expect(byId.get(instance.id)!.componentOf).toBe("PrimaryButton");
+    expect(byId.get(dangling.id)!.componentOf).toBe("cmp_gone");
+    expect(byId.get(dangling.id)!.assetRef).toBe("ast_gone");
+  });
+
+  it("长文字截到 60 字加省略号：既不发整段正文，也不假装那就是全文", () => {
+    const document = doc();
+    const long = add(document, { type: "text", name: "Long", text: "啊".repeat(200) });
+    const empty = add(document, { type: "frame", name: "Empty" });
+
+    const digest = buildSelectionDigest(document, { selection: [long.id, empty.id] });
+    const text = digest.entries.find((e) => e.nodeId === long.id)!.text!;
+    expect(text).toHaveLength(61); // 60 字 + 省略号
+    expect(text.endsWith("…")).toBe(true);
+    expect(digest.entries.find((e) => e.nodeId === empty.id)!.text).toBeNull();
+  });
+
+  it("没选中东西也是一份完整目录：空表 + 上限 + omissions 一样不缺", () => {
+    const document = doc();
+    const digest = buildSelectionDigest(document, { selection: [] });
+    expect(digest.entries).toEqual([]);
+    expect(digest.requested).toBe(0);
+    expect(digest.limit).toBe(SELECTION_DIGEST_LIMIT);
+    const omissions = digest.omissions.join("\n");
+    expect(omissions).toContain("浏览器量出来的实际盒模型");
+    expect(omissions).toContain("选中顺序");
+  });
+
+  it("同一份输入两次调用逐字节相同（§68：目录要能当夹具用）", () => {
+    const document = doc();
+    const { hero, headline } = heroWithHeadline(document);
+    const args = { pageId: page(document)!.id, selection: [headline.id, hero.id] };
+    expect(JSON.stringify(buildSelectionDigest(document, args))).toBe(
+      JSON.stringify(buildSelectionDigest(document, args)),
+    );
+  });
+});

@@ -108,7 +108,8 @@ DEMO 路径不在 ai-service 里：确定性 Mock 需要 design model 才能产�
     裁剪只丢条目、**`totals` 永远来自未裁的那一份**，丢了什么以 `trimmed`/`dropped` 随报文一起出去；
     没落地的分支写 `not-indexed` 而不是留白；装配只读，不顺手写库；
     **`/api/ai/run` 的上下文由服务端装配**（`apps/web/src/server/ai/assemble.ts`）——先校验项目归属再读文档
-    （顺序反了就是一个现成的 IDOR），客户端上传 `context.document` 一律 400，DEMO 规则要读的权威文档
+    （顺序反了就是一个现成的 IDOR），客户端上传 `context.document` / `selectionDigest` / `designSystemDigest`
+    一律 400（"现场"只能由服务端回答，见 15），DEMO 规则要读的权威文档
     作为**进程内工具入参**递进去，不是报文里的字段（§68 禁的是"整份文档进模型上下文"，不是"服务端不许看自己的库"）。
     客户端因此不能带着未保存的改动去按执行：`CommandBar` 先 `studio.flushBeforeAi()` 落库，落不进去就报错停下，
     绝不悄悄按库里那份旧文档生成。
@@ -133,6 +134,17 @@ DEMO 路径不在 ai-service 里：确定性 Mock 需要 design model 才能产�
     跨语言的防漂移靠**生成**而不是抄：`npm run contract:export` 除 JSON Schema 外，
     还用同一套装配代码导出 `contracts/fixtures/ai-request-with-index.json`（id 固定化，两次导出字节相同），
     `test_prompt.py` 消费它。TS 侧改了目录形状，Python 侧测试先红；夹具自己不会说谎。
+15. **"这一轮的现场"是服务端的结论，不是请求方的自述**（§68）：客户端只报 `projectId / pageId / viewport / selection`
+    这些 id，`selectionDigest` 与 `designSystemDigest` 由 `apps/web/src/server/ai/derive-context.ts`
+    从权威文档现算（`buildSelectionDigest` + token/组件表）。为什么值得单独一条：浏览器自述现场**不构成越权**
+    （读的是自己的项目），所以安全测试全绿也发现不了它——但模型看到的"选中了什么"于是由请求方说了算，
+    谎报一个不存在的 nodeId、或者用点击顺序暗示重要性，服务端无从核对。三个 zod 字段因此刻意不带 `.default()`
+    （带了就分不清"没发"和"发了空"，拒绝这条边界会退化成摆设），`buildSelectionDigest` 的三种不漂亮结果
+    都如实写进结构：认不出的进 `missing`、文档里有但从页面根走不到的进 `unreachable`（`depth: null`，
+    样式信息仍照给——它确实存在）、超出 12 条的进 `dropped`；`requested` 记的是去重后的全部条数，
+    不是列出来的条数。尺寸/字号给模型里存的**意图值**（`hug` / `fill` / `{token}` 不换算成像素），
+    这条连同"没有浏览器量出来的盒模型"一起写在 `omissions` 里。派生函数是纯函数，
+    所以跨语言夹具与真实装配走的是同一份代码，没有第二处手抄。
 
 ## Design ↔ Code 双通道
 

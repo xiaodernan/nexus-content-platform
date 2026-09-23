@@ -1,6 +1,7 @@
 import { buildDesignIndex, createDocument, fitIndexToBudget, type DesignDocument } from '../packages/design-model/src';
 import { AiRequestSchema, type AiRequest } from '../packages/schemas/src';
 import { buildCodeDigest, buildCodeIndex, fitCodeIndexToBudget } from '../apps/web/src/server/domain/code-index';
+import { deriveContextFromDocument } from '../apps/web/src/server/ai/derive-context';
 
 /** 导出位置（相对仓库根）；Python 侧 `tests/test_prompt.py` 读的就是这一份 */
 export const AI_REQUEST_FIXTURE_FILE = 'contracts/fixtures/ai-request-with-index.json';
@@ -43,6 +44,8 @@ export function buildAiRequestFixture(): AiRequest {
     pageId: page.id,
     nodeIds: [headline.id],
   });
+  // 现场那一份（选中了什么 / 设计系统里有什么）走服务端同一个函数：夹具不是手抄出来的
+  const derived = deriveContextFromDocument(document, { pageId: page.id, selection: [headline.id] });
   return AiRequestSchema.parse({
     requestId: 'req_fixture',
     intent: 'design-edit',
@@ -54,20 +57,8 @@ export function buildAiRequestFixture(): AiRequest {
       pageId: page.id,
       viewport: 'desktop',
       selection: [headline.id],
-      selectionDigest: [
-        {
-          id: headline.id,
-          type: headline.type,
-          name: headline.name,
-          text: headline.text ?? null,
-          // CommandBar 这里还会带 layout 算出来的 width/height（`studio/layout` 是浏览器侧的量算结果），
-          // 夹具不自己编数字：少两个字段只是信息更少，多一个字段就是给 Python 侧看一个线上收不到的形状。
-        },
-      ],
-      designSystemDigest: {
-        tokens: document.tokens.map((token) => ({ key: token.key, type: token.type, value: token.value })),
-        components: document.components.map((component) => ({ id: component.id, name: component.name })),
-      },
+      selectionDigest: derived.selectionDigest,
+      designSystemDigest: derived.designSystemDigest,
       designIndex: index,
       codeDigest: digest,
       indexChars: JSON.stringify(index).length,

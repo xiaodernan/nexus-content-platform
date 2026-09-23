@@ -567,3 +567,136 @@ export function fitIndexToBudget(
   }
   return next;
 }
+
+/* ------------------------------------------------------------------ *
+ * §68 的收尾：selection 的"人话描述"由服务端算，不由客户端上传
+ * ------------------------------------------------------------------ */
+
+export interface SelectionDigestEntry {
+  nodeId: string;
+  pageId: string;
+  pageName: string;
+  type: string;
+  name: string;
+  /** 父节点的名字（与 frames 目录同一口径）；没有父节点时为 null */
+  parent: string | null;
+  /** 在页面树里的深度。null 表示这个节点从页面根**走不到**（孤儿），不是"不存在" */
+  depth: number | null;
+  childCount: number;
+  size: { width: SizeValue; height: SizeValue };
+  text: string | null;
+  /** 数字是绝对值；字符串表示这个字号引用了 token（模型应当沿用而不是写死） */
+  fontSize: number | string | null;
+  /** 这个节点引用了哪些 token（与 lint / health / 目录同一套 collectTokenRefs 口径） */
+  tokenRefs: string[];
+  /** 它是哪个组件的实例、用了哪个资产：给名字而不是 id，模型引用时才不至于猜 */
+  componentOf: string | null;
+  assetRef: string | null;
+}
+
+export interface SelectionDigest {
+  schemaVersion: 1;
+  /** 客户端说"选了这些"的原始个数（去重后）——用来核对服务端认下来多少 */
+  requested: number;
+  limit: number;
+  entries: SelectionDigestEntry[];
+  /** 文档里根本没有这些 id：如实列出，不静默丢掉（§159），也不让模型去改一个不存在的节点 */
+  missing: string[];
+  /** 文档里有、但从页面根走不到的 id：位置与树关系无从谈起，样式信息照给 */
+  unreachable: string[];
+  /** 超过 limit 没能列出的 id */
+  dropped: string[];
+  omissions: string[];
+}
+
+export const SELECTION_DIGEST_LIMIT = 12;
+
+export const SELECTION_DIGEST_OMISSIONS: string[] = [
+  "逐条样式值（这里给尺寸、字号和引用了哪些 token key；完整 fill / stroke 仍要从文档读，与 designIndex 那条 omission 是同一件事）",
+  "浏览器量出来的实际盒模型（尺寸是模型里存的意图：hug / fill / {token} 都没有换算成像素）",
+  "选中顺序（客户端的点击次序不进这份目录；顺序由服务端按「当前页优先 + 文档位置」定，免得请求方用顺序暗示哪个更重要）",
+];
+
+/**
+ * 把"这一轮选中了什么"从客户端的自述改成服务端的核对结果（§68）。
+ *
+ * 之前是浏览器算好一份 digest 发上来、服务端照单收下：不构成越权（读的是自己项目），
+ * 但模型看到的"现场"由客户端说了算——谎报一个不存在的 nodeId，或者用顺序带节奏，
+ * 服务端没有任何办法发现。现在服务端按权威文档回答，认不出的 id 写进 `missing`。
+ * 纯函数：不读库、不碰时钟、同一份文档同一份 selection 结果确定。
+ */
+export function buildSelectionDigest(
+  document: DesignDocument,
+  options: { pageId?: string | null; selection: string[]; limit?: number },
+): SelectionDigest {
+  const limit = Math.max(0, options.limit ?? SELECTION_DIGEST_LIMIT);
+  const requested = [...new Set(options.selection)];
+  const currentPageId = options.pageId ?? document.activePageId ?? null;
+
+  const pageIndex = new Map(document.pages.map((page, index) => [page.id, index]));
+  const holderOf = new Map<string, Page>();
+  for (const page of document.pages) {
+    for (const node of Object.values(page.nodes)) if (!holderOf.has(node.id)) holderOf.set(node.id, page);
+  }
+  // 可达性单独算一遍：走不到的节点仍然能描述（它真的在文档里），但不能假装知道它在树上第几层
+  const reachable = new Map<string, { depth: number; seq: number }>();
+  for (const page of document.pages) {
+    let seq = 0;
+    walk(page, (node, depth) => {
+      seq += 1;
+      reachable.set(node.id, { depth, seq });
+    });
+  }
+  const componentName = new Map(document.components.map((c) => [c.id, c.name]));
+  const assetName = new Map(document.assets.map((a) => [a.id, a.name]));
+
+  const missing: string[] = [];
+  const unreachable: string[] = [];
+  const located: { entry: SelectionDigestEntry; pageRank: number; pageIndex: number; seq: number }[] = [];
+
+  for (const id of requested) {
+    const page = holderOf.get(id);
+    const node = page?.nodes[id];
+    if (!page || !node) {
+      missing.push(id);
+      continue;
+    }
+    const place = reachable.get(id);
+    if (!place) unreachable.push(id);
+    const boundKeys = Object.values(node.bindingsMap ?? {}).map((ref) => tokenRefKey(ref) ?? ref);
+    const text = nodeText(node).trim();
+    located.push({
+      pageRank: page.id === currentPageId ? 0 : 1,
+      pageIndex: pageIndex.get(page.id) ?? 0,
+      seq: place?.seq ?? Number.MAX_SAFE_INTEGER,
+      entry: {
+        nodeId: node.id,
+        pageId: page.id,
+        pageName: page.name,
+        type: node.type,
+        name: node.name,
+        parent: node.parentId ? (page.nodes[node.parentId]?.name ?? node.parentId) : null,
+        depth: place?.depth ?? null,
+        childCount: node.children.length,
+        size: { width: node.size.width, height: node.size.height },
+        text: text ? (text.length > 60 ? `${text.slice(0, 60)}…` : text) : null,
+        fontSize: node.typography?.fontSize ?? null,
+        tokenRefs: [...new Set([...collectTokenRefs(node), ...boundKeys])].sort(),
+        componentOf: node.componentId ? (componentName.get(node.componentId) ?? node.componentId) : null,
+        assetRef: node.assetId ? (assetName.get(node.assetId) ?? node.assetId) : null,
+      },
+    });
+  }
+
+  located.sort((a, b) => a.pageRank - b.pageRank || a.pageIndex - b.pageIndex || a.seq - b.seq);
+  return {
+    schemaVersion: 1,
+    requested: requested.length,
+    limit,
+    entries: located.slice(0, limit).map((l) => l.entry),
+    missing,
+    unreachable,
+    dropped: located.slice(limit).map((l) => l.entry.nodeId),
+    omissions: [...SELECTION_DIGEST_OMISSIONS],
+  };
+}

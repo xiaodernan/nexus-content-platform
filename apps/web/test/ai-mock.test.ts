@@ -25,7 +25,6 @@ function request(
       projectId: 'prj_test',
       pageId: overrides.pageId ?? document.activePageId,
       selection: overrides.selection ?? [],
-      selectionDigest: [],
       designSystemDigest: {
         tokens: document.tokens.map((t) => ({ key: t.key, type: t.type, value: t.value })),
         components: [],

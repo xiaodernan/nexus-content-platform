@@ -479,17 +479,21 @@ test('@smoke studio slice: AI command bar runs in DEMO MODE as one undoable tran
 
   const before = await page.evaluate(() => document.querySelectorAll('[data-node-id]').length);
 
-  // §68 要在 HTTP 边界上可核对，而不只是"面板上写着小"：截下真正发出去的那一份
+  // §68 要在 HTTP 边界上可核对，而不只是"面板上写着小"：截下真正发出去的那一份。
+  // 浏览器发的只有 id：整份文档、选中节点的描述、设计系统摘要都不该出现在这里。
   const sent: {
-    current: { bytes: number; hasDocument: boolean; hasSelection: boolean } | null;
+    current: { bytes: number; uploadedContext: string[]; selectionIds: unknown } | null;
   } = { current: null };
   await page.route('**/api/ai/run', async (route) => {
     const raw = route.request().postData() ?? '';
-    const body = JSON.parse(raw) as { context?: { document?: unknown; selectionDigest?: unknown[] } };
+    const body = JSON.parse(raw) as { context?: Record<string, unknown> };
+    const context = body.context ?? {};
     sent.current = {
       bytes: raw.length,
-      hasDocument: body.context?.document !== undefined,
-      hasSelection: Array.isArray(body.context?.selectionDigest),
+      uploadedContext: Object.keys(context).filter(
+        (key) => key === 'document' || key === 'selectionDigest' || key === 'designSystemDigest',
+      ),
+      selectionIds: context.selection,
     };
     await route.fallback();
   });
@@ -513,10 +517,11 @@ test('@smoke studio slice: AI command bar runs in DEMO MODE as one undoable tran
   page.off('request', onRequest);
   expect(writes).toContain('ai');
   expect(writes.slice(0, writes.indexOf('ai'))).toContain('put');
-  // 客户端这一侧：只有 id 与选中摘要。起手项目的整份文档本身就有约 9,900 字符，
-  // 所以"请求体比文档还小"就是"没带文档"的直接证据
-  expect(sent.current?.hasDocument).toBe(false);
-  expect(sent.current?.hasSelection).toBe(true);
+  // 客户端这一侧：只发 id。整份文档、"选中了什么"的描述、设计系统摘要都不在上传里，
+  // 全部由服务端按库里那份权威文档回答（§68）。起手项目的整份文档本身就有约 9,900 字符，
+  // 所以"请求体比文档还小"是"没带文档"的直接证据
+  expect(sent.current?.uploadedContext).toEqual([]);
+  expect(sent.current?.selectionIds).toEqual([headlineId]);
   expect(sent.current?.bytes).toBeLessThan(6_000);
   // 服务端那一侧：装配出的目录有多大，写在 Activity 里给人看（§68 的可核对版本）
   await expect(page.locator('[data-command-bar]')).toContainText('发给模型的是目录');

@@ -1,7 +1,8 @@
 """§68 的最后一公里：发给模型的提示吃的是**服务端装配的目录**，不是整份文档。
 
 夹具来自 `npm run contract:export` 导出的 `contracts/fixtures/ai-request-with-index.json`——
-那一份是 web 侧真的用 `buildDesignIndex` + `buildCodeIndex` 装配出来的请求。
+那一份是 web 侧真的用 `buildDesignIndex` + `buildCodeIndex` + `deriveContextFromDocument`
+装配出来的请求（`selectionDigest` 也是服务端从权威文档算的，见 §68 第三笔）。
 不在这里手抄一份目录的形状：手抄的夹具会和 TS 侧漂移，
 漂移的结果是"Python 测试全绿而真实请求读不到东西"，正是这一片曾经的实际状态。
 """
@@ -49,11 +50,30 @@ def test_catalog_reaches_the_model() -> None:
     assert "tree" not in payload, "有目录时不该再走整份文档的节点表"
 
 
-def test_selection_ids_survive_into_the_prompt() -> None:
+def test_selection_digest_reaches_the_model_as_the_server_wrote_it() -> None:
+    """§68：选中了什么由服务端回答，整份结构原样进提示——包括 missing / unreachable / dropped。"""
     request = _fixture_request()
     payload = _user_payload(request)
+    digest = request["context"]["selectionDigest"]
+    assert payload["selectionDigest"] == digest
     assert payload["selection"] == request["context"]["selection"]
-    assert payload["selectionDigest"] == request["context"]["selectionDigest"]
+    # 目录里带的是可核对的事实，不是"id 列表"：模型要靠这些字段决定改哪一层
+    entry = digest["entries"][0]
+    assert entry["nodeId"] in request["context"]["selection"]
+    for field in ("pageName", "type", "name", "parent", "depth", "size", "fontSize", "tokenRefs"):
+        assert field in entry, f"selectionDigest 少了 {field}，模型只能凭空猜"
+    assert digest["omissions"], "没说明这份目录省略了什么，等于让模型以为看到了全部"
+
+
+def test_unrecognised_selection_ids_are_reported_not_dropped() -> None:
+    """客户端谎报一个文档里没有的 id：服务端会把它记进 missing，模型要看得见"这个动不了"。"""
+    request = _fixture_request()
+    request["context"]["selection"] = ["fx004", "node_不存在"]
+    request["context"]["selectionDigest"]["requested"] = 2
+    request["context"]["selectionDigest"]["missing"] = ["node_不存在"]
+    payload = _user_payload(request)
+    assert payload["selectionDigest"]["missing"] == ["node_不存在"]
+    assert "node_不存在" in payload["selection"]
 
 
 def test_missing_catalog_falls_back_to_document_and_says_so() -> None:
@@ -69,7 +89,7 @@ def test_nothing_at_all_is_reported_as_nothing() -> None:
     """既没目录也没文档：提示里要明说这一轮看不到项目内容，而不是给一个空表假装看到了。"""
     request = ai_request()
     del request["context"]["document"]
-    request["context"]["selectionDigest"] = []
+    request["context"]["selectionDigest"] = {}
     payload = _user_payload(request)
     assert payload["contextSource"] == "none"
     assert "看不到项目内容" in payload["note"]

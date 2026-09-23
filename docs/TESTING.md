@@ -138,7 +138,20 @@ e2e 断言面板把"未运行的检查"列出来，而不是显示全绿。
   frames / tokens / omissions / totals 与那份真实目录一一对应、代码摘要里的 `path` 进了提示，
   且提示里**没有** tree 分支——§68 把 `context.document` 挡在线上之后，模型能看到的只有目录。
   `document-fallback` 与 `none` 两条回落都必须在 payload 里自报门牌，不许静默降级。
-  反向实验：把 `build_prompt` 换回旧版，这 9 条里 6 条立刻红——说明测试咬的是新契约不是夹具自己
+  反向实验：整段换回旧 `build_prompt` 时 9 条里 6 条立刻红；这一轮只把 payload 里那行 digest 拿掉，
+  新增的 2 条也当场红——说明测试咬的是新契约而不是夹具自己
+- "这一轮的现场"只能由服务端回答（§68 第三笔）：`packages/design-model/test/context-index.test.ts` 里
+  `buildSelectionDigest` 那 10 条钉的是三种不漂亮的结果都要如实出去——认不出的 id 进 `missing`（不是静默丢）、
+  文档里有但走不到的进 `unreachable` 且 `depth: null`（说"不存在"就是谎报）、超出 12 条的进 `dropped` 而
+  `requested` 仍是全部；条目顺序由"当前页优先 + 文档位置"定，客户端把 selection 倒着发结果逐字节相同；
+  尺寸/字号给的是模型里的意图值（`fill` / `hug` / `{typography.h1}`），token 引用与目录同一套 `collectTokenRefs`。
+  `ai-assemble.integration.test.ts` 钉边界两端：上传 `selectionDigest` / `designSystemDigest` 一律 400
+  （用的是一份**形状合法**的假摘要——形状不对的话 zod 先拦，测不到这条边界本身），
+  而 wire 上那份 digest 的 `entries[0].name` 必须等于文档里那个节点的名字、谎报的 id 落在 `missing`。
+  e2e 那一侧截真实请求体：三个服务端字段一个都不许出现，只有 `selection` 的 id。
+  反向实验三次都咬住：`assemble.ts` 去掉两条拒绝 → 那条 400 测试红；`buildSelectionDigest` 去掉排序 →
+  顺序相关的 2 条红；把 `missing.push` 改成静默 `continue` → 谎报那条红；`build_prompt` 不再带 digest →
+  Python 侧新增的 2 条红
 - 每个里程碑一次 commit 前至少跑：`npm run lint && npm test && npm run test:e2e:smoke`
 - 改了 `packages/schemas` 必须重跑 `npm run contract:export`，否则契约漂移测试会红
 - 动了 ai-service 再加：`npm run test:ai-service`（Windows 控制台建议前置 `PYTHONUTF8=1`）
