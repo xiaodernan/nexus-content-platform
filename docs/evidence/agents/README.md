@@ -1,23 +1,26 @@
-# M2 evidence — agent stack (v0 loop → v40 checkpoint policy as data: §28 became a table you can diff; all ADR 0016 amendments)
+# M2 evidence — agent stack (v0 loop → v43 staged-intent door: the agent can read what a human meant to record; all ADR 0016 amendments)
 
 All checks are headless, offline, key-free, and reproducible from the repo root. Nothing here
 claims model-quality planning or neural retrieval (§60): the planner is a deterministic
 template and the index embedder is a hash-based bag-of-tokens stand-in — both say so in
-every emitted artifact (`provenance.mode = "demo"`). The honest exceptions since v30/v32/v34/v35/v36/v37/v38/v39/v40:
+every emitted artifact (`provenance.mode = "demo"`). The honest exceptions since v30/v32/v34/v35/v36/v37/v38/v39/v40/v42/v43:
 `exec-host-proof.mjs` and `git-aware-proof.mjs` spawn a few read-only local commands
 (`git status --short`, `git diff --stat`), `execsuite-proof.mjs` runs the repo's OWN
 @nexus/design-model vitest suite through the confined host (vitest's cache under
 `node_modules` is the only thing it writes), `commit-proof.mjs` + `greencommit-proof.mjs`
-+ `gitlog-proof.mjs` + `confirm-proof.mjs` + `remember-proof.mjs` + `policygate-proof.mjs` perform REAL `git commit`s (and since v37/v38
++ `gitlog-proof.mjs` + `confirm-proof.mjs` + `remember-proof.mjs` + `policygate-proof.mjs`
++ `show-proof.mjs` + `staged-proof.mjs` perform REAL `git commit`s (and since v37/v38
 real `git log` read-backs — v38's for the first time driven by `runTask` itself, not a
-hand-called tool; v39's runTask additionally writes a REAL in-process `MemoryStore`) — only inside throwaway `os.tmpdir()` repos
+hand-called tool; v39's runTask additionally writes a REAL in-process `MemoryStore`; v42 adds a real
+`git show` content read-back and v43 a real `git diff --cached` index read, both HUMAN-staged
+content only) — only inside throwaway `os.tmpdir()` repos
 with hooks/signing neutralized LOCALLY there, never in this repository — still offline,
 still key-free, and everything else in the stack spawns nothing.
 
 ## Reproducible gates
 
 ```
-npm test          # turbo: @nexus/agent-runtime 232/232 + @nexus/exec-host 90/90 vitest among all packages
+npm test          # turbo: @nexus/agent-runtime 232/232 + @nexus/exec-host 110/110 vitest among all packages
 npm run build     # tsc dist for agents/runtime + agents/exec-host (build order via ^build deps)
 node docs/evidence/agents/agent-proof.mjs
 node docs/evidence/agents/code-index-proof.mjs   # requires `npm run build` first
@@ -50,6 +53,7 @@ node docs/evidence/agents/confirm-proof.mjs        # requires `npm run build` fi
 node docs/evidence/agents/remember-proof.mjs       # requires `npm run build` first (v39: four real loop runs; the confirmed arc journals itself into a REAL MemoryStore — and run 2 recalls it)
 node docs/evidence/agents/policygate-proof.mjs     # requires `npm run build` first (v40: SAME plan under TWO policy tables against REAL git — audits differ on exactly one rule)
 node docs/evidence/agents/show-proof.mjs           # requires `npm run build` first (v42: commit → hash → CONTENT read-back; git.show lines byte-equal what the human staged, throwaway os.tmpdir repo only)
+node docs/evidence/agents/staged-proof.mjs         # requires `npm run build` first (v43: git.diff sees 0 files while git.staged recites the staged lines; the intent read BEFORE the commit equals the content read AFTER it, throwaway os.tmpdir repo only)
 ```
 
 ## Unit tests (vitest, `agents/runtime/test`)
@@ -87,6 +91,8 @@ node docs/evidence/agents/show-proof.mjs           # requires `npm run build` fi
 | `exec-host/gitTools.test.ts` (17) | v32 (fake spawn): `parseGitStatus` XY→named statuses + counts + rename keeps NEW path + junk XY = `other`; `parseGitDiff` per-file hunk/add/delete tallies with `+++`/`---` excluded and preamble ignored; `parseDiffStat` footer groups / empty / junk→null; policy allows EXACTLY `git status --short`/`git diff`/`git diff --stat` and default-denies push/commit/path-scoped diff; `gitEnv` picks only named vars; tools both exec-permission, no-checkpoint never reaches host (0 spawns), granted `git.status` returns PARSED entries and the spawn env is policy-scrubbed (`TOKEN` never seen), `stat:true` swaps argv, exit 128 is ok:false DATA not a throw, escaping cwd = stated tool ERROR, truncation labeled in detail |
 | `exec-host/gitCommitTool.test.ts` (16) | v35 (fake spawn): `parseCommitOutput` reads `[branch (root-commit)? hash] subject` + stat footer (create-mode lines AFTER the stat), insertions-only, non-echo → null; `gitCommitPolicy` allows EXACTLY `git commit -m <msg>` (incl. a message literally `*` — the v29 `'*'` ARG wildcard, first production wiring) and default-denies bare `git commit`, `-m a b`, `-am`, `--no-verify -m x`, `add`, `push`, `rm -rf /`; blank message throws BEFORE the policy with ZERO spawns; granted commit hands argv verbatim (`['commit','-m',msg]`, multi-line/quoted message intact, env scrubbed) and renders `git.commit → exit 0: master@0a1b2c3 · N file(s) +I −D`; nothing-staged exit 1 is ok:false DATA carrying git's first stderr line; escaping cwd = tool ERROR 0 spawns; a message smuggling `--no-verify -a` stays ONE argv token |
 | `exec-host/gitLogTool.test.ts` (14) | v37 (fake spawn): `parseGitLog` reads `<hash> <subject>` lines newest-first (leading-space tolerant), merge subjects kept verbatim, blank lines free, a hashless line is COUNTED (`skipped`) never guessed, empty stdout = honest empty log; `gitLogPolicy` allows EXACTLY `git log --oneline -n <count>` (the wildcard's second production wiring) and default-denies bare `git log`, no `-n`, no count, a trailing ref, `--all`, `git show`, `git commit`, `git push`; `git.log` is exec-permission (a read still spawns) — no checkpoint ⇒ 0 spawns, granted ⇒ default window 10 with argv `['log','--oneline','-n','10']` and scrubbed env, explicit count rides the wildcard token verbatim; junk counts (0, −3, 1.5, >100, NaN) throw the bounded-read-back error with the spawn counter frozen; empty-repo exit 128 is ok:false DATA quoting git's stderr line; escaping cwd = tool ERROR 0 spawns; skipped lines surface in detail as "counted not guessed" |
+| `exec-host/gitShowTool.test.ts` (19) | v42 (fake spawn): `parseShowDiff` yields HEAD's `addedLines` for ONE path (a new file = its whole content), `+++`/`---` and mode/rename/similarity lines are never content, `\ No newline` skipped, `Binary files … differ` → `binary:true` with no lines claimed, empty stdout = honest empty change; `validateShowPath` accept/refuse matrix (blank, whitespace, newline, leading `-`, absolute incl. `C:\`, any `..` segment); `gitShowPolicy` allows EXACTLY `git show --format= -- <path>` (revision pinned BY OMISSION, `--` forces pathspec semantics) and default-denies bare `git show`, `show HEAD`, a named rev, `HEAD~9:file` blob syntax, 0/2/3 path tokens, `git log`/`commit`/`add`; no checkpoint ⇒ 0 spawns, denied ⇒ 0 spawns, granted ⇒ argv `['show','--format=','--',path]` with scrubbed env and the exact detail string; exit 128 is ok:false DATA quoting git's stderr; escaping cwd refused before any spawn |
+| `exec-host/gitStagedTool.test.ts` (20) | v43 (fake spawn): `parseStagedDiff` reads the INDEX — change KIND from git's own metadata (`new file mode`→added, `deleted file mode`→deleted, `rename from`→renamed with the NEW path, `copy from`→copied, else modified), per-file hunks/additions/deletions/`addedLines`/binary, multi-file tallies, preamble ignored, `\ No newline` not a line, empty stdout = honest zero changes; `tallyStagedCounts` in canonical order regardless of key order; `gitStagedPolicy` allows EXACTLY `git diff --cached` and `--cached --stat` and default-denies the unstaged `git diff`, path-scoped and `--name-only` forms, `--ext-diff`/`--textconv` (git EXECUTES a helper), `--output=<file>` (a read that WRITES), `--stat --ext-diff`, `-c diff.external=evil …`, `add`/`commit`/`log`/`show`; `git.staged` is exec-permission — no checkpoint ⇒ 0 spawns, denied ⇒ 0 spawns, granted ⇒ argv `['diff','--cached']` (or `--cached --stat`) with scrubbed env, counts/totals/paths and a byte-exact detail; an EMPTY index is spelled out as "nothing is staged, so a granted git.commit right now would have nothing to record"; binary counted with no lines claimed; exit 129 ok:false DATA; escaping cwd and a non-boolean `stat` refused with zero spawns |
 | `durability.test.ts` (8) | memory serialize/deserialize round-trip + version/schema rejection, `restore()` id high-water mark, save/load through an injected writable fake disk, corrupt-file honest failure, `guardedJoin` jail (absolute/`..`/drive-letter rejection, backslash folding), `disk.write` checkpoint gate + escape touches nothing, `disk.read`/`disk.list` confinement |
 | `indexStore.test.ts` (11) | index snapshot serialize→deserialize verbatim + version/chunk schema rejection, save/load via injected fs, cold rescan equals `buildIndex`, unchanged files reuse chunks / edits rechunk exactly the changed paths / removals drop out, query ranking snapshot-independent; v5 provider: cold-first-build equals plain build, incremental refresh 0 re-chunked, edited file sole re-chunk, cross-provider snapshot restore, corrupt-snapshot fallback + repair, `fs.index` provider/default parity |
 | `indexVectors.test.ts` (11) | v23: `indexToVectorDb` shape (one entry per chunk, id `path#startLine`, real dim-64 vectors), vector-vs-inline hit-for-hit parity across five query shapes + stated engine, null db ⇒ honest inline; cold merge ≡ cold build, unchanged chunks reuse the identical vector object / only touched windows re-embed / removals drop out; tampered-text, missing-id and wrong-dim drift each send the WHOLE query inline with real inline hits; persisted provider: lazy `vectors()`, byte-identical reuse by a cold second provider, corrupt-file self-repair, `fs.index` engine labels with/without vectorsFile, edits tracked through the provider lifecycle |
@@ -699,6 +705,26 @@ lines are BYTE-EQUAL what the human staged; a denied show costs 0 spawns. exec-h
 71/71 → 90/90 (new `gitShowTool.test.ts`, 19 cases); runtime 232/232 and studio 105/105
 unchanged — the plan tail stays v38/v39's; this is a tool, wired by humans or policy.
 
+## v43 note — staged intent: the agent can read what a human MEANT to record, before it is recorded
+
+v35 commits the STAGED index and §28/§9 keep staging a human act — so a person chooses the
+bytes an agent records, and the stack could not read a single one of them: v32 allows plain
+`git diff`, which compares the working tree TO the index, and a change that is only staged
+shows as NOTHING there. `gitStagedTool.ts` adds the fourth pinned door
+(`git diff --cached`, plus its `--stat` form) — narrow on purpose, because `git diff` gains
+powers from options this policy will never name: `--ext-diff`/`--textconv` make git EXECUTE a
+configured helper (code execution in a read-only costume) and `--output=<file>` makes a
+"read" WRITE. `parseStagedDiff` answers the question an index poses — WHICH files, and as
+WHAT kind of change — with the kind taken from git's own metadata lines, and it spells out an
+empty index in the words that matter before a commit. `staged-proof.mjs` (32nd) measures the
+gap in real git (`git.diff`: 0 files / `git.staged`: 3 verbatim lines, byte-equal
+`git show :intent.md`), shows the two doors are complementary rather than redundant (edit
+without staging: `git.diff` sees the new +1, `git.staged` still recites the staged three),
+and closes the arc across the write — the intent read BEFORE a §28-granted commit is
+BYTE-IDENTICAL to the content `git.show` reads AFTER it, while the line nobody staged is
+stated as NOT recorded. exec-host 90/90 → 110/110 (new `gitStagedTool.test.ts`, 20 cases);
+runtime 232/232 and studio 105/105 unchanged — a door, not yet a plan step.
+
 ## Scope honesty
 
 §63/§26 items *not* implemented (stated, not faked): general real-fs write tools (only
@@ -714,11 +740,15 @@ spawn-free by audited design. Since v35 the git write surface is ONE argv wide
 `push`), and since v37 the git read surface has grown exactly one bounded window
 (`git log --oneline -n <count≤100>` via `gitLogPolicy`; since v42 exactly one bounded
 CONTENT door too (`git show --format= -- <path>` via `gitShowPolicy` — HEAD pinned by
-omission, pathspec-only float; still no `--all`, no refs; v38 added NO new surface, it
-only wired that existing door into the plan's tail) — the v32 see-don't-touch policy
+omission, pathspec-only float; v38 added NO new surface, it only wired that existing door
+into the plan's tail; since v43 the INDEX is readable through a two-shape door
+(`git diff --cached` / `--cached --stat` via `gitStagedPolicy` — no paths, and specifically
+no `--ext-diff`/`--textconv`/`--output`, which would let a "read" execute a helper or write a
+file) — the v32 see-don't-touch policy
 stands for everything else, and real-commit
 demos live only in throwaway temp repos. Agent-led STAGING (choosing what enters the
 index) remains unimplemented by design: staging stays a human/`disk`-side act,
+and v43 makes that act LEGIBLE to the agent (read the index, never write it),
 live-model planning (the seam exists, the model needs keys), multi-agent registry.
 Memory recall (v6) shares the index's deterministic token-bag hybrid score — a real
 signature scheme, but still a stand-in for the pgvector hybrid retrieval of ADR 0012. The provider must be kept in sync with the workspace by the

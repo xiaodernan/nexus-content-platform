@@ -903,3 +903,48 @@ two fresh runs, checkpoint denial leaving the workspace byte-identical).
   moved — the plan tail stays v38/v39's; `git.show` is a tool a human or a later policy
   wires); exec-host 71/71 → 90/90 (NEW gitShowTool.test.ts, 19 cases); thirty-first proof,
   33 scripts green.
+
+## Amendment 43 — v43 (exec-host): staged-intent awareness — the agent can read what a human MEANT to record, before it is recorded, 2026-09
+- **The gap was structural, not incidental:** v35's `git.commit` records the STAGED index
+  and §28/§9 keep staging a human act, so the bytes an agent commits are chosen by a person.
+  But NOTHING in the stack could read the index — v32's policy allows `git diff`, and plain
+  `git diff` compares the working tree TO the index, so a change that is only staged shows as
+  NOTHING. `agents/exec-host/src/gitStagedTool.ts` opens that window: `gitStagedPolicy`
+  allowlists exactly TWO argv shapes, `['git','diff','--cached']` and
+  `['git','diff','--cached','--stat']` — no paths, no flags, no refs. The narrowness is not
+  tidiness: `git diff` gains powers from options this policy will never name, and
+  `--ext-diff`/`--textconv` make git EXECUTE a configured helper (code execution wearing a
+  read-only costume) while `--output=<file>` makes a "read" WRITE a file. Read-only by argv,
+  still a real process, so `permissions:['exec']` and the §28 gate still speak first — a
+  denied intent read costs zero spawns.
+- **The answer is the CHANGE KIND, stated by git:** `parseStagedDiff` (the tool's own code,
+  §8) → `StagedIndex{files[{path, change: added|modified|deleted|renamed|copied, hunks,
+  additions, deletions, addedLines, binary}], counts, totals}` — kind comes from git's own
+  metadata lines (`new file mode`, `deleted file mode`, `rename from`), never from memory or
+  guesswork; `tallyStagedCounts` speaks in canonical order so the sentence does not jitter
+  with object key order. v42's `parseShowDiff` reads ONE file's diff body; the whole index is
+  several such bodies and asks a different question (which files is a human about to record,
+  and as what), so it is a distinct parser, not a second implementation. An EMPTY index is
+  the answer that matters most before a commit and is spelled out: *"the index is EMPTY —
+  nothing is staged, so a granted git.commit right now would have nothing to record"*.
+- **32nd proof `docs/evidence/agents/staged-proof.mjs` measures the gap, then closes it,** in
+  a throwaway `os.tmpdir()` repo (`core.hooksPath`/`commit.gpgsign`/`core.autocrlf false`
+  neutralized LOCALLY there): a HUMAN writes and stages a known 3-line file, and the real
+  `git.diff` door reports **0 files** while `git.staged` reports 1 `added` change whose
+  `addedLines` are BYTE-EQUAL `git show :intent.md` (the index's own bytes, read the way a
+  human would — precisely because the agent's door must not be able to). Then the same file
+  is edited WITHOUT staging: the two doors are complementary, not redundant — `git.diff` sees
+  only the unstaged +1, `git.staged` still recites the staged three. The §28-gated commit
+  records the INDEX (not the edit), `git.staged` then says EMPTY, and v42's `git.show` reads
+  back the same 3 lines the intent door quoted BEFORE the commit: two doors, one truth, one
+  read on each side of the write. Refusals all cost zero processes and move no history —
+  vetoed at the checkpoint, jailed at the cwd, and refused at the SPEC (`path` is not a
+  declared arg, so a `HEAD~1:intent.md` smuggling attempt never reaches the policy). §9:
+  home repo HEAD byte-identical, temp repo removed in `finally`.
+- exec-host 90/90 → 110/110 (NEW gitStagedTool.test.ts, 20 cases); runtime and studio
+  UNCHANGED at the committed baseline (232/232, 105/105 — the planner, orchestrator and dock
+  never moved; `git.staged` is a door, not a plan step). Honest bounds: this is a POLICY
+  sandbox, and the repo's own working tree was never the target — every write landed in
+  `os.tmpdir`. A concurrent session is mid-flight in `agents/runtime` (its `inspect-proof.mjs`
+  is red in the working tree at the time of this commit); this amendment claims 43 and its
+  plan-side content confirmation takes 44.

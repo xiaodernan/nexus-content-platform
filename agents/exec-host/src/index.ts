@@ -31,6 +31,17 @@ export {
   type GitShowFileChange,
 } from './gitShowTool.js';
 export {
+  GIT_STAGED_TOOL_SPECS,
+  STAGED_CHANGE_ORDER,
+  gitStagedPolicy,
+  parseStagedDiff,
+  registerGitStagedTool,
+  tallyStagedCounts,
+  type StagedChangeKind,
+  type StagedFileChange,
+  type StagedIndex,
+} from './gitStagedTool.js';
+export {
   GIT_COMMIT_TOOL_SPECS,
   gitCommitPolicy,
   parseCommitOutput,
