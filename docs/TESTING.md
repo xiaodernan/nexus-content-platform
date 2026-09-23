@@ -211,6 +211,13 @@ e2e 断言面板把"未运行的检查"列出来，而不是显示全绿。
   "0 个来自你摆过的坐标"变成"1 个 / 8 个按顺序排"，且那个条目的标签 `data-placed="authored"`。
   图例按类别计数、点标签展开的是那条正文本身；截图 `screenshots/world3d.png` 与 `world3d-focus.png`。
   第一次跑就发现相机朝向反了（进场看见一片空地）—— 是靠看图发现的，测试当时是绿的
+- 残缺节点不许白屏（§146 压测撞出来的）：`packages/design-model/test/malformed-node.test.ts` 5 条 ——
+  `lintDesign` / `resolveLayout` 遇到缺 `style.cornerRadius` / `layout.padding` 的节点**不抛**
+  （读路径崩了用户看到的是整页白屏，而不是"这个节点有问题"），`validateDocument` 按 error 报出节点名；
+  `apps/web/test/projects.integration.test.ts` 再加两条：`parseDocument` 挡下这种文档（PUT 就是拿它当门）、
+  完整节点照常写得进（门不能顺手把正常文档挡住）。
+  压测脚本自己也加了回归性质的自检：写完从服务端读回节点数、再数画布 DOM 里的节点数，
+  对不上就抛错。**上一版这张表里的"N 节点"数字就是因为没人做这一步而整批作废过**
 - 每个里程碑一次 commit 前至少跑：`npm run lint && npm test && npm run test:e2e:smoke`
 - 改了 `packages/schemas` 必须重跑 `npm run contract:export`，否则契约漂移测试会红
 - 动了 ai-service 再加：`npm run test:ai-service`（Windows 控制台建议前置 `PYTHONUTF8=1`）

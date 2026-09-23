@@ -100,6 +100,7 @@ await page.waitForFunction(() => !(document.querySelector('[data-create-project]
 await Promise.all([page.waitForURL(/\/studio\/[^/]+$/, { timeout: 60_000 }), page.click('[data-create-project]')]);
 await page.waitForSelector('[data-canvas-frame] [data-node-id]', { timeout: 60_000 });
 const projectId = new URL(page.url()).pathname.split('/').pop()!;
+await page.addInitScript(`window.__perfProjectId = ${JSON.stringify(projectId)};`);
 
 async function pageState(): Promise<string> {
   return page.evaluate(() => {
@@ -118,6 +119,14 @@ async function pageState(): Promise<string> {
       `saveState=${document.querySelector('[data-save-state]')?.textContent ?? '-'}`,
     ].join(' ');
   });
+}
+
+/** 文档里有多少节点、画布 DOM 里真渲染了多少：这两个数不一样才说明有裁剪或漏渲染 */
+async function canvasNodeCounts(): Promise<{ dom: number; layers: number }> {
+  return page.evaluate(() => ({
+    dom: document.querySelectorAll('[data-canvas-frame] [data-node-id]').length,
+    layers: document.querySelectorAll('[data-layer-id]').length,
+  }));
 }
 
 async function reloadAndMeasureFirstNode(): Promise<number> {
@@ -183,45 +192,54 @@ async function propToCanvasLatency(scope: string): Promise<void> {
   await page.screenshot({ path: `${OUT}perf-canvas.png` });
 }
 
-/** 造一份 N 节点的文档并 PUT 上去：走的是浏览器自己的会话与 CSRF，不另起一套凭据 */
+/**
+ * 造一份 N 节点的文档并 PUT 上去：走的是浏览器自己的会话与 CSRF，不另起一套凭据。
+ *
+ * 关键一步是**先离开 Studio 页面**再改：Studio 里有自动保存，
+ * 停在编辑器里从外部 PUT 一份更大的文档，会被它那份内存里的旧文档回写覆盖掉
+ * （上一版就在这里栽了：服务端明明存了 1000 个节点，刷新后画布还是 8 个，
+ * 于是记进 docs/PERFORMANCE.md 的"1000/4000 节点"数字量的其实一直是 8 个节点）。
+ */
 async function growDocument(nodes: number): Promise<number> {
+  await page.goto(`${base}/`, { waitUntil: 'domcontentloaded' });
   const result = await page.evaluate(
     async (target) => {
       const match = document.cookie.match(/(?:^|;\s*)nexus_csrf=([a-f0-9]+)/);
-      const res = await fetch(`/api/projects/${new URL(location.href).pathname.split('/').pop()}`, {
-        method: 'GET',
-        cache: 'no-store',
-      });
+      const projectId = window.__perfProjectId as string;
+      const res = await fetch(`/api/projects/${projectId}`, { method: 'GET', cache: 'no-store' });
       if (!res.ok) return { ok: false, reason: `读取当前文档失败：HTTP ${res.status}` };
       const body = (await res.json()) as { document?: { pages: Array<{ nodes: Record<string, unknown> }> } };
       const doc = body.document;
       if (!doc) return { ok: false, reason: '响应里没有 document 字段' };
       const page0 = doc.pages[0]!;
-      const root = page0.nodes[Object.keys(page0.nodes)[0]!] as { children: string[] } & Record<string, unknown>;
+      // 必须挂在 page.rootId 下面。上一版取的是"节点表里的第一个"，那往往是某个文本节点，
+      // 文本节点不排版子节点 → 4000 个节点根本没进 paintOrder，画布只画 8 个，
+      // 于是量出来的"4000 节点首帧/延迟"其实还是 8 个节点的数（这个坑见 docs/PERFORMANCE.md）
+      const root = page0.nodes[page0.rootId] as { children: string[] } & Record<string, unknown>;
+      if (!root) return { ok: false, reason: '页面根节点读不到，没法加节点' };
       const have = Object.keys(page0.nodes).length;
+      // 造新节点的方式是**克隆一个已经合法的节点**再改身份字段，而不是手写一份字面量：
+      // 上一版手写的节点缺 style.cornerRadius / layout.padding，
+      // 那种文档会白屏（见 packages/design-model/test/malformed-node.test.ts），
+      // 于是"压测到 1000 节点"其实一个都没渲染出来。
+      const template =
+        Object.values(page0.nodes).find((n) => n.id !== page0.rootId) ?? page0.nodes[page0.rootId];
+      if (!template) return { ok: false, reason: '页面上找不到可克隆的节点' };
       let added = 0;
       for (let i = have; i < target; i += 1) {
         const id = `perf_${i.toString(36)}`;
         page0.nodes[id] = {
+          ...structuredClone(template),
           id,
-          type: 'text',
           name: `Perf ${i}`,
-          parentId: root.id as string,
+          parentId: root.id,
           children: [],
-          position: { x: 0, y: 0 },
-          size: { width: 200, height: 24 },
-          layout: { mode: 'none', gap: 0, padding: { top: 0, right: 0, bottom: 0, left: 0 }, align: 'start', justify: 'start' },
-          style: { fills: [] },
-          constraints: { horizontal: 'start', vertical: 'start' },
-          visible: true,
-          locked: false,
-          text: `压测文本 ${i}`,
-          typography: { fontFamily: '{font.body}', fontSize: 16, fontWeight: 400, lineHeight: 24, letterSpacing: 0 },
+          text: typeof template.text === 'string' ? `压测文本 ${i}` : undefined,
         };
         root.children.push(id);
         added += 1;
       }
-      const put = await fetch(`/api/projects/${new URL(location.href).pathname.split('/').pop()}`, {
+      const put = await fetch(`/api/projects/${projectId}`, {
         method: 'PUT',
         headers: { 'content-type': 'application/json', 'x-csrf-token': match?.[1] ?? '' },
         body: JSON.stringify(doc),
@@ -232,7 +250,15 @@ async function growDocument(nodes: number): Promise<number> {
     nodes,
   );
   if (!result.ok) throw new Error(result.reason);
-  return result.nodes;
+  // 服务端说存了多少才算数：客户端自己加的数只是意图
+  const check = await page.evaluate(async () => {
+    const res = await fetch(`/api/projects/${window.__perfProjectId as string}`, { cache: 'no-store' });
+    const body = (await res.json()) as { document?: { pages: Array<{ rootId: string; nodes: Record<string, unknown> }> } };
+    const page0 = body.document?.pages[0];
+    return page0 ? Object.keys(page0.nodes).length : -1;
+  });
+  if (check < nodes) throw new Error(`写入没生效：想让文档到 ${nodes} 个节点，服务端读回来只有 ${check} 个`);
+  return check;
 }
 
 const firstNodeRuns: number[] = [];
@@ -272,6 +298,16 @@ for (const scale of scales) {
   const runs: number[] = [];
   for (let run = 0; run < RUNS; run += 1) runs.push(await reloadAndMeasureFirstNode());
   record(`首帧（${built} 节点）`, 'ms', runs);
+  // 自检：文档变大了，画布也必须真的变多。不检查这一条，"N 节点档"随时是在量别的
+  const counts = await canvasNodeCounts();
+  console.log(`  ${built} 节点这一档：画布 DOM 渲染了 ${counts.dom} 个，图层树 ${counts.layers} 行`);
+  if (counts.dom < built * 0.9) {
+    throw new Error(
+      `压测没生效：文档里 ${built} 个节点，画布只渲染了 ${counts.dom} 个。` +
+        `这时量出来的任何数都不能当成"${built} 节点的性能"。`,
+    );
+  }
+  record(`画布 DOM 节点数（${built} 节点文档）`, '个', [counts.dom, counts.dom, counts.dom]);
 
   await page.goto(`${base}/studio/${projectId}`, { waitUntil: 'domcontentloaded' });
   await page.waitForSelector('[data-canvas-frame] [data-node-id]', { timeout: 120_000 });

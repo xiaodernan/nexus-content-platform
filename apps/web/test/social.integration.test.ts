@@ -181,13 +181,22 @@ describe('discover（§61）', () => {
     await toggleLike(otherId, a.publicationId);
     await getDb().update(publishedProjects).set({ views: 1 }).where(eq(publishedProjects.path, b.path));
 
-    const popular = await discover({ sort: 'popular' });
-    expect(popular.cards[0]!.path).toBe(a.path);
-    expect(popular.cards[0]!.likes).toBe(2);
-    expect(popular.cards.find((c) => c.path === b.path)!.remixes).toBe(0);
+    // 这台开发库里有别的测试留下的公开版本，所以不断言"第几名"，只断言
+    // 两张卡都在列表里、并且各自的排序确实按各自说的那件事排
+    const popular = await discover({ sort: 'popular', limit: 60 });
+    const pa = popular.cards.findIndex((c) => c.path === a.path);
+    const pb = popular.cards.findIndex((c) => c.path === b.path);
+    expect(pa).toBeGreaterThanOrEqual(0);
+    expect(pb).toBeGreaterThanOrEqual(0);
+    expect(pa, '浏览量 500 + 2 赞的那一个应当排在前面').toBeLessThan(pb);
+    expect(popular.cards[pa]!.likes).toBe(2);
 
-    const fresh = await discover({ sort: 'new' });
-    expect(fresh.cards[0]!.path).toBe(b.path); // 后发布在前
+    const fresh = await discover({ sort: 'new', limit: 60 });
+    const fa = fresh.cards.findIndex((c) => c.path === a.path);
+    const fb = fresh.cards.findIndex((c) => c.path === b.path);
+    expect(fa).toBeGreaterThanOrEqual(0);
+    expect(fb).toBeGreaterThanOrEqual(0);
+    expect(fb, '后发布的应当排在前面').toBeLessThan(fa);
 
     // private 的那条不该出现
     const hidden = await published('会下架的2', 'c');

@@ -258,11 +258,13 @@ export function resolveLayout(
     };
   };
 
+  // padding 可能整个缺失（库里躺着的老行、或客户端绕过校验写进来的残缺节点）。
+  // 排版引擎不能因为一个节点缺字段就把整页抛掉：读路径崩了用户看到的是白屏，不是"这个节点有问题"
   const paddingOf = (node: DesignNode) => ({
-    top: resolveNum(node.layout.padding.top, 0),
-    right: resolveNum(node.layout.padding.right, 0),
-    bottom: resolveNum(node.layout.padding.bottom, 0),
-    left: resolveNum(node.layout.padding.left, 0),
+    top: resolveNum(node.layout?.padding?.top, 0),
+    right: resolveNum(node.layout?.padding?.right, 0),
+    bottom: resolveNum(node.layout?.padding?.bottom, 0),
+    left: resolveNum(node.layout?.padding?.left, 0),
   });
 
   const RASTER_TYPES = new Set([

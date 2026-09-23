@@ -19,6 +19,9 @@ export type IssueCode =
   | "tap-target-small"
   | "unreachable-node"
   | "invalid-node-type"
+  // 节点少了必填的 style / layout 结构：写进来会让读路径整页崩，所以按 error 挡在门口
+  | "incomplete-node-style"
+  | "incomplete-node-layout"
   | "bad-binding"
   // 下面这些由健康层（health.ts）产出，不来自 lintDesign 的规则：
   // §178 的 Performance / Security / Visual QA 三行需要静态指标，
@@ -160,6 +163,32 @@ export function validatePage(page: Page): Issue[] {
         pageId: page.id,
         nodeId: id,
       });
+    // style / layout 必须是完整对象。少字段的文档能混过 jsonb 存取，却会在读路径上
+    // 把整个页面搞崩：健康度、token 引用收集都要遍历它们（1000 节点压测就是这么撞出来的——
+    // 一个字段不全的节点让 Studio 整页白屏，而不是只少一个节点）。所以这里按 error 挡在写入侧。
+    if (
+      !isPlainObject(node.style) ||
+      !Array.isArray(node.style.fills) ||
+      !Array.isArray(node.style.strokes) ||
+      !isPlainObject(node.style.cornerRadius)
+    ) {
+      issues.push({
+        code: "incomplete-node-style",
+        severity: "error",
+        message: `节点 ${node.name} 的 style 不完整（需要 fills / strokes / cornerRadius 三个对象或数组）`,
+        pageId: page.id,
+        nodeId: id,
+      });
+    }
+    if (!isPlainObject(node.layout) || !isPlainObject(node.layout.padding)) {
+      issues.push({
+        code: "incomplete-node-layout",
+        severity: "error",
+        message: `节点 ${node.name} 的 layout 不完整（需要 padding 对象）`,
+        pageId: page.id,
+        nodeId: id,
+      });
+    }
     for (const childId of node.children) {
       if (!page.nodes[childId]) {
         issues.push({
@@ -215,6 +244,10 @@ export function validatePage(page: Page): Issue[] {
 }
 
 /** 设计体检（§32 Design Critic / §121 Design Lint 的规则层，可被 Agent 复用） */
+function isPlainObject(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
 export function lintDesign(
   document: DesignDocument,
   resolvedNodes?: Record<string, { width: number; height: number }>,
@@ -246,7 +279,7 @@ export function lintDesign(
     for (const node of Object.values(page.nodes)) {
       if (!node.visible) continue;
       // token 优先：字面颜色视为硬编码（§12）
-      for (const fill of node.style.fills) {
+      for (const fill of node.style?.fills ?? []) {
         if (
           fill.kind === "solid" &&
           typeof fill.color === "string" &&
@@ -265,10 +298,10 @@ export function lintDesign(
       // 间距对齐 4px 栅格：padding 与 gap/rowGap/crossGap 同属栅格间距，一视同仁
       const literalSpacing: string[] = [];
       const spacings: Array<[string, number | string | undefined]> = [
-        ["layout.gap", node.layout.gap],
-        ["layout.rowGap", node.layout.rowGap],
-        ["layout.crossGap", node.layout.crossGap],
-        ...Object.entries(node.layout.padding).map(
+        ["layout.gap", node.layout?.gap],
+        ["layout.rowGap", node.layout?.rowGap],
+        ["layout.crossGap", node.layout?.crossGap],
+        ...Object.entries(node.layout?.padding ?? {}).map(
           ([side, value]) => [`layout.padding.${side}`, value] as [string, number | string],
         ),
       ];
@@ -304,7 +337,7 @@ export function lintDesign(
           suggestion: "换成 {space.N}：换一套视觉语言时间距节奏才会跟着变",
         });
       }
-      const literalRadius = Object.entries(node.style.cornerRadius).filter(
+      const literalRadius = Object.entries(node.style?.cornerRadius ?? {}).filter(
         ([, value]) => typeof value === "number" && value !== 0,
       );
       if (literalRadius.length) {
@@ -477,7 +510,7 @@ function solidRgba(
   tokens: TokenStore,
   mode?: string | null,
 ): RGBA | null {
-  for (const paint of node.style.fills) {
+  for (const paint of node.style?.fills ?? []) {
     if (paint.kind !== "solid" || paint.visible === false) continue;
     const base = solidColorValue(paint.color, tokens, mode);
     if (!base) return null;

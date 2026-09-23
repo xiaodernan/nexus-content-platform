@@ -1,6 +1,7 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { eq, sql as rawSql } from 'drizzle-orm';
 import { createNode, findPage } from '@nexus/design-model';
+import { parseDocument } from '../src/server/validation';
 import { createProject, listProjects, loadDocument, saveDocument } from '../src/server/domain/projects';
 import { getDb } from '../src/server/db/client';
 import { projects, users } from '../src/server/db/schema';
@@ -180,5 +181,60 @@ describe('项目领域层（真实数据库）', () => {
     const slugs = list.filter((p) => p.name === 'Duplicate Name').map((p) => p.slug);
     expect(slugs).toHaveLength(2);
     expect(new Set(slugs).size).toBe(2);
+  });
+});
+
+/**
+ * 写路径的门：字段不全的节点不能进库。
+ * 之前它能写进去并且读得出来，然后健康度与排版在 Object.entries(undefined) 上抛，
+ * 用户看到的是整页白屏（1000 节点压测撞出来的，见 docs/PERFORMANCE.md）。
+ * 测的是 parseDocument —— `/api/projects/[id]` 的 PUT 就是拿它当门，
+ * 门在这里挡住的，路由一定也挡住。
+ */
+describe('PUT 文档时的结构门（§146 的白屏回归）', () => {
+  it('缺 style.cornerRadius / layout.padding 的节点被挡下，并说清是哪个节点', async () => {
+    const id = (await createProject(ownerId, { name: '残缺节点写入', kind: 'website' })).id;
+    const document = (await loadDocument(id))!;
+    const page = document.pages[0]!;
+    const root = page.nodes[page.rootId]!;
+    page.nodes.perf_bad = {
+      id: 'perf_bad',
+      type: 'text',
+      name: '残缺',
+      parentId: root.id,
+      children: [],
+      position: { x: 0, y: 0 },
+      size: { width: 200, height: 24 },
+      style: { fills: [] },
+      layout: { mode: 'none' },
+      visible: true,
+      locked: false,
+      text: '压测',
+    } as never;
+    root.children.push('perf_bad');
+
+    const parsed = parseDocument(document);
+    expect(parsed.ok).toBe(false);
+    if (parsed.ok) throw new Error('本该被挡下');
+    const joined = parsed.issues.join('；');
+    expect(joined).toContain('incomplete-node-style');
+    expect(joined).toContain('incomplete-node-layout');
+    expect(joined).toContain('残缺');
+
+    // 门后面没有别的路：走同一道门的 saveDocument 也不该被调用到
+    expect((await loadDocument(id))!.pages[0]!.nodes.perf_bad).toBeUndefined();
+  });
+
+  it('完整节点照常写得进去（门不能把正常文档也挡住）', async () => {
+    const id = (await createProject(ownerId, { name: '正常写入', kind: 'website' })).id;
+    const document = (await loadDocument(id))!;
+    const page = document.pages[0]!;
+    const root = page.nodes[page.rootId]!;
+    const good = createNode({ type: 'text', name: '正常', text: 'hi', parentId: root.id });
+    page.nodes[good.id] = good;
+    root.children.push(good.id);
+    expect(parseDocument(document).ok).toBe(true);
+    await saveDocument(id, document);
+    expect((await loadDocument(id))!.pages[0]!.nodes[good.id]).toBeTruthy();
   });
 });
