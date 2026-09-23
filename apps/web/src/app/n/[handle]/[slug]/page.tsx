@@ -1,9 +1,12 @@
 import { notFound } from 'next/navigation';
 import { TokenStore, findPage, resolveLayout } from '@nexus/design-model';
 import { recordView, resolvePublishedPath } from '@/server/domain/publish';
+import { publicationState } from '@/server/domain/social';
+import { currentUserOrNull } from '@/server/domain/session';
 import { assetContextFor, publicAssetUrl } from '@/studio/assets';
 import { nodeStyle } from '@/studio/render';
 import { ReportControl } from './ReportControl';
+import { PublicationActions } from './PublicationActions';
 
 export const dynamic = 'force-dynamic';
 
@@ -38,6 +41,10 @@ export default async function PublishedPage({ params, searchParams }: Props) {
   // 匿名访客的图走公共资产路由：可见性由"这一版发布确实引用了它"决定（§57）
   const assets = assetContextFor(document, (assetId) => publicAssetUrl(decodeURIComponent(handle), assetId));
   await recordView(publication.id).catch(() => undefined);
+  // 访客身份只读不签发：这里用 currentUserOrNull 而不是 requireUser，
+  // 否则每一个点开链接的人都会在库里造出一个 guest 用户
+  const viewer = await currentUserOrNull();
+  const actions = await publicationState(publication.path, viewer?.id ?? null);
 
   return (
     <main className="min-h-screen w-full bg-bg-0 text-fg-1" data-published-root data-published-path={publication.path}>
@@ -56,6 +63,11 @@ export default async function PublishedPage({ params, searchParams }: Props) {
           <span className="font-mono text-11 text-fg-3">Built with NEXUS</span>
         </span>
       </header>
+      {actions ? (
+        <div className="w-full px-[var(--nexus-space-4)] pt-[var(--nexus-space-2)]">
+          <PublicationActions state={actions} />
+        </div>
+      ) : null}
       <div className="w-full overflow-x-auto p-[var(--nexus-space-4)]">
         <div
           data-published-frame

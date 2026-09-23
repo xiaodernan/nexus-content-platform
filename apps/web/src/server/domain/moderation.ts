@@ -86,6 +86,20 @@ function clip(value: string): string {
 }
 
 /**
+ * 只查一段文字的硬红线。评论、举报正文这些"也会公开但不是一个设计文档"的输入要用同一份规则，
+ * 而不是另抄一份词表——两处词表迟早一份严一份松，然后出现"评论能发出去、同样的话写进页面被挡"。
+ */
+export function scanTextForRedlines(text: string): ModerationFinding[] {
+  return REDLINES.filter((r) => r.test(text)).map((r) => ({
+    rule: r.rule,
+    level: 'blocked' as const,
+    quote: clip(text),
+    where: 'text',
+    why: r.why,
+  }));
+}
+
+/**
  * 扫一份即将公开的文档。`assets` 只该包含**这份文档真的引用到**的资产，
  * 所以调用方要按 nodeAssetIds 的口径去取（同一套算法，别两处各说各话）。
  */

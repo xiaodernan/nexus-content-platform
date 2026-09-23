@@ -509,8 +509,15 @@ drizzle 把整个拼接结果当成**单个绑定参数**，生成的 SQL 是 `o
 - [ ] Timeline 编辑：trim / reorder / regenerate shot / extend / transition（§41）
 
 ## M6 — 社区（§186）
-- [ ] Explore / Discovery / Trending / AI Picks（§59-61）
-- [ ] Like / Comment / Follow / Remix / Save / Share
+- [~] 社区与发现（§59 / §61）— **2026-09-24 第一片落地**：公开作品页上有 Like / Comment / Follow / Remix / Share
+  （`apps/web/src/domain/social.ts` → `apps/web/src/server/domain/social.ts`，路由 `/api/published/interact`、
+  `/api/follow`、`/api/discover`），发现页 `/discover` 三个排得出来的标签（最新 / 最多人看与赞 / 我关注的作者）。
+  三条写进代码与界面的边界：**评论走发布机检同一份红线词表**（命中就不发出去，不"先发再等人看"）；
+  **Remix 分叉的是发布出去的那一版快照**，作者工作区里没公开的改动不会跟着出去（§58，测试专门钉这条）；
+  **Trending 与 AI Picks 排不出来就写在页面上**（前者要互动时间序列、我们只有累计数；后者要模型），
+  不拿累计浏览数改个名字冒充热度。
+  仍欠：Save（要一张收藏表，界面上没留假按钮）、§60 创作者主页、Trending / AI Picks、
+  §132 的 block / mute、以及评论的画布定位批注（§111，comments.node_id 那一列还没有写它的地方）
 - [ ] Creator Profile + Analytics（§60/168）
 - [~] 发布审核流水线（§131）+ 举报（§132 的一部分）— **2026-09-24 落地**：
   `publish → 机检（红线词表 + 资产出处）→ clear/review/blocked → 发布或挂人工队列`，

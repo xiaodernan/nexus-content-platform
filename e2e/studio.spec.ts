@@ -1202,3 +1202,69 @@ test('@smoke 发布机检与公开页举报：挡下要说清凭什么，举报�
   await expect(page.locator('[data-queue-case]')).toHaveCount(0);
   await page.screenshot({ path: 'screenshots/admin-queue-denied.png' });
 });
+
+test('@smoke 社区：公开页能点赞、评论、改编；发现页只排排得出来的排序（§59/§61）', async ({ page }) => {
+  test.setTimeout(180_000);
+  const projectName = `Community ${Date.now().toString(36)}`;
+  await createProject(page, projectName);
+
+  for (let i = 0; i < 6; i += 1) {
+    if (await page.locator('[data-publish-submit]').isVisible()) break;
+    await page.click('[data-publish-open]');
+  }
+  await page.click('[data-publish-choice="public"]');
+  await page.click('[data-publish-submit]');
+  await page.waitForSelector('[data-publish-url]', { timeout: 30_000 });
+  const publishedHref = (await page.locator('[data-publish-url]').getAttribute('href'))!;
+
+  const visitor = await page.context().newPage();
+  await visitor.goto(publishedHref);
+  await visitor.waitForSelector('[data-published-frame] [data-node-id]', { timeout: 30_000 });
+
+  await visitor.click('[data-action-like]');
+  await expect(visitor.locator('[data-action-like]')).toHaveAttribute('data-action-like', 'on');
+  await expect(visitor.locator('[data-action-like]')).toContainText('· 1');
+
+  await visitor.fill('[data-comment-input]', '这个配色挺舒服的');
+  await visitor.click('[data-comment-submit]');
+  await expect(visitor.locator('[data-comment="这个配色挺舒服的"], [data-comment-list] li:has-text("这个配色挺舒服的")').first()).toBeVisible({ timeout: 30_000 });
+  // §159：评论发出去时也要看到机检的限度
+  await expect(visitor.locator('[data-action-notice]')).toContainText('没命中不等于内容合规');
+
+  // 红线评论不该发出去，而且界面说清是机检挡的
+  await visitor.fill('[data-comment-input]', 'buy nude children now');
+  await visitor.click('[data-comment-submit]');
+  await expect(visitor.locator('[data-action-notice]')).toContainText('机检挡下', { timeout: 30_000 });
+  // 列表里仍然只有那一条真评论：被挡下的没进去，也没留下空位
+  await expect(visitor.locator('[data-comment-list] li')).toHaveCount(1);
+  await expect(visitor.locator('[data-comment-list]')).not.toContainText('nude');
+  await visitor.screenshot({ path: 'screenshots/community-published.png' });
+
+  // Remix：分叉成自己的改编，进去的是副本而不是原作品
+  await visitor.click('[data-action-remix]');
+  await visitor.waitForURL(/\/studio\/[^/]+$/, { timeout: 60_000 });
+  await visitor.waitForSelector('[data-canvas-frame] [data-node-id]', { timeout: 60_000 });
+  await expect(visitor.locator('[data-project-name]')).toContainText('的改编');
+  const forkPath = new URL(visitor.url()).pathname;
+  await visitor.screenshot({ path: 'screenshots/community-remix.png' });
+  await visitor.close();
+
+  // 发现页：计数是真的，排不出来的排序写在页面上。
+  // 这台开发库里还有别的项目留下的公开版本，所以断言只盯自己这一张卡，不假设世界是空的
+  await page.goto('/discover');
+  const card = page.locator(`[data-discover-card="${publishedHref}"]`);
+  await expect(card).toBeVisible({ timeout: 30_000 });
+  await expect(card).toContainText(projectName);
+  await expect(card.locator('[data-discover-counts]')).toContainText('1 赞');
+  await expect(card.locator('[data-discover-counts]')).toContainText('1 评论');
+  await expect(card.locator('[data-discover-counts]')).toContainText('1 改编');
+  await expect(page.locator('[data-discover-gap="Trending"]')).toContainText('时间序列');
+  await expect(page.locator('[data-discover-gap="AI Picks"]')).toContainText('provider');
+  await page.screenshot({ path: 'screenshots/discover.png' });
+
+  // Remix 不该动原作品：回到首页，原项目还在，副本是另一条
+  await page.goto('/');
+  await expect(page.locator(`a:has-text("${projectName}")`).first()).toBeVisible();
+  await expect(page.locator('a:has-text("的改编")').first()).toBeVisible();
+  expect(forkPath).toMatch(/^\/studio\//);
+});

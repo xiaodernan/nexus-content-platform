@@ -166,6 +166,14 @@ DEMO 路径不在 ai-service 里：确定性 Mock 需要 design model 才能产�
     同一个入口还顺手改掉一个老隐患：admin 路由读会话用 `currentUserOrNull()`（不自动造 guest），
     否则探测者靠一个未登录 GET 就能刷出成堆的 guest 用户行。
 
+18. **分叉读快照，不读工作稿；互动读同一份词表**（§58/§59/§129）：Remix 的输入是
+    `published_projects.snapshot_id` 指向的那一份快照文档，不是 `loadDocument(projectId)` ——
+    后者是作者正在改的工作区，别人一次"想改编"不该把没公开的东西带出去。
+    评论的红线检查调用的是发布扫描用的同一个 `scanTextForRedlines`，不是另抄一份词表：
+    两份词表迟早一份严一份松，然后出现"同样的话能发在评论里、写进页面却被挡"。
+    发现列表同理复用 `resolvePublishedPath` 的可见性口径（private / rejected 一律不出现），
+    排不出来的排序（Trending 要时间序列、AI Picks 要模型）随结果返回"为什么排不出来"，不拿累计数改名冒充。
+
 ## Design ↔ Code 双通道
 
 ```

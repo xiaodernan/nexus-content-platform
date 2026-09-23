@@ -177,6 +177,15 @@ e2e 断言面板把"未运行的检查"列出来，而不是显示全绿。
   e2e 那一条（`@smoke 发布机检与公开页举报`）在真浏览器里走完"发布 → 面板显示机检结论与 limits →
   访客在公开页举报并看到'不会立刻撤下内容' → 改成红线文案再发布 → 面板说清被挡下并列出命中证据"，
   截图在 `screenshots/publish-scan-*.png` 与 `published-report.png`
+- 社区与发现（§59/§61）：`apps/web/test/social.integration.test.ts` 9 条，最要紧的是分叉那两条 ——
+  作者发布后再往工作区加一段没公开的草稿，Remix 出来的副本必须**不含**那段草稿而含发布那一版的文字，
+  且副本归点 Remix 的人、原作品一行未动、`remixes` 记下来源；下架（private）之后的版本分叉不出来。
+  评论那条钉的是"命中红线连一行都不入库"与限度随回执给出（`没命中不等于内容合规`）。
+  发现列表钉的是排序各自说的那件事（Popular 按浏览+赞、New 按发布时间、Following 只含关注的人）、
+  private 不出现、以及 `unavailable` 里 Trending / AI Picks 带着理由在。
+  e2e `@smoke 社区：公开页能点赞…` 在真浏览器里走完点赞→评论→红线评论被挡→Remix 进副本→
+  发现页看到这张卡的真实计数，断言只盯自己那张卡（`[data-discover-card="<path>"]`），
+  不假设这台开发库的公开列表是空的
 - 每个里程碑一次 commit 前至少跑：`npm run lint && npm test && npm run test:e2e:smoke`
 - 改了 `packages/schemas` 必须重跑 `npm run contract:export`，否则契约漂移测试会红
 - 动了 ai-service 再加：`npm run test:ai-service`（Windows 控制台建议前置 `PYTHONUTF8=1`）

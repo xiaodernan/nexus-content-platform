@@ -94,6 +94,11 @@ PostMessage 是唯一跨界通道：校验 `origin` + `source`，schema 校验�
   `decision='blocked'` + 证据（哪段文字、在哪个节点）——否则连"有人试过发这个"都查不到。
 - **下架方向永远放行。** 切成 private 不受门禁与机检阻挡：把链接收回来比挡住收回安全。
 
+公开互动（§59）同样在机检与限流覆盖之内：评论走 `scanTextForRedlines` —— 与发布扫描**同一份词表**，
+命中直接不发出去（不是"先发出去再挂人工"）；`/api/published/interact` 每身份每分钟 20 次、评论每小时 30 条，
+`/api/follow` 每分钟 30 次。发现列表与公开页解析同一口径：private 与被人工 rejected 的版本都不出现。
+Remix 只读发布快照，不读作者工作稿 —— 未公开内容不会因为"有人想改编"而泄露。
+
 社区能力：report 已落地（公开页 `POST /api/published/report`，限流 10 次/小时/身份，
 命中三条硬红线的举报自动挂人工复核案并按案子去重）；block / mute 还没有——它们要的是社区关系面，
 在 M7 的 like/comment 之后才有承载处。版权（§129 copyright safeguards）只有原则没有比对：
