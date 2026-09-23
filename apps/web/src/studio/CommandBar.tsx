@@ -49,6 +49,14 @@ export function CommandBar() {
     setBusy(true);
     setError(null);
     setResult(null);
+    // 服务端只能从库里装配上下文（§68），所以先把编辑器里的改动落库；存不上就停下报原因，
+    // 而不是悄悄按旧版本生成
+    const flushed = await studio.flushBeforeAi();
+    if (!flushed.ok) {
+      setError(flushed.reason);
+      setBusy(false);
+      return;
+    }
     const selectionDigest = state.selection.map((id) => {
       const node = state.page.nodes[id];
       const box = state.layout.nodes[id];
@@ -78,7 +86,8 @@ export function CommandBar() {
           tokens: state.document.tokens.map((t) => ({ key: t.key, type: t.type, value: t.value })),
           components: state.document.components.map((c) => ({ id: c.id, name: c.name })),
         },
-        document: state.document as unknown as Record<string, unknown>,
+        // 整份文档不在这里发：§68 要的是"检索 + 摘要 + 索引"，服务端装配时会带上预算过的
+        // Design Index（见 server/ai/assemble.ts），客户端上传全文等于绕过那条边界。
       },
     };
     try {

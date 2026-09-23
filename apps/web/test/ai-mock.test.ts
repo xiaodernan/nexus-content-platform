@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { createDocument, findPage } from '@nexus/design-model';
+import { buildDesignIndex, createDocument, findPage } from '@nexus/design-model';
 import { AiResponseSchema, type AiRequest } from '@nexus/schemas';
 import { mockProvider } from '@/server/ai/mock';
 
@@ -123,5 +123,37 @@ describe('DeterministicMockProvider', () => {
     const ops = response.patches.flatMap((p) => p.ops);
     expect(JSON.stringify(ops)).toContain('#05060a');
     expect(JSON.stringify(response.patches)).not.toContain('项目 DNA');
+  });
+
+  it('上下文只带目录时读工具侧注入的权威文档，并把这件事写进 Activity（§68）', async () => {
+    const document = createDocument('契约测试', 'website');
+    const page = findPage(document, document.activePageId)!;
+    const root = page.nodes[page.rootId]!;
+    const withDoc = request('把首屏加高 50%', { selection: [root.id] }, document);
+    const { document: clientDocument, ...context } = withDoc.context;
+    expect(clientDocument).toBeTruthy();
+
+    const response = await mockProvider.run(
+      { ...withDoc, context: { ...context, designIndex: buildDesignIndex(document), indexChars: 1234, budgetChars: 20_000 } },
+      { document },
+    );
+
+    expect(response.error).toBeUndefined();
+    const ops = response.patches.flatMap((p) => p.ops);
+    expect(ops.some((op) => op.op === 'set' && op.path === 'size.height' && op.nodeId === root.id)).toBe(true);
+    const line = response.activities.find((a) => a.stage === 'context');
+    expect(line?.summary).toContain('发给模型的是目录');
+    expect(line?.summary).toContain('1234 字符');
+    expect(line?.summary).toContain('选中 1 个');
+  });
+
+  it('目录之外两份文档都没有：说清缺哪一份，不产补丁也不假成功', async () => {
+    const withoutDoc = request('make it cinematic');
+    const { document: clientDocument, ...context } = withoutDoc.context;
+    expect(clientDocument).toBeTruthy();
+    const response = await mockProvider.run({ ...withoutDoc, context });
+    expect(response.patches).toHaveLength(0);
+    expect(response.error?.code).toBe('invalid-context');
+    expect(response.error?.message).toContain('权威文档');
   });
 });

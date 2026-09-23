@@ -522,16 +522,24 @@ drizzle 把整个拼接结果当成**单个绑定参数**，生成的 SQL 是 `o
 
 ## 横向能力（随里程碑推进，不单列里程碑）
 - Agent 工具注册表 + 权限 + 人工审批门（§72-74/177）
-- Context Engine / Design Index / Project Graph（§66-71）— **第一切片已落地（2026-09-24）**：
+- Context Engine / Design Index / Project Graph（§66-71）— **两切片已落地（2026-09-24）**：
   `buildDesignIndex`（`packages/design-model/src/context-index.ts`）把一份设计文档投影成**目录**
   （页面 / 框 / 组件 / 资产 / token / 交互 + 跨引用边 + totals，纯函数、不含正文），
   `fitIndexToBudget` 按字符预算裁剪，并且**逐条交代裁掉了什么**（totals 始终来自未裁的那一份，宁可少列条目不少报数）；
   服务端 `buildProjectContext`（`apps/web/src/server/domain/context.ts`）一次装配出设计目录 + 世界/角色/记忆/资产/语料/快照/发布的摘要 +
   §71 七个分支各自的索引状态，过 `ProjectContextSchema` 后由 `GET /api/projects/[id]/context` 出去；
-  Studio 的「上下文」面板与（将来的）Agent 请求从同一份装配出发，面板上还给出「目录 vs 整份文档」的字符对比与可改的预算。
-  仍欠的三笔如实记下：① `CommandBar` 现在仍把**整份文档**塞进 AI 请求——§68 的缺口，下一步换成这份目录；
-  ② Code Index（§69）以及 Agents / Runtime 分支未落地，面板上写的是「未索引」而不是空白；
-  ③ 语义相关性与重排要 embedding provider（§49 的向量半）。
+  Studio 的「上下文」面板与 Agent 请求从同一份装配出发，面板上还给出「目录 vs 整份文档」的字符对比与可改的预算。
+  第二切片把 §68 的缺口关上：AI 请求不再带整份文档。`POST /api/ai/run` 先校验项目归属，
+  再用同一个 `buildProjectContext` 在服务端装配目录（`apps/web/src/server/ai/assemble.ts`），
+  客户端上传 `context.document` 一律 400 并说明原因（边界要能被拒绝，不能只写在注释里）；
+  DEMO 那一路的确定性规则改读**服务端权威文档**（本地工具入参，不上线），
+  命令栏发请求前先 `flushBeforeAi()` 把脏改动落库——上下文既然来自库里，就不能悄悄按旧版本生成。
+  这一路顺带挖出一个老 bug：`loadDocument` 只写不读 `visual_dna` / `brand_kit`（§16 的闭环断了），
+  表现是"明明提取过 DNA 却按内置配色生成"。
+  仍欠的三笔如实记下：① Code Index（§69）以及 Agents / Runtime 分支未落地，面板上写的是「未索引」而不是空白；
+  ② 语义相关性与重排要 embedding provider（§49 的向量半）；
+  ③ `selectionDigest` / `designSystemDigest` 仍由客户端算好发上来，服务端照单收下 —— 真 provider 上线前要把它们改成服务端派生，
+  否则"选中了什么"这件事由请求方说了算（不构成越权，但会让模型的注意力被客户端谎报带偏）。
   实测尺寸/耗时见 `docs/PERFORMANCE.md`，预算为什么取 20000 见 `docs/adr/0006-design-index-char-budget.md`。
 - Observability / Evaluation / Visual Benchmark（§84-86/156）
 - 规模基准与热点路径（§146/§147）— 模型层有 `scripts/perf-baseline.mts`，实测数字与"还没做的部分"记在

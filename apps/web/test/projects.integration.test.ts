@@ -103,6 +103,37 @@ describe('项目领域层（真实数据库）', () => {
     expect((await loadDocument(id))!.activeMode).toBeNull();
   });
 
+  /**
+   * §30/§174 的视觉语言与品牌包存在 projects 行的 jsonb 列里。saveDocument 一直会写，
+   * loadDocument 曾经不读回来：编辑器内存里还在，刷新/服务端装配（§68）就看不到，
+   * 于是"提取了 DNA 却按内置配色生成"。这条测的是闭环，不是配色算法。
+   */
+  it('视觉语言与品牌包存进去就读得回来（§30/§174/§68）', async () => {
+    const { id } = await newProject('Dna Site');
+    const doc = await loadDocument(id);
+    doc!.visualDna = {
+      source: { assetId: 'asset_x', method: 'pixel-stats', extractedAt: '2026-09-24T00:00:00.000Z', notes: ['只支持非隔行 8bit PNG'] },
+      palette: [{ role: 'color.accent.brand', color: '#14b8a6' }],
+      descriptors: ['高饱和', '冷色倾向'],
+    };
+    doc!.brandKit = { name: 'Nexus', tokenKeys: { color: ['color.background'], typography: [] }, toneOfVoice: ['克制'] };
+    await saveDocument(id, doc!);
+
+    const loaded = await loadDocument(id);
+    expect(loaded!.visualDna?.descriptors).toEqual(['高饱和', '冷色倾向']);
+    expect(loaded!.visualDna?.palette).toEqual([{ role: 'color.accent.brand', color: '#14b8a6' }]);
+    expect(loaded!.visualDna?.source?.method).toBe('pixel-stats');
+    expect(loaded!.brandKit?.name).toBe('Nexus');
+
+    // 撤销 DNA 后不能"删不掉"：写回 null 必须让下一份读到的文档也没有
+    delete loaded!.visualDna;
+    delete loaded!.brandKit;
+    await saveDocument(id, loaded!);
+    const cleared = await loadDocument(id);
+    expect(cleared!.visualDna).toBeUndefined();
+    expect(cleared!.brandKit).toBeUndefined();
+  });
+
   it('metadata.createdAt 是项目真正被创建的时间，不是每次读到的"现在"', async () => {
     const { document, id } = await newProject('Timestamped');
     const first = await loadDocument(id);

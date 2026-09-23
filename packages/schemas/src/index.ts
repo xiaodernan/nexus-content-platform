@@ -100,6 +100,138 @@ export const UsageSchema = z.object({
 });
 export type Usage = z.infer<typeof UsageSchema>;
 
+/**
+ * §70 Design Index 的线格式。
+ *
+ * 权威在 `@nexus/design-model`（怎么算是那儿决定的），这里只规定"出了进程长什么样"。
+ * 形状里刻意带上 `dropped` / `trimmed` / `omissions`：一次裁剪必须随报文一起出去，
+ * 否则客户端只能靠猜知道这份目录被压过（§159）。
+ */
+export const DesignIndexTotalsSchema = z.object({
+  pages: z.number().int().min(0),
+  nodes: z.number().int().min(0),
+  reachableNodes: z.number().int().min(0),
+  unreachableNodes: z.number().int().min(0),
+  frames: z.number().int().min(0),
+  sections: z.number().int().min(0),
+  components: z.number().int().min(0),
+  unusedComponents: z.number().int().min(0),
+  instances: z.number().int().min(0),
+  assets: z.number().int().min(0),
+  orphanAssets: z.number().int().min(0),
+  tokens: z.number().int().min(0),
+  unusedTokens: z.number().int().min(0),
+  undeclaredTokenRefs: z.number().int().min(0),
+  interactions: z.number().int().min(0),
+  edges: z.number().int().min(0),
+  textChars: z.number().int().min(0),
+});
+
+export const DesignIndexSchema = z.object({
+  schemaVersion: z.literal(1),
+  generatedFrom: z.object({
+    documentId: z.string(),
+    documentName: z.string(),
+    updatedAt: z.string(),
+  }),
+  pages: z.array(
+    z.object({
+      id: z.string(),
+      name: z.string(),
+      route: z.string().nullable(),
+      nodeCount: z.number().int().min(0),
+      reachable: z.number().int().min(0),
+      frames: z.number().int().min(0),
+      sections: z.number().int().min(0),
+      textChars: z.number().int().min(0),
+      components: z.array(z.string()),
+      assets: z.array(z.string()),
+      tokens: z.number().int().min(0),
+      interactions: z.number().int().min(0),
+      maxDepth: z.number().int().min(0),
+      viewport: z.object({ width: z.number(), height: z.number() }),
+    }),
+  ),
+  frames: z.array(
+    z.object({
+      id: z.string(),
+      name: z.string(),
+      kind: z.enum(['frame', 'section']),
+      pageId: z.string(),
+      pageName: z.string(),
+      parent: z.string().nullable(),
+      depth: z.number().int().min(0),
+      childCount: z.number().int().min(0),
+      layoutMode: z.string(),
+      size: z.object({ width: z.union([z.number(), z.string()]), height: z.union([z.number(), z.string()]) }),
+      textPreview: z.string(),
+    }),
+  ),
+  components: z.array(
+    z.object({
+      id: z.string(),
+      name: z.string(),
+      definedOnPage: z.string().nullable(),
+      props: z.array(z.string()),
+      variants: z.number().int().min(0),
+      slots: z.array(z.string()),
+      instances: z.number().int().min(0),
+      usedOnPages: z.array(z.string()),
+      unused: z.boolean(),
+    }),
+  ),
+  assets: z.array(
+    z.object({
+      id: z.string(),
+      name: z.string(),
+      kind: z.string(),
+      usedByNodes: z.number().int().min(0),
+      usedOnPages: z.array(z.string()),
+      orphaned: z.boolean(),
+    }),
+  ),
+  tokens: z.array(
+    z.object({
+      key: z.string(),
+      type: z.string(),
+      group: z.string().nullable(),
+      value: z.union([z.string(), z.number(), z.boolean(), z.null()]),
+      modes: z.number().int().min(0),
+      usedByNodes: z.number().int().min(0),
+      via: z.array(z.enum(['binding', 'value'])),
+      used: z.boolean(),
+    }),
+  ),
+  interactions: z.array(
+    z.object({
+      id: z.string(),
+      pageId: z.string(),
+      pageName: z.string(),
+      nodeId: z.string(),
+      nodeName: z.string(),
+      trigger: z.string(),
+      action: z.string(),
+      target: z.string().nullable(),
+      targetName: z.string().nullable(),
+    }),
+  ),
+  edges: z.array(
+    z.object({ from: z.string(), to: z.string(), kind: z.enum(['instance', 'asset', 'token', 'interaction']) }),
+  ),
+  totals: DesignIndexTotalsSchema,
+  omissions: z.array(z.string()),
+  dropped: z
+    .object({
+      frames: z.number().int().min(0),
+      edges: z.number().int().min(0),
+      interactions: z.number().int().min(0),
+      textPreviews: z.number().int().min(0),
+    })
+    .optional(),
+  trimmed: z.array(z.string()).optional(),
+});
+export type DesignIndexPayload = z.infer<typeof DesignIndexSchema>;
+
 /** §66 Design Context：Agent 必须拿到上下文而不是每次重推 */
 export const DesignContextSchema = z.object({
   projectId: z.string(),
@@ -114,7 +246,19 @@ export const DesignContextSchema = z.object({
       components: z.array(z.object({ id: z.string(), name: z.string(), props: z.record(z.string(), z.unknown()).default({}) })).default([]),
     })
     .default({ tokens: [], components: [] }),
-  /** 完整文档仅在需要结构改写时提供（小项目 / M1 可行） */
+  /**
+   * §70 的设计目录（服务端 Context Engine 装配时注入，预算内）。
+   * 这是 provider 真正能看到的那一份；`document` 不是（见下）。
+   */
+  designIndex: DesignIndexSchema.optional(),
+  /** 目录字符数与本轮预算：让"发了多大"成为报文里可核对的数，而不是日志里的一句话 */
+  indexChars: z.number().int().min(0).optional(),
+  budgetChars: z.number().int().min(0).optional(),
+  /**
+   * 完整文档**不在 provider 的上下文里**（§68）。这个字段只服务于 web 进程内的确定性工具
+   * （DEMO MODE 的规则要读权威文档才能产出合法补丁），由服务端注入、随请求走本地调用，
+   * 转发给 ai-service 前会被剥掉。客户端不许再自己塞一份进来。
+   */
   document: z.record(z.string(), z.unknown()).optional(),
   recentChanges: z.array(z.object({ label: z.string(), source: z.enum(['manual', 'ai', 'system', 'import']) })).default([]),
   brandKit: z.record(z.string(), z.unknown()).optional(),
@@ -439,137 +583,6 @@ export const CharacterCreateRequestSchema = z.object({
 
 export const CharacterUpdateRequestSchema = z.object({ profile: CharacterProfileSchema });
 
-/**
- * §70 Design Index 的线格式。
- *
- * 权威在 `@nexus/design-model`（怎么算是那儿决定的），这里只规定"出了进程长什么样"。
- * 形状里刻意带上 `dropped` / `trimmed` / `omissions`：一次裁剪必须随报文一起出去，
- * 否则客户端只能靠猜知道这份目录被压过（§159）。
- */
-export const DesignIndexTotalsSchema = z.object({
-  pages: z.number().int().min(0),
-  nodes: z.number().int().min(0),
-  reachableNodes: z.number().int().min(0),
-  unreachableNodes: z.number().int().min(0),
-  frames: z.number().int().min(0),
-  sections: z.number().int().min(0),
-  components: z.number().int().min(0),
-  unusedComponents: z.number().int().min(0),
-  instances: z.number().int().min(0),
-  assets: z.number().int().min(0),
-  orphanAssets: z.number().int().min(0),
-  tokens: z.number().int().min(0),
-  unusedTokens: z.number().int().min(0),
-  undeclaredTokenRefs: z.number().int().min(0),
-  interactions: z.number().int().min(0),
-  edges: z.number().int().min(0),
-  textChars: z.number().int().min(0),
-});
-
-export const DesignIndexSchema = z.object({
-  schemaVersion: z.literal(1),
-  generatedFrom: z.object({
-    documentId: z.string(),
-    documentName: z.string(),
-    updatedAt: z.string(),
-  }),
-  pages: z.array(
-    z.object({
-      id: z.string(),
-      name: z.string(),
-      route: z.string().nullable(),
-      nodeCount: z.number().int().min(0),
-      reachable: z.number().int().min(0),
-      frames: z.number().int().min(0),
-      sections: z.number().int().min(0),
-      textChars: z.number().int().min(0),
-      components: z.array(z.string()),
-      assets: z.array(z.string()),
-      tokens: z.number().int().min(0),
-      interactions: z.number().int().min(0),
-      maxDepth: z.number().int().min(0),
-      viewport: z.object({ width: z.number(), height: z.number() }),
-    }),
-  ),
-  frames: z.array(
-    z.object({
-      id: z.string(),
-      name: z.string(),
-      kind: z.enum(['frame', 'section']),
-      pageId: z.string(),
-      pageName: z.string(),
-      parent: z.string().nullable(),
-      depth: z.number().int().min(0),
-      childCount: z.number().int().min(0),
-      layoutMode: z.string(),
-      size: z.object({ width: z.union([z.number(), z.string()]), height: z.union([z.number(), z.string()]) }),
-      textPreview: z.string(),
-    }),
-  ),
-  components: z.array(
-    z.object({
-      id: z.string(),
-      name: z.string(),
-      definedOnPage: z.string().nullable(),
-      props: z.array(z.string()),
-      variants: z.number().int().min(0),
-      slots: z.array(z.string()),
-      instances: z.number().int().min(0),
-      usedOnPages: z.array(z.string()),
-      unused: z.boolean(),
-    }),
-  ),
-  assets: z.array(
-    z.object({
-      id: z.string(),
-      name: z.string(),
-      kind: z.string(),
-      usedByNodes: z.number().int().min(0),
-      usedOnPages: z.array(z.string()),
-      orphaned: z.boolean(),
-    }),
-  ),
-  tokens: z.array(
-    z.object({
-      key: z.string(),
-      type: z.string(),
-      group: z.string().nullable(),
-      value: z.union([z.string(), z.number(), z.boolean(), z.null()]),
-      modes: z.number().int().min(0),
-      usedByNodes: z.number().int().min(0),
-      via: z.array(z.enum(['binding', 'value'])),
-      used: z.boolean(),
-    }),
-  ),
-  interactions: z.array(
-    z.object({
-      id: z.string(),
-      pageId: z.string(),
-      pageName: z.string(),
-      nodeId: z.string(),
-      nodeName: z.string(),
-      trigger: z.string(),
-      action: z.string(),
-      target: z.string().nullable(),
-      targetName: z.string().nullable(),
-    }),
-  ),
-  edges: z.array(
-    z.object({ from: z.string(), to: z.string(), kind: z.enum(['instance', 'asset', 'token', 'interaction']) }),
-  ),
-  totals: DesignIndexTotalsSchema,
-  omissions: z.array(z.string()),
-  dropped: z
-    .object({
-      frames: z.number().int().min(0),
-      edges: z.number().int().min(0),
-      interactions: z.number().int().min(0),
-      textPreviews: z.number().int().min(0),
-    })
-    .optional(),
-  trimmed: z.array(z.string()).optional(),
-});
-export type DesignIndexPayload = z.infer<typeof DesignIndexSchema>;
 
 /** §67 Context Engine 的一次装配：设计目录 + 世界/角色/记忆/资产/索引/近况的摘要 */
 export const ProjectContextSchema = z.object({

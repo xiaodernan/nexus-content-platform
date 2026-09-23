@@ -104,9 +104,14 @@ DEMO 路径不在 ai-service 里：确定性 Mock 需要 design model 才能产�
     `buildDesignIndex`（`@nexus/design-model`，纯函数）把文档投影成目录（页面/框/组件/资产/token/交互 + 跨引用边 + totals），
     `fitIndexToBudget` 按字符预算裁剪；服务端 `buildProjectContext`（`apps/web/src/server/domain/context.ts`）
     再把目录与世界/角色/记忆/资产/语料/快照/发布摘要和 §71 七分支状态拼成一份 `ProjectContext`，
-    Studio 面板与将来的 Agent 请求共用这一处。三条硬规矩：
+    Studio 面板与 Agent 请求共用这一处。四条硬规矩：
     裁剪只丢条目、**`totals` 永远来自未裁的那一份**，丢了什么以 `trimmed`/`dropped` 随报文一起出去；
-    没落地的分支写 `not-indexed` 而不是留白；装配只读，不顺手写库。
+    没落地的分支写 `not-indexed` 而不是留白；装配只读，不顺手写库；
+    **`/api/ai/run` 的上下文由服务端装配**（`apps/web/src/server/ai/assemble.ts`）——先校验项目归属再读文档
+    （顺序反了就是一个现成的 IDOR），客户端上传 `context.document` 一律 400，DEMO 规则要读的权威文档
+    作为**进程内工具入参**递进去，不是报文里的字段（§68 禁的是"整份文档进模型上下文"，不是"服务端不许看自己的库"）。
+    客户端因此不能带着未保存的改动去按执行：`CommandBar` 先 `studio.flushBeforeAi()` 落库，落不进去就报错停下，
+    绝不悄悄按库里那份旧文档生成。
     为什么必须有预算：10k 节点的目录不套预算是 71 万字符（实测见 `docs/PERFORMANCE.md`），
     "索引过"从来不等价于"塞得进上下文"。取舍与踩坑记录在 `docs/adr/0006-design-index-char-budget.md`。
 

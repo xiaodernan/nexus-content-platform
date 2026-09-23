@@ -22,6 +22,11 @@ auth 之外的 projects/snapshots/restore/branches/switch/duplicate/variants/mer
 形状对齐 Redis 有序集，多实例部署前需接 Redis）。登录对"邮箱不存在"也跑 dummy-hash 比较以对齐时序，防账号枚举。
 详见 `docs/adr/0002-password-hashing-and-csrf.md`。
 
+**`/api/ai/run` 的归属校验（§68 带来的新面）**：这条路由从"只转发客户端上传的文档"改成"服务端按 `projectId` 读库装配上下文"
+之后，它第一次成了**读取他人项目内容的入口**——所以 `assembleAiRequest` 在装配前先 `projectBelongsTo(projectId, userId)`，
+不属于你就 404（不区分"不存在"与"不是你的"，避免探测），软删除的项目同样读不到。顺序很要紧：先鉴权再读文档，
+反过来写就等于亲手造一个 IDOR。客户端再想自己塞 `context.document` 一律 400，归属检查不能被"我自带一份"绕过。
+
 ## 生成代码执行（§81，最高优先）
 
 用户/Agent 产出的代码**绝不在主机进程执行**。允许的执行路径只有：

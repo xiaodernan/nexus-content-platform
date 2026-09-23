@@ -1,5 +1,5 @@
 import { deflateSync } from 'node:zlib';
-import { expect, test, type Page } from '@playwright/test';
+import { expect, test, type Page, type Request } from '@playwright/test';
 
 /**
  * Studio 竖向切片（§M1）：建项目 → 画布渲染模型 → 选中/改属性 → AI 命令栏（DEMO MODE）→ 撤销 → 自动保存。
@@ -479,10 +479,48 @@ test('@smoke studio slice: AI command bar runs in DEMO MODE as one undoable tran
 
   const before = await page.evaluate(() => document.querySelectorAll('[data-node-id]').length);
 
+  // §68 要在 HTTP 边界上可核对，而不只是"面板上写着小"：截下真正发出去的那一份
+  const sent: {
+    current: { bytes: number; hasDocument: boolean; hasSelection: boolean } | null;
+  } = { current: null };
+  await page.route('**/api/ai/run', async (route) => {
+    const raw = route.request().postData() ?? '';
+    const body = JSON.parse(raw) as { context?: { document?: unknown; selectionDigest?: unknown[] } };
+    sent.current = {
+      bytes: raw.length,
+      hasDocument: body.context?.document !== undefined,
+      hasSelection: Array.isArray(body.context?.selectionDigest),
+    };
+    await route.fallback();
+  });
+
   await page.fill('[data-ai-input]', 'Add a section: 三档定价卡片');
+  // §68：上下文由服务端从库里那份装配。故意在防抖（1.8s）之内改一个属性就提交 ——
+  // 命令栏要先把它落库，所以网络顺序必须是"先 PUT 文档，再 POST AI"。
+  const headlineId = await layerId(page, 'Headline');
+  await page.click(`[data-node-id="${headlineId}"]`);
+  await page.fill('[data-prop="typography.fontSize"]', '64');
+  const writes: string[] = [];
+  const onRequest = (req: Request): void => {
+    const path = new URL(req.url()).pathname;
+    if (req.method() === 'PUT' && path.startsWith('/api/projects/')) writes.push('put');
+    if (req.method() === 'POST' && path === '/api/ai/run') writes.push('ai');
+  };
+  page.on('request', onRequest);
   await page.click('[data-ai-submit]');
 
   await expect(page.locator('[data-ai-result]')).toBeVisible({ timeout: 20_000 });
+  page.off('request', onRequest);
+  expect(writes).toContain('ai');
+  expect(writes.slice(0, writes.indexOf('ai'))).toContain('put');
+  // 客户端这一侧：只有 id 与选中摘要。起手项目的整份文档本身就有约 9,900 字符，
+  // 所以"请求体比文档还小"就是"没带文档"的直接证据
+  expect(sent.current?.hasDocument).toBe(false);
+  expect(sent.current?.hasSelection).toBe(true);
+  expect(sent.current?.bytes).toBeLessThan(6_000);
+  // 服务端那一侧：装配出的目录有多大，写在 Activity 里给人看（§68 的可核对版本）
+  await expect(page.locator('[data-command-bar]')).toContainText('发给模型的是目录');
+  await page.screenshot({ path: 'screenshots/ai-context-index.png' });
   await expect(page.locator('[data-ai-result] [data-demo-mode]')).toHaveText('DEMO MODE');
   await expect
     .poll(() => page.evaluate(() => document.querySelectorAll('[data-node-id]').length))
@@ -769,7 +807,10 @@ test('@smoke 参考图 → Visual DNA：提取、展示、约束生成、可撤�
   await expect(dnaBlock.locator('[data-visual-dna-descriptors]')).toContainText('冷色倾向');
   await page.screenshot({ path: 'screenshots/visual-dna.png' });
 
-  // §174：生成必须遵循它。提示词写 cinematic，但配色取自参考图，而不是内置配方
+  // §174：生成必须遵循它。提示词写 cinematic，但配色取自参考图，而不是内置配方。
+  // 这一步同时验证 §68 的落地：发给服务端的上下文由库里那份装配，而"提取 DNA"的改动
+  // 要先落库（studio.flushBeforeAi，顺序契约在 apps/web/test/studio-flush.test.ts 里钉住），
+  // 否则这里会拿到内置配方的颜色。
   const backgroundValue = () => page.locator('[data-token-value="color.background"]').inputValue();
   const beforeColor = await backgroundValue();
   await page.fill('[data-ai-input]', 'make it cinematic');

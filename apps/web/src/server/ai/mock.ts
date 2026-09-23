@@ -358,7 +358,12 @@ export class DeterministicMockProvider implements AiProvider {
   readonly name = 'mock';
   readonly model = 'nexus-deterministic-v1';
 
-  async run(request: AiRequest): Promise<AiResponse> {
+  /**
+   * `tools.document` 是服务端注入的**权威文档**，只在这一个进程内可读（§68：provider 拿到的
+   * 是目录，不是整份文档）。确定性规则要算"当前尺寸是多少"就得读它，
+   * 所以这里读的是工具侧的那一份，而不是随请求走过网络的那一份。
+   */
+  async run(request: AiRequest, tools: { document?: DesignDocument } = {}): Promise<AiResponse> {
     const started = Date.now();
     const base = {
       requestId: request.requestId,
@@ -384,12 +389,23 @@ export class DeterministicMockProvider implements AiProvider {
       approvals: [],
     };
 
-    const document = request.context.document as unknown as DesignDocument | undefined;
+    // 这一句要出现在 Activity 里：读者得知道这次发出去的是目录还是整份文档（§68）
+    const indexNote = request.context.designIndex
+      ? `发给模型的是目录：${request.context.indexChars ?? '?'} 字符（预算 ${request.context.budgetChars ?? '?'}）、选中 ${request.context.selection.length} 个；结构性规则读服务端权威文档`
+      : '这次没有目录（请求未经服务端装配），规则只能读随请求带来的文档';
+
+    const document =
+      tools.document ?? (request.context.document as unknown as DesignDocument | undefined);
     const page = document ? (findPage(document, request.context.pageId) ?? document.pages[0]) : undefined;
     if (!document || !page) {
       return {
         ...base,
-        error: { code: 'invalid-context', message: '请求里没有可用的设计文档', retryable: false },
+        error: {
+          code: 'invalid-context',
+          message: '这次既没有可用的设计文档，也没有目录：确定性规则要读权威文档才能产出合法补丁',
+          hint: '服务端装配（Context Engine）没跑或读不出文档；先确认这个项目还在、文档能载入。',
+          retryable: false,
+        },
       };
     }
 
@@ -430,6 +446,7 @@ export class DeterministicMockProvider implements AiProvider {
       patches: result?.patches ?? [],
       explanation: result?.explanation ?? '没有可执行的确定性改动。',
       activities: [
+        activity('context', indexNote),
         activity('intent', `规则 ${rule.id} 命中：${result?.summary ?? '无改动'}`),
         ...(result?.activities.map((step) => activity('plan-step', step)) ?? []),
         activity('apply', result?.patches.length ? `${result.patches.length} 个补丁、${result.patches.reduce((n, p) => n + p.ops.length, 0)} 个 op 已落地` : '未产生补丁'),

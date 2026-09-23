@@ -358,6 +358,24 @@ export class StudioStore {
     if (this.dirty) void this.save();
   }
 
+  /**
+   * §68：AI 请求的上下文由服务端从**库里那份**装配，客户端不再上传整份文档。
+   * 于是编辑器里未保存的改动对 AI 是不可见的 —— "我明明刚改了它却按旧的生成"
+   * 是这类架构最难查的一种不一致，所以发请求前先把脏数据落库，落不进去就明说。
+   */
+  async flushBeforeAi(): Promise<{ ok: true } | { ok: false; reason: string }> {
+    if (this.saveTimer) {
+      clearTimeout(this.saveTimer);
+      this.saveTimer = null;
+    }
+    if (this.dirty || this.inflight) await this.save();
+    // save() 只在成功时清 dirty：仍然脏就是没存上，绝不能拿旧版本去生成
+    if (this.dirty) {
+      return { ok: false, reason: `还有未保存的改动，已停止本次 AI 请求：${this.saveError ?? '保存失败'}` };
+    }
+    return { ok: true };
+  }
+
   // ---- 服务端快照（§27 / §108：用户项目历史，不是 git 开发历史） ----
 
   /** 失败只记录原因，不打断编辑（§159 不静默失败）。§28 的分支列表随快照一起回来 */

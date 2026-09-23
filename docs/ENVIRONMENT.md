@@ -62,6 +62,9 @@ npm run contract:export   # 改了 packages/schemas 后必须重跑，导出 con
 - 契约来自仓库根 `contracts/`：Python 侧运行期用 `jsonschema` 校验，
   `packages/schemas/test/contract.test.ts` 保证导出文件与 zod 定义不漂移。
 - Windows 控制台跑 pytest 建议 `PYTHONUTF8=1`，否则中文断言输出会乱码（源码本身按 UTF-8 读，无影响）。
+  `npm run test:ai-service` 里的 venv 可执行文件路径写成反斜杠：npm 在 Windows 上用 cmd.exe 执行脚本，
+  而 cmd 会把 `apps/ai-service/...python.exe` 当成命令 `apps` 加一堆参数（报"'apps' 不是内部或外部命令"）。
+  这条曾经让 26 项契约测试**根本没人跑得动**，只能靠手敲 venv 路径——文档写着"能跑"而实际跑不了，比报错更糟。
 - web 通过 `NEXUS_AI_SERVICE_URL`（本地写在 `apps/web/.env.local`）访问；未设置时首页显示"未配置"，
   设置但连不上显示"不可达"，绝不显示成可用。
 - 内存约束：`next dev` + `uvicorn` + Postgres 已接近 2.5GB 空闲上限，Playwright 跑 e2e 时不要另开浏览器。

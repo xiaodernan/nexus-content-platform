@@ -286,6 +286,10 @@ export async function loadDocument(projectId: string): Promise<DesignDocument | 
   // §12 主题 mode：库里没有对应列时它只活在浏览器会话里，刷新就退回默认值
   document.activeMode = project.activeMode ?? null;
   if (Array.isArray(project.modes)) document.metadata.modes = project.modes as string[];
+  // 视觉语言与品牌包也是文档状态（§30/§174）：saveDocument 写了这两列，这里不读回来就等于
+  // "刷新后 DNA 悄悄没了"。以前只有客户端把整份文档发回来时才看得见，服务端装配（§68）把它暴露了。
+  document.visualDna = (project.visualDna ?? undefined) as DesignDocument['visualDna'];
+  document.brandKit = (project.brandKit ?? undefined) as DesignDocument['brandKit'];
   return document;
 }
 
