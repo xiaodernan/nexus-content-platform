@@ -23,6 +23,14 @@ export {
   type GitLogEntry,
 } from './gitLogTool.js';
 export {
+  GIT_SHOW_TOOL_SPECS,
+  gitShowPolicy,
+  parseShowDiff,
+  registerGitShowTool,
+  validateShowPath,
+  type GitShowFileChange,
+} from './gitShowTool.js';
+export {
   GIT_COMMIT_TOOL_SPECS,
   gitCommitPolicy,
   parseCommitOutput,

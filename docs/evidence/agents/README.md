@@ -17,7 +17,7 @@ still key-free, and everything else in the stack spawns nothing.
 ## Reproducible gates
 
 ```
-npm test          # turbo: @nexus/agent-runtime 232/232 + @nexus/exec-host 71/71 vitest among all packages
+npm test          # turbo: @nexus/agent-runtime 232/232 + @nexus/exec-host 90/90 vitest among all packages
 npm run build     # tsc dist for agents/runtime + agents/exec-host (build order via ^build deps)
 node docs/evidence/agents/agent-proof.mjs
 node docs/evidence/agents/code-index-proof.mjs   # requires `npm run build` first
@@ -49,6 +49,7 @@ node docs/evidence/agents/gitlog-proof.mjs         # requires `npm run build` fi
 node docs/evidence/agents/confirm-proof.mjs        # requires `npm run build` first (v38: runTask itself drives REAL commit→confirm in a throwaway os.tmpdir repo)
 node docs/evidence/agents/remember-proof.mjs       # requires `npm run build` first (v39: four real loop runs; the confirmed arc journals itself into a REAL MemoryStore — and run 2 recalls it)
 node docs/evidence/agents/policygate-proof.mjs     # requires `npm run build` first (v40: SAME plan under TWO policy tables against REAL git — audits differ on exactly one rule)
+node docs/evidence/agents/show-proof.mjs           # requires `npm run build` first (v42: commit → hash → CONTENT read-back; git.show lines byte-equal what the human staged, throwaway os.tmpdir repo only)
 ```
 
 ## Unit tests (vitest, `agents/runtime/test`)
@@ -683,6 +684,21 @@ dock's live Allow-once human remains the default §28 face; the table is the
 pre-authorizable, auditable alternative, proven side by side. Runtime 224/224 →
 232/232 (new `checkpointPolicy.test.ts`, 8 cases); exec-host and studio unchanged.
 
+## v42 note — CONTENT read-back: a hash says something landed; `git.show` says WHAT
+
+v37/v38 confirmed a commit by HASH agreement with git's own echo — sufficient for
+"something was recorded", silent about what. `gitShowTool.ts` adds the third pinned door:
+the policy allows exactly `['git','show','--format=','--','*']` — HEAD pinned BY OMISSION,
+`--` forcing the floating token to be a PATHSPEC (blob syntax like `HEAD~9:README.md`
+after `--` matches nothing rather than naming another commit), `validateShowPath`
+throwing on junk paths before any spawn. `parseShowDiff` → hunks/additions/deletions/
+`addedLines`/binary, stating its own scope (a 1-line change claims 1 line, never the
+file); git's exit-128 pathspec refusal is honest DATA. `show-proof.mjs` (31st) runs
+commit → log → show against REAL git in a throwaway os.tmpdir repo and asserts the read
+lines are BYTE-EQUAL what the human staged; a denied show costs 0 spawns. exec-host
+71/71 → 90/90 (new `gitShowTool.test.ts`, 19 cases); runtime 232/232 and studio 105/105
+unchanged — the plan tail stays v38/v39's; this is a tool, wired by humans or policy.
+
 ## Scope honesty
 
 §63/§26 items *not* implemented (stated, not faked): general real-fs write tools (only
@@ -696,8 +712,11 @@ wired by default outside that evidence file, and the runtime package itself stay
 spawn-free by audited design. Since v35 the git write surface is ONE argv wide
 (`git commit -m <msg>` via a separate `gitCommitPolicy`, staged-index-only, never `add`/
 `push`), and since v37 the git read surface has grown exactly one bounded window
-(`git log --oneline -n <count≤100>` via `gitLogPolicy` — still no `show`, no `--all`, no
-refs; v38 added NO new surface, it only wired that existing door into the plan's tail) — the v32 see-don't-touch policy stands for everything else, and real-commit
+(`git log --oneline -n <count≤100>` via `gitLogPolicy`; since v42 exactly one bounded
+CONTENT door too (`git show --format= -- <path>` via `gitShowPolicy` — HEAD pinned by
+omission, pathspec-only float; still no `--all`, no refs; v38 added NO new surface, it
+only wired that existing door into the plan's tail) — the v32 see-don't-touch policy
+stands for everything else, and real-commit
 demos live only in throwaway temp repos. Agent-led STAGING (choosing what enters the
 index) remains unimplemented by design: staging stays a human/`disk`-side act,
 live-model planning (the seam exists, the model needs keys), multi-agent registry.

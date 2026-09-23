@@ -866,3 +866,40 @@ two fresh runs, checkpoint denial leaving the workspace byte-identical).
   exec-host 71/71 UNCHANGED (no product code moved there); thirty proofs (32 scripts)
   green — this increment's evidence is headless vitest, so no new node proof (studio lib
   is app code, not a built package).
+
+## Amendment 42 — v42 (exec-host): the CONTENT read-back — a run finishes its sentence: something landed AND this is what it says, 2026-09
+- **`agents/exec-host/src/gitShowTool.ts` is the third pinned door:** v37 and v38 let a run
+  confirm THAT a commit landed — a hash agreeing with git's own echo. A hash says
+  *something* was recorded. `git.show` answers *what*: the policy allows exactly ONE argv
+  shape, `['git','show','--format=','--','*']` — the revision is pinned to HEAD **by
+  omission** (no `--format` header, no ref slot), and the `--` separator forces the one
+  floating token to be a PATHSPEC, so blob syntax like `HEAD~9:README.md` after `--`
+  matches nothing instead of reaching into another commit. `validateShowPath` throws on
+  junk (blank, newline/CR, leading `-`, absolute, any `..` segment) BEFORE policy, with
+  zero spawns. Read-only like v32; still a real process, so `permissions:['exec']` and the
+  §28 registry gate still speak first.
+- **The answer is parseable, scope-stated data:** `parseShowDiff` (the tool's own code, §8)
+  → `GitShowFileChange{path, hunks, additions, deletions, addedLines, binary}` —
+  `addedLines` carries only `+` body lines of HEAD's hunk for that path (a 1-line change
+  claims 1 line, never the file); `\ No newline` markers are skipped on their own line;
+  `Binary files … differ` is labeled `binary:true` and the detail says no lines are claimed;
+  exit 0 with an untouched path reads back as the stated empty diff; git's exit-128 pathspec
+  refusal is `ok:false` DATA quoting git's first stderr line, not a crash; `truncated` /
+  `killedByBudget` flags ride along from the host budgets.
+- **31st proof `docs/evidence/agents/show-proof.mjs` runs the FULL circle against REAL git**
+  in a throwaway `os.tmpdir()` repo (`core.hooksPath`/`commit.gpgsign` neutralized LOCALLY
+  there, plus `core.autocrlf false` so staged bytes are recorded bytes): the HUMAN writes and
+  stages a known multi-line file (§28 keeps staging human), one counting spawn wrapper
+  watches three separately-keyed hosts (commit/log/show — the show host cannot borrow commit
+  power), and the granted arc runs `git.commit → git.log → git.show` asserting
+  `addedLines` BYTE-EQUAL the staged lines (quotes, double spaces, the §60 banner included)
+  and that re-joining them reproduces the staged file byte for byte; a second commit touching
+  one line reads back `+1 −0` only; a DENIED show costs 0 spawns while the landed history
+  stands; the rev-shaped path token reads back nothing and prints none of the other
+  commit's content; escaping cwd is a stated refusal; and the proof's own direct `git show`
+  bytes parse through the SAME `parseShowDiff` — no second implementation. §9: home repo
+  HEAD byte-identical, temp repo removed in `finally`.
+- runtime 232/232 and studio 105/105 UNCHANGED (planner, orchestrator and the dock never
+  moved — the plan tail stays v38/v39's; `git.show` is a tool a human or a later policy
+  wires); exec-host 71/71 → 90/90 (NEW gitShowTool.test.ts, 19 cases); thirty-first proof,
+  33 scripts green.
