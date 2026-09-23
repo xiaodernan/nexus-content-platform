@@ -124,14 +124,18 @@ describe('分支与副本（真实数据库）', () => {
     const [main] = await listBranches(id);
     const v2 = await createBranch(id, { name: 'design-v2' });
     if (!v2.ok) throw new Error(v2.reason);
-    const before = (await listSnapshots(id)).length;
+    const before = await listSnapshots(id);
     await switchBranch(id, main!.id);
     await switchBranch(id, v2.branch.id);
     const after = await listSnapshots(id);
     // 两条"切换到"标记是如实历史；不该再出现"切到 X 前的现场"
     expect(after.filter((s) => s.label?.startsWith('切到'))).toHaveLength(0);
-    expect(after.filter((s) => s.label?.startsWith('切换到'))).toHaveLength(2);
-    expect(after.length).toBe(before + 2);
+    const created = after
+      .filter((s) => !before.some((b) => b.id === s.id))
+      .map((s) => s.label ?? '(无标签)');
+    // 断言写成"新增的就是这两条切换标记"，而不是只比长度：
+    // 只比长度时偶发失败只会说 expected 5 to be 4，看不出多出来的是哪一条
+    expect(created).toEqual([expect.stringMatching(/^切换到/), expect.stringMatching(/^切换到/)]);
   });
 
   it('从历史快照开分支：起点是那份快照，当前现场先存回原分支', async () => {

@@ -129,6 +129,16 @@ e2e 断言面板把"未运行的检查"列出来，而不是显示全绿。
   什么都没命中时发空目录并说明"没有任何文件命中"，而不是把整份目录塞过去凑数。
   e2e 断言面板上 Code 分支写「已索引 … 真实 AST」、代码目录那行有真实文件/符号数、
   且"代码正文取不到"这条仍在 `unavailable` 列表里（做完前半截不许顺手划掉后半截的账）
+- 提示词真的吃到目录（§68/§69 的另一半）：`npm run contract:export` 除了导出 JSON Schema，
+  还会用**同一套装配代码**生成 `contracts/fixtures/ai-request-with-index.json`（构造在 `scripts/ai-request-fixture.ts`，
+  id 已固定化，两次导出字节相同）。`apps/web/test/contract-fixture.test.ts` 钉这份文件**没有过期**：
+  磁盘上那份必须与当前代码算出来的字节相同，"改了装配忘了重跑导出"会当场红
+  （反向验证：往夹具尾部加一个字符，4 条里 3 条立刻失败）。
+  Python 侧 `test_prompt.py` 消费这份 fixture，断言 `contextSource` 是 `designIndex`、
+  frames / tokens / omissions / totals 与那份真实目录一一对应、代码摘要里的 `path` 进了提示，
+  且提示里**没有** tree 分支——§68 把 `context.document` 挡在线上之后，模型能看到的只有目录。
+  `document-fallback` 与 `none` 两条回落都必须在 payload 里自报门牌，不许静默降级。
+  反向实验：把 `build_prompt` 换回旧版，这 9 条里 6 条立刻红——说明测试咬的是新契约不是夹具自己
 - 每个里程碑一次 commit 前至少跑：`npm run lint && npm test && npm run test:e2e:smoke`
 - 改了 `packages/schemas` 必须重跑 `npm run contract:export`，否则契约漂移测试会红
 - 动了 ai-service 再加：`npm run test:ai-service`（Windows 控制台建议前置 `PYTHONUTF8=1`）
@@ -137,3 +147,9 @@ e2e 断言面板把"未运行的检查"列出来，而不是显示全绿。
   单独重跑 12.8s 通过、同日整套重跑 23/23 通过。判断依据是失败点前后的断言都过了，只有面板渲染那一步慢——
   同一台机器上还跑着别的项目的容器。**处理方式不是把超时调到 20s**：那会把"恢复后现场真的回来了"
   这条不变量糊过去。再出现一次且能稳定复现，就查恢复之后 selection 与面板重绘的先后，而不是先改测试。
+- **已知偶发（第二笔）**：`branches.integration.test.ts` 的「内容没变时反复切换不会堆噪音快照」整套并行时
+  失败过一次，单独连跑三次 8/8 通过，同日整套重跑全绿。失败时只有"新增快照条数"那条断言红，
+  同一测试里"切到 X 前的现场 == 0"和"切换到 == 2"都过——多出来的那条不是切换标记，而是别处写进来的一条。
+  原来的断言只比长度，报错信息是 `expected 5 to be 4`，看不出是谁。已改成按 label 列新增项
+  （`expect.stringMatching(/^切换到/)`），下次失败会直接说出多出来那条叫什么。**没有**改成 `toBeGreaterThanOrEqual`
+  之类的宽松比较：噪音快照正是这条测试要抓的东西。

@@ -522,7 +522,7 @@ drizzle 把整个拼接结果当成**单个绑定参数**，生成的 SQL 是 `o
 
 ## 横向能力（随里程碑推进，不单列里程碑）
 - Agent 工具注册表 + 权限 + 人工审批门（§72-74/177）
-- Context Engine / Design Index / Project Graph（§66-71）— **三切片已落地（2026-09-24）**：
+- Context Engine / Design Index / Project Graph（§66-71）— **四切片已落地（2026-09-24）**：
   `buildDesignIndex`（`packages/design-model/src/context-index.ts`）把一份设计文档投影成**目录**
   （页面 / 框 / 组件 / 资产 / token / 交互 + 跨引用边 + totals，纯函数、不含正文），
   `fitIndexToBudget` 按字符预算裁剪，并且**逐条交代裁掉了什么**（totals 始终来自未裁的那一份，宁可少列条目不少报数）；
@@ -547,6 +547,17 @@ drizzle 把整个拼接结果当成**单个绑定参数**，生成的 SQL 是 `o
   文件/符号/内部依赖数与"几个文件没解析出来"。建这个目录当天照出一个真 bug：
   **页面名没有 ASCII 字符时导出 `components/nexus/undefined.tsx` / `export function undefined()`**
   （中文页面名是常态，不是边角），已修并钉在 `packages/design-model/test/codegen.test.ts`。
+  第四切片干的是**把这条链在 Python 那头接上**：§68 只是不再发整份文档，`apps/ai-service` 的
+  `build_prompt` 从头到尾没引用过 `designIndex` / `codeDigest`——它一直在读 `context.document`，
+  而那个字段现在线上根本不存在。所以**今天看着正常只因为 DEMO MODE 跑的是进程内的 TS mock**；
+  一旦配上真 provider，提示里的节点表会是空的，模型只能凭页面名瞎猜 nodeId（§159 的反面）。
+  现在 `build_prompt` 优先吃目录（pages / frames / tokens / components / assets / interactions +
+  totals + omissions + trimmed + 代码摘要），并在 payload 里自报 `contextSource`：
+  `designIndex` 是正常路径，`document-fallback` 与 `none` 都带一句人话说明"这次看到的比正常少什么"，
+  降级可见、不静默；超过预算同样如实写进 `promptTruncated` 而不是偷偷截掉。
+  钉住它的是 `apps/ai-service/tests/test_prompt.py`，夹具由 `npm run contract:export` 用**同一套装配代码**
+  现算（id 固定化后两次导出字节相同），所以 TS 侧改了目录形状、Python 侧的测试会先红，
+  不会出现两端各自演化。反向验证过：换回旧 `build_prompt`，9 条里 6 条立刻失败。
   仍欠的三笔如实记下：① Code Index 的**后半截**——"按 path 取正文"的通道还没有，Agent 知道有哪份文件、里面有什么符号，
   读不到实现；这条在面板的 `unavailable` 列表里，e2e 有断言，不会因为目录做完就被划掉。
   Agents / Runtime 两个分支仍未落地，面板上写的是「未索引」而不是空白；

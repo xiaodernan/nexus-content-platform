@@ -124,6 +124,15 @@ DEMO 路径不在 ai-service 里：确定性 Mock 需要 design model 才能产�
     **代码正文一个字符都不上线**；相关性排序是词法的（含 CJK 二元切词），语义那半等 embedding provider（§49），
     这条连同"还没有按 path 取正文的通道"一起写在 `omissions` 与面板的 `unavailable` 里。
     取舍记录在 `docs/adr/0007-code-index-derived-not-persisted.md`。
+14. **改边界要改到最后一米：产出方与消费方同时钉**（§68/§69）：第 12 条把整份文档从线上拿掉之后，
+    `apps/ai-service` 的 `build_prompt` 其实还在读 `context.document`——那个字段已经不会出现在真实报文里了。
+    这种断链在 DEMO MODE 下**看不出来**（确定性规则跑的是 web 进程内的 TS，压根不经过 Python），
+    等真 provider 配好才炸，而那时没人会想起是上下文的事。所以现在的提示词优先吃 `designIndex` / `codeDigest`，
+    回落必须显式：payload 带 `contextSource`（`designIndex` / `document-fallback` / `none`），
+    后两者各自附一句"这次看不到什么"，超预算写进 `promptTruncated`，一律不许静默降级（§159）。
+    跨语言的防漂移靠**生成**而不是抄：`npm run contract:export` 除 JSON Schema 外，
+    还用同一套装配代码导出 `contracts/fixtures/ai-request-with-index.json`（id 固定化，两次导出字节相同），
+    `test_prompt.py` 消费它。TS 侧改了目录形状，Python 侧测试先红；夹具自己不会说谎。
 
 ## Design ↔ Code 双通道
 

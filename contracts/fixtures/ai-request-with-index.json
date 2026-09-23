@@ -1,0 +1,856 @@
+{
+  "requestId": "req_fixture",
+  "intent": "design-edit",
+  "prompt": "把 Hero 的主标题改成 72px",
+  "modelClass": "balanced",
+  "variants": 1,
+  "context": {
+    "projectId": "fx_project",
+    "pageId": "fx009",
+    "viewport": "desktop",
+    "selection": [
+      "fx004"
+    ],
+    "selectionDigest": [
+      {
+        "id": "fx004",
+        "type": "text",
+        "name": "Headline",
+        "text": "从一句话到一个可发布的产品"
+      }
+    ],
+    "designSystemDigest": {
+      "tokens": [
+        {
+          "key": "color.background",
+          "type": "color",
+          "value": "#0b0d12"
+        },
+        {
+          "key": "color.surface",
+          "type": "color",
+          "value": "#12151d"
+        },
+        {
+          "key": "color.surface-2",
+          "type": "color",
+          "value": "#1a1f2b"
+        },
+        {
+          "key": "color.text",
+          "type": "color",
+          "value": "#eef2ff"
+        },
+        {
+          "key": "color.text-muted",
+          "type": "color",
+          "value": "#9aa4b8"
+        },
+        {
+          "key": "color.primary",
+          "type": "color",
+          "value": "#6b4ff0"
+        },
+        {
+          "key": "color.accent",
+          "type": "color",
+          "value": "#22d3ee"
+        },
+        {
+          "key": "color.on-primary",
+          "type": "color",
+          "value": "#ffffff"
+        },
+        {
+          "key": "color.border",
+          "type": "color",
+          "value": "#262c3a"
+        },
+        {
+          "key": "color.danger",
+          "type": "color",
+          "value": "#f05252"
+        },
+        {
+          "key": "font.heading",
+          "type": "fontFamily",
+          "value": "Inter, \"PingFang SC\", \"Microsoft YaHei\", sans-serif"
+        },
+        {
+          "key": "font.body",
+          "type": "fontFamily",
+          "value": "Inter, \"PingFang SC\", \"Microsoft YaHei\", sans-serif"
+        },
+        {
+          "key": "font.mono",
+          "type": "fontFamily",
+          "value": "\"JetBrains Mono\", Consolas, monospace"
+        },
+        {
+          "key": "space.1",
+          "type": "dimension",
+          "value": 4
+        },
+        {
+          "key": "space.2",
+          "type": "dimension",
+          "value": 8
+        },
+        {
+          "key": "space.3",
+          "type": "dimension",
+          "value": 12
+        },
+        {
+          "key": "space.4",
+          "type": "dimension",
+          "value": 16
+        },
+        {
+          "key": "space.6",
+          "type": "dimension",
+          "value": 24
+        },
+        {
+          "key": "space.8",
+          "type": "dimension",
+          "value": 32
+        },
+        {
+          "key": "space.12",
+          "type": "dimension",
+          "value": 48
+        },
+        {
+          "key": "space.16",
+          "type": "dimension",
+          "value": 64
+        },
+        {
+          "key": "space.20",
+          "type": "dimension",
+          "value": 80
+        },
+        {
+          "key": "space.24",
+          "type": "dimension",
+          "value": 96
+        },
+        {
+          "key": "radius.sm",
+          "type": "dimension",
+          "value": 6
+        },
+        {
+          "key": "radius.md",
+          "type": "dimension",
+          "value": 10
+        },
+        {
+          "key": "radius.lg",
+          "type": "dimension",
+          "value": 16
+        },
+        {
+          "key": "radius.full",
+          "type": "dimension",
+          "value": 999
+        },
+        {
+          "key": "shadow.sm",
+          "type": "shadow",
+          "value": {
+            "offsetX": 0,
+            "offsetY": 1,
+            "blur": 2,
+            "color": "rgba(0,0,0,0.18)"
+          }
+        },
+        {
+          "key": "shadow.md",
+          "type": "shadow",
+          "value": {
+            "offsetX": 0,
+            "offsetY": 8,
+            "blur": 24,
+            "color": "rgba(0,0,0,0.32)"
+          }
+        },
+        {
+          "key": "shadow.lg",
+          "type": "shadow",
+          "value": {
+            "offsetX": 0,
+            "offsetY": 24,
+            "blur": 64,
+            "color": "rgba(0,0,0,0.45)"
+          }
+        },
+        {
+          "key": "motion.fast",
+          "type": "duration",
+          "value": 120
+        },
+        {
+          "key": "motion.base",
+          "type": "duration",
+          "value": 200
+        },
+        {
+          "key": "motion.slow",
+          "type": "duration",
+          "value": 360
+        },
+        {
+          "key": "motion.ease",
+          "type": "easing",
+          "value": "cubic-bezier(0.22, 1, 0.36, 1)"
+        }
+      ],
+      "components": []
+    },
+    "designIndex": {
+      "schemaVersion": 1,
+      "generatedFrom": {
+        "documentId": "fx000",
+        "documentName": "契约夹具",
+        "updatedAt": "2026-01-01T00:00:00.000Z"
+      },
+      "pages": [
+        {
+          "id": "fx009",
+          "name": "Home",
+          "route": null,
+          "nodeCount": 8,
+          "reachable": 8,
+          "frames": 1,
+          "sections": 1,
+          "textChars": 65,
+          "components": [],
+          "assets": [],
+          "tokens": 16,
+          "interactions": 0,
+          "maxDepth": 3,
+          "viewport": {
+            "width": 1440,
+            "height": 900
+          }
+        }
+      ],
+      "frames": [
+        {
+          "id": "fx001",
+          "name": "Home",
+          "kind": "frame",
+          "pageId": "fx009",
+          "pageName": "Home",
+          "parent": null,
+          "depth": 0,
+          "childCount": 1,
+          "layoutMode": "vertical",
+          "size": {
+            "width": 1440,
+            "height": 900
+          },
+          "textPreview": "NEXUS STUDIO"
+        },
+        {
+          "id": "fx002",
+          "name": "Hero",
+          "kind": "section",
+          "pageId": "fx009",
+          "pageName": "Home",
+          "parent": "Home",
+          "depth": 1,
+          "childCount": 4,
+          "layoutMode": "vertical",
+          "size": {
+            "width": "fill",
+            "height": "hug"
+          },
+          "textPreview": "NEXUS STUDIO"
+        }
+      ],
+      "components": [],
+      "assets": [],
+      "tokens": [
+        {
+          "key": "color.accent",
+          "type": "color",
+          "group": null,
+          "value": "#22d3ee",
+          "modes": 2,
+          "usedByNodes": 1,
+          "via": [
+            "value"
+          ],
+          "used": true
+        },
+        {
+          "key": "color.background",
+          "type": "color",
+          "group": null,
+          "value": "#0b0d12",
+          "modes": 2,
+          "usedByNodes": 1,
+          "via": [
+            "value"
+          ],
+          "used": true
+        },
+        {
+          "key": "color.border",
+          "type": "color",
+          "group": null,
+          "value": "#262c3a",
+          "modes": 2,
+          "usedByNodes": 1,
+          "via": [
+            "value"
+          ],
+          "used": true
+        },
+        {
+          "key": "color.danger",
+          "type": "color",
+          "group": null,
+          "value": "#f05252",
+          "modes": 0,
+          "usedByNodes": 0,
+          "via": [],
+          "used": false
+        },
+        {
+          "key": "color.on-primary",
+          "type": "color",
+          "group": null,
+          "value": "#ffffff",
+          "modes": 2,
+          "usedByNodes": 1,
+          "via": [
+            "value"
+          ],
+          "used": true
+        },
+        {
+          "key": "color.primary",
+          "type": "color",
+          "group": null,
+          "value": "#6b4ff0",
+          "modes": 2,
+          "usedByNodes": 1,
+          "via": [
+            "value"
+          ],
+          "used": true
+        },
+        {
+          "key": "color.surface",
+          "type": "color",
+          "group": null,
+          "value": "#12151d",
+          "modes": 2,
+          "usedByNodes": 1,
+          "via": [
+            "value"
+          ],
+          "used": true
+        },
+        {
+          "key": "color.surface-2",
+          "type": "color",
+          "group": null,
+          "value": "#1a1f2b",
+          "modes": 2,
+          "usedByNodes": 0,
+          "via": [],
+          "used": false
+        },
+        {
+          "key": "color.text",
+          "type": "color",
+          "group": null,
+          "value": "#eef2ff",
+          "modes": 2,
+          "usedByNodes": 2,
+          "via": [
+            "value"
+          ],
+          "used": true
+        },
+        {
+          "key": "color.text-muted",
+          "type": "color",
+          "group": null,
+          "value": "#9aa4b8",
+          "modes": 2,
+          "usedByNodes": 1,
+          "via": [
+            "value"
+          ],
+          "used": true
+        },
+        {
+          "key": "font.body",
+          "type": "fontFamily",
+          "group": null,
+          "value": "Inter, \"PingFang SC\", \"Microsoft YaHei\", sans-serif",
+          "modes": 0,
+          "usedByNodes": 3,
+          "via": [
+            "value"
+          ],
+          "used": true
+        },
+        {
+          "key": "font.heading",
+          "type": "fontFamily",
+          "group": null,
+          "value": "Inter, \"PingFang SC\", \"Microsoft YaHei\", sans-serif",
+          "modes": 0,
+          "usedByNodes": 1,
+          "via": [
+            "value"
+          ],
+          "used": true
+        },
+        {
+          "key": "font.mono",
+          "type": "fontFamily",
+          "group": null,
+          "value": "\"JetBrains Mono\", Consolas, monospace",
+          "modes": 0,
+          "usedByNodes": 1,
+          "via": [
+            "value"
+          ],
+          "used": true
+        },
+        {
+          "key": "motion.base",
+          "type": "duration",
+          "group": null,
+          "value": 200,
+          "modes": 0,
+          "usedByNodes": 0,
+          "via": [],
+          "used": false
+        },
+        {
+          "key": "motion.ease",
+          "type": "easing",
+          "group": null,
+          "value": "cubic-bezier(0.22, 1, 0.36, 1)",
+          "modes": 0,
+          "usedByNodes": 0,
+          "via": [],
+          "used": false
+        },
+        {
+          "key": "motion.fast",
+          "type": "duration",
+          "group": null,
+          "value": 120,
+          "modes": 0,
+          "usedByNodes": 0,
+          "via": [],
+          "used": false
+        },
+        {
+          "key": "motion.slow",
+          "type": "duration",
+          "group": null,
+          "value": 360,
+          "modes": 0,
+          "usedByNodes": 0,
+          "via": [],
+          "used": false
+        },
+        {
+          "key": "radius.full",
+          "type": "dimension",
+          "group": null,
+          "value": 999,
+          "modes": 0,
+          "usedByNodes": 0,
+          "via": [],
+          "used": false
+        },
+        {
+          "key": "radius.lg",
+          "type": "dimension",
+          "group": null,
+          "value": 16,
+          "modes": 0,
+          "usedByNodes": 0,
+          "via": [],
+          "used": false
+        },
+        {
+          "key": "radius.md",
+          "type": "dimension",
+          "group": null,
+          "value": 10,
+          "modes": 0,
+          "usedByNodes": 2,
+          "via": [
+            "value"
+          ],
+          "used": true
+        },
+        {
+          "key": "radius.sm",
+          "type": "dimension",
+          "group": null,
+          "value": 6,
+          "modes": 0,
+          "usedByNodes": 0,
+          "via": [],
+          "used": false
+        },
+        {
+          "key": "shadow.lg",
+          "type": "shadow",
+          "group": null,
+          "value": "<complex>",
+          "modes": 0,
+          "usedByNodes": 0,
+          "via": [],
+          "used": false
+        },
+        {
+          "key": "shadow.md",
+          "type": "shadow",
+          "group": null,
+          "value": "<complex>",
+          "modes": 0,
+          "usedByNodes": 0,
+          "via": [],
+          "used": false
+        },
+        {
+          "key": "shadow.sm",
+          "type": "shadow",
+          "group": null,
+          "value": "<complex>",
+          "modes": 0,
+          "usedByNodes": 0,
+          "via": [],
+          "used": false
+        },
+        {
+          "key": "space.1",
+          "type": "dimension",
+          "group": null,
+          "value": 4,
+          "modes": 0,
+          "usedByNodes": 0,
+          "via": [],
+          "used": false
+        },
+        {
+          "key": "space.12",
+          "type": "dimension",
+          "group": null,
+          "value": 48,
+          "modes": 0,
+          "usedByNodes": 0,
+          "via": [],
+          "used": false
+        },
+        {
+          "key": "space.16",
+          "type": "dimension",
+          "group": null,
+          "value": 64,
+          "modes": 0,
+          "usedByNodes": 1,
+          "via": [
+            "value"
+          ],
+          "used": true
+        },
+        {
+          "key": "space.2",
+          "type": "dimension",
+          "group": null,
+          "value": 8,
+          "modes": 0,
+          "usedByNodes": 0,
+          "via": [],
+          "used": false
+        },
+        {
+          "key": "space.20",
+          "type": "dimension",
+          "group": null,
+          "value": 80,
+          "modes": 0,
+          "usedByNodes": 0,
+          "via": [],
+          "used": false
+        },
+        {
+          "key": "space.24",
+          "type": "dimension",
+          "group": null,
+          "value": 96,
+          "modes": 0,
+          "usedByNodes": 0,
+          "via": [],
+          "used": false
+        },
+        {
+          "key": "space.3",
+          "type": "dimension",
+          "group": null,
+          "value": 12,
+          "modes": 0,
+          "usedByNodes": 3,
+          "via": [
+            "value"
+          ],
+          "used": true
+        },
+        {
+          "key": "space.4",
+          "type": "dimension",
+          "group": null,
+          "value": 16,
+          "modes": 0,
+          "usedByNodes": 0,
+          "via": [],
+          "used": false
+        },
+        {
+          "key": "space.6",
+          "type": "dimension",
+          "group": null,
+          "value": 24,
+          "modes": 0,
+          "usedByNodes": 3,
+          "via": [
+            "value"
+          ],
+          "used": true
+        },
+        {
+          "key": "space.8",
+          "type": "dimension",
+          "group": null,
+          "value": 32,
+          "modes": 0,
+          "usedByNodes": 1,
+          "via": [
+            "value"
+          ],
+          "used": true
+        }
+      ],
+      "interactions": [],
+      "edges": [
+        {
+          "from": "fx001",
+          "to": "color.background",
+          "kind": "token"
+        },
+        {
+          "from": "fx002",
+          "to": "space.6",
+          "kind": "token"
+        },
+        {
+          "from": "fx002",
+          "to": "space.16",
+          "kind": "token"
+        },
+        {
+          "from": "fx002",
+          "to": "space.8",
+          "kind": "token"
+        },
+        {
+          "from": "fx002",
+          "to": "color.surface",
+          "kind": "token"
+        },
+        {
+          "from": "fx003",
+          "to": "color.accent",
+          "kind": "token"
+        },
+        {
+          "from": "fx003",
+          "to": "font.mono",
+          "kind": "token"
+        },
+        {
+          "from": "fx004",
+          "to": "color.text",
+          "kind": "token"
+        },
+        {
+          "from": "fx004",
+          "to": "font.heading",
+          "kind": "token"
+        },
+        {
+          "from": "fx005",
+          "to": "color.text-muted",
+          "kind": "token"
+        },
+        {
+          "from": "fx005",
+          "to": "font.body",
+          "kind": "token"
+        },
+        {
+          "from": "fx006",
+          "to": "space.3",
+          "kind": "token"
+        },
+        {
+          "from": "fx007",
+          "to": "space.3",
+          "kind": "token"
+        },
+        {
+          "from": "fx007",
+          "to": "space.6",
+          "kind": "token"
+        },
+        {
+          "from": "fx007",
+          "to": "color.primary",
+          "kind": "token"
+        },
+        {
+          "from": "fx007",
+          "to": "radius.md",
+          "kind": "token"
+        },
+        {
+          "from": "fx007",
+          "to": "font.body",
+          "kind": "token"
+        },
+        {
+          "from": "fx007",
+          "to": "color.on-primary",
+          "kind": "token"
+        },
+        {
+          "from": "fx008",
+          "to": "space.3",
+          "kind": "token"
+        },
+        {
+          "from": "fx008",
+          "to": "space.6",
+          "kind": "token"
+        },
+        {
+          "from": "fx008",
+          "to": "color.border",
+          "kind": "token"
+        },
+        {
+          "from": "fx008",
+          "to": "radius.md",
+          "kind": "token"
+        },
+        {
+          "from": "fx008",
+          "to": "font.body",
+          "kind": "token"
+        },
+        {
+          "from": "fx008",
+          "to": "color.text",
+          "kind": "token"
+        }
+      ],
+      "totals": {
+        "pages": 1,
+        "nodes": 8,
+        "reachableNodes": 8,
+        "unreachableNodes": 0,
+        "frames": 1,
+        "sections": 1,
+        "components": 0,
+        "unusedComponents": 0,
+        "instances": 0,
+        "assets": 0,
+        "orphanAssets": 0,
+        "tokens": 34,
+        "unusedTokens": 18,
+        "undeclaredTokenRefs": 0,
+        "interactions": 0,
+        "edges": 24,
+        "textChars": 65
+      },
+      "omissions": [
+        "节点的完整样式值（这里只给结构摘要，逐节点样式仍要从文档读）",
+        "代码侧的文件与符号（§69 的 Code Index 是另一份目录，两者并列发出去，不互相展开）",
+        "语义检索与相关性排序（要 embedding provider；§49 只落了全文 + 子串）",
+        "资产的实际像素内容（只有名字、类型与被引用次数）"
+      ]
+    },
+    "codeDigest": {
+      "schemaVersion": 1,
+      "mode": null,
+      "query": "把 Hero 的主标题改成 72px",
+      "files": [
+        {
+          "path": "components/nexus/Home.tsx",
+          "language": "tsx",
+          "origin": "生成自页面「Home」",
+          "pageName": "Home",
+          "lines": 27,
+          "symbols": [
+            "component:Home"
+          ],
+          "deps": [],
+          "externals": [],
+          "unresolvedDeps": [],
+          "reasons": [
+            "当前页"
+          ]
+        }
+      ],
+      "totals": {
+        "files": 3,
+        "pageFiles": 1,
+        "nodeRegionFiles": 0,
+        "symbols": 54,
+        "exportedSymbols": 2,
+        "components": 1,
+        "functions": 0,
+        "classes": 0,
+        "interfaces": 0,
+        "internalDeps": 1,
+        "externalDeps": 0,
+        "unresolvedDeps": 0,
+        "codeChars": 4269,
+        "unreadableFiles": 0,
+        "nodeRegionChars": 0
+      },
+      "budgetChars": 8000,
+      "omittedFiles": 2,
+      "trimmed": [],
+      "omissions": [
+        "代码正文本身（这里只有目录与位置；要读实现得按 path 取，仍然受 §68 预算约束）",
+        "第三方包内部的符号（只记被 import 了什么，不展开 node_modules）",
+        "CSS 变量与代码里 var(--nx-*) 引用之间的边（两边都列了，没连成图）",
+        "语义检索与意图判断（这里是词法匹配；向量化要 embedding provider，见 §49）",
+        "code-only 区域在生成的组件里是作为字符串带出的（codegen 的 leaf 分支），所以它们的符号不并进 .tsx 的目录；目录给它们的位置 code-only/<页面>/<节点>.<语言> 是我们自己起的寻址名，导出的工程里没有这份文件"
+      ]
+    },
+    "indexChars": 6628,
+    "budgetChars": 20000,
+    "recentChanges": []
+  },
+  "references": [],
+  "approvalPolicy": [],
+  "dryRun": false
+}
