@@ -156,3 +156,27 @@ export function sceneLegend(scene: WorldScene): { kind: WorldKind; label: string
     count: scene.entities.filter((e) => e.kind === kind).length,
   })).filter((entry) => entry.count > 0);
 }
+
+/** 标签上限：一个世界最多 5000 个条目，全画标签等于没画（也拖死主线程） */
+export const LABEL_LIMIT = 60;
+
+export interface LabelTarget extends SceneEntity {
+  /** 到观察者水平距离；标签按它排序，也显示在 tooltip 里 */
+  distance: number;
+}
+
+/**
+ * 离观察者最近的若干个条目——只给这些画名字标签。
+ * 排序键是 (距离, id)：距离相等时按 id，这样同一位置反复调用不会来回换顺序。
+ */
+export function pickLabelTargets(
+  scene: WorldScene,
+  at: { x: number; z: number },
+  limit = LABEL_LIMIT,
+): LabelTarget[] {
+  return scene.entities
+    .map((entity) => ({ entity, distance: Math.hypot(entity.x - at.x, entity.z - at.z) }))
+    .sort((a, b) => a.distance - b.distance || (a.entity.id < b.entity.id ? -1 : 1))
+    .slice(0, Math.max(0, limit))
+    .map(({ entity, distance }) => ({ ...entity, distance: Math.round(distance * 100) / 100 }));
+}

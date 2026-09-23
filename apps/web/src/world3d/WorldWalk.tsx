@@ -3,15 +3,25 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import * as THREE from 'three';
-import { NEARBY_RADIUS, nearestEntities, sceneLegend, type SceneEntity, type WorldScene } from '@nexus/world-model';
+import {
+  LABEL_LIMIT,
+  NEARBY_RADIUS,
+  nearestEntities,
+  pickLabelTargets,
+  sceneLegend,
+  type SceneEntity,
+  type WorldScene,
+} from '@nexus/world-model';
 
 /**
  * §140 的"走进去"：Three.js + React Three Fiber 渲染 §140 那份场景计划，
  * 键盘 WASD / 方向键走、鼠标按住拖动转视角，走近了 HUD 展开条目正文。
  *
- * 三条不糊弄的：
+ * 四条不糊弄的：
  * -  WebGL 用不起来时**明说**（不是一片黑屏，也不是退回 2D 图却叫"世界"）；
- * -  走近才展开：远处只看到占位几何体与标题，正文要走到跟前才给（§140 的 explore）；
+ * -  名字标签是 DOM 投影出来的，不是画进 WebGL 的：能被点、能被读屏、能被测试断言，
+ *    也就不用为了文字再引一个依赖。只显示离你最近的 LABEL_LIMIT 个，被截了就在角上说；
+ * -  走近才展开正文：远处只有名字，正文要走到跟前（或点名字）才给（§140 的 explore）；
  * -  `fallback` 位置的条目在 HUD 里标出来：那是按序号排在环上的，不是作者摆过的地形。
  *
  * 没有做的事（也不假装）：地形网格、碰撞、寻路、3D 资产（§34 的 model）、
@@ -152,10 +162,70 @@ function LinkLines({ scene }: { scene: WorldScene }) {
   );
 }
 
+/** 一个名字标签：屏幕坐标 + 一点上下文（类别、离你多远、位置是不是摆过的） */
+interface ScreenLabel {
+  id: string;
+  title: string;
+  kindLabel: string;
+  color: string;
+  placed: SceneEntity['placed'];
+  distance: number;
+  x: number;
+  y: number;
+}
+
+/**
+ * 把最近若干条目的名字投影成屏幕坐标，交给**DOM** 画而不是画进 WebGL 里：
+ * 这样标签能被选中、能被读屏、能被测试断言，也不用为了文字再引一个依赖。
+ * 每 0.1 秒更新一次——逐帧写 React state 会把整个面板拖进重渲染，而名字不需要 60Hz。
+ */
+function LabelProjector({
+  scene,
+  onLabels,
+  limit,
+}: {
+  scene: WorldScene;
+  onLabels: (labels: ScreenLabel[]) => void;
+  limit: number;
+}) {
+  const { camera, size } = useThree();
+  const sinceReport = useRef(0);
+  const vector = useRef(new THREE.Vector3());
+
+  useFrame((_, delta) => {
+    sinceReport.current += delta;
+    if (sinceReport.current < 0.1) return;
+    sinceReport.current = 0;
+    const picked = pickLabelTargets(scene, { x: camera.position.x, z: camera.position.z }, limit);
+    const next: ScreenLabel[] = [];
+    for (const entity of picked) {
+      const v = vector.current.set(entity.x, ENTITY_SIZE + 2.8, entity.z).project(camera);
+      if (v.z > 1) continue; // 已经在相机背后，画出来会"贴"在屏幕上
+      const x = (v.x * 0.5 + 0.5) * size.width;
+      const y = (-v.y * 0.5 + 0.5) * size.height;
+      if (x < -60 || y < -24 || x > size.width + 60 || y > size.height + 24) continue;
+      next.push({
+        id: entity.id,
+        title: entity.title,
+        kindLabel: entity.kindLabel,
+        color: entity.color,
+        placed: entity.placed,
+        distance: entity.distance,
+        x,
+        y,
+      });
+    }
+    onLabels(next);
+  });
+
+  return null;
+}
+
 export function WorldWalk({ scene, projectName }: { scene: WorldScene; projectName: string }) {
   const [webgl, setWebgl] = useState<boolean | null>(null);
   const [at, setAt] = useState({ x: 0, z: 0 });
   const [selected, setSelected] = useState<string | null>(null);
+  const [labels, setLabels] = useState<ScreenLabel[]>([]);
 
   useEffect(() => {
     try {
@@ -204,7 +274,34 @@ export function WorldWalk({ scene, projectName }: { scene: WorldScene; projectNa
         ))}
         <LinkLines scene={scene} />
         <Controls onPosition={setAt} enabled />
+        <LabelProjector scene={scene} onLabels={setLabels} limit={LABEL_LIMIT} />
       </Canvas>
+
+      {/* 名字标签：DOM 层，能被点、能被读屏、能被测试断言 */}
+      <div className="pointer-events-none absolute inset-0" data-world-labels>
+        {labels.map((label, index) => (
+          <button
+            key={label.id}
+            type="button"
+            onClick={() => setSelected(label.id)}
+            data-world-label={label.id}
+            data-placed={label.placed}
+            title={`${label.kindLabel} · 离你 ${label.distance}`}
+            className="pointer-events-auto absolute -translate-x-1/2 -translate-y-full whitespace-nowrap rounded bg-bg-1/85 px-1.5 py-[1px] text-11 text-fg-1 hover:bg-bg-2"
+            // 近处的标签要压过远处的：DOM 默认后画的在上面，而数组是"由近到远"排的，
+            // 不显式给 z-index 就会出现"远处的名字挡住近处的、点不到"（e2e 点标签时撞上的）
+            style={{ left: label.x, top: label.y, zIndex: LABEL_LIMIT - index }}
+          >
+            <span className="mr-1 inline-block h-2 w-2 rounded-sm align-middle" style={{ background: label.color }} />
+            {label.title}
+          </button>
+        ))}
+        {labels.length >= LABEL_LIMIT ? (
+          <p className="absolute bottom-2 right-3 text-11 text-fg-3" data-label-capped>
+            标签只显示离你最近的 {LABEL_LIMIT} 个（这一页共 {scene.stats.entities} 个条目）
+          </p>
+        ) : null}
+      </div>
 
       <div className="pointer-events-none absolute inset-x-0 top-0 flex flex-wrap items-start justify-between gap-3 p-3">
         <div className="pointer-events-auto max-w-[420px] rounded-[var(--nexus-radius-sm)] bg-bg-1/90 p-3" data-world-hud>

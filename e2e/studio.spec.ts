@@ -1368,6 +1368,14 @@ test('@smoke 3D 世界：图上摆过的位置就是地面布局，走近才展�
     await expect(page.locator('[data-scene-limits]')).toContainText('碰撞');
     await expect(page.locator('[data-world-legend]')).toContainText('传说 · 1');
 
+    // 名字标签：DOM 层能断言、能点。点标签等于读那一条，不会把人搬过去
+    const loreLabel = page.locator('[data-world-label]').filter({ hasText: '传说' }).first();
+    await expect(loreLabel).toBeVisible({ timeout: 10_000 });
+    await expect(page.locator('[data-world-labels]')).toContainText('历史');
+    await loreLabel.click();
+    await expect(page.locator('[data-nearby-focus]')).toBeVisible();
+    await expect(page.locator('[data-nearby-focus]')).toContainText('三座浮岛与一条会说谎的河');
+
     const first = page.locator('[data-read-entity]').first();
     await first.click();
     await expect(page.locator('[data-nearby-focus]')).toBeVisible();

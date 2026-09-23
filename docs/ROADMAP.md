@@ -505,7 +505,7 @@ drizzle 把整个拼接结果当成**单个绑定参数**，生成的 SQL 是 `o
   WASD / 方向键走、按住拖动转视角；走近 9 个单位内展开那条正文；图例说明"颜色=九类之一，不表示危险或阵营"。
   WebGL 用不起来时页面明说进不去，也不退回 2D 还叫"世界"；库里那份世界读不出来时报原因，不给空场景。
   仍欠：`talk`（§47 角色对话要 provider，界面上写死了"不放假聊天"）、地形/碰撞/寻路、
-  3D 资产与贴图（§34 的 model 类资产还没接进场景）、条目文字标签（要 drei 或自己做 billboard）
+  3D 资产与贴图（§34 的 model 类资产还没接进场景）。条目名字已经用 DOM 投影标签解决（没引 drei）
 - [ ] Game Studio：2D / 2.5D / 3D / Interactive Story / RPG 原型 / Puzzle / Visual Novel（§51）
 - [ ] Game Agent + Playtest Agent（§52-53）
 - [ ] 游戏设计系统：Player/Enemy/Weapon/Item/Quest/Dialogue/Trigger/NPC/Camera/Animation/Particle（§54）

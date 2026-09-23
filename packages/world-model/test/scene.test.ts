@@ -1,10 +1,12 @@
 import { describe, expect, it } from "vitest";
 import {
+  LABEL_LIMIT,
   NEARBY_RADIUS,
   SCENE_LIMITS,
   WORLD_KIND_COLORS,
   buildWorldScene,
   nearestEntities,
+  pickLabelTargets,
   sceneLegend,
   type WorldDocument,
   type WorldKind,
@@ -165,5 +167,41 @@ describe("图例", () => {
     );
     expect(sceneLegend(scene).map((l) => l.kind)).toEqual(["lore", "geography", "story"]);
     expect(sceneLegend(scene).map((l) => l.count)).toEqual([2, 1, 1]);
+  });
+});
+
+describe("pickLabelTargets（标签只给最近的几个）", () => {
+  const scene = buildWorldScene(
+    world({
+      nodes: [node("far", "lore"), node("mid", "lore"), node("near", "lore"), node("tie-b", "lore"), node("tie-a", "lore")],
+      positions: {
+        far: { x: 100, y: 0 },
+        mid: { x: 10, y: 0 },
+        near: { x: 1, y: 0 },
+        "tie-b": { x: 0, y: 5 },
+        "tie-a": { x: 0, y: -5 },
+      },
+    }),
+  );
+
+  it("按距离由近到远，同距按 id 排（反复调用顺序不漂）", () => {
+    const first = pickLabelTargets(scene, { x: 0, z: 0 }).map((t) => t.id);
+    expect(first).toEqual(["near", "tie-a", "tie-b", "mid", "far"]);
+    expect(pickLabelTargets(scene, { x: 0, z: 0 }).map((t) => t.id)).toEqual(first);
+  });
+
+  it("带上距离，标签才知道自己该多大/要不要显示", () => {
+    const [near] = pickLabelTargets(scene, { x: 0, z: 0 });
+    expect(near!.distance).toBe(1);
+  });
+
+  it("上限是真的：limit=2 只给 2 个，limit=0 给空而不是全部", () => {
+    expect(pickLabelTargets(scene, { x: 0, z: 0 }, 2)).toHaveLength(2);
+    expect(pickLabelTargets(scene, { x: 0, z: 0 }, 0)).toEqual([]);
+    expect(LABEL_LIMIT).toBeGreaterThanOrEqual(10);
+  });
+
+  it("空世界也给得出空列表，不抛", () => {
+    expect(pickLabelTargets(buildWorldScene(world()), { x: 0, z: 0 })).toEqual([]);
   });
 });
