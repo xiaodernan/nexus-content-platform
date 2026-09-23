@@ -1,5 +1,6 @@
 import type { AiRequest } from '@nexus/schemas';
 import type { DesignDocument } from '@nexus/design-model';
+import { buildCodeDigest, DEFAULT_CODE_CHAR_BUDGET } from '@/server/domain/code-index';
 import { buildProjectContext } from '@/server/domain/context';
 import { projectBelongsTo } from '@/server/domain/projects';
 
@@ -8,7 +9,7 @@ import { projectBelongsTo } from '@/server/domain/projects';
  *
  * 为什么要抽成一处：这条边界上有三件事必须同时成立，分散在路由里写就会漏——
  * 1. 项目归属先查（这里会读别人的文档，不查就是 IDOR）；
- * 2. 发给 provider 的那一份是**预算内的目录**（`designIndex`），不是整份文档；
+ * 2. 发给 provider 的那一份是**预算内的目录**（`designIndex` + `codeDigest`），不是整份文档；
  * 3. 确定性规则要算"当前值"就得读权威文档，但那是**工具侧的本地读取**，
  *    不走网络、不进模型上下文，所以它和 §68 不冲突——冲突的是把文档塞进请求体。
  *
@@ -46,6 +47,18 @@ export async function assembleAiRequest(request: AiRequest, ownerId: string): Pr
     return { ok: false, status: 409, code: 'context_unavailable', message: assembled.reason };
   }
 
+  // §69：代码目录按这一轮请求排序后只发靠前的几份。位置（当前页、选中节点）与关键词同权，
+  // 因为"我在改哪一页"比"用户怎么措辞"更可靠地指向要动的文件。
+  const codeDigest = buildCodeDigest(assembled.context.code, {
+    query: request.prompt,
+    pageId: context.pageId ?? null,
+    nodeIds: context.selection,
+    maxChars: DEFAULT_CODE_CHAR_BUDGET,
+  });
+  if (assembled.context.code.dropped) {
+    codeDigest.trimmed.push('上下文里的代码目录被预算裁过：排序只看得到裁剩的符号，被裁掉的那部分不参与命中');
+  }
+
   return {
     ok: true,
     toolDocument: assembled.document,
@@ -54,6 +67,7 @@ export async function assembleAiRequest(request: AiRequest, ownerId: string): Pr
       context: {
         ...context,
         designIndex: assembled.context.design,
+        codeDigest,
         indexChars: assembled.context.sizes.indexChars,
         budgetChars: assembled.context.sizes.budgetChars,
       },

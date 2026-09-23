@@ -1,9 +1,10 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { eq, sql as rawSql } from 'drizzle-orm';
 import type { AiRequest } from '@nexus/schemas';
+import { createNode, createPage } from '@nexus/design-model';
 import { assembleAiRequest } from '../src/server/ai/assemble';
 import { mockProvider } from '../src/server/ai/mock';
-import { createProject } from '../src/server/domain/projects';
+import { createProject, loadDocument, saveDocument } from '../src/server/domain/projects';
 import { getDb } from '../src/server/db/client';
 import { projects, users } from '../src/server/db/schema';
 
@@ -42,7 +43,12 @@ async function newProject(name: string, ownerId = owner): Promise<string> {
   return (await createProject(ownerId, { name, kind: 'website' })).id;
 }
 
-function aiRequest(projectId: string, prompt: string, document?: unknown): AiRequest {
+function aiRequest(
+  projectId: string,
+  prompt: string,
+  document?: unknown,
+  extra: Partial<AiRequest['context']> = {},
+): AiRequest {
   return {
     requestId: 'req_assemble_test',
     intent: 'design-edit',
@@ -58,6 +64,7 @@ function aiRequest(projectId: string, prompt: string, document?: unknown): AiReq
       selectionDigest: [],
       designSystemDigest: { tokens: [], components: [] },
       recentChanges: [],
+      ...extra,
       ...(document === undefined ? {} : { document: document as Record<string, unknown> }),
     },
   };
@@ -80,6 +87,57 @@ describe('assembleAiRequest（§67/§68：装配在服务端，文档不上线�
     expect(result.wire.context.indexChars!).toBeLessThanOrEqual(result.wire.context.budgetChars!);
     // 工具侧读的是权威文档本身，它不进报文；而且和目录出自同一次读取（两者必须互相对得上）
     expect(result.toolDocument.pages.length).toBe(result.wire.context.designIndex?.totals.pages);
+  });
+
+  it('代码目录随请求排序：命中理由带着，正文不在报文里（§69）', async () => {
+    const id = await newProject('Assemble Code');
+    const document = (await loadDocument(id))!;
+    const page = createPage('结算页');
+    document.pages.push(page);
+    document.activePageId = page.id;
+    const root = page.nodes[page.rootId]!;
+    const region = createNode({ type: 'code', name: '优惠券倒计时', parentId: root.id });
+    region.code = {
+      language: 'tsx',
+      readOnly: false,
+      content: 'export function CouponCountdown() {\n  return <b>十分钟后可领</b>;\n}\nconst INTERVAL_MS = 60_000;\n',
+    };
+    page.nodes[region.id] = region;
+    root.children.push(region.id);
+    await saveDocument(id, document);
+
+    const result = await assembleAiRequest(
+      aiRequest(id, '把结算页的优惠券倒计时改短一点', undefined, { pageId: page.id, selection: [region.id] }),
+      owner,
+    );
+    if (!result.ok) throw new Error(`装配失败：${result.message}`);
+    const digest = result.wire.context.codeDigest;
+    expect(digest).toBeTruthy();
+    expect(digest!.files.length).toBeGreaterThan(0);
+    expect(digest!.files.length).toBeLessThanOrEqual(digest!.totals.files);
+    // 选中的 code-only 区域排第一：位置比措辞更可靠地指向要动的文件
+    expect(digest!.files[0]!.reasons).toContain('选中节点');
+    expect(digest!.files[0]!.path).toContain(region.id);
+    // 命中理由说人话：为什么是这几份文件，读的人能核对
+    expect(digest!.files.some((file) => file.reasons.some((reason) => reason.includes('结算页')))).toBe(true);
+    // 目录里是符号名与位置，不是代码正文——那半句 §68 在代码这边同样成立
+    const wire = JSON.stringify(result.wire.context);
+    expect(wire).toContain('CouponCountdown');
+    expect(wire).not.toContain('十分钟后可领');
+    expect(wire).not.toContain('60_000');
+    expect(wire).not.toContain('return <b>');
+    expect(digest!.query).toBe('把结算页的优惠券倒计时改短一点');
+    expect(digest!.mode).toBeNull();
+  });
+
+  it('关键词与位置都没命中时发空目录，不发一份看起来相关的猜测', async () => {
+    const id = await newProject('Assemble Code Miss');
+    const result = await assembleAiRequest(aiRequest(id, 'zzz 不存在的名字 qqq'), owner);
+    if (!result.ok) throw new Error(`装配失败：${result.message}`);
+    const digest = result.wire.context.codeDigest!;
+    expect(digest.files).toEqual([]);
+    expect(digest.omittedFiles).toBe(digest.totals.files);
+    expect(digest.trimmed.join(' ')).toContain('没有任何文件命中');
   });
 
   it('客户端塞整份文档会被拒，而不是被静默忽略', async () => {

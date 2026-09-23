@@ -21,7 +21,17 @@ import type {
 export interface GeneratedFile {
   path: string;
   contents: string;
+  /**
+   * 这份文件是从模型的哪一处投影来的（§69）。文件名可以按页面生成，也可以被后续改动打乱，
+   * 所以依赖它的索引不许从路径猜归属——由发射器亲自标注，猜的那一份迟早会说谎。
+   */
+  origin: CodeOrigin;
 }
+
+export type CodeOrigin =
+  | { kind: "page"; pageId: string; pageName: string }
+  | { kind: "tokens" }
+  | { kind: "barrel" };
 
 export interface CodegenOptions {
   /**
@@ -541,11 +551,16 @@ function renderTree(node: DesignNode, parent: DesignNode | null, ctx: RenderCtx,
 }
 
 function pascalCase(input: string, fallback: string): string {
+  // filter(Boolean) 不能省：全中文页面名过滤完只剩空串，split 会交出 [""]，
+  // 不滤掉的话 `word[0]?.toUpperCase() + word.slice(1)` 就拼出字符串 "undefined"，
+  // 生成的文件叫 components/nexus/undefined.tsx、导出叫 export function undefined()。
+  // 这个洞是 §69 的代码目录建起来之后第一次被照出来的（中文页面名是常态，不是边角）。
   const base = input
     .replace(/[^A-Za-z0-9]+/g, " ")
     .trim()
     .split(/\s+/)
-    .map((word) => word[0]?.toUpperCase() + word.slice(1))
+    .filter(Boolean)
+    .map((word) => word[0]!.toUpperCase() + word.slice(1))
     .join("");
   const name = base || fallback;
   return /^\d/.test(name) ? `P${name}` : name;
@@ -627,7 +642,11 @@ export function generatePageComponent(
   };
   const body = renderTree(root, null, ctx, 0);
   const source = `${HEADER}export function ${name}() {\n  return (\n${body}\n  );\n}\n`;
-  return { path: `components/nexus/${name}.tsx`, contents: source };
+  return {
+    path: `components/nexus/${name}.tsx`,
+    contents: source,
+    origin: { kind: "page", pageId: page.id, pageName: page.name },
+  };
 }
 
 export function generateProject(
@@ -637,7 +656,11 @@ export function generateProject(
   const prefix = options.cssVarPrefix ?? "nx";
   const names = componentNames(document.pages);
   const files: GeneratedFile[] = [
-    { path: "styles/tokens.css", contents: generateTokenCss(document.tokens, prefix) },
+    {
+      path: "styles/tokens.css",
+      contents: generateTokenCss(document.tokens, prefix),
+      origin: { kind: "tokens" },
+    },
   ];
   document.pages.forEach((page, index) => {
     files.push(generatePageComponent(page, { ...options, cssVarPrefix: prefix }, names[index]!));
@@ -652,6 +675,7 @@ export function generateProject(
   files.push({
     path: "components/nexus/index.ts",
     contents: `${HEADER}${imports}\n\nexport const nexusPages = [\n${routes}\n];\n`,
+    origin: { kind: "barrel" },
   });
   return files;
 }

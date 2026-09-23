@@ -390,9 +390,12 @@ export class DeterministicMockProvider implements AiProvider {
     };
 
     // 这一句要出现在 Activity 里：读者得知道这次发出去的是目录还是整份文档（§68）
+    const codeNote = request.context.codeDigest
+      ? `；代码目录发了 ${request.context.codeDigest.files.length} 个文件（共 ${request.context.codeDigest.totals.files} 个，${request.context.codeDigest.omittedFiles} 个未发）`
+      : '；这次没有代码目录（§69）';
     const indexNote = request.context.designIndex
-      ? `发给模型的是目录：${request.context.indexChars ?? '?'} 字符（预算 ${request.context.budgetChars ?? '?'}）、选中 ${request.context.selection.length} 个；结构性规则读服务端权威文档`
-      : '这次没有目录（请求未经服务端装配），规则只能读随请求带来的文档';
+      ? `发给模型的是目录：${request.context.indexChars ?? '?'} 字符（预算 ${request.context.budgetChars ?? '?'}）、选中 ${request.context.selection.length} 个${codeNote}；结构性规则读服务端权威文档`
+      : `这次没有目录（请求未经服务端装配），规则只能读随请求带来的文档${codeNote}`;
 
     const document =
       tools.document ?? (request.context.document as unknown as DesignDocument | undefined);

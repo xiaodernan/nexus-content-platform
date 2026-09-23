@@ -137,6 +137,13 @@ export function ContextPanel() {
             <div className="tabular-nums leading-snug" data-context-chars>
               目录 {fmt(indexChars)} / 整份 {fmt(docChars)} 字符（{ratio.toFixed(1)}%）
             </div>
+            {/* §69：代码目录的大小与"有多少文件根本没解析出来"一起报，读的人不必猜目录是否完整 */}
+            <div className="tabular-nums leading-snug text-white/60" data-context-code>
+              代码目录 {fmt(context.sizes.codeIndexChars)} 字符：{context.code.totals.files} 个文件 /{' '}
+              {context.code.totals.symbols} 个符号 / {context.code.totals.internalDeps} 条内部依赖
+              {context.code.totals.unreadableFiles > 0 ? `；${context.code.totals.unreadableFiles} 个文件语法解析失败` : ''}
+              {context.code.totals.nodeRegionFiles > 0 ? `；${context.code.totals.nodeRegionFiles} 段 code-only 代码` : ''}
+            </div>
             <div className="text-[11px] text-white/40">目录预算</div>
             <div className="flex items-center gap-2">
               <input

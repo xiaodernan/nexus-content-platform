@@ -232,6 +232,112 @@ export const DesignIndexSchema = z.object({
 });
 export type DesignIndexPayload = z.infer<typeof DesignIndexSchema>;
 
+/**
+ * §69 Code Index 的跨端形状。服务端算目录（apps/web/src/server/domain/code-index.ts），
+ * 面板与 provider 看的都是这一份，所以字段一个都不许少：目录说自己"不完整"的那些计数
+ * （dropped / unresolvedDeps / unreadableFiles）一旦在传输层被剥掉，读的人就以为拿到的是全量。
+ */
+export const CodeSymbolSchema = z.object({
+  name: z.string(),
+  kind: z.enum(['function', 'component', 'class', 'variable', 'interface', 'type', 'enum', 'css-variable']),
+  line: z.number().int().min(1),
+  exported: z.boolean(),
+  params: z.array(z.string()),
+});
+
+export const CodeFileOriginSchema = z.union([
+  z.object({ kind: z.literal('page'), pageId: z.string(), pageName: z.string() }),
+  z.object({ kind: z.literal('tokens') }),
+  z.object({ kind: z.literal('barrel') }),
+  z.object({
+    kind: z.literal('node-region'),
+    pageId: z.string(),
+    pageName: z.string(),
+    nodeId: z.string(),
+    nodeName: z.string(),
+  }),
+]);
+
+export const CodeFileEntrySchema = z.object({
+  path: z.string(),
+  language: z.enum(['tsx', 'ts', 'css', 'text']),
+  origin: CodeFileOriginSchema,
+  lines: z.number().int().min(0),
+  chars: z.number().int().min(0),
+  symbols: z.array(CodeSymbolSchema),
+  deps: z.array(z.string()),
+  externals: z.array(z.string()),
+  unresolvedDeps: z.array(z.string()),
+  designAnchors: z.number().int().min(0),
+  /** null 是"这类文件不做语法解析"，不是"0 个错" */
+  syntaxErrors: z.number().int().min(0).nullable(),
+});
+
+export const CodeIndexSchema = z.object({
+  schemaVersion: z.literal(1),
+  generatedFrom: z.object({
+    documentId: z.string(),
+    documentName: z.string(),
+    updatedAt: z.string(),
+    mode: z.string().nullable(),
+  }),
+  files: z.array(CodeFileEntrySchema),
+  totals: z.object({
+    files: z.number().int().min(0),
+    pageFiles: z.number().int().min(0),
+    nodeRegionFiles: z.number().int().min(0),
+    symbols: z.number().int().min(0),
+    exportedSymbols: z.number().int().min(0),
+    components: z.number().int().min(0),
+    functions: z.number().int().min(0),
+    classes: z.number().int().min(0),
+    interfaces: z.number().int().min(0),
+    internalDeps: z.number().int().min(0),
+    externalDeps: z.number().int().min(0),
+    unresolvedDeps: z.number().int().min(0),
+    codeChars: z.number().int().min(0),
+    unreadableFiles: z.number().int().min(0),
+    nodeRegionChars: z.number().int().min(0),
+  }),
+  omissions: z.array(z.string()),
+  dropped: z
+    .object({
+      files: z.number().int().min(0),
+      symbols: z.number().int().min(0),
+      anchors: z.boolean(),
+    })
+    .optional(),
+  trimmed: z.array(z.string()).optional(),
+});
+export type CodeIndexPayload = z.infer<typeof CodeIndexSchema>;
+
+/** 发给 provider 的那一份代码目录：按这轮请求排过序，命中理由逐条带着 */
+export const CodeDigestSchema = z.object({
+  schemaVersion: z.literal(1),
+  mode: z.string().nullable(),
+  query: z.string().nullable(),
+  files: z.array(
+    z.object({
+      path: z.string(),
+      language: z.enum(['tsx', 'ts', 'css', 'text']),
+      origin: z.string(),
+      pageName: z.string().nullable(),
+      lines: z.number().int().min(0),
+      symbols: z.array(z.string()),
+      deps: z.array(z.string()),
+      externals: z.array(z.string()),
+      unresolvedDeps: z.array(z.string()),
+      reasons: z.array(z.string()),
+    }),
+  ),
+  totals: CodeIndexSchema.shape.totals,
+  budgetChars: z.number().int().min(0),
+  omittedFiles: z.number().int().min(0),
+  trimmed: z.array(z.string()),
+  omissions: z.array(z.string()),
+});
+export type CodeDigestPayload = z.infer<typeof CodeDigestSchema>;
+
 /** §66 Design Context：Agent 必须拿到上下文而不是每次重推 */
 export const DesignContextSchema = z.object({
   projectId: z.string(),
@@ -251,6 +357,11 @@ export const DesignContextSchema = z.object({
    * 这是 provider 真正能看到的那一份；`document` 不是（见下）。
    */
   designIndex: DesignIndexSchema.optional(),
+  /**
+   * §69 的代码目录，按这轮请求排过序、在预算内。provider 看到的是"哪几份文件、里面有什么符号"，
+   * 不是代码正文——正文要 Agent 明确伸手取（还没有那条通道，见 omissions）。
+   */
+  codeDigest: CodeDigestSchema.optional(),
   /** 目录字符数与本轮预算：让"发了多大"成为报文里可核对的数，而不是日志里的一句话 */
   indexChars: z.number().int().min(0).optional(),
   budgetChars: z.number().int().min(0).optional(),
@@ -593,8 +704,11 @@ export const ProjectContextSchema = z.object({
     fullDocumentChars: z.number().int().min(0),
     indexChars: z.number().int().min(0),
     budgetChars: z.number().int().min(0),
+    /** §69 代码目录的大小：和文档字符数并排放，"发目录不发代码"才有个可核对的比例 */
+    codeIndexChars: z.number().int().min(0),
   }),
   design: DesignIndexSchema,
+  code: CodeIndexSchema,
   world: z.object({
     present: z.boolean(),
     name: z.string().nullable(),

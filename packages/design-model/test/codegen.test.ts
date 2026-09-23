@@ -301,4 +301,26 @@ describe("Design → Code（§17-19）", () => {
     expect(line).toContain("shadow-[0px_8px_24px_0px_rgba(0,0,0,0.32)]");
     expect(line).toContain("opacity-[0.9]");
   });
+
+  it("页面名没有 ASCII 字符时回落到 PageN，而不是生成一个叫 undefined 的组件", () => {
+    // 中文页面名是这个产品的常态，不是边角：曾经生成出 components/nexus/undefined.tsx
+    // 与 `export function undefined()`，是 §69 的代码目录把它照出来的。
+    const document = createDocument("中文页名");
+    const a = starterPage("结算页");
+    const b = starterPage("关于");
+    document.pages = [a, b];
+    const generated = generateProject(document, {});
+    expect(generated.map((f) => f.path)).toEqual([
+      "styles/tokens.css",
+      "components/nexus/Page1.tsx",
+      "components/nexus/Page2.tsx",
+      "components/nexus/index.ts",
+    ]);
+    const pageFile = generated.find((f) => f.path.endsWith("Page1.tsx"))!;
+    expect(pageFile.contents).toContain("export function Page1()");
+    expect(pageFile.contents).not.toContain("function undefined");
+    expect(transpileDiagnostics(pageFile)).toEqual([]);
+    // 文件名丢了页面名，所以归属必须由发射器标注，不能靠目录去猜
+    expect(pageFile.origin).toEqual({ kind: "page", pageId: a.id, pageName: "结算页" });
+  });
 });

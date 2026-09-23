@@ -167,7 +167,7 @@ export interface DesignIndex {
 
 export const DESIGN_INDEX_OMISSIONS: string[] = [
   "节点的完整样式值（这里只给结构摘要，逐节点样式仍要从文档读）",
-  "Code Index（§69 的 File/Symbol/Function/Dependency 还没落地）",
+  "代码侧的文件与符号（§69 的 Code Index 是另一份目录，两者并列发出去，不互相展开）",
   "语义检索与相关性排序（要 embedding provider；§49 只落了全文 + 子串）",
   "资产的实际像素内容（只有名字、类型与被引用次数）",
 ];

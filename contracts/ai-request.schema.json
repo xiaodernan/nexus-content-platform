@@ -758,6 +758,233 @@
             "omissions"
           ]
         },
+        "codeDigest": {
+          "type": "object",
+          "properties": {
+            "schemaVersion": {
+              "type": "number",
+              "const": 1
+            },
+            "mode": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "query": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "files": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "path": {
+                    "type": "string"
+                  },
+                  "language": {
+                    "type": "string",
+                    "enum": [
+                      "tsx",
+                      "ts",
+                      "css",
+                      "text"
+                    ]
+                  },
+                  "origin": {
+                    "type": "string"
+                  },
+                  "pageName": {
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  },
+                  "lines": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 9007199254740991
+                  },
+                  "symbols": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "deps": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "externals": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "unresolvedDeps": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "reasons": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  }
+                },
+                "required": [
+                  "path",
+                  "language",
+                  "origin",
+                  "pageName",
+                  "lines",
+                  "symbols",
+                  "deps",
+                  "externals",
+                  "unresolvedDeps",
+                  "reasons"
+                ]
+              }
+            },
+            "totals": {
+              "type": "object",
+              "properties": {
+                "files": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 9007199254740991
+                },
+                "pageFiles": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 9007199254740991
+                },
+                "nodeRegionFiles": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 9007199254740991
+                },
+                "symbols": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 9007199254740991
+                },
+                "exportedSymbols": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 9007199254740991
+                },
+                "components": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 9007199254740991
+                },
+                "functions": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 9007199254740991
+                },
+                "classes": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 9007199254740991
+                },
+                "interfaces": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 9007199254740991
+                },
+                "internalDeps": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 9007199254740991
+                },
+                "externalDeps": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 9007199254740991
+                },
+                "unresolvedDeps": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 9007199254740991
+                },
+                "codeChars": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 9007199254740991
+                },
+                "unreadableFiles": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 9007199254740991
+                },
+                "nodeRegionChars": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 9007199254740991
+                }
+              },
+              "required": [
+                "files",
+                "pageFiles",
+                "nodeRegionFiles",
+                "symbols",
+                "exportedSymbols",
+                "components",
+                "functions",
+                "classes",
+                "interfaces",
+                "internalDeps",
+                "externalDeps",
+                "unresolvedDeps",
+                "codeChars",
+                "unreadableFiles",
+                "nodeRegionChars"
+              ]
+            },
+            "budgetChars": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 9007199254740991
+            },
+            "omittedFiles": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 9007199254740991
+            },
+            "trimmed": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "omissions": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          },
+          "required": [
+            "schemaVersion",
+            "mode",
+            "query",
+            "files",
+            "totals",
+            "budgetChars",
+            "omittedFiles",
+            "trimmed",
+            "omissions"
+          ]
+        },
         "indexChars": {
           "type": "integer",
           "minimum": 0,

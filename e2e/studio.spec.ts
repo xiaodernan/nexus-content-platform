@@ -1113,10 +1113,22 @@ test('@smoke 上下文：目录尺寸、预算裁剪与未索引分支都写在�
   await expect(page.locator('[data-context-trimmed]')).toHaveCount(0, { timeout: 20_000 });
   await expect(page.locator('[data-context-panel]')).toContainText('这次没触发裁剪');
 
+  // §69：代码目录的尺寸也在"尺寸"这一段里，报的是真实 AST 数出来的文件与符号
+  await expect(page.locator('[data-context-code]')).toContainText('代码目录');
+  await expect(page.locator('[data-context-code]')).toContainText(/\d+ 字符：\d+ 个文件/);
+  await expect(page.locator('[data-context-code]')).toContainText(/\d+ 个符号/);
+  await page.locator('[data-context-panel]').screenshot({ path: 'screenshots/context-code-index.png' });
+
   // §71 七个分支：做了什么写什么，没做的标未索引
   await expect(page.locator('[data-context-branch="Design"]')).toContainText('已索引');
-  await expect(page.locator('[data-context-branch="Code"]')).toContainText('未索引');
+  // §69 之后 Code 不再是空头支票：note 要说出它凭什么算已索引
+  await expect(page.locator('[data-context-branch="Code"]')).toContainText('已索引');
+  await expect(page.locator('[data-context-branch="Code"]')).toContainText('真实 AST');
   await expect(page.locator('[data-context-branch="Publishing"]')).toContainText('未索引');
   // 没带的信息逐条列出，读的人不必猜边界
   await expect(page.locator('[data-context-unavailable]').first()).toContainText('画布的本地状态');
+  // 代码正文仍然取不到，这一条不能因为目录做完了就吞掉（§159）
+  await expect(
+    page.locator('[data-context-unavailable]').filter({ hasText: '代码正文' }),
+  ).toBeVisible();
 });

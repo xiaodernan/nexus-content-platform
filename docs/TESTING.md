@@ -120,5 +120,20 @@ e2e 断言面板把"未运行的检查"列出来，而不是显示全绿。
   改 token 与改节点一样在撤销栈里（Ctrl+Z 后按钮回到原色）、引用计数按花括号绑定统计
   （按裸 key 数会满屏"未使用"，而画布明明在用）、内置 token 不可删、自定义 token 只在 0 引用时可删、
   新增的 token 刷新后仍在库里
-- 每个里程碑一次 commit 前至少跑：`npm run lint && npm test && npm run test:e2e:smoke`- 改了 `packages/schemas` 必须重跑 `npm run contract:export`，否则契约漂移测试会红
+- 上下文装配的不变量（§66-71）：`code-index.test.ts` 不连库，断言目录**说的是真话**——
+  符号种类从 AST 节点判（组件要真的返回 JSX 才算 component）、参数名保留解构形状（`{minutes}` 不是 `_a`）、
+  解析失败的文件计入 `unreadableFiles` 而不是报"0 个符号"、CSS 这类不做语法解析的文件 `syntaxErrors` 是 null 不是 0、
+  `totals` 永远来自未裁的那一份、同一份文档两次构建字节相同。
+  `ai-assemble.integration.test.ts` 守的是**线上传输的边界**：选中某个 code-only 区域时它排第一且理由写着「选中节点」，
+  线上那份含符号名 `CouponCountdown` 但**不含区域正文**（`十分钟后可领` / `60_000` / `return <b>`），
+  什么都没命中时发空目录并说明"没有任何文件命中"，而不是把整份目录塞过去凑数。
+  e2e 断言面板上 Code 分支写「已索引 … 真实 AST」、代码目录那行有真实文件/符号数、
+  且"代码正文取不到"这条仍在 `unavailable` 列表里（做完前半截不许顺手划掉后半截的账）
+- 每个里程碑一次 commit 前至少跑：`npm run lint && npm test && npm run test:e2e:smoke`
+- 改了 `packages/schemas` 必须重跑 `npm run contract:export`，否则契约漂移测试会红
 - 动了 ai-service 再加：`npm run test:ai-service`（Windows 控制台建议前置 `PYTHONUTF8=1`）
+- **已知偶发**（2026-09-24 记一次，别把它当成回归）：整套 smoke 并行跑时
+  「server snapshot is created and restored」曾在恢复后的属性面板上超时（默认 expect 5s），
+  单独重跑 12.8s 通过、同日整套重跑 23/23 通过。判断依据是失败点前后的断言都过了，只有面板渲染那一步慢——
+  同一台机器上还跑着别的项目的容器。**处理方式不是把超时调到 20s**：那会把"恢复后现场真的回来了"
+  这条不变量糊过去。再出现一次且能稳定复现，就查恢复之后 selection 与面板重绘的先后，而不是先改测试。

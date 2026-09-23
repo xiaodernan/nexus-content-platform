@@ -19,6 +19,12 @@ import {
   type DesignDocument,
   type DesignNode,
 } from '../packages/design-model/src';
+import {
+  buildCodeIndex,
+  codeIndexChars,
+  DEFAULT_CODE_CHAR_BUDGET,
+  fitCodeIndexToBudget,
+} from '../apps/web/src/server/domain/code-index';
 
 /**
  * §146 / §147 规模基准：100 / 1000 / 10000 节点下，设计模型的每条热点路径各花多少时间。
@@ -114,6 +120,14 @@ for (const n of SIZES) {
   });
   cells['buildDesignIndex'] = indexRuns;
 
+  /** §69 Code Index：同样要进 Agent 上下文，但它还多跑一遍 codegen + 真实 AST 解析，成本单独看 */
+  cells['buildCodeIndex'] = measure('codeIndex', () => {
+    buildCodeIndex(document);
+  });
+  const codeBuilt = buildCodeIndex(document);
+  const codeChars = codeIndexChars(codeBuilt);
+  const codeFitted = codeIndexChars(fitCodeIndexToBudget(codeBuilt, DEFAULT_CODE_CHAR_BUDGET));
+
   const store = new DesignStore(document);
   const target = Object.keys(page.nodes).find((id) => page.nodes[id]!.type === 'text')!;
   cells['execute + undo'] = measure('edit', () => {
@@ -148,8 +162,11 @@ for (const n of SIZES) {
   console.log(
     `  索引尺寸           ${lastIndexChars} 字符 / 文档 ${docChars} 字符（${((lastIndexChars / docChars) * 100).toFixed(1)}%），压进预算后 ${fittedChars} 字符（${((fittedChars / docChars) * 100).toFixed(1)}%）`,
   );
+  console.log(
+    `  代码目录尺寸       ${codeChars} 字符（${codeBuilt.totals.files} 文件 / ${codeBuilt.totals.symbols} 符号 / ${codeBuilt.totals.internalDeps} 内部依赖），压进 ${DEFAULT_CODE_CHAR_BUDGET} 后 ${codeFitted} 字符（${codeFitted > DEFAULT_CODE_CHAR_BUDGET ? '未压进预算' : '进预算'}）`,
+  );
 }
 
-const header = `| 节点数 | ${['resolveLayout', 'validateDocument', 'lintDesign', 'analyzeHealth', 'generateProject', 'buildDesignIndex', 'execute + undo', 'diffDocuments'].join(' | ')} | 合计 |`;
-console.log(`\n${header}\n|---|${'---|'.repeat(9)}`);
+const header = `| 节点数 | ${['resolveLayout', 'validateDocument', 'lintDesign', 'analyzeHealth', 'generateProject', 'buildDesignIndex', 'buildCodeIndex', 'execute + undo', 'diffDocuments'].join(' | ')} | 合计 |`;
+console.log(`\n${header}\n|---|${'---|'.repeat(10)}`);
 console.log(rows.join('\n'));

@@ -9,6 +9,7 @@ import {
 import { worldCounts } from '@nexus/world-model';
 import { ProjectContextSchema, type ProjectContextPayload } from '@nexus/schemas';
 import { listProjectAssets } from './assets';
+import { buildCodeIndex, codeIndexChars, fitCodeIndexToBudget, DEFAULT_CODE_CHAR_BUDGET } from './code-index';
 import { listCharacters } from './characters';
 import { knowledgeStats } from './knowledge';
 import { countMemoriesByScope } from './memories';
@@ -34,6 +35,8 @@ import { loadWorld } from './worlds';
 export interface BuildContextOptions {
   /** 设计目录的字符预算；超了按固定优先级裁，裁剪结果随报文出去 */
   maxIndexChars?: number;
+  /** §69 代码目录的字符预算，与设计目录分开：两者的裁剪优先级不一样 */
+  maxCodeChars?: number;
   recentChangeLimit?: number;
 }
 
@@ -65,6 +68,7 @@ export async function buildProjectContext(
   options: BuildContextOptions = {},
 ): Promise<ContextResult> {
   const maxIndexChars = options.maxIndexChars ?? DEFAULT_INDEX_CHAR_BUDGET;
+  const maxCodeChars = options.maxCodeChars ?? DEFAULT_CODE_CHAR_BUDGET;
   const recentLimit = options.recentChangeLimit ?? RECENT_DEFAULT;
 
   const document = await loadDocument(projectId);
@@ -72,6 +76,9 @@ export async function buildProjectContext(
 
   const fullIndex = buildDesignIndex(document);
   const index = fitIndexToBudget(fullIndex, maxIndexChars);
+  // §69：代码目录是对 codegen 产物的解析，而 codegen 是文档的纯投影——所以它在这里是 CPU 密集
+  // 而不是 IO。10k 节点那一档的耗时见 docs/PERFORMANCE.md。
+  const codeIndex = fitCodeIndexToBudget(buildCodeIndex(document), maxCodeChars);
 
   const [world, characters, memoryCounts, assetRows, knowledge, snapshots, publication] =
     await Promise.all([
@@ -86,8 +93,8 @@ export async function buildProjectContext(
 
   const unavailable = [
     '当前选中 / 页面 / 视口是画布的本地状态，由浏览器侧的 Context Engine 补上（§66 那三项不在这里）',
-    'Code Index（§69）：还没落地，Agent 现在找不到"真正相关的代码"，只能拿到生成代码的全量',
-    '语义检索与相关性排序：要 embedding provider，§49 只落了全文 + 子串',
+    '代码正文：目录说了有哪几份文件、里面有什么符号，但还没有"按 path 取正文"的通道给 Agent（§69 的后半截）',
+    '语义检索与相关性排序：要 embedding provider，§49 只落了全文 + 子串，§69 的排序是词法的',
     '资产像素内容：只带元数据与引用计数',
   ];
 
@@ -98,8 +105,10 @@ export async function buildProjectContext(
       fullDocumentChars: designDocumentChars(document),
       indexChars: designIndexChars(index),
       budgetChars: maxIndexChars,
+      codeIndexChars: codeIndexChars(codeIndex),
     },
     design: index,
+    code: codeIndex,
     world: world?.ok
       ? {
           present: true,
@@ -152,8 +161,12 @@ export async function buildProjectContext(
       { name: 'Design', status: 'indexed', note: `页面/结构/组件/资产/token/交互 + 跨引用边（§70）` },
       {
         name: 'Code',
-        status: 'not-indexed',
-        note: '能生成（codegen），但没有 §69 的 File/Symbol/Function/Dependency 索引',
+        // 有文件解析不出来或被预算裁掉时只说 partial：目录不完整还自称索引好了，就是 §159
+        status: codeIndex.totals.unreadableFiles > 0 || codeIndex.dropped ? 'partial' : 'indexed',
+        note:
+          `${codeIndex.totals.files} 个文件、${codeIndex.totals.symbols} 个符号、${codeIndex.totals.internalDeps} 条内部依赖（§69，真实 AST）` +
+          (codeIndex.totals.unreadableFiles > 0 ? `；${codeIndex.totals.unreadableFiles} 个文件语法解析失败，目录不含其符号` : '') +
+          (codeIndex.dropped ? `；目录被压进 ${maxCodeChars} 字符预算，省掉的见 trimmed` : ''),
       },
       {
         name: 'Assets',

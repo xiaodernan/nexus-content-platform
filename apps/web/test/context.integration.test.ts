@@ -40,7 +40,7 @@ async function newProject(name: string): Promise<string> {
 }
 
 describe('buildProjectContext（§66-71 一次装配）', () => {
-  it('新项目也能装配出目录：设计分支已索引，代码分支如实写着没索引', async () => {
+  it('新项目也能装配出目录：设计与代码两个分支都索引到位', async () => {
     const id = await newProject('Ctx Bare');
     const result = await buildProjectContext(id, owner);
     expect(result.ok).toBe(true);
@@ -54,11 +54,52 @@ describe('buildProjectContext（§66-71 一次装配）', () => {
 
     const byName = Object.fromEntries(context.branches.map((b) => [b.name, b]));
     expect(byName.Design?.status).toBe('indexed');
-    expect(byName.Code?.status).toBe('not-indexed');
+    // §69 落地后这一支不再是 not-indexed；note 里给的是真数出来的文件与符号数
+    expect(byName.Code?.status).toBe('indexed');
     expect(byName.Code?.note).toContain('§69');
+    expect(byName.Code?.note).toMatch(/\d+ 个文件、\d+ 个符号/);
     expect(context.branches).toHaveLength(7);
     // §66 的清单里选不中的那几项必须显式交代，不然面板只能沉默
     expect(context.unavailable.join(' ')).toContain('选中');
+    // 代码正文没有通道，这句得写在明面上，别让"有 Code Index"被读成"代码都能拿到了"
+    expect(context.unavailable.join(' ')).toContain('代码正文');
+  });
+
+  it('代码目录说的是真话：中文页面名、code-only 区域与解析失败各自有位置（§69）', async () => {
+    const id = await newProject('Ctx Code');
+    const document = (await loadDocument(id))!;
+    const page = document.pages[0]!;
+    page.name = '结算页';
+    const root = page.nodes[page.rootId]!;
+    const region = createNode({ type: 'code', name: '优惠券倒计时', parentId: root.id });
+    region.code = { language: 'tsx', readOnly: false, content: 'export function CouponCountdown() {\n  return <b>10</b>;\n}\n' };
+    page.nodes[region.id] = region;
+    root.children.push(region.id);
+    await saveDocument(id, document);
+
+    const result = await buildProjectContext(id, owner);
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    const code = result.context.code;
+
+    expect(result.context.sizes.codeIndexChars).toBeGreaterThan(0);
+    expect(code.totals.pageFiles).toBe(1);
+    expect(code.totals.nodeRegionFiles).toBe(1);
+    const pageFile = code.files.find((file) => file.origin.kind === 'page');
+    // 中文页面名进不了文件名（pascalCase 只留 ASCII），所以归属必须由 origin 带
+    expect(pageFile?.path).toBe('components/nexus/Page1.tsx');
+    expect(pageFile?.origin.kind === 'page' && pageFile.origin.pageName).toBe('结算页');
+    expect(pageFile?.symbols.map((symbol) => symbol.name)).toEqual(['Page1']);
+    expect(pageFile?.symbols[0]?.kind).toBe('component');
+
+    const regionFile = code.files.find((file) => file.origin.kind === 'node-region');
+    expect(regionFile?.symbols.map((symbol) => symbol.name)).toEqual(['CouponCountdown']);
+    expect(regionFile?.symbols[0]?.kind).toBe('component');
+    expect(regionFile?.syntaxErrors).toBe(0);
+    // 目录是完整的：没有解析失败也没有被预算裁掉，才允许分支写 indexed
+    expect(code.totals.unreadableFiles).toBe(0);
+    expect(code.dropped).toBeUndefined();
+    expect(code.omissions.length).toBeGreaterThan(0);
   });
 
   it('世界、角色、记忆各自进来后计数都对得上；空世界与满世界不是一回事', async () => {

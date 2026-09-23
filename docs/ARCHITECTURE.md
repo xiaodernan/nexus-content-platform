@@ -114,6 +114,16 @@ DEMO 路径不在 ai-service 里：确定性 Mock 需要 design model 才能产�
     绝不悄悄按库里那份旧文档生成。
     为什么必须有预算：10k 节点的目录不套预算是 71 万字符（实测见 `docs/PERFORMANCE.md`），
     "索引过"从来不等价于"塞得进上下文"。取舍与踩坑记录在 `docs/adr/0006-design-index-char-budget.md`。
+13. **代码目录从投影现算，符号读真 AST**（§69）：`buildCodeIndex`（`apps/web/src/server/domain/code-index.ts`）
+    的输入固定是 `generateProject()` 真发出来的那一份文件，归属由发射器标注（`GeneratedFile.origin`）——
+    自己再走一遍模型去"推算"有哪些文件，就是造第二套对代码的认知，codegen 一漂移目录就开始说谎（§16）。
+    库里那张 `files` 表因此仍然空着：算得出来的东西写进库，迟早有一天读到的是旧的那份。
+    符号/行号/参数/import 全部由 TypeScript 编译器 API 读 AST（只 `createSourceFile`，不 emit 不执行，§81），
+    解析失败报"失败"、`syntaxErrors: null` 表示"这类文件不做语法解析"，两者都不许冒充"0 个符号"。
+    同一次装配里，发给 provider 的是 `buildCodeDigest`：path / 语言 / 人话归属 / 行数 / 符号名 / 依赖 / 逐条命中理由，
+    **代码正文一个字符都不上线**；相关性排序是词法的（含 CJK 二元切词），语义那半等 embedding provider（§49），
+    这条连同"还没有按 path 取正文的通道"一起写在 `omissions` 与面板的 `unavailable` 里。
+    取舍记录在 `docs/adr/0007-code-index-derived-not-persisted.md`。
 
 ## Design ↔ Code 双通道
 

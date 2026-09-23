@@ -522,7 +522,7 @@ drizzle 把整个拼接结果当成**单个绑定参数**，生成的 SQL 是 `o
 
 ## 横向能力（随里程碑推进，不单列里程碑）
 - Agent 工具注册表 + 权限 + 人工审批门（§72-74/177）
-- Context Engine / Design Index / Project Graph（§66-71）— **两切片已落地（2026-09-24）**：
+- Context Engine / Design Index / Project Graph（§66-71）— **三切片已落地（2026-09-24）**：
   `buildDesignIndex`（`packages/design-model/src/context-index.ts`）把一份设计文档投影成**目录**
   （页面 / 框 / 组件 / 资产 / token / 交互 + 跨引用边 + totals，纯函数、不含正文），
   `fitIndexToBudget` 按字符预算裁剪，并且**逐条交代裁掉了什么**（totals 始终来自未裁的那一份，宁可少列条目不少报数）；
@@ -536,7 +536,20 @@ drizzle 把整个拼接结果当成**单个绑定参数**，生成的 SQL 是 `o
   命令栏发请求前先 `flushBeforeAi()` 把脏改动落库——上下文既然来自库里，就不能悄悄按旧版本生成。
   这一路顺带挖出一个老 bug：`loadDocument` 只写不读 `visual_dna` / `brand_kit`（§16 的闭环断了），
   表现是"明明提取过 DNA 却按内置配色生成"。
-  仍欠的三笔如实记下：① Code Index（§69）以及 Agents / Runtime 分支未落地，面板上写的是「未索引」而不是空白；
+  第三切片补 §69 的 Code Index（`apps/web/src/server/domain/code-index.ts`）：目录**从 codegen 的产物现算**，
+  不另起一套对代码的认知（§16 的投影），也不落进库里的 `files` 表——那张表现成但一行都没写过，
+  而算得出来的东西写进库迟早读到旧的（取舍见 `docs/adr/0007-…`）。符号、行号、参数、import 全部走**真实 TypeScript AST**，
+  解析失败报"失败"而不是报"0 个符号"；文件归属由发射器自己标注（`GeneratedFile.origin`）。
+  发给 provider 的是 `buildCodeDigest` 的结果：path / 语言 / 人话归属 / 行数 / 符号名 / 依赖 / **逐条命中理由**，
+  **代码正文一个字符都不上线**（§68，`ai-assemble.integration.test.ts` 直接断言线上含符号名而不含区域正文）。
+  排序是**词法**的（CJK 二元切词，中文页面名命中得了），不是语义的。
+  §71 的 Code 分支因此从「未索引」变成「已索引」，note 写成可核对的一句话；面板同一行报目录字符数、
+  文件/符号/内部依赖数与"几个文件没解析出来"。建这个目录当天照出一个真 bug：
+  **页面名没有 ASCII 字符时导出 `components/nexus/undefined.tsx` / `export function undefined()`**
+  （中文页面名是常态，不是边角），已修并钉在 `packages/design-model/test/codegen.test.ts`。
+  仍欠的三笔如实记下：① Code Index 的**后半截**——"按 path 取正文"的通道还没有，Agent 知道有哪份文件、里面有什么符号，
+  读不到实现；这条在面板的 `unavailable` 列表里，e2e 有断言，不会因为目录做完就被划掉。
+  Agents / Runtime 两个分支仍未落地，面板上写的是「未索引」而不是空白；
   ② 语义相关性与重排要 embedding provider（§49 的向量半）；
   ③ `selectionDigest` / `designSystemDigest` 仍由客户端算好发上来，服务端照单收下 —— 真 provider 上线前要把它们改成服务端派生，
   否则"选中了什么"这件事由请求方说了算（不构成越权，但会让模型的注意力被客户端谎报带偏）。
@@ -547,6 +560,10 @@ drizzle 把整个拼接结果当成**单个绑定参数**，生成的 SQL 是 `o
   2026-09-24 补：持久层第一次进表，当场挖出一条硬断链 —— 一个页面超过约 **7,281 个节点就整体存不下去**
   （`writeNodes` 拼单条 INSERT 撞上 Postgres 65,535 参数上限），而 §146 的目标正是 10,000 节点。
   模型层基准只在内存里造文档，所以它从没暴露过这件事。改成 500 行切块并补了回归测试。
+  同日再补：`buildCodeIndex`（§69）进同一张表 —— 10k 节点 220.9ms（其中 codegen 本身 118.5ms），
+  而目录尺寸从 100 到 10,000 节点只从 6,128 变到 6,138 字符：**它按页面数增长，不按节点数**，
+  因为节点在代码里是锚点注释而不是符号。这条读数写进 `docs/PERFORMANCE.md`，
+  免得有人拿"代码目录比设计目录小两个数量级"当结论——那不是索引有魔法，是投影本来就不展开节点。
 - 沙箱预览与生成代码隔离执行（§81-83）
 - Design Critic + Visual QA + 无障碍/性能门禁（§32-33/90-91/178-179）—
   门禁与七行健康度已落地（`analyzeHealth`，见 M2 进度记录与 `docs/adr/0005-…`）；
