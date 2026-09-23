@@ -1566,7 +1566,8 @@ SAY about what git did._
   opposite of the truth: an unmerged path is the one thing a granted commit cannot record. One shared
   detector (`unmergedNotice`) now covers all three shapes and the three diffing doors name the
   conflict instead of claiming absence.
-- **41st proof `docs/evidence/agents/verdict-proof.mjs`.** Every case has a CONTROL: the same argv is
+- **42nd proof `docs/evidence/agents/verdict-proof.mjs`** (the concurrent lane took 41st for
+  `runreceipts-proof.mjs` while this one was measuring). Every case has a CONTROL: the same argv is
   run RAW, outside the sandbox, by the harness, so each quote is checked against git's own bytes
   rather than against the door's memory of them. §1 banner → verdict, verbatim, and the banner
   asserted ABSENT from the caller's sentence. §2 the six-line refusal, plus a §28 DENY that costs no
@@ -1596,7 +1597,7 @@ SAY about what git did._
   runtime and Studio parse none of these sentences (checked by grep — the orchestrator relays `detail`
   as text), so no planned step changed. exec-host **137/137 → 159/159** (`gitTools.test.ts` 19 → 36,
   `gitStagedTool.test.ts` 21 → 24, `gitCommitTool.test.ts` 16 → 18, and two existing 128-cases in
-  `gitLogTool`/`gitShowTool` extended rather than added), 41/41 agent proofs green, home repo gates
+  `gitLogTool`/`gitShowTool` extended rather than added), 42/42 agent proofs green, home repo gates
   green.
 - Honest bounds: the rule reads git's ENGLISH diagnostics, and it works because v46's env pinning
   passes only `PATH`/`SYSTEMROOT`/`HOME`/`USERPROFILE` — a caller cannot hand git a `LANG` it would
