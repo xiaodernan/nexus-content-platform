@@ -85,6 +85,28 @@ describe('planner: deterministic templates', () => {
     }
     expect(planTask({ id: 't', goal: 'add widget docs' }, fullOpts)).toEqual(full);
   });
+
+  it('v44: hasContent trails a git.show inspect after the CONFIRM — and NEVER without one', () => {
+    const fullOpts = { hasVerify: true, hasCommit: true, hasConfirm: true, hasContent: true };
+    const full = planTask({ id: 't', goal: 'add widget docs' }, fullOpts);
+    expect(full.steps.map((s) => s.stepId)).toEqual(['search', 'read', 'annotate', 'verify', 'commit', 'confirm', 'inspect']);
+    const inspect = full.steps.at(-1)!;
+    expect(inspect.tool).toBe('git.show');
+    expect(inspect.args).toEqual({ path: '@search.hits.0.path' }); // the SAME live ref read/annotate use
+    expect(planTask({ id: 't', goal: 'add widget docs', targetPath: 'docs/a.md' }, fullOpts).steps.at(-1)!.args).toEqual({ path: 'docs/a.md' });
+    // the nesting: content is only ever inspected behind a commit AND its hash confirm
+    for (const opts of [
+      { hasVerify: true, hasCommit: true, hasContent: true }, // no confirm tier
+      { hasVerify: true, hasContent: true }, // no commit tier
+      { hasContent: true }, // no verify → nothing green to read back
+    ]) {
+      expect(planTask({ id: 't', goal: 'add widget docs' }, opts).steps.map((s) => s.tool)).not.toContain('git.show');
+    }
+    // remember stays the TAIL: with both flags the order is confirm→inspect→remember
+    const both = planTask({ id: 't', goal: 'add widget docs' }, { ...fullOpts, hasRemember: true });
+    expect(both.steps.map((s) => s.stepId)).toEqual(['search', 'read', 'annotate', 'verify', 'commit', 'confirm', 'inspect', 'remember']);
+    expect(planTask({ id: 't', goal: 'add widget docs' }, fullOpts)).toEqual(full);
+  });
 });
 
 describe('orchestrator: golden path', () => {
@@ -436,6 +458,133 @@ describe('orchestrator: remembered victory after confirm (v39)', () => {
     const out = await runTask(h.task, h);
     expect(out.status).toBe('failed_verification');
     expect(out.results.at(-1)!.error).toContain('memory disk full');
+  });
+});
+
+describe('orchestrator: content confirmation after the hash confirm (v44)', () => {
+  function inspectHarness(testImpl: (ws: InMemoryWorkspace) => unknown, checkpoint: Checkpoint | undefined = () => true) {
+    const h = harness(testImpl, checkpoint);
+    const actions: string[] = [];
+    h.registry.register(
+      { name: 'git.commit', description: 'fake commit tool', permissions: ['exec'], args: [{ name: 'message', type: 'string' }] },
+      () => {
+        actions.push('commit');
+        return { ok: true, detail: 'fake commit landed' };
+      },
+    );
+    h.registry.register(
+      { name: 'git.log', description: 'fake read-back', permissions: ['exec'], args: [{ name: 'count', type: 'number' }] },
+      () => {
+        actions.push('log');
+        return { ok: true, detail: 'fake log agrees' };
+      },
+    );
+    h.registry.register(
+      { name: 'git.show', description: 'fake content read-back', permissions: ['exec'], args: [{ name: 'path', type: 'string' }] },
+      (args) => {
+        actions.push(`show:${args.path}`);
+        return { ok: true, detail: `fake show: HEAD changed ${args.path} · +3 −0`, addedLines: ['widget notes', 'line two', 'NOTE (DEMO MODE · seed 42)'] };
+      },
+    );
+    return { ...h, actions };
+  }
+
+  it('a green run ends commit→confirm→inspect, and git.show got the LIVE search path', async () => {
+    const h = inspectHarness(noteTest);
+    const out = await runTask(h.task, h);
+    expect(out.status).toBe('completed');
+    expect(out.plan.steps.map((s) => s.stepId)).toEqual(['search', 'read', 'annotate', 'verify', 'commit', 'confirm', 'inspect']);
+    expect(h.actions).toEqual(['commit', 'log', 'show:docs/a.md']); // the planned @ref became the live hit, AFTER the confirm
+    const inspect = out.results.at(-1)!;
+    expect(inspect.tool).toBe('git.show');
+    expect((inspect.output as { addedLines: string[] }).addedLines).toHaveLength(3);
+  });
+
+  it('inspect sits BEFORE remember, and the memory text still claims only COMMITTED+CONFIRMED (§60: content lives in results, not in the claim)', async () => {
+    const h = inspectHarness(noteTest);
+    const saves: Record<string, unknown>[] = [];
+    h.registry.register(
+      {
+        name: 'memory.save',
+        description: 'fake §26 memory',
+        permissions: ['write'],
+        args: [
+          { name: 'runId', type: 'string' },
+          { name: 'query', type: 'string' },
+          { name: 'summary', type: 'string' },
+          { name: 'refs', type: 'string[]' },
+        ],
+      },
+      (args) => {
+        saves.push(args);
+        return { id: `mem-${saves.length}` };
+      },
+    );
+    const out = await runTask(h.task, h);
+    expect(out.status).toBe('completed');
+    expect(out.results.map((r) => r.tool).slice(-3)).toEqual(['git.log', 'git.show', 'memory.save']);
+    expect(String(saves[0]!.summary)).toContain('COMMITTED+CONFIRMED');
+    expect(String(saves[0]!.summary)).not.toContain('CONTENT'); // no tier overclaims what the next tier only PROPOSED to read
+  });
+
+  it('a DENIED inspect after a landed+confirmed commit: status denied, both earlier results STAND, git.show never ran', async () => {
+    const h = inspectHarness(noteTest, ({ call }) => call.tool !== 'git.show');
+    const out = await runTask(h.task, h);
+    expect(out.status).toBe('denied');
+    expect(h.actions).toEqual(['commit', 'log']);
+    expect(out.results.at(-2)!.tool).toBe('git.log');
+    expect(out.results.at(-2)!.ok).toBe(true);
+    expect(out.results.at(-1)!.error).toContain('denied at checkpoint');
+  });
+
+  it('git ANSWERING "HEAD touches nothing" is honest DATA — the walk continues, the run completes, the answer stands in results', async () => {
+    const h = harness(noteTest);
+    h.registry.register(
+      { name: 'git.commit', description: 'fake', permissions: ['exec'], args: [{ name: 'message', type: 'string' }] },
+      () => ({ ok: true, detail: 'fake commit landed' }),
+    );
+    h.registry.register(
+      { name: 'git.log', description: 'fake', permissions: ['exec'], args: [{ name: 'count', type: 'number' }] },
+      () => ({ ok: true, detail: 'fake log agrees' }),
+    );
+    h.registry.register(
+      { name: 'git.show', description: 'fake honest-empty answer', permissions: ['exec'], args: [{ name: 'path', type: 'string' }] },
+      () => ({ ok: true, detail: 'git.show → exit 0: HEAD touches nothing at docs/a.md (empty diff)', addedLines: [] }),
+    );
+    const out = await runTask(h.task, h);
+    expect(out.status).toBe('completed');
+    const inspect = out.results.at(-1)!;
+    expect(inspect.ok).toBe(true); // the TOOL worked; the ANSWER was "nothing here" — a fact, not a failure
+    expect((inspect.output as { addedLines: string[] }).addedLines).toEqual([]);
+    expect(String((inspect.output as { detail: string }).detail)).toContain('touches nothing');
+  });
+
+  it('a throwing git.show is honest non-green — completed never rides on a broken content read', async () => {
+    const h = harness(noteTest);
+    h.registry.register(
+      { name: 'git.commit', description: 'fake', permissions: ['exec'], args: [{ name: 'message', type: 'string' }] },
+      () => ({ ok: true, detail: 'fake commit landed' }),
+    );
+    h.registry.register(
+      { name: 'git.log', description: 'fake', permissions: ['exec'], args: [{ name: 'count', type: 'number' }] },
+      () => ({ ok: true, detail: 'fake log agrees' }),
+    );
+    h.registry.register(
+      { name: 'git.show', description: 'broken', permissions: ['exec'], args: [{ name: 'path', type: 'string' }] },
+      () => {
+        throw new Error('cwd refused');
+      },
+    );
+    const out = await runTask(h.task, h);
+    expect(out.status).toBe('failed_verification');
+    expect(out.results.at(-1)!.error).toContain('cwd refused');
+  });
+
+  it('a run that never verifies green NEVER inspects', async () => {
+    const h = inspectHarness(() => ({ ok: false, detail: 'never passes' }));
+    const out = await runTask(h.task, { registry: h.registry, checkpoint: h.checkpoint, maxFixRounds: 1 });
+    expect(out.status).toBe('failed_verification');
+    expect(h.actions).toEqual([]); // no commit, no confirm, no show — the tail is unreachable from red
   });
 });
 

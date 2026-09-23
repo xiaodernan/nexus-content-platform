@@ -70,7 +70,7 @@ export async function runTask(task: AgentTask, opts: RunOptions): Promise<RunOut
   const plannerBackend = opts.planner ?? demoPlanner;
   const planned = await plannerBackend.plan(
     task,
-    { hasVerify: registry.has('test.run'), hasIndex: registry.has('fs.index'), hasMemory: registry.has('memory.recall'), hasUi: registry.has('ui.click'), hasCommit: registry.has('git.commit'), hasConfirm: registry.has('git.log'), hasRemember: registry.has('memory.save'), uiInputLabel: opts.uiInputLabel, uiButtonLabel: opts.uiButtonLabel },
+    { hasVerify: registry.has('test.run'), hasIndex: registry.has('fs.index'), hasMemory: registry.has('memory.recall'), hasUi: registry.has('ui.click'), hasCommit: registry.has('git.commit'), hasConfirm: registry.has('git.log'), hasContent: registry.has('git.show'), hasRemember: registry.has('memory.save'), uiInputLabel: opts.uiInputLabel, uiButtonLabel: opts.uiButtonLabel },
     (name) => registry.has(name),
   );
   const plan: Plan = planned.plan;

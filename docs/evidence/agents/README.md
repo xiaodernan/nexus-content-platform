@@ -9,18 +9,19 @@ every emitted artifact (`provenance.mode = "demo"`). The honest exceptions since
 @nexus/design-model vitest suite through the confined host (vitest's cache under
 `node_modules` is the only thing it writes), `commit-proof.mjs` + `greencommit-proof.mjs`
 + `gitlog-proof.mjs` + `confirm-proof.mjs` + `remember-proof.mjs` + `policygate-proof.mjs`
-+ `show-proof.mjs` + `staged-proof.mjs` perform REAL `git commit`s (and since v37/v38
++ `show-proof.mjs` + `staged-proof.mjs` + `inspect-proof.mjs` perform REAL `git commit`s (and since v37/v38
 real `git log` read-backs — v38's for the first time driven by `runTask` itself, not a
 hand-called tool; v39's runTask additionally writes a REAL in-process `MemoryStore`; v42 adds a real
 `git show` content read-back and v43 a real `git diff --cached` index read, both HUMAN-staged
-content only) — only inside throwaway `os.tmpdir()` repos
+content only; v44's `inspect-proof.mjs` is the first where the PLAN ITSELF schedules that
+content read, so the loop — not the proof — decides to look) — only inside throwaway `os.tmpdir()` repos
 with hooks/signing neutralized LOCALLY there, never in this repository — still offline,
 still key-free, and everything else in the stack spawns nothing.
 
 ## Reproducible gates
 
 ```
-npm test          # turbo: @nexus/agent-runtime 232/232 + @nexus/exec-host 110/110 vitest among all packages
+npm test          # turbo: @nexus/agent-runtime 239/239 + @nexus/exec-host 110/110 vitest among all packages
 npm run build     # tsc dist for agents/runtime + agents/exec-host (build order via ^build deps)
 node docs/evidence/agents/agent-proof.mjs
 node docs/evidence/agents/code-index-proof.mjs   # requires `npm run build` first
@@ -54,6 +55,7 @@ node docs/evidence/agents/remember-proof.mjs       # requires `npm run build` fi
 node docs/evidence/agents/policygate-proof.mjs     # requires `npm run build` first (v40: SAME plan under TWO policy tables against REAL git — audits differ on exactly one rule)
 node docs/evidence/agents/show-proof.mjs           # requires `npm run build` first (v42: commit → hash → CONTENT read-back; git.show lines byte-equal what the human staged, throwaway os.tmpdir repo only)
 node docs/evidence/agents/staged-proof.mjs         # requires `npm run build` first (v43: git.diff sees 0 files while git.staged recites the staged lines; the intent read BEFORE the commit equals the content read AFTER it, throwaway os.tmpdir repo only)
+node docs/evidence/agents/inspect-proof.mjs        # requires `npm run build` first (v44: the PLAN's own tail ends in git.show — four §28 gates, human-staged lines read back byte-for-byte, an empty diff and an unborn-HEAD 128 both carried as DATA, throwaway os.tmpdir repos only)
 ```
 
 ## Unit tests (vitest, `agents/runtime/test`)
@@ -63,7 +65,7 @@ node docs/evidence/agents/staged-proof.mjs         # requires `npm run build` fi
 | `registry.test.ts` (7) | arg validation (missing/unknown/type), unknown tool, checkpoint required for write/exec, deny ⇒ implementation never runs, approve ⇒ runs, impl throw ⇒ `ok:false` (never rejects), double-register refused |
 | `checkpointPolicy.test.ts` (8) | v40: first-match-wins ordering, `matchesTool` glob semantics shared with role scoping (`fs.*`, `*`), unmatched ⇒ EXPLICIT default (never an invented verdict), `decide` purity (byte-identical JSON, policy not mutated), `validateCheckpointPolicy` rejection matrix (missing reason / empty pattern / non-boolean grant / duplicate pattern = dead rule / mute default) thrown at CONSTRUCTION, `policyCheckpoint` receipts in executed order quoting rule reasons verbatim, registry contract unchanged (policy denial == `denied at checkpoint (write)`), runTask end-to-end through policy gates (granted work STANDS under a later veto; read steps produce NO verdicts — §28 gates hands, not eyes) |
 | `workspace.test.ts` (4) | sorted/prefix listing, case-insensitive 1-based `search`, append/missing-file throw, registry wiring incl. gated `fs.write` |
-| `agent.test.ts` (30) | stopword-aware keyword, plan determinism + seed stamp, golden path event order + `@search.hits.0.path` dataflow + note in file, denial leaves file untouched, failing verify → 1 fix round → pass, persistent failure → `failed_verification` after `maxFixRounds`, `maxSteps` → `budget_exhausted`, planner routes step 0 through `fs.index` when registered, warm memory outranks the index (`memory.recall` first), snapshot hook yields an observed changeSet (absent without hook); v36: `hasCommit` appends the commit step ONLY behind a verify step (and deterministically), a green run reaches it with the planned message, checkpoint DENY ⇒ status denied with earlier work standing and zero commits, green AFTER a fix round still commits with fix steps never re-run (execution order asserted), a red run never commits, a throwing commit tool is honest non-green; v38: `hasConfirm` trails a `git.log` step after the commit and NEVER plans one without a commit (or without verify — nested tail, determinism asserted), green ends commit→confirm in executed order, green-after-fix reaches confirm too, DENIED confirm ⇒ status denied while the landed commit's ok:true result STANDS a slot earlier, a throwing `git.log` is honest non-green; v39: `hasRemember` trails `memory.save` ONLY after the confirmed commit (all three tier-removals omit it, refs/targetPath arg shapes, determinism), a green run ends commit→confirm→remember with the planned `@search.hits.0.path` resolved INSIDE the array arg to the live path, green-after-fix remembers once, DENIED confirm means nothing to remember (0 saves), DENIED remember leaves commit+confirm standing and the store empty, a throwing `memory.save` is honest non-green |
+| `agent.test.ts` (37) | stopword-aware keyword, plan determinism + seed stamp, golden path event order + `@search.hits.0.path` dataflow + note in file, denial leaves file untouched, failing verify → 1 fix round → pass, persistent failure → `failed_verification` after `maxFixRounds`, `maxSteps` → `budget_exhausted`, planner routes step 0 through `fs.index` when registered, warm memory outranks the index (`memory.recall` first), snapshot hook yields an observed changeSet (absent without hook); v36: `hasCommit` appends the commit step ONLY behind a verify step (and deterministically), a green run reaches it with the planned message, checkpoint DENY ⇒ status denied with earlier work standing and zero commits, green AFTER a fix round still commits with fix steps never re-run (execution order asserted), a red run never commits, a throwing commit tool is honest non-green; v38: `hasConfirm` trails a `git.log` step after the commit and NEVER plans one without a commit (or without verify — nested tail, determinism asserted), green ends commit→confirm in executed order, green-after-fix reaches confirm too, DENIED confirm ⇒ status denied while the landed commit's ok:true result STANDS a slot earlier, a throwing `git.log` is honest non-green; v39: `hasRemember` trails `memory.save` ONLY after the confirmed commit (all three tier-removals omit it, refs/targetPath arg shapes, determinism), a green run ends commit→confirm→remember with the planned `@search.hits.0.path` resolved INSIDE the array arg to the live path, green-after-fix remembers once, DENIED confirm means nothing to remember (0 saves), DENIED remember leaves commit+confirm standing and the store empty, a throwing `memory.save` is honest non-green; v44: `hasContent` trails a `git.show` inspect AFTER the hash confirm and BEFORE remember (nested tail — pull commit, confirm or verify and the content step vanishes with it; the planned `{path:'@search.hits.0.path'}` becomes the LIVE hit, and a `targetPath` task plans that path instead), green ends commit→confirm→inspect in executed order, the remembered summary still asserts NO content (never the word `CONTENT` — §60: memory keeps only what v39 could prove), DENIED inspect ⇒ status denied with the landed+confirmed arc standing a slot earlier, git answering "touches nothing" is DATA the walk completes on, a throwing `git.show` is honest non-green, a red run plans the tail and spends none of it |
 | `codeIndex.test.ts` (7) | extension → kind, TS symbol + markdown heading extraction, heading-section vs 40-line-window chunking, sorted file entries + coverage, hybrid query ranks the relevant chunk first and is deterministic, symbol query finds its file, empty index → no hits |
 | `realfs.test.ts` (4) | extension/skip filtering with sorted slash keys, custom skipDirs + maxFiles cap, maxBytes drop, deterministic output independent of walk order — all against a fake fs (no host disk touched) |
 | `memory.test.ts` (8) | save/list/recall scoping, deterministic tie-broken recall bounded by k, forget/clear counts, clone-in/clone-out immutability, registry round-trip with `"path:startLine"` refs, denied `memory.save` leaves memory empty + arg validation; v6 `compact()`: ≥50% ref-overlap merges within scope (listed, idempotent), cross-scope isolation |
@@ -699,7 +701,9 @@ the policy allows exactly `['git','show','--format=','--','*']` — HEAD pinned 
 after `--` matches nothing rather than naming another commit), `validateShowPath`
 throwing on junk paths before any spawn. `parseShowDiff` → hunks/additions/deletions/
 `addedLines`/binary, stating its own scope (a 1-line change claims 1 line, never the
-file); git's exit-128 pathspec refusal is honest DATA. `show-proof.mjs` (31st) runs
+file); git's non-zero answers (unborn HEAD ⇒ exit 128) are honest DATA, never a crash —
+v44 corrected this note's original claim that an unmatched path prints a pathspec refusal,
+because running it showed git exits 0 with an EMPTY diff after `--`. `show-proof.mjs` (31st) runs
 commit → log → show against REAL git in a throwaway os.tmpdir repo and asserts the read
 lines are BYTE-EQUAL what the human staged; a denied show costs 0 spawns. exec-host
 71/71 → 90/90 (new `gitShowTool.test.ts`, 19 cases); runtime 232/232 and studio 105/105
@@ -725,6 +729,29 @@ BYTE-IDENTICAL to the content `git.show` reads AFTER it, while the line nobody s
 stated as NOT recorded. exec-host 90/90 → 110/110 (new `gitStagedTool.test.ts`, 20 cases);
 runtime 232/232 and studio 105/105 unchanged — a door, not yet a plan step.
 
+## v44 note — the plan walks through the content door: `inspect` trails `confirm`, and git's blank answers stay blank
+
+v42 built the CONTENT door and v43 the INTENT door; both stayed hand-invoked, so the PLAN still
+stopped at v38's hash. `planTask` now takes `hasContent` (orchestrator: `registry.has('git.show')`)
+and pushes `{stepId:'inspect', tool:'git.show', args:{path: target}}` INSIDE the `hasConfirm`
+block and BEFORE `hasRemember` — a green run's own tail is
+`verify → commit → confirm → inspect (→ remember)`, and the content step cannot be reached without
+a commit that a hash confirm already agreed on. The step carries a `@search.hits.0.path` LIVE ref,
+not a path the planner invents: it reads back whatever the run actually found and a human actually
+staged (§28 keeps staging human). Two bounds hold the line: `memory.save` still says
+COMMITTED+CONFIRMED and nothing about content (a test fails if the summary grows the word
+`CONTENT`), and git's two BLANK answers are DATA — an unmatched path exits 0 with an empty diff
+(zero hunks, zero lines, detail stating its own emptiness), while a non-zero git (unborn HEAD,
+exit 128) reads as `ok:false` and never as a green. `inspect-proof.mjs` (33rd) runs `runTask` over
+three keyed hosts in a throwaway os.tmpdir repo: four §28 gates per granted run (`test.run`,
+`git.commit`, `git.log`, `git.show` — every exec-armed step asks for itself), `addedLines`
+BYTE-EQUAL the three human-staged lines, a denied inspect costing 0 spawns with the landed arc
+standing, red spending none of the tail, the exit-128 case reproduced by a real process in a
+SECOND repo (the loop cannot produce it at `inspect`, since its own commit creates HEAD), and the
+ledger replaying record + hash + content to a cold reader. runtime 232/232 → 239/239 (1 planner +
+6 orchestrator cases); exec-host 110/110 and studio 105/105 unchanged — the only source change
+there is v42's empty-diff sentence, which now says only what git said.
+
 ## Scope honesty
 
 §63/§26 items *not* implemented (stated, not faked): general real-fs write tools (only
@@ -741,7 +768,8 @@ spawn-free by audited design. Since v35 the git write surface is ONE argv wide
 (`git log --oneline -n <count≤100>` via `gitLogPolicy`; since v42 exactly one bounded
 CONTENT door too (`git show --format= -- <path>` via `gitShowPolicy` — HEAD pinned by
 omission, pathspec-only float; v38 added NO new surface, it only wired that existing door
-into the plan's tail; since v43 the INDEX is readable through a two-shape door
+into the plan's tail, and v44 does the same for v42's content door — still ONE argv, now
+walked by the plan itself instead of a hand; since v43 the INDEX is readable through a two-shape door
 (`git diff --cached` / `--cached --stat` via `gitStagedPolicy` — no paths, and specifically
 no `--ext-diff`/`--textconv`/`--output`, which would let a "read" execute a helper or write a
 file) — the v32 see-don't-touch policy

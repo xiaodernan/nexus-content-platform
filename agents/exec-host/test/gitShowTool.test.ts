@@ -178,19 +178,22 @@ describe('git.show as a registry tool (content behind §28 — a process still s
     expect((res.output as { detail: string }).detail).toContain('+1 −1 across 1 hunk(s)');
   });
 
-  it('a path HEAD never touched is honest DATA: git\'s own fatal line, tool result still well-formed', async () => {
-    const h = harness('', "fatal: pathspec 'nope.md' did not match any files\n", { code: 128, signal: null });
+  it('a non-zero git answer is honest DATA: git\'s own fatal line quoted, tool result still well-formed', async () => {
+    // Real git 2.52 argv-probed message for the pinned shape on a branch with no commits yet
+    // (`git show --format= -- <path>` → exit 128). An UNMATCHED path is NOT this case — it
+    // exits 0 with an empty diff, which the next test covers.
+    const h = harness('', "fatal: your current branch 'master' does not have any commits yet\n", { code: 128, signal: null });
     const res = await h.registry.invoke({ callId: 's3', tool: 'git.show', args: { path: 'nope.md' } }, h.grant);
     expect(res.ok).toBe(true);
     expect(res.output).toMatchObject({ ok: false, exitCode: 128, addedLines: [] });
-    expect((res.output as { detail: string }).detail).toContain("git.show → exit 128: fatal: pathspec 'nope.md' did not match any files");
+    expect((res.output as { detail: string }).detail).toContain('git.show → exit 128: fatal: your current branch');
   });
 
-  it('an empty diff (path in history, untouched by HEAD) states the nothing', async () => {
+  it('an empty diff (nothing recorded for this path in HEAD) states the nothing', async () => {
     const h = harness('');
     const res = await h.registry.invoke({ callId: 's4', tool: 'git.show', args: { path: 'a.md' } }, h.grant);
     expect(res.output).toMatchObject({ ok: true, exitCode: 0, hunks: 0, addedLines: [] });
-    expect((res.output as { detail: string }).detail).toContain('HEAD touches nothing at a.md');
+    expect((res.output as { detail: string }).detail).toBe('git.show → exit 0: HEAD touches nothing at a.md (empty diff — git recorded no change for this path in HEAD)');
   });
 
   it('junk paths and escaping cwds are rejected BEFORE any spawn', async () => {

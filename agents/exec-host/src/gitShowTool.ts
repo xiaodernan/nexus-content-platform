@@ -94,7 +94,7 @@ export function registerGitShowTool(registry: ToolRegistry, host: ExecHost, opti
       ? `git.show → exit 0: HEAD touches ${path} as a BINARY change (+${change.additions} −${change.deletions}) — git printed no hunks, so no lines are claimed${flags}`
       : touched
         ? `git.show → exit 0: HEAD changed ${path} · +${change.additions} −${change.deletions} across ${change.hunks} hunk(s)${flags}`
-        : `git.show → exit 0: HEAD touches nothing at ${path} (empty diff — the file is in history but this commit did not change it)${flags}`;
+        : `git.show → exit 0: HEAD touches nothing at ${path} (empty diff — git recorded no change for this path in HEAD)${flags}`;
     return {
       ok: true,
       detail,

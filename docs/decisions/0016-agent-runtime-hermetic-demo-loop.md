@@ -883,9 +883,10 @@ two fresh runs, checkpoint denial leaving the workspace byte-identical).
   `addedLines` carries only `+` body lines of HEAD's hunk for that path (a 1-line change
   claims 1 line, never the file); `\ No newline` markers are skipped on their own line;
   `Binary files … differ` is labeled `binary:true` and the detail says no lines are claimed;
-  exit 0 with an untouched path reads back as the stated empty diff; git's exit-128 pathspec
-  refusal is `ok:false` DATA quoting git's first stderr line, not a crash; `truncated` /
-  `killedByBudget` flags ride along from the host budgets.
+  exit 0 with an untouched path reads back as the stated empty diff; git's exit-128 refusal is
+  `ok:false` DATA quoting git's first stderr line, not a crash **(amendment 44 corrects the
+  trigger: an unmatched pathspec exits 0 with an EMPTY diff here — 128 is an unborn HEAD)**;
+  `truncated` / `killedByBudget` flags ride along from the host budgets.
 - **31st proof `docs/evidence/agents/show-proof.mjs` runs the FULL circle against REAL git**
   in a throwaway `os.tmpdir()` repo (`core.hooksPath`/`commit.gpgsign` neutralized LOCALLY
   there, plus `core.autocrlf false` so staged bytes are recorded bytes): the HUMAN writes and
@@ -948,3 +949,53 @@ two fresh runs, checkpoint denial leaving the workspace byte-identical).
   `os.tmpdir`. A concurrent session is mid-flight in `agents/runtime` (its `inspect-proof.mjs`
   is red in the working tree at the time of this commit); this amendment claims 43 and its
   plan-side content confirmation takes 44.
+
+## Amendment 44 — v44 (runtime): content confirmation IN THE PLAN — the loop walks through the door v42 built, 2026-09
+- **A door nobody opens is not a capability:** v42 shipped `git.show` and v43 shipped
+  `git.staged`, yet the PLAN still stopped at v38's hash confirm — the content read-back
+  happened only because a human, or a proof, called the tool by hand. `planTask` now takes
+  `hasContent` and the orchestrator detects it (`registry.has('git.show')`), so a green run's
+  own plan ends `verify → commit → confirm → inspect`. The runtime gained no new power here:
+  it gained the habit of using a power the exec host already confined.
+- **Position is still the safety, and the nesting is exact:** the `inspect` step is pushed
+  INSIDE the `hasConfirm` block and BEFORE `hasRemember` — unreachable without a verified
+  green, a commit and a hash confirm, while `remember` stays the plan's tail. Pull any earlier
+  tier and the content step vanishes with it (asserted both directions in the planner test).
+- **The plan proposes a SOURCE, never an answer:** the step carries `{ path: target }`, i.e.
+  `@search.hits.0.path` unless the task named its own file — the same live dataflow ref
+  `read`/`annotate` resolve at invoke time. So the planner never hard-codes a path it cannot
+  know, and what git prints is decided by what the run actually found and what a HUMAN actually
+  staged (v35's staging boundary untouched; PUSH still out).
+- **§60 bound kept deliberately:** `memory.save`'s summary still says COMMITTED+CONFIRMED and
+  asserts NOTHING about content. The remembered claim stays exactly what v39 could prove; WHAT
+  landed lives in `results`, `events` and the ledger, where the tool's own words are — not in a
+  sentence the planner wrote in advance. A unit test guards the word: the summary never says CONTENT.
+- **33rd proof `docs/evidence/agents/inspect-proof.mjs` runs the REAL loop** (`runTask`, not a
+  hand-invoked tool) over THREE keyed doors in a throwaway `os.tmpdir()` repo
+  (`core.hooksPath`/`commit.gpgsign`/`core.autocrlf false` neutralized LOCALLY there). 2a:
+  callIds end `commit→confirm→inspect`, FOUR §28 gates fire (`test.run`, `git.commit`,
+  `git.log`, `git.show` — every exec-armed step is its own ask, the reads included), and
+  `addedLines` are BYTE-EQUAL the three lines a human staged, with the live argv
+  `show --format= -- notes/widget.md`. 2b: a denied `git.show` costs 0 spawns while the
+  landed, hash-confirmed arc STANDS in results. 2c: a planned path that never reached the repo
+  completes carrying git's EMPTY DIFF as data — `hunks/additions/deletions` all 0, `addedLines:
+  []`, detail stating its own emptiness. 2d: red spends none of the tail. 2e: the NON-zero git
+  answer is produced by a real process in a SECOND unborn-HEAD throwaway repo (exit 128 as
+  `ok:false` DATA, one pinned argv) — a state the loop cannot reach at `inspect`, because its
+  own granted commit would already have created HEAD. Section 3: the ledger replays record,
+  hash AND content to a cold reader, `rev-list --count` says exactly 4, both temp repos are
+  gone in `finally`, and home HEAD stays byte-identical (§9).
+- **Running the proof paid an honesty debt owed by v42:** `git show --format= -- <unmatched>`
+  does NOT print `fatal: pathspec … did not match any files`. After `--`, git 2.52 resolves the
+  pathspec loosely and exits **0 with an empty diff**, so the empty-diff detail could not claim
+  the path "is in history" (git cannot tell that case from a path that never existed). It now
+  reads *"HEAD touches nothing at `<path>` (empty diff — git recorded no change for this path in
+  HEAD)"*, and the unit fixture that hand-wrote a 128 line now carries git's REAL
+  unborn-HEAD fatal. Amendment 42's sentence about a "pathspec refusal" is SUPERSEDED by this
+  one. No behavior changed — only what the tool is allowed to SAY.
+- runtime 232/232 → **239/239** (1 planner + 6 orchestrator cases); exec-host **110/110** and
+  studio **105/105** UNCHANGED at the committed baseline (v42's wording fix replaced 2 tests
+  with 2 tests; no new door, no policy change). Thirty-third proof, 35 scripts green. Honest
+  bounds: this is still DEMO MODE template planning — the tail is a fixed template, not a
+  model's decision; `git.show` reads HEAD's change for ONE path in ONE policy-rooted repo; the
+  agent still cannot stage, and a red or denied run never reaches any of it.

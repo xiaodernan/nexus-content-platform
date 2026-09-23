@@ -34,6 +34,12 @@ export interface PlannerOptions {
    */
   hasConfirm?: boolean;
   /**
+   * v44: whether the exec-host `git.show` CONTENT read-back tool is registered. Only
+   * meaningful WITH hasConfirm — an inspect step trails the hash confirm so the plan's
+   * tail says not just THAT a commit landed but WHAT it recorded (git's own echo).
+   */
+  hasContent?: boolean;
+  /**
    * v39: whether a `memory.save` tool is registered. Only meaningful WITH hasConfirm —
    * a remember step trails the confirmed commit so §26 memory only ever records an arc
    * that VERIFIED, LANDED and READ BACK AGREEING. Position in the plan is the safety:
@@ -94,6 +100,18 @@ export function planTask(task: AgentTask, opts: PlannerOptions): Plan {
           args: { count: 2 },
           rationale: 'read the log back — the newest entry must equal the commit record',
         });
+        // v44 "content confirmation": git's own diff echo for the target path trails the
+        // hash confirm. A denial here stops the walk like any tail step; git answering
+        // "HEAD touches nothing at <path>" is honest DATA — the run reads WHAT landed,
+        // it does not choose it (staging remains the human act of v35).
+        if (opts.hasContent) {
+          steps.push({
+            stepId: 'inspect',
+            tool: 'git.show',
+            args: { path: target },
+            rationale: 'read HEAD\'s change for the target path — reached only after commit AND confirm',
+          });
+        }
         // v39 "remembered victory": the ONLY place a memory.save is ever planned is the
         // tail of the full verify→commit→confirm arc — position is the safety, so §26
         // memory can never hold a "victory" that didn't verify, land, and read back

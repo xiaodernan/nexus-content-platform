@@ -149,7 +149,7 @@ try {
   assert.deepEqual(parseShowDiff(raw, 'notes/widget.md').addedLines, ['touched by the agent run'], 'no second implementation — the proof and the tool read diff with the same function');
   assert.deepEqual(parseShowDiff('', 'notes/widget.md'), { path: 'notes/widget.md', hunks: 0, additions: 0, deletions: 0, addedLines: [], binary: false }, 'empty stdout is an honest empty change');
   const empty = await registry.invoke({ callId: 'c10', tool: 'git.show', args: { path: 'README.md' } }, { checkpoint: human });
-  assert.equal(empty.output.detail, 'git.show → exit 0: HEAD touches nothing at README.md (empty diff — the file is in history but this commit did not change it)');
+  assert.equal(empty.output.detail, 'git.show → exit 0: HEAD touches nothing at README.md (empty diff — git recorded no change for this path in HEAD)');
   assert.equal(empty.output.addedLines.length, 0, 'a file in the repo but untouched by HEAD says so, instead of inventing content');
 
   assert.ok(spawns.every((a) => a.startsWith('commit -m ') || a.startsWith('log --oneline') || a.startsWith('show --format= -- ')), `every process born here was one of the three pinned shapes: ${JSON.stringify([...new Set(spawns.map((s) => s.split(' ')[0]))])}`);
