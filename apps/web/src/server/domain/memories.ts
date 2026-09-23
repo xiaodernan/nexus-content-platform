@@ -1,4 +1,5 @@
 import { and, desc, eq, inArray, isNull, or } from 'drizzle-orm';
+import { syncProjectKnowledge } from './knowledge';
 import { getDb } from '../db/client';
 import { memories } from '../db/schema';
 
@@ -144,6 +145,9 @@ export async function addMemory(input: {
       meta: { source: 'manual' },
     })
     .returning();
+  // 「我的偏好」类不挂项目（上面 project_id 写的是 null），也就不在任何项目的
+  // 语料库里——重建索引对它是白做一次全量删写。与 deleteMemory 保持同一判断。
+  if (input.scope !== 'user') await syncProjectKnowledge(input.projectId);
   return { ok: true, entry: toEntry(row!) };
 }
 
@@ -152,8 +156,12 @@ export async function deleteMemory(id: string, ownerId: string): Promise<boolean
   const deleted = await db
     .delete(memories)
     .where(and(eq(memories.id, id), eq(memories.ownerId, ownerId)))
-    .returning({ id: memories.id });
-  return deleted.length > 0;
+    .returning({ id: memories.id, projectId: memories.projectId });
+  if (!deleted.length) return false;
+  // 记忆也是语料（§49）：删掉之后索引里不能再留着那条被删的记忆。
+  // 「我的偏好」类不挂项目、也就不在任何语料库里，删它不该触发重建
+  if (deleted[0]!.projectId) await syncProjectKnowledge(deleted[0]!.projectId);
+  return true;
 }
 
 /**
@@ -173,5 +181,6 @@ export async function clearMemories(
     .where(and(ownerCondition({ ownerId, projectId }), eq(memories.scope, scope)));
   if (!rows.length) return { removed: 0 };
   await db.delete(memories).where(inArray(memories.id, rows.map((r) => r.id)));
+  await syncProjectKnowledge(projectId);
   return { removed: rows.length };
 }

@@ -6,6 +6,7 @@ import {
   type Character,
   type CharacterProfile,
 } from '@nexus/world-model';
+import { syncProjectKnowledge } from './knowledge';
 import { getDb } from '../db/client';
 import { characters, worlds } from '../db/schema';
 
@@ -96,6 +97,7 @@ export async function createProjectCharacter(
     })
     .returning();
   if (!row) return { ok: false, reason: '建档时没写到任何行。' };
+  await syncProjectKnowledge(projectId);
   return {
     ok: true,
     character: { ...character, id: row.id, worldId: row.worldId, projectId: row.projectId },
@@ -143,6 +145,7 @@ export async function updateCharacterProfile(
     .where(and(eq(characters.id, characterId), eq(characters.projectId, projectId)))
     .returning();
   if (!updated) return { ok: false, reason: '保存档案时没写到任何行。' };
+  await syncProjectKnowledge(projectId);
   return { ok: true, character: next };
 }
 
@@ -151,6 +154,8 @@ export async function deleteCharacter(characterId: string, projectId: string): P
   const deleted = await db
     .delete(characters)
     .where(and(eq(characters.id, characterId), eq(characters.projectId, projectId)))
-    .returning({ id: characters.id });
-  return deleted.length > 0;
+    .returning({ id: characters.id, projectId: characters.projectId });
+  if (!deleted.length) return false;
+  await syncProjectKnowledge(deleted[0]!.projectId ?? projectId);
+  return true;
 }

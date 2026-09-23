@@ -1,6 +1,7 @@
 import { desc, eq } from 'drizzle-orm';
 import { WorldDocumentSchema } from '@nexus/schemas';
 import { validateWorld, type WorldDocument } from '@nexus/world-model';
+import { syncProjectKnowledge } from './knowledge';
 import { getDb } from '../db/client';
 import { worlds } from '../db/schema';
 
@@ -100,6 +101,7 @@ export async function saveWorld(
       .where(eq(worlds.id, existing.id))
       .returning({ id: worlds.id });
     if (!row) return { ok: false, reason: '保存世界文档时没写到任何行' };
+    await syncProjectKnowledge(projectId);
     return { ok: true, document: { ...stamped, id: row.id } };
   }
 
@@ -113,6 +115,7 @@ export async function saveWorld(
       document: stamped,
     })
     .returning({ id: worlds.id });
+  await syncProjectKnowledge(projectId);
   return { ok: true, document: { ...stamped, id: inserted!.id } };
 }
 

@@ -995,3 +995,43 @@ test('@smoke 记忆：记三类、刷新仍在、按类清空（§48）', async 
   await expect(page.locator('[data-memory-entry]')).toHaveCount(0);
   await expect(page.locator('[data-memory-empty="world"]')).toBeVisible();
 });
+
+/**
+ * §49 检索面板：语料来自世界条目与记忆，命中方式如实标出，向量不可用时明说。
+ */
+test('@smoke 检索：世界条目进索引、中文子串命中、说明向量未接（§49）', async ({ page }) => {
+  test.setTimeout(180_000);
+  await createProject(page, `检索 ${Date.now().toString(36)}`);
+  await page.click('[data-panel-tab="world"]');
+  await expect(page.locator('[data-world-empty]')).toBeVisible({ timeout: 40_000 });
+  await page.click('[data-world-create]');
+  await expect(page.locator('[data-world-node]')).toHaveCount(9);
+
+  const loreBody = page.locator('[data-world-group="lore"] [data-world-body]').first();
+  await loreBody.fill('王城在第七次日蚀下投降，守钟人再没有敲响过。');
+  await page.click('[data-world-name]');
+  await expect(page.locator('[data-world-pending]')).toHaveAttribute('data-world-pending', 'false', { timeout: 20_000 });
+
+  await page.click('[data-panel-tab="retrieve"]');
+  await expect(page.locator('[data-retrieve-panel]')).toBeVisible();
+  await expect(page.locator('[data-knowledge-total]')).not.toHaveText('0 块');
+  await expect(page.locator('[data-retrieve-note]')).toContainText('向量检索未接');
+
+  await page.fill('[data-retrieve-query]', '守钟人再没有敲响过');
+  await page.click('[data-retrieve-run]');
+  await expect(page.locator('[data-retrieve-hit]')).not.toHaveCount(0);
+  const first = page.locator('[data-retrieve-hit]').first();
+  await expect(first).toContainText('守钟人再没有敲响过');
+  await expect(first.locator('[data-retrieve-matched]')).toContainText('substring');
+  await expect(first.locator('[data-retrieve-source]')).toHaveText('传说');
+
+  // 查一个不存在的东西：要如实说没有命中，而不是硬凑几条
+  await page.fill('[data-retrieve-query]', '会说话的月亮桥');
+  await page.click('[data-retrieve-run]');
+  await expect(page.locator('[data-retrieve-empty]')).toBeVisible();
+
+  // 重建索引：块数不该因为重跑而变化（幂等）
+  const before = await page.locator('[data-knowledge-total]').textContent();
+  await page.click('[data-retrieve-rebuild]');
+  await expect(page.locator('[data-knowledge-total]')).toHaveText(before ?? '0 块', { timeout: 20_000 });
+});

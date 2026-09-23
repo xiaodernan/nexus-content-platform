@@ -12,6 +12,7 @@ import { HealthRail } from './HealthPanel';
 import { WorldPanel } from './WorldPanel';
 import { CharacterPanel } from './CharacterPanel';
 import { MemoryPanel } from './MemoryPanel';
+import { RetrievePanel } from './RetrievePanel';
 import { WorldGraphView } from './WorldGraphView';
 import { worldStore } from './worldStore';
 import { PropertiesPanel } from './PropertiesPanel';
@@ -20,7 +21,7 @@ import { CodePanel } from './CodePanel';
 import { VariantsBoard } from './VariantsBoard';
 import { CommandBar } from './CommandBar';
 
-type PanelTab = 'layers' | 'design' | 'assets' | 'world' | 'characters' | 'memory' | 'history' | 'health';
+type PanelTab = 'layers' | 'design' | 'assets' | 'world' | 'characters' | 'memory' | 'retrieve' | 'history' | 'health';
 
 const TABS: { id: PanelTab; label: string }[] = [
   { id: 'layers', label: '图层' },
@@ -29,6 +30,7 @@ const TABS: { id: PanelTab; label: string }[] = [
   { id: 'world', label: '世界' },
   { id: 'characters', label: '角色' },
   { id: 'memory', label: '记忆' },
+  { id: 'retrieve', label: '检索' },
   { id: 'history', label: '历史' },
   { id: 'health', label: '健康' },
 ];
@@ -118,6 +120,8 @@ function StudioWorkspace({ zoom, demoMode }: { zoom: number; demoMode: boolean }
             <CharacterPanel />
           ) : tab === 'memory' ? (
             <MemoryPanel />
+          ) : tab === 'retrieve' ? (
+            <RetrievePanel />
           ) : tab === 'health' ? (
             <HealthRail />
           ) : (

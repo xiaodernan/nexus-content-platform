@@ -315,7 +315,11 @@ warm 方向奶油字压亮橙 3.35:1、cyber 的 light 模式是深底配深字 
   见下方进度记录；§47 的"跟角色说话"要真 provider，没接之前不做假对话。
 - [x] Memory 四类（Session/Character/World/User）可查看可删除（§48）— 见下方进度记录。
   四类都能记、能列、能单条删、能按类清空；**没有"全部抹掉"的入口，也没有搜索框**（检索要 embedding，§49）。
-- [ ] pgvector RAG：hybrid retrieval + rerank（§49/93）
+- [~] pgvector RAG：hybrid retrieval + rerank（§49/93）— 语料索引（世界条目/角色档案/记忆 →
+  `knowledge_chunks`）+ 混合检索（tsvector 全文 + 子串 + 词覆盖度的确定性融合）已落地，
+  见下方进度记录。**两件事没做，也不假装做了**：① embedding 列没有 provider 时保持 null、
+  返回 `vectorAvailable: false`，所以没有语义检索；② §49 的 "Reranking" 要真模型，
+  现在给的是规则重排（融合分数 + 新近），不是模型重排。**集成测试待跑**（需 Postgres）。
 
 **M3 进度记录（2026-09-23，World Builder 第一切片，§44）**：新开一个纯模型包
 `packages/world-model`（与 design-model 同一条纪律：无 React / 无 IO，浏览器与服务端跑同一份校验）。
@@ -420,6 +424,57 @@ session 类跟着项目的工作过程走（`project:<id>`），world / characte
 验证：`npm test` 374（真库集成 +6：四类计数、主体必填、陌生人看不见删不掉、
 跨项目只见全局不见项目记忆、按类清空、删项目后项目记忆级联消失而偏好留着）、
 @smoke 21 条全绿；面板截图人眼确认三类分组、主体标签与清空入口。
+
+**M3 进度记录（2026-09-23，§49 语料索引与混合检索）**：RAG 里**不需要模型**的那一半落地了。
+
+切分与入库：世界条目（§44）、角色档案（§46）、四类记忆（§48）→ `knowledge_chunks`。
+切分是确定性的（先按空行分段、攒到 700 字收尾、单段超 1200 才硬切，不重叠不随机）——
+同一份内容每次切出同样的块，"重建一次看差异"才有意义。空正文的小节不进索引：
+检索结果里出现一排「外观：（空）」比查不到更糟。
+`syncProjectKnowledge` 走**全量删+重写**而不是增量对齐：多花一点写代价，
+换掉"改了却还检索到旧内容"这类最难查的谎。写路径（存世界 / 存角色 / 记记忆 / 删角色 /
+删记忆 / 清空记忆）都自动触发同步；面板另给一个显式"重建"按钮，自动同步保证不撒谎、
+手动重建保证可核对。删记忆走的是 `deleteMemory` 的返回值判定，
+「我的偏好」类不挂项目、不在任何语料库里，因此不触发重建（加与删都按这条判断）。
+
+混合检索为什么必须留子串命中：`'simple'` 配置的 tsvector **不按词切中文**——
+一整句中文是一个 token，于是全文检索对中文语料几乎不命中。只报 tsvector 分数会让
+中文用户以为索引坏了。所以候选集 = 全文命中 ∪ 整句子串命中 ∪ 任一词条子串命中，
+再在 TS 里算三个**可解释的加数**（fulltext / substring / coverage）融合排序，
+返回里带 `matchedBy` 与 `parts`——分数不藏在黑盒后面。同分按新近。
+语料按项目隔离；「我的偏好」类记忆 `project_id` 是 null，不进任何项目的语料库：
+§49 的语料清单是 Lore/Characters/History/Locations/Items/Quests/Documents，用户偏好不在其中。
+
+**明确不做、也不假装做的两件事**：① `embedding` 列没有 provider 时保持 null，
+返回 `vectorAvailable: false`，面板顶部常驻「向量检索未接」——没有语义检索就说没有；
+② §49 的 "Reranking" 要真模型才谈得上，现在给的是**规则重排**（融合分数 + 新近），
+`reranker` 字段如实写 `deterministic-fusion`，不冒充模型重排。
+
+**过程中修掉一个会 100% 炸的 bug（本轮）**：检索的候选集条件原来把词条拼成一个字符串
+再塞进 drizzle 的 `sql` 模板：
+
+```ts
+sql`${needles.map((n) => `lower(content) like ${'%' + n + '%'}`).join(' or ')}`
+```
+
+drizzle 把整个拼接结果当成**单个绑定参数**，生成的 SQL 是 `or $6`，而 $6 是文本，
+Postgres 直接报 `argument of OR must be type boolean, not type text`。
+也就是说**任何非空查询都会失败**——检索面板整个不可用。拼接字符串同时还等于
+把用户输入当 SQL（注入面）。
+
+这个 bug 单测抓不到（纯函数那一半不碰 SQL），集成测试能抓但需要真库；
+发现它的方式是**不连库、只用 drizzle 的 `.toSQL()` 把渲染结果打出来看**。
+修法是逐条生成条件再 `or(...)` 起来，每个词条各自成为一个绑定参数。
+为了防止再犯，把条件构造抽成纯函数 `buildRetrievalFilter(projectId, query)`，
+并补 4 条**不连库**的回归断言（见 `apps/web/test/knowledge.test.ts`）：
+参数里不允许出现 SQL 片段、占位符数与参数数一致、中英文查询都合法、项目隔离条件永远在场。
+
+验证：`npm run lint` 通过；`apps/web/test/knowledge.test.ts` 11 条全绿（切分确定性 /
+三类语料映射 / 空小节不进索引 / tokens 估算 / 上面 4 条 SQL 回归）。
+**集成测试与 @smoke 待跑**：`knowledge.integration.test.ts`（6 条：建索引、中文子串 vs
+英文全文、空查询、记忆删除后不再命中、项目隔离、重建幂等）与 `studio.spec.ts` 新增的
+§49 @smoke 都需要 Postgres——本轮 Docker Desktop 未运行，74 条真库用例整体未执行，
+**因此本条仍标 `[~]` 而非 `[x]`**。
 
 ## M4 — 3D 与游戏（§184）
 - [ ] Three.js / React Three Fiber 运行时
