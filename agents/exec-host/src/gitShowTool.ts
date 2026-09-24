@@ -1,5 +1,5 @@
 import type { ExecPolicy, ToolRegistry, ToolSpec } from '@nexus/agent-runtime';
-import { budgetFlags, GIT_DIFF_FLAGS, GIT_ENV_NAMES, cutNotAbsence, gitEnv, gitVerdict, quoteVerdict, refusedNotAbsence, stdoutWasCut } from './gitTools.js';
+import { budgetFlags, GIT_DIFF_FLAGS, GIT_ENV_NAMES, cutNotAbsence, gitEnv, gitVerdict, isQuotedRendering, quoteVerdict, refusedNotAbsence, stdoutWasCut } from './gitTools.js';
 import type { ExecHost, ExecRunResult } from './execHost.js';
 
 /**
@@ -65,6 +65,12 @@ export function validateShowPath(path: unknown): string {
   if (typeof path !== 'string' || path.trim() === '') throw new Error('git.show needs a non-empty path');
   if (/\s/.test(path) && path !== path.trim()) throw new Error('git.show path must not carry surrounding whitespace');
   if (/[\n\r]/.test(path)) throw new Error('git.show path must be one line');
+  // M2 v61: a string that STARTS and ENDS with a quote is git's escaping of a path, not a path.
+  // `core.quotePath=false` is now forced, so this arrives only from a name containing `"`, a
+  // backslash or a control character — or from a caller passing on a rendering it read elsewhere.
+  // Handing it to git would produce exit 0 with an EMPTY diff about a file that was never asked
+  // about, the one answer this door may not give (v44 measured that emptiness), so it refuses first.
+  if (isQuotedRendering(path)) throw new Error('git.show path is a C-QUOTED RENDERING, not a path — name the file itself (a real filename may of course start with a quote; git cannot tell the two apart from the string, so this door asks rather than guesses)');
   if (path.startsWith('-')) throw new Error('git.show path must not start with "-" (options are not content)');
   if (/^[a-zA-Z]:[\\/]/.test(path) || path.startsWith('/') || path.startsWith('\\')) throw new Error('git.show path must be repo-relative, not absolute');
   if (path.split(/[\\/]/).includes('..')) throw new Error('git.show path must not climb out of the repository');

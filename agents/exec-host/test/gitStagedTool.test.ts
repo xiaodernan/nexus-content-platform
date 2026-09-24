@@ -60,6 +60,39 @@ describe('parseStagedDiff (the index as a stated set of changes, pure data)', ()
     expect(parseStagedDiff(RENAMED).files[0]).toMatchObject({ path: 'after.md', change: 'renamed', additions: 1, deletions: 1, addedLines: ['here, renamed'] });
   });
 
+  // v61: v43 read `rename from` to DECIDE the kind and then threw the name away — so the pre-commit
+  // window showed one half of a rename, and the half it showed is the one HEAD does not have yet.
+  it('a rename keeps its pre-image: `rename from` is kept, not only believed (v61)', () => {
+    expect(parseStagedDiff(RENAMED).files[0]!.fromPath).toBe('before.md');
+    const copied = 'diff --git a/orig.md b/clone.md\nsimilarity index 100%\ncopy from orig.md\ncopy to clone.md\n--- a/orig.md\n+++ b/clone.md\n';
+    expect(parseStagedDiff(copied).files[0]).toMatchObject({ path: 'clone.md', change: 'copied', fromPath: 'orig.md' });
+  });
+
+  it('an entry that is NOT a pair carries no fromPath key at all, and neither does a plain path (v61)', () => {
+    const [one] = parseStagedDiff(MODIFIED).files;
+    expect(one).toBeDefined();
+    expect('fromPath' in one!).toBe(false);
+    expect('quoted' in one!).toBe(false);
+  });
+
+  it('a path that reaches the door as git\'s C-QUOTED RENDERING is marked as one (v61)', () => {
+    const quoted = 'diff --git "a/notes/caf\\303\\251.md" "b/notes/caf\\303\\251.md"\nindex 1..2 100644\n--- "a/notes/caf\\303\\251.md"\n+++ "b/notes/caf\\303\\251.md"\n@@ -1 +1 @@\n-cafe\n\\ No newline at end of file\n+caf\\303\\251\n';
+    const [f] = parseStagedDiff(quoted).files;
+    expect(f).toMatchObject({ path: '"notes/caf\\303\\251.md"', change: 'modified', quoted: true });
+  });
+
+  // v61, measured on real git: a rename too pure to carry a hunk prints NO `---`/`+++` lines, so its two
+  // names exist only in `rename from` / `rename to` — and the header of that same change splits by
+  // position, which a directory name ending in a space (`m b/`) steals.
+  it('a rename too pure for a hunk is named by its own lines, and the stolen header split loses (v61)', () => {
+    const spaced = 'diff --git a/x.md b/m b/n.md\nsimilarity index 100%\nrename from x.md\nrename to m b/n.md\n';
+    const [f] = parseStagedDiff(spaced).files;
+    expect(f).toMatchObject({ path: 'm b/n.md', fromPath: 'x.md', change: 'renamed' });
+    expect('quoted' in f!).toBe(false);
+    const copy = 'diff --git a/o.md b/c o.md\nsimilarity index 100%\ncopy from o.md\ncopy to c o.md\n';
+    expect(parseStagedDiff(copy).files[0]).toMatchObject({ path: 'c o.md', fromPath: 'o.md', change: 'copied' });
+  });
+
   it('several staged files tally per-file AND in one set of totals', () => {
     const { files, counts, totals } = parseStagedDiff(`${ADDED}${MODIFIED}${DELETED}`);
     expect(files.map((f) => f.change)).toEqual(['added', 'modified', 'deleted']);

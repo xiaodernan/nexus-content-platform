@@ -97,6 +97,100 @@ export const unmergedStatusNotice = (paths: string[]): string =>
   `git reported ${paths.length} UNMERGED path(s) (${paths.join(', ')}) — a conflicted working tree, so these entries are NOT a staged change and a granted git.commit right now would be refused by git itself`;
 
 /**
+ * M2 v61 (ADR 0016 amendment 61): is this string a PATH, or git's C-quoted PICTURE of one?
+ * Measured on this box with v46's `core.quotePath=false` in place: whitespace ALONE makes git quote a
+ * porcelain path (` M "plain name.md"`), so a quote is not by itself evidence of escaping — and every
+ * character that genuinely needs escaping (`"`, a backslash, a control character, and any non-ASCII byte
+ * when quotePath is left at git's default) escapes as a BACKSLASH sequence. That asymmetry is what
+ * `unwrapRendering` turns into a rule.
+ */
+export const isQuotedRendering = (s: string): boolean => s.length > 2 && s.startsWith('"') && s.endsWith('"');
+
+/**
+ * M2 v61: git's rendering → the name, when and only when the rendering escaped nothing.
+ * No backslash inside the quotes means git was quoting an ordinary name, so the bytes between the
+ * quotes ARE the file — which matters because a repo with spaced filenames would otherwise hand every
+ * entry to the reader unopenable, and `git.show` would refuse them all. A backslash means git was
+ * escaping something, and this door will not guess at what: the rendering is kept and MARKED, so the
+ * reader is told the name is a photograph rather than being handed a plausible-looking forgery.
+ * Measured bound: on NTFS neither `"` nor `>` nor a tab can even be created in a filename (the proof
+ * records the failed attempts), so the escaped branch is exercised by fixture here, not by a file.
+ */
+export function unwrapRendering(s: string): { name: string; quoted: boolean } {
+  if (!isQuotedRendering(s)) return { name: s, quoted: false };
+  const inner = s.slice(1, -1);
+  if (inner.includes('\\')) return { name: s, quoted: true };
+  return { name: inner, quoted: false };
+}
+
+/**
+ * M2 v61: a rename is ONE change with TWO names, and only one of them is in HEAD. v32 kept the new
+ * name and threw the old one away, so the door handed the agent a path and the agent took it to
+ * `git.show` — which answers exit 0 with an EMPTY diff for a path HEAD has never heard of (measured:
+ * 160 bytes under the old name, 0 under the new). The pair is therefore part of the answer.
+ */
+export const renamePairNotice = (pairs: Array<{ from: string; to: string }>): string =>
+  `git.status carries ${pairs.length} rename/copy PAIR(s): ${pairs.map((p) => `${p.from} -> ${p.to}`).join(', ')} — the left name is what HEAD knows and the right name is what is on disk, so reading the pair through either name alone reports half the change`;
+
+/**
+ * M2 v61: the same warning for the entries this door could NOT turn back into a name — the residue after
+ * `unwrapRendering`, which is only reached when git escaped something inside the quotes. Every character
+ * it escapes (`"`, a backslash, a control character, non-ASCII under the default pin) is one the reader
+ * would otherwise have to guess at.
+ */
+export const quotedPathNotice = (paths: string[]): string =>
+  `${paths.length} path(s) arrive in git's C-QUOTED RENDERING with escapes inside (${paths.join(', ')}) — some character of the real name is NOT in this string: it will not open, will not match a pathspec, and must not be passed on as one`;
+
+/**
+ * M2 v61: `diff --git <pre> <post>` in EITHER rendering git uses — the plain `a/x b/x`, or the
+ * C-quoted `"a/x" "b/x"` it falls back to for a name containing `"`, a backslash, a control
+ * character or (before v61 pinned `core.quotePath=false`) any non-ASCII byte. v32's matcher required
+ * the plain form, so a quoted name made the whole FILE vanish from the answer, and a door that
+ * parsed no files declared the thing it was reading to be EMPTY — v52's lie-by-omission escalated
+ * into a positive claim of absence. One matcher now serves both diff doors, and a rendering it
+ * cannot unwrap is at least counted and named.
+ */
+const DIFF_HEADER = /^diff --git (?:"a\/(.*)"|a\/(.*)) (?:"b\/(.*)"|b\/(.*))$/;
+
+/** The two names a diff section is about, and whether either reached us as an UNESCAPABLE rendering. */
+export function parseDiffHeader(line: string): { from: string; to: string; quoted: boolean } | null {
+  const m = DIFF_HEADER.exec(line);
+  if (!m) return null;
+  // groups 1/3 are the quoted form (the alternation ate the quotes, so they go back on); 2/4 are plain
+  const from = unwrapRendering(m[1] !== undefined ? `"${m[1]}"` : (m[2] ?? ''));
+  const to = unwrapRendering(m[3] !== undefined ? `"${m[3]}"` : (m[4] ?? ''));
+  if (from.name === '' || to.name === '') return null; // a half-header names nothing
+  return { from: from.name, to: to.name, quoted: from.quoted || to.quoted };
+}
+
+/**
+ * M2 v61: `+++ b/p` names a path ONE LINE AT A TIME, which the header cannot promise. A header has to be
+ * split by position, and `diff --git a/x.md b/m b/n.md` — a directory whose name ends in a space, which
+ * NTFS allows and the proof creates — steals that split and yields a name that is two paths glued
+ * together. Measured: git prints both forms for the same change, so wherever a per-line name exists it
+ * wins. `/dev/null` is not a name, and a rendering that survives unwrapping stays verbatim and announced.
+ */
+export function parseFileLine(line: string): { path: string; quoted: boolean } | null {
+  const m = /^\+\+\+ (?:"b\/(.*)"|b\/(.*))$/.exec(line);
+  if (!m) return null;
+  const r = unwrapRendering(m[1] !== undefined ? `"${m[1]}"` : (m[2] ?? ''));
+  if (r.name === '/dev/null') return null; // a deletion's target says nothing about the path
+  return { path: r.name, quoted: r.quoted };
+}
+
+/**
+ * M2 v61: ONE sentence-pair for the doors that report parsed paths (`git.status`, `git.staged`),
+ * the same way v52 gave every door one verdict rule and v56 one budget rule. A door that lists
+ * entries owes the reader whatever those entries cannot say for themselves: a rename has two names,
+ * and a rendering is not a path.
+ */
+export const pathShapeNotices = (entries: Array<{ path: string; fromPath?: string; quoted?: boolean }>): string => {
+  const pairs = entries.filter((e) => e.fromPath !== undefined).map((e) => ({ from: e.fromPath!, to: e.path }));
+  const rendered = entries.filter((e) => e.quoted).map((e) => e.path);
+  return `${pairs.length > 0 ? ` · ${renamePairNotice(pairs)}` : ''}${rendered.length > 0 ? ` · ${quotedPathNotice(rendered)}` : ''}`;
+};
+
+/**
  * M2 v52: the read doors' twin of v48's `cutNotAbsence`. A command that FAILED reads nothing for a
  * reason that says nothing about the repository — `git status` on a corrupt index exits 128 with an
  * EMPTY stdout, and "0 entries" is a count of what the door read, never a claim that the tree is
@@ -155,6 +249,14 @@ export interface GitStatusFile {
   xy: string;
   status: string;
   path: string;
+  /**
+   * M2 v61: the OTHER half of a rename/copy — the name HEAD knows. Present only on a `R`/`C`
+   * entry that git printed as `old -> new`; v32 dropped it, which is how a rename reached
+   * `git.show` as a bare new path and came back looking like an absent file.
+   */
+  fromPath?: string;
+  /** M2 v61: this path is git's C-QUOTED RENDERING, not the bytes on disk (see quotedPathNotice). */
+  quoted?: boolean;
 }
 
 /**
@@ -176,7 +278,15 @@ const STATUS_ORDER: [string, string][] = [
   ['M', 'modified'],
 ];
 
-/** Porcelain v1 (`--short`): `XY path`, renames as `XY old -> new` (new path wins). */
+/**
+ * M2 v61: porcelain v1 prints `XY old -> new` for exactly two families — a rename (`R`) and a copy
+ * (`C`). Cutting at ` -> ` unconditionally read the SEPARATOR out of the data instead of the format:
+ * on a filesystem that allows `>` in a name, `M  a -> b.md` is ONE modified file and used to become a
+ * pair with half of a real filename deleted from the answer.
+ */
+const PAIRED_XY = /[RC]/;
+
+/** Porcelain v1 (`--short`): `XY path`, renames and copies as `XY old -> new` — the new path wins the `path` field, and v61 keeps the old one too. */
 export function parseGitStatus(stdout: string): { files: GitStatusFile[]; counts: Record<string, number> } {
   const files: GitStatusFile[] = [];
   const counts: Record<string, number> = {};
@@ -184,11 +294,29 @@ export function parseGitStatus(stdout: string): { files: GitStatusFile[]; counts
     if (line.trim() === '') continue;
     const xy = line.slice(0, 2);
     let rest = line.slice(2).trim();
-    const arrow = rest.indexOf(' -> ');
-    if (arrow >= 0) rest = rest.slice(arrow + 4);
+    let fromPath: string | undefined;
+    if (PAIRED_XY.test(xy)) {
+      // Both halves quoted → git's separator is the LAST `" -> "`, which lets a name keep its own arrow.
+      // Otherwise the first ` -> ` splits the pair (measured: git quotes only the half that needs it, as in
+      // `R  x.md -> "m b/n.md"`). Residual bound: a name that needs quoting AND ends quote-adjacent to an
+      // arrow still reads as a separator here — porcelain v2's NUL-terminated fields are git's own answer
+      // to that, and they are the next increment's subject rather than this one's.
+      const quotedSep = rest.includes('" -> "');
+      const arrow = quotedSep ? rest.lastIndexOf('" -> "') : rest.indexOf(' -> ');
+      if (arrow >= 0) {
+        // the six-byte separator shares one quote with each half, so each slice keeps the quote that closes/left it
+        fromPath = rest.slice(0, arrow + (quotedSep ? 1 : 0));
+        rest = rest.slice(arrow + (quotedSep ? 5 : 4));
+      }
+    }
     const hit = UNMERGED_XY.has(xy) ? undefined : STATUS_ORDER.find(([code]) => xy.includes(code));
     const status = hit ? hit[1] : UNMERGED_XY.has(xy) ? 'unmerged' : 'other';
-    files.push({ xy, status, path: rest });
+    const path = unwrapRendering(rest);
+    const from = fromPath === undefined ? undefined : unwrapRendering(fromPath);
+    const file: GitStatusFile = { xy, status, path: path.name };
+    if (from !== undefined) file.fromPath = from.name;
+    if (path.quoted || (from?.quoted ?? false)) file.quoted = true;
+    files.push(file);
     counts[status] = (counts[status] ?? 0) + 1;
   }
   return { files, counts };
@@ -199,6 +327,8 @@ export interface GitDiffFile {
   hunks: number;
   additions: number;
   deletions: number;
+  /** M2 v61: this path reached us as git's C-QUOTED RENDERING. A worktree-vs-index diff has no rename to name (measured: git reports an un-staged rename as a delete plus an untracked file), so unlike the index-facing doors this one carries no pre-image. */
+  quoted?: boolean;
 }
 
 /** Unified `git diff` text → per-file line tallies; `+++`/`---` headers never count. */
@@ -206,13 +336,20 @@ export function parseGitDiff(stdout: string): { files: GitDiffFile[]; totals: { 
   const files: GitDiffFile[] = [];
   let current: GitDiffFile | null = null;
   for (const line of stdout.split('\n')) {
-    const header = /^diff --git a\/(.+) b\/(.+)$/.exec(line);
+    const header = parseDiffHeader(line); // v61: one matcher for both renderings git uses
     if (header) {
-      current = { path: header[2]!, hunks: 0, additions: 0, deletions: 0 };
+      current = { path: header.to, hunks: 0, additions: 0, deletions: 0 };
+      if (header.quoted) current.quoted = true;
       files.push(current);
       continue;
     }
     if (!current) continue; // preamble before the first file is not a diff
+    const named = parseFileLine(line); // v61: git's own per-line name beats a header whose split a ` b/` stole
+    if (named) {
+      current.path = named.path;
+      if (named.quoted) current.quoted = true;
+      continue;
+    }
     if (line.startsWith('@@')) current.hunks += 1;
     else if (line.startsWith('+') && !line.startsWith('+++')) current.additions += 1;
     else if (line.startsWith('-') && !line.startsWith('---')) current.deletions += 1;
@@ -266,7 +403,7 @@ export function registerGitTools(registry: ToolRegistry, host: ExecHost, options
       .join(', ');
     const conflicted = files.filter((f) => f.status === 'unmerged').map((f) => f.path);
     const detail = ok
-      ? `git.status → exit ${result.exitCode}: ${files.length} entries${tally === '' ? '' : ` (${tally})`}${conflicted.length > 0 ? ` · ${unmergedStatusNotice(conflicted)}` : ''}${flags(result)}`
+      ? `git.status → exit ${result.exitCode}: ${files.length} entries${tally === '' ? '' : ` (${tally})`}${conflicted.length > 0 ? ` · ${unmergedStatusNotice(conflicted)}` : ''}${pathShapeNotices(files)}${flags(result)}`
       : `git.status → exit ${result.exitCode}: ${quoteVerdict(gitVerdict(result.stdout, result.stderr, { truncated: result.truncated || result.killedByBudget }))} · ${files.length} entries parsed · ${refusedNotAbsence('the working tree is clean or empty')}${flags(result)}`;
     return { ok, detail, exitCode: result.exitCode, files, counts, truncated: result.truncated };
   });
@@ -289,7 +426,7 @@ export function registerGitTools(registry: ToolRegistry, host: ExecHost, options
     const notice = unmergedNotice(result.stdout);
     const tally = `${totals.files} files, +${totals.additions} −${totals.deletions} (${totals.hunks} hunks)`;
     const detail = ok
-      ? `git.diff → exit 0: ${tally}${notice.length > 0 ? ` · ${unmergedNotAbsence(notice)}` : ''}${flags(result)}`
+      ? `git.diff → exit 0: ${tally}${notice.length > 0 ? ` · ${unmergedNotAbsence(notice)}` : ''}${pathShapeNotices(files)}${flags(result)}`
       : `git.diff → exit ${result.exitCode}: ${quoteVerdict(gitVerdict(result.stdout, result.stderr, { truncated: result.truncated || result.killedByBudget }))} · ${tally} · ${refusedNotAbsence('the tree has no changes')}${flags(result)}`;
     return { ok, detail, exitCode: result.exitCode, mode: 'full', files, totals, truncated: result.truncated };
   });

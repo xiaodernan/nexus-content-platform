@@ -28,11 +28,21 @@
  *
  * Two layers close it, because they cover two different sources:
  *   • the ENV pins below make the machine's unreviewed config inert (and deterministic
- *     across machines, which every proof in this repo quietly assumes), and force four
- *     repo values past `.git/config` — measured: the counted override really does win;
+ *     across machines, which every proof in this repo quietly assumes), and force repo
+ *     values past `.git/config` — measured: the counted override really does win;
  *   • the argv shape (`--no-ext-diff --no-textconv`, see gitTools) confines what env
  *     pinning cannot: the repo's OWN config and committed `.gitattributes`, which §9 puts
  *     off-limits — we will not rewrite a human's repository to make our read safe.
+ *
+ * M2 v61 (ADR 0016 amendment 61) adds a FIFTH forced value, for a different reason than the four
+ * above. `core.quotePath` is git's default-true permission to render any path that is not plain
+ * ASCII as a C-quoted, octal-escaped STRING — `docs/café-note.md` arrives as
+ * `"docs/caf\303\251-note.md"`. Measured against real git: that picture is not a path. It is not
+ * what is on disk, `git show -- "<picture>"` answers exit 0 with an EMPTY diff (so the content door
+ * reports absence about a file that exists), and `git.staged` loses the entry outright, because git
+ * quotes the WHOLE header — `diff --git "a/…" "b/…"` — and the parser needs a bare `a/`. Forcing the
+ * value to `false` makes every door speak the bytes on disk. It confines no command; it is the
+ * difference between a door reporting a path and a door reporting a photograph of one.
  */
 
 /** Vars passed through from the host process because git needs them to run at all. */
@@ -63,11 +73,16 @@ export const GIT_ISOLATION_ENV: Record<string, string> = {
  * the argv shape instead — which is also where it belongs: the shape does the confining.
  * `core.attributesFile` is forced because a global attributes file can name a diff driver;
  * it reaches NOTHING in the tree itself, so the shape carries `.gitattributes`.
+ * `core.quotePath` (v61) is the odd one out: it confines no command and hides no file, it
+ * decides whether git hands the doors a PATH or a C-quoted PICTURE of one. `false` is not
+ * an inert value either — measured, it changes the bytes of every path in `status --short`
+ * and in the `diff --git` headers the parsers key on, and changes nothing else.
  */
 export const GIT_FORCED_CONFIG: Record<string, string> = {
   'core.fsmonitor': '', // a non-empty value is a COMMAND git runs while scanning the tree
   'core.excludesFile': '', // an ignore file of `*` silently hides untracked files
   'core.attributesFile': '', // attributes select diff drivers, and a diff driver is a command
+  'core.quotePath': 'false', // v61: true renders a non-ASCII path as an escaped string, not a path
   'status.showUntrackedFiles': 'all', // `no` is a silent blind, not an error
 };
 

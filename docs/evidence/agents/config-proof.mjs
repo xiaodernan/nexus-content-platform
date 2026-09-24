@@ -19,7 +19,8 @@
 //                                        NO CHANGE about a real one.
 //
 // Two layers close it, because they cover two different sources: pinned env (the machine's
-// own config, plus four repo values forced through git's counted override) and pinned argv
+// own config, plus five repo values forced through git's counted override — v46's four and v61's
+// `core.quotePath`, which confines not what git MAY DO but what it may SAY about a filename) and pinned argv
 // (`--no-ext-diff --no-textconv`, the only thing that reaches repo DATA, which §9 puts
 // off-limits: we will not rewrite a human's repository to make our read safe).
 // Run after `npm run build`:  node docs/evidence/agents/config-proof.mjs
@@ -83,7 +84,7 @@ const emitted = gitEnv({ PATH: '/bin', SYSTEMROOT: 'C:/w', HOME: '/h', USERPROFI
 assert.deepEqual(GIT_ISOLATION_ENV.GIT_CONFIG_GLOBAL, GIT_ABSENT_CONFIG, 'config discovery is aimed at a file that must not exist');
 assert.equal(emitted.GIT_CONFIG_COUNT, String(Object.keys(GIT_FORCED_CONFIG).length), 'the forced table is counted, and the count IS its length');
 assert.deepEqual(Object.keys(forcedConfigEnv()).filter((k) => k.startsWith('GIT_CONFIG_KEY_')).map((k) => forcedConfigEnv()[k]), Object.keys(GIT_FORCED_CONFIG).sort(), 'slots numbered from zero in sorted order');
-assert.ok(!Object.keys(forcedConfigEnv()).some((k) => k.endsWith('_4')), 'COUNT and slots agree: no orphan slot');
+assert.ok(!Object.keys(forcedConfigEnv()).some((k) => k.endsWith('_' + Object.keys(GIT_FORCED_CONFIG).length)), 'COUNT and slots agree: no slot at or past the count, which is the number git stops reading at');
 assert.ok(!Object.keys(GIT_FORCED_CONFIG).includes('diff.external'), 'diff.external is confined by the SHAPE, not the env (measured: no value of it is inert)');
 for (const [argv, policy] of [[['git', 'status', '--short'], readOnly], [['git', 'diff', ...FLAGS, '--cached'], staged], [['git', 'show', ...FLAGS, '--format=', '--', 'a.md'], show]]) {
   const planned = planExec({ argv, env: { ...emitted, GITHUB_TOKEN: 'leak' } }, policy);

@@ -15,10 +15,11 @@ describe('forcedConfigEnv (git\'s counted env override, built from data)', () =>
   it('numbers slots from zero in SORTED key order, so the env is stable across property enumeration', () => {
     const env = forcedConfigEnv();
     expect(env.GIT_CONFIG_COUNT).toBe(String(Object.keys(GIT_FORCED_CONFIG).length));
-    expect([env.GIT_CONFIG_KEY_0, env.GIT_CONFIG_KEY_1, env.GIT_CONFIG_KEY_2, env.GIT_CONFIG_KEY_3]).toEqual([
+    expect([env.GIT_CONFIG_KEY_0, env.GIT_CONFIG_KEY_1, env.GIT_CONFIG_KEY_2, env.GIT_CONFIG_KEY_3, env.GIT_CONFIG_KEY_4]).toEqual([
       'core.attributesFile',
       'core.excludesFile',
       'core.fsmonitor',
+      'core.quotePath',
       'status.showUntrackedFiles',
     ]);
     expect(Object.keys(env).every((k) => k === 'GIT_CONFIG_COUNT' || k.startsWith('GIT_CONFIG_KEY_') || k.startsWith('GIT_CONFIG_VALUE_'))).toBe(true);
@@ -36,10 +37,18 @@ describe('forcedConfigEnv (git\'s counted env override, built from data)', () =>
     });
   });
 
-  it('every forced key is either a command git would EXECUTE or a blind that hides files', () => {
-    expect(Object.keys(GIT_FORCED_CONFIG).sort()).toEqual(['core.attributesFile', 'core.excludesFile', 'core.fsmonitor', 'status.showUntrackedFiles']);
-    expect(GIT_FORCED_CONFIG['status.showUntrackedFiles']).toBe('all'); // the only non-empty value: an enum, not an off-switch
+  it('every forced key confines something MEASURED: a command git would EXECUTE, a blind that hides files, or the shape of a PATH (v46, v61)', () => {
+    expect(Object.keys(GIT_FORCED_CONFIG).sort()).toEqual(['core.attributesFile', 'core.excludesFile', 'core.fsmonitor', 'core.quotePath', 'status.showUntrackedFiles']);
+    expect(GIT_FORCED_CONFIG['status.showUntrackedFiles']).toBe('all'); // an enum, not an off-switch
     expect(GIT_FORCED_CONFIG['core.fsmonitor']).toBe('');
+    expect(GIT_FORCED_CONFIG['core.quotePath']).toBe('false'); // v61: git's default `true` renders a non-ASCII path as an escaped STRING, which no door can open
+  });
+
+  it('the counted slots stop exactly where the count does — no orphan slot for git to read past the table', () => {
+    const env = forcedConfigEnv();
+    expect(Object.keys(GIT_FORCED_CONFIG)).toHaveLength(5);
+    expect(env[`GIT_CONFIG_KEY_${Object.keys(GIT_FORCED_CONFIG).length}`]).toBeUndefined();
+    expect([env.GIT_CONFIG_VALUE_0, env.GIT_CONFIG_VALUE_1, env.GIT_CONFIG_VALUE_2, env.GIT_CONFIG_VALUE_3, env.GIT_CONFIG_VALUE_4]).toEqual(['', '', '', 'false', 'all']);
   });
 
   it('diff.external is NOT force-pinned, and the reason is measured: no value is inert (empty → exit 128)', () => {

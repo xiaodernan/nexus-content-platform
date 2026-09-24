@@ -2014,3 +2014,93 @@ and only measuring each conflict shape showed it._
   express "nothing ran" to a consumer that reads only numbers (the chip still prints `0/1`), and the
   only honest carrier for that is a field on `TestReport` — a runtime-side decision, deliberately not
   smuggled through an exec-host commit.
+
+## Amendment 61 — v61 (exec-host): a door hands on PATHS, and a picture of a path is not one — a rename was read through the half HEAD has never heard of, and a name git chose to QUOTE made a whole file vanish from a door that then said `the index is EMPTY`, 2026-09
+
+_Numbering: 61 was free when this was written (checked against this file's headings, the task list and
+`git log --oneline -1`). v32 gave the agent `git.status`, v42 `git.show`, v43 `git.staged`. All three were
+built on one silent assumption: that the bytes between a porcelain line's columns ARE the file. Measured
+against real git 2.52 on this box, they are not — in four separate ways, one of which turned a door that
+reads an index into a door that denies it has anything to read._
+
+- **A rename is ONE change with TWO names, and v32 kept the half that answers nothing.** Porcelain prints
+  `R  old -> new`; the parser cut at ` -> ` for EVERY entry and kept the right-hand name. So
+  `M  notes -> draft.md` — one modified file, an arrow that is DATA — became a phantom pair with half a
+  filename deleted from the answer; and for a real rename the door named the path HEAD has never heard of.
+  Measured what that costs: in one throwaway repo, raw `git show` answers 221 bytes under the old name and
+  0 under the new one, and the content door takes the new name to git, gets exit 0 with an empty diff (v44
+  had already measured that git answers an unmatched pathspec with silence, not a refusal), and reports
+  `HEAD touches nothing at <the file the human is about to commit>`. That is the exact inverse of what §60
+  allows a door to say.
+- **`core.quotePath` is git's permission to render a name as a STRING about the name.** It defaults to
+  `true`, so any non-ASCII byte arrives C-quoted and octal-escaped. In `git.status` that path will not
+  open and will not match a pathspec. In a diff header the quoting wraps the `a/`/`b/` PREFIX too, so
+  `diff --git "a/docs/caf\303\251-note.md" "b/…"` matched v43's header regex not at all: the file vanished
+  from the parse, the door got zero files, and a door with zero files said the one thing a door must never
+  say about a non-empty index — `the index is EMPTY`. v52's lie-by-omission had escalated into a positive
+  claim of absence, and git's own `--stat` line for those same bytes reads `1 file changed`.
+- **Quoting is not about exotic bytes at all, which the first version of this fix assumed.** Re-measured
+  with `core.quotePath=false` pinned: a name containing an ordinary SPACE still arrives as
+  `?? "plain name.md"`, and a spaced pair still arrives as `R  "a b.md" -> "c d.md"` — git is
+  disambiguating the arrow, not escaping. So the pin alone would have left every spaced filename in a
+  repository unopenable through the doors. The rule that follows from the asymmetry is
+  `unwrapRendering`: everything git ESCAPES (`"`, a backslash, a control character, and non-ASCII under
+  the default) escapes as a BACKSLASH sequence, so a quoted rendering with no backslash inside is git's
+  quoting of an ordinary name and the bytes between the quotes ARE the file; a backslash inside means git
+  stood for something, and the door keeps the string verbatim and MARKS it rather than guessing.
+- **A header is split by POSITION, and a path can steal that split.** `m b/n.md` — a directory whose name
+  ends in a space, which NTFS allows and the proof creates — puts a second ` b/` inside the header, so
+  `diff --git a/x.md b/m b/n.md` splits into `x.md b/m` and `n.md`: one name out of two paths, which the
+  agent then takes to `git.show` and is told nothing exists. git prints the same change's name
+  unambiguously one line at a time (`+++ b/…`, and for a rename too pure to carry a hunk, `rename to` /
+  `copy to`), so those now win wherever they exist, and the header is only the fallback.
+- **One candidate this increment set out to fix and could not:** "an untracked directory counts as ONE
+  entry." Measured both ways — 3 entries with the shipped environment, 1 with
+  `status.showUntrackedFiles=normal`, and the single entry is the directory prefix `dropzone/`. v46's pin
+  already confined it; the proof now carries the measurement so the claim has a witness instead of a
+  memory.
+- **The fix is one pin and one rule, in two layers.** v46's counted table gains a fifth key,
+  `core.quotePath=false` (the argv is untouched: this confines what git SAYS, not what it DOES — measured
+  that it changes the status line's bytes and nothing else); every name any parser hands out goes through
+  `unwrapRendering`; a pair keeps both halves (`fromPath` is what HEAD knows, `path` what is on disk, and
+  the split is a separator only for `R`/`C`); `parseDiffHeader` and `parseFileLine` are shared by the
+  three diff-reading doors the way v52 shared `gitVerdict` and v56 shared `budgetFlags`; and
+  `pathShapeNotices` gives the two entry-bearing doors one rule for what an entry cannot say for itself.
+  `git.show` refuses to ask git about a rendering at ZERO spawns — the door that confirms content is the
+  one place where silence could be mistaken for absence.
+- **49th script in `docs/evidence/agents/` — `porcelain-path-proof.mjs` — shows the damage rather than
+  asserting the fix.** §0 pins the wiring (which slot number `core.quotePath` occupies, that `status.showUntrackedFiles`
+  moved to the slot after it, and that the policy scrubber drops none of it). §1 makes a HUMAN stage a
+  rename and has both index-facing doors read it as a pair, then weighs the two names against each other
+  with raw `git show` (221 bytes vs 0) and against the commit door's own promise. §2 removes the pin from
+  the environment and lets real git speak: the SAME commands now print a quoted name and a quoted header,
+  those bytes go through v43's header matcher — copied out of the previous commit and pinned in the proof,
+  so the claim is about a regex and not about a memory — which sees 0 headers, and the sentence the door
+  would have spoken is captured byte-for-byte from the SAME door run over a genuinely empty index, which
+  is what makes it attributable to the rendering rather than to this file. §3 measures the ordinary-name
+  quoting (a spaced pair the door unwraps into two names that open, one on disk and one in HEAD), the
+  stolen split (a ` b/` directory created for real, the header mis-splitting exactly as documented, the
+  door answering from git's own per-line names), and the bound: a name containing ` -> `, `"`, or a tab
+  cannot be created on this filesystem — all three attempts recorded with their error codes — so the
+  escaped branch is exercised by fixture and said to be. §4 is the refuted candidate. §5 the zero-spawn
+  refusal, §6 §9: this repository's HEAD compared byte-wise and every throwaway repo inside `os.tmpdir`.
+- **What did not move:** every argv shape, every policy, gate and budget, the porcelain SHAPE of the
+  results (three optional fields added: `fromPath`, `quoted`, and the pair notice), and every door sentence
+  except the clauses that now ride `pathShapeNotices`. Two accounts were re-written in this same commit,
+  because v61 refutes them: `config-proof.mjs`'s "four repo values" is five, and its orphan-slot check
+  asserted the absence of a slot named `_4` — which is now a legitimate slot; it asserts absence one past
+  the COUNT instead. exec-host **201/201** (from 187: the pair, unwrap, per-line-name, escaped-residue and
+  door-notice cases), the whole agent proof sweep green — **49/49 scripts** in `docs/evidence/agents/`, of
+  which 48 are tracked after this commit and the 49th is the other lane's uncommitted
+  `policyaudit-proof.mjs` — and all four root gates green.
+- Honest bounds: an escaped rendering is still handed over as git printed it, marked and announced —
+  unescaping it would mean choosing among the characters git refused to print, and on this box none of
+  them can even be named in a file (§3 records the attempts); a paired entry whose name ends quote-adjacent
+  to an arrow can still fool the positional split, and git's own answer to that is porcelain v2's
+  NUL-terminated fields, which no door here asks for yet; `git.diff`'s worktree door carries no pre-image
+  because measured, an un-staged rename reaches it as a delete plus an untracked file, not as a pair;
+  `git.show` still answers "HEAD touches nothing at X" for a name HEAD genuinely does not know, because
+  that is what git says and the door relays it (v52's rule) — what v61 removed is the door being handed a
+  photograph of a name and asking the question anyway. Nothing here teaches the Studio dock to render a
+  path shape, and DEMO MODE is unaffected: no Studio surface runs an exec host, so all of v61 is enforced
+  in unit tests and proofs.

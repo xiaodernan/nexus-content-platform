@@ -1,5 +1,5 @@
 import type { ExecPolicy, ToolRegistry, ToolSpec } from '@nexus/agent-runtime';
-import { budgetFlags, GIT_DIFF_FLAGS, GIT_ENV_NAMES, cutNotAbsence, gitEnv, gitVerdict, parseDiffStat, quoteVerdict, refusedNotAbsence, unmergedNotAbsence, unmergedNotice, stdoutWasCut } from './gitTools.js';
+import { budgetFlags, GIT_DIFF_FLAGS, GIT_ENV_NAMES, cutNotAbsence, gitEnv, gitVerdict, parseDiffHeader, parseDiffStat, parseFileLine, pathShapeNotices, quoteVerdict, refusedNotAbsence, unmergedNotAbsence, unmergedNotice, stdoutWasCut, unwrapRendering } from './gitTools.js';
 import type { ExecHost, ExecRunResult } from './execHost.js';
 
 /**
@@ -50,6 +50,15 @@ export interface StagedFileChange {
   addedLines: string[];
   /** git printed "Binary files … differ" instead of hunks: no lines may be claimed (§60). */
   binary: boolean;
+  /**
+   * M2 v61 (ADR 0016 amendment 61): the pre-image name of a staged rename/copy, from git's own
+   * `rename from`/`copy from` metadata line. v43 already READ those lines to name the kind and then
+   * threw the value away, so the intent window showed one name for a change that has two — and the
+   * name it kept is the one HEAD does not have yet.
+   */
+  fromPath?: string;
+  /** M2 v61: this path is git's C-QUOTED RENDERING, not the bytes on disk. */
+  quoted?: boolean;
 }
 
 export interface StagedIndex {
@@ -65,23 +74,46 @@ export interface StagedIndex {
  * which kind of change is each. Kind comes from git's own metadata lines (`new file mode`,
  * `deleted file mode`, `rename to`), never from guesswork; header lines (`---`/`+++`) are
  * never content.
+ *
+ * M2 v61 (ADR 0016 amendment 61) keeps the two halves of what git already said: a `rename from`
+ * line decided the KIND and its name was thrown away, so the intent window showed a rename under the
+ * one name HEAD does not have yet; and the header matcher demanded git's PLAIN `diff --git a/x b/x`
+ * form, so a C-quoted header — which git emits for any name it will not print raw — lost the file
+ * entirely, and a door that parsed no files told the §28 reviewer the index was EMPTY. Both halves
+ * of that second bug now live in `parseDiffHeader`, shared with the worktree door, and a section's
+ * name is taken from git's per-line `+++ b/…` (or `rename to`/`copy to`, for a rename too pure to
+ * carry a body) wherever those lines exist — because the header has to be split by POSITION, and a
+ * path containing ` b/` steals that split. Measured; see the proof's §3.
  */
 export function parseStagedDiff(stdout: string): StagedIndex {
   const files: StagedFileChange[] = [];
   let current: StagedFileChange | null = null;
   for (const line of stdout.split('\n')) {
-    const header = /^diff --git a\/(.+) b\/(.+)$/.exec(line);
+    const header = parseDiffHeader(line); // v61: the same matcher reads git's plain AND C-quoted headers
     if (header) {
-      current = { path: header[2]!, change: 'modified', hunks: 0, additions: 0, deletions: 0, addedLines: [], binary: false };
+      current = { path: header.to, change: 'modified', hunks: 0, additions: 0, deletions: 0, addedLines: [], binary: false };
+      if (header.quoted) current.quoted = true;
       files.push(current);
       continue;
     }
     if (!current) continue; // a preamble before the first file is not a change
+    const named = parseFileLine(line); // v61: git's per-line name beats a header whose split a ` b/` stole
+    if (named) {
+      current.path = named.path;
+      if (named.quoted) current.quoted = true;
+      continue;
+    }
     if (line.startsWith('new file mode')) current.change = 'added';
     else if (line.startsWith('deleted file mode')) current.change = 'deleted';
-    else if (line.startsWith('rename from ')) current.change = 'renamed';
-    else if (line.startsWith('copy from ')) current.change = 'copied';
-    else if (line.startsWith('Binary files') && line.endsWith(' differ')) current.binary = true;
+    else if (line.startsWith('rename from ')) {
+      current.change = 'renamed';
+      current.fromPath = line.slice('rename from '.length); // v61: the kind was read from this line and the name dropped
+    } else if (line.startsWith('rename to ') || line.startsWith('copy to ')) {
+      current.path = line.slice(line.startsWith('rename') ? 'rename to '.length : 'copy to '.length); // v61: a pure rename carries no `+++` line, so THIS one names it
+    } else if (line.startsWith('copy from ')) {
+      current.change = 'copied';
+      current.fromPath = line.slice('copy from '.length);
+    } else if (line.startsWith('Binary files') && line.endsWith(' differ')) current.binary = true;
     else if (line.startsWith('@@')) current.hunks += 1;
     else if (line.startsWith('+') && !line.startsWith('+++')) {
       current.additions += 1;
@@ -89,6 +121,15 @@ export function parseStagedDiff(stdout: string): StagedIndex {
     } else if (line.startsWith('-') && !line.startsWith('---')) current.deletions += 1;
   }
   const counts: Partial<Record<StagedChangeKind, number>> = {};
+  // v61: the body lines above are git's own words, taken verbatim — so they go through the same one rule
+  // as every other name this package reads: unwrap what git merely quoted, announce what git escaped.
+  for (const f of files) {
+    const p = unwrapRendering(f.path);
+    f.path = p.name;
+    const from = f.fromPath === undefined ? undefined : unwrapRendering(f.fromPath);
+    if (from !== undefined) f.fromPath = from.name;
+    if (p.quoted || (from?.quoted ?? false)) f.quoted = true;
+  }
   const totals = files.reduce(
     (t, f) => {
       counts[f.change] = (counts[f.change] ?? 0) + 1;
@@ -149,7 +190,7 @@ export function registerGitStagedTool(registry: ToolRegistry, host: ExecHost, op
           : stdoutWasCut(result)
             ? `git.staged → exit 0: ${cutNotAbsence('the index has nothing staged for the §28 ask')}${flags(result)}`
             : `git.staged → exit 0: the index is EMPTY — nothing is staged, so a granted git.commit right now would have nothing to record${flags(result)}`
-        : `git.staged → exit 0: index holds ${index.totals.files} change(s): ${tally} · +${index.totals.additions} −${index.totals.deletions} across ${index.totals.hunks} hunk(s)${index.totals.binary > 0 ? ` · ${index.totals.binary} binary change(s) with no lines claimed` : ''}${flags(result)}`;
+        : `git.staged → exit 0: index holds ${index.totals.files} change(s): ${tally} · +${index.totals.additions} −${index.totals.deletions} across ${index.totals.hunks} hunk(s)${index.totals.binary > 0 ? ` · ${index.totals.binary} binary change(s) with no lines claimed` : ''}${pathShapeNotices(index.files)}${flags(result)}`;
     return {
       ok: true,
       detail,

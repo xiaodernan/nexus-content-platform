@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { ToolRegistry, planExec } from '@nexus/agent-runtime';
 import type { SpawnLike } from '@nexus/agent-runtime';
 import { createExecHost, type ExecChild } from '../src/execHost.js';
-import { GIT_TOOL_SPECS, GIT_DIFF_FLAGS, budgetFlags, gitEnv, gitReadOnlyPolicy, gitVerdict, parseDiffStat, parseGitDiff, parseGitStatus, quoteVerdict, refusedNotAbsence, registerGitTools, stdoutWasCut, UNMERGED_XY, unmergedNotice, unmergedNotAbsence, unmergedStatusNotice } from '../src/gitTools.js';
+import { GIT_TOOL_SPECS, GIT_DIFF_FLAGS, budgetFlags, gitEnv, gitReadOnlyPolicy, gitVerdict, isQuotedRendering, parseDiffHeader, parseDiffStat, parseFileLine, parseGitDiff, parseGitStatus, pathShapeNotices, quoteVerdict, refusedNotAbsence, registerGitTools, stdoutWasCut, UNMERGED_XY, unmergedNotice, unmergedNotAbsence, unmergedStatusNotice, unwrapRendering } from '../src/gitTools.js';
 import { GIT_ABSENT_CONFIG, GIT_FORCED_CONFIG, GIT_ISOLATION_ENV, GIT_PASS_THROUGH_ENV_NAMES, forcedConfigEnv } from '../src/gitEnvIsolation.js';
 
 describe('parseGitStatus (porcelain v1, pure data)', () => {
@@ -17,9 +17,64 @@ describe('parseGitStatus (porcelain v1, pure data)', () => {
     expect(counts).toEqual({ modified: 1, untracked: 1, added: 1, deleted: 1 });
   });
 
-  it('a rename keeps the NEW path; blank lines are noise, not entries', () => {
+  it('a rename keeps BOTH names: `path` is what is on disk, `fromPath` is what HEAD knows (v61)', () => {
     const { files } = parseGitStatus('R  old/name.ts -> new/name.ts\n\n');
-    expect(files).toEqual([{ xy: 'R ', status: 'renamed', path: 'new/name.ts' }]);
+    expect(files).toEqual([{ xy: 'R ', status: 'renamed', path: 'new/name.ts', fromPath: 'old/name.ts' }]);
+  });
+
+  // v61: ` -> ` is the separator of exactly two porcelain families (R and C). Reading it out of the
+  // DATA instead of the FORMAT made `M  notes -> draft.md` — one modified file — into a pair whose
+  // "new path" was half a filename.
+  it('only R and C are pairs; a path that merely contains " -> " stays ONE path (v61)', () => {
+    const { files } = parseGitStatus('M  notes -> draft.md\nA  a -> b.md\n?? c -> d.md\n');
+    expect(files.map((f) => [f.status, f.path, f.fromPath])).toEqual([
+      ['modified', 'notes -> draft.md', undefined],
+      ['added', 'a -> b.md', undefined],
+      ['untracked', 'c -> d.md', undefined],
+    ]);
+  });
+
+  it('a rename that is ALSO modified in the tree is still a pair, and both halves stay quoted together (v61)', () => {
+    const { files } = parseGitStatus('RM "docs/caf\\303\\251-old.md" -> "docs/caf\\303\\251-new.md"\n');
+    expect(files[0]).toEqual({ xy: 'RM', status: 'renamed', path: '"docs/caf\\303\\251-new.md"', fromPath: '"docs/caf\\303\\251-old.md"', quoted: true });
+  });
+
+  // Measured with v46's `core.quotePath=false` in place: WHITESPACE ALONE makes git quote a porcelain
+  // path (` M "plain name.md"`), so a quote is not by itself evidence of escaping — and everything that
+  // IS escaped (`"`, a backslash, a control character, non-ASCII under the default) escapes as a
+  // backslash sequence. The rule that follows from that asymmetry lives in `unwrapRendering`; NTFS can
+  // create neither `"` nor a tab nor `>` in a name, so the escaped branch stays a fixture, and the
+  // proof says so instead of pretending it measured one.
+  it('git quoting of an ordinary name is undone; git ESCAPING of one is announced, not guessed (v61)', () => {
+    const { files } = parseGitStatus('?? "dropzone/\\303\\274no.md"\n?? plain.md\n M "plain name.md"\n');
+    expect(files[0]!.quoted).toBe(true); // an escape inside: the name is NOT this string
+    expect(files[0]!.path).toBe('"dropzone/\\303\\274no.md"');
+    expect('quoted' in files[1]!).toBe(false);
+    expect('fromPath' in files[1]!).toBe(false);
+    expect(files[2]).toEqual({ xy: ' M', status: 'modified', path: 'plain name.md' }); // quoted by git, openable here
+    expect(isQuotedRendering('"x"')).toBe(true);
+    expect(isQuotedRendering('x"')).toBe(false); // one quote is a filename; a pair is a rendering
+    expect(isQuotedRendering('""')).toBe(false); // nothing between the quotes renders no name: junk, not a picture of a path
+    expect(unwrapRendering('"a b.md"')).toEqual({ name: 'a b.md', quoted: false });
+    expect(unwrapRendering('"a\\"b.md"')).toEqual({ name: '"a\\"b.md"', quoted: true });
+    expect(unwrapRendering('plain.md')).toEqual({ name: 'plain.md', quoted: false });
+  });
+
+  it('a pair keeps both names whether git quoted one half, both, or neither (v61)', () => {
+    const { files } = parseGitStatus('R  x.md -> "m b/n.md"\nR  "a b.md" -> "c d.md"\nC  o.md -> n.md\n');
+    expect(files.map((f) => [f.path, f.fromPath, f.quoted ?? false])).toEqual([
+      ['m b/n.md', 'x.md', false], // git quoted only the half that needed it
+      ['c d.md', 'a b.md', false],
+      ['n.md', 'o.md', false],
+    ]);
+  });
+
+  it('pathShapeNotices speaks only about what the entries actually carry (v61)', () => {
+    expect(pathShapeNotices([{ path: 'a.md' }, { path: 'b.md' }])).toBe('');
+    expect(pathShapeNotices([{ path: 'b.md', fromPath: 'a.md' }])).toContain('1 rename/copy PAIR(s): a.md -> b.md');
+    expect(pathShapeNotices([{ path: 'b.md', fromPath: 'a.md' }])).toContain('the left name is what HEAD knows');
+    expect(pathShapeNotices([{ path: '"c.md"', quoted: true }])).toContain('C-QUOTED RENDERING with escapes inside ("c.md")');
+    expect(pathShapeNotices([{ path: '"c.md"', quoted: true }])).toContain('must not be passed on as one');
   });
 
   it('unknown XY codes say `other`, never silently match a known family', () => {
@@ -75,6 +130,19 @@ describe('parseGitDiff / parseDiffStat (line tallies, headers never count)', () 
     expect(parseDiffStat('')).toEqual({ files: 0, insertions: 0, deletions: 0 });
     expect(parseDiffStat(' x.ts | 3 +-\nsome git warning')).toBeNull();
   });
+
+  // v61: `diff --git a/P b/P` has to be split by POSITION, and a directory whose name ends in a space
+  // (legal on NTFS, created for real by the proof) puts a second ` b/` inside the path and steals it.
+  // `+++ b/P` names the same file one line at a time, so where git prints it, it wins.
+  it('a header whose split a ` b/` in the path stole is corrected by git\'s own per-line name (v61)', () => {
+    expect(parseDiffHeader('diff --git a/x.md b/m b/n.md')).toEqual({ from: 'x.md b/m', to: 'n.md', quoted: false }); // the split IS wrong; that is the point
+    const { files } = parseGitDiff(['diff --git a/x.md b/m b/n.md', '--- a/x.md', '+++ b/m b/n.md', '@@ -1 +1 @@', '-old', '+new'].join('\n'));
+    expect(files).toEqual([{ path: 'm b/n.md', hunks: 1, additions: 1, deletions: 1 }]);
+    expect(parseFileLine('+++ /dev/null')).toBeNull(); // a deletion's target names nothing
+    expect(parseFileLine('+++ "b/a\\"b.md"')).toEqual({ path: '"a\\"b.md"', quoted: true });
+    expect(parseFileLine('+++ b/a "b".md')).toEqual({ path: 'a "b".md', quoted: false });
+    expect(parseFileLine('--- a/m b/n.md')).toBeNull(); // only the post-image line is read
+  });
 });
 
 describe('gitReadOnlyPolicy (three exact argv, NOTHING else)', () => {
@@ -108,7 +176,7 @@ describe('gitReadOnlyPolicy (three exact argv, NOTHING else)', () => {
     expect(env.GIT_CONFIG_COUNT).toBe(String(Object.keys(GIT_FORCED_CONFIG).length));
     expect(env['GIT_CONFIG_KEY_0']).toBe('core.attributesFile'); // slots are numbered from zero in sorted key order
     expect(env['GIT_CONFIG_VALUE_0']).toBe(''); // the caller's `evil` driver never reaches git
-    expect(env.GIT_CONFIG_COUNT).toBe('4'); // and the count is OURS, so a smuggled fifth key is not read
+    expect(env.GIT_CONFIG_COUNT).toBe('5'); // and the count is OURS, so a smuggled sixth key is not read
   });
 });
 
@@ -168,6 +236,15 @@ describe('git.status / git.diff as registry tools (§28 gates the process; the r
     expect(out.files).toHaveLength(2);
     expect(out.detail).toContain('git.status → exit 0: 2 entries');
     expect(h.calls[0]).toEqual({ args: ['status', '--short'], env: gitEnv({ PATH: '/bin' }) }); // TOKEN dropped by the pass-through list, and git still runs under the isolation
+  });
+
+  it('a rename is spoken as a PAIR by the door, not as the single path that HEAD has never heard of (v61)', async () => {
+    const h = harness('R  docs/old.md -> docs/new.md\n');
+    const res = await h.registry.invoke({ callId: 'c1b', tool: 'git.status', args: {} }, h.grant);
+    const out = res.output as { detail: string; files: Array<{ path: string; fromPath?: string }> };
+    expect(out.files).toEqual([{ xy: 'R ', status: 'renamed', path: 'docs/new.md', fromPath: 'docs/old.md' }]);
+    expect(out.detail).toContain('1 rename/copy PAIR(s): docs/old.md -> docs/new.md');
+    expect(out.detail).toContain('reading the pair through either name alone reports half the change');
   });
 
   it('git.diff full mode tallies lines; stat:true swaps to the `--stat` argv and parses the footer', async () => {

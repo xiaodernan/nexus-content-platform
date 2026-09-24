@@ -67,6 +67,15 @@ describe('validateShowPath (one repo-relative path, nothing else)', () => {
     expect(() => validateShowPath(undefined)).toThrow(/non-empty path/);
     expect(() => validateShowPath(7)).toThrow(/non-empty path/);
   });
+
+  // v61: `"docs/caf\303\251.md"` is what git PRINTS about a name it will not print raw — not a name
+  // anyone can open. Handed to git it answers exit 0 with an EMPTY diff about a file that was never
+  // asked about (v44 measured exactly that emptiness), so the door refuses before any spawn.
+  it('refuses git\'s C-QUOTED RENDERING as a path, and keeps an ordinary name with a quote in it', () => {
+    expect(() => validateShowPath('"docs/caf\\303\\251.md"')).toThrow(/C-QUOTED RENDERING/);
+    expect(validateShowPath('notes/quote"end.md'), 'a quote INSIDE a name is still a name').toBe('notes/quote"end.md');
+    expect(validateShowPath('a"'), 'one trailing quote is not a pair').toBe('a"');
+  });
 });
 
 describe('gitShowPolicy (ONE argv shape; HEAD is pinned by omission)', () => {
@@ -155,6 +164,14 @@ describe('git.show as a registry tool (content behind §28 — a process still s
     expect(res.ok).toBe(false);
     expect(res.error).toContain('denied at checkpoint (exec)');
     expect(h.calls).toHaveLength(0);
+  });
+
+  it('a C-QUOTED RENDERING is refused by the door itself, at zero spawns (v61)', async () => {
+    const h = harness(NEW_FILE_DIFF);
+    const res = await h.registry.invoke({ callId: 's0q', tool: 'git.show', args: { path: '"notes/caf\\303\\251.md"' } }, h.grant);
+    expect(res.ok).toBe(false);
+    expect(res.error).toContain('C-QUOTED RENDERING');
+    expect(h.calls).toHaveLength(0); // git never saw a question, so it cannot answer one about a file nobody named
   });
 
   it('granted: argv is ONE fixed shape around the path, env is the scrubbed set, the lines are the answer', async () => {
