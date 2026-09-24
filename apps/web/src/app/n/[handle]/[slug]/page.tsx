@@ -10,6 +10,7 @@ import { assetContextFor, publicAssetUrl } from '@/studio/assets';
 import { nodeStyle } from '@/studio/render';
 import { ReportControl } from './ReportControl';
 import { PublicationActions } from './PublicationActions';
+import { VisitMeter } from './VisitMeter';
 
 export const dynamic = 'force-dynamic';
 
@@ -115,6 +116,13 @@ export default async function PublishedPage({ params, searchParams }: Props) {
           })}
         </div>
       </div>
+      {/* §168：被统计这件事要写在页面上，而不是只在代码注释里。
+          这句是服务端渲染的——不执行 JS 的访客也看得见自己被统计了什么 */}
+      <p className="px-[var(--nexus-space-4)] pb-[var(--nexus-space-4)] text-11 text-fg-3" data-visit-notice>
+        这一页会统计作者的创作数据：打开次数、页面可见时的停留时长、以及最远滚到的高度比例。
+        切走标签页的时间不计入时长。
+      </p>
+      <VisitMeter path={publication.path} />
       {/* §166 JSON-LD：正文已经服务端渲染，结构化数据让抓取端不用猜哪是标题哪是作者。
           字符串在 seo.ts 里把 < > & 转过义，项目名再怎么写也闭合不了这个脚本块 */}
       <script type="application/ld+json" data-seo-jsonld dangerouslySetInnerHTML={{ __html: seo.jsonLd }} />

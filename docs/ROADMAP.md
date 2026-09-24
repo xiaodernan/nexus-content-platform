@@ -638,8 +638,9 @@ drizzle 把整个拼接结果当成**单个绑定参数**，生成的 SQL 是 `o
   且只给名字与一句 tagline —— 世界文档、角色档案（声音、关系、记忆）在作者项目里，
   发布一张设计稿不等于把它们放上公网（测试专门放了一段"只该存在于项目里"的文字去试泄露）。
   简介会过发布机检同一份红线词表，命中就不保存。游戏栏现在是 0 并写明 M5 未开工，而不是省掉。
-  仍欠：§168 Analytics（主页上那几个数是浏览量，不是分析）、头像上传（users.avatar_url 还没有写它的地方）、
-  Trending / AI Picks、§132 的 block / mute
+  仍欠：头像上传（users.avatar_url 还没有写它的地方）、
+  Trending / AI Picks、§132 的 block / mute。§168 Analytics 已在下面单独落地——主页上那几个数仍然只是浏览量，
+  真正的六个数在 `/analytics`
 - [x] 全平台搜索（§165）— **2026-09-25 落地**：`/search` 一个 GET 表单 + 服务端渲染，八类目标各一组
   （projects / users / worlds / games / characters / designs / components / assets，与 §165 的清单同序），
   判定全在 `apps/web/src/server/domain/search.ts`。匹配走 pg_trgm 子串（迁移 0008 给被搜的列建
@@ -707,6 +708,60 @@ drizzle 把整个拼接结果当成**单个绑定参数**，生成的 SQL 是 `o
   sitemap 那条谓词目前是防御性的；带真实图片资产的封面只在单测里覆盖谓词，浏览器里那一张还是空清单；
   `/u/<handle>` 与 `/discover` 的 per-page metadata 没做（§166 原文范围是 public projects）；
   sitemap 截到 5000 条，超了只 warn + 截断，没有 sitemap index。
+- [x] Analytics（§168）— **2026-09-25 落地**：`/analytics` 一张表，六个数各写清自己数的是什么。
+  先说清这一条的**真实缺口**在哪里：views / likes / remixes / followers 早就有真值来源
+  （`published_projects.views` 由公开页 SSR 累加、点赞与改编挂在项目上、粉丝是作者级），
+  **completion 与 play time 此前没有任何采集**——所以这一条不是"做个图表页"，
+  而是把"访客到底看了多久、滚到哪儿"这件事第一次真的存下来（迁移 0009 `publication_visits`）。
+
+  粒度选的是**访客 × 天**而不是事件流：六个数没有一个是逐事件算的，
+  事件流只会让"累计时长"这种数每次都全表扫；一行 = 一个人一天，
+  写入用唯一键 `(publication_id, visitor_key, day)` upsert——打开次数相加、时长相加、
+  **完成度取最远而不是平均**（`GREATEST`，一个人一天里滚得最远的那一次才说明他看到了什么），
+  先匿名后登录的行允许补上 `user_id`，反过来不覆盖已有归属（`COALESCE`）。
+
+  采集端（`VisitMeter` + `src/lib/visit-meter.ts`）把规则全放在纯算术里，因为这两个数最容易说谎：
+  - 只在 `visibilityState === 'visible'` 时累计，切走标签页不算在看；
+  - 单次 tick 超过 5 秒的部分丢掉（挂起 / 断点 / 睡眠一次性给出巨大的 delta），
+    单次上报超过 60 秒截断，**并且把截断记进 `capped_reports`**——被动过的数据要留得下痕迹，
+    界面上那一行会写"N 次上报被截断"；
+  - 15 秒一次心跳，`visibilitychange→hidden` 与 `pagehide` 各收尾一次；
+    用 `fetch(keepalive:true)` 而不是 `sendBeacon`——后者带不了 `x-csrf-token`；
+  - 上报前先把"此刻滚到哪儿"并进聚合再取待上报的那一份：反过来的话滚到底要等下一次心跳才看得出来，
+    一次短访问会把 100% 报成 50%（这个顺序错过一次，是真在浏览器里发现数字不动才回头改的）；
+  - dev 下 StrictMode 会把 effect 挂两次，不去重就是一次打开算两次，所以按 path 记 `openedPaths`。
+
+  公开页是**匿名可写**的入口，三道边界都在：CSRF 双提交（middleware 给每个访客都签了 token，
+  不存在"访客没有 token"）、`path` 必须解析到非 private 且未被驳回的发布（否则 404，一行都不写）、
+  按 IP + 匿名 key 限流 240 次/小时（每 15 秒一次心跳已经用满）。
+  所有权写在 SQL 的 `where` 里而不是调用方：传别人的 publicationId 只会拿到空列表，
+  "存在但看不到"这种含糊状态没有藏身处。`/analytics` 同时加进 `robots.ts` 的 disallow。
+
+  展示面的诚实程度是这一条的重点：**采不到就是 null，界面原样写"未采集"**，
+  不拿 views 换算一个时长冒充（`playTimeMs` 与 `completion` 都是这个规则）；
+  但有行加出来是 0 秒时如实报"0 秒"——把"来过但没攒够时长"显示成"未采集"是另一种谎。
+  六个数的口径直接印在页面上（含"打开次数不挡爬虫"、"隐私模式下每次打开算一个新访客"），
+  `selfOnly` 单独标出来：只有作者自己刷新过的作品，那串数字不能读成"有人在看"。
+
+  验证：`visit-meter.test.ts` 13 条纯单测钉住每一条截断/合并/去重规则；
+  `analytics.integration.test.ts` 14 条打真库（同日合并、跨天不合并且访客按人去重、坏 key 一行不写、
+  截断留痕、登录归属补写、null 与 0 分得开、点赞挂项目不挂版本、粉丝作者级、views 与今日打开两个来源、
+  selfOnly、别人的 id 查不出、软删后从列表消失但行还在）；
+  `@smoke §168`（2.8m）走完整链路：真人访客打开公开页 → 页面写着"这一页会统计" → 等一次真心跳带回
+  `visibleMs>0` 与 completion → 作者页上访客 1 / 今天 1 / 时长 15 秒 / 完成度 100%，
+  再验 403（只带 cookie 不带头）→ 200（补上头）→ 404（不存在的路径与切成私有的作品）三态，
+  以及无会话访客打开 `/analytics` 只得到"需要先登录"且页面里一个数字都没有（截图 `creator-analytics.png`）。
+  反向实验：去掉 `Math.min` 上限、把完成度平均的 `filter (where > 0)` 摘掉、`count(distinct)` 去掉 distinct、
+  时长求和改取 max、`GREATEST` 改 `LEAST`、删掉 `ownerId` 条件、`COALESCE` 改成直接覆盖、
+  访客 key 正则放宽——每一条都只让预期的那几条红。
+  另外一条**证伪**记在这里：`contentHeight <= viewportHeight → 100` 那个提前返回是死分支
+  （下面的 100 上限本来就给出同样答案），删掉之后测试仍然全绿，所以留着它只是假装钉住了规则。
+
+  仍欠：按天曲线（数据已经按天存，缺的只是图）；爬虫与真人不区分（现在只有一句"含爬虫"）；
+  游戏与互动作品的 completion 需要"玩到哪儿"的运行时事件，要等 §50-§53，现在那一列对它们是未采集；
+  **取消发布会把这一版的统计一起删掉**——`unpublishProject` 删 `published_projects` 行，
+  `publication_visits` 跟着 `ON DELETE CASCADE`（`views` 本来就是这个行为，新表继承了它），
+  要留历史得把粒度改成挂 project_id 或让下架只改 visibility；没有导出；没有跨作品的汇总视图。
 - [~] 画布批注（§111）— **2026-09-24 落地**：点中元素 → 写一句话钉在它上面（`comments.node_id`，
   不另起一张表）。定位由服务端按文档算（页面、元素名），节点被删后批注仍列得出并标明悬空；
   随 AI 请求上线走 §68 那条路（客户端上传 `annotations` 一律 400，超出 20 条与悬空都写进

@@ -525,6 +525,24 @@ export const AbuseReportRequestSchema = z.object({
 });
 export type AbuseReportRequest = z.infer<typeof AbuseReportRequestSchema>;
 
+/**
+ * §168 访客现场：公开页上报"看了多久、看到哪儿"。
+ * 这里只挡明显不合法的形状；**截断规则在 web 侧**（`apps/web/src/lib/visit-meter.ts`）：
+ * 一次心跳最多带走 60 秒，超了就按上限记并留下 capped 痕迹。
+ * 放宽到 600 秒再截而不是直接拒绝，是因为被节流挂起的标签页会攒出一大段——
+ * 拒绝等于把"这个人确实看过"整条丢掉。
+ */
+export const PublishedVisitRequestSchema = z.object({
+  path: z.string().min(3).max(200),
+  /** 浏览器生成的匿名 key：32 位十六进制，只用于把同一个人的多次心跳并成一行 */
+  visitorKey: z.string().regex(/^[0-9a-f]{32}$/),
+  /** true = 这次算一次页面打开；false = 仅仅是心跳 */
+  open: z.boolean(),
+  visibleMs: z.number().int().min(0).max(600_000),
+  completionPct: z.number().int().min(0).max(100),
+});
+export type PublishedVisitRequest = z.infer<typeof PublishedVisitRequestSchema>;
+
 
 /**
  * §162 作业队列：图片 / 视频 / 3D / 复杂 Agent 任务不能挂在一个 HTTP 请求上等结果，

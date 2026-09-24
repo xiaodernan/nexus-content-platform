@@ -3,6 +3,7 @@ import {
   bigint,
   boolean,
   customType,
+  date,
   index,
   integer,
   jsonb,
@@ -704,6 +705,40 @@ export const saves = pgTable(
     createdAt: now(),
   },
   (t) => [primaryKey({ columns: [t.userId, t.publicationId] }), index('saves_user_idx').on(t.userId, t.createdAt)],
+);
+
+/**
+ * §168 Analytics：一行 = 一个访客在一天里对某一份公开快照的现场。
+ *
+ * 为什么要有这张表：views / likes / remixes / followers 从旧表数得出来，
+ * 但 completion 与 play time **此前没有任何采集**——不采就没有真值，
+ * 拿 PV 或"页面停留"改个名字冒充就是 §159 禁止的那种假数据。
+ * 时长与比例都是**按访客聚合**的（累加 / 取最远），所以粒度是"访客 × 天"而不是事件流。
+ */
+export const publicationVisits = pgTable(
+  'publication_visits',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    publicationId: uuid('publication_id')
+      .notNull()
+      .references(() => publishedProjects.id, { onDelete: 'cascade' }),
+    /** 浏览器里生成的匿名 key：只用来把同一人的多次心跳并成一行，不代表账号 */
+    visitorKey: text('visitor_key').notNull(),
+    day: date('day').notNull(),
+    /** 登录访客的账号，匿名留 null —— 作者自己的访问因此能在查询里挑出来说明 */
+    userId: uuid('user_id').references(() => users.id, { onDelete: 'set null' }),
+    opens: integer('opens').notNull().default(0),
+    visibleMs: bigint('visible_ms', { mode: 'number' }).notNull().default(0),
+    completionPct: integer('completion_pct').notNull().default(0),
+    /** 被上限截断过几次：被动过的痕迹要留得下来，不然"累计时长"看着像原样 */
+    cappedReports: integer('capped_reports').notNull().default(0),
+    createdAt: now(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    uniqueIndex('publication_visit_day_key').on(t.publicationId, t.visitorKey, t.day),
+    index('publication_visit_pub_idx').on(t.publicationId, t.day),
+  ],
 );
 
 /**

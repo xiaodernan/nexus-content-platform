@@ -1663,3 +1663,137 @@ test('@smoke §166 SEO：公开页 head、sitemap 与 robots 用的是同一套�
   await expect(visitor.locator('[data-published-frame]')).toBeVisible();
   await expect(visitor.locator('link[rel="canonical"]')).toHaveAttribute('href', `${origin}${path}`);
 });
+
+/**
+ * §168 创作数据：作者页上的每个数都必须能追到"真有人做过这件事"。
+ * 这条用例走的是完整链路——真人（浏览器）打开公开页 → 客户端心跳进库 → 作者侧读出来，
+ * 中间任何一环假了都会在这里露馅：假采集器不会发请求，假展示面不会有非零数。
+ */
+test('@smoke §168 创作数据：访客真的来过，作者那一页才有真的数', async ({ page }) => {
+  // 链路里有一次 15 秒心跳和两次真发布（第二次前面要过一遍 save），预算给足
+  test.setTimeout(360_000);
+  const projectName = `数据作品${Date.now().toString(36)}`;
+  const projectId = await createProject(page, projectName);
+
+  await page.click('[data-publish-open]');
+  await expect(page.locator('[data-publish-submit]')).toBeVisible();
+  await page.click('[data-publish-choice="public"]');
+  await page.click('[data-publish-submit]');
+  await expect(page.locator('[data-publish-url]')).toBeVisible({ timeout: 30_000 });
+  const path = (await page.locator('[data-publish-url]').getAttribute('href'))!;
+  const visitApi = /\/api\/published\/visit$/;
+
+  const cell = (col: string) => page.locator(`[data-analytics-row="${path}"] [data-analytics-value="${col}"]`);
+
+  // 刚发布、还没有人来过：计数是 0，没采到的两项写"未采集"
+  await page.goto('/analytics');
+  await expect(page.locator('[data-analytics-page]')).toBeVisible();
+  await expect(page.locator(`[data-analytics-row="${path}"]`)).toBeVisible();
+  await expect(cell('visitors')).toHaveText('0');
+  await expect(cell('play_time')).toHaveText('未采集');
+  await expect(cell('completion')).toHaveText('未采集');
+  // 口径写在页面上，不是只写在代码注释里
+  await expect(page.locator('[data-analytics-page]')).toContainText('这台浏览器 × 这一天');
+
+  // 一个不带任何登录态的访客：新 context，同一个 browser context 会带着这个 guest 的会话
+  const browser = page.context().browser();
+  if (!browser) throw new Error('这条用例需要一个可派生上下文的浏览器');
+  const anonContext = await browser.newContext();
+  const visitor = await anonContext.newPage();
+  const opened = visitor.waitForResponse((res) => visitApi.test(new URL(res.url()).pathname) && res.status() === 200);
+  await visitor.goto(new URL(path, page.url()).href);
+  await expect(visitor.locator('[data-published-frame]')).toBeVisible({ timeout: 30_000 });
+  // 统计这件事写在页面上，不执行 JS 的访客也看得见
+  await expect(visitor.locator('[data-visit-notice]')).toBeVisible();
+  await opened;
+
+  // 滚到底再等一次心跳：时长与"最远到达比例"是这一拍带回来的
+  await visitor.evaluate(() => window.scrollTo(0, document.documentElement.scrollHeight));
+  const heartbeat = await visitor.waitForResponse((res) => {
+    if (!visitApi.test(new URL(res.url()).pathname) || res.status() !== 200) return false;
+    const body = res.request().postDataJSON() as { visibleMs?: number };
+    return (body.visibleMs ?? 0) > 0;
+  }, { timeout: 40_000 });
+  const reported = heartbeat.request().postDataJSON() as {
+    path: string;
+    visitorKey: string;
+    open: boolean;
+    visibleMs: number;
+    completionPct: number;
+  };
+  expect(reported.path).toBe(path);
+  expect(reported.visitorKey).toMatch(/^[0-9a-f]{32}$/);
+  expect(reported.open).toBe(false);
+  expect(reported.completionPct).toBeGreaterThan(50);
+
+  await page.goto('/analytics');
+  await expect(cell('visitors')).toHaveText('1');
+  await expect(cell('opens_today')).toHaveText('1');
+  // 服务端渲染计数是真的：访客点开过一次，views 就不是 0
+  await expect(cell('views')).not.toHaveText('0');
+  await expect(cell('play_time')).toHaveText(/\d+ 秒/);
+  await expect(cell('completion')).toContainText('%');
+  // 这是个真人（匿名访客），不是作者自己刷新出来的数
+  await expect(page.locator(`[data-analytics-row="${path}"] [data-analytics-selfonly]`)).toHaveCount(0);
+  await page.screenshot({ path: 'screenshots/creator-analytics.png' });
+
+  // 没有登录态的人打不开别人的数据：页面上一个数字都不该出现
+  const anonAnalytics = await anonContext.newPage();
+  await anonAnalytics.goto(new URL('/analytics', page.url()).href);
+  await expect(anonAnalytics.locator('[data-analytics-denied]')).toBeVisible();
+  await expect(anonAnalytics.locator('[data-analytics-value]')).toHaveCount(0);
+
+  // 这个接口是匿名可写的，所以 CSRF 双提交必须真的挡事：只带 cookie 不带头的上报进不来
+  const visitUrl = new URL('/api/published/visit', page.url()).href;
+  const payload = (over: Record<string, unknown>) => ({
+    path,
+    visitorKey: reported.visitorKey,
+    open: true,
+    visibleMs: 5_000,
+    completionPct: 100,
+    ...over,
+  });
+  expect((await visitor.request.post(visitUrl, { data: payload({}) })).status()).toBe(403);
+  // 反向对照：同一个访客、同一个 body，补上 cookie 里那份 token 就通得过去
+  const token = (await anonContext.cookies()).find((cookie) => cookie.name === 'nexus_csrf')?.value;
+  if (!token) throw new Error('访客上下文里没有 CSRF cookie，这条用例的前提不成立');
+  const csrf = { 'x-csrf-token': token };
+  expect((await visitor.request.post(visitUrl, { data: payload({}), headers: csrf })).status()).toBe(200);
+  await page.reload();
+  // 同一个人当天再来一次：访客数还是 1，只有"今天打开"加了一次
+  await expect(cell('opens_today')).toHaveText('2');
+  await expect(cell('visitors')).toHaveText('1');
+
+  // 一个不存在的公开路径：404，并且不会往任何一行上写数据。
+  // 这里只看"次数"类指标：访客页面还在每 15 秒心跳一次，时长本来就在动
+  const bogus = await visitor.request.post(
+    visitUrl,
+    { data: payload({ path: '/n/nobody/never-published', visibleMs: 60_000 }), headers: csrf },
+  );
+  expect(bogus.status()).toBe(404);
+  await page.reload();
+  await expect(cell('opens_today')).toHaveText('2');
+  await expect(cell('visitors')).toHaveText('1');
+
+  // 作者下架（切成私有）之后再上报：接口 404，已经存在的历史计数一行都不加
+  await page.goto(`/studio/${projectId}`);
+  await expect(page.locator('[data-studio-root]')).toBeVisible({ timeout: 30_000 });
+  await page.click('[data-publish-open]');
+  await expect(page.locator('[data-publish-submit]')).toBeVisible();
+  await page.click('[data-publish-choice="private"]');
+  await page.click('[data-publish-submit]');
+  // 断言挂在触发按钮上：`data-publish-result` 在切成私有后会整块收起，等不到"第 2 版"这句话。
+  // 60 秒的预算是给发布前那一次 save() 的——docs/TESTING.md 记过它偶发超过 30 秒，不是断言写宽了
+  await expect(page.locator('[data-publish-open]')).toContainText('已停 v2', { timeout: 60_000 });
+
+  const afterUnpublish = await visitor.request.post(
+    visitUrl,
+    { data: payload({ visibleMs: 60_000 }), headers: csrf },
+  );
+  expect(afterUnpublish.status()).toBe(404);
+  await page.goto('/analytics');
+  // 下架不删历史：这一行还在，只是"不再收新的"
+  await expect(cell('opens_today')).toHaveText('2');
+  await expect(page.locator(`[data-analytics-row="${path}"]`)).toContainText('已停');
+  await anonContext.close();
+});

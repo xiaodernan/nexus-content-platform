@@ -48,7 +48,10 @@ export default async function HomePage() {
         <a href="/discover" className="text-accent-2 underline" data-nav-discover>
           发现
         </a>
-        <span className="text-fg-3">公开在跑的作品与全平台的内容搜索</span>
+        <a href="/analytics" className="text-accent-2 underline" data-nav-analytics>
+          创作数据
+        </a>
+        <span className="text-fg-3">公开在跑的作品与全平台的内容搜索；数据只统计你自己的发布</span>
       </nav>
 
       <section className="border-t border-[var(--nexus-color-border-subtle)] pt-[var(--nexus-space-6)]">
