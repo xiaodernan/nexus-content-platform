@@ -20,7 +20,7 @@ export {
   type ExecSpawnOptions,
   type SpawnLike,
 } from './execHost.js';
-export { execTestRunner, type ExecTestRunnerOptions } from './execTestRunner.js';
+export { execTestRunner, NEVER_RAN, type ExecTestRunnerOptions } from './execTestRunner.js';
 export {
   GIT_LOG_TOOL_SPECS,
   GIT_LOG_MAX_COUNT,

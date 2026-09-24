@@ -1959,3 +1959,58 @@ and only measuring each conflict shape showed it._
   shows the new path as v32 decided; nothing here teaches the Studio dock to render a conflict, and
   DEMO MODE is unaffected — no Studio surface runs an exec host, so the whole of v57 is enforced in
   unit tests and proofs, and no panel pretends otherwise.
+
+## Amendment 60 — v60 (exec-host): one pipe may not mute the other in the SENTENCE either — the `test.run` bridge was quoting `stderr || stdout`, filing refusals under the predicate's own name, and printing `exit null` for a process that never exited, 2026-09
+- **What was found:** v53 gave each stream its own byte ceiling after measuring that a shared counter
+  let stderr starve stdout. One layer up, the bridge that turns an `ExecRunResult` into a `TestReport`
+  had kept a strictly worse version of the same hazard since v31: `stderr || stdout`. It did not
+  depend on timing — **stderr simply always won**, which is why 30 versions of green proofs never
+  caught it: a command that stays quiet on stderr always looked fine. Measured against real processes
+  before anything was written (and the shipped rule is recomputed inside the proof from the SAME
+  result, so the damage is shown rather than asserted):
+  a suite whose 42-byte answer sits on stdout and whose 42-byte deprecation warning sits on stderr
+  produced the sentence `exit 1 · (node:123) DeprecationWarning: legacy url` — in **both** write
+  orders, identically; the answer never appeared. Worse, a command with 2 500 bytes on stdout under a
+  2 000-byte ceiling and a 5-byte warning on stderr produced a **53-byte** sentence that quoted the
+  warning and then announced `output truncated at budget (stdout)` — it described a cut it had itself
+  hidden, while 2 000 bytes of surviving, whole-line stdout sat outside the report entirely.
+- **The rule now:** every non-empty pipe is quoted **under its own label**, and a pipe the budget cut
+  to nothing says so in v48's words ("no WHOLE line survived the output budget … NOT a statement that
+  it printed nothing"), so an absent pipe is never read as a silent one. v56's aggregate clause still
+  names the cut pipes at the end; the doors' `budgetFlags` wording is unchanged, so there is still one
+  truncation vocabulary in the package. `exit ${code}` is printed only when an exit code exists —
+  otherwise `no exit code reported`. v55's `descendantsStopped` finally has a landing point: a killed
+  verify now reads `killed at timeout budget (SIGTERM) (descendants: not-attempted)`, which matters
+  precisely for a suite runner that spawns workers of its own.
+- **A refusal is not a failed test — and the fix is a NAME, not a NUMBER.** The dock chip's tooltip is
+  `failures[0].name: failures[0].message`, so a default-deny answer used to read
+  "exit-zero: no allowlist rule matches …", attributing a verdict to a predicate that was never asked
+  of a command that was never started. It is now filed under `NEVER_RAN` (`never-ran`). `total`
+  deliberately stays **1**: `runPredicates` defines `total` as predicates *in scope*, and
+  `registerTestTools` answers `total 0` for an asked-for `only` by throwing *"no test predicate named
+  X"* — zeroing the number to make the arithmetic look honest would have replaced one lie with a
+  stranger one. §6 of the proof pins that trap so nobody "fixes" the number later.
+- **The price, in numbers:** a report sentence can now carry BOTH pipes, so where the old one capped
+  itself at one stream's text the new one can reach the pair — measured at **2 072 bytes** for a
+  sentence under a 2 000-byte per-stream ceiling. That is the same 2× ceiling v53 already accepted for
+  retention, now also visible in the text a run journals.
+- **Verified:** exec-host 181 → **187/187** (8 files); NEW `bridge-report-proof.mjs` (48th script in
+  `docs/evidence/agents/`, §1–§7, real spawns, real kill at 500 ms, real vitest, `os.tmpdir` only,
+  home HEAD compared byte-wise). Two COMMITTED proofs were re-accounted in this same commit because
+  their expectations encoded the old contract: `exectest-proof.mjs` (5 assertions — the
+  `1/1 passed — exit 0 · all good` equality, the `exit 1 · boom: …` failure message, and the §28
+  refusal's exact message; each now states the pipe or the `never ran:` wording) and
+  `budgets-proof.mjs` (its `/exit null/` match, whose old comment argued "the report says null rather
+  than inventing one" — the new wording keeps that anti-invention property and stops implying an exit
+  happened at all). Their real-vitest section now reads
+  `killed at timeout budget (SIGTERM) (descendants: not-attempted) · no exit code reported`.
+- **Honest bounds (§60):** the shipped suite was MEASURED, not excused — real `@nexus/design-model`
+  vitest writes **592 bytes on stdout and 0 on stderr**, so for the ONE command this repo actually
+  verifies with, v31's picking rule happened to pick right: the hazard was latent in the bridge, not
+  live in a shipped door. Where it IS live is any program that warns — which is every real test
+  runner, and the host is where every door is born. Not changed here: the verdict rule (a cut stream
+  turns neither green to red nor red to green — asserted), budgets, gates, argv, the engine label, and
+  `TestReport`'s shape, which stays runtime-owned. What this also did NOT settle: `total` cannot
+  express "nothing ran" to a consumer that reads only numbers (the chip still prints `0/1`), and the
+  only honest carrier for that is a field on `TestReport` — a runtime-side decision, deliberately not
+  smuggled through an exec-host commit.

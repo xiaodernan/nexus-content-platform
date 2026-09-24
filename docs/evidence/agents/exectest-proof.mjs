@@ -34,10 +34,10 @@ function makeHost(end, chunks = []) {
 const passH = makeHost({ code: 0, signal: null }, [['stdout', 'all good']]);
 const pass = await host.execTestRunner(passH.host, ['node', 'app.js'], { preApproved: true }).run();
 assert.deepEqual([pass.engine, pass.ok, pass.total, pass.passed], ['exec-host:node app.js', true, 1, 1], 'the engine NAMES the real argv');
-assert.equal(pass.detail, 'exec-host:node app.js: 1/1 passed — exit 0 · all good');
+assert.equal(pass.detail, 'exec-host:node app.js: 1/1 passed — exit 0 · stdout: all good'); // v60: the pipe is NAMED — v31 could only say where text came from by accident
 const failH = makeHost({ code: 1, signal: null }, [['stderr', 'boom: assertion failed']]);
 const fail = await host.execTestRunner(failH.host, ['node', 'app.js'], { preApproved: true }).run();
-assert.deepEqual(fail.failures, [{ name: 'exit-zero', message: 'exit 1 · boom: assertion failed' }]);
+assert.deepEqual(fail.failures, [{ name: 'exit-zero', message: 'exit 1 · stderr: boom: assertion failed' }]); // v60: the same words, now attributed to the pipe that said them
 console.log('[exectest-proof] mapping: exit 0 passes · exit 1 + stderr fail verbatim, engine = argv');
 
 // 2) Honest denials: a refusal is a FAILING report with its stated reason — never a crash, never a spawn.
@@ -45,13 +45,17 @@ const refuseH = makeHost({ code: 0, signal: null });
 const refused = await host.execTestRunner(refuseH.host, ['curl', 'evil.test'], { preApproved: true }).run();
 assert.equal(refused.ok, false);
 assert.match(refused.failures[0].message, /default-deny/);
+assert.equal(refused.failures[0].name, 'never-ran', 'v60: a refusal is not filed under the predicate it never reached — the dock tooltip reads this name');
 assert.equal(refuseH.spawns.length, 0, 'a policy refusal costs zero spawns even through the bridge');
 const noGate = await host.execTestRunner(refuseH.host, ['node', 'app.js']).run();
-assert.equal(noGate.failures[0].message, 'checkpoint required for exec (§28)', '§28: no preApproved AND no checkpoint ⇒ the host itself refuses');
+assert.match(noGate.failures[0].message, /^never ran: checkpoint required for exec \(§28\)/, '§28: no preApproved AND no checkpoint ⇒ the host itself refuses, and v60 says so in words');
+assert.equal(noGate.total, 1, 'v60 kept the NUMBER: total counts a predicate in scope, and zeroing it would make registerTestTools answer "no test predicate named exit-zero"');
 const timeoutH = makeHost(null); // child never ends on its own
 const killed = await host.execTestRunner(timeoutH.host, ['git', 'status', '--short'], { preApproved: true }).run();
 assert.equal(killed.ok, false);
 assert.match(killed.failures[0].message, /killed at timeout budget \(SIGTERM\)/);
+assert.match(killed.failures[0].message, /\(descendants: (reaped|reaper-failed|no-pid|unsupported-platform|not-attempted)\)/, "v55's tree answer, spoken by the bridge since v60");
+assert.equal(/exit null/.test(killed.failures[0].message), false, 'v60 retired the exit-null wording — an exit clause for a process that never exited');
 assert.equal(timeoutH.spawns[0].child.killed, true);
 const vacuous = await host.execTestRunner(refuseH.host, ['node', 'app.js'], { preApproved: true }).run('ghost');
 assert.deepEqual([vacuous.total, vacuous.ok], [0, false], 'an `only` miss is the stated vacuous shape, no spawn paid for it');

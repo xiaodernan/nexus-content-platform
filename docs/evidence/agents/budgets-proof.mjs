@@ -266,7 +266,7 @@ try {
   assert.equal(killed.ok, false, 'a verify that never finished may not report green');
   assert.match(killed.detail, /killed at timeout budget/, 'the report NAMES the budget as the reason, distinct from a test failure');
   assert.match(killed.detail, /SIGTERM/);
-  assert.match(killed.detail, /exit null/, 'the process never reported an exit code, and the report says null rather than inventing one');
+  assert.match(killed.detail, /no exit code reported/, 'v60: the sentence names the ABSENCE of an exit rather than printing "exit null" for a process that never exited');
   assert.equal(killed.report.passed, 0);
   assert.ok(impatient.ms < 15_000, `the timeout actually cut the wait short (took ${impatient.ms}ms)`);
 
