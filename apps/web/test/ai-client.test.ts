@@ -66,7 +66,9 @@ function response(overrides: Partial<AiResponse> = {}): AiResponse {
 function stubFetch(init: (input: RequestInfo | URL, options?: RequestInit) => Response | Promise<Response>) {
   const calls: { url: string; options?: RequestInit }[] = [];
   const impl = (async (input: RequestInfo | URL, options?: RequestInit) => {
-    calls.push({ url: String(input), options });
+    // 被测代码只会用字符串 URL 调 fetch；出现别的形态说明前提变了，别静默 stringify 成 [object Request]
+    if (typeof input !== 'string') throw new Error(`测试桩只处理字符串 URL，收到 ${typeof input}`);
+    calls.push({ url: input, options });
     return init(input, options);
   }) as unknown as typeof fetch;
   return { impl, calls };

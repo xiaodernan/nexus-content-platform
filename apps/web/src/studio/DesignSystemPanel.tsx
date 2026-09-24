@@ -32,8 +32,8 @@ function valueInput(token: Token): string {
   return JSON.stringify(value);
 }
 
-/** 解析输入：颜色接受 #rgb/#rrggbb，数字接受纯数，其余按 JSON 读；读不动就返回 null */
-function parseInput(type: Token['type'], raw: string): unknown | null {
+/** 解析输入：颜色接受 #rgb/#rrggbb，数字接受纯数，其余按 JSON 读；读不动就返回 null（所以调用方只认 null 这一个失败信号） */
+function parseInput(type: Token['type'], raw: string): unknown {
   const text = raw.trim();
   if (!text) return null;
   if (type === 'color') return /^#([0-9a-f]{3}|[0-9a-f]{6}|[0-9a-f]{8})$/i.test(text) ? text : null;

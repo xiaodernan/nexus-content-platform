@@ -19,9 +19,11 @@ import type {
   DesignNode,
   Effect,
   Layout,
+  LengthValue,
   Page,
   Paint,
   SizeValue,
+  TokenRef,
   Stroke,
   Style,
   Token,
@@ -415,9 +417,6 @@ const VARIANT_PREFIX: Record<BreakpointName, string> = {
   wide: "xl:",
 };
 
-/** 派生类名：由别的字段决定，不参与重投影一致性核对 */
-const DERIVED = new Set(["flex", "relative", "absolute", "whitespace-pre", "whitespace-pre-wrap"]);
-
 /** 随父容器语义变化的尺寸类：父级本次也被改时不核对，避免误判 */
 const PARENT_SCOPED = new Set(["flex-1", "self-stretch", "w-fit", "h-fit", "w-full", "h-full"]);
 
@@ -475,7 +474,7 @@ function makeCtx(options: CodeParseOptions): Ctx {
 const escapeRe = (value: string): string => value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
 /** `var(--nx-color-text-muted)` → `{color.text-muted}`；非本生成器产出的变量返回 null */
-function tokenRefOf(raw: string, ctx: Ctx): string | null {
+function tokenRefOf(raw: string, ctx: Ctx): TokenRef | null {
   const m = new RegExp(`^var\\(--${escapeRe(ctx.prefix)}-(.+)\\)$`, "i").exec(raw.trim());
   if (!m) return null;
   const dashed = m[1]!;
@@ -494,7 +493,7 @@ function numberOf(raw: string): number | null {
  * 只认 px 字面量会让 §19 的往返恒等在第一份起手页上就破；而认回引用（不是认成数字）
  * 才不会把已有的 token 绑定改写成常量。
  */
-function lengthOrTokenOf(raw: string, ctx: Ctx): number | string | null {
+function lengthOrTokenOf(raw: string, ctx: Ctx): LengthValue | null {
   const ref = tokenRefOf(raw, ctx);
   if (ref) {
     const token = ctx.byKey.get(ref.slice(1, -1));

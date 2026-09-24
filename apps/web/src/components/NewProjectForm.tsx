@@ -47,7 +47,7 @@ export function NewProjectForm() {
   };
 
   return (
-    <form onSubmit={submit} className="flex flex-wrap items-center gap-[var(--nexus-space-2)]">
+    <form onSubmit={(event) => void submit(event)} className="flex flex-wrap items-center gap-[var(--nexus-space-2)]">
       <input
         value={name}
         onChange={(e) => setName(e.target.value)}

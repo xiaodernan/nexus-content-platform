@@ -30,20 +30,6 @@ function pageWith(
   return page;
 }
 
-const shape = (
-  name: string,
-  width: number,
-  height: number,
-  extra: Partial<DesignNode> = {},
-): DesignNode =>
-  createNode({
-    type: "shape",
-    name,
-    size: { width, height },
-    ...({} as object),
-    ...(extra as object),
-  }) as DesignNode;
-
 function fixedShape(
   name: string,
   width: number | "fill" | "hug",

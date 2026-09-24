@@ -1,6 +1,6 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { eq, sql as rawSql } from 'drizzle-orm';
-import { addRelationship, createCharacter, withProfile } from '@nexus/world-model';
+import { addRelationship, withProfile } from '@nexus/world-model';
 import {
   createProjectCharacter,
   deleteCharacter,

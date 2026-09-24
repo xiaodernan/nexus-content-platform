@@ -48,7 +48,9 @@ function setToken(document: DesignDocument, key: string, value: unknown): void {
 function add(
   document: DesignDocument,
   type: "text" | "button" | "image",
-  overrides: Parameters<typeof createNode>[0] = {},
+  // 这里刻意不带 type：type 由上一个参数给。写成 CreateNodeInput 的话，
+  // 每个调用点都得塞一个假的 type。
+  overrides: Omit<Parameters<typeof createNode>[0], "type"> = {},
 ): string {
   const page = document.pages[0]!;
   const root = page.nodes[page.rootId]!;

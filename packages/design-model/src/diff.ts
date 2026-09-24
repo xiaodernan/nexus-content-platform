@@ -80,6 +80,13 @@ function diffPage(before: Page, after: Page, rows: Row[]): void {
   }
 }
 
+/**
+ * nodes 是 Record（有字符串索引签名），所以 `page.nodes.length` 在类型上"合法"、
+ * 运行时永远是 undefined——AI Diff 里那两行会显示"undefined 个节点"。必须走 Object.keys。
+ */
+const nodeCount = (page: { nodes: Record<string, unknown> }): string =>
+  `${Object.keys(page.nodes).length} 个节点`;
+
 export function diffDocuments(
   before: DesignDocument,
   after: DesignDocument,
@@ -93,7 +100,7 @@ export function diffDocuments(
   for (const page of after.pages) {
     const was = beforePages.get(page.id);
     if (!was) {
-      rows.push([page.rootId, page.name, "page", undefined, `${page.nodes.length} 个节点`, "added"]);
+      rows.push([page.rootId, page.name, "page", undefined, nodeCount(page), "added"]);
       continue;
     }
     for (const key of ["name", "width", "height", "backgroundColor"] as const) {
@@ -105,7 +112,7 @@ export function diffDocuments(
   }
   for (const page of before.pages) {
     if (!afterPages.has(page.id)) {
-      rows.push([page.rootId, page.name, "page", `${page.nodes.length} 个节点`, undefined, "removed"]);
+      rows.push([page.rootId, page.name, "page", nodeCount(page), undefined, "removed"]);
     }
   }
 

@@ -8,6 +8,15 @@
 export type NodeId = string;
 export type PageId = string;
 export type TokenKey = string;
+
+/**
+ * 写进「值槽位」的概念语言引用，形如 `{radius.md}`（§12）。
+ *
+ * 这些槽位以前标的是 TokenKey（裸 key），于是 `number | TokenKey` 塌成 `number | string`、
+ * `"hug" | "fill" | TokenKey` 塌成 `string`——字面量白写，类型什么也不挡。裸 key 和带花括号的
+ * 引用在运行时早就是两回事（isTokenRef / tokenRefKey / makeTokenRef），类型层现在才跟上。
+ */
+export type TokenRef = `{${string}}`;
 export type ComponentId = string;
 
 /** §10 节点类型。未来扩展：GameObject / Particle / Character / Camera / Light */
@@ -127,8 +136,9 @@ export interface CornerRadius {
 }
 
 export interface Typography {
-  fontFamily: string | TokenKey;
-  fontSize: number | TokenKey;
+  /** 字体名本身是自由文本，也可以是 `{font.body}` 这样的 token 引用（§12），渲染层负责解析 */
+  fontFamily: string;
+  fontSize: number | TokenRef;
   fontWeight: number;
   lineHeight: number | "auto";
   letterSpacing: number;
@@ -170,7 +180,7 @@ export type AnimationPreset =
 export interface Animation {
   preset: AnimationPreset;
   trigger: "mount" | "hover" | "scroll" | "interaction" | "loop";
-  duration: number | TokenKey;
+  duration: number | TokenRef;
   delay?: number;
   easing:
     | "linear"
@@ -179,7 +189,7 @@ export interface Animation {
     | "ease-out"
     | "ease-in-out"
     | "spring"
-    | TokenKey;
+    | TokenRef;
   distance?: number;
   scaleFrom?: number;
   opacityFrom?: number;
@@ -213,7 +223,8 @@ export interface Interaction {
     | "play-animation"
     | "set-variable"
     | "submit";
-  target?: NodeId | PageId | string;
+  /** 指向谁：node id 或 page id（两种都可能，所以只能是宽 string + 注释，写联合类型是假的） */
+  target?: string;
   key?: string;
   variable?: string;
   duration?: number;
@@ -235,7 +246,7 @@ export type LayoutMode =
  * 运行时统一经 TokenStore.resolveValue 解析（layout/render/codegen 都已支持），
  * 类型层如实反映这一点，别再谎报成纯 number（§16 设计模型即真值）。
  */
-export type LengthValue = number | TokenKey;
+export type LengthValue = number | TokenRef;
 
 export interface Layout {
   mode: LayoutMode;
@@ -266,7 +277,7 @@ export interface Layout {
   clipContent?: boolean;
 }
 
-export type SizeValue = number | "hug" | "fill" | TokenKey;
+export type SizeValue = number | "hug" | "fill" | TokenRef;
 
 export interface Size {
   width: SizeValue;

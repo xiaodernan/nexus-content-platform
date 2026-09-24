@@ -217,8 +217,8 @@ export function assetRowToRef(row: typeof assets.$inferSelect): AssetRef {
   const generatedBy =
     row.source === 'generated' && typeof gen.prompt === 'string'
       ? {
-          provider: String(gen.provider ?? 'unknown'),
-          model: String(gen.model ?? 'unknown'),
+          provider: typeof gen.provider === 'string' ? gen.provider : 'unknown',
+          model: typeof gen.model === 'string' ? gen.model : 'unknown',
           prompt: gen.prompt,
         }
       : undefined;

@@ -11,8 +11,9 @@
     "dev:ai": "bash infra/dev-ai.sh",
     "build": "npm run build -w @nexus/web",
     "start": "npm run start -w @nexus/web",
-    "typecheck": "tsc -p packages/design-model/tsconfig.json --noEmit && tsc -p packages/world-model/tsconfig.json --noEmit && tsc -p packages/game-model/tsconfig.json --noEmit && tsc -p packages/schemas/tsconfig.json --noEmit && tsc -p apps/web/tsconfig.json --noEmit && tsc -p e2e/tsconfig.json --noEmit",
-    "lint": "npm run typecheck",
+    "typecheck": "tsc -p packages/design-model/tsconfig.json --noEmit && tsc -p packages/world-model/tsconfig.json --noEmit && tsc -p packages/game-model/tsconfig.json --noEmit && tsc -p packages/schemas/tsconfig.json --noEmit && tsc -p apps/web/tsconfig.json --noEmit && tsc -p e2e/tsconfig.json --noEmit && tsc -p tsconfig.tools.json --noEmit",
+    "eslint": "eslint .",
+    "lint": "npm run typecheck && npm run eslint",
     "test": "vitest run",
     "test:watch": "vitest",
     "perf:browser": "tsx scripts/perf-browser.mts",
@@ -33,9 +34,11 @@
   "devDependencies": {
     "@playwright/test": "^1.56.0",
     "@types/node": "^24.0.0",
+    "eslint": "10.11.0",
     "prettier": "^3.6.0",
     "tsx": "^4.20.0",
     "typescript": "^5.9.0",
+    "typescript-eslint": "8.70.1",
     "vitest": "^3.2.0"
   },
   "engines": {

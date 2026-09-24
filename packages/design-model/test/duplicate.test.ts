@@ -50,8 +50,8 @@ describe("duplicateDocument", () => {
   it("内容照搬，页面与组件 id 全部换号", () => {
     const source = withExtras();
     const copy = duplicateDocument(source);
-    expect(copy.pages.map((p) => p.nodes[p.rootId].name)).toEqual(
-      source.pages.map((p) => p.nodes[p.rootId].name),
+    expect(copy.pages.map((p) => p.nodes[p.rootId]!.name)).toEqual(
+      source.pages.map((p) => p.nodes[p.rootId]!.name),
     );
     expect(copy.pages.map((p) => p.id)).not.toEqual(source.pages.map((p) => p.id));
     expect(copy.components.map((c) => c.id)).not.toEqual(source.components.map((c) => c.id));

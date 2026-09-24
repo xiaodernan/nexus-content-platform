@@ -1,5 +1,5 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import { eq, inArray, sql as rawSql } from 'drizzle-orm';
+import { inArray, sql as rawSql } from 'drizzle-orm';
 import type { AiRequest } from '@nexus/schemas';
 import { createNode, findPage } from '@nexus/design-model';
 import { addAnnotation, deleteAnnotation, listAnnotations } from '../src/server/domain/annotations';

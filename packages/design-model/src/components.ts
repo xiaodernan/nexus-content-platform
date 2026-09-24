@@ -63,7 +63,7 @@ export function applyInstanceOverrides(
   }
 
   // 重映射父子指针，保证只读投影内部自洽
-  for (const [id, node] of Object.entries(nodes)) {
+  for (const node of Object.values(nodes)) {
     node.children = node.children.filter((childId) => nodes[childId]);
     if (node.parentId && !nodes[node.parentId] && node.parentId !== instance.id)
       node.parentId = instance.id;

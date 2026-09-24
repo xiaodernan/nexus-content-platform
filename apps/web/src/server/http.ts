@@ -2,7 +2,8 @@ import { NextResponse } from 'next/server';
 
 /** API 层的统一出口：错误响应不带堆栈，避免泄露内部结构（§26 / SECURITY.md） */
 
-export async function readJson(req: Request): Promise<unknown | null> {
+/** 解析请求体；不是合法 JSON 时返回 null（注意合法的字面量 `null` 与失败无法区分，调用方都当失败处理） */
+export async function readJson(req: Request): Promise<unknown> {
   try {
     return await req.json();
   } catch {

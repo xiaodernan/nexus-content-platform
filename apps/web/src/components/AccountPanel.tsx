@@ -84,7 +84,7 @@ export function AccountPanel({ user }: { user: Identity }) {
         {!user.guest ? (
           <button
             type="button"
-            onClick={logout}
+            onClick={() => void logout()}
             disabled={busy}
             className="rounded-[var(--nexus-radius-sm)] border border-[var(--nexus-color-border-strong)] px-[var(--nexus-space-3)] py-1 text-12 text-fg-2 hover:bg-bg-2 disabled:opacity-40"
             data-auth-logout
@@ -95,7 +95,7 @@ export function AccountPanel({ user }: { user: Identity }) {
       </div>
 
       {user.guest ? (
-        <form onSubmit={submit} className="flex flex-col gap-[var(--nexus-space-2)]">
+        <form onSubmit={(event) => void submit(event)} className="flex flex-col gap-[var(--nexus-space-2)]">
           <div className="flex gap-[var(--nexus-space-2)]">
             <button
               type="button"

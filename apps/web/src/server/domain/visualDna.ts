@@ -179,9 +179,9 @@ function decodePngToRgba(png: PngChunks): Uint8Array | string {
   const trns = png.transparency;
   for (let i = 0; i < png.width * png.height; i += 1) {
     const at = i * channels;
-    let r = 0;
-    let g = 0;
-    let b = 0;
+    let r: number;
+    let g: number;
+    let b: number;
     let a = 255;
     switch (png.colorType) {
       case 0:

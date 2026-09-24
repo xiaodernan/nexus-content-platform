@@ -6,12 +6,13 @@ import {
   isTokenRef,
   makeTokenRef,
   tokenRefKey,
-  toHex,
+  type ColorValue,
   type DesignNode,
   type Paint,
   type Token,
 } from '@nexus/design-model';
 import { cn } from '@/lib/cn';
+import { resolveColor } from './render';
 import { studio, useStudio, useStudioReady } from './store';
 
 const FITS: { value: NonNullable<Extract<Paint, { kind: 'image' }>['fit']>; label: string }[] = [
@@ -498,7 +499,9 @@ function FillList(props: {
       const path = `style.fills.${index}.color`;
       const current = read(path);
       const bound = isTokenRef(current) ? tokenRefKey(current) : null;
-      const hex = bound ? toHex(String(props.tokens.resolveValue(bound, props.mode)) ?? '#000') : toHex((current as never) ?? '#000');
+      // 交给 resolveColor 的是原值（带花括号的引用），不是剥掉花括号的裸 key：
+      // resolveValue 只认 `{a.b}` 形态，喂裸 key 它原样返回，色标会永远显示成黑的。
+      const hex = resolveColor(current as ColorValue | undefined, props.tokens, props.mode);
       const value = draft[index] ?? (typeof current === 'string' ? current : hex);
       return (
         <div key={index} className="flex items-center gap-2">

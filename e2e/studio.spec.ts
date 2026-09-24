@@ -473,6 +473,34 @@ test('@smoke studio slice: design system panel edits tokens and the canvas follo
   await expect(page.locator('[data-theme-mode]')).toHaveValue('dark');
 });
 
+test('@smoke 属性面板的色标显示 token 解析后的真色（§12/§16）', async ({ page }) => {
+  test.setTimeout(150_000);
+  await createProject(page, `色标 ${Date.now().toString(36)}`);
+  const id = await layerId(page, 'Primary CTA');
+  const swatch = page.locator('[data-prop="style.fills.0.color"]');
+  const toHex = (rgb: string) =>
+    `#${(rgb.match(/\d+/g) ?? []).map((n) => Number(n).toString(16).padStart(2, '0')).join('')}`;
+  const canvasBg = () =>
+    page.evaluate((nid) => {
+      const el = document.querySelector(`[data-canvas-frame] [data-node-id="${nid}"]`);
+      return el ? getComputedStyle(el).backgroundColor : '';
+    }, id);
+  // 每次都重新点选：选中态在自动保存的那一拍会掉，重试到稳定再断言（和图层面板那两处同法）
+  const expectSwatch = (want: (rgb: string) => string) => async () => {
+    await page.click(`[data-node-id="${id}"]`);
+    const painted = await canvasBg();
+    expect(painted).not.toBe('');
+    await expect(swatch, '色标要和画布真实背景一致').toHaveValue(want(painted), { timeout: 2_000 });
+  };
+  // 以前喂给 resolveValue 的是剥掉花括号的裸 key，它不当引用，绑了 token 的填充永远显示成黑的
+  await expect(expectSwatch(toHex)).toPass({ timeout: 30_000 });
+  // 改 token 后色标要跟着走，不能停在第一次打开面板那一刻的值
+  await page.click('[data-panel-tab="design"]');
+  await page.fill('[data-token-value="color.primary"]', '#00ff00');
+  await page.press('[data-token-value="color.primary"]', 'Enter');
+  await expect(expectSwatch(() => '#00ff00')).toPass({ timeout: 30_000 });
+});
+
 test('@smoke studio slice: AI command bar runs in DEMO MODE as one undoable transaction', async ({ page }) => {
   test.setTimeout(120_000);
   await createProject(page, `AI ${Date.now().toString(36)}`);
@@ -723,7 +751,7 @@ test('@smoke 上传图片：落画布、剥元数据回执、可撤销、预览�
 
 test('@smoke 资产库：上传后可见、删除跨画布生效、撤销恢复引用', async ({ page }) => {
   test.setTimeout(150_000);
-  const projectId = await createProject(page, `资产库 ${Date.now().toString(36)}`);
+  await createProject(page, `资产库 ${Date.now().toString(36)}`);
 
   const targetId = await layerId(page, 'Headline');
   await expect(async () => {

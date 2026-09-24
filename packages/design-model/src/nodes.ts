@@ -8,6 +8,7 @@ import type {
   Page,
   Style,
   Token,
+  Typography,
 } from "./types";
 
 /** 属性路径 → 读写；用于 bindingsMap、补丁应用、AI Diff 摘要 */
@@ -108,6 +109,19 @@ export function defaultLayout(mode: Layout["mode"] = "none"): Layout {
     items: mode === "horizontal" ? "start" : "start",
     clipContent: false,
     scroll: "none",
+  };
+}
+
+export function defaultTypography(type: NodeType): Typography {
+  const isButton = type === "button";
+  return {
+    fontFamily: "{font.body}",
+    fontSize: isButton ? 14 : 16,
+    fontWeight: isButton ? 600 : 400,
+    lineHeight: 1.5,
+    letterSpacing: 0,
+    align: "left",
+    verticalAlign: "top",
   };
 }
 
@@ -218,7 +232,7 @@ export interface CreateNodeInput {
   position?: Partial<DesignNode["position"]>;
   layout?: Partial<Layout>;
   style?: Partial<Style>;
-  typography?: DesignNode["typography"];
+  typography?: Partial<Typography>;
   componentId?: string;
   variantProps?: Record<string, string>;
   meta?: Record<string, unknown>;
@@ -253,18 +267,10 @@ export function createNode(input: CreateNodeInput): DesignNode {
     input.type === "input"
   ) {
     node.text = input.text ?? defaults.text ?? "";
-    node.typography = input.typography ?? {
-      fontFamily: "{font.body}",
-      fontSize: input.type === "button" ? 14 : 16,
-      fontWeight: input.type === "button" ? 600 : 400,
-      lineHeight: 1.5,
-      letterSpacing: 0,
-      align: "left",
-      verticalAlign: "top",
-    };
+    node.typography = { ...defaultTypography(input.type), ...(input.typography ?? {}) };
     node.constraints = { horizontal: "start", vertical: "start" };
   } else if (input.typography) {
-    node.typography = input.typography;
+    node.typography = { ...defaultTypography(input.type), ...input.typography };
   }
 
   if (input.type === "shape") node.shapeKind = "rectangle";

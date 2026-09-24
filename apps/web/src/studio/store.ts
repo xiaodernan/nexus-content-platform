@@ -252,7 +252,7 @@ export class StudioStore {
     const mode = document.activeMode ?? null;
     const key = `${this.design.getState().revision}|${document.id}|${page.id}|${this.viewport}|${mode}`;
     if (this.layoutCache?.key === key) return this.layoutCache.value;
-    let layout: ResolvedLayout | null = null;
+    let layout: ResolvedLayout | null;
     try {
       layout = resolveLayout(page, {
         tokens,

@@ -51,7 +51,7 @@ export class LocalStorageDriver implements StorageDriver {
       return null;
     }
     const bytes = await readFile(path);
-    let contentType: string | null = null;
+    let contentType: string | null;
     try {
       contentType = (await readFile(`${path}.content-type`, 'utf8')).trim();
     } catch {

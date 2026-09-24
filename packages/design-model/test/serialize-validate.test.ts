@@ -8,6 +8,7 @@ import {
 } from "../src/serialize";
 import { applyPatch } from "../src/patch";
 import { TokenStore, contrastRatio, parseHex, toHex } from "../src/tokens";
+import type { ColorValue } from "../src/types";
 import {
   collectTokenRefs,
   hasErrors,
@@ -85,7 +86,11 @@ describe("validateDocument", () => {
     expect(headline?.typography?.fontSize).toBeGreaterThanOrEqual(28);
     for (const node of Object.values(page.nodes)) {
       for (const paint of node.style.fills) {
-        if (paint.kind === "solid") expect(String(paint.color)).toMatch(/^\{.+\}$/);
+        if (paint.kind !== "solid") continue;
+        // 内联 RGBA 也会 toMatch 成 "[object Object]" 从而假通过，所以先要求它是字符串
+        if (typeof paint.color !== "string")
+          throw new Error(`${node.name} 的填充是内联 RGBA，不是 token 引用`);
+        expect(paint.color).toMatch(/^\{.+\}$/);
       }
     }
   });
@@ -256,8 +261,12 @@ describe("lintDesign (§32 / §121)", () => {
 
 describe("measureContrast（§90：测不出来就不报，绝不编一个 1:1）", () => {
   const tokenHex = (doc: ReturnType<typeof createDocument>, key: string) => {
-    const token = doc.tokens.find((t) => t.key === key);
-    return toHex(token!.value);
+    const value = doc.tokens.find((t) => t.key === key)?.value;
+    // token 的值是 unknown：颜色才能测对比度，测不了就直说，不要拿去喂 toHex 猜
+    if (typeof value === "string" || (typeof value === "object" && value !== null && "r" in value)) {
+      return toHex(value as ColorValue);
+    }
+    throw new Error(`token ${key} 的值不是颜色，测不了对比度`);
   };
   /** 起手页自带 hero 文案，会混进体检结果；这些用例只要一张白纸 */
   const bareDoc = (name: string) => {

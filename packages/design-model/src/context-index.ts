@@ -94,7 +94,7 @@ export interface IndexTokenEntry {
   type: string;
   group: string | null;
   /** 默认值；JSON 标量才原样给，复杂值写 "<complex>"，免得索引比文档还大 */
-  value: string | number | boolean | null | "<complex>";
+  value: string | number | boolean | null;
   /** 多主题 mode 的个数，0 表示没有 */
   modes: number;
   /** 用到它的节点数（按节点 id 去重） */

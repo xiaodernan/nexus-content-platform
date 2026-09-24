@@ -143,7 +143,7 @@ describe("类名 → 模型属性", () => {
     };
     const code = replace(source(page), " rounded-[10px]", "");
     const result = parse(page, code);
-    const ops = result.ops.filter((op) => op.nodeId === nodeId(page, "Primary CTA"));
+    const ops = result.ops.filter((op) => "nodeId" in op && op.nodeId === nodeId(page, "Primary CTA"));
     expect(ops).toEqual([
       {
         op: "set",
@@ -160,7 +160,9 @@ describe("类名 → 模型属性", () => {
     const result = parse(page, code);
     const cta = nodeId(page, "Primary CTA");
     expect(
-      result.ops.filter((op) => op.nodeId === cta && "path" in op && op.path === "style.cornerRadius"),
+      result.ops.filter(
+        (op) => "nodeId" in op && "path" in op && op.nodeId === cta && op.path === "style.cornerRadius",
+      ),
     ).toEqual([]);
     expect(page.nodes[cta]!.style.cornerRadius.topLeft).toBe("{radius.md}");
   });
@@ -175,7 +177,9 @@ describe("类名 → 模型属性", () => {
     const result = parse(page, code);
     const hero = nodeId(page, "Hero");
     expect(
-      result.ops.filter((op) => op.nodeId === hero && "path" in op && op.path.startsWith("layout.padding")),
+      result.ops.filter(
+        (op) => "nodeId" in op && "path" in op && op.nodeId === hero && op.path.startsWith("layout.padding"),
+      ),
     ).toEqual([
       { op: "set", nodeId: hero, path: "layout.padding.top", value: 32 },
       { op: "set", nodeId: hero, path: "layout.padding.right", value: 32 },
@@ -241,7 +245,7 @@ describe("类名 → 模型属性", () => {
     };
     const code = replace(source(withRule), "md:gap-[16px]", "md:flex-row md:gap-[12px]");
     const result = parse(withRule, code);
-    const op = result.ops.find((o) => o.path === "responsive");
+    const op = result.ops.find((o) => "path" in o && o.path === "responsive");
     expect(op).toMatchObject({
       nodeId: hero,
       value: [{ breakpoint: "tablet", patch: { layout: { gap: 12, mode: "horizontal" } } }],

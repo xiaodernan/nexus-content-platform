@@ -102,12 +102,34 @@ await page.waitForSelector('[data-canvas-frame] [data-node-id]', { timeout: 60_0
 const projectId = new URL(page.url()).pathname.split('/').pop()!;
 await page.addInitScript(`window.__perfProjectId = ${JSON.stringify(projectId)};`);
 
+/** addInitScript 注进来的全局；下面所有 page.evaluate 回调都靠它认项目 */
+declare global {
+  interface Window {
+    __perfProjectId: string;
+    __perf?: { firstNodeAt: number | null };
+  }
+}
+
+/**
+ * 文档在浏览器里用到的最小形状。压测脚本只动这几个字段，
+ * 也不把 design-model 的类型 import 进 evaluate 回调（那边序列化后就没有类型了）。
+ */
+type DocNode = {
+  id?: string;
+  name?: string;
+  parentId?: string;
+  text?: string | null;
+  children?: string[];
+} & Record<string, unknown>;
+type DocPage = { rootId: string; nodes: Record<string, DocNode> };
+
 async function pageState(): Promise<string> {
   return page.evaluate(() => {
-    const perf = (window as any).__perf;
+    const perf = window.__perf;
     const timing = performance
       .getEntriesByType('resource')
-      .filter((e) => e.name.includes('/api/projects'))
+      // 只有资源条目才有 initiatorType；这里的过滤条件本身就保证了它是资源条目
+      .filter((e): e is PerformanceResourceTiming => e.name.includes('/api/projects'))
       .map((e) => `${e.initiatorType}:${Math.round(e.duration)}ms`)
       .slice(-3);
     return [
@@ -134,7 +156,7 @@ async function reloadAndMeasureFirstNode(): Promise<number> {
   try {
     await page.waitForFunction(() => (window as any).__perf?.firstNodeAt !== null, undefined, { timeout: 180_000 });
   } catch (error) {
-    throw new Error(`等首帧超时：${await pageState()}（${error instanceof Error ? error.message : ''}）`);
+    throw new Error(`等首帧超时：${await pageState()}（${error instanceof Error ? error.message : ''}）`, { cause: error });
   }
   const at = await page.evaluate(() => (window as any).__perf.firstNodeAt as number);
   const count = await page.locator('[data-canvas-frame] [data-node-id]').count();
@@ -205,18 +227,19 @@ async function growDocument(nodes: number): Promise<number> {
   const result = await page.evaluate(
     async (target) => {
       const match = document.cookie.match(/(?:^|;\s*)nexus_csrf=([a-f0-9]+)/);
-      const projectId = window.__perfProjectId as string;
+      const projectId = window.__perfProjectId;
       const res = await fetch(`/api/projects/${projectId}`, { method: 'GET', cache: 'no-store' });
       if (!res.ok) return { ok: false, reason: `读取当前文档失败：HTTP ${res.status}` };
-      const body = (await res.json()) as { document?: { pages: Array<{ nodes: Record<string, unknown> }> } };
+      const body = (await res.json()) as { document?: { pages: DocPage[] } };
       const doc = body.document;
       if (!doc) return { ok: false, reason: '响应里没有 document 字段' };
       const page0 = doc.pages[0]!;
       // 必须挂在 page.rootId 下面。上一版取的是"节点表里的第一个"，那往往是某个文本节点，
       // 文本节点不排版子节点 → 4000 个节点根本没进 paintOrder，画布只画 8 个，
       // 于是量出来的"4000 节点首帧/延迟"其实还是 8 个节点的数（这个坑见 docs/PERFORMANCE.md）
-      const root = page0.nodes[page0.rootId] as { children: string[] } & Record<string, unknown>;
-      if (!root) return { ok: false, reason: '页面根节点读不到，没法加节点' };
+      const root = page0.nodes[page0.rootId];
+      // children 可能缺：缺就是这份文档本身坏了，直接停下来报告，不要静默补一个空数组继续跑
+      if (!root?.children?.length) return { ok: false, reason: '页面根节点读不到，没法加节点' };
       const have = Object.keys(page0.nodes).length;
       // 造新节点的方式是**克隆一个已经合法的节点**再改身份字段，而不是手写一份字面量：
       // 上一版手写的节点缺 style.cornerRadius / layout.padding，
@@ -236,7 +259,7 @@ async function growDocument(nodes: number): Promise<number> {
           children: [],
           text: typeof template.text === 'string' ? `压测文本 ${i}` : undefined,
         };
-        root.children.push(id);
+        root.children!.push(id);
         added += 1;
       }
       const put = await fetch(`/api/projects/${projectId}`, {
@@ -253,7 +276,7 @@ async function growDocument(nodes: number): Promise<number> {
   // 服务端说存了多少才算数：客户端自己加的数只是意图
   const check = await page.evaluate(async () => {
     const res = await fetch(`/api/projects/${window.__perfProjectId as string}`, { cache: 'no-store' });
-    const body = (await res.json()) as { document?: { pages: Array<{ rootId: string; nodes: Record<string, unknown> }> } };
+    const body = (await res.json()) as { document?: { pages: DocPage[] } };
     const page0 = body.document?.pages[0];
     return page0 ? Object.keys(page0.nodes).length : -1;
   });

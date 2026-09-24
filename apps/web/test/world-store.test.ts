@@ -37,7 +37,8 @@ describe('worldStore', () => {
       'fetch',
       vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
         if (init?.method === 'PUT') return json({ ok: true, world: null });
-        gets.push(String(input));
+        if (typeof input !== 'string') throw new Error(`测试桩只处理字符串 URL，收到 ${typeof input}`);
+        gets.push(input);
         return json({ ok: true, world: null });
       }),
     );
@@ -54,7 +55,8 @@ describe('worldStore', () => {
       'fetch',
       vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
         if (init?.method === 'PUT') {
-          const body = JSON.parse(String(init.body)) as { document: Record<string, unknown> };
+          if (typeof init.body !== 'string') throw new Error('测试桩假定 PUT body 是 JSON 字符串');
+          const body = JSON.parse(init.body) as { document: Record<string, unknown> };
           puts.push(body);
           return json({ ok: true, world: body.document });
         }

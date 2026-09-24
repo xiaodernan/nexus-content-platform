@@ -239,6 +239,14 @@ e2e 断言面板把"未运行的检查"列出来，而不是显示全绿。
   压测脚本自己也加了回归性质的自检：写完从服务端读回节点数、再数画布 DOM 里的节点数，
   对不上就抛错。**上一版这张表里的"N 节点"数字就是因为没人做这一步而整批作废过**
 - 每个里程碑一次 commit 前至少跑：`npm run lint && npm test && npm run test:e2e:smoke`
+- `npm run lint` = `typecheck && eslint .`。typecheck 覆盖 6 个 package + `e2e/` + `tsconfig.tools.json`
+  （`scripts/*.mts` 与根配置），所以测试与压测脚本也在类型门禁里；`eslint .` 跑 `eslint.config.mjs` 的
+  真规则集（异步误用与类型误用为主），刻意关掉的规则逐条在配置里写了原因。
+  **这两道门在 2026-09-24 之前是空的**：`lint` 只是 typecheck 的别名，而 package 的 `test/**` 与
+  `scripts/*.mts` 不在任何 tsconfig 的 include 里，等于从来没被检查过。第一次真跑就捞出两处产品级缺陷
+  （AI Diff 里"undefined 个节点"、属性面板色标永远显示黑色），后者现在有 @smoke 兜着：
+  `e2e/studio.spec.ts` 的「属性面板的色标显示 token 解析后的真色」拿画布真实背景色当基准，
+  把 `resolveColor` 的入参换回裸 key 就会红（已反向验过一次）
 - 改了 `packages/schemas` 必须重跑 `npm run contract:export`，否则契约漂移测试会红
 - 动了 ai-service 再加：`npm run test:ai-service`（Windows 控制台建议前置 `PYTHONUTF8=1`）
 - **已知偶发**（2026-09-24 记一次，别把它当成回归）：整套 smoke 并行跑时

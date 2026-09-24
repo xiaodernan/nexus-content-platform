@@ -229,7 +229,9 @@ export function resolveLayout(
     if (typeof value === "number") return toNumber(value, fallback);
     const raw = tokens?.resolveValue(value, mode) ?? value;
     if (typeof raw === "number") return raw;
-    const parsed = Number.parseFloat(String(raw));
+    // 解析结果可能是对象（RGBA 当字号用之类的坏数据）：不猜，回落默认值
+    if (typeof raw !== "string") return fallback;
+    const parsed = Number.parseFloat(raw);
     return Number.isFinite(parsed) ? parsed : fallback;
   };
 
@@ -241,10 +243,15 @@ export function resolveLayout(
   const resolvedTypography = (node: DesignNode): ResolvedTypography => {
     const t = node.typography;
     return {
-      fontFamily: String(
-        tokens?.resolveValue(t?.fontFamily ?? "{font.body}", mode) ??
-          "Inter, sans-serif",
-      ),
+      // 字体名只能是字符串：resolveValue 吃进去的是 `{font.body}`，
+      // 出来的却可能是任何类型，拼成 "[object Object]" 会进 CSS
+      fontFamily: (() => {
+        const raw = tokens?.resolveValue(
+          t?.fontFamily ?? "{font.body}",
+          mode,
+        );
+        return typeof raw === "string" ? raw : "Inter, sans-serif";
+      })(),
       fontSize: resolveNum(t?.fontSize ?? defaultFontSize, defaultFontSize),
       fontWeight: toNumber(t?.fontWeight, 400),
       lineHeight: t?.lineHeight ?? 1.5,
@@ -508,7 +515,6 @@ export function resolveLayout(
         }
       }
       if (col !== 0) {
-        rowCount += 1;
         totalH += rowH;
       } else if (rowCount > 1) {
         totalH -= gap;

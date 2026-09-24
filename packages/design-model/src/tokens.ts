@@ -1,8 +1,8 @@
-import type { ColorValue, RGBA, Token, TokenKey } from "./types";
+import type { ColorValue, RGBA, Token, TokenKey, TokenRef } from "./types";
 
 export const TOKEN_REF = /^\{([^{}]+)\}$/;
 
-export function isTokenRef(value: unknown): value is TokenKey {
+export function isTokenRef(value: unknown): value is TokenRef {
   return typeof value === "string" && TOKEN_REF.test(value);
 }
 
@@ -12,7 +12,7 @@ export function tokenRefKey(value: unknown): string | null {
   return m ? m[1]! : null;
 }
 
-export function makeTokenRef(key: TokenKey): string {
+export function makeTokenRef(key: TokenKey): TokenRef {
   return `{${key}}`;
 }
 

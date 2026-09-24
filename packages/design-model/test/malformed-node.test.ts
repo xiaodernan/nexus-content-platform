@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { createDocument, createNode, lintDesign, resolveLayout, validateDocument } from "../src";
+import type { CornerRadius, Layout } from "../src";
 
 /**
  * 一个字段不全的节点能把整个 Studio 搞白屏——这是 1000 节点压测撞出来的真 bug：
@@ -77,8 +78,21 @@ describe("写路径挡在门外（validateDocument）", () => {
   it("fills 不是数组也算残缺（不能是 null 或对象）", () => {
     const { document } = docWithMalformedNode();
     const node = document.pages[0]!.nodes.perf_bad!;
-    node.layout = { mode: "none", gap: 0, padding: { top: 0, right: 0, bottom: 0, left: 0 }, align: "start", justify: "start" };
-    node.style = { ...node.style, cornerRadius: { top: 0, right: 0, bottom: 0, left: 0 }, strokes: [], fills: null as never };
+    // 两处刻意写成不合法的形状（`align` 不在 Layout 上、`top` 不在 CornerRadius 上）：
+    // 这里要的就是"字段名对不上"的坏数据，所以只能绕过类型系统进来。
+    node.layout = {
+      mode: "none",
+      gap: 0,
+      padding: { top: 0, right: 0, bottom: 0, left: 0 },
+      align: "start",
+      justify: "start",
+    } as unknown as Layout;
+    node.style = {
+      ...node.style,
+      cornerRadius: { top: 0, right: 0, bottom: 0, left: 0 } as unknown as CornerRadius,
+      strokes: [],
+      fills: null as never,
+    };
     expect(validateDocument(document).map((i) => i.code)).toContain("incomplete-node-style");
   });
 });

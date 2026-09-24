@@ -35,7 +35,11 @@ export function PublicationActions({ state }: { state: PublicationState }) {
         body: JSON.stringify({ path: state.path, ...payload }),
       });
       const body = (await res.json().catch(() => null)) as Record<string, unknown> | null;
-      if (!res.ok) setNotice(`没做成：${String(body?.message ?? `HTTP ${res.status}`)}`);
+      if (!res.ok) {
+        // message 来自服务端，理论上可以是任何 JSON；只有字符串才是能显示的原因
+        const reason = typeof body?.message === 'string' ? body.message : `HTTP ${res.status}`;
+        setNotice(`没做成：${reason}`);
+      }
       return body;
     } finally {
       setBusy(false);
@@ -57,9 +61,9 @@ export function PublicationActions({ state }: { state: PublicationState }) {
       const comment = body.comment as { id: string; body: string; author: string; createdAt: string };
       setComments([comment, ...comments]);
       setText('');
-      setNotice(String(body.notice ?? '评论已发布'));
+      setNotice(typeof body.notice === 'string' ? body.notice : '评论已发布');
     } else {
-      setNotice(String(body.reason ?? '这条评论没发出去'));
+      setNotice(typeof body.reason === 'string' ? body.reason : '这条评论没发出去');
     }
   };
 
