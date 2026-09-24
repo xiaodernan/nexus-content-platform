@@ -16,6 +16,7 @@ import { MemoryPanel } from './MemoryPanel';
 import { RetrievePanel } from './RetrievePanel';
 import { ContextPanel } from './ContextPanel';
 import { WorldGraphView } from './WorldGraphView';
+import { GameGraphView } from './GameGraphView';
 import { worldStore } from './worldStore';
 import { gameStore } from './gameStore';
 import { PropertiesPanel } from './PropertiesPanel';
@@ -39,6 +40,19 @@ const TABS: { id: PanelTab; label: string }[] = [
   { id: 'history', label: '历史' },
   { id: 'health', label: '健康' },
 ];
+
+/** 主区那几个视图：都是同一批真值的投影，切换不复制数据 */
+type WorkspaceView = 'canvas' | 'variants' | 'code' | 'graph' | 'gamegraph';
+
+const VIEWS: WorkspaceView[] = ['canvas', 'variants', 'code', 'graph', 'gamegraph'];
+
+const VIEW_LABELS: Record<WorkspaceView, string> = {
+  canvas: '画布',
+  variants: '方案',
+  code: '代码',
+  graph: '世界图',
+  gamegraph: '游戏图',
+};
 
 /** §4 Studio 外壳：负责载入与保存时机，不做布局细节 */
 export function StudioShell({ projectId, demoMode }: { projectId: string; demoMode: boolean }) {
@@ -78,7 +92,7 @@ export function StudioShell({ projectId, demoMode }: { projectId: string; demoMo
 /** 只在 load 完成后挂载：子组件因此可以假定 document / page / layout 存在 */
 function StudioWorkspace({ zoom, demoMode }: { zoom: number; demoMode: boolean }) {
   const [tab, setTab] = useState<PanelTab>('layers');
-  const [view, setView] = useState<'canvas' | 'code' | 'variants' | 'graph'>('canvas');
+  const [view, setView] = useState<WorkspaceView>('canvas');
   const [railOpen, setRailOpen] = useState(true);
   const [inspectorOpen, setInspectorOpen] = useState(false);
 
@@ -144,7 +158,7 @@ function StudioWorkspace({ zoom, demoMode }: { zoom: number; demoMode: boolean }
             {/* 视图切换与 DEMO 标识常驻在同一行：浮层会盖住代码视图的文件标签（§160） */}
             <div className="flex shrink-0 items-center gap-2 border-b border-[var(--nexus-color-border-subtle)] bg-bg-1 px-[var(--nexus-space-2)] py-1">
               <span className="flex items-center gap-1" data-view-switch>
-                {(['canvas', 'variants', 'code', 'graph'] as const).map((id) => (
+                {VIEWS.map((id) => (
                   <button
                     key={id}
                     type="button"
@@ -156,7 +170,7 @@ function StudioWorkspace({ zoom, demoMode }: { zoom: number; demoMode: boolean }
                       view === id ? 'bg-bg-3 text-fg-1' : 'text-fg-3 hover:bg-bg-2',
                     )}
                   >
-                    {id === 'canvas' ? '画布' : id === 'variants' ? '方案' : id === 'code' ? '代码' : '世界图'}
+                    {VIEW_LABELS[id]}
                   </button>
                 ))}
               </span>
@@ -182,14 +196,16 @@ function StudioWorkspace({ zoom, demoMode }: { zoom: number; demoMode: boolean }
                 <VariantsBoard />
               ) : view === 'graph' ? (
                 <WorldGraphView />
+              ) : view === 'gamegraph' ? (
+                <GameGraphView />
               ) : (
                 <CodePanel />
               )}
             </div>
           </div>
           {/* 比较板是只读的：AI 命令栏改的是工作区那一份，在这儿会让人以为改的是某张卡 */}
-          {/* 命令栏改的是设计工作区；方案板与世界图都不是它的作用域 */}
-          {view === 'variants' || view === 'graph' ? null : <CommandBar />}
+          {/* 命令栏改的是设计工作区；方案板、世界图与游戏图都不是它的作用域 */}
+          {view === 'variants' || view === 'graph' || view === 'gamegraph' ? null : <CommandBar />}
         </main>
 
         {inspectorOpen ? (

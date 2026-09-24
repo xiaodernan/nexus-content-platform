@@ -967,6 +967,73 @@ test('@smoke 游戏：建骨架、填数值、连引用、刷新仍在（§54）
 });
 
 /**
+ * §54 的引用图：`referenceGraph` 那份投影画成一张图，连与摘都写回同一份文档。
+ * 这条用例特意同时盯着左侧面板：图与面板读的是同一个 store，
+ * 两处各存一份游戏真值就是 §16 要避免的事。
+ */
+test('@smoke 游戏图：点两个实体连引用、重复被拒、刷新仍在、摘掉归零（§54）', async ({ page }) => {
+  test.setTimeout(180_000);
+  await createProject(page, `游戏图 ${Date.now().toString(36)}`);
+  await page.click('[data-panel-tab="game"]');
+  await expect(page.locator('[data-game-empty]')).toBeVisible({ timeout: 40_000 });
+  await page.click('[data-game-create]');
+  await expect(page.locator('[data-game-entity]')).toHaveCount(11);
+
+  await page.click('[data-view="gamegraph"]');
+  await expect(page.locator('[data-game-graph-canvas]')).toBeVisible({ timeout: 40_000 });
+  await expect(page.locator('[data-game-graph-node]')).toHaveCount(11);
+  await expect(page.locator('[data-game-graph-edge]')).toHaveCount(0);
+  // 11 类各一列，列标题就是 §54 那 11 个类
+  await expect(page.locator('[data-game-graph-column]')).toHaveCount(11);
+  // 模板骨架里的实体一条数值都没填：图上要看得出"只是个名字"
+  await expect(page.locator('[data-game-graph-node]').first()).toHaveAttribute('data-game-graph-stats', '0');
+
+  const nodeId = (kind: string) =>
+    page.locator(`[data-game-graph-kind="${kind}"]`).first().getAttribute('data-game-graph-node');
+  const weaponId = (await nodeId('weapon'))!;
+  const playerId = (await nodeId('player'))!;
+
+  // 点的顺序就是箭头方向：武器 → 玩家
+  await page.click(`[data-game-graph-node="${weaponId}"]`);
+  await page.click(`[data-game-graph-node="${playerId}"]`);
+  await expect(page.locator('[data-game-graph-selection]')).toContainText('武器 → 玩家');
+  // 选中的边在节点上也要有痕迹（工具条那句话不是唯一的信号）
+  await expect(page.locator(`[data-game-graph-node="${playerId}"]`)).toHaveAttribute('data-game-graph-picked', 'true');
+  await page.fill('[data-game-graph-role]', '装备于');
+  await page.click('[data-game-graph-connect]');
+  await expect(page.locator('[data-game-graph-edge]')).toHaveCount(1);
+  await expect(page.locator('[data-game-graph-count]')).toHaveText('11 个实体 · 1 条引用');
+  // 同一份真值的另一个投影：面板里那条引用要立刻跟着出现
+  await expect(page.locator('[data-game-ref-label]')).toContainText('玩家（装备于）');
+
+  // 同一对之间重复连同样的关系：模型层拒了，界面上必须出声，而不是点了没反应
+  await page.click(`[data-game-graph-node="${weaponId}"]`);
+  await page.click(`[data-game-graph-node="${playerId}"]`);
+  await page.fill('[data-game-graph-role]', '装备于');
+  await page.click('[data-game-graph-connect]');
+  await expect(page.locator('[data-game-graph-notice]')).toContainText('已经这样引用着');
+  await expect(page.locator('[data-game-graph-edge]')).toHaveCount(1);
+
+  await expect(page.locator('[data-game-graph-pending]')).toHaveAttribute('data-game-graph-pending', 'false', { timeout: 20_000 });
+  await page.reload();
+  await expect(page.locator('[data-canvas-frame]')).toBeVisible({ timeout: 30_000 });
+  await page.click('[data-view="gamegraph"]');
+  await expect(page.locator('[data-game-graph-edge]')).toHaveCount(1);
+  await expect(page.locator('[data-game-graph-count]')).toHaveText('11 个实体 · 1 条引用');
+
+  // 点弧顶的抓手 → 摘掉：引用归零，实体一个不少
+  const edgeId = await page.evaluate(
+    () => document.querySelector('[data-game-graph-edge]')!.getAttribute('data-game-graph-edge'),
+  );
+  await page.click(`[data-game-graph-handle="${edgeId}"]`);
+  await expect(page.locator('[data-game-graph-remove-ref]')).toBeVisible();
+  await page.click('[data-game-graph-remove-ref]');
+  await expect(page.locator('[data-game-graph-edge]')).toHaveCount(0);
+  await expect(page.locator('[data-game-graph-count]')).toHaveText('11 个实体 · 0 条引用');
+  await expect(page.locator('[data-game-graph-node]')).toHaveCount(11);
+});
+
+/**
  * §45 World Graph：关系与位置存在世界文档里，拖完刷新还在。
  * 断言的是"库里那份图"（reload 之后重读），不是内存里的临时状态。
  */
