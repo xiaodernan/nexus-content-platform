@@ -16,11 +16,19 @@ import PreviewOverlay from './PreviewOverlay';
 import { useStudio } from '@/lib/store';
 import { deserializeApp, serializeApp } from '@/lib/persist';
 import { browserStorage, STUDIO_DOC_KEY } from '@/lib/storage';
+import { installBridge } from '@/lib/observability';
 
 const SAVE_DEBOUNCE_MS = 500;
 
 export default function Studio() {
   const previewOpen = useStudio((s) => s.previewOpen);
+
+  // Read-only observability bridge (§56/§57/§32): exposes editor state on `window.__nexus`
+  // so verification and evaluation assert against the canonical model, not scraped markup.
+  // Lazy getter ⇒ always current; frozen object ⇒ no back-door mutation of the product.
+  useEffect(() => {
+    installBridge(() => useStudio.getState());
+  }, []);
 
   // Local persistence: hydrate once, then debounced-save on every document change (§32 durability
   // for the slice; server snapshot/versioning is M7+). Storage I/O lives behind the seam in

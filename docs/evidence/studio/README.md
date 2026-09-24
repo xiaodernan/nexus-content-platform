@@ -7,14 +7,28 @@ fabricated results. Where the environment limited a check, that is stated honest
 
 ```
 npm run build lint typecheck test     # via turbo: build 4/4 · lint 3/3 · typecheck 6/6 · test 6/6
+npm run verify:harness                # 8/8 harness capabilities (ADR 0017)
+npm run verify:studio                 # 19/19 golden-path assertions against the real bundle
 ```
+
+Counts below are from `NODE_OPTIONS= npx vitest run --root <pkg> --no-file-parallelism`
+(authoritative — see KNOWN_ISSUES → Tooling for why the default pool under-reports here).
 
 | Package            | Result |
 | ------------------ | ------ |
-| @nexus/design-model| 28/28 vitest (`design-model` 16 incl. 3 rotated-hitTest + 2 rigid-geometry cases + `instances` 12 incl. x/y delta + absolute rotation overrides + rigid rotation bake), tsc clean |
+| @nexus/design-model| 30/30 vitest (`design-model` 18 incl. 3 rotated-hitTest + 2 rigid-geometry + 2 cycle-safe/visit-once `layoutPage` cases + `instances` 12), tsc clean |
 | @nexus/ai-providers| 7/7 vitest, tsc clean |
-| @nexus/agent-runtime| 232/232 + @nexus/exec-host 71/71 vitest (M2 v0–v41, ADR 0016 am. 1–41; am. 33–34 changed no agent-stack code; am. 35 added the git.commit write slice in exec-host only — runtime stays spawn-free; am. 36 taught the loop to propose a §28 commit after green; am. 37 added the git.log read-back door in exec-host only; am. 38 wired that door into the PLAN; am. 39 added the memory.save remember tail behind the confirmed arc + @refs inside array args; am. 40 added checkpoint-policy-as-data in the runtime; am. 41 gave the DOCK a second face — runUiTask policy mode + gate receipts in the ledger, human Allow-once still the default) · tsc clean — see `docs/evidence/agents/README.md` |
-| @nexus/studio      | 105/105 vitest (`snap` `persist` `align` `store-variants` 18 `thumbnail` `rotate` 14 `render` `minimap` `agentDock` 17 `webfs` 3 `uiRun` 8 `dockPolicy` 6) · tsc `--noEmit` clean · eslint `--max-warnings=0` clean · `next build` ✓ (4/4 static pages) |
+| @nexus/agent-runtime| 232/232 vitest · tsc clean — M2 v0–v41, ADR 0016 am. 1–41; see `docs/evidence/agents/README.md` |
+| @nexus/exec-host   | 181/181 vitest (8 files: git staged/show/commit/log tools, env isolation, exec test runner) · tsc clean |
+| @nexus/studio      | 114/114 vitest (`snap` `persist` `align` `store-variants` 18 `thumbnail` `rotate` 14 `render` `minimap` `agentDock` 17 `webfs` 3 `uiRun` 8 `dockPolicy` 6 `observability` 9) · tsc `--noEmit` clean · eslint `--max-warnings=0` clean · `next build` ✓ (4/4 static pages) |
+
+## Reproducible browser verification (ADR 0017)
+
+`tools/harness/` drives a real Chrome over the DevTools pipe — zero dependencies — and
+asserts against the Studio's **read-only** observability bridge (`window.__nexus`). It reports
+a visible `1418×802` viewport, a running rAF loop, `482900/482900` painted canvas pixels, an
+accepted 100 KB full-page PNG, and **19/19** golden-path assertions on the unmodified bundle.
+Full transcript and the honest remaining gaps: [`harness/README.md`](harness/README.md).
 
 ## Headless pipeline proof
 
@@ -269,20 +283,25 @@ directly from `layoutPage()` + token resolution — the same geometry the canvas
 Different prompts select different templates → different node counts, confirming the
 heuristic composer is genuinely parameterised, not one fixed output.
 
-## Honest environment limitation
+## Honest environment limitation — RESOLVED (ADR 0017)
 
-The Qoder in-app browser page reports `document.hidden = true` with a `0×0` viewport, so
-`requestAnimationFrame` is suspended. Consequence: the live canvas paint loop does not run
-in that hidden surface, and pixel screenshots / real pointer clicks are refused by the
-automation tool (`NATIVE_BROWSER_VIEWPORT_UNAVAILABLE`). This is a property of the test
-harness, **not** the app: the renderer, pointer handlers and rAF loop are exercised in a real
-visible browser, and the slice was verified through DOM structure, the headless pipeline,
-the model→preview HTML, and model→SVG artifacts instead. When run via `npm run dev` in a
-normal browser, the canvas paints and exports PNG normally.
+Earlier passes could only drive the Studio through an in-app browser page that reported
+`document.hidden = true` with a `0×0` viewport, so `requestAnimationFrame` was suspended, the
+live canvas paint loop never ran in that surface, and pixel screenshots / real pointer clicks
+were refused (`NATIVE_BROWSER_VIEWPORT_UNAVAILABLE`). The slice was therefore verified through
+DOM structure, the headless pipeline, the model→preview HTML, and model→SVG artifacts.
 
-## Agent dock golden path (M2 v10, hidden-browser DOM evidence)
+**That was a property of the tool, not of the app, and it is now solved.**
+`tools/harness/` (ADR 0017) drives a real Chrome over the DevTools pipe and measures a
+**visible** `1418×802` viewport with a running rAF loop, `482900/482900` painted canvas pixels
+and an accepted 100 KB full-page PNG. See
+[`harness/README.md`](harness/README.md) — it is re-runnable via `npm run verify:harness`
+and `npm run verify:studio`, and the sections below that were written against the old hidden
+surface are kept for the record.
 
-No rAF needed — pure React state, so the §28 flow verifies even in the hidden surface
+## Agent dock golden path (M2 v10, DOM evidence under the pre-0017 surface)
+
+No rAF needed — pure React state, so the §28 flow verified even there
 (dev server on :3112, driven via `evaluate_script`): compose a dashboard → Agent dock →
 type goal → **Plan** → panel shows `proposed for title · research: fs.index → tx_…,
 el_…, fr_… · pipeline status completed · score 1.00 · 1 op(s), reversible` → **Approve**

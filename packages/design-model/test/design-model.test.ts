@@ -160,6 +160,36 @@ describe('design model: geometry + layout', () => {
     expect(layout[a.id]?.y).toBe(8);
   });
 
+  it('layoutPage is cycle-safe on a corrupt document (degrades, never hangs)', () => {
+    let doc = createEmptyDocument();
+    const frame = frameNode('Loop');
+    frame.x = 0; frame.y = 0; frame.width = 50; frame.height = 50;
+    doc = applyBatch(doc, userBatch([ops.addSubtree(pageId(doc), 0, [frame])]));
+    const page = doc.nodes[pageId(doc)]! as { childIds: string[] };
+    // Hand-corrupt: make the frame its own descendant via the page.
+    doc.nodes[frame.id] = { ...doc.nodes[frame.id]!, childIds: [pageId(doc)] } as never;
+    const layout = layoutPage(doc, pageId(doc));
+    expect(layout[pageId(doc)]).toBeDefined();
+    expect(layout[frame.id]).toBeDefined();
+    expect(Object.keys(layout).length).toBeLessThan(10);
+  });
+
+  it('layoutPage places a node reachable twice only once (no exponential blowup)', () => {
+    let doc = createEmptyDocument();
+    const a = frameNode('A');
+    const b = frameNode('B');
+    const shared = rectNode('shared');
+    shared.x = 1; shared.y = 1; shared.width = 5; shared.height = 5;
+    a.childIds = [shared.id];
+    b.childIds = [shared.id];
+    a.parentId = b.parentId = pageId(doc);
+    doc = applyBatch(doc, userBatch([ops.addSubtree(pageId(doc), 0, [a, b, shared])]));
+    const layout = layoutPage(doc, pageId(doc));
+    expect(layout[shared.id]).toBeDefined();
+    // First placement (under A at 0,0) wins rather than being re-placed under B.
+    expect(layout[shared.id]).toEqual({ x: 1, y: 1, width: 5, height: 5 });
+  });
+
   it('hit-tests the topmost node', () => {
     let doc = createEmptyDocument();
     const bg = rectNode('bg');

@@ -85,19 +85,24 @@ Live list. Nothing here is hidden behind marketing copy.
   grip drag is covered by pure-math tests, a recording fake-`ctx` render test and the store op
   path, plus the Properties-panel Rotation field and a real-browser rigid grip-drag on an
   absolutely positioned frame (90° → children flatten to the predicted rel x/y + rotation,
-  single history row, Ctrl+Z restores exactly); pixel screenshots of the rotated canvas are not
-  claimable under the §60 harness.
+  single history row, Ctrl+Z restores exactly); pixel screenshots are now claimable via the
+  ADR 0017 harness (`tools/harness/`), though no rotated-canvas baseline is asserted yet.
 - **Multi-page caveat:** adding a page is an undoable op (`addSubtree`→`pageIds`), but which page
   is *active* is ephemeral view-state — switching pages is **not undoable** and can differ across
   browser tabs. A `setActivePage`/`patchDocument` op (needs a design-model rebuild) is the next step.
-- **Visual QA automation caveat:** the Qoder in-app browser reports `document.hidden=true`
-  with a `0×0` viewport, suspending `requestAnimationFrame` and refusing pointer/screenshot
-  actions. Canvas paint and clicks were therefore validated through DOM structure, the
-  headless pipeline proof, the model→preview HTML, and model→SVG artifacts (see
-  `docs/evidence/studio/README.md`). The persistence + multi-page **hydrate path was verified
-  in the real browser bundle** (write snapshot → reload → toolbar shows the restored doc name and
-  PageTabs shows its page) since it needs no rAF. In a normal visible browser via `npm run dev`
-  the canvas paints, snaps, edits in place and exports PNG.
+- **Visual QA automation — SOLVED, kept for the record (ADR 0017).** Earlier passes could
+  only verify the Studio through an in-app browser surface that lived outside this repository,
+  reported `document.hidden=true` with a `0×0` viewport, suspended `requestAnimationFrame`, and
+  refused pointer/screenshot actions. Canvas paint and clicks were therefore substituted with
+  DOM structure, the headless pipeline proof, the model→preview HTML, and model→SVG artifacts.
+  **That limitation was a property of the tool, not the app**, and it is now gone:
+  `tools/harness/` drives a real Chrome over the DevTools pipe and reports a
+  `1418×802` **visible** viewport, a running rAF loop, `482900/482900` painted canvas pixels and
+  an accepted 100 KB full-page PNG. Run `npm run verify:harness` (proves the harness) and
+  `npm run verify:studio` (19/19 golden-path assertions against the unmodified Studio bundle).
+  Remaining honest limits: the harness does not yet *compare* screenshots against a baseline
+  (it proves paint + captures the PNG for human/§30 inspection), and it is a local verification
+  tool, not the §28/ADR 0013 untrusted-code sandbox.
 
 ## Architecture
 - `agents/runtime` (`@nexus/agent-runtime`) is now **implemented** through M2 v0–v6 (ADR 0016):
@@ -131,3 +136,16 @@ Live list. Nothing here is hidden behind marketing copy.
 - Never run `next build` while `next dev` serves the same directory: the build rewrites `.next`
   and the live dev page silently loses its chunks (404 `main-app.js`, React handlers dead).
   Restart dev (or clear `.next`) after any build gate.
+- **Vitest on this Windows host is handle-starved.** With its default parallel worker pool the
+  run intermittently reports fewer test files than exist, and can surface an unrelated
+  `EPERM …\Temp\…\ssr\…` unhandled error from vitest's own transform cache. Neither is a test
+  failure. Two reliable invocations:
+  - `NODE_OPTIONS= npx vitest run --root <pkg> --no-file-parallelism` — authoritative counts.
+  - the `--require` shim in the ambient `NODE_OPTIONS` is what produces the `EPERM`; clearing
+    `NODE_OPTIONS` for the run removes it.
+  Turbo can also fail with `os error 231 (all pipe instances are in use)` when several builds
+  run at once; build the affected package directly with `tsc -p tsconfig.json` instead.
+- **`next dev` needs a clean `NODE_OPTIONS`** in this environment: the ambient `--require`
+  language shim intercepts `unlink`, and Next's dev cache cleanup then aborts the process with
+  `SAFE_DELETE_BULK_GUARD_ERROR`. Start it as `NODE_OPTIONS= ../../node_modules/.bin/next dev -p <port>`
+  (also: `npx next dev` can hang resolving through the local proxy — call the binary directly).

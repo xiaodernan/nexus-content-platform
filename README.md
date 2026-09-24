@@ -56,6 +56,15 @@ npm run typecheck    # strict TS across the repo
 npm run build        # production build
 ```
 
+Reproducible browser verification (ADR 0017) — drives a real Chrome, no extra dependencies.
+Start the Studio first (`NODE_OPTIONS= ../../node_modules/.bin/next dev -p 3210` from
+`apps/studio`), then:
+
+```bash
+npm run verify:harness   # proves the harness: visible viewport, rAF, canvas pixels, screenshot
+npm run verify:studio    # 19/19 golden-path assertions on the unmodified Studio bundle
+```
+
 The Studio runs fully client-side + DEMO MODE — no backend or Docker required for the slice.
 To bring up the later-stage infrastructure: `docker compose up -d` (Postgres+pgvector, Redis,
 MinIO).
@@ -66,7 +75,7 @@ MinIO).
 |-----|---------|
 | [PRODUCT.md](docs/PRODUCT.md) | The full product directive & principles |
 | [ARCHITECTURE.md](docs/ARCHITECTURE.md) | System architecture and boundaries |
-| [decisions/](docs/decisions/) | Architecture Decision Records (ADR 0001–0013) |
+| [decisions/](docs/decisions/) | Architecture Decision Records (ADR 0001–0017) |
 | [DESIGN_SYSTEM.md](docs/DESIGN_SYSTEM.md) | Design model + tokens |
 | [STUDIO.md](docs/STUDIO.md) | The Studio product |
 | [AGENTS.md](docs/AGENTS.md) | Agent runtime, roles, handoff |

@@ -26,3 +26,4 @@ An ADR is immutable once Accepted. Later reversals are recorded as a new ADR tha
 | 0014  | Local-first snapshot persistence & Studio view-state         | Accepted |
 | 0015  | Component → instance projection at view time                 | Accepted |
 | 0016  | Agent runtime v0: hermetic demo loop + tool registry         | Accepted |
+| 0017  | Reproducible browser verification: a zero-dependency CDP harness | Accepted |

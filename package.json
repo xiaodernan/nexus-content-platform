@@ -18,6 +18,8 @@
     "lint": "turbo run lint",
     "typecheck": "turbo run typecheck",
     "test": "turbo run test",
+    "verify:harness": "node tools/harness/smoke.mjs",
+    "verify:studio": "node tools/harness/studio-golden-path.mjs",
     "clean": "turbo run clean && rm -rf node_modules"
   },
   "devDependencies": {
