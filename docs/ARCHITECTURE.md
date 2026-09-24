@@ -39,6 +39,7 @@ packages/
   design-model/ @nexus/design-model：设计对象模型、布局求解、Command 事务、序列化、上下文目录（§70）（纯 TS，无 IO）
   schemas/      @nexus/schemas：跨端 zod 契约（AI 请求/响应、事件、补丁操作、世界文档）
   world-model/  @nexus/world-model：§44 世界文档（九类条目 + 校验），纯 TS 无 IO，浏览器与服务端同一份
+  game-model/   @nexus/game-model：§54 游戏设计系统（11 类实体 + 数值 + 实体间引用 + 校验），纯 TS 无 IO
 infra/
   docker-compose.yml   postgres+pgvector / redis / minio（端口见 ENVIRONMENT.md）
 docs/           本目录；adr/ 存放决策记录

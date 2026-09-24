@@ -20,6 +20,7 @@ export default defineConfig({
       '@nexus/design-model': from('./packages/design-model/src/index.ts'),
       '@nexus/schemas': from('./packages/schemas/src/index.ts'),
       '@nexus/world-model': from('./packages/world-model/src/index.ts'),
+      '@nexus/game-model': from('./packages/game-model/src/index.ts'),
       '@': from('./apps/web/src'),
       '@web': from('./apps/web/src'),
     },

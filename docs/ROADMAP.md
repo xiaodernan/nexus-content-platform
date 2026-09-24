@@ -508,7 +508,51 @@ drizzle 把整个拼接结果当成**单个绑定参数**，生成的 SQL 是 `o
   3D 资产与贴图（§34 的 model 类资产还没接进场景）。条目名字已经用 DOM 投影标签解决（没引 drei）
 - [ ] Game Studio：2D / 2.5D / 3D / Interactive Story / RPG 原型 / Puzzle / Visual Novel（§51）
 - [ ] Game Agent + Playtest Agent（§52-53）
-- [ ] 游戏设计系统：Player/Enemy/Weapon/Item/Quest/Dialogue/Trigger/NPC/Camera/Animation/Particle（§54）
+- [~] 游戏设计系统：Player/Enemy/Weapon/Item/Quest/Dialogue/Trigger/NPC/Camera/Animation/Particle（§54）
+  — **2026-09-24 落地模型层**：新开 `packages/game-model`（与 design-model / world-model 同一条纪律：
+  无 React、无 IO，两端跑同一份校验）。11 类实体 + 数值旋钮 + 实体间引用 + 引用完整性校验 + 确定性投影，
+  见下方 M4 进度记录。**仍欠**：Studio 面板与引用图视图（要把模型接进 UI）、存库（`games` 表还没建）、
+  §52 Game Agent 与 §53 Playtest Agent 的编排、§51 的类型选择与 §50 的构建管线——所以是 `[~]` 不是 `[x]`。
+
+**M4 进度记录（2026-09-24，§54 游戏设计系统模型层）**：新包 `packages/game-model`，
+照 world-model 的模板起（`package.json` / `tsconfig.json` 同形，接进根 `typecheck` 链与 vitest alias）。
+
+模型：§54 原文列的 11 类实体一个不少（`GAME_ENTITY_KINDS` + 中文名表）。每类共用一份基底
+（`id / kind / name / notes / tags / stats / refs / updatedAt`），差异体现在**数值**与**引用**上。
+
+两个刻意的"不写死"，都是为了避免我替需求加它没写的东西：
+
+1. **不预填任何数值**。`createGame` 给的模板骨架是 11 类各一个空实体，名字写着类名，
+   `notes` / `stats` / `refs` 一律留空。编一套 `health=100 / damage=12` 出来就是替用户做设计，
+   而且那套数字没有任何依据——§159 不许假生成，这条对"设计内容"同样成立。
+   `fleshedOutCount` 因此能如实回答"11 类里有几个是真填过的"，而不是把模板当成内容。
+2. **不写死属性表**。§54 只列了 11 类实体，没规定每类有哪些属性。所以 `stats` 是开放的
+   `Record<string, number>`，只校验"值是有限数"（`NaN` / `Infinity` / `'100'` 一律拒）；
+   另有 `STAT_HINTS` 给出**建议键名**供界面做占位提示。建议不写进校验里——
+   写成校验就等于我把"多数游戏都有的旋钮"升格成了需求没写的约束，用户想加 `poise` / `iFrame` 会被无故拒绝。
+
+**引用（refs）是这一层的重点**：实体之间有向引用（`武器 →装备于→ 玩家`），
+`role` 说明关系种类、可留空，但 `to` 必须指向文档里真实存在的实体。
+`linkEntities` 拒绝自引用、悬空端点、同一对之间重复的同一关系，且**绝不静默**——
+`reason` 带回原因由面板显示。同一对之间允许并存多条**不同**关系（「装备于」与「由玩家挥动」是两件事），
+所以摘除按引用自己的 `id`，不按"从哪到哪"。
+
+与 world-model 的一处关键差别值得记下：世界的关系是**独立存**的（`document.links`），
+删条目只要过滤那张表；这里的引用挂在**实体自己身上**，所以 `removeEntity` 必须两头都清——
+自己发出的引用随它消失，**别人指向它的引用也要摘掉**，否则会留下一堆悬空引用。
+摘入边等于改了那个实体的内容，所以它的 `updatedAt` 也一起更新（面板不该顶着旧时间戳显示"刚被改过"）。
+
+校验（`validateGame`）覆盖：非 11 类的 kind、无名实体、id 重复、时间非法、
+数值非有限数（消息里带实体名与键名）、自引用、悬空引用、重复引用。
+投影给了 `gameCounts`（11 类计数，缺的补 0）、`referenceGraph`（节点 + 边；指向已删实体的边
+在这里被自然丢掉，而校验同时报 `missing-ref-target`——渲染层不该看到画不出来的东西，
+但校验必须知道它存在，两件事都要有）、`countRefsFor`（删实体前的确认文案用）。
+
+验证：`npm run lint` 通过（新包已进 typecheck 链）；`packages/game-model/test/game.test.ts`
+**39 条全绿**（11 类齐全与原文逐字核对、模板不编内容、CRUD 不可变、数值六种非法值被拒、
+引用四类非法情形、删实体两头清理与时间戳、悬空边投影 vs 校验的分工）；
+非库测试 **34 files / 434 tests 全绿**。本轮 Docker 未运行，13 个 `*.integration.test.ts` 未执行，
+但本切片是纯模型包、不碰数据库，不受影响。
 
 ## M5 — 视频（§185）
 - [ ] Video Studio（text/image/storyboard→video）

@@ -11,7 +11,7 @@
     "dev:ai": "bash infra/dev-ai.sh",
     "build": "npm run build -w @nexus/web",
     "start": "npm run start -w @nexus/web",
-    "typecheck": "tsc -p packages/design-model/tsconfig.json --noEmit && tsc -p packages/world-model/tsconfig.json --noEmit && tsc -p packages/schemas/tsconfig.json --noEmit && tsc -p apps/web/tsconfig.json --noEmit && tsc -p e2e/tsconfig.json --noEmit",
+    "typecheck": "tsc -p packages/design-model/tsconfig.json --noEmit && tsc -p packages/world-model/tsconfig.json --noEmit && tsc -p packages/game-model/tsconfig.json --noEmit && tsc -p packages/schemas/tsconfig.json --noEmit && tsc -p apps/web/tsconfig.json --noEmit && tsc -p e2e/tsconfig.json --noEmit",
     "lint": "npm run typecheck",
     "test": "vitest run",
     "test:watch": "vitest",
