@@ -511,7 +511,12 @@ drizzle 把整个拼接结果当成**单个绑定参数**，生成的 SQL 是 `o
 - [~] 游戏设计系统：Player/Enemy/Weapon/Item/Quest/Dialogue/Trigger/NPC/Camera/Animation/Particle（§54）
   — **2026-09-24 落地模型层**：新开 `packages/game-model`（与 design-model / world-model 同一条纪律：
   无 React、无 IO，两端跑同一份校验）。11 类实体 + 数值旋钮 + 实体间引用 + 引用完整性校验 + 确定性投影，
-  见下方 M4 进度记录。**仍欠**：Studio 面板与引用图视图（要把模型接进 UI）、存库（`games` 表还没建）、
+  见下方 M4 进度记录。
+  **2026-09-25 第二片（存库 + 面板）**：`packages/schemas` 加游戏文档契约（zod，与 `GAME_ENTITY_KINDS`
+  逐字对齐）、迁移 `0007` 把 `games` 表换成与 `worlds` 同形的整份 JSON 存储、`domain/games.ts` +
+  `/api/projects/[id]/game`（GET 不建档）、Studio 左侧「游戏」面板（`gameStore` + `GamePanel`）：
+  11 类分组、实体说明、开放数值、有向引用的连与摘，全部只调模型层的纯函数。见下方"第二片"进度记录。
+  **仍欠**：独立的引用图**画布**视图（现在引用是列在发起方实体下面的，能连能摘但不是那张图）、
   §52 Game Agent 与 §53 Playtest Agent 的编排、§51 的类型选择与 §50 的构建管线——所以是 `[~]` 不是 `[x]`。
 
 **M4 进度记录（2026-09-24，§54 游戏设计系统模型层）**：新包 `packages/game-model`，
@@ -553,6 +558,32 @@ drizzle 把整个拼接结果当成**单个绑定参数**，生成的 SQL 是 `o
 引用四类非法情形、删实体两头清理与时间戳、悬空边投影 vs 校验的分工）；
 非库测试 **34 files / 434 tests 全绿**。本轮 Docker 未运行，13 个 `*.integration.test.ts` 未执行，
 但本切片是纯模型包、不碰数据库，不受影响。
+
+**M4 进度记录（2026-09-25，§54 第二片：存库 + Studio 面板）**：
+
+- **契约**（`packages/schemas`）：`GameDocumentSchema` 等 5 个定义，进出服务端都过 zod；
+  kind 枚举与模型层的 `GAME_ENTITY_KINDS` **逐字对齐并有测试盯着顺序**（两边各写一套迟早漂移）。
+  `stats` 在契约层同样只认有限数（`NaN` / `Infinity` / 字符串值在读写两侧都被拒）。
+- **存储**（迁移 `0007_game_document.sql`）：`games` 表原来是 `entities / scene / game_kind` 三列
+  ——**没有任何代码读过它们**，等于一份没人认领的假数据。换成与 `worlds` 同形的
+  `document jsonb + name + summary + owner_id`。切换前用 `select count(*)` 确认表里 0 行，
+  所以没有"迁移丢数据"这回事；这一点写进了迁移文件的注释，不靠记忆。
+- **读写**（`domain/games.ts` + `/api/projects/[projectId]/game`）：GET 没有游戏就返回 null，
+  **不顺手建档**（"还没有"与"有一份空的"是两件事）；PUT 过 zod + `validateGame`，
+  拒跨项目文档、拒比库里更旧的写（两个请求乱序到达时旧版本不能赢）。
+- **面板**（`gameStore.ts` + `GamePanel.tsx`，接进 `StudioShell` 左侧页签）：照 worldStore 的
+  已验证形态来（单例 store + `useSyncExternalStore`、在飞只一次 PUT、在飞期间的改动记一笔补发、
+  迟到的读结果不覆盖本地真值、`keepalive` 让"改完就刷新"真的落库）。面板**只调模型层的纯函数**，
+  不在 UI 里改文档结构。三处刻意出声而不是静默：空键名 / 非有限数值 / 重复引用，
+  模型层返回的 `reason` 直接显示在面板顶部，并且**下一次成功的编辑会把它擦掉**
+  （不然用户会以为刚加的那条也被拒了）。
+- **验证**：契约 5 条 + 集成 8 条 + 模型 39 条全绿；`npm test` **54 files / 584 tests 全绿**；
+  `npm run lint`（typecheck + eslint）0 问题；新增 `@smoke 游戏：建骨架、填数值、连引用、刷新仍在（§54）`
+  并做了反向实验——把 GET 改成永远返回 null 后该用例**确实失败**在刷新后的断言上，
+  说明"刷新仍在"这条断言咬得住只活在内存里的编辑。截图核对过面板实际长相，
+  据此把引用那一行改成可换行（264px 的左栏里三个控件挤在一行会把按钮压扁）。
+- **仍欠**：`referenceGraph` 的画布视图（模型层投影已经有了，UI 还没画）、§52/§53 的 Agent 编排、
+  §50/§51 的构建管线与类型选择。
 
 ## M5 — 视频（§185）
 - [ ] Video Studio（text/image/storyboard→video）

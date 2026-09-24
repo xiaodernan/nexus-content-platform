@@ -11,7 +11,8 @@ export const dynamic = 'force-dynamic';
  *
  * 每一栏都只放真公开的东西，理由写在页面上而不是只在这里：
  * 作品只列公网上传着的；世界与角色只列属于这些公开作品的、且只给名字与一句 tagline；
- * 游戏那一栏现在是空的，因为 M5 还没开工——空着并说明，比省掉一栏诚实。
+ * 游戏那一栏只有一个计数和一句说明：设计文档（§54）已经有了，可玩构建（§50/§53）还没有，
+ * 所以这里不列"游戏卡片"——没有可展示的东西就明说，比省掉一栏诚实。
  */
 export default async function ProfilePage({ params }: { params: Promise<{ handle: string }> }) {
   const { handle } = await params;

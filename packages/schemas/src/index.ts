@@ -852,6 +852,64 @@ export const CharacterCreateRequestSchema = z.object({
 export const CharacterUpdateRequestSchema = z.object({ profile: CharacterProfileSchema });
 
 
+/**
+ * §54 游戏设计系统的跨端形状。权威定义在 @nexus/game-model，这里只是传输层。
+ * 11 类清单在两处各写一份（z.enum 要字面量），所以 test/game-contract.test.ts 逐字对齐它们。
+ */
+export const GameEntityKindSchema = z.enum([
+  'player',
+  'enemy',
+  'weapon',
+  'item',
+  'quest',
+  'dialogue',
+  'trigger',
+  'npc',
+  'camera',
+  'animation',
+  'particle',
+]);
+export type GameEntityKindPayload = z.infer<typeof GameEntityKindSchema>;
+
+export const GameRefSchema = z.object({
+  id: z.string().min(1).max(128),
+  to: z.string().min(1).max(128),
+  // role 可以留空（图上不写字），但长度要有个上限，否则有人拿它当正文写
+  role: z.string().max(120),
+});
+
+export const GameEntitySchema = z.object({
+  id: z.string().min(1).max(128),
+  kind: GameEntityKindSchema,
+  name: z.string().trim().min(1).max(120),
+  notes: z.string().max(20_000),
+  tags: z.array(z.string().trim().min(1).max(60)).max(100),
+  /**
+   * 值必须是**有限数**：NaN / Infinity 经 JSON.stringify 会变成 null，
+   * 放它进库就等于存了一个谁也没打算存的值。键名开放（不预设属性表），
+   * 但空白键没有意义，拦住。
+   */
+  stats: z.record(z.string().trim().min(1).max(60), z.number().finite()),
+  refs: z.array(GameRefSchema).max(500),
+  updatedAt: z.string().min(1),
+});
+export type GameEntityPayload = z.infer<typeof GameEntitySchema>;
+
+export const GameDocumentSchema = z.object({
+  id: z.string().min(1).max(128),
+  projectId: z.string().max(128).nullable(),
+  name: z.string().trim().min(1).max(120),
+  summary: z.string().max(2000),
+  entities: z.array(GameEntitySchema).max(5000),
+  createdAt: z.string().min(1),
+  updatedAt: z.string().min(1),
+});
+export type GameDocumentPayload = z.infer<typeof GameDocumentSchema>;
+
+/** 与 /api/projects/[id]/game 的 PUT 体一致：整份文档一起换（游戏文档不大，不需要增量补丁） */
+export const GameSaveRequestSchema = z.object({ document: GameDocumentSchema });
+
+
 /** §67 Context Engine 的一次装配：设计目录 + 世界/角色/记忆/资产/索引/近况的摘要 */
 export const ProjectContextSchema = z.object({
   projectId: z.string(),

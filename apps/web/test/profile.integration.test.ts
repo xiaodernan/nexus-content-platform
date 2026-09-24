@@ -105,11 +105,14 @@ describe('profileOf（§60 的可见性边界）', () => {
     expect(document).toBeTruthy();
   });
 
-  it('游戏那一栏现在是空的，并且说清为什么空', async () => {
+  it('游戏那一栏数的是 kind=game 的项目，说明里分清"已有"和"还没开工"', async () => {
     const [row] = await getDb().select({ handle: users.handle }).from(users).where(eq(users.id, ownerId)).limit(1);
     const profile = await profileOf(row!.handle!, viewerId);
     expect(profile!.games.count).toBe(0);
-    expect(profile!.games.note).toContain('M5');
+    expect(profile!.games.note).toContain('§54');
+    expect(profile!.games.note).toContain('Playtest');
+    // 别说"还没开工"涵盖整栏：设计文档这一半已经落地了
+    expect(profile!.games.note).not.toContain('这一栏现在是空的');
   });
 });
 

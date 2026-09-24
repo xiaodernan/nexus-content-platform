@@ -10,25 +10,28 @@ import { DesignSystemPanel } from './DesignSystemPanel';
 import { AssetsPanel } from './AssetsPanel';
 import { HealthRail } from './HealthPanel';
 import { WorldPanel } from './WorldPanel';
+import { GamePanel } from './GamePanel';
 import { CharacterPanel } from './CharacterPanel';
 import { MemoryPanel } from './MemoryPanel';
 import { RetrievePanel } from './RetrievePanel';
 import { ContextPanel } from './ContextPanel';
 import { WorldGraphView } from './WorldGraphView';
 import { worldStore } from './worldStore';
+import { gameStore } from './gameStore';
 import { PropertiesPanel } from './PropertiesPanel';
 import { CanvasStage } from './CanvasStage';
 import { CodePanel } from './CodePanel';
 import { VariantsBoard } from './VariantsBoard';
 import { CommandBar } from './CommandBar';
 
-type PanelTab = 'layers' | 'design' | 'assets' | 'world' | 'characters' | 'memory' | 'retrieve' | 'context' | 'history' | 'health';
+type PanelTab = 'layers' | 'design' | 'assets' | 'world' | 'game' | 'characters' | 'memory' | 'retrieve' | 'context' | 'history' | 'health';
 
 const TABS: { id: PanelTab; label: string }[] = [
   { id: 'layers', label: '图层' },
   { id: 'design', label: '设计系统' },
   { id: 'assets', label: '资产库' },
   { id: 'world', label: '世界' },
+  { id: 'game', label: '游戏' },
   { id: 'characters', label: '角色' },
   { id: 'memory', label: '记忆' },
   { id: 'retrieve', label: '检索' },
@@ -46,10 +49,11 @@ export function StudioShell({ projectId, demoMode }: { projectId: string; demoMo
   }, [projectId]);
 
   useEffect(() => {
-    // 两份真值各自收尾：设计文档走画布的撤销栈，世界文档走 worldStore 的待写队列
+    // 三份真值各自收尾：设计文档走画布的撤销栈，世界与游戏文档走各自的待写队列
     const flush = () => {
       studio.flushSave();
       worldStore.flushSave();
+      gameStore.flushSave();
     };
     window.addEventListener('beforeunload', flush);
     return () => {
@@ -118,6 +122,8 @@ function StudioWorkspace({ zoom, demoMode }: { zoom: number; demoMode: boolean }
             <AssetsPanel />
           ) : tab === 'world' ? (
             <WorldPanel />
+          ) : tab === 'game' ? (
+            <GamePanel />
           ) : tab === 'characters' ? (
             <CharacterPanel />
           ) : tab === 'memory' ? (

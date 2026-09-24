@@ -899,6 +899,74 @@ test('@smoke 世界：建骨架、填一条、加一条、刷新仍在（§44）
 });
 
 /**
+ * §54 Game Design System：11 类实体、开放数值、实体之间的有向引用。
+ * 断言全部在 reload 之后重读一遍——刷新能把面板清成"库里那份"，
+ * 所以"刷新仍在"就是这条用例的正向对照：只活在内存里的编辑到这里一定会红。
+ */
+test('@smoke 游戏：建骨架、填数值、连引用、刷新仍在（§54）', async ({ page }) => {
+  test.setTimeout(180_000);
+  await createProject(page, `游戏 ${Date.now().toString(36)}`);
+
+  await page.click('[data-panel-tab="game"]');
+  // 第一次进这条路由，dev 模式要现编译：给足冷启动时间，别把编译等成失败
+  await expect(page.locator('[data-game-empty]')).toBeVisible({ timeout: 40_000 });
+  // 界面上明说这是模板骨架、AI 生成整套设计还没接
+  await expect(page.locator('[data-game-empty]')).toContainText('假生成');
+  await page.click('[data-game-create]');
+  await expect(page.locator('[data-game-entity]')).toHaveCount(11);
+  await expect(page.locator('[data-game-group="particle"]')).toBeVisible();
+  await expect(page.locator('[data-game-state]')).toHaveText('已保存');
+
+  const entityId = (group: string) =>
+    page.locator(`[data-game-group="${group}"] [data-game-entity]`).first().getAttribute('data-game-entity');
+  const weaponId = (await entityId('weapon'))!;
+  const playerId = (await entityId('player'))!;
+
+  // 数值：键名是开放的（§54 没规定每类有哪些属性），所以这里要能自己写一个键
+  await page.fill(`[data-game-stat-key="${weaponId}"]`, 'damage');
+  await page.fill(`[data-game-stat-value="${weaponId}"]`, '12');
+  await page.click(`[data-game-stat-add="${weaponId}"]`);
+  await expect(page.locator(`[data-game-stat="${weaponId}:damage"]`)).toHaveValue('12');
+
+  // 引用：有向，从武器指向玩家，带一个自定的关系名
+  await page.selectOption(`[data-game-ref-target="${weaponId}"]`, playerId);
+  await page.fill(`[data-game-ref-role="${weaponId}"]`, '装备于');
+  await page.click(`[data-game-ref-add="${weaponId}"]`);
+  await expect(page.locator('[data-game-ref]')).toHaveCount(1);
+  await expect(page.locator('[data-game-ref-label]')).toContainText('玩家（装备于）');
+
+  // 设计说明也走同一条写库路径
+  const notes = page.locator(`[data-game-entity-notes="${weaponId}"]`);
+  await notes.fill('起手慢，但一下能打死人。');
+  await page.click('[data-game-name]');
+  await expect(page.locator('[data-game-state]')).toHaveText('已保存', { timeout: 20_000 });
+
+  // 模型层拒掉的输入必须出声，不能静默丢掉（也不假装写进去了）：
+  // 空键名 + 一个合法数字，落库的实体数与数值条数都不该变
+  await page.fill(`[data-game-stat-key="${playerId}"]`, '   ');
+  await page.fill(`[data-game-stat-value="${playerId}"]`, '9');
+  await page.click(`[data-game-stat-add="${playerId}"]`);
+  await expect(page.locator('[data-game-notice]')).toContainText('键名不能是空的');
+  await expect(page.locator('[data-game-group="player"] [data-game-stat]')).toHaveCount(0);
+
+  await page.selectOption('[data-game-new-kind]', 'enemy');
+  await page.click('[data-game-add="enemy"]');
+  await expect(page.locator('[data-game-entity]')).toHaveCount(12);
+  await expect(page.locator('[data-game-progress]')).toContainText('1 条引用');
+  // 回执是一次性的：下一次成功的编辑要把它擦掉，不然用户会以为刚加的那条也被拒了
+  await expect(page.locator('[data-game-notice]')).toHaveCount(0);
+  await expect(page.locator('[data-game-pending]')).toHaveAttribute('data-game-pending', 'false', { timeout: 20_000 });
+
+  await page.reload();
+  await expect(page.locator('[data-canvas-frame]')).toBeVisible({ timeout: 30_000 });
+  await page.click('[data-panel-tab="game"]');
+  await expect(page.locator('[data-game-entity]')).toHaveCount(12);
+  await expect(page.locator(`[data-game-stat="${weaponId}:damage"]`)).toHaveValue('12');
+  await expect(notes).toHaveValue('起手慢，但一下能打死人。');
+  await expect(page.locator('[data-game-ref-label]')).toContainText('玩家（装备于）');
+});
+
+/**
  * §45 World Graph：关系与位置存在世界文档里，拖完刷新还在。
  * 断言的是"库里那份图"（reload 之后重读），不是内存里的临时状态。
  */

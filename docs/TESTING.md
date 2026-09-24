@@ -247,6 +247,10 @@ e2e 断言面板把"未运行的检查"列出来，而不是显示全绿。
   （AI Diff 里"undefined 个节点"、属性面板色标永远显示黑色），后者现在有 @smoke 兜着：
   `e2e/studio.spec.ts` 的「属性面板的色标显示 token 解析后的真色」拿画布真实背景色当基准，
   把 `resolveColor` 的入参换回裸 key 就会红（已反向验过一次）
+- 文档类面板（世界 / 游戏 / 角色）的 @smoke 一律以**刷新后重读**收尾：reload 会把面板清成"库里那份"，
+  所以"只活在内存里的编辑"到这里必然红——这条断言自带正向对照，不用另外造。
+  §54 那次还做了反向实验：把 `GET /api/projects/[id]/game` 改成永远返回 null，
+  用例确实失败在刷新后的第一条断言上（改回即绿）。新加"刷新仍在"类断言时值得照这个套路先证它会红
 - 改了 `packages/schemas` 必须重跑 `npm run contract:export`，否则契约漂移测试会红
 - 动了 ai-service 再加：`npm run test:ai-service`（Windows 控制台建议前置 `PYTHONUTF8=1`）
 - **已知偶发**（2026-09-24 记一次，别把它当成回归）：整套 smoke 并行跑时

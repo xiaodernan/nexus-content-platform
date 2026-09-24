@@ -152,7 +152,12 @@ export async function profileOf(handle: string, viewerId: string | null): Promis
       summary: taglineOf(c.profile),
       project: c.project,
     })),
-    games: { count: gameCount?.n ?? 0, note: '游戏工作台（M5）还没开工，这一栏现在是空的' },
+    games: {
+      count: gameCount?.n ?? 0,
+      note:
+        '这一栏数的是 kind=game 的项目。§54 的游戏设计文档（11 类实体、数值与引用）已经能存能改，' +
+        '在 Studio 的「游戏」面板里；把设计变成可玩东西的那半（§50 构建、§53 Playtest）还没开工。',
+    },
     followers: followers?.n ?? 0,
     following: following?.n ?? 0,
     followingByViewer: followed.length > 0,

@@ -592,15 +592,21 @@ export const games = pgTable(
   {
     id: uuid('id').primaryKey().defaultRandom(),
     projectId: uuid('project_id').references(() => projects.id, { onDelete: 'cascade' }),
-    title: text('title').notNull(),
-    gameKind: text('game_kind').notNull().default('2d'),
-    /** Player / Enemy / Item / Quest / Trigger / Camera 等实体（§54） */
-    entities: jsonb('entities'),
-    scene: jsonb('scene'),
+    ownerId: uuid('owner_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'restrict' }),
+    name: text('name').notNull(),
+    summary: text('summary'),
+    /**
+     * §54 游戏设计文档（@nexus/game-model 的 GameDocument 序列化）。
+     * 0000_init 那版是 entities + scene 两个 jsonb 杂物袋，除了主页数行数没人读过；
+     * 迁移 0007 换成一份过 zod + validateGame 的文档（与 worlds.document 同一条路）。
+     */
+    document: jsonb('document'),
     createdAt: now(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
   },
-  (t) => [index('games_project_idx').on(t.projectId)],
+  (t) => [index('games_owner_idx').on(t.ownerId), index('games_project_idx').on(t.projectId)],
 );
 
 export const likes = pgTable(
