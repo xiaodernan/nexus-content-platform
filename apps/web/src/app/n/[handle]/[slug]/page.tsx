@@ -1,6 +1,9 @@
 import { notFound } from 'next/navigation';
+import type { Metadata } from 'next';
 import { TokenStore, findPage, resolveLayout } from '@nexus/design-model';
-import { recordView, resolvePublishedPath } from '@/server/domain/publish';
+import { getPublishedPage, recordView } from '@/server/domain/publish';
+import { buildPublishedSeo } from '@/server/domain/seo';
+import { requestOrigin } from '@/lib/origin';
 import { publicationState } from '@/server/domain/social';
 import { currentUserOrNull } from '@/server/domain/session';
 import { assetContextFor, publicAssetUrl } from '@/studio/assets';
@@ -15,6 +18,24 @@ interface Props {
   searchParams: Promise<{ page?: string }>;
 }
 
+/** 公开的 path 由数据库里那一行给出，params 只用来拼查询串（不信任URL片段本身） */
+function publishedPath(handle: string, slug: string): string {
+  return `/n/${decodeURIComponent(handle)}/${decodeURIComponent(slug)}`;
+}
+
+/**
+ * §166：公开页的 head。抓取端多数不执行 JS，所以这些标签必须服务端出——
+ * 好在 §56 这一页本来就是服务端渲染的，缺的只是标签本身。
+ * unlisted 会被写成 noindex：它的语义是"只认精确链接"，不是"随便收"。
+ */
+export async function generateMetadata({ params }: Props): Promise<Metadata> {
+  const { handle, slug } = await params;
+  const found = await getPublishedPage(publishedPath(handle, slug));
+  if (!found) return {};
+  const { origin } = await requestOrigin();
+  return buildPublishedSeo(found, origin).metadata;
+}
+
 /**
  * §56 分享链接 `/n/<handle>/<slug>`：公开访问的是**发布那一刻的快照**，
  * 不是作者手上正在改的那一份——所以这里读 published_projects.snapshot_id，
@@ -25,9 +46,12 @@ interface Props {
 export default async function PublishedPage({ params, searchParams }: Props) {
   const { handle, slug } = await params;
   const query = await searchParams;
-  const found = await resolvePublishedPath(`/n/${decodeURIComponent(handle)}/${decodeURIComponent(slug)}`);
+  const found = await getPublishedPage(publishedPath(handle, slug));
   if (!found) notFound();
   const { publication, document, ownerName, projectName } = found;
+  // JSON-LD 与 generateMetadata 读同一份解析结果（React cache），不为爬虫再查一次库
+  const { origin } = await requestOrigin();
+  const seo = buildPublishedSeo(found, origin);
 
   const page =
     (query.page ? findPage(document, query.page) : null) ??
@@ -91,6 +115,9 @@ export default async function PublishedPage({ params, searchParams }: Props) {
           })}
         </div>
       </div>
+      {/* §166 JSON-LD：正文已经服务端渲染，结构化数据让抓取端不用猜哪是标题哪是作者。
+          字符串在 seo.ts 里把 < > & 转过义，项目名再怎么写也闭合不了这个脚本块 */}
+      <script type="application/ld+json" data-seo-jsonld dangerouslySetInnerHTML={{ __html: seo.jsonLd }} />
     </main>
   );
 }

@@ -669,6 +669,44 @@ drizzle 把整个拼接结果当成**单个绑定参数**，生成的 SQL 是 `o
   这条迁移要等表长大才兑现，现在别拿"建了索引"当性能结论。
   仍欠：相关度排序（要真打分得先有 §49 的向量半）、文档正文检索（同上，不拿全局 LIKE 扫 jsonb 冒充）、
   搜索建议与历史。
+- [x] SEO（§166）— **2026-09-25 落地**：公开作品页的 head 全部服务端渲染（`/n/<handle>/<slug>` 的 SSR 本来就是真的），
+  规则集中在 `apps/web/src/server/domain/seo.ts`——一份**纯投影**：吃 `PublishedPage` + origin，吐
+  metadata / JSON-LD / 「省略了什么、为什么」，不碰数据库也不读请求头，所以每条规则都能在单测里单独钉住。
+  `generateMetadata` 与页面组件读同一个库查询：`getPublishedPage = React.cache(resolvePublishedPath)`。
+
+  这一条的实质是**爬虫看到的必须与访客看到的一致**，四组判断都为此存在：
+  - `unlisted` 一律 `noindex`：它的语义就是"只认精确链接"，被收录等于替作者重新发布一次；
+    `private` 与被人工驳回的本来就走 `resolvePublishedPath` 拿不到（404），所以
+    `listSitemapEntries` 用**同一套谓词**（public + 非 rejected + 有快照 + 项目未删）——
+    sitemap 里列一条 404 比不列更糟。
+  - 绝对地址只来自**真实** origin（`apps/web/src/lib/origin.ts`）：`NEXUS_PUBLIC_ORIGIN` 优先于请求头，
+    否则别人伪造一个 `Host:` 就能把爬虫领到别人的域名；`x-forwarded-host` 只在同时带
+    `x-forwarded-proto` 时才信（裸 host 头可以任意伪造）。拿不到 origin 时**整条省略**并写进 `omitted`，
+    不编一个 `localhost` 冒充对外地址（§159）；`robots.ts` / `sitemap.xml` 同理返回空并 warn。
+  - `og:image` 不放占位图：只有这一版快照**真的画到**某个 image 资产时才有，判定复用公共图片路由的
+    同一个谓词 `documentReferencesAsset`（清单里挂着但页面没画的不算，svg 不算），作者没有 handle
+    时公共图片地址不成立、同样省略。
+  - `description` 三级：项目描述 → 按字号挑句子的页面摘要 → 兜底句。第二级不是锦上添花——
+    真机 curl 第一次看到的就是"按钮文案混进 og:description"，所以短于 6 字的文字（按钮 / 标签）不进摘要，
+    字号大的先来，token 引用没有字号时退回文档顺序不谎报权重。
+
+  JSON-LD 只写我们真有的字段（`CreativeWork` + author / publisher / `datePublished` = **这一版的发布时刻**，
+  不是项目创建时间），没有 `aggregateRating`、`keywords` 这类编造字段；正文进
+  `<script type="application/ld+json">` 前把 `< > &` 与 U+2028/29 转义掉——项目名是用户输入。
+  `changefreq` / `priority` 不做（那是猜的），`/discover` 不放假 `lastmod`。
+
+  验证：`seo.test.ts` 10 条纯函数单测 + `seo.integration.test.ts` 6 条打真库（public 在列 / unlisted 不在
+  且配一条"resolve 仍非 null"的反向对照 / rejected 掉出去且留对照组 / 软删项目掉出去 / 取消发布掉出去且
+  `lastmod` 就是 `publishedAt`）。`@smoke §166` 在真浏览器里走 head、JSON-LD 可 parse、`/robots.txt`、
+  `/sitemap.xml`，再把同一个项目改成 unlisted 重新发布 → `noindex` 且从 sitemap 消失，
+  反向对照页面本身仍然打开得到、canonical 没变（截图 `published-seo-public.png`）。
+  反向实验逐个做过：删掉封面谓词 / 把转义正则缩到只剩 `[&]` / robots 三元改成恒 index /
+  去掉 `visibility='public'` 或 `ne(moderation,'rejected')`——每次都只让预期的那几条红。
+  仍欠：`projects.description` **全库没有写入方**（也没有项目元信息编辑入口），所以 og:description
+  现在稳定走第二级摘要，这个入口补上才算收口；`projects.deletedAt` 同样只有读没有写（软删链路没落地），
+  sitemap 那条谓词目前是防御性的；带真实图片资产的封面只在单测里覆盖谓词，浏览器里那一张还是空清单；
+  `/u/<handle>` 与 `/discover` 的 per-page metadata 没做（§166 原文范围是 public projects）；
+  sitemap 截到 5000 条，超了只 warn + 截断，没有 sitemap index。
 - [~] 画布批注（§111）— **2026-09-24 落地**：点中元素 → 写一句话钉在它上面（`comments.node_id`，
   不另起一张表）。定位由服务端按文档算（页面、元素名），节点被删后批注仍列得出并标明悬空；
   随 AI 请求上线走 §68 那条路（客户端上传 `annotations` 一律 400，超出 20 条与悬空都写进
@@ -810,7 +848,15 @@ drizzle 把整个拼接结果当成**单个绑定参数**，生成的 SQL 是 `o
   「token 绑定请在画布上做」并**不产出补丁**，因此模型里已有的 token 绑定不会被改坏（不是"丢成数字"）。
   这与 `size` 走 `lengthOf` 能把 `var(--nx-space-8)` 反解回 `{space.8}` 是两条不同的策略：`size` 支持、
   gap/padding/radius 不支持，是有意为之的可逆/不可逆区域划分（§17-19），不是待补的 bug。
-- ESLint 目前只有 `npm run lint` = typecheck 的占位配置，缺真实规则集。
+- ~~ESLint 目前只有 `npm run lint` = typecheck 的占位配置，缺真实规则集。~~ **已还（任务 #43）**：
+  `npm run lint` = 七个 tsconfig 的 typecheck + `eslint .`（type-aware `projectService`，测试与 scripts 也在门禁里）。
+- 两张表里有**只读不写**的列，别把"列存在"当成"功能存在"：
+  1. `projects.description` 没有任何写入方（`createProject` 的 insert 不含它，也没有编辑入口），
+     所以 §165 的搜索与 §166 的 og:description 现在都命中不了这一级——SEO 那侧靠页面摘要兜底，
+     搜索那侧 `or(ilike(description,…))` 是空转。欠的是一个项目元信息编辑入口（见 §166 仍欠）。
+  2. `projects.deleted_at` 同样全是读：13 处 `isNull(projects.deletedAt)` 外加 `publish.ts:246` 单独挡一次，
+     但全库没有一处把项目标记为已删除——软删除链路本身没落地。§166 的 sitemap 谓词因此是**防御性**的：
+     今天它永远为真，等软删上线时它已经在位（集成测试直接改库造那一行，并在注释里写明是手工造的）。
 - 资产服务已落地（任务 #9c，§38/§80/§101/§182）：图片上传 → magic-bytes 判定 → 元数据剥离 → 对象存储 → 鉴权路由 →
   画布/预览/发布四条投影同源。仍欠的两笔如实记下：
   1. `stripImageMetadata` 只做**结构化剥离**（PNG/JPEG/WebP/GIF 的 EXIF/XMP/IPTC/注释段），没有重新编码/缩略图/有损统一化——

@@ -200,6 +200,21 @@ e2e 断言面板把"未运行的检查"列出来，而不是显示全绿。
   去掉 `likeTerm` 的转义这条立刻红）、每组截断时报 `capped` 而不是谎报总数。
   e2e `@smoke 全平台搜索` 在浏览器里走：命中的链接点得开（结果 → 编辑器）、画布元素名进 designs 组并带页面名、
   一个字符不发查询、同一个关键词换一个没有会话的浏览器上下文就一无所获
+- SEO（§166）：规则写在纯函数里，所以两层测试各测一半。`seo.test.ts` 10 条不碰库不读头，逐条钉住
+  "爬虫看到什么"：public 才 `index`、unlisted 必 `noindex`；没有 origin 时 canonical / og:url / og:image
+  **整条省略**（`JSON.stringify(metadata)` 里不许出现 `/api/public/`）且 `omitted` 说清为什么；
+  封面必须"这一版真的画到"（只在清单里挂着的不算、svg 不算）、作者没 handle 时图片地址不成立；
+  description 三级回落各钉一条；摘要按字号取句且短于 6 字的按钮文案不进（这条是**整串等值**断言，
+  顺序、过滤、拼接任一改动都会红）；JSON-LD 字段白名单（出现 `aggregateRating` / `keywords` 即红）；
+  项目名写 `</script><img src=x onerror=alert(1)>` 时正文里不得残留 `<` `>`，U+2028 也要转义。
+  `seo.integration.test.ts` 6 条打真库，测的是 sitemap 与 `resolvePublishedPath` **口径一致**：
+  public 在列、unlisted 不在（同一条里反向断言这一行 resolve 仍非 null——"不在 sitemap"有两种原因，
+  不能拿"数据没建成功"蒙过去）、人工驳回的掉出去且留一条对照组、软删项目掉出去、取消发布掉出去且
+  `lastmod` 恰是 `publishedAt`。e2e `@smoke §166` 在真浏览器 + 真 HTTP 里走 head、JSON-LD 可 parse、
+  `/robots.txt`、`/sitemap.xml`，再把同一个项目改 unlisted 重新发布：`noindex` 生效、路径从 sitemap 消失，
+  而页面本身仍然打开得到、canonical 一字未变（截图 `published-seo-public.png`）。
+  反向实验：删封面谓词 / 转义正则缩到 `[&]` / robots 恒 index / 去掉 `visibility='public'` 或
+  `ne(moderation,'rejected')`，每次都只红预期的那几条——两条 sitemap 谓词彼此独立生效。
 - 画布批注（§111）：`apps/web/test/annotations.integration.test.ts` 8 条 —— 写入时定位由服务端查文档
   （回来的 `nodeName` / `pageName` 必须来自文档而不是客户端传的）、节点不存在就不写、
   别人的项目既写不进也列不出、节点被删后批注仍在但标明悬空、删除只对自己的项目有效；
@@ -292,3 +307,10 @@ e2e 断言面板把"未运行的检查"列出来，而不是显示全绿。
   两条都不改断言、不放宽超时：②尤其要说白——"抓不到名字"就是当时的事实，
   下次再遇到必须先把 `FAIL` 那一行留在日志里再动手（`npx vitest run > /tmp/vt.log 2>&1`）。
   怀疑方向与第一笔相同：这台机器同时跑着别的项目的容器，并行时是 CPU 争用而不是逻辑变了。
+  **2026-09-25 再现（§166 那次 32 条整套）**：同一套跑两遍，第一遍 3 红 29 绿、第二遍 1 红 31 绿（7.3m vs 14.1m，
+  慢的一遍就是争用的一遍）。第一遍的三条红分别是：① snapshot 恢复（第一笔的老签名，第三次）、
+  ②「publish pins the released snapshot」与 ③「§166 SEO」都红在**重新发布那一步**
+  （`[data-publish-result]` 30s 内没等到"第 2 版"，面板里既没有新版本也没有 `publishError`——
+  是请求还没回来，不是被挡住）。两条单独跑都绿（1.8m / 26.4s），第二遍整套也都绿。
+  §49 检索那条也在慢的一遍里红、单跑 33.8s 绿（平时 8s）——**同一遍里所有失败都是超时型**。
+  仍然不调超时、不改断言；要查的是"整套 + 别的容器"下 dev server 的排队，而不是把 30s 改成 60s。

@@ -1600,3 +1600,66 @@ test('@smoke 全平台搜索：命中的都打得开，搜不到的要说清为�
   await expect(visitor.locator('[data-search-group="projects"]')).toHaveCount(0);
   await anonContext.close();
 });
+
+/**
+ * §166 SEO：抓取端多数不执行 JS，所以 head 里的东西必须在服务端就出得来。
+ * 这条用例只站在爬虫视角看：标题 / og / canonical / 收录开关 / JSON-LD，
+ * 外加 robots.txt 与 sitemap.xml 两份文件说的是不是同一套可见性规则。
+ */
+test('@smoke §166 SEO：公开页 head、sitemap 与 robots 用的是同一套可见性判断', async ({ page, request }) => {
+  test.setTimeout(240_000);
+  const projectName = `SEO 作品${Date.now().toString(36)}`;
+  await createProject(page, projectName);
+
+  const openPublish = async () => {
+    // 发布成功后面板不会自己收起：只在没打开时点一下，否则这一下会把面板关掉
+    if (await page.locator('[data-publish-submit]').isVisible()) return;
+    await page.click('[data-publish-open]');
+    await expect(page.locator('[data-publish-submit]')).toBeVisible();
+  };
+
+  await openPublish();
+  await page.click('[data-publish-choice="public"]');
+  await page.click('[data-publish-submit]');
+  await expect(page.locator('[data-publish-url]')).toBeVisible({ timeout: 30_000 });
+  const path = (await page.locator('[data-publish-url]').getAttribute('href'))!;
+  const origin = new URL(page.url()).origin;
+
+  const visitor = await page.context().newPage();
+  await visitor.goto(path);
+  await expect(visitor.locator('[data-published-frame]')).toBeVisible({ timeout: 30_000 });
+  expect(await visitor.title()).toContain(projectName);
+  await expect(visitor.locator('meta[property="og:title"]')).toHaveAttribute('content', projectName);
+  await expect(visitor.locator('link[rel="canonical"]')).toHaveAttribute('href', `${origin}${path}`);
+  const publicRobots = (await visitor.locator('meta[name="robots"]').getAttribute('content')) ?? '';
+  expect(publicRobots).toContain('index');
+  expect(publicRobots).not.toContain('noindex');
+  // 这一版没有画到图片资产：宁可不给封面，也不放一张爬虫取不到字节的占位图
+  await expect(visitor.locator('meta[property="og:image"]')).toHaveCount(0);
+
+  const jsonLd = await visitor.locator('script[type="application/ld+json"]').textContent();
+  const schema = JSON.parse(jsonLd ?? '{}') as Record<string, unknown>;
+  expect(schema).toMatchObject({ '@type': 'CreativeWork', name: projectName, url: `${origin}${path}` });
+  // 没跑过的评分、没编出来的关键词，一个都不该出现（§159）
+  expect(JSON.stringify(schema)).not.toMatch(/aggregateRating|keywords/i);
+  await visitor.screenshot({ path: 'screenshots/published-seo-public.png' });
+
+  // robots.txt：公开路径放行，私有面挡掉，并指向清单
+  const robotsText = await (await request.get('/robots.txt')).text();
+  expect(robotsText).toContain('Disallow: /studio');
+  expect(robotsText).toContain(`Sitemap: ${origin}/sitemap.xml`);
+  const sitemapText = async () => await (await request.get('/sitemap.xml')).text();
+  expect(await sitemapText()).toContain(`${origin}${path}`);
+
+  // 换成"仅链接"再发布：URL 照旧打得开，但不该再被收录，清单里也要消失
+  await openPublish();
+  await page.click('[data-publish-choice="unlisted"]');
+  await page.click('[data-publish-submit]');
+  await expect(page.locator('[data-publish-result]')).toContainText('第 2 版', { timeout: 30_000 });
+  await visitor.reload();
+  expect((await visitor.locator('meta[name="robots"]').getAttribute('content')) ?? '').toContain('noindex');
+  expect(await sitemapText()).not.toContain(path);
+  // 反向对照：仅链接 ≠ 打不开，它只是不进清单——否则这条断言分不清是规则挡的还是页面坏了
+  await expect(visitor.locator('[data-published-frame]')).toBeVisible();
+  await expect(visitor.locator('link[rel="canonical"]')).toHaveAttribute('href', `${origin}${path}`);
+});

@@ -1,4 +1,5 @@
-import { and, desc, eq, isNull, sql as rawSql } from 'drizzle-orm';
+import { cache } from 'react';
+import { and, desc, eq, isNotNull, isNull, ne, sql as rawSql } from 'drizzle-orm';
 import { analyzeHealth, type DesignDocument, type HealthReport } from '@nexus/design-model';
 import { getDb } from '../db/client';
 import { assets, projects, publishedProjects, users } from '../db/schema';
@@ -218,7 +219,11 @@ export interface PublishedPage {
   publication: Publication;
   document: DesignDocument;
   ownerName: string;
+  /** 公开资产 URL 与作者主页都按 handle 寻址（§56/§57），SEO 标签要它（§166）。
+   *  发布时 ensureHandle 一定补齐了，这里保留 null 只是不把"库里不可能有 null"写进类型里 */
+  ownerHandle: string | null;
   projectName: string;
+  description: string | null;
 }
 
 /**
@@ -246,8 +251,54 @@ export async function resolvePublishedPath(path: string): Promise<PublishedPage 
     publication: toPublication(row.pub),
     document: snapshot.document,
     ownerName: row.owner.displayName,
+    ownerHandle: row.owner.handle,
     projectName: row.project.name,
+    description: row.project.description,
   };
+}
+
+/**
+ * `generateMetadata` 与页面组件在同一次渲染里要读同一条发布记录。
+ * React 的 `cache` 按请求去重：两个调用点共享同一份 Promise，不会读两次库、
+ * 也不会各读一次快照文档（快照可能上百 KB）。
+ */
+export const getPublishedPage = cache(resolvePublishedPath);
+
+/**
+ * §166 sitemap 的一行：路径 + 对外可抓的那一版的发布时间。
+ */
+export interface SitemapEntry {
+  path: string;
+  publishedAt: Date;
+}
+
+/**
+ * sitemap 只收"爬虫点开真的能看到东西"的链接——口径与 resolvePublishedPath 一致：
+ * unlisted 一律不进（它的语义是只认精确链接，列进清单等于把它交出去）、
+ * rejected 不进、项目已删除不进、没有快照的不进。
+ *
+ * 唯一不在这个函数里判的是"快照行已被删"：那种发布要 join 到 snapshots 再按 JSON 体积判定，
+ * 成本随发布数量线性涨，而它只会在人工清理快照后出现——交给 resolvePublishedPath 兜 404。
+ */
+export async function listSitemapEntries(limit = 1000): Promise<SitemapEntry[]> {
+  const db = getDb();
+  return db
+    .select({
+      path: publishedProjects.path,
+      publishedAt: publishedProjects.publishedAt,
+    })
+    .from(publishedProjects)
+    .innerJoin(projects, eq(projects.id, publishedProjects.projectId))
+    .where(
+      and(
+        eq(publishedProjects.visibility, 'public'),
+        ne(publishedProjects.moderation, 'rejected'),
+        isNotNull(publishedProjects.snapshotId),
+        isNull(projects.deletedAt),
+      ),
+    )
+    .orderBy(desc(publishedProjects.publishedAt))
+    .limit(limit);
 }
 
 /** 浏览量只在真正对外可见的访问上累加；计数失败不该拖垮一次公开渲染 */
