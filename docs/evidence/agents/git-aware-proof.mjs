@@ -19,7 +19,7 @@ assert.deepEqual(st.files.map((f) => f.status), ['modified', 'renamed', 'untrack
 assert.equal(st.files[1].path, 'new/x.md', 'a rename reports the NEW path');
 assert.deepEqual(st.counts, { modified: 1, renamed: 1, untracked: 1, unmerged: 1 });
 const df = parseGitDiff('junk preamble\ndiff --git a/x.ts b/x.ts\n--- a/x.ts\n+++ b/x.ts\n@@ -1,1 +1,2 @@\n context\n+added\n+added2\ndiff --git a/y.md b/y.md\n@@ -1 +1 @@\n-gone\n+here\n');
-assert.deepEqual(df.totals, { files: 2, hunks: 2, additions: 3, deletions: 1 }, '+++ / --- headers never count as changes');
+assert.deepEqual(df.totals, { files: 2, hunks: 2, additions: 3, deletions: 1 }, "git's name pair is not a change WHERE IT SITS — before the first hunk (v64; the same shape inside a hunk counts as a line)");
 assert.deepEqual(parseDiffStat(' 1 file changed, 2 insertions(+), 1 deletion(-)'), { files: 1, insertions: 2, deletions: 1 });
 console.log('[git-aware-proof] parsers: porcelain + line tallies + stat footer are pure data');
 

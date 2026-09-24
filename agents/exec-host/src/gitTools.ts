@@ -169,14 +169,40 @@ export function parseDiffHeader(line: string): { from: string; to: string; quote
  * NTFS allows and the proof creates — steals that split and yields a name that is two paths glued
  * together. Measured: git prints both forms for the same change, so wherever a per-line name exists it
  * wins. `/dev/null` is not a name, and a rendering that survives unwrapping stays verbatim and announced.
+ *
+ * M2 v64 (second clause): a per-line name may also carry a field git does not mean as part of the path.
+ * Measured on this box — `git diff --cached` renaming `m b/spaced.md` to `m b/renamed.md` prints BOTH
+ * `--- a/m b/spaced.md\t` and `+++ b/m b/renamed.md\t`, and `git show` prints the same trailing TAB on the
+ * added path — while a name with no space (`+++ b/brand-new.md`), a `/dev/null` side, and a C-QUOTED name
+ * (`+++ "b/caf\303\251.md"`) each carry no tab. The tab is the unified header's name/timestamp separator
+ * with an empty second field; keeping it hands §28 a path that exists nowhere on disk — the same harm as
+ * v61's stolen split, arrived at from the other direction. So an UNQUOTED name ends at its first TAB.
+ * A POSIX filename may contain a tab, and this box cannot create one to measure it (`git mv` →
+ * `fatal: renaming 'tabbed.md' failed: Invalid argument`); that is stated, not worked around — git's
+ * C-quoted rendering of a control character would not reach this branch anyway.
  */
 export function parseFileLine(line: string): { path: string; quoted: boolean } | null {
   const m = /^\+\+\+ (?:"b\/(.*)"|b\/(.*))$/.exec(line);
   if (!m) return null;
-  const r = unwrapRendering(m[1] !== undefined ? `"${m[1]}"` : (m[2] ?? ''));
-  if (r.name === '/dev/null') return null; // a deletion's target says nothing about the path
+  // the quoted branch keeps its rendering; an unquoted name ends at git's TAB field separator
+  const r = unwrapRendering(m[1] !== undefined ? `"${m[1]}"` : (m[2] ?? '').split('\t')[0] ?? '');
+  if (r.name === '' || r.name === '/dev/null') return null; // a name of nothing is not a name either
   return { path: r.name, quoted: r.quoted };
 }
+
+/**
+ * M2 v64: a `--- ` / `+++ ` line is git's NAMES, and only where git prints names — the one pair between a
+ * file's `diff --git` header and its first `@@`. Inside a hunk every line is CONTENT, and a content line
+ * that merely starts with `++` or `--` arrives as `+++ b/x` / `--- a/x`, indistinguishable from the pair by
+ * shape alone. Measured on this box (worktree: `code.ts` loses a line reading `-- a/ghost.ts`, `notes.md`
+ * gains one reading `++ b/second.md`, `plain.txt` gains `+++ b/fake…`): git's own shortstat says
+ * `3 files changed, 2 insertions(+), 1 deletion(-)` and both door-shape readers said `+0 −0`, with
+ * `notes.md` renamed to `second.md` — a path that exists nowhere. Shape cannot tell those two jobs apart;
+ * POSITION can, so the matchers that name a file and the exception that hides a header both run on the
+ * caller's side of the first `@@` and never after it.
+ */
+export const isDiffHeaderPairLine = (line: string, insideHunk: boolean): boolean =>
+  !insideHunk && (line.startsWith('--- ') || line.startsWith('+++ '));
 
 /**
  * M2 v61: ONE sentence-pair for the doors that report parsed paths (`git.status`, `git.staged`),
@@ -394,28 +420,38 @@ export interface GitDiffFile {
   quoted?: boolean;
 }
 
-/** Unified `git diff` text → per-file line tallies; `+++`/`---` headers never count. */
+/**
+ * Unified `git diff` text → per-file line tallies. v64: the `+++`/`---` pair never counts WHILE IT IS
+ * STILL A PAIR, i.e. before the first `@@` of its file section; after that line every `+`/`-` is content
+ * that git counted, and git's own footer is the judge (see `isDiffHeaderPairLine`).
+ */
 export function parseGitDiff(stdout: string): { files: GitDiffFile[]; totals: { files: number; hunks: number; additions: number; deletions: number } } {
   const files: GitDiffFile[] = [];
   let current: GitDiffFile | null = null;
+  let insideHunk = false; // v64: where the reader is inside the current file section decides what `---`/`+++` MEAN
   for (const line of stdout.split('\n')) {
-    const header = parseDiffHeader(line); // v61: one matcher for both renderings git uses
+    const header = parseDiffHeader(line);
     if (header) {
       current = { path: header.to, hunks: 0, additions: 0, deletions: 0 };
       if (header.quoted) current.quoted = true;
       files.push(current);
+      insideHunk = false; // v64: a new section starts with a fresh pair of name lines
       continue;
     }
     if (!current) continue; // preamble before the first file is not a diff
-    const named = parseFileLine(line); // v61: git's own per-line name beats a header whose split a ` b/` stole
-    if (named) {
-      current.path = named.path;
-      if (named.quoted) current.quoted = true;
+    if (isDiffHeaderPairLine(line, insideHunk)) {
+      const named = parseFileLine(line); // v61: git's own per-line name beats a header whose split a ` b/` stole
+      if (named) {
+        current.path = named.path;
+        if (named.quoted) current.quoted = true;
+      }
       continue;
     }
-    if (line.startsWith('@@')) current.hunks += 1;
-    else if (line.startsWith('+') && !line.startsWith('+++')) current.additions += 1;
-    else if (line.startsWith('-') && !line.startsWith('---')) current.deletions += 1;
+    if (line.startsWith('@@')) {
+      insideHunk = true;
+      current.hunks += 1;
+    } else if (line.startsWith('+')) current.additions += 1;
+    else if (line.startsWith('-')) current.deletions += 1;
   }
   const totals = files.reduce((t, f) => ({ files: t.files + 1, hunks: t.hunks + f.hunks, additions: t.additions + f.additions, deletions: t.deletions + f.deletions }), { files: 0, hunks: 0, additions: 0, deletions: 0 });
   return { files, totals };

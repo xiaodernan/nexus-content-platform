@@ -37,11 +37,24 @@ describe('parseShowDiff (one file of HEAD\'s diff → the lines git kept, pure d
     });
   });
 
-  it('context and header lines are never content; +++/--- do not tally', () => {
+  it('context and the name pair before the first hunk are never content; +++/--- do not tally there', () => {
     const c = parseShowDiff(MODIFIED_DIFF, 'docs/a.md');
     expect(c).toMatchObject({ hunks: 1, additions: 1, deletions: 1, addedLines: ['new line'] });
     expect(c.addedLines).not.toContain('/dev/null');
     expect(c.addedLines.some((l) => l.startsWith('+'))).toBe(false);
+  });
+
+  // v64: past the first `@@` the same shape is a line HEAD RECORDED. Swallowing it made the confirm-after-commit
+  // door report fewer lines than the commit holds — and `path` is passed in here, so only the count lied.
+  it('an added line whose own text is `++ b/phantom.md` is counted and kept verbatim (v64)', () => {
+    const c = parseShowDiff('diff --git a/notes.md b/notes.md\nindex 1..2 100644\n--- a/notes.md\n+++ b/notes.md\n@@ -1,2 +1,3 @@\n head\n+++ b/phantom.md\n tail\n', 'notes.md');
+    expect(c).toMatchObject({ path: 'notes.md', hunks: 1, additions: 1, deletions: 0 });
+    expect(c.addedLines).toEqual(['++ b/phantom.md']);
+  });
+
+  it('a removed line whose own text is `-- a/ghost.ts` is one deletion (v64)', () => {
+    const c = parseShowDiff('diff --git a/code.ts b/code.ts\nindex 1..2 100644\n--- a/code.ts\n+++ b/code.ts\n@@ -1,3 +1,2 @@\n a\n--- a/ghost.ts\n b\n', 'code.ts');
+    expect(c).toMatchObject({ hunks: 1, additions: 0, deletions: 1 });
   });
 
   it('a binary change is STATED as binary — no hunks means no lines claimed', () => {

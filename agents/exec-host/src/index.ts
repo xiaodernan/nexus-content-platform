@@ -64,6 +64,7 @@ export {
   gitEnv,
   gitReadOnlyPolicy,
   gitVerdict,
+  isDiffHeaderPairLine,
   isQuotedRendering,
   parseDiffHeader,
   parseDiffStat,

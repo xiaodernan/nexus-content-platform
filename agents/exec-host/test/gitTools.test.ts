@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { ToolRegistry, planExec } from '@nexus/agent-runtime';
 import type { SpawnLike } from '@nexus/agent-runtime';
 import { createExecHost, type ExecChild } from '../src/execHost.js';
-import { GIT_TOOL_SPECS, GIT_DIFF_FLAGS, budgetFlags, gitEnv, gitReadOnlyPolicy, gitVerdict, isQuotedRendering, parseDiffHeader, parseDiffStat, parseFileLine, parseGitDiff, parseGitStatus, pathShapeNotices, quoteVerdict, refusedNotAbsence, registerGitTools, stdoutWasCut, treeSplitNotice, UNMERGED_XY, unmergedNotice, unmergedNotAbsence, unmergedStatusNotice, unwrapRendering } from '../src/gitTools.js';
+import { GIT_TOOL_SPECS, GIT_DIFF_FLAGS, budgetFlags, gitEnv, gitReadOnlyPolicy, gitVerdict, isDiffHeaderPairLine, isQuotedRendering, parseDiffHeader, parseDiffStat, parseFileLine, parseGitDiff, parseGitStatus, pathShapeNotices, quoteVerdict, refusedNotAbsence, registerGitTools, stdoutWasCut, treeSplitNotice, UNMERGED_XY, unmergedNotice, unmergedNotAbsence, unmergedStatusNotice, unwrapRendering } from '../src/gitTools.js';
 import { GIT_ABSENT_CONFIG, GIT_FORCED_CONFIG, GIT_ISOLATION_ENV, GIT_PASS_THROUGH_ENV_NAMES, forcedConfigEnv } from '../src/gitEnvIsolation.js';
 
 describe('parseGitStatus (porcelain v1, pure data)', () => {
@@ -142,6 +142,91 @@ describe('parseGitDiff / parseDiffStat (line tallies, headers never count)', () 
     expect(parseFileLine('+++ "b/a\\"b.md"')).toEqual({ path: '"a\\"b.md"', quoted: true });
     expect(parseFileLine('+++ b/a "b".md')).toEqual({ path: 'a "b".md', quoted: false });
     expect(parseFileLine('--- a/m b/n.md')).toBeNull(); // only the post-image line is read
+  });
+});
+
+// v64: git prints `--- a/…` and `+++ b/…` ONCE per file section, before its first `@@`. Inside a hunk the
+// very same shape is a line somebody WROTE — a file that gains `++ b/second.md` shows it as `+++ b/second.md`,
+// which v32's reader took for a name: it counted nothing and renamed the file to a path that exists nowhere.
+describe('v64 — a body line that WEARS a header\'s shape', () => {
+  it('the rule is POSITION: the pair names before the first hunk and is content after it', () => {
+    expect(isDiffHeaderPairLine('--- a/x.ts', false)).toBe(true);
+    expect(isDiffHeaderPairLine('+++ b/x.ts', false)).toBe(true);
+    expect(isDiffHeaderPairLine('--- /dev/null', false)).toBe(true);
+    expect(isDiffHeaderPairLine('+++ b/x.ts', true)).toBe(false); // inside a hunk this is text, not a name
+    expect(isDiffHeaderPairLine('+++b/x.ts', false)).toBe(false); // git's name line always carries the space
+    expect(isDiffHeaderPairLine('@@ -1 +1 @@', false)).toBe(false);
+  });
+
+  it('an added line reading `++ b/second.md` counts as ONE addition and leaves the path alone', () => {
+    const { files, totals } = parseGitDiff([
+      'diff --git a/notes.md b/notes.md',
+      'index 1..2 100644',
+      '--- a/notes.md',
+      '+++ b/notes.md',
+      '@@ -1,2 +1,3 @@',
+      ' head',
+      '+++ b/second.md',
+      ' tail',
+    ].join('\n'));
+    expect(files).toEqual([{ path: 'notes.md', hunks: 1, additions: 1, deletions: 0 }]);
+    expect(totals).toEqual({ files: 1, hunks: 1, additions: 1, deletions: 0 });
+  });
+
+  it('a deleted line reading `-- a/ghost.ts` counts, and so does an addition whose own text starts with `+++`', () => {
+    const { files } = parseGitDiff([
+      'diff --git a/code.ts b/code.ts',
+      'index 1..2 100644',
+      '--- a/code.ts',
+      '+++ b/code.ts',
+      '@@ -1,3 +1,4 @@',
+      ' a',
+      '--- a/ghost.ts',
+      '++++ b/fake-from-an-addition',
+      ' b',
+    ].join('\n'));
+    expect(files).toEqual([{ path: 'code.ts', hunks: 1, additions: 1, deletions: 1 }]);
+  });
+
+  it('a new section starts OUTSIDE the hunk again, so its own `+++ b/…` names it and counts as nothing', () => {
+    const { files, totals } = parseGitDiff([
+      'diff --git a/a.md b/a.md', '--- a/a.md', '+++ b/a.md', '@@ -1 +1 @@', '+++ b/was-content.md',
+      'diff --git a/b.md b/b.md', 'index 1..2 100644', '--- a/b.md', '+++ b/b.md', '@@ -1 +1 @@', '-x', '+y',
+    ].join('\n'));
+    expect(files).toEqual([
+      { path: 'a.md', hunks: 1, additions: 1, deletions: 0 },
+      { path: 'b.md', hunks: 1, additions: 1, deletions: 1 },
+    ]);
+    expect(totals).toEqual({ files: 2, hunks: 2, additions: 2, deletions: 1 });
+  });
+
+  it('a whole-file addition still tallies its content and not its `/dev/null` pre-image', () => {
+    const { files } = parseGitDiff(['diff --git a/new.md b/new.md', 'new file mode 100644', 'index 0..1 100644', '--- /dev/null', '+++ b/new.md', '@@ -0,0 +1,2 @@', '++ b/kept.md', '+tail'].join('\n'));
+    expect(files).toEqual([{ path: 'new.md', hunks: 1, additions: 2, deletions: 0 }]);
+  });
+});
+
+// v64's second clause, measured on this box: git terminates an UNQUOTED name line with a TAB whenever the
+// name contains a space (`--- a/m b/spaced.md\t`, `+++ b/m b/renamed.md\t`, in `diff` and in `show` alike),
+// and does not do it for a space-free name (`+++ b/brand-new.md`) or a C-quoted one (`+++ "b/caf\303\251.md"`).
+// That TAB is the unified header's name/timestamp separator with an empty second field.
+describe('v64 — the TAB after a name is git\'s field, not the path\'s last character', () => {
+  it('parseFileLine cuts at the separator and keeps the name git printed', () => {
+    expect(parseFileLine('+++ b/m b/n.md\t')).toEqual({ path: 'm b/n.md', quoted: false });
+    expect(parseFileLine('+++ b/plain.md')).toEqual({ path: 'plain.md', quoted: false });
+    expect(parseFileLine('+++ "b/caf\\303\\251.md"')).toEqual({ path: '"caf\\303\\251.md"', quoted: true });
+    expect(parseFileLine('+++ b/\t')).toBeNull(); // a name that is nothing names nothing
+    // this box emits the separator with an EMPTY second field; the classic `name<TAB>timestamp` shape is
+    // the same rule one field further, so it is written here as the consequence it is, not as a sighting.
+    expect(parseFileLine('+++ b/x.ts\t2026-01-01 00:00:00.000000000 +0000')).toEqual({ path: 'x.ts', quoted: false });
+  });
+
+  it('a rename into a spaced path ends with git\'s real name, not with its separator', () => {
+    const { files } = parseGitDiff([
+      'diff --git a/x.md b/m b/n.md', 'similarity index 57%', 'rename from x.md', 'rename to m b/n.md',
+      'index 1..2 100644', '--- a/x.md', '+++ b/m b/n.md\t', '@@ -1,2 +1,3 @@', ' one', ' two', '+three',
+    ].join('\n'));
+    expect(files).toEqual([{ path: 'm b/n.md', hunks: 1, additions: 1, deletions: 0 }]);
   });
 });
 

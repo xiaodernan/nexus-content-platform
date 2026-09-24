@@ -2238,3 +2238,89 @@ _Numbering: 63 was free when this was written (`git log --oneline -3` top = v62;
   The notice still counts ENTRIES, not files-in-a-pair. Nothing here teaches the Studio dock to
   render a window; DEMO MODE is unaffected, since no Studio surface runs an exec host, and all of v63
   is enforced in unit tests and proofs.
+## Amendment 64 — v64 (exec-host): a diff BODY line can wear a HEADER's shape — three readers asked what a line LOOKS LIKE when the question was WHERE it sits, so both diff doors tallied `+0 −0` where git tallied 2 insertions, and handed the §28 reviewer a filename that lives inside another file, 2026-09
+
+_Numbering: 64 was free when this was written (`git log --oneline -3` top = v63; this file's HEAD headings end at 63 and there are 61 of them, i.e. 58 and 59 — the concurrent lane's numbers — were folded out of HEAD by a docs reorder). Recorded rather than hidden: the WORKING COPY of this file is a stale buffer that still carries 58/59 and lacks 62/63, because a concurrent session holds it uncommitted; this commit splices its own section onto HEAD's blob and touches nothing else in it. v63 gave `git.status`'s ratio a denominator it had actually read. This amendment is about the diff doors, and about a fact those three readers never had: which lines are NAMES._
+
+- **Three readers, one shape test, and no position.** `parseGitDiff` (`git.diff`, the worktree),
+  `parseStagedDiff` (`git.staged`, the index — the very text a human is asked to approve) and
+  `parseShowDiff` (`git.show`, what HEAD recorded) all count a diff the same way: a line starting with
+  `+` is an addition, `−` a deletion, EXCEPT a line starting with `+++`/`---`, which is git naming a
+  file. That exception asks what the line LOOKS LIKE. git prints the name pair exactly ONCE per file
+  section, in the preamble before the first `@@`; inside a hunk EVERY line is content, and content is
+  prefixed with one character — so a file that gains the text `++ b/second.md` shows it to the door as
+  `+++ b/second.md`. Nothing distinguishes those two jobs by shape. Measured on this box (worktree:
+  `code.ts` loses a line reading `-- a/ghost.ts`, `notes.md` gains `++ b/second.md`, `plain.txt` gains
+  `+++ b/fake-from-an-addition`): git's own shortstat says
+  `3 files changed, 2 insertions(+), 1 deletion(-)` and the same bytes through the pre-v64 rule —
+  transcribed into the proof, so the finding survives a future rewrite of the source — tally
+  `{"paths":["code.ts","second.md","plain.txt"],"add":0,"del":0}`, which is the door sentence
+  `3 files, +0 −0 (3 hunks)`.
+- **The counts were the smaller half.** v61 established that a `+++ b/p` line NAMES a path and beats a
+  `diff --git` header whose positional split a ` b/` directory stole — so the reader that swallowed the
+  body line also BELIEVED it: `notes.md` was renamed to `second.md`, a path that exists nowhere in the
+  repository, and `code.ts` lost `-- a/ghost.ts` to the same rule. `git.staged` went further than a
+  wrong number: `addedLines` is the text this door exists to put in front of a human at §28 (v43's whole
+  reason for existing), and the swallowed line vanished from it — the door withheld from a person the
+  exact line the commit would add, under a filename the commit would not touch. A door that mislabels a
+  path is the failure v61 named; a door that edits what a human is asked to approve is worse, and it came
+  from the same four characters.
+- **The fix is one predicate and a boolean per reader.** `isDiffHeaderPairLine(line, insideHunk)` is
+  `!insideHunk && (line.startsWith('--- ') || line.startsWith('+++ '))` — the pair names only on the
+  caller's side of the first `@@`, and each reader keeps one local (`insideHunk`, reset at every
+  `diff --git` header, set at the first `@@`). Each of the three sources has EXACTLY ONE call site, so
+  there is no second rule to drift from the first, and the old blanket `!startsWith('+++')` exception is
+  gone from all three (pinned by a source-level assertion in the proof, not by a review). v61's rule is
+  KEPT, not reverted: a pair line before the first hunk still corrects a stolen header split, which §5
+  of the proof drives for real. One line that merely WEARS the shape now counts as what git means by it:
+  an addition.
+- **Second clause, found by the same proof: the name line can end with a TAB.** `git diff --cached`
+  renaming `m b/spaced.md` to `m b/renamed.md` prints BOTH `--- a/m b/spaced.md⇥` and
+  `+++ b/m b/renamed.md⇥`, and `git show` puts the same trailing TAB on a spaced path it adds — while a
+  space-free name (`+++ b/brand-new.md`), a `/dev/null` side, and a C-QUOTED name
+  (`+++ "b/caf\303\251.md"`) each carry none. That TAB is the unified header's name/timestamp separator
+  with an empty second field; keeping it reproduces v61's harm from the other direction — the door hands
+  §28 `m b/n.md⇥`, a path that will not open and will not match a pathspec. So an UNQUOTED name ends at
+  its first TAB, and a cut that leaves nothing names nothing (`parseFileLine` returns `null` rather than
+  `path: ''`, the same rule v61 used for a half-header). A POSIX filename may contain a tab; this box
+  cannot create one to measure it (`git mv` → `fatal: renaming 'tabbed.md' failed: Invalid argument`),
+  which is stated here instead of worked around — a control character reaches the reader through git's
+  C-quoted rendering, and that branch cuts nothing. (Every `⇥` in this section is a rendering of one
+  literal TAB byte, which markdown would otherwise hide.)
+- **The 51st tracked proof (`docs/evidence/agents/hunk-shape-proof.mjs`, 52nd script) refuses to be the
+  only witness.** Its yardstick is git's own machinery, never this file's expectations:
+  `diff --numstat -z`, `--name-only -z` and `--shortstat` over the same flags the door uses. `-z` is
+  load-bearing, and measured: a rename makes plain `--numstat` print `1⇥0⇥x.md => m b/n.md` (fields
+  TAB-separated, the two names joined by `=>`), a key the reader would have to rebuild by guessing,
+  while `-z` gives an EMPTY path field
+  followed by the pre- and post-image names as their own NUL-terminated records. §1 drives `git.diff`
+  and §2 `git.staged` against that census (paths, per-file tallies, totals, and the `addedLines` a
+  human sees). §3 transcribes the REPLACED rule and runs it over the same bytes, then asks history for
+  the commit that wrote `!line.startsWith('+++')` (`git log -S`) so the claim "this shipped and was
+  wrong" is a record, not a memory. §4 makes one REAL commit through the commit door — whose own sentence
+  carries git's census (`main@… · 3 file(s) +2 −1`) — and reads it back through `git.show`, compared with
+  `show --numstat`. §5 renames `x.md` into a `m b/` directory for real, adds a `++`-starting new file,
+  and then WITNESSES the tab: it takes the name line out of git's own bytes, asserts that it ends with
+  `⇥`, asserts `parseFileLine` returns the tab-free name, and asserts no door path carries a tab at all.
+  §6 is the wiring check; §7 compares this repository's HEAD byte-wise after 5 door spawns.
+- **What moved:** `isDiffHeaderPairLine` added to `gitTools.ts` and exported; `parseGitDiff`,
+  `parseStagedDiff` and `parseShowDiff` each gained one local and lost their blanket prefix exception;
+  `parseFileLine` cuts git's field separator. exec-host **233/233** (from 221: 7 in `gitTools.test.ts`
+  — 5 for the position rule, 2 for the TAB — 3 in `gitStagedTool.test.ts`, 2 in `gitShowTool.test.ts`),
+  52/52 proof scripts green, four root gates green (typecheck 8/8, lint 4/4, build 5/5, test 8/8 turbo
+  tasks). Two already-committed sentences were re-counted in the same commit rather than left to rot:
+  `git-aware-proof.mjs` asserted `+++ / --- headers never count as changes`, which is now false as
+  phrased (it reads `git's name pair is not a change WHERE IT SITS`), and two unit-test titles that said
+  headers are "never content" now say what is actually pinned.
+- Honest bounds: this is a POSITION rule over git's own bytes, not a parser. It decides the two jobs
+  apart where git's rendering makes them ambiguous; a CONTEXT line whose text begins `--- ` arrives as
+  ` --- x` (git prefixes every line of a hunk) and is neither a name nor a change — v64 changes nothing
+  about it, and nothing here claims it was measured as a case. `diff.noprefix` and `diff.mnemonicPrefix` are NOT in v46's forced-config table, so
+  under a repo that sets them the pair lines carry no `b/` prefix, `parseFileLine` names nothing, and the
+  reader keeps the header's split — the v61 fallback, unmeasured here and left as a candidate rather than
+  fixed on speculation. `git.show`'s own `path` is passed IN by the caller, so the TAB clause changes what
+  `git.diff`/`git.staged` hand out and not what `git.show` asks git for. `parseDiffStat` still reads only
+  the LAST line of `--stat` output, and `git.diff`'s full-mode tally is still a denominator that v63
+  proved can be a window — both recorded as v65 candidates. Nothing here touches argv, policy or env;
+  DEMO MODE is unaffected (no Studio surface runs an exec host), and staging stays human (§28).
+

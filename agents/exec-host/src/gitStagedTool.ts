@@ -1,5 +1,5 @@
 import type { ExecPolicy, ToolRegistry, ToolSpec } from '@nexus/agent-runtime';
-import { budgetFlags, GIT_DIFF_FLAGS, GIT_ENV_NAMES, cutNotAbsence, gitEnv, gitVerdict, parseDiffHeader, parseDiffStat, parseFileLine, pathShapeNotices, quoteVerdict, refusedNotAbsence, unmergedNotAbsence, unmergedNotice, stdoutWasCut, unwrapRendering } from './gitTools.js';
+import { budgetFlags, GIT_DIFF_FLAGS, GIT_ENV_NAMES, cutNotAbsence, gitEnv, gitVerdict, isDiffHeaderPairLine, parseDiffHeader, parseDiffStat, parseFileLine, pathShapeNotices, quoteVerdict, refusedNotAbsence, unmergedNotAbsence, unmergedNotice, stdoutWasCut, unwrapRendering } from './gitTools.js';
 import type { ExecHost, ExecRunResult } from './execHost.js';
 
 /**
@@ -72,8 +72,9 @@ export interface StagedIndex {
  * `parseShowDiff` reads ONE file's diff body; the whole index is several such bodies back to
  * back, and the question here is different: which files is the human about to record, and
  * which kind of change is each. Kind comes from git's own metadata lines (`new file mode`,
- * `deleted file mode`, `rename to`), never from guesswork; header lines (`---`/`+++`) are
- * never content.
+ * `deleted file mode`, `rename to`), never from guesswork; and v64 corrects the last half of that
+ * sentence — a `---`/`+++` line is metadata ONLY in the pair git prints before the first `@@`, because
+ * after it every line is content and a deleted line reading `-- a/x` arrives as `--- a/x`.
  *
  * M2 v61 (ADR 0016 amendment 61) keeps the two halves of what git already said: a `rename from`
  * line decided the KIND and its name was thrown away, so the intent window showed a rename under the
@@ -82,25 +83,30 @@ export interface StagedIndex {
  * entirely, and a door that parsed no files told the §28 reviewer the index was EMPTY. Both halves
  * of that second bug now live in `parseDiffHeader`, shared with the worktree door, and a section's
  * name is taken from git's per-line `+++ b/…` (or `rename to`/`copy to`, for a rename too pure to
- * carry a body) wherever those lines exist — because the header has to be split by POSITION, and a
- * path containing ` b/` steals that split. Measured; see the proof's §3.
+ * carry a body) WHEREVER THAT LINE IS STILL A NAME — because the header has to be split by POSITION, a
+ * path containing ` b/` steals that split, and v64 found the other position error: past the first `@@`
+ * the same shape is a changed line, not a name. Measured; see the proof's §3.
  */
 export function parseStagedDiff(stdout: string): StagedIndex {
   const files: StagedFileChange[] = [];
   let current: StagedFileChange | null = null;
+  let insideHunk = false; // v64: the pair that names a file exists only before this flag turns on
   for (const line of stdout.split('\n')) {
     const header = parseDiffHeader(line); // v61: the same matcher reads git's plain AND C-quoted headers
     if (header) {
       current = { path: header.to, change: 'modified', hunks: 0, additions: 0, deletions: 0, addedLines: [], binary: false };
       if (header.quoted) current.quoted = true;
       files.push(current);
+      insideHunk = false;
       continue;
     }
     if (!current) continue; // a preamble before the first file is not a change
-    const named = parseFileLine(line); // v61: git's per-line name beats a header whose split a ` b/` stole
-    if (named) {
-      current.path = named.path;
-      if (named.quoted) current.quoted = true;
+    if (isDiffHeaderPairLine(line, insideHunk)) {
+      const named = parseFileLine(line); // v61: git's per-line name beats a header whose split a ` b/` stole
+      if (named) {
+        current.path = named.path;
+        if (named.quoted) current.quoted = true;
+      }
       continue;
     }
     if (line.startsWith('new file mode')) current.change = 'added';
@@ -114,11 +120,13 @@ export function parseStagedDiff(stdout: string): StagedIndex {
       current.change = 'copied';
       current.fromPath = line.slice('copy from '.length);
     } else if (line.startsWith('Binary files') && line.endsWith(' differ')) current.binary = true;
-    else if (line.startsWith('@@')) current.hunks += 1;
-    else if (line.startsWith('+') && !line.startsWith('+++')) {
+    else if (line.startsWith('@@')) {
+      insideHunk = true;
+      current.hunks += 1;
+    } else if (line.startsWith('+')) {
       current.additions += 1;
-      current.addedLines.push(line.slice(1));
-    } else if (line.startsWith('-') && !line.startsWith('---')) current.deletions += 1;
+      current.addedLines.push(line.slice(1)); // v64: inside a hunk git's own one-character prefix is the whole difference between content and metadata
+    } else if (line.startsWith('-')) current.deletions += 1;
   }
   const counts: Partial<Record<StagedChangeKind, number>> = {};
   // v61: the body lines above are git's own words, taken verbatim — so they go through the same one rule

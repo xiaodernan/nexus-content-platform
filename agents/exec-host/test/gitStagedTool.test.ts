@@ -100,10 +100,29 @@ describe('parseStagedDiff (the index as a stated set of changes, pure data)', ()
     expect(totals).toEqual({ files: 3, hunks: 3, additions: 3, deletions: 2, binary: 0 });
   });
 
-  it('diff headers are never content and a "\ No newline" marker is never a line', () => {
+  it('the name pair before the first hunk is never content, and a "\ No newline" marker is never a line', () => {
     const c = parseStagedDiff('diff --git a/a.md b/a.md\nindex 1..2 100644\n--- a/a.md\n+++ b/a.md\n@@ -1 +1 @@\n+tail\n\\ No newline at end of file\n');
     expect(c.files[0]).toMatchObject({ additions: 1, deletions: 0, addedLines: ['tail'] });
     expect(c.files[0]!.path).toBe('a.md');
+  });
+
+  // v64: the SAME shape inside a hunk is a line the human staged. Reading it as a header renamed the file to
+  // something that is not in the repository and left `addedLines` — the text §28 is asked to approve — empty.
+  it('a staged addition reading `++ b/second.md` stays in notes.md, in the count AND in addedLines (v64)', () => {
+    const c = parseStagedDiff('diff --git a/notes.md b/notes.md\nindex 1..2 100644\n--- a/notes.md\n+++ b/notes.md\n@@ -1,2 +1,3 @@\n head\n+++ b/second.md\n tail\n');
+    expect(c.files).toHaveLength(1);
+    expect(c.files[0]).toMatchObject({ path: 'notes.md', change: 'modified', additions: 1, deletions: 0, addedLines: ['++ b/second.md'] });
+    expect(c.totals).toEqual({ files: 1, hunks: 1, additions: 1, deletions: 0, binary: 0 });
+  });
+
+  it('a staged deletion reading `-- a/ghost.ts` is one deletion, not a pre-image line (v64)', () => {
+    const c = parseStagedDiff('diff --git a/code.ts b/code.ts\nindex 1..2 100644\n--- a/code.ts\n+++ b/code.ts\n@@ -1,3 +1,2 @@\n a\n--- a/ghost.ts\n b\n');
+    expect(c.files[0]).toMatchObject({ path: 'code.ts', additions: 0, deletions: 1 });
+  });
+
+  it('a second staged section is outside a hunk again, so its pair names it and adds nothing (v64)', () => {
+    const c = parseStagedDiff('diff --git a/a.md b/a.md\n--- a/a.md\n+++ b/a.md\n@@ -1 +1 @@\n+++ b/content.md\ndiff --git a/b.md b/b.md\n--- a/b.md\n+++ b/b.md\n@@ -1 +1 @@\n-x\n+y\n');
+    expect(c.files.map((f) => [f.path, f.additions, f.deletions])).toEqual([['a.md', 1, 0], ['b.md', 1, 1]]);
   });
 
   it('a binary staged change is flagged and claims no lines; text before the first file header is ignored', () => {

@@ -1,5 +1,5 @@
 import type { ExecPolicy, ToolRegistry, ToolSpec } from '@nexus/agent-runtime';
-import { budgetFlags, GIT_DIFF_FLAGS, GIT_ENV_NAMES, cutNotAbsence, gitEnv, gitVerdict, isQuotedRendering, quoteVerdict, refusedNotAbsence, stdoutWasCut } from './gitTools.js';
+import { budgetFlags, GIT_DIFF_FLAGS, GIT_ENV_NAMES, cutNotAbsence, gitEnv, gitVerdict, isDiffHeaderPairLine, isQuotedRendering, quoteVerdict, refusedNotAbsence, stdoutWasCut } from './gitTools.js';
 import type { ExecHost, ExecRunResult } from './execHost.js';
 
 /**
@@ -43,13 +43,20 @@ export interface GitShowFileChange {
   binary: boolean;
 }
 
-/** The body of `git show --format= -- <path>`: one file's unified diff, no commit header. */
+/**
+ * The body of `git show --format= -- <path>`: one file's unified diff, no commit header.
+ * v64: the `+++`/`---` skip is POSITION-gated like the two other diff readers — before the first `@@`
+ * those lines are git naming the file, after it a line reading `+++ b/x` is a line HEAD ADDED.
+ */
 export function parseShowDiff(stdout: string, path: string): GitShowFileChange {
   const change: GitShowFileChange = { path, hunks: 0, additions: 0, deletions: 0, addedLines: [], binary: false };
+  let insideHunk = false;
   for (const line of stdout.split('\n')) {
     if (line.startsWith('diff --git') || line.startsWith('index ') || line.startsWith('new file') || line.startsWith('deleted file') || line.startsWith('old mode') || line.startsWith('new mode') || line.startsWith('similarity') || line.startsWith('rename')) continue;
-    if (line.startsWith('@@')) change.hunks += 1;
-    else if (line.startsWith('+++') || line.startsWith('---')) continue; // headers are not content
+    if (line.startsWith('@@')) {
+      insideHunk = true;
+      change.hunks += 1;
+    } else if (isDiffHeaderPairLine(line, insideHunk)) continue; // the name pair, and only it, is not content
     else if (line.startsWith('+')) {
       change.additions += 1;
       change.addedLines.push(line.slice(1));
