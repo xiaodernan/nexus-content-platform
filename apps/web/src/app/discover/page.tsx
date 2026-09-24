@@ -24,7 +24,7 @@ export default async function DiscoverPage({ searchParams }: { searchParams: Pro
   return (
     <main className="mx-auto flex max-w-[1080px] flex-col gap-[var(--nexus-space-6)] px-6 py-10" data-discover-root>
       <header className="flex flex-wrap items-baseline gap-3">
-        <h1 className="text-[var(--nexus-font-size-20)] font-semibold">发现</h1>
+        <h1 className="text-[var(--nexus-font-size-21)] font-semibold">发现</h1>
         <nav className="flex gap-2" data-discover-tabs>
           {TABS.map((tab) => (
             <Link

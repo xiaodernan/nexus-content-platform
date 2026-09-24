@@ -37,7 +37,7 @@ export default async function ProfilePage({ params }: { params: Promise<{ handle
           </span>
         )}
         <div className="min-w-[16rem] flex-1">
-          <h1 className="text-[var(--nexus-font-size-20)] font-semibold" data-profile-name>
+          <h1 className="text-[var(--nexus-font-size-21)] font-semibold" data-profile-name>
             {profile.name}
           </h1>
           <p className="text-11 text-fg-3">@{profile.handle}</p>

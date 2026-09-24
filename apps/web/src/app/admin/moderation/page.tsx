@@ -17,7 +17,7 @@ export default async function AdminModerationPage() {
   if (!user) {
     return (
       <main className="mx-auto max-w-[720px] px-6 py-16" data-admin-denied="anonymous">
-        <h1 className="text-[var(--nexus-font-size-20)] font-semibold">人工复核台</h1>
+        <h1 className="text-[var(--nexus-font-size-21)] font-semibold">人工复核台</h1>
         <p className="mt-2 text-13 text-fg-2">需要先登录才能看队列。</p>
       </main>
     );
@@ -25,7 +25,7 @@ export default async function AdminModerationPage() {
   if (user.role !== 'admin') {
     return (
       <main className="mx-auto max-w-[720px] px-6 py-16" data-admin-denied="not-admin">
-        <h1 className="text-[var(--nexus-font-size-20)] font-semibold">人工复核台</h1>
+        <h1 className="text-[var(--nexus-font-size-21)] font-semibold">人工复核台</h1>
         <p className="mt-2 text-13 text-fg-2">
           这个页面对 {user.displayName}（role={user.role}）不开放：审核队列只对 role=admin 可见。
         </p>
@@ -43,7 +43,7 @@ export default async function AdminModerationPage() {
   return (
     <main className="mx-auto flex max-w-[980px] flex-col gap-[var(--nexus-space-6)] px-6 py-10" data-admin-queue>
       <header>
-        <h1 className="text-[var(--nexus-font-size-20)] font-semibold">人工复核台</h1>
+        <h1 className="text-[var(--nexus-font-size-21)] font-semibold">人工复核台</h1>
         <p className="mt-1 text-12 text-fg-3" data-rules-version={MODERATION_RULES_VERSION}>
           待看 {cases.length} 案 · 规则版本 {MODERATION_RULES_VERSION} · 裁决之后这案就离开队列（放行/拒绝都会）
         </p>

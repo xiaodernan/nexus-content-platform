@@ -26,7 +26,7 @@ export default async function WorldRuntimePage({ params }: { params: Promise<{ p
   if (!world) {
     return (
       <main className="mx-auto flex max-w-[720px] flex-col gap-3 px-6 py-16" data-world3d="none">
-        <h1 className="text-[var(--nexus-font-size-20)] font-semibold">这个项目还没有世界</h1>
+        <h1 className="text-[var(--nexus-font-size-21)] font-semibold">这个项目还没有世界</h1>
         <p className="text-13 text-fg-2">
           3D 运行时读的是世界文档（§44）与你在世界图（§45）上摆过的位置。先去 Studio 建骨架、填几条内容。
         </p>
@@ -39,7 +39,7 @@ export default async function WorldRuntimePage({ params }: { params: Promise<{ p
   if (!world.ok) {
     return (
       <main className="mx-auto flex max-w-[720px] flex-col gap-3 px-6 py-16" data-world3d="broken">
-        <h1 className="text-[var(--nexus-font-size-20)] font-semibold">库里的世界读不出来</h1>
+        <h1 className="text-[var(--nexus-font-size-21)] font-semibold">库里的世界读不出来</h1>
         <p className="text-13 text-danger" data-world-error>
           {world.reason}
         </p>

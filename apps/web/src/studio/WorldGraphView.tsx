@@ -271,7 +271,7 @@ export function WorldGraphView() {
                 y1={a.cy}
                 x2={b.cx}
                 y2={b.cy}
-                stroke={active ? 'var(--nexus-color-accent)' : 'var(--nexus-color-border-strong)'}
+                stroke={active ? 'var(--nexus-color-accent-2)' : 'var(--nexus-color-border-strong)'}
                 strokeWidth={active ? 2.5 : 1.5}
                 markerEnd="url(#world-arrow)"
               />
@@ -320,7 +320,7 @@ export function WorldGraphView() {
                 height={NODE_H}
                 rx={10}
                 fill={KIND_FILL[node.kind] ?? '#20242e'}
-                stroke={isPicked ? 'var(--nexus-color-accent)' : 'var(--nexus-color-border-strong)'}
+                stroke={isPicked ? 'var(--nexus-color-accent-2)' : 'var(--nexus-color-border-strong)'}
                 strokeWidth={isPicked ? 2 : 1}
               />
               <text x={12} y={19} className="fill-fg-1 text-[12px] font-medium">
