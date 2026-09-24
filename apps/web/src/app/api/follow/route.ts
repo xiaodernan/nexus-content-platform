@@ -4,6 +4,7 @@ import { getDb } from '@/server/db/client';
 import { users } from '@/server/db/schema';
 import { requireUser } from '@/server/domain/session';
 import { toggleFollow } from '@/server/domain/social';
+import { emit } from '@/server/domain/notifications';
 import { csrfOk } from '@/server/security/csrf';
 import { clientIp, getRateLimiter, rateKey } from '@/server/security/rateLimit';
 import { jsonError } from '@/server/http';
@@ -24,5 +25,21 @@ export async function POST(req: Request): Promise<NextResponse> {
   if (target.id === user.id) return jsonError(400, 'self_follow', { message: '不能关注自己' });
 
   const state = await toggleFollow(user.id, target.id);
+  // §164：只报"开始关注"，不报"取消关注"——后者不是发生了一件事，是没发生
+  if (state.following) {
+    const [actor] = await getDb()
+      .select({ handle: users.handle })
+      .from(users)
+      .where(eq(users.id, user.id))
+      .limit(1);
+    await emit({
+      kind: 'follow',
+      recipientId: target.id,
+      actorId: user.id,
+      actorName: user.displayName,
+      // guest 没认领前没有 handle，那就真的没有 /u/ 这一页可指
+      actorHandle: actor?.handle ?? null,
+    });
+  }
   return NextResponse.json({ ok: true, ...state });
 }

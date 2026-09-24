@@ -3,6 +3,7 @@ import { requireUser } from '@/server/domain/session';
 import { addComment, publicRefByPath, remixPublication, toggleLike } from '@/server/domain/social';
 import { toggleSave } from '@/server/domain/profile';
 import { csrfOk } from '@/server/security/csrf';
+import { emit } from '@/server/domain/notifications';
 import { clientIp, getRateLimiter, rateKey } from '@/server/security/rateLimit';
 import { jsonError } from '@/server/http';
 
@@ -38,8 +39,27 @@ export async function POST(req: Request): Promise<NextResponse> {
   const ref = await publicRefByPath(path);
   if (!ref) return jsonError(404, 'not_found', { message: '这个作品现在不公开' });
 
-  if (action === 'like' || action === 'save') {
-    const state = action === 'like' ? await toggleLike(user.id, ref.publicationId) : await toggleSave(user.id, ref.publicationId);
+  if (action === 'save') {
+    // Save 不发通知：收藏是作者看不见、也不该看见的动作（§59 把它设计成私人书架）
+    const state = await toggleSave(user.id, ref.publicationId);
+    return NextResponse.json({ ok: true, action, ...state });
+  }
+
+  if (action === 'like') {
+    const state = await toggleLike(user.id, ref.publicationId);
+    // §164：只有"真的点赞了"才通知；取消点赞不补一条"某人取消了点赞"，那是噪音不是事件
+    if (state.liked) {
+      await emit({
+        kind: 'like',
+        recipientId: ref.ownerId,
+        actorId: user.id,
+        actorName: user.displayName,
+        projectId: ref.projectId,
+        publicationId: ref.publicationId,
+        path: ref.path,
+        projectName: ref.projectName,
+      });
+    }
     return NextResponse.json({ ok: true, action, ...state });
   }
 
@@ -53,10 +73,34 @@ export async function POST(req: Request): Promise<NextResponse> {
       // 机检挡下不是错误状态码：它是"这条没发出去，原因在这里"的正常回话
       return NextResponse.json({ ok: false, action, reason: result.reason, rule: result.rule ?? null }, { status: result.rule ? 200 : 400 });
     }
+    // 通知挂在评论 id 上：同一条评论重试只留一条，两次真评论留两条
+    await emit({
+      kind: 'comment',
+      recipientId: ref.ownerId,
+      actorId: user.id,
+      actorName: user.displayName,
+      projectId: ref.projectId,
+      publicationId: ref.publicationId,
+      path: ref.path,
+      projectName: ref.projectName,
+      commentId: result.comment.id,
+      text: result.comment.body,
+    });
     return NextResponse.json({ ok: true, action, comment: result.comment, notice: result.notice });
   }
 
   const remix = await remixPublication(user.id, ref.publicationId);
   if (!remix.ok) return jsonError(409, 'cannot_remix', { message: remix.reason });
+  await emit({
+    kind: 'remix',
+    recipientId: ref.ownerId,
+    actorId: user.id,
+    actorName: user.displayName,
+    projectId: ref.projectId,
+    publicationId: ref.publicationId,
+    path: ref.path,
+    projectName: ref.projectName,
+    forkedProjectId: remix.projectId,
+  });
   return NextResponse.json({ ok: true, action, projectId: remix.projectId, name: remix.name });
 }

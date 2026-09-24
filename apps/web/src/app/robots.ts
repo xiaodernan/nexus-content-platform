@@ -13,7 +13,8 @@ export const dynamic = 'force-dynamic';
  * - `/api` 是数据与鉴权面，不是给人读的页面；
  * - `/admin` 审核台（§131）；
  * - `/search` 的结果页是查询拼出来的薄页面，收录它等于把站内搜索当成站点内容（Google 明确不推荐）；
- * - `/analytics` 是 §168 创作者自己的统计面板，按归属判定，收录了只会把别人的创作数据挂到搜索引擎上。
+ * - `/analytics` 是 §168 创作者自己的统计面板，按归属判定，收录了只会把别人的创作数据挂到搜索引擎上；
+ * - `/notifications` 是 §164 收件箱，同上：里面写着谁点赞、谁改编了他，这些不该出现在公网结果里。
  *
  * 注意：robots 只管"要不要来抓"，不管"抓到能不能看"。unlisted 页面允许被抓但带
  * `noindex`（见 seo.ts）——因为它对匿名访客确实可见，屏蔽抓取反而会让已分享的链接
@@ -26,7 +27,7 @@ export default async function robots(): Promise<MetadataRoute.Robots> {
       {
         userAgent: '*',
         allow: ['/n/', '/u/', '/discover', '/'],
-        disallow: ['/studio', '/world', '/preview', '/api', '/admin', '/search', '/analytics'],
+        disallow: ['/studio', '/world', '/preview', '/api', '/admin', '/search', '/analytics', '/notifications'],
       },
     ],
     ...(origin ? { sitemap: [`${origin}/sitemap.xml`] } : {}),

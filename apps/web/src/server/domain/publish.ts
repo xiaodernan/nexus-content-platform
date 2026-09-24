@@ -6,6 +6,7 @@ import { assets, projects, publishedProjects, users } from '../db/schema';
 import { recordScan, scanPublication, type AssetProvenance, type ModerationScan } from './moderation';
 import { loadDocument } from './projects';
 import { currentBranchId } from './branches';
+import { emit } from './notifications';
 import { createSnapshot, readSnapshot } from './snapshots';
 
 /**
@@ -190,7 +191,20 @@ export async function publishProject(
       scan,
     });
   }
-  return { ok: true, publication: toPublication(row!), gate, scan, snapshotId: snapshot.id };
+  const publication = toPublication(row!);
+  // §164：四类里只有"发布完成"今天真的有服务端终态，所以它是这一条的主体而不是装饰。
+  // 收件人是项目所有者——他可能已经把这个标签页关掉了，回执不该只活在刚才那次请求里。
+  await emit({
+    kind: 'publish',
+    recipientId: project.ownerId,
+    projectId,
+    projectName: project.name,
+    publicationId: publication.id,
+    path: publication.path,
+    version,
+    visibility: input.visibility,
+  });
+  return { ok: true, publication, gate, scan, snapshotId: snapshot.id };
 }
 
 export async function getPublication(projectId: string): Promise<Publication | null> {

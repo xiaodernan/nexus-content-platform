@@ -27,6 +27,8 @@ export interface PublicationRef {
   path: string;
   visibility: string;
   moderation: string;
+  /** §164 的通知标题要用；顺手带上，省得每个动作再回库查一次项目名 */
+  projectName: string;
 }
 
 /** 公开可见的那一版：private 与被人工拒绝的都不算存在（和 resolvePublishedPath 同一口径） */
@@ -39,6 +41,7 @@ export async function publicRefByPath(path: string): Promise<PublicationRef | nu
       path: publishedProjects.path,
       visibility: publishedProjects.visibility,
       moderation: publishedProjects.moderation,
+      projectName: projects.name,
     })
     .from(publishedProjects)
     .innerJoin(projects, eq(projects.id, publishedProjects.projectId))

@@ -543,6 +543,20 @@ export const PublishedVisitRequestSchema = z.object({
 });
 export type PublishedVisitRequest = z.infer<typeof PublishedVisitRequestSchema>;
 
+/**
+ * §164 标已读。ids 与 all 二选一（都不给是客户端 bug，两个都给时 all 优先），
+ * id 必须是 uuid：收件箱按人查询，这里只是把"能标别人的行"挡在报文层。
+ */
+export const NotificationsReadRequestSchema = z
+  .object({
+    ids: z.array(z.string().uuid()).max(200).optional(),
+    all: z.boolean().optional(),
+  })
+  .refine((body) => body.all === true || (body.ids?.length ?? 0) > 0, {
+    message: '要么给出要标记的通知 id，要么显式说 all',
+  });
+export type NotificationsReadRequest = z.infer<typeof NotificationsReadRequestSchema>;
+
 
 /**
  * §162 作业队列：图片 / 视频 / 3D / 复杂 Agent 任务不能挂在一个 HTTP 请求上等结果，

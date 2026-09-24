@@ -3,6 +3,7 @@ import { and, desc, eq, isNull, sql } from 'drizzle-orm';
 import type { ModerationScan } from '@nexus/schemas';
 import { getDb } from '../db/client';
 import { abuseReports, moderationCases, projects, publishedProjects, users } from '../db/schema';
+import { emit } from './notifications';
 
 /**
  * §131 发布审核：upload → 机检 → 风险分级 → 发布或人工复核。
@@ -299,6 +300,30 @@ export async function resolveCase(
   }
   if (actor.resolution === 'rejected') {
     await db.update(abuseReports).set({ status: 'closed' }).where(eq(abuseReports.publicationId, existing.publicationId ?? ''));
+  }
+  // §164：人工裁决是全平台唯一一个"在别人的请求早就结束之后才发生"的事件，
+  // 所以它是收件箱里最不该缺的一类。只给挂了发布行的案卷发通知：
+  // 被机检当场挡下的那次根本没有 publication 行，作者在那一次请求里已经同步拿到了原因，
+  // 事后再补一条"审核通过"会说他从没发布过的东西通过了审核。
+  if (existing.publicationId) {
+    const [project] = await db
+      .select({ name: projects.name, ownerId: projects.ownerId })
+      .from(projects)
+      .where(eq(projects.id, existing.projectId))
+      .limit(1);
+    // 案卷的项目行一定在（moderationCases.projectId 是级联外键），所以不为"项目不见了"写分支
+    await emit({
+      kind: 'moderation',
+      recipientId: project!.ownerId,
+      adminId: actor.adminId,
+      projectId: existing.projectId,
+      projectName: project!.name,
+      publicationId: existing.publicationId,
+      caseId,
+      version: existing.publicationVersion,
+      resolution: actor.resolution,
+      note: actor.note ?? null,
+    });
   }
   return { ok: true, caseId, resolution: actor.resolution, hidden };
 }

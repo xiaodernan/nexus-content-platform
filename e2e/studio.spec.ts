@@ -1797,3 +1797,109 @@ test('@smoke §168 创作数据：访客真的来过，作者那一页才有真�
   await expect(page.locator(`[data-analytics-row="${path}"]`)).toContainText('已停');
   await anonContext.close();
 });
+
+test('@smoke §164 通知：别人真的动过，作者的收件箱里才有那一条', async ({ page }) => {
+  // 一次真发布 + 三个访客动作 + 两次标已读的回车确认，都跑在同一个开发服务上
+  test.setTimeout(300_000);
+  const projectName = `收件箱作品${Date.now().toString(36)}`;
+  await createProject(page, projectName);
+
+  await page.click('[data-publish-open]');
+  await expect(page.locator('[data-publish-submit]')).toBeVisible();
+  await page.click('[data-publish-choice="public"]');
+  await page.click('[data-publish-submit]');
+  await expect(page.locator('[data-publish-url]')).toBeVisible({ timeout: 60_000 });
+  const path = (await page.locator('[data-publish-url]').getAttribute('href'))!;
+
+  const header = page.locator('[data-notification-page] p').first();
+  const row = (kind: string) => page.locator(`[data-notification-kind="${kind}"]`);
+  /** 标已读的界面回话会被 router.refresh() 收掉，所以那句"标了几条"从网络响应里取证 */
+  const markReadCall = () =>
+    page.waitForResponse((res) => res.url().endsWith('/api/notifications/read') && res.status() === 200);
+
+  // 作者自己：只有"发布完成"那一条，指向刚拿到的公开地址
+  await page.goto('/notifications');
+  await expect(page.locator('[data-notification-page]')).toBeVisible();
+  await expect(page.locator('[data-notification-item]')).toHaveCount(1);
+  await expect(row('publish')).toContainText(projectName);
+  expect(await row('publish').locator('[data-notification-link]').getAttribute('href')).toBe(path);
+  // 首页顶栏的铃铛与这一页说的是同一个数
+  await page.goto('/');
+  await expect(page.locator('[data-notification-bell="ready"]')).toBeVisible({ timeout: 30_000 });
+  await expect(page.locator('[data-notification-unread]')).toHaveAttribute('data-notification-unread', '1');
+
+  // 另一个身份：必须是新 context——同一个 context 的多个 page 共用那份 guest 会话，
+  // 用同一身份自赞自评只会测出"自己给自己发通知"这条规则没生效
+  const browser = page.context().browser();
+  if (!browser) throw new Error('这条用例需要一个可派生上下文的浏览器');
+  const visitorCtx = await browser.newContext();
+  const visitor = await visitorCtx.newPage();
+  await visitor.goto(new URL(path, page.url()).href);
+  await visitor.waitForSelector('[data-published-frame] [data-node-id]', { timeout: 30_000 });
+
+  await visitor.click('[data-action-like]');
+  await expect(visitor.locator('[data-action-like]')).toHaveAttribute('data-action-like', 'on', { timeout: 30_000 });
+  await visitor.fill('[data-comment-input]', '这一段的节奏挺舒服的');
+  await visitor.click('[data-comment-submit]');
+  await expect(visitor.locator('[data-comment-list] li')).toHaveCount(1, { timeout: 30_000 });
+  await visitor.click('[data-action-follow]');
+  await expect(visitor.locator('[data-action-follow]')).toHaveAttribute('data-action-follow', 'on', { timeout: 30_000 });
+
+  // 作者这边：铃铛从 1 变 4，未读的三条各说清是谁、对哪件作品做了什么
+  await page.goto('/');
+  await expect(page.locator('[data-notification-unread]')).toHaveAttribute('data-notification-unread', '4', {
+    timeout: 30_000,
+  });
+  await page.goto('/notifications');
+  await expect(header).toContainText('共 4 条');
+  await expect(header).toContainText('未读 4 条');
+  await expect(row('like')).toContainText('点赞了');
+  await expect(row('comment')).toContainText('这一段的节奏挺舒服的');
+  await expect(row('follow')).toContainText('开始关注你');
+  expect(await row('like').locator('[data-notification-link]').getAttribute('href')).toBe(path);
+  // 访客是没认领过的 guest，没有 /u/<handle> 这一页：那条不给链接，而是把原因写在行上
+  await expect(row('follow').locator('[data-notification-unavailable]')).toHaveText('没有可跳转的页面');
+  await page.screenshot({ path: 'screenshots/notifications-inbox.png' });
+
+  // 逐条标已读：只有点下去那一条变已读，其余三条仍然未读
+  const one = markReadCall();
+  await row('like').locator('[data-notification-mark-read]').click();
+  expect(((await (await one).json()) as { marked: number }).marked).toBe(1);
+  await expect(row('like')).toHaveAttribute('data-notification-read', 'yes');
+  await expect(page.locator('[data-notification-read="no"]')).toHaveCount(3);
+
+  // 全部标已读：标的是"读过"，不是把行删掉
+  const all = markReadCall();
+  await page.click('[data-notification-mark-read="all"]');
+  expect(((await (await all).json()) as { marked: number }).marked).toBe(3);
+  await expect(page.locator('[data-notification-read="no"]')).toHaveCount(0);
+  await expect(page.locator('[data-notification-item]')).toHaveCount(4);
+  await expect(header).toContainText('共 4 条 · 未读 0 条');
+  await page.goto('/');
+  // 已读之后铃铛报的是总条数而不是"没有消息"
+  await expect(page.locator('[data-notification-unread]')).toHaveAttribute('data-notification-unread', '0');
+  await expect(page.locator('[data-notification-bell="ready"]')).toContainText('4 条');
+
+  // 动手的那个人自己：他做的三件事一条也没进自己的收件箱（收件箱按人存放，不漏给别人）
+  await visitor.goto('/notifications');
+  await expect(visitor.locator('[data-notification-empty]')).toBeVisible();
+
+  // 没有身份的人：接口 401，这一页一个数字都不出现
+  const anonCtx = await browser.newContext();
+  const anonSummary = await anonCtx.request.get(new URL('/api/notifications', page.url()).href);
+  expect(anonSummary.status()).toBe(401);
+  const anon = await anonCtx.newPage();
+  await anon.goto(new URL('/notifications', page.url()).href);
+  await expect(anon.locator('[data-notification-denied]')).toBeVisible();
+  await expect(anon.locator('[data-notification-item]')).toHaveCount(0);
+
+  // §159：原文列的四类里今天没有真实来源的那三类，写在页面上而不是藏在代码注释里
+  await page.goto('/notifications');
+  await expect(page.locator('[data-notification-unbacked="Generation complete"]')).toBeVisible();
+  await expect(page.locator('[data-notification-unbacked="Build complete"]')).toBeVisible();
+  await expect(page.locator('[data-notification-unbacked="Agent task complete"]')).toBeVisible();
+  await page.screenshot({ path: 'screenshots/notifications-unbacked.png' });
+
+  await anonCtx.close();
+  await visitorCtx.close();
+});

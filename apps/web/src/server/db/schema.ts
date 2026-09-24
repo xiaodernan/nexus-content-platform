@@ -796,6 +796,46 @@ export const abuseReports = pgTable(
   (t) => [index('abuse_report_publication_idx').on(t.publicationId), index('abuse_report_status_idx').on(t.status)],
 );
 
+/**
+ * §164 Notifications：一行 = 有一个人真的做过一件事，而这件事与另一个人有关。
+ *
+ * 原文（§164）列的四类里只有 Publish complete 今天有服务端终态可发；
+ * Generation 是同步回话（没有作业可以"完成"）、Agent task 表全库无写入方、Build 这个操作不存在，
+ * 所以这三类在界面上写成"没有真实来源"而不是往这里插行。
+ * 反过来，人工裁决与别人对你作品的动作是**真的延后发生**的事件，它们才是收件箱的价值所在。
+ *
+ * dedupe_key 是这张表的核心而不是优化：like / follow 是开关式的，
+ * 没有唯一键的话"反复点五次"就会留下五条通知，收件箱变成噪音发生器。
+ */
+export const notifications = pgTable(
+  'notifications',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    /** 收件人：读与标记只按这一列判定，别人的通知查不到 */
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    /** 造成这件事的人；注销后留着——那是"我收到过什么"的历史，不是那个人的资产 */
+    actorId: uuid('actor_id').references(() => users.id, { onDelete: 'set null' }),
+    /** 取值由 lib/notify-plan.ts 的联合类型把住（唯一写入方），没有用 pg enum */
+    kind: text('kind').notNull(),
+    title: text('title').notNull(),
+    /** 摘录（评论正文等），写入前已按上限裁短 */
+    body: text('body'),
+    /** 站内相对地址；没有能跳的地方就是 null，不编一个 404 地址 */
+    link: text('link'),
+    /** 指针留着是为了读取时判断"目标还在不在"，不是为了拼地址 */
+    projectId: uuid('project_id').references(() => projects.id, { onDelete: 'set null' }),
+    /** 刻意 SET NULL：作者下架不该顺手删掉别人收件箱里的历史 */
+    publicationId: uuid('publication_id').references(() => publishedProjects.id, { onDelete: 'set null' }),
+    dedupeKey: text('dedupe_key').notNull(),
+    readAt: timestamp('read_at', { withTimezone: true }),
+    createdAt: now(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [uniqueIndex('notification_dedupe_key').on(t.dedupeKey), index('notification_inbox_idx').on(t.userId, t.createdAt)],
+);
+
 export const schema = {
   users,
   sessions,
@@ -829,4 +869,6 @@ export const schema = {
   moderationCases,
   abuseReports,
   saves,
+  publicationVisits,
+  notifications,
 };
