@@ -2157,3 +2157,84 @@ _Numbering: 62 was free when this was written (checked against this file's headi
   harmful (the reader learns nothing a commit could record, which is the truth). DEMO MODE is
   unaffected: no Studio surface runs an exec host.
 
+## Amendment 63 — v63 (exec-host): v62's ratio has a DENOMINATOR, and a denominator is a claim about the repository — a read the budget CUT can only support a claim about the window it read, 2026-09
+
+_Numbering: 63 was free when this was written (`git log --oneline -3` top = v62; this file's headings in HEAD end at 62; 58 and 59 belong to the concurrent lane's UNCOMMITTED work in the working tree). Amendment 62 gave `git.status` the sentence `git.commit records the INDEX: 4/7 entries differ from HEAD there`. This amendment is about the `7`._
+
+- **A count is a claim about the tree; a cut count is a claim about the read.** Every door in this
+  package reads git through v48's whole-line output budget, and v48's own rule is that the budget
+  decides HOW LINES ARRIVE, never who gets heard. v62's ratio inherited a denominator without being
+  given the read. Measured on this box through the SHIPPED door (3 staged edits + 400 untracked
+  files, so `git status --short` prints **403** porcelain lines): at the 1 MiB ceiling this proof
+  uses for its whole read the detail says
+  `3/403 entries differ from HEAD there`; at **256 bytes** the budget keeps 21 whole lines and — in
+  v62's wording, which is what shipped until now — the detail says
+  `3/21 entries differ from HEAD there · 18 worktree-side/untracked (u000.txt … u017.txt)
+  a granted commit records NONE of`. The second sentence is true only of the 21 lines that survived,
+  and is phrased as a fact about the repository. v56's `· output truncated at budget (stdout)` does
+  ride at the END of it — but a reader who stops at the ratio never gets there, and the ratio had
+  already spoken.
+- **The worse half: v62's silence rule fires on a window.** `treeSplitNotice` returns `''` when
+  `stagedCount === files.length` — "every entry is staged, so there is no split to name". At a
+  30-byte budget the only lines that survive are the three `M ` rows (porcelain prints tracked
+  changes FIRST, untracked LAST), so the condition is met and the door falls SILENT about a tree
+  holding 400 untracked files. Measured: `treeSplitNotice(windowEntries) === ""`. A silence that is
+  correct for a complete read is a false statement for a partial one — and it is the same failure
+  shape v48 fixed for a tally (`cutNotAbsence`) and v52 fixed for git's verdict (the `cut` rule),
+  left behind by v62 because v62 only looked at the entries and not at the read.
+- **The fix: one parameter, no new spawn, and no invented number.** `treeSplitNotice(files, {
+  window })` takes the read back in, and the door passes v56's `stdoutWasCut(result)` — the ONE
+  fact that says "git printed more on the very pipe I parsed". Under a window: the ratio is re-named
+  (`${staged}/${total} entries this door READ differ from HEAD there`), the worktree list is labelled
+  `worktree-side/untracked read (…)`, and a final clause states the bound — `the read was CUT at the
+  budget: these are the entries that survived, NOT a census of the repository`. v62's silence is
+  replaced, never dropped: a wholly-staged WINDOW now says `all N entries this door read differ from
+  HEAD in the index · the read was CUT at the budget, so this is NOT a statement that nothing
+  unstaged or untracked exists behind it`. The notice deliberately does NOT say how many entries were
+  missed — the door cannot know, and inventing a number is the thing this family exists to prevent.
+  A complete read produces v62's sentences BYTE-IDENTICALLY (asserted).
+- **`killedByBudget` is NOT part of the flag, and the reason is a reachability fact.** The timeout
+  branch fails the door's `ok`, so a killed read answers with `quoteVerdict` + v52's
+  `refusedNotAbsence` and never reaches the split sentence at all. The first draft of this wiring
+  read `stdoutWasCut(result) || result.killedByBudget`; that second operand is DEAD CODE in this
+  door, so it is not in the shipped one (and the door's comment says why, so the next reader does not
+  "restore" it).
+- **What v62's honest-bounds line got wrong, measured.** v62 wrote "untracked directories are still
+  counted as one entry per git's default (v46's pin is the bound)". §5 measures the pin instead of
+  restating it: with `status.showUntrackedFiles=normal` a 400-file untracked directory is **1**
+  porcelain line (`?? dropzone/` — a prefix, not a path); under v46's forced
+  `status.showUntrackedFiles=all`, which the door actually runs, the same directory is **400** lines.
+  So the door does NOT collapse directories — and the pin is exactly what makes a status list long
+  enough to be cut. The honest response is to say what was read, not to read less.
+- **51st script `docs/evidence/agents/window-proof.mjs` drives ONE repository at three budgets.** §1
+  asserts git's own census (403 lines) and that the 256-byte door's denominator EQUALS the number of
+  entries it returned, that it is smaller than the census, and that every path the window named
+  appears in git's own list (a window may not invent). §2 is the load-bearing one: the SAME parsed
+  entries yield `''` for a complete read and a sentence for a cut one — the difference is the READ,
+  not the repository. §3 controls the claims against git rather than against the door: `diff
+  --name-only --cached` is exactly the 3 the 30-byte window read, and `ls-files --others` counts the
+  400 it did not. §4 makes one REAL commit through the shipped commit door: HEAD records exactly
+  `s1.txt s2.txt s3.txt`, and the door over the same tree then says `0/400 … a granted commit records
+  NONE of`. §5 measures the pin. §6: this repo's HEAD unchanged, writes inside `os.tmpdir` only.
+- **What moved:** `treeSplitNotice` gained an optional second parameter and 3 clauses; the
+  `git.status` door gained one local (`windowed`) and a comment; nothing else in the package changed,
+  and no argv, policy, or env moved. exec-host **221/221** (from 215: complete-read back-compat,
+  window phrasing, the replaced silence, an empty window, and two door-level budget tests), 51/51
+  proof scripts green, and the four root gates green (typecheck 8/8, lint 4/4, build 5/5, test 8/8
+  turbo tasks). Recorded rather than hidden: one SIBLING proof (`reap-proof`, v55's timing-sensitive tree
+  measurement) failed inside an earlier 51-script sweep, passed standalone, and passed the final sweep — a
+  sweep that runs 51 real-process scripts on one box gives a timing-bound measurement no cleaner floor than
+  this, and v63 changes nothing in that path.
+- **Docs reconciled, and one drift found by re-adding the table.** `docs/evidence/agents/README.md` promises that
+  its per-file rows sum to what `npm test` prints; the `gitTools.test.ts` row still read (51) where HEAD
+  measured 65 — every case the file gained after am. 61 (when this table last reproduced what `npm test`
+  printed: 201) went into the package total and never into its own row — so the row reads (71) today and the
+  sum sentence reads 221. The counts came from a per-file vitest JSON report, not from adding deltas by hand:
+  the same rule v63 applies to a door, recount from the source rather than infer what the answer must be.
+- Honest bounds: the window flag is per-door and per-stream, so `git.staged`, `git.diff` and
+  `git.show` keep their own v48/v52/v56 handling and gained nothing here (only `git.status` speaks a
+  ratio of entries). `truncated` (the aggregate flag) is NOT used as the window test — a cut on the
+  NOISE stream must not re-label an answer that arrived whole, which is v56's rule, not this one's.
+  The notice still counts ENTRIES, not files-in-a-pair. Nothing here teaches the Studio dock to
+  render a window; DEMO MODE is unaffected, since no Studio surface runs an exec host, and all of v63
+  is enforced in unit tests and proofs.

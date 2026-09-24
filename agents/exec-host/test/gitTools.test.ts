@@ -621,3 +621,63 @@ describe('treeSplitNotice — what the flat entry count cannot say (v62)', () =>
     expect(detail).toContain('2 entries');
   });
 });
+
+describe('v63 — a CUT read is a WINDOW, not a census', () => {
+  // Porcelain prints tracked changes FIRST and untracked paths LAST, so a cut list is a window whose
+  // missing tail is exactly the worktree-side entries v62 promised to name.
+  const manyUntracked = ['M  a.txt', 'M  b.txt', 'M  c.txt', ...Array.from({ length: 400 }, (_, i) => `?? u${String(i).padStart(3, '0')}.txt`)].join('\n') + '\n';
+  const mixed = 'MM both.txt\n M only-disk.txt\n?? u0.txt\n?? u1.txt\n';
+  const stagedOnly = 'M  a.txt\nA  b.txt\n';
+
+  it('says nothing about a split for a window that read no entries — that answer is v48/v52\'s', () => {
+    expect(treeSplitNotice([], { window: true })).toBe('');
+    expect(treeSplitNotice([])).toBe('');
+  });
+
+  it('leaves v62\'s sentences untouched for a read that was NOT cut', () => {
+    const { files } = parseGitStatus(mixed);
+    expect(treeSplitNotice(files)).toBe(treeSplitNotice(files, { window: false }));
+    expect(treeSplitNotice(files)).toContain('1/4 entries differ from HEAD there');
+    expect(treeSplitNotice(files)).not.toContain('this door READ');
+  });
+
+  it('calls the ratio a WINDOW when the pipe it parses was cut, and denies being a census', () => {
+    const { files } = parseGitStatus(mixed);
+    const notice = treeSplitNotice(files, { window: true });
+    expect(notice).toContain('1/4 entries this door READ differ from HEAD there');
+    expect(notice).toContain('3 worktree-side/untracked read (only-disk.txt, u0.txt, u1.txt)');
+    expect(notice).toContain('the read was CUT at the budget');
+    expect(notice).toContain('NOT a census of the repository');
+  });
+
+  it('refuses v62\'s silence for a fully-staged window: "everything is staged" speaks for the whole tree', () => {
+    const { files } = parseGitStatus(stagedOnly);
+    expect(treeSplitNotice(files)).toBe(''); // a COMPLETE read still has no split to report
+    const notice = treeSplitNotice(files, { window: true });
+    expect(notice).not.toBe('');
+    expect(notice).toContain('all 2 entries this door read differ from HEAD in the index');
+    expect(notice).toContain('NOT a statement that nothing unstaged or untracked exists behind it');
+  });
+
+  it('the door at a cut budget reports the ratio of what it READ, and names the cut', async () => {
+    const h = harness(manyUntracked, { code: 0, signal: null }, 256);
+    const res = await h.registry.invoke({ callId: 't63a', tool: 'git.status', args: {} }, h.grant);
+    const o = res.output as { detail: string; files: Array<{ path: string; staged?: true }> };
+    const ratio = /records the INDEX: (\d+)\/(\d+) entries this door READ differ from HEAD there/.exec(o.detail);
+    expect(ratio, o.detail).not.toBeNull();
+    expect(Number(ratio?.[2])).toBe(o.files.length); // the denominator is the read, never git's line count
+    expect(o.files.length).toBeGreaterThan(0);
+    expect(o.files.length).toBeLessThan(403);
+    expect(o.detail).toContain('the read was CUT at the budget');
+    expect(o.detail).toContain('output truncated at budget (stdout)');
+  });
+
+  it('the door NEVER answers a cut read with v62\'s silence, whatever survived the cut', async () => {
+    const h = harness(manyUntracked, { code: 0, signal: null }, 30); // only the three staged lines fit
+    const res = await h.registry.invoke({ callId: 't63b', tool: 'git.status', args: {} }, h.grant);
+    const o = res.output as { detail: string; files: Array<{ staged?: true }> };
+    expect(o.files.every((f) => f.staged === true)).toBe(true);
+    expect(o.detail).toContain('the read was CUT at the budget, so this is NOT a statement that nothing unstaged or untracked exists behind it');
+    expect(o.detail).not.toContain('3/3'); // no ratio may be spoken as if it were the repository
+  });
+});

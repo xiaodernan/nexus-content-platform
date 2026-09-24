@@ -196,24 +196,45 @@ export const pathShapeNotices = (entries: Array<{ path: string; fromPath?: strin
  * how many paths a commit WILL record (index differs from HEAD), how many it will NOT (worktree-only
  * or untracked), and how many are staged AND edited again (the `MM`/`AM` shape where the commit
  * records the index half but the disk half is still ahead).
+ *
+ * M2 v63: every number above is a count of entries THIS DOOR READ, and v48's budget decides how many
+ * of git's lines survive to be read. Measured on this box (3 staged edits + 400 untracked files, so
+ * git prints 403 porcelain lines): a 256-byte budget keeps 21 of them whole — the 3 staged rows plus
+ * the first 18 untracked names, `u000.txt … u017.txt` — and before this amendment the door said
+ * `git.commit records the INDEX: 3/21 entries differ from HEAD there`, a denominator that is a
+ * window, phrased as a fact about the repository.
+ * And when the cut left ONLY staged rows, `stagedCount === files.length` fired v62's silence rule and
+ * the door said nothing at all about a tree with 400 unseen untracked files.
+ * So `window` carries the read back in: v56's `stdoutWasCut` says git printed MORE on the very pipe
+ * this door parses, and then the entries in hand are only what survived the cut. Under it the counts
+ * become explicit window counts and the silence is replaced by a sentence — the same rule v48 wrote
+ * for a tally and v52 for git's verdict, now applied to v62's ratio. A read the timeout STOPPED never
+ * gets here: `killedByBudget` fails the door's `ok`, so that answer is already v52's refusal sentence.
  */
-export const treeSplitNotice = (files: GitStatusFile[]): string => {
+export const treeSplitNotice = (files: GitStatusFile[], read: { window?: boolean } = {}): string => {
+  const cut = read.window === true;
   const stagedCount = files.filter((f) => f.staged === true).length;
   const dirtyOnly = files.filter((f) => f.staged !== true && f.dirty === true);
   const untracked = files.filter((f) => f.status === 'untracked');
   const worktreeSide = dirtyOnly.length + untracked.length;
   const both = files.filter((f) => f.staged === true && f.dirty === true);
   if (stagedCount === 0 && worktreeSide === 0) return '';
-  if (stagedCount === files.length) return '';
+  if (stagedCount === files.length) {
+    // v62: a wholly-staged list has no split to report. v63: that is only true of a COMPLETE read.
+    return cut
+      ? ` · all ${files.length} entries this door read differ from HEAD in the index · the read was CUT at the budget, so this is NOT a statement that nothing unstaged or untracked exists behind it`
+      : '';
+  }
   const parts: string[] = [];
-  parts.push(`git.commit records the INDEX: ${stagedCount}/${files.length} entries differ from HEAD there`);
+  parts.push(`git.commit records the INDEX: ${stagedCount}/${files.length} ${cut ? 'entries this door READ differ from HEAD there' : 'entries differ from HEAD there'}`);
   if (worktreeSide > 0) {
     const names = [...dirtyOnly.map((f) => f.path), ...untracked.map((f) => f.path)];
-    parts.push(`${worktreeSide} worktree-side/untracked (${names.join(', ')}) a granted commit records NONE of`);
+    parts.push(`${worktreeSide} worktree-side/untracked${cut ? ' read' : ''} (${names.join(', ')}) a granted commit records NONE of`);
   }
   if (both.length > 0) {
     parts.push(`${both.length} staged AND edited again on disk (${both.map((f) => f.path).join(', ')})`);
   }
+  if (cut) parts.push('the read was CUT at the budget: these are the entries that survived, NOT a census of the repository — whatever git printed after the cut is unnamed here');
   return ` · ${parts.join(' · ')}`;
 };
 
@@ -444,8 +465,12 @@ export function registerGitTools(registry: ToolRegistry, host: ExecHost, options
       .map(([k, v]) => `${v} ${k}`)
       .join(', ');
     const conflicted = files.filter((f) => f.status === 'unmerged').map((f) => f.path);
+    // v63: a cut read is a WINDOW on git's answer, and the split sentence must say so. `killedByBudget`
+    // is deliberately NOT part of this — a killed read fails `ok` above and answers with git's verdict
+    // plus v52's `refusedNotAbsence`, so no count of it is ever spoken as a census.
+    const windowed = stdoutWasCut(result);
     const detail = ok
-      ? `git.status → exit ${result.exitCode}: ${files.length} entries${tally === '' ? '' : ` (${tally})`}${conflicted.length > 0 ? ` · ${unmergedStatusNotice(conflicted)}` : ''}${pathShapeNotices(files)}${treeSplitNotice(files)}${flags(result)}`
+      ? `git.status → exit ${result.exitCode}: ${files.length} entries${tally === '' ? '' : ` (${tally})`}${conflicted.length > 0 ? ` · ${unmergedStatusNotice(conflicted)}` : ''}${pathShapeNotices(files)}${treeSplitNotice(files, { window: windowed })}${flags(result)}`
       : `git.status → exit ${result.exitCode}: ${quoteVerdict(gitVerdict(result.stdout, result.stderr, { truncated: result.truncated || result.killedByBudget }))} · ${files.length} entries parsed · ${refusedNotAbsence('the working tree is clean or empty')}${flags(result)}`;
     return { ok, detail, exitCode: result.exitCode, files, counts, truncated: result.truncated };
   });
