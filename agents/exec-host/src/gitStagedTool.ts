@@ -1,5 +1,5 @@
 import type { ExecPolicy, ToolRegistry, ToolSpec } from '@nexus/agent-runtime';
-import { budgetFlags, GIT_DIFF_FLAGS, GIT_ENV_NAMES, cutNotAbsence, gitEnv, gitVerdict, isDiffHeaderPairLine, parseDiffHeader, parseDiffStat, parseFileLine, pathShapeNotices, quoteVerdict, refusedNotAbsence, unmergedNotAbsence, unmergedNotice, stdoutWasCut, unwrapRendering } from './gitTools.js';
+import { budgetFlags, GIT_DIFF_FLAGS, GIT_ENV_NAMES, cutNotAbsence, gitEnv, gitVerdict, isDiffHeaderPairLine, parseDiffHeader, parseDiffStat, parseFileLine, pathShapeNotices, quoteVerdict, refusedNotAbsence, unmergedNotAbsence, unmergedNotice, unnamableDiffSections, unnamableSectionsNotice, stdoutWasCut, unwrapRendering } from './gitTools.js';
 import type { ExecHost, ExecRunResult } from './execHost.js';
 
 /**
@@ -19,6 +19,15 @@ import type { ExecHost, ExecRunResult } from './execHost.js';
  * then runs the helper for a shape this policy invented, and hands back an EMPTY diff with
  * exit 0. So the shapes now carry the negations (`--no-ext-diff --no-textconv`) and the
  * spawn runs under the pinned environment from gitEnvIsolation.ts.
+ *
+ * M2 v65 (ADR 0016 amendment 65) found the SAME costume on a different key. This door's whole answer
+ * is built from naming files, and four repo config keys decide whether git prints the `a/`/`b/` the
+ * naming rule strips — with one of them set, git exited 0, printed its normal sections, and this door
+ * said `the index is EMPTY — nothing is staged` about an index git's own footer called `4 files
+ * changed`. The shapes therefore now OWN the prefixes (`--src-prefix=a/ --dst-prefix=b/`, which
+ * outranks any config file), and — because a door cannot enumerate the renderings that do not exist
+ * yet — the emptiness claim runs through v65's section census: sections git printed that this door
+ * could not name are quoted and counted, never silently folded into "nothing is staged".
  */
 export function gitStagedPolicy(root: string, options: { timeoutMs?: number; maxOutputBytes?: number } = {}): ExecPolicy {
   const timeoutMs = options.timeoutMs ?? 10_000;
@@ -100,6 +109,15 @@ export function parseStagedDiff(stdout: string): StagedIndex {
       insideHunk = false;
       continue;
     }
+    if (line.startsWith('diff --git ')) {
+      // v65: an unnameable section still ENDS the one being read. Left open, git's next `---`/`+++`/`@@`
+      // pair and every content line under it were counted into the PREVIOUS file (measured: a 2-line
+      // added file plus an unread section printed "+5 −1 across 2 hunk(s)"), so the tally would be wrong
+      // as well as short — and a wrong tally is the answer a §28 reviewer cannot check.
+      current = null;
+      insideHunk = false;
+      continue;
+    }
     if (!current) continue; // a preamble before the first file is not a change
     if (isDiffHeaderPairLine(line, insideHunk)) {
       const named = parseFileLine(line); // v61: git's per-line name beats a header whose split a ` b/` stole
@@ -158,7 +176,7 @@ export const GIT_STAGED_TOOL_SPECS: ToolSpec[] = [
   {
     name: 'git.staged',
     description:
-      'Read what the HUMAN staged, through the confined exec host (`git diff --no-ext-diff --no-textconv --cached`, or the same plus `--stat` — the only two argv the policy allows; no paths, no other flags). Plain git.diff cannot see staged content, so this is the pre-commit intent window: an empty index is stated as such. Read-only, but a real process spawns, so the §28 checkpoint applies.',
+      `Read what the HUMAN staged, through the confined exec host (\`git diff ${GIT_DIFF_FLAGS.join(' ')} --cached\`, or the same plus \`--stat\` — the only two argv the policy allows; no paths, no other flags). Plain git.diff cannot see staged content, so this is the pre-commit intent window: an index this door could read and name is stated as empty, and one it could not name is stated as unread. Read-only, but a real process spawns, so the §28 checkpoint applies.`,
     permissions: ['exec'],
     args: [
       { name: 'stat', type: 'boolean' },
@@ -190,15 +208,18 @@ export function registerGitStagedTool(registry: ToolRegistry, host: ExecHost, op
     }
     const index = parseStagedDiff(result.stdout);
     const notice = unmergedNotice(result.stdout);
+    const unnamable = unnamableDiffSections(result.stdout); // v65: git's own section count, read without naming anything
     const tally = tallyStagedCounts(index.counts);
     const detail =
       index.files.length === 0
         ? notice.length > 0
           ? `git.staged → exit 0: ${unmergedNotAbsence(notice)} — the index is NOT empty, and a granted git.commit right now would be refused by git itself${flags(result)}`
-          : stdoutWasCut(result)
-            ? `git.staged → exit 0: ${cutNotAbsence('the index has nothing staged for the §28 ask')}${flags(result)}`
-            : `git.staged → exit 0: the index is EMPTY — nothing is staged, so a granted git.commit right now would have nothing to record${flags(result)}`
-        : `git.staged → exit 0: index holds ${index.totals.files} change(s): ${tally} · +${index.totals.additions} −${index.totals.deletions} across ${index.totals.hunks} hunk(s)${index.totals.binary > 0 ? ` · ${index.totals.binary} binary change(s) with no lines claimed` : ''}${pathShapeNotices(index.files)}${flags(result)}`;
+          : unnamable.length > 0
+            ? `git.staged → exit 0: ${unnamableSectionsNotice(unnamable)} · this door named 0 of them, so it cannot tell the §28 reviewer WHAT is staged — and it certainly cannot say the index is empty${flags(result)}`
+            : stdoutWasCut(result)
+              ? `git.staged → exit 0: ${cutNotAbsence('the index has nothing staged for the §28 ask')}${flags(result)}`
+              : `git.staged → exit 0: the index is EMPTY — nothing is staged, so a granted git.commit right now would have nothing to record${flags(result)}`
+        : `git.staged → exit 0: index holds ${index.totals.files} change(s): ${tally} · +${index.totals.additions} −${index.totals.deletions} across ${index.totals.hunks} hunk(s)${index.totals.binary > 0 ? ` · ${index.totals.binary} binary change(s) with no lines claimed` : ''}${unnamable.length > 0 ? ` · ${unnamableSectionsNotice(unnamable)}` : ''}${pathShapeNotices(index.files)}${flags(result)}`;
     return {
       ok: true,
       detail,

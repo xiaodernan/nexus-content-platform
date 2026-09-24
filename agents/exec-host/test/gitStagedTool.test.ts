@@ -45,6 +45,21 @@ index 1111111..2222222 100644
 +here, renamed
 `;
 
+/**
+ * M2 v65 (ADR 0016 amendment 65): the SAME two sections as `ADDED` + `MODIFIED`, rendered by a
+ * repository that set `diff.noprefix=true`. Measured against real git, byte for byte: git still exits 0
+ * and still prints one `diff --git` line per change — it simply stops saying which half is which.
+ */
+const UNPREFIXED = `diff --git notes/widget.md notes/widget.md
+new file mode 100644
+index 0000000..3f2a1b8
+--- /dev/null
++++ notes/widget.md
+@@ -0,0 +1,2 @@
++widget notes
++NOTE (DEMO MODE · seed 42)
+`;
+
 describe('parseStagedDiff (the index as a stated set of changes, pure data)', () => {
   it('a staged new file is an ADDED change carrying its lines', () => {
     expect(parseStagedDiff(ADDED)).toEqual({
@@ -263,6 +278,35 @@ describe('git.staged as a registry tool (the index behind §28 — a process sti
     const res = await h.registry.invoke({ callId: 'i2', tool: 'git.staged', args: {} }, h.grant);
     expect(res.output).toMatchObject({ ok: true, exitCode: 0, files: [], totals: { files: 0 } });
     expect((res.output as { detail: string }).detail).toContain('the index is EMPTY — nothing is staged, so a granted git.commit right now would have nothing to record');
+  });
+
+  // v65, measured on real git: with `diff.noprefix=true` in the repository's own config, `git diff
+  // --cached` exits 0 and prints its sections in full — just without the `a/`/`b/` this door strips to
+  // get a name. The door used to answer that with "the index is EMPTY", which is the one sentence a §28
+  // reviewer must not weigh when git has plainly said there are changes. Naming is now owned by the
+  // argv, so this rendering cannot reach the door; this case feeds it directly and holds the net.
+  it('v65: a diff whose sections the door cannot NAME is stated as unread, never as an empty index', async () => {
+    const h = harness(UNPREFIXED);
+    const res = await h.registry.invoke({ callId: 'i2u', tool: 'git.staged', args: {} }, h.grant);
+    const d = (res.output as { detail: string }).detail;
+    expect(res.output).toMatchObject({ ok: true, exitCode: 0, files: [], totals: { files: 0 } });
+    expect(d).toContain('git printed 1 diff section(s) whose header this door cannot split into two names');
+    expect(d).toContain('"diff --git notes/widget.md notes/widget.md"'); // git's own line, verbatim
+    expect(d).toContain('this door named 0 of them');
+    expect(d).not.toContain('the index is EMPTY');
+    expect(d).not.toContain('no complete line survived'); // it is not the budget's fault either
+  });
+
+  it('v65: half-readable sections are counted on BOTH sides — the tally names what it can and says what it cannot', async () => {
+    const h = harness(`${ADDED}${UNPREFIXED}`);
+    const res = await h.registry.invoke({ callId: 'i2m', tool: 'git.staged', args: {} }, h.grant);
+    const d = (res.output as { detail: string }).detail;
+    expect(res.output).toMatchObject({ totals: { files: 1 } });
+    expect(d).toContain('index holds 1 change(s): 1 added');
+    expect(d).toContain('git printed 1 diff section(s) whose header this door cannot split into two names');
+    expect(d).toContain('+2 −0'); // the named half keeps its own tally, uninflated by the unnamed half
+    expect(d).toContain('so they are in no tally above'); // and the door says so beside its own numbers
+    expect(res.output).toMatchObject({ totals: { hunks: 1, additions: 2, deletions: 0 } });
   });
 
   // v52, measured on real git: in a CONFLICTED index `git diff --cached` exits 0 and prints a NOTICE

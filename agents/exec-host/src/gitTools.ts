@@ -12,12 +12,35 @@ import { GIT_ISOLATION_ENV_NAMES, GIT_PASS_THROUGH_ENV_NAMES, forcedConfigEnv, G
  * M2 v46 (ADR 0016 amendment 46) hardened both halves of that claim: the diff shapes
  * now carry `--no-ext-diff`/`--no-textconv`, and every door runs under the pinned
  * environment from gitEnvIsolation.ts.
+ *
+ * M2 v65 (ADR 0016 amendment 65) hardened the third half, which nobody had counted: what those shapes
+ * PRINT. A repository's own `diff.noprefix`/`diff.mnemonicPrefix`/`diff.srcPrefix`/`diff.dstPrefix`
+ * deletes or replaces the `a/`/`b/` that every diff reader here strips to name a file, and the doors
+ * then parse zero files out of a diff git printed in full — with exit 0. The shapes now say the
+ * prefixes, and the parsers count git's `diff --git` sections separately from the names they could
+ * attach them to, so a rendering this package cannot read is stated as unread rather than as absent.
  */
 
 /** The diff flags that keep a READ from EXECUTING: a configured external diff or
  * gitattributes textconv filter is a third-party program, and git runs it with exit 0
- * while handing back an EMPTY diff — the worst answer a read-only door can give. */
-export const GIT_DIFF_FLAGS = ['--no-ext-diff', '--no-textconv'];
+ * while handing back an EMPTY diff — the worst answer a read-only door can give.
+ *
+ * M2 v65 (ADR 0016 amendment 65) adds the other half of what a diff line MEANS. Every diff reader in
+ * this package names a file by stripping git's `a/` and `b/` (v32 for the worktree, v43 for the index,
+ * v61 for the quoted rendering) — and four repository config keys decide whether git prints them:
+ * `diff.noprefix`, `diff.mnemonicPrefix` (`c/`/`i/`), `diff.srcPrefix`, `diff.dstPrefix`. Measured on
+ * this box with each one set in `.git/config`, for a staged index holding a modified, a renamed, a
+ * binary and a deleted file: git exited 0 and printed its normal 4 `diff --git` sections, and BOTH diff
+ * doors parsed 0 files — `git.staged` answered `the index is EMPTY — nothing is staged`, about an index
+ * git itself described two lines later as `4 files changed, 2 insertions(+)`. v61 already met that lie
+ * through a QUOTED name; this is the same lie through an unprefixed one, and §28 sits on the answer.
+ * The command line owns those prefixes: it outranks every config file, including the repo's own, which
+ * is why `diff.external` was confined by the shape in v46 rather than by an env pin. Measured, the four
+ * keys each restore `a/`/`b/` and the resulting bytes are IDENTICAL to a default-config repository
+ * (sha-verified across the 4-shape fixture, including `git show`'s body), so the flags cost nothing
+ * where no config exists — and unlike env pins they cover keys this box has not been taught to fear.
+ */
+export const GIT_DIFF_FLAGS = ['--no-ext-diff', '--no-textconv', '--src-prefix=a/', '--dst-prefix=b/'];
 
 /** The handful of vars git actually needs — shared with the v35 commit slice. */
 export const GIT_ENV_NAMES = [...GIT_PASS_THROUGH_ENV_NAMES, ...GIT_ISOLATION_ENV_NAMES];
@@ -203,6 +226,30 @@ export function parseFileLine(line: string): { path: string; quoted: boolean } |
  */
 export const isDiffHeaderPairLine = (line: string, insideHunk: boolean): boolean =>
   !insideHunk && (line.startsWith('--- ') || line.startsWith('+++ '));
+
+/**
+ * M2 v65 (ADR 0016 amendment 65): the door's own census of git's STRUCTURE, taken WITHOUT reading a
+ * name. `diff --git` is the one line whose only job is to say "a file's section begins here", so
+ * counting it needs no prefix, no unwrapping and no position rule — which is exactly what makes it the
+ * floor under every rendering bug. A reader that names 0 files while git printed 4 sections has not
+ * discovered that the index is empty; it has failed to read. Doors that diff therefore compare the two
+ * numbers and say so out loud: v65's prefix flags close the four keys measured on this box, and this
+ * comparison is what stands between a future rendering and a door claiming an absence.
+ *
+ * Why refuse rather than guess the split? Measured in the same fixture: `[diff] noprefix = true` prints
+ * `diff --git x.ts x.ts` and `[diff] srcPrefix = q/` alongside it prints `diff --git q/bin.dat b/bin.dat`
+ * — one strip-two-characters reader returns `ts` for the first (a path that exists nowhere) and the
+ * CORRECT `bin.dat` for the second, because there `q/` and `b/` happen to be two characters each. A rule
+ * that is wrong on real input and right by luck on the next is worse than refusing, which is the v61
+ * harm arriving from the other direction. So an unnamable section is counted, quoted verbatim, and left
+ * unnamable.
+ */
+export const unnamableDiffSections = (stdout: string): string[] =>
+  stdout.split('\n').filter((l) => l.startsWith('diff --git ')).filter((l) => parseDiffHeader(l) === null);
+
+/** The sentence that goes with it — the same family as v48's cut and v52's refusal. */
+export const unnamableSectionsNotice = (lines: string[]): string =>
+  `git printed ${lines.length} diff section(s) whose header this door cannot split into two names (${lines.map((l) => `"${l}"`).join(', ')}) — those ARE changes and this door could not NAME them, so they are in no tally above and nothing in this answer states that the index or working tree holds nothing`;
 
 /**
  * M2 v61: ONE sentence-pair for the doors that report parsed paths (`git.status`, `git.staged`),
@@ -438,6 +485,15 @@ export function parseGitDiff(stdout: string): { files: GitDiffFile[]; totals: { 
       insideHunk = false; // v64: a new section starts with a fresh pair of name lines
       continue;
     }
+    if (line.startsWith('diff --git ')) {
+      // v65: git says a section begins here and this door cannot name it, so it ENDS the file it was
+      // reading. The alternative is not "one file missing" — measured on this box, the unread section's
+      // own `---`/`+++`/`@@`/content lines were then counted into the file BEFORE it, so a tally that
+      // looks complete would also be wrong, in the one direction nothing else in the answer reveals.
+      current = null;
+      insideHunk = false;
+      continue;
+    }
     if (!current) continue; // preamble before the first file is not a diff
     if (isDiffHeaderPairLine(line, insideHunk)) {
       const named = parseFileLine(line); // v61: git's own per-line name beats a header whose split a ` b/` stole
@@ -474,7 +530,7 @@ export const GIT_TOOL_SPECS: ToolSpec[] = [
   },
   {
     name: 'git.diff',
-    description: 'Read-only change awareness: `git diff --no-ext-diff --no-textconv` (per-file line tallies) or the same shape plus `--stat` (summary) through the confined exec host. Exact argv only — no paths, no shell, and no external diff driver (see gitEnvIsolation).',
+    description: `Read-only change awareness: \`git diff ${GIT_DIFF_FLAGS.join(' ')}\` (per-file line tallies) or the same shape plus \`--stat\` (summary) through the confined exec host. Exact argv only — no paths, no shell, no external diff driver, and the \`a/\`/\`b/\` the per-file names are read from are ours, not the repository's (see gitEnvIsolation).`,
     permissions: ['exec'],
     args: [
       { name: 'stat', type: 'boolean' },
@@ -527,9 +583,10 @@ export function registerGitTools(registry: ToolRegistry, host: ExecHost, options
     }
     const { files, totals } = parseGitDiff(result.stdout);
     const notice = unmergedNotice(result.stdout);
+    const unnamable = unnamableDiffSections(result.stdout); // v65: git's section count is the floor under this tally
     const tally = `${totals.files} files, +${totals.additions} −${totals.deletions} (${totals.hunks} hunks)`;
     const detail = ok
-      ? `git.diff → exit 0: ${tally}${notice.length > 0 ? ` · ${unmergedNotAbsence(notice)}` : ''}${pathShapeNotices(files)}${flags(result)}`
+      ? `git.diff → exit 0: ${tally}${notice.length > 0 ? ` · ${unmergedNotAbsence(notice)}` : ''}${unnamable.length > 0 ? ` · ${unnamableSectionsNotice(unnamable)}` : ''}${pathShapeNotices(files)}${flags(result)}`
       : `git.diff → exit ${result.exitCode}: ${quoteVerdict(gitVerdict(result.stdout, result.stderr, { truncated: result.truncated || result.killedByBudget }))} · ${tally} · ${refusedNotAbsence('the tree has no changes')}${flags(result)}`;
     return { ok, detail, exitCode: result.exitCode, mode: 'full', files, totals, truncated: result.truncated };
   });

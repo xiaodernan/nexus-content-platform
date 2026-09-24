@@ -39,8 +39,8 @@ const {
   parseGitDiff, registerGitTools, registerGitShowTool, registerGitStagedTool, forcedConfigEnv, GIT_FORCED_CONFIG, GIT_ISOLATION_ENV, GIT_ABSENT_CONFIG,
 } = eh;
 
-const FLAGS = ['--no-ext-diff', '--no-textconv'];
-assert.deepEqual(GIT_DIFF_FLAGS, FLAGS, 'the two flags that keep a READ from EXECUTING');
+const FLAGS = ['--no-ext-diff', '--no-textconv', '--src-prefix=a/', '--dst-prefix=b/'];
+assert.deepEqual(GIT_DIFF_FLAGS, FLAGS, 'the two flags that keep a READ from EXECUTING, and the two that keep the NAMES a read prints (v65)');
 const BS = String.fromCharCode(92);
 const posix = (s) => s.split(BS).join('/');
 
@@ -234,7 +234,7 @@ try {
   assert.equal(pinnedShow.output.binary, true, 'git says BINARY, so the tool says BINARY (§60)');
   assert.deepEqual(pinnedShow.output.addedLines, [], 'and claims no lines it did not read');
   assert.match(pinnedShow.output.detail, /BINARY change/, "the honest sentence, not the empty-diff lie the unpinned shape told");
-  assert.equal(spawns[spawns.length - 1], 'show --no-ext-diff --no-textconv --format= -- blob.dat', 'one pinned argv, path last, nothing else');
+  assert.equal(spawns[spawns.length - 1], `show ${FLAGS.join(' ')} --format= -- blob.dat`, 'one pinned argv, path last, nothing else');
   console.log('[config-proof] SHIPPED  same .gitattributes → 0 programs, and the change read back as a binary change with no lines claimed');
 
   // 4) THE ENV PINS ARE THE OTHER LAYER: a hostile GLOBAL config reached through the

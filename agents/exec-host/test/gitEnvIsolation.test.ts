@@ -55,6 +55,16 @@ describe('forcedConfigEnv (git\'s counted env override, built from data)', () =>
     expect(Object.keys(GIT_FORCED_CONFIG)).not.toContain('diff.external');
     expect(GIT_DIFF_FLAGS).toContain('--no-ext-diff'); // so it is confined by the argv shape instead
   });
+
+  // v65: the table holds what has no command-line answer. The four prefix keys (`diff.noprefix`,
+  // `diff.mnemonicPrefix`, `diff.srcPrefix`, `diff.dstPrefix`) all DO have one — and the command line
+  // outranks the repository's config, so naming the prefixes in the shape covers the three keys nobody
+  // has measured yet as well as the four git 2.52 honours. Adding them here instead would enumerate a
+  // moving list and still lose to `git -c` from a caller.
+  it('v65: NO diff.* key is in the table, because the shape says the prefixes itself', () => {
+    expect(GIT_DIFF_FLAGS).toEqual(['--no-ext-diff', '--no-textconv', '--src-prefix=a/', '--dst-prefix=b/']);
+    expect(Object.keys(GIT_FORCED_CONFIG).filter((k) => k.startsWith('diff.'))).toEqual([]);
+  });
 });
 
 describe('the pinned environment (v46: the env is part of the policy)', () => {

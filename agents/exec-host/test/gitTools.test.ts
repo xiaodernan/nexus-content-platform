@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { ToolRegistry, planExec } from '@nexus/agent-runtime';
 import type { SpawnLike } from '@nexus/agent-runtime';
 import { createExecHost, type ExecChild } from '../src/execHost.js';
-import { GIT_TOOL_SPECS, GIT_DIFF_FLAGS, budgetFlags, gitEnv, gitReadOnlyPolicy, gitVerdict, isDiffHeaderPairLine, isQuotedRendering, parseDiffHeader, parseDiffStat, parseFileLine, parseGitDiff, parseGitStatus, pathShapeNotices, quoteVerdict, refusedNotAbsence, registerGitTools, stdoutWasCut, treeSplitNotice, UNMERGED_XY, unmergedNotice, unmergedNotAbsence, unmergedStatusNotice, unwrapRendering } from '../src/gitTools.js';
+import { GIT_TOOL_SPECS, GIT_DIFF_FLAGS, budgetFlags, gitEnv, gitReadOnlyPolicy, gitVerdict, isDiffHeaderPairLine, isQuotedRendering, parseDiffHeader, parseDiffStat, parseFileLine, parseGitDiff, parseGitStatus, pathShapeNotices, quoteVerdict, refusedNotAbsence, registerGitTools, stdoutWasCut, treeSplitNotice, UNMERGED_XY, unmergedNotice, unmergedNotAbsence, unmergedStatusNotice, unnamableDiffSections, unnamableSectionsNotice, unwrapRendering } from '../src/gitTools.js';
 import { GIT_ABSENT_CONFIG, GIT_FORCED_CONFIG, GIT_ISOLATION_ENV, GIT_PASS_THROUGH_ENV_NAMES, forcedConfigEnv } from '../src/gitEnvIsolation.js';
 
 describe('parseGitStatus (porcelain v1, pure data)', () => {
@@ -227,6 +227,77 @@ describe('v64 — the TAB after a name is git\'s field, not the path\'s last cha
       'index 1..2 100644', '--- a/x.md', '+++ b/m b/n.md\t', '@@ -1,2 +1,3 @@', ' one', ' two', '+three',
     ].join('\n'));
     expect(files).toEqual([{ path: 'm b/n.md', hunks: 1, additions: 1, deletions: 0 }]);
+  });
+});
+
+// v65, measured on real git: FOUR config keys in the repository's own `.git/config` decide whether git
+// prints the `a/`/`b/` that every diff reader here strips to get a name — `diff.noprefix`,
+// `diff.mnemonicPrefix`, `diff.srcPrefix`, `diff.dstPrefix`. Set any one of them and `git diff --cached`
+// exits 0 with its sections intact and its names unattachable, and the door used to read that as an
+// empty index. The shipped shape now says the prefixes itself; these are the bytes that used to arrive.
+describe('v65 — a repository can delete the prefix every diff reader names files by', () => {
+  const NOPREFIX = ['diff --git x.ts x.ts', '--- x.ts', '+++ x.ts', '@@ -1 +1 @@', '-old', '+new'];
+  const MNEMONIC = ['diff --git c/x.ts i/x.ts', '--- c/x.ts', '+++ i/x.ts', '@@ -1 +1 @@', '-old', '+new'];
+  // measured: `[diff] noprefix = true` together with `[diff] srcPrefix = q/` — the SECOND name really
+  // does begin with `b/`, because the file is named `bin.dat`.
+  const MIXED = 'diff --git q/bin.dat b/bin.dat';
+
+  it.each([
+    ['diff.noprefix=true', NOPREFIX],
+    ['diff.mnemonicPrefix=true', MNEMONIC],
+  ])('%s: git printed a section, the header matcher names nothing, and the census sees the section', (_config, lines) => {
+    const text = lines.join('\n');
+    expect(parseDiffHeader(lines[0]!)).toBeNull();
+    expect(parseGitDiff(text)).toEqual({ files: [], totals: { files: 0, hunks: 0, additions: 0, deletions: 0 } });
+    expect(unnamableDiffSections(text)).toEqual([lines[0]]);
+  });
+
+  it('the census is a count of SECTIONS, not of what the parser could read: git\'s structural line is the one it does not have to name', () => {
+    expect(unnamableDiffSections('')).toEqual([]);
+    expect(unnamableDiffSections('* Unmerged path file.md')).toEqual([]); // v52's notice is not a section
+    const normal = ['diff --git a/x.ts b/x.ts', 'index 1..2 100644', '--- a/x.ts', '+++ b/x.ts', '@@ -1 +1 @@', '+new'].join('\n');
+    expect(unnamableDiffSections(normal)).toEqual([]);
+    expect(unnamableDiffSections([normal, ...MNEMONIC].join('\n'))).toEqual([MNEMONIC[0]]); // half-read: only the unread half is named
+  });
+
+  it('a mixed rendering is REFUSED, not guessed: the strip that answers `bin.dat` correctly would answer `ts` for `x.ts`', () => {
+    expect(parseDiffHeader(MIXED)).toBeNull();
+    expect(unnamableDiffSections(MIXED)).toEqual([MIXED]);
+    const strip = (header: string) => header.replace('diff --git ', '').split(' ').map((n) => n.slice(2));
+    // …here a two-character strip lands on the right answer, because `q/` and `b/` are each two characters
+    // and the file is `bin.dat`:
+    expect(strip(MIXED)).toEqual(['bin.dat', 'bin.dat']);
+    // …and one rendering later it invents a path that exists nowhere, for git's own `x.ts`:
+    expect(strip(NOPREFIX[0]!)).toEqual(['ts', 'ts']);
+  });
+
+  it('v65: an unnameable section ENDS the file before it — otherwise the unread body is counted into a named path', () => {
+    const named = ['diff --git a/keep.ts b/keep.ts', '--- a/keep.ts', '+++ b/keep.ts', '@@ -1 +1 @@', '+one line'];
+    const read = parseGitDiff([...named, ...MNEMONIC].join('\n'));
+    // What the named section reports is EXACTLY what it would report on its own: the unread half adds
+    // nothing to it. Measured before this boundary rule existed, a 2-line added file followed by an
+    // unread section printed "+5 −1 across 2 hunk(s)" — the unread half's name pair counted as content
+    // and its `---` as a deletion, so the tally was wrong as well as short (gitStagedTool's v65 case).
+    expect(read.files).toEqual([{ path: 'keep.ts', hunks: 1, additions: 1, deletions: 0 }]);
+    expect(read.totals).toEqual({ files: 1, hunks: 1, additions: 1, deletions: 0 });
+    expect(parseGitDiff(named.join('\n'))).toEqual(read); // the same answer with and without the unread section after it
+    expect(unnamableDiffSections([...named, ...MNEMONIC].join('\n'))).toEqual([MNEMONIC[0]]); // and the census still counts it
+  });
+
+  it('the notice quotes git\'s own line and states the limit, on both sides of a partial read', () => {
+    const s = unnamableSectionsNotice([MIXED]);
+    expect(s).toContain('git printed 1 diff section(s) whose header this door cannot split into two names');
+    expect(s).toContain(`"${MIXED}"`); // git's bytes, verbatim — v52's rule applied to a header
+    expect(s).toContain('those ARE changes');
+    expect(s).toContain('this door could not NAME them');
+    expect(s).toContain('so they are in no tally above'); // v65: the notice also bounds the NUMBERS beside it
+  });
+
+  it('the shape OWNS the prefixes, so no repository config can delete them (v65: argv, not env — the command line outranks the file)', () => {
+    expect(GIT_DIFF_FLAGS).toContain('--src-prefix=a/');
+    expect(GIT_DIFF_FLAGS).toContain('--dst-prefix=b/');
+    const policy = gitReadOnlyPolicy('X:/repo');
+    expect(planExec({ argv: ['git', 'diff', ...GIT_DIFF_FLAGS] }, policy).ok).toBe(true);
   });
 });
 
@@ -522,6 +593,22 @@ describe('unmergedNotice — an exit-0 notice is not an empty answer (v52)', () 
     expect(unmergedNotAbsence(['a.md', 'b.md'])).toBe(
       'git reported 2 UNMERGED path(s) (a.md, b.md) instead of a diff — a conflicted index, so a zero tally here is NOT a statement that nothing changed',
     );
+  });
+
+  // v65: the worktree door reads the same names off the same headers, and git's `diff --git` count is the
+  // floor under its tally. Measured on this box: with `[diff] mnemonicPrefix = true` git exited 0 and
+  // printed its section, and this door answered `0 files, +0 −0 (0 hunks)` — a count that read as a
+  // statement that nothing had changed. The shape now owns the prefixes; this case holds the net.
+  it('v65: git.diff says so when git printed sections it could not name, instead of a bare 0-file tally', async () => {
+    const mnemonic = ['diff --git c/x.ts i/x.ts', 'index 1..2 100644', '--- c/x.ts', '+++ i/x.ts', '@@ -1 +1 @@', '+new'].join('\n');
+    const full = harness(mnemonic);
+    const res = await full.registry.invoke({ callId: 'dv65', tool: 'git.diff', args: {} }, full.grant);
+    const d = (res.output as { detail: string }).detail;
+    expect(res.output).toMatchObject({ ok: true, exitCode: 0, mode: 'full', totals: { files: 0 } });
+    expect(d).toContain('git printed 1 diff section(s) whose header this door cannot split into two names');
+    expect(d).toContain('"diff --git c/x.ts i/x.ts"');
+    expect(d).toContain('those ARE changes');
+    expect(d).not.toContain('the tree has no changes'); // that sentence belongs to a refusal, not to this read
   });
 
   it('git.diff on a combined (conflicted) diff refuses to call its own 0-file tally an answer', async () => {

@@ -79,6 +79,8 @@ export {
   renamePairNotice,
   stdoutWasCut,
   treeSplitNotice,
+  unnamableDiffSections,
+  unnamableSectionsNotice,
   unmergedNotice,
   UNMERGED_XY,
   unmergedNotAbsence,

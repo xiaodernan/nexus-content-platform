@@ -2324,3 +2324,93 @@ _Numbering: 64 was free when this was written (`git log --oneline -3` top = v63;
   proved can be a window — both recorded as v65 candidates. Nothing here touches argv, policy or env;
   DEMO MODE is unaffected (no Studio surface runs an exec host), and staging stays human (§28).
 
+## Amendment 65 — v65 (exec-host): a repository's own diff config CHOOSES THE PREFIX every diff reader names files by — four keys make git print four sections that parse to zero files, and the pre-commit intent window called that `the index is EMPTY`, 2026-09
+
+_Numbering: 65 was free when this was written (`git log --oneline -3` top = v64; this file's HEAD headings end at 64 and there are 62 of them — no `## Amendment 58` or `## Amendment 59` heading exists in HEAD; those two numbers live only in the concurrent session's stale working copy, which is why 58..59 are occupied while 65 is free). Recorded rather than hidden: the WORKING COPY of this file is a stale buffer a concurrent session holds uncommitted (it stops at 61 and lacks 62/63/64), so this section is spliced onto HEAD's blob with `git show HEAD:…` → `hash-object -w` → `update-index --cacheinfo` and nothing else in the file is touched. v64's own honest bounds named this exact hole — "`diff.noprefix` and `diff.mnemonicPrefix` are NOT in v46's forced-config table … the v61 fallback, unmeasured here and left as a candidate rather than fixed on speculation". This amendment measures it, finds TWO keys that amendment did not name, and fixes it at the layer the measurement picked._
+
+- **The prefix was never ours.** Four doors read a unified diff, and one fact decides whether any of them can
+  NAME a file in it: git's own `a/`/`b/` on the `diff --git` line. v32 through v64 read those prefixes as a
+  given — `parseDiffHeader` is anchored to them, and so is v61's `parseFileLine` fallback. But four keys in
+  the repository's OWN `.git/config` choose them: `diff.noprefix`, `diff.mnemonicPrefix` (which renders the
+  pair as `c/`/`i/`), `diff.srcPrefix`, `diff.dstPrefix` — the last two found by probing the key family
+  after the first two reproduced the bug. Measured on this box (git 2.52), in a throwaway repo with a
+  four-change index — an add, a modify, a rename to a path containing a space, a delete — with ANY of the
+  four set, `git diff --no-ext-diff --no-textconv --cached` still exits 0, still prints FOUR `diff --git`
+  sections, still carries every hunk; the headers simply stop saying which half is which
+  (`diff --git docs/gone.md docs/gone.md`). `parseDiffHeader` matches none of them, so `parseStagedDiff`
+  returned ZERO files and `git.staged` — the door v43 built to show a human what is about to be recorded —
+  answered `the index is EMPTY — nothing is staged, so a granted git.commit right now would have nothing to
+  record` about an index git's own footer called `4 files changed, 4 insertions(+), 2 deletions(-)`. A §28
+  reviewer weighing that sentence would be weighing an absence the door invented.
+- **v46's hole, in the other layer.** v46 pinned the ENVIRONMENT so a repository cannot make git EXECUTE a
+  configured helper. This is a repository deciding what a READ PRINTS — same ownership error, different
+  layer. Fixing it there was measured and rejected: forcing `diff.noprefix=false` +
+  `diff.mnemonicPrefix=false` through the counted-config table (which v46 grew from 4 slots to 5 for
+  `core.quotePath`, and would have to grow again per key) leaves `diff.srcPrefix`/`diff.dstPrefix` free to
+  re-break the rendering, and enumerating keys loses to any key git invents later. `--src-prefix=a/
+  --dst-prefix=b/` on the command line restores all four (§0), keeps git's answer byte-identical in a
+  repository that sets nothing (§4: sha256 over four shapes), covers `git show` and the `--stat` bodies by
+  being the same two tokens in the same constant, and OUTRANKS the config file — measured with
+  `diff.noprefix=true` AND `diff.srcPrefix=zz/` set together, where the headers did not move (§3). So
+  `GIT_DIFF_FLAGS` is now four tokens, and the sentence v46 wrote about `diff.external` ("it is confined by
+  the argv shape instead") is the precedent, not the exception. The env table stays at 5 forced slots; a new
+  test pins that NO `diff.*` key is in it, so the two layers cannot silently trade a key back.
+- **The door REFUSES the split rather than guessing it.** Under `diff.noprefix=true` git prints
+  `diff --git x.ts x.ts`; a reader that stripped two characters from each name would report `ts`, a path
+  that exists nowhere. Under `diff.srcPrefix=q/` the same reader prints `diff --git q/bin.dat b/bin.dat`,
+  where stripping two characters returns `bin.dat` — CORRECT. One rendering wrong, the next right by luck,
+  and nothing in the answer says which happened: that is v61's harm arriving from the opposite direction, so
+  the reader keeps refusing, and now counts instead of trusting itself.
+- **A section is countable WITHOUT naming it.** `diff --git` is the one line whose only job is "a file's
+  section begins here", so `unnamableDiffSections(stdout)` counts the lines git printed structurally and
+  `parseDiffHeader` could not split — the floor under every rendering bug, and the fourth member of the
+  family v48 (`cutNotAbsence`), v52 (`refusedNotAbsence`/`unmergedNotice`) and v56 (`stdoutWasCut` /
+  `budgetFlags`) built. `git.staged`'s 0-file branch now runs unmerged → unnamable → cut → EMPTY, so the
+  EMPTY sentence is only ever said about a read the door could NAME, and `git.diff`/`git.staged` append the
+  notice beside a PARTIAL tally too. Second clause, found while writing that test and of the same family as
+  v64: an unread section used to be counted into the file BEFORE it, because only a recognised header
+  started a new record — the phantom section's `---`/`+++`/`@@`/content lines landed on the last named
+  path, so a 2-line added file plus one unread section printed `+5 −1 across 2 hunk(s)`. A tally that is
+  short is checkable; a tally that is inflated by bytes the door never attributed is not. Both diff readers
+  now END the current file at any `diff --git` line, named or not (§5).
+- **The 52nd tracked proof (`docs/evidence/agents/prefix-proof.mjs`, 53rd script) holds the lie itself.**
+  §0 sets each of the four keys in a real repo and measures git against git: `--shortstat` and
+  `--numstat -z` name 4 changes, `parseDiffHeader` names 0 headers, `parseStagedDiff` returns 0 files, and
+  the pre-v65 0-file branch — TRANSCRIBED into the proof, so the finding survives a rewrite of the source —
+  says `the index is EMPTY` over those bytes. §1 runs TODAY's door over the same repository twice, and the
+  v46 process is replayed by a spawn stand-in that drops v65's two flags on the way to git (the door cannot
+  be asked to run a shape its own policy no longer names, and a hand-written argv there would be this
+  file's claim, not the door's): v46 → `git printed 4 diff section(s) whose header this door cannot split
+  into two names ("diff --git docs/gone.md docs/gone.md", …) · this door named 0 of them … it certainly
+  cannot say the index is empty`; v65 → `index holds 4 change(s): 1 added, 1 modified, 1 deleted, 1 renamed
+  · +4 −2 across 3 hunk(s)`, with per-file numbers equal to git's `-z` census. §2 is the cross-check that
+  makes the old bug a reviewer's problem too: the `--stat` face never needed a prefix, so over the same
+  bytes it always said 4 files. §3 drives two hostile keys at once plus `git.show`; §4 the byte-identity
+  claim; §5 the boundary rule; §6 the wiring (both readers, exactly one call site each, all 5 diff shapes
+  carrying both flags, and each of them still allowed by `planExec`); §7 compares this repository's HEAD
+  byte-wise after exactly 7 door spawns.
+- **What moved:** `GIT_DIFF_FLAGS` 2 tokens → 4; `unnamableDiffSections` + `unnamableSectionsNotice` added
+  to `gitTools.ts` and exported (with the package bucket);
+  `parseGitDiff` and `parseStagedDiff` each gained a section-boundary clause; the two doors' EMPTY/partial
+  sentences and both tool descriptions now say what the door could not name. exec-host **244/244** (from
+  233: +8 in `gitTools.test.ts` — 2 from the `it.each` over the two renderings, plus one each for the
+  census's semantics, the refuse-vs-guess strip, the boundary rule, the notice wording, the shape that owns
+  the prefixes and `git.diff`'s own 0-file sentence — +2 in `gitStagedTool.test.ts`, +1 in
+  `gitEnvIsolation.test.ts`). Two witnesses of the old literal were re-counted in this same commit rather
+  than left to rot: `gitEnvIsolation.test.ts` now pins the EXACT four-token array (and that no `diff.*` key
+  entered the env table), and `config-proof.mjs` — which asserts a spawned `git show` argv verbatim — now
+  interpolates `FLAGS` instead of spelling `--no-ext-diff --no-textconv`. 52/52 tracked proofs green
+  (53/53 scripts on disk), four root gates green (typecheck 8/8, lint 4/4, build 5/5, test 8/8 turbo tasks).
+- Honest bounds: this is a RENDERING claim, not a diff parser. The census only sees `diff --git`, so a
+  rendering that prints no such line stays outside it — `git.staged`'s conflicted index is the one such case
+  this package knows about, and it is handled first (v52's unmerged notice) and in the order unmerged →
+  unnamable → cut → EMPTY; `--combined`/`cc` output would be another, and no shipped shape can ask for it.
+  `diff.relative`, `diff.renameLimit` and rename detection can change WHICH sections git prints (a rename
+  reported as a delete plus an add) without touching naming — the doors report what git printed and the
+  census still agrees with it, but no case here measures that, so it is a candidate rather than a claim.
+  `git.show`'s immunity is measured for these four keys only, and its `path` still comes in from the caller.
+  `parseDiffStat` still reads only the LAST line of `--stat` output (v64's bound, open), `git.diff`'s
+  full-mode tally is still a denominator v63 proved can be a window, and the test bridge's report still
+  carries no v55/v56 facts — all three stay on the queue. Nothing here touches policy, env or the spawn
+  contract beyond the two flags; DEMO MODE is unaffected (no Studio surface runs an exec host), and staging
+  stays a human act while `git push` stays out of scope (§28, §9).
