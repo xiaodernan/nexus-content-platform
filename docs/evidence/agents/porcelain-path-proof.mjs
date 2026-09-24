@@ -164,7 +164,7 @@ await human(r1, 'mv', ALPHA, BETA); // the HUMAN stages the rename; no door may 
 
 const st1 = out(await statusDoor(r1));
 assert.equal(st1.files.length, 1, 'one staged rename, one entry');
-assert.deepEqual({ ...st1.files[0] }, { xy: 'R ', status: 'renamed', path: BETA, fromPath: ALPHA }, 'the entry keeps BOTH names, and `path` is the one on disk');
+assert.deepEqual({ ...st1.files[0] }, { xy: 'R ', status: 'renamed', path: BETA, fromPath: ALPHA, staged: true }, 'the entry keeps BOTH names, and `path` is the one on disk');
 assert.ok(st1.detail.includes('1 rename/copy PAIR(s): ' + ALPHA + ' -> ' + BETA), 'the door SAYS the pair: ' + st1.detail);
 assert.ok(st1.detail.includes('the left name is what HEAD knows'), 'and says which half lives where');
 

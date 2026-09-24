@@ -2104,3 +2104,56 @@ reads an index into a door that denies it has anything to read._
   photograph of a name and asking the question anyway. Nothing here teaches the Studio dock to render a
   path shape, and DEMO MODE is unaffected: no Studio surface runs an exec host, so all of v61 is enforced
   in unit tests and proofs.
+
+## Amendment 62 — v62 (exec-host): porcelain's TWO columns answer TWO different trees, and v32's flat status list could not say which one a commit records, 2026-09
+
+_Numbering: 62 was free when this was written (checked against this file's headings and `git log --oneline -1`). v32 gave `git.status` a table that matched a SUBSTRING per row and stored ONE status per file — collapsing the two columns into a single word. Measured on a real repository: porcelain printed 7 entries and a granted commit recorded exactly 4; the door could not distinguish them._
+
+- **`XY path` is two answers, not one.** Column X says "how does the INDEX differ from HEAD?" —
+  it names what `git.commit` WILL record. Column Y says "how does the WORKTREE differ from the
+  INDEX?" — it names what a commit will NOT record. `MM` means one file carries TWO different
+  modifications (one staged, one only on disk); ` M` looks identical to `M ` in the door's old
+  single-word label ("modified"), yet a commit records one and not the other. Before v62 the
+  door said "7 entries (3 modified, 1 added, 1 deleted, 1 untracked, 1 renamed)" and nothing
+  about how many of those 7 a granted commit would actually place in HEAD.
+- **Porcelain v2 was measured and REFUTED as the fix** (the v61 comment called it "the next
+  increment's subject"). v2 outputs 6.9× the bytes of v1 (33 706 vs 4 884 on 262 files), which
+  at the shipped 4 096-byte whole-line budget answers only 31 entries where v1 answers 219 — a
+  86% loss of the door's effective range. v2 still C-quotes non-ASCII under the default. Adopting
+  it would cost the reader 88% of its answers at the same ceiling. The fix is therefore per-column
+  parsing of the existing format, not a format upgrade.
+- **The fix: two optional boolean fields, one notice, zero new spawns.** `parseGitStatus` now
+  computes `staged = xy[0] is not space/question-mark and not unmerged` and `dirty = xy[1] is not
+  space/question-mark and not unmerged`; these ride the existing `GitStatusFile` shape (optional,
+  absent when false, so no caller sees `false`-valued noise). Unmerged rows get neither field:
+  a commit is refused outright (exit 128, v57's finding), so neither column means what it says.
+  `treeSplitNotice` is exported and wired into `git.status`'s detail sentence alongside
+  `pathShapeNotices` — the same family (v52 `gitVerdict` · v56 `budgetFlags` · v57
+  `unmergedStatusNotice` · v61 `pathShapeNotices`). It fires whenever `staged < total` and
+  names: how many entries a commit records, which are worktree-side or untracked (so a
+  commit records NONE of them), and how many are staged AND edited again on disk (`MM`/`AM`).
+  It stays silent when every entry is staged (no split to name).
+- **50th script `docs/evidence/agents/two-tree-proof.mjs` cross-checks against git itself.**
+  §1 creates a repository with all 7 porcelain shapes (`MM`/`AM`/`M `/` D`/` M`/`D `/`??`) and
+  verifies the door's `staged` set against `git diff --name-only --cached`, the `dirty`-only
+  set against `git diff --name-only` minus the cached list, and untracked against
+  `git ls-files --others`. §2 makes a real commit through the shipped commit door and asserts
+  HEAD records exactly the 4 staged paths; the 3 worktree/untracked remain outside it. §3
+  verifies the notice's silence on a fully-staged tree. §4 confirms this repo's HEAD is
+  unchanged and all writes lived inside `os.tmpdir`.
+- **What moved:** `GitStatusFile` gained `staged?: true` and `dirty?: true` (optional fields,
+  not required); `parseGitStatus` gained 2 lines of computation; one exported function and one
+  sentence-clause added to the door's detail; the stale porcelain-v2 comment replaced with the
+  measured refutation; `index.ts` gained one export. Two committed proof scripts re-wrote their
+  exact-shape `deepEqual` assertions to carry the new fields (same commit, per v53's lesson).
+  exec-host **215/215** (from 201: the 7-shape per-column cases, unmerged exclusion, notice's
+  presence/silence, and two door-level tests), 50/50 proof scripts green, all 16 turbo tasks green.
+- Honest bounds: the notice counts the door's parsed entries, not git's own `--porcelain=2` field
+  counts — a rename pair (`R ` with dirty `RM`) appears once, as git printed it; a name containing
+  `-> ` inside an R/C line can fool the pair-split (v61's residual bound, unchanged); untracked
+  directories are still counted as one entry per git's default (v46's pin is the bound); the
+  notice says "0/N" for a fully-worktree tree (nothing staged), which IS the correct claim, and
+  "N/N" is silent — a false-alarm on a tree that has only untracked files is possible but not
+  harmful (the reader learns nothing a commit could record, which is the truth). DEMO MODE is
+  unaffected: no Studio surface runs an exec host.
+

@@ -2,24 +2,24 @@ import { describe, expect, it } from 'vitest';
 import { ToolRegistry, planExec } from '@nexus/agent-runtime';
 import type { SpawnLike } from '@nexus/agent-runtime';
 import { createExecHost, type ExecChild } from '../src/execHost.js';
-import { GIT_TOOL_SPECS, GIT_DIFF_FLAGS, budgetFlags, gitEnv, gitReadOnlyPolicy, gitVerdict, isQuotedRendering, parseDiffHeader, parseDiffStat, parseFileLine, parseGitDiff, parseGitStatus, pathShapeNotices, quoteVerdict, refusedNotAbsence, registerGitTools, stdoutWasCut, UNMERGED_XY, unmergedNotice, unmergedNotAbsence, unmergedStatusNotice, unwrapRendering } from '../src/gitTools.js';
+import { GIT_TOOL_SPECS, GIT_DIFF_FLAGS, budgetFlags, gitEnv, gitReadOnlyPolicy, gitVerdict, isQuotedRendering, parseDiffHeader, parseDiffStat, parseFileLine, parseGitDiff, parseGitStatus, pathShapeNotices, quoteVerdict, refusedNotAbsence, registerGitTools, stdoutWasCut, treeSplitNotice, UNMERGED_XY, unmergedNotice, unmergedNotAbsence, unmergedStatusNotice, unwrapRendering } from '../src/gitTools.js';
 import { GIT_ABSENT_CONFIG, GIT_FORCED_CONFIG, GIT_ISOLATION_ENV, GIT_PASS_THROUGH_ENV_NAMES, forcedConfigEnv } from '../src/gitEnvIsolation.js';
 
 describe('parseGitStatus (porcelain v1, pure data)', () => {
   it('maps XY codes to named statuses and counts per status', () => {
     const { files, counts } = parseGitStatus(' M src/a.ts\n?? pipeout.bin\nA  new.md\nD  gone.md\n');
     expect(files).toEqual([
-      { xy: ' M', status: 'modified', path: 'src/a.ts' },
+      { xy: ' M', status: 'modified', path: 'src/a.ts', dirty: true },
       { xy: '??', status: 'untracked', path: 'pipeout.bin' },
-      { xy: 'A ', status: 'added', path: 'new.md' },
-      { xy: 'D ', status: 'deleted', path: 'gone.md' },
+      { xy: 'A ', status: 'added', path: 'new.md', staged: true },
+      { xy: 'D ', status: 'deleted', path: 'gone.md', staged: true },
     ]);
     expect(counts).toEqual({ modified: 1, untracked: 1, added: 1, deleted: 1 });
   });
 
   it('a rename keeps BOTH names: `path` is what is on disk, `fromPath` is what HEAD knows (v61)', () => {
     const { files } = parseGitStatus('R  old/name.ts -> new/name.ts\n\n');
-    expect(files).toEqual([{ xy: 'R ', status: 'renamed', path: 'new/name.ts', fromPath: 'old/name.ts' }]);
+    expect(files).toEqual([{ xy: 'R ', status: 'renamed', path: 'new/name.ts', fromPath: 'old/name.ts', staged: true }]);
   });
 
   // v61: ` -> ` is the separator of exactly two porcelain families (R and C). Reading it out of the
@@ -36,7 +36,7 @@ describe('parseGitStatus (porcelain v1, pure data)', () => {
 
   it('a rename that is ALSO modified in the tree is still a pair, and both halves stay quoted together (v61)', () => {
     const { files } = parseGitStatus('RM "docs/caf\\303\\251-old.md" -> "docs/caf\\303\\251-new.md"\n');
-    expect(files[0]).toEqual({ xy: 'RM', status: 'renamed', path: '"docs/caf\\303\\251-new.md"', fromPath: '"docs/caf\\303\\251-old.md"', quoted: true });
+    expect(files[0]).toEqual({ xy: 'RM', status: 'renamed', path: '"docs/caf\\303\\251-new.md"', fromPath: '"docs/caf\\303\\251-old.md"', quoted: true, staged: true, dirty: true });
   });
 
   // Measured with v46's `core.quotePath=false` in place: WHITESPACE ALONE makes git quote a porcelain
@@ -51,7 +51,7 @@ describe('parseGitStatus (porcelain v1, pure data)', () => {
     expect(files[0]!.path).toBe('"dropzone/\\303\\274no.md"');
     expect('quoted' in files[1]!).toBe(false);
     expect('fromPath' in files[1]!).toBe(false);
-    expect(files[2]).toEqual({ xy: ' M', status: 'modified', path: 'plain name.md' }); // quoted by git, openable here
+    expect(files[2]).toEqual({ xy: ' M', status: 'modified', path: 'plain name.md', dirty: true }); // quoted by git, openable here
     expect(isQuotedRendering('"x"')).toBe(true);
     expect(isQuotedRendering('x"')).toBe(false); // one quote is a filename; a pair is a rendering
     expect(isQuotedRendering('""')).toBe(false); // nothing between the quotes renders no name: junk, not a picture of a path
@@ -242,7 +242,7 @@ describe('git.status / git.diff as registry tools (§28 gates the process; the r
     const h = harness('R  docs/old.md -> docs/new.md\n');
     const res = await h.registry.invoke({ callId: 'c1b', tool: 'git.status', args: {} }, h.grant);
     const out = res.output as { detail: string; files: Array<{ path: string; fromPath?: string }> };
-    expect(out.files).toEqual([{ xy: 'R ', status: 'renamed', path: 'docs/new.md', fromPath: 'docs/old.md' }]);
+    expect(out.files).toEqual([{ xy: 'R ', status: 'renamed', path: 'docs/new.md', fromPath: 'docs/old.md', staged: true }]);
     expect(out.detail).toContain('1 rename/copy PAIR(s): docs/old.md -> docs/new.md');
     expect(out.detail).toContain('reading the pair through either name alone reports half the change');
   });
@@ -480,7 +480,8 @@ describe('unmergedNotice — an exit-0 notice is not an empty answer (v52)', () 
   it('a clean working tree gets no conflict clause (the notice cannot leak into an ordinary answer)', async () => {
     const h = harness(' M a.ts\n?? b.bin\n');
     const detail = String(((await h.registry.invoke({ callId: 'u5', tool: 'git.status', args: {} }, h.grant)).output as { detail: string }).detail);
-    expect(detail).toBe('git.status → exit 0: 2 entries (1 modified, 1 untracked)');
+    expect(detail).toContain('git.status → exit 0: 2 entries (1 modified, 1 untracked)');
+    expect(detail).toContain('git.commit records the INDEX: 0/2');
     expect(detail).not.toContain('UNMERGED');
   });
 });
@@ -515,8 +516,108 @@ describe('every git door quotes that verdict, and a refusal is never a tally (v5
 
   it('a SUCCESSFUL read carries no refusal sentence at all — the disclaimer cannot leak into an answer', async () => {    const h = harness(' M a.ts\n?? b.bin\n');
     const detail = detailOf(await h.registry.invoke({ callId: 'v4', tool: 'git.status', args: {} }, h.grant));
-    expect(detail).toBe('git.status → exit 0: 2 entries (1 modified, 1 untracked)');
+    expect(detail).toContain('git.status → exit 0: 2 entries (1 modified, 1 untracked)');
     expect(detail).not.toContain('REFUSED');
     expect(detail).not.toContain('NOT a statement');
+  });
+});
+
+describe('per-column staged/dirty — porcelain\'s TWO columns are TWO trees (v62)', () => {
+  it('MM is ONE path with TWO different changes: staged AND dirty', () => {
+    const { files } = parseGitStatus('MM both.txt\n');
+    expect(files[0]).toMatchObject({ staged: true, dirty: true });
+  });
+
+  it('AM is a new file that was edited after staging: staged AND dirty', () => {
+    const { files } = parseGitStatus('AM new-staged.md\n');
+    expect(files[0]).toMatchObject({ staged: true, dirty: true });
+  });
+
+  it('M (X only) is staged and the field Y is absent, not false', () => {
+    const { files } = parseGitStatus('M  staged-mod.txt\n');
+    expect(files[0]!.staged).toBe(true);
+    expect('dirty' in files[0]!).toBe(false);
+  });
+
+  it('M (Y only) is dirty and the field X is absent, not false', () => {
+    const { files } = parseGitStatus(' M worktree-mod.txt\n');
+    expect(files[0]!.dirty).toBe(true);
+    expect('staged' in files[0]!).toBe(false);
+  });
+
+  it('D (X only) means a staged deletion: commit records it', () => {
+    const { files } = parseGitStatus('D  staged-del.txt\n');
+    expect(files[0]!.staged).toBe(true);
+    expect('dirty' in files[0]!).toBe(false);
+  });
+
+  it('D (Y only) means a worktree deletion: a commit records NONE of it', () => {
+    const { files } = parseGitStatus(' D worktree-del.txt\n');
+    expect(files[0]!.dirty).toBe(true);
+    expect('staged' in files[0]!).toBe(false);
+  });
+
+  it('?? untracked gets neither field (both columns are a question mark)', () => {
+    const { files } = parseGitStatus('?? untracked.md\n');
+    expect('staged' in files[0]!).toBe(false);
+    expect('dirty' in files[0]!).toBe(false);
+  });
+
+  it('unmerged rows get neither field because a commit is refused outright', () => {
+    const { files } = parseGitStatus('UU conflicted.txt\nAA added-both.txt\nDD deleted-both.txt\n');
+    for (const f of files) {
+      expect('staged' in f).toBe(false);
+      expect('dirty' in f).toBe(false);
+      expect(f.status).toBe('unmerged');
+    }
+  });
+});
+
+describe('treeSplitNotice — what the flat entry count cannot say (v62)', () => {
+  it('returns empty string when every entry is staged (no split to name)', () => {
+    const { files } = parseGitStatus('M  a.txt\nA  b.txt\nD  c.txt\n');
+    expect(treeSplitNotice(files)).toBe('');
+  });
+
+  it('returns empty string for zero files', () => {
+    expect(treeSplitNotice([])).toBe('');
+  });
+
+  it('names the split when some are staged and some are not', () => {
+    const { files } = parseGitStatus('MM both.txt\nAM new-staged.md\nD  staged-del.txt\nM  staged-mod.txt\n D worktree-del.txt\n M worktree-mod.txt\n?? untracked.md\n');
+    const notice = treeSplitNotice(files);
+    expect(notice).toContain('git.commit records the INDEX: 4/7');
+    expect(notice).toContain('worktree-side/untracked');
+    expect(notice).toContain('worktree-del.txt');
+    expect(notice).toContain('worktree-mod.txt');
+    expect(notice).toContain('untracked.md');
+    expect(notice).toContain('a granted commit records NONE of');
+    expect(notice).toContain('2 staged AND edited again on disk');
+    expect(notice).toContain('both.txt');
+    expect(notice).toContain('new-staged.md');
+  });
+
+  it('says NONE when zero entries are staged', () => {
+    const { files } = parseGitStatus(' M dirty.txt\n?? new.bin\n');
+    const notice = treeSplitNotice(files);
+    expect(notice).toContain('git.commit records the INDEX: 0/2');
+    expect(notice).toContain('a granted commit records NONE of');
+  });
+
+  it('the door\'s detail sentence carries the notice for a mixed repository', async () => {
+    const h = harness('MM both.txt\n M only-disk.txt\n?? fresh.md\n');
+    const res = await h.registry.invoke({ callId: 't62a', tool: 'git.status', args: {} }, h.grant);
+    const detail = String((res.output as { detail: string }).detail);
+    expect(detail).toContain('git.commit records the INDEX: 1/3');
+    expect(detail).toContain('staged AND edited again on disk (both.txt)');
+    expect(detail).toContain('a granted commit records NONE of');
+  });
+
+  it('the door\'s detail stays silent about the split when everything is staged', async () => {
+    const h = harness('M  only-staged.txt\nD  deleted-in-index.txt\n');
+    const res = await h.registry.invoke({ callId: 't62b', tool: 'git.status', args: {} }, h.grant);
+    const detail = String((res.output as { detail: string }).detail);
+    expect(detail).not.toContain('git.commit records the INDEX');
+    expect(detail).toContain('2 entries');
   });
 });

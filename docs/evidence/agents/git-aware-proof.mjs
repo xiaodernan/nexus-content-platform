@@ -61,7 +61,7 @@ assert.match(ungated.error, /checkpoint required for exec/);
 assert.equal(spawns.length, 0, 'exec permission means EXEC — gate-free calls spawn nothing, read-only or not');
 const granted = await gate.registry.invoke({ callId: 'g1', tool: 'git.status', args: {} }, gate.grant);
 assert.equal(granted.output.ok, true);
-assert.deepEqual(granted.output.files, [{ xy: ' M', status: 'modified', path: 'a.ts' }], 'the agent gets PARSED state, not a string');
+assert.deepEqual(granted.output.files, [{ xy: ' M', status: 'modified', path: 'a.ts', dirty: true }], 'the agent gets PARSED state, not a string');
 assert.deepEqual(spawns[0].env, gitEnv({ PATH: '/bin' }), 'the scrubber dropped TOKEN, and v46 ADDED the isolation: a caller cannot opt out');
 const escape = await gate.registry.invoke({ callId: 'g2', tool: 'git.diff', args: { cwd: '../outside' } }, gate.grant);
 assert.match(escape.error, /cwd refused/, 'the jail holds even for a read-only command');

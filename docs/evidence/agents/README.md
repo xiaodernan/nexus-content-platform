@@ -56,7 +56,7 @@ same file is then asserted to run ZERO programs. `porcelain-path-proof.mjs` (v61
 ## Reproducible gates
 
 ```
-npm test          # turbo: @nexus/agent-runtime 323/323 + @nexus/exec-host 201/201 vitest among all packages
+npm test          # turbo: @nexus/agent-runtime 323/323 + @nexus/exec-host 215/215 vitest among all packages
 npm run build     # tsc dist for agents/runtime + agents/exec-host (build order via ^build deps)
 node docs/evidence/agents/agent-proof.mjs
 node docs/evidence/agents/code-index-proof.mjs   # requires `npm run build` first
@@ -106,6 +106,7 @@ node docs/evidence/agents/conflict-proof.mjs     # requires `npm run build` firs
 node docs/evidence/agents/runreceipts-proof.mjs    # requires `npm run build` first (v54: the SAME chain, now answering for the run's own gates — 2 run receipts + 4 arc receipts + 1 unowned brief = 7 face gates as a set equation, a vetoed `test.run` durable with the human's sentence beside a grant it cannot erase at 0 processes and 0 commits, one exported note sentence living in `decisionsNote` on one line and `notes` on the next, and a reader that re-derives ownership instead of trusting the writer — a receipt for a call the line never made is junk on BOTH kinds)
 node docs/evidence/agents/bridge-report-proof.mjs # requires `npm run build` first (v60: ONE real node program whose 42-byte answer and 42-byte warning are written in BOTH orders — so the shipped sentence and the recomputed old one come from the same bytes and are shown to differ; 2 000 bytes of surviving stdout that used to sit outside a 53-byte report; a real kill at a 500 ms budget; the real design-model vitest suite measured at 592 B stdout / 0 B stderr through the confined host; three refusals that spawn nothing and are filed under `never-ran`)
 node docs/evidence/agents/porcelain-path-proof.mjs  # requires `npm run build` first (v61: four measured ways porcelain’s bytes are NOT the file, plus one claim refuted — a staged rename read as a PAIR by both index doors and its two names weighed against each other with raw `git show` (221 bytes under the name HEAD knows, 0 under the one on disk, and an exit-0 EMPTY diff for the door that asked with the wrong one); the SAME commands run again with `core.quotePath` unpinned so a quoted header reaches v43’s own regex — copied out of the previous commit and pinned in this file — which sees 0 headers in bytes git’s `--stat` calls `1 file changed`, while the sentence the door would have spoken is captured byte-for-byte from that SAME door over a genuinely empty index; an ordinary SPACE quoted anyway, and a `m b/` directory created for real so the header’s positional split is shown being stolen and then beaten by git’s per-line name; and §4’s REFUTED candidate — an untracked directory is 3 entries here, not 1, because v46 already pinned `status.showUntrackedFiles=all`)
+node docs/evidence/agents/two-tree-proof.mjs        # requires `npm run build` first (v62: porcelain's TWO columns answered by ONE door — 7 real porcelain shapes (MM/AM/D_/ M_/ D/??) read through the shipped git.status, the door's per-file staged/dirty fields cross-checked against git's own `diff --name-only --cached` and `diff --name-only` name-lists, one REAL commit through the commit door recording exactly the 4 staged paths while 5 worktree/untracked remain outside HEAD, and the notice correctly SILENT on a fully-staged tree)
 ```
 
 A note on `spawns[…]` assertions: they pin the argv SHAPE a plan step is allowed to produce
@@ -1466,3 +1467,21 @@ live-model planning (the seam exists, the model needs keys), multi-agent registr
 Memory recall (v6) shares the index's deterministic token-bag hybrid score — a real
 signature scheme, but still a stand-in for the pgvector hybrid retrieval of ADR 0012. The provider must be kept in sync with the workspace by the
 host; it only ever sees the host-supplied file set (§60).
+
+## Two-tree proof (`two-tree-proof.mjs`, M2 v62 — porcelain's TWO columns answer TWO different trees)
+
+49th tracked proof (50th file). §1 creates a throwaway `os.tmpdir` repository carrying all seven porcelain
+shapes simultaneously (`MM`/`AM`/`M `/` D`/` M`/`D `/`??`) and runs the shipped `git.status` door over it.
+The door's per-file `staged`/`dirty` fields are cross-checked against git's own authoritative name-lists:
+`diff --name-only --cached` for the index side, `diff --name-only` for the worktree side, and
+`git ls-files --others --exclude-standard` for untracked. The door's numbers must MATCH git's — not
+the other way around. §2 makes one REAL commit through the shipped commit door and verifies that HEAD
+recorded exactly the 4 staged paths (the two that were staged-only, the deletion that was staged, and the
+first half of each `MM`/`AM` pair), while 5 worktree-side entries remain outside the commit — proving the
+tree-split notice's prediction was correct. §3 sets up a fully-staged tree and asserts the notice's
+SILENCE: no false alarm when there is no split. §4 compares this repository's HEAD byte-wise.
+
+The candidate this increment REFUTED with numbers (v61's comment called it "the next increment"): porcelain
+v2 costs 6.9x the bytes of v1 (33,706 vs 4,884 on 262 files), leaving 31 entries answerable at the shipped
+4,096-byte budget where v1 answers 219. Adoption would cost the reader 86% of its range at the same
+ceiling. The fix is therefore per-column parsing of the existing format, not a format upgrade.

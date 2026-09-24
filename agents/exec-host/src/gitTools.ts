@@ -191,6 +191,33 @@ export const pathShapeNotices = (entries: Array<{ path: string; fromPath?: strin
 };
 
 /**
+ * M2 v62: porcelain's two columns answer TWO different trees. v32 counted entries as one flat list,
+ * so `git.status → 7 entries` where a granted `git.commit` records only 4. The notice names the split:
+ * how many paths a commit WILL record (index differs from HEAD), how many it will NOT (worktree-only
+ * or untracked), and how many are staged AND edited again (the `MM`/`AM` shape where the commit
+ * records the index half but the disk half is still ahead).
+ */
+export const treeSplitNotice = (files: GitStatusFile[]): string => {
+  const stagedCount = files.filter((f) => f.staged === true).length;
+  const dirtyOnly = files.filter((f) => f.staged !== true && f.dirty === true);
+  const untracked = files.filter((f) => f.status === 'untracked');
+  const worktreeSide = dirtyOnly.length + untracked.length;
+  const both = files.filter((f) => f.staged === true && f.dirty === true);
+  if (stagedCount === 0 && worktreeSide === 0) return '';
+  if (stagedCount === files.length) return '';
+  const parts: string[] = [];
+  parts.push(`git.commit records the INDEX: ${stagedCount}/${files.length} entries differ from HEAD there`);
+  if (worktreeSide > 0) {
+    const names = [...dirtyOnly.map((f) => f.path), ...untracked.map((f) => f.path)];
+    parts.push(`${worktreeSide} worktree-side/untracked (${names.join(', ')}) a granted commit records NONE of`);
+  }
+  if (both.length > 0) {
+    parts.push(`${both.length} staged AND edited again on disk (${both.map((f) => f.path).join(', ')})`);
+  }
+  return ` · ${parts.join(' · ')}`;
+};
+
+/**
  * M2 v52: the read doors' twin of v48's `cutNotAbsence`. A command that FAILED reads nothing for a
  * reason that says nothing about the repository — `git status` on a corrupt index exits 128 with an
  * EMPTY stdout, and "0 entries" is a count of what the door read, never a claim that the tree is
@@ -257,6 +284,16 @@ export interface GitStatusFile {
   fromPath?: string;
   /** M2 v61: this path is git's C-QUOTED RENDERING, not the bytes on disk (see quotedPathNotice). */
   quoted?: boolean;
+  /**
+   * M2 v62: column X says the INDEX differs from HEAD — `git.commit` will record this path.
+   * Present only when true; absent means X is blank or the row is unmerged.
+   */
+  staged?: true;
+  /**
+   * M2 v62: column Y says the WORKTREE differs from the index — a granted commit records
+   * NONE of this half. Present only when true.
+   */
+  dirty?: true;
 }
 
 /**
@@ -299,8 +336,9 @@ export function parseGitStatus(stdout: string): { files: GitStatusFile[]; counts
       // Both halves quoted → git's separator is the LAST `" -> "`, which lets a name keep its own arrow.
       // Otherwise the first ` -> ` splits the pair (measured: git quotes only the half that needs it, as in
       // `R  x.md -> "m b/n.md"`). Residual bound: a name that needs quoting AND ends quote-adjacent to an
-      // arrow still reads as a separator here — porcelain v2's NUL-terminated fields are git's own answer
-      // to that, and they are the next increment's subject rather than this one's.
+      // arrow still reads as a separator here. Measured porcelain v2 adoption cost: 6.9× bytes (33 706 vs
+      // 4 884 on 262 files), leaving only 31 entries at the 4 096 budget that answers 219 under v1 —
+      // v2 is NOT the next increment. git's per-line names (+++ / rename to) remain the authoritative fallback.
       const quotedSep = rest.includes('" -> "');
       const arrow = quotedSep ? rest.lastIndexOf('" -> "') : rest.indexOf(' -> ');
       if (arrow >= 0) {
@@ -316,6 +354,10 @@ export function parseGitStatus(stdout: string): { files: GitStatusFile[]; counts
     const file: GitStatusFile = { xy, status, path: path.name };
     if (from !== undefined) file.fromPath = from.name;
     if (path.quoted || (from?.quoted ?? false)) file.quoted = true;
+    if (!UNMERGED_XY.has(xy)) {
+      if (xy[0] !== ' ' && xy[0] !== '?') file.staged = true;
+      if (xy[1] !== ' ' && xy[1] !== '?') file.dirty = true;
+    }
     files.push(file);
     counts[status] = (counts[status] ?? 0) + 1;
   }
@@ -403,7 +445,7 @@ export function registerGitTools(registry: ToolRegistry, host: ExecHost, options
       .join(', ');
     const conflicted = files.filter((f) => f.status === 'unmerged').map((f) => f.path);
     const detail = ok
-      ? `git.status → exit ${result.exitCode}: ${files.length} entries${tally === '' ? '' : ` (${tally})`}${conflicted.length > 0 ? ` · ${unmergedStatusNotice(conflicted)}` : ''}${pathShapeNotices(files)}${flags(result)}`
+      ? `git.status → exit ${result.exitCode}: ${files.length} entries${tally === '' ? '' : ` (${tally})`}${conflicted.length > 0 ? ` · ${unmergedStatusNotice(conflicted)}` : ''}${pathShapeNotices(files)}${treeSplitNotice(files)}${flags(result)}`
       : `git.status → exit ${result.exitCode}: ${quoteVerdict(gitVerdict(result.stdout, result.stderr, { truncated: result.truncated || result.killedByBudget }))} · ${files.length} entries parsed · ${refusedNotAbsence('the working tree is clean or empty')}${flags(result)}`;
     return { ok, detail, exitCode: result.exitCode, files, counts, truncated: result.truncated };
   });

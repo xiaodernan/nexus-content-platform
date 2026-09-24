@@ -77,6 +77,7 @@ export {
   registerGitTools,
   renamePairNotice,
   stdoutWasCut,
+  treeSplitNotice,
   unmergedNotice,
   UNMERGED_XY,
   unmergedNotAbsence,
