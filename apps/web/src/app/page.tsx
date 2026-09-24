@@ -41,6 +41,16 @@ export default async function HomePage() {
         </span>
       </header>
 
+      <nav className="flex items-center gap-3 text-13" data-site-nav>
+        <a href="/search" className="text-accent-2 underline" data-nav-search>
+          全平台搜索
+        </a>
+        <a href="/discover" className="text-accent-2 underline" data-nav-discover>
+          发现
+        </a>
+        <span className="text-fg-3">公开在跑的作品与全平台的内容搜索</span>
+      </nav>
+
       <section className="border-t border-[var(--nexus-color-border-subtle)] pt-[var(--nexus-space-6)]">
         <h2 className="mb-[var(--nexus-space-3)] text-[var(--nexus-font-size-16)] font-medium">账号</h2>
         <AccountPanel user={user} />

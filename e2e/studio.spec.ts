@@ -1560,3 +1560,43 @@ test('@smoke 3D 世界：图上摆过的位置就是地面布局，走近才展�
     await page.screenshot({ path: 'screenshots/world3d-focus.png' });
   }
 });
+
+test('@smoke 全平台搜索：命中的都打得开，搜不到的要说清为什么（§165）', async ({ page }) => {
+  test.setTimeout(150_000);
+  const suffix = Date.now().toString(36);
+  const projectId = await createProject(page, `搜索切片${suffix}`);
+
+  // 项目名命中，结果链接指向这个项目自己的编辑器
+  await page.goto(`/search?q=${encodeURIComponent(suffix)}`);
+  await expect(page.locator('[data-search-group="projects"]')).toContainText(`搜索切片${suffix}`);
+  await page.click(`[data-search-hit="${projectId}"]`);
+  await page.waitForURL(/\/studio\/[^/]+$/, { timeout: 30_000 });
+  await waitForCanvas(page);
+
+  // 画布元素名也在八类里：Hero 是起手文档自己的节点，不是为这条用例造的
+  await page.goto('/search?q=Hero');
+  await expect(page.locator('[data-search-group="designs"]')).toContainText('Hero');
+  await expect(page.locator('[data-search-group="designs"] a')).toHaveAttribute('href', new RegExp(`/studio/${projectId}`));
+  await page.screenshot({ path: 'screenshots/platform-search.png' });
+
+  // 没搜到的词要说清"没有匹配"，而不是空白页或假结果
+  await page.goto(`/search?q=${encodeURIComponent(`查无此词${suffix}`)}`);
+  await expect(page.locator('[data-search-empty]')).toBeVisible();
+  // 一个字符不发查询：一个汉字能命中半个平台
+  await page.goto('/search?q=搜');
+  await expect(page.locator('[data-search-too-short]')).toBeVisible();
+  await expect(page.locator('[data-search-results]')).toHaveCount(0);
+  // 范围写在页面上：正文与相关度排序没做，就直说
+  await expect(page.locator('[data-search-scope]')).toContainText('相关度排序');
+
+  // 换一个没有登录态的访客搜同一个关键词：内容组只认所有权，必须一无所获。
+  // 用新 context 而不是新 page——同一个 context 会带着这个 guest 的会话 cookie
+  const browser = page.context().browser();
+  if (!browser) throw new Error('这条用例需要一个可派生上下文的浏览器');
+  const anonContext = await browser.newContext();
+  const visitor = await anonContext.newPage();
+  await visitor.goto(new URL(`/search?q=${encodeURIComponent(suffix)}`, page.url()).href);
+  await expect(visitor.locator('[data-search-empty]')).toBeVisible();
+  await expect(visitor.locator('[data-search-group="projects"]')).toHaveCount(0);
+  await anonContext.close();
+});

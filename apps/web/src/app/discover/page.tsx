@@ -38,6 +38,9 @@ export default async function DiscoverPage({ searchParams }: { searchParams: Pro
             </Link>
           ))}
         </nav>
+        <Link href="/search" className="text-12 text-accent-2 underline" data-search-link>
+          按关键词搜全平台
+        </Link>
       </header>
 
       {result.cards.length === 0 ? (
