@@ -26,7 +26,7 @@ Idea → AI Understanding → Planning → Design → Generation
 | **Studio** | AI Design + Code + Creation IDE —— **项目核心** | M1 |
 | Runtime | 真正进入作品：play / walk / talk | M1(预览) → M3(角色对话) → M4(3D) |
 | Agents | 自主 research/design/code/generate/test/debug/iterate/publish | M1(Design Agent) 起持续扩展 |
-| Community | publish / follow / remix / comment / like / fork / collaborate | M6：六动作齐（Save 挂 publication 版本）+ `/u/<handle>` 主页 + `/analytics` 创作者数据（§168，views/opens/访客/完成度/时长/likes/remixes 各有真实写入方，未采到的写"未采集"）+ `/notifications` 收件箱（§164，只有真终态事件写行，dedupe 在库里）+ 全平台搜索（§165） |
+| Community | publish / follow / remix / comment / like / fork / collaborate | M6：六动作齐（Save 挂 publication 版本）+ `/u/<handle>` 主页 + `/analytics` 创作者数据（§168，views/opens/访客/完成度/时长/likes/remixes 各有真实写入方，未采到的写"未采集"）+ `/notifications` 收件箱（§164，只有真终态事件写行，dedupe 在库里）+ 头像上传（§60，走 §9c 同一条图片管线，地址按内容摘要寻址）+ 全平台搜索（§165） |
 
 ## 项目类型（§37）
 

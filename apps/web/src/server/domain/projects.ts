@@ -332,6 +332,8 @@ export interface ProjectSummary {
   kind: string;
   slug: string;
   visibility: string;
+  /** 一句话简介（§49）：作者写了才算有，没有就是 null，不拿名字凑 */
+  description: string | null;
   updatedAt: string;
 }
 
@@ -344,10 +346,41 @@ export async function listProjects(ownerId: string): Promise<ProjectSummary[]> {
       kind: projects.kind,
       slug: projects.slug,
       visibility: projects.visibility,
+      description: projects.description,
       updatedAt: projects.updatedAt,
     })
     .from(projects)
     .where(and(eq(projects.ownerId, ownerId), isNull(projects.deletedAt)))
     .orderBy(projects.updatedAt);
   return rows.map((r) => ({ ...r, visibility: r.visibility as string, updatedAt: r.updatedAt.toISOString() }));
+}
+
+/**
+ * 改项目简介（§49 / §166）。名字不在这里改 —— TopBar 的重命名走设计文档，
+ * `saveDocument` 会把 `document.name` 同步到 `projects.name`，再加一个写名入口只会两边打架。
+ *
+ * 所有权写在 SQL 的 `where` 里而不是调用方：传别人的 projectId 只会回 null，
+ * "存在但看不到"这种含糊状态没有藏身处（与 §168 同一条纪律）。
+ */
+export async function updateProjectDescription(
+  actorId: string,
+  projectId: string,
+  description: string | null,
+): Promise<ProjectSummary | null> {
+  const trimmed = description?.trim() ?? '';
+  const [row] = await getDb()
+    .update(projects)
+    .set({ description: trimmed || null, updatedAt: new Date() })
+    .where(and(eq(projects.id, projectId), eq(projects.ownerId, actorId), isNull(projects.deletedAt)))
+    .returning({
+      id: projects.id,
+      name: projects.name,
+      kind: projects.kind,
+      slug: projects.slug,
+      visibility: projects.visibility,
+      description: projects.description,
+      updatedAt: projects.updatedAt,
+    });
+  if (!row) return null;
+  return { ...row, visibility: row.visibility as string, updatedAt: row.updatedAt.toISOString() };
 }

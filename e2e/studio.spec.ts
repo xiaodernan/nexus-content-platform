@@ -1369,7 +1369,7 @@ test('@smoke 发布机检与公开页举报：挡下要说清凭什么，举报�
 test('@smoke 社区：公开页能点赞、评论、改编；发现页只排排得出来的排序（§59/§61）', async ({ page }) => {
   test.setTimeout(180_000);
   const projectName = `Community ${Date.now().toString(36)}`;
-  await createProject(page, projectName);
+  const projectId = await createProject(page, projectName);
 
   for (let i = 0; i < 6; i += 1) {
     if (await page.locator('[data-publish-submit]').isVisible()) break;
@@ -1459,6 +1459,59 @@ test('@smoke 社区：公开页能点赞、评论、改编；发现页只排排�
   await saver.click('[data-bio-save]');
   await expect(saver.locator('[data-bio-notice]')).toContainText('没保存');
   await saver.goto(profileHref!);
+  await expect(saver.locator('[data-profile-bio]')).toContainText('做互动世界与像素字体的人');
+
+  // §49 项目简介走同一份词表（§129）：命中就不保存。bio 那个入口已经是这个口径，这里补上另一个
+  await saver.goto('/');
+  await saver.click(`[data-project-desc-edit="${projectId}"]`);
+  await saver.fill(`[data-project-desc-input="${projectId}"]`, 'buy nude children now');
+  await saver.click(`[data-project-desc-save="${projectId}"]`);
+  await expect(saver.locator(`[data-project-desc-notice="${projectId}"]`)).toContainText('没保存', { timeout: 30_000 });
+  await saver.screenshot({ path: 'screenshots/project-description-rejected.png' });
+  // 反向对照：同一个框换个合法的句子就存得下，说明"没保存"不是这条链根本没通
+  await saver.fill(`[data-project-desc-input="${projectId}"]`, '一次关于雨与钟声的演示');
+  await saver.click(`[data-project-desc-save="${projectId}"]`);
+  await expect(saver.locator(`[data-project-desc-row="${projectId}"]`)).toContainText('一次关于雨与钟声的演示', { timeout: 30_000 });
+
+  // §60 头像：这一段用真字节走完整条链——浏览器选文件 → multipart → magic bytes → 剥元数据 → 落存储 → 写列。
+  // 造假的上传框（只换个 <img src>）在这些断言下会当场露馅
+  await saver.goto('/');
+  await expect(saver.locator('[data-avatar-none]')).toBeVisible();
+  await saver
+    .locator('[data-avatar-file]')
+    .setInputFiles({ name: '冒充头像.png', mimeType: 'image/png', buffer: Buffer.from('这只是一段文字，不是位图') });
+  await expect(saver.locator('[data-avatar-notice]')).toContainText('没换上');
+  // 反向对照：被拒的字节没有变成头像，列里仍然是空
+  await expect(saver.locator('[data-avatar-url]')).toHaveCount(0);
+  await expect(saver.locator('[data-avatar-none]')).toBeVisible();
+
+  const AVATAR_PNG = Buffer.from(
+    'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAIAAACQd1PeAAAADElEQVR4nGOoOKEBAAMkAWmidwfJAAAAAElFTkSuQmCC',
+    'base64',
+  );
+  await saver.locator('[data-avatar-file]').setInputFiles({ name: 'avatar.png', mimeType: 'image/png', buffer: AVATAR_PNG });
+  await expect(saver.locator('[data-avatar-notice]')).toContainText('头像已更新');
+  const avatarUrl = await saver.locator('[data-avatar-url]').getAttribute('data-avatar-url');
+  // 地址里带用户 id 与字节摘要：摘要换了地址就换，这是 immutable 缓存一整年的前提
+  expect(avatarUrl).toMatch(/^\/api\/avatar\/[0-9a-f-]{36}\/avatar-[0-9a-f]{8}\.png$/);
+  const fetched = await saver.request.get(new URL(avatarUrl!, saver.url()).toString());
+  expect(fetched.status()).toBe(200);
+  expect(fetched.headers()['content-type']).toBe('image/png');
+  expect(fetched.headers()['cache-control']).toContain('public');
+  expect(fetched.headers()['x-content-type-options']).toBe('nosniff');
+  await saver.goto(profileHref!);
+  await expect(saver.locator('[data-profile-avatar="url"]')).toBeVisible();
+  await saver.screenshot({ path: 'screenshots/avatar-on-profile.png' });
+
+  // 摘掉：列回到 null，公开主页回到首字母，刚才那个地址读不到东西
+  await saver.goto('/');
+  await saver.click('[data-avatar-remove]');
+  await expect(saver.locator('[data-avatar-notice]')).toContainText('头像已摘掉');
+  expect((await saver.request.get(new URL(avatarUrl!, saver.url()).toString())).status()).toBe(404);
+  await expect(saver.locator('[data-avatar-none]')).toBeVisible();
+  await saver.goto(profileHref!);
+  await expect(saver.locator('[data-profile-avatar="initial"]')).toBeVisible();
+  // 对照：摘掉只是清空这一列，简介那些内容还在——否则上面的 404 分不清是规则还是页面坏了
   await expect(saver.locator('[data-profile-bio]')).toContainText('做互动世界与像素字体的人');
   await saver.close();
 });
@@ -1609,7 +1662,18 @@ test('@smoke 全平台搜索：命中的都打得开，搜不到的要说清为�
 test('@smoke §166 SEO：公开页 head、sitemap 与 robots 用的是同一套可见性判断', async ({ page, request }) => {
   test.setTimeout(240_000);
   const projectName = `SEO 作品${Date.now().toString(36)}`;
-  await createProject(page, projectName);
+  const projectId = await createProject(page, projectName);
+
+  // §49：作者写的这一句简介要一路走到 og:description。
+  // 在这一版之前 projects.description 没有写入方，所以这条断言只能落在"从快照文字里摘一句"那一级。
+  const summary = '一座会下雨的王城，雨季从三月的第一次钟声开始';
+  await page.goto('/');
+  await page.click(`[data-project-desc-edit="${projectId}"]`);
+  await page.fill(`[data-project-desc-input="${projectId}"]`, summary);
+  await page.click(`[data-project-desc-save="${projectId}"]`);
+  await expect(page.locator(`[data-project-desc-row="${projectId}"]`)).toContainText(summary, { timeout: 30_000 });
+  await page.goto(`/studio/${projectId}`);
+  await expect(page.locator('[data-publish-open]')).toBeVisible({ timeout: 30_000 });
 
   const openPublish = async () => {
     // 发布成功后面板不会自己收起：只在没打开时点一下，否则这一下会把面板关掉
@@ -1630,6 +1694,11 @@ test('@smoke §166 SEO：公开页 head、sitemap 与 robots 用的是同一套�
   await expect(visitor.locator('[data-published-frame]')).toBeVisible({ timeout: 30_000 });
   expect(await visitor.title()).toContain(projectName);
   await expect(visitor.locator('meta[property="og:title"]')).toHaveAttribute('content', projectName);
+  // 同一句简介要出现在三处：普通 description、og、JSON-LD。它们由同一个变量拼出来，
+  // 但"同一个变量"正是最容易在重构时断掉的东西
+  await expect(visitor.locator('meta[property="og:description"]')).toHaveAttribute('content', summary);
+  await expect(visitor.locator('meta[name="description"]')).toHaveAttribute('content', summary);
+  await expect(visitor.locator('meta[name="twitter:description"]')).toHaveAttribute('content', summary);
   await expect(visitor.locator('link[rel="canonical"]')).toHaveAttribute('href', `${origin}${path}`);
   const publicRobots = (await visitor.locator('meta[name="robots"]').getAttribute('content')) ?? '';
   expect(publicRobots).toContain('index');
@@ -1639,7 +1708,7 @@ test('@smoke §166 SEO：公开页 head、sitemap 与 robots 用的是同一套�
 
   const jsonLd = await visitor.locator('script[type="application/ld+json"]').textContent();
   const schema = JSON.parse(jsonLd ?? '{}') as Record<string, unknown>;
-  expect(schema).toMatchObject({ '@type': 'CreativeWork', name: projectName, url: `${origin}${path}` });
+  expect(schema).toMatchObject({ '@type': 'CreativeWork', name: projectName, url: `${origin}${path}`, description: summary });
   // 没跑过的评分、没编出来的关键词，一个都不该出现（§159）
   expect(JSON.stringify(schema)).not.toMatch(/aggregateRating|keywords/i);
   await visitor.screenshot({ path: 'screenshots/published-seo-public.png' });

@@ -557,6 +557,20 @@ export const NotificationsReadRequestSchema = z
   });
 export type NotificationsReadRequest = z.infer<typeof NotificationsReadRequestSchema>;
 
+/**
+ * §49 项目元信息编辑。这里刻意只有 description：名字走设计文档（TopBar 重命名 →
+ * `saveDocument` 把 `document.name` 同步到 `projects.name`），报文层再开一个写名入口
+ * 只会让同一份名字有两个真值（§16）。
+ * null / 空串都表示"清空简介"，所以字段可空；但整个报文不能什么都不带——
+ * 那是一次静默的 no-op，界面上看不出来自己没改到东西。
+ */
+export const ProjectPatchRequestSchema = z
+  .object({
+    description: z.string().trim().max(500).nullable().optional(),
+  })
+  .refine((body) => body.description !== undefined, { message: '没有要改的字段' });
+export type ProjectPatchRequest = z.infer<typeof ProjectPatchRequestSchema>;
+
 
 /**
  * §162 作业队列：图片 / 视频 / 3D / 复杂 Agent 任务不能挂在一个 HTTP 请求上等结果，

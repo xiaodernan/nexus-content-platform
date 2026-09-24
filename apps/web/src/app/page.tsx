@@ -5,6 +5,8 @@ import { listProjects } from '@/server/domain/projects';
 import { NewProjectForm } from '@/components/NewProjectForm';
 import { AccountPanel } from '@/components/AccountPanel';
 import { ProfileEditor } from '@/components/ProfileEditor';
+import { AvatarEditor } from '@/components/AvatarEditor';
+import { ProjectDescriptionEditor } from '@/components/ProjectDescriptionEditor';
 import { NotificationBell } from '@/components/NotificationBell';
 import { accountOf, listSaves } from '@/server/domain/profile';
 
@@ -65,9 +67,9 @@ export default async function HomePage() {
         <h2 className="mb-[var(--nexus-space-3)] text-[var(--nexus-font-size-16)] font-medium">项目</h2>
         <NewProjectForm />
         {projects.length ? (
-          <ul className="mt-[var(--nexus-space-4)] grid gap-[var(--nexus-space-2)]">
+          <ul className="mt-[var(--nexus-space-4)] grid gap-[var(--nexus-space-3)]">
             {projects.map((project) => (
-              <li key={project.id}>
+              <li key={project.id} className="grid gap-[var(--nexus-space-2)]">
                 <a
                   href={`/studio/${project.id}`}
                   className="flex items-center justify-between rounded-[var(--nexus-radius-sm)] bg-bg-1 px-[var(--nexus-space-4)] py-[var(--nexus-space-3)] hover:bg-bg-2"
@@ -78,6 +80,9 @@ export default async function HomePage() {
                     {project.kind} · {new Date(project.updatedAt).toLocaleString('zh-CN', { hour12: false })}
                   </span>
                 </a>
+                <div className="px-[var(--nexus-space-4)]">
+                  <ProjectDescriptionEditor projectId={project.id} initialDescription={project.description} />
+                </div>
               </li>
             ))}
           </ul>
@@ -100,7 +105,10 @@ export default async function HomePage() {
             你还没有可用于主页的地址（handle 在首次发布时生成）。
           </p>
         )}
-        <ProfileEditor initialBio={account.bio} />
+        <AvatarEditor initialUrl={account.avatarUrl} />
+        <div className="mt-[var(--nexus-space-4)]">
+          <ProfileEditor initialBio={account.bio} />
+        </div>
 
         <h3 className="mb-[var(--nexus-space-2)] mt-[var(--nexus-space-5)] text-[var(--nexus-font-size-14)] font-medium">
           我收藏的版本（{saved.length}）

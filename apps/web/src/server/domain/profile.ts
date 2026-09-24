@@ -172,13 +172,20 @@ function taglineOf(profile: unknown): string | null {
 }
 
 /** 首页要显示"我的主页"这一栏：按 id 拿 handle 与简介，不走主页那整套查询 */
-export async function accountOf(userId: string): Promise<{ handle: string | null; name: string; bio: string | null }> {
+export async function accountOf(
+  userId: string,
+): Promise<{ handle: string | null; name: string; bio: string | null; avatarUrl: string | null }> {
   const [row] = await getDb()
-    .select({ handle: users.handle, name: users.displayName, bio: users.bio })
+    .select({ handle: users.handle, name: users.displayName, bio: users.bio, avatarUrl: users.avatarUrl })
     .from(users)
     .where(eq(users.id, userId))
     .limit(1);
-  return { handle: row?.handle ?? null, name: row?.name ?? '', bio: row?.bio ?? null };
+  return {
+    handle: row?.handle ?? null,
+    name: row?.name ?? '',
+    bio: row?.bio ?? null,
+    avatarUrl: row?.avatarUrl ?? null,
+  };
 }
 
 export interface SaveState {

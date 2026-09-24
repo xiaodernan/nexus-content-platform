@@ -25,8 +25,6 @@ export default async function ProfilePage({ params }: { params: Promise<{ handle
       <header className="flex flex-wrap items-start gap-4" data-profile-header>
         {/* 头像：没有就是首字母，不放占位图（§159 不画假内容） */}
         {profile.avatarUrl ? (
-          // avatarUrl 这一列现在没有任何代码写过（上传头像还没做），所以正常都会走下面那支。
-          // 留着这一支是因为列是真的：哪天有值了，主页要显示它而不是继续显示首字母
           <img src={profile.avatarUrl} alt="" className="h-12 w-12 rounded-full bg-bg-2 object-cover" data-profile-avatar="url" />
         ) : (
           <span

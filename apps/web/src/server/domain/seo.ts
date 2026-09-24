@@ -103,8 +103,9 @@ export function buildPublishedSeo(found: PublishedPage, origin: string | null): 
 
   const name = clean(found.projectName, 120) || '未命名作品';
   // 顺序：作者写过的描述 → 这一版自己的文字 → 一句只陈述事实的兜底。
-  // 中间那层不是凑数：项目描述目前没有任何写入路径（列在 schema 里但没人写），
+  // 中间那层不是凑数：作者没写简介时（首页那条简介编辑器之外没人写过这列，历史项目多半是空的），
   // 没有它就会退化成第三层的模板句，等于把摘要机会白白丢掉。
+  // 第一层和 projectName 一样读的是项目行的当前值：简介是项目的元信息，不是某一版快照的内容。
   const description =
     clean(found.description ?? '', 200) ||
     clean(textSummary(found.document), 200) ||

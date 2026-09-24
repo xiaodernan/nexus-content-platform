@@ -638,9 +638,37 @@ drizzle 把整个拼接结果当成**单个绑定参数**，生成的 SQL 是 `o
   且只给名字与一句 tagline —— 世界文档、角色档案（声音、关系、记忆）在作者项目里，
   发布一张设计稿不等于把它们放上公网（测试专门放了一段"只该存在于项目里"的文字去试泄露）。
   简介会过发布机检同一份红线词表，命中就不保存。游戏栏现在是 0 并写明 M5 未开工，而不是省掉。
-  仍欠：头像上传（users.avatar_url 还没有写它的地方）、
-  Trending / AI Picks、§132 的 block / mute。§168 Analytics 已在下面单独落地——主页上那几个数仍然只是浏览量，
+  仍欠：Trending / AI Picks、§132 的 block / mute。头像上传已在下一条落地（`users.avatar_url` 现在有写入方了）。
+  §168 Analytics 已在下面单独落地——主页上那几个数仍然只是浏览量，
   真正的六个数在 `/analytics`
+- [x] 头像上传 + 项目简介（§60 的 Avatar + §49 的项目元信息）— **2026-09-25 落地**：
+  `apps/web/src/server/domain/avatar.ts` + `/api/account/avatar`（POST/DELETE）+ `/api/avatar/<id>/<file>`（公开读）。
+  校验链整条复用 §9c 的图片管线（magic bytes 判定 → 尺寸/体积上限 → 剥元数据），没有为头像另开一套宽松规则：
+  头像会以 `<img>` 出现在别人的公开页上，风险面和设计稿里的图片一模一样。
+  **为什么不进 `assets` 表**：那张表按项目归属（project_id 级联删除、发布快照按 id 引用、两条读取路径都要求有项目），
+  而头像归属是人——硬塞进去要么给 project_id 开空值，要么让人删项目时把自己的头像带走。
+  地址是内容寻址的（`avatar-<sha256 前 8 位>.png`）：换一张就换地址，于是 `cache-control: public, max-age=1y, immutable`
+  是诚实的；被换掉的旧地址必须读不到（判定以库里的行为唯一依据，磁盘上残留的对象摸不到——
+  删旧字节是 best-effort，这条是它的安全网）。顺序是**先写库再删旧字节**：反过来做会留下"头像已经没了但新的没换上"的中间态。
+  摘掉头像是把列写回 null，不返回一张默认头像：那样主页上的圆圈看着像有图，其实谁都没传过（§159）。
+  上传回执会显示"剥掉了哪些元数据段"——头像是全站少数几张不用登录就能看到的图，不告诉用户处理过就是替他假设。
+
+  **项目简介（§49）这一片补的是两个空转的读**：`projects.description` 从建库起就没有写入方，
+  所以 §166 的 `og:description` 稳定落在第二级"从快照文字里摘一句"、§165 的 `ilike(projects.description)` 永远命中不了。
+  入口在首页每个项目行下面（展开式，不常驻输入框），`PATCH /api/projects/<id>` 只认 `description` 一个字段：
+  **名字不在这里改**——TopBar 的重命名走设计文档、`saveDocument` 把 `document.name` 同步到 `projects.name`，
+  报文层再开一个写名入口就是给同一个名字放两个真值（§16）。
+  简介会公开在 `og:description` 上，所以它和 bio 走同一份红线词表（§129）：命中就不保存。
+  所有权写在 SQL 的 `where` 里（`id` + `ownerId` + 未删除），别人的项目返回 null 而不是"存在但看不到"。
+
+  验证：`avatar.integration.test.ts` 9 条（真库 + 真存储目录，逐条断言磁盘上的对象数）+
+  `project-meta.integration.test.ts` 8 条（含"简介写进去之后搜索才真能命中它"那条闭环）+
+  `@smoke §59/§61` 里加的真浏览器头像链路（假字节被拒 → 换上 → GET 200 与 `public`/`nosniff` →
+  公开主页显示头像 → 摘掉 → 同一个地址 404）+ `@smoke §166` 里 og/twitter/JSON-LD 三处都读到作者写的那一句。
+  反向实验记一笔：把 `openAvatar` 的"文件名要对得上库里的行"缩成"有头像就行"，**当时那 8 条全绿**——
+  因为旧对象已经被删掉了，`getStorage().get` 返回 null 让断言因错误的原因通过。
+  补的那条是手工往磁盘上放一个库里不引用的孤儿对象再读它，这次才真的只有那一条红（截图 `avatar-on-profile.png`、
+  `project-description-rejected.png`）
 - [x] 全平台搜索（§165）— **2026-09-25 落地**：`/search` 一个 GET 表单 + 服务端渲染，八类目标各一组
   （projects / users / worlds / games / characters / designs / components / assets，与 §165 的清单同序），
   判定全在 `apps/web/src/server/domain/search.ts`。匹配走 pg_trgm 子串（迁移 0008 给被搜的列建
@@ -703,8 +731,7 @@ drizzle 把整个拼接结果当成**单个绑定参数**，生成的 SQL 是 `o
   反向对照页面本身仍然打开得到、canonical 没变（截图 `published-seo-public.png`）。
   反向实验逐个做过：删掉封面谓词 / 把转义正则缩到只剩 `[&]` / robots 三元改成恒 index /
   去掉 `visibility='public'` 或 `ne(moderation,'rejected')`——每次都只让预期的那几条红。
-  仍欠：`projects.description` **全库没有写入方**（也没有项目元信息编辑入口），所以 og:description
-  现在稳定走第二级摘要，这个入口补上才算收口；`projects.deletedAt` 同样只有读没有写（软删链路没落地），
+  仍欠：`projects.deletedAt` 同样只有读没有写（软删链路没落地），
   sitemap 那条谓词目前是防御性的；带真实图片资产的封面只在单测里覆盖谓词，浏览器里那一张还是空清单；
   `/u/<handle>` 与 `/discover` 的 per-page metadata 没做（§166 原文范围是 public projects）；
   sitemap 截到 5000 条，超了只 warn + 截断，没有 sitemap index。
@@ -945,9 +972,10 @@ drizzle 把整个拼接结果当成**单个绑定参数**，生成的 SQL 是 `o
 - ~~ESLint 目前只有 `npm run lint` = typecheck 的占位配置，缺真实规则集。~~ **已还（任务 #43）**：
   `npm run lint` = 七个 tsconfig 的 typecheck + `eslint .`（type-aware `projectService`，测试与 scripts 也在门禁里）。
 - 两张表里有**只读不写**的列，别把"列存在"当成"功能存在"：
-  1. `projects.description` 没有任何写入方（`createProject` 的 insert 不含它，也没有编辑入口），
-     所以 §165 的搜索与 §166 的 og:description 现在都命中不了这一级——SEO 那侧靠页面摘要兜底，
-     搜索那侧 `or(ilike(description,…))` 是空转。欠的是一个项目元信息编辑入口（见 §166 仍欠）。
+  1. ~~`projects.description` 没有任何写入方~~ **已还（任务 #50）**：`PATCH /api/projects/<id>` + 首页每行的简介编辑器。
+     §165 的 `or(ilike(description,…))` 与 §166 的 `og:description` 第一级从此才有东西可命中——
+     `project-meta.integration.test.ts` 里那条"写进去之前搜不到、写进去之后搜得到并且把简介当 detail 带出来"就是这条闭环的钉子。
+     历史项目仍然是空的（不回填、不拿名字凑一句），SEO 那侧继续走第二级摘要。
   2. `projects.deleted_at` 同样全是读：13 处 `isNull(projects.deletedAt)` 外加 `publish.ts:246` 单独挡一次，
      但全库没有一处把项目标记为已删除——软删除链路本身没落地。§166 的 sitemap 谓词因此是**防御性**的：
      今天它永远为真，等软删上线时它已经在位（集成测试直接改库造那一行，并在注释里写明是手工造的）。
