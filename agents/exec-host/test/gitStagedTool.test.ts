@@ -418,3 +418,63 @@ describe('git.staged as a registry tool (the index behind §28 — a process sti
     expect(h.calls[0]!.args).toEqual(['diff', ...GIT_DIFF_FLAGS, '--cached']);
   });
 });
+
+/**
+ * M2 v66 (ADR 0016 amendment 66): v63 taught `git.status` that a read the output budget trimmed is a
+ * WINDOW, not a census, and left this door out — so it went on printing `index holds 8 change(s)` about
+ * an index git's own footer called 25, and the §28 ask sat on that number. A real 25-change index, a
+ * budget that kept 8 sections: measured in `cut-tally-proof.mjs`.
+ */
+describe('v66 — a cut index read is a WINDOW on the index, not a census of it', () => {
+  const THREE = ADDED + MODIFIED + DELETED;
+  const parts = THREE.split('\n');
+  const whole = parseStagedDiff(THREE);
+  const headerOfThird = parts.indexOf('diff --git a/old/x.md b/old/x.md');
+  /** Fits the first two sections and NOTHING of the third (the host keeps whole lines, v48). */
+  const twoSectionsPlusOne = Buffer.byteLength(parts.slice(0, headerOfThird).join('\n')) + 1;
+
+  it('a trimmed read calls its own count a floor, and names the change that MAY be the short one', async () => {
+    const h = harness(THREE, '', { code: 0, signal: null }, twoSectionsPlusOne);
+    const res = await h.registry.invoke({ callId: 'v66a', tool: 'git.staged', args: {} }, h.grant);
+    const o = res.output as { detail: string; truncated: boolean; totals: { files: number }; files: Array<{ path: string }> };
+    expect(o.truncated).toBe(true);
+    expect(o.totals.files).toBeLessThan(whole.totals.files); // the answer really is short
+    expect(o.detail).toContain(`index holds AT LEAST ${o.totals.files} change(s)`);
+    expect(o.detail).toContain('this is a WINDOW on the index — what a granted git.commit would record, NOT a census of it');
+    expect(o.detail).toContain(`the last change the read reached is ${o.files.at(-1)!.path}`);
+    expect(o.detail).not.toContain('the cut landed inside'); // this door cannot tell: the budget may have expired at a section boundary
+    expect(o.detail).toContain('output truncated at budget (stdout)'); // v56's stream clause still rides along
+    expect(o.detail).not.toContain('the index is EMPTY');
+  });
+
+  it('a read the budget left alone is worded EXACTLY as it was before v66 — the clause is about a cut, not a style', async () => {
+    const h = harness(THREE);
+    const res = await h.registry.invoke({ callId: 'v66b', tool: 'git.staged', args: {} }, h.grant);
+    const d = (res.output as { detail: string }).detail;
+    expect(d).toContain(`index holds ${whole.totals.files} change(s)`);
+    expect(d).not.toContain('AT LEAST');
+    expect(d).not.toContain('WINDOW');
+    expect(d).toBe('git.staged → exit 0: index holds 3 change(s): 1 added, 1 modified, 1 deleted · +3 −2 across 3 hunk(s)');
+  });
+
+  it('a --stat read that survived no line refuses to call the index empty, while the record keeps git\'s arithmetic', async () => {
+    const h = harness(' notes/widget.md | 3 +++\n 1 file changed, 3 insertions(+)\n', '', { code: 0, signal: null }, 1);
+    const res = await h.registry.invoke({ callId: 'v66c', tool: 'git.staged', args: { stat: true } }, h.grant);
+    const o = res.output as { detail: string; summary: unknown };
+    expect(o.detail).toContain('no complete line survived the output budget — this is NOT a statement that the index holds nothing staged for the §28 ask');
+    expect(o.detail).not.toContain('index holds 0 file(s)');
+    expect(o.summary).toEqual({ files: 0, insertions: 0, deletions: 0 });
+  });
+
+  it('the floor is never a lie at ANY line boundary: the changes named are a PREFIX of the whole read, and every cut says AT LEAST', async () => {
+    for (let n = 1; n < parts.length; n += 1) {
+      const budget = Buffer.byteLength(parts.slice(0, n).join('\n')) + 1;
+      const res = await harness(THREE, '', { code: 0, signal: null }, budget).registry.invoke({ callId: `v66p${n}`, tool: 'git.staged', args: {} }, { checkpoint: () => true });
+      const o = res.output as { detail: string; truncated: boolean; totals: { files: number }; files: Array<{ path: string }> };
+      expect(o.files.map((f) => f.path)).toEqual(whole.files.slice(0, o.files.length).map((f) => f.path));
+      if (o.totals.files > 0) {
+        expect(o.detail).toContain(`index holds ${o.truncated ? 'AT LEAST ' : ''}${o.totals.files} change(s)`);
+      }
+    }
+  });
+});

@@ -2414,3 +2414,92 @@ _Numbering: 65 was free when this was written (`git log --oneline -3` top = v64;
   carries no v55/v56 facts — all three stay on the queue. Nothing here touches policy, env or the spawn
   contract beyond the two flags; DEMO MODE is unaffected (no Studio surface runs an exec host), and staging
   stays a human act while `git push` stays out of scope (§28, §9).
+
+## Amendment 66 — v66 (exec-host): v63's WINDOW rule was written for `git.status` and left THERE — the three doors that read a DIFF went on phrasing a budget-trimmed read as the repository's census, so the fix is a WORDING one that no budget size can settle, 2026-09
+
+_Numbering: 66 was free when this was written (`git log --oneline -3` top = v65; this file's HEAD headings end at 65 and there are 63 of them — no `## Amendment 58` or `## Amendment 59` heading exists in HEAD; those two numbers live only in the concurrent session's stale working copy). Recorded rather than hidden: the WORKING COPY of this file is that stale buffer (it stops at 61 and lacks 62/63/64/65), so this section is spliced onto HEAD's blob with `git show HEAD:…` → `hash-object -w` → `update-index --cacheinfo` and nothing else in the file is touched. This hole was not a surprise: v65's honest bounds closed with "`git.diff`'s full-mode tally is still a denominator v63 proved can be a window … stays on the queue", and v63's own section was explicit that it fixed ONE door's sentence. This amendment measures the other three._
+
+- **Measured first, in the layer the earlier amendments left unmeasured.** A throwaway repo whose index holds 25
+  changes — git's own footer: `25 files changed, 75 insertions(+), 75 deletions(-)` — read through the shipped
+  doors at budgets derived from git's byte offsets, not from hopes:
+  - a budget that keeps 8 of the 25 sections made `git.staged` answer `index holds 8 change(s): 8 modified ·
+    +24 −24 across 24 hunk(s)`. Its only budget clause was v56's `output truncated at budget (stdout)` — a
+    sentence that admits bytes were lost while the numbers go on meaning "the index". Over EVERY line boundary
+    of that read: 774 of its 776 boundaries are cuts, and all 774 of them produced such a census-shaped answer
+    (§3 measures the whole population — 0 of the 774 named no change).
+  - `git.diff` said `1 files, +0 −0 (0 hunks)` about a file git counts at `+1 −1`, and `0 files, +0 −0
+    (0 hunks)` about a 4-section, 2004-byte worktree diff — v48's `cutNotAbsence` was wired into `git.show`'s
+    and `git.staged`'s zeros, and never into THIS door's zero.
+  - `git.show` said `HEAD changed src/mod-09/a-long-file-name-9.ts · +12 −0` where git's own `--numstat` for
+    that path is `60 0`: of its 65 cut windows (the face has 67 line boundaries), 59 short-count a file the
+    same sentence calls changed.
+- **The harm is PHRASING, not size.** Nothing above is a bug in the parser — every number was git's own number
+  for the bytes that arrived. What is wrong is that a small count was worded as the repository's. So no
+  arithmetic changed and no budget changed: the doors now say what KIND of number it is — `AT LEAST` inside the
+  count itself, plus one sentence beside it.
+- **One rule, three doors, at the sentence layer (v63's precedent, no new record fields).** `windowed =
+  stdoutWasCut(result)` — v56's predicate, until now read by two doors — drives both, and
+  `diffWindowNotice({ window, subject, named, partial })` is the fifth member of the family v48
+  (`cutNotAbsence`), v52 (`refusedNotAbsence`/`unmergedNotice`), v56 (`budgetFlags`) and v65
+  (`unnamableSectionsNotice`) built. `git.staged`'s subject is spelled out as "the index — what a granted
+  git.commit would record", because that is the sentence a §28 reviewer is weighing.
+- **A diff read's SHAPE lets the sentence be specific, and the shape was measured rather than argued.** The
+  host keeps a PREFIX of whole lines (v48) and a diff section ends where the next `diff --git` begins (v65's
+  boundary clause), so every change named BEFORE the last one in a window is byte-complete — only the last can
+  be short. That is a two-sided finding, graded against git's own `--numstat` in the proof (§2), not a wording
+  preference: at a budget that stops exactly at a section boundary the 8th change is WHOLE and only the
+  9th never arrives; 900 bytes later the 9th is there and SHORT. So the door that reads several sections says
+  the last change it reached MAY be the short one, and `cutIsInside` is true only for `git.show`, whose read is
+  confined to one path by its own argv. Stated plainly because it was a §60 violation in my own first draft:
+  "the cut landed inside X" is not knowable from a multi-section read, and the door cannot tell the two cases
+  apart.
+- **A `--stat` read keeps its census, for the same reason turned inside out.** git's stat footer is its LAST
+  line, so any window that holds the footer holds the whole body. Measured over every line boundary of both
+  stat faces (27 and 6 lines): 2 and 2 windows parse a footer, and none of the four was missing any part of the
+  read — which is why no window clause is applied to a stat tally that names files. Their real hole was the
+  zero, which is v48's sentence, not v66's: `git.diff` and `git.staged --stat` both refused at a 1-byte budget
+  where they had been printing `0 files` / `index holds 0 file(s)`.
+- **The 53rd tracked proof (`docs/evidence/agents/cut-tally-proof.mjs`, 54th script) sweeps the whole
+  population without pretending to be cheaper than it is.** §1: git's census plus five WHOLE reads byte-exact
+  and clause-free (the rule must not leak into an uncut answer). §2: real git at the two boundary budgets, with
+  the "named before it are whole" claim checked against `--numstat`. §3: all 774 cut windows of the index read —
+  0 census-shaped, 0 prefix violations, 0 wrong whole-claims, 0 invented names — and 0 of the 774 named no
+  change, so every cut window of that read really did speak as a census before. §4: `git.show`'s 65 cut windows
+  (its face has 67 line boundaries) — 60 floor the tally, 5 refuse to state one, 59 short-count git's own
+  `60 0`, 0 phrase a census, and `floored + refused === cuts` so no window sits unclassified. §5: `git.diff`'s
+  51 windows. §6: both stat
+  faces. §7: ONE real commit through the commit door records 25 paths where the window said `AT LEAST 8` — the
+  assertion is the numeric relation, not a string about a string. §8: this repository's HEAD byte-compared
+  after 28 door spawns, all writes inside `os.tmpdir()`. §3's sweep is 774 door calls, so it replays git's
+  recorded bytes through the SHIPPED host instead of paying for them; §3a buys that shortcut's legitimacy by
+  comparing real git against the replay byte-for-byte at 12 budgets, in both the `detail` and the parsed files.
+- **What moved:** `diffWindowNotice` added to `gitTools.ts` and exported (with the package bucket); the three
+  doors' tally sentences gained `AT LEAST` plus the notice; three zero-branches gained v48's
+  `cutNotAbsence`. exec-host **259/259** (from 244: +8 in `gitTools.test.ts` — the pure rule's two-sided case,
+  the `cutIsInside` pair, `git.diff`'s cut and uncut sentences, its zero, its `--stat` refusal and the
+  per-boundary sweep — +3 in `gitShowTool.test.ts`, +4 in `gitStagedTool.test.ts`). The 52 previously-tracked
+  proofs stay green BY CONSTRUCTION: every non-cut sentence is byte-identical to what it said before, and the
+  three literals they assert (`index holds 3 change(s): …`, `HEAD changed notes/widget.md · +2 −0 …`) were read
+  back from HEAD's tests before editing and re-asserted in the new cases. 53/53 tracked proofs green (54/54
+  scripts on disk), four root gates green.
+- Honest bounds: this is a WORDING rule, and it lives in the sentence, not in the record. A door's structured
+  output still prints `truncated: true` without `truncatedStreams`, so a reader who consumes `totals` and skips
+  `detail` can still take a window for a census — that is now the sharpest remaining gap and the next candidate.
+  The `named`/`partial` numbers are this door's parse of the surviving bytes, so they inherit v64's and v65's
+  bounds (a body line wearing a header's shape, a prefix the repository chose) — the notices are siblings, not
+  substitutes. `git.diff`'s subject is "the working tree"; `diff.relative` would make that a narrower tree and
+  no case here measures it. Nothing here changes what git is ASKED to do or how many bytes come back: a door
+  with budget to spare still reads the whole pipe. `parseDiffStat` still reads only git's last line (v64's
+  bound, open) and the test bridge's report still carries no v55/v56 facts. DEMO MODE is unaffected (no Studio
+  surface runs an exec host), and staging stays a human act while `git push` stays out of scope (§28, §9).
+- Recorded on the way, because a sweep that goes red is information: the first full 54-script run of this
+  increment had ONE red, and it was not exec-host's — `provider-proof.mjs` (runtime lane) failed its
+  snapshot round-trip assertion (`deepEqual(revived.index(), provider.index())`). Traced by removal, not by
+  guessing: with this session's `ROADMAP`/clause DRAFT files moved out of the tree the proof is green (216
+  files indexed, vs 220), because a markdown file with no heading yields a chunk whose `heading` is
+  `undefined`, and a JSON snapshot drops that KEY entirely — so in-memory and revived chunk objects stop being
+  deep-equal for any repository containing a heading-less `.md`. No exec-host file is involved, and the fix
+  belongs to the lane that owns `codeIndex.ts`/`indexStore.ts`, whose `agents/runtime/src/index.ts` is dirty in
+  this same working tree — so it is REPORTED here and across the lane boundary, not patched here. What this
+  increment did do is stop polluting the measured tree: doc drafts now live outside the repository, and a
+  heading-less `.md` is a known trigger for that proof rather than a surprise.

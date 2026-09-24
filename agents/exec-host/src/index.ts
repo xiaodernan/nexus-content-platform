@@ -61,6 +61,7 @@ export {
   GIT_TOOL_SPECS,
   budgetFlags,
   cutNotAbsence,
+  diffWindowNotice,
   gitEnv,
   gitReadOnlyPolicy,
   gitVerdict,

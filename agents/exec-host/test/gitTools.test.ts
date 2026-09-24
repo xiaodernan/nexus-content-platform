@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { ToolRegistry, planExec } from '@nexus/agent-runtime';
 import type { SpawnLike } from '@nexus/agent-runtime';
 import { createExecHost, type ExecChild } from '../src/execHost.js';
-import { GIT_TOOL_SPECS, GIT_DIFF_FLAGS, budgetFlags, gitEnv, gitReadOnlyPolicy, gitVerdict, isDiffHeaderPairLine, isQuotedRendering, parseDiffHeader, parseDiffStat, parseFileLine, parseGitDiff, parseGitStatus, pathShapeNotices, quoteVerdict, refusedNotAbsence, registerGitTools, stdoutWasCut, treeSplitNotice, UNMERGED_XY, unmergedNotice, unmergedNotAbsence, unmergedStatusNotice, unnamableDiffSections, unnamableSectionsNotice, unwrapRendering } from '../src/gitTools.js';
+import { GIT_TOOL_SPECS, GIT_DIFF_FLAGS, budgetFlags, diffWindowNotice, gitEnv, gitReadOnlyPolicy, gitVerdict, isDiffHeaderPairLine, isQuotedRendering, parseDiffHeader, parseDiffStat, parseFileLine, parseGitDiff, parseGitStatus, pathShapeNotices, quoteVerdict, refusedNotAbsence, registerGitTools, stdoutWasCut, treeSplitNotice, UNMERGED_XY, unmergedNotice, unmergedNotAbsence, unmergedStatusNotice, unnamableDiffSections, unnamableSectionsNotice, unwrapRendering } from '../src/gitTools.js';
 import { GIT_ABSENT_CONFIG, GIT_FORCED_CONFIG, GIT_ISOLATION_ENV, GIT_PASS_THROUGH_ENV_NAMES, forcedConfigEnv } from '../src/gitEnvIsolation.js';
 
 describe('parseGitStatus (porcelain v1, pure data)', () => {
@@ -851,5 +851,113 @@ describe('v63 — a CUT read is a WINDOW, not a census', () => {
     expect(o.files.every((f) => f.staged === true)).toBe(true);
     expect(o.detail).toContain('the read was CUT at the budget, so this is NOT a statement that nothing unstaged or untracked exists behind it');
     expect(o.detail).not.toContain('3/3'); // no ratio may be spoken as if it were the repository
+  });
+});
+
+describe('v66 — a cut DIFF tally is a WINDOW claim, not a census', () => {
+  // Three sections, each complete: the first two are whole in a window that stops inside the third,
+  // which is exactly the property `diffWindowNotice` states out loud (and the exhaustive case below
+  // checks on every line boundary rather than trusting this fixture's shape).
+  const section = (n: string, adds: number) =>
+    [
+      `diff --git a/${n}.ts b/${n}.ts`,
+      `index 1111111..2222222 100644`,
+      `--- a/${n}.ts`,
+      `+++ b/${n}.ts`,
+      `@@ -1,2 +1,${2 + adds} @@`,
+      ` context ${n}`,
+      ...Array.from({ length: adds }, (_, k) => `+added ${n}-${k}`),
+    ].join('\n');
+  const THREE = [section('a', 2), section('b', 3), section('c', 4)].join('\n') + '\n';
+  const STAT = [' a.ts | 2 ++', ' b.ts | 3 +++', ' c.ts | 4 ++++', ' 3 files changed, 9 insertions(+)', ''].join('\n');
+  const lines = THREE.split('\n');
+  const head = (n: number) => lines.slice(0, n).join('\n') + '\n';
+  const cut = head(11); // inside b's hunk: a is whole, b is half-read, c never arrives
+  const cutBudget = cut.length;
+
+  it('says NOTHING for a read that was not cut, and nothing for a read that named no change', () => {
+    expect(diffWindowNotice({ window: false, subject: 'the working tree', named: 3 })).toBe('');
+    expect(diffWindowNotice({ window: true, subject: 'the working tree', named: 0 })).toBe('');
+    expect(diffWindowNotice({ window: false, subject: 'the working tree', named: 0 })).toBe('');
+  });
+
+  it('names the subject and the change the read reached LAST; only a one-section read may say the cut landed inside it', () => {
+    const s = diffWindowNotice({ window: true, subject: 'the working tree', named: 3, partial: { path: 'c.ts', additions: 1, deletions: 0 } });
+    expect(s).toContain('this is a WINDOW on the working tree, NOT a census of it');
+    expect(s).toContain('the last change the read reached is c.ts (+1 −0), whose numbers MAY stop where the read did');
+    expect(s).not.toContain('the cut landed inside'); // a budget may have expired exactly at a section boundary — this door cannot tell
+    expect(s).toContain('the 2 change(s) named before it are whole');
+    const shown = diffWindowNotice({ window: true, subject: "HEAD's change to c.ts", named: 1, partial: { path: 'c.ts', additions: 0, deletions: 0 }, cutIsInside: true });
+    expect(shown).toContain('the cut landed inside c.ts (+0 −0), whose numbers stop where the read did'); // git.show diffs ONE path, so the cut has nowhere else to be
+    expect(shown).not.toContain('0 change(s) named before it'); // a floor of "whole except the last" over ONE file says nothing
+  });
+
+  it('git.diff qualifies its counts when the pipe it parses was cut, and the counts stay the read\'s own', async () => {
+    const h = harness(THREE, { code: 0, signal: null }, cutBudget);
+    const res = await h.registry.invoke({ callId: 'v66a', tool: 'git.diff', args: {} }, h.grant);
+    const o = res.output as { detail: string; totals: { files: number; additions: number; deletions: number } };
+    const p = parseGitDiff(cut); // the expectation is DERIVED from the same bytes, not copied from a hope
+    expect(o.totals).toEqual(p.totals);
+    expect(p.totals.files).toBeLessThan(3); // the whole read names 3 — so this really is a short answer
+    expect(o.detail).toContain(`AT LEAST ${p.totals.files} files, +${p.totals.additions} −${p.totals.deletions}`);
+    expect(o.detail).toContain('this is a WINDOW on the working tree, NOT a census of it');
+    expect(o.detail).toContain('output truncated at budget (stdout)'); // v56's clause is still there
+  });
+
+  it('a whole read is worded EXACTLY as it was before v66 — the clause is about a cut, not a style', async () => {
+    const h = harness(THREE);
+    const res = await h.registry.invoke({ callId: 'v66b', tool: 'git.diff', args: {} }, h.grant);
+    const o = res.output as { detail: string; totals: { files: number; additions: number } };
+    expect(o.totals.files).toBe(3);
+    expect(o.detail).toBe('git.diff → exit 0: 3 files, +9 −0 (3 hunks)');
+  });
+
+  it('git.diff refuses to report 0 files about a read its own budget emptied (v48\'s rule, never wired here)', async () => {
+    const h = harness(THREE, { code: 0, signal: null }, 1);
+    const res = await h.registry.invoke({ callId: 'v66c', tool: 'git.diff', args: {} }, h.grant);
+    const o = res.output as { detail: string; truncated: boolean };
+    expect(o.truncated).toBe(true);
+    expect(o.detail).toContain('no complete line survived the output budget — this is NOT a statement that the working tree has no changes');
+    expect(o.detail).not.toContain('0 files, +0 −0');
+  });
+
+  it('git.diff --stat refuses the same 0-file census, and still reports git\'s footer as a census when it survived', async () => {
+    const emptied = await harness(STAT, { code: 0, signal: null }, 1).registry.invoke({ callId: 'v66d', tool: 'git.diff', args: { stat: true } }, harness().grant);
+    const cutOpen = emptied.output as { detail: string; summary: unknown };
+    expect(cutOpen.detail).toContain('no complete line survived the output budget — this is NOT a statement that nothing changed');
+    expect(cutOpen.detail).not.toContain('0 files');
+    expect(cutOpen.summary).toEqual({ files: 0, insertions: 0, deletions: 0 }); // the record keeps git's arithmetic; the SENTENCE refuses it
+    const whole = await harness(STAT).registry.invoke({ callId: 'v66e', tool: 'git.diff', args: { stat: true } }, harness().grant);
+    expect((whole.output as { detail: string }).detail).toBe('git.diff --stat → exit 0: 3 files, +9 −0');
+  });
+
+  it('the sentence\'s load-bearing property holds on EVERY line boundary: only the LAST change in a window can be short', () => {
+    const whole = parseGitDiff(THREE);
+    expect(whole.totals).toEqual({ files: 3, hunks: 3, additions: 9, deletions: 0 });
+    for (let n = 1; n < lines.length; n += 1) {
+      const kept = head(n);
+      const p = parseGitDiff(kept);
+      expect(p.files.length).toBeLessThanOrEqual(whole.files.length);
+      expect(p.files.slice(0, -1)).toEqual(whole.files.slice(0, Math.max(0, p.files.length - 1)));
+      expect(p.files.every((f, i) => i === p.files.length - 1 || f.additions <= whole.files[i]!.additions)).toBe(true);
+    }
+  });
+
+  it('a --stat read that holds git\'s footer holds the WHOLE body — so its tally needs no window clause', () => {
+    const statLines = STAT.split('\n');
+    const bodyLines = statLines.filter((l) => l !== '').length;
+    let parsed = 0;
+    for (let n = 1; n <= statLines.length; n += 1) {
+      const kept = statLines.slice(0, n).join('\n');
+      const summary = parseDiffStat(kept);
+      if (summary === null) {
+        expect(/files? changed/.test(kept)).toBe(false); // a window without the census says so, it does not invent one
+        continue;
+      }
+      parsed += 1;
+      // git prints the footer after every file line, so a window that can parse a census holds them all.
+      expect(statLines.slice(0, n).filter((l) => l !== '').length).toBe(bodyLines);
+    }
+    expect(parsed).toBeGreaterThan(0); // a vacuous scan would otherwise prove nothing
   });
 });

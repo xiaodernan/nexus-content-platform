@@ -1,5 +1,5 @@
 import type { ExecPolicy, ToolRegistry, ToolSpec } from '@nexus/agent-runtime';
-import { budgetFlags, GIT_DIFF_FLAGS, GIT_ENV_NAMES, cutNotAbsence, gitEnv, gitVerdict, isDiffHeaderPairLine, parseDiffHeader, parseDiffStat, parseFileLine, pathShapeNotices, quoteVerdict, refusedNotAbsence, unmergedNotAbsence, unmergedNotice, unnamableDiffSections, unnamableSectionsNotice, stdoutWasCut, unwrapRendering } from './gitTools.js';
+import { budgetFlags, diffWindowNotice, GIT_DIFF_FLAGS, GIT_ENV_NAMES, cutNotAbsence, gitEnv, gitVerdict, isDiffHeaderPairLine, parseDiffHeader, parseDiffStat, parseFileLine, pathShapeNotices, quoteVerdict, refusedNotAbsence, unmergedNotAbsence, unmergedNotice, unnamableDiffSections, unnamableSectionsNotice, stdoutWasCut, unwrapRendering } from './gitTools.js';
 import type { ExecHost, ExecRunResult } from './execHost.js';
 
 /**
@@ -28,6 +28,14 @@ import type { ExecHost, ExecRunResult } from './execHost.js';
  * outranks any config file), and — because a door cannot enumerate the renderings that do not exist
  * yet — the emptiness claim runs through v65's section census: sections git printed that this door
  * could not name are quoted and counted, never silently folded into "nothing is staged".
+ *
+ * M2 v66 (ADR 0016 amendment 66) is the same door on the OTHER way a read comes back short. v43 built
+ * this window for a human at §28, and the whole answer is a COUNT — so when the output budget trims the
+ * diff, the count is of what survived. Measured (index of 25 changes, git's footer `25 files changed,
+ * 75 insertions(+), 75 deletions(-)`): a budget keeping 8 sections made this door answer `index holds
+ * 8 change(s): 8 modified · +24 −24 across 24 hunk(s)`, and 774 of that diff's 776 line boundaries
+ * produced some sentence of that shape. v63 wrote the rule for `git.status` and it never reached here;
+ * now the tally says `AT LEAST`, and `diffWindowNotice` names the change the cut landed inside.
  */
 export function gitStagedPolicy(root: string, options: { timeoutMs?: number; maxOutputBytes?: number } = {}): ExecPolicy {
   const timeoutMs = options.timeoutMs ?? 10_000;
@@ -176,7 +184,7 @@ export const GIT_STAGED_TOOL_SPECS: ToolSpec[] = [
   {
     name: 'git.staged',
     description:
-      `Read what the HUMAN staged, through the confined exec host (\`git diff ${GIT_DIFF_FLAGS.join(' ')} --cached\`, or the same plus \`--stat\` — the only two argv the policy allows; no paths, no other flags). Plain git.diff cannot see staged content, so this is the pre-commit intent window: an index this door could read and name is stated as empty, and one it could not name is stated as unread. Read-only, but a real process spawns, so the §28 checkpoint applies.`,
+      `Read what the HUMAN staged, through the confined exec host (\`git diff ${GIT_DIFF_FLAGS.join(' ')} --cached\`, or the same plus \`--stat\` — the only two argv the policy allows; no paths, no other flags). Plain git.diff cannot see staged content, so this is the pre-commit intent window: an index this door could read and name is stated as empty, one it could not name is stated as unread, and one the output budget trimmed is stated as a FLOOR rather than a count of the index (see diffWindowNotice). Read-only, but a real process spawns, so the §28 checkpoint applies.`,
     permissions: ['exec'],
     args: [
       { name: 'stat', type: 'boolean' },
@@ -201,14 +209,22 @@ export function registerGitStagedTool(registry: ToolRegistry, host: ExecHost, op
     if (stat) {
       const summary = parseDiffStat(result.stdout);
       const notice = unmergedNotice(result.stdout);
-      const detail = summary
-        ? `git.staged --stat → exit 0: index holds ${summary.files} file(s) · +${summary.insertions} −${summary.deletions}${notice.length > 0 ? ` · ${unmergedNotAbsence(notice)}` : ''}${flags(result)}`
-        : `git.staged --stat → exit 0: git printed no stat footer — stated, not guessed${notice.length > 0 ? ` · ${unmergedNotAbsence(notice)}` : ''}${flags(result)}`;
+      // v66: the stat face's ONLY window hole is the zero — an emptied read parses to `{0,0,0}` because
+      // `parseDiffStat` is honest about a genuinely empty diff, and here there was nothing to be honest
+      // about. A surviving footer is git's own arithmetic over the whole body (see diffWindowNotice),
+      // so a non-zero stat tally gets no window clause.
+      const detail = summary !== null && summary.files === 0 && stdoutWasCut(result)
+        ? `git.staged --stat → exit 0: ${cutNotAbsence('the index holds nothing staged for the §28 ask')}${flags(result)}`
+        : summary
+          ? `git.staged --stat → exit 0: index holds ${summary.files} file(s) · +${summary.insertions} −${summary.deletions}${notice.length > 0 ? ` · ${unmergedNotAbsence(notice)}` : ''}${flags(result)}`
+          : `git.staged --stat → exit 0: git printed no stat footer — stated, not guessed${notice.length > 0 ? ` · ${unmergedNotAbsence(notice)}` : ''}${flags(result)}`;
       return { ok: true, detail, exitCode: 0, stat: true, mode: 'stat', summary, text: result.stdout, truncated: result.truncated };
     }
     const index = parseStagedDiff(result.stdout);
     const notice = unmergedNotice(result.stdout);
     const unnamable = unnamableDiffSections(result.stdout); // v65: git's own section count, read without naming anything
+    const windowed = stdoutWasCut(result); // v66: the budget may have trimmed THIS diff, and then so is every count below
+    const last = index.files.at(-1);
     const tally = tallyStagedCounts(index.counts);
     const detail =
       index.files.length === 0
@@ -219,7 +235,7 @@ export function registerGitStagedTool(registry: ToolRegistry, host: ExecHost, op
             : stdoutWasCut(result)
               ? `git.staged → exit 0: ${cutNotAbsence('the index has nothing staged for the §28 ask')}${flags(result)}`
               : `git.staged → exit 0: the index is EMPTY — nothing is staged, so a granted git.commit right now would have nothing to record${flags(result)}`
-        : `git.staged → exit 0: index holds ${index.totals.files} change(s): ${tally} · +${index.totals.additions} −${index.totals.deletions} across ${index.totals.hunks} hunk(s)${index.totals.binary > 0 ? ` · ${index.totals.binary} binary change(s) with no lines claimed` : ''}${unnamable.length > 0 ? ` · ${unnamableSectionsNotice(unnamable)}` : ''}${pathShapeNotices(index.files)}${flags(result)}`;
+        : `git.staged → exit 0: index holds ${windowed ? 'AT LEAST ' : ''}${index.totals.files} change(s): ${tally} · +${index.totals.additions} −${index.totals.deletions} across ${index.totals.hunks} hunk(s)${index.totals.binary > 0 ? ` · ${index.totals.binary} binary change(s) with no lines claimed` : ''}${unnamable.length > 0 ? ` · ${unnamableSectionsNotice(unnamable)}` : ''}${diffWindowNotice({ window: windowed, subject: 'the index — what a granted git.commit would record', named: index.totals.files, ...(last ? { partial: { path: last.path, additions: last.additions, deletions: last.deletions } } : {}) })}${pathShapeNotices(index.files)}${flags(result)}`;
     return {
       ok: true,
       detail,

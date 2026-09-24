@@ -19,6 +19,11 @@ import { GIT_ISOLATION_ENV_NAMES, GIT_PASS_THROUGH_ENV_NAMES, forcedConfigEnv, G
  * then parse zero files out of a diff git printed in full — with exit 0. The shapes now say the
  * prefixes, and the parsers count git's `diff --git` sections separately from the names they could
  * attach them to, so a rendering this package cannot read is stated as unread rather than as absent.
+ *
+ * M2 v66 (ADR 0016 amendment 66) is about the read that IS understood and still does not reach the door:
+ * the output budget. v63 made `git.status` say so; the three DIFF doors never got the rule, so a window
+ * was spoken as a census (`index holds 8 change(s)` for 25, `1 files, +0 −0` for a file git counts at
+ * +1 −1). `diffWindowNotice` is that one rule, shared now by `git.diff`, `git.staged` and `git.show`.
  */
 
 /** The diff flags that keep a READ from EXECUTING: a configured external diff or
@@ -250,6 +255,63 @@ export const unnamableDiffSections = (stdout: string): string[] =>
 /** The sentence that goes with it — the same family as v48's cut and v52's refusal. */
 export const unnamableSectionsNotice = (lines: string[]): string =>
   `git printed ${lines.length} diff section(s) whose header this door cannot split into two names (${lines.map((l) => `"${l}"`).join(', ')}) — those ARE changes and this door could not NAME them, so they are in no tally above and nothing in this answer states that the index or working tree holds nothing`;
+
+/**
+ * M2 v66 (ADR 0016 amendment 66): v63 wrote this rule for `git.status` and left it THERE, so the three
+ * doors that read a DIFF went on speaking their tallies as censuses over a read the budget had trimmed.
+ * Measured on this box (git 2.52) in a throwaway repo whose index holds 25 changes — git's own footer:
+ * `25 files changed, 75 insertions(+), 75 deletions(-)`:
+ * - a budget that keeps 8 of the 25 sections made `git.staged` answer `index holds 8 change(s): 8
+ *   modified · +24 −24 across 24 hunk(s)`, and its only budget clause was v56's `output truncated at
+ *   budget (stdout)` — a sentence that admits bytes were lost while the numbers go on meaning "the index".
+ *   Over every line boundary of that diff: 774 of its 776 boundaries are cuts, and all 774 of them produced
+ *   such a census-shaped answer (`cut-tally-proof.mjs` §3 drives every one; §2 prints the sentence above).
+ * - `git.diff` said `1 files, +0 −0 (0 hunks)` about a file git counts at +1 −1, and `0 files, +0 −0
+ *   (0 hunks)` about a 4-section, 2004-byte worktree diff — v48's `cutNotAbsence` was never wired into
+ *   THIS door's zero, only into `git.show` and `git.staged`.
+ * - `git.show` said `HEAD changed src/mod-09/a-long-file-name-9.ts · +12 −0` where git's own `--numstat`
+ *   for that path is `60 0`; 59 of its 65 cut windows (that face has 67 line boundaries) short-count a file
+ *   the door simultaneously says HEAD changed.
+ * The harm is not that the count is small — it is that a small count is phrased as the repository's.
+ * So the doors say what kind of number it is: `AT LEAST` on the count itself, and this sentence beside
+ * it. The sentence can be specific because the shape of a diff read makes it so, and that shape was
+ * checked rather than assumed (`cut-tally-proof.mjs` §4, and the exhaustive unit case): the host keeps a
+ * PREFIX of whole lines (v48), a diff section ends where the next `diff --git` begins, so every change
+ * named before the last one in a window is byte-complete — only the LAST can be cut short. A `--stat`
+ * read is immune to short-counting for the same reason turned inside out: git's footer is its LAST line,
+ * so any window holding it holds the whole body (measured over every line boundary of both stat bodies —
+ * 27 and 6 lines — 2 and 2 windows parse a footer, and none of the four lacked any part of the read),
+ * which is why this rule is not applied to a stat tally that names files — and why the stat faces' real
+ * hole was the zero, handled by v48's rule.
+ * A tally of ZERO gets no sentence here: the door's own 0-branch (v48's `cutNotAbsence`, v52's refusal)
+ * is the sentence for it, and stacking both would say the same thing twice. The sentence also declines
+ * to name a location it cannot see: only `git.show` may say the cut landed INSIDE the change it names,
+ * because that read is confined to one path; a multi-section read's budget can expire at a section
+ * boundary, so its door says the last change it reached MAY be the short one.
+ */
+export const diffWindowNotice = (read: {
+  window: boolean;
+  subject: string;
+  named: number;
+  partial?: { path: string; additions: number; deletions: number };
+  /**
+   * True only when the read CANNOT hold a second section — `git.show` names one path, so a cut that
+   * left any line at all necessarily stopped inside that path's diff. A multi-section read may have
+   * had its budget expire exactly at a section boundary, leaving the last change it named whole; a
+   * door that cannot tell the two apart says MAY, not LANDED (§60).
+   */
+  cutIsInside?: boolean;
+}): string => {
+  if (!read.window || read.named === 0) return '';
+  const p = read.partial;
+  const whole = p === undefined || read.named <= 1 ? '' : ` · the ${read.named - 1} change(s) named before it are whole`;
+  const where = p === undefined
+    ? ''
+    : read.cutIsInside
+      ? ` · the cut landed inside ${p.path} (+${p.additions} −${p.deletions}), whose numbers stop where the read did`
+      : ` · the last change the read reached is ${p.path} (+${p.additions} −${p.deletions}), whose numbers MAY stop where the read did`;
+  return ` · the counts above are the changes and lines that SURVIVED the output budget — git printed more on that pipe, so this is a WINDOW on ${read.subject}, NOT a census of it${where}${whole}`;
+};
 
 /**
  * M2 v61: ONE sentence-pair for the doors that report parsed paths (`git.status`, `git.staged`),
@@ -530,7 +592,7 @@ export const GIT_TOOL_SPECS: ToolSpec[] = [
   },
   {
     name: 'git.diff',
-    description: `Read-only change awareness: \`git diff ${GIT_DIFF_FLAGS.join(' ')}\` (per-file line tallies) or the same shape plus \`--stat\` (summary) through the confined exec host. Exact argv only — no paths, no shell, no external diff driver, and the \`a/\`/\`b/\` the per-file names are read from are ours, not the repository's (see gitEnvIsolation).`,
+    description: `Read-only change awareness: \`git diff ${GIT_DIFF_FLAGS.join(' ')}\` (per-file line tallies) or the same shape plus \`--stat\` (summary) through the confined exec host. Exact argv only — no paths, no shell, no external diff driver, and the \`a/\`/\`b/\` the per-file names are read from are ours, not the repository's (see gitEnvIsolation). A read the output budget trimmed reports its counts as a FLOOR on the working tree, not a census of it (see diffWindowNotice).`,
     permissions: ['exec'],
     args: [
       { name: 'stat', type: 'boolean' },
@@ -571,10 +633,15 @@ export function registerGitTools(registry: ToolRegistry, host: ExecHost, options
     const stat = args.stat === true;
     const result = await runGit(stat ? ['git', 'diff', ...GIT_DIFF_FLAGS, '--stat'] : ['git', 'diff', ...GIT_DIFF_FLAGS], args.cwd);
     const ok = result.exitCode === 0 && !result.killedByBudget;
+    const windowed = stdoutWasCut(result); // v66: v56's predicate, now read by the diff doors too
     if (stat) {
       const summary = parseDiffStat(result.stdout);
       const notice = unmergedNotice(result.stdout);
-      const parsed = summary ? `${summary.files} files, +${summary.insertions} −${summary.deletions}` : 'unparseable stat footer';
+      // v66: a cut that emptied the read is NOT a 0-file census — git's footer simply did not survive.
+      // A footer that DID survive needs no window clause: it is git's own arithmetic over the whole body,
+      // and a prefix read either holds the last line or loses it (measured exhaustively, see diffWindowNotice).
+      const cutEmpty = summary !== null && summary.files === 0 && windowed;
+      const parsed = cutEmpty ? cutNotAbsence('nothing changed') : summary ? `${summary.files} files, +${summary.insertions} −${summary.deletions}` : 'unparseable stat footer';
       const mention = notice.length > 0 ? ` · ${unmergedNotAbsence(notice)}` : '';
       const detail = ok
         ? `git.diff --stat → exit 0: ${parsed}${mention}${flags(result)}`
@@ -584,9 +651,12 @@ export function registerGitTools(registry: ToolRegistry, host: ExecHost, options
     const { files, totals } = parseGitDiff(result.stdout);
     const notice = unmergedNotice(result.stdout);
     const unnamable = unnamableDiffSections(result.stdout); // v65: git's section count is the floor under this tally
-    const tally = `${totals.files} files, +${totals.additions} −${totals.deletions} (${totals.hunks} hunks)`;
+    const last = files.at(-1);
+    const tally = totals.files === 0 && windowed
+      ? cutNotAbsence('the working tree has no changes') // v66: git.diff had no such branch — v32 predated v48
+      : `${windowed ? 'AT LEAST ' : ''}${totals.files} files, +${totals.additions} −${totals.deletions} (${totals.hunks} hunks)`;
     const detail = ok
-      ? `git.diff → exit 0: ${tally}${notice.length > 0 ? ` · ${unmergedNotAbsence(notice)}` : ''}${unnamable.length > 0 ? ` · ${unnamableSectionsNotice(unnamable)}` : ''}${pathShapeNotices(files)}${flags(result)}`
+      ? `git.diff → exit 0: ${tally}${notice.length > 0 ? ` · ${unmergedNotAbsence(notice)}` : ''}${unnamable.length > 0 ? ` · ${unnamableSectionsNotice(unnamable)}` : ''}${diffWindowNotice({ window: windowed, subject: 'the working tree', named: totals.files, ...(last ? { partial: { path: last.path, additions: last.additions, deletions: last.deletions } } : {}) })}${pathShapeNotices(files)}${flags(result)}`
       : `git.diff → exit ${result.exitCode}: ${quoteVerdict(gitVerdict(result.stdout, result.stderr, { truncated: result.truncated || result.killedByBudget }))} · ${tally} · ${refusedNotAbsence('the tree has no changes')}${flags(result)}`;
     return { ok, detail, exitCode: result.exitCode, mode: 'full', files, totals, truncated: result.truncated };
   });

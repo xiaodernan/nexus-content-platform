@@ -263,3 +263,46 @@ describe('git.show as a registry tool (content behind §28 — a process still s
     expect((res.output as { detail: string }).detail).toContain('as a BINARY change');
   });
 });
+
+/**
+ * M2 v66 (ADR 0016 amendment 66): the door that reads WHAT a commit recorded was short-counting the
+ * very file it simultaneously says HEAD changed. Measured on this box: HEAD's change to
+ * `src/mod-09/a-long-file-name-9.ts` is `60 0` in git's own `--numstat`, and 59 of this door's 67
+ * possible windows said a smaller number as if it were the file's.
+ */
+describe('v66 — a cut git.show read says AT LEAST, and may say where the cut landed', () => {
+  const parts = NEW_FILE_DIFF.split('\n');
+  /** Keeps through the hunk header and ONE added line; the second `+` line cannot fit (v48 whole lines). */
+  const insideTheHunk = Buffer.byteLength(parts.slice(0, 7).join('\n')) + 1;
+
+  it('a trimmed read floors its own tally and puts the cut INSIDE the one path it diffs', async () => {
+    const h = harness(NEW_FILE_DIFF, '', { code: 0, signal: null }, insideTheHunk);
+    const res = await h.registry.invoke({ callId: 'v66s1', tool: 'git.show', args: { path: 'notes/widget.md' } }, h.grant);
+    const o = res.output as { detail: string; truncated: boolean; additions: number; deletions: number };
+    expect(o.truncated).toBe(true);
+    expect(o.additions).toBeLessThan(2); // the whole read says +2
+    expect(o.detail).toContain('HEAD changed notes/widget.md');
+    expect(o.detail).toContain(`AT LEAST +${o.additions} −${o.deletions}`);
+    expect(o.detail).toContain("this is a WINDOW on HEAD's change to notes/widget.md, NOT a census of it");
+    // git.show names ONE path, so unlike the multi-section doors this one may say where the cut landed.
+    expect(o.detail).toContain('the cut landed inside notes/widget.md');
+  });
+
+  it('an uncut read keeps its pre-v66 sentence byte for byte, and a window over ONE change says nothing about changes before it', async () => {
+    const cut = await harness(NEW_FILE_DIFF, '', { code: 0, signal: null }, insideTheHunk).registry.invoke({ callId: 'v66s2', tool: 'git.show', args: { path: 'notes/widget.md' } }, { checkpoint: () => true });
+    expect((cut.output as { detail: string }).detail).not.toContain('0 change(s) named before it');
+    const whole = await harness(NEW_FILE_DIFF).registry.invoke({ callId: 'v66s3', tool: 'git.show', args: { path: 'notes/widget.md' } }, { checkpoint: () => true });
+    expect((whole.output as { detail: string }).detail).toBe('git.show → exit 0: HEAD changed notes/widget.md · +2 −0 across 1 hunk(s)');
+  });
+
+  it('every window that named a change floors it — the census phrasing is unreachable on a cut read', async () => {
+    for (let n = 1; n < parts.length; n += 1) {
+      const budget = Buffer.byteLength(parts.slice(0, n).join('\n')) + 1;
+      const res = await harness(NEW_FILE_DIFF, '', { code: 0, signal: null }, budget).registry.invoke({ callId: `v66q${n}`, tool: 'git.show', args: { path: 'notes/widget.md' } }, { checkpoint: () => true });
+      const o = res.output as { detail: string; truncated: boolean; additions: number; deletions: number; hunks: number };
+      if (o.truncated && o.hunks + o.additions + o.deletions > 0) {
+        expect(o.detail, `budget ${budget}`).toContain(`AT LEAST +${o.additions} −${o.deletions}`);
+      }
+    }
+  });
+});

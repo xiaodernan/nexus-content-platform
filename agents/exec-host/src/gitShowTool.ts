@@ -1,5 +1,5 @@
 import type { ExecPolicy, ToolRegistry, ToolSpec } from '@nexus/agent-runtime';
-import { budgetFlags, GIT_DIFF_FLAGS, GIT_ENV_NAMES, cutNotAbsence, gitEnv, gitVerdict, isDiffHeaderPairLine, isQuotedRendering, quoteVerdict, refusedNotAbsence, stdoutWasCut } from './gitTools.js';
+import { budgetFlags, diffWindowNotice, GIT_DIFF_FLAGS, GIT_ENV_NAMES, cutNotAbsence, gitEnv, gitVerdict, isDiffHeaderPairLine, isQuotedRendering, quoteVerdict, refusedNotAbsence, stdoutWasCut } from './gitTools.js';
 import type { ExecHost, ExecRunResult } from './execHost.js';
 
 /**
@@ -19,6 +19,12 @@ import type { ExecHost, ExecRunResult } from './execHost.js';
  * "HEAD touches nothing here" about a recorded change, and both sides had converted to the
  * same text on the way. `--no-ext-diff --no-textconv` are now part of the pinned shape: the
  * answer comes from git's builtin diff machinery, and a binary change says BINARY (§60).
+ *
+ * M2 v66 (ADR 0016 amendment 66): this door's +/− is a count of LINES, and lines are what the output
+ * budget removes. Measured on a HEAD change git itself calls `60 0` for the path: at a 600-byte budget
+ * the door said `HEAD changed src/mod-09/a-long-file-name-9.ts · +12 −0`, and 59 of that diff's 67 possible windows
+ * short-count the one file the sentence is about. v48's `cutNotAbsence` already covers the case where
+ * NOTHING survived; the case where something survived is now `AT LEAST` plus `diffWindowNotice`.
  */
 export function gitShowPolicy(root: string, options: { timeoutMs?: number; maxOutputBytes?: number } = {}): ExecPolicy {
   const timeoutMs = options.timeoutMs ?? 10_000;
@@ -88,7 +94,7 @@ export const GIT_SHOW_TOOL_SPECS: ToolSpec[] = [
   {
     name: 'git.show',
     description:
-      'Read back WHAT a commit recorded, through the confined exec host (`git show --no-ext-diff --no-textconv --format= -- <path>` — the only argv the policy allows; the revision is HEAD by construction, so no other commit is reachable, and no configured diff helper can answer for git). Returns HEAD\'s added lines and +/− tally for that one path. Read-only, but a real process spawns, so the §28 checkpoint applies.',
+      `Read back WHAT a commit recorded, through the confined exec host (\`git show ${GIT_DIFF_FLAGS.join(' ')} --format= -- <path>\` — the only argv the policy allows; the revision is HEAD by construction, so no other commit is reachable, no configured diff helper can answer for git, and the a/ and b/ prefixes the path is named through are ours). Returns HEAD's added lines and +/− tally for that one path, and a read the output budget trimmed reports its tally as a FLOOR on that path rather than the whole change (see diffWindowNotice). Read-only, but a real process spawns, so the §28 checkpoint applies.`,
     permissions: ['exec'],
     args: [
       { name: 'path', type: 'string', required: true },
@@ -112,11 +118,12 @@ export function registerGitShowTool(registry: ToolRegistry, host: ExecHost, opti
     }
     const change = parseShowDiff(result.stdout, path);
     const touched = change.hunks > 0 || change.additions > 0 || change.deletions > 0;
+    const windowed = stdoutWasCut(result); // v66: the budget may have stopped inside this one file's diff
     const detail = change.binary
       ? `git.show → exit 0: HEAD touches ${path} as a BINARY change (+${change.additions} −${change.deletions}) — git printed no hunks, so no lines are claimed${flags}`
       : touched
-        ? `git.show → exit 0: HEAD changed ${path} · +${change.additions} −${change.deletions} across ${change.hunks} hunk(s)${flags}`
-        : stdoutWasCut(result)
+        ? `git.show → exit 0: HEAD changed ${path} · ${windowed ? 'AT LEAST ' : ''}+${change.additions} −${change.deletions} across ${change.hunks} hunk(s)${diffWindowNotice({ window: windowed, subject: `HEAD's change to ${path}`, named: 1, partial: { path, additions: change.additions, deletions: change.deletions }, cutIsInside: true })}${flags}`
+        : windowed
           ? `git.show → exit 0: ${cutNotAbsence(`HEAD touched ${path}`)}${flags}`
           : `git.show → exit 0: HEAD touches nothing at ${path} (empty diff — git recorded no change for this path in HEAD)${flags}`;
     return {
