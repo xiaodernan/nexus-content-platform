@@ -125,6 +125,26 @@ function opsPatch(ops: PatchOp[], summary: string, pageId: string): DesignPatchP
   return { pageId, summary, ops: ops as unknown as DesignPatchPayload['ops'] };
 }
 
+/**
+ * 子树规模：审批卡片上"要删掉多少个节点"得是个真数，不能是"及其子节点"这种读不出分量的说法。
+ * 带 visited 是因为文档是图不是树（组件实例的 children 可以指回祖先），无环假设会让这里死循环。
+ */
+function countSubtree(page: Page, rootId: string): number {
+  const seen = new Set<string>([rootId]);
+  const stack = [rootId];
+  while (stack.length) {
+    const id = stack.pop();
+    if (!id) break;
+    const children = (page.nodes[id] as { children?: string[] } | undefined)?.children ?? [];
+    for (const child of children) {
+      if (seen.has(child)) continue;
+      seen.add(child);
+      stack.push(child);
+    }
+  }
+  return seen.size;
+}
+
 const RULES: Rule[] = [
   {
     id: 'resize-height',
@@ -330,6 +350,36 @@ const RULES: Rule[] = [
         patches: [opsPatch(ops, `插入${topic}区块`, page.id)],
         activities: ['解析意图', '组装节点树', '绑定 token', '插入页面'],
         label: '结构生成',
+      };
+    },
+  },
+  {
+    /**
+     * §74 的删除类动作要有门——而这条规则存在的理由就是"门得有人撞得到"。
+     * 之前五条规则产出的 op 全是 `set` / `insert` / `setToken`，也就是说
+     * `requires_approval` 与状态 `awaiting_approval` 就算接上了写入方，
+     * 在 DEMO MODE 里也永远走不到那条分支：一条测不到、也演示不了的审批门，
+     * 与 §74 里那个没有人写入的 `deletedAt` 是同一种东西。
+     *
+     * 这条规则做的是真删除（`remove` 连同子树，撤销走同一条 Command），不含任何模拟。
+     * 它**不说**"已挂起"：知不知道有门是服务端的事，Mock 只报告它产出了什么。
+     */
+    id: 'remove-section',
+    match: (p) =>
+      /(删除|删掉|移除|去掉|remove|delete|drop)/i.test(p) &&
+      /(区块|模块|section|卡片|card|页脚|footer|头部|header|横幅|banner|按钮|button|这一?块)/i.test(p),
+    apply: ({ page, request }) => {
+      const node = targetNode({ page, request });
+      if (!node || node.id === page.rootId || !node.parentId) return null;
+      const subtree = countSubtree(page, node.id);
+      return {
+        summary: `删除 ${node.name}（含 ${subtree - 1} 个子节点）`,
+        explanation:
+          `把 ${node.name} 连同它下面的 ${subtree - 1} 个子节点一起删掉，共 ${subtree} 个节点。` +
+          `删除是不可逆阅读成本最高的那类改动（${request.context.selection.length ? '目标来自你选中的节点' : '目标是按名字匹配到的'}），按 §74 要走人工审批。`,
+        patches: [opsPatch([{ op: 'remove', nodeId: node.id }], `删除 ${node.name}`, page.id)],
+        activities: ['识别目标节点', `统计子树 ${subtree} 个节点`, '产出删除 op'],
+        label: '删除',
       };
     },
   },

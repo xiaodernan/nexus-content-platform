@@ -2482,3 +2482,103 @@ test('@smoke §74 删除项目：确认词打不动接口，删掉的公开页�
 
   await visitorCtx.close();
 });
+
+test('@smoke §74 AI 的删除结果先过人工审批：扣住时画布不动，批准交回的是看过的那一版', async ({ page }) => {
+  // 这条用例的关键一步是绕过界面直接打接口：只点卡片的话，测到的是一个恰好长得像审批门的输入框。
+  // §74 要的是"补丁在批准之前进不了工作区"，所以每一档都用画布上的节点数说话。
+  // 300 秒：这条要跑两次 AI 生成、四次页面载入和三次裁决请求，开发模式下单次请求实测 8~9 秒，
+  // 180 秒会在最后一步之前就把整条用例掐断（报的是 timeout，不是哪一句断言）。
+  test.setTimeout(300_000);
+  const projectId = await createProject(page, `审批门${Date.now().toString(36)}`);
+  const nodeCount = (): Promise<number> => page.evaluate(() => document.querySelectorAll('[data-node-id]').length);
+  const before = await nodeCount();
+  const csrf = (await page.context().cookies()).find((c) => c.name === 'nexus_csrf')?.value ?? '';
+
+  // ① 绕过界面：请求方自己把 approvalPolicy 填成空数组——这一栏不由请求方定义（§74/§68）
+  const runUrl = new URL('/api/ai/run', page.url()).href;
+  const bypass = await page.request.post(runUrl, {
+    data: {
+      requestId: `req_bypass_${Date.now().toString(36)}`,
+      intent: 'design-edit',
+      prompt: '删除 Hero 区块',
+      modelClass: 'balanced',
+      variants: 1,
+      approvalPolicy: [],
+      context: { projectId, selection: [] },
+    },
+    headers: { 'x-csrf-token': csrf, 'content-type': 'application/json' },
+  });
+  expect(bypass.status()).toBe(200);
+  const heldBody = (await bypass.json()) as {
+    patches: unknown[];
+    approvals: { action: string; reason: string }[];
+    error?: { code?: string };
+  };
+  expect(heldBody.patches).toEqual([]);
+  expect(heldBody.approvals.length).toBeGreaterThan(0);
+  expect(heldBody.error?.code).toBe('approval-required');
+  const bypassTaskId = bypass.headers()['x-nexus-task'] ?? '';
+  expect(bypassTaskId).toMatch(/^[0-9a-f-]{36}$/);
+
+  // 读侧只给"要决定什么"，不给能落地的正文：被扣下的补丁不在这里
+  const peek = await page.request.get(new URL(`/api/ai/tasks/${bypassTaskId}/approval`, page.url()).href);
+  expect(peek.status()).toBe(200);
+  const peekText = await peek.text();
+  expect(peekText).toContain('awaiting_approval');
+  expect(peekText).not.toContain('"ops"');
+  expect(peekText).not.toContain('"held"');
+
+  // ② 刷新之后卡片还在：审批现场来自账本，不是 React 状态里的一次性记忆
+  await page.goto(`/studio/${projectId}`);
+  await waitForCanvas(page);
+  await expect(page.locator('[data-approval-card]')).toBeVisible({ timeout: 30_000 });
+  await expect(page.locator('[data-approval-title]')).toContainText('画布还没有被改动');
+  await expect(page.locator('[data-approval-reason]').first()).toContainText('Hero');
+  expect(await nodeCount()).toBe(before);
+  // 任务页那一侧同一件事：这一行现在是"等审批"，不是"完成"也不是"在跑"
+  await page.goto(`/tasks/${projectId}`);
+  await expect(page.locator('[data-tasks-root]')).toContainText('等审批', { timeout: 30_000 });
+
+  // ③ 放弃：什么都不动，而且等待态就此结束（刷新不会再冒回来）
+  await page.goto(`/studio/${projectId}`);
+  await waitForCanvas(page);
+  await expect(page.locator('[data-approval-card]')).toBeVisible({ timeout: 30_000 });
+  await page.click('[data-approval-reject]');
+  // 30 秒不是给竞态留的余量：开发模式下这条路由的首个 POST 实测要 8~9 秒（按需编译 + 建连接），
+  // 默认 5 秒的断言会稳定误报"按钮没反应"。见 docs/BUGS.md 里那条 dev 延迟。
+  await expect(page.locator('[data-approval-note]')).toContainText('删除也没有发生', { timeout: 30_000 });
+  expect(await nodeCount()).toBe(before);
+  await page.reload();
+  await waitForCanvas(page);
+  await expect(page.locator('[data-approval-card]')).toHaveCount(0);
+  // 同一任务再决定一次：服务端不给第二次机会（第一次就是终态）
+  const twice = await page.request.post(new URL(`/api/ai/tasks/${bypassTaskId}/approval`, page.url()).href, {
+    data: { decision: 'approve' },
+    headers: { 'x-csrf-token': csrf, 'content-type': 'application/json' },
+  });
+  expect(twice.status()).toBe(409);
+  expect(((await twice.json()) as { message?: string }).message ?? '').toContain('第一次决定算数');
+
+  // ④ 走界面那一路：批准之后补丁才落地，而且是一次可整体撤销的事务
+  await page.fill('[data-ai-input]', '删除 Hero 区块');
+  await page.click('[data-ai-submit]');
+  await expect(page.locator('[data-approval-card]')).toBeVisible({ timeout: 30_000 });
+  expect(await nodeCount()).toBe(before);
+  // 同一屏不许出现两句话："画布还没有被改动"与 provider 活动流里那句"1 个 op 已落地"。
+  // 门改的是说法而不是事实：被扣下的补丁仍然原样存在任务行里，界面上那句"已落地"换成了"批准之前不会落地"
+  await expect(page.locator('main')).toContainText('批准之前不会落地');
+  await expect(page.locator('main')).not.toContainText('已落地');
+  await page.screenshot({ path: 'screenshots/ai-approval-held.png' });
+  await page.click('[data-approval-approve]');
+  await expect(page.locator('[data-approval-note]')).toContainText('交回编辑区', { timeout: 30_000 });
+  await expect
+    .poll(nodeCount, { timeout: 20_000 })
+    .toBeLessThan(before);
+  const afterDelete = await nodeCount();
+  await page.screenshot({ path: 'screenshots/ai-approval-applied.png' });
+
+  // 撤销与一次普通生成同形：一次 Ctrl+Z 回到 AI 动手之前（§149/§150）
+  await page.getByTitle('撤销（Ctrl+Z）').click();
+  await expect.poll(nodeCount, { timeout: 20_000 }).toBe(before);
+  expect(afterDelete).toBeLessThan(before);
+});

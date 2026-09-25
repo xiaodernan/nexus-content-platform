@@ -2,10 +2,11 @@ import { NextResponse } from 'next/server';
 import { AiRequestSchema, AiResponseSchema, type AiResponse } from '@nexus/schemas';
 import { getAiCapabilities } from '@/lib/env';
 import { assembleAiRequest } from '@/server/ai/assemble';
+import { gateResponse, heldRecord, nodeNamer, WEB_APPROVAL_POLICY } from '@/server/ai/approvals';
 import { mockProvider } from '@/server/ai/mock';
 import { runAiService } from '@/server/ai/client';
 import { requireUser } from '@/server/domain/session';
-import { finishTask, startTask, type TaskCapability } from '@/server/domain/agent-tasks';
+import { finishTask, holdForApproval, startTask, type TaskCapability } from '@/server/domain/agent-tasks';
 import { emit } from '@/server/domain/notifications';
 import { csrfOk } from '@/server/security/csrf';
 import { badRequest, failure, jsonError } from '@/server/http';
@@ -96,10 +97,32 @@ export async function POST(req: Request): Promise<NextResponse> {
       agentKey: parsed.data.intent,
       createdById: user.id,
       capability,
-      input: { prompt: parsed.data.prompt.slice(0, 500), modelClass: parsed.data.modelClass, variants: parsed.data.variants },
+      input: {
+        prompt: parsed.data.prompt.slice(0, 500),
+        modelClass: parsed.data.modelClass,
+        variants: parsed.data.variants,
+        // §74：事后看得清"这一行是被哪份规矩管着的"——策略是服务端定的，不是客户端报的
+        approvalPolicy: WEB_APPROVAL_POLICY,
+      },
     });
     taskId = started.id;
     projectName = started.projectName;
+    const nameOf = nodeNamer(assembled.toolDocument);
+
+    /**
+     * §74 的门在这里：过不了门的补丁不会离开服务端。两条 provider 路（真服务 / DEMO Mock）
+     * 走同一个 `deliver`，所以"接上第 N 家 provider 就有第 N 种审批口径"这件事不会发生。
+     */
+    const deliver = async (response: AiResponse, id: string): Promise<NextResponse> => {
+      const gate = gateResponse(response, WEB_APPROVAL_POLICY, nameOf);
+      if (gate.approvals.length > 0) {
+        // 挂起：终态不写、§164 通知不发——"Generation complete"替一次还没人决定的事签字就是假事件
+        await holdForApproval(id, heldRecord(gate, WEB_APPROVAL_POLICY));
+        return NextResponse.json(gate.delivered, { headers: taskHeader(id) });
+      }
+      await settleFromResponse(response);
+      return NextResponse.json(response, { headers: taskHeader(id) });
+    };
 
     if (caps.text === 'real') {
       // ai-service /healthz 报告其 llm provider 就绪：交给它调真模型；拿不到服务就明确报不可用，绝不拿 Mock 冒充（§159）
@@ -109,8 +132,7 @@ export async function POST(req: Request): Promise<NextResponse> {
         await settle(false, result.error.message);
         return NextResponse.json(result.error, { status: result.status ?? 503, headers: taskHeader(taskId) });
       }
-      await settleFromResponse(result.response);
-      return NextResponse.json(result.response, { headers: taskHeader(taskId) });
+      return deliver(result.response, taskId);
     }
 
     const response = await mockProvider.run(assembled.wire, { document: assembled.toolDocument });
@@ -120,8 +142,7 @@ export async function POST(req: Request): Promise<NextResponse> {
       await settle(false, reason);
       return failure(new Error(reason), 'POST /api/ai/run');
     }
-    await settleFromResponse(validated.data);
-    return NextResponse.json(validated.data, { headers: taskHeader(taskId) });
+    return deliver(validated.data, taskId);
   } catch (error) {
     // 走到这里通常是 provider 抛了：任务行不能停在 running，否则列表里永远有一条"在跑"的假象
     if (taskId) {

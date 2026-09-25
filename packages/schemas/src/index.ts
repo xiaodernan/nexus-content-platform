@@ -588,6 +588,34 @@ export const ProjectDeleteRequestSchema = z.object({
 export type ProjectDeleteRequest = z.infer<typeof ProjectDeleteRequestSchema>;
 
 /**
+ * §74 的 agent 侧：一次含高危动作的 AI 结果只能靠这两个决定之一离开等待态。
+ * 只有 `decision`：任务号在路径上、归属由服务端账本判，报文里能自报的字段越多，
+ * "自报归属"的机会就越多（§68 那条纪律在写侧同样成立）。
+ * 也**没有** `confirm`：删项目要逐字敲名字，是因为那一步由服务端替用户改库；
+ * 审批 AI 结果改不了任何东西——它只是把补丁交回编辑区，落地与否仍是一条可撤销的 Command（§149）。
+ */
+export const AiTaskApprovalRequestSchema = z.object({
+  decision: z.enum(['approve', 'reject']),
+});
+export type AiTaskApprovalRequest = z.infer<typeof AiTaskApprovalRequestSchema>;
+
+/**
+ * 审批的回执。`held` 是批准时**原样交回**的那份被挂起的结果（含补丁），放弃时是 null——
+ * 交回而不是重新生成：重新跑一次会拿到另一份内容，用户批准的就不是他看过的那一版了。
+ * 状态只有这三种：`awaiting_approval` 表示这条决定没被接受（已经决定过），
+ * 让重复点第二次按钮拿到一个"成功"就是谎报。
+ */
+export const AiTaskApprovalResultSchema = z.object({
+  taskId: z.string(),
+  decision: z.enum(['approve', 'reject']),
+  status: z.enum(['succeeded', 'cancelled', 'awaiting_approval']),
+  applied: z.boolean(),
+  approvals: z.array(z.object({ action: z.string(), reason: z.string() })).default([]),
+  held: AiResponseSchema.nullable(),
+});
+export type AiTaskApprovalResult = z.infer<typeof AiTaskApprovalResultSchema>;
+
+/**
  * §132 block / mute 的报文。只有 handle：id 是内部键，把别人的 uuid 抄进地址栏
  * 就能拉黑一个不认识的人，而 @handle 是界面上本来就显示的东西。
  * kind 必填在 POST（缺省按 block 会替用户做一个更重的决定），DELETE 不需要。

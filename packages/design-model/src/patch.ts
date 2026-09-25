@@ -525,17 +525,22 @@ export function invertPatch(
         if (!node) break;
         const parent = node.parentId ? page.nodes[node.parentId] : undefined;
         const index = parent ? parent.children.indexOf(op.nodeId) : 0;
-        // 逆序插回：先根后子，保证父子引用可用
+        // 逆序插回：先根后子，保证父子引用可用。
+        // 这里必须先反着摆：函数末尾有一次 `ops.reverse()`（一笔补丁要按应用的反序撤销），
+        // 直接按子树顺序摆进去，总反转之后就成了"子在前、根在后"——
+        // 撤销时子节点因为父级还没回来被一条条 skip 掉，节点悄悄少一半而没人报错。
         const restore: PatchOp[] = removed.map((child) => ({
           op: "insert" as const,
-          node: child,
+          // children 一律清空，交给随后那几条 insert 逐条重建。跟着克隆塞回整份数组，
+          // 会和子节点自己的 insert 叠成双份——节点数对得上，画布上每个子节点却画两遍。
+          node: { ...child, children: [] },
           parentId: child.parentId ?? "",
           index:
             child.parentId && page.nodes[child.parentId]
               ? page.nodes[child.parentId]!.children.indexOf(child.id)
               : 0,
         }));
-        ops.unshift(...restore);
+        ops.unshift(...restore.reverse());
         void index;
         break;
       }

@@ -1,5 +1,6 @@
 import type { AiRequest } from '@nexus/schemas';
 import type { DesignDocument } from '@nexus/design-model';
+import { WEB_APPROVAL_POLICY } from '@/server/ai/approvals';
 import { buildCodeDigest, DEFAULT_CODE_CHAR_BUDGET } from '@/server/domain/code-index';
 import { deriveContextFromDocument } from '@/server/ai/derive-context';
 import { listAnnotations } from '@/server/domain/annotations';
@@ -14,6 +15,7 @@ import { projectBelongsTo } from '@/server/domain/projects';
  * 2. 发给 provider 的那一份是**预算内的目录**（`designIndex` + `codeDigest`），不是整份文档；
  * 3. 确定性规则要算"当前值"就得读权威文档，但那是**工具侧的本地读取**，
  *    不走网络、不进模型上下文，所以它和 §68 不冲突——冲突的是把文档塞进请求体。
+ * 4. §74 的审批策略是**权限判断**，不是现场描述：请求方自己填的那一栏在这里被服务端改写。
  *
  * 三条都失败时各自给出读得懂的原因，不静默降级（§159）。
  */
@@ -105,6 +107,12 @@ export async function assembleAiRequest(request: AiRequest, ownerId: string): Pr
     toolDocument: document,
     wire: {
       ...request,
+      /**
+       * §74：审批策略由服务端定，客户端带的一律丢掉。契约上 `approvalPolicy` 有默认值（`[]`），
+       * 也就是说"不发这一栏"与"发一个空的"过 zod 之后长得一样——既然分不出，就不能只改非空的那些：
+       * 这一栏每一次都由 `WEB_APPROVAL_POLICY` 重写。留给请求方填，等于让请求方自己勾选"这次不要审批"。
+       */
+      approvalPolicy: [...WEB_APPROVAL_POLICY],
       context: {
         ...context,
         designIndex: assembled.context.design,

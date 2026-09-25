@@ -211,6 +211,38 @@ e2e 断言面板把"未运行的检查"列出来，而不是显示全绿。
   同一个陌生 context 在删除前点赞收 200、删除后同一个接口收 404、公开页 404、恢复后又回到 200。
   这里踩过一个坑值得记下：`new URL(href).pathname` 会把中文 slug 百分号编码，而库里存的 `path` 是原样，
   于是那条"删除前应该 200"的对照先红了——**测试自己拼 path 才会犯的错**，界面上的按钮发的是服务端给的 `state.path`。
+- AI 那条路的审批门（§74 agent 侧）：`apps/web/test/ai-approvals.integration.test.ts` 15 条打真库。
+  钉的第一件事是**扣下发生在服务端而不是界面上**：用例直接调 `gateResponse`，断言交出去的那份 `patches` 是空数组、
+  完整那一份在 `held` 里，再过 `holdForApproval` 落库——一条 `set` 不被扣（反向对照：四种破坏性 op 各扣各的，
+  非破坏性的那条 `delivered === response` 逐对象相同）。第二件事是**读侧不泄露**：卡片里有"几处要决定"和理由，
+  而整份 JSON 里既没有 `"ops"` 也没有 `"patches"`，被扣下的那个 nodeId 一个字都不出现。
+  第三件事是**第一次决定算数**：`Promise.all` 里同时裁决两次，恰好一个成功、审计里恰好一行 `allowed:true`；
+  批准那次交回的 `held` 与挂起时逐字节相同（不是重新生成），放弃之后那一行是 `cancelled` 且 `approved_by/at` 都是 null。
+  两条归属边界与一条状态边界：别人的任务 `not_found` 并留下 `allowed:false`，主人的下一次仍然批准得动；
+  已经终态的行不能被挂起（`holdForApproval` 返回 false，否则账本上会出现"先成功后等审批"的回溯记录）。
+  理由里必须报名字：`removePage` 的 `pageId` 早先是裸 uuid（`describe()` 的取值链漏了这一支），
+  现在 `nodeNamer` 对 token / 资产 / 组件 / 页 / 页根各给一个可读标签，用例按标签断言。
+  跨语言那一半由机器对齐：`test_run.py::test_destructive_op_set_matches_the_web_gate` 读 web 侧源码里的
+  `DESTRUCTIVE_OPS` 与 python 那份比集合——**两边靠注释保持一致的地方，注释改了代码不会红**。
+  五处行为性反向实验（每次都跑整份 16 条，未变异的对照同样 16 条全绿）：
+  把 `holdForApproval` 里 `status='running'` 那个条件去掉 → **1 条红**，红在"终态行不许被回溯成等审批"；
+  把裁决语句的 `status='awaiting_approval'` 去掉（只按 id 更新）→ **1 条红**，红在并发那条
+  （`Promise.all` 的两次都返回 ok——早退的那个 `if` 挡不住真并发，CAS 才挡得住）；
+  把 web 侧扫描从并集里摘掉、只信 provider 自报 → **6 条红**，其中包括真路径那条
+  "DEMO 的删除指令被门拦下"——**provider 压根不填 `approvals` 这一栏时，门是整扇开着的**，这条最贵；
+  把 `describe()` 取值链里的 `op.pageId` 去掉 → **1 条红**（`removePage` 的理由退回裸 id）；
+  把活动流里 provider 写的那句"1 个 op 已落地"留着不改 → **1 条红**，红在新加的那条"不许说已落地"上。
+  最后这处是看截图看出来的：同一屏上"画布还没有被改动"与"1 个补丁、1 个 op 已落地"同时存在，
+  前者是门说的、后者是 provider 的活动流按"补丁已应用"写的——集成用例与 e2e 各钉一层
+  （模型层断言 `delivered.activities`，浏览器层断言 `main` 里那句话出现而"已落地"不出现）。
+  e2e `@smoke §74` 补的是只有浏览器能给的三件事：**绕过界面直接打接口**（自己填 `approvalPolicy: []`，
+  仍被服务端覆盖成 `['delete']`，响应里补丁为空、`error.code = approval-required`）；
+  **刷新之后卡片从账本找回**（画布节点数一个字没变，任务页那一行写的是"等审批"）；
+  **批准之后一次 Ctrl+Z 回到 AI 动手之前**——这一步是 §149 与 §74 的接缝，也正是它把
+  `invertPatch` 那个"撤销只回来一半节点"的老缺陷暴露出来（`packages/design-model/test/patch-commands.test.ts`
+  现在用真实的起始文档钉住"节点、父子关系、兄弟顺序与删之前逐项相同"）。
+  两条计时事实记在这里以免被误读成竞态：开发模式下这条路由的首个 POST 实测 8~9 秒（默认 5 秒断言会稳定误报"按钮没反应"），
+  整条用例要跑两次生成 + 四次载入 + 三次裁决，预算提到 300 秒——180 秒时报的是 timeout 而不是某句断言。
 - 作业队列的 web 侧消费者（§162 第一片）：`apps/web/test/ai-jobs.integration.test.ts` 11 条打真库，
   外加一台**本地假 ai-service**（`node:http`，只负责"照我说的报状态"）。分工要说清楚：
   队列本身能不能跑是 `apps/ai-service/tests/test_jobs.py` 那 9 条的事，这里测的是

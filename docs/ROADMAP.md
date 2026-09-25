@@ -1013,7 +1013,7 @@ drizzle 把整个拼接结果当成**单个绑定参数**，生成的 SQL 是 `o
   `deletedAt` 以前从来没有值，这条差异是看不见的；现在补了谓词，用例里删除前后各打一次同一个接口。
   限度如实记下：① **没有"永久删除"也没有到期清理**，回收站只进不出（除了恢复），存储不会因此回收；
   ② 只做了"删项目"这一格，§74 清单上的消耗 credits / 对外发送消息 / 生产部署 / 支付都还没有审批门（M7/M8 未开工）；
-  ③ §72-73 的 agent 侧审批仍未落地（`agent_tasks.requires_approval` 全库无人置真）；
+  ③ §72-73 的 agent 侧审批当时未落地（`agent_tasks.requires_approval` 全库无人置真）——**同日补上了，见下面那条**；
   ④ 确认词比的是名字的原值，改过名就要用新名字确认——这是这条门的全部形式，不是缺陷；
   ⑤ `confirm` 有 2000 字上限（项目名这条链上没有 120 那样的约束），名字超过它的人先改名再删，界面上报的是"确认词太长"而不是"不匹配"。
   验证：`project-delete.integration.test.ts` 16 条打真库（含 §61/§164/§165/§166/§168 各面的可见性）+
@@ -1023,6 +1023,31 @@ drizzle 把整个拼接结果当成**单个绑定参数**，生成的 SQL 是 `o
   把 `publicRefByPath` 与收件箱新接上的 `deletedAt` 判定各自拆掉 → 各恰好 1 条红，
   红的那一句都是"删除之后应当看不见 / 点不开"，而同一个用例的下一步要求恢复后答案翻回来。
   Agent 工具注册表与权限矩阵（§72-73）本身仍未开工。
+- [x] §74 的 agent 侧审批门（2026-09-26）— **`agent_tasks.requires_approval` 从此有了写入方**。
+  上一条记下的是"删项目"这一格；这一格管的是 AI 那条路：一条 `remove` 在批准之前进不了画布。
+  门做在**写入之前**且做在**服务端**：`apps/web/src/server/ai/approvals.ts` 的 `gateResponse` 逐 op 扫
+  `remove / removePage / removeToken / removeAsset`，与 provider 自报的 `approvals` 取**并集**后把补丁整份扣下
+  （`delivered.patches = []`，完整那一份只存在任务行的 `result` 里）。并集是必须的：
+  provider 报的是它记得的那些，规则版 mock 与任何一次改写都可能给出一条 `remove` 而不附说明——
+  provider 失忆不能变成"删除直接进画布"。
+  `approvalPolicy` 这一栏**不由请求方定义**（§68 同一口径）：`assemble.ts` 一律覆盖成 `WEB_APPROVAL_POLICY = ['delete']`，
+  客户端传什么都无效，e2e 第 ① 步就是自己填一个空数组直接打接口。
+  裁决走 `POST /api/ai/tasks/<taskId>/approval`：`WHERE status='awaiting_approval'` 的 CAS 保证**第一次决定算数**
+  （第二次 409），批准交回的是**当初被扣下的那一版**而不是重新生成的一版（理由见 `docs/adr/0012`）；
+  归属由账本的 `created_by` 判，别人的任务与不存在的任务是同一个 `not_found`，两种都进审计（后者 `allowed:false`）。
+  Studio 的审批卡片**从账本找回**（`GET /api/ai/pending-approvals`）：刷新之后现场还在，
+  而读侧一个字都不给补丁正文——界面上"批准"是唯一的落地路径。挂起时**不写 `finishedAt`**：等待不是终态。
+  这一路在真浏览器里撞到四个缺陷（都与 §74 本身无关，也都是这次才撞到的）：
+  ① 裁决回执原先嵌在卡片内部，批准之后卡片消失、回执跟着一起没了，用户看到的是"按钮一闪，什么都不说"；
+  ② `invertPatch` 对整棵子树的还原被函数末尾那次全局 `ops.reverse()` 翻了顺序，撤销时子节点因父级还没回来被逐条 skip，
+  **节点悄悄少一半而处处绿灯**（画布 8 → 1 → 2），另有跟着克隆塞回 `children` 与逐条 `insert` 叠成双份的问题；
+  ③ 同一屏上"画布还没有被改动"与 provider 活动流那句"1 个 op 已落地"并存——门把交回的那一份里的说法改成了
+  "批准之前不会落地"（计划步骤的 `done` 同样换成 `skipped`），而**存下的那一版一个字不改**，批准之后交回的还是当初那一版；
+  ④ 开发模式下这条路由的首个 POST 实测 8~9 秒，5 秒的默认断言会稳定误报"按钮没反应"。
+  限度如实记下：web 侧只有 `delete` 这一档策略，§74 清单上的消耗 credits / 对外发消息 / 生产部署 / 支付仍未接（M7/M8）；
+  异步作业那一路（§162）还不认审批——`holdForApproval` 只接在同步的 `/api/ai/run` 上；
+  `awaiting_approval` 的行**没有过期与清理**，没人决定就一直等着（界面上常驻可见，但库侧无 TTL）；
+  卡片是挂载时读一次，没有实时推送，另开一个标签页批准之后这一页要刷新才更新。
 - Context Engine / Design Index / Project Graph（§66-71）— **五切片已落地（2026-09-24）**：
   `buildDesignIndex`（`packages/design-model/src/context-index.ts`）把一份设计文档投影成**目录**
   （页面 / 框 / 组件 / 资产 / token / 交互 + 跨引用边 + totals，纯函数、不含正文），
@@ -1165,8 +1190,9 @@ drizzle 把整个拼接结果当成**单个绑定参数**，生成的 SQL 是 `o
   （真模型与 DEMO 的标题必须不同、没有时长就不写用时、没有摘要就不编正文）+
   `@smoke §164` 末尾跑一次真请求，断言账本一行、通知第 5 条、"Generation complete 已从没有来源那张单子上摘掉"
   （截图 `agent-task-ledger.png`）。
-  仍欠：取消 / 重试（`attempt` 列还没有第二次的写入方）、审批流（`requires_approval` 全库无人置真）、
-  以及把这一行接到 §162 的异步队列上——那时它才真的需要"完成"这件事。
+  仍欠：取消 / 重试（`attempt` 列还没有第二次的写入方）；审批流当时记的是"`requires_approval` 全库无人置真"，
+  **同日已经补上**（见上面 §74 agent 侧那一条），但那一格只接在同步的 `/api/ai/run` 上；
+  以及把这一行接到 §162 的异步队列上——那时它才真的需要"完成"这件事，异步那一路也才认审批。
 - [~] 作业队列的 web 侧消费者（§162 第一片）— **2026-09-26 落地后端到端的一条回路**：
   ai-service 早就有真队列（`POST /v1/ai/jobs` 入队、asyncio worker 执行、`GET /v1/ai/jobs/<id>` 读状态，
   由 `apps/ai-service/tests/test_jobs.py` 9 条钉着），缺的是 web 从来不曾提交给它、也没读过它的状态——

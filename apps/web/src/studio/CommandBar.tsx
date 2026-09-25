@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import type { AgentActivity, AgentPlan, AiResponse, ModelClass } from '@nexus/schemas';
-import { DesignPatchSchema } from '@nexus/schemas';
+import { AiResponseSchema, DesignPatchSchema } from '@nexus/schemas';
 import { cn } from '@/lib/cn';
 import { csrfHeaders } from '@/lib/csrf';
 import { useRealtime, type RealtimeState } from '@/lib/useRealtime';
@@ -19,6 +19,8 @@ const EXAMPLES = [
   'Make this feel more cinematic.',
   'Add a section: 三档定价卡片',
   'Find accessibility issues.',
+  // §74：删除类动作的入口。点了它会拿到一份被服务端扣下的结果，而不是直接改动画布
+  '删除 Hero 区块',
 ];
 
 /** §163：这条通道只是加速器，断开时要把"以库为准"说出口，别让人以为还在实时 */
@@ -67,12 +69,103 @@ export function CommandBar() {
     return () => window.removeEventListener('keydown', onSlash);
   }, []);
 
+  // §74：审批卡片不能只活在 React 状态里。刷新之后从账本找回还挂着的那一条（最新在前），
+  // 否则库里那条等待中的任务在界面上就什么都不剩——没人能再决定它，它就一直等着。
+  useEffect(() => {
+    const projectId = state.projectId;
+    if (!projectId) return;
+    let cancelled = false;
+    void (async () => {
+      try {
+        const res = await fetch(`/api/ai/pending-approvals?projectId=${encodeURIComponent(projectId)}`, { cache: 'no-store' });
+        if (!res.ok || cancelled) return;
+        const body = (await res.json()) as { pending?: { taskId: string; approvals?: { action: string; reason: string }[] }[] };
+        const first = body.pending?.[0];
+        if (!first) return;
+        // 只在没有卡片时补上：这一路是"找回现场"，不该把刚拿到的那一份盖掉
+        setHeld((current) => current ?? { taskId: first.taskId, approvals: first.approvals ?? [] });
+      } catch {
+        // 拿不到就不显示卡片。审批入口少一次自动找回，比拿一份错现场顶上要好
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [state.projectId]);
+
+  /**
+   * §74：一次被服务端扣下的结果。只存"要审批什么"，不存补丁——
+   * 补丁在库里那份上，界面上拿不到它，也就拿不到"绕过按钮直接应用"的可能。
+   */
+  const [held, setHeld] = useState<{ taskId: string; approvals: { action: string; reason: string }[] } | null>(null);
+  const [approvalBusy, setApprovalBusy] = useState(false);
+  const [approvalNote, setApprovalNote] = useState<string | null>(null);
+
+  /** 把一份 AI 结果打进工作区。同步那一路与"批准后交回的那一版"共用这一条：一次事务、可整体撤销（§149/§150） */
+  const applyResult = (response: AiResponse, fallbackText: string): void => {
+    const invalid = response.patches.find((p) => !DesignPatchSchema.safeParse(p).success);
+    if (invalid) {
+      setError('AI 返回的补丁不符合补丁契约，已拒绝写入');
+      return;
+    }
+    const entry = studio.applyAiTransaction(response.explanation || fallbackText, toModelPatches(response.patches), {
+      provider: response.provider,
+      model: response.model,
+      demoMode: response.usage.demoMode || response.capability === 'demo',
+    });
+    if (!entry) setError('补丁未能改动模型：AI 返回的 op 与当前文档不匹配');
+  };
+
+  /**
+   * 人工裁决。批准拿回的是**当初被扣下的那一份**（不是重新生成），交回之后仍走上面那条事务，
+   * 所以撤销它与撤销一次普通生成是同一个动作。期间文档变了就可能"op 与当前文档不匹配"——
+   * 那句红是真的失败了，不是审批没生效。
+   */
+  const decide = async (decision: 'approve' | 'reject'): Promise<void> => {
+    if (!held || approvalBusy) return;
+    setApprovalBusy(true);
+    setApprovalNote(null);
+    try {
+      const res = await fetch(`/api/ai/tasks/${held.taskId}/approval`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json', ...csrfHeaders() },
+        body: JSON.stringify({ decision }),
+      });
+      const payload = (await res.json().catch(() => null)) as Record<string, unknown> | null;
+      if (!res.ok) {
+        const detail = (payload?.message ?? payload?.issues ?? `HTTP ${res.status}`) as string | string[];
+        setApprovalNote(`没有生效：${Array.isArray(detail) ? detail.join('；') : detail}`);
+        return;
+      }
+      if (decision === 'reject') {
+        setHeld(null);
+        setApprovalNote('已放弃这份结果，工作区没有被改动，删除也没有发生。');
+        return;
+      }
+      const checked = AiResponseSchema.safeParse(payload?.held ?? null);
+      if (!checked.success) {
+        setApprovalNote('批准已记下，但交回的结果不符合契约，因此没有打进工作区。');
+        setHeld(null);
+        return;
+      }
+      applyResult(checked.data, '已批准并交回的 AI 结果');
+      setHeld(null);
+      setApprovalNote(`已批准：${checked.data.patches.reduce((n, p) => n + p.ops.length, 0)} 个 op 交回编辑区（Ctrl+Z 可整体撤销）。`);
+    } catch (e) {
+      setApprovalNote(`审批请求失败：${e instanceof Error ? e.message : String(e)}`);
+    } finally {
+      setApprovalBusy(false);
+    }
+  };
+
   const submit = async () => {
     const text = prompt.trim();
     if (!text || busy) return;
     setBusy(true);
     setError(null);
     setResult(null);
+    setHeld(null);
+    setApprovalNote(null);
     // 服务端只能从库里装配上下文（§68），所以先把编辑器里的改动落库；存不上就停下报原因，
     // 而不是悄悄按旧版本生成
     const flushed = await studio.flushBeforeAi();
@@ -106,28 +199,21 @@ export function CommandBar() {
       const payload = (await res.json().catch(() => null)) as (Partial<AiResponse> & { issues?: string[]; message?: string; error?: string }) | null;
       // 任务号在响应头里（AiResponse 是 web ↔ ai-service 的契约报文，不带 web 侧账本字段）。
       // 失败时服务端也会落一条 failed 的任务行，所以这里在 !res.ok 之前先取到它
-      setTaskId(res.headers.get('x-nexus-task'));
+      const taskIdHeader = res.headers.get('x-nexus-task');
+      setTaskId(taskIdHeader);
       if (!res.ok || !payload) {
         const detail = payload?.issues?.join('；') ?? payload?.message ?? payload?.error ?? `HTTP ${res.status}`;
         throw new Error(detail);
       }
       const response = payload as AiResponse;
       setResult(response);
-      if (response.error) {
+      // §74：有审批动作时补丁根本不会到这里（服务端已扣下），界面上说的是"等什么"，
+      // 而不是把 approval-required 当成一条普通错误刷在结果行上
+      if (response.approvals?.length && taskIdHeader) setHeld({ taskId: taskIdHeader, approvals: response.approvals });
+      if (response.error && response.error.code !== 'approval-required') {
         setError(`${response.error.code}：${response.error.message}${response.error.hint ? `（${response.error.hint}）` : ''}`);
       } else if (response.patches?.length) {
-        // 服务端已按 AiResponseSchema 校验；这里再按补丁 schema 逐条把关，避免把不合法 op 打进模型
-        const invalid = response.patches.find((p) => !DesignPatchSchema.safeParse(p).success);
-        if (invalid) {
-          setError('AI 返回的补丁不符合补丁契约，已拒绝写入');
-        } else {
-          const entry = studio.applyAiTransaction(response.explanation || text, toModelPatches(response.patches), {
-            provider: response.provider,
-            model: response.model,
-            demoMode: response.usage.demoMode || response.capability === 'demo',
-          });
-          if (!entry) setError('补丁未能改动模型：AI 返回的 op 与当前文档不匹配');
-        }
+        applyResult(response, text);
       }
       setPrompt('');
     } catch (e) {
@@ -152,6 +238,51 @@ export function CommandBar() {
           <a href={`/tasks/${state.projectId}`} className="ml-1 text-accent-2 underline">
             这个项目的任务列表
           </a>
+        </p>
+      ) : null}
+      {/* §74：被服务端扣下的高危结果。审批卡片是这条决定唯一的出口，界面上不给它任何"自动应用"的余地 */}
+      {held ? (
+        <div className="mb-1 rounded-[var(--nexus-radius-sm)] border border-warn/50 bg-bg-2 px-2 py-[6px]" data-approval-card>
+          <p className="text-12 text-fg-1" data-approval-title>
+            这份结果含 {held.approvals.length} 处需人工审批的动作，补丁已被服务端扣下，画布还没有被改动。
+          </p>
+          <ul className="mt-[2px] text-11 text-fg-3" data-approval-reasons>
+            {held.approvals.map((a) => (
+              <li key={`${a.action}:${a.reason}`} data-approval-reason>
+                {a.action} · {a.reason}
+              </li>
+            ))}
+          </ul>
+          <div className="mt-1 flex flex-wrap items-center gap-2">
+            <button
+              type="button"
+              disabled={approvalBusy}
+              onClick={() => void decide('approve')}
+              data-approval-approve
+              className="rounded-[var(--nexus-radius-sm)] bg-warn px-2 py-[2px] text-11 text-bg-0 disabled:opacity-50"
+            >
+              批准并交回编辑区
+            </button>
+            <button
+              type="button"
+              disabled={approvalBusy}
+              onClick={() => void decide('reject')}
+              data-approval-reject
+              className="rounded-[var(--nexus-radius-sm)] px-2 py-[2px] text-11 text-fg-2 underline disabled:opacity-50"
+            >
+              放弃
+            </button>
+            <a href={`/tasks/${state.projectId}`} className="text-11 text-accent-2 underline" data-approval-link>
+              在任务列表里看这一行
+            </a>
+          </div>
+        </div>
+      ) : null}
+      {/* 裁决的回执在卡片之外：批准或放弃之后卡片就没了，回执要是住在里面，
+          用户看到的是"卡片一闪，什么都不说"——那与没点过按钮长得一样 */}
+      {approvalNote ? (
+        <p className="mb-1 text-11 text-fg-3" data-approval-note>
+          {approvalNote}
         </p>
       ) : null}
       {result?.plans?.length || result?.activities?.length ? (

@@ -1,6 +1,7 @@
 import { and, desc, eq, isNull } from 'drizzle-orm';
 import type { RealtimeEvent } from '@nexus/schemas';
 import { channels, getRealtimeBus } from '../realtime/bus';
+import { recordAudit } from './audit';
 import { getDb } from '../db/client';
 import { agentTasks, projects } from '../db/schema';
 
@@ -43,6 +44,10 @@ export interface TaskView {
   startedAt: string | null;
   finishedAt: string | null;
   createdAt: string;
+  /** §74：这一行是不是由审批门挂起来的（等待中的行没有 finishedAt，靠这个字段说清为什么） */
+  requiresApproval: boolean;
+  /** 批准时间与批准人；拒绝的那一次两样都是 null（列的语义是"谁批准了"） */
+  approvedAt: string | null;
   /** 跑完用了多久；没跑完是 null，不拿"到现在为止"冒充时长 */
   durationMs: number | null;
 }
@@ -164,7 +169,173 @@ export async function bumpActivityCursor(taskId: string, from: number, to: numbe
   return rows.length > 0;
 }
 
-function view(row: typeof agentTasks.$inferSelect & { projectName: string | null }): TaskView {  const started = row.startedAt?.getTime() ?? null;
+/**
+ * §74：把一份含高危动作的结果挂起来。这条语句是全库**唯一**给
+ * `requires_approval` 与状态 `awaiting_approval` 置值的写入方（这两列建库起就有，一直无人置真）。
+ *
+ * 不写 `finishedAt`：等待不是终态。写了它，任务列表会把"还等人决定"的一行算进"已跑完"的用时里，
+ * 而 `durationMs` 会变成"从提交到没人管"的一个数——那不是任何人想看的时长。
+ *
+ * 条件里钉住"只有还在跑的任务能被挂起"：终态行如果被覆盖，账本上就多出一条
+ * "先成功了、后又等审批"的回溯记录，而 `decideApproval` 会替它补上批准时间。
+ */
+export async function holdForApproval(taskId: string, record: unknown): Promise<boolean> {
+  const rows = await getDb()
+    .update(agentTasks)
+    .set({ status: 'awaiting_approval', requiresApproval: true, result: record as never })
+    .where(and(eq(agentTasks.id, taskId), eq(agentTasks.status, 'running')))
+    .returning({ id: agentTasks.id });
+  return rows.length > 0;
+}
+
+export type ApprovalDecision = 'approve' | 'reject';
+
+export type ApprovalOutcome =
+  /** 批准：`held` 是被挂起的那一份完整结果，调用方把它交回编辑区 */
+  | { ok: true; decision: ApprovalDecision; status: 'succeeded' | 'cancelled'; held: unknown; approvals: unknown }
+  /** 这条任务不在等待态（决定过了，或者本来就没挂起） */
+  | { ok: false; code: 'not_pending'; message: string }
+  /** 任务号是别人的，或者根本不存在：与 §162 一样，不区分两种情况以免枚举 */
+  | { ok: false; code: 'not_found'; message: string };
+
+/**
+ * 任务号长得不像 uuid 时不去打库：Postgres 会为语法不合法的 uuid 抛错，
+ * 那条错在界面上是一条 500，而它该有的答案是"没这条任务"。
+ */
+const UUID_LIKE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const NOT_FOUND = '这条任务不存在，或者不属于你。';
+
+/**
+ * 人工裁决一次挂起的 AI 结果。三条不能省的判断：
+ * - **归属先判**（`createdById`）：批准别人的结果等于替别人改工作区；
+ * - **只认等待态**：条件写在 WHERE 里，决定过第二次拿不到行，也就不会把 `approvedAt` 刷成新的时间；
+ * - **拒绝不写 `approved_by/approved_at`**：那两列记的是"谁批准了"，替一次拒绝填上它们
+ *   就是往审计里塞一条反的。拒绝的决定记在 `result.decision` 里。
+ *
+ * §84 的审计两种结果都写：`allowed:false` 那一行就是"有人试过替别人批准"的现场证据。
+ */
+export async function decideApproval(
+  taskId: string,
+  actorId: string,
+  decision: ApprovalDecision,
+  ip?: string | null,
+): Promise<ApprovalOutcome> {
+  if (!UUID_LIKE.test(taskId)) return { ok: false, code: 'not_found', message: NOT_FOUND };
+  const db = getDb();
+  const [row] = await db
+    .select()
+    .from(agentTasks)
+    .where(and(eq(agentTasks.id, taskId), eq(agentTasks.createdById, actorId)))
+    .limit(1);
+  if (!row) {
+    await recordAudit({
+      actorId,
+      action: 'ai.approval.decide',
+      targetType: 'agent_task',
+      targetId: taskId,
+      allowed: false,
+      detail: { reason: 'not-mine-or-missing', decision },
+      ip: ip ?? null,
+    });
+    return { ok: false, code: 'not_found', message: NOT_FOUND };
+  }
+  if (row.status !== 'awaiting_approval' || !row.requiresApproval) {
+    return {
+      ok: false,
+      code: 'not_pending',
+      message: `这条任务现在是「${row.status}」，不在等审批——挂起的结果只有第一次决定算数。`,
+    };
+  }
+
+  const result = (row.result ?? {}) as Record<string, unknown>;
+  const decided = { ...result, decision: { by: actorId, at: new Date().toISOString(), decision } };
+  const status = decision === 'approve' ? 'succeeded' : 'cancelled';
+  const rows = await db
+    .update(agentTasks)
+    .set({
+      status,
+      finishedAt: new Date(),
+      result: decided as never,
+      // 批准才填那两列；拒绝留 null（见上）
+      approvedBy: decision === 'approve' ? actorId : null,
+      approvedAt: decision === 'approve' ? new Date() : null,
+    })
+    .where(and(eq(agentTasks.id, taskId), eq(agentTasks.status, 'awaiting_approval')))
+    .returning({ id: agentTasks.id });
+  if (rows.length === 0) {
+    // 两个标签页同时点：后到的那一次读到的还是 awaiting，写的时候已经被前面那笔改掉了
+    return { ok: false, code: 'not_pending', message: '这一条刚刚已经被决定过了，这次没有改动。' };
+  }
+  await recordAudit({
+    actorId,
+    action: 'ai.approval.decide',
+    targetType: 'agent_task',
+    targetId: taskId,
+    allowed: true,
+    detail: { decision, approvals: result.approvals ?? [], projectId: row.projectId },
+    ip: ip ?? null,
+  });
+  return { ok: true, decision, status, held: decision === 'approve' ? (result.held ?? null) : null, approvals: result.approvals ?? [] };
+}
+
+function approvalShape(task: typeof agentTasks.$inferSelect) {
+  const record = (task.result ?? {}) as { approvals?: unknown; heldOpCount?: unknown };
+  return {
+    taskId: task.id,
+    projectId: task.projectId,
+    agentKey: task.agentKey,
+    status: task.status,
+    requiresApproval: task.requiresApproval,
+    approvals: record.approvals ?? [],
+    heldOpCount: typeof record.heldOpCount === 'number' ? record.heldOpCount : null,
+    capability: task.capability ?? null,
+    createdAt: task.createdAt.toISOString(),
+  };
+}
+
+/**
+ * 一条任务的审批现场。**故意不返回被扣下的补丁**：
+ * 读一读不需要决定，而 §74 要的是"决定之前那份东西进不了工作区"。
+ * 归属同样按 `created_by` 判，别人的任务与不存在给同一个答案（null）。
+ */
+export type ApprovalTaskView = ReturnType<typeof approvalShape>;
+
+/**
+ * 这个项目里还等人裁决的任务，最新一条在前。
+ * Studio 打开时要靠它把审批卡片找回来：卡片如果只存在 React 状态里，
+ * 一次刷新就变成"库内一条永远等待、界面上什么都没有"的行——那正是 §162 里
+ * "没人来问就一直停在在跑"的那种洞，只是这次洞在审批那一侧。
+ */
+export async function listPendingApprovals(projectId: string, actorId: string, limit = 10): Promise<ApprovalTaskView[]> {
+  if (!UUID_LIKE.test(projectId)) return [];
+  const take = Math.min(Math.max(Math.trunc(limit) || 1, 1), 50);
+  const rows = await getDb()
+    .select({ task: agentTasks })
+    .from(agentTasks)
+    .where(
+      and(
+        eq(agentTasks.projectId, projectId),
+        eq(agentTasks.createdById, actorId),
+        eq(agentTasks.status, 'awaiting_approval'),
+      ),
+    )
+    .orderBy(desc(agentTasks.createdAt))
+    .limit(take);
+  return rows.map((row) => approvalShape(row.task));
+}
+
+export async function readApprovalTask(taskId: string, actorId: string): Promise<ApprovalTaskView | null> {
+  if (!UUID_LIKE.test(taskId)) return null;
+  const [row] = await getDb()
+    .select({ task: agentTasks })
+    .from(agentTasks)
+    .where(and(eq(agentTasks.id, taskId), eq(agentTasks.createdById, actorId)))
+    .limit(1);
+  return row ? approvalShape(row.task) : null;
+}
+
+function view(row: typeof agentTasks.$inferSelect & { projectName: string | null }): TaskView {
+  const started = row.startedAt?.getTime() ?? null;
   const finished = row.finishedAt?.getTime() ?? null;
   return {
     id: row.id,
@@ -178,6 +349,8 @@ function view(row: typeof agentTasks.$inferSelect & { projectName: string | null
     startedAt: row.startedAt?.toISOString() ?? null,
     finishedAt: row.finishedAt?.toISOString() ?? null,
     createdAt: row.createdAt.toISOString(),
+    requiresApproval: row.requiresApproval,
+    approvedAt: row.approvedAt?.toISOString() ?? null,
     durationMs: started !== null && finished !== null ? Math.max(0, finished - started) : null,
   };
 }

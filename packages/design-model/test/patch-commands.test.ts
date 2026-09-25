@@ -153,15 +153,48 @@ describe("invertPatch", () => {
   });
 
   it("re-inserts a removed subtree", () => {
-    const { doc, hero } = seed();
+    const { doc, hero, title, button } = seed();
     const patch: DesignPatch = { ops: [{ op: "remove", nodeId: hero.id }] };
     const inverse = invertPatch(doc, patch);
     const after = applyPatch(applyPatch(doc, patch).document, inverse).document;
     const page = after.pages[0]!;
     expect(page.nodes[hero.id]!.name).toBe("Hero");
     expect(page.nodes[page.rootId]!.children).toContain(hero.id);
-    // 子节点必须重新挂回父级
-    expect(page.nodes[hero.id]!.children.length).toBe(2);
+    // 断言要落在"子节点本身回来了、且只回来一次"上。查 hero.children.length 是查不出问题的：
+    // 那份 children 数组跟着克隆节点整体回来，哪怕一个子节点都没重新 insert 也照样是 2。
+    expect(page.nodes[title.id]).toBeDefined();
+    expect(page.nodes[button.id]).toBeDefined();
+    expect(page.nodes[title.id]!.parentId).toBe(hero.id);
+    expect(page.nodes[button.id]!.parentId).toBe(hero.id);
+    expect(page.nodes[hero.id]!.children).toEqual([title.id, button.id]);
+  });
+
+  it("撤销整棵多层子树：节点、父子关系、兄弟顺序与删之前逐项相同", () => {
+    // 用真实的起始文档（Section → Hero → 文案/容器 → 按钮），不是三层手工节点
+    const doc = createDocument("Starters", "website");
+    const page = doc.pages[0]!;
+    const hero = Object.values(page.nodes).find((n) => n.name === "Hero")!;
+    const before = collectSubtree(page, hero.id);
+    expect(before.length).toBeGreaterThanOrEqual(5);
+
+    const patch: DesignPatch = { pageId: page.id, ops: [{ op: "remove", nodeId: hero.id }] };
+    const removed = applyPatch(doc, patch);
+    expect(removed.skipped).toEqual([]);
+    const inverse = invertPatch(doc, patch);
+    const restored = applyPatch(removed.document, inverse);
+    expect(restored.skipped).toEqual([]);
+    const after = restored.document.pages[0]!;
+
+    // ① 一个不少、一个不多（顺序也必须是先根后子：反转两次之后仍是先根后子）
+    expect(collectSubtree(after, hero.id)).toEqual(before);
+    // ② 每个节点的 parentId 指回原父级，且父级的 children 里没有重复 id——
+    //    跟着克隆塞回整份 children 再逐条 insert，会出现"节点数对、画布画两遍"
+    for (const id of before) {
+      const node = after.nodes[id]!;
+      expect(node.parentId).toBe(page.nodes[id]!.parentId);
+      expect(new Set(node.children).size).toBe(node.children.length);
+    }
+    expect(after.nodes[hero.id]!.children).toEqual(page.nodes[hero.id]!.children);
   });
 
   it("removeAsset 清清单 + 剥图片填充 + 清节点 assetId，且 invert 完整还原", () => {

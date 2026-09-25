@@ -12,7 +12,12 @@ const STATUS_TEXT: Record<string, string> = {
   succeeded: '完成',
   failed: '失败',
   cancelled: '已取消',
-  needs_approval: '等审批',
+  /**
+   * 枚举里这一档叫 `awaiting_approval`（0000 建库时定的），这里以前写的是 `needs_approval`。
+   * 全库没有人把任务置成等待态时，那个错 key 是看不出来的；§74 接上写入方之后，
+   * 表格里就会原样露出英文的那一个——所以这一行现在是有作者的，别再改回去。
+   */
+  awaiting_approval: '等审批',
 };
 
 /**
@@ -57,6 +62,8 @@ export default async function TasksPage({ params }: { params: Promise<{ projectI
         每一行对应一次 AI 请求（§7 命令栏发起的那种）。§112 那种多步 Agent 任务——Goal、子任务、依赖、验收——
         还没有执行方，所以这张表里不会出现"一个任务带六个步骤"的东西。
         能力那一列区分 real（真 provider）与 demo（DEMO 模板），两者不混写（§160）。
+        「等审批」那一行是 §74 的审批门挂起来的：被扣下的补丁不在这里交回，决定要在 Studio 的命令栏里做——
+        交回之后仍要走那一条可撤销的编辑事务，而这一页没有画布。
       </p>
 
       {result.tasks.length === 0 ? (
