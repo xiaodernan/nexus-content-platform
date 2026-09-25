@@ -2,6 +2,7 @@ import { nodeAssetIds, walkDocument, type DesignDocument } from '@nexus/design-m
 import { and, desc, eq, isNull, sql } from 'drizzle-orm';
 import type { ModerationScan } from '@nexus/schemas';
 import { getDb } from '../db/client';
+import { recordAudit } from './audit';
 import { abuseReports, moderationCases, projects, publishedProjects, users } from '../db/schema';
 import { emit } from './notifications';
 
@@ -278,7 +279,18 @@ export async function resolveCase(
   const db = getDb();
   const [existing] = await db.select().from(moderationCases).where(eq(moderationCases.id, caseId)).limit(1);
   if (!existing) return { ok: false, reason: '没有这个案号' };
-  if (existing.resolvedAt) return { ok: false, reason: '这案已经有人裁决过了' };
+  if (existing.resolvedAt) {
+    // 第二次裁决尝试也要留痕：它意味着有人（或某个脚本）在试图改一个已经结案的结论
+    await recordAudit({
+      actorId: actor.adminId,
+      action: 'moderation.resolve',
+      targetType: 'moderation_case',
+      targetId: caseId,
+      allowed: false,
+      detail: { reason: 'already_resolved', wanted: actor.resolution },
+    });
+    return { ok: false, reason: '这案已经有人裁决过了' };
+  }
 
   await db
     .update(moderationCases)
@@ -301,6 +313,16 @@ export async function resolveCase(
   if (actor.resolution === 'rejected') {
     await db.update(abuseReports).set({ status: 'closed' }).where(eq(abuseReports.publicationId, existing.publicationId ?? ''));
   }
+  // §80 / §84：这是全平台权力最大的一个按钮——一句话就能把一页公开内容撤下来。
+  // 谁在什么时候对哪个案子说了什么，必须留在库里，而不是留在当时那个浏览器的控制台里
+  await recordAudit({
+    actorId: actor.adminId,
+    action: 'moderation.resolve',
+    targetType: 'moderation_case',
+    targetId: caseId,
+    allowed: true,
+    detail: { resolution: actor.resolution, publicationId: existing.publicationId, hidden },
+  });
   // §164：人工裁决是全平台唯一一个"在别人的请求早就结束之后才发生"的事件，
   // 所以它是收件箱里最不该缺的一类。只给挂了发布行的案卷发通知：
   // 被机检当场挡下的那次根本没有 publication 行，作者在那一次请求里已经同步拿到了原因，

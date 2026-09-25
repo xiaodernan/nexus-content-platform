@@ -3,6 +3,7 @@ import { NextResponse } from 'next/server';
 import { requireUser, currentSessionToken } from '@/server/domain/session';
 import { register, type AuthError } from '@/server/domain/auth';
 import { csrfOk } from '@/server/security/csrf';
+import { recordAudit } from '@/server/domain/audit';
 import { applySessionCookie } from '@/server/security/authCookies';
 import { getRateLimiter, rateKey, clientIp } from '@/server/security/rateLimit';
 import { badRequest, jsonError, readJson, failure } from '@/server/http';
@@ -44,7 +45,21 @@ export async function POST(req: Request): Promise<NextResponse> {
       userAgent: req.headers.get('user-agent'),
       ip,
     });
-    if ('code' in result) return fromError(result);
+    if ('code' in result) {
+      // 与登录失败同一条口径：记原因码，不记邮箱（审计页会被更多人看到）
+      await recordAudit({ actorId: null, action: 'auth.register', targetType: 'account', allowed: false, detail: { reason: result.code }, ip });
+      return fromError(result);
+    }
+    // 注册是 guest → 真实账号的提权时刻，还会把名下 guest 项目就地认领——两件都该留痕
+    await recordAudit({
+      actorId: result.user.id,
+      action: 'auth.register',
+      targetType: 'account',
+      targetId: result.user.id,
+      allowed: true,
+      detail: { claimedProjects: result.claimedProjects },
+      ip,
+    });
     return applySessionCookie(NextResponse.json({ user: result.user, claimedProjects: result.claimedProjects }), result.sessionToken);
   } catch (error) {
     return failure(error, 'POST /api/auth/register');

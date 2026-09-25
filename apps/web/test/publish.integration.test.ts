@@ -12,7 +12,8 @@ import {
 import { createProject, loadDocument, saveDocument } from '../src/server/domain/projects';
 import { listSnapshots } from '../src/server/domain/snapshots';
 import { getDb } from '../src/server/db/client';
-import { pages, projects, publishedProjects, users } from '../src/server/db/schema';
+import { auditEvents, pages, projects, publishedProjects, users } from '../src/server/db/schema';
+import { listAudit } from '../src/server/domain/audit';
 
 /**
  * §56 / §57 发布与分享。打真实 Postgres：URL 指向的是"发布那一刻的快照"，
@@ -169,13 +170,24 @@ describe('发布与分享（真实数据库）', () => {
     const published = await publishProject(id, { visibility: 'public', createdById: ownerId });
     if (!published || !published.ok) throw new Error('发布失败');
     const path = published.publication.path;
-    expect(await unpublishProject(id)).toBe(true);
+    expect(await unpublishProject(id, ownerId)).toBe(true);
     expect(await resolvePublishedPath(path)).toBeNull();
     expect(await getPublication(id)).toBeNull();
     const snapshots = await listSnapshots(id);
     expect(snapshots.some((s) => s.source === 'publish')).toBe(true);
-    // 没发布过再取消：如实返回 false，不报错
-    expect(await unpublishProject(id)).toBe(false);
+    // 审计页声称"发布 / 下架 / 取消发布"都记：删行这一笔必须留痕，
+    // targetId 是被删掉的那条 publication——URL 从这一刻起 404，但谁撤的不能跟着行一起消失
+    const events = await listAudit(200);
+    const record = events.find((event) => event.action === 'publish.unpublish' && event.targetId === published.publication.id);
+    expect(record?.allowed).toBe(true);
+    expect(record?.actorId).toBe(ownerId);
+    expect(JSON.stringify(record?.detail)).toContain(path);
+    await getDb().delete(auditEvents).where(eq(auditEvents.id, record!.id));
+    // 没发布过再取消：如实返回 false，不报错，也不写审计（没发生的事不记）
+    expect(await unpublishProject(id, ownerId)).toBe(false);
+    expect((await listAudit(200)).some((event) => event.action === 'publish.unpublish' && event.detail && JSON.stringify(event.detail).includes(id))).toBe(
+      false,
+    );
   });
 
   it('门禁挡住时不写发布记录，也不留 publish 快照', async () => {

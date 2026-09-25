@@ -2,6 +2,7 @@ import { cache } from 'react';
 import { and, desc, eq, isNotNull, isNull, ne, sql as rawSql } from 'drizzle-orm';
 import { analyzeHealth, type DesignDocument, type HealthReport } from '@nexus/design-model';
 import { getDb } from '../db/client';
+import { recordAudit } from './audit';
 import { assets, games, projects, publishedProjects, users } from '../db/schema';
 import { recordScan, scanPublication, type AssetProvenance, type ModerationScan } from './moderation';
 import { loadDocument } from './projects';
@@ -204,6 +205,16 @@ export async function publishProject(
     });
   }
   const publication = toPublication(row!);
+  // §80 / §84：把一页内容放到公网上这一步，是"谁在什么时候让外面能看到的"这个问题的答案。
+  // 记的是这次发布本身（含切成 private 的下架），不是发布尝试失败——那类原因在案卷里
+  await recordAudit({
+    actorId: input.createdById,
+    action: input.visibility === 'private' ? 'publish.retract' : 'publish',
+    targetType: 'publication',
+    targetId: publication.id,
+    allowed: true,
+    detail: { visibility: input.visibility, version, path: publication.path },
+  });
   // §164：四类里只有"发布完成"今天真的有服务端终态，所以它是这一条的主体而不是装饰。
   // 收件人是项目所有者——他可能已经把这个标签页关掉了，回执不该只活在刚才那次请求里。
   await emit({
@@ -231,13 +242,26 @@ export async function getPublication(projectId: string): Promise<Publication | n
 }
 
 /** 取消发布：URL 立刻失效（删行），项目本身回到 private，历史快照留着 */
-export async function unpublishProject(projectId: string): Promise<boolean> {
+export async function unpublishProject(projectId: string, actorId: string | null = null): Promise<boolean> {
   const db = getDb();
   const deleted = await db
     .delete(publishedProjects)
     .where(eq(publishedProjects.projectId, projectId))
-    .returning({ id: publishedProjects.id });
-  if (deleted.length) await db.update(projects).set({ visibility: 'private' }).where(eq(projects.id, projectId));
+    .returning({ id: publishedProjects.id, path: publishedProjects.path });
+  if (deleted.length) {
+    await db.update(projects).set({ visibility: 'private' }).where(eq(projects.id, projectId));
+    // 删行这一笔必须留痕：URL 从这一刻起 404，但"谁撤的、撤的是哪一条"不能跟着行一起消失。
+    // targetId 记的是被删掉的那条 publication（行已经没了，只存在于这条审计里）。
+    // 没发布过再取消（deleted 为空）不写——没发生的事不记。
+    await recordAudit({
+      actorId,
+      action: 'publish.unpublish',
+      targetType: 'publication',
+      targetId: deleted[0]!.id,
+      allowed: true,
+      detail: { projectId, path: deleted[0]!.path },
+    });
+  }
   return deleted.length > 0;
 }
 

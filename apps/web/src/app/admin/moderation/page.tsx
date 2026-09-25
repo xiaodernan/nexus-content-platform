@@ -10,7 +10,7 @@ export const dynamic = 'force-dynamic';
  * 没有这一页，案子就会永远停在 pending，而 `moderation` 那一列又变回一个没人读的死字段。
  *
  * 默认拒绝：没登录说"要登录"，不是 admin 说"只对审核员开放"，两种都不泄露队列里有什么
- * （连案子数都不给）。谁是 admin 目前只能由运维改 `users.role`，平台没有自助提权。
+ * （连案子数都不给）。谁是 admin 由 `/admin/users` 提权（判定在 `domain/roles.ts`，每次尝试进审计）。
  */
 export default async function AdminModerationPage() {
   const user = await currentUserOrNull();
@@ -30,7 +30,8 @@ export default async function AdminModerationPage() {
           这个页面对 {user.displayName}（role={user.role}）不开放：审核队列只对 role=admin 可见。
         </p>
         <p className="mt-1 text-11 text-fg-3">
-          成为审核员需要运维直接改数据库里的 users.role —— 平台刻意没有自助提权的路径。
+          成为审核员要走 <Link href="/admin/users" className="text-accent-2 underline">账号与角色</Link>
+          由现有审核员提权（不能改自己、guest 不给提权，每次尝试都进审计）。
         </p>
         <Link href="/" className="mt-4 inline-block text-12 text-accent-2 underline">
           回到我的项目
@@ -42,11 +43,21 @@ export default async function AdminModerationPage() {
   const cases = await listReviewQueue();
   return (
     <main className="mx-auto flex max-w-[980px] flex-col gap-[var(--nexus-space-6)] px-6 py-10" data-admin-queue>
-      <header>
-        <h1 className="text-[var(--nexus-font-size-21)] font-semibold">人工复核台</h1>
-        <p className="mt-1 text-12 text-fg-3" data-rules-version={MODERATION_RULES_VERSION}>
-          待看 {cases.length} 案 · 规则版本 {MODERATION_RULES_VERSION} · 裁决之后这案就离开队列（放行/拒绝都会）
-        </p>
+      <header className="flex flex-wrap items-baseline justify-between gap-3">
+        <div>
+          <h1 className="text-[var(--nexus-font-size-21)] font-semibold">人工复核台</h1>
+          <p className="mt-1 text-12 text-fg-3" data-rules-version={MODERATION_RULES_VERSION}>
+            待看 {cases.length} 案 · 规则版本 {MODERATION_RULES_VERSION} · 裁决之后这案就离开队列（放行/拒绝都会）
+          </p>
+        </div>
+        <nav className="flex gap-3 text-11">
+          <Link href="/admin/users" className="text-accent-2 underline" data-queue-users>
+            账号与角色
+          </Link>
+          <Link href="/admin/audit" className="text-accent-2 underline" data-queue-audit>
+            审计事件
+          </Link>
+        </nav>
       </header>
 
       {/* 复核的人必须知道机检没看到什么，否则"队列里只剩这几案"会被读成"其余都是干净的" */}

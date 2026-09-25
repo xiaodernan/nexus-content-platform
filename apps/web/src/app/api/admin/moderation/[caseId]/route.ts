@@ -2,7 +2,9 @@ import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { resolveCase } from '@/server/domain/moderation';
 import { currentUserOrNull } from '@/server/domain/session';
+import { recordAudit } from '@/server/domain/audit';
 import { csrfOk } from '@/server/security/csrf';
+import { clientIp, getRateLimiter, rateKey } from '@/server/security/rateLimit';
 import { badRequest, jsonError } from '@/server/http';
 
 /**
@@ -18,16 +20,37 @@ const ResolveSchema = z.object({
 });
 
 export async function POST(req: Request, ctx: { params: Promise<{ caseId: string }> }): Promise<NextResponse> {
+  const { caseId } = await ctx.params;
   const user = await currentUserOrNull();
   if (!user) return jsonError(401, 'unauthenticated', { message: '需要先登录' });
-  if (user.role !== 'admin') return jsonError(403, 'forbidden', { message: '只有审核员（role=admin）能下结论' });
+  /**
+   * 限流放在 admin 判定**之前**：从这个版本起，被拒的越权尝试也会写一行审计，
+   * 而这条路是任何登录用户都能走的——不限流的话，一个非审核员的循环请求
+   * 就能把审计表刷满，真出事时反而翻不到那几行。与 `/api/admin/users` 同一口径。
+   */
+  const rl = getRateLimiter().hit(rateKey('admin/moderation', clientIp(req), user.id), 30, 10 * 60_000);
+  if (!rl.allowed) {
+    return jsonError(429, 'rate_limited', { message: '裁决太频繁了，稍后再试', retryAfterMs: rl.retryAfterMs });
+  }
+  if (user.role !== 'admin') {
+    // §80 / §84：被拒绝的越权尝试正是审计表存在的理由。今天它只活在一次 HTTP 响应里，
+    // 关掉窗口就没人知道有人试过改一个案子
+    await recordAudit({
+      actorId: user.id,
+      action: 'moderation.resolve',
+      targetType: 'moderation_case',
+      targetId: caseId,
+      allowed: false,
+      detail: { reason: 'not_admin', role: user.role },
+    });
+    return jsonError(403, 'forbidden', { message: '只有审核员（role=admin）能下结论' });
+  }
   if (!(await csrfOk(req))) return jsonError(403, 'csrf_failed', { message: 'CSRF 校验未通过' });
 
   const parsed = ResolveSchema.safeParse(await req.json().catch(() => null));
   if (!parsed.success) {
     return badRequest(parsed.error.issues.map((i) => `${i.path.join('.') || 'body'}: ${i.message}`));
   }
-  const { caseId } = await ctx.params;
   const result = await resolveCase(caseId, {
     adminId: user.id,
     resolution: parsed.data.resolution,

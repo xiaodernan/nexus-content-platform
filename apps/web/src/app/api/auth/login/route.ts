@@ -3,6 +3,7 @@ import { NextResponse } from 'next/server';
 import { currentSessionToken } from '@/server/domain/session';
 import { login, type AuthError } from '@/server/domain/auth';
 import { csrfOk } from '@/server/security/csrf';
+import { recordAudit } from '@/server/domain/audit';
 import { applySessionCookie } from '@/server/security/authCookies';
 import { getRateLimiter, rateKey, clientIp } from '@/server/security/rateLimit';
 import { badRequest, jsonError, readJson, failure } from '@/server/http';
@@ -40,7 +41,13 @@ export async function POST(req: Request): Promise<NextResponse> {
       userAgent: req.headers.get('user-agent'),
       ip,
     });
-    if ('code' in result) return fromError(result);
+    if ('code' in result) {
+      // 失败的登录也记，但**不记是哪个邮箱**：这张表迟早会被更多人看到，
+      // 把尝试过的账号写进去，等于自己造了一份可枚举的用户清单（§129 的隐私边界同样适用）
+      await recordAudit({ actorId: null, action: 'auth.login', targetType: 'account', allowed: false, detail: { reason: result.code }, ip });
+      return fromError(result);
+    }
+    await recordAudit({ actorId: result.user.id, action: 'auth.login', targetType: 'account', targetId: result.user.id, allowed: true, ip });
     return applySessionCookie(NextResponse.json({ user: result.user }), result.sessionToken);
   } catch (error) {
     return failure(error, 'POST /api/auth/login');
