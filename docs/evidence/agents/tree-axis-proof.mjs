@@ -236,7 +236,16 @@ for (const r of rows) {
 }
 assert.ok(candidates.length > 0, `at least one script must use process.cwd() WITHOUT walking the tree, or the scan's precision is untested (counted: ${walkers.length} of ${rows.length})`);
 console.log(`  提到 process.cwd() 而没有被算成遍历者的（它们只是拿它当 jail 根或 import 路径）：${candidates.join(', ')}`);
-assert.ok(idxAll.chunks.length > idxRef.chunks.length, 'the real repository must show the axis is not hypothetical: untracked content contributes chunks here');
+// The real-repo consequence is PRINTED always and ASSERTED only when the tree can support it. Asserting
+// "untracked content contributes chunks" unconditionally would make this script red in a clean clone —
+// which is precisely the defect it exists to document, and a witness that inherits the disease it grades
+// is worthless. §3 already proves the mechanism where the expected answer is known.
+assert.ok(idxAll.chunks.length >= idxRef.chunks.length, 'a bigger corpus cannot have fewer chunks — if it does, the two indexes were not built from nested populations');
+if (realTree.untracked > 0) {
+  assert.ok(idxAll.chunks.length > idxRef.chunks.length, `${realTree.untracked} untracked files were read and contributed ZERO chunks — the split says they are there and the index says they are not`);
+} else {
+  console.log('  (this checkout has no untracked text files: the real-repo consequence branch is vacuous this run, and that is a fact about the clone, not a failure)');
+}
 
 rmSync(fake, { recursive: true, force: true });
 console.log(`\n[summary] walked tree: identity moves on an edit, an untracked file and a rename, while the ref-owned count stays put · ignored-but-read counted separately · split exhaustive and disjoint (${t5.tracked}+${t5.untracked}+${t5.other}=${t5.files}) · slots displaced where the answer is known: the ref owned ${refOwnedSlots(before.paths)} of the 5 top hits with a clean tree and ${refOwnedSlots(after.paths)} with 6 untracked ones · runner catches a mid-run move end-to-end and reports treeStable false · home tree: ${realTree.files} files with ${realTree.untracked} untracked owning ${idxAll.chunks.length - idxRef.chunks.length} of ${idxAll.chunks.length} chunks · HEAD unmoved`);
