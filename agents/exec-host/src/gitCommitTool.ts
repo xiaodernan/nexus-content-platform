@@ -1,5 +1,5 @@
 import type { ExecPolicy, ToolRegistry, ToolSpec } from '@nexus/agent-runtime';
-import { budgetFlags, GIT_ENV_NAMES, gitEnv, gitVerdict, quoteVerdict } from './gitTools.js';
+import { budgetFlags, GIT_ENV_NAMES, gitEnv, gitVerdict, quoteVerdict, windowField } from './gitTools.js';
 import type { ExecHost, ExecRunResult } from './execHost.js';
 
 /**
@@ -73,13 +73,18 @@ export function registerGitCommitTool(registry: ToolRegistry, host: ExecHost, op
     const flags = budgetFlags(result);
     if (result.exitCode !== 0 || result.killedByBudget) {
       const verdict = gitVerdict(result.stdout, result.stderr, { truncated: result.truncated || result.killedByBudget });
-      return { ok: false, detail: `git.commit → exit ${result.exitCode}: ${quoteVerdict(verdict)}${flags}`, exitCode: result.exitCode, message, truncated: result.truncated };
+      return { ok: false, detail: `git.commit → exit ${result.exitCode}: ${quoteVerdict(verdict)}${flags}`, exitCode: result.exitCode, message, truncated: result.truncated, ...windowField(result) };
     }
     const record = parseCommitOutput(result.stdout);
     const detail = record
       ? `git.commit → exit 0: ${record.branch}@${record.hash}${record.stat ? ` · ${record.stat.files} file(s) +${record.stat.insertions} −${record.stat.deletions}` : ''}${flags}`
       : `git.commit → exit 0: committed (git echoed no summary line — stated, not guessed)${flags}`;
-    return { ok: true, detail, exitCode: 0, message, ...(record ? { record } : {}), truncated: result.truncated };
+    // v70 (ADR 0016 amendment 70): the WRITE door's record joins the window family. Measured
+    // (`v70-commit-echo-probe.mjs`, a 40-file commit through the shipped door): at 120 bytes the first echo
+    // line survives so `record` is present with `stat: null`, and at 8 bytes `record` is absent altogether —
+    // while HEAD moved every time, because a budget cannot un-commit. `windowed` is what tells a reader of a
+    // journalled result that a missing record or a null stat is the CUT speaking, not git and not the index.
+    return { ok: true, detail, exitCode: 0, message, ...(record ? { record } : {}), truncated: result.truncated, ...windowField(result) };
   });
   return registry;
 }
