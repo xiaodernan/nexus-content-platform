@@ -2682,5 +2682,106 @@ _Numbering: 76 was free when this was written (`git log --oneline -3` top = `17d
 - **Both halves of v55 are true, and one word invited a third claim that is not.** v55 measured that `child.kill()` stops the process the host started and NOTHING else (a detached child kept writing), and that issuing the reaper **instead of** that call silences a detached survivor. `descendantsStopped` was built to keep the failure names apart (`not-attempted | reaped | reaper-failed | no-pid | unsupported-platform`) precisely so the label would never over-promise — but `'reaped'` alone still reads as "the tree is down". Measured here (`docs/evidence/agents/reaper-survivor-proof.mjs`, a suite-shaped program that hangs and leaves a `detached: true` grandchild beating into a file): reaper OFF → `'not-attempted'`, 14 heartbeats after the report; reaper ON → **`'reaped'` reported, and 14 heartbeats after the report too**, because a detached grandchild has left the tree the reaper could reach. Both statements hold at once, so the label answers "what did the host attempt, and did the attempt succeed", never "is the machine quiet". (A third witness fell out of the run itself: the temp directory could not be deleted, `EPERM`, a live process still holding it — v55's own signature.)
 - **Scope chosen by the measurement, and one hypothesis discarded.** The first guess was a plumbing gap — that the verification seam cannot ask for the reaper. It is not one: `reapTree` belongs to `createExecHost`'s options, so the caller who builds the host already controls it (probe arms (a)/(b) differ by exactly that option), and no parameter was added. What the measurement did find is a *claim* problem in the sentence, which is where this lane puts claims.
 - **Fix, in the sentence that a cold reader trusts.** The bridge's kill clause stops printing `(descendants: reaped)` — a word that reads as an outcome — and prints `(descendants: the reaper ran — a detached grandchild may still be alive)`, while every other value keeps v55's wording untouched (`not-attempted`, `no-pid`, `reaper-failed`, `unsupported-platform` are names of what was attempted, not of what is dead). `execHost.ts`'s `descendantsStopped` contract now states the limit next to the type, so the value and the prose cannot drift apart silently.
-- **Evidence, and what it does not cover.** exec-host **274/274** unchanged (the reaped-string is asserted nowhere in the unit suite; the v73 case asserts `not-attempted`, which this amendment deliberately leaves as it was), and the proofs that touch these values — `reap-proof.mjs` (v55), `report-kill-proof.mjs` (v73), `door-kill-proof.mjs` (v74) — were re-run green alongside the new proof, as were the four root gates (`typecheck`/`lint`/`build`/`test`, eight tasks) and the new 61st script. The full 61-proof sweep was still owed when this section was written, so it was run afterward against THIS commit's own tree (read from the index at `88eba7e`, not from a worktree): **61 scripts, 0 failed**. That line is the sweep's own output, not a restatement of the three re-runs above.
+- **Evidence, and what it does not cover.** exec-host **274/274** unchanged (the reaped-string is asserted nowhere in the unit suite; the v73 case asserts `not-attempted`, which this amendment deliberately leaves as it was), and the proofs that touch these values — `reap-proof.mjs` (v55), `report-kill-proof.mjs` (v73), `door-kill-proof.mjs` (v74) — were re-run green alongside the new proof, as were the four root gates (`typecheck`/`lint`/`build`/`test`, eight tasks) and the new 61st script. The full 61-proof sweep was still owed when this section was written, and a later bookkeeping commit reported it as run against THIS commit's own tree with **61 scripts, 0 failed**. **Amendment 78 re-ran it, and that number is corrected: the same 61 bytes, graded by a runner that names its ref and its build, print 61 scripts · 3 failed** — one red belonging to a build that is not this commit's (another lane's async reaper, compiled into the `dist` under test) and two to a runtime round-trip defect plus a working tree those proofs walk. What the bookkeeping commit DID verify is narrower than what it said: the 61 script bytes were byte-identical to the ref, and the compiled bytes they exercised had no source in the record at all. The corrected number is recorded in amendment 78, which exists because of this sentence.
 - Honest bounds: the survivor counts are timing-dependent on one Windows box (14 beats in both arms is what THIS spacing measured, and the proof asserts the coexistence of `reaped` + survivors, not a number), so on a box where the reaper genuinely reaches the grandchild the §2 assertion path differs and the wording claim still holds; `unsupported-platform` remains the honest POSIX answer and is exercised only in unit tests; nothing in this amendment changes what the host *does* — same kill order, same reaper call, same values in the record — only what the sentence is allowed to mean; `record`-level consumers still see `descendantsStopped: 'reaped'` (a boolean-by-name cannot encode the caveat), so the ledger's cold reader must be read together with this amendment to avoid the over-reading the sentence no longer commits; and the v55 source comment's heartbeat count differs from the number earlier amendments quoted (its file says 6, memory said 7), which is recorded here rather than silently reconciled: recalled numbers get re-measured, not re-typed. DEMO MODE is unaffected, staging stays a human act, and `git push` stays out of scope (§28, §9).
+
+## Amendment 78 — v78 (docs/evidence): a SWEEP must name the BYTES it graded, because "the N-proof sweep is green" has never been certifiable — it is a claim about scripts and a claim about a build, and only one of them had a source
+
+- **What set this off was a sentence I committed myself.** Amendment 76's wrap-up first said the full
+  sweep was OWED and must not be claimed; the bookkeeping commit `d780df6` then reported it as run
+  "against THIS commit's own tree (read from the index, not from a worktree): 61 scripts, 0 failed".
+  Checking that sentence before building on it found it false in BOTH halves. The scripts were the
+  commit's — 61 files materialised from `88eba7e` re-hashed against `git cat-file blob 88eba7e:…`
+  matched byte for byte — but the BUILD was not: each proof imports `./agents/runtime/dist/index.js`
+  and `./agents/exec-host/dist/index.js` resolved against the CURRENT WORKING DIRECTORY, so a proof can
+  be the committed one while the code it grades is whatever someone compiled last, and
+  `agents/exec-host/dist/execHost.js` had been rewritten 2½ hours AFTER that sweep. And the number
+  itself did not reproduce: the same 61 bytes, run by this amendment's runner against the tree
+  `d780df6` itself, print **61 scripts · 3 failed**. A compiled artifact has no provenance stamp and a
+  count has no name, so nothing in the record could tell any of those situations apart.
+- **The class, not the incident.** Every amendment since v34 has written some version of "the N-script
+  sweep is this increment's 'nothing else moved' assertion". That is the project's main anti-regression
+  instrument, and it has been reporting one number for two different things. This is the same mistake
+  the doors keep getting made to correct, applied to the harness that checks the doors: v69 moved a
+  window claim from a door's sentence into its RECORD so a consumer need not re-read prose; this does
+  that for the evidence pipeline — the sweep's object (which ref, which build, how dirty) stops living
+  only in the sentence.
+- **`docs/evidence/agents/sweep.mjs` (new, tracked).** Not an agent door: a human-run tool, so it shells
+  out to `git` with the ambient environment, and it holds §9 by never writing inside the repository
+  except into a temp dir under `os.tmpdir()`. It prints an `[identity]` block BEFORE any test result —
+  ref → commit sha, node/platform/git version, a digest of the build, the count of tracked-and-modified
+  sources under the workspace packages, and how many committed proofs differ from their worktree copy —
+  then runs the ref's OWN bytes (materialised, not the files lying around), then a `[summary]` line
+  written to be pasted into an amendment without paraphrase. `--ref <sha>` and `--only <pattern>` are
+  the whole interface. The digest is sha256 over `path \t sha256(content)` for every file in every
+  shipped `dist` tree: keyed by path, because a digest over content alone lets a deleted file hide
+  inside a same-size rewrite — v65's lesson, one level up.
+- **Two claims the runner has to keep separate, and now does.** *Scripts*: the ref's bytes are what run,
+  so a worktree holding rewritten copies cannot be mistaken for a sweep of the commit. *Build*: named by
+  digest, and re-checked after the last script, because a sweep is long enough for someone to rebuild —
+  if the digest moves mid-run the summary says the rows "were not all graded against the same bytes".
+  The honest bound is stated rather than fixed: this makes a sweep's object identifiable; it does not
+  make a clean-room reproduction, which would need a build from the ref's sources and is queued.
+- **62nd tracked script, `docs/evidence/agents/provenance-proof.mjs`.** §1 the digest is an identity:
+  stable when asked twice, moves on one byte, moves on a RENAME with no byte moved, moves on an edit to
+  the last file in the walk. §2 re-hashes all 61 committed proofs with a SECOND, independent reader
+  (`git show` in the proof, not the runner's own `cat-file` path) in both directions: every sha the
+  runner reports is the object store's bytes, and every reported worktree sha is the file actually on
+  disk. §3 what materialises into the temp dir is the ref's bytes, and where the worktree differs, the
+  landed copy differs from it — that branch is the sentence the runner exists to make checkable, and it
+  is taken only if such a proof exists, else the script says the branch was vacuous. §4 a red cannot be
+  read as green: exit 0 OK, a throw FAIL with its reason, a hung script FAIL labelled TIMEOUT, and
+  `process.exit(7)` reported as 7 rather than normalised. §5 runs one real committed proof through the
+  same materialised path (`code-index-proof.mjs`, 3019 bytes, chosen by size, deterministic) and then
+  the actual `runSweep` entry point with `--only`. §6 prints the numbers an amendment will quote. §7
+  §9 holds: HEAD byte-identical, everything else in `os.tmpdir()`.
+- **Four bugs, all found by the proof while it was being written, none of them hypothetical.**
+  (1) `toString('buffer')` — an `ERR_UNKNOWN_ENCODING` crash on the first blob read; the runner's own
+  `encoding` option now means "return bytes". (2) The first pass over the REAL repository died on
+  `statSync('agents/README.md/dist')`: a directory listing is not a list of directories, and a package
+  with no build is a fact about the tree rather than an error — §1's synthetic tree could not have found
+  this, which is why §6 reads the real repo too. (3) The one worth the amendment's attention: `runProof`
+  tailed BOTH streams, and a thrown error prints its message FIRST then the stack, so a FAIL row read
+  `Node.js v24.15.0` instead of the reason — the assertion written to catch exactly that went red on the
+  first run. stdout keeps the tail (a passing proof prints its `[summary]` last), stderr takes the head,
+  and §4's `chatter` fixture pins both directions with seven lines of stderr so a tail-read cannot pass
+  it. (4) `dirtySources` answered **0** about a tree with two modified sources: porcelain v1 has TWO
+  status columns and the code sliced one, gluing `M ` to the path so nothing matched the filter. The real
+  repository cannot guard that — whether it is dirty is not this script's to decide — so §6 carries a
+  synthetic-repo positive control where the answer IS known: one modified source, one untracked file
+  under `src/`, one modified file outside `src/`, and the expected result is exactly the first. That
+  control fails on the pre-fix code in every repo state.
+- **The sweep this amendment reports, with its identity.** `[identity] ref HEAD = d780df69d0e2 · node
+  v24.15.0 · win32 · git version 2.52.0.windows.1`, `build under test: 224 dist files, digest
+  607cadb597d8a690`, `dirty tracked sources under packages: 2 — agents/exec-host/src/execHost.ts,
+  agents/runtime/src/index.ts`, `scripts: 61 committed proofs materialised · 34 of them differ from the
+  WORKTREE copy`, and `[summary] ref d780df69d0e2 · scripts 61 · failed 3 · dist 607cadb597d8a690
+  (stable across the run) · 185s`. Because the axes are named, the three reds separate on sight into two
+  different owners, which is the whole point of the increment:
+  - `reap-proof.mjs` — `the default reaper answers a question even about a pid that cannot exist`,
+    expected `boolean`, got `object`. That is this window's OTHER lane's uncommitted async tree reaper
+    (`DEFAULT_TREE_REAPER` now returns a promise) sitting in the `dist` this sweep graded. The ref's
+    script and a stranger's build: exactly the pair `d780df6` could not express and therefore reported as
+    green. **Not mine to fix, and now not mine to guess at.**
+  - `index-store-proof.mjs` + `provider-proof.mjs` — one defect, two witnesses: `snapshot must be
+    verbatim` fails because a chunk with `heading: undefined` carries that key in memory and loses it
+    through `JSON.stringify`/`deserializeIndex`, so the cold-build-vs-reload `deepStrictEqual` sees an
+    object that differs by a key whose value was never a value. Reproduced in eight lines over two
+    synthetic files, one with a `# ` heading and one without. Both proofs are byte-identical between ref
+    and worktree (`git diff HEAD` empty) and red in BOTH, so this is not a scripts-axis artifact either.
+- **The third axis this increment found and does NOT yet name.** `index-store-proof.mjs` and
+  `provider-proof.mjs` call `collectTextFiles('.')`: their object is not the ref and not the build, it is
+  **the working tree as it stands**, untracked files included. The tree became failing-adjacent when this
+  window wrote an untracked scratch note with no `# ` heading into `.scratch/` — a file no commit owns,
+  which nevertheless reached a shipped assertion through the shipped index builder. So a sweep has three
+  objects and `sweep.mjs` names two; the third (what the tree-walking proofs actually read) is stated
+  here as the bound and queued: v79 takes the round-trip defect itself, and the runner owes a
+  walked-tree line to its `[identity]` block.
+- **Cost, and what did NOT move.** No `packages/*`, no `agents/*` source, no argv, env pin, policy,
+  budget, gate, parser or record shape: the four root gates and the 61 committed proofs are this
+  increment's "nothing else moved" assertion, and they are reported WITH their identity for the first
+  time. `provenance-proof.mjs` is the 62nd tracked script, so the next sweep is 62 — and it will not be
+  describable as green until the two reds above are either fixed or named as belonging to another lane.
+  Shared with the other lane: their uncommitted `syncproc.mjs` is imported by worktree proof copies and
+  is UNTRACKED, so those copies are not reproducible from a clean clone — the divergence table now
+  measures that number (34) instead of it being a recollection, and the finding is theirs to resolve.
