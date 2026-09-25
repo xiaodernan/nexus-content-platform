@@ -1,5 +1,5 @@
 import type { ExecPolicy, ToolRegistry, ToolSpec } from '@nexus/agent-runtime';
-import { budgetFlags, GIT_ENV_NAMES, cutNotAbsence, gitEnv, gitVerdict, logWindowNotice, quoteVerdict, refusedNotAbsence, stdoutWasCut, windowField } from './gitTools.js';
+import { budgetFlags, GIT_ENV_NAMES, cutNotAbsence, gitEnv, gitVerdict, killedField, killedNotRefusal, logWindowNotice, quoteVerdict, refusedNotAbsence, stdoutWasCut, windowField } from './gitTools.js';
 import type { ExecHost, ExecRunResult } from './execHost.js';
 
 /**
@@ -104,7 +104,7 @@ export function registerGitLogTool(registry: ToolRegistry, host: ExecHost, optio
     const flags = budgetFlags(result);
     if (result.exitCode !== 0 || result.killedByBudget) {
       const verdict = gitVerdict(result.stdout, result.stderr, { truncated: result.truncated || result.killedByBudget });
-      return { ok: false, detail: `git.log → exit ${result.exitCode}: ${quoteVerdict(verdict)} · ${refusedNotAbsence('the repo has no commits')}${flags}`, exitCode: result.exitCode, count, commits: [], truncated: result.truncated, ...windowField(result) };
+      return { ok: false, detail: `git.log → exit ${result.exitCode}: ${quoteVerdict(verdict)} · ${result.killedByBudget ? killedNotRefusal('the repository having no commits') : refusedNotAbsence('the repo has no commits')}${flags}`, exitCode: result.exitCode, count, commits: [], truncated: result.truncated, ...windowField(result), ...killedField(result) };
     }
     const { commits, skipped } = parseGitLog(result.stdout);
     const top = commits[0];

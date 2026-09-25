@@ -64,6 +64,8 @@ export {
   cutNotAbsence,
   diffWindowNotice,
   windowField,
+  killedField,
+  killedNotRefusal,
   logWindowNotice,
   gitEnv,
   gitReadOnlyPolicy,

@@ -1,5 +1,5 @@
 import type { ExecPolicy, ToolRegistry, ToolSpec } from '@nexus/agent-runtime';
-import { budgetFlags, diffWindowNotice, windowField, GIT_DIFF_FLAGS, GIT_ENV_NAMES, cutNotAbsence, gitEnv, gitVerdict, isDiffHeaderPairLine, isQuotedRendering, quoteVerdict, refusedNotAbsence, stdoutWasCut } from './gitTools.js';
+import { budgetFlags, diffWindowNotice, killedField, killedNotRefusal, windowField, GIT_DIFF_FLAGS, GIT_ENV_NAMES, cutNotAbsence, gitEnv, gitVerdict, isDiffHeaderPairLine, isQuotedRendering, quoteVerdict, refusedNotAbsence, stdoutWasCut } from './gitTools.js';
 import type { ExecHost, ExecRunResult } from './execHost.js';
 
 /**
@@ -114,7 +114,7 @@ export function registerGitShowTool(registry: ToolRegistry, host: ExecHost, opti
     const flags = budgetFlags(result);
     if (result.exitCode !== 0 || result.killedByBudget) {
       const verdict = gitVerdict(result.stdout, result.stderr, { truncated: result.truncated || result.killedByBudget });
-      return { ok: false, detail: `git.show → exit ${result.exitCode}: ${quoteVerdict(verdict)} · ${refusedNotAbsence(`HEAD touches nothing at ${path}`)}${flags}`, exitCode: result.exitCode, path, addedLines: [], truncated: result.truncated, ...windowField(result) };
+      return { ok: false, detail: `git.show → exit ${result.exitCode}: ${quoteVerdict(verdict)} · ${result.killedByBudget ? killedNotRefusal(`HEAD having touched ${path}`) : refusedNotAbsence(`HEAD touches nothing at ${path}`)}${flags}`, exitCode: result.exitCode, path, addedLines: [], truncated: result.truncated, ...windowField(result), ...killedField(result) };
     }
     const change = parseShowDiff(result.stdout, path);
     const touched = change.hunks > 0 || change.additions > 0 || change.deletions > 0;

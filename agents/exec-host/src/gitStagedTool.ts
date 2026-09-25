@@ -1,5 +1,5 @@
 import type { ExecPolicy, ToolRegistry, ToolSpec } from '@nexus/agent-runtime';
-import { budgetFlags, diffWindowNotice, GIT_DIFF_FLAGS, windowField, GIT_ENV_NAMES, cutNotAbsence, gitEnv, gitVerdict, isDiffHeaderPairLine, parseDiffHeader, parseDiffStat, parseFileLine, pathShapeNotices, quoteVerdict, refusedNotAbsence, unmergedNotAbsence, unmergedNotice, unnamableDiffSections, unnamableSectionsNotice, stdoutWasCut, unwrapRendering } from './gitTools.js';
+import { budgetFlags, diffWindowNotice, killedField, killedNotRefusal, GIT_DIFF_FLAGS, windowField, GIT_ENV_NAMES, cutNotAbsence, gitEnv, gitVerdict, isDiffHeaderPairLine, parseDiffHeader, parseDiffStat, parseFileLine, pathShapeNotices, quoteVerdict, refusedNotAbsence, unmergedNotAbsence, unmergedNotice, unnamableDiffSections, unnamableSectionsNotice, stdoutWasCut, unwrapRendering } from './gitTools.js';
 import type { ExecHost, ExecRunResult } from './execHost.js';
 
 /**
@@ -204,7 +204,7 @@ export function registerGitStagedTool(registry: ToolRegistry, host: ExecHost, op
     if (result.spawnError !== '') throw new Error(`spawn failed: ${result.spawnError}`);
     if (result.exitCode !== 0 || result.killedByBudget) {
       const verdict = gitVerdict(result.stdout, result.stderr, { truncated: result.truncated || result.killedByBudget });
-      return { ok: false, detail: `git.staged → exit ${result.exitCode}: ${quoteVerdict(verdict)} · ${refusedNotAbsence('the index holds nothing staged for the §28 ask')}${flags(result)}`, exitCode: result.exitCode, stat, files: [], truncated: result.truncated, ...windowField(result) };
+      return { ok: false, detail: `git.staged → exit ${result.exitCode}: ${quoteVerdict(verdict)} · ${result.killedByBudget ? killedNotRefusal('the index holding nothing staged for the §28 ask') : refusedNotAbsence('the index holds nothing staged for the §28 ask')}${flags(result)}`, exitCode: result.exitCode, stat, files: [], truncated: result.truncated, ...windowField(result), ...killedField(result) };
     }
     if (stat) {
       const summary = parseDiffStat(result.stdout);

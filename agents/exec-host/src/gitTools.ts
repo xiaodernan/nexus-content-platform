@@ -156,6 +156,25 @@ export const windowField = (r: { truncatedStreams?: Array<'stdout' | 'stderr'> }
   stdoutWasCut(r) ? { windowed: true } : {};
 
 /**
+ * M2 v74 (ADR 0016 amendment 74): a KILL is git's silence about nothing — it is the HOST's own action, and
+ * v52's `refusedNotAbsence` attributes it to the wrong speaker.
+ *
+ * Measured (`.scratch/v74-door-kill-probe.mjs`): every git door run against a 1 ms timeout budget over a
+ * 300-file repository answered `… · git REFUSED this command — this is NOT a statement that …`. Nothing
+ * refused. `git` was still alive when the host terminated it, which is why `exitCode` is `null` in the very
+ * same sentence. v53 gave the family a `cut` rule so an emptied pipe would not be called git's silence;
+ * this is the same error one step further along: the budget stopping a read is reported as git declining to
+ * answer, and a §28 reviewer reading attribution ("git said no") would judge a different fact than the one
+ * that happened (our ceiling, our kill). Sibling of `refusedNotAbsence`, chosen by `killedByBudget`, and
+ * `killedField` carries the same distinction into the record so a cold reader needs no prose at all.
+ */
+export const killedNotRefusal = (what: string): string =>
+  `the exec host KILLED this read at its own timeout budget — git refused nothing, and this is NOT a statement about ${what}`;
+
+export const killedField = (r: { killedByBudget: boolean; signal: string | null; descendantsStopped?: string | null }): { killed?: { signal: string | null; descendantsStopped: string | null } } =>
+  r.killedByBudget ? { killed: { signal: r.signal, descendantsStopped: r.descendantsStopped ?? null } } : {};
+
+/**
  * M2 v57: the third member of the "git said a thing the tally hides" family, for the door that
  * reports the WORKING TREE. `counts` is a census of entries; an unmerged entry is not a change the
  * index is ready to record, it is a stop sign — so the door names the paths rather than letting
@@ -684,8 +703,8 @@ export function registerGitTools(registry: ToolRegistry, host: ExecHost, options
     const windowed = stdoutWasCut(result);
     const detail = ok
       ? `git.status → exit ${result.exitCode}: ${files.length} entries${tally === '' ? '' : ` (${tally})`}${conflicted.length > 0 ? ` · ${unmergedStatusNotice(conflicted)}` : ''}${pathShapeNotices(files)}${treeSplitNotice(files, { window: windowed })}${flags(result)}`
-      : `git.status → exit ${result.exitCode}: ${quoteVerdict(gitVerdict(result.stdout, result.stderr, { truncated: result.truncated || result.killedByBudget }))} · ${files.length} entries parsed · ${refusedNotAbsence('the working tree is clean or empty')}${flags(result)}`;
-    return { ok, detail, exitCode: result.exitCode, files, counts, truncated: result.truncated, ...windowField(result) };
+      : `git.status → exit ${result.exitCode}: ${quoteVerdict(gitVerdict(result.stdout, result.stderr, { truncated: result.truncated || result.killedByBudget }))} · ${files.length} entries parsed · ${result.killedByBudget ? killedNotRefusal('the working tree being clean or empty') : refusedNotAbsence('the working tree is clean or empty')}${flags(result)}`;
+    return { ok, detail, exitCode: result.exitCode, files, counts, truncated: result.truncated, ...windowField(result), ...killedField(result) };
   });
 
   registry.register(GIT_TOOL_SPECS[1]!, async (args) => {
@@ -704,8 +723,8 @@ export function registerGitTools(registry: ToolRegistry, host: ExecHost, options
       const mention = notice.length > 0 ? ` · ${unmergedNotAbsence(notice)}` : '';
       const detail = ok
         ? `git.diff --stat → exit 0: ${parsed}${mention}${flags(result)}`
-        : `git.diff --stat → exit ${result.exitCode}: ${quoteVerdict(gitVerdict(result.stdout, result.stderr, { truncated: result.truncated || result.killedByBudget }))} · ${parsed} · ${refusedNotAbsence('nothing changed')}${flags(result)}`;
-      return { ok, detail, exitCode: result.exitCode, mode: 'stat', summary, text: result.stdout, truncated: result.truncated, ...windowField(result) };
+        : `git.diff --stat → exit ${result.exitCode}: ${quoteVerdict(gitVerdict(result.stdout, result.stderr, { truncated: result.truncated || result.killedByBudget }))} · ${parsed} · ${result.killedByBudget ? killedNotRefusal('nothing having changed') : refusedNotAbsence('nothing changed')}${flags(result)}`;
+      return { ok, detail, exitCode: result.exitCode, mode: 'stat', summary, text: result.stdout, truncated: result.truncated, ...windowField(result), ...killedField(result) };
     }
     const { files, totals } = parseGitDiff(result.stdout);
     const notice = unmergedNotice(result.stdout);
@@ -716,8 +735,8 @@ export function registerGitTools(registry: ToolRegistry, host: ExecHost, options
       : `${windowed ? 'AT LEAST ' : ''}${totals.files} files, +${totals.additions} −${totals.deletions} (${totals.hunks} hunks)`;
     const detail = ok
       ? `git.diff → exit 0: ${tally}${notice.length > 0 ? ` · ${unmergedNotAbsence(notice)}` : ''}${unnamable.length > 0 ? ` · ${unnamableSectionsNotice(unnamable)}` : ''}${diffWindowNotice({ window: windowed, subject: 'the working tree', named: totals.files, ...(last ? { partial: { path: last.path, additions: last.additions, deletions: last.deletions } } : {}) })}${pathShapeNotices(files)}${flags(result)}`
-      : `git.diff → exit ${result.exitCode}: ${quoteVerdict(gitVerdict(result.stdout, result.stderr, { truncated: result.truncated || result.killedByBudget }))} · ${tally} · ${refusedNotAbsence('the tree has no changes')}${flags(result)}`;
-    return { ok, detail, exitCode: result.exitCode, mode: 'full', files, totals, truncated: result.truncated, ...windowField(result) };
+      : `git.diff → exit ${result.exitCode}: ${quoteVerdict(gitVerdict(result.stdout, result.stderr, { truncated: result.truncated || result.killedByBudget }))} · ${tally} · ${result.killedByBudget ? killedNotRefusal('the tree having no changes') : refusedNotAbsence('the tree has no changes')}${flags(result)}`;
+    return { ok, detail, exitCode: result.exitCode, mode: 'full', files, totals, truncated: result.truncated, ...windowField(result), ...killedField(result) };
   });
 
   return registry;

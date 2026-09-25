@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { ToolRegistry, planExec } from '@nexus/agent-runtime';
 import type { SpawnLike } from '@nexus/agent-runtime';
 import { createExecHost, type ExecChild } from '../src/execHost.js';
-import { GIT_TOOL_SPECS, GIT_DIFF_FLAGS, budgetFlags, diffWindowNotice, gitEnv, gitReadOnlyPolicy, gitVerdict, isDiffHeaderPairLine, isQuotedRendering, logWindowNotice, parseDiffHeader, parseDiffStat, parseFileLine, parseGitDiff, parseGitStatus, pathShapeNotices, quoteVerdict, refusedNotAbsence, registerGitTools, stdoutWasCut, treeSplitNotice, UNMERGED_XY, unmergedNotice, unmergedNotAbsence, unmergedStatusNotice, unnamableDiffSections, unnamableSectionsNotice, unwrapRendering, windowField } from '../src/gitTools.js';
+import { GIT_TOOL_SPECS, GIT_DIFF_FLAGS, budgetFlags, diffWindowNotice, gitEnv, gitReadOnlyPolicy, gitVerdict, isDiffHeaderPairLine, isQuotedRendering, logWindowNotice, parseDiffHeader, parseDiffStat, parseFileLine, parseGitDiff, parseGitStatus, pathShapeNotices, quoteVerdict, refusedNotAbsence, registerGitTools, stdoutWasCut, treeSplitNotice, UNMERGED_XY, unmergedNotice, unmergedNotAbsence, unmergedStatusNotice, unnamableDiffSections, unnamableSectionsNotice, unwrapRendering, windowField, killedField, killedNotRefusal } from '../src/gitTools.js';
 import { GIT_ABSENT_CONFIG, GIT_FORCED_CONFIG, GIT_ISOLATION_ENV, GIT_PASS_THROUGH_ENV_NAMES, forcedConfigEnv } from '../src/gitEnvIsolation.js';
 
 describe('parseGitStatus (porcelain v1, pure data)', () => {
@@ -1027,5 +1027,24 @@ describe('windowField (M2 v69: the RECORD answers the window question, not only 
     const h2 = harness('diff --git a/x.ts b/x.ts\nindex 1..2 100644\n--- a/x.ts\n+++ b/x.ts\n@@ -1 +1 @@\n-c\n+c\n', { code: 128, signal: null }, 12, 'error: could not read atomically\n');
     const both = await h2.registry.invoke({ callId: 'v69r2', tool: 'git.diff', args: {} }, h2.grant);
     expect((both.output as { windowed?: boolean }).windowed).toBe(true); // now the parsed stream lost bytes too
+  });
+
+  it('v74: a KILL is attributed to the exec host, never to git — in the sentence and in the record', async () => {
+    expect(killedNotRefusal('the tree having no changes')).toContain('the exec host KILLED this read at its own timeout budget');
+    expect(killedNotRefusal('the tree having no changes')).toContain('git refused nothing');
+    expect(killedNotRefusal('x')).not.toContain('REFUSED this command'); // v52's wording belongs to a refusal
+    expect(killedField({ killedByBudget: false, signal: null })).toEqual({});
+    expect(killedField({ killedByBudget: true, signal: 'SIGTERM' })).toEqual({ killed: { signal: 'SIGTERM', descendantsStopped: null } });
+
+    const never: SpawnLike = () => new FakeChild();
+    const host = createExecHost({ root: 'X:/repo', allow: [{ argv: ['git', 'status', '--short'], timeoutMs: 1, maxOutputBytes: 65_536 }], envAllow: ['PATH', 'SYSTEMROOT'], maxTimeoutMs: 5 }, { spawnLike: never });
+    const registry = registerGitTools(new ToolRegistry(), host, { env: { PATH: '/bin' } });
+    const killed = await registry.invoke({ callId: 'v74k', tool: 'git.status', args: {} }, { checkpoint: () => true });
+    const o = killed.output as { ok: boolean; detail: string; killed?: { signal: string | null }; windowed?: boolean; truncated: boolean };
+    expect(o.ok).toBe(false);
+    expect(o.killed?.signal).toBe('SIGTERM');
+    expect('windowed' in o).toBe(false); // the budget stopped the CLOCK, not the pipe: nothing was trimmed
+    expect(o.detail).toContain('the exec host KILLED this read at its own timeout budget');
+    expect(o.detail).not.toContain('git REFUSED'); // the old sentence accused git of a decision git never made
   });
 });
