@@ -3026,3 +3026,66 @@ _Numbering: 76 was free when this was written (`git log --oneline -3` top = `17d
   witness on the way out (`rmSync(iso.dir)`), so any sentence quoted here came from output the runner
   itself printed or a harness that wrote it down — the reason line above is quoted from a saved copy, not
   from memory.
+
+## Amendment 82 — v82 (docs/evidence): a verdict that names the PACKAGE is not a verdict — `describeBuild()` quotes the line the BUILD wrote, and answers `null` when it cannot
+
+- **The sentence this increment exists to make true.** v81's own bounds bullet recorded, in the middle of
+  quoting a build failure, that its runner could not have quoted it: `isolatedCheckout` kept
+  `tailOf(stdout + stderr, 4)`, and on the transcript actually measured the reason line sits at index **35
+  of 55** — the banner owns the last six lines. So amendment 81 could say "exits 1 naming
+  `@nexus/studio#build`" and had to source the *reason* from a side harness that wrote the output down:
+  bookkeeping less honest than the code it documented. v82 fixes the runner, not the wording. This is
+  `runProof`'s own documented rule ("the reason a script failed is its FIRST stderr line, not its last")
+  and v52+'s rule for the doors ("quote the verdict line, not the banner"), applied at last to the tool
+  that watches the doors.
+- **`describeBuild(text)`: pure, exported, and the `null` is the point.** It returns `{ lines, bytes,
+  failed, reasons, reason, tail, head }`. Selection prefers a line the FAILING task itself printed —
+  turbo prefixes every task line `@scope/name:task:`, so `@nexus/studio#build` maps to
+  `@nexus/studio:build:` — then falls back to the first reason-shaped line, then to `null`. Two refusals
+  are load-bearing: the summary banner is not a reason, and an error printed by a package that BUILT fine
+  is not *this* build's reason either. `null` rather than a plausible value is v80's census lesson
+  re-used: absence reported as absence.
+- **Capture fidelity: the log exists before anything is reported.** The whole transcript is written to
+  `<dest>/build.log` — in `dest`, deliberately NOT in `root`, because §4 counts the files inside the
+  checked-out tree and a file this runner wrote must never be mistaken for a file the ref owns. §3 then
+  RE-READS that file and re-derives every figure it prints (`bytes`, `lines`, `failed`, `reason`) from
+  those bytes, and asserts `rawLog.includes(iso.build.reason)`: a quote must be findable in its source.
+  The re-derivation is the difference between "the object agrees with itself" and "the file says this".
+- **§3b grades the RULE on text the witness wrote, because §3 can only grade it against an accident.** If
+  the ref's build passes, §3 never exercises the selection at all. The fixture is 38 non-empty lines with
+  the reason at line 1 and the `Failed:` banner at line 37, and the distance itself is asserted
+  (`bannerAt - reasonAt > 4`) so the case cannot rot into one `tailOf(4)` would have caught by luck.
+  Alongside it: a banner-only transcript still names the package but reports `reason: null`; two error
+  lines from two tasks resolve to the one whose package FAILED; a passing transcript has no failures, no
+  reason, and `lines === 2`.
+- **What the real run prints now, at `2a62ddb`, quoted from the witness's own output.** `[isolated] …
+  build exit 1 in 40.5s · 55 output lines · FAILED @nexus/studio#build · reason
+  "@nexus/studio:build: Module not found: Error: Can't resolve './D:/终极项目/node_modules/next/dist/client/next.js' in 'C:\Users\18414\…\repo\apps\studio'`,
+  with `缓存：Cached: 0 cached, 5 total` read off the log, and the same reason carried into `[summary]`.
+  The isolation gate still holds on that run — home dist `8b3ff8b0e7f62133`, 224 files, byte-identical
+  before and after — and so does v81's corpus claim: 193 files / 1 624 986 B clean against this worktree's
+  220 / 3 801 218 B. An amendment from here on can quote the runner instead of a harness.
+- **Control plus two probes, all three outside the repository.** Whole-file copies, import rewired to the
+  mutant. **m0** is an unmutated control through the same rewiring: exit 0, green, all six sections
+  reached — so a red in m1/m2 belongs to the mutant and not to the harness. **m1** promotes the banner to
+  being the reason (`all[all.length - 1]`): RED at §3, `the reason line " ERROR run failed: command
+  exited (1)" was not printed by a FAILING task (@nexus/studio#build)` — it never reached §3b, because
+  §3 is where the real transcript gets graded. **m2** truncates the log to its first 900 bytes *after*
+  the verdict was computed, which is the shape of a runner whose report and record drift apart: RED at
+  `the log on disk is not the byte count the runner reported writing` (906 against 2 979). Both
+  mutations change a VALUE on the load-bearing line; neither is a collection error, and neither is placed
+  downstream of the data it claims to test — the ordering rule this family committed in v81.
+- **Cost, and what did NOT move.** Two evidence files only: `describeBuild` plus the build block in
+  `sweep.mjs`, and §3/§3b plus the `[summary]` line in `isolated-proof.mjs`. No `packages/*`, no
+  `agents/*` source, no argv, env pin, policy, budget, gate, parser or record shape — and no TypeScript
+  at all, so this increment does not quote fresh root-gate numbers it did not measure: the pre-commit
+  hook's lint ran over the commit, and the witness is the gate for a change that lives entirely in the
+  evidence pipeline. The tree it was measured on is still the other lane's: 220 files, with
+  `agents/exec-host/src/execHost.ts` and `agents/runtime/src/index.ts` modified and uncommitted.
+- **Bounds, stated rather than fixed.** (1) `reasons` is capped at 8 lines and the predicate is a
+  KNOWN-SHAPE list (webpack / tsc / node / a handful of banners), sampled from ONE real failing build. An
+  unrecognised failure phrasing yields `reason: null`, and §3 turns that into a loud RED on a failing
+  build — deliberately: a new toolchain's wording will fail this witness rather than be summarised into
+  nothing. (2) Isolation is still not `runSweep`'s default; v81's bound stands. (3) The cross-drive
+  `@nexus/studio#build` failure is still open and still not promoted into "HEAD does not build" — v82
+  makes it quotable, not explained.

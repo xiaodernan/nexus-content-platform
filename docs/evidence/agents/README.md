@@ -113,7 +113,7 @@ node docs/evidence/agents/prefix-proof.mjs         # requires `npm run build` fi
 node docs/evidence/agents/cut-tally-proof.mjs     # requires `npm run build` first (v66: ONE throwaway repo whose index git's own footer calls `25 files changed, 75 insertions(+), 75 deletions(-)`, read through the three DIFF doors at budgets taken from git's byte offsets — all 774 cut boundaries swept by replaying git's RECORDED bytes through the shipped host (a shortcut §3a pays for with 12 real-vs-replay byte-identity checks, in the sentence AND the parsed files), `git.show`'s windows graded against its own `--numstat 60 0`, the "the changes named before the last are WHOLE" claim tested at a section boundary where it holds and 900 bytes later where the last change is short, both `--stat` faces proven immune over every line boundary, and one REAL commit recording 25 paths where the window said `AT LEAST 8`)
 node docs/evidence/agents/sweep.mjs --ref HEAD      # v78: runs the REF's bytes and prints its identity FIRST — ref sha, dist digest, dirty sources, proofs diverging from the worktree
 node docs/evidence/agents/tree-axis-proof.mjs   # v80: the sweep's third axis — walked-tree digest, ownership bins, mid-run re-check
-node docs/evidence/agents/isolated-proof.mjs  # requires `npm run build` first (v81: a CLEAN CHECKOUT of the ref, built clean-room in a temp tree — graded on one gate, HOME's dist digest byte-identical before/after, so "isolated" is falsifiable instead of asserted; census-without-git reported as null not 0; the tree-walking proof run in both trees: 193 files vs 220, same verdict, every clean file tracked at HEAD)
+node docs/evidence/agents/isolated-proof.mjs  # requires `npm run build` first (v81: a CLEAN CHECKOUT of the ref, built clean-room in a temp tree — graded on one gate, HOME's dist digest byte-identical before/after, so "isolated" is falsifiable instead of asserted; census-without-git reported as null not 0; the tree-walking proof run in both trees: 193 files vs 220, same verdict, every clean file tracked at HEAD), and since v82 its verdict carries a REASON line quoted from the build.log the runner itself wrote (see §3/§3b)
 ```
 
 A note on `spawns[…]` assertions: they pin the argv SHAPE a plan step is allowed to produce
@@ -2063,3 +2063,24 @@ is committed into the witness.
 Bounds: `runSweep` still runs proofs with `cwd` = the worktree — `--isolated` is queued, so today this
 script is the only thing that executes a proof against a clean checkout; and a `.git`-less tree cannot
 host proofs that shell out to git.
+
+v82 added §3/§3b to this script, and `describeBuild()` to `sweep.mjs`, because v81 could name WHICH
+package failed and not WHY: the runner kept `tailOf(stdout+stderr, 4)` while the transcript put the reason
+at line 35 of 55 and the banner in the last six. `describeBuild` is pure and exported — `{ lines, bytes,
+failed, reasons, reason, tail, head }` — preferring a line the failing task itself printed (turbo prefixes
+task lines `@scope/name:task:`), falling back to the first reason-shaped line, and to `null` when nothing
+reason-shaped exists; the banner is never promoted, and an error from a package that built fine is not
+this build's reason. The full transcript is written to `<dest>/build.log` BEFORE anything is reported —
+in `dest`, not `root`, so §4's file count cannot mistake a runner's own file for the ref's — and §3
+re-reads the file and re-derives `bytes`/`lines`/`failed`/`reason` from those bytes, asserting
+`rawLog.includes(reason)`: a quote must be findable in its source. Measured at `2a62ddb`: exit 1 in
+40.5 s, 55 output lines, `Cached: 0 cached, 5 total`, reason
+`@nexus/studio:build: Module not found: Error: Can't resolve './D:/终极项目/node_modules/next/dist/client/next.js' …`,
+quoted from the runner's own `[isolated]` and `[summary]` lines rather than from a side harness. §3b
+grades the SELECTION deterministically, because §3 can only ever grade it against whatever the ref's build
+happens to do: 38 synthetic lines with the reason at line 1 and the banner at line 37 (and the distance
+itself asserted at \"> 4`, so the fixture cannot rot into a case `tailOf(4)` catches by luck), a
+banner-only transcript yielding `reason: null`, two tasks' errors resolving to the one that FAILED, a
+passing transcript yielding no failures and no reason. Control + 2 probes: m0 (unmutated, same import
+rewiring) green across six sections; m1 (banner as reason) RED; m2 (log truncated after the verdict was
+computed) RED.
