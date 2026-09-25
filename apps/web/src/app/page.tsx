@@ -54,6 +54,9 @@ export default async function HomePage() {
         <a href="/analytics" className="text-accent-2 underline" data-nav-analytics>
           创作数据
         </a>
+        <a href="/blocks" className="text-accent-2 underline" data-nav-blocks>
+          已拉黑与已屏蔽
+        </a>
         <NotificationBell />
         <span className="text-fg-3">公开在跑的作品与全平台的内容搜索；数据与通知只对登录后的你自己可见</span>
       </nav>

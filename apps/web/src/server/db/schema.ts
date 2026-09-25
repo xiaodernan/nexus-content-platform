@@ -657,6 +657,28 @@ export const follows = pgTable(
   (t) => [primaryKey({ columns: [t.followerId, t.followeeId] }), index('follows_followee_idx').on(t.followeeId)],
 );
 
+/**
+ * §132 block / mute。一条关系只有一行：block 的效果包含 mute，所以"既拉黑又屏蔽"
+ * 不是第三种状态，从 mute 升到 block 是改 kind。判定只看"有没有这一行 + 是什么"。
+ * `not_self` 与 kind 白名单两条 CHECK 只在迁移 0011 的 SQL 里（这张表的其他约束也一样，
+ * 全库没有用 drizzle 的 check()），所以这里不重复声明。
+ */
+export const userBlocks = pgTable(
+  'user_blocks',
+  {
+    blockerId: uuid('blocker_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    blockedId: uuid('blocked_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    kind: text('kind').notNull(),
+    createdAt: now(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [primaryKey({ columns: [t.blockerId, t.blockedId] }), index('user_blocks_blocked_idx').on(t.blockedId)],
+);
+
 export const remixes = pgTable(
   'remixes',
   {
@@ -864,6 +886,7 @@ export const schema = {
   likes,
   comments,
   follows,
+  userBlocks,
   remixes,
   auditEvents,
   moderationCases,

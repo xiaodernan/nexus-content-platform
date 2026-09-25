@@ -47,6 +47,8 @@ export async function POST(req: Request): Promise<NextResponse> {
 
   if (action === 'like') {
     const state = await toggleLike(user.id, ref.publicationId);
+    // §132：被拉黑挡住的一次点赞不写库、不改计数，只回一句原因
+    if (state.blocked) return jsonError(403, 'blocked', { message: state.reason ?? '互动被挡住', reason: state.reason });
     // §164：只有"真的点赞了"才通知；取消点赞不补一条"某人取消了点赞"，那是噪音不是事件
     if (state.liked) {
       await emit({
@@ -70,8 +72,12 @@ export async function POST(req: Request): Promise<NextResponse> {
     }
     const result = await addComment(user.id, ref.publicationId, typeof body?.text === 'string' ? body.text : '');
     if (!result.ok) {
-      // 机检挡下不是错误状态码：它是"这条没发出去，原因在这里"的正常回话
-      return NextResponse.json({ ok: false, action, reason: result.reason, rule: result.rule ?? null }, { status: result.rule ? 200 : 400 });
+      // 机检挡下不是错误状态码：它是"这条没发出去，原因在这里"的正常回话。
+      // §132 的 blocked 走同一条路径——原因字符串直接显示在界面上，谁挡住的说得清
+      return NextResponse.json(
+        { ok: false, action, reason: result.reason, rule: result.rule ?? null, blocked: result.blocked ?? null },
+        { status: result.rule ? 200 : 400 },
+      );
     }
     // 通知挂在评论 id 上：同一条评论重试只留一条，两次真评论留两条
     await emit({

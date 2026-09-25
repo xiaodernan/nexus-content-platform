@@ -2,6 +2,7 @@ import { and, desc, eq, inArray, isNull, sql } from 'drizzle-orm';
 import { getDb } from '../db/client';
 import { characters, comments, follows, likes, projects, publishedProjects, remixes, saves, users, worlds } from '../db/schema';
 import type { DiscoverCard } from './social';
+import { relationOf } from './blocks';
 
 /**
  * §60 创作者主页与 §59 的 Save。
@@ -88,6 +89,8 @@ export interface ProfileView {
   followers: number;
   following: number;
   followingByViewer: boolean;
+  /** §132：当前查看者对这个人做过什么（别人看不到这个状态，它只属于做选择的那个人） */
+  blockedByViewer: 'block' | 'mute' | null;
   isSelf: boolean;
 }
 
@@ -123,7 +126,7 @@ export async function profileOf(handle: string, viewerId: string | null): Promis
         .where(inArray(characters.projectId, projectIds))
     : [];
 
-  const [[followers], [following], [gameCount], followed] = await Promise.all([
+  const [[followers], [following], [gameCount], followed, relation] = await Promise.all([
     db.select({ n: sql<number>`count(*)::int` }).from(follows).where(eq(follows.followeeId, person.id)),
     db.select({ n: sql<number>`count(*)::int` }).from(follows).where(eq(follows.followerId, person.id)),
     db
@@ -137,6 +140,7 @@ export async function profileOf(handle: string, viewerId: string | null): Promis
           .where(and(eq(follows.followerId, viewerId), eq(follows.followeeId, person.id)))
           .limit(1)
       : Promise.resolve([] as { followerId: string }[]),
+    relationOf(viewerId, person.id),
   ]);
 
   return {
@@ -161,6 +165,7 @@ export async function profileOf(handle: string, viewerId: string | null): Promis
     followers: followers?.n ?? 0,
     following: following?.n ?? 0,
     followingByViewer: followed.length > 0,
+    blockedByViewer: viewerId === person.id ? null : relation,
     isSelf: viewerId === person.id,
   };
 }

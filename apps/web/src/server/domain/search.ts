@@ -1,5 +1,6 @@
-import { and, desc, eq, ilike, isNull, or, sql } from 'drizzle-orm';
+import { and, desc, eq, ilike, isNull, notInArray, or, sql } from 'drizzle-orm';
 import { getDb } from '../db/client';
+import { hiddenAuthorIds } from './blocks';
 import {
   assets,
   characters,
@@ -217,6 +218,9 @@ export async function searchPlatform(
   const db = getDb();
   // 每组多取一条：只为了知道"还有更多"，不数全表
   const take = limit + 1;
+  // §132：我屏蔽或拉黑过的人不再冒进结果里。搜不到自己选择不看的东西，
+  // 和搜不到不存在的东西，对使用者来说是同一件好事——但名单只按查看者算，不改公共记录
+  const hidden = await hiddenAuthorIds(viewerId);
 
   // —— 项目：公开在跑的那些 + 你自己的（自己的那条链接指向编辑器，公开的指向发布页）——
   const publicOnes = await db
@@ -229,6 +233,7 @@ export async function searchPlatform(
         sql`${publishedProjects.moderation} <> 'rejected'`,
         isNull(projects.deletedAt),
         or(ilike(projects.name, term), ilike(projects.description, term)),
+        hidden.length ? notInArray(projects.ownerId, hidden) : undefined,
       ),
     )
     .orderBy(desc(projects.updatedAt))
@@ -261,6 +266,7 @@ export async function searchPlatform(
         eq(users.guest, false),
         sql`${users.handle} is not null`,
         or(ilike(users.displayName, term), ilike(users.handle, term)),
+        hidden.length ? notInArray(users.id, hidden) : undefined,
       ),
     )
     .orderBy(users.handle)

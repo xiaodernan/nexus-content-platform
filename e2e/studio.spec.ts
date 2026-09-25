@@ -1972,3 +1972,107 @@ test('@smoke §164 通知：别人真的动过，作者的收件箱里才有那�
   await anonCtx.close();
   await visitorCtx.close();
 });
+
+test('@smoke §132 拉黑与屏蔽：挡住的是互动，过滤的是自己看到的那一份', async ({ page }) => {
+  // 两个真身份 + 一个匿名旁观者：block 的三条规则（挡住对方、只改自己看到的、不追溯历史）
+  // 必须三种视角都看一次才分得清，只测作者那一侧的话，"全站删帖"这个错误实现也能过
+  test.setTimeout(300_000);
+  const stamp = Date.now().toString(36);
+
+  const publishPublic = async (p: Page): Promise<string> => {
+    await p.click('[data-publish-open]');
+    await expect(p.locator('[data-publish-submit]')).toBeVisible();
+    await p.click('[data-publish-choice="public"]');
+    await p.click('[data-publish-submit]');
+    await expect(p.locator('[data-publish-url]')).toBeVisible({ timeout: 60_000 });
+    return (await p.locator('[data-publish-url]').getAttribute('href'))!;
+  };
+
+  const projectName = `拉黑测试作品${stamp}`;
+  await createProject(page, projectName);
+  const authorPath = await publishPublic(page);
+  const authorUrl = new URL(authorPath, page.url()).href;
+
+  // 访客也要发布一次：handle 是首次发布时按 id 补的（§56），没有 handle 就没有 /u/<handle> 这一页，
+  // 也就没有可以点"拉黑"的地方——这一步不是凑数，是这条路径的前提
+  const browser = page.context().browser();
+  if (!browser) throw new Error('这条用例需要一个可派生上下文的浏览器');
+  const visitorCtx = await browser.newContext();
+  const visitor = await visitorCtx.newPage();
+  await createProject(visitor, `访客作品${stamp}`);
+  const visitorPath = await publishPublic(visitor);
+  const visitorHandle = new URL(visitorPath, visitor.url()).pathname.split('/')[2]!;
+  expect(visitorHandle).toBeTruthy();
+
+  // 基线：拉黑之前，访客的动静真的会送达到作者那里（不成立的话后面所有"没送达到"都毫无意义）
+  await visitor.goto(authorUrl);
+  await visitor.waitForSelector('[data-published-frame] [data-node-id]', { timeout: 30_000 });
+  await visitor.fill('[data-comment-input]', '拉黑之前留下的那句');
+  await visitor.click('[data-comment-submit]');
+  await expect(visitor.locator('[data-comment-list] [data-comment]')).toHaveCount(1, { timeout: 30_000 });
+  await visitor.click('[data-action-like]');
+  await expect(visitor.locator('[data-action-like]')).toHaveAttribute('data-action-like', 'on', { timeout: 30_000 });
+
+  await page.goto('/notifications');
+  const header = page.locator('[data-notification-page] p').first();
+  await expect(header).toContainText('共 3 条', { timeout: 30_000 });
+
+  // 作者在访客主页上拉黑
+  await page.goto(`/u/${visitorHandle}`);
+  await expect(page.locator('[data-block-control]')).toBeVisible();
+  await page.click('[data-block-set="block"]');
+  await expect(page.locator('[data-block-state]')).toHaveAttribute('data-block-state', 'block', { timeout: 30_000 });
+  await expect(page.locator('[data-block-note]')).toContainText('互相都不能评论');
+  // 拉黑之后连"关注"按钮都不该再摆着——它只会回一句拒绝
+  await expect(page.locator('[data-follow-button]')).toHaveCount(0);
+  await page.screenshot({ path: 'screenshots/profile-blocked.png' });
+
+  // 名单页列得出来：解除是这条关系的第二条路（不是只有当初那个按钮）
+  await page.goto('/blocks');
+  await expect(page.locator('[data-block-row]')).toHaveCount(1);
+  await expect(page.locator('[data-block-row]')).toContainText(visitorHandle);
+
+  // 规则一：挡住的是往后的互动，界面说的是原因而不是"发送失败"
+  await visitor.goto(authorUrl);
+  await visitor.fill('[data-comment-input]', '拉黑之后还想说一句');
+  await visitor.click('[data-comment-submit]');
+  await expect(visitor.locator('[data-action-notice]')).toContainText('对方不接受你的互动', { timeout: 30_000 });
+  // 规则二：不追溯历史——之前那条还在（对发帖的访客自己也是原样）
+  await expect(visitor.locator('[data-comment-list] [data-comment]')).toHaveCount(1);
+  // 关注同样被挡住，走的是另一条路由（/api/follow），所以单独试一次
+  await visitor.click('[data-action-follow]');
+  await expect(visitor.locator('[data-action-notice]')).toContainText('对方不接受你的互动', { timeout: 30_000 });
+
+  // 规则三（反向对照）：匿名旁观者看同一页仍然有那一条评论——拉黑不是全站删帖
+  const anonCtx = await browser.newContext();
+  const anon = await anonCtx.newPage();
+  await anon.goto(authorUrl);
+  await anon.waitForSelector('[data-published-frame] [data-node-id]', { timeout: 30_000 });
+  await expect(anon.locator('[data-comment-list] [data-comment]')).toHaveCount(1);
+  // 而且旁观者的收件箱与作者无关：他的这一页看到的是作者那边公开的样子，不是作者看到的样子
+  await anon.click('[data-action-like]');
+  await expect(anon.locator('[data-action-like]')).toHaveAttribute('data-action-like', 'on', { timeout: 30_000 });
+
+  // 作者自己看同一页：那条被过滤掉了，而且界面把"滤掉了 1 条"写在脸上
+  await page.goto(authorUrl);
+  await expect(page.locator('[data-comment-list] [data-comment]')).toHaveCount(0);
+  await expect(page.locator('[data-hidden-comments]')).toContainText('另有 1 条');
+  await page.screenshot({ path: 'screenshots/blocked-comment-hidden.png' });
+
+  // 拉黑只挡住那一个人，不是把整个收件箱关掉：旁观者刚才那一下（第 4 条）照样进来了，
+  // 而被拉黑的访客在此之后一条新动静都造不出来（评论/点赞/关注全被挡）
+  await page.goto('/notifications');
+  await expect(header).toContainText('共 4 条');
+
+  // 解除：名单空了，访客的评论又能发出去了——这条路要真能走回来
+  await page.goto('/blocks');
+  await page.click('[data-unblock]');
+  await expect(page.locator('[data-blocks-empty="block"]')).toBeVisible({ timeout: 30_000 });
+  await visitor.goto(authorUrl);
+  await visitor.fill('[data-comment-input]', '解除之后再试一次');
+  await visitor.click('[data-comment-submit]');
+  await expect(visitor.locator('[data-comment-list] [data-comment]')).toHaveCount(2, { timeout: 30_000 });
+
+  await anonCtx.close();
+  await visitorCtx.close();
+});

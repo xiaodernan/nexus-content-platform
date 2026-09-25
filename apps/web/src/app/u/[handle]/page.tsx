@@ -3,6 +3,7 @@ import { notFound } from 'next/navigation';
 import { profileOf } from '@/server/domain/profile';
 import { currentUserOrNull } from '@/server/domain/session';
 import { FollowButton } from './FollowButton';
+import { BlockControl } from './BlockControl';
 
 export const dynamic = 'force-dynamic';
 
@@ -47,10 +48,20 @@ export default async function ProfilePage({ params }: { params: Promise<{ handle
           <span className="text-11 text-fg-3" data-profile-counts>
             {profile.followers} 位粉丝 · 关注 {profile.following} 人
           </span>
-          {!profile.isSelf ? (
-            <FollowButton handle={profile.handle} initialFollowing={profile.followingByViewer} initialFollowers={profile.followers} />
-          ) : (
+          {profile.isSelf ? (
             <span className="text-11 text-fg-3">这是你自己的主页</span>
+          ) : (
+            <>
+              {/* §132：拉黑之后连"关注"这个按钮都不该还在——它只会回一句拒绝 */}
+              {profile.blockedByViewer === 'block' ? null : (
+                <FollowButton
+                  handle={profile.handle}
+                  initialFollowing={profile.followingByViewer}
+                  initialFollowers={profile.followers}
+                />
+              )}
+              <BlockControl handle={profile.handle} initial={profile.blockedByViewer} />
+            </>
           )}
         </div>
       </header>

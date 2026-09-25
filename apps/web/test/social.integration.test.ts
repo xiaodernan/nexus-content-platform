@@ -116,9 +116,10 @@ describe('Like / Comment / Follow', () => {
     const [author] = await getDb().select({ handle: users.handle }).from(users).where(eq(users.id, authorId)).limit(1);
     const handle = author!.handle!;
     const on = await toggleFollow(fanId, authorId);
-    expect(on).toEqual({ following: true, followers: 1 });
+    // toEqual 而不是 toMatchObject：多一个字段就得多写一次，界面之外没人会被静默加进来的字段骗过
+    expect(on).toEqual({ following: true, followers: 1, blocked: null, reason: null });
     const off = await toggleFollow(fanId, authorId);
-    expect(off).toEqual({ following: false, followers: 0 });
+    expect(off).toEqual({ following: false, followers: 0, blocked: null, reason: null });
     await expect(toggleFollow(authorId, authorId)).rejects.toThrow('不能关注自己');
     expect((await stateOf((await published('关注显示', 'x')).path, fanId)).ownerHandle).toBe(handle);
   });

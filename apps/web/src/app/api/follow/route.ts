@@ -25,6 +25,8 @@ export async function POST(req: Request): Promise<NextResponse> {
   if (target.id === user.id) return jsonError(400, 'self_follow', { message: '不能关注自己' });
 
   const state = await toggleFollow(user.id, target.id);
+  // §132：拉黑双方的关注动作都不生效（setBlock 已经先把已有的关注边删掉了）
+  if (state.blocked) return jsonError(403, 'blocked', { message: state.reason ?? '关注被挡住' });
   // §164：只报"开始关注"，不报"取消关注"——后者不是发生了一件事，是没发生
   if (state.following) {
     const [actor] = await getDb()

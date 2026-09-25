@@ -571,6 +571,22 @@ export const ProjectPatchRequestSchema = z
   .refine((body) => body.description !== undefined, { message: '没有要改的字段' });
 export type ProjectPatchRequest = z.infer<typeof ProjectPatchRequestSchema>;
 
+/**
+ * §132 block / mute 的报文。只有 handle：id 是内部键，把别人的 uuid 抄进地址栏
+ * 就能拉黑一个不认识的人，而 @handle 是界面上本来就显示的东西。
+ * kind 必填在 POST（缺省按 block 会替用户做一个更重的决定），DELETE 不需要。
+ */
+export const BlockRelationSchema = z.enum(['block', 'mute']);
+export type BlockRelation = z.infer<typeof BlockRelationSchema>;
+export const BlocksRequestSchema = z.object({
+  handle: z.string().trim().min(1).max(60),
+  kind: BlockRelationSchema,
+});
+export type BlocksRequest = z.infer<typeof BlocksRequestSchema>;
+/** DELETE 只认 handle：解除哪一类不重要，一对关系只有一行 */
+export const BlocksClearRequestSchema = z.object({ handle: z.string().trim().min(1).max(60) });
+export type BlocksClearRequest = z.infer<typeof BlocksClearRequestSchema>;
+
 
 /**
  * §162 作业队列：图片 / 视频 / 3D / 复杂 Agent 任务不能挂在一个 HTTP 请求上等结果，

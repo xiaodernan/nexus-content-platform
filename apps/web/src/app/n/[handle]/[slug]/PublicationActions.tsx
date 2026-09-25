@@ -192,6 +192,12 @@ export function PublicationActions({ state }: { state: PublicationState }) {
         ))}
         {comments.length === 0 ? <li className="text-11 text-fg-3">还没有评论。</li> : null}
       </ul>
+      {/* §132：过滤要报数。评论从 5 条变成 3 条而没有解释，人会以为评论真的少了 */}
+      {state.hiddenComments > 0 ? (
+        <p className="text-11 text-fg-3" data-hidden-comments={state.hiddenComments}>
+          另有 {state.hiddenComments} 条来自你已屏蔽或拉黑的人，没有显示在这里（别人仍然看得到）。
+        </p>
+      ) : null}
     </div>
   );
 }

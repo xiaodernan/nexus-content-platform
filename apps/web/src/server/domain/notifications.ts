@@ -1,5 +1,6 @@
 import { and, desc, eq, inArray, isNull, sql } from 'drizzle-orm';
 import { planNotification, targetState, UNBACKED_NOTIFICATIONS, type NotificationKind, type NotifyEvent } from '@/lib/notify-plan';
+import { relationOf } from './blocks';
 import { getDb } from '../db/client';
 import { notifications, projects, publishedProjects, users } from '../db/schema';
 
@@ -18,9 +19,16 @@ import { notifications, projects, publishedProjects, users } from '../db/schema'
 
 export type EmitResult = 'created' | 'duplicate' | 'suppressed';
 
+/**
+ * 写一条通知。`suppressed` 现在有两种原因：规则说这件事不出声（`notify-plan`），
+ * 或者**收件人自己说过不想再听到这个人**（§132 的 block / mute）。
+ * 两种都不写行、都不报错——一个人屏蔽了骚扰者之后，收件箱不该在背后继续长大。
+ * 测试要分清这两层：同一种事件只换收件人就必须出声。
+ */
 export async function emit(event: NotifyEvent): Promise<EmitResult> {
   const plan = planNotification(event);
   if (!plan) return 'suppressed';
+  if ('actorId' in event && event.actorId && (await relationOf(event.recipientId, event.actorId))) return 'suppressed';
   const db = getDb();
   const inserted = await db
     .insert(notifications)

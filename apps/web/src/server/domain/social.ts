@@ -1,4 +1,4 @@
-import { and, desc, eq, inArray, isNull, sql } from 'drizzle-orm';
+import { and, desc, eq, inArray, isNull, notInArray, sql } from 'drizzle-orm';
 import { duplicateDocument, remapAssetIds } from '@nexus/design-model';
 import { getDb } from '../db/client';
 import { comments, follows, likes, projects, publishedProjects, remixes, users } from '../db/schema';
@@ -6,6 +6,7 @@ import { createProject, saveDocument } from './projects';
 import { copyProjectAssets } from './assets';
 import { readSnapshot } from './snapshots';
 import { scanTextForRedlines } from './moderation';
+import { canInteract, hiddenAuthorIds } from './blocks';
 
 /**
  * §59 社区动作（Like / Comment / Follow / Remix / Share）与 §61 的发现列表。
@@ -18,6 +19,10 @@ import { scanTextForRedlines } from './moderation';
  * - **发现列表只排真有的信号**：New 按发布时间、Popular 按累计浏览与点赞、Following 按关注关系。
  *   Trending 要的是互动时间序列（我们现在只有累计数），AI Picks 要的是模型——
  *   两者都列进 `unavailable` 而不是拿累计数换个名字冒充。
+ * - **§132 的 block / mute 在这里生效**（判定与理由在 `domain/blocks.ts`）：block 挡住会落到
+ *   对方身上的互动，mute 只管"我这边不再看到"。所以每个动作前问一次 `canInteract`，
+ *   而列表与发现页按 `hiddenAuthorIds(当前查看者)` 过滤——过滤是**按查看者**算的，
+ *   作者拉黑某人之后别人仍然看得到那条评论，这是 block 而不是 moderation 的分界。
  */
 
 export interface PublicationRef {
@@ -66,6 +71,12 @@ export interface PublicationState {
   followingOwner: boolean;
   isOwner: boolean;
   comments: CommentEntry[];
+  /**
+   * 被查看者过滤掉的评论条数（§132）。为什么不干脆不显示：那样评论从 5 条变成 3 条，
+   * 作者会以为对方只发了三条，或者以为自己的过滤坏了——明说"这里还有 2 条是你选择不要看的"
+   * 才是可核对的界面。
+   */
+  hiddenComments: number;
   remixCount: number;
 }
 
@@ -101,6 +112,12 @@ export async function publicationState(path: string, viewerId: string | null): P
     db.select({ n: sql<number>`count(*)::int` }).from(follows).where(eq(follows.followeeId, ref.ownerId)),
     db.select({ n: sql<number>`count(*)::int` }).from(remixes).where(eq(remixes.sourceProjectId, ref.projectId)),
   ]);
+  // 过滤按**查看者**的屏蔽名单算：同一条评论，作者看是被过滤的，别人看他自己的名单
+  const hidden = await hiddenAuthorIds(viewerId);
+  const [visibleComments, hiddenComments] = await Promise.all([
+    listComments(ref.projectId, 50, hidden),
+    hiddenCommentCount(ref.projectId, hidden),
+  ]);
   return {
     publicationId: ref.publicationId,
     projectId: ref.projectId,
@@ -113,7 +130,8 @@ export async function publicationState(path: string, viewerId: string | null): P
     followers: followers?.n ?? 0,
     followingOwner,
     isOwner: viewerId === ref.ownerId,
-    comments: await listComments(ref.projectId),
+    comments: visibleComments,
+    hiddenComments,
     remixCount: remixCount?.n ?? 0,
   };
 }
@@ -121,16 +139,26 @@ export async function publicationState(path: string, viewerId: string | null): P
 export interface LikeState {
   liked: boolean;
   count: number;
+  /** §132 挡住时是 'me' / 'them'（谁先拉的谁），没挡住是 null；不是一次"点赞失败" */
+  blocked: 'me' | 'them' | null;
+  reason: string | null;
 }
 
 export async function toggleLike(actorId: string, publicationId: string): Promise<LikeState> {
   const db = getDb();
   const [pub] = await db
-    .select({ projectId: publishedProjects.projectId })
+    .select({ projectId: publishedProjects.projectId, ownerId: projects.ownerId })
     .from(publishedProjects)
+    .innerJoin(projects, eq(projects.id, publishedProjects.projectId))
     .where(eq(publishedProjects.id, publicationId))
     .limit(1);
   if (!pub) throw new Error('没有这个发布版本');
+
+  const verdict = await canInteract(actorId, pub.ownerId);
+  if (!verdict.allowed) {
+    // 不写库：被挡住的那次点击不该先让点赞数动一下、下一次再动回去
+    return { liked: false, count: await likeCount(pub.projectId), blocked: verdict.blockedBy, reason: verdict.reason };
+  }
 
   const existing = await db
     .select({ userId: likes.userId })
@@ -142,7 +170,7 @@ export async function toggleLike(actorId: string, publicationId: string): Promis
   } else {
     await db.insert(likes).values({ projectId: pub.projectId, userId: actorId });
   }
-  return { liked: !existing.length, count: await likeCount(pub.projectId) };
+  return { liked: !existing.length, count: await likeCount(pub.projectId), blocked: null, reason: null };
 }
 
 async function likeCount(projectId: string): Promise<number> {
@@ -160,20 +188,36 @@ export interface CommentEntry {
   createdAt: string;
 }
 
-export async function listComments(projectId: string, limit = 50): Promise<CommentEntry[]> {
-  const rows = await getDb()
+/**
+ * 列评论。`excludeAuthorIds` 是**查看者**选择不要看到的人（§132 的 block + mute），
+ * 过滤写在 SQL 的 where 里而不是拿到前端再 filter：limit 要在过滤之后才有意义，
+ * 否则"翻一页 50 条，前端扔掉 48 条"会既少显示又谎报分页。
+ */
+export async function listComments(projectId: string, limit = 50, excludeAuthorIds: string[] = []): Promise<CommentEntry[]> {
+  const db = getDb();
+  const rows = await db
     .select({ id: comments.id, body: comments.body, author: users.displayName, createdAt: comments.createdAt })
     .from(comments)
     .innerJoin(users, eq(users.id, comments.userId))
-    .where(eq(comments.projectId, projectId))
+    .where(and(eq(comments.projectId, projectId), excludeAuthorIds.length ? notInArray(comments.userId, excludeAuthorIds) : undefined))
     .orderBy(desc(comments.createdAt))
     .limit(limit);
   return rows.map((r) => ({ id: r.id, body: r.body, author: r.author, createdAt: r.createdAt.toISOString() }));
 }
 
+/** 被查看者过滤掉了多少条：过滤要在界面上报数，不然评论"变少"这件事没有解释 */
+export async function hiddenCommentCount(projectId: string, excludeAuthorIds: string[]): Promise<number> {
+  if (!excludeAuthorIds.length) return 0;
+  const [row] = await getDb()
+    .select({ n: sql<number>`count(*)::int` })
+    .from(comments)
+    .where(and(eq(comments.projectId, projectId), inArray(comments.userId, excludeAuthorIds)));
+  return row?.n ?? 0;
+}
+
 export type CommentResult =
   | { ok: true; comment: CommentEntry; notice: string }
-  | { ok: false; reason: string; rule?: string };
+  | { ok: false; reason: string; rule?: string; blocked?: 'me' | 'them' };
 
 /** 评论用发布机检的同一份红线词表；命中就不发出去，不"先发出去再等人看" */
 export async function addComment(actorId: string, publicationId: string, body: string): Promise<CommentResult> {
@@ -188,11 +232,17 @@ export async function addComment(actorId: string, publicationId: string, body: s
 
   const db = getDb();
   const [pub] = await db
-    .select({ projectId: publishedProjects.projectId })
+    .select({ projectId: publishedProjects.projectId, ownerId: projects.ownerId })
     .from(publishedProjects)
+    .innerJoin(projects, eq(projects.id, publishedProjects.projectId))
     .where(eq(publishedProjects.id, publicationId))
     .limit(1);
   if (!pub) return { ok: false, reason: '没有这个发布版本' };
+
+  // §132：先问能不能落到对方身上，再写库。机检在前是因为那一步不需要查库、
+  // 而"被谁拉黑"是一个人随时能改的状态，放在后面判定才不会用到过期结果
+  const verdict = await canInteract(actorId, pub.ownerId);
+  if (!verdict.allowed) return { ok: false, reason: verdict.reason, blocked: verdict.blockedBy };
 
   const inserted = await db
     .insert(comments)
@@ -211,6 +261,8 @@ export async function addComment(actorId: string, publicationId: string, body: s
 export interface FollowState {
   following: boolean;
   followers: number;
+  blocked: 'me' | 'them' | null;
+  reason: string | null;
 }
 
 export async function toggleFollow(actorId: string, targetUserId: string): Promise<FollowState> {
@@ -221,6 +273,13 @@ export async function toggleFollow(actorId: string, targetUserId: string): Promi
     .from(follows)
     .where(and(eq(follows.followerId, actorId), eq(follows.followeeId, targetUserId)))
     .limit(1);
+  // §132：拉黑之后不能开始关注。"取消关注"不需要单独开一条路——setBlock 已经把两个方向的
+  // 关注边一起删掉了，所以真存在一条边的时候从来不会是"被挡住"的状态
+  const verdict = await canInteract(actorId, targetUserId);
+  if (!verdict.allowed) {
+    const [count] = await db.select({ n: sql<number>`count(*)::int` }).from(follows).where(eq(follows.followeeId, targetUserId));
+    return { following: false, followers: count?.n ?? 0, blocked: verdict.blockedBy, reason: verdict.reason };
+  }
   if (existing.length) {
     await db.delete(follows).where(and(eq(follows.followerId, actorId), eq(follows.followeeId, targetUserId)));
   } else {
@@ -230,7 +289,7 @@ export async function toggleFollow(actorId: string, targetUserId: string): Promi
     .select({ n: sql<number>`count(*)::int` })
     .from(follows)
     .where(eq(follows.followeeId, targetUserId));
-  return { following: !existing.length, followers: count?.n ?? 0 };
+  return { following: !existing.length, followers: count?.n ?? 0, blocked: null, reason: null };
 }
 
 export type RemixResult = { ok: true; projectId: string; name: string } | { ok: false; reason: string };
@@ -253,7 +312,14 @@ export async function remixPublication(actorId: string, publicationId: string): 
   const snapshot = await readSnapshot(pub.projectId, pub.snapshotId);
   if (!snapshot) return { ok: false, reason: '快照读不到，分叉不出来' };
 
-  const [source] = await db.select({ name: projects.name }).from(projects).where(eq(projects.id, pub.projectId)).limit(1);
+  const [source] = await db
+    .select({ name: projects.name, ownerId: projects.ownerId })
+    .from(projects)
+    .where(eq(projects.id, pub.projectId))
+    .limit(1);
+  // 改编会挂在原作者的统计上并给他发一条通知，所以它和评论一样是"落到对方身上"的动作（§132）
+  const verdict = source ? await canInteract(actorId, source.ownerId) : { allowed: true as const };
+  if (!verdict.allowed) return { ok: false, reason: verdict.reason };
   const name = `${source?.name ?? '作品'} 的改编`.slice(0, 120);
   const forked = duplicateDocument(snapshot.document, name);
   const created = await createProject(actorId, {
@@ -291,6 +357,11 @@ export interface DiscoverResult {
   cards: DiscoverCard[];
   /** 排不出来就说排不出来，连同原因；不要拿累计浏览数改个名字叫 Trending */
   unavailable: { key: string; reason: string }[];
+  /**
+   * 这次过滤掉了几个人（§132）。给"人数"而不是"少了几张卡片"：后者要么再跑一次不带过滤的
+   * 查询、要么把四条可见性谓词抄第二份，两个都会和真正的过滤逻辑漂移。
+   */
+  hiddenAuthors: number;
 }
 
 const DISCOVER_UNAVAILABLE = [
@@ -302,6 +373,8 @@ const DISCOVER_UNAVAILABLE = [
 export async function discover(input: { sort: DiscoverSort; viewerId?: string | null; limit?: number }): Promise<DiscoverResult> {
   const db = getDb();
   const limit = Math.min(Math.max(input.limit ?? 24, 1), 60);
+  // 屏蔽名单要在任何分支之前拿到：三条 return 都要如实报"这次过滤了几个人"
+  const hidden = await hiddenAuthorIds(input.viewerId ?? null);
   const base = {
     publicationId: publishedProjects.id,
     path: publishedProjects.path,
@@ -317,11 +390,16 @@ export async function discover(input: { sort: DiscoverSort; viewerId?: string | 
   let followedIds: string[] | null = null;
   if (input.sort === 'following') {
     if (!input.viewerId) {
-      return { sort: input.sort, cards: [], unavailable: [...DISCOVER_UNAVAILABLE, { key: 'Following', reason: '没有登录，看不到关注关系' }] };
+      return {
+        sort: input.sort,
+        cards: [],
+        hiddenAuthors: 0,
+        unavailable: [...DISCOVER_UNAVAILABLE, { key: 'Following', reason: '没有登录，看不到关注关系' }],
+      };
     }
     const rows = await db.select({ followeeId: follows.followeeId }).from(follows).where(eq(follows.followerId, input.viewerId));
     followedIds = rows.map((r) => r.followeeId);
-    if (!followedIds.length) return { sort: input.sort, cards: [], unavailable: DISCOVER_UNAVAILABLE };
+    if (!followedIds.length) return { sort: input.sort, cards: [], hiddenAuthors: hidden.length, unavailable: DISCOVER_UNAVAILABLE };
   }
 
   const where = and(
@@ -329,6 +407,8 @@ export async function discover(input: { sort: DiscoverSort; viewerId?: string | 
     sql`${publishedProjects.moderation} <> 'rejected'`,
     isNull(projects.deletedAt),
     followedIds ? inArray(projects.ownerId, followedIds) : undefined,
+    // §132：我屏蔽/拉黑的人的作品不再出现（block 与 mute 共同的效果就是"别在我面前"）
+    hidden.length ? notInArray(projects.ownerId, hidden) : undefined,
   );
 
   const rows = await db
@@ -365,5 +445,6 @@ export async function discover(input: { sort: DiscoverSort; viewerId?: string | 
       kind: r.kind,
     })),
     unavailable: DISCOVER_UNAVAILABLE,
+    hiddenAuthors: hidden.length,
   };
 }

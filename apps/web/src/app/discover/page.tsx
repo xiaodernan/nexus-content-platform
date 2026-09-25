@@ -69,6 +69,15 @@ export default async function DiscoverPage({ searchParams }: { searchParams: Pro
         ))}
       </ul>
 
+      {result.hiddenAuthors > 0 ? (
+        <p className="text-11 text-fg-3" data-discover-hidden={result.hiddenAuthors}>
+          这次按你的屏蔽名单过滤掉了 {result.hiddenAuthors} 个人的作品 ·
+          <a href="/blocks" className="ml-1 text-accent-2 underline">
+            看看是谁
+          </a>
+        </p>
+      ) : null}
+
       <section className="rounded-[var(--nexus-radius-sm)] bg-bg-2 p-3" data-discover-unavailable>
         <p className="text-12 text-fg-2">这些排序我们做不出来，不是忘了：</p>
         <ul className="mt-1 space-y-[2px]">
