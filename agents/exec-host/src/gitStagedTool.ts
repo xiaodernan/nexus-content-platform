@@ -1,5 +1,5 @@
 import type { ExecPolicy, ToolRegistry, ToolSpec } from '@nexus/agent-runtime';
-import { budgetFlags, diffWindowNotice, GIT_DIFF_FLAGS, GIT_ENV_NAMES, cutNotAbsence, gitEnv, gitVerdict, isDiffHeaderPairLine, parseDiffHeader, parseDiffStat, parseFileLine, pathShapeNotices, quoteVerdict, refusedNotAbsence, unmergedNotAbsence, unmergedNotice, unnamableDiffSections, unnamableSectionsNotice, stdoutWasCut, unwrapRendering } from './gitTools.js';
+import { budgetFlags, diffWindowNotice, GIT_DIFF_FLAGS, windowField, GIT_ENV_NAMES, cutNotAbsence, gitEnv, gitVerdict, isDiffHeaderPairLine, parseDiffHeader, parseDiffStat, parseFileLine, pathShapeNotices, quoteVerdict, refusedNotAbsence, unmergedNotAbsence, unmergedNotice, unnamableDiffSections, unnamableSectionsNotice, stdoutWasCut, unwrapRendering } from './gitTools.js';
 import type { ExecHost, ExecRunResult } from './execHost.js';
 
 /**
@@ -204,7 +204,7 @@ export function registerGitStagedTool(registry: ToolRegistry, host: ExecHost, op
     if (result.spawnError !== '') throw new Error(`spawn failed: ${result.spawnError}`);
     if (result.exitCode !== 0 || result.killedByBudget) {
       const verdict = gitVerdict(result.stdout, result.stderr, { truncated: result.truncated || result.killedByBudget });
-      return { ok: false, detail: `git.staged → exit ${result.exitCode}: ${quoteVerdict(verdict)} · ${refusedNotAbsence('the index holds nothing staged for the §28 ask')}${flags(result)}`, exitCode: result.exitCode, stat, files: [], truncated: result.truncated };
+      return { ok: false, detail: `git.staged → exit ${result.exitCode}: ${quoteVerdict(verdict)} · ${refusedNotAbsence('the index holds nothing staged for the §28 ask')}${flags(result)}`, exitCode: result.exitCode, stat, files: [], truncated: result.truncated, ...windowField(result) };
     }
     if (stat) {
       const summary = parseDiffStat(result.stdout);
@@ -218,7 +218,7 @@ export function registerGitStagedTool(registry: ToolRegistry, host: ExecHost, op
         : summary
           ? `git.staged --stat → exit 0: index holds ${summary.files} file(s) · +${summary.insertions} −${summary.deletions}${notice.length > 0 ? ` · ${unmergedNotAbsence(notice)}` : ''}${flags(result)}`
           : `git.staged --stat → exit 0: git printed no stat footer — stated, not guessed${notice.length > 0 ? ` · ${unmergedNotAbsence(notice)}` : ''}${flags(result)}`;
-      return { ok: true, detail, exitCode: 0, stat: true, mode: 'stat', summary, text: result.stdout, truncated: result.truncated };
+      return { ok: true, detail, exitCode: 0, stat: true, mode: 'stat', summary, text: result.stdout, truncated: result.truncated, ...windowField(result) };
     }
     const index = parseStagedDiff(result.stdout);
     const notice = unmergedNotice(result.stdout);
@@ -246,6 +246,7 @@ export function registerGitStagedTool(registry: ToolRegistry, host: ExecHost, op
       paths: index.files.map((f) => f.path),
       text: result.stdout,
       truncated: result.truncated,
+      ...windowField(result),
     };
   });
   return registry;

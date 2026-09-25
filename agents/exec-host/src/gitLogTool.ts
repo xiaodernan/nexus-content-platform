@@ -1,5 +1,5 @@
 import type { ExecPolicy, ToolRegistry, ToolSpec } from '@nexus/agent-runtime';
-import { budgetFlags, GIT_ENV_NAMES, cutNotAbsence, gitEnv, gitVerdict, logWindowNotice, quoteVerdict, refusedNotAbsence, stdoutWasCut } from './gitTools.js';
+import { budgetFlags, GIT_ENV_NAMES, cutNotAbsence, gitEnv, gitVerdict, logWindowNotice, quoteVerdict, refusedNotAbsence, stdoutWasCut, windowField } from './gitTools.js';
 import type { ExecHost, ExecRunResult } from './execHost.js';
 
 /**
@@ -104,7 +104,7 @@ export function registerGitLogTool(registry: ToolRegistry, host: ExecHost, optio
     const flags = budgetFlags(result);
     if (result.exitCode !== 0 || result.killedByBudget) {
       const verdict = gitVerdict(result.stdout, result.stderr, { truncated: result.truncated || result.killedByBudget });
-      return { ok: false, detail: `git.log → exit ${result.exitCode}: ${quoteVerdict(verdict)} · ${refusedNotAbsence('the repo has no commits')}${flags}`, exitCode: result.exitCode, count, commits: [], truncated: result.truncated };
+      return { ok: false, detail: `git.log → exit ${result.exitCode}: ${quoteVerdict(verdict)} · ${refusedNotAbsence('the repo has no commits')}${flags}`, exitCode: result.exitCode, count, commits: [], truncated: result.truncated, ...windowField(result) };
     }
     const { commits, skipped } = parseGitLog(result.stdout);
     const top = commits[0];
@@ -112,7 +112,7 @@ export function registerGitLogTool(registry: ToolRegistry, host: ExecHost, optio
     // sentence (`cutNotAbsence`, below), because there the door has nothing to floor.
     const floor = stdoutWasCut(result) && commits.length > 0;
     const detail = `git.log → exit 0: ${floor ? 'AT LEAST ' : ''}${commits.length} commit(s)${top ? ` · newest ${top.hash} "${top.subject}"` : stdoutWasCut(result) ? ` · ${cutNotAbsence('the repository has no commits')}` : ' (empty log)'}${logWindowNotice({ window: floor, read: commits.length, asked: count })}${skipped > 0 ? ` · ${skipped} line(s) without a hash, counted not guessed` : ''}${flags}`;
-    return { ok: true, detail, exitCode: 0, count, commits, ...(skipped > 0 ? { skipped } : {}), truncated: result.truncated };
+    return { ok: true, detail, exitCode: 0, count, commits, ...(skipped > 0 ? { skipped } : {}), truncated: result.truncated, ...windowField(result) };
   });
   return registry;
 }

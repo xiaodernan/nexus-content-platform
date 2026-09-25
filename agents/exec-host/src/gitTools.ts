@@ -141,6 +141,21 @@ export const budgetFlags = (r: { truncated: boolean; truncatedStreams?: Array<'s
 export const stdoutWasCut = (r: { truncatedStreams?: Array<'stdout' | 'stderr'> }): boolean => r.truncatedStreams?.includes('stdout') ?? false;
 
 /**
+ * M2 v69 (ADR 0016 amendment 69): the same claim, in the RECORD. v48/v52/v56/v63/v65/v66/v68 all made a
+ * door say out loud that a number is a count of what it READ, not a census of the repository — but every
+ * one of those rules lives in `detail`, and a door's structured output went on carrying only v30's
+ * aggregate `truncated: true`, which is a bit about TWO pipes. Measured (`v69-stderr-probe.mjs`): eight
+ * real git states at exit 0 all put 0 bytes on stderr, so for the git doors today the aggregate bit happens
+ * to coincide with the stream they parse — this is NOT a claim that a door ever mislabelled a number.
+ * What it does fix is the layer: the host computed `truncatedStreams`, each door READ it to write its own
+ * sentence, and then dropped it before handing the record on. So one field, derived by one function from
+ * the same predicate the sentences use, and absent rather than false (v55's `descendantsStopped`, v56's
+ * `truncatedStreams` before it) — which is what keeps every uncut record byte-identical to what it was.
+ */
+export const windowField = (r: { truncatedStreams?: Array<'stdout' | 'stderr'> }): { windowed?: true } =>
+  stdoutWasCut(r) ? { windowed: true } : {};
+
+/**
  * M2 v57: the third member of the "git said a thing the tally hides" family, for the door that
  * reports the WORKING TREE. `counts` is a census of entries; an unmerged entry is not a change the
  * index is ready to record, it is a stop sign — so the door names the paths rather than letting
@@ -670,7 +685,7 @@ export function registerGitTools(registry: ToolRegistry, host: ExecHost, options
     const detail = ok
       ? `git.status → exit ${result.exitCode}: ${files.length} entries${tally === '' ? '' : ` (${tally})`}${conflicted.length > 0 ? ` · ${unmergedStatusNotice(conflicted)}` : ''}${pathShapeNotices(files)}${treeSplitNotice(files, { window: windowed })}${flags(result)}`
       : `git.status → exit ${result.exitCode}: ${quoteVerdict(gitVerdict(result.stdout, result.stderr, { truncated: result.truncated || result.killedByBudget }))} · ${files.length} entries parsed · ${refusedNotAbsence('the working tree is clean or empty')}${flags(result)}`;
-    return { ok, detail, exitCode: result.exitCode, files, counts, truncated: result.truncated };
+    return { ok, detail, exitCode: result.exitCode, files, counts, truncated: result.truncated, ...windowField(result) };
   });
 
   registry.register(GIT_TOOL_SPECS[1]!, async (args) => {
@@ -690,7 +705,7 @@ export function registerGitTools(registry: ToolRegistry, host: ExecHost, options
       const detail = ok
         ? `git.diff --stat → exit 0: ${parsed}${mention}${flags(result)}`
         : `git.diff --stat → exit ${result.exitCode}: ${quoteVerdict(gitVerdict(result.stdout, result.stderr, { truncated: result.truncated || result.killedByBudget }))} · ${parsed} · ${refusedNotAbsence('nothing changed')}${flags(result)}`;
-      return { ok, detail, exitCode: result.exitCode, mode: 'stat', summary, text: result.stdout, truncated: result.truncated };
+      return { ok, detail, exitCode: result.exitCode, mode: 'stat', summary, text: result.stdout, truncated: result.truncated, ...windowField(result) };
     }
     const { files, totals } = parseGitDiff(result.stdout);
     const notice = unmergedNotice(result.stdout);
@@ -702,7 +717,7 @@ export function registerGitTools(registry: ToolRegistry, host: ExecHost, options
     const detail = ok
       ? `git.diff → exit 0: ${tally}${notice.length > 0 ? ` · ${unmergedNotAbsence(notice)}` : ''}${unnamable.length > 0 ? ` · ${unnamableSectionsNotice(unnamable)}` : ''}${diffWindowNotice({ window: windowed, subject: 'the working tree', named: totals.files, ...(last ? { partial: { path: last.path, additions: last.additions, deletions: last.deletions } } : {}) })}${pathShapeNotices(files)}${flags(result)}`
       : `git.diff → exit ${result.exitCode}: ${quoteVerdict(gitVerdict(result.stdout, result.stderr, { truncated: result.truncated || result.killedByBudget }))} · ${tally} · ${refusedNotAbsence('the tree has no changes')}${flags(result)}`;
-    return { ok, detail, exitCode: result.exitCode, mode: 'full', files, totals, truncated: result.truncated };
+    return { ok, detail, exitCode: result.exitCode, mode: 'full', files, totals, truncated: result.truncated, ...windowField(result) };
   });
 
   return registry;

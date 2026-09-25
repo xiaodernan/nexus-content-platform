@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { ToolRegistry, planExec } from '@nexus/agent-runtime';
 import type { SpawnLike } from '@nexus/agent-runtime';
 import { createExecHost, type ExecChild } from '../src/execHost.js';
-import { GIT_TOOL_SPECS, GIT_DIFF_FLAGS, budgetFlags, diffWindowNotice, gitEnv, gitReadOnlyPolicy, gitVerdict, isDiffHeaderPairLine, isQuotedRendering, logWindowNotice, parseDiffHeader, parseDiffStat, parseFileLine, parseGitDiff, parseGitStatus, pathShapeNotices, quoteVerdict, refusedNotAbsence, registerGitTools, stdoutWasCut, treeSplitNotice, UNMERGED_XY, unmergedNotice, unmergedNotAbsence, unmergedStatusNotice, unnamableDiffSections, unnamableSectionsNotice, unwrapRendering } from '../src/gitTools.js';
+import { GIT_TOOL_SPECS, GIT_DIFF_FLAGS, budgetFlags, diffWindowNotice, gitEnv, gitReadOnlyPolicy, gitVerdict, isDiffHeaderPairLine, isQuotedRendering, logWindowNotice, parseDiffHeader, parseDiffStat, parseFileLine, parseGitDiff, parseGitStatus, pathShapeNotices, quoteVerdict, refusedNotAbsence, registerGitTools, stdoutWasCut, treeSplitNotice, UNMERGED_XY, unmergedNotice, unmergedNotAbsence, unmergedStatusNotice, unnamableDiffSections, unnamableSectionsNotice, unwrapRendering, windowField } from '../src/gitTools.js';
 import { GIT_ABSENT_CONFIG, GIT_FORCED_CONFIG, GIT_ISOLATION_ENV, GIT_PASS_THROUGH_ENV_NAMES, forcedConfigEnv } from '../src/gitEnvIsolation.js';
 
 describe('parseGitStatus (porcelain v1, pure data)', () => {
@@ -989,5 +989,43 @@ describe('logWindowNotice (M2 v68: the sixth door in the WINDOW family, and the 
     expect(diff).toContain('NOT a census of it');
     expect(log).toContain('not a census of the history');
     expect(log).not.toContain('hunk');
+  });
+});
+
+describe('windowField (M2 v69: the RECORD answers the window question, not only the sentence)', () => {
+  it('one predicate, four cases: nothing cut / the OTHER pipe cut / both cut / the aggregate bit ALONE', () => {
+    expect(windowField({})).toEqual({});
+    expect(windowField({ truncatedStreams: ['stderr'] })).toEqual({}); // v30's bit is about TWO pipes; this is not
+    expect(windowField({ truncatedStreams: ['stdout'] })).toEqual({ windowed: true });
+    expect(windowField({ truncatedStreams: ['stdout', 'stderr'] })).toEqual({ windowed: true });
+  });
+
+  it('a cut read carries the claim beside its numbers; an uncut record has no key to misread', async () => {
+    const run = async (maxOut: number | undefined, tool: 'git.diff' | 'git.status') => {
+      const h = harness('diff --git a/x.ts b/x.ts\n--- a/x.ts\n+++ b/x.ts\n@@ -1 +1,2 @@\n c\n+added\n', { code: 0, signal: null }, maxOut);
+      const r = await h.registry.invoke({ callId: `v69:${tool}:${maxOut}`, tool, args: {} }, h.grant);
+      return r.output as { detail: string; windowed?: boolean; ok: boolean };
+    };
+    const cut = await run(40, 'git.diff');
+    expect(cut.windowed).toBe(true);
+    expect(cut.detail).toContain('AT LEAST'); // sentence and record, same read, one rule
+    const whole = await run(undefined, 'git.diff');
+    expect('windowed' in whole).toBe(false); // absent, never false (v55/v56 precedent)
+    expect(whole.detail).not.toContain('AT LEAST');
+    expect((await run(40, 'git.status')).windowed).toBe(true);
+    expect('windowed' in await run(undefined, 'git.status')).toBe(false);
+  });
+
+  it('a REFUSAL cut only on stderr is not a window on what this door parsed', async () => {
+    const h1 = harness('?? a.md\n', { code: 128, signal: null }, 8, 'fatal: bad config line 1 in /x/.git/config\n'.repeat(4));
+    const refused = await h1.registry.invoke({ callId: 'v69r1', tool: 'git.diff', args: {} }, h1.grant);
+    expect((refused.output as { ok: boolean }).ok).toBe(false); // v52: a nonzero exit is ok:false DATA, never a throw
+    const rec = refused.output as { truncated: boolean; windowed?: boolean; detail: string };
+    expect(rec.truncated).toBe(true); // the aggregate bit IS true here — that is exactly the ambiguity v69 ends
+    expect('windowed' in rec).toBe(false); // yet nothing this door parses lost a byte
+    expect(rec.detail).toContain('(stderr)'); // and the sentence has said which pipe all along (v56)
+    const h2 = harness('diff --git a/x.ts b/x.ts\nindex 1..2 100644\n--- a/x.ts\n+++ b/x.ts\n@@ -1 +1 @@\n-c\n+c\n', { code: 128, signal: null }, 12, 'error: could not read atomically\n');
+    const both = await h2.registry.invoke({ callId: 'v69r2', tool: 'git.diff', args: {} }, h2.grant);
+    expect((both.output as { windowed?: boolean }).windowed).toBe(true); // now the parsed stream lost bytes too
   });
 });

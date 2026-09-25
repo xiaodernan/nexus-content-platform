@@ -63,6 +63,7 @@ export {
   budgetFlags,
   cutNotAbsence,
   diffWindowNotice,
+  windowField,
   logWindowNotice,
   gitEnv,
   gitReadOnlyPolicy,
