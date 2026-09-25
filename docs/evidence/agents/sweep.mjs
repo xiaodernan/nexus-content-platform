@@ -33,7 +33,7 @@
 //   node docs/evidence/agents/sweep.mjs --keep          # leave the materialised copies behind
 import { spawn } from 'node:child_process';
 import { createHash } from 'node:crypto';
-import { existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, statSync, symlinkSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join, relative, resolve, sep } from 'node:path';
 import { pathToFileURL, fileURLToPath } from 'node:url';
@@ -220,8 +220,19 @@ export async function walkedTree(cwd, distEntry = join(REPO_ROOT, 'agents', 'run
   const { collectTextFiles } = await import(pathToFileURL(distEntry).href);
   const files = collectTextFiles(cwd, fsForWalker);
   const paths = Object.keys(files).sort();
-  const isTracked = new Set((await git(['ls-files', '-z'], cwd)).split('\0').filter(Boolean));
-  const isUntracked = new Set((await git(['ls-files', '--others', '--exclude-standard', '-z'], cwd)).split('\0').filter(Boolean));
+  // A clean checkout has no `.git`, and `ls-files` there exits 128 — measured, it crashed the identity
+  // block of the first isolated run. The census is then UNAVAILABLE rather than zero: in that tree every
+  // file IS the ref's bytes, so answering "0 untracked" would report a number for a question git was
+  // never asked, which is the v48 lesson applied to the runner's own third axis.
+  let ownership = null;
+  try {
+    ownership = {
+      tracked: new Set((await git(['ls-files', '-z'], cwd)).split('\0').filter(Boolean)),
+      untracked: new Set((await git(['ls-files', '--others', '--exclude-standard', '-z'], cwd)).split('\0').filter(Boolean)),
+    };
+  } catch (e) {
+    if (!/not a git repository/.test(e.message)) throw e;
+  }
   const owned = { tracked: [], untracked: [], other: [] };
   let bytes = 0;
   let untrackedBytes = 0;
@@ -229,8 +240,9 @@ export async function walkedTree(cwd, distEntry = join(REPO_ROOT, 'agents', 'run
   for (const p of paths) {
     const size = Buffer.byteLength(files[p], 'utf8');
     bytes += size;
-    if (isTracked.has(p)) owned.tracked.push(p);
-    else if (isUntracked.has(p)) {
+    if (!ownership) owned.other.push(p); // no census: everything lands in the one bin that says "unknown"
+    else if (ownership.tracked.has(p)) owned.tracked.push(p);
+    else if (ownership.untracked.has(p)) {
       owned.untracked.push(p);
       untrackedBytes += size;
     } else owned.other.push(p); // present, not tracked, not untracked-when-ignored-are-excluded ⇒ ignored
@@ -240,11 +252,15 @@ export async function walkedTree(cwd, distEntry = join(REPO_ROOT, 'agents', 'run
     digest: hash.digest('hex'),
     files: paths.length,
     bytes,
-    tracked: owned.tracked.length,
-    untracked: owned.untracked.length,
-    untrackedBytes,
-    other: owned.other.length,
-    sample: owned.untracked.slice(0, 6),
+    gitRepo: ownership !== null,
+    tracked: ownership ? owned.tracked.length : null,
+    untracked: ownership ? owned.untracked.length : null,
+    untrackedBytes: ownership ? untrackedBytes : null,
+    // With no git to ask, the files cannot be sorted by ownership at all; `other` only counts the
+    // ignored-but-read ones, and a tree with no `.git` has no such notion.
+    other: ownership ? owned.other.length : null,
+    censusUnknown: ownership ? 0 : paths.length,
+    sample: ownership ? owned.untracked.slice(0, 6) : [],
   };
 }
 
@@ -279,6 +295,74 @@ function tailOf(text, n) {
  */
 function headOf(text, n) {
   return text.split(/\r?\n/).filter(Boolean).slice(0, n).join(' | ').slice(0, 300);
+}
+
+/**
+ * A CLEAN CHECKOUT of the ref, in a temp directory — the only way to run the tree-walking proofs against
+ * the second axis v80 measured rather than the first. `git archive` gives the ref's tracked bytes with no
+ * `.git` and nothing untracked, so what a proof walks there is exactly what a commit owns.
+ *
+ * `node_modules` has to be rebuilt, and that is the load-bearing part: this repository's
+ * `node_modules/@nexus/*` are ABSOLUTE symlinks into the working tree, so reusing the home install as it
+ * stands would compile the HOME sources into the HOME dist and move the very digest the sweep is grading.
+ * Third-party packages are junctioned read-only; every workspace package is linked from the temp tree
+ * instead. The caller proves the isolation by digesting the home build before and after — see
+ * `isolated-proof.mjs`, which fails the increment if that digest moved.
+ */
+export async function isolatedCheckout({ ref = 'HEAD', cwd = process.cwd(), dest = mkdtempSync(join(tmpdir(), 'nexus-isolated-')), build = true, log = console.log } = {}) {
+  const root = join(dest, 'repo');
+  mkdirSync(root, { recursive: true });
+  const tar = await run('git', ['archive', '--format=tar', ref], { cwd, timeoutMs: 180_000, encoding: 'buffer', maxBuffer: 1 << 29 });
+  if (tar.code !== 0) throw new Error(`git archive ${ref} → exit ${tar.code}: ${tar.stderr.toString().trim().slice(0, 200)}`);
+  const tarFile = join(dest, 'ref.tar');
+  writeFileSync(tarFile, tar.stdout);
+  // GNU tar reads `C:\…` as a remote host because of the drive colon, so --force-local and forward slashes.
+  const untar = await run('tar', ['--force-local', '-xf', tarFile.replace(/\\/g, '/'), '-C', root.replace(/\\/g, '/')], { cwd, timeoutMs: 180_000 });
+  if (untar.code !== 0) throw new Error(`tar -xf ref.tar → exit ${untar.code}: ${untar.stderr.toString().trim().slice(0, 200)}`);
+
+  const homeNm = join(cwd, 'node_modules');
+  const nm = join(root, 'node_modules');
+  mkdirSync(nm);
+  let links = 0;
+  const linkFailures = [];
+  for (const entry of readdirSync(homeNm)) {
+    if (entry === '@nexus' || entry === '.cache') continue; // these two are the ones that must NOT be the home's
+    try {
+      symlinkSync(join(homeNm, entry), join(nm, entry), 'junction');
+      links += 1;
+    } catch (e) {
+      linkFailures.push(`${entry}: ${e.code}`);
+    }
+  }
+  mkdirSync(join(nm, '.cache')); // turbo's cache must not be the home repo's
+  // The workspace links come from the archived tree's OWN package.json globs, not from the home install's
+  // absolute targets, so this function never needs to know where the home repo thinks it lives.
+  const workspace = [];
+  const globs = JSON.parse(readFileSync(join(root, 'package.json'), 'utf8')).workspaces ?? [];
+  for (const glob of globs) {
+    const dir = join(root, glob.replace(/\*$/, ''));
+    if (!existsSync(dir)) continue;
+    for (const pkg of readdirSync(dir)) {
+      const manifest = join(dir, pkg, 'package.json');
+      if (!existsSync(manifest)) continue;
+      const { name } = JSON.parse(readFileSync(manifest, 'utf8'));
+      if (!name) continue;
+      const target = join(nm, name);
+      mkdirSync(dirname(target), { recursive: true });
+      symlinkSync(join(dir, pkg), target, 'junction');
+      workspace.push(name);
+    }
+  }
+
+  let built = null;
+  if (build) {
+    const started = Date.now();
+    // `spawn('npm')` is ENOENT on Windows — npm is an npm.cmd and needs a shell (measured, not assumed).
+    const b = await run('cmd.exe', ['/c', 'npm', 'run', 'build'], { cwd: root, timeoutMs: 1_800_000 });
+    built = { code: b.code, timedOut: b.timedOut, ms: Date.now() - started, failed: [...`${b.stdout}${b.stderr}`.matchAll(/Failed:\s+(\S+)/g)].map((m) => m[1]), tail: tailOf(`${b.stdout}\n${b.stderr}`, 4) };
+  }
+  log(`[isolated] ${ref} → ${root}: ${tar.stdout.length} bytes of tar · ${links} third-party junctions${linkFailures.length ? ` (${linkFailures.length} failed: ${linkFailures.slice(0, 3).join(', ')})` : ''} · ${workspace.length} workspace links from the ARCHIVED globs (${workspace.join(', ')})${build ? ` · build exit ${built.code}${built.timedOut ? ' TIMEOUT' : ''} in ${(built.ms / 1000).toFixed(1)}s${built.failed.length ? ` · FAILED ${built.failed.join(', ')}` : ' · all packages'}` : ''}`);
+  return { dir: dest, root, archiveBytes: tar.stdout.length, links, linkFailures, workspace, build: built };
 }
 
 /** Run one script with the repository root as CWD — which is exactly why the build it grades is the CURRENT one. */
