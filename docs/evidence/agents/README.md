@@ -112,6 +112,7 @@ node docs/evidence/agents/hunk-shape-proof.mjs      # requires `npm run build` f
 node docs/evidence/agents/prefix-proof.mjs         # requires `npm run build` first (v65: FOUR repository config keys — `diff.noprefix`, `diff.mnemonicPrefix`, `diff.srcPrefix`, `diff.dstPrefix` — set in ONE throwaway repo whose index git’s own footer calls `4 files changed, 4 insertions(+), 2 deletions(-)`, where every header reader names 0 files and the pre-v65 0-file sentence is TRANSCRIBED into this file so the lie outlives the source; the pre-v65 process is replayed by a spawn stand-in that drops v65’s two prefix flags on the way to git, the shipped argv is hashed byte-identical to the old one over four reads in a repo that sets nothing, two hostile keys are driven at once beside `git.show`, and a hand-spliced phantom section proves an unread section adds no line to the file before it)
 node docs/evidence/agents/cut-tally-proof.mjs     # requires `npm run build` first (v66: ONE throwaway repo whose index git's own footer calls `25 files changed, 75 insertions(+), 75 deletions(-)`, read through the three DIFF doors at budgets taken from git's byte offsets — all 774 cut boundaries swept by replaying git's RECORDED bytes through the shipped host (a shortcut §3a pays for with 12 real-vs-replay byte-identity checks, in the sentence AND the parsed files), `git.show`'s windows graded against its own `--numstat 60 0`, the "the changes named before the last are WHOLE" claim tested at a section boundary where it holds and 900 bytes later where the last change is short, both `--stat` faces proven immune over every line boundary, and one REAL commit recording 25 paths where the window said `AT LEAST 8`)
 node docs/evidence/agents/sweep.mjs --ref HEAD      # v78: runs the REF's bytes and prints its identity FIRST — ref sha, dist digest, dirty sources, proofs diverging from the worktree
+node docs/evidence/agents/tree-axis-proof.mjs   # v80: the sweep's third axis — walked-tree digest, ownership bins, mid-run re-check
 ```
 
 A note on `spawns[…]` assertions: they pin the argv SHAPE a plan step is allowed to produce
@@ -1991,3 +1992,37 @@ The control is stated because it is the part that could have been faked: both pr
 The runner caught a bug in itself while grading this fix. Its `[identity]` line printed `scripts 63` where the committed population is 62 — `endsWith('.mjs')` listed `sweep.mjs` as a proof, materialised it and RAN it, so a nested sweep started a third and the run took 961 s instead of ~200 s, ending in a `FAIL sweep.mjs (exit null, TIMEOUT)` row that is not a proof result. Amendment 78's own text ("the next sweep is 62") is what made the two numbers meet; the filter now follows the directory's `-proof.mjs` convention, which every proof already used. One timing-sensitive consequence is reported rather than smoothed away: `report-kill-proof.mjs` was green in the clean sweep before the fix and red in the contended 961 s one, which is what CPU pressure from a recursive runner does to a heartbeat count.
 
 The sweep over this build, in the runner's own words: `[summary] ref 5c89d0bd3a31 · scripts 62 · failed 1 · dist 8b3ff8b0e7f62133 (stable across the run) · dirty-sources 3 · 311s`, with its population line reading `[identity] scripts: 62 committed proofs materialised into C:\Users\18414\AppData\Local\Temp\nexus-sweep-wjlIvU · 34 of them differ from the WORKTREE copy (the ref's bytes are what runs)`. The reds are `reap-proof.mjs`.
+
+## Walked-tree proof (`tree-axis-proof.mjs`, M2 v80 — the sweep's third axis, named)
+
+63rd tracked script. `sweep.mjs` (v78) fixed which SCRIPTS ran and which BUILD they graded, and v79 left
+the third axis open in its own sentence: proofs are run with the repository root as cwd, because that is
+how `./agents/runtime/dist/index.js` resolves — so a script that reads `.` reads the WORKING TREE. Measured
+here: the walk returns **220 files / 3 801 218 B**, a clean clone of the same commit yields **193**, and
+the 27 untracked files carry **2 204 169 B** and **637 of the 1 664 chunks** (38 %) that
+`code-index-proof.mjs` indexes. Its `deserializeApp schemaVersion localStorage` query expects
+`apps/studio/src/lib/persist.ts` at **#3 in this tree, #2 in the clean clone**, with
+`.scratch/README-damaged.md` and `.scratch/adr-head.md` taking two of the five slots. §1 the tree digest
+is an identity: stable when asked twice, moves on an edit, on an untracked file, on a rename with no byte
+moved, and an ignored-but-present `.md` IS walked (git-ignorance is not walk-ignorance). §2 the three
+ownership bins are exhaustive, disjoint and re-derived by a second reader of git. §3 shows the
+load-bearing part where the answer is known: five committed files fill 5 of 5 top-5 slots, six untracked
+ones leave the ref **1 of 5** — the source stayed #1, so no shipped predicate flipped this run, and that
+is printed rather than improved. §4 exercises both shapes of the mid-run re-check end to end through
+`runSweep` (`treeStable` false with a file that lands between the last proof and the re-check, true
+without). §6 prints the real numbers and asserts the scan's population only when the tree can support it
+— the first version asserted the real-tree chunk difference unconditionally and would have gone RED in a
+clean clone, inheriting the disease it grades; both branches were exercised, the vacuous one through a
+mutated copy.
+
+`walkedTree()` takes its population from the production walker imported from the same built `dist` the
+proofs import, so no second copy of the skip-list exists; the digest is path-keyed like the build digest;
+and the third bin is computed by elimination, which is also how the runner avoids enumerating every
+ignored file under `node_modules`. The script-count line is a text scan of the ref's own bytes and says
+so — 8 call `collectTextFiles('.')` and 1 walks `process.cwd()` with its own copy of the rule — guarded by a
+negative control that 7 scripts naming `process.cwd()` as a jail root are NOT counted.
+
+Bounds: naming the tree does not isolate it (running the walkers against a clean checkout of the ref is
+queued, with the clean-room build); the 27 untracked files here are kept on purpose, being earlier
+increments' own inputs; and `[summary]` now carries `tree <digest> (stable | MOVED mid-run)` because the
+tree moving during ordinary work is what the re-check exists to say.

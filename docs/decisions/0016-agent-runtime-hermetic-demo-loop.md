@@ -2849,3 +2849,88 @@ _Numbering: 76 was free when this was written (`git log --oneline -3` top = `17d
   (green in the first, red in the contaminated 961 s one) — reported here as a fact about what CPU
   contention does to a timing-sensitive proof, and the clean re-run is the number quoted below.
 - **The sweep, as its runner printed it.** `[summary] ref 5c89d0bd3a31 · scripts 62 · failed 1 · dist 8b3ff8b0e7f62133 (stable across the run) · dirty-sources 3 · 311s`, with its population line reading `[identity] scripts: 62 committed proofs materialised into C:\Users\18414\AppData\Local\Temp\nexus-sweep-wjlIvU · 34 of them differ from the WORKTREE copy (the ref's bytes are what runs)`. The reds are `reap-proof.mjs`.
+
+## Amendment 80 — v80 (docs/evidence): a sweep must name the TREE it walked, because a ref-materialised proof still reads `.` — and 27 of the 220 files this box's proofs indexed are in no commit
+
+- **The bound, in v79's own words.** "the third axis amendment 78 named stays open — these two proofs
+  read `.`, so a sweep's object includes files no commit owns, and `sweep.mjs`'s `[identity]` block does
+  not name that yet." v78 had given a sweep an identity for its SCRIPTS (the ref's bytes, materialised
+  into `os.tmpdir()`) and for its BUILD (a path-keyed digest over every shipped `dist` file), and left the
+  third thing unnamed. It could not be named away: `runProof` passes the REPOSITORY ROOT as cwd, because
+  that is how a proof resolves `./agents/runtime/dist/index.js`. A script that reads `.` therefore does
+  not read the ref at all — it reads the working tree, including whatever files no commit owns.
+- **Measured before anything was claimed, by `tree-axis-proof.mjs` (63rd tracked script).** On this box
+  at this commit the walk a shipped proof performs returns **220 files / 3 801 218 bytes**, and a clean
+  clone of the same commit returns **193 files**. The 27 untracked ones carry **2 204 169 bytes** — 58 %
+  of what the proofs read — and account for **637 of the 1 664 chunks** (38 %) that `code-index-proof.mjs`
+  indexes. For its `deserializeApp schemaVersion localStorage` query the expected source is **#3** in this
+  tree and **#2** in the clean clone, with `.scratch/README-damaged.md` and `.scratch/adr-head.md` —
+  leftovers of earlier increments' splice recipes — holding two of the five slots.
+- **The mechanism, shown where the answer is known (§3), not inferred from the real repo.** A synthetic
+  repository with five committed files that mention a query's identifiers fills all five top hits with
+  ref-owned chunks; add six untracked `.md` files whose text repeats those identifiers and the ref owns
+  **1 of 5**. Reported exactly as measured: the source itself stayed #1, so `code-index-proof.mjs`'s
+  `paths.includes(expected)` did NOT go red this run — the finding is not that a shipped proof is
+  currently failing, it is that a top-5 has finite slots and the population competing for them is not the
+  commit's. §6 exercises the vacuous shape too (see the follow-on commit): the witness used to assert the
+  real-tree chunk difference unconditionally, which is RED in a clean clone — the disease it grades.
+- **`walkedTree(cwd)`.** The population comes from the production walker (`collectTextFiles`) imported
+  from the same built `dist` the proofs import, so the runner holds no second copy of the skip-list or the
+  extension rule — and because that walker lives in the built code, the build axis already names its
+  bytes. The identity is sha256 over `path \t sha256(content)`, path-keyed for the same reason as v78's
+  build digest: a deletion must not hide inside a same-size rename. Ownership is split into three bins —
+  tracked (the ref owns it), untracked-and-not-ignored (present, owned by nobody), and the remainder **by
+  elimination**, which is also how the runner avoids the expensive question of enumerating every ignored
+  file including `node_modules`. `collectTextFiles` skips by directory name and extension and knows
+  nothing of `.gitignore`, so git-ignorance is NOT walk-ignorance, and §1 asserts that rather than
+  assuming it: an ignored `.md` present on disk is walked, and lands in the third bin.
+- **`[identity]` prints it before any result and re-checks it after the last script** — a sweep is long
+  enough for someone to rebuild AND long enough for a file to land in the tree these scripts walk — and
+  the `[summary]` line now carries `tree <digest> (stable | MOVED mid-run)`, so the sentence an amendment
+  pastes cannot lose the caveat. `treeMoveNotice` is exported so both shapes are gradable; `beforeRecheck`
+  is a documented seam on `runSweep`, because nothing deterministic can move the tree from inside a sweep
+  of read-only scripts and a race-based test would have proven nothing.
+- **Which scripts depend on it, and how that is known.** A text scan of the ref's own bytes, labelled as
+  such in the line itself: 8 call `collectTextFiles('.')` (including this witness, which classifies
+  itself honestly) and 1 — `code-index-proof.mjs` — re-implements the walk over `process.cwd()`, so
+  **9 of 63** at this commit against **8 of 62** at the previous one. The scan was first much looser and
+  counted 10, because it matched any `process.cwd(`; the tightened predicate is guarded by a NEGATIVE
+  control (§6): 7 scripts name `process.cwd()` as a jail root or an import path and must NOT be counted,
+  which makes the precision tested rather than assumed.
+- **Two bugs the witness found while being written, both of them mine.** (1) `walkedTree` took a `cwd`
+  argument and then walked `'.'` — so it reported the home repository's 220 files about a synthetic
+  two-file repo. §1's `assert.equal(t0.files, 2)` caught it on the first run; the parameter is now the
+  root, and the same fix moved the walker's resolution to the runner's own repository root instead of the
+  walked directory, because a synthetic repo has no `dist`. (2) `.gitignore` is not text to this walker —
+  a first guess of "two committed files plus the ignore file" was wrong because the extension rule does
+  not match it, which is the same class of mistake as counting a directory as a file (v61).
+- **Cost, and what did NOT move.** No `packages/*`, no `agents/*` source, no argv, env pin, policy,
+  budget, gate, parser or record shape: this increment is the evidence pipeline, so the four root gates
+  and every committed proof are its "nothing else moved" assertion. Measured on this tree, where
+  `git status` names another lane's uncommitted work: typecheck **8/8 tasks**, lint **4/4**, build
+  **5/5**, test **8/8**, all exit 0, with **781** vitest tests green across five packages (runtime
+  **354**, exec-host **275**, studio **115**, design-model **30**, ai-providers **7**). Exec-host's
+  **275** is one more than the **274** this lane has quoted since v76, and the reason is the tree rather
+  than this increment: `agents/exec-host/test/execHost.test.ts` is modified and uncommitted. Those counts
+  are therefore the WORKING TREE's, not `f715b18`'s: the runner exists precisely because the two are not
+  the same thing, and it would be the worst kind of dishonesty for this amendment to reclaim them as its
+  own.
+- **Bounds, stated rather than fixed.** Naming the tree is not isolating it: the honest next step is to
+  run the tree-walking proofs against a clean checkout of the ref (queued with the clean-room build).
+  The 27 untracked files on this box are left in place deliberately — they are the only copy of earlier
+  increments' splice recipes, and deleting evidence to make a metric look clean is the mistake this whole
+  family exists to avoid. And the tree digest moves during ordinary work: that is not a defect being
+  reported, it is what the re-check is for.
+- **The sweep, as its runner printed it — including its one red.** `[summary] ref f715b1820da5 · scripts 63 · failed 1 · dist 8b3ff8b0e7f62133 (stable across the run) · tree 2ee3841ef14c0e1b (stable) 220 files · dirty-sources 2 · 426s` The tree line
+  reads `[identity] walked tree (read by the tree-walking scripts via cwd, so the WORKTREE not the ref): 220 files / 3801218 B, digest 2ee3841ef14c0e1b · owned by the ref 193 · UNTRACKED 27 (2204169 B) · ignored-but-read 0 — e.g. .scratch/README-damaged.md, .scratch/adr-head.md, .scratch/adr-new.md, .scratch/adr-staged-patched.md, .scratch/adr-staged-patched2.md, .scratch/adr-staged-patched3.md …` and the population line `[identity] of those 63, 9 read the WORKING TREE as their corpus — 8 call collectTextFiles on '.' and 1 re-implement the walk over process.cwd() (a text scan of their committed bytes: a claim about the scripts, not an observation of what a process opened)`. The failing script is `reap-proof.mjs`
+  (v55's own witness), and the runner already names why a reader cannot dismiss it as flake: the identity
+  block reported `dirty tracked sources under packages: 2 — agents/exec-host/src/execHost.ts, agents/runtime/src/index.ts` as the dirty tracked sources, and the reaper those sources are mid-edit
+  on is the very code that proof asserts against. `reaper-survivor-proof.mjs`, which tests the adjacent
+  behaviour, ran green in the same sweep, seconds apart, against the same bytes — so the red is a real
+  disagreement between one committed v55 claim and one uncommitted build, not a broken pipeline. This
+  amendment does not fix it: it is another lane's in-flight work, and naming it is the whole job here.
+- **What the third axis bought immediately.** Before v80, that red would have been reported as
+  "62 of 63 proofs pass", which is a sentence about the worktree's build wearing the ref's name. With the
+  build digest (224 files, `8b3ff8b0e7f62133`, stable across the run) and the walked tree (220 files,
+  `2ee3841ef14c0e1b`, stable) both printed, the reader can see that the red and the green rows were all
+  graded against ONE build, and that the build contains code no commit owns.
