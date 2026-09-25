@@ -233,13 +233,9 @@ describe('反复发生留几条（dedupe_key）', () => {
   });
 });
 
-describe('§164 四类里没有来源的那三类', () => {
-  it('除 Publish complete 之外三类都在清单上，每条带原因', () => {
-    expect(UNBACKED_NOTIFICATIONS.map((u) => u.spec)).toEqual([
-      'Generation complete',
-      'Build complete',
-      'Agent task complete',
-    ]);
+describe('§164 四类里没有来源的那两类', () => {
+  it('Generation complete 有来源了（agent_tasks 的写入方），另两类仍然挂着', () => {
+    expect(UNBACKED_NOTIFICATIONS.map((u) => u.spec)).toEqual(['Build complete', 'Agent task complete']);
     for (const entry of UNBACKED_NOTIFICATIONS) {
       expect(entry.reason.length).toBeGreaterThan(10);
     }
@@ -276,5 +272,55 @@ describe('读取时还能不能点（targetState）', () => {
     expect(targetState({ ...facts, needsPublication: false, publicationId: null, publicationLive: false })).toEqual({
       ok: true,
     });
+  });
+});
+
+type Generation = Extract<NotifyEvent, { kind: 'generation' }>;
+
+const generation = (over: Partial<Generation> = {}): NotifyEvent => ({
+  kind: 'generation',
+  recipientId: 'u-1',
+  projectId: 'p-1',
+  projectName: '深夜便利店',
+  taskId: 't-1',
+  agentKey: 'design-edit',
+  capability: 'demo',
+  ok: true,
+  durationMs: 1234,
+  detail: '3 处补丁 · 1 份方案',
+  ...over,
+});
+
+describe('Generation complete（§164 里以前没有来源的那一类）', () => {
+  it('真模型与 DEMO 模板的"完成"在标题上分开读（§160）', () => {
+    const demo = planNotification(generation());
+    const real = planNotification(generation({ capability: 'real', taskId: 't-2' }));
+    expect(demo?.title).toContain('DEMO 模板生成完成');
+    expect(real?.title).toContain('模型生成完成');
+    expect(demo?.title).not.toBe(real?.title);
+  });
+
+  it('一条任务一个终态：键挂在任务行上，换任务号就是另一件事', () => {
+    expect(planNotification(generation())?.dedupeKey).toBe('generation:t-1');
+    expect(planNotification(generation({ taskId: 't-9' }))?.dedupeKey).toBe('generation:t-9');
+  });
+
+  it('失败也出声，正文就是那句原因；链接指向编辑区而不是公开页', () => {
+    const plan = planNotification(generation({ ok: false, detail: 'provider 不可达' }));
+    expect(plan?.title).toContain('失败');
+    expect(plan?.body).toBe('provider 不可达');
+    expect(plan?.link).toBe('/studio/p-1');
+  });
+
+  it('没有摘要就不编正文，没有时长就不写用时', () => {
+    expect(planNotification(generation({ detail: null }))?.body).toBe(null);
+    expect(planNotification(generation({ durationMs: null }))?.title).not.toContain('秒');
+  });
+
+  it('Generation complete 已从"没有来源"那张单子上摘掉，另两类仍然挂着', () => {
+    const specs = UNBACKED_NOTIFICATIONS.map((item) => item.spec);
+    expect(specs).not.toContain('Generation complete');
+    expect(specs).toContain('Build complete');
+    expect(specs).toContain('Agent task complete');
   });
 });

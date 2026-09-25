@@ -14,6 +14,7 @@ const KIND_LABEL: Record<InboxItem['kind'], string> = {
   comment: '评论',
   follow: '关注',
   remix: '改编',
+  generation: '生成',
   other: '未分类',
 };
 

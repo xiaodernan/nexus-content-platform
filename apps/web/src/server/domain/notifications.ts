@@ -62,7 +62,10 @@ export interface Inbox {
 }
 
 function isKind(value: string): value is NotificationKind {
-  return value === 'publish' || value === 'moderation' || value === 'like' || value === 'comment' || value === 'follow' || value === 'remix';
+  return (
+    value === 'publish' || value === 'moderation' || value === 'like' || value === 'comment' || value === 'follow' ||
+    value === 'remix' || value === 'generation'
+  );
 }
 
 export async function inbox(userId: string, limit = 30): Promise<Inbox> {

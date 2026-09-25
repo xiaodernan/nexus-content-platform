@@ -8,7 +8,7 @@ import type { Visibility } from '@/server/domain/publish';
  * 同一件事反复发生时留下几条。规则写在 SQL 里就测不到，写在 route 里就只能起真服务才能测。
  */
 
-export type NotificationKind = 'publish' | 'moderation' | 'like' | 'comment' | 'follow' | 'remix';
+export type NotificationKind = 'publish' | 'moderation' | 'like' | 'comment' | 'follow' | 'remix' | 'generation';
 
 export interface NotificationPlan {
   userId: string;
@@ -78,7 +78,24 @@ export type NotifyEvent =
       projectName: string;
       forkedProjectId: string;
     }
-  | { kind: 'follow'; recipientId: string; actorId: string; actorName: string; actorHandle: string | null };
+  | { kind: 'follow'; recipientId: string; actorId: string; actorName: string; actorHandle: string | null }
+  | {
+      /**
+       * §164 点名的"Generation complete"。它现在有来源了：一次 AI 请求会在 `agent_tasks`
+       * 里落一行，跑完（成功或失败）就是这条事件。`capability` 必须一起给——
+       * DEMO Mock 的"完成"和真 provider 的"完成"不是一回事，混在标题里就是骗人（§160）。
+       */
+      kind: 'generation';
+      recipientId: string;
+      projectId: string;
+      projectName: string;
+      taskId: string;
+      agentKey: string;
+      capability: 'real' | 'demo' | 'unavailable';
+      ok: boolean;
+      durationMs: number | null;
+      detail: string | null;
+    };
 
 /** 项目名与对方显示名都是用户输入，进标题前要有个上限 */
 export const TITLE_MAX = 140;
@@ -202,25 +219,52 @@ export function planNotification(event: NotifyEvent): NotificationPlan | null {
         // 没有 handle 就没有 /u/<handle> 这页，链接宁可不给也不指一张空页
         link: event.actorHandle ? `/u/${event.actorHandle}` : null,
       };
+
+    case 'generation': {
+      const seconds = event.durationMs === null ? null : `${Math.round(event.durationMs / 100) / 10} 秒`;
+      // 一次任务一个终态：键挂在任务行上，重试是另一行任务，因此是另一条通知
+      return {
+        ...base,
+        actorId: null,
+        publicationId: null,
+        dedupeKey: `generation:${event.taskId}`,
+        title: clip(
+          `《${event.projectName}》的一次${CAPABILITY_LABEL[event.capability]}生成${event.ok ? '完成' : '失败'}` +
+            (event.ok && seconds ? `（${seconds}）` : ''),
+          TITLE_MAX,
+        ),
+        // 失败时 body 就是那句原因；成功时是补丁数一类的摘要，没有就不编
+        body: event.detail ? clip(event.detail, BODY_MAX) : null,
+        // 生成结果落在工作区，不指向公开页：那次请求改的是还没发布的东西
+        link: studioLink(event.projectId),
+      };
+    }
   }
 }
 
+/** DEMO Mock 的"完成"和真模型的"完成"要能在标题上分开读（§160） */
+const CAPABILITY_LABEL: Record<'real' | 'demo' | 'unavailable', string> = {
+  real: '模型',
+  demo: 'DEMO 模板',
+  unavailable: '（provider 不可用的）',
+};
+
 /**
- * §164 原文列的四类里，今天**没有真实来源**的那三类。
- * 列出来是为了让人问得出"为什么收件箱里没有生成完成"，而不是假装收件箱覆盖四类（§159）。
+ * §164 原文列的四类里，今天**仍然没有真实来源**的那两类。
+ * 列出来是为了让人问得出"为什么收件箱里没有这个"，而不是假装收件箱覆盖四类（§159）。
+ * Generation complete 以前也在这里——`agent_tasks` 有了写入方之后它不再是空话，
+ * 所以这一条被摘掉，而不是继续挂着一条已经不成立的说明。
  */
 export const UNBACKED_NOTIFICATIONS = [
-  {
-    spec: 'Generation complete',
-    reason: 'AI 生成是同一次请求里同步回话的，web 侧没有可以稍后"完成"的作业；接上 §162 的队列消费者之后才有真事件可发',
-  },
   {
     spec: 'Build complete',
     reason: '平台目前没有会完成的构建操作（没有导出 / 打包端点），发这条通知等于凭空造',
   },
   {
     spec: 'Agent task complete',
-    reason: 'agent_tasks 表有结构但全库没有写入方，没有任何一个任务真的跑完过',
+    reason:
+      '这里说的是 §112 那种多步任务（Goal → 子任务 → 依赖 → 验收）。今天落库的任务行都是单次 AI 请求，' +
+      '它对应的是 Generation complete 那一类；多步编排还没有执行方',
   },
 ];
 

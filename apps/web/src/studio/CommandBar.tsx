@@ -28,6 +28,8 @@ export function CommandBar() {
   const [busy, setBusy] = useState(false);
   const [result, setResult] = useState<AiResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
+  // 这次请求在 agent_tasks 里的那一行（§112）：命令栏只显式带出最近一次，历史在 /tasks 页
+  const [taskId, setTaskId] = useState<string | null>(null);
   const inputRef = useRef<HTMLTextAreaElement | null>(null);
 
   useEffect(() => {
@@ -80,6 +82,9 @@ export function CommandBar() {
         body: JSON.stringify(body),
       });
       const payload = (await res.json().catch(() => null)) as (Partial<AiResponse> & { issues?: string[]; message?: string; error?: string }) | null;
+      // 任务号在响应头里（AiResponse 是 web ↔ ai-service 的契约报文，不带 web 侧账本字段）。
+      // 失败时服务端也会落一条 failed 的任务行，所以这里在 !res.ok 之前先取到它
+      setTaskId(res.headers.get('x-nexus-task'));
       if (!res.ok || !payload) {
         const detail = payload?.issues?.join('；') ?? payload?.message ?? payload?.error ?? `HTTP ${res.status}`;
         throw new Error(detail);
@@ -114,6 +119,14 @@ export function CommandBar() {
 
   return (
     <div className="shrink-0 border-t border-[var(--nexus-color-border-subtle)] bg-bg-1 px-[var(--nexus-space-3)] py-[var(--nexus-space-2)]" data-command-bar>
+      {taskId ? (
+        <p className="text-11 text-fg-3" data-ai-task>
+          这次请求记为任务 {taskId.slice(0, 8)} ·
+          <a href={`/tasks/${state.projectId}`} className="ml-1 text-accent-2 underline">
+            这个项目的任务列表
+          </a>
+        </p>
+      ) : null}
       {result?.plans?.length || result?.activities?.length ? (
         <ActivityFeed plan={result.plans[0]} activities={result.activities} />
       ) : null}

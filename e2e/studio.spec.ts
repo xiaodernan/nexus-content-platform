@@ -1879,7 +1879,7 @@ test('@smoke §164 通知：别人真的动过，作者的收件箱里才有那�
   // 一次真发布 + 三个访客动作 + 两次标已读的回车确认，都跑在同一个开发服务上
   test.setTimeout(300_000);
   const projectName = `收件箱作品${Date.now().toString(36)}`;
-  await createProject(page, projectName);
+  const projectId = await createProject(page, projectName);
 
   await page.click('[data-publish-open]');
   await expect(page.locator('[data-publish-submit]')).toBeVisible();
@@ -1970,12 +1970,29 @@ test('@smoke §164 通知：别人真的动过，作者的收件箱里才有那�
   await expect(anon.locator('[data-notification-denied]')).toBeVisible();
   await expect(anon.locator('[data-notification-item]')).toHaveCount(0);
 
-  // §159：原文列的四类里今天没有真实来源的那三类，写在页面上而不是藏在代码注释里
+  // §112 / §164：跑一次真 AI 请求（本机没有 provider，走 DEMO 模板），
+  // 这一次要在账本与收件箱里都留下东西——"Generation complete"以前挂在"没有来源"那张单子上
+  await page.goto(`/studio/${projectId}`);
+  await expect(page.locator('[data-canvas-frame]')).toBeVisible({ timeout: 30_000 });
+  await page.fill('[data-ai-input]', '把主视觉调暗一点');
+  await page.click('[data-ai-submit]');
+  await expect(page.locator('[data-ai-task]')).toBeVisible({ timeout: 90_000 });
   await page.goto('/notifications');
-  await expect(page.locator('[data-notification-unbacked="Generation complete"]')).toBeVisible();
+  await expect(header).toContainText('共 5 条', { timeout: 30_000 });
+  await expect(row('generation')).toContainText('DEMO 模板生成完成');
+  await page.screenshot({ path: 'screenshots/notifications-unbacked.png' });
+
+  // 没有来源的那两类仍然要挂在页面上；Generation complete 已经不在那张单子上了（有真写入方）
+  await expect(page.locator('[data-notification-unbacked="Generation complete"]')).toHaveCount(0);
   await expect(page.locator('[data-notification-unbacked="Build complete"]')).toBeVisible();
   await expect(page.locator('[data-notification-unbacked="Agent task complete"]')).toBeVisible();
-  await page.screenshot({ path: 'screenshots/notifications-unbacked.png' });
+
+  // §112 的账本：这一页列的就是刚才那一行任务
+  await page.goto(`/tasks/${projectId}`);
+  await expect(page.locator('[data-task-row]')).toHaveCount(1);
+  await expect(page.locator('[data-task-status="succeeded"]')).toBeVisible();
+  await expect(page.locator('[data-task-capability="demo"]')).toContainText('DEMO 模板');
+  await page.screenshot({ path: 'screenshots/agent-task-ledger.png' });
 
   await anonCtx.close();
   await visitorCtx.close();

@@ -1040,9 +1040,29 @@ drizzle 把整个拼接结果当成**单个绑定参数**，生成的 SQL 是 `o
   现在界面上的进度都靠轮询或一次性回话。要做的决定：App Router 的 route handler 承载不了 WebSocket，
   是加一个独立 WS 进程（配 Redis pub/sub，§94 指定 Redis 做 realtime）还是先做 SSE ——
   这个取舍要先写 ADR，不能默默改掉 §163 写的"WebSocket"。
-- [~] 通知中心（§164）— 收件箱与真事件已在上面 M6 那条落地；**剩下的正是原文点名而今天没有来源的那三类**
-  （Generation / Build / Agent task complete）。它们要的都不是收件箱，而是"web 侧真有一个会结束的作业"：
+- [~] 通知中心（§164）— 收件箱与真事件已在上面 M6 那条落地；原文点名四类，今天**还差两类**
+  （Build complete / Agent task complete）。Generation complete 已在下面单独落地（2026-09-25）。
+  剩下这两类要的不是收件箱，而是"web 侧真有一个会结束的作业"：
+  Build 要有会完成的构建操作（今天没有导出/打包端点），多步 Agent 任务要有执行方（§112 的编排），
   等 #10（§162/§163 队列消费者）落地时一起补，那条实时通道（§163）就是它们的终态来源。
+- [x] Agent 任务账本（§112 的地基 + §164 的 Generation complete）— **2026-09-25 落地**：
+  `agent_tasks` 这张表从建库起就有完整结构却**全库没有一处写它**，所以"Agent task / Generation complete"
+  两类通知一直只能挂在收件箱的"没有来源"清单上。现在 `/api/ai/run` 每次请求开始落一行 `running`、
+  结束落 `succeeded` / `failed`（失败也留行，带那句原因；没给原因时用兜底文案而不是留空），
+  跑完就发一条 `generation` 通知——**同一任务重复发只留一条**（dedupe 挂在 `generation:<taskId>` 上）。
+  能力那一列分开记 `real` / `demo`：标题写成"一次 DEMO 模板生成完成"而不是"生成完成"，
+  否则看账本的人分不清这条结果是模型给的还是模板给的（§160）。
+  `/tasks/<项目>` 是这本账的视图，页面上明说边界：今天每行都对应**一次同步请求**，
+  §112 那种跨步骤任务（Goal → 子任务 → 依赖 → 验收）还没有执行方。
+  任务号走响应头 `x-nexus-task` 而不是塞进 `AiResponse`——那是 web ↔ ai-service 的契约报文，
+  不该被 web 侧的账本字段污染。枚举里成功那一档叫 `succeeded`（0000 建库时定的），不是 `completed`。
+  验证：`agent-tasks.integration.test.ts` 5 条（含"不存在的 id 不会被说成改好了"、
+  "别人的项目连任务数都不给"、FK 真的在挡不存在的项目）+ `notify-plan.test.ts` 新增 5 条纯规则
+  （真模型与 DEMO 的标题必须不同、没有时长就不写用时、没有摘要就不编正文）+
+  `@smoke §164` 末尾跑一次真请求，断言账本一行、通知第 5 条、"Generation complete 已从没有来源那张单子上摘掉"
+  （截图 `agent-task-ledger.png`）。
+  仍欠：取消 / 重试（`attempt` 列还没有第二次的写入方）、审批流（`requires_approval` 全库无人置真）、
+  以及把这一行接到 §162 的异步队列上——那时它才真的需要"完成"这件事。
 
 ## 当前阻塞项
 - `[!]` 真实 AI provider key（文本/图像/视频）— 用户提供前，全部生成类能力以 DEMO MODE 交付，UI 明确标注，不伪装真实结果。
