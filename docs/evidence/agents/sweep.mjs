@@ -298,6 +298,30 @@ function headOf(text, n) {
 }
 
 /**
+ * A build verdict is not finished when it names a PACKAGE; it is finished when it names a LINE THE BUILD
+ * WROTE. Measured on the first isolated build: 55 non-empty output lines, and the failure's own line
+ * (`Module not found: Error: Can't resolve …`) sits at index 35 while turbo's summary banner occupies 49-54
+ * — so `tailOf(text, 4)` reports `Failed: @nexus/studio#build` and LOSES the reason entirely. That is the
+ * rule `runProof` already states for scripts ("the reason is the FIRST stderr line, not its last")
+ * reproduced one function over by newer code, and the same rule v52+ established for the git doors: a
+ * failure sentence must quote the verdict line, not the banner.
+ *
+ * Pure and exported so a witness can grade the SELECTION on text it wrote itself, rather than waiting 35
+ * seconds for a build that happens to fail in the right shape — and so `reason: null` stays an honest
+ * answer when nothing reason-shaped was captured, instead of the banner being dressed up as one.
+ */
+export function describeBuild(text) {
+  const all = text.split(/\r?\n/).filter((l) => l.trim());
+  const failed = [...text.matchAll(/Failed:\s+(\S+)/g)].map((m) => m[1]);
+  const reasons = all.filter((l) => /Module not found|Can't resolve|Cannot find module|error TS\d+|BUILD FAILED|Build failed|SyntaxError|ReferenceError|TypeError:|panic:|fatal:\s/i.test(l));
+  // Prefer a line the FAILING task itself printed: turbo prefixes every task line `@scope/name:task:`, so
+  // `@nexus/studio#build` → `@nexus/studio:build:`. An earlier error from a package that passed is not
+  // this build's reason, and neither is the summary that only counts.
+  const reason = failed.map((f) => reasons.find((l) => l.includes(f.replace('#', ':')))).find(Boolean) ?? reasons[0] ?? null;
+  return { lines: all.length, bytes: Buffer.byteLength(text), failed, reasons: reasons.slice(0, 8), reason, tail: tailOf(text, 4), head: headOf(text, 3) };
+}
+
+/**
  * A CLEAN CHECKOUT of the ref, in a temp directory — the only way to run the tree-walking proofs against
  * the second axis v80 measured rather than the first. `git archive` gives the ref's tracked bytes with no
  * `.git` and nothing untracked, so what a proof walks there is exactly what a commit owns.
@@ -359,9 +383,14 @@ export async function isolatedCheckout({ ref = 'HEAD', cwd = process.cwd(), dest
     const started = Date.now();
     // `spawn('npm')` is ENOENT on Windows — npm is an npm.cmd and needs a shell (measured, not assumed).
     const b = await run('cmd.exe', ['/c', 'npm', 'run', 'build'], { cwd: root, timeoutMs: 1_800_000 });
-    built = { code: b.code, timedOut: b.timedOut, ms: Date.now() - started, failed: [...`${b.stdout}${b.stderr}`.matchAll(/Failed:\s+(\S+)/g)].map((m) => m[1]), tail: tailOf(`${b.stdout}\n${b.stderr}`, 4) };
+    const raw = `${b.stdout}\n${b.stderr}`;
+    // Written to `dest`, OUTSIDE `root`: the checked-out tree must contain the ref and nothing else, and a
+    // witness counts exactly that. Every sentence below is a claim about bytes a reader can go look at.
+    const logFile = join(dest, 'build.log');
+    writeFileSync(logFile, raw, 'utf8');
+    built = { ...describeBuild(raw), code: b.code, timedOut: b.timedOut, ms: Date.now() - started, logFile };
   }
-  log(`[isolated] ${ref} → ${root}: ${tar.stdout.length} bytes of tar · ${links} third-party junctions${linkFailures.length ? ` (${linkFailures.length} failed: ${linkFailures.slice(0, 3).join(', ')})` : ''} · ${workspace.length} workspace links from the ARCHIVED globs (${workspace.join(', ')})${build ? ` · build exit ${built.code}${built.timedOut ? ' TIMEOUT' : ''} in ${(built.ms / 1000).toFixed(1)}s${built.failed.length ? ` · FAILED ${built.failed.join(', ')}` : ' · all packages'}` : ''}`);
+  log(`[isolated] ${ref} → ${root}: ${tar.stdout.length} bytes of tar · ${links} third-party junctions${linkFailures.length ? ` (${linkFailures.length} failed: ${linkFailures.slice(0, 3).join(', ')})` : ''} · ${workspace.length} workspace links from the ARCHIVED globs (${workspace.join(', ')})${build ? ` · build exit ${built.code}${built.timedOut ? ' TIMEOUT' : ''} in ${(built.ms / 1000).toFixed(1)}s · ${built.lines} output lines${built.failed.length ? ` · FAILED ${built.failed.join(', ')}` : ' · all packages'}${built.code !== 0 ? ` · reason ${built.reason ? `“${built.reason.slice(0, 160)}”` : 'NONE CAPTURED (the banner is not a reason)'}` : ''}` : ''}`);
   return { dir: dest, root, archiveBytes: tar.stdout.length, links, linkFailures, workspace, build: built };
 }
 

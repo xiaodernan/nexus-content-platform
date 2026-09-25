@@ -15,6 +15,15 @@
 // It also fixes a crash found on the way: `walkedTree()` asked git for the ownership census, and a clean
 // checkout has no `.git` — `ls-files` exits 128, which took down the identity block of the first isolated
 // run. The census there is UNAVAILABLE rather than zero: absence, not a false answer.
+//
+// M2 v82 closes the gap this script found in v81 by trying to quote it. The isolated build exits 1 and
+// names `@nexus/studio#build`, but the runner kept only `tailOf(stdout+stderr, 4)` — and the reason line
+// sits at index 35 of 55, so the verdict could say WHICH package died and not WHY. `describeBuild()` now
+// selects a reason from the whole output, prefers a line the failing task itself printed, and leaves
+// `null` when nothing reason-shaped exists rather than promoting the banner. §3 grades that against the
+// real transcript (re-read from the build log the runner wrote, so the quote is checkable in its source);
+// §3b grades the SELECTION on synthetic text, because a rule only ever tested by whatever the ref's build
+// happens to do is a rule that goes untested half the time.
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
 import { existsSync, lstatSync, mkdirSync, readFileSync, readdirSync, realpathSync, rmSync, writeFileSync } from 'node:fs';
@@ -97,13 +106,58 @@ assert.ok(iso.build, 'a build was requested, so there is a result to report');
 const cleanRuntimeDist = join(iso.root, 'agents', 'runtime', 'dist', 'index.js');
 assert.ok(existsSync(cleanRuntimeDist), 'the clean checkout built its OWN agents/runtime/dist — otherwise §4 would grade the home build and prove nothing');
 assert.notEqual(readFileSync(cleanRuntimeDist, 'utf8'), readFileSync(HOME_RUNTIME_DIST, 'utf8'), "and the two dists are DIFFERENT bytes: the home build carries this lane's uncommitted edits, the clean one is HEAD's — which is the sentence v78 could only hope for");
+// v82: the verdict must be a claim about bytes someone can go and look at. The runner wrote the whole
+// build output to `<dest>/build.log`, OUTSIDE the checked-out tree, so re-reading it here re-derives
+// every number the runner printed from the file rather than from the same in-memory string.
+const rawLog = readFileSync(iso.build.logFile, 'utf8');
+assert.ok(iso.build.logFile.startsWith(iso.dir) && !iso.build.logFile.startsWith(iso.root), `the build log is at ${iso.build.logFile}: it must live in the temp DEST and not inside ${iso.root}, or §4 would count a file the runner wrote as a file the ref owns`);
+const rederived = sw.describeBuild(rawLog);
+assert.equal(Buffer.byteLength(rawLog), iso.build.bytes, 'the log on disk is not the byte count the runner reported writing');
+assert.equal(rederived.lines, iso.build.lines, `the runner said ${iso.build.lines} non-empty output lines; the file holds ${rederived.lines}`);
+assert.deepEqual(rederived.failed, iso.build.failed, 're-reading the log does not reproduce the failed-package list the runner printed');
+assert.equal(rederived.reason, iso.build.reason, 're-reading the log does not reproduce the REASON line the runner printed');
 if (iso.build.code !== 0) {
   assert.ok(iso.build.failed.length > 0, `build exited ${iso.build.code} but the runner named NO package — a failure nobody can locate is not a finding`);
-  console.log(`  build exit ${iso.build.code} in ${(iso.build.ms / 1000).toFixed(1)}s · 命名出的失败包：${iso.build.failed.join(', ')}`);
+  // The gate v81 left open: naming WHICH package died is not naming WHY. A reason of `null` here would
+  // mean the runner had the whole output on disk and still reported only a banner.
+  assert.ok(iso.build.reason, `build exited ${iso.build.code} naming ${iso.build.failed.join(', ')} and the runner captured NO reason line out of ${iso.build.lines} output lines — the summary banner is not a reason (v82)`);
+  assert.ok(rawLog.includes(iso.build.reason), 'the reason the runner prints is not one of the bytes the build wrote — a quote must be findable in its source');
+  assert.ok(iso.build.failed.some((f) => iso.build.reason.includes(f.replace('#', ':'))), `the reason line ${JSON.stringify(iso.build.reason.slice(0, 90))} was not printed by a FAILING task (${iso.build.failed.join(', ')}): an error from a package that built fine is not this build's reason, and neither is the summary that only counts`);
+  console.log(`  build exit ${iso.build.code} in ${(iso.build.ms / 1000).toFixed(1)}s · ${iso.build.lines} 行输出 · 失败包：${iso.build.failed.join(', ')} · 缓存：${rawLog.includes('Cached:') ? rawLog.match(/Cached:[^\n]*/)[0].trim() : 'not reported'}`);
+  console.log(`  原因行（逐字取自 ${iso.build.logFile.split(/[\\/]/).pop()}）：${iso.build.reason.slice(0, 150)}`);
 } else {
   assert.deepEqual(iso.build.failed, [], 'a green build names nothing as failed');
-  console.log(`  build exit 0 in ${(iso.build.ms / 1000).toFixed(1)}s · 全部包通过`);
+  console.log(`  build exit 0 in ${(iso.build.ms / 1000).toFixed(1)}s · ${iso.build.lines} 行输出 · 全部包通过 · tailOf(4)=${iso.build.tail.slice(0, 90)}`);
 }
+
+// --- §3b the SELECTION rule, graded on text this witness wrote ---
+// §3 can only grade the rule against whatever the ref's build happens to do. Measured on v81's first
+// isolated run, `tailOf(4)` sat 19 lines short of the reason and lost it — so the case that matters is
+// synthetic and deterministic here: reason far above the banner, two tasks, a banner with no reason, a
+// clean pass. Without this section the rule is only ever tested by an accident.
+console.log('§3b 选取规则本身：banner 不是原因，别包的红也不是');
+const BANNER = 'Tasks:    4 successful, 5 total\nCached:    0 cached, 5 total\nFailed:    @nexus/studio#build\n ERROR  run failed: command  exited (1)';
+const dBanner = sw.describeBuild(BANNER);
+assert.deepEqual(dBanner.failed, ['@nexus/studio#build'], 'a banner-only transcript still names the package');
+assert.equal(dBanner.reason, null, 'and reports that it captured NO reason, instead of promoting the banner to one — `null` is the honest answer here, as it was for v80\'s census');
+const FILLER = Array.from({ length: 33 }, (_, i) => `@nexus/studio:build:  \u001b[2m info  - compiling route ${i}\u001b[0m`).join('\n');
+const deep = `@nexus/studio:build: Module not found: Error: Can't resolve './x.js' in 'R:\\apps\\studio'\n${FILLER}\n${BANNER}`;
+const dDeep = sw.describeBuild(deep);
+// Measured, not remembered: how far the reason sits ABOVE the banner, i.e. how far out of reach the
+// 4-line tail is. The real v81 transcript had the reason at line 35 of 55.
+const deepLines = deep.split('\n').filter((l) => l.trim());
+const reasonAt = deepLines.indexOf(deepLines[0]);
+const bannerAt = deepLines.findIndex((l) => l.startsWith('Failed:'));
+assert.ok(bannerAt - reasonAt > 4, `the fixture must put the reason out of the tail's reach to test anything (banner ${bannerAt} - reason ${reasonAt} = ${bannerAt - reasonAt})`);
+assert.equal(dDeep.reason, deepLines[reasonAt], `a reason ${bannerAt - reasonAt} lines above the banner is still the reason (got ${JSON.stringify(String(dDeep.reason).slice(0, 80))}) — this is exactly what tailOf(4) loses`);
+assert.notEqual(dDeep.reason, dDeep.tail, 'and the reported reason is not the 4-line tail the runner used to keep as the whole verdict');
+const twoTasks = `@nexus/ai-providers:build: error TS2307: Cannot find module 'gone'\n@nexus/studio:build: Module not found: Error: Can't resolve './y.js'\nFailed:    @nexus/studio#build`;
+assert.equal(sw.describeBuild(twoTasks).reason, "@nexus/studio:build: Module not found: Error: Can't resolve './y.js'", 'the reason comes from the package that FAILED, not from the first error-looking line in the log');
+const green = sw.describeBuild('Tasks:    5 successful, 5 total\nCached:    0 cached, 5 total');
+assert.deepEqual(green.failed, [], 'a passing run fails nothing');
+assert.equal(green.reason, null, 'and has no reason to report');
+assert.equal(green.lines, 2, 'the line count counts non-empty lines, which is what §3 prints and a reader compares');
+console.log(`  合成样本 ${deepLines.length} 行：原因在第 ${reasonAt + 1} 行、banner 在第 ${bannerAt + 1} 行，相距 ${bannerAt - reasonAt} 行 —— tailOf(4) 只够看见 banner，所以这条规则在这里量`);
 
 // --- §4 the proof, run where nothing is untracked ---
 console.log('§4 让读工作树的 proof 在干净检出里跑：语料小了多少，判定变不变');
@@ -133,4 +187,4 @@ console.log(`  隔离目录 ${iso.dir} · 主仓库 HEAD ${gitOut(['rev-parse', 
 
 rmSync(bare, { recursive: true, force: true });
 rmSync(iso.dir, { recursive: true, force: true });
-console.log(`\n[summary] home dist UNMOVED (${before.digest.slice(0, 16)}, ${before.files} files) across an isolated build · clean checkout walks ${cleanTree.files} of ${home.files} worktree files, every one tracked at HEAD · ${proofRel.split('/').pop()} green in both trees · census-without-git reported as null not 0 · build exit ${iso.build.code}${iso.build.failed.length ? ` naming ${iso.build.failed.join(', ')}` : ''}`);
+console.log(`\n[summary] home dist UNMOVED (${before.digest.slice(0, 16)}, ${before.files} files) across an isolated build · clean checkout walks ${cleanTree.files} of ${home.files} worktree files, every one tracked at HEAD · ${proofRel.split('/').pop()} green in both trees · census-without-git reported as null not 0 · build exit ${iso.build.code}${iso.build.failed.length ? ` naming ${iso.build.failed.join(', ')}` : ''}${iso.build.code !== 0 ? ` with a REASON quoted from its own log (${iso.build.reason ? `“${iso.build.reason.slice(0, 88)}…”` : 'NONE captured out of ' + iso.build.lines + ' lines'})` : ''}`);
