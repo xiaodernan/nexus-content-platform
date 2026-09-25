@@ -28,6 +28,15 @@ export interface TestReport {
   passed: number;
   failures: TestFailure[];
   detail: string;
+  /**
+   * M2 v71 (ADR 0016 amendment 71): WHICH pipes the output budget cut, when it cut any. The verdict
+   * (`ok`) is legitimately the command's own exit code, so a cut can never make a green run red — but
+   * the EVIDENCE quoted beside that verdict (`detail`, every `failures[].message`) is then a window,
+   * and a chip that reads only `passed/total` had no way to know. Absent rather than empty, exactly as
+   * v56 made it on `ExecRunResult`; the exec-host bridge is the only producer, an in-process predicate
+   * runner has no pipes to cut and so never carries the key.
+   */
+  truncatedStreams?: Array<'stdout' | 'stderr'>;
 }
 
 export interface TestRunner {

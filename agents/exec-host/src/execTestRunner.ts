@@ -79,6 +79,9 @@ function reportFrom(name: string, engine: string, r: ExecRunResult): TestReport 
     passed: passed ? 1 : 0,
     failures: passed ? [] : [{ name: r.ran ? name : NEVER_RAN, message }],
     detail: `${engine}: ${passed ? 1 : 0}/1 passed — ${message}`,
+    // v71: the verdict is git's/npm's/vitest's own; the QUOTE beside it is what a cut degrades. Copy the
+    // list (a report is journalled, and a journalled fact must not be a live view of the run object).
+    ...(r.truncatedStreams && r.truncatedStreams.length > 0 ? { truncatedStreams: [...r.truncatedStreams] } : {}),
   };
 }
 

@@ -218,5 +218,21 @@ describe('execTestRunner pipes (v60: one pipe may not mute the other in the repo
     const rep = await execTestRunner(h.host, ['node', 'app.js'], PASS_OPTS).run();
     expect([rep.ok, rep.passed, rep.failures.length]).toEqual([true, 1, 0]);
     expect(rep.detail).toContain('output truncated at budget (stdout)');
+    // v71 (ADR 0016 amendment 71): the verdict is the command's own, so it stays green — but the EVIDENCE
+    // quoted beside it is a window, and that fact now rides in the structured report, not only in prose.
+    expect(rep.truncatedStreams).toEqual(['stdout']);
+  });
+
+  it('v71: the cut pipes are a REPORT field, absent when nothing was cut and named per pipe otherwise', async () => {
+    const clean = await execTestRunner(harness({ code: 0, signal: null }, [['stdout', 'all good']]).host, ['node', 'app.js'], PASS_OPTS).run();
+    expect('truncatedStreams' in clean).toBe(false); // absent, never an empty list (v56's shape)
+    const both = await execTestRunner(harness({ code: 1, signal: null }, [['stderr', 'E'.repeat(3000)], ['stdout', 'A'.repeat(3000)]]).host, ['node', 'app.js'], PASS_OPTS).run();
+    expect(both.truncatedStreams).toEqual(['stdout', 'stderr']); // reader order, not write order
+    expect(both.ok).toBe(false);
+    const onlyNoise = await execTestRunner(harness({ code: 0, signal: null }, [['stderr', 'W'.repeat(3000)], ['stdout', 'the answer\n']]).host, ['node', 'app.js'], PASS_OPTS).run();
+    expect(onlyNoise.truncatedStreams).toEqual(['stderr']); // the answer survived whole; the noise did not
+    expect(onlyNoise.ok).toBe(true);
+    const refused = await execTestRunner(harness({ code: 0, signal: null }, [['stdout', 'x']]).host, ['node', 'app.js'], {}).run();
+    expect('truncatedStreams' in refused).toBe(false); // §28 refused it: no run, so no pipe to name
   });
 });
