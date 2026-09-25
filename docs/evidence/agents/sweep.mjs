@@ -57,6 +57,35 @@ export const REPO_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..', 
  */
 export const driveOf = (p) => parse(resolve(p)).root;
 
+/** The largest budget one row may ask for. Above it a human has to say so with `--timeout`, deliberately. */
+export const MAX_ROW_BUDGET_MS = 3_600_000;
+
+/**
+ * Read the budget a proof names for ITSELF, from its own first-column comment:
+ *
+ *     // sweep-budget-ms: 900000
+ *
+ * This exists because of a measurement, not a preference: v84 found `isolated-proof.mjs` taking 338 000 ms
+ * for its clean-room build, and 513 000–522 000 ms under load, while every row of a sweep was given the
+ * same `DEFAULT_PROOF_TIMEOUT_MS`. A runner that stops asking at 240 000 ms cannot distinguish that row
+ * from one that hung, so for the whole of v81→v84 the full sweep contained a red that was a fact about a
+ * constant in this file. The declaration is read from the REF's bytes, like every other fact this runner
+ * takes from the population it grades, and a form it does not recognise is refused OUT LOUD rather than
+ * obeyed silently — `null`-style honesty, as in v80's census.
+ */
+export function rowBudget(text, fallback = DEFAULT_PROOF_TIMEOUT_MS) {
+  const all = [...String(text).matchAll(/^\/\/[ \t]*sweep-budget-ms:[ \t]*([^\n]*?)[ \t]*$/gm)];
+  if (all.length === 0) return { budgetMs: fallback, budgetSource: 'default', note: null };
+  const refuse = (note) => ({ budgetMs: fallback, budgetSource: 'refused', note });
+  if (all.length > 1) return refuse(`${all.length} declarations — a row names its budget once, and the runner will not guess which`);
+  const raw = all[0][1];
+  if (!/^\d+$/.test(raw)) return refuse(`declared ${JSON.stringify(raw)} is not a whole number of milliseconds`);
+  const n = Number(raw);
+  if (n <= 0) return refuse(`declared ${n}ms — no duration is asked for, so this is not a budget`);
+  if (n > MAX_ROW_BUDGET_MS) return refuse(`declared ${n}ms exceeds the ${MAX_ROW_BUDGET_MS}ms ceiling a row may claim; raise --timeout for the whole sweep instead`);
+  return { budgetMs: n, budgetSource: 'declared', note: null };
+}
+
 const sha256 = (data) => createHash('sha256').update(data).digest('hex');
 
 /** One child process, output collected, never a throw on non-zero: a refusal is DATA here. */
@@ -619,9 +648,14 @@ export async function runProof(file, cwd, timeoutMs = DEFAULT_PROOF_TIMEOUT_MS) 
   const r = await run(process.execPath, [file], { cwd, timeoutMs, maxBuffer: 8 * 1024 * 1024 });
   return {
     file,
+    budgetMs: timeoutMs,
     code: r.code,
     signal: r.signal,
     timedOut: r.timedOut,
+    // v85: `ok` says the row did not pass, which is TRUE for a kill and for a red alike and therefore
+    // answers nothing. `verdict` says WHICH of those happened, because "the proof answered no" and "the
+    // runner stopped asking" are two findings and v73 already refused to let one borrow the other's words.
+    verdict: r.timedOut ? 'killed' : r.code === 0 ? 'passed' : 'failed',
     ms: Date.now() - started,
     tail: tailOf(r.stdout, 2),
     errTail: headOf(r.stderr, 3),
@@ -691,11 +725,28 @@ export async function runSweep({ ref = 'HEAD', only = null, cwd = process.cwd(),
     log(`[identity] of those ${landed.length}, ${walkers} read the WORKING TREE as their corpus by their own text scan — ${divergence.filter((r) => r.dotIngest).length} call collectTextFiles on '.' and ${divergence.filter((r) => r.ownWalk).length} re-implement the walk over process.cwd() (a scan of the committed bytes, not an observation of what a process opened; the whole population reads the code under test the same way, two lines above)`);
     const chosen = only ? landed.filter((l) => l.name.includes(only)) : landed;
     if (chosen.length === 0) throw new Error(`--only "${only}" selected no committed proof`);
+    // v85: a row's budget is read from the ROW's own bytes, so the population says how long it needs and
+    // this file stops deciding that on its behalf. The census prints BEFORE any row runs, because whether a
+    // sweep was schedulable is a fact a reader should get from the identity block, not from a red at the end.
+    const textOf = new Map(runCorpus.rows.map((r) => [r.name, r.text]));
+    const budgets = new Map(landed.map((l) => [l.name, rowBudget(textOf.get(l.name) ?? '', timeoutMs)]));
+    const named = [...budgets.entries()].filter(([, b]) => b.budgetSource === 'declared');
+    const refused = [...budgets.entries()].filter(([, b]) => b.budgetSource === 'refused');
+    const aboveDefault = named.filter(([, b]) => b.budgetMs > timeoutMs);
+    log(`[identity] row budgets: ${named.length} of ${landed.length} rows name the milliseconds they need${named.length ? ` (${named.map(([n, b]) => `${n.split('/').pop()} ${b.budgetMs}ms`).join(', ')})` : ''}; ${aboveDefault.length} of those exceed this run's default of ${timeoutMs}ms, so at the default they would be KILLED for their duration and not for their assertions; ${landed.length - named.length - refused.length} rows name nothing and take ${timeoutMs}ms, which the runner cannot know is enough${refused.length ? ` · ${refused.length} declaration REFUSED: ${refused.map(([n, b]) => `${n.split('/').pop()} — ${b.note}`).join('; ')}` : ''}`);
     results = [];
     for (const l of chosen) {
-      const r = await runProof(l.target, runCwd, timeoutMs);
-      results.push({ ...r, name: l.name, sha: l.sha });
-      log(`${r.ok ? 'OK  ' : 'FAIL'} ${l.name.split('/').pop()} (exit ${r.code}${r.timedOut ? ', TIMEOUT' : ''}, ${r.ms}ms) :: ${r.tail}${r.ok ? '' : ' || ' + r.errTail}`);
+      const bud = budgets.get(l.name) ?? { budgetMs: timeoutMs, budgetSource: 'default', note: null };
+      const r = await runProof(l.target, runCwd, bud.budgetMs);
+      results.push({ ...r, name: l.name, sha: l.sha, budgetSource: bud.budgetSource, budgetNote: bud.note });
+      // A kill is the runner's own action, so the row says WHOSE number ended it; a red says nothing of the
+      // sort, and v73's rule applies here too — one may not borrow the other's vocabulary.
+      const line = r.verdict === 'killed'
+        ? (bud.budgetSource === 'declared'
+          ? `KILL ${l.name.split('/').pop()} (exit ${r.code}, ${r.ms}ms) — killed at the ${bud.budgetMs}ms this row named itself, so the number that ended it is the row's, not the runner's`
+          : `KILL ${l.name.split('/').pop()} (exit ${r.code}, ${r.ms}ms) — killed by the runner's default budget of ${bud.budgetMs}ms; this row named no budget, so this red belongs to a constant in sweep.mjs and not to anything the proof asserted`)
+        : `${r.ok ? 'OK  ' : 'FAIL'} ${l.name.split('/').pop()} (exit ${r.code}, ${r.ms}ms, budget ${bud.budgetMs}ms ${bud.budgetSource})`;
+      log(`${line} :: ${r.tail}${r.ok ? '' : ' || ' + r.errTail}`);
     }
   } finally {
     if (keep) log(`[keep] materialised copies left in ${dest}`);
@@ -708,6 +759,10 @@ export async function runSweep({ ref = 'HEAD', only = null, cwd = process.cwd(),
     }
   }
   const failed = results.filter((r) => !r.ok);
+  // v85: `failed` keeps its old meaning — a killed row did NOT pass, and no witness may read a kill as a
+  // green — while the count of WHOSE number did it is stated beside it rather than instead of it.
+  const killed = results.filter((r) => r.verdict === 'killed');
+  const killedByRunner = killed.filter((r) => r.budgetSource !== 'declared').length;
   // A sweep is long enough for someone to rebuild — or to drop a file into the tree these scripts walk.
   // `beforeRecheck` is a documented seam, not a test hook for its own sake: the re-check has to be
   // gradeable against a tree that moved, and nothing deterministic can move it from inside a sweep of
@@ -722,7 +777,7 @@ export async function runSweep({ ref = 'HEAD', only = null, cwd = process.cwd(),
   const childBuildAfter = runCwd === cwd ? after : distDigest(runCwd);
   const childStable = childBuildAfter.digest === childBuild.digest;
   if (runCwd !== cwd && !childStable) log(`[identity] ⚠ the GRADED build moved during this run: ${childBuild.digest.slice(0, 16)} at the start, ${childBuildAfter.digest.slice(0, 16)} at the end, both at ${runCwd}`);
-  log(`\n[summary] ref ${id.sha.slice(0, 12)} · scripts ${results.length} · failed ${failed.length} · child cwd ${probe.cwd} · graded build ${childBuild.digest.slice(0, 16)} (${childBuild.files} dist files${childStable ? ', stable across the run' : ', BUILD MOVED mid-run'})${runCwd === cwd ? '' : ` · runner's own build ${id.distDigest.slice(0, 16)}${stable ? ' stable' : ' MOVED'}`} · tree ${childTree.unavailable ? `UNDIGESTABLE (${childTree.unavailable.slice(0, 60)})` : `${childTree.digest.slice(0, 16)} (${treeNotice ? 'MOVED mid-run' : 'stable'}) ${childTree.files} files`} · dirty-sources ${id.dirtySources.length} · ${Math.round((Date.now() - started) / 1000)}s`);
+  log(`\n[summary] ref ${id.sha.slice(0, 12)} · scripts ${results.length} · failed ${failed.length} · killed ${killed.length} (${killedByRunner} at the runner's default, ${killed.length - killedByRunner} at a budget the row named) · child cwd ${probe.cwd} · graded build ${childBuild.digest.slice(0, 16)} (${childBuild.files} dist files${childStable ? ', stable across the run' : ', BUILD MOVED mid-run'})${runCwd === cwd ? '' : ` · runner's own build ${id.distDigest.slice(0, 16)}${stable ? ' stable' : ' MOVED'}`} · tree ${childTree.unavailable ? `UNDIGESTABLE (${childTree.unavailable.slice(0, 60)})` : `${childTree.digest.slice(0, 16)} (${treeNotice ? 'MOVED mid-run' : 'stable'}) ${childTree.files} files`} · dirty-sources ${id.dirtySources.length} · ${Math.round((Date.now() - started) / 1000)}s`);
   return { identity: id, results, failed, dir: dest, distStable: stable, distAfter: after, treeStable: treeNotice === null, treeAfter: childTreeAfter, treeNotice, proofsCwd: runCwd, childProbe: probe, childBuild, childBuildAfter, childStable, importIdioms: idioms, childTree };
 }
 

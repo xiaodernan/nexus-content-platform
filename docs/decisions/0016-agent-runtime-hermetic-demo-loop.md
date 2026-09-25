@@ -3278,3 +3278,98 @@ _Numbering: 76 was free when this was written (`git log --oneline -3` top = `17d
   unchanged from v83 and still lists four dist paths — the drive axis does not add an import idiom, so
   the census's `childRelative === total` claim is untouched, and this proof reaches the runner through
   `process.cwd()` precisely so it stays that way.
+
+## Amendment 85 — v85 (docs/evidence): a sweep row's BUDGET belongs to the ROW, and a KILL is a different finding from a FAILURE — the runner stopped deciding how long a proof may take, and started saying whose number ended it
+
+_Numbering: 85 was free when this was written — `git log --oneline -3` tops out at `3b5f6bd` (v84's
+bookkeeping) and this file's headings stop at 84. Two other amendments are owed a home in this file
+(58, whose runtime work is uncommitted, and 77, whose exec-host reaper fix is uncommitted); neither is
+claimed here, and the number 85 does not stand for either._
+
+- **The constant, measured against the population it graded.** `runSweep` gave every row
+  `DEFAULT_PROOF_TIMEOUT_MS = 240_000` and printed a kill as `FAIL …, TIMEOUT`. One row of that
+  population is `isolated-proof.mjs`, which asks for a clean-room BUILD — and the durations for that arm
+  are this file's own record: **338.5 s quiet, 513.0 s and 522.4 s back-to-back under load** (amendment
+  84, measured, and quoted rather than re-run here because a build arm cannot be scheduled at all). So
+  from the moment v81 admitted that proof, every full sweep carried a row that **cannot be answered**: the
+  runner stopped asking before the proof's first assertion ran, and the red it wrote was a fact about a
+  number in `sweep.mjs`. v83 and v84 each pinned the rule "a witness must FIT a row"
+  (`totalMs < DEFAULT_PROOF_TIMEOUT_MS`); nobody had asked whether the row fits the witness.
+- **The rule (`rowBudget(text, fallback)`).** A proof speaks its need from its own source, in column 1:
+  `// sweep-budget-ms: 900000`. It is read from the **ref's bytes**, like every other fact this runner
+  takes from the population it grades. What it does NOT recognise is **refused out loud** and falls back
+  to the default, with the reason in the record: zero or negative (no duration is being asked for),
+  fractional, non-numeric, two declarations (a contradiction, not a `max()` for the runner to guess at),
+  or above `MAX_ROW_BUDGET_MS = 3_600_000` — past an hour a human has to raise `--timeout` for the whole
+  sweep deliberately. An INDENTED marker is not a declaration either, and not a refusal: it may be a code
+  sample inside prose, and treating it as a request would let a doc comment buy time for a row.
+- **Honouring is bidirectional, so a declaration is neither a floor nor a courtesy.** §3's fixture proves
+  both directions in ONE `runSweep`: a row that named `60000` did **8 773 ms** of work and survived a
+  run whose default was `30000`, while a row that named `300` was ended by its own number **during**
+  1 500 ms of work. The first is the increment's point; the second is the guard against reading the point
+  as "asking buys extra time".
+- **The finding moves from the sentence into the record.** `runProof` returns `verdict:
+  'passed' | 'failed' | 'killed'` beside `budgetMs` and `budgetSource: 'default' | 'declared' | 'refused'`
+  (`+ budgetNote`). `ok` and the sweep's `failed` list keep their old meaning on purpose — a killed row
+  did NOT pass, and every committed witness that counts reds (`cwd-axis-proof.mjs` §4's
+  `failed.length === 1`) stays correct. What changed is that the runner can now say **whose number ended
+  it**: `KILL isolated-proof.mjs (…) — killed at the 900000ms this row named itself, so the number that
+  ended it is the row's, not the runner's` versus `…killed by the runner's default budget of 240000ms;
+  this row named no budget, so this red belongs to a constant in sweep.mjs and not to anything the proof
+  asserted`. Amendment 73 refused to let a kill borrow a cut's vocabulary from the host's side; this is
+  the same rule turned on the runner's own output, where `FAIL …, TIMEOUT` had been doing exactly that.
+- **The census prints BEFORE any row runs.** `[identity] row budgets: 1 of 66 rows name the milliseconds
+  they need (isolated-proof.mjs 900000ms); 0 of those exceed this run's default of 240000ms…` —
+  whether a sweep was schedulable at all is a fact a reader should get from the identity block, not from a
+  red at the end of ten minutes. Refusals print in the same line, named, with their reasons.
+- **`timeout-axis-proof.mjs` — the 67th tracked proof** (69th script in `docs/evidence/agents`). §1 ten
+  texts through the rule: 2 recognised, 6 refused each with a stated reason, 2 silent. §2 the census on
+  the bytes about to be committed, cross-checked against HEAD, because the two can differ at this moment:
+  **1 of 66** proofs declares, and HEAD has none yet. §3 the two directions above with one real
+  `runSweep`. §4 the printed lines themselves — one `KILL` per killed row, a red that must NOT contain the
+  string `kill`, a surviving row that prints what it asked for, and a `[summary]` that still begins the way
+  four committed witnesses read it while adding `killed 2 (1 at the runner's default, 1 at a budget the row
+  named)`. §5 the witness's own schedule: **64 034 ms of the 240 000 ms** a row gets, declaring nothing.
+- **Its own fixture reddened twice, and both were the gate's doing.** §3's run default started at 2 000 ms
+  and the row meant to FAIL fast was instead KILLED — node had not finished starting, which is the exact
+  mis-attribution this increment exists to remove. At 10 000 ms the anti-flake assertion
+  (`d.ms < RUN_DEFAULT_MS / 2`) caught a fast red taking **5 879 ms** while this box ran two sweeps and a
+  build at once, and said so: "the fixture has no margin left and any verdict it reports is the box's, not
+  the runner's". The default became 30 000 ms and the fast red used 1 468 ms of it. **The assertion never
+  moved; the fixture got room.** That ordering is the whole point of writing the margin as a measurement.
+- **Damage this window found in its own tree, stated because it was not visible.** A lane wrote
+  `docs/AGENTS.md`, `docs/ROADMAP.md`, `docs/evidence/agents/README.md` and this file from a held snapshot
+  of the **v76-era** record, so the worktree's copy of the ADR had lost amendments 78–84 (594 lines) and
+  the evidence README its v78–v84 sections (213 lines), and amendment 76's sentence about the corrected
+  sweep count had reverted to the pre-78 wording. Nothing committed was damaged, and nothing in the stack
+  could have seen it: the sweep grades the **ref's** bytes, no proof reads this file, so a worktree that
+  contradicts the record is invisible to every green in `docs/evidence/agents/`. The four docs were
+  restored to HEAD's bytes with that lane's own text preserved out-of-band and untracked (its
+  `policyAudit.ts` work stays uncommitted and un-landed — amendment 58 is not taken by this window). The
+  guard that would have caught this — a heading-set comparison between the ref's shared docs and the
+  worktree's, printable in the identity block and reddening on an erasure — is **queued as the next
+  increment**, not claimed here.
+- **And the same family, one hour later, from my own hand.** While roughly 1 MB of doc dumps sat in
+  `.scratch/`, `code-index-proof.mjs` went RED: not a build, not a byte of source, but a proof that walks
+  `.` and asserts that `apps/studio/src/lib/persist.ts` ranks in a query's **top 5** — three untracked
+  copies of a README outranked it. Measured (`got .scratch/v86/readme-head.md, docs/evidence/agents/README.md,
+  .scratch/README-damaged.md, …`), moved out of the graded tree, green again (`ALL ASSERTIONS PASSED`, 231
+  files / 1 931 chunks). Amendment 80 counted the untracked population of the tree a sweep digests; this is
+  what that population COSTS a ranking assertion, and it is the second reason the identity block should say
+  how much of what a proof walked is in no commit.
+- **What did NOT move.** Two files in `docs/evidence/agents/` changed — `sweep.mjs` (`rowBudget`,
+  `MAX_ROW_BUDGET_MS`, the verdict/budget fields, the row and summary sentences, the identity census) and
+  `isolated-proof.mjs` (its `sweep-budget-ms: 900000` header, plus the comment naming where the number
+  came from) — and one script was added. No `packages/*`, no `agents/*` source, no argv shape, policy,
+  permission, §28 gate, budget default or parser moved; `DEFAULT_PROOF_TIMEOUT_MS` is still 240 000. No
+  TypeScript at all, so this increment quotes no root-gate numbers it did not measure.
+- **Bounds, stated rather than fixed.** (1) The 900 000 ms declaration is sized from v84's arms for a BUSY
+  box and is not re-measured here; a build arm's duration is load-dependent, so it is a schedule, not a
+  measurement. (2) One hour is a ceiling, not a cure: a row that names 3 600 000 ms may still sit for an
+  hour, which is why the ceiling is refused rather than clamped. (3) The census counts declarations in the
+  bytes a run grades, so a declaration that exists only in a worktree is invisible to a sweep of a ref —
+  §2 prints ref and worktree separately for exactly that reason. (4) This witness proves the plumbing on
+  synthetic rows and the census on git's bytes; the **67-row sweep's schedule** is a different claim, and
+  the sweep against this commit's own tree is owed to the next one. (5) `verdict` is derived from the
+  exit code and the runner's own kill flag, so a process that exits nonzero at the instant it is killed
+  still reads `killed` — the runner's action wins, which is the attribution amendment 74 already chose.

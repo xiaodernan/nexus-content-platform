@@ -1,5 +1,12 @@
 // NEXUS M2 v81 (docs/evidence) — 64th tracked script: the isolated clean checkout, and what it proves.
+// sweep-budget-ms: 900000
 // Run after `npm run build`:  node docs/evidence/agents/isolated-proof.mjs
+//
+// The budget above is v85's, and it is a measured number rather than a comfortable one: this script asks
+// `isolatedCheckout` for a clean-room BUILD, and the same arm on the same ref was measured at 338.5s on a
+// quiet box and at 513.0s / 522.4s back-to-back under load (`isolated-arms.mjs`, `docs/evidence/agents/
+// README.md`). A sweep row is given 240 000 ms, so until a row could name its own need this proof was RED
+// for being long — the runner stopped asking before anything the proof asserts had happened.
 //
 // v80 named the sweep's third axis — the TREE a tree-walking proof reads — and measured that 27 of the 220
 // files this box's proofs indexed belong to no commit. Its own bound said naming is not isolating, and

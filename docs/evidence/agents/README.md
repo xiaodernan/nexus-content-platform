@@ -2214,3 +2214,55 @@ SyntaxError among them, and the harness throws rather than reporting a green for
 already right and §1 says which case it is; a same-drive tree buys a compiling checkout, not a green
 isolated SWEEP — an archived tree still has no `dist`, which is v83's §3 and stands; and the POSIX clause
 is graded here only by absence.
+
+## Row budgets (`timeout-axis-proof.mjs`, M2 v85 — a KILL is not a FAILURE, and the number that ends a row is not always the runner's)
+
+67th tracked proof (69th script in `docs/evidence/agents`). `runSweep` had been giving every row the same
+`DEFAULT_PROOF_TIMEOUT_MS = 240_000` and printing a kill as `FAIL …, TIMEOUT`. One row in the population is
+`isolated-proof.mjs`, whose clean-room BUILD this directory measured at **338.5 s quiet and 513.0 s /
+522.4 s under load** (v84). From the day v81 admitted it, the sweep therefore carried a row that could not
+be answered: the runner stopped asking before the proof's first assertion ran, and the red it wrote was a
+fact about a constant in `sweep.mjs`. v83 and v84 both pinned "a witness must fit a row"; nobody had asked
+whether the row fits the witness.
+
+A proof now names its own need, in column 1 of its own source, read from the ref's bytes:
+`// sweep-budget-ms: 900000`. `rowBudget` recognises that form and refuses every other out loud, with the
+reason in the record — zero/negative/fractional/non-numeric ("no duration is being asked for"), two
+declarations ("a contradiction, not a `max()` for the runner to guess at"), above the 3 600 000 ms ceiling
+("raise `--timeout` for the whole sweep instead"), and an indented marker is neither a declaration nor a
+refusal, because it may be a code sample inside prose. The declaration is honoured **upward and downward**:
+§3's one real `runSweep` kept 8 773 ms of work alive on a row that asked for 60 000 while the run's default
+was 30 000, and ended 1 500 ms of work at the 300 ms that row itself chose. Asking is not a floor and not a
+courtesy.
+
+The attribution moved from the sentence into the record, which is the half v73 already demanded of the host:
+`runProof` returns `verdict: 'passed'|'failed'|'killed'` beside `budgetMs`/`budgetSource`, `ok` and
+`s.failed` keep their old meaning (a killed row did not pass, so `cwd-axis-proof.mjs` §4's
+`failed.length === 1` stays true), and a killed row's line says WHOSE number ended it —
+`killed at the 900000ms this row named itself, so the number that ended it is the row's, not the runner's`
+against `killed by the runner's default budget of 240000ms; this row named no budget, so this red belongs to
+a constant in sweep.mjs`. A nonzero exit never gets a kill's words, and a kill never gets a red's. The
+`[identity]` block prints the census of declarations BEFORE any row runs (whether a sweep is schedulable is
+not a fact to reserve for a red at the end), and the `[summary]` line — still readable by prefix by the four
+witnesses that grep it — gained `killed 2 (1 at the runner's default, 1 at a budget the row named)`.
+
+The fixture is part of the finding, because it reddened twice on its own gate. §3's run default was 2 000 ms
+first and the row meant to FAIL fast was KILLED (node had not finished starting) — the exact mis-attribution
+v85 removes. At 10 000 ms the anti-flake assertion caught a "fast" red taking **5 879 ms** on a box running
+two sweeps and a build at once, and printed "the fixture has no margin left and any verdict it reports is
+the box's, not the runner's". The default moved to 30 000 ms; the assertion did not. §2 is the census on
+bytes not yet committed (1 of 66 proofs declares, HEAD has none) with HEAD read alongside, and §5 schedules
+the witness itself at 64 034 ms of the 240 000 ms a row gets — declaring nothing, because nothing measured
+here needs more.
+
+Two hazards this window hit while landing it, both recorded because the stack could not see them. A lane
+rewrote the four shared docs from a held snapshot of the v76-era record, so the worktree's copy of ADR 0016
+had lost amendments 78–84 and this README its v78–v84 sections — uncommitted, invisible to every green here,
+because a sweep grades the REF's bytes and no proof reads the ADR; the docs were restored from HEAD with that
+lane's text preserved out-of-band, and the guard (ref-vs-worktree heading sets, printed in the identity
+block) is the queued next increment. And while ~1 MB of that restore's scratch dumps sat in `.scratch/`,
+`code-index-proof.mjs` went RED for having its top-5 ranking beaten by three untracked copies of a README —
+v80's untracked population, priced as a witness's assertion. Bounds: the 900 000 ms number is a schedule
+sized from v84's load-dependent arms, not a re-measurement; an hour-long row may still sit for an hour
+(refused above the ceiling, never clamped); a declaration that exists only in a worktree cannot be seen by a
+sweep of a ref; and the 67-row sweep against this commit's own tree is owed to the next bookkeeping commit.
