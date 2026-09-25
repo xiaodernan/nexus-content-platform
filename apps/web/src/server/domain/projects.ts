@@ -1,4 +1,4 @@
-import { and, asc, eq, inArray, isNull } from 'drizzle-orm';
+import { and, asc, desc, eq, inArray, isNotNull, isNull } from 'drizzle-orm';
 import {
   clone,
   createDocument,
@@ -11,6 +11,7 @@ import {
   type ProjectType,
   type Token,
 } from '@nexus/design-model';
+import { recordAudit } from './audit';
 import { getDb } from '../db/client';
 import { assets, branches, components, designNodes, designTokens, pages, projects, snapshots } from '../db/schema';
 
@@ -383,4 +384,99 @@ export async function updateProjectDescription(
     });
   if (!row) return null;
   return { ...row, visibility: row.visibility as string, updatedAt: row.updatedAt.toISOString() };
+}
+
+/**
+ * §74 把"删除项目"列为必须人工审批的动作，而 `projects.deletedAt` 从建库起就被近二十处读取
+ * 谓词挡着（列表 / 搜索 / 发现 / 公开页 / 创作数据 / 收件箱里那条链接），却**全库没有一个写入方**——
+ * 那些防御性判断今天全是死代码。这里补上第一个写入方。
+ *
+ * 审批做在服务端：确认词必须逐字等于项目名，不匹配就一条都不写。
+ * 只在 UI 里放一个 `confirm()` 弹窗等于没有审批——绕过 UI 直接打接口的人不受它约束，
+ * 而"删掉别人的项目"正是那种不能靠调用方自觉的动作。
+ *
+ * 软删而不是删行：§108 说用户的项目历史归 Snapshot 管，§164 刚把 `publication_id` 选成
+ * `SET NULL` 而不是 CASCADE——同一个理由，历史记录不该跟着一次撤销一起消失。
+ * 公开页从这一刻起 404（`resolvePublishedPath` 早就在挡 `deletedAt`，只是从来没人触发过它），
+ * 但发布行、快照、评论都还在，恢复后原样回来。
+ */
+export type DeleteOutcome =
+  | { ok: true; name: string }
+  | { ok: false; code: 'not_found' }
+  | { ok: false; code: 'approval_required' };
+
+export async function softDeleteProject(actorId: string, projectId: string, confirmName: string): Promise<DeleteOutcome> {
+  const db = getDb();
+  const [row] = await db
+    .select({ name: projects.name })
+    .from(projects)
+    .where(and(eq(projects.id, projectId), eq(projects.ownerId, actorId), isNull(projects.deletedAt)))
+    .limit(1);
+  // 别人的项目与不存在的项目在这里是同一个答案，不给"存在但看不到"留出侧信道
+  if (!row) return { ok: false, code: 'not_found' };
+  if (row.name !== confirmName.trim()) {
+    await recordAudit({
+      actorId,
+      action: 'project.delete',
+      targetType: 'project',
+      targetId: projectId,
+      allowed: false,
+      detail: { reason: 'confirm_mismatch' },
+    });
+    return { ok: false, code: 'approval_required' };
+  }
+  // 写一次带同一谓词的 UPDATE 而不是按上面那次读的结果删：读到与写之间项目可能已经被删过，
+  // 那时这里返回 0 行，调用方拿到 not_found 而不是"成功删除了一个已经删掉的东西"
+  const updated = await db
+    .update(projects)
+    .set({ deletedAt: new Date() })
+    .where(and(eq(projects.id, projectId), eq(projects.ownerId, actorId), isNull(projects.deletedAt)))
+    .returning({ id: projects.id });
+  if (!updated.length) return { ok: false, code: 'not_found' };
+  await recordAudit({
+    actorId,
+    action: 'project.delete',
+    targetType: 'project',
+    targetId: projectId,
+    allowed: true,
+    detail: { name: row.name },
+  });
+  return { ok: true, name: row.name };
+}
+
+/** 恢复：只动"确实被软删过"的行，所以一个没删过的项目在这里返回 null 而不是"恢复成功" */
+export async function restoreProject(actorId: string, projectId: string): Promise<{ name: string } | null> {
+  const db = getDb();
+  const [row] = await db
+    .update(projects)
+    .set({ deletedAt: null })
+    .where(and(eq(projects.id, projectId), eq(projects.ownerId, actorId), isNotNull(projects.deletedAt)))
+    .returning({ name: projects.name });
+  if (!row) return null;
+  await recordAudit({
+    actorId,
+    action: 'project.restore',
+    targetType: 'project',
+    targetId: projectId,
+    allowed: true,
+    detail: { name: row.name },
+  });
+  return { name: row.name };
+}
+
+export interface DeletedProject {
+  id: string;
+  name: string;
+  kind: string;
+  deletedAt: string;
+}
+
+/** 回收站：按删除时间倒序，最新删掉的最好找 */
+export async function listDeletedProjects(ownerId: string): Promise<DeletedProject[]> {
+  const rows = await getDb()
+    .select({ id: projects.id, name: projects.name, kind: projects.kind, deletedAt: projects.deletedAt })
+    .from(projects)
+    .where(and(eq(projects.ownerId, ownerId), isNotNull(projects.deletedAt)))
+    .orderBy(desc(projects.deletedAt));
+  return rows.map((r) => ({ ...r, deletedAt: (r.deletedAt ?? new Date()).toISOString() }));
 }

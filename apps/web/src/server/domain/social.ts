@@ -44,7 +44,12 @@ export interface PublicationRef {
   projectName: string;
 }
 
-/** 公开可见的那一版：private 与被人工拒绝的都不算存在（和 resolvePublishedPath 同一口径） */
+/**
+ * 公开可见的那一版：private、被人工拒绝的、以及项目已被删掉的都不算存在
+ * （和 `resolvePublishedPath` 同一口径——那条链挡的是 `projects.deletedAt`，
+ * 这里以前只挡了前两个，于是"页面已经 404 但点赞/评论/改编接口还在收"，
+ * §74 让 deletedAt 真的会有值之后这个洞才是能撞上的）。
+ */
 export async function publicRefByPath(path: string): Promise<PublicationRef | null> {
   const [row] = await getDb()
     .select({
@@ -58,7 +63,7 @@ export async function publicRefByPath(path: string): Promise<PublicationRef | nu
     })
     .from(publishedProjects)
     .innerJoin(projects, eq(projects.id, publishedProjects.projectId))
-    .where(eq(publishedProjects.path, path))
+    .where(and(eq(publishedProjects.path, path), isNull(projects.deletedAt)))
     .limit(1);
   if (!row) return null;
   if (row.visibility === 'private' || row.moderation === 'rejected') return null;

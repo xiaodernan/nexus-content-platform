@@ -572,6 +572,22 @@ export const ProjectPatchRequestSchema = z
 export type ProjectPatchRequest = z.infer<typeof ProjectPatchRequestSchema>;
 
 /**
+ * §74 删除项目的审批报文。`confirm` 必须逐字等于项目名，空串不行——
+ * "什么都不填就把一个项目删掉"正是这一条要挡住的一键操作，所以这里不收默认值、
+ * 也不接受 clientId / id 之类"反正能证明是本人"的替身（审批要证明的是*你真的想删这个*，
+ * 不是*你有权限*，后者由 requireUser + owner 谓词管）。
+ *
+ * 上限 2000 比名字的其它上限宽：项目名是从设计文档同步过来的（`projects.name` ← `document.name`），
+ * 文档名这条链上没有 120 的约束，太窄会让一个改了长名字的项目永远删不掉。
+ * 真的超过 2000 时这里给的是"确认词太长"而不是"不匹配"，界面上说得清，
+ * 补救办法也是明摆着的：先把名字改短。
+ */
+export const ProjectDeleteRequestSchema = z.object({
+  confirm: z.string().trim().min(1).max(2000),
+});
+export type ProjectDeleteRequest = z.infer<typeof ProjectDeleteRequestSchema>;
+
+/**
  * §132 block / mute 的报文。只有 handle：id 是内部键，把别人的 uuid 抄进地址栏
  * 就能拉黑一个不认识的人，而 @handle 是界面上本来就显示的东西。
  * kind 必填在 POST（缺省按 block 会替用户做一个更重的决定），DELETE 不需要。

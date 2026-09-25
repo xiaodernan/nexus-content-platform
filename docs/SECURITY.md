@@ -82,6 +82,12 @@ PostMessage 是唯一跨界通道：校验 `origin` + `source`，schema 校验�
   不得作为指令解释；Agent 工具选择只能由开发者定义的指令 + 结构化 schema 驱动
 - 工具按 Agent 授权（§73），越权调用即失败并审计
 - 高危动作强制人工审批（§74/§177）：删除、公开发布、消耗 credits、外发消息、生产部署、支付
+  - **删除项目这一格今天是真的**（2026-09-26）：`DELETE /api/projects/[id]` 的 `confirm` 必须逐字等于项目名，
+    判定在领域层做（`softDeleteProject`），所以它挡的是接口而不是弹窗——界面上那个卡片只是把同一句话问一遍。
+    不匹配 → 一行都不改 + 一行 `allowed:false` 的审计。删除是软的：`deleted_at` 置时间戳，
+    公开页与互动接口（`/api/published/interact` 认的 `publicRefByPath` 也补了同一条谓词）从那一刻一起关门，
+    快照 / 发布行 / 评论留着，回收站可恢复。**没有"永久删除"也没有到期清理**，所以这条链不承诺释放存储。
+    其余几格仍未实现：Agent 侧 `requires_approval` 无人置真，credits / 外发消息 / 部署 / 支付随 M7-M8 落地
 - 每个 Agent 步骤有步数/成本/时间预算上限，超限自动终止
 - 审计：谁（user/agent）在什么 task 上用什么工具改了什么，落 `agent_tool_calls` + 事件
 

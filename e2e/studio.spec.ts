@@ -2383,3 +2383,102 @@ test('@smoke §163 实时通道：别人刚做完的那件事，作者这一端�
 
   await visitorCtx.close();
 });
+
+test('@smoke §74 删除项目：确认词打不动接口，删掉的公开页与互动一起关门', async ({ page }) => {
+  // 这条用例的卖点是"审批真的在服务端"，所以关键一步是绕过界面直接打接口：
+  // 只测界面上的确认卡片，测到的是一个恰好长得像审批门的输入框
+  test.setTimeout(300_000);
+  const projectName = `删除审批${Date.now().toString(36)}`;
+  const projectId = await createProject(page, projectName);
+
+  await page.click('[data-publish-open]');
+  await expect(page.locator('[data-publish-submit]')).toBeVisible();
+  await page.click('[data-publish-choice="public"]');
+  await page.click('[data-publish-submit]');
+  await expect(page.locator('[data-publish-url]')).toBeVisible({ timeout: 60_000 });
+  const publishedHref = (await page.locator('[data-publish-url]').getAttribute('href'))!;
+  // 存进库的 path 里是中文原样，而 URL 的 pathname 会把它百分号编码——
+  // 不 decode 回来，这条请求打到接口上就是"没有这个作品"（界面上的按钮不会犯这个错：
+  // 它发的是服务端给的 state.path，只有测试是自己拼 path）
+  const path = decodeURIComponent(new URL(publishedHref, page.url()).pathname);
+  const apiUrl = new URL(`/api/projects/${projectId}`, page.url()).href;
+
+  // 一个真·路人：陌生 context（新的 guest 身份），公开页此刻对他开着
+  const browser = page.context().browser();
+  if (!browser) throw new Error('这条用例需要一个可派生上下文的浏览器');
+  const visitorCtx = await browser.newContext();
+  const visitor = await visitorCtx.newPage();
+  const openPage = await visitor.goto(publishedHref);
+  expect(openPage?.status()).toBe(200);
+  await visitor.waitForSelector('[data-published-frame] [data-node-id]', { timeout: 30_000 });
+
+  // 路人的点赞：删除之前收（200），删除之后同一个接口必须换答案。
+  // 公开页挡了页面，互动接口是另一条链——§74 之前那条链没挡 deletedAt
+  const csrf = (await visitorCtx.cookies()).find((c) => c.name === 'nexus_csrf')?.value ?? '';
+  const interactUrl = new URL('/api/published/interact', page.url()).href;
+  const likeBefore = await visitorCtx.request.post(interactUrl, {
+    data: { path, action: 'like' },
+    headers: { 'x-csrf-token': csrf },
+  });
+  expect(likeBefore.status()).toBe(200);
+
+  await page.goto('/');
+  await expect(page.locator(`[data-project-row="${projectId}"]`)).toBeVisible({ timeout: 30_000 });
+
+  // ① 绕过界面：没有 CSRF 头的删除先挡掉（这条链和别的写链同一个口径）
+  const noCsrf = await page.request.delete(apiUrl, { data: { confirm: projectName } });
+  expect(noCsrf.status()).toBe(403);
+
+  // ② 绕过界面：带齐 CSRF 与身份，但确认词打错——400，而且库里没动
+  const wrongCsrf = (await page.context().cookies()).find((c) => c.name === 'nexus_csrf')?.value ?? '';
+  const wrongWord = await page.request.delete(apiUrl, {
+    data: { confirm: `${projectName} 的隔壁` },
+    headers: { 'x-csrf-token': wrongCsrf },
+  });
+  expect(wrongWord.status()).toBe(400);
+  expect(((await wrongWord.json()) as { error?: string }).error).toBe('approval_required');
+  await expect(page.locator(`[data-project-row="${projectId}"]`)).toBeVisible();
+
+  // ③ 界面上同样打错一次：拒绝要在卡片里看得见，而不是按钮点不动
+  await page.click(`[data-project-delete="${projectId}"]`);
+  await expect(page.locator(`[data-project-delete-card="${projectId}"]`)).toBeVisible();
+  await expect(page.locator(`[data-project-delete-expected="${projectId}"]`)).toHaveText(projectName);
+  await page.fill(`[data-project-delete-input="${projectId}"]`, '名字好像打错了');
+  await page.click(`[data-project-delete-confirm="${projectId}"]`);
+  await expect(page.locator(`[data-project-delete-notice="${projectId}"]`)).toContainText('不一致', { timeout: 30_000 });
+  await expect(page.locator(`[data-project-row="${projectId}"]`)).toBeVisible();
+  await page.screenshot({ path: 'screenshots/project-delete-refused.png' });
+
+  // ④ 逐字打对：这一行从列表里走，进回收站（列表的变化来自服务端重新读，不是本地藏起来）
+  await page.fill(`[data-project-delete-input="${projectId}"]`, projectName);
+  await page.click(`[data-project-delete-confirm="${projectId}"]`);
+  await expect(page.locator(`[data-project-row="${projectId}"]`)).toHaveCount(0, { timeout: 30_000 });
+  await expect(page.locator(`[data-deleted-row="${projectId}"]`)).toBeVisible({ timeout: 30_000 });
+  await page.screenshot({ path: 'screenshots/project-trash.png' });
+
+  // ⑤ 对路人：公开页 404，Studio 也是 404，点赞接口一起关门
+  const gonePage = await visitor.goto(publishedHref);
+  expect(gonePage?.status()).toBe(404);
+  const likeAfter = await visitorCtx.request.post(interactUrl, {
+    data: { path, action: 'like' },
+    headers: { 'x-csrf-token': csrf },
+  });
+  expect(likeAfter.status()).toBe(404);
+  const studioGone = await page.goto(`/studio/${projectId}`);
+  expect(studioGone?.status()).toBe(404);
+
+  // ⑥ 回收站那一侧：恢复之后同一批答案全部翻回来——
+  // 这一步证明"软"不是注释里的承诺：公开页吃的是删之前钉住的那一版快照
+  await page.goto('/');
+  await expect(page.locator(`[data-restore-project="${projectId}"]`)).toBeVisible({ timeout: 30_000 });
+  await page.click(`[data-restore-project="${projectId}"]`);
+  await expect(page.locator(`[data-deleted-row="${projectId}"]`)).toHaveCount(0, { timeout: 30_000 });
+  await expect(page.locator(`[data-project-row="${projectId}"]`)).toBeVisible({ timeout: 30_000 });
+
+  const backPage = await visitor.goto(publishedHref);
+  expect(backPage?.status()).toBe(200);
+  await visitor.waitForSelector('[data-published-frame] [data-node-id]', { timeout: 30_000 });
+  await page.screenshot({ path: 'screenshots/project-restored.png' });
+
+  await visitorCtx.close();
+});

@@ -1,12 +1,14 @@
 import { getAiCapabilities } from '@/lib/env';
 import { aiServiceUrl, fetchAiServiceHealth } from '@/server/ai/client';
 import { requireUser } from '@/server/domain/session';
-import { listProjects } from '@/server/domain/projects';
+import { listDeletedProjects, listProjects } from '@/server/domain/projects';
 import { NewProjectForm } from '@/components/NewProjectForm';
 import { AccountPanel } from '@/components/AccountPanel';
 import { ProfileEditor } from '@/components/ProfileEditor';
 import { AvatarEditor } from '@/components/AvatarEditor';
 import { ProjectDescriptionEditor } from '@/components/ProjectDescriptionEditor';
+import { ProjectDeleteCard } from '@/components/ProjectDeleteCard';
+import { RestoreProjectButton } from '@/components/RestoreProjectButton';
 import { NotificationBell } from '@/components/NotificationBell';
 import { accountOf, listSaves } from '@/server/domain/profile';
 
@@ -22,7 +24,12 @@ export default async function HomePage() {
   const user = await requireUser();
   const projects = await listProjects(user.id);
   // §60 / §59：主页信息与"我收藏的那些版本"。都是按当前身份读的，不是全局缓存
-  const [account, saved] = await Promise.all([accountOf(user.id), listSaves(user.id, 8)]);
+  // §74：回收站和上面的项目列表是同一张表的两半（deletedAt 空 / 非空），所以也要一起读
+  const [account, saved, deleted] = await Promise.all([
+    accountOf(user.id),
+    listSaves(user.id, 8),
+    listDeletedProjects(user.id),
+  ]);
   const serviceUrl = aiServiceUrl();
   const health = serviceUrl ? await fetchAiServiceHealth() : null;
   const caps = await getAiCapabilities(health);
@@ -86,11 +93,45 @@ export default async function HomePage() {
                 <div className="px-[var(--nexus-space-4)]">
                   <ProjectDescriptionEditor projectId={project.id} initialDescription={project.description} />
                 </div>
+                <div className="px-[var(--nexus-space-4)]">
+                  <ProjectDeleteCard projectId={project.id} projectName={project.name} />
+                </div>
               </li>
             ))}
           </ul>
         ) : (
           <p className="mt-[var(--nexus-space-3)] text-[var(--nexus-font-size-13)] text-fg-3">还没有项目。创建一个即可进入 Studio 画布。</p>
+        )}
+      </section>
+
+      <section className="border-t border-[var(--nexus-color-border-subtle)] pt-[var(--nexus-space-6)]">
+        <h2 className="mb-[var(--nexus-space-2)] text-[var(--nexus-font-size-16)] font-medium">回收站（{deleted.length}）</h2>
+        <p className="mb-[var(--nexus-space-3)] text-[var(--nexus-font-size-13)] text-fg-3">
+          删掉的项目不再出现在项目列表、搜索、发现和创作数据里，公开页与分享链接也从那一刻打不开。
+          快照、发布记录与评论都还留着，恢复后回到上面的列表。
+        </p>
+        {deleted.length ? (
+          <ul className="grid gap-[var(--nexus-space-2)]" data-deleted-list>
+            {deleted.map((item) => (
+              <li
+                key={item.id}
+                className="flex items-center justify-between gap-[var(--nexus-space-3)] rounded-[var(--nexus-radius-sm)] bg-bg-1 px-[var(--nexus-space-4)] py-[var(--nexus-space-3)]"
+                data-deleted-row={item.id}
+              >
+                <span className="text-[var(--nexus-font-size-14)] text-fg-2">
+                  {item.name}
+                  <span className="ml-[var(--nexus-space-2)] font-mono text-[var(--nexus-font-size-12)] text-fg-3">
+                    {item.kind} · 删除于 {new Date(item.deletedAt).toLocaleString('zh-CN', { hour12: false })}
+                  </span>
+                </span>
+                <RestoreProjectButton projectId={item.id} projectName={item.name} />
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <p className="text-[var(--nexus-font-size-13)] text-fg-3" data-deleted-empty>
+            回收站是空的。删除一个项目需要在上面逐字输入它的名字——这一步由服务端判定，不是界面上的弹窗。
+          </p>
         )}
       </section>
 

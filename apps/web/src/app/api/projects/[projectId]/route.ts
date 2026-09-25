@@ -1,9 +1,9 @@
 import { NextResponse } from 'next/server';
 import { requireUser } from '@/server/domain/session';
-import { loadDocument, projectBelongsTo, saveDocument, updateProjectDescription } from '@/server/domain/projects';
+import { loadDocument, projectBelongsTo, saveDocument, softDeleteProject, updateProjectDescription } from '@/server/domain/projects';
 import { scanTextForRedlines } from '@/server/domain/moderation';
 import { parseDocument } from '@/server/validation';
-import { ProjectPatchRequestSchema } from '@nexus/schemas';
+import { ProjectDeleteRequestSchema, ProjectPatchRequestSchema } from '@nexus/schemas';
 import { csrfOk } from '@/server/security/csrf';
 import { clientIp, getRateLimiter, rateKey } from '@/server/security/rateLimit';
 import { badRequest, failure, jsonError, notFound, readJson } from '@/server/http';
@@ -78,5 +78,43 @@ export async function PATCH(req: Request, ctx: RouteContext): Promise<NextRespon
     return NextResponse.json({ ok: true, project: updated });
   } catch (error) {
     return failure(error, `PATCH /api/projects/${projectId}`);
+  }
+}
+
+/**
+ * §74 删除项目。这一条是"必须人工审批"清单上的动作，所以审批做在服务端：
+ * `confirm` 必须逐字等于项目名，不匹配就一条都不写，只留下一行 `allowed:false` 的审计。
+ * 只在界面上放个 `window.confirm` 等于没有审批——直接打接口的人不受它约束，
+ * 而"删掉一个项目"恰恰是不能靠调用方自觉的那种动作。
+ *
+ * 删除是软的（`deletedAt` 有时间戳、行还在）：§108 把用户的项目历史归给 Snapshot，
+ * 一次撤销不该把发布记录、快照、评论一起带走。界面上"永久删除"这种字样在这里不支持，
+ * 真要做到那一步需要一个单独的、更重的动作，而不是把这条改硬。
+ */
+export async function DELETE(req: Request, ctx: RouteContext): Promise<NextResponse> {
+  if (!(await csrfOk(req))) return jsonError(403, 'csrf_failed', { message: 'CSRF 校验未通过' });
+  const { projectId } = await ctx.params;
+  const body = await readJson(req);
+  if (!body) return badRequest(['请求体必须是 JSON']);
+  const parsed = ProjectDeleteRequestSchema.safeParse(body);
+  if (!parsed.success) {
+    return badRequest(parsed.error.issues.map((i) => `${i.path.join('.') || 'body'}: ${i.message}`));
+  }
+  try {
+    const user = await requireUser();
+    const rl = getRateLimiter().hit(rateKey('projects/delete', clientIp(req), user.id), 20, 10 * 60_000);
+    if (!rl.allowed) {
+      return jsonError(429, 'rate_limited', { message: '删除操作太频繁了，稍后再试', retryAfterMs: rl.retryAfterMs });
+    }
+    const result = await softDeleteProject(user.id, projectId, parsed.data.confirm);
+    if (!result.ok) {
+      if (result.code === 'approval_required') {
+        return jsonError(400, 'approval_required', { message: '确认词与项目名不一致，没有删除这个项目' });
+      }
+      return notFound();
+    }
+    return NextResponse.json({ ok: true, projectId, name: result.name, deleted: true });
+  } catch (error) {
+    return failure(error, `DELETE /api/projects/${projectId}`);
   }
 }

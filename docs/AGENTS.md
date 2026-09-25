@@ -66,6 +66,13 @@ Publishing Agent → publish。越权调用直接失败并记录审计事件，�
 用户可配置审批策略（"Ask before: production deploy / public publish / spend credits / delete / payment"）。
 未获批准时 Agent 停在 checkpoint 并保持可恢复，而不是绕过。
 
+**今天哪一格是真的**：`删除项目` 已在人的路径上落地（2026-09-26）——
+`DELETE /api/projects/[id]` 要求 `confirm` 逐字等于项目名，判定在 `softDeleteProject` 里做，
+不匹配就一条都不写并落一行 `allowed:false` 的审计；删除是软的（`deleted_at` 置时间戳，快照与发布行留着，
+回收站可恢复）。**这条门不依赖界面上的弹窗**：绕开 UI 直接打接口同样挡得住，e2e 里就是这么测的。
+其余几格（公开发布走的是 §131 门禁而不是审批卡、credits / 外发消息 / 部署 / 支付随 M7-M8 落地）
+以及 Agent 侧的 `agent_tasks.requires_approval`（全库无人置真）、可配置审批策略，都还没有实现。
+
 ## Design ↔ Coding 协作（§22 / §112-114）
 
 ```
