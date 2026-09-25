@@ -459,6 +459,12 @@ export const publishedProjects = pgTable(
       .notNull()
       .references(() => projects.id, { onDelete: 'cascade' }),
     snapshotId: uuid('snapshot_id').references(() => snapshots.id, { onDelete: 'set null' }),
+    /**
+     * §50 / ADR-0009：发布那一刻从 `games.document` 原样钉下来的游戏设计。
+     * 公开可玩只读这一列，不读工作稿——否则昨天分享的链接今天会变玩法。
+     * NULL 有两种来源（这一版没有游戏设计 / 这行早于迁移 0012），都不回填。
+     */
+    gameDocument: jsonb('game_document'),
     /** /n/<handle>/<slug>（§56） */
     path: text('path').notNull(),
     visibility: Visibility('visibility').notNull().default('public'),

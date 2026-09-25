@@ -129,17 +129,28 @@ describe('Trending 排的是最近，不是累计', () => {
     await clearBlock(viewerId, authorId);
   });
 
-  it('两次刷新给出同一个榜；同分的卡片按发布时间倒序', async () => {
+  it('同分卡片的顺序是确定的：两次刷新、同一批零分卡片，顺序一模一样', async () => {
     const first = await discover({ sort: 'trending', limit: 60 });
     const second = await discover({ sort: 'trending', limit: 60 });
-    expect(second.cards.map((card) => card.path)).toEqual(first.cards.map((card) => card.path));
     const scores = first.cards.map((card) => card.score ?? 0);
     expect([...scores].sort((a, b) => b - a)).toEqual(scores);
-    // 确实存在大量同分（0 分）的卡片，它们的相对顺序必须是发布时间倒序，
-    // 否则"两次刷新顺序不一样"会被读成热度在动
-    const zero = first.cards.filter((card) => (card.score ?? 0) === 0);
-    expect(zero.length).toBeGreaterThan(1);
-    const dates = zero.map((card) => card.publishedAt);
-    expect([...dates].sort().reverse()).toEqual(dates);
+
+    // 只比"两次都是零分"的那一批。整张列表逐位相等是测不了的：
+    // 并行的用例正在发布与清理作品，被点过赞的卡片分数会在两次调用之间变——
+    // 那正是"分数由真互动算出来"的证据，不是排序不稳定
+    const zero = (result: Awaited<ReturnType<typeof discover>>) =>
+      result.cards.filter((card) => (card.score ?? 0) === 0).map((card) => card.path);
+    const firstZero = zero(first);
+    const secondZero = new Set(zero(second));
+    const stable = firstZero.filter((path) => secondZero.has(path));
+    expect(stable.length).toBeGreaterThan(1);
+    expect(stable).toEqual(zero(second).filter((path) => firstZero.includes(path)));
+    // 零分这一堆里的相对顺序必须是发布时间倒序；同秒的再按路径倒序（路径唯一，所以是全序）
+    const cards = new Map(first.cards.map((card) => [card.path, card]));
+    for (let i = 1; i < stable.length; i += 1) {
+      const a = cards.get(stable[i - 1]!)!;
+      const b = cards.get(stable[i]!)!;
+      expect(a.publishedAt.localeCompare(b.publishedAt) || a.path.localeCompare(b.path)).toBeGreaterThanOrEqual(0);
+    }
   });
 });

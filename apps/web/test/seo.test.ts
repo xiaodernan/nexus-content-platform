@@ -68,6 +68,7 @@ function fixture(over: Options = {}): PublishedPage {
       version: 3,
       moderation: 'pending',
       snapshotId: 'snp_1',
+      hasGame: false,
       views: 12,
       publishedAt: '2026-09-20T02:03:04.000Z',
     },
@@ -76,6 +77,7 @@ function fixture(over: Options = {}): PublishedPage {
     ownerHandle: over.ownerHandle === undefined ? 'handle1' : over.ownerHandle,
     projectName: over.projectName ?? '深夜便利店',
     description: over.description === undefined ? '一间便利店的视觉散文' : over.description,
+    gameDocument: null,
   };
 }
 

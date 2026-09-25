@@ -2,7 +2,7 @@ import { cache } from 'react';
 import { and, desc, eq, isNotNull, isNull, ne, sql as rawSql } from 'drizzle-orm';
 import { analyzeHealth, type DesignDocument, type HealthReport } from '@nexus/design-model';
 import { getDb } from '../db/client';
-import { assets, projects, publishedProjects, users } from '../db/schema';
+import { assets, games, projects, publishedProjects, users } from '../db/schema';
 import { recordScan, scanPublication, type AssetProvenance, type ModerationScan } from './moderation';
 import { loadDocument } from './projects';
 import { currentBranchId } from './branches';
@@ -39,6 +39,8 @@ export interface Publication {
   version: number;
   moderation: string;
   snapshotId: string | null;
+  /** §50 / ADR-0009：这一版有没有钉住游戏设计——决定公开页要不要出现「可玩」入口 */
+  hasGame: boolean;
   views: number;
   publishedAt: string;
 }
@@ -57,6 +59,7 @@ function toPublication(row: typeof publishedProjects.$inferSelect): Publication 
     version: row.version,
     moderation: row.moderation,
     snapshotId: row.snapshotId,
+    hasGame: row.gameDocument !== null && row.gameDocument !== undefined,
     views: row.views,
     publishedAt: row.publishedAt.toISOString(),
   };
@@ -153,6 +156,13 @@ export async function publishProject(
     branchId: await currentBranchId(projectId),
     createdById: input.createdById,
   });
+  // §50 / ADR-0009：游戏设计一起钉进这一版。原样存，不在这里做"能解析才存"的筛选——
+  // 解析失败要在公开页上明说，而不是悄悄变成"这个游戏没有内容"
+  const [gameRow] = await db
+    .select({ document: games.document })
+    .from(games)
+    .where(eq(games.projectId, projectId))
+    .limit(1);
 
   let row: typeof publishedProjects.$inferSelect | undefined;
   if (existing) {
@@ -161,6 +171,7 @@ export async function publishProject(
       .update(publishedProjects)
       .set({
         snapshotId: snapshot.id,
+        gameDocument: gameRow?.document ?? null,
         visibility: input.visibility,
         version,
         publishedById: input.createdById,
@@ -174,6 +185,7 @@ export async function publishProject(
       .values({
         projectId,
         snapshotId: snapshot.id,
+        gameDocument: gameRow?.document ?? null,
         path,
         visibility: input.visibility,
         version: 1,
@@ -238,6 +250,8 @@ export interface PublishedPage {
   ownerHandle: string | null;
   projectName: string;
   description: string | null;
+  /** 发布时钉住的那份 §54 游戏文档（原样 jsonb，可能解析不了）；没有就是 null */
+  gameDocument: unknown;
 }
 
 /**
@@ -268,6 +282,7 @@ export async function resolvePublishedPath(path: string): Promise<PublishedPage 
     ownerHandle: row.owner.handle,
     projectName: row.project.name,
     description: row.project.description,
+    gameDocument: row.pub.gameDocument ?? null,
   };
 }
 

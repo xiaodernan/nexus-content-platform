@@ -465,8 +465,14 @@ export async function discover(input: { sort: DiscoverSort; viewerId?: string | 
   if (input.sort === 'trending') {
     const scores = await trendScores(rows.map((r) => ({ publicationId: r.publicationId, projectId: r.projectId })));
     for (const card of cards) card.score = scores.get(card.publicationId) ?? 0;
-    // 同分按发布时间倒序：否则顺序取决于数据库返回行的顺序，两次刷新会看到两种"热度榜"
-    cards.sort((a, b) => (b.score ?? 0) - (a.score ?? 0) || b.publishedAt.localeCompare(a.publishedAt));
+    // 同分按发布时间倒序，再同则按路径：只到"发布时间"这一级时，同一毫秒发布的两份
+    // 会跟着数据库返回行的顺序漂，两次刷新看到的榜就不一样了
+    cards.sort(
+      (a, b) =>
+        (b.score ?? 0) - (a.score ?? 0) ||
+        b.publishedAt.localeCompare(a.publishedAt) ||
+        b.path.localeCompare(a.path),
+    );
     cards.splice(limit);
     method = trendingMethod();
   }

@@ -2189,3 +2189,97 @@ test('@smoke §50 试玩：§54 那份设计文档真的跑成一关，能走动
 
   await game.close();
 });
+
+test('@smoke §50 公开可玩：分享出去的链接玩的是发布那一刻钉住的那一版', async ({ page }) => {
+  // ADR-0009 的浏览器版：作者改工作稿不重新发布，公开那一份必须一动不动。
+  // 这条只在"发布之后又改了"这个时刻才分得清对错，所以整条按那个顺序走
+  test.setTimeout(420_000);
+  const stamp = Date.now().toString(36);
+  const projectId = await createProject(page, `公开关卡 ${stamp}`);
+
+  await page.click('[data-panel-tab="game"]');
+  await expect(page.locator('[data-game-empty]')).toBeVisible({ timeout: 40_000 });
+  await page.click('[data-game-create]');
+  await expect(page.locator('[data-game-entity]')).toHaveCount(11);
+  const entityId = (group: string) =>
+    page.locator(`[data-game-group="${group}"] [data-game-entity]`).first().getAttribute('data-game-entity');
+  const playerId = (await entityId('player'))!;
+  const enemyId = (await entityId('enemy'))!;
+  const addStat = async (id: string, key: string, value: string): Promise<void> => {
+    await page.fill(`[data-game-stat-key="${id}"]`, key);
+    await page.fill(`[data-game-stat-value="${id}"]`, value);
+    await page.click(`[data-game-stat-add="${id}"]`);
+    await expect(page.locator(`[data-game-stat="${id}:${key}"]`)).toHaveValue(value);
+  };
+  await addStat(playerId, 'attackPower', '10');
+  await addStat(playerId, 'health', '30');
+  await addStat(enemyId, 'health', '10');
+  await addStat(enemyId, 'damage', '0');
+  // 敌人会走过来：公开页这一条要的是"能打死"，把位置交给追击而不是靠按键卡在接触的那两帧上
+  await addStat(enemyId, 'speed', '60');
+  await addStat(enemyId, 'detectionRange', '900');
+  await expect(page.locator('[data-game-state]')).toHaveText('已保存', { timeout: 20_000 });
+
+  await page.click('[data-publish-open]');
+  await page.click('[data-publish-choice="public"]');
+  await page.click('[data-publish-submit]');
+  await expect(page.locator('[data-publish-url]')).toBeVisible({ timeout: 60_000 });
+  const publishedHref = new URL((await page.locator('[data-publish-url]').getAttribute('href'))!, page.url()).href;
+
+  // 作品页上有入口，且说清玩的是钉住的那一版
+  await page.goto(publishedHref);
+  await expect(page.locator('[data-published-frame]')).toBeVisible({ timeout: 30_000 });
+  const playLink = page.locator('[data-published-play] a');
+  await expect(playLink).toHaveAttribute('href', new RegExp(`/play$`));
+  await page.screenshot({ path: 'screenshots/published-play-entry.png' });
+
+  // 一个没登录过的访客真的能玩通
+  const browser = page.context().browser();
+  if (!browser) throw new Error('这条用例需要一个可派生上下文的浏览器');
+  const visitorCtx = await browser.newContext();
+  const visitor = await visitorCtx.newPage();
+  await visitor.goto(`${publishedHref}/play`);
+  await expect(visitor.locator('[data-play="live"]')).toBeVisible({ timeout: 60_000 });
+  await expect(visitor.locator('[data-play-pinned]')).toContainText('第 1 版');
+  for (let i = 0; i < 10; i += 1) {
+    await visitor.keyboard.press(' ', { delay: 250 });
+    await visitor.waitForTimeout(250);
+  }
+  await expect(visitor.locator('[data-game-enemies]')).toHaveAttribute('data-game-enemies', '0', { timeout: 20_000 });
+  await expect(visitor.locator('[data-game-event]').first()).toContainText('打倒');
+  await visitor.screenshot({ path: 'screenshots/public-play-won.png' });
+
+  // 作者把敌人调到 999，但**不重新发布**：访客刷新后玩的还是第 1 版，照样能打通
+  await page.goto(`/studio/${projectId}`);
+  await expect(page.locator('[data-canvas-frame]')).toBeVisible({ timeout: 30_000 });
+  await page.click('[data-panel-tab="game"]');
+  await expect(page.locator(`[data-game-stat="${enemyId}:health"]`)).toHaveValue('10');
+  await addStat(enemyId, 'health', '999');
+  await expect(page.locator('[data-game-state]')).toHaveText('已保存', { timeout: 20_000 });
+  await visitor.goto(`${publishedHref}/play`);
+  await expect(visitor.locator('[data-play-pinned]')).toContainText('第 1 版');
+  for (let i = 0; i < 12; i += 1) {
+    await visitor.keyboard.press(' ', { delay: 250 });
+    await visitor.waitForTimeout(250);
+  }
+  await expect(visitor.locator('[data-game-enemies]')).toHaveAttribute('data-game-enemies', '0', { timeout: 20_000 });
+
+  // 重新发布才换：同一套按键打不动 999 血的敌人了（作者此刻已经在 Studio 里）
+  await page.click('[data-publish-open]');
+  await page.click('[data-publish-choice="public"]');
+  await page.click('[data-publish-submit]');
+  // 发布是异步的：等顶栏那枚徽章真的变成 v2 再去刷新访客那一页。
+  // 早一步 goto 拿到的是 v1，而 DOM 轮询等不来一次没有重新加载的页面——这条我自己踩过
+  await expect(page.getByText('已发布 v2')).toBeVisible({ timeout: 120_000 });
+  await visitor.goto(`${publishedHref}/play`);
+  await expect(visitor.locator('[data-play-pinned]')).toContainText('第 2 版', { timeout: 30_000 });
+  for (let i = 0; i < 12; i += 1) {
+    await visitor.keyboard.press(' ', { delay: 250 });
+    await visitor.waitForTimeout(250);
+  }
+  await visitor.waitForTimeout(1_500);
+  await expect(visitor.locator('[data-game-enemies]')).toHaveAttribute('data-game-enemies', '1');
+  await expect(visitor.locator('[data-game-status]')).not.toHaveText('通关');
+
+  await visitorCtx.close();
+});

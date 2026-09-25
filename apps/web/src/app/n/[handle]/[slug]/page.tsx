@@ -116,6 +116,19 @@ export default async function PublishedPage({ params, searchParams }: Props) {
           })}
         </div>
       </div>
+      {/* §50：这一版钉住了游戏设计才有这个入口。没有钉住就不出现，
+          也不给一个"点进去说没有内容"的链接——那等于用入口骗一次点击 */}
+      {publication.hasGame ? (
+        <p className="px-[var(--nexus-space-4)] pt-[var(--nexus-space-3)] text-12" data-published-play>
+          <a
+            href={`${publication.path}/play`}
+            className="rounded bg-accent-2 px-3 py-1 text-fg-1"
+          >
+            试玩这一版 →
+          </a>
+          <span className="ml-2 text-11 text-fg-3">玩的是发布那一刻钉住的游戏设计，不是作者现在的工作稿</span>
+        </p>
+      ) : null}
       {/* §168：被统计这件事要写在页面上，而不是只在代码注释里。
           这句是服务端渲染的——不执行 JS 的访客也看得见自己被统计了什么 */}
       <p className="px-[var(--nexus-space-4)] pb-[var(--nexus-space-4)] text-11 text-fg-3" data-visit-notice>
