@@ -106,6 +106,14 @@ export interface ExecRunResult {
  * M2 v55: what the host achieved against the process TREE. The failure names are deliberately not
  * collapsed into one "no" — an operator who asked for reaping needs to know whether the reason is
  * this platform, a missing handle, or a reaper call that failed.
+ *
+ * M2 v76 (ADR 0016 amendment 76): and `'reaped'` is not a claim that nothing is running — it is what the
+ * reaper REPORTED, one call that succeeded against the tree reachable from the pid we held. Measured with
+ * real processes (`docs/evidence/agents/reaper-survivor-proof.mjs`): a detached grandchild of a killed
+ * suite kept writing 30 more heartbeats after a run whose result said `descendantsStopped: 'reaped'`
+ * (and 14 more when the reaper was never asked, `'not-attempted'`). So the value answers "what did the
+ * host attempt, and did the attempt succeed", never "is the machine quiet" — and the bridge's sentence
+ * says the weaker true thing rather than letting the one-word label over-promise.
  */
 export type DescendantsStopped =
   | 'reaped' /** the tree reaper reported success and the survivor was silenced (measured, win32) */

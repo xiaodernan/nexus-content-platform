@@ -57,7 +57,13 @@ function reportFrom(name: string, engine: string, r: ExecRunResult): TestReport 
     // v55: the kill stops the process the host started; `descendantsStopped` says what became of the
     // rest of the tree, which matters most for a suite runner that spawns workers of its own.
     if (r.killedByBudget) {
-      parts.push(`killed at timeout budget${r.signal ? ` (${r.signal})` : ''}${r.descendantsStopped ? ` (descendants: ${r.descendantsStopped})` : ''}`);
+      // v76 (ADR 0016 amendment 76): `'reaped'` is what the REAPER reported, not what is now dead. Measured
+      // with real processes (`reaper-survivor-proof.mjs`): with `reapTree` on, a detached grandchild kept
+      // writing 30 more heartbeats after a report that said `descendants: reaped`. Say the weaker true thing.
+      const descendants = r.descendantsStopped === undefined || r.descendantsStopped === 'reaped'
+        ? r.descendantsStopped === 'reaped' ? ' (descendants: the reaper ran — a detached grandchild may still be alive)' : ''
+        : ` (descendants: ${r.descendantsStopped})`;
+      parts.push(`killed at timeout budget${r.signal ? ` (${r.signal})` : ''}${descendants}`);
     }
     parts.push(r.exitCode !== null ? `exit ${r.exitCode}` : 'no exit code reported');
     for (const stream of STREAMS) {
