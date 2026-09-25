@@ -1,5 +1,7 @@
 import { and, desc, eq, inArray, isNull, sql } from 'drizzle-orm';
-import { planNotification, targetState, UNBACKED_NOTIFICATIONS, type NotificationKind, type NotifyEvent } from '@/lib/notify-plan';
+import type { RealtimeEvent } from '@nexus/schemas';
+import { planNotification, targetState, UNBACKED_NOTIFICATIONS, type NotificationKind, type NotificationPlan, type NotifyEvent } from '@/lib/notify-plan';
+import { channels, getRealtimeBus } from '../realtime/bus';
 import { relationOf } from './blocks';
 import { getDb } from '../db/client';
 import { notifications, projects, publishedProjects, users } from '../db/schema';
@@ -35,7 +37,50 @@ export async function emit(event: NotifyEvent): Promise<EmitResult> {
     .values(plan)
     .onConflictDoNothing({ target: notifications.dedupeKey })
     .returning({ id: notifications.id });
-  return inserted.length ? 'created' : 'duplicate';
+  if (!inserted.length) return 'duplicate';
+  publishNotification(plan);
+  return 'created';
+}
+
+/**
+ * §163：真的**新写了一条**才推实时事件。`duplicate` 与 `suppressed` 都不推——
+ * 收件箱不该被同一件事反复点亮，被挡下的那件更是连行都没有。
+ *
+ * 只推**收件人自己的用户频道**，不推项目频道：`notification` 的收件人未必是这个项目的所有者
+ * （例如"你的作品被人 Remix 了"，事件里的 projectId 可能指向对方的副本），
+ * 推到项目频道就会把一条写给 A 的通知送进 B 的连接里。
+ * 客户端那条连接同时订阅了用户频道与当前项目频道，所以走用户频道一样能收到。
+ */
+function publishNotification(plan: NotificationPlan): void {
+  const event: RealtimeEvent = {
+    type: 'notification',
+    ...(plan.projectId ? { projectId: plan.projectId } : {}),
+    level: levelOf(plan.kind),
+    title: plan.title,
+    ...(plan.body ? { body: plan.body } : {}),
+  };
+  getRealtimeBus().publish(channels.user(plan.userId), event);
+}
+
+/** 通知类型 → 实时事件的级别。只是把"这件事有多要紧"翻译成一个 UI 能用的档位 */
+function levelOf(kind: NotificationKind): 'info' | 'success' | 'warning' | 'error' {
+  switch (kind) {
+    case 'publish':
+    case 'generation':
+      return 'success';
+    // 审核裁决可能是撤下内容，值得一个比 info 更重的档位
+    case 'moderation':
+      return 'warning';
+    case 'like':
+    case 'comment':
+    case 'follow':
+    case 'remix':
+      return 'info';
+    default: {
+      const exhaustive: never = kind;
+      throw new Error(`未知的通知类型：${String(exhaustive)}`);
+    }
+  }
 }
 
 export interface InboxItem {

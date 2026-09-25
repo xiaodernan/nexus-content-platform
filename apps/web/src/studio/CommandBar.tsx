@@ -5,6 +5,7 @@ import type { AgentActivity, AgentPlan, AiResponse, ModelClass } from '@nexus/sc
 import { DesignPatchSchema } from '@nexus/schemas';
 import { cn } from '@/lib/cn';
 import { csrfHeaders } from '@/lib/csrf';
+import { useRealtime, type RealtimeState } from '@/lib/useRealtime';
 import { studio, toModelPatches, useStudioReady } from './store';
 
 const MODES: { id: ModelClass; label: string }[] = [
@@ -20,6 +21,14 @@ const EXAMPLES = [
   'Find accessibility issues.',
 ];
 
+/** §163：这条通道只是加速器，断开时要把"以库为准"说出口，别让人以为还在实时 */
+const REALTIME_TEXT: Record<RealtimeState, string> = {
+  idle: '未开',
+  connecting: '连接中',
+  open: '已连接',
+  closed: '已断开，以刷新后的数据为准',
+};
+
 /** §7 底部 AI 命令栏：输入 → Agent Plan → 执行 → Activity → 一次事务落地 → AI Diff → 可整体撤销 */
 export function CommandBar() {
   const state = useStudioReady();
@@ -31,6 +40,19 @@ export function CommandBar() {
   // 这次请求在 agent_tasks 里的那一行（§112）：命令栏只显式带出最近一次，历史在 /tasks 页
   const [taskId, setTaskId] = useState<string | null>(null);
   const inputRef = useRef<HTMLTextAreaElement | null>(null);
+
+  // §163：订本项目频道。生成任务开始与结束各推一条，这一条连接让界面不必等 HTTP 响应。
+  // 进度单独存一份：同一条连接也会推通知事件，用"最后一条事件"当进度显示会被别的类型顶掉，
+  // 那一行就会在任务还在跑的时候自己消失（e2e 抓过一次）
+  const [live, setLive] = useState<{ taskId: string; progress: number; message?: string } | null>(null);
+  const realtime = useRealtime({
+    projectId: state.projectId,
+    onEvent: (event) => {
+      if (event.type === 'generation.progress' && event.projectId === state.projectId) {
+        setLive({ taskId: event.taskId, progress: event.progress, message: event.message });
+      }
+    },
+  });
 
   useEffect(() => {
     const onSlash = (event: KeyboardEvent) => {
@@ -119,6 +141,11 @@ export function CommandBar() {
 
   return (
     <div className="shrink-0 border-t border-[var(--nexus-color-border-subtle)] bg-bg-1 px-[var(--nexus-space-3)] py-[var(--nexus-space-2)]" data-command-bar>
+      {live ? (
+        <p className="text-11 text-fg-3" data-generation-progress={live.taskId}>
+          实时进度 {Math.round(live.progress * 100)}% · {live.message ?? '生成中'} · 任务 {live.taskId.slice(0, 8)}
+        </p>
+      ) : null}
       {taskId ? (
         <p className="text-11 text-fg-3" data-ai-task>
           这次请求记为任务 {taskId.slice(0, 8)} ·
@@ -151,6 +178,10 @@ export function CommandBar() {
           ) : null}
         </p>
       ) : null}
+      <p className="text-11 text-fg-3" data-realtime={realtime.state}>
+        实时通道：{REALTIME_TEXT[realtime.state]}
+        {realtime.received > 0 ? ` · 本次已收到 ${realtime.received} 条事件` : ''}
+      </p>
       <div className="flex items-end gap-[var(--nexus-space-2)]">
         <div className="flex shrink-0 items-center gap-1">
           {MODES.map((m) => (

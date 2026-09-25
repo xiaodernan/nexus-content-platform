@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { AiRequestSchema, AiResponseSchema } from '@nexus/schemas';
+import { AiRequestSchema, AiResponseSchema, type AiResponse } from '@nexus/schemas';
 import { getAiCapabilities } from '@/lib/env';
 import { assembleAiRequest } from '@/server/ai/assemble';
 import { mockProvider } from '@/server/ai/mock';
@@ -72,6 +72,16 @@ export async function POST(req: Request): Promise<NextResponse> {
     });
   };
 
+  /**
+   * 一次 HTTP 200 不等于这次生成做成了什么。provider 可以带着 `error` 返回 200
+   * （DEMO Mock 遇到没实现的指令就是这样），而账本与 §164 的通知要的是**这次请求的终态**：
+   * 一个补丁都没落地的请求记成"完成"，那条"Generation complete"就成指着的假事件。
+   */
+  const settleFromResponse = async (response: AiResponse): Promise<void> => {
+    const softFailure = response.error ?? null;
+    await settle(!softFailure, softFailure ? `${softFailure.code}：${softFailure.message}` : summaryOf(response));
+  };
+
   try {
     const user = await requireUser();
     requesterId = user.id;
@@ -99,7 +109,7 @@ export async function POST(req: Request): Promise<NextResponse> {
         await settle(false, result.error.message);
         return NextResponse.json(result.error, { status: result.status ?? 503, headers: taskHeader(taskId) });
       }
-      await settle(true, summaryOf(result.response));
+      await settleFromResponse(result.response);
       return NextResponse.json(result.response, { headers: taskHeader(taskId) });
     }
 
@@ -110,7 +120,7 @@ export async function POST(req: Request): Promise<NextResponse> {
       await settle(false, reason);
       return failure(new Error(reason), 'POST /api/ai/run');
     }
-    await settle(true, summaryOf(validated.data));
+    await settleFromResponse(validated.data);
     return NextResponse.json(validated.data, { headers: taskHeader(taskId) });
   } catch (error) {
     // 走到这里通常是 provider 抛了：任务行不能停在 running，否则列表里永远有一条"在跑"的假象

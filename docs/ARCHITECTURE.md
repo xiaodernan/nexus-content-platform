@@ -229,8 +229,18 @@ Postgres 为领域库 + pgvector 为检索；Redis 做队列/缓存/限流/实�
 
 ## 实时（§163）
 
-WebSocket（Next.js route handler 升级 / M6 后由 Java 侧承载）推送：
-`agent.plan` `agent.step` `agent.activity` `generation.progress` `build.status` `preview.status`。
+**传输是 SSE，不是 WebSocket**——偏离的理由、代价与"什么时候该换回去"写在 `docs/adr/0010-…`，
+一句话版本：这四类进度全是单向通知，而独立 WS 进程要重新实现一遍会话与所有权鉴权。
+`GET /api/realtime`（可带 `?projectId=`）是一条长连接，覆盖两个频道：
+`user:<id>`（§164 的通知）与 `project:<id>`（进度，先校验项目归属，不属于你一律 404）。
+生产者不碰传输：`server/realtime/bus.ts` 的 `RealtimeBus` 接口 + 进程内默认驱动，
+多实例部署时换 Redis pub/sub 驱动（§94 说的 `realtime` 落在 Redis，就是这一处），生产者一行不改。
+报文只用 `packages/schemas` 的 `RealtimeEventSchema`：`agent.plan` `agent.step` `agent.activity`
+`generation.progress` `build.status` `preview.status` `notification`。
+**今天真的有生产者的只有 `generation.progress`（任务开始/终态）与 `notification`（新写了一条通知）**，
+其余五种要等会分步完成的作业（§162 的 web 侧消费者、§112 的编排）。
+一条纪律：实时是加速器不是权威来源——断线不补发（没有 `Last-Event-ID`），
+所以任何"数"（未读数、任务状态）都必须能从库里重新读到，UI 断开时明说"以刷新后的数据为准"。
 活动流只展示安全的工作状态，不暴露模型隐藏推理（§26）。
 
 ## 性能分层（§146-147）

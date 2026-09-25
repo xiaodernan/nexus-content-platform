@@ -1,4 +1,6 @@
 import { and, desc, eq, isNull } from 'drizzle-orm';
+import type { RealtimeEvent } from '@nexus/schemas';
+import { channels, getRealtimeBus } from '../realtime/bus';
 import { getDb } from '../db/client';
 import { agentTasks, projects } from '../db/schema';
 
@@ -69,7 +71,28 @@ export async function startTask(input: StartTaskInput): Promise<{ id: string; pr
     })
     .returning({ id: agentTasks.id });
   if (!row) throw new Error('写入任务行没有返回 id');
+  // §163：任务真的开始了才推一条 progress=0。这是**真实的**起点，不是编出来的刻度——
+  // 一次同步请求只有"开始"和"结束"两个真信号，中间没有可观测的分段，
+  // 所以不编 0.2 / 0.5 / 0.9 那种假进度（ai-service 那条"没有真进度来源时 progress 恒为 null"是同一口径）。
+  publishGenerationProgress(input.projectId, row.id, 0, '已提交');
   return { id: row.id, projectName: owned?.name ?? null };
+}
+
+/**
+ * §163：只推项目频道。没有项目的任务（projectId 为 null）没有频道可发，就不发。
+ * 顺带说明为什么这里不需要另查一次项目：收尾语句的 `returning` 直接把 project_id 带回来了。
+ */
+function publishGenerationProgress(projectId: string | null, taskId: string, progress: number, message: string): void {
+  if (!projectId) return;
+  const event: RealtimeEvent = {
+    type: 'generation.progress',
+    projectId,
+    taskId,
+    kind: 'agent',
+    progress,
+    message,
+  };
+  getRealtimeBus().publish(channels.project(projectId), event);
 }
 
 /** 收尾。result 与 error 互斥由调用方保证，这里只如实落库 */
@@ -79,16 +102,22 @@ export async function finishTask(
 ): Promise<{ status: 'succeeded' | 'failed'; updated: boolean }> {
   // 枚举里成功那一档叫 succeeded（0000 建库时定的），不是 completed
   const status = outcome.ok ? 'succeeded' : 'failed';
+  const reason = outcome.error ?? '执行失败，没有给出原因';
   const rows = await getDb()
     .update(agentTasks)
     .set({
       status,
       finishedAt: new Date(),
       result: outcome.ok ? ((outcome.result ?? null) as never) : null,
-      error: outcome.ok ? null : (outcome.error ?? '执行失败，没有给出原因'),
+      error: outcome.ok ? null : reason,
     })
     .where(eq(agentTasks.id, id))
-    .returning({ id: agentTasks.id });
+    .returning({ id: agentTasks.id, projectId: agentTasks.projectId });
+  const row = rows[0];
+  if (row) {
+    // 失败也推：任务页与 Studio 上的"正在生成"要能自己停下来，而不是永远转着
+    publishGenerationProgress(row.projectId, id, 1, outcome.ok ? '完成' : `失败：${reason}`);
+  }
   return { status, updated: rows.length > 0 };
 }
 

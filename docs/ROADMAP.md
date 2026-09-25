@@ -909,8 +909,9 @@ drizzle 把整个拼接结果当成**单个绑定参数**，生成的 SQL 是 `o
   `@smoke §164` 在真浏览器里跑两个身份（**新 context 才是新 guest**，同 context 的多个 page 共用会话，
   用它自赞自评只会测出"自己给自己发通知"这条规则没生效）：发布 → 铃铛 1 → 访客点赞/评论/关注 → 铃铛 4 →
   逐条标已读只动一条 → 全部标完未读归零而总数仍是 4 → 动手那人自己的收件箱是空的 → 无身份拿 401（截图 `notifications-*.png`）。
-  仍欠：没有实时推送（铃铛在挂载时取一次，靠刷新拿新数；§163 的进度流接上后一起改）；
-  没有邮件 / Webpush；没有每人 NotificationSettings（§164 只点名了"看到"，没点名"可配置"，
+  铃铛的实时推送随 §163 落地（2026-09-26）：推来一条 notification 就重查一次数，**没有轮询**，
+  未读数永远以库为准（断开期间的事件不补发，只把事件当"该重新查了"的信号）。
+  仍欠：没有邮件 / Webpush；没有每人 NotificationSettings（§164 只点名了"看到"，没点名"可配置"，
   默认全开是今天的口径）；没有分页（一页 50 条，超了在页面上写总数）；
   `projects.deletedAt` 那条失效谓词仍是防御性的（全库没有软删写入方，与 §166 同一处境）。
 - [~] 画布批注（§111）— **2026-09-24 落地**：点中元素 → 写一句话钉在它上面（`comments.node_id`，
@@ -1054,7 +1055,9 @@ drizzle 把整个拼接结果当成**单个绑定参数**，生成的 SQL 是 `o
   `pending: 0` 换成了真计数（`backend`/`capacity`/`note` 一起报），没跑 lifespan 时报 `backend: none` 而不是崩。
   `progress` 在没有真进度来源时恒为 `null` —— 不编一条 0.2→0.9 的假刻度。
   仍欠的两笔：① **web 侧还没有消费者**（`/api/ai/run` 仍走同步路径），所以这条队列今天对产品行为没有影响，
-  它是图片/视频/3D 那条链的前置；② §163 的 WebSocket 实时推送还没做，进度只能靠轮询查。
+  它是图片/视频/3D 那条链的前置；② §163 的实时推送已在 2026-09-26 落地（见下面那条），
+  但**它推的是同步请求的两个真端点**（开始与结束），队列那条路还没有事件可推——
+  等 web 侧消费者接上 ai-service 的 `/v1/ai/jobs`，中间态才有来源，届时 `progress` 才允许不是 0/1。
   验证：45 条 pytest（新增 9 条）+ 真 Redis 跑通 9/9（`NEXUS_REDIS_URL=redis://127.0.0.1:6380/0`），
   真 uvicorn 起服务手工核对过 202→failed(provider-unavailable)→404 三种回话；
   两次反向实验（计数器写死 0、worker 无论什么都算完成）各自打中对应用例。
@@ -1086,11 +1089,27 @@ drizzle 把整个拼接结果当成**单个绑定参数**，生成的 SQL 是 `o
   门禁与七行健康度已落地（`analyzeHealth`，见 M2 进度记录与 `docs/adr/0005-…`）；
   Design Critic 的**自动修复建议**仍只有 lint 的 `suggestion` 字段，没有对话式评审。
 
-- [ ] 实时通道（§163）：WebSocket 显示 generation / agent / build / preview 四类进度。
-  `RealtimeEventSchema` 早就在 `packages/schemas` 里并导出成契约，但**没有任何代码发过这些事件**——
-  现在界面上的进度都靠轮询或一次性回话。要做的决定：App Router 的 route handler 承载不了 WebSocket，
-  是加一个独立 WS 进程（配 Redis pub/sub，§94 指定 Redis 做 realtime）还是先做 SSE ——
-  这个取舍要先写 ADR，不能默默改掉 §163 写的"WebSocket"。
+- [~] 实时通道（§163）— **2026-09-26 落地了传输与两类事件，偏离 WebSocket 的取舍写在 `docs/adr/0010-…`**：
+  `/api/realtime` 是一条 SSE 长连接（App Router 的 route handler 承载得了，会话与项目所有权走同一条路，
+  不必为单向通知多养一个进程），报文仍是早已是契约的 `RealtimeEventSchema`。
+  生产者与传输解耦在 `server/realtime/bus.ts`（`RealtimeBus` 接口，默认驱动进程内，
+  与 `security/rateLimit.ts` 同一口径：**多实例下收不到别的实例的事件**，接 Redis pub/sub 时换驱动、生产者不动）。
+  一条连接覆盖用户频道（通知）与项目频道（进度），带 `?projectId=` 时校验归属（不是你的项目一律 404）、
+  每账号同时最多 8 条连接（每条都握着订阅与心跳定时器，开多少条不能由客户端说了算）、写请求一律 405。
+  **今天真的有生产者的只有两类**：`generation.progress`（任务开始推 0、终态推 1，失败也推——
+  界面上那句"正在生成"要能自己停下来）与 `notification`（真的新写了一条才推，duplicate/suppressed 不推）。
+  仍欠：`build.status` / `preview.status` / `agent.plan` / `agent.step` / `agent.activity` 五种事件**还没有生产者**
+  （它们要的是"会分步完成的构建/多步 Agent 作业"，与 §162 的 web 侧消费者、§112 的编排是同一件事）；
+  断线期间的事件不补发（没有 `Last-Event-ID`），所以实时只当加速器、权威状态一律读库——这条限度写在 ADR 后果第 4 条，
+  UI 上断开时显示"以刷新后的数据为准"而不是假装还在实时。
+  顺带修掉一处会污染终态的假象：provider 带 `error` 返回 HTTP 200（DEMO Mock 遇到没实现的指令就是这样）
+  以前会记成 `succeeded` + "生成完成"，现在账本、通知、实时进度三处都按 `error` 判失败。
+  验证：`realtime.test.ts` 12 条纯单测（总线不跨频道泄漏、订阅者抛异常不连累别人、退订幂等、连接上限与归零）；
+  `realtime.integration.test.ts` 10 条打真库（该发的发了、duplicate 不发、suppressed 不发、无项目的任务不发、
+  收尾不存在的任务不发）；`@smoke §163` 在真浏览器里跑两个身份：作者停在首页**不 reload**，
+  访客点赞后铃铛从 1 变 2，且这期间收件箱接口只被请求了一次（数请求条数，不是数"数对不对"——轮询也能让数变对）；
+  Studio 里跑一次真 AI 请求，进度行由事件流自己推出来（成功那条写"完成"，Mock 不认的那条写"失败：provider-unavailable"），
+  别人的项目频道拿 404、匿名拿 401、POST 拿 405（截图 `realtime-bell.png` / `realtime-studio*.png`）。
 - [~] 通知中心（§164）— 收件箱与真事件已在上面 M6 那条落地；原文点名四类，今天**还差两类**
   （Build complete / Agent task complete）。Generation complete 已在下面单独落地（2026-09-25）。
   剩下这两类要的不是收件箱，而是"web 侧真有一个会结束的作业"：

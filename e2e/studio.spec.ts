@@ -1971,10 +1971,12 @@ test('@smoke §164 通知：别人真的动过，作者的收件箱里才有那�
   await expect(anon.locator('[data-notification-item]')).toHaveCount(0);
 
   // §112 / §164：跑一次真 AI 请求（本机没有 provider，走 DEMO 模板），
-  // 这一次要在账本与收件箱里都留下东西——"Generation complete"以前挂在"没有来源"那张单子上
+  // 这一次要在账本与收件箱里都留下东西——"Generation complete"以前挂在"没有来源"那张单子上。
+  // 指令要挑 Mock 实现得了的那种：带 error 的 200 现在记的是失败，
+  // 拿一条它没实现的指令来断言"生成完成"，测的就是刚修掉的那个假终态
   await page.goto(`/studio/${projectId}`);
   await expect(page.locator('[data-canvas-frame]')).toBeVisible({ timeout: 30_000 });
-  await page.fill('[data-ai-input]', '把主视觉调暗一点');
+  await page.fill('[data-ai-input]', 'Make the hero 30% taller.');
   await page.click('[data-ai-submit]');
   await expect(page.locator('[data-ai-task]')).toBeVisible({ timeout: 90_000 });
   await page.goto('/notifications');
@@ -2297,6 +2299,87 @@ test('@smoke §50 公开可玩：分享出去的链接玩的是发布那一刻�
   await visitor.waitForTimeout(1_500);
   await expect(visitor.locator('[data-game-enemies]')).toHaveAttribute('data-game-enemies', '1');
   await expect(visitor.locator('[data-game-status]')).not.toHaveText('通关');
+
+  await visitorCtx.close();
+});
+
+test('@smoke §163 实时通道：别人刚做完的那件事，作者这一端不用刷新就亮', async ({ page }) => {
+  // 这条用例的唯一卖点是"没有 reload"：所以下面每一次断言都停在同一个 page 上等，
+  // 而不是 goto 一次再去看——goto 之后的数是服务端渲染出来的，那就退回 §164 的老路了
+  test.setTimeout(300_000);
+  const projectId = await createProject(page, `实时作品${Date.now().toString(36)}`);
+
+  await page.click('[data-publish-open]');
+  await expect(page.locator('[data-publish-submit]')).toBeVisible();
+  await page.click('[data-publish-choice="public"]');
+  await page.click('[data-publish-submit]');
+  await expect(page.locator('[data-publish-url]')).toBeVisible({ timeout: 60_000 });
+  const path = (await page.locator('[data-publish-url]').getAttribute('href'))!;
+
+  // 作者停在首页。铃铛先读到 1 条（发布那条），确认读到数之后才开实时连接
+  await page.goto('/');
+  await expect(page.locator('[data-notification-bell="ready"]')).toBeVisible({ timeout: 30_000 });
+  await expect(page.locator('[data-notification-unread]')).toHaveAttribute('data-notification-unread', '1');
+  await expect(page.locator('[data-realtime="open"]')).toBeVisible({ timeout: 30_000 });
+
+  // 收件箱接口的请求次数：挂载时读一次，实时事件到了再读一次。
+  // 数请求而不是数"有没有轮询定时器"——轮询也会让数变对，但请求条数会一路涨
+  let summaryCalls = 0;
+  page.on('request', (req) => {
+    if (req.url().endsWith('/api/notifications?limit=1')) summaryCalls += 1;
+  });
+  const baseline = summaryCalls;
+
+  const browser = page.context().browser();
+  if (!browser) throw new Error('这条用例需要一个可派生上下文的浏览器');
+  const visitorCtx = await browser.newContext();
+  const visitor = await visitorCtx.newPage();
+  await visitor.goto(new URL(path, page.url()).href);
+  await visitor.waitForSelector('[data-published-frame] [data-node-id]', { timeout: 30_000 });
+
+  await visitor.click('[data-action-like]');
+  await expect(visitor.locator('[data-action-like]')).toHaveAttribute('data-action-like', 'on', { timeout: 30_000 });
+
+  // 未读从 1 变 2，全程作者这一页没有 reload
+  await expect(page.locator('[data-notification-unread]')).toHaveAttribute('data-notification-unread', '2', {
+    timeout: 30_000,
+  });
+  const afterPush = summaryCalls;
+  // 这一次读数换回来只多了一条请求：实时推一次、客户端查一次，而不是反复查
+  expect(afterPush).toBe(baseline + 1);
+  await page.waitForTimeout(4_000);
+  // 之后就静住了——真有轮询的话这里一定涨
+  expect(summaryCalls).toBe(afterPush);
+  await page.screenshot({ path: 'screenshots/realtime-bell.png' });
+
+  // 这条连接是别人的项目：拿访客身份订作者的项目频道，一律 404（与其它入口同一口径）
+  const stranger = await visitorCtx.request.get(new URL(`/api/realtime?projectId=${projectId}`, page.url()).href);
+  expect(stranger.status()).toBe(404);
+
+  // Studio 的项目频道：跑一次真 AI 请求，开始与结束各推一条进度
+  await page.goto(`/studio/${projectId}`);
+  await expect(page.locator('[data-canvas-frame]')).toBeVisible({ timeout: 30_000 });
+  await expect(page.locator('[data-realtime="open"]')).toBeVisible({ timeout: 30_000 });
+  await page.fill('[data-ai-input]', 'Make the hero 30% taller.');
+  await page.click('[data-ai-submit]');
+  // 进度行来自事件流本身，不是 HTTP 响应：等到它就等于证明了这条通道在推真事件
+  await expect(page.locator('[data-generation-progress]')).toBeVisible({ timeout: 90_000 });
+  await expect(page.locator('[data-generation-progress]')).toContainText('任务');
+  await expect(page.locator('[data-generation-progress]')).toContainText('完成', { timeout: 30_000 });
+  await expect(page.locator('[data-realtime]').first()).toContainText('已收到');
+  await page.screenshot({ path: 'screenshots/realtime-studio.png' });
+
+  // 失败也要推：一条 Mock 没实现的指令，界面上那句"正在生成"得自己停下来，
+  // 而不是跟着 HTTP 200 一起显示"完成"（带 error 的 200 记的是失败终态）
+  await page.fill('[data-ai-input]', '把主视觉调暗一点');
+  await page.click('[data-ai-submit]');
+  await expect(page.locator('[data-ai-error]')).toBeVisible({ timeout: 90_000 });
+  await expect(page.locator('[data-generation-progress]')).toContainText('失败：provider-unavailable', { timeout: 30_000 });
+  await page.screenshot({ path: 'screenshots/realtime-studio-failed.png' });
+
+  // 通道只读：写请求一律挡掉（别让人把它当 RPC 端点）
+  const post = await page.request.post(new URL('/api/realtime', page.url()).href);
+  expect(post.status()).toBe(405);
 
   await visitorCtx.close();
 });
