@@ -1,12 +1,20 @@
-import { and, desc, eq, inArray, isNull, notInArray, sql } from 'drizzle-orm';
+import { and, desc, eq, gte, inArray, isNull, notInArray, sql, type SQLWrapper } from 'drizzle-orm';
 import { duplicateDocument, remapAssetIds } from '@nexus/design-model';
 import { getDb } from '../db/client';
-import { comments, follows, likes, projects, publishedProjects, remixes, users } from '../db/schema';
+import { comments, follows, likes, projects, publishedProjects, publicationVisits, remixes, saves, users } from '../db/schema';
 import { createProject, saveDocument } from './projects';
 import { copyProjectAssets } from './assets';
 import { readSnapshot } from './snapshots';
 import { scanTextForRedlines } from './moderation';
 import { canInteract, hiddenAuthorIds } from './blocks';
+import {
+  TRENDING_CANDIDATE_CAP,
+  TRENDING_WINDOW_DAYS,
+  dayAgo,
+  decayedScore,
+  trendingMethod,
+  type DecayBucket,
+} from './trending';
 
 /**
  * §59 社区动作（Like / Comment / Follow / Remix / Share）与 §61 的发现列表。
@@ -336,7 +344,7 @@ export async function remixPublication(actorId: string, publicationId: string): 
   return { ok: true, projectId: created.id, name };
 }
 
-export type DiscoverSort = 'new' | 'popular' | 'following';
+export type DiscoverSort = 'new' | 'popular' | 'trending' | 'following';
 
 export interface DiscoverCard {
   publicationId: string;
@@ -350,6 +358,8 @@ export interface DiscoverCard {
   comments: number;
   remixes: number;
   kind: string;
+  /** 只有 trending 那一栏会填：折了时间衰减的互动分，页面上要能把数说出来 */
+  score?: number;
 }
 
 export interface DiscoverResult {
@@ -362,12 +372,17 @@ export interface DiscoverResult {
    * 查询、要么把四条可见性谓词抄第二份，两个都会和真正的过滤逻辑漂移。
    */
   hiddenAuthors: number;
+  /** trending 那一栏的算法要能在页面上复述；别的排序是 null */
+  method: string | null;
 }
 
-const DISCOVER_UNAVAILABLE = [
-  { key: 'Trending', reason: '要的是互动时间序列；库里只有累计浏览与点赞数，按它们排出来的不是"正在热"' },
-  { key: 'AI Picks', reason: '要的是模型推荐，没有可用的推荐 provider' },
-];
+/**
+ * AI Picks 仍然排不出来：要的是模型推荐，而这里没有可用的推荐 provider（§159 不许放假生成）。
+ * Trending 以前也在这张单子上，理由是"只有累计数"——那句话已经不成立：
+ * 点赞/评论/收藏/改编每行都有 created_at，访问按"访客 × 天"存着 opens，
+ * 按天的互动序列因此是真的，能排。限度（窗口、半衰期、只排最近 N 条）改由 `method` 说。
+ */
+const DISCOVER_UNAVAILABLE = [{ key: 'AI Picks', reason: '要的是模型推荐，没有可用的推荐 provider' }];
 
 /** §61 发现：只看真公开、且没被人工拒绝的版本 */
 export async function discover(input: { sort: DiscoverSort; viewerId?: string | null; limit?: number }): Promise<DiscoverResult> {
@@ -385,6 +400,7 @@ export async function discover(input: { sort: DiscoverSort; viewerId?: string | 
     views: publishedProjects.views,
     kind: projects.kind,
     ownerId: projects.ownerId,
+    projectId: publishedProjects.projectId,
   };
 
   let followedIds: string[] | null = null;
@@ -394,12 +410,13 @@ export async function discover(input: { sort: DiscoverSort; viewerId?: string | 
         sort: input.sort,
         cards: [],
         hiddenAuthors: 0,
+        method: null,
         unavailable: [...DISCOVER_UNAVAILABLE, { key: 'Following', reason: '没有登录，看不到关注关系' }],
       };
     }
     const rows = await db.select({ followeeId: follows.followeeId }).from(follows).where(eq(follows.followerId, input.viewerId));
     followedIds = rows.map((r) => r.followeeId);
-    if (!followedIds.length) return { sort: input.sort, cards: [], hiddenAuthors: hidden.length, unavailable: DISCOVER_UNAVAILABLE };
+    if (!followedIds.length) return { sort: input.sort, cards: [], hiddenAuthors: hidden.length, method: null, unavailable: DISCOVER_UNAVAILABLE };
   }
 
   const where = and(
@@ -427,24 +444,100 @@ export async function discover(input: { sort: DiscoverSort; viewerId?: string | 
         ? desc(sql`${publishedProjects.views} + (select count(*) from likes where likes.project_id = ${publishedProjects.projectId})`)
         : desc(publishedProjects.publishedAt),
     )
-    .limit(limit);
+    // trending 要在"最近这么多条公开版本"里算分：候选集就是这一句，页面上也照这句话写
+    .limit(input.sort === 'trending' ? TRENDING_CANDIDATE_CAP : limit);
+
+  const cards: DiscoverCard[] = rows.map((r) => ({
+    publicationId: r.publicationId,
+    path: r.path,
+    name: r.name,
+    owner: r.owner,
+    handle: r.handle,
+    publishedAt: r.publishedAt.toISOString(),
+    views: r.views,
+    likes: Number(r.likes),
+    comments: Number(r.comments),
+    remixes: Number(r.remixes),
+    kind: r.kind,
+  }));
+
+  let method: string | null = null;
+  if (input.sort === 'trending') {
+    const scores = await trendScores(rows.map((r) => ({ publicationId: r.publicationId, projectId: r.projectId })));
+    for (const card of cards) card.score = scores.get(card.publicationId) ?? 0;
+    // 同分按发布时间倒序：否则顺序取决于数据库返回行的顺序，两次刷新会看到两种"热度榜"
+    cards.sort((a, b) => (b.score ?? 0) - (a.score ?? 0) || b.publishedAt.localeCompare(a.publishedAt));
+    cards.splice(limit);
+    method = trendingMethod();
+  }
 
   return {
     sort: input.sort,
-    cards: rows.map((r) => ({
-      publicationId: r.publicationId,
-      path: r.path,
-      name: r.name,
-      owner: r.owner,
-      handle: r.handle,
-      publishedAt: r.publishedAt.toISOString(),
-      views: r.views,
-      likes: Number(r.likes),
-      comments: Number(r.comments),
-      remixes: Number(r.remixes),
-      kind: r.kind,
-    })),
+    cards,
     unavailable: DISCOVER_UNAVAILABLE,
     hiddenAuthors: hidden.length,
+    method,
   };
+}
+
+/**
+ * 一周内这些作品各被"动"了多少：按天分桶后折成衰减分。
+ * 键是 publicationId（发现页排的是版本，不是项目），所以先把 project → publication 对上。
+ */
+async function trendScores(pairs: { publicationId: string; projectId: string }[]): Promise<Map<string, number>> {
+  const db = getDb();
+  const since = new Date(Date.now() - TRENDING_WINDOW_DAYS * 86_400_000);
+  const byProject = new Map(pairs.map((pair) => [pair.projectId, pair.publicationId]));
+  const buckets = new Map<string, DecayBucket[]>();
+  const push = (publicationId: string | undefined, bucket: DecayBucket): void => {
+    if (!publicationId) return;
+    const list = buckets.get(publicationId) ?? [];
+    list.push(bucket);
+    buckets.set(publicationId, list);
+  };
+  const daySql = (column: SQLWrapper) => sql<string>`to_char(${column}, 'YYYY-MM-DD')`;
+
+  const [likeRows, commentRows, saveRows, remixRows, visitRows] = await Promise.all([
+    db
+      .select({ projectId: likes.projectId, day: daySql(likes.createdAt), count: sql<number>`count(*)::int` })
+      .from(likes)
+      .where(gte(likes.createdAt, since))
+      .groupBy(likes.projectId, daySql(likes.createdAt)),
+    db
+      .select({ projectId: comments.projectId, day: daySql(comments.createdAt), count: sql<number>`count(*)::int` })
+      .from(comments)
+      .where(gte(comments.createdAt, since))
+      .groupBy(comments.projectId, daySql(comments.createdAt)),
+    db
+      .select({ publicationId: saves.publicationId, day: daySql(saves.createdAt), count: sql<number>`count(*)::int` })
+      .from(saves)
+      .where(gte(saves.createdAt, since))
+      .groupBy(saves.publicationId, daySql(saves.createdAt)),
+    db
+      .select({ projectId: remixes.sourceProjectId, day: daySql(remixes.createdAt), count: sql<number>`count(*)::int` })
+      .from(remixes)
+      .where(gte(remixes.createdAt, since))
+      .groupBy(remixes.sourceProjectId, daySql(remixes.createdAt)),
+    db
+      .select({
+        publicationId: publicationVisits.publicationId,
+        day: publicationVisits.day,
+        opens: sql<number>`coalesce(sum(${publicationVisits.opens}), 0)::int`,
+      })
+      .from(publicationVisits)
+      .where(gte(publicationVisits.day, since.toISOString().slice(0, 10)))
+      .groupBy(publicationVisits.publicationId, publicationVisits.day),
+  ]);
+
+  for (const row of likeRows) push(byProject.get(row.projectId), { kind: 'like', dayAgo: dayAgo(new Date(`${row.day}T12:00:00Z`)) ?? 0, count: row.count });
+  for (const row of commentRows)
+    push(byProject.get(row.projectId), { kind: 'comment', dayAgo: dayAgo(new Date(`${row.day}T12:00:00Z`)) ?? 0, count: row.count });
+  for (const row of remixRows)
+    push(byProject.get(row.projectId), { kind: 'remix', dayAgo: dayAgo(new Date(`${row.day}T12:00:00Z`)) ?? 0, count: row.count });
+  for (const row of saveRows) push(row.publicationId, { kind: 'save', dayAgo: dayAgo(new Date(`${row.day}T12:00:00Z`)) ?? 0, count: row.count });
+  for (const row of visitRows) push(row.publicationId, { kind: 'open', dayAgo: dayAgo(new Date(`${row.day}T12:00:00Z`)) ?? 0, count: row.opens });
+
+  const scores = new Map<string, number>();
+  for (const [publicationId, list] of buckets) scores.set(publicationId, decayedScore(list));
+  return scores;
 }

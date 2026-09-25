@@ -218,12 +218,17 @@ describe('discover（§61）', () => {
     expect(anon.unavailable.some((u) => u.key === 'Following')).toBe(true);
   });
 
-  it('排不出来的排序写在结果里，而不是换个名字冒充', async () => {
+  it('排不出来的排序写在结果里；排得出来的不再占着那个位子', async () => {
     const result = await discover({ sort: 'new' });
     const keys = result.unavailable.map((u) => u.key);
-    expect(keys).toContain('Trending');
+    // Trending 以前在这张单子上（理由是"只有累计数"）。按天的互动序列进库之后它排得出来了，
+    // 那就把它从"排不出来"里摘掉——留着不改口，就是拿一条过期的限度骗人（§159）
+    expect(keys).not.toContain('Trending');
     expect(keys).toContain('AI Picks');
-    expect(result.unavailable.find((u) => u.key === 'Trending')!.reason).toContain('时间序列');
+    // 只有 trending 那一栏会带算法说明；别的排序不该顺手编一句"排法"
+    expect(result.method).toBe(null);
+    const trending = await discover({ sort: 'trending' });
+    expect(trending.method).toContain('半衰期');
   });
 });
 

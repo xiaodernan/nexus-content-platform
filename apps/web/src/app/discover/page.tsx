@@ -5,13 +5,18 @@ import { currentUserOrNull } from '@/server/domain/session';
 export const dynamic = 'force-dynamic';
 
 /**
- * §61 发现页。三个排得出来的排序做成了标签，排不出来的（Trending / AI Picks）
- * 原样列在页面上并说明为什么排不出来——留空位或藏起来，都会被读成"平台没有这个功能"，
- * 而事实是我们拒绝用累计浏览数冒充热度。
+ * §61 发现页。四个排得出来的排序做成了标签；排不出来的（AI Picks）
+ * 原样列在页面上并说明为什么排不出来——留空位或藏起来，都会被读成"平台没有这个功能"。
+ *
+ * Trending 以前也在那张"排不出来"的单子上，理由是"只有累计数"；
+ * 现在按天的互动序列是真的（点赞/评论/收藏/改编各有 created_at，访问按访客 × 天存），
+ * 所以能排——但**算法参数与候选集上限必须一起显示**（`result.method`），
+ * 否则一个折了时间衰减的序就会被读成"平台公认最热"。
  */
 const TABS: { id: DiscoverSort; label: string }[] = [
   { id: 'new', label: '最新发布' },
   { id: 'popular', label: '最多人看/赞' },
+  { id: 'trending', label: '最近最热' },
   { id: 'following', label: '我关注的作者' },
 ];
 
@@ -51,6 +56,12 @@ export default async function DiscoverPage({ searchParams }: { searchParams: Pro
         </p>
       ) : null}
 
+      {result.method ? (
+        <p className="text-11 text-fg-3" data-discover-method>
+          这个榜的排法：{result.method}
+        </p>
+      ) : null}
+
       <ul className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3" data-discover-grid>
         {result.cards.map((card) => (
           <li key={card.publicationId} data-discover-card={card.path}>
@@ -64,6 +75,12 @@ export default async function DiscoverPage({ searchParams }: { searchParams: Pro
               <span className="mt-auto text-11 text-fg-2" data-discover-counts>
                 {card.views} 次浏览 · {card.likes} 赞 · {card.comments} 评论 · {card.remixes} 改编
               </span>
+              {/* 分数只在"最近最热"这一栏有：它是算法输出，不是事实，所以连同排法一起显示 */}
+              {card.score !== undefined ? (
+                <span className="text-11 text-fg-3" data-discover-score={card.score}>
+                  热度分 {card.score}
+                </span>
+              ) : null}
             </Link>
           </li>
         ))}

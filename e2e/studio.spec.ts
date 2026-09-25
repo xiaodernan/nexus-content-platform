@@ -1421,9 +1421,17 @@ test('@smoke 社区：公开页能点赞、评论、改编；发现页只排排�
   await expect(card.locator('[data-discover-counts]')).toContainText('1 赞');
   await expect(card.locator('[data-discover-counts]')).toContainText('1 评论');
   await expect(card.locator('[data-discover-counts]')).toContainText('1 改编');
-  await expect(page.locator('[data-discover-gap="Trending"]')).toContainText('时间序列');
+  // Trending 已经从"排不出来"那张单子上摘下来了：按天的互动序列现在真的在库里
+  await expect(page.locator('[data-discover-gap="Trending"]')).toHaveCount(0);
   await expect(page.locator('[data-discover-gap="AI Picks"]')).toContainText('provider');
+  // 「最近最热」这一栏要把算法与候选集上限写在页面上，而不是只给一个序
+  await page.click('[data-discover-tab="trending"]');
+  await expect(page.locator('[data-discover-method]')).toContainText('半衰期');
+  const ranked = page.locator(`[data-discover-card="${publishedHref}"]`);
+  await expect(ranked).toBeVisible({ timeout: 30_000 });
+  await expect(ranked.locator('[data-discover-score]')).toBeVisible();
   await page.screenshot({ path: 'screenshots/discover.png' });
+  await page.click('[data-discover-tab="new"]');
 
   // Remix 不该动原作品：回到首页，原项目还在，副本是另一条
   await page.goto('/');
