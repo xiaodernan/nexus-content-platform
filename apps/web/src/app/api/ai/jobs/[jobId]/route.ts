@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { AiJobObservationSchema } from '@nexus/schemas';
 import { observeJob } from '@/server/domain/ai-jobs';
 import { requireUser } from '@/server/domain/session';
 import { clientIp, getRateLimiter, rateKey } from '@/server/security/rateLimit';
@@ -29,7 +30,19 @@ export async function GET(req: Request, ctx: RouteContext): Promise<NextResponse
     }
     const observed = await observeJob(jobId, user.id);
     if (!observed) return notFound();
-    return NextResponse.json(observed, { headers: { 'cache-control': 'no-store' } });
+    /**
+     * §6：跨端报文只有 `packages/schemas` 那一份定义。这里现在装着 provider 生成的
+     * `AiResponse`（可能是真模型写的），所以出口先校验一次再发——
+     * 校验不过就是 500，而不是把一条形状没人认的报文交给界面去猜。
+     */
+    const validated = AiJobObservationSchema.safeParse(observed);
+    if (!validated.success) {
+      return failure(
+        new Error(`作业观察不符合契约：${validated.error.issues.map((i) => `${i.path.join('.')}: ${i.message}`).join('；')}`),
+        `GET /api/ai/jobs/${jobId}`,
+      );
+    }
+    return NextResponse.json(validated.data, { headers: { 'cache-control': 'no-store' } });
   } catch (error) {
     return failure(error, `GET /api/ai/jobs/${jobId}`);
   }

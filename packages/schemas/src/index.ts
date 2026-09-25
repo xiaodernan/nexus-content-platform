@@ -676,6 +676,42 @@ export const AiJobStatusResponseSchema = z.object({
 });
 export type AiJobStatusResponse = z.infer<typeof AiJobStatusResponseSchema>;
 
+/**
+ * §162 × §74：web 侧一次"问作业"的对外报文（`GET /api/ai/jobs/<jobId>` 的响应体）。
+ *
+ * 它与 `AiJobStatusResponse` 不是一份东西：那份是 ai-service ↔ web，真值在队列那一侧；
+ * 这份是 web ↔ 浏览器，里面除了镜像过来的状态，还有 **web 自己判断出来的东西**——
+ * 任务行现在的状态、这次观察有什么要说清楚的（问不到、查不到、后端是内存），
+ * 以及过门之后**能交回编辑区的那一份结果**。
+ *
+ * `response` 就是这条报文存在的理由：作业跑完了要能把补丁交回去，否则"异步生成"
+ * 只能生成不能落地。而它给的永远是**过门之后**的那一份——含高危动作的结果里，
+ * 这里的 `response.patches` 是空的、`approvals` 是非空的（§74：决定之前那份东西进不了工作区）。
+ */
+export const AiJobObservationSchema = z.object({
+  jobId: z.string(),
+  taskId: z.string(),
+  projectId: z.string().nullable(),
+  /** ai-service 报的状态原样透传；问不到就是 null，不拿账本里的旧状态冒充"现在的" */
+  jobStatus: AiJobStatusSchema.nullable(),
+  backend: AiJobBackend.nullable(),
+  /** 只有真知道才给；今天这条队列没有可观测的中间态，所以一直是 null（§159） */
+  progress: z.number().min(0).max(1).nullable(),
+  activities: z.array(AgentActivitySchema).default([]),
+  queuedAt: z.string().nullable(),
+  startedAt: z.string().nullable(),
+  finishedAt: z.string().nullable(),
+  /** 这行任务在 web 账本里的状态（挂起 / 终态都由这一轮观察写入） */
+  taskStatus: z.string().min(1),
+  outcome: z.string().nullable(),
+  notes: z.array(z.string()).default([]),
+  /** 需要人工审批的动作；空数组表示这一份结果可以原样交回 */
+  approvals: z.array(z.object({ action: z.string(), reason: z.string() })).default([]),
+  /** 能交回的那一份结果：没跑完 / 没结果 / 行已终态但报文丢了结果时是 null */
+  response: AiResponseSchema.nullable(),
+});
+export type AiJobObservation = z.infer<typeof AiJobObservationSchema>;
+
 /** §163 实时事件（WebSocket） */
 export const RealtimeEventSchema = z.discriminatedUnion('type', [
   z.object({ type: z.literal('agent.plan'), projectId: z.string(), taskId: z.string(), plan: AgentPlanSchema }),

@@ -157,6 +157,12 @@ export function gateResponse(response: AiResponse, policy: readonly string[], na
 /** 任务行里存的那一份：批准的凭据是"看过这一版"，所以存的是完整结果而不是摘要 */
 export interface HeldRecord {
   held: AiResponse;
+  /**
+   * 交回客户端的那一份（补丁已抽走、approvals 已填全）。同步路径当场就把它发出去了，
+   * 异步路径没有"当场"——轮询的人隔几秒才来问，那时要给的还是同一份说法，
+   * 而不是拿 `held` 重新过一遍门：文档可能已经变了，重算出来的理由名字会变。
+   */
+  delivered: AiResponse;
   approvals: ApprovalAction[];
   /** 当时生效的策略，事后看得清"是谁家的规矩挡的" */
   policy: readonly string[];
@@ -164,5 +170,5 @@ export interface HeldRecord {
 }
 
 export function heldRecord(gate: GateResult, policy: readonly string[]): HeldRecord {
-  return { held: gate.held, approvals: gate.approvals, policy, heldOpCount: gate.heldOpCount };
+  return { held: gate.held, delivered: gate.delivered, approvals: gate.approvals, policy, heldOpCount: gate.heldOpCount };
 }

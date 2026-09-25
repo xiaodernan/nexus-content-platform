@@ -3,9 +3,10 @@ import { and, eq, inArray, sql as rawSql } from 'drizzle-orm';
 import { createServer, type Server } from 'node:http';
 import type { AddressInfo } from 'node:net';
 import type { AiJobStatusResponse, AiRequest, AiResponse } from '@nexus/schemas';
+import { AiJobObservationSchema } from '@nexus/schemas';
 import { observeJob, submitJob } from '../src/server/domain/ai-jobs';
-import { listProjectTasks } from '../src/server/domain/agent-tasks';
-import { createProject, listProjects } from '../src/server/domain/projects';
+import { decideApproval, listProjectTasks } from '../src/server/domain/agent-tasks';
+import { createProject, listProjects, loadDocument } from '../src/server/domain/projects';
 import { channels, getRealtimeBus } from '../src/server/realtime/bus';
 import { getDb } from '../src/server/db/client';
 import { agentTasks, notifications, projects, users } from '../src/server/db/schema';
@@ -397,5 +398,145 @@ describe('归属：别人的作业号在这里问不出任何东西', () => {
     await submit();
     expect(await listProjectTasks(projectId, otherId)).toBeNull();
     expect((await listProjects(ownerId)).some((p) => p.id === projectId)).toBe(true);
+  });
+});
+
+/**
+ * §74 的门装在异步这条路上。这一组的重点不是"门会不会拦"（那是 `ai-approvals.integration.test.ts`
+ * 那 16 条的事），而是**同一条路上多了第二条入口之后，绕过去要付出什么**：
+ * 如果异步这条路把结果原样交回，那么"绕过审批"就只需要在提交时多选一个"异步"——
+ * 门就没必要存在了。所以这一组钉的是：拦点在这一侧、拦下之后账本上是什么、
+ * 批准/放弃之后再来问给什么，以及一次都没做完时不许有"Generation complete"。
+ */
+
+/** 从项目当前文档里取一个真实存在的非根节点：审批理由要报得出它的名字，就得用真 id */
+async function victimNode() {
+  const doc = await loadDocument(projectId);
+  if (!doc) throw new Error('项目文档读不到，用例的前提不成立');
+  const page = doc.pages[0];
+  if (!page) throw new Error('项目文档没有页，用例的前提不成立');
+  const node = Object.values(page.nodes).find((n) => n.id !== page.rootId);
+  if (!node) throw new Error('这一页只有根节点，用例需要一个可删的子节点');
+  return { pageId: page.id, nodeId: node.id, name: node.name };
+}
+
+/** 提交一份"跑完了、结果里带一个删除动作"的作业，并观察一次（返回这一轮看到的东西） */
+async function heldJob(nodeId?: string) {
+  const submitted = await submit();
+  const v = await victimNode();
+  nextStatus = scriptedJob({
+    jobId: submitted.jobId,
+    status: 'completed',
+    result: okResponse({ patches: [{ pageId: v.pageId, summary: '删掉这一块', ops: [{ op: 'remove', nodeId: nodeId ?? v.nodeId }] }] }),
+  });
+  const seen = await observeJob(submitted.jobId, ownerId);
+  if (!seen) throw new Error('自己的作业问不到，用例的前提不成立');
+  return { submitted, v, seen };
+}
+
+describe('§74 的同一道门：异步作业的结果也要先过门才交回', () => {
+  it('completed 带 remove：补丁不交回、行挂成 awaiting_approval、通知一条都不发', async () => {
+    const { submitted, v, seen } = await heldJob();
+    expect(seen.jobStatus).toBe('completed');
+    // 作业真的跑完了（jobStatus 是 completed），但任务行没写成功也没写失败——它在等人决定
+    expect(seen.taskStatus).toBe('awaiting_approval');
+    expect(seen.approvals).toHaveLength(1);
+    expect(seen.approvals[0]?.action).toBe('delete');
+    // 理由里是文档里那个节点的名字：证明异步这条路径也走了一遍 nodeNamer，
+    // 而不是"读不到就退回 id"那条兜底（真挂起时退化成裸 uuid 是能被接受的，但不该是默认）
+    expect(seen.approvals[0]?.reason).toContain(v.name);
+    // 交回的那一份里补丁是空的，而它带的是 approval-required 而不是"成功"
+    expect(seen.response?.patches ?? []).toEqual([]);
+    expect(seen.response?.error?.code).toBe('approval-required');
+    expect(JSON.stringify(seen.notes)).toContain('需要人工审批');
+    expect(AiJobObservationSchema.safeParse(seen).success).toBe(true);
+
+    const row = await taskRow(submitted.taskId);
+    expect(row.status).toBe('awaiting_approval');
+    expect(row.requiresApproval).toBe(true);
+    // 等待不是终态：写了 finishedAt，任务列表就会把"还等人决定"算进已跑完的用时
+    expect(row.finishedAt).toBeNull();
+    // 存的是完整的那一份（批准的凭据是"看过这一版"），所以被扣下的 op 必须还在库里
+    const record = row.result as { held?: { patches?: unknown[] }; approvals?: unknown[]; heldOpCount?: number };
+    expect(record.held?.patches).toHaveLength(1);
+    expect(record.approvals).toHaveLength(1);
+    expect(record.heldOpCount).toBe(1);
+    // 这一句是这一组的核心反面：异步这条路上，"跑完"不该发一条完成通知
+    expect(await generationRows(submitted.taskId)).toHaveLength(0);
+  });
+
+  it('反向对照：没有高危动作的 completed 照旧一路到底——补丁交回、行写成功、通知一条', async () => {
+    const submitted = await submit();
+    const v = await victimNode();
+    nextStatus = scriptedJob({
+      jobId: submitted.jobId,
+      status: 'completed',
+      result: okResponse({ patches: [{ pageId: v.pageId, summary: '换一句标题', ops: [{ op: 'set', nodeId: v.nodeId, path: 'name', value: '更醒目' }] }] }),
+    });
+    const seen = await observeJob(submitted.jobId, ownerId);
+    expect(seen?.approvals).toEqual([]);
+    expect(seen?.taskStatus).toBe('succeeded');
+    expect(seen?.response?.patches?.[0]?.ops).toHaveLength(1);
+    expect((await taskRow(submitted.taskId)).requiresApproval).toBe(false);
+    expect(await generationRows(submitted.taskId)).toHaveLength(1);
+  });
+
+  it('批准之后再来问一次：给回完整的那一份，而不是又挂起来一次', async () => {
+    const v = await victimNode();
+    const { submitted } = await heldJob(v.nodeId);
+    const decided = await decideApproval(submitted.taskId, ownerId, 'approve', '127.0.0.1');
+    expect(decided.ok).toBe(true);
+    // 批准交回的就是被扣下的那一版：一个 op 都没少，也没重新生成
+    const held = (decided.ok ? decided.held : null) as { patches?: { ops: unknown[] }[] } | null;
+    expect(held?.patches?.[0]?.ops).toHaveLength(1);
+
+    // 决定之后同一个作业再问一次（界面刷新、另一个标签页轮询都会走到这里）
+    const seen = await observeJob(submitted.jobId, ownerId);
+    expect(seen?.taskStatus).toBe('succeeded');
+    expect(seen?.approvals).toEqual([]);
+    expect(seen?.response?.patches?.[0]?.ops).toHaveLength(1);
+    // 行没有被打回等待态：门点过头之后，同一份结果不该再拦第二次
+    const row = await taskRow(submitted.taskId);
+    expect(row.status).toBe('succeeded');
+    expect(row.requiresApproval).toBe(true);
+    expect(row.approvedBy).toBe(ownerId);
+  });
+
+  it('放弃之后再来问：一份补丁都不给，并且说一句为什么没有', async () => {
+    const v = await victimNode();
+    const { submitted } = await heldJob(v.nodeId);
+    const decided = await decideApproval(submitted.taskId, ownerId, 'reject', '127.0.0.1');
+    expect(decided.ok).toBe(true);
+    expect(decided.ok ? decided.status : null).toBe('cancelled');
+
+    const seen = await observeJob(submitted.jobId, ownerId);
+    expect(seen?.taskStatus).toBe('cancelled');
+    // ai-service 那一侧仍报 completed 且带着结果——放弃是对"要不要交回"的决定，不是对作业的判断
+    expect(seen?.jobStatus).toBe('completed');
+    expect(seen?.response).toBeNull();
+    expect(JSON.stringify(seen?.notes)).toContain('已经被放弃');
+  });
+
+  it('同一次挂起被问两次：现场不重写，两次给的是同一份说法', async () => {
+    const v = await victimNode();
+    const { submitted } = await heldJob(v.nodeId);
+    const first = (await observeJob(submitted.jobId, ownerId))!;
+    expect(first.taskStatus).toBe('awaiting_approval');
+    const row = await taskRow(submitted.taskId);
+    expect(row.status).toBe('awaiting_approval');
+    // 两轮给出去的报文完全相同：`delivered` 是挂起当时存下的那一份，不是每次现算的
+    expect(first.response).not.toBeNull();
+    expect(JSON.stringify(first.response)).toBe(JSON.stringify((row.result as { delivered: unknown }).delivered));
+    // 文档在两轮之间没有变，重算也只会算出同一句理由——但代码不该依赖"没有变"这个前提
+    expect(first.approvals).toHaveLength(1);
+    expect(await generationRows(submitted.taskId)).toHaveLength(0);
+  });
+
+  it('文档里查不到的节点 id：理由退回那个 id，不编一个"某个元素"', async () => {
+    const { seen } = await heldJob('ghost-node-not-in-this-doc');
+    expect(seen.approvals[0]?.reason).toContain('ghost-node-not-in-this-doc');
+    expect(seen.approvals[0]?.reason).not.toContain('某个元素');
+    // 报不出名字不等于放过：门照样拦
+    expect(seen.taskStatus).toBe('awaiting_approval');
   });
 });

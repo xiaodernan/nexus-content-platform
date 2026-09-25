@@ -1,11 +1,13 @@
 import { eq } from 'drizzle-orm';
-import type { AgentActivity, AiError, AiJobBackend, AiJobStatusResponse, AiJobStatusValue, AiRequest, RealtimeEvent } from '@nexus/schemas';
+import type { AgentActivity, AiError, AiJobBackend, AiJobStatusResponse, AiJobStatusValue, AiRequest, AiResponse, RealtimeEvent } from '@nexus/schemas';
 import { fetchAiJobStatus, submitAiJob } from '../ai/client';
+import { gateResponse, heldRecord, nodeNamer, WEB_APPROVAL_POLICY, type ApprovalAction, type HeldRecord, type NodeNamer } from '../ai/approvals';
 import { channels, getRealtimeBus } from '../realtime/bus';
-import { attachJob, bumpActivityCursor, finishTask, startTask, taskByJobId, type TaskCapability } from './agent-tasks';
+import { attachJob, bumpActivityCursor, finishTask, holdForApproval, startTask, taskByJobId, type TaskCapability } from './agent-tasks';
 import { emit } from './notifications';
 import { getDb } from '../db/client';
 import { agentTasks } from '../db/schema';
+import { loadDocument } from './projects';
 
 /**
  * §162 的 web 侧消费者：ai-service 早就有真队列（`POST /v1/ai/jobs` 入队、asyncio worker 执行、
@@ -22,6 +24,9 @@ import { agentTasks } from '../db/schema';
  *   所以这里透传的是 `null`，而不是替它填一个 0.5；能给的真实信号只有活动列表。
  * - **作业查不到时不许让任务停在 running**。内存后端重启即失，那个作业号就指向一个不存在的东西；
  *   这种情况把行落成 failed 并写明"查不到"，比一条永远转圈的"正在生成"诚实。
+ * - **结果交回浏览器之前过 §74 那道门**。异步这条路与 `/api/ai/run` 用同一个 `gateResponse`、
+ *   同一份 `WEB_APPROVAL_POLICY`：含高危动作的结果在这里也只是"挂起"，补丁不进报文。
+ *   没有这一条，"绕过审批"就只需要多选一个"异步"。
  */
 
 export type JobSubmitResult =
@@ -89,6 +94,13 @@ export interface JobObservation {
   outcome: string | null;
   /** 这一轮观察有什么要说清楚的：查不到、问不到、后端是内存 —— 不藏在状态码里 */
   notes: string[];
+  /** §74：这份结果里有几处要人先点头；空数组表示 `response` 可以原样交回编辑区 */
+  approvals: ApprovalAction[];
+  /**
+   * 能交回的那一份 provider 结果。挂起时给的是补丁已被抽走的那一份（与同步路径同一形状），
+   * 批准之后客户端要从 `POST /api/ai/tasks/<taskId>/approval` 拿被扣下的那一版。
+   */
+  response: AiResponse | null;
 }
 
 /** 只说真有的东西：一个补丁都没落地时不写"生成顺利"（与 /api/ai/run 同一口径） */
@@ -114,15 +126,47 @@ function stepEvent(projectId: string, taskId: string, index: number, activity: A
   return null;
 }
 
+/**
+ * 给审批理由报名字的 namer。读不到文档（项目被删了）时退回"报不出名字"，
+ * `describe()` 会退回 op 里那个 id —— 那仍是真信息，比编一个"某个元素"好。
+ */
+async function namerFor(projectId: string | null): Promise<NodeNamer> {
+  const doc = projectId ? await loadDocument(projectId) : null;
+  return doc ? nodeNamer(doc) : () => null;
+}
+
+/** 一行任务的审批现场：`result` 是挂起时写的 HeldRecord，其余状态读不到就当没有 */
+function heldOf(row: { result: unknown; requiresApproval: boolean } | undefined): HeldRecord | null {
+  if (!row?.requiresApproval) return null;
+  const record = row.result as Partial<HeldRecord> | null;
+  if (!record || typeof record !== 'object' || !record.delivered || !Array.isArray(record.approvals)) return null;
+  return record as HeldRecord;
+}
+
 /** 作业的终态 → 任务行 + 一条 generation 通知。`completed` 不等于"这次生成做成了什么" */
 async function settle(
   task: typeof agentTasks.$inferSelect,
   projectName: string | null,
   status: AiJobStatusResponse,
 ): Promise<void> {
-  if (task.status === 'succeeded' || task.status === 'failed') return;
+  // 只写在跑的行：已经终态或已经挂起的行不再由这一路改写（同一份状态被问第二次是常态）
+  if (task.status !== 'running') return;
   const softError = status.status === 'completed' ? (status.result?.error ?? null) : null;
   const ok = status.status === 'completed' && !softError;
+
+  /**
+   * §74 的门开在这里，而不是"等客户端拿到补丁之后自己决定要不要落地"。
+   * 挂起时终态不写、通知也不发：一条"Generation complete"替一次还没人决定的事签字，
+   * 就是 §164 一开始要避免的那种假事件（与 `/api/ai/run` 同一口径）。
+   */
+  if (ok && status.result) {
+    const gate = gateResponse(status.result, WEB_APPROVAL_POLICY, await namerFor(task.projectId));
+    if (gate.approvals.length > 0) {
+      await holdForApproval(task.id, heldRecord(gate, WEB_APPROVAL_POLICY));
+      return;
+    }
+  }
+
   const reason = status.error?.message ?? (softError ? `${softError.code}：${softError.message}` : '作业失败，没有给出原因');
   const detail = ok ? summaryOf(status.result) : reason;
 
@@ -189,11 +233,43 @@ export async function observeJob(jobId: string, actorId: string): Promise<JobObs
   }
 
   const [fresh] = await getDb()
-    .select({ status: agentTasks.status, error: agentTasks.error, result: agentTasks.result })
+    .select({
+      status: agentTasks.status,
+      error: agentTasks.error,
+      result: agentTasks.result,
+      requiresApproval: agentTasks.requiresApproval,
+    })
     .from(agentTasks)
     .where(eq(agentTasks.id, task.id))
     .limit(1);
   const detail = fresh?.result && typeof fresh.result === 'object' && 'detail' in fresh.result ? fresh.result.detail : null;
+
+  /**
+   * 交回的那一份只有一种口径：**过门之后的**。
+   * - 等待审批：给挂起当时写下的那份 `delivered`（补丁已被抽走）。为什么不拿 `held` 重算一遍：
+   *   文档在这几秒里可能已经变了，重算出来的理由会换名字，而用户看到的必须是他被问过的那一句。
+   * - 已经批准（行是 `succeeded`）：给完整结果——这一行的批准由 `decideApproval` 认，
+   *   跑到这一步还在报 completed 的，是"批准之后又有人来问一次"，门已经点过头了。
+   * - 已经放弃（`cancelled`）：什么都不给，并且说一句为什么没有。
+   * - 其余（没挂起过就跑完的）：给 provider 那一份原样。
+   */
+  const held = fresh?.status === 'awaiting_approval' ? heldOf(fresh) : null;
+  let response: AiResponse | null = null;
+  let approvals: ApprovalAction[] = [];
+  if (held) {
+    response = held.delivered;
+    approvals = held.approvals;
+    notes.push(
+      `这份结果含 ${held.approvals.length} 处需要人工审批的动作，补丁留在服务端没有交回（批准走 POST /api/ai/tasks/${task.id}/approval）`,
+    );
+  } else if (status?.status === 'completed' && status.result) {
+    if (fresh?.status === 'cancelled') {
+      notes.push('这一份挂起的结果已经被放弃，补丁不会再交回编辑区');
+    } else {
+      response = status.result;
+    }
+  }
+
   return {
     jobId,
     taskId: task.id,
@@ -208,5 +284,7 @@ export async function observeJob(jobId: string, actorId: string): Promise<JobObs
     taskStatus: fresh?.status ?? task.status,
     outcome: fresh?.status === 'failed' ? (fresh?.error ?? null) : typeof detail === 'string' ? detail : null,
     notes,
+    approvals,
+    response,
   };
 }

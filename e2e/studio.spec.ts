@@ -2582,3 +2582,34 @@ test('@smoke §74 AI 的删除结果先过人工审批：扣住时画布不动�
   await expect.poll(nodeCount, { timeout: 20_000 }).toBe(before);
   expect(afterDelete).toBeLessThan(before);
 });
+
+test('@smoke §162 异步作业入口：DEMO MODE 下拒收就是拒收，不替它演一个"在跑的作业"', async ({ page }) => {
+  // 这一条要跑两次 AI 提交（一次被 409 拒掉、一次走完同步那一路的审批），开发模式下单次请求实测 8~9 秒。
+  // 它证明的是两件事：① 没有真 provider 时异步这条路明确拒，而且拒了之后界面上不留下任何"已经交给队列"的痕迹；
+  // ② 多出来的这个入口没有开出第二条绕过 §74 的路——同一句话换个入口，照样要过同一道门。
+  test.setTimeout(240_000);
+  // createProject 已经把这个项目打开在工作台里，这一条不需要它的 id：所有断言都在界面上
+  await createProject(page, `异步入口${Date.now().toString(36)}`);
+  const nodeCount = (): Promise<number> => page.evaluate(() => document.querySelectorAll('[data-node-id]').length);
+  const before = await nodeCount();
+
+  await page.check('[data-ai-async]');
+  await page.fill('[data-ai-input]', '删除 Hero 区块');
+  await page.click('[data-ai-submit]');
+  await expect(page.locator('[data-ai-error]')).toContainText('异步作业要有一个接上真 provider 的 AI Service', { timeout: 60_000 });
+  // 409 就是没提交：那一句拒收的话原样报出来，而"已交给队列 · 作业 job-…"一行不许出现
+  await expect(page.locator('[data-async-status]')).toHaveCount(0);
+  await expect(page.locator('[data-approval-card]')).toHaveCount(0);
+  expect(await nodeCount()).toBe(before);
+  await page.screenshot({ path: 'screenshots/ai-async-refused.png' });
+
+  // 反向对照：取消勾选，同一句话走同步那一路——门还在，卡片还在，画布还是没动
+  await page.uncheck('[data-ai-async]');
+  await page.click('[data-ai-submit]');
+  await expect(page.locator('[data-approval-card]')).toBeVisible({ timeout: 60_000 });
+  await expect(page.locator('[data-approval-title]')).toContainText('画布还没有被改动');
+  expect(await nodeCount()).toBe(before);
+  await page.click('[data-approval-reject]');
+  await expect(page.locator('[data-approval-note]')).toContainText('删除也没有发生', { timeout: 30_000 });
+  expect(await nodeCount()).toBe(before);
+});

@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import type { AgentActivity, AgentPlan, AiResponse, ModelClass } from '@nexus/schemas';
-import { AiResponseSchema, DesignPatchSchema } from '@nexus/schemas';
+import { AiJobObservationSchema, AiResponseSchema, DesignPatchSchema } from '@nexus/schemas';
 import { cn } from '@/lib/cn';
 import { csrfHeaders } from '@/lib/csrf';
 import { useRealtime, type RealtimeState } from '@/lib/useRealtime';
@@ -42,6 +42,21 @@ export function CommandBar() {
   // 这次请求在 agent_tasks 里的那一行（§112）：命令栏只显式带出最近一次，历史在 /tasks 页
   const [taskId, setTaskId] = useState<string | null>(null);
   const inputRef = useRef<HTMLTextAreaElement | null>(null);
+  /**
+   * §162 的异步那一路。默认不勾：同步那一路是"这次请求挂住等结果"，
+   * 而队列那一路是"提交之后问"——两条路的账本、审批门与落地代码是同一份，
+   * 差别只在谁等、等多久，所以勾上它不该改变"结果会不会被拦"（§74）。
+   */
+  const [asyncMode, setAsyncMode] = useState(false);
+  const [asyncStatus, setAsyncStatus] = useState<string | null>(null);
+  /** 组件卸载之后不许再有第二次 fetch：那会在没有界面的地方 setState */
+  const pollStop = useRef(false);
+  useEffect(
+    () => () => {
+      pollStop.current = true;
+    },
+    [],
+  );
 
   // §163：订本项目频道。生成任务开始与结束各推一条，这一条连接让界面不必等 HTTP 响应。
   // 进度单独存一份：同一条连接也会推通知事件，用"最后一条事件"当进度显示会被别的类型顶掉，
@@ -102,8 +117,7 @@ export function CommandBar() {
   const [approvalNote, setApprovalNote] = useState<string | null>(null);
 
   /** 把一份 AI 结果打进工作区。同步那一路与"批准后交回的那一版"共用这一条：一次事务、可整体撤销（§149/§150） */
-  const applyResult = (response: AiResponse, fallbackText: string): void => {
-    const invalid = response.patches.find((p) => !DesignPatchSchema.safeParse(p).success);
+  const applyResult = (response: AiResponse, fallbackText: string): void => {    const invalid = response.patches.find((p) => !DesignPatchSchema.safeParse(p).success);
     if (invalid) {
       setError('AI 返回的补丁不符合补丁契约，已拒绝写入');
       return;
@@ -158,6 +172,57 @@ export function CommandBar() {
     }
   };
 
+  /**
+   * 拿到一份能交回的结果之后怎么处置——同步那一路与异步轮询那一路共用这一段。
+   * 两条路的形状必须一样：服务端扣下的高危结果在两边都是"补丁不在报文里 + approvals 非空"，
+   * 于是审批卡片也只有一处实现。异步那条路如果自己另写一套"先落地再说"，§74 就等于没有。
+   */
+  const consume = (response: AiResponse, taskForApproval: string | null, text: string): void => {
+    setResult(response);
+    if (response.approvals?.length && taskForApproval) setHeld({ taskId: taskForApproval, approvals: response.approvals });
+    if (response.error && response.error.code !== 'approval-required') {
+      setError(`${response.error.code}：${response.error.message}${response.error.hint ? `（${response.error.hint}）` : ''}`);
+    } else if (response.patches?.length) {
+      applyResult(response, text);
+    }
+    setPrompt('');
+  };
+
+  /**
+   * §162 的异步那一路：交给队列之后每 1.5 秒问一次，问到的都是真观察。
+   * 三条不能省的诚实：进度没有来源就不画百分比（这条队列的 progress 一直是 null）；
+   * 等满 3 分钟没结束就说"还没结束"，而不是替它编一个"快好了"；
+   * 服务端扣下的那一版在报文里就是空的补丁列表——卡片说的是同一句"画布还没有被改动"。
+   */
+  const waitJob = async (jobId: string, taskId: string | null, text: string): Promise<void> => {
+    for (let i = 0; i < 120 && !pollStop.current; i += 1) {
+      await new Promise((resolve) => setTimeout(resolve, 1_500));
+      if (pollStop.current) return;
+      const res = await fetch(`/api/ai/jobs/${encodeURIComponent(jobId)}`, { cache: 'no-store' });
+      const parsed = AiJobObservationSchema.safeParse(await res.json().catch(() => null));
+      if (!res.ok || !parsed.success) {
+        const detail = parsed.success ? `HTTP ${res.status}` : parsed.error.issues.map((x) => `${x.path.join('.')}: ${x.message}`).join('；');
+        throw new Error(`问不到这个作业的状态：${detail}`);
+      }
+      const seen = parsed.data;
+      setAsyncStatus(
+        `作业 ${jobId} · ${seen.jobStatus ?? '没问到'} · 任务 ${seen.taskId.slice(0, 8)}${seen.notes[0] ? ` · ${seen.notes[0]}` : ''}`,
+      );
+      if (seen.response) {
+        consume(seen.response, seen.taskId ?? taskId, text);
+        return;
+      }
+      if (seen.jobStatus === 'failed' || seen.taskStatus === 'failed') {
+        throw new Error(seen.outcome ?? '作业失败，没有给出原因');
+      }
+      if (seen.taskStatus === 'cancelled') {
+        setApprovalNote('这一份挂起的结果先前已被放弃，异步这一路不会再交回补丁。');
+        return;
+      }
+    }
+    throw new Error(`等了 3 分钟，这个作业还没结束（作业号 ${jobId}）。它还在队列里跑，可以再回来问，或者在任务列表里看它。`);
+  };
+
   const submit = async () => {
     const text = prompt.trim();
     if (!text || busy) return;
@@ -166,6 +231,7 @@ export function CommandBar() {
     setResult(null);
     setHeld(null);
     setApprovalNote(null);
+    setAsyncStatus(null);
     // 服务端只能从库里装配上下文（§68），所以先把编辑器里的改动落库；存不上就停下报原因，
     // 而不是悄悄按旧版本生成
     const flushed = await studio.flushBeforeAi();
@@ -191,31 +257,30 @@ export function CommandBar() {
       },
     };
     try {
-      const res = await fetch('/api/ai/run', {
+      const res = await fetch(asyncMode ? '/api/ai/jobs' : '/api/ai/run', {
         method: 'POST',
         headers: { 'content-type': 'application/json', ...csrfHeaders() },
         body: JSON.stringify(body),
       });
-      const payload = (await res.json().catch(() => null)) as (Partial<AiResponse> & { issues?: string[]; message?: string; error?: string }) | null;
+      const payload = (await res.json().catch(() => null)) as
+        | (Partial<AiResponse> & { jobId?: string; backend?: string; note?: string; issues?: string[]; message?: string; error?: string })
+        | null;
       // 任务号在响应头里（AiResponse 是 web ↔ ai-service 的契约报文，不带 web 侧账本字段）。
       // 失败时服务端也会落一条 failed 的任务行，所以这里在 !res.ok 之前先取到它
       const taskIdHeader = res.headers.get('x-nexus-task');
       setTaskId(taskIdHeader);
       if (!res.ok || !payload) {
+        // 409 demo_mode 那句原样报出来：异步作业要真 provider，这里不替它演一个"已提交"
         const detail = payload?.issues?.join('；') ?? payload?.message ?? payload?.error ?? `HTTP ${res.status}`;
         throw new Error(detail);
       }
-      const response = payload as AiResponse;
-      setResult(response);
-      // §74：有审批动作时补丁根本不会到这里（服务端已扣下），界面上说的是"等什么"，
-      // 而不是把 approval-required 当成一条普通错误刷在结果行上
-      if (response.approvals?.length && taskIdHeader) setHeld({ taskId: taskIdHeader, approvals: response.approvals });
-      if (response.error && response.error.code !== 'approval-required') {
-        setError(`${response.error.code}：${response.error.message}${response.error.hint ? `（${response.error.hint}）` : ''}`);
-      } else if (response.patches?.length) {
-        applyResult(response, text);
+      if (asyncMode) {
+        if (!payload.jobId) throw new Error('提交没有拿到作业号，因此没东西可以问');
+        setAsyncStatus(`已交给队列 · 作业 ${payload.jobId} · 后端 ${payload.backend ?? '未知'}${payload.note ? ` · ${payload.note}` : ''}`);
+        await waitJob(payload.jobId, taskIdHeader, text);
+        return;
       }
-      setPrompt('');
+      consume(payload as AiResponse, taskIdHeader, text);
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
     } finally {
@@ -230,6 +295,12 @@ export function CommandBar() {
       {live ? (
         <p className="text-11 text-fg-3" data-generation-progress={live.taskId}>
           实时进度 {Math.round(live.progress * 100)}% · {live.message ?? '生成中'} · 任务 {live.taskId.slice(0, 8)}
+        </p>
+      ) : null}
+      {/* 异步那一路说的都是观察到的东西：作业号、队列报的状态、以及后端带来的限制 */}
+      {asyncStatus ? (
+        <p className="text-11 text-fg-3" data-async-status>
+          {asyncStatus}
         </p>
       ) : null}
       {taskId ? (
@@ -352,6 +423,11 @@ export function CommandBar() {
         >
           {busy ? '执行中…' : '执行'}
         </button>
+        {/* 勾上它只是换"谁在等"：等同步返回，还是交给队列然后一次一次问。拦不拦高危动作由服务端那道门说（§74） */}
+        <label className="flex h-[34px] shrink-0 items-center gap-1 text-11 text-fg-3" title="交给 AI Service 的队列执行：不挂住这次请求，状态与结果靠回来问">
+          <input type="checkbox" checked={asyncMode} onChange={(e) => setAsyncMode(e.target.checked)} data-ai-async />
+          异步作业
+        </label>
       </div>
       <div className="mt-1 flex flex-wrap gap-[var(--nexus-space-2)]">
         {EXAMPLES.map((example) => (
