@@ -141,6 +141,24 @@ describe('分支与副本（真实数据库）', () => {
     expect(created.length, `新增的应当只有两条切换标记；分支头现状：${heads}`).toBe(2);
   });
 
+  it('存回原分支的那一条会带上"为什么要存"', async () => {
+    // 那条偶发的噪音快照单独跑五次都复现不出来，靠猜没有意义。
+    // 所以把原因写进快照自己那一行：下一次真出现时，历史里就带着"差在哪一处"
+    const id = await newProject('Stash Reason');
+    await putMarker(id, '要留在 main 的改动');
+    const v2 = await createBranch(id, { name: 'with-reason' });
+    expect(v2.ok).toBe(true);
+    const stash = (await listSnapshots(id)).find((s) => (s.label ?? '').startsWith('分出'));
+    expect(stash?.summary ?? '').toContain('差异');
+    expect(stash?.summary ?? '').toContain('要留在 main 的改动');
+    // 反向对照：内容真的一样时根本不写这一条，不是靠文案撑着的空操作
+    const before = await listSnapshots(id);
+    const [main] = await listBranches(id);
+    await switchBranch(id, main!.id);
+    const mid = await listSnapshots(id);
+    expect(mid.filter((s) => !before.some((b) => b.id === s.id) && (s.label ?? '').startsWith('切到'))).toEqual([]);
+  });
+
   it('从历史快照开分支：起点是那份快照，当前现场先存回原分支', async () => {
     const id = await newProject('Branch From Snapshot');
     const [main] = await listBranches(id);

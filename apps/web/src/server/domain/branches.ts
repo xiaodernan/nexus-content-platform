@@ -1,5 +1,5 @@
 import { and, asc, desc, eq, isNull } from 'drizzle-orm';
-import { duplicateDocument, remapAssetIds, type DesignDocument } from '@nexus/design-model';
+import { duplicateDocument, remapAssetIds, diffDocuments, type DesignDocument } from '@nexus/design-model';
 import { getDb } from '../db/client';
 import { branches, projects, snapshots } from '../db/schema';
 import { createProject, loadDocument, saveDocument } from './projects';
@@ -143,10 +143,17 @@ async function stashCurrent(
     ? await readSnapshot(projectId, row.headSnapshotId)
     : null;
   if (stored && documentsMatch(current, stored.document)) return;
+  // 把"为什么要存这一条"写进快照自己的 summary：切换留下的噪音快照偶发到过一次、单独跑五次都复现不出来，
+  // 靠猜没意义。下一次真出现时，历史列表里那条就带着原因（差在哪一处 / 根本读不到 head），
+  // 而不是留一个只有时间没有理由的行
+  const reason = stored
+    ? `与「${label}」的差异：${diffDocuments(stored.document, current).entries.slice(0, 3).map((entry) => `${entry.kind} ${entry.nodeName}`).join('、') || '字段顺序或序列化不同'}`
+    : '离开的分支没有可读的 head 快照，只能把现场存一条新的';
   await createSnapshot(projectId, {
     document: current,
     source: 'branch',
     label,
+    summary: reason,
     branchId: fromBranchId,
     ...actor,
   });
