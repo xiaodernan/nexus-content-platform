@@ -35,10 +35,11 @@ function TestChips({ chips }: { chips: TestChip[] }) {
         <span
           key={`${c.engine}-${i}`}
           data-testid="agent-test-chip"
-          title={c.firstFailure ?? 'all predicates passed'}
-          style={{ fontSize: 10, padding: '1px 6px', borderRadius: 8, border: '1px solid var(--nexus-border)', color: c.ok ? '#7dd97d' : '#ff7a7a' }}
+          title={c.firstFailure ?? (c.evidenceCut ? `all predicates passed — but the ${c.evidenceCut} output was cut at the budget, so this quote is a window` : 'all predicates passed')}
+          style={{ fontSize: 10, padding: '1px 6px', borderRadius: 8, border: '1px solid var(--nexus-border)', color: c.ok ? (c.evidenceCut ? '#e0c060' : '#7dd97d') : '#ff7a7a' }}
         >
           {c.ok ? '✓' : '✗'} {c.engine} {c.passed}/{c.total}
+          {c.evidenceCut ? ` ⚠ evidence cut: ${c.evidenceCut}` : ''}
         </span>
       ))}
     </div>

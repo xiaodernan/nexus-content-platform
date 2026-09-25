@@ -94,6 +94,13 @@ export interface TestChip {
   total: number;
   /** `name: message` of the first failure, or null when the report passed. */
   firstFailure: string | null;
+  /**
+   * M2 v72 (ADR 0016 amendment 72): which pipes the output budget cut, or null when it cut none. A
+   * GREEN report can carry this — the verdict is the command's own exit code, so a cut never reddens a
+   * run (v31/v71) — but the ✓ the human is looking at then quotes a window, not the whole answer.
+   * Stating it is the reason v71 put the field in the report at all.
+   */
+  evidenceCut: string | null;
 }
 
 export function testChipsFor(outcome: RunOutcome): TestChip[] {
@@ -103,6 +110,7 @@ export function testChipsFor(outcome: RunOutcome): TestChip[] {
     passed: r.passed,
     total: r.total,
     firstFailure: r.failures[0] ? `${r.failures[0].name}: ${r.failures[0].message}` : null,
+    evidenceCut: r.truncatedStreams && r.truncatedStreams.length > 0 ? r.truncatedStreams.join(' + ') : null,
   }));
 }
 

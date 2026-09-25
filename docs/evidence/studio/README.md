@@ -406,3 +406,26 @@ table that forgets `test.run` is vetoed by its OWN default row and the run lands
 `denied`, never silent green. Honest bounds (§60): the mode toggle is NOT in the dock UI
 yet — today only tests construct the policy face; the browser still shows Allow-once.
 Studio 99/99 → 105/105 (new `dockPolicy.test.ts`, 6 cases); runtime/exec-host untouched.
+
+## Evidence-cut chips — a green ✓ that quotes a window says so (M2 v72, headless)
+
+v71 put `truncatedStreams` into `TestReport` and closed by admitting nothing read it. This is the reader:
+`testChipsFor` (v33) gains `evidenceCut: string | null` per chip — the report's pipes joined with `' + '`,
+the same joining v56 chose for its budget clause — and `AgentPanel`'s `TestChips` stops pretending: a report
+that passed on a cut pipe renders **amber** rather than green with `⚠ evidence cut: stdout`, and its tooltip
+says the quote is a window rather than the whole answer. Red is reserved for a real failure, because
+`ok` is still the command's own exit code (v31's rule; v71 re-asserted it in the bridge).
+
+Evidence is studio's headless vitest — `testChipsFor` is a pure function over a `RunOutcome`, the same class
+of change v33 and v41 evidenced this way — and the suite is **115/115** (from 114): one new case over three
+reports (`['stdout']` on a green chip, `['stdout','stderr']` in reader order, `null` for an in-process
+predicate runner — never an empty string), plus **two existing strict `toEqual` chip expectations re-counted in
+the same commit** because they pinned the old key set.
+
+The bound that matters, stated rather than skipped: **no visual verification was done, because none is
+reachable.** No Studio surface runs an exec host (true since v30 moved spawning out of the runtime), so a
+browser session cannot produce a report carrying `truncatedStreams` today; the marker becomes observable only
+when a caller supplies an exec-host runner, and if this lane ever wires one, the chip will need a real browser
+pass. Also inherited from v71: a cut is signalled, not measured (the field says which pipes lost bytes, never
+how many); `descendantsStopped` (v55) still never reaches a report; and v41's ledger row journals the human's
+decision, not the chip's caveat, so a cold replay reads the report or sees nothing.

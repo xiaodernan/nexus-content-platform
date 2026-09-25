@@ -133,10 +133,28 @@ describe('agentDock pipeline (§23/§25/§28)', () => {
       ],
     } as never;
     expect(testChipsFor(outcome)).toEqual([
-      { engine: 'in-process-predicates', ok: true, passed: 2, total: 2, firstFailure: null },
-      { engine: 'exec-host:node check.js', ok: false, passed: 0, total: 1, firstFailure: 'exit-zero: exit 1 · boom' },
+      { engine: 'in-process-predicates', ok: true, passed: 2, total: 2, firstFailure: null, evidenceCut: null },
+      { engine: 'exec-host:node check.js', ok: false, passed: 0, total: 1, firstFailure: 'exit-zero: exit 1 · boom', evidenceCut: null },
     ]);
     expect(testChipsFor({ status: 'completed' } as never)).toEqual([]); // hosts without test.run say so, they don't fake chips
+  });
+
+  it('v72: a GREEN report whose evidence was cut is stated as green AND cut — the two are different facts', () => {
+    const outcome = {
+      status: 'completed',
+      testReports: [
+        // what v71's bridge produces for `exit 0` with an overflowed stdout: the verdict is the command's,
+        // the quote is a window. A chip that printed only `✓ 1/1` hid the second half.
+        { engine: 'exec-host:node suite.js', ok: true, total: 1, passed: 1, detail: '', failures: [], truncatedStreams: ['stdout'] },
+        { engine: 'exec-host:node noisy.js', ok: true, total: 1, passed: 1, detail: '', failures: [], truncatedStreams: ['stdout', 'stderr'] },
+        { engine: 'in-process-predicates', ok: true, total: 1, passed: 1, detail: '', failures: [] },
+      ],
+    } as never;
+    expect(testChipsFor(outcome).map((c) => [c.ok, c.evidenceCut])).toEqual([
+      [true, 'stdout'],
+      [true, 'stdout + stderr'], // the same joining v56 chose for its budget clause, so nothing new is invented
+      [true, null], // an in-process predicate runner has no pipes to cut: null, never an empty string
+    ]);
   });
 
   it('v33: a real pipeline plan yields exactly one honest ok chip', async () => {
@@ -144,7 +162,7 @@ describe('agentDock pipeline (§23/§25/§28)', () => {
     const res = await planAgentRun(doc, pageId, 'recolor the welcome hero text');
     if (!('handoff' in res)) throw new Error('plan unexpectedly rejected');
     const chips = testChipsFor(res.outcome);
-    expect(chips).toEqual([{ engine: 'in-process-predicates', ok: true, passed: 1, total: 1, firstFailure: null }]);
+    expect(chips).toEqual([{ engine: 'in-process-predicates', ok: true, passed: 1, total: 1, firstFailure: null, evidenceCut: null }]);
   });
 
   it('v33: the ledger records the verification verdict beside the decision; report-less plans add no field', () => {
