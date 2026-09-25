@@ -2785,3 +2785,67 @@ _Numbering: 76 was free when this was written (`git log --oneline -3` top = `17d
   Shared with the other lane: their uncommitted `syncproc.mjs` is imported by worktree proof copies and
   is UNTRACKED, so those copies are not reproducible from a clean clone — the divergence table now
   measures that number (34) instead of it being a recollection, and the finding is theirs to resolve.
+
+## Amendment 79 — v79 (runtime): a key whose VALUE is `undefined` is not a key — the persisted index round-tripped into an object that could never have come off disk, and 25 increments of green proofs could not see it
+
+- **This amendment exists because amendment 78's sweep named its own bytes.** Two of that sweep's three
+  reds were one defect in `@nexus/agent-runtime`: `index-store-proof.mjs` asserts
+  `deepStrictEqual(loaded.index, cold)` — "what came back from disk is the index I built" — and
+  `provider-proof.mjs` asserts the same fact through the provider. Both had been green since v4/v5.
+  They went red in this window, and the reason is not that the code got worse: `chunkFile` has always had
+  TWO shapes for "this chunk has no heading". The window (non-markdown) branch pushes
+  `{ path, startLine, endLine, text }` — no `heading` key. The markdown branch pushed
+  `{ ..., heading: undefined, ... }` — the key PRESENT, its value `undefined`. Both satisfy the
+  declared type (`heading?: string`), both read the same at every call site (`c.heading ?? ''`), and they
+  are equal to a human. They are not equal to `deepStrictEqual`, and they are not equal **across
+  `JSON.stringify`**, which drops the key — so the in-memory index carried a fact that its own persisted
+  form could never express. The round trip did not lose data; it revealed that one side of the
+  comparison had been inventing a key.
+- **What made it reachable was an untracked file.** `collectTextFiles('.')` — so the object of both
+  proofs is the working tree, and this window had written a scratch note whose text precedes its first
+  `#` heading. Every markdown file in this repository happens to START with a heading, so for 25
+  increments the markdown branch never produced a pre-heading chunk, and the two-shape bug sat in a
+  branch nobody's corpus reached. Amendment 78 called this the third axis a sweep must name; the product
+  defect it exposed is closed here, and the runner's `[identity]` block still owes a walked-tree line.
+- **The fix is the smaller shape, not the looser comparison.** `codeIndex.ts`'s markdown branch now
+  omits the key when there is no heading, so BOTH branches agree and "absent" is the only representation
+  of absence — the same rule this stack applies to `windowed` (v69), `truncatedStreams` (v71/v72) and the
+  caveat fields (v75): a field is present exactly when it carries information. The alternative — having
+  `deserializeIndex` re-add `heading: undefined` — would have made the comparison pass while leaving two
+  in-memory shapes for one fact, which is the thing that produced the bug.
+- **Five unit cases, and the pre-fix counterfactual was measured BEFORE the edit.** `codeIndex.test.ts`
+  pins (1) a pre-heading chunk has no `heading` key and names its exact four keys, (2) a chunk that DOES
+  have a heading still carries it, so the two shapes are not collapsed into one by a blanket deletion,
+  and (3) the markdown branch agrees with the window branch, which never had the key — measured as
+  exactly one chunk in a two-file mix. `indexStore.test.ts` pins the round trip itself, in memory
+  (`toStrictEqual`, the same comparison the proofs run) and through a `FakeDisk`, plus
+  `queryIndex` identity so the fix cannot pass by ranking differently. Before the edit, the defect was
+  reproduced in eight lines over two synthetic files — one with a `# ` heading, one without — against the
+  then-current `dist`, so the red is on the record as a measurement and not as a retelling.
+- **The control that says the fix did the work, not the tree.** Both proofs were re-run with the SAME
+  heading-less scratch file still sitting in `.scratch/`, i.e. the trigger was left in place:
+  `index-store-proof.mjs` and `provider-proof.mjs` now both print ALL ASSERTIONS PASSED. Removing the
+  scratch file would have "fixed" the sweep without fixing anything.
+- **The same-class sweep this triggered, and what it found.** Only `chunkFile` constructs chunks, and
+  `files` entries have no optional fields. `IndexHit.heading` (line 135) does carry `heading:` with a
+  possibly-undefined value — but hits are query results and are never persisted, so no round trip can
+  disagree with them. Where JSONL round trips ARE asserted — the ledger's `windowed`,
+  `truncatedStreams`, `killedByBudget` keys (v69–v73) — the committed proofs already re-read the file
+  from disk and pass, which is exactly the assertion this index path lacked.
+- **Cost.** `agents/runtime/src/codeIndex.ts` one branch, plus five test cases; runtime
+  **349 → 354**. No exported type changed, no argv, policy, budget or record shape moved. Eight turbo
+  tasks green; studio **115** unchanged; exec-host reads **275** in THIS worktree, one above the 274 this
+  lane last counted, and the extra case is the other lane's uncommitted `execHost.test.ts` — reported as
+  theirs, not adopted. `reap-proof.mjs` remains red for the reason amendment 78 named: the `dist` under
+  test carries their async tree reaper, and a promise is not a boolean.
+- **The runner found a bug in itself on the way, and the count is what caught it.** `sweep.mjs` listed its
+  own file as a proof (`endsWith('.mjs')`), materialised it, RAN it — spawning a nested sweep that started
+  a third — and so printed `[identity] scripts: 63` where the committed population is 62, spent 961 s on a
+  sweep that takes ~200 s, and reported a `FAIL sweep.mjs (exit null, TIMEOUT)` row that is not a proof
+  result at all. Amendment 78 had just written "the next sweep is 62", so the two numbers could be
+  reconciled against each other; a runner whose population line nobody checks would have shipped the
+  recursion silently. The filter is now the directory's own `-proof.mjs` convention, which every proof and
+  the runner this file replaced already used. `report-kill-proof.mjs` also moved between the two sweeps
+  (green in the first, red in the contaminated 961 s one) — reported here as a fact about what CPU
+  contention does to a timing-sensitive proof, and the clean re-run is the number quoted below.
+- **The sweep, as its runner printed it.** `[summary] ref 5c89d0bd3a31 · scripts 62 · failed 1 · dist 8b3ff8b0e7f62133 (stable across the run) · dirty-sources 3 · 311s`, with its population line reading `[identity] scripts: 62 committed proofs materialised into C:\Users\18414\AppData\Local\Temp\nexus-sweep-wjlIvU · 34 of them differ from the WORKTREE copy (the ref's bytes are what runs)`. The reds are `reap-proof.mjs`.
