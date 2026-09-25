@@ -235,4 +235,19 @@ describe('execTestRunner pipes (v60: one pipe may not mute the other in the repo
     const refused = await execTestRunner(harness({ code: 0, signal: null }, [['stdout', 'x']]).host, ['node', 'app.js'], {}).run();
     expect('truncatedStreams' in refused).toBe(false); // §28 refused it: no run, so no pipe to name
   });
+
+  it('v73: a KILLED run carries what the kill stopped — and a cut never pretends to be one', async () => {
+    // the POLICY's second row is `git status *` at timeoutMs 20; this child never ends, so the host kills it.
+    const never = { host: createExecHost(POLICY, { spawnLike: () => new FakeChild() }) };
+    const rep = await execTestRunner(never.host, ['git', 'status', '--short'], { preApproved: true }).run();
+    expect(rep.ok).toBe(false);
+    expect(rep.killed).toMatchObject({ signal: 'SIGTERM' });
+    expect(rep.killed?.descendantsStopped).toBe('not-attempted'); // v55: the default host stops ONE process
+    expect(rep.killed?.exitCode).toBeNull();
+    expect('truncatedStreams' in rep).toBe(false); // a kill is not a cut — the two axes stay separate
+    expect(rep.detail).toContain('killed at timeout budget (SIGTERM) (descendants: not-attempted)'); // prose and record say the same thing
+
+    const whole = await execTestRunner(harness({ code: 0, signal: null }, [['stdout', 'all good']]).host, ['node', 'app.js'], PASS_OPTS).run();
+    expect('killed' in whole).toBe(false); // absent, never a zeroed object (v55/v56 precedent)
+  });
 });

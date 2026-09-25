@@ -82,6 +82,9 @@ function reportFrom(name: string, engine: string, r: ExecRunResult): TestReport 
     // v71: the verdict is git's/npm's/vitest's own; the QUOTE beside it is what a cut degrades. Copy the
     // list (a report is journalled, and a journalled fact must not be a live view of the run object).
     ...(r.truncatedStreams && r.truncatedStreams.length > 0 ? { truncatedStreams: [...r.truncatedStreams] } : {}),
+    // v73: and what a KILL stopped — v55's two claims (the process the host started; the rest of its tree)
+    // carried out of the prose, in the host's own words, only when a kill happened.
+    ...(r.killedByBudget ? { killed: { signal: r.signal, descendantsStopped: r.descendantsStopped ?? null, exitCode: r.exitCode } } : {}),
   };
 }
 

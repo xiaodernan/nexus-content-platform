@@ -37,6 +37,18 @@ export interface TestReport {
    * runner has no pipes to cut and so never carries the key.
    */
   truncatedStreams?: Array<'stdout' | 'stderr'>;
+  /**
+   * M2 v73 (ADR 0016 amendment 73): what the timeout budget actually stopped, when it stopped anything.
+   * v55 established that `killedByBudget` is a claim about ONE process — the one the host spawned — and
+   * that `descendantsStopped` is a SEPARATE claim about the rest of the tree, measured to differ: with the
+   * reaper off (the default) a detached child kept writing seven more heartbeats after the host reported
+   * the kill. Until now both facts existed only inside `detail`; a cold reader of a killed run's report
+   * could not tell "the tree stopped" from "a child is still running". The value vocabulary is the exec
+   * host's (`not-attempted | reaped | reaper-failed | no-pid | unsupported-platform`) and is kept as `string`
+   * here rather than restated — a second list of five labels is a second source that can drift, and the
+   * proof asserts a real value produced by a real kill. Absent unless the run was killed.
+   */
+  killed?: { signal: string | null; descendantsStopped: string | null; exitCode: number | null };
 }
 
 export interface TestRunner {
