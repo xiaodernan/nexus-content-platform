@@ -113,6 +113,7 @@ node docs/evidence/agents/prefix-proof.mjs         # requires `npm run build` fi
 node docs/evidence/agents/cut-tally-proof.mjs     # requires `npm run build` first (v66: ONE throwaway repo whose index git's own footer calls `25 files changed, 75 insertions(+), 75 deletions(-)`, read through the three DIFF doors at budgets taken from git's byte offsets — all 774 cut boundaries swept by replaying git's RECORDED bytes through the shipped host (a shortcut §3a pays for with 12 real-vs-replay byte-identity checks, in the sentence AND the parsed files), `git.show`'s windows graded against its own `--numstat 60 0`, the "the changes named before the last are WHOLE" claim tested at a section boundary where it holds and 900 bytes later where the last change is short, both `--stat` faces proven immune over every line boundary, and one REAL commit recording 25 paths where the window said `AT LEAST 8`)
 node docs/evidence/agents/sweep.mjs --ref HEAD      # v78: runs the REF's bytes and prints its identity FIRST — ref sha, dist digest, dirty sources, proofs diverging from the worktree
 node docs/evidence/agents/tree-axis-proof.mjs   # v80: the sweep's third axis — walked-tree digest, ownership bins, mid-run re-check
+node docs/evidence/agents/isolated-proof.mjs  # requires `npm run build` first (v81: a CLEAN CHECKOUT of the ref, built clean-room in a temp tree — graded on one gate, HOME's dist digest byte-identical before/after, so "isolated" is falsifiable instead of asserted; census-without-git reported as null not 0; the tree-walking proof run in both trees: 193 files vs 220, same verdict, every clean file tracked at HEAD)
 ```
 
 A note on `spawns[…]` assertions: they pin the argv SHAPE a plan step is allowed to produce
@@ -2026,3 +2027,39 @@ Bounds: naming the tree does not isolate it (running the walkers against a clean
 queued, with the clean-room build); the 27 untracked files here are kept on purpose, being earlier
 increments' own inputs; and `[summary]` now carries `tree <digest> (stable | MOVED mid-run)` because the
 tree moving during ordinary work is what the re-check exists to say.
+
+## Isolated clean-checkout proof (`isolated-proof.mjs`, M2 v81 — running a proof where nothing is untracked)
+
+64th tracked script, plus `isolatedCheckout()` in `sweep.mjs`. v80 named the third axis and called its own
+bound in the same breath: naming the tree is not isolating it. This is the isolation. `git archive <ref>`
+(3 399 680 bytes measured) untars into a temp directory — no `.git`, therefore no untracked content, but
+also no `dist`, since `dist` is untracked at HEAD — so the tree is built clean-room, with its own
+workspace links derived from the **archived** `package.json` workspaces globs (5: ai-providers,
+design-model, studio, exec-host, agent-runtime) because the home install's `@nexus/*` links are ABSOLUTE
+paths into this working tree, and reusing them would compile uncommitted sources into home's `dist`.
+§1 the census-without-git shape: a tree with no `.git` reports `gitRepo: false`, four `null` counts and
+`censusUnknown === files` — "cannot ask", never `0`, because `0` would assert exactly what isolation is
+supposed to earn — while digest identity and movement still hold; the positive control on this worktree
+re-derives `tracked + untracked + other === files`. §2 the gate that makes the word falsifiable: HOME's
+dist digest is byte-identical before and after the isolated build (`8b3ff8b0e7f62133`, 224 files, 35.0 s),
+in both directions — the temp link resolves inside the temp root AND home's link still resolves to
+`agents/runtime`. §3 reports the build verdict instead of smoothing it: exit 1, `Tasks: 4 successful, 5 total`,
+`Cached: 0 cached, 5 total` (nothing restored from home's cache, so five packages really compiled there),
+`Failed: @nexus/studio#build` over a Next specifier resolved through a cross-drive junction — which is
+reported as THAT, not promoted into "HEAD does not build"; the same-drive rerun is queued. §3 asserts the
+shape nonzero-exit ⇒ at-least-one-named-package, so the line cannot decay into a silent pass, and the temp
+tree's own `agents/runtime/dist/index.js` exists and differs byte-wise from the worktree's (2 466 B
+against 2 576 B here), which is what "it compiled the ref" means. The gap this increment found by trying to
+quote itself: the reason line is at index 35 of 55 output lines and `isolatedCheckout` keeps
+`tailOf(…, 4)`, so the runner names WHICH package died and not WHY — the `runProof` head-vs-tail rule,
+broken one function over, and queued as its own increment rather than papered over here. §4 runs the one committed
+tree-walking proof (`code-index-proof.mjs`) in BOTH trees: green in both, **193 files / 1 619 981 B**
+clean against **220 / 3 801 218 B** here, and every clean file tracked at HEAD by an independently
+re-derived `ls-tree` list rather than by trusting the census. Two mutation probes: M1 (delete the digest
+gate) red; M2 (delete §4's leak assertions) initially **green**, because the poison landed after the walk
+had already been computed — the re-aimed version goes red naming `scratch-leak.md`, and the ordering rule
+is committed into the witness.
+
+Bounds: `runSweep` still runs proofs with `cwd` = the worktree — `--isolated` is queued, so today this
+script is the only thing that executes a proof against a clean checkout; and a `.git`-less tree cannot
+host proofs that shell out to git.

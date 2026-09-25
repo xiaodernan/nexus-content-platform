@@ -2934,3 +2934,95 @@ _Numbering: 76 was free when this was written (`git log --oneline -3` top = `17d
   build digest (224 files, `8b3ff8b0e7f62133`, stable across the run) and the walked tree (220 files,
   `2ee3841ef14c0e1b`, stable) both printed, the reader can see that the red and the green rows were all
   graded against ONE build, and that the build contains code no commit owns.
+
+## Amendment 81 — v81 (docs/evidence): v80's bound becomes a capability — a clean checkout of the ref, BUILT in isolation, and the one gate that makes "isolated" falsifiable: home's `dist` did not move
+
+- **What was queued, and what `git archive` does not give you.** v80 wrote its own limit in its own
+  bounds bullet: "Naming the tree is not isolating it: the honest next step is to run the tree-walking
+  proofs against a clean checkout of the ref". `isolatedCheckout({ref})` in `sweep.mjs` now does it:
+  `git archive --format=tar <ref>` measured at **3 399 680 bytes** on this commit, untarred into a temp
+  directory. That tree has no `.git` — which is the entire point, since untracked content is what v80
+  counted — and it also has no `dist`, because `dist` is untracked at HEAD too. So isolation needs a
+  clean-room build, and a clean-room build on this box needed four facts that were nowhere on record
+  until each was hit: `cmd //c mklink /J` fails with 无效参数 where `fs.symlinkSync(t, p, 'junction')`
+  works; a symlink with a RELATIVE target is EPERM without developer mode; GNU tar reads `C:\Users\…` as
+  a **remote host** (`Cannot connect to C:`) and needs `--force-local` plus forward slashes; and
+  `spawn('npm')` is ENOENT because npm here is `npm.cmd`, so the build runs `cmd.exe /c npm`.
+- **The hazard that made the workspace links part of the design.** The root `node_modules/@nexus/*`
+  entries are **absolute** symlinks into the working tree. A temp tree that reused the home install would
+  resolve `@nexus/agent-runtime` to `D:/终极项目/agents/runtime`, compile HOME's uncommitted sources, and
+  write them into HOME's `dist` — all while printing a green row labelled "clean checkout". So the temp
+  tree builds its own workspace links **from the ARCHIVED `package.json`'s workspaces globs** rather than
+  from a list kept in this runner (**5** links here: `@nexus/ai-providers, @nexus/design-model,
+  @nexus/studio, @nexus/exec-host, @nexus/agent-runtime`), beside **308** third-party junctions, with its
+  own `.cache` so the build's writes stay on the temp side of the boundary.
+- **The one gate: HOME's dist digest byte-identical before and after.** Everything else about isolation
+  is circumstantial — where a link resolves, which directories exist, what the argv said. The property
+  that matters is that the build this lane already depends on did not move while a second build ran:
+  `assert.equal(after.digest, before.digest, 'HOME dist digest MOVED … the isolation is fake')`, measured
+  `8b3ff8b0e7f62133` over **224 files**, identical before and after a **35.0 s** isolated build. Both
+  directions are checked: the temp tree's `@nexus/agent-runtime` resolves *inside* `iso.root`, AND home's
+  own link still resolves to `agents/runtime` — a one-way check passes vacuously when the link is missing.
+  A side harness measured the neighbour of that claim too: this worktree's own walked-tree digest
+  (`2ee3841ef14c0e1b`, **220 files**) is identical across an isolated build, so "isolation" here has not
+  meant "the temp tree borrowed writes from home" in either direction.
+- **A real defect in v80's code, found by trying to use it.** `walkedTree()` asked git for the ownership
+  census unconditionally, so the exact tree v81 exists to walk — one with no `.git` — crashed the runner
+  instead of grading it. The census is now `null` when git cannot answer: `gitRepo: false`, all four
+  counts `null`, `censusUnknown === files`, empty `sample`. §1 asserts the distinction the number has to
+  carry: a clean checkout's untracked bin reads **"cannot ask"**, not **`0`** — because `0` asserts that
+  nothing untracked is present, which is precisely the claim isolation exists to make and therefore the
+  last claim that may be reported without evidence. Digest identity and digest-on-edit still hold with no
+  git at all, since a tree's bytes are its own; and the git-ful branch is still exercised on this worktree
+  with `tracked + untracked + other === files`.
+- **What the clean checkout is smaller by, and what did not change.** `code-index-proof.mjs` — the one
+  committed proof whose corpus is the tree under `cwd` — walks **193 files / 1 619 981 B** there against
+  this worktree's **220 / 3 801 218 B** (**−27 files, −2 181 237 B**), is green in **both** trees, and
+  every one of those 193 is tracked at HEAD. That last check re-derives the ref's file list with
+  `git ls-tree -r HEAD` inside the witness rather than trusting the census `walkedTree` just reported:
+  v80's rule that ownership must be re-derived, applied to v81's own headline claim.
+- **The build verdict is reported, not improved.** The isolated `npm run build` exits **1** with
+  `Tasks: 4 successful, 5 total` and `Cached: 0 cached, 5 total` — the second of those lines is
+  isolation evidence of its own: nothing in the temp tree was restored from home's build cache, so five
+  packages really compiled there — and `Failed: @nexus/studio#build`. Its reason line, captured by a
+  side harness that kept the whole output, reads
+  `@nexus/studio:build: Module not found: Error: Can't resolve './D:/终极项目/node_modules/next/dist/client/next.js' in 'C:\Users\18414\AppData\Local\Temp\nexus-isolated-JJbTXo\repo\apps\studio'`.
+  This amendment therefore does **not** claim "HEAD does not build": what is established is that the temp
+  tree built its own `agents/runtime/dist/index.js` — 2 466 bytes against this worktree's 2 576, so the
+  clean compile compiled the ref rather than borrowing home's answer — and that the failure is Next
+  resolving a `./D:/…` specifier through a junction that crosses drives. What is queued rather than
+  asserted: the same run with a same-drive temp root, which is the experiment that would say whether the
+  fault is this harness's plumbing or the ref's own build.
+- **The gap this increment found in itself, by trying to quote it.** `isolatedCheckout` keeps
+  `tailOf(stdout + stderr, 4)` and the list of failed packages. Measured on that output: **55** non-empty
+  lines / **2 978** bytes, and the reason line above sits at index **35** — so `tailOf(4)` **loses it**.
+  That is the exact mistake `runProof`'s own comment warns about ("the reason a script failed is its FIRST
+  stderr line, not its last") reproduced one function over, in the newer code. §3 therefore asserts only
+  the shape it can defend — nonzero exit ⇒ the runner names at least one failed package, and `[summary]`
+  prints the exit code and the package rather than a reason this runner never captured. Naming a REASON,
+  not merely a package, is the next increment; quoting a line the witness did not keep would have made the
+  bookkeeping less honest than the code it documents.
+- **Two mutation probes, one of which refuted nothing — and the comment that keeps the lesson.** M1,
+  deleting the digest-equality gate: red, `actual true, expected false`. M2, deleting §4's "nothing
+  outside the ref is in this tree" assertions: **GREEN**, because the poison sat on a line *after*
+  `cleanPaths` had already been computed — the walk being guarded had already happened, so removing the
+  check of its result said nothing about the check. Re-aimed before the walk it goes red naming
+  `scratch-leak.md`. The rule now lives as a comment in the witness (`ORDERING IS LOAD-BEARING`): a probe
+  that cannot reach the line which grades it is not a refutation.
+- **Cost, and what did NOT move.** No `packages/*`, no `agents/*` source, no argv, env pin, policy,
+  budget, gate, parser or record shape: `sweep.mjs` edited, `isolated-proof.mjs` new — the 64th tracked
+  script. The increment's "nothing else moved" assertion is the same property its subject asserts about
+  itself: home's `dist` unmoved. Measured at `878fb1e`, where `git status` still names another lane's
+  in-flight work (`agents/exec-host/src/execHost.ts`, `agents/runtime/src/index.ts`) and the tree line
+  still reads 220 files — this lane neither touches that work nor reclaims its numbers.
+- **Bounds, stated rather than fixed.** (1) Isolation is a capability, not yet the default: `runSweep`
+  still runs every proof with `cwd` = the worktree, so `--isolated` wiring is queued and until it lands
+  this witness is the only thing that executes a proof against a clean tree. (2) `git archive` gives no
+  `.git`, so a proof that shells out to git cannot run there as-is — a property of the isolation, not a
+  bug, and §1 is what makes it visible instead of fatal. (3) Two things are open and neither is smoothed
+  over here: the cross-drive studio failure, whose cause this lane has narrowed to the junction rather
+  than proven to be the harness; and the `tailOf(4)` gap above, which is why the next increment is
+  "name the REASON a build failed", not another isolation flourish. (4) The temp trees are deleted by the
+  witness on the way out (`rmSync(iso.dir)`), so any sentence quoted here came from output the runner
+  itself printed or a harness that wrote it down — the reason line above is quoted from a saved copy, not
+  from memory.
