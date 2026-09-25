@@ -134,6 +134,17 @@ export function GamePanel() {
         <p className="mt-1 font-mono text-11 text-fg-3" data-game-progress>
           {game.entities.length} 个实体 · {refTotal} 条引用 · {fleshedOutCount(game)} 个已填内容
         </p>
+        {/* §50：这一页改的就是可玩投影读的那份文档，所以"试玩"永远指向同一份真值（§16）。
+            新标签打开：跳走会丢掉这里没保存完的编辑。 */}
+        <a
+          href={`/game/${studio.projectId}`}
+          target="_blank"
+          rel="noreferrer"
+          className="mt-2 inline-block rounded-[var(--nexus-radius-sm)] bg-accent-2 px-2 py-1 font-mono text-11 text-fg-1"
+          data-game-play
+        >
+          试玩这份设计 →
+        </a>
         {snapshot.error ? (
           <p className="mt-2 text-11 text-danger" data-game-error>
             {snapshot.error}

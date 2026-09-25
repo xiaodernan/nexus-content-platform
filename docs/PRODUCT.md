@@ -22,7 +22,7 @@ Idea → AI Understanding → Planning → Design → Generation
 | 支柱 | 用户得到什么 | 落地里程碑 |
 | --- | --- | --- |
 | Explore | 发现角色/世界/故事/游戏/网站/设计/视频/体验 | M6：`/discover` 三个排得出来的排序 + `/search` 八类目标（§61/§165）；公开作品页的 head / OpenGraph / JSON-LD 与 `/sitemap.xml`、`/robots.txt` 同口径（§166，只收 public）；角色/世界/游戏尚未单独成列 |
-| Create | AI 创作 10 类对象 | M1(设计) → M2(图像) → M3(世界/角色) → M4(游戏) → M5(视频) |
+| Create | AI 创作 10 类对象 | M1(设计) → M2(图像) → M3(世界/角色) → M4(游戏) → M5(视频)；M4 第一片已能玩：§54 那份设计文档在 `/game/<项目>` 里跑成一关（2D、键盘操作、任务判定与胜负都从文档的数值与引用算出来），其余七种游戏类型（§51）还没有构建管线 |
 | **Studio** | AI Design + Code + Creation IDE —— **项目核心** | M1 |
 | Runtime | 真正进入作品：play / walk / talk | M1(预览) → M3(角色对话) → M4(3D) |
 | Agents | 自主 research/design/code/generate/test/debug/iterate/publish | M1(Design Agent) 起持续扩展 |

@@ -2076,3 +2076,99 @@ test('@smoke §132 拉黑与屏蔽：挡住的是互动，过滤的是自己看�
   await anonCtx.close();
   await visitorCtx.close();
 });
+
+test('@smoke §50 试玩：§54 那份设计文档真的跑成一关，能走动、能打赢、能通关', async ({ page }) => {
+  test.setTimeout(300_000);
+  const stamp = Date.now().toString(36);
+  const projectName = `可玩关卡 ${stamp}`;
+  const projectId = await createProject(page, projectName);
+
+  await page.click('[data-panel-tab="game"]');
+  await expect(page.locator('[data-game-empty]')).toBeVisible({ timeout: 40_000 });
+  await page.click('[data-game-create]');
+  await expect(page.locator('[data-game-entity]')).toHaveCount(11);
+
+  const entityId = (group: string) =>
+    page.locator(`[data-game-group="${group}"] [data-game-entity]`).first().getAttribute('data-game-entity');
+  const playerId = (await entityId('player'))!;
+  const enemyId = (await entityId('enemy'))!;
+  const itemId = (await entityId('item'))!;
+  const questId = (await entityId('quest'))!;
+
+  const addStat = async (id: string, key: string, value: string): Promise<void> => {
+    await page.fill(`[data-game-stat-key="${id}"]`, key);
+    await page.fill(`[data-game-stat-value="${id}"]`, value);
+    await page.click(`[data-game-stat-add="${id}"]`);
+    await expect(page.locator(`[data-game-stat="${id}:${key}"]`)).toHaveValue(value);
+  };
+  await addStat(playerId, 'health', '20');
+  await addStat(playerId, 'attackPower', '10');
+  await addStat(enemyId, 'health', '10');
+  await addStat(enemyId, 'damage', '1');
+  await addStat(enemyId, 'speed', '0');
+
+  // 任务的完成条件来自引用：讨伐这个敌人 + 收集这个物品，两条都可判定
+  const addRef = async (from: string, to: string, role: string): Promise<void> => {
+    await page.selectOption(`[data-game-ref-target="${from}"]`, to);
+    await page.fill(`[data-game-ref-role="${from}"]`, role);
+    await page.click(`[data-game-ref-add="${from}"]`);
+  };
+  await addRef(questId, enemyId, '讨伐');
+  await addRef(questId, itemId, '收集');
+  await expect(page.locator('[data-game-ref]')).toHaveCount(2);
+  await expect(page.locator('[data-game-state]')).toHaveText('已保存', { timeout: 20_000 });
+
+  // 试玩入口指向的就是这份文档的投影，不另存一份"关卡文件"（§16）
+  expect(await page.locator('[data-game-play]').getAttribute('href')).toBe(`/game/${projectId}`);
+  const [game] = await Promise.all([page.context().waitForEvent('page'), page.click('[data-game-play]')]);
+  await game.waitForURL(new RegExp(`/game/${projectId}`), { timeout: 60_000 });
+  await expect(game.locator('[data-game-root]')).toBeVisible({ timeout: 60_000 });
+  // 标题用的是项目名（loadGame 建骨架时按项目命名），不是文档里的占位名
+  await expect(game.locator('[data-game-title]')).toContainText(projectName);
+
+  // 限度写在脸上，而不是只写在代码注释里
+  await expect(game.locator('[data-game-note]').first()).toContainText('位置是投影');
+  await expect(game.locator('[data-game-provenance]')).toContainText('兜底');
+  await expect(game.locator('[data-game-quest="judgeable"]')).toHaveCount(1);
+  await expect(game.locator('[data-game-quest="judgeable"]').first()).toContainText('打倒');
+  await expect(game.locator('[data-game-quest="judgeable"]').first()).toContainText('拾取');
+  await expect(game.locator('[data-game-status]')).toHaveText('进行中');
+  await expect(game.locator('[data-game-health]')).toHaveAttribute('data-game-health', '20');
+  await game.screenshot({ path: 'screenshots/game-play-start.png' });
+
+  // 往右走：路上先踩过物品，再和敌人接触；空格挥击（按住 200ms，别把一次按键丢在帧之间）
+  await game.keyboard.down('ArrowRight');
+  for (let i = 0; i < 6; i += 1) {
+    await game.keyboard.press(' ', { delay: 250 });
+    await game.waitForTimeout(300);
+  }
+  await game.keyboard.up('ArrowRight');
+  await expect(game.locator('[data-game-status]')).toHaveText('通关', { timeout: 20_000 });
+  await expect(game.locator('[data-game-outcome]')).toContainText('任务全部完成');
+  await expect(game.locator('[data-game-items]')).toHaveAttribute('data-game-items', '1');
+  await expect(game.locator('[data-game-enemies]')).toHaveAttribute('data-game-enemies', '0');
+  // 打死了敌人这件事要能追到具体事件，而不是只看到一个数字变了
+  await expect(game.locator('[data-game-event]').first()).toContainText('完成任务');
+  await game.screenshot({ path: 'screenshots/game-play-won.png' });
+
+  // 重新开始：回到初始状态，读数是设计里那两个数而不是上一次跑完的残留
+  await game.click('[data-game-restart]');
+  await expect(game.locator('[data-game-status]')).toHaveText('进行中');
+  await expect(game.locator('[data-game-health]')).toHaveAttribute('data-game-health', '20');
+  await expect(game.locator('[data-game-enemies]')).toHaveAttribute('data-game-enemies', '1');
+  await expect(game.locator('[data-game-summary]')).toContainText('敌人剩 1/1');
+
+  // 改一个设计里的数，试玩这一页跟着变（同一份真值的两面）
+  await addStat(enemyId, 'health', '999');
+  await expect(page.locator('[data-game-state]')).toHaveText('已保存', { timeout: 20_000 });
+  await game.reload();
+  await expect(game.locator('[data-game-root]')).toBeVisible({ timeout: 60_000 });
+  await game.keyboard.down('ArrowRight');
+  await game.keyboard.press(' ', { delay: 400 });
+  await game.waitForTimeout(1_500);
+  await game.keyboard.up('ArrowRight');
+  await expect(game.locator('[data-game-enemies]')).toHaveAttribute('data-game-enemies', '1');
+  await expect(game.locator('[data-game-status]')).not.toHaveText('通关');
+
+  await game.close();
+});
