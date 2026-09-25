@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { ToolRegistry } from '../src/registry.js';
 import { policyCheckpoint } from '../src/checkpointPolicy.js';
+import { arcReadCaveats } from '../src/gitArc.js';
 import { planTask } from '../src/planner.js';
 import { GIT_ARC_TOOLS, gitArcDoors, gitArcSteps, runGitArc, type GitArcPresence } from '../src/gitArc.js';
 import { NO_RECEIPTS_NOTE } from '../src/checkpointPolicy.js';
@@ -245,5 +246,28 @@ describe('runGitArc receipts (v50: WHO allowed each door, not just that it opene
     expect(out.status).toBe('no-arc');
     expect(out.decisions).toEqual([]);
     expect(out.notes).toEqual([]);
+  });
+});
+
+describe('arcReadCaveats (v75: what the walk LOST is part of what the walk did)', () => {
+  const steps = [{ stepId: 'staged', tool: 'git.staged' }, { stepId: 'commit', tool: 'git.commit' }] as never;
+  const result = (callId: string, output: Record<string, unknown>) => ({ callId, tool: 'git.*', ok: true, output } as never);
+
+  it('a windowed record floors EVERY tally in the arc, and names the door that was cut', () => {
+    expect(arcReadCaveats({ steps, results: [result('r:staged', { windowed: true })] })).toEqual([
+      'every tally in this arc is a FLOOR — the read was cut (git.staged)',
+    ]);
+  });
+
+  it('a killed record is stated as killed, and the two claims never collapse into one', () => {
+    expect(arcReadCaveats({ steps, results: [result('r:staged', { killed: { signal: 'SIGTERM', descendantsStopped: 'not-attempted' } })] })).toEqual([
+      'a read was KILLED at its timeout budget (git.staged) — nothing was answered about it',
+    ]);
+    expect(arcReadCaveats({ steps, results: [result('r:staged', { windowed: true, killed: { signal: null } })] })).toHaveLength(2);
+  });
+
+  it('a whole read earns no caveat — the v39/v47 memory line stays byte-for-byte what it was', () => {
+    expect(arcReadCaveats({ steps, results: [result('r:staged', { truncated: false }), result('r:commit', { record: { hash: 'abc1234' } })] })).toEqual([]);
+    expect(arcReadCaveats({ steps, results: [] })).toEqual([]); // a walk that never reached a door claims nothing
   });
 });

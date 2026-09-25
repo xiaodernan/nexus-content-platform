@@ -175,14 +175,41 @@ export async function runGitArc(registry: ToolRegistry, opts: GitArcOptions): Pr
     const { decisions, note } = receiptsOrNote(opts.checkpoint, callIds);
     return { ...o, decisions, notes: note ? [...o.notes, note] : o.notes };
   };
+  // v75 (ADR 0016 amendment 75): what the walk LOST is part of what the walk did. v69/v70 put `windowed`
+  // on every door record and v73/v74 put `killed` beside it, but the arc's own notes — which §26's
+  // remembered line and the handoff already print — said nothing, so a later run remembered a victory more
+  // confidently than it had been earned. One derivation, in the record's own vocabulary, joined into
+  // `notes` where the walk ends; empty on a walk that lost nothing, which keeps the v39/v47 line byte-for-byte.
+  const caveated = (o: GitArcOutcome): GitArcOutcome => {
+    const caveats = arcReadCaveats(o);
+    return caveats.length === 0 ? o : { ...o, notes: [...o.notes, ...caveats] };
+  };
   const results: ToolResult[] = [];
   for (const step of steps) {
     const res = await registry.invoke({ callId: `${opts.callId}:${step.stepId}`, tool: step.tool, args: step.args }, { checkpoint: opts.checkpoint });
     results.push(res);
     if (!res.ok) {
       const denied = (res.error ?? '').includes('checkpoint');
-      return durable({ doors, steps, results, status: 'stopped', stoppedAt: step.stepId, notes, reason: denied ? `denied at ${step.stepId}: ${res.error}` : `${step.stepId} did not pass: ${res.error}` });
+      return durable(caveated({ doors, steps, results, status: 'stopped', stoppedAt: step.stepId, notes, reason: denied ? `denied at ${step.stepId}: ${res.error}` : `${step.stepId} did not pass: ${res.error}` }));
     }
   }
-  return durable({ doors, steps, results, status: 'completed', notes });
+  return durable(caveated({ doors, steps, results, status: 'completed', notes }));
+}
+
+/**
+ * M2 v75 (ADR 0016 amendment 75): the arc's caveats, read off the door RECORDS — never restated from
+ * prose. A walk whose parsed pipe was cut floors every tally it reports; a walk whose read was killed by
+ * the host's own ceiling answered nothing about that door. Both were already true of the records
+ * (v69/v70's `windowed`, v73/v74's `killed`); what was missing is that they stopped at the record.
+ */
+export function arcReadCaveats(arc: Pick<GitArcOutcome, 'results' | 'steps'>): string[] {
+  return arc.results.flatMap((r) => {
+    const out = (r as { output?: { windowed?: true; killed?: { signal: string | null } } }).output;
+    const stepId = r.callId.slice(r.callId.lastIndexOf(':') + 1);
+    const tool = arc.steps.find((s) => s.stepId === stepId)?.tool ?? stepId;
+    return [
+      ...(out?.windowed ? [`every tally in this arc is a FLOOR — the read was cut (${tool})`] : []),
+      ...(out?.killed ? [`a read was KILLED at its timeout budget (${tool}) — nothing was answered about it`] : []),
+    ];
+  });
 }
