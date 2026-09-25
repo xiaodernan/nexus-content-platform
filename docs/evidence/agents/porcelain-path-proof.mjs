@@ -59,6 +59,7 @@ const rt = await import(pathToFileURL('./agents/runtime/dist/index.js').href);
 const eh = await import(pathToFileURL('./agents/exec-host/dist/index.js').href);
 const { ToolRegistry, planExec } = rt;
 const {
+  GIT_FORCED_CONFIG,
   NODE_SPAWN,
   createExecHost,
   forcedConfigEnv,
@@ -141,16 +142,16 @@ const SHOW_ARGV = ['show', '--no-ext-diff', '--no-textconv', '--format=', '--'];
 // ─────────────────────────────────────────────────────────────────────────────────────────── §0
 // The pin is not a comment about a policy; it is a numbered slot the policy has to carry.
 const slots = forcedConfigEnv();
-assert.equal(slots.GIT_CONFIG_COUNT, '5', 'v46 forced four values, v61 forces five');
-assert.equal(slots.GIT_CONFIG_KEY_3, 'core.quotePath', 'slots are numbered in SORTED key order, so a new pin shifts its neighbours — this is that shift, pinned');
-assert.equal(slots.GIT_CONFIG_VALUE_3, 'false');
-assert.equal(slots.GIT_CONFIG_KEY_4, 'status.showUntrackedFiles', 'the v46 pins still ride along, one slot later');
-assert.equal(slots.GIT_CONFIG_KEY_5, undefined, 'COUNT and slots agree: no orphan slot past the table');
+assert.equal(slots.GIT_CONFIG_COUNT, '7', 'v46 forced four values, v61 five, v67 seven (two colorspaces no flag can reach)');
+assert.equal(slots.GIT_CONFIG_KEY_5, 'core.quotePath', 'slots are numbered in SORTED key order, so a new pin shifts its neighbours — the two v67 color keys moved this one twice, and this is that shift, pinned');
+assert.equal(slots.GIT_CONFIG_VALUE_5, 'false');
+assert.equal(slots.GIT_CONFIG_KEY_6, 'status.showUntrackedFiles', 'the v46 pins still ride along, two slots later');
+assert.equal(slots.GIT_CONFIG_KEY_7, undefined, 'COUNT and slots agree: no orphan slot past the table');
 const planned = planExec({ argv: ['git', 'status', '--short'], env: PIN }, gitReadOnlyPolicy('X:/repo'));
 assert.ok(planned.ok, 'the shipped read shape stays allowed');
 assert.deepEqual(planned.plan.droppedEnv, [], 'every name the pinned env emits is on the door allowlist, or the scrubber would be dropping the isolation itself');
-assert.equal(planned.plan.env.GIT_CONFIG_VALUE_3, 'false', 'and the value survives planning, on the exact slot git reads it from');
-console.log('[porcelain-path-proof] §0 the pin is wired: ' + slots.GIT_CONFIG_COUNT + ' forced slots, quotePath at KEY_3, nothing dropped');
+assert.equal(planned.plan.env.GIT_CONFIG_VALUE_5, 'false', 'and the value survives planning, on the exact slot git reads it from — v67 shifted it twice');
+console.log('[porcelain-path-proof] §0 the pin is wired: ' + slots.GIT_CONFIG_COUNT + ' forced slots, quotePath at KEY_5, nothing dropped');
 
 // ─────────────────────────────────────────────────────────────────────────────────────────── §1
 // A rename, live: what the doors say, and what the two names are actually good for.
@@ -197,13 +198,20 @@ console.log('[porcelain-path-proof] §1b after the commit, status has no pair le
 // The rendering. The counterfactual env is the SHIPPED table with v61's slot removed, so git's own
 // default (`core.quotePath=true`) speaks: these are its bytes, not a fixture's.
 const PRE_V61 = (() => {
-  const four = forcedConfigEnv({ 'core.attributesFile': '', 'core.excludesFile': '', 'core.fsmonitor': '', 'status.showUntrackedFiles': 'all' });
-  const env = { ...PIN, ...four };
-  delete env.GIT_CONFIG_KEY_4;
-  delete env.GIT_CONFIG_VALUE_4;
+  // DERIVED from the shipped table, not transcribed: v67 added two keys and every hand copy of this table
+  // would have silently kept a stale slot count. The counterfactual is "the shipped pins minus quotePath".
+  const kept = Object.keys(PIN).filter((k) => /^GIT_CONFIG_KEY_\d+$/.test(k)).map((k) => PIN[k]).filter((k) => k !== 'core.quotePath');
+  const env = {};
+  for (const [k, v] of Object.entries(PIN)) if (!/^GIT_CONFIG_(KEY|VALUE)_\d+$/.test(k) && k !== 'GIT_CONFIG_COUNT') env[k] = v;
+  env.GIT_CONFIG_COUNT = String(kept.length);
+  kept.forEach((key, i) => {
+    const slot = Object.keys(PIN).find((k) => /^GIT_CONFIG_KEY_\d+$/.test(k) && PIN[k] === key);
+    env['GIT_CONFIG_KEY_' + i] = key;
+    env['GIT_CONFIG_VALUE_' + i] = PIN[slot.replace('KEY_', 'VALUE_')];
+  });
   return env;
 })();
-assert.equal(PRE_V61.GIT_CONFIG_COUNT, '4');
+assert.equal(PRE_V61.GIT_CONFIG_COUNT, String(Object.keys(GIT_FORCED_CONFIG).length - 1), 'one slot fewer than the shipped table, and nothing else about it changed');
 assert.ok(!Object.values(PRE_V61).includes('core.quotePath'), 'the counterfactual really is "before v61", not a different pin');
 
 const CAFE = 'docs/café-note.md'; // a name NTFS accepts and unpinned git renders

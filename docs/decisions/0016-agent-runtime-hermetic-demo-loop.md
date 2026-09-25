@@ -2503,3 +2503,86 @@ _Numbering: 66 was free when this was written (`git log --oneline -3` top = v65;
   this same working tree — so it is REPORTED here and across the lane boundary, not patched here. What this
   increment did do is stop polluting the measured tree: doc drafts now live outside the repository, and a
   heading-less `.md` is a known trigger for that proof rather than a surprise.
+
+## Amendment 67 — v67 (exec-host): a repository can PAINT the bytes every door parses — `color.*` wrote ANSI escapes and `log.decorate` wrote git's OWN refs INTO the fields the parsers read, and four doors answered at exit 0 that the thing was not there, 2026-09
+
+_Numbering: 67 was free when this was written (`git log --oneline -3` top = v66 `8a7bbbd`; this file's HEAD headings end at 66 — 66 of them; `## Amendment 58`/`## Amendment 59` still exist only in the concurrent session's stale working copy). The WORKING COPY of this file is still that stale buffer, so this section is spliced onto HEAD's blob with `git cat-file blob HEAD:…` → `hash-object -w` → `update-index --cacheinfo` and nothing else in the file is touched._
+
+- **Measured first, in the layer v46 and v65 both left standing.** v46 confined what a git command may DO
+  (`diff.external`, `core.fsmonitor` — commands wearing a config key) and v65 what it may PRINT about a path's
+  PREFIX. Neither asked whether the BYTES every parser reads belong to the repository at all. They need not:
+  `color.ui`/`color.status`/`color.diff` wrap git's own output in ANSI escapes and `log.decorate` prints git's
+  refs inside `--oneline`'s subject, and a door that cannot see the start of its line says the thing is not
+  there. `color-proof.mjs` §1 measures five faces in a throwaway repo holding 3 commits, 1 staged change and 1
+  unstaged edit — escape sequences with the pin removed, then re-applied: `git status --short` 4 → 0,
+  `git diff --cached` 19 → 0, its `--stat` face 2 → 0, `git log --oneline` 26 → 0 across 3 lines,
+  `git show --format=` 19 → 0. Four FALSE ABSENCES came out of exit 0 (§3, replaying the recorded bytes through
+  the SHIPPED parsers): an index holding ONE change parsed to zero files, which is the sentence
+  `the index is EMPTY — nothing is staged, so a granted git.commit right now would have nothing to record`; a
+  3-commit history parsed to `{commits: [], skipped: 3}`, which the door prints as `0 commit(s)`; the two dirty
+  files came back classified `other` with PATHS beginning `[31mM`; and HEAD's painted
+  `+export const staged = 3;` was not read as an addition, so the door that confirms WHAT a commit recorded
+  handed back no content at all. The first two are the same shape as v48's and v65's worst findings — an
+  absence a §28 reviewer is asked to weigh, stated by a door that had just been handed the thing.
+- **The rule that decided the layer is per-COMMAND, and it is measured rather than argued: a colorspace with a
+  flag is pinned by the argv; a colorspace without one is pinned by the env.** `git status` and `git commit`
+  refuse BOTH `--no-color` and `--color=never` with exit 129 (§1 asserts all four refusals), so their only pin
+  is a key of `GIT_FORCED_CONFIG`; `diff`, `log` and `show` accept `--no-color` at exit 0, so the argv owns
+  theirs — which is also why `color.diff` is asserted ABSENT from the table. The second half of the rule came
+  from measuring the tempting one-key fix and watching it fail: a forced `color.ui=false` left a repository's
+  `color.status=always` painting 4 places (4 in, 4 out), because git resolves a colorspace's OWN key before the
+  umbrella. So `color.status` is the load-bearing key and `color.ui` is recorded as the umbrella for the
+  colorspaces no door reads yet — not claimed to fix any face this proof does not measure, the way v46's
+  `GIT_CONFIG_NOSYSTEM` is belt-and-braces rather than a finding.
+- **Decoration is a SECOND colorspace, and the color flag does not touch it.** Measured on the same history:
+  `--no-color` alone removes all 26 escapes and leaves git's own refs in the subject — a hash followed by
+  `(HEAD -> main, tag: v1.0, feature)`, still part of the one field this door names. Hence `GIT_LOG_FLAGS =
+  ['--no-decorate',
+  '--no-color']`, spread into BOTH the policy shape and the run argv so the gate and the process cannot diverge.
+- **Why the fix is a pin and not a strip — recorded because the strip is the design a reader would reach for.**
+  The fixture's newest commit is TITLED `(HEAD -> main) I titled myself like a decoration`. With both flags on,
+  §4 asserts the output STILL contains the string `(HEAD -> main)` — as the title git was handed — while `tag:`
+  appears nowhere. So a reader that deleted "decoration-shaped text" would have destroyed a real commit subject,
+  and nothing inside the field distinguishes the two. The same argument covers ANSI: git's rendering and the
+  repository's bytes land in the same field, so only the source can be confined. What the door CAN assert it
+  checked against git's own `--format=%s` — a format that has never had room for a ref — byte for byte, 3/3.
+- **Two measured negatives, kept in the proof because they bound the claim.** The `--stat` face IS painted
+  (`1 ESC[32m+ESC[m`) yet survives: `parseDiffStat` reads git's NUMBER column, not the colored bar, so painted
+  and pinned parses are deep-equal — asserted as an equality, so the day the bar becomes load-bearing that row
+  goes red instead of describing a bug that has moved. And `git show --format=` needed only the color half: 19
+  escapes reach that face while no ref decoration does, because an empty format prints no subject — so the
+  content door gained the one flag `GIT_DIFF_FLAGS` already carries and no second list.
+- **Cost, measured rather than promised.** §6 removes the config and compares the pinned argv with the shape it
+  replaced, on all five faces: byte-IDENTICAL output (33/272/51/114/284 bytes), each face asserted non-empty so
+  the equality is not a pair of silences. That is why the 48 tracked proofs that never mention color stayed green
+  untouched — and why the 5 that transcribe a pinned argv did not.
+- **What moved.** `GIT_DIFF_FLAGS` 4 → 5 tokens (`--no-color`, shared by the three diff doors and `git.show`);
+  `GIT_LOG_FLAGS` new, exported through the package bucket, and in `gitLogPolicy`'s one allowed shape plus its
+  run argv; `GIT_FORCED_CONFIG` 5 → 7 keys, which moves every counted slot. exec-host **262/262** (from 259: +1
+  `gitEnvIsolation.test.ts` — color keys appear in the table ONLY for a command with no color flag, the rest of
+  the table is the shape — and +2 `gitLogTool.test.ts`: a decoration is not a subject, an escape-prefixed line
+  is `skipped` and never guessed into a commit). The old-contract re-count this increment owes (fourth
+  increment running): the sorted-slot list 5 → 7 in `gitEnvIsolation.test.ts`, and `gitTools.test.ts`'s
+  "a caller cannot opt out", which now plants `color.ui` at slot 7 past a 7-key table so the assertion is that
+  the COUNT is ours.
+- **Five witnesses re-counted in this same commit, index-only** (their worktree copies belong to the concurrent
+  lane, so each was spliced onto HEAD's blob and staged with `update-index --cacheinfo`):
+  `config-proof.mjs` derives 12 argv shapes from one `FLAGS` literal, so one hunk moved all of them;
+  `gitlog-proof.mjs` now allows only the pinned shape and asserts v37's own `git log --oneline -n 5`
+  DEFAULT-DENIES; `confirm-proof.mjs`'s planned-window spawn args; `prefix-proof.mjs`, where the stand-in that
+  replays v46's process must now drop v67's color token too or the label lies; and `porcelain-path-proof.mjs`,
+  whose §0 slot table shifted twice (quotePath `KEY_3` → `KEY_5`, `COUNT` '5' → '7') and whose "shipped table
+  minus v61's slot" counterfactual is now DERIVED from the shipped env instead of hand-copied — the hand copy
+  was exactly the thing that went stale. 54/54 tracked proofs green (55 scripts sit in the directory), four
+  root gates green.
+- Honest bounds: this pins the five doors that PARSE, plus the umbrella. `git.commit` is not a parser of colored
+  output — §5 measures that its advice block carries 4 escapes unpinned and 0 pinned at the same line count, and
+  that the LAST line, the one `gitVerdict` reads, is plain in BOTH faces, so that pin covers the block rather
+  than the verdict line. `color.branch`/`color.interactive`/`color.grep` reach nothing this package reads. No
+  door's structured record changed shape, so a consumer that reads `files`/`commits`/`addedLines` and skips
+  `detail` inherits exactly what the pinned parse returned — which is the point of pinning the source instead of
+  teaching the reader. `NO_COLOR`/`TERM`/`color.auto` were treated as hypotheses and are relied on nowhere: an env
+  that happens to be unkind is not a gate. `parseDiffStat` still reads only git's last line (v64's bound, open),
+  the test bridge's report still carries no v55/v56 facts, and a door's structured output still prints
+  `truncated: true` without `truncatedStreams` (v66's sharpest gap, still open). DEMO MODE is unaffected (no
+  Studio surface runs an exec host), staging stays a human act, and `git push` stays out of scope (§28, §9).

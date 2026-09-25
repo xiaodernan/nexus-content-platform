@@ -77,12 +77,34 @@ export const GIT_ISOLATION_ENV: Record<string, string> = {
  * decides whether git hands the doors a PATH or a C-quoted PICTURE of one. `false` is not
  * an inert value either — measured, it changes the bytes of every path in `status --short`
  * and in the `diff --git` headers the parsers key on, and changes nothing else.
+ *
+ * v67 adds the two `color.*` keys, and they are here for a reason that has a boundary. A repository's
+ * own colors wrap git's output in ANSI escapes, and every door here parses those bytes: measured by
+ * `color-proof.mjs` §1 in a throwaway repo whose `.git/config` sets `color.ui/status/diff = always`,
+ * `git.staged` answered `the index is EMPTY — nothing is staged` about an index holding ONE change and
+ * `git.log` answered `0 commit(s)` about a 3-commit history, both at exit 0 (§3 replays those recorded
+ * bytes through the shipped parsers). Where a command has a color flag, the ARGV pins it — `--no-color`
+ * beats every per-key setting (proof §1: 19, 2, 26 and 19 escapes in, 0 out) and moves zero bytes where
+ * nothing is configured (§6, five faces byte-identical), so it lives in GIT_DIFF_FLAGS and in
+ * `git log`'s shape. These two keys exist for the commands that have no such flag: `git status` and
+ * `git commit` both reject `--no-color` AND `--color=never` with exit 129 (§1 measures all four
+ * refusals), so their only pin is here. `color.status` is load-bearing alone — a repo's
+ * `color.status=always` survives an env `color.ui=false` (measured: 4 escapes in, 4 out) because git
+ * resolves a colorspace's own key before the umbrella. `color.ui` is NOT load-bearing on any face
+ * measured so far; it is the umbrella for the colorspaces no door reads yet and for the repo that sets
+ * only `color.ui`, which `color.status=false` also happens to clear here. `color.diff`, `color.branch`
+ * and `color.interactive` are deliberately absent: in that fixture `color.diff` reaches only the diff,
+ * stat, log and show faces — all four of which now say `--no-color` — and the other two reach nothing
+ * this package reads. An env key is for a face with no shape to hold it; everywhere else the shape
+ * carries it.
  */
 export const GIT_FORCED_CONFIG: Record<string, string> = {
   'core.fsmonitor': '', // a non-empty value is a COMMAND git runs while scanning the tree
   'core.excludesFile': '', // an ignore file of `*` silently hides untracked files
   'core.attributesFile': '', // attributes select diff drivers, and a diff driver is a command
   'core.quotePath': 'false', // v61: true renders a non-ASCII path as an escaped string, not a path
+  'color.status': 'false', // v67: the ONE pin for the one command with no color flag — see below
+  'color.ui': 'false', // v67: the umbrella for a repo that colors everything, at every future face
   'status.showUntrackedFiles': 'all', // `no` is a silent blind, not an error
 };
 

@@ -10,18 +10,22 @@ import {
   forcedConfigEnv,
 } from '../src/gitEnvIsolation.js';
 import { GIT_DIFF_FLAGS, GIT_ENV_NAMES, gitEnv, gitReadOnlyPolicy } from '../src/gitTools.js';
+import { GIT_LOG_FLAGS } from '../src/gitLogTool.js';
 
 describe('forcedConfigEnv (git\'s counted env override, built from data)', () => {
   it('numbers slots from zero in SORTED key order, so the env is stable across property enumeration', () => {
     const env = forcedConfigEnv();
     expect(env.GIT_CONFIG_COUNT).toBe(String(Object.keys(GIT_FORCED_CONFIG).length));
-    expect([env.GIT_CONFIG_KEY_0, env.GIT_CONFIG_KEY_1, env.GIT_CONFIG_KEY_2, env.GIT_CONFIG_KEY_3, env.GIT_CONFIG_KEY_4]).toEqual([
+    expect([env.GIT_CONFIG_KEY_0, env.GIT_CONFIG_KEY_1, env.GIT_CONFIG_KEY_2, env.GIT_CONFIG_KEY_3, env.GIT_CONFIG_KEY_4, env.GIT_CONFIG_KEY_5, env.GIT_CONFIG_KEY_6]).toEqual([
+      'color.status',
+      'color.ui',
       'core.attributesFile',
       'core.excludesFile',
       'core.fsmonitor',
       'core.quotePath',
       'status.showUntrackedFiles',
     ]);
+    expect(env.GIT_CONFIG_KEY_7).toBeUndefined(); // 7 keys, slots 0..6: the count is the table's length, not a guess
     expect(Object.keys(env).every((k) => k === 'GIT_CONFIG_COUNT' || k.startsWith('GIT_CONFIG_KEY_') || k.startsWith('GIT_CONFIG_VALUE_'))).toBe(true);
   });
 
@@ -37,18 +41,21 @@ describe('forcedConfigEnv (git\'s counted env override, built from data)', () =>
     });
   });
 
-  it('every forced key confines something MEASURED: a command git would EXECUTE, a blind that hides files, or the shape of a PATH (v46, v61)', () => {
-    expect(Object.keys(GIT_FORCED_CONFIG).sort()).toEqual(['core.attributesFile', 'core.excludesFile', 'core.fsmonitor', 'core.quotePath', 'status.showUntrackedFiles']);
+  it('every forced key confines something MEASURED: a command git would EXECUTE, a blind that hides files, the shape of a PATH, or the RENDERING of the bytes (v46, v61, v67)', () => {
+    expect(Object.keys(GIT_FORCED_CONFIG).sort()).toEqual(['color.status', 'color.ui', 'core.attributesFile', 'core.excludesFile', 'core.fsmonitor', 'core.quotePath', 'status.showUntrackedFiles']);
     expect(GIT_FORCED_CONFIG['status.showUntrackedFiles']).toBe('all'); // an enum, not an off-switch
     expect(GIT_FORCED_CONFIG['core.fsmonitor']).toBe('');
     expect(GIT_FORCED_CONFIG['core.quotePath']).toBe('false'); // v61: git's default `true` renders a non-ASCII path as an escaped STRING, which no door can open
+    expect(GIT_FORCED_CONFIG['color.status']).toBe('false'); // v67: `git status --short` is the one door with NOTHING to read a color off
+    expect(GIT_FORCED_CONFIG['color.ui']).toBe('false'); // v67: the umbrella, for a repo that colors everything
   });
 
   it('the counted slots stop exactly where the count does — no orphan slot for git to read past the table', () => {
     const env = forcedConfigEnv();
-    expect(Object.keys(GIT_FORCED_CONFIG)).toHaveLength(5);
+    expect(Object.keys(GIT_FORCED_CONFIG)).toHaveLength(7);
     expect(env[`GIT_CONFIG_KEY_${Object.keys(GIT_FORCED_CONFIG).length}`]).toBeUndefined();
-    expect([env.GIT_CONFIG_VALUE_0, env.GIT_CONFIG_VALUE_1, env.GIT_CONFIG_VALUE_2, env.GIT_CONFIG_VALUE_3, env.GIT_CONFIG_VALUE_4]).toEqual(['', '', '', 'false', 'all']);
+    // sorted slots, so this list is the VALUES in key order: color.status, color.ui, core.attributesFile, core.excludesFile, core.fsmonitor, core.quotePath, status.showUntrackedFiles
+    expect([env.GIT_CONFIG_VALUE_0, env.GIT_CONFIG_VALUE_1, env.GIT_CONFIG_VALUE_2, env.GIT_CONFIG_VALUE_3, env.GIT_CONFIG_VALUE_4, env.GIT_CONFIG_VALUE_5, env.GIT_CONFIG_VALUE_6]).toEqual(['false', 'false', '', '', '', 'false', 'all']);
   });
 
   it('diff.external is NOT force-pinned, and the reason is measured: no value is inert (empty → exit 128)', () => {
@@ -62,8 +69,20 @@ describe('forcedConfigEnv (git\'s counted env override, built from data)', () =>
   // has measured yet as well as the four git 2.52 honours. Adding them here instead would enumerate a
   // moving list and still lose to `git -c` from a caller.
   it('v65: NO diff.* key is in the table, because the shape says the prefixes itself', () => {
-    expect(GIT_DIFF_FLAGS).toEqual(['--no-ext-diff', '--no-textconv', '--src-prefix=a/', '--dst-prefix=b/']);
+    expect(GIT_DIFF_FLAGS).toEqual(['--no-ext-diff', '--no-textconv', '--no-color', '--src-prefix=a/', '--dst-prefix=b/']);
     expect(Object.keys(GIT_FORCED_CONFIG).filter((k) => k.startsWith('diff.'))).toEqual([]);
+  });
+
+  // v67: the same rule read from the other side. A colorspace that a door can silence from the command
+  // line is silenced THERE (`--no-color`, measured to beat a repo's per-key `color.diff=always` at 39 → 0
+  // escapes); an env slot is only for the colorspace with no flag — `git status` and `git commit` both
+  // answer `--no-color` and `--color=never` with exit 129, so `color.status` is here and `color.diff` is not.
+  it('v67: color keys appear in the table ONLY for a command with no color flag — the rest is the shape', () => {
+    expect(Object.keys(GIT_FORCED_CONFIG).filter((k) => k.startsWith('color.'))).toEqual(['color.status', 'color.ui']);
+    expect(GIT_DIFF_FLAGS).toContain('--no-color'); // diff / staged / show all read the same flag
+    expect(GIT_LOG_FLAGS).toContain('--no-color'); // and so does the log door, which has no diff flags
+    expect(GIT_LOG_FLAGS).toContain('--no-decorate'); // v67: `log.decorate` writes refs INTO the subject field
+    expect(Object.keys(GIT_FORCED_CONFIG).filter((k) => k.startsWith('log.'))).toEqual([]); // no env route: `log.decorate` is not a colorspace, and the shape says it
   });
 });
 

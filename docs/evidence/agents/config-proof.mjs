@@ -39,8 +39,8 @@ const {
   parseGitDiff, registerGitTools, registerGitShowTool, registerGitStagedTool, forcedConfigEnv, GIT_FORCED_CONFIG, GIT_ISOLATION_ENV, GIT_ABSENT_CONFIG,
 } = eh;
 
-const FLAGS = ['--no-ext-diff', '--no-textconv', '--src-prefix=a/', '--dst-prefix=b/'];
-assert.deepEqual(GIT_DIFF_FLAGS, FLAGS, 'the two flags that keep a READ from EXECUTING, and the two that keep the NAMES a read prints (v65)');
+const FLAGS = ['--no-ext-diff', '--no-textconv', '--no-color', '--src-prefix=a/', '--dst-prefix=b/'];
+assert.deepEqual(GIT_DIFF_FLAGS, FLAGS, 'the two flags that keep a READ from EXECUTING, the two that keep the NAMES a read prints (v65), and the one that keeps those names UNPAINTED (v67)');
 const BS = String.fromCharCode(92);
 const posix = (s) => s.split(BS).join('/');
 

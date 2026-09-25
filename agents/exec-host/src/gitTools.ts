@@ -24,6 +24,12 @@ import { GIT_ISOLATION_ENV_NAMES, GIT_PASS_THROUGH_ENV_NAMES, forcedConfigEnv, G
  * the output budget. v63 made `git.status` say so; the three DIFF doors never got the rule, so a window
  * was spoken as a census (`index holds 8 change(s)` for 25, `1 files, +0 −0` for a file git counts at
  * +1 −1). `diffWindowNotice` is that one rule, shared now by `git.diff`, `git.staged` and `git.show`.
+ *
+ * M2 v67 (ADR 0016 amendment 67) is about bytes that are not the repository's at all: git's own COLORS and
+ * DECORATIONS, both configurable by the repo being read, both landing INSIDE the fields the parsers name
+ * (an XY status column of `ESC[31mM`, a `--oneline` subject of `(HEAD -> main, tag: v1.0, feature) real
+ * subject`). Four false answers came out of exit 0. The fix is at the shape/env layer, so no door had to
+ * learn to notice.
  */
 
 /** The diff flags that keep a READ from EXECUTING: a configured external diff or
@@ -44,8 +50,27 @@ import { GIT_ISOLATION_ENV_NAMES, GIT_PASS_THROUGH_ENV_NAMES, forcedConfigEnv, G
  * keys each restore `a/`/`b/` and the resulting bytes are IDENTICAL to a default-config repository
  * (sha-verified across the 4-shape fixture, including `git show`'s body), so the flags cost nothing
  * where no config exists — and unlike env pins they cover keys this box has not been taught to fear.
+ *
+ * M2 v67 (ADR 0016 amendment 67) adds `--no-color` for the same reason at the same layer: `color.ui`,
+ * `color.diff` and their kin wrap git's OWN bytes in ANSI escapes, and every reader here parses those
+ * bytes. Measured by `color-proof.mjs` §1 in a throwaway repo whose `.git/config` sets
+ * `color.ui/status/diff = always`: 4 escapes in `git status --short`, 19 in `git diff --cached`, 2 in its
+ * `--stat` face, 26 in `git log --oneline` over 3 lines, 19 in `git show --format=` — and 0 in all five
+ * once the pins are on. Four of those faces produced a FALSE ABSENCE from exit 0 (§3 replays the recorded
+ * bytes through the shipped parsers): an index holding ONE change parsed to zero files, which is the
+ * sentence `the index is EMPTY — nothing is staged`; a 3-commit history parsed to `0 commit(s)`; the two
+ * dirty files came back classified `other` with paths beginning `[31mM`; and HEAD's painted
+ * `+export const staged = 3;` was not read as an addition, so the content door handed back nothing.
+ * `--no-color` is on this list rather than in the env because it beats every per-key `color.*` setting,
+ * and because in a repository with nothing configured it moves ZERO bytes — §6 compares the pinned argv
+ * with the old one on all five faces (33/272/51/114/284 bytes) and every pair is byte-identical AND
+ * non-empty. Where a command has no such flag the pin lives in gitEnvIsolation.ts instead, and §1 measures
+ * that too rather than trusting the man page: `git status` and `git commit` each reject BOTH `--no-color`
+ * and `--color=never` with exit 129, while `diff`, `log` and `show` take `--no-color` at exit 0. That is
+ * the rule, not a preference: a colorspace with a flag is pinned by the argv; a colorspace without one is
+ * pinned by the env.
  */
-export const GIT_DIFF_FLAGS = ['--no-ext-diff', '--no-textconv', '--src-prefix=a/', '--dst-prefix=b/'];
+export const GIT_DIFF_FLAGS = ['--no-ext-diff', '--no-textconv', '--no-color', '--src-prefix=a/', '--dst-prefix=b/'];
 
 /** The handful of vars git actually needs — shared with the v35 commit slice. */
 export const GIT_ENV_NAMES = [...GIT_PASS_THROUGH_ENV_NAMES, ...GIT_ISOLATION_ENV_NAMES];

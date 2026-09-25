@@ -78,7 +78,7 @@ try {
   assert.equal(confirmOut.commits[0].subject, commitRec.subject, 'subject survives write→read byte for byte');
   assert.match(confirmOut.commits[1].subject, /^chore: human seed/, 'the human commit sits below — shared history, not overwritten');
   assert.equal(spawns.length, 2, 'one approved commit + one approved read-back = two processes, no more');
-  assert.deepEqual(spawns[1].args, ['log', '--oneline', '-n', '2'], 'the PLANNED window reached git verbatim');
+  assert.deepEqual(spawns[1].args, ['log', '--oneline', '--no-decorate', '--no-color', '-n', '2'], 'the PLANNED window reached git verbatim, inside the two v67 tokens');
   assert.ok(git('rev-parse', 'HEAD').trim().startsWith(commitRec.hash), 'rev-parse prints the FULL SHA — the abbreviated commit record is its prefix');
 
   // 2b) DENIED CONFIRM after a LANDED commit: the run says denied; the commit stands.

@@ -3,19 +3,42 @@ import { budgetFlags, GIT_ENV_NAMES, cutNotAbsence, gitEnv, gitVerdict, quoteVer
 import type { ExecHost, ExecRunResult } from './execHost.js';
 
 /**
+ * M2 v67 (ADR 0016 amendment 67): the two tokens the shape says so that a repository cannot. See the
+ * note on `gitLogPolicy` for what each one was measured to do.
+ */
+export const GIT_LOG_FLAGS = ['--no-decorate', '--no-color'];
+
+/**
  * M2 v37 (ADR 0016 amendment 37): the git LOG read-back tool — the last corner of the
  * see (v32) → touch (v35) → confirm (v37) circle. After a §28-approved commit the agent
  * can READ ITS OWN HISTORY and check the record it was handed actually landed. The
- * policy allows exactly ONE argv shape, `git log --oneline -n <count>` — the second
+ * policy allows exactly ONE argv shape, `git log --oneline <flags> -n <count>` — the second
  * production use of the '*' ARG wildcard: shape fixed, count floats, arity enforced.
  * Read-only like v32: nothing here can write; only a real process spawns, and §28 gates it.
+ *
+ * M2 v67 (ADR 0016 amendment 67) put two more fixed tokens in that shape, and both of them sit in the
+ * one field this door names. `log.decorate` is a repository setting that makes git print its OWN refs
+ * inside `--oneline`'s subject, and `color.*` wraps the hash in ANSI — so an unpinned `--oneline` lets
+ * the repository being read rewrite both halves of the line this door parses. Measured by
+ * `color-proof.mjs` over a 3-commit throwaway repo: 26 escapes across its 3 lines, after which
+ * `parseGitLog` had `{commits: [], skipped: 3}` and the door answered `0 commit(s)` at exit 0 (§3).
+ * `--no-color` does NOT reach the refs: §4 measures the same read with `--no-color` alone, 0 escapes and
+ * a hash followed by `(HEAD -> main, tag: v1.0, feature)` still inside the subject, so `--no-decorate`
+ * has to be said as well. And neither flag may be replaced by a strip: that fixture's newest commit is
+ * TITLED `(HEAD -> main) I titled myself like a decoration, so with decoration fully pinned off the
+ * output still contains `(HEAD -> main)` — as the title git was handed — while `tag:` appears nowhere. The door's answer is then checked against git's own `--format=%s`, a format that has
+ * never had room for a ref, byte for byte on every commit (§4). `--no-decorate` costs nothing where no
+ * decoration exists: §6 compares the whole pinned shape with v37's own and the two are byte-identical in
+ * a repository that asks for neither. `git show --format=` needed only the color half — §1 measures 19
+ * escapes reaching that face while no ref decoration does, because an empty format prints no subject —
+ * so the content door gained the pin that GIT_DIFF_FLAGS carries for all three.
  */
 export function gitLogPolicy(root: string, options: { timeoutMs?: number; maxOutputBytes?: number } = {}): ExecPolicy {
   const timeoutMs = options.timeoutMs ?? 10_000;
   const maxOutputBytes = options.maxOutputBytes ?? 65_536;
   return {
     root,
-    allow: [{ argv: ['git', 'log', '--oneline', '-n', '*'], timeoutMs, maxOutputBytes }],
+    allow: [{ argv: ['git', 'log', '--oneline', ...GIT_LOG_FLAGS, '-n', '*'], timeoutMs, maxOutputBytes }],
     envAllow: GIT_ENV_NAMES,
     maxTimeoutMs: timeoutMs,
     maxOutputBytes,
@@ -48,7 +71,7 @@ export const GIT_LOG_TOOL_SPECS: ToolSpec[] = [
   {
     name: 'git.log',
     description:
-      'Read back history through the confined exec host (`git log --oneline -n <count>` — the only argv the policy allows; default count 10, capped at 100). Read-only: it confirms what a granted git.commit actually wrote. Still spawns a real process, so the §28 checkpoint applies.',
+      'Read back history through the confined exec host (`git log --oneline --no-decorate --no-color -n <count>` — the only argv the policy allows; default count 10, capped at 100, and the subject it reports is the commit message because the shape told git to print no ref decoration and no color). Read-only: it confirms what a granted git.commit actually wrote. Still spawns a real process, so the §28 checkpoint applies.',
     permissions: ['exec'],
     args: [
       { name: 'count', type: 'number' },
@@ -64,7 +87,7 @@ export function registerGitLogTool(registry: ToolRegistry, host: ExecHost, optio
     if (typeof count !== 'number' || !Number.isInteger(count) || count < 1 || count > GIT_LOG_MAX_COUNT) {
       throw new Error(`count must be an integer between 1 and ${GIT_LOG_MAX_COUNT} (bounded read-back, never an unbounded log)`);
     }
-    const result: ExecRunResult = await host.run({ argv: ['git', 'log', '--oneline', '-n', String(count)], cwd: args.cwd, env }, { preApproved: true }); // the registry's exec gate is the one §28 checkpoint
+    const result: ExecRunResult = await host.run({ argv: ['git', 'log', '--oneline', ...GIT_LOG_FLAGS, '-n', String(count)], cwd: args.cwd, env }, { preApproved: true }); // the registry's exec gate is the one §28 checkpoint
     if (!result.ran) throw new Error(result.reason || 'run refused');
     if (result.spawnError !== '') throw new Error(`spawn failed: ${result.spawnError}`);
     const flags = budgetFlags(result);

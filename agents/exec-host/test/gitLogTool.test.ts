@@ -23,16 +23,39 @@ describe('parseGitLog (--oneline echo → structured entries, pure data)', () =>
   it('empty stdout is an honest empty log, not a failure', () => {
     expect(parseGitLog('')).toEqual({ commits: [], skipped: 0 });
   });
+
+  // v67 (ADR 0016 amendment 67): these two cases are the MEASURED harm, recorded at the parser so the
+  // reason the shape carries `--no-decorate`/`--no-color` stays checkable. Neither flag is a hint.
+  it('v67: a git DECORATION is indistinguishable from a subject that starts like one — no reader can un-parse it', () => {
+    // Measured with `log.decorate=short` in .git/config: git printed this line for a commit whose real
+    // subject is `real subject`. The next line is the SAME bytes for a commit a human titled
+    // `(HEAD -> master) real subject`. A parser cannot tell the two apart, so the fix is not here.
+    expect(parseGitLog('0a1b2c3 (HEAD -> master) real subject\n')).toEqual({
+      commits: [{ hash: '0a1b2c3', subject: '(HEAD -> master) real subject' }],
+      skipped: 0,
+    });
+  });
+
+  it('v67: one ANSI prefix on the line costs the whole history — the hash stops matching, so git.log said EMPTY', () => {
+    // Measured with `color.ui=always`: 2 real commits, and the door answered `0 commit(s) (empty log)`
+    // at exit 0. This is why the color pin is a shape matter, not a stripping matter: a door that strips
+    // escapes would be guessing which bytes git painted and which the repository committed.
+    const { commits, skipped } = parseGitLog('\u001b[32m0a1b2c3\u001b[m feat: add thing\n');
+    expect(commits).toEqual([]);
+    expect(skipped).toBe(1);
+  });
 });
 
 describe('gitLogPolicy (ONE argv shape; only the count floats)', () => {
   const policy = gitLogPolicy('X:/repo');
-  it.each([['git', 'log', '--oneline', '-n', '5'], ['git', 'log', '--oneline', '-n', '100'], ['git', 'log', '--oneline', '-n', '*']])(
-    'allows exactly %j (the * matches ONE arg token)',
-    (...argv) => {
-      expect(planExec({ argv }, policy).ok).toBe(true);
-    },
-  );
+  const PINNED = ['git', 'log', '--oneline', '--no-decorate', '--no-color'];
+  it.each([
+    [...PINNED, '-n', '5'],
+    [...PINNED, '-n', '100'],
+    [...PINNED, '-n', '*'],
+  ])('allows exactly %j (the * matches ONE arg token)', (...argv) => {
+    expect(planExec({ argv }, policy).ok).toBe(true);
+  });
   it('default-denies every other git verb and every widened log', () => {
     for (const argv of [
       ['git', 'log'], // no shape
@@ -43,6 +66,14 @@ describe('gitLogPolicy (ONE argv shape; only the count floats)', () => {
       ['git', 'show', 'HEAD'],
       ['git', 'commit', '-m', 'x'], // the WRITE lives in its own policy (v35)
       ['git', 'push'],
+      // v67: the pins are not optional. A log that did not say `--no-decorate`/`--no-color` would let the
+      // repository write its own refs and escapes into the subject this door reports.
+      ['git', 'log', '--oneline', '-n', '5'], // v37's own shape, pinned BEFORE v67: undecorated, uncolored by luck
+      ['git', 'log', '--oneline', '--no-color', '-n', '5'], // half a pin
+      ['git', 'log', '--oneline', '--no-decorate', '-n', '5'],
+      ['git', 'log', '--oneline', '--decorate', '--no-color', '-n', '5'], // an ASKED-FOR decoration is still a widening
+      ['git', 'log', '--oneline', '--no-decorate', '--color=always', '-n', '5'],
+      ['git', 'log', '--oneline', '--no-decorate', '--no-color', '-n', '5', '--format=%H'], // a format is a different question
     ]) {
       const d = planExec({ argv }, policy);
       expect(d.ok, argv.join(' ')).toBe(false);
@@ -105,7 +136,7 @@ describe('git.log as a registry tool (read-back behind §28 — a process still 
     const h = harness(LOG_OK);
     const res = await h.registry.invoke({ callId: 'g1', tool: 'git.log', args: {} }, h.grant);
     expect(res.ok).toBe(true);
-    expect(h.calls[0]!.args).toEqual(['log', '--oneline', '-n', '10']);
+    expect(h.calls[0]!.args).toEqual(['log', '--oneline', '--no-decorate', '--no-color', '-n', '10']);
     expect(h.calls[0]!.env).toEqual(gitEnv({ PATH: '/bin' })); // TOKEN scrubbed before git ever saw it; v46's isolation rides along on every door
     expect(res.output).toMatchObject({ ok: true, exitCode: 0, count: 10, commits: [{ hash: '0a1b2c3', subject: 'proof: agent commit' }, { hash: 'deadbeef', subject: 'human seed commit' }] });
     expect((res.output as { detail: string }).detail).toContain('2 commit(s) · newest 0a1b2c3 "proof: agent commit"');
@@ -115,7 +146,7 @@ describe('git.log as a registry tool (read-back behind §28 — a process still 
     const h = harness(LOG_OK);
     const five = await h.registry.invoke({ callId: 'g2', tool: 'git.log', args: { count: 5 } }, h.grant);
     expect(five.ok).toBe(true);
-    expect(h.calls[0]!.args).toEqual(['log', '--oneline', '-n', '5']);
+    expect(h.calls[0]!.args).toEqual(['log', '--oneline', '--no-decorate', '--no-color', '-n', '5']);
     for (const count of [0, -3, 1.5, GIT_LOG_MAX_COUNT + 1, Number.NaN]) {
       const bad = await h.registry.invoke({ callId: `g2-${count}`, tool: 'git.log', args: { count } }, h.grant);
       expect(bad.ok, String(count)).toBe(false);

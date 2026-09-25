@@ -327,12 +327,18 @@ describe('gitReadOnlyPolicy (three exact argv, NOTHING else)', () => {
     expect(env).toMatchObject(GIT_ISOLATION_ENV, forcedConfigEnv());
   });
   it('a caller cannot opt out: even a source that names the pinned keys gets OUR values', () => {
-    const env = gitEnv({ PATH: '/bin', GIT_CONFIG_GLOBAL: '/home/human/.gitconfig', GIT_CONFIG_COUNT: '9', GIT_CONFIG_KEY_0: 'diff.external', GIT_CONFIG_VALUE_0: 'evil' });
+    const env = gitEnv({
+      PATH: '/bin', GIT_CONFIG_GLOBAL: '/home/human/.gitconfig', GIT_CONFIG_COUNT: '9',
+      GIT_CONFIG_KEY_0: 'diff.external', GIT_CONFIG_VALUE_0: 'evil',
+      GIT_CONFIG_KEY_7: 'color.ui', GIT_CONFIG_VALUE_7: 'always', // v67: a SMUGGLED slot past our count — git stops reading at 7
+    });
     expect(env.GIT_CONFIG_GLOBAL).toBe(GIT_ABSENT_CONFIG);
     expect(env.GIT_CONFIG_COUNT).toBe(String(Object.keys(GIT_FORCED_CONFIG).length));
-    expect(env['GIT_CONFIG_KEY_0']).toBe('core.attributesFile'); // slots are numbered from zero in sorted key order
-    expect(env['GIT_CONFIG_VALUE_0']).toBe(''); // the caller's `evil` driver never reaches git
-    expect(env.GIT_CONFIG_COUNT).toBe('5'); // and the count is OURS, so a smuggled sixth key is not read
+    expect(env['GIT_CONFIG_KEY_0']).toBe('color.status'); // slots are numbered from zero in sorted key order
+    expect(env['GIT_CONFIG_VALUE_0']).toBe('false'); // the caller's `evil` driver never reaches git
+    expect(env.GIT_CONFIG_COUNT).toBe('7'); // and the count is OURS, so a smuggled eighth key is not read
+    expect(env['GIT_CONFIG_KEY_7']).toBeUndefined();
+    expect(env['GIT_CONFIG_KEY_6']).toBe('status.showUntrackedFiles'); // the last slot git does read is ours too
   });
 });
 

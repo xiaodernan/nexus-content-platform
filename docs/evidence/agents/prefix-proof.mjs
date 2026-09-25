@@ -61,7 +61,7 @@ const {
 // v46's shipped shape, transcribed — the bytes that used to arrive. Not derived from the source, so this
 // finding survives a future rewrite of it.
 const OLD_FLAGS = ['--no-ext-diff', '--no-textconv'];
-assert.deepEqual(GIT_DIFF_FLAGS, [...OLD_FLAGS, '--src-prefix=a/', '--dst-prefix=b/'], 'the shape this proof compares against IS v46 plus v65, and nothing else');
+assert.deepEqual(GIT_DIFF_FLAGS, [...OLD_FLAGS, '--no-color', '--src-prefix=a/', '--dst-prefix=b/'], 'the shape this proof compares against IS v46 plus v65 plus the v67 color pin, and nothing else');
 
 const PIN = gitEnv({});
 const raw = (dir, ...argv) =>
@@ -96,13 +96,14 @@ const counting = (cmd, args, opts) => {
 };
 /**
  * v46's PROCESS, replayed: the shipped door builds the shipped argv (so the gate sees, and allows,
- * exactly what this package ships), and this stand-in drops v65's two flags on the way to git. That is
+ * exactly what this package ships), and this stand-in drops v65's two prefix flags AND the v67 color pin on
+ * the way to git — so what reaches git is v46's argv token for token. That is
  * the only honest way to hand today's reader yesterday's bytes — the door cannot be asked to run a shape
  * its own policy no longer names, and a hand-written argv here would be this file's claim, not the door's.
  */
 const dropV65 = (cmd, args, opts) => {
   spawns += 1;
-  const kept = args.filter((a) => !/^--(src|dst)-prefix=/.test(a));
+  const kept = args.filter((a) => !/^--(src|dst)-prefix=/.test(a) && a !== '--no-color');
   spawnedArgv.push(`[v46 process] ${kept.join(' ')}`);
   return eh.NODE_SPAWN(cmd, kept, opts);
 };

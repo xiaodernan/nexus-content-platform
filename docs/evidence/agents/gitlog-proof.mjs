@@ -1,6 +1,10 @@
 // NEXUS M2 v37 — the git LOG read-back proof (ADR 0016 amendment 37).
 // The circle closes: v32 SEES the working tree, v35 TOUCHES history, v37 CONFIRMS the
 // touch from the agent's own side — `git log --oneline -n <count>`, the second production
+// v67 (ADR amendment 67) put two more tokens in that shape: under `color.*`/`log.decorate` git paints
+// the hash and prints its OWN refs inside the subject field, so an unpinned `--oneline` let the
+// repository being read rewrite the two fields this door names. The pinned shape is now
+// `git log --oneline --no-decorate --no-color -n <count>` and the old one default-denies — asserted below.
 // use of the '*' ARG wildcard (shape fixed, count floats), read-only like v32 but still a
 // REAL process behind §28. The headline assertion: the newest logged commit is BYTE-EQUAL
 // to the GitCommitRecord the commit tool handed back — the agent can check its own work.
@@ -21,10 +25,10 @@ const { NODE_SPAWN, createExecHost, gitCommitPolicy, gitEnv, gitLogPolicy, parse
 
 // 1) Pure: ONE argv shape on the read side, and the echo parses into ordered records.
 const logPolicy = gitLogPolicy('X:/repo');
-for (const argv of [['git', 'log', '--oneline', '-n', '5'], ['git', 'log', '--oneline', '-n', '100']]) {
+for (const argv of [['git', 'log', '--oneline', '--no-decorate', '--no-color', '-n', '5'], ['git', 'log', '--oneline', '--no-decorate', '--no-color', '-n', '100']]) {
   assert.equal(planExec({ argv }, logPolicy).ok, true, `${argv.join(' ')} plans`);
 }
-for (const argv of [['git', 'log'], ['git', 'log', '--oneline'], ['git', 'log', '--oneline', '-n'], ['git', 'log', '--oneline', '-n', '5', 'main'], ['git', 'log', '--all', '--oneline', '-n', '5'], ['git', 'show', 'HEAD'], ['git', 'commit', '-m', 'x'], ['git', 'push']]) {
+for (const argv of [['git', 'log'], ['git', 'log', '--oneline'], ['git', 'log', '--oneline', '-n', '5'], ['git', 'log', '--oneline', '-n'], ['git', 'log', '--oneline', '-n', '5', 'main'], ['git', 'log', '--all', '--oneline', '-n', '5'], ['git', 'show', 'HEAD'], ['git', 'commit', '-m', 'x'], ['git', 'push']]) {
   const d = planExec({ argv }, logPolicy);
   assert.equal(d.ok, false);
   assert.match(d.reason, /default-deny/, `${argv.join(' ')} must NEVER plan on the read side`);
@@ -35,7 +39,7 @@ assert.deepEqual(parsed.commits, [
   { hash: 'deadbeef', subject: 'chore: seed' },
 ]);
 assert.equal(parsed.skipped, 1, 'a hashless echo line is COUNTED, never guessed into a commit');
-console.log('[gitlog-proof] policy: `git log --oneline -n *` is the ONLY shape · show/commit/push/--all default-deny · echo parser is honest');
+console.log('[gitlog-proof] policy: `git log --oneline --no-decorate --no-color -n *` is the ONLY shape · v37 unpinned `-n *` now default-denies · show/commit/push/--all default-deny · echo parser is honest');
 
 // 2) THE REAL THING in a throwaway repo (deleted at the end; §9 holds).
 const homeHead = execFileSync('git', ['rev-parse', 'HEAD'], { encoding: 'utf8' }).trim(); // THIS repo, untouched below
@@ -69,7 +73,7 @@ try {
   assert.match(empty.output.detail, /does not have any commits yet/);
   assert.deepEqual(empty.output.commits, []);
   assert.equal(spawns.length, 1);
-  assert.deepEqual(spawns[0].args, ['log', '--oneline', '-n', '10'], 'default window is ten, one fixed argv shape');
+  assert.deepEqual(spawns[0].args, ['log', '--oneline', '--no-decorate', '--no-color', '-n', '10'], 'default window is ten, one fixed argv shape');
   console.log(`[gitlog-proof] REAL: empty repo → honest exit-${empty.output.exitCode} DATA ("${empty.output.detail.split(': ').slice(2).join(': ')}"), ${spawns.length} spawn`);
 
   // 2b) The HUMAN seeds history outside the sandbox — the agent had no part in this commit.
@@ -94,7 +98,7 @@ try {
   assert.equal(newest.subject, record.subject, 'the subject survives write→read intact');
   assert.match(second.subject, /^human: seed commit/, 'the human commit sits BELOW the agent commit — history is shared, not overwritten');
   assert.equal(spawns.length, 3);
-  assert.deepEqual(spawns[2].args, ['log', '--oneline', '-n', '2'], 'the wildcard carried the explicit count verbatim');
+  assert.deepEqual(spawns[2].args, ['log', '--oneline', '--no-decorate', '--no-color', '-n', '2'], 'the wildcard carried the explicit count verbatim, past the two v67 tokens');
   assert.equal(spawns[2].cwd, posixDir, 'the read jail is the temp repo — the home repo is not even visible from here');
   console.log(`[gitlog-proof] REAL: read-back agrees — newest ${newest.hash} "${newest.subject}" === commit record ${record.branch}@${record.hash}`);
 

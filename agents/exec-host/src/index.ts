@@ -23,6 +23,7 @@ export {
 export { execTestRunner, NEVER_RAN, type ExecTestRunnerOptions } from './execTestRunner.js';
 export {
   GIT_LOG_TOOL_SPECS,
+  GIT_LOG_FLAGS,
   GIT_LOG_MAX_COUNT,
   gitLogPolicy,
   parseGitLog,
