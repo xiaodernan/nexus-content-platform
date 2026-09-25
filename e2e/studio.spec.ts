@@ -2151,6 +2151,15 @@ test('@smoke §50 试玩：§54 那份设计文档真的跑成一关，能走动
   await expect(game.locator('[data-game-event]').first()).toContainText('完成任务');
   await game.screenshot({ path: 'screenshots/game-play-won.png' });
 
+  // §53：不靠人玩也能问出结果——四种走法各跑一遍，报告要读得出来
+  await game.click('[data-playtest-run]');
+  await expect(game.locator('[data-playtest-run-row="beeline"]')).toBeVisible({ timeout: 30_000 });
+  await expect(game.locator('[data-playtest-run-row="beeline"] [data-playtest-status]')).toHaveText('通关');
+  await expect(game.locator('[data-playtest-run-row="idle"] [data-playtest-status]')).toHaveText('跑到时间上限');
+  await expect(game.locator('[data-playtest-finding]').first()).toContainText('种走法里有');
+  await expect(game.locator('[data-playtest-limits]')).toContainText('不是穷举');
+  await game.screenshot({ path: 'screenshots/game-playtest-report.png' });
+
   // 重新开始：回到初始状态，读数是设计里那两个数而不是上一次跑完的残留
   await game.click('[data-game-restart]');
   await expect(game.locator('[data-game-status]')).toHaveText('进行中');

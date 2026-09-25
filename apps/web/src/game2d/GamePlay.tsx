@@ -6,10 +6,12 @@ import {
   PLAY_DEFAULTS,
   SIM_RULE_NOTES,
   initialState,
+  playtest,
   simSummary,
   step,
   type GamePlan,
   type PlayActor,
+  type PlaytestReport,
   type SimActor,
   type SimInput,
   type SimState,
@@ -127,6 +129,9 @@ export function GamePlay({ plan }: { plan: GamePlan }) {
   const stateRef = useRef<SimState>(initialState(plan));
   const lastFrame = useRef<number>(0);
   const [hud, setHud] = useState<SimState>(() => stateRef.current);
+  // §53：报告是点出来的，不是每次进页面就自动跑——四种走法各 60 秒定步长，
+  // 一进来就占住主线程的话，第一个画面反而出不来
+  const [report, setReport] = useState<PlaytestReport | null>(null);
 
   const restart = useCallback(() => {
     stateRef.current = initialState(plan);
@@ -282,6 +287,65 @@ export function GamePlay({ plan }: { plan: GamePlan }) {
             {hud.events.length === 0 ? <li className="text-11 text-fg-3">还没有事情发生。</li> : null}
           </ul>
         </div>
+      </section>
+
+      {/* §53：不靠人玩也能问出"这版能不能通、按这些走法会不会一进场就死" */}
+      <section className="rounded border border-[var(--nexus-color-border-subtle)] p-3">
+        <div className="flex items-center gap-3">
+          <h3 className="text-12 font-semibold text-fg-1">自动跑一遍（Playtest）</h3>
+          <button
+            type="button"
+            onClick={() => setReport(playtest(plan))}
+            className="rounded bg-bg-2 px-2 py-1 text-11"
+            data-playtest-run
+          >
+            跑四种走法
+          </button>
+        </div>
+        {report ? (
+          <>
+            <table className="mt-2 w-full text-11">
+              <thead className="text-left text-fg-3">
+                <tr>
+                  <th>走法</th>
+                  <th>结果</th>
+                  <th>秒数</th>
+                  <th>承伤 / 输出</th>
+                  <th>拾取</th>
+                  <th>任务</th>
+                </tr>
+              </thead>
+              <tbody>
+                {report.runs.map((run) => (
+                  <tr key={run.policy} data-playtest-run-row={run.policy}>
+                    <td>{run.label}</td>
+                    <td data-playtest-status={run.status}>
+                      {run.timedOut ? '跑到时间上限' : run.status === 'won' ? '通关' : '倒下'}
+                    </td>
+                    <td>{run.seconds}</td>
+                    <td>
+                      {run.damageTaken} / {run.damageDealt}
+                    </td>
+                    <td>{run.pickups}</td>
+                    <td>{run.questsDone}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            <ul className="mt-2 flex flex-col gap-1">
+              {report.findings.map((line) => (
+                <li key={line} className="text-11 text-fg-2" data-playtest-finding>
+                  · {line}
+                </li>
+              ))}
+            </ul>
+            <p className="mt-2 text-11 text-fg-3" data-playtest-limits>
+              {report.limits.join(' ')}
+            </p>
+          </>
+        ) : (
+          <p className="mt-1 text-11 text-fg-3">还没跑。这一步不需要人操作，也不需要模型或 provider。</p>
+        )}
       </section>
 
       <section className="rounded bg-bg-1 p-3">
