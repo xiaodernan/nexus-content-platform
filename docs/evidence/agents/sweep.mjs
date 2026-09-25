@@ -15,6 +15,11 @@
 //   2. the BUILD is identified by a digest over the shipped `dist` trees, so "green" is a claim about
 //      named bytes and a later reader can tell whether the bytes it now has are the bytes it graded.
 //
+// M2 v80 adds the third half, which v78 named only as a bound: proofs run with the REPOSITORY ROOT as
+// cwd, so a script that reads `.` reads the WORKING TREE — including files no commit owns. That tree now
+// gets its own digest and ownership split in the `[identity]` block, and is re-checked after the last
+// script for the same reason the build is.
+//
 // It is a HUMAN-RUN tool, not an agent door: it shells out to `git` with the ambient environment (§9 is
 // held by never writing inside the repository except into a temp dir under os.tmpdir, and by running
 // only read-only scripts). It uses the ASYNCHRONOUS spawn path only — the synchronous child-process API
@@ -30,12 +35,14 @@ import { spawn } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import { existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { join, relative, resolve, sep } from 'node:path';
-import { pathToFileURL } from 'node:url';
+import { dirname, join, relative, resolve, sep } from 'node:path';
+import { pathToFileURL, fileURLToPath } from 'node:url';
 
 export const PROOF_DIR = 'docs/evidence/agents';
 export const DIST_ROOTS = ['agents', 'packages'];
 export const DEFAULT_PROOF_TIMEOUT_MS = 240_000;
+/** This file lives at `<repo>/docs/evidence/agents/sweep.mjs`, so the repository root is three levels up. */
+export const REPO_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..', '..', '..');
 
 const sha256 = (data) => createHash('sha256').update(data).digest('hex');
 
@@ -118,9 +125,22 @@ export async function proofDivergence(ref, cwd) {
   const names = await trackedProofs(ref, cwd);
   const rows = [];
   for (const name of names) {
-    const committed = sha256(await committedBlob(ref, name, cwd));
+    const blob = await committedBlob(ref, name, cwd);
+    const committed = sha256(blob);
     const file = join(cwd, name);
-    rows.push({ name, committed, worktree: existsSync(file) ? sha256(readFileSync(file)) : null });
+    // M2 v80: which of these scripts DEPEND on the walked tree? A text scan of the ref's own bytes, and
+    // labelled as such wherever it is printed — it is a claim about the scripts, not an observation of
+    // what a process opened. Two shapes are counted SEPARATELY because they are two different facts, and
+    // `process.cwd(` alone is not one of them: most scripts use it to locate the `dist` they import, and
+    // two more use it as a JAIL root without reading a directory.
+    const text = blob.toString('utf8');
+    rows.push({
+      name,
+      committed,
+      worktree: existsSync(file) ? sha256(readFileSync(file)) : null,
+      dotIngest: /collectTextFiles\s*\(\s*['"]\./.test(text),
+      ownWalk: /readdirSync\s*\(/.test(text) && /SKIP_DIRS|TEXT_EXT/.test(text),
+    });
   }
   return rows;
 }
@@ -170,6 +190,70 @@ export async function dirtySources(cwd) {
     .filter((p) => /^(agents|packages|apps|services)\/[^/]+\/src\//.test(p));
 }
 
+/** The adapter the production walker expects — node's own sync fs API satisfies it. */
+const fsForWalker = {
+  readdirSync: (dir) => readdirSync(dir, { withFileTypes: true }),
+  statSync: (p) => statSync(p),
+  readFileSync: (p, encoding) => readFileSync(p, encoding),
+};
+
+/**
+ * The THIRD axis of a sweep's object, which v78 named as a bound and did not name as a number.
+ *
+ * `runProof` runs each materialised script with the REPOSITORY ROOT as cwd — that is how a proof reaches
+ * `./agents/runtime/dist/index.js` — so a proof that reads `.` does not read the ref. Seven tracked
+ * proofs call `collectTextFiles('.', fs)` and `code-index-proof.mjs` walks `process.cwd()` with its own
+ * copy of the same rule; measured on this repository, that walk returns 220 files where a clean clone of
+ * the same commit returns 193, and the 27 untracked ones carry 2 204 169 of the 3 801 218 bytes — so 637
+ * of the 1 664 chunks one shipped proof asserts about are owned by no commit at all.
+ *
+ * The population is defined by the production walker itself, imported from the same `dist` the proofs
+ * import, so the runner holds no second copy of the skip-list or extension rule — and because that
+ * walker lives in the built code, the build axis already names its bytes.
+ *
+ * Ownership is split by git: tracked (the ref owns it), untracked-and-not-ignored (present, owned by
+ * nobody), and the remainder by elimination, which is also how the expensive question — enumerating
+ * every ignored file, `node_modules` included — is avoided.
+ */
+export async function walkedTree(cwd, distEntry = join(REPO_ROOT, 'agents', 'runtime', 'dist', 'index.js')) {
+  if (!existsSync(distEntry)) throw new Error(`walkedTree: no built runtime at ${distEntry} — the tree the proofs walk is defined by that build, so the runner must not guess a copy of its rule`);
+  const { collectTextFiles } = await import(pathToFileURL(distEntry).href);
+  const files = collectTextFiles(cwd, fsForWalker);
+  const paths = Object.keys(files).sort();
+  const isTracked = new Set((await git(['ls-files', '-z'], cwd)).split('\0').filter(Boolean));
+  const isUntracked = new Set((await git(['ls-files', '--others', '--exclude-standard', '-z'], cwd)).split('\0').filter(Boolean));
+  const owned = { tracked: [], untracked: [], other: [] };
+  let bytes = 0;
+  let untrackedBytes = 0;
+  const hash = createHash('sha256');
+  for (const p of paths) {
+    const size = Buffer.byteLength(files[p], 'utf8');
+    bytes += size;
+    if (isTracked.has(p)) owned.tracked.push(p);
+    else if (isUntracked.has(p)) {
+      owned.untracked.push(p);
+      untrackedBytes += size;
+    } else owned.other.push(p); // present, not tracked, not untracked-when-ignored-are-excluded ⇒ ignored
+    hash.update(`${p}\t${sha256(Buffer.from(files[p], 'utf8'))}\n`);
+  }
+  return {
+    digest: hash.digest('hex'),
+    files: paths.length,
+    bytes,
+    tracked: owned.tracked.length,
+    untracked: owned.untracked.length,
+    untrackedBytes,
+    other: owned.other.length,
+    sample: owned.untracked.slice(0, 6),
+  };
+}
+
+/** Did the walked tree move while the sweep ran, and what to say when it did — kept separate so a witness can grade both shapes. */
+export function treeMoveNotice(before, after) {
+  if (before.digest === after.digest) return null;
+  return `[identity] ⚠ the WALKED TREE moved during this run: ${before.files} files / ${before.digest.slice(0, 16)} at the start, ${after.files} / ${after.digest.slice(0, 16)} at the end (${before.untracked} untracked then, ${after.untracked} now) — these rows were not all graded against the same working tree`;
+}
+
 /** Write the ref's bytes into a temp directory, one file per proof, and report what landed where. */
 export async function materialize(ref, dest, cwd) {
   const names = await trackedProofs(ref, cwd);
@@ -213,7 +297,7 @@ export async function runProof(file, cwd, timeoutMs = DEFAULT_PROOF_TIMEOUT_MS) 
   };
 }
 
-/** The block every future sweep sentence should quote: which ref, which build, which dirt. */
+/** The block every future sweep sentence should quote: which ref, which build, which dirt, which tree. */
 export async function identityBlock(ref, cwd) {
   const sha = await commitOf(ref, cwd);
   const dist = distDigest(cwd);
@@ -226,6 +310,7 @@ export async function identityBlock(ref, cwd) {
     distDigest: dist.digest,
     distFiles: dist.files,
     dirtySources: await dirtySources(cwd),
+    tree: await walkedTree(cwd),
   };
 }
 
@@ -233,11 +318,12 @@ export async function identityBlock(ref, cwd) {
  * The sweep: identity first, then every committed proof of that ref run from a temp directory, then a
  * summary line written so it can be pasted into an amendment without paraphrase.
  */
-export async function runSweep({ ref = 'HEAD', only = null, cwd = process.cwd(), timeoutMs = DEFAULT_PROOF_TIMEOUT_MS, keep = false, log = console.log } = {}) {
+export async function runSweep({ ref = 'HEAD', only = null, cwd = process.cwd(), timeoutMs = DEFAULT_PROOF_TIMEOUT_MS, keep = false, log = console.log, beforeRecheck = null } = {}) {
   const id = await identityBlock(ref, cwd);
   log(`[identity] ref ${id.ref} = ${id.sha.slice(0, 12)} · node ${id.node} · ${id.platform} · ${id.git}`);
   log(`[identity] build under test: ${id.distFiles} dist files, digest ${id.distDigest.slice(0, 16)} (sha256 over path+content of every shipped dist file)`);
   log(`[identity] dirty tracked sources under packages: ${id.dirtySources.length}${id.dirtySources.length ? ` — ${id.dirtySources.slice(0, 6).join(', ')}${id.dirtySources.length > 6 ? ' …' : ''}` : ''}`);
+  log(`[identity] walked tree (read by the tree-walking scripts via cwd, so the WORKTREE not the ref): ${id.tree.files} files / ${id.tree.bytes} B, digest ${id.tree.digest.slice(0, 16)} · owned by the ref ${id.tree.tracked} · UNTRACKED ${id.tree.untracked} (${id.tree.untrackedBytes} B) · ignored-but-read ${id.tree.other}${id.tree.sample.length ? ` — e.g. ${id.tree.sample.join(', ')} …` : ''}`);
 
   const dest = mkdtempSync(join(tmpdir(), 'nexus-sweep-'));
   const started = Date.now();
@@ -246,7 +332,9 @@ export async function runSweep({ ref = 'HEAD', only = null, cwd = process.cwd(),
     const landed = await materialize(ref, dest, cwd);
     const divergence = await proofDivergence(ref, cwd);
     const differs = divergence.filter((r) => r.worktree !== r.committed).length;
+    const walkers = divergence.filter((r) => r.dotIngest || r.ownWalk).length;
     log(`[identity] scripts: ${landed.length} committed proofs materialised into ${dest}${differs ? ` · ${differs} of them differ from the WORKTREE copy (the ref's bytes are what runs)` : ' · worktree copies identical to the ref'}`);
+    log(`[identity] of those ${landed.length}, ${walkers} read the WORKING TREE as their corpus — ${divergence.filter((r) => r.dotIngest).length} call collectTextFiles on '.' and ${divergence.filter((r) => r.ownWalk).length} re-implement the walk over process.cwd() (a text scan of their committed bytes: a claim about the scripts, not an observation of what a process opened)`);
     const chosen = only ? landed.filter((l) => l.name.includes(only)) : landed;
     if (chosen.length === 0) throw new Error(`--only "${only}" selected no committed proof`);
     results = [];
@@ -266,13 +354,19 @@ export async function runSweep({ ref = 'HEAD', only = null, cwd = process.cwd(),
     }
   }
   const failed = results.filter((r) => !r.ok);
-  // A twelve-minute sweep is long enough for someone to rebuild. If the bytes moved mid-run, the green
-  // rows were graded against two different builds, and only saying so afterwards makes that visible.
+  // A sweep is long enough for someone to rebuild — or to drop a file into the tree these scripts walk.
+  // `beforeRecheck` is a documented seam, not a test hook for its own sake: the re-check has to be
+  // gradeable against a tree that moved, and nothing deterministic can move it from inside a sweep of
+  // read-only scripts.
+  if (beforeRecheck) await beforeRecheck();
   const after = distDigest(cwd);
   const stable = after.digest === id.distDigest;
   if (!stable) log(`[identity] ⚠ the build MOVED during this run: ${id.distDigest.slice(0, 16)} (${id.distFiles} files) at the start, ${after.digest.slice(0, 16)} (${after.files} files) at the end — these rows were not all graded against the same bytes`);
-  log(`\n[summary] ref ${id.sha.slice(0, 12)} · scripts ${results.length} · failed ${failed.length} · dist ${id.distDigest.slice(0, 16)}${stable ? ' (stable across the run)' : ' (MOVED mid-run)'} · dirty-sources ${id.dirtySources.length} · ${Math.round((Date.now() - started) / 1000)}s`);
-  return { identity: id, results, failed, dir: dest, distStable: stable, distAfter: after };
+  const treeAfter = await walkedTree(cwd);
+  const treeNotice = treeMoveNotice(id.tree, treeAfter);
+  if (treeNotice) log(treeNotice);
+  log(`\n[summary] ref ${id.sha.slice(0, 12)} · scripts ${results.length} · failed ${failed.length} · dist ${id.distDigest.slice(0, 16)}${stable ? ' (stable across the run)' : ' (MOVED mid-run)'} · tree ${id.tree.digest.slice(0, 16)} ${treeNotice ? '(MOVED mid-run)' : '(stable)'} ${id.tree.files} files · dirty-sources ${id.dirtySources.length} · ${Math.round((Date.now() - started) / 1000)}s`);
+  return { identity: id, results, failed, dir: dest, distStable: stable, distAfter: after, treeStable: treeNotice === null, treeAfter, treeNotice };
 }
 
 if (isMainModule(import.meta.url)) {
