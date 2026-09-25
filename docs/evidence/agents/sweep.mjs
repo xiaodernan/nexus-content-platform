@@ -31,6 +31,9 @@
 //   node docs/evidence/agents/sweep.mjs --ref <sha>     # sweep a specific commit
 //   node docs/evidence/agents/sweep.mjs --only record   # one proof, for iteration
 //   node docs/evidence/agents/sweep.mjs --keep          # leave the materialised copies behind
+//   node docs/evidence/agents/sweep.mjs --isolated      # run them INSIDE a clean checkout of the ref, so
+//                                                       # the build they import is the ref's, not this one's
+//   node docs/evidence/agents/sweep.mjs --isolated --no-build   # same, without the clean-room compile
 import { spawn } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import { existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, statSync, symlinkSync, writeFileSync } from 'node:fs';
@@ -49,7 +52,15 @@ const sha256 = (data) => createHash('sha256').update(data).digest('hex');
 /** One child process, output collected, never a throw on non-zero: a refusal is DATA here. */
 function run(cmd, argv, opts = {}) {
   return new Promise((res, rej) => {
-    const child = spawn(cmd, argv, { cwd: opts.cwd, env: opts.env ?? process.env, windowsHide: true, stdio: ['ignore', 'pipe', 'pipe'] });
+    const child = spawn(cmd, argv, {
+      cwd: opts.cwd,
+      env: opts.env ?? process.env,
+      windowsHide: true,
+      // `ignore` closes the door a batch command must be written through, so stdin stays closed unless
+      // the caller has something to send.
+      stdio: [opts.stdin === undefined ? 'ignore' : 'pipe', 'pipe', 'pipe'],
+    });
+    if (opts.stdin !== undefined) child.stdin.end(opts.stdin);
     const out = [];
     const err = [];
     let bytes = 0;
@@ -121,28 +132,9 @@ export async function committedBlob(ref, path, cwd) {
  * worktree holds rewritten copies of them would be describing scripts nobody ran — and on this repo
  * that is not hypothetical: the worktree and the ref differ per file right now.
  */
-export async function proofDivergence(ref, cwd) {
-  const names = await trackedProofs(ref, cwd);
-  const rows = [];
-  for (const name of names) {
-    const blob = await committedBlob(ref, name, cwd);
-    const committed = sha256(blob);
-    const file = join(cwd, name);
-    // M2 v80: which of these scripts DEPEND on the walked tree? A text scan of the ref's own bytes, and
-    // labelled as such wherever it is printed — it is a claim about the scripts, not an observation of
-    // what a process opened. Two shapes are counted SEPARATELY because they are two different facts, and
-    // `process.cwd(` alone is not one of them: most scripts use it to locate the `dist` they import, and
-    // two more use it as a JAIL root without reading a directory.
-    const text = blob.toString('utf8');
-    rows.push({
-      name,
-      committed,
-      worktree: existsSync(file) ? sha256(readFileSync(file)) : null,
-      dotIngest: /collectTextFiles\s*\(\s*['"]\./.test(text),
-      ownWalk: /readdirSync\s*\(/.test(text) && /SKIP_DIRS|TEXT_EXT/.test(text),
-    });
-  }
-  return rows;
+export async function proofDivergence(ref, cwd, corpus = null) {
+  const rows = (corpus ?? (await proofCorpus(ref, cwd))).rows;
+  return rows.map((r) => ({ name: r.name, committed: r.committed, worktree: r.worktree, dotIngest: r.dotIngest, ownWalk: r.ownWalk }));
 }
 
 function walk(dir, base, out) {
@@ -266,21 +258,178 @@ export async function walkedTree(cwd, distEntry = join(REPO_ROOT, 'agents', 'run
 
 /** Did the walked tree move while the sweep ran, and what to say when it did — kept separate so a witness can grade both shapes. */
 export function treeMoveNotice(before, after) {
+  if (before.unavailable || after.unavailable) {
+    return `[identity] ⚠ the WALKED TREE could not be digested (at the start: ${before.digest ?? before.unavailable?.slice(0, 120)}; at the end: ${after.digest ?? after.unavailable?.slice(0, 120)}) — the rows cannot be said to have seen one tree, let alone the ref's`;
+  }
   if (before.digest === after.digest) return null;
   return `[identity] ⚠ the WALKED TREE moved during this run: ${before.files} files / ${before.digest.slice(0, 16)} at the start, ${after.files} / ${after.digest.slice(0, 16)} at the end (${before.untracked} untracked then, ${after.untracked} now) — these rows were not all graded against the same working tree`;
 }
 
-/** Write the ref's bytes into a temp directory, one file per proof, and report what landed where. */
-export async function materialize(ref, dest, cwd) {
+/** A tree the runner cannot digest (no built runtime where the child stands) is reported, never guessed at. */
+async function safeWalkedTree(cwd) {
+  try {
+    return await walkedTree(cwd, join(cwd, 'agents', 'runtime', 'dist', 'index.js'));
+  } catch (e) {
+    return { unavailable: e.message, digest: null, files: null, bytes: null };
+  }
+}
+
+const treeLabel = (t) => (t.unavailable ? `UNDIGESTABLE (${t.unavailable.slice(0, 90)})` : `${t.files} files / ${t.bytes} B, digest ${t.digest.slice(0, 16)}`);
+
+/**
+ * ONE pass over the ref's proof blobs, because everything the identity block says about the population —
+ * its bytes, its divergence from the worktree, which tree it reads, which cwd it resolves its code
+ * through — is a property of the same 64 files. Measured on this box: three separate passes left a sweep
+ * spending 13 minutes in `git cat-file` (a Windows spawn is not free), and a runner slower than the
+ * per-proof budget it grades is a runner nobody runs. The readers below keep their own signatures and
+ * accept an optional corpus, so a witness may still ask one question without building the rest.
+ */
+export async function proofCorpus(ref, cwd) {
   const names = await trackedProofs(ref, cwd);
+  const blobs = await catFileBatch(names.map((n) => `${ref}:${n}`), cwd, names.length);
+  const rows = [];
+  for (let i = 0; i < names.length; i++) {
+    const name = names[i];
+    const bytes = blobs[i];
+    const text = bytes.toString('utf8');
+    const file = join(cwd, name);
+    rows.push({
+      name,
+      bytes,
+      text,
+      committed: sha256(bytes),
+      worktree: existsSync(file) ? sha256(readFileSync(file)) : null,
+      // v80: two tree shapes, counted SEPARATELY because they are two different facts, and `process.cwd(`
+      // alone is not one of them — most scripts name a cwd only to reach the `dist` they import.
+      dotIngest: /collectTextFiles\s*\(\s*['"]\./.test(text),
+      ownWalk: /readdirSync\s*\(/.test(text) && /SKIP_DIRS|TEXT_EXT/.test(text),
+      // v83: how the script reaches the CODE it grades — see `proofImportIdioms`.
+      childRelative: /pathToFileURL\(\s*['"]\/?\.\/|pathToFileURL\(\s*join\(/.test(text),
+      fileRelative: /from\s+['"]\.[./]/.test(text) || /import\.meta\.url/.test(text),
+    });
+  }
+  // A batch parser that is one byte off would corrupt EVERY row while looking fast and green, so two of
+  // them are checked against the slow, obvious path — the first and the last, the ends of the stream.
+  for (const i of [0, names.length - 1]) {
+    if (i < 0) continue;
+    const solo = await committedBlob(ref, names[i], cwd);
+    if (!solo.equals(rows[i].bytes)) throw new Error(`proofCorpus: the batch read of ${names[i]} is ${rows[i].bytes.length} B and the single read is ${solo.length} B — the stream parser is off`);
+  }
+  return { ref, rows };
+}
+
+/**
+ * `git cat-file --batch` for a list of object names, in ONE spawn.
+ *
+ * This exists because of a measurement, not a hunch: the first v83 sweep spent 13 minutes and 58 seconds
+ * reading 64 blobs three times over through `committedBlob`, which is one `git` process per blob, ~1.9 s
+ * apiece on this box. One batch call answers the same questions in about a second — and a runner that is
+ * slower than the per-proof budget it enforces (240 s) is a runner that times out its own witnesses.
+ *
+ * The reply is `<oid> blob <size>\n<size bytes>\n` per request, so the sizes are read from git, not
+ * guessed from newlines: a proof's bytes may contain anything, and several of them are CRLF.
+ */
+async function catFileBatch(queries, cwd, expected) {
+  const r = await run('git', ['cat-file', '--batch'], { cwd, timeoutMs: 300_000, encoding: 'buffer', stdin: queries.join('\n') + '\n', maxBuffer: 1 << 29 });
+  if (r.timedOut) throw new Error('git cat-file --batch timed out');
+  if (r.code !== 0) throw new Error(`git cat-file --batch → exit ${r.code}: ${r.stderr.toString('utf8').trim().slice(0, 200)}`);
+  const out = r.stdout;
+  const blobs = [];
+  let pos = 0;
+  for (let i = 0; i < expected; i++) {
+    const nl = out.indexOf(0x0a, pos);
+    if (nl < 0) throw new Error(`cat-file --batch: no header line for request ${i} of ${expected} (stream ended at ${pos})`);
+    const header = out.slice(pos, nl).toString('utf8').trim();
+    const m = /^([0-9a-f]{7,40}) blob (\d+)$/.exec(header);
+    if (!m) throw new Error(`cat-file --batch: request ${i} answered ${header.slice(0, 80) || 'MISSING'} — not "<oid> blob <size>"; a missing object means the ref lacks a proof the listing named`);
+    const size = Number(m[2]);
+    if (nl + 1 + size > out.length) throw new Error(`cat-file --batch: header says ${size} B for request ${i} but the stream has ${out.length - nl - 1}`);
+    blobs.push(out.slice(nl + 1, nl + 1 + size));
+    pos = nl + 1 + size + 1; // skip the newline that terminates the payload
+  }
+  return blobs;
+}
+
+/** Write the ref's bytes into a temp directory, one file per proof, and report what landed where. */
+export async function materialize(ref, dest, cwd, corpus = null) {
+  const rows = (corpus ?? (await proofCorpus(ref, cwd))).rows;
   const landed = [];
-  for (const name of names) {
-    const bytes = await committedBlob(ref, name, cwd);
-    const target = join(dest, name.split('/').pop());
-    writeFileSync(target, bytes);
-    landed.push({ name, target, sha: sha256(bytes), bytes: bytes.length });
+  for (const row of rows) {
+    const target = join(dest, row.name.split('/').pop());
+    writeFileSync(target, row.bytes);
+    landed.push({ name: row.name, target, sha: row.committed, bytes: row.bytes.length });
   }
   return landed;
+}
+
+/**
+ * How the tracked population locates the CODE IT GRADES. Measured from the ref's own bytes, and the
+ * answer decides a question v78–v82 never asked: 61 of HEAD's proofs spell the import as
+ * `pathToFileURL('./agents/runtime/dist/index.js')` and 3 as `pathToFileURL(join(root, …))` with
+ * `root = process.cwd()` — `pathToFileURL` resolves a relative path against `process.cwd()`, so ALL of
+ * them are resolved by the CHILD's cwd, and NONE by the script's own location (`fileRelative` is 0).
+ *
+ * That makes `runProof`'s `cwd` argument more than a corpus choice. A sweep of an older ref with the
+ * worktree as cwd runs the older PROOF TEXT against the CURRENT BUILD — while `[identity]` was quoting
+ * the build digest of whatever tree the runner happened to sit in. The census is printed next to the
+ * probe that measures the resolution, so the sentence names both.
+ */
+export async function proofImportIdioms(ref, cwd, corpus = null) {
+  const rows = (corpus ?? (await proofCorpus(ref, cwd))).rows;
+  const count = (k) => rows.filter((r) => r[k]).length;
+  return {
+    rows,
+    total: rows.length,
+    childRelative: count('childRelative'),
+    fileRelative: count('fileRelative'),
+    unresolved: rows.filter((r) => !r.childRelative && !r.fileRelative).map((r) => r.name),
+  };
+}
+
+/** The four shipped entries the tracked proofs actually import — read off HEAD's bytes, not guessed. */
+export const PROBED_BUILDS = [
+  'agents/runtime/dist/index.js',
+  'agents/exec-host/dist/index.js',
+  'packages/design-model/dist/index.js',
+  'packages/ai-providers/dist/index.js',
+];
+
+/**
+ * Ask a CHILD what it would load, instead of inferring it from the runner's own view of the filesystem.
+ *
+ * The script written here is the runner's, not a proof's, so it may be asked anything — and what it is
+ * asked is the population's own idiom: `pathToFileURL('./x')` and `fileURLToPath`, then the sha of the
+ * bytes that resolve. It also reports its OWN `process.cwd()`, because "I passed cwd=X to spawn" is a
+ * claim about an argument and "the child says it is standing at X" is an observation; on Windows those
+ * two can differ (drive-letter case, 8.3 segments), and every `proofsCwd` sentence below rests on which
+ * one the runner checked.
+ */
+export async function probeChildResolution(cwd, specs = PROBED_BUILDS, timeoutMs = 60_000) {
+  const dir = mkdtempSync(join(tmpdir(), 'nexus-cwdprobe-'));
+  const file = join(dir, 'probe.mjs');
+  writeFileSync(
+    file,
+    [
+      "import { createHash } from 'node:crypto';",
+      "import { existsSync, readFileSync } from 'node:fs';",
+      "import { fileURLToPath, pathToFileURL } from 'node:url';",
+      'const specs = JSON.parse(process.argv[2]);',
+      'const out = specs.map((s) => {',
+      "  const path = fileURLToPath(pathToFileURL('./' + s).href);",
+      '  const exists = existsSync(path);',
+      '  return { spec: s, path, exists, sha: exists ? createHash(\"sha256\").update(readFileSync(path)).digest(\"hex\") : null };',
+      '});',
+      'console.log(JSON.stringify({ cwd: process.cwd(), execPath: process.execPath, resolved: out }));',
+    ].join('\n'),
+    'utf8'
+  );
+  try {
+    const r = await run(process.execPath, [file, JSON.stringify(specs)], { cwd, timeoutMs });
+    if (r.code !== 0) throw new Error(`cwd probe exited ${r.code} at ${cwd}: ${r.stderr.trim().slice(0, 200)}`);
+    return { ...JSON.parse(r.stdout), specs, probe: file, code: r.code, timedOut: r.timedOut };
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
 }
 
 function tailOf(text, n) {
@@ -394,7 +543,11 @@ export async function isolatedCheckout({ ref = 'HEAD', cwd = process.cwd(), dest
   return { dir: dest, root, archiveBytes: tar.stdout.length, links, linkFailures, workspace, build: built };
 }
 
-/** Run one script with the repository root as CWD — which is exactly why the build it grades is the CURRENT one. */
+/**
+ * Run one script with the CALLER's cwd — and since v83 the caller can choose a cwd that is not the
+ * repository root. Before that option existed this function's second argument was always the root, which
+ * is how a proof reached `./agents/runtime/dist/index.js` and also why it was THIS worktree's build.
+ */
 export async function runProof(file, cwd, timeoutMs = DEFAULT_PROOF_TIMEOUT_MS) {
   const started = Date.now();
   const r = await run(process.execPath, [file], { cwd, timeoutMs, maxBuffer: 8 * 1024 * 1024 });
@@ -430,29 +583,51 @@ export async function identityBlock(ref, cwd) {
 /**
  * The sweep: identity first, then every committed proof of that ref run from a temp directory, then a
  * summary line written so it can be pasted into an amendment without paraphrase.
+ *
+ * `proofsCwd` is the child's working directory and it defaults to `cwd`, which has a consequence bigger
+ * than where a script reads `.` from: `proofImportIdioms` measures that every tracked proof resolves the
+ * shipped `dist` it grades through the CHILD's cwd, so this argument picks THE BUILD UNDER TEST. Point it
+ * at an `isolatedCheckout` root and the run says "the ref's proof text, against the ref's build, walking
+ * the ref's tree"; leave it at the default and the ref's text is being graded against whatever this
+ * worktree most recently compiled — which is what every sweep before v83 did, including the ones this
+ * file's own comments describe.
  */
-export async function runSweep({ ref = 'HEAD', only = null, cwd = process.cwd(), timeoutMs = DEFAULT_PROOF_TIMEOUT_MS, keep = false, log = console.log, beforeRecheck = null } = {}) {
+export async function runSweep({ ref = 'HEAD', only = null, cwd = process.cwd(), proofsCwd = null, corpus = null, timeoutMs = DEFAULT_PROOF_TIMEOUT_MS, keep = false, log = console.log, beforeRecheck = null } = {}) {
   const id = await identityBlock(ref, cwd);
+  const runCwd = proofsCwd ?? cwd;
+  const probe = await probeChildResolution(runCwd);
+  // A caller that has already read the population — a witness that censused it in its own §1 — hands the
+  // blobs over rather than paying ~21 s of `git cat-file --batch` per sweep.
+  const banked = corpus && corpus.ref === ref ? corpus : null;
+  const runCorpus = banked ?? (await proofCorpus(ref, cwd));
+  const idioms = await proofImportIdioms(ref, cwd, runCorpus);
+  const childBuild = runCwd === cwd ? { digest: id.distDigest, files: id.distFiles } : distDigest(runCwd);
+  const childTree = await safeWalkedTree(runCwd);
   log(`[identity] ref ${id.ref} = ${id.sha.slice(0, 12)} · node ${id.node} · ${id.platform} · ${id.git}`);
-  log(`[identity] build under test: ${id.distFiles} dist files, digest ${id.distDigest.slice(0, 16)} (sha256 over path+content of every shipped dist file)`);
+  log(`[identity] build at the runner's cwd: ${id.distFiles} dist files, digest ${id.distDigest.slice(0, 16)} (sha256 over path+content of every shipped dist file)`);
   log(`[identity] dirty tracked sources under packages: ${id.dirtySources.length}${id.dirtySources.length ? ` — ${id.dirtySources.slice(0, 6).join(', ')}${id.dirtySources.length > 6 ? ' …' : ''}` : ''}`);
-  log(`[identity] walked tree (read by the tree-walking scripts via cwd, so the WORKTREE not the ref): ${id.tree.files} files / ${id.tree.bytes} B, digest ${id.tree.digest.slice(0, 16)} · owned by the ref ${id.tree.tracked} · UNTRACKED ${id.tree.untracked} (${id.tree.untrackedBytes} B) · ignored-but-read ${id.tree.other}${id.tree.sample.length ? ` — e.g. ${id.tree.sample.join(', ')} …` : ''}`);
+  if (runCwd !== cwd) log(`[identity] tree at the RUNNER's cwd (not the one the rows read): ${treeLabel(id.tree)} · owned by the ref ${id.tree.tracked} · UNTRACKED ${id.tree.untracked} (${id.tree.untrackedBytes} B) · ignored-but-read ${id.tree.other}${id.tree.sample.length ? ` — e.g. ${id.tree.sample.join(', ')} …` : ''}`);
+  log(`[identity] child cwd for every row below: spawn was given ${runCwd}, the child reports ${probe.cwd}${probe.cwd === resolve(runCwd) || probe.cwd === runCwd ? '' : ' ⚠ NOT the directory spawn named — this run is not pointing where the flag said'}`);
+  log(`[identity] what a child standing there LOADS (its own resolution of the population's idiom): ${probe.resolved.map((r) => `${r.spec.split('/').slice(0, 2).join('/')} = ${r.sha ? r.sha.slice(0, 16) : 'MISSING'}`).join(' · ')}`);
+  if (runCwd !== cwd) log(`[identity] build AT THAT cwd: ${childBuild.files} dist files, digest ${childBuild.digest.slice(0, 16)} — vs ${id.distDigest.slice(0, 16)} at the runner's cwd, so the two are not the same code`);
+  log(`[identity] imports: ${idioms.childRelative}/${idioms.total} tracked proofs reach the code under test through the CHILD's cwd, ${idioms.fileRelative} through their own file location${idioms.unresolved.length ? `, ${idioms.unresolved.length} through neither (${idioms.unresolved.map((n) => n.split('/').pop()).join(', ')})` : ''} — so "the ref's bytes are what runs" describes the SCRIPTS, and this line's cwd decides the BUILD they grade`);
+  log(`[identity] walked tree (read by the tree-walking scripts through the CHILD's cwd, so the WORKING TREE at ${runCwd} and not the ref's bytes): ${treeLabel(childTree)}${childTree.unavailable ? '' : ` · census ${childTree.gitRepo ? `tracked ${childTree.tracked} / untracked ${childTree.untracked} / ignored ${childTree.other}` : 'NO .git — every file here is the ref\'s'}`}`);
 
   const dest = mkdtempSync(join(tmpdir(), 'nexus-sweep-'));
   const started = Date.now();
   let results;
   try {
-    const landed = await materialize(ref, dest, cwd);
-    const divergence = await proofDivergence(ref, cwd);
+    const landed = await materialize(ref, dest, cwd, runCorpus);
+    const divergence = await proofDivergence(ref, cwd, runCorpus);
     const differs = divergence.filter((r) => r.worktree !== r.committed).length;
     const walkers = divergence.filter((r) => r.dotIngest || r.ownWalk).length;
     log(`[identity] scripts: ${landed.length} committed proofs materialised into ${dest}${differs ? ` · ${differs} of them differ from the WORKTREE copy (the ref's bytes are what runs)` : ' · worktree copies identical to the ref'}`);
-    log(`[identity] of those ${landed.length}, ${walkers} read the WORKING TREE as their corpus — ${divergence.filter((r) => r.dotIngest).length} call collectTextFiles on '.' and ${divergence.filter((r) => r.ownWalk).length} re-implement the walk over process.cwd() (a text scan of their committed bytes: a claim about the scripts, not an observation of what a process opened)`);
+    log(`[identity] of those ${landed.length}, ${walkers} read the WORKING TREE as their corpus by their own text scan — ${divergence.filter((r) => r.dotIngest).length} call collectTextFiles on '.' and ${divergence.filter((r) => r.ownWalk).length} re-implement the walk over process.cwd() (a scan of the committed bytes, not an observation of what a process opened; the whole population reads the code under test the same way, two lines above)`);
     const chosen = only ? landed.filter((l) => l.name.includes(only)) : landed;
     if (chosen.length === 0) throw new Error(`--only "${only}" selected no committed proof`);
     results = [];
     for (const l of chosen) {
-      const r = await runProof(l.target, cwd, timeoutMs);
+      const r = await runProof(l.target, runCwd, timeoutMs);
       results.push({ ...r, name: l.name, sha: l.sha });
       log(`${r.ok ? 'OK  ' : 'FAIL'} ${l.name.split('/').pop()} (exit ${r.code}${r.timedOut ? ', TIMEOUT' : ''}, ${r.ms}ms) :: ${r.tail}${r.ok ? '' : ' || ' + r.errTail}`);
     }
@@ -475,11 +650,14 @@ export async function runSweep({ ref = 'HEAD', only = null, cwd = process.cwd(),
   const after = distDigest(cwd);
   const stable = after.digest === id.distDigest;
   if (!stable) log(`[identity] ⚠ the build MOVED during this run: ${id.distDigest.slice(0, 16)} (${id.distFiles} files) at the start, ${after.digest.slice(0, 16)} (${after.files} files) at the end — these rows were not all graded against the same bytes`);
-  const treeAfter = await walkedTree(cwd);
-  const treeNotice = treeMoveNotice(id.tree, treeAfter);
+  const childTreeAfter = await safeWalkedTree(runCwd);
+  const treeNotice = treeMoveNotice(childTree, childTreeAfter);
   if (treeNotice) log(treeNotice);
-  log(`\n[summary] ref ${id.sha.slice(0, 12)} · scripts ${results.length} · failed ${failed.length} · dist ${id.distDigest.slice(0, 16)}${stable ? ' (stable across the run)' : ' (MOVED mid-run)'} · tree ${id.tree.digest.slice(0, 16)} ${treeNotice ? '(MOVED mid-run)' : '(stable)'} ${id.tree.files} files · dirty-sources ${id.dirtySources.length} · ${Math.round((Date.now() - started) / 1000)}s`);
-  return { identity: id, results, failed, dir: dest, distStable: stable, distAfter: after, treeStable: treeNotice === null, treeAfter, treeNotice };
+  const childBuildAfter = runCwd === cwd ? after : distDigest(runCwd);
+  const childStable = childBuildAfter.digest === childBuild.digest;
+  if (runCwd !== cwd && !childStable) log(`[identity] ⚠ the GRADED build moved during this run: ${childBuild.digest.slice(0, 16)} at the start, ${childBuildAfter.digest.slice(0, 16)} at the end, both at ${runCwd}`);
+  log(`\n[summary] ref ${id.sha.slice(0, 12)} · scripts ${results.length} · failed ${failed.length} · child cwd ${probe.cwd} · graded build ${childBuild.digest.slice(0, 16)} (${childBuild.files} dist files${childStable ? ', stable across the run' : ', BUILD MOVED mid-run'})${runCwd === cwd ? '' : ` · runner's own build ${id.distDigest.slice(0, 16)}${stable ? ' stable' : ' MOVED'}`} · tree ${childTree.unavailable ? `UNDIGESTABLE (${childTree.unavailable.slice(0, 60)})` : `${childTree.digest.slice(0, 16)} (${treeNotice ? 'MOVED mid-run' : 'stable'}) ${childTree.files} files`} · dirty-sources ${id.dirtySources.length} · ${Math.round((Date.now() - started) / 1000)}s`);
+  return { identity: id, results, failed, dir: dest, distStable: stable, distAfter: after, treeStable: treeNotice === null, treeAfter: childTreeAfter, treeNotice, proofsCwd: runCwd, childProbe: probe, childBuild, childBuildAfter, childStable, importIdioms: idioms, childTree };
 }
 
 if (isMainModule(import.meta.url)) {
@@ -488,10 +666,32 @@ if (isMainModule(import.meta.url)) {
     const i = argv.indexOf(flag);
     return i >= 0 ? argv[i + 1] : undefined;
   };
-  runSweep({ ref: opt('--ref') ?? 'HEAD', only: opt('--only') ?? null, timeoutMs: Number(opt('--timeout') ?? DEFAULT_PROOF_TIMEOUT_MS), keep: argv.includes('--keep') })
-    .then((s) => process.exit(s.failed.length ? 1 : 0))
-    .catch((e) => {
+  const isolated = argv.includes('--isolated');
+  const ref = opt('--ref') ?? 'HEAD';
+  const common = { ref, only: opt('--only') ?? null, timeoutMs: Number(opt('--timeout') ?? DEFAULT_PROOF_TIMEOUT_MS), keep: argv.includes('--keep') };
+  const finish = (s) => process.exit(s.failed.length ? 1 : 0);
+  if (!isolated) {
+    runSweep(common).then(finish).catch((e) => {
       console.error(`[sweep] ${e.message}`);
       process.exit(2);
     });
+  } else {
+    // `--isolated` is the whole point of `proofsCwd`: the proofs are spawned INSIDE the ref's own tree, so
+    // what they import is the ref's build rather than this worktree's. `--no-build` extracts the tree and
+    // leaves it unbuilt, which measures the other half of the same claim (the population then finds
+    // NOTHING to load) without waiting on a clean-room compile.
+    const iso = await isolatedCheckout({ ref, build: !argv.includes('--no-build'), log: (l) => console.log(l) });
+    runSweep({ ...common, proofsCwd: iso.root })
+      .then((s) => {
+        const home = distDigest(process.cwd());
+        console.log(`[isolated] home build after the run: ${home.files} files, digest ${home.digest.slice(0, 16)}${home.digest === s.identity.distDigest ? ' · UNMOVED (the isolation gate)' : ` · MOVED from ${s.identity.distDigest.slice(0, 16)} — this run compiled into the repository it was grading`}`);
+        if (!common.keep) rmSync(iso.dir, { recursive: true, force: true });
+        finish(s);
+      })
+      .catch(async (e) => {
+        console.error(`[sweep --isolated] ${e.message}`);
+        if (!common.keep) rmSync(iso.dir, { recursive: true, force: true });
+        process.exit(2);
+      });
+  }
 }
