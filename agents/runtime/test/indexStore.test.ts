@@ -161,3 +161,32 @@ describe('indexStore: createIndexProvider (v5)', () => {
     expect(res2.output).toEqual(res.output); // identical answers either way
   });
 });
+
+// M2 v79: the persisted index is a ROUND TRIP, not a re-derivation. A key whose value is `undefined`
+// exists in memory and does not exist in JSON, so `toStrictEqual` — the same comparison the proofs run
+// — saw an object that differed by a key that was never a value. Reproduced here over the smallest
+// input that triggers it: one markdown file whose text precedes its first `#` heading.
+describe('cold build → persist → reload is identity (v79)', () => {
+  it('survives a heading-less markdown chunk', () => {
+    const files = { 'notes.md': ['preamble before any heading', '', '# Later', 'body'].join('\n'), 'a.ts': 'export const x = 1;\n' };
+    const cold = buildIndex(files);
+    expect(cold.chunks.some((c) => !('heading' in c))).toBe(true); // the shape that used to be lost
+    const loaded = deserializeIndex(serializeIndex(cold, fingerprintFiles(files)));
+    expect(loaded.ok).toBe(true);
+    if (!loaded.ok) return;
+    expect(loaded.index).toStrictEqual(cold);
+    expect(loaded.fingerprints).toStrictEqual(fingerprintFiles(files));
+  });
+
+  it('round-trips through a disk too, so the proof path is the one tested', () => {
+    const disk = new FakeDisk();
+    const files = { 'notes.md': 'no heading in this file at all\nsecond line\n' };
+    const cold = buildIndex(files);
+    saveIndex(disk, 'state/index.json', cold, fingerprintFiles(files));
+    const reloaded = loadIndex(disk, 'state/index.json');
+    expect(reloaded.ok).toBe(true);
+    if (!reloaded.ok) return;
+    expect(reloaded.index).toStrictEqual(cold);
+    expect(queryIndex(reloaded.index, 'second line', 1)).toStrictEqual(queryIndex(cold, 'second line', 1));
+  });
+});

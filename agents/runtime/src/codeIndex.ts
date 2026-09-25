@@ -79,7 +79,12 @@ export function chunkFile(path: string, content: string): IndexChunk[] {
     let heading: string | undefined;
     const flush = (end: number): void => {
       const body = lines.slice(start - 1, end).join('\n');
-      if (body.trim().length > 0) chunks.push({ path, startLine: start, endLine: end, heading, text: body });
+      // M2 v79: a markdown chunk before the first `#` has NO heading, and `heading: undefined` is a
+      // different object from an absent key once the index is persisted (`JSON.stringify` drops the key)
+      // and read back. The window branch below already omits the key; this branch must agree with it.
+      if (body.trim().length > 0) {
+        chunks.push(heading === undefined ? { path, startLine: start, endLine: end, text: body } : { path, startLine: start, endLine: end, heading, text: body });
+      }
     };
     for (let i = 0; i < lines.length; i++) {
       const m = /^#{1,4}\s+(.+)/.exec(lines[i]!);

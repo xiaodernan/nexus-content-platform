@@ -87,7 +87,12 @@ export function isMainModule(importedUrl) {
 /** The committed proof list — from git's object store, so a worktree file that exists but is untracked cannot join a sweep. */
 export async function trackedProofs(ref, cwd) {
   const listing = await git(['ls-tree', '-r', '--name-only', ref, '--', PROOF_DIR], cwd);
-  return listing.split(/\r?\n/).filter((l) => l.endsWith('.mjs')).sort();
+  // M2 v79: `-proof.mjs`, not `.mjs`. With the wider filter this runner listed ITSELF as a proof, ran
+  // itself as a proof, and so spawned a nested sweep that ran a third — measured as `scripts 63` where
+  // the population is 62, one `TIMEOUT` row that is not a proof result at all, and a 961 s sweep that
+  // should have taken ~200 s. The directory's own convention (every proof, and the runner this file
+  // replaced) is the `-proof.mjs` suffix; a tool is not a test of itself.
+  return listing.split(/\r?\n/).filter((l) => l.endsWith('-proof.mjs')).sort();
 }
 
 export async function commitOf(ref, cwd) {

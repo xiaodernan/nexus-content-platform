@@ -63,3 +63,27 @@ describe('codeIndex: hybrid query', () => {
     expect(queryIndex(buildIndex({}), 'anything')).toEqual([]);
   });
 });
+
+// M2 v79: `heading?: string` is OPTIONAL, and "absent" is the only shape that survives being written
+// to disk — so a markdown chunk before the first `#` must not carry the key with an undefined value.
+// The window (non-markdown) branch already omitted it; the markdown branch is now bound to agree.
+describe('a chunk with no heading omits the key (v79)', () => {
+  const PREAMBLE_MD = ['intro line, no heading yet', '', '# Section', 'body under a heading'].join('\n');
+
+  it('leaves the pre-heading chunk with no `heading` key at all', () => {
+    const chunks = chunkFile('notes.md', PREAMBLE_MD);
+    expect(chunks.length).toBeGreaterThan(1);
+    expect('heading' in chunks[0]!).toBe(false);
+    expect(Object.keys(chunks[0]!).sort()).toEqual(['endLine', 'path', 'startLine', 'text']);
+  });
+
+  it('keeps the key where a heading exists, so the two shapes are not collapsed', () => {
+    const withHeading = chunkFile('notes.md', PREAMBLE_MD).find((c) => 'heading' in c);
+    expect(withHeading?.heading).toBe('Section');
+  });
+
+  it('matches the window branch, which never had the key either', () => {
+    const code = chunkFile('a.ts', 'export const x = 1;\n').concat(chunkFile('notes.md', PREAMBLE_MD));
+    expect(code.filter((c) => 'heading' in c).length).toBe(1);
+  });
+});
