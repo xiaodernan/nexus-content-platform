@@ -188,5 +188,53 @@ describe('git.log as a registry tool (read-back behind §28 — a process still 
     expect(res.output).toMatchObject({ ok: true, exitCode: 0, commits: [], truncated: true });
     expect(d).toContain('no complete line survived the output budget');
     expect(d).not.toContain('empty log'); // v48: a cut is not an absence (§60)
+    expect(d).not.toContain('AT LEAST'); // v68: a floor of NOTHING is v48's sentence, not a floor of a count
+    expect(d).not.toContain('OLDER than every entry named here'); // and it names no entries to be older than
+  });
+
+  // v68 (ADR 0016 amendment 68): 24 of a 25-commit log read's 24 whole-line cut budgets used to print a
+  // CENSUS. The clause below is what the door says now, and the newest-first property is what it may NOT say.
+  const FIVE = [
+    '0a1b2c3 newest commit subject, padded out a little',
+    '1111111 the second newest commit in this repo',
+    '2222222 third, and its subject is about as long',
+    '3333333 fourth commit down the newest-first list',
+    '4444444 fifth and oldest in this small fixture',
+  ];
+  const keepLines = (n: number) => FIVE.slice(0, n).reduce((b, l) => b + Buffer.byteLength(l, 'utf8') + 1, 0);
+
+  it('v68: a cut read floors its own count and keeps the newest entry it named', async () => {
+    const h = harness(`${FIVE.join('\n')}\n`, '', { code: 0, signal: null }, keepLines(2));
+    const res = await h.registry.invoke({ callId: 'v68a', tool: 'git.log', args: { count: 5 } }, h.grant);
+    const o = res.output as { detail: string; commits: { hash: string }[]; count: number; truncated: boolean };
+    expect(o.commits.map((c) => c.hash)).toEqual(['0a1b2c3', '1111111']); // the SURVIVORS are git's newest, whole
+    expect(o.detail).toContain('AT LEAST 2 commit(s)');
+    expect(o.detail).toContain('this door asked for 5');
+    expect(o.detail).toContain('truncated at budget (stdout)');
+    expect(o.detail).not.toContain(': 2 commit(s)'); // the census phrasing must be unreachable on a cut read
+  });
+
+  it('v68: an UNCUT read is worded exactly as it was before v68 — and a budget landing on the last line boundary is uncut', async () => {
+    const WHOLE = 'git.log → exit 0: 5 commit(s) · newest 0a1b2c3 "newest commit subject, padded out a little"';
+    const exact = await harness(`${FIVE.join('\n')}\n`, '', { code: 0, signal: null }, keepLines(5)).registry
+      .invoke({ callId: 'v68b', tool: 'git.log', args: { count: 5 } }, { checkpoint: () => true });
+    const unbounded = await harness(`${FIVE.join('\n')}\n`).registry
+      .invoke({ callId: 'v68c', tool: 'git.log', args: { count: 5 } }, { checkpoint: () => true });
+    expect((exact.output as { detail: string }).detail).toBe(WHOLE); // v68's clause may not leak into a whole answer
+    expect((unbounded.output as { detail: string }).detail).toBe(WHOLE); // …and the two reads agree byte for byte
+    for (const o of [exact.output, unbounded.output] as { truncated: boolean; detail: string }[]) {
+      expect(o.truncated).toBe(false);
+      expect(o.detail).not.toContain('AT LEAST');
+    }
+  });
+
+  it('v68: a cut that ALSO costs a hashless line floors the count and still reports the skip separately', async () => {
+    const h = harness(`${FIVE[0]}\nnot-a-commit\n${FIVE[1]}\n`, '', { code: 0, signal: null }, Buffer.byteLength(`${FIVE[0]}\nnot-a-commit\n`, 'utf8'));
+    const res = await h.registry.invoke({ callId: 'v68d', tool: 'git.log', args: { count: 5 } }, h.grant);
+    const o = res.output as { detail: string; commits: unknown[]; skipped?: number };
+    expect(o.commits).toHaveLength(1);
+    expect(o.skipped).toBe(1); // v37's "counted, never guessed" survives the floor clause beside it
+    expect(o.detail).toContain('AT LEAST 1 commit(s)');
+    expect(o.detail).toContain('1 line(s) without a hash, counted not guessed');
   });
 });

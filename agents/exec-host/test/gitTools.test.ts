@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { ToolRegistry, planExec } from '@nexus/agent-runtime';
 import type { SpawnLike } from '@nexus/agent-runtime';
 import { createExecHost, type ExecChild } from '../src/execHost.js';
-import { GIT_TOOL_SPECS, GIT_DIFF_FLAGS, budgetFlags, diffWindowNotice, gitEnv, gitReadOnlyPolicy, gitVerdict, isDiffHeaderPairLine, isQuotedRendering, parseDiffHeader, parseDiffStat, parseFileLine, parseGitDiff, parseGitStatus, pathShapeNotices, quoteVerdict, refusedNotAbsence, registerGitTools, stdoutWasCut, treeSplitNotice, UNMERGED_XY, unmergedNotice, unmergedNotAbsence, unmergedStatusNotice, unnamableDiffSections, unnamableSectionsNotice, unwrapRendering } from '../src/gitTools.js';
+import { GIT_TOOL_SPECS, GIT_DIFF_FLAGS, budgetFlags, diffWindowNotice, gitEnv, gitReadOnlyPolicy, gitVerdict, isDiffHeaderPairLine, isQuotedRendering, logWindowNotice, parseDiffHeader, parseDiffStat, parseFileLine, parseGitDiff, parseGitStatus, pathShapeNotices, quoteVerdict, refusedNotAbsence, registerGitTools, stdoutWasCut, treeSplitNotice, UNMERGED_XY, unmergedNotice, unmergedNotAbsence, unmergedStatusNotice, unnamableDiffSections, unnamableSectionsNotice, unwrapRendering } from '../src/gitTools.js';
 import { GIT_ABSENT_CONFIG, GIT_FORCED_CONFIG, GIT_ISOLATION_ENV, GIT_PASS_THROUGH_ENV_NAMES, forcedConfigEnv } from '../src/gitEnvIsolation.js';
 
 describe('parseGitStatus (porcelain v1, pure data)', () => {
@@ -965,5 +965,29 @@ describe('v66 — a cut DIFF tally is a WINDOW claim, not a census', () => {
       expect(statLines.slice(0, n).filter((l) => l !== '').length).toBe(bodyLines);
     }
     expect(parsed).toBeGreaterThan(0); // a vacuous scan would otherwise prove nothing
+  });
+});
+
+describe('logWindowNotice (M2 v68: the sixth door in the WINDOW family, and the one whose window has a direction)', () => {
+  it('says NOTHING for a read that was not cut — the rule may not leak into an answer that saw the whole pipe', () => {
+    expect(logWindowNotice({ window: false, read: 25, asked: 25 })).toBe('');
+    expect(logWindowNotice({ window: false, read: 0, asked: 10 })).toBe('');
+  });
+
+  it('for a cut read it names the FLOOR, the bound this door ASKED for, and the DIRECTION of what is missing', () => {
+    const s = logWindowNotice({ window: true, read: 8, asked: 25 });
+    expect(s).toContain('the count is a FLOOR over the read, not a census of the history');
+    expect(s).toContain('this door asked for 25'); // v68: the only window door here that knows its own bound
+    expect(s).toContain('OLDER than every entry named here'); // newest-first: the missing commits trail the read
+    expect(s).not.toContain('MAY stop'); // v66's hedge is about a SECTION being cut mid-body — impossible per line here
+    expect(s).not.toContain('the cut landed inside'); // and a log line has no inside
+  });
+
+  it('the two families stay siblings: one rule about a cut read, different because the READS differ', () => {
+    const diff = diffWindowNotice({ window: true, subject: 'the index', named: 8, partial: { path: 'src/f8.ts', additions: 2, deletions: 0 } });
+    const log = logWindowNotice({ window: true, read: 8, asked: 25 });
+    expect(diff).toContain('NOT a census of it');
+    expect(log).toContain('not a census of the history');
+    expect(log).not.toContain('hunk');
   });
 });

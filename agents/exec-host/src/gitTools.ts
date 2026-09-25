@@ -339,6 +339,25 @@ export const diffWindowNotice = (read: {
 };
 
 /**
+ * M2 v68 (ADR 0016 amendment 68): the sixth door in the window family, and the one whose window has a
+ * DIRECTION. v66 put `AT LEAST` on the three doors that read a diff and left `git.log`'s count alone;
+ * measured on a 25-commit repository, 24 of its 24 whole-line cut budgets printed a census
+ * (`8 commit(s)`, `24 commit(s)` …) with only v56's pipe clause beside them.
+ *
+ * A log read differs from a diff read in one way that changes the sentence rather than softening it:
+ * every line names exactly ONE commit and git prints them NEWEST FIRST, so a cut cannot shorten an
+ * entry the way it shortens a hunk — it can only stop handing over the older ones. Measured: 0 of those
+ * 24 windows lost the newest entry. So this door says BOTH: the count is a floor, and the entries that
+ * DID arrive are still what v37's read-back asks for. `asked` is the door's own bound, which no other
+ * window door here has — it can name the size of the window it requested, though not how many commits
+ * git printed into it.
+ */
+export const logWindowNotice = (read: { window: boolean; read: number; asked: number }): string =>
+  read.window
+    ? ` · the count is a FLOOR over the read, not a census of the history: git printed more on that pipe, and on a newest-first log what never arrived is OLDER than every entry named here (this door asked for ${read.asked})`
+    : '';
+
+/**
  * M2 v61: ONE sentence-pair for the doors that report parsed paths (`git.status`, `git.staged`),
  * the same way v52 gave every door one verdict rule and v56 one budget rule. A door that lists
  * entries owes the reader whatever those entries cannot say for themselves: a rename has two names,

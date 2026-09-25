@@ -1,10 +1,20 @@
 import type { ExecPolicy, ToolRegistry, ToolSpec } from '@nexus/agent-runtime';
-import { budgetFlags, GIT_ENV_NAMES, cutNotAbsence, gitEnv, gitVerdict, quoteVerdict, refusedNotAbsence, stdoutWasCut } from './gitTools.js';
+import { budgetFlags, GIT_ENV_NAMES, cutNotAbsence, gitEnv, gitVerdict, logWindowNotice, quoteVerdict, refusedNotAbsence, stdoutWasCut } from './gitTools.js';
 import type { ExecHost, ExecRunResult } from './execHost.js';
 
 /**
  * M2 v67 (ADR 0016 amendment 67): the two tokens the shape says so that a repository cannot. See the
  * note on `gitLogPolicy` for what each one was measured to do.
+ */
+/**
+ * M2 v68 (ADR 0016 amendment 68): this door's COUNT is the sixth member of the WINDOW family. v66 put
+ * `AT LEAST` on the three doors that read a diff and left `git.log` alone; measured on a 25-commit
+ * repository, 24 of its 24 whole-line cut budgets printed a census (`8 commit(s)`, `24 commit(s)` …) with
+ * only v56's pipe clause beside them. A log read differs from a diff read in one way that changes the
+ * sentence rather than softening it: every line names exactly ONE commit and git prints them NEWEST FIRST,
+ * so a cut cannot shorten an entry the way it shortens a hunk — it can only stop handing over the older
+ * ones (measured: 0 of those 24 windows lost the newest entry). So the door says both halves: the count is
+ * a floor, and what IS named is still HEAD's newest.
  */
 export const GIT_LOG_FLAGS = ['--no-decorate', '--no-color'];
 
@@ -25,13 +35,14 @@ export const GIT_LOG_FLAGS = ['--no-decorate', '--no-color'];
  * `--no-color` does NOT reach the refs: §4 measures the same read with `--no-color` alone, 0 escapes and
  * a hash followed by `(HEAD -> main, tag: v1.0, feature)` still inside the subject, so `--no-decorate`
  * has to be said as well. And neither flag may be replaced by a strip: that fixture's newest commit is
- * TITLED `(HEAD -> main) I titled myself like a decoration, so with decoration fully pinned off the
- * output still contains `(HEAD -> main)` — as the title git was handed — while `tag:` appears nowhere. The door's answer is then checked against git's own `--format=%s`, a format that has
- * never had room for a ref, byte for byte on every commit (§4). `--no-decorate` costs nothing where no
- * decoration exists: §6 compares the whole pinned shape with v37's own and the two are byte-identical in
- * a repository that asks for neither. `git show --format=` needed only the color half — §1 measures 19
- * escapes reaching that face while no ref decoration does, because an empty format prints no subject —
- * so the content door gained the pin that GIT_DIFF_FLAGS carries for all three.
+ * TITLED `(HEAD -> main) I titled myself like a decoration`, so with decoration fully pinned off the output
+ * still contains `(HEAD -> main)` — as the title git was handed — while `tag:` appears nowhere. The door's
+ * answer is then checked against git's own `--format=%s`, a format that has never had room for a ref, byte
+ * for byte on every commit (§4). `--no-decorate` costs nothing where no decoration exists: §6 compares the
+ * whole pinned shape with v37's own and the two are byte-identical in a repository that asks for neither.
+ * `git show --format=` needed only the color half — §1 measures 19 escapes reaching that face while no ref
+ * decoration does, because an empty format prints no subject — so the content door gained the pin that
+ * GIT_DIFF_FLAGS carries for all three.
  */
 export function gitLogPolicy(root: string, options: { timeoutMs?: number; maxOutputBytes?: number } = {}): ExecPolicy {
   const timeoutMs = options.timeoutMs ?? 10_000;
@@ -97,7 +108,10 @@ export function registerGitLogTool(registry: ToolRegistry, host: ExecHost, optio
     }
     const { commits, skipped } = parseGitLog(result.stdout);
     const top = commits[0];
-    const detail = `git.log → exit 0: ${commits.length} commit(s)${top ? ` · newest ${top.hash} "${top.subject}"` : stdoutWasCut(result) ? ` · ${cutNotAbsence('the repository has no commits')}` : ' (empty log)'}${skipped > 0 ? ` · ${skipped} line(s) without a hash, counted not guessed` : ''}${flags}`;
+    // v68: v56's predicate again — a cut pipe makes this door's count a floor. The ZERO case stays v48's
+    // sentence (`cutNotAbsence`, below), because there the door has nothing to floor.
+    const floor = stdoutWasCut(result) && commits.length > 0;
+    const detail = `git.log → exit 0: ${floor ? 'AT LEAST ' : ''}${commits.length} commit(s)${top ? ` · newest ${top.hash} "${top.subject}"` : stdoutWasCut(result) ? ` · ${cutNotAbsence('the repository has no commits')}` : ' (empty log)'}${logWindowNotice({ window: floor, read: commits.length, asked: count })}${skipped > 0 ? ` · ${skipped} line(s) without a hash, counted not guessed` : ''}${flags}`;
     return { ok: true, detail, exitCode: 0, count, commits, ...(skipped > 0 ? { skipped } : {}), truncated: result.truncated };
   });
   return registry;
