@@ -32,7 +32,9 @@ Create Project → Prompt → AI Design → Canvas → Layers → Properties
 - [x] Live Preview 只读投影 + 截图脚本（§33/87，`scripts/capture-studio.mts`）
 - [x] Design System 面板（§12/§13：token 分组浏览、改值/改 mode、引用计数、增删自定义 token，全部可撤销）
 - [x] AI Service（FastAPI, `apps/ai-service`）：契约强制 + Provider 抽象 + Model Router + OpenAI 兼容适配器 + 删除类审批门
-- [~] AI Service 任务队列 / 异步生成作业（§162 Redis 后端已落地，见进度记录第五段）；embedding/RAG、图像/视频 provider 仍未接
+- [~] AI Service 任务队列 / 异步生成作业（§162）— **两侧现在接上了**：ai-service 那侧有真 worker（入队 / 执行 / 状态，
+  9 条 python 测试钉着），web 这侧有消费者（提交、按游标翻译活动、把观察到的终态落进账本，见 M6 那条）。
+  仍欠：界面上的提交入口、Redis 后端跨实例（今天默认内存）、embedding/RAG、图像/视频 provider
 - [x] Design Agent：意图 → Plan → design patch → 画布更新 → AI Diff 说明（§20/25/151，DEMO MODE 确定性规则；真实模型规划待 line 43 的 provider）
 - [x] Design → Code（React + TS + Tailwind，`packages/design-model/src/codegen.ts` + Studio 代码视图）
 - [x] Code → Design（受限 JSX 解析，不可逆区域保留为 code-only，§17-19，`packages/design-model/src/code-parse.ts`）
@@ -1126,10 +1128,11 @@ drizzle 把整个拼接结果当成**单个绑定参数**，生成的 SQL 是 `o
   与 `security/rateLimit.ts` 同一口径：**多实例下收不到别的实例的事件**，接 Redis pub/sub 时换驱动、生产者不动）。
   一条连接覆盖用户频道（通知）与项目频道（进度），带 `?projectId=` 时校验归属（不是你的项目一律 404）、
   每账号同时最多 8 条连接（每条都握着订阅与心跳定时器，开多少条不能由客户端说了算）、写请求一律 405。
-  **今天真的有生产者的只有两类**：`generation.progress`（任务开始推 0、终态推 1，失败也推——
-  界面上那句"正在生成"要能自己停下来）与 `notification`（真的新写了一条才推，duplicate/suppressed 不推）。
-  仍欠：`build.status` / `preview.status` / `agent.plan` / `agent.step` / `agent.activity` 五种事件**还没有生产者**
-  （它们要的是"会分步完成的构建/多步 Agent 作业"，与 §162 的 web 侧消费者、§112 的编排是同一件事）；
+  **今天真的有生产者的有四类**：`generation.progress`（任务开始推 0、终态推 1，失败也推——
+  界面上那句"正在生成"要能自己停下来）、`notification`（真的新写了一条才推，duplicate/suppressed 不推）、
+  以及 §162 的 web 侧消费者上线后的 `agent.step` / `agent.activity`（异步作业的活动按游标推，推过的不推第二遍）。
+  仍欠：`build.status` / `preview.status` / `agent.plan` 三种事件**还没有生产者**
+  （它们要的是"会分步完成的构建/多步 Agent 作业"，与 §112 的编排是同一件事）；
   断线期间的事件不补发（没有 `Last-Event-ID`），所以实时只当加速器、权威状态一律读库——这条限度写在 ADR 后果第 4 条，
   UI 上断开时显示"以刷新后的数据为准"而不是假装还在实时。
   顺带修掉一处会污染终态的假象：provider 带 `error` 返回 HTTP 200（DEMO Mock 遇到没实现的指令就是这样）
@@ -1142,9 +1145,10 @@ drizzle 把整个拼接结果当成**单个绑定参数**，生成的 SQL 是 `o
   别人的项目频道拿 404、匿名拿 401、POST 拿 405（截图 `realtime-bell.png` / `realtime-studio*.png`）。
 - [~] 通知中心（§164）— 收件箱与真事件已在上面 M6 那条落地；原文点名四类，今天**还差两类**
   （Build complete / Agent task complete）。Generation complete 已在下面单独落地（2026-09-25）。
-  剩下这两类要的不是收件箱，而是"web 侧真有一个会结束的作业"：
-  Build 要有会完成的构建操作（今天没有导出/打包端点），多步 Agent 任务要有执行方（§112 的编排），
-  等 #10（§162/§163 队列消费者）落地时一起补，那条实时通道（§163）就是它们的终态来源。
+  以前这里写着"等 §162 的队列消费者落地时一起补"——那句话现在要改口：消费者已经落地（2026-09-26），
+  这两类**仍然没有来源**，而且理由变了。一个异步作业还是一次 provider 调用，worker 不会执行 plan 里的子任务，
+  所以"Agent task complete"要的 §112 编排还没有；"Build complete"要的是会完成的构建操作（今天没有导出/打包端点）。
+  留在单子上的不是"还没排上期"，是"要做的那件事本身还没有"。
 - [x] Agent 任务账本（§112 的地基 + §164 的 Generation complete）— **2026-09-25 落地**：
   `agent_tasks` 这张表从建库起就有完整结构却**全库没有一处写它**，所以"Agent task / Generation complete"
   两类通知一直只能挂在收件箱的"没有来源"清单上。现在 `/api/ai/run` 每次请求开始落一行 `running`、
@@ -1163,6 +1167,30 @@ drizzle 把整个拼接结果当成**单个绑定参数**，生成的 SQL 是 `o
   （截图 `agent-task-ledger.png`）。
   仍欠：取消 / 重试（`attempt` 列还没有第二次的写入方）、审批流（`requires_approval` 全库无人置真）、
   以及把这一行接到 §162 的异步队列上——那时它才真的需要"完成"这件事。
+- [~] 作业队列的 web 侧消费者（§162 第一片）— **2026-09-26 落地后端到端的一条回路**：
+  ai-service 早就有真队列（`POST /v1/ai/jobs` 入队、asyncio worker 执行、`GET /v1/ai/jobs/<id>` 读状态，
+  由 `apps/ai-service/tests/test_jobs.py` 9 条钉着），缺的是 web 从来不曾提交给它、也没读过它的状态——
+  于是"作业会自己结束"这件事在平台这一侧不存在。现在：
+  `POST /api/ai/jobs` 收同一份 `AiRequestSchema` 报文、走同一个服务端装配（§68 那条边界照旧，客户端上传整份文档仍 400），
+  先落一行 `agent_tasks` 再入队，拿到 jobId 就写进 `provider_job_id`（0013，带部分唯一索引：
+  两行认领同一个 job 就会把同一批活动推两遍）；**入队没成功就把那行立刻结掉**，不停在 running。
+  `GET /api/ai/jobs/<jobId>` 每次现场去问（web 只是镜像，不看缓存），然后把观察到的东西落进账本：
+  终态才写终态、`completed` 且 provider 带着 `error` 记 failed、作业在那一侧查不到才落成 failed 并写明原因、
+  问不到（非 404）时一行都不动。通知靠 `generation:<taskId>` 的幂等键兜住，两个标签页同时轮询只有一条。
+  §163 的 `agent.step` / `agent.activity` 从此有了**第一个生产者**：worker 记的活动按 `activity_cursor`
+  推进，`info` 那一档走 `agent.activity`（`agent.step` 的枚举里没有它，硬塞就是在界面上编出一条不存在的过程）。
+  进度仍然不许编：worker 从不设 `progress`（单次 LLM 调用没有可观测的中间态），界面拿到的是 null 加一句说明。
+  验证：`ai-jobs.integration.test.ts` 11 条打真库 + 一台本地假 ai-service（按契约形状报状态）。
+  两次反向实验各打中一句：把"completed 就是成功"改成不看 provider 的 `error` → 1 条红（红在 `taskStatus`，
+  同一个用例下一步的反向对照——同样报文去掉 error 就记成功——保证这不是把判定改严了就算数）；
+  把"已经终态就不再写"的守卫换掉 → 1 条红（同一份 completed 被问两次时 `finishedAt` 往后挪了 32ms）。
+  **这一片没有把 §164 剩下的两类变成有来源**：一个异步作业还是一次 provider 调用，
+  worker 不会执行 plan 里的子任务，所以 Build complete 与 Agent task complete 照旧挂在"没有来源"单子上。
+  **"终态由有人来问才收敛"是这一片的取舍而不是疏忽**，为什么不许 web 起后台轮询器写在
+  `docs/adr/0011-job-convergence-on-read.md`；那句"没人问就一直停在在跑"是真的，别读成"后台会自己补上"。
+  还欠：界面上还没有提交异步作业的入口（今天只有这两条接口在，DEMO MODE 下提交会拿 409 并说明为什么——
+  那条拒绝路径还没有被任何测试打过，所以它在文档里就还是"未验证"）；跨实例的游标要靠 Redis 后端；
+  真 ai-service + 真 worker 的端到端一条待补。
 
 ## 当前阻塞项
 - `[!]` 真实 AI provider key（文本/图像/视频）— 用户提供前，全部生成类能力以 DEMO MODE 交付，UI 明确标注，不伪装真实结果。

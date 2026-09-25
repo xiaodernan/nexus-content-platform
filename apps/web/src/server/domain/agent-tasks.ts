@@ -121,8 +121,50 @@ export async function finishTask(
   return { status, updated: rows.length > 0 };
 }
 
-function view(row: typeof agentTasks.$inferSelect & { projectName: string | null }): TaskView {
-  const started = row.startedAt?.getTime() ?? null;
+/**
+ * §162：把这行任务认领到 ai-service 的那个作业上。只在提交真的拿到 jobId 之后调用。
+ * 已有 job 的行不再覆盖：一行任务对两个作业，轮询回来就说不清哪个状态算数。
+ */
+export async function attachJob(taskId: string, jobId: string): Promise<boolean> {
+  const rows = await getDb()
+    .update(agentTasks)
+    .set({ providerJobId: jobId })
+    .where(and(eq(agentTasks.id, taskId), isNull(agentTasks.providerJobId)))
+    .returning({ id: agentTasks.id });
+  return rows.length > 0;
+}
+
+/** 任务 + 项目名 + 游标。`actorId` 是归属判定：别人的作业查不到，连状态都不给 */
+export interface JobTaskRow {
+  task: typeof agentTasks.$inferSelect;
+  projectName: string | null;
+}
+
+export async function taskByJobId(jobId: string, actorId: string): Promise<JobTaskRow | null> {
+  const [row] = await getDb()
+    .select({ task: agentTasks, projectName: projects.name })
+    .from(agentTasks)
+    .leftJoin(projects, eq(projects.id, agentTasks.projectId))
+    .where(and(eq(agentTasks.providerJobId, jobId), eq(agentTasks.createdById, actorId)))
+    .limit(1);
+  return row ? { task: row.task, projectName: row.projectName } : null;
+}
+
+/**
+ * 推进"已经翻译成实时事件的活动条数"。带上 `from` 做比较并换回：两个标签页同时轮询
+ * 同一个作业时，后写的那次不会把游标倒回去，也不会让另一路觉得自己推过了。
+ */
+export async function bumpActivityCursor(taskId: string, from: number, to: number): Promise<boolean> {
+  if (to <= from) return false;
+  const rows = await getDb()
+    .update(agentTasks)
+    .set({ activityCursor: to })
+    .where(and(eq(agentTasks.id, taskId), eq(agentTasks.activityCursor, from)))
+    .returning({ id: agentTasks.id });
+  return rows.length > 0;
+}
+
+function view(row: typeof agentTasks.$inferSelect & { projectName: string | null }): TaskView {  const started = row.startedAt?.getTime() ?? null;
   const finished = row.finishedAt?.getTime() ?? null;
   return {
     id: row.id,

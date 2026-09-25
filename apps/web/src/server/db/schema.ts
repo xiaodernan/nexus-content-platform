@@ -382,6 +382,10 @@ export const agentTasks = pgTable(
     approvedAt: timestamp('approved_at', { withTimezone: true }),
     capability: CapabilityStatus('capability'),
     attempt: smallint('attempt').notNull().default(1),
+    /** §162：这行任务对应 ai-service 哪一个异步作业；NULL = 同步请求，没有可轮询的作业 */
+    providerJobId: text('provider_job_id'),
+    /** 已经翻译成实时事件的活动条数（0013）：轮询一次推进一次，不回头 */
+    activityCursor: integer('activity_cursor').notNull().default(0),
     createdById: uuid('created_by').references(() => users.id, { onDelete: 'set null' }),
     startedAt: timestamp('started_at', { withTimezone: true }),
     finishedAt: timestamp('finished_at', { withTimezone: true }),

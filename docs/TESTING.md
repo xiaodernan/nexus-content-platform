@@ -211,6 +211,23 @@ e2e 断言面板把"未运行的检查"列出来，而不是显示全绿。
   同一个陌生 context 在删除前点赞收 200、删除后同一个接口收 404、公开页 404、恢复后又回到 200。
   这里踩过一个坑值得记下：`new URL(href).pathname` 会把中文 slug 百分号编码，而库里存的 `path` 是原样，
   于是那条"删除前应该 200"的对照先红了——**测试自己拼 path 才会犯的错**，界面上的按钮发的是服务端给的 `state.path`。
+- 作业队列的 web 侧消费者（§162 第一片）：`apps/web/test/ai-jobs.integration.test.ts` 11 条打真库，
+  外加一台**本地假 ai-service**（`node:http`，只负责"照我说的报状态"）。分工要说清楚：
+  队列本身能不能跑是 `apps/ai-service/tests/test_jobs.py` 那 9 条的事，这里测的是
+  **web 拿到一份状态之后做对了什么**——终态只在真终态时写、`completed` 带着 provider 的 `error` 要记 failed、
+  作业查不到才落成 failed 并写明原因、问不到（非 404）时一行都不动、通知靠 `generation:<taskId>` 的幂等键只有一条、
+  别人的 jobId 在这里**连去问都没问**（断言假服务的 GET 计数没动——先判归属再取数据，反过来就已经把别人的提示词摘要取回自己进程里了）。
+  提交那条还钉了 §68 的边界对异步路径同样成立：假服务收到的报文里 `intent` 与 `context.projectId` 必须在（正向对照），
+  而整份 `document` 不许出现——先证明"该带的带了"，"不该带的没带"才不是一条空断言。
+  两处坑值得记下，都是测试自己造的：① stub 必须过 `AiJobStatusResponseSchema` 的校验，
+  `usage: null` / `patches: [{id}]` 这种"看着差不多"的形状会以"契约违约"的形态红，
+  而那条红与"镜像逻辑写错了"长得一模一样，所以 `okResponse()` 是照必填字段写全的；
+  ② 假服务的 jobId 计数器不能在 `afterEach` 归零，否则第二个用例起就撞 `provider_job_id` 的唯一索引——
+  那条红是真的，但报的是错误的原因。两次反向实验：把"completed 就是成功"改成不看 `error` → 1 条红
+  （同一用例下一步的反向对照保证这不是改严就算数）；把"已终态不再写"的守卫换掉 → 1 条红（两次观察之间 `finishedAt` 挪了 32ms）。
+  活动翻译那一条钉三种命运：`started/completed` 出 `agent.step`、`info` 出 `agent.activity`
+  （`agent.step` 的枚举里没有 info，硬塞就是编出一条不存在的过程）、同一批活动第二次观察一条都不许再发。
+  **没有测到**的：`POST /api/ai/jobs` 在 DEMO MODE 下那句 409 拒绝（要起真服务才打得到），界面上也还没有提交入口。
 - 社区与发现（§59/§61）：`apps/web/test/social.integration.test.ts` 9 条，最要紧的是分叉那两条 ——
   作者发布后再往工作区加一段没公开的草稿，Remix 出来的副本必须**不含**那段草稿而含发布那一版的文字，
   且副本归点 Remix 的人、原作品一行未动、`remixes` 记下来源；下架（private）之后的版本分叉不出来。
