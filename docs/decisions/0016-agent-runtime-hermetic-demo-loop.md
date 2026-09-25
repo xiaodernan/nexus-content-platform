@@ -3197,3 +3197,84 @@ _Numbering: 76 was free when this was written (`git log --oneline -3` top = `17d
   criticism of v81. (4) An archived checkout has no build, so a full isolated BUILD sweep is still not a
   green this box can claim: `isolated-proof.mjs` measures the clean-room `@nexus/studio#build` failure
   across a cross-drive junction, and v81/v82's attribution of it stands untouched.
+
+## Amendment 84 (M2 v84, docs/evidence) — the DRIVE under a clean checkout decides whether its build compiles, so three increments of "the ref's studio build fails" were quoting a drive letter
+
+- **What v83 left as a bound, v84 varied.** Amendment 83's bound (4) read: "an archived checkout has no
+  build, so a full isolated BUILD sweep is still not a green this box can claim: `isolated-proof.mjs`
+  measures the clean-room `@nexus/studio#build` failure across a cross-drive junction, and v81/v82's
+  attribution of it stands untouched." That phrase — "across a cross-drive junction" — had been carried
+  forward three times and never tested by turning the knob. It is now turned: one ref (HEAD), two arms,
+  back to back, nothing changed but which drive the clean checkout sat on. Dest on `C:` (where
+  `os.tmpdir()` is) → `build exit 1 in 522.4s · 55 lines · failed ["@nexus/studio#build"]`. Dest on `D:`
+  (where the repository and every `node_modules` realpath are) → `build exit 0 in 513.0s · 59 lines ·
+  failed []`. The home build digest `8b3ff8b0e7f62133` over 224 files and 309 `node_modules` entries were
+  re-measured unchanged after both arms, so the isolation gate v81 built still holds. The failure was
+  never a property of the ref, of the archived tree, or of the studio app: it was a property of where this
+  runner was allowed to put a directory.
+- **The mechanism, derived rather than believed.** v81 junctions third-party packages rather than copying
+  them, so a checkout on `C:` holds links whose targets are on `D:`. Windows `relative()` cannot express a
+  `D:` path from a `C:` directory and returns it ABSOLUTE — `D:\终极项目\node_modules\next\dist\client\next.js`
+  — and a bundler handed `./` + that is handed `./D:/终极项目/node_modules/next/dist/client/next.js`, which
+  is neither relative (nothing under the app directory is named `D:`) nor absolute (it begins `./`). The
+  file itself is reachable; only its relative-ness is gone. §2 of `drive-axis-proof.mjs` computes that
+  string from this box's own paths and asserts it EQUAL, byte for byte, to the reason line recorded in
+  `isolated-arms.mjs` — so the quote and the derivation are pinned to each other, not to my summary of
+  them. Same-drive, the same arithmetic gives `..\..\..\终极项目\node_modules\…` and reaches the entry.
+- **What moved in the runner (`docs/evidence/agents/`).** `driveOf()` names the axis; `isolatedDest(cwd)`
+  picks a temp dest that shares the repository's drive, keeping `os.tmpdir()` only when it already agrees
+  and reporting `FORCED off tmpdir by the drive mismatch` when it does not; `driveVerdict()` renders the
+  sentence, with a `POSIX-SINGLE-ROOT` clause for a host where the question cannot arise; the
+  `[isolated]` line now prints `dest <dir> on <drive> vs the repository on <drive> — <verdict> (chosen:
+  <how>)`, and appends `⚠ this build FAILED in a CROSS-DRIVE tree: on this ref the same checkout compiled
+  GREEN on the repository drive, so do not read this as a defect of the ref without re-measuring`.
+  `isolatedCheckout` returns `destDrive`, `repoDrive`, `driveMismatch`, `tmpDrive`, `destChoice`. A
+  caller-supplied `dest` is respected, never repaired — the axis has to stay askable, and the line says
+  who chose. `isolated-arms.mjs` is committed as the human-run tool that re-measures the two arms, because
+  a number nobody can re-measure is a number a later reader has to take on faith.
+- **The defect this increment caught in its own evidence.** v82's §3 gate exists to force a failing build
+  to name a REASON line quoted from its own log. Reaching a failing build here was never arranged; it
+  happened because `os.tmpdir()` sat on the wrong drive. Move the dest — which v84's fix does by default —
+  and the build goes GREEN, `reason` is `null`, both of §3's assertions are skipped, and the witness stays
+  GREEN having tested nothing. So `isolated-proof.mjs` now asks for the cross-drive tree BY NAME
+  (`dest: mkdtempSync(join(tmpdir(), 'nexus-isolated-crossdrive-'))`) with a comment saying why, and
+  prints the drive pair beside the reason it quotes: `CROSS-DRIVE: isolated-arms.mjs measured this same
+  ref GREEN on the repository drive, so this reason is a fact about where the checkout was put`. A gate
+  that depends on an accident must convert the accident into an argument.
+- **What did NOT move.** Three evidence files changed and one was added: `sweep.mjs`,
+  `isolated-proof.mjs`, the new `drive-axis-proof.mjs` (the **66th** tracked proof, **68th** script in
+  `docs/evidence/agents` counting `sweep.mjs` and `isolated-arms.mjs`), and the new human-run
+  `isolated-arms.mjs`. No `packages/*`, no `agents/*` source, no exec-host argv shape, env pin, policy,
+  budget, gate, record or door parser moved. No TypeScript at all, so this increment quotes no fresh
+  root-gate numbers it did not measure. Every `[identity]` and `[summary]` sentence that
+  `tree-axis-proof.mjs` and `cwd-axis-proof.mjs` read BY PREFIX is untouched — the only printed line that
+  changed is `[isolated]`, which was grep-confirmed unpinned before the edit and is re-verified by
+  running `cwd-axis-proof.mjs` against the control mutant.
+- **Mutation probes.** The harness re-wires each witness's OWN import idiom to the mutant runner and
+  throws when a needle is absent — a mutant nobody reached is a false green (v83's lesson) — and hosts the
+  mutant at the real depth under a fake root whose `agents/` and `node_modules/` are junctions, because
+  `REPO_ROOT` is module-relative and a copy dropped into Temp reddens the CONTROL for the wrong reason.
+  Control: `drive-axis-proof.mjs` GREEN and the shipped `cwd-axis-proof.mjs` GREEN against the same file.
+  **m1** `isolatedDest` goes back to `mkdir(join(tmp, …))` → RED: "the DEFAULT dest
+  `C:\Users\18414\AppData\Local\Temp\nexus-isolated-iInbZn` is on `C:\` while the repository is on `D:\` —
+  v84's fix is not in effect". **m2** the fix stays and only the SENTENCE goes (`· dest ${where.dir}`) →
+  RED: "the [isolated] line must state the drive verdict it computed", quoting a line that printed the
+  path and no verdict. **m3** `const mismatch = false` → RED: "a caller asked for
+  `C:\Users\…\nexus-v84-cross-TTzqNH` on `C:\` and the runner reported no mismatch — the axis is decoration
+  if it cannot be asked for". **m4** the runner "helpfully" relocates a caller-supplied dest → RED on the
+  same sentence, with the path the caller asked for replaced by `D:\nexus-isolated-AqK2qe`: the ask was
+  silently overwritten, which is precisely how v82's failing-build gate would be lost. Four behavioural
+  mutants, four assertion failures, no SyntaxError among them.
+- **Bounds, stated rather than fixed.** (1) The two build verdicts are ONE back-to-back pair on ONE box
+  whose tmpdir is on `C:` and whose repository is on `D:`; the durations are load-dependent (v81 measured
+  212.6 s for an arm on a quiet box, against 513–522 s here) and no proof re-runs them, because a build
+  arm cannot be scheduled at all — 513 s is more than double the 240 000 ms a sweep row gets, which is why
+  the witness asserts its own 67.9 s and points at `isolated-arms.mjs` instead. (2) On a host where
+  tmpdir and the repository share a volume, the pre-v84 default was already correct; §1 prints which case
+  it is in rather than importing this box's defect everywhere. (3) A same-drive clean tree buys a
+  COMPILING checkout, not a green isolated sweep: an archived tree still has no `dist`, which is exactly
+  what v83's §3 measured, and that bound stands. (4) `driveOf()` is a Windows-shaped reading; the POSIX
+  clause is graded on this host only by its ABSENCE from both real sentences. (5) `PROBED_BUILDS` is
+  unchanged from v83 and still lists four dist paths — the drive axis does not add an import idiom, so
+  the census's `childRelative === total` claim is untouched, and this proof reaches the runner through
+  `process.cwd()` precisely so it stays that way.

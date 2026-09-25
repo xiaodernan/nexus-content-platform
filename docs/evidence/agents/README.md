@@ -115,7 +115,9 @@ node docs/evidence/agents/sweep.mjs --ref HEAD      # v78: runs the REF's bytes 
 node docs/evidence/agents/sweep.mjs --isolated                # v83: the SAME sweep, run INSIDE v81's clean checkout — every proof spawned with cwd in the archived tree, so `graded build` names the build AT THAT cwd (0 dist files before a build) and home's digest is re-checked after, printing `UNMOVED (the isolation gate)` or the accusation that the run compiled into the repository it was grading
 node docs/evidence/agents/tree-axis-proof.mjs   # v80: the sweep's third axis — walked-tree digest, ownership bins, mid-run re-check
 node docs/evidence/agents/isolated-proof.mjs  # requires `npm run build` first (v81: a CLEAN CHECKOUT of the ref, built clean-room in a temp tree — graded on one gate, HOME's dist digest byte-identical before/after, so "isolated" is falsifiable instead of asserted; census-without-git reported as null not 0; the tree-walking proof run in both trees: 193 files vs 220, same verdict, every clean file tracked at HEAD), and since v82 its verdict carries a REASON line quoted from the build.log the runner itself wrote (see §3/§3b)
+node docs/evidence/agents/isolated-arms.mjs  # human-run tool, NOT a proof row (v84): the two clean checkouts of ONE ref differing only in the DRIVE under `dest`, both built — ~18 min here, ~25 s with `--no-build` — exiting non-zero if the home build moved. This is where amendment 84's `exit 1 in 522.4s` / `exit 0 in 513.0s` pair comes from, and it is committed because a number nobody can re-measure is a number a later reader has to take on faith
 node docs/evidence/agents/cwd-axis-proof.mjs    # requires `npm run build` first (v83: the axis under the sweep — census says 61+3 of 64 proofs resolve the shipped code through the CHILD's cwd and 0 through their own file location, a spawned child reports what it loads at three synthetic trees, and the ref's OWN roles-proof exits 1 at an archived checkout / 0 here over byte-identical bytes; `runSweep(proofsCwd)` prints the graded build beside the runner's own, and the witness asserts its own scheduling: 61.6 s of the 240 s a sweep row gets)
+node docs/evidence/agents/drive-axis-proof.mjs  # requires `npm run build` first (v84: the drive under a clean checkout is an axis — two `relative()` calls derive the cross-drive request `./D:/…/next.js` and assert it EQUAL, byte for byte, to the reason line recorded in `isolated-arms.mjs`; the DEFAULT dest is pinned to the repository's drive while a caller can still ask for the other and is told `CROSS-DRIVE` plus who chose; the POSIX clause is graded by its ABSENCE on a win32 host; and the witness schedules itself in 67.9 s of the 240 s a sweep row gets while naming the 513 s build arm that can never be one)
 ```
 
 A note on `spawns[…]` assertions: they pin the argv SHAPE a plan step is allowed to produce
@@ -2148,5 +2150,67 @@ reads **65/65** child-relative, 0 file-relative, `unresolved` empty, in 8 378 ms
 own census without reddening it, because §1 asserts `childRelative === total` and not a constant;
 `--isolated` is opt-in, so the sentence "the sweep graded this worktree's build" stays true by default;
 and an archived checkout has no `dist`, so a full isolated BUILD sweep is still not a green this box can
-claim — `isolated-proof.mjs` measures the clean-room `@nexus/studio#build` failure across a cross-drive
-junction, and v81/v82's attribution of it stands untouched.
+claim. **Amended by v84:** the middle clause — "across a cross-drive junction" — is now an ARGUMENT
+(`dest`) rather than a property of the host, and on the repository's own drive the SAME ref compiles
+**GREEN**, so v81/v82's attribution of that failure to the ref is withdrawn in favour of an attribution to
+where `os.tmpdir()` sits; the "no `dist` in an archived tree" half of the bound stands untouched.
+
+## Drive axis (`drive-axis-proof.mjs`, M2 v84 — which DRIVE does an isolated build compile on?)
+
+66th tracked proof (68th script in `docs/evidence/agents`, counting `sweep.mjs` and the new human-run
+`isolated-arms.mjs`). v81 built a clean checkout, v82 made its verdict quotable, v83 said which BUILD a
+child's cwd grades — and all three put that checkout under `os.tmpdir()` without asking what drive that
+is. On this box the answer is `C:` and the repository is `D:`, so every junction v81 makes crosses a
+volume, and Windows `relative()` cannot express a `D:` path from a `C:` directory: it returns it
+ABSOLUTE. A bundler handed `./` + that gets `./D:/终极项目/node_modules/next/dist/client/next.js` — neither
+relative nor absolute — and the studio build dies on it.
+
+§1 measures the drives (`tmpdir C:\Users\…\Temp on C:\ · repository on D:\ · node_modules realpath on D:\`)
+and records that the PRE-v84 default was therefore cross-drive here — observed, not hypothesised — then
+looks for a volume that is not the repository's and says so out loud if none exists, because §2's refuting
+arm needs one. §2 is the mechanism with no bundler and no build: two real parent directories, one
+`relative()` call each, and the derived string asserted EQUAL, byte for byte, to the reason line
+`isolated-arms.mjs` records — `cross-drive → "D:\\终极项目\\…\\next.js", isAbsolute=true, request
+"./D:/终极项目/node_modules/next/dist/client/next.js" names nothing under the app dir` against
+`same-drive → "..\\..\\..\\终极项目\\…\\next.js", isAbsolute=false`, which reaches the entry. §3 runs the
+runner: the default dest is now `D:\nexus-isolated-…` and prints `SAME DRIVE` plus
+`chosen: repo-drive (FORCED off tmpdir by the drive mismatch)`, while a caller who asks for the other
+volume still gets it and is told `CROSS-DRIVE` and `caller-supplied` — reported, not repaired. §4 grades
+`driveVerdict()` as arithmetic on the shapes this box cannot reach, and on a win32 host asserts the
+`POSIX-SINGLE-ROOT` clause is ABSENT from both real sentences rather than pretending to have run it. §5
+re-measures the home build (`8b3ff8b0e7f62133`, 224 files, UNMOVED across two clean checkouts) and pins
+the witness's own scheduling — 67 948 ms of the 240 000 ms a row gets — next to the number that can never
+be a row: 513.0 s same-drive and 522.4 s cross-drive for a build arm, both over budget by more than 2×.
+
+The measured finding this witness is quoted from, and cannot itself re-run: two clean checkouts of the
+SAME ref, back to back, differing only in drive —
+
+```
+[A-cross-drive-C] build exit 1 in 522.4s · 55 lines · failed ["@nexus/studio#build"]
+[B-same-drive-D]  build exit 0 in 513.0s · 59 lines · failed [] · reason NONE CAPTURED
+[after] home dist 8b3ff8b0e7f62133 (224 files) · home node_modules 309 entries · UNMOVED=true
+```
+
+so the sentence v81/v82/v83 all carried — "the ref's studio build fails in a clean room" — was a sentence
+about where the runner was allowed to write. `isolated-arms.mjs` is committed because a number nobody can
+re-measure is a number a later reader has to take on faith; it runs both arms in ~18 minutes, or ~25
+seconds with `--no-build`, and exits non-zero if the home build moved.
+
+The consequence for a SHIPPED witness is the part worth remembering: v82's §3 gate only ever reached a
+failing build by accident of drive placement. Fix the default and the clean-room build goes GREEN,
+`reason` is `null`, both of §3's reason assertions are skipped, and `isolated-proof.mjs` stays GREEN having
+tested nothing. It now asks for the cross-drive tree by name and prints why, so the gate that needs a red
+build keeps one, and the drive it was built on is part of the record rather than a property of the host.
+
+Control + four probes, all four RED on assertions (`drive-axis-proof.mjs` and, in the control, the shipped
+`cwd-axis-proof.mjs` too): **m1** the dest goes back to `os.tmpdir()` → "the DEFAULT dest
+`C:\Users\…\nexus-isolated-iInbZn` is on `C:\` while the repository is on `D:\` — v84's fix is not in
+effect"; **m2** the fix stays and only the sentence is cut → "the [isolated] line must state the drive
+verdict it computed"; **m3** `mismatch = false` → "a caller asked for `C:\…` on `C:\` and the runner
+reported no mismatch — the axis is decoration if it cannot be asked for"; **m4** the runner relocates a
+caller's cross-drive dest → the same sentence, quoting the replaced `D:\nexus-isolated-AqK2qe`. No
+SyntaxError among them, and the harness throws rather than reporting a green for a file it never reached. Bounds: one back-to-back pair on one box
+(tmpdir `C:`, repository `D:`), durations load-dependent; on a single-volume host the old default was
+already right and §1 says which case it is; a same-drive tree buys a compiling checkout, not a green
+isolated SWEEP — an archived tree still has no `dist`, which is v83's §3 and stands; and the POSIX clause
+is graded here only by absence.
