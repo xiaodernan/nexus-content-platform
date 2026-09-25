@@ -21,7 +21,9 @@
 // script for the same reason the build is.
 //
 // It is a HUMAN-RUN tool, not an agent door: it shells out to `git` with the ambient environment (§9 is
-// held by never writing inside the repository except into a temp dir under os.tmpdir, and by running
+// held by never writing inside the repository except into a temp dir OUTSIDE it — v84 added that the dir
+// is chosen on the repository's own DRIVE rather than wherever os.tmpdir() happens to be, because the
+// drive under a clean checkout decides whether its clean-room build compiles at all — and by running
 // only read-only scripts). It uses the ASYNCHRONOUS spawn path only — the synchronous child-process API
 // is broken on some hosts in this workspace (see `docs/evidence/lib/syncproc.mjs`), and a runner that
 // itself could not run would certify nothing.
@@ -38,7 +40,7 @@ import { spawn } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import { existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, statSync, symlinkSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { dirname, join, relative, resolve, sep } from 'node:path';
+import { dirname, join, parse, relative, resolve, sep } from 'node:path';
 import { pathToFileURL, fileURLToPath } from 'node:url';
 
 export const PROOF_DIR = 'docs/evidence/agents';
@@ -46,6 +48,14 @@ export const DIST_ROOTS = ['agents', 'packages'];
 export const DEFAULT_PROOF_TIMEOUT_MS = 240_000;
 /** This file lives at `<repo>/docs/evidence/agents/sweep.mjs`, so the repository root is three levels up. */
 export const REPO_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..', '..', '..');
+
+/**
+ * The DRIVE a path sits on: `C:\` or `D:\` on Windows, and `/` for every path on POSIX — which is the
+ * honest shape of the axis v84 found: on a POSIX host the two arms below cannot differ and the question
+ * does not arise, while on a Windows host with `os.tmpdir()` on another drive than the repository it
+ * decides whether an isolated build compiles at all.
+ */
+export const driveOf = (p) => parse(resolve(p)).root;
 
 const sha256 = (data) => createHash('sha256').update(data).digest('hex');
 
@@ -471,6 +481,55 @@ export function describeBuild(text) {
 }
 
 /**
+ * Where a clean checkout goes. Every directory this runner makes is OUTSIDE the repository; v84 adds that
+ * it must also be on the repository's OWN DRIVE, because the junctions in §`isolatedCheckout` point at
+ * `node_modules` entries whose realpath is on that drive, and a bundler asked to reach a cross-drive path
+ * "relatively" is handed a string that is not a relative path:
+ * `relative('C:\\…\\repo\\apps\\studio', 'D:\\…\\node_modules\\next\\dist\\client\\next.js')` returns
+ * `D:\…\next.js` — an absolute path, because no `..` chain crosses drives — so the request `./` + that is
+ * `./D:/…/next.js`, which resolves to nothing. Measured on this box, same ref, back to back:
+ * dest on C: → studio build exit 1; dest on D: → exit 0 with every package. See
+ * `isolated-arms.mjs`, the human-run tool that re-measures it.
+ *
+ * `os.tmpdir()` is still preferred when it already shares the repository's drive (it is the conventional
+ * place and gets cleaned by the OS); the drive root is the fallback, and if THAT cannot be written the
+ * choice is reported rather than swallowed.
+ */
+export function isolatedDest(cwd = process.cwd(), prefix = 'nexus-isolated-', mkdir = mkdtempSync) {
+  const repoDrive = driveOf(cwd);
+  const tmp = tmpdir();
+  if (driveOf(tmp) === repoDrive) {
+    return { dir: mkdir(join(tmp, prefix)), chose: 'tmpdir', tmpDir: tmp, tmpDrive: driveOf(tmp), repoDrive };
+  }
+  try {
+    return { dir: mkdir(join(repoDrive, prefix)), chose: 'repo-drive (FORCED off tmpdir by the drive mismatch)', tmpDir: tmp, tmpDrive: driveOf(tmp), repoDrive };
+  } catch (e) {
+    return { dir: mkdir(join(tmp, prefix)), chose: `tmpdir anyway — the repository drive refused mkdtemp (${e.code || e.message})`, tmpDir: tmp, tmpDrive: driveOf(tmp), repoDrive };
+  }
+}
+
+/**
+ * The sentence v84 exists to make printable: which drive the clean checkout went onto, and therefore
+ * whether `relative()` can name the junction targets from inside it at all. `POSIX-SINGLE-ROOT` is
+ * reported as its own fact rather than as an implied Windows bug-free path: on POSIX every path shares
+ * the one root, so the mismatch this clause names cannot arise and no arm here is cross-drive.
+ */
+export function driveVerdict(where) {
+  const destDrive = driveOf(where.dir);
+  const mismatch = destDrive !== where.repoDrive;
+  const posix = where.repoDrive === parse('/') && destDrive === parse('/');
+  return {
+    destDrive,
+    mismatch,
+    phrase: `${where.dir} on ${destDrive} vs the repository on ${where.repoDrive} — ${posix
+      ? 'POSIX-SINGLE-ROOT, so there is no other drive to be on'
+      : mismatch
+        ? `CROSS-DRIVE: relative() cannot name a ${where.repoDrive} path from a ${destDrive} directory and returns it ABSOLUTE instead, so a bundler is handed a “./${where.repoDrive}…” request that resolves to nothing`
+        : `SAME DRIVE, so relative() can name these paths and a bundler can follow them`}`,
+  };
+}
+
+/**
  * A CLEAN CHECKOUT of the ref, in a temp directory — the only way to run the tree-walking proofs against
  * the second axis v80 measured rather than the first. `git archive` gives the ref's tracked bytes with no
  * `.git` and nothing untracked, so what a proof walks there is exactly what a commit owns.
@@ -481,13 +540,19 @@ export function describeBuild(text) {
  * Third-party packages are junctioned read-only; every workspace package is linked from the temp tree
  * instead. The caller proves the isolation by digesting the home build before and after — see
  * `isolated-proof.mjs`, which fails the increment if that digest moved.
+ *
+ * A caller that passes `dest` gets exactly that directory, even when it sits on another drive: the
+ * mismatch is then reported on the `[isolated]` line as `CROSS-DRIVE` rather than quietly repaired,
+ * because a witness that WANTS the cross-drive failure (v82's reason gate needs a build that fails) must
+ * be able to ask for one, and the runner's job is to say which tree it built.
  */
-export async function isolatedCheckout({ ref = 'HEAD', cwd = process.cwd(), dest = mkdtempSync(join(tmpdir(), 'nexus-isolated-')), build = true, log = console.log } = {}) {
-  const root = join(dest, 'repo');
+export async function isolatedCheckout({ ref = 'HEAD', cwd = process.cwd(), dest = null, build = true, log = console.log } = {}) {
+  const where = dest ? { dir: dest, chose: 'caller-supplied', tmpDir: tmpdir(), tmpDrive: driveOf(tmpdir()), repoDrive: driveOf(cwd) } : isolatedDest(cwd);
+  const root = join(where.dir, 'repo');
   mkdirSync(root, { recursive: true });
   const tar = await run('git', ['archive', '--format=tar', ref], { cwd, timeoutMs: 180_000, encoding: 'buffer', maxBuffer: 1 << 29 });
   if (tar.code !== 0) throw new Error(`git archive ${ref} → exit ${tar.code}: ${tar.stderr.toString().trim().slice(0, 200)}`);
-  const tarFile = join(dest, 'ref.tar');
+  const tarFile = join(where.dir, 'ref.tar');
   writeFileSync(tarFile, tar.stdout);
   // GNU tar reads `C:\…` as a remote host because of the drive colon, so --force-local and forward slashes.
   const untar = await run('tar', ['--force-local', '-xf', tarFile.replace(/\\/g, '/'), '-C', root.replace(/\\/g, '/')], { cwd, timeoutMs: 180_000 });
@@ -535,12 +600,13 @@ export async function isolatedCheckout({ ref = 'HEAD', cwd = process.cwd(), dest
     const raw = `${b.stdout}\n${b.stderr}`;
     // Written to `dest`, OUTSIDE `root`: the checked-out tree must contain the ref and nothing else, and a
     // witness counts exactly that. Every sentence below is a claim about bytes a reader can go look at.
-    const logFile = join(dest, 'build.log');
+    const logFile = join(where.dir, 'build.log');
     writeFileSync(logFile, raw, 'utf8');
     built = { ...describeBuild(raw), code: b.code, timedOut: b.timedOut, ms: Date.now() - started, logFile };
   }
-  log(`[isolated] ${ref} → ${root}: ${tar.stdout.length} bytes of tar · ${links} third-party junctions${linkFailures.length ? ` (${linkFailures.length} failed: ${linkFailures.slice(0, 3).join(', ')})` : ''} · ${workspace.length} workspace links from the ARCHIVED globs (${workspace.join(', ')})${build ? ` · build exit ${built.code}${built.timedOut ? ' TIMEOUT' : ''} in ${(built.ms / 1000).toFixed(1)}s · ${built.lines} output lines${built.failed.length ? ` · FAILED ${built.failed.join(', ')}` : ' · all packages'}${built.code !== 0 ? ` · reason ${built.reason ? `“${built.reason.slice(0, 160)}”` : 'NONE CAPTURED (the banner is not a reason)'}` : ''}` : ''}`);
-  return { dir: dest, root, archiveBytes: tar.stdout.length, links, linkFailures, workspace, build: built };
+  const drive = driveVerdict(where);
+  log(`[isolated] ${ref} → ${root}: ${tar.stdout.length} bytes of tar · dest ${drive.phrase} (chosen: ${where.chose}; os.tmpdir() is on ${where.tmpDrive}) · ${links} third-party junctions${linkFailures.length ? ` (${linkFailures.length} failed: ${linkFailures.slice(0, 3).join(', ')})` : ''} · ${workspace.length} workspace links from the ARCHIVED globs (${workspace.join(', ')})${build ? ` · build exit ${built.code}${built.timedOut ? ' TIMEOUT' : ''} in ${(built.ms / 1000).toFixed(1)}s · ${built.lines} output lines${built.failed.length ? ` · FAILED ${built.failed.join(', ')}` : ' · all packages'}${built.code !== 0 ? ` · reason ${built.reason ? `“${built.reason.slice(0, 160)}”` : 'NONE CAPTURED (the banner is not a reason)'}` : ''}${built.code !== 0 && drive.mismatch ? ' · ⚠ this build FAILED in a CROSS-DRIVE tree: on this ref the same checkout compiled GREEN on the repository drive, so do not read this as a defect of the ref without re-measuring (isolated-arms.mjs)' : ''}` : ''}`);
+  return { dir: where.dir, destChoice: where.chose, destDrive: driveOf(where.dir), repoDrive: where.repoDrive, driveMismatch: drive.mismatch, tmpDrive: where.tmpDrive, root, archiveBytes: tar.stdout.length, links, linkFailures, workspace, build: built };
 }
 
 /**

@@ -26,7 +26,7 @@
 // happens to do is a rule that goes untested half the time.
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
-import { existsSync, lstatSync, mkdirSync, readFileSync, readdirSync, realpathSync, rmSync, writeFileSync } from 'node:fs';
+import { existsSync, lstatSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, realpathSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, relative, resolve, sep } from 'node:path';
 import { pathToFileURL } from 'node:url';
@@ -88,7 +88,11 @@ console.log(`  干净目录 ${noGit.files} 只 · 普查问不了 · 摘要仍�
 // --- §2 build the clean checkout, and prove where the build went ---
 console.log('§2 隔离的第一条判据：主仓库的 dist 一个字节都不能动');
 const before = sw.distDigest(root);
-const iso = await sw.isolatedCheckout({ ref: 'HEAD', cwd: root, log: (l) => console.log(`  ${l}`) });
+// v84: §3's REASON gate needs a build that FAILS. Asking for `os.tmpdir()` by name rather than letting
+// the runner choose keeps that transcript reachable now that the DEFAULT dest sits on the repository's own
+// drive — where v84 measured this same ref compiling GREEN. The drive is then an argument this witness
+// states, not an accident it inherits.
+const iso = await sw.isolatedCheckout({ ref: 'HEAD', cwd: root, dest: mkdtempSync(join(tmpdir(), 'nexus-isolated-crossdrive-')), log: (l) => console.log(`  ${l}`) });
 const after = sw.distDigest(root);
 assert.equal(after.digest, before.digest, `HOME dist digest MOVED while building the isolated tree (${before.digest.slice(0, 16)} → ${after.digest.slice(0, 16)}) — the workspace links point back at the home repo and the isolation is fake`);
 assert.equal(after.files, before.files, 'and its population is unchanged too');
@@ -125,6 +129,10 @@ if (iso.build.code !== 0) {
   assert.ok(iso.build.failed.some((f) => iso.build.reason.includes(f.replace('#', ':'))), `the reason line ${JSON.stringify(iso.build.reason.slice(0, 90))} was not printed by a FAILING task (${iso.build.failed.join(', ')}): an error from a package that built fine is not this build's reason, and neither is the summary that only counts`);
   console.log(`  build exit ${iso.build.code} in ${(iso.build.ms / 1000).toFixed(1)}s · ${iso.build.lines} 行输出 · 失败包：${iso.build.failed.join(', ')} · 缓存：${rawLog.includes('Cached:') ? rawLog.match(/Cached:[^\n]*/)[0].trim() : 'not reported'}`);
   console.log(`  原因行（逐字取自 ${iso.build.logFile.split(/[\\/]/).pop()}）：${iso.build.reason.slice(0, 150)}`);
+  // v84: the reason above is a sentence about a DRIVE as much as about the ref — `relative()` cannot name a
+  // path across drives, so a checkout on another volume gets a `./<drive>…` request that resolves to
+  // nothing. Printed beside the quote so a reader of this transcript cannot take it for a ref defect.
+  console.log(`  dest ${iso.dir} on ${iso.destDrive} vs repository on ${iso.repoDrive} — ${iso.driveMismatch ? 'CROSS-DRIVE: isolated-arms.mjs measured this same ref GREEN on the repository drive, so this reason is a fact about where the checkout was put' : 'SAME DRIVE: a failure here is not the cross-drive junction'}`);
 } else {
   assert.deepEqual(iso.build.failed, [], 'a green build names nothing as failed');
   console.log(`  build exit 0 in ${(iso.build.ms / 1000).toFixed(1)}s · ${iso.build.lines} 行输出 · 全部包通过 · tailOf(4)=${iso.build.tail.slice(0, 90)}`);
