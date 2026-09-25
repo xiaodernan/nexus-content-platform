@@ -3089,3 +3089,111 @@ _Numbering: 76 was free when this was written (`git log --oneline -3` top = `17d
   nothing. (2) Isolation is still not `runSweep`'s default; v81's bound stands. (3) The cross-drive
   `@nexus/studio#build` failure is still open and still not promoted into "HEAD does not build" — v82
   makes it quotable, not explained.
+
+## Amendment 83 — v83 (docs/evidence): a sweep's `cwd` is not a corpus choice, it is the BUILD — 64/64 tracked proofs resolve the shipped code through the child's cwd, so the runner has to say which one it graded
+
+- **The sentence this increment exists to make true.** v78 put a ref and a dist digest in the identity
+  block, v80 put the walked tree beside it, and both were read as "this sweep graded the ref's bytes".
+  They grade the ref's SCRIPTS. Where the code under test comes from is decided somewhere else, and the
+  census now says so in the block: of the **64** tracked proofs at `3f18761200ef`, **61** spell the import
+  `pathToFileURL('./agents/runtime/dist/index.js')` and **3** spell it `pathToFileURL(join(root, …))` with
+  `root = process.cwd()` (the three are `provenance-proof`, `tree-axis-proof`, `isolated-proof` — this family itself) — and `pathToFileURL`
+  resolves a relative path against `process.cwd()`. **0**
+  reach it through their own file location. So the child's cwd is the whole story, and it was the one
+  thing the runner never named. The consequence is not hypothetical: `sweep --ref <older sha>` with the
+  worktree as cwd runs the OLDER proof text against the CURRENT BUILD while `[identity]` was quoting a
+  digest of whatever tree the runner happened to sit in.
+- **Observation, not a second copy of the rule.** `probeChildResolution(cwd)` spawns a child standing at
+  that cwd and asks IT to print `process.cwd()` plus the resolved path and sha256 of every entry in
+  `PROBED_BUILDS`; the runner reports what the child says rather than re-deriving the resolution it is
+  claiming, and the text census keeps its own line, labelled as a scan of the scripts. §2 pins that the
+  probe is real by putting three synthetic trees under one spec name — two builds, one bare — and getting
+  two digests (`d44fec1017ce` / `1445f40e400c`) and an honest `exists: false, sha: null`, then cross-checks
+  the home arm against a digest the witness computes itself (`73918b2b38eb`).
+- **`proofsCwd` becomes an axis, and the two builds get two names.** `runSweep` takes `proofsCwd`, spawns
+  every row there, and prints `child cwd for every row below: spawn was given X, the child reports Y` (⚠
+  when they differ), `what a child standing there LOADS`, and — only when the two cwd differ — `build AT
+  THAT cwd: N dist files, digest … vs … at the runner's cwd, so the two are not the same code`. One tree
+  is named once, not twice. The summary ends `graded build <digest> (<n> dist files, stable | MOVED
+  mid-run)`, and the CLI gains `--isolated`, which composes v81's `isolatedCheckout` with the sweep that
+  was always meant to run inside it and then re-checks home's digest, printing either
+  `UNMOVED (the isolation gate)` or the accusation that the run compiled into the repository it graded.
+  An unbuilt checkout reports `graded build e3b0c44298fc (0 dist files)` — the digest over nothing,
+  printed as nothing, which is the v80 census rule (absence as absence) applied to a build.
+- **A batch read, and who grades the batch.** Census cost was measured before it was fixed: reading blob
+  by blob made the witness take **14m7s**, longer than the 240 s the sweep allows any row it schedules —
+  a proof that TIMEOUTs inside the runner it is grading. `proofCorpus()` now reads the whole population in
+  ONE `git cat-file --batch` spawn (**8 744 ms** for 64 blobs on the run quoted below), and the corpus is a
+  bankable argument, so a witness that censused in its own §1 does not pay for the population twice. A
+  stream parser that is one byte off grades the wrong text silently, so the batch is checked against an
+  independent single read at BOTH ends of the population and the runner throws naming both byte counts.
+- **What the witness prints, quoted from its own transcript.** `[4] runSweep: proofsCwd=archived checkout →
+  1 row, failed 1, graded build e3b0c44298fc/0 dist files, tree undigestable, walked-tree line names the
+  child cwd and the runner gets a second one; default cwd → 1 row, failed 0, graded build
+  8b3ff8b0e7f6/224 dist files, tree 220 files named once`, with §3's one-file experiment beside it: the
+  ref's OWN `roles-proof.mjs` exits **1** (`ERR_MODULE_NOT_FOUND`) in 3 119 ms with cwd inside the archived
+  checkout and **0** in 2 810 ms with cwd at this worktree — same bytes off the same commit. §5: home dist
+  `8b3ff8b0e7f62133`, 224 files, byte-identical across the whole proof, which took **61 585 ms** of the
+  **240 000 ms** a sweep row gets — and says so as an assertion, not as a footnote.
+- **The defect this increment caught in itself.** Rewriting the identity block to name two cwd's renamed
+  two lines, and `tree-axis-proof.mjs` — shipped in v80 — reads them BY PREFIX (`[identity] walked tree`,
+  `read the WORKING TREE as their corpus`) and went RED: `and the tree line is PRINTED, not merely
+  computed`. The producer moved back rather than the witness, which is v46's rule for a contract an
+  already-committed proof pins; and §4 of the new witness now pins those same two sentences in BOTH arms
+  plus the number of tree lines, so neither the rewording nor the duplication v83 would have introduced can
+  come back quietly. Mutation **m4** re-ships the pre-fix wording and reddens both witnesses.
+- **Control plus four mutants, all outside the repository.** **control** — the unmutated runner with only
+  its import redirected — is GREEN in both witnesses, which is what makes the four reds below evidence
+  rather than noise. **m1** (`const runCwd = proofsCwd ?? cwd` collapsed to `const runCwd = cwd`, so the
+  axis becomes decoration) reddens §4 on `the isolated row must be RED here — §3 measured why`. **m2** (the
+  census regex stops matching the `./…` idiom) reddens §1 on
+  `every tracked proof must resolve through the child's cwd, or the census sentence below overstates
+  (child-relative 3 of 64)` — the three `join(root, …)` rows survive, so the mutant is a lie of omission,
+  not a crash, and the assertion is what notices. **m3** (the probe returns the RUNNER's `process.cwd()`
+  instead of the child's self-report) reddens §2 on
+  `the child reported D:\终极项目, not the C:\Users\…\nexus-v83-one-77jj6Y it was given`. **m4** (this
+  increment's own first wording) reddens §4 on `exactly one walked-tree line per sweep` AND the shipped
+  `tree-axis-proof.mjs` on `and the tree line is PRINTED, not merely computed` — a producer that rewords a
+  sentence a committed proof reads by prefix goes red in the lane it broke, which is the whole point of
+  pinning numbers in prose. Every one of the four reds is an `AssertionError`, not a stack trace.
+- **Two harness defects that had to be fixed before any of the above counted.** A mutant copy of the runner
+  written outside the repository dies in the identity block for a reason that has nothing to do with the
+  axis: `walkedTree`'s DEFAULT build entry hangs off `REPO_ROOT`, which is derived from the module's own
+  path, so a copy under `%TEMP%` looked for `C:\Users\18414\AppData\agents\runtime\dist\index.js` and threw
+  — control was red four times for free until the harness began writing mutants at the same DEPTH inside a
+  temp root whose `agents/` is a junction to the real one, so the same bytes are loaded and nothing in the
+  repository is touched. And `tree-axis-proof.mjs` reaches the runner by a DIFFERENT idiom
+  (`join(root, 'docs/evidence/agents/sweep.mjs')`) than the new witness does
+  (`'./docs/evidence/agents/sweep.mjs'`), so a harness that rewrites one form silently grades the SHIPPED
+  code against a mutant claim — a false green in the only direction that matters. The harness now keeps a
+  needle per witness and throws when a needle is absent, instead of reporting an exit code for a file it
+  never re-wired.
+- **The witness joins its own census, and the census survives it.** Every number in this amendment is
+  measured against the ref it was written for, so §1's "64/64" is the population as v82 left it — and a
+  proof that ends up in the population it grades is exactly the self-reference v79 made a rule about.
+  Re-run with this commit as HEAD: **65/65 child-relative, 0 file-relative, `unresolved` empty, the whole
+  read in 8 378 ms**, and the four dist paths the probe covers are still named by 61 / 41 / 1 / 1 proofs.
+  The count is therefore a property of the ref being graded, not a constant in the docs — which is why
+  §1's assertion is `childRelative === total` rather than `=== 64`, and why the printed sentence carries
+  the denominator instead of quoting it. The hazard I checked for and did not find: `fileRelative` also
+  fires on any `import.meta.url`, so a witness that used one for its own module resolution would have
+  reddened its successor's §1; this one reaches the runner through `pathToFileURL('./…')` and scores 0.
+- **What did NOT move.** Two evidence files: `sweep.mjs` and `cwd-axis-proof.mjs`, the **65th** tracked
+  proof. No `packages/*`, no `agents/*` source, and inside the exec host no argv shape, env pin, policy,
+  budget, gate, record or door parser moved — the only new parser in this increment is the runner's own
+  `git cat-file --batch` stream reader, and it is checked against independent single reads at both ends of
+  the population because a stream reader one byte off grades the wrong text silently. No TypeScript at
+  all, so this increment quotes no fresh root-gate numbers it did not measure:
+  the pre-commit hook's lint ran over the commit, and the witness is the gate for a change that lives
+  entirely in the evidence pipeline.
+- **Bounds, stated rather than fixed.** (1) `--isolated` is opt-in: the DEFAULT sweep still grades this
+  worktree's build, deliberately, because that is the code the four root gates just compiled, and a runner
+  must not silently change the meaning of a sentence already written into the amendments. (2)
+  `PROBED_BUILDS` is the four entries the census finds — the population names exactly four dist paths
+  (61 × `agents/runtime`, 41 × `agents/exec-host`, 1 each `packages/design-model` and
+  `packages/ai-providers`, counted over proofs that may name several), so the probe covers every path the
+  scripts can resolve today; a fifth idiom has to be added rather than silently missed, and §1's census is
+  what tells a future reader whether the list still covers the population. (3) §1 is a text scan of scripts and §3 is the observation; the scan alone would be v82's
+  criticism of v81. (4) An archived checkout has no build, so a full isolated BUILD sweep is still not a
+  green this box can claim: `isolated-proof.mjs` measures the clean-room `@nexus/studio#build` failure
+  across a cross-drive junction, and v81/v82's attribution of it stands untouched.
