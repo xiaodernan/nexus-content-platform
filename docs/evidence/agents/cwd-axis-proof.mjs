@@ -42,7 +42,17 @@ const censusStarted = Date.now();
 const corpus = await sw.proofCorpus('HEAD', root);
 const idioms = await sw.proofImportIdioms('HEAD', root, corpus);
 const censusMs = Date.now() - censusStarted;
-assert.equal(idioms.fileRelative, 0, `no tracked proof may load the shipped code relative to its OWN file, or the child cwd is not the whole story (counted: ${idioms.fileRelative})`);
+// v83 asserted `fileRelative === 0` and amendment 89 falsified the pin: since amendment 86 the population
+// imports a SHARED LIBRARY relative to itself, so that counter is no longer this axis's claim. What the axis
+// actually asserts is narrower and still true — no proof may reach THE CODE UNDER TEST through its own
+// location, because then the materialised copy, not the child cwd, would decide which build it grades.
+const distRelative = corpus.rows.filter((r) => /from\s+['"]\.[^'"]*\/dist\/[^'"]+['"]/.test(r.text)).map((r) => r.name);
+assert.deepEqual(distRelative, [], `a proof that loads the shipped build relative to ITSELF escapes the child-cwd axis entirely: ${distRelative.join(', ')}`);
+const closureNow = await sw.closureOf('HEAD', root, corpus);
+// The two readers count different grammars on purpose: `fileRelative` also fires on `import.meta.url`, while
+// the closure counts specifiers the new code-position scanner believes. An equality here would be one rule
+// agreeing with itself, so the live claim is the DIST one above and the numbers are printed, not pinned.
+assert.ok(idioms.fileRelative >= closureNow.importers, `the census reader missed file-relative edges the closure reader found (${idioms.fileRelative} vs ${closureNow.importers})`);
 assert.equal(idioms.childRelative, idioms.total, `every tracked proof must resolve through the child's cwd, or the census sentence below overstates (child-relative ${idioms.childRelative} of ${idioms.total})`);
 assert.deepEqual(idioms.unresolved, [], `a proof that resolves the build NEITHER way would silently escape this axis: ${idioms.unresolved.join(', ')}`);
 console.log(`[1] census of HEAD's tracked proofs: ${idioms.childRelative}/${idioms.total} reach the shipped code through the CHILD's cwd · ${idioms.fileRelative} through their own file location · ${idioms.unresolved.length} through neither — all ${idioms.total} blobs in one \`git cat-file --batch\` spawn, ${censusMs}ms`);
