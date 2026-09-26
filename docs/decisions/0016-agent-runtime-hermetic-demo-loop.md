@@ -3990,3 +3990,26 @@ disagreement is written down rather than smoothed over.
   declares a command that did NOT appear in its cause, which is the interesting case: a row may confess more than it
   asks, or ask something it never reaches). Then the declaration channel stops being foreknowledge and starts being
   a claim with a verdict on it.
+
+- **Amended at the doc ref (`a4f60b0`), because a shared-document append is a precondition, not a detail.** The
+  sequence this directory settled on (append → commit → re-run) was followed, and the three grammar gates were re-run
+  against the commit that carries this record. All exit 0 on the GIT plane with the numbers quoted above unmoved:
+  `runtime rows 354 over 26 files · measured 354 over 26 · exec-host rows 275/8 · measured 275/8`, `failing TRACKED
+  cases: 0`, `mutations caught: 4/4`; `50 reach a git child process at code position (program=115 argv=124 call
+  sites) · the naive grammar calls 56`, prose-only 6, blind spots 2 + 3, §5 census mutations `1 / 0 / 0`; and
+  `declaration cases exact: 22/22 — including 11 that must NOT count`, census 4 declared / 1 corroborated / 3
+  invisible. ONE number moved, and it is the one that should have: the graded-tree digest went
+  `b0ec9a2cc51138ec → b59354c0972fefab`, because `table-recount-proof.mjs` grades the README's HEAD blob and this
+  increment wrote 35 prose lines into it. Both row totals stayed exactly where they were, which is the same check
+  answering in the other direction — a section that is not a table row must not shift a table count — and it is why
+  the digest is printed: a stable digest across a run that changed a graded file would mean the file was not really
+  being read.
+- **The asymmetry between the two documents this increment touched, stated rather than left implicit.** The README is
+  graded: a proof reads its bytes out of HEAD, cross-checks them against the worktree copy, and reddens when its own
+  tables disagree with a real vitest recount. The ADR is graded by nothing in this directory — a grep over the 72
+  scored rows finds zero references to `docs/decisions`, and the only CI arm is that the FILE appears in the index
+  (`.github/workflows/ci.yml:19-25`, "ADR index integrity"). So "amendment 94 was recorded" carries no verdict; what
+  carries verdicts are the logs this bullet transcribes, and the record is honest only insofar as a reader can re-run
+  the line and check. Whether an amendment's OWN numbers should be gradeable — a row that re-derives the figures a
+  record claims — is a candidate worth more than this one, and it is recorded here as the reason the next increment
+  looks at confessions rather than at documents.
