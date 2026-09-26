@@ -41,7 +41,9 @@ function record(label: string, unit: string, runs: number[]): void {
 
 /** 页内探针：首帧 + 帧间隔采样，都在 addInitScript 里装好，免得量到脚本注入之后的那一段 */
 const PROBE = `
-  window.__perf = { start: performance.now(), firstNodeAt: null, frames: [] };
+  // startEpoch 是**绝对时间**：resource timing 的 startTime / responseEnd 都以 timeOrigin 为零点，
+  // 而 firstNodeAt 以注入脚本这一刻为零点。混着减会得出负数的"之后 X ms"——第一版就是这么错的。
+  window.__perf = { start: performance.now(), startEpoch: performance.timeOrigin + performance.now(), firstNodeAt: null, frames: [] };
   const watch = () => {
     if (window.__perf.firstNodeAt === null && document.querySelector('[data-canvas-frame] [data-node-id]')) {
       window.__perf.firstNodeAt = performance.now() - window.__perf.start;
@@ -204,6 +206,38 @@ async function reloadAndMeasureFirstNode(): Promise<number> {
   const at = await page.evaluate(() => (window as any).__perf.firstNodeAt as number);
   const count = await page.locator('[data-canvas-frame] [data-node-id]').count();
   if (!Number.isFinite(at) || at <= 0) throw new Error(`首帧时间没量到：${await pageState()}（画布上有 ${count} 个节点）`);
+  // 把首帧拆成"文档到手之前"与"之后"两段：一个 1.9 秒的总数不能指导任何优化，
+  // 而"服务端读 + 传 4000 节点的文档占 1.6 秒"与"水合与求解占 1.6 秒"是两个完全不同的活。
+  // 读的是浏览器自己的 resource timing——不往应用里加计数，量的就是用户实际拿到的那一份。
+  const split = await page.evaluate(() => {
+    // 收窄只能在谓词的返回值上做，所以先按名字筛、再在收窄之后读 initiatorType
+    const entries = performance
+      .getEntriesByType('resource')
+      .filter((e): e is PerformanceResourceTiming => /\/api\/projects\//.test(e.name))
+      .filter((e) => e.initiatorType === 'fetch');
+    const doc = entries.sort((a, b) => b.responseEnd - a.responseEnd)[0];
+    if (!doc) return null;
+    return {
+      // 换成与 firstNodeAt 同一个坐标系（绝对 epoch 毫秒）再相减
+      docEndAt: performance.timeOrigin + doc.responseEnd,
+      startAt: (window as any).__perf ? (window as any).__perf.startEpoch : null,
+      firstNodeAt: (window as any).__perf ? (window as any).__perf.firstNodeAt : null,
+      duration: doc.duration,
+      bytes: doc.encodedBodySize,
+      count: entries.length,
+    };
+  });
+  if (split && split.startAt && split.firstNodeAt) {
+    const firstNodeAbs = split.startAt + split.firstNodeAt;
+    const after = firstNodeAbs - split.docEndAt;
+    console.log(
+      `  首帧 = 文档响应到手前 ${Math.round(split.docEndAt - split.startAt)}ms` +
+        `（那一次请求 ${Math.round(split.duration)}ms${split.bytes ? `、${Math.round(split.bytes / 1024)} KB` : '、字节数浏览器不给'}）` +
+        ` + 到手之后 ${Math.round(after)}ms，共 ${split.count} 次项目接口`,
+    );
+  } else {
+    console.log(`  首帧 ${Math.round(at)}ms（没读到项目接口的 resource timing，拆不了段——不编一个数）`);
+  }
   return at;
 }
 
