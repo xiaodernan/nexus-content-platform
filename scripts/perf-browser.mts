@@ -16,6 +16,15 @@ import { chromium } from '@playwright/test';
  */
 
 const base = process.argv[2] ?? 'http://localhost:3100';
+/**
+ * 每一组数都要带着"这是什么构建"的口径。§147 这一轮实测过两件事：
+ * 同一台机器、同一脚本、同一档节点数，`next dev` 与生产构建的"属性写入 → 画布更新"差 5 倍
+ * （1247.7ms 对 221.2ms，差的那截主要是 React DEV 的样式对象比对）；
+ * 而同一份生产构建的两次调用之间，首帧量过 1904.9ms 与 540.2ms（3.5 倍）。
+ * 不带口径的数没有比较价值——忘了带就让它在输出里自己说出来没带。
+ */
+const measuredUnder = process.env.PERF_LABEL
+  ?? '未标口径（跑时带 PERF_LABEL=dev / prod-<commit>，否则这组数不能与别组比）';
 const scales = (process.argv[3] ?? '1000')
   .split(',')
   .map((n) => Number.parseInt(n, 10))
@@ -522,6 +531,7 @@ for (const scale of scales) {
 await browser.close();
 
 console.log('\n浏览器端指标（每档 3 次，去掉第一次预热后取中位数）：');
+console.log(`  测量口径：${measuredUnder}`);
 for (const s of samples) {
   console.log(`${s.label.padEnd(28)} ${String(s.median).padStart(8)} ${s.unit}   各次: ${s.runs.join(' / ')}`);
 }
