@@ -360,7 +360,7 @@ describe('the process tree (v55): what a timeout kill stops, and what it says it
     expect(r.killedByBudget).toBe(true);
   });
 
-  it('an ASYNC reaper is awaited: its verdict lands in the result (v77)', async () => {
+  it('an ASYNC reaper is awaited: its verdict lands in the result (v86)', async () => {
     // The regression this guards. `onEnd` used to build the result synchronously, so a reaper
     // that resolved on a later tick left `descendantsStopped` undefined — a genuinely reaped tree
     // reported as if no decision had been made. The fake reaper here resolves only when released,
@@ -419,7 +419,7 @@ describe('the process tree (v55): what a timeout kill stops, and what it says it
 
   it('the platform answer is a value the operator can read, not a silent no', async () => {
     expect(typeof TREE_REAPER_AVAILABLE).toBe('boolean');
-    // M2 v77: the default reaper is ASYNC — it cannot use the synchronous spawn API on this host
+    // M2 v86: the default reaper is ASYNC — it cannot use the synchronous spawn API on this host
     // (EBUSY), so it drives `taskkill` through the working async path. A sync reaper is still
     // accepted by the host, which awaits either shape.
     expect(await DEFAULT_TREE_REAPER(0)).toBe(false); // pid 0 is not somebody else's process; and the call must not throw

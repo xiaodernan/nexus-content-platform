@@ -208,13 +208,13 @@ try {
   }
 
   // ---------- §4 the answer is a value the caller can branch on, not a silent no ----------
-  // M2 v77: the default reaper is ASYNC. It cannot use the synchronous spawn API on this host —
+  // M2 v86: the default reaper is ASYNC. It cannot use the synchronous spawn API on this host —
   // `spawnSync`/`execFileSync`/`execSync` all fail with EBUSY, in a worker thread too — so it
   // drives `taskkill` through the working async path and answers with a Promise. That is exactly
-  // why §2 was able to pass above: before v77 the sync call always failed here, so `reapTree: true`
+  // why §2 was able to pass above: before v86 the sync call always failed here, so `reapTree: true`
   // silently degraded to a plain kill and this file could never reach its `'reaped'` branch.
   const probe = DEFAULT_TREE_REAPER(0);
-  assert.equal(typeof probe.then, 'function', 'the default reaper is async, so the host awaits it (v77)');
+  assert.equal(typeof probe.then, 'function', 'the default reaper is async, so the host awaits it (v86)');
   assert.equal(await probe, false, 'and it does not upgrade "I could not" into "I did"');
   assert.equal(typeof TREE_REAPER_AVAILABLE, 'boolean', 'the host exposes whether reaping exists HERE, so §2 could assert the truth of this box instead of a hope');
   console.log(`[reap-proof] §4 platform=${process.platform} TREE_REAPER_AVAILABLE=${TREE_REAPER_AVAILABLE} · DEFAULT_TREE_REAPER(0)=false (async, and a failed call is reported, never hidden)`);

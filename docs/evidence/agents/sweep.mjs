@@ -781,8 +781,13 @@ export async function isolatedCheckout({ ref = 'HEAD', cwd = process.cwd(), dest
   if (tar.code !== 0) throw new Error(`git archive ${ref} → exit ${tar.code}: ${tar.stderr.toString().trim().slice(0, 200)}`);
   const tarFile = join(where.dir, 'ref.tar');
   writeFileSync(tarFile, tar.stdout);
-  // GNU tar reads `C:\…` as a remote host because of the drive colon, so --force-local and forward slashes.
-  const untar = await run('tar', ['--force-local', '-xf', tarFile.replace(/\\/g, '/'), '-C', root.replace(/\\/g, '/')], { cwd, timeoutMs: 180_000 });
+  // M2 v90: the archive and the destination are handed to tar RELATIVE to the directory it runs in, so
+  // neither name ever carries a drive colon — which is the whole reason v81 needed `--force-local`. That
+  // flag is GNU-only, and this box's `tar` on PATH is bsdtar (`C:\Windows\System32\tar.exe`, which rejects
+  // it with "Option --force-local is not supported"), so the extraction that every clean checkout since v81
+  // depended on was failing here for a reason that had nothing to do with drives: `tar -xf ref.tar -C repo`
+  // answers both tars with no flag and no slash-munging.
+  const untar = await run('tar', ['-xf', 'ref.tar', '-C', 'repo'], { cwd: where.dir, timeoutMs: 180_000 });
   if (untar.code !== 0) throw new Error(`tar -xf ref.tar → exit ${untar.code}: ${untar.stderr.toString().trim().slice(0, 200)}`);
 
   const homeNm = join(cwd, 'node_modules');

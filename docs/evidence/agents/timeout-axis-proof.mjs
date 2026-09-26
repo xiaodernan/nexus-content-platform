@@ -14,7 +14,11 @@
 //   * a killed row says WHOSE number ended it, in the record and not only in a string, because "the proof
 //     answered no" and "the runner stopped asking" are two findings (v73's rule, turned on the runner).
 import assert from 'node:assert/strict';
-import { execFileSync, spawnSync } from 'node:child_process';
+// M2 v90: amendment 86 migrated the population to the async-backed `syncproc` bridge because every
+// synchronous child-process API on this host fails with EBUSY, but it MISSED this file. Both of the
+// calls below therefore threw before they could read a byte, so this witness — and amendment 89's
+// addendum claim that it was "verified green end to end" — were not reproducible. One import line.
+import { execFileSync, spawnSync } from '../lib/syncproc.mjs';
 import { createHash } from 'node:crypto';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';

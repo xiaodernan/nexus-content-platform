@@ -32,7 +32,11 @@
 // §3b grades the SELECTION on synthetic text, because a rule only ever tested by whatever the ref's build
 // happens to do is a rule that goes untested half the time.
 import assert from 'node:assert/strict';
-import { spawnSync } from 'node:child_process';
+// M2 v90: this file was MISSED by amendment 86's migration and kept importing `spawnSync` straight
+// from `node:child_process` — the API that fails with EBUSY on this host. Its own git reader could
+// therefore never return a byte, so the cross-drive isolation witness was red for a reason that had
+// nothing to do with drives. One import line, exactly as amendment 86 prescribed for the other 33.
+import { spawnSync } from '../lib/syncproc.mjs';
 import { existsSync, lstatSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, realpathSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, relative, resolve, sep } from 'node:path';
@@ -116,7 +120,30 @@ console.log('§3 干净检出里编译了什么、没编译什么，由 runner �
 assert.ok(iso.build, 'a build was requested, so there is a result to report');
 const cleanRuntimeDist = join(iso.root, 'agents', 'runtime', 'dist', 'index.js');
 assert.ok(existsSync(cleanRuntimeDist), 'the clean checkout built its OWN agents/runtime/dist — otherwise §4 would grade the home build and prove nothing');
-assert.notEqual(readFileSync(cleanRuntimeDist, 'utf8'), readFileSync(HOME_RUNTIME_DIST, 'utf8'), "and the two dists are DIFFERENT bytes: the home build carries this lane's uncommitted edits, the clean one is HEAD's — which is the sentence v78 could only hope for");
+// M2 v90: the sentence above this line used to ASSERT the two dists were different — "the home build
+// carries this lane's uncommitted edits, the clean one is HEAD's" — as if dirty-ness were a property of
+// the repository rather than of the moment. On this lane `agents/runtime` has no uncommitted edit at all
+// (the increment touches exec-host and docs/evidence), so a clean-room build of HEAD reproduced the home
+// build BYTE FOR BYTE and the assertion failed for being true. So the expectation is derived from git,
+// not from memory, and both directions are load-bearing: dirty home sources with EQUAL bytes is exactly
+// v81's failure mode (the isolated build would have read the home tree), and clean home sources with
+// DIFFERENT bytes has no source to explain it.
+const homeRuntimeDirty = gitOut(['status', '--porcelain', '--', 'agents/runtime']).trim();
+const cleanRuntimeBytes = readFileSync(cleanRuntimeDist, 'utf8');
+const homeRuntimeBytes = readFileSync(HOME_RUNTIME_DIST, 'utf8');
+const distsAgree = cleanRuntimeBytes === homeRuntimeBytes;
+if (homeRuntimeDirty) {
+  assert.ok(
+    !distsAgree,
+    `agents/runtime is DIRTY against HEAD (${homeRuntimeDirty.split('\n').length} path(s), e.g. ${homeRuntimeDirty.split('\n')[0]}), so the two dists MUST differ — equal bytes here would mean the clean-room build read the home working tree instead of the ref (v81's isolation failure, stated rather than assumed)`,
+  );
+} else {
+  assert.ok(
+    distsAgree,
+    'agents/runtime is CLEAN against HEAD and the clean-room build of HEAD still produced different bytes — a difference with no source to explain it is the finding here, not a pass',
+  );
+}
+console.log(`  home agents/runtime 对 HEAD ${homeRuntimeDirty ? `有 ${homeRuntimeDirty.split('\n').length} 处未提交改动` : '干净'} → 两份 dist ${distsAgree ? '逐字节相同（干净重建，可复现）' : '不同（主仓库带着未提交的改动）'} · §4 仍以各自树上跑出来的判定为准`);
 // v82: the verdict must be a claim about bytes someone can go and look at. The runner wrote the whole
 // build output to `<dest>/build.log`, OUTSIDE the checked-out tree, so re-reading it here re-derives
 // every number the runner printed from the file rather than from the same in-memory string.

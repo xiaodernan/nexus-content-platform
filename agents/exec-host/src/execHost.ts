@@ -140,7 +140,7 @@ export type TreeReaper = (pid: number) => boolean | Promise<boolean>;
  * knows it killed the run and the process knows it was force-terminated.
  * Anywhere else: no implementation, and no pretending — the answer is `unsupported-platform`.
  *
- * ⚠️ M2 v77 — this used to call `spawnSync`, and on this host **every synchronous spawn API fails
+ * ⚠️ M2 v86 — this used to call `spawnSync`, and on this host **every synchronous spawn API fails
  * with `EBUSY`** (`spawnSync` / `execFileSync` / `execSync`, in a worker thread too), while the
  * asynchronous `spawn` works normally. So the reaper could never succeed here: it always answered
  * `false`, the host honestly reported `'reaper-failed'`, and `reapTree: true` silently degraded to a
@@ -313,7 +313,7 @@ export function createExecHost(policy: ExecPolicy, options: ExecHostOptions = {}
         };
         const child = spawnLike(plan.argv[0]!, plan.argv.slice(1), { cwd: plan.cwd, env: plan.env });
         child.onData(append);
-        // M2 v77: the reaper may be async, so the verdict is settled by a promise and `onEnd`
+        // M2 v86: the reaper may be async, so the verdict is settled by a promise and `onEnd`
         // waits on it. Without this the result could be built while `descendants` was still
         // undefined, and a reaped tree would be reported as if no decision had been made.
         let reapSettled: Promise<void> | null = null;
