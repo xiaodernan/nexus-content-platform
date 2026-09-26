@@ -1,6 +1,7 @@
 import { mkdir } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 import { chromium } from '@playwright/test';
+import { MAX_NODES_PER_PAGE } from '../apps/web/src/server/validation';
 
 /**
  * §146/§147 的浏览器端指标：首帧、pan/zoom 帧率、属性写入到画布更新的延迟。
@@ -215,7 +216,12 @@ type DocNode = {
   text?: string | null;
   children?: string[];
 } & Record<string, unknown>;
-type DocPage = { rootId: string; nodes: Record<string, DocNode> };
+type DocPage = {
+  id: string;
+  name: string;
+  rootId: string;
+  nodes: Record<string, DocNode>;
+} & Record<string, unknown>;
 
 async function pageState(): Promise<string> {
   return page.evaluate(() => {
@@ -552,16 +558,21 @@ console.log(
  * 停在编辑器里从外部 PUT 一份更大的文档，会被它那份内存里的旧文档回写覆盖掉
  * （上一版就在这里栽了：服务端明明存了 1000 个节点，刷新后画布还是 8 个，
  * 于是记进 docs/PERFORMANCE.md 的"1000/4000 节点"数字量的其实一直是 8 个节点）。
+ *
+ * **§146 的 10000 节点这一档必须摊到多页**：服务端对单页有硬上限
+ * （`apps/web/src/server/validation.ts` 的 `MAX_NODES_PER_PAGE`，2026-09-27 实测 10000 节点单页
+ * 直接被 `HTTP 400 页面 Home 节点数超过上限 4000` 拒绝）。这个上限是不是该放宽是另一个决定（要 ADR），
+ * 压测脚本不替它决定；这里改吃这个常量，超过就再开一页，量的是**整份文档**在 10000 节点下的行为。
  */
-async function growDocument(nodes: number): Promise<number> {
+async function growDocument(nodes: number): Promise<{ total: number; active: number }> {
   await page.goto(`${base}/`, { waitUntil: 'domcontentloaded' });
   const result = await page.evaluate(
-    async (target) => {
+    async ({ target, cap }: { target: number; cap: number }) => {
       const match = document.cookie.match(/(?:^|;\s*)nexus_csrf=([a-f0-9]+)/);
       const projectId = window.__perfProjectId;
       const res = await fetch(`/api/projects/${projectId}`, { method: 'GET', cache: 'no-store' });
       if (!res.ok) return { ok: false, reason: `读取当前文档失败：HTTP ${res.status}` };
-      const body = (await res.json()) as { document?: { pages: DocPage[] } };
+      const body = (await res.json()) as { document?: { pages: DocPage[]; activePageId: string } };
       const doc = body.document;
       if (!doc) return { ok: false, reason: '响应里没有 document 字段' };
       const page0 = doc.pages[0]!;
@@ -579,19 +590,55 @@ async function growDocument(nodes: number): Promise<number> {
       const template =
         Object.values(page0.nodes).find((n) => n.id !== page0.rootId) ?? page0.nodes[page0.rootId];
       if (!template) return { ok: false, reason: '页面上找不到可克隆的节点' };
-      let added = 0;
-      for (let i = have; i < target; i += 1) {
-        const id = `perf_${i.toString(36)}`;
-        page0.nodes[id] = {
+
+      // 这一大段没有拆成 helper 函数，是踩过才知道的：`page.evaluate` 只把回调的**源码**搬进浏览器，
+      // 而 esbuild 给具名函数补的 `__name` 助手在页面里不存在
+      // （第一次跑 10000 档就死在 `ReferenceError: __name is not defined`）。
+      // 于是填节点只能写成一个大循环：满了当前页就再开一页，直到够 target。
+      let slotPage = page0;
+      let slotParent: DocNode = root;
+      let slotPrefix = 'perf';
+      let slotCount = have;
+      let total = have;
+      while (total < target) {
+        if (slotCount >= cap) {
+          if (doc.pages.length >= 64) {
+            return { ok: false, reason: `还差 ${target - total} 个节点，但页数已到文档上限 64` };
+          }
+          const k = doc.pages.length;
+          const pageId = `perf_page_${k}`;
+          const rootId = `${pageId}_root`;
+          // 根节点也克隆同一份合法模板；children 先清空再克隆，别把满页的 4000 个 id 白拷一遍
+          const rootClone: DocNode = {
+            ...structuredClone({ ...root, children: [] as string[] }),
+            id: rootId,
+            children: [] as string[],
+          };
+          const clone: DocPage = {
+            ...structuredClone({ ...page0, nodes: {} }),
+            id: pageId,
+            name: `压测页 ${k}`,
+            rootId,
+            nodes: { [rootId]: rootClone },
+          };
+          doc.pages.push(clone);
+          slotPage = clone;
+          slotParent = rootClone;
+          slotPrefix = `${pageId}_n`;
+          slotCount = 1;
+        }
+        const id = `${slotPrefix}_${slotCount.toString(36)}`;
+        slotPage.nodes[id] = {
           ...structuredClone(template),
           id,
-          name: `Perf ${i}`,
-          parentId: root.id,
+          name: `Perf ${total}`,
+          parentId: slotParent.id,
           children: [],
-          text: typeof template.text === 'string' ? `压测文本 ${i}` : undefined,
+          text: typeof template.text === 'string' ? `压测文本 ${total}` : undefined,
         };
-        root.children!.push(id);
-        added += 1;
+        slotParent.children!.push(id);
+        slotCount += 1;
+        total += 1;
       }
       const put = await fetch(`/api/projects/${projectId}`, {
         method: 'PUT',
@@ -599,20 +646,30 @@ async function growDocument(nodes: number): Promise<number> {
         body: JSON.stringify(doc),
       });
       if (!put.ok) return { ok: false, reason: `写入失败：HTTP ${put.status} ${(await put.text()).slice(0, 200)}` };
-      return { ok: true, nodes: have + added };
+      return { ok: true, nodes: total, active: Object.keys(page0.nodes).length, pages: doc.pages.length };
     },
-    nodes,
+    { target: nodes, cap: MAX_NODES_PER_PAGE },
   );
   if (!result.ok) throw new Error(result.reason);
-  // 服务端说存了多少才算数：客户端自己加的数只是意图
+  // 服务端说存了多少才算数：客户端自己加的数只是意图。求和要跨页，
+  // 只看 pages[0] 的话，10000 这一档会读回 4000 然后误报"写入没生效"
   const check = await page.evaluate(async () => {
     const res = await fetch(`/api/projects/${window.__perfProjectId as string}`, { cache: 'no-store' });
     const body = (await res.json()) as { document?: { pages: DocPage[] } };
-    const page0 = body.document?.pages[0];
-    return page0 ? Object.keys(page0.nodes).length : -1;
+    const pages = body.document?.pages ?? [];
+    return {
+      total: pages.reduce((sum, p) => sum + Object.keys(p.nodes).length, 0),
+      active: pages[0] ? Object.keys(pages[0].nodes).length : -1,
+      pages: pages.length,
+    };
   });
-  if (check < nodes) throw new Error(`写入没生效：想让文档到 ${nodes} 个节点，服务端读回来只有 ${check} 个`);
-  return check;
+  if (check.total < nodes) {
+    throw new Error(`写入没生效：想让文档到 ${nodes} 个节点，服务端读回来只有 ${check.total} 个（${check.pages} 页，活动页 ${check.active}）`);
+  }
+  console.log(
+    `  文档：${check.total} 个节点 / ${check.pages} 页（单页上限 ${MAX_NODES_PER_PAGE}，摊页不是绕过规模——§146 量的就是整份文档）`,
+  );
+  return { total: check.total, active: check.active };
 }
 
 const firstNodeRuns: number[] = [];
@@ -643,8 +700,9 @@ await propToCanvasLatency('（起手 8 节点）');
 
 for (const scale of scales) {
   let built = 0;
+  let active = 0;
   try {
-    built = await growDocument(scale);
+    ({ total: built, active } = await growDocument(scale));
   } catch (error) {
     console.log(`规模档 ${scale}：造文档失败 —— ${error instanceof Error ? error.message : String(error)}（这一档没有任何数字）`);
     continue;
@@ -665,14 +723,16 @@ for (const scale of scales) {
   if (runs.length >= 2) record(`首帧（${built} 节点）`, 'ms', runs);
   // 自检：文档真的变大了吗？总行数读的是图层树**展开出来的那一份**（虚拟化之后 DOM 行数不再等于它），
   // 所以这里核的是 `data-layer-total`；画布与列表各自的 DOM 行数则单独量、单独核对有没有裁。
+  // 这两条核的都是**活动页**那一页（图层树与画布只画活动页）；"整份文档到没到目标节点数"
+  // 由 growDocument 里的服务端读回负责，两条证据各管一段，不互相顶替。
   const counts = await canvasNodeCounts();
   const badge = await page.locator('[data-canvas-virtualized]').count();
   console.log(
-    `  ${built} 节点这一档：图层树展开 ${counts.layerTotal} 行 / DOM ${counts.layers} 行、画布 DOM ${counts.dom} 个、视口裁剪 ${badge ? '开着' : '没开'}`,
+    `  ${built} 节点这一档（活动页 ${active}）：图层树展开 ${counts.layerTotal} 行 / DOM ${counts.layers} 行、画布 DOM ${counts.dom} 个、视口裁剪 ${badge ? '开着' : '没开'}`,
   );
-  if (counts.layerTotal < built * 0.9) {
+  if (counts.layerTotal < active * 0.9) {
     throw new Error(
-      `压测没生效：想让文档到 ${built} 个节点，图层树只展开得出 ${counts.layerTotal} 行。` +
+      `压测没生效：活动页有 ${active} 个节点，图层树只展开得出 ${counts.layerTotal} 行。` +
         `这时量出来的任何数都不能当成"${built} 节点的性能"。`,
     );
   }
@@ -680,18 +740,18 @@ for (const scale of scales) {
     throw new Error('读不到 `data-layer-total`：图层面板的窗口化标记没了，上面的行数证据不成立');
   }
   // §147 的另一半：列表也要窗口化。大文档下还铺满 DOM，就是这一版改动没生效
-  if (built > 400 && counts.layers > counts.layerTotal * 0.5) {
+  if (active > 400 && counts.layers > counts.layerTotal * 0.5) {
     throw new Error(
-      `文档 ${built} 个节点，图层面板却往 DOM 里铺了 ${counts.layers} 行（展开总数 ${counts.layerTotal}）：` +
+      `活动页 ${active} 个节点，图层面板却往 DOM 里铺了 ${counts.layers} 行（展开总数 ${counts.layerTotal}）：` +
         `列表窗口化没生效，首帧慢的就该算它一份`,
     );
   }
   if (loadFailure) console.log(`  提示：这一档还有"没测到"的项，写进文档时不能只挑量到的那几个数。`);
-  if (built > 400 && badge === 0) {
-    throw new Error(`文档 ${built} 个节点却没过视口裁剪（DOM ${counts.dom}）：§147 那条改动没生效`);
+  if (active > 400 && badge === 0) {
+    throw new Error(`活动页 ${active} 个节点却没过视口裁剪（DOM ${counts.dom}）：§147 那条改动没生效`);
   }
-  if (built <= 400 && counts.dom < built * 0.9) {
-    throw new Error(`小文档不该被裁：${built} 个节点，画布只渲染了 ${counts.dom} 个`);
+  if (active <= 400 && counts.dom < active * 0.9) {
+    throw new Error(`小文档不该被裁：${active} 个节点，画布只渲染了 ${counts.dom} 个`);
   }
   record(`画布 DOM 节点数（${built} 节点文档）`, '个', [counts.dom, counts.dom, counts.dom]);
 
