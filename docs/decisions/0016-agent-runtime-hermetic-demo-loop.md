@@ -3759,3 +3759,107 @@ quoted from a runner log on disk, then re-counted with `grep` over that same fil
   citable only from a file you can point at, whichever channel carried it, including one the harness labels as
   finished. Nothing from it appears above except as the refusal itself.
 - **The green row summarized itself in the wrong plane, and the log quoted above is the proof.** `fd21c28`s isolated row prints §6 in the checkout arm's words (`no index here, so the before/after digest stands in`) and then, three fields later on the SAME line, `[summary] graded README bytes are HEAD's (git show) and every counted test file is HEAD's (git diff empty)` — two claims about commands that cannot answer where the row was graded. §0 had switched arms; the one sentence written to be quoted had not, and §5's mutations could not have caught it: they mutate the TABLE, never the prose about method. The summary now opens `plane GIT:` or `plane NO-GIT:` and the checkout arm names what it actually used (the materialised ref bytes, with §6's digest standing in for the index). Rule, one notch beyond the amendment itself: switching planes moves the *reporting*, not only the assertions. A green row that prints a false sentence about its own method is worse than a red one, because a red one is the only kind anyone reads closely.
+
+
+### Amendment 93 (M2 v93): the population's dependence on the repository is PREDICTED before the rows run, and the sweep reconciles that prediction against its own verdicts
+
+Amendment 92 ended on a sentence about the runner, not about a proof: "The runner already prints the census line
+that explains all 43; making it PREDICT them is the next lane, not this claim." This amendment is that lane. Every
+figure below is quoted from a runner log on disk (`%TEMP%\nexus-v91\sweep-69e7d20.log`, 25199 bytes) and then
+re-counted by a scratch script that reads that same log and those same committed bytes; where the two disagree, the
+disagreement is written down rather than smoothed over.
+
+- **The rule, and the grammar it is written in.** `sweep.mjs` exports `gitReaches(src)`, `SPAWN_FAMILY` and
+  `GIT_PROGRAM`. A reach is counted at CODE POSITION by two shapes: **R1** — a spawn-family callee
+  (`execFileSync`, `execFile`, `spawnSync`, `spawn`, `execSync`, `exec`, `fork`, plus the bridge's `run`/`runSync`)
+  whose first argument is a git program literal, including both arms of a platform conditional; **R2** — an array
+  literal that begins with `'git'`, the argv shape the exec-host's own tables use. Comment bodies and string bodies
+  are dropped before matching, and a `${}` inside a template returns the scanner to code — the same
+  code-position discipline amendment 89 imposed on `relativeSpecs`, reused here for a second question. This is not a
+  new invention of a scanner; it is the rule that already reddened a closure census, aimed at the word `git`.
+- **Predicted, before any row ran.** `[identity] plane axis: 49/71 tracked proofs reach a git child process AT CODE
+  POSITION (238 call sites: program=114 argv=124) — bridge-report-proof.mjs, budgets-proof.mjs, color-proof.mjs,
+  commit-echo-proof.mjs, commit-proof.mjs, config-proof.mjs …43 more · a naive "the word git appears anywhere" rule
+  calls 54, and the 5-row difference is prose and comments, which cannot spawn (amendment 89) · this tree has NO
+  .git, so these rows must fall back or go red`. The last clause is the prediction doing work: the runner now says,
+  before the first child boots, which rows are about to ask a question this plane cannot answer, and why.
+- **Reconciled, after the last row.** `[plane axis] prediction vs verdicts: 49 rows predicted to reach git · red AND
+  predicted 39 (of which 35 name git in their reason line) · RED WITHOUT being predicted 3 (closure-proof.mjs,
+  cwd-axis-proof.mjs, drive-axis-proof.mjs; of these 3 do name git, so the rest fail for a cause of their own) ·
+  GREEN while predicted 10 (color-proof.mjs, cut-tally-proof.mjs, exec-sandbox-proof.mjs, execsuite-proof.mjs,
+  exectest-proof.mjs, plane-axis-proof.mjs, prefix-proof.mjs, table-recount-proof.mjs, two-tree-proof.mjs,
+  window-proof.mjs) · an empty "red without being predicted" list is the gate: every failure is accounted for by the
+  prediction`. The gate is deliberately NOT "zero reds" — on this plane 42 reds are the correct answer (amendment
+  92). The gate is that no row fails for a cause the runner did not foresee.
+- **The three misses are the scanner's own named blind spots, and they are the same three.** `closure-proof.mjs`,
+  `cwd-axis-proof.mjs` and `drive-axis-proof.mjs` reach git without a call site this rule can see: the first through
+  `const sh = (cmd, argv, cwd = root) => …execFile(cmd, argv…)` — inside that wrapper the program position holds a
+  PARAMETER, so `sh('git', ['rev-parse','HEAD'])` has no git literal in a spawn call at all — and all three through
+  `sweep.mjs`'s own exports (`sw.proofCorpus`, `sw.gitReaches`, `sw.isolatedCheckout`), which reach git one frame
+  away from where the scanner looks. Their cause lines confirm the diagnosis rather than contradicting it:
+  `Error: git ls-tree -r --name-only HEAD -- docs/evidence/agents → exit 128` for two of them and `Error: git
+  archive HEAD → exit 128` for the third. Amendment 92 called the runner's census line an after-the-fact attribution;
+  this is the before-the-fact version, and its residual error is three rows whose shapes are now written down.
+- **Re-counted on the same grammar over three historical logs, and stable.** A scratch script (`%TEMP%\nexus-v93\
+  reconcile.mjs`) imports `gitReaches` from the committed `sweep.mjs` — it does not re-implement the rule — reads the
+  population out of each ref with `git ls-tree … -- docs/evidence/agents | grep '-proof.mjs'`, and grades each
+  ref's own log: `ref adfa403 · population 70 · predicted 48 · naive-mention 53 · call sites {"program":113,"argv":124}`
+  → 43 red = 40 predicted + 3 not; `ref fd21c28 · population 70 · predicted 48 · naive 53` → 42 red = 39 + 3; `ref
+  29ad568 · predicted 48 · naive 53` → 42 red = 39 + 3. The unpredicted trio is byte-identical across all three
+  runs, and the only bucket that MOVES is the one that should: `green WHILE predicted 8` at adfa403 becomes `9` at
+  fd21c28 and 29ad568, and the added name is `table-recount-proof.mjs` — amendment 92's healing shows up as a number
+  in this ledger. At 69e7d20 the same bucket is 10, and the tenth name is `plane-axis-proof.mjs`.
+- **The arithmetic of "names git", checked with grep because two different questions look like one.** Over the
+  69e7d20 log: `grep -ac '^FAIL '` answers 42, `grep -a '^FAIL ' | grep -ac '\bgit\b'` answers 41, and counting only
+  the CAUSE segment after the `||` separator answers 38 — which is exactly the runner's 35 + 3. The gap between 41
+  and 38 is rows that print the word git in their own stdout while failing for an assertion: `hunk-shape-proof.mjs`
+  announces `[§1] git "3 files changed, 2 insertions(+), 1 deletion(-)"` and then dies on `AssertionError: history
+  must hold the commit that WROTE that predicate: []`. Four red rows name no command in their cause (exec-host,
+  hunk-shape, isolated, porcelain-path) and all four ARE predicted — which is the argument for predicting at code
+  position instead of grepping reasons. Amendment 89's rule applies to the runner's own prose too: a quotation of a
+  git command is not a git call, in a proof's stdout or in a census.
+- **The 71st row, and the numbers it measures.** `plane-axis-proof.mjs` runs green on both arms. On the GIT plane at
+  `69e7d20`: `[§0] plane GIT · population graded from HEAD's tree (git ls-tree + git show, so a half-edited proof
+  cannot be censused as if it were committed): 73 tracked .mjs, of which 71 are scored rows` and `[§0] the grammar
+  used below is the committed one: docs/evidence/agents/sweep.mjs matches HEAD byte-for-byte (74000 B)`; `[§1]
+  grammar cases exact: 15/15 — including 8 that must NOT count`; `[§2] census of the 71 scored rows: 49 reach a git
+  child process at code position (program=114 argv=124 call sites) · the naive "the word appears anywhere" grammar
+  calls 54` and `[§2] the 5 rows only the naive rule names (prose and comments, which cannot spawn):
+  changes-proof.mjs, closure-proof.mjs, code-index-proof.mjs, cwd-axis-proof.mjs, rolechain-proof.mjs`; `[§3] the
+  bridge exports 3 process entries (execFileSync, spawnSync, spawn); all of them are in the list the scanner
+  trusts`; `[§4] blind spot · parameter-bound program: 2 (…)`, `[§4] blind spot · reaches through sweep.mjs itself:
+  3 (closure-proof.mjs, cwd-axis-proof.mjs, drive-axis-proof.mjs)`; `[§5] census moves: +1 call site on
+  agent-proof.mjs → 1 · prose-only append → 0 (unchanged, as required) · every program literal renamed in
+  bridge-report-proof.mjs → 0 from 1`; `[§6] summary over 71 scored rows: 49 predicted askers, 5 prose-only
+  mentions, 5 named blind-spot rows, 0 rows binding the program name to a variable`. §3 exists because a callee
+  list that drifts makes the census SHRINK silently, and a smaller number is the one failure mode a checker must not
+  be able to hide; §5 is the three-way mutation that proves the checker can be red — a call site appended moves it
+  by exactly one, prose appended moves it not at all, and renaming every git literal in a real asker drops it.
+- **A finding inside the new row, kept because it is embarrassing.** §6's last figure (`0 rows binding the program
+  name to a variable`) and §4's first (`parameter-bound program: 2`) are two different grammars — the first looks for
+  `const X = 'git'`, the second for `sh('git', …)` — so they are not a contradiction, but they read like one, and one
+  of §4's two names is `plane-axis-proof.mjs` ITSELF, caught because a §1 test case contains the string
+  `sh('git', ['rev-parse', 'HEAD'])`. The prediction scanner correctly refuses that string (§1 case 14 demands 0
+  reaches for exactly that shape); the BLIND-SPOT census, written as a word-shape regex over raw text, does not. So
+  the population number is unaffected and the blind-spot list carries an artifact of its own method. The fix is to
+  run the blind-spot rules through the same code-position scanner, and it is named here instead of being quietly
+  rounded away: a checker's self-description is held to the same standard as its subject's.
+- **Census claims rot, so they are corrected in place** (amendment 88's fourth rule). Amendment 92 wrote "5 red of
+  69"-style numbers against a 70-row population; this run grades 71 and predicts 49. The movement is not drift — the
+  population grew by one row and that row is itself an asker, so 48/70 becomes 49/71, and the call sites 237 (113 +
+  124) becomes 238 (114 + 124). Both sides of that comparison use the anchored `*-proof.mjs` grammar
+  (`git ls-tree -r --name-only <ref> -- docs/evidence/agents`), not a remembered count.
+- **What was refused, and what is next.** A prediction is not a healing: the 42 reds are still red, and nothing in
+  this amendment makes a row fall back on a checkout. The mechanism that closes the gap is a row that DECLARES what
+  it asks the repository — a `// sweep-asks-repository:` marker read with the same two-sided, anchored grammar
+  amendment 85 used for `// sweep-budget-ms:` and amendment 89 used to keep the declaration and the census from
+  disagreeing. That declaration also reaches the three blind spots, because a wrapper's caller can state what the
+  call-site rule cannot see. It is the next lane, not this claim.
+- **The run, whole.** `OK plane-axis-proof.mjs (exit 0, 2063ms, budget 240000ms default)` and
+  `OK table-recount-proof.mjs (exit 0, 11899ms, budget 300000ms declared)`;
+  `[summary] ref 69e7d2023356 · scripts 71 · failed 42 · killed 0 (0 at the runner's default, 0 at a budget the row
+  named) · child cwd D:\nexus-isolated-CSTtrx\repo · graded build cc73dcf781dd0a2b (224 dist files, stable across
+  the run) · runner's own build 204913d0f036b30c stable · tree 61265f575e9c6e92 (stable) 194 files · dirty-sources
+  2 · 115s`, closing with `[isolated] home build after the run: 244 files, digest 204913d0f036b30c · UNMOVED (the
+  isolation gate)`. Nothing was killed and neither build moved, so all 42 reds are verdicts and the reconciliation
+  above is graded against bytes that did not change underneath it.

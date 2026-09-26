@@ -2510,3 +2510,59 @@ could not catch it because they mutate the table, never the prose about method. 
 substitute precondition. Switching a plane moves the reporting, not only the assertions: a green row that
 describes its own method falsely is worse than a red one, because a red one is the only kind anyone reads
 closely.
+
+## The sweep that predicts its own reds (`plane-axis-proof.mjs`, M2 v93 — ADR 0016 amendment 93)
+
+Amendment 92 explained 43 reds after they landed. This version asks the runner to say, before the first child
+boots, which rows are about to fail and why — and then to grade that sentence against the verdicts it actually
+received. `[identity] plane axis: 49/71 tracked proofs reach a git child process AT CODE POSITION (238 call sites:
+program=114 argv=124) … a naive "the word git appears anywhere" rule calls 54, and the 5-row difference is prose and
+comments, which cannot spawn (amendment 89) · this tree has NO .git, so these rows must fall back or go red`.
+
+The scanner is `gitReaches(src)`, exported from the runner so the row and the runner cannot drift into two
+grammars. Two shapes count: a spawn-family callee whose first argument is a git literal (R1, including both arms of
+a platform conditional), and an array literal that opens with `'git'` (R2, the argv shape the exec-host's tables
+use). Comment bodies and string bodies are dropped first and a `${}` returns the scanner to code — this is
+amendment 89's code-position rule, aimed at a new word.
+
+After the rows: `[plane axis] prediction vs verdicts: 49 rows predicted to reach git · red AND predicted 39 (of
+which 35 name git in their reason line) · RED WITHOUT being predicted 3 (closure-proof.mjs, cwd-axis-proof.mjs,
+drive-axis-proof.mjs; of these 3 do name git, so the rest fail for a cause of their own) · GREEN while predicted 10
+… · an empty "red without being predicted" list is the gate`. The gate is not zero reds; on this plane 42 reds is
+the correct answer. The gate is that no row fails for something the runner did not foresee — and the three it did
+not foresee are its own two documented blind spots: a wrapper (`const sh = (cmd, argv) => execFile(cmd, argv)`, so
+program position holds a *parameter*) and a frame away (through `sweep.mjs`'s exports).
+
+Re-counted with the same imported rule over three earlier logs, the numbers are stable and only the bucket that
+should moves: adfa403 `population 70 · predicted 48 · naive 53 · call sites {"program":113,"argv":124}` → 43 red =
+40 predicted + 3 not; fd21c28 and 29ad568 → 42 red = 39 + 3. `green WHILE predicted 8` becomes 9 with
+`table-recount-proof.mjs` added — amendment 92's healing appearing as a number in this ledger — and 10 at 69e7d20
+with `plane-axis-proof.mjs`. The unpredicted trio is identical in all four runs.
+
+Three counts of "names git" answer three questions, and the runner's arithmetic is checkable against all of them:
+over this log `grep -ac '^FAIL '` is 42, the same lines matching `\bgit\b` anywhere is 41, and the CAUSE segment
+after `||` is 38 — exactly its 35 + 3. The gap is a row that prints the word in its own stdout while dying on an
+assertion (`hunk-shape-proof.mjs` announces `git "3 files changed, 2 insertions(+), 1 deletion(-)"` then fails
+`history must hold the commit that WROTE that predicate: []`), which is the argument for scanning code and not
+reasons: four red rows name no command at all and every one of them IS predicted.
+
+The row itself measures the rule on both planes: `[§0] plane GIT … 73 tracked .mjs, of which 71 are scored rows`,
+`sweep.mjs matches HEAD byte-for-byte (74000 B)`, `[§1] grammar cases exact: 15/15 — including 8 that must NOT
+count`, `[§2] … 49 … the naive grammar calls 54` with the five prose-only rows named
+(`changes`, `closure`, `code-index`, `cwd-axis`, `rolechain`), `[§3] the bridge exports 3 process entries (execFileSync,
+spawnSync, spawn); all of them are in the list the scanner trusts`, and `[§5] census moves: +1 call site on
+agent-proof.mjs → 1 · prose-only append → 0 (unchanged, as required) · every program literal renamed in
+bridge-report-proof.mjs → 0 from 1`. §3 is the silent-shrink guard: a callee list that drifts makes the census
+smaller and every number still looks plausible. §5 is the three-way mutation, because a checker that can only agree
+with the runner has nothing to say.
+
+One finding sits inside the new row and is kept because naming it is cheaper than being wrong about it. `[§4] blind
+spot · parameter-bound program: 2` counts `plane-axis-proof.mjs` itself, caught by a word-shape regex matching a §1
+test-case STRING — while `[§6] … 0 rows binding the program name to a variable` is a different grammar asking a
+different question (`const X = 'git'`). The population census is unaffected, because the scanner refuses that
+quotation on principle (§1 case 14 demands 0 reaches for exactly that shape); only the blind-spot list carries the
+artifact of a method that was not held to its own rule. Running the blind-spot checks through `gitReaches` is the
+first lane here, and a row declaring what it asks (`// sweep-asks-repository:`, in the grammar amendments 85 and 89
+already established) is the lane that closes the three misses for good. The run: `OK plane-axis-proof.mjs (exit 0,
+2063ms, budget 240000ms default)`, `[summary] ref 69e7d2023356 · scripts 71 · failed 42 · killed 0 · … · 115s`, home
+build `UNMOVED (the isolation gate)`.
