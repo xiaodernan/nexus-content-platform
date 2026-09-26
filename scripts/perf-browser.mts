@@ -58,8 +58,24 @@ const PROBE = `
   requestAnimationFrame((t) => { last = t; sample(t); });
 
   /**
+   * 长任务采集：一次"改属性 → 画布重绘"如果慢，慢在哪个段要靠这个分。
+   * 只记时长（>50ms 的那些），不记堆栈——脚本要的是"是不是一个把主线程占死的同步大块"。
+   */
+  window.__longTasks = [];
+  try {
+    new PerformanceObserver(function (list) {
+      var entries = list.getEntries();
+      for (var i = 0; i < entries.length; i++) window.__longTasks.push(Math.round(entries[i].duration));
+    }).observe({ type: 'longtask', buffered: false });
+  } catch (e) {
+    window.__longTasks = null; // 量不到就说量不到，不假装是 0
+  }
+
+  /**
    * 属性写入 → 画布重绘的延迟。整段放在页内字符串里：
    * 从 Node 侧 page.evaluate 传闭包会被打包器套上 __name 包装，页内没有那个符号。
+   * 返回三个数而不是一个：总延迟、input 之后第一帧隔了多久（这段时间里主线程要是被占着，
+   * 占它的就是 React 的同步提交）、以及期间出现的长任务时长。
    */
   window.__propLatency = function (nodeId) {
     return new Promise(function (resolve, reject) {
@@ -69,12 +85,21 @@ const PROBE = `
       if (!input) return reject(new Error('属性面板里没有字号输入框'));
       var before = getComputedStyle(el).fontSize;
       var started = 0;
-      input.addEventListener('input', function () { started = performance.now(); }, { once: true });
+      var firstFrame = 0;
+      window.__longTasks.length = 0;
+      input.addEventListener('input', function () {
+        started = performance.now();
+        requestAnimationFrame(function () { firstFrame = performance.now() - started; });
+      }, { once: true });
       var timer = window.setInterval(function () {
         if (!started) return;
         if (getComputedStyle(el).fontSize !== before) {
           window.clearInterval(timer);
-          resolve(performance.now() - started);
+          resolve({
+            total: performance.now() - started,
+            firstFrame: firstFrame,
+            longTasks: window.__longTasks === null ? null : window.__longTasks.slice(-6),
+          });
         }
       }, 2);
       window.setTimeout(function () {
@@ -207,11 +232,19 @@ async function propToCanvasLatency(scope: string): Promise<void> {
     await page.waitForSelector('[data-prop="typography.fontSize"]', { timeout: 30_000 });
     const target = run % 2 === 0 ? 48 : 52;
     const pending = page.evaluate(
-      (id: string) => (window as any).__propLatency(id) as Promise<number>,
+      (id: string) =>
+        (window as any).__propLatency(id) as Promise<{ total: number; firstFrame: number; longTasks: number[] | null }>,
       headline,
     );
     await page.fill('[data-prop="typography.fontSize"]', String(target));
-    runs.push(await pending);
+    const split = await pending;
+    runs.push(split.total);
+    // 分布打在日志里：那 1.3 秒到底是不是"一个把主线程占死的同步大块"，看的就是这一行
+    console.log(
+      `  ${scope} 第 ${run + 1} 次：总 ${Math.round(split.total)}ms · ` +
+        `input 之后到第一帧 ${Math.round(split.firstFrame)}ms · ` +
+        `长任务 ${split.longTasks === null ? '量不到（浏览器不支持 longtask）' : split.longTasks.join('/') || '无'}`,
+    );
     // 撤回去，别把项目留在改过的状态上（也顺带证明撤销链路还活着）
     await page.keyboard.press('Control+z');
     await page.waitForTimeout(150);
