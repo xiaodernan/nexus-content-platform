@@ -87,6 +87,11 @@ const PROBE = `
       var started = 0;
       var firstFrame = 0;
       window.__longTasks.length = 0;
+      // 顺手把 store 的分段计数清零：这一次写入到底跑了几次快照、各段多少毫秒，
+      // 与总延迟放在一起看才知道那 1.2 秒在哪一段（计数在 studio/store.ts 的 buildSnapshot 里）
+      if (globalThis.__studioPerf) {
+        globalThis.__studioPerf = { snapshots: 0 };
+      }
       input.addEventListener('input', function () {
         started = performance.now();
         requestAnimationFrame(function () { firstFrame = performance.now() - started; });
@@ -95,10 +100,17 @@ const PROBE = `
         if (!started) return;
         if (getComputedStyle(el).fontSize !== before) {
           window.clearInterval(timer);
+          var bucket = {};
+          if (globalThis.__studioPerf) {
+            var raw = globalThis.__studioPerf;
+            for (var key in raw) bucket[key] = raw[key];
+          }
           resolve({
             total: performance.now() - started,
             firstFrame: firstFrame,
             longTasks: window.__longTasks === null ? null : window.__longTasks.slice(-6),
+            // null = 这份构建里没有分段计数（生产构建会剪掉那段），界面就写"量不到"
+            phases: globalThis.__studioPerf ? bucket : null,
           });
         }
       }, 2);
@@ -233,7 +245,12 @@ async function propToCanvasLatency(scope: string): Promise<void> {
     const target = run % 2 === 0 ? 48 : 52;
     const pending = page.evaluate(
       (id: string) =>
-        (window as any).__propLatency(id) as Promise<{ total: number; firstFrame: number; longTasks: number[] | null }>,
+        (window as any).__propLatency(id) as Promise<{
+          total: number;
+          firstFrame: number;
+          longTasks: number[] | null;
+          phases: Record<string, number> | null;
+        }>,
       headline,
     );
     await page.fill('[data-prop="typography.fontSize"]', String(target));
@@ -243,7 +260,12 @@ async function propToCanvasLatency(scope: string): Promise<void> {
     console.log(
       `  ${scope} 第 ${run + 1} 次：总 ${Math.round(split.total)}ms · ` +
         `input 之后到第一帧 ${Math.round(split.firstFrame)}ms · ` +
-        `长任务 ${split.longTasks === null ? '量不到（浏览器不支持 longtask）' : split.longTasks.join('/') || '无'}`,
+        `长任务 ${split.longTasks === null ? '量不到（浏览器不支持 longtask）' : split.longTasks.join('/') || '无'} · ` +
+        (split.phases
+          ? `快照 ${split.phases.snapshots ?? 0} 次，其中求解 ${Math.round(split.phases.layoutMs ?? 0)}ms / ` +
+            `token ${Math.round(split.phases.tokensMs ?? 0)}ms / 资产 ${Math.round(split.phases.assetsMs ?? 0)}ms / ` +
+            `整段 ${Math.round(split.phases.snapshotMs ?? 0)}ms`
+          : '分段量不到（这份构建里没有计数）'),
     );
     // 撤回去，别把项目留在改过的状态上（也顺带证明撤销链路还活着）
     await page.keyboard.press('Control+z');

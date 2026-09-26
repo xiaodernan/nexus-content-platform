@@ -190,6 +190,7 @@ export class StudioStore {
   }
 
   private buildSnapshot(): StudioSnapshot {
+    const t0 = performance.now();
     const state = this.design.getState();
     const document = state.document;
     const page = document.pages.length ? (findPage(document, document.activePageId) ?? document.pages[0]!) : null;
@@ -197,11 +198,26 @@ export class StudioStore {
     if (this.selection.length) this.selection = this.selection.filter((id) => id && page?.nodes[id]);
     // token 表可能随补丁增长（addToken），每次快照重建，代价与 token 数成正比
     const tokens = new TokenStore(document.tokens);
+    const tTokens = performance.now();
     const layout = page ? this.resolveFor(page, document, tokens) : null;
+    const tLayout = performance.now();
     const history = this.design.history();
     // 资产解析器按清单构造：清单来自文档（§16），所以"能不能显示"与
     // "设计里有没有这条资产"是同一件事，不需要再问一次网络。
     const assetContext = assetContextFor(document, apiAssetUrl);
+    const tAssets = performance.now();
+    // §147 的常驻诊断：一次"改属性 → 画布重绘"要 1.2 秒，而模型层的基准说 resolveLayout
+    // 在 10000 节点只要 57ms——那 1.2 秒不在求解上。到底是哪一段、以及一次按键到底跑了几次
+    // buildSnapshot，靠猜没有意义，就在这里按段记下来（只有开发模式挂到 globalThis 上）。
+    if (process.env.NODE_ENV !== 'production') {
+      const bucket = (globalThis as unknown as { __studioPerf?: Record<string, number> }).__studioPerf ??= {};
+      const add = (key: string, ms: number) => { bucket[key] = (bucket[key] ?? 0) + ms; };
+      bucket.snapshots = (bucket.snapshots ?? 0) + 1;
+      add('tokensMs', tTokens - t0);
+      add('layoutMs', tLayout - tTokens);
+      add('assetsMs', tAssets - tLayout);
+      add('snapshotMs', performance.now() - t0);
+    }
     return {
       ready: this.ready,
       projectId: this.projectId,
