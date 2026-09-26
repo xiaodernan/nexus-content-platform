@@ -1343,6 +1343,9 @@ drizzle 把整个拼接结果当成**单个绑定参数**，生成的 SQL 是 `o
 （分支切换噪音快照的读取顺序、以及并行负载下贴着 30 秒线的两条超时）。
 以后引用"测试全绿"时请带上这一条的口径：这一套**不含** e2e（`@smoke` 另跑，42 条）与 Python 侧
 （`npm run test:ai-service`，62 passed + 1 skipped），三者都跑完才是这个仓库的完整门禁。
+同一提交（`06c1ca3` 之后）另两样也跑过：`npx playwright test -g "@smoke"` **42/42 通过（4.8 分钟）**，
+`npm run test:ai-service` 62 passed + 1 skipped。也就是说 SSR 首屏文档那次改动（`7a94988`）
+当时只由 3 条相关 @smoke 覆盖，现在整套 e2e 也过了——那道"已知未覆盖"的验证缺口已经合上。
 
 ## 当前阻塞项
 - `[!]` 真实 AI provider key（文本/图像/视频）— 用户提供前，全部生成类能力以 DEMO MODE 交付，UI 明确标注，不伪装真实结果。
