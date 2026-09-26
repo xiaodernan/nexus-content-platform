@@ -815,6 +815,34 @@ export function compareConfession(payloads, causeText) {
 }
 
 /**
+ * Grade every declaring RED against the cause it reported (M2 v95) — the wiring the sweep prints, kept out of
+ * `runSweep` so that a row can hold it to cases.
+ *
+ * This is not a stylistic split. The first version of these six lines lived inline in the runner, and its two map
+ * lookups were written `declared.get(row)` and `cmp.get(row)` where both maps are keyed by NAME: the second threw
+ * (found only after a seven-minute population sweep, in the last line of the run), and the first would have
+ * graded every confession as an empty one and reported each cause verb as an OMISSION. A rule whose only witness
+ * is a long sweep is a rule that is not tested, so the population arm and the unit arm now read the same
+ * function, and `confession-proof.mjs` §6 feeds it row objects shaped exactly like the ones that broke it.
+ */
+export function gradeCauseArm({ declared, failed, predicted = () => false }) {
+  const short = (n) => String(n).split('/').pop();
+  const verbs = (t) => [...new Set(gitCommandsNamed(t))];
+  const declaring = failed.filter((r) => declared.has(r.name));
+  const cmp = new Map(declaring.map((r) => [r.name, compareConfession(declared.get(r.name), r.reason)]));
+  const gradeable = declaring.filter((r) => cmp.get(r.name).gradeable);
+  const unchecked = declaring.filter((r) => !cmp.get(r.name).gradeable);
+  return {
+    declaring: declaring.map((r) => short(r.name)),
+    gradeable: gradeable.map((r) => short(r.name)),
+    unchecked: unchecked.map((r) => short(r.name)),
+    omissions: gradeable.flatMap((r) => cmp.get(r.name).omissions.map((c) => `${short(r.name)} reached ${c} and does not declare it`)),
+    surplus: gradeable.flatMap((r) => cmp.get(r.name).surplus.map((c) => `${short(r.name)} declares ${c}`)),
+    silentBlind: failed.filter((r) => !declared.has(r.name) && !predicted(r.name) && verbs(r.reason).length > 0).map((r) => short(r.name)),
+  };
+}
+
+/**
  * Resolve a relative specifier against the IMPORTING FILE's repo-relative path, in git's slash space.
  *
  * `path.join` is deliberately not used: on this host it would produce backslashes, while every name that
@@ -1393,23 +1421,10 @@ export async function runSweep({ ref = 'HEAD', only = null, cwd = process.cwd(),
     //   SURPLUS — the confession names a command this run's cause never showed. NOT red: a row may reach more than
     //              one thing and break on only one of them, and `git archive` at exit 128 is one arm of a
     //              multi-arm claim. A surplus is stated, never scored.
-    const verbs = (t) => [...new Set(gitCommandsNamed(t))];
-    const declaring = failed.filter((r) => declared.has(r.name));
-    const cmp = new Map(declaring.map((r) => [r.name, compareConfession(declared.get(r), r.reason)]));
-    const gradeable = declaring.filter((r) => cmp.get(r).gradeable);
-    const uncheckedRows = declaring.filter((r) => !cmp.get(r).gradeable);
-    const omissions = gradeable.flatMap((r) => cmp.get(r).omissions.map((c) => `${r.name.split('/').pop()} reached ${c} and does not declare it`));
-    const surplus = gradeable.flatMap((r) => cmp.get(r).surplus.map((c) => `${r.name.split('/').pop()} declares ${c}`));
-    const silentBlind = notForeseen.filter((r) => verbs(String(r.reason ?? '')).length > 0);
-    confessionAxis = {
-      declaring: declaring.length,
-      gradeable: gradeable.map((r) => r.name.split('/').pop()),
-      unchecked: uncheckedRows.map((r) => r.name.split('/').pop()),
-      omissions,
-      surplus,
-      silentBlind: silentBlind.map((r) => r.name.split('/').pop()),
-    };
-    log(`[confession axis] declaration vs the cause the row itself reported: ${declaring.length} red declaring rows, ${gradeable.length} of them gradeable (their cause names at least one git command) and ${uncheckedRows.length} NOT gradeable${uncheckedRows.length ? ` (${names(uncheckedRows)} — a red whose cause names no command can neither confirm nor refute a confession, so it is reported as unchecked rather than passed, amendment 86)` : ''} · OMISSIONS ${omissions.length} (${omissions.join(' · ') || 'none'}) · surplus ${surplus.length} (${surplus.join(' · ') || 'none'}) · SILENT BLIND SPOTS ${silentBlind.length} (${names(silentBlind)}) — a red neither the scanner nor the row foresaw whose own cause names a git command, which is the shape 94 could not rule out · the gate is OMISSIONS + SILENT BLIND SPOTS at zero: a confession that agrees with the failure it predicted, and no failure nobody spoke about`);
+    const ca = gradeCauseArm({ declared, failed, predicted: (n) => pred.has(n) });
+    confessionAxis = ca;
+    const rowsOf = (list) => (list.length ? list.join(', ') : 'none');
+    log(`[confession axis] declaration vs the cause the row itself reported: ${ca.declaring.length} red declaring rows (${rowsOf(ca.declaring)}), ${ca.gradeable.length} of them gradeable (their cause names at least one git command) and ${ca.unchecked.length} NOT gradeable${ca.unchecked.length ? ` (${rowsOf(ca.unchecked)} — a red whose cause names no command can neither confirm nor refute a confession, so it is reported as unchecked rather than passed, amendment 86)` : ''} · OMISSIONS ${ca.omissions.length} (${ca.omissions.join(' · ') || 'none'}) · surplus ${ca.surplus.length} (${ca.surplus.join(' · ') || 'none'}) · SILENT BLIND SPOTS ${ca.silentBlind.length} (${rowsOf(ca.silentBlind)}) — a red neither the scanner nor the row foresaw whose own cause names a git command, which is the shape 94 could not rule out · the gate is OMISSIONS + SILENT BLIND SPOTS at zero: a confession that agrees with the failure it predicted, and no failure nobody spoke about`);
   } else {
     log(`[plane axis] ALL THREE reconciliations withheld (the [plane axis], [asks axis] and [confession axis] lines below would have been these): this run graded ${results.length} of ${runCorpus.rows.length} tracked proofs (--only), and one row says nothing about the population`);
   }

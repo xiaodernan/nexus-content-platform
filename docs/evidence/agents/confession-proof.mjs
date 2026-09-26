@@ -183,4 +183,65 @@ assert.notEqual(renamed, selfSrc, 'the rename found no declaration to rename —
 const flipped = sw.gradeConfession(['git archive HEAD once per sw.isolatedCheckout call'], selfSrc, renamed);
 console.log(`[§5] the arm reads code, not names: pointing the same clause at a helper that does not exist returns ${flipped.map((c) => `${c.state}(${c.missing.join('+')})`).join(', ')} where the real one is supported`);
 assert.ok(flipped.every((c) => c.state === 'invisible'), 'renaming the helper the clause points at must break the corroboration — a clause that graded a NAME rather than a BODY would survive the edit');
-console.log(`\n[summary] two witnesses for ${clauses.length} confessions: ${selfNamed.length} commands the runner can name in its own file, ${byState('supported').length} clauses corroborated by a body and ${byState('invisible').length} that hide one frame up, ${namedCases.length} naming cases held the free-text grammar (one of them recorded as a false negative rather than fixed), and the cause arm reddened under exactly one of the mutations it was shown — the omission. A surplus is stated, never scored. The gate the sweep prints after the rows is omissions + silent blind spots at zero`);
+// ---------------------------------------------------------------- §6 the wiring, which died once on a key
+// §§1-5 grade the RULES. This section grades the CALL SITE, because the rule that broke was never a rule: on
+// 6807ba1 the isolation sweep ran all 73 rows, printed `[plane axis]` and `[asks axis]`, and then threw
+// `Cannot read properties of undefined (reading 'gradeable')` in the last line of a seven-minute run. Two map
+// lookups had been written `declared.get(row)` and `cmp.get(row)` where both maps are keyed by `row.name`. The
+// first throw was survivable; the second was not — `declared.get(row)` returns `undefined` just as cheerfully as
+// it would for a row that declares nothing, so the population would have been graded against an EMPTY confession
+// and every verb in every cause line would have been reported as an OMISSION. That is amendment 91's failure
+// shape wearing a variable name, and it is why these six lines now live in one exported function that a row can
+// feed cases.
+//
+// Row shapes are the runner's, not my convenience: `name` is a repo-relative path (that is what `git ls-tree
+// --name-only` answers), and `reason` is the first stderr line the row printed.
+const d = (n) => `${DIR}/${n}`;
+const failedRows = [
+  { name: d('syn-omit.mjs'), reason: 'Error: git archive HEAD → exit 128: fatal: not a git repository' },
+  { name: d('syn-ok.mjs'), reason: 'Error: git ls-tree -r --name-only HEAD -- docs/evidence/agents → exit 128' },
+  { name: d('syn-matched.mjs'), reason: 'Error: git status --porcelain → exit 128' },
+  { name: d('syn-silent.mjs'), reason: 'Error: git status --porcelain → exit 128' },
+  { name: d('syn-foreseen.mjs'), reason: 'Error: git diff --name-only HEAD → exit 128' },
+  { name: d('syn-nocause.mjs'), reason: 'Error: nothing in this sentence names a verb' },
+];
+// Every arm of the axis gets exactly one inhabitant, because a count of zero would otherwise be satisfiable by
+// the wiring being dead. `syn-matched` is the regression witness: its confession names the verb its cause names,
+// so the truth is ZERO omissions — and under the old lookup it produced one out of nothing.
+const heard = new Map([
+  [d('syn-omit.mjs'), ['git ls-tree -r --name-only HEAD']],
+  [d('syn-ok.mjs'), ['git ls-tree -r HEAD · git archive HEAD']],
+  [d('syn-matched.mjs'), ['git status --porcelain']],
+  [d('syn-nocause.mjs'), ['git rev-parse HEAD']],
+]);
+const foreseen = new Set([d('syn-foreseen.mjs')]);
+const arm = (declaredMap, predicted) => sw.gradeCauseArm({ declared: declaredMap, failed: failedRows, predicted: (n) => predicted.has(n) });
+const six = arm(heard, foreseen);
+assert.deepEqual(six.declaring, ['syn-omit.mjs', 'syn-ok.mjs', 'syn-matched.mjs', 'syn-nocause.mjs'], `which reds were heard: ${six.declaring.join(', ')}`);
+assert.deepEqual([six.gradeable, six.unchecked], [['syn-omit.mjs', 'syn-ok.mjs', 'syn-matched.mjs'], ['syn-nocause.mjs']], `a declaring red is UNCHECKED, never passed, when its cause names no command (gradeable ${six.gradeable.join(', ')} · unchecked ${six.unchecked.join(', ')})`);
+assert.deepEqual(six.omissions, ['syn-omit.mjs reached archive and does not declare it'], `omissions, and syn-matched must not be among them: ${JSON.stringify(six.omissions)}`);
+assert.deepEqual(six.surplus, ['syn-omit.mjs declares ls-tree', 'syn-ok.mjs declares archive'], `a surplus is stated on BOTH sides of a partial overlap: ${JSON.stringify(six.surplus)}`);
+assert.deepEqual(six.silentBlind, ['syn-silent.mjs'], `silent blind spots exclude the row the scanner foresaw and the row whose cause names nothing: ${six.silentBlind.join(', ')}`);
+// The defect itself, in the one line that reproduces it. `undefined` is what `declared.get(row)` returned for a
+// row the map holds under `row.name`; a grader that cannot tell "no entry" from "declared nothing" turns a
+// complete confession into three omissions.
+const brokenKey = sw.compareConfession(undefined, failedRows[2].reason);
+assert.deepEqual([brokenKey.gradeable, brokenKey.omissions, brokenKey.surplus], [true, ['status'], []], `an empty claim read off a wrong key must reproduce the 6807ba1 defect (got ${JSON.stringify(brokenKey)}) — this assertion FAILS only if the grader learns to refuse an absent claim, which would be a different design and belongs in the ADR`);
+// And the adjacent failure: a reader keyed by the WRONG ENDING of the same path. Every lookup misses, so the
+// axis reports zero confessions and zero omissions — which looks clean until the blind-spot arm speaks, because
+// a row the reader stopped hearing is indistinguishable from a row that never said anything.
+const miskeyed = arm(new Map([...heard].map(([k, v]) => [basename(k), v])), foreseen);
+assert.deepEqual([miskeyed.declaring.length, miskeyed.omissions.length], [0, 0], `a basename-keyed reader over path-named rows must hear nothing, got ${JSON.stringify(miskeyed)}`);
+assert.deepEqual(miskeyed.silentBlind, ['syn-omit.mjs', 'syn-ok.mjs', 'syn-matched.mjs', 'syn-silent.mjs'], `and the gate must see the loss: ${miskeyed.silentBlind.join(', ')} — a broken reader cannot hide behind a zero, because the rows it drops reappear as blind spots, which is why the gate counts BOTH`);
+// Interlock: unheard ≠ blind by choice. Drop one row's declaration from a correctly-keyed map and it must move
+// across, changing neither the other rows' numbers nor the count of omissions it caused.
+const deafened = arm(new Map([...heard].filter(([k]) => k !== d('syn-matched.mjs'))), foreseen);
+assert.deepEqual(deafened.omissions, six.omissions, 'removing a confession that had no omissions may not invent one');
+assert.ok(!deafened.declaring.includes('syn-matched.mjs') && deafened.silentBlind.includes('syn-matched.mjs'), `a row the reader no longer reads must leave \`declaring\` and enter \`silentBlind\` (got ${JSON.stringify([deafened.declaring, deafened.silentBlind])})`);
+// The partition the runner's own sentence relies on: every red declaring row is gradeable or unchecked, and no
+// row is both heard and blind.
+assert.deepEqual([...six.gradeable, ...six.unchecked].sort(), six.declaring.slice().sort(), 'declaring must partition into gradeable + unchecked');
+assert.deepEqual(six.declaring.filter((n) => six.silentBlind.includes(n)), [], 'a row cannot be both heard and a silent blind spot');
+console.log(`[§6] wiring: ${failedRows.length} synthetic reds → declaring ${six.declaring.length} · gradeable ${six.gradeable.length} · unchecked ${six.unchecked.length} · omissions ${six.omissions.length} · surplus ${six.surplus.length} · blind ${six.silentBlind.length}. The 6807ba1 defect reproduces in one line (an object used as a name-keyed map's key yields an empty claim, and an empty claim made ${brokenKey.omissions.length} omission out of a row that declared ${failedRows[2].reason.match(/git (\S+)/)[1]}), and the wrong-ENDING key is caught too: ${miskeyed.declaring.length} heard with ${miskeyed.silentBlind.length} blind, because a dropped row reappears in the arm the gate reads`);
+
+console.log(`\n[summary] two witnesses for ${clauses.length} confessions: ${selfNamed.length} commands the runner can name in its own file, ${byState('supported').length} clauses corroborated by a body and ${byState('invisible').length} that hide one frame up, ${namedCases.length} naming cases held the free-text grammar (one of them recorded as a false negative rather than fixed), and the cause arm reddened under exactly one of the mutations it was shown — the omission. A surplus is stated, never scored. The wiring is graded too: §6 reproduces the lookup that killed a seven-minute census on 6807ba1 in one line, and shows a reader keyed by the wrong path ending cannot hide behind its own zero. The gate the sweep prints after the rows is omissions + silent blind spots at zero`);
