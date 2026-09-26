@@ -1627,6 +1627,26 @@ drizzle 把整个拼接结果当成**单个绑定参数**，生成的 SQL 是 `o
 属性写入那一刀。#63 到此关掉。
 
 
+## #64 落地：同一项目的并发保存以前必然互相踩，现在在事务里排队（2026-09-27）
+
+`docs/adr/0016-project-writes-serialized-by-xact-lock.md`。修的是生产日志里那次
+`PUT /api/projects/9404a93d…: Failed query: insert into "pages"`：`writeDocument` 是"整删重插"，
+两个并发事务各自从同一份旧文档出发，就会 A 删完 → B 删完 → A 插 p_x → B 插同一个 p_x 撞 `pages_pkey`。
+库里没留半写状态（回滚干净），但用户侧是一次保存失败，而 Studio 有自动保存，两个标签页就会撞。
+
+- **改法一行**：`writeDocument` 开头拿项目级事务锁 `pg_advisory_xact_lock(hashtextextended(projectId, 0))`。
+  放在 `writeDocument` 里而不是调用方，因为它有两个调用点（`createProject` / `saveDocument`），
+  锁的范围属于"怎么写文档"这件事本身。
+- **证据是红率不是单次绿**（`apps/web/test/document-concurrent-write.integration.test.ts`，3 个并发写各 600 节点）：
+  无锁连跑 5 遍 **5 遍全红**（红因就是日志里那道 `insert into "pages"` 冲突，断言消息里直接带出来）；
+  加锁连跑 5 遍 **5 遍全绿**。用例另外两条断言的是"读回来是某一份完整文档、不混不半截"和"库里节点行数与文档对得上"。
+- **这条测试挡不住的一件事要说明白**：把锁 key 写成常量 `0`（所有项目全局串行）用例照样绿。
+  锁的范围靠的是那一行代码和 ADR，不是靠断言；真要钉得做跨项目并发计时对照，本机负载下那条会飘。
+- 与 §147 的关系：这是"整份文档替换"的写放大的**下半截（并发）**，上半截（一次保存为什么要写 10000 行）
+  还是增量保存那一刀，做完之后这把锁仍然是对的。**大文档下的排队代价没重测**（今天这台机器不空闲，
+  一次普通页面加载 4.3 秒），记在这里不当已知。
+
+
 ## §133/§134 第一片：额度账本落地，五格里只有一格真的有执行方（2026-09-26 夜）
 
 需求原文两句：§133"五档订阅（Free/Pro/Creator/Studio/Enterprise），按 AI usage / storage /

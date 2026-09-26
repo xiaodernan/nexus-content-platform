@@ -1,4 +1,4 @@
-import { and, asc, desc, eq, inArray, isNotNull, isNull } from 'drizzle-orm';
+import { and, asc, desc, eq, inArray, isNotNull, isNull, sql } from 'drizzle-orm';
 import {
   clone,
   createDocument,
@@ -116,6 +116,11 @@ export async function createProject(ownerId: string, input: CreateProjectInput):
 type Tx = Parameters<Parameters<ReturnType<typeof getDb>['transaction']>[0]>[0];
 
 async function writeDocument(tx: Tx, projectId: string, document: DesignDocument): Promise<void> {
+  // 同一项目的写入必须串行：下面是"整删重插"，两个并发事务各自从同一份旧文档出发，
+  // A 删完 → B 删完 → A 插 p_x → B 插同一个 p_x ⇒ pages_pkey 冲突，整个 PUT 报 500
+  //（2026-09-26 生产日志里那次 `insert into "pages"` 失败就是这个形状；Studio 自动保存 + 第二个标签页就会撞）。
+  // 事务级 advisory lock 在 commit/rollback 时自动释放，不改任何事务语义，也不跨项目挡。
+  await tx.execute(sql`select pg_advisory_xact_lock(hashtextextended(${projectId}, 0))`);
   // 只清这个项目自己的行：先删本项目页面下的节点，再删页面
   const pageIds = await tx
     .select({ id: pages.id })
