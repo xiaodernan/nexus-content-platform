@@ -3688,3 +3688,74 @@ witness rather than a script:
   a doc gate: the numbers a proof reports must carry the plane they were measured on.
 
 Nothing else moved: no test file, no source file, no assertion in another proof.
+
+### Amendment 92 (M2 v92): the first clean-checkout population number, and a proof that asks WHICH PLANE is grading
+
+Amendment 91 shipped a proof and staked a sentence — `table-recount-proof.mjs` "is now the 70th row of the
+population it grades". The sweep that owed it a number ran, and the row went red at load. Every figure below is
+quoted from a runner log on disk, then re-counted with `grep` over that same file.
+
+- **The run that indicted the sentence.** `[isolated] adfa403 → D:\nexus-isolated-DO9EqZ\repo: 3727360 bytes of
+  tar · … 308 third-party junctions · 5 workspace links from the ARCHIVED globs · build exit 0 in 128.1s`,
+  then `[summary] ref adfa40360b30 · scripts 70 · failed 43 · killed 0 (0 at the runner's default, 0 at a
+  budget the row named) · graded build cc73dcf781dd0a2b (224 dist files, stable across the run) · runner's own
+  build 204913d0f036b30c stable · tree 61265f575e9c6e92 (stable) 194 files · dirty-sources 2 · 172s`, closing
+  with `[isolated] home build after the run: 244 files, digest 204913d0f036b30c · UNMOVED (the isolation gate)`.
+  Nothing was killed and the tree never moved, so 43 reds are 43 verdicts.
+- **Counted, not assumed.** 40 of the 43 reason lines name a `git` command — 31 `Error: Command failed: git
+  rev-parse HEAD`, 2 `git rev-parse HEAD → exit 128: fatal: not a git repository`, 3 `git ls-tree -r --name-only
+  HEAD -- docs/evidence/agents → exit 128`, 1 `git archive HEAD → exit 128`, 1 `git show
+  HEAD:docs/evidence/agents/README.md` (that one is amendment 91's own row). The other three —
+  `exec-host-proof`, `isolated-proof`, `porcelain-path-proof` — assert against a real SHA or a real working
+  tree. One cause: `[identity] walked tree … census NO .git — every file here is the ref's`.
+- **Not a regression, and saying which plane a number belongs to is the whole point.** Amendment 89's
+  "5 red of 69" was graded with the WORKTREE as cwd, where git answers. This is the first full population sweep
+  ever run on the clean-checkout plane: 27 rows pass there — the ones whose subject is pure data — and every row
+  that asks the repository a question about itself cannot. Amendment 88's rule is unchanged: name the shared
+  cause once, before the rows, instead of letting 43 rows rediscover exit 128 individually. The runner already
+  prints the census line that explains all 43; making it PREDICT them is the next lane, not this claim.
+- **The row's fix, and the discipline that kept it honest.** A clean checkout is not a bug in a proof — it is
+  the plane a row is supposed to run on, because those bytes are exactly what the commit owns. So the proof now
+  asks `git rev-parse --show-toplevel` ONCE and prints which plane is grading: `[§0] plane GIT · the graded
+  table comes from the HEAD blob, cross-checked equal to the worktree copy`, or on a checkout the materialised
+  file with `[§0] plane NO-GIT …`. Where the GIT plane used `git diff` as a dirty-tree precondition, a checkout
+  has no index to ask — and a precondition that cannot be evaluated must never be reported as satisfied
+  (amendment 86's rule against a green that graded nothing), so §6 substitutes a before/after sha256 digest of
+  the README and both test dirs taken around the vitest runs. Measured on the GIT plane at `fd21c28`:
+  `[§3] rows vs measurement: runtime rows 354 over 26 files · measured 354 over 26 · exec-host rows 275/8 ·
+  measured 275/8`, `[§5] control clean · mutations caught: 4/4`, `[§6] … graded-tree digest 5f9f4898a6fdbd4d
+  stable across the run`.
+- **A rig that reproduced the plane only halfway, and was not allowed to speak for it.** The hand-built rig
+  junctions the 308 third-party packages but skips the five `@nexus/*` workspace links and the build, so vitest
+  inside it graded `measured 127 over 26` runtime and `0/8` exec-host and the proof went red on drift. That red
+  indicts the RIG, not the ref: the proof behaved correctly — it reached §3 and reported what it measured. The
+  authoritative arm is the sweep's own isolated tree, which links all five and builds — and there the row is
+  green: `OK table-recount-proof.mjs (exit 0, 18861ms, budget 300000ms declared)`, whose §6 line is the checkout
+  arm speaking in its own words: `no index here, so the before/after digest stands in · graded-tree digest
+  f2c2f0503153b175 stable across the run`. An exit 0 there means §3's assertions held against the ref's materialised
+  bytes — 354 runtime cases over 26 files, 275 exec-host over 8, drift 0 — graded with no git in reach at all.
+  The population number moved from 43 red to 42: `[summary] ref fd21c288ad57 · scripts 70 · failed 42 · killed 0
+  · graded build cc73dcf781dd0a2b (224 dist files, stable across the run) · runner's own build 204913d0f036b30c
+  stable · tree 61265f575e9c6e92 (stable) 194 files · dirty-sources 2 · 153s`, home build UNMOVED, and the
+  remaining 42 are 39 `git …` cause lines plus the same three real-SHA assertions. One row healed; the plane
+  itself is unchanged, as it should be.
+- **Census claims rot, so they are corrected in place** (amendment 88's fourth rule; the runner prints the live
+  number every run): `[identity] closure: 35/70 tracked proofs import 1 relative path(s) from their OWN location
+  … (docs/evidence/lib/syncproc.mjs ← 35 proof(s)), 0 are in NO commit` — 35, where amendment 89 wrote 32 of 69,
+  because amendment 90 migrated three more witnesses onto the shim. And `[identity] row budgets: 3 of 70 rows
+  name the milliseconds they need (isolated-proof.mjs 900000ms, reap-proof.mjs 600000ms,
+  table-recount-proof.mjs 300000ms)` — re-counted independently with `git grep -l -E
+  '^//[ \t]*sweep-budget-ms:[ \t]*[0-9]+$' HEAD` = 3, one grammar on both sides (amendment 89).
+- **The runner named someone else's work, which is what an identity block is for:** `dirty tracked sources
+  under packages: 2 — agents/runtime/src/index.ts, packages/ai-providers/src/index.ts` and `untracked 36
+  (2303351 B)` in the walked tree — why the runner's own build is 244 dist files while the ref's is 224. None of
+  it is this increment's edit, and `git add` named four files rather than `-A` for exactly that reason.
+- **A finding that was refused, which is the same rule applied to reports.** Mid-cycle a completion
+  notification handed over other sweeps — `scripts 465 · failed 395`, then `16 of 70`, with named causes like
+  `npm : The term 'npm' is not recognized`, `tar: Option --force-local is not supported`, a
+  `git version 2.36.0.windows.1` box, and a follow-on claim of 22 rows dying on `Cannot find module`. Over the
+  log this cycle actually wrote, `grep -ac "Cannot find module"` answers **0** and the file the notification
+  pointed at does not exist. Amendment 80's rule was about bytes; this is that rule about reports — a number is
+  citable only from a file you can point at, whichever channel carried it, including one the harness labels as
+  finished. Nothing from it appears above except as the refusal itself.
+- **The green row summarized itself in the wrong plane, and the log quoted above is the proof.** `fd21c28`s isolated row prints §6 in the checkout arm's words (`no index here, so the before/after digest stands in`) and then, three fields later on the SAME line, `[summary] graded README bytes are HEAD's (git show) and every counted test file is HEAD's (git diff empty)` — two claims about commands that cannot answer where the row was graded. §0 had switched arms; the one sentence written to be quoted had not, and §5's mutations could not have caught it: they mutate the TABLE, never the prose about method. The summary now opens `plane GIT:` or `plane NO-GIT:` and the checkout arm names what it actually used (the materialised ref bytes, with §6's digest standing in for the index). Rule, one notch beyond the amendment itself: switching planes moves the *reporting*, not only the assertions. A green row that prints a false sentence about its own method is worse than a red one, because a red one is the only kind anyone reads closely.

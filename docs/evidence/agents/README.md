@@ -2439,7 +2439,10 @@ temp directory. `table-recount-proof.mjs` is now the 70th row of the population 
 for both packages, reads per-file case counts out of the JSON, reads this file's digits out of **HEAD's
 bytes** (`git show`, so a half-edited README cannot be graded against a finished measurement), and compares
 in four directions — row against its file, rows against the two prose totals, a file with no row, a row
-with no file. Measured: **354/26 and 275/8, drift 0**.
+with no file. Measured: **354/26 and 275/8, drift 0**. Amendment 92 corrects the clause about *where* the
+bytes come from: `git show` is precisely what killed this row on the clean-checkout plane, where no `.git`
+answers the question — the reader now asks once which plane it is on, grades the HEAD blob when git does
+answer and the materialized bytes when it does not, and section 0 prints which arm graded the table.
 
 Two parts of it are the reason the increment exists.
 
@@ -2462,3 +2465,48 @@ were committed, so the precondition is checked and named. Files no commit owns a
 and printed — at the run that wrote this paragraph, `agents/runtime/test/vectorStore.test.ts` is untracked
 with one failing case, so vitest exits 1, the JSON is read anyway (a nonzero exit is data, not a lost
 report), and the proof stays green about the table while stating that the suite in this worktree is not.
+
+## The plane that grades a proof, and the proof that had to learn it has two (M2 v92 — ADR 0016 amendment 92)
+
+Amendment 91's sentence was that `table-recount-proof.mjs` is "the 70th row of the population it grades". The
+sweep that owed it the number answered: ref `adfa403`, **70 scripts, 43 failed, 0 killed, 172 s**, graded build
+`cc73dcf781dd0a2b` over 224 dist files stable across the run, walked tree `61265f575e9c6e92` stable at 194
+files, home build `204913d0f036b30c` UNMOVED. The new row died at load on
+`Error: Command failed: git show HEAD:docs/evidence/agents/README.md`.
+
+Counted rather than guessed: **40 of the 43 reason lines name a `git` command** and the remaining three
+(`exec-host`, `isolated`, `porcelain-path`) assert against a real SHA or working tree. One cause, printed by the
+runner before any row ran: `[identity] walked tree … census NO .git — every file here is the ref's`. This is not
+a fall from amendment 89's 5-of-69 — that run graded rows with the WORKTREE as cwd, where git answers. It is the
+first full sweep on the clean-checkout plane, and on that plane 27 rows pass and every row that asks the
+repository about itself cannot. Amendment 88's rule generalises to a new axis: name the shared cause once,
+before the rows.
+
+The row's own fix keeps the claim instead of weakening it. `git rev-parse --show-toplevel` is asked ONCE and
+`[§0]` prints which plane is grading: HEAD's blob cross-checked against the worktree copy where git answers, the
+materialised file — which IS the ref's bytes — where it cannot. A checkout has no index, so `git diff` cannot
+serve as the dirty-tree precondition there; the precondition is not reported as satisfied, it is replaced by a
+before/after sha256 digest of the README and both test dirs taken around the vitest runs, and `[§6]` says which
+of the two ran. Measured on the git plane at `fd21c28`: 354/26 + 275/8, drift 0, mutations 4/4, graded-tree
+digest `5f9f4898a6fdbd4d` stable.
+
+Two refusals belong in the record because they are the increment's real product. A hand-built rig reproduced the
+clean-checkout plane only halfway — it junctions 308 third-party packages but skips the five `@nexus/*` links and
+the build — and the proof went red there on `measured 127 over 26`. That indicts the rig, not the ref, and the
+authoritative arm is the sweep's own isolated tree, where the row answers `OK table-recount-proof.mjs (exit 0,
+18861ms, budget 300000ms declared)` and the population moves from 43 red to 42. And mid-cycle a completion
+notification delivered other sweeps (`465 scripts / 395 failed`, then `16 of 70`, causes like
+`npm : The term 'npm' is not recognized` and 22 rows of `Cannot find module`) that no file on disk supports:
+over this cycle's log, `grep -ac "Cannot find module"` answers 0 and the named output file does not exist.
+Amendment 80 says name the bytes you graded; this is the same rule applied to reports — cite the file you can
+point at, not the channel that carried the number.
+
+The green row carried the same lesson inside its own exit 0. Read that isolated line end to end and §6 speaks in
+the checkout arm's words, then three fields later the row prints `[summary] graded README bytes are HEAD's (git
+show) and every counted test file is HEAD's (git diff empty)` — two claims about commands that cannot answer
+where the row was graded. §0 had switched arms; the sentence written to be quoted had not, and §5's mutations
+could not catch it because they mutate the table, never the prose about method. The summary now opens
+`plane GIT:` or `plane NO-GIT:` and the checkout arm names the materialised ref bytes and §6's digest as the
+substitute precondition. Switching a plane moves the reporting, not only the assertions: a green row that
+describes its own method falsely is worse than a red one, because a red one is the only kind anyone reads
+closely.

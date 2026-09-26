@@ -285,4 +285,7 @@ try {
 
 const total = runs.reduce((a, { cases, owned }) => a + [...cases.byFile].filter(([f]) => owned.has(f)).reduce((x, [, n]) => x + n, 0), 0);
 const fileCount = runs.reduce((a, { cases, owned }) => a + [...cases.byFile].filter(([f]) => owned.has(f)).length, 0);
-console.log(`\n[summary] graded README bytes are HEAD's (git show) and every counted test file is HEAD's (git diff empty) · vitest over ${PKGS.length} packages: ${total} tracked cases in ${fileCount} files · every row matched its file and both prose totals matched their row sums · 4 mutations of the table were caught by the same reader that calls the real one clean · a table nobody recomputes is a table nobody can trust, and this one is now a row`);
+// The summary line is the one a human quotes, and on the first isolated run it said "git show" and
+// "git diff empty" on a plane where neither command answers — §0 and §6 had already switched arms and this
+// sentence had not. Amendment 92's axis applies to prose as loudly as to assertions: name the arm you used.
+console.log(`\n[summary] plane ${gitPlane}: ${gitPlane === 'GIT' ? "graded README bytes are HEAD's (git show) and every counted test file is HEAD's (git diff empty)" : "graded README bytes are the materialised ref tree (no .git answers here) and the precondition is the §6 before/after digest, not an index"} · vitest over ${PKGS.length} packages: ${total} tracked cases in ${fileCount} files · every row matched its file and both prose totals matched their row sums · 4 mutations of the table were caught by the same reader that calls the real one clean · a table nobody recomputes is a table nobody can trust, and this one is now a row`);
