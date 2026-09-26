@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import type { DesignDocument } from '@nexus/design-model';
 import { cn } from '@/lib/cn';
 import { studio, useStudio } from './store';
 import { TopBar } from './TopBar';
@@ -55,12 +56,24 @@ const VIEW_LABELS: Record<WorkspaceView, string> = {
 };
 
 /** §4 Studio 外壳：负责载入与保存时机，不做布局细节 */
-export function StudioShell({ projectId, demoMode }: { projectId: string; demoMode: boolean }) {
+export function StudioShell({
+  projectId,
+  demoMode,
+  initialDocument,
+}: {
+  projectId: string;
+  demoMode: boolean;
+  /** 服务端随 HTML 带下来的那一份文档；没有它就走原来的"水合后再 fetch" */
+  initialDocument?: DesignDocument;
+}) {
   const state = useStudio();
 
   useEffect(() => {
+    // 先装服务端给的那一份，再叫 load()：它看到 `loadedFor` 已经对上就直接返回，
+    // 于是首屏少一次接口往返，而"没有 initialDocument"的老路径一行都没变。
+    if (initialDocument) studio.bootstrap(initialDocument);
     void studio.load(projectId);
-  }, [projectId]);
+  }, [projectId, initialDocument]);
 
   useEffect(() => {
     // 三份真值各自收尾：设计文档走画布的撤销栈，世界与游戏文档走各自的待写队列

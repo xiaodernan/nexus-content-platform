@@ -286,6 +286,32 @@ export class StudioStore {
 
   // ---- 载入 / 保存 ----
 
+  /**
+   * 首屏不再"水合完再去 fetch 一次"：服务端读到的那一份文档随 HTML 一起下来，这里直接装上。
+   * 省的是接口那一趟往返（生产实测那一次项目接口是 152-206ms），
+   * 代价是 HTML 变大——4000 节点那一档要带上整份文档，所以这不是白拿的收益。
+   * 权威来源仍然是 GET 接口：这里只是让第一次渲染不必等它。
+   */
+  bootstrap(document: DesignDocument): void {
+    if (this.ready && this.loadedFor === document.id) return;
+    this.loadedFor = document.id;
+    this.projectId = document.id;
+    this.design.reset(document);
+    this.selection = [];
+    this.dirty = false;
+    this.saveStateValue = 'idle';
+    this.saveError = null;
+    this.loadError = null;
+    this.ready = true;
+    this.commit();
+    // 这三份"随文档一起来的附属信息"一个都不能省：漏掉 refreshAnnotations 时，
+    // 首屏不再 fetch 文档确实快了，但元素上的批注与发布状态整片消失——
+    // 那是把一次性能改动做成一个功能回归（@smoke §111 第一次就是这么红的）。
+    void this.refreshSnapshots();
+    void this.refreshPublication();
+    void this.refreshAnnotations();
+  }
+
   async load(projectId: string): Promise<void> {
     if (this.loadedFor === projectId && this.ready) return;
     this.loadedFor = projectId;
