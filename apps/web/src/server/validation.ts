@@ -43,7 +43,23 @@ export const DocumentEnvelope = z.object({
   }),
 });
 
-export const MAX_NODES_PER_PAGE = 4000;
+/**
+ * 整份文档的节点上限。
+ *
+ * 这里原来挡的是**单页**（`MAX_NODES_PER_PAGE = 4000`，没有 ADR、没有用例引用）。那道门两头都不成立：
+ * ① 它没约束住它想约束的东西——`DocumentEnvelope` 允许 64 页，所以 25.6 万节点的文档照样存得进去，
+ *    一页 5000 反而不行；
+ * ② 它正好把 §146 要的最高档挡在门外：2026-09-27 拿浏览器压测脚本真打 `PUT /api/projects/[id]`，
+ *    单页 10000 节点回的是 `400 页面 Home 节点数超过上限 4000`。
+ *    而模型层基准早就把 10000 节点写进过一页（`docs/PERFORMANCE.md`），集成测试那条
+ *    "一个页面 8000 个节点仍然存得下来"走的是 `saveDocument`、绕过了这道门——所以这条绿从来没测过用户实际走的路径。
+ *
+ * 改成按整份文档计，数值取 §146 最高档（10000）的两倍：顶档必须过，还要留一倍余量给真实项目
+ * （一页 10000 实测：首帧 1.76–1.81s、属性写入到画布 583–763ms、JS 堆峰值 145–161MB，
+ *  口径 `prod-adr0015`，见 `docs/PERFORMANCE.md`）。
+ * 要再往上走（30k+）得先做完结构共享与增量保存，那时再改这个数并留一条新的测量记录。
+ */
+export const MAX_NODES_PER_DOCUMENT = 20_000;
 
 /** 返回人类可读的拒绝原因；成功时返回强转后的文档 */
 export function parseDocument(body: unknown): { ok: true; document: DesignDocument } | { ok: false; issues: string[] } {
@@ -54,10 +70,12 @@ export function parseDocument(body: unknown): { ok: true; document: DesignDocume
       issues: parsed.error.issues.map((i) => `${i.path.join('.') || 'body'}: ${i.message}`),
     };
   }
-  for (const page of parsed.data.pages) {
-    if (Object.keys(page.nodes).length > MAX_NODES_PER_PAGE) {
-      return { ok: false, issues: [`页面 ${page.name} 节点数超过上限 ${MAX_NODES_PER_PAGE}`] };
-    }
+  const nodeCount = parsed.data.pages.reduce((sum, page) => sum + Object.keys(page.nodes).length, 0);
+  if (nodeCount > MAX_NODES_PER_DOCUMENT) {
+    return {
+      ok: false,
+      issues: [`整份文档 ${nodeCount} 个节点，超过上限 ${MAX_NODES_PER_DOCUMENT}`],
+    };
   }
   const document = parsed.data as unknown as DesignDocument;
   const errors = validateDocument(document).filter((i) => i.severity === 'error');

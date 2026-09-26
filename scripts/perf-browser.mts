@@ -1,7 +1,7 @@
 import { mkdir } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 import { chromium } from '@playwright/test';
-import { MAX_NODES_PER_PAGE } from '../apps/web/src/server/validation';
+import { MAX_NODES_PER_DOCUMENT } from '../apps/web/src/server/validation';
 
 /**
  * §146/§147 的浏览器端指标：首帧、pan/zoom 帧率、属性写入到画布更新的延迟。
@@ -559,15 +559,15 @@ console.log(
  * （上一版就在这里栽了：服务端明明存了 1000 个节点，刷新后画布还是 8 个，
  * 于是记进 docs/PERFORMANCE.md 的"1000/4000 节点"数字量的其实一直是 8 个节点）。
  *
- * **§146 的 10000 节点这一档必须摊到多页**：服务端对单页有硬上限
- * （`apps/web/src/server/validation.ts` 的 `MAX_NODES_PER_PAGE`，2026-09-27 实测 10000 节点单页
- * 直接被 `HTTP 400 页面 Home 节点数超过上限 4000` 拒绝）。这个上限是不是该放宽是另一个决定（要 ADR），
- * 压测脚本不替它决定；这里改吃这个常量，超过就再开一页，量的是**整份文档**在 10000 节点下的行为。
+ * **§146 的 10000 这一档以前根本 PUT 不进去**：2026-09-27 实测单页 10000 节点被服务端挡下
+ * （`HTTP 400 页面 Home 节点数超过上限 4000`，那时是 `MAX_NODES_PER_PAGE`）。那道门改成了按整份文档计
+ * （`MAX_NODES_PER_DOCUMENT`，见 ADR-0015），所以这一档现在就是**一页 10000 个节点**——
+ * 以前那种"摊成 3 页凑够总数"的数不能算这一档，它量的是别的东西。
  */
 async function growDocument(nodes: number): Promise<{ total: number; active: number }> {
   await page.goto(`${base}/`, { waitUntil: 'domcontentloaded' });
   const result = await page.evaluate(
-    async ({ target, cap }: { target: number; cap: number }) => {
+    async (target: number) => {
       const match = document.cookie.match(/(?:^|;\s*)nexus_csrf=([a-f0-9]+)/);
       const projectId = window.__perfProjectId;
       const res = await fetch(`/api/projects/${projectId}`, { method: 'GET', cache: 'no-store' });
@@ -582,7 +582,6 @@ async function growDocument(nodes: number): Promise<{ total: number; active: num
       const root = page0.nodes[page0.rootId];
       // children 可能缺：缺就是这份文档本身坏了，直接停下来报告，不要静默补一个空数组继续跑
       if (!root?.children?.length) return { ok: false, reason: '页面根节点读不到，没法加节点' };
-      const have = Object.keys(page0.nodes).length;
       // 造新节点的方式是**克隆一个已经合法的节点**再改身份字段，而不是手写一份字面量：
       // 上一版手写的节点缺 style.cornerRadius / layout.padding，
       // 那种文档会白屏（见 packages/design-model/test/malformed-node.test.ts），
@@ -594,51 +593,24 @@ async function growDocument(nodes: number): Promise<{ total: number; active: num
       // 这一大段没有拆成 helper 函数，是踩过才知道的：`page.evaluate` 只把回调的**源码**搬进浏览器，
       // 而 esbuild 给具名函数补的 `__name` 助手在页面里不存在
       // （第一次跑 10000 档就死在 `ReferenceError: __name is not defined`）。
-      // 于是填节点只能写成一个大循环：满了当前页就再开一页，直到够 target。
-      let slotPage = page0;
-      let slotParent: DocNode = root;
-      let slotPrefix = 'perf';
-      let slotCount = have;
-      let total = have;
-      while (total < target) {
-        if (slotCount >= cap) {
-          if (doc.pages.length >= 64) {
-            return { ok: false, reason: `还差 ${target - total} 个节点，但页数已到文档上限 64` };
-          }
-          const k = doc.pages.length;
-          const pageId = `perf_page_${k}`;
-          const rootId = `${pageId}_root`;
-          // 根节点也克隆同一份合法模板；children 先清空再克隆，别把满页的 4000 个 id 白拷一遍
-          const rootClone: DocNode = {
-            ...structuredClone({ ...root, children: [] as string[] }),
-            id: rootId,
-            children: [] as string[],
-          };
-          const clone: DocPage = {
-            ...structuredClone({ ...page0, nodes: {} }),
-            id: pageId,
-            name: `压测页 ${k}`,
-            rootId,
-            nodes: { [rootId]: rootClone },
-          };
-          doc.pages.push(clone);
-          slotPage = clone;
-          slotParent = rootClone;
-          slotPrefix = `${pageId}_n`;
-          slotCount = 1;
-        }
-        const id = `${slotPrefix}_${slotCount.toString(36)}`;
-        slotPage.nodes[id] = {
+      //
+      // 全部节点放在**同一页**：§146 写的就是"10000 nodes"这一档，服务端现在按整份文档挡
+      // （`MAX_NODES_PER_DOCUMENT`），拆页只会让这一档看起来像 4000 档。
+      // 2026-09-27 之前这里是被单页上限（4000）拒的，那时脚本被迫摊成 3 页才量到 10002 个节点，
+      // 那次的数据在 `docs/PERFORMANCE.md`；门改了之后必须重测，不能沿用。
+      const pageNodes = page0.nodes;
+      const rootChildren = root.children!;
+      for (let i = Object.keys(pageNodes).length; i < target; i += 1) {
+        const id = `perf_${i.toString(36)}`;
+        pageNodes[id] = {
           ...structuredClone(template),
           id,
-          name: `Perf ${total}`,
-          parentId: slotParent.id,
+          name: `Perf ${i}`,
+          parentId: root.id,
           children: [],
-          text: typeof template.text === 'string' ? `压测文本 ${total}` : undefined,
+          text: typeof template.text === 'string' ? `压测文本 ${i}` : undefined,
         };
-        slotParent.children!.push(id);
-        slotCount += 1;
-        total += 1;
+        rootChildren.push(id);
       }
       const put = await fetch(`/api/projects/${projectId}`, {
         method: 'PUT',
@@ -646,9 +618,9 @@ async function growDocument(nodes: number): Promise<{ total: number; active: num
         body: JSON.stringify(doc),
       });
       if (!put.ok) return { ok: false, reason: `写入失败：HTTP ${put.status} ${(await put.text()).slice(0, 200)}` };
-      return { ok: true, nodes: total, active: Object.keys(page0.nodes).length, pages: doc.pages.length };
+      return { ok: true, nodes: target, active: Object.keys(pageNodes).length, pages: doc.pages.length };
     },
-    { target: nodes, cap: MAX_NODES_PER_PAGE },
+    nodes,
   );
   if (!result.ok) throw new Error(result.reason);
   // 服务端说存了多少才算数：客户端自己加的数只是意图。求和要跨页，
@@ -667,7 +639,7 @@ async function growDocument(nodes: number): Promise<{ total: number; active: num
     throw new Error(`写入没生效：想让文档到 ${nodes} 个节点，服务端读回来只有 ${check.total} 个（${check.pages} 页，活动页 ${check.active}）`);
   }
   console.log(
-    `  文档：${check.total} 个节点 / ${check.pages} 页（单页上限 ${MAX_NODES_PER_PAGE}，摊页不是绕过规模——§146 量的就是整份文档）`,
+    `  文档：${check.total} 个节点 / ${check.pages} 页（整份文档上限 ${MAX_NODES_PER_DOCUMENT}，见 ADR-0015）`,
   );
   return { total: check.total, active: check.active };
 }
@@ -700,7 +672,7 @@ await propToCanvasLatency('（起手 8 节点）');
 
 for (const scale of scales) {
   let built = 0;
-  let active = 0;
+  let active: number;
   try {
     ({ total: built, active } = await growDocument(scale));
   } catch (error) {

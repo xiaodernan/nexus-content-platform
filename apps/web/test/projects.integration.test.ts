@@ -1,7 +1,7 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { eq, sql as rawSql } from 'drizzle-orm';
 import { createNode, findPage } from '@nexus/design-model';
-import { parseDocument } from '../src/server/validation';
+import { MAX_NODES_PER_DOCUMENT, parseDocument } from '../src/server/validation';
 import { createProject, listProjects, loadDocument, saveDocument } from '../src/server/domain/projects';
 import { getDb } from '../src/server/db/client';
 import { designTokens, projects, users } from '../src/server/db/schema';
@@ -269,4 +269,118 @@ describe('PUT 文档时的结构门（§146 的白屏回归）', () => {
     await saveDocument(id, document);
     expect((await loadDocument(id))!.pages[0]!.nodes[good.id]).toBeTruthy();
   });
+});
+
+/**
+ * §146 顶档那道门（ADR-0015）。
+ *
+ * 这道门以前挡的是**单页** 4000 个节点，于是 2026-09-27 拿浏览器脚本真打 PUT 时，
+ * "文档有 10000 个节点"这一档被 `400 页面 Home 节点数超过上限 4000` 挡下——
+ * 而上面那条"一个页面 8,000 个节点仍然存得下来"一直是绿的，因为它走 `saveDocument`、
+ * 绕过了 `parseDocument`。那条绿盖住了一个用户实际会撞见的 400，这就是这一节存在的理由：
+ * **规模类的用例必须走用户走的那道门**（`/api/projects/[id]` 的 PUT 就是拿 `parseDocument` 当门）。
+ */
+describe('§146 顶档走真实那道门（ADR-0015）', () => {
+  /** 造 n 个挂在 root 下的合法文本节点（照 §146 基准的造法：每 50 个套一层，避免一根 8000 叉的链） */
+  function fill(page: { rootId: string; nodes: Record<string, unknown> }, n: number, tag: string): string[] {
+    const nodes = page.nodes as Record<string, ReturnType<typeof createNode>>;
+    let prev = page.rootId;
+    const ids: string[] = [];
+    for (let i = 0; i < n; i += 1) {
+      const node = createNode({ type: 'text', name: `${tag}${i}`, text: '压测' });
+      node.parentId = prev;
+      nodes[node.id] = node;
+      ids.push(node.id);
+      if (i % 50 === 0) prev = node.id;
+    }
+    return ids;
+  }
+
+  it('一页 10000 个节点过门、存下去、读回来', async () => {
+    const { document, id } = await newProject('Scale Put Gate');
+    const page = document.pages[0]!;
+    const existing = Object.keys(page.nodes).length;
+    const ids = fill(page, 10_000, 'k');
+    const parsed = parseDocument(document);
+    // 这条断言在旧门上必红（单页 4000 上限）。门的拒绝理由也要一起断，
+    // 否则以后又换成别的数把它挡红时，看不出是同一件事
+    expect(parsed.ok, parsed.ok ? '' : parsed.issues.join('；')).toBe(true);
+    if (!parsed.ok) throw new Error('§146 的顶档被门挡下了');
+    await saveDocument(id, parsed.document);
+    const loaded = await loadDocument(id);
+    expect(Object.keys(loaded!.pages[0]!.nodes)).toHaveLength(existing + 10_000);
+    // 最后一条父子关系不能因为规模而丢
+    expect(loaded!.pages[0]!.nodes[ids[9999]!]?.name).toBe('k9999');
+  }, 180_000);
+
+  it('上限这个数本身不能被人悄悄调小（§146 顶档要过得去）', () => {
+    // 上面那条"一页 10000 过门"钉的是**下限**：谁把常量调到 10000 以下它就红。
+    // 这一条钉的是另一头：它必须至少是 §146 顶档的两倍（ADR-0015 的理由），
+    // 否则"改回去挡住大文档"会变成随手写一个数。
+    expect(MAX_NODES_PER_DOCUMENT).toBeGreaterThanOrEqual(20_000);
+  });
+
+  it('超过整份文档上限被挡下，并且是一条都不写（反向对照：门真的在挡）', async () => {
+    const { document, id } = await newProject('Scale Over Gate');
+    const page = document.pages[0]!;
+    // 比上限多一个：证明拒绝的正好是这条规则，而不是"大到别处先坏"
+    fill(page, MAX_NODES_PER_DOCUMENT + 1, 'o');
+    const parsed = parseDocument(document);
+    expect(parsed.ok).toBe(false);
+    if (parsed.ok) throw new Error('超过整份文档上限却过了门');
+    expect(parsed.issues.join('；')).toContain(`上限 ${MAX_NODES_PER_DOCUMENT}`);
+    // 挡在门外就等于没写：库里还是起手那 8 个节点
+    expect(Object.keys((await loadDocument(id))!.pages[0]!.nodes).length).toBeLessThan(100);
+  }, 180_000);
+
+  /** 复制一份新页：只带一个换过 id 的根节点，免得和第一页撞重复 id（validateDocument 会拒） */
+  function addPage(document: Awaited<ReturnType<typeof newProject>>['document'], tag: string) {
+    const src = document.pages[0]!;
+    const rootId = `page_${tag}_root`;
+    const root = {
+      ...structuredClone(src.nodes[src.rootId]!),
+      id: rootId,
+      parentId: null,
+      children: [] as string[],
+    };
+    const page = {
+      ...structuredClone({ ...src, nodes: {} }),
+      id: `page_${tag}`,
+      name: `页 ${tag}`,
+      rootId,
+      nodes: { [rootId]: root },
+    };
+    document.pages.push(page);
+    return page;
+  }
+
+  /**
+   * ADR-0015 改的是"挡什么"，所以这一条钉的是"求和这一维"。
+   *
+   * 前面三条都只用一页，于是把 `reduce` 写成"只看 pages[0]"、或写成"各页的最大值"，
+   * 它们全都照样绿 —— 那等于门悄悄退回了单页语义，而退回单页正是这个 ADR 要修的东西。
+   * 反向对照：同样的页、同样的造法，总数在上限之内就必须放过（证明拒的是和，不是"多页"本身）。
+   */
+  it('挡的是各页之和：单页都不超上限、总数超上限要拒；总数不超就放过', async () => {
+    const spread = async (total: number, name: string) => {
+      const { document } = await newProject(name);
+      const pages = [document.pages[0]!, addPage(document, 'b'), addPage(document, 'c')];
+      const per = Math.ceil(total / pages.length);
+      for (const [i, page] of pages.entries()) fill(page, per, `s${i}_`);
+      const counts = pages.map((p) => Object.keys(p.nodes).length);
+      return { document, counts, max: Math.max(...counts), sum: counts.reduce((a, b) => a + b, 0) };
+    };
+
+    const over = await spread(MAX_NODES_PER_DOCUMENT + 1, 'Scale Sum Over');
+    // 前置条件：没有任何一页单独够得着上限 —— 单页语义的门在这里会放过，所以这条红的就是"求和没了"
+    expect(over.max, `单页最多 ${over.max} 个，本来就不该由单页挡`).toBeLessThan(MAX_NODES_PER_DOCUMENT);
+    expect(over.sum).toBeGreaterThan(MAX_NODES_PER_DOCUMENT);
+    const parsed = parseDocument(over.document);
+    expect(parsed.ok, parsed.ok ? '整份文档超过上限却过了门' : '').toBe(false);
+
+    const under = await spread(MAX_NODES_PER_DOCUMENT - 1000, 'Scale Sum Under');
+    expect(under.sum).toBeLessThanOrEqual(MAX_NODES_PER_DOCUMENT);
+    const ok = parseDocument(under.document);
+    expect(ok.ok, ok.ok ? '' : ok.issues.join('；')).toBe(true);
+  }, 180_000);
 });
