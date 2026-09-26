@@ -13,16 +13,18 @@
 // that was correct. A checker with the wrong grammar does not fail quietly: it manufactures defects in
 // healthy files. So §1 tests the GRAMMAR against rows the README really contains before §3 uses it, and
 // §5 mutates a COPY of the table to prove the checker can be red at all.
-// §1 grammar · §2 what HEAD owns vs what the run produced · §3 row-by-row + prose totals · §4 the doc's own
-// "HEAD's suite is green" precondition · §5 mutations and a control · §6 nothing in this repo moved.
+// §0 which plane is grading (git reachable, or a clean checkout with no `.git`) · §1 grammar · §2 what the
+// graded state owns vs what the run produced · §3 row-by-row + prose totals · §4 the doc's own
+// "the suite is green" precondition · §5 mutations and a control · §6 nothing in this repo moved.
 // All vitest reports land under os.tmpdir. Run after `npm run build`:
 //   node docs/evidence/agents/table-recount-proof.mjs
 // sweep-budget-ms: 300000
 import assert from 'node:assert/strict';
 import { execFileSync } from '../lib/syncproc.mjs';
-import { existsSync, mkdirSync, readFileSync, rmSync } from 'node:fs';
+import { createHash } from 'node:crypto';
+import { existsSync, mkdirSync, readFileSync, readdirSync, rmSync, statSync } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { join } from 'node:path';
+import { join, relative } from 'node:path';
 
 const README = 'docs/evidence/agents/README.md';
 const PKGS = [
@@ -39,7 +41,57 @@ function mkTmp(prefix) {
 }
 const scratch = mkTmp('nexus-v91-table');
 const git = (...args) => execFileSync('git', args, { encoding: 'utf8' });
-const headReadme = git('show', `HEAD:${README}`).replace(/\r\n/g, '\n');
+
+// §0 THE PLANE, asked before it is assumed. This proof's v91 self ran only on the worktree plane, and the
+// first clean-checkout sweep (adfa403, 70 rows, 43 red, 0 killed, 172 s) said so by dying at load:
+// `Error: Command failed: git show HEAD:docs/evidence/agents/README.md`. All 43 reds turn out to be the same
+// subject — 40 name a `git …` command in their cause line and the other three (exec-host, isolated,
+// porcelain-path) assert against a real SHA or working tree — because a checkout has no `.git`
+// (`[identity] walked tree … census NO .git — every file here is the ref's`).
+// A clean checkout is not a bug in this proof; it is the plane a row is SUPPOSED to run on, because the
+// bytes there are exactly what the commit owns. So the question "what are HEAD's bytes" gets two honest
+// answers: ask git when git is reachable, and when it is not, read the materialised tree and SAY so —
+// never quietly pretend the precondition ran (amendment 86's rule against a green that graded nothing).
+const gitPlane = (() => {
+  try { return git('rev-parse', '--show-toplevel').trim() ? 'GIT' : 'NO-GIT'; } catch { return 'NO-GIT'; }
+})();
+const norm = (s) => s.replace(/\r\n/g, '\n');
+const diskReadme = norm(readFileSync(README, 'utf8'));
+let headReadme = diskReadme;
+if (gitPlane === 'GIT') {
+  const blob = norm(git('show', `HEAD:${README}`));
+  assert.equal(diskReadme, blob, 'on the GIT plane the worktree README must equal the blob the ref owns, or this proof would grade bytes no commit made');
+  headReadme = blob;
+}
+console.log(`[§0] plane ${gitPlane} · the graded table comes from ${gitPlane === 'GIT' ? 'the HEAD blob, cross-checked equal to the worktree copy' : 'the materialised ref tree — no .git here, so these bytes ARE what the commit owns'}`);
+
+/** Every file under a directory, relative to it, with forward slashes. */
+function listFiles(dir) {
+  if (!existsSync(dir)) return [];
+  const out = [];
+  const walk = (d) => {
+    for (const e of readdirSync(d).sort()) {
+      const full = join(d, e);
+      if (statSync(full).isDirectory()) walk(full);
+      else out.push(relative(dir, full).replace(/\\/g, '/'));
+    }
+  };
+  walk(dir);
+  return out.map((p) => `${dir}/${p}`);
+}
+
+// The substitute precondition for a plane with no index: digest the bytes this proof READS, and require them
+// unchanged when it finishes. A run that rewrote a test file would be caught here even with no git to ask.
+const WATCH = [README, ...PKGS.map((p) => p.testDir)];
+const snapshot = () => {
+  const hash = createHash('sha256');
+  for (const path of WATCH) {
+    if (statSync(path).isDirectory()) for (const f of listFiles(path)) hash.update(`${f}\u0000${readFileSync(f)}`);
+    else hash.update(`${path}\u0000${readFileSync(path)}`);
+  }
+  return hash.digest('hex').slice(0, 16);
+};
+const before = snapshot();
 
 // ---------------------------------------------------------------- the reader
 // One row: a file in backticks, an OPTIONAL ` +label` naming an extra block of cases inside that same
@@ -146,16 +198,22 @@ for (const pkg of PKGS) {
   }
   assert.ok(existsSync(out), `vitest wrote no JSON for ${pkg.label} (exit ${status})`);
   const cases = casesOf(out);
+  // Which test files does the graded state OWN? git answers on the GIT plane. On a clean checkout there is
+  // no index and no HEAD to ask — but the tree there is EXACTLY the ref's files (v81's premise: `git archive`
+  // carries committed bytes and nothing else), so a listing names the same set. Both arms are printed;
+  // neither is silently swapped for the other.
   const owned = new Set(
-    git('ls-tree', '-r', '--name-only', 'HEAD', '--', pkg.testDir).split('\n').filter((p) => p.endsWith('.test.ts')).map((p) => p.split('/').pop()),
+    gitPlane === 'GIT'
+      ? git('ls-tree', '-r', '--name-only', 'HEAD', '--', pkg.testDir).split('\n').filter((p) => p.endsWith('.test.ts')).map((p) => p.split('/').pop())
+      : listFiles(pkg.testDir).filter((p) => p.endsWith('.test.ts')).map((p) => p.split('/').pop()),
   );
-  const dirty = git('diff', '--name-only', 'HEAD', '--', pkg.testDir).split('\n').filter(Boolean);
+  const dirty = gitPlane === 'GIT' ? git('diff', '--name-only', 'HEAD', '--', pkg.testDir).split('\n').filter(Boolean) : null;
   // The doc's sentence is about the COMMITTED state, so the files it counts must be that state's bytes.
-  assert.deepEqual(dirty, [], `${pkg.label}: a MODIFIED test file would be graded as if it were HEAD's — recount against a clean tree, not a mid-edit one${dirty.length ? ` (${dirty.join(', ')})` : ''}`);
+  if (dirty) assert.deepEqual(dirty, [], `${pkg.label}: a MODIFIED test file would be graded as if it were HEAD's — recount against a clean tree, not a mid-edit one${dirty.length ? ` (${dirty.join(', ')})` : ''}`);
   runs.push({ pkg, cases, owned });
   const extra = [...cases.byFile.keys()].filter((f) => !owned.has(f));
   for (const f of cases.failed) if (!owned.has(f.split(':')[0])) foreign.push(`${pkg.label}/${f}`);
-  console.log(`[§2] ${pkg.label}: vitest exit ${status} · HEAD owns ${owned.size} test files · the run produced ${cases.byFile.size}${extra.length ? ` (worktree-only, ungraded: ${extra.join(', ')})` : ' (none worktree-only)'}`);
+  console.log(`[§2] ${pkg.label}: vitest exit ${status} · ${gitPlane === 'GIT' ? 'HEAD' : 'the checkout'} owns ${owned.size} test files · the run produced ${cases.byFile.size}${extra.length ? ` (unowned by the graded state, not counted: ${extra.join(', ')})` : ' (none extra)'} · dirty-tree precondition: ${dirty ? `asked, ${dirty.length} modified` : 'asked and answered: NOT ASKABLE on a checkout (no index), so the §6 before/after digest substitutes'}`);
 }
 
 // ---------------------------------------------------------------- §3 the claim itself
@@ -210,11 +268,17 @@ console.log(`[§4] failing TRACKED cases: 0${foreign.length ? ` · failing cases
 // ---------------------------------------------------------------- §6 nothing moved
 // "This proof wrote nothing" is a claim about TRACKED bytes; an untracked file someone else is working on
 // is not this proof's edit, and §2 already names those. `-uno` is the difference between those two facts.
-const moved = git('status', '--porcelain', '--untracked-files=no', '--', README, 'agents/runtime/test', 'agents/exec-host/test').split('\n').filter(Boolean);
-assert.deepEqual(moved, [], `this proof modified tracked repository bytes: ${moved.join(', ')}`);
+// On a clean checkout there is no index to ask, so the claim is made about the bytes this proof READS: the
+// digest of the README and both test dirs, taken before vitest booted, must be the digest after it finishes.
+// That is a real substitute, not a skipped check — a proof that quietly omitted its own precondition would
+// report the same green as one that satisfied it (amendment 86's rule).
+const moved = gitPlane === 'GIT' ? git('status', '--porcelain', '--untracked-files=no', '--', README, 'agents/runtime/test', 'agents/exec-host/test').split('\n').filter(Boolean) : null;
+if (moved) assert.deepEqual(moved, [], `this proof modified tracked repository bytes: ${moved.join(', ')}`);
+const after = snapshot();
+assert.equal(after, before, `the graded tree changed underneath this run: digest ${before} before vitest, ${after} after — the table was recounted while its files moved`);
 try {
   rmSync(scratch, { recursive: true, force: true });
-  console.log('[§6] vitest reports removed from the temp dir · README and both test dirs untouched');
+  console.log(`[§6] vitest reports removed from the temp dir · ${gitPlane === 'GIT' ? 'README and both test dirs untouched (git status empty)' : 'no index here, so the before/after digest stands in'} · graded-tree digest ${before} stable across the run`);
 } catch (e) {
   console.log(`[§6] temp dir still held (${e.code ?? e.message}) — repository bytes are nonetheless unchanged`);
 }
