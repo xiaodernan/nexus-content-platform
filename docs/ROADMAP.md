@@ -927,7 +927,9 @@ drizzle 把整个拼接结果当成**单个绑定参数**，生成的 SQL 是 `o
   还没做：`@Agent` 提及解析、批注的已解决状态、回复线程（`parent_id` 还没有写它的地方）。
   **后两样不是欠账而是没写进需求**：2026-09-25 回看 §111 原文，它要的只有"点元素 → 写评论 → Agent 自动定位"，
   三样都已落地；回复线程与 resolved 状态是产品直觉，不是需求，不自动开工（要做得先有人提）。
-  `@Agent` 提及解析才是真欠的那一条，它挂在 §112/§113 的多 Agent 那条链上。
+  `@Agent` 提及解析才是真欠的那一条，它挂在 §112/§113 的多 Agent 那条链上 ——
+  **2026-09-26 已接上**（见 M6 的"Agent 名册有写入方"那一条）：批注正文里的 `@xxx` 现在是解析的第三来源
+  （排在请求提名与提示词提及之后），并且它读的是同一名册、同一道门；不是给批注单独写一套匹配。
   验证：`annotations.integration.test.ts` 8 条 + 一条画布 e2e（含刷新后仍在、以及
   "浮层挡住画布点击"这条反向实验——去掉 stopPropagation 那条断言立刻红）
 - [~] 发布审核流水线（§131）+ 举报（§132 的一部分）— **2026-09-24 落地**：
@@ -1249,7 +1251,61 @@ drizzle 把整个拼接结果当成**单个绑定参数**，生成的 SQL 是 `o
   不是断言在等）：截图 `screenshots/ai-async-refused.png` 上勾着"异步作业"、红字是服务端那句 409 原文、
   右侧仍是「1440 × 900 · 8 个节点」——**没有多出一条"在跑的作业"，也没有审批卡**。
   `npm run test:ai-service` 56 passed + 1 skipped（那道跨语言的 `DESTRUCTIVE_OPS` 比对读的是 web 源码，
-  这次动了 `approvals.ts` 所以必须重跑）。
+  这次动了 `approvals.ts` 所以必须重跑）。下面那片接上名册之后，同一个命令是 62 passed + 1 skipped。
+- [x] Agent 名册有写入方、@提及解析生效、`design.patch` 有第一个执行方（§112/§113 第一片，2026-09-26）—
+  上面 §111 那条记的"`@Agent` 提及解析才是真欠的那一条"到这里接上了，但要先说清动手前的三个对不上账：
+  `agents` 表建库以来**没有写入方也没有读取方**；`docs/AGENTS.md` 声称的 `agents/registry.py` 与 `AgentSpec`
+  **全仓库不存在**（而 ai-service 按架构纪律 3 根本不连业务库，读不到名册）；`agent_tasks.agent_key`
+  一直是**意图**（`design-edit` / `research`）冒充的别名。所以"接名册"如果只做成界面上显示"这一轮由谁负责"，
+  把 `@qa` 换成 `@design` 落地的补丁一模一样——那是 §159 要避免的"看起来能用"。
+  - **名册**：`scripts/db-seed.mts` 是唯一写入方（13 行幂等 upsert，含 §112 那几条职责原文），
+    读取方是新文件 `server/domain/agents.ts`（`loadRoster` / `findAgent` / `resolveAgent`）。
+    迁移 `0014` 加 `responsibilities text[]`。`tools/model_class/max_steps/output` 那四列**今天没有读取方**，
+    这句话同时写在种子脚本头注释与 `docs/AGENTS.md` 里，不假装权限生效。
+  - **解析**：优先级是"请求里显式提名 > 提示词里的 `@xxx` > 批注正文里的 `@xxx`"，三处都没有 → null，
+    按原来的 intent 路径走，**不硬塞一个 Design Agent 当默认值**。点错的原样报回 `@fy`（不猜最像的那个）、
+    点了不止一个的其余进 `ignored`、名册空的单独一句（"还没跑 `npm run db:seed`"），
+    三种说法由 `mentionNote` 在服务端拼一处：同步走响应头 `x-nexus-agent-note`，异步走观察报文的 `notes`。
+    客户端上传 `agent`（自报职责与权限）一律 `400 agent_not_allowed`——与 §74 的 `approvalPolicy`、
+    §68 的 `document` 是同一条边界：让请求方自报职责等于让它自己写"我可以改画布"。
+  - **§112 那半句要真的走到模型**：职责与 capabilities 随 `AiRequest.agent` 发出，
+    ai-service 的 `_agent_note` 把它拼进系统提示（含"没有 design.patch 就 patches 留空"），
+    DEMO mock 侧则是活动流第一行与计划里那个 agent 名字。名册留在库里而不是代码里，就是为了这两处读同一份。
+  - **§73 的执行点**放在 `gateResponse`（同步 `deliver` 与异步 `settle()` 共用的那一个函数）：
+    被点名的那位没有 `design.patch` 而结果里有 op（任何 op，不只是删除）→ **拒收而不是挂起**：
+    `patches` 抽走、`error.code=permission-denied`、`approvals` 保持空、行落 `failed`、
+    审计写一条 `ai.agent.capability` / `allowed:false`。为什么不复用挂起、为什么门读 `input.agent`
+    而不是 `agent_key`（`research` 既是意图又是名册 key，读错那一栏会让一次没人点名的
+    research 请求突然按 Research Agent 的权限被拒），都写在 `docs/adr/0013-…`。
+  - **界面**：Studio 命令行多一个名册下拉（读 `GET /api/ai/agents`），选中的一位如果不在名册的
+    `design.patch` 名单上，输入框下方那一句就写明"这一位不能改画布"；被拒的结果在审批卡片之外回执一句，
+    而"这一轮是谁"始终跟着账本（`x-nexus-agent` 头 / 观察报文的 `agent`）。
+  限度如实记下：**每一次越权仍然白跑一次 provider 调用**（提示词是提前告知，不是拦截；
+  真提前拦法要在请求阶段按 op 数预拒，而那一步今天还不知道会不会有 op）；
+  `resolveAgent` 只解析**一个**负责人，§113 的 handoff 链与多 Agent 调度**还没有实现**，
+  所以"这一轮由谁负责"目前是一个标签加一份权限，还不是编排；名册生效前提是已播种。
+  验证：`agents.test.ts` 17 条纯单测（解析优先级、去重、`a@b.com` 与 `someone@design.com` 不算提及、
+    空名册、`mentionNote` 各分支）；`agents.integration.test.ts` 9 条打真库（13 行职责非空、
+    `design` 有 `design.patch` 而 `qa` 没有、自报 `agent` 被 400、`@qa` 解析出库里那一份职责与权限、
+    批注正文点名能解析、DEMO 报文里计划行写 QA Agent 且活动带职责）；
+    `ai-approvals.integration.test.ts` 新增 7 条（拒收 ≠ 挂起、`set` 也算越权、QA 只提意见不拒、
+    Design 的删除仍走 §74、没点名不拒、措辞改写、真路径落 `failed` 且不进待批列表）；
+    `ai-jobs.integration.test.ts` 22 条（异步那一路同形）；python 侧 `test_prompt.py` 18 条（新增 6 条：
+    职责进提示、没有作用域时提示留空 patches、没点名不编一个 Agent、空职责说"没有写"、
+    `agent` 不是对象时按没点名处理、整条 HTTP 路跑到 provider 手上）。
+  行为性变异三次：`gateResponse` 的 `opCount > 0` 改成 `> 999`（= 拒收从不触发）→ 45 例里 **6 条红**，
+    同步与异步两条路都抓得到；`mentionsIn` 的 `match[1]` 改成 `match[2]` → **8/17 红**
+    （这一条 TS 不红，`noUncheckedIndexedAccess` 让两种下标都合法，而每一次 @提及都会静默失效）；
+    `recordCapabilityRefusal` 里那处 `missing,` 简写错引（值在 `input` 上）在跑测试时抛
+    `ReferenceError` → 3 条红——**那次 `tsc` 是 exit 0 的**，红是测试给的。三次各自 revert 后跑对照全绿。
+  全量回归（这片做完顺手补的一笔欠账，`npx vitest run --no-file-parallelism`）：80 个文件 / 875 例，
+  **872 绿、3 红，三条红的都在 `branches.integration.test.ts` 且与本片无关**——
+  一条是"分支切换偶发噪音快照"（M6 挂着的那笔诊断**又命中了一次**，现象与上次一致：内容没变却多出一条
+  "切到「design-v2」前的现场"），另两条是 30 秒超时；**同一个文件单独跑 9 条全绿**（29.5 秒，最慢那条贴着超时线），
+  所以那两条按负载超时记、不按缺陷记。噪音快照这一笔的欠账现在更明确了：诊断（为什么存这一条）已经写在
+  快照自己的 `summary` 里，但测试把带诊断的那句断言排在第三条，命中时先在第 1 条上红了、诊断没打印出来——
+  **下一次命中之前要先修这个顺序**。
+
 
 
 ## 当前阻塞项

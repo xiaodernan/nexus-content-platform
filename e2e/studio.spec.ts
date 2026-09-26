@@ -2613,3 +2613,61 @@ test('@smoke §162 异步作业入口：DEMO MODE 下拒收就是拒收，不替
   await expect(page.locator('[data-approval-note]')).toContainText('删除也没有发生', { timeout: 30_000 });
   expect(await nodeCount()).toBe(before);
 });
+
+test('@smoke §112/§73 名册下拉：点了 QA 就不能把补丁交回画布，而点 Design 照样要过审批门', async ({ page }) => {
+  // 这一条要跑三次真 AI 提交（拒收 / 挂起 / 拼错名字），开发模式下单次实测 8~9 秒。
+  // 它证明的不是"下拉框能选"，而是三件容易各说各话的事：
+  // ① 名册真的从库里走到了浏览器（`GET /api/ai/agents` 那 13 行），界面没有自己抄一份名单；
+  // ② §73 的拒收**不开第二道口**：没有审批卡片（没什么可批准），只有一句 permission-denied；
+  // ③ 换一位有 design.patch 的，同一句话回到 §74 的挂起口径——两次之间的差别是名册那一栏，不是 prompt。
+  test.setTimeout(300_000);
+  await createProject(page, `名册${Date.now().toString(36)}`);
+  const nodeCount = (): Promise<number> => page.evaluate(() => document.querySelectorAll('[data-node-id]').length);
+  const before = await nodeCount();
+
+  // ① 名单来自库：按 value/文本点名要那一位，而不是数一个总数（将来加第 14 位也不该红）
+  await expect(page.locator('[data-ai-agent] option[value="qa"]')).toHaveText('QA Agent', { timeout: 30_000 });
+
+  await page.selectOption('[data-ai-agent]', 'qa');
+  // §73 要说在按下"执行"之前：这一位没有 design.patch，改动不会进画布
+  await expect(page.locator('[data-ai-agent-scope]')).toContainText('没有 design.patch');
+  await expect(page.locator('[data-ai-agent-scope]')).toContainText('只提问题，不改设计文档');
+
+  await page.fill('[data-ai-input]', '删除 Hero 区块');
+  await page.click('[data-ai-submit]');
+  await expect(page.locator('[data-ai-error]')).toContainText('permission-denied', { timeout: 90_000 });
+  await expect(page.locator('[data-ai-error]')).toContainText('QA Agent');
+  // 这一句是整条链的落点：服务端解析出来的人，而不是客户端那一栏的当前值
+  await expect(page.locator('[data-ai-agent-line]')).toContainText('这一轮交给 QA Agent');
+  // 拒收不是一张"批准之后 QA 就能改画布"的卡片：那个按钮兑不了现
+  await expect(page.locator('[data-approval-card]')).toHaveCount(0);
+  expect(await nodeCount()).toBe(before);
+  await page.screenshot({ path: 'screenshots/ai-agent-refused.png' });
+
+  // ② 反向对照：换成名册里有 design.patch 的那一位，同一句话走的是 §74 挂起
+  await page.selectOption('[data-ai-agent]', 'design');
+  await page.fill('[data-ai-input]', '删除 Hero 区块');
+  await page.click('[data-ai-submit]');
+  await expect(page.locator('[data-approval-card]')).toBeVisible({ timeout: 90_000 });
+  await expect(page.locator('[data-approval-title]')).toContainText('画布还没有被改动');
+  await expect(page.locator('[data-ai-error]')).toHaveCount(0);
+  expect(await nodeCount()).toBe(before);
+  await page.click('[data-approval-reject]');
+  await expect(page.locator('[data-approval-note]')).toContainText('删除也没有发生', { timeout: 30_000 });
+  expect(await nodeCount()).toBe(before);
+
+  // ③ 名字拼错：要说"名册里没有 @fy"，而不是静默按没人点名跑，也不是"随便挑一个像的顶上"。
+  //    同时它仍要过 §74 那道门（没点名 ≠ 没权限判定），所以这里是卡片而不是拒收
+  await page.selectOption('[data-ai-agent]', '');
+  await page.fill('[data-ai-input]', '@fy 删除 Hero 区块');
+  await page.click('[data-ai-submit]');
+  await expect(page.locator('[data-ai-agent-note]')).toContainText('名册里没有 @fy', { timeout: 90_000 });
+  // 那一句是服务端拼的完整一句（`mentionNote`），它自己就说清了"这一轮没人负责"——
+  // 界面上不再重复一行"没有人被点名"，两句同屏只会让人怀疑哪一句是真的
+  await expect(page.locator('[data-ai-agent-line]')).toContainText('这一轮也没有别人被点名');
+  await expect(page.locator('[data-ai-error]')).toHaveCount(0);
+  await expect(page.locator('[data-approval-card]')).toBeVisible({ timeout: 30_000 });
+  expect(await nodeCount()).toBe(before);
+  await page.click('[data-approval-reject]');
+  await page.screenshot({ path: 'screenshots/ai-agent-mention-note.png' });
+});

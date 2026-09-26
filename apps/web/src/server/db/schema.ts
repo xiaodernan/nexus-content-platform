@@ -339,6 +339,9 @@ export const agents = pgTable(
     id: uuid('id').primaryKey().defaultRandom(),
     key: text('key').notNull(),
     name: text('name').notNull(),
+    /** §112 的"职责"。装配 AI 请求时读走，随报文发给 provider（0014） */
+    responsibilities: text('responsibilities').array().notNull().default(sql`'{}'`),
+    /** 权限作用域；今天代码只认 `design.patch` 这一个（§73，见 server/domain/agents.ts） */
     capabilities: text('capabilities').array().notNull().default(sql`'{}'`),
     tools: text('tools').array().notNull().default(sql`'{}'`),
     modelClass: text('model_class').notNull().default('fast'),

@@ -109,6 +109,28 @@ def _has_catalog(index: dict[str, Any]) -> bool:
     return isinstance(index.get("pages"), list) or isinstance(index.get("frames"), list)
 
 
+def _agent_note(request: dict[str, Any]) -> str:
+    """§112「每个 Agent 有自己的职责」+ §73「越权调用直接失败」在提示词里的那一句。
+
+    名册由 web 侧按库装配后随报文带过来（这个进程不连业务库）。没点名时不说"你是设计 Agent"：
+    SYSTEM_PROMPT 讲的是 op 词汇表，而"这一轮该不该改设计文档"是权限问题，答案在名册里。
+    """
+    agent = request.get("agent") or {}
+    name = agent.get("name") if isinstance(agent, dict) else None
+    if not name:
+        return (
+            "本轮没有点名任何 Agent：按诉求的意图类别处理，名册里的职责与权限没有一条被套用。"
+            "需要改设计文档时，输出 ops 即可（审批与落地仍由 web 侧裁决）。"
+        )
+    responsibilities = "；".join(agent.get("responsibilities") or []) or "名册里没有写这一位的职责"
+    capabilities = "、".join(agent.get("capabilities") or []) or "无"
+    return (
+        f"本轮由 {name} 负责。职责：{responsibilities}。权限作用域：{capabilities}。\n"
+        "只有权限作用域里含 design.patch 时，才允许输出会改动设计文档的 op；"
+        "没有这个作用域而诉求又要改文档时，patches 留空，并在 explanation 里说明这一位做不了（§73）。"
+    )
+
+
 def build_prompt(request: dict[str, Any]) -> tuple[str, str]:
     """拼发给模型的 user 提示。
 
@@ -190,7 +212,7 @@ def build_prompt(request: dict[str, Any]) -> tuple[str, str]:
     if truncations:
         payload["promptTruncated"] = "；".join(truncations)
         encoded = json.dumps(payload, ensure_ascii=False, separators=(",", ":"), default=str)
-    return SYSTEM_PROMPT, encoded
+    return f"{SYSTEM_PROMPT}\n{_agent_note(request)}", encoded
 
 
 _JSON_BLOCK = re.compile(r"\{.*\}", re.S)

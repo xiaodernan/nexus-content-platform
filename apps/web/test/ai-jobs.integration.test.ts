@@ -5,11 +5,12 @@ import type { AddressInfo } from 'node:net';
 import type { AiJobStatusResponse, AiRequest, AiResponse } from '@nexus/schemas';
 import { AiJobObservationSchema } from '@nexus/schemas';
 import { observeJob, submitJob } from '../src/server/domain/ai-jobs';
+import type { ResolvedAgent } from '../src/server/domain/agents';
 import { decideApproval, listProjectTasks } from '../src/server/domain/agent-tasks';
 import { createProject, listProjects, loadDocument } from '../src/server/domain/projects';
 import { channels, getRealtimeBus } from '../src/server/realtime/bus';
 import { getDb } from '../src/server/db/client';
-import { agentTasks, notifications, projects, users } from '../src/server/db/schema';
+import { agentTasks, auditEvents, notifications, projects, users } from '../src/server/db/schema';
 
 /**
  * §162 web 侧作业消费者：状态的真值在 ai-service 那一侧，所以这台测试的重点不是
@@ -143,6 +144,8 @@ afterAll(async () => {
   else process.env.NEXUS_AI_SERVICE_URL = originalUrl;
   await new Promise<void>((resolve) => server.close(() => resolve()));
   const db = getDb();
+  // 审计行不会因为删任务而消失（那张表本来就是"删了业务行也要留下当时发生过什么"），自己收干净
+  await db.delete(auditEvents).where(and(eq(auditEvents.action, 'ai.agent.capability'), eq(auditEvents.actorId, ownerId)));
   await db.delete(agentTasks).where(inArray(agentTasks.projectId, createdProjects));
   await db.delete(projects).where(inArray(projects.id, createdProjects));
   await db.delete(users).where(inArray(users.id, [ownerId, otherId]));
@@ -163,8 +166,15 @@ const wireFor = (pid: string): AiRequest => ({
   dryRun: false,
 });
 
-async function submit(agentKey = 'design-edit') {
-  const result = await submitJob({ wire: wireFor(projectId), projectId, createdById: ownerId, agentKey, capability: 'real' });
+/**
+ * §112 之后 `submitJob` 吃的是**服务端解析出的那一份**（`ResolvedAgent`），不再是一个自由字符串。
+ * 这一片测的是"web 怎么镜像作业状态"，所以默认给一份"没人被点名"的解析结果；
+ * 名册解析本身在 `agents.integration.test.ts`，那里的真名册读的是库。
+ */
+const UNNAMED: ResolvedAgent = { agent: null, unknown: [], ignored: [], rosterEmpty: false };
+
+async function submit(agentKey = 'design-edit', agent: ResolvedAgent = UNNAMED) {
+  const result = await submitJob({ wire: wireFor(projectId), projectId, createdById: ownerId, agent, fallbackAgentKey: agentKey, capability: 'real' });
   if (!result.ok) throw new Error('这次提交本身失败了，用例的前提不成立');
   return result;
 }
@@ -210,7 +220,7 @@ describe('提交：先有账本，再有作业号', () => {
 
   it('ai-service 没答话时把那行结掉，而不是留一条永远查不到的 running', async () => {
     process.env.NEXUS_AI_SERVICE_URL = 'http://127.0.0.1:1';
-    const result = await submitJob({ wire: wireFor(projectId), projectId, createdById: ownerId, agentKey: 'design-edit', capability: 'real' });
+    const result = await submitJob({ wire: wireFor(projectId), projectId, createdById: ownerId, agent: UNNAMED, fallbackAgentKey: 'design-edit', capability: 'real' });
     process.env.NEXUS_AI_SERVICE_URL = baseUrl;
     expect(result.ok).toBe(false);
     if (result.ok) throw new Error('前提不成立');
@@ -538,5 +548,110 @@ describe('§74 的同一道门：异步作业的结果也要先过门才交回',
     expect(seen.approvals[0]?.reason).not.toContain('某个元素');
     // 报不出名字不等于放过：门照样拦
     expect(seen.taskStatus).toBe('awaiting_approval');
+  });
+});
+
+/**
+ * §73 在异步这条路的那一半：被点名的 Agent 没有 `design.patch` 时，结果是**拒收**，不是挂起。
+ *
+ * 为什么单独一组：§74 与 §73 在界面上长得像（都是"补丁没进画布"），但语义相反——
+ * 挂起是"这件事等人点头"，拒收是"这一位点了头也没用"。把它们混在一个 describe 里，
+ * 下一次有人只改 `approvals` 那条分支，测试不会告诉他另一条也变了。
+ */
+describe('§73 的越权拒收：被点名的人没有 design.patch', () => {
+  const QA: ResolvedAgent = {
+    agent: { key: 'qa', name: 'QA Agent', responsibilities: ['只提问题，不改设计文档'], capabilities: ['browser.read', 'test.run'] },
+    unknown: [],
+    ignored: [],
+    rosterEmpty: false,
+  };
+  const DESIGN: ResolvedAgent = {
+    agent: { key: 'design', name: 'Design Agent', responsibilities: ['规划并修改设计模型'], capabilities: ['design.read', 'design.patch'] },
+    unknown: [],
+    ignored: [],
+    rosterEmpty: false,
+  };
+
+  async function refusedJob(nodeId: string, pageId: string, op: { op: 'remove'; nodeId: string } | { op: 'set'; nodeId: string; path: string; value: unknown }) {
+    const submitted = await submit('qa', QA);
+    nextStatus = scriptedJob({
+      jobId: submitted.jobId,
+      status: 'completed',
+      result: okResponse({ patches: [{ pageId, summary: '动一下这一块', ops: [op as never] }] }),
+    });
+    const seen = await observeJob(submitted.jobId, ownerId);
+    if (!seen) throw new Error('自己的作业问不到，用例的前提不成立');
+    return { submitted, seen };
+  }
+
+  it('remove 来自 QA：不挂起、不交回，行落 failed，审计留一条被拒的越权', async () => {
+    const v = await victimNode();
+    const { submitted, seen } = await refusedJob(v.nodeId, v.pageId, { op: 'remove', nodeId: v.nodeId });
+    // 这不是审批问题：approvals 是空的，没有人会被问"要不要让 QA 删掉它"
+    expect(seen.approvals).toEqual([]);
+    expect(seen.response?.patches ?? []).toEqual([]);
+    expect(seen.response?.error?.code).toBe('permission-denied');
+    expect(JSON.stringify(seen.notes)).toContain('没有交回（§73）');
+    expect(JSON.stringify(seen.notes)).toContain('QA Agent');
+
+    const row = await taskRow(submitted.taskId);
+    expect(row.status).toBe('failed');
+    expect(row.requiresApproval).toBe(false);
+    // 越权要留证据（§73 后半句）。detail 里得说清是哪一位、缺哪个作用域、扣了几个 op
+    const audits = await getDb()
+      .select({ action: auditEvents.action, allowed: auditEvents.allowed, detail: auditEvents.detail, targetId: auditEvents.targetId })
+      .from(auditEvents)
+      .where(and(eq(auditEvents.action, 'ai.agent.capability'), eq(auditEvents.targetId, submitted.taskId)));
+    expect(audits).toHaveLength(1);
+    expect(audits[0]?.allowed).toBe(false);
+    expect(audits[0]?.detail).toMatchObject({ agentKey: 'qa', missing: 'design.patch', opCount: 1 });
+  });
+
+  it('不是删除也一样拒：QA 连"改个名字"都不能交回', async () => {
+    const v = await victimNode();
+    const { seen } = await refusedJob(v.nodeId, v.pageId, { op: 'set', nodeId: v.nodeId, path: 'name', value: 'QA 起的名字' });
+    // 同一个 op 换成 Design Agent 是能交回的（见下一条）——于是这一条的红不是"set 一律不进"
+    expect(seen.response?.patches ?? []).toEqual([]);
+    expect(seen.response?.error?.code).toBe('permission-denied');
+  });
+
+  it('反向对照：同样一份 set 补丁，来自 Design Agent 就照旧交回', async () => {
+    const v = await victimNode();
+    const submitted = await submit('design', DESIGN);
+    nextStatus = scriptedJob({
+      jobId: submitted.jobId,
+      status: 'completed',
+      result: okResponse({ patches: [{ pageId: v.pageId, summary: '换个标题', ops: [{ op: 'set', nodeId: v.nodeId, path: 'name', value: '更醒目' }] }] }),
+    });
+    const seen = await observeJob(submitted.jobId, ownerId);
+    expect(seen?.response?.patches?.[0]?.ops).toHaveLength(1);
+    expect(seen?.response?.error).toBeUndefined();
+    expect((await taskRow(submitted.taskId)).status).toBe('succeeded');
+    // 没越权就不该有那条审计：这一条是上一条的正向对照
+    const audits = await getDb().select({ id: auditEvents.id }).from(auditEvents).where(eq(auditEvents.targetId, submitted.taskId));
+    expect(audits).toHaveLength(0);
+  });
+
+  it('没人被点名、意图恰好叫 research：按名册里那位 Research Agent 的权限处理是错的，照旧只走 §74', async () => {
+    // `research` 既是一个意图类别，也是名册里一个 Agent 的 key。门只认账本里"被点名"的那一位，
+    // 靠 agentKey 字符串撞上的话，一次没人点名的请求会被换成另一套权限口径
+    const v = await victimNode();
+    const submitted = await submit('research', UNNAMED);
+    nextStatus = scriptedJob({
+      jobId: submitted.jobId,
+      status: 'completed',
+      result: okResponse({ patches: [{ pageId: v.pageId, summary: '删掉这一块', ops: [{ op: 'remove', nodeId: v.nodeId }] }] }),
+    });
+    const seen = await observeJob(submitted.jobId, ownerId);
+    expect(seen?.taskStatus).toBe('awaiting_approval');
+    expect(seen?.approvals).toHaveLength(1);
+    expect(seen?.agent).toBeNull();
+  });
+
+  it('观察报文里的 agent 来自账本：选了 QA 就写着 QA', async () => {
+    const v = await victimNode();
+    const { seen } = await refusedJob(v.nodeId, v.pageId, { op: 'set', nodeId: v.nodeId, path: 'name', value: 'x' });
+    expect(seen.agent).toEqual({ key: 'qa', name: 'QA Agent' });
+    expect(AiJobObservationSchema.safeParse(seen).success).toBe(true);
   });
 });

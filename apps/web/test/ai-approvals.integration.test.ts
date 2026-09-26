@@ -256,7 +256,116 @@ describe('门开在 web：provider 的自觉不算数', () => {
   });
 });
 
+describe('§73 的越权拒收：被点名的人没有 design.patch', () => {
+  const QA = { name: 'QA Agent', capabilities: ['browser.read', 'test.run'] };
+  const DESIGN = { name: 'Design Agent', capabilities: ['design.read', 'design.patch'] };
+  const removeHero = () => namingDoc();
+
+  it('QA 给出删除 op：拒收（permission-denied），而且不是一条 approvals', () => {
+    const { document, heroId } = removeHero();
+    const response = respWith([{ op: 'remove', nodeId: heroId }]);
+    const gate = gateResponse(response, WEB_APPROVAL_POLICY, nodeNamer(document), QA);
+    expect(gate.refused).toEqual({ agent: 'QA Agent', opCount: 1 });
+    // 这一条是 §73 与 §74 的分界：挂起问的是"要不要让它落地"，而名册说的是"这一位不能落地"。
+    // 若这里给出 approvals，界面上就出现一句"批准 QA 去改画布"——那是名册没有的承诺
+    expect(gate.approvals).toEqual([]);
+    expect(gate.delivered.error?.code).toBe('permission-denied');
+    expect(gate.delivered.error?.message).toContain('QA Agent');
+    expect(gate.heldOpCount).toBe(0);
+    expect(gate.delivered.patches).toEqual([]);
+    // 拒收不销毁证据：held 还是 provider 原样交回的那一份
+    expect(gate.held).toBe(response);
+  });
+
+  it('非删除的 op 同样要权限：改名字也是改设计文档', () => {
+    const { document, heroId } = removeHero();
+    const gate = gateResponse(respWith([{ op: 'set', nodeId: heroId, path: 'name', value: 'X' }]), WEB_APPROVAL_POLICY, nodeNamer(document), QA);
+    // 只看删除 op 的那一版实现会在这里放行：一条 set 就绕过了 §73
+    expect(gate.refused?.opCount).toBe(1);
+    expect(gate.delivered.patches).toEqual([]);
+  });
+
+  it('QA 只提意见（一个 op 都没有）：不拒，也不假装拦过什么', () => {
+    const { document } = removeHero();
+    const response = resp({ explanation: '这一处对比度不够。' });
+    const gate = gateResponse(response, WEB_APPROVAL_POLICY, nodeNamer(document), QA);
+    // 这是 §73 的反面：没权限 = 不能改画布，不是不能说话。拒一条空结果会把 QA 的检查报告也吞掉
+    expect(gate.refused).toBeUndefined();
+    expect(gate.approvals).toEqual([]);
+    expect(gate.delivered).toBe(response);
+  });
+
+  it('Design 给出删除 op：§73 放行，随后仍被 §74 挂起（两道门不互相顶掉）', () => {
+    const { document, heroId } = removeHero();
+    const gate = gateResponse(respWith([{ op: 'remove', nodeId: heroId }]), WEB_APPROVAL_POLICY, nodeNamer(document), DESIGN);
+    expect(gate.refused).toBeUndefined();
+    expect(gate.delivered.error?.code).toBe('approval-required');
+    expect(gate.approvals.map((a) => a.action)).toEqual(['delete']);
+    expect(gate.heldOpCount).toBe(1);
+  });
+
+  it('没点名：门照旧只问审批，不会因为名册读不到就把请求当成越权', () => {
+    const { document, heroId } = removeHero();
+    const response = respWith([{ op: 'remove', nodeId: heroId }]);
+    const gate = gateResponse(response, WEB_APPROVAL_POLICY, nodeNamer(document), null);
+    expect(gate.refused).toBeUndefined();
+    expect(gate.delivered.error?.code).toBe('approval-required');
+    // 与"没有 agent 参数"的旧调用同形：同步路径没点名时走的就是这一条
+    expect(gateResponse(response, WEB_APPROVAL_POLICY, nodeNamer(document)).approvals).toEqual(gate.approvals);
+  });
+
+  it('拒收交回的那一份不许说"已落地"（与挂起共用同一处措辞改写）', () => {
+    const { document, heroId } = removeHero();
+    const response = respWith([{ op: 'remove', nodeId: heroId }], {
+      plans: [{ goal: '删掉 Hero', tasks: [{ id: 't1', title: '删除 Hero', agent: 'QA Agent', status: 'done' }] }],
+      activities: [
+        { stage: 'agent', status: 'completed', summary: 'QA Agent（检查结果是否满足验收）' },
+        { stage: 'apply', status: 'completed', summary: '1 个补丁、1 个 op 已落地' },
+      ],
+    });
+    const gate = gateResponse(response, WEB_APPROVAL_POLICY, nodeNamer(document), QA);
+    const apply = gate.delivered.activities.filter((a) => a.stage === 'apply');
+    expect(apply).toHaveLength(1);
+    expect(apply[0]!.summary).toContain('未交回');
+    expect(JSON.stringify(gate.delivered.activities)).not.toContain('已落地');
+    // agent 那一行留着：谁被点了名，界面上要看得到
+    expect(gate.delivered.activities.some((a) => a.stage === 'agent' && a.summary.includes('QA Agent'))).toBe(true);
+    expect(gate.delivered.plans[0]!.tasks[0]!.status).toBe('skipped');
+    expect(gate.delivered.explanation).toContain('QA Agent 的职责里没有');
+    // 存的那一版一个字没改
+    expect(gate.held.activities.some((a) => a.summary === '1 个补丁、1 个 op 已落地')).toBe(true);
+  });
+
+  it('真路径：@qa 的删除指令被门拒掉，账本落 failed 而不是"等人决定"', async () => {
+    const assembled = await assembleAiRequest(
+      { requestId: 'req_refuse', intent: 'design-edit', prompt: '@qa 删除 Hero 区块', modelClass: 'balanced', variants: 1, references: [], approvalPolicy: [], dryRun: false, context: { projectId, selection: [], recentChanges: [] } },
+      ownerId,
+    );
+    if (!assembled.ok) throw new Error(`装配失败：${assembled.message}`);
+    expect(assembled.wire.agent?.key).toBe('qa');
+
+    const response = await mockProvider.run(assembled.wire, { document: assembled.toolDocument });
+    expect(response.patches.flatMap((p) => p.ops).some((op) => op.op === 'remove')).toBe(true);
+    const gate = gateResponse(response, WEB_APPROVAL_POLICY, nodeNamer(assembled.toolDocument), assembled.agent.agent);
+    expect(gate.refused?.agent).toBe('QA Agent');
+    expect(gate.approvals).toEqual([]);
+    // 拒收的那一份不构成立得住的挂起现场：approvals 空、heldOpCount 0。
+    // 所以路由必须写 failed——挂上去只会得到一条"有 0 件事要批准、永远等不到裁决"的行
+    expect(gate.heldOpCount).toBe(0);
+
+    const started = await startTask({ projectId, agentKey: 'qa', createdById: ownerId, capability: 'demo', input: { prompt: '@qa 删除 Hero 区块' } });
+    taskIds.push(started.id);
+    await finishTask(started.id, { ok: false, error: `${gate.refused?.agent} 没有 design.patch：${gate.refused?.opCount} 个 op 未交回` });
+    const view = await getTask(started.id);
+    expect(view?.status).toBe('failed');
+    expect(view?.requiresApproval).toBe(false);
+    expect(view?.error).toContain('design.patch');
+    expect(await listPendingApprovals(projectId, ownerId)).toEqual([]);
+  });
+});
+
 describe('真路径：DEMO 生成 → 装配 → 门 → 挂起（打真实 Postgres）', () => {
+
   async function runDeletePrompt(prompt = '删除 Hero 区块') {
     // 请求方自己填 approvalPolicy: [] —— 这一栏必须被服务端改写，否则"这次不要审批"就是客户端勾的
     const request: AiRequest = {

@@ -2,11 +2,13 @@ import { NextResponse } from 'next/server';
 import { AiRequestSchema, AiResponseSchema, type AiResponse } from '@nexus/schemas';
 import { getAiCapabilities } from '@/lib/env';
 import { assembleAiRequest } from '@/server/ai/assemble';
-import { gateResponse, heldRecord, nodeNamer, WEB_APPROVAL_POLICY } from '@/server/ai/approvals';
+import { gateResponse, heldRecord, nodeNamer, WEB_APPROVAL_POLICY, DESIGN_PATCH } from '@/server/ai/approvals';
 import { mockProvider } from '@/server/ai/mock';
 import { runAiService } from '@/server/ai/client';
 import { requireUser } from '@/server/domain/session';
-import { finishTask, holdForApproval, startTask, type TaskCapability } from '@/server/domain/agent-tasks';
+import { agentLedgerFields, mentionNote } from '@/server/domain/agents';
+import { finishTask, holdForApproval, recordCapabilityRefusal, startTask, type TaskCapability } from '@/server/domain/agent-tasks';
+import { clientIp } from '@/server/security/rateLimit';
 import { emit } from '@/server/domain/notifications';
 import { csrfOk } from '@/server/security/csrf';
 import { badRequest, failure, jsonError } from '@/server/http';
@@ -17,9 +19,13 @@ import { badRequest, failure, jsonError } from '@/server/http';
  */
 const MAX_BODY_BYTES = 6 * 1024 * 1024;
 
-/** 任务号从响应头走：AiResponse 是 web ↔ ai-service 的契约报文，不该被 web 侧的账本字段污染 */
-function taskHeader(id: string): Record<string, string> {
-  return { 'x-nexus-task': id };
+/** 任务号与这一轮的 Agent 从响应头走：AiResponse 是 web ↔ ai-service 的契约报文，不该被 web 侧的账本字段污染 */
+function taskHeader(id: string, agentKey?: string | null, note?: string | null): Record<string, string> {
+  const headers: Record<string, string> = { 'x-nexus-task': id };
+  if (agentKey) headers['x-nexus-agent'] = agentKey;
+  // 提及没解析成 Agent 时的那一句（点名点错了 / 名册没播种）。HTTP 头只能是 ASCII，所以编码一次
+  if (note) headers['x-nexus-agent-note'] = encodeURIComponent(note);
+  return headers;
 }
 
 /** 通知正文用的摘要：只说真有的东西（补丁数 / 方案数），没有就 null，不编一句"生成顺利" */
@@ -52,6 +58,13 @@ export async function POST(req: Request): Promise<NextResponse> {
   let requesterId: string | null = null;
   let projectName: string | null = null;
   let capability: TaskCapability = 'demo';
+  /**
+   * 这一行账挂在谁名下：§112 解析出的 Agent，没人被点名时退回这次请求的意图类别。
+   * 在 try 外面声明，所以装配之前就失败的请求也有一条可读的归属可记。
+   */
+  let agentKey: string | null = null;
+  /** 提及没解析成 Agent 时的那一句（点名点错了 / 名册没播种），在响应头里带给界面 */
+  let agentNote: string | null = null;
   const startedAt = Date.now();
 
   const settle = async (ok: boolean, detail: string | null): Promise<void> => {
@@ -65,7 +78,7 @@ export async function POST(req: Request): Promise<NextResponse> {
       projectId: parsed.data.context.projectId,
       projectName: projectName ?? '未命名项目',
       taskId,
-      agentKey: parsed.data.intent,
+      agentKey: agentKey ?? parsed.data.intent,
       capability,
       ok,
       durationMs: Date.now() - startedAt,
@@ -91,10 +104,15 @@ export async function POST(req: Request): Promise<NextResponse> {
 
     const caps = await getAiCapabilities();
     capability = caps.text === 'real' ? 'real' : 'demo';
+    // §112：这一轮交给谁，由服务端按名册解析（客户端只能提名）。没人被点名时 agentKey 留 null，
+    // 账本那一行就退回意图类别——它比"design-agent"这种万能名字更能说明跑的是哪条路。
+    const resolved = assembled.agent;
+    const ledgerFields = agentLedgerFields(resolved, { askedAgentKey: parsed.data.agentKey, fallbackKey: parsed.data.intent });
+    agentKey = resolved.agent?.key ?? null;
+    agentNote = mentionNote(ledgerFields);
     const started = await startTask({
       projectId: parsed.data.context.projectId,
-      // agentKey 用这次请求的意图类别：它比"design-agent"这种万能名字更能说明跑的是哪条路
-      agentKey: parsed.data.intent,
+      agentKey: ledgerFields.agentKey,
       createdById: user.id,
       capability,
       input: {
@@ -103,6 +121,9 @@ export async function POST(req: Request): Promise<NextResponse> {
         variants: parsed.data.variants,
         // §74：事后看得清"这一行是被哪份规矩管着的"——策略是服务端定的，不是客户端报的
         approvalPolicy: WEB_APPROVAL_POLICY,
+        // §111/§112：点了谁、名册里没有谁、还点了但这一轮不由它们做谁。
+        // 后两样必须留痕：只记"成功的那一个"的话，一次被 @fy 拼错的请求事后看起来就像"没人点过"
+        ...ledgerFields,
       },
     });
     taskId = started.id;
@@ -112,16 +133,34 @@ export async function POST(req: Request): Promise<NextResponse> {
     /**
      * §74 的门在这里：过不了门的补丁不会离开服务端。两条 provider 路（真服务 / DEMO Mock）
      * 走同一个 `deliver`，所以"接上第 N 家 provider 就有第 N 种审批口径"这件事不会发生。
+     * §73 的那半（被点名的 Agent 有没有 design.patch）也在同一个函数里判——同一个道理：
+     * 一条路管一条路，就等于两条路各有一套规矩。
      */
     const deliver = async (response: AiResponse, id: string): Promise<NextResponse> => {
-      const gate = gateResponse(response, WEB_APPROVAL_POLICY, nameOf);
+      const gate = gateResponse(response, WEB_APPROVAL_POLICY, nameOf, resolved.agent);
       if (gate.approvals.length > 0) {
         // 挂起：终态不写、§164 通知不发——"Generation complete"替一次还没人决定的事签字就是假事件
         await holdForApproval(id, heldRecord(gate, WEB_APPROVAL_POLICY));
-        return NextResponse.json(gate.delivered, { headers: taskHeader(id) });
+        return NextResponse.json(gate.delivered, { headers: taskHeader(id, agentKey, agentNote) });
       }
-      await settleFromResponse(response);
-      return NextResponse.json(response, { headers: taskHeader(id) });
+      if (gate.refused && resolved.agent) {
+        // §73 的后半句："越权调用直接失败**并记录审计事件**"。不写这一行的话，
+        // "QA 试过改画布"这件事只剩界面上一句提示，关掉窗口就没有证据了
+        await recordCapabilityRefusal({
+          taskId: id,
+          actorId: requesterId,
+          projectId: parsed.data.context.projectId,
+          agentKey: resolved.agent.key,
+          agentName: gate.refused.agent,
+          missing: DESIGN_PATCH,
+          opCount: gate.refused.opCount,
+          ip: clientIp(req),
+        });
+      }
+      // 未挂起时 `delivered` 就是 `response` 本身；被拒收时它是"补丁已抽走 + permission-denied"那一份，
+      // 而终态要记的正是交回客户端的那一份说了什么——记成原始 response 就成了账本与界面两套话
+      await settleFromResponse(gate.delivered);
+      return NextResponse.json(gate.delivered, { headers: taskHeader(id, agentKey, agentNote) });
     };
 
     if (caps.text === 'real') {
@@ -130,7 +169,7 @@ export async function POST(req: Request): Promise<NextResponse> {
       const result = await runAiService(assembled.wire);
       if (!result.ok) {
         await settle(false, result.error.message);
-        return NextResponse.json(result.error, { status: result.status ?? 503, headers: taskHeader(taskId) });
+        return NextResponse.json(result.error, { status: result.status ?? 503, headers: taskHeader(taskId, agentKey, agentNote) });
       }
       return deliver(result.response, taskId);
     }

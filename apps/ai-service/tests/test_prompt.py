@@ -173,3 +173,97 @@ def test_run_endpoint_accepts_a_real_assembled_request() -> None:
         assert frame["id"] in user
     assert "color.primary" in user
     assert "components/nexus/Home.tsx" in user
+
+
+def _system(request: dict) -> str:
+    """Agent 那一句拼在发给模型的第一段（system）里，不在 JSON 载荷里。"""
+    system, _ = build_prompt(request)
+    return system
+
+
+def test_named_agent_responsibilities_reach_the_model() -> None:
+    """§112：名册里的那几条职责要变成模型听到的一句话，否则它只是库里的一列字。"""
+    request = ai_request(
+        agent={
+            "key": "design",
+            "name": "Design Agent",
+            "responsibilities": ["理解设计系统后再动手", "规划并修改设计模型"],
+            "capabilities": ["design.read", "design.patch"],
+        }
+    )
+    system = _system(request)
+    assert "本轮由 Design Agent 负责" in system
+    assert "理解设计系统后再动手" in system and "规划并修改设计模型" in system
+    assert "design.read" in system and "design.patch" in system
+    # 有 design.patch 的一位也要读到同一条规则：作用域是判断的输入，不是给界面看的标签
+    assert "才允许输出会改动设计文档的 op" in system
+
+
+def test_agent_without_the_patch_scope_is_told_to_keep_patches_empty() -> None:
+    """§73 在提示词里的那半句：没有 design.patch 的一位要自己把 patches 留空。
+
+    web 侧那道门是兜底，不是唯一一道：模型自己就该知道这一位做不了这件事，
+    否则每一次越权都要靠服务端挡，账本里全是拒绝记录而提示词从来没说过规矩。
+    """
+    request = ai_request(
+        agent={"key": "qa", "name": "QA Agent", "responsibilities": ["只提问题，不改设计文档"], "capabilities": ["browser.read", "test.run"]}
+    )
+    system = _system(request)
+    assert "本轮由 QA Agent 负责" in system
+    assert "patches 留空" in system
+    assert "design.patch" in system
+    # 权限作用域里不许出现它没有的那一个：把 capabilities 拼错成含 design.patch 就是替它授权
+    assert "design.read" not in system
+
+
+def test_unnamed_request_invents_no_agent() -> None:
+    """没点名时不说"你是设计 Agent"：那等于替请求方挑了一个人，还顺手给了他名册里的权限。"""
+    system = _system(ai_request())
+    assert "本轮没有点名任何 Agent" in system
+    assert "本轮由" not in system
+    assert "职责：" not in system
+
+
+def test_empty_roster_fields_say_they_are_empty() -> None:
+    """名册里职责/权限为空：要说"没有写"，不能拼成一句看起来正常的"职责：。权限：无"。"""
+    request = ai_request(agent={"key": "ghost", "name": "Ghost Agent", "responsibilities": [], "capabilities": []})
+    system = _system(request)
+    assert "名册里没有写这一位的职责" in system
+    assert "权限作用域：无" in system
+
+
+def test_a_non_object_agent_is_treated_as_no_agent_at_all() -> None:
+    """这一栏可能来自旧客户端或手改的报文：读不出名字就按"没点名"处理，不崩也不猜。"""
+    for bad in ("QA Agent", ["QA Agent"], None, {}):
+        system = _system(ai_request(agent=bad))
+        assert "本轮没有点名任何 Agent" in system, f"agent={bad!r} 时给出了 Agent 的说法"
+
+
+def test_run_endpoint_puts_the_agent_note_in_front_of_the_model() -> None:
+    """整条路（HTTP + 契约校验）走一遍：装配出来的 agent 真的到了 provider 手上。
+
+    直接调 build_prompt 的几条测不到这一层——契约那一关要是把 agent 判成非法字段，
+    请求在 422 就死了，提示词永远是绿的。
+    """
+    from fastapi.testclient import TestClient
+
+    from ai_service.app import create_app
+    from ai_service.config import Settings
+    from ai_service.providers.registry import Registry
+
+    provider = FakeProvider(json.dumps({"patches": [], "explanation": "看到了", "labels": []}, ensure_ascii=False))
+    client = TestClient(create_app(Settings(), registry=Registry(Settings(), llm=provider)))
+    request = _fixture_request()
+    request["agent"] = {
+        "key": "qa",
+        "name": "QA Agent",
+        "responsibilities": ["检查结果是否满足验收"],
+        "capabilities": ["browser.read"],
+    }
+    response = client.post("/v1/ai/run", json=request)
+    assert response.status_code == 200, response.text
+    system = provider.calls[0]["system"]
+    assert "本轮由 QA Agent 负责" in system
+    assert "检查结果是否满足验收" in system
+    # 同一次调用里目录照旧发得出：加这一段不许把项目上下文挤掉
+    assert '"contextSource":"designIndex"' in provider.calls[0]["user"]

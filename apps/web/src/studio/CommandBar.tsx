@@ -1,8 +1,8 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import type { AgentActivity, AgentPlan, AiResponse, ModelClass } from '@nexus/schemas';
-import { AiJobObservationSchema, AiResponseSchema, DesignPatchSchema } from '@nexus/schemas';
+import type { AgentActivity, AgentPlan, AgentRoster, AiResponse, ModelClass } from '@nexus/schemas';
+import { AiJobObservationSchema, AiResponseSchema, AgentRosterSchema, DesignPatchSchema } from '@nexus/schemas';
 import { cn } from '@/lib/cn';
 import { csrfHeaders } from '@/lib/csrf';
 import { useRealtime, type RealtimeState } from '@/lib/useRealtime';
@@ -49,6 +49,17 @@ export function CommandBar() {
    */
   const [asyncMode, setAsyncMode] = useState(false);
   const [asyncStatus, setAsyncStatus] = useState<string | null>(null);
+  /**
+   * §112 的名册：库里那一份（`GET /api/ai/agents`），不是前端抄的 13 个名字。
+   * 读失败就留空数组 + 一句原因——选择器只剩"不点名"，界面上仍然说得出为什么。
+   */
+  const [roster, setRoster] = useState<AgentRoster['agents']>([]);
+  const [rosterNote, setRosterNote] = useState<string | null>(null);
+  /** 用户选的（提名）那一位；服务端认不认、最后交给谁，看下面两条 */
+  const [agentKey, setAgentKey] = useState('');
+  const [runAgent, setRunAgent] = useState<string | null>(null);
+  /** 提及没解析成 Agent 时服务端说的那一句（点名点错了 / 名册没播种） */
+  const [agentNote, setAgentNote] = useState<string | null>(null);
   /** 组件卸载之后不许再有第二次 fetch：那会在没有界面的地方 setState */
   const pollStop = useRef(false);
   useEffect(
@@ -82,6 +93,30 @@ export function CommandBar() {
     };
     window.addEventListener('keydown', onSlash);
     return () => window.removeEventListener('keydown', onSlash);
+  }, []);
+
+  // §112：名册读一次就够（它不是每个项目一份的东西）。读不到要说原因：
+  // 一个空选择器与"名册还没播种"是两件事，混成一谈的话用户会以为自己选错了地方
+  useEffect(() => {
+    let cancelled = false;
+    void (async () => {
+      try {
+        const res = await fetch('/api/ai/agents', { cache: 'no-store' });
+        const parsed = AgentRosterSchema.safeParse(await res.json().catch(() => null));
+        if (cancelled) return;
+        if (!res.ok || !parsed.success) {
+          setRosterNote(`名册读不到（${res.ok ? '返回的报文不合契约' : `HTTP ${res.status}`}），这一轮只能不点名`);
+          return;
+        }
+        setRoster(parsed.data.agents);
+        if (parsed.data.agents.length === 0) setRosterNote('库里一个 Agent 都没有：跑一次 npm run db:seed 才会有名册');
+      } catch (e) {
+        if (!cancelled) setRosterNote(`名册读不到：${e instanceof Error ? e.message : String(e)}`);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   // §74：审批卡片不能只活在 React 状态里。刷新之后从账本找回还挂着的那一条（最新在前），
@@ -205,6 +240,8 @@ export function CommandBar() {
         throw new Error(`问不到这个作业的状态：${detail}`);
       }
       const seen = parsed.data;
+      // 异步这一路的"交给谁"以账本里那一行为准（观察报文带的就是它），不拿浏览器选的那一个冒充
+      if (seen.agent) setRunAgent(seen.agent.name);
       setAsyncStatus(
         `作业 ${jobId} · ${seen.jobStatus ?? '没问到'} · 任务 ${seen.taskId.slice(0, 8)}${seen.notes[0] ? ` · ${seen.notes[0]}` : ''}`,
       );
@@ -232,6 +269,8 @@ export function CommandBar() {
     setHeld(null);
     setApprovalNote(null);
     setAsyncStatus(null);
+    setRunAgent(null);
+    setAgentNote(null);
     // 服务端只能从库里装配上下文（§68），所以先把编辑器里的改动落库；存不上就停下报原因，
     // 而不是悄悄按旧版本生成
     const flushed = await studio.flushBeforeAi();
@@ -243,6 +282,8 @@ export function CommandBar() {
     const body = {
       requestId: `req_${Date.now().toString(36)}`,
       intent: 'design-edit',
+      // §112：这里发的只是**提名**。名册、职责与权限由服务端按库装配（`agent` 那一栏客户端发过去会被 400）
+      ...(agentKey ? { agentKey } : {}),
       prompt: text,
       modelClass: mode,
       variants: 1,
@@ -269,6 +310,12 @@ export function CommandBar() {
       // 失败时服务端也会落一条 failed 的任务行，所以这里在 !res.ok 之前先取到它
       const taskIdHeader = res.headers.get('x-nexus-task');
       setTaskId(taskIdHeader);
+      // §112：这一轮服务端交给了谁 + 提及没认出来时的那一句，都在响应头里（两条 provider 路同一组头）。
+      // 头部给的是 key，界面报名字：读的人认得"QA Agent"，认得不了 `qa`
+      const agentHeader = res.headers.get('x-nexus-agent');
+      setRunAgent(agentHeader ? (roster.find((a) => a.key === agentHeader)?.name ?? agentHeader) : null);
+      const rawNote = res.headers.get('x-nexus-agent-note');
+      if (rawNote) setAgentNote(decodeURIComponent(rawNote));
       if (!res.ok || !payload) {
         // 409 demo_mode 那句原样报出来：异步作业要真 provider，这里不替它演一个"已提交"
         const detail = payload?.issues?.join('；') ?? payload?.message ?? payload?.error ?? `HTTP ${res.status}`;
@@ -289,6 +336,10 @@ export function CommandBar() {
   };
 
   const demoMode = !result || result.capability === 'demo';
+  const selectedAgent = roster.find((agent) => agent.key === agentKey) ?? null;
+  // 与 server/ai/approvals.ts 的 DESIGN_PATCH 同一个字符串。这里不 import 那一模块：
+  // 它是服务端代码，引到客户端就会把设计模型的读取逻辑打进浏览器包里
+  const canPatchDesign = selectedAgent?.capabilities.includes('design.patch') ?? false;
 
   return (
     <div className="shrink-0 border-t border-[var(--nexus-color-border-subtle)] bg-bg-1 px-[var(--nexus-space-3)] py-[var(--nexus-space-2)]" data-command-bar>
@@ -356,6 +407,22 @@ export function CommandBar() {
           {approvalNote}
         </p>
       ) : null}
+      {/* §73 要说在前头：选了一位没有 design.patch 的 Agent，改动就会被服务端拒收。
+          让人在按下"执行"之前看见这句，比让他看完一次失败再猜为什么强 */}
+      {selectedAgent ? (
+        <p className="text-11 text-fg-3" data-ai-agent-scope>
+          {selectedAgent.name} 的职责：{selectedAgent.responsibilities.join('；') || '名册里没写'} ·
+          {' '}权限：{selectedAgent.capabilities.join('、') || '无'}
+          {canPatchDesign ? '' : '（没有 design.patch：这一位给出的改动会被服务端拒收，不进画布）'}
+        </p>
+      ) : null}
+      {runAgent || agentNote || rosterNote ? (
+        <p className="text-11 text-fg-3" data-ai-agent-line>
+          {runAgent ? `这一轮交给 ${runAgent}` : rosterNote ? '' : '这一轮没有人被点名'}
+          {agentNote ? <span data-ai-agent-note>{` · ${agentNote}`}</span> : null}
+          {rosterNote ? <span data-ai-roster-note>{` · ${rosterNote}`}</span> : null}
+        </p>
+      ) : null}
       {result?.plans?.length || result?.activities?.length ? (
         <ActivityFeed plan={result.plans[0]} activities={result.activities} />
       ) : null}
@@ -398,6 +465,24 @@ export function CommandBar() {
             </button>
           ))}
         </div>
+        {/* §112：提名这一轮交给谁。也可以直接在提示词里写 @design / @qa——两处都写时以名册里那一位为准，
+            而"名册里有没有"由服务端判，不由这里列了什么判 */}
+        <label className="flex h-[34px] shrink-0 items-center gap-1 text-11 text-fg-3" title="名册来自库里的 agents 表（§112）。没点名就按这次请求的意图走">
+          交给
+          <select
+            value={agentKey}
+            onChange={(e) => setAgentKey(e.target.value)}
+            data-ai-agent
+            className="h-[26px] max-w-[150px] rounded-[var(--nexus-radius-sm)] bg-bg-2 px-1 text-11 text-fg-1"
+          >
+            <option value="">不点名</option>
+            {roster.map((agent) => (
+              <option key={agent.key} value={agent.key}>
+                {agent.name}
+              </option>
+            ))}
+          </select>
+        </label>
         <textarea
           ref={inputRef}
           rows={1}

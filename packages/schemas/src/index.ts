@@ -446,6 +446,24 @@ export const AiRequestSchema = z.object({
     .enum(['design-generate', 'design-edit', 'style-transfer', 'component-create', 'code-from-design', 'critique', 'research', 'freeform'])
     .default('design-edit'),
   prompt: z.string().min(1).max(4000),
+  /**
+   * §111/§112：这一轮想交给哪个 Agent（`@qa 看一下这个按钮`里的 `qa`）。
+   * 请求方只能**提名**——名册、职责与权限由服务端查（`agent` 那一栏），
+   * 提名不在册不会变成"随便挑一个顶上"，而是原样报回"名册里没有 @xxx"。
+   */
+  agentKey: z.string().min(1).max(40).optional(),
+  /**
+   * 服务端按名册装配出来的那一份：`context.document` 的同一类——契约上有，客户端上传一律 400。
+   * 为什么把职责随报文发而不是让 provider 自己查名册：ai-service 不碰业务库（架构纪律 3），
+   * 名册在 web 这一侧；而职责不进提示词的话，§112 那句"每个 Agent 有自己的职责"就只是库里一列字。
+   */
+  agent: z.object({
+    key: z.string().min(1),
+    name: z.string().min(1),
+    responsibilities: z.array(z.string().min(1)).default([]),
+    /** §73 的权限作用域。今天代码只执行其中一个：`design.patch` = 允许让补丁落地 */
+    capabilities: z.array(z.string().min(1)).default([]),
+  }).optional(),
   modelClass: ModelClass.default('balanced'),
   /** 多方案生成数量（§29/§117），1-4 */
   variants: z.number().int().min(1).max(4).default(1),
@@ -707,10 +725,31 @@ export const AiJobObservationSchema = z.object({
   notes: z.array(z.string()).default([]),
   /** 需要人工审批的动作；空数组表示这一份结果可以原样交回 */
   approvals: z.array(z.object({ action: z.string(), reason: z.string() })).default([]),
+  /** §112：这一轮服务端实际交给了谁（没人被点名是 null）——读的是账本里那一行，不是浏览器选的那一个 */
+  agent: z.object({ key: z.string().min(1), name: z.string().min(1) }).nullable(),
   /** 能交回的那一份结果：没跑完 / 没结果 / 行已终态但报文丢了结果时是 null */
   response: AiResponseSchema.nullable(),
 });
 export type AiJobObservation = z.infer<typeof AiJobObservationSchema>;
+
+/**
+ * §112 的名册：Studio 的 Agent 选择器读它（`GET /api/ai/agents`）。
+ *
+ * 形状与 `AiRequestSchema.agent` 里那一栏一致，但**这是两份定义**：那一栏是跨语言契约
+ * （要经 `contract:export` 导出给 ai-service 校验），这一份只在 web ↔ 浏览器之间走。
+ * 合成一份的话，导出的 ai-request 契约里就会多出不属于 provider 的东西。
+ */
+export const AgentRosterSchema = z.object({
+  agents: z.array(
+    z.object({
+      key: z.string().min(1).max(40),
+      name: z.string().min(1),
+      responsibilities: z.array(z.string().min(1)),
+      capabilities: z.array(z.string().min(1)),
+    }),
+  ),
+});
+export type AgentRoster = z.infer<typeof AgentRosterSchema>;
 
 /** §163 实时事件（WebSocket） */
 export const RealtimeEventSchema = z.discriminatedUnion('type', [

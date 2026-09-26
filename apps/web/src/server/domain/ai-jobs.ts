@@ -1,9 +1,10 @@
 import { eq } from 'drizzle-orm';
 import type { AgentActivity, AiError, AiJobBackend, AiJobStatusResponse, AiJobStatusValue, AiRequest, AiResponse, RealtimeEvent } from '@nexus/schemas';
 import { fetchAiJobStatus, submitAiJob } from '../ai/client';
-import { gateResponse, heldRecord, nodeNamer, WEB_APPROVAL_POLICY, type ApprovalAction, type HeldRecord, type NodeNamer } from '../ai/approvals';
+import { gateResponse, heldRecord, nodeNamer, WEB_APPROVAL_POLICY, DESIGN_PATCH, type ApprovalAction, type GateResult, type HeldRecord, type NodeNamer } from '../ai/approvals';
 import { channels, getRealtimeBus } from '../realtime/bus';
-import { attachJob, bumpActivityCursor, finishTask, holdForApproval, startTask, taskByJobId, type TaskCapability } from './agent-tasks';
+import { attachJob, bumpActivityCursor, finishTask, holdForApproval, recordCapabilityRefusal, startTask, taskByJobId, type TaskCapability } from './agent-tasks';
+import { agentLedgerFields, findAgent, loadRoster, mentionNote, type AgentRosterEntry, type ResolvedAgent } from './agents';
 import { emit } from './notifications';
 import { getDb } from '../db/client';
 import { agentTasks } from '../db/schema';
@@ -48,16 +49,31 @@ export async function submitJob(input: {
   wire: AiRequest;
   projectId: string;
   createdById: string;
-  agentKey: string;
+  /** §112：服务端按名册解析出的这一轮负责人（含"点了名但名册里没有"的那几份） */
+  agent: ResolvedAgent;
+  /** 没人被点名时账本那行的归属：这次请求的意图类别，与同步那条路同一口径 */
+  fallbackAgentKey: string;
   capability: TaskCapability;
 }): Promise<JobSubmitResult> {
+  const fields = agentLedgerFields(input.agent, {
+    askedAgentKey: input.wire.agentKey,
+    fallbackKey: input.fallbackAgentKey,
+  });
   const started = await startTask({
     projectId: input.projectId,
-    agentKey: input.agentKey,
+    agentKey: fields.agentKey,
     createdById: input.createdById,
     capability: input.capability,
     // 账本记的是摘要不是整份文档——§68 那条纪律对账本同样成立
-    input: { prompt: input.wire.prompt.slice(0, 500), modelClass: input.wire.modelClass, variants: input.wire.variants, async: true },
+    input: {
+      prompt: input.wire.prompt.slice(0, 500),
+      modelClass: input.wire.modelClass,
+      variants: input.wire.variants,
+      async: true,
+      // §74：策略是服务端定的，异步这一路也要看得清"这一行归哪份规矩管"
+      approvalPolicy: WEB_APPROVAL_POLICY,
+      ...fields,
+    },
   });
   const submitted = await submitAiJob(input.wire);
   if (!submitted.ok) {
@@ -96,6 +112,8 @@ export interface JobObservation {
   notes: string[];
   /** §74：这份结果里有几处要人先点头；空数组表示 `response` 可以原样交回编辑区 */
   approvals: ApprovalAction[];
+  /** §112：这一轮服务端实际交给了谁（账本里那一份，不是浏览器选的那一个） */
+  agent: { key: string; name: string } | null;
   /**
    * 能交回的那一份 provider 结果。挂起时给的是补丁已被抽走的那一份（与同步路径同一形状），
    * 批准之后客户端要从 `POST /api/ai/tasks/<taskId>/approval` 拿被扣下的那一版。
@@ -104,7 +122,7 @@ export interface JobObservation {
 }
 
 /** 只说真有的东西：一个补丁都没落地时不写"生成顺利"（与 /api/ai/run 同一口径） */
-function summaryOf(response: AiJobStatusResponse['result'] | undefined): string | null {
+function summaryOf(response: AiJobStatusResponse['result'] | null): string | null {
   const patches = Array.isArray(response?.patches) ? response.patches.length : 0;
   const plans = Array.isArray(response?.plans) ? response.plans.length : 0;
   if (!patches && !plans) return null;
@@ -135,6 +153,35 @@ async function namerFor(projectId: string | null): Promise<NodeNamer> {
   return doc ? nodeNamer(doc) : () => null;
 }
 
+/**
+ * 这一行账上**被点名**的 Agent（§112）。读的是 `input.agent`，不是 `agentKey`：
+ * 没人被点名时 `agentKey` 兜底成这次的意图类别，而 `research` 既是一个意图、也是名册里
+ * 一个 Agent 的 key——靠字符串撞上的话，一次没人点名的请求会因为命名巧合被换成另一套权限口径。
+ * 所以"没有点名"就是 null：不额外拦一道，与同步那条路完全同一口径。
+ */
+function namedAgentKeyOf(row: { input: unknown }): string | null {
+  const input = row.input as { agent?: { key?: string } | null } | null;
+  const key = input && typeof input === 'object' ? input.agent?.key : undefined;
+  return typeof key === 'string' && key ? key : null;
+}
+
+async function agentFor(agentKey: string | null): Promise<AgentRosterEntry | null> {
+  if (!agentKey) return null;
+  return findAgent(await loadRoster(), agentKey);
+}
+
+/**
+ * 交回浏览器之前过一遍门。同步与异步共用 `gateResponse`，这里再共用**同一个调用形状**：
+ * §74 的审批挂起与 §73 的越权拒收都从这里出去，两处各写一遍迟早长出一套只在一侧生效的规矩。
+ */
+async function gateForHandback(
+  task: Pick<typeof agentTasks.$inferSelect, 'projectId' | 'input'>,
+  result: AiResponse,
+): Promise<GateResult> {
+  const agent = await agentFor(namedAgentKeyOf(task));
+  return gateResponse(result, WEB_APPROVAL_POLICY, await namerFor(task.projectId), agent ?? undefined);
+}
+
 /** 一行任务的审批现场：`result` 是挂起时写的 HeldRecord，其余状态读不到就当没有 */
 function heldOf(row: { result: unknown; requiresApproval: boolean } | undefined): HeldRecord | null {
   if (!row?.requiresApproval) return null;
@@ -151,26 +198,41 @@ async function settle(
 ): Promise<void> {
   // 只写在跑的行：已经终态或已经挂起的行不再由这一路改写（同一份状态被问第二次是常态）
   if (task.status !== 'running') return;
-  const softError = status.status === 'completed' ? (status.result?.error ?? null) : null;
-  const ok = status.status === 'completed' && !softError;
-
-  /**
-   * §74 的门开在这里，而不是"等客户端拿到补丁之后自己决定要不要落地"。
-   * 挂起时终态不写、通知也不发：一条"Generation complete"替一次还没人决定的事签字，
-   * 就是 §164 一开始要避免的那种假事件（与 `/api/ai/run` 同一口径）。
-   */
-  if (ok && status.result) {
-    const gate = gateResponse(status.result, WEB_APPROVAL_POLICY, await namerFor(task.projectId));
+  /** 交回客户端的那一份：过门之后可能已经不是 provider 原样给的那份（挂起走 return，拒收会抽走补丁） */
+  let result = status.result ?? null;
+  let refused: GateResult['refused'] | null = null;
+  if (status.status === 'completed' && result) {
+    const gate = await gateForHandback(task, result);
     if (gate.approvals.length > 0) {
+      // §74 的门开在这里，而不是"等客户端拿到补丁之后自己决定要不要落地"。
+      // 挂起时终态不写、通知也不发：一条"Generation complete"替一次还没人决定的事签字，
+      // 就是 §164 一开始要避免的那种假事件（与 `/api/ai/run` 同一口径）。
       await holdForApproval(task.id, heldRecord(gate, WEB_APPROVAL_POLICY));
       return;
     }
+    refused = gate.refused ?? null;
+    result = gate.delivered;
   }
+  const softError = status.status === 'completed' ? (result?.error ?? null) : null;
+  const ok = status.status === 'completed' && !softError;
 
   const reason = status.error?.message ?? (softError ? `${softError.code}：${softError.message}` : '作业失败，没有给出原因');
-  const detail = ok ? summaryOf(status.result) : reason;
+  const detail = ok ? summaryOf(result) : reason;
 
   await finishTask(task.id, ok ? { ok: true, result: { detail } } : { ok: false, error: reason });
+  if (refused) {
+    // §73 的后半句（"记录审计事件"）在异步这条路的位置：落账那一次。查询侧再过的门只决定报文形状，
+    // 一个作业可以被问很多次，审计里要的是"这次越权发生过"一条，不是"有人来看过几次"
+    await recordCapabilityRefusal({
+      taskId: task.id,
+      actorId: task.createdById,
+      projectId: task.projectId,
+      agentKey: namedAgentKeyOf(task) ?? task.agentKey,
+      agentName: refused.agent,
+      missing: DESIGN_PATCH,
+      opCount: refused.opCount,
+    });
+  }
   if (!task.createdById || !task.projectId) return;
   await emit({
     kind: 'generation',
@@ -197,6 +259,23 @@ export async function observeJob(jobId: string, actorId: string): Promise<JobObs
   if (!found) return null;
   const { task, projectName } = found;
   const notes: string[] = [];
+  /**
+   * §112：点名那一句在提交当时已经随响应头说过一次，异步这条路是"隔几秒再来问"，
+   * 不重说的话用户只看到作业跑完了，不知道自己拼错的那个名字被忽略过。
+   * 读的是账本里那一份（提交时算的），不是现在重算的——名册与文档都会变，而要说的是当时发生了什么。
+   */
+  const stated = task.input as
+    | { agent?: { key: string; name: string } | null; unknownMentions?: string[]; ignoredMentions?: string[]; rosterEmpty?: boolean }
+    | null;
+  if (stated && typeof stated === 'object') {
+    const mentionNoteOf = mentionNote({
+      agent: stated.agent ?? null,
+      unknownMentions: stated.unknownMentions ?? [],
+      ignoredMentions: stated.ignoredMentions ?? [],
+      rosterEmpty: stated.rosterEmpty === true,
+    });
+    if (mentionNoteOf) notes.push(mentionNoteOf);
+  }
   const fetched = await fetchAiJobStatus(jobId);
   const status: AiJobStatusResponse | null = fetched.ok ? fetched.status : null;
 
@@ -248,10 +327,12 @@ export async function observeJob(jobId: string, actorId: string): Promise<JobObs
    * 交回的那一份只有一种口径：**过门之后的**。
    * - 等待审批：给挂起当时写下的那份 `delivered`（补丁已被抽走）。为什么不拿 `held` 重算一遍：
    *   文档在这几秒里可能已经变了，重算出来的理由会换名字，而用户看到的必须是他被问过的那一句。
-   * - 已经批准（行是 `succeeded`）：给完整结果——这一行的批准由 `decideApproval` 认，
-   *   跑到这一步还在报 completed 的，是"批准之后又有人来问一次"，门已经点过头了。
+   * - 已经批准（行是 `succeeded` 但 `requires_approval` 仍为真）：给完整结果——这一行的批准由
+   *   `decideApproval` 认，跑到这一步还在报 completed 的，是"批准之后又有人来问一次"，门已经点过头了。
    * - 已经放弃（`cancelled`）：什么都不给，并且说一句为什么没有。
-   * - 其余（没挂起过就跑完的）：给 provider 那一份原样。
+   * - 其余（没挂起过就跑完的）：**再过一遍门**。这里看起来像重复工——`settle` 已经过过一次了——
+   *   但 settle 过的那一次决定的是"账本怎么记"，这一处决定的是"报文怎么发"，两次都要过同一个函数，
+   *   才不会出现"账本记成拒收、报文却把补丁发出去了"。§73 的越权拒收正是走这一条。
    */
   const held = fresh?.status === 'awaiting_approval' ? heldOf(fresh) : null;
   let response: AiResponse | null = null;
@@ -265,8 +346,14 @@ export async function observeJob(jobId: string, actorId: string): Promise<JobObs
   } else if (status?.status === 'completed' && status.result) {
     if (fresh?.status === 'cancelled') {
       notes.push('这一份挂起的结果已经被放弃，补丁不会再交回编辑区');
-    } else {
+    } else if (fresh?.requiresApproval) {
       response = status.result;
+    } else {
+      const gate = await gateForHandback(task, status.result);
+      response = gate.delivered;
+      if (gate.refused) {
+        notes.push(`${gate.refused.agent} 的职责里没有"改设计文档"这一条，${gate.refused.opCount} 个 op 没有交回（§73）`);
+      }
     }
   }
 
@@ -285,6 +372,7 @@ export async function observeJob(jobId: string, actorId: string): Promise<JobObs
     outcome: fresh?.status === 'failed' ? (fresh?.error ?? null) : typeof detail === 'string' ? detail : null,
     notes,
     approvals,
+    agent: stated?.agent ?? null,
     response,
   };
 }

@@ -278,8 +278,40 @@ export async function decideApproval(
   return { ok: true, decision, status, held: decision === 'approve' ? (result.held ?? null) : null, approvals: result.approvals ?? [] };
 }
 
-function approvalShape(task: typeof agentTasks.$inferSelect) {
-  const record = (task.result ?? {}) as { approvals?: unknown; heldOpCount?: unknown };
+/**
+ * §73「越权调用直接失败并记录审计事件」里"记录"的那一半。
+ *
+ * 只在**落账那一次**写（同步的 deliver / 异步的 settle），不在查询侧再写一遍：
+ * 一个作业可以被问很多次，审计要的是"这次越权发生过"这一条事实，不是"有人来看过几次"。
+ */
+export async function recordCapabilityRefusal(input: {
+  taskId: string;
+  actorId: string | null;
+  projectId: string | null;
+  agentKey: string;
+  agentName: string;
+  missing: string;
+  opCount: number;
+  ip?: string | null;
+}): Promise<void> {
+  await recordAudit({
+    actorId: input.actorId,
+    action: 'ai.agent.capability',
+    targetType: 'agent_task',
+    targetId: input.taskId,
+    allowed: false,
+    detail: {
+      agentKey: input.agentKey,
+      agent: input.agentName,
+      missing: input.missing,
+      opCount: input.opCount,
+      projectId: input.projectId,
+    },
+    ip: input.ip ?? null,
+  });
+}
+
+function approvalShape(task: typeof agentTasks.$inferSelect) {  const record = (task.result ?? {}) as { approvals?: unknown; heldOpCount?: unknown };
   return {
     taskId: task.id,
     projectId: task.projectId,

@@ -211,7 +211,7 @@ e2e 断言面板把"未运行的检查"列出来，而不是显示全绿。
   同一个陌生 context 在删除前点赞收 200、删除后同一个接口收 404、公开页 404、恢复后又回到 200。
   这里踩过一个坑值得记下：`new URL(href).pathname` 会把中文 slug 百分号编码，而库里存的 `path` 是原样，
   于是那条"删除前应该 200"的对照先红了——**测试自己拼 path 才会犯的错**，界面上的按钮发的是服务端给的 `state.path`。
-- AI 那条路的审批门（§74 agent 侧）：`apps/web/test/ai-approvals.integration.test.ts` 15 条打真库。
+- AI 那条路的审批门（§74 agent 侧 + §73 越权拒收）：`apps/web/test/ai-approvals.integration.test.ts` 23 条打真库。
   钉的第一件事是**扣下发生在服务端而不是界面上**：用例直接调 `gateResponse`，断言交出去的那份 `patches` 是空数组、
   完整那一份在 `held` 里，再过 `holdForApproval` 落库——一条 `set` 不被扣（反向对照：四种破坏性 op 各扣各的，
   非破坏性的那条 `delivered === response` 逐对象相同）。第二件事是**读侧不泄露**：卡片里有"几处要决定"和理由，
@@ -224,7 +224,7 @@ e2e 断言面板把"未运行的检查"列出来，而不是显示全绿。
   现在 `nodeNamer` 对 token / 资产 / 组件 / 页 / 页根各给一个可读标签，用例按标签断言。
   跨语言那一半由机器对齐：`test_run.py::test_destructive_op_set_matches_the_web_gate` 读 web 侧源码里的
   `DESTRUCTIVE_OPS` 与 python 那份比集合——**两边靠注释保持一致的地方，注释改了代码不会红**。
-  五处行为性反向实验（每次都跑整份 16 条，未变异的对照同样 16 条全绿）：
+  五处行为性反向实验（每次都跑整份——当时 16 条，未变异的对照同样全绿）：
   把 `holdForApproval` 里 `status='running'` 那个条件去掉 → **1 条红**，红在"终态行不许被回溯成等审批"；
   把裁决语句的 `status='awaiting_approval'` 去掉（只按 id 更新）→ **1 条红**，红在并发那条
   （`Promise.all` 的两次都返回 ok——早退的那个 `if` 挡不住真并发，CAS 才挡得住）；
@@ -286,7 +286,48 @@ e2e 断言面板把"未运行的检查"列出来，而不是显示全绿。
   `[data-approval-note]` 说"删除也没有发生"。**仍然没有测到**：真 provider 下的异步落地
   （要一台接上 key 的 ai-service + worker，本机 DEMO MODE 到不了那一步），
   以及 Redis 队列的跨实例游标（现在还是进程内内存队列，刷新即查不到，这一点在报文 `backend` 里就带着）。
+- Agent 名册与 @提及（§112/§113 第一片 + §73 第一格）：三份 TS + 一份 Python。
+  `agents.test.ts` 17 条**纯单测**（名册手写三份，不连库）——这里能测的都是解析规则本身：
+  `@design` / `@Design Agent` / `design` / `" design "` 是同一个 key；`a@b.com` 与 `someone@design.com`
+  **不算**提及（正则要求 `@` 前面是行首或空白，写成宽松版会把每个邮箱都变成点名）；
+  解析优先级"请求提名 > 提示词 > 批注正文"；点了两个时其余进 `ignored` 而不是静默消失；
+  名册空时 `rosterEmpty` 与"名册里没有 @xxx"是两句不同的话。
+  `agents.integration.test.ts` 9 条**打真库**（名册是 `npm run db:seed` 那 13 行，桩数据测不出"发出去的那一份"）：
+  13 位职责逐条非空且过 `AgentRosterSchema`、`design` 有 `design.patch` 而 `qa` 没有；
+  客户端上传 `agent` → `400 agent_not_allowed`（**不是**被服务端覆盖后收下）；
+  提示词 `@qa` → `wire.agent.key==='qa'` 且职责与 capabilities **等于库里那一份**；
+  `agentKey:'design'` + 提示词 `@content` → design 负责、content 记进 `ignored`；
+  `@fy` → `unknown:['@fy']` 且 `wire.agent` 不存在；批注正文里的 `@research` 能解析出来（§111 那条欠账的凭据）；
+  DEMO 报文里计划行写 "QA Agent"、活动那行带着它的职责原文，没点名时那行改口说"没有人被点名"
+  （反向对照必须成对：只测"点名了有名字"的话，一个写死的 `Design Agent` 也能绿）。
+  `ai-approvals.integration.test.ts` 里新增的那 7 条钉的是**拒收 ≠ 挂起**：
+  QA 的 `remove` → `approvals` 必须是空数组（挂起会问出"要不要批准 QA 改画布"，那是名册没给的承诺）、
+  `error.code=permission-denied`、`held` 逐对象等于原响应（拒收不销毁证据）；
+  QA 的 `set` 同样拒（只看删除类 op 的实现会在这里放行，一条 `set` 就绕过 §73）；
+  QA 一个 op 都没有时**不拒**（那是在提意见，不是越权；拒一条空报告会把检查结论也吞掉）；
+  Design 的 `remove` 仍走 §74 挂起（两道门不许互相顶掉）；没点名时不拒且与"不传 agent 参数"同形；
+  真路径 `@qa 删除 Hero 区块` → 落 `failed` 且 `listPendingApprovals` 为空
+  （门说"拒"的时候账本不能写"等人决定"，否则多一条永远等不到裁决的行）。
+  Python 侧 `test_prompt.py` 新增 6 条：职责与 capabilities 进系统提示、没有 `design.patch` 的那位被告知
+  "patches 留空"、没点名时不编一个 Agent（断言里连 `"本轮由"` 和 `"职责："` 都不许出现）、
+  空职责要说"名册里没有写这一位的职责"、`agent` 不是对象（字符串/数组/null/空对象）一律按没点名处理，
+  最后一条走完整 HTTP（`TestClient` + `FakeProvider`）——直接调 `build_prompt` 的几条测不到契约那一关：
+  `agent` 若被判成非法字段，请求在 422 就死了而提示词测试照旧全绿。
+  **一处如实记下的覆盖缺口**：同步 `/api/ai/run` 里"拒收时调 `recordCapabilityRefusal`"那一句调用点没有被直接断言
+  （本仓库的测试不打 route handler，路由层由 e2e 覆盖——e2e 看到的是界面上那句 `permission-denied`，看不到审计行）。
+  异步那一路断言了审计恰好一行、`allowed:false`、`detail` 里三个字段，两处调的是同一个函数；
+  这个缺口记在这里而不是假装测过。
+  行为性变异三次（每次都跑整份并回报红数，未变异对照全绿）：
+  ① `gateResponse` 的 `opCount > 0` 改成 `> 999`（等价于"越权从不拒"）→ 45 例里 **6 条红**，
+  同步（`ai-approvals`）与异步（`ai-jobs`）两条路各抓到；
+  ② `mentionsIn` 的 `match[1]` 改成 `match[2]` → **8/17 红**。这一条要单独记下：**`tsc` 不红**
+  （`noUncheckedIndexedAccess` 让两种下标都是 `string | undefined`），后果是每一次 @提及都被静默判成
+  "名册里没有"，而界面只会显示"画布什么都没变"；
+  ③ `recordCapabilityRefusal` 里把 `missing: input.missing` 写成简写 `missing,`（值其实在 `input` 上）→
+  跑测试时抛 `ReferenceError`、**3 条红**，而那次 `npm run typecheck` 是 exit 0 的。
+  ②③ 两次的教训同一句：这条链上"类型绿"不等于"跑得通"，静默失效与运行时崩溃都只有行为断言抓得住。
 - 社区与发现（§59/§61）：`apps/web/test/social.integration.test.ts` 9 条，最要紧的是分叉那两条 ——
+
   作者发布后再往工作区加一段没公开的草稿，Remix 出来的副本必须**不含**那段草稿而含发布那一版的文字，
   且副本归点 Remix 的人、原作品一行未动、`remixes` 记下来源；下架（private）之后的版本分叉不出来。
   评论那条钉的是"命中红线连一行都不入库"与限度随回执给出（`没命中不等于内容合规`）。

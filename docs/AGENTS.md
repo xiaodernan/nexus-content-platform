@@ -4,24 +4,34 @@
 
 `apps/ai-service` 内的 Agent Runtime 负责：task planning · agent selection · tool selection ·
 context management · memory · retries · permissions · cost tracking · evaluation。
-它是**唯一**能调用 provider 与工具的进程；web 侧只发起请求与接收事件。
+
+**"唯一能调用 provider 的进程"这一条今天不成立，写在这是为了别把它读成已经成立**：
+今天 provider 有两条路——真 provider 走 ai-service（它不连业务库，只拿 web 装配好的目录，架构纪律 3），
+而 DEMO MODE 的确定性 mock 跑在 **web 进程内**（`server/ai/mock.ts`），它读的是服务端的权威文档，
+并且它的结果同样要过 web 侧那道门（§74/§73）。工具执行也分两处：ai-service 侧有 sandbox/截图工具，
+web 侧有落盘与设计模型读写。谁都不是"另一个的自觉"——所以权限与审批判断一律放在 web 这一侧收口。
 
 ## Agent 清单（§24）
 
 Product · Design · Coding · Research · Image · Video · 3D · Game · QA · Security · SEO · Content · Growth
 
-每个 Agent 定义为一个声明对象（`agents/registry.py`）：
+这 13 位今天的**唯一写入方**是 `scripts/db-seed.mts`（`npm run db:seed`，幂等 upsert），
+落到 Postgres 的 `agents` 表：`key / name / responsibilities / capabilities / tools / model_class / max_steps / output`。
+读取方是 `apps/web/src/server/domain/agents.ts`（`loadRoster` + `resolveAgent`）——
+**没有 `agents/registry.py`，也没有 `AgentSpec` 这个类**：早先这份文档写着它们在 ai-service 里，
+而那个进程今天既不读名册也不连业务库。名册的真实形状：
 
-```python
-AgentSpec(
-  name="design",
-  capabilities=["design.read", "design.patch", "asset.generate", "token.write"],  # §73
-  tools=["search_design", "modify_design", "create_component", "generate_image"],
-  model_class="reasoning",        # §76 Model Router 选择具体模型
-  max_steps=12,
-  output="design_patch",
-)
+```ts
+// 每一行随请求发给 provider 的那一份（`AiRequest.agent`）长这样：
+{ key: "design", name: "Design Agent",
+  responsibilities: ["理解设计请求并分析现有设计", "理解设计系统后再动手", "规划并修改设计模型", …],  // §112
+  capabilities: ["design.read", "design.patch", "token.write", "asset.generate"] }  // §73
 ```
+
+名册为什么放在库里而不是代码里：职责要随请求进提示词（否则 §112 那句"每个 Agent 有自己的职责"
+只是 TS 里一份、Python 里一份的抄写），而"谁能改画布"是权限判断——两处必须读同一份现场。
+`tools / model_class / max_steps / output` 那四列**今天没有读取方**（没有 tool-calling 运行时，
+Model Router 看请求那一栏），留着是历史形状，别读成"这些权限已经生效了"。
 
 ## Agent Plan（§25）
 
@@ -59,6 +69,16 @@ search_web retrieve_rag create_component publish
 Design Agent → design + asset tools；Coding Agent → code + browser tools；Research Agent → web；
 Publishing Agent → publish。越权调用直接失败并记录审计事件，不做静默降级。
 
+**今天哪一条是真的**：`design.patch` 是名册里唯一被代码执行的作用域，执行点在
+`server/ai/approvals.ts` 的 `gateResponse`（同步 `/api/ai/run` 与异步作业结算共用同一次判断）。
+被点名的那位没有这个作用域而结果里又有 op（**任何** op，不只是删除）→ **拒收而不是挂起**：
+`patches` 抽走、`error.code=permission-denied`、`approvals` 保持空，任务行落 `failed`，
+并写一条 `ai.agent.capability` / `allowed:false` 的审计。
+为什么是拒不是挂：挂起要问"要不要让它落地"，而名册说的是"这一位不能落地"——
+问那一句等于默认批准之后 QA 就能改画布，那是名册没给的承诺（详见 `docs/adr/0013-*`）。
+其余作用域（`code.write` / `asset.generate` / `publish`…）今天**没有对应的可执行动作**，
+所以判了也没东西可挡；写一份没人执行的权限表看起来像管控，其实是装饰。
+
 ## 人工审批门（§74 / §177）
 
 以下动作必须 `requires_approval=true` 并在 UI 出现明确确认卡：
@@ -70,8 +90,18 @@ Publishing Agent → publish。越权调用直接失败并记录审计事件，�
 `DELETE /api/projects/[id]` 要求 `confirm` 逐字等于项目名，判定在 `softDeleteProject` 里做，
 不匹配就一条都不写并落一行 `allowed:false` 的审计；删除是软的（`deleted_at` 置时间戳，快照与发布行留着，
 回收站可恢复）。**这条门不依赖界面上的弹窗**：绕开 UI 直接打接口同样挡得住，e2e 里就是这么测的。
-其余几格（公开发布走的是 §131 门禁而不是审批卡、credits / 外发消息 / 部署 / 支付随 M7-M8 落地）
-以及 Agent 侧的 `agent_tasks.requires_approval`（全库无人置真）、可配置审批策略，都还没有实现。
+
+`delete` 也已经在 Agent 路径上落地（同日，两次提交）：`agent_tasks.requires_approval` 与状态
+`awaiting_approval` 这两列从 0000 建库起就没有写入方，现在有了——门在 `gateResponse`，
+它读补丁里的 op（不只是 provider 自报的 `approvals`，取并集），命中就把 `patches` 抽走、
+`error.code=approval-required`、把"已落地"那类说法改成实际发生的那一句，
+而**完整那一版**存进任务行（批准的凭据是"看过这一版"，所以重新生成一份不算）。
+裁决走 `decideApproval`（CAS 只认等待态：两个标签页都点批准只有一次真的写下去），
+Studio 的审批卡片与任务列表读的是同一份现场。同步 `/api/ai/run` 与异步作业（§162）过的是同一道门：
+异步那一路"跑完"不发完成通知，等待不是终态（不写 `finished_at`）。
+**还没实现**：公开发布走的是 §131 门禁而不是审批卡；credits / 外发消息 / 生产部署 / 支付随 M7-M8 落地；
+"用户可配置审批策略"今天是服务端常量 `WEB_APPROVAL_POLICY`（客户端在报文里填的那一栏一律被改写）；
+`awaiting_approval` 也没有 TTL——一条没人管的挂起行会一直挂着。
 
 ## Design ↔ Coding 协作（§22 / §112-114）
 

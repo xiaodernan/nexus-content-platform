@@ -24,6 +24,44 @@
       "minLength": 1,
       "maxLength": 4000
     },
+    "agentKey": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 40
+    },
+    "agent": {
+      "type": "object",
+      "properties": {
+        "key": {
+          "type": "string",
+          "minLength": 1
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "responsibilities": {
+          "default": [],
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "capabilities": {
+          "default": [],
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      },
+      "required": [
+        "key",
+        "name"
+      ]
+    },
     "modelClass": {
       "default": "balanced",
       "type": "string",

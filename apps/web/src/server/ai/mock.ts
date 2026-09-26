@@ -486,7 +486,10 @@ export class DeterministicMockProvider implements AiProvider {
     const plan: AgentPlan = {
       goal: request.prompt.slice(0, 200),
       constraints: ['只修改设计模型（§16）', '样式尽量走 token（§12）'],
-      tasks: [{ id: 't1', title: result?.summary ?? rule.id, agent: 'DesignAgent', status: result ? 'done' : 'failed', dependsOn: [], artifact: 'DesignPatch' }],
+      // §112：这一轮是谁做的。名字来自服务端按名册解析的那一份（`request.agent`），
+      // 没点名时这一轮做的确实是设计改动，所以挂 Design Agent；但用户点了 @qa 之后再写
+      // DesignAgent 就是替他改口——那一行随后会被 §73 的门拒掉，界面上要看得见是谁被拒的。
+      tasks: [{ id: 't1', title: result?.summary ?? rule.id, agent: request.agent?.name ?? 'Design Agent', status: result ? 'done' : 'failed', dependsOn: [], artifact: 'DesignPatch' }],
       dependencies: [],
       risks: [],
       validation: ['validateDocument 无错误', 'Ctrl+Z 可整体回滚'],
@@ -499,6 +502,14 @@ export class DeterministicMockProvider implements AiProvider {
       patches: result?.patches ?? [],
       explanation: result?.explanation ?? '没有可执行的确定性改动。',
       activities: [
+        // §112：名册里的职责要看得见。它随报文走到 provider 那一侧就是模型听到的一句话；
+        // 在 Mock 这条路上，它就是界面活动流里这一行——看不见的话，"接了名册"只是库里多了一列
+        activity(
+          'agent',
+          request.agent
+            ? `${request.agent.name}（${request.agent.responsibilities.slice(0, 2).join('；') || '名册里没有写职责'}）`
+            : `没有人被点名：这一轮按意图 ${request.intent} 走，没有 Agent 的职责与权限约束`,
+        ),
         activity('context', indexNote),
         activity('intent', `规则 ${rule.id} 命中：${result?.summary ?? '无改动'}`),
         ...(result?.activities.map((step) => activity('plan-step', step)) ?? []),
