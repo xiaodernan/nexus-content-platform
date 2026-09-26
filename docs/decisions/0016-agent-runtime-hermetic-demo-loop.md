@@ -4179,3 +4179,27 @@ disagreement is written down rather than smoothed over.
   element to be EXACTLY `git` rather than `/^git\s/`, which would make a data table of command strings invisible
   again. That is a baseline rewrite, not a bug fix — it moves amendment 93's `program=116 argv=134` census, so it
   has to be predicted row by row before it is run, and the prediction has to include the two cases §1 just froze.
+
+### Amendment 95, addendum (doc ref 741b4b3): what the record itself cost, measured with the tool that owns bytes
+
+- **The doc commit was re-run through the five gates that read it.** `plane-axis`, `asks-axis`, `table-recount`,
+  `confession`, `closure` all exit 0 at 741b4b3, and exactly two numbers moved from the 174fc1e-era logs:
+  `plane-axis` §1 went 15/15 → 17/17 cases (the two R2 cases this amendment added, 8 → 9 of them must-not-count),
+  and `table-recount`'s graded-tree digest went `b59354c0972fefab` → `5606ad68f4844562` — which moved BECAUSE the
+  graded README moved, not because anything was re-counted: 629 tracked cases in 34 files, every row matching its
+  file, both prose totals matching their row sums, 4/4 table mutations caught, all unmoved. `asks-axis`,
+  `confession` and `closure` came back byte-identical to their previous logs. This is the same shape as
+  amendment 94's addendum, and it is the reason a doc change is committed and re-run rather than asserted: the
+  README is graded by a row, so writing about the population is itself a change to it.
+- **The append wrote no existing bytes, and that claim has a grammar.** `git diff --numstat` on the two shared
+  records reads `166 0` and `65 0` — 231 lines added, ZERO deleted, which is the byte-level statement the tool
+  that owns bytes can make. The script that performed the append printed `+17688` and `+6130` beside a "B" that
+  did not belong there: `before.length` in JavaScript counts UTF-16 code units, and this block carries multibyte
+  punctuation (`·`, `→`, `—`), so the real byte deltas are 17 807 and 6 157. The number was right and its UNIT
+  was invented by a label. Recorded rather than quietly corrected, because this directory's rule is that a figure travels with the grammar that produced it, and
+  "characters" is a different grammar from "bytes" in a repository whose line endings already disagree with
+  themselves.
+- **What the addendum does NOT do: re-run the population.** A full isolated sweep at 741b4b3 would report the
+  same axes numbers as 174fc1e — the README is not a scored row, and no proof reads the ADR — at a cost of
+  roughly twelve minutes and a different tree digest. The population figures in the amendment above therefore
+  carry the ref that produced them, and a reader who wants 741b4b3's own `61265f575e9c6e92` has to ask for it.
