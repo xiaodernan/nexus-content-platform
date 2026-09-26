@@ -2566,3 +2566,38 @@ first lane here, and a row declaring what it asks (`// sweep-asks-repository:`, 
 already established) is the lane that closes the three misses for good. The run: `OK plane-axis-proof.mjs (exit 0,
 2063ms, budget 240000ms default)`, `[summary] ref 69e7d2023356 · scripts 71 · failed 42 · killed 0 · … · 115s`, home
 build `UNMOVED (the isolation gate)`.
+
+## The population can confess what the scanner cannot see (`asks-axis-proof.mjs`, M2 v94 — ADR 0016 amendment 94)
+
+Amendment 93 gave the sweep a prediction: before a single row runs, `gitReaches` reads the ref's bytes and says how
+many of them spawn a git child process, and afterwards the verdicts are reconciled against that sentence. It also
+named, honestly, the two shapes the prediction could not see. One is a wrapper — `const sh = (cmd, argv) =>
+execFile(cmd, argv)` — where a call-site rule looks for the program name and finds a parameter. The other is this
+directory's own runner: a row that asks for its corpus through `sw.proofCorpus`, or for a clean checkout through
+`sw.isolatedCheckout`, spawns git one frame below the bytes being scanned. Three rows went red on the
+clean-checkout plane for a cause the prediction foresaw in general and could not name in any of them.
+
+The fix is not a deeper scanner; it is a channel the caller owns. A row may now state, in a first-column comment,
+what it asks the repository:
+
+    // sweep-asks-repository: git rev-parse HEAD
+
+The grammar is the one amendment 85 established for `// sweep-budget-ms:`, and it is read by the same walker that
+counts call sites, so the two channels cannot drift apart by grammar: a marker quoted into a string, wrapped in a
+block comment, or written after code on the same line is invisible to both. `asks-axis-proof.mjs` holds that to
+twenty-two cases, eleven of which must NOT count, and then censuses the population twice — once by the scanner, once
+by the confessions — and asserts that the two disagree. Today four rows declare, one is corroborated by the
+scanner's own eyes, and three are visible only to themselves; if the scanner ever learns to see those three, that
+assertion has to move, which is the point rather than an inconvenience.
+
+The runner prints the declaration axis before any row runs and reconciles three sources afterwards: what the row
+said, what the bytes show, and what actually happened. The gate is the number of reds with neither a prediction nor
+a declaration behind them. A declaration buys foreknowledge and buys the row nothing else — it cannot skip a row,
+cannot grant a fallback, cannot soften a verdict — and the run says so by keeping the older number still at three:
+the rows that confess to reaching git still fall over on a checkout, because a checkout is a checkout.
+
+One more measurement lives here because it is the kind of thing a table hides. Adding these declarations moved the
+naive "the word git appears anywhere" count from 54 to 56, because the prose explaining a blind spot spells out the
+word git, while the code-position count moved from 49 to 50 only because the new proof itself spawns git in a
+wrapper. Same population, two grammars, two answers — which is why every number in this directory is printed with
+the grammar that produced it.

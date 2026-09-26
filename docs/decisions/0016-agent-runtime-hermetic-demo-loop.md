@@ -3880,3 +3880,113 @@ disagreement is written down rather than smoothed over.
   `[§2] census of the 71 scored rows: 49 reach a git child process at code position (program=114 argv=124 call
   sites) · the naive "the word appears anywhere" grammar calls 54` — because the population and the scanner's bytes
   did not change, only the document they describe.
+
+
+### Amendment 94 (M2 v94): a row that reaches the repository through a frame the scanner cannot enter may SAY so, and the sweep reconciles declaration against prediction against verdict
+
+- **Why a caller-side channel was the only honest option.** Amendment 93 shipped a prediction and then named, in its
+  own record, the two shapes it could not see: `const sh = (cmd, argv) => execFile(cmd, argv)` puts a PARAMETER where
+  a call-site rule looks for a program name, and a row that reaches git through this directory's own runner
+  (`sw.proofCorpus`, `sw.isolatedCheckout`, `sw.runSweep`) spawns one frame below the bytes being scanned. Three rows
+  therefore went red on the clean-checkout plane with a cause the prediction foresaw in general and could not name in
+  any of them — `[plane axis] … RED WITHOUT being predicted 3 (closure-proof.mjs, cwd-axis-proof.mjs,
+  drive-axis-proof.mjs)`. Making the scanner "deeper" is the tempting fix and the wrong one: it would have to follow
+  a call graph across files, invent a wrapper heuristic, and then be graded by a rule nobody can check. So the CALLER
+  speaks and the runner gets a third source to reconcile against.
+- **The grammar is amendment 85's, reused rather than re-invented.** `// sweep-asks-repository: <claim>` —
+  first-column, read out of the ref's bytes, one line per claim, payload free text. It is read by `declarations(src,
+  marker)`, which walks a source ONCE and hands every code-position line comment to a sink; the budget channel
+  (`// sweep-budget-ms:`) now goes through the same function. One tokenizer, two channels, so a quotation of a
+  marker inside a string or a block comment is invisible to BOTH and the axes cannot drift apart by grammar.
+  `asks-axis-proof.mjs` §2 demonstrates it on one source: `the same walk returned 2 reaches (argv+program) and
+  collected 2 code-position comments, of which 1 declares`.
+- **A declaration buys foreknowledge and buys the row nothing.** It does not skip a row, does not grant a fallback,
+  does not soften a verdict (amendment 86's rule against a green that graded nothing), and the run proves that by
+  leaving amendment 93's number exactly where it was: at 2755c0a the clean-checkout plane still reports
+  `RED WITHOUT being predicted 3 (closure-proof.mjs, cwd-axis-proof.mjs, drive-axis-proof.mjs)` and still
+  `failed 42` of `scripts 72`, while the NEW line reads
+  `[asks axis] … RED with NEITHER prediction NOR declaration 0 (none)`. A channel that leaked a pass would have
+  shown up as the first number falling, not the second.
+- **The gate 93 could not satisfy became satisfiable without weakening it.** 93's gate was "every red was predicted",
+  and three rows made it unsatisfiable from outside however correct the run was. 94's gate is the same list with a
+  second channel into it — `red ∧ (predicted ∨ declared)` — and its verbatim form in the log is
+  `4 rows declared what they ask (3 of them invisible to the code-position scanner — closure-proof.mjs,
+  cwd-axis-proof.mjs, drive-axis-proof.mjs) · red AND declared 3 of 42 red · RED with NEITHER prediction NOR
+  declaration 0 (none)`. This is the first ref in this repository's history where that list is empty.
+- **Census, both grammars, each stated with the grammar that produced it.** Declaration census
+  (`asks-axis-proof.mjs` §3, GIT plane, exit 0, 22 grammar cases of which 11 must NOT count): 4 of 72 scored rows
+  declare — closure, cwd-axis, drive-axis, table-recount — 1 corroborated by the scanner's own eyes (table-recount)
+  and 3 visible only to themselves. §3 asserts `uncorroborated.length > 0`, because a census in which every
+  declaration was corroborated would mean the blind spots had been paper over rather than declared; if the scanner
+  ever learns to see those three, that assertion has to MOVE, and that is the design, not an inconvenience.
+  Call-site census (`plane-axis-proof.mjs`, same ref, exit 0): 74 tracked `.mjs`, 72 scored rows, `50 reach a git
+  child process at code position (program=115 argv=124 call sites)`, naive "the word appears anywhere" 56, blind
+  spots 2 parameter-bound + 3 through `sweep.mjs`, §5 mutations move the census `1 / 0 / 0` as required.
+- **The run, whole.** `node docs/evidence/agents/sweep.mjs --isolated --ref 2755c0a` on the clean-checkout plane:
+  tar 3 809 280 bytes, dest `D:\nexus-isolated-C65xIn` (SAME DRIVE as the repository, chosen repo-drive FORCED off
+  `os.tmpdir()` by the C:/D: mismatch), 308 third-party junctions, 5 workspace links, `build exit 0 in 289.4s`,
+  `closure: 37/72 tracked proofs import 2 relative path(s) … syncproc.mjs ← 37 proof(s), sweep.mjs ← 2 proof(s) …
+  0 are in NO commit`, then `scripts 72 · failed 42 · killed 0 (0 at the runner's default, 0 at a budget the row
+  named) · graded build cc73dcf781dd0a2b (224 dist files, stable across the run) · tree 61265f575e9c6e92 (stable)
+  194 files · dirty-sources 2 · 144s`, and the isolation gate `home build after the run: 244 files, digest
+  204913d0f036b30c · UNMOVED`. The graded build and tree digests are byte-identical to amendment 93's run, so the
+  only thing that moved between those two sweeps is the population and the axes printed about it. The new row itself
+  ran `OK asks-axis-proof.mjs (exit 0, 15463ms, budget 240000ms default)` — green on this plane and on the GIT plane,
+  because it grades a grammar and detects its plane rather than requiring a repository.
+- **A prediction written before the log was read, and what it got right.** The numbers above were forecast from the
+  committed bytes and written down before opening the log: 50 predicted askers, 239 call sites (program=115
+  argv=124), naive 56, declared 4 / corroborated 1 / uncorroborated 3, `failed 42`, `killed 0`, and the three
+  declaring rows still red for the same exit-128 causes. All held. Two were only knowable from the run and are
+  reported as such: `GREEN while predicted` moved 10 → 11 because the new proof is itself a predicted asker that
+  passes on both planes, and the row's duration (15 463 ms) was not forecast at all.
+- **The confessions and the child's own words agree, 3 for 3.** Each of the three rows whose declaration is
+  invisible to the scanner failed on the checkout with a cause line naming a command its declaration lists:
+  closure-proof and cwd-axis-proof both report `git ls-tree -r --name-only HEAD -- docs/evidence/agents → exit 128`
+  and declare `git ls-tree + git cat-file --batch (sw.proofCorpus)`; drive-axis reports
+  `git archive HEAD → exit 128` and declares `git archive HEAD once per sw.isolatedCheckout call`. That agreement
+  is not yet a gate — it is measured by hand here — and grading a declaration against the failure the row itself
+  reports is the obvious next increment, because it is the only way a confession becomes more than a sentence.
+- **Adding prose to a row moves ONE grammar and not the other.** The declaration comments introduced the word git
+  into the prose of `drive-axis-proof.mjs`, which had not spelled it before: the naive count went 54 → 56 and
+  drive-axis joined the prose-only list, while the code-position count went 49 → 50 only because the new proof
+  spawns git inside a wrapper. Same population, two grammars, two answers — which is why every number in this
+  directory travels with the grammar and the plane that produced it.
+- **The migration's own defect, caught before it shipped.** Routing `rowBudget` through the new reader left
+  `const raw = all[0][1]` — a regex-era habit, correct while `declarations` returned match arrays, and now reading
+  the SECOND CHARACTER of the payload. `// sweep-budget-ms: 900000` became `0`, which the function refuses as "no
+  duration is asked for"; every declared budget in the population would have been refused, `isolated-proof.mjs`
+  would have been killed at the runner's 240 000 ms default, and the red would have been filed as a slow build. §5
+  is now written to fail on exactly that shape: 12 budget cases graded at a STATED VALUE (4 of them must be obeyed,
+  6 must be refused or defaulted), plus a census arm that re-reads each marker line by hand and holds the obeyed
+  number to the number the bytes spell — `3 rows declare milliseconds (isolated-proof.mjs=900000,
+  reap-proof.mjs=600000, table-recount-proof.mjs=300000) and every one is obeyed at the number its own bytes hold`.
+  Measured over the committed rows before shipping: 71/71 parse identically under both grammars, so this closed a
+  hole the population does not exercise (no row today quotes a budget marker) rather than healing an incident —
+  stated that way rather than as a save.
+- **Independent reconciliation, so the runner is not its own witness.** A second path in `%TEMP%` lists the
+  population with `git ls-tree` + `git show` and applies the exported rules directly: `scored rows 72 · predicted
+  askers 50 (program=115 argv=124, total 239 call sites) · naive 56 · prose-only 6 · declared 4 … corroborated 1 …
+  uncorroborated 3 … empty attempts none · declared budgets 3 … ceiling 3600000 · default 240000` — the same
+  numbers the runner printed, reached by a different reader of the same bytes.
+- **The table gate re-ran because this amendment touched a row it grades.** `table-recount-proof.mjs` gained a
+  declaration comment; at 2755c0a it is exit 0 with `runtime rows 354 over 26 files · measured 354` and
+  `exec-host rows 275/8 · measured 275/8`, `failing TRACKED cases: 0`, 4/4 mutations caught, graded-tree digest
+  `b0ec9a2cc51138ec` stable. A proof's own bytes changing must not move the numbers it reports, and here they did
+  not.
+- **Refusals, limits, and seven shapes measured rather than reasoned about.** A declaration is not evidence: the
+  runner cannot verify what only the declaring row could know, so the honest reading of `1 corroborated / 3 not` is
+  that one arm is checkable and three are trust-me — the gain is that a reader can now SEE which is which. Five
+  edge shapes were measured against the committed reader and frozen as §1 cases: a marker inside a template
+  interpolation does not declare (the recursive `gitReaches(interp)` is called without a sink, so a nested frame can
+  be counted and cannot speak); `/* c */ // sweep-asks-repository: …` does not declare, because the line does not
+  start at column 0; a `/** … */` JSDoc line does not; a marker after a shebang does; a `/*` inside a line comment is
+  payload text. Also recorded against my own tooling, because it is the same failure the population keeps catching:
+  the first waiter for this run declared DONE at 30 of 72 rows, because it grepped `[summary]` UNANCHORED and
+  `color-proof.mjs`'s stdout contains `[summary] faces measured: …` — the runner writes a row's whole stdout into
+  one `:: ` segment, so an unanchored pattern on a token the population is allowed to print matches the population.
+  The corrected waiter anchored `^\[summary\] ref `, a line only the runner can produce.
+- **Next.** v95 candidate: make a confession GRADEABLE — for every declaring red, test whether the command the
+  declaration names appears in the cause the row itself reported (3 of 3 hold by hand above, and one of the three
+  declares a command that did NOT appear in its cause, which is the interesting case: a row may confess more than it
+  asks, or ask something it never reaches). Then the declaration channel stops being foreknowledge and starts being
+  a claim with a verdict on it.

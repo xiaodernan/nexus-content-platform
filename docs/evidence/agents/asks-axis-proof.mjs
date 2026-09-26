@@ -84,6 +84,13 @@ const cases = [
   ['export const A = "// sweep-asks-repository: git x";\n', 0, 'a marker in a string on ONE line, code before and after'],
   ['// sweep-asks-repository: git rev-parse HEAD\n// and it also runs git status\n', 1, 'the line AFTER the marker is NOT a continuation — a payload is ONE line, so a claim that needs two must be written on one (this case exists because my first four declarations were three lines each and the census printed them cut mid-word)'],
   ['// sweep-asks-repository: git rev-parse HEAD\n// sweep-asks-repository: git status\n', 2, 'two marker lines are two claims, and the runner prints both — nothing deduplicates what a row says twice'],
+  // Five shapes measured against the committed reader rather than reasoned about: each one is a place a row's
+  // bytes could LOOK like a declaration without the walker entering a code-position line comment there.
+  ['const t = `x ${\'// sweep-asks-repository: git rev-parse HEAD\'} y`;\n', 0, 'a marker inside a TEMPLATE INTERPOLATION does not declare: the walker re-enters ${…} for CALLS but with no sink, so a nested frame can be counted and cannot speak'],
+  ['/* c */ // sweep-asks-repository: git status\n', 0, 'a block comment BEFORE the marker on the same line means the line does not start at column 0 — the grammar stays anchored, and this case is here so that is never a surprise'],
+  ['/**\n * sweep-asks-repository: git rev-parse HEAD\n */\n', 0, 'a JSDoc line is inside a block comment, so the star-first column is not a marker column'],
+  ['#!/usr/bin/env node\n// sweep-asks-repository: git rev-parse HEAD\n', 1, 'a shebang before the marker does not unmake it — lineStart is measured from the newline, not from byte 0'],
+  ['// sweep-asks-repository: git status /* still the payload */\n', 1, 'a /* inside a LINE comment is payload text, not a block: the comment runs to end of line'],
 ];
 const bad = [];
 for (const [src, want, why] of cases) {
