@@ -39,6 +39,10 @@ console.log('[0] the runner reports what a child sees, not what the caller passe
 const censusStarted = Date.now();
 // One batch read of the population, kept and handed to both sweeps below: `proofCorpus` self-checks its
 // stream parser against the slow single-blob path at the first and the last file.
+// The second blind spot M2 v93 named: every git call this row makes is in ANOTHER FILE — docs/evidence/agents/
+// sweep.mjs, one frame down the stack — so a scan of these bytes cannot foresee the exit 128 a checkout gives it.
+// Stating the reach is what lets the runner account for this row's red from the inside (amendment 94).
+// sweep-asks-repository: git ls-tree + git cat-file --batch (sw.proofCorpus) · git archive HEAD (sw.isolatedCheckout) · a nested sweep (sw.runSweep) — every call is in sweep.mjs, not in these bytes
 const corpus = await sw.proofCorpus('HEAD', root);
 const idioms = await sw.proofImportIdioms('HEAD', root, corpus);
 const censusMs = Date.now() - censusStarted;

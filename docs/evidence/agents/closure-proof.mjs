@@ -45,6 +45,10 @@ const sh = (cmd, argv, cwd = root) => new Promise((res) => {
   p.on('close', (code) => res({ code, out, err }));
 });
 
+// M2 v93 named this row as a blind spot of its own prediction: its git calls reach the repository through THIS
+// file's wrapper, whose program position holds a PARAMETER, and through a helper in ANOTHER FILE — so no
+// call-site scan of these bytes can see a spawn of git at all. v94 lets the row state the reach itself.
+// sweep-asks-repository: git rev-parse HEAD (twice) · git show HEAD:docs/evidence/lib/syncproc.mjs — all three through the sh(cmd, argv) wrapper whose program position is a PARAMETER · git ls-tree + git cat-file --batch via sw.proofCorpus, which is a call in sweep.mjs
 const homeHead = (await sh('git', ['rev-parse', 'HEAD'])).out.trim();
 
 // ── §1 the resolver: git's slash space, the importer's own directory as the base ──

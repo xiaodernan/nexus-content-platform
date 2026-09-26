@@ -85,11 +85,17 @@ export const MAX_ROW_BUDGET_MS = 3_600_000;
  * obeyed silently — `null`-style honesty, as in v80's census.
  */
 export function rowBudget(text, fallback = DEFAULT_PROOF_TIMEOUT_MS) {
-  const all = [...String(text).matchAll(/^\/\/[ \t]*sweep-budget-ms:[ \t]*([^\n]*?)[ \t]*$/gm)];
+  // v94: read through the same code-position tokenizer that reads `sweep-asks-repository`, so a budget marker
+  // quoted inside a string or a block comment cannot buy a row extra milliseconds. Measured over HEAD's 71 scored
+  // rows before shipping: both grammars agree on ALL 71 (three declarations — 900 000 / 600 000 / 300 000 ms —
+  // parse to the same value either way), so this closes a hole the population does not yet exercise, and the
+  // number a sweep was graded with does not move. `asks-axis-proof.mjs` §5 holds the reader to the PAYLOAD it
+  // was handed, because the migration itself first shipped `all[0][1]` — the second CHARACTER of the payload.
+  const all = declarations(text, 'sweep-budget-ms');
   if (all.length === 0) return { budgetMs: fallback, budgetSource: 'default', note: null };
   const refuse = (note) => ({ budgetMs: fallback, budgetSource: 'refused', note });
   if (all.length > 1) return refuse(`${all.length} declarations — a row names its budget once, and the runner will not guess which`);
-  const raw = all[0][1];
+  const raw = all[0];
   if (!/^\d+$/.test(raw)) return refuse(`declared ${JSON.stringify(raw)} is not a whole number of milliseconds`);
   const n = Number(raw);
   if (n <= 0) return refuse(`declared ${n}ms — no duration is asked for, so this is not a budget`);
@@ -532,7 +538,7 @@ export function relativeSpecs(text) {
 export const SPAWN_FAMILY = new Set(['execFileSync', 'execFile', 'spawnSync', 'spawn', 'execSync', 'exec', 'fork', 'run', 'runSync']);
 export const GIT_PROGRAM = (s) => s === 'git' || s === 'git.exe' || /^git\s/.test(s);
 
-export function gitReaches(src) {
+export function gitReaches(src, sink) {
   const text = String(src ?? '');
   const hits = [];
   const stack = [];
@@ -544,7 +550,13 @@ export function gitReaches(src) {
     const c = text[i];
     const d = text[i + 1];
     if (c === '/' && d === '/') {
+      // The comment's own text is a channel a row can speak through (v94: `// sweep-asks-repository:`), so it
+      // is handed to the sink WITH the fact of whether `//` opened the line. Same tokenizer, one grammar —
+      // a declaration inside a string never reaches this branch at all.
+      const lineStart = i === 0 || text[i - 1] === '\n';
+      const bodyFrom = i + 2;
       while (i < text.length && text[i] !== '\n') i++;
+      if (sink) (sink.lineComments ??= []).push({ body: text.slice(bodyFrom, i).replace(/\r$/, ''), lineStart });
       continue;
     }
     if (c === '/' && d === '*') {
@@ -606,6 +618,38 @@ export function gitReaches(src) {
 
 /** The naive second grammar (amendment 89's rule: two grammars, one question): the word git ANYWHERE. */
 export const mentionsGit = (text) => /\bgit\b/.test(String(text ?? ''));
+
+/**
+ * What a row says ITSELF that it asks the repository (M2 v94), in a first-column comment:
+ *
+ *     // sweep-asks-repository: git rev-parse HEAD
+ *
+ * The declaration grammar is amendment 85's (`// sweep-budget-ms:`) — a line the ROW owns, read out of the ref's
+ * bytes, refused out loud when malformed — and it exists because amendment 93 measured the two shapes a
+ * call-site scanner cannot see: `const sh = (cmd, argv) => execFile(cmd, argv)` puts a PARAMETER in program
+ * position, and a row that reaches git through this file's own helpers spawns one frame away from where the
+ * scanner looks. Three rows went red on the clean-checkout plane for causes the prediction foresaw but could
+ * not name. A row can name them.
+ *
+ * A declaration changes NO behaviour: it does not skip a row, does not grant a fallback, does not soften a
+ * verdict (amendment 86's rule against a green that graded nothing). It is foreknowledge the runner can be
+ * reconciled against, which is the only thing that makes a claim like "every failure was accounted for"
+ * checkable instead of rhetorical.
+ *
+ * Read through the SAME tokenizer as `gitReaches` (the sink below), so a quotation of a declaration inside a
+ * string or a block comment cannot declare anything — amendment 89's discipline applied to a confession.
+ */
+export const ASKS_RE = /^[ \t]*sweep-asks-repository:[ \t]*([^\r]*?)[ \t]*$/;
+
+/** Every payload of a first-column `// <marker>: …` comment, at code position only. */
+export function declarations(src, marker) {
+  const sink = { lineComments: [] };
+  gitReaches(src, sink);
+  const re = new RegExp(`^[ \\t]*${marker}:[ \\t]*([^\\r]*?)[ \\t]*$`);
+  return sink.lineComments.filter((c) => c.lineStart).map((c) => re.exec(c.body)).filter(Boolean).map((m) => m[1]);
+}
+
+export const asksRepository = (src) => declarations(src, 'sweep-asks-repository');
 
 /**
  * Resolve a relative specifier against the IMPORTING FILE's repo-relative path, in git's slash space.
@@ -1053,6 +1097,7 @@ export async function runSweep({ ref = 'HEAD', only = null, cwd = process.cwd(),
   // about `.git`. Asking the ref's bytes the same question BEFORE the rows turns that into a prediction, and
   // a prediction is the only thing the verdicts can be reconciled against afterwards.
   const reaches = new Map(runCorpus.rows.map((r) => [r.name, gitReaches(r.text)]));
+  const pred0 = new Set([...reaches.entries()].filter(([, h]) => h.length > 0).map(([n]) => n));
   const askerNames = [...reaches.entries()].filter(([, h]) => h.length > 0).map(([n]) => n.split('/').pop());
   const naiveAskers = runCorpus.rows.filter((r) => mentionsGit(r.text)).length;
   const hits = [...reaches.values()].flat();
@@ -1060,6 +1105,18 @@ export async function runSweep({ ref = 'HEAD', only = null, cwd = process.cwd(),
   for (const h of hits) byRule[h.via] = (byRule[h.via] ?? 0) + 1;
   const planeSays = childTree.unavailable ? 'the child tree was not readable, so no prediction is offered' : childTree.gitRepo ? 'this tree HAS a .git, so these rows can be answered' : 'this tree has NO .git, so these rows must fall back or go red';
   log(`[identity] plane axis: ${askerNames.length}/${runCorpus.rows.length} tracked proofs reach a git child process AT CODE POSITION (${hits.length} call sites: ${Object.entries(byRule).map(([k, v]) => `${k}=${v}`).join(' ')}) — ${askerNames.slice(0, 6).join(', ')}${askerNames.length > 6 ? ` …${askerNames.length - 6} more` : ''} · a naive "the word git appears anywhere" rule calls ${naiveAskers}, and the ${naiveAskers - askerNames.length}-row difference is prose and comments, which cannot spawn (amendment 89) · ${planeSays}`);
+  // v94: the prediction has two named blind spots (amendment 93), and neither is reachable from the outside,
+  // because both hide a git call behind a frame the scanner does not enter — a wrapper whose program position
+  // holds a PARAMETER, and this file's own helpers. A declaration is the channel the CALLER can use: the row
+  // states what it asks, and the runner reconciles three sources instead of one. Nothing here changes behavior
+  // — no row is skipped, no fallback is granted — and a declaration the scanner CAN see is corroborated, while
+  // one it cannot is the blind spot closing.
+  const declared = new Map(runCorpus.rows.map((r) => [r.name, asksRepository(r.text).filter((p) => p.trim() !== '')]).filter(([, a]) => a.length > 0));
+  const emptyPayloads = runCorpus.rows.filter((r) => asksRepository(r.text).some((p) => p.trim() === '')).map((r) => r.name);
+  const declaredNames = [...declared.keys()];
+  const corroborated = declaredNames.filter((n) => pred0.has(n));
+  const uncorroborated = declaredNames.filter((n) => !pred0.has(n));
+  log(`[identity] asks axis: ${declaredNames.length}/${runCorpus.rows.length} tracked proofs DECLARE what they ask the repository (// sweep-asks-repository:)${declaredNames.length === 0 ? ' — NONE at this ref, so this axis has nothing to reconcile and is printed as an empty measurement, not a pass (amendment 86: a line that graded nothing may not read as though it did)' : ` — ${corroborated.length} of them corroborated by the code-position scanner above, ${uncorroborated.length} NOT visible to it (${uncorroborated.map((n) => n.split('/').pop()).join(', ') || 'none'}), which is exactly the channel amendment 93's two blind shapes need`}${emptyPayloads.length ? ` · ${emptyPayloads.length} rows attempted a declaration and named nothing (${emptyPayloads.map((n) => n.split('/').pop()).join(', ')}) — refused out loud, as a budget that is not a number is refused, and the row keeps its red` : ''} · a declaration buys foreknowledge, never a pass: the row still runs and the plane still answers`);
 
   const dest = mkdtempSync(join(tmpdir(), 'nexus-sweep-'));
   const started = Date.now();
@@ -1136,7 +1193,7 @@ export async function runSweep({ ref = 'HEAD', only = null, cwd = process.cwd(),
   // see how it reaches git, or it fails for a cause of its own — the reason line says which), and a row that
   // WAS predicted and came back green, which is a fallback arm doing its job or a git call that is the
   // SUBJECT of the test rather than its tool.
-  const pred = new Set([...reaches.entries()].filter(([, h]) => h.length > 0).map(([n]) => n));
+  const pred = pred0;
   if (results.length === runCorpus.rows.length) {
     const names = (rs) => (rs.length ? rs.map((r) => r.name.split('/').pop()).join(', ') : 'none');
     const namesGit = (r) => /\bgit\b/.test(String(r.reason ?? ''));
@@ -1144,11 +1201,19 @@ export async function runSweep({ ref = 'HEAD', only = null, cwd = process.cwd(),
     const fellBack = results.filter((r) => r.ok && pred.has(r.name));
     const redAccounted = failed.filter((r) => pred.has(r.name));
     log(`[plane axis] prediction vs verdicts: ${pred.size} rows predicted to reach git · red AND predicted ${redAccounted.length} (of which ${redAccounted.filter(namesGit).length} name git in their reason line) · RED WITHOUT being predicted ${unforeseen.length} (${names(unforeseen)}; of these ${unforeseen.filter(namesGit).length} do name git, so the rest fail for a cause of their own) · GREEN while predicted ${fellBack.length} (${names(fellBack)}) · an empty "red without being predicted" list is the gate: every failure is accounted for by the prediction`);
+    // v94: the line above asks the RUNNER to have foreseen every red. Three rows could not be foreseen from
+    // outside, because their git call hides behind a frame the scanner does not enter — but a row can name its
+    // own reach. This is the same gate with a second channel into it, and it is printed separately so
+    // amendment 93's numbers stay comparable across refs instead of being rewritten under a new grammar.
+    const foreseen = (r) => pred.has(r.name) || declared.has(r.name);
+    const notForeseen = failed.filter((r) => !foreseen(r));
+    const redDeclared = failed.filter((r) => declared.has(r.name));
+    log(`[asks axis] declaration vs prediction vs verdicts: ${declaredNames.length} rows declared what they ask (${uncorroborated.length} of them invisible to the code-position scanner — ${uncorroborated.map((n) => n.split('/').pop()).join(', ') || 'none'}) · red AND declared ${redDeclared.length} of ${failed.length} red · RED with NEITHER prediction NOR declaration ${notForeseen.length} (${names(notForeseen)}) · the gate is this last number: amendment 93 could only ask the runner to foresee every red, and these three rows were beyond what a call-site scan can foresee; a row that states its own reach closes the list from the inside`);
   } else {
-    log(`[plane axis] prediction withheld from the reconciliation: this run graded ${results.length} of ${runCorpus.rows.length} tracked proofs (--only), and one row says nothing about the population`);
+    log(`[plane axis] BOTH reconciliations withheld (the [plane axis] and [asks axis] lines below would have been these): this run graded ${results.length} of ${runCorpus.rows.length} tracked proofs (--only), and one row says nothing about the population`);
   }
   log(`\n[summary] ref ${id.sha.slice(0, 12)} · scripts ${results.length} · failed ${failed.length} · killed ${killed.length} (${killedByRunner} at the runner's default, ${killed.length - killedByRunner} at a budget the row named) · child cwd ${probe.cwd} · graded build ${childBuild.digest.slice(0, 16)} (${childBuild.files} dist files${childStable ? ', stable across the run' : ', BUILD MOVED mid-run'})${runCwd === cwd ? '' : ` · runner's own build ${id.distDigest.slice(0, 16)}${stable ? ' stable' : ' MOVED'}`} · tree ${childTree.unavailable ? `UNDIGESTABLE (${childTree.unavailable.slice(0, 60)})` : `${childTree.digest.slice(0, 16)} (${treeNotice ? 'MOVED mid-run' : 'stable'}) ${childTree.files} files`} · dirty-sources ${id.dirtySources.length} · ${Math.round((Date.now() - started) / 1000)}s`);
-  return { identity: id, results, failed, dir: dest, distStable: stable, distAfter: after, treeStable: treeNotice === null, treeAfter: childTreeAfter, treeNotice, proofsCwd: runCwd, childProbe: probe, childBuild, childBuildAfter, childStable, importIdioms: idioms, childTree, planeAxis: { predicted: [...pred], naiveMentions: naiveAskers, corpus: runCorpus.rows.length } };
+  return { identity: id, results, failed, dir: dest, distStable: stable, distAfter: after, treeStable: treeNotice === null, treeAfter: childTreeAfter, treeNotice, proofsCwd: runCwd, childProbe: probe, childBuild, childBuildAfter, childStable, importIdioms: idioms, childTree, planeAxis: { predicted: [...pred], naiveMentions: naiveAskers, corpus: runCorpus.rows.length }, asksAxis: { declared: declaredNames.map((n) => n.split('/').pop()), corroborated: corroborated.length, uncorroborated: uncorroborated.map((n) => n.split('/').pop()) } };
 }
 
 if (isMainModule(import.meta.url)) {

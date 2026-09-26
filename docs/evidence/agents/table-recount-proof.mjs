@@ -27,6 +27,10 @@ import { tmpdir } from 'node:os';
 import { join, relative } from 'node:path';
 
 const README = 'docs/evidence/agents/README.md';
+// The corroborated arm of the v94 axis: every git call this row makes is written IN this file, in a spawn-family
+// call's program position, so sweep.mjs's code-position scanner sees the reach without being told. Its declaration
+// is therefore a claim the runner can check against the bytes rather than take on the row's word.
+// sweep-asks-repository: git rev-parse --show-toplevel · git show HEAD:docs/evidence/agents/README.md · git ls-tree · git diff --name-only · git status --porcelain
 const PKGS = [
   { label: 'runtime', root: 'agents/runtime', testDir: 'agents/runtime/test', prose: 'runtime' },
   { label: 'exec-host', root: 'agents/exec-host', testDir: 'agents/exec-host/test', prose: 'exec-host' },

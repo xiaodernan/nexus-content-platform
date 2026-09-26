@@ -122,6 +122,10 @@ console.log(`[2] ${same.tag}: relative() → ${JSON.stringify(same.rel)} · isAb
 // --- §3 the runner's choice: the default, and a caller who asks for the other one ---
 console.log('§3 修完之后：默认落在仓库那个盘，调用方指定的盘照旧但要说出来');
 const homeBefore = sw.distDigest(root);
+// The second blind shape M2 v93 named, in its purest form: this row never writes the word git in a call at all,
+// it asks the runner's own helper to materialise the ref, so the spawn is one frame away from these bytes and the
+// exit 128 a checkout gives this row was unforeseeable from outside. The row can say it (amendment 94).
+// sweep-asks-repository: git archive HEAD once per sw.isolatedCheckout call — the default-dest one below, plus the CROSS-DRIVE one when this host has a second drive — and these bytes themselves name no git call at all
 const dfltLines = [];
 const dflt = await sw.isolatedCheckout({ ref: 'HEAD', cwd: root, build: false, log: (l) => dfltLines.push(String(l)) });
 checkouts += 1;
