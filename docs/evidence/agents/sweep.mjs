@@ -511,6 +511,103 @@ export function relativeSpecs(text) {
 
 
 /**
+ * Which rows ask the REPOSITORY about itself — counted from the ref's bytes, before any row runs (M2 v93).
+ *
+ * Amendment 92 established the axis with a number read off a finished run: 43 of 43 reds shared one cause, a
+ * tree with no `.git`. Reading that number after the rows means every one of them rediscovered `exit 128` on
+ * its own. This is the same question asked of the bytes in advance, so the prediction can be RECONCILED with
+ * the verdicts afterwards — a disagreement is then a finding about the scanner or about a row, not a surprise.
+ *
+ * Amendment 89's discipline carries over: a string that merely says git is not a reach. So a literal counts
+ * only at code position (outside every comment and every string body, with `${ … }` re-entered as code) AND
+ * where a program name or an argv actually goes — R1 is the first argument of a call into the child-process
+ * family (node's names plus the `run`-shaped entries this host's `docs/evidence/lib/syncproc.mjs` bridge
+ * exports), R2 opens an ARRAY, because `['git','status','*']` is how the exec-host doors are driven: the host
+ * forks the child, not the proof. Measured over the population: 113 hits by R1, 124 by R2.
+ *
+ * What it cannot see is named rather than hidden, because the run reports it anyway: a program name bound to
+ * a variable first (`const sh = (cmd, argv) => …; sh('git', …)`) and a row that reaches git THROUGH this
+ * file's own helpers (`sw.proofCorpus`, `sw.isolatedCheckout`) both look like nothing to a call-site scanner.
+ */
+export const SPAWN_FAMILY = new Set(['execFileSync', 'execFile', 'spawnSync', 'spawn', 'execSync', 'exec', 'fork', 'run', 'runSync']);
+export const GIT_PROGRAM = (s) => s === 'git' || s === 'git.exe' || /^git\s/.test(s);
+
+export function gitReaches(src) {
+  const text = String(src ?? '');
+  const hits = [];
+  const stack = [];
+  let code = '';
+  let last = '';
+  let i = 0;
+  const familyFrame = () => [...stack].reverse().find((f) => f.callee && SPAWN_FAMILY.has(f.callee));
+  while (i < text.length) {
+    const c = text[i];
+    const d = text[i + 1];
+    if (c === '/' && d === '/') {
+      while (i < text.length && text[i] !== '\n') i++;
+      continue;
+    }
+    if (c === '/' && d === '*') {
+      i += 2;
+      while (i < text.length && !(text[i] === '*' && text[i + 1] === '/')) i++;
+      i += 2;
+      continue;
+    }
+    if (c === "'" || c === '"' || c === '`') {
+      const quote = c;
+      const top = stack[stack.length - 1];
+      const asProgram = last === '(' && top && top.callee && SPAWN_FAMILY.has(top.callee);
+      const asArgv = last === '[';
+      const asArm = (last === '?' || last === ':') && Boolean(familyFrame());
+      i++;
+      let body = '';
+      let interp = '';
+      while (i < text.length) {
+        if (text[i] === '\\') {
+          if (text[i + 1] !== '\n') body += text[i + 1];
+          i += 2;
+          continue;
+        }
+        if (text[i] === quote) {
+          i++;
+          break;
+        }
+        if (quote === '`' && text[i] === '$' && text[i + 1] === '{') {
+          let depth = 1;
+          i += 2;
+          while (i < text.length && depth > 0) {
+            if (text[i] === '{') depth++;
+            else if (text[i] === '}') depth--;
+            else interp += text[i];
+            i++;
+          }
+          continue;
+        }
+        body += text[i];
+        i++;
+      }
+      if (GIT_PROGRAM(body)) {
+        if (asProgram) hits.push({ via: 'program', callee: top.callee });
+        else if (asArgv) hits.push({ via: 'argv', callee: top ? top.callee : null });
+        else if (asArm) hits.push({ via: 'conditional', callee: familyFrame().callee });
+      }
+      for (const nested of gitReaches(interp)) hits.push({ ...nested, nested: true });
+      last = quote;
+      continue;
+    }
+    if (c === '(' || c === '[') stack.push({ callee: c === '(' ? ((/([A-Za-z_$][\w$.]*)\s*$/.exec(code) || [])[1] ?? null) : null });
+    else if (c === ')' || c === ']') stack.pop();
+    code += c;
+    if (!/\s/.test(c)) last = c;
+    i++;
+  }
+  return hits;
+}
+
+/** The naive second grammar (amendment 89's rule: two grammars, one question): the word git ANYWHERE. */
+export const mentionsGit = (text) => /\bgit\b/.test(String(text ?? ''));
+
+/**
  * Resolve a relative specifier against the IMPORTING FILE's repo-relative path, in git's slash space.
  *
  * `path.join` is deliberately not used: on this host it would produce backslashes, while every name that
@@ -952,6 +1049,17 @@ export async function runSweep({ ref = 'HEAD', only = null, cwd = process.cwd(),
   if (runCwd !== cwd) log(`[identity] build AT THAT cwd: ${childBuild.files} dist files, digest ${childBuild.digest.slice(0, 16)} — vs ${id.distDigest.slice(0, 16)} at the runner's cwd, so the two are not the same code`);
   log(`[identity] imports: ${idioms.childRelative}/${idioms.total} tracked proofs reach the code under test through the CHILD's cwd, ${idioms.fileRelative} through their own file location${idioms.unresolved.length ? `, ${idioms.unresolved.length} through neither (${idioms.unresolved.map((n) => n.split('/').pop()).join(', ')})` : ''} — so "the ref's bytes are what runs" describes the SCRIPTS, and this line's cwd decides the BUILD they grade`);
   log(`[identity] walked tree (read by the tree-walking scripts through the CHILD's cwd, so the WORKING TREE at ${runCwd} and not the ref's bytes): ${treeLabel(childTree)}${childTree.unavailable ? '' : ` · census ${childTree.gitRepo ? `tracked ${childTree.tracked} / untracked ${childTree.untracked} / ignored ${childTree.other}` : 'NO .git — every file here is the ref\'s'}`}`);
+  // v93: amendment 92 named a plane's whole cause with a number read off a FINISHED run — 43 reds, one line
+  // about `.git`. Asking the ref's bytes the same question BEFORE the rows turns that into a prediction, and
+  // a prediction is the only thing the verdicts can be reconciled against afterwards.
+  const reaches = new Map(runCorpus.rows.map((r) => [r.name, gitReaches(r.text)]));
+  const askerNames = [...reaches.entries()].filter(([, h]) => h.length > 0).map(([n]) => n.split('/').pop());
+  const naiveAskers = runCorpus.rows.filter((r) => mentionsGit(r.text)).length;
+  const hits = [...reaches.values()].flat();
+  const byRule = {};
+  for (const h of hits) byRule[h.via] = (byRule[h.via] ?? 0) + 1;
+  const planeSays = childTree.unavailable ? 'the child tree was not readable, so no prediction is offered' : childTree.gitRepo ? 'this tree HAS a .git, so these rows can be answered' : 'this tree has NO .git, so these rows must fall back or go red';
+  log(`[identity] plane axis: ${askerNames.length}/${runCorpus.rows.length} tracked proofs reach a git child process AT CODE POSITION (${hits.length} call sites: ${Object.entries(byRule).map(([k, v]) => `${k}=${v}`).join(' ')}) — ${askerNames.slice(0, 6).join(', ')}${askerNames.length > 6 ? ` …${askerNames.length - 6} more` : ''} · a naive "the word git appears anywhere" rule calls ${naiveAskers}, and the ${naiveAskers - askerNames.length}-row difference is prose and comments, which cannot spawn (amendment 89) · ${planeSays}`);
 
   const dest = mkdtempSync(join(tmpdir(), 'nexus-sweep-'));
   const started = Date.now();
@@ -1023,8 +1131,24 @@ export async function runSweep({ ref = 'HEAD', only = null, cwd = process.cwd(),
   const childBuildAfter = runCwd === cwd ? after : distDigest(runCwd);
   const childStable = childBuildAfter.digest === childBuild.digest;
   if (runCwd !== cwd && !childStable) log(`[identity] ⚠ the GRADED build moved during this run: ${childBuild.digest.slice(0, 16)} at the start, ${childBuildAfter.digest.slice(0, 16)} at the end, both at ${runCwd}`);
+  // v93: the prediction was printed BEFORE the rows, so the verdicts have to answer it afterwards. Two sets
+  // are the whole product: a row that went red without being predicted an asker (either the scanner cannot
+  // see how it reaches git, or it fails for a cause of its own — the reason line says which), and a row that
+  // WAS predicted and came back green, which is a fallback arm doing its job or a git call that is the
+  // SUBJECT of the test rather than its tool.
+  const pred = new Set([...reaches.entries()].filter(([, h]) => h.length > 0).map(([n]) => n));
+  if (results.length === runCorpus.rows.length) {
+    const names = (rs) => (rs.length ? rs.map((r) => r.name.split('/').pop()).join(', ') : 'none');
+    const namesGit = (r) => /\bgit\b/.test(String(r.reason ?? ''));
+    const unforeseen = failed.filter((r) => !pred.has(r.name));
+    const fellBack = results.filter((r) => r.ok && pred.has(r.name));
+    const redAccounted = failed.filter((r) => pred.has(r.name));
+    log(`[plane axis] prediction vs verdicts: ${pred.size} rows predicted to reach git · red AND predicted ${redAccounted.length} (of which ${redAccounted.filter(namesGit).length} name git in their reason line) · RED WITHOUT being predicted ${unforeseen.length} (${names(unforeseen)}; of these ${unforeseen.filter(namesGit).length} do name git, so the rest fail for a cause of their own) · GREEN while predicted ${fellBack.length} (${names(fellBack)}) · an empty "red without being predicted" list is the gate: every failure is accounted for by the prediction`);
+  } else {
+    log(`[plane axis] prediction withheld from the reconciliation: this run graded ${results.length} of ${runCorpus.rows.length} tracked proofs (--only), and one row says nothing about the population`);
+  }
   log(`\n[summary] ref ${id.sha.slice(0, 12)} · scripts ${results.length} · failed ${failed.length} · killed ${killed.length} (${killedByRunner} at the runner's default, ${killed.length - killedByRunner} at a budget the row named) · child cwd ${probe.cwd} · graded build ${childBuild.digest.slice(0, 16)} (${childBuild.files} dist files${childStable ? ', stable across the run' : ', BUILD MOVED mid-run'})${runCwd === cwd ? '' : ` · runner's own build ${id.distDigest.slice(0, 16)}${stable ? ' stable' : ' MOVED'}`} · tree ${childTree.unavailable ? `UNDIGESTABLE (${childTree.unavailable.slice(0, 60)})` : `${childTree.digest.slice(0, 16)} (${treeNotice ? 'MOVED mid-run' : 'stable'}) ${childTree.files} files`} · dirty-sources ${id.dirtySources.length} · ${Math.round((Date.now() - started) / 1000)}s`);
-  return { identity: id, results, failed, dir: dest, distStable: stable, distAfter: after, treeStable: treeNotice === null, treeAfter: childTreeAfter, treeNotice, proofsCwd: runCwd, childProbe: probe, childBuild, childBuildAfter, childStable, importIdioms: idioms, childTree };
+  return { identity: id, results, failed, dir: dest, distStable: stable, distAfter: after, treeStable: treeNotice === null, treeAfter: childTreeAfter, treeNotice, proofsCwd: runCwd, childProbe: probe, childBuild, childBuildAfter, childStable, importIdioms: idioms, childTree, planeAxis: { predicted: [...pred], naiveMentions: naiveAskers, corpus: runCorpus.rows.length } };
 }
 
 if (isMainModule(import.meta.url)) {
