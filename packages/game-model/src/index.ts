@@ -16,8 +16,13 @@
  * 另有 `STAT_HINTS` 给出**建议键名**供界面做占位提示——建议不是约束，
  * 不写进校验里（写成校验就等于我替需求加了它没写的限制）。
  *
- * §51 的游戏类型选择、§52/§53 的 Agent 编排、§50 的构建管线都不在这里：
- * 那些是 Game Studio 的事，本包只回答"一个游戏的设计由哪些实体构成、它们怎么互相引用"。
+ * **§51 的游戏类型是文档的一部分**（`kind`）：类型不是界面状态，它决定这份设计
+ * 由哪条构建管线去跑，所以跟着文档走、跟着快照发布（§16）。仍然不在这包里的：
+ * §52/§53 的 Agent 编排（要真 provider），以及"类型 → 管线"这条路在渲染层怎么画。
+ *
+ * `GAME_KIND_STATUS` 回答的是**这个平台今天接了哪几条管线**——它是关于平台的事实，
+ * 不是关于某份文档的事实，所以任何一处要显示"能不能跑"都必须从这里读，
+ * 各处各写一遍迟早会变成"界面说能跑、点进去是空的"（§159）。
  */
 
 /** §54 的 11 类实体，顺序照原文 */
@@ -100,12 +105,93 @@ export interface GameEntity {
   updatedAt: string;
 }
 
+/**
+ * §51 的游戏类型，顺序与用词照原文：
+ * `2D / 2.5D / 3D / Interactive Story / RPG prototype / Exploration / Puzzle / Visual Novel`
+ *
+ * 用连字符是因为它是文档字段，要同时当 zod 枚举、URL/图上的标识和 TS 字面量用；
+ * 原文的英文词另存 `GAME_KIND_TERMS`，契约测试拿它对齐，漂移要在测试里炸。
+ */
+export const GAME_KINDS = [
+  "2d",
+  "2.5d",
+  "3d",
+  "interactive-story",
+  "rpg-prototype",
+  "exploration",
+  "puzzle",
+  "visual-novel",
+] as const;
+
+export type GameKind = (typeof GAME_KINDS)[number];
+
+/** §51 原文的英文词，逐字：只用于契约测试与界面副标题，不是第二份清单真值 */
+export const GAME_KIND_TERMS = [
+  "2D",
+  "2.5D",
+  "3D",
+  "Interactive Story",
+  "RPG prototype",
+  "Exploration",
+  "Puzzle",
+  "Visual Novel",
+] as const;
+
+/** 8 类的中文名：面板下拉与状态说明用它，和 `GAME_ENTITY_LABELS` 同一条理由 */
+export const GAME_KIND_LABELS: Record<GameKind, string> = {
+  "2d": "2D",
+  "2.5d": "2.5D",
+  "3d": "3D",
+  "interactive-story": "互动故事",
+  "rpg-prototype": "RPG 原型",
+  exploration: "探索",
+  puzzle: "解谜",
+  "visual-novel": "视觉小说",
+};
+
+export function isGameKind(value: unknown): value is GameKind {
+  return typeof value === "string" && (GAME_KINDS as readonly string[]).includes(value);
+}
+
+/**
+ * 一条类型今天由哪条构建管线跑（`null` = 还没接），以及试玩页该说的那句话。
+ *
+ * 这张表就是 §51 的进度条：8 种里列了三种能跑的，其余五种**只有清单没有投影**，
+ * 界面上必须照这么说——把没接的类型渲染成"加载中"或者干脆给个空场子，
+ * 看起来和能跑没区别（§159）。
+ */
+export interface GameKindStatus {
+  /** `topdown` = §50 的俯视 2D 关卡；`story` = 对话驱动（互动故事 / 视觉小说共用）；null = 没接 */
+  pipeline: "topdown" | "story" | null;
+  /** 界面直接用的那句话，不许在这里写"敬请期待"式的空头承诺 */
+  note: string;
+}
+
+export const GAME_KIND_STATUS: Record<GameKind, GameKindStatus> = {
+  "2d": { pipeline: "topdown", note: "已接入：俯视 2D 关卡，位置与数值由 compileGame 投影出来。" },
+  "2.5d": { pipeline: null, note: "还没接：§51 列了这一种，但今天没有能把 2.5D 投影出来的管线。" },
+  "3d": { pipeline: null, note: "还没接：§51 列了这一种，但今天没有能把 3D 投影出来的管线。" },
+  "interactive-story": {
+    pipeline: "story",
+    note: "已接入：对话管线的最小实现——正文来自对话实体的说明，选择来自它指向其它对话的引用。",
+  },
+  "rpg-prototype": { pipeline: null, note: "还没接：数值与任务能填，但没有把它们串成成长/战斗循环的管线。" },
+  exploration: { pipeline: null, note: "还没接：§51 列了这一种，但今天没有探索向的投影。" },
+  puzzle: { pipeline: null, note: "还没接：§51 列了这一种，但今天没有解谜向的投影。" },
+  "visual-novel": {
+    pipeline: "story",
+    note: "已接入：与互动故事同一条对话管线，只有正文与选择，没有立绘/背景/音乐。",
+  },
+};
+
 export interface GameDocument {
   id: string;
   /** 游戏属于哪个项目；独立文档（还没挂到项目上）时为 null */
   projectId: string | null;
   name: string;
   summary: string;
+  /** §51：这份设计是给哪一种游戏做的。老文档没有这个字段，读进来时按 `2d` 补 */
+  kind: GameKind;
   entities: GameEntity[];
   createdAt: string;
   updatedAt: string;
@@ -162,6 +248,7 @@ export function createGame(name: string, projectId: string | null = null): GameD
     projectId,
     name: name.trim() || "未命名游戏",
     summary: "",
+    kind: "2d" as GameKind,
     entities: GAME_ENTITY_KINDS.map((kind) => ({
       id: uid("ge"),
       kind,
@@ -488,3 +575,4 @@ export function fleshedOutCount(document: GameDocument): number {
 export * from "./play";
 export * from "./sim";
 export * from "./playtest";
+export * from "./story";
