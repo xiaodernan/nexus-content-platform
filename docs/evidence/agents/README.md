@@ -2666,3 +2666,47 @@ command strings is a reach — §6's four claim payloads moved their own row fro
 population's argv census from 134 to 138, with no other file moving. That is pinned as two grammar cases rather
 than fixed, because the over-claim is already reported where it hurts (`green while predicted`) and narrowing the
 rule would rewrite the baseline amendment 93 keeps comparable.
+
+## Nine sentences could not be graded, and it turned out they were two different problems (`confession-proof.mjs`, M2 v96 — ADR 0016 amendment 96)
+
+Amendment 95 gave a confession two witnesses. The static one read the bytes a clause points at, found that only two
+of twelve clauses could be checked, and called the other nine `invisible`. That word was doing two jobs, and the
+proof of it is that the two jobs want opposite responses. In two of the nine, a frame the arm is allowed to read
+held the command the whole time — the clause had simply cited the wrong place, and a comment edit grades it. In the
+other seven, nothing the arm may consult names the command at all, because the reach hands its argv to a wrapper
+that takes a PARAMETER: the runner's own `git(argv, cwd)`, or the row's local `sh(cmd, argv)`. Fixing the first kind
+means writing a better sentence. "Fixing" the second would mean editing code so a checker can see it, and a rule
+that pushes the population toward its own green is the defect this directory has been reddening for since
+amendment 91.
+
+So each clause now carries the split beside its state. `gradeConfession` compares what is missing against the set
+of verbs that ARE nameable at code position anywhere in the runner or in the row's own bytes, and reports
+`fixable` and `dead`. The four states keep amendment 95's meanings, because a record that gets relabeled is a
+record that gets lost. The runner prints `MIS-CITED n`, and the row asserts it at zero — with a counterexample in
+the same run, because a gate that has never reddened is a sentence. `git archive HEAD via sw.runSweep` is invisible
+and mis-cited: `archive` is perfectly readable in `isolatedCheckout`, the clause just did not point there.
+`git archive HEAD via sw.isolatedCheckout` is supported. A five-case table beside them differs only in which verb
+and which frame each clause names, and one of those holds both residuals at once.
+
+The census before and after was measured, not remembered: `12 clauses · supported 2 · invisible 9 · fixable 2`
+became `14 clauses · supported 4 · invisible 9 · fixable 0`, with those nine invisible clauses' dead verbs
+resolving to five names —
+`diff, ls-tree, rev-parse, show, status`. `invisible` staying at 9 while the total grows is the split itself: each
+two-command claim became one claim the arm can read and one it provably cannot. And the ceiling has an address.
+`trackedProofs` writes `git(['ls-tree', …], cwd)` in the runner's own source, and the arm sees nothing, because the
+callee is the private wrapper named `git` whose body forwards a parameter — the file that scans the population for
+hidden reaches hides two of its own, and now says so with a number instead of a shrug.
+
+Two consequences worth keeping. The row's own file had to stop quoting another row: §4 used to carry a retyped copy
+of closure's declaration, and once the declaration changed that copy would have graded a sentence no commit owns —
+the amendment 89 mistake, in the file whose job is to catch it. §4 now reads the payload out of HEAD and insists the
+command set is the four expected verbs. And the population's argv census moved 138 → 143, all of it attributable:
+six new case lines each carry a command-string array (which amendment 95 pinned as a reach), the `no-command` case
+adds nothing because its array does not open with `git`, and the retired quotation subtracts one. The pinned
+over-prediction fired on the increment that cited it, and the arithmetic still closed.
+
+Nothing about a verdict moved. 73 rows, 4 declaring, 1 corroborated by the scanner, 3 visible only to the row
+itself, 51 predicted askers, 57 under the naive grammar, the graded-tree digest unchanged because no graded file
+changed — and `table-recount-proof.mjs` still has one reach that names no verb, so its five true claims stay
+unreadable until it cites the frame where its literal really lives. A better sentence buys a reader; it buys the row
+nothing.

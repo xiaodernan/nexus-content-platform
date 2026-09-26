@@ -4203,3 +4203,71 @@ disagreement is written down rather than smoothed over.
   same axes numbers as 174fc1e — the README is not a scored row, and no proof reads the ADR — at a cost of
   roughly twelve minutes and a different tree digest. The population figures in the amendment above therefore
   carry the ref that produced them, and a reader who wants 741b4b3's own `61265f575e9c6e92` has to ask for it.
+
+### Amendment 96 (M2 v96): the nine invisible confessions were two different failures wearing one label, so the byte arm splits them, the population re-cites its sentences, and the residual becomes a stated ceiling
+
+- **The defect was in a word, not in a number.** Amendment 95's byte arm returned `12 clauses — supported 2,
+  invisible 9, no-command 1`, and every one of those numbers was true. What it could not say is that `invisible`
+  was covering two residuals with opposite remedies. One kind is the author's: the clause names a command, the arm
+  looks where the clause points and finds nothing, and meanwhile a frame the arm is allowed to read holds that
+  literal the whole time — the sentence cited the wrong place, and one edit to a comment grades it. The other kind
+  is the arm's: no frame it may consult names the command at all, because every reach carries its verb into a
+  wrapper that takes a PARAMETER. Nothing short of changing the code would move that, and a checker that requires
+  it is a checker pressuring the population to flatter it (amendment 91's lesson turned against the arm's own
+  appetite). A report that cannot tell these apart invites widening the scanner until it flatters, which is exactly
+  what `confession-proof.mjs` §5 has an assertion on record to refuse.
+- **The split is two arrays per clause, and the four states do not move.** `gradeConfession` now also returns
+  `fixable` — the missing verbs some readable frame DOES name, where "readable" means at code position in any
+  definition of the runner or in the row's own bytes, the only two sources the arm may consult — and `dead` for the
+  rest. `supported / partial / invisible / no-command` keep amendment 95's meanings so its record stays comparable;
+  the runner prints `MIS-CITED n` beside them, and `confession-proof.mjs` §5 asserts that list is empty. That gate
+  has to be able to redden or it is decoration, so §3 grades the repair pair live in the same run:
+  `git archive HEAD via sw.runSweep` is invisible-and-mis-cited (the verb is readable in `isolatedCheckout`, the
+  clause just did not point there), while `git archive HEAD via sw.isolatedCheckout` is supported with nothing
+  missing. Beside it a five-case partition table differs only in which verb and which frame each clause names,
+  including the one clause that holds both residuals at once (`cat-file` citable, `ls-tree` dead, through a frame
+  that shows neither).
+- **The prediction was written down before the edit, and the arithmetic that surprised me is the honest part.**
+  Measured against the committed bytes first (`%TEMP%\nexus-v96\predict-v96.out`): the OLD payloads give
+  `12 clauses · supported 2 · invisible 9 · no-command 1 · fixable 2 · dead 9`. Both fixables were the same claim,
+  written in two rows — `git ls-tree + git cat-file --batch via sw.proofCorpus`. `proofCorpus` really does both
+  reads; what the arm cannot see is that its `cat-file` literal lives one frame down, in `catFileBatch`. So the
+  re-citation
+  was predicted to give `14 clauses · supported 4 · invisible 9 · no-command 1 · fixable 0 · dead 9`, and the run at
+  `ffb203f` reported exactly that, with the dead verbs `["diff","ls-tree","rev-parse","show","status"]`. Note the
+  middle number: invisible stays 9 while the total grows by 2, because each split trades one two-verb invisible
+  clause for one one-verb invisible clause. That is not a coincidence to be optimised away; it is the two residuals
+  separating.
+- **What the ceiling is made of, named by the file and the line.** `ls-tree` is the runner's own blindness:
+  `trackedProofs` writes `git(['ls-tree', '-r', '--name-only', ref, …], cwd)`, a command literal sitting in the
+  source, and the callee is the private wrapper `async function git(argv, cwd)` (sweep.mjs:146), whose own body
+  hands a parameter to `run('git', argv)`. `rev-parse`, `show`, `status` and `diff` are the same shape one level
+  down: `table-recount-proof.mjs` has exactly one reach at code position and it names no verb, which is why its
+  five true claims are unreadable. Over the whole runner only four definitions are readable and they hold two
+  verbs — `archive` in `isolatedCheckout`, `cat-file` in `catFileBatch`/`catFileBatchOptional`/`committedBlob`. A
+  depth-1 call graph would grade the rest and amendment 93 refused one on the record; the refusal still stands, so
+  what this increment ships instead is the number of what remains refused.
+- **Retiring my own stale quotation, and the census it paid for.** §4 used to carry a hard-coded copy of closure's
+  declaration. The moment the real declaration changed, that copy would have been grading a sentence no commit
+  owns — amendment 89's shape, reproduced in the file whose job is to catch it. §4 now reads closure's payload out
+  of HEAD and asserts its command set is the four expected verbs, so a silent narrowing of a declaration reddens
+  the proof instead of quietly shrinking a claim. The move cost exactly one population reach and the +5 the census
+  reported is fully attributed (`%TEMP%\nexus-v96\per-line-argv.out`): six of the new case-table lines each carry
+  one command-string array (158, 159, 160, 161, 172, 173), the `no-command` case adds nothing because its array
+  does not open with `git`, and the retired quotation subtracts one. `argv 138 → 143`, `program 116` unmoved.
+  Amendment 95 pinned "a DATA array of command strings is a reach" as a stated over-prediction; here it fired on
+  its own successor and the numbers still add up, which is the sign that a stated boundary is being used rather
+  than admired.
+- **Siblings re-run at the same ref, and the invariant that a re-citation buys nothing.** `plane-axis-proof.mjs`
+  exit 0, 17/17 grammar cases, predicted askers still 51, naive word count still 57 — only the call-site census
+  moved, and only by the +5 above. `asks-axis-proof.mjs` exit 0: 73 scored rows, 4 declaring, 1 corroborated by the
+  scanner, 3 visible only to the row itself — unmoved, which is the point: a better sentence about a reach changes
+  what the arm can read, not whether the row runs or why it breaks. `table-recount-proof.mjs` exit 0 with the
+  graded-tree digest `5606ad68f4844562` UNMOVED, correctly, because this commit changes no graded file.
+  `sweep.mjs` grew 95 472 → 97 207 B and §0 re-asserts disk == HEAD for it.
+- **Next.** The cause arm and the byte arm still read no word of this document: an amendment's own figures remain
+  re-runnable only from a log, never from the prose (`docs/decisions` has zero scored rows naming it), so the
+  record-vs-re-run row from amendment 95 is still the deeper open item. In this lane the smaller next step is
+  `table-recount-proof.mjs`'s own five claims: they are dead only because its single reach names no verb, and a row
+  that spawns git through a local helper could cite the frame where its literal really is — the same edit this
+  amendment made twice, on a row that has not asked for it yet. #142 and #117 are unchanged in the queue.
