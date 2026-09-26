@@ -433,14 +433,82 @@ async function catFileBatchOptional(queries, cwd) {
   return blobs;
 }
 
-/** Every relative (`./`, `../`) specifier a script imports from its OWN location, deduplicated. */
+/**
+ * Every relative (`./`, `../`) specifier the text ACTUALLY imports, deduplicated.
+ *
+ * M2 v89 corrected what v88 shipped. The first version matched `from '…'` anywhere in the BYTES, which is
+ * amendment 64's fault in a new costume: a quotation can wear an import's shape. The proof that found it was
+ * `closure-proof.mjs` itself — green standalone at 03:55, red in the sweep of `1c9c7ee` at 03:57 without one
+ * character of it changing, because the only thing that happened in between was that it got COMMITTED and so
+ * joined the population it scans. Its §1 hands a snippet of source text to this function inside a template
+ * literal, so the ref's copy of that proof "imported" `docs/evidence/lib/s.mjs` and
+ * `docs/evidence/agents/x.mjs`, and the identity block dutifully reported two unsatisfiable edges that exist
+ * only as sample code. Measured over the proof directory: the byte reader called 33 of 71 files an importer,
+ * the code-position reader calls 32 one, and the single difference is exactly that proof.
+ *
+ * So a specifier counts only when the token introducing it stands at CODE position — outside every comment
+ * and outside every string body. A template's `${ … }` interpolation IS code, so an import written there
+ * still counts, which is the asymmetry a line-based rule could never express.
+ */
 export function relativeSpecs(text) {
+  const src = String(text ?? '');
   const found = [];
-  for (const m of String(text).matchAll(/(?:\bfrom|\bimport)\s*\(?\s*(['"])([^'"]+)\1/g)) {
-    if (m[2].startsWith('.')) found.push(m[2]);
+  let code = ''; // the code-position text so far; only its tail can introduce a specifier
+  let i = 0;
+  const introduced = () => /(?:\bfrom|\bimport\s*\()\s*$/.test(code);
+  while (i < src.length) {
+    const c = src[i];
+    const d = src[i + 1];
+    if (c === '/' && d === '/') {
+      while (i < src.length && src[i] !== '\n') i++;
+      continue;
+    }
+    if (c === '/' && d === '*') {
+      i += 2;
+      while (i < src.length && !(src[i] === '*' && src[i + 1] === '/')) i++;
+      i += 2;
+      continue;
+    }
+    if (c === "'" || c === '"' || c === '`') {
+      const quote = c;
+      i++;
+      let body = '';
+      let interp = '';
+      while (i < src.length) {
+        if (src[i] === '\\') {
+          if (src[i + 1] !== '\n') body += src[i + 1];
+          i += 2;
+          continue;
+        }
+        if (src[i] === quote) {
+          i++;
+          break;
+        }
+        if (quote === '`' && src[i] === '$' && src[i + 1] === '{') {
+          let depth = 1;
+          i += 2;
+          while (i < src.length && depth > 0) {
+            if (src[i] === '{') depth++;
+            else if (src[i] === '}') depth--;
+            else interp += src[i];
+            i++;
+          }
+          continue;
+        }
+        body += src[i];
+        i++;
+      }
+      if (introduced() && body.startsWith('.')) found.push(body);
+      code = code.slice(-4000);
+      for (const nested of relativeSpecs(interp)) found.push(nested);
+      continue;
+    }
+    code += c;
+    i++;
   }
   return [...new Set(found)];
 }
+
 
 /**
  * Resolve a relative specifier against the IMPORTING FILE's repo-relative path, in git's slash space.

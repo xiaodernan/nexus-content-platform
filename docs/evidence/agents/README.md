@@ -2361,3 +2361,30 @@ because a raw equality there would be a red about a checkout filter rather than 
 Population-wide numbers for this commit's own tree are launched, not claimed: the runner is worktree code,
 and amendment 80's rule still bites — a fix that exists only in a worktree is invisible to a sweep of a ref
 until the ref carries it.
+
+## The sweep that graded itself, and the fixture that fooled it (M2 v89 — ADR 0016 amendment 89)
+
+Amendment 88 owed a number and the runner produced one: ref 1c9c7ee04061, 69 scripts, 5 failed, 0 killed,
+graded build 8b3ff8b0e7f62133 stable across the run, walked tree ecbdb9c3ceda569a stable at 219 files, dirty
+sources 0, 420 s. Against 35 reds before the closure fix, 30 rows moved to green — and the tree stayed still,
+because the commit landed before the sweep was launched rather than during it.
+
+The first defect the run exposed was this directory's newest file. closure-proof.mjs passed standalone at
+03:55 and failed in the 03:57 sweep with nothing changed but its being committed: section 1 hands a snippet of
+source to relativeSpecs inside a template literal, and the v88 reader matched a from-clause anywhere in the
+bytes, so the ref copy claimed to import two files that exist only as sample code, and the identity block
+faithfully reported them as unsatisfiable. A quotation can wear the shape of an import — v64 said the same
+about a diff body line wearing a header.
+
+The reader is now a scanner that counts a specifier only at CODE position, outside comments and string bodies,
+while a template interpolation still counts because there the text really is code. Over the 71 mjs files here:
+byte reader 33 importers, code-position reader 32, and the single difference is closure-proof.mjs itself. The
+fixture was not reworded; the reader got smarter, which is the only fix that keeps the class visible. After it
+the runner prints 32 of 69 with zero unsatisfiable and the proof passes as a sweep ROW, exit 0 in 5817 ms — the
+form of the claim that matters, since a proof must hold when it is materialised out of a ref.
+
+Four reds remain and every one is a witness contradicted by its own history: cwd-axis pins a census number
+that v86 changed, timeout-axis compares an anchored line rule against a git grep of MENTIONS inside a file
+full of quoted markers, reaper-survivor schedules a 500 ms kill against a 6074 ms host and asserts what
+happened after a subject that never ran, and isolated-proof is the known cross-drive arm. Each is measured
+already, so amendment 90 starts from evidence rather than from a guess.

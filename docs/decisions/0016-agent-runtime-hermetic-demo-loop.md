@@ -3545,3 +3545,45 @@ lib holds; the RUNNER did not._
   commit's own tree is what turns this from a local repair into a certified one, and it is launched rather
   than claimed here. (4) `missing` is empty on this ref; nothing in this amendment makes a proof that
   imports an untracked file pass — it makes the runner SAY which proof and which file, before the rows.
+
+## Amendment 89 — v89 (docs/evidence): the population sweep landed (69 rows, 5 red, 420 s), and the first defect it exposed was in amendment 88's own scanner, because a witness that scans the population must survive JOINING it
+
+- **The number amendments 85, 86 and 88 each deferred, quoted from the runner.** ref 1c9c7ee04061, 69
+  scripts, 5 failed, 0 killed, graded build 8b3ff8b0e7f62133 over 224 dist files and stable across the run,
+  walked tree ecbdb9c3ceda569a stable at 219 files, dirty sources 0, 420 seconds. Against the pre-fix run on
+  e04e3ae (68 rows, 35 red) the closure materialisation moved 30 rows from red to green. This time the walked
+  tree did NOT move during the run, because the commit landed before the sweep was launched rather than in the
+  middle of it — the discipline amendment 80 already stated and this cycle had violated once.
+- **The defect the sweep found belongs to this file.** closure-proof.mjs passed standalone at 03:55 and failed
+  inside the 03:57 sweep with nothing changed except that it had been COMMITTED, so it joined the population it
+  scans. Its section 1 hands a snippet of source text to relativeSpecs inside a template literal, and the v88
+  reader matched a from-clause anywhere in the BYTES, so the ref copy of that proof claimed to import
+  docs/evidence/lib/s.mjs and docs/evidence/agents/x.mjs. The identity block reported both as unsatisfiable and
+  named closure-proof.mjs as the wanter. That is amendment 64 in a new costume: a QUOTATION can wear the shape
+  of an import, just as a diff body line can wear the shape of a header.
+- **The fix, and what it deliberately is not.** relativeSpecs is now a scanner: a specifier counts only when
+  the token introducing it stands at CODE position, outside every comment and outside every string body, read
+  character by character. A template interpolation is genuinely code, so an import written inside a dollar
+  brace still counts, and that asymmetry is what no line-based or indentation rule can express. The fixture was
+  NOT reworded. Deleting the quotation that fooled the reader would hide the class and leave the next witness to
+  rediscover it; the fix belongs in the reader.
+- **Measured both ways before shipping.** Over the 71 mjs files in the proof directory the byte reader called
+  33 an importer and the code-position reader calls 32, and the only difference is closure-proof.mjs, which
+  goes from two phantom edges to none. The check re-implemented the v88 rule independently rather than importing
+  it, per amendment 81. After the fix the runner prints 32 of 69 with zero unsatisfiable, and closure-proof.mjs
+  passes AS A SWEEP ROW (exit 0, 5817 ms), which is the only form of the claim worth making: it has to hold for
+  a proof materialised out of a ref, not merely for one running from a worktree.
+- **The four reds that remain are witnesses contradicted by their own history, not host faults**, recorded so
+  the next increment starts from measurement. cwd-axis-proof asserts fileRelative equals zero, which amendment
+  86 falsified and 88 documented as 32; the expectation must be derived from the same bytes, not pinned.
+  timeout-axis-proof section 2 compares an anchored line rule over the worktree against a git grep count of
+  MENTIONS at the ref, and that file mentions the marker a dozen times inside its own fixtures, so the two
+  halves of one independence check ask different questions — an independent reader must be independent in
+  implementation, not in grammar. reaper-survivor-proof asserts a detached grandchild keeps writing after a kill
+  scheduled at a literal 500 ms on a box whose measured spawn-to-first-write latency is 6074 ms, so its subject
+  never lived and its own reason line said heartbeats 0 at report and 0 after 900 ms; that is amendment 86
+  rules 1 and 2 applied to a witness predating them. isolated-proof is the known cross-drive arm, needing
+  re-measurement rather than a verdict on the ref.
+- **What did not move.** No proof assertion, budget, argv, policy, checkpoint gate or selection rule; the
+  identity block gained no spawn, and the 32 real importers keep their edges byte for byte — the change answers
+  differently for exactly one file, and the rig asserts it is the one that quotes an import.
