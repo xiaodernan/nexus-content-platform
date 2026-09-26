@@ -57,6 +57,15 @@ interface Work {
 }
 
 /**
+ * 这三条要显式给超时，理由是**量出来的**：单跑（库里带着整套留下的存量）三条各是 2.8s / 1.1s / 7.6s，
+ * 而 2026-09-27 整套那一遍（532s，比 352s 的基线慢一半）三条全部撞在默认 30s 上。
+ * 放宽的是墙上时钟，不是断言——并列顺序、popular 反向对照那些判据一条没减。
+ * 90s 是对最重那条 7.6s 留约 12 倍余量。为什么不能继续留着 30s：超时被撑到时用例的写入**还在继续**，
+ * afterAll 的清场就会撞上外键——那一遍就是这样留下了 95 个删不掉的用户行。
+ */
+const HEAVY_MS = 90_000;
+
+/**
  * 把自己的卡片顶进"前 60"这个窗口（只影响 popular 那一段的对照）。
  *
  * `discover` 的 limit 硬夹在 60，而这台开发库里积了上百条公开版本（2026-09-27 清理后 99 条、
@@ -143,7 +152,7 @@ describe('Trending 排的是最近，不是累计', () => {
     expect(cumulative.indexOf(ancient.path)).toBeLessThan(cumulative.indexOf(hot.path));
     expect(popular.method).toBe(null);
     expect(popular.cards.find((card) => card.path === hot.path)!.score).toBeUndefined();
-  });
+  }, HEAVY_MS);
 
   it('屏蔽名单在 trending 里同样生效（过滤按查看者算，与排序无关）', async () => {
     // 只盯自己造的那一条：库里同时有别的用例发布的公开版本，用"有没有 /n/ 开头"当判据会串台
@@ -164,7 +173,7 @@ describe('Trending 排的是最近，不是累计', () => {
     expect(still.cards.some((card) => card.path === work.path)).toBe(true);
 
     await clearBlock(viewerId, authorId);
-  });
+  }, HEAVY_MS);
 
   /**
    * 同分排序要有卡片可测，而"卡片在不在这一页里"本身是个环境量：
@@ -238,5 +247,5 @@ describe('Trending 排的是最近，不是累计', () => {
         `同分卡片 ${a.path} / ${b.path} 的先后不是"发布时间倒序、再路径倒序"`,
       ).toBeGreaterThanOrEqual(0);
     }
-  });
+  }, HEAVY_MS);
 });
