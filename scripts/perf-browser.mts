@@ -272,6 +272,45 @@ async function propToCanvasLatency(scope: string): Promise<void> {
     await page.waitForTimeout(150);
   }
   record(`属性写入 → 画布更新${scope}`, 'ms', runs);
+  // PERF_PROFILE=1：再跑一次并抓 CPU 采样，把"那 1.2 秒在谁身上"按自时长列出来。
+  // 为什么留在脚本里而不是临时写个一次性探针：分段计数（store 里的 __studioPerf）已经证明
+  // 快照只占 20ms，剩下的要按函数归因才找得到——而这种归因每次优化完都要再看一眼。
+  if (process.env.PERF_PROFILE === '1') {
+    const cdp = await page.context().newCDPSession(page);
+    await cdp.send('Profiler.enable');
+    await cdp.send('Profiler.setSamplingInterval', { interval: 200 });
+    await page.click(`[data-node-id="${headline}"]`);
+    await page.waitForSelector('[data-prop="typography.fontSize"]', { timeout: 30_000 });
+    await cdp.send('Profiler.start');
+    // 采样窗口必须**确实盖住一次慢写入**：上一版只 fill 完等 2.5 秒，采出来 90% 是 idle，
+    // 那种图等于什么都没量。所以这里照测量那一轮的做法，先挂上 __propLatency 再 fill，
+    // 并把它的总时长打出来——只有这个数与前面几轮同量级，下面的归因才算数。
+    const pending = page.evaluate(
+      (id: string) => (window as any).__propLatency(id) as Promise<{ total: number }>,
+      headline,
+    );
+    await page.fill('[data-prop="typography.fontSize"]', '44');
+    const profiledTotal = (await pending).total;
+    await page.keyboard.press('Control+z');
+    const stopped = await cdp.send('Profiler.stop');
+    const nodes = (stopped.profile as unknown as { nodes: { id: number; hitCount?: number; callFrame: { functionName?: string; url?: string; lineNumber?: number } }[] }).nodes;
+    const samples = nodes.reduce((sum, n) => sum + (n.hitCount ?? 0), 0);
+    const ranked = nodes
+      .filter((n) => (n.hitCount ?? 0) > 0)
+      .map((n) => ({
+        self: n.hitCount ?? 0,
+        name: `${n.callFrame.functionName || '(anonymous)'} @ ${(n.callFrame.url || '').split('/').pop()}:${n.callFrame.lineNumber ?? 0}`,
+      }))
+      .sort((a, b) => b.self - a.self)
+      .slice(0, 12);
+    console.log(
+      `  CPU 采样：这一次写入总 ${Math.round(profiledTotal)}ms，窗口内命中 ${samples} 个样本，自时长最多的几段：`,
+    );
+    for (const item of ranked) {
+      console.log(`    ${((item.self / Math.max(1, samples)) * 100).toFixed(1)}%  ${item.name}`);
+    }
+    await cdp.detach();
+  }
   await page.screenshot({ path: `${OUT}perf-canvas.png` });
 }
 
