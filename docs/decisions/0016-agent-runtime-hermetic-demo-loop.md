@@ -3480,3 +3480,68 @@ which claim" is the thing this file keeps audit._
   reasons. (3) Agreement over a history that contains nothing dangerous is agreement over nothing, which
   is why `total`/`audited`/`skippedPolicyRecords` ship alongside the ratio rather than under it.
 
+
+## Amendment 88 — v88 (docs/evidence): the population is a CLOSURE, not a directory — 32 of 68 sweep rows were red because the runner could not stage a proof, and the row that hid the cause was a window of three lines
+
+_Numbering: 88 was free when this was written — `git log --oneline -3` tops out at `e12082a` (amendment
+86/87's bookkeeping) and this file's headings stop at 87. This amendment is the answer to the question
+amendment 86 left open on purpose: its bound (4) said "the full sweep against this commit's tree is owed,
+and is the only number that shows whether the lib holds under every proof's own load". The sweep ran. The
+lib holds; the RUNNER did not._
+
+- **The measured result, before any fix.** Ref `e04e3ae`: **68 rows, 35 red, 0 killed.** Of the 35, **32
+  were one class** — `ERR_MODULE_NOT_FOUND` — and the arithmetic closes exactly: the 32 proofs that import
+  `docs/evidence/lib/syncproc.mjs` (the census that amendment 86's own fix created) plus the three rows that
+  failed for their own reasons (`cwd-axis`, `isolated`, `timeout-axis`). Every one of those 32 was red
+  **without its assertion having run once**, and 26 of them printed an EMPTY reason field followed by
+  three lines of stack, because `materialize` wrote the ref's bytes **one file per proof into a flat temp
+  directory** — so the shared file was never fetched (it is outside the proof directory, which is what
+  `trackedProofs` lists) and `../lib` from a flat copy points OUTSIDE the copy regardless.
+- **Why this is the same fault, one level up.** Amendment 86 found that `ran: true` was a claim about ONE
+  spawn call rather than about a run, and that a silence measured over an absent subject is not a finding.
+  Here the runner asserted 32 reds about proofs whose bytes it had never been able to load. And the report
+  repeated the excerpt mistake amendment 63 named for the git doors: `errTail` is `headOf(stderr, 3)`, while
+  Node prints `Cannot find module '…' imported from …` as the **fourth** line. Widening the window would
+  only move the cut, so the runner now SCANS for the cause-shaped line and quotes it, and says
+  `NO NAMED CAUSE` out loud when the stream contains none.
+- **What landed.** (1) `relativeSpecs` + `resolveRelative` — git's slash space, the importer's own directory
+  as the base, because `path.join` on this host would produce backslashes and the two spaces must never meet
+  inside a lookup table. (2) `closureOf(ref, cwd, corpus)` splits every relative edge three ways: lands
+  inside the population / tracked elsewhere in the REF (fetched, attributed to its importers) / **in no commit
+  at all**, which is named in the identity block BEFORE the rows run rather than discovered 32 times after.
+  It reports its own depth limit (`nestedDeps`) instead of implying a transitive closure it does not take.
+  (3) `materialize` writes the ref's **directory shape**, not its basenames — a ref's SHAPE is part of what
+  it committed, and amendment 80's lesson ("a ref-materialised proof still reads `.`") had a mirror this
+  amendment found: a ref-materialised proof also *imports relative to where it stands*. (4) `runProof` gains
+  `reason` (the scanned cause line) beside `errTail` (the window), and a row whose stdout is empty prints
+  `(no stdout — the child never reached a print)` instead of a blank field, because "the subject never spoke"
+  is the finding, not a formatting gap.
+- **The census this corrects, in place.** `proofImportIdioms`'s comment said `fileRelative` **is 0** — true
+  when amendment 83 wrote it, and now false: the run prints **68/68 child-cwd · 32 file-relative**. The
+  comment carries the correction rather than being rewritten, because the number that made it false is the
+  number amendment 86's fix introduced.
+- **`closure-proof.mjs` (the 69th proof) and what would have made it lie.** §3 is the section that matters:
+  the SAME bytes from the SAME ref are run twice, and it is the LAYOUT that decides — faithful path
+  `exit 0` in 3 091 ms, flat basename `exit 1` in 182 ms. A fixture written by this file could not have
+  shown that: an invented "flat staging" would have tested this file's own guess about Node's resolver
+  instead of the population's real import. §4 then asserts the cause line sits BELOW the three the old
+  window quoted — without that the section would only prove the scanner finds a line that a wider `headOf`
+  would have found too. §2 checks the importer count against an independent scan of the same bytes, and
+  §2's byte-comparison of the fetched blob against the working copy **normalises line endings and says so**,
+  because git stores LF while this checkout may not; a raw equality there would have been a red about a
+  working-tree filter, not about the ref.
+- **What did NOT move.** No proof's assertions, no argv, no policy, no gate, no budget default, no row
+  selection: `--only`, the budgets, the digests, the isolated arm and the ref-materialisation contract are
+  byte-identical in behaviour. The dependency files are fetched and written but never run as rows, and
+  `materialize`'s return shape is unchanged, so every existing caller (`isolated-proof`, `tree-axis-proof`,
+  `provenance-proof`) keeps its contract.
+- **Bounds, stated rather than fixed.** (1) The closure is **depth 1**: a dependency that itself imports a
+  third file would be named by `nestedDeps` and NOT fetched — the proof asserts that list is empty today, so
+  the bound is live, not decorative. (2) Only **relative** specifiers are followed; a proof importing a bare
+  package specifier resolves it through `node_modules`, which the sweep never materialises (the child's cwd
+  is the repository, so the home `node_modules` answers — same build-vs-script split as amendment 83).
+  (3) The fix is in the RUNNER, which is worktree code: amendment 80's rule says a declaration that exists
+  only in a worktree cannot be seen by a sweep of a ref — so the 68-row population sweep against this
+  commit's own tree is what turns this from a local repair into a certified one, and it is launched rather
+  than claimed here. (4) `missing` is empty on this ref; nothing in this amendment makes a proof that
+  imports an untracked file pass — it makes the runner SAY which proof and which file, before the rows.

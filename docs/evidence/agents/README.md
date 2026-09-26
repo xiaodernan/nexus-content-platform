@@ -2329,3 +2329,35 @@ named failure class and the skip count, so one ledger line cannot read as a clea
 in view: it is a library whose only consumer today is its own proof; the dock's policy face does not show an
 audit line yet.
 
+
+## A proof is a closure, and a stack line is not a reason (`closure-proof.mjs`, M2 v88 — ADR 0016 amendment 88)
+
+The sweep amendment 86 owed came back: ref `e04e3ae`, **68 rows, 35 red, 0 killed**. Thirty-two of those
+reds shared one cause the runner itself supplied. Since v86, 32 tracked proofs import
+`docs/evidence/lib/syncproc.mjs` — outside the proof directory, which is the only thing `trackedProofs`
+lists — while `materialize` wrote every blob **flat** into a temp directory. So the import failed twice
+over: the file was never fetched, and `../lib` from a flat copy points outside the copy anyway. Those 32
+rows were red **without executing a single assertion**, and 26 of them printed an empty reason field and
+three lines of stack — `errTail` is `headOf(stderr, 3)`, and Node puts `Cannot find module '…' imported
+from …` on the **fourth** line.
+
+Four changes, all in the runner: relative specifiers are read out of the ref's bytes and resolved in git's
+slash space against the importer's own directory (`path.join` is avoided on purpose — this host emits
+backslashes and the two spaces must not meet in a lookup table); `closureOf` splits the edges into
+*inside the population / tracked elsewhere in the ref / in no commit at all*, prints the third group BEFORE
+any row runs, and reports its own depth limit rather than implying a transitive closure; `materialize`
+writes the ref's **directory shape**, because a shape is part of what a commit owns; and a row's `reason`
+is now a scanned cause line, with an empty stdout stated as "the child never reached a print" instead of a
+blank field. The census line `fileRelative is 0` (amendment 83) is corrected in place: it is 32 now, and
+the run says so — 68/68 child-cwd, 32 file-relative.
+
+The proof's §3 is the part that could not be faked: **the same bytes, twice, and only the layout differs** —
+faithful `policyaudit-proof.mjs` exit 0 in 3 091 ms, flat basename exit 1 in 182 ms. §4 then asserts the
+cause sits BELOW the three lines the old window quoted; without that, the section would only prove that a
+wider `headOf` works too. §2 cross-checks its own importer count against an independent scan of the same
+bytes, and compares the fetched blob to the working copy with line endings normalised **and labelled**,
+because a raw equality there would be a red about a checkout filter rather than about the ref.
+
+Population-wide numbers for this commit's own tree are launched, not claimed: the runner is worktree code,
+and amendment 80's rule still bites — a fix that exists only in a worktree is invisible to a sweep of a ref
+until the ref carries it.

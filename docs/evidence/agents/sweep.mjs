@@ -20,6 +20,17 @@
 // gets its own digest and ownership split in the `[identity]` block, and is re-checked after the last
 // script for the same reason the build is.
 //
+// M2 v88 adds the fourth half, which the first three never questioned: the population is a CLOSURE, not
+// a directory. Since amendment 86, 32 of the tracked proofs import a shared file that does not live in
+// `docs/evidence/agents`, and the materialiser wrote the ref's bytes ONE FILE PER PROOF into a flat temp
+// directory — so that import could not resolve twice over (the file was not fetched, and `../lib` from a
+// flat copy points outside the copy). Measured on ref `e04e3ae`: 35 of 68 rows red, 32 of them
+// `ERR_MODULE_NOT_FOUND`, and every one of those rows reported an EMPTY reason followed by a stack line,
+// because the only line that names the missing module is the FOURTH line of stderr and the runner quoted
+// three. A reader of that report could not tell "32 proofs broke" from "the runner cannot stage a proof",
+// which is the same mistake amendment 86 found in `ran: true`. Hence: fetch what the proofs import, in the
+// ref's own directory shape, and quote the sentence that names the cause instead of a window onto a stack.
+//
 // It is a HUMAN-RUN tool, not an agent door: it shells out to `git` with the ambient environment (§9 is
 // held by never writing inside the repository except into a temp dir OUTSIDE it — v84 added that the dir
 // is chosen on the repository's own DRIVE rather than wherever os.tmpdir() happens to be, because the
@@ -389,14 +400,128 @@ async function catFileBatch(queries, cwd, expected) {
   return blobs;
 }
 
+/**
+ * `git cat-file --batch` for objects that MAY NOT EXIST, answering `null` for the ones the ref lacks.
+ *
+ * The strict reader above cannot be reused for a closure probe: there, a missing object is the FINDING
+ * (v88's whole point is that a proof can import a file no commit owns), while here it would be a thrown
+ * error that hides every other answer in the same batch. Git's own shape is exact — `<query> missing` —
+ * so it is compared, not pattern-guessed.
+ */
+async function catFileBatchOptional(queries, cwd) {
+  const r = await run('git', ['cat-file', '--batch'], { cwd, timeoutMs: 300_000, encoding: 'buffer', stdin: queries.join('\n') + '\n', maxBuffer: 1 << 29 });
+  if (r.timedOut) throw new Error('git cat-file --batch (closure probe) timed out');
+  const out = r.stdout;
+  const blobs = [];
+  let pos = 0;
+  for (let i = 0; i < queries.length; i++) {
+    const nl = out.indexOf(0x0a, pos);
+    if (nl < 0) throw new Error(`cat-file --batch: no header for request ${i} of ${queries.length} (stream ended at ${pos})`);
+    const header = out.slice(pos, nl).toString('utf8').trim();
+    if (header === `${queries[i]} missing`) {
+      blobs.push(null);
+      pos = nl + 1;
+      continue;
+    }
+    const m = /^([0-9a-f]{7,40}) blob (\d+)$/.exec(header);
+    if (!m) throw new Error(`cat-file --batch: request ${i} answered ${header.slice(0, 80) || 'MISSING'} — neither a blob header nor an exact "missing"`);
+    const size = Number(m[2]);
+    if (nl + 1 + size > out.length) throw new Error(`cat-file --batch: header says ${size} B for request ${i} but the stream has ${out.length - nl - 1}`);
+    blobs.push(out.slice(nl + 1, nl + 1 + size));
+    pos = nl + 1 + size + 1;
+  }
+  return blobs;
+}
+
+/** Every relative (`./`, `../`) specifier a script imports from its OWN location, deduplicated. */
+export function relativeSpecs(text) {
+  const found = [];
+  for (const m of String(text).matchAll(/(?:\bfrom|\bimport)\s*\(?\s*(['"])([^'"]+)\1/g)) {
+    if (m[2].startsWith('.')) found.push(m[2]);
+  }
+  return [...new Set(found)];
+}
+
+/**
+ * Resolve a relative specifier against the IMPORTING FILE's repo-relative path, in git's slash space.
+ *
+ * `path.join` is deliberately not used: on this host it would produce backslashes, while every name that
+ * comes out of `git ls-files` uses forward ones, and the two spaces must not meet inside a lookup table.
+ */
+export const resolveRelative = (fromName, spec) => {
+  const segs = fromName.split('/').slice(0, -1);
+  for (const s of spec.split('/')) {
+    if (s === '' || s === '.') continue;
+    if (s === '..') segs.pop();
+    else segs.push(s);
+  }
+  return segs.join('/');
+};
+
+/**
+ * What the tracked proofs actually NEED beyond themselves (M2 v88).
+ *
+ * `trackedProofs` answers "which files are the population" and nothing answers "which files does the
+ * population read", so a proof may import a sibling the sweep never fetched — and since amendment 86 that
+ * is not hypothetical: `docs/evidence/lib/syncproc.mjs` is imported by 32 of the 68 tracked proofs, lives
+ * outside the proof directory, and is therefore absent from every flat materialisation. The symptom is 32
+ * rows of `ERR_MODULE_NOT_FOUND` in a report whose subject is the code under test, i.e. a runner that
+ * reddens the population for being staged.
+ *
+ * So: read the ref's bytes, resolve every relative specifier against the importer's own path, and split
+ * the targets three ways — already inside the corpus (a proof importing a proof), tracked elsewhere in the
+ * REF (a dependency this runner must fetch and lay down at its real relative path), or in no commit at all
+ * (a dependency that CANNOT be satisfied, which is named here rather than discovered 32 times later).
+ */
+export async function closureOf(ref, cwd, corpus = null) {
+  const rows = (corpus ?? (await proofCorpus(ref, cwd))).rows;
+  const inCorpus = new Set(rows.map((r) => r.name));
+  const edges = new Map();
+  let insideEdges = 0;
+  const importerSet = new Set();
+  for (const r of rows) {
+    for (const spec of relativeSpecs(r.text)) {
+      importerSet.add(r.name);
+      const target = resolveRelative(r.name, spec);
+      if (inCorpus.has(target)) {
+        insideEdges++;
+        continue;
+      }
+      if (!edges.has(target)) edges.set(target, []);
+      edges.get(target).push(r.name);
+    }
+  }
+  const candidates = [...edges.keys()];
+  const blobs = await catFileBatchOptional(candidates.map((t) => `${ref}:${t}`), cwd);
+  const deps = [];
+  const missing = [];
+  candidates.forEach((name, i) => {
+    const entry = { name, importers: [...new Set(edges.get(name))] };
+    if (blobs[i]) deps.push({ ...entry, bytes: blobs[i], sha: sha256(blobs[i]) });
+    else missing.push(entry);
+  });
+  // A dependency of a dependency would need this scan again, so the depth is reported, not assumed away.
+  const nested = deps.filter((d) => relativeSpecs(d.bytes.toString('utf8')).length > 0).map((d) => d.name);
+  return { total: rows.length, importers: importerSet.size, insideEdges, deps, missing, nestedDeps: nested };
+}
+
 /** Write the ref's bytes into a temp directory, one file per proof, and report what landed where. */
-export async function materialize(ref, dest, cwd, corpus = null) {
+export async function materialize(ref, dest, cwd, corpus = null, extra = null) {
   const rows = (corpus ?? (await proofCorpus(ref, cwd))).rows;
   const landed = [];
+  // v88: the ref's DIRECTORY SHAPE is part of its bytes. A flat copy cannot serve `../lib/x.mjs`, because
+  // `../lib` from a flat copy points OUTSIDE the copy — so a proof's own import decides where it lands.
+  const write = (name, bytes) => {
+    const target = join(dest, ...name.split('/'));
+    mkdirSync(dirname(target), { recursive: true });
+    writeFileSync(target, bytes);
+    return target;
+  };
   for (const row of rows) {
-    const target = join(dest, row.name.split('/').pop());
-    writeFileSync(target, row.bytes);
-    landed.push({ name: row.name, target, sha: row.committed, bytes: row.bytes.length });
+    landed.push({ name: row.name, target: write(row.name, row.bytes), sha: row.committed, bytes: row.bytes.length });
+  }
+  for (const dep of extra ?? []) {
+    write(dep.name, dep.bytes);
   }
   return landed;
 }
@@ -406,10 +531,15 @@ export async function materialize(ref, dest, cwd, corpus = null) {
  * answer decides a question v78–v82 never asked: 61 of HEAD's proofs spell the import as
  * `pathToFileURL('./agents/runtime/dist/index.js')` and 3 as `pathToFileURL(join(root, …))` with
  * `root = process.cwd()` — `pathToFileURL` resolves a relative path against `process.cwd()`, so ALL of
- * them are resolved by the CHILD's cwd, and NONE by the script's own location (`fileRelative` is 0).
+ * them are resolved by the CHILD's cwd, and NONE by the script's own location (`fileRelative` was 0).
+ * CORRECTED by M2 v88: the child-cwd half still reads 68/68, but `fileRelative` is now 32 — the shared
+ * spawn shim amendment 86 introduced is itself a file-relative edge, so a script's own LOCATION became
+ * load-bearing at the very moment the population stopped being self-contained. `closureOf` measures both
+ * halves every run rather than trusting this sentence, which is the honest shape of the claim.
  *
  * That makes `runProof`'s `cwd` argument more than a corpus choice. A sweep of an older ref with the
  * worktree as cwd runs the older PROOF TEXT against the CURRENT BUILD — while `[identity]` was quoting
+
  * the build digest of whatever tree the runner happened to sit in. The census is printed next to the
  * probe that measures the resolution, so the sentence names both.
  */
@@ -639,6 +769,30 @@ export async function isolatedCheckout({ ref = 'HEAD', cwd = process.cwd(), dest
 }
 
 /**
+ * The ONE stderr line that names why a child died, found by scanning the whole stream rather than by
+ * quoting a window of it (M2 v88).
+ *
+ * Why a scan and not a bigger window: on an `ERR_MODULE_NOT_FOUND` Node prints its `Cannot find module
+ * '…' imported from …` sentence as the FOURTH line of stderr, while the runner quoted three — so the only
+ * line that names the cause was cut by the excerpt that exists to name it. A wider constant would just
+ * move the cut, which is the error window amendment 63 already named for the git doors. When nothing in
+ * the stream has a cause-shaped line, the fallback SAYS it cannot find one instead of passing a stack
+ * header off as a reason.
+ */
+export function failureReason(stderrText) {
+  const lines = String(stderrText ?? '').split(/\r?\n/).map((l) => l.trim()).filter((l) => l.length > 0);
+  const named = lines.find((l) => /Cannot find (?:package|module)|ENOENT|EBUSY|EACCES|EPERM/.test(l));
+  if (named) return named;
+  // An AssertionError IS the subject's own verdict line, so it is quoted as the cause it is; a bare
+  // `Error:` or an `[ERR_*]` header is only a SHAPE that a cause usually sits in, and says so.
+  const assertion = lines.find((l) => /^AssertionError\b/.test(l));
+  if (assertion) return assertion;
+  const shaped = lines.find((l) => /\[ERR_\w+\]|(^|\s)Error:/.test(l));
+  return shaped ? `${shaped} (no named cause: reported what the stream DID say)` : null;
+}
+
+
+/**
  * Run one script with the CALLER's cwd — and since v83 the caller can choose a cwd that is not the
  * repository root. Before that option existed this function's second argument was always the root, which
  * is how a proof reached `./agents/runtime/dist/index.js` and also why it was THIS worktree's build.
@@ -659,6 +813,11 @@ export async function runProof(file, cwd, timeoutMs = DEFAULT_PROOF_TIMEOUT_MS) 
     ms: Date.now() - started,
     tail: tailOf(r.stdout, 2),
     errTail: headOf(r.stderr, 3),
+    // v88: the WHOLE stream beside the window, because a witness has to be able to show that the cause sat
+    // outside the excerpt — `headOf`'s three lines are not evidence about lines 4 and beyond.
+    err: r.stderr,
+    // v88: the row's REASON, which is a different thing from an excerpt of where it died.
+    reason: failureReason(r.stderr),
     ok: r.code === 0 && !r.timedOut,
   };
 }
@@ -701,6 +860,9 @@ export async function runSweep({ ref = 'HEAD', only = null, cwd = process.cwd(),
   const banked = corpus && corpus.ref === ref ? corpus : null;
   const runCorpus = banked ?? (await proofCorpus(ref, cwd));
   const idioms = await proofImportIdioms(ref, cwd, runCorpus);
+  // v88: which files the population READS, not only which files it IS. Measured before any row runs,
+  // because "32 rows are about to die of staging" is a fact a reader should get from the identity block.
+  const closure = await closureOf(ref, cwd, runCorpus);
   const childBuild = runCwd === cwd ? { digest: id.distDigest, files: id.distFiles } : distDigest(runCwd);
   const childTree = await safeWalkedTree(runCwd);
   log(`[identity] ref ${id.ref} = ${id.sha.slice(0, 12)} · node ${id.node} · ${id.platform} · ${id.git}`);
@@ -717,7 +879,8 @@ export async function runSweep({ ref = 'HEAD', only = null, cwd = process.cwd(),
   const started = Date.now();
   let results;
   try {
-    const landed = await materialize(ref, dest, cwd, runCorpus);
+    const landed = await materialize(ref, dest, cwd, runCorpus, closure.deps);
+    log(`[identity] closure: ${closure.importers}/${closure.total} tracked proofs import ${closure.insideEdges + closure.deps.length + closure.missing.length} relative path(s) from their OWN location — ${closure.insideEdges} land inside the population, ${closure.deps.length} are tracked elsewhere in the ref and were fetched too (${closure.deps.map((d) => `${d.name} ← ${d.importers.length} proof(s)`).join(', ')}), ${closure.missing.length} are in NO commit${closure.missing.length ? ` — UNSATISFIABLE: ${closure.missing.map((d) => `${d.name} (wanted by ${d.importers.join(', ')})`).join('; ')}` : ''}${closure.nestedDeps.length ? ` · depth 1 only: ${closure.nestedDeps.join(', ')} imports further files this runner does not follow` : ''}`);
     const divergence = await proofDivergence(ref, cwd, runCorpus);
     const differs = divergence.filter((r) => r.worktree !== r.committed).length;
     const walkers = divergence.filter((r) => r.dotIngest || r.ownWalk).length;
@@ -746,7 +909,12 @@ export async function runSweep({ ref = 'HEAD', only = null, cwd = process.cwd(),
           ? `KILL ${l.name.split('/').pop()} (exit ${r.code}, ${r.ms}ms) — killed at the ${bud.budgetMs}ms this row named itself, so the number that ended it is the row's, not the runner's`
           : `KILL ${l.name.split('/').pop()} (exit ${r.code}, ${r.ms}ms) — killed by the runner's default budget of ${bud.budgetMs}ms; this row named no budget, so this red belongs to a constant in sweep.mjs and not to anything the proof asserted`)
         : `${r.ok ? 'OK  ' : 'FAIL'} ${l.name.split('/').pop()} (exit ${r.code}, ${r.ms}ms, budget ${bud.budgetMs}ms ${bud.budgetSource})`;
-      log(`${line} :: ${r.tail}${r.ok ? '' : ' || ' + r.errTail}`);
+      // v88: a red names its CAUSE before its location. Quoting the head of a stack said where the child
+      // tripped, not why, and 26 of these rows printed `:: ` + an empty stdout in front of it — so an
+      // empty reason field now says so out loud instead of looking like a proof that had nothing to say.
+      const spoke = String(r.tail ?? '').trim().length > 0;
+      const said = spoke ? r.tail : r.ok ? '(no stdout)' : '(no stdout — the child never reached a print)';
+      log(`${line} :: ${said}${r.ok ? '' : ` || ${r.reason ?? `NO NAMED CAUSE in stderr; first lines were: ${r.errTail}`}`}`);
     }
   } finally {
     if (keep) log(`[keep] materialised copies left in ${dest}`);
