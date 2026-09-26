@@ -5,7 +5,7 @@ import { createProject, loadDocument, saveDocument } from '../src/server/domain/
 import { publishProject } from '../src/server/domain/publish';
 import { recordVisit } from '../src/server/domain/analytics';
 import { getDb } from '../src/server/db/client';
-import { projects, users } from '../src/server/db/schema';
+import { assets, projects, users } from '../src/server/db/schema';
 
 /**
  * §169 的装配那一半打真库：规则本身在 `analytics-agent.test.ts` 里逐条钉过，
@@ -87,6 +87,37 @@ describe('装配出来的事实必须来自真实现场', () => {
     const bareFact = await buildCreatorFact(bare.projectId, ownerId);
     expect(bareFact?.description).toBe(null);
     expect(analyzeCreatorFacts(bareFact!).some((f) => f.area === 'description')).toBe(true);
+  });
+
+  it('封面那条读的是钉住的那一版：真被画到的图片资产才算，光有一行资产记录不算', async () => {
+    // 造一份"首屏画着这张图"的作品：assets 表里有一行 + 根节点的 fills 真的引用它
+    const projectId = (await createProject(ownerId, { name: '有封面的作品', kind: 'website' })).id;
+    const [asset] = await getDb()
+      .insert(assets)
+      .values({ projectId, kind: 'image', name: 'cover.png', storageKey: `projects/${projectId}/cover.png`, source: 'upload' })
+      .returning({ id: assets.id });
+    const document = (await loadDocument(projectId))!;
+    const page = document.pages[0]!;
+    page.nodes[page.rootId]!.style = { ...page.nodes[page.rootId]!.style, fills: [{ kind: 'image', assetId: asset!.id, fit: 'cover' }] };
+    await saveDocument(projectId, document);
+    const result = await publishProject(projectId, { visibility: 'public', createdById: ownerId });
+    if (!result || !result.ok) throw new Error(result ? result.reason : '发布失败');
+
+    const fact = await buildCreatorFact(projectId, ownerId);
+    expect(fact?.hasCoverImage).toBe(true);
+    expect(analyzeCreatorFacts(fact!).some((f) => f.area === 'thumbnail')).toBe(false);
+
+    // 反向对照一：资产在库里、但这一版没画到它 → 仍然不算封面（§57/§166 同一口径，
+    // 否则被设计删掉的图会一直算作"有封面"）
+    const bareId = (await createProject(ownerId, { name: '有图没画的作品', kind: 'website' })).id;
+    await getDb()
+      .insert(assets)
+      .values({ projectId: bareId, kind: 'image', name: 'loose.png', storageKey: `projects/${bareId}/loose.png`, source: 'upload' });
+    const barePublish = await publishProject(bareId, { visibility: 'public', createdById: ownerId });
+    if (!barePublish || !barePublish.ok) throw new Error(barePublish ? barePublish.reason : '发布失败');
+    const bareFact = await buildCreatorFact(bareId, ownerId);
+    expect(bareFact?.hasCoverImage).toBe(false);
+    expect(analyzeCreatorFacts(bareFact!).some((f) => f.area === 'thumbnail')).toBe(true);
   });
 
   it('别人的项目、不存在的项目、没发布过的项目：三个都是 null，不给"差在哪"的线索', async () => {
