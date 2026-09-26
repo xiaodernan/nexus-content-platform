@@ -53,6 +53,8 @@ export function MemoryPanel() {
   /** 搜索框里的词。列表由 `reload()` 读这个 ref，所以按一次键不会触发一次重取 */
   const [query, setQuery] = useState('');
   const queryRef = useRef('');
+  /** 第几次重取：晚到的旧响应不许盖掉新结果 */
+  const reloadSeq = useRef(0);
   /** 服务端那句边界说明（"这是词面检索、不是语义检索"之类），只在搜索态下有内容 */
   const [searchNote, setSearchNote] = useState<string | null>(null);
 
@@ -64,6 +66,9 @@ export function MemoryPanel() {
     // 搜索态下的任何一次重取（记一条 / 删一条 / 清空一类之后）都留在搜索结果里，
     // 而不是悄悄退回全量列表——那会让"我删了它，它还在那儿"和"列表变了"混成一件事
     const q = queryRef.current.trim();
+    // 连点两次"搜"会并发两个请求：晚到的那一份如果是**上一个词**的结果，不许盖掉新列表。
+    // 没有这个序号，界面上会出现"搜索框写着 A、列出来的是 B 的命中"
+    const seq = ++reloadSeq.current;
     try {
       const res = await fetch(
         `/api/projects/${studio.projectId}/memories${q ? `?q=${encodeURIComponent(q)}` : ''}`,
@@ -78,12 +83,14 @@ export function MemoryPanel() {
             message?: string;
           }
         | null;
+      if (seq !== reloadSeq.current) return;
       if (!res.ok) throw new Error(body?.message ?? `HTTP ${res.status}`);
       setItems(body?.hits ?? body?.items ?? []);
       setSearchNote(q ? body?.note ?? null : null);
       setCounts(body?.counts ?? { session: 0, character: 0, world: 0, user: 0 });
       setStatus('ready');
     } catch (error) {
+      if (seq !== reloadSeq.current) return;
       setMessage(error instanceof Error ? error.message : String(error));
       setStatus('error');
     }

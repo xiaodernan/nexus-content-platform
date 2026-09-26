@@ -1193,6 +1193,30 @@ test('@smoke 记忆：记三类、刷新仍在、按类清空（§48）', async 
   await page.click('[data-panel-tab="memory"]');
   await expect(page.locator('[data-memory-entry]')).toHaveCount(3);
 
+  // §48 × §49：面板里的搜索走的是那套词面混合检索（域层单独验过：'日蚀' 2 条、'日出' 1 条）。
+  // 这里钉的是"界面上点一次搜，列出来就是那几条命中"，以及边界那句必须跟着结果一起出现
+  await page.fill('[data-memory-search]', '日蚀');
+  await page.click('[data-memory-search-go]');
+  await expect(page.locator('[data-memory-entry]')).toHaveCount(2);
+  await expect(page.locator('[data-memory-search-note]')).toContainText('不是语义检索');
+
+  await page.fill('[data-memory-search]', '日出');
+  await page.click('[data-memory-search-go]');
+  await expect(page.locator('[data-memory-entry]')).toHaveCount(1);
+  await expect(page.locator('[data-memory-entry]')).toContainText('第七次日蚀后再没有日出');
+
+  // 反向对照：「我的偏好」那一类不挂项目，本来就不在这份语料里——搜它的词必须零命中，
+  // 而那句解释要跟着出来（这一条同时钉住"空结果不说成没有这一类记忆"）
+  await page.fill('[data-memory-search]', '一律用中文');
+  await page.click('[data-memory-search-go]');
+  await expect(page.locator('[data-memory-entry]')).toHaveCount(0);
+  await expect(page.locator('[data-memory-search-note]')).toContainText('不挂项目');
+  await expect(page.locator('[data-memory-empty="user"]')).toContainText('不等于没有相关记忆');
+
+  await page.click('[data-memory-search-clear]');
+  await expect(page.locator('[data-memory-entry]')).toHaveCount(3);
+  await expect(page.locator('[data-memory-search-note]')).toHaveCount(0);
+
   // 只清「我的偏好」这一类，世界类那条必须还留着
   await page.click('[data-memory-clear="user"]');
   await expect(page.locator('[data-memory-group="user"] [data-memory-entry]')).toHaveCount(0);
