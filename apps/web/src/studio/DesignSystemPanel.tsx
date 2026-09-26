@@ -3,6 +3,7 @@
 import { useMemo, useState } from 'react';
 import { DEFAULT_TOKENS, type Token } from '@nexus/design-model';
 import { cn } from '@/lib/cn';
+import { tokenUsage } from './token-usage';
 import { studio, useStudioReady } from './store';
 
 /**
@@ -61,22 +62,16 @@ export function DesignSystemPanel() {
   const [newToken, setNewToken] = useState({ key: '', type: 'color' as Token['type'], value: '#7c5cff' });
   const [formError, setFormError] = useState<string | null>(null);
 
-  /** 引用计数：整棵页面树里出现过 "{key}" 的节点数（一个节点多次引用只算一次） */
-  const usage = useMemo(() => {
-    const counts = new Map<string, number>();
-    const bump = (key: string) => counts.set(key, (counts.get(key) ?? 0) + 1);
-    const countIn = (serialized: string) => {
-      for (const token of document.tokens) {
-        // 绑定写的是 "{color.primary}" 这种花括号引用，不是裸 key
-        if (serialized.includes(`"{${token.key}}"`)) bump(token.key);
-      }
-    };
-    for (const page of document.pages) {
-      for (const node of Object.values(page.nodes)) countIn(JSON.stringify(node));
-    }
-    for (const component of document.components) countIn(JSON.stringify(component));
-    return counts;
-  }, [document]);
+  /**
+   * 引用计数：整棵页面树里引用过某个 token 的节点数（一个节点多次引用只算一次）。
+   *
+   * 算法在 `token-usage.ts`（有语义要钉住，也放得下单测）。
+   * 这里只说明**为什么换掉旧写法**：旧的是"把每个节点 `JSON.stringify` 一遍，
+   * 再拿**每一个 token** 去 `includes`"，复杂度是 节点数 × token 数 × 字符串长度；
+   * 而它挂在 `[document]` 上，也就是每次改动都整份重算——4000 节点的文档上
+   * 这是一次实打实的卡顿，而它要回答的只是"这个 token 有几个节点在用"（§147）。
+   */
+  const usage = useMemo(() => tokenUsage(document), [document]);
 
   /**
    * 提交后丢掉草稿：输入框只在自己编辑的那一会儿持有未落库的内容。

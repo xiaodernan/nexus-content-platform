@@ -15,17 +15,29 @@ import { studio, useStudioReady } from './store';
  * 面板把"撤销能恢复引用、但文件字节回不来"这条非对称如实写进回执（§159），不假装万能。
  */
 
-function referenceCount(doc: DesignDocument, assetId: string): number {
-  let count = 0;
+/**
+ * 每个资产被多少个节点引用（一个节点里同一资产出现多次只算一次）。
+ *
+ * 原来是对**每个资产各扫一遍整页节点**（`referenceCount(doc, assetId)` 在 map 里被调用），
+ * 复杂度是 资产数 × 节点数；而它挂在 `[assets, document]` 上，也就是每次改动都重算。
+ * 50 个资产 × 4000 个节点 = 一次改动 20 万次循环，只为了在侧栏显示几个数字（§147）。
+ * 现在反过来：节点走一遍，把命中的资产各自记一次，代价是 节点数 + 资产数。
+ */
+export function referenceCounts(doc: DesignDocument): Map<string, number> {
+  const found = new Map<string, number>();
+  const bump = (assetId: string) => found.set(assetId, (found.get(assetId) ?? 0) + 1);
   for (const page of doc.pages) {
     for (const node of Object.values(page.nodes)) {
-      const inFill = Array.isArray(node.style.fills)
-        ? node.style.fills.some((p) => p.kind === 'image' && p.assetId === assetId)
-        : false;
-      if (inFill || node.assetId === assetId) count += 1;
+      // 先用 Set 去重：同一个节点里同一资产出现在多个 fill 上仍然只算一次引用
+      const ids = new Set<string>();
+      if (Array.isArray(node.style.fills)) {
+        for (const paint of node.style.fills) if (paint.kind === 'image') ids.add(paint.assetId);
+      }
+      if (node.assetId) ids.add(node.assetId);
+      for (const id of ids) bump(id);
     }
   }
-  return count;
+  return found;
 }
 
 function formatBytes(n?: number): string {
@@ -38,10 +50,10 @@ function formatBytes(n?: number): string {
 export function AssetsPanel() {
   const state = useStudioReady();
   const assets = state.assets as AssetRef[];
-  const counts = useMemo(
-    () => new Map(assets.map((a) => [a.id, referenceCount(state.document, a.id)])),
-    [assets, state.document],
-  );
+  const counts = useMemo(() => {
+    const found = referenceCounts(state.document);
+    return new Map(assets.map((a) => [a.id, found.get(a.id) ?? 0]));
+  }, [assets, state.document]);
 
   return (
     <div className="flex h-full min-h-0 flex-col" data-assets-panel>

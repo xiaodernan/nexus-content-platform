@@ -30,8 +30,13 @@ export function LayersPanel() {
   const page = state.page;
   const root = page ? page.nodes[page.rootId] : null;
 
+  /** 有没有在过滤。没过滤时 `matches` 根本不会被用上（rows 传 null），所以别去算它 */
+  const filtering = Boolean(query.trim()) || typeFilter !== 'all';
+
   const matches = useMemo(() => {
-    if (!page) return new Set<string>();
+    // 这一趟要遍历整页节点，而它挂在 [page] 上——**每次改动都会重算**。
+    // 没在过滤时不产出任何结果，就不该付这个代价（§147：随节点数线性长的那一段）
+    if (!page || !filtering) return new Set<string>();
     const q = query.trim().toLowerCase();
     const hit = new Set<string>();
     for (const node of Object.values(page.nodes)) {
@@ -48,13 +53,12 @@ export function LayersPanel() {
       if (typeOk && textOk) hit.add(node.id);
     }
     return hit;
-  }, [page, query, typeFilter]);
+  }, [page, query, typeFilter, filtering]);
 
   const rows = useMemo(() => {
     if (!page) return [];
-    const filtering = Boolean(query.trim()) || typeFilter !== 'all';
     return flattenLayers(page, collapsed, filtering ? keepAncestors(page, matches) : null);
-  }, [page, matches, query, typeFilter, collapsed]);
+  }, [page, matches, filtering, collapsed]);
 
   const scrollRef = useRef<HTMLDivElement>(null);
   const [range, setRange] = useState({ start: 0, end: 40 });
