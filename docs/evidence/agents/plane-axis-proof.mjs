@@ -77,6 +77,14 @@ const cases = [
   ["spawnSync(process.platform === 'win32' ? 'git.exe' : 'git', args);\n", 2, 'R1: both arms of a platform conditional'],
   ["host.run({ argv: ['git', 'status', '--short'] }, ctx);\n", 1, 'R2: argv shape, where the HOST forks and the proof does not'],
   ["for (const argv of [['git', 'diff'], ['git', 'push']]) policy(argv);\n", 2, 'R2: argv arrays in a table of cases'],
+  // Measured on f485184, by the row that owns it: `GIT_PROGRAM` is `s === 'git' || /^git\\s/`, and R2 reuses it, so a
+  // DATA array of command strings — nothing spawns it — is a reach. confession-proof §6 turned this on itself while
+  // writing the test for a different rule (that row went 11 → 15, and 4 of the population's 254 argv reaches are its
+  // four claim payloads). It is recorded here as an over-prediction rather than fixed, because narrowing it would
+  // rewrite amendment 93's baseline, and because the axis already punishes the mistake in the only direction that
+  // matters: an over-claimed row that never breaks lands in `green while predicted`, where this row reports it.
+  ["const claims = ['git status --porcelain', 'ls-files'];\n", 1, 'R2 OVER-PREDICTS: an array of command STRINGS counts, because the argv rule borrows the program rule\'s /^git\\s/'],
+  ["const claim = ['ls-tree is a command', 'status'];\n", 0, 'and the over-prediction is specific to a string that OPENS with the word git — the same shape without it counts nothing'],
   ["parseGitStatus(text); gitReadOnlyPolicy(x); gitShowPolicy(y);\n", 0, 'a parser or a policy builder NAMED git is not a child process'],
   ["import git from './lib/git.mjs';\n", 0, 'a specifier is not a program name'],
   ["const git = (...a) => execFileSync('git', a, { cwd }); git('show', 'HEAD:x');\n", 1, 'the alias definition is the reach; its call site is a callee this scanner cannot resolve'],
