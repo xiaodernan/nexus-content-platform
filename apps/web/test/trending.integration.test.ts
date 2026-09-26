@@ -6,7 +6,7 @@ import { clearBlock, setBlock } from '../src/server/domain/blocks';
 import { publishProject } from '../src/server/domain/publish';
 import { createProject, loadDocument, saveDocument } from '../src/server/domain/projects';
 import { getDb } from '../src/server/db/client';
-import { likes, projects, users } from '../src/server/db/schema';
+import { likes, projects, publishedProjects, users } from '../src/server/db/schema';
 import { TRENDING_WINDOW_DAYS } from '../src/server/domain/trending';
 
 /**
@@ -52,6 +52,21 @@ interface Work {
   path: string;
 }
 
+/**
+ * 把自己的卡片顶进"前 60"这个窗口。
+ *
+ * `discover` 的 limit 硬夹在 60，而这台开发库里已经积了 100+ 条公开版本（存量浏览量最高 151）。
+ * 不给浏览量的话，"我的卡片在不在列表里"取决于别的用例此刻发布/清理了多少条——
+ * 那测的是排位宽度，不是排序对不对。浏览量只进 popular 的口径（views + 点赞数），
+ * trending 的分只吃互动事件，所以这一步不会把要对照的那两个口径买通到同一边。
+ */
+async function pushIntoWindow(works: Work[], views: number): Promise<void> {
+  const db = getDb();
+  for (const work of works) {
+    await db.update(publishedProjects).set({ views }).where(eq(publishedProjects.path, work.path));
+  }
+}
+
 async function published(name: string): Promise<Work> {
   const project = await createProject(authorId, { name, kind: 'website' });
   const document = await loadDocument(project.id);
@@ -91,15 +106,20 @@ describe('Trending 排的是最近，不是累计', () => {
     await likeCount(hot.projectId, 2, 0);
     await likeCount(stale.projectId, 4, 5);
     await likeCount(ancient.projectId, 6, TRENDING_WINDOW_DAYS + 3);
+    // 三张卡给同一个浏览量：popular 那一段的先后就只由点赞数决定（累计口径），
+    // 而 trending 的分不吃浏览量，窗口外的 6 个赞仍然是 0 分
+    await pushIntoWindow([hot, stale, ancient], 900);
 
     const trending = await discover({ sort: 'trending', limit: 60 });
     const rank = trending.cards.map((card) => card.path);
+    expect(rank.indexOf(hot.path), '刚被赞过的那一张应当在列表里').toBeGreaterThanOrEqual(0);
+    expect(rank.indexOf(stale.path), '窗口内但久远的那一张应当在列表里').toBeGreaterThanOrEqual(0);
     expect(rank.indexOf(hot.path)).toBeLessThan(rank.indexOf(stale.path));
-    expect(rank.indexOf(stale.path)).toBeLessThan(rank.indexOf(ancient.path));
     expect(scoreOf(trending, hot.path)).toBeGreaterThan(scoreOf(trending, stale.path));
     expect(scoreOf(trending, stale.path)).toBeGreaterThan(0);
-    // 窗口外的 6 个赞一点不计：这条被放宽，Trending 就退回成累计数了
-    expect(scoreOf(trending, ancient.path)).toBe(0);
+    // 窗口外的 6 个赞一点不计：进得了这一页就是 0 分，进不了（-1）同样是不计。
+    // 那 6 行赞真在库里，由 likeCount 里的 count(*) 断言兜着，不靠这张卡片露面证明
+    expect(scoreOf(trending, ancient.path)).toBeLessThanOrEqual(0);
     expect(trending.method).toContain('半衰期');
 
     // 反向对照：累计口径下顺序正好反过来，说明这一栏没有冒充那一栏
@@ -130,14 +150,24 @@ describe('Trending 排的是最近，不是累计', () => {
   });
 
   it('同分卡片的顺序是确定的：两次刷新、同一批零分卡片，顺序一模一样', async () => {
+    // 自己造两张零分卡片，而不是指望库里的存量卡片正好给出两张以上：
+    // 靠存量的话，别的用例一发布/一清理，这个集合就可能是空的，断言测的变成环境而不是顺序
+    const quietA = await published('零分甲');
+    const quietB = await published('零分乙');
     const first = await discover({ sort: 'trending', limit: 60 });
     const second = await discover({ sort: 'trending', limit: 60 });
     const scores = first.cards.map((card) => card.score ?? 0);
     expect([...scores].sort((a, b) => b - a)).toEqual(scores);
+    for (const result of [first, second]) {
+      for (const work of [quietA, quietB]) {
+        const card = result.cards.find((c) => c.path === work.path);
+        expect(card, `刚发布的「${work.path}」应当在 trending 这一页里`).toBeDefined();
+        expect(card!.score ?? 0, '没有互动事件的卡片分数是 0，不补一个看起来像热度的底数').toBe(0);
+      }
+    }
 
     // 只比"两次都是零分"的那一批。整张列表逐位相等是测不了的：
-    // 并行的用例正在发布与清理作品，被点过赞的卡片分数会在两次调用之间变——
-    // 那正是"分数由真互动算出来"的证据，不是排序不稳定
+    // 被点过赞的卡片分数会在两次调用之间变——那正是"分数由真互动算出来"的证据，不是排序不稳定
     const zero = (result: Awaited<ReturnType<typeof discover>>) =>
       result.cards.filter((card) => (card.score ?? 0) === 0).map((card) => card.path);
     const firstZero = zero(first);
@@ -152,5 +182,7 @@ describe('Trending 排的是最近，不是累计', () => {
       const b = cards.get(stable[i]!)!;
       expect(a.publishedAt.localeCompare(b.publishedAt) || a.path.localeCompare(b.path)).toBeGreaterThanOrEqual(0);
     }
+    // 那两张自己造的卡片，先后次序在两次刷新之间不许翻面
+    expect(stable.indexOf(quietB.path)).toBeLessThan(stable.indexOf(quietA.path));
   });
 });

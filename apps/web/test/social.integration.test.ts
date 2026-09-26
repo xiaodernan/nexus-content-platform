@@ -176,20 +176,22 @@ describe('discover（§61）', () => {
   it('只收真公开、没被拒绝的版本；New 与 Popular 排的是各自说的那件事', async () => {
     const a = await published('热门', 'a');
     const b = await published('最新', 'b');
-    // 给 a 攒浏览量与点赞，让它成为 Popular 的第一名
-    await getDb().update(publishedProjects).set({ views: 500 }).where(eq(publishedProjects.path, a.path));
+    // 给 a 攒浏览量与点赞，让它成为 Popular 的第一名。
+    // 两个数都放在存量之上（这台开发库里公开版本的最高浏览量是 151，而列表只给 60 条）：
+    // 给到 1 的话，"b 在不在列表里"取决于库里积了多少条别人的公开版本，断言就变成在测环境宽度
+    await getDb().update(publishedProjects).set({ views: 900 }).where(eq(publishedProjects.path, a.path));
     await toggleLike(fanId, a.publicationId);
     await toggleLike(otherId, a.publicationId);
-    await getDb().update(publishedProjects).set({ views: 1 }).where(eq(publishedProjects.path, b.path));
+    await getDb().update(publishedProjects).set({ views: 800 }).where(eq(publishedProjects.path, b.path));
 
     // 这台开发库里有别的测试留下的公开版本，所以不断言"第几名"，只断言
     // 两张卡都在列表里、并且各自的排序确实按各自说的那件事排
     const popular = await discover({ sort: 'popular', limit: 60 });
     const pa = popular.cards.findIndex((c) => c.path === a.path);
     const pb = popular.cards.findIndex((c) => c.path === b.path);
-    expect(pa).toBeGreaterThanOrEqual(0);
-    expect(pb).toBeGreaterThanOrEqual(0);
-    expect(pa, '浏览量 500 + 2 赞的那一个应当排在前面').toBeLessThan(pb);
+    expect(pa, '浏览量 900 的那一张应当进得了这一页').toBeGreaterThanOrEqual(0);
+    expect(pb, '浏览量 800 的那一张应当进得了这一页').toBeGreaterThanOrEqual(0);
+    expect(pa, '浏览量 900 + 2 赞的那一个应当排在前面').toBeLessThan(pb);
     expect(popular.cards[pa]!.likes).toBe(2);
 
     const fresh = await discover({ sort: 'new', limit: 60 });
