@@ -136,7 +136,13 @@ const PROBE = `
 // 无头 Chrome 的 rAF 不锁 vsync（实测帧距能到 6ms），所以那个数不能当"帧率"读。
 // PERF_HEADED=1 用有头模式量：这才是用户屏幕上真的会看到的那 16.7ms 预算。
 const headed = (process.env.PERF_HEADED ?? '') === '1';
-const browser = await chromium.launch({ channel: 'chrome', headless: !headed });
+const browser = await chromium.launch({
+  channel: 'chrome',
+  headless: !headed,
+  // 不带这个开关，Chrome 返回的 usedJSHeapSize 是被量化过的（几十 MB 一档），
+  // 拿它报"峰值多少 MB"就是在报一个假的精确数。日志里那句说明也依赖这个前提。
+  args: ['--enable-precise-memory-info'],
+});
 const context = await browser.newContext({ viewport: { width: 1440, height: 900 } });
 await context.addInitScript(PROBE);
 const page = await context.newPage();
@@ -277,6 +283,16 @@ async function frameRate(label: string, drive: () => Promise<void>): Promise<voi
 
 async function propToCanvasLatency(scope: string): Promise<void> {
   const runs: number[] = [];
+  // 峰值要在**写入发生的那一段时间里**采，而不是写完之后看一眼——所以采样从函数开头就起来，
+  // 结尾统一取最大并关掉定时器（下面那段）。
+  await page.evaluate(() => {
+    const w = window as unknown as { __heap?: number[]; __heapTimer?: number };
+    const memory = (performance as unknown as { memory?: { usedJSHeapSize: number } }).memory;
+    w.__heap = w.__heap ?? [];
+    if (memory && !w.__heapTimer) {
+      w.__heapTimer = window.setInterval(() => w.__heap!.push(memory.usedJSHeapSize), 50);
+    }
+  });
   // 先回到默认视口：pan/zoom 测完之后目标节点可能已经被移出屏幕，点击会一直重试
   await page.goto(`${base}/studio/${projectId}`, { waitUntil: 'domcontentloaded' });
   await page.waitForSelector('[data-canvas-frame] [data-node-id]', { timeout: 60_000 });
@@ -362,14 +378,33 @@ async function propToCanvasLatency(scope: string): Promise<void> {
     // 量不到就说量不到与为什么，不拿一个编出来的数顶上（§159）
     console.log(`  选中响应${scope}：没量到 —— ${error instanceof Error ? error.message : String(error)}`);
   }
-  const heap = await page.evaluate(
-    () => ((performance as unknown as { memory?: { usedJSHeapSize: number } }).memory?.usedJSHeapSize ?? null),
-  );
-  console.log(
-    heap
-      ? `  JS 堆${scope}：${Math.round(heap / 1024 / 1024)} MB（Chrome 的近似值，未开 --enable-precise-memory-info；这是"当前堆"不是"峰值"）`
-      : `  JS 堆${scope}：量不到（这个浏览器不暴露 performance.memory）`,
-  );
+const heapPeak = await page.evaluate(() => {
+  const w = window as unknown as { __heap?: number[]; __heapTimer?: number };
+  const samples = w.__heap ?? [];
+  w.__heap = samples;
+  if (w.__heapTimer) window.clearInterval(w.__heapTimer);
+  const memory = (performance as unknown as { memory?: { usedJSHeapSize: number } }).memory;
+  if (!memory) return null;
+  w.__heapTimer = window.setInterval(() => samples.push(memory.usedJSHeapSize), 50);
+  return { started: samples.length };
+});
+if (heapPeak) {
+  // 让峰值有机会出现：跑一次 pan 与一次属性写入的间隔里都在采样（上面的 50ms 轮询）
+  await page.waitForTimeout(1_200);
+}
+const heap = await page.evaluate(() => {
+  const w = window as unknown as { __heap?: number[]; __heapTimer?: number };
+  if (w.__heapTimer) window.clearInterval(w.__heapTimer);
+  const samples = w.__heap ?? [];
+  w.__heap = [];
+  return samples.length ? Math.max(...samples) : null;
+});
+console.log(
+  heap
+    ? `  JS 堆${scope}：峰值约 ${Math.round(heap / 1024 / 1024)} MB（50ms 轮询取最大；` +
+      `启动带 --enable-precise-memory-info，否则这个浏览器返回的是量化过的近似值）`
+    : `  JS 堆${scope}：量不到（这个浏览器不暴露 performance.memory）`,
+);
   // PERF_PROFILE=1：再跑一次并抓 CPU 采样，把"那 1.2 秒在谁身上"按自时长列出来。
   // 为什么留在脚本里而不是临时写个一次性探针：分段计数（store 里的 __studioPerf）已经证明
   // 快照只占 20ms，剩下的要按函数归因才找得到——而这种归因每次优化完都要再看一眼。
