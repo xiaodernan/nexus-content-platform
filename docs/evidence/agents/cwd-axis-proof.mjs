@@ -41,8 +41,11 @@ const censusStarted = Date.now();
 // stream parser against the slow single-blob path at the first and the last file.
 // The second blind spot M2 v93 named: every git call this row makes is in ANOTHER FILE — docs/evidence/agents/
 // sweep.mjs, one frame down the stack — so a scan of these bytes cannot foresee the exit 128 a checkout gives it.
-// Stating the reach is what lets the runner account for this row's red from the inside (amendment 94).
-// sweep-asks-repository: git ls-tree + git cat-file --batch (sw.proofCorpus) · git archive HEAD (sw.isolatedCheckout) · a nested sweep (sw.runSweep) — every call is in sweep.mjs, not in these bytes
+// Stating the reach is what lets the runner account for this row's red from the inside (amendment 94), and
+// amendment 96 moved the citation onto the frames where each verb's literal actually sits: `proofCorpus` reads the
+// tracked names through the runner's private `git()` wrapper, which the arm cannot resolve, and its batch read
+// through `catFileBatch`, which the arm can.
+// sweep-asks-repository: git cat-file --batch via sw.catFileBatch · git ls-tree via sw.trackedProofs, unreadable because its argv reaches the runner's git() wrapper · git archive HEAD (sw.isolatedCheckout) · a nested sweep (sw.runSweep) — every call is in sweep.mjs, not in these bytes
 const corpus = await sw.proofCorpus('HEAD', root);
 const idioms = await sw.proofImportIdioms('HEAD', root, corpus);
 const censusMs = Date.now() - censusStarted;

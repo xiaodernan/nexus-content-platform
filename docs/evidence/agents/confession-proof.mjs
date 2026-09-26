@@ -43,8 +43,8 @@ const population = (
     : readdirSync(HERE).filter((n) => n.endsWith('.mjs')).map((n) => ({ path: `${DIR}/${n}`, text: norm(readFileSync(join(HERE, n), 'utf8')) }))
 );
 const rows = population.filter((p) => p.path.endsWith('-proof.mjs'));
-// The source the BYTE arm reads: a `sw.proofCorpus` clause points at the runner, so the runner's own bytes are
-// evidence here and not the file this row lives in. On the GIT plane they are HEAD's; on the other plane they are
+// The source the BYTE arm reads: a clause that cites `sw.<helper>` is graded against that helper's body in the
+// runner, so the runner's own bytes are evidence here and not the file this row lives in. On the GIT plane they are HEAD's; on the other plane they are
 // the materialised ref tree, which is the same thing when a sweep is what copied them.
 const selfName = `${DIR}/sweep.mjs`;
 const selfRow = population.find((p) => p.path === selfName);
@@ -148,8 +148,41 @@ assert.deepEqual(witnessBlind, [], `a spawn whose argv is a PARAMETER must stay 
 const selfNamed = [...new Set(sw.gitCommandsIn(selfSrc))];
 console.log(`[§3] byte arm over ${helperArms.length} helpers in ${selfName}: ${selfNamed.length} commands visible at code position in the runner's own file (${selfNamed.join(', ') || 'none'}) while the file spawns git through a wrapper named git — three of the five helpers return NOTHING, and two of those really do reach a repository`);
 
+// Amendment 96: `invisible` covered two residuals that need opposite responses, so every clause now also reports
+// whether a frame the arm is ALLOWED to read — the runner's definitions or this row's own bytes — holds the verb
+// it is missing. A MIS-CITED clause is the author's, one edit to a comment away; an UNREADABLE one is the arm's
+// ceiling, and the only thing that would lift it is code that names its verbs at call sites, which the arm must
+// not demand. The split is inhabited on both sides below, by clauses that differ in nothing but the verb.
+const NO_BYTES = 'const x = 1;\n';
+const partitionCases = [
+  ['the clause cites the frame that names its verb', ['git cat-file --batch via sw.catFileBatch'], 'supported', [], []],
+  ['the verb IS readable, in a frame this clause did not cite', ['git archive HEAD via sw.runSweep'], 'invisible', ['archive'], []],
+  ['no readable frame anywhere names this verb, so no wording grades it', ['git ls-tree via sw.runSweep'], 'invisible', [], ['ls-tree']],
+  ['one clause, two verbs, citable and not, through a frame that shows neither', ['git cat-file --batch + git ls-tree via sw.proofCorpus'], 'invisible', ['cat-file'], ['ls-tree']],
+  ['a clause naming no command has nothing to grade either way', ['a nested sweep (sw.runSweep)'], 'no-command', [], []],
+];
+const partitionBad = [];
+for (const [why, payloads, wantState, wantFix, wantDead] of partitionCases) {
+  const [c] = sw.gradeConfession(payloads, NO_BYTES, selfSrc);
+  if (c.state !== wantState || c.fixable.join() !== wantFix.join() || c.dead.join() !== wantDead.join())
+    partitionBad.push(`${why} → ${c.state} fixable=[${c.fixable}] dead=[${c.dead}], want ${wantState} [${wantFix}] [${wantDead}]`);
+}
+assert.deepEqual(partitionBad, [], `the mis-cited/unreadable split disagreed with its own cases:\n  ${partitionBad.join('\n  ')}`);
+// And the fix has to be able to land: the same verb, pointed at its own frame, stops being missing at all.
+const citedRight = sw.gradeConfession(['git archive HEAD via sw.runSweep'], NO_BYTES, selfSrc)[0];
+const citedBetter = sw.gradeConfession(['git archive HEAD via sw.isolatedCheckout'], NO_BYTES, selfSrc)[0];
+assert.deepEqual([citedRight.state, citedRight.fixable, citedBetter.state, citedBetter.fixable.length, citedBetter.dead.length],
+  ['invisible', ['archive'], 'supported', 0, 0], `pointing a clause at the frame where its literal lives must move it from mis-cited to supported (${JSON.stringify([citedRight.state, citedBetter.state])})`);
+console.log(`[§3] the split is graded on ${partitionCases.length} cases that differ only in which verb and which frame they name, and the repair is graded too: 'archive via sw.runSweep' is mis-cited while 'archive via sw.isolatedCheckout' is supported`);
+
 // ---------------------------------------------------------------- §4 the cause arm, and the one reading that is a crime
-const closureClaim = ['git rev-parse HEAD (twice) · git show HEAD:docs/evidence/lib/syncproc.mjs · git ls-tree + git cat-file --batch via sw.proofCorpus'];
+// The claim under test is READ out of the row's own bytes, not retyped here: amendment 95 left a quotation of
+// closure's declaration in this file, and amendment 96 changed that declaration, so a retyped copy would have
+// graded a sentence no commit owns — the shape amendment 89 named for imports and amendment 88 for staged files.
+const closureRow = rows.find((r) => basename(r.path) === 'closure-proof.mjs');
+const closureClaim = closureRow ? sw.asksRepository(closureRow.text).filter((p) => p.trim() !== '') : [];
+assert.ok(closureClaim.length > 0, 'closure-proof.mjs declares nothing at this ref, so §4 has no real confession to grade and would be grading its own leftovers');
+assert.deepEqual([...new Set(closureClaim.flatMap((p) => sw.gitCommandsNamed(p)))].sort(), ['cat-file', 'ls-tree', 'rev-parse', 'show'], `closure's declaration must keep naming all four commands for §4's gradings to mean what they say (got ${JSON.stringify([...new Set(closureClaim.flatMap((p) => sw.gitCommandsNamed(p)))].sort())})`);
 const lsTreeCause = 'Error: git ls-tree -r --name-only HEAD -- docs/evidence/agents → exit 128: fatal: not a git repository';
 const full = sw.compareConfession(closureClaim, lsTreeCause);
 assert.deepEqual([full.gradeable, full.omissions], [true, []], `a complete confession over a real cause line reported ${JSON.stringify(full)} — claim ${full.claim.join(' ')}`);
@@ -172,8 +205,16 @@ assert.ok(confessing.length >= 1, 'no row declares what it asks — then the byt
 const clauses = confessing.flatMap(([n, payloads]) => sw.gradeConfession(payloads, rows.find((r) => basename(r.path) === n).text, selfSrc).map((c) => ({ ...c, row: n })));
 const byState = (st) => clauses.filter((c) => c.state === st);
 const pointAtRunner = clauses.filter((c) => c.helpers.length > 0);
+const misCited = clauses.filter((c) => c.fixable.length > 0);
+const unreadable = clauses.filter((c) => c.dead.length > 0);
+const deadVerbs = [...new Set(unreadable.flatMap((c) => c.dead))].sort();
 console.log(`[§5] census: ${confessing.length} declaring rows, ${clauses.length} clauses — supported ${byState('supported').length} · partial ${byState('partial').length} · invisible ${byState('invisible').length} · no-command ${byState('no-command').length} · ${pointAtRunner.length} clauses point at ${[...new Set(pointAtRunner.flatMap((c) => c.helpers))].join(', ')}`);
-for (const c of clauses) console.log(`  ${c.state.padEnd(9)} ${c.row} :: ${c.clause}${c.missing.length ? ` (bytes show no ${c.missing.join(', ')})` : ''}`);
+console.log(`[§5] the invisible clauses split: ${misCited.length} MIS-CITED (${misCited.map((c) => `${c.row} names ${c.fixable.join(',')} where a readable frame holds it`).join(' · ') || 'none'}) · ${unreadable.length} name a verb no readable frame holds, over the ${deadVerbs.length} verbs ${JSON.stringify(deadVerbs)} — that is the arm's CEILING over this population, because the only way to lift it is code that names its literals at a call site, and an arm that requires that is a checker pressuring the population to flatter it (amendment 91's lesson, applied to the arm's own appetite)`);
+for (const c of clauses) console.log(`  ${c.state.padEnd(9)} ${c.row} :: ${c.clause}${c.missing.length ? ` (bytes show no ${c.missing.join(', ')}${c.fixable.length ? `, WHICH IS CITABLE: ${c.fixable.join(',')} — one edit to this comment grades it` : ''})` : ''}`);
+// The gate the split exists to make: an invisible clause whose verb IS readable somewhere is a defect of the
+// sentence, not of the scanner, and amendment 96 leaves the population with none of them. This is the number that
+// has to be able to redden, so §3's `archive via sw.runSweep` case is its live counterexample.
+assert.deepEqual(misCited.map((c) => `${c.row} ${c.fixable.join(',')}`), [], `a declaration cited a frame that hides a command another readable frame names: ${JSON.stringify(misCited.map((c) => [c.row, c.clause, c.fixable]))}`);
 // Both ends have to be inhabited, or the arm is not discriminating. `supported` proves the arm can reach a real
 // argv and agree with a row; `invisible` proves it can disagree, which is the whole value of the channel.
 assert.ok(byState('supported').length > 0, 'the byte arm agreed with nobody — either the helper bodies changed shape or the arm cannot see an argv literal any more');
@@ -244,4 +285,4 @@ assert.deepEqual([...six.gradeable, ...six.unchecked].sort(), six.declaring.slic
 assert.deepEqual(six.declaring.filter((n) => six.silentBlind.includes(n)), [], 'a row cannot be both heard and a silent blind spot');
 console.log(`[§6] wiring: ${failedRows.length} synthetic reds → declaring ${six.declaring.length} · gradeable ${six.gradeable.length} · unchecked ${six.unchecked.length} · omissions ${six.omissions.length} · surplus ${six.surplus.length} · blind ${six.silentBlind.length}. The 6807ba1 defect reproduces in one line (an object used as a name-keyed map's key yields an empty claim, and an empty claim made ${brokenKey.omissions.length} omission out of a row that declared ${failedRows[2].reason.match(/git (\S+)/)[1]}), and the wrong-ENDING key is caught too: ${miskeyed.declaring.length} heard with ${miskeyed.silentBlind.length} blind, because a dropped row reappears in the arm the gate reads`);
 
-console.log(`\n[summary] two witnesses for ${clauses.length} confessions: ${selfNamed.length} commands the runner can name in its own file, ${byState('supported').length} clauses corroborated by a body and ${byState('invisible').length} that hide one frame up, ${namedCases.length} naming cases held the free-text grammar (one of them recorded as a false negative rather than fixed), and the cause arm reddened under exactly one of the mutations it was shown — the omission. A surplus is stated, never scored. The wiring is graded too: §6 reproduces the lookup that killed a seven-minute census on 6807ba1 in one line, and shows a reader keyed by the wrong path ending cannot hide behind its own zero. The gate the sweep prints after the rows is omissions + silent blind spots at zero`);
+console.log(`\n[summary] two witnesses for ${clauses.length} confessions: ${selfNamed.length} commands the runner can name in its own file, ${byState('supported').length} clauses corroborated by a body and ${byState('invisible').length} that hide one frame up — of which ${misCited.length} were the sentence's fault (citable) and ${unreadable.length} are the arm's ceiling (${JSON.stringify(deadVerbs)}), so the residual is now a measurement rather than a shrug · ${namedCases.length} naming cases held the free-text grammar (one of them recorded as a false negative rather than fixed), and the cause arm reddened under exactly one of the mutations it was shown — the omission. A surplus is stated, never scored. The wiring is graded too: §6 reproduces the lookup that killed a seven-minute census on 6807ba1 in one line, and shows a reader keyed by the wrong path ending cannot hide behind its own zero. Two gates print after the rows: the sweep's omissions + silent blind spots at zero, and this row's mis-cited clauses at zero`);

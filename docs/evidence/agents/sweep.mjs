@@ -774,8 +774,20 @@ export const confessionClauses = (payload) => String(payload ?? '').split('·').
  *   invisible   — the clause names commands and the bytes it points at show NONE: true, most likely, and
  *                 unreadable, because the reach goes through a wrapper whose argv is a parameter
  *   no-command  — the clause names no command (it points at a helper, or describes a shape)
+ *
+ * `invisible` alone conflates two very different residuals, so each clause also gets the split (M2 v96). Compare
+ * its missing commands against the set the arm could have read AT ALL — every verb named at code position in the
+ * runner's frames plus in this row's own bytes:
+ *   fixable — a frame the arm can read DOES name it, so the clause cited the wrong frame: one edit to a comment
+ *             grades it, and a non-zero count here is a defect in the declaration, not in the scanner
+ *   dead    — no readable frame anywhere names it, because every reach carries its verb through a wrapper that
+ *             takes a PARAMETER (the runner's `git()`/`gitText()`, or the row's own `sh(cmd, argv)`). The claim
+ *             can only be graded by changing the CODE to name its literal at a call site, and an arm that asks
+ *             for that is a checker pressuring the population to flatter it — so `dead` is reported as the
+ *             arm's ceiling, never as a failure.
  */
 export function gradeConfession(payloads, ownText, selfSrc) {
+  const readable = new Set([...gitCommandsIn(selfSrc), ...gitCommandsIn(ownText)]);
   const clauses = [];
   for (const p of payloads) {
     for (const clause of confessionClauses(p)) {
@@ -785,7 +797,11 @@ export function gradeConfession(payloads, ownText, selfSrc) {
       const avail = [...new Set(witness)];
       const missing = cmds.filter((c) => !avail.includes(c));
       const state = !cmds.length ? 'no-command' : missing.length === 0 ? 'supported' : avail.length === 0 ? 'invisible' : 'partial';
-      clauses.push({ clause: clause.slice(0, 72), cmds, helpers, avail, missing, state });
+      clauses.push({
+        clause: clause.slice(0, 72), cmds, helpers, avail, missing, state,
+        fixable: missing.filter((v) => readable.has(v)),
+        dead: missing.filter((v) => !readable.has(v)),
+      });
     }
   }
   return clauses;
@@ -1318,8 +1334,11 @@ export async function runSweep({ ref = 'HEAD', only = null, cwd = process.cwd(),
   const textOfRow = new Map(runCorpus.rows.map((r) => [r.name, r.text]));
   const gradedClauses = declaredNames.flatMap((n) => gradeConfession(declared.get(n), textOfRow.get(n), selfSrc).map((c) => ({ ...c, row: n })));
   const stateCount = (st) => gradedClauses.filter((c) => c.state === st).length;
+  const misCited = gradedClauses.filter((c) => c.fixable.length);
+  const unreadable = gradedClauses.filter((c) => c.dead.length);
+  const deadVerbs = [...new Set(unreadable.flatMap((c) => c.dead))].sort();
   const byState = (st) => gradedClauses.filter((c) => c.state === st).map((c) => `${c.row.split('/').pop()} "${c.clause}" → ${st === 'invisible' ? `shows none of ${c.cmds.join(', ')}` : c.missing.join(', ')}`).join(' · ') || 'none';
-  log(`[identity] confession axis (bytes): ${declaredNames.length} declaring rows · ${gradedClauses.length} clauses graded against the source each one points at — supported ${stateCount('supported')} · partial ${stateCount('partial')}${stateCount('partial') ? ` (${byState('partial')})` : ''} · invisible ${stateCount('invisible')}${stateCount('invisible') ? ` (${byState('invisible')})` : ''} · name no command ${stateCount('no-command')} · "invisible" is amendment 93's blind shape one frame UP: the helper exists and really does spawn git, but its argv arrives as a PARAMETER, so the tokenizer shows nothing and the claim stays a confession until the row names the frame where the literal lives`);
+  log(`[identity] confession axis (bytes): ${declaredNames.length} declaring rows · ${gradedClauses.length} clauses graded against the source each one points at — supported ${stateCount('supported')} · partial ${stateCount('partial')}${stateCount('partial') ? ` (${byState('partial')})` : ''} · invisible ${stateCount('invisible')}${stateCount('invisible') ? ` (${byState('invisible')})` : ''} · name no command ${stateCount('no-command')} · of the invisible ones, MIS-CITED ${misCited.length}${misCited.length ? ` (${misCited.map((c) => `${c.row.split('/').pop()} names ${c.fixable.join(',')} where a readable frame holds it`).join(' · ')})` : ''} — a citation one edit away, which is a defect in the sentence — versus unreadable-by-every-frame ${unreadable.length} (${deadVerbs.join(', ') || 'none'}): every one of those reaches carries its verb through a wrapper that takes a PARAMETER, so only the CODE could name it, and an arm that demanded that would be a checker pressuring the population to flatter it`);
 
   const dest = mkdtempSync(join(tmpdir(), 'nexus-sweep-'));
   const started = Date.now();
