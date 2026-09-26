@@ -8,6 +8,7 @@ import { runAiService } from '@/server/ai/client';
 import { requireUser } from '@/server/domain/session';
 import { agentLedgerFields, mentionNote } from '@/server/domain/agents';
 import { finishTask, holdForApproval, recordCapabilityRefusal, startTask, type TaskCapability } from '@/server/domain/agent-tasks';
+import { refusalForRun } from '@/server/domain/credit-ledger';
 import { clientIp } from '@/server/security/rateLimit';
 import { emit } from '@/server/domain/notifications';
 import { csrfOk } from '@/server/security/csrf';
@@ -110,6 +111,11 @@ export async function POST(req: Request): Promise<NextResponse> {
     const ledgerFields = agentLedgerFields(resolved, { askedAgentKey: parsed.data.agentKey, fallbackKey: parsed.data.intent });
     agentKey = resolved.agent?.key ?? null;
     agentNote = mentionNote(ledgerFields);
+    // §133/§134：额度用尽时这一句就是全部后果——任务行不写、provider 不调、通知不发。
+    // 放在 startTask 之前：扣点只记在**成功**的任务上，一条从没跑起来的请求如果先落了 running 行，
+    // 它就成了任务列表里一条"在跑然后失败了"的假账。
+    const refusal = await refusalForRun(user.id, ledgerFields.agentKey);
+    if (refusal) return jsonError(429, 'credits_exhausted', { message: refusal });
     const started = await startTask({
       projectId: parsed.data.context.projectId,
       agentKey: ledgerFields.agentKey,

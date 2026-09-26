@@ -1008,7 +1008,9 @@ drizzle 把整个拼接结果当成**单个绑定参数**，生成的 SQL 是 `o
 
 ## M7 — 创作者经济（§187）
 - [ ] Marketplace（组件 / 模板 / 设计系统 / 资产 / 世界 / 游戏 / AI 角色）
-- [ ] Credits 与订阅（Free/Pro/Creator/Studio/Enterprise），消费透明（§133-134）
+- [~] Credits 与订阅（Free/Pro/Creator/Studio/Enterprise），消费透明（§133-134）
+  —— 第一片已落地（账本 + 一类消费 + 一格拦截，见文末"§133/§134 第一片"）；
+  欠的是 image/video/compute 三类的消耗方、另四格上限的执行方、改档位的入口
 
 ## M8 — 开放能力（§188）
 - [ ] MCP、外部 Agent、公开 API
@@ -1369,6 +1371,15 @@ drizzle 把整个拼接结果当成**单个绑定参数**，生成的 SQL 是 `o
 （2 通过，6.0 分钟）；**剩下 40 条在这之后没有整套跑过**，这套改动动了 schemas 与两个试玩页，
 没跑完整套之前不许说"e2e 全绿"。
 
+**这笔欠账已经还了（2026-09-26 深夜，§133/§134 那一片之后）**：`npx playwright test -g "@smoke"`
+**44/44 通过，14.6 分钟，exit 0**（44 = 43 + 新加的 `@smoke §134`）。第一次跑是红的 7 条，
+红的样子不像逻辑错：前 8 条里快照/分支/方案板全空、面板写着"快照操作未完成：HTTP 404"，
+第 17 条干脆 `worker process exited unexpectedly (code=3221225794)`（= Chromium 栈溢出），
+中间还夹一条 `[WebServer] Failed to find Server Action ... older or newer deployment`。
+同一时刻这台机器刚跑完 88 个文件的整套单测（本机空闲内存约 2.5GB），用 curl 走同一条游客链路
+（建项目 → 列快照）拿到的却是正常的 200 与那一行"初始版本"。把单测那一份负载拿掉重跑，44/44。
+**所以这一条记的是口径不是结论**：@smoke 要与大套件错开跑，红一片且形状是"元素不存在"时先量环境再改代码。
+
 ## 当前阻塞项
 - `[!]` 真实 AI provider key（文本/图像/视频）— 用户提供前，全部生成类能力以 DEMO MODE 交付，UI 明确标注，不伪装真实结果。
 
@@ -1569,3 +1580,75 @@ drizzle 把整个拼接结果当成**单个绑定参数**，生成的 SQL 是 `o
   纪律补一句：以后引用 §146/§147 的数，必须写明是 `next dev` 还是生产构建——
   同一台机器、同一脚本、同一档节点数，两者差 5 倍是实测出来的。
 
+
+## §133/§134 第一片：额度账本落地，五格里只有一格真的有执行方（2026-09-26 夜）
+
+需求原文两句：§133"五档订阅（Free/Pro/Creator/Studio/Enterprise），按 AI usage / storage /
+generation / team collaboration / publishing 设计"，§134"用户看得到 AI / Image / Video / Compute
+四类额度，**所有消费透明**"。动手前库里没有任何额度的概念。这一片做的是**能兑的那部分**，
+并且把没兑的在界面上写出来。
+
+**做了什么**
+
+- 迁移 `0016_credit_ledger.sql`：`credit_ledger` 一张表 + `users.plan` 一列。
+  **没有"当前余额"这一列**——余额是 `SUM(delta)` 派生的（与快照/搜索那几处"能派生就不存储"同一条纪律）。
+  三条库级保证：只追加触发器（直接打在表上的 UPDATE/DELETE 一律挡，更正=新写一行 `adjust`）、
+  `(task_id, kind)` 部分唯一索引（一次任务只扣一行）、`(user_id, kind, period)` 部分唯一索引
+  （一个月一类只发一次）。
+- 规则层 `server/domain/credits.ts`：四类额度、五档发放表、单价表、`creditKindForAgentKey`、
+  `refusalFor`。**没有充值**：`adjustCredits` 存在但没有任何 HTTP 路由通向它，
+  它的用途是让测试能造出"余额为 0"这个状态。
+- 一个真拦截方：`refusalForRun` 接在 `/api/ai/run` 与 `/api/ai/jobs` 提交之前（任务行落库之前），
+  额度不够回 `429 credits_exhausted`，那句话带着数字（"需要 1 点，现在只有 0 点"）。
+- 扣点接在**写终态的那两个地方**：`finishTask`（同步与异步轮询共用）与 `decideApproval`
+  （批准=那份补丁真的落了画布，所以也要扣；拒绝不扣）。失败的任务一行都不扣。
+- `/credits` 页：四类余额 + 最近 20 行流水（每一行都写"追到哪件事"）+ 五档表。
+  页面自己说清三件事：只有 `aiUsage` 这一格有拦截方、Image/Video/Compute 今天没有消耗方、
+  发放是"看账之前确保一次"而不是每月 1 日定时任务（本机没有常驻 cron）。
+  首页账号区加了入口，**游客也看得见**——扣的就是这个会话名下那 100 点。
+
+**踩到并修掉的五处**
+
+1. 第一版触发器无条件挡所有 UPDATE/DELETE，集成测试第一次跑就红了两处：
+   `delete from agent_tasks` 要按 `ON DELETE SET NULL` 摘掉账本里的指针，被挡下 →
+   从此全库删不掉任务行；而 `generation ⇒ task_id IS NOT NULL` 这条表级 CHECK 分不清
+   "插入时就没写"与"后来被摘掉"。现在放行条件写死成"`pg_trigger_depth()>1` 且除两个外键指针外各列一模一样"，
+   形状规则挪到触发器的 INSERT 分支（那里看得见 `TG_OP`），**放行这一条本身有用例**。
+2. `creditKindForAgentKey('videos-agent')` 的反向对照写错了：`video` 就是 `videos` 的子串，
+   它当然算 video。红过一次之后改成"让关键字整个消失"（`vide-agent` / `filn-agent`）。
+3. drizzle 把库的报错包成 `Failed query: ...`，Postgres 自己那句话在 `cause` 里——
+   只断言 `message` 的 `toThrow(/只追加/)` 挑不出"红的是别的错"。测试改成读两层。
+4. §51 那一片把 4 处 `var(--nexus-color-border)` 提了进去，而 `tokens.css` 里只有 `-subtle` / `-strong`：
+   `style-tokens.test.ts` 那条"界面里没有指向不存在 token 的 var()"从那次提交起一直是红的，这次整套跑才撞上。
+   已改成 `-subtle`。记在这里的理由不是"错了就改"，而是**门禁和断言都在，缺的只是提交前跑整套**。
+5. `npm test` 默认并行，`social.integration.test.ts` 与 `trending.integration.test.ts` 各红一条，
+   红的不是逻辑而是**列表宽度**：`discover` 的 limit 硬夹 60，这台开发库里已经积了 101 条公开版本
+   （存量最高浏览量 151），"我刚发布的那张卡在不在这一页里"取决于别的文件此刻在发布还是在清理。
+   同两个文件串行跑 12/12 绿，坐实了这一点。两片都修：`vitest.config.ts` 关掉文件级并行，
+   同时把那三条对"前 60"的依赖拿掉（自己的卡片用浏览量顶进窗口 / 零分顺序那条改用自己造的两张卡）——
+   因为它是**慢红**：存量再多 60 条，串行也一样红。
+
+一个自己抓到的口径错：整套第一次跑完时我只看到 `exit 0`，就把"954 条 / 86 秒"当成读到的数字报了一遍——
+那个数是没读到的（`| tail` 之后输出文件是空的）。实际量到的是 **352 秒 / 88 个文件 / 954 条全绿**。
+这类错正是 §159 反对的那种"看起来量过了"。
+
+**验证（这一片自己跑过的）**
+
+- `credits.test.ts` 10 条 + `credits.integration.test.ts`（真库）10 条：全绿。
+- `@smoke §134`（真浏览器，22.6s）：跑一次生成 → AI 那一格 100→99、
+  image/video/compute 三格一动不动、那一行流水写着"DEMO 模板"并指着命令栏报出的任务号前缀。
+  截图两张看过：`screenshots/credits-{before,after}-generation.png`。
+- `npx tsc -p tsconfig.tools.json` / `e2e/tsconfig.json` / `npx eslint`（本轮改动的 11 个文件）：0 问题。
+- 整套单测：`npm test` **88 个文件 / 954 条全绿，352 秒**（关掉文件级并行之后，见上面第 5 条）。
+- 整套 e2e：`npx playwright test -g "@smoke"` **44/44 通过，14.6 分钟**。
+  第一次跑红 7 条是环境（刚跑完单测 + Chromium 栈溢出），过程与判据写在上面 §51 那条口径 correction 后面。
+- **现在可以说的**：这一片之后，单测与 e2e 两套都整套绿过。仍然不许说的是"覆盖完整"——
+  @smoke 只有 44 条，它盯的是用户可见的那几条主干。
+
+**这一片没有做的（照实记，不要当成已生效）**
+
+- storage / generation / team collaboration / publishing 那四格上限只是页面上的数字，没有代码按它拒绝任何请求。
+- Image / Video / Compute 三类只有发放方、没有消耗方（要等 §38 图像、§40 视频那条路）。
+- 改档位没有界面：`UPDATE users SET plan` 是服务端代码里的事。
+- 这道门**不预扣**：并发可以把余额跑到负数（预扣要一个能把 provider 调用包进去的可回滚事务，今天没有）。
+  负余额在流水里看得见，这个松是选定的，写在 `credit-ledger.ts` 注释与 ADR-0014 里。

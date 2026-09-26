@@ -4,6 +4,7 @@ import { getAiCapabilities } from '@/lib/env';
 import { assembleAiRequest } from '@/server/ai/assemble';
 import { agentLedgerFields, mentionNote } from '@/server/domain/agents';
 import { submitJob } from '@/server/domain/ai-jobs';
+import { refusalForRun } from '@/server/domain/credit-ledger';
 import { requireUser } from '@/server/domain/session';
 import { csrfOk } from '@/server/security/csrf';
 import { clientIp, getRateLimiter, rateKey } from '@/server/security/rateLimit';
@@ -50,11 +51,16 @@ export async function POST(req: Request): Promise<NextResponse> {
         message: '异步作业要有一个接上真 provider 的 AI Service。当前是 DEMO MODE：同步生成（/api/ai/run）照样能出模板结果，并标清是模板给的。',
       });
     }
+    // §112：这一轮归谁由服务端按名册解析，异步这条路与 /api/ai/run 同一份口径
+    const fields = agentLedgerFields(assembled.agent, { askedAgentKey: parsed.data.agentKey, fallbackKey: parsed.data.intent });
+    // §134：同一道额度门。放在提交之前而不是收尾之后——作业交给 ai-service 就收不回来了，
+    // 对一个已经在跑的作业说"点不够，不做"没有任何意义
+    const refusal = await refusalForRun(user.id, fields.agentKey);
+    if (refusal) return jsonError(429, 'credits_exhausted', { message: refusal });
     const result = await submitJob({
       wire: assembled.wire,
       projectId: parsed.data.context.projectId,
       createdById: user.id,
-      // §112：这一轮归谁由服务端按名册解析，异步这条路与 /api/ai/run 同一份口径
       agent: assembled.agent,
       fallbackAgentKey: parsed.data.intent,
       capability: 'real',
@@ -64,7 +70,6 @@ export async function POST(req: Request): Promise<NextResponse> {
     }
     // 队列的限制随回执一起给：backend=memory 时刷新页面、换实例都可能查不到这个 job，
     // 这话不写进报文，界面就只能猜，用户就只能"咦，我刚才那个作业呢"
-    const fields = agentLedgerFields(assembled.agent, { askedAgentKey: parsed.data.agentKey, fallbackKey: parsed.data.intent });
     const headers: Record<string, string> = { 'x-nexus-task': result.taskId };
     // 与 /api/ai/run 同一组头：界面问"这一轮是谁做的、我点的那个名字认不认识"时，两条路得用同一个地方查
     if (fields.agent) headers['x-nexus-agent'] = fields.agent.key;

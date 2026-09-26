@@ -2806,3 +2806,63 @@ test('@smoke §51 类型分派：标互动故事就出对话播放器，标 3D �
   await expect(game.locator('[data-game-root]')).toHaveCount(0);
   await game.screenshot({ path: 'screenshots/story-play-kind-not-wired.png' });
 });
+
+/**
+ * §133/§134 第一片的真浏览器证据：跑一次生成，额度页上"少掉的那 1 点"与"这一笔是哪次任务"
+ * 必须同时对得上。反向对照是被断言的**量**：只有 ai 那一格会跌，
+ * image / video / compute 三格今天没有消耗方，它们要是跟着动了，说明扣点扣错了类别。
+ */
+test('@smoke §134 跑一次生成 → 额度页少 1 点，且那一行指着这次的任务', async ({ page }) => {
+  test.setTimeout(150_000);
+  const projectId = await createProject(page, `额度 ${Date.now().toString(36)}`);
+
+  const GRANTS = { ai: 100, image: 20, video: 5, compute: 50 } as const;
+  const readBalances = async (): Promise<Record<keyof typeof GRANTS, number>> => {
+    const kinds = Object.keys(GRANTS) as (keyof typeof GRANTS)[];
+    const values = await Promise.all(
+      kinds.map(async (kind) => Number((await page.locator(`[data-credit-balance="${kind}"]`).textContent())?.trim())),
+    );
+    return Object.fromEntries(kinds.map((kind, i) => [kind, values[i]])) as Record<keyof typeof GRANTS, number>;
+  };
+
+  // 第一次看账就把本月额度发下来（发放是幂等的"看账之前确保一次"，本机没有定时任务）
+  await page.goto('/credits');
+  await expect(page.locator('[data-credits-plan]')).toHaveText('Free');
+  expect(await readBalances()).toEqual({ ...GRANTS });
+  await expect(page.locator('[data-credit-entry]')).toHaveCount(4);
+  await expect(page.locator('[data-credit-cost="image"]')).toContainText('今天没有消耗方');
+  await page.screenshot({ path: 'screenshots/credits-before-generation.png' });
+
+  await page.goto(`/studio/${projectId}`);
+  await waitForCanvas(page);
+  await page.fill('[data-ai-input]', 'Add a section: 一张定价卡片');
+  await page.click('[data-ai-submit]');
+  await expect(page.locator('[data-ai-result]')).toBeVisible({ timeout: 30_000 });
+  const taskNote = (await page.locator('[data-ai-task]').textContent()) ?? '';
+  const taskPrefix = /任务\s+([0-9a-z-]{8})/i.exec(taskNote)?.[1];
+  expect(taskPrefix, `命令栏没报出任务号：${taskNote}`).toBeTruthy();
+
+  await page.goto('/credits');
+  const after = await readBalances();
+  expect(after.ai).toBe(GRANTS.ai - 1);
+  // 反向对照：改变的是"跑了一次 AI 生成"这一件事，另外三格的余额必须一动不动
+  expect(after.image).toBe(GRANTS.image);
+  expect(after.video).toBe(GRANTS.video);
+  expect(after.compute).toBe(GRANTS.compute);
+  // 第五次看账不会再发一轮（幂等键是月份，不是"有没有发过"）
+  await expect(page.locator('[data-credits-whose]')).toContainText('本月额度此前已发过');
+  await expect(page.locator('[data-credit-entry]')).toHaveCount(5);
+  const charge = page.locator(`[data-credit-task^="${taskPrefix!}"]`);
+  await expect(charge).toHaveCount(1);
+  const row = page.locator('[data-credit-entry]', { has: charge });
+  await expect(row).toHaveAttribute('data-credit-kind', 'ai');
+  await expect(row).toHaveAttribute('data-credit-delta', '-1');
+  await expect(row).toContainText('DEMO 模板');
+  await page.screenshot({ path: 'screenshots/credits-after-generation.png' });
+
+  // 这一页必须自己说清哪些限制今天真的生效：只有一格有拦截方，另四格只是表上的数字
+  await expect(page.locator('[data-credits-enforced]')).toContainText('只有');
+  await expect(page.locator('[data-credits-enforced]')).toContainText('aiUsage');
+  await expect(page.locator('[data-credits-limits]')).toContainText('没有充值入口');
+  await expect(page.locator('[data-plan-row="enterprise"]')).toBeVisible();
+});

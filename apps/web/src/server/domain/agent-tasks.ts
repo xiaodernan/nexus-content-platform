@@ -2,6 +2,7 @@ import { and, desc, eq, isNull } from 'drizzle-orm';
 import type { RealtimeEvent } from '@nexus/schemas';
 import { channels, getRealtimeBus } from '../realtime/bus';
 import { recordAudit } from './audit';
+import { chargeGeneration } from './credit-ledger';
 import { getDb } from '../db/client';
 import { agentTasks, projects } from '../db/schema';
 
@@ -100,7 +101,17 @@ function publishGenerationProgress(projectId: string | null, taskId: string, pro
   getRealtimeBus().publish(channels.project(projectId), event);
 }
 
-/** 收尾。result 与 error 互斥由调用方保证，这里只如实落库 */
+/**
+ * 收尾。result 与 error 互斥由调用方保证，这里只如实落库。
+ *
+ * §134 的扣点也挂在这里，而不是挂在两个调用方身上：`finishTask` 是同步请求与异步作业
+ * **共用**的那一个终态写入方，扣点放在调用方就会长出第二条路（那条路忘了扣，余额页还在发）。
+ * 三条边界：
+ * - 只有 `succeeded` 扣点，失败与"等人裁决"都不扣（用户没拿到东西，扣点等于罚）；
+ * - 一次任务只扣一行（库里 `credit_ledger_task_kind_key` 那条部分唯一索引兜着）；
+ * - 写不进账本就让它抛。这里 catch 掉等于宣布"这次生成是免费的"，
+ *   而那正是 §134 要的"消费透明"的反面。
+ */
 export async function finishTask(
   id: string,
   outcome: { ok: boolean; result?: unknown; error?: string },
@@ -117,11 +128,26 @@ export async function finishTask(
       error: outcome.ok ? null : reason,
     })
     .where(eq(agentTasks.id, id))
-    .returning({ id: agentTasks.id, projectId: agentTasks.projectId });
+    .returning({
+      id: agentTasks.id,
+      projectId: agentTasks.projectId,
+      createdById: agentTasks.createdById,
+      agentKey: agentTasks.agentKey,
+      capability: agentTasks.capability,
+    });
   const row = rows[0];
   if (row) {
     // 失败也推：任务页与 Studio 上的"正在生成"要能自己停下来，而不是永远转着
     publishGenerationProgress(row.projectId, id, 1, outcome.ok ? '完成' : `失败：${reason}`);
+    if (status === 'succeeded' && row.createdById) {
+      await chargeGeneration({
+        taskId: id,
+        userId: row.createdById,
+        projectId: row.projectId ?? null,
+        agentKey: row.agentKey,
+        capability: row.capability ?? null,
+      });
+    }
   }
   return { status, updated: rows.length > 0 };
 }
@@ -275,6 +301,22 @@ export async function decideApproval(
     detail: { decision, approvals: result.approvals ?? [], projectId: row.projectId },
     ip: ip ?? null,
   });
+  /**
+   * §134：批准就是这条任务的成功终态，所以它也要扣点——挂起那一次 `deliver` 没走收尾，
+   * 这份补丁到现在才真的落到画布上，不扣点就等于"走审批门的那条路免费"。
+   * 拒绝不扣（用户没拿到东西）。这里与 `finishTask` 共用同一个 `chargeGeneration`，
+   * 而库里的 `credit_ledger_task_kind_key` 挡住任何第二次写，所以"批准后作业又被轮询到"
+   * 那种回头路也只会有一行账。
+   */
+  if (decision === 'approve') {
+    await chargeGeneration({
+      taskId,
+      userId: actorId,
+      projectId: row.projectId ?? null,
+      agentKey: row.agentKey,
+      capability: row.capability ?? null,
+    });
+  }
   return { ok: true, decision, status, held: decision === 'approve' ? (result.held ?? null) : null, approvals: result.approvals ?? [] };
 }
 

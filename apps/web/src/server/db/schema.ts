@@ -36,6 +36,22 @@ const tsvector = customType<{ data: string }>({
 const now = () => timestamp('created_at', { withTimezone: true }).notNull().defaultNow();
 
 export const UserRole = pgEnum('user_role', ['creator', 'admin']);
+
+/**
+ * §133 / §134 的取值域。这三份名单与迁移 `0016_credit_ledger.sql` 里的 CHECK 是同一件事的
+ * 两处写法（TS 侧一处、库侧一处），所以有一条集成测试直接往库里写非法值来钉住两边没漂。
+ * 为什么不用 pg enum：加一档 / 加一类额度时 pg enum 要重建类型，而 text + CHECK 只要改约束。
+ */
+export const USER_PLANS = ['free', 'pro', 'creator', 'studio', 'enterprise'] as const;
+export type UserPlan = (typeof USER_PLANS)[number];
+
+/** §134 原文点名的四类额度，顺序就是余额页读的顺序 */
+export const CREDIT_LEDGER_KINDS = ['ai', 'image', 'video', 'compute'] as const;
+export type CreditLedgerKind = (typeof CREDIT_LEDGER_KINDS)[number];
+
+/** 一行流水为什么存在：档位发放、一次生成扣点、服务端代码里的一次调整（今天没有 HTTP 入口） */
+export const CREDIT_LEDGER_SOURCES = ['plan_grant', 'generation', 'adjust'] as const;
+export type CreditLedgerSource = (typeof CREDIT_LEDGER_SOURCES)[number];
 /** 取值与 @nexus/design-model 的 ProjectType 完全一致，避免两套词汇（§9 模型即真值） */
 export const ProjectKind = pgEnum('project_kind', [
   'website',
@@ -94,6 +110,12 @@ export const users = pgTable(
     /** §60 主页上那段自我介绍。没有版本也没有归属争议，所以直接放这一行而不是另建 1:1 表 */
     bio: text('bio'),
     role: UserRole('role').notNull().default('creator'),
+    /**
+     * §133 的档位。库里只记"这个人属于哪一档"，**每档给多少**在 `domain/credits.ts` 的表里——
+     * 那样一次改档位会碰到类型与单测，而不是悄悄改一行数据就生效。
+     * CHECK 约束（迁移 0016）挡住手写进来的第五种值；读出来不合法时 `planOf` 照实退回 free。
+     */
+    plan: text('plan').$type<UserPlan>().notNull().default('free'),
     /** 免注册首次体验（§137）：guest 可创建项目，注册后认领 */
     guest: boolean('guest').notNull().default(false),
     claimedAt: timestamp('claimed_at', { withTimezone: true }),
@@ -694,6 +716,44 @@ export const userBlocks = pgTable(
   (t) => [primaryKey({ columns: [t.blockerId, t.blockedId] }), index('user_blocks_blocked_idx').on(t.blockedId)],
 );
 
+/**
+ * §134 的额度账本。两条不能省的形状：
+ * - **没有"余额"这一列**：余额 = 这个人这一类 `delta` 的和。存一份可改的余额就是造第二份真值；
+ * - **只追加**：迁移 0016 上挂了一个 BEFORE UPDATE OR DELETE 触发器，退款与更正一律是**新写一行**。
+ * 一次任务的一类产品只扣一次，靠 `credit_ledger_task_kind_key` 那条部分唯一索引（同步收尾与
+ * 异步轮询收尾是同一条账的两条路，见 `domain/agent-tasks.ts` 的 `finishTask`）。
+ */
+export const creditLedger = pgTable(
+  'credit_ledger',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    kind: text('kind').$type<CreditLedgerKind>().notNull(),
+    /** 正数=发放，负数=消费。0 没有意义，所以库里的 CHECK 直接不许（迁移 0016） */
+    delta: integer('delta').notNull(),
+    /** 人读的一句话，且必须能追到一件事：哪一次任务，或哪个月哪个档位 */
+    reason: text('reason').notNull(),
+    source: text('source').$type<CreditLedgerSource>().notNull(),
+    /** 消费行指着那次任务；发放与调整行是 null */
+    taskId: uuid('task_id').references(() => agentTasks.id, { onDelete: 'set null' }),
+    projectId: uuid('project_id').references(() => projects.id, { onDelete: 'set null' }),
+    /** 发放行的幂等键（'2026-09'）。消费行也带上月份，只是不进那条唯一索引 */
+    period: text('period'),
+    createdAt: now(),
+  },
+  (t) => [
+    uniqueIndex('credit_ledger_task_kind_key')
+      .on(t.taskId, t.kind)
+      .where(sql`${t.taskId} is not null`),
+    uniqueIndex('credit_ledger_grant_once_key')
+      .on(t.userId, t.kind, t.period)
+      .where(sql`${t.source} = 'plan_grant'`),
+    index('credit_ledger_user_idx').on(t.userId, t.createdAt),
+  ],
+);
+
 export const remixes = pgTable(
   'remixes',
   {
@@ -902,6 +962,7 @@ export const schema = {
   comments,
   follows,
   userBlocks,
+  creditLedger,
   remixes,
   auditEvents,
   moderationCases,

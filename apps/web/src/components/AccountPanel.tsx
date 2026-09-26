@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { csrfToken } from '@/lib/csrf';
 
@@ -80,17 +81,24 @@ export function AccountPanel({ user }: { user: Identity }) {
           ) : (
             <>已登录：<b className="text-fg-1">{user.email}</b></>
           )}
+          {/* §134：游客也在被记账（一次生成扣的就是这个会话名下那 100 点），
+              所以这一页对两种身份都得进得去 */}
+          <Link href="/credits" className="ml-2 text-12 text-accent-2 underline" data-credits-link>
+            额度与消费
+          </Link>
         </span>
         {!user.guest ? (
-          <button
-            type="button"
-            onClick={() => void logout()}
-            disabled={busy}
-            className="rounded-[var(--nexus-radius-sm)] border border-[var(--nexus-color-border-strong)] px-[var(--nexus-space-3)] py-1 text-12 text-fg-2 hover:bg-bg-2 disabled:opacity-40"
-            data-auth-logout
-          >
-            登出
-          </button>
+          <span className="flex items-center gap-[var(--nexus-space-2)]">
+            <button
+              type="button"
+              onClick={() => void logout()}
+              disabled={busy}
+              className="rounded-[var(--nexus-radius-sm)] border border-[var(--nexus-color-border-strong)] px-[var(--nexus-space-3)] py-1 text-12 text-fg-2 hover:bg-bg-2 disabled:opacity-40"
+              data-auth-logout
+            >
+              登出
+            </button>
+          </span>
         ) : null}
       </div>
 
