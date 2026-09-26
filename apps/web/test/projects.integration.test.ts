@@ -4,7 +4,7 @@ import { createNode, findPage } from '@nexus/design-model';
 import { parseDocument } from '../src/server/validation';
 import { createProject, listProjects, loadDocument, saveDocument } from '../src/server/domain/projects';
 import { getDb } from '../src/server/db/client';
-import { projects, users } from '../src/server/db/schema';
+import { designTokens, projects, users } from '../src/server/db/schema';
 
 /**
  * 集成测试打真实 Postgres 容器（docs/TESTING.md：禁止 mock 数据库）。
@@ -68,6 +68,38 @@ describe('项目领域层（真实数据库）', () => {
     const pageAfter = findPage(loaded!)!;
     expect(pageAfter.nodes[hero.id]!.size.height).toBe(420);
     expect(pageAfter.nodes[pageAfter.rootId]!.children).toContain(hero.id);
+  });
+
+  /**
+   * #40 的根因：`design_tokens` 以前没有一列记"文档里的顺序"，读回来是**没有 ORDER BY 的 SELECT**
+   * 给的物理行序。后果有两层：设计系统面板里的 token 顺序会自己重排；
+   * 更隐蔽的是 `documentsMatch` 对数组按序比，于是"内容没变"的分支切换会被判成有改动，
+   * 每次切换多出一条"切到 X 前的现场"的噪音快照（那条偶发找了很久，因为它偶发在读取顺序上，不在比较逻辑上）。
+   * 这里测的是修好之后的不变式：**顺序穿过一次存取不变**，而且存的不是字母序的巧合。
+   */
+  it('token 表的数组顺序穿过一次存取不变（§16：顺序也是模型的一部分）', async () => {
+    const { id } = await newProject('Token Order');
+    const first = await loadDocument(id);
+    expect(first!.tokens.length).toBeGreaterThan(3);
+
+    // 故意打乱成"既不是原序、也不是字母序"的一份：把最后一项挪到最前面
+    const shuffled = [...first!.tokens];
+    const moved = shuffled.pop()!;
+    const wanted = [moved, ...shuffled].map((t) => t.key);
+    // 前置条件：这份顺序不是字母序，否则下面"等于 wanted"可以被 sortIndex 全 0 的兜底蒙对
+    expect(wanted).not.toEqual([...wanted].sort());
+
+    await saveDocument(id, { ...first!, tokens: [moved, ...shuffled] });
+    expect((await loadDocument(id))!.tokens.map((t) => t.key)).toEqual(wanted);
+    // 再走一轮：第二次读取不能漂（这才是"没有 ORDER BY"那一条的反面——它漂不漂取决于行序）
+    expect((await loadDocument(id))!.tokens.map((t) => t.key)).toEqual(wanted);
+
+    // 反向对照：把**这个项目**那一列全抹成同一个值，读回来的顺序就再也不是文档那一份了。
+    // 这一条证明测的是 sortIndex 在起作用，而不是"postgres 恰好按插入顺序返回"
+    await getDb().update(designTokens).set({ sortIndex: 0 }).where(eq(designTokens.projectId, id));
+    const degraded = (await loadDocument(id))!.tokens.map((t) => t.key);
+    expect(degraded).not.toEqual(wanted);
+    expect(degraded).toEqual([...wanted].sort());
   });
 
   it('保存一个项目不会动到另一个项目的节点', async () => {

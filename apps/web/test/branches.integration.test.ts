@@ -9,7 +9,7 @@ import {
   listBranches,
   switchBranch,
 } from '../src/server/domain/branches';
-import { createSnapshot, listSnapshots } from '../src/server/domain/snapshots';
+import { createSnapshot, documentsMatch, listSnapshots, readSnapshot } from '../src/server/domain/snapshots';
 import { createProject, loadDocument, saveDocument } from '../src/server/domain/projects';
 import { getDb } from '../src/server/db/client';
 import { branches, projects, snapshots, users } from '../src/server/db/schema';
@@ -128,18 +128,82 @@ describe('分支与副本（真实数据库）', () => {
     await switchBranch(id, main!.id);
     await switchBranch(id, v2.branch.id);
     const after = await listSnapshots(id);
+    // 分支头是什么状态、那条"前的现场"自己怎么说，都是现场证据。
     // 分支头是什么状态，直接决定 stashCurrent 会不会写那条"前的现场"：出问题时这就是现场证据
     const heads = (await listBranches(id)).map((b) => `${b.name}:${b.headSnapshotId ? '有头' : '无头'}`).join(' / ');
+    // 诊断必须挂在**第一条**断言上：上一次命中时红在这里，而带诊断的那句排在第三条之后，
+    // 于是红得干脆、证据一个字都没打印出来（docs/TESTING.md 已知偶发第二笔）
+    const stashRows = after.filter((s) => !before.some((b) => b.id === s.id) && (s.label ?? '').startsWith('切到'));
+    const evidence = `分支头现状：${heads}；多出来的那条说：${stashRows.map((s) => `${s.label} → ${s.summary ?? '(没有原因)'}`).join(' / ') || '(没有多余行)'}`;
     const created = after
       .filter((s) => !before.some((b) => b.id === s.id))
       .map((s) => s.label ?? '(无标签)');
-    // 两条"切换到"标记是如实历史；不该出现"切到 X 前的现场"。
-    // 只比长度看不出多出来的是哪一条（这条偶发过一次，见 docs/TESTING.md 已知偶发第二笔），
-    // 所以按 label 分类断言，并把分支头现状打进失败信息里。
-    expect(created.filter((label) => label.startsWith('切到'))).toEqual([]);
+    // 两条"切换到"标记是如实历史；不该出现"切到 X 前的现场"
+    expect(created.filter((label) => label.startsWith('切到')), evidence).toEqual([]);
     expect(created.filter((label) => label.startsWith('切换到'))).toHaveLength(2);
-    expect(created.length, `新增的应当只有两条切换标记；分支头现状：${heads}`).toBe(2);
+    expect(created.length, `${evidence}；新增的应当只有两条切换标记`).toBe(2);
   });
+
+  /**
+   * 那笔偶发噪音快照的定位探针（#40）。它测的不是"切换对不对"，而是 `stashCurrent` 唯一的依据：
+   * 它比的是**同一份内容的两个投影**——工作区那份由 `loadDocument` 从节点行重建，
+   * head 那份从快照的 jsonb 读回。两个投影只要有任何一处不重合（页的顺序、某个字段在两条路径上
+   * 一个写 null 一个不写、数字被 jsonb 规范化…），一次"内容没变的切换"就会被判成有改动，
+   * 于是多出一条"切到 X 前的现场"。所以这里把不变式直接写出来，而不是等它偶发。
+   */
+  it('工作区与 head 快照在 documentsMatch 眼里必须相等，来回切八次也不留噪音', async () => {    const id = await newProject('Noise Probe');
+    const [main] = await listBranches(id);
+    const v2 = await createBranch(id, { name: 'probe-v2' });
+    expect(v2.ok).toBe(true);
+    if (!v2.ok) throw new Error(v2.reason);
+    await switchBranch(id, main!.id);
+
+    const headOf = async (branchId: string) => {
+      const row = (await listBranches(id)).find((b) => b.id === branchId)!;
+      return row.headSnapshotId ? await readSnapshot(id, row.headSnapshotId) : null;
+    };
+    /** 用生产那份谓词自己定位：按页二分，比在测试里重抄一份比较逻辑可靠（重抄的会漂） */
+    const where = (a: DesignDocument, b: DesignDocument): string => {
+      const parts: string[] = [];
+      if (!documentsMatch({ ...a, pages: [] }, { ...b, pages: [] })) parts.push('token 表');
+      if (a.pages.length !== b.pages.length) parts.push(`页数 ${a.pages.length} vs ${b.pages.length}`);
+      const n = Math.min(a.pages.length, b.pages.length);
+      for (let i = 0; i < n; i += 1) {
+        if (!documentsMatch({ ...a, pages: [a.pages[i]!] }, { ...b, pages: [b.pages[i]!] })) {
+          parts.push(`按位置的第 ${i + 1} 页（${a.pages[i]!.name} / ${b.pages[i]!.name}）`);
+        }
+      }
+      if (parts.length) {
+        const byId = new Map(b.pages.map((p) => [p.id, p]));
+        const unmatched = a.pages.filter((p) => !byId.has(p.id) || !documentsMatch({ ...a, pages: [p] }, { ...b, pages: [byId.get(p.id)!] }));
+        if (!unmatched.length) parts.push('（按 id 配对后每一页都相等 → 差的是页的顺序，不是内容）');
+      }
+      return parts.join('、') || '说不清（页数与逐页比较都没报差异）';
+    };
+
+    const workspace = (await loadDocument(id))!;
+    const mainHead = await headOf(main!.id);
+    expect(mainHead, 'main 的 head 快照读不到，探针没有可比的对象').not.toBe(null);
+    expect(
+      documentsMatch(workspace, mainHead!.document),
+      `刚切换完的工作区与这一分支的 head 已经不等了，下一次切换必然存出噪音：${where(workspace, mainHead!.document)}`,
+    ).toBe(true);
+
+    const before = await listSnapshots(id);
+    for (let i = 0; i < 8; i += 1) {
+      await switchBranch(id, v2.branch.id);
+      await switchBranch(id, main!.id);
+    }
+    const stash = (await listSnapshots(id))
+      .filter((s) => !before.some((b) => b.id === s.id) && (s.label ?? '').startsWith('切到'))
+      .map((s) => `${s.label} → ${s.summary ?? '(没有原因)'}`);
+    expect(stash, `八次来回、一次编辑都没有，却存出 ${stash.length} 条"前的现场"：\n${stash.join('\n')}`).toEqual([]);
+    // 反向对照：切换本身仍然留下历史，八次来回 = 16 条"切换到"
+    const switched = (await listSnapshots(id)).filter(
+      (s) => !before.some((b) => b.id === s.id) && (s.label ?? '').startsWith('切换到'),
+    );
+    expect(switched).toHaveLength(16);
+  }, 120_000);
 
   it('存回原分支的那一条会带上"为什么要存"', async () => {
     // 那条偶发的噪音快照单独跑五次都复现不出来，靠猜没有意义。

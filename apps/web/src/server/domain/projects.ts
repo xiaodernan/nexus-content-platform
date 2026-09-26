@@ -127,7 +127,7 @@ async function writeDocument(tx: Tx, projectId: string, document: DesignDocument
   await tx.delete(designTokens).where(eq(designTokens.projectId, projectId));
   await tx.delete(components).where(eq(components.projectId, projectId));
 
-  for (const token of document.tokens) {
+  for (const [index, token] of document.tokens.entries()) {
     await tx.insert(designTokens).values({
       projectId,
       key: token.key,
@@ -135,6 +135,8 @@ async function writeDocument(tx: Tx, projectId: string, document: DesignDocument
       value: token.value as unknown as Record<string, unknown>,
       modes: token.modes ?? null,
       description: token.description ?? null,
+      // 顺序是文档的一部分（§16）：不写这一列，读回来就是物理行序说了算（#40 那条噪音快照的根因）
+      sortIndex: index,
     });
   }
 
@@ -242,9 +244,24 @@ export async function loadDocument(projectId: string): Promise<DesignDocument | 
   const [project] = await db.select().from(projects).where(and(eq(projects.id, projectId), isNull(projects.deletedAt))).limit(1);
   if (!project) return null;
 
-  const pageRows = await db.select().from(pages).where(eq(pages.projectId, projectId)).orderBy(pages.sortIndex);
-  const tokenRows = await db.select().from(designTokens).where(eq(designTokens.projectId, projectId));
-  const componentRows = await db.select().from(components).where(eq(components.projectId, projectId));
+  // 每一句 SELECT 都要有确定的顺序（#40）：没有 ORDER BY 时返回顺序由物理行序决定，
+  // 而 `documentsMatch` 对数组是按序比的——同一份内容读两次可以"不一样"，
+  // 于是分支切换会把它误判成"有改动"，每次多存一条噪音快照。
+  const pageRows = await db
+    .select()
+    .from(pages)
+    .where(eq(pages.projectId, projectId))
+    .orderBy(asc(pages.sortIndex), asc(pages.id));
+  const tokenRows = await db
+    .select()
+    .from(designTokens)
+    .where(eq(designTokens.projectId, projectId))
+    .orderBy(asc(designTokens.sortIndex), asc(designTokens.key));
+  const componentRows = await db
+    .select()
+    .from(components)
+    .where(eq(components.projectId, projectId))
+    .orderBy(asc(components.id));
   const assetRows = await db
     .select()
     .from(assets)
@@ -279,7 +296,9 @@ export async function loadDocument(projectId: string): Promise<DesignDocument | 
 
   const rebuilt: Page[] = [];
   for (const row of pageRows) {
-    const nodeRows = await db.select().from(designNodes).where(eq(designNodes.pageId, row.id));
+    // 节点进的是 Record（键序=返回顺序），而 `Object.values(page.nodes)` 在派生上下文与测试里都会被枚举：
+    // 没有 ORDER BY 时同一份文档两次读取可以给出不同的枚举顺序（#40 同一根因的另一面）
+    const nodeRows = await db.select().from(designNodes).where(eq(designNodes.pageId, row.id)).orderBy(asc(designNodes.id));
     const nodes: Record<string, DesignNode> = {};
     for (const nodeRow of nodeRows) nodes[nodeRow.id] = nodeRow.data as unknown as DesignNode;
     rebuilt.push({

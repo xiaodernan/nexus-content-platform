@@ -260,6 +260,8 @@ export const designTokens = pgTable(
     /** 多主题值：{ light: '#...', dark: '#...' } */
     modes: jsonb('modes'),
     description: text('description'),
+    /** 文档里的位置（§16：数组顺序也是模型的一部分）。没有它，读回来的 token 表顺序由物理行序决定 */
+    sortIndex: integer('sort_index').notNull().default(0),
     updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [uniqueIndex('design_tokens_project_key_key').on(t.projectId, t.key), index('design_tokens_project_idx').on(t.projectId)],
