@@ -1,8 +1,9 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { CONTAINER_TYPES, type DesignNode, type NodeType } from '@nexus/design-model';
 import { cn } from '@/lib/cn';
+import { flattenLayers, keepAncestors, type LayerRow as LayerRowData } from './layers-flat';
 import { studio, useStudioReady } from './store';
 
 const ADD_TYPES: { type: NodeType; label: string }[] = [
@@ -49,27 +50,26 @@ export function LayersPanel() {
     return hit;
   }, [page, query, typeFilter]);
 
-  const visibleTree = useMemo(() => {
+  const rows = useMemo(() => {
     if (!page) return [];
-    // 过滤时保留命中节点及其祖先链
-    const keep = new Set<string>();
-    for (const id of matches) {
-      let cursor: DesignNode | undefined = page.nodes[id];
-      while (cursor && cursor.id !== page.rootId) {
-        keep.add(cursor.id);
-        cursor = cursor.parentId ? page.nodes[cursor.parentId] : undefined;
-      }
-    }
     const filtering = Boolean(query.trim()) || typeFilter !== 'all';
-    const walk = (node: DesignNode): TreeEntry => ({
-      node,
-      children: node.children
-        .map((id) => page.nodes[id])
-        .filter((child): child is DesignNode => Boolean(child))
-        .map(walk),
-    });
-    return walk(root!).children.filter((entry) => !filtering || keep.has(entry.node.id));
-  }, [page, root, matches, query, typeFilter]);
+    return flattenLayers(page, collapsed, filtering ? keepAncestors(page, matches) : null);
+  }, [page, matches, query, typeFilter, collapsed]);
+
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const [range, setRange] = useState({ start: 0, end: 40 });
+  /** 看得见的那一段：滚动位置是唯一输入，行高固定所以不必量每一行 */
+  const measure = useCallback(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+    const start = Math.max(0, Math.floor(el.scrollTop / ROW_H) - OVERSCAN);
+    const end = Math.min(rows.length, Math.ceil((el.scrollTop + el.clientHeight) / ROW_H) + OVERSCAN);
+    setRange((prev) => (prev.start === start && prev.end === end ? prev : { start, end }));
+  }, [rows.length]);
+  // 换页 / 折叠 / 过滤都会让"看得见的那段"变，而它们不触发 scroll 事件
+  useEffect(() => {
+    measure();
+  }, [measure]);
 
   if (!page || !root) return null;
 
@@ -153,34 +153,49 @@ export function LayersPanel() {
         </button>
       </div>
 
-      <div className="min-h-0 flex-1 overflow-auto py-[var(--nexus-space-1)]" onDragOver={(e) => e.preventDefault()} onDrop={() => dragId && onDropNode(page.rootId)}>
-        {visibleTree.map((entry) => (
-          <LayerRow
-            key={entry.node.id}
-            entry={entry}
-            depth={0}
-            page={page}
-            selection={state.selection}
-            collapsed={collapsed}
-            onToggleCollapse={(id) => setCollapsed((c) => ({ ...c, [id]: !c[id] }))}
-            onDragStart={setDragId}
-            onDropNode={onDropNode}
-          />
-        ))}
-        {!visibleTree.length ? <p className="px-[var(--nexus-space-3)] py-[var(--nexus-space-2)] text-12 text-fg-3">没有匹配的图层</p> : null}
+      {/* §147：一维化 + 窗口化。4000 节点那一档以前在这里铺 3999 行 DOM，
+          首帧量不到；现在只铺看得见的那几十行，`data-layer-total` 是文档侧的真数，
+          压测脚本拿它核对"树真的展开了"而不是"列表被裁没了" */}
+      <div
+        ref={scrollRef}
+        onScroll={measure}
+        data-layer-scroll
+        data-layer-total={rows.length}
+        className="min-h-0 flex-1 overflow-auto py-[var(--nexus-space-1)]"
+        onDragOver={(e) => e.preventDefault()}
+        onDrop={() => dragId && onDropNode(page.rootId)}
+      >
+        <div className="relative" style={{ height: rows.length * ROW_H }}>
+          {rows.slice(range.start, range.end).map((row, i) => (
+            <div
+              key={row.node.id}
+              className="absolute inset-x-0"
+              style={{ top: (range.start + i) * ROW_H, height: ROW_H }}
+            >
+              <LayerRow
+                row={row}
+                page={page}
+                selection={state.selection}
+                collapsed={collapsed}
+                onToggleCollapse={(id) => setCollapsed((c) => ({ ...c, [id]: !c[id] }))}
+                onDragStart={setDragId}
+                onDropNode={onDropNode}
+              />
+            </div>
+          ))}
+        </div>
+        {!rows.length ? <p className="px-[var(--nexus-space-3)] py-[var(--nexus-space-2)] text-12 text-fg-3">没有匹配的图层</p> : null}
       </div>
     </div>
   );
 }
 
-interface TreeEntry {
-  node: DesignNode;
-  children: TreeEntry[];
-}
+/** 行高是窗口化的前提：它必须是一个数，而不是"内容多高算多高" */
+const ROW_H = 24;
+const OVERSCAN = 6;
 
 function LayerRow(props: {
-  entry: TreeEntry;
-  depth: number;
+  row: LayerRowData;
   page: { rootId: string; nodes: Record<string, DesignNode> };
   selection: readonly string[];
   collapsed: Record<string, boolean>;
@@ -188,10 +203,11 @@ function LayerRow(props: {
   onDragStart: (id: string) => void;
   onDropNode: (id: string) => void;
 }) {
-  const { entry, depth, selection } = props;
-  const node = entry.node;
+  const { row, selection } = props;
+  const node = row.node;
+  const depth = row.depth;
   const selected = selection.includes(node.id);
-  const isContainer = entry.children.length > 0;
+  const isContainer = row.hasChildren;
   const open = !props.collapsed[node.id];
   const [renaming, setRenaming] = useState(false);
   const [draft, setDraft] = useState(node.name);
@@ -228,7 +244,7 @@ function LayerRow(props: {
           setRenaming(true);
         }}
         className={cn(
-          'flex cursor-default items-center gap-1 px-[var(--nexus-space-2)] py-[2px] text-12',
+          'flex h-full cursor-default items-center gap-1 px-[var(--nexus-space-2)] text-12',
           selected ? 'bg-bg-3 text-fg-1' : 'text-fg-2 hover:bg-bg-2',
         )}
         style={{ paddingLeft: `calc(var(--nexus-space-2) + ${depth * 12}px)` }}
@@ -284,11 +300,6 @@ function LayerRow(props: {
           {node.locked ? '⊘' : '○'}
         </button>
       </div>
-      {isContainer && open
-        ? entry.children.map((child) => (
-            <LayerRow key={child.node.id} {...props} entry={child} depth={depth + 1} />
-          ))
-        : null}
     </>
   );
 }

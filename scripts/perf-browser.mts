@@ -143,11 +143,17 @@ async function pageState(): Promise<string> {
   });
 }
 
-/** 文档里有多少节点、画布 DOM 里真渲染了多少：这两个数不一样才说明有裁剪或漏渲染 */
-async function canvasNodeCounts(): Promise<{ dom: number; layers: number }> {
+/**
+ * 三个数各管一件事：文档里有多少节点（图层树的总行数，虚拟化之后仍然全量展开）、
+ * 画布 DOM 真渲染了多少（视口裁剪 §147）、图层面板 DOM 渲染了多少（列表窗口化）。
+ * 前两个以前混用一个证据（"图层树行数 ≈ 文档规模"），窗口化之后那个证据就失效了——
+ * 所以总行数改从 `data-layer-total` 读，DOM 行数单独量。
+ */
+async function canvasNodeCounts(): Promise<{ dom: number; layers: number; layerTotal: number }> {
   return page.evaluate(() => ({
     dom: document.querySelectorAll('[data-canvas-frame] [data-node-id]').length,
     layers: document.querySelectorAll('[data-layer-id]').length,
+    layerTotal: Number(document.querySelector('[data-layer-total]')?.getAttribute('data-layer-total') ?? -1),
   }));
 }
 
@@ -332,17 +338,27 @@ for (const scale of scales) {
     }
   }
   if (runs.length >= 2) record(`首帧（${built} 节点）`, 'ms', runs);
-  // 自检：文档真的变大了吗？图层树读的是整份文档、不受视口裁剪影响，所以拿它当"文档侧"的证据；
-  // 画布 DOM 那一侧则要看有没有按视口裁剪（§147），两种情况分别核对，不能一概要求"DOM ≈ 文档"。
+  // 自检：文档真的变大了吗？总行数读的是图层树**展开出来的那一份**（虚拟化之后 DOM 行数不再等于它），
+  // 所以这里核的是 `data-layer-total`；画布与列表各自的 DOM 行数则单独量、单独核对有没有裁。
   const counts = await canvasNodeCounts();
   const badge = await page.locator('[data-canvas-virtualized]').count();
   console.log(
-    `  ${built} 节点这一档：图层树 ${counts.layers} 行、画布 DOM ${counts.dom} 个、视口裁剪 ${badge ? '开着' : '没开'}`,
+    `  ${built} 节点这一档：图层树展开 ${counts.layerTotal} 行 / DOM ${counts.layers} 行、画布 DOM ${counts.dom} 个、视口裁剪 ${badge ? '开着' : '没开'}`,
   );
-  if (counts.layers < built * 0.9) {
+  if (counts.layerTotal < built * 0.9) {
     throw new Error(
-      `压测没生效：想让文档到 ${built} 个节点，图层树只列得出 ${counts.layers} 行。` +
+      `压测没生效：想让文档到 ${built} 个节点，图层树只展开得出 ${counts.layerTotal} 行。` +
         `这时量出来的任何数都不能当成"${built} 节点的性能"。`,
+    );
+  }
+  if (counts.layerTotal < 0) {
+    throw new Error('读不到 `data-layer-total`：图层面板的窗口化标记没了，上面的行数证据不成立');
+  }
+  // §147 的另一半：列表也要窗口化。大文档下还铺满 DOM，就是这一版改动没生效
+  if (built > 400 && counts.layers > counts.layerTotal * 0.5) {
+    throw new Error(
+      `文档 ${built} 个节点，图层面板却往 DOM 里铺了 ${counts.layers} 行（展开总数 ${counts.layerTotal}）：` +
+        `列表窗口化没生效，首帧慢的就该算它一份`,
     );
   }
   if (loadFailure) console.log(`  提示：这一档还有"没测到"的项，写进文档时不能只挑量到的那几个数。`);
