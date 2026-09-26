@@ -3,6 +3,7 @@ import { csrfOk } from '@/server/security/csrf';
 import { requireUser } from '@/server/domain/session';
 import { projectBelongsTo } from '@/server/domain/projects';
 import { addMemory, clearMemories, countMemoriesByScope, listMemories } from '@/server/domain/memories';
+import { searchMemories } from '@/server/domain/memory-search';
 import { badRequest, failure, jsonError, notFound, readJson } from '@/server/http';
 
 interface RouteContext {
@@ -11,14 +12,20 @@ interface RouteContext {
 
 /**
  * §48 记忆的查看与新增。全部按登录用户过滤：别人的记忆在这里既列不出来也读不到。
- * 检索不在这里——没有 provider 时 embedding 就是 null，界面上也这么写（§49 再接）。
+ * `?q=` 走 §49 那套混合检索（见 `domain/memory-search.ts`）：那是**词面**检索，
+ * 不是语义检索，也搜不到不挂项目的「我的偏好」——这两句由响应里的 note 原样带给界面。
  */
 
-export async function GET(_req: Request, ctx: RouteContext): Promise<NextResponse> {
+export async function GET(req: Request, ctx: RouteContext): Promise<NextResponse> {
   const { projectId } = await ctx.params;
+  const query = new URL(req.url).searchParams.get('q');
   try {
     const user = await requireUser();
     if (!(await projectBelongsTo(projectId, user.id))) return notFound();
+    if (query?.trim()) {
+      const result = await searchMemories(user.id, projectId, query);
+      return NextResponse.json({ ok: true, ...result, counts: await countMemoriesByScope(user.id, projectId) });
+    }
     const [items, counts] = await Promise.all([
       listMemories({ ownerId: user.id, projectId }),
       countMemoriesByScope(user.id, projectId),
