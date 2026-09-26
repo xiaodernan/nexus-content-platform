@@ -22,7 +22,7 @@
 //   §7 §9: every write inside os.tmpdir, this repo's HEAD compared byte-wise at the end.
 // Run after `npm run build`:  node docs/evidence/agents/pipes-proof.mjs
 import assert from 'node:assert/strict';
-import { execFileSync } from 'node:child_process';
+import { execFileSync } from '../lib/syncproc.mjs';
 import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';

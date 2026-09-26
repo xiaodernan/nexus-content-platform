@@ -17,7 +17,7 @@
 // §9 holds throughout: real writes only inside os.tmpdir, this repo's HEAD compared byte-wise.
 // Run after `npm run build`:  node docs/evidence/agents/budgets-proof.mjs
 import assert from 'node:assert/strict';
-import { execFileSync } from 'node:child_process';
+import { execFileSync } from '../lib/syncproc.mjs';
 import { mkdtempSync, rmSync, writeFileSync, existsSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';

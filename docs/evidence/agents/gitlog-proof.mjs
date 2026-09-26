@@ -12,7 +12,7 @@
 // proof deletes; the demo repo's HEAD is asserted byte-identical before and after.
 // Run after `npm run build`:  node docs/evidence/agents/gitlog-proof.mjs
 import assert from 'node:assert/strict';
-import { execFileSync } from 'node:child_process';
+import { execFileSync } from '../lib/syncproc.mjs';
 import { existsSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';

@@ -360,6 +360,44 @@ describe('the process tree (v55): what a timeout kill stops, and what it says it
     expect(r.killedByBudget).toBe(true);
   });
 
+  it('an ASYNC reaper is awaited: its verdict lands in the result (v77)', async () => {
+    // The regression this guards. `onEnd` used to build the result synchronously, so a reaper
+    // that resolved on a later tick left `descendantsStopped` undefined — a genuinely reaped tree
+    // reported as if no decision had been made. The fake reaper here resolves only when released,
+    // so the assertion can only pass if `onEnd` waited.
+    let release!: (v: boolean) => void;
+    const gate = new Promise<boolean>((r) => {
+      release = r;
+    });
+    const kills: number[] = [];
+    let child: FakeChild | undefined;
+    const spawnLike: SpawnLike = () => {
+      const c = new FakeChild();
+      c.kill = () => {
+        kills.push(1);
+        c.killed = true;
+        c.emitEnd({ code: null, signal: 'SIGTERM' });
+      };
+      child = c;
+      return { onData: (l) => c.onData(l), onEnd: (l) => c.onEnd(l), kill: c.kill, pid: 777 };
+    };
+    const host = createExecHost(POLICY, { spawnLike, reapTree: true, reaper: () => gate });
+    const pending = host.run({ argv: ['git', 'status', '--short'] }, OK_GATE); // the 20 ms rule
+    await new Promise((r) => setTimeout(r, 120)); // the budget has fired; the reaper is unresolved
+    // The child is still alive: a pending reaper has NOT been upgraded into a claimed success, and
+    // the fallback kill has not fired either (it only fires once the reaper says it failed).
+    expect(child!.killed).toBe(false);
+    expect(kills).toEqual([]);
+    release(true);
+    // A real `taskkill /T /F` ends the process, which is what lets the host build its result —
+    // so the fake has to model that too, and only AFTER the reaper reported success.
+    child!.emitEnd({ code: 1, signal: null });
+    const r = await pending;
+    expect(r.killedByBudget).toBe(true);
+    expect(r.descendantsStopped).toBe('reaped');
+    expect(kills).toEqual([]); // reaping is a SUBSTITUTION: no direct kill followed a success
+  });
+
   it('an adapter that reports no pid is answered honestly: no handle, no tree claim', async () => {
     const h = treeHarness({ reapTree: true }); // no pid on the ExecChild
     const r = await run(h);
@@ -381,7 +419,10 @@ describe('the process tree (v55): what a timeout kill stops, and what it says it
 
   it('the platform answer is a value the operator can read, not a silent no', async () => {
     expect(typeof TREE_REAPER_AVAILABLE).toBe('boolean');
-    expect(DEFAULT_TREE_REAPER(0)).toBe(false); // pid 0 is not somebody elus process; and the call must not throw
+    // M2 v77: the default reaper is ASYNC — it cannot use the synchronous spawn API on this host
+    // (EBUSY), so it drives `taskkill` through the working async path. A sync reaper is still
+    // accepted by the host, which awaits either shape.
+    expect(await DEFAULT_TREE_REAPER(0)).toBe(false); // pid 0 is not somebody else's process; and the call must not throw
   });
 });
 

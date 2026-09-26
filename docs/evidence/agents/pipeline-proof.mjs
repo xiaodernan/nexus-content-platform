@@ -6,7 +6,7 @@
 // boundary — multi-agent cooperation as durable data, honestly in demo mode (§60).
 // Run from the repo root after `npm run build`:  node docs/evidence/agents/pipeline-proof.mjs
 import assert from 'node:assert/strict';
-import { execFileSync } from 'node:child_process';
+import { execFileSync } from '../lib/syncproc.mjs';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';

@@ -11,7 +11,7 @@
 // `git show --format=` run a third-party command and print an EMPTY diff about a real change.
 // Run after `npm run build`:  node docs/evidence/agents/show-proof.mjs
 import assert from 'node:assert/strict';
-import { execFileSync } from 'node:child_process';
+import { execFileSync } from '../lib/syncproc.mjs';
 import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync, existsSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';

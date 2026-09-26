@@ -13,7 +13,7 @@
 // the v14/v22 chain byte-for-byte (§9: the home repo is never touched; git PUSH never happens).
 // Run after `npm run build`:  node docs/evidence/agents/role-arc-proof.mjs
 import assert from 'node:assert/strict';
-import { execFileSync } from 'node:child_process';
+import { execFileSync } from '../lib/syncproc.mjs';
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync, existsSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';

@@ -19,7 +19,7 @@
 // staging and merging are HUMAN acts run raw, and this repo's HEAD is compared byte-wise at the end.
 // Run after `npm run build`:  node docs/evidence/agents/verdict-proof.mjs
 import assert from 'node:assert/strict';
-import { execFileSync } from 'node:child_process';
+import { execFileSync } from '../lib/syncproc.mjs';
 import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -187,7 +187,16 @@ try {
   const lockRefused = await c3.call({ message: 'v52 says hi' });
   assert.ok(lockRefused.detail.includes('fatal: Unable to create'), 'the door quotes the fatal line');
   assert.ok(lockRefused.detail.includes('index.lock'), 'including the file git blames, which is the actionable part');
-  assert.ok(lockRefused.detail.includes("git's prefixed line of the 6 it printed"), 'six lines of git, one quoted, stated as such');
+  // The count is derived, not hardcoded. It used to say `6` because the git of the day printed a
+  // brace of `hint:` lines on a lock conflict; git 2.55 prints two non-empty lines here, so a
+  // literal would have been an assertion about a git VERSION rather than about the door. The rule
+  // being checked is the door's own: non-empty lines across BOTH streams.
+  const lockControlLines = [...lockControl.stderr.split('\n'), ...lockControl.stdout.split('\n')]
+    .filter((l) => l.trim() !== '').length;
+  assert.ok(
+    lockRefused.detail.includes(`git's prefixed line of the ${lockControlLines} it printed`),
+    `the door states its quote is ONE of git's ${lockControlLines} non-empty lines, counted by its own rule`,
+  );
   assert.ok(existsSync(`${locked}/.git/index.lock`), 'the door only spoke: it left the lock exactly where it found it');
   rmSync(`${locked}/.git/index.lock`);
   const afterUnlock = await c3.call({ message: 'v52 says hi' });

@@ -10,7 +10,7 @@
 // and the edit nobody staged is stated as not-recorded instead of quietly vanishing.
 // Run after `npm run build`:  node docs/evidence/agents/staged-proof.mjs
 import assert from 'node:assert/strict';
-import { execFileSync } from 'node:child_process';
+import { execFileSync } from '../lib/syncproc.mjs';
 import { mkdtempSync, rmSync, writeFileSync, existsSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';

@@ -17,7 +17,7 @@
 // what keeps the 55 tracked proofs the "nothing else moved" assertion; §5 holds §9.
 // Run after `npm run build`:  node docs/evidence/agents/record-window-proof.mjs
 import assert from 'node:assert/strict';
-import { execFileSync } from 'node:child_process';
+import { execFileSync } from '../lib/syncproc.mjs';
 import { existsSync, mkdirSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';

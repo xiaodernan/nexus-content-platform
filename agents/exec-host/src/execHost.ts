@@ -1,4 +1,4 @@
-import { spawn as nodeSpawnLib, spawnSync as spawnSyncLib } from 'node:child_process';
+import { spawn as nodeSpawnLib } from 'node:child_process';
 import type { Checkpoint, ExecPlan, ExecPolicy, ExecRequest, ToolRegistry, ToolCall, ToolSpec } from '@nexus/agent-runtime';
 import { planExec } from '@nexus/agent-runtime';
 
@@ -122,8 +122,14 @@ export type DescendantsStopped =
   | 'unsupported-platform' /** no reaper is implemented here, and none was pretended */
   | 'not-attempted'; /** the host killed only its own child — v30's behaviour, still the default */
 
-/** Injectable so the tree behaviour is unit-testable without an OS process. */
-export type TreeReaper = (pid: number) => boolean;
+/**
+ * Injectable so the tree behaviour is unit-testable without an OS process.
+ *
+ * May be **async**: the default implementation has to be, because this host cannot use the
+ * synchronous spawn API at all (see `DEFAULT_TREE_REAPER`). A synchronous reaper is still
+ * accepted and behaves exactly as before, so every already-injected test reaper is unaffected.
+ */
+export type TreeReaper = (pid: number) => boolean | Promise<boolean>;
 
 /**
  * win32: `taskkill /PID <pid> /T /F`, and the ORDER is the finding. Measured on this box, calling it
@@ -133,11 +139,34 @@ export type TreeReaper = (pid: number) => boolean;
  * carry what the OS reported (code 1, signal null) beside `killedByBudget: true`, because the host
  * knows it killed the run and the process knows it was force-terminated.
  * Anywhere else: no implementation, and no pretending — the answer is `unsupported-platform`.
+ *
+ * ⚠️ M2 v77 — this used to call `spawnSync`, and on this host **every synchronous spawn API fails
+ * with `EBUSY`** (`spawnSync` / `execFileSync` / `execSync`, in a worker thread too), while the
+ * asynchronous `spawn` works normally. So the reaper could never succeed here: it always answered
+ * `false`, the host honestly reported `'reaper-failed'`, and `reapTree: true` silently degraded to a
+ * plain kill. Nothing caught it because the proof that would have (`reap-proof.mjs`) asserts
+ * `'reaped'` and was itself unable to run. The reaper is therefore async now and drives `taskkill`
+ * through the working async path; a non-zero exit, a spawn error and a throw all still mean "asked
+ * for, ran, reported failure" — the host never upgrades its own reach.
  */
-export const DEFAULT_TREE_REAPER: (pid: number) => boolean = (pid) => {
+export const DEFAULT_TREE_REAPER: TreeReaper = async (pid) => {
   if (process.platform !== 'win32') return false;
   try {
-    return spawnSyncLib('taskkill', ['/PID', String(pid), '/T', '/F'], { windowsHide: true, encoding: 'utf8' }).status === 0;
+    return await new Promise<boolean>((resolve) => {
+      let settled = false;
+      const done = (ok: boolean) => {
+        if (!settled) {
+          settled = true;
+          resolve(ok);
+        }
+      };
+      const tk = nodeSpawnLib('taskkill', ['/PID', String(pid), '/T', '/F'], {
+        windowsHide: true,
+        stdio: 'ignore',
+      });
+      tk.on('error', () => done(false));
+      tk.on('close', (code) => done(code === 0));
+    });
   } catch {
     return false;
   }
@@ -284,6 +313,10 @@ export function createExecHost(policy: ExecPolicy, options: ExecHostOptions = {}
         };
         const child = spawnLike(plan.argv[0]!, plan.argv.slice(1), { cwd: plan.cwd, env: plan.env });
         child.onData(append);
+        // M2 v77: the reaper may be async, so the verdict is settled by a promise and `onEnd`
+        // waits on it. Without this the result could be built while `descendants` was still
+        // undefined, and a reaped tree would be reported as if no decision had been made.
+        let reapSettled: Promise<void> | null = null;
         const timer = setTimeout(() => {
           killed = true;
           // M2 v55: `child.kill()` stops the process the host started and NOTHING else. When the
@@ -301,18 +334,24 @@ export function createExecHost(policy: ExecPolicy, options: ExecHostOptions = {}
             descendants = 'unsupported-platform';
             child.kill();
           } else {
-            // A reaper that throws is a FAILED reaper, not a crashed host: the run already ran, and
-            // the fallback kill still happens below.
-            try {
-              descendants = reaper(child.pid!) ? 'reaped' : 'reaper-failed';
-            } catch {
-              descendants = 'reaper-failed';
-            }
-            if (descendants !== 'reaped') child.kill(); // a failed tree call still stops the child it can reach
+            const pid = child.pid;
+            reapSettled = (async () => {
+              // A reaper that throws is a FAILED reaper, not a crashed host: the run already ran,
+              // and the fallback kill still happens below.
+              let reaped = false;
+              try {
+                reaped = (await reaper(pid)) === true;
+              } catch {
+                reaped = false;
+              }
+              descendants = reaped ? 'reaped' : 'reaper-failed';
+              if (!reaped) child.kill(); // a failed tree call still stops the child it can reach
+            })();
           }
         }, plan.timeoutMs);
-        child.onEnd((e) => {
+        child.onEnd(async (e) => {
           clearTimeout(timer);
+          if (reapSettled) await reapSettled;
           const streams = (['stdout', 'stderr'] as const).filter((s) => cut[s]);
           const result: ExecRunResult = {
             ran: true,

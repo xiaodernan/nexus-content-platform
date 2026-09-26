@@ -6,7 +6,7 @@
 // trails explain each outcome without anyone remembering what the callback did.
 // Run after `npm run build`:  node docs/evidence/agents/policygate-proof.mjs
 import assert from 'node:assert/strict';
-import { execFileSync } from 'node:child_process';
+import { execFileSync } from '../lib/syncproc.mjs';
 import { mkdtempSync, rmSync, writeFileSync, existsSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';

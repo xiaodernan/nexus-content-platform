@@ -21,7 +21,7 @@
 // program: the `test.run` bridge runs exactly such programs, and the host is where every door is born.
 // Run after `npm run build`:  node docs/evidence/agents/streams-proof.mjs
 import assert from 'node:assert/strict';
-import { execFileSync, spawnSync } from 'node:child_process';
+import { execFileSync, spawnSync } from '../lib/syncproc.mjs';
 import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';

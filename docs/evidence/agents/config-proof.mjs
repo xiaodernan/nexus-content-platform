@@ -25,7 +25,7 @@
 // off-limits: we will not rewrite a human's repository to make our read safe).
 // Run after `npm run build`:  node docs/evidence/agents/config-proof.mjs
 import assert from 'node:assert/strict';
-import { execFileSync } from 'node:child_process';
+import { execFileSync } from '../lib/syncproc.mjs';
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, statSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';

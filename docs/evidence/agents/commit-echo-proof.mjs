@@ -19,7 +19,7 @@
 // does, so the key is shown to survive into a cold read; §5 holds §9.
 // Run after `npm run build`:  node docs/evidence/agents/commit-echo-proof.mjs
 import assert from 'node:assert/strict';
-import { execFileSync } from 'node:child_process';
+import { execFileSync } from '../lib/syncproc.mjs';
 import { existsSync, mkdirSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';

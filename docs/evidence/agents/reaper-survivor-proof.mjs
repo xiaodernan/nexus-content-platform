@@ -14,7 +14,7 @@
 // All programs and their heartbeat files live under os.tmpdir; this repository's HEAD is byte-compared.
 // Run after `npm run build`:  node docs/evidence/agents/reaper-survivor-proof.mjs
 import assert from 'node:assert/strict';
-import { execFileSync } from 'node:child_process';
+import { execFileSync } from '../lib/syncproc.mjs';
 import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';

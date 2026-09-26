@@ -10,7 +10,7 @@
 // `only`-miss, §28 refusal); §4 states the bound v60 measured and this file does not re-run.
 // Run after `npm run build`:  node docs/evidence/agents/report-window-proof.mjs
 import assert from 'node:assert/strict';
-import { execFileSync } from 'node:child_process';
+import { execFileSync } from '../lib/syncproc.mjs';
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';

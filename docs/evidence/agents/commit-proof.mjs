@@ -9,7 +9,7 @@
 // the policy under test must NOT be able to stage, only to commit.
 // Run after `npm run build`:  node docs/evidence/agents/commit-proof.mjs
 import assert from 'node:assert/strict';
-import { execFileSync } from 'node:child_process';
+import { execFileSync } from '../lib/syncproc.mjs';
 import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
