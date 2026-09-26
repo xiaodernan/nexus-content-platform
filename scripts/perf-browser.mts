@@ -331,19 +331,22 @@ async function propToCanvasLatency(scope: string): Promise<void> {
       await page.click('[data-canvas-surface]');
       const clear = await page.locator('[data-resize-handle]').count();
       if (clear > 0) throw new Error(`点空白处没有取消选中（还有 ${clear} 个手柄），选中响应没法量`);
+      // 上一版用合成事件，clientX/clientY 全是 0——画布的命中测试看的就是坐标，
+      // 于是"点了个寂寞"，量不到不是巧合。这次用真实鼠标事件打到节点的包围盒中心。
+      const box = await page.locator(`[data-canvas-frame] [data-node-id="${headline}"]`).boundingBox();
+      if (!box) throw new Error('目标节点没有包围盒（不在视口里？），不能用真实点击去量');
+      await page.evaluate(() => {
+        (window as unknown as { __selT0: number }).__selT0 = performance.now();
+      });
+      await page.mouse.click(Math.round(box.x + box.width / 2), Math.round(box.y + box.height / 2));
       sel.push(
-        await page.evaluate((id: string) => {
+        await page.evaluate(() => {
           return new Promise<number>((resolve, reject) => {
-            const el = document.querySelector(`[data-canvas-frame] [data-node-id="${id}"]`) as HTMLElement | null;
-            if (!el) return reject(new Error('目标节点不在 DOM 上'));
-            const started = performance.now();
-            el.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, pointerId: 1, button: 0 }));
-            el.dispatchEvent(new PointerEvent('pointerup', { bubbles: true, pointerId: 1, button: 0 }));
-            el.dispatchEvent(new MouseEvent('click', { bubbles: true }));
             const timer = window.setInterval(() => {
               if (document.querySelectorAll('[data-resize-handle]').length > 0) {
                 window.clearInterval(timer);
-                resolve(performance.now() - started);
+                const w = window as unknown as { __selT0: number };
+                resolve(performance.now() - w.__selT0);
               }
             }, 2);
             window.setTimeout(() => {
@@ -351,7 +354,7 @@ async function propToCanvasLatency(scope: string): Promise<void> {
               reject(new Error('3 秒内没有出现选择手柄'));
             }, 3000);
           });
-        }, headline),
+        }),
       );
     }
     record(`选中响应${scope}`, 'ms', sel);
