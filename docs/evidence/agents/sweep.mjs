@@ -440,6 +440,72 @@ async function catFileBatchOptional(queries, cwd) {
 }
 
 /**
+ * Does a `/` here open a REGULAR-EXPRESSION literal, or divide? (M2 v97)
+ *
+ * Both code-position walks skip comments and string bodies by scanning past them, and until v97 neither knew a
+ * regex literal exists. A regex is where a quote hides HARMLESSLY in real source: the markdown-table reader of
+ * `table-recount-proof.mjs:104` carries backticks in its pattern, and `intent-proof.mjs:191` quotes a whole door
+ * sentence — `(use "git add" …) · git's last line`. The walk met the first of those quote characters, opened a
+ * phantom string, and inverted EVERY pairing after it in that file: the reason a real
+ * `execFileSync('git', ['rev-parse', 'HEAD'], …)` at `intent-proof.mjs:227` contributed no reach at all.
+ * Measured over the 78 tracked `.mjs` under `docs/evidence` at `5551327`: 13 files carry a quote-bearing regex
+ * literal, 24 of them in all.
+ *
+ * The test is the classic one. A `/` divides when what precedes it can END an expression, so a regex position is
+ * anything not following an identifier character or a closing `)` or `]`. `}` counts as regex-expected: an object
+ * literal one could divide by is absurd, testing a regex against a block's result is not. Keywords that take a
+ * VALUE next (`return`, `typeof`, `case`) are the exception to the identifier rule.
+ *
+ * A wrong guess cannot run wild: `regexLiteralEnd` demands a closing `/` ON THE SAME LINE — a regex literal may
+ * not contain a raw newline — and falls back to division when it does not find one, so the cost of calling
+ * division a regex is one line. One grammar serves both walks rather than a second copy that can drift.
+ */
+const REGEX_POSITION_KEYWORDS = new Set([
+  'return', 'typeof', 'instanceof', 'in', 'of', 'new', 'delete', 'void', 'do', 'else', 'yield', 'await', 'throw',
+  'case', 'default',
+]);
+
+/** What a walk appends to its code buffer after a skipped regex: a character real source never contains. */
+const VALUE_END = '\u0001';
+
+const regexPosition = (code) => {
+  const t = code.replace(/[ \t\r\n]+$/, '');
+  if (!t) return true;
+  const c = t[t.length - 1];
+  if (c === VALUE_END) return false;
+  if (/[A-Za-z0-9_$]/.test(c)) return REGEX_POSITION_KEYWORDS.has((/(?:[A-Za-z_$][\w$]*)$/.exec(t) || [''])[0]);
+  return c !== ')' && c !== ']';
+};
+
+/**
+ * The offset just past a regex literal starting at `i`, or -1 when `/` at `i` is not one. A `/` inside a `[…]`
+ * character class is literal and `\` escapes what follows, so both are tracked; a raw newline before the closing
+ * `/` means this is no regex and the caller keeps the division reading. The body carries no meaning for these
+ * walks — neither code nor string — so the whole literal is skipped, which also stops an unclosed `(` inside a
+ * pattern from skewing `gitReaches`' frame stack.
+ */
+function regexLiteralEnd(text, i) {
+  if (text[i + 1] === '/' || text[i + 1] === '*') return -1; // `//` and `/*` are a comment first: never an empty regex
+  let cls = false;
+  for (let j = i + 1; j < text.length; j++) {
+    const c = text[j];
+    if (c === '\\') { j++; continue; }
+    if (c === '\n') return -1;
+    if (cls) { if (c === ']') cls = false; continue; }
+    if (c === '[') { cls = true; continue; }
+    if (c === '/') {
+      let k = j + 1;
+      while (k < text.length && /[a-z]/.test(text[k])) k++;
+      return k;
+    }
+  }
+  return -1;
+}
+
+/** Skip a regex literal when one starts at `i`; -1 means this `/` is division and the walk continues as before. */
+const regexSkip = (text, i, code) => (regexPosition(code) ? regexLiteralEnd(text, i) : -1);
+
+/**
  * Every relative (`./`, `../`) specifier the text ACTUALLY imports, deduplicated.
  *
  * M2 v89 corrected what v88 shipped. The first version matched `from '…'` anywhere in the BYTES, which is
@@ -465,6 +531,15 @@ export function relativeSpecs(text) {
   while (i < src.length) {
     const c = src[i];
     const d = src[i + 1];
+    if (c === '/') {
+      // A regex literal is neither code nor a string: skip it whole, or its quotes invert every pairing after it.
+      const end = regexSkip(src, i, code);
+      if (end > 0) {
+        code += VALUE_END;
+        i = end;
+        continue;
+      }
+    }
     if (c === '/' && d === '/') {
       while (i < src.length && src[i] !== '\n') i++;
       continue;
@@ -576,6 +651,17 @@ export function gitReaches(src, sink) {
   while (i < text.length) {
     const c = text[i];
     const d = text[i + 1];
+    if (c === '/') {
+      // Same arm, same grammar (v97): a quote inside a pattern used to open a phantom string here too, and an
+      // unclosed `(` in one skewed the frame stack that decides which callee a call belongs to.
+      const end = regexSkip(text, i, code);
+      if (end > 0) {
+        code += VALUE_END;
+        last = VALUE_END;
+        i = end;
+        continue;
+      }
+    }
     if (c === '/' && d === '/') {
       // The comment's own text is a channel a row can speak through (v94: `// sweep-asks-repository:`), so it
       // is handed to the sink WITH the fact of whether `//` opened the line. Same tokenizer, one grammar —

@@ -16,9 +16,10 @@
 // hiding place is the runner's own file, where a private helper literally named `git` takes an argv parameter.
 import { execFileSync } from '../lib/syncproc.mjs';
 import assert from 'node:assert/strict';
-import { readFileSync, readdirSync } from 'node:fs';
+import { mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from 'node:fs';
 import { basename, join } from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { tmpdir } from 'node:os';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 import * as sw from './sweep.mjs';
 
 const HERE = join(fileURLToPath(new URL('.', import.meta.url)));
@@ -284,5 +285,73 @@ assert.ok(!deafened.declaring.includes('syn-matched.mjs') && deafened.silentBlin
 assert.deepEqual([...six.gradeable, ...six.unchecked].sort(), six.declaring.slice().sort(), 'declaring must partition into gradeable + unchecked');
 assert.deepEqual(six.declaring.filter((n) => six.silentBlind.includes(n)), [], 'a row cannot be both heard and a silent blind spot');
 console.log(`[§6] wiring: ${failedRows.length} synthetic reds → declaring ${six.declaring.length} · gradeable ${six.gradeable.length} · unchecked ${six.unchecked.length} · omissions ${six.omissions.length} · surplus ${six.surplus.length} · blind ${six.silentBlind.length}. The 6807ba1 defect reproduces in one line (an object used as a name-keyed map's key yields an empty claim, and an empty claim made ${brokenKey.omissions.length} omission out of a row that declared ${failedRows[2].reason.match(/git (\S+)/)[1]}), and the wrong-ENDING key is caught too: ${miskeyed.declaring.length} heard with ${miskeyed.silentBlind.length} blind, because a dropped row reappears in the arm the gate reads`);
+
+// ---------------------------------------------------------------- §7 the reading rule UNDERNEATH the arm
+// §§1-6 grade what the byte arm can see. This section grades the walk that decides what is seeable at all: on
+// `5551327` the tokenizer knew comments, it knew strings, and it knew no third way a character can hide — so a
+// `/…/` literal carrying a quote opened a phantom string and inverted every pairing after it in that file. 13 of
+// the 78 tracked `.mjs` hold one. The two directions it produced are BOTH in this population, so both are pinned.
+{
+  const bs = String.fromCharCode(92);
+  const CALL = "execFileSync('git', ['rev-parse', 'HEAD'], { encoding: 'utf8' });";
+  const subs = (src) => sw.gitReaches(src).map((h) => `${h.via}:${h.callee ?? ''}:${h.sub ?? ''}`);
+  // (a) HID. A door's own sentence, quoted in a pattern apostrophe and all, as at `intent-proof.mjs:191`. Before
+  // the arm that row reported three reaches and its real `execFileSync('git', ['rev-parse', 'HEAD'], …)` on line
+  // 227 was not one of them — the reason a `dead` verdict about a desynced row's bytes could not be checked.
+  const HID = "const MSG = /^git's last line$/;" + '\n' + CALL;
+  assert.deepEqual(subs(HID), subs(CALL), '(a) a quote inside a regex may not change what the call after it reports');
+  assert.ok(subs(HID).includes('program:execFileSync:rev-parse'), `(a) the hidden reach must be there at all: ${JSON.stringify(subs(HID))}`);
+  // (b) INVENTED. `spawnlog-proof.mjs:187` asserts that a REFUSED command survives inside its own reason line,
+  // JSON-quoted. Its pattern is /…["git","push"]…/ with the brackets escaped, and the arm-less walk read that
+  // escape as an OPEN ARRAY BRACKET, so the next quote opened a string whose body was exactly `git` — and a row
+  // proving that a refusal record is not an order to run contributed an order to run.
+  const INVENTED = "assert.match(line.reason, /" + bs + '["git","push"' + bs + "]/, 'the stated refusal names what was asked');";
+  assert.deepEqual(sw.gitReaches(INVENTED), [], '(b) a regex body is not an argv: the reach grammar may invent nothing');
+  assert.ok(sw.mentionsGit(INVENTED), '(b) the naive grammar still hears the word — two grammars, one question (amendment 89), so the disagreement is stated rather than hidden');
+  // (c) DIVISION may not be swallowed. Same-line termination is what bounds a wrong guess: `a / b` never closes,
+  // so the walk falls back to arithmetic and the call after it — same line or next — keeps its reach.
+  assert.equal(sw.gitReaches('const half = total / 2; ' + CALL).length, 1, '(c) arithmetic before a call may not cost the call its reach');
+  assert.equal(sw.gitReaches('const ratio = width / height\n' + CALL).length, 1, '(c) a slash that never closes may not eat the next line');
+  // (d) A character class may not steal the frame that decides which callee a literal belongs to.
+  const CLASS = 'const OPEN = /[(]/;\n' + "execFileSync('git', ['status', '--porcelain']);";
+  const cl = sw.gitReaches(CLASS);
+  assert.equal(cl.length, 1, `(d) the class case found ${JSON.stringify(cl.map((h) => h.via))}`);
+  assert.equal(cl[0].callee, 'execFileSync', '(d) a bracket inside a pattern must not reorder the frame stack');
+  // (e) A comment is still a comment: `//` may not read as an empty regex, and its payload must still reach the
+  // declaration channel — the arm sits in the same walk that feeds it.
+  const COMMENT = '// sweep-asks-repository: git status is said here and asked nowhere\n' + CALL;
+  assert.equal(sw.gitReaches(COMMENT).length, 1, '(e) a double slash is not an empty regex');
+  assert.deepEqual(sw.asksRepository(COMMENT), ['git status is said here and asked nowhere'], '(e) and the marker inside it is still read');
+  // (f) THE LIVE ROWS, pinned by content rather than by a total any unrelated edit could move.
+  const live = (n) => rows.find((r) => r.path.endsWith('/' + n));
+  const intent = live('intent-proof.mjs');
+  const spawnlog = live('spawnlog-proof.mjs');
+  assert.ok(intent && spawnlog, '(f) neither witness this section exists for is in the population');
+  const ip = sw.gitCommandsIn(intent.text).filter((c) => c === 'rev-parse').length;
+  assert.ok(ip >= 2, `(f) intent-proof still names rev-parse only ${ip} time — its line-227 call is being read as string body`);
+  const sl = spawnlog.text.indexOf('assert.match(line.reason, ');
+  assert.ok(sl >= 0, '(f) the JSON-quoted refusal assertion has left spawnlog-proof, so this case checks nothing');
+  const from = spawnlog.text.lastIndexOf('\n', sl) + 1;
+  const to = spawnlog.text.indexOf('\n', sl);
+  assert.ok(!sw.gitReaches(spawnlog.text).some((h) => h.at > from && h.at <= to), '(f) that line names a refusal RECORD, not a command, and must contribute no reach');
+  let replay = 'skipped: this plane has no index to ask';
+  if (gitPlane === 'GIT') {
+    // (g) THE PIN BITES. `5551327` is the last ref whose runner has no regex arm, so its own bytes are sliced and
+    // asked the two questions above. If either answer flips, cases (a) and (b) are testing a rule that was never
+    // broken — which is how a witness passes while proving nothing.
+    const pre = norm(git('show', '5551327:docs/evidence/agents/sweep.mjs'));
+    const a0 = pre.indexOf('export const SPAWN_FAMILY');
+    const a1 = pre.indexOf('/** The naive second grammar');
+    assert.ok(a0 >= 0 && a1 > a0, '(g) the pre-v97 slice anchors have moved');
+    const dir = mkdtempSync(join(tmpdir(), 'nexus-v97-'));
+    writeFileSync(join(dir, 'pre-v97-grammar.mjs'), pre.slice(a0, a1) + '\n');
+    const old = await import(pathToFileURL(join(dir, 'pre-v97-grammar.mjs')).href);
+    assert.ok(!old.gitReaches(HID).some((h) => h.sub === 'rev-parse'), '(g) the arm-less grammar no longer HIDES the call, so case (a) tests nothing');
+    assert.ok(old.gitReaches(INVENTED).some((h) => h.via === 'argv'), '(g) the arm-less grammar no longer INVENTS the argv hit, so case (b) tests nothing');
+    rmSync(dir, { recursive: true, force: true });
+    replay = 'the arm-less grammar at 5551327 hides (a) and invents (b), both reproduced here';
+  }
+  console.log(`[§7] regex arm: (a) hidden reach recovered · (b) invented argv refused · (c) division untouched · (d) class brackets harmless · (e) \`//\` still a comment · (f) 2 live rows pinned by content · (g) ${replay}`);
+}
 
 console.log(`\n[summary] two witnesses for ${clauses.length} confessions: ${selfNamed.length} commands the runner can name in its own file, ${byState('supported').length} clauses corroborated by a body and ${byState('invisible').length} that hide one frame up — of which ${misCited.length} were the sentence's fault (citable) and ${unreadable.length} are the arm's ceiling (${JSON.stringify(deadVerbs)}), so the residual is now a measurement rather than a shrug · ${namedCases.length} naming cases held the free-text grammar (one of them recorded as a false negative rather than fixed), and the cause arm reddened under exactly one of the mutations it was shown — the omission. A surplus is stated, never scored. The wiring is graded too: §6 reproduces the lookup that killed a seven-minute census on 6807ba1 in one line, and shows a reader keyed by the wrong path ending cannot hide behind its own zero. Two gates print after the rows: the sweep's omissions + silent blind spots at zero, and this row's mis-cited clauses at zero`);
