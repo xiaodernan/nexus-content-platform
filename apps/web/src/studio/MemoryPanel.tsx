@@ -1,16 +1,17 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { cn } from '@/lib/cn';
 import { csrfHeaders } from '@/lib/csrf';
 import { useStudioReady } from './store';
 import { useWorld, worldStore } from './worldStore';
 
 /**
- * §48 记忆：四类（本次会话 / 角色 / 世界 / 我的偏好）可查看、可删除。
+ * §48 记忆：四类（本次会话 / 角色 / 世界 / 我的偏好）可查看、可删除、可按词面搜。
  *
- * 界面上不出现"搜索记忆"：语义检索要 embedding，而 embedding 要真 provider（§49）。
- * 没接之前那一列是 null，这里就写"未做向量索引"，而不是给一个关键词框假装能搜。
+ * 搜索走 §49 那套混合检索（全文 + 子串 + 词覆盖度的确定性融合），界面上就写清它是什么、
+ * 不是什么：**不是语义检索**（没有 embedding 之前，用词不同意思相近的那条搜不到），
+ * 而「我的偏好」那一类不挂项目、本来就不在这个项目的语料里（那是 §49 的语料清单决定的，不是漏了）。
  * 也没有"全部清空"：§48 要的是按类删除，一次误点抹掉用户全部记忆这种事不该有按钮。
  */
 
@@ -49,19 +50,37 @@ export function MemoryPanel() {
   const [subjectId, setSubjectId] = useState('');
   const [content, setContent] = useState('');
   const [characterNames, setCharacterNames] = useState<{ id: string; name: string }[]>([]);
+  /** 搜索框里的词。列表由 `reload()` 读这个 ref，所以按一次键不会触发一次重取 */
+  const [query, setQuery] = useState('');
+  const queryRef = useRef('');
+  /** 服务端那句边界说明（"这是词面检索、不是语义检索"之类），只在搜索态下有内容 */
+  const [searchNote, setSearchNote] = useState<string | null>(null);
 
   useEffect(() => {
     worldStore.ensure(studio.projectId);
   }, [studio.projectId]);
 
   const reload = useCallback(async () => {
+    // 搜索态下的任何一次重取（记一条 / 删一条 / 清空一类之后）都留在搜索结果里，
+    // 而不是悄悄退回全量列表——那会让"我删了它，它还在那儿"和"列表变了"混成一件事
+    const q = queryRef.current.trim();
     try {
-      const res = await fetch(`/api/projects/${studio.projectId}/memories`, { cache: 'no-store' });
+      const res = await fetch(
+        `/api/projects/${studio.projectId}/memories${q ? `?q=${encodeURIComponent(q)}` : ''}`,
+        { cache: 'no-store' },
+      );
       const body = (await res.json().catch(() => null)) as
-        | { items?: MemoryEntry[]; counts?: Record<Scope, number>; message?: string }
+        | {
+            items?: MemoryEntry[];
+            hits?: MemoryEntry[];
+            note?: string | null;
+            counts?: Record<Scope, number>;
+            message?: string;
+          }
         | null;
       if (!res.ok) throw new Error(body?.message ?? `HTTP ${res.status}`);
-      setItems(body?.items ?? []);
+      setItems(body?.hits ?? body?.items ?? []);
+      setSearchNote(q ? body?.note ?? null : null);
       setCounts(body?.counts ?? { session: 0, character: 0, world: 0, user: 0 });
       setStatus('ready');
     } catch (error) {
@@ -180,9 +199,54 @@ export function MemoryPanel() {
           </span>
         </div>
         <p className="mt-1 text-11 leading-relaxed text-fg-3" data-memory-note>
-          四类记忆都可查看、可删除（§48）。没有搜索框：语义检索要 embedding 与真 provider（§49），
-          没接之前那些行是空的，这里不假装能搜。
+          四类记忆都可查看、可删除（§48）。搜索走的是 §49 那套词面混合检索（全文 + 子串 + 词覆盖度），
+          <span className="text-fg-2">不是语义检索</span>：用词不同、意思相近的那条搜不到。
         </p>
+        <div className="mt-2 flex gap-1">
+          <input
+            value={query}
+            onChange={(e) => {
+              setQuery(e.target.value);
+              queryRef.current = e.target.value;
+            }}
+            onKeyDown={(e) => {
+              e.stopPropagation();
+              if (e.key === 'Enter') void reload();
+            }}
+            placeholder="搜记忆内容（词面匹配，回车检索）"
+            aria-label="搜索记忆"
+            data-memory-search
+            className="min-w-0 flex-1 rounded-[var(--nexus-radius-sm)] bg-bg-1 px-2 py-1 text-11 text-fg-1 placeholder:text-fg-3"
+          />
+          <button
+            type="button"
+            onClick={() => void reload()}
+            className="shrink-0 rounded-[var(--nexus-radius-sm)] bg-bg-1 px-2 py-1 text-11 text-fg-2 hover:bg-bg-3"
+            data-memory-search-go
+          >
+            搜
+          </button>
+          {query ? (
+            <button
+              type="button"
+              onClick={() => {
+                setQuery('');
+                queryRef.current = '';
+                setSearchNote(null);
+                void reload();
+              }}
+              className="shrink-0 rounded-[var(--nexus-radius-sm)] px-2 py-1 text-11 text-fg-3 hover:bg-bg-2"
+              data-memory-search-clear
+            >
+              清空
+            </button>
+          ) : null}
+        </div>
+        {searchNote ? (
+          <p className="mt-1 text-11 leading-relaxed text-fg-3" data-memory-search-note>
+            {searchNote}
+          </p>
+        ) : null}
         {message ? (
           <p className="mt-2 text-11 text-danger" data-memory-error>
             {message}
@@ -305,7 +369,8 @@ export function MemoryPanel() {
                 ))}
                 {status === 'ready' && !rows.length ? (
                   <li className="px-1 text-11 text-fg-3" data-memory-empty={group.scope}>
-                    还没有这一类的记忆。
+                    {/* 搜索态下这句不能说"还没有这一类的记忆"——那一类可能有一堆，只是这个词没命中 */}
+                    {searchNote ? '这一类里没有词面命中的条目（不等于没有相关记忆：这是词面检索）。' : '还没有这一类的记忆。'}
                   </li>
                 ) : null}
               </ul>
