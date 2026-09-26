@@ -3863,3 +3863,20 @@ disagreement is written down rather than smoothed over.
   2 · 115s`, closing with `[isolated] home build after the run: 244 files, digest 204913d0f036b30c · UNMOVED (the
   isolation gate)`. Nothing was killed and neither build moved, so all 42 reds are verdicts and the reconciliation
   above is graded against bytes that did not change underneath it.
+
+- **The documentation edit was reddened by its own row, and that is the ordering this lane now documents.** Between
+  appending this amendment's README section and committing it, `table-recount-proof.mjs` went RED on the GIT plane at
+  its own precondition — `on the GIT plane the worktree README must equal the blob the ref owns, or this proof would
+  grade bytes no commit made` (its line 63, an `assert.equal` between `git show HEAD:README` and the disk copy). The
+  row is refusing to certify a table it cannot attribute to a commit; the increment's own evidence row is what caught
+  the increment's own uncommitted doc. So the sequence for any shared-doc append is append → commit → re-run, and the
+  intermediate red must be reported as the precondition firing, never as a regression. Measured at the ref this
+  ordering produced (`8661cc4`, which contains the two documents and nothing else): `[§3] rows vs measurement: runtime
+  rows 354 over 26 files · measured 354 over 26 · exec-host rows 275/8 · measured 275/8`, `[§5] control clean ·
+  mutations caught: 4/4`, `[§6] … graded-tree digest b0ec9a2cc51138ec stable across the run`, `[summary] plane GIT:
+  graded README bytes are HEAD's (git show) …` — exit 0, with 42 lines of new prose in the graded README and both
+  row totals unmoved, which is the check doing its job in the other direction (a doc section that is not a table row
+  must not shift a table count). `plane-axis-proof.mjs` re-ran green at the same ref with the identical census —
+  `[§2] census of the 71 scored rows: 49 reach a git child process at code position (program=114 argv=124 call
+  sites) · the naive "the word appears anywhere" grammar calls 54` — because the population and the scanner's bytes
+  did not change, only the document they describe.
