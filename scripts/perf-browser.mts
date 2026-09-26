@@ -33,7 +33,7 @@ const RUNS = 3;
 const OUT = fileURLToPath(new URL('../screenshots/', import.meta.url));
 await mkdir(OUT, { recursive: true });
 
-type Sample = { label: string; unit: string; runs: number[]; median: number };
+type Sample = { label: string; unit: string; runs: number[]; median: number; warm: number | null };
 const samples: Sample[] = [];
 
 function median(values: number[]): number {
@@ -43,9 +43,17 @@ function median(values: number[]): number {
 }
 
 function record(label: string, unit: string, runs: number[]): void {
-  // 丢掉第一次（预热），剩下的才是记进文档的数
+  // 丢掉第一次（预热），剩下的才是记进文档的数。
+  // 但**丢掉的那一次要打印出来**：同一份生产构建的第一次跑与第二次跑差过 3.5 倍
+  // （首帧 1904.9 vs 540.2），只报"去掉第一次的中位数"就等于把冷启动这件事藏起来。
   const kept = runs.slice(1);
-  samples.push({ label, unit, runs: kept.map((v) => Math.round(v * 10) / 10), median: Math.round(median(kept) * 10) / 10 });
+  samples.push({
+    label,
+    unit,
+    runs: kept.map((v) => Math.round(v * 10) / 10),
+    median: Math.round(median(kept) * 10) / 10,
+    warm: runs.length > 1 ? Math.round(runs[0]! * 10) / 10 : null,
+  });
 }
 
 /** 页内探针：首帧 + 帧间隔采样，都在 addInitScript 里装好，免得量到脚本注入之后的那一段 */
@@ -80,6 +88,38 @@ const PROBE = `
     }).observe({ type: 'longtask', buffered: false });
   } catch (e) {
     window.__longTasks = null; // 量不到就说量不到，不假装是 0
+  }
+
+  /**
+   * 长动画帧（LoAF）：为了回答"水合那一段花在哪一次脚本执行上"。
+   * 资源计时答不了这个问题——它只有下载时间，没有执行时间，
+   * 所以"HTML 到手 → 首帧"那一段以前只能整块报一个数。
+   * Chrome 123+ 才有这一项，且只记 >=50ms 的帧；不支持就留 null，日志写"量不到"。
+   * 每个监听器自己包 try/catch：上一版整段共用一个 try，longtask 不支持时
+   * 后面那行 new PerformanceObserver 直接抛 ReferenceError，页面白屏、一个数也量不到。
+   */
+  window.__loaf = [];
+  try {
+    new PerformanceObserver(function (list) {
+      var entries = list.getEntries();
+      for (var i = 0; i < entries.length; i++) {
+        var e = entries[i];
+        var top = null;
+        var scripts = e.scripts || [];
+        for (var s = 0; s < scripts.length; s++) {
+          if (!top || (scripts[s].duration || 0) > top.duration) {
+            top = {
+              duration: scripts[s].duration || 0,
+              invoker: scripts[s].invoker || '(无名)',
+              src: (scripts[s].sourceURL || '').split('/').pop() || '',
+            };
+          }
+        }
+        window.__loaf.push({ start: e.startTime, dur: Math.round(e.duration), blocking: Math.round(e.blockingDuration || 0), top: top });
+      }
+    }).observe({ type: 'long-animation-frame', buffered: true });
+  } catch (e) {
+    window.__loaf = null;
   }
 
   /**
@@ -259,6 +299,64 @@ async function reloadAndMeasureFirstNode(): Promise<number> {
     );
   } else {
     console.log(`  首帧 ${Math.round(at)}ms（没读到项目接口的 resource timing，拆不了段——不编一个数）`);
+  }
+  // §147 第三片：把"HTML 到手 → 首帧"那一整块拆开。以前它只有一个总数，
+  // 于是"该继续做服务端渲染，还是该减客户端水合"这个问题没有证据可答。
+  const nav = await page.evaluate(() => {
+    const entry = performance.getEntriesByType('navigation')[0] as PerformanceNavigationTiming | undefined;
+    const perf = (window as any).__perf as { start: number; firstNodeAt: number | null } | undefined;
+    if (!entry || !perf || perf.firstNodeAt === null) return null;
+    // 与导航条目同一个坐标系（两者的零点都是 timeOrigin），才能直接相减
+    const firstAbs = perf.start + perf.firstNodeAt;
+    const scripts = performance
+      .getEntriesByType('resource')
+      .filter((r) => (r as PerformanceResourceTiming).initiatorType === 'script');
+    const lastScriptEnd = scripts.reduce((m, r) => Math.max(m, (r as PerformanceResourceTiming).responseEnd), 0);
+    const loaf = (window as any).__loaf as
+      | null
+      | { start: number; dur: number; blocking: number; top: { duration: number; invoker: string; src: string } | null }[];
+    return {
+      htmlEnd: entry.responseEnd,
+      dcl: entry.domContentLoadedEventEnd,
+      firstAbs,
+      scriptCount: scripts.length,
+      lastScriptEnd,
+      loafOn: loaf !== null,
+      loaf: (loaf ?? []).filter((f) => f.start <= firstAbs),
+    };
+  });
+  if (!nav) {
+    console.log('  首帧分段：量不到（没有导航计时条目，或首帧本身没量到）——不编一个拆分');
+  } else {
+    const r = (v: number) => Math.round(v);
+    // 脚本"到手"不等于"跑完"：资源计时只记下载，执行那一段只能靠 LoAF 归因，所以要分开说
+    const execGap = nav.lastScriptEnd > 0 ? nav.firstAbs - nav.lastScriptEnd : null;
+    console.log(
+      `  首帧分段：导航 0 → HTML 到手 ${r(nav.htmlEnd)}ms（服务端渲染含文档读取）→ DOM 就绪 ${r(nav.dcl)}ms` +
+        ` → 最后一个脚本到手 ${nav.lastScriptEnd ? `${r(nav.lastScriptEnd)}ms` : '量不到'}` +
+        `（共 ${nav.scriptCount} 个脚本资源，**执行时间不在资源计时里**）→ 第一个节点画出 ${r(nav.firstAbs)}ms`,
+    );
+    console.log(
+      `  其中"脚本到手 → 首帧"还剩 ${execGap === null ? '量不到' : `${r(execGap)}ms`}——水合、首屏求解、首次绘制全在这一段`,
+    );
+    if (!nav.loafOn) {
+      console.log('  这段里的长动画帧：量不到（这个浏览器不支持 long-animation-frame），不给归因');
+    } else if (nav.loaf.length === 0) {
+      console.log('  这段里的长动画帧：0 个（>=50ms 才算一个）——说明这一段的钱不在单个大块上');
+    } else {
+      const worst = [...nav.loaf].sort((a, b) => b.dur - a.dur).slice(0, 3);
+      console.log(
+        `  这段里的长动画帧 ${nav.loaf.length} 个，最慢的三个：` +
+          worst
+            .map(
+              (f) =>
+                `${f.dur}ms（阻塞 ${f.blocking}ms，` +
+                (f.top ? `脚本 ${Math.round(f.top.duration)}ms ${f.top.invoker}${f.top.src ? ` @ ${f.top.src}` : ''}` : '无脚本归因') +
+                '）',
+            )
+            .join(' · '),
+      );
+    }
   }
   return at;
 }
@@ -615,7 +713,12 @@ await browser.close();
 
 console.log('\n浏览器端指标（每档 3 次，去掉第一次预热后取中位数）：');
 console.log(`  测量口径：${measuredUnder}`);
+console.log('  协议：第一次是冷启动（JIT / 磁盘缓存 / 服务端首渲染都没收敛），只打印不进中位数；' +
+  '跨会话比较要用同一口径、同一构建，且至少两遍取第二遍之后的那两次。');
 for (const s of samples) {
-  console.log(`${s.label.padEnd(28)} ${String(s.median).padStart(8)} ${s.unit}   各次: ${s.runs.join(' / ')}`);
+  console.log(
+    `${s.label.padEnd(28)} ${String(s.median).padStart(8)} ${s.unit}   各次: ${s.runs.join(' / ')}` +
+      (s.warm === null ? '' : `   预热那次(已丢): ${s.warm}`),
+  );
 }
 console.log(`\n项目 ${projectId} 留在库里（含压测节点），要清理就删这个项目。`);
