@@ -68,9 +68,15 @@ const declared = headProofs
     return { name: p.split('/').pop(), path: p, values: [...text.matchAll(MARKER)].map((m) => Number(m[1])), text };
   })
   .filter((d) => d.values.length > 0);
-const grep = spawnSync('git', ['grep', '-c', '-e', 'sweep-budget-ms', 'HEAD', '--', PROOF_DIR], { cwd: root, encoding: 'utf8', maxBuffer: 1 << 28 });
+// v89's lesson turned on this file: an independent reader may differ in IMPLEMENTATION, never in GRAMMAR.
+// The worktree side below asks for a marker on ANCHORED LINE ONE of the header, while the HEAD side used to
+// ask `git grep -c sweep-budget-ms`, which counts MENTIONS — and this proof mentions its own marker a dozen
+// times inside its §1 fixtures. That is what kept the row red in the sweep of 1c9c7ee: not a schedule that
+// half-landed, but two halves of one check asking two different questions.
+const grep = spawnSync('git', ['grep', '-l', '-E', '^//[ \\t]*sweep-budget-ms:[ \\t]*[0-9]+[ \\t]*$', 'HEAD', '--', PROOF_DIR], { cwd: root, encoding: 'utf8', maxBuffer: 1 << 28 });
 assert.ok(grep.status === 0 || grep.status === 1, `git grep → ${grep.status}: ${(grep.stderr || '').slice(0, 160)}`);
-const atHead = new Set(String(grep.stdout || '').split(/\r?\n/).filter(Boolean).map((l) => /^HEAD:([^:]+):/.exec(l)?.[1]).filter((p) => p && p.endsWith('-proof.mjs')));
+const atHead = new Set(String(grep.stdout || '').split(/\r?\n/).map((l) => l.replace(/^HEAD:/, '').trim()).filter((p) => p.endsWith('-proof.mjs')));
+
 assert.ok(atHead.size === 0 || atHead.size === declared.length, `HEAD carries the marker in ${atHead.size} proof(s) while this worktree carries it in ${declared.length} (${declared.map((d) => d.name).join(', ')} / ${[...atHead].map((p) => p.split('/').pop()).join(', ')}) — either the fix has landed for every row that needs it or for none, and a half-landed schedule is exactly the state a sweep cannot interpret`);
 assert.ok(declared.length >= 1, 'no proof in the bytes being committed declares a budget at all, so this increment\'s fix is not in effect and the sweep still reddens its own slowest rows for being slow');
 for (const d of declared) {

@@ -3587,3 +3587,14 @@ lib holds; the RUNNER did not._
 - **What did not move.** No proof assertion, budget, argv, policy, checkpoint gate or selection rule; the
   identity block gained no spawn, and the 32 real importers keep their edges byte for byte — the change answers
   differently for exactly one file, and the rig asserts it is the one that quotes an import.
+
+### Amendment 89 addendum — the timeout-axis red was the same fault as 89, one file over
+
+The sweep of 1c9c7ee left `timeout-axis-proof.mjs` red with the reason line: HEAD carries the marker in 3
+proofs while this worktree carries it in 2. Diagnosis: the worktree half reads declarations with an ANCHORED
+line rule, while the HEAD half asked git to count MENTIONS of the string — and that proof mentions its own
+marker a dozen times inside its section 1 fixtures, so the two halves of one cross-check were asking two
+different questions and comparing their answers proved nothing. Fix: the HEAD side now asks git the same
+anchored question. The general rule this adds beside amendment 89 is short: an independent reader may differ
+in IMPLEMENTATION, never in GRAMMAR. Verified green end to end, 2 of 69 rows declaring (isolated at 900000 ms,
+reap at 600000 ms), the same number on both sides of the check.
