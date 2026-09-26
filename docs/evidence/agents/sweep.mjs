@@ -538,6 +538,29 @@ export function relativeSpecs(text) {
 export const SPAWN_FAMILY = new Set(['execFileSync', 'execFile', 'spawnSync', 'spawn', 'execSync', 'exec', 'fork', 'run', 'runSync']);
 export const GIT_PROGRAM = (s) => s === 'git' || s === 'git.exe' || /^git\s/.test(s);
 
+/**
+ * Which words after the word `git` are git COMMANDS rather than English (M2 v95).
+ *
+ * A confession and a failure cause are both FREE text, and free text is where amendment 89 lives: the string
+ * `fatal: not a git repository` contains the word git followed by a word, and a matcher that reads that pair as
+ * a command would report a row asking `git repository`. So the matcher is vocabulary-gated, and the vocabulary is
+ * the union of what this directory's bytes, its helpers and its recorded causes actually name — 17 subcommands
+ * measured in HEAD's 74 tracked `.mjs`, plus the ones `sweep.mjs` itself spawns or a clean-checkout cause has
+ * already reported, plus the read-side commands a future proof in this directory would plausibly ask for. Every
+ * name in it is checked against `git --list-cmds=main` by `confession-proof.mjs`, which answers on either plane
+ * because listing commands needs no repository.
+ *
+ * The gate runs ONE way: a token outside the vocabulary is UNMATCHED, so the axis can under-claim and can never
+ * invent a command. That is the safe direction, and `confession-proof.mjs` §1 measures the cost by listing what
+ * the population says after the word git and showing which of those tokens the vocabulary declined.
+ */
+export const GIT_SUBCOMMANDS = new Set([
+  'add', 'apply', 'archive', 'cat-file', 'commit', 'diff', 'grep', 'log', 'ls-files', 'ls-tree', 'mv', 'push',
+  'reset', 'rev-list', 'rev-parse', 'show', 'status', 'blame', 'branch', 'checkout', 'clean', 'config',
+  'describe', 'for-each-ref', 'hash-object', 'init', 'mktree', 'name-rev', 'remote', 'restore', 'rm',
+  'show-ref', 'switch', 'tag', 'update-index', 'worktree', 'write-tree', 'version',
+]);
+
 export function gitReaches(src, sink) {
   const text = String(src ?? '');
   const hits = [];
@@ -545,6 +568,10 @@ export function gitReaches(src, sink) {
   let code = '';
   let last = '';
   let i = 0;
+  // v95: `run('git', ['archive', …])` puts the COMMAND one argument after the program, so a git program
+  // literal hands its hit to the NEXT array that opens. One step only — every other frame clears it — because
+  // a rule that chains is a call graph, and a call graph is what amendment 94 refused to build.
+  let pendingProgram = null;
   const familyFrame = () => [...stack].reverse().find((f) => f.callee && SPAWN_FAMILY.has(f.callee));
   while (i < text.length) {
     const c = text[i];
@@ -599,15 +626,32 @@ export function gitReaches(src, sink) {
         i++;
       }
       if (GIT_PROGRAM(body)) {
-        if (asProgram) hits.push({ via: 'program', callee: top.callee });
-        else if (asArgv) hits.push({ via: 'argv', callee: top ? top.callee : null });
-        else if (asArm) hits.push({ via: 'conditional', callee: familyFrame().callee });
+        if (asProgram) {
+          const hit = { via: 'program', callee: top.callee, sub: null, at: i };
+          hits.push(hit);
+          pendingProgram = hit;
+        } else if (asArgv) {
+          const hit = { via: 'argv', callee: top ? top.callee : null, sub: null, at: i };
+          hits.push(hit);
+          // `['git', 'diff', '--name-only']` — the program is the array's own first element, so the frame
+          // remembers this hit and the next command-shaped literal inside the SAME frame names the command.
+          if (top && last === '[') top.gitArgv = hit;
+        } else if (asArm) hits.push({ via: 'conditional', callee: familyFrame().callee, sub: null, at: i });
+      } else if (asArgv && top?.gitArgv && top.gitArgv.sub === null && GIT_SUBCOMMANDS.has(body)) {
+        top.gitArgv.sub = body;
+      } else if (asArgv && top?.afterProgram && last === '[' && GIT_SUBCOMMANDS.has(body)) {
+        top.afterProgram.sub = body;
       }
-      for (const nested of gitReaches(interp)) hits.push({ ...nested, nested: true });
+      for (const nested of gitReaches(interp)) hits.push({ ...nested, nested: true, at: i });
       last = quote;
       continue;
     }
-    if (c === '(' || c === '[') stack.push({ callee: c === '(' ? ((/([A-Za-z_$][\w$.]*)\s*$/.exec(code) || [])[1] ?? null) : null });
+    if (c === '(' || c === '[') {
+      const frame = { callee: c === '(' ? ((/([A-Za-z_$][\w$.]*)\s*$/.exec(code) || [])[1] ?? null) : null };
+      if (c === '[' && pendingProgram) frame.afterProgram = pendingProgram;
+      pendingProgram = null;
+      stack.push(frame);
+    }
     else if (c === ')' || c === ']') stack.pop();
     code += c;
     if (!/\s/.test(c)) last = c;
@@ -650,6 +694,125 @@ export function declarations(src, marker) {
 }
 
 export const asksRepository = (src) => declarations(src, 'sweep-asks-repository');
+
+/**
+ * Which DEFINITIONS a source declares, in byte order (M2 v95).
+ *
+ * A confession can point at a helper by name (`via sw.proofCorpus`), and the only honest answer to that is the
+ * helper's OWN bytes — which means knowing where a named body starts. This is a line-anchored table of
+ * `function name (…)`, `const name = (…) =>`, and their `export`/`async` variants, used only to attribute a
+ * call site to the definition that contains it. It is deliberately not a scope analysis: definitions that open
+ * between two offsets are ordered, and the last one before a hit owns it.
+ */
+const DEFINITION_RE = /^[ \t]*(?:export[ \t]+)?(?:async[ \t]+)?function[ \t]+([A-Za-z_$][\w$]*)|^[ \t]*(?:export[ \t]+)?(?:const|let|var)[ \t]+([A-Za-z_$][\w$]*)[ \t]*=[ \t]*(?:async[ \t]*)?(?:\([^)]*\)|[A-Za-z_$][\w$*])[ \t]*=>/gm;
+
+export function definitions(src) {
+  const out = [];
+  let m;
+  DEFINITION_RE.lastIndex = 0;
+  while ((m = DEFINITION_RE.exec(String(src ?? '')))) out.push({ name: m[1] ?? m[2], at: m.index });
+  return out;
+}
+
+/** The DEFINITION a byte offset sits inside — the last one declared before it. */
+export function definitionAt(src, at) {
+  let owner = null;
+  for (const d of definitions(src)) {
+    if (d.at > at) break;
+    owner = d;
+  }
+  return owner ? owner.name : null;
+}
+
+/**
+ * The git commands visible AT CODE POSITION in a source, optionally only those inside one definition (M2 v95).
+ *
+ * These are the commands the tokenizer can name without being told: an argv array that opens with `'git'`
+ * followed by a command literal, or a program literal followed by an array whose first element is one. A helper
+ * that hands a PARAMETER to `run('git', argv)` contributes nothing here, which is the whole reason this
+ * function prints a coverage number rather than a verdict — an absent command is not an absent claim.
+ */
+export function gitCommandsIn(src, fnName = null) {
+  const out = [];
+  for (const h of gitReaches(src)) {
+    if (!h.sub) continue;
+    if (fnName !== null && definitionAt(src, h.at) !== fnName) continue;
+    out.push(h.sub);
+  }
+  return out;
+}
+
+/**
+ * Every git COMMAND named in free text (M2 v95), gated by `GIT_SUBCOMMANDS`.
+ *
+ * Used on both sides of a confession: on a row's declaration payload, and on the cause line the row reported
+ * when it failed. The option-skipping group means `git diff --name-only`, `git -c x status --porcelain` and
+ * `git ls-tree -r --name-only HEAD -- path` all name ONE command each, while `not a git repository` names
+ * nothing because `repository` is not a command. Occurrences are returned in order, duplicates included: a row
+ * that says `git rev-parse HEAD (twice)` means it, and the count is the reader's to interpret.
+ */
+export function gitCommandsNamed(text) {
+  const out = [];
+  const re = /\bgit(?:\.exe)?[ \t]+((?:-{1,2}\S+[ \t]+)*)?([a-z][a-z0-9-]*)/g;
+  let m;
+  while ((m = re.exec(String(text ?? '')))) if (GIT_SUBCOMMANDS.has(m[2])) out.push(m[2]);
+  return out;
+}
+
+/** A declaration payload is one line of free text; `·` separates the claims a row makes in it. */
+export const confessionClauses = (payload) => String(payload ?? '').split('·').map((c) => c.trim()).filter(Boolean);
+
+/**
+ * Grade a confession against bytes the runner can read (M2 v95) — the arm that makes `// sweep-asks-repository:`
+ * more than a sentence.
+ *
+ * Each clause is graded against the source it points at: a clause naming `sw.<helper>` is graded against that
+ * helper's body in THIS file, and a clause naming no helper against the row's own bytes. Four states, and the
+ * difference between the last two is the finding this increment exists to report:
+ *   supported   — every command the clause names is visible at code position where the clause points
+ *   partial     — some are, some are not
+ *   invisible   — the clause names commands and the bytes it points at show NONE: true, most likely, and
+ *                 unreadable, because the reach goes through a wrapper whose argv is a parameter
+ *   no-command  — the clause names no command (it points at a helper, or describes a shape)
+ */
+export function gradeConfession(payloads, ownText, selfSrc) {
+  const clauses = [];
+  for (const p of payloads) {
+    for (const clause of confessionClauses(p)) {
+      const cmds = [...new Set(gitCommandsNamed(clause))];
+      const helpers = [...new Set([...clause.matchAll(/\bsw\.([A-Za-z_$][\w$]*)/g)].map((m) => m[1]))];
+      const witness = helpers.length ? helpers.flatMap((h) => gitCommandsIn(selfSrc, h)) : gitCommandsIn(ownText);
+      const avail = [...new Set(witness)];
+      const missing = cmds.filter((c) => !avail.includes(c));
+      const state = !cmds.length ? 'no-command' : missing.length === 0 ? 'supported' : avail.length === 0 ? 'invisible' : 'partial';
+      clauses.push({ clause: clause.slice(0, 72), cmds, helpers, avail, missing, state });
+    }
+  }
+  return clauses;
+}
+
+/**
+ * Grade a confession against the FAILURE it predicted (M2 v95) — the arm that runs after the rows, where the
+ * only reader is the row itself.
+ *
+ * A declaration says what a proof asks the repository; a red says what actually broke. When the two disagree the
+ * asymmetry is the rule: an OMITTED command is a defect, because the row is the sole witness of its own cause and
+ * a confession that leaves out what it just printed is not yet a confession. A SURPLUS is not a defect — a row
+ * may reach five commands and fall on one of them — so it is stated and never scored. And a cause that names no
+ * command at all is UNCHECKABLE: it can neither confirm nor refute the claim, and amendment 86 forbids reading
+ * that as a pass.
+ */
+export function compareConfession(payloads, causeText) {
+  const claim = [...new Set((payloads ?? []).flatMap((p) => gitCommandsNamed(p)))];
+  const cause = [...new Set(gitCommandsNamed(causeText))];
+  return {
+    claim,
+    cause,
+    gradeable: cause.length > 0,
+    omissions: cause.filter((c) => !claim.includes(c)),
+    surplus: claim.filter((c) => !cause.includes(c)),
+  };
+}
 
 /**
  * Resolve a relative specifier against the IMPORTING FILE's repo-relative path, in git's slash space.
@@ -1117,6 +1280,18 @@ export async function runSweep({ ref = 'HEAD', only = null, cwd = process.cwd(),
   const corroborated = declaredNames.filter((n) => pred0.has(n));
   const uncorroborated = declaredNames.filter((n) => !pred0.has(n));
   log(`[identity] asks axis: ${declaredNames.length}/${runCorpus.rows.length} tracked proofs DECLARE what they ask the repository (// sweep-asks-repository:)${declaredNames.length === 0 ? ' — NONE at this ref, so this axis has nothing to reconcile and is printed as an empty measurement, not a pass (amendment 86: a line that graded nothing may not read as though it did)' : ` — ${corroborated.length} of them corroborated by the code-position scanner above, ${uncorroborated.length} NOT visible to it (${uncorroborated.map((n) => n.split('/').pop()).join(', ') || 'none'}), which is exactly the channel amendment 93's two blind shapes need`}${emptyPayloads.length ? ` · ${emptyPayloads.length} rows attempted a declaration and named nothing (${emptyPayloads.map((n) => n.split('/').pop()).join(', ')}) — refused out loud, as a budget that is not a number is refused, and the row keeps its red` : ''} · a declaration buys foreknowledge, never a pass: the row still runs and the plane still answers`);
+  // v95: amendment 94 printed WHO declares; a declaration is worth what its witness is worth, so this grades each
+  // CLAUSE against the bytes it points at — a `sw.<helper>` clause against that helper's body in THIS file, a
+  // clause naming no helper against the row's own bytes. `invisible` is not a lie caught: it is a reach the
+  // runner still cannot see, and the finding is that the runner's own file is where it hides. Naming which
+  // clauses are which is the whole product, because it is the half a row can act on — cite the frame where the
+  // literal actually lives.
+  const selfSrc = readFileSync(fileURLToPath(import.meta.url), 'utf8').replace(/\r\n/g, '\n');
+  const textOfRow = new Map(runCorpus.rows.map((r) => [r.name, r.text]));
+  const gradedClauses = declaredNames.flatMap((n) => gradeConfession(declared.get(n), textOfRow.get(n), selfSrc).map((c) => ({ ...c, row: n })));
+  const stateCount = (st) => gradedClauses.filter((c) => c.state === st).length;
+  const byState = (st) => gradedClauses.filter((c) => c.state === st).map((c) => `${c.row.split('/').pop()} "${c.clause}" → ${st === 'invisible' ? `shows none of ${c.cmds.join(', ')}` : c.missing.join(', ')}`).join(' · ') || 'none';
+  log(`[identity] confession axis (bytes): ${declaredNames.length} declaring rows · ${gradedClauses.length} clauses graded against the source each one points at — supported ${stateCount('supported')} · partial ${stateCount('partial')}${stateCount('partial') ? ` (${byState('partial')})` : ''} · invisible ${stateCount('invisible')}${stateCount('invisible') ? ` (${byState('invisible')})` : ''} · name no command ${stateCount('no-command')} · "invisible" is amendment 93's blind shape one frame UP: the helper exists and really does spawn git, but its argv arrives as a PARAMETER, so the tokenizer shows nothing and the claim stays a confession until the row names the frame where the literal lives`);
 
   const dest = mkdtempSync(join(tmpdir(), 'nexus-sweep-'));
   const started = Date.now();
@@ -1194,6 +1369,7 @@ export async function runSweep({ ref = 'HEAD', only = null, cwd = process.cwd(),
   // WAS predicted and came back green, which is a fallback arm doing its job or a git call that is the
   // SUBJECT of the test rather than its tool.
   const pred = pred0;
+  let confessionAxis = null;
   if (results.length === runCorpus.rows.length) {
     const names = (rs) => (rs.length ? rs.map((r) => r.name.split('/').pop()).join(', ') : 'none');
     const namesGit = (r) => /\bgit\b/.test(String(r.reason ?? ''));
@@ -1209,11 +1385,36 @@ export async function runSweep({ ref = 'HEAD', only = null, cwd = process.cwd(),
     const notForeseen = failed.filter((r) => !foreseen(r));
     const redDeclared = failed.filter((r) => declared.has(r.name));
     log(`[asks axis] declaration vs prediction vs verdicts: ${declaredNames.length} rows declared what they ask (${uncorroborated.length} of them invisible to the code-position scanner — ${uncorroborated.map((n) => n.split('/').pop()).join(', ') || 'none'}) · red AND declared ${redDeclared.length} of ${failed.length} red · RED with NEITHER prediction NOR declaration ${notForeseen.length} (${names(notForeseen)}) · the gate is this last number: amendment 93 could only ask the runner to foresee every red, and these three rows were beyond what a call-site scan can foresee; a row that states its own reach closes the list from the inside`);
+    // v95: 94's line says WHO reaches git; a sentence is worth the witness behind it, so each declaring red is now
+    // graded against the cause IT reported. Two readings of a mismatch, and only one of them is a crime:
+    //   OMISSION — the failure named a git command the confession left out. The row is the only reader of its own
+    //              cause, so a confession that misses what it just printed is incomplete in a way the reader can
+    //              see without running anything. That incompleteness is what amendment 93's gate died on.
+    //   SURPLUS — the confession names a command this run's cause never showed. NOT red: a row may reach more than
+    //              one thing and break on only one of them, and `git archive` at exit 128 is one arm of a
+    //              multi-arm claim. A surplus is stated, never scored.
+    const verbs = (t) => [...new Set(gitCommandsNamed(t))];
+    const declaring = failed.filter((r) => declared.has(r.name));
+    const cmp = new Map(declaring.map((r) => [r.name, compareConfession(declared.get(r), r.reason)]));
+    const gradeable = declaring.filter((r) => cmp.get(r).gradeable);
+    const uncheckedRows = declaring.filter((r) => !cmp.get(r).gradeable);
+    const omissions = gradeable.flatMap((r) => cmp.get(r).omissions.map((c) => `${r.name.split('/').pop()} reached ${c} and does not declare it`));
+    const surplus = gradeable.flatMap((r) => cmp.get(r).surplus.map((c) => `${r.name.split('/').pop()} declares ${c}`));
+    const silentBlind = notForeseen.filter((r) => verbs(String(r.reason ?? '')).length > 0);
+    confessionAxis = {
+      declaring: declaring.length,
+      gradeable: gradeable.map((r) => r.name.split('/').pop()),
+      unchecked: uncheckedRows.map((r) => r.name.split('/').pop()),
+      omissions,
+      surplus,
+      silentBlind: silentBlind.map((r) => r.name.split('/').pop()),
+    };
+    log(`[confession axis] declaration vs the cause the row itself reported: ${declaring.length} red declaring rows, ${gradeable.length} of them gradeable (their cause names at least one git command) and ${uncheckedRows.length} NOT gradeable${uncheckedRows.length ? ` (${names(uncheckedRows)} — a red whose cause names no command can neither confirm nor refute a confession, so it is reported as unchecked rather than passed, amendment 86)` : ''} · OMISSIONS ${omissions.length} (${omissions.join(' · ') || 'none'}) · surplus ${surplus.length} (${surplus.join(' · ') || 'none'}) · SILENT BLIND SPOTS ${silentBlind.length} (${names(silentBlind)}) — a red neither the scanner nor the row foresaw whose own cause names a git command, which is the shape 94 could not rule out · the gate is OMISSIONS + SILENT BLIND SPOTS at zero: a confession that agrees with the failure it predicted, and no failure nobody spoke about`);
   } else {
-    log(`[plane axis] BOTH reconciliations withheld (the [plane axis] and [asks axis] lines below would have been these): this run graded ${results.length} of ${runCorpus.rows.length} tracked proofs (--only), and one row says nothing about the population`);
+    log(`[plane axis] ALL THREE reconciliations withheld (the [plane axis], [asks axis] and [confession axis] lines below would have been these): this run graded ${results.length} of ${runCorpus.rows.length} tracked proofs (--only), and one row says nothing about the population`);
   }
   log(`\n[summary] ref ${id.sha.slice(0, 12)} · scripts ${results.length} · failed ${failed.length} · killed ${killed.length} (${killedByRunner} at the runner's default, ${killed.length - killedByRunner} at a budget the row named) · child cwd ${probe.cwd} · graded build ${childBuild.digest.slice(0, 16)} (${childBuild.files} dist files${childStable ? ', stable across the run' : ', BUILD MOVED mid-run'})${runCwd === cwd ? '' : ` · runner's own build ${id.distDigest.slice(0, 16)}${stable ? ' stable' : ' MOVED'}`} · tree ${childTree.unavailable ? `UNDIGESTABLE (${childTree.unavailable.slice(0, 60)})` : `${childTree.digest.slice(0, 16)} (${treeNotice ? 'MOVED mid-run' : 'stable'}) ${childTree.files} files`} · dirty-sources ${id.dirtySources.length} · ${Math.round((Date.now() - started) / 1000)}s`);
-  return { identity: id, results, failed, dir: dest, distStable: stable, distAfter: after, treeStable: treeNotice === null, treeAfter: childTreeAfter, treeNotice, proofsCwd: runCwd, childProbe: probe, childBuild, childBuildAfter, childStable, importIdioms: idioms, childTree, planeAxis: { predicted: [...pred], naiveMentions: naiveAskers, corpus: runCorpus.rows.length }, asksAxis: { declared: declaredNames.map((n) => n.split('/').pop()), corroborated: corroborated.length, uncorroborated: uncorroborated.map((n) => n.split('/').pop()) } };
+  return { identity: id, results, failed, dir: dest, distStable: stable, distAfter: after, treeStable: treeNotice === null, treeAfter: childTreeAfter, treeNotice, proofsCwd: runCwd, childProbe: probe, childBuild, childBuildAfter, childStable, importIdioms: idioms, childTree, planeAxis: { predicted: [...pred], naiveMentions: naiveAskers, corpus: runCorpus.rows.length }, asksAxis: { declared: declaredNames.map((n) => n.split('/').pop()), corroborated: corroborated.length, uncorroborated: uncorroborated.map((n) => n.split('/').pop()) }, confessionAxis };
 }
 
 if (isMainModule(import.meta.url)) {
