@@ -3373,3 +3373,110 @@ claimed here, and the number 85 does not stand for either._
   the sweep against this commit's own tree is owed to the next one. (5) `verdict` is derived from the
   exit code and the runner's own kill flag, so a process that exits nonzero at the instant it is killed
   still reads `killed` — the runner's action wins, which is the attribution amendment 74 already chose.
+
+## Amendment 86 — v86 (exec-host + docs/evidence): every SYNCHRONOUS spawn API on this host fails with `EBUSY`, so the tree reaper never reaped, 33 tracked proofs could not run at all, and the proof that finally ran turned its central claim into `0 === 0`
+
+_Numbering: 86 was free when this was written — `git log --oneline -3` tops out at `19595c4` (v85's
+work) and this file's headings stop at 85. This amendment gives a home to the **exec-host half of the
+draft amendment 85 noted as uncommitted** ("77, whose exec-host reaper fix is uncommitted"); that draft
+is landed here under 86, and 77 stays unclaimed. The other owed draft (58's policy audit) lands as
+amendment 87._
+
+- **The host fact, measured.** `spawnSync('git', ['--version'])` → `{ status: null, error: EBUSY }`, and
+  so do `execFileSync`, `execSync` and the same calls made from inside a `worker_threads` Worker, while
+  asynchronous `spawn` answers normally. This is a property of the box, not of the code — but the code
+  had been written as if it were not. Census taken before moving anything: **44 of the 69 tracked proofs
+  imported `node:child_process`**, of which **33 needed the synchronous API**; 15 keep it (they use async
+  `spawn`, or use nothing but the ref bytes).
+- **Move 1 — the workaround is a file, tracked, with a delete-by date.** `docs/evidence/lib/syncproc.mjs`
+  re-implements `execFileSync`/`spawnSync` on the async path: a Worker runs the real `spawn` while the
+  main thread parks on `Atomics.wait`, and the result travels through the filesystem because a blocked
+  main thread cannot process a `postMessage`. Each proof changes **one line — its import**; no assertion,
+  no fixture, no argv moves, so every one of the 33 remains reviewable against its own history. The lib
+  is now TRACKED for a reason amendment 83/84 already established: the sweep materialises a ref with
+  `git archive`, so an untracked helper means 33 tracked proofs that cannot resolve their imports in any
+  clean checkout — the fix would have been visible only in this worktree, which is exactly the failure
+  class amendment 80 names.
+- **Move 2 — the reaper could never have worked here.** `DEFAULT_TREE_REAPER` drove
+  `taskkill /PID <pid> /T /F` through `spawnSync`, so it always returned `false`; the host therefore
+  reported `'reaper-failed'` (honestly!) and `reapTree: true` silently degraded to a plain kill. `TreeReaper`
+  may now return a `Promise<boolean>`, the host awaits it, and **`onEnd` waits on the settled reaping
+  promise** — without that the result used to be built while `descendantsStopped` was still `undefined`,
+  i.e. a genuinely reaped tree would be reported as a run nobody had decided about. The regression test
+  releases the fake reaper on a later tick, which is the only shape that can tell the two apart; a
+  synchronous reaper is still accepted and behaves byte-identically, so every already-injected test reaper
+  is untouched.
+- **Move 3 — the red that lied twice.** With the import fixed, `reap-proof.mjs` ran for the first time
+  since v55 and failed. The failure a reader saw was `ENOENT: …\heartbeats.txt` **raised by the `finally`
+  cleanup**, which buried the assertion that actually failed. That assertion (§1) failed because the
+  proof's kill budget is a literal 700 ms and this box's measured spawn→first-write latency is
+  **6 074 ms** (`node --version` as a child produced NOTHING in 6 000 ms; `git --version` took 10 594 ms
+  on the same saturated host), so the parent was killed before it executed a line and no heartbeat file
+  ever existed. And that exposed the hole under both: §2's central claim is
+  `beatsLater === beatsAtKill` — "the survivor went silent" — which **0 === 0 satisfies**. A silence
+  measured over an absent survivor is not a finding about reaping, and `ran: true` was never a claim about
+  a run: it is the host's report that ONE spawn call succeeded.
+- **The rules now in the file.** (1) **§0 measures before it judges**: the latency is taken once per run
+  and every kill below happens at `max(700, 4×latency)` — this run 6 074 → 24 296 ms — so no section can
+  be red because a constant in the file was smaller than the host (amendment 85's rule, turned on a
+  proof's own fixture rather than the runner). (2) An assertion about what happened AFTER a kill requires
+  the subject to have been seen ALIVE BEFORE it: runs are sampled in flight and `grewWhileAlive(samples)`
+  plus `beats at kill > 0` gate §1, §2 (both branches), §5 and §6. (3) Teardown reaps the **orphan**
+  handles the parents recorded while alive (10 this run), not a dead parent's pid: `taskkill /T` on the
+  parent of §1 walks a tree that no longer exists, which is §3's own ordering lesson applied to the
+  proof — and it is why the directory survived 3.2 s of retries without it. (4) A cleanup may not replace
+  the finding: `catch` prints it and rethrows before `finally` touches a file. Measured this run: §1 +8
+  beats after `killedByBudget` · §2 `exit=1 signal=null`, 176 → 176 · §3 status 128, 443 → 449 ·
+  §5 60 → 60 · §6 `reaped`, seq 1, malformed 0.
+- **Also moved, same cause.** `verdict-proof.mjs` asserted a literal `6` for "git printed six lines, one
+  quoted"; git 2.55 prints two non-empty lines for that lock failure, so the literal was an assertion
+  about a git VERSION, not about the door. The count is now derived with the door's own rule (non-empty
+  lines across both streams).
+- **What did NOT move.** No argv shape, policy gate, permission, §28 decision, budget default, parser or
+  record field changed; `planExec`, the doors and the ledger are untouched. The exec-host change is one
+  widened type (`TreeReaper`) plus an `await`; the runtime package was not edited by this increment.
+- **Bounds, stated rather than fixed.** (1) `syncproc.mjs` is a host workaround, not a design choice: the
+  day `spawnSync` works, this file and 33 import lines are the only thing to delete. (2) `4×latency` is a
+  schedule, not a law — a box slower than ~150 s per arm will make §2's row fall back on its declared
+  `sweep-budget-ms: 600000` instead. (3) §0 measures ONE latency and reuses it; per-process variance on a
+  saturated box is not modelled, and the sampling loop proves "grew while alive", not "alive at the
+  millisecond of the kill". (4) 33 proofs now import the lib; this amendment quotes the four that were
+  re-run (`reap`, `door-kill`, `verdict`, `policyaudit`) and the two package suites, not a population-wide
+  sweep — **the full sweep against this commit's tree is owed**, and is the only number that shows whether
+  the lib holds under every proof's own load. (5) The parent/child tags are matched by substring in the
+  proof's own line protocol, so a tag that is a substring of another tag would confuse teardown — the five
+  tags here are not.
+
+## Amendment 87 — v86b (runtime): a §28 table is now graded against the people it claims to speak for, and refuses to be impressed by its own past
+
+_Numbering: the content is amendment 87's, but it was committed as `M2 v86b` (`e04e3ae`) because it
+landed hours after the v58 draft was written and one commit before this file was opened. Its proof file,
+`docs/evidence/agents/policyaudit-proof.mjs`, rode into `92c3664` via a `*.mjs` glob; the module, its
+tests and the export are in `e04e3ae`. Recorded here rather than smoothed over, because "which commit owns
+which claim" is the thing this file keeps audit._
+
+- **The gap.** v40 made a checkpoint policy **data**, v41 made human §28 decisions **data**, and nothing
+  joined them — so "this table stands in for the way we actually decide" was a claim with no test, and a
+  table could only be read forward (what WOULD it do), never backward (what DID it miss).
+- **The join (`auditGateHistory(policy, history)`).** Validate the table first (a malformed policy has no
+  business being graded, let alone shipped), replay it over the history call by call, and split the
+  contradictions by DIRECTION: `too-permissive` — a human vetoed what this table would allow — versus
+  `too-strict` — a human allowed what it would block. Plus `silentApprovals`: tools the table grants
+  **only through its default row**, i.e. an approval no rule ever names. `divergences` and
+  `silentApprovals` together cover every default-granted call exactly once: agree with the human or
+  contradict it, never both.
+- **What it refuses to know is the increment.** Records decided by a table, not a person, are counted as
+  `skippedPolicyRecords` and NEVER as agreement (a policy agreeing with its own output proves nothing about
+  people — §60); `agreement` for an empty history is 0, not a vacuous 1; and the replay is over tool NAMES
+  with `args: {}` and `permissions: []` because that is exactly the whole of v40's matching, so the audit
+  openly says nothing about a future argument-aware rule. `auditLineFor` prints the ratio beside every
+  named failure class and the skip count, so a single ledger line cannot read as a clean table.
+- **Gates.** `@nexus/agent-runtime`: 354 tests / 26 files (45 of them this module's own), root
+  `npm run build` clean, `policyaudit-proof.mjs` green (purity, determinism and the "no human decisions"
+  rule included).
+- **Bounds.** (1) It is a **library with one consumer: its own proof.** Nothing in the dock or the ledger
+  calls it yet, so no operator sees an audit line; wiring it into the §28 face is the next increment's
+  question, not this one's claim. (2) A boolean carries no motive — the audit grades verdicts, not
+  reasons. (3) Agreement over a history that contains nothing dangerous is agreement over nothing, which
+  is why `total`/`audited`/`skippedPolicyRecords` ship alongside the ratio rather than under it.
+

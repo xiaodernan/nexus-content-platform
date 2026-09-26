@@ -2266,3 +2266,66 @@ v80's untracked population, priced as a witness's assertion. Bounds: the 900 000
 sized from v84's load-dependent arms, not a re-measurement; an hour-long row may still sit for an hour
 (refused above the ceiling, never clamped); a declaration that exists only in a worktree cannot be seen by a
 sweep of a ref; and the 67-row sweep against this commit's own tree is owed to the next bookkeeping commit.
+
+## The host that cannot spawn synchronously, and the silence that was `0 === 0` (`reap-proof.mjs`, M2 v86 — ADR 0016 amendment 86)
+
+`spawnSync('git', ['--version'])` on this box answers `{ status: null, error: EBUSY }`. So does
+`execFileSync`. So does `execSync`. So does the same call from inside a `worker_threads` Worker. Asynchronous
+`spawn` answers normally. Nothing in the repository said so, so the failure was distributed: **44 of the 69
+tracked proofs** imported `node:child_process`, **33 of them needed the synchronous half**, and every one of
+those 33 has been unable to run since the host turned — with logic that is entirely correct.
+
+`docs/evidence/lib/syncproc.mjs` re-implements the synchronous API on the asynchronous one (a Worker runs
+the real `spawn`; the main thread parks on `Atomics.wait` and reads the result off the filesystem, because a
+blocked main thread cannot take a `postMessage`). Each of the 33 proofs changed **one line, its import** — no
+assertion moved, so each stays reviewable against its own history. The file is **tracked**: the sweep
+materialises a ref with `git archive` (v78/v81), so an untracked helper would make 33 tracked proofs
+unresolvable in every clean checkout and visible only in this worktree — v80's failure class, named rather
+than repeated.
+
+The second half is production code, and it was degraded in a way nobody could see: `DEFAULT_TREE_REAPER`
+shipped `taskkill /T /F` through the broken sync call, so it always answered `false`, the host always said
+`'reaper-failed'` (truthfully), and `reapTree: true` silently became a plain kill. `TreeReaper` may be async
+now, and **`onEnd` waits on the settled reaping promise** — the shape that used to build a result while
+`descendantsStopped` was still `undefined`, reporting a reaped tree as an undecided run. The unit test
+releases its fake reaper on a later tick because that is the only schedule that distinguishes the two; sync
+reapers are still accepted, so no already-injected test reaper moved.
+
+And then `reap-proof.mjs` ran for the first time since v55, went red, and lied twice about it. The only error
+a reader got was `ENOENT: …\heartbeats.txt` **thrown by the `finally` cleanup**; the assertion that actually
+failed was behind it, and it failed because the proof's kill budget is a literal 700 ms while this box's
+spawn→first-write latency measured **6 074 ms** in the same run (`node --version` as a child produced nothing
+at all in 6 000 ms). So the parent was killed before executing a line, no heartbeat file ever appeared, and
+§2's central claim — `beatsLater === beatsAtKill`, "the survivor went silent" — was satisfied by `0 === 0`.
+`ran: true` was never a claim about a run; it is the host's report that ONE spawn call succeeded.
+
+Three rules came out of that, all of them v85's and v80's rules turned on this directory's own fixtures:
+**§0 measures before it judges** (`max(700, 4×latency)`, 6 074 → 24 296 ms here, so no section can be red
+because a constant in a file was smaller than the host); **an after-the-kill assertion needs a subject seen
+alive before it** (runs are sampled in flight; `grewWhileAlive` and beats-at-kill > 0 gate §1, §2's both
+branches, §5 and §6); and **teardown reaps orphans by the handles their parents recorded** (10 this run),
+because `taskkill /T` on a dead parent walks a tree that no longer exists — §3's ordering lesson, applied to
+the proof that teaches it. A cleanup that throws now prints the finding it would have replaced, and
+rethrows. `verdict-proof.mjs` lost a hardcoded `6` in the same spirit: git 2.55 prints two non-empty lines
+for that lock failure, so the literal was an assertion about a git version rather than about the door.
+
+Measured, this run: §0 6 074 ms · §1 +8 heartbeats after `killedByBudget: true` · §2 `exit=1 signal=null`,
+176 → 176 over a survivor that existed · §3 taskkill on the dead pid → status 128 while the tree wrote 443 →
+449 · §5 60 → 60 · §6 `descendantsStopped="reaped"`, seq 1, malformed 0 · teardown 10 handles.
+
+## Grading a §28 table against the people it replaces (`policyaudit-proof.mjs`, M2 v86b — ADR 0016 amendment 87)
+
+68th tracked proof (70th script). v40 made a checkpoint policy data and v41 made human §28 decisions data;
+nothing joined them, so "this table stands in for how we decide" was readable only forward.
+`auditGateHistory(policy, history)` validates the table, replays it over the recorded history call by call,
+and separates the contradictions by direction — `too-permissive` (a human vetoed what the table would allow)
+from `too-strict` (a human allowed what it would block) — plus `silentApprovals`, the tools a table grants
+only through its DEFAULT row, i.e. an approval no rule ever names. The refusals are the increment: records
+decided by a table are `skippedPolicyRecords` and never agreement (a policy agreeing with its own output says
+nothing about people, §60), an empty history gives `agreement: 0` rather than a vacuous 1, and the replay is
+over tool names with `args: {}` because that is exactly v40's whole matching rule — so the audit says nothing
+about a future argument-aware rule, and says that out loud. `auditLineFor` prints the ratio beside every
+named failure class and the skip count, so one ledger line cannot read as a clean table. Bound worth keeping
+in view: it is a library whose only consumer today is its own proof; the dock's policy face does not show an
+audit line yet.
+
