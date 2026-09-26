@@ -39,8 +39,11 @@ export async function PUT(req: Request, ctx: RouteContext): Promise<NextResponse
     const user = await requireUser();
     if (!(await projectBelongsTo(projectId, user.id))) return notFound();
     await saveDocument(projectId, parsed.document);
-    const stored = await loadDocument(projectId);
-    return NextResponse.json({ ok: true, document: stored, savedAt: new Date().toISOString() });
+    // 不回读整份文档：这条链是自动保存，每改一个像素都会跑一次，
+    // 而 4000 节点那一档量下来，"读回来再序列化发出去"就是这次请求里最大的一块。
+    // 客户端要的是"存上了没有 + 存于何时"（它自己就是发的那一份的作者），
+    // 真要核对库里存了什么，走 GET 那条路（`store.load` / 压测脚本都这么做）。
+    return NextResponse.json({ ok: true, savedAt: new Date().toISOString() });
   } catch (error) {
     return failure(error, `PUT /api/projects/${projectId}`);
   }
