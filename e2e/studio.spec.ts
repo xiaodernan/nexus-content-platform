@@ -1165,8 +1165,10 @@ test('@smoke 记忆：记三类、刷新仍在、按类清空（§48）', async 
 
   await page.click('[data-panel-tab="memory"]');
   await expect(page.locator('[data-memory-panel]')).toBeVisible();
-  // 没有搜索框：语义检索要真 provider，这里不假装能搜
-  await expect(page.locator('[data-memory-note]')).toContainText('不假装能搜');
+  // 界面上说清搜索是什么、不是什么：是 §49 的词面混合检索，**不是语义检索**。
+  // （这一句以前钉的是"没有搜索框、不假装能搜"；面板接上词面检索之后那句就过期了，见 2c50369）
+  await expect(page.locator('[data-memory-note]')).toContainText('不是语义检索');
+  await expect(page.locator('[data-memory-search]')).toBeVisible();
   await expect(page.locator('[data-memory-content]')).toBeVisible();
 
   await page.fill('[data-memory-content]', '王城在第七次日蚀下投降。');
