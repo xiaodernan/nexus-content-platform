@@ -230,10 +230,17 @@ async function reloadAndMeasureFirstNode(): Promise<number> {
   if (split && split.startAt && split.firstNodeAt) {
     const firstNodeAbs = split.startAt + split.firstNodeAt;
     const after = firstNodeAbs - split.docEndAt;
+    // 标签要说清量的是哪一次请求：**最慢的那一次** /api/projects/*，不是"文档那一次"。
+    // 文档改由服务端随 HTML 带下来之后（7a94988），首屏可能压根没有文档接口了，
+    // 这一行于是变成快照列表 / 发布状态 / 批注那几次里最慢的一个——
+    // 首帧在它之前就结束，于是 `之后` 是负数：那不是算错，是"那次请求首屏根本不依赖"。
     console.log(
-      `  首帧 = 文档响应到手前 ${Math.round(split.docEndAt - split.startAt)}ms` +
-        `（那一次请求 ${Math.round(split.duration)}ms${split.bytes ? `、${Math.round(split.bytes / 1024)} KB` : '、字节数浏览器不给'}）` +
-        ` + 到手之后 ${Math.round(after)}ms，共 ${split.count} 次项目接口`,
+      `  首帧 ${Math.round(at)}ms｜最慢那次项目接口结束于 ${Math.round(split.docEndAt - split.startAt)}ms` +
+        `（那一次 ${Math.round(split.duration)}ms${split.bytes ? `、${Math.round(split.bytes / 1024)} KB` : '、字节数浏览器不给'}）` +
+        (after < 0
+          ? `，首帧比它早 ${Math.round(-after)}ms（首屏不依赖这次请求）`
+          : `，在那次请求结束后 ${Math.round(after)}ms 才画出来`) +
+        `，共 ${split.count} 次项目接口`,
     );
   } else {
     console.log(`  首帧 ${Math.round(at)}ms（没读到项目接口的 resource timing，拆不了段——不编一个数）`);
