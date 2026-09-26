@@ -322,6 +322,51 @@ async function propToCanvasLatency(scope: string): Promise<void> {
     await page.waitForTimeout(150);
   }
   record(`属性写入 → 画布更新${scope}`, 'ms', runs);
+  // §146/§147 写着的两个目标——"选中响应 <16ms"与"内存峰值"——**以前从来没量过**
+  // （docs/TESTING.md 那行目标底下没有任何一处代码去量它）。这里补上：
+  // 选中响应量的是"点一个节点 → 选择框与手柄画出来"，内存量的是 Chrome 的 JS 堆（近似值，见下）。
+  try {
+    const sel: number[] = [];
+    for (let attempt = 0; attempt < 3; attempt += 1) {
+      await page.click('[data-canvas-surface]');
+      const clear = await page.locator('[data-resize-handle]').count();
+      if (clear > 0) throw new Error(`点空白处没有取消选中（还有 ${clear} 个手柄），选中响应没法量`);
+      sel.push(
+        await page.evaluate((id: string) => {
+          return new Promise<number>((resolve, reject) => {
+            const el = document.querySelector(`[data-canvas-frame] [data-node-id="${id}"]`) as HTMLElement | null;
+            if (!el) return reject(new Error('目标节点不在 DOM 上'));
+            const started = performance.now();
+            el.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, pointerId: 1, button: 0 }));
+            el.dispatchEvent(new PointerEvent('pointerup', { bubbles: true, pointerId: 1, button: 0 }));
+            el.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+            const timer = window.setInterval(() => {
+              if (document.querySelectorAll('[data-resize-handle]').length > 0) {
+                window.clearInterval(timer);
+                resolve(performance.now() - started);
+              }
+            }, 2);
+            window.setTimeout(() => {
+              window.clearInterval(timer);
+              reject(new Error('3 秒内没有出现选择手柄'));
+            }, 3000);
+          });
+        }, headline),
+      );
+    }
+    record(`选中响应${scope}`, 'ms', sel);
+  } catch (error) {
+    // 量不到就说量不到与为什么，不拿一个编出来的数顶上（§159）
+    console.log(`  选中响应${scope}：没量到 —— ${error instanceof Error ? error.message : String(error)}`);
+  }
+  const heap = await page.evaluate(
+    () => ((performance as unknown as { memory?: { usedJSHeapSize: number } }).memory?.usedJSHeapSize ?? null),
+  );
+  console.log(
+    heap
+      ? `  JS 堆${scope}：${Math.round(heap / 1024 / 1024)} MB（Chrome 的近似值，未开 --enable-precise-memory-info；这是"当前堆"不是"峰值"）`
+      : `  JS 堆${scope}：量不到（这个浏览器不暴露 performance.memory）`,
+  );
   // PERF_PROFILE=1：再跑一次并抓 CPU 采样，把"那 1.2 秒在谁身上"按自时长列出来。
   // 为什么留在脚本里而不是临时写个一次性探针：分段计数（store 里的 __studioPerf）已经证明
   // 快照只占 20ms，剩下的要按函数归因才找得到——而这种归因每次优化完都要再看一眼。
