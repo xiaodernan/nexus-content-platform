@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import type { ReactElement } from 'react';
 import { creatorAnalytics, type AnalyticsNumbers } from '@/server/domain/analytics';
+import { analyzeCreatorFacts, buildCreatorFact } from '@/server/domain/analytics-agent';
 import { currentUserOrNull } from '@/server/domain/session';
 
 export const dynamic = 'force-dynamic';
@@ -52,7 +53,7 @@ function CompletionCell({ analytics }: { analytics: AnalyticsNumbers }): ReactEl
  * - 只有作者自己看过的，整行标出来——否则"1 个访客 / 40 秒"会被读成"有人在看了"；
  * - 被上限截断过的上报计数在行里，数据被动过要留得下痕迹。
  */
-export default async function AnalyticsPage() {
+export default async function AnalyticsPage(props: { searchParams: Promise<{ project?: string | string[] }> }) {
   const user = await currentUserOrNull();
   if (!user) {
     return (
@@ -67,6 +68,12 @@ export default async function AnalyticsPage() {
   }
 
   const rows = await creatorAnalytics(user.id);
+  // §169：按 `?project=` 逐件分析，不给整张列表按行读库（那份列表的查询纪律是"一次分组查询服务整页"）。
+  // 读不到 = 不是你的项目 / 没发布过 / 已删除，三种给同一个答案，也不单列出来。
+  const wanted = (await props.searchParams).project;
+  const projectId = typeof wanted === 'string' ? wanted : null;
+  const fact = projectId ? await buildCreatorFact(projectId, user.id) : null;
+  const findings = fact ? analyzeCreatorFacts(fact) : [];
 
   return (
     <main className="mx-auto max-w-[1100px] px-6 py-10" data-analytics-page>
@@ -83,6 +90,49 @@ export default async function AnalyticsPage() {
           </li>
         ))}
       </ul>
+
+      {projectId ? (
+        <section
+          className="mt-4 rounded-[var(--nexus-radius-md)] border border-[var(--nexus-color-border-subtle)] bg-bg-1 p-3"
+          data-analytics-agent
+        >
+          <h2 className="text-13 font-semibold text-fg-1">
+            「{fact?.projectName ?? '这个项目'}」为什么没人看？
+            <span className="ml-2 text-11 font-normal text-fg-3">
+              规则分析：读的是这一页上面那几个数与项目本身的设置，没有调用任何模型
+            </span>
+          </h2>
+          {!fact ? (
+            <p className="mt-2 text-12 text-fg-2" data-analytics-agent-denied>
+              读不到这个项目的发布记录：它可能不是你的项目、没发布过，或者已经被删除。
+            </p>
+          ) : findings.length === 0 ? (
+            <p className="mt-2 text-12 text-fg-2" data-analytics-agent-clean>
+              没有可挑的门面问题：标题与简介都在、有封面、公开且过审，数据里也没有"打不开 / 留不住人"的信号。
+              这一句只说明这几项查过，不等于"会有人来"。
+            </p>
+          ) : (
+            <ul className="mt-2 space-y-2">
+              {findings.map((finding) => (
+                <li key={`${finding.area}:${finding.evidence}`} className="text-12" data-analytics-finding={finding.area}>
+                  <p className="text-fg-3">
+                    <span className="text-fg-2">看到的事实：</span>
+                    {finding.evidence}
+                  </p>
+                  <p className="text-fg-1">{finding.conclusion}</p>
+                  <p className="text-fg-3">
+                    <span className="text-fg-2">建议：</span>
+                    {finding.action}
+                  </p>
+                </li>
+              ))}
+            </ul>
+          )}
+          <Link href="/analytics" className="mt-2 inline-block text-11 text-accent-2 underline">
+            收起这份分析
+          </Link>
+        </section>
+      ) : null}
 
       {rows.length === 0 ? (
         <p className="mt-6 text-13 text-fg-2" data-analytics-empty>
@@ -118,6 +168,13 @@ export default async function AnalyticsPage() {
                       {row.projectName}
                     </a>
                     <span className="ml-1 text-11 text-fg-3">第 {row.version} 版</span>
+                    <Link
+                      href={`/analytics?project=${row.projectId}`}
+                      className="ml-1 text-11 text-accent-2 underline"
+                      data-analytics-ask
+                    >
+                      为什么没人看？
+                    </Link>
                     {row.analytics.selfOnly ? (
                       <span className="ml-1 text-11 text-amber-300" data-analytics-selfonly>
                         只有你自己看过
