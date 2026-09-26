@@ -15,6 +15,16 @@ export {
 } from './codeIndex.js';
 export { ToolRegistry, DANGEROUS, matchesTool, type Checkpoint, type CheckpointRequest, type ToolImpl, type InvokeOptions } from './registry.js';
 export { validateCheckpointPolicy, decide, policyCheckpoint, receiptsOrNote, gatedCallIds, NO_RECEIPTS_NOTE, type CheckpointRule, type CheckpointPolicy, type CheckpointDecision, type ReceiptState } from './checkpointPolicy.js';
+export {
+  auditGateHistory,
+  auditLineFor,
+  recordFromDecision,
+  recordsFromDecisions,
+  type GateRecord,
+  type PolicyAudit,
+  type AuditDivergence,
+  type DivergenceKind,
+} from './policyAudit.js';
 export { RoleRegistry, DEMO_ROLES, type RoleDefinition } from './roles.js';
 export {
   runRoleChain,
