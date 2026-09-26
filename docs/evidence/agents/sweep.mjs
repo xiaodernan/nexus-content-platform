@@ -781,12 +781,17 @@ export async function isolatedCheckout({ ref = 'HEAD', cwd = process.cwd(), dest
   if (tar.code !== 0) throw new Error(`git archive ${ref} → exit ${tar.code}: ${tar.stderr.toString().trim().slice(0, 200)}`);
   const tarFile = join(where.dir, 'ref.tar');
   writeFileSync(tarFile, tar.stdout);
-  // M2 v90: the archive and the destination are handed to tar RELATIVE to the directory it runs in, so
-  // neither name ever carries a drive colon — which is the whole reason v81 needed `--force-local`. That
-  // flag is GNU-only, and this box's `tar` on PATH is bsdtar (`C:\Windows\System32\tar.exe`, which rejects
-  // it with "Option --force-local is not supported"), so the extraction that every clean checkout since v81
-  // depended on was failing here for a reason that had nothing to do with drives: `tar -xf ref.tar -C repo`
-  // answers both tars with no flag and no slash-munging.
+  // M2 v90, corrected in place by v91: the archive and the destination are handed to tar RELATIVE to the
+  // directory it runs in, so neither name ever carries a drive colon — which is the whole reason v81 needed
+  // `--force-local`, and why this extraction stays FLAG-FREE. The original comment here claimed "this box's
+  // `tar` on PATH is bsdtar", and that is a claim about a PATH, not about a box: measured by path on this
+  // machine, `C:\Program Files\Git\usr\bin\tar.exe` is GNU tar 1.35 and ACCEPTS `--force-local` (it gets as
+  // far as complaining the file cannot be opened), while `C:\Windows\System32\tar.exe` is bsdtar 3.8.8 and
+  // refuses it with "Option --force-local is not supported". Which one answers the bare word `tar` is
+  // whoever launched us: from a Git Bash shell the Git usr/bin entry is FIRST on PATH (`where tar` yields
+  // GNU then System32), so a sweep started here has been running GNU all along, while a sweep started from
+  // cmd.exe or PowerShell gets bsdtar. `tar -xf ref.tar -C repo` is the one form both answer with no flag
+  // and no slash-munging, which is the only reason the checkout does not care which plane it was launched on.
   const untar = await run('tar', ['-xf', 'ref.tar', '-C', 'repo'], { cwd: where.dir, timeoutMs: 180_000 });
   if (untar.code !== 0) throw new Error(`tar -xf ref.tar → exit ${untar.code}: ${untar.stderr.toString().trim().slice(0, 200)}`);
 

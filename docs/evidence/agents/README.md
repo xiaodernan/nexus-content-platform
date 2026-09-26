@@ -2395,3 +2395,70 @@ that v86 changed, timeout-axis compares an anchored line rule against a git grep
 full of quoted markers, reaper-survivor schedules a 500 ms kill against a 6074 ms host and asserts what
 happened after a subject that never ran, and isolated-proof is the known cross-drive arm. Each is measured
 already, so amendment 90 starts from evidence rather than from a guess.
+
+## The three witnesses that were red for the wrong reason (M2 v90 — ADR 0016 amendment 90)
+
+Amendment 89 closed with four reds and a cause for each. Three files later: none of the four was a defect
+in the host, and one of them had never once been able to run.
+
+reaper-survivor-proof.mjs carried `timeoutMs: 500` from before amendment 86 existed, on a box whose
+spawn-to-first-write latency this proof now measures in its own section 0 — **427 ms here, so a derived
+budget of 3 427 ms** (the calibration answers a different number each run: 507 ms the time before). Both
+arms then have a live subject to make claims about: reaper off, 46 heartbeats when the report was written
+and 59 900 ms later; reaper on, `descendantsStopped: "reaped"`, 116 at the report and 129 later. The label
+still means only that the tree-kill call succeeded — 13 beats arrive after it either way, because a
+detached grandchild leaves the parent's tree — and the assertions on either side of the kill are now gated
+on the subject having been alive, so the vacuous `0 === 0` that amendment 86 named cannot come back as a
+green. The cleanup still fails with `EPERM`, and says so: the survivor the section measured is what is
+holding the directory.
+
+isolated-proof.mjs and timeout-axis-proof.mjs were still calling the synchronous child-process APIs this
+host refuses with `EBUSY`. Amendment 86 built `docs/evidence/lib/syncproc.mjs` and moved 33 proofs onto it;
+these two were missed, so neither their git reads nor their cross-checks could ever return a byte. They
+now read through the same bridge, which is **35 files** in this directory.
+
+The tar story is the one worth re-reading, because the fix v90 shipped was right and the *sentence* shipped
+beside it was plane-blind. v81 extracted a clean checkout with an absolute path plus `--force-local`, since
+GNU tar reads `C:` as a remote host; `--force-local` is GNU-only. Measured by path on this box:
+`C:\Windows\System32\tar.exe` is bsdtar 3.8.8 and answers `Option --force-local is not supported`, while
+`C:\Program Files\Git\usr\bin\tar.exe` is GNU tar 1.35 and takes it. Which binary the word `tar` reaches is
+PATH order — from a Git Bash launch, GNU answers first — so a comment that asserts one of them flatly will
+be falsified by the next shell. The extraction is now `tar -xf ref.tar -C repo`, run inside the directory
+that holds both names: no colon for either tar, no flag for either tar, no dependence on which one answers.
+
+timeout-axis-proof then went green on its own terms: **2 of 69** proofs declare a budget (isolated at
+900 000 ms, reap at 600 000 ms), and after v90's amendment-89 fix the HEAD side and the worktree side of
+that census answer the same anchored question.
+
+## The doc table that became a row, and the reader that had the wrong grammar (M2 v91 — ADR 0016 amendment 91)
+
+The unit-test table at the top of this file has claimed since v63 that its rows sum to exactly **354**
+runtime cases over 26 files and **275** exec-host cases over 8, and that "a row whose number drifts from
+its file is a documentation bug". Since then every check of that sentence was a person with a script in a
+temp directory. `table-recount-proof.mjs` is now the 70th row of the population it grades: it boots vitest
+for both packages, reads per-file case counts out of the JSON, reads this file's digits out of **HEAD's
+bytes** (`git show`, so a half-edited README cannot be graded against a finished measurement), and compares
+in four directions — row against its file, rows against the two prose totals, a file with no row, a row
+with no file. Measured: **354/26 and 275/8, drift 0**.
+
+Two parts of it are the reason the increment exists.
+
+First, the reader. The rig that audited v90's table first insisted the digits sit inside the backticks.
+This table writes them outside, and writes six rows as `` `visualQa.test.ts` +contrast (3) `` — a
+continuation block for a file already on the page. That reader parsed 322 of 354 cases and reported two
+FALSE drifts (repair 11 vs 16, visualQa 21 vs 26) on a table that was correct. A checker with the wrong
+grammar does not fail quietly: it manufactures defects in healthy files. Amendment 89's lesson, one level
+down — so section 1 tests the grammar on a base row, a continuation row, an `exec-host/`-prefixed row and a
+prose line that merely wears a row's shape, before section 3 may use it.
+
+Second, the checker has to be capable of red. Section 5 mutates a copy of this table four ways — a base row
+plus one case, a continuation row plus one case, a whole row deleted, a prose total minus one — and asserts
+the same function that just called the real table clean catches every one: 4/4, e.g.
+`runtime/registry.test.ts: rows 8 = 8 vs measured 7`, `runtime/workspace.test.ts (4 cases)` with no row,
+`prose 353 vs rows 354`.
+
+The proof also refuses a dirty tree: a counted test file that differs from HEAD would be graded as if it
+were committed, so the precondition is checked and named. Files no commit owns are excluded from the counts
+and printed — at the run that wrote this paragraph, `agents/runtime/test/vectorStore.test.ts` is untracked
+with one failing case, so vitest exits 1, the JSON is read anyway (a nonzero exit is data, not a lost
+report), and the proof stays green about the table while stating that the suite in this worktree is not.

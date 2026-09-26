@@ -3598,3 +3598,93 @@ different questions and comparing their answers proved nothing. Fix: the HEAD si
 anchored question. The general rule this adds beside amendment 89 is short: an independent reader may differ
 in IMPLEMENTATION, never in GRAMMAR. Verified green end to end, 2 of 69 rows declaring (isolated at 900000 ms,
 reap at 600000 ms), the same number on both sides of the check.
+
+### Amendment 90 — v90: three witnesses red for the wrong reason, and the record their fix needed
+
+The 1c9c7ee sweep left four reds and amendment 89 named a cause for each. Three of them turned out not to
+be host defects at all, and the fourth was a fixture that had never been able to run. Written now, in the
+past tense of measurement, because the citations to this number (a commit message, a proof header, a
+sentence at the end of the evidence README) were written BEFORE anybody wrote the record they cite. That
+order is the defect class this repository already names — a citation in citation syntax is not evidence
+that the thing cited exists — and the fix for a missing record is the record, not a deleted reference.
+
+Measured on this box, 2026-09-27, against `da70f3b`:
+
+- **reaper-survivor-proof.mjs** — v53's witness had carried `timeoutMs: 500` since before amendment 86
+  existed. Section 0 now asks the box how long a spawned process takes to write its first byte and derives
+  the kill budget from the answer: **427 ms here, so 3 427 ms of budget** (a previous run of the same
+  calibration answered 507 ms, i.e. the number is the box's, not the file's). With that, both arms have a
+  live subject: reaper OFF, 46 heartbeats at the report and 59 900 ms later; reaper ON, `reaped` reported,
+  116 at the report and 129 later. The label still means "the tree-kill call succeeded", not "nothing
+  runs", and now the assertions on either side of the kill are gated on the subject having been alive, so
+  a 0-beat comparison fails loudly instead of passing as `0 === 0` — amendment 86's disease, cured in the
+  one file that predated the cure. The temp directory is still held at cleanup (`EPERM`) because the
+  detached grandchild the section just measured is alive; the proof prints that instead of hiding it.
+- **isolated-proof.mjs and timeout-axis-proof.mjs** — both were still calling the synchronous child-process
+  APIs this host refuses with `EBUSY`. Amendment 86 shipped `docs/evidence/lib/syncproc.mjs` and migrated
+  33 proofs onto it; these two were left behind, so their git reads never returned a byte and their
+  cross-checks could not run. They now import from the same bridge, which puts the population at **35 files
+  reading their git through it**.
+- **The tar flag, and which plane says what.** v81 extracted a clean checkout with
+  `tar -xf <absolute path with C:> --force-local`, because GNU tar reads a drive colon as a remote host.
+  `--force-local` is GNU-only. Both tar binaries on this box were then measured by path: `C:\Windows\System32\tar.exe`
+  is **bsdtar 3.8.8** and answers `Option --force-local is not supported`; `C:\Program Files\Git\usr\bin\tar.exe`
+  is **GNU tar 1.35** and accepts it. Which one the word `tar` reaches is PATH order, and from a Git Bash
+  launch GNU answers first — so the comment v90 shipped, which asserted flatly that this box's `tar` is
+  bsdtar, is true of System32 and of a scrubbed PATH and false of the plane a sweep launched from here
+  actually uses. The fix does not depend on the answer: the archive and its destination are now named
+  RELATIVE to the extraction directory (`tar -xf ref.tar -C repo`), which carries no colon for either tar
+  and needs no flag for either tar. The lesson is amendment 88's census rule in a new costume — a claim
+  about a binary is a claim about a PLANE, and a comment that drops the plane will be falsified by the next
+  shell.
+- **isolated-proof's "the two dists MUST differ"** was a pinned expectation. It is now derived from
+  `git status` on `agents/runtime`: equal bytes over a clean package is the reproducible rebuild v84 expects,
+  and only DIRTY sources with equal bytes would be v81's isolation failure. Re-running the proof at
+  `8910ed3` exercised exactly that branch — the worktree then carried 6 uncommitted changes under
+  `agents/runtime`, and the proof reported "the two dists differ (the home repository carries uncommitted
+  changes)" instead of passing on a coincidence. The same run: cross-drive build exit 1 in 93.8 s naming
+  `@nexus/studio#build` with the reason quoted from its own log, labelled `CROSS-DRIVE` beside the statement
+  that this ref compiled GREEN on the repository drive; a clean checkout walking 194 of the worktree's 230
+  files; the home dist unmoved at `204913d0f036b30c` over 244 files across the whole isolated build; and the
+  ownership census in a git-free directory answered `null` — "cannot ask" — rather than `0`.
+
+What did not move: no budget marker, no selection rule, no production source. The two migrated proofs keep
+their assertions; only the call that could not return bytes changed.
+
+### Amendment 91 — v91: a documentation table is a claim, so it became a row
+
+`docs/evidence/agents/README.md` has staked a sentence since v63: the runtime rows sum to exactly **354**
+over 26 files, the `exec-host/*` rows to exactly **275** over 8, and "a row whose number drifts from its
+file is a documentation bug". Every recount since then was done by whoever remembered, with a script kept
+in a temp directory. v91 makes the sentence a row of the population it grades.
+
+`docs/evidence/agents/table-recount-proof.mjs` boots vitest for both packages, reads the per-file case
+counts out of the JSON report, reads the table's digits out of the README **as HEAD owns it** (`git show
+HEAD:…`, so the worktree cannot be graded against a half-edited doc), and compares in four directions:
+row vs its own file, rows vs the prose totals, a file with no row, and a row with no file. Measured on this
+box, 2026-09-27: **354 over 26 files and 275 over 8, drift 0, and the census is now 3 of 70 proofs declaring
+a budget** (this witness declares 300 000 ms for its two vitest arms, beside isolated's 900 000 and reap's
+600 000). The two claims that make it a
+witness rather than a script:
+
+- **The reader is the subject, and its grammar was wrong twice.** v90's table was audited with a rig whose
+  first grammar insisted the digits sit INSIDE the backticks. The table writes them outside, and writes six
+  rows as `` `visualQa.test.ts` +contrast (3) `` — a continuation block for a file already on the page. That
+  reader saw 322 of 354 cases and reported TWO FALSE DRIFTS on a table that was correct (repair 11 vs 16,
+  visualQa 21 vs 26). A checker with the wrong grammar does not fail quietly; it manufactures defects in
+  healthy files, which is amendment 89's lesson one level down. Section 1 therefore tests the grammar
+  against base, continuation and `exec-host/`-prefixed rows — and against a prose line that merely wears a
+  row's shape — before section 3 is allowed to use it.
+- **The checker is required to be able to go red.** Section 5 mutates a copy of the table four ways (a base
+  row plus one case, a continuation row plus one case, a whole row deleted, a prose total minus one) and
+  asserts the SAME function that graded the real table catches each, after asserting the unmutated control is
+  clean. All **4/4 caught**, e.g. `runtime/registry.test.ts: rows 8 = 8 vs measured 7`.
+- **A dirty tree is refused, and a foreign file is named rather than counted.** Every counted test file must
+  be byte-clean against HEAD, or the proof says it would be grading a modified file as if it were the
+  committed one. Files that no commit owns are excluded from the counts and printed: at this run
+  `agents/runtime/test/vectorStore.test.ts` is untracked and carries one failing case, so vitest exits 1,
+  the JSON is still read (a nonzero exit is data, not a lost report), and the proof stays green about the
+  table while stating plainly that the suite in this worktree is not green. v80's census lesson, applied to
+  a doc gate: the numbers a proof reports must carry the plane they were measured on.
+
+Nothing else moved: no test file, no source file, no assertion in another proof.
