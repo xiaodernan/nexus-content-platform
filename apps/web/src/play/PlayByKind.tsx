@@ -15,7 +15,7 @@ export function PlayByKind({ document, projection }: { document: GameDocument; p
   if (projection.pipeline === 'story') return <StoryPlay plan={projection.plan} />;
   const label = isGameKind(document.kind) ? GAME_KIND_LABELS[document.kind] : '这一种';
   return (
-    <div className="rounded-lg border border-[var(--nexus-color-border)] p-4" data-play="kind-not-wired">
+    <div className="rounded-lg border border-[var(--nexus-color-border-subtle)] p-4" data-play="kind-not-wired">
       <h2 className="text-13 font-semibold">这一版标的类型是「{label}」，它还没有可玩的投影</h2>
       <p className="mt-2 text-12 text-fg-2" data-play-kind-reason>
         {projection.reason}

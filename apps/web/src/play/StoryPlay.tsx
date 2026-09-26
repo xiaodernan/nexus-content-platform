@@ -35,7 +35,7 @@ export function StoryPlay({ plan }: { plan: StoryPlan }) {
 
   if (!plan.playable) {
     return (
-      <div className="rounded-lg border border-[var(--nexus-color-border)] p-4" data-story="blocked">
+      <div className="rounded-lg border border-[var(--nexus-color-border-subtle)] p-4" data-story="blocked">
         <h2 className="text-13 font-semibold">这一段开不了场</h2>
         <ul className="mt-2 flex flex-col gap-1">
           {plan.blockers.map((blocker) => (
@@ -59,7 +59,7 @@ export function StoryPlay({ plan }: { plan: StoryPlan }) {
         </button>
       </div>
 
-      <article className="rounded-lg border border-[var(--nexus-color-border)] p-4" data-story-beat={beat?.id ?? 'none'}>
+      <article className="rounded-lg border border-[var(--nexus-color-border-subtle)] p-4" data-story-beat={beat?.id ?? 'none'}>
         <h2 className="text-[var(--nexus-font-size-21)] font-semibold" data-story-name>
           {beat?.name ?? '没有起点'}
         </h2>
@@ -85,7 +85,7 @@ export function StoryPlay({ plan }: { plan: StoryPlan }) {
                 key={choice.id}
                 type="button"
                 onClick={() => go(choice.to)}
-                className="rounded border border-[var(--nexus-color-border)] px-3 py-1.5 text-left text-12 hover:border-[var(--nexus-color-border-strong)]"
+                className="rounded border border-[var(--nexus-color-border-subtle)] px-3 py-1.5 text-left text-12 hover:border-[var(--nexus-color-border-strong)]"
                 data-story-choice={choice.to}
               >
                 {choice.label}
