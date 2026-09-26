@@ -4013,3 +4013,169 @@ disagreement is written down rather than smoothed over.
   the line and check. Whether an amendment's OWN numbers should be gradeable — a row that re-derives the figures a
   record claims — is a candidate worth more than this one, and it is recorded here as the reason the next increment
   looks at confessions rather than at documents.
+
+### Amendment 95 (M2 v95): a confession is graded twice — against the bytes it points at and against the failure it predicted — and only one of the two disagreements is a defect
+
+- **What amendment 94 left unsaid.** v94's own record closed with the honest sentence: "A declaration is not
+  evidence… the honest reading of `1 corroborated / 3 not` is that one arm is checkable and three are trust-me."
+  The channel was worth opening because a reader can now SEE which is which, but the runner still printed a
+  confession without grading it. This amendment spends its time on the two witnesses that actually exist. The
+  first is static: a clause that says `via sw.proofCorpus` names a body, and that body is a file this repository
+  owns — grade the clause against it. The second is dynamic: a declaring row that goes RED prints a cause, and
+  that cause names a git command, so the confession can be asked whether it covers the failure it predicted.
+  Neither witness requires the scanner to become deeper, which is what amendment 94 refused and why this one
+  keeps the refusal: `// sweep-asks-repository:` still feeds a sentence, and the sentences are now checked
+  against things, not against opinions.
+- **The vocabulary is git's, not mine.** Naming a command means deciding what counts as one, and a hand-written
+  list is exactly the artifact this directory keeps reddening for being stale. `GIT_SUBCOMMANDS` carries 38 names
+  and `confession-proof.mjs` §1 checks it in BOTH directions against `git --list-cmds=main`, which answers with
+  179 names OUTSIDE a repository — so the check works on either plane, which is the first time an authority in
+  this directory is not the index. Neither direction is decorative: no shipped name may be a verb git does not
+  have, and no verb the population actually writes may be missing from the list, because a missing name is an
+  under-declared confession that would pass silently in the log. Measured over the 74 tracked files at this ref:
+  159 distinct tokens follow the word git, 142 of them are prose (`repository`, `call`, `child process`) — which
+  is the entire reason the gate exists, and the free-text reader amendment 93 warned about would have counted
+  all 159.
+- **The gate is deliberately one-directional, and its failure is recorded rather than fixed.**
+  `git -c x status --porcelain` names NOTHING to this grammar: an option that takes a VALUE as a separate token
+  is not skipped, so the matcher reads `x` as the verb and `x` is no verb. The temptation is to scan forward for
+  "the first token that is in my list", and amendment 91 is precisely the record of what that does — a checker
+  with the wrong grammar does not fail quietly, it manufactures defects out of prose. So the rule under-claims,
+  the miss is frozen as a §2 case labelled a measured limit, and every number the arm prints is a floor.
+- **`gitReaches` learns WHICH command, across exactly one bridge.** Each hit now carries `sub` and the byte
+  offset it was found at, and a command is attributed by two literal shapes only: an argv array that opens with
+  `'git'` and continues with a verb (`['git', 'diff', '--name-only']`), or a program literal followed immediately
+  by an array literal (`run('git', ['cat-file','--batch'])`). The second needs a bridge — the verb is in the next
+  frame — so a program hit parks itself in `pendingProgram` and the very next array opening adopts it. It is
+  cleared by ANY other frame, which is the whole design in one line: a rule that chains is a call graph, and a
+  call graph is the thing amendment 94 refused to build because nobody could grade it. `definitions` /
+  `definitionAt` give each hit the function it sits inside, which is what lets a clause pointing at
+  `sw.<helper>` be graded against that helper's bytes rather than against the file that wrote the clause.
+- **The byte arm, and where it goes blind: the runner's own file.** Five helpers in `sweep.mjs` are held to
+  stated answers, and three return NOTHING: `isolatedCheckout` → `['archive']` and `catFileBatch` →
+  `['cat-file']` are visible where they stand, while `proofCorpus` and `runSweep` name no argv at all (they call
+  other functions), which is amendment 93's blind shape one frame up. The finding is the fifth case.
+  `trackedProofs` really does write `git(['ls-tree', '-r', '--name-only', ref, …], cwd)` — a verb literal at code
+  position in the runner itself — and the arm still sees nothing, because the callee is the module's private
+  wrapper `async function git(argv, cwd)`, whose own call site passes a PARAMETER to `run('git', argv)`. So the
+  file that grades the population for hidden reaches hides two of its own, behind a wrapper named exactly `git`.
+  Census over the population's 4 declaring rows: 12 clauses — 2 supported, 0 partial, 9 invisible, 1 naming no
+  command. `invisible` is not "caught lying": every one of those nine claims is true and the row would still have
+  died on it. It is "unreadable from here", and the arm says which frame to cite to make it readable.
+- **The cause arm, and the asymmetry that makes it a rule rather than a diff.** For every declaring row that went
+  red, `compareConfession(claims, reason)` extracts verbs from both sides. Three outcomes, deliberately not
+  symmetric: an OMITTED verb is a defect, because the row is the only reader of its own cause and a confession
+  that leaves out what it just printed is unfinished; a SURPLUS is a fact, because a row may reach five commands
+  and fall on one of them, so it is stated and never scored; and a cause that names no command is UNCHECKED,
+  printed as its own number, because amendment 86 forbids reading "nothing to compare" as a pass. At 174fc1e on
+  the clean-checkout plane (`73 scripts · 42 failed · 0 killed · 694s`): **3 red declaring rows
+  (closure-proof, cwd-axis-proof, drive-axis-proof), 3 gradeable, 0 NOT gradeable · OMISSIONS 0 · surplus 5 ·
+  SILENT BLIND SPOTS 0**. The three declaring reds are the three rows amendment 94 named, each cause naming
+  exactly one verb (`ls-tree`, `ls-tree`, `archive`), each covered by its declaration, and the surplus is the
+  rest of what they reach and this run did not break on (closure's `rev-parse`/`show`/`cat-file`, cwd-axis's
+  `cat-file`/`archive`, drive-axis none) — plus the third number, which is the shape amendment 94 could not rule
+  out: a red that neither the scanner nor the row foresaw while its own cause names a verb. Zero. The gate is the
+  two counts added, and it is the first number in this directory's history whose empty value was bought by a
+  channel the callers own rather than by a scanner that got deeper. Two other arms corroborate it at the same
+  run: the plane axis still puts 3 rows RED WITHOUT being predicted (`51` predicted, `39` red-and-predicted), and
+  the asks axis closes those three by declaration — `RED with NEITHER prediction NOR declaration 0`.
+- **The checker has to be able to move, in both directions, on both arms.** `confession-proof.mjs` §4 shows five
+  gradings of one real declaration against one real cause line: the complete claim → 0 omissions / 3 surplus;
+  narrowed until it drops the verb the row DIED on → 1 omission (`ls-tree`); widened by a command the run never
+  touched → surplus 4 and still 0 omissions, which is the assertion that a surplus cannot become a crime; a
+  silent cause → not gradeable and not an omission; and a cause with two verbs against a claim of one → omissions
+  2 AND surplus 1 in the same reading, the case where "partial agreement" is two different verdicts at once. §3
+  moves the byte arm the same way: appending a spawn with a literal argv to a synthetic helper makes it visible,
+  and a spawn whose argv is a parameter keeps it blind — so the five helper answers above are not a lookup table
+  over remembered strings. §5's flip is the sharpest of them: renaming `isolatedCheckout` in the runner's bytes
+  (not the clause) turns `supported` into `invisible`, which is what makes the arm read a BODY and not a NAME.
+- **The axis died on a KEY, not a rule, and that is why it is now a function.** The first version of the cause arm
+  lived inline in `runSweep`. At 6807ba1 the isolation sweep ran all 73 rows, printed `[plane axis]` and
+  `[asks axis]`, and threw `Cannot read properties of undefined (reading 'gradeable')` in the last line of a
+  seven-minute run. Two lookups had been written `declared.get(row)` and `cmp.get(row)` where both maps are keyed
+  by `row.name`. The throw is the small half: `declared.get(row)` returns `undefined` exactly as cheerfully as it
+  returns for a row that declares nothing, so the population would have been graded against an EMPTY confession
+  and every verb in every cause line would have been reported as an OMISSION — amendment 91's failure shape
+  (a checker with the wrong grammar manufactures defects) wearing a variable name instead of a regex. The fix is
+  a boundary: the six lines are now the exported `gradeCauseArm`, so the census and the unit arm read the same
+  code, and `confession-proof.mjs` §6 feeds it row objects shaped like the ones that broke it. §6 measures both
+  directions of a wrong key. An object used as a name-keyed map's key reproduces the defect in one line
+  (`compareConfession(undefined, 'Error: git status --porcelain → exit 128').omissions` is `['status']` for a row
+  that declared precisely that verb). A key that misses in the other direction — basename in the map, repo-relative
+  path on the row — is the silent one: `declaring` and `omissions` both go to 0, which looks clean, and §6 pins
+  what actually catches it: the four unheard rows reappear as SILENT BLIND SPOTS, 0 heard against 4 blind. A broken
+  reader cannot hide behind its own zero because the rows it drops are counted by the other arm of the same gate.
+  Nothing about the population's key shapes was wrong — 6807ba1's own `[asks axis]` line had already reported
+  `red AND declared 3 of 42 red` through the same `declared.has(r.name)`, which is the measurement that says this
+  was a call-site defect, not a fact about rows. The method lesson is the one worth keeping: **a rule whose only
+  witness is a long run is a rule that is not tested**, and seven minutes is a worse place to find a typo than
+  two seconds.
+- **A §6 written to test one rule rang a second.** Those four synthetic claim payloads are array elements, and
+  R2's argv branch reuses `GIT_PROGRAM` (`s === 'git' || /^git\s/`), so an ARRAY OF COMMAND STRINGS that nothing
+  ever spawns is a reach. `confession-proof.mjs` went from 11 reaches to 15 by adding test data, which moved the
+  population's argv census 134 → 138 and no other row: attributed by replaying `gitReaches` over both refs'
+  blobs, whose totals (250 → 254, `program` unmoved at 116) reproduce the gate's own arithmetic. It is pinned as
+  two cases in `plane-axis-proof.mjs` §1 (want 1, want 0) rather than fixed, for two reasons. Narrowing the rule
+  would rewrite amendment 93's baseline, which the ADR keeps comparable across refs on purpose; and the over-claim
+  is not invisible — a row the scanner names that never breaks is reported as `green while predicted`, which is
+  the arm that already punishes guessing. The boundary of the leak is stated too: `['ls-tree is a command']`
+  counts nothing, so it is specifically a string that OPENS with the word git.
+- **Prediction versus measurement, including the three things the prediction got wrong.** Written from the
+  committed bytes before the sweep ran: 3 declaring reds, 3 gradeable, 0 omissions, 5 surplus; supported clauses
+  2; table-recount 0 of its 5 commands checkable. All of those held. Three numbers did not. (1) I counted
+  *clauses* by eye as 8 with 2 naming no command, while `confessionClauses` splits on `·` and the four payloads
+  hold 12 clauses with 1 naming no command — the per-clause prediction survived and the per-LINE arithmetic did
+  not, and the hole is that a payload is free text whose internal separator is itself a rule, which prose in an
+  ADR cannot show. (2) The wiring witness carried a pre-run expectation of `surplus 1` and the run answered 2;
+  here the code was right and the sentence was wrong — I had written `syn-omit` to declare `ls-tree` while dying
+  on `archive` and forgotten that a partial overlap leaves a surplus on BOTH sides. §6 asserts the 2 with the
+  arithmetic spelled out rather than restating the prediction as if it had said so. (3) That same witness first
+  printed `0 tracked proofs DECLARE` over a synthetic corpus, because a row's `bytes` are what the runner
+  materialises while every identity axis reads its `text`. That is the key defect again in a different field: one
+  assumption about what the caller and the callee share, caught by printing a number instead of reasoning about
+  it.
+- **The sibling gates, re-run at the same ref, moved exactly where a new row must move them and nowhere else.**
+  `asks-axis-proof.mjs`: exit 0, 22/22 grammar cases, census still 4 declaring rows with 1 corroborated and 3
+  invisible (the new row does not declare, so the uncorroborated number is untouched). `plane-axis-proof.mjs`:
+  exit 0, 15/15 grammar cases, predicted askers 50 → 51 with call sites `program=116 argv=134` and the naive count
+  56 → 57 — both moves are this row, which spawns git through `execFileSync('git', args, …)` at code position and
+  is therefore FORESEEN, and neither number is pinned to a literal anywhere in either proof. Re-run a second time
+  at 174fc1e, after the follow-on commits, the same five gates (adds `closure-proof.mjs`, ALL GREEN) came back
+  with exit 0 and only three moves in the whole record: `sweep.mjs` 94 370 B → 95 472 B at the provenance line
+  every one of them reads, plane-axis 15 → 17 grammar cases with `argv` 134 → 138 for the reason the previous
+  bullet gives, and §6 appearing in `confession-proof.mjs`'s own output. `51` predicted askers, `116` program
+  sites, the naive 57, the declaration census at 4 rows and every `table-recount` figure stayed where amendment
+  94 left them — which is the point of re-running them twice: the first re-run showed what a new ROW costs, the
+  second showed what a new TEST DATA TABLE costs, and neither is allowed to look free. `table-recount-proof.mjs`:
+  exit 0, `runtime rows 354 over 26 files · measured 354 over 26`, `exec-host rows 275/8 · measured 275/8`, 629
+  tracked cases in 34 files, 0 failing tracked, 4/4 table mutations caught, graded-tree digest `b59354c0972fefab`
+  stable — the README table did not move, because a new proof is not a test file.
+- **A provenance red that arrived exactly where it should have.** While `sweep.mjs` carried the new rules
+  uncommitted, all three rows that demand it (`asks-axis`, `plane-axis`, `confession`) went red at their own
+  precondition with the same sentence, before grading anything: "differs from HEAD — every rule below would be
+  graded by a grammar no commit owns". That is the amendment 94 lesson (a doc-facing proof refuses uncommitted
+  shared state) generalised: a RULE-facing proof refuses it harder, and the fix is not to relax the assert but to
+  commit the rule. The shakeout that iteration made possible is worth naming for what it is not: the new row was
+  run once from `%TEMP%` with the provenance assert patched out, which shook out crashes and nothing else — every
+  number quoted above comes from the committed bytes, and the patched run's numbers were discarded.
+- **Refusals and limits, stated.** A declaration is still not evidence of a pass, and the run shows it: the three
+  rows that confess to reaching git remain red on the checkout plane, at the same causes, in the same numbers as
+  amendment 94 reported. The byte arm reads FREE TEXT on the clause side, so a cause line that merely quotes a
+  command names it (§2 freezes `console.log("git push --force")` as counting 1); the cause side is a runner
+  capture of stderr rather than prose, so the exposure is a row's own confession, which is the thing being graded
+  anyway. `definitions` is a regex over declaration headers, not an AST: it finds 62 in the runner's file and a
+  hit is attributed to the last definition starting before it, which is right for this file's shape and would be
+  wrong inside a class body — stated rather than hidden, because the byte arm's whole value is that its answers
+  are floors.
+- **Next.** The byte arm now tells a confession how to improve, so the obvious increment is to take the advice:
+  rewrite the four declarations to cite the frame where the literal actually lives (`sw.catFileBatch`,
+  `sw.trackedProofs`, `sw.isolatedCheckout`) instead of the frame where the CALL happens, and predict the census
+  shift before running it — 9 invisible should fall, and specifically closure's third clause should land as
+  `partial` (cat-file readable through `sw.catFileBatch`, ls-tree still hidden behind the wrapper named git). Two
+  things must hold while that happens: no verdict may move (a better sentence buys a row nothing), and the
+  `uncorroborated.length > 0` assertion in `asks-axis` §3 must stay true, because a census where every
+  declaration is readable would mean the scanner grew rather than the rows speaking more precisely. A second
+  candidate came out of §6 and is deliberately left undone here: R2's argv branch could require the array's first
+  element to be EXACTLY `git` rather than `/^git\s/`, which would make a data table of command strings invisible
+  again. That is a baseline rewrite, not a bug fix — it moves amendment 93's `program=116 argv=134` census, so it
+  has to be predicted row by row before it is run, and the prediction has to include the two cases §1 just froze.

@@ -2601,3 +2601,68 @@ naive "the word git appears anywhere" count from 54 to 56, because the prose exp
 word git, while the code-position count moved from 49 to 50 only because the new proof itself spawns git in a
 wrapper. Same population, two grammars, two answers — which is why every number in this directory is printed with
 the grammar that produced it.
+
+## A confession gets two witnesses, and only one disagreement is a defect (`confession-proof.mjs`, M2 v95 — ADR 0016 amendment 95)
+
+Amendment 94 let a row say what it asks the repository. Saying it was the point — three rows were red for a cause
+no scanner could foresee — and it left a sentence in the log that nobody could check. This increment gives the
+sentence two witnesses, one static and one dynamic, and grades it against both.
+
+The static witness is the body a clause names. `git ls-tree + git cat-file --batch via sw.proofCorpus` points at
+`proofCorpus` in the runner's own file, so the arm reads that function's bytes and asks which verbs a tokenizer
+can see there. It gets `archive` for `isolatedCheckout` and `cat-file` for `catFileBatch`, and NOTHING for
+`proofCorpus` and `runSweep` — those reach git by calling other functions. The interesting answer is the fifth:
+`trackedProofs` writes `git(['ls-tree', '-r', '--name-only', ref, …], cwd)`, a verb literal sitting in the source,
+and the arm still sees nothing, because the callee is the runner's private wrapper `async function git(argv, cwd)`
+and its own call site hands a PARAMETER to `run('git', argv)`. The file that scans the population for hidden
+reaches hides two of its own, behind a function named exactly `git`. Over the whole population: 12 clauses from 4
+declaring rows, 2 supported, 9 invisible, 1 naming no command — and `invisible` here is not "caught lying". Every
+one of those nine claims is true. It is unreadable from where the scanner stands, and the arm's useful output is
+that it says which frame to cite to make it readable.
+
+The dynamic witness is the failure the row predicted. A declaring row that goes red prints a cause, and a cause
+line names a git command, so `compareConfession` asks whether the confession covers it — and the two readings are
+deliberately not symmetric. An OMITTED verb is a defect: the row is the only reader of its own cause, so a
+confession that leaves out what it just printed is unfinished. A SURPLUS is a fact: a row may reach five commands
+and break on one of them, so surplus is stated and never scored. A cause that names no command at all is
+UNCHECKED and printed as its own number, because a comparison that had nothing to compare is not a pass.
+The run at 174fc1e answered with the empty value: 3 red rows that confess, 3 of them gradeable, 0 not gradeable,
+**0 omissions and 0 silent blind spots**, surplus 5 — the three rows amendment 94 named are still red, on the same
+causes, and each one's confession covers the failure it printed. The rest of the population agrees from the other
+two arms: 51 rows predicted to reach git, 39 red-and-predicted, 3 red the scanner could not see and the row
+declared, and 0 red that neither happened to. `73 scripts · 42 failed · 0 killed · 694s`, graded tree
+`61265f575e9c6e92` over 194 files.
+
+Naming a command means deciding what counts as one, so the list is not the author's: 38 names, held in both
+directions against `git --list-cmds=main`, which answers with 179 verbs OUTSIDE a repository and is therefore the
+first authority in this directory that is not the index. Over 74 tracked files, 159 distinct tokens follow the
+word git and 142 of them are prose (`repository`, `call`, `child process`) — the whole reason for the gate. What
+the gate gives up is recorded rather than patched: `git -c x status` names nothing here, because an option that
+takes a value as its own token is not skipped and the matcher reads `x` as a verb. Scanning forward for "the
+first token in my list" would fix that and manufacture defects out of prose instead, which is the amendment 91
+lesson; so every number this arm prints is a floor.
+
+The row holds the rules to mutations on both sides. Narrowing closure's real declaration until it drops the verb
+the row died on yields 1 omission; widening it by a command the run never touched yields a bigger surplus and
+still no omission; renaming `isolatedCheckout` inside the RUNNER'S bytes (not the clause) turns a supported
+clause into an invisible one, which is what proves the arm reads a body rather than a name. Re-running the
+siblings at the same ref moved only where a new row must move them: predicted askers 50 to 51, the naive word
+count 56 to 57, the declaration census untouched at 4 rows with 1 corroborated and 3 not, and the README table
+steady at 354 over 26 and 275 over 8.
+
+Two things this increment learned by breaking, and both are now checked in two seconds instead of seven minutes.
+The first is that the axis died on a KEY. Its first version lived inline in the runner and looked up two maps with
+`row` where they are keyed by `row.name`; the second lookup threw, in the last line of a full population sweep,
+after 73 rows had run and two of the three axes had printed. The first lookup would not have thrown:
+`declared.get(row)` answers `undefined` exactly as it does for a row that says nothing, so the sweep would have
+graded every confession as empty and reported each verb in each cause line as an omission — a manufactured defect
+wearing a variable name. Those six lines are now the exported `gradeCauseArm`, which the census and the unit row
+read from the same place, and §6 reproduces both directions of a wrong key: the object-as-key bug turns one true
+omission into a phantom one, and a basename-versus-path mismatch silences `declaring` to 0 while the unheard rows
+reappear as SILENT BLIND SPOTS, 0 heard against 4 blind. A reader that hears nobody cannot hide behind its own
+zero, because the gate counts the rows it dropped. The second is that writing a test for one rule rang a second:
+the argv rule reuses `GIT_PROGRAM`, whose `/^git\s/` half exists for `execSync('git status')`, so a DATA array of
+command strings is a reach — §6's four claim payloads moved their own row from 11 reaches to 15 and the
+population's argv census from 134 to 138, with no other file moving. That is pinned as two grammar cases rather
+than fixed, because the over-claim is already reported where it hurts (`green while predicted`) and narrowing the
+rule would rewrite the baseline amendment 93 keeps comparable.
