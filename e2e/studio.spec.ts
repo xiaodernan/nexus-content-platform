@@ -1814,6 +1814,29 @@ test('@smoke §168 创作数据：访客真的来过，作者那一页才有真�
   await expect(page.locator(`[data-analytics-row="${path}"] [data-analytics-selfonly]`)).toHaveCount(0);
   await page.screenshot({ path: 'screenshots/creator-analytics.png' });
 
+  // §169：点进行里的「为什么没人看？」——这一片要的是"界面上那句分析读的就是这一页上的数"。
+  await page.click('[data-analytics-ask]');
+  const agent = page.locator('[data-analytics-agent]');
+  await expect(agent).toBeVisible();
+  await expect(agent).toContainText(projectName);
+  // 它是规则分析不是模型输出，这一句写在页面上而不是只写在代码注释里（§159）
+  await expect(agent).toContainText('没有调用任何模型');
+  // 这件作品真实缺的两样：没写过简介、这一版快照没有画到图片资产（og:image 不放）
+  await expect(agent.locator('[data-analytics-finding="description"]')).toBeVisible();
+  await expect(agent.locator('[data-analytics-finding="thumbnail"]')).toBeVisible();
+  // 反向对照：刚才那个匿名访客是真的，所以"零访客 / 只有你自己看过"那两条都不该出现
+  await expect(agent.locator('[data-analytics-finding="traffic"]')).toHaveCount(0);
+  // 每条发现都是"事实 / 结论 / 建议"三段，没有哪一栏是空着凑数的
+  const firstFinding = agent.locator('[data-analytics-finding]').first();
+  expect(((await firstFinding.innerText()) ?? '').split('\n').filter((line) => line.trim()).length).toBeGreaterThanOrEqual(3);
+  await page.screenshot({ path: 'screenshots/creator-analytics-agent.png' });
+
+  // 拿别人的（或不存在的）项目号打这个地址：给的是"读不到"那一句，不是一个 500
+  await page.goto('/analytics?project=not-a-uuid');
+  await expect(page.locator('[data-analytics-agent-denied]')).toBeVisible();
+  await expect(page.locator('[data-analytics-agent]')).toContainText('读不到');
+  await expect(page.locator('[data-analytics-finding]')).toHaveCount(0);
+
   // 没有登录态的人打不开别人的数据：页面上一个数字都不该出现
   const anonAnalytics = await anonContext.newPage();
   await anonAnalytics.goto(new URL('/analytics', page.url()).href);
