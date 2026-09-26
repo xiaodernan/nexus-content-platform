@@ -2720,3 +2720,89 @@ test('@smoke §112/§73 名册下拉：点了 QA 就不能把补丁交回画布�
   await page.click('[data-approval-reject]');
   await page.screenshot({ path: 'screenshots/ai-agent-mention-note.png' });
 });
+
+/**
+ * §51 的第二片：游戏类型是文档字段，它决定试玩页跑哪条投影。
+ *
+ * 这一条要证明的不是"下拉框能选"，而是三件容易各自说谎的事：
+ * 面板上那句"接没接"、分派点选的那条管线、没接的类型给出的页面——
+ * 三者必须来自同一张表（`GAME_KIND_STATUS`）。
+ */
+test('@smoke §51 类型分派：标互动故事就出对话播放器，标 3D 就照实说没接', async ({ page }) => {
+  test.setTimeout(300_000);
+  const stamp = Date.now().toString(36);
+  const projectId = await createProject(page, `对话游戏 ${stamp}`);
+
+  await page.click('[data-panel-tab="game"]');
+  await expect(page.locator('[data-game-empty]')).toBeVisible({ timeout: 40_000 });
+  await page.click('[data-game-create]');
+  await expect(page.locator('[data-game-entity]')).toHaveCount(11);
+
+  // 起手是 §51 的默认值：老文档与新建骨架都按 2D 读
+  await expect(page.locator('[data-game-kind]')).toHaveAttribute('data-game-kind', '2d');
+
+  const entityId = (group: string) =>
+    page.locator(`[data-game-group="${group}"] [data-game-entity]`).first().getAttribute('data-game-entity');
+  const firstTalk = (await entityId('dialogue'))!;
+  // 再加一条对话：分支要有目标
+  await page.selectOption('[data-game-new-kind]', 'dialogue');
+  await page.click('[data-game-add="dialogue"]');
+  await expect(page.locator('[data-game-group="dialogue"] [data-game-entity]')).toHaveCount(2);
+  const secondTalk = await page
+    .locator('[data-game-group="dialogue"] [data-game-entity] >> nth=1')
+    .getAttribute('data-game-entity');
+
+  await page.fill(`[data-game-entity-name="${firstTalk}"]`, '钟楼下');
+  await page.fill(`[data-game-entity-notes="${firstTalk}"]`, '雨把钟声冲得很远。她把手里的钥匙递过来。');
+  await page.fill(`[data-game-entity-name="${secondTalk}"]`, '城门旁');
+  // 第二段故意不写正文：界面上要说出"作者没写正文"，而不是留一片白
+  await page.selectOption(`[data-game-ref-target="${firstTalk}"]`, secondTalk!);
+  await page.fill(`[data-game-ref-role="${firstTalk}"]`, '接过钥匙');
+  await page.click(`[data-game-ref-add="${firstTalk}"]`);
+  await page.click('[data-game-name]');
+  await expect(page.locator('[data-game-state]')).toHaveText('已保存', { timeout: 20_000 });
+
+  // 换成互动故事：面板那句说明必须照实来自状态表，不是界面自己写的第二份判断
+  await page.selectOption('[data-game-kind]', 'interactive-story');
+  await expect(page.locator('[data-game-kind]')).toHaveAttribute('data-game-kind', 'interactive-story');
+  await expect(page.locator('[data-game-kind-note="interactive-story"]')).toContainText('已接入');
+  await expect(page.locator('[data-game-state]')).toHaveText('已保存', { timeout: 20_000 });
+
+  const [game] = await Promise.all([page.context().waitForEvent('page'), page.click('[data-game-play]')]);
+  await game.waitForURL(new RegExp(`/game/${projectId}`), { timeout: 60_000 });
+
+  // 对话播放器，而不是 2D 关卡：这两样在页面上互斥，选错管线一眼就能看出来
+  await expect(game.locator('[data-story-play]')).toBeVisible({ timeout: 60_000 });
+  await expect(game.locator('[data-game-root]')).toHaveCount(0);
+  await expect(game.locator('[data-game-subtitle]')).toContainText('对话投影');
+  await expect(game.locator('[data-story-name]')).toHaveText('钟楼下');
+  await expect(game.locator('[data-story-text]')).toContainText('她把手里的钥匙递过来');
+  await expect(game.locator('[data-story-choice]')).toHaveCount(1);
+  await game.screenshot({ path: 'screenshots/story-play-first.png' });
+
+  await game.click(`[data-story-choice="${secondTalk}"]`);
+  await expect(game.locator('[data-story-name]')).toHaveText('城门旁');
+  // 空正文：说出"作者没写正文"，并且不生成一句场面话顶上
+  await expect(game.locator('[data-story-text-empty]')).toBeVisible();
+  await expect(game.locator('[data-story-text]')).toHaveCount(0);
+  await expect(game.locator('[data-story-ending]')).toContainText('没有下一段');
+  await expect(game.locator('[data-story-progress]')).toContainText('走过 2 段');
+  await expect(game.locator('[data-story-notes]')).toContainText('非对话实体');
+  await game.screenshot({ path: 'screenshots/story-play-end.png' });
+
+  await game.click('[data-story-restart]');
+  await expect(game.locator('[data-story-name]')).toHaveText('钟楼下');
+  await expect(game.locator('[data-story-progress]')).toContainText('走过 1 段');
+
+  // 反向对照：同一个项目改成没接的类型，试玩页不许退回 2D 关卡，也不许给空场子
+  await page.bringToFront();
+  await page.selectOption('[data-game-kind]', '3d');
+  await expect(page.locator('[data-game-kind-note="3d"]')).toContainText('还没接');
+  await expect(page.locator('[data-game-state]')).toHaveText('已保存', { timeout: 20_000 });
+  await game.reload({ waitUntil: 'domcontentloaded' });
+  await expect(game.locator('[data-play="kind-not-wired"]')).toBeVisible({ timeout: 60_000 });
+  await expect(game.locator('[data-play-kind-reason]')).toContainText('还没接');
+  await expect(game.locator('[data-story-play]')).toHaveCount(0);
+  await expect(game.locator('[data-game-root]')).toHaveCount(0);
+  await game.screenshot({ path: 'screenshots/story-play-kind-not-wired.png' });
+});

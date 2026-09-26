@@ -1,10 +1,10 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
-import { compileGame } from '@nexus/game-model';
+import { compileForKind } from '@nexus/game-model';
 import { loadGame } from '@/server/domain/games';
 import { projectBelongsTo } from '@/server/domain/projects';
 import { requireUser } from '@/server/domain/session';
-import { GamePlay } from '@/game2d/GamePlay';
+import { PlayByKind, describeProjection } from '@/play/PlayByKind';
 
 export const dynamic = 'force-dynamic';
 
@@ -12,11 +12,14 @@ export const dynamic = 'force-dynamic';
  * §50 的第一块可玩投影：`/game/<项目>`。
  *
  * 这里**不存第二份东西**——跑起来的就是这个项目那份 §54 游戏设计文档的投影（§16）：
- * 位置、生命、伤害、察觉半径、任务条件全部由 `compileGame` 从同一份文档算出来，
+ * 位置、生命、伤害、察觉半径、任务条件全部由 `@nexus/game-model` 从同一份文档算出来，
  * 所以改完设计再回这一页，玩到的就变了。没有"试玩专用关卡"这回事。
  *
- * 和 `/world/<项目>` 一样只有作者能进：游戏还没有发布链路（§56/§57 发布的是设计文档那一版），
- * 公开可玩要先把游戏接进发布快照，那是下一片的事，这里不假装。
+ * 跑哪条投影由 §51 的 `document.kind` 决定（`compileForKind` 是唯一分派点），
+ * 和公开试玩页 `/n/<handle>/<slug>/play` 共用同一处判断：这一页说"没接"的类型，
+ * 公开那一页不许硬跑 2D 关卡。
+ *
+ * 和 `/world/<项目>` 一样只有作者能进；公开可玩走的是发布快照那条链路（§56/§57/M4 第二片）。
  */
 export default async function GameRuntimePage({ params }: { params: Promise<{ projectId: string }> }) {
   const { projectId } = await params;
@@ -51,24 +54,23 @@ export default async function GameRuntimePage({ params }: { params: Promise<{ pr
     );
   }
 
-  const plan = compileGame(game.document);
+  const projection = compileForKind(game.document);
   return (
     <main className="mx-auto flex max-w-[1180px] flex-col gap-4 px-6 py-8" data-game-page>
       <header className="flex flex-wrap items-baseline justify-between gap-3">
         <div>
           <h1 className="text-[var(--nexus-font-size-21)] font-semibold" data-game-title>
-            {plan.name}
+            {game.document.name}
           </h1>
           <p className="text-11 text-fg-3" data-game-subtitle>
-            §54 设计文档的可玩投影 · {plan.enemies.length} 个敌人 · {plan.items.length} 个物品 ·{' '}
-            {plan.quests.length} 条任务 · 场地 {plan.arena.width}×{plan.arena.height}
+            {describeProjection(game.document, projection)}
           </p>
         </div>
         <Link href={`/studio/${projectId}`} className="text-11 text-accent-2 underline" data-game-back>
           回 Studio 改设计
         </Link>
       </header>
-      <GamePlay plan={plan} />
+      <PlayByKind document={game.document} projection={projection} />
     </main>
   );
 }

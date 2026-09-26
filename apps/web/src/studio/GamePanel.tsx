@@ -4,6 +4,9 @@ import { useEffect, useMemo, useState } from 'react';
 import {
   GAME_ENTITY_KINDS,
   GAME_ENTITY_LABELS,
+  GAME_KINDS,
+  GAME_KIND_LABELS,
+  GAME_KIND_STATUS,
   STAT_HINTS,
   addEntity,
   countRefsFor,
@@ -18,6 +21,7 @@ import {
   type GameDocument,
   type GameEntity,
   type GameEntityKind,
+  type GameKind,
 } from '@nexus/game-model';
 import { cn } from '@/lib/cn';
 import { useStudioReady } from './store';
@@ -131,6 +135,28 @@ export function GamePanel() {
           rows={2}
           className="mt-2 w-full resize-y rounded-[var(--nexus-radius-sm)] bg-bg-2 px-2 py-1 text-12 text-fg-1 outline-none focus:bg-bg-3"
         />
+        {/* §51：类型是**文档字段**，不是界面状态——它决定试玩页跑哪条管线（§16）。
+            下面那句"接没接"直接读 GAME_KIND_STATUS：面板自己判断一遍，
+            就会和分派点说两套话（这里说能玩、点进去是空场子，正是 §159 禁止的那种谎）。 */}
+        <label className="mt-2 flex items-center gap-2 text-11 text-fg-3">
+          游戏类型
+          <select
+            value={game.kind}
+            onChange={(e) => edit({ ...game, kind: e.target.value as GameKind }, true)}
+            aria-label="游戏类型"
+            data-game-kind={game.kind}
+            className="flex-1 rounded-[var(--nexus-radius-sm)] bg-bg-2 px-2 py-1 text-12 text-fg-1 outline-none"
+          >
+            {GAME_KINDS.map((kind) => (
+              <option key={kind} value={kind}>
+                {GAME_KIND_LABELS[kind]}
+              </option>
+            ))}
+          </select>
+        </label>
+        <p className="mt-1 text-11 text-fg-3" data-game-kind-note={game.kind}>
+          {GAME_KIND_STATUS[game.kind].note}
+        </p>
         <p className="mt-1 font-mono text-11 text-fg-3" data-game-progress>
           {game.entities.length} 个实体 · {refTotal} 条引用 · {fleshedOutCount(game)} 个已填内容
         </p>

@@ -1,7 +1,7 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { eq, sql as rawSql } from 'drizzle-orm';
 import { GameDocumentSchema } from '@nexus/schemas';
-import { compileGame, createGame, entitiesOfKind, setStat, type GameDocument } from '@nexus/game-model';
+import { compileForKind, compileGame, createGame, entitiesOfKind, setStat, type GameDocument } from '@nexus/game-model';
 import { publishProject, resolvePublishedPath } from '../src/server/domain/publish';
 import { saveGame } from '../src/server/domain/games';
 import { createProject } from '../src/server/domain/projects';
@@ -79,6 +79,38 @@ describe('发布钉住游戏设计', () => {
     if (!again?.ok) throw new Error('第二次发布失败');
     expect(again.publication.version).toBe(published.publication.version + 1);
     expect(await enemyHealthOf(path)).toBe(999);
+  });
+
+  it('§51 的类型跟着文档进发布快照：存 interactive-story，钉住那份读出来还是它', async () => {
+    const projectId = await gameProject('对话游戏');
+    const doc: GameDocument = { ...gameWith(10, 'story'), kind: 'interactive-story' };
+    expect((await saveGame(projectId, ownerId, doc)).ok).toBe(true);
+    const published = await publishProject(projectId, { visibility: 'public', createdById: ownerId });
+    if (!published?.ok) throw new Error('前置发布失败');
+
+    const page = await resolvePublishedPath(published.publication.path);
+    const parsed = GameDocumentSchema.safeParse(page?.gameDocument);
+    if (!parsed.success) throw new Error(`钉住的文档读不出来：${parsed.error.issues[0]?.message}`);
+    expect(parsed.data.kind).toBe('interactive-story');
+    // 分派点就吃这个字段：这一版该出对话投影，而不是 2D 关卡
+    expect(compileForKind(parsed.data as unknown as GameDocument).pipeline).toBe('story');
+
+    // 反向对照：把 kind 从这份**合法**的钉住文档里整个去掉（§51 之前的老行就是这个形状），
+    // 要读出 2d 并落到 topdown——证明缺省真的在起作用，而不是这个字段一直被人剥掉
+    const without = { ...parsed.data } as Record<string, unknown>;
+    delete without.kind;
+    const legacy = GameDocumentSchema.safeParse(without);
+    expect(legacy.success && legacy.data.kind).toBe('2d');
+    expect(compileForKind(legacy.data as unknown as GameDocument).pipeline).toBe('topdown');
+
+    // 清单之外的类型进不了库：写路径上也得是这道门，不能只在读的时候挑
+    const dirty = await saveGame(projectId, ownerId, {
+      ...doc,
+      kind: 'open-world' as never,
+      updatedAt: new Date(Date.now() + 60_000).toISOString(),
+    });
+    expect(dirty.ok).toBe(false);
+    if (!dirty.ok) expect(dirty.reason).toContain('kind');
   });
 
   it('没有游戏设计的项目：这一版没钉住东西，公开页不该出现试玩入口', async () => {

@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest';
-import { GameDocumentSchema, GameEntityKindSchema, GameSaveRequestSchema } from '../src/index';
+import { GameDocumentSchema, GameEntityKindSchema, GameKindSchema, GameSaveRequestSchema } from '../src/index';
 import {
   GAME_ENTITY_KINDS,
+  GAME_KINDS,
   addEntity,
   createGame,
   linkEntities,
@@ -19,6 +20,34 @@ import {
 describe('游戏文档契约（§54）', () => {
   it('11 类的清单与模型完全一致，顺序也算', () => {
     expect([...GameEntityKindSchema.options]).toEqual([...GAME_ENTITY_KINDS]);
+  });
+
+  it('§51 的类型清单与模型完全一致，顺序也算', () => {
+    expect([...GameKindSchema.options]).toEqual([...GAME_KINDS]);
+  });
+
+  it('类型能往返：客户端写了 kind，解析后还在（这一格加进来前它会被当未知键剥掉）', () => {
+    const game = { ...createGame('往返'), kind: 'visual-novel' as const };
+    const parsed = GameDocumentSchema.safeParse(game);
+    expect(parsed.success).toBe(true);
+    if (parsed.success) expect(parsed.data.kind).toBe('visual-novel');
+  });
+
+  it('老文档（§51 这一格之前存的、以及历史发布版本）没有 kind，按 2d 读而不是 parse 失败', () => {
+    const { kind: _dropped, ...legacy } = createGame('老文档');
+    const parsed = GameDocumentSchema.safeParse(legacy);
+    expect(parsed.success).toBe(true);
+    if (parsed.success) expect(parsed.data.kind).toBe('2d');
+    // 反向对照：不是"缺省值恰好是 2d 所以看不出差别"——写了别的类型就要照原样留下
+    const other = GameDocumentSchema.safeParse({ ...legacy, kind: 'puzzle' });
+    if (other.success) expect(other.data.kind).toBe('puzzle');
+  });
+
+  it('清单之外的类型进不了库，报错落在 kind 这一格', () => {
+    const game = { ...createGame('脏类型'), kind: 'open-world' };
+    const parsed = GameDocumentSchema.safeParse(game);
+    expect(parsed.success).toBe(false);
+    if (!parsed.success) expect(parsed.error.issues[0]?.path).toEqual(['kind']);
   });
 
   it('模型造的文档过得了契约，模板不编内容', () => {

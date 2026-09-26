@@ -1,9 +1,9 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { GameDocumentSchema } from '@nexus/schemas';
-import { compileGame, validateGame, type GameDocument } from '@nexus/game-model';
+import { compileForKind, validateGame, type GameDocument } from '@nexus/game-model';
 import { getPublishedPage } from '@/server/domain/publish';
-import { GamePlay } from '@/game2d/GamePlay';
+import { PlayByKind, describeProjection } from '@/play/PlayByKind';
 import { VisitMeter } from '../VisitMeter';
 
 export const dynamic = 'force-dynamic';
@@ -64,14 +64,17 @@ export default async function PublicPlayPage({ params }: { params: Promise<{ han
 
   const document = parsed.data as GameDocument;
   const issues = validateGame(document);
-  const plan = compileGame(document);
+  const projection = compileForKind(document);
   return (
     <main className="mx-auto flex max-w-[1180px] flex-col gap-4 px-6 py-8" data-play="live">
       <header className="flex flex-wrap items-baseline justify-between gap-3">
         <div>
           <h1 className="text-[var(--nexus-font-size-21)] font-semibold" data-play-title>
-            {plan.name}
+            {document.name}
           </h1>
+          <p className="text-11 text-fg-3" data-play-subtitle>
+            {describeProjection(document, projection)}
+          </p>
           <p className="text-11 text-fg-3" data-play-pinned>
             {page.ownerName} 发布的第 {page.publication.version} 版 · 这一页玩的是发布那一刻钉住的游戏设计，
             作者之后的改动不会跑到这个链接上
@@ -85,7 +88,7 @@ export default async function PublicPlayPage({ params }: { params: Promise<{ han
           能投影的部分照常可玩，不假装它是干净的。
         </p>
       ) : null}
-      <GamePlay plan={plan} />
+      <PlayByKind document={document} projection={projection} />
       {/* §168：玩这一页就是一次真访问，心跳与作品页共用同一份口径 */}
       <VisitMeter path={path} />
     </main>

@@ -1052,6 +1052,22 @@ export const GameEntityKindSchema = z.enum([
 ]);
 export type GameEntityKindPayload = z.infer<typeof GameEntityKindSchema>;
 
+/**
+ * §51 的游戏类型：这份设计是给哪一种游戏做的。清单同样只在 @nexus/game-model 有一份，
+ * 这里抄字面量是因为 z.enum 不吃跨包的 `as const`；漂移由契约测试逐字对齐（含顺序）。
+ */
+export const GameKindSchema = z.enum([
+  '2d',
+  '2.5d',
+  '3d',
+  'interactive-story',
+  'rpg-prototype',
+  'exploration',
+  'puzzle',
+  'visual-novel',
+]);
+export type GameKindPayload = z.infer<typeof GameKindSchema>;
+
 export const GameRefSchema = z.object({
   id: z.string().min(1).max(128),
   to: z.string().min(1).max(128),
@@ -1081,6 +1097,13 @@ export const GameDocumentSchema = z.object({
   projectId: z.string().max(128).nullable(),
   name: z.string().trim().min(1).max(120),
   summary: z.string().max(2000),
+  /**
+   * §51 的类型。库里与历史发布版本里没有这个字段的，按 `2d` 读——
+   * 这不是随手挑的默认值，而是"这一格加进来之前只有俯视 2D 一条管线"这个事实。
+   * 缺省必须在这里补，不能在分派点各写一遍：`compileForKind` 读的是 `document.kind`，
+   * 拿到 undefined 就去找 `GAME_KIND_STATUS[undefined]`，那是 500 不是一个默认值。
+   */
+  kind: GameKindSchema.default('2d'),
   entities: z.array(GameEntitySchema).max(5000),
   createdAt: z.string().min(1),
   updatedAt: z.string().min(1),
