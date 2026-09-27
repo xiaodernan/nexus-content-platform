@@ -250,7 +250,7 @@ key 只活在 ai-service 进程（符合 SECURITY.md「web 永不接触 key」�
   带透明）返回中文原因而不是半截数据。排版/圆角/动效**从位图测不出来，因此不填**（`source.notes` 明说），
   `source.method` 区分 `pixel-stats` / `vision-model` / `concept-language`；风格形容词（"Cinematic"、"Soft glass"）
   要真视觉模型才能给，随 line 43 的 provider 授权补齐。
-- [ ] 角色一致性生成（§39）
+- [~] 角色一致性生成（§39）— **接线与界面都通了，欠的是像素那一半**：档案四栏（身份/穿着/画风/特征）进 prompt 与任务行、进知识索引；角色面板有「生成场景」与「生成肖像」两个入口（肖像完全由档案驱动，不给输入框）；**角色自己的肖像可以当它下一个场景的参考**（服务端验归属：参考图必须是这个角色的肖像），带参考图时色相锚点取**量自那张图像素**的值。可测的一致性今天只有色调那半——DEMO 合成器只认 prompt 哈希与一个色相，换真 provider 时这一格不必重接。逐条凭证见文末三节补记。
 
 **M2 进度记录（2026-09-23，项目健康 §178 / Quality Gate §179）**：`packages/design-model/src/health.ts`
 的 `analyzeHealth()` 是这一项唯一的算法出口：七行读数、0-100 分、`state = pass | fail | not-run`。
@@ -703,7 +703,7 @@ drizzle 把整个拼接结果当成**单个绑定参数**，生成的 SQL 是 `o
 
 ## M5 — 视频（§185）
 - [ ] Video Studio（text/image/storyboard→video）
-- [ ] Storyboard → Shot list → 参考图 → 生成 → Timeline（§40-42）
+- [~] Storyboard → Shot list → 参考图 → 生成 → Timeline（§40-42）— **第一片是模型半片**：新包 `packages/video-model`（分镜/镜头表/时间线投影，纯函数），详见文末「§40 的第一片」。存储、面板入口、镜头参考图接 §38/§39、Timeline 编辑都还没动。
 - [ ] Timeline 编辑：trim / reorder / regenerate shot / extend / transition（§41）
 
 ## M6 — 社区（§186）
@@ -2216,3 +2216,32 @@ e2e 那条链现在一次点完三档（场景 → 肖像 → 以肖像延伸场
 
 **边界照旧**：DEMO 合成器只认 prompt 哈希与一个色相锚点，所以"同一个角色认得出"今天可测的只有**色调**那半；
 换真 provider 时这一格不必重接，欠的还是像素。
+
+
+## §40 的第一片：`packages/video-model`——分镜与时间线先是模型，后才是要生成的东西
+需求那条流程是 `Prompt → Storyboard → Shot list → Image references → Video generation → Timeline`。
+本机没有视频 provider，所以这一片只做前三步，而且**明说自己不是 AI 分镜**：
+`planStoryboard()` 是确定性断句（分隔符切句、首镜宽景尾镜特写、含运动词给跟移并加长时长），
+每一条规则都进 `notes`，界面上要原样显示——与 `GamePlan.notes` 同一口径。
+
+- **不凑数**：镜头数 = 断句数。一句没有标点的话就一镜，并在 `notes` 里说"没有可断的标点"；
+  只剩标点或空白的输入切出 0 镜，说的是"没有输入句子"，而不是"生成了一张空分镜"。
+- **并镜不丢内容**：超过 12 段时把剩下的并进最后一镜，`notes` 里报的段数在改动之前量好
+  （先改后量就会报出"1 段"这种假数字——这一条就是这么被抓到后改的）。
+- **时间线是投影不是第二份真值**（§16）：只从 `shots` 累加偏移。§41 点名的轨里
+  audio / subtitles / effects **存在但为空，并各带一条 `emptyReason`**——缺这一句，
+  界面上"没有音频"与"渲染失败"就长得一模一样。
+- **没有一帧视频就不说能播**：`playable` 要每一镜都有 `videoAssetId`，否则 `blockers` 里
+  写清"有 4/4 镜还没有视频帧"，并注明"缺的是帧，不是布局"（时间线照样可编辑）。
+
+**凭证**：`packages/video-model/test/storyboard.test.ts` **14 条纯单测**（不碰数据库）。
+三次变异探针各红**正好 1 条**：① 并镜改成直接丢尾段 → 红在镜数那条（11 ≠ 12）；
+② `playable` 不看视频帧 → 红在"没有帧就该不可播"；③ 三条空轨整个不摆 →
+红在 `§41 点名的 audio 轨整个不见了`。还原以 md5 与探针前核对一致后 **14/14 绿**。
+包内 `tsc` 干净、`eslint .` 干净；根 `typecheck` 加了第五个包，`vitest.config.ts` 加了 alias。
+整套 `npm test` 在这一片之前是 **94 文件 / 1002 条全绿**（275 秒，commit `bb6e322`）。
+
+**这一片欠的**（别当成已完成）：分镜的存储与投影进 `document`（现在只在包里）、
+Studio 的「分镜」面板入口、镜头的 `referenceAssetId` 接上 §38/§39 那条图像链、
+`Video generation` 那一格要真 provider、§41 的 Timeline 编辑（trim / reorder / regenerate / extend /
+transition）与它的可撤销补丁（§150）。
