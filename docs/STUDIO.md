@@ -156,6 +156,10 @@ pointer → hit-test → Command(update design node) → canvas re-render → co
 Component（主节点）→ Instance（引用 + overrides 表）→ Variant（属性组合）→ Slot（可插入区域）。
 编辑主组件时所有实例跟随；实例上的改动记录为 override，可单独或整体 Reset。
 
+删定义走 `removeComponent`：移出目录的同时把**所有页面**上引用它的实例一起解开（与 `removeAsset`
+同一条规则——不留悬空引用），逆操作 `restoreComponent` 会把定义和那些链接一并接回来（§150）。
+它带 `skipped` 记账：删一个目录里本来就没有的 id 不算成功。
+
 ## 3D 世界（§140）
 
 世界图工具条上有「走进这个世界（3D）」，路由 `/world/<项目>`。渲染的是**同一份世界文档的投影**：

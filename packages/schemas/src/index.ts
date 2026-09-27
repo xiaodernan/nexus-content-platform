@@ -29,6 +29,14 @@ export const PatchOpSchema = z.discriminatedUnion('op', [
   z.object({ op: z.literal('addToken'), token: z.record(z.string(), z.unknown()) }),
   z.object({ op: z.literal('removeToken'), key: z.string() }),
   z.object({ op: z.literal('addComponent'), component: z.record(z.string(), z.unknown()) }),
+  // 组件删除同样有 document 全域可达（定义 + 所有页面里引用它的实例一起解开），
+  // 并且它带进了 §74 的破坏性 op 名单：web 与 ai-service 两边各扫各的，漏一边等于没门
+  z.object({ op: z.literal('removeComponent'), componentId: z.string() }),
+  z.object({
+    op: z.literal('restoreComponent'),
+    component: z.record(z.string(), z.unknown()),
+    nodes: z.array(z.record(z.string(), z.unknown())).default([]),
+  }),
   z.object({ op: z.literal('addAsset'), asset: z.record(z.string(), z.unknown()) }),
   // 资产删除有 document 全域可达（清单 + 所有页面的引用一起清理），逆操作带回原样
   z.object({ op: z.literal('removeAsset'), assetId: z.string() }),

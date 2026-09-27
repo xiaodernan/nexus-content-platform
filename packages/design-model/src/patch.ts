@@ -21,6 +21,13 @@ export type PatchOp =
   | { op: "addToken"; token: DesignDocument["tokens"][number] }
   | { op: "removeToken"; key: string }
   | { op: "addComponent"; component: DesignDocument["components"][number] }
+  | { op: "removeComponent"; componentId: string }
+  /** removeComponent 的逆：放回定义，并还原当时引用它的实例节点的 componentId。 */
+  | {
+      op: "restoreComponent";
+      component: DesignDocument["components"][number];
+      nodes: { pageId: string; nodeId: string }[];
+    }
   | { op: "addAsset"; asset: DesignDocument["assets"][number] }
   | { op: "removeAsset"; assetId: string }
   /** removeAsset 的逆：把资产放回清单，并还原它当时被引用处的 paints / 节点 assetId。 */
@@ -275,6 +282,8 @@ function isDocumentOp(op: PatchOp): boolean {
     case "addToken":
     case "removeToken":
     case "addComponent":
+    case "removeComponent":
+    case "restoreComponent":
     case "addAsset":
     case "removeAsset":
     case "restoreAsset":
@@ -345,6 +354,31 @@ function applyDocumentOp(
       const at = document.components.findIndex((c) => c.id === op.component.id);
       if (at >= 0) document.components[at] = op.component;
       else document.components.push(op.component);
+      break;
+    }
+    case "removeComponent": {
+      // 与 removeAsset 同一条规则（§159）：定义移出目录时，把引用它的实例节点一起解开，
+      // 绝不留下"组件没了但画布还指着它"——那会让渲染与 AI Diff 各自猜一个答案。
+      if (!document.components.some((c) => c.id === op.componentId)) {
+        skipped.push({ index, reason: `component ${op.componentId} not found` });
+        break;
+      }
+      document.components = document.components.filter((c) => c.id !== op.componentId);
+      for (const page of document.pages) {
+        for (const node of Object.values(page.nodes)) {
+          if (node.componentId === op.componentId) node.componentId = undefined;
+        }
+      }
+      break;
+    }
+    case "restoreComponent": {
+      if (!document.components.some((c) => c.id === op.component.id)) {
+        document.components = [...document.components, clone(op.component)];
+      }
+      for (const r of op.nodes) {
+        const node = document.pages.find((p) => p.id === r.pageId)?.nodes[r.nodeId];
+        if (node) node.componentId = op.component.id;
+      }
       break;
     }
     case "addAsset": {
@@ -592,8 +626,38 @@ export function invertPatch(
         const existing = document.components.find(
           (c) => c.id === op.component.id,
         );
-        if (existing)
-          ops.push({ op: "addComponent", component: clone(existing) });
+        // 与 addAsset 同一形状的洞（§150）：过去只在目录里本来就有同 id 那一条时写还原，
+        // "新建组件"那一路什么都不写，于是 AI 建完组件后撤销无从下手——组件永远留在目录里。
+        if (existing) ops.push({ op: "addComponent", component: clone(existing) });
+        else ops.push({ op: "removeComponent", componentId: op.component.id });
+        break;
+      }
+      case "removeComponent": {
+        const component = document.components.find(
+          (c) => c.id === op.componentId,
+        );
+        if (!component) break;
+        // 实例链接要在还原时一起接回去：只放回定义会得到"组件回来了，但画布上那些实例
+        // 再也不属于它"的半成品（§16 设计模型是唯一真值，撤销不能只恢复一半）。
+        const nodes: { pageId: string; nodeId: string }[] = [];
+        for (const page of document.pages) {
+          for (const node of Object.values(page.nodes)) {
+            if (node.componentId === op.componentId) {
+              nodes.push({ pageId: page.id, nodeId: node.id });
+            }
+          }
+        }
+        ops.push({
+          op: "restoreComponent",
+          component: clone(component),
+          nodes,
+        });
+        break;
+      }
+      case "restoreComponent": {
+        // 和 restoreAsset 一样：这一条只会由 invertPatch 生成（撤销 removeComponent 时用），
+        // 永远不会作为用户/AI 补丁进 invertPatch，所以它没有逆操作可求 —— 不写这一句，
+        // 也不许在这里"顺手"补一个 removeComponent：定义本来就在时那样做等于删掉真值。
         break;
       }
       case "addAsset": {

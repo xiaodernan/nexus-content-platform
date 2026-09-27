@@ -1855,6 +1855,54 @@ e2e：`图像生成` 1 passed（13.7 秒），回归 `上传图片 | 资产库` 
 并用 `NEXUS_WEB_URL` 指过去才量到真结果。**下次跑 e2e 前先确认 3100 上是谁**。
 
 **这一片没有做的**：`addComponent` 的逆操作是同一形状的洞（只在已存在时写还原，新增那一路不写），
-今天没有任何用例断言过"撤销能删掉一个组件"，所以先记着不动——修它要连带补组件引用的清理语义；
+今天没有任何用例断言过"撤销能删掉一个组件"，所以先记着不动——修它要连带补组件引用的清理语义
+（**下一段已补上**）；
 其余四条箭头（Image→Image、Sketch→Image、Reference→Variation、Character→Scene）仍未动；
 真 provider 仍缺 key。
+
+
+## 补上第三格点名的那道洞：addComponent 的撤销 + 它牵出的删除门（2026-09-27）
+
+上一段末尾记的那条"先记着不动"在这一段动掉了。
+
+**做了什么**
+- `patch.ts` 新增两个 op：`removeComponent`（移出目录 + 把**所有页面**上引用它的实例节点的
+  `componentId` 一起解开）与它的逆 `restoreComponent`（放回定义 + 按记下的 `(pageId, nodeId)`
+  把链接接回来）。形状照 `removeAsset` / `restoreAsset` 抄，包括"对不存在的 id 记 `skipped`，不静默成功"。
+- `addComponent` 的逆操作补上新增那一路：`else ops.push({ op: "removeComponent", ... })`。
+- `packages/schemas` 的 `PatchOpSchema` 加这两条，`npm run contract:export` 重导契约
+  （`design-patch / ai-response / ai-job-status` 三个 JSON Schema 各加一份枚举，共 +147 行）。
+- **`removeComponent` 同时进两边的高危名单**：`apps/web/src/server/ai/approvals.ts` 的
+  `DESTRUCTIVE_OPS` 与 `apps/ai-service/src/ai_service/execution.py` 的同名集合。
+  它带走定义并连带解开实例，漏一档就等于这一档**两边都不拦**。
+  审批卡片上那句理由也补了 id 来源（`describe()` 原先只认 `nodeId/key/assetId/pageId`，
+  `componentId` 会退回裸 uuid），组件名后头写清"删除会连带解开引用它的实例"。
+- 提示词里的 op 词汇表**没加**这两条：`removeAsset` 也不在表里——不邀请模型删资产/删组件，
+  但它真删了就得拦得住。
+
+**验证**
+- 新文件 `packages/design-model/test/patch-components.test.ts`：6 条（一次事务里「建组件+放实例」的
+  撤销/重做；覆盖同 id 时撤销是还原不是删除；逆操作形状；删定义连带解开实例；跨页实例的删除→撤销→重做；
+  对不存在的 id 记 `skipped`）。
+- web 侧门：`ai-approvals.integration.test.ts` 那条"带走东西的 op 全被拦下"从 4 档变 5 档
+  （`heldOpCount` 5→6），并新增两条断言：理由里出现"定价卡片"、**不许**出现裸 componentId。
+  连契约与 schemas 一起跑：**4 个文件 / 50 条全过**。
+- ai-service：**64 passed + 1 skipped，退出码 0**，其中包含跨语言那条
+  `test_destructive_op_set_matches_the_web_gate`（它直接读 web 源码比对集合，不抄第二份常量）。
+- 四次变异探针，跑完全部还原（还原后用 `git diff` 核对过）：
+  A 删掉 `addComponent` 新加的那行 `removeComponent` → 红 2 条（撤销那条 + 形状那条），
+  而"覆盖时是还原不是删除"**保持绿**；B 删掉 `removeComponent` 里解链的那个循环 → 红 2 条
+  （连带解开那条 + 跨页还原那条）；C 把 `describe()` 里的 `op.componentId` 拿掉 → 红 1 条，
+  红在"理由里要点名定价卡片"；D 只把 `removeComponent` 从 web 清单里拿掉 → web 那条红（5→4），
+  同时 Python 的集合比对那条也红。**C 与 D 证明"名单加了但读不懂在删什么"和"只补一边"都拦得住。**
+- `npm run typecheck` 干净（7 个工程）。
+
+**第一段用例自己红出来的那条**：我起初照 `addAsset` 的形状写成"文档里先有一个引用 cmp-new 的实例、
+再执行 addComponent"，红在重做那一步。原因不是实现错，是这个前置状态本来就不合法——
+`addComponent` 从不给既有节点接链接，所以撤销时 `removeComponent` 解掉的链接不是这次事务建立的，
+重做自然接不回来。真实形状是"一次事务 = 建组件 + 放实例"，用例改成那个形状后绿。
+**教训：逆操作的连带清理可能比正操作做得更多；这种不对称只在有既有引用时才暴露，
+而那种文档本来就不该存在——别把非法前置状态的行为写成断言，那会锁死一个不该支持的语义。**
+
+**这一片没有做的**：Studio 里还没有"删除组件"的入口（模型层能撤了，界面还没有那个按钮）；
+`docs/STUDIO.md` 的组件那一节还没提这两个 op；§38 其余四条箭头、真 provider key 仍未动。

@@ -125,27 +125,31 @@ function namingDoc(): { document: DesignDocument; heroId: string; pageId: string
 }
 
 describe('门开在 web：provider 的自觉不算数', () => {
-  it('四类带走东西的 op 全被拦下；非删除的 op 不冒充高危', () => {
-    const { document, heroId, pageId, tokenKey, assetId } = namingDoc();
+  it('五类带走东西的 op 全被拦下；非删除的 op 不冒充高危', () => {
+    const { document, heroId, pageId, tokenKey, assetId, componentId } = namingDoc();
     const nameOf = nodeNamer(document);
     const response = respWith([
       { op: 'remove', nodeId: heroId },
       { op: 'removePage', pageId },
       { op: 'removeToken', key: tokenKey },
       { op: 'removeAsset', assetId },
+      { op: 'removeComponent', componentId },
       { op: 'set', path: 'size.height', nodeId: heroId, value: 480 },
     ]);
     const gate = gateResponse(response, WEB_APPROVAL_POLICY, nameOf);
-    // 4 条删除类，set 那条不许混进来
-    expect(gate.approvals).toHaveLength(4);
+    // 5 条删除类，set 那条不许混进来
+    expect(gate.approvals).toHaveLength(5);
     expect(gate.approvals.every((a) => a.action === 'delete')).toBe(true);
     expect(gate.approvals.some((a) => a.reason.startsWith('set'))).toBe(false);
     // heldOpCount 是"扣下了多少个 op"，含那条不触发审批的：UI 上要能说清整份结果都没交回
-    expect(gate.heldOpCount).toBe(5);
+    expect(gate.heldOpCount).toBe(6);
     // 每条都指向得清是哪一处：理由里带名字，不是裸 id 也不是"某个元素"
     expect(gate.approvals.some((a) => a.reason.includes('Hero'))).toBe(true);
     expect(gate.approvals.some((a) => a.reason.includes(tokenKey))).toBe(true);
     expect(gate.approvals.some((a) => a.reason.includes('品牌标志'))).toBe(true);
+    // removeComponent 的 id 不在 nodeId/assetId 那一串里，漏掉就只剩一个裸 uuid 或者含糊的"这一处"
+    expect(gate.approvals.some((a) => a.reason.startsWith('removeComponent') && a.reason.includes('定价卡片'))).toBe(true);
+    expect(gate.approvals.some((a) => a.reason.includes(componentId))).toBe(false);
     // removePage 带的是页 id：理由里要写成"整页"，不是裸 uuid，也不是含糊的"这一处"
     expect(gate.approvals.some((a) => a.reason.startsWith('removePage') && a.reason.includes('整页'))).toBe(true);
     expect(gate.approvals.some((a) => a.reason.includes(pageId))).toBe(false);

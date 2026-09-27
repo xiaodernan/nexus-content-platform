@@ -388,6 +388,56 @@
                   "properties": {
                     "op": {
                       "type": "string",
+                      "const": "removeComponent"
+                    },
+                    "componentId": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "op",
+                    "componentId"
+                  ],
+                  "additionalProperties": false
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "op": {
+                      "type": "string",
+                      "const": "restoreComponent"
+                    },
+                    "component": {
+                      "type": "object",
+                      "propertyNames": {
+                        "type": "string"
+                      },
+                      "additionalProperties": {}
+                    },
+                    "nodes": {
+                      "default": [],
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "propertyNames": {
+                          "type": "string"
+                        },
+                        "additionalProperties": {}
+                      }
+                    }
+                  },
+                  "required": [
+                    "op",
+                    "component",
+                    "nodes"
+                  ],
+                  "additionalProperties": false
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "op": {
+                      "type": "string",
                       "const": "addAsset"
                     },
                     "asset": {

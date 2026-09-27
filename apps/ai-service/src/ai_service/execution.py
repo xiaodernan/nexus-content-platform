@@ -21,7 +21,8 @@ from .providers.registry import Registry
 
 # §74 的高危 op 口径与 web 侧 `server/ai/approvals.ts` 的 DESTRUCTIVE_OPS 必须一致：
 # 两边各扫各的，漏掉的那一边就等于没有门（removeAsset 以前就在这儿漏着）。
-DESTRUCTIVE_OPS = {"remove", "removePage", "removeToken", "removeAsset"}
+# removeComponent 同理：它带走定义，并连带解开所有引用它的实例。
+DESTRUCTIVE_OPS = {"remove", "removePage", "removeToken", "removeAsset", "removeComponent"}
 LLM_MODEL_CLASSES = {"fast", "balanced", "reasoning", "vision"}
 
 
@@ -154,7 +155,7 @@ async def execute_ai_request(payload: dict[str, Any], *, registry: Registry) -> 
     if "delete" in (payload.get("approvalPolicy") or []):
         flagged = sorted(
             {
-                f"{patch.get('pageId') or 'document'}: {op.get('op')} {op.get('nodeId') or op.get('pageId') or op.get('key') or op.get('assetId')}"
+                f"{patch.get('pageId') or 'document'}: {op.get('op')} {op.get('nodeId') or op.get('pageId') or op.get('key') or op.get('assetId') or op.get('componentId')}"
                 for patch in patches
                 for op in (patch.get("ops") or [])
                 if isinstance(op, dict) and op.get("op") in DESTRUCTIVE_OPS

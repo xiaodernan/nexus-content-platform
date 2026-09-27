@@ -18,8 +18,8 @@ import type { DesignDocument } from '@nexus/design-model';
  *   否则"这次不要审批"就是请求方自己填的一栏。
  */
 
-/** 会带走东西的 op：删节点、删页、删 token、删资产（清单与所有页面引用一起清）。 */
-export const DESTRUCTIVE_OPS = ['remove', 'removePage', 'removeToken', 'removeAsset'] as const;
+/** 会带走东西的 op：删节点、删页、删 token、删资产（清单与所有页面引用一起清）、删组件（定义与所有实例引用一起解开）。 */
+export const DESTRUCTIVE_OPS = ['remove', 'removePage', 'removeToken', 'removeAsset', 'removeComponent'] as const;
 
 /**
  * §73 的权限作用域里**今天唯一被代码执行**的那一个：名册上的 Agent 有没有它，决定 provider 回来的
@@ -40,7 +40,7 @@ export function nodeNamer(document: DesignDocument): NodeNamer {
   const byId = new Map<string, string>();
   for (const token of document.tokens) byId.set(token.key, `${token.key}（设计 token）`);
   for (const asset of document.assets) byId.set(asset.id, `${asset.name}（资产，删除会连带清掉引用它的填充）`);
-  for (const component of document.components) byId.set(component.id, `${component.name}（组件）`);
+  for (const component of document.components) byId.set(component.id, `${component.name}（组件，删除会连带解开引用它的实例）`);
   for (const page of document.pages) {
     // 先放页，再放节点：`removePage` 带的是 pageId，节点 id 不会与页 id 撞车，
     // 但顺序写反了将来出错时看不出来
@@ -64,14 +64,14 @@ export type ApprovalPolicy = AiRequest['approvalPolicy'][number];
 
 export type ApprovalAction = { action: string; reason: string };
 
-type PatchOpLike = { op?: string; nodeId?: string; key?: string; assetId?: string; pageId?: string };
+type PatchOpLike = { op?: string; nodeId?: string; key?: string; assetId?: string; componentId?: string; pageId?: string };
 
 /** 节点名让人读得懂（"删除「页脚」"），读不到就退回 id，绝不编一个"某个元素" */
 export type NodeNamer = (nodeId: string | undefined) => string | null;
 
 function describe(op: PatchOpLike, patch: DesignPatchPayload, nameOf: NodeNamer): string {
   // pageId 也要能报名字：`removePage` 带的是页 id，漏掉它这条理由就成了裸 uuid
-  const target = nameOf(op.nodeId ?? op.key ?? op.assetId ?? op.pageId) ?? op.nodeId ?? op.key ?? op.assetId ?? op.pageId ?? patch.pageId ?? '这一处';
+  const target = nameOf(op.nodeId ?? op.key ?? op.assetId ?? op.componentId ?? op.pageId) ?? op.nodeId ?? op.key ?? op.assetId ?? op.componentId ?? op.pageId ?? patch.pageId ?? '这一处';
   return `${op.op ?? 'destructive'} → ${target}`;
 }
 

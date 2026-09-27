@@ -101,12 +101,13 @@ def test_non_destructive_ops_do_not_park_behind_approval() -> None:
     assert body["patches"] != []
 
 
-# §74 说"删除"，四家op都带走东西；removeAsset 曾在两边口径里漏着
+# §74 说"删除"，五家op都带走东西；removeAsset 曾在两边口径里漏着
 APPROVAL_OPS = [
     ({"op": "remove", "nodeId": "n_headline"}, "n_headline"),
     ({"op": "removePage", "pageId": "pg_1"}, "pg_1"),
     ({"op": "removeToken", "key": "color.primary"}, "color.primary"),
     ({"op": "removeAsset", "assetId": "a_logo"}, "a_logo"),
+    ({"op": "removeComponent", "componentId": "c_button"}, "c_button"),
 ]
 
 
