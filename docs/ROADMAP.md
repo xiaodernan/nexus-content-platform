@@ -228,7 +228,16 @@ key 只活在 ai-service 进程（符合 SECURITY.md「web 永不接触 key」�
 无需在 web 重复配置，首页能力行与 DEMO MODE 标识会自动翻到 real。
 
 ## M2 — 图像与资产（§182）
-- [ ] Nexus Image Studio（text→image / image→image / sketch→image / reference→variation / character→scene）
+- [~] Nexus Image Studio（五条箭头，逐条记状态；本机没有图像 provider，像素一律来自本地确定性合成器并挂 DEMO 标识）
+  - text→image：**已通**（`POST /api/projects/[id]/images` → 额度门 → 任务行 → 与上传同一道摄取门 → 真资产行 → 扣点；
+    面板入口 + e2e @smoke，见上面 §38 第二、三格）
+  - reference→variation：**已通**（参考图按归属取字节、量主色作色相锚点、锚点参与身份哈希；卡片上有按钮 + e2e。
+    边界：钉住的是身份与元数据，"画面看着像参考图"没有被钉住）
+  - character→scene：**服务端已通**（锚点取自角色档案 visualIdentity.palette，assets.character_id 第一次有写入方；
+    一致性有可测定义），界面入口仍欠（任务 #67）
+  - image→image、sketch→image：**未动**——前者要一次真实的图像变换（今天的合成器只能按 prompt/seed 画，
+    拿别人的字节改一笔等于没有来源），后者要先有草图输入面（画布上还没有绘制层）
+  - 换成真 provider 时改的是 `image-synth.ts` 里那一格像素来源，前后每一环（门、账、摄取、投影）不重写（§76-79）
 - [x] Asset Library（图片/视频/音频/3D/组件/设计系统统一编目）— 清单在模型里（`document.assets`），
   Studio「资产库」面板只是它的投影：列出/缩略图预览/引用计数/删除。删除走 `removeAsset` 模型级事务，
   跨所有页面剥引用、可撤销；字节清除是尽力而为的第二步（撤销恢复不了文件，回执如实说明）。
