@@ -62,6 +62,23 @@ export function DesignSystemPanel() {
   const [newToken, setNewToken] = useState({ key: '', type: 'color' as Token['type'], value: '#7c5cff' });
   const [formError, setFormError] = useState<string | null>(null);
 
+  /** 组件的根节点可以在任何一页上，所以按 id 跨页找（找不到就不该建这个组件） */
+  const rootOf = (id: string) => {
+    for (const page of document.pages) {
+      const node = page.nodes[id];
+      if (node) return node;
+    }
+    return undefined;
+  };
+  /** 有多少实例节点引用这个组件——删除会连带解开它们，所以这个数字要摊在卡片上 */
+  const instanceCount = (componentId: string) => {
+    let n = 0;
+    for (const page of document.pages) {
+      for (const node of Object.values(page.nodes)) if (node.componentId === componentId) n += 1;
+    }
+    return n;
+  };
+
   /**
    * 引用计数：整棵页面树里引用过某个 token 的节点数（一个节点多次引用只算一次）。
    *
@@ -137,6 +154,75 @@ export function DesignSystemPanel() {
           新增
         </button>
       </div>
+
+      <section className="shrink-0 border-b border-[var(--nexus-color-border-subtle)] px-[var(--nexus-space-3)] py-2" data-components-section>
+        <div className="flex items-center gap-2">
+          <span className="font-mono text-11 uppercase tracking-wide text-fg-3">组件</span>
+          <span className="font-mono text-10 text-fg-3">{document.components.length}</span>
+          <button
+            type="button"
+            // 存为组件 = 把选中的那个元素指认为主组件的根：没有选中就没有可指认的东西，
+            // 按钮不可点，而不是"凭空造一个组件"（§16 面板只是真值的投影）
+            disabled={state.selection.length === 0}
+            onClick={() => {
+              const rootId = state.selection[0];
+              if (!rootId) return;
+              const root = rootOf(rootId);
+              if (!root) return;
+              studio.execute(`存为组件 ${root.name}`, [
+                {
+                  op: 'addComponent',
+                  component: {
+                    id: `cmp_${Date.now().toString(36)}`,
+                    name: root.name,
+                    rootId,
+                    props: [],
+                    variants: [],
+                    slots: [],
+                  },
+                },
+              ]);
+            }}
+            data-component-save
+            className="ml-auto rounded-[var(--nexus-radius-sm)] bg-bg-2 px-2 py-[2px] font-mono text-11 text-fg-2 hover:bg-bg-3 disabled:opacity-50"
+            title={state.selection.length ? '把选中的元素存为主组件的根' : '先在画布上选中一个元素'}
+          >
+            存为组件
+          </button>
+        </div>
+        {document.components.length === 0 ? (
+          <p className="mt-1 font-mono text-11 text-fg-3" data-components-empty>
+            还没有组件。选中一个元素后用上面那个按钮，或让 AI 生成（addComponent）。
+          </p>
+        ) : (
+          <ul className="mt-1 flex flex-col gap-1">
+            {document.components.map((component) => {
+              const refs = instanceCount(component.id);
+              return (
+                <li
+                  key={component.id}
+                  className="flex items-center gap-2 rounded-[var(--nexus-radius-sm)] bg-bg-2 px-2 py-1"
+                  data-component-card={component.id}
+                >
+                  <span className="truncate text-12 text-fg-1" title={component.name}>
+                    {component.name}
+                  </span>
+                  <span className="ml-auto shrink-0 font-mono text-11 text-fg-3">引用 {refs}</span>
+                  <button
+                    type="button"
+                    onClick={() => studio.execute(`删除组件 ${component.name}`, [{ op: 'removeComponent', componentId: component.id }])}
+                    data-component-delete={component.id}
+                    title="从组件目录里移出，并解开所有页面上引用它的实例（可撤销）"
+                    className="shrink-0 rounded-[var(--nexus-radius-sm)] px-2 py-[2px] font-mono text-11 text-fg-3 hover:bg-bg-3"
+                  >
+                    删除
+                  </button>
+                </li>
+              );
+            })}
+          </ul>
+        )}
+      </section>
 
       {document.visualDna ? (
         <section className="shrink-0 border-b border-[var(--nexus-color-border-subtle)] px-[var(--nexus-space-3)] py-2" data-visual-dna>

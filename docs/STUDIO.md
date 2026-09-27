@@ -159,6 +159,8 @@ Component（主节点）→ Instance（引用 + overrides 表）→ Variant（�
 删定义走 `removeComponent`：移出目录的同时把**所有页面**上引用它的实例一起解开（与 `removeAsset`
 同一条规则——不留悬空引用），逆操作 `restoreComponent` 会把定义和那些链接一并接回来（§150）。
 它带 `skipped` 记账：删一个目录里本来就没有的 id 不算成功。
+界面上的投影在设计系统面板顶部那段「组件」里：列出目录、显示每个组件被多少实例引用、
+把选中的元素「存为组件」（未选中不可点），以及走上面那条事务的「删除」——撤销/重做在浏览器里点过（`e2e/components-panel.spec.ts`）。
 
 ## 3D 世界（§140）
 
