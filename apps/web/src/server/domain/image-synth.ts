@@ -22,6 +22,12 @@ export interface SynthInput {
   height: number;
   /** 同一句话换个 seed 就是另一张图；默认 0，所以默认情况下完全可复现 */
   seed?: number;
+  /**
+   * §38 的 Reference → Variation：给一个 0..1 的色相锚点，画面围绕它配色。
+   * 它参与身份哈希——**同一句话同一 seed，但参考图不同，就不是同一份字节**，
+   * 否则"变体"会被去重复用成原图那一张，第二次点击等于什么都没生成。
+   */
+  hueAnchor?: number;
 }
 
 const MAX_EDGE = 1024;
@@ -29,6 +35,9 @@ const MAX_EDGE = 1024;
 export function synthLimitViolations(input: SynthInput): string[] {
   const issues: string[] = [];
   if (input.prompt.trim().length === 0) issues.push('prompt 不能是空的');
+  if (input.hueAnchor !== undefined && !(input.hueAnchor >= 0 && input.hueAnchor < 1)) {
+    issues.push(`色相锚点要在 0（含）到 1（不含）之间，收到 ${input.hueAnchor}`);
+  }
   for (const [key, value] of [
     ['宽', input.width],
     ['高', input.height],
@@ -39,10 +48,11 @@ export function synthLimitViolations(input: SynthInput): string[] {
   return issues;
 }
 
-/** 只依赖 prompt/seed/尺寸：不读时钟、不读随机数，所以两次调用必须给同一份字节 */
+/** 只依赖 prompt/seed/尺寸/色相锚点：不读时钟、不读随机数，所以两次调用必须给同一份字节 */
 function seedBytes(input: SynthInput): Buffer {
   const seed = (input.seed ?? 0).toString(36);
-  return createHash('sha256').update(`${seed}|${input.width}x${input.height}|${input.prompt.trim().toLowerCase()}`).digest();
+  const anchor = input.hueAnchor === undefined ? '-' : input.hueAnchor.toFixed(6);
+  return createHash('sha256').update(`${seed}|${input.width}x${input.height}|${anchor}|${input.prompt.trim().toLowerCase()}`).digest();
 }
 
 /** 一个小到能一眼看完的伪随机流：从摘要出发，每次取 4 字节滚动 */
@@ -66,7 +76,10 @@ function renderPixels(input: SynthInput): Uint8Array {
   const { width, height } = input;
   const digest = seedBytes(input);
   const rand = rngFrom(digest);
-  const hue = rand();
+  // 色相那一格**总是**从流里取一次：有参考图时用它只是把这一格换掉，后面的形状/横带位置不变，
+  // 于是"变体"确实是同一张图的换色，而不是另一张不相干的图
+  const drawnHue = rand();
+  const hue = input.hueAnchor ?? drawnHue;
   const [r1, g1, b1] = hslToRgb(hue, 0.45, 0.28);
   const [r2, g2, b2] = hslToRgb((hue + 0.18) % 1, 0.55, 0.62);
   const pixels = new Uint8Array(width * height * 3);

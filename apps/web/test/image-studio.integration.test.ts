@@ -75,6 +75,104 @@ afterAll(async () => {
   await db.delete(users).where(inArray(users.id, [userId]));
 });
 
+describe('§38 Reference → Variation 打真库', () => {
+  /** 这一片一次点掉七八张图，别撞在本月额度上（共享余额：约定不算断言，自己补足） */
+  async function ensureCredits(floor: number): Promise<void> {
+    const balance = (await readCredits(userId)).balances.image;
+    if (balance < floor) {
+      await adjustCredits({ userId, kind: 'image', delta: floor - balance, reason: '用例：补足变体链路需要的额度' });
+    }
+  }
+
+  /** 取资产行的 checksum 与 genMeta：变体是否真的"看着参考图生成"只有这两格能证明 */
+  async function rowOf(id: string) {
+    const [row] = await getDb()
+      .select({ checksum: assets.checksum, genMeta: assets.genMeta, name: assets.name })
+      .from(assets)
+      .where(eq(assets.id, id))
+      .limit(1);
+    expect(row, `库里查不到资产 ${id}`).toBeDefined();
+    return row!;
+  }
+
+  it('参考图的主色决定画面：同 prompt 同 seed，换参考就是换字节', async () => {
+    await ensureCredits(30);
+    const refA = mustOk(await generateDemoImage({ projectId, userId, prompt: '参考甲', width: 128, height: 128, seed: 11 }), '参考甲');
+    const refB = mustOk(await generateDemoImage({ projectId, userId, prompt: '参考乙', width: 128, height: 128, seed: 12 }), '参考乙');
+
+    const plain = mustOk(await generateDemoImage({ projectId, userId, prompt: '变体底座', width: 128, height: 128, seed: 21 }), '不带参考的那一张');
+    const varA = mustOk(
+      await generateDemoImage({ projectId, userId, prompt: '变体底座', width: 128, height: 128, seed: 21, referenceAssetId: refA.asset.id }),
+      '以甲为参考',
+    );
+    const varB = mustOk(
+      await generateDemoImage({ projectId, userId, prompt: '变体底座', width: 128, height: 128, seed: 21, referenceAssetId: refB.asset.id }),
+      '以乙为参考',
+    );
+
+    const [plainRow, aRow, bRow] = [await rowOf(plain.asset.id), await rowOf(varA.asset.id), await rowOf(varB.asset.id)];
+    // 三条各自堵住一种走偏：锚点没进合成 / 参考 id 只写进元数据没起作用 / 两次拿回同一张
+    expect(aRow.checksum, '带了参考图，字节却与不带参考时一模一样——锚点根本没进合成器').not.toBe(plainRow.checksum);
+    expect(bRow.checksum, '带了参考图，字节却与不带参考时一模一样——锚点根本没进合成器').not.toBe(plainRow.checksum);
+    expect(aRow.checksum, '换了一张参考图却拿回同一份字节——参考只存在于参数里').not.toBe(bRow.checksum);
+
+    const meta = aRow.genMeta as Record<string, unknown>;
+    expect(meta.referenceAssetId, '事后查不出这张图是以谁为参考').toBe(refA.asset.id);
+    expect(typeof meta.hueAnchor).toBe('number');
+    expect(Number(meta.hueAnchor)).toBeGreaterThanOrEqual(0);
+    expect(Number(meta.hueAnchor)).toBeLessThan(1);
+    expect(String(meta.referenceDominant)).toMatch(/^#[0-9a-f]{6}$/);
+    expect(meta.demoMode, '变体就不是 DEMO 生成的了？').toBe(true);
+  });
+
+  it('同 prompt 同 seed 同参考复用同一行，任务与扣点仍各算一次', async () => {
+    await ensureCredits(20);
+    const ref = mustOk(await generateDemoImage({ projectId, userId, prompt: '复用的参考', width: 64, height: 64, seed: 31 }), '参考');
+    const first = mustOk(
+      await generateDemoImage({ projectId, userId, prompt: '复用的变体', width: 64, height: 64, seed: 32, referenceAssetId: ref.asset.id }),
+      '第一次变体',
+    );
+    const second = mustOk(
+      await generateDemoImage({ projectId, userId, prompt: '复用的变体', width: 64, height: 64, seed: 32, referenceAssetId: ref.asset.id }),
+      '第二次变体',
+    );
+    expect(second.reused).toBe(true);
+    expect(second.asset.id).toBe(first.asset.id);
+    expect(await rowsWithSameBytes(first.asset.id), '复用之外又多插了一行').toBe(1);
+  });
+
+  it('参考图不属于本项目时拒绝，且一行都不许多（门在写任务行之前）', async () => {
+    const seen = async () => ({
+      assets: await countAssets(eq(assets.projectId, projectId)),
+      tasks: await imageTasks(),
+      ledger: (
+        await getDb()
+          .select({ n: rawSql<number>`count(*)::int` })
+          .from(creditLedger)
+          .where(and(eq(creditLedger.userId, userId), eq(creditLedger.kind, 'image'), eq(creditLedger.source, 'generation')))
+      )[0]?.n ?? 0,
+    });
+    const before = await seen();
+
+    for (const bad of ['cmp-没有这个资产', '00000000-0000-4000-8000-000000000000']) {
+      const out = await generateDemoImage({
+        projectId,
+        userId,
+        prompt: '挂在不存在的图上',
+        width: 64,
+        height: 64,
+        referenceAssetId: bad,
+      });
+      expect(out.ok, `参考图 ${bad} 查不到还放过去了`).toBe(false);
+      if (!out.ok) {
+        expect(out.code).toBe('invalid_input');
+        expect(out.message).toMatch(/不在这个项目|并不拥有/);
+      }
+      expect(await seen()).toEqual(before);
+    }
+  });
+});
+
 describe('§38 Text→Image 打真库', () => {
   it('一次生成把资产行、清单里的 demoMode、任务行与账本各留一行', async () => {
     const db = getDb();

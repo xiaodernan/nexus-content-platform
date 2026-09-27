@@ -7,7 +7,8 @@ import { csrfOk } from '@/server/security/csrf';
 import { badRequest, failure, jsonError, notFound } from '@/server/http';
 
 /**
- * §38 Text → Image 的入口。这一格给的是 **DEMO 本地合成**（本机没有图像 provider，§160），
+ * §38 的两条箭头共用这一格：Text → Image，以及带上 `referenceAssetId` 的 Reference → Variation。
+ * 这一格给的是 **DEMO 本地合成**（本机没有图像 provider，§160），
  * 但走的是真链路：额度门 → 任务行 → 与上传同一道摄取门 → 真资产行 → 真扣点。
  * 响应里的 `asset.genMeta`/`generatedBy` 会带着 `demoMode: true`，面板据此显示角标。
  */
@@ -17,6 +18,9 @@ const RequestBody = z.object({
   width: z.number().int().optional(),
   height: z.number().int().optional(),
   seed: z.number().int().optional(),
+  // 参考图按 id 给，字节由服务端自己取（带归属校验）——不接受客户端塞进来的 base64，
+  // 那等于绕过摄取门喂一张没被审过的图
+  referenceAssetId: z.string().min(1).optional(),
 });
 
 interface RouteContext {
@@ -42,6 +46,7 @@ export async function POST(req: Request, ctx: RouteContext): Promise<NextRespons
       width: parsed.data.width,
       height: parsed.data.height,
       seed: parsed.data.seed,
+      referenceAssetId: parsed.data.referenceAssetId,
     });
     if (!result.ok) {
       // 429 与 400 分开：额度用尽要让用户知道"这个月没了"，而不是"你请求写错了"

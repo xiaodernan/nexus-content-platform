@@ -1906,3 +1906,33 @@ e2e：`图像生成` 1 passed（13.7 秒），回归 `上传图片 | 资产库` 
 
 **这一片没有做的**：Studio 里还没有"删除组件"的入口（模型层能撤了，界面还没有那个按钮）；
 `docs/STUDIO.md` 的组件那一节还没提这两个 op；§38 其余四条箭头、真 provider key 仍未动。
+
+
+## §38 第二格箭头：Reference → Variation 的服务端那一段（2026-09-27）
+
+**做了什么**
+- `SynthInput` 多了 `hueAnchor`（0..1）：它**参与身份哈希**，也参与配色。参与哈希是必须的——
+  否则"同 prompt 同 seed 换一张参考"会被去重复用成同一行，第二次点击什么都没生成。
+- `generateDemoImage` 多收 `referenceAssetId`：走 `openAssetForOwner`（按归属取字节，不按 id 裸取），
+  用已有的 `extractVisualDna` 量出主色，转成色相锚点喂给合成器；量不出来（不是 PNG、全透明、没有主色）
+  与不拥有这张图都是**拒绝**，不退化成"没参考随便生成一张"。参考图先解析、后谈额度，解析失败不留任务行也不扣点。
+- 路由 `/api/projects/[id]/images` 的 body 多一个可选 `referenceAssetId`（只接受 id，字节由服务端自己取）。
+- `assets.ts` 的 `rowById` 加了 uuid 形状门：**这是这一片红出来的真缺陷**——非 uuid 的 id 直接进 where，
+  Postgres 抛 `invalid input syntax for type uuid`，于是"这个资产不存在"在所有走这条路的接口上都是 500。
+  现在形状不对就当查不到，路由只剩 404 这一种说法。
+
+**验证**：`image-studio.integration.test.ts` 新增 3 条，与 `image-synth` 一起 **15 条全过**——
+换参考就是换字节（且各自都与不带参考的那张不同）、同 prompt 同 seed 同参考复用同一行（同 checksum 只 1 行）、
+参考图不存在（畸形 id 与合法但不存在的 uuid 两种）时 `assets/tasks/ledger` 三个计数一个都不许多。
+
+**这条箭头的证据边界（写清楚，别over-claim）**：上面那组断言钉住的是**身份与元数据**——
+参考图确实换了字节、确实记进了 `genMeta`（`referenceAssetId / hueAnchor / referenceDominant`）。
+我本来还想钉"画面看着像参考图"：写了四条均匀分布的锚点、量产物主色要求落在各自 ±0.2 的格子里，
+**这条是红的**（锚点 0.25 量回 0.918）。红得对：合成器的形状色是 `anchor + rand()`，
+主色由形状而不是背景决定，所以"绝对色相等于锚点"本来就不成立。我把这条断言删掉了而不是放宽容差——
+**放宽到能过就是假绿**。留下的真实欠账：DEMO 合成器的"变体"只保证"由这张图的色相派生出来、且与原图不同"，
+不保证人眼看着像参考图；正解是换成真 image-to-image provider（§76-79 那一格），
+或者先改合成器让形状色也按锚点取（改渲染口径时这条断言要一起补回来）。
+
+**这一片没有做的**：界面入口（资产卡片上那个"以它为参考生成变体"的按钮 + e2e）；
+Sketch → Image、Image → Image、Character → Scene 三条箭头；真 provider key。

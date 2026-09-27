@@ -40,7 +40,15 @@ export function removedMetadataOf(row: typeof assets.$inferSelect): string[] {
   return Array.isArray(meta.removedMetadata) ? (meta.removedMetadata as string[]) : [];
 }
 
+/**
+ * id 形状不对就当查不到：`assets.id` 是 uuid 列，把 `"abc"` 这种直接送进 where，
+ * Postgres 抛的是 `invalid input syntax for type uuid`——于是"这个资产不存在"在界面上变成 500。
+ * 所有取行的入口都过这一格，路由侧就只剩 404 这一种说法（§159：不存在的别说成服务器坏了）。
+ */
+const UUID_SHAPE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 async function rowById(assetId: string): Promise<typeof assets.$inferSelect | null> {
+  if (!UUID_SHAPE.test(assetId)) return null;
   const [row] = await getDb().select().from(assets).where(eq(assets.id, assetId)).limit(1);
   return row ?? null;
 }
