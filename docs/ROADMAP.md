@@ -703,7 +703,7 @@ drizzle 把整个拼接结果当成**单个绑定参数**，生成的 SQL 是 `o
 
 ## M5 — 视频（§185）
 - [ ] Video Studio（text/image/storyboard→video）
-- [~] Storyboard → Shot list → 参考图 → 生成 → Timeline（§40-42）— **第一片是模型半片**：新包 `packages/video-model`（分镜/镜头表/时间线投影，纯函数），详见文末「§40 的第一片」。存储、面板入口、镜头参考图接 §38/§39、Timeline 编辑都还没动。
+- [~] Storyboard → Shot list → 参考图 → 生成 → Timeline（§40-42）— `packages/video-model` 已有两片：模型半片（分镜/镜头表/时间线投影，纯函数）与 §150 的可撤销补丁（`addShot`/`removeShot`/`moveShot`/`updateShot` + 事务），详见文末「§40 的第一片 / 第二片」。存储、面板入口、镜头参考图接 §38/§39、Timeline 编辑界面都还没动。
 - [ ] Timeline 编辑：trim / reorder / regenerate shot / extend / transition（§41）
 
 ## M6 — 社区（§186）
@@ -2243,5 +2243,31 @@ e2e 那条链现在一次点完三档（场景 → 肖像 → 以肖像延伸场
 
 **这一片欠的**（别当成已完成）：分镜的存储与投影进 `document`（现在只在包里）、
 Studio 的「分镜」面板入口、镜头的 `referenceAssetId` 接上 §38/§39 那条图像链、
-`Video generation` 那一格要真 provider、§41 的 Timeline 编辑（trim / reorder / regenerate / extend /
-transition）与它的可撤销补丁（§150）。
+`Video generation` 那一格要真 provider、§150 的撤销补丁（第二片，见下）、
+§41 的 Timeline 编辑界面（trim / reorder / regenerate / extend / transition）。
+
+## §40 的第二片：`packages/video-model/src/patch.ts`——分镜也走「一次编辑 = 一个可撤销事务」（§150）
+
+形状照 `packages/design-model/src/patch.ts`（那一份是仓库的口径，不另起一套）：
+纯函数 `applyStoryboardPatch`、吃**改动前文档**的 `invertStoryboardPatch(before, ops)`、
+以及把两者接成事务的 `storyboardTransaction(before, ops) → { applied, undo, redo }`。
+五个 op：`addShot` / `removeShot` / `restoreShot`（只作为逆出现）/ `moveShot` / `updateShot`。
+
+四条容易说谎的地方与它们的钉子：
+- **逆必须记"原来在第几位"**：`removeShot` 的逆带的是删除时那一位，否则撤销会把镜头追加到
+  末尾，顺序就回不来了。连删两镜时逆按倒序排，一次撤销全数归位。
+- **逆吃旧值**：`updateShot` 的逆交换 `before` / `after`；拿改动后的文档算逆，撤回去的是新值。
+- **清空可选字段是删键**：`after: { referenceAssetId: undefined }` 走 `delete`，
+  不是留一个值为 `undefined` 的键——测试用 `in` 与 `Object.keys` 钉住，`toEqual` 对这两种是盲的。
+- **找不到镜头抛错，不静默跳过**：静默跳过会造出一次"看起来成功"的撤销，其实什么都没做（§159）。
+  空分镜上移动也报错，说清是第几位没有镜头。
+
+**凭证**：`packages/video-model/test/patch.test.ts` **14 条**（含混合事务：删、插、改、移一次做完，
+撤销后逐字节回原样；`JSON.stringify` 比较，不让 `undefined` 键与缺失键蒙混）。
+包内 `tsc` 与 `eslint` 干净，`packages/video-model` 现在 **28/28 绿**（14 断句 + 14 补丁）。
+
+**变异探针**：五个各红且红在该管的那几条（控制组 14/14 绿，还原后 md5 与探针前一致
+`7486fd64…`）：① `restoreShot` 记下末尾 → 3 条红（单删还原、连删倒序、混合事务）；
+② `updateShot` 的逆不交换旧值 → 4 条红（改字段、清空补回、混合事务、事务的 redo 那份）；
+③ `addShot` 插引用而不是插副本 → 1 条红（改结果写回了调用方）；④ 逆不倒序 → 2 条红；
+⑤ 找不到镜头返回 -1 不抛 → 1 条红（那条越界/未知 id 的用例）。
