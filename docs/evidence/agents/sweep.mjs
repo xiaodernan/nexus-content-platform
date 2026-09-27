@@ -908,27 +908,32 @@ const quotedIn = (body, f) => body.includes("'" + f + "'") || body.includes('"' 
  * The test is membership in a slice, not a flow analysis, and it is deliberately conservative in one direction: an
  * alias that takes a location anywhere is refused even when every call site passes the graded tree.
  */
-export function gitAliases(src) {
+export function aliasVerdicts(src) {
   const text = String(src ?? '');
   const defs = definitions(text);
-  const out = [];
+  const readable = [];
   const refused = [];
-  gitAliases.refused = refused;
+  const notAlias = [];
+  const tell = (arr, d, why) => arr.push({ name: d.name, at: d.at, why });
   for (let i = 0; i < defs.length; i++) {
-    const body = text.slice(defs[i].at, i + 1 < defs.length ? defs[i + 1].at : text.length);
+    const d = defs[i];
+    const body = text.slice(d.at, i + 1 < defs.length ? defs[i + 1].at : text.length);
     const slices = spawnSlices(body);
-    if (!slices || !slices.argv) continue;
-    if (REDIRECT_FLAGS.some((f) => quotedIn(body, f))) continue;
-    const params = paramsOf(text, defs[i].at);
-    if (!params.length) continue;
-    if (!params.every((p) => wordIn(slices.argv, p) || wordIn(slices.options, p))) continue;
-    if (params.some((p) => wordIn(slices.options, p))) continue;
+    if (!slices || !slices.argv) { tell(notAlias, d, 'no-git-spawn'); continue; }
+    if (REDIRECT_FLAGS.some((f) => quotedIn(body, f))) { tell(refused, d, 'redirect-flag'); continue; }
+    const params = paramsOf(text, d.at);
+    if (!params.length) { tell(notAlias, d, 'no-params'); continue; }
+    if (!params.every((p) => wordIn(slices.argv, p) || wordIn(slices.options, p))) { tell(notAlias, d, 'param-outside-spawn'); continue; }
+    if (params.some((p) => wordIn(slices.options, p))) { tell(refused, d, 'param-in-options'); continue; }
     // A spawn options object that names a location at all is a redirect, whoever its value is: refuse the alias.
-    if (/[^A-Za-z0-9_$]cwd *[,:]/.test(slices.options)) { refused.push({ name: defs[i].name, at: defs[i].at, why: "cwd" }); continue; }
-    out.push({ name: defs[i].name, at: defs[i].at, params });
+    if (/[^A-Za-z0-9_$]cwd *[,:]/.test(slices.options)) { tell(refused, d, 'cwd'); continue; }
+    readable.push({ name: d.name, at: d.at, params });
   }
-  return out;
+  return { readable, refused, notAlias };
 }
+
+/** The readable aliases alone — the list `aliasGitCommands` walks. Every other verdict is in `aliasVerdicts`. */
+export const gitAliases = (src) => aliasVerdicts(src).readable;
 
 /** The first argument text of every `name(...)` call in a source, sliced by balanced parens. */
 function firstArgsOf(src, name) {
@@ -1050,11 +1055,14 @@ export function gradeConfession(payloads, ownText, selfSrc) {
 export function aliasCeiling(rows) {
   const faces = { declined: [], readable: [], silent: [] };
   for (const [name, text] of rows) {
-    const src = String(text ?? '');
-    gitAliases(src);
-    const refusals = gitAliases.refused.map((x) => `${x.name}:${x.why}`);
-    const verbs = aliasGitCommands(src).verbs;
-    faces[refusals.length ? 'declined' : verbs.length ? 'readable' : 'silent'].push({ row: name, refusals, verbs });
+    const v = aliasVerdicts(String(text ?? ''));
+    const refusals = v.refused.map((x) => `${x.name}:${x.why}`);
+    const verbs = aliasGitCommands(String(text ?? '')).verbs;
+    // A definition that never spawns git is not a near-miss, and counting it as one would let the arm's own noise
+    // look like a verdict. What is left is the reason the arm stopped short of calling this file's helper an alias.
+    const dropped = v.notAlias.filter((x) => x.why !== 'no-git-spawn').map((x) => `${x.name}:${x.why}`);
+    const neverGit = v.notAlias.length - dropped.length;
+    faces[refusals.length ? 'declined' : verbs.length ? 'readable' : 'silent'].push({ row: name, refusals, verbs, dropped, neverGit });
   }
   return faces;
 }
@@ -1592,7 +1600,7 @@ export async function runSweep({ ref = 'HEAD', only = null, cwd = process.cwd(),
   const deadRows = [...new Set(unreadable.map((c) => c.row))];
   const ceiling = aliasCeiling(deadRows.map((n) => [n.split('/').pop(), textOfRow.get(n)]));
   const byState = (st) => gradedClauses.filter((c) => c.state === st).map((c) => `${c.row.split('/').pop()} "${c.clause}" → ${st === 'invisible' ? `shows none of ${c.cmds.join(', ')}` : c.missing.join(', ')}`).join(' · ') || 'none';
-  log(`[identity] confession axis (bytes): ${declaredNames.length} declaring rows · ${gradedClauses.length} clauses graded against the source each one points at — supported ${stateCount('supported')} · partial ${stateCount('partial')}${stateCount('partial') ? ` (${byState('partial')})` : ''} · invisible ${stateCount('invisible')}${stateCount('invisible') ? ` (${byState('invisible')})` : ''} · name no command ${stateCount('no-command')} · of the invisible ones, MIS-CITED ${misCited.length}${misCited.length ? ` (${misCited.map((c) => `${c.row.split('/').pop()} names ${c.fixable.join(',')} where a readable frame holds it`).join(' · ')})` : ''} — a citation one edit away, which is a defect in the sentence — versus unreadable-by-every-frame ${unreadable.length} (${deadVerbs.join(', ') || 'none'}) over ${deadRows.length} row(s), and those rows sit on THREE faces of one ceiling, which differ in who holds the edit: ${ceiling.declined.length} declined out loud by a door its own helper named${ceiling.declined.length ? ` (${ceiling.declined.map((d) => `${d.row} ${d.refusals.join(',')}`).join(' · ')})` : ''}, ${ceiling.readable.length} whose row owns a readable alias that simply does not reach this verb${ceiling.readable.length ? ` (${ceiling.readable.map((d) => `${d.row} ${d.verbs.join(',')}`).join(' · ')})` : ''}, and ${ceiling.silent.length} on which the arm has no verdict at all because the spawning frame is not the row's${ceiling.silent.length ? ` (${ceiling.silent.map((d) => d.row).join(', ')})` : ''} — and that last face includes this file's own git(argv, cwd), which the options-position filter drops in silence. Amendment 98 refuted the sentence this one replaces, which explained every invisible clause by "a wrapper that takes a PARAMETER, so only the CODE could name it": a parameter wrapper IS named by code at its call sites, and four clauses became readable exactly that way. What is left is narrower — a wrapper whose DIRECTORY comes from its caller is not this repository's question to read — and the faces are not the same problem: the first two lift when the ROW edits its own helper, the third lifts only when the file that owns the frame names its literals at a call site, which amendment 91 forbids an arm from demanding of the population`);
+  log(`[identity] confession axis (bytes): ${declaredNames.length} declaring rows · ${gradedClauses.length} clauses graded against the source each one points at — supported ${stateCount('supported')} · partial ${stateCount('partial')}${stateCount('partial') ? ` (${byState('partial')})` : ''} · invisible ${stateCount('invisible')}${stateCount('invisible') ? ` (${byState('invisible')})` : ''} · name no command ${stateCount('no-command')} · of the invisible ones, MIS-CITED ${misCited.length}${misCited.length ? ` (${misCited.map((c) => `${c.row.split('/').pop()} names ${c.fixable.join(',')} where a readable frame holds it`).join(' · ')})` : ''} — a citation one edit away, which is a defect in the sentence — versus unreadable-by-every-frame ${unreadable.length} (${deadVerbs.join(', ') || 'none'}) over ${deadRows.length} row(s), and those rows sit on THREE faces of one ceiling, which differ in who holds the edit: ${ceiling.declined.length} declined out loud by a door its own helper named${ceiling.declined.length ? ` (${ceiling.declined.map((d) => `${d.row} ${d.refusals.join(',')}`).join(' · ')})` : ''}, ${ceiling.readable.length} whose row owns a readable alias that simply does not reach this verb${ceiling.readable.length ? ` (${ceiling.readable.map((d) => `${d.row} ${d.verbs.join(',')}`).join(' · ')})` : ''}, and ${ceiling.silent.length} on which the arm has no readable alias because it looked at this row's helpers and stopped${ceiling.silent.length ? ` (${ceiling.silent.map((d) => `${d.row} ${d.dropped.length ? `dropped ${d.dropped.join(',')}` : 'no candidate beyond the spawn test'}${d.neverGit ? ` · ${d.neverGit} definition(s) never spawn git at all` : ''}`).join(' · ')})` : ''} — and that last face is where this file's own git(argv, cwd) sits, which the options-position filter used to drop in silence until amendment 100 gave every filter a reason to say. Amendment 98 refuted the sentence this one replaces, which explained every invisible clause by "a wrapper that takes a PARAMETER, so only the CODE could name it": a parameter wrapper IS named by code at its call sites, and four clauses became readable exactly that way. What is left is narrower — a wrapper whose DIRECTORY comes from its caller is not this repository's question to read — and the faces are not the same problem: the first two lift when the ROW edits its own helper, the third lifts only when the file that owns the frame names its literals at a call site, which amendment 91 forbids an arm from demanding of the population`);
 
   const dest = mkdtempSync(join(tmpdir(), 'nexus-sweep-'));
   const started = Date.now();
