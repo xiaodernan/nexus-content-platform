@@ -14,7 +14,7 @@ import {
 } from '@nexus/world-model';
 import { cn } from '@/lib/cn';
 import { csrfHeaders } from '@/lib/csrf';
-import { useStudioReady } from './store';
+import { studio as editor, useStudioReady } from './store';
 import { useWorld, worldStore } from './worldStore';
 
 /**
@@ -36,6 +36,7 @@ export function CharacterPanel() {
   const [unreadable, setUnreadable] = useState<string[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [draft, setDraft] = useState<CharacterProfile | null>(null);
+  const [scene, setScene] = useState('');
   const [status, setStatus] = useState<'loading' | 'ready' | 'error'>('loading');
   const [message, setMessage] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
@@ -361,6 +362,43 @@ export function CharacterPanel() {
                 data-character-visual="palette"
                 className={`${INPUT} mt-1 font-mono`}
               />
+
+              {/* §39/§40 Character → Scene 的界面入口。色板（**已保存的那一版**）为空时按钮不可点：
+                  服务端同一口径会拒绝，界面不给人点出一张与角色无关的图冒充"它的场景" */}
+              <div className="mt-2 flex items-center gap-1">
+                <input
+                  value={scene}
+                  onChange={(e) => setScene(e.target.value)}
+                  placeholder="给它一个场景：在雪地里 / 在夜市里"
+                  aria-label="场景"
+                  data-scene-prompt
+                  className={`${INPUT} min-w-0 flex-1`}
+                />
+                <button
+                  type="button"
+                  disabled={selected.profile.visualIdentity.palette.length === 0 || !scene.trim() || Boolean(studio.assetBusy)}
+                  onClick={() => {
+                    void editor.generateImageFromPrompt(`${draft.name}：${scene.trim()}`, { characterId: selected.id });
+                  }}
+                  data-character-scene
+                  title={
+                    selected.profile.visualIdentity.palette.length === 0
+                      ? '先把色板填上：没有视觉标识就谈不上"同一个角色"'
+                      : '按这个角色的视觉标识生成它在该场景里的一张图（DEMO 本地合成 · 扣 image 额度 2 点）'
+                  }
+                  className="shrink-0 rounded-[var(--nexus-radius-sm)] bg-bg-2 px-2 py-1 text-11 text-fg-2 hover:bg-bg-3 disabled:opacity-50"
+                >
+                  生成场景
+                </button>
+              </div>
+              {studio.assetError || studio.assetNotice ? (
+                <p
+                  className={cn('mt-1 text-11', studio.assetError ? 'text-danger' : 'text-fg-3')}
+                  data-character-notice
+                >
+                  {studio.assetError ?? studio.assetNotice}
+                </p>
+              ) : null}
             </section>
 
             <section>

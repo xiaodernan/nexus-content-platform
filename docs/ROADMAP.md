@@ -2012,15 +2012,26 @@ Sketch → Image、Image → Image、Character → Scene 三条箭头；真 prov
   而它的门是 `!dirty || saving`（`CharacterPanel.tsx:480`，dirty 用 `JSON.stringify(selected.profile) !== JSON.stringify(draft)` 判）。
   也就是说 `page.fill('[data-character-visual="palette"]', ...)` 之后 dirty 仍然为假——
   要么那次 fill 没进到受控 input 的 onChange，要么 `selected.profile` 与 `draft` 在那一刻本来就相等。
-  **诊断往前推了一步，但仍然没到底，所以这一格不算已验证**：第二次跑时先加了一条
-  `toHaveValue('#2e7d32 #b3e5fc')`——**它是过的**，而"保存档案"仍然 disabled。
-  受控 input 里留着输入值 + 没有状态变化 = `onChange` 里那次 `patchProfile` 根本没落到 `setDraft`，
-  而 `patchProfile` 唯一的静默出口是开头那句 `if (!selected || !draft) return;`。
-  下一步该做的实验也定死了：建完角色后**显式点一次 `[data-character-tab=<id>]`**（那里才会 `setDraft(character.profile)`），
-  再填色板；如果这一下 dirty 变真，就是"创建后 selectedId 有了但 draft 是那条路径塞的、两者不同步"，
-  修的是面板；如果仍然不真，就把 `patchProfile` 的入口条件当成嫌疑对象。
-  补丁与用例仍在 `/tmp/character-panel.patch` 与 `/tmp/character-scene.spec.ts.draft`（后者已带那条 toHaveValue 诊断）。
+  **上面那段"诊断"是错的，这里更正**：我当时说嫌疑收在 `patchProfile` 的入口条件（`!selected || !draft` 静默返回），
+  还写了"fill 落在 DOM 里但没落进 setDraft"——**证据并不支持这个结论**。真相朴素得多：
+  那条断言本身放错了位置。用例是 `click('[data-character-save]')` 之后再断言"保存档案"可点——
+  点下去之后它当然变成 disabled（按钮文案就是快照里那句"保存中…"），而 Playwright 的 `click` 本来就等过 enabled，
+  也就是说 **dirty 一直是真的，面板一直是对的，红的是我的断言顺序**。
+  第二处同理：换成断言"生成场景"可点之后仍然红，因为那时场景输入框还空着——它本来就该不可点。
+  两处都改完：**e2e 1 passed（13.4 秒）**。
+  教训写在这里代替猜测：断言"某按钮可点"之前先问一句"上一步点击是不是刚刚把它自己变灰了"；
+  快照里那句"保存中…"其实已经把答案给我了，是我没去读它。
 下一格的第一步应该是把这条门量清楚
   （在页面里读按钮文案是"保存档案"还是"没有改动"，再决定是改用例还是改面板）。
   顺带记一个已经想清楚的设计：那个按钮的可用条件应当读**已保存的** `selected.profile.visualIdentity.palette`，
   不是草稿里的——服务端判的是存档，界面拿草稿放行就会让人点出一个必然被拒的请求。
+
+**Character → Scene 的界面那一格：落地了**
+- 角色面板的视觉标识那一段下面多了场景输入框 + "生成场景"按钮（`[data-scene-prompt]` / `[data-character-scene]`）：
+  可用条件是**已存档**的色板非空 + 场景非空 + 没有正在忙——服务端判的是存档，界面拿草稿放行就会点出一个必然被拒的请求。
+  回执挂在 `[data-character-notice]`，文案是"这是清单里那个角色的一个场景（色调取自它的视觉标识）"。
+- 凭证：`e2e/character-scene.spec.ts`（@smoke）**1 passed（13.4 秒）**——空色板时按钮不可点 → 填色板存档 →
+  按钮活了 → 生成 → 切到资产库，最后一张卡片带 DEMO 角标且缩略图 `naturalWidth > 0`。
+  截图 `screenshots/character-scene.png`。
+- 于是 §38 / §40 那五条箭头里，text→image、reference→variation、character→scene 三条在界面上点得出来了；
+  image→image 与 sketch→image 仍未动（原因写在上面那条清单里）。
