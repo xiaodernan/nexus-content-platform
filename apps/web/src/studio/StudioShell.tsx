@@ -12,6 +12,7 @@ import { AssetsPanel } from './AssetsPanel';
 import { HealthRail } from './HealthPanel';
 import { WorldPanel } from './WorldPanel';
 import { GamePanel } from './GamePanel';
+import { StoryboardPanel } from './StoryboardPanel';
 import { CharacterPanel } from './CharacterPanel';
 import { MemoryPanel } from './MemoryPanel';
 import { RetrievePanel } from './RetrievePanel';
@@ -20,13 +21,14 @@ import { WorldGraphView } from './WorldGraphView';
 import { GameGraphView } from './GameGraphView';
 import { worldStore } from './worldStore';
 import { gameStore } from './gameStore';
+import { storyboardStore } from './storyboardStore';
 import { PropertiesPanel } from './PropertiesPanel';
 import { CanvasStage } from './CanvasStage';
 import { CodePanel } from './CodePanel';
 import { VariantsBoard } from './VariantsBoard';
 import { CommandBar } from './CommandBar';
 
-type PanelTab = 'layers' | 'design' | 'assets' | 'world' | 'game' | 'characters' | 'memory' | 'retrieve' | 'context' | 'history' | 'health';
+type PanelTab = 'layers' | 'design' | 'assets' | 'world' | 'game' | 'storyboard' | 'characters' | 'memory' | 'retrieve' | 'context' | 'history' | 'health';
 
 const TABS: { id: PanelTab; label: string }[] = [
   { id: 'layers', label: '图层' },
@@ -34,6 +36,7 @@ const TABS: { id: PanelTab; label: string }[] = [
   { id: 'assets', label: '资产库' },
   { id: 'world', label: '世界' },
   { id: 'game', label: '游戏' },
+  { id: 'storyboard', label: '分镜' },
   { id: 'characters', label: '角色' },
   { id: 'memory', label: '记忆' },
   { id: 'retrieve', label: '检索' },
@@ -76,11 +79,12 @@ export function StudioShell({
   }, [projectId, initialDocument]);
 
   useEffect(() => {
-    // 三份真值各自收尾：设计文档走画布的撤销栈，世界与游戏文档走各自的待写队列
+    // 四份真值各自收尾：设计文档走画布的撤销栈，世界、游戏与分镜文档走各自的待写队列
     const flush = () => {
       studio.flushSave();
       worldStore.flushSave();
       gameStore.flushSave();
+      storyboardStore.flushSave();
     };
     window.addEventListener('beforeunload', flush);
     return () => {
@@ -151,6 +155,8 @@ function StudioWorkspace({ zoom, demoMode }: { zoom: number; demoMode: boolean }
             <WorldPanel />
           ) : tab === 'game' ? (
             <GamePanel />
+          ) : tab === 'storyboard' ? (
+            <StoryboardPanel />
           ) : tab === 'characters' ? (
             <CharacterPanel />
           ) : tab === 'memory' ? (
