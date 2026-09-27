@@ -2847,3 +2847,16 @@ discrepancy is one definition in the base — my pre-measurement script and the 
 differ by one, and three probes (comments, strings and templates, both runner revisions) each returned "no phantom,
 355". That gap is recorded rather than papered over, because it says something about the method: a census you cannot
 reproduce with a second tool is not yet a prediction anchor. Reconciling it is #157.
+
+### Amendment 101, addendum (same cycle): the gap had a name, and it was my base
+
+The paragraph above handed a "one-definition gap" to the next increment. It closes inside this one: counting the 73
+scored proofs at ref `012f1f3` and at `3c097ea` with the same shipped `definitions()` gives 354 → 355, and the only file
+that moved is `confession-proof.mjs` itself, 12 → 13, the thirteenth definition being `ONE` — the helper §10 grew today
+so its ten reason fixtures could be graded through a single function. Nothing was phantom and nothing was wrong with
+the census: the row that censuses `docs/evidence/agents/*.mjs` is a member of that population, so every edit to the
+row moves the very total it prints. What was wrong is that I anchored a prediction on the previous run's total, which
+is a measurement of a different tree. Two consequences are recorded rather than argued: totals across runs must carry
+the ref they were counted at, and §10's invariant form (verdicts === definitions, per file, this run) is the one that
+cannot go stale — which is why #157 is now about printing the ref beside the totals and asserting a `git show <ref>`
+census equals the in-row one, so a stale-base prediction reddens a row instead of writing a wrong sentence into an ADR.

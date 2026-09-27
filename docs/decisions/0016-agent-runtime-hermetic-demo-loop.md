@@ -4588,3 +4588,22 @@ the anchor is the row's own figure, refused 40 of 355, and the prediction that m
 commit message rather than being rewritten.
 
 The evidence chain, at the witness ref `3c097ea`: a detached full sweep of 73 scripts · 42 failed · 0 killed · 346 s, graded build `cc73dcf781dd0a2b` and tree `61265f575e9c6e92` stable across the run, `dirty-sources 2` (the concurrent session’s two tracked sources, neither of them mine). `confession-proof.mjs` passed inside it in 113.4 s of its 240 s budget. The plane axis printed 262 call sites: program=117 argv=145 — the numbers the rule commit predicted before the run, which makes this the second prediction kept in this stack and the first whose base was taken from the row rather than from a scratch script. The confession axis reads supported 9 · partial 0 · invisible 4 · name no command 1, and its ceiling sentence now names the third face by reason: 0 declined, 0 readable-but-missing-the-verb, 2 on the face no row edit closes, with closure-proof’s helpers printed as `sh:no-code-position-git-spawn, slashed:no-code-position-git-spawn`. A row that once read “a wrapper that takes a PARAMETER” now reads which filter stopped which helper. §10’s own line from the same commit: [§10] verdict channel: 10/10 reasons each carry their own fixture · population of 73 rows speaks 355/355 definitions — readable 2, refused {"cwd":8,"redirect-flag":20,"param-in-options":12}, not-an-alias {"no-git-spawn":263,"no-code-position-git-spawn":7,"param-outside-spawn":38,"no-params":5} — so the ceiling's third face is now a list of reasons, not an adjective
+
+### Amendment 101, addendum (written the same cycle, after the record): the one-definition gap is explained, and it was my base that was stale
+
+The paragraph above says the gap between `spoken 354/354` (v100's row) and `spoken 355/355` (v101's row) was unexplained
+after three probes. It is explained, and the explanation indicts the prediction rather than the census: counting each
+of the 73 scored proofs at ref `012f1f3` and at `3c097ea` with the same shipped `definitions()` gives **354 → 355**, and
+the single file that moved is `confession-proof.mjs` itself, 12 → 13. The thirteenth definition has a name and it is
+`ONE` — the helper §10 grew today so its ten fixtures could be graded through one function. The row whose census I
+quoted as an anchor is a member of the population it censuses, and the increment that added a reason table helper
+grew the definition count by one — which is the ordinary behavior of a census over a corpus that includes the census.
+So every number the rule MOVED was predicted correctly and the BASE was read off a stale ref.
+
+That makes the lesson sharper than "re-measure before predicting": a proof that counts definitions across
+`docs/evidence/agents/*.mjs` shifts its own denominator whenever it is edited, so its previous run's total is not a
+baseline but a datum about a different tree. The honest form is the one §10 already uses for its INVARIANT (verdicts
+=== definitions, per file, this run) and does not use for its CEILING: totals quoted across runs need the ref attached.
+Task #157 shrinks accordingly, from "explain the phantom" to "print the ref the census texts came from beside the
+totals, and assert that a second census built from `git show <ref>:…` equals the in-row one", which turns a stale-base
+prediction like this one into a red row instead of a wrong ADR sentence.
