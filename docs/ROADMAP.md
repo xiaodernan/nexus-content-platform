@@ -2033,5 +2033,8 @@ Sketch → Image、Image → Image、Character → Scene 三条箭头；真 prov
 - 凭证：`e2e/character-scene.spec.ts`（@smoke）**1 passed（13.4 秒）**——空色板时按钮不可点 → 填色板存档 →
   按钮活了 → 生成 → 切到资产库，最后一张卡片带 DEMO 角标且缩略图 `naturalWidth > 0`。
   截图 `screenshots/character-scene.png`。
+  三条入口（Text→Image 与变体、组件面板、角色场景）**一起回归：3 passed（33.0 秒）**——
+  这一条是给 `generateImageFromPrompt` 那次签名改造（位置参数 → 来源对象）的回归凭证：
+  三个调用点里改了两个，跑一遍才知道没漏。
 - 于是 §38 / §40 那五条箭头里，text→image、reference→variation、character→scene 三条在界面上点得出来了；
   image→image 与 sketch→image 仍未动（原因写在上面那条清单里）。
