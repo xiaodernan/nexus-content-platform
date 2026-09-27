@@ -2795,3 +2795,26 @@ quietly pass a line that has forgotten the refutation. That check is amendment 8
 import's shape") applied to prose, and it was written after the first version reddened against the runner honestly
 quoting the sentence it had just refuted. The live population now reads `4 invisible clauses over 2 rows, 0/0/2 by
 face`: every remaining blind spot is on the face no row can close, and the axis says so with a number it computed.
+
+## A face the arm cannot name is a face it cannot be wrong about, so every filter now has a reason and every reason a fixture (`confession-proof.mjs` §10, M2 v100 — ADR 0016 amendment 100)
+
+Amendment 99's third face said "the arm has no verdict here", and the sentence was unfalsifiable in a way the other
+two were not: `gitAliases` recorded a refusal from one of its six filters and returned nothing from the rest, so the
+census could enumerate what it declined only when the decline happened to be the `cwd` key. `aliasVerdicts` replaces
+that side channel with `readable` / `refused` / `notAlias`, one `why` per entry, and the guarantee is arithmetic: the
+entries across all three buckets are exactly the file's definitions, matched by offset. Over the 73 scored rows the
+population speaks 354 verdicts for 354 definitions — 2 readable, 41 refused (8 by the `cwd` door that used to be the
+only voice, 21 redirect-flag, 12 options-position), 311 not-an-alias. Compared against what amendment 98 recorded, 33
+refusals had been occurring silently in the same files, three of them in the runner itself: `git`, `committedBlob`,
+`catFileBatchOptional`.
+
+§10 carries eight fixtures, one per reason, each asserting the bucket and the `why` for a single-definition source,
+then walks the population with two invariants — one verdict per definition, and no reason in the census that §10 has
+no fixture for, the admissible set being derived from the cases so a new door cannot join the silent face by
+oversight. One reason died on the way: `no-argv` had no reachable shape, since the finder keys on the comma after the
+program literal and a call cannot be written with nothing after it, so the branch was folded into the one above it
+rather than kept as an untestable claim. And one over-claim is recorded instead of repaired: `refused` counts
+definitions whose `git` sits in a comment or a string, because the candidate finder greps its text region — in this
+repo that is why `spawnSlices` and `quotedIn` are "refused for redirect-flag". Every such case ends in a refusal, the
+safe direction, so fixing it would widen the channel the ceiling exists to bound; the increment that gives the
+finder the byte walk's comment/string arm owes a prediction about which way that number moves.

@@ -4471,3 +4471,70 @@ One label in this record is wrong and stays wrong on purpose: the witness commit
 although the increment is v99. Fixing it would mean rewriting a commit that the sweep already names as its ref, and a
 record that can be edited to match its evidence is worth less than one that cannot, so the error is noted here instead
 — the same reasoning that keeps amendment 98's refuted prediction in the file rather than deleting it.
+
+### Amendment 100 (M2 v100): a census that can only name the helpers it declined out loud was a census of its own blind spots, so every filter in the alias arm now speaks a reason and every definition in a file must be spoken for
+
+Amendment 99 gave the residual three faces, and the third one was still an adjective: `gitAliases` pushed onto a
+`refused` list from exactly one of its six filters — the `cwd`-key door — while the redirect-flag door, the
+options-position door, the no-parameters door, the parameter-reaches-nowhere door and the no-spawn test all returned
+nothing at all. That asymmetry was recorded as a finding in amendment 98 ("2 rows readable, 8 recorded as refused,
+everything else dropped in silence, including the runner's own `git(argv, cwd)`") and then left in place. Leaving it
+was right for a cycle and wrong forever, because the sentence "the arm has no verdict about this helper" cannot be
+graded: it is true whether the arm looked and shrugged or never looked.
+
+`aliasVerdicts(src)` replaces the side channel with three buckets and a reason on every entry — `readable`,
+`refused` (`redirect-flag`, `cwd`, `param-in-options`), `notAlias` (`no-git-spawn`, `no-params`,
+`param-outside-spawn`) — and `gitAliases` is now the thin projection of that into the list the caller walks. The
+claim is arithmetic rather than descriptive: for every file, the entries across all three buckets are exactly the
+definitions in the file, by offset. Measured over the 73 scored rows at the witness ref: **354 definitions, 354
+verdicts, 0 unspoken** — readable 2, refused 41 (`cwd` 8, `redirect-flag` 21, `param-in-options` 12), notAlias 311
+(`no-git-spawn` 263, `param-outside-spawn` 41, `no-params` 7). Read against amendment 98's record, the 8 refusals it
+could count were the whole voiced set, and 33 more refusals had been happening silently in the same files — including
+the three in the runner that the options-position door drops: `git`, `committedBlob`, `catFileBatchOptional`.
+
+§10 of `confession-proof.mjs` grades that in two moves, and the second is the one that keeps the increment honest.
+Eight fixtures, one per reason, each asserting the exact bucket and `why` for a one-definition source. Then the
+census invariant over the whole population, and — because a filter with no fixture is a filter the census can hide in
+— the set of admissible reasons is DERIVED from the fixtures themselves, so adding a ninth door to `aliasVerdicts`
+without writing its case reddens the row rather than quietly widening the silent face. The reason list also lost one
+member on the way: `no-argv` turned out to have no reachable shape, because the slice finder keys on the comma after
+the program literal and `'git',` with nothing after it is not a call you can write. A reason that cannot be exercised
+is not a conservative branch, it is an untested claim about the code, so the two guards were folded together and
+`no-argv` is gone.
+
+The finding this increment surfaced but deliberately did NOT fix: `refused` is inflated by definitions whose `git`
+lives in a comment or a string. The candidate finder asks a text region for a `'git',` substring, so in this very file
+`spawnSlices` and `quotedIn` are refused for `redirect-flag` — not because they redirect anything, but because the
+region of one contains the other's documentation example, `execFileSync('git', …)`. That is amendment 97's defect
+(walk without a regex/string/comment arm) appearing in the arm that was written AFTER 97 shipped, which is the
+strongest argument in this record for why a fix must be graded by a row and not by a reading. It is left as a
+measured over-claim rather than fixed here because every one of these cases ends in a REFUSAL: the arm declines to
+read a verb, which is the safe direction, and narrowing it would make more aliases readable — widening the channel
+the ceiling exists to bound. The next increment should give the candidate finder the same comment/string awareness
+the byte walk has, and be graded on the count moving in the direction that claim predicts.
+
+__WITNESS__
+
+The prediction this increment kept, and the process gap around it. Before the sweep ran I expected the plane axis NOT
+to move — §10's eight fixtures are STRING literals and none of its assertion arrays opens with `git `, so under the
+rule that made amendment 98's witness move by one, nothing here is a reach. The witness ref `fde9159` measured
+`[identity] plane axis: 51/73 tracked proofs reach a git child process AT CODE POSITION (262 call sites:
+program=117 argv=145)` — identical to its parent ref in all three numbers — and the confession axis still ends at
+`supported 9 · partial 0 · invisible 4 · no-command 1 · MIS-CITED 0`, its third face now naming its reasons:
+`closure-proof.mjs dropped sh:param-outside-spawn, slashed:param-outside-spawn · 1 definition(s) never spawn git at
+all`, `cwd-axis-proof.mjs no candidate beyond the spawn test · 5 definition(s) never spawn git`. The row ran green in
+130.7 s of its 240 s budget inside a detached full sweep of 73 scripts · 42 failed · 0 killed · 416 s, graded build
+`cc73dcf781dd0a2b` stable across the run, tree `61265f575e9c6e92` stable, dirty-sources 2 (neither of them mine).
+Recording that honestly means naming the gap too: the prediction lived in the session's messages, not in a file the
+ref could be compared against, which is how two earlier predictions in this stack were able to be wrong in ways that
+were only discoverable afterwards. So the method change carried forward is that the next rule commit states its
+expected numbers in its own commit message, BEFORE the sweep it owes.
+
+Amendment 101's content came out of this census rather than out of a plan: `refused` counts definitions whose only
+`git` is a mention. In this file `spawnSlices` and `quotedIn` are refused for `redirect-flag`, not because either
+redirects anything but because the text region of one contains the other's documentation example
+`execFileSync('git', …)`. The candidate finder greps a raw slice between definition offsets and so has no comment or
+string arm — amendment 97's defect, rediscovered in a channel written after 97 shipped, which is the strongest
+argument in this record for why a fix must be graded by a row rather than by a reading. It is left unfixed here
+because every such case ends in a REFUSAL, the safe direction, and narrowing it would make more aliases readable —
+widening the channel the ceiling exists to bound.
