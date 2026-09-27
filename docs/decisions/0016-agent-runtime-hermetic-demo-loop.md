@@ -4818,3 +4818,67 @@ Measured at `ad8502b`: 73 scripts · 42 failed · 0 killed · 266 s, graded buil
 - **Evidence.** `three-runtime` **1/27 → 29/29** (two new cases: the config reaching the injected
   backend, and the manual-scheduler frame control), `tsc` clean from 15 errors, and the package builds.
   `world-engine` 31/31, `ai-providers` 20/20 and `agent-runtime` 360/360 are untouched by this change.
+
+### Amendment 109 (M2 v110, docs/evidence) — a mutation that copies the number it is supposed to derive stops mutating the moment the number legitimately moves, 2026-09
+
+- **What landed, in three refs.** `d890a76` appended the README sections for amendments 106 and 107, which
+  the ADR owned and the reader-facing doc did not (append-only: 41 lines added, 0 deleted, HEAD blob
+  verified a prefix). `0804f46` repaired the unit-test table, which was **red at HEAD before this
+  increment existed**: `agentRegistry.test.ts` (17 cases), `browserTools.test.ts` (20),
+  `multiAgentPipeline.test.ts` (12) and `vectorStore.test.ts` (6) are files a commit owns and the table
+  had no row for — the drift amendment 90 named once ("a whole FILE never entered") recurring one
+  increment later. Rows were written from each file's own `it()` titles and the live prose claim moved
+  `354 (26 files)` → `409 (30 files)`; the historical amendment paragraphs were left alone, so the diff is
+  5 added / 1 deleted, the single deletion being that live claim. `47a7537` is the finding this amendment
+  is about.
+- **The finding.** Making that honest prose change reddened §5 with
+  `MUTATION SURVIVED: the prose total loses one — this checker cannot see the defect it is claimed to
+  catch`. The mutation was written as `replace('sum to exactly **354**', 'sum to exactly **353**')`: it
+  carried a **hand-copied snapshot of the value it exists to perturb**. Once the true total became 409 the
+  pattern matched nothing, `String.replace` returned the text unchanged, and the case kept reporting
+  itself as run while mutating zero bytes. §5's unmutated control still passed and the survivor report was
+  accurate — the reporting was right and the mutation was wrong, which is why this took a real prose
+  change to discover rather than a reading.
+- **The rule extracted.** A mutation's target must be derived from the artifact it mutates, here
+  `replace(/sum to exactly \*\*(\d+)\*\*/, (whole, n) → 'sum to exactly **' + (Number(n) − 1) + '**')`, so
+  it bites whatever the live total is. This is amendment 92's lesson ("equality is not derivation") in the
+  opposite direction: the earlier family was a checker comparing a consumer to a source's *current* value;
+  this one is a *falsifier* holding a stale copy of a number, where the stale copy is invisible because a
+  no-op mutation looks exactly like a passing one. A battery that cannot tell "the defect was caught" from
+  "the mutation did not apply" is reporting more than it measured.
+- **Measured at `47a7537`, in the plane the assertion needed** (`table-recount-proof.mjs`, run from the
+  repository root after the commit, because §0 refuses to grade README bytes no commit made): `plane GIT`,
+  runtime rows 409 over 30 files = measured 409 over 30, exec-host 275 over 8 = measured 275 over 8,
+  failing TRACKED cases 0, `control clean · mutations caught: 4/4`, graded-tree digest `c94e9e210c41556d`
+  stable across the run, exit 0. The prediction written into `47a7537`'s own message (4/4, 409/30, 275/8,
+  0 red) held.
+- **The owed full sweep, launched detached at this ref and read out of its own summary line**
+  (`--isolated --ref 47a7537`, which exits 1 because the isolated plane says so):
+  `[summary] ref 47a75371c189 · scripts 73 · failed 42 · killed 0 (0 at the runner's default, 0 at a budget
+  the row named) · graded build c04f8cab9c33cc15 (280 dist files, stable across the run) · tree 7808ba1`,
+  with 38 of the 42 reds naming a git failure in their cause line. The axes this increment did not touch
+  held: plane axis 51/73 rows over 262 call sites (`program=117 argv=145`); confession axis supported 9 ·
+  partial 0 · invisible 4 with `MIS-CITED 0`; the plane self-report `GIT 0 · NO-GIT 4 · mute 69`; the echo
+  line 1 echoed / 1 matched the supplied NO-GIT / 0 ABSENT / 0 contradicted; `[asks axis]`'s gate number,
+  RED with neither prediction nor declaration, is 0; and the census row speaks 356/356 definitions counted
+  at DISK. **`table-recount-proof.mjs` is OK inside the full run** (11.8s, on its no-index branch), so the
+  repaired table is green under the runner and not only under a local single-process invocation.
+- **What only the sweep could show.** `provenance-proof.mjs` reddens with *no stdout at all*:
+  `git rev-parse HEAD → exit 128: fatal: not a git repository`. Its §11 — the section amendment 106 exists
+  to be — therefore never executes on the plane 42 of 73 rows are graded on: the two readers of the tree get
+  reconciled only where git can answer. That is the same class of defect the stack fixed once before, when
+  `confession-proof.mjs`'s unconditional `git rev-parse HEAD` crashed the row on the isolated plane
+  (amendment 102), and this row was already red before the present increment, so it is a hole and not a
+  regression. The reading that matters is the general one: a witness that cannot run where the runner runs
+  has said nothing about that run, however many assertions it holds.
+- **One number that disagrees across runs, recorded rather than reconciled.** The amendment 107 host probe
+  printed `answers (status 0, no error)` in this sweep's process tree, while that amendment's own record
+  states it failed `EBUSY` 6 times out of 6 when re-measured. Both are real spawns of the same shape, so the
+  truthful sentence is the narrower one: the fault is intermittent per run, and
+  `sync spawn API on this box` reports a run rather than a box — the second time that phrase has needed its
+  plane attached to it.
+- **Still open, named rather than papered over.** Nothing in the population refuses a *new* test file that
+  arrives with no table row, so this is the second occurrence of a defect the stack already described;
+  and amendment 106's sweep verdict was never recorded, because the run launched at `efc7d8f` died at
+  `isolated-proof.mjs` before printing `[summary]` — the value of a background run is the number it
+  printed, not the number its launcher expected.

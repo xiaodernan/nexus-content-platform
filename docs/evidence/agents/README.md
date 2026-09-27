@@ -2980,3 +2980,26 @@ recurring failure mode this README keeps filing (§60) and the reason this secti
 description rather than quietly restating the number. The probe costs one spawn per full run and adds no import edge.
 
 Written now, from the committed line, rather than in the increment's own commit.
+
+## A falsifier that copies the number it is supposed to perturb keeps passing after the number moves, which is a claim about a snapshot rather than a mechanism (`table-recount-proof.mjs` §5, M2 v110 — ADR 0016 amendment 109)
+
+This README's own unit-test table is graded by a row that recounts vitest output per file and then asks
+itself whether it could be red: four mutations of the table, each expected to be caught by the reader that
+calls the unmutated text clean. One of those mutations was written as a literal string swap —
+`sum to exactly **354**` → `**353**` — so it did not read the total it perturbs, it remembered it. When
+four committed test files (`agentRegistry` 17, `browserTools` 20, `multiAgentPipeline` 12, `vectorStore` 6)
+were finally entered and the live prose moved to **409 over 30 files**, that mutation stopped matching
+anything, returned the README unchanged, and reported itself as executed. §5 caught it only because a
+surviving mutation is named: `MUTATION SURVIVED: the prose total loses one — this checker cannot see the
+defect it is claimed to catch`. The control was clean and the report was accurate; the falsifier was the
+broken half, and a no-op mutation is indistinguishable from a passing one unless the target is derived.
+
+So the case now captures the digits out of the prose it is editing and subtracts one, which makes it bite
+whatever the total currently is. Read the other way: a mutation battery is a set of *programs*, and each one
+has to satisfy the same rule as the checker it tests — take the value from the artifact, never from a copy
+of a measurement someone made earlier.
+
+Ordering note worth keeping: `table-recount-proof.mjs` refuses to grade README bytes that no commit owns, so
+the workflow for a table change is patch → commit → re-run, and anyone who expects to verify locally before
+committing will read a §0 red as a defect in their repair. Measured at `47a7537` that way: rows 409/30 and
+275/8 matching their own recounts, 0 failing tracked cases, `control clean · mutations caught: 4/4`, exit 0.
