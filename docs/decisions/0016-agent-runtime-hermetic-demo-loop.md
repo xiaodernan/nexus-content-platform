@@ -4641,3 +4641,30 @@ The confirmation run, at `da1c309` and the ref that fixes its plane bug: `script
 The general form, for the next time a row reaches for a number from last run: a self-referential census has exactly
 two honest uses — as an invariant within a run (verdicts === definitions, which §10 already graded) and as a ref-anchored
 datum (which is what this adds). Quoting it as a baseline is the one use it does not have.
+
+### Amendment 103 (M2 v103): a verdict cannot say which tree it was reached in, so the sweep now reports the plane each row says it stood on — and names the rows that never say
+
+Amendment 102 left a lesson in its own record: a row gained an unconditional `git rev-parse HEAD`, and the sweep at
+that ref reported 43 failures where every ref before it had reported 42. The extra one was the new code, and it died
+only in the tree the sweep builds — the isolated checkout has no index, which is why the row's own loader falls back to
+a disk walk there and reads `HEAD` wherever an index exists. Nothing about the failure distinguishes the two trees
+afterwards: exit 1 looks the same on both, and the 41 rows that reach for the repository go red on the isolated plane
+for a reason that is entirely correct. So the runner's per-row reporting carried verdicts and reasons while the property
+that decided the outcome — which plane the row stood on — was knowable only by reading that row's own first line.
+
+The runner now reads it. Each row record keeps `head: headOf(stdout, 4)` beside its tail and error window, and
+`planeCensus(rows)` splits the run into rows that disclosed `plane GIT`, rows that disclosed `plane NO-GIT`, and rows
+that said nothing, printing all three counts and naming the silent ones. The reconciliation the line exists to make is
+explicit: a row claiming the GIT plane inside a tree the runner knows has no index is printed as a contradiction,
+because that is the shape of "the finding is about a repository I brought with me" — the failure mode amendments 80
+and 83 were written about, arriving from the opposite direction.
+
+§8 of `provenance-proof.mjs` grades the reader, and its fourth case is a limitation stated rather than hidden: the
+reader scans the first lines for a token and cannot distinguish a banner from prose that happens to write "plane GIT",
+so that fixture is pinned as an OVER-disclosure with its behavior asserted. The alternative was to narrow the pattern
+until no prose matches, which would trade a named over-claim for a silent channel that only fires when a row is
+formatted exactly as its author expected. §8 also requires the three buckets to sum to the rows handed in and the
+silent ones to be named — a remainder is how a self-report channel goes empty without anyone noticing — and anchors
+the whole section to the live banner `confession-proof.mjs` prints, so the fixtures are not the only thing being read.
+
+Measured at `876203a`: 73 scripts · 42 failed · 0 killed · 284 s, graded build `cc73dcf781dd0a2b` stable, `dirty-sources 2`. The predictions held: plane axis 262 call sites: program=117 argv=145, confession axis supported 9 · partial 0 · invisible 4 · MIS-CITED 0. The new line itself read: "which plane each row says it stood on (read out of the row's own first stdout lines, not inferred from its verdict): GIT 0 · NO-GIT 4 · mute about its own plane 69 (69 rows, e.g. agent-proof.mjs, bridge-report-proof.mjs, budgets-proof.mjs, changes-proof.mjs, closure-proof.mjs, code-index-proof.mjs, color-proof.mjs, commit-echo-proof.mjs …) · the tree the rows ran in has NO .git"

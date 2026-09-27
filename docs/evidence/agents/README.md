@@ -2883,3 +2883,21 @@ and `supported 9 · partial 0 · invisible 4 · no-command 1 · MIS-CITED 0` —
 the amendment. The carry-forward form: a row that censuses a population containing itself may report invariants and
 ref-anchored counts, and may predict the quantities its own edit moves, but the number it printed last run is
 evidence about a different tree.
+
+## A verdict cannot say which tree it was reached in, so each row's own plane self-report is now read, counted and reconciled (`provenance-proof.mjs` §8, M2 v103 — ADR 0016 amendment 103)
+
+Amendment 102's row died only inside the isolated checkout, because a proof reads its population from `git show HEAD:`
+where an index exists and from disk where it does not — and after the fact, exit 1 is the same shape on both trees. The
+sweep already had verdicts, reasons and error windows per row; what it never had was the property that decided the
+outcome. Each row record now keeps `head: headOf(stdout, 4)` beside its tail, and `planeCensus` splits the run into
+rows that said `plane GIT`, rows that said `plane NO-GIT` and rows that said nothing, printing the three counts and
+naming the silent ones. A row claiming the GIT plane inside a tree the runner knows has no index is printed as a
+contradiction, which is amendment 80's and 83's failure mode arriving from the other direction: a finding about a
+repository the row brought with it.
+
+§8 grades that reader on four shapes — two banners, a verdict that discloses nothing, and prose that happens to write
+the words "plane GIT". The last is pinned as an OVER-disclosure with its behavior asserted rather than narrowed away:
+a pattern tight enough to ignore prose is a channel that only fires when a row is formatted as its author expected.
+The section also requires the three buckets to sum to the rows given (a remainder is how a self-report channel goes
+empty unnoticed), names the silent rows by file, and anchors the whole thing to the banner `confession-proof.mjs`
+actually prints, so the fixtures are not the only bytes being read.
