@@ -1043,6 +1043,26 @@ export function gradeConfession(payloads, ownText, selfSrc) {
 }
 
 /**
+ * Which plane each row SAYS it stood on (M2 v103), read out of the row's own first stdout lines.
+ *
+ * A row's population is `git show HEAD:…` where an index exists and a disk walk where it does not, so the tree a
+ * finding was made about is a property of the row's environment, not of the runner's intent — and a verdict cannot
+ * tell them apart, because exit 1 looks the same on both. Amendment 102 is the reason this exists: a row gained an
+ * unconditional `git rev-parse HEAD`, five siblings stayed green, and the sweep was the only reader that could see
+ * the row had crashed in the tree the sweep itself had built.
+ *
+ * The census is deliberately narrow: only the first lines are read (`head`), so a row that discloses its plane in a
+ * later line counts as MUTE. That ceiling is the honest one — the alternative is reading whole streams and calling an
+ * incidental "plane" in prose a self-report.
+ */
+export function planeCensus(rows) {
+  const said = (r) => (/\bplane (GIT|NO-GIT)\b/.exec(String(r?.head ?? '')) ?? [])[1] ?? null;
+  const d = { GIT: [], 'NO-GIT': [], mute: [] };
+  for (const r of rows ?? []) d[said(r) ?? 'mute'].push(String(r?.name ?? '').split('/').pop());
+  return d;
+}
+
+/**
  * Split the byte arm's invisible clauses by WHICH face of the ceiling they sit on (M2 v99), so the axis sentence is
  * computed from the same grammar it explains instead of remembering a reason it once had.
  *
@@ -1708,9 +1728,7 @@ export async function runSweep({ ref = 'HEAD', only = null, cwd = process.cwd(),
     // otherwise — amendment 102 learned that by crashing a row on an unconditional `git rev-parse HEAD` while five
     // siblings were green on the same bug. So the runner now reports the plane each ROW reported, and names the ones
     // that never say, because a finding that cannot be attributed to a tree is not evidence about this run.
-    const planeOf = (r) => (/\bplane (GIT|NO-GIT)\b/.exec(String(r.head ?? '')) ?? [])[1] ?? null;
-    const disclosed = { GIT: [], 'NO-GIT': [], mute: [] };
-    for (const r of results) disclosed[planeOf(r) ?? 'mute'].push(r.name.split('/').pop());
+    const disclosed = planeCensus(results);
     const childHasIndex = childTree.gitRepo === true;
     const contra = disclosed.GIT.filter((n) => !childHasIndex);
     log(`[identity] which plane each row says it stood on (read out of the row's own first stdout lines, not inferred from its verdict): GIT ${disclosed.GIT.length} · NO-GIT ${disclosed['NO-GIT'].length} · mute about its own plane ${disclosed.mute.length}${disclosed.mute.length <= 8 ? ` (${disclosed.mute.join(', ') || 'none'})` : ` (${disclosed.mute.length} rows, e.g. ${disclosed.mute.slice(0, 8).join(', ')} …)`} · the tree the rows ran in ${childHasIndex ? 'HAS a .git' : 'has NO .git'}${contra.length ? ` — ⚠ ${contra.length} row(s) claim the GIT plane inside a tree with no index (${contra.join(', ')}), which is the contradiction this line exists to catch` : ''}`);
