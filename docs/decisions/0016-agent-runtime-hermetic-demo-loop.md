@@ -4410,3 +4410,64 @@ at its call sites, which is how four of the nine became readable. The residual f
 invisible for the narrower reason this record states — their verbs sit in a wrapper whose DIRECTORY comes from its
 caller, which the doors refuse to read — and the next increment should make the axis say that, and be graded on
 saying it, rather than leaving a wrong explanation in the only line most readers of a sweep log will read.
+
+### Amendment 99 (M2 v99): the residual had an explanation written from memory, and the memory was amendment 96's — so the ceiling is now classified by WHO HOLDS THE EDIT, the axis sentence interpolates that classification, and the check that enforces it had to learn that a quotation is not an assertion
+
+Amendment 98 shipped a rule and left the runner's own sentence about its residual untouched. That sentence — the tail of
+`[identity] confession axis (bytes)` — read: "every one of those reaches carries its verb through a wrapper that takes
+a PARAMETER, so only the CODE could name it, and an arm that demanded that would be a checker pressuring the
+population to flatter it". It was written in amendment 96 and it was false by amendment 98's own finding, twice over:
+a parameter wrapper IS named by code at its call sites (that is the increment), and the comment block above
+`gradeConfession` illustrated the "unreadable" case with `gitText()`, which the alias arm now reads perfectly well.
+Nothing caught either drift, because the sentence was prose and prose has no witness.
+
+So the residual is now a computation. `aliasCeiling(rows)` takes the rows whose clauses are dead and returns them
+bucketed by which face of the ceiling they sit on, where the faces are defined by **who can close them**:
+
+- `declined` — the row owns a helper the arm classified as a git alias and refused out loud, and the bucket carries
+  the door that refused it (`git:cwd`). One edit by that row — delete the location from its own helper — lifts the
+  clause, which is exactly the mutation §8 of `confession-proof.mjs` performs on a sibling fixture.
+- `readable` — the row owns a readable alias and the clause is *still* dead, because that alias reaches some commands
+  and not this one. Also closable by the row, at a call site.
+- `silent` — neither: the arm has no verdict about any helper in the file, because the frame that spawns the child is
+  not the row's own. This is the face no row edit lifts, and it is where this file's own `git(argv, cwd)` lives.
+
+The axis line interpolates the three counts and names the rows in each bucket, so an explanation of a residual can no
+longer outlive the grammar that produced it. The first cut of this increment had TWO buckets — declined and "no
+verdict on record" — and §9's fixture pair caught the error before it shipped: the second bucket swallowed a row that
+owns a working alias, i.e. a row the arm had classified and had merely not helped. A name that broad turns a
+measurement into a shrug, so the split became three-way and the witness expectation was rewritten from `invisible` to
+the `partial` the arm actually reports. That is the second time in two cycles that a bucket's NAME was the defect.
+
+§9 grades the sentence rather than trusting it, in both directions. Four fixtures walk the faces, and the discriminating
+pair is two sources that differ by one `, { cwd: root }`: on a row-owned helper that deletion moves the clause from
+`invisible` to `supported` and the row off the declined face; on a borrowed frame the SAME deletion changes nothing at
+all — same state, same face — which is the sentence's claim ("who holds the edit") rendered as a mutation the census
+cannot fake. Then the anti-stale check reads the committed runner line and requires that the refuted sentence appear
+only inside a quoted span: `axisLine.replace(/"[^"\n]*"/g, '')` strips citations, and the assertion fires if the phrase
+survives the strip. The first version of that check looked only for the phrase anywhere in the line, and reddened
+against the runner's own honest citation of it — amendment 89's lesson that a quotation wears an assertion's shape,
+applied this time to prose instead of an import. So the check is paired with a non-vacuity assertion that the citation
+IS present, otherwise the strip would silently pass a line that had forgotten the refutation entirely.
+
+[identity] confession axis (bytes): 4 declaring rows · 14 clauses — supported 9 · partial 0 · invisible 4 · name no
+command 1 · MIS-CITED 0 — versus unreadable-by-every-frame 4 (ls-tree, rev-parse, show) over 2 row(s), and those rows
+sit on THREE faces of one ceiling, which differ in who holds the edit: 0 declined out loud by a door its own helper
+named, 0 whose row owns a readable alias that simply does not reach this verb, and 2 on which the arm has no verdict
+at all because the spawning frame is not the row's (closure-proof.mjs, cwd-axis-proof.mjs)
+
+So the population says the residual is ALL on the third face: no row in it can lift its own clause, and the sentence
+now says that by reading it off `aliasCeiling` rather than by reciting a reason. The plane axis moved
+`261 → 262 call sites, program=117 argv 144 → 145`, and the single new reach is `confession-proof.mjs:429`'s
+`const CEIL = ["git ls-tree -r --name-only HEAD …"]` — a declaration array whose head string opens with `git `, which
+is the fifth instance of the over-prediction `plane-axis-proof.mjs:86` pins with its expected count in the table, and
+the row reappears in the run's `GREEN while predicted 12` list, which is where amendment 98 said an over-claimed row
+that never breaks belongs. `sweep.mjs`'s own five reaches did not change count; its `archive` program literal moved
+from offset 72869 to 74962 purely because the file grew above it. Witness: §9 green, exit 0 in 71.0 s of a 240 s
+budget, in a detached full sweep at `48715a0` that scored 73 scripts · 42 failed · 0 killed · 271 s with the graded
+build digest `cc73dcf781dd0a2b` stable across the run.
+
+One label in this record is wrong and stays wrong on purpose: the witness commit `48715a0` is titled "M2 v98 witness"
+although the increment is v99. Fixing it would mean rewriting a commit that the sweep already names as its ref, and a
+record that can be edited to match its evidence is worth less than one that cannot, so the error is noted here instead
+— the same reasoning that keeps amendment 98's refuted prediction in the file rather than deleting it.

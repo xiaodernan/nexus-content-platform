@@ -2772,3 +2772,26 @@ borrows the argv rule's `^git\s` test. `plane-axis-proof.mjs:86` already pins th
 its expected count in the table, and the axis's own `GREEN while predicted` list names `confession-proof.mjs`, which
 is where an over-claimed row that never breaks is supposed to show up. Full account in amendment 98's addendum,
 including the runner sentence the increment left stale.
+
+## The residual's explanation was written from memory, so it got a computation and a witness (`confession-proof.mjs` §9, M2 v99 — ADR 0016 amendment 99)
+
+The confession axis ended its sentence with a reason: invisible clauses were invisible "because every reach carries
+its verb through a wrapper that takes a PARAMETER, so only the CODE could name it". Amendment 98 refuted that
+explanation and the runner kept printing it anyway, alongside a comment block that illustrated the unreadable case
+with a helper the alias arm now reads. Prose has no witness, so nothing reddened. §9 gives the sentence one.
+`aliasCeiling` buckets each row whose clause is dead by WHO CAN CLOSE IT: `declined` (the row owns a helper the arm
+classified and refused out loud, and the bucket names the door — delete the location from that helper and the clause
+lifts), `readable` (the row owns a working alias that reaches another verb, so the clause is `partial` and the edit is
+a second literal at its own call site), and `silent` (the spawning frame is not the row's at all, so no row edit lifts
+anything — this file's own `git(argv, cwd)` is on this face). The axis line interpolates those three counts and names
+the rows in each, so the explanation is now downstream of the grammar instead of a memory of it.
+
+The witness walks the faces with four fixtures, and the pair that matters differs by one `, { cwd: root }`: on a
+row-owned helper the deletion moves the clause `invisible → supported` and the row off the declined face; on a borrowed
+frame the same deletion changes nothing, which is the sentence's claim rendered as a mutation. Then it turns the arm on
+the runner's own words: it reads the committed axis line, strips double-quoted spans, and requires the refuted
+sentence to survive only as a citation — with a paired assertion that the citation is present, so the strip cannot
+quietly pass a line that has forgotten the refutation. That check is amendment 89's rule ("a quotation wears an
+import's shape") applied to prose, and it was written after the first version reddened against the runner honestly
+quoting the sentence it had just refuted. The live population now reads `4 invisible clauses over 2 rows, 0/0/2 by
+face`: every remaining blind spot is on the face no row can close, and the axis says so with a number it computed.
