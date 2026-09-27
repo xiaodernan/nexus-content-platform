@@ -440,6 +440,10 @@ export interface SerializedEntity {
   visible: boolean;
   castShadow: boolean;
   receiveShadow: boolean;
+  /** Declared by `ThreeEntity` and part of an entity's state, so the save shape has to carry it or a
+   *  restore silently resets it. `saveFeasibilityAudit` would report it as dropped if this line or the
+   *  matching line in `snapshotEntity` were removed — the claim is checked, not assumed. */
+  layers: number;
   components: Map<string, EntityComponent>;
   userData: Record<string, unknown>;
 }

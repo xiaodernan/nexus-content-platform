@@ -15,6 +15,7 @@ import type {
   LightingConfig,
   CharacterController,
   ControllerInput,
+  SerializedEntity,
 } from './types.js';
 import {
   createWebGLBackend,
@@ -97,6 +98,75 @@ export interface ControllerFieldAudit {
 
 function emptyControllerInput(): ControllerInput {
   return { moveForward: false, moveBackward: false, moveLeft: false, moveRight: false, jump: false, run: false, crouch: false, custom: {} };
+}
+
+/**
+ * What the save surface can carry. `snapshotEntity`/`restoreEntity` are the first readers of the
+ * `SerializedEntity` type, which `types.ts` had declared with nothing constructing or consuming it.
+ *
+ * An entity's `threeObject` and `transform` are not extra state — they are two views of the same
+ * numbers (`entity.transform.position === entity.threeObject.position`, pinned in the controller
+ * suite) — so the save shape carries them as `position`/`rotation`/`scale`. This table records WHICH
+ * fields of that view the shape claims to carry, and `saveFeasibilityAudit` accepts an alias only when
+ * every name it claims is present in the snapshot it actually builds. That is why `layers` is listed
+ * here and declared on `SerializedEntity`: the claim is checked against the produced record, so a shape
+ * that stops carrying a field it claims is reported as broken instead of restoring a default.
+ */
+const SAVE_ALIAS_CLAIMS: Record<string, readonly string[]> = {
+  threeObject: ['position', 'rotation', 'scale', 'visible', 'castShadow', 'receiveShadow', 'layers'],
+  transform: ['position', 'rotation', 'scale'],
+};
+
+/** Which declared `SaveData` fields the runtime can fill today, and which are waiting on a system that
+ *  does not exist yet. The blocked half is the honest part: `npcs`/`quests`/`player`/`cinematic` are all
+ *  declared in `types.ts` and implemented by nothing, so a `SaveData` written today would carry empty
+ *  maps that look like an empty game world. */
+const SAVE_DATA_FEASIBILITY: { savable: readonly string[]; blocked: readonly { field: string; needs: string }[] } = {
+  savable: ['entities'],
+  blocked: [
+    { field: 'sceneGraph', needs: 'SerializedScene stores a LightingConfig whose lights hold live THREE.Light objects, which nothing here can rebuild' },
+    { field: 'npcs', needs: 'NPCSystem is declared in types.ts and implemented by nothing' },
+    { field: 'quests', needs: 'QuestSystem is declared in types.ts and implemented by nothing' },
+    { field: 'player', needs: 'SerializedPlayer names health/mana/inventory/skills; the runtime holds no player state' },
+    { field: 'worldState', needs: 'the runtime keeps no world-state store' },
+    { field: 'cinematic', needs: 'updateCinematics is an empty stub, so there is no sequence state to save' },
+  ],
+};
+
+/** The answer `saveFeasibilityAudit` gives. `dropped` is the list that matters: a live field the shape
+ *  cannot carry is a save that lies about the state it restored. */
+export interface SaveFeasibilityAudit {
+  dropped: string[];
+  aliased: string[];
+  savable: string[];
+  blocked: { field: string; needs: string }[];
+}
+
+/**
+ * The two open bags in the save shape (`userData`, `EntityComponent.data`) must hold data, not live
+ * objects. A reference to a running `THREE.Object3D` inside a snapshot keeps the whole scene graph alive
+ * behind it and restores as a detached object, so a class instance is refused BY NAME rather than copied
+ * into something flatter than what the caller put in.
+ */
+function plainDataOrRefuse(value: unknown, path: string): void {
+  if (value === null || value === undefined) return;
+  const kind = typeof value;
+  if (kind === 'number' || kind === 'string' || kind === 'boolean') return;
+  if (Array.isArray(value)) {
+    value.forEach((item, i) => plainDataOrRefuse(item, `${path}[${i}]`));
+    return;
+  }
+  if (kind !== 'object') {
+    throw new Error(`snapshot: ${path} holds ${kind}, which a save cannot carry`);
+  }
+  const proto = Object.getPrototypeOf(value as object);
+  if (proto !== Object.prototype && proto !== null) {
+    const name = (value as { constructor?: { name?: string } }).constructor?.name ?? 'unnamed class';
+    throw new Error(`snapshot: ${path} holds a ${name} instance, not plain data — a save stores values, not live objects`);
+  }
+  for (const [key, nested] of Object.entries(value as Record<string, unknown>)) {
+    plainDataOrRefuse(nested, `${path}.${key}`);
+  }
 }
 
 export class ThreeRuntime {
@@ -225,10 +295,38 @@ export class ThreeRuntime {
     rotation?: THREE.Euler,
     scale?: THREE.Vector3
   ): ThreeEntity {
+    return this.insertEntity(
+      sceneId,
+      entityId(`entity-${Date.now()}-${Math.random().toString(36).slice(2)}`),
+      name,
+      type,
+      geometry,
+      material,
+      position,
+      rotation,
+      scale,
+    );
+  }
+
+  /**
+   * Build one entity and register it under `id`. `createEntity` generates the id; a restore passes the
+   * saved one, because `SerializedEntity.id` is only worth storing if a load hands back the SAME address
+   * — otherwise everything that referenced the old id (a controller, another entity's `userData`) points
+   * at nothing after a load, while the save itself claims it recorded the id.
+   */
+  private insertEntity(
+    sceneId: SceneId,
+    id: EntityId,
+    name: string,
+    type: ThreeEntity['type'],
+    geometry?: THREE.BufferGeometry,
+    material?: THREE.Material | THREE.Material[],
+    position?: THREE.Vector3,
+    rotation?: THREE.Euler,
+    scale?: THREE.Vector3
+  ): ThreeEntity {
     const scene = this.sceneGraph.scenes.get(sceneId);
     if (!scene) throw new Error(`Scene ${sceneId} not found`);
-
-    const entityIdValue = entityId(`entity-${Date.now()}-${Math.random().toString(36).slice(2)}`);
 
     let threeObject: THREE.Object3D;
     switch (type) {
@@ -262,7 +360,7 @@ export class ThreeRuntime {
     threeObject.updateMatrixWorld(true);
 
     const entity: ThreeEntity = {
-      id: entityIdValue,
+      id,
       name,
       type,
       threeObject,
@@ -281,7 +379,7 @@ export class ThreeRuntime {
       userData: {},
     };
 
-    scene.entities.set(entityIdValue, entity);
+    scene.entities.set(id, entity);
     scene.threeScene.add(threeObject);
 
     this.emit('entityCreated', { sceneId, entity });
@@ -343,6 +441,126 @@ export class ThreeRuntime {
 
   getComponent(entity: ThreeEntity, componentType: string): EntityComponent | undefined {
     return entity.components.get(componentType);
+  }
+
+  /**
+   * Copy one entity's state out of the running scene, under the shape `SerializedEntity` declares.
+   *
+   * The three numbers-bearing fields are CLONED, not assigned: `entity.transform.position` is the very
+   * object the renderer moves, so a snapshot that stored the reference would keep changing after it was
+   * taken, and a caller would have no way to tell a saved position from a live one. The two open bags
+   * (`userData`, each component's `data`) are checked by `plainDataOrRefuse` first, so a value that is a
+   * live class instance is refused with its path named instead of being flattened into a plain object.
+   */
+  snapshotEntity(sceneId: SceneId, entity: EntityId): SerializedEntity {
+    const target = this.getEntity(sceneId, entity);
+    if (!target) throw new Error(`snapshotEntity: entity ${entity} is not in scene ${sceneId}`);
+    const copy = (record: Record<string, unknown>, path: string): Record<string, unknown> => {
+      plainDataOrRefuse(record, path);
+      return structuredClone(record);
+    };
+    return {
+      id: target.id,
+      name: target.name,
+      type: target.type,
+      position: target.threeObject.position.clone(),
+      rotation: target.threeObject.rotation.clone(),
+      scale: target.threeObject.scale.clone(),
+      visible: target.visible,
+      castShadow: target.castShadow,
+      receiveShadow: target.receiveShadow,
+      layers: target.layers,
+      components: new Map(
+        [...target.components].map(([key, component]) => [
+          key,
+          { type: component.type, data: copy(component.data, `components.${key}.data`), enabled: component.enabled },
+        ]),
+      ),
+      userData: copy(target.userData, 'userData'),
+    };
+  }
+
+  /**
+   * Put a snapshot back, under the id it was saved with.
+   *
+   * This is a NEW entity, not an overwrite: restoring onto a live id would replace state the caller has
+   * not agreed to lose, so an occupied id throws instead. Because `SerializedEntity` carries no geometry
+   * or material, a restored mesh is built the same way `createEntity` builds one with no shape arguments
+   * — the default box and standard material — which `saveFeasibilityAudit` names rather than leaves for
+   * the caller to discover as a wrong-looking scene.
+   */
+  restoreEntity(sceneId: SceneId, snapshot: SerializedEntity): ThreeEntity {
+    if (!this.sceneGraph.scenes.get(sceneId)) {
+      throw new Error(`restoreEntity: scene ${sceneId} does not exist (entity ${snapshot.id})`);
+    }
+    if (this.getEntity(sceneId, snapshot.id)) {
+      throw new Error(`restoreEntity: entity ${snapshot.id} is already in scene ${sceneId}; a restore never overwrites live state`);
+    }
+    const entity = this.insertEntity(
+      sceneId,
+      snapshot.id,
+      snapshot.name,
+      snapshot.type,
+      undefined,
+      undefined,
+      snapshot.position,
+      snapshot.rotation,
+      snapshot.scale,
+    );
+    entity.visible = snapshot.visible;
+    entity.castShadow = snapshot.castShadow;
+    entity.receiveShadow = snapshot.receiveShadow;
+    entity.layers = snapshot.layers;
+    entity.threeObject.visible = snapshot.visible;
+    entity.threeObject.castShadow = snapshot.castShadow;
+    entity.threeObject.receiveShadow = snapshot.receiveShadow;
+    entity.threeObject.layers.set(snapshot.layers);
+    for (const [key, component] of snapshot.components) {
+      entity.components.set(key, { type: component.type, data: structuredClone(component.data), enabled: component.enabled });
+    }
+    for (const [key, value] of Object.entries(snapshot.userData)) {
+      entity.userData[key] = structuredClone(value);
+    }
+    // No `updateMatrix()` here: the insert path rebuilds it after copying position/rotation/scale, and a
+    // second call measured as a mutation is caught by nothing — which is how a redundant line becomes a
+    // claimed guarantee that no test can falsify.
+    this.emit('entityRestored', { sceneId, entity, entityId: snapshot.id });
+    return entity;
+  }
+
+  /**
+   * Say, for one live entity, what a save would actually carry.
+   *
+   * `dropped` is derived by comparing the fields the runtime's OWN snapshot builder produces with the
+   * fields the caller's entity has, so it cannot go stale quietly: a field added to `ThreeEntity` without
+   * a matching line in `snapshotEntity` lands here by name, and `threeObject`/`transform` land here with
+   * the specific claim of theirs that no longer holds (`SAVE_ALIAS_CLAIMS`). `blocked` is the other half
+   * of the honesty: the declared `SaveData` asks for npcs, quests, a player and a cinematic state the
+   * runtime does not implement, so a whole-game save written today would be a file full of empty maps.
+   */
+  saveFeasibilityAudit(sceneId: SceneId, entity: EntityId): SaveFeasibilityAudit | undefined {
+    const target = this.getEntity(sceneId, entity);
+    if (!target) return undefined;
+    const carried = new Set(Object.keys(this.snapshotEntity(sceneId, entity)));
+    const dropped: string[] = [];
+    const aliased: string[] = [];
+    for (const field of Object.keys(target)) {
+      if (carried.has(field)) continue;
+      const claim = SAVE_ALIAS_CLAIMS[field];
+      if (!claim) {
+        dropped.push(field);
+        continue;
+      }
+      const missing = claim.filter((name) => !carried.has(name));
+      if (missing.length === 0) aliased.push(field);
+      else dropped.push(`${field} (${missing.join(', ')} not carried)`);
+    }
+    return {
+      dropped: dropped.sort(),
+      aliased: aliased.sort(),
+      savable: [...SAVE_DATA_FEASIBILITY.savable],
+      blocked: SAVE_DATA_FEASIBILITY.blocked.map(({ field, needs }) => ({ field, needs })),
+    };
   }
 
   createCamera(

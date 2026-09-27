@@ -1,4 +1,4 @@
-# @nexus/three-runtime — evidence for v108 (host seams) and v114 (character controller)
+# @nexus/three-runtime — evidence for v108 (host seams), v114 (character controller) and v115 (the entity save format)
 
 This directory records the 3D runtime lane (ROADMAP M5). Every claim here is read back out of the
 shipped source and the package's own vitest suite — `packages/three-runtime/src/*.ts` and
@@ -69,3 +69,42 @@ this is not decoration: two controllers differing only in `slopeLimit`/`stepOffs
 Honest bounds, unchanged: `updatePhysics` and `updateCinematics` are still empty stubs; there is no
 Studio surface driving this runtime; and the cinematic slice is not built. This record claims only the
 controller and the two seams it stands on.
+
+## v115 — the save format got a writer and a reader, and an audit of what it still cannot carry
+
+`SerializedEntity`, `SerializedSceneGraph` and `SaveData` were declared in `types.ts` and constructed or
+consumed by nothing: a save format nobody could write. v115 makes the **entity half** of it real and
+refuses to pretend about the rest.
+
+| what | measured |
+| --- | --- |
+| suite | `test/saveSnapshot.test.ts`, 42 cases; package total **110** (29 runtime + 39 controller + 42 save), `tsc` clean |
+| writer | `snapshotEntity(sceneId, entity)` → a `SerializedEntity`: position/rotation/scale **cloned**, so moving the live entity after the snapshot does not move the saved number |
+| reader | `restoreEntity(sceneId, snapshot)` → a NEW entity under the **saved id** (`SerializedEntity.id` is only worth storing if a load hands back the same address) |
+| refusal | a restore onto a live id throws (`already in scene … a restore never overwrites live state`); an unknown scene throws naming both the scene and the entity |
+| data rule | `userData` and each `EntityComponent.data` are checked before copying: a live `THREE.Vector3` is refused with its **path** (`userData.meta.tag`), an array element by index (`userData.list[1]`), a `Map` by class name, a function by kind |
+| audit | `saveFeasibilityAudit(sceneId, entity)` → `{dropped, aliased, savable, blocked}` for a live entity; `undefined` when the entity is absent |
+
+Two things the audit says that a passing test suite would not:
+
+* `layers` is part of an entity's state, so `SerializedEntity` had to grow a `layers` field — and the
+  alias claim for `threeObject` is checked against the record `snapshotEntity` actually builds. Patch the
+  builder to forget `layers` and the audit answers `['layers', 'threeObject (layers not carried)']`
+  instead of restoring channel 0 in silence.
+* `SaveData` is **not** savable yet. `savable: ['entities']` against
+  `blocked: [sceneGraph, npcs, quests, player, worldState, cinematic]`, each with the reason named
+  (`NPCSystem`/`QuestSystem` are declared and implemented by nothing; `SerializedScene` stores a
+  `LightingConfig` whose lights hold live `THREE.Light` objects). A whole-game save written today would be
+  a file full of empty maps that opens as an empty world.
+
+What v115 still does **not** do, stated by name: no geometry and no material are in the shape, so a
+restored mesh is the default `BoxGeometry(1,1,1)` with a `MeshStandardMaterial` — a test measures both
+vertex counts rather than asserting they differ in prose; nothing is serialised to JSON or to disk (the
+snapshot is an in-memory `SerializedEntity`); the restored entity also fires `entityCreated`, because a
+load really does add an object to the scene; and `SaveData`'s blocked six fields stay blocked.
+
+The last section of the suite does not restate the production tables. It reads `src/types.ts` from disk
+and requires that `snapshotEntity` produces **exactly** the fields `SerializedEntity` declares, that every
+declared field of `ThreeEntity` is either carried or explicitly aliased, and that `savable ∪ blocked` is an
+exact partition of the fields `SaveData` declares — so a shape that drifts from its writer is a red test,
+not a save that quietly restores a default.

@@ -5208,3 +5208,75 @@ was run at the fix ref: deleting the diagonal normalisation reddened exactly one
 integrator is the live path and not a parallel copy. Honest bounds kept: `updatePhysics` and
 `updateCinematics` are still empty stubs, there is no Studio surface driving this runtime, and the
 cinematic slice is not built.
+
+### Amendment 115 — v115: the declared save format gets a writer and a reader, and an audit that names what a save still cannot carry
+
+The census that chose v114 was "which declared type is read by nothing". Re-running it after that commit left the
+same shape of hole one level down: `types.ts` declares `SaveData`, `SerializedSceneGraph`, `SerializedScene`,
+`SerializedEntity`, `SerializedNPC`, `SerializedQuestSystem`, `SerializedPlayer` and `SerializedCinematic`, and
+before v115 **nothing in the package constructed or consumed any of them**. A save format with no writer is worse
+than no save format, because a reader of the type list would believe the game state round-trips. So v115 built
+the entity half of it and refused to pretend about the rest.
+
+The first thing a snapshot has to get right is that it stops being a reference. `entity.transform.position` is the
+very `THREE.Vector3` the renderer moves (the controller suite pins that identity), so a snapshot that assigned
+rather than cloned would keep changing after it was taken, and nothing downstream could tell a saved position from
+a live one. `snapshotEntity` clones position, rotation and scale, and keeps their classes — a saved rotation is a
+`THREE.Euler`, not a `{x,y,z}` bag that happens to compare equal. The two open bags in the shape (`userData`, and
+each `EntityComponent.data`) are checked before they are copied: a live `THREE.Vector3` stashed in `userData` is
+refused **with its path**, so `userData.meta.tag` names itself rather than being flattened into something flatter
+than what the caller put in, an array element is refused by index, a `Map` by class name, a function by kind. A
+reference to a running object would keep the whole scene graph alive behind the snapshot and come back detached.
+
+A restore is an insert under the saved address, not a fresh entity wearing the old name. `SerializedEntity.id` is
+only worth storing if a load hands the same id back — otherwise every reference to the old id (a controller,
+another entity's `userData`) points at nothing after a load while the save claims it recorded the id. That is why
+`createEntity` no longer owns entity registration: both paths call the private `insertEntity(sceneId, id, …)`, and
+the matrix rebuild the restored entity needs lives in that shared path. Restore is also **not** an overwrite: a
+snapshot cannot be reloaded onto a live id, because the caller has not agreed to lose whatever changed since the
+save was taken, and an unknown scene throws naming both the scene and the entity rather than creating a scene as a
+side effect.
+
+`saveFeasibilityAudit(sceneId, entity)` is the honesty half. It answers `{dropped, aliased, savable, blocked}`, and
+`dropped` is derived at runtime by comparing the fields the entity actually has with the fields the snapshot
+builder actually produces — so it cannot quietly go stale the way a hand-written list does. Two things it says
+today: `threeObject` and `transform` are accepted as ALIASES only because every name their claim lists
+(`position`, `rotation`, `scale`, `visible`, `castShadow`, `receiveShadow`, `layers`) is present in the record that
+was really built, which is why `SerializedEntity` had to grow a `layers` field — an entity's render channel is part
+of its state, and a save that omitted it would restore channel 0 and still report success. And `SaveData` is
+**not** savable: `savable: ['entities']` against `blocked: [sceneGraph, npcs, quests, player, worldState,
+cinematic]`, each with the reason named — `NPCSystem` and `QuestSystem` are declared and implemented by nothing,
+`SerializedScene` stores a `LightingConfig` whose lights hold live `THREE.Light` objects, `SerializedPlayer` names
+health/mana/inventory/skills the runtime does not hold. Writing a whole-game `SaveData` today would produce a file
+full of empty maps that opens as an empty world, so the field list stays blocked rather than being filled with
+decoration.
+
+The probe was behavioural and it was run twice, because the first run changed the code. Nine arms, each a value
+change in `packages/three-runtime/src/threeRuntime.ts` found exactly once before any test ran (the script refuses an arm
+whose target string matches twice — that guard is what surfaced the redundancy below), plus an unmutated control
+that collected 110 cases with 0 red. First run, reds per arm: `1-position-not-cloned` 2, `2-live-objects-accepted`
+5, `3-layers-not-applied` 1, `4-fresh-id-on-restore` 3, `5-overwrite-allowed` 1, `6-dropped-hardcoded` 3,
+`7-matrix-not-rebuilt` **0**, `8-component-data-by-reference` 2, `9-npcs-called-savable` 2. Arm 7 surviving is what
+told me the arm was not testing a guarantee: `restoreEntity` called `updateMatrix()` after `insertEntity` had
+already rebuilt the matrix from the copied position/rotation/scale, so removing that call reddened nothing — a
+redundancy wearing a claim, written in the same uncommitted cycle it was caught in (it is nowhere in the landed
+diff, which measures 222 lines in and 4 out against `ec3e8fc`, and those 4 are the `createEntity` lines the shared
+`insertEntity` replaced). The answer was to delete the line rather than widen the test, and to re-arm the probe on
+the call that actually owns the rebuild. Second run over the fixed source: control 110 / 0 red again, and 9 of 9
+arms caught (2, 5, 1, 3, 1, 3, 1, 2, 2), the new `7b-insert-matrix-not-rebuilt` red in exactly one case —
+`restoreEntity — a load hands back the entity the save described > puts the numbers back in the renderer's object
+AND in the matrix that draws it`.
+
+What v115 does not do, stated rather than left to be discovered: nothing is serialised to JSON or to disk — a
+snapshot is an in-memory `SerializedEntity`; geometry and material are not in the shape, so a restored mesh is the
+default `BoxGeometry(1, 1, 1)` with a `MeshStandardMaterial`, and a test measures both vertex counts instead of
+asserting the loss in prose; a restore fires `entityRestored` AND `entityCreated`, because a load really does add
+an object to the scene; `scene.physics`/`PhysicsConfig` is still read by nothing, `updatePhysics` and
+`updateCinematics` are still empty stubs, and `slopeLimit`/`stepOffset` remain unhonored. The suite is
+`packages/three-runtime/test/saveSnapshot.test.ts`; the last section of it does not restate the production tables —
+it reads `src/types.ts` from disk and requires that the builder produces exactly the fields `SerializedEntity`
+declares, that every declared field of `ThreeEntity` is carried or explicitly aliased, and that `savable ∪ blocked`
+is an exact partition of the fields `SaveData` declares, so a shape that drifts from its writer is a red test.
+Next: the declared physics is the same species of hole as the declared controller was in v114 — `gravity`,
+`timeStep`, `maxSubSteps`, `broadphase` and `solverIterations` are read by nothing outside `types.ts`, and the
+integrator takes its gravity from a package-level default instead of the scene that declares it.
