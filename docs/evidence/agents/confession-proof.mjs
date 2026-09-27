@@ -399,9 +399,10 @@ console.log(`[§6] wiring: ${failedRows.length} synthetic reds → declaring ${s
   assert.equal(trGraded.length, trVerbs.length, `(b) the row declares ${trVerbs.length} verbs and the arm graded ${trGraded.length} clauses — the payload is one line whose clauses are split by '·'`);
   assert.deepEqual([...new Set(trGraded.map((c) => c.state))], ['supported'], `(b) its ${trGraded.length} clauses came out ${JSON.stringify(trGraded.map((c) => c.state))} — before v98 all five were invisible, which is the whole +5 of the census move`);
   // The runner's own file is WHY the residual is three verbs deep, and the two faces of the ceiling differ:
-  sw.gitAliases(selfSrc);
+  sw.aliasVerdicts(selfSrc);
   assert.deepEqual(sw.aliasGitCommands(selfSrc), { aliases: [], verbs: [] }, `(b) the runner now reads a verb through its own git(argv, cwd) — the parameter-in-options door has gone, so the dead verbs above were lifted by widening the arm that exists to report a CEILING`);
-  assert.deepEqual(sw.gitAliases.refused.map((x) => x.name), [], `(b) and its helper is not even RECORDED as a refusal: it dies at the silent \`params.some(p => wordIn(slices.options, p))\` filter, while only the \`cwd\`-key door reports. So the arm can say which aliases it refused and cannot say which it never classified as aliases — the ceiling has two faces and one of them is uncensused (stated, not fixed: recording it would need a fourth return channel)`);
+  const selfRefused = sw.aliasVerdicts(selfSrc).refused;
+  assert.deepEqual([...new Set(selfRefused.filter((x) => x.why === 'param-in-options').map((x) => x.name))].sort(), ['catFileBatchOptional', 'committedBlob', 'git'], `(b) the door that refuses this file's own git(argv, cwd) now SPEAKS its reason. Amendment 99 recorded the ceiling as having an uncensused face precisely because only the \`cwd\`-key door reported anything, and a census that cannot enumerate what it declined is a census of its own blind spots — this line is the record of that being closed, and it names the two other helpers the same door drops`);
   // (c) THE MUTATIONS MUST BITE. Each refusal above is real only if editing away its reason makes the arm read.
   const noFlag = FLAG.replace("['-C', dir, ...args]", '[...args]');
   const noLitCwd = LIT_CWD.replace('{ cwd: root, encoding', '{ encoding');
@@ -453,5 +454,48 @@ console.log(`[§6] wiring: ${failedRows.length} synthetic reds → declaring ${s
   const live = sw.aliasCeiling(deadNames.map((n) => [n, rows.find((r) => basename(r.path) === n).text]));
   assert.deepEqual([live.declined, live.readable, live.silent.map((s) => s.row)], [[], [], ['closure-proof.mjs', 'cwd-axis-proof.mjs']], `(§9) over the LIVE population every invisible clause sits on the silent face, so the sentence's first two branches print zero this cycle — if a row ever moves one onto a face its own edit can close, this is the check that says the axis will name it`);
   console.log(`[§9] the axis's ceiling, three faces computed: declined → ${JSON.stringify(face(OWNER))}, the row's own edit → ${JSON.stringify(face(noLocation(OWNER)))}; a readable alias that misses the verb → ${JSON.stringify(face(PARTIAL))}; borrowed frame → ${JSON.stringify(face(BORROWED))} and its same edit → ${JSON.stringify(face(noLocation(BORROWED)))} · live: ${deadNames.length} dead rows, ${live.declined.length}/${live.readable.length}/${live.silent.length} by face (${live.silent.map((s) => s.row).join(', ')})`);
+}
+
+// ---------------------------------------------------------------- §10 every drop has a name, and the census cannot be silent
+// Amendment 99 could say WHICH face a dead row sits on because one door — the `cwd` key — reported itself. The other
+// five filters returned nothing, so the arm's refusal census counted 8 helpers in the population while its own file
+// held a wrapper it declined in silence. `aliasVerdicts` now returns three buckets and every definition lands in
+// exactly one of them, which turns "the arm has no verdict" from a fact about the code into an arithmetic
+// contradiction. Each reason gets a fixture, and the invariant is graded over the whole population rather than
+// asserted about it.
+{
+  const ONE = (s) => { const v = sw.aliasVerdicts(s); return [[...v.readable.map((x) => 'h'), ...v.refused.map((x) => `h:${x.why}`), ...v.notAlias.map((x) => `h:${x.why}`)].sort(), v.readable.length + v.refused.length + v.notAlias.length]; };
+  const cases = [
+    ["const h = (...args) => execFileSync('git', args);\n", [['h'], 1], 'readable: a rest-forwarder with no location anywhere'],
+    ["const h = (...args) => execFileSync('git', ['-C', dir, ...args]);\n", [['h:redirect-flag'], 1], 'refused for naming a repository-redirect flag in its argv'],
+    ["const h = (argv) => execFileSync('git', argv, { cwd: root });\n", [['h:cwd'], 1], 'refused because its spawn options name a location, whoever the value is'],
+    ["const h = (argv, cwd) => execFileSync('git', argv, { cwd });\n", [['h:param-in-options'], 1], "refused because a PARAMETER arrives in the options position — the runner's own shape, and the face that used to be silent"],
+    ["const h = () => execFileSync('git', ['status']);\n", [['h:no-params'], 1], 'not an alias at all: it takes nothing, so its verbs are already visible at the spawn frame'],
+    ["const h = (tag, argv) => { const t = tag; return execFileSync('git', argv); };\n", [['h:param-outside-spawn'], 1], 'not an alias: a parameter that reaches neither the argv nor the options slice belongs to some other question'],
+    ["const h = (x) => x + 1;\n", [['h:no-git-spawn'], 1], 'not an alias: the body never spawns git'],
+    ["const h = (o) => execFileSync('git');\n", [['h:no-git-spawn'], 1], 'the slice finder keys on the comma after the program literal, so a git spawn that states no argv at all is invisible to it and reads as no-git-spawn — recorded rather than fixed, because a reason with no reachable shape is a reason the fixture list cannot test'],
+  ];
+  let exact10 = 0;
+  for (const [src, want, why] of cases) {
+    const got = ONE(src);
+    if (JSON.stringify(got) === JSON.stringify(want)) exact10++;
+    console.log(`  ${JSON.stringify(got) === JSON.stringify(want) ? 'ok  ' : 'MISS'} ${why} → ${JSON.stringify(got)} (want ${JSON.stringify(want)})`);
+  }
+  assert.equal(exact10, cases.length, `the verdict channel answered ${cases.length - exact10} of ${cases.length} reasons differently than this row predicts — and a reason with no fixture is a reason the census can hide in`);
+  const EXERCISED = new Set(cases.map(([, w]) => w[0]).flat().filter((x) => x !== 'h').map((x) => x.slice(2)));
+  for (const r of rows) {
+    const n = basename(r.path);
+    const v = sw.aliasVerdicts(r.text);
+    const d = sw.definitions(r.text);
+    const spoken = [...v.readable, ...v.refused, ...v.notAlias].map((x) => x.at).sort((a, b) => a - b);
+    assert.equal(spoken.length, d.length, `${n}: ${d.length} definitions but ${spoken.length} verdicts — a helper the arm neither read nor named`);
+    assert.deepEqual(spoken, d.map((x) => x.at).sort((a, b) => a - b), `${n}: the verdicts are not the definitions — some definition was counted twice or dropped`);
+    assert.deepEqual([...new Set([...v.refused, ...v.notAlias].map((x) => x.why))].filter((w) => !EXERCISED.has(w)), [], `${n}: a reason reached the census that §10 has no fixture for, so the filter list and the tested list have desynced (exercised: ${JSON.stringify([...EXERCISED].sort())})`);
+  }
+  const census = rows.reduce((t, r) => { const v = sw.aliasVerdicts(r.text); t.readable += v.readable.length; for (const x of v.refused) t.refused[x.why] = (t.refused[x.why] ?? 0) + 1; for (const x of v.notAlias) t.notAlias[x.why] = (t.notAlias[x.why] ?? 0) + 1; return t; }, { readable: 0, refused: {}, notAlias: {} });
+  const spokenTotal = census.readable + Object.values(census.refused).reduce((a, b) => a + b, 0) + Object.values(census.notAlias).reduce((a, b) => a + b, 0);
+  const defTotal = rows.reduce((a, r) => a + sw.definitions(r.text).length, 0);
+  assert.equal(spokenTotal, defTotal, `the population has ${defTotal} definitions and the arm speaks ${spokenTotal} verdicts — silence is ${defTotal - spokenTotal} helpers deep`);
+  console.log(`[§10] verdict channel: ${exact10}/${cases.length} reasons each carry their own fixture · population of ${rows.length} rows speaks ${spokenTotal}/${defTotal} definitions — readable ${census.readable}, refused ${JSON.stringify(census.refused)}, not-an-alias ${JSON.stringify(census.notAlias)} — so the ceiling's third face is now a list of reasons, not an adjective`);
 }
 console.log(`\n[summary] two witnesses for ${clauses.length} confessions: ${selfNamed.length} commands the runner can name in its own file, ${byState('supported').length} clauses corroborated by a body and ${byState('invisible').length} that hide one frame up — of which ${misCited.length} were the sentence's fault (citable) and ${unreadable.length} are the arm's ceiling (${JSON.stringify(deadVerbs)}), so the residual is now a measurement rather than a shrug · ${namedCases.length} naming cases held the free-text grammar (one of them recorded as a false negative rather than fixed), and the cause arm reddened under exactly one of the mutations it was shown — the omission. A surplus is stated, never scored. The wiring is graded too: §6 reproduces the lookup that killed a seven-minute census on 6807ba1 in one line, and shows a reader keyed by the wrong path ending cannot hide behind its own zero. §9 makes the axis's OWN explanation carry a witness: its ceiling sentence interpolates aliasCeiling, and the two faces it counts differ in who can close them — a row's own edit lifts a declined clause, no row edit lifts an unseen one. Two gates print after the rows: the sweep's omissions + silent blind spots at zero, and this row's mis-cited clauses at zero`);
