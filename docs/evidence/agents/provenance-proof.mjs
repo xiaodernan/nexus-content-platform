@@ -189,4 +189,38 @@ assert.deepEqual(synthetic, ['packages/p/src/a.ts'], 'exactly the tracked-and-mo
 rmSync(fake, { recursive: true, force: true });
 const finalHead = (await sw.gitText(['rev-parse', 'HEAD'], root)).trim();
 assert.equal(finalHead, homeHead, 'the home repository\'s HEAD is byte-identical: nothing this script ran committed, staged or checked out');
+// --- §8 which plane each row says it stood on (M2 v103) ---
+// The runner reports, per row, whether the row's own first stdout lines disclose the plane it ran on — the tree with
+// an index, or a disk walk. Amendment 102 is why that sentence is worth a line of the log: a row gained an
+// unconditional `git rev-parse HEAD`, the isolated checkout has no index, and five siblings plus a standalone run were
+// all green on the bug because a verdict cannot tell the two trees apart. This section grades the reader, not the log.
+{
+  const say = (head) => head;
+  const cases = [
+    [say('[§0] plane GIT · 75 tracked .mjs, 73 scored rows'), 'GIT', 'a row that names the plane in its banner is read as disclosing it'],
+    [say('[§0] plane NO-GIT · the population comes off disk'), 'NO-GIT', 'the other plane is a different word, not a substring of the first'],
+    [say('[closure-proof] ALL GREEN — nothing about a plane here'), 'mute', 'a verdict, however confident, says nothing about the tree it stood on'],
+    [say('we graded the plane GIT claim elsewhere in the run'), 'GIT', 'PINNED OVER-DISCLOSURE: prose that happens to write the two words is read as a self-report, because the reader scans the first lines for a token and cannot tell a banner from a sentence about one — recorded rather than narrowed, since a row that lies about its plane is still evidence that someone should check it'],
+  ];
+  let exactP = 0;
+  for (const [head, want, why] of cases) {
+    const c = sw.planeCensus([{ name: 'fixture/x-proof.mjs', head }]);
+    const got = c.GIT.length ? 'GIT' : c['NO-GIT'].length ? 'NO-GIT' : 'mute';
+    if (got === want) exactP++;
+    console.log(`  ${got === want ? 'ok  ' : 'MISS'} ${why} → ${got} (want ${want})`);
+  }
+  assert.equal(exactP, cases.length, `the plane reader answered ${cases.length - exactP} of ${cases.length} shapes differently than this row predicts`);
+  const pop = [
+    { name: 'a/x-proof.mjs', head: 'plane GIT ·' }, { name: 'b/y-proof.mjs', head: 'plane NO-GIT ·' },
+    { name: 'c/z-proof.mjs', head: 'no report' }, { name: 'd/w-proof.mjs', head: 'also none' },
+    { name: 'e/v-proof.mjs', head: 'plane GIT again' },
+  ];
+  const five = sw.planeCensus(pop);
+  assert.equal(five.GIT.length + five['NO-GIT'].length + five.mute.length, pop.length, 'a row can be lost between the three buckets, and a census that loses one is how a self-report channel goes silently empty');
+  assert.deepEqual(five.mute.sort(), ['w-proof.mjs', 'z-proof.mjs'], 'the silent rows are named (by basename, as the census reports them), not counted as a remainder — the log line has to be able to point at them');
+  const confessing = (await sw.gitText(['show', `HEAD:docs/evidence/agents/confession-proof.mjs`], root)).replace(/\r\n/g, '\n');
+  assert.ok(/\[§0\] plane \$\{gitPlane\}/.test(confessing), 'the row whose banner this channel reads no longer prints a plane token, so §8 is grading a fixture and the live line in the sweep is measuring nobody');
+  console.log(`[§8] plane self-report reader: ${exactP}/${cases.length} shapes exact (one recorded as an over-disclosure) · five rows split ${five.GIT.length}/${five['NO-GIT'].length}/${five.mute.length} with the mutes named by file, and the channel is anchored to a live banner in confession-proof.mjs`);
+}
+
 console.log('\n[summary] identities checked: dist digest (2 files, path-keyed, moves on a byte and on a rename) · proof population ' + rows.length + ' with ' + disagrees + ' ref/worktree divergences re-hashed by a second reader · run-path outcomes exercised: green/red/timeout/exit-7 + ' + smallest.name.split('/').pop() + ' through the materialised path · HEAD unmoved');
