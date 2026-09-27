@@ -55,6 +55,9 @@ test('@smoke 角色 → 场景：填了视觉标识才点得动，生成物进�
   const card = page.locator('[data-asset-card]').last();
   await expect(card).toBeVisible({ timeout: 30_000 });
   await expect(card.locator('[data-asset-demo-badge]')).toHaveText('DEMO');
+  // 库里那一列（assets.character_id）现在读得进清单、也画得进卡片：
+  // 只写不读的真值在界面上等于不存在，这一条是那一半的浏览器凭证
+  await expect(card.locator('[data-asset-character]')).toHaveText('角色场景');
   await expect
     .poll(async () => card.locator('img').evaluate((el) => (el as HTMLImageElement).naturalWidth), { timeout: 20_000 })
     .toBeGreaterThan(0);
