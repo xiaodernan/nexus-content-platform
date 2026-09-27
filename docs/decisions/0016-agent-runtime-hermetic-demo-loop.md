@@ -4668,3 +4668,15 @@ silent ones to be named — a remainder is how a self-report channel goes empty 
 the whole section to the live banner `confession-proof.mjs` prints, so the fixtures are not the only thing being read.
 
 Measured at `876203a`: 73 scripts · 42 failed · 0 killed · 284 s, graded build `cc73dcf781dd0a2b` stable, `dirty-sources 2`. The predictions held: plane axis 262 call sites: program=117 argv=145, confession axis supported 9 · partial 0 · invisible 4 · MIS-CITED 0. The new line itself read: "which plane each row says it stood on (read out of the row's own first stdout lines, not inferred from its verdict): GIT 0 · NO-GIT 4 · mute about its own plane 69 (69 rows, e.g. agent-proof.mjs, bridge-report-proof.mjs, budgets-proof.mjs, changes-proof.mjs, closure-proof.mjs, code-index-proof.mjs, color-proof.mjs, commit-echo-proof.mjs …) · the tree the rows ran in has NO .git"
+
+### Amendment 103, addendum: the channel is thin, and the row that grades it cannot run where the thinness shows
+
+Of 73 rows, 4 disclose a plane and 69 are mute — that is the honest ceiling for a reader of prose the population was
+never required to write, and the count is printed beside the names precisely so that "nobody says" cannot be read as
+"everybody is fine". One more thing the numbers make visible: `provenance-proof.mjs`, the row that grades this
+reader, sits inside the 42 that cannot run on the isolated plane at all, because it dies at its own first
+`git rev-parse HEAD` — the very property the reader exists to report. So §8 holds on the home plane only, and that
+limitation belongs to the increment rather than being smoothed over: the reader is graded where an index exists,
+exactly as amendment 102 had to be learned where one does not. What the live line makes obvious for the next unit:
+either the runner requires the banner, which turns the disclosure count into a gate, or the disclosure stays a
+courtesy and 69 of 73 rows keep reporting findings about a tree nobody can name from their output.
