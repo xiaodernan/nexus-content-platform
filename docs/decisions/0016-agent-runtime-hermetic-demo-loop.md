@@ -4538,3 +4538,53 @@ string arm — amendment 97's defect, rediscovered in a channel written after 97
 argument in this record for why a fix must be graded by a row rather than by a reading. It is left unfixed here
 because every such case ends in a REFUSAL, the safe direction, and narrowing it would make more aliases readable —
 widening the channel the ceiling exists to bound.
+
+### Amendment 101 (M2 v101): the alias arm refused helpers whose only `git` was a sentence about a helper, so the candidate finder now asks the plane grammar the same question — and the first prediction written into a commit message came back one definition wrong in its own base
+
+Amendment 100 ended with a measured over-claim it deliberately did not repair: `refused` counted candidates whose
+region merely MENTIONS `'git',`. The candidate finder sliced text between definition offsets and grepped it, so in the
+runner's own file `spawnSlices` and `quotedIn` were refused for `redirect-flag` — neither of them redirects anything,
+and the `'git',` that made them candidates is documentation inside the region of the function above. Leaving that
+unrepaired was right for a cycle (a false refusal errs toward reading less) and wrong to keep, because it made the
+census's own numbers unexplainable: nobody could say what the 21 `redirect-flag` refusals had in common.
+
+The fix is one line and it does not invent a second grammar: before any door is consulted, the arm asks whether the
+definition's own region reaches a git child AT CODE POSITION — `gitReaches(body).length === 0` — which is the same
+question the plane axis answers, using the same walk, so the two channels cannot desync (amendment 89's lesson about
+two grammars of the same fact, applied before a second one was written). A candidate that fails it is not refused, it
+never was a candidate: it lands in `notAlias` under `no-code-position-git-spawn`. The name took a second pass: the
+first label was `mention-only`, and §9's own fixture pair disproved it — a helper whose bridge is not in
+`SPAWN_FAMILY` (`sw.runSweep('git', args, { cwd })`) also answers "no", for a different reason: the program arrives
+through a call the plane grammar does not treat as a spawn. Two mechanisms, one visible fact, so the reason says what
+the arm can see rather than guessing which of the two it hit. §9's OWNER and PARTIAL fixtures were moved onto
+`run('git', …)`, a bridge the plane grammar does recognize, because a face pair about a REFUSED helper cannot be built
+out of a helper that is no longer a candidate.
+
+The census over the 73 scored rows, printed by the shipped row: spoken 355/355, readable 2, refused **41 → 40**
+(`redirect-flag` 21 → 20, `cwd` 8 and `param-in-options` 12 unchanged), `notAlias` 313 = `no-git-spawn` 263 +
+`no-code-position-git-spawn` 7 + `param-outside-spawn` 38 + `no-params` 5. The scratch pre-measurement over ALL 75
+`.mjs` (the runner and `isolated-arms.mjs` included) said refused 48 → 44 with 11 candidates demoted — a different
+denominator, named here as such because amendment 98 was refuted for exactly this confusion. §10's ten reason fixtures each carry their own case,
+and the pair that makes this increment a measurement rather than a preference is the two sources that differ only by a
+comment wrapper — same name, same parameter, same argv slice, `readable` in one and `no-code-position-git-spawn` in
+the other.
+
+Where the prediction failed, and what that is worth. This is the first rule commit in the stack whose message states
+the expected numbers before the sweep it owes, as amendment 100's record said it should. Three of its claims held
+(`readable` stayed 2, the axis buckets kept their shape, the reason list closed), and one did not: the message said
+`spoken 354/354` and `redirect-flag 21 → 19`; the row printed `spoken 355/355` and `redirect-flag 20`. The off-by-one
+is the same quantity in both places, and it is in the BASE, not the rule: a pre-measurement script and the shipped row
+counting the same HEAD tree disagree by exactly one definition, and three probes (comment shapes, string and template
+shapes, both runner revisions over one text set) each came back "no phantom, both revisions say 355", so the
+disagreement is real and unexplained, and the obvious hypothesis is already dead: the row reads its population out of
+`git show HEAD:…` on the GIT plane (`confession-proof.mjs:43`), so a half-edited worktree cannot be the variable — the
+two runs had the same 73 texts and the same `definitions()`, and still printed numbers one apart. Three probes came
+back negative (comments, strings and templates, both runner revisions over one fixed text set, each returning 355), so
+what is left is a gap to be chased rather than a story to be told, and #157 owns it with the exact reproduction: two
+standalone runs of the same row version, at `012f1f3` and at `b96555e`, printing 354 and 355. The point this record
+keeps is the method lesson: a census that will be used as a prediction anchor has to be reproducible INSIDE the row —
+print the ref the texts came from, and assert a second census built from `git show` equals the in-row one. Until then
+the anchor is the row's own figure, refused 40 of 355, and the prediction that missed it by one stays visible in the
+commit message rather than being rewritten.
+
+The evidence chain, at the witness ref `3c097ea`: a detached full sweep of 73 scripts · 42 failed · 0 killed · 346 s, graded build `cc73dcf781dd0a2b` and tree `61265f575e9c6e92` stable across the run, `dirty-sources 2` (the concurrent session’s two tracked sources, neither of them mine). `confession-proof.mjs` passed inside it in 113.4 s of its 240 s budget. The plane axis printed 262 call sites: program=117 argv=145 — the numbers the rule commit predicted before the run, which makes this the second prediction kept in this stack and the first whose base was taken from the row rather than from a scratch script. The confession axis reads supported 9 · partial 0 · invisible 4 · name no command 1, and its ceiling sentence now names the third face by reason: 0 declined, 0 readable-but-missing-the-verb, 2 on the face no row edit closes, with closure-proof’s helpers printed as `sh:no-code-position-git-spawn, slashed:no-code-position-git-spawn`. A row that once read “a wrapper that takes a PARAMETER” now reads which filter stopped which helper. §10’s own line from the same commit: [§10] verdict channel: 10/10 reasons each carry their own fixture · population of 73 rows speaks 355/355 definitions — readable 2, refused {"cwd":8,"redirect-flag":20,"param-in-options":12}, not-an-alias {"no-git-spawn":263,"no-code-position-git-spawn":7,"param-outside-spawn":38,"no-params":5} — so the ceiling's third face is now a list of reasons, not an adjective

@@ -2818,3 +2818,32 @@ definitions whose `git` sits in a comment or a string, because the candidate fin
 repo that is why `spawnSlices` and `quotedIn` are "refused for redirect-flag". Every such case ends in a refusal, the
 safe direction, so fixing it would widen the channel the ceiling exists to bound; the increment that gives the
 finder the byte walk's comment/string arm owes a prediction about which way that number moves.
+
+## A refusal census nobody could explain, because the arm was refusing sentences about helpers (`confession-proof.mjs` §10, M2 v101 — ADR 0016 amendment 101)
+
+Amendment 100 counted 21 `redirect-flag` refusals in the scored rows and could not say what they had in common,
+because the candidate finder grepped raw text between definition offsets: a function whose neighbour's documentation
+contains `execFileSync('git', …)` looks like a git helper that redirects, and gets refused for it. The arm now asks
+one question before it consults any door — does this definition reach a git child AT CODE POSITION? — and it asks it of
+`gitReaches`, the same walk the plane axis uses, so the refusal census and the reach census cannot tell different
+stories about the same bytes. Candidates that fail the question are not refused; they were never candidates, and they
+move to `notAlias` under `no-code-position-git-spawn`: over the 73 rows: spoken 355/355, readable still 2, refused 41 → 40 (`redirect-flag` 21 → 20,
+`cwd` 8 and `param-in-options` 12 unchanged), with `notAlias` gaining `no-code-position-git-spawn` 7 while
+`no-params` fell to 5 and `param-outside-spawn` to 38. Over all 75 `.mjs` the scratch pre-measurement said
+48 → 44 with 11 demotions — a different denominator, stated as one.
+
+The reason was renamed after the witness contradicted it. `mention-only` was the obvious label, and §9's fixture for
+the declined face (`const git = (args) => sw.runSweep('git', args, { cwd: root })`) fell off the face with the new
+rule — a bridge outside `SPAWN_FAMILY` also answers "no reach", not because the `git` is a mention but because the
+program position is a call the plane grammar does not read as a spawn. Two mechanisms, one observable fact, so the
+label describes what the arm sees. §9's OWNER and PARTIAL fixtures moved onto `run('git', …)`, which the grammar does
+recognize: a pair about who holds the edit cannot be demonstrated with a helper that is no longer a candidate. §10 now
+carries ten reason fixtures, and the decisive one is the pair of sources identical except that one spawn is wrapped
+in `/* … */` — same name, same argv slice, `readable` against `no-code-position-git-spawn`.
+
+And the first prediction written into a commit message before the sweep it owes was wrong about its own base: the
+message said the row would print `spoken 354/354` and `redirect-flag → 19`, and it printed `355/355` and `20`. The
+discrepancy is one definition in the base — my pre-measurement script and the shipped row, over the same HEAD tree,
+differ by one, and three probes (comments, strings and templates, both runner revisions) each returned "no phantom,
+355". That gap is recorded rather than papered over, because it says something about the method: a census you cannot
+reproduce with a second tool is not yet a prediction anchor. Reconciling it is #157.
