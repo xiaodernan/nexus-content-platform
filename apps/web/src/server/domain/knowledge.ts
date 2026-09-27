@@ -1,13 +1,14 @@
 import { and, eq, inArray, or, sql } from 'drizzle-orm';
 import { getDb } from '../db/client';
-import { characters, knowledgeChunks, memories, worlds } from '../db/schema';
+import { characters, knowledgeChunks, memories, storyboards, worlds } from '../db/schema';
 import type { CharacterProfile, WorldDocument } from '@nexus/world-model';
 import { WORLD_KIND_LABELS, type WorldKind } from '@nexus/world-model';
+import type { Storyboard } from '@nexus/video-model';
 
 /**
  * §49 RAG 的语料与检索。这一层只做**不需要模型**的那一半：
  *
- * - 切分与入库：世界条目（§44）、角色档案（§46）、四类记忆（§48）→ `knowledge_chunks`；
+ * - 切分与入库：世界条目（§44）、角色档案（§46）、四类记忆（§48）、分镜镜头（§40）→ `knowledge_chunks`；
  * - 混合检索：PostgreSQL 全文（`tsvector`，'simple' 配置）+ 子串命中 + 词覆盖度，
  *   三者做一个**能解释**的确定性融合，结果里带着各项分量返回。
  *
@@ -33,7 +34,8 @@ export type KnowledgeSourceType =
   | 'quests'
   | 'story'
   | 'character'
-  | 'memory';
+  | 'memory'
+  | 'storyboard';
 
 const WORLD_KIND_SOURCE: Record<WorldKind, KnowledgeSourceType> = {
   lore: 'lore',
@@ -59,6 +61,7 @@ export const SOURCE_LABELS: Record<KnowledgeSourceType, string> = {
   story: '故事',
   character: '角色档案',
   memory: '记忆',
+  storyboard: '分镜',
 };
 
 export interface Chunk {
@@ -175,6 +178,45 @@ export function chunksFromCharacter(profile: CharacterProfile, characterId: stri
   return out;
 }
 
+/**
+ * §40 的分镜进语料库：一镜一块，块里带着机位/转场/时长与来源句子。
+ *
+ * `notes`（"这一版来自本地确定性断句""首镜宽景尾镜特写"）**刻意不进**——那是投影对自己的解释，
+ * 不是故事内容。让它进索引，检索"分镜"就会命中一排规则说明书，比查不到更容易误导装配方。
+ *
+ * sourceId 用**行 id**（`storyboardId`）而不是文档里那个 id：客户端切完一版分镜手里拿的是
+ * 模型给的 `storyboard-1`，每个项目都可能是这一串，而 `knowledge_chunks` 的唯一约束
+ * 是全局的 `(source_type, source_id, chunk_index)`——用文档 id 会让第二个项目插不进去。
+ */
+export function chunksFromStoryboard(document: Storyboard, storyboardId: string, worldId: string | null): Chunk[] {
+  const out: Chunk[] = [];
+  const title = document.title || '（没有标题）';
+  const push = (label: string, sourceId: string, body: string) => {
+    chunkText(body).forEach((content, chunkIndex) => {
+      out.push({ sourceType: 'storyboard', sourceId, chunkIndex, content, title: `${title} · ${label}`, worldId });
+    });
+  };
+  push('来源句子', `${storyboardId}#source`, document.source.prompt);
+  document.shots.forEach((shot, index) => {
+    const label = `第 ${index + 1} 镜`;
+    push(
+      label,
+      `${storyboardId}#shot-${shot.id}`,
+      [
+        shot.prompt,
+        `机位：${shot.camera}`,
+        `转场：${shot.transition}`,
+        `时长：${shot.durationMs} 毫秒`,
+        shot.characterId ? `角色：${shot.characterId}` : '',
+        shot.referenceAssetId ? `参考图：${shot.referenceAssetId}` : '',
+      ]
+        .filter(Boolean)
+        .join('\n'),
+    );
+  });
+  return out;
+}
+
 const MEMORY_SCOPE_SOURCE: Record<string, string> = {
   session: '本次会话',
   character: '角色',
@@ -209,10 +251,11 @@ export async function syncProjectKnowledge(projectId: string): Promise<{ chunks:
   // 语料按项目取。「我的偏好」类记忆 project_id 是 null，因此不进任何项目的语料库：
   // §49 的语料清单是 Lore/Characters/History/Locations/Items/Quests/Documents——
   // 用户偏好不在其中，把它混进来会让"这个世界的检索结果"掺进跨项目的私人设定。
-  const [worldRows, characterRows, memoryRows] = await Promise.all([
+  const [worldRows, characterRows, memoryRows, storyboardRows] = await Promise.all([
     db.select().from(worlds).where(eq(worlds.projectId, projectId)),
     db.select().from(characters).where(eq(characters.projectId, projectId)),
     db.select().from(memories).where(eq(memories.projectId, projectId)),
+    db.select().from(storyboards).where(eq(storyboards.projectId, projectId)),
   ]);
 
   // 一条项目最多一份世界（v1）；记忆挂在它下面，查一次就够
@@ -236,6 +279,11 @@ export async function syncProjectKnowledge(projectId: string): Promise<{ chunks:
         worldId,
       }),
     );
+  }
+
+  for (const row of storyboardRows) {
+    const parsed = safeStoryboard(row.document);
+    if (parsed) chunks.push(...chunksFromStoryboard(parsed, row.id, worldId));
   }
 
   await db.delete(knowledgeChunks).where(eq(knowledgeChunks.projectId, projectId));
@@ -268,6 +316,12 @@ function safeWorld(value: unknown): WorldDocument | null {
 function safeProfile(value: unknown): CharacterProfile | null {
   const profile = value as CharacterProfile | null;
   return profile && typeof profile === 'object' && Array.isArray(profile.goals) ? profile : null;
+}
+
+/** 读不出来的那一份不毁掉整个索引：与 safeWorld / safeProfile 同一口径，跳过并在统计里少一块 */
+function safeStoryboard(value: unknown): Storyboard | null {
+  const doc = value as Storyboard | null;
+  return doc && typeof doc === 'object' && Array.isArray(doc.shots) && Array.isArray(doc.notes) ? doc : null;
 }
 
 export interface RetrievedChunk {

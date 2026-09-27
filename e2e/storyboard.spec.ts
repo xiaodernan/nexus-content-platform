@@ -119,3 +119,53 @@ test('@smoke 分镜面板：时长写非法值不会悄悄改掉那一镜', asyn
   await openStoryboardPanel(page);
   await expect(page.locator(`[data-storyboard-duration="${id}"]`)).toHaveValue('1200');
 });
+
+/**
+ * §49 × §40：分镜存进去就该查得到——在同一条查询上证明。
+ *
+ * 顺序是全部意义所在：先在**没有分镜**的项目里查那个词，界面必须说没有命中；
+ * 然后只做一次"切一版分镜 + 保存"（不点重建索引），同一个词就得查出「分镜」来源的块。
+ * 这样红/绿的差别只可能来自写路径里那次同步调用，而不是有人手工刷了索引。
+ */
+test('@smoke 检索面板：一句分镜存进去，同一个词就从查不到变成查到', async ({ page }) => {
+  test.setTimeout(180_000);
+  const sentence = '夜色里的港口，一台旧起重机慢慢转身，猫跳上缆绳';
+  await openStudio(page, `分镜检索 ${Date.now().toString(36)}`);
+
+  // 空项目的语料库是空的：这里不能显示"有 N 块"来假装同步过了
+  await page.click('[data-panel-tab="retrieve"]');
+  await expect(page.locator('[data-retrieve-panel]')).toBeVisible({ timeout: 30_000 });
+  await expect(page.locator('[data-knowledge-total]')).toHaveText('0 块', { timeout: 30_000 });
+  await page.fill('[data-retrieve-query]', '缆绳');
+  await page.click('[data-retrieve-run]');
+  // 放宽到 30 秒：retrieve 这条路由在 dev 下第一次请求要现编译，那几秒按钮还停在 busy
+  await expect(page.locator('[data-retrieve-empty]')).toBeVisible({ timeout: 30_000 });
+
+  await openStoryboardPanel(page);
+  await page.fill('[data-storyboard-prompt-input]', sentence);
+  await page.click('[data-storyboard-create]');
+  await savedState(page);
+
+  // 回到检索面板：块数 = 来源句子 + 3 镜，全部由那次 PUT 带出来
+  await page.click('[data-panel-tab="retrieve"]');
+  await expect(page.locator('[data-knowledge-total]')).toHaveText('4 块');
+  // 面板自我介绍的那句也得把分镜算进语料，否则界面说的和库里装的不是同一件事
+  await expect(page.locator('[data-retrieve-note]')).toContainText('分镜镜头');
+  await page.fill('[data-retrieve-query]', '缆绳');
+  await page.click('[data-retrieve-run]');
+
+  const hits = page.locator('[data-retrieve-hit]:has([data-retrieve-source="storyboard"])');
+  await expect(hits.first()).toBeVisible();
+  // 中文标签（不是裸的 storyboard）
+  await expect(hits.first()).toContainText('分镜');
+  // 「第 3 镜」必须**看得见**：整条标题在窄面板里会被截断，DOM 里有字但界面没说清是哪一镜
+  // 等于没断言，所以块名单独一格 + toBeInViewport
+  const shotHit = page
+    .locator('[data-retrieve-hit]')
+    .filter({ has: page.locator('[data-retrieve-part]:has-text("第 3 镜")') });
+  await expect(shotHit).toHaveCount(1);
+  await expect(shotHit.locator('[data-retrieve-part]')).toBeInViewport();
+  await expect(shotHit).toContainText('猫跳上缆绳');
+  await expect(shotHit).toContainText('机位：');
+  await page.screenshot({ path: 'screenshots/storyboard-retrieved.png' });
+});

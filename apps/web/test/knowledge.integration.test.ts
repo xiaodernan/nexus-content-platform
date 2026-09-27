@@ -3,6 +3,8 @@ import { eq, inArray, sql as rawSql } from 'drizzle-orm';
 import { addMemory, deleteMemory } from '../src/server/domain/memories';
 import { createProjectCharacter, updateCharacterProfile } from '../src/server/domain/characters';
 import { saveWorld } from '../src/server/domain/worlds';
+import { saveStoryboard } from '../src/server/domain/storyboards';
+import { planStoryboard } from '@nexus/video-model';
 import { knowledgeStats, retrieveProjectKnowledge, syncProjectKnowledge } from '../src/server/domain/knowledge';
 import { createWorld } from '@nexus/world-model';
 import { createProject } from '../src/server/domain/projects';
@@ -195,5 +197,61 @@ describe('语料索引与检索（真实数据库）', () => {
     const keys = rows.map((r) => `${r.sourceType}#${r.sourceId}#${r.chunkIndex}`);
     expect(new Set(keys).size).toBe(keys.length);
     await db.delete(knowledgeChunks).where(inArray(knowledgeChunks.projectId, [id]));
+  });
+});
+
+/**
+ * §40 的分镜写进库之后，检索这一侧必须看得见它。
+ *
+ * 这条打真实数据库，为的是三件纯函数测试说不了的事：
+ * ① 写入方真的挂了 `syncProjectKnowledge`（不是只有 HTTP 通了）；
+ * ② 改一镜之后**旧句子再也查不到**——"改了却还检索到旧内容"是最难查的谎；
+ * ③ notes 那句"本地确定性断句"不参与命中（它进语料会让"查分镜"命中规则说明书）。
+ */
+describe('§49 × §40：分镜进语料库（真实数据库）', () => {
+  it('存分镜即建索引；改过的镜头不留旧文本；notes 不掺进命中', async () => {
+    const id = await newProject('Storyboard RAG');
+    const first = planStoryboard('灯塔守夜人擦亮灯芯，雾从海面压过来', { id: 'sb-rag-1' });
+    const saved = await saveStoryboard(id, owner, { document: first });
+    if (!saved.ok) throw new Error(`保存失败：${saved.reason}`);
+
+    const stats = await knowledgeStats(id);
+    expect(stats.bySource.storyboard).toBe(first.shots.length + 1);
+
+    const hit = await retrieveProjectKnowledge(id, '灯塔守夜人擦亮灯芯');
+    expect(hit.items.length, '这一镜的句子查不到，等于分镜对 AI 不存在').toBeGreaterThan(0);
+    expect(hit.items[0]!.sourceType).toBe('storyboard');
+    // 整句既是第一镜的 prompt 也是来源句子，所以两块都会命中：断言"其中有一块是那一镜"
+    expect(hit.items.some((i) => i.title.includes('第 1 镜')), '命中里没有那一镜本体').toBe(true);
+    expect(
+      hit.items.some((i) => i.snippet.includes('本地确定性断句')),
+      'notes 不该被当成故事内容检索出来',
+    ).toBe(false);
+
+    // 换一整版（来源句子跟着换）：只改一镜的 prompt 是撤不掉旧句子的——
+    // 那句话本来就是来源句子的一部分，仍然合法地留在 #source 那一块里
+    const second = planStoryboard('起重机吊起一只锈锚，雾从海面压过来', { id: first.id });
+    const resaved = await saveStoryboard(id, owner, { document: second, baseUpdatedAt: saved.updatedAt });
+    if (!resaved.ok) throw new Error(`第二次保存失败：${resaved.reason}`);
+
+    const stale = await retrieveProjectKnowledge(id, '灯塔守夜人擦亮灯芯');
+    expect(stale.items.some((i) => i.sourceType === 'storyboard'), '旧镜头文本还查得到 = 索引没重建').toBe(false);
+    const fresh = await retrieveProjectKnowledge(id, '起重机吊起一只锈锚');
+    expect(
+      fresh.items.some((i) => i.sourceType === 'storyboard' && i.title.includes('第 1 镜')),
+      '改完的那一镜查不到 = 索引没跟着写重建',
+    ).toBe(true);
+  });
+
+  it('删掉分镜的那次同步不该留下孤儿块：整份重建后块数跟着变', async () => {
+    const id = await newProject('Storyboard RAG Recount');
+    const one = planStoryboard('盐海没有鱼', { id: 'sb-rag-2' });
+    await saveStoryboard(id, owner, { document: one });
+    const before = await knowledgeStats(id);
+    // 同一份文档再存一次：块数不变（重建是幂等的，不是每次写都往索引里追加一份）
+    await syncProjectKnowledge(id);
+    const after = await knowledgeStats(id);
+    expect(after.total).toBe(before.total);
+    expect(after.bySource.storyboard).toBe(one.shots.length + 1);
   });
 });

@@ -7,9 +7,11 @@ import {
   chunkText,
   chunksFromCharacter,
   chunksFromMemory,
+  chunksFromStoryboard,
   chunksFromWorld,
   estimateTokens,
 } from '../src/server/domain/knowledge';
+import { planStoryboard } from '@nexus/video-model';
 import { knowledgeChunks } from '../src/server/db/schema';
 import { createCharacter, createWorld } from '@nexus/world-model';
 
@@ -146,5 +148,53 @@ describe('buildRetrievalFilter 的 SQL 生成', () => {
     const { sql, params } = render('盐海');
     expect(sql).toContain('"project_id" = $1');
     expect(params[0]).toBe('00000000-0000-0000-0000-000000000000');
+  });
+});
+
+/**
+ * §40 的分镜进 §49 的语料库。切块规则本身（一镜一块、来源句子单独一块）与
+ * "notes 不进索引"都在这一格里钉住：notes 是投影对自己的解释，
+ * 让它进语料等于让"查分镜"命中一排规则说明书。
+ */
+describe('chunksFromStoryboard：一镜一块，规则说明书不进语料', () => {
+  const sb = planStoryboard('灯塔守夜人擦亮灯芯，雾从海面压过来，猫踩着缆绳跑');
+  /** 行 id：库里那一行的主键。sourceId 用它，不用文档里那个可能是 `storyboard-1` 的 id */
+  const ROW = 'row-uuid-4f2a';
+  const chunks = chunksFromStoryboard(sb, ROW, null);
+
+  it('镜头数决定块数，外加来源句子那一块', () => {
+    expect(sb.shots.length).toBe(3);
+    expect(chunks).toHaveLength(sb.shots.length + 1);
+    const source = chunks.find((c) => c.sourceId === `${ROW}#source`);
+    expect(source?.content).toBe(sb.source.prompt);
+    expect(source?.title).toBe(`${sb.title} · 来源句子`);
+  });
+
+  it('sourceId 认的是库里的行，不是文档自己写的那个 id', () => {
+    // `storyboard-1` 是模型给每个新项目那份分镜的默认 id，而 knowledge_chunks 的
+    // 唯一约束是全局的 (source_type, source_id, chunk_index)：拿它当键，第二个项目就插不进去
+    expect(sb.id).toBe('storyboard-1');
+    expect(chunks.every((c) => c.sourceId.startsWith(`${ROW}#`))).toBe(true);
+    expect(chunks.some((c) => c.sourceId.includes(sb.id))).toBe(false);
+  });
+
+  it('每一块的 sourceId 认得回那一镜，标题写着第几镜', () => {
+    for (const [index, shot] of sb.shots.entries()) {
+      const chunk = chunks.find((c) => c.sourceId === `${ROW}#shot-${shot.id}`);
+      expect(chunk, `第 ${index + 1} 镜没有进索引`).toBeDefined();
+      expect(chunk?.sourceType).toBe('storyboard');
+      expect(chunk?.title).toBe(`${sb.title} · 第 ${index + 1} 镜`);
+      expect(chunk?.content).toContain(shot.prompt);
+      // 机位/时长也是分镜内容的一部分：装配方要能检索到"这一镜是航拍"
+      expect(chunk?.content).toContain(`机位：${shot.camera}`);
+      expect(chunk?.content).toContain(`时长：${shot.durationMs} 毫秒`);
+    }
+  });
+
+  it('notes 里那句"本地确定性断句"确实存在，但它不在语料里', () => {
+    // 前提先钉住：notes 没被改空，否则下面那条"不在索引里"是恒真
+    expect(sb.notes.join(' ')).toContain('本地确定性断句');
+    expect(chunks.some((c) => c.content.includes('本地确定性断句'))).toBe(false);
+    expect(chunks.some((c) => c.content.includes('首镜宽景'))).toBe(false);
   });
 });

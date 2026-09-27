@@ -5,6 +5,7 @@ import { getDb } from '../db/client';
 import { storyboards } from '../db/schema';
 import { listCharacters } from './characters';
 import { listProjectAssets } from './assets';
+import { syncProjectKnowledge } from './knowledge';
 
 /**
  * §40-42 分镜的读写。一个项目一份（v1，与 worlds / games 同一口径）。
@@ -118,6 +119,8 @@ export async function saveStoryboard(projectId: string, ownerId: string, input: 
       .where(eq(storyboards.id, existing.id))
       .returning({ id: storyboards.id, updatedAt: storyboards.updatedAt });
     if (!row) return { ok: false, reason: '保存分镜时没写到任何行' };
+    // 存了但检索不到 = 对 AI 不存在（§49）。与角色/世界同一口径：写成功后重建这一份语料
+    await syncProjectKnowledge(projectId);
     return { ok: true, document: { ...document, id: row.id }, updatedAt: row.updatedAt.toISOString() };
   }
 
@@ -126,5 +129,6 @@ export async function saveStoryboard(projectId: string, ownerId: string, input: 
     .values({ projectId, ownerId, title: document.title, document })
     .returning({ id: storyboards.id, updatedAt: storyboards.updatedAt });
   if (!inserted) return { ok: false, reason: '新建分镜时没写到任何行' };
+  await syncProjectKnowledge(projectId);
   return { ok: true, document: { ...document, id: inserted.id }, updatedAt: inserted.updatedAt.toISOString() };
 }

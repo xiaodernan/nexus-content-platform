@@ -6,7 +6,7 @@ import { csrfHeaders } from '@/lib/csrf';
 import { useStudioReady } from './store';
 
 /**
- * §49 的检索面板：在项目语料（世界条目 / 角色档案 / 记忆）里查一句。
+ * §49 的检索面板：在项目语料（世界条目 / 角色档案 / 记忆 / 分镜镜头）里查一句。
  *
  * 结果里带着"怎么命中的"（全文 / 子串）和三个加数，不藏在一个黑盒分数后面；
  * 顶部明写向量检索不可用——没有 provider 就没有语义检索，这里不假装。
@@ -36,7 +36,18 @@ const SOURCE_LABELS: Record<string, string> = {
   story: '故事',
   character: '角色档案',
   memory: '记忆',
+  storyboard: '分镜',
 };
+
+/**
+ * 块的标题是「文档名 · 块名」（第 3 镜 / 来源句子 / 条目类型…）。这 264px 的面板里
+ * 整条标题一定被截断，而截掉的正好是"哪一块"——那才是检索结果最有信息量的半句。
+ * 所以拆成两段：文档名可以截，块名单独占一格不截。
+ */
+function splitTitle(title: string): { doc: string; part: string } {
+  const i = title.indexOf(' · ');
+  return i < 0 ? { doc: title, part: '' } : { doc: title.slice(0, i), part: title.slice(i + 3) };
+}
 
 export function RetrievePanel() {
   const studio = useStudioReady();
@@ -138,7 +149,7 @@ export function RetrievePanel() {
         </div>
         <div className="mt-2 flex items-start gap-2">
           <p className="min-w-0 flex-1 text-11 leading-relaxed text-fg-3" data-retrieve-note>
-            语料来自世界条目、角色档案与记忆（§44/§46/§48）。命中的是全文与子串匹配，
+            语料来自世界条目、角色档案、记忆与分镜镜头（§44/§46/§48/§40）。命中的是全文与子串匹配，
             分数由这三项相加：全文 ts_rank、子串命中、词覆盖度。
             {stats.vectorized === 0
               ? ' 向量检索未接（没有 provider 就没有 embedding），所以这里没有"语义相近"这回事。'
@@ -173,34 +184,42 @@ export function RetrievePanel() {
           </p>
         ) : null}
         <ul className="flex flex-col gap-2">
-          {items.map((item) => (
-            <li
-              key={item.id}
-              className="rounded-[var(--nexus-radius-sm)] border border-[var(--nexus-color-border-subtle)] bg-bg-2 p-2"
-              data-retrieve-hit={item.id}
-            >
-              <div className="flex items-center gap-1">
-                <span
-                  className={cn(
-                    'shrink-0 rounded-[3px] border border-[var(--nexus-color-border-subtle)] px-1 font-mono text-10 text-fg-3',
-                  )}
-                  data-retrieve-source={item.sourceType}
-                >
-                  {SOURCE_LABELS[item.sourceType] ?? item.sourceType}
-                </span>
-                <span className="min-w-0 flex-1 truncate text-12 text-fg-1">{item.title}</span>
-                <span className="shrink-0 font-mono text-11 text-fg-3" data-retrieve-score={item.id}>
-                  {item.score.toFixed(2)}
-                </span>
-              </div>
-              <p className="mt-1 text-11 leading-relaxed text-fg-2">{item.snippet}</p>
-              <p className="mt-1 font-mono text-10 text-fg-3" data-retrieve-matched={item.id}>
-                {item.matchedBy.length ? item.matchedBy.join(' + ') : '无'} · 全文{' '}
-                {item.parts.fulltext.toFixed(3)} · 子串 {item.parts.substring.toFixed(2)} · 覆盖{' '}
-                {item.parts.coverage.toFixed(2)}
-              </p>
-            </li>
-          ))}
+          {items.map((item) => {
+            const { doc, part } = splitTitle(item.title);
+            return (
+              <li
+                key={item.id}
+                className="rounded-[var(--nexus-radius-sm)] border border-[var(--nexus-color-border-subtle)] bg-bg-2 p-2"
+                data-retrieve-hit={item.id}
+              >
+                <div className="flex items-center gap-1">
+                  <span
+                    className={cn(
+                      'shrink-0 rounded-[3px] border border-[var(--nexus-color-border-subtle)] px-1 font-mono text-10 text-fg-3',
+                    )}
+                    data-retrieve-source={item.sourceType}
+                  >
+                    {SOURCE_LABELS[item.sourceType] ?? item.sourceType}
+                  </span>
+                  <span className="shrink-0 text-11 text-fg-2" data-retrieve-part={item.id}>
+                    {part}
+                  </span>
+                  <span className="min-w-0 flex-1 truncate text-12 text-fg-1" title={item.title}>
+                    {doc}
+                  </span>
+                  <span className="shrink-0 font-mono text-11 text-fg-3" data-retrieve-score={item.id}>
+                    {item.score.toFixed(2)}
+                  </span>
+                </div>
+                <p className="mt-1 text-11 leading-relaxed text-fg-2">{item.snippet}</p>
+                <p className="mt-1 font-mono text-10 text-fg-3" data-retrieve-matched={item.id}>
+                  {item.matchedBy.length ? item.matchedBy.join(' + ') : '无'} · 全文{' '}
+                  {item.parts.fulltext.toFixed(3)} · 子串 {item.parts.substring.toFixed(2)} · 覆盖{' '}
+                  {item.parts.coverage.toFixed(2)}
+                </p>
+              </li>
+            );
+          })}
         </ul>
       </div>
     </div>
