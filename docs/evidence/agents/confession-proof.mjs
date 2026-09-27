@@ -428,8 +428,8 @@ console.log(`[§6] wiring: ${failedRows.length} synthetic reds → declaring ${s
 // paragraph somebody wrote rather than a reading of the population.
 {
   const CEIL = ["git ls-tree -r --name-only HEAD through this row's own git()"];
-  const OWNER = "const git = (args) => sw.runSweep('git', args, { cwd: root });\ngit(['ls-tree']);\n";
-  const PARTIAL = "const git = (args) => sw.runSweep('git', args);\ngit(['status']);\n";
+  const OWNER = "const git = (args) => run('git', args, { cwd: root });\ngit(['ls-tree']);\n";
+  const PARTIAL = "const git = (args) => run('git', args);\ngit(['status']);\n";
   const BORROWED = "const out = sw.runSweep('git', ['ls-tree'], { cwd: root });\n";
   const noLocation = (s) => s.replace(', { cwd: root }', '');
   assert.notEqual(noLocation(OWNER), OWNER, '(§9) the mutation found nothing to delete in the row-owned helper');
@@ -474,6 +474,8 @@ console.log(`[§6] wiring: ${failedRows.length} synthetic reds → declaring ${s
     ["const h = (tag, argv) => { const t = tag; return execFileSync('git', argv); };\n", [['h:param-outside-spawn'], 1], 'not an alias: a parameter that reaches neither the argv nor the options slice belongs to some other question'],
     ["const h = (x) => x + 1;\n", [['h:no-git-spawn'], 1], 'not an alias: the body never spawns git'],
     ["const h = (o) => execFileSync('git');\n", [['h:no-git-spawn'], 1], 'the slice finder keys on the comma after the program literal, so a git spawn that states no argv at all is invisible to it and reads as no-git-spawn — recorded rather than fixed, because a reason with no reachable shape is a reason the fixture list cannot test'],
+    ["const h = (args) => { /* execFileSync('git', ['-C', dir]) is only an example here */ return 0; };\n", [['h:no-code-position-git-spawn'], 1], 'amendment 100: a candidate whose only spawn is a COMMENT is no longer refused for a flag it never passes — it stops being a candidate, because the arm now asks whether this text reaches a git child at CODE POSITION'],
+    ["const h = () => { const doc = `execFileSync('git', ['-C', dir])`; return doc; };\n", [['h:no-code-position-git-spawn'], 1], 'and the same when the spawn lives in a STRING: the redirect flag is quoted inside a mention, so there is no helper here at all, only a sentence about one'],
   ];
   let exact10 = 0;
   for (const [src, want, why] of cases) {
@@ -482,6 +484,10 @@ console.log(`[§6] wiring: ${failedRows.length} synthetic reds → declaring ${s
     console.log(`  ${JSON.stringify(got) === JSON.stringify(want) ? 'ok  ' : 'MISS'} ${why} → ${JSON.stringify(got)} (want ${JSON.stringify(want)})`);
   }
   assert.equal(exact10, cases.length, `the verdict channel answered ${cases.length - exact10} of ${cases.length} reasons differently than this row predicts — and a reason with no fixture is a reason the census can hide in`);
+  const REAL = "const h = (...args) => execFileSync('git', args);\n";
+  const COMMENTED = REAL.replace("execFileSync('git', args);", "/* execFileSync('git', args) */ 0;");
+  assert.notEqual(COMMENTED, REAL, '(§10) the comment mutation found nothing to wrap, so the pair below checks nothing');
+  assert.deepEqual([ONE(REAL)[0], ONE(COMMENTED)[0]], [['h'], ['h:no-code-position-git-spawn']], '(§10) same helper name, same parameter, same argv slice — the ONLY difference is that one spawn is commented out, and that is enough to move it from READABLE to a candidate that never existed: this pair is the defect amendment 100 counted, kept measured by the two sources that differ by nothing else');
   const EXERCISED = new Set(cases.map(([, w]) => w[0]).flat().filter((x) => x !== 'h').map((x) => x.slice(2)));
   for (const r of rows) {
     const n = basename(r.path);
