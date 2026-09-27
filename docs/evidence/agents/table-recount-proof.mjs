@@ -248,7 +248,7 @@ console.log(`[§4] failing TRACKED cases: 0${foreign.length ? ` · failing cases
     { name: 'a base row gains one case', text: () => headReadme.replace('| `registry.test.ts` (7) |', '| `registry.test.ts` (8) |'), expect: 'registry.test.ts' },
     { name: 'a CONTINUATION row gains one case', text: () => headReadme.replace('| `visualQa.test.ts` +contrast (3) |', '| `visualQa.test.ts` +contrast (4) |'), expect: 'visualQa.test.ts' },
     { name: 'a whole row is deleted', text: () => headReadme.replace(/^\| `workspace\.test\.ts` \(\d+\)[^\n]*\n/m, ''), expect: 'workspace.test.ts' },
-    { name: 'the prose total loses one', text: () => headReadme.replace('sum to exactly **354**', 'sum to exactly **353**'), expect: 'PROSE-TOTAL' },
+    { name: 'the prose total loses one', text: () => headReadme.replace(/sum to exactly \*\*(\d+)\*\*/, (whole, n) => 'sum to exactly **' + (Number(n) - 1) + '**'), expect: 'PROSE-TOTAL' },
   ];
   const control = recount(headReadme, runs);
   assert.deepEqual(control.drift, [], 'the UNMUTATED table must be clean, or a mutation red is zero evidence');
