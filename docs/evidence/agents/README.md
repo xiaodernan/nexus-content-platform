@@ -3047,3 +3047,36 @@ rows, plane axis 262 sites program=117 argv=145, confession 9·0·4 with 0 ungra
 NO-GIT 5 · mute 68, echo 1/0/0, and table-recount-proof itself green inside the full run at 19151ms. Addendum
 lines are deliberately NOT amendment headings: §7 counts headings, and a redeemed promise must not move the
 census it is being redeemed against.
+
+## Record titles, not sentences (table-recount-proof.mjs §7, M2 v112 - ADR 0016 amendment 112)
+
+A doc table is a claim (amendment 91), a ledger is a claim, and so is a door's own report line. Amendment
+111 shipped a report-only axis - amendments the ledger grants that nothing outside it repeats - and it
+closed itself the moment the README section describing it named amendment 21: a sentence ABOUT a hole is
+a mention OF it. §7 therefore reads the same 94-file corpus twice. The mention reader scans every line
+with both grammars; the title reader scans only record titles (a `#` heading in a doc, or the first eight
+`//` lines of a proof) with the same grammars and nothing else. Measured at this landing: no mention at
+all 0, no record TITLE 2 [21, 108] - 21 is named only in this README's prose and 108 only in a ROADMAP
+table row, and neither is a record for its amendment. Both stay NAMED, not refused, for amendment 90's
+reason: their increments were not performed by this cycle, so this cycle cannot write their records
+honestly.
+
+Containment is asserted rather than argued (a title line is a line, so the any-mention hole is always
+inside the title hole) and it is checked on EVERY census the section builds, including the mutants,
+because the baseline it would otherwise check has an empty list to check.
+
+The house-style trap, found by a mutation that refused to work: the mention grammar refuses a number
+followed by a dash - that is what keeps `am. 4-5` from posing as a pointer - and the ledger titles
+itself "Amendment 21 - v21: host-verified UI runs", so a record title written in that style is credited
+ONLY through its version label. A dash-tolerant title grammar was measured and rejected: over the real
+corpus it changes nothing, and it would sever the containment. So write your README section heading with
+the amendment version label in it (this section does, and §7 credits 112 for it) or the door will keep
+saying you did not write a record.
+
+§7 mutates the axis three ways, all derived at run time: the ledger's own heading text for the first hole
+number appears in the README and the hole shrinks by exactly one (41f002e measures 2 to 1); the same
+number in a sentence leaves the hole where it is, which is the case that keeps this door from being
+satisfiable by its own report; and the README heading that is the SOLE title for a number gets every
+digit scrubbed, so the hole gains exactly that number back (measured: heading 541, amendment 20) while
+dangling does not move.
+

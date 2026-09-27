@@ -4973,3 +4973,47 @@ The line that was not predicted-then-wrong is the one worth keeping: inside that
 CITED heading, which by then was 111 itself, so the door reported "the old number 111 is dangling and the new
 one 1011 is one-sided". A hardcoded target would have frozen at 110 and gone quietly stale the moment the
 record it reads grew by one — the derivation is what makes the witness survive its own landing.
+
+### Amendment 112 (M2 v112, docs/evidence) - a record TITLE is what a reader follows, and a sentence about a hole is not its record
+
+Amendment 111 left its one-sided axis report-only, and the very next thing that axis did was close itself
+by reporting. The README section that names amendment 21 as unrecorded is itself a sentence containing
+amendment 21, so the any-mention reading went from 1 to 0 with no record written anywhere. §7 now reads
+the same 94-file population a second way, over TITLE lines only - a heading in a doc, or the first eight
+comment lines of a proof - and the two readings disagree exactly where prose has papered over an absent
+record: no mention at all 0, no record TITLE 2.
+
+The two holes, with where their only credit currently lives: amendment 21 (host-verified UI runs plus
+ledger journaling) is named only in docs/evidence/agents/README.md prose, and amendment 108 (three-runtime
+renderer and frame-clock seams) only in a docs/ROADMAP.md table row. A row in a table is a claim ABOUT a
+number, not a record FOR it, so the title reader does not credit either, and both stay named rather than
+refused - the same refusal as amendment 111: writing their records from this cycle would mean authoring an
+account of increments this cycle did not perform.
+
+Containment is asserted instead of argued, because the two readers are the same grammars over different
+line sets: every title line is also a line, so a number with no mention anywhere cannot have a title.
+The check runs on every census the section produces, including all the mutants, and not just the
+baseline - the baseline nowhere list is empty, which is precisely when a baseline-only assertion proves
+nothing.
+
+Three mutations on the new axis, each derived from the measurement rather than typed: a record title
+appears and the hole shrinks by exactly that entry while the mention reading does not move; the same
+number appears in PROSE and the hole still names it (the defect this amendment exists for, now a case);
+and the README heading that is the SOLE title for a number has every digit scrubbed, putting exactly that
+number back in the hole with dangling unmoved.
+
+What the first draft of this amendment learned from its own failure, and it is not a defect: its
+synthetic title line was "## Amendment 21 - a record title added in memory only" and §7 refused to
+credit it. The mention grammar deliberately refuses ANY number followed by a dash, because "am. 4-5" is
+a span and not a pointer - the lesson amendment 111 wrote down - and the ledger house style is
+"## Amendment 21 - v21: host-verified UI runs + ledger journaling". Measured both ways over the corpus,
+a strict and a dash-tolerant title grammar give the IDENTICAL holes, so widening the grammar would buy
+nothing and would break the containment above; instead the arm copies the ledger heading text verbatim
+and asserts that the dash-ended phrase stays refused, which states out loud what a future record author
+must know: give your README section the amendment version label, or this door will keep calling it
+unrecorded.
+
+Measured at the gate commit 41f002e: ledger headings 107, record corpus 94 files, dangling explicit
+citations 0, no mention at all 0, no record TITLE 2 [21, 108], explicit citations surviving only in code
+2 (4, 5), §5 4/4, graded-tree digest 0d70b33a074e stable across the run, row exit 0.
+
