@@ -86,7 +86,7 @@ function listFiles(dir) {
 
 // The substitute precondition for a plane with no index: digest the bytes this proof READS, and require them
 // unchanged when it finishes. A run that rewrote a test file would be caught here even with no git to ask.
-const WATCH = [README, ...PKGS.map((p) => p.testDir)];
+const WATCH = [README, 'docs/decisions/0016-agent-runtime-hermetic-demo-loop.md', ...PKGS.map((p) => p.testDir)];
 const snapshot = () => {
   const hash = createHash('sha256');
   for (const path of WATCH) {
@@ -285,6 +285,91 @@ try {
   console.log(`[§6] vitest reports removed from the temp dir · ${gitPlane === 'GIT' ? 'README and both test dirs untouched (git status empty)' : 'no index here, so the before/after digest stands in'} · graded-tree digest ${before} stable across the run`);
 } catch (e) {
   console.log(`[§6] temp dir still held (${e.code ?? e.message}) — repository bytes are nonetheless unchanged`);
+}
+
+// ---------------------------------------------------------------- §7 the ledger vs the records that cite it
+// ADR 0016 is the only place an amendment number is GRANTED, and its own text narrates that two numbers in the
+// sixties were never granted — they live only in a stale working copy. A tracked file that cites one of them
+// still sends its reader to a record that does not exist, and no other gate in this directory reads the ledger
+// at all. So this section enumerates the ledger's headings and the RECORD corpus (docs/evidence/** plus
+// docs/ROADMAP.md; docs/decisions/ is EXCLUDED because every ADR numbers its own amendments — including those
+// would manufacture a dangling defect out of a legitimate cross-ADR citation, which is §89's wrong-grammar
+// lesson one level up) and refuses any explicit citation of a number the ledger never granted.
+// Two grammars stay apart on purpose. `amendment N` / `am. N` is a claim about THIS ledger. A bare `vNN`, or an
+// `M2 vNN` label, is a version token that prose ranges write (a doc can say "M2 v0–v14"), so version tokens
+// count as RECORDS — did anything preserve the increment — but never as dangling claims. The one-sided
+// direction, headings that nothing outside the ledger repeats, is NAMED IN FULL on the console line and not
+// refused yet: refusing it this cycle would mean writing records for increments this row did not perform, and
+// a record invented instead of read is exactly what amendment 90's title warns about.
+// And this comment cites no ungranted number in citation grammar, because the reader's own file sits inside the
+// population it scans (amendment 102: the census includes the counter).
+{
+  const ADR = 'docs/decisions/0016-agent-runtime-hermetic-demo-loop.md';
+  // A prose chain like "(am. 4–5)" or "(am. 74–77)" names a SPAN, not a record, so a number followed by a dash
+  // is a range endpoint and cannot dangle: only a POINTER citation is refused. Measured, not assumed — the
+  // first draft refused two ROADMAP range endpoints and had to be told the difference by the text itself.
+  const EXPLICIT = /\b(?:amendments?|am\.)\s*#?(\d{1,4})\b(?!\s*[-\u2010-\u2015])/gi;
+  const RECORD = /\b(?:M\d+\s+v|v)(\d{1,3})\b/g;
+  const nums = (text, re) => { const s = new Set(); for (const x of text.matchAll(new RegExp(re.source, re.flags))) s.add(Number(x[1])); return s; };
+  const headingsOf = (t) => {
+    const h = new Map();
+    for (const line of t.split('\n')) {
+      const m = /^#{2,3} Amendment (\d+)(?![\d.])(.*)$/.exec(line);
+      if (!m || /^\s*(—\s*)?,?\s*addendum/i.test(m[2])) continue;
+      h.set(Number(m[1]), line.replace(/^#+ /, '').slice(0, 54));
+    }
+    return h;
+  };
+  const adrText = norm(readFileSync(ADR, 'utf8'));
+  const corpus = listFiles('docs').filter((p) => !p.startsWith('docs/decisions/') && (p.endsWith('.md') || p.endsWith('.mjs')));
+  const census = (adrCopy, extraReadme) => {
+    const headings = headingsOf(adrCopy);
+    const explicit = new Set(), recorded = new Set(), inDoc = new Set(), site = new Map();
+    for (const p of corpus) {
+      let text = norm(readFileSync(p, 'utf8'));
+      if (extraReadme && p === README) text += extraReadme;
+      for (const n of nums(text, EXPLICIT)) { explicit.add(n); if (!site.has(n)) site.set(n, p); if (p.endsWith('.md')) inDoc.add(n); }
+      for (const n of nums(text, RECORD)) recorded.add(n);
+    }
+    const dangling = [...explicit].filter((n) => !headings.has(n)).sort((a, b) => a - b);
+    const nowhere = [...headings.keys()].filter((n) => !explicit.has(n) && !recorded.has(n)).sort((a, b) => a - b);
+    const onlyCode = [...headings.keys()].filter((n) => explicit.has(n) && !inDoc.has(n)).sort((a, b) => a - b);
+    return { headings, explicit, dangling, nowhere, onlyCode, site };
+  };
+  const c = census(adrText, null);
+  assert.deepEqual(c.dangling, [], `${c.dangling.length} tracked file(s) cite an amendment number ADR 0016 never granted, so the reader is sent to a record that does not exist:\n${c.dangling.map((n) => `  amendment ${n} cited by ${c.site.get(n)}`).join('\n')}`);
+  console.log(`[§7] ledger headings ${c.headings.size} · record corpus ${corpus.length} files (docs/evidence + ROADMAP; other ADRs excluded) · dangling explicit citations 0 · amendments no doc or proof repeats outside the ledger: ${c.nowhere.length} — NAMED here, refused by a later cycle that can write their records honestly: ${c.nowhere.map((n) => c.headings.get(n)).join(' | ') || 'none'} · explicit citations kept only in code, never in a doc: ${c.onlyCode.join(', ') || 'none'}`);
+  {
+    const fresh = Math.max(...c.headings.keys()) + 700;
+    const one = census(adrText, `\nSee ADR 0016 amendment ${fresh} for the rule.\n`);
+    assert.ok(one.dangling.includes(fresh), `MUTATION SURVIVED: a doc citing amendment ${fresh}, which no heading grants, is not named as dangling`);
+    console.log(`  caught  a doc cites a number the ledger never granted → amendment ${fresh} named as dangling`);
+    // Renumber a heading the corpus actually CITES: renaming an uncited heading orphans nothing, so the first
+    // version of this mutation (the newest heading, 110) could not produce its defect however good §7 was.
+    // And the rename is done with a regex LITERAL, not a string: inside a template literal '\b' is a backspace
+    // and '\d' is the letter d, so a string-built regex silently matched zero lines and the mutation no-oped.
+    const cited = [...c.headings.keys()].filter((n) => c.explicit.has(n));
+    assert.ok(cited.length, 'no corpus file cites any amendment by number, so the dangling direction is untestable by renumbering — say so rather than report a caught mutation');
+    const newest = Math.max(...cited);
+    const orphan = newest + 900;
+    const renumber = (text, from, to) => {
+      let hits = 0;
+      const out = text.split('\n').map((line) => {
+        const m = line.match(/^(#{2,3} Amendment )(\d+)(?![\d.])(.*)$/);
+        if (!m || Number(m[2]) !== from) return line;
+        hits += 1;
+        return m[1] + to + m[3];
+      });
+      assert.equal(hits, 1, `the mutation must rewrite exactly ONE heading numbered ${from} and rewrote ${hits} — a mutation that changes no bytes, or the wrong bytes, is not a witness`);
+      return out.join('\n');
+    };
+    const two = census(renumber(adrText, newest, orphan), null);
+    assert.ok(!two.headings.has(newest), `MUTATION SURVIVED: the renumber left heading ${newest} granted`);
+    assert.ok(two.dangling.includes(newest), `MUTATION SURVIVED: renaming heading ${newest} leaves its citations pointing at nothing, and §7 did not notice`);
+    assert.ok(two.nowhere.includes(orphan), `MUTATION SURVIVED the other way: the renamed heading ${orphan} has no record anywhere and is not named one-sided`);
+    assert.deepEqual(two.nowhere.filter((n) => n !== orphan), c.nowhere, 'the one-sided list must gain ONLY the orphan this mutation created: the measured baseline already carries one entry, so an empty-list expectation is a wish about the tree, not a claim about the reader');
+    console.log(`  caught  the newest heading renumbered → the old number ${newest} is dangling (cited, ungranted) and the new one ${orphan} is one-sided (granted, uncited), and the one-sided list gains exactly the baseline entry and nothing else`);
+  }
 }
 
 const total = runs.reduce((a, { cases, owned }) => a + [...cases.byFile].filter(([f]) => owned.has(f)).reduce((x, [, n]) => x + n, 0), 0);

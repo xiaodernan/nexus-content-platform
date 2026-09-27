@@ -1,5 +1,6 @@
-// NEXUS M2 v58 — checkpoint-table audit proof (ADR 0016 amendment 58).
-// v40 made §28 a TABLE you can diff; v41 made every verdict a RECEIPT. v58 answers the
+// NEXUS M2 v86b — checkpoint-table audit proof (ADR 0016 amendment 87). The header named a number
+// in the sixties the ledger never granted, so a reader following the citation found no record.
+// v40 made §28 a TABLE you can diff; v41 made every verdict a RECEIPT. v86b answers the
 // question those two enable and nobody had asked yet: "would this convenient table have
 // contradicted the humans it is meant to stand in for?" — asked BEFORE it is ever trusted.
 //
