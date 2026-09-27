@@ -228,6 +228,10 @@ export function assetRowToRef(row: typeof assets.$inferSelect): AssetRef {
           provider: typeof gen.provider === 'string' ? gen.provider : 'unknown',
           model: typeof gen.model === 'string' ? gen.model : 'unknown',
           prompt: gen.prompt,
+          // 这两格是面板上那枚 DEMO 角标和"回到那一次任务"的唯一依据。曾经没映射，
+          // 于是 AssetsPanel 读一个没人写的字段：角标永远不出现，界面看着像"没有生成物"。
+          ...(typeof gen.taskId === 'string' ? { taskId: gen.taskId } : {}),
+          ...(typeof gen.demoMode === 'boolean' ? { demoMode: gen.demoMode } : {}),
         }
       : undefined;
   return {

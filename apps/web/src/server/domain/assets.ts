@@ -65,10 +65,18 @@ export type UploadResult =
   | { ok: true; asset: AssetRef; removed: string[]; reused: boolean }
   | UploadRejection;
 
-/** 图片上传：识别 → 上限 → 剥元数据 → 落存储 → 落库。任一步不过就给明确原因 */
+/** 图片入库：识别 → 上限 → 剥元数据 → 落存储 → 落库。任一步不过就给明确原因 */
 export async function uploadImageAsset(
   projectId: string,
-  input: { data: ArrayBuffer | Uint8Array; filename?: string; createdById?: string },
+  input: {
+    data: ArrayBuffer | Uint8Array;
+    filename?: string;
+    createdById?: string;
+    /** 摄取方是谁：上传还是生成。默认 upload——调用生成链路时必须显式写 generated，否则事后查不到来源 */
+    source?: 'upload' | 'generated';
+    /** 生成来源的元信息（prompt / provider / model / seed / demoMode / taskId） */
+    genMeta?: Record<string, unknown>;
+  },
 ): Promise<UploadResult> {
   const bytes = input.data instanceof Uint8Array ? input.data : new Uint8Array(input.data);
   const mime = sniffImageMime(bytes);
@@ -120,8 +128,9 @@ export async function uploadImageAsset(
       width: size?.width ?? null,
       height: size?.height ?? null,
       checksum,
-      source: 'upload',
-      genMeta: { removedMetadata: sanitized.removed },
+      source: input.source ?? 'upload',
+      // removedMetadata 放在最后：它是这道摄取门的回执，不接受调用方覆盖
+      genMeta: { ...input.genMeta, removedMetadata: sanitized.removed },
       createdById: input.createdById ?? null,
     })
     .returning();

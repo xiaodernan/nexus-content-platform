@@ -1676,6 +1676,11 @@ drizzle 把整个拼接结果当成**单个绑定参数**，生成的 SQL 是 `o
 （已经手工清掉：`delete … where handle ~ '^tr(av|f|v)…'`，连 12 条残留的赞一起）。
 放宽的只有墙上时钟，一条断言都没减；这一点在 `docs/TESTING.md` 里也留了一句。
 
+**90 秒那一改的整套重跑，当场补上了（2026-09-28 07:50）**：`npm test` →
+**90 个文件全过 / 965 条全过，240.54 秒，退出码 0**。上面"整套还没重跑完"那句欠账到此合上；
+这一遍比出问题那一遍（532 秒）快得多，因为机器空闲——**同一套用例的墙上时钟本来就随负载飘**，
+所以这里报的是文件/用例数而不是时长。
+
 
 ## §38 第一格：本地确定性图像合成器落地（2026-09-27，只有合成器与它的单测）
 
@@ -1769,3 +1774,44 @@ generation / team collaboration / publishing 设计"，§134"用户看得到 AI 
 - 改档位没有界面：`UPDATE users SET plan` 是服务端代码里的事。
 - 这道门**不预扣**：并发可以把余额跑到负数（预扣要一个能把 provider 调用包进去的可回滚事务，今天没有）。
   负余额在流水里看得见，这个松是选定的，写在 `credit-ledger.ts` 注释与 ADR-0014 里。
+
+
+## §38 第二格：Text→Image 端到端接上，image 那个额度桶第一次有消耗方（2026-09-28 凌晨）
+
+需求原文（§38）要的是五条箭头，而本机没有图像 provider（阻塞项"真实 AI provider key"还在）。
+第一格只落了合成器与它的单测；这一格把**那条链上其余每一环接成真的**：
+
+- `apps/web/src/server/domain/image-studio.ts`（新）：规格门 → **额度门** → `startTask(capability='demo')`
+  → 本地合成 → 与上传**同一道**摄取门 → 资产行 → `finishTask`（这一句里发生扣点）→ 通知。
+- `POST /api/projects/[projectId]/images`（新）：CSRF → 会话 → 归属 → zod → 上面那个函数；
+  额度用尽回 429、规格不合回 400，两者理由都直接透传，不是界面文案。
+- 修掉第一格点名的两处真缺陷：`uploadImageAsset` 原本硬编码 `source:'upload'`（生成物记成上传，
+  事后查不到哪张是模型给的），现在收 `source` 与 `genMeta`；`assetRowToRef` 原本不映射
+  `taskId` / `demoMode`，所以 `AssetsPanel.tsx:111` 那枚 DEMO 角标读的是一个**没人写过的字段**——死代码。
+
+**验证**（`apps/web/test/image-studio.integration.test.ts`，打真库，4 条）：
+- 一次生成在四处各留一行：`assets`（`source='generated'`、mime/宽高、对象键 `projects/{projectId}/{assetId}.png`
+  由服务端按 id 生成）、清单里的 `generatedBy`（provider=demo、prompt 回填、**demoMode=true、taskId 指回那一次任务**）、
+  `agent_tasks`（succeeded / capability=demo）、`credit_ledger` 恰好一行 `-2`，且余额按量减少。
+- **门的位置**这一条是这一片的重点：余额扣到 0 之后再生成，`assets / tasks / ledger` 三个计数**一个都不许多**；
+  拒绝理由原文照抄 `refusalFor`（"Image credits 不够：这一次需要 2 点，现在只有 0 点"）。
+- 复用与消费是两件事：同 prompt 同 seed 拿回**同一行**（同 checksum 在项目里只有 1 行）但**两行任务、两笔扣点**；
+  只换 seed 必须给新行——否则第二次点击等于什么都没生成。
+- 非法输入（宽 2048、空 prompt）不过门、不留任务行、不花额度。
+
+**两次变异探针**（跑完还原）：把额度门挪到 `startTask` 之后 → 目标用例红，断言消息就是
+`expected { assets: 1, tasks: 2, ledger: 1 } to deeply equal { …tasks: 1… }`（多出来的正是那条
+"running 然后失败"的假账）；删掉 `assetRowToRef` 里 `demoMode` 那行 → 红 1 条，红在那句
+"DEMO 与真模型的来源必须可区分"。**第一格说"角标读一个没人写的字段"，这一格的凭证是删掉映射会红。**
+
+探针那遍一共红了 2 条，其中 1 条是**连带**：额度门用例在断言失败后就不会执行"把余额还回去"那一行，
+于是下一条被"额度不够"挡住。已改成每条用例自己补足额度——**连带红不是证据，是用例之间的依赖**。
+
+`npx tsc -p apps/web/tsconfig.json --noEmit` 干净；`image-studio + image-synth + assets` 三个文件 **17 条全绿**
+（含上传链路，确认改了 `uploadImageAsset` 签名没把上传弄坏）。
+**上面 #65 那节的"90 文件 / 965 条全过"是这一片之前的整套数**——新的 4 条还没进过整套，写完这段就会重跑。
+
+**这一片没有做的**：Studio 面板里还没有那个入口（§158 要求真浏览器 Run/Test/Screenshot，单独一片；
+所以"角标在界面上真的亮起来"目前只有服务端与单测层面的凭证，没有肉眼看到的图）；
+其余四条箭头（Image→Image、Sketch→Image、Reference→Variation、Character→Scene）一格没动；
+真 provider 那一格仍然缺 key——换成真模型时改的是 `image-synth.ts` 那一个文件里的像素来源。

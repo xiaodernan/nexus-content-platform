@@ -1,0 +1,209 @@
+import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { and, eq, inArray, sql as rawSql, type SQL } from 'drizzle-orm';
+import type { AssetRef } from '@nexus/design-model';
+import { generateDemoImage, IMAGE_AGENT_KEY, type GenerateImageOutcome } from '../src/server/domain/image-studio';
+import { listProjectAssets } from '../src/server/domain/assets';
+import { createProject } from '../src/server/domain/projects';
+import { adjustCredits, readCredits } from '../src/server/domain/credit-ledger';
+import { GENERATION_COST } from '../src/server/domain/credits';
+import { getDb } from '../src/server/db/client';
+import { agentTasks, assets, creditLedger, projects, users } from '../src/server/db/schema';
+
+/**
+ * §38 Text→Image 落到真库：这一片要证的不是"能生成一张 PNG"（那是 `image-synth.test.ts` 的单字），
+ * 而是**这条链上每一环都真的留下了行**——资产行的 source、清单里的 demoMode、任务行的 capability、
+ * 账本里那一行 -2，以及额度门**在写任务行之前**这件事。
+ *
+ * 四条用例各自盯住一个"少了它这格就是假的"的点：
+ * 1. 摄取与记账齐全（尤其 `generatedBy.demoMode`：面板上那枚 DEMO 角标读的就是它，
+ *    这一格没接上时角标是死代码——界面上永远不显示，谁都不会发现"生成来源"整段是空的）
+ * 2. 额度门的位置：余额为 0 时**一行都不许多**（任务行、资产行、账本行都不许多）
+ * 3. 同 prompt 同 seed 复用字节但**任务与扣点各算一次**
+ * 4. 非法输入不过门、不花额度
+ */
+
+let userId: string;
+let projectId: string;
+
+/** 把 ok:false 的结构收窄；被拒时把 code/message/issues 全打进断言消息，红的第一眼就能看到为什么 */
+function mustOk(out: GenerateImageOutcome, label: string): Extract<GenerateImageOutcome, { ok: true }> {
+  if (out.ok) return out;
+  expect(false, `${label} 本该成功，实际：${out.code} / ${out.message}${out.issues?.length ? ` / ${out.issues.join('；')}` : ''}`);
+  throw new Error('unreachable');
+}
+
+async function countAssets(where: SQL): Promise<number> {
+  const [row] = await getDb().select({ n: rawSql<number>`count(*)::int` }).from(assets).where(where);
+  return row?.n ?? 0;
+}
+
+/** 同一份字节在项目里只有 0 或 1 行——"复用"的完整定义，不看名字也不看 id 猜 */
+async function rowsWithSameBytes(assetId: string): Promise<number> {
+  const [row] = await getDb().select({ checksum: assets.checksum }).from(assets).where(eq(assets.id, assetId)).limit(1);
+  expect(row?.checksum, `库里查不到资产 ${assetId}`).toBeDefined();
+  return countAssets(and(eq(assets.projectId, projectId), eq(assets.checksum, row!.checksum!))!);
+}
+
+async function assetRefOf(id: string): Promise<AssetRef | undefined> {
+  return (await listProjectAssets(projectId)).find((ref) => ref.id === id);
+}
+
+async function imageTasks(): Promise<number> {
+  const [row] = await getDb()
+    .select({ n: rawSql<number>`count(*)::int` })
+    .from(agentTasks)
+    .where(and(eq(agentTasks.createdById, userId), eq(agentTasks.agentKey, IMAGE_AGENT_KEY)));
+  return row?.n ?? 0;
+}
+
+beforeAll(async () => {
+  const db = getDb();
+  await db.execute(rawSql`select 1 as ok`);
+  const stamp = Date.now().toString(36);
+  const [user] = await db
+    .insert(users)
+    .values({ displayName: 'ImageStudio', email: `im-s+${stamp}@nexus.test`, handle: `ims${stamp}` })
+    .returning({ id: users.id });
+  userId = user!.id;
+  const doc = await createProject(userId, { name: '图像工作台用例', kind: 'website' });
+  projectId = doc.id;
+});
+
+afterAll(async () => {
+  const db = getDb();
+  await db.delete(projects).where(inArray(projects.ownerId, [userId]));
+  await db.delete(users).where(inArray(users.id, [userId]));
+});
+
+describe('§38 Text→Image 打真库', () => {
+  it('一次生成把资产行、清单里的 demoMode、任务行与账本各留一行', async () => {
+    const db = getDb();
+    const before = (await readCredits(userId)).balances.image;
+    const cost = GENERATION_COST.image;
+
+    const out = mustOk(
+      await generateDemoImage({ projectId, userId, prompt: '一只在月球上的猫', width: 256, height: 256, seed: 7 }),
+      '第一次生成',
+    );
+
+    const [row] = await db.select().from(assets).where(eq(assets.id, out.asset.id)).limit(1);
+    expect(row, '资产清单说有这一行，库里却没有').toBeDefined();
+    expect(row!.source, '生成物却记成 upload，事后查不到哪张是模型给的').toBe('generated');
+    expect(row!.mime).toBe('image/png');
+    expect(row!.width).toBe(256);
+    expect(row!.height).toBe(256);
+    expect(row!.storageKey, '对象键必须按项目 + id 生成，不能带客户端文件名').toBe(
+      `projects/${projectId}/${out.asset.id}.png`,
+    );
+    expect(row!.bytes).toBeGreaterThan(0);
+
+    // 面板那枚角标读的是这里：`generatedBy.demoMode`
+    const ref = await assetRefOf(out.asset.id);
+    expect(ref?.generatedBy, '生成来源整段没水合，界面上看不出这张图从哪来').toBeDefined();
+    expect(ref!.generatedBy!.prompt).toBe('一只在月球上的猫');
+    expect(ref!.generatedBy!.provider).toBe('demo');
+    expect(ref!.generatedBy!.demoMode, 'DEMO 与真模型的来源必须可区分（§160）').toBe(true);
+    expect(ref!.generatedBy!.taskId, '生成来源要能回指那一次任务').toBe(out.taskId);
+
+    const [task] = await db.select().from(agentTasks).where(eq(agentTasks.id, out.taskId)).limit(1);
+    expect(task?.status).toBe('succeeded');
+    expect(task?.capability).toBe('demo');
+    expect(task?.agentKey).toBe(IMAGE_AGENT_KEY);
+
+    const charges = await db
+      .select({ id: creditLedger.id, kind: creditLedger.kind, delta: creditLedger.delta })
+      .from(creditLedger)
+      .where(eq(creditLedger.taskId, out.taskId));
+    expect(charges, '一次成功的生成没有扣点，等于宣布它是免费的').toHaveLength(1);
+    expect(charges[0]!.kind).toBe('image');
+    expect(charges[0]!.delta).toBe(-cost);
+    expect((await readCredits(userId)).balances.image).toBe(before - cost);
+  });
+
+  it('额度门在写任务行之前：余额为 0 时一行都不许多', async () => {
+    const balance = (await readCredits(userId)).balances.image;
+    expect(balance, '前置用例没留下余额，这一条要盯的"扣光之后"根本没发生').toBeGreaterThan(0);
+    await adjustCredits({ userId, kind: 'image', delta: -balance, reason: '用例：把 image 桶扣到 0' });
+    expect((await readCredits(userId)).balances.image).toBe(0);
+
+    const seen = async () => ({
+      assets: await countAssets(eq(assets.projectId, projectId)),
+      tasks: await imageTasks(),
+      ledger: (
+        await getDb()
+          .select({ n: rawSql<number>`count(*)::int` })
+          .from(creditLedger)
+          .where(and(eq(creditLedger.userId, userId), eq(creditLedger.kind, 'image'), eq(creditLedger.source, 'generation')))
+      )[0]?.n ?? 0,
+    });
+    const before = await seen();
+
+    const res = await generateDemoImage({ projectId, userId, prompt: '扣光之后再要一张', width: 128, height: 128 });
+    expect(res.ok, '余额 0 还放过去了').toBe(false);
+    if (!res.ok) {
+      expect(res.code).toBe('credits_exhausted');
+      // 拒绝的理由直接抄自 `refusalFor`：这一句是给用户看的，不是测试自己编的
+      expect(res.message).toMatch(/Image credits 不够：这一次需要 2 点，现在只有 0 点/);
+    }
+    const after = await seen();
+    // 门挪到 startTask 之后的话，这里会多出一条 running→failed 的假账；门挪到摄取之后的话，
+    // 会多出一行资产和一个免费的成功生成。两种走偏都被这三行数抓住。
+    expect(after).toEqual(before);
+
+    // 把余额还回去：下面两条要还能生成，而"扣到 0"这一步不该偷偷影响别的用例
+    await adjustCredits({ userId, kind: 'image', delta: balance, reason: '用例：把 image 桶还回去' });
+  });
+
+  it('同 prompt 同 seed 复用同一份字节，但任务与扣点各算一次', async () => {
+    // 自己补足余额，不等上一条还回去：上一条如果在中途红掉，它的 `adjustCredits(+balance)` 那行就不会执行，
+    // 那时这一条会跟着红成"额度不够"——2026-09-28 那次变异探针就是这样多红了 1 条（连带不是证据，是依赖）
+    const needed = GENERATION_COST.image * 3;
+    const balance = (await readCredits(userId)).balances.image;
+    if (balance < needed) await adjustCredits({ userId, kind: 'image', delta: needed - balance, reason: '用例：补足三次生成的额度' });
+
+    const first = mustOk(await generateDemoImage({ projectId, userId, prompt: '重复的猫', width: 64, height: 64, seed: 123 }), '第一次');
+    const second = mustOk(
+      await generateDemoImage({ projectId, userId, prompt: '重复的猫', width: 64, height: 64, seed: 123 }),
+      '第二次（同 prompt 同 seed）',
+    );
+    expect(second.reused, '同样的字节该复用同一行，否则会攒出一堆内容相同的资产').toBe(true);
+    expect(second.asset.id).toBe(first.asset.id);
+    expect(await rowsWithSameBytes(first.asset.id), '复用之外又插了一行同样的字节').toBe(1);
+
+    // 但两次是两次请求：两行任务、两笔扣点。复用省下的是存储，不是消费记录。
+    const taskIds = [first.taskId, second.taskId];
+    expect(taskIds[0]).not.toBe(taskIds[1]);
+    const charges = await getDb()
+      .select({ id: creditLedger.id, taskId: creditLedger.taskId })
+      .from(creditLedger)
+      .where(and(eq(creditLedger.userId, userId), eq(creditLedger.source, 'generation'), inArray(creditLedger.taskId, taskIds)));
+    expect(charges).toHaveLength(2);
+
+    // 反向对照：只换 seed 就不是同一份字节，也不该被复用逻辑吃掉
+    const other = mustOk(
+      await generateDemoImage({ projectId, userId, prompt: '重复的猫', width: 64, height: 64, seed: 456 }),
+      '换 seed 的那一次',
+    );
+    expect(other.reused, '换了 seed 却拿回旧图，等于第二次点击什么都没生成').toBe(false);
+    expect(other.asset.id).not.toBe(first.asset.id);
+  });
+
+  it('非法输入不过门，也不花额度、不留任务行', async () => {
+    const tasksBefore = await imageTasks();
+    const assetsBefore = await countAssets(eq(assets.projectId, projectId));
+
+    const tooBig = await generateDemoImage({ projectId, userId, prompt: '超出上限的', width: 2048, height: 64 });
+    expect(tooBig.ok).toBe(false);
+    if (!tooBig.ok) {
+      expect(tooBig.code).toBe('invalid_input');
+      expect(tooBig.issues?.join('；')).toMatch(/1024/);
+    }
+    const emptyPrompt = await generateDemoImage({ projectId, userId, prompt: '   ', width: 64, height: 64 });
+    expect(emptyPrompt.ok, '空 prompt 也去合成了一张').toBe(false);
+    if (!emptyPrompt.ok) expect(emptyPrompt.code).toBe('invalid_input');
+
+    expect(await countAssets(eq(assets.projectId, projectId))).toBe(assetsBefore);
+    // 被拒的请求不该在任务列表里留下一条"从没跑起来"的账（§113 那条口径的同一面）
+    expect(await imageTasks()).toBe(tasksBefore);
+  });
+});
