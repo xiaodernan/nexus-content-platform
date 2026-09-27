@@ -417,4 +417,41 @@ console.log(`[§6] wiring: ${failedRows.length} synthetic reds → declaring ${s
   assert.equal(grade(noParamCwd).state, 'invisible', "(c) and NOT so for the runner's shape: with cwd gone from the options the helper stops being an alias at all (its second parameter is then used nowhere), so no edit to a comment lifts it — only CODE naming its literal at a call site does, which amendment 91 forbids an arm from demanding of the population");
   console.log(`[§8] alias arm: ${readable.length} of ${rows.length} rows carry a readable one (${readable.join(', ')}), and table-recount's ${trGraded.length} clauses are supported by it ALONE; the runner's git(argv, cwd) is refused by a SILENT door, so the ceiling of ${deadVerbs.length} verbs (${JSON.stringify(deadVerbs)}) has one face the census cannot see; 3 redirect doors × the edit that opens each, plus the edit that opens none`);
 }
-console.log(`\n[summary] two witnesses for ${clauses.length} confessions: ${selfNamed.length} commands the runner can name in its own file, ${byState('supported').length} clauses corroborated by a body and ${byState('invisible').length} that hide one frame up — of which ${misCited.length} were the sentence's fault (citable) and ${unreadable.length} are the arm's ceiling (${JSON.stringify(deadVerbs)}), so the residual is now a measurement rather than a shrug · ${namedCases.length} naming cases held the free-text grammar (one of them recorded as a false negative rather than fixed), and the cause arm reddened under exactly one of the mutations it was shown — the omission. A surplus is stated, never scored. The wiring is graded too: §6 reproduces the lookup that killed a seven-minute census on 6807ba1 in one line, and shows a reader keyed by the wrong path ending cannot hide behind its own zero. Two gates print after the rows: the sweep's omissions + silent blind spots at zero, and this row's mis-cited clauses at zero`);
+
+// ---------------------------------------------------------------- §9 the axis's own explanation is computed, not remembered
+// Amendment 98 refuted the sentence the confession axis printed for its invisible clauses — "every one of those
+// reaches carries its verb through a wrapper that takes a PARAMETER, so only the CODE could name it" — because a
+// parameter wrapper IS named by code at its call sites, which is how four clauses became readable. The runner now
+// interpolates `aliasCeiling` instead of reciting a reason, so this grades the EXPLANATION the way §4 grades a
+// confession: the two faces have to move when the grammar's verdict on the same bytes moves, or the line is a
+// paragraph somebody wrote rather than a reading of the population.
+{
+  const CEIL = ["git ls-tree -r --name-only HEAD through this row's own git()"];
+  const OWNER = "const git = (args) => sw.runSweep('git', args, { cwd: root });\ngit(['ls-tree']);\n";
+  const PARTIAL = "const git = (args) => sw.runSweep('git', args);\ngit(['status']);\n";
+  const BORROWED = "const out = sw.runSweep('git', ['ls-tree'], { cwd: root });\n";
+  const noLocation = (s) => s.replace(', { cwd: root }', '');
+  assert.notEqual(noLocation(OWNER), OWNER, '(§9) the mutation found nothing to delete in the row-owned helper');
+  assert.notEqual(noLocation(BORROWED), BORROWED, '(§9) the mutation found nothing to delete in the borrowed frame');
+  const face = (src) => {
+    const c = sw.gradeConfession(CEIL, src, '')[0];
+    const f = sw.aliasCeiling([['fixture', src]]);
+    return [c.state, ...['declined', 'readable', 'silent'].map((k) => f[k].map((x) => x.refusals.length ? x.refusals.join(',') : x.verbs.join(',')).filter(Boolean))];
+  };
+  assert.deepEqual(face(OWNER), ['invisible', ['git:cwd'], [], []], '(§9) a row whose OWN helper names a location is declined out loud, and the axis must say so by name');
+  assert.deepEqual(face(noLocation(OWNER)), ['supported', [], ['ls-tree'], []], '(§9) one edit by that row lifts the clause AND moves it off the declined face: the ceiling is gone because the row stopped asking somewhere else');
+  assert.deepEqual(face(PARTIAL), ['partial', [], ['status'], []], '(§9) the second face is a row that owns a working alias which simply does not reach THIS verb: the clause is PARTIAL, not invisible, because the arm can see one command and not the other — and the edit that closes it is the row naming a second literal at a call site, which is a different problem from a refused helper and a different problem again from a frame the row does not own');
+  assert.deepEqual(face(BORROWED), ['invisible', [], [], []], "(§9) a verb that reaches the child through another file's call has no verdict on record — the silent face, which is where the runner's own wrapper lives");
+  assert.deepEqual(face(noLocation(BORROWED)), ['invisible', [], [], []], "(§9) and the SAME edit that lifts the first face changes NOTHING here, because the frame is not the row's to open — that difference in who holds the edit is the whole content of the axis sentence");
+  const axisLine = selfSrc.split('\n').find((l) => l.includes('[identity] confession axis (bytes)'));
+  assert.ok(axisLine, 'the confession axis line is not in the runner at all — §9 would be grading an absent channel');
+  assert.ok(axisLine.includes('only the CODE could name it'), 'the refuted sentence is no longer cited anywhere in the axis line, so the strip below has nothing to tell apart from an assertion and this check would be vacuous');
+  const asserted = axisLine.replace(/"[^"\n]*"/g, '');
+  assert.ok(!/only the CODE could name it/.test(asserted), 'the axis ASSERTS the reason amendment 98 refuted rather than citing it: an explanation of a residual must be read out of the same grammar that produced the residual — and amendment 89 already settled that a quotation is not a use, which is why the strip above removes the cited sentence and keeps the check');
+  assert.deepEqual(['ceiling.declined.length', 'ceiling.readable.length', 'ceiling.silent.length'].filter((v) => !axisLine.includes(v)), [], 'the axis sentence names a face that did not come from aliasCeiling, so a row edit can no longer move it');
+  const deadNames = [...new Set(unreadable.map((c) => c.row))].sort();
+  const live = sw.aliasCeiling(deadNames.map((n) => [n, rows.find((r) => basename(r.path) === n).text]));
+  assert.deepEqual([live.declined, live.readable, live.silent.map((s) => s.row)], [[], [], ['closure-proof.mjs', 'cwd-axis-proof.mjs']], `(§9) over the LIVE population every invisible clause sits on the silent face, so the sentence's first two branches print zero this cycle — if a row ever moves one onto a face its own edit can close, this is the check that says the axis will name it`);
+  console.log(`[§9] the axis's ceiling, three faces computed: declined → ${JSON.stringify(face(OWNER))}, the row's own edit → ${JSON.stringify(face(noLocation(OWNER)))}; a readable alias that misses the verb → ${JSON.stringify(face(PARTIAL))}; borrowed frame → ${JSON.stringify(face(BORROWED))} and its same edit → ${JSON.stringify(face(noLocation(BORROWED)))} · live: ${deadNames.length} dead rows, ${live.declined.length}/${live.readable.length}/${live.silent.length} by face (${live.silent.map((s) => s.row).join(', ')})`);
+}
+console.log(`\n[summary] two witnesses for ${clauses.length} confessions: ${selfNamed.length} commands the runner can name in its own file, ${byState('supported').length} clauses corroborated by a body and ${byState('invisible').length} that hide one frame up — of which ${misCited.length} were the sentence's fault (citable) and ${unreadable.length} are the arm's ceiling (${JSON.stringify(deadVerbs)}), so the residual is now a measurement rather than a shrug · ${namedCases.length} naming cases held the free-text grammar (one of them recorded as a false negative rather than fixed), and the cause arm reddened under exactly one of the mutations it was shown — the omission. A surplus is stated, never scored. The wiring is graded too: §6 reproduces the lookup that killed a seven-minute census on 6807ba1 in one line, and shows a reader keyed by the wrong path ending cannot hide behind its own zero. §9 makes the axis's OWN explanation carry a witness: its ceiling sentence interpolates aliasCeiling, and the two faces it counts differ in who can close them — a row's own edit lifts a declined clause, no row edit lifts an unseen one. Two gates print after the rows: the sweep's omissions + silent blind spots at zero, and this row's mis-cited clauses at zero`);
