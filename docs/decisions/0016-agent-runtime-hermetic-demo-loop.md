@@ -5078,3 +5078,49 @@ whose line 1 is a shebang is titled at line 2 — measured here as 76 of 78 modu
 comment directly, one behind a shebang, and one (`docs/evidence/lib/syncproc.mjs`) opening with a
 block comment and therefore holding no title at all, which costs no grant today because nothing is
 titled there.
+
+### Amendment 113, addendum: the owed sweep ran, one row was killed for the host's reason, and the kill is counted as a failure on purpose
+
+The detached sweep at `5041776` finished: 73 rows, `failed 43 · killed 1 (1 at the runner's
+default, 0 at a budget the row named)`, graded build `c04f8cab9c33cc15` (280 dist files) stable
+across the run, walked tree `7808ba169ef046a7` stable, dirty-sources 0, 796 s, and the home build
+`UNMOVED` — the isolation gate. Reconciled against the prediction in `2886748`: plane axis 262
+sites / program=117 / argv=145 HIT; confession axis supported 9 · partial 0 · invisible 4 with
+MIS-CITED 0 HIT; `table-recount-proof.mjs` OK inside the run HIT, and its §7 digits at this ref —
+ledger headings 109, corpus 94 files, dangling 0, no mention at all 0, no record TITLE 3
+[21, 82, 108], newest grant 113 titled — are read by the row's own console at this ref, which the
+`[identity]` excerpt does not carry (it prints a row's exit and tail lines only), so what the sweep
+contributes here is the green exit and not a second reading of that line.
+
+`rows still 73 · failed 42 · killed 0` MISSED: observed 43 and 1. The cause is measured, not
+asserted. Every one of the 73 rows was slower in this run — median duration ratio 2.50, total
+row-time 289 s then 764 s — and the FAIL SET IS THE SAME 42 NAMES in both logs, so the population
+did not change its mind anywhere. The only verdict change between the two runs is
+`confession-proof.mjs` OK→KILL at ratio 2.15 (111,810 ms then 240,403 ms): it was already the
+SLOWEST of all 73 rows in the previous run, by 4.5x over the next one (`asks-axis-proof.mjs` at
+24,998 ms), and it names no budget. No row exceeded 150,000 ms in the v112 run; in this run exactly
+one did, and it is that row.
+
+The arithmetic of the two numbers is the runner's own and is deliberate: `sweep.mjs` sets
+`verdict: timedOut ? 'killed' : code === 0 ? 'passed' : 'failed'` and then counts
+`failed = results.filter((r) => !r.ok)`, commented "v85: `failed` keeps its old meaning — a killed
+row did NOT pass, and no witness may read a kill as a green — while the count of WHOSE number did it
+is stated beside it rather than instead of it". So `failed 43` is 42 rows that answered and refused,
+plus one row that answered nothing; `killed 1` is the sub-count that says WHICH, and the
+parenthetical says whose constant ended it. Read the pair as "42 refusals and 1 ungraded", not as
+44 reds.
+
+What this leaves is a known ceiling with a measured instance, and it is worth naming precisely
+because it is NOT a new hole in §7 or in the axes: a row whose natural duration sits within ~2x of
+the default is killed for the HOST's reason rather than its own, and the runner already says so in
+the kill line ("this red belongs to a constant in sweep.mjs and not to anything the proof
+asserted") and in `[identity] row budgets` ("70 rows name nothing and take 240000ms, which the
+runner cannot know is enough"). The edit that would close it is the row's — declare milliseconds as
+`isolated-proof.mjs`, `reap-proof.mjs` and `table-recount-proof.mjs` do — and no amendment is
+granted for it here, because amendment 85 already owns this axis and the population's product code
+is the part of this repository that is thin.
+
+Honest bound, stated because it changes what the run may be cited for: with that one kill the
+sweep at `5041776` carries 72 verdicts, not 73, so NOTHING in it says anything about
+`confession-proof.mjs` at this ref. The last verdict for that row is `98474bb` — OK, 111,810 ms —
+and it is a different ref, so it is not quoted here as evidence about this one.
