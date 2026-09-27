@@ -1164,11 +1164,14 @@ export class StudioStore {
       // 一个与事实不符的交代（§159），所以肖像单独一档
       const origin = generateCharacterPortrait
         ? '，这是那个角色自己的参考图（由档案里的身份/穿着/画风/特征与视觉标识驱动）'
-        : characterId
-          ? '，这是清单里那个角色的一个场景（色调取自它的视觉标识）'
-          : referenceAssetId
-            ? '，以清单里那张为参考的变体'
-            : '';
+        : characterId && referenceAssetId
+          ? // 这一档的色调不是档案里声明的那份，是那张肖像**量出来**的——回执别说成"取自视觉标识"
+            '，这是清单里那个角色的一个场景（色调取自它那张肖像量出来的主色）'
+          : characterId
+            ? '，这是清单里那个角色的一个场景（色调取自它的视觉标识）'
+            : referenceAssetId
+              ? '，以清单里那张为参考的变体'
+              : '';
       this.assetNoticeValue = `已生成一张 ${asset.width ?? '?'}×${asset.height ?? '?'} 的图（DEMO 本地合成${origin}，扣 image 额度 2 点）${
         node ? '，并已贴到选中的元素上' : '；选中元素后生成才会同时贴上'
       }。`;

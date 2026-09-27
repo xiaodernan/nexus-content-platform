@@ -2,7 +2,8 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { and, eq, inArray, sql as rawSql, type SQL } from 'drizzle-orm';
 import type { AssetRef } from '@nexus/design-model';
 import { generateDemoImage, IMAGE_AGENT_KEY, type GenerateImageOutcome } from '../src/server/domain/image-studio';
-import { listProjectAssets } from '../src/server/domain/assets';
+import { listProjectAssets, openAssetForOwner } from '../src/server/domain/assets';
+import { extractVisualDna } from '../src/server/domain/visualDna';
 import { createProjectCharacter, updateCharacterProfile } from '../src/server/domain/characters';
 import { createProject } from '../src/server/domain/projects';
 import { adjustCredits, readCredits } from '../src/server/domain/credit-ledger';
@@ -408,8 +409,9 @@ describe('§39 / §40 Character → Scene 打真库', () => {
     const both = await generateDemoImage({
       projectId, userId, prompt: '两个来源', width: 64, height: 64, characterId: green.id, referenceAssetId: a.asset.id,
     });
-    expect(both.ok, '参考图与角色同时给也放过去了').toBe(false);
-    if (!both.ok) expect(both.message).toMatch(/只能给一个/);
+    // 这一张参考图是普通生成物、不是这个角色的肖像：仍然拒绝，但理由换成了"必须是自己的肖像"
+    expect(both.ok, '不是这个角色肖像的图被当成角色参考放过去了').toBe(false);
+    if (!both.ok) expect(both.message).toMatch(/必须是这个角色自己的肖像/);
     expect(await counts()).toEqual(before);
   });
 
@@ -591,7 +593,7 @@ describe('§39 角色一致性生成（Character Portrait）打真库', () => {
       characterId: character.id, generateCharacterPortrait: true, referenceAssetId: scene.asset.id,
     });
     expect(both.ok, '参考图与角色肖像同时给也放过去了').toBe(false);
-    if (!both.ok) expect(both.message).toMatch(/只能给一个/);
+    if (!both.ok) expect(both.message, '拒绝的理由要说清肖像不吃参考图').toMatch(/不接受参考图/);
     expect(await counts()).toEqual(before);
   });
 
@@ -618,5 +620,80 @@ describe('§39 角色一致性生成（Character Portrait）打真库', () => {
     expect(portraitBytes).toBeTruthy();
     expect(sceneBytes).toBeTruthy();
     expect(portraitBytes, '肖像与场景拿回同一份字节，等于其中一个根本没生成').not.toBe(sceneBytes);
+  });
+
+  it('肖像可以当同角色场景的参考：锚点量自那张图，不是档案里声明的那份', async () => {
+    await ensureCredits(20);
+    const character = await makeDetailedCharacter('复用肖像的角色');
+    const portrait = mustOk(
+      await generateDemoImage({
+        projectId, userId, prompt: 'ignored', width: 64, height: 64, seed: 21,
+        characterId: character.id, generateCharacterPortrait: true,
+      }),
+      '先要一张肖像',
+    );
+    const scene = mustOk(
+      await generateDemoImage({
+        projectId, userId, prompt: '在雨夜的码头', width: 64, height: 64, seed: 22,
+        characterId: character.id, referenceAssetId: portrait.asset.id,
+      }),
+      '拿这个角色自己的肖像当参考生成场景',
+    );
+    const meta = await metaOf(scene.asset.id);
+    expect(meta.referenceAssetId, '场景没记下参考的是哪张肖像，这条链事后追不回来').toBe(portrait.asset.id);
+    expect(meta.characterId).toBe(character.id);
+    expect(meta.characterPortrait, '延伸出来的场景被标成肖像，卡片就会说错话').not.toBe(true);
+    // 独立量一遍那张肖像的像素：带参考图时锚点必须来自**这次测量**，而不是档案里那份色板——
+    // 否则"照这张图画"是句空话：界面上点了复用，拿回的还是声明色
+    const file = await openAssetForOwner(portrait.asset.id, userId);
+    expect(file, '刚生成的肖像读不回来，后面的比较没有意义').toBeTruthy();
+    const dna = extractVisualDna(file!.bytes, { assetId: portrait.asset.id });
+    expect(dna.ok, `肖像自己量不出颜色：${dna.ok ? '' : dna.reason}`).toBe(true);
+    const measured = dna.ok ? dna.stats.palette[0]?.color : undefined;
+    expect(measured, '量不出主色，这条断言就成了空转').toBeTruthy();
+    expect(meta.anchorDominant, '带参考图时锚点没走测量：照这张图画变成了照档案画').toBe(measured);
+    // 清单投影也要认得它是场景：卡片上「角色场景」那枚角标的依据
+    const ref = await assetRefOf(scene.asset.id);
+    expect(ref?.characterId).toBe(character.id);
+    expect(ref?.characterPortrait, '场景在清单里被标成肖像').toBeFalsy();
+  });
+
+  it('参考图必须是这个角色自己的肖像：同角色的场景与别人的肖像都不放行，且不花额度', async () => {
+    await ensureCredits(20);
+    const mine = await makeDetailedCharacter('我的角色');
+    const other = await makeDetailedCharacter('别人的角色');
+    const myPortrait = mustOk(
+      await generateDemoImage({ projectId, userId, prompt: 'x', width: 64, height: 64, seed: 23, characterId: mine.id, generateCharacterPortrait: true }),
+      '我的肖像',
+    );
+    const myScene = mustOk(
+      await generateDemoImage({ projectId, userId, prompt: '在雪地里', width: 64, height: 64, seed: 24, characterId: mine.id }),
+      '我的场景',
+    );
+    const otherPortrait = mustOk(
+      await generateDemoImage({ projectId, userId, prompt: 'x', width: 64, height: 64, seed: 25, characterId: other.id, generateCharacterPortrait: true }),
+      '别人的肖像',
+    );
+
+    for (const [label, refId] of [
+      ['同角色的一张场景', myScene.asset.id],
+      ['另一个角色的肖像', otherPortrait.asset.id],
+    ] as const) {
+      const before = await counts();
+      const bad = await generateDemoImage({
+        projectId, userId, prompt: '在雨夜的码头', width: 64, height: 64, seed: 26,
+        characterId: mine.id, referenceAssetId: refId,
+      });
+      expect(bad.ok, `${label}被当成角色参考图放过去了`).toBe(false);
+      if (!bad.ok) expect(bad.message).toMatch(/必须是这个角色自己的肖像/);
+      expect(await counts(), `${label}那次拒绝留下了行`).toEqual(before);
+    }
+
+    // 反向对照：同一张"我的肖像"当参考就该放行——否则上面两次红只是因为"谁都拒绝"
+    const ok = await generateDemoImage({
+      projectId, userId, prompt: '在雨夜的码头', width: 64, height: 64, seed: 27,
+      characterId: mine.id, referenceAssetId: myPortrait.asset.id,
+    });
+    expect(ok.ok, '这个角色自己的肖像当参考也被拒了——上面那两次红就不是守卫起作用').toBe(true);
   });
 });

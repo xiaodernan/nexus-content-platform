@@ -1,6 +1,6 @@
 import type { AssetRef } from '@nexus/design-model';
 import { finishTask, startTask } from './agent-tasks';
-import { openAssetForOwner, uploadImageAsset } from './assets';
+import { listProjectAssets, openAssetForOwner, uploadImageAsset } from './assets';
 import { refusalForRun } from './credit-ledger';
 import { listCharacters } from './characters';
 import { emit } from './notifications';
@@ -47,7 +47,9 @@ export interface GenerateImageInput {
    * §39 / §40 的 Character → Scene：为项目里的某个角色生成"它在另一个场景里"。
    * 色相锚点取自角色档案的 `visualIdentity.palette`（§39 那一栏），所以同一角色的不同场景
    * 共享同一份色调身份——这一条是**可测的**，不是"尽量保持一致"那句口号。
-   * 与 `referenceAssetId` 互斥：两个来源同时给，就等于说不清这张图是照谁画的。
+   * 可以与 `referenceAssetId` 同时给，但那张参考图**必须是这个角色自己的肖像**（服务端按
+   * `assets.character_id` + `genMeta.characterPortrait` 验）——这就是 §39 要的"同一个角色在
+   * 不同场景里认得出"：档案给语义，肖像给实际像素的色调。与 `generateCharacterPortrait` 仍互斥。
    */
   characterId?: string;
   /**
@@ -120,11 +122,12 @@ export async function generateDemoImage(input: GenerateImageInput): Promise<Gene
   const seed = input.seed ?? 0;
 
   // 参考图/角色先解析再谈额度：解析失败是一次输入错误，不该留下一行任务、也不该碰额度
-  if (input.referenceAssetId && (input.characterId || input.generateCharacterPortrait)) {
+  // 肖像不接受参考图：它**由档案驱动**，混进一张图当参考，"由档案驱动"这句话就又不成立了
+  if (input.referenceAssetId && input.generateCharacterPortrait) {
     return {
       ok: false,
       code: 'invalid_input',
-      message: '参考图与角色/角色肖像只能给一个：两个来源同时给，就说不清这张图是照谁画的',
+      message: '角色肖像由档案驱动，不接受参考图。要复用某个角色的肖像，就生成它的场景（不要带 generateCharacterPortrait）',
     };
   }
   // 角色肖像没有角色就无从谈起：它要读的是那份档案。这条判定以前写成
@@ -144,7 +147,8 @@ export async function generateDemoImage(input: GenerateImageInput): Promise<Gene
     const measured = await hueAnchorOfReference(input.referenceAssetId, input.userId);
     if (!measured.ok) return { ok: false, code: 'invalid_input', message: measured.message };
     anchor = { hue: measured.hue, dominant: measured.dominant };
-  } else if (input.characterId) {
+  }
+  if (input.characterId) {
     const roster = await listCharacters(input.projectId);
     const found = roster.items.find((c) => c.id === input.characterId);
     if (!found) {
@@ -153,6 +157,19 @@ export async function generateDemoImage(input: GenerateImageInput): Promise<Gene
         code: 'invalid_input',
         message: `角色 ${input.characterId} 不在这个项目里${roster.unreadable.length ? `（另有 ${roster.unreadable.length} 个角色档案读不动）` : ''}`,
       };
+    }
+    // 参考图 + 角色同时给，只允许照**这个角色自己的肖像**画：
+    // 拿别人的图、或拿这个角色另一张场景当参考，"这张图照谁画"就又说不清了
+    if (input.referenceAssetId) {
+      const refs = await listProjectAssets(input.projectId);
+      const ref = refs.find((r) => r.id === input.referenceAssetId);
+      if (!ref?.characterPortrait || ref.characterId !== input.characterId) {
+        return {
+          ok: false,
+          code: 'invalid_input',
+          message: '带角色时的参考图必须是这个角色自己的肖像：先给它生成肖像，再拿那张肖像生成场景',
+        };
+      }
     }
     const palette = found.profile.visualIdentity.palette;
     const first = palette.find((color) => /^#[0-9a-f]{6}$/i.test(color));
@@ -163,7 +180,9 @@ export async function generateDemoImage(input: GenerateImageInput): Promise<Gene
         message: `角色「${found.profile.name}」还没有可用的视觉标识：palette 是空的。先补 §39 那一栏，再来生成它的场景`,
       };
     }
-    anchor = { hue: hueOfHex(first), dominant: first };
+    // 同时给了参考图（上一段已验过它就是这个角色的肖像）时，锚点用**量自那张图像素**的那个：
+    // "照这张图画"照的是它实际长什么样，而不是档案里声明的那份颜色
+    anchor ??= { hue: hueOfHex(first), dominant: first };
     // §39 的四栏从这里开始**已经在报文里**：身份 / 穿着 / 画风 / 特征拼进交给合成器与任务行的 prompt。
     // 说清楚边界：DEMO 合成器只认 prompt 的哈希，画不出"靛蓝斗篷"这四个字的语义——
     // 但换真 provider 时不必再动链路，这一格欠的是像素，不是接线。

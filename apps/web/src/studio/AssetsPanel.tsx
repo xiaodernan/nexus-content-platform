@@ -188,6 +188,25 @@ export function AssetsPanel() {
                       >
                         生成变体
                       </button>
+                      {asset.characterId && asset.characterPortrait ? (
+                        // §39 的闭环入口：这个角色自己的肖像 → 它的下一个场景。
+                        // 只有肖像卡片给这个按钮——拿一张场景当参考再生成场景，就不是"同一个角色的身份"了
+                        <button
+                          type="button"
+                          onClick={() =>
+                            void studio.generateImageFromPrompt(`场景 · ${asset.name}`, {
+                              characterId: asset.characterId,
+                              referenceAssetId: asset.id,
+                            })
+                          }
+                          disabled={state.assetBusy}
+                          title="拿这张肖像当参考，为同一个角色再生成一个场景：色调取的是这张图量出来的主色（DEMO 本地合成 · 扣 image 额度 2 点）"
+                          data-asset-scene-from-portrait={asset.id}
+                          className="rounded-[var(--nexus-radius-sm)] px-2 py-[2px] font-mono text-11 text-fg-3 hover:bg-bg-3 disabled:opacity-50"
+                        >
+                          以此生成场景
+                        </button>
+                      ) : null}
                       <button
                         type="button"
                         onClick={() => void studio.deleteAssetFromLibrary(asset.id)}

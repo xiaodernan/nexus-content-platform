@@ -95,4 +95,27 @@ test('@smoke 角色 → 场景：填了视觉标识才点得动，生成物进�
     )
     .toBeGreaterThan(0);
   await page.screenshot({ path: 'screenshots/character-portrait.png' });
+
+  // 第三档：拿这张肖像当参考，为同一个角色再生成一个场景——§39 那条"同一个角色在不同场景里认得出"
+  // 的闭环入口。只有肖像卡片有这个按钮，且新那张的角标必须是「角色场景」（肖像仍是「角色肖像」）
+  // `portrait` 是 `.last()` 这种**惰性**定位器：新卡片一进来它就指到新的那一张了。
+  // 所以这里按序号取回肖像本身，不复用那个变量名（复用会把断言断到别人身上）
+  const portraitCard = page.locator('[data-asset-card]').nth(cardsBeforePortrait);
+  await expect(portraitCard.locator('[data-asset-character]')).toHaveText('角色肖像');
+  // 按钮自己要说清"照什么画"：这一档的色调来自那张肖像**量出来**的主色，不是档案里声明的那份
+  await expect(portraitCard.locator('[data-asset-scene-from-portrait]')).toHaveAttribute(
+    'title',
+    /量出来的主色/,
+  );
+  await portraitCard.locator('[data-asset-scene-from-portrait]').click();
+  await expect(page.locator('[data-asset-card]')).toHaveCount(cardsBeforePortrait + 2, { timeout: 40_000 });
+  const derived = page.locator('[data-asset-card]').last();
+  await expect(derived.locator('[data-asset-character]')).toHaveText('角色场景');
+  await expect
+    .poll(
+      async () => derived.locator('img').evaluate((el) => (el as HTMLImageElement).naturalWidth),
+      { timeout: 20_000 },
+    )
+    .toBeGreaterThan(0);
+  await page.screenshot({ path: 'screenshots/character-scene-from-portrait.png' });
 });
