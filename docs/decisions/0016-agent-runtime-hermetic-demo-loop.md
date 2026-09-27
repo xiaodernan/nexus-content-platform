@@ -4680,3 +4680,34 @@ limitation belongs to the increment rather than being smoothed over: the reader 
 exactly as amendment 102 had to be learned where one does not. What the live line makes obvious for the next unit:
 either the runner requires the banner, which turns the disclosure count into a gate, or the disclosure stays a
 courtesy and 69 of 73 rows keep reporting findings about a tree nobody can name from their output.
+
+### Amendment 104 (M2 v104): 69 rows could not name their own tree, so the runner stopped asking and started supplying it — and the reconciliation between supply and self-report became a gateable pair
+
+Amendment 103 built a reader for a sentence most rows never write. Its own live line was the diagnosis: of 73 rows,
+4 disclosed a plane and 69 were mute, which means the sweep could report a distribution over a channel that the
+population had never been asked to fill. The two ways out were both in the record — make the banner a requirement, or
+supply the fact — and the first was rejected on the stack's own rule: amendment 91 settled that a checker may not
+pressure the population into shaping itself for the checker's convenience, and here the checker is the runner, asking
+69 files to write a paragraph so its log can be tidier.
+
+So the runner answers the question itself. `suppliedPlane(cwd)` asks the one thing that actually decides whether a
+row's `git show HEAD:…` can work — does the directory the child is spawned into have an index — and `runProof` hands
+the answer to every row through `NEXUS_PROOF_TREE`. `planeCensus(rows, supplied)` then does what a reader alone could
+not: it grades each row's own banner against the supplied fact, producing an agreement list and a contradiction list,
+so the four rows that do speak became corroboration rather than decoration, and the 69 that do not are covered by an
+answer they can read instead of a question they never answered. The contradiction case is the finding the whole thread
+has been circling — a row saying `plane GIT` while being spawned somewhere with no index is a row whose conclusions
+belong to a repository it brought with it, which is amendment 80's and 83's failure mode arriving from the direction of
+the rows rather than the build.
+
+§9 of `provenance-proof.mjs` grades the supply on three directory shapes — a bare directory (NO-GIT), an index
+directory (GIT), and a linked worktree whose `.git` is a FILE rather than a folder (GIT), the last being the shape a
+probe that only checked directories would have called git-less and sent every worktree down the wrong branch. The
+reconciliation is then tested as a pair that must FLIP: against a supplied NO-GIT one row agrees and one
+contradicts, and against a supplied GIT it is the other row that contradicts, because a comparison that reads the same
+from both directions is a value being compared with itself. With nothing supplied, no row may score as agreeing — a
+free pass would be exactly how an empty channel looks healthy. And because amendment 78 exists for the case of a
+runner function that nothing calls, §9 asserts out of the committed bytes that the marker is wired into the row spawn
+itself.
+
+Measured at `2040cda`: 73 scripts · 42 failed · 0 killed · 146 s, graded build `cc73dcf781dd0a2b` stable, `dirty-sources 2`. Every prediction held, including the one about the channel staying thin — no row reads the marker yet: plane axis 262 call sites: program=117 argv=145, confession axis supported 9 · partial 0 · invisible 4 · MIS-CITED 0, and the new line read "which plane each row says it stood on (read out of the row's own first stdout lines, not inferred from its verdict): GIT 0 · NO-GIT 4 · mute about its own plane 69 (69 rows, e.g. agent-proof.mjs, bridge-report-proof.mjs, budgets-proof.mjs, changes-proof.mjs, closure-proof.mjs, code-index-proof.mjs, color-proof.mjs, commit-echo-proof.mjs …) · the tree the rows ran in has NO .git · the runner SUPPLIED NO-GIT to every child through NEXUS_PROOF_TREE, from the directory it spawned them in (4 banner(s) agree with that, 0". The two rows that own this increment: provenance-proof: line not found · confession-proof: line not found.

@@ -2901,3 +2901,21 @@ a pattern tight enough to ignore prose is a channel that only fires when a row i
 The section also requires the three buckets to sum to the rows given (a remainder is how a self-report channel goes
 empty unnoticed), names the silent rows by file, and anchors the whole thing to the banner `confession-proof.mjs`
 actually prints, so the fixtures are not the only bytes being read.
+
+## The runner stopped asking rows to describe their tree and supplied the answer, then graded the difference (`provenance-proof.mjs` §9, M2 v104 — ADR 0016 amendment 104)
+
+Amendment 103's live line was its own diagnosis: 4 of 73 rows said which plane they stood on and 69 said nothing, so
+the report was a distribution over a channel nobody had been asked to fill. Making the banner mandatory would have been
+the checker pressuring the population to write prose for its log — amendment 91's rule, applied now to the runner
+itself — so the runner answers its own question: `suppliedPlane(cwd)` asks whether the directory a child is spawned
+into has an index, the fact that decides whether `git show HEAD:` inside a row can work at all, and hands it over as
+`NEXUS_PROOF_TREE`. `planeCensus(rows, supplied)` compares each speaking row's banner against that supply, so the four
+disclosures become corroboration, the 69 silences become covered, and a row claiming `plane GIT` inside a tree with no
+index becomes a named contradiction rather than an untested hope.
+
+§9 grades the supply on three shapes — bare directory (NO-GIT), index directory (GIT), and a linked worktree whose
+`.git` is a file (GIT), the case a directory-only probe would have called git-less — and requires the reconciliation to
+be a PAIR that flips: which row agrees and which contradicts must swap when the supply swaps, because a comparison that
+reads the same from both directions is a value checked against itself. Nothing may be scored as agreement when nothing
+was supplied, since that is exactly how an empty channel looks healthy. And the wiring is asserted out of the committed
+runner, so §9 cannot be grading a function that no call site uses.
