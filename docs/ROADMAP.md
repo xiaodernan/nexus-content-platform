@@ -2012,7 +2012,15 @@ Sketch → Image、Image → Image、Character → Scene 三条箭头；真 prov
   而它的门是 `!dirty || saving`（`CharacterPanel.tsx:480`，dirty 用 `JSON.stringify(selected.profile) !== JSON.stringify(draft)` 判）。
   也就是说 `page.fill('[data-character-visual="palette"]', ...)` 之后 dirty 仍然为假——
   要么那次 fill 没进到受控 input 的 onChange，要么 `selected.profile` 与 `draft` 在那一刻本来就相等。
-  **这一条我没来得及查到底就退回去了，所以不许把它写成"已验证"**；下一格的第一步应该是把这条门量清楚
+  **诊断往前推了一步，但仍然没到底，所以这一格不算已验证**：第二次跑时先加了一条
+  `toHaveValue('#2e7d32 #b3e5fc')`——**它是过的**，而"保存档案"仍然 disabled。
+  受控 input 里留着输入值 + 没有状态变化 = `onChange` 里那次 `patchProfile` 根本没落到 `setDraft`，
+  而 `patchProfile` 唯一的静默出口是开头那句 `if (!selected || !draft) return;`。
+  下一步该做的实验也定死了：建完角色后**显式点一次 `[data-character-tab=<id>]`**（那里才会 `setDraft(character.profile)`），
+  再填色板；如果这一下 dirty 变真，就是"创建后 selectedId 有了但 draft 是那条路径塞的、两者不同步"，
+  修的是面板；如果仍然不真，就把 `patchProfile` 的入口条件当成嫌疑对象。
+  补丁与用例仍在 `/tmp/character-panel.patch` 与 `/tmp/character-scene.spec.ts.draft`（后者已带那条 toHaveValue 诊断）。
+下一格的第一步应该是把这条门量清楚
   （在页面里读按钮文案是"保存档案"还是"没有改动"，再决定是改用例还是改面板）。
   顺带记一个已经想清楚的设计：那个按钮的可用条件应当读**已保存的** `selected.profile.visualIdentity.palette`，
   不是草稿里的——服务端判的是存档，界面拿草稿放行就会让人点出一个必然被拒的请求。
