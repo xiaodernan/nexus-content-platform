@@ -52,7 +52,7 @@ const selfRow = population.find((p) => p.path === selfName);
 assert.ok(selfRow, `${selfName} is not in the population this row reads — the sweep cannot grade rows it cannot see`);
 const selfSrc = selfRow.text;
 const ownProse = rows.map((r) => r.text).join('\n');
-console.log(`[§0] plane ${gitPlane} · ${population.length} tracked .mjs, ${rows.length} scored rows · the byte arm reads ${selfName} from ${gitPlane === 'GIT' ? "HEAD" : 'disk (this plane has no index to corroborate it)'}`);
+console.log(`[§0] plane ${gitPlane} · supplied ${process.env.NEXUS_PROOF_TREE || 'ABSENT'} · ${population.length} tracked .mjs, ${rows.length} scored rows · the byte arm reads ${selfName} from ${gitPlane === 'GIT' ? "HEAD" : 'disk (this plane has no index to corroborate it)'}`);
 assert.ok(rows.length >= 72, `both arms need the whole population, not ${rows.length} rows`);
 if (gitPlane === 'GIT') {
   const scannerHead = norm(git('show', `HEAD:${DIR}/sweep.mjs`));

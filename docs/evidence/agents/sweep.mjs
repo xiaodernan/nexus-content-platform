@@ -1068,12 +1068,19 @@ export function suppliedPlane(cwd) {
  */
 export function planeCensus(rows, supplied = null) {
   const said = (r) => (/\bplane (GIT|NO-GIT)\b/.exec(String(r?.head ?? '')) ?? [])[1] ?? null;
-  const d = { GIT: [], 'NO-GIT': [], mute: [], agree: [], contradict: [] };
+  const echoed = (r) => (/\bsupplied (GIT|NO-GIT|ABSENT)\b/.exec(String(r?.head ?? '')) ?? [])[1] ?? null;
+  const d = { GIT: [], 'NO-GIT': [], mute: [], agree: [], contradict: [], echo: [], echoAgree: [], echoLost: [], echoContradict: [] };
   for (const r of rows ?? []) {
     const name = String(r?.name ?? '').split('/').pop();
     const s = said(r);
     d[s ?? 'mute'].push(name);
     if (s && supplied) (s === supplied ? d.agree : d.contradict).push(`${name} says ${s} against a supplied ${supplied}`);
+    const e = echoed(r);
+    if (!e) continue;
+    d.echo.push(name);
+    if (e === 'ABSENT') d.echoLost.push(`${name} printed ABSENT — the marker never reached the child`);
+    else if (!supplied) d.echoContradict.push(`${name} echoes ${e} but the runner supplied nothing`);
+    else (e === supplied ? d.echoAgree : d.echoContradict).push(`${name} echoes ${e} against a supplied ${supplied}`);
   }
   return d;
 }
@@ -1747,6 +1754,7 @@ export async function runSweep({ ref = 'HEAD', only = null, cwd = process.cwd(),
     const disclosed = planeCensus(results, suppliedPlane(runCwd));
     const childHasIndex = childTree.gitRepo === true;
     log(`[identity] which plane each row says it stood on (read out of the row's own first stdout lines, not inferred from its verdict): GIT ${disclosed.GIT.length} · NO-GIT ${disclosed['NO-GIT'].length} · mute about its own plane ${disclosed.mute.length}${disclosed.mute.length <= 8 ? ` (${disclosed.mute.join(', ') || 'none'})` : ` (${disclosed.mute.length} rows, e.g. ${disclosed.mute.slice(0, 8).join(', ')} …)`} · the tree the rows ran in ${childHasIndex ? 'HAS a .git' : 'has NO .git'} · the runner SUPPLIED ${suppliedPlane(runCwd)} to every child through NEXUS_PROOF_TREE, from the directory it spawned them in (${disclosed.agree.length} banner(s) agree with that, ${disclosed.contradict.length} contradict${disclosed.contradict.length ? ` — ⚠ ${disclosed.contradict.join('; ')}` : ''}, and ${disclosed.mute.length} rows that never say now have the fact without needing to)`);
+    log(`[identity] the marker came back: ${disclosed.echo.length} row(s) echoed NEXUS_PROOF_TREE into their own first lines — ${disclosed.echoAgree.length} match what this run supplied (${disclosed.echoAgree.join('; ') || 'none'}), ${disclosed.echoLost.length} printed ABSENT so the hand-off itself failed (${disclosed.echoLost.join('; ') || 'none'}), ${disclosed.echoContradict.length} contradict it (${disclosed.echoContradict.join('; ') || 'none'}) · a supply nobody echoes is decoration, and an echo nobody compares is a guess: this line is the comparison`);
     // v95: 94's line says WHO reaches git; a sentence is worth the witness behind it, so each declaring red is now
     // graded against the cause IT reported. Two readings of a mismatch, and only one of them is a crime:
     //   OMISSION — the failure named a git command the confession left out. The row is the only reader of its own
