@@ -354,4 +354,67 @@ console.log(`[§6] wiring: ${failedRows.length} synthetic reds → declaring ${s
   console.log(`[§7] regex arm: (a) hidden reach recovered · (b) invented argv refused · (c) division untouched · (d) class brackets harmless · (e) \`//\` still a comment · (f) 2 live rows pinned by content · (g) ${replay}`);
 }
 
+// ---------------------------------------------------------------- §8 the alias arm: which helper's call site may be read, and which may not
+//
+// Amendment 96 named the ceiling as "a reach whose argv is a parameter" and stopped there. Every one of those
+// parameters is filled at a CALL SITE with a verb literal, so the verb is in the source — the arm simply was not
+// looking one frame away. It looks now, and the whole design is the refusal: a helper's NAME says nothing about
+// WHICH repository it asks, and a row may ask a throwaway one three different ways. So the rule reads an alias only
+// when its own bytes make a redirect impossible, and these cases are the three doors plus the two that were never
+// aliases at all. A must-count case with no must-not-count twin is a rule that only ever adds.
+{
+  const REST = "const git = (...args) => execFileSync('git', args, { encoding: 'utf8' });\ngit('rev-parse', 'HEAD');\n";
+  const FLAG = "const git = (...args) => execFileSync('git', ['-C', dir, ...args], { encoding: 'utf8' });\ngit('rev-parse', 'HEAD');\n";
+  const LIT_CWD = "const git = (...args) => execFileSync('git', args, { cwd: root, encoding: 'utf8' });\ngit('rev-parse', 'HEAD');\n";
+  const PARAM_CWD = "const git = (argv, cwd) => execFileSync('git', argv, { cwd, encoding: 'utf8' });\ngit(['rev-parse', 'HEAD'], '.');\n";
+  const VIA_VAR = "const git = (...args) => execFileSync('git', args, { encoding: 'utf8' });\nconst cmd = 'rev-parse';\ngit(cmd, 'HEAD');\n";
+  const PROG_PARAM = "const sh = (program, args) => execFile(program, args, () => {});\nsh('git', ['status', '--porcelain']);\n";
+  const cases = [
+    ['a rest-forwarding alias with no location anywhere', REST, ['rev-parse'], 'the door #152 exists to open'],
+    ['-C in the argv: the alias asks ANOTHER repository', FLAG, [], 'refused, and the verb stays unreadable'],
+    ['a literal cwd: in the options, naming a file-level scratch dir', LIT_CWD, [], 'refused — this is the shape 8 rows in the population use'],
+    ['the runner itself: a parameter arrives in the options position', PARAM_CWD, [], 'refused, which is why closure/cwd-axis still have no reader'],
+    ['a call site that passes a VARIABLE, not a literal', VIA_VAR, [], 'no verb is in the source to read'],
+    ['the program name is the parameter: not a git alias at all', PROG_PARAM, [], 'no program literal, so no alias and no verb'],
+  ];
+  for (const [what, src, want, why] of cases) {
+    const got = sw.aliasGitCommands(src).verbs;
+    assert.deepEqual(got, want, `(a) ${what} → ${JSON.stringify(got)}, wanted ${JSON.stringify(want)}: ${why}`);
+    console.log(`[§8] ${want.length ? 'READS' : 'refuses'} ${JSON.stringify(got).padEnd(13)} ${what}`);
+  }
+  // (b) THE LIVE ROWS, pinned by content. Two of the population carry an alias the arm may read, and both are
+  // rest-parameter wrappers with no location ANYWHERE in their bytes (`const git = (...args) => execFileSync('git',
+  // args, { encoding })` in table-recount-proof.mjs, and the same shape under `execFile` as `gitText` in
+  // bridge-report-proof.mjs), so every verb their call sites pass sits one frame from the spawn.
+  const live = (n) => rows.find((r) => r.path.endsWith('/' + n));
+  const readable = rows.filter((r) => sw.aliasGitCommands(r.text).verbs.length > 0).map((r) => basename(r.path)).sort();
+  assert.deepEqual(readable, ['bridge-report-proof.mjs', 'table-recount-proof.mjs'], `(b) the arm reads an alias in ${readable.join(', ')} — a THIRD name here is a new helper taking the verb-parameter shape: look at whether it can redirect, then add it, do not board the assertion up`);
+  const tr = live('table-recount-proof.mjs');
+  assert.ok(tr, '(b) table-recount-proof has left the population');
+  const trPay = sw.asksRepository(tr.text).filter((p) => p.trim() !== '');
+  const trVerbs = [...new Set(trPay.flatMap((p) => sw.gitCommandsNamed(p)))].sort();
+  assert.deepEqual(trVerbs, ['diff', 'ls-tree', 'rev-parse', 'show', 'status'], `(b) the row's confession no longer names the five verbs (${JSON.stringify(trVerbs)}), so the pin below grades a different claim`);
+  assert.deepEqual([...new Set(sw.gitCommandsIn(tr.text))], [], `(b) table-recount names NO verb at a direct spawn frame — every supported clause is supported by the alias arm ALONE, and if a future edit adds a literal call here this is the line that says so`);
+  const trGraded = sw.gradeConfession(trPay, tr.text, selfSrc);
+  assert.equal(trGraded.length, trVerbs.length, `(b) the row declares ${trVerbs.length} verbs and the arm graded ${trGraded.length} clauses — the payload is one line whose clauses are split by '·'`);
+  assert.deepEqual([...new Set(trGraded.map((c) => c.state))], ['supported'], `(b) its ${trGraded.length} clauses came out ${JSON.stringify(trGraded.map((c) => c.state))} — before v98 all five were invisible, which is the whole +5 of the census move`);
+  // The runner's own file is WHY the residual is three verbs deep, and the two faces of the ceiling differ:
+  sw.gitAliases(selfSrc);
+  assert.deepEqual(sw.aliasGitCommands(selfSrc), { aliases: [], verbs: [] }, `(b) the runner now reads a verb through its own git(argv, cwd) — the parameter-in-options door has gone, so the dead verbs above were lifted by widening the arm that exists to report a CEILING`);
+  assert.deepEqual(sw.gitAliases.refused.map((x) => x.name), [], `(b) and its helper is not even RECORDED as a refusal: it dies at the silent \`params.some(p => wordIn(slices.options, p))\` filter, while only the \`cwd\`-key door reports. So the arm can say which aliases it refused and cannot say which it never classified as aliases — the ceiling has two faces and one of them is uncensused (stated, not fixed: recording it would need a fourth return channel)`);
+  // (c) THE MUTATIONS MUST BITE. Each refusal above is real only if editing away its reason makes the arm read.
+  const noFlag = FLAG.replace("['-C', dir, ...args]", '[...args]');
+  const noLitCwd = LIT_CWD.replace('{ cwd: root, encoding', '{ encoding');
+  const noParamCwd = PARAM_CWD.replace('{ cwd, encoding', '{ encoding');
+  assert.notEqual(noFlag, FLAG, '(c) the -C mutation found nothing to delete');
+  assert.notEqual(noLitCwd, LIT_CWD, '(c) the cwd: mutation found nothing to delete');
+  assert.notEqual(noParamCwd, PARAM_CWD, '(c) the shorthand-cwd mutation found nothing to delete');
+  const DECL = ["git rev-parse HEAD through this row's own git() alias"];
+  const grade = (src) => sw.gradeConfession(DECL, src, '')[0];
+  assert.deepEqual([grade(FLAG).state, grade(FLAG).dead], ['invisible', ['rev-parse']], '(c) the -C case is genuinely unreadable BEFORE the mutation, or the pair below checks nothing');
+  assert.equal(grade(noFlag).state, 'supported', '(c) deleting only the -C element makes the SAME clause supported: the flag hid the verb, not the arrow shape');
+  assert.deepEqual([grade(LIT_CWD).state, grade(noLitCwd).state], ['invisible', 'supported'], '(c) the same for a literal cwd: — one key is the whole door');
+  assert.equal(grade(noParamCwd).state, 'invisible', "(c) and NOT so for the runner's shape: with cwd gone from the options the helper stops being an alias at all (its second parameter is then used nowhere), so no edit to a comment lifts it — only CODE naming its literal at a call site does, which amendment 91 forbids an arm from demanding of the population");
+  console.log(`[§8] alias arm: ${readable.length} of ${rows.length} rows carry a readable one (${readable.join(', ')}), and table-recount's ${trGraded.length} clauses are supported by it ALONE; the runner's git(argv, cwd) is refused by a SILENT door, so the ceiling of ${deadVerbs.length} verbs (${JSON.stringify(deadVerbs)}) has one face the census cannot see; 3 redirect doors × the edit that opens each, plus the edit that opens none`);
+}
 console.log(`\n[summary] two witnesses for ${clauses.length} confessions: ${selfNamed.length} commands the runner can name in its own file, ${byState('supported').length} clauses corroborated by a body and ${byState('invisible').length} that hide one frame up — of which ${misCited.length} were the sentence's fault (citable) and ${unreadable.length} are the arm's ceiling (${JSON.stringify(deadVerbs)}), so the residual is now a measurement rather than a shrug · ${namedCases.length} naming cases held the free-text grammar (one of them recorded as a false negative rather than fixed), and the cause arm reddened under exactly one of the mutations it was shown — the omission. A surplus is stated, never scored. The wiring is graded too: §6 reproduces the lookup that killed a seven-minute census on 6807ba1 in one line, and shows a reader keyed by the wrong path ending cannot hide behind its own zero. Two gates print after the rows: the sweep's omissions + silent blind spots at zero, and this row's mis-cited clauses at zero`);
