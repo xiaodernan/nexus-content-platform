@@ -2935,3 +2935,44 @@ environment confirm it.
 §10 holds a fixture per reading and asserts both ends of the wire out of the committed bytes — the row must still echo,
 the runner must still hand the value over — because either half can be deleted later without changing a single verdict,
 and the comparison would go on printing while meaning nothing.
+
+## The reader that decided which tree a row stood on was wrong one directory below a root, so the question now has two readers and they print whether they agree (`provenance-proof.mjs` §11, M2 v106 — ADR 0016 amendment 106)
+
+Amendment 104 handed every child a `NEXUS_PROOF_TREE` value computed from `existsSync(cwd/.git)`. That is a local
+inference, and git does not answer that question — git resolves upward. Measured on this repository, `docs/evidence`
+has no `.git` inside it, so the probe says NO-GIT while `git -C docs/evidence rev-parse --is-inside-work-tree` says
+`true`, and a row spawned in such a directory can run `git show HEAD:` all afternoon. The bug was latent only because a
+sweep happens to spawn rows at a root, and "latent" is not a property of a channel whose whole job is to tell a row
+where it is standing.
+
+So `planeReaders(cwd, askGit)` asks git and keeps the local probe beside it. Where git answers, git wins; where git
+could not answer, the probe decides **with the reason printed** (`git unusable (gitFailed:EPERM), the local probe
+decided`), because a git that failed is not a git that found no repository. The answer space is pinned rather than
+assumed: exit 128 together with git's own fatal message are the only answers allowed to mean NO-GIT, and anything else
+is NAMED (`unparsable:perhaps`) instead of being defaulted into a plane. §11 measures all of that on the live
+filesystem rather than on fixtures — this repository's own `docs/evidence` diverges (probe NO-GIT, git GIT, and the
+marker the row reports follows GIT), while the repository root and a bare temporary directory both agree, which is what
+distinguishes a nested-case property from a generally-broken probe. It also asserts the wiring out of the committed
+runner bytes, so the witness grades the shipped path and not a re-implementation of it.
+
+This section is written now, from the committed reader and the committed §11, not in the increment's own commit — the
+same late-recording §60 has been filing against all session.
+
+## A run now says which host world it happened in, and the prediction written above that line was wrong, so both are printed (`sweep.mjs` `[identity]` host probe, M2 v107 — ADR 0016 amendment 107)
+
+Amendment 86 built `docs/evidence/lib/syncproc.mjs` on a host fault: a plain `spawnSync(node, ['-e', 'process.exit(0)'])`
+can come back `EBUSY` on this machine. Every reader that depends on that bridge inherits the fault, and nothing in the
+population could say whether the bridge was load-bearing for the run being read. So the runner asks NODE — never the
+bridge, per `syncproc.mjs`'s own rule — and prints the answer before any row runs, because "this run depended on a host
+fault" is an identity fact, not a row result: either
+`sync spawn API on this box: BROKEN (EBUSY) — … docs/evidence/lib/syncproc.mjs is LOAD-BEARING for every importer
+below`, or `answers (status 0, no error) — … the amendment 86 host fault is NOT present in this run`, which is still
+true information about the other branch.
+
+The commit that added the line predicted the second reading on this box. Re-measured for the record, it does not hold:
+the probe fails `EBUSY` 6 times out of 6 and `syncApiIsBroken()` returns `true`, so the line prints the first reading.
+The code was right and needed no change; the wrong thing was a documented expectation nobody re-took, which is the
+recurring failure mode this README keeps filing (§60) and the reason this section carries the refutation beside the
+description rather than quietly restating the number. The probe costs one spawn per full run and adds no import edge.
+
+Written now, from the committed line, rather than in the increment's own commit.
