@@ -315,11 +315,17 @@ try {
   const EXPLICIT = /\b(?:amendments?|am\.)\s*#?(\d{1,4})\b(?!\s*[-\u2010-\u2015])/gi;
   const RECORD = /\b(?:M\d+\s+v|v)(\d{1,3})\b/g;
   const nums = (text, re) => { const s = new Set(); for (const x of text.matchAll(new RegExp(re.source, re.flags))) s.add(Number(x[1])); return s; };
+  // An addendum reuses its parent's number and GRANTS nothing. This is that rule's single source, shared by the
+  // heading reader below AND the §7 renumber witness: an addendum the grant reader skips but the renumber counts
+  // would make "rename the heading numbered N" see two lines and refuse its own mutation. Measured at this ref,
+  // 89, 95, 97, 101, 103 and 113 each carry a grant plus an addendum — amendment 113's addendum is the one that
+  // first made the newest CITED number collide, and the crash it caused (renumber rewrote 2) is why this lives here.
+  const ADDENDUM_TAIL = /^\s*(—\s*)?,?\s*addendum/i;
   const headingsOf = (t) => {
     const h = new Map();
     for (const line of t.split('\n')) {
       const m = /^#{2,3} Amendment (\d+)(?![\d.])(.*)$/.exec(line);
-      if (!m || /^\s*(—\s*)?,?\s*addendum/i.test(m[2])) continue;
+      if (!m || ADDENDUM_TAIL.test(m[2])) continue;
       h.set(Number(m[1]), line.replace(/^#+ /, '').slice(0, 54));
     }
     return h;
@@ -419,10 +425,14 @@ try {
       const out = text.split('\n').map((line) => {
         const m = line.match(/^(#{2,3} Amendment )(\d+)(?![\d.])(.*)$/);
         if (!m || Number(m[2]) !== from) return line;
+        // Rename the heading that GRANTS `from`, never a co-located addendum. An addendum shares the number but
+        // grants nothing, so its citations are not the ones that would dangle — and counting it here is what made
+        // the witness report 'rewrote 2' for amendment 113's addendum instead of running its own mutation.
+        if (ADDENDUM_TAIL.test(m[3])) return line;
         hits += 1;
         return m[1] + to + m[3];
       });
-      assert.equal(hits, 1, `the mutation must rewrite exactly ONE heading numbered ${from} and rewrote ${hits} — a mutation that changes no bytes, or the wrong bytes, is not a witness`);
+      assert.equal(hits, 1, `the mutation must rewrite exactly ONE heading that GRANTS ${from} (addenda sharing its number excluded) and rewrote ${hits} — a mutation that changes no bytes, or the wrong bytes, is not a witness`);
       return out.join('\n');
     };
     const two = census(renumber(adrText, newest, orphan), null);

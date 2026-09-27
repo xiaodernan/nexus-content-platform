@@ -5124,3 +5124,45 @@ Honest bound, stated because it changes what the run may be cited for: with that
 sweep at `5041776` carries 72 verdicts, not 73, so NOTHING in it says anything about
 `confession-proof.mjs` at this ref. The last verdict for that row is `98474bb` — OK, 111,810 ms —
 and it is a different ref, so it is not quoted here as evidence about this one.
+### Amendment 113, addendum: the §7 renumber witness counted a co-located addendum as a second grant, and this amend-113 addendum is what made it fire
+
+The row run to verify the previous addendum (base `5041776`, this file committed at `d2a43e4`) printed its §7
+baseline correctly — `ledger headings 109`, `record corpus 94 files`, `dangling 0`, `no mention at all 0`,
+`no record TITLE 3 [21, 82, 108]`, `the newest grant 113 IS titled` — and THEN aborted with an uncaught
+`AssertionError: the mutation must rewrite exactly ONE heading numbered 113 and rewrote 2`. So the prior
+prediction that "the addendum leaves §0 through §6 unchanged in their arms and exits 0" was wrong about §7's
+own mutation, and that miss is the hole this addendum closes.
+
+Cause, read off the shipped file rather than reasoned about: §7 answered "which heading grants number N"
+with TWO different rules that had never been reconciled. The grant set is built by `headingsOf`, which matches
+`^#{2,3} Amendment (\d+)` AND SKIPS an addendum tail (`/^\s*(—\s*)?,?\s*addendum/i`) — an addendum reuses its
+parent's number and grants nothing. But the renumber mutation matched `#{2,3} Amendment N` on raw lines
+WITHOUT that skip, then asserted exactly one hit. Every addendum-carrying number was therefore a latent crash
+for that witness, armed and waiting for the day it became the NEWEST CITED heading (renumber renames
+`Math.max(...cited)`, and an addendum's number is indistinguishable from its grant's in the raw text).
+
+What armed it was this very lane's previous commit: the owed-sweep addendum added a SECOND heading numbered
+113, and 113 was already the newest cited grant, so renumber's `from` was 113 and its raw line-scan found two
+lines and refused to run its own mutation. Measured statically against this file's HEAD blob, the six
+addendum-bearing grants — 89, 95, 97, 101, 103, 113 — each report `hits 2` under the old line-match and
+`hits 1` once the addendum is excluded; only the timing of which one became newest-cited hid the divergence.
+
+Fix, in `docs/evidence/agents/table-recount-proof.mjs`: the addendum predicate is lifted into ONE shared
+const, `ADDENDUM_TAIL`, and both readers now use it — `headingsOf` as before, and `renumber` so it renames
+exactly the heading that GRANTS the number and leaves its addendum. This is not a widening: the mutation still
+renames a real, corpus-cited grant and still requires that grant's citations to dangle; it simply stops being
+confused by a heading that grants nothing. Reconciling two readers of one fact by deriving both from a single
+predicate is the same discipline the alias/ceiling amendments learned for a different axis.
+
+This addendum grants nothing — `### Amendment 113, addendum:` is matched and excluded by the very grammar in
+dispute, so the ledger stays at 109 grants with newest 113 — and the reason it is an addendum rather than a
+new amendment is that no new capability entered §7; an internal inconsistency was removed.
+
+PREDICTION for the row run at the ref this commits, recounted there: exit 0; §7 still prints ledger headings
+109 (NOT 110 — an addendum grants nothing by design), record corpus 94 files, dangling 0, no mention at all 0,
+no record TITLE 3 [21, 82, 108], newest grant 113 titled; and the §7 renumber witness now runs against `from`
+= 113 rewriting exactly ONE granting heading (its addenda excluded), so the dangling / renumber-orphan /
+house-title / prose-not-a-record arms all print `caught` and the row no longer aborts. If it still reports
+`rewrote 2` at 113, the two readers are NOT actually sharing the predicate and that is a defect in this edit,
+not in the door.
+
