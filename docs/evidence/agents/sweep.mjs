@@ -921,8 +921,11 @@ export function aliasVerdicts(src) {
     const slices = spawnSlices(body);
     if (!slices || !slices.argv) { tell(notAlias, d, 'no-git-spawn'); continue; }
     // Amendment 100 found candidates refused for a redirect flag whose `git` was a MENTION, so the arm now asks the
-    // one question the raw region grep cannot: is there a git spawn at CODE POSITION in this definition's own text?
-    if (gitReaches(body).length === 0) { tell(notAlias, d, 'mention-only'); continue; }
+    // one question a raw region grep cannot: does this definition reach a git child AT CODE POSITION? Two different
+    // mechanisms answer no here, and both belong in this bucket — the `'git',` is inside a comment or a string, or
+    // the program itself arrives through a parameter, which is the blind spot amendment 93 named. The reason is
+    // therefore about what the arm can see, not about which of the two the row did.
+    if (gitReaches(body).length === 0) { tell(notAlias, d, 'no-code-position-git-spawn'); continue; }
     if (REDIRECT_FLAGS.some((f) => quotedIn(body, f))) { tell(refused, d, 'redirect-flag'); continue; }
     const params = paramsOf(text, d.at);
     if (!params.length) { tell(notAlias, d, 'no-params'); continue; }
