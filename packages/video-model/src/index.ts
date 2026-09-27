@@ -12,14 +12,21 @@
  * 3. **不凑数**：镜头数由断句决定，不会因为"看起来 6 镜比较像分镜"就凭空多写几镜。
  */
 
-/** §41 的 Camera 轨上那些机位。只有这六个：更多机位要真 provider 的运镜控制才有意义 */
-export type ShotCamera = 'wide' | 'medium' | 'close' | 'detail' | 'tracking' | 'aerial';
+/**
+ * §41 的 Camera 轨上那些机位。只有这几个：更多机位要真 provider 的运镜控制才有意义。
+ * 清单是**运行时常量**，类型从它派生——与 `GAME_KINDS` 同一口径：
+ * 契约测试能逐位比 `z.enum` 的清单，而加一个机位只需要在这里多写一项（不会漂出第二份真值）。
+ */
+export const SHOT_CAMERAS = ['wide', 'medium', 'close', 'detail', 'tracking', 'aerial'] as const;
+export type ShotCamera = (typeof SHOT_CAMERAS)[number];
 
 /** 镜与镜之间怎么接。`cut` 是硬切，不需要任何渲染能力，所以它是默认值 */
-export type ShotTransition = 'cut' | 'fade' | 'dissolve' | 'wipe';
+export const SHOT_TRANSITIONS = ['cut', 'fade', 'dissolve', 'wipe'] as const;
+export type ShotTransition = (typeof SHOT_TRANSITIONS)[number];
 
 /** §40 点名的四条箭头 */
-export type StoryboardArrow = 'text-to-video' | 'image-to-video' | 'storyboard-to-video' | 'character-to-scene';
+export const STORYBOARD_ARROWS = ['text-to-video', 'image-to-video', 'storyboard-to-video', 'character-to-scene'] as const;
+export type StoryboardArrow = (typeof STORYBOARD_ARROWS)[number];
 
 export interface StoryboardShot {
   /** 稳定标识：重排不改它，所以 `moveShot` 之后引用仍然指得回同一镜 */

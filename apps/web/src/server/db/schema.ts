@@ -647,6 +647,35 @@ export const games = pgTable(
   (t) => [index('games_owner_idx').on(t.ownerId), index('games_project_idx').on(t.projectId)],
 );
 
+/**
+ * §40-42 分镜（Storyboard）。一个项目一份（v1，与 worlds / games 同一口径）：
+ * 面板、镜头参考图、时间线都从这一份出发，所以这里不预备"多份分镜"的列表。
+ * 唯一索引把这条不变量写进库——没有它，一次并发建档就会留下两行，
+ * 而"读最新那行"会让两行的内容都还在库里，只是看不见。
+ *
+ * 结构权威在 @nexus/video-model（纯函数包，不碰库）；`document` 存的是那个包序列化出来的
+ * `Storyboard`，进出的两道门（zod 报文 + 归属校验）在 domain/storyboards.ts。
+ * 时间戳只放进行列，不塞进文档：文档要能被同一份输入重复投影出同样的字节（§16 的可重放）。
+ */
+export const storyboards = pgTable(
+  'storyboards',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    projectId: uuid('project_id')
+      .notNull()
+      .references(() => projects.id, { onDelete: 'cascade' })
+      .unique(),
+    ownerId: uuid('owner_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'restrict' }),
+    title: text('title').notNull(),
+    document: jsonb('document'),
+    createdAt: now(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [index('storyboards_owner_idx').on(t.ownerId)],
+);
+
 export const likes = pgTable(
   'likes',
   {

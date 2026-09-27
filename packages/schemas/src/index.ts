@@ -1128,6 +1128,83 @@ export type GameDocumentPayload = z.infer<typeof GameDocumentSchema>;
 /** 与 /api/projects/[id]/game 的 PUT 体一致：整份文档一起换（游戏文档不大，不需要增量补丁） */
 export const GameSaveRequestSchema = z.object({ document: GameDocumentSchema });
 
+/**
+ * §40-42 分镜的**报文契约**（边界纪律 6：跨端只能是 packages/schemas 里的 zod 定义）。
+ *
+ * 这里不重复 @nexus/video-model 的结构权威——那份包负责"分镜是什么"，
+ * 这一份负责"进出 HTTP 的那串字节长什么样"。三份枚举清单写了两遍，
+ * 所以 `packages/schemas/test/video-contract.test.ts` 逐位比它与模型包的运行时常量，
+ * 加一个机位只改一处而测试会红，这就是那条测试要的作用。
+ */
+export const ShotCameraSchema = z.enum(['wide', 'medium', 'close', 'detail', 'tracking', 'aerial']);
+export const ShotTransitionSchema = z.enum(['cut', 'fade', 'dissolve', 'wipe']);
+export const StoryboardArrowSchema = z.enum([
+  'text-to-video',
+  'image-to-video',
+  'storyboard-to-video',
+  'character-to-scene',
+]);
+
+export const StoryboardShotSchema = z.object({
+  /** 稳定标识：重排不改它，参考帧与时间线都按它指回这一镜 */
+  id: z.string().min(1).max(128),
+  prompt: z.string().trim().min(1).max(2000),
+  /**
+   * 上限给到 10 分钟一镜——远高于模型会产生的 3000/4500 毫秒。
+   * 边界是用来拦垃圾输入的（一次误操作写进 3e9 毫秒会把整条时间线的刻度压成一片空白），
+   * 不是用来否决作者真想要的长镜头；上限若贴着默认值，长镜头的写入就只剩一条 500。
+   */
+  durationMs: z.number().int().min(1).max(600_000),
+  camera: ShotCameraSchema,
+  transition: ShotTransitionSchema,
+  characterId: z.string().min(1).max(128).optional(),
+  referenceAssetId: z.string().min(1).max(128).optional(),
+  videoAssetId: z.string().min(1).max(128).optional(),
+});
+
+export const StoryboardDocumentSchema = z
+  .object({
+    id: z.string().min(1).max(128),
+    title: z.string().trim().min(1).max(120),
+    source: z.object({
+      arrow: StoryboardArrowSchema,
+      /** 作者原话：投影可以切它，但不能改它，所以这里只限长，不作任何规范化 */
+      prompt: z.string().max(4000),
+      referenceAssetId: z.string().min(1).max(128).optional(),
+      characterId: z.string().min(1).max(128).optional(),
+    }),
+    shots: z.array(StoryboardShotSchema).max(200),
+    /** 投影做的每一个解释与每一条限度：空数组是合法的（手写的分镜没有解释要交代） */
+    notes: z.array(z.string().min(1).max(2000)).max(50),
+  })
+  .superRefine((sb, ctx) => {
+    // id 必须唯一：时间线、参考帧、撤销补丁都按 id 指镜头，撞了就会撤错一格
+    const seen = new Set<string>();
+    sb.shots.forEach((shot, index) => {
+      if (seen.has(shot.id)) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ['shots', index, 'id'],
+          message: `第 ${index + 1} 镜的 id「${shot.id}」与前面某一镜重复，镜头标识必须唯一`,
+        });
+      }
+      seen.add(shot.id);
+    });
+  });
+export type StoryboardDocumentPayload = z.infer<typeof StoryboardDocumentSchema>;
+
+/** 与 /api/projects/[id]/storyboard 的 PUT 体一致；baseUpdatedAt 是这次改动读到的那一份的时间戳 */
+export const StoryboardSaveRequestSchema = z.object({
+  document: StoryboardDocumentSchema,
+  /**
+   * 可选的乐观并发凭据：带上来就拒绝"更旧的写"（两个 PUT 乱序到达时不能让旧版本赢），
+   * 不带上就是最后写入者赢。刻意可省——面板第一次建档时手里没有基准，
+   * 逼它编一个时间戳等于让它伪造并发检查。
+   */
+  baseUpdatedAt: z.string().min(1).optional(),
+});
+export type StoryboardSaveRequestPayload = z.infer<typeof StoryboardSaveRequestSchema>;
+
 
 /** §67 Context Engine 的一次装配：设计目录 + 世界/角色/记忆/资产/索引/近况的摘要 */
 export const ProjectContextSchema = z.object({
