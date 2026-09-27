@@ -920,6 +920,9 @@ export function aliasVerdicts(src) {
     const body = text.slice(d.at, i + 1 < defs.length ? defs[i + 1].at : text.length);
     const slices = spawnSlices(body);
     if (!slices || !slices.argv) { tell(notAlias, d, 'no-git-spawn'); continue; }
+    // Amendment 100 found candidates refused for a redirect flag whose `git` was a MENTION, so the arm now asks the
+    // one question the raw region grep cannot: is there a git spawn at CODE POSITION in this definition's own text?
+    if (gitReaches(body).length === 0) { tell(notAlias, d, 'mention-only'); continue; }
     if (REDIRECT_FLAGS.some((f) => quotedIn(body, f))) { tell(refused, d, 'redirect-flag'); continue; }
     const params = paramsOf(text, d.at);
     if (!params.length) { tell(notAlias, d, 'no-params'); continue; }
