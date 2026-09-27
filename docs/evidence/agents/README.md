@@ -2860,3 +2860,26 @@ is a measurement of a different tree. Two consequences are recorded rather than 
 the ref they were counted at, and §10's invariant form (verdicts === definitions, per file, this run) is the one that
 cannot go stale — which is why #157 is now about printing the ref beside the totals and asserting a `git show <ref>`
 census equals the in-row one, so a stale-base prediction reddens a row instead of writing a wrong sentence into an ADR.
+
+## The census counts the file that prints it, so its totals now name their ref and prove they see themselves (`confession-proof.mjs` §10, M2 v102 — ADR 0016 amendment 102)
+
+Amendment 101 predicted `spoken 354/354` from the previous run and the row printed `355/355`. The cause was not a
+phantom in the scanner — it was the shape of the measurement: `confession-proof.mjs` counts definitions across
+`docs/evidence/agents/*.mjs`, and that set contains the counting file, so growing §10 by one helper grew the census by
+one. A total like that has two honest uses — as an invariant inside one run, and as a datum with a ref attached — and
+one dishonest use, which is as a baseline quoted from yesterday. The row was doing the dishonest one and calling it a
+prediction. The first version of the anchor then failed where it had to be asked: `git rev-parse HEAD` has no answer on
+the isolated plane, because the row's own loader reads from disk when there is no index — the sweep reported one extra
+failure and it was mine, while five siblings and a standalone run had all been green on the bug, since all four had an
+index to lean on. So the ref is GIT-plane-only and the other plane prints `recount basis: the same disk read — …
+UNCHECKED rather than corroborated`, which is amendment 86's rule that a tautology may not be booked as a pass.
+
+§10 now prints `spoken 355/355 definitions counted at <sha>`, re-derives the same total from `git show <ref>:<path>`
+for each row and asserts it equals the loaded population (so a census that silently read the worktree, or a
+materialised tree, contradicts itself rather than printing a clean line), and grades the self-inclusion instead of
+narrating it: appending a sentinel function to this row's own text has to move the count by exactly one, and it does
+(`356`). No rule in the runner changed, so the axes were expected to hold — `262 call sites / program=117 / argv=145`
+and `supported 9 · partial 0 · invisible 4 · no-command 1 · MIS-CITED 0` — and the confirmation run is recorded with
+the amendment. The carry-forward form: a row that censuses a population containing itself may report invariants and
+ref-anchored counts, and may predict the quantities its own edit moves, but the number it printed last run is
+evidence about a different tree.

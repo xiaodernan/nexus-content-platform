@@ -4607,3 +4607,37 @@ baseline but a datum about a different tree. The honest form is the one §10 alr
 Task #157 shrinks accordingly, from "explain the phantom" to "print the ref the census texts came from beside the
 totals, and assert that a second census built from `git show <ref>:…` equals the in-row one", which turns a stale-base
 prediction like this one into a red row instead of a wrong ADR sentence.
+
+### Amendment 102 (M2 v102): a total that counts a population containing the counter cannot be quoted across runs, so the census now names its ref and proves it sees itself
+
+Amendment 101's addendum closed a one-definition discrepancy by noticing something the whole stack had taken for
+granted: `confession-proof.mjs` censuses `docs/evidence/agents/*.mjs`, and that set contains the file printing the
+number. Every edit to the row moves its own census — 354 became 355 the moment §10 grew a helper — which makes the
+previous run's total a measurement of a different tree, not a baseline. The stale base was harmless as arithmetic and
+harmful as method: it went into a rule commit's prediction and came out as a wrong sentence in a record.
+
+§10 now refuses that shape in three ways. The printed line carries the ref the texts were counted at
+(`spoken 355/355 definitions counted at <sha>`), because a number without a ref is only comparable to itself. The same
+total is re-derived through `git show <ref>:<path>` for every row and asserted equal to the loaded population's, so a
+census that quietly read a different plane — the worktree, a materialised tree, half an edit — contradicts itself
+instead of printing. And the self-inclusion is graded rather than narrated: a sentinel function appended to this row's
+own text must move the count by exactly one (`356`), which is the smallest possible witness that the counter is inside
+what it counts. Nothing here changes what the arm reads: no runner rule moved, and the axes were predicted to hold at
+`262 call sites / program=117 / argv=145` and `supported 9 · partial 0 · invisible 4 · no-command 1 · MIS-CITED 0`.
+
+And the increment's own defect, caught by the thing it was written to satisfy: the first version of the anchor called
+`git rev-parse HEAD` unconditionally. The sweep at that ref reported 43 failures instead of 42 — the extra one was this
+row, dying in the isolated checkout, where the row's own population loader takes the DISK branch precisely because
+that tree has no index (`confession-proof.mjs:38-45`). An assertion about which ref a census was counted at is
+meaningless on a plane with no ref, and writing it without asking which plane the row runs on turned a corroboration
+into a crash. The fix is small and the discipline is not: `rev` is `'DISK'` when there is no index, the recount then
+compares the loaded texts against the same disk read — which the printed line now labels `UNCHECKED rather than
+corroborated`, because amendment 86 already settled that a tautology may not be reported as a pass. That the sweep
+caught it is the argument for running it: five siblings on the GIT plane, and my own standalone run, were both green on
+the buggy version, because both had an index.
+
+The confirmation run, at `da1c309` and the ref that fixes its plane bug: `scripts 73 · failed 42 · killed 0 · 314 s`, graded build `cc73dcf781dd0a2b` and tree `61265f575e9c6e92` stable across the run, `dirty-sources 2`. The plane axis printed 262 call sites: program=117 argv=145 and the confession axis supported 9 · partial 0 · invisible 4 · name no command 1, exactly the numbers the rule commit predicted, and `confession-proof.mjs` itself finished OK in 91.6 s with its census anchored in its own output: "10/10 reasons each carry their own fixture · population of 73 rows speaks 355/355 definitions counted at DISK (recount basis: the same disk read — this plane has no index, so that half is UNCHECKED rather than corroborated; got 355; a sentinel added to this row alone moves it"
+
+The general form, for the next time a row reaches for a number from last run: a self-referential census has exactly
+two honest uses — as an invariant within a run (verdicts === definitions, which §10 already graded) and as a ref-anchored
+datum (which is what this adds). Quoting it as a baseline is the one use it does not have.
