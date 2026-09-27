@@ -3003,3 +3003,26 @@ Ordering note worth keeping: `table-recount-proof.mjs` refuses to grade README b
 the workflow for a table change is patch → commit → re-run, and anyone who expects to verify locally before
 committing will read a §0 red as a defect in their repair. Measured at `47a7537` that way: rows 409/30 and
 275/8 matching their own recounts, 0 failing tracked cases, `control clean · mutations caught: 4/4`, exit 0.
+
+## Run the witness on the plane the rows are graded on, and build that plane in four seconds if you cannot afford a sweep (`provenance-proof.mjs` §11, M2 v110 — ADR 0016 amendment 110)
+
+Amendment 106 added §11, the section that reconciles the two readers of "is there a repository here?". It was green
+everywhere it had been run — which was one plane. On the isolated checkout 42 of 73 rows live in, this row's first
+line was an unconditional `git rev-parse HEAD`, so the child died before printing and the sweep could only report
+`(no stdout — the child never reached a print)`. The witness had never once executed where its own subject runs. The
+fix moves it to the top of the file and splits it honestly: the cases that need only a directory (a bare temp dir, an
+unusable git, an unparsable answer, git's exit-128 answer) run on both planes, while the subdirectory divergence and
+the repository-root case run only where a repository can stand in — the other plane prints them as `UNCHECKED rather
+than corroborated` and reads the runner from disk instead of `HEAD`, saying so.
+
+Getting to the second plane cost a `cp -r docs` into a temporary directory and one run — seconds, not a sweep — and
+it immediately reddened an assertion this change had not touched: the exit-128 case required `diverged === true`,
+which is a fact about the local probe, not about the answer git gave. Both planes now derive that expectation from
+the probe they measured. Read as a rule: if a check has only ever run in one environment, its literals encode that
+environment, and building the other environment is the cheapest way to find out which ones.
+
+Measured: GIT plane exit 0 with subdirectory `["NO-GIT","GIT","GIT"]` DIVERGED; no-index plane exit 1 whose stdout
+carries `[§0] plane NO-GIT` and `[§11]` before the HEAD sections fail for their own reason. The detached sweep at
+`24589f2` then confirmed every predicted number — 73 rows, 42 failed, 0 killed, `GIT 0 · NO-GIT 5 · mute 68`,
+echo `1/1/0/0`, plane axis 262 sites `program=117 argv=145`, confession `9 · 0 · 4` with `MIS-CITED 0` — and the row
+whose silence started all this now appears as a red that prints.

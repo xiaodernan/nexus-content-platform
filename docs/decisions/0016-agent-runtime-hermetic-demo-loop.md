@@ -4882,3 +4882,37 @@ Measured at `ad8502b`: 73 scripts · 42 failed · 0 killed · 266 s, graded buil
   and amendment 106's sweep verdict was never recorded, because the run launched at `efc7d8f` died at
   `isolated-proof.mjs` before printing `[summary]` — the value of a background run is the number it
   printed, not the number its launcher expected.
+
+### Amendment 110 (M2 v110, docs/evidence) — a witness that cannot run where the rows are graded has said nothing about that run, and the assertion that proved it was written for the wrong plane, 2026-09
+
+- **What the owed sweep showed, not what the local run did.** Amendment 106's record was written from a witness
+  that had never executed on the plane most rows are graded on: `provenance-proof.mjs` began with an
+  unconditional `git rev-parse HEAD`, so in an isolated checkout the child died at line 24 and the runner printed
+  `(no stdout — the child never reached a print)`. Every one of §11's assertions had been green — on a machine
+  with an index. That is amendment 102's failure mode reproduced one section later, and the only reason it was
+  visible at all is that the runner distinguishes "printed nothing" from "printed and failed".
+- **The change (`24589f2`).** The two-reader witness is now the first thing the row does and needs no index: the
+  directory-outside-any-repository case, the unusable-git case, the unparsable-answer case and the exit-128 case
+  run on both planes; the subdirectory divergence and the repository-root case run only where a repository exists
+  to stand in, and the other plane prints them as `UNCHECKED rather than corroborated` instead of silently
+  skipping; the runner's wiring is read from `HEAD` on the git plane and from disk on the other, saying which.
+- **The second defect, found by building the missing plane in four seconds.** A copy of `docs/` into a fresh
+  temporary directory reproduces the no-index environment without a full run, and running the row there reddened
+  an assertion the change had not touched: the exit-128 case demanded `diverged === true`, which is a property of
+  the local probe (true only where the probe says `GIT`), not of the injected git answer. It is now
+  `notRepo.diverged === (plane0.probe !== 'NO-GIT')`, with the message saying why the two planes differ. A witness
+  that has only ever run in one environment writes that environment into its literals.
+- **Measured both ways.** GIT plane: exit 0, subdirectory `["NO-GIT","GIT","GIT"]` DIVERGED, root `GIT/GIT`, bare
+  `NO-GIT/NO-GIT`, reason `git unusable (gitFailed:EPERM), the local probe decided`, `unparsable:perhaps`.
+  No-index plane: exit 1, as it must be, but stdout now carries `[§0] plane NO-GIT` and the `[§11]` line before the
+  HEAD-reading sections fail for their own named reason.
+- **The prediction held, recounted at `24589f2` by the sweep that ran there:**
+  `[summary] ref 24589f236330 · scripts 73 · failed 42 · killed 0`, plane axis 262 call sites
+  `program=117 argv=145`, confession axis supported 9 · partial 0 · invisible 4 with `MIS-CITED 0`, self-report
+  `GIT 0 · NO-GIT 5 · mute 68` (was 4/69 — the row now names its plane because it survives long enough to say
+  so), echo `1 / 1 matching / 0 ABSENT / 0 contradicting`, and `provenance-proof.mjs` listed as
+  `FAIL … :: §1 dist 摘要 … | §2 「跑的是 ref 的字节」… || Error: git ls-tree … exit 128` — a red with a record
+  rather than a silence.
+- **Still open:** #142 (a sweep must say whether the tree it runs from erases the shared record) and #161 (a door
+  that refuses an ADR amendment with no README section, pre-measured: the ADR carries two heading grammars, so the
+  naive rule would invent three false holes).
