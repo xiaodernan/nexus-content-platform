@@ -194,11 +194,20 @@ describe("compileStory：起点与形状", () => {
 });
 
 describe("compileForKind：类型 → 管线的唯一分派点", () => {
-  it("2d 走俯视关卡，互动故事/视觉小说走对话，其余类型如实说没接", () => {
+  it("2d 走俯视关卡、2.5d 走同一份计划的等轴测画法，互动故事/视觉小说走对话，其余类型如实说没接", () => {
     const base = createGame("分派");
 
     const topdown = compileForKind({ ...base, kind: "2d" });
     expect(topdown.pipeline).toBe("topdown");
+
+    // 2.5D 不是第二条规则：还是 topdown 那条计划，只换画法
+    const iso = compileForKind({ ...base, kind: "2.5d" });
+    expect(iso.pipeline).toBe("topdown");
+    if (iso.pipeline === "topdown" && topdown.pipeline === "topdown") {
+      expect(iso.view).toBe("isometric");
+      expect(topdown.view).toBe("topdown");
+      expect(iso.plan).toEqual(topdown.plan);
+    }
 
     const story = compileForKind({ ...base, kind: "interactive-story" });
     expect(story.pipeline).toBe("story");
@@ -206,7 +215,7 @@ describe("compileForKind：类型 → 管线的唯一分派点", () => {
     expect(novel.pipeline).toBe("story");
 
     // 没接的三种：给出的是 reason，不是一个空场子也不是硬跑 2D
-    for (const kind of ["2.5d", "3d", "puzzle"] as const) {
+    for (const kind of ["3d", "puzzle", "exploration"] as const) {
       const projection = compileForKind({ ...base, kind });
       expect(projection.pipeline).toBeNull();
       if (projection.pipeline === null) expect(projection.reason).toContain("还没接");
@@ -222,6 +231,8 @@ describe("compileForKind：类型 → 管线的唯一分派点", () => {
       } else {
         // 表说有管线 → 分派结果必须是那条管线，不许回落成 null
         expect(projection.pipeline).toBe(status.pipeline);
+        // 画法也一样：表说等轴测，分派出来就不许是俯视
+        if (projection.pipeline === "topdown") expect(projection.view).toBe(status.view ?? "topdown");
       }
     }
   });

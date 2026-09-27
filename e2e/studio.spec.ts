@@ -2724,11 +2724,11 @@ test('@smoke §112/§73 名册下拉：点了 QA 就不能把补丁交回画布�
 /**
  * §51 的第二片：游戏类型是文档字段，它决定试玩页跑哪条投影。
  *
- * 这一条要证明的不是"下拉框能选"，而是三件容易各自说谎的事：
- * 面板上那句"接没接"、分派点选的那条管线、没接的类型给出的页面——
- * 三者必须来自同一张表（`GAME_KIND_STATUS`）。
+ * 这一条要证明的不是"下拉框能选"，而是四件容易各自说谎的事：
+ * 面板上那句"接没接"、分派点选的那条管线与它的画法（2.5D 是同一条管线的等轴测）、
+ * 没接的类型给出的页面——三者必须来自同一张表（`GAME_KIND_STATUS`）。
  */
-test('@smoke §51 类型分派：标互动故事就出对话播放器，标 3D 就照实说没接', async ({ page }) => {
+test('@smoke §51 类型分派：标互动故事就出对话播放器，标 2.5D 就出等轴测，标 3D 就照实说没接', async ({ page }) => {
   test.setTimeout(300_000);
   const stamp = Date.now().toString(36);
   const projectId = await createProject(page, `对话游戏 ${stamp}`);
@@ -2793,6 +2793,42 @@ test('@smoke §51 类型分派：标互动故事就出对话播放器，标 3D �
   await game.click('[data-story-restart]');
   await expect(game.locator('[data-story-name]')).toHaveText('钟楼下');
   await expect(game.locator('[data-story-progress]')).toContainText('走过 1 段');
+
+  // §51 的第四种：2.5D 是**同一条计划**的等轴测画法——还走 topdown 那条管线（同一个 data-game-root、
+  // 同一套 step 与 HUD），只有坐标到屏幕的映射变了，所以页首要写"等轴测"、限度要一起显示
+  await page.bringToFront();
+  await page.selectOption('[data-game-kind]', '2.5d');
+  await expect(page.locator('[data-game-kind="2.5d"]')).toHaveAttribute('data-game-kind', '2.5d');
+  await expect(page.locator('[data-game-kind-note="2.5d"]')).toContainText('已接入');
+  await expect(page.locator('[data-game-state]')).toHaveText('已保存', { timeout: 20_000 });
+  await game.reload({ waitUntil: 'domcontentloaded' });
+  // 后台标签页的 rAF 不跑：不 bringToFront，画布就一直是空的，截图与断言都会骗人
+  await game.bringToFront();
+  await expect(game.locator('[data-game-root][data-game-view="isometric"]')).toBeVisible({ timeout: 60_000 });
+  await expect(game.locator('[data-game-canvas]')).toBeVisible();
+  // "画出来了"要按像素算：DOM 里有 canvas 只说明组件挂上了，一帧没跑也是这个样子
+  await expect
+    .poll(
+      () =>
+        game.evaluate(() => {
+          const canvas = document.querySelector('[data-game-canvas]') as HTMLCanvasElement | null;
+          const ctx = canvas?.getContext('2d');
+          if (!canvas || !ctx) return 0;
+          const { data } = ctx.getImageData(0, 0, canvas.width, canvas.height);
+          let nonBackground = 0;
+          for (let i = 0; i < data.length; i += 4) {
+            // 背景是 clear() 里那层 #0b0d12；网格与标记都是别的颜色
+            if (data[i] !== 11 || data[i + 1] !== 13 || data[i + 2] !== 18) nonBackground += 1;
+          }
+          return nonBackground;
+        }),
+      { timeout: 30_000 },
+    )
+    .toBeGreaterThan(1000);
+  await expect(game.locator('[data-game-subtitle]')).toContainText('等轴测投影');
+  await expect(game.locator('[data-game-note]').filter({ hasText: '同一个 step' })).toBeVisible();
+  await expect(game.locator('[data-game-note]').filter({ hasText: '不是 3D 模型' })).toBeVisible();
+  await game.screenshot({ path: 'screenshots/story-play-isometric.png' });
 
   // 反向对照：同一个项目改成没接的类型，试玩页不许退回 2D 关卡，也不许给空场子
   await page.bringToFront();

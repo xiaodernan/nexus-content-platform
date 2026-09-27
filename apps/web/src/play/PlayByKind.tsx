@@ -11,7 +11,7 @@ import { StoryPlay } from './StoryPlay';
  * 按内容静默降级就是替他做了决定（`compileForKind` 里写了同一条理由）。
  */
 export function PlayByKind({ document, projection }: { document: GameDocument; projection: GameProjection }) {
-  if (projection.pipeline === 'topdown') return <GamePlay plan={projection.plan} />;
+  if (projection.pipeline === 'topdown') return <GamePlay plan={projection.plan} view={projection.view} />;
   if (projection.pipeline === 'story') return <StoryPlay plan={projection.plan} />;
   const label = isGameKind(document.kind) ? GAME_KIND_LABELS[document.kind] : '这一种';
   return (
@@ -32,7 +32,9 @@ export function describeProjection(document: GameDocument, projection: GameProje
   const label = isGameKind(document.kind) ? GAME_KIND_LABELS[document.kind] : '这一种';
   if (projection.pipeline === 'topdown') {
     const plan = projection.plan;
-    return `${label} · ${plan.enemies.length} 个敌人 · ${plan.items.length} 个物品 · ${plan.quests.length} 条任务 · 场地 ${plan.arena.width}×${plan.arena.height}`;
+    // 画法要写进页首：2.5D 与 2D 跑的是同一条计划，差别只在这句话和画布上（不写就会被读成两种游戏）
+    const paint = projection.view === 'isometric' ? '等轴测投影 · ' : '';
+    return `${label} · ${paint}${plan.enemies.length} 个敌人 · ${plan.items.length} 个物品 · ${plan.quests.length} 条任务 · 场地 ${plan.arena.width}×${plan.arena.height}`;
   }
   if (projection.pipeline === 'story') {
     const plan = projection.plan;

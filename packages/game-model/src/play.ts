@@ -326,6 +326,58 @@ export function compileGame(document: GameDocument): GamePlan {
   };
 }
 
+/**
+ * §51 的 2.5D：**同一份关卡计划换一种画法**，不是第二套游戏。
+ *
+ * 为什么投影放在这里而不是组件里：位置本来就是这一层排出来的（同心环），
+ * 等轴测只是同一组 (x, y) 到屏幕的另一种映射——放进渲染层就会变成"浏览器里算一遍、
+ * 单测算另一遍"，而这两处一旦不一致，就没人能说清玩家看到的坐标是不是设计里的那个。
+ *
+ * 2:1 等轴测（`sy = sx / 2`）：屏幕 x = (x - y)·sx + ox，屏幕 y = (x + y)·sy + oy。
+ * 只做坐标的换算与远近排序，**不引入纵深、不引入碰撞体、不引入 3D 模型**——
+ * 模型里没有这些东西，画出来的地面网格也不参与判定（判定仍然走 `step` 的平面坐标）。
+ */
+export const ISO_MARGIN = 24;
+
+export interface IsoView {
+  readonly sx: number;
+  readonly sy: number;
+  readonly ox: number;
+  readonly oy: number;
+  readonly arena: { width: number; height: number };
+}
+
+/** 按场地算一份等轴测变换：整体缩到边距里，2:1 比例固定 */
+export function isoView(arena: { width: number; height: number } = ARENA): IsoView {
+  const span = arena.width + arena.height;
+  const availW = arena.width - ISO_MARGIN * 2;
+  const availH = arena.height - ISO_MARGIN * 2;
+  const sx = Math.min(availW / span, (availH * 2) / span);
+  return { sx, sy: sx / 2, ox: ISO_MARGIN + arena.height * sx, oy: ISO_MARGIN, arena };
+}
+
+/** 世界坐标 → 屏幕坐标。单射：不同的世界点不会落到同一个屏幕点上（有测试钉这条） */
+export function isoProject(view: IsoView, x: number, y: number): { x: number; y: number } {
+  return { x: (x - y) * view.sx + view.ox, y: (x + y) * view.sy + view.oy };
+}
+
+/** 远近：等轴测里 `x + y` 小的离镜头远，先画；这条只影响绘制顺序，不影响规则 */
+export function isoDepth(x: number, y: number): number {
+  return x + y;
+}
+
+/** 一个世界圆投影成的地面椭圆半径（画标记用，不参与判定） */
+export function isoGroundRadius(view: IsoView, radius: number): { rx: number; ry: number } {
+  return { rx: Math.SQRT2 * view.sx * radius, ry: Math.SQRT2 * view.sy * radius };
+}
+
+/** 等轴测这条画法的限度，界面和 2D 的那些限度并排显示（只写在注释里等于没人知道） */
+export const ISO_VIEW_NOTES = [
+  "等轴测（2.5D）只是同一条关卡计划的画法：坐标换了个投影，规则与 2D 走同一个 step，逐字相同。",
+  "地面网格是画出来的，不参与碰撞——判定仍然按俯视那套平面坐标算，模型里没有地形与纵深。",
+  "标记形状不随远近缩放、没有转身：模型里没有尺寸与朝向，它们仍然是类别标记，不是 3D 模型。",
+];
+
 /** 图例：形状与类别的固定对应，界面上写"形状=类别"，别让人读成"红色=危险" */
 export const PLAY_KIND_SHAPES: Partial<Record<GameEntityKind, "circle" | "square" | "triangle" | "diamond">> = {
   player: "circle",

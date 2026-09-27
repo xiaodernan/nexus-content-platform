@@ -3,9 +3,14 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ARENA,
+  ISO_VIEW_NOTES,
   PLAY_DEFAULTS,
   SIM_RULE_NOTES,
   initialState,
+  isoDepth,
+  isoGroundRadius,
+  isoProject,
+  isoView,
   playtest,
   simSummary,
   step,
@@ -20,13 +25,15 @@ import {
 /**
  * §50 的可玩投影：把 `compileGame` 排出来的关卡计划交给 `step` 跑，画在 2D 画布上。
  *
- * 三条边界（都同时显示在界面上，不只写在注释里）：
+ * 四条边界（都同时显示在界面上，不只写在注释里）：
  * - 规则不在这里。移动、追击、伤害、任务判定全在 `@nexus/game-model/sim`，
  *   所以"浏览器里玩到的"和"单测断言的"是同一套算术；这里只负责输入、绘制与 HUD。
  * - 形状只用来区分类别（圆=玩家、方=敌人、菱=物品、三角=NPC），**不是美术**。
  *   §34 的 3D 模型与 §43 的动画在这里都没有，页面上就这么写。
  * - 作者没填的数值一律走兜底，并且把"有几个实体是兜底跑起来的"写在脸上：
  *   让人以为"敌人伤害 1 是设计的"就是假数据（§159）。
+ * - `view` 只换画法（§51 的 2.5D = 同一份计划的等轴测投影）：循环、输入、HUD、
+ *   playtest 全部共用，所以"2.5D 玩起来不一样"这句话在这里说不出来——它就是同一个游戏。
  */
 
 const KEY_MAP: Record<string, [number, number]> = {
@@ -47,6 +54,9 @@ function shapeOf(kind: string): 'circle' | 'square' | 'diamond' | 'triangle' {
   return 'circle';
 }
 
+/** 画法（§51）：`topdown` 是 2D，`isometric` 是 2.5D——同一条计划、同一个 step，只换坐标到屏幕的映射 */
+export type GameView = 'topdown' | 'isometric';
+
 const COLORS: Record<string, string> = {
   player: '#7dd3fc',
   enemy: '#f59e0b',
@@ -54,10 +64,101 @@ const COLORS: Record<string, string> = {
   npc: '#c4b5fd',
 };
 
-function draw(ctx: CanvasRenderingContext2D, plan: GamePlan, state: SimState): void {
+/** 一个个体的标记：类别形状 + 血条 + 名字。`ground` 是等轴测那条画法的地面投影（俯视为 null） */
+function paintActor(
+  ctx: CanvasRenderingContext2D,
+  x: number,
+  y: number,
+  actor: PlayActor,
+  sim: SimActor | undefined,
+  ground: { rx: number; ry: number } | null,
+): void {
+  const r = actor.radius;
+  if (ground) {
+    ctx.globalAlpha = 0.22;
+    ctx.fillStyle = COLORS[actor.kind] ?? '#e5e7eb';
+    ctx.beginPath();
+    ctx.ellipse(x, y, ground.rx, ground.ry, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.globalAlpha = 1;
+  }
+  ctx.fillStyle = COLORS[actor.kind] ?? '#e5e7eb';
+  ctx.beginPath();
+  if (shapeOf(actor.kind) === 'square') ctx.rect(x - r, y - r, r * 2, r * 2);
+  else if (shapeOf(actor.kind) === 'diamond') {
+    ctx.moveTo(x, y - r);
+    ctx.lineTo(x + r, y);
+    ctx.lineTo(x, y + r);
+    ctx.lineTo(x - r, y);
+    ctx.closePath();
+  } else if (shapeOf(actor.kind) === 'triangle') {
+    ctx.moveTo(x, y - r);
+    ctx.lineTo(x + r, y + r);
+    ctx.lineTo(x - r, y + r);
+    ctx.closePath();
+  } else ctx.arc(x, y, r, 0, Math.PI * 2);
+  ctx.fill();
+  if (typeof sim?.health === 'number' && actor.kind === 'enemy') {
+    const max = actor.health || 1;
+    ctx.fillStyle = 'rgba(255,255,255,0.25)';
+    ctx.fillRect(x - r, y - r - 9, r * 2, 4);
+    ctx.fillStyle = '#ef4444';
+    ctx.fillRect(x - r, y - r - 9, r * 2 * Math.max(0, Math.min(1, sim.health / max)), 4);
+  }
+  ctx.fillStyle = 'rgba(229,231,235,0.75)';
+  ctx.font = '13px ui-monospace, monospace';
+  ctx.fillText(actor.name.slice(0, 14), x - r, y + r + 15);
+}
+
+/** 玩家标记：圆 + 触及范围。`ground` 是等轴测那条画法的地面投影（俯视为 null） */
+function paintPlayer(
+  ctx: CanvasRenderingContext2D,
+  x: number,
+  y: number,
+  plan: GamePlan,
+  reach: { rx: number; ry: number } | null,
+  ground: { rx: number; ry: number } | null = null,
+): void {
+  const r = plan.player?.radius ?? 16;
+  if (ground) {
+    ctx.globalAlpha = 0.22;
+    ctx.fillStyle = COLORS.player ?? '#7dd3fc';
+    ctx.beginPath();
+    ctx.ellipse(x, y, ground.rx, ground.ry, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.globalAlpha = 1;
+  }
+  ctx.fillStyle = COLORS.player ?? '#7dd3fc';
+  ctx.beginPath();
+  ctx.arc(x, y, r, 0, Math.PI * 2);
+  ctx.fill();
+  const reachWorld = (plan.player?.radius ?? 0) + (plan.player?.reach ?? 0);
+  if (reachWorld > r) {
+    ctx.strokeStyle = 'rgba(125,211,252,0.35)';
+    ctx.beginPath();
+    if (reach) ctx.ellipse(x, y, reach.rx, reach.ry, 0, 0, Math.PI * 2);
+    else ctx.arc(x, y, reachWorld, 0, Math.PI * 2);
+    ctx.stroke();
+  }
+}
+
+function actorDots(plan: GamePlan, state: SimState): { actor: PlayActor; sim: SimActor | undefined }[] {
+  return [
+    ...plan.items.map((item) => ({ actor: item, sim: state.items.find((s) => s.id === item.id) })),
+    ...plan.enemies.map((enemy) => ({ actor: enemy, sim: state.enemies.find((s) => s.id === enemy.id) })),
+    ...plan.npcs.map((npc) => ({ actor: npc, sim: undefined })),
+  ];
+}
+
+function clear(ctx: CanvasRenderingContext2D): void {
   ctx.clearRect(0, 0, ARENA.width, ARENA.height);
   ctx.fillStyle = '#0b0d12';
   ctx.fillRect(0, 0, ARENA.width, ARENA.height);
+}
+
+/** 俯视画法：位置就是计划里的世界坐标，一步映射都不加 */
+function drawTopdown(ctx: CanvasRenderingContext2D, plan: GamePlan, state: SimState): void {
+  clear(ctx);
 
   for (const trigger of plan.triggers) {
     const sim = state.triggers.find((t) => t.id === trigger.id);
@@ -69,61 +170,106 @@ function draw(ctx: CanvasRenderingContext2D, plan: GamePlan, state: SimState): v
     ctx.setLineDash([]);
   }
 
-  const dots: { actor: PlayActor; sim: SimActor | undefined }[] = [
-    ...plan.items.map((item) => ({ actor: item, sim: state.items.find((s) => s.id === item.id) })),
-    ...plan.enemies.map((enemy) => ({ actor: enemy, sim: state.enemies.find((s) => s.id === enemy.id) })),
-    ...plan.npcs.map((npc) => ({ actor: npc, sim: undefined })),
-  ];
-  for (const { actor, sim } of dots) {
+  for (const { actor, sim } of actorDots(plan, state)) {
     if (sim && !sim.active) continue; // 被打倒/已拾取的不画：画着就是"场上还有"的谎
-    const x = sim?.x ?? actor.x;
-    const y = sim?.y ?? actor.y;
-    ctx.fillStyle = COLORS[actor.kind] ?? '#e5e7eb';
-    ctx.beginPath();
-    const r = actor.radius;
-    if (shapeOf(actor.kind) === 'square') ctx.rect(x - r, y - r, r * 2, r * 2);
-    else if (shapeOf(actor.kind) === 'diamond') {
-      ctx.moveTo(x, y - r);
-      ctx.lineTo(x + r, y);
-      ctx.lineTo(x, y + r);
-      ctx.lineTo(x - r, y);
-      ctx.closePath();
-    } else if (shapeOf(actor.kind) === 'triangle') {
-      ctx.moveTo(x, y - r);
-      ctx.lineTo(x + r, y + r);
-      ctx.lineTo(x - r, y + r);
-      ctx.closePath();
-    } else ctx.arc(x, y, r, 0, Math.PI * 2);
-    ctx.fill();
-    if (typeof sim?.health === 'number' && actor.kind === 'enemy') {
-      const max = actor.health || 1;
-      ctx.fillStyle = 'rgba(255,255,255,0.25)';
-      ctx.fillRect(x - r, y - r - 9, r * 2, 4);
-      ctx.fillStyle = '#ef4444';
-      ctx.fillRect(x - r, y - r - 9, r * 2 * Math.max(0, Math.min(1, sim.health / max)), 4);
-    }
-    ctx.fillStyle = 'rgba(229,231,235,0.75)';
-    ctx.font = '13px ui-monospace, monospace';
-    ctx.fillText(actor.name.slice(0, 14), x - r, y + r + 15);
+    paintActor(ctx, sim?.x ?? actor.x, sim?.y ?? actor.y, actor, sim, null);
   }
 
-  if (state.health > 0) {
-    const r = plan.player?.radius ?? 16;
-    ctx.fillStyle = COLORS.player ?? '#7dd3fc';
-    ctx.beginPath();
-    ctx.arc(state.px, state.py, r, 0, Math.PI * 2);
-    ctx.fill();
-    const reach = (plan.player?.radius ?? 0) + (plan.player?.reach ?? 0);
-    if (reach > r) {
-      ctx.strokeStyle = 'rgba(125,211,252,0.35)';
-      ctx.beginPath();
-      ctx.arc(state.px, state.py, reach, 0, Math.PI * 2);
-      ctx.stroke();
-    }
-  }
+  if (state.health > 0) paintPlayer(ctx, state.px, state.py, plan, null);
 }
 
-export function GamePlay({ plan }: { plan: GamePlan }) {
+/**
+ * 等轴测绘法（§51 的 2.5D）：同一份坐标过一次 `isoProject`，再按远近排序绘制。
+ * 网格与地面投影都是画出来的，判定仍然走 `step` 的平面坐标（`ISO_VIEW_NOTES` 里照实说）。
+ */
+function drawIso(ctx: CanvasRenderingContext2D, plan: GamePlan, state: SimState): void {
+  const view = isoView();
+  clear(ctx);
+
+  // 地面网格 + 场地边界：让"菱形是同一块 1200×760 的地"这件事看得见
+  ctx.lineWidth = 1;
+  ctx.strokeStyle = 'rgba(255,255,255,0.05)';
+  const stepPx = 100;
+  for (let x = 0; x <= ARENA.width; x += stepPx) {
+    const a = isoProject(view, x, 0);
+    const b = isoProject(view, x, ARENA.height);
+    ctx.beginPath();
+    ctx.moveTo(a.x, a.y);
+    ctx.lineTo(b.x, b.y);
+    ctx.stroke();
+  }
+  for (let y = 0; y <= ARENA.height; y += stepPx) {
+    const a = isoProject(view, 0, y);
+    const b = isoProject(view, ARENA.width, y);
+    ctx.beginPath();
+    ctx.moveTo(a.x, a.y);
+    ctx.lineTo(b.x, b.y);
+    ctx.stroke();
+  }
+  const corners = [
+    isoProject(view, 0, 0),
+    isoProject(view, ARENA.width, 0),
+    isoProject(view, ARENA.width, ARENA.height),
+    isoProject(view, 0, ARENA.height),
+  ];
+  ctx.strokeStyle = 'rgba(255,255,255,0.16)';
+  ctx.beginPath();
+  ctx.moveTo(corners[0]!.x, corners[0]!.y);
+  for (const corner of corners.slice(1)) ctx.lineTo(corner.x, corner.y);
+  ctx.closePath();
+  ctx.stroke();
+
+  for (const trigger of plan.triggers) {
+    const sim = state.triggers.find((t) => t.id === trigger.id);
+    const at = isoProject(view, trigger.x, trigger.y);
+    const { rx, ry } = isoGroundRadius(view, trigger.radius);
+    ctx.beginPath();
+    ctx.ellipse(at.x, at.y, rx, ry, 0, 0, Math.PI * 2);
+    ctx.strokeStyle = sim && sim.readyAt > state.t ? 'rgba(255,255,255,0.35)' : 'rgba(255,255,255,0.14)';
+    ctx.setLineDash([6, 8]);
+    ctx.stroke();
+    ctx.setLineDash([]);
+  }
+
+  type Entry = { depth: number; paint: () => void };
+  const entries: Entry[] = [];
+  for (const { actor, sim } of actorDots(plan, state)) {
+    if (sim && !sim.active) continue;
+    const world = { x: sim?.x ?? actor.x, y: sim?.y ?? actor.y };
+    const at = isoProject(view, world.x, world.y);
+    const ground = isoGroundRadius(view, actor.radius);
+    entries.push({
+      depth: isoDepth(world.x, world.y),
+      paint: () => paintActor(ctx, at.x, at.y, actor, sim, ground),
+    });
+  }
+  if (state.health > 0) {
+    const at = isoProject(view, state.px, state.py);
+    const reachWorld = (plan.player?.radius ?? 0) + (plan.player?.reach ?? 0);
+    entries.push({
+      depth: isoDepth(state.px, state.py),
+      paint: () =>
+        paintPlayer(
+          ctx,
+          at.x,
+          at.y,
+          plan,
+          isoGroundRadius(view, reachWorld),
+          isoGroundRadius(view, plan.player?.radius ?? 16),
+        ),
+    });
+  }
+  // 远的先画，近的后画：等轴测里没有遮挡关系，但标签与血条叠在一起时顺序必须稳定
+  entries.sort((a, b) => a.depth - b.depth);
+  for (const entry of entries) entry.paint();
+}
+
+function draw(ctx: CanvasRenderingContext2D, plan: GamePlan, state: SimState, view: GameView): void {
+  if (view === 'isometric') drawIso(ctx, plan, state);
+  else drawTopdown(ctx, plan, state);
+}
+
+export function GamePlay({ plan, view = 'topdown' }: { plan: GamePlan; view?: GameView }) {
   const canvas = useRef<HTMLCanvasElement | null>(null);
   const keys = useRef<Record<string, boolean>>({});
   const stateRef = useRef<SimState>(initialState(plan));
@@ -175,7 +321,7 @@ export function GamePlay({ plan }: { plan: GamePlan }) {
       const input: SimInput = { dx, dy, attack: Boolean(keys.current[' ']) };
       stateRef.current = step(plan, stateRef.current, input, dt);
       const ctx = canvas.current?.getContext('2d') ?? null;
-      if (ctx) draw(ctx, plan, stateRef.current);
+      if (ctx) draw(ctx, plan, stateRef.current, view);
       // HUD 每 100ms 同步一次：60fps 的 React 重渲染只会把主线程吃光，而读数不需要那么新
       if (now - hudAt > 100) {
         hudAt = now;
@@ -187,7 +333,7 @@ export function GamePlay({ plan }: { plan: GamePlan }) {
       cancelAnimationFrame(raf);
       lastFrame.current = 0;
     };
-  }, [plan]);
+  }, [plan, view]);
 
   const fallbackStats = useMemo(() => {
     const actors = [plan.player, ...plan.enemies, ...plan.items, ...plan.npcs].filter(
@@ -216,7 +362,7 @@ export function GamePlay({ plan }: { plan: GamePlan }) {
   }
 
   return (
-    <div className="flex flex-col gap-3" data-game-root>
+    <div className="flex flex-col gap-3" data-game-root data-game-view={view}>
       <div className="flex flex-wrap items-center gap-3 text-12" data-game-hud>
         <span data-game-status={hud.status}>
           {hud.status === 'playing' ? '进行中' : hud.status === 'won' ? '通关' : '失败'}
@@ -357,7 +503,7 @@ export function GamePlay({ plan }: { plan: GamePlan }) {
           {PLAY_DEFAULTS.senseRadius}）；场上共 {fallbackStats.total} 个可显示个体。
         </p>
         <ul className="mt-2 flex flex-col gap-1">
-          {[...plan.notes, ...SIM_RULE_NOTES].map((note) => (
+          {[...plan.notes, ...(view === 'isometric' ? ISO_VIEW_NOTES : []), ...SIM_RULE_NOTES].map((note) => (
             <li key={note} className="text-11 text-fg-3" data-game-note>
               · {note}
             </li>

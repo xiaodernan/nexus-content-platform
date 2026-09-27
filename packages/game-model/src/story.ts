@@ -192,7 +192,7 @@ export function compileStory(document: GameDocument): StoryPlan {
 
 /** 一份文档按它自己标的类型编译出来的投影；`pipeline: null` = 这个类型今天没接 */
 export type GameProjection =
-  | { pipeline: "topdown"; plan: GamePlan }
+  | { pipeline: "topdown"; view: "topdown" | "isometric"; plan: GamePlan }
   | { pipeline: "story"; plan: StoryPlan }
   | { pipeline: null; reason: string };
 
@@ -203,11 +203,14 @@ export type GameProjection =
  *
  * 分派按 `document.kind`，不按"文档里有什么"——类型是作者的选择（§51），
  * 内容判断会让"标了 3D 却写了一堆对话"静默降级成对话游戏，那是替作者做决定。
+ * 同一条管线有几种画法（2D 俯视 / 2.5D 等轴测）也由这张状态表决定，这里只负责原样带出去。
  */
 export function compileForKind(document: GameDocument): GameProjection {
   const kind: GameKind = document.kind;
   const status = GAME_KIND_STATUS[kind];
-  if (status.pipeline === "topdown") return { pipeline: "topdown", plan: compileGame(document) };
+  if (status.pipeline === "topdown") {
+    return { pipeline: "topdown", view: status.view ?? "topdown", plan: compileGame(document) };
+  }
   if (status.pipeline === "story") return { pipeline: "story", plan: compileStory(document) };
   return { pipeline: null, reason: status.note };
 }

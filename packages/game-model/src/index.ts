@@ -156,20 +156,26 @@ export function isGameKind(value: unknown): value is GameKind {
 /**
  * 一条类型今天由哪条构建管线跑（`null` = 还没接），以及试玩页该说的那句话。
  *
- * 这张表就是 §51 的进度条：8 种里列了三种能跑的，其余五种**只有清单没有投影**，
+ * 这张表就是 §51 的进度条：8 种里列了四种能跑的，其余四种**只有清单没有投影**，
  * 界面上必须照这么说——把没接的类型渲染成"加载中"或者干脆给个空场子，
  * 看起来和能跑没区别（§159）。
  */
 export interface GameKindStatus {
-  /** `topdown` = §50 的俯视 2D 关卡；`story` = 对话驱动（互动故事 / 视觉小说共用）；null = 没接 */
+  /** `topdown` = §50 的俯视关卡（2D / 2.5D 共用同一条计划与同一个 step）；`story` = 对话驱动；null = 没接 */
   pipeline: "topdown" | "story" | null;
+  /** 同一条管线的哪一种画法；缺省是俯视。只影响绘制，不影响规则 */
+  view?: "topdown" | "isometric";
   /** 界面直接用的那句话，不许在这里写"敬请期待"式的空头承诺 */
   note: string;
 }
 
 export const GAME_KIND_STATUS: Record<GameKind, GameKindStatus> = {
   "2d": { pipeline: "topdown", note: "已接入：俯视 2D 关卡，位置与数值由 compileGame 投影出来。" },
-  "2.5d": { pipeline: null, note: "还没接：§51 列了这一种，但今天没有能把 2.5D 投影出来的管线。" },
+  "2.5d": {
+    pipeline: "topdown",
+    view: "isometric",
+    note: "已接入：2.5D 是同一份关卡计划的等轴测画法——规则与 2D 走同一个 step，没有纵深碰撞与 3D 模型。",
+  },
   "3d": { pipeline: null, note: "还没接：§51 列了这一种，但今天没有能把 3D 投影出来的管线。" },
   "interactive-story": {
     pipeline: "story",
