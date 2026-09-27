@@ -1109,6 +1109,60 @@ export class StudioStore {
   }
 
   /**
+   * §38 Image Studio（Text → Image）：把一句话交给服务端生成一张图，进资产清单。
+   *
+   * 与上传一样，一次点击 = 一个事务：`addAsset`（进清单）与选中元素的 `style.fills`
+   * 绑在一起撤销，不会留下"清单里有图但没人引用"的半截状态（§149/§150）。
+   * 没选中元素时只进清单——生成一张图不等于必须贴到某处，硬贴反而是猜用户意图。
+   *
+   * 失败原因原样摊在面板上（额度用尽 429 / 规格不合 400），不静默也不改写（§159）。
+   * 这一格给的是 **DEMO 本地合成**（本机没有图像 provider），所以回执里写清来源（§160）。
+   */
+  async generateImageFromPrompt(prompt: string): Promise<boolean> {
+    if (!this.projectId) return false;
+    this.assetBusyValue = true;
+    this.assetErrorValue = null;
+    this.assetNoticeValue = null;
+    this.commit();
+    try {
+      const res = await fetch(`/api/projects/${this.projectId}/images`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json', ...csrfHeaders() },
+        body: JSON.stringify({ prompt }),
+      });
+      const body = (await res.json().catch(() => null)) as
+        | { asset?: AssetRef; message?: string; issues?: string[] }
+        | null;
+      if (!res.ok || !body?.asset) {
+        throw new Error(body?.issues?.filter(Boolean).join('；') || body?.message || `HTTP ${res.status}`);
+      }
+      const asset = body.asset;
+      const targetId = this.selection[0];
+      const node = targetId ? this.snapshot.page?.nodes[targetId] : undefined;
+      const ops: PatchOp[] = [{ op: 'addAsset', asset }];
+      if (node) {
+        ops.push({
+          op: 'set',
+          nodeId: node.id,
+          path: 'style.fills',
+          value: [{ kind: 'image', assetId: asset.id, fit: 'cover' }, ...(node.style.fills as unknown[])],
+        });
+      }
+      this.execute(`生成图片 ${asset.name}`, ops);
+      this.assetNoticeValue = `已生成一张 ${asset.width ?? '?'}×${asset.height ?? '?'} 的图（DEMO 本地合成，扣 image 额度 2 点）${
+        node ? '，并已贴到选中的元素上' : '；选中元素后生成才会同时贴上'
+      }。`;
+      return true;
+    } catch (error) {
+      this.assetErrorValue = error instanceof Error ? error.message : String(error);
+      return false;
+    } finally {
+      this.assetBusyValue = false;
+      this.commit();
+    }
+  }
+
+  /**
    * Asset Library 删除（M2 line 227）：一次可撤销事务把资产移出清单，并让模型顺带剥掉
    * 所有页面上引用它的图片填充 / 节点（removeAsset 有 document 全域可达，§149）。
    *

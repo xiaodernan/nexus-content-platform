@@ -154,6 +154,30 @@ vitest 直接崩了而我却把 stdout 丢进了 `/dev/null`，于是"5 遍"其�
 "上一条会还回去"是一种约定，不是断言；约定在红色路径上一定失效。**
 
 
+（2026-09-27 §38 面板那一次学到的两条）：
+① **e2e 红之前先确认服务的是哪份代码**。3100 上残留着更早会话的 `next start`（生产构建），
+`reuseExistingServer: true` 让 Playwright 静默复用它，新加的控件在浏览器里"根本不存在"，
+用例红在等不到选择器上。判据：红在**元素等不到**而 typecheck/单测都绿时，先看端口是谁在听
+（`netstat -ano | grep :3100` + 进程命令行），必要时换端口起一份新的（`next dev -p 3210` + `NEXUS_WEB_URL`）。
+② **一条新链路第一次被撤销断言，往往抓到的是模型层的洞**：`addAsset` 的逆操作在"目录里本来没有这一条"
+时什么都不写，所以上传与生成的图撤销后永久留在清单里——而全仓库没有一条用例断言过这件事
+（`grep addAsset **/*.test.ts` 当时是 0 命中）。所以新 op 进 `patch.ts` 时，
+**同一次改动里就要有"执行 → 撤销 → 重做"三段断言**，别等界面来发现。
+反向也要有一条：修"撤销能删"时补一条"覆盖已有条目时撤销是还原不是删除"，
+否则把目录清干净也能让前一条绿。
+③ **`next dev` 起了两份，生成出来的类型文件会坏掉，红的是门禁不是代码**。
+`next-env.d.ts` 里那行 `import "./.next/dev/types/routes.d.ts"` 不受 tsconfig 的 `exclude: [".next"]` 约束，
+所以这个生成物一旦坏掉，`npm run lint`（typecheck 全仓库）就会报 `TS1434 / TS1109 / TS1160`。
+两个 dev server 同时在写它时，后一份的内容比前一份短，而写它时没有截断，于是**旧内容的尾巴**
+留在闭合大括号后面——形状是"合法前半段 + 一段重复的后半段"，很像并发写坏的中间产物。
+判据：`grep -c "interface RouteContext" apps/web/.next/dev/types/routes.d.ts` 大于 1 就是坏掉了
+（正常一份只有一个）。修法只动生成物：把所有 dev server 停干净（`netstat -ano | grep :3210` 看谁在听，
+注意 `timeout 25 npx next dev` 只杀掉外层 npm，**真正的 node 子进程还在听端口**），
+删掉那个文件，只起一份、等它写定（同一字节数连续两次采样相同），再跑 typecheck。
+`.next/` 是 gitignore 的生成目录，删它不碰任何真值；**不要去改 `next-env.d.ts` 迁就坏产物**，
+也不许用 `SKIP_HOOKS`/`--no-verify` 绕过——这条红确实来自这份仓库里的文件。
+
+
 ## 约定
 
 - 测试文件与被测文件同目录 `*.test.ts` / `tests/test_*.py`

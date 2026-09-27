@@ -598,7 +598,13 @@ export function invertPatch(
       }
       case "addAsset": {
         const existing = document.assets.find((a) => a.id === op.asset.id);
+        // 目录里本来没有这一条：撤销必须真的把它移出去。
+        // 这里原来只在 `existing` 存在时才写逆操作，于是"新增资产"根本没有逆操作可写——
+        // 上传/生成的图片贴上去能撤销，目录里那一条却永远撤不掉（§150 说所有编辑都可撤销）。
+        // 走 removeAsset 而不是新造一个 op：它带"顺带剥掉引用它的填充/节点"的既有语义，
+        // 而同一个事务里那些填充的撤销排在它前面（逆操作按倒序应用），所以不会剥到不该剥的。
         if (existing) ops.push({ op: "addAsset", asset: clone(existing) });
+        else ops.push({ op: "removeAsset", assetId: op.asset.id });
         break;
       }
       case "removeAsset": {

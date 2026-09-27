@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import type { AssetRef, DesignDocument } from '@nexus/design-model';
 import { cn } from '@/lib/cn';
 import { apiAssetUrl } from './assets';
@@ -50,6 +50,7 @@ function formatBytes(n?: number): string {
 export function AssetsPanel() {
   const state = useStudioReady();
   const assets = state.assets as AssetRef[];
+  const [prompt, setPrompt] = useState('');
   const counts = useMemo(() => {
     const found = referenceCounts(state.document);
     return new Map(assets.map((a) => [a.id, found.get(a.id) ?? 0]));
@@ -61,6 +62,33 @@ export function AssetsPanel() {
         <h2 className="font-mono text-12 uppercase tracking-wide text-fg-3">资产库</h2>
         <span className="font-mono text-12 text-fg-3">{assets.length}</span>
       </header>
+
+      {/* §38 Text → Image 的入口。本机没有图像 provider，所以按钮上直接写着 DEMO（§160），
+          生成的资产在卡片上带 DEMO 角标——两者说的是同一件事：这不是模型给的图。 */}
+      <div className="flex shrink-0 flex-col gap-1 border-b border-[var(--nexus-color-border-subtle)] px-[var(--nexus-space-3)] py-2">
+        <input
+          type="text"
+          value={prompt}
+          onChange={(e) => setPrompt(e.target.value)}
+          placeholder="描述一张图，例如：一只在月球上弹吉他的猫"
+          aria-label="图像生成的描述文字"
+          data-image-prompt
+          className="w-full rounded-[var(--nexus-radius-sm)] border border-[var(--nexus-color-border-subtle)] bg-bg-2 px-2 py-1 text-12 text-fg-1 placeholder:text-fg-3"
+        />
+        <button
+          type="button"
+          disabled={state.assetBusy || prompt.trim().length === 0}
+          onClick={() => {
+            void studio.generateImageFromPrompt(prompt).then((ok) => {
+              if (ok) setPrompt('');
+            });
+          }}
+          data-image-generate
+          className="self-start rounded-[var(--nexus-radius-sm)] bg-bg-3 px-2 py-1 font-mono text-11 text-fg-2 hover:bg-bg-0 disabled:opacity-50"
+        >
+          {state.assetBusy ? '生成中…' : '生成图片（DEMO · 扣 2 点）'}
+        </button>
+      </div>
 
       {state.assetError ? (
         <p className="shrink-0 bg-warn/15 px-[var(--nexus-space-3)] py-2 text-12 text-warn" data-asset-error>
@@ -109,7 +137,13 @@ export function AssetsPanel() {
                     </span>
                     <div className="flex items-center gap-1">
                       {asset.generatedBy?.demoMode ? (
-                        <span className={cn('rounded px-1 font-mono text-10 text-bg-0', 'bg-warn')}>DEMO</span>
+                        <span
+                          className={cn('rounded px-1 font-mono text-10 text-bg-0', 'bg-warn')}
+                          title="这张图不是真模型给的：本机没有图像 provider，像素来自本地确定性合成器（§160）"
+                          data-asset-demo-badge
+                        >
+                          DEMO
+                        </span>
                       ) : null}
                       <button
                         type="button"

@@ -6,7 +6,8 @@ import {
   diffPatch,
   invertPatch,
 } from "../src/patch";
-import type { DesignPatch } from "../src/patch";
+import type { DesignPatch, PatchOp } from "../src/patch";
+import type { AssetRef } from "../src/types";
 import { DesignStore, aiCommand, manualCommand } from "../src/commands";
 
 function seed() {
@@ -558,5 +559,82 @@ describe("clone（§146：每次编辑都要整份拷贝文档，所以它在热
     expect(after.nodes[hero.id]!.children.filter((id) => id === extra.id).length).toBe(1);
     store.undo();
     expect(findPage(store.getDocument())!.nodes[extra.id]).toBeUndefined();
+  });
+});
+
+describe("addAsset 的撤销（§150：所有编辑都要可撤销）", () => {
+  const assetOf = (id: string, name = `${id}.png`): AssetRef => ({
+    id,
+    name,
+    kind: "image",
+    storageKey: `projects/p/${id}.png`,
+    mimeType: "image/png",
+    width: 8,
+    height: 8,
+    createdAt: "2026-01-01T00:00:00.000Z",
+  });
+
+  /** 上传与生成走的是同一个形状：一次事务 = addAsset + 把图贴到节点上 */
+  const fillWith = (nodeId: string, id: string): PatchOp[] => [
+    { op: "addAsset", asset: assetOf(id) },
+    {
+      op: "set",
+      nodeId,
+      path: "style.fills",
+      value: [{ kind: "image", assetId: id, fit: "cover" }],
+    },
+  ];
+
+  it("撤销把清单条目与画布上的填充一起收回，重做又一起回来", () => {
+    const { doc, hero } = seed();
+    const store = new DesignStore(doc);
+    store.execute(manualCommand("填充图片", { ops: fillWith(hero.id, "a1") }));
+    expect(store.getDocument().assets.map((a) => a.id)).toEqual(["a1"]);
+
+    store.undo();
+    const after = store.getDocument();
+    // 这一条曾经是空的：addAsset 的逆操作没被写出来，撤销只收回填充、目录里那条永远留着
+    expect(after.assets, "撤销之后目录里还留着这张图").toHaveLength(0);
+    const node = findPage(after, after.activePageId)!.nodes[hero.id]!;
+    expect(JSON.stringify(node.style.fills ?? [])).not.toContain("a1");
+
+    store.redo();
+    const redone = store.getDocument();
+    expect(redone.assets.map((a) => a.id)).toEqual(["a1"]);
+    expect(JSON.stringify(findPage(redone, redone.activePageId)!.nodes[hero.id]!.style.fills)).toContain("a1");
+  });
+
+  it("覆盖已有条目时撤销是还原而不是删除（别把目录清干净当撤销）", () => {
+    const { doc, hero } = seed();
+    doc.assets = [assetOf("a2", "旧名字.png")];
+    hero.style.fills = [{ kind: "image", assetId: "a2", fit: "cover" }];
+    const store = new DesignStore(doc);
+
+    store.execute(
+      manualCommand("换一张同名资产", {
+        ops: [{ op: "addAsset", asset: assetOf("a2", "新名字.png") }],
+      }),
+    );
+    expect(store.getDocument().assets[0]!.name).toBe("新名字.png");
+
+    store.undo();
+    const back = store.getDocument();
+    expect(back.assets).toHaveLength(1);
+    expect(back.assets[0]!.name, "撤销没还原成目录里原来那一条").toBe("旧名字.png");
+    // 原来引用它的节点不该被这次撤销顺带剥空
+    expect(JSON.stringify(findPage(back, back.activePageId)!.nodes[hero.id]!.style.fills)).toContain("a2");
+  });
+
+  it("逆操作里写的是 removeAsset，而不是又一次 addAsset", () => {
+    const { doc } = seed();
+    const patch = { pageId: doc.activePageId, ops: [{ op: "addAsset", asset: assetOf("a3") } as PatchOp] };
+    const inverse = invertPatch(doc, patch);
+    expect(inverse.ops.map((o) => o.op)).toEqual(["removeAsset"]);
+    // 目录里本来就有这一条时，逆操作是那一条的还原（同一条 id，旧内容）
+    doc.assets = [assetOf("a3", "旧的")];
+    const overwrite = invertPatch(doc, { pageId: doc.activePageId, ops: [{ op: "addAsset", asset: assetOf("a3", "新的") } as PatchOp] });
+    expect(overwrite.ops.map((o) => `${o.op}:${(o as { asset?: AssetRef }).asset?.name ?? ""}`)).toEqual([
+      "addAsset:旧的",
+    ]);
   });
 });

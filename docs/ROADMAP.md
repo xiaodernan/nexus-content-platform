@@ -1815,3 +1815,46 @@ generation / team collaboration / publishing 设计"，§134"用户看得到 AI 
 所以"角标在界面上真的亮起来"目前只有服务端与单测层面的凭证，没有肉眼看到的图）；
 其余四条箭头（Image→Image、Sketch→Image、Reference→Variation、Character→Scene）一格没动；
 真 provider 那一格仍然缺 key——换成真模型时改的是 `image-synth.ts` 那一个文件里的像素来源。
+
+
+## §38 第三格：Image Studio 的界面入口落地，顺带挖出模型层一处"撤销不可逆"（2026-09-27）
+
+第二格只有服务端与单测；这一格把入口接进 Studio，并按 §158 在真浏览器里跑了一遍。
+
+**做了什么**
+- `AssetsPanel` 顶部加了 prompt 输入框与"生成图片（DEMO · 扣 2 点）"按钮（空 prompt 不可点）；
+  卡片上那枚 DEMO 角标补了 `title`（说清"这不是模型给的"）与 `data-asset-demo-badge`。
+- `studio.generateImageFromPrompt`：一次点击 = 一个事务（`addAsset` + 选中元素的 `style.fills`），
+  没选中元素时只进清单并在回执里写"选中元素后生成才会同时贴上"——不猜用户要贴哪。
+  429/400 的理由原样摊在 `[data-asset-error]` 上。
+- 新 e2e `e2e/image-studio.spec.ts`（@smoke）：生成 → 卡片带 DEMO 角标、缩略图能被浏览器解码
+  （`naturalWidth > 0`）、画布那层的 assetId 与卡片同一个、引用数 1 → 撤销 → 重做 →
+  `/credits` 上看得见那一笔 `-2`（理由里带"DEMO 模板 image.generate"，且绑定任务）。
+
+**e2e 第一次跑红，红出来的不是界面问题，是模型层的真缺陷**：撤销之后画布上的填充收回了，
+但清单里那一条**永远留着**。查到 `packages/design-model/src/patch.ts:599`——`addAsset` 的逆操作
+只在"目录里本来就有这一条"时才写（写的是还原旧值），**新增**那一路什么都不写，于是撤销无从下手。
+全仓库 `grep addAsset **/*.test.ts` 是 0 命中：这个 op 的撤销从来没被测过，所以上传路径
+（`uploadImageAsFill` 也是 `addAsset` + 贴填充）一直带着同一个洞，只是没人断言过"撤销后目录里少一条"。
+修法：新增那一路的逆操作写 `removeAsset`（沿用 `insert` → `remove`、`addToken` → `removeToken` 的既有口径）。
+
+**验证**：`packages/design-model/test/patch-commands.test.ts` 新增 3 条（撤销同时收回条目与填充、重做又回来；
+**覆盖已有条目时撤销是还原不是删除**——这一条挡的是"把目录清干净当撤销"这种修法；逆操作形状）。
+变异探针：把新加的那行 `removeAsset` 删掉 → 红 2 条（撤销那条 + 形状那条），
+而"还原不是删除"那条**保持绿**（31 passed），说明它不是靠这次改动才过的。
+e2e：`图像生成` 1 passed（13.7 秒），回归 `上传图片 | 资产库` 2 passed（36.4 秒）。
+截图 `screenshots/image-studio-generated.png` 人眼看过：角标、回执文字、画布填充、清单缩略图都在。
+整套重跑（`patch.ts` 的撤销语义变了，第二格欠的那句"写完这段就会重跑"在这里还上）：
+**91 个文件全过 / 972 条全过，813.26 秒，退出码 0**。这一遍比 #65 那次的 240 秒慢三倍，
+本机同时挂着 50 多个别的项目的 node 进程（内存只剩 2GB 上下）——**绝对时长在这个环境下不是结论，
+"全过 + 退出码 0"才是**；要拿时长做比较得等同一种负载。
+
+**环境上的一条坑（写进 TESTING.md 了）**：3100 上有一个更早会话留下的 `next start`（生产构建），
+`playwright.config.ts` 的 `reuseExistingServer: true` 会直接复用它——于是新代码在浏览器里根本不存在，
+用例红在"等不到 `[data-image-generate]`"。这条红**不是被测代码的结论**。改成另起 `next dev -p 3210`
+并用 `NEXUS_WEB_URL` 指过去才量到真结果。**下次跑 e2e 前先确认 3100 上是谁**。
+
+**这一片没有做的**：`addComponent` 的逆操作是同一形状的洞（只在已存在时写还原，新增那一路不写），
+今天没有任何用例断言过"撤销能删掉一个组件"，所以先记着不动——修它要连带补组件引用的清理语义；
+其余四条箭头（Image→Image、Sketch→Image、Reference→Variation、Character→Scene）仍未动；
+真 provider 仍缺 key。
