@@ -1054,6 +1054,35 @@ export function suppliedPlane(cwd) {
 }
 
 /**
+ * Two independent readers of the same question — is this directory inside a work tree? — and the plane a row is
+ * actually handed (M2 v106).
+ *
+ * `suppliedPlane` is a local probe: `existsSync(cwd/.git)`. It is cheap and it was WRONG in a way that only a second
+ * reader could find: run against `docs/evidence`, a subdirectory of this repository, the probe says NO-GIT while git
+ * itself says `true`, because git resolves UPWARD and a row spawned there can run `git show HEAD:` perfectly well. So
+ * a marker handed out from the probe alone tells a lie to any row not spawned exactly at a repository root, which is
+ * a latent defect rather than a live one only because the sweep happens to spawn rows at the root.
+ *
+ * The answer therefore comes from git where git can be asked, with the probe kept beside it and the disagreement
+ * PRINTED rather than resolved silently. An unusable git answer is not treated as NO-GIT: an unrelated git failure
+ * read as "no repository" is exactly the false verdict this whole channel exists to avoid, so the probe decides and
+ * the reason is named.
+ */
+export async function planeReaders(cwd, askGit = null) {
+  const probe = suppliedPlane(cwd);
+  const ask = askGit ?? (async () => gitText(['rev-parse', '--is-inside-work-tree'], cwd));
+  let answer;
+  try {
+    const out = String(await ask()).trim();
+    answer = out === 'true' ? 'GIT' : out === 'false' ? 'NO-GIT' : `unparsable:${out.slice(0, 24)}`;
+  } catch (e) {
+    answer = e?.status === 128 || /not a git repository/i.test(String(e?.stderr ?? '')) ? 'NO-GIT' : `gitFailed:${e?.status ?? e?.code ?? 'err'}`;
+  }
+  const usable = answer === 'GIT' || answer === 'NO-GIT';
+  return { probe, git: answer, plane: usable ? answer : probe, diverged: usable && answer !== probe, why: usable ? 'git answered' : `git unusable (${answer}), the local probe decided` };
+}
+
+/**
  * Which plane each row SAYS it stood on (M2 v103), read out of the row's own first stdout lines.
  *
  * A row's population is `git show HEAD:…` where an index exists and a disk walk where it does not, so the tree a
@@ -1534,9 +1563,11 @@ export function failureReason(stderrText) {
  */
 export async function runProof(file, cwd, timeoutMs = DEFAULT_PROOF_TIMEOUT_MS) {
   const started = Date.now();
-  const r = await run(process.execPath, [file], { cwd, timeoutMs, maxBuffer: 8 * 1024 * 1024, env: { ...process.env, NEXUS_PROOF_TREE: suppliedPlane(cwd) } });
+  const readers = await planeReaders(cwd);
+  const r = await run(process.execPath, [file], { cwd, timeoutMs, maxBuffer: 8 * 1024 * 1024, env: { ...process.env, NEXUS_PROOF_TREE: readers.plane } });
   return {
     file,
+    planeProbed: readers,
     budgetMs: timeoutMs,
     code: r.code,
     signal: r.signal,
@@ -1751,9 +1782,11 @@ export async function runSweep({ ref = 'HEAD', only = null, cwd = process.cwd(),
     // otherwise — amendment 102 learned that by crashing a row on an unconditional `git rev-parse HEAD` while five
     // siblings were green on the same bug. So the runner now reports the plane each ROW reported, and names the ones
     // that never say, because a finding that cannot be attributed to a tree is not evidence about this run.
-    const disclosed = planeCensus(results, suppliedPlane(runCwd));
+    const supply = await planeReaders(runCwd);
+    const divergedRows = results.filter((r) => r.planeProbed?.diverged);
+    const disclosed = planeCensus(results, supply.plane);
     const childHasIndex = childTree.gitRepo === true;
-    log(`[identity] which plane each row says it stood on (read out of the row's own first stdout lines, not inferred from its verdict): GIT ${disclosed.GIT.length} · NO-GIT ${disclosed['NO-GIT'].length} · mute about its own plane ${disclosed.mute.length}${disclosed.mute.length <= 8 ? ` (${disclosed.mute.join(', ') || 'none'})` : ` (${disclosed.mute.length} rows, e.g. ${disclosed.mute.slice(0, 8).join(', ')} …)`} · the tree the rows ran in ${childHasIndex ? 'HAS a .git' : 'has NO .git'} · the runner SUPPLIED ${suppliedPlane(runCwd)} to every child through NEXUS_PROOF_TREE, from the directory it spawned them in (${disclosed.agree.length} banner(s) agree with that, ${disclosed.contradict.length} contradict${disclosed.contradict.length ? ` — ⚠ ${disclosed.contradict.join('; ')}` : ''}, and ${disclosed.mute.length} rows that never say now have the fact without needing to)`);
+    log(`[identity] which plane each row says it stood on (read out of the row's own first stdout lines, not inferred from its verdict): GIT ${disclosed.GIT.length} · NO-GIT ${disclosed['NO-GIT'].length} · mute about its own plane ${disclosed.mute.length}${disclosed.mute.length <= 8 ? ` (${disclosed.mute.join(', ') || 'none'})` : ` (${disclosed.mute.length} rows, e.g. ${disclosed.mute.slice(0, 8).join(', ')} …)`} · the tree the rows ran in ${childHasIndex ? 'HAS a .git' : 'has NO .git'} · the runner SUPPLIED ${supply.plane} to every child through NEXUS_PROOF_TREE, from the directory it spawned them in (its two readers: local probe ${supply.probe}, git itself ${supply.git} — ${supply.diverged ? '⚠ THEY DISAGREE, ' + supply.why : 'they agree'}; ${divergedRows.length} row(s) were spawned where the two readers disagreed${divergedRows.length ? `: ${divergedRows.map((r) => `${r.name.split('/').pop()} probe ${r.planeProbed.probe} vs git ${r.planeProbed.git}`).join('; ')}` : ''}) (${disclosed.agree.length} banner(s) agree with that, ${disclosed.contradict.length} contradict${disclosed.contradict.length ? ` — ⚠ ${disclosed.contradict.join('; ')}` : ''}, and ${disclosed.mute.length} rows that never say now have the fact without needing to)`);
     log(`[identity] the marker came back: ${disclosed.echo.length} row(s) echoed NEXUS_PROOF_TREE into their own first lines — ${disclosed.echoAgree.length} match what this run supplied (${disclosed.echoAgree.join('; ') || 'none'}), ${disclosed.echoLost.length} printed ABSENT so the hand-off itself failed (${disclosed.echoLost.join('; ') || 'none'}), ${disclosed.echoContradict.length} contradict it (${disclosed.echoContradict.join('; ') || 'none'}) · a supply nobody echoes is decoration, and an echo nobody compares is a guess: this line is the comparison`);
     // v95: 94's line says WHO reaches git; a sentence is worth the witness behind it, so each declaring red is now
     // graded against the cause IT reported. Two readings of a mismatch, and only one of them is a crime:
