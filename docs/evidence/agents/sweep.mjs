@@ -1032,29 +1032,31 @@ export function gradeConfession(payloads, ownText, selfSrc) {
 }
 
 /**
- * Split the byte arm's invisible clauses by WHICH face of the ceiling they sit behind (M2 v99), so the axis
- * sentence is computed from the same grammar it explains instead of remembering a reason it once had.
+ * Split the byte arm's invisible clauses by WHICH face of the ceiling they sit on (M2 v99), so the axis sentence is
+ * computed from the same grammar it explains instead of remembering a reason it once had.
  *
- * `declined` — a helper the arm classified as a git alias and refused out loud, with the door that refused it.
- * `unseen`   — the rest: rows whose frames belong to a helper the classifier never returned a verdict about,
- *              including this file's own `git(argv, cwd)`, which the options-position filter drops in silence.
+ *   declined — the row owns a helper the arm classified as a git alias and REFUSED out loud, with the door that
+ *              refused it. One edit by that row — delete the location from its own helper — lifts the clause.
+ *   readable — the row owns a readable alias and the clause is STILL dead, so that alias reaches some commands and
+ *              not this one. Also closable by the row, at a call site.
+ *   silent   — neither: the arm has no verdict about any helper here, because the frame that spawns the child is
+ *              not the row's own. This is the face no row edit lifts, and this file's git(argv, cwd) sits on it.
  *
- * The two faces are the same narrower fact amendment 98 found — a wrapper that takes its DIRECTORY from its caller
- * is not this repository's question to read — but they are not lifted the same way: one needs a row to name a
- * literal, the other needs the RUNNER restructured. A sentence that says "only the code could name it" about both
- * is therefore not merely imprecise, it is false about the rows it counts, which is why this returns the split
- * rather than an adjective.
+ * Amendment 96 collapsed all three into "a wrapper that takes a PARAMETER, so only the CODE could name it", and
+ * amendment 98 refuted that: a parameter wrapper is called somewhere with a literal, which is how four clauses
+ * became readable. What survives is this split, and the faces differ in WHO HOLDS THE EDIT — the only reason the
+ * distinction is worth a line of the log rather than a footnote.
  */
 export function aliasCeiling(rows) {
-  const declined = [];
-  const unseen = [];
+  const faces = { declined: [], readable: [], silent: [] };
   for (const [name, text] of rows) {
-    gitAliases(String(text ?? ''));
-    const refusals = gitAliases.refused;
-    if (refusals.length) declined.push({ row: name, refusals: refusals.map((x) => `${x.name}:${x.why}`) });
-    else unseen.push(name);
+    const src = String(text ?? '');
+    gitAliases(src);
+    const refusals = gitAliases.refused.map((x) => `${x.name}:${x.why}`);
+    const verbs = aliasGitCommands(src).verbs;
+    faces[refusals.length ? 'declined' : verbs.length ? 'readable' : 'silent'].push({ row: name, refusals, verbs });
   }
-  return { declined, unseen };
+  return faces;
 }
 
 /**
@@ -1590,7 +1592,7 @@ export async function runSweep({ ref = 'HEAD', only = null, cwd = process.cwd(),
   const deadRows = [...new Set(unreadable.map((c) => c.row))];
   const ceiling = aliasCeiling(deadRows.map((n) => [n.split('/').pop(), textOfRow.get(n)]));
   const byState = (st) => gradedClauses.filter((c) => c.state === st).map((c) => `${c.row.split('/').pop()} "${c.clause}" → ${st === 'invisible' ? `shows none of ${c.cmds.join(', ')}` : c.missing.join(', ')}`).join(' · ') || 'none';
-  log(`[identity] confession axis (bytes): ${declaredNames.length} declaring rows · ${gradedClauses.length} clauses graded against the source each one points at — supported ${stateCount('supported')} · partial ${stateCount('partial')}${stateCount('partial') ? ` (${byState('partial')})` : ''} · invisible ${stateCount('invisible')}${stateCount('invisible') ? ` (${byState('invisible')})` : ''} · name no command ${stateCount('no-command')} · of the invisible ones, MIS-CITED ${misCited.length}${misCited.length ? ` (${misCited.map((c) => `${c.row.split('/').pop()} names ${c.fixable.join(',')} where a readable frame holds it`).join(' · ')})` : ''} — a citation one edit away, which is a defect in the sentence — versus unreadable-by-every-frame ${unreadable.length} (${deadVerbs.join(', ') || 'none'}) over ${deadRows.length} row(s), and those rows sit behind TWO faces of one ceiling: ${ceiling.declined.length} named the door that refused them out loud${ceiling.declined.length ? ` (${ceiling.declined.map((d) => `${d.row} ${d.refusals.join(',')}`).join(' · ')})` : ''}, while ${ceiling.unseen.length} have no refusal on record — the frame holding the verb is not one of this row's own helpers${ceiling.unseen.length ? ` (${ceiling.unseen.join(', ')})` : ''} — and reaches the child through somebody else's call, including this file's own git(argv, cwd), which the options-position filter drops in silence. Amendment 98 refuted the sentence this one replaces, which explained every invisible clause by "a wrapper that takes a PARAMETER, so only the CODE could name it": a parameter wrapper IS named by code at its call sites, and four clauses became readable exactly that way. What is left is narrower and differs by face — a wrapper whose DIRECTORY comes from its caller is not this repository's question to read, so a DECLINED row lifts the moment that row drops the location from its own helper (which is the edit §8 of confession-proof.mjs mutates), while an unclassified one holds its verb in a frame the caller does not own and lifts only if this file names its literals at a call site`);
+  log(`[identity] confession axis (bytes): ${declaredNames.length} declaring rows · ${gradedClauses.length} clauses graded against the source each one points at — supported ${stateCount('supported')} · partial ${stateCount('partial')}${stateCount('partial') ? ` (${byState('partial')})` : ''} · invisible ${stateCount('invisible')}${stateCount('invisible') ? ` (${byState('invisible')})` : ''} · name no command ${stateCount('no-command')} · of the invisible ones, MIS-CITED ${misCited.length}${misCited.length ? ` (${misCited.map((c) => `${c.row.split('/').pop()} names ${c.fixable.join(',')} where a readable frame holds it`).join(' · ')})` : ''} — a citation one edit away, which is a defect in the sentence — versus unreadable-by-every-frame ${unreadable.length} (${deadVerbs.join(', ') || 'none'}) over ${deadRows.length} row(s), and those rows sit on THREE faces of one ceiling, which differ in who holds the edit: ${ceiling.declined.length} declined out loud by a door its own helper named${ceiling.declined.length ? ` (${ceiling.declined.map((d) => `${d.row} ${d.refusals.join(',')}`).join(' · ')})` : ''}, ${ceiling.readable.length} whose row owns a readable alias that simply does not reach this verb${ceiling.readable.length ? ` (${ceiling.readable.map((d) => `${d.row} ${d.verbs.join(',')}`).join(' · ')})` : ''}, and ${ceiling.silent.length} on which the arm has no verdict at all because the spawning frame is not the row's${ceiling.silent.length ? ` (${ceiling.silent.map((d) => d.row).join(', ')})` : ''} — and that last face includes this file's own git(argv, cwd), which the options-position filter drops in silence. Amendment 98 refuted the sentence this one replaces, which explained every invisible clause by "a wrapper that takes a PARAMETER, so only the CODE could name it": a parameter wrapper IS named by code at its call sites, and four clauses became readable exactly that way. What is left is narrower — a wrapper whose DIRECTORY comes from its caller is not this repository's question to read — and the faces are not the same problem: the first two lift when the ROW edits its own helper, the third lifts only when the file that owns the frame names its literals at a call site, which amendment 91 forbids an arm from demanding of the population`);
 
   const dest = mkdtempSync(join(tmpdir(), 'nexus-sweep-'));
   const started = Date.now();
