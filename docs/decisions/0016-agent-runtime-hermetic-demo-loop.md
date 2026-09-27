@@ -4958,3 +4958,18 @@ instead of a committed rewrite of two shared documents.
 Owed, and not run inside this cycle: a detached full sweep at the record ref, predicted at the gate commit -
 73 rows unchanged, plane axis 262 sites program=117 argv=145, confession 9-0-4 MIS-CITED 0, self-report
 GIT 0 NO-GIT 5 mute 68, echo 1/1/0/0, and table-recount-proof green inside the run.
+
+Addendum to amendment 111 — the detached sweep the record owed came back agreeing with every predicted axis,
+and the mutation proved itself on a ref it had never been written for.
+
+Read from the run's own summary line at ref 00bf2ef74dec: scripts 73 (unchanged — an added section is not an
+added row), failed 42, killed 0, 270s, graded build c04f8cab9c33cc15 over 280 dist files stable across the run,
+walked tree 7808ba169ef046a7 over 219 files stable, dirty-sources 0. Plane axis 262 call sites program=117
+argv=145 with 51 of 73 tracked proofs reaching a git child at code position; confession axis supported 9 ·
+partial 0 · invisible 4, with all 3 gradeable declaring rows reconciled and 0 ungradeable; plane self-report
+GIT 0 · NO-GIT 5 · mute 68; marker echo 1 supplied and 1 matching, 0 ABSENT, 0 contradicting.
+
+The line that was not predicted-then-wrong is the one worth keeping: inside that run §7 renumbered the newest
+CITED heading, which by then was 111 itself, so the door reported "the old number 111 is dangling and the new
+one 1011 is one-sided". A hardcoded target would have frozen at 110 and gone quietly stale the moment the
+record it reads grew by one — the derivation is what makes the witness survive its own landing.

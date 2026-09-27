@@ -3041,3 +3041,9 @@ not, and treating either as a pointer manufactures defects in healthy docs. §7 
 fabricated citation must be named dangling, and renumbering a CITED heading must leave its citations dangling
 while the new number appears one-sided - gaining exactly the baseline entry, and proving first that the
 mutation rewrote exactly one line, because a mutation that matches nothing is not evidence of anything.
+
+Addendum (§7, amendment 111): the owed detached sweep ran at 00bf2ef74dec and held all six predictions — 73
+rows, plane axis 262 sites program=117 argv=145, confession 9·0·4 with 0 ungradeable, self-report GIT 0 ·
+NO-GIT 5 · mute 68, echo 1/0/0, and table-recount-proof itself green inside the full run at 19151ms. Addendum
+lines are deliberately NOT amendment headings: §7 counts headings, and a redeemed promise must not move the
+census it is being redeemed against.
