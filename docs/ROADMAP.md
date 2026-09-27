@@ -1982,3 +1982,14 @@ Sketch → Image、Image → Image、Character → Scene 三条箭头；真 prov
 - 仍未做：角色场景的界面入口（角色面板上那个"生成它的场景"按钮 + e2e）、§40 其余三条
   （Text → Video / Image → Video / Storyboard → Video）、以及"clothing/traits 真的参与画面"这件事——
   今天的锚点只用到 palette 一栏，其余字段仍只进文本上下文。
+
+**这一格的整套凭证**：`npm test` **92 个文件全过 / 985 条全过，退出码 0**（跑于 Character → Scene 落地之后）。
+上一格那三条箭头各自只带了自己文件的数，这里合上：模型层撤销、两侧删除门、契约、摄取门 uuid 修、
+参考变体与角色场景，全都在同一遍整套里同时绿。
+
+**下一格（已登记为任务 #67）**：角色面板上的"生成它在另一个场景里"。用例草稿已经写好并留在 `/tmp/character-scene.spec.ts.draft`
+（不在仓库里，因为它断言的 `[data-character-scene]` / `[data-scene-prompt]` 两个控件还没实现——
+把不存在的选择器提交进 e2e 就是让下一位跑的人去猜红的是谁）。实现时要动的三处，选择器契约先定死在这里：
+`studio.generateImageFromPrompt(prompt, { referenceAssetId?, characterId? })`（把现在那个位置参数换成对象，
+`AssetsPanel` 里"生成变体"那一处调用同步改）、`CharacterPanel` 视觉标识那一段之后加输入框与按钮
+（palette 为空时按钮不可点，与服务端同一口径）、面板回执走 `state.assetNotice` 并挂 `[data-character-notice]`。
