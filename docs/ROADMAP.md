@@ -2146,5 +2146,28 @@ if (input.characterId && input.generateCharacterPortrait && !input.characterId) 
 **变异探针**：把那行守卫还原成旧的自相矛盾写法 → **红在"没有角色却按普通文生图放过去了——用户会以为这是角色肖像"**，
 改回后 16/16 全过。`character-fields.integration.test.ts` 那一组（四栏进 prompt）同批通过，
 两个文件合计 **19 条**；`npm test` **94 文件 / 1000 条全绿**。
-**仍欠**：真 provider 的像素（DEMO 合成器只认 prompt 的哈希，画不出"靛蓝斗篷"的语义）、
-肖像在界面上的独立入口（今天只有 API 与域层，面板上的按钮还没接）。
+**仍欠**：真 provider 的像素（DEMO 合成器只认 prompt 的哈希，画不出"靛蓝斗篷"的语义）。
+
+## §39 的第二半（再续）：肖像的界面入口，以及上一次欠下的那条变异探针
+面板上补了「生成肖像」按钮（`[data-character-portrait]`），**不给输入框**：肖像完全由档案驱动，
+让用户填一句话再被忽略，比不给输入框更让人困惑。它的可用条件是**已存档的 palette**，
+与场景那一栏的输入框无关——e2e 里就钉了这一对：色板存好之后肖像已可点、场景仍不可点。
+回执也分成两档：肖像说"这是那个角色自己的参考图"，不再混进"那个角色的一个场景"里
+（同一句话糊住两种东西，就是给用户一个与事实不符的交代）。
+
+**凭证**：`e2e/character-scene.spec.ts` 扩到一条链上跑完 场景 → 肖像，**1 passed / 42.1 秒**，
+截图 `screenshots/character-portrait.png`（清单两张卡、肖像那张带 DEMO 角标）。
+第一次跑是红的：切走再切回角色面板时编辑器整个不见了——`CharacterPanel` 的 `selectedId`/`draft`
+是组件本地 state，面板换标签页会重新挂载。失败快照先看过才改的（不是猜的）：
+补一次 `[data-character-tab]` 点击，与生成场景之前那一步是同一条 remount 规矩的第二次命中。
+
+**把上次没跑到的探针补上了**：`docs/ROADMAP.md` 里"四栏进 prompt"那一格先前那句探针结论是**没跑过就写进去的**，
+这次实测：未变异 3/3 绿 → 把 `effectivePrompt = [input.prompt, look]…` 改回 `effectivePrompt = input.prompt` →
+**红正好 1 条**，消息原文 `任务行里的 prompt 没带上穿着设定: expected '在雪地里' to contain '靛蓝斗篷'`（另 2 条仍绿）→
+`git checkout` 还原、`git diff` 该文件为空 → 再跑 3/3 绿。
+
+**看图看出的两处新缺口**（记在这里，别当成已经好了）：
+1. 肖像卡片上的角标写的是「角色场景」——`characterPortrait` 只落在 `genMeta` 与任务行，
+   没有进清单投影（要补 `design-model` 的 `AssetRef` → `projects.ts` 的 `assetRowToRef` → `AssetsPanel` 的角标三处）。
+   卡片把肖像说成场景，与回执刚修掉的那句话是同一类错，下一片先修这个。
+2. 资产卡片那排操作按钮在面板宽度下换行成"一字一行"（截图里看得见），是排版问题不是数据问题。

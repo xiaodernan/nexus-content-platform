@@ -394,6 +394,30 @@ export function CharacterPanel() {
                   生成场景
                 </button>
               </div>
+
+              {/* §39 角色一致性生成：角色自己的参考图。**不要输入框**——这一张完全由档案驱动，
+                  让用户填一句话再被忽略，比不给输入框更让人困惑。同样要求色板已填，
+                  与服务端同一条口径（没有视觉标识就谈不上"同一个角色"） */}
+              <div className="mt-2 flex items-center gap-2">
+                <button
+                  type="button"
+                  disabled={selected.profile.visualIdentity.palette.length === 0 || Boolean(studio.assetBusy)}
+                  onClick={() => {
+                    // prompt 传空串：服务端拿到 generateCharacterPortrait 就忽略它，改用档案组装
+                    void editor.generateImageFromPrompt('', { characterId: selected.id, generateCharacterPortrait: true });
+                  }}
+                  data-character-portrait
+                  title={
+                    selected.profile.visualIdentity.palette.length === 0
+                      ? '先把色板填上：肖像要读的就是这份视觉标识'
+                      : '按档案里的 身份/穿着/画风/特征 + 视觉标识 生成这个角色自己的参考图，之后可以拿它当场景的参考（DEMO 本地合成 · 扣 image 额度 2 点）'
+                  }
+                  className="rounded-[var(--nexus-radius-sm)] bg-bg-2 px-2 py-1 text-11 text-fg-2 hover:bg-bg-3 disabled:opacity-50"
+                >
+                  生成肖像
+                </button>
+                <span className="text-10 text-fg-3">由档案驱动，不用填场景</span>
+              </div>
               {studio.assetError || studio.assetNotice ? (
                 <p
                   className={cn('mt-1 text-11', studio.assetError ? 'text-danger' : 'text-fg-3')}

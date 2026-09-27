@@ -1120,11 +1120,12 @@ export class StudioStore {
    */
   async generateImageFromPrompt(
     prompt: string,
-    source?: { referenceAssetId?: string; characterId?: string },
+    source?: { referenceAssetId?: string; characterId?: string; generateCharacterPortrait?: boolean },
   ): Promise<boolean> {
     if (!this.projectId) return false;
     const referenceAssetId = source?.referenceAssetId;
     const characterId = source?.characterId;
+    const generateCharacterPortrait = source?.generateCharacterPortrait;
     this.assetBusyValue = true;
     this.assetErrorValue = null;
     this.assetNoticeValue = null;
@@ -1137,6 +1138,7 @@ export class StudioStore {
           prompt,
           ...(referenceAssetId ? { referenceAssetId } : {}),
           ...(characterId ? { characterId } : {}),
+          ...(generateCharacterPortrait ? { generateCharacterPortrait: true } : {}),
         }),
       });
       const body = (await res.json().catch(() => null)) as
@@ -1158,11 +1160,15 @@ export class StudioStore {
         });
       }
       this.execute(`生成图片 ${asset.name}`, ops);
-      const origin = characterId
-        ? '，这是清单里那个角色的一个场景（色调取自它的视觉标识）'
-        : referenceAssetId
-          ? '，以清单里那张为参考的变体'
-          : '';
+      // 回执要说清"这一张是什么"。肖像不是场景：把它说成"那个角色的一个场景"就是给用户
+      // 一个与事实不符的交代（§159），所以肖像单独一档
+      const origin = generateCharacterPortrait
+        ? '，这是那个角色自己的参考图（由档案里的身份/穿着/画风/特征与视觉标识驱动）'
+        : characterId
+          ? '，这是清单里那个角色的一个场景（色调取自它的视觉标识）'
+          : referenceAssetId
+            ? '，以清单里那张为参考的变体'
+            : '';
       this.assetNoticeValue = `已生成一张 ${asset.width ?? '?'}×${asset.height ?? '?'} 的图（DEMO 本地合成${origin}，扣 image 额度 2 点）${
         node ? '，并已贴到选中的元素上' : '；选中元素后生成才会同时贴上'
       }。`;
