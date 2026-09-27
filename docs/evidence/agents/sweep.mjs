@@ -1043,6 +1043,17 @@ export function gradeConfession(payloads, ownText, selfSrc) {
 }
 
 /**
+ * The plane the runner SUPPLIES to a row (M2 v104): whether the directory the child is spawned in has an index, which
+ * is the exact fact that decides whether `git show HEAD:…` inside the row can work at all. Amendment 103 shipped a
+ * reader for what rows SAY about this, and its own live line said only 4 of 73 say anything — 69 rows were reporting
+ * findings about a tree nobody named. The runner knows the answer without asking, so it now hands it over as an
+ * environment marker; a row that reads it stops depending on its author having written a banner.
+ */
+export function suppliedPlane(cwd) {
+  return existsSync(join(String(cwd ?? ''), '.git')) ? 'GIT' : 'NO-GIT';
+}
+
+/**
  * Which plane each row SAYS it stood on (M2 v103), read out of the row's own first stdout lines.
  *
  * A row's population is `git show HEAD:…` where an index exists and a disk walk where it does not, so the tree a
@@ -1055,10 +1066,15 @@ export function gradeConfession(payloads, ownText, selfSrc) {
  * later line counts as MUTE. That ceiling is the honest one — the alternative is reading whole streams and calling an
  * incidental "plane" in prose a self-report.
  */
-export function planeCensus(rows) {
+export function planeCensus(rows, supplied = null) {
   const said = (r) => (/\bplane (GIT|NO-GIT)\b/.exec(String(r?.head ?? '')) ?? [])[1] ?? null;
-  const d = { GIT: [], 'NO-GIT': [], mute: [] };
-  for (const r of rows ?? []) d[said(r) ?? 'mute'].push(String(r?.name ?? '').split('/').pop());
+  const d = { GIT: [], 'NO-GIT': [], mute: [], agree: [], contradict: [] };
+  for (const r of rows ?? []) {
+    const name = String(r?.name ?? '').split('/').pop();
+    const s = said(r);
+    d[s ?? 'mute'].push(name);
+    if (s && supplied) (s === supplied ? d.agree : d.contradict).push(`${name} says ${s} against a supplied ${supplied}`);
+  }
   return d;
 }
 
@@ -1511,7 +1527,7 @@ export function failureReason(stderrText) {
  */
 export async function runProof(file, cwd, timeoutMs = DEFAULT_PROOF_TIMEOUT_MS) {
   const started = Date.now();
-  const r = await run(process.execPath, [file], { cwd, timeoutMs, maxBuffer: 8 * 1024 * 1024 });
+  const r = await run(process.execPath, [file], { cwd, timeoutMs, maxBuffer: 8 * 1024 * 1024, env: { ...process.env, NEXUS_PROOF_TREE: suppliedPlane(cwd) } });
   return {
     file,
     budgetMs: timeoutMs,
@@ -1728,10 +1744,9 @@ export async function runSweep({ ref = 'HEAD', only = null, cwd = process.cwd(),
     // otherwise — amendment 102 learned that by crashing a row on an unconditional `git rev-parse HEAD` while five
     // siblings were green on the same bug. So the runner now reports the plane each ROW reported, and names the ones
     // that never say, because a finding that cannot be attributed to a tree is not evidence about this run.
-    const disclosed = planeCensus(results);
+    const disclosed = planeCensus(results, suppliedPlane(runCwd));
     const childHasIndex = childTree.gitRepo === true;
-    const contra = disclosed.GIT.filter((n) => !childHasIndex);
-    log(`[identity] which plane each row says it stood on (read out of the row's own first stdout lines, not inferred from its verdict): GIT ${disclosed.GIT.length} · NO-GIT ${disclosed['NO-GIT'].length} · mute about its own plane ${disclosed.mute.length}${disclosed.mute.length <= 8 ? ` (${disclosed.mute.join(', ') || 'none'})` : ` (${disclosed.mute.length} rows, e.g. ${disclosed.mute.slice(0, 8).join(', ')} …)`} · the tree the rows ran in ${childHasIndex ? 'HAS a .git' : 'has NO .git'}${contra.length ? ` — ⚠ ${contra.length} row(s) claim the GIT plane inside a tree with no index (${contra.join(', ')}), which is the contradiction this line exists to catch` : ''}`);
+    log(`[identity] which plane each row says it stood on (read out of the row's own first stdout lines, not inferred from its verdict): GIT ${disclosed.GIT.length} · NO-GIT ${disclosed['NO-GIT'].length} · mute about its own plane ${disclosed.mute.length}${disclosed.mute.length <= 8 ? ` (${disclosed.mute.join(', ') || 'none'})` : ` (${disclosed.mute.length} rows, e.g. ${disclosed.mute.slice(0, 8).join(', ')} …)`} · the tree the rows ran in ${childHasIndex ? 'HAS a .git' : 'has NO .git'} · the runner SUPPLIED ${suppliedPlane(runCwd)} to every child through NEXUS_PROOF_TREE, from the directory it spawned them in (${disclosed.agree.length} banner(s) agree with that, ${disclosed.contradict.length} contradict${disclosed.contradict.length ? ` — ⚠ ${disclosed.contradict.join('; ')}` : ''}, and ${disclosed.mute.length} rows that never say now have the fact without needing to)`);
     // v95: 94's line says WHO reaches git; a sentence is worth the witness behind it, so each declaring red is now
     // graded against the cause IT reported. Two readings of a mismatch, and only one of them is a crime:
     //   OMISSION — the failure named a git command the confession left out. The row is the only reader of its own
