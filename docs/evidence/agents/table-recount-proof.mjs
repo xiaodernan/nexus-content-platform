@@ -322,26 +322,49 @@ try {
   };
   const adrText = norm(readFileSync(ADR, 'utf8'));
   const corpus = listFiles('docs').filter((p) => !p.startsWith('docs/decisions/') && (p.endsWith('.md') || p.endsWith('.mjs')));
-  const census = (adrCopy, extraReadme) => {
+  const census = (adrCopy, readmeEdit) => {
     const headings = headingsOf(adrCopy);
-    const explicit = new Set(), recorded = new Set(), inDoc = new Set(), site = new Map();
+    const explicit = new Set(), recorded = new Set(), inDoc = new Set(), site = new Map(), titled = new Set(), titleSites = new Map();
     for (const p of corpus) {
       let text = norm(readFileSync(p, 'utf8'));
-      if (extraReadme && p === README) text += extraReadme;
+      if (readmeEdit && p === README) text = readmeEdit(text);
+      // A record TITLE is what a reader actually follows: a heading in a doc, or a proof's own header comment.
+      // The same two grammars, over fewer lines — that is the whole difference from the mention reader, and the
+      // containment assertion below is what keeps it true.
+      text.split('\n').forEach((line, i) => {
+        if (!(p.endsWith('.md') ? /^#{1,6} /.test(line) : i < 8 && line.startsWith('//'))) return;
+        const credited = new Set([...nums(line, EXPLICIT), ...nums(line, RECORD)]);
+        for (const n of credited) {
+          if (!headings.has(n)) continue;
+          titled.add(n);
+          if (!titleSites.has(n)) titleSites.set(n, []);
+          titleSites.get(n).push(p + ':' + (i + 1));
+        }
+      });
       for (const n of nums(text, EXPLICIT)) { explicit.add(n); if (!site.has(n)) site.set(n, p); if (p.endsWith('.md')) inDoc.add(n); }
       for (const n of nums(text, RECORD)) recorded.add(n);
     }
     const dangling = [...explicit].filter((n) => !headings.has(n)).sort((a, b) => a - b);
     const nowhere = [...headings.keys()].filter((n) => !explicit.has(n) && !recorded.has(n)).sort((a, b) => a - b);
     const onlyCode = [...headings.keys()].filter((n) => explicit.has(n) && !inDoc.has(n)).sort((a, b) => a - b);
-    return { headings, explicit, dangling, nowhere, onlyCode, site };
+    // nowhere = granted and repeated by NOTHING outside the ledger, on any line of any file.
+    // hole    = granted and named by no record TITLE. Every title line is also a line, so a credit in the
+    // title reader must be a credit in the mention reader: hole always contains nowhere, and the numbers in
+    // the difference are the ones whose only surviving mention is prose.
+    const hole = [...headings.keys()].filter((n) => !titled.has(n)).sort((a, b) => a - b);
+    return { headings, explicit, dangling, nowhere, onlyCode, site, hole, titled, titleSites };
   };
+  // The containment is a property of the two readers, so every census this section produces is checked with
+  // it — including the mutants. An assertion that is only ever run on the baseline is vacuous the day the
+  // baseline is empty, and the measured baseline nowhere list IS empty.
+  const checkContainment = (x, label) => assert.ok(x.nowhere.every((n) => x.hole.includes(n)), `${label}: ${x.nowhere.filter((n) => !x.hole.includes(n)).join(', ')} has no mention anywhere yet a record TITLE credits it, so the two readers no longer differ only in which lines they scan`);
   const c = census(adrText, null);
+  checkContainment(c, 'the measured baseline');
   assert.deepEqual(c.dangling, [], `${c.dangling.length} tracked file(s) cite an amendment number ADR 0016 never granted, so the reader is sent to a record that does not exist:\n${c.dangling.map((n) => `  amendment ${n} cited by ${c.site.get(n)}`).join('\n')}`);
-  console.log(`[§7] ledger headings ${c.headings.size} · record corpus ${corpus.length} files (docs/evidence + ROADMAP; other ADRs excluded) · dangling explicit citations 0 · amendments no doc or proof repeats outside the ledger: ${c.nowhere.length} — NAMED here, refused by a later cycle that can write their records honestly: ${c.nowhere.map((n) => c.headings.get(n)).join(' | ') || 'none'} · explicit citations kept only in code, never in a doc: ${c.onlyCode.join(', ') || 'none'}`);
+  console.log(`[§7] ledger headings ${c.headings.size} · record corpus ${corpus.length} files (docs/evidence + ROADMAP; other ADRs excluded) · dangling explicit citations 0 · one-sided read TWO ways: no mention at all ${c.nowhere.length}, no record TITLE ${c.hole.length} [${c.hole.join(', ')}] — the title holes are NAMED here and refused by a later cycle that can write their records honestly (each one's only current credit is prose: ${c.hole.map((n) => `${n} in ${c.site.get(n) ?? 'no citing file'}`).join(' · ') || 'none'}) · explicit citations kept only in code, never in a doc: ${c.onlyCode.join(', ') || 'none'}`);
   {
     const fresh = Math.max(...c.headings.keys()) + 700;
-    const one = census(adrText, `\nSee ADR 0016 amendment ${fresh} for the rule.\n`);
+    const one = census(adrText, (t) => t + `\nSee ADR 0016 amendment ${fresh} for the rule.\n`);
     assert.ok(one.dangling.includes(fresh), `MUTATION SURVIVED: a doc citing amendment ${fresh}, which no heading grants, is not named as dangling`);
     console.log(`  caught  a doc cites a number the ledger never granted → amendment ${fresh} named as dangling`);
     // Renumber a heading the corpus actually CITES: renaming an uncited heading orphans nothing, so the first
@@ -367,7 +390,50 @@ try {
     assert.ok(!two.headings.has(newest), `MUTATION SURVIVED: the renumber left heading ${newest} granted`);
     assert.ok(two.dangling.includes(newest), `MUTATION SURVIVED: renaming heading ${newest} leaves its citations pointing at nothing, and §7 did not notice`);
     assert.ok(two.nowhere.includes(orphan), `MUTATION SURVIVED the other way: the renamed heading ${orphan} has no record anywhere and is not named one-sided`);
+    checkContainment(two, 'the renumbered ledger');
+    assert.ok(two.hole.includes(orphan), `MUTATION SURVIVED containment: the orphan ${orphan} is unmentioned yet no title hole, so a title was credited to a file the mention reader never saw`);
     assert.deepEqual(two.nowhere.filter((n) => n !== orphan), c.nowhere, 'the one-sided list must gain ONLY the orphan this mutation created: the measured baseline already carries one entry, so an empty-list expectation is a wish about the tree, not a claim about the reader');
+    // A hole is only a finding if the door can see it close, so the title arm copies the ledger's OWN
+    // heading text for the first hole number. Measured at this ref: the house style is
+    // "## Amendment 21 — v21: …", the em dash makes the mention grammar refuse the phrase, and the version
+    // label is what credits it — so this arm tests the reader AND pins the rule a record author has to know:
+    // give your README section the amendment's version label or this door will keep calling it unrecorded.
+    const t4 = c.hole[0];
+    assert.ok(t4 !== undefined, 'no title hole to mutate — the axis is unverifiable rather than passing');
+    const houseTitle = '## ' + c.headings.get(t4) + ' (title added in memory only, never written to disk)';
+    assert.ok(!nums(houseTitle, EXPLICIT).has(t4), `this arm's meaning depends on the mention grammar refusing the house-style dash after ${t4}; if that changes, this witness is testing a different door`);
+    const four = census(adrText, (t) => t + '\n' + houseTitle + '\n');
+    assert.deepEqual(four.hole, c.hole.filter((n) => n !== t4), `adding a house-style record title for ${t4} must shrink the hole by exactly that entry, got [${four.hole.join(', ')}]`);
+    assert.deepEqual(four.nowhere, c.nowhere, 'a title line must not move the any-mention reading');
+    assert.deepEqual(four.dangling, c.dangling, 'a title for a granted amendment cannot create a dangling citation');
+    checkContainment(four, 'a title added in memory');
+    console.log(`  caught  the ledger's own house-style title for ${t4} appears in the README → the title hole shrinks by exactly one, credited through its version label while the dash-ended phrase stays refused`);
+    // The same number in a SENTENCE must not close it: that is the defect this amendment exists for.
+    const prose = census(adrText, (t) => t + `\nSee ADR 0016 amendment ${t4} for the rule that is still unrecorded.\n`);
+    assert.deepEqual(prose.hole, c.hole, `MUTATION SURVIVED: a prose sentence naming ${t4} closed the title hole — the door is satisfiable by its own report again`);
+    assert.ok(prose.nowhere.length <= c.nowhere.length, 'a sentence can only ever reduce the any-mention reading, never enlarge it');
+    checkContainment(prose, 'a sentence, not a record');
+    console.log(`  caught  the same number in PROSE → the title hole still names ${t4}, because a sentence about a hole is not its record`);
+    // And the hole must be losable for the right reason: delete the ONLY title crediting a number.
+    const single = [...c.titleSites].filter(([, ss]) => ss.length === 1 && ss[0].startsWith(README + ':')).sort((a, b) => a[0] - b[0]);
+    assert.ok(single.length, 'no README heading is the sole title for any granted number, so the strip arm has no single-site subject — say so rather than report a caught mutation');
+    const [hNum, [hSite]] = single[0];
+    const hIdx = Number(hSite.split(':').pop()) - 1;
+    const hLine = norm(readFileSync(README, 'utf8')).split('\n')[hIdx];
+    assert.ok(/^#{1,6} /.test(hLine), `the derived site ${hSite} is not a heading line: ${hLine.slice(0, 60)}`);
+    const L = [...new Set([...nums(hLine, EXPLICIT), ...nums(hLine, RECORD)])].filter((n) => c.headings.has(n));
+    for (const n of L) assert.deepEqual(c.titleSites.get(n), [hSite], `${n} is credited by more than this one heading, so scrubbing it is not a single-site mutation`);
+    const strip = census(adrText, (t) => {
+      const lines = t.split('\n');
+      lines[hIdx] = lines[hIdx].replace(/\d+/g, '');
+      assert.notEqual(lines[hIdx], hLine, 'the scrub found no digits on the heading it selected, so it changed nothing');
+      assert.equal(nums(lines[hIdx], EXPLICIT).size + nums(lines[hIdx], RECORD).size, 0, `the scrubbed heading still credits something: ${lines[hIdx].slice(0, 70)}`);
+      return lines.join('\n');
+    });
+    assert.deepEqual(strip.hole, [...new Set([...c.hole, ...L])].sort((a, b) => a - b), `deleting the only title for ${L.join(', ')} must put exactly those numbers back in the hole, got [${strip.hole.join(', ')}]`);
+    assert.deepEqual(strip.dangling, c.dangling, 'deleting a citation cannot create a dangling one, so a change here means the two readers are entangled');
+    checkContainment(strip, 'a heading with its numbers scrubbed');
+    console.log(`  caught  README heading ${hIdx + 1} loses every number it was the sole title for (${L.join(', ')}) → the hole gains exactly those and dangling does not move`);
     console.log(`  caught  the newest heading renumbered → the old number ${newest} is dangling (cited, ungranted) and the new one ${orphan} is one-sided (granted, uncited), and the one-sided list gains exactly the baseline entry and nothing else`);
   }
 }
