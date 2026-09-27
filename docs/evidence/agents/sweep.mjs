@@ -47,7 +47,7 @@
 //   node docs/evidence/agents/sweep.mjs --isolated      # run them INSIDE a clean checkout of the ref, so
 //                                                       # the build they import is the ref's, not this one's
 //   node docs/evidence/agents/sweep.mjs --isolated --no-build   # same, without the clean-room compile
-import { spawn } from 'node:child_process';
+import { spawn, spawnSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import { existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, statSync, symlinkSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
@@ -1645,6 +1645,14 @@ export async function runSweep({ ref = 'HEAD', only = null, cwd = process.cwd(),
   log(`[identity] child cwd for every row below: spawn was given ${runCwd}, the child reports ${probe.cwd}${probe.cwd === resolve(runCwd) || probe.cwd === runCwd ? '' : ' ⚠ NOT the directory spawn named — this run is not pointing where the flag said'}`);
   log(`[identity] what a child standing there LOADS (its own resolution of the population's idiom): ${probe.resolved.map((r) => `${r.spec.split('/').slice(0, 2).join('/')} = ${r.sha ? r.sha.slice(0, 16) : 'MISSING'}`).join(' · ')}`);
   if (runCwd !== cwd) log(`[identity] build AT THAT cwd: ${childBuild.files} dist files, digest ${childBuild.digest.slice(0, 16)} — vs ${id.distDigest.slice(0, 16)} at the runner's cwd, so the two are not the same code`);
+  // v107: amendment 86 built the whole bridge on a HOST FACT ("every synchronous spawn API fails with
+  // EBUSY"). Nothing reports whether that fact is still true, so a reader of any later run cannot tell
+  // whether the importers NEEDED the bridge that run or merely used it. The probe asks NODE, not the
+  // lib — the same rule syncproc's own `syncApiIsBroken()` states — and it is printed before any row
+  // because "this run depended on the host fault" is an identity fact, not a row result.
+  const syncProbe = spawnSync(process.execPath, ['-e', 'process.exit(0)'], { windowsHide: true });
+  const syncBroken = Boolean(syncProbe.error) || syncProbe.status !== 0;
+  log(`[identity] sync spawn API on this box: ${syncBroken ? `BROKEN (${syncProbe.error ? syncProbe.error.code : `exit ${syncProbe.status}`}) — the EBUSY class amendment 86 measured, so docs/evidence/lib/syncproc.mjs is LOAD-BEARING for every importer below` : 'answers (status 0, no error) — the amendment 86 host fault is NOT present in this run, so every importer below runs through syncproc.mjs anyway and nothing below depends on the fault being there'}`);
   log(`[identity] imports: ${idioms.childRelative}/${idioms.total} tracked proofs reach the code under test through the CHILD's cwd, ${idioms.fileRelative} through their own file location${idioms.unresolved.length ? `, ${idioms.unresolved.length} through neither (${idioms.unresolved.map((n) => n.split('/').pop()).join(', ')})` : ''} — so "the ref's bytes are what runs" describes the SCRIPTS, and this line's cwd decides the BUILD they grade`);
   log(`[identity] walked tree (read by the tree-walking scripts through the CHILD's cwd, so the WORKING TREE at ${runCwd} and not the ref's bytes): ${treeLabel(childTree)}${childTree.unavailable ? '' : ` · census ${childTree.gitRepo ? `tracked ${childTree.tracked} / untracked ${childTree.untracked} / ignored ${childTree.other}` : 'NO .git — every file here is the ref\'s'}`}`);
   // v93: amendment 92 named a plane's whole cause with a number read off a FINISHED run — 43 reds, one line
