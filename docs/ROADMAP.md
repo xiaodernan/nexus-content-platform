@@ -233,8 +233,8 @@ key 只活在 ai-service 进程（符合 SECURITY.md「web 永不接触 key」�
     面板入口 + e2e @smoke，见上面 §38 第二、三格）
   - reference→variation：**已通**（参考图按归属取字节、量主色作色相锚点、锚点参与身份哈希；卡片上有按钮 + e2e。
     边界：钉住的是身份与元数据，"画面看着像参考图"没有被钉住）
-  - character→scene：**服务端已通**（锚点取自角色档案 visualIdentity.palette，assets.character_id 第一次有写入方；
-    一致性有可测定义），界面入口仍欠（任务 #67）
+  - character→scene：**已通**（锚点取自角色档案 visualIdentity.palette，assets.character_id 第一次有写入方；
+    一致性有可测定义；角色面板上有"生成场景"按钮，e2e @smoke 点过一遍）
   - image→image、sketch→image：**未动**——前者要一次真实的图像变换（今天的合成器只能按 prompt/seed 画，
     拿别人的字节改一笔等于没有来源），后者要先有草图输入面（画布上还没有绘制层）
   - 换成真 provider 时改的是 `image-synth.ts` 里那一格像素来源，前后每一环（门、账、摄取、投影）不重写（§76-79）
@@ -2003,7 +2003,7 @@ Sketch → Image、Image → Image、Character → Scene 三条箭头；真 prov
 `AssetsPanel` 里"生成变体"那一处调用同步改）、`CharacterPanel` 视觉标识那一段之后加输入框与按钮
 （palette 为空时按钮不可点，与服务端同一口径）、面板回执走 `state.assetNotice` 并挂 `[data-character-notice]`。
 
-**Character → Scene 的界面那一格：先落了一半，另一半如实退回**
+**Character → Scene 的界面那一格：先落了一半，另一半如实退回**（同日稍后又落了，见本节末尾）
 - 已落：`studio.generateImageFromPrompt` 的第二参数从"参考图 id"换成 `source?: { referenceAssetId?, characterId? }`
   （两个来源在界面上是两件事，位置参数到第三个就没法加了），`AssetsPanel` 的调用点同步改。
   这一半是行为不变的改造，凭证是**原有的那条 e2e 重跑：1 passed（1.6 分钟）**。
