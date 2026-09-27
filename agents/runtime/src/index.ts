@@ -26,6 +26,35 @@ export {
   type DivergenceKind,
 } from './policyAudit.js';
 export { RoleRegistry, DEMO_ROLES, type RoleDefinition } from './roles.js';
+export { AgentRegistry, createDefaultAgents, type AgentDefinition, type AgentCapability, type HandoffPayload, type AgentRegistryOptions } from './agentRegistry.js';
+export { runMultiAgentPipeline, type MultiAgentPipelineOptions, type MultiAgentPipelineResult, type MultiAgentStageResult, type MultiAgentHandoff } from './multiAgentPipeline.js';
+export {
+  createVectorStore,
+  syncMemoryToVectorStore,
+  type VectorStore,
+  type VectorStoreConfig,
+  type VectorStoreEntryInput,
+  type VectorStoreEngine,
+  type VectorStoreFlush,
+  type VectorStoreInit,
+  type VectorStoreKind,
+  type VectorQueryOptions,
+  type MemoryVectorSync,
+  type MemoryVectorSyncOptions,
+} from './vectorStore.js';
+export {
+  createBrowserDriver,
+  registerBrowserTools,
+  BROWSER_TOOL_SPECS,
+  type BrowserAction,
+  type BrowserActionType,
+  type BrowserDriver,
+  type BrowserElement,
+  type BrowserPageDescription,
+  type BrowserResult,
+  type BrowserState,
+  type BrowserToolOptions,
+} from './browserTools.js';
 export {
   runRoleChain,
   runRolePipeline,

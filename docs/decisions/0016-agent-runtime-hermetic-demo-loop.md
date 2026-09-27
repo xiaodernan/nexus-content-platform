@@ -4735,3 +4735,86 @@ this is an increment rather than a log line: either half can be deleted by a fut
 and the comparison would then be two functions each believing its own output.
 
 Measured at `ad8502b`: 73 scripts · 42 failed · 0 killed · 266 s, graded build `cc73dcf781dd0a2b` stable, `dirty-sources 2`. The supply line read: "which plane each row says it stood on (read out of the row's own first stdout lines, not inferred from its verdict): GIT 0 · NO-GIT 4 · mute about its own plane 69 (69 rows, e.g. agent-proof.mjs, bridge-report-proof.mjs, budgets-proof.mjs, changes-proof.mjs, closure-proof.mjs, code-index-proof.mjs, color-proof.mjs, commit-echo-proof.mjs …) · the tree the rows ran in has NO .git · the runner SUPPLIED NO-GIT to every child throu" and the new comparison read: "the marker came back: 1 row(s) echoed NEXUS_PROOF_TREE into their own first lines — 1 match what this run supplied (confession-proof.mjs echoes NO-GIT against a supplied NO-GIT), 0 printed ABSENT so the hand-off itself failed (none), 0 contradict it (none) · a supply nobody echoes is decoration, and an echo nobody compares is a guess: this line is the comparison". Predictions: provenance-proof: FAIL in 6.8 s · confession-proof: OK in 63.8 s, plane axis 262 call sites: program=117 argv=145, confession axis supported 9 · partial 0 · invisible 4 · MIS-CITED 0.
+
+### Amendment 106 (M2 v106, docs/evidence) — the tree-plane reader gets a witness on the live filesystem, 2026-09
+
+- **Recorded late (§60):** this increment was committed as `efc7d8f` with no amendment, and is written
+  here from that commit rather than left as an undocumented step. Its whole content is
+  `provenance-proof.mjs` §11, a witness for the reader that decides whether a proof stood on a tree
+  that has a `.git` (amendment 103's plane axis).
+- **What §11 measures, on the live filesystem rather than on a fixture:** this repository's own
+  `docs/evidence` directory diverges — the PROBE says `NO-GIT` while `git` says `GIT`, and the marker
+  the row reports follows GIT, which is the point (the reader asks git, it does not infer from the
+  directory's shape). Root and a bare temp directory agree, so the divergence is a property of the
+  nested case, not of the probe being generally wrong.
+- **The answer space is pinned, not assumed:** exit 128 together with git's own fatal message are the
+  ONLY answers allowed to mean "no repository". An unusable `git` decides by probe **with the reason
+  printed**, and an unparsable answer is NAMED rather than defaulted — the same rule amendment 96
+  applied to the alias arm, one reader over.
+- It also asserts the committed runner hands out the reconciled value, so the witness grades the
+  shipped path and not a re-implementation of it.
+
+### Amendment 107 (M2 v107, docs/evidence) — the runner reports whether the host fault the bridge was built on is still present, and the prediction in its commit message was WRONG, 2026-09
+
+- **Recorded late (§60), and corrected.** Committed as `e4a2ed6` with no amendment. Its content is one
+  line in the sweep's `[identity]` block: `syncProbe = spawnSync(process.execPath, ['-e',
+  'process.exit(0)'])`, and the line says which of two worlds the run is in — the EBUSY class amendment
+  86 measured, in which case `docs/evidence/lib/syncproc.mjs` is **load-bearing** for every importer
+  below, or `answers (status 0, no error)`, in which case every importer still runs through the bridge
+  but nothing depends on the fault being there. The probe asks NODE and not the bridge, per
+  `syncproc.mjs`'s own rule, and it prints before any row runs because "this run depended on a host
+  fault" is an identity fact rather than a row result.
+- **The correction.** The commit message predicted "the new line … reads `answers (status 0, no error)`
+  on this box". Re-measured for this record: **it does not.** `spawnSync(process.execPath, ['-e',
+  'process.exit(0)'])` fails with `EBUSY` 6 times out of 6, and the bridge's own probe
+  `syncApiIsBroken()` returns `true`. So the line prints
+  `BROKEN (EBUSY) — … syncproc.mjs is LOAD-BEARING`, which is the truthful half of the same sentence.
+  The CODE was right and needed no change; what was wrong was a documented expectation, which is the
+  exact failure mode this project keeps finding (§60) — a claim about a measurement nobody re-took.
+  The lesson recorded beside amendment 90's: a prediction written into a commit message is still a
+  claim, and it is not retired by the code around it being correct.
+- The probe costs one spawn per full run and adds no import edge to the population.
+
+### Amendment 108 (M5 v108, three-runtime) — the renderer and the frame clock were welded to browser globals, so 26 of 27 tests could not run; both are seams now, 2026-09
+
+- **The state this found.** `packages/three-runtime` (M5's foundation) was committed in the sense that
+  the work existed, but it was **not in any commit** and had never compiled: `tsc` reported 15 errors and
+  `vitest` reported **26 failed / 1 passed**. Every one of those 26 failures was the same two lines:
+  `initialize()` called `new THREE.WebGLRenderer({ canvas })`, which needs a live GL context, and the
+  render loop called the browser global `requestAnimationFrame`. So the scene graph, cameras,
+  animations, components, events and lifecycle — all of it GL-free and all of it the actual product —
+  was unreachable in CI, and the one passing test was the constructor.
+- **The observation worth recording:** the immediately preceding eighteen amendments (90–107) are all
+  sweep-and-provenance work, perfecting the self-description of the verification machinery, while this
+  package sat at 1/27. The harness had become the most carefully described thing in the repository and
+  the least useful description of what shipped.
+- **Seam 1 — `RenderBackend` (`src/renderBackend.ts`).** The runtime now depends on an interface
+  (`kind`, `state`, `setSize`, `setPixelRatio`, `render`, `stats`, `dispose`, optional `raw`) rather
+  than on `WebGLRenderer`, exactly the split ADR 0005 made for the Studio: the model composes, the
+  backend draws. `createWebGLBackend` is the production default and applies **every** setting the old
+  inline code applied, so a browser gets byte-identical behaviour; `createHeadlessBackend` records each
+  `render()` with its scene, camera and object count. `webglAvailable()` reports whether a real context
+  is even possible, so a caller can choose instead of discovering the answer through a thrown
+  constructor.
+- **Seam 2 — `FrameScheduler`.** `requestAnimationFrame` does not exist in Node, so `start()` threw
+  `ReferenceError` the moment it was called outside a browser. `defaultFrameScheduler()` picks rAF when
+  the host has it and a ~60 Hz timer otherwise (chosen ONCE, so ids are never mixed between the two),
+  and `manualFrameScheduler()` makes the loop **steppable** — a test can now assert exact frame counts,
+  that `stop()` cancels the outstanding frame, and that nothing runs afterwards.
+- **Honest bound, stated in the code.** The headless backend reports `calls` (knowable: it counts
+  `render()` invocations) and reports `triangles`/`points`/`lines` as **0**, because a headless backend
+  cannot know how many triangles a draw produced — only a real driver can. A plausible non-zero number
+  there would be a fabricated statistic, which is the §60 failure this file exists to avoid.
+- **Three real defects fixed on the way, each a type error rather than a style choice.** (1)
+  `physicallyCorrectLights` was assigned to the renderer and exposed as a config key; three r155
+  REMOVED that property, so the option changed nothing and was deleted rather than kept as a no-op
+  switch. (2) `createAnimation` could return an `AnimationAction` that was `undefined` when handed zero
+  clips — it now refuses the call, so the type's promise that `threeAnimation` is present stays true.
+  (3) The `geometry`/`material` disposal traversal was duplicated in `removeEntity` and `dispose()` and
+  reached through `Object3D`, which declares neither; it is one narrowing helper now.
+- **Declared dependencies corrected.** `@nexus/agent-runtime`, `@nexus/design-model` and `canvas` were
+  declared and imported by nothing (0 files each; only `three` is used). Removed — a heavy native
+  dependency that no code touches is a cost with no capability.
+- **Evidence.** `three-runtime` **1/27 → 29/29** (two new cases: the config reaching the injected
+  backend, and the manual-scheduler frame control), `tsc` clean from 15 errors, and the package builds.
+  `world-engine` 31/31, `ai-providers` 20/20 and `agent-runtime` 360/360 are untouched by this change.
