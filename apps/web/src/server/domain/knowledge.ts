@@ -137,6 +137,12 @@ export function chunksFromCharacter(profile: CharacterProfile, characterId: stri
   const out: Chunk[] = [];
   const sections: [string, string][] = [
     ['外观', profile.appearance],
+    // §39 那几栏也得进索引：不然"穿靛蓝斗篷的那个角色"查不到，
+    // 档案里存了却检索不中，等于只对界面可见、对 AI 不存在
+    ['身份', profile.identity],
+    ['穿着', profile.clothing],
+    ['画风', profile.style],
+    ['特征', profile.traits.join('、')],
     ['性格', profile.personality],
     ['背景故事', profile.backstory],
     ['目标', profile.goals.join('\n')],

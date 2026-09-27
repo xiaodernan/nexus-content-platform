@@ -1,9 +1,9 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import { eq, inArray, sql as rawSql } from 'drizzle-orm';
+import { eq, inArray, like, sql as rawSql } from 'drizzle-orm';
 import { createProjectCharacter, listCharacters, updateCharacterProfile } from '../src/server/domain/characters';
 import { createProject } from '../src/server/domain/projects';
 import { getDb } from '../src/server/db/client';
-import { characters, projects, users } from '../src/server/db/schema';
+import { characters, knowledgeChunks, projects, users } from '../src/server/db/schema';
 
 /**
  * §39 点名的四栏（identity / appearance / style / clothing / traits）里，
@@ -76,6 +76,19 @@ describe('§39 角色档案的四栏真的存得下来', () => {
 
     const [row] = await getDb().select({ profile: characters.profile }).from(characters).where(eq(characters.id, id)).limit(1);
     expect((row!.profile as Record<string, unknown>).clothing, 'jsonb 里这一列根本没写进去').toBe('靛蓝斗篷，袖口卷起');
+
+    // 存下来只是第一半：**检索拿不到就等于对 AI 不存在**。
+    // 保存档案时服务端会同步知识索引，所以这里直接查索引里有没有这句话。
+    const hits = await getDb()
+      .select({ content: knowledgeChunks.content })
+      .from(knowledgeChunks)
+      .where(like(knowledgeChunks.content, '%靛蓝斗篷%'));
+    expect(hits.length, '穿着写进了档案，却没进知识索引：查"穿靛蓝斗篷的那个角色"永远查不到').toBeGreaterThan(0);
+    const traitHits = await getDb()
+      .select({ content: knowledgeChunks.content })
+      .from(knowledgeChunks)
+      .where(like(knowledgeChunks.content, '%认路很快%'));
+    expect(traitHits.length, 'traits 没进索引').toBeGreaterThan(0);
   });
 
   it('库里已有的旧档案（没有这四栏）仍然读得出来，不会被界面弄丢', async () => {

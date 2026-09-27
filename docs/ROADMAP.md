@@ -2066,3 +2066,11 @@ Sketch → Image、Image → Image、Character → Scene 三条箭头；真 prov
 - 仍未做：`traits` 的界面输入口（面板上还没有那一栏）；把这四栏喂进 §39 的正题——
   **生成时真的按 identity/clothing/style 保持一致**（今天角色场景的锚点只用 palette 一栏），
   以及 knowledge / RAG 文本里带上这四栏（现在检索命不中"穿靛蓝斗篷的那个角色"）。
+
+**接上§39 的第二半：这四栏进得了检索**
+存进档案只是第一半——检索拿不到，就等于**对 AI 不存在**（面板上看得见，模型查不着）。
+`knowledge.ts` 的角色切分里多了 身份 / 穿着 / 画风 / 特征 四小节（空小节照旧不进索引）。
+凭证：`character-fields.integration.test.ts` 新增两条断言——保存档案后直接查 `knowledge_chunks`，
+`%靛蓝斗篷%` 与 `%认路很快%` 都要有行；变异探针把这四行从切分里删掉 → **红在"穿着写进了档案，却没进知识索引"**，
+还原后 `character-fields + knowledge` 两个文件 **11 条全过**。
+仍欠：`traits` 的界面输入口；以及让生成真的读这四栏（今天角色场景的锚点只用 palette）。
