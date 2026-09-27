@@ -425,3 +425,186 @@ describe('§39 / §40 Character → Scene 打真库', () => {
     expect(await counts()).toEqual(before);
   });
 });
+
+describe('§39 角色一致性生成（Character Portrait）打真库', () => {
+  async function ensureCredits(floor: number): Promise<void> {
+    const balance = (await readCredits(userId)).balances.image;
+    if (balance < floor) {
+      await adjustCredits({ userId, kind: 'image', delta: floor - balance, reason: '用例：补足角色肖像链路需要的额度' });
+    }
+  }
+
+  async function counts() {
+    const db = getDb();
+    return {
+      assets: await countAssets(eq(assets.projectId, projectId)),
+      tasks: await imageTasks(),
+      ledger: (
+        await db
+          .select({ n: rawSql<number>`count(*)::int` })
+          .from(creditLedger)
+          .where(and(eq(creditLedger.userId, userId), eq(creditLedger.kind, 'image'), eq(creditLedger.source, 'generation')))
+      )[0]?.n ?? 0,
+    };
+  }
+
+  async function taskInputOf(taskId: string): Promise<Record<string, unknown>> {
+    const [row] = await getDb()
+      .select({ input: agentTasks.input })
+      .from(agentTasks)
+      .where(eq(agentTasks.id, taskId))
+      .limit(1);
+    expect(row, `库里查不到任务行 ${taskId}`).toBeDefined();
+    return (row!.input ?? {}) as Record<string, unknown>;
+  }
+
+  async function metaOf(assetId: string): Promise<Record<string, unknown>> {
+    const [row] = await getDb()
+      .select({ genMeta: assets.genMeta })
+      .from(assets)
+      .where(eq(assets.id, assetId))
+      .limit(1);
+    expect(row, `库里查不到资产 ${assetId}`).toBeDefined();
+    return (row!.genMeta ?? {}) as Record<string, unknown>;
+  }
+
+  /** 字节指纹要从库里读：`generateDemoImage` 的成功返回里只有资产 id，没有 checksum */
+  async function checksumOf(assetId: string): Promise<string | null> {
+    const [row] = await getDb()
+      .select({ checksum: assets.checksum })
+      .from(assets)
+      .where(eq(assets.id, assetId))
+      .limit(1);
+    expect(row, `库里查不到资产 ${assetId}`).toBeDefined();
+    return row!.checksum;
+  }
+
+  /** 建档并把四栏 + 视觉标识都填上：肖像要读的就是这份档案 */
+  async function makeDetailedCharacter(name: string) {
+    const created = await createProjectCharacter(projectId, userId, { name });
+    if (!created.ok) throw new Error(`建角色失败：${created.reason}`);
+    const updated = await updateCharacterProfile(created.character.id, projectId, {
+      ...created.character.profile,
+      identity: '守夜人',
+      clothing: '靛蓝斗篷，袖口卷起',
+      style: '厚涂、暖光',
+      traits: ['认路很快'],
+      visualIdentity: {
+        ...created.character.profile.visualIdentity,
+        palette: ['#2e7d32'],
+        silhouette: '高瘦，斗篷下摆很长',
+        motifs: ['钟', '灯'],
+      },
+    });
+    if (!updated.ok) throw new Error(`补档案失败：${updated.reason}`);
+    return updated.character;
+  }
+
+  /**
+   * 这条盯的是一个**曾经写成死代码的判定**：早前那行是
+   * `characterId && generateCharacterPortrait && !characterId`——前后自相矛盾、永远为假，
+   * 于是"只给 generateCharacterPortrait 不给 characterId"会**静默地按普通 Text→Image 生成一张图**
+   * （进不了角色分支，档案读不到，用户以为拿到了角色肖像）。typecheck 与 eslint 都看不出这种写法。
+   */
+  it('只给 generateCharacterPortrait 不给 characterId：拒绝，且一行都不许多', async () => {
+    await ensureCredits(10);
+    const before = await counts();
+    const out = await generateDemoImage({
+      projectId, userId, prompt: '一张没有角色的肖像', width: 64, height: 64, generateCharacterPortrait: true,
+    });
+    expect(out.ok, '没有角色却按普通文生图放过去了——用户会以为这是角色肖像').toBe(false);
+    if (!out.ok) {
+      expect(out.code).toBe('invalid_input');
+      expect(out.message).toMatch(/characterId/);
+    }
+    expect(await counts()).toEqual(before);
+  });
+
+  it('肖像由档案驱动：忽略用户 prompt，任务行里带的是身份/穿着/画风/特征', async () => {
+    await ensureCredits(10);
+    const character = await makeDetailedCharacter('守夜人阿蓝');
+    const out = mustOk(
+      await generateDemoImage({
+        projectId, userId, prompt: '这句应当被忽略', width: 64, height: 64, seed: 7,
+        characterId: character.id, generateCharacterPortrait: true,
+      }),
+      '角色肖像',
+    );
+    const input = await taskInputOf(out.taskId);
+    // 类型收窄而不是 String(...)：input 是 unknown 值的袋子，直接 String() 会把对象变成 "[object Object]"，
+    // 那种"看起来有值"的假绿正是这组用例要避免的（eslint 的 no-base-to-string 当场指出了这一点）
+    const sent = typeof input.prompt === 'string' ? input.prompt : '';
+    expect(sent, 'prompt 不是字符串，说明任务行里那一格不是我们写的那份').not.toBe('');
+    expect(sent, '肖像没带上身份').toContain('守夜人');
+    expect(sent).toContain('靛蓝斗篷');
+    expect(sent).toContain('厚涂、暖光');
+    expect(sent).toContain('认路很快');
+    // 视觉标识也该进来：轮廓与标志是"同一个角色在不同场景里认得出"的依据
+    expect(sent).toContain('高瘦，斗篷下摆很长');
+    expect(sent).toContain('钟');
+    // 关键的一条：用户 prompt 被忽略，而不是被拼在后面
+    expect(sent, '用户 prompt 没被忽略——那这就不叫"由档案驱动"').not.toContain('这句应当被忽略');
+    expect(input.generateCharacterPortrait).toBe(true);
+  });
+
+  it('肖像打上 characterPortrait 标记，且资产行仍记着属于谁（供后续场景复用）', async () => {
+    await ensureCredits(10);
+    const character = await makeDetailedCharacter('带标记的角色');
+    const out = mustOk(
+      await generateDemoImage({
+        projectId, userId, prompt: 'ignored', width: 64, height: 64, seed: 11,
+        characterId: character.id, generateCharacterPortrait: true,
+      }),
+      '带标记的肖像',
+    );
+    const meta = await metaOf(out.asset.id);
+    expect(meta.characterPortrait, 'genMeta 里没有 characterPortrait，后续 Character→Scene 就认不出它是肖像').toBe(true);
+    expect(meta.characterId).toBe(character.id);
+    expect(meta.hueAnchor, '肖像也该有由视觉标识导出的锚点，否则同一角色的场景与肖像会各画一套颜色').toBeDefined();
+    // 清单投影读得出来，界面上才看得到归属
+    const ref = await assetRefOf(out.asset.id);
+    expect(ref?.characterId).toBe(character.id);
+  });
+
+  it('肖像与参考图互斥：两个来源同时给就拒绝，不花额度', async () => {
+    await ensureCredits(10);
+    const character = await makeDetailedCharacter('互斥用例');
+    const scene = mustOk(
+      await generateDemoImage({ projectId, userId, prompt: '先来一张场景', width: 64, height: 64, seed: 13, characterId: character.id }),
+      '先垫一张场景当参考图',
+    );
+    const before = await counts();
+    const both = await generateDemoImage({
+      projectId, userId, prompt: 'ignored', width: 64, height: 64,
+      characterId: character.id, generateCharacterPortrait: true, referenceAssetId: scene.asset.id,
+    });
+    expect(both.ok, '参考图与角色肖像同时给也放过去了').toBe(false);
+    if (!both.ok) expect(both.message).toMatch(/只能给一个/);
+    expect(await counts()).toEqual(before);
+  });
+
+  it('同一个角色的肖像与场景：同一锚点、不同字节（"一致性"的可测定义）', async () => {
+    await ensureCredits(10);
+    const character = await makeDetailedCharacter('肖像与场景同锚点');
+    const portrait = mustOk(
+      await generateDemoImage({
+        projectId, userId, prompt: 'ignored', width: 64, height: 64, seed: 17,
+        characterId: character.id, generateCharacterPortrait: true,
+      }),
+      '肖像',
+    );
+    const scene = mustOk(
+      await generateDemoImage({ projectId, userId, prompt: '在雪地里', width: 64, height: 64, seed: 17, characterId: character.id }),
+      '场景',
+    );
+    const portraitMeta = await metaOf(portrait.asset.id);
+    const sceneMeta = await metaOf(scene.asset.id);
+    expect(portraitMeta.hueAnchor).toBe(sceneMeta.hueAnchor);
+    const portraitBytes = await checksumOf(portrait.asset.id);
+    const sceneBytes = await checksumOf(scene.asset.id);
+    // 先确认两个指纹都真的存在：两个 null 也会"不相等"失败，但那样红得看不出原因
+    expect(portraitBytes).toBeTruthy();
+    expect(sceneBytes).toBeTruthy();
+    expect(portraitBytes, '肖像与场景拿回同一份字节，等于其中一个根本没生成').not.toBe(sceneBytes);
+  });
+});

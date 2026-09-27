@@ -50,6 +50,14 @@ export interface GenerateImageInput {
    * 与 `referenceAssetId` 互斥：两个来源同时给，就等于说不清这张图是照谁画的。
    */
   characterId?: string;
+  /**
+   * §39 的角色一致性生成：为角色生成它自己的参考图（portrait）。
+   * 与 `characterId` 搭配使用；`prompt` 将被忽略，改用角色档案的 visualIdentity + profile
+   * 组装成角色描述 prompt。产出资产打上 `characterPortrait: true` 标记，
+   * 供后续 Character → Scene 以 `referenceAssetId` 复用，实现跨场景一致性。
+   * 与 `referenceAssetId` 互斥。
+   */
+  generateCharacterPortrait?: boolean;
 }
 
 export type GenerateImageOutcome =
@@ -112,14 +120,26 @@ export async function generateDemoImage(input: GenerateImageInput): Promise<Gene
   const seed = input.seed ?? 0;
 
   // 参考图/角色先解析再谈额度：解析失败是一次输入错误，不该留下一行任务、也不该碰额度
-  if (input.referenceAssetId && input.characterId) {
+  if (input.referenceAssetId && (input.characterId || input.generateCharacterPortrait)) {
     return {
       ok: false,
       code: 'invalid_input',
-      message: '参考图与角色只能给一个：两个来源同时给，就说不清这张图是照谁画的',
+      message: '参考图与角色/角色肖像只能给一个：两个来源同时给，就说不清这张图是照谁画的',
+    };
+  }
+  // 角色肖像没有角色就无从谈起：它要读的是那份档案。这条判定以前写成
+  // `characterId && generateCharacterPortrait && !characterId`——前后自相矛盾，
+  // 永远为假，等于这道口从来没关上（typecheck 与 eslint 都看不出来）
+  if (input.generateCharacterPortrait && !input.characterId) {
+    return {
+      ok: false,
+      code: 'invalid_input',
+      message: 'generateCharacterPortrait 需要同时提供 characterId',
     };
   }
   let anchor: { hue: number; dominant: string } | null = null;
+  let effectivePrompt = input.prompt;
+  let isCharacterPortrait = false;
   if (input.referenceAssetId) {
     const measured = await hueAnchorOfReference(input.referenceAssetId, input.userId);
     if (!measured.ok) return { ok: false, code: 'invalid_input', message: measured.message };
@@ -144,9 +164,34 @@ export async function generateDemoImage(input: GenerateImageInput): Promise<Gene
       };
     }
     anchor = { hue: hueOfHex(first), dominant: first };
+    // §39 的四栏从这里开始**已经在报文里**：身份 / 穿着 / 画风 / 特征拼进交给合成器与任务行的 prompt。
+    // 说清楚边界：DEMO 合成器只认 prompt 的哈希，画不出"靛蓝斗篷"这四个字的语义——
+    // 但换真 provider 时不必再动链路，这一格欠的是像素，不是接线。
+    const vi = found.profile.visualIdentity;
+    const silhouette = vi.silhouette ? `轮廓：${vi.silhouette}` : '';
+    const motifs = vi.motifs.length ? `标志：${vi.motifs.join('、')}` : '';
+    const traits = found.profile.traits.length ? `特征：${found.profile.traits.join('、')}` : '';
+    const look = [
+      found.profile.identity ? `身份：${found.profile.identity}` : '',
+      found.profile.clothing ? `穿着：${found.profile.clothing}` : '',
+      found.profile.style ? `画风：${found.profile.style}` : '',
+      silhouette,
+      motifs,
+      traits,
+    ]
+      .filter(Boolean)
+      .join('；');
+    if (input.generateCharacterPortrait) {
+      // Character Portrait：忽略用户 prompt，完全由角色档案驱动
+      effectivePrompt = `角色肖像｜${look}`.trim();
+      isCharacterPortrait = true;
+    } else {
+      // Character → Scene：用户 prompt + 角色档案
+      effectivePrompt = [input.prompt, look].filter(Boolean).join('｜');
+    }
   }
 
-  const issues = synthLimitViolations({ prompt: input.prompt, width, height, seed, hueAnchor: anchor?.hue });
+  const issues = synthLimitViolations({ prompt: effectivePrompt, width, height, seed, hueAnchor: anchor?.hue });
   if (issues.length) {
     return { ok: false, code: 'invalid_input', message: '这次请求不符合合成器的规格上限', issues };
   }
@@ -162,16 +207,17 @@ export async function generateDemoImage(input: GenerateImageInput): Promise<Gene
     createdById: input.userId,
     capability: 'demo',
     input: {
-      prompt: input.prompt.slice(0, 500),
+      prompt: effectivePrompt.slice(0, 500),
       width,
       height,
       seed,
       ...(input.referenceAssetId ? { referenceAssetId: input.referenceAssetId } : {}),
       ...(input.characterId ? { characterId: input.characterId } : {}),
+      ...(input.generateCharacterPortrait ? { generateCharacterPortrait: true } : {}),
     },
   });
 
-  const synth = synthesizeDemoImage({ prompt: input.prompt, width, height, seed, hueAnchor: anchor?.hue });
+  const synth = synthesizeDemoImage({ prompt: effectivePrompt, width, height, seed, hueAnchor: anchor?.hue });
   if (!synth.ok) {
     await finishTask(taskId, { ok: false, error: `合成失败：${synth.issues.join('；')}` });
     return { ok: false, code: 'synth_failed', message: '本地合成器没有给出图片', issues: synth.issues };
@@ -180,12 +226,12 @@ export async function generateDemoImage(input: GenerateImageInput): Promise<Gene
   // 与用户上传走同一道摄取门，不给生成物开后门
   const ingested = await uploadImageAsset(input.projectId, {
     data: synth.bytes,
-    filename: nameOf(input.prompt),
+    filename: nameOf(isCharacterPortrait ? `角色肖像：${effectivePrompt}` : input.prompt),
     createdById: input.userId,
     source: 'generated',
     ...(input.characterId ? { characterId: input.characterId } : {}),
     genMeta: {
-      prompt: input.prompt,
+      prompt: effectivePrompt,
       provider: synth.genMeta.provider,
       model: synth.genMeta.model,
       seed,
@@ -197,6 +243,7 @@ export async function generateDemoImage(input: GenerateImageInput): Promise<Gene
       // 而不是只写着 prompt——否则变体与原图（或场景与角色）的关系只存在于界面上
       ...(input.referenceAssetId ? { referenceAssetId: input.referenceAssetId } : {}),
       ...(input.characterId ? { characterId: input.characterId } : {}),
+      ...(input.generateCharacterPortrait ? { characterPortrait: true } : {}),
       ...(anchor ? { hueAnchor: anchor.hue, anchorDominant: anchor.dominant } : {}),
     },
   });

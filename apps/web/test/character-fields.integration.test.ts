@@ -58,6 +58,9 @@ describe('§39 角色档案的四栏真的存得下来', () => {
       style: '厚涂、暖光',
       clothing: '靛蓝斗篷，袖口卷起',
       traits: ['怕水', '话多', '认路很快'],
+      // 生成场景要先有视觉标识（服务端没有 palette 会直接拒绝，不拿"随便一张"冒充角色场景），
+      // 这一条用例顺带把那道口也走一遍
+      visualIdentity: { ...created.character.profile.visualIdentity, palette: ['#2e7d32'] },
     };
     const saved = await updateCharacterProfile(id, projectId, next);
     expect(saved.ok, saved.ok ? '' : saved.reason).toBe(true);
@@ -84,6 +87,23 @@ describe('§39 角色档案的四栏真的存得下来', () => {
       .from(knowledgeChunks)
       .where(like(knowledgeChunks.content, '%靛蓝斗篷%'));
     expect(hits.length, '穿着写进了档案，却没进知识索引：查"穿靛蓝斗篷的那个角色"永远查不到').toBeGreaterThan(0);
+    // §39 的第二半：这些设定要能**走到生成请求里**。DEMO 合成器画不出"靛蓝斗篷"的语义，
+    // 但任务行与 genMeta 里的 prompt 必须带着它——否则换上真 provider 还是要重新接一遍。
+    const { generateDemoImage } = await import('../src/server/domain/image-studio');
+    const { agentTasks } = await import('../src/server/db/schema');
+    const gen = await generateDemoImage({ projectId, userId, prompt: '在雪地里', width: 64, height: 64, characterId: id });
+    expect(gen.ok, gen.ok ? '' : gen.message).toBe(true);
+    if (!gen.ok) return;
+    const [task] = await getDb()
+      .select({ input: agentTasks.input })
+      .from(agentTasks)
+      .where(eq(agentTasks.id, gen.taskId))
+      .limit(1);
+    const sentPrompt = String((task?.input as { prompt?: string } | null)?.prompt ?? '');
+    expect(sentPrompt, '任务行里的 prompt 没带上穿着设定').toContain('靛蓝斗篷');
+    expect(sentPrompt).toContain('厚涂、暖光');
+    expect(sentPrompt).toContain('认路很快');
+
     const traitHits = await getDb()
       .select({ content: knowledgeChunks.content })
       .from(knowledgeChunks)

@@ -23,6 +23,9 @@ const RequestBody = z.object({
   referenceAssetId: z.string().min(1).optional(),
   // §39/§40 Character → Scene：与 referenceAssetId 互斥，服务端那一侧会拒掉同时给的情况
   characterId: z.string().min(1).optional(),
+  // §39 角色一致性生成：生成角色自己的参考图（portrait）。需与 characterId 搭配，
+  // prompt 将被忽略，改用角色档案的 visualIdentity + profile 组装描述。
+  generateCharacterPortrait: z.boolean().optional(),
 });
 
 interface RouteContext {
@@ -50,6 +53,7 @@ export async function POST(req: Request, ctx: RouteContext): Promise<NextRespons
       seed: parsed.data.seed,
       referenceAssetId: parsed.data.referenceAssetId,
       characterId: parsed.data.characterId,
+      generateCharacterPortrait: parsed.data.generateCharacterPortrait,
     });
     if (!result.ok) {
       // 429 与 400 分开：额度用尽要让用户知道"这个月没了"，而不是"你请求写错了"

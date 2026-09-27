@@ -215,6 +215,23 @@ vitest 直接崩了而我却把 stdout 丢进了 `/dev/null`，于是"5 遍"其�
   e2e 守的是投影同源：上传后画布节点的计算样式里有真实资产 URL、面板缩略图 `naturalWidth>0`
   （证明**剥离后的字节真能被浏览器解码**，而不是只挂了个 URL）、一次上传撤销后图片层与清单条目一起消失、
   预览路由看到同一份投影
+- 图像生成这条链（§38/§39/§40）：`image-studio.integration.test.ts` 打真库，证的不是"能生成一张 PNG"
+  （那是 `image-synth.test.ts` 的单字），而是**每一环都真的留下了行**——资产行的 source、
+  清单里的 `demoMode`、任务行的 capability、账本里那一行扣点，以及**额度门在写任务行之前**
+  （余额为 0 时任务行 / 资产行 / 账本行一行都不许多）。一致性用可测定义钉：
+  同一角色的不同场景 **`hueAnchor` 相同、字节不同**；换角色就是换锚点；参考图与角色互斥。
+  §39 的第二半（四栏与肖像）另有一组：
+  1. **档案真的走到 prompt 里**——`character-fields.integration.test.ts` 生成一次后直接查
+     `agent_tasks.input.prompt`，必须含"靛蓝斗篷 / 厚涂、暖光 / 认路很快"（变异探针：把拼接改回 `input.prompt` 立刻红）。
+  2. **肖像由档案驱动**——`image-studio.integration.test.ts` 的 5 条：只给 `generateCharacterPortrait`
+     不给 `characterId` **必拒且一行都不许多**；肖像**忽略用户 prompt** 而带上身份/穿着/画风/特征/轮廓/标志；
+     `genMeta.characterPortrait` 与 `assets.character_id` 都写上；肖像与参考图互斥不花额度；
+     同一角色的肖像与场景同锚点但不同字节。
+  3. 第 1 条那款 bug 值得单记：守卫写成 `characterId && generateCharacterPortrait && !characterId`，
+     **恒为假**，于是"没有角色"会静默按普通文生图生成一张图。**typecheck 与 eslint 都看不出来**
+     （`@typescript-eslint/no-unnecessary-condition` 不跨合取式推理，本仓库规则集不报），
+     所以这类写法的防线只能是"测那道守卫本来想守的行为"——那条用例的变异探针红在原话上：
+     "没有角色却按普通文生图放过去了——用户会以为这是角色肖像"。
 - 认证的不变量（§137/§80）：`password.test.ts` 断言哈希非明文且带 `$2` 前缀、正确/错误口令、同口令两次哈希不同（有盐）、
   过短口令拒绝、stored 为 null 也返回 false（游客/未注册走这条路）；`rateLimit.test.ts` 用假时钟断言窗口内放行到上限、
   **被挡下的请求不计入窗口**（否则限流会加速自锁）、窗口滑过后名额放出、不同桶键互不影响；
