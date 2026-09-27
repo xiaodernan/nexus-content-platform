@@ -532,6 +532,12 @@ export interface AssetRef {
    * 用户看不出哪张图是"某个角色的场景"。
    */
   characterId?: string;
+  /**
+   * 这一张是**角色自己的参考图**（肖像），不是它所在的某个场景（§39）。
+   * 库里 `genMeta.characterPortrait` 早就写上了，但清单投影里没有它：
+   * 于是卡片把肖像标成"角色场景"——界面说出与事实不符的话，跟回执上那类错是同一个。
+   */
+  characterPortrait?: boolean;
   createdAt: string;
 }
 

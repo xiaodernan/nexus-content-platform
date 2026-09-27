@@ -135,7 +135,9 @@ export function AssetsPanel() {
                     >
                       {formatBytes(asset.sizeBytes)} · 引用 {refs}
                     </span>
-                    <div className="flex items-center gap-1">
+                    {/* flex-wrap 是修"一字一行"的：这一排是角标 + 三个按钮，窄面板下不换行时
+                        每个按钮都被压到自己的最小内容宽度以下，中文就一个字占一行 */}
+                    <div className="flex flex-wrap items-center gap-1">
                       {asset.generatedBy?.demoMode ? (
                         <span
                           className={cn('rounded px-1 font-mono text-10 text-bg-0', 'bg-warn')}
@@ -146,14 +148,20 @@ export function AssetsPanel() {
                         </span>
                       ) : null}
                       {asset.characterId ? (
-                        // 只说"这是某个角色的场景"并带上 id：面板没加载角色名册，这里就不猜名字——
-                        // 猜出来的名字是界面上的一句谎
+                        // 只说"这是某个角色的场景/肖像"并带上 id：面板没加载角色名册，这里就不猜名字——
+                        // 猜出来的名字是界面上的一句谎。而肖像与场景也不能一律叫场景：
+                        // 那一格真值在 `characterPortrait` 里，读得到就要说得出
                         <span
                           className="rounded bg-bg-3 px-1 font-mono text-10 text-fg-2"
-                          title={`这张图归属于角色 ${asset.characterId}`}
+                          title={
+                            asset.characterPortrait
+                              ? `这是角色 ${asset.characterId} 自己的参考图：由档案驱动，后续场景可以拿它当参考`
+                              : `这张图归属于角色 ${asset.characterId}`
+                          }
                           data-asset-character={asset.characterId}
+                          data-asset-portrait={asset.characterPortrait ? 'true' : undefined}
                         >
-                          角色场景
+                          {asset.characterPortrait ? '角色肖像' : '角色场景'}
                         </span>
                       ) : null}
                       <button

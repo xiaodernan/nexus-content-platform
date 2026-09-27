@@ -85,6 +85,9 @@ test('@smoke 角色 → 场景：填了视觉标识才点得动，生成物进�
     .toBe(cardsBeforePortrait + 1);
   const portrait = page.locator('[data-asset-card]').last();
   await expect(portrait.locator('[data-asset-demo-badge]')).toHaveText('DEMO');
+  // 卡片自己也要说清这是肖像不是场景：这一格真值走的是清单投影（AssetRef.characterPortrait）
+  await expect(portrait.locator('[data-asset-character]')).toHaveText('角色肖像');
+  await expect(page.locator('[data-asset-card]').first().locator('[data-asset-character]')).toHaveText('角色场景');
   await expect
     .poll(
       async () => portrait.locator('img').evaluate((el) => (el as HTMLImageElement).naturalWidth),

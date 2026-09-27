@@ -564,6 +564,18 @@ describe('§39 角色一致性生成（Character Portrait）打真库', () => {
     // 清单投影读得出来，界面上才看得到归属
     const ref = await assetRefOf(out.asset.id);
     expect(ref?.characterId).toBe(character.id);
+    expect(ref?.characterPortrait, '清单投影里没有 characterPortrait：卡片会把肖像一律说成"角色场景"').toBe(true);
+    // 反向也要钉住：只断言"肖像为真"的话，一个永远写 true 的映射照样过——
+    // 同一角色的场景必须**没有**这一格，界面上才会一个说肖像、一个说场景
+    const sceneOut = mustOk(
+      await generateDemoImage({
+        projectId, userId, prompt: '同一个角色的场景', width: 64, height: 64, seed: 12, characterId: character.id,
+      }),
+      '同角色的场景',
+    );
+    const sceneRef = await assetRefOf(sceneOut.asset.id);
+    expect(sceneRef?.characterId, '场景也该记着归属角色').toBe(character.id);
+    expect(sceneRef?.characterPortrait, '场景被标成了肖像——这一格不能靠默认值蒙过去').toBeFalsy();
   });
 
   it('肖像与参考图互斥：两个来源同时给就拒绝，不花额度', async () => {

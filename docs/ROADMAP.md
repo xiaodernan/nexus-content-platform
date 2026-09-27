@@ -2168,6 +2168,23 @@ if (input.characterId && input.generateCharacterPortrait && !input.characterId) 
 
 **看图看出的两处新缺口**（记在这里，别当成已经好了）：
 1. 肖像卡片上的角标写的是「角色场景」——`characterPortrait` 只落在 `genMeta` 与任务行，
-   没有进清单投影（要补 `design-model` 的 `AssetRef` → `projects.ts` 的 `assetRowToRef` → `AssetsPanel` 的角标三处）。
-   卡片把肖像说成场景，与回执刚修掉的那句话是同一类错，下一片先修这个。
+   没有进清单投影。卡片把肖像说成场景，与回执刚修掉的那句话是同一类错。
 2. 资产卡片那排操作按钮在面板宽度下换行成"一字一行"（截图里看得见），是排版问题不是数据问题。
+
+## 上面那两处已经补了：清单投影带上 characterPortrait
+`AssetRef.characterPortrait` → `assetRowToRef`（读 `genMeta.characterPortrait === true`）→
+`AssetsPanel` 角标分两档：肖像说「角色肖像」，场景仍说「角色场景」。
+按钮那排加上 `flex-wrap`，整排不再被压到一字一行。
+
+**凭证（两个方向都钉了）**：`image-studio.integration.test.ts` 那条肖像用例现在同时断言
+"肖像的清单投影有这一格"与"同一角色的**场景**没有这一格"——只断言前者，一个永远写 `true` 的映射照样过。
+变异探针：把 `assetRowToRef` 里那行映射删掉 → **红正好 1 条**
+（`清单投影里没有 characterPortrait：卡片会把肖像一律说成"角色场景": expected undefined to be true`，另 15 条仍绿）；
+还原后 **16/16 全过**。e2e 那条链加了两条角标断言，**1 passed / 33.6 秒**，
+截图 `screenshots/character-portrait.png` 里两张卡各自写着「角色场景」「角色肖像」，按钮不再一字一行。
+
+**探针过程里踩到的自己的坑**（下次别再踩）：还原用的是 `git checkout -- <文件>`，
+而那次那个文件**带着未提交的新代码**——checkout 把探针改动和我刚写的映射行一起冲掉了，
+于是"还原后的对照跑"红了。红的是我的还原程序，不是被测代码。
+教训：`git checkout --` 只对**与 HEAD 干净**的文件安全；文件本身有未提交工作时，还原要用
+"记下原文再逐字写回"，或者先提交再做探针。

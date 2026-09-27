@@ -246,6 +246,8 @@ export function assetRowToRef(row: typeof assets.$inferSelect): AssetRef {
     ...(generatedBy ? { generatedBy } : {}),
     // 归属角色：库里这一列已经有写入方（角色场景生成），不映射进清单就等于界面上永远看不见它
     ...(row.characterId ? { characterId: row.characterId } : {}),
+    // 肖像与场景的分别只写在 genMeta 里，不映射进清单，卡片就只能一律说"角色场景"
+    ...(gen.characterPortrait === true ? { characterPortrait: true } : {}),
     createdAt: row.createdAt.toISOString(),
   };
 }
