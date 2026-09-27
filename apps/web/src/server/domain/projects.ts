@@ -244,6 +244,8 @@ export function assetRowToRef(row: typeof assets.$inferSelect): AssetRef {
     mimeType: row.mime ?? 'application/octet-stream',
     sizeBytes: row.bytes ?? undefined,
     ...(generatedBy ? { generatedBy } : {}),
+    // 归属角色：库里这一列已经有写入方（角色场景生成），不映射进清单就等于界面上永远看不见它
+    ...(row.characterId ? { characterId: row.characterId } : {}),
     createdAt: row.createdAt.toISOString(),
   };
 }

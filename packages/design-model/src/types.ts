@@ -526,6 +526,12 @@ export interface AssetRef {
     taskId?: string;
     demoMode?: boolean;
   };
+  /**
+   * 这张图归属的角色（§39）。库里 `assets.character_id` 已经有写入方（角色场景生成），
+   * 但清单投影里没有它——一列只写不读的真值在界面上等于不存在，
+   * 用户看不出哪张图是"某个角色的场景"。
+   */
+  characterId?: string;
   createdAt: string;
 }
 

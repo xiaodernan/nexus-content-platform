@@ -390,6 +390,8 @@ describe('§39 / §40 Character → Scene 打真库', () => {
     expect(rowA.characterId, 'assets.character_id 这一列从建库起就有，但一直没有写入方').toBe(character.id);
     expect(metaA.characterId).toBe(character.id);
     expect(metaA.anchorDominant).toBe('#2e7d32');
+    const ref = await assetRefOf(sceneA.asset.id);
+    expect(ref?.characterId, '库里写入了归属角色，清单投影却没读出来——一列只写不读等于没有').toBe(character.id);
   });
 
   it('换一个角色就是换一个锚点；两个来源同时给则拒绝', async () => {

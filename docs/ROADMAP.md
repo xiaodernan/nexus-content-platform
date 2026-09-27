@@ -2038,3 +2038,10 @@ Sketch → Image、Image → Image、Character → Scene 三条箭头；真 prov
   三个调用点里改了两个，跑一遍才知道没漏。
 - 于是 §38 / §40 那五条箭头里，text→image、reference→variation、character→scene 三条在界面上点得出来了；
   image→image 与 sketch→image 仍未动（原因写在上面那条清单里）。
+
+**顺带：`assets.character_id` 的读的一半也接上了**
+上一格只写了列，清单投影里没有它——**一列只写不读的真值在界面上等于不存在**。
+现在 `AssetRef.characterId` 有映射，资产卡片上多一枚"角色场景"标记（title 带角色 id；
+面板没加载名册，所以这里不猜名字，猜出来的就是谎）。
+凭证：集成用例新增一条断言"库里写入了归属角色，清单投影必须读得出来"，
+变异探针把那一行映射删掉 → **红正好这一条**（另 10 条保持绿），11 条一起过；`tsc` 干净。

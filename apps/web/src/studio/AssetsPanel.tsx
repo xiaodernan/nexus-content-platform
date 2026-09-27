@@ -145,6 +145,17 @@ export function AssetsPanel() {
                           DEMO
                         </span>
                       ) : null}
+                      {asset.characterId ? (
+                        // 只说"这是某个角色的场景"并带上 id：面板没加载角色名册，这里就不猜名字——
+                        // 猜出来的名字是界面上的一句谎
+                        <span
+                          className="rounded bg-bg-3 px-1 font-mono text-10 text-fg-2"
+                          title={`这张图归属于角色 ${asset.characterId}`}
+                          data-asset-character={asset.characterId}
+                        >
+                          角色场景
+                        </span>
+                      ) : null}
                       <button
                         type="button"
                         onClick={() => void studio.extractVisualDnaFromAsset(asset.id)}
