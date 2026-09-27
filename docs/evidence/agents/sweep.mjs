@@ -845,6 +845,140 @@ export function gitCommandsNamed(text) {
   return out;
 }
 
+const isIdent = (s) => /^[A-Za-z_$][A-Za-z0-9_$]*$/.test(s);
+const wordIn = (s, w) => new RegExp('[^A-Za-z0-9_$]' + w + '[^A-Za-z0-9_$]').test(' ' + s + ' ');
+
+/** The parameter names of the definition at `at`, read off its own top-level parens. */
+function paramsOf(src, at) {
+  const open = src.indexOf('(', at);
+  if (open < 0) return [];
+  const out = [];
+  let cur = '';
+  let depth = 0;
+  for (let i = open + 1; i < src.length; i++) {
+    const c = src[i];
+    if (c === '(') depth++;
+    if (c === ')') { if (depth === 0) { out.push(cur); break; } depth--; }
+    if (c === ',' && depth === 0) { out.push(cur); cur = ''; continue; }
+    cur += c;
+  }
+  out.push(cur);
+  return out.map((t) => t.trim()).map((t) => (t.startsWith('...') ? t.slice(3).trim() : t)).filter(isIdent);
+}
+
+/** The argv and options slices of the first program-literal git spawn in a body: where a parameter may be, and where it may not. */
+function spawnSlices(body) {
+  const lit = [body.indexOf("'git',"), body.indexOf('"git",')].filter((n) => n >= 0).sort((a, b) => a - b)[0];
+  if (lit === undefined) return null;
+  const open = body.lastIndexOf('(', lit);
+  if (open < 0) return null;
+  const parts = [];
+  let cur = '';
+  let depth = 0;
+  for (let i = open + 1; i < body.length; i++) {
+    const c = body[i];
+    if (c === '(' || c === '[' || c === '{') depth++;
+    else if (c === ')' || c === ']' || c === '}') { if (depth === 0) { parts.push(cur); break; } depth--; }
+    else if (c === ',' && depth === 0) { parts.push(cur); cur = ''; continue; }
+    cur += c;
+  }
+  return { argv: parts[1] ?? '', options: parts.slice(2).join(',') };
+}
+
+/** The argv/options that send a command to ANOTHER repository — the one thing an alias must not be caught doing. */
+const REDIRECT_FLAGS = ['-C', '--git-dir', '--git-common-dir', '--work-tree'];
+const quotedIn = (body, f) => body.includes("'" + f + "'") || body.includes('"' + f + '"') || body.includes('`' + f + '`');
+
+/**
+ * Which DEFINITIONS of a source are git aliases whose commands the arm may read (M2 v98).
+ *
+ * Amendment 96 left a residual of five verbs and named its cause: a reach whose argv is a PARAMETER. Every one of
+ * those parameters is filled at a CALL SITE with a verb literal, so the verb IS in the source and the walk simply
+ * refuses to look one frame away. Looking is not free. A helper's name says nothing about WHICH repository it asks,
+ * and there are three ways to ask another one: a `-C`-style flag in the argv, a `cwd:`/shorthand `cwd` in the spawn
+ * options, and — the one the population actually uses — a parameter that arrives in the OPTIONS position, where its
+ * value is chosen by whichever call site is being read. So an alias is readable only when all three are impossible
+ * from its own bytes:
+ *
+ *   1. it reaches git through a PROGRAM LITERAL (`execFileSync('git', …)`), never through a parameter;
+ *   2. every one of its parameters appears in that call's ARGV slice, and none appears in its options slice — which
+ *      is what refuses the runner's own `git(argv, cwd)`, whose `cwd` is a location and whose callers disagree;
+ *   3. its argv holds no repository-redirect flag.
+ *
+ * The test is membership in a slice, not a flow analysis, and it is deliberately conservative in one direction: an
+ * alias that takes a location anywhere is refused even when every call site passes the graded tree.
+ */
+export function gitAliases(src) {
+  const text = String(src ?? '');
+  const defs = definitions(text);
+  const out = [];
+  const refused = [];
+  gitAliases.refused = refused;
+  for (let i = 0; i < defs.length; i++) {
+    const body = text.slice(defs[i].at, i + 1 < defs.length ? defs[i + 1].at : text.length);
+    const slices = spawnSlices(body);
+    if (!slices || !slices.argv) continue;
+    if (REDIRECT_FLAGS.some((f) => quotedIn(body, f))) continue;
+    const params = paramsOf(text, defs[i].at);
+    if (!params.length) continue;
+    if (!params.every((p) => wordIn(slices.argv, p) || wordIn(slices.options, p))) continue;
+    if (params.some((p) => wordIn(slices.options, p))) continue;
+    // A spawn options object that names a location at all is a redirect, whoever its value is: refuse the alias.
+    if (/[^A-Za-z0-9_$]cwd *[,:]/.test(slices.options)) { refused.push({ name: defs[i].name, at: defs[i].at, why: "cwd" }); continue; }
+    out.push({ name: defs[i].name, at: defs[i].at, params });
+  }
+  return out;
+}
+
+/** The first argument text of every `name(...)` call in a source, sliced by balanced parens. */
+function firstArgsOf(src, name) {
+  const out = [];
+  const needle = name + '(';
+  for (let i = src.indexOf(needle); i >= 0; i = src.indexOf(needle, i + 1)) {
+    let cur = '';
+    let depth = 0;
+    for (let j = i + needle.length; j < src.length; j++) {
+      const c = src[j];
+      if (c === '(') depth++;
+      else if (c === ')') { if (depth === 0) break; depth--; }
+      else if (c === ',' && depth === 0) break;
+      cur += c;
+    }
+    out.push(cur);
+  }
+  return out;
+}
+
+const headString = (a) => {
+  const q = a[0];
+  if (q !== "'" && q !== '"' && q !== '`') return null;
+  const end = a.indexOf(q, 1);
+  return end > 0 ? a.slice(1, end) : null;
+};
+
+/**
+ * Which git COMMANDS a source states at the CALL SITES of its own readable aliases (M2 v98).
+ *
+ * A call contributes its first argument when that is a verb literal on its own (`git('rev-parse', 'HEAD')`) or the
+ * head of an array (`gitOut(['ls-tree', …])`) — anything else, including a variable, contributes nothing, which is
+ * the whole reason this reads a parameter's USE rather than trying to trace the parameter. It feeds the byte arm's
+ * `readable` and `witness` sets and nothing else: `gitReaches` never consults it, so a row that gains readable
+ * verbs gains no reach and the plane axis cannot move.
+ */
+export function aliasGitCommands(src) {
+  const text = String(src ?? '');
+  const aliases = gitAliases(text);
+  const verbs = new Set();
+  for (const a of aliases) {
+    for (const arg of firstArgsOf(text, a.name)) {
+      const t = arg.trim();
+      const head = headString(t.startsWith('[') ? t.slice(1).trim() : t);
+      if (head !== null && GIT_SUBCOMMANDS.has(head)) verbs.add(head);
+    }
+  }
+  return { aliases: aliases.map((a) => a.name), verbs: [...verbs] };
+}
+
 /** A declaration payload is one line of free text; `·` separates the claims a row makes in it. */
 export const confessionClauses = (payload) => String(payload ?? '').split('·').map((c) => c.trim()).filter(Boolean);
 
@@ -873,13 +1007,14 @@ export const confessionClauses = (payload) => String(payload ?? '').split('·').
  *             arm's ceiling, never as a failure.
  */
 export function gradeConfession(payloads, ownText, selfSrc) {
-  const readable = new Set([...gitCommandsIn(selfSrc), ...gitCommandsIn(ownText)]);
+  const aliasVerbs = (t) => aliasGitCommands(t).verbs;
+  const readable = new Set([...gitCommandsIn(selfSrc), ...gitCommandsIn(ownText), ...aliasVerbs(selfSrc), ...aliasVerbs(ownText)]);
   const clauses = [];
   for (const p of payloads) {
     for (const clause of confessionClauses(p)) {
       const cmds = [...new Set(gitCommandsNamed(clause))];
       const helpers = [...new Set([...clause.matchAll(/\bsw\.([A-Za-z_$][\w$]*)/g)].map((m) => m[1]))];
-      const witness = helpers.length ? helpers.flatMap((h) => gitCommandsIn(selfSrc, h)) : gitCommandsIn(ownText);
+      const witness = helpers.length ? helpers.flatMap((h) => gitCommandsIn(selfSrc, h)) : [...gitCommandsIn(ownText), ...aliasVerbs(ownText)];
       const avail = [...new Set(witness)];
       const missing = cmds.filter((c) => !avail.includes(c));
       const state = !cmds.length ? 'no-command' : missing.length === 0 ? 'supported' : avail.length === 0 ? 'invisible' : 'partial';
