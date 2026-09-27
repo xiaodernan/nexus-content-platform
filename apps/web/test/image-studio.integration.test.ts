@@ -3,6 +3,7 @@ import { and, eq, inArray, sql as rawSql, type SQL } from 'drizzle-orm';
 import type { AssetRef } from '@nexus/design-model';
 import { generateDemoImage, IMAGE_AGENT_KEY, type GenerateImageOutcome } from '../src/server/domain/image-studio';
 import { listProjectAssets } from '../src/server/domain/assets';
+import { createProjectCharacter, updateCharacterProfile } from '../src/server/domain/characters';
 import { createProject } from '../src/server/domain/projects';
 import { adjustCredits, readCredits } from '../src/server/domain/credit-ledger';
 import { GENERATION_COST } from '../src/server/domain/credits';
@@ -121,7 +122,7 @@ describe('§38 Reference → Variation 打真库', () => {
     expect(typeof meta.hueAnchor).toBe('number');
     expect(Number(meta.hueAnchor)).toBeGreaterThanOrEqual(0);
     expect(Number(meta.hueAnchor)).toBeLessThan(1);
-    expect(String(meta.referenceDominant)).toMatch(/^#[0-9a-f]{6}$/);
+    expect(String(meta.anchorDominant)).toMatch(/^#[0-9a-f]{6}$/);
     expect(meta.demoMode, '变体就不是 DEMO 生成的了？').toBe(true);
   });
 
@@ -303,5 +304,122 @@ describe('§38 Text→Image 打真库', () => {
     expect(await countAssets(eq(assets.projectId, projectId))).toBe(assetsBefore);
     // 被拒的请求不该在任务列表里留下一条"从没跑起来"的账（§113 那条口径的同一面）
     expect(await imageTasks()).toBe(tasksBefore);
+  });
+});
+
+describe('§39 / §40 Character → Scene 打真库', () => {
+  /** 与上面那格同一个道理：共享余额的用例自己补足，别指望前一条会还回来 */
+  async function ensureCredits(floor: number): Promise<void> {
+    const balance = (await readCredits(userId)).balances.image;
+    if (balance < floor) {
+      await adjustCredits({ userId, kind: 'image', delta: floor - balance, reason: '用例：补足角色场景链路需要的额度' });
+    }
+  }
+
+  async function rowOf(id: string) {
+    const [row] = await getDb()
+      .select({ checksum: assets.checksum, genMeta: assets.genMeta, characterId: assets.characterId })
+      .from(assets)
+      .where(eq(assets.id, id))
+      .limit(1);
+    expect(row, `库里查不到资产 ${id}`).toBeDefined();
+    return row!;
+  }
+
+  async function counts() {
+    const db = getDb();
+    return {
+      assets: await countAssets(eq(assets.projectId, projectId)),
+      tasks: await imageTasks(),
+      ledger: (
+        await db
+          .select({ n: rawSql<number>`count(*)::int` })
+          .from(creditLedger)
+          .where(and(eq(creditLedger.userId, userId), eq(creditLedger.kind, 'image'), eq(creditLedger.source, 'generation')))
+      )[0]?.n ?? 0,
+    };
+  }
+
+  /** 建一个角色并给它视觉标识；palette 不给就是空的（§39 那一栏还没填） */
+  async function makeCharacter(name: string, palette?: string[]) {
+    const created = await createProjectCharacter(projectId, userId, { name });
+    if (!created.ok) throw new Error(`建角色失败：${created.reason}`);
+    if (!palette) return created.character;
+    const updated = await updateCharacterProfile(created.character.id, projectId, {
+      ...created.character.profile,
+      visualIdentity: { ...created.character.profile.visualIdentity, palette },
+    });
+    if (!updated.ok) throw new Error(`补视觉标识失败：${updated.reason}`);
+    return updated.character;
+  }
+
+  it('角色没有视觉标识时拒绝，一行都不许多（不拿"随便一张"冒充它的场景）', async () => {
+    await ensureCredits(20);
+    const character = await makeCharacter('没有配色的角色');
+    const before = await counts();
+    const out = await generateDemoImage({
+      projectId, userId, prompt: '在海边', width: 64, height: 64, characterId: character.id,
+    });
+    expect(out.ok, '视觉标识是空的却还生成了一张').toBe(false);
+    if (!out.ok) {
+      expect(out.code).toBe('invalid_input');
+      expect(out.message).toMatch(/视觉标识|palette/);
+    }
+    expect(await counts()).toEqual(before);
+  });
+
+  it('同一角色的不同场景共享同一个色相锚点，且资产行真的记着它属于谁', async () => {
+    await ensureCredits(20);
+    const character = await makeCharacter('阿蓝', ['#2e7d32']);
+    const sceneA = mustOk(
+      await generateDemoImage({ projectId, userId, prompt: '在雪地里', width: 128, height: 128, seed: 41, characterId: character.id }),
+      '雪地那一张',
+    );
+    const sceneB = mustOk(
+      await generateDemoImage({ projectId, userId, prompt: '在夜市里', width: 128, height: 128, seed: 41, characterId: character.id }),
+      '夜市那一张',
+    );
+    const rowA = await rowOf(sceneA.asset.id);
+    const rowB = await rowOf(sceneB.asset.id);
+    const metaA = rowA.genMeta as Record<string, unknown>;
+    const metaB = rowB.genMeta as Record<string, unknown>;
+
+    // 一致性的**可测定义**：同一角色 → 同一个由视觉标识导出的锚点；不同场景 → 不同字节
+    expect(metaA.hueAnchor).toBe(metaB.hueAnchor);
+    expect(rowA.checksum, '两个场景拿回同一份字节，等于第二个场景根本没生成').not.toBe(rowB.checksum);
+    expect(rowA.characterId, 'assets.character_id 这一列从建库起就有，但一直没有写入方').toBe(character.id);
+    expect(metaA.characterId).toBe(character.id);
+    expect(metaA.anchorDominant).toBe('#2e7d32');
+  });
+
+  it('换一个角色就是换一个锚点；两个来源同时给则拒绝', async () => {
+    await ensureCredits(20);
+    const green = await makeCharacter('绿衣人', ['#2e7d32']);
+    const amber = await makeCharacter('琥珀', ['#ff8f00']);
+    const a = mustOk(await generateDemoImage({ projectId, userId, prompt: '在屋顶', width: 64, height: 64, seed: 43, characterId: green.id }), '绿衣人');
+    const b = mustOk(await generateDemoImage({ projectId, userId, prompt: '在屋顶', width: 64, height: 64, seed: 43, characterId: amber.id }), '琥珀');
+    const metaA = (await rowOf(a.asset.id)).genMeta as Record<string, unknown>;
+    const metaB = (await rowOf(b.asset.id)).genMeta as Record<string, unknown>;
+    expect(metaA.hueAnchor).not.toBe(metaB.hueAnchor);
+
+    const before = await counts();
+    const both = await generateDemoImage({
+      projectId, userId, prompt: '两个来源', width: 64, height: 64, characterId: green.id, referenceAssetId: a.asset.id,
+    });
+    expect(both.ok, '参考图与角色同时给也放过去了').toBe(false);
+    if (!both.ok) expect(both.message).toMatch(/只能给一个/);
+    expect(await counts()).toEqual(before);
+  });
+
+  it('角色不在这个项目里时拒绝，一行都不许多', async () => {
+    await ensureCredits(10);
+    const before = await counts();
+    const out = await generateDemoImage({
+      projectId, userId, prompt: '挂在别人角色上', width: 64, height: 64,
+      characterId: '00000000-0000-4000-8000-000000000000',
+    });
+    expect(out.ok).toBe(false);
+    if (!out.ok) expect(out.message).toMatch(/不在这个项目/);
+    expect(await counts()).toEqual(before);
   });
 });

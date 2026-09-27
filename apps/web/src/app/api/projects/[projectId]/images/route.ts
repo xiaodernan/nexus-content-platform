@@ -21,6 +21,8 @@ const RequestBody = z.object({
   // 参考图按 id 给，字节由服务端自己取（带归属校验）——不接受客户端塞进来的 base64，
   // 那等于绕过摄取门喂一张没被审过的图
   referenceAssetId: z.string().min(1).optional(),
+  // §39/§40 Character → Scene：与 referenceAssetId 互斥，服务端那一侧会拒掉同时给的情况
+  characterId: z.string().min(1).optional(),
 });
 
 interface RouteContext {
@@ -47,6 +49,7 @@ export async function POST(req: Request, ctx: RouteContext): Promise<NextRespons
       height: parsed.data.height,
       seed: parsed.data.seed,
       referenceAssetId: parsed.data.referenceAssetId,
+      characterId: parsed.data.characterId,
     });
     if (!result.ok) {
       // 429 与 400 分开：额度用尽要让用户知道"这个月没了"，而不是"你请求写错了"

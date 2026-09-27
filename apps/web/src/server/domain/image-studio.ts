@@ -2,6 +2,7 @@ import type { AssetRef } from '@nexus/design-model';
 import { finishTask, startTask } from './agent-tasks';
 import { openAssetForOwner, uploadImageAsset } from './assets';
 import { refusalForRun } from './credit-ledger';
+import { listCharacters } from './characters';
 import { emit } from './notifications';
 import { synthLimitViolations, synthesizeDemoImage } from './image-synth';
 import { extractVisualDna } from './visualDna';
@@ -42,6 +43,13 @@ export interface GenerateImageInput {
    * 那样界面上点了"生成变体"，拿回的却与原图毫不相干（§159）。
    */
   referenceAssetId?: string;
+  /**
+   * §39 / §40 的 Character → Scene：为项目里的某个角色生成"它在另一个场景里"。
+   * 色相锚点取自角色档案的 `visualIdentity.palette`（§39 那一栏），所以同一角色的不同场景
+   * 共享同一份色调身份——这一条是**可测的**，不是"尽量保持一致"那句口号。
+   * 与 `referenceAssetId` 互斥：两个来源同时给，就等于说不清这张图是照谁画的。
+   */
+  characterId?: string;
 }
 
 export type GenerateImageOutcome =
@@ -103,12 +111,39 @@ export async function generateDemoImage(input: GenerateImageInput): Promise<Gene
   const height = input.height ?? DEFAULT_EDGE;
   const seed = input.seed ?? 0;
 
-  // 参考图先解析再谈额度：解析失败是一次输入错误，不该留下一行任务、也不该碰额度
+  // 参考图/角色先解析再谈额度：解析失败是一次输入错误，不该留下一行任务、也不该碰额度
+  if (input.referenceAssetId && input.characterId) {
+    return {
+      ok: false,
+      code: 'invalid_input',
+      message: '参考图与角色只能给一个：两个来源同时给，就说不清这张图是照谁画的',
+    };
+  }
   let anchor: { hue: number; dominant: string } | null = null;
   if (input.referenceAssetId) {
     const measured = await hueAnchorOfReference(input.referenceAssetId, input.userId);
     if (!measured.ok) return { ok: false, code: 'invalid_input', message: measured.message };
     anchor = { hue: measured.hue, dominant: measured.dominant };
+  } else if (input.characterId) {
+    const roster = await listCharacters(input.projectId);
+    const found = roster.items.find((c) => c.id === input.characterId);
+    if (!found) {
+      return {
+        ok: false,
+        code: 'invalid_input',
+        message: `角色 ${input.characterId} 不在这个项目里${roster.unreadable.length ? `（另有 ${roster.unreadable.length} 个角色档案读不动）` : ''}`,
+      };
+    }
+    const palette = found.profile.visualIdentity.palette;
+    const first = palette.find((color) => /^#[0-9a-f]{6}$/i.test(color));
+    if (!first) {
+      return {
+        ok: false,
+        code: 'invalid_input',
+        message: `角色「${found.profile.name}」还没有可用的视觉标识：palette 是空的。先补 §39 那一栏，再来生成它的场景`,
+      };
+    }
+    anchor = { hue: hueOfHex(first), dominant: first };
   }
 
   const issues = synthLimitViolations({ prompt: input.prompt, width, height, seed, hueAnchor: anchor?.hue });
@@ -132,6 +167,7 @@ export async function generateDemoImage(input: GenerateImageInput): Promise<Gene
       height,
       seed,
       ...(input.referenceAssetId ? { referenceAssetId: input.referenceAssetId } : {}),
+      ...(input.characterId ? { characterId: input.characterId } : {}),
     },
   });
 
@@ -147,6 +183,7 @@ export async function generateDemoImage(input: GenerateImageInput): Promise<Gene
     filename: nameOf(input.prompt),
     createdById: input.userId,
     source: 'generated',
+    ...(input.characterId ? { characterId: input.characterId } : {}),
     genMeta: {
       prompt: input.prompt,
       provider: synth.genMeta.provider,
@@ -156,10 +193,11 @@ export async function generateDemoImage(input: GenerateImageInput): Promise<Gene
       width: synth.width,
       height: synth.height,
       taskId,
-      // 事后要能看出这一张是"以哪张图为参考、用了它哪个主色量的色相"，
-      // 而不是只写着 prompt——否则变体与原图的关系只存在于界面上
+      // 事后要能看出这一张是"以哪张图/哪个角色为来源、用了它哪个主色量的色相"，
+      // 而不是只写着 prompt——否则变体与原图（或场景与角色）的关系只存在于界面上
       ...(input.referenceAssetId ? { referenceAssetId: input.referenceAssetId } : {}),
-      ...(anchor ? { hueAnchor: anchor.hue, referenceDominant: anchor.dominant } : {}),
+      ...(input.characterId ? { characterId: input.characterId } : {}),
+      ...(anchor ? { hueAnchor: anchor.hue, anchorDominant: anchor.dominant } : {}),
     },
   });
   if (!ingested.ok) {

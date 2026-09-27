@@ -1965,3 +1965,20 @@ Sketch → Image、Image → Image、Character → Scene 三条箭头；真 prov
   ② 图层行只在"图层"那一栏里存在，切到设计系统栏之后再查 `[data-layer-id]` 必然为空。
   **跨面板取句柄的顺序必须是：先拿 id，再换栏。**
 - 仍未做：把实例"重置为主组件""变体切换"接进界面（§13 的 override 那半），以及从组件目录一键实例化到当前页。
+
+**再补：§39 / §40 的 Character → Scene（同日第四格）**
+- 需求 §39 要的是"用户建一个角色，系统存 identity/appearance/style/clothing/traits，后续生成**同一个角色在不同场景里**，
+  尽可能保持视觉一致"。角色档案那一半早就有了（§46 那一格），但**"不同场景"这一半没有生成入口**，
+  而且 `assets.character_id` 这一列从 0000 建库起**没有任何写入方**——一列没人写的真值就是文档里的装饰。
+- 现在 `generateDemoImage` 认 `characterId`：色相锚点取自角色档案的 `visualIdentity.palette`（第一个合法十六进制色），
+  资产行写入 `characterId`，`genMeta` 记 `characterId / hueAnchor / anchorDominant`。
+  于是"视觉一致"第一次有了**可测的定义**：同一角色的不同场景 → 同一个锚点 + 不同字节；换一个角色 → 换一个锚点。
+  三条拒绝路径都留得住：档案 palette 是空的（不拿"随便一张"冒充它的场景）、角色不在这个项目里、
+  参考图与角色同时给（两个来源同时给就说不清这张图是照谁画的）——**都在写任务行与扣点之前**，三个计数一个都不许多。
+- 验证：`image-studio.integration.test.ts` 新增 4 条，与原有 7 条一起 **11 条全过**。
+  变异探针：把"量出来的锚点喂给合成器"那一行删掉 → **红 2 条**（一致性那条 + 换角色换锚点那条），
+  另 9 条保持绿；探针跑完用 `git diff` 核对过还原。
+  顺带把 `referenceDominant` 改名成 `anchorDominant`——现在两种来源（参考图 / 角色）都写这一格，旧名字会谎报来源。
+- 仍未做：角色场景的界面入口（角色面板上那个"生成它的场景"按钮 + e2e）、§40 其余三条
+  （Text → Video / Image → Video / Storyboard → Video）、以及"clothing/traits 真的参与画面"这件事——
+  今天的锚点只用到 palette 一栏，其余字段仍只进文本上下文。

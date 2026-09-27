@@ -84,6 +84,11 @@ export async function uploadImageAsset(
     source?: 'upload' | 'generated';
     /** 生成来源的元信息（prompt / provider / model / seed / demoMode / taskId） */
     genMeta?: Record<string, unknown>;
+    /**
+     * 这张图归属于哪个角色（§39 的"角色在别的场景里"）。`assets.character_id` 这一列
+     * 从建库起就有但从来没有写入方——一列没人写的真值就是文档里的装饰，所以这次接上。
+     */
+    characterId?: string;
   },
 ): Promise<UploadResult> {
   const bytes = input.data instanceof Uint8Array ? input.data : new Uint8Array(input.data);
@@ -118,6 +123,8 @@ export async function uploadImageAsset(
     .from(assets)
     .where(and(eq(assets.projectId, projectId), eq(assets.checksum, checksum)))
     .limit(1);
+  // 复用那一行时**不**改写它的 character_id：字节相同就是同一张图，归属仍是第一次写入它的那个角色，
+  // 调用方从 `reused` 就知道这一张没有新建行
   if (twin) return { ok: true, asset: assetRowToRef(twin), removed: removedMetadataOf(twin), reused: true };
 
   const id = randomUUID();
@@ -137,6 +144,7 @@ export async function uploadImageAsset(
       height: size?.height ?? null,
       checksum,
       source: input.source ?? 'upload',
+      characterId: input.characterId ?? null,
       // removedMetadata 放在最后：它是这道摄取门的回执，不接受调用方覆盖
       genMeta: { ...input.genMeta, removedMetadata: sanitized.removed },
       createdById: input.createdById ?? null,
