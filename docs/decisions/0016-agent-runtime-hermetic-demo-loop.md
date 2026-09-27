@@ -5017,3 +5017,64 @@ Measured at the gate commit 41f002e: ledger headings 107, record corpus 94 files
 citations 0, no mention at all 0, no record TITLE 2 [21, 108], explicit citations surviving only in code
 2 (4, 5), §5 4/4, graded-tree digest 0d70b33a074e stable across the run, row exit 0.
 
+### Amendment 113 (M2 v113, docs/evidence) - a record title is POSITIONAL: the line that opens a module titles it, its abstract does not, and the newest grant is refused when nothing titles it
+
+Amendment 112 moved §7's one-sided axis from "is this number mentioned anywhere" to "does any record
+carry this number as its TITLE", because the old axis closed itself the moment the README wrote a
+sentence about an unclosed finding. The new axis kept one seam of the same disease: the title reader
+for a `.mjs` record took ANY comment line among the first eight. Measured at 98474bb, header comment
+blocks in this population run from 0 to 50 lines wide and 50 of 78 modules go past line 8, so "eight"
+was a fact about how far the reader was willing to scroll and nothing about what a title is. A deeper
+line of a header is the module's ABSTRACT, and an abstract is prose in a smaller font.
+
+The window's damage was not hypothetical, and it was found by reading the hole the door itself
+reported. Under the window, amendment 82 looked recorded: its only title credit was
+`docs/evidence/agents/drive-axis-proof.mjs:4`, `// v81 built a CLEAN CHECKOUT of the ref, v82 made
+its build verdict quotable, v83 said which BUILD a child cwd grades …` — one sentence reciting three
+increments, which is exactly the shape 112 refused in a README paragraph. Read positionally (the
+comment line that OPENS the module, after an optional shebang), the hole goes from `[21, 108]` to
+`[21, 82, 108]` and NO number gains a credit it did not already have: the rule only removes. The
+witness in the row re-opens the reader with the window and names the chain it had to drop, so the
+claim "a window titles by prose" is recomputed every run rather than remembered from this amendment.
+
+What the rule deliberately is NOT: "a title names one increment". That was the obvious generalisation
+and it is false in this repository — 34 title lines credit more than one granted number, including
+proofs whose genuine opening line is `// NEXUS M2 v12+v25+v27 — QA→repair closed-loop proof` and the
+README's own line 1. A door may not refuse what the population contradicts without inventing a
+different population, so the separator is POSITION and nothing else; the row asserts that
+multi-grant titles still exist (9 under the positional rule) so the comment above that choice cannot
+quietly rot into a claim the tree stopped supporting.
+
+Two defects the change exposed, both closed here rather than deferred. First, the report line
+described each hole as "prose in c.site.get(n)", where `site` is built only from EXPLICIT `amendment
+N` citations — so for 82, which no file cites by that grammar but three files version-label, the door
+printed "no citing file". A wrong sentence about a real finding is the species this arc keeps meeting,
+so `credit(n)` now names the grammar that found the credit ("cited by", "carried only by the version
+label in", "carried by no file outside the ledger"), and the census edit hook reaches every corpus
+file instead of only the README — the moment the hook was general, the strip arm's subject moved to
+`docs/evidence/studio/README.md`, which the README-only hook could never have reached.
+
+Second, the one-sided direction had no teeth at all: 112 said "named here, refused by a later cycle",
+and a later cycle always had a newer hole to name. The refusal now applies to exactly one number —
+the NEWEST grant in the ledger — because that is the one number whose author is the cycle holding the
+bytes that would title it, so refusing it costs no invented record. Older holes stay named and
+unrefused for 112's reason: writing a record for an increment this row did not perform is a record
+invented instead of read, which is amendment 90's title. Measured scanning down from the newest under
+the positional rule: 112, 111, 110, 109 are titled and 108 is not — so this door, had it existed,
+would have reddened the cycle that entered amendment 108 in the ledger and never wrote its record,
+and 108 sits in the hole today as the finding it left behind. The refusal is a pure function of a
+census, so the mutation arm can ask a MONOTONE question of a mutant: scrub the newest grant's title
+line(s) in memory and the refusal reads `unrecordedNewest:112` while the hole gains 112; nothing about
+the tracked tree changes, and the arm asserts its own subject exists before it pronounces its fate.
+
+Honest bounds. This is a door about DOCUMENTS, on the same two planes as every other evidence row: it
+grades the bytes of the ref the runner materialises, and it is silent about whether a record is
+ACCURATE — a titled record that misdescribes its increment passes this door, and only the row that
+re-runs the proof catches a lie about behavior. The refusal guards one position (the newest grant),
+not the ledger's history; three holes (21, 82, 108) remain open by design and are printed in full
+with what each one currently has. And the positional rule is a rule about THIS population's file
+kinds: a doc title is a heading at any level, a module title is its opening comment line, and a `.mjs`
+whose line 1 is a shebang is titled at line 2 — measured here as 76 of 78 modules opening with a
+comment directly, one behind a shebang, and one (`docs/evidence/lib/syncproc.mjs`) opening with a
+block comment and therefore holding no title at all, which costs no grant today because nothing is
+titled there.

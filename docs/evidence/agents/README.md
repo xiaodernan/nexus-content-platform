@@ -3080,3 +3080,33 @@ satisfiable by its own report; and the README heading that is the SOLE title for
 digit scrubbed, so the hole gains exactly that number back (measured: heading 541, amendment 20) while
 dangling does not move.
 
+## Record titles are positional, and the newest grant must have one (table-recount-proof.mjs §7, M2 v113 - ADR 0016 amendment 113)
+
+Amendment 112 made §7 ask "does any record carry this number as its TITLE" instead of "is the number
+mentioned anywhere", and left the `.mjs` half of that reader reading any comment line among a module's
+first eight. This section closes that seam. A module's title is the comment line that OPENS it (line 2
+when line 1 is a shebang): below that line the header block becomes the module's abstract, and an
+abstract that recites "v81 did this, v82 did that, v83 did the other" is one sentence about three
+increments, not a record for any of them. That sentence was real — it is `drive-axis-proof.mjs:4`, and
+under the window it made amendment 82 look recorded. Read positionally the hole is 21, 82, 108 and
+nothing gains a title it did not already have, because the rule only removes.
+
+The rule is about POSITION and never about a count, and the row says so with a measurement rather than
+with confidence: 34 title lines in this tree credit more than one granted number, including proofs
+whose real opening line names three of them. So a door that refused "titles" for naming two increments
+would be refusing the population's normal style. What it refuses is narrower and affordable: the
+NEWEST grant in the ledger must carry a title somewhere in the corpus, because that is the one number
+whose author is the cycle currently holding the bytes. Scanning down from the top, 112, 111, 110 and
+109 are titled and 108 is not — which is what the refusal would have caught at its own commit, and why
+108 is a finding rather than a pass. Older holes stay NAMED in full with what each one has (a citation,
+a version label, or nothing) and are not refused here: a record for an increment this row did not
+perform would be a record invented, and that is exactly what amendment 90's title warns a table author
+against.
+
+Two author-facing consequences, since this door judges how the next record is written. A record title
+must carry its increment's VERSION LABEL: the ledger's house style is a heading of the shape
+"Amendment 21 — v21: …", the em dash makes the citation grammar refuse the phrase, and the `v21` is
+what actually credits it — so a README section titled only with a dash-ended amendment number stays
+unrecorded in this door's eyes. And a sentence about a hole no longer counts as its record: writing
+"amendment N has no record yet" into the README moves the number's credit but never its title, which
+is the difference between reporting a finding and closing one.
