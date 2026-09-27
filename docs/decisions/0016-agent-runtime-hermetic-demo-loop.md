@@ -4916,3 +4916,45 @@ Measured at `ad8502b`: 73 scripts · 42 failed · 0 killed · 266 s, graded buil
 - **Still open:** #142 (a sweep must say whether the tree it runs from erases the shared record) and #161 (a door
   that refuses an ADR amendment with no README section, pre-measured: the ADR carries two heading grammars, so the
   naive rule would invent three false holes).
+
+### Amendment 111 (M2 v111, docs/evidence) - the ledger grants numbers, and nothing in this directory had ever checked whether a record kept up
+
+The ADR is the only place an amendment number is ISSUED. Two defects live in that gap and no gate saw either:
+a tracked file citing a number the ledger never granted, which sends its reader to a record that does not exist,
+and an amendment the ledger claims that nothing outside the ledger repeats. The first is refused from this
+commit on; the second is named in full and left unrefused until its record can be written honestly.
+
+Measured at this landing: 106 headings, a record corpus of 94 files (docs/evidence plus docs/ROADMAP.md, with
+docs/decisions excluded because each ADR numbers its own amendments and counting them would manufacture a
+dangling defect out of a legitimate cross-ADR citation), dangling explicit citations 0, one-sided claims 1,
+and 2 amendments whose explicit citations survive only in code. §5 stayed 4/4 and the graded-tree digest 8c0d37f8af1fe511 held across the run.
+
+The defect the door found was in a shipped proof line 1: it cited a number in the sixties that the ledger
+narrates as never granted - it existed only in a stale working copy - while README names amendment 87 as the
+record that owns that proof. Both header lines are retargeted, and the module itself is untouched.
+
+What the text taught about the grammar, twice over: a version label is not a citation (a doc writing
+M2 v0-v14 does not claim an amendment 0), and a prose chain is not a pointer (am. 4-5 and am. 74-77 name a
+span), so a number followed by a dash is refused nowhere. The first draft refused two ROADMAP range endpoints
+and was corrected by reading them rather than by narrowing the rule.
+
+The mutation that renumbers a heading had to be rebuilt twice. First it was a NO-OP dressed as a witness:
+the regex was assembled from a template literal, where "\b" is a backspace and "\d" is the letter d, so it
+matched nothing and §7 correctly refused to report a caught mutation. Then it targeted the newest heading,
+and what a door needs is a heading some record CITES - renaming an uncited number orphans nothing. Renaming
+a cited one is now proven to rewrite exactly one line before any verdict is claimed.
+
+The one-sided direction stays report-only on purpose. Amendment 21 (host-verified UI runs plus ledger
+journaling) is claimed by the ledger and repeated by no doc or proof in the corpus; authoring its record here
+would be writing an account of an increment this row did not perform. So the console line carries its heading
+text verbatim, and the refusal waits for a cycle that can read the record out of the ledger.
+
+The landing script itself is part of the record: it cited amendment 111 in the header it retargets, so the new
+door reddened on its own repair (the corpus contains the file the repair edits), and it wrote utf8-decoded
+strings out under encoding binary, which truncates every non-ASCII byte in a repo whose prose is full of them.
+The append guard - refuse unless the shared doc diff deletes zero lines - is what turned that into a red stop
+instead of a committed rewrite of two shared documents.
+
+Owed, and not run inside this cycle: a detached full sweep at the record ref, predicted at the gate commit -
+73 rows unchanged, plane axis 262 sites program=117 argv=145, confession 9-0-4 MIS-CITED 0, self-report
+GIT 0 NO-GIT 5 mute 68, echo 1/1/0/0, and table-recount-proof green inside the run.

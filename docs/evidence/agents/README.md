@@ -3026,3 +3026,18 @@ carries `[§0] plane NO-GIT` and `[§11]` before the HEAD sections fail for thei
 `24589f2` then confirmed every predicted number — 73 rows, 42 failed, 0 killed, `GIT 0 · NO-GIT 5 · mute 68`,
 echo `1/1/0/0`, plane axis 262 sites `program=117 argv=145`, confession `9 · 0 · 4` with `MIS-CITED 0` — and the row
 whose silence started all this now appears as a red that prints.
+
+## The ledger and the records that cite it (table-recount-proof.mjs §7, M2 v111 - ADR 0016 amendment 111)
+
+A doc table is a claim (amendment 91), and so is a ledger. §7 enumerates the ADR amendment headings (106,
+addendum lines excluded) against the record corpus - docs/evidence plus docs/ROADMAP.md, 94 files, with
+docs/decisions excluded because each ADR numbers its own amendments - and refuses any explicit citation of a
+number the ledger never granted. Measured at this landing: dangling 0, after policyaudit-proof line 1 was
+retargeted to the amendment that actually owns that proof; one-sided 1 (Amendment 21, named on the console line
+and NOT refused until its record can be read out of the ledger rather than invented); and 2 amendments whose
+explicit citations survive only in code, never in a doc. Two grammars are kept apart because the text demanded
+it: amendment N and am. N point at a record, while a version label (M2 v0-v14) or a prose range (am. 4-5) does
+not, and treating either as a pointer manufactures defects in healthy docs. §7 mutates both directions: a
+fabricated citation must be named dangling, and renumbering a CITED heading must leave its citations dangling
+while the new number appears one-sided - gaining exactly the baseline entry, and proving first that the
+mutation rewrote exactly one line, because a mutation that matches nothing is not evidence of anything.
