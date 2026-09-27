@@ -260,4 +260,29 @@ assert.equal(finalHead, homeHead, 'the home repository\'s HEAD is byte-identical
   console.log(`[§9] supplied plane measured on three directory shapes: ${['plain', 'indexed', 'linked'].map((d, i) => `${d}=${probed[i]}`).join(' · ')} · reconciliation names ${onBare.agree.length} agreement and ${onBare.contradict.length} contradiction against a supplied NO-GIT, and the pair flips under a supplied GIT (${onIndex.agree.length}/${onIndex.contradict.length}), with the wire into runProof asserted out of the committed runner`);
 }
 
+// --- §10 the supply is echoed back, and the echo is compared (M2 v105) ---
+// v104 handed every child a fact it had never been asked for. A hand-off nobody confirms is decoration — the runner
+// could be writing into an environment the child never reads, and the log would still say SUPPLIED NO-GIT — so a row
+// now repeats the marker back in its own first lines and `planeCensus` compares the two words.
+{
+  const rows = [
+    { name: 'a/agree-proof.mjs', head: '[§0] plane NO-GIT · supplied NO-GIT · 75 tracked .mjs' },
+    { name: 'b/lost-proof.mjs', head: '[§0] plane GIT · supplied ABSENT' },
+    { name: 'c/silent-proof.mjs', head: '[§0] plane GIT · no echo at all' },
+  ];
+  const c = sw.planeCensus(rows, 'NO-GIT');
+  assert.deepEqual(c.echo, ['agree-proof.mjs', 'lost-proof.mjs'], 'the echo set is who repeated the marker, not who mentioned a plane — the two channels have to stay distinguishable');
+  assert.deepEqual(c.echoAgree, ['agree-proof.mjs echoes NO-GIT against a supplied NO-GIT'], 'an echo that matches the supply is the only case that should be booked as confirmation');
+  assert.deepEqual(c.echoLost, ['lost-proof.mjs printed ABSENT — the marker never reached the child'], 'a row that says ABSENT is reporting a failed hand-off, and it must not be counted as agreement with a supply it never received');
+  assert.deepEqual(c.echoContradict, [], 'no row contradicted the supply in this fixture set, so the bucket must be empty rather than fed by a mislabelled case');
+  assert.equal(c.GIT.length + c['NO-GIT'].length + c.mute.length, rows.length, 'the self-report census still has to sum to the rows given');
+  const againstNothing = sw.planeCensus([{ name: 'd/x-proof.mjs', head: 'supplied GIT' }], null);
+  assert.deepEqual(againstNothing.echoContradict, ['x-proof.mjs echoes GIT but the runner supplied nothing'], 'an echo with no supply on this plane is a contradiction, not a free pass — the case that keeps §9’s "nothing supplied" rule honest (the census names rows by basename, as the log line does)');
+
+  const confessing = (await sw.gitText(['show', 'HEAD:docs/evidence/agents/confession-proof.mjs'], root)).replace(/\r\n/g, '\n');
+  assert.ok(/supplied \$\{process\.env\.NEXUS_PROOF_TREE \|\| 'ABSENT'\}/.test(confessing), 'the row that is supposed to echo the marker no longer does — the runner\u2019s new line would then be comparing nothing, which is exactly how a channel goes quietly empty');
+  assert.ok(/env: \{ \.\.\.process\.env, NEXUS_PROOF_TREE: suppliedPlane\(cwd\) \}/.test((await sw.gitText(['show', 'HEAD:docs/evidence/agents/sweep.mjs'], root)).replace(/\r\n/g, '\n')), 'the hand-off was removed from the row spawn while the echo stayed, so every row would report ABSENT and the comparison would look like a bug in the rows');
+  console.log(`[§10] echo channel: ${c.echo.length} of ${rows.length} fixtures repeated the marker (${c.echoAgree.length} confirms, ${c.echoLost.length} reports ABSENT, ${c.echoContradict.length} contradicts) · an echo with no supply counts as a contradiction · both ends of the wire asserted out of the committed bytes`);
+}
+
 console.log('\n[summary] identities checked: dist digest (2 files, path-keyed, moves on a byte and on a rename) · proof population ' + rows.length + ' with ' + disagrees + ' ref/worktree divergences re-hashed by a second reader · run-path outcomes exercised: green/red/timeout/exit-7 + ' + smallest.name.split('/').pop() + ' through the materialised path · HEAD unmoved');
