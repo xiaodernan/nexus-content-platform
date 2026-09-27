@@ -48,6 +48,14 @@ export interface CharacterProfile {
   relationships: CharacterRelationship[];
   voice: CharacterVoice;
   visualIdentity: CharacterVisualIdentity;
+  /** §39：稳定不变的那部分——五官、疤痕、标记。换场景换衣服也不改这一栏 */
+  identity: string;
+  /** §39：画这个角色的方式（渲染/笔触/媒介），与"长什么样"分开存 */
+  style: string;
+  /** §39：穿什么。场景之间可以换，但换过要记下来，下一张才接得上 */
+  clothing: string;
+  /** §39：几个短标签式的显著特征，供检索与生成时点名 */
+  traits: string[];
 }
 
 export interface Character {
@@ -97,6 +105,10 @@ export function emptyProfile(name = ""): CharacterProfile {
     relationships: [],
     voice: { register: "", pace: "", catchphrases: [], notes: "" },
     visualIdentity: { palette: [], silhouette: "", motifs: [], referenceAssetId: null },
+    identity: "",
+    style: "",
+    clothing: "",
+    traits: [],
   };
 }
 

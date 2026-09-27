@@ -60,6 +60,8 @@ Pages · Layers · Components · Assets · Variables · Design System · AI Agen
   下拉旁边那句"接没接"直接读 `GAME_KIND_STATUS[kind].note`——面板自己判断一遍，
   就会和分派点说两套话（这里说能玩、点进去是空场子，正是 §159 禁止的那种谎）
 - Characters 面板（§46）编辑角色档案：名字 / 外观 / 性格 / 背景 / 目标 / 恐惧 / 关系 / 声音 / 视觉标识。
+  档案字段与 §39 对齐：identity / appearance / style / clothing / traits 五栏都有存储，
+  面板上前三栏有输入口（traits 还欠）；旧档案缺这几栏时按空值读出，不会变成"读不出来"。
   建档只给名字，其余留空（AI 生成设定要真 provider，不塞假性格）；关系从世界条目的下拉里选目标，不手抄 id。
   保存是显式的：角色编辑不进画布的 Ctrl+Z 栈，自动保存会把没写完的档案写进库而撤销救不回来。
   档案里没有 memory 字段——记忆是 §48 的独立存储，放个文本框就会造出第二个真值

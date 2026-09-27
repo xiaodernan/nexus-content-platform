@@ -2046,3 +2046,23 @@ Sketch → Image、Image → Image、Character → Scene 三条箭头；真 prov
 凭证：集成用例新增一条断言"库里写入了归属角色，清单投影必须读得出来"，
 变异探针把那一行映射删掉 → **红正好这一条**（另 10 条保持绿），11 条一起过；`tsc` 干净。
 浏览器那一半也补了凭证：`e2e/character-scene.spec.ts` 现在断言卡片上有「角色场景」标记，**1 passed（21.5 秒）**。
+
+## §39 点名的四栏终于有地方存了（2026-09-27）
+需求原文写着"用户创建 Character A，系统保存 identity / appearance / style / clothing / traits"。
+档案里过去只有 `appearance` 对得上，**identity / style / clothing / traits 四栏根本没地方放**——
+不是"还没填"，是类型里没有这一栏，用户在面板上找不到输入口，检索与生成也拿不到。
+- `CharacterProfileSchema` 加这四栏（`traits` 是短标签数组），**每一栏都带 `.default()`**：
+  库里已有的档案没有这几栏，不补默认值的话旧行在载入时解析不过去，
+  面板上表现成"这个角色读不出来"——那是数据被界面弄丢，不是契约在把关。
+- `world-model` 的 `CharacterProfile` 接口与 `emptyProfile` 同步；建档时这四栏是空串/空数组，
+  但**在**（不是 `undefined` 冒充"有这一栏"）。
+- 角色面板多了三个输入口：身份（不变的那部分）、穿着、画风/媒介。
+- 验证：新文件 `character-fields.integration.test.ts` 3 条 —— 建档时四栏为空但在、
+  **写进库再从库里重新读回来四栏一个字不丢**（不看 update 自己回给的那份内存对象，直接查 jsonb）、
+  手工抹掉 jsonb 里那四栏模拟加字段之前的旧行，仍然读得出来且 `unreadable` 为空。
+  变异探针：把 `clothing` 的 `.default('')` 去掉 → **红第三条**，消息就是"旧行读不出来"，
+  证明那个默认值不是装饰；还原后 `character-fields + characters` 两个文件 **10 条全过**。
+  `npm run typecheck` 七个工程干净（没有一处字面量构造档案被这次改动打破）。
+- 仍未做：`traits` 的界面输入口（面板上还没有那一栏）；把这四栏喂进 §39 的正题——
+  **生成时真的按 identity/clothing/style 保持一致**（今天角色场景的锚点只用 palette 一栏），
+  以及 knowledge / RAG 文本里带上这四栏（现在检索命不中"穿靛蓝斗篷的那个角色"）。

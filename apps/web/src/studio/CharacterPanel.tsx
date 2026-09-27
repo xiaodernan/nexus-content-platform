@@ -158,7 +158,7 @@ export function CharacterPanel() {
     }
   };
 
-  const textField = (key: 'name' | 'appearance' | 'personality' | 'backstory', label: string, multiline = false) => (
+  const textField = (key: 'name' | 'appearance' | 'personality' | 'backstory' | 'identity' | 'style' | 'clothing', label: string, multiline = false) => (
     <label className="block">
       <span className="mb-[2px] block text-11 text-fg-3">{label}</span>
       {multiline ? (
@@ -280,6 +280,9 @@ export function CharacterPanel() {
           <div className="flex flex-col gap-2" data-character-editor={selected.id}>
             {textField('name', '名字')}
             {textField('appearance', '外观', true)}
+            {textField('identity', '身份（不变的那部分：五官 / 疤痕 / 标记）', true)}
+            {textField('clothing', '穿着')}
+            {textField('style', '画风 / 媒介')}
             {textField('personality', '性格', true)}
             {textField('backstory', '背景故事', true)}
             {listField('goals', '目标')}

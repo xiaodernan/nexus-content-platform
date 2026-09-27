@@ -1020,6 +1020,13 @@ export const CharacterProfileSchema = z.object({
     motifs: z.array(z.string().trim().min(1).max(500)).max(100),
     referenceAssetId: z.string().max(128).nullable(),
   }),
+  // §39 点名的四栏：identity / style / clothing / traits。
+  // 全部带 default——库里已有的档案没有这几栏，不用 default 的话旧行在载入时就解析不过去，
+  // 而"解析不过去"在面板上表现成"这个角色读不出来"，那是数据被界面弄丢，不是契约在把关。
+  identity: z.string().max(8000).default(''),
+  style: z.string().max(2000).default(''),
+  clothing: z.string().max(8000).default(''),
+  traits: z.array(z.string().trim().min(1).max(500)).max(100).default([]),
 });
 
 export const CharacterSchema = z.object({
