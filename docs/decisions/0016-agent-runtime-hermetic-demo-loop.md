@@ -4288,3 +4288,125 @@ disagreement is written down rather than smoothed over.
 
 - **Siblings re-run at the doc ref, all exit 0.** `confession-proof` §7 reports its seven cases including `(g) the arm-less grammar at 5551327 hides (a) and invents (b), both reproduced here`; `plane-axis` holds 51 predicted askers / 6 prose-only mentions / 5 named blind-spot rows / 0 rows binding the program name to a variable; `asks-axis` holds 73 scored rows, 4 declaring, 1 corroborated, 3 visible only to the row, 22 grammar cases; `closure` is ALL GREEN. `table-recount` reports 629 tracked cases in 34 files with 4/4 table mutations caught, and its graded-tree digest MOVED `ae25159732bc8982 → 184d29ac41596346` — correctly, for the first time in three cycles, because this commit edits a graded file.
 - **The desync no census could see, stated precisely.** The file the v96 probe flagged first is `table-recount-proof.mjs:104`: its markdown-table pattern is written OUT of backticks, so the arm-less walk opened a template literal there and inverted every quote pairing after it, while the fixed walk skips the pattern. Neither grammar sees a second reach in that file — one program reach, no verb, before and after, measured this cycle by replaying the pre-v97 bytes against the shipped ones over that one file. So a three-row, `+1 −1 +1` census movement is complete and correct here, and it would have looked EXACTLY the same if a fourth file had been inverted end to end while every total stayed put. Counts cannot tell those two apart; a per-file replay can, which is why this record cites the replay and not the arithmetic. It matters for #152 concretely: the row whose desync netted zero is the row whose five claims the strict alias rule predicts will become readable, so its bytes are about to be re-read by a rule its own file once fooled.
+
+### Amendment 98 (M2 v98): the ceiling was reported as a naming convention, and it was a frame the arm never opened — reading a git verb through a same-file alias, and only through an alias that cannot change repositories
+
+Amendment 96 closed with a split: of the nine `invisible` confessions, none was mis-cited, and the rest sat on
+five `dead` verbs — `{diff, ls-tree, rev-parse, show, status}` — verbs no readable frame named. The stated reason
+was "every reach carries its verb through a wrapper that takes a PARAMETER", and the stated remedy was that only
+CODE naming its literal at a call site could lift it. That reason was half true and the remedy was never tried,
+because the premise was wrong in a checkable way: **a parameter-taking wrapper is called somewhere with a literal.**
+`table-recount-proof.mjs` declares five verbs and its own bytes do name all five — at the calls
+`git('rev-parse', '--show-toplevel')`, `git('show', 'HEAD:docs/…')`, and so on. The arm could not see them because
+it only ever looked at a spawn frame's own argv, and that argv was the parameter.
+
+So the arm now opens one frame: a same-file helper whose body spawns git is an ALIAS, and a call site that passes a
+string literal names a verb the arm may read. Everything of substance here is the refusal that surrounds that
+sentence, because a helper's NAME says nothing about WHICH repository it asks. A row may prove something about a
+throwaway repo and about this one in the same file, and a census that read both as "this row asks the repository"
+would be inventing a claim about the real tree from a command aimed at a scratch directory. Three doors, any one of
+which makes the alias unreadable:
+
+- a redirect flag anywhere in the helper's body as a quoted string — `-C`, `--git-dir`, `--git-common-dir`,
+  `--work-tree`;
+- any `cwd` key in the spawn's options object, written either way (`{ cwd }` shorthand or `{ cwd: root }`);
+- a parameter arriving in the OPTIONS position, which is how a wrapper lets its CALLER choose the directory.
+
+Two unsound rules were rejected by measurement before this one shipped, and they are worth recording because each
+failed in the direction that would have flattered the arm. The first read every same-file alias: it read the
+runner's own `git(argv, cwd)` and thereby recovered verbs for rows that ask the repository only via a checkout the
+runner chose — and it did so because shorthand `{ cwd }` does not contain the text `cwd:`, which is the only shape
+the naive check looked for. The second required a `cwd:` key and matched a literal value: it invented
+`init`/`config`/`add`/`commit` for rows whose `{ cwd: root }` points at a scratch repo they created themselves.
+The shipped rule is the intersection that survives both: an alias is readable only when its parameters all reach
+the ARGV (never the options) and its body contains no location at all.
+
+What the population looks like under it, with no row edited to flatter the checker: **2 of the 73 rows** carry a
+readable alias — `table-recount-proof.mjs`'s rest-parameter `git` and `bridge-report-proof.mjs`'s `gitText`, both
+with no location anywhere in their bytes. `table-recount`'s five clauses went from `invisible` to `supported`, and
+§8 of `confession-proof.mjs` pins that they are supported by the alias arm ALONE, since that row names zero verbs at
+a direct spawn frame. The census moved `supported 4 → 9 · invisible 9 → 4`, `MIS-CITED` stayed `0`, and the ceiling
+fell from five verbs to three: `{ls-tree, rev-parse, show}`.
+
+
+The three verbs that remain are the finding this increment did not expect. `gitAliases` filters candidates in
+order, and the runner's own wrapper — `const git = (argv, cwd) => execFileSync('git', argv, { cwd, … })` — is
+dropped by the third door, "a parameter in the options position", which returns silently; only the `cwd`-key door
+pushes onto a `refused` list. So the arm can enumerate the aliases it looked at and declined, and cannot enumerate
+the helpers it never classified as aliases at all. That is a ceiling with two faces, and the census has been
+showing one of them. Measured over the population with the shipped code: 2 rows readable, **8 rows recorded as
+refused** — `asks-axis`, `confession`, `door-kill`, `isolated`, `pipes`, `plane-axis`, `provenance`, `streams`, each
+with `why: 'cwd'` — and every other git wrapper in the tree dropped before either verdict, including the runner's.
+§8 states it rather than fixing it, because recording it would need a fourth return channel on
+a function whose whole job is a set of verbs — and because the distinction matters for what the number means:
+`ls-tree`/`rev-parse`/`show` are unreachable from `closure-proof` and `cwd-axis-proof` not by an accident of where
+a literal sits but because the frames that hold them belong to a wrapper that takes its directory from its caller,
+which is exactly the case the doors exist to refuse. Lifting it would mean editing the RUNNER to name its literals
+at call sites, and amendment 91 settled that a checker may not pressure the population — including its own runner —
+into shaping itself for the checker's convenience. So `dead` is reported, `MIS-CITED` is gated at zero, and the
+gap between them is the arm's honest limit on this corpus.
+
+Method notes carried forward, each of them a repeat of an older lesson rather than a new one: the rule was
+pre-measured over all 73 rows before any witness was written (the naive variants above came out of that pass, not
+out of a guess), the §8 cases are STRING literals so the reach census of the population is untouched by them and the
+differential replay still owns that claim, and every must-count case in §8 has a must-not-count twin — plus three
+mutation cases in which the redirect is deleted from the fixture and the clause is required to become
+`supported`, because a refusal no edit can reverse is not a rule but a preference. One fixture in the twin set
+refuses to open even after its `cwd` is deleted, and that is asserted too: dropping the option from
+`(argv, cwd) => execFileSync('git', argv, { encoding })` leaves a parameter used nowhere, so the helper stops being
+an alias by the rule's own definition. The mutation that does NOT bite is as much a measurement as the ones that do.
+
+The reach census was replayed before it was trusted: the two grammars — `194bc99`'s and this one — run over all 75
+`.mjs` in the directory give 265 hits against 265, 432 definitions against 432, and no row whose hit-key multiset
+differs. That is what a purely additive arm should look like, and it is why the sweep's own `program`/`argv` totals
+were predicted before the run rather than hoped after it. The prediction was `program 117 → 122, argv 142 unchanged`
+— and the addendum below records that it was wrong in both halves, so the paragraph above is kept as the claim that
+was tested and not rewritten into the number that came back.
+
+Addendum to amendment 98 (same increment, written after the witness swept): the prediction about the census was
+refuted, and the refutation is the part worth keeping. Before the run I wrote down what the new ref's plane axis
+would print: `program 117 → 122, argv 142 unchanged`. The actual line at `6bdb3cf` is
+
+  [identity] plane axis: 51/73 tracked proofs reach a git child process AT CODE POSITION (261 call sites:
+  program=117 argv=144)
+
+and the line at the pre-v98 ref `194bc99` was `(260 call sites: program=117 argv=143)`. So `program` moved by
+nothing, `argv` moved by one, and both halves of the prediction were wrong for different reasons.
+
+The `+5 program` was arithmetic on the wrong denominator. The axis counts the 73 `*-proof.mjs` rows; my replay
+above ran over all 75 `.mjs` in the directory, and `sweep.mjs` itself holds exactly five program reaches
+(122 - 117 = 5, and 75 - 73 = 2 rows: the runner and `isolated-arms.mjs`). I read the 122 and predicted a change to
+the number the harness does not print. The `argv 142` base was read off a stale line rather than off the log next to
+it — the pre-v98 axis printed 143. A prediction that does not name its denominator is not a prediction; it is a
+number with a story attached, and the difference between the two showed up as two errors in one line.
+
+What the fixtures actually did: the six §8 cases are STRING literals, so the `'git'` in them is a mention and not a
+reach — the rule that `plane-axis-proof.mjs` §1 already pins ("a printed mention is not a reach", and its twin for a
+template that only SAYS git). The single `+argv` is `confession-proof.mjs` line 412,
+
+  const DECL = ["git rev-parse HEAD through this row's own git() alias"];
+
+which is a declaration payload, not a spawn, and is counted because an array literal at code position whose first
+element OPENS with `git ` borrows the argv rule's `^git\s` test. That shape is not a surprise discovered at the
+sweep: `plane-axis-proof.mjs:86` pins it as an OVER-PREDICTION with its expected count written in the table
+(`const claims = ['git status --porcelain', 'ls-files'];` → 1), and `:87` pins the twin that must stay at 0. So this
+is the fourth row to add reaches to itself by declaring in the grammar's blind spot, and the census statement to
+carry is: the §8 witness moved the axis by one argv reach, that reach is a pinned over-prediction rather than a
+defect, and the differential replay of the RULE (both grammars over one text, 265 against 265, no row's hit-key
+multiset differing) is a different measurement from the movement of the TEXT and cannot be quoted as if it promised
+zero.
+
+The mechanism that catches an over-claiming row also fired, which is the only reason this is a closed loop and not a
+confession about a confession: the same run's `[plane axis] prediction vs verdicts` line lists
+`confession-proof.mjs` among the twelve `GREEN while predicted`, which is where `plane-axis-proof.mjs` says an
+over-predicted row that never breaks belongs. The punishment for inventing a reach is that the row can never again
+explain a red by claiming one.
+
+One sentence in the runner is now false in exactly the way this amendment's premise was, and it is left in place
+because removing it is a code change and a code change owes a sweep: the `[identity] confession axis (bytes)` line
+still explains every invisible clause by "every one of those reaches carries its verb through a wrapper that takes a
+PARAMETER, so only the CODE could name it". Amendment 98 exists because a parameter-taking wrapper IS named by code
+at its call sites, which is how four of the nine became readable. The residual four invisible clauses are now
+invisible for the narrower reason this record states — their verbs sit in a wrapper whose DIRECTORY comes from its
+caller, which the doors refuse to read — and the next increment should make the axis say that, and be graded on
+saying it, rather than leaving a wrong explanation in the only line most readers of a sweep log will read.

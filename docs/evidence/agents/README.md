@@ -2721,3 +2721,54 @@ The witness for this is §7 of `confession-proof.mjs`, and it does not grade the
 What a grammar fix should look like: the census moves and no verdict does. At `194bc99` the population is 73 rows · 42 failed · 0 killed in 146 s, with `program 116 → 117` and `argv 143 → 142` and every axis figure unchanged — 51 predicted askers, 57 under the naive rule, 4 declaring rows (1 corroborated, 3 invisible), 14 clauses · supported 4 · partial 0 · invisible 9 · MIS-CITED 0, the same five dead verbs, both reconciliation gates at zero. Three rows moved in total, each one named by a differential replay rather than by a hope. And `confession-proof` itself gained a reach, because its new fixture writes `['git', 'status', …]` as a case: the pinned over-prediction from amendment 95 firing on the increment that cites it, for the third time running, kept on purpose.
 
 The retracted number is the useful one. #152 was written down as "read a verb through a callee named `git`", expecting ~26 argv-forwarding aliases; re-measured through the fixed grammar it is 31 rows defining a git-named helper, 29 forwarding a program literal, 28 whose verbs would become readable — and the dominant shape is a REST parameter (`git('rev-parse', 'HEAD')` into `['-C', dir, …args]`), not an argv one. The name carries no information about WHICH repository is asked: `-C` and `cwd:` are two different redirects, and 18 of the 29 bodies carry neither, so they address whatever cwd the sweep gave the child. A naive alias rule would print thirteen verbs, most of them spent on throwaway repos in `os.tmpdir`. The rule that survives the measurement reads 3 rows and 6 verbs — among them five of `table-recount-proof`'s own claims, which the paragraph above has been promising a reader to since amendment 96.
+
+## A helper's name says nothing about WHICH repository it asks, so only one that carries no location may be read (`confession-proof.mjs` §8, M2 v98 — ADR 0016 amendment 98)
+
+Amendment 96 ended with a ceiling named as a fact about the code: nine `invisible` clauses over five `dead` verbs,
+"every reach carries its verb through a wrapper that takes a PARAMETER", liftable only by rewriting the code. Half
+of that was wrong in a checkable way. A wrapper that takes an argv is CALLED somewhere, and the call site normally
+holds the verb literal: `table-recount-proof.mjs` declares five commands, and its bytes do name all five — as
+`git('rev-parse', '--show-toplevel')`, `git('show', 'HEAD:docs/…')` and three more. The arm missed them because it
+looked only inside a spawn frame's own argv, and there the argv was a parameter. So the arm opens one frame now. A
+same-file helper whose body spawns `git` is an alias, and the string literals its call sites pass in the argv
+position are commands the row asks.
+
+The refusal is the increment. A row may prove something about a throwaway repository and about this one in the same
+file, and a census that read both as "this row asked the repository" would manufacture a claim about the real tree
+out of a command aimed at `os.tmpdir`. So an alias is readable only when nothing in its own bytes can move the
+question elsewhere: no `-C`, `--git-dir`, `--git-common-dir` or `--work-tree` string anywhere in its body; no `cwd`
+key in its spawn options in either spelling; and no parameter arriving in the OPTIONS position, because that is how
+a wrapper lets its caller pick the directory. Two looser rules were run over the whole population before this one
+was written, and the numbers say why they were dropped. A naive "read every git-named alias" credits 28 of the 73
+rows with 14 verbs, and 18 of those 28 name a redirect in their own bytes — the verbs it would invent are `init`,
+`config`, `add`, `commit`, `rm`, `reset`, the plumbing of a repository being built inside a temp directory. The one
+looser variant that looked tempting, refusing only the text `cwd:`, misses the shorthand `{ cwd }` sitting in the
+same options object, and that is the runner's own wrapper: `git(argv, cwd)`, whose directory belongs to whoever
+called it. What survives all three doors is **2 rows** — `table-recount-proof`'s `git` and `bridge-report-proof`'s
+`gitText`, both rest-parameter forwarders with no location anywhere. Eight further rows have a helper the arm
+looked at and declined, and each of those eight is recorded with its reason; every other git wrapper in the tree is
+dropped one filter earlier, silently, which is a fact about the census and not just about this run.
+
+§8 of `confession-proof.mjs` grades that in both directions, and it is the refusal, not the reading, that the
+section exists to hold. Six fixtures: the rest-forwarder the arm now reads; the `-C` twin; the literal `cwd:` twin;
+the runner's own `(argv, cwd)` twin; a call site that hands over a VARIABLE, where there is no verb in the source to
+read; and a wrapper whose PROGRAM position is the parameter, which is not a git alias at all. Then the population,
+pinned by content instead of by a total any unrelated edit could satisfy: exactly two rows readable, and
+`table-recount-proof`'s five clauses supported by the alias arm ALONE, since its direct spawn frames name no verb.
+Then three mutations, each deleting one redirect from a fixture and requiring the same clause to move from
+`invisible` to `supported` — a refusal no edit can reverse is a preference, not a rule. And a fourth mutation that
+must NOT lift anything: delete `cwd` from the runner's options and the second parameter is used nowhere, so the
+helper stops being an alias by the rule's own definition, which is precisely why `closure` and `cwd-axis` keep their
+invisible clauses. The ceiling is code-deep, not comment-deep, and §8 asserts the ceiling as well as the reach.
+
+What the witness reported, at the §8 ref `6bdb3cf` (73 scripts, 42 failed, 0 killed, 402 s, graded build
+`cc73dcf781dd0a2b` stable across the run): the confession axis moved to `supported 9 · partial 0 · invisible 4 ·
+name no command 1`, the four residual invisibles being three `closure-proof` clauses and one `cwd-axis` clause over
+the three verbs `ls-tree`/`rev-parse`/`show`, `MIS-CITED` still 0, and `confession-proof.mjs` itself green in
+149 s of its 240 s budget. The plane axis moved `260 → 261 call sites`, `program=117` unchanged and `argv 143 → 144`
+— not the `+5 program` predicted for the §8 fixtures, because a fixture written as a string literal is a mention and
+the one new `argv` reach is `confession-proof.mjs:412`'s `DECL` array, whose head string OPENS with `git ` and so
+borrows the argv rule's `^git\s` test. `plane-axis-proof.mjs:86` already pins that shape as an over-prediction with
+its expected count in the table, and the axis's own `GREEN while predicted` list names `confession-proof.mjs`, which
+is where an over-claimed row that never breaks is supposed to show up. Full account in amendment 98's addendum,
+including the runner sentence the increment left stale.
