@@ -89,6 +89,20 @@ test('@smoke 图像生成：DEMO 角标可见、一次点击一个事务、额�
   await expect(page.locator(`[data-asset-card="${assetId}"]`)).toBeVisible({ timeout: 20_000 });
   await expect(page.locator(`[data-asset-card="${assetId}"] [data-asset-demo-badge]`)).toHaveText('DEMO');
 
+  // §38 第二条箭头 Reference → Variation 的界面入口：以清单里那一张为参考再生成一张
+  const cardsBefore = await page.locator('[data-asset-card]').count();
+  await page.click(`[data-asset-variant="${assetId}"]`);
+  await expect(page.locator('[data-assets-panel] [data-asset-notice]')).toContainText('以清单里那张为参考的变体', { timeout: 40_000 });
+  await expect(page.locator('[data-asset-card]')).toHaveCount(cardsBefore + 1, { timeout: 30_000 });
+  // 清单按创建时间正序，新那一张排在最后；它是**另一行资产**（另一份字节），不是原图被改
+  const variant = page.locator('[data-asset-card]').last();
+  await expect(variant.locator('img')).not.toHaveAttribute('src', `/api/assets/${assetId}/file`);
+  await expect(variant.locator('[data-asset-demo-badge]')).toHaveText('DEMO');
+  await expect
+    .poll(async () => variant.locator('img').evaluate((el) => (el as HTMLImageElement).naturalWidth), { timeout: 20_000 })
+    .toBeGreaterThan(0);
+  await page.screenshot({ path: 'screenshots/image-studio-variation.png' });
+
   // §134 消费透明：那一笔 -2 在额度页看得见，理由里带着它是 DEMO 给的
   await page.goto('/credits');
   const entry = page.locator(`[data-credit-kind="image"][data-credit-delta="-2"]`).first();

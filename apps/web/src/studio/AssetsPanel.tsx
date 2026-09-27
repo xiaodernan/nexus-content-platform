@@ -157,6 +157,20 @@ export function AssetsPanel() {
                       </button>
                       <button
                         type="button"
+                        onClick={() => void studio.generateImageFromPrompt(`变体 · ${asset.name}`, asset.id)}
+                        disabled={state.assetBusy || asset.kind !== 'image'}
+                        title={
+                          asset.kind === 'image'
+                            ? '以这张图为参考再生成一张（DEMO 本地合成 · 扣 image 额度 2 点；换的是它派生出的色调，不是把画面内容改成另一个场景）'
+                            : '目前只有位图可以做参考'
+                        }
+                        data-asset-variant={asset.id}
+                        className="rounded-[var(--nexus-radius-sm)] px-2 py-[2px] font-mono text-11 text-fg-3 hover:bg-bg-3 disabled:opacity-50"
+                      >
+                        生成变体
+                      </button>
+                      <button
+                        type="button"
                         onClick={() => void studio.deleteAssetFromLibrary(asset.id)}
                         disabled={state.assetBusy}
                         data-asset-delete={asset.id}
