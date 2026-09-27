@@ -223,4 +223,41 @@ assert.equal(finalHead, homeHead, 'the home repository\'s HEAD is byte-identical
   console.log(`[§8] plane self-report reader: ${exactP}/${cases.length} shapes exact (one recorded as an over-disclosure) · five rows split ${five.GIT.length}/${five['NO-GIT'].length}/${five.mute.length} with the mutes named by file, and the channel is anchored to a live banner in confession-proof.mjs`);
 }
 
+// --- §9 the runner supplies the plane rather than asking for it (M2 v104) ---
+// §8 built a reader for what rows say about their own tree, and the live sweep answered: 4 of 73 say anything. The
+// fix is not to pressure 69 files into writing a banner for the checker's convenience (amendment 91's rule, aimed now
+// at the runner's own reporting); it is to stop asking, because the runner already knows whether the directory it
+// spawns a child into has an index — the one fact that decides whether `git show HEAD:` inside the row can work.
+{
+  const tag = `plane-supply-${process.pid}`;
+  const withDir = join(tmpdir(), tag);
+  mkdirSync(withDir, { recursive: true });
+  mkdirSync(join(withDir, 'plain'));
+  mkdirSync(join(withDir, 'indexed', '.git'), { recursive: true });
+  mkdirSync(join(withDir, 'linked'));
+  writeFileSync(join(withDir, 'linked', '.git'), 'gitdir: /somewhere/else\n');
+  const probed = ['plain', 'indexed', 'linked'].map((d) => sw.suppliedPlane(join(withDir, d)));
+  assert.deepEqual(
+    probed,
+    ['NO-GIT', 'GIT', 'GIT'],
+    'suppliedPlane must answer GIT for a directory index AND for a linked worktree (whose .git is a file), and NO-GIT for a bare directory — the isolated checkout is the bare case, and a check that tested only directories would call a worktree tree git-less');
+  rmSync(withDir, { recursive: true, force: true });
+
+  const rows = [
+    { name: 'a/agree-proof.mjs', head: '[§0] plane NO-GIT ·' },
+    { name: 'b/contradict-proof.mjs', head: '[§0] plane GIT ·' },
+    { name: 'c/mute-proof.mjs', head: 'no banner at all' },
+  ];
+  const onBare = sw.planeCensus(rows, 'NO-GIT');
+  assert.deepEqual([onBare.agree, onBare.contradict], [['agree-proof.mjs says NO-GIT against a supplied NO-GIT'], ['contradict-proof.mjs says GIT against a supplied NO-GIT']], 'the reconciliation has to name both the agreement and the contradiction, or the supplied fact is decoration');
+  assert.equal(onBare.mute.length, 1, 'a mute row is neither agreement nor contradiction — it is the case the supply exists to cover');
+  const onIndex = sw.planeCensus(rows, 'GIT');
+  assert.deepEqual([onIndex.agree.length, onIndex.contradict.length], [1, 1], 'flipping the supplied fact has to flip WHICH row contradicts it — a reconciliation that reads the same way from both directions is comparing a value against itself');
+  assert.deepEqual(sw.planeCensus(rows).agree, [], 'with nothing supplied, no row can be scored as agreeing — silence about the supply must not become a free pass');
+
+  const runner = (await sw.gitText(['show', 'HEAD:docs/evidence/agents/sweep.mjs'], root)).replace(/\r\n/g, '\n');
+  assert.ok(/env: \{ \.\.\.process\.env, NEXUS_PROOF_TREE: suppliedPlane\(cwd\) \}/.test(runner), 'the marker is not wired into the row spawn — §9 would be grading a function nobody calls, which is the exact shape amendment 78 was written against');
+  console.log(`[§9] supplied plane measured on three directory shapes: ${['plain', 'indexed', 'linked'].map((d, i) => `${d}=${probed[i]}`).join(' · ')} · reconciliation names ${onBare.agree.length} agreement and ${onBare.contradict.length} contradiction against a supplied NO-GIT, and the pair flips under a supplied GIT (${onIndex.agree.length}/${onIndex.contradict.length}), with the wire into runProof asserted out of the committed runner`);
+}
+
 console.log('\n[summary] identities checked: dist digest (2 files, path-keyed, moves on a byte and on a rename) · proof population ' + rows.length + ' with ' + disagrees + ' ref/worktree divergences re-hashed by a second reader · run-path outcomes exercised: green/red/timeout/exit-7 + ' + smallest.name.split('/').pop() + ' through the materialised path · HEAD unmoved');
