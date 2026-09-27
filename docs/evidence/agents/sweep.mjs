@@ -1504,6 +1504,9 @@ export async function runProof(file, cwd, timeoutMs = DEFAULT_PROOF_TIMEOUT_MS) 
     verdict: r.timedOut ? 'killed' : r.code === 0 ? 'passed' : 'failed',
     ms: Date.now() - started,
     tail: tailOf(r.stdout, 2),
+    // v103: the row's OWN first lines, because a row can say which plane it stood on and the runner cannot infer it
+    // from a verdict — `tailOf`'s last two lines are where a row's conclusion lives, not where its self-report is.
+    head: headOf(r.stdout, 4),
     errTail: headOf(r.stderr, 3),
     // v88: the WHOLE stream beside the window, because a witness has to be able to show that the cause sat
     // outside the excerpt — `headOf`'s three lines are not evidence about lines 4 and beyond.
@@ -1700,6 +1703,17 @@ export async function runSweep({ ref = 'HEAD', only = null, cwd = process.cwd(),
     const notForeseen = failed.filter((r) => !foreseen(r));
     const redDeclared = failed.filter((r) => declared.has(r.name));
     log(`[asks axis] declaration vs prediction vs verdicts: ${declaredNames.length} rows declared what they ask (${uncorroborated.length} of them invisible to the code-position scanner — ${uncorroborated.map((n) => n.split('/').pop()).join(', ') || 'none'}) · red AND declared ${redDeclared.length} of ${failed.length} red · RED with NEITHER prediction NOR declaration ${notForeseen.length} (${names(notForeseen)}) · the gate is this last number: amendment 93 could only ask the runner to foresee every red, and these three rows were beyond what a call-site scan can foresee; a row that states its own reach closes the list from the inside`);
+    // v103: everything above is the RUNNER's claim about the tree the rows stood on. A row can be in a different one,
+    // because a proof reads its population out of `git show HEAD:` only where an index exists and falls back to disk
+    // otherwise — amendment 102 learned that by crashing a row on an unconditional `git rev-parse HEAD` while five
+    // siblings were green on the same bug. So the runner now reports the plane each ROW reported, and names the ones
+    // that never say, because a finding that cannot be attributed to a tree is not evidence about this run.
+    const planeOf = (r) => (/\bplane (GIT|NO-GIT)\b/.exec(String(r.head ?? '')) ?? [])[1] ?? null;
+    const disclosed = { GIT: [], 'NO-GIT': [], mute: [] };
+    for (const r of results) disclosed[planeOf(r) ?? 'mute'].push(r.name.split('/').pop());
+    const childHasIndex = childTree.gitRepo === true;
+    const contra = disclosed.GIT.filter((n) => !childHasIndex);
+    log(`[identity] which plane each row says it stood on (read out of the row's own first stdout lines, not inferred from its verdict): GIT ${disclosed.GIT.length} · NO-GIT ${disclosed['NO-GIT'].length} · mute about its own plane ${disclosed.mute.length}${disclosed.mute.length <= 8 ? ` (${disclosed.mute.join(', ') || 'none'})` : ` (${disclosed.mute.length} rows, e.g. ${disclosed.mute.slice(0, 8).join(', ')} …)`} · the tree the rows ran in ${childHasIndex ? 'HAS a .git' : 'has NO .git'}${contra.length ? ` — ⚠ ${contra.length} row(s) claim the GIT plane inside a tree with no index (${contra.join(', ')}), which is the contradiction this line exists to catch` : ''}`);
     // v95: 94's line says WHO reaches git; a sentence is worth the witness behind it, so each declaring red is now
     // graded against the cause IT reported. Two readings of a mismatch, and only one of them is a crime:
     //   OMISSION — the failure named a git command the confession left out. The row is the only reader of its own
