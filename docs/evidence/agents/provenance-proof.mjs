@@ -256,7 +256,7 @@ assert.equal(finalHead, homeHead, 'the home repository\'s HEAD is byte-identical
   assert.deepEqual(sw.planeCensus(rows).agree, [], 'with nothing supplied, no row can be scored as agreeing — silence about the supply must not become a free pass');
 
   const runner = (await sw.gitText(['show', 'HEAD:docs/evidence/agents/sweep.mjs'], root)).replace(/\r\n/g, '\n');
-  assert.ok(/env: \{ \.\.\.process\.env, NEXUS_PROOF_TREE: suppliedPlane\(cwd\) \}/.test(runner), 'the marker is not wired into the row spawn — §9 would be grading a function nobody calls, which is the exact shape amendment 78 was written against');
+  assert.ok(/env: \{ \.\.\.process\.env, NEXUS_PROOF_TREE: readers\.plane \}/.test(runner), 'the marker is not wired into the row spawn — §9 would be grading a function nobody calls, which is the exact shape amendment 78 was written against');
   console.log(`[§9] supplied plane measured on three directory shapes: ${['plain', 'indexed', 'linked'].map((d, i) => `${d}=${probed[i]}`).join(' · ')} · reconciliation names ${onBare.agree.length} agreement and ${onBare.contradict.length} contradiction against a supplied NO-GIT, and the pair flips under a supplied GIT (${onIndex.agree.length}/${onIndex.contradict.length}), with the wire into runProof asserted out of the committed runner`);
 }
 
@@ -281,8 +281,37 @@ assert.equal(finalHead, homeHead, 'the home repository\'s HEAD is byte-identical
 
   const confessing = (await sw.gitText(['show', 'HEAD:docs/evidence/agents/confession-proof.mjs'], root)).replace(/\r\n/g, '\n');
   assert.ok(/supplied \$\{process\.env\.NEXUS_PROOF_TREE \|\| 'ABSENT'\}/.test(confessing), 'the row that is supposed to echo the marker no longer does — the runner\u2019s new line would then be comparing nothing, which is exactly how a channel goes quietly empty');
-  assert.ok(/env: \{ \.\.\.process\.env, NEXUS_PROOF_TREE: suppliedPlane\(cwd\) \}/.test((await sw.gitText(['show', 'HEAD:docs/evidence/agents/sweep.mjs'], root)).replace(/\r\n/g, '\n')), 'the hand-off was removed from the row spawn while the echo stayed, so every row would report ABSENT and the comparison would look like a bug in the rows');
+  assert.ok(/env: \{ \.\.\.process\.env, NEXUS_PROOF_TREE: readers\.plane \}/.test((await sw.gitText(['show', 'HEAD:docs/evidence/agents/sweep.mjs'], root)).replace(/\r\n/g, '\n')), 'the hand-off was removed from the row spawn while the echo stayed, so every row would report ABSENT and the comparison would look like a bug in the rows');
   console.log(`[§10] echo channel: ${c.echo.length} of ${rows.length} fixtures repeated the marker (${c.echoAgree.length} confirms, ${c.echoLost.length} reports ABSENT, ${c.echoContradict.length} contradicts) · an echo with no supply counts as a contradiction · both ends of the wire asserted out of the committed bytes`);
+}
+
+// --- §11 the tree question has two readers, and a subdirectory is where they split (M2 v106) ---
+// v104 answered "is there an index here?" with `existsSync(cwd/.git)`, which is a LOCAL question, while git resolves
+// upward — so the probe tells a row spawned one directory below a repository root that there is no repository, and the
+// row can run `git show HEAD:` all day. Measured rather than reasoned about: `docs/evidence` in this very repository.
+{
+  const sub = await sw.planeReaders(join(root, 'docs', 'evidence'));
+  assert.deepEqual([sub.probe, sub.git, sub.plane, sub.diverged], ['NO-GIT', 'GIT', 'GIT', true], `the local probe and git disagree about a subdirectory of a repository — measured here as ${JSON.stringify(sub)} — and the marker has to follow git, because that is what decides whether the row's own git calls work`);
+  const bareDir = join(tmpdir(), `plane-readers-${process.pid}`);
+  mkdirSync(bareDir, { recursive: true });
+  const bare = await sw.planeReaders(bareDir);
+  rmSync(bareDir, { recursive: true, force: true });
+  assert.deepEqual([bare.probe, bare.git, bare.plane, bare.diverged], ['NO-GIT', 'NO-GIT', 'NO-GIT', false], 'a directory outside any repository: both readers say no, so agreement is reportable and not a lucky case');
+  const rootRead = await sw.planeReaders(root);
+  assert.deepEqual([rootRead.probe, rootRead.git, rootRead.plane, rootRead.diverged], ['GIT', 'GIT', 'GIT', false], 'the repository root is the case both probes were built for — pinning it keeps the fix from being "git always wins" by accident');
+
+  const unusable = await sw.planeReaders(root, async () => { const e = new Error('EPERM'); e.status = 'EPERM'; throw e; });
+  assert.equal(unusable.plane, 'GIT', 'a git that could not answer must NOT be read as "there is no repository here" — that substitution is how an unrelated failure becomes a false verdict, which is the rule amendment 86 wrote about silence');
+  assert.ok(unusable.why.startsWith('git unusable'), `the reason has to be printed, not inferred: ${unusable.why}`);
+  const garbage = await sw.planeReaders(root, async () => 'perhaps');
+  assert.ok(garbage.git.startsWith('unparsable:'), `an answer that is neither true nor false is named, not defaulted: ${garbage.git}`);
+  assert.equal(garbage.plane, 'GIT', 'and the probe still decides, with the divergence on the record');
+  const notRepo = await sw.planeReaders(root, async () => { const e = new Error('fatal: not a git repository'); e.status = 128; throw e; });
+  assert.deepEqual([notRepo.git, notRepo.plane, notRepo.diverged], ['NO-GIT', 'NO-GIT', true], 'exit 128 IS the no-repository answer — the one git failure that must be read as an answer rather than as an error, and where it contradicts the probe the contradiction is surfaced');
+
+  const runner = (await sw.gitText(['show', 'HEAD:docs/evidence/agents/sweep.mjs'], root)).replace(/\r\n/g, '\n');
+  assert.ok(/NEXUS_PROOF_TREE: readers\.plane/.test(runner), 'the marker is no longer taken from the reconciled readers — the fix this section grades has been reverted to the single local probe');
+  console.log(`[§11] two readers of the tree: subdirectory ${JSON.stringify([sub.probe, sub.git, sub.plane])} (DIVERGED, marker follows git) · root ${rootRead.probe}/${rootRead.git} · bare dir ${bare.probe}/${bare.git} · an unusable git leaves the probe deciding WITH a reason (${unusable.why}), an unparsable answer is named (${garbage.git}), and exit 128 alone counts as the no-repository answer`);
 }
 
 console.log('\n[summary] identities checked: dist digest (2 files, path-keyed, moves on a byte and on a rename) · proof population ' + rows.length + ' with ' + disagrees + ' ref/worktree divergences re-hashed by a second reader · run-path outcomes exercised: green/red/timeout/exit-7 + ' + smallest.name.split('/').pop() + ' through the materialised path · HEAD unmoved');
