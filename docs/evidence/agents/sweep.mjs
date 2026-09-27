@@ -1076,7 +1076,11 @@ export async function planeReaders(cwd, askGit = null) {
     const out = String(await ask()).trim();
     answer = out === 'true' ? 'GIT' : out === 'false' ? 'NO-GIT' : `unparsable:${out.slice(0, 24)}`;
   } catch (e) {
-    answer = e?.status === 128 || /not a git repository/i.test(String(e?.stderr ?? '')) ? 'NO-GIT' : `gitFailed:${e?.status ?? e?.code ?? 'err'}`;
+    const said = `${String(e?.stderr ?? '')} ${String(e?.message ?? '')}`;
+    const code = e?.status ?? e?.code ?? e?.exitCode;
+    answer = code === 128 || /not a git repository|not a valid (?:git )?repository/i.test(said)
+      ? 'NO-GIT'
+      : `gitFailed:${code ?? 'err'}`;
   }
   const usable = answer === 'GIT' || answer === 'NO-GIT';
   return { probe, git: answer, plane: usable ? answer : probe, diverged: usable && answer !== probe, why: usable ? 'git answered' : `git unusable (${answer}), the local probe decided` };
