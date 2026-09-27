@@ -298,9 +298,13 @@ try {
 // Two grammars stay apart on purpose. `amendment N` / `am. N` is a claim about THIS ledger. A bare `vNN`, or an
 // `M2 vNN` label, is a version token that prose ranges write (a doc can say "M2 v0–v14"), so version tokens
 // count as RECORDS — did anything preserve the increment — but never as dangling claims. The one-sided
-// direction, headings that nothing outside the ledger repeats, is NAMED IN FULL on the console line and not
-// refused yet: refusing it this cycle would mean writing records for increments this row did not perform, and
-// a record invented instead of read is exactly what amendment 90's title warns about.
+// direction, headings that nothing outside the ledger repeats, is read TWO ways: no mention anywhere, and no
+// record TITLE. A title is POSITIONAL — a doc heading, or the comment line that OPENS a module — because a
+// deeper header line is the module's abstract, and an abstract reciting a version chain is the same kind of
+// prose as a README sentence about a hole. Of the holes that leaves, the NEWEST grant is refused: the cycle
+// that granted it is the cycle holding the bytes to title it. Older holes are NAMED IN FULL and not refused,
+// because refusing them here would mean writing records for increments this row did not perform, and a record
+// invented instead of read is exactly what amendment 90's title warns about.
 // And this comment cites no ungranted number in citation grammar, because the reader's own file sits inside the
 // population it scans (amendment 102: the census includes the counter).
 {
@@ -322,27 +326,45 @@ try {
   };
   const adrText = norm(readFileSync(ADR, 'utf8'));
   const corpus = listFiles('docs').filter((p) => !p.startsWith('docs/decisions/') && (p.endsWith('.md') || p.endsWith('.mjs')));
-  const census = (adrCopy, readmeEdit) => {
+  // A .mjs TITLE is POSITIONAL: the comment line that OPENS the module, after an optional shebang. The first
+  // version of this reader took "any comment line among the first 8" instead, and the witness below measures
+  // what that window bought: header blocks in this population run 0 to 50 lines wide, so 8 is a choice about
+  // nothing but how far the reader was willing to scroll — and a deep line of a header is the module's
+  // ABSTRACT. An abstract reciting "v81 built the checkout, v82 made its verdict quotable, v83 named the
+  // build" titles nothing, exactly the way a sentence about a hole is not its record.
+  // What the rule is NOT: "a title names one increment". Measured here, a large minority of title lines
+  // credit more than one grant, including a proof whose real opening line names three. Only POSITION
+  // separates a title from the paragraph under it; the count below is the witness that says so.
+  const titleAt = (p, lines, i, window) => {
+    if (p.endsWith('.md')) return /^#{1,6} /.test(lines[i]);
+    if (!lines[i].startsWith('//')) return false;
+    return window === undefined ? i === (lines[0].startsWith('#!') ? 1 : 0) : i < window;
+  };
+  const census = (adrCopy, edit, window) => {
     const headings = headingsOf(adrCopy);
-    const explicit = new Set(), recorded = new Set(), inDoc = new Set(), site = new Map(), titled = new Set(), titleSites = new Map();
+    const explicit = new Set(), recorded = new Set(), inDoc = new Set(), site = new Map(), recSite = new Map(), titled = new Set(), titleSites = new Map(), multiTitle = [];
     for (const p of corpus) {
       let text = norm(readFileSync(p, 'utf8'));
-      if (readmeEdit && p === README) text = readmeEdit(text);
-      // A record TITLE is what a reader actually follows: a heading in a doc, or a proof's own header comment.
-      // The same two grammars, over fewer lines — that is the whole difference from the mention reader, and the
+      // The in-memory edit reaches EVERY file in the corpus, not only the README. A hook that can touch one
+      // file cannot ask whether the newest grant is titled ANYWHERE, and that is the question the refusal
+      // below answers.
+      if (edit) text = edit(p, text);
+      const lines = text.split('\n');
+      // A record TITLE is what a reader actually follows: a heading in a doc, or the line that opens a proof.
+      // The same two grammars over fewer lines — that is the whole difference from the mention reader, and the
       // containment assertion below is what keeps it true.
-      text.split('\n').forEach((line, i) => {
-        if (!(p.endsWith('.md') ? /^#{1,6} /.test(line) : i < 8 && line.startsWith('//'))) return;
-        const credited = new Set([...nums(line, EXPLICIT), ...nums(line, RECORD)]);
+      lines.forEach((line, i) => {
+        if (!titleAt(p, lines, i, window)) return;
+        const credited = [...new Set([...nums(line, EXPLICIT), ...nums(line, RECORD)])].filter((n) => headings.has(n));
+        if (credited.length > 1) multiTitle.push(p + ':' + (i + 1));
         for (const n of credited) {
-          if (!headings.has(n)) continue;
           titled.add(n);
           if (!titleSites.has(n)) titleSites.set(n, []);
           titleSites.get(n).push(p + ':' + (i + 1));
         }
       });
       for (const n of nums(text, EXPLICIT)) { explicit.add(n); if (!site.has(n)) site.set(n, p); if (p.endsWith('.md')) inDoc.add(n); }
-      for (const n of nums(text, RECORD)) recorded.add(n);
+      for (const n of nums(text, RECORD)) { recorded.add(n); if (!recSite.has(n)) recSite.set(n, p); }
     }
     const dangling = [...explicit].filter((n) => !headings.has(n)).sort((a, b) => a - b);
     const nowhere = [...headings.keys()].filter((n) => !explicit.has(n) && !recorded.has(n)).sort((a, b) => a - b);
@@ -352,19 +374,36 @@ try {
     // title reader must be a credit in the mention reader: hole always contains nowhere, and the numbers in
     // the difference are the ones whose only surviving mention is prose.
     const hole = [...headings.keys()].filter((n) => !titled.has(n)).sort((a, b) => a - b);
-    return { headings, explicit, dangling, nowhere, onlyCode, site, hole, titled, titleSites };
+    // What a hole number's remaining credit IS, named by the grammar that found it. The first report line
+    // could only say "prose in <file>", where <file> came from the explicit-citation reader alone — so a
+    // number that nobody cites but several files version-label was reported as having no citing file at all.
+    // A wrong sentence about a real finding is the species this whole arc keeps meeting.
+    const credit = (n) => (site.has(n)
+      ? `${n} cited by ${site.get(n)}`
+      : recSite.has(n)
+        ? `${n} carried only by the version label in ${recSite.get(n)}`
+        : `${n} carried by no file outside the ledger`);
+    return { headings, explicit, recorded, dangling, nowhere, onlyCode, site, recSite, hole, titled, titleSites, multiTitle, credit, window };
   };
   // The containment is a property of the two readers, so every census this section produces is checked with
   // it — including the mutants. An assertion that is only ever run on the baseline is vacuous the day the
   // baseline is empty, and the measured baseline nowhere list IS empty.
   const checkContainment = (x, label) => assert.ok(x.nowhere.every((n) => x.hole.includes(n)), `${label}: ${x.nowhere.filter((n) => !x.hole.includes(n)).join(', ')} has no mention anywhere yet a record TITLE credits it, so the two readers no longer differ only in which lines they scan`);
+  // The one hole direction THIS cycle can refuse is the newest grant: the cycle that added a heading to the
+  // ledger is the cycle holding the bytes that would title it, so a refusal costs no invented record. Older
+  // holes stay named and not refused — writing a record for an increment this row did not perform is the
+  // invention amendment 90's title warns about, and it is the reason this section names its holes on the
+  // console rather than deleting the finding.
+  const newestGrant = (x) => Math.max(...x.headings.keys());
+  const refusal = (x) => (x.hole.includes(newestGrant(x)) ? `unrecordedNewest:${newestGrant(x)}` : null);
   const c = census(adrText, null);
   checkContainment(c, 'the measured baseline');
   assert.deepEqual(c.dangling, [], `${c.dangling.length} tracked file(s) cite an amendment number ADR 0016 never granted, so the reader is sent to a record that does not exist:\n${c.dangling.map((n) => `  amendment ${n} cited by ${c.site.get(n)}`).join('\n')}`);
-  console.log(`[§7] ledger headings ${c.headings.size} · record corpus ${corpus.length} files (docs/evidence + ROADMAP; other ADRs excluded) · dangling explicit citations 0 · one-sided read TWO ways: no mention at all ${c.nowhere.length}, no record TITLE ${c.hole.length} [${c.hole.join(', ')}] — the title holes are NAMED here and refused by a later cycle that can write their records honestly (each one's only current credit is prose: ${c.hole.map((n) => `${n} in ${c.site.get(n) ?? 'no citing file'}`).join(' · ') || 'none'}) · explicit citations kept only in code, never in a doc: ${c.onlyCode.join(', ') || 'none'}`);
+  assert.equal(refusal(c), null, `this run is refused: the newest grant ${newestGrant(c)} is named by no record TITLE in ${corpus.length} corpus files, so an amendment entered the ledger and no README section or proof header carries it. Write its record — do not delete this assertion, which is the whole point of the door.`);
+  console.log(`[§7] ledger headings ${c.headings.size} · record corpus ${corpus.length} files (docs/evidence + ROADMAP; other ADRs excluded) · titles read POSITIONALLY (a doc heading, or the line that opens a module) · dangling explicit citations 0 · the newest grant ${newestGrant(c)} IS titled, which the refusal below proves is a real condition and not a free pass · one-sided read TWO ways: no mention at all ${c.nowhere.length}, no record TITLE ${c.hole.length} [${c.hole.join(', ')}] — the older holes are NAMED here and left to a cycle that can write their records honestly, and what each one has now is: ${c.hole.map((n) => c.credit(n)).join(' · ') || 'none'} · explicit citations kept only in code, never in a doc: ${c.onlyCode.join(', ') || 'none'}`);
   {
     const fresh = Math.max(...c.headings.keys()) + 700;
-    const one = census(adrText, (t) => t + `\nSee ADR 0016 amendment ${fresh} for the rule.\n`);
+    const one = census(adrText, (_p, t) => t + `\nSee ADR 0016 amendment ${fresh} for the rule.\n`);
     assert.ok(one.dangling.includes(fresh), `MUTATION SURVIVED: a doc citing amendment ${fresh}, which no heading grants, is not named as dangling`);
     console.log(`  caught  a doc cites a number the ledger never granted → amendment ${fresh} named as dangling`);
     // Renumber a heading the corpus actually CITES: renaming an uncited heading orphans nothing, so the first
@@ -402,38 +441,90 @@ try {
     assert.ok(t4 !== undefined, 'no title hole to mutate — the axis is unverifiable rather than passing');
     const houseTitle = '## ' + c.headings.get(t4) + ' (title added in memory only, never written to disk)';
     assert.ok(!nums(houseTitle, EXPLICIT).has(t4), `this arm's meaning depends on the mention grammar refusing the house-style dash after ${t4}; if that changes, this witness is testing a different door`);
-    const four = census(adrText, (t) => t + '\n' + houseTitle + '\n');
+    const four = census(adrText, (_p, t) => t + '\n' + houseTitle + '\n');
     assert.deepEqual(four.hole, c.hole.filter((n) => n !== t4), `adding a house-style record title for ${t4} must shrink the hole by exactly that entry, got [${four.hole.join(', ')}]`);
     assert.deepEqual(four.nowhere, c.nowhere, 'a title line must not move the any-mention reading');
     assert.deepEqual(four.dangling, c.dangling, 'a title for a granted amendment cannot create a dangling citation');
     checkContainment(four, 'a title added in memory');
     console.log(`  caught  the ledger's own house-style title for ${t4} appears in the README → the title hole shrinks by exactly one, credited through its version label while the dash-ended phrase stays refused`);
     // The same number in a SENTENCE must not close it: that is the defect this amendment exists for.
-    const prose = census(adrText, (t) => t + `\nSee ADR 0016 amendment ${t4} for the rule that is still unrecorded.\n`);
+    const prose = census(adrText, (_p, t) => t + `\nSee ADR 0016 amendment ${t4} for the rule that is still unrecorded.\n`);
     assert.deepEqual(prose.hole, c.hole, `MUTATION SURVIVED: a prose sentence naming ${t4} closed the title hole — the door is satisfiable by its own report again`);
     assert.ok(prose.nowhere.length <= c.nowhere.length, 'a sentence can only ever reduce the any-mention reading, never enlarge it');
     checkContainment(prose, 'a sentence, not a record');
     console.log(`  caught  the same number in PROSE → the title hole still names ${t4}, because a sentence about a hole is not its record`);
-    // And the hole must be losable for the right reason: delete the ONLY title crediting a number.
-    const single = [...c.titleSites].filter(([, ss]) => ss.length === 1 && ss[0].startsWith(README + ':')).sort((a, b) => a[0] - b[0]);
-    assert.ok(single.length, 'no README heading is the sole title for any granted number, so the strip arm has no single-site subject — say so rather than report a caught mutation');
+    // And the hole must be losable for the right reason: delete the ONLY title crediting a number. The site
+    // is read out of the census and its own file is opened, because with a corpus-wide edit hook there is no
+    // reason to assume the sole title lives in the README.
+    const sole = (n) => (c.titleSites.get(n) ?? []);
+    const single = [...c.titleSites].filter(([, ss]) => ss.length === 1).sort((a, b) => a[0] - b[0]);
+    assert.ok(single.length, 'no granted number has exactly one title site, so the strip arm has no single-site subject — say so rather than report a caught mutation');
     const [hNum, [hSite]] = single[0];
-    const hIdx = Number(hSite.split(':').pop()) - 1;
-    const hLine = norm(readFileSync(README, 'utf8')).split('\n')[hIdx];
-    assert.ok(/^#{1,6} /.test(hLine), `the derived site ${hSite} is not a heading line: ${hLine.slice(0, 60)}`);
+    const hFile = hSite.slice(0, hSite.lastIndexOf(':'));
+    const hIdx = Number(hSite.slice(hFile.length + 1)) - 1;
+    const hLines = norm(readFileSync(hFile, 'utf8')).split('\n');
+    const hLine = hLines[hIdx];
+    assert.ok(titleAt(hFile, hLines, hIdx, c.window), `the derived site ${hSite} is not a title line under the rule being tested: ${hLine.slice(0, 60)}`);
     const L = [...new Set([...nums(hLine, EXPLICIT), ...nums(hLine, RECORD)])].filter((n) => c.headings.has(n));
-    for (const n of L) assert.deepEqual(c.titleSites.get(n), [hSite], `${n} is credited by more than this one heading, so scrubbing it is not a single-site mutation`);
-    const strip = census(adrText, (t) => {
+    for (const n of L) assert.deepEqual(sole(n), [hSite], `${n} is credited by more than this one title, so scrubbing it is not a single-site mutation`);
+    const strip = census(adrText, (p, t) => {
+      if (p !== hFile) return t;
       const lines = t.split('\n');
       lines[hIdx] = lines[hIdx].replace(/\d+/g, '');
-      assert.notEqual(lines[hIdx], hLine, 'the scrub found no digits on the heading it selected, so it changed nothing');
-      assert.equal(nums(lines[hIdx], EXPLICIT).size + nums(lines[hIdx], RECORD).size, 0, `the scrubbed heading still credits something: ${lines[hIdx].slice(0, 70)}`);
+      assert.notEqual(lines[hIdx], hLine, 'the scrub found no digits on the title it selected, so it changed nothing');
+      assert.equal(nums(lines[hIdx], EXPLICIT).size + nums(lines[hIdx], RECORD).size, 0, `the scrubbed title still credits something: ${lines[hIdx].slice(0, 70)}`);
       return lines.join('\n');
     });
     assert.deepEqual(strip.hole, [...new Set([...c.hole, ...L])].sort((a, b) => a - b), `deleting the only title for ${L.join(', ')} must put exactly those numbers back in the hole, got [${strip.hole.join(', ')}]`);
     assert.deepEqual(strip.dangling, c.dangling, 'deleting a citation cannot create a dangling one, so a change here means the two readers are entangled');
-    checkContainment(strip, 'a heading with its numbers scrubbed');
-    console.log(`  caught  README heading ${hIdx + 1} loses every number it was the sole title for (${L.join(', ')}) → the hole gains exactly those and dangling does not move`);
+    checkContainment(strip, 'a title with its numbers scrubbed');
+    console.log(`  caught  ${hFile} line ${hIdx + 1} loses every number it was the sole title for (${L.join(', ')}) → the hole gains exactly those and dangling does not move`);
+    // What the positional rule REPLACED, measured rather than asserted: re-open the title reader with the
+    // window the first version used and ask which numbers that window alone titled. An empty answer means the
+    // two rules agree in this tree and the arm has no subject — which is said out loud, not reported as a
+    // caught mutation.
+    const wide = census(adrText, null, 8);
+    assert.ok(wide.hole.every((n) => c.hole.includes(n)), `widening the reader may only REMOVE holes, since an opening line sits inside every window deep enough to reach it; got ${wide.hole.filter((n) => !c.hole.includes(n)).join(', ')}`);
+    const chained = c.hole.filter((n) => !wide.hole.includes(n));
+    assert.ok(chained.length, "no number is titled ONLY below a module's opening line, so window-vs-positional has no subject in this tree and the rule above is unfalsified here rather than verified");
+    for (const n of chained) {
+      const only = (wide.titleSites.get(n) ?? []).filter((s) => !sole(n).includes(s));
+      assert.ok(only.length, `${n} left the hole when the window opened, yet no title site differs — the two readers disagree about something other than position`);
+      const f = only[0].slice(0, only[0].lastIndexOf(':'));
+      const lno = Number(only[0].slice(f.length + 1));
+      const line = norm(readFileSync(f, 'utf8')).split('\n')[lno - 1];
+      const also = [...new Set([...nums(line, EXPLICIT), ...nums(line, RECORD)])].filter((m) => wide.headings.has(m) && m !== n);
+      assert.ok(also.length, `the line that titled ${n} only inside the window (${f}:${lno}) names no other grant, so it IS a title and the positional rule is wrong about it: ${line.slice(0, 70)}`);
+      console.log(`  caught  the window the positional rule replaced titled ${n} from ${f}:${lno}, a line naming ${also.sort((a, b) => a - b).join(', ')} beside it — a version chain, which is what an abstract is`);
+    }
+    // And the count that decides the RULE'S SHAPE: a title naming several grants is normal here, so the door
+    // may not refuse a title for crediting two numbers, and position is the only separator left. If this ever
+    // reads zero the comment above the reader has no witness and must be re-read, so it is asserted.
+    assert.ok(c.multiTitle.length, 'no title line credits more than one grant in this tree, so "positional, not one-per-title" has no witness here and the rule needs a new reason');
+    console.log(`  measured title lines naming MORE THAN ONE grant: ${c.multiTitle.length} under the positional rule (${wide.multiTitle.length} under the window it replaced) — the rule is about where a title sits, never how many numbers it carries`);
+    // The refusal on the newest grant has to be capable of firing, and the only honest way to see that is to
+    // ask a census whose newest title has been removed. If the newest grant were already untitled the assert
+    // above would be red before this line, so reaching here with zero sites is stated as impossible, not skipped.
+    const ng = newestGrant(c);
+    const nSites = sole(ng);
+    assert.ok(nSites.length, `the refusal above is already red and this arm cannot run: the newest grant ${ng} has no title site to strip`);
+    const nFiles = [...new Set(nSites.map((s) => s.slice(0, s.lastIndexOf(':'))))];
+    assert.ok(nFiles.every((f) => corpus.includes(f)), `the newest grant is titled outside the corpus the census reads (${nFiles.filter((f) => !corpus.includes(f)).join(', ')}), so the strip below would leave a credit reachable and the teeth test would be a fiction`);
+    const noNewest = census(adrText, (p, t) => {
+      if (!nFiles.includes(p)) return t;
+      return t.split('\n').map((line, i) => {
+        if (!nSites.includes(p + ':' + (i + 1))) return line;
+        const out = line.replace(/\d+/g, '');
+        assert.notEqual(out, line, `${p}:${i + 1} was chosen as a title of ${ng} and holds no digit, so this mutation would change nothing there`);
+        return out;
+      }).join('\n');
+    });
+    assert.ok(!noNewest.titled.has(ng), `MUTATION SURVIVED: every title site of the newest grant ${ng} was scrubbed and something still titles it`);
+    assert.equal(refusal(noNewest), `unrecordedNewest:${ng}`, `MUTATION SURVIVED: the newest grant ${ng} has no title left and the refusal did not name it — got ${String(refusal(noNewest))}`);
+    const gained = noNewest.hole.filter((n) => !c.hole.includes(n));
+    assert.ok(gained.includes(ng), `the hole must gain the newest grant ${ng} when its titles are stripped, got [${gained.join(', ')}]`);
+    checkContainment(noNewest, 'a ledger whose newest record title was scrubbed');
+    console.log(`  caught  the newest grant's ${nSites.length} title line(s) in ${nFiles.join(', ')} lose their numbers → the refusal reads unrecordedNewest:${ng} and the hole gains ${gained.join(', ')}`);
     console.log(`  caught  the newest heading renumbered → the old number ${newest} is dangling (cited, ungranted) and the new one ${orphan} is one-sided (granted, uncited), and the one-sided list gains exactly the baseline entry and nothing else`);
   }
 }
