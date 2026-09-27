@@ -5166,3 +5166,45 @@ house-title / prose-not-a-record arms all print `caught` and the row no longer a
 `rewrote 2` at 113, the two readers are NOT actually sharing the predicate and that is a defect in this edit,
 not in the door.
 
+
+
+### Amendment 114 — v114: the runtime steps a `CharacterController`, and says by name which declared fields it still refuses to honor
+
+`types.ts` had declared `CharacterController` and `ControllerInput` for a full milestone while
+`updateControllers` was a comment reading "would go here" — the types were read by nothing, so the
+runtime declared a character controller it could not move. This amendment makes the integrator real and,
+because a half-implementation of a declared surface is exactly the kind of claim that reads as complete
+but is not, requires it to report its own gaps by name.
+
+`packages/three-runtime/src/threeRuntime.ts` now owns a per-entity controller registry
+(`Map<EntityId, {controller, groundY}>`) rather than a component, because `groundY` is a property of the
+world the character stands on, not of the character. The public surface is `attachController` (throws
+naming a missing scene or entity, refuses a second controller on one entity instead of replacing it
+silently, and DERIVES `grounded` from `position.y <= groundY` rather than assuming the entity is
+standing), `detachController`, `getController`, `setControllerInput`, and `controllerFieldAudit`.
+`animate()` was re-pointed at a new `simulateFrame(delta)` that advances animations, physics,
+controllers and cinematics, so the wall-clock loop and a deterministic test run the SAME code — the only
+quantity a test cannot control (the clock delta) is pushed out of the path it asserts on. Movement is
+plane-aware (`MOVEMENT_PLANE`): camera-relative XZ for first/third person, world XZ for top-down and
+custom, and XY for side-scrollers, where the forward/backward keys legitimately have no axis to push
+against; input is normalised before scaling so a diagonal is not `sqrt(2)` faster than a cardinal
+direction, and `airControl` scales horizontal intent while airborne. Gravity/jump/landing: a jump frame
+pays no gravity, a mid-air jump is refused, and landing clamps `position.y` to `groundY` exactly and
+re-grounds. `type: 'custom'` keeps whatever state its owner wrote, so that declared literal stays
+reachable. An entity removed from a scene drops its entry and emits `controllerOrphaned {entityId}`;
+`dispose()` clears the registry directly, because a teardown is not a caller losing one live entity.
+
+The honesty half is `controllerFieldAudit`, which derives its answer from `Object.keys` of the live
+controller against the shipped read/write field tables — so a field declared on the type with no
+implementation lands in `untouched` automatically instead of being ignored in silence. Measured from the
+shipped code, a default controller's `untouched` list is exactly `[slopeLimit, stepOffset]`: both need
+collision geometry this package does not have (`scene.physics` / `PhysicsConfig` is still read by
+nothing). The suite pins that this is not decoration — two controllers differing only in those two fields
+produce byte-identical 30-frame trajectories, while the `speed` positive control does not.
+
+Verified: `packages/three-runtime/test/characterController.test.ts` — 39 cases through `simulateFrame`
+with an exact delta; package total 68/68 vitest (29 v108 + 39 v114), `tsc` clean. A behavioral control
+was run at the fix ref: deleting the diagonal normalisation reddened exactly one case, proving the
+integrator is the live path and not a parallel copy. Honest bounds kept: `updatePhysics` and
+`updateCinematics` are still empty stubs, there is no Studio surface driving this runtime, and the
+cinematic slice is not built.

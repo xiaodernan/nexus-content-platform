@@ -13,6 +13,8 @@ import type {
   EntityComponent,
   ThreeRuntimeConfig,
   LightingConfig,
+  CharacterController,
+  ControllerInput,
 } from './types.js';
 import {
   createWebGLBackend,
@@ -24,6 +26,79 @@ import {
 
 export { DEFAULT_THREE_CONFIG };
 
+/** A controller attached to an entity, stepped by the frame loop. `groundY` is NOT one of these fields
+ *  — it is a property of the world the character stands on, so it lives on the registry entry. */
+export interface ControllerAttachOptions {
+  type?: CharacterController['type'];
+  speed?: number;
+  runSpeed?: number;
+  jumpForce?: number;
+  gravity?: number;
+  airControl?: number;
+  slopeLimit?: number;
+  stepOffset?: number;
+  groundY?: number;
+  input?: Partial<ControllerInput>;
+}
+
+/** The declared numbers the integrator starts from when a caller names none. */
+export const DEFAULT_CONTROLLER = {
+  type: 'thirdPerson' as const,
+  speed: 4,
+  runSpeed: 8,
+  jumpForce: 5,
+  gravity: 9.81,
+  airControl: 0.5,
+  slopeLimit: 45,
+  stepOffset: 0.3,
+  groundY: 0,
+};
+
+/**
+ * Which axes a controller type moves on, and whose frame those axes come from. `sideScroll` lives in
+ * XY, so `moveForward`/`moveBackward` have nothing to push against; `firstPerson`/`thirdPerson` read
+ * the ACTIVE camera's yaw, so the same key produces a different world direction per camera.
+ */
+const MOVEMENT_PLANE: Record<CharacterController['type'], 'cameraXZ' | 'worldXZ' | 'worldXY'> = {
+  firstPerson: 'cameraXZ',
+  thirdPerson: 'cameraXZ',
+  topDown: 'worldXZ',
+  custom: 'worldXZ',
+  sideScroll: 'worldXY',
+};
+
+/** Names the integrator CONSULTS to decide what happens this frame. */
+const READ_CONTROLLER_FIELDS: readonly string[] = [
+  'entityId', 'type', 'speed', 'runSpeed', 'jumpForce', 'gravity', 'airControl', 'grounded', 'input',
+];
+
+/** Names the integrator WRITES as its result. Kept separate from the reads, because a field can be
+ *  both (`grounded`) and because writing a field is not the same claim as consulting it. */
+const WRITTEN_CONTROLLER_FIELDS: readonly string[] = ['velocity', 'state', 'grounded'];
+
+/** Same rule for the input flags; which of them a plane can honor is derived from `MOVEMENT_PLANE`. */
+const READ_INPUT_FLAGS: readonly string[] = ['moveForward', 'moveBackward', 'moveLeft', 'moveRight', 'jump', 'run', 'crouch'];
+
+interface ControllerEntry {
+  controller: CharacterController;
+  groundY: number;
+}
+
+/** What `controllerFieldAudit` answers. The `untouched` list is the honesty surface — a field declared
+ *  on `CharacterController` but never implemented shows up there BY NAME instead of being ignored in
+ *  silence. `slopeLimit` and `stepOffset` are in it today: both need collision geometry this package
+ *  does not have (`scene.physics` / `PhysicsConfig` is still read by nothing). */
+export interface ControllerFieldAudit {
+  consulted: string[];
+  written: string[];
+  untouched: string[];
+  input: { consulted: string[]; untouched: string[] };
+}
+
+function emptyControllerInput(): ControllerInput {
+  return { moveForward: false, moveBackward: false, moveLeft: false, moveRight: false, jump: false, run: false, crouch: false, custom: {} };
+}
+
 export class ThreeRuntime {
   private config: ThreeRuntimeConfig;
   private sceneGraph: SceneGraph;
@@ -34,6 +109,9 @@ export class ThreeRuntime {
   private animationFrameId: number | null = null;
   private running = false;
   private eventListeners: Map<string, Function[]> = new Map();
+  /** Entities carrying a character controller, keyed by entity id. The registry — not a component —
+   *  owns this because the integrator needs a per-entity world property (`groundY`) beside the controller. */
+  private controllers: Map<EntityId, ControllerEntry> = new Map();
 
   constructor(config: Partial<ThreeRuntimeConfig> = {}, options: ThreeRuntimeOptions = {}) {
     this.config = { ...DEFAULT_THREE_CONFIG, ...config };
@@ -426,10 +504,7 @@ export class ThreeRuntime {
 
     const delta = this.sceneGraph.clock.getDelta();
 
-    this.updateAnimations(delta);
-    this.updatePhysics(delta);
-    this.updateControllers(delta);
-    this.updateCinematics(delta);
+    this.simulateFrame(delta);
 
     const activeScene = this.getActiveScene();
     if (activeScene) {
@@ -453,16 +528,195 @@ export class ThreeRuntime {
     }
   }
 
+  /**
+   * Advance every simulation subsystem by exactly `delta` seconds, without a clock and without
+   * rendering. `animate()` calls THIS, so the frame loop and a test can never run different code —
+   * the delta a wall clock supplies is the only thing a test cannot control, and it is out of the path.
+   */
+  simulateFrame(delta: number): void {
+    this.updateAnimations(delta);
+    this.updatePhysics(delta);
+    this.updateControllers(delta);
+    this.updateCinematics(delta);
+  }
+
   private updatePhysics(delta: number): void {
     // Physics update would go here
   }
 
   private updateControllers(delta: number): void {
-    // Character controller update would go here
+    if (this.controllers.size === 0) return;
+    const scene = this.getActiveScene();
+    // Active scene only: a controller in a dormant scene does not move, and the camera-relative types
+    // would otherwise borrow a yaw from a camera that is not looking at them.
+    if (!scene) return;
+    const yaw = this.activeCameraYaw(scene);
+    for (const [entity, entry] of this.controllers) {
+      const target = scene.entities.get(entity);
+      if (!target) {
+        // The entity left its scene while its entry stayed: drop it here and announce it, so a caller
+        // that lost an entity under a controller knows which one rather than watching it stop moving.
+        this.resolveController(entity);
+        continue;
+      }
+      this.advanceController(target, entry, yaw, delta);
+    }
+  }
+
+  private activeCameraYaw(scene: ThreeScene): number {
+    const camera = Array.from(scene.cameras.values()).find((c) => c.active);
+    // Yaw only: a character walks the ground plane, so the camera's pitch is not the character's
+    // forward. No camera means no frame to be relative to, and 0 is the world-forward case.
+    return camera?.threeCamera.rotation.y ?? 0;
+  }
+
+  private advanceController(entity: ThreeEntity, entry: ControllerEntry, cameraYaw: number, delta: number): void {
+    const c = entry.controller;
+    const plane = MOVEMENT_PLANE[c.type];
+    const yaw = plane === 'cameraXZ' ? cameraYaw : 0;
+    const f = (c.input.moveForward ? 1 : 0) - (c.input.moveBackward ? 1 : 0);
+    const s = (c.input.moveRight ? 1 : 0) - (c.input.moveLeft ? 1 : 0);
+    const magnitude = Math.hypot(f, s);
+    // Air control scales the WHOLE horizontal intent, not a separate axis — an airborne character keeps
+    // steering along the same normalised direction, just slower.
+    const speed = (c.input.run ? c.runSpeed : c.speed) * (c.grounded ? 1 : c.airControl);
+    // Normalised BEFORE scaling, so a diagonal is not `sqrt(2)` faster than a cardinal direction.
+    const nf = magnitude > 0 ? f / magnitude : 0;
+    const ns = magnitude > 0 ? s / magnitude : 0;
+    const sin = Math.sin(yaw);
+    const cos = Math.cos(yaw);
+    c.velocity.x = (-sin * nf + cos * ns) * speed;
+    c.velocity.z = plane === 'worldXY' ? 0 : (-cos * nf - sin * ns) * speed;
+
+    if (c.input.jump && c.grounded) {
+      // The takeoff frame pays NO gravity: the jump force is what the character leaves the ground with.
+      c.velocity.y = c.jumpForce;
+      c.grounded = false;
+    } else {
+      c.velocity.y -= c.gravity * delta;
+    }
+
+    const position = entity.threeObject.position;
+    position.x += c.velocity.x * delta;
+    if (plane !== 'worldXY') position.z += c.velocity.z * delta;
+    position.y += c.velocity.y * delta;
+
+    // Landing is a clamp, not an approximation: at or below the ground plane with downward velocity, the
+    // character is set exactly on it, vertical velocity zeroed, and grounded restored.
+    if (position.y <= entry.groundY && c.velocity.y <= 0) {
+      position.y = entry.groundY;
+      c.velocity.y = 0;
+      c.grounded = true;
+    }
+
+    // `custom` keeps its own state: the type exists for callers that run their own state machine, and
+    // overwriting what they wrote would make the declared literal `'custom'` unreachable.
+    if (c.type !== 'custom') {
+      if (!c.grounded) c.state = c.velocity.y > 0 ? 'jump' : 'fall';
+      else if (c.input.crouch) c.state = 'crouch';
+      else if (magnitude > 0) c.state = c.input.run ? 'run' : 'walk';
+      else c.state = 'idle';
+    }
+
+    entity.threeObject.updateMatrix();
   }
 
   private updateCinematics(delta: number): void {
     // Cinematic sequence update would go here
+  }
+
+  // ── controller registry ───────────────────────────────────────────────────────────────────────
+
+  /** Attach a character controller to `entity`. Throws naming the id when the scene or entity is not
+   *  there, and refuses a second controller on one entity instead of replacing it silently. */
+  attachController(sceneId: SceneId, entity: EntityId, options: ControllerAttachOptions = {}): CharacterController {
+    if (!this.sceneGraph.scenes.get(sceneId)) {
+      throw new Error(`attachController: scene ${sceneId} does not exist (entity ${entity})`);
+    }
+    const target = this.getEntity(sceneId, entity);
+    if (!target) throw new Error(`attachController: entity ${entity} is not in scene ${sceneId}`);
+    if (this.controllers.has(entity)) {
+      throw new Error(`attachController: entity ${entity} already has a controller; detachController(${entity}) first`);
+    }
+    const groundY = options.groundY ?? DEFAULT_CONTROLLER.groundY;
+    const controller: CharacterController = {
+      entityId: entity,
+      type: options.type ?? DEFAULT_CONTROLLER.type,
+      speed: options.speed ?? DEFAULT_CONTROLLER.speed,
+      runSpeed: options.runSpeed ?? DEFAULT_CONTROLLER.runSpeed,
+      jumpForce: options.jumpForce ?? DEFAULT_CONTROLLER.jumpForce,
+      gravity: options.gravity ?? DEFAULT_CONTROLLER.gravity,
+      airControl: options.airControl ?? DEFAULT_CONTROLLER.airControl,
+      slopeLimit: options.slopeLimit ?? DEFAULT_CONTROLLER.slopeLimit,
+      stepOffset: options.stepOffset ?? DEFAULT_CONTROLLER.stepOffset,
+      // `grounded` is READ FROM THE POSITION, not assumed true — a controller attached in mid-air that
+      // reported itself grounded would let a caller press jump and never see a fall.
+      grounded: target.threeObject.position.y <= groundY,
+      velocity: new THREE.Vector3(),
+      input: { ...emptyControllerInput(), ...options.input },
+      state: 'idle',
+    };
+    this.controllers.set(entity, { controller, groundY });
+    this.emit('controllerAttached', { entityId: entity, controller });
+    return controller;
+  }
+
+  detachController(entity: EntityId): boolean {
+    const removed = this.controllers.delete(entity);
+    if (removed) this.emit('controllerDetached', { entityId: entity });
+    return removed;
+  }
+
+  /** The live controller for `entity`, or `undefined`. An entry whose entity is gone is dropped here, so
+   *  `getController` can never hand back a controller that has nothing to move. */
+  getController(entity: EntityId): CharacterController | undefined {
+    return this.resolveController(entity)?.controller;
+  }
+
+  /** Write input flags between frames. Returns false when there is no controller for `entity`. */
+  setControllerInput(entity: EntityId, input: Partial<ControllerInput>): boolean {
+    const entry = this.resolveController(entity);
+    if (!entry) return false;
+    Object.assign(entry.controller.input, input);
+    return true;
+  }
+
+  /**
+   * Report, from the object the caller attached, which declared fields the integrator CONSULTS, which it
+   * WRITES, and which it touches in NEITHER direction — plus the same split for the input flags, narrowed
+   * by the controller's plane. Nothing here is hand-listed for a particular controller: every list is
+   * derived from `Object.keys` of the live object against the shipped field tables, so a field added to
+   * the type with no implementation lands in `untouched` automatically.
+   */
+  controllerFieldAudit(entity: EntityId): ControllerFieldAudit | undefined {
+    const entry = this.resolveController(entity);
+    if (!entry) return undefined;
+    const names = Object.keys(entry.controller);
+    const plane = MOVEMENT_PLANE[entry.controller.type];
+    const inputRead = plane === 'worldXY'
+      ? READ_INPUT_FLAGS.filter((flag) => flag !== 'moveForward' && flag !== 'moveBackward')
+      : [...READ_INPUT_FLAGS];
+    const consult = (list: readonly string[]) => names.filter((n) => list.includes(n)).sort();
+    return {
+      consulted: consult(READ_CONTROLLER_FIELDS),
+      written: consult(WRITTEN_CONTROLLER_FIELDS),
+      untouched: names.filter((n) => !READ_CONTROLLER_FIELDS.includes(n) && !WRITTEN_CONTROLLER_FIELDS.includes(n)).sort(),
+      input: {
+        consulted: inputRead.slice().sort(),
+        untouched: [...new Set([...READ_INPUT_FLAGS, 'custom'])].filter((flag) => !inputRead.includes(flag)).sort(),
+      },
+    };
+  }
+
+  private resolveController(entity: EntityId): ControllerEntry | undefined {
+    const entry = this.controllers.get(entity);
+    if (!entry) return undefined;
+    for (const scene of this.sceneGraph.scenes.values()) {
+      if (scene.entities.has(entity)) return entry;
+    }
+    this.controllers.delete(entity);
+    this.emit('controllerOrphaned', { entityId: entity });
+    return undefined;
   }
 
   private updateStats(): void {
@@ -528,6 +782,10 @@ export class ThreeRuntime {
     }
 
     this.sceneGraph.scenes.clear();
+    // Controllers live in a registry keyed by entity id, not in a scene's entity map, so clearing the
+    // scenes would otherwise strand them. Clearing here (rather than orphan-walking) is deliberate: the
+    // entities are already gone, and a dispose is not a caller losing one entity under a live controller.
+    this.controllers.clear();
 
     if (this.backend) {
       this.backend.dispose();
