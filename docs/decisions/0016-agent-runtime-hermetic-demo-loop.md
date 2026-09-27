@@ -4711,3 +4711,27 @@ runner function that nothing calls, §9 asserts out of the committed bytes that 
 itself.
 
 Measured at `2040cda`: 73 scripts · 42 failed · 0 killed · 146 s, graded build `cc73dcf781dd0a2b` stable, `dirty-sources 2`. Every prediction held, including the one about the channel staying thin — no row reads the marker yet: plane axis 262 call sites: program=117 argv=145, confession axis supported 9 · partial 0 · invisible 4 · MIS-CITED 0, and the new line read "which plane each row says it stood on (read out of the row's own first stdout lines, not inferred from its verdict): GIT 0 · NO-GIT 4 · mute about its own plane 69 (69 rows, e.g. agent-proof.mjs, bridge-report-proof.mjs, budgets-proof.mjs, changes-proof.mjs, closure-proof.mjs, code-index-proof.mjs, color-proof.mjs, commit-echo-proof.mjs …) · the tree the rows ran in has NO .git · the runner SUPPLIED NO-GIT to every child through NEXUS_PROOF_TREE, from the directory it spawned them in (4 banner(s) agree with that, 0". The two rows that own this increment: provenance-proof: line not found · confession-proof: line not found.
+
+### Amendment 105 (M2 v105): the runner hands a row a fact it never asked for, so the row now repeats it back and the two words are compared
+
+Amendment 104 gave every child `NEXUS_PROOF_TREE`, and the sweep said so confidently — `the runner SUPPLIED NO-GIT to
+every child`. Nothing in that sentence depends on the child reading it. The supply could be landing in an environment
+no row looks at, and the log would read the same, which is the shape this stack has kept getting told about: an action
+reported as if it were an effect. So the channel is now two-ended: `confession-proof.mjs` prints
+`supplied ${process.env.NEXUS_PROOF_TREE || 'ABSENT'}` in its first line beside the plane it detected for itself,
+`planeCensus` parses that echo into `echo` / `echoAgree` / `echoLost` / `echoContradict`, and the runner prints a second
+comparison line.
+
+Three readings matter and they are deliberately separated. An echo matching the supply is confirmation. A row printing
+`ABSENT` is a failed hand-off — and it must never be booked as agreement with a fact it says it never received, which
+is the same rule amendment 86 wrote about silence not being a pass. An echo with NO supply on this plane counts as a
+contradiction rather than a free pass, so the comparison cannot be satisfied by one side alone. And the two channels
+stay distinct: mentioning a plane is disclosure, repeating the marker is echo, and a census that merged them would
+report a row that never read the environment as one that confirmed it.
+
+§10 of `provenance-proof.mjs` holds the fixtures for all three readings and asserts BOTH ends of the wire out of the
+committed bytes — the row must still echo, and the runner must still hand over. Those two assertions are the reason
+this is an increment rather than a log line: either half can be deleted by a future edit without changing any verdict,
+and the comparison would then be two functions each believing its own output.
+
+Measured at `ad8502b`: 73 scripts · 42 failed · 0 killed · 266 s, graded build `cc73dcf781dd0a2b` stable, `dirty-sources 2`. The supply line read: "which plane each row says it stood on (read out of the row's own first stdout lines, not inferred from its verdict): GIT 0 · NO-GIT 4 · mute about its own plane 69 (69 rows, e.g. agent-proof.mjs, bridge-report-proof.mjs, budgets-proof.mjs, changes-proof.mjs, closure-proof.mjs, code-index-proof.mjs, color-proof.mjs, commit-echo-proof.mjs …) · the tree the rows ran in has NO .git · the runner SUPPLIED NO-GIT to every child throu" and the new comparison read: "the marker came back: 1 row(s) echoed NEXUS_PROOF_TREE into their own first lines — 1 match what this run supplied (confession-proof.mjs echoes NO-GIT against a supplied NO-GIT), 0 printed ABSENT so the hand-off itself failed (none), 0 contradict it (none) · a supply nobody echoes is decoration, and an echo nobody compares is a guess: this line is the comparison". Predictions: provenance-proof: FAIL in 6.8 s · confession-proof: OK in 63.8 s, plane axis 262 call sites: program=117 argv=145, confession axis supported 9 · partial 0 · invisible 4 · MIS-CITED 0.

@@ -2919,3 +2919,19 @@ be a PAIR that flips: which row agrees and which contradicts must swap when the 
 reads the same from both directions is a value checked against itself. Nothing may be scored as agreement when nothing
 was supplied, since that is exactly how an empty channel looks healthy. And the wiring is asserted out of the committed
 runner, so §9 cannot be grading a function that no call site uses.
+
+## A hand-off nobody confirms is an action reported as if it were an effect, so the marker is echoed and the two words compared (`provenance-proof.mjs` §10, M2 v105 — ADR 0016 amendment 105)
+
+The previous section's log line said the runner `SUPPLIED NO-GIT to every child`, and that sentence would have stayed
+true if no child ever read it. So `confession-proof.mjs` now repeats the marker back in its own first line —
+`supplied NO-GIT`, or `supplied ABSENT` when the hand-off failed — and `planeCensus` keeps echo apart from disclosure:
+`echo` counts rows that repeated it, `echoAgree` the ones matching the supply, `echoLost` the ones reporting that it
+never arrived, `echoContradict` the mismatch. The readings are separated on purpose. Saying `ABSENT` cannot be booked
+as agreeing with a fact the row says it did not receive (amendment 86's rule, aimed at silence). An echo with no supply
+on this plane is a contradiction, not a free pass, so the comparison needs both ends to be satisfied. And mentioning a
+plane is not the same channel as repeating the marker; merging them would let a row that never looked at its
+environment confirm it.
+
+§10 holds a fixture per reading and asserts both ends of the wire out of the committed bytes — the row must still echo,
+the runner must still hand the value over — because either half can be deleted later without changing a single verdict,
+and the comparison would go on printing while meaning nothing.
