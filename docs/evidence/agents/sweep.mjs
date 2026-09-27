@@ -1000,11 +1000,14 @@ export const confessionClauses = (payload) => String(payload ?? '').split('·').
  * runner's frames plus in this row's own bytes:
  *   fixable — a frame the arm can read DOES name it, so the clause cited the wrong frame: one edit to a comment
  *             grades it, and a non-zero count here is a defect in the declaration, not in the scanner
- *   dead    — no readable frame anywhere names it, because every reach carries its verb through a wrapper that
- *             takes a PARAMETER (the runner's `git()`/`gitText()`, or the row's own `sh(cmd, argv)`). The claim
- *             can only be graded by changing the CODE to name its literal at a call site, and an arm that asks
- *             for that is a checker pressuring the population to flatter it — so `dead` is reported as the
- *             arm's ceiling, never as a failure.
+ *   dead    — no readable frame anywhere names it. Amendment 96 wrote "because every reach carries its verb
+ *             through a wrapper that takes a PARAMETER", and amendment 98 refuted that: a parameter wrapper is
+ *             called somewhere with a literal, which is how four clauses became readable through a same-file
+ *             alias. What survives is the narrower claim, and `aliasCeiling` below splits it by face — a verb
+ *             behind a helper whose own bytes name a location (declined out loud, liftable by one row edit) or
+ *             behind a helper this arm never classified (liftable only by restructuring this file). Grading one
+ *             of those by demanding the CODE name its literal would be a checker pressuring the population to
+ *             flatter it, so `dead` is reported as the arm's ceiling, never as a failure.
  */
 export function gradeConfession(payloads, ownText, selfSrc) {
   const aliasVerbs = (t) => aliasGitCommands(t).verbs;
@@ -1026,6 +1029,32 @@ export function gradeConfession(payloads, ownText, selfSrc) {
     }
   }
   return clauses;
+}
+
+/**
+ * Split the byte arm's invisible clauses by WHICH face of the ceiling they sit behind (M2 v99), so the axis
+ * sentence is computed from the same grammar it explains instead of remembering a reason it once had.
+ *
+ * `declined` — a helper the arm classified as a git alias and refused out loud, with the door that refused it.
+ * `unseen`   — the rest: rows whose frames belong to a helper the classifier never returned a verdict about,
+ *              including this file's own `git(argv, cwd)`, which the options-position filter drops in silence.
+ *
+ * The two faces are the same narrower fact amendment 98 found — a wrapper that takes its DIRECTORY from its caller
+ * is not this repository's question to read — but they are not lifted the same way: one needs a row to name a
+ * literal, the other needs the RUNNER restructured. A sentence that says "only the code could name it" about both
+ * is therefore not merely imprecise, it is false about the rows it counts, which is why this returns the split
+ * rather than an adjective.
+ */
+export function aliasCeiling(rows) {
+  const declined = [];
+  const unseen = [];
+  for (const [name, text] of rows) {
+    gitAliases(String(text ?? ''));
+    const refusals = gitAliases.refused;
+    if (refusals.length) declined.push({ row: name, refusals: refusals.map((x) => `${x.name}:${x.why}`) });
+    else unseen.push(name);
+  }
+  return { declined, unseen };
 }
 
 /**
@@ -1558,8 +1587,10 @@ export async function runSweep({ ref = 'HEAD', only = null, cwd = process.cwd(),
   const misCited = gradedClauses.filter((c) => c.fixable.length);
   const unreadable = gradedClauses.filter((c) => c.dead.length);
   const deadVerbs = [...new Set(unreadable.flatMap((c) => c.dead))].sort();
+  const deadRows = [...new Set(unreadable.map((c) => c.row))];
+  const ceiling = aliasCeiling(deadRows.map((n) => [n.split('/').pop(), textOfRow.get(n)]));
   const byState = (st) => gradedClauses.filter((c) => c.state === st).map((c) => `${c.row.split('/').pop()} "${c.clause}" → ${st === 'invisible' ? `shows none of ${c.cmds.join(', ')}` : c.missing.join(', ')}`).join(' · ') || 'none';
-  log(`[identity] confession axis (bytes): ${declaredNames.length} declaring rows · ${gradedClauses.length} clauses graded against the source each one points at — supported ${stateCount('supported')} · partial ${stateCount('partial')}${stateCount('partial') ? ` (${byState('partial')})` : ''} · invisible ${stateCount('invisible')}${stateCount('invisible') ? ` (${byState('invisible')})` : ''} · name no command ${stateCount('no-command')} · of the invisible ones, MIS-CITED ${misCited.length}${misCited.length ? ` (${misCited.map((c) => `${c.row.split('/').pop()} names ${c.fixable.join(',')} where a readable frame holds it`).join(' · ')})` : ''} — a citation one edit away, which is a defect in the sentence — versus unreadable-by-every-frame ${unreadable.length} (${deadVerbs.join(', ') || 'none'}): every one of those reaches carries its verb through a wrapper that takes a PARAMETER, so only the CODE could name it, and an arm that demanded that would be a checker pressuring the population to flatter it`);
+  log(`[identity] confession axis (bytes): ${declaredNames.length} declaring rows · ${gradedClauses.length} clauses graded against the source each one points at — supported ${stateCount('supported')} · partial ${stateCount('partial')}${stateCount('partial') ? ` (${byState('partial')})` : ''} · invisible ${stateCount('invisible')}${stateCount('invisible') ? ` (${byState('invisible')})` : ''} · name no command ${stateCount('no-command')} · of the invisible ones, MIS-CITED ${misCited.length}${misCited.length ? ` (${misCited.map((c) => `${c.row.split('/').pop()} names ${c.fixable.join(',')} where a readable frame holds it`).join(' · ')})` : ''} — a citation one edit away, which is a defect in the sentence — versus unreadable-by-every-frame ${unreadable.length} (${deadVerbs.join(', ') || 'none'}) over ${deadRows.length} row(s), and those rows sit behind TWO faces of one ceiling: ${ceiling.declined.length} named the door that refused them out loud${ceiling.declined.length ? ` (${ceiling.declined.map((d) => `${d.row} ${d.refusals.join(',')}`).join(' · ')})` : ''}, while ${ceiling.unseen.length} have no refusal on record — the frame holding the verb is not one of this row's own helpers${ceiling.unseen.length ? ` (${ceiling.unseen.join(', ')})` : ''} — and reaches the child through somebody else's call, including this file's own git(argv, cwd), which the options-position filter drops in silence. Amendment 98 refuted the sentence this one replaces, which explained every invisible clause by "a wrapper that takes a PARAMETER, so only the CODE could name it": a parameter wrapper IS named by code at its call sites, and four clauses became readable exactly that way. What is left is narrower and differs by face — a wrapper whose DIRECTORY comes from its caller is not this repository's question to read, so a DECLINED row lifts the moment that row drops the location from its own helper (which is the edit §8 of confession-proof.mjs mutates), while an unclassified one holds its verb in a frame the caller does not own and lifts only if this file names its literals at a call site`);
 
   const dest = mkdtempSync(join(tmpdir(), 'nexus-sweep-'));
   const started = Date.now();
