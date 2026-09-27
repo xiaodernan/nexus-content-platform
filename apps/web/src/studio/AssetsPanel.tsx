@@ -157,7 +157,7 @@ export function AssetsPanel() {
                       </button>
                       <button
                         type="button"
-                        onClick={() => void studio.generateImageFromPrompt(`变体 · ${asset.name}`, asset.id)}
+                        onClick={() => void studio.generateImageFromPrompt(`变体 · ${asset.name}`, { referenceAssetId: asset.id })}
                         disabled={state.assetBusy || asset.kind !== 'image'}
                         title={
                           asset.kind === 'image'

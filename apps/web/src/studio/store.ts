@@ -1118,8 +1118,13 @@ export class StudioStore {
    * 失败原因原样摊在面板上（额度用尽 429 / 规格不合 400），不静默也不改写（§159）。
    * 这一格给的是 **DEMO 本地合成**（本机没有图像 provider），所以回执里写清来源（§160）。
    */
-  async generateImageFromPrompt(prompt: string, referenceAssetId?: string): Promise<boolean> {
+  async generateImageFromPrompt(
+    prompt: string,
+    source?: { referenceAssetId?: string; characterId?: string },
+  ): Promise<boolean> {
     if (!this.projectId) return false;
+    const referenceAssetId = source?.referenceAssetId;
+    const characterId = source?.characterId;
     this.assetBusyValue = true;
     this.assetErrorValue = null;
     this.assetNoticeValue = null;
@@ -1128,7 +1133,11 @@ export class StudioStore {
       const res = await fetch(`/api/projects/${this.projectId}/images`, {
         method: 'POST',
         headers: { 'content-type': 'application/json', ...csrfHeaders() },
-        body: JSON.stringify({ prompt, ...(referenceAssetId ? { referenceAssetId } : {}) }),
+        body: JSON.stringify({
+          prompt,
+          ...(referenceAssetId ? { referenceAssetId } : {}),
+          ...(characterId ? { characterId } : {}),
+        }),
       });
       const body = (await res.json().catch(() => null)) as
         | { asset?: AssetRef; message?: string; issues?: string[] }
@@ -1149,9 +1158,14 @@ export class StudioStore {
         });
       }
       this.execute(`生成图片 ${asset.name}`, ops);
-      this.assetNoticeValue = `已生成一张 ${asset.width ?? '?'}×${asset.height ?? '?'} 的图（DEMO 本地合成${
-        referenceAssetId ? '，以清单里那张为参考的变体' : ''
-      }，扣 image 额度 2 点）${node ? '，并已贴到选中的元素上' : '；选中元素后生成才会同时贴上'}。`;
+      const origin = characterId
+        ? '，这是清单里那个角色的一个场景（色调取自它的视觉标识）'
+        : referenceAssetId
+          ? '，以清单里那张为参考的变体'
+          : '';
+      this.assetNoticeValue = `已生成一张 ${asset.width ?? '?'}×${asset.height ?? '?'} 的图（DEMO 本地合成${origin}，扣 image 额度 2 点）${
+        node ? '，并已贴到选中的元素上' : '；选中元素后生成才会同时贴上'
+      }。`;
       return true;
     } catch (error) {
       this.assetErrorValue = error instanceof Error ? error.message : String(error);

@@ -2002,3 +2002,17 @@ Sketch → Image、Image → Image、Character → Scene 三条箭头；真 prov
 `studio.generateImageFromPrompt(prompt, { referenceAssetId?, characterId? })`（把现在那个位置参数换成对象，
 `AssetsPanel` 里"生成变体"那一处调用同步改）、`CharacterPanel` 视觉标识那一段之后加输入框与按钮
 （palette 为空时按钮不可点，与服务端同一口径）、面板回执走 `state.assetNotice` 并挂 `[data-character-notice]`。
+
+**Character → Scene 的界面那一格：先落了一半，另一半如实退回**
+- 已落：`studio.generateImageFromPrompt` 的第二参数从"参考图 id"换成 `source?: { referenceAssetId?, characterId? }`
+  （两个来源在界面上是两件事，位置参数到第三个就没法加了），`AssetsPanel` 的调用点同步改。
+  这一半是行为不变的改造，凭证是**原有的那条 e2e 重跑：1 passed（1.6 分钟）**。
+- 退回：角色面板里"生成场景"那一块（补丁在 `/tmp/character-panel.patch`，用例草稿在 `/tmp/character-scene.spec.ts.draft`）。
+  **红在浏览器里，不是红在编译**：填完色板之后"保存档案"仍然是 disabled，
+  而它的门是 `!dirty || saving`（`CharacterPanel.tsx:480`，dirty 用 `JSON.stringify(selected.profile) !== JSON.stringify(draft)` 判）。
+  也就是说 `page.fill('[data-character-visual="palette"]', ...)` 之后 dirty 仍然为假——
+  要么那次 fill 没进到受控 input 的 onChange，要么 `selected.profile` 与 `draft` 在那一刻本来就相等。
+  **这一条我没来得及查到底就退回去了，所以不许把它写成"已验证"**；下一格的第一步应该是把这条门量清楚
+  （在页面里读按钮文案是"保存档案"还是"没有改动"，再决定是改用例还是改面板）。
+  顺带记一个已经想清楚的设计：那个按钮的可用条件应当读**已保存的** `selected.profile.visualIdentity.palette`，
+  不是草稿里的——服务端判的是存档，界面拿草稿放行就会让人点出一个必然被拒的请求。
