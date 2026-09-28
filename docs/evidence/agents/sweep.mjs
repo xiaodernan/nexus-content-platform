@@ -630,7 +630,7 @@ export const GIT_PROGRAM = (s) => s === 'git' || s === 'git.exe' || /^git\s/.tes
  * the population says after the word git and showing which of those tokens the vocabulary declined.
  */
 export const GIT_SUBCOMMANDS = new Set([
-  'add', 'apply', 'archive', 'cat-file', 'commit', 'diff', 'grep', 'log', 'ls-files', 'ls-tree', 'mv', 'push',
+  'add', 'apply', 'archive', 'cat-file', 'clone', 'commit', 'diff', 'grep', 'log', 'ls-files', 'ls-tree', 'mv', 'push',
   'reset', 'rev-list', 'rev-parse', 'show', 'status', 'blame', 'branch', 'checkout', 'clean', 'config',
   'describe', 'for-each-ref', 'hash-object', 'init', 'mktree', 'name-rev', 'remote', 'restore', 'rm',
   'show-ref', 'switch', 'tag', 'update-index', 'worktree', 'write-tree', 'version',
@@ -1448,8 +1448,21 @@ export function driveVerdict(where) {
 
 /**
  * A CLEAN CHECKOUT of the ref, in a temp directory — the only way to run the tree-walking proofs against
- * the second axis v80 measured rather than the first. `git archive` gives the ref's tracked bytes with no
- * `.git` and nothing untracked, so what a proof walks there is exactly what a commit owns.
+ * the second axis v80 measured rather than the first.
+ *
+ * v132 changed HOW the tree is staged, and the change is about what the plane can ANSWER rather than about
+ * speed. v81 used `git archive` + `tar`: the ref's tracked bytes, nothing untracked — and no `.git`, so
+ * every row that asks the repository a question died there (`git ls-tree … → exit 128: not a git
+ * repository`) without ever reaching its own assertions. `git clone --shared --no-checkout` + `git
+ * checkout <ref>` stages the same tracked bytes (it is a checkout of the same commit) AND the repository
+ * that owns them, so both halves are true at once: the tracked tree is exactly what the commit owns, and a
+ * row that asks git gets an answer from the ref rather than a 128. The archive path survives as the
+ * fallback and says on the `[isolated]` line when it was used, because a bare tree answers no git question
+ * and a reader must know which of the two planes produced a verdict.
+ *
+ * The one thing the clone adds to the tree is its own `.git`, and that is a REPOSITORY, not content: a
+ * witness that counts "files the ref owns" must not count it (isolated-proof.mjs skips `.git` in
+ * `walkPaths`, and `walkedTree` never descends into one).
  *
  * `node_modules` has to be rebuilt, and that is the load-bearing part: this repository's
  * `node_modules/@nexus/*` are ABSOLUTE symlinks into the working tree, so reusing the home install as it
@@ -1467,23 +1480,55 @@ export async function isolatedCheckout({ ref = 'HEAD', cwd = process.cwd(), dest
   const where = dest ? { dir: dest, chose: 'caller-supplied', tmpDir: tmpdir(), tmpDrive: driveOf(tmpdir()), repoDrive: driveOf(cwd) } : isolatedDest(cwd);
   const root = join(where.dir, 'repo');
   mkdirSync(root, { recursive: true });
-  const tar = await run('git', ['archive', '--format=tar', ref], { cwd, timeoutMs: 180_000, encoding: 'buffer', maxBuffer: 1 << 29 });
-  if (tar.code !== 0) throw new Error(`git archive ${ref} → exit ${tar.code}: ${tar.stderr.toString().trim().slice(0, 200)}`);
-  const tarFile = join(where.dir, 'ref.tar');
-  writeFileSync(tarFile, tar.stdout);
-  // M2 v90, corrected in place by v91: the archive and the destination are handed to tar RELATIVE to the
-  // directory it runs in, so neither name ever carries a drive colon — which is the whole reason v81 needed
-  // `--force-local`, and why this extraction stays FLAG-FREE. The original comment here claimed "this box's
-  // `tar` on PATH is bsdtar", and that is a claim about a PATH, not about a box: measured by path on this
-  // machine, `C:\Program Files\Git\usr\bin\tar.exe` is GNU tar 1.35 and ACCEPTS `--force-local` (it gets as
-  // far as complaining the file cannot be opened), while `C:\Windows\System32\tar.exe` is bsdtar 3.8.8 and
-  // refuses it with "Option --force-local is not supported". Which one answers the bare word `tar` is
-  // whoever launched us: from a Git Bash shell the Git usr/bin entry is FIRST on PATH (`where tar` yields
-  // GNU then System32), so a sweep started here has been running GNU all along, while a sweep started from
-  // cmd.exe or PowerShell gets bsdtar. `tar -xf ref.tar -C repo` is the one form both answer with no flag
-  // and no slash-munging, which is the only reason the checkout does not care which plane it was launched on.
-  const untar = await run('tar', ['-xf', 'ref.tar', '-C', 'repo'], { cwd: where.dir, timeoutMs: 180_000 });
-  if (untar.code !== 0) throw new Error(`tar -xf ref.tar → exit ${untar.code}: ${untar.stderr.toString().trim().slice(0, 200)}`);
+  // M2 v132 — the plane is a REPOSITORY, not a pile of files. v81 built this checkout with
+  // `git archive` + `tar`, which produces the ref's tracked bytes with no `.git` beside them: measured
+  // 2026-09-28, 42 of the 73 rows answered `git ls-tree … → exit 128: not a git repository` on this
+  // plane, so their own assertions were never reached where they were being graded (amendment 113's
+  // addendum counted the 42; amendment 130 found two rows whose assertions had gone stale inside them
+  // and could only be seen on the plane where git answers).
+  //
+  // `git clone --shared --no-checkout` + `git checkout <ref>` gives a fully functional repository whose
+  // objects are the source's own, reached through `.git/objects/info/alternates` — not copied, not
+  // hard-linked, which is why this works across drives and why the fallback below is NOT about
+  // cross-filesystem links (that was the first draft of this comment's guess; `--shared` never links
+  // files, `--local` is the one that does). Measured on this host 2026-09-28: clone 478 ms + checkout
+  // 1.1 s, `status --porcelain` empty and `rev-parse HEAD` = the source HEAD, so the plane is the ref.
+  //
+  // The archive path is KEPT as a fallback rather than deleted, because a clone can fail for reasons
+  // the archive path does not care about (no `--shared` in the installed git, an unreadable object
+  // store) and a runner that has one way to stage a ref has one way to be unable to stage it. A
+  // fallback run is reported as such on the `[isolated]` line — a bare tree answers no git question,
+  // and a reader must be able to tell which of the two planes produced the verdicts they are reading.
+  let usedClone = false;
+  /** `null` under a clone — a clone has no archive to measure, and 0 would be a number that means nothing. */
+  let archiveByteCount = null;
+  try {
+    const clone = await run('git', ['clone', '--shared', '--no-checkout', cwd, root], { cwd, timeoutMs: 180_000 });
+    // v132: the exit codes are read. The first draft of this hunk dropped both on the floor and leaned on the
+    // NEXT command failing in a directory that is not a repository — which is the same "the banner is not a
+    // reason" mistake this file keeps finding in other people's summaries: a cause that only shows up as the
+    // failure of the following step is a cause nobody printed.
+    if (clone.code !== 0) throw new Error(`git clone --shared --no-checkout → exit ${clone.code}: ${clone.stderr.trim().slice(0, 200) || 'no stderr'} (the source is ${cwd})`);
+    const co = await run('git', ['checkout', ref], { cwd: root, timeoutMs: 60_000 });
+    if (co.code !== 0) throw new Error(`git checkout ${ref} → exit ${co.code}: ${co.stderr.trim().slice(0, 200) || 'no stderr'}`);
+    usedClone = true;
+    log(`[isolated] ${ref} → ${root}: staged as a REPOSITORY — git clone --shared --no-checkout + git checkout ${ref}, so this plane answers git questions the bare tree could not · dest ${driveVerdict(where).phrase}`);
+  } catch (e) {
+    log(`[isolated] the repository plane could not be staged (${e.message}) — falling back to git archive + tar, which produces the ref's tracked bytes with NO ${'.git'}: rows that ask git will answer 128 on this plane and their own assertions will not be reached`);
+    // The failed clone can leave a ``.git`` (or part of one) inside the tree the archive is about to be
+    // extracted into, and a HALF repository answers differently from none — which is the one thing this
+    // fallback must not do. So the tree is emptied before anything is written back into it.
+    rmSync(root, { recursive: true, force: true });
+    mkdirSync(root, { recursive: true });
+    const tar = await run('git', ['archive', '--format=tar', ref], { cwd, timeoutMs: 180_000, encoding: 'buffer', maxBuffer: 1 << 29 });
+    if (tar.code !== 0) throw new Error(`git archive ${ref} → exit ${tar.code}: ${tar.stderr.toString().trim().slice(0, 200)}`);
+    const tarFile = join(where.dir, 'ref.tar');
+    writeFileSync(tarFile, tar.stdout);
+    const untar = await run('tar', ['-xf', 'ref.tar', '-C', 'repo'], { cwd: where.dir, timeoutMs: 180_000 });
+    if (untar.code !== 0) throw new Error(`tar -xf ref.tar → exit ${untar.code}: ${untar.stderr.toString().trim().slice(0, 200)}`);
+    archiveByteCount = tar.stdout.length;
+  }
+  // The rest is identical whether we cloned or archived: junction node_modules, build, etc.
 
   const homeNm = join(cwd, 'node_modules');
   const nm = join(root, 'node_modules');
@@ -1500,8 +1545,9 @@ export async function isolatedCheckout({ ref = 'HEAD', cwd = process.cwd(), dest
     }
   }
   mkdirSync(join(nm, '.cache')); // turbo's cache must not be the home repo's
-  // The workspace links come from the archived tree's OWN package.json globs, not from the home install's
-  // absolute targets, so this function never needs to know where the home repo thinks it lives.
+  // The workspace links come from the staged tree's OWN package.json globs — the clone's or the archive
+  // extraction's, whichever staged it — not from the home install's absolute targets, so this function
+  // never needs to know where the home repo thinks it lives.
   const workspace = [];
   const globs = JSON.parse(readFileSync(join(root, 'package.json'), 'utf8')).workspaces ?? [];
   for (const glob of globs) {
@@ -1525,15 +1571,19 @@ export async function isolatedCheckout({ ref = 'HEAD', cwd = process.cwd(), dest
     // `spawn('npm')` is ENOENT on Windows — npm is an npm.cmd and needs a shell (measured, not assumed).
     const b = await run('cmd.exe', ['/c', 'npm', 'run', 'build'], { cwd: root, timeoutMs: 1_800_000 });
     const raw = `${b.stdout}\n${b.stderr}`;
-    // Written to `dest`, OUTSIDE `root`: the checked-out tree must contain the ref and nothing else, and a
-    // witness counts exactly that. Every sentence below is a claim about bytes a reader can go look at.
+    // Written to `dest`, OUTSIDE `root`: the checked-out tree's CONTENT must be the ref and nothing else —
+    // since v132 that tree also holds the clone's own `.git`, which is the repository rather than content,
+    // and a witness that counts the ref's files must not count it. Every sentence below is a claim about
+    // bytes a reader can go look at.
     const logFile = join(where.dir, 'build.log');
     writeFileSync(logFile, raw, 'utf8');
     built = { ...describeBuild(raw), code: b.code, timedOut: b.timedOut, ms: Date.now() - started, logFile };
   }
   const drive = driveVerdict(where);
-  log(`[isolated] ${ref} → ${root}: ${tar.stdout.length} bytes of tar · dest ${drive.phrase} (chosen: ${where.chose}; os.tmpdir() is on ${where.tmpDrive}) · ${links} third-party junctions${linkFailures.length ? ` (${linkFailures.length} failed: ${linkFailures.slice(0, 3).join(', ')})` : ''} · ${workspace.length} workspace links from the ARCHIVED globs (${workspace.join(', ')})${build ? ` · build exit ${built.code}${built.timedOut ? ' TIMEOUT' : ''} in ${(built.ms / 1000).toFixed(1)}s · ${built.lines} output lines${built.failed.length ? ` · FAILED ${built.failed.join(', ')}` : ' · all packages'}${built.code !== 0 ? ` · reason ${built.reason ? `“${built.reason.slice(0, 160)}”` : 'NONE CAPTURED (the banner is not a reason)'}` : ''}${built.code !== 0 && drive.mismatch ? ' · ⚠ this build FAILED in a CROSS-DRIVE tree: on this ref the same checkout compiled GREEN on the repository drive, so do not read this as a defect of the ref without re-measuring (isolated-arms.mjs)' : ''}` : ''}`);
-  return { dir: where.dir, destChoice: where.chose, destDrive: driveOf(where.dir), repoDrive: where.repoDrive, driveMismatch: drive.mismatch, tmpDrive: where.tmpDrive, root, archiveBytes: tar.stdout.length, links, linkFailures, workspace, build: built };
+  /** `null` under a clone: there is no archive to measure, and 0 would be a number that means nothing. */
+  const archiveBytes = usedClone ? null : archiveByteCount;
+  log(`[isolated] ${ref} → ${root}: ${usedClone ? "the source's own object store (alternates)" : `${archiveBytes} bytes of tar`} · dest ${drive.phrase} (chosen: ${where.chose}; os.tmpdir() is on ${where.tmpDrive}) · ${links} third-party junctions${linkFailures.length ? ` (${linkFailures.length} failed: ${linkFailures.slice(0, 3).join(', ')})` : ''} · ${workspace.length} workspace links from the ${usedClone ? 'CLONE' : 'ARCHIVE'} globs (${workspace.join(', ')})${build ? ` · build exit ${built.code}${built.timedOut ? ' TIMEOUT' : ''} in ${(built.ms / 1000).toFixed(1)}s · ${built.lines} output lines${built.failed.length ? ` · FAILED ${built.failed.join(', ')}` : ' · all packages'}${built.code !== 0 ? ` · reason ${built.reason ? `“${built.reason.slice(0, 160)}”` : 'NONE CAPTURED (the banner is not a reason)'}` : ''}${built.code !== 0 && drive.mismatch ? ' · ⚠ this build FAILED in a CROSS-DRIVE tree: on this ref the same checkout compiled GREEN on the repository drive, so do not read this as a defect of the ref without re-measuring (isolated-arms.mjs)' : ''}` : ''}`);
+  return { dir: where.dir, destChoice: where.chose, destDrive: driveOf(where.dir), repoDrive: where.repoDrive, driveMismatch: drive.mismatch, tmpDrive: where.tmpDrive, root, archiveBytes, usedClone, links, linkFailures, workspace, build: built };
 }
 
 /**

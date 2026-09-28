@@ -20,8 +20,16 @@
 // a build some other directory wrote. The isolation is proven by a digest, not asserted by a comment.
 //
 // It also fixes a crash found on the way: `walkedTree()` asked git for the ownership census, and a clean
-// checkout has no `.git` — `ls-files` exits 128, which took down the identity block of the first isolated
-// run. The census there is UNAVAILABLE rather than zero: absence, not a false answer.
+// checkout staged by v81's `git archive` had no `.git` — `ls-files` exits 128, which took down the identity
+// block of the first isolated run. The census there is UNAVAILABLE rather than zero: absence, not a false
+// answer.
+//
+// M2 v132 moved the staging (and this sentence with it): `isolatedCheckout` now stages the plane with
+// `git clone --shared --no-checkout` + `git checkout`, so the tree DOES hold a `.git` and the census there
+// is AVAILABLE — which is the point of the change (42 rows died at `git ls-tree` exit 128 on the bare tree
+// and never reached their own assertions). §1 below still grades the no-git shape, because the shape has
+// not gone away: it is what the ARCHIVE FALLBACK produces, and its witness is a directory this row builds
+// itself rather than whatever the runner happened to stage.
 //
 // M2 v82 closes the gap this script found in v81 by trying to quote it. The isolated build exits 1 and
 // names `@nexus/studio#build`, but the runner kept only `tailOf(stdout+stderr, 4)` — and the reason line
@@ -212,7 +220,7 @@ const cleanPaths = walkPaths(iso.root).sort();
 // which grades it is not a refutation — poison before the walk, or do not claim the walk is guarded.
 const trackedAll = new Set(gitOut(['ls-tree', '-r', '--name-only', 'HEAD']).split(/\r?\n/).filter(Boolean));
 const notInRef = cleanPaths.filter((p) => !trackedAll.has(p));
-assert.deepEqual(notInRef.slice(0, 5), [], `${notInRef.length} files the clean checkout exposes are not tracked at HEAD, e.g. ${notInRef.slice(0, 3).join(', ')} — the archive is supposed to contain the ref and nothing else`);
+assert.deepEqual(notInRef.slice(0, 5), [], `${notInRef.length} files the clean checkout exposes are not tracked at HEAD, e.g. ${notInRef.slice(0, 3).join(', ')} — the CONTENT of the staged checkout is supposed to be the ref and nothing else (v132 stages it as a clone, so the clone's own .git is the repository rather than content, and walkPaths skips it the way it skips node_modules)`);
 assert.ok(!cleanPaths.some((p) => p.startsWith('.scratch/')), 'no .scratch/ path is in the corpus: the files that reached a shipped top-5 assertion in the worktree cannot reach one here');
 assert.ok(cleanTree.files < home.files, `a clean checkout walks ${cleanTree.files} files against this worktree's ${home.files}: isolation removed ${home.files - cleanTree.files} files no commit owns`);
 const cleanRun = await sw.runProof(join(iso.root, proofRel), iso.root, 240_000);

@@ -3110,3 +3110,45 @@ what actually credits it — so a README section titled only with a dash-ended a
 unrecorded in this door's eyes. And a sentence about a hole no longer counts as its record: writing
 "amendment N has no record yet" into the README moves the number's credit but never its title, which
 is the difference between reporting a finding and closing one.
+
+
+## The isolated plane is a repository, not a pile of files (sweep.mjs — M2 v132 — ADR 0016 amendment 132)
+
+`--isolated` is the plane a sweep uses to grade a ref's proofs against the ref's OWN build rather than against
+whatever this worktree last compiled. v81 staged that plane with `git archive` + `tar`: the ref's tracked bytes
+and nothing else — and no `.git`. Measured on this host 2026-09-28, that made the plane unable to answer ANY
+question about the repository, and a row that asks one died before reaching its own assertions:
+
+| row | bare tree (v81 staging) | repository (v132 staging) |
+| --- | --- | --- |
+| `cwd-axis-proof.mjs` | **FAIL, exit 1 in 383 ms** — the whole verdict being `git ls-tree -r --name-only HEAD -- docs/evidence/agents → exit 128: fatal: not a git repository` | **OK, exit 0 in 43.9 s** (clean-room build exit 0 in 126.4 s) |
+| `confession-proof.mjs` | OK (28.8 s) — it reads git through a helper that tolerates the refusal | OK (28.3 s) |
+
+The 42-red standing population amendment 113's addendum counted was this, 42 times: not 42 broken proofs, but 42
+rows being graded on a plane where their own subject did not exist (51 of 73 tracked proofs reach a git child
+process at code position, measured by the runner's `[plane axis]` line). v132 stages the plane with
+`git clone --shared --no-checkout` + `git checkout <ref>` instead. It is still a checkout of the same commit, so
+"what a proof walks there is exactly what a commit owns" is unchanged; and it is also a repository, so a row that
+asks git now gets an answer from the REF.
+
+Measured on this host, 2026-09-28: clone 478 ms + checkout 1.1 s; `status --porcelain` empty and
+`rev-parse HEAD` equal to the source HEAD; and on a real isolated run the walked-tree census reads
+`tracked 225 / untracked 0 / ignored 0` where the bare tree reported `UNDIGESTABLE`. The archive path survives as
+a DECLARED fallback, the `[isolated]` line names which of the two planes produced a verdict, and both staging
+exit codes are checked (the first draft dropped them and leaned on the next command failing — the same "a cause
+that only shows up as the failure of the following step is a cause nobody printed" mistake this directory keeps
+finding).
+
+Three rows whose prose the change made false were repaired in the same commit rather than left as claims the
+plane contradicts: `isolated-proof.mjs` (§1 grades the no-git shape as the FALLBACK's shape, built by the row
+itself), `cwd-axis-proof.mjs` (its `sweep-asks-repository:` declaration names the staging the runner performs),
+and `table-recount-proof.mjs` (its ls-tree arm is reachable on the isolated plane for the first time — the arm
+that was dead code there). `GIT_SUBCOMMANDS` gains `clone`, because the reaches axis is graded against that
+list and the runner now spawns a verb it did not name.
+
+Bounds, stated: a clone can fail where an archive would not (no `--shared` in the installed git, an unreadable
+object store), and that run falls back to the bare tree with the 128s back — the `[isolated]` line is the only
+place that difference is visible, and nothing yet FAILS a sweep for taking the fallback. `--no-build` runs are
+unchanged. And the clone's `.git` is the one thing the plane holds that the ref does not own: every counter of
+"files the ref owns" must keep skipping it, which is now a stated premise in three rows instead of an accident of
+`git archive`.

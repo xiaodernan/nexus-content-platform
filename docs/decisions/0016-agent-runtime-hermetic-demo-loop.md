@@ -6179,3 +6179,58 @@ scoped to ONE scene, and an entity id that exists in two scenes resolves against
 than against the body nearest the caller; `npcSnapshot` carries no geometry, so a restored merchant is a record
 about the default box `restoreEntity` builds; and `sceneGraph`, `quests`, `player` and `worldState` remain
 blocked on systems that do not exist or on live objects the shape cannot hold.
+### Amendment 132 (M2 v132, docs/evidence) — the isolated plane was a pile of files, and 42 rows were graded on a plane where their own subject did not exist
+
+`--isolated` exists so a sweep can grade a ref's proofs against that ref's own build. v81 staged the plane with
+`git archive` + `tar`: the ref's tracked bytes, nothing untracked — and no `.git`. That last property was
+recorded as a virtue ("what a proof walks there is exactly what a commit owns") and it is also the reason the
+plane could not answer a single question about the repository. Amendment 130 found two rows whose assertions had
+gone stale inside a red that nobody could read; this amendment removes the reason the red existed.
+
+**The measurement, both planes, same row, same runner semantics.** `cwd-axis-proof.mjs` asks `git ls-tree -r
+--name-only HEAD -- docs/evidence/agents` before anything else. Staged with `git archive` (HEAD's own
+`isolatedCheckout`), it is FAIL, exit 1 in **383 ms**, and the entire verdict is that one refusal:
+`exit 128: fatal: not a git repository (or any of the parent directories)`. Staged with
+`git clone --shared --no-checkout` + `git checkout HEAD`, the same row on the same ref is **OK, exit 0 in
+43.9 s** — after the plane's own clean-room build exits 0 in 126.4 s. `confession-proof.mjs` is OK on both
+planes (28.8 s / 28.3 s), which is why the count was never 73: it reads git through a helper that tolerates the
+refusal. The 42 reds amendment 113's addendum counted are this failure 42 times, and the runner's own
+`[plane axis]` line measures why it matters — **51 of 73** tracked proofs reach a git child process at code
+position (262 call sites: program 117, argv 145).
+
+**The change.** `isolatedCheckout` stages with `git clone --shared --no-checkout` + `git checkout <ref>`.
+Objects are reached through `.git/objects/info/alternates`, so they are neither copied nor hard-linked (the
+fallback's first draft guessed "cross-filesystem hardlinks" as its failure mode; `--shared` never links files,
+`--local` does). Both staging exit codes are checked now: the draft version dropped them and let the NEXT
+command fail in a directory that is not a repository, which is the "a cause that only surfaces as the failure of
+the following step is a cause nobody printed" mistake this directory keeps finding in other people's summaries.
+The `git archive` path is KEPT as a declared fallback — a clone can fail where an archive would not — the tree
+is emptied before the fallback extracts into it (a half-staged `.git` answers differently from none), and the
+`[isolated]` line says which plane produced the verdict. `archiveBytes` becomes `null` under a clone rather
+than a sentinel number, because 0 would be a byte count that means nothing.
+
+**Three rows whose prose the change made false were repaired in the same commit**, because a plane that answers
+questions is a plane that can contradict a sentence:
+- `isolated-proof.mjs` — §1 still grades the no-`.git` shape (its witness is a directory the row builds
+  itself), and its header now says the shape is what the FALLBACK produces; §4's message says "the CONTENT of the
+  staged checkout is the ref" and names `.git` as the one thing a file counter must skip.
+- `cwd-axis-proof.mjs` — its `sweep-asks-repository:` declaration names the staging the runner performs, and
+  its four "archived checkout" sentences say "staged checkout", since a clone is not an archive.
+- `table-recount-proof.mjs` — the ls-tree arm is reachable on the isolated plane for the first time; the
+  listing arm is documented as the FALLBACK plane's arm rather than as the only reachable one.
+- `GIT_SUBCOMMANDS` gains `clone`: the reaches axis is graded against that list, and the runner now spawns a
+  verb it did not name.
+
+**What the plane now answers, measured on a real isolated run of this ref.** The walked-tree census reads
+`225 files · tracked 225 / untracked 0 / ignored 0` where the bare tree reported `UNDIGESTABLE (walkedTree: no
+built runtime …)`. The [plane axis], [asks axis] and [confession axis] census numbers are unchanged from
+amendment 130's record (262 call sites / 117 program / 145 argv; 4 declaring rows; supported 9 · partial 0 ·
+invisible 4 · name-no-command 1 · MIS-CITED 0), which is the control: staging changed what the plane can answer
+and not what the population says. `cwd-axis` re-run through the runner passes with §1's named remainder intact
+(70/73 with asks-axis, plane-axis, table-recount named) and §4's tree clause reading `225 files named once`.
+Home build digest `01db41cffeab0c51` (260 dist files) UNMOVED across every isolated run.
+
+Bounds, stated: nothing yet FAILS a sweep for taking the archive fallback, so the 42 reds can return silently on
+a host where the clone cannot run — the `[isolated]` line is the only witness. `--no-build` runs are unchanged.
+And the clone adds `.git` to a tree that three witnesses count files in; all three skip it today, and that
+skipping is now written down as a premise rather than left as an accident of `git archive`.

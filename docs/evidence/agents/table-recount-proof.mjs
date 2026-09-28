@@ -207,10 +207,15 @@ for (const pkg of PKGS) {
   }
   assert.ok(existsSync(out), `vitest wrote no JSON for ${pkg.label} (exit ${status})`);
   const cases = casesOf(out);
-  // Which test files does the graded state OWN? git answers on the GIT plane. On a clean checkout there is
-  // no index and no HEAD to ask — but the tree there is EXACTLY the ref's files (v81's premise: `git archive`
-  // carries committed bytes and nothing else), so a listing names the same set. Both arms are printed;
-  // neither is silently swapped for the other.
+  // Which test files does the graded state OWN? git answers on the GIT plane. On a checkout with no
+  // repository there is no index and no HEAD to ask — but the tree there is EXACTLY the ref's files (v81's
+  // premise: `git archive` carries committed bytes and nothing else), so a listing names the same set. Both
+  // arms are printed; neither is silently swapped for the other.
+  //
+  // M2 v132: the isolated plane is now staged as a CLONE, so `gitPlane` answers GIT there and this proof
+  // takes the ls-tree arm on it — the arm that was unreachable on that plane when the runner staged a bare
+  // tree. The listing arm has not become dead code: it is what an ARCHIVE-staged plane (the runner's
+  // declared fallback) and any unpacked tree still take, and §0 prints which plane is being graded.
   const owned = new Set(
     gitPlane === 'GIT'
       ? git('ls-tree', '-r', '--name-only', 'HEAD', '--', pkg.testDir).split('\n').filter((p) => p.endsWith('.test.ts')).map((p) => p.split('/').pop())
