@@ -4,7 +4,9 @@ import { addMemory, deleteMemory } from '../src/server/domain/memories';
 import { createProjectCharacter, updateCharacterProfile } from '../src/server/domain/characters';
 import { saveWorld } from '../src/server/domain/worlds';
 import { saveStoryboard } from '../src/server/domain/storyboards';
+import { saveGame } from '../src/server/domain/games';
 import { planStoryboard } from '@nexus/video-model';
+import { createGame, linkEntities, updateEntity, type GameDocument } from '@nexus/game-model';
 import { knowledgeStats, retrieveProjectKnowledge, syncProjectKnowledge } from '../src/server/domain/knowledge';
 import { createWorld } from '@nexus/world-model';
 import { createProject } from '../src/server/domain/projects';
@@ -253,5 +255,110 @@ describe('§49 × §40：分镜进语料库（真实数据库）', () => {
     const after = await knowledgeStats(id);
     expect(after.total).toBe(before.total);
     expect(after.bySource.storyboard).toBe(one.shots.length + 1);
+  });
+});
+
+/**
+ * §49 × §54：游戏文档进语料库。
+ *
+ * 纯函数那格说了"骨架不该进索引"，这里要的是只有真库能回答的部分：
+ * ① 写入方（`saveGame`）真的挂了同步，不是只有 HTTP 通了；
+ * ② 改了说明之后**旧说法再也查不到**；
+ * ③ 两个项目各存一份 id 相同的文档时，全局唯一约束 `(source_type, source_id, chunk_index)`
+ *    不会把第二个项目挡在写库外面——这一条是分镜那一片真的红过一次（23505）之后留下的形状。
+ */
+describe('§49 × §54：游戏文档进语料库（真实数据库）', () => {
+  /** 把骨架里那位敌人填出内容来：其余 10 类保持空壳 */
+  function flesh(doc: GameDocument, notes: string): GameDocument {
+    const enemy = doc.entities.find((e) => e.kind === 'enemy')!;
+    const player = doc.entities.find((e) => e.kind === 'player')!;
+    let next = updateEntity(doc, enemy.id, { name: '苦痛主教', notes });
+    next = updateEntity(next, player.id, { name: '守夜人' });
+    return { ...next, summary: '一座被雾封住的港口城，玩家替死人送信。' };
+  }
+
+  it('空骨架存进去零块语料；填过的实体才有块；改完不留旧说法', async () => {
+    const id = await newProject('Game RAG');
+    const skeleton = createGame('黑雾港', id);
+    await saveGame(id, owner, skeleton);
+
+    // 模板骨架（11 个只有名字的实体 + 空摘要）对检索不存在：这是刻意的，
+    // 让空壳进索引等于告诉 AI "这个项目有内容"
+    const empty = await knowledgeStats(id);
+    expect(empty.total).toBe(0);
+    expect(empty.bySource.game ?? 0).toBe(0);
+
+    const saved = await saveGame(id, owner, flesh(skeleton, '披着船帆的胖主教，只在钟声里移动。'));
+    if (!saved.ok) throw new Error(`保存失败：${saved.reason}`);
+    const stats = await knowledgeStats(id);
+    // 概述一块 + 那位敌人一块；其余 10 个空壳不产生块
+    expect(stats.bySource.game).toBe(2);
+
+    const hit = await retrieveProjectKnowledge(id, '披着船帆的胖主教');
+    expect(hit.items.length, '这句设计查不到 = 游戏对 AI 不存在').toBeGreaterThan(0);
+    expect(hit.items.some((i) => i.sourceType === 'game' && i.title.includes('苦痛主教'))).toBe(true);
+    // 概述与实体是两块语料，查询词不重合就不会顺带命中——所以单独查摘要那句话，
+    // 断言的是"这款游戏在讲什么"也查得着，而不是"随便查一句都能带出全库"
+    const bySummary = await retrieveProjectKnowledge(id, '玩家替死人送信');
+    expect(
+      bySummary.items.some((i) => i.sourceType === 'game' && i.title.includes('概述')),
+      '查摘要这句话命中不了概述块 = 游戏的设定对 AI 不存在',
+    ).toBe(true);
+
+    // 换掉那句说明：旧说法再也查不到（"改了却还检索到旧的"是最难查的谎）
+    const resaved = await saveGame(id, owner, flesh(skeleton, '只在雾号里移动，见不得日光。'));
+    if (!resaved.ok) throw new Error(`第二次保存失败：${resaved.reason}`);
+    const stale = await retrieveProjectKnowledge(id, '披着船帆的胖主教');
+    expect(stale.items.some((i) => i.sourceType === 'game'), '旧说明还查得到 = 索引没跟着写重建').toBe(false);
+    const fresh = await retrieveProjectKnowledge(id, '只在雾号里移动');
+    expect(fresh.items.some((i) => i.sourceType === 'game' && i.title.includes('苦痛主教'))).toBe(true);
+
+    // 同一份文档再同步一次：块数不变（重建是幂等的）
+    const before = await knowledgeStats(id);
+    await syncProjectKnowledge(id);
+    const after = await knowledgeStats(id);
+    expect(after.total).toBe(before.total);
+  });
+
+  it('引用在语料里说的是目标实体的名字（真库路径）', async () => {
+    const id = await newProject('Game RAG Refs');
+    const base = flesh(createGame('黑雾港', id), '披着船帆的胖主教。');
+    const enemy = base.entities.find((e) => e.kind === 'enemy')!;
+    const player = base.entities.find((e) => e.kind === 'player')!;
+    const linked = linkEntities(base, enemy.id, player.id, '追杀');
+    if (linked.reason) throw new Error(`连引用失败：${linked.reason}`);
+    const saved = await saveGame(id, owner, linked.document);
+    if (!saved.ok) throw new Error(`保存失败：${saved.reason}`);
+
+    const hit = await retrieveProjectKnowledge(id, '追杀');
+    const boss = hit.items.find((i) => i.sourceType === 'game' && i.title.includes('苦痛主教'));
+    expect(boss?.snippet, '带引用的那一块没进语料').toBeDefined();
+    // 装配方读的是这句话：里面出现 ge_xxx 那种内部 id 就是噪音，谁也查不到
+    expect(boss?.snippet).toContain('追杀 → 守夜人');
+    expect(boss?.snippet).not.toContain(player.id);
+  });
+
+  it('两个项目存同一份文档（文档 id 相同）不撞全局唯一约束', async () => {
+    const a = await newProject('Game RAG 复制 A');
+    const b = await newProject('Game RAG 复制 B');
+    const shared = flesh(createGame('黑雾港', a), '披着船帆的胖主教。');
+    const first = await saveGame(a, owner, shared);
+    // 从别的项目复制来的一份：文档自带的 id 一模一样，只有行 id 是各自的
+    const second = await saveGame(b, owner, { ...shared, projectId: b });
+    // 这一条红过就是回归：第二个项目插不进去（23505），而且报错会甩在保存分镜/游戏的人脸上
+    if (!first.ok) throw new Error(`A 那份存失败：${first.reason}`);
+    if (!second.ok) throw new Error(`B 那份存失败：${second.reason}`);
+    expect(first.document.id).not.toBe(second.document.id);
+
+    const statsA = await knowledgeStats(a);
+    const statsB = await knowledgeStats(b);
+    expect(statsA.bySource.game).toBe(2);
+    expect(statsB.bySource.game).toBe(2);
+    // 两边的块各自独立，行数就是 2 + 2
+    const rows = await getDb()
+      .select({ id: knowledgeChunks.id })
+      .from(knowledgeChunks)
+      .where(inArray(knowledgeChunks.projectId, [a, b]));
+    expect(rows.length).toBe(4);
   });
 });

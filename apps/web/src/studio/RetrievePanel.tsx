@@ -6,7 +6,7 @@ import { csrfHeaders } from '@/lib/csrf';
 import { useStudioReady } from './store';
 
 /**
- * §49 的检索面板：在项目语料（世界条目 / 角色档案 / 记忆 / 分镜镜头）里查一句。
+ * §49 的检索面板：在项目语料（世界条目 / 角色档案 / 记忆 / 分镜镜头 / 游戏实体）里查一句。
  *
  * 结果里带着"怎么命中的"（全文 / 子串）和三个加数，不藏在一个黑盒分数后面；
  * 顶部明写向量检索不可用——没有 provider 就没有语义检索，这里不假装。
@@ -37,6 +37,7 @@ const SOURCE_LABELS: Record<string, string> = {
   character: '角色档案',
   memory: '记忆',
   storyboard: '分镜',
+  game: '游戏',
 };
 
 /**
@@ -149,7 +150,7 @@ export function RetrievePanel() {
         </div>
         <div className="mt-2 flex items-start gap-2">
           <p className="min-w-0 flex-1 text-11 leading-relaxed text-fg-3" data-retrieve-note>
-            语料来自世界条目、角色档案、记忆与分镜镜头（§44/§46/§48/§40）。命中的是全文与子串匹配，
+            语料来自世界条目、角色档案、记忆、分镜镜头与游戏实体（§44/§46/§48/§40/§54）。命中的是全文与子串匹配，
             分数由这三项相加：全文 ts_rank、子串命中、词覆盖度。
             {stats.vectorized === 0
               ? ' 向量检索未接（没有 provider 就没有 embedding），所以这里没有"语义相近"这回事。'

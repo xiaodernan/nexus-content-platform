@@ -967,6 +967,86 @@ test('@smoke 游戏：建骨架、填数值、连引用、刷新仍在（§54）
 });
 
 /**
+ * §49 × §54：游戏设计进语料库，在真浏览器里从"查不到"变成"查得到"。
+ *
+ * 这里盯的是只有界面上才成立的两件事：
+ * ① **空骨架存进去，块数还是 0**——11 类模板实体对检索必须不存在，
+ *    否则界面会告诉 AI "这个项目有内容"（§159）；服务端算得出来，但那是纯函数那格的活，
+ *    界面上"建了骨架 → 索引里 0 块"这条链路只有点一遍才看得见；
+ * ② 填了的那一条真查得到，而且**来源标签是中文的「游戏」**、块名单独一格看得见：
+ *    整条标题在窄面板里会被截断，DOM 里有字但界面没说清是哪一块等于没断言。
+ */
+test('@smoke 检索面板：游戏骨架 0 块，填过的实体同一个词就从查不到变成查到（§49 × §54）', async ({ page }) => {
+  test.setTimeout(180_000);
+  await createProject(page, `游戏检索 ${Date.now().toString(36)}`);
+
+  // 空项目：语料库是空的，界面不能显示"有 N 块"来假装同步过了
+  await page.click('[data-panel-tab="retrieve"]');
+  await expect(page.locator('[data-retrieve-panel]')).toBeVisible({ timeout: 40_000 });
+  await expect(page.locator('[data-knowledge-total]')).toHaveText('0 块', { timeout: 30_000 });
+
+  await page.click('[data-panel-tab="game"]');
+  await expect(page.locator('[data-game-empty]')).toBeVisible({ timeout: 40_000 });
+  await page.click('[data-game-create]');
+  await expect(page.locator('[data-game-entity]')).toHaveCount(11);
+  await expect(page.locator('[data-game-state]')).toHaveText('已保存');
+
+  // 建完骨架回到检索面板：块数仍然是 0。这条断言是这一片的诚实之处——
+  // 只有名字没有内容的 11 个实体进了索引，"查不到内容"就会变成"查到一堆空壳"
+  await page.click('[data-panel-tab="retrieve"]');
+  await expect(page.locator('[data-knowledge-total]')).toHaveText('0 块');
+
+  await page.click('[data-panel-tab="game"]');
+  const enemyId = await page
+    .locator('[data-game-group="enemy"] [data-game-entity]')
+    .first()
+    .getAttribute('data-game-entity');
+  if (!enemyId) throw new Error('拿不到那位敌人的实体 id');
+
+  // 类型也是语料的一部分：概述那块写着"游戏类型：视觉小说"，读的是 GAME_KIND_LABELS 而不是 kind
+  await page.selectOption('[data-game-kind]', 'visual-novel');
+  await expect(page.locator('[data-game-state]')).toHaveText('已保存', { timeout: 20_000 });
+  await page.fill('[data-game-summary]', '一座被雾封住的港口城，玩家替死人送信。');
+  await page.fill(`[data-game-entity-name="${enemyId}"]`, '苦痛主教');
+  const notes = page.locator(`[data-game-entity-notes="${enemyId}"]`);
+  await notes.fill('披着船帆的胖主教，只在钟声里移动。');
+  // 失焦才写库：点一下名称框把说明框的焦点移走
+  await page.click('[data-game-name]');
+  await expect(page.locator('[data-game-state]')).toHaveText('已保存', { timeout: 30_000 });
+  await expect(page.locator('[data-game-pending]')).toHaveAttribute('data-game-pending', 'false', { timeout: 20_000 });
+
+  await page.click('[data-panel-tab="retrieve"]');
+  // 概述 1 块 + 填过的那位敌人 1 块；其余 10 个空壳不产生块
+  await expect(page.locator('[data-knowledge-total]')).toHaveText('2 块');
+  // 面板自我介绍那句也得把游戏算进语料，否则界面说的和库里装的不是同一件事
+  await expect(page.locator('[data-retrieve-note]')).toContainText('游戏实体');
+
+  await page.fill('[data-retrieve-query]', '胖主教');
+  await page.click('[data-retrieve-run]');
+  const entityHit = page
+    .locator('[data-retrieve-hit]')
+    .filter({ has: page.locator('[data-retrieve-part]:has-text("苦痛主教（敌人）")') });
+  // 说明放在 expect() 的第二参：Playwright 的 matcher 只收 {timeout}，红字里要带主张得写在断言上
+  await expect(entityHit, '填过的那位敌人查不到 = 游戏设计对 AI 不存在').toHaveCount(1);
+  await expect(entityHit.locator('[data-retrieve-source="game"]')).toBeVisible();
+  // 中文标签，不是裸的 game
+  await expect(entityHit).toContainText('游戏');
+  await expect(entityHit.locator('[data-retrieve-part]')).toBeInViewport();
+  await expect(entityHit).toContainText('披着船帆的胖主教');
+
+  await page.fill('[data-retrieve-query]', '替死人送信');
+  await page.click('[data-retrieve-run]');
+  const summaryHit = page
+    .locator('[data-retrieve-hit]')
+    .filter({ has: page.locator('[data-retrieve-part]:has-text("概述")') });
+  await expect(summaryHit).toHaveCount(1);
+  await expect(summaryHit).toContainText('一座被雾封住的港口城');
+  // 类型读的是标签表：界面上出现 kind 那种内部写法就是噪音
+  await expect(summaryHit).toContainText('游戏类型：视觉小说');
+  await page.screenshot({ path: 'screenshots/game-retrieved.png' });
+});
+
+/**
  * §54 的引用图：`referenceGraph` 那份投影画成一张图，连与摘都写回同一份文档。
  * 这条用例特意同时盯着左侧面板：图与面板读的是同一个 store，
  * 两处各存一份游戏真值就是 §16 要避免的事。

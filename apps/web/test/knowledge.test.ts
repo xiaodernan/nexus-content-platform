@@ -5,13 +5,16 @@ import {
   buildRetrievalFilter,
   CHUNK_MAX,
   chunkText,
+  type Chunk,
   chunksFromCharacter,
+  chunksFromGame,
   chunksFromMemory,
   chunksFromStoryboard,
   chunksFromWorld,
   estimateTokens,
 } from '../src/server/domain/knowledge';
 import { planStoryboard } from '@nexus/video-model';
+import { createGame, fleshedOutCount, linkEntities, setStat, updateEntity } from '@nexus/game-model';
 import { knowledgeChunks } from '../src/server/db/schema';
 import { createCharacter, createWorld } from '@nexus/world-model';
 
@@ -196,5 +199,114 @@ describe('chunksFromStoryboard：一镜一块，规则说明书不进语料', ()
     expect(sb.notes.join(' ')).toContain('本地确定性断句');
     expect(chunks.some((c) => c.content.includes('本地确定性断句'))).toBe(false);
     expect(chunks.some((c) => c.content.includes('首镜宽景'))).toBe(false);
+  });
+});
+
+/**
+ * §54 的游戏文档进语料库。这一格的重点在"什么**不**进"：
+ * `createGame` 给的是一份 11 类各一个空实体的骨架，骨架进索引等于让 AI 以为这个项目有内容（§159）。
+ */
+describe('chunksFromGame：填过的实体才进语料，模板骨架一块都不进', () => {
+  /** 行 id：库里那一行的主键。sourceId 用它，不用文档自带的那个 `game_…` */
+  const ROW = 'row-uuid-9c17';
+
+  /** 一份填了内容的游戏：玩家改名、敌人写说明打标签填数值、敌人追杀玩家 */
+  function fleshedGame() {
+    let doc = createGame('黑雾港');
+    doc = { ...doc, kind: 'interactive-story' as const, summary: '一座被雾封住的港口城，玩家替死人送信。' };
+    const player = doc.entities.find((e) => e.kind === 'player')!;
+    const enemy = doc.entities.find((e) => e.kind === 'enemy')!;
+    doc = updateEntity(doc, player.id, { name: '守夜人' });
+    doc = updateEntity(doc, enemy.id, {
+      name: '苦痛主教',
+      notes: '披着船帆的胖主教，只在钟声里移动。',
+      tags: ['boss', '夜间'],
+    });
+    doc = setStat(doc, enemy.id, 'health', 400).document;
+    doc = setStat(doc, enemy.id, 'damage', 12).document;
+    doc = linkEntities(doc, enemy.id, player.id, '追杀').document;
+    return { doc, player, enemy };
+  }
+  const ofKind = (chunks: Chunk[], entityId: string) =>
+    chunks.find((c) => c.sourceId === `${ROW}#entity-${entityId}`);
+
+  it('模板骨架：11 个空实体、零块语料', () => {
+    const skeleton = createGame('还没开始设计');
+    // 前提先钉住：骨架真的是"只有名字"，否则下面那条"零块"是恒真
+    expect(skeleton.entities).toHaveLength(11);
+    expect(
+      skeleton.entities.every((e) => !e.notes.trim() && !Object.keys(e.stats).length && !e.tags.length && !e.refs.length),
+    ).toBe(true);
+    expect(skeleton.summary.trim()).toBe('');
+    expect(chunksFromGame(skeleton, ROW, null)).toEqual([]);
+  });
+
+  it('填过的实体一块，概述一块；标题写着游戏名与是哪一类', () => {
+    const { doc, enemy } = fleshedGame();
+    const chunks = chunksFromGame(doc, ROW, null);
+    expect(chunks).toHaveLength(2);
+    const overview = chunks.find((c) => c.sourceId === `${ROW}#summary`);
+    expect(overview?.content).toContain('玩家替死人送信');
+    // 类型是这份设计的一部分（§51），它决定走哪条构建管线，所以也得查得到
+    expect(overview?.content).toContain('游戏类型：互动故事');
+    const boss = ofKind(chunks, enemy.id);
+    expect(boss?.sourceType).toBe('game');
+    expect(boss?.title).toBe('黑雾港 · 苦痛主教（敌人）');
+    expect(boss?.content).toContain('敌人：苦痛主教');
+    expect(boss?.content).toContain('披着船帆的胖主教');
+    expect(boss?.content).toContain('标签：boss、夜间');
+  });
+
+  it('引用写的是目标实体的名字，不是那串内部 id', () => {
+    const { doc, player, enemy } = fleshedGame();
+    const boss = ofKind(chunksFromGame(doc, ROW, null), enemy.id);
+    expect(boss?.content).toContain('追杀 → 守夜人');
+    // 装配方读的是块文本：里面出现 ge_xxx 就是噪音，查也查不到
+    expect(boss?.content).not.toContain(player.id);
+    expect(boss?.content).not.toContain(enemy.id);
+  });
+
+  it('数值按 key 排序：同一份设计两次切分出逐字节相同的块', () => {
+    // 两份内容相同、只是数值插入顺序相反的设计。除排序外别引入任何差异，
+    // 否则这条断言红得没有意义
+    const build = (order: ['health', 'damage'] | ['damage', 'health']) => {
+      let doc = createGame('黑雾港');
+      doc = { ...doc, summary: '一座被雾封住的港口城，玩家替死人送信。' };
+      const enemy = doc.entities.find((e) => e.kind === 'enemy')!;
+      doc = updateEntity(doc, enemy.id, {
+        name: '苦痛主教',
+        notes: '披着船帆的胖主教，只在钟声里移动。',
+        tags: ['boss', '夜间'],
+      });
+      for (const key of order) doc = setStat(doc, enemy.id, key, key === 'health' ? 400 : 12).document;
+      return { doc, enemy };
+    };
+    const a = build(['health', 'damage']);
+    const b = build(['damage', 'health']);
+    const chunkA = ofKind(chunksFromGame(a.doc, ROW, null), a.enemy.id);
+    const chunkB = ofKind(chunksFromGame(b.doc, ROW, null), b.enemy.id);
+    expect(chunkA?.content).toBe(chunkB?.content);
+    expect(chunkA?.content).toContain('damage=12、health=400');
+  });
+
+  it('sourceId 认的是库里的行，不是文档自带的那个 id', () => {
+    const { doc } = fleshedGame();
+    const chunks = chunksFromGame(doc, ROW, null);
+    // 文档 id 是 `game_<时间戳>`：跨项目复制一份设计就会带出同一个键，
+    // 而 knowledge_chunks 的唯一约束是全局的 (source_type, source_id, chunk_index)
+    expect(doc.id.startsWith('game_')).toBe(true);
+    expect(chunks.every((c) => c.sourceId.startsWith(`${ROW}#`))).toBe(true);
+    expect(chunks.some((c) => c.sourceId.includes(doc.id))).toBe(false);
+  });
+
+  it('只打了标签的实体也算有内容——进度条那个判据比这里严', () => {
+    let doc = createGame('只有标签');
+    const npc = doc.entities.find((e) => e.kind === 'npc')!;
+    doc = updateEntity(doc, npc.id, { tags: ['守桥人'] });
+    // 两条判据问的不是一个问题：fleshedOutCount 说"设计了吗"，这里问"有东西可查吗"
+    expect(fleshedOutCount(doc)).toBe(0);
+    const chunks = chunksFromGame(doc, ROW, null);
+    expect(chunks).toHaveLength(1);
+    expect(chunks[0]?.content).toContain('标签：守桥人');
   });
 });

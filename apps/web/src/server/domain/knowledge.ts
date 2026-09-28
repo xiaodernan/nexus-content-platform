@@ -1,14 +1,16 @@
 import { and, eq, inArray, or, sql } from 'drizzle-orm';
 import { getDb } from '../db/client';
-import { characters, knowledgeChunks, memories, storyboards, worlds } from '../db/schema';
+import { characters, games, knowledgeChunks, memories, storyboards, worlds } from '../db/schema';
 import type { CharacterProfile, WorldDocument } from '@nexus/world-model';
 import { WORLD_KIND_LABELS, type WorldKind } from '@nexus/world-model';
 import type { Storyboard } from '@nexus/video-model';
+import { GAME_ENTITY_LABELS, GAME_KIND_LABELS, type GameDocument } from '@nexus/game-model';
 
 /**
  * §49 RAG 的语料与检索。这一层只做**不需要模型**的那一半：
  *
- * - 切分与入库：世界条目（§44）、角色档案（§46）、四类记忆（§48）、分镜镜头（§40）→ `knowledge_chunks`；
+ * - 切分与入库：世界条目（§44）、角色档案（§46）、四类记忆（§48）、分镜镜头（§40）、
+ *   游戏实体（§54）→ `knowledge_chunks`；
  * - 混合检索：PostgreSQL 全文（`tsvector`，'simple' 配置）+ 子串命中 + 词覆盖度，
  *   三者做一个**能解释**的确定性融合，结果里带着各项分量返回。
  *
@@ -35,7 +37,8 @@ export type KnowledgeSourceType =
   | 'story'
   | 'character'
   | 'memory'
-  | 'storyboard';
+  | 'storyboard'
+  | 'game';
 
 const WORLD_KIND_SOURCE: Record<WorldKind, KnowledgeSourceType> = {
   lore: 'lore',
@@ -62,6 +65,7 @@ export const SOURCE_LABELS: Record<KnowledgeSourceType, string> = {
   character: '角色档案',
   memory: '记忆',
   storyboard: '分镜',
+  game: '游戏',
 };
 
 export interface Chunk {
@@ -217,6 +221,60 @@ export function chunksFromStoryboard(document: Storyboard, storyboardId: string,
   return out;
 }
 
+/**
+ * §54 的游戏文档进语料库：一个**填过的**实体一块，外加摘要那块。
+ *
+ * **模板骨架一块都不进**：`createGame` 给的是 11 类各一个空实体（名字就是类名，说明与数值留空）。
+ * 那种东西进了索引，查"游戏设计"就命中 11 条"玩家 / 敌人 / 武器…"的空壳，而空壳表达的恰恰是
+ * "还没设计"——把它当语料等于让 AI 以为这个项目有内容（§159）。
+ * 判据是"这块有没有可检索的文字"（说明/标签/数值/引用任一非空），刻意比进度条用的
+ * `fleshedOutCount`（只看说明与数值）宽：一个只打了标签或只连了引用的实体，仍然有东西可查。
+ *
+ * 两处刻意的写法：
+ * - 引用渲染成**目标实体的名字**而不是 id：「装备于 → 守夜人」是查得到的一句话，
+ *   「装备于 → ge_mb3k9x」不是（引用两头都在同一份文档里，所以这里能就地解析）。
+ * - 数值按 key 排序再拼：对象键的顺序来自客户端，不是来自内容，不排序的话同一份设计
+ *   两次切分可能得到不同的块，"重建索引看差异"就没有意义了。
+ */
+export function chunksFromGame(document: GameDocument, gameId: string, worldId: string | null): Chunk[] {
+  const out: Chunk[] = [];
+  const name = document.name || '（没有名字）';
+  const kindLabel = GAME_KIND_LABELS[document.kind] ?? document.kind;
+  const byId = new Map(document.entities.map((e) => [e.id, e]));
+  const push = (label: string, sourceId: string, body: string) => {
+    chunkText(body).forEach((content, chunkIndex) => {
+      out.push({ sourceType: 'game', sourceId, chunkIndex, content, title: `${name} · ${label}`, worldId });
+    });
+  };
+  // 摘要空着就不产生「概述」块：单独一行"游戏类型：2D"不是可检索的内容，只是建档痕迹
+  if (document.summary.trim()) {
+    push('概述', `${gameId}#summary`, `摘要：\n${document.summary}\n\n游戏类型：${kindLabel}`);
+  }
+  for (const entity of document.entities) {
+    const entityKind = GAME_ENTITY_LABELS[entity.kind] ?? entity.kind;
+    const stats = Object.keys(entity.stats)
+      .sort()
+      .map((key) => `${key}=${entity.stats[key]}`)
+      .join('、');
+    const refs = entity.refs.map((r) => `${r.role || '引用'} → ${byId.get(r.to)?.name ?? r.to}`).join('\n');
+    const body = [
+      entity.notes,
+      entity.tags.length ? `标签：${entity.tags.join('、')}` : '',
+      stats ? `数值：${stats}` : '',
+      refs ? `引用：\n${refs}` : '',
+    ]
+      .filter(Boolean)
+      .join('\n\n');
+    if (!body.trim()) continue;
+    push(
+      `${entity.name || entityKind}（${entityKind}）`,
+      `${gameId}#entity-${entity.id}`,
+      [`${entityKind}：${entity.name}`, body].join('\n\n'),
+    );
+  }
+  return out;
+}
+
 const MEMORY_SCOPE_SOURCE: Record<string, string> = {
   session: '本次会话',
   character: '角色',
@@ -251,11 +309,12 @@ export async function syncProjectKnowledge(projectId: string): Promise<{ chunks:
   // 语料按项目取。「我的偏好」类记忆 project_id 是 null，因此不进任何项目的语料库：
   // §49 的语料清单是 Lore/Characters/History/Locations/Items/Quests/Documents——
   // 用户偏好不在其中，把它混进来会让"这个世界的检索结果"掺进跨项目的私人设定。
-  const [worldRows, characterRows, memoryRows, storyboardRows] = await Promise.all([
+  const [worldRows, characterRows, memoryRows, storyboardRows, gameRows] = await Promise.all([
     db.select().from(worlds).where(eq(worlds.projectId, projectId)),
     db.select().from(characters).where(eq(characters.projectId, projectId)),
     db.select().from(memories).where(eq(memories.projectId, projectId)),
     db.select().from(storyboards).where(eq(storyboards.projectId, projectId)),
+    db.select().from(games).where(eq(games.projectId, projectId)),
   ]);
 
   // 一条项目最多一份世界（v1）；记忆挂在它下面，查一次就够
@@ -284,6 +343,10 @@ export async function syncProjectKnowledge(projectId: string): Promise<{ chunks:
   for (const row of storyboardRows) {
     const parsed = safeStoryboard(row.document);
     if (parsed) chunks.push(...chunksFromStoryboard(parsed, row.id, worldId));
+  }
+  for (const row of gameRows) {
+    const parsed = safeGame(row.document);
+    if (parsed) chunks.push(...chunksFromGame(parsed, row.id, worldId));
   }
 
   await db.delete(knowledgeChunks).where(eq(knowledgeChunks.projectId, projectId));
@@ -322,6 +385,14 @@ function safeProfile(value: unknown): CharacterProfile | null {
 function safeStoryboard(value: unknown): Storyboard | null {
   const doc = value as Storyboard | null;
   return doc && typeof doc === 'object' && Array.isArray(doc.shots) && Array.isArray(doc.notes) ? doc : null;
+}
+
+/** 同上：一份读不出来的游戏文档只是少几块语料，不该毁掉整个项目的索引 */
+function safeGame(value: unknown): GameDocument | null {
+  const doc = value as GameDocument | null;
+  return doc && typeof doc === 'object' && Array.isArray(doc.entities) && typeof doc.summary === 'string'
+    ? doc
+    : null;
 }
 
 export interface RetrievedChunk {

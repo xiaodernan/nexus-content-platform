@@ -3,13 +3,15 @@ import { GameDocumentSchema } from '@nexus/schemas';
 import { validateGame, type GameDocument } from '@nexus/game-model';
 import { getDb } from '../db/client';
 import { games } from '../db/schema';
+import { syncProjectKnowledge } from './knowledge';
 
 /**
  * §54 游戏设计文档的读写。与 worlds 同一条纪律：
  * 一个项目一份游戏文档（v1），整份 JSON 存取，进出这道门都要过 zod + validateGame。
  *
  * 为什么整份存：游戏文档是"11 类实体 + 它们之间的引用"，查询都是围绕某一份设计进行的，
- * 没有按实体类型跨项目检索的需求（要检索时走 §69 的索引，而不是把模型拆散）。
+ * 没有按实体类型跨项目检索的需求（要被检索时走 §49：`chunksFromGame` 从这份文档**投影**出语料块，
+ * 真值仍然只有这一份，拆成规范化行才是两份）。
  * 拆成规范化行的代价是多一处会不同步的地方——引用的两头分别在两张表里，
  * 删一个实体要记得删两边的行。模型层已经把"两头都清"这件事做掉了（removeEntity），
  * 存储层不该把它重新变成一个大问题。
@@ -96,6 +98,8 @@ export async function saveGame(
       .where(eq(games.id, existing.id))
       .returning({ id: games.id });
     if (!row) return { ok: false, reason: '保存游戏文档时没写到任何行' };
+    // 存了但检索不到 = 对 AI 不存在（§49）。与角色/世界/分镜同一口径：写成功后重建这一份语料
+    await syncProjectKnowledge(projectId);
     return { ok: true, document: { ...stamped, id: row.id } };
   }
 
@@ -104,6 +108,7 @@ export async function saveGame(
     .values({ projectId, ownerId, name: stamped.name, summary: stamped.summary, document: stamped })
     .returning({ id: games.id });
   if (!inserted) return { ok: false, reason: '新建游戏时没写到任何行' };
+  await syncProjectKnowledge(projectId);
   return { ok: true, document: { ...stamped, id: inserted.id } };
 }
 
