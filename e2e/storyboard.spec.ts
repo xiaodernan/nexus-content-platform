@@ -161,7 +161,9 @@ test('@smoke 分镜面板：切句成镜、改一镜能撤、撤销结果真的�
   await expect(page.locator('[data-storyboard-summary]')).toContainText('3 镜');
 
   // 时间线可读不可播：缺的是帧，不是布局（§40 最后一格要真 provider）
-  await expect(page.locator('[data-storyboard-playable]')).toHaveText('不可播');
+  // "不可播"要跟着说出为什么不可播：限度只写在 notes 里，用户在时间线旁看到的就是一个没有解释的结论
+  await expect(page.locator('[data-storyboard-playable]')).toContainText('不可播');
+  await expect(page.locator('[data-storyboard-playable]')).toContainText('不做假生成');
   await expect(page.locator('[data-storyboard-blocker]').first()).toContainText('还没有视频帧');
   await expect(page.locator('[data-storyboard-track="audio"]')).toContainText('空——');
   await page.screenshot({ path: 'screenshots/storyboard-panel.png' });

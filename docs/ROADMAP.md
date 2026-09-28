@@ -2767,3 +2767,16 @@ pre-commit 的 typecheck 却红 6 条——`noUncheckedIndexedAccess` 说 Object
 变异探针两条各落一处且都红——把名册补全那一步变成"当作已存在" → `toHaveCount` 红；
 把挂了角色的分支也走纯文本箭头（假装 Character → Scene 不存在） → 那句"视觉标识"的拒绝红。
 两刀跑完都还原，`StoryboardPanel.tsx` md5 与基线一致。typecheck 0（含 `e2e` 那一个 tsconfig）。
+
+## 全量回归检查点：今天这十二次提交之后，99 个测试文件 / 1083 条用例全绿
+
+这一天改了 knowledge / context / assemble / search / 三个面板 / 两条路由 / schemas / 契约夹具 /
+ai-service 的提示词，但每一片只跑过自己那一小段。补一次全量：
+npx vitest run --fileParallelism false → **99 个文件、1083 条用例、0 失败、0 跳过**
+（数字是从 JSON 报告里数的，不是拿 exit code 当结论）。
+
+顺手把镜头那格的最后一句限度挪到它该在的地方：时间线旁原来只有「不可播」两个字，
+为什么不可播只藏在 notes 里。现在写着「不可播：还没有能直接播放的画面——镜头视频那一格要真 provider，
+本机不做假生成（§159）」。对应的 e2e 断言从 toHaveText 一句改成两条 toContainText：
+「不可播」与「不做假生成」都要出现——**结论和理由一起断**，否则哪天只改解释的那半句测试不会响。
+e2e/storyboard.spec.ts 整组 4 passed (19.4s)，typecheck 0。

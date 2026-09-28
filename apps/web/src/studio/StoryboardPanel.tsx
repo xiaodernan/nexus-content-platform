@@ -527,7 +527,9 @@ export function StoryboardPanel() {
           <p className="mt-1 text-11 text-fg-2">
             总长 {String((timeline?.totalMs ?? 0) / 1000)} 秒 ·
             <span data-storyboard-playable={String(timeline?.playable)}>
-              {timeline?.playable ? ' 可播' : ' 不可播'}
+              {timeline?.playable
+                ? ' 可播'
+                : ' 不可播：还没有能直接播放的画面——镜头视频那一格要真 provider，本机不做假生成（§159）'}
             </span>
           </p>
           <ul className="mt-2 flex flex-col gap-1">
