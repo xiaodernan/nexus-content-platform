@@ -127,7 +127,7 @@ export async function buildProjectContext(
     '代码正文：目录说了有哪几份文件、里面有什么符号，但还没有"按 path 取正文"的通道给 Agent（§69 的后半截）',
     '语义检索与相关性排序：要 embedding provider，§49 只落了全文 + 子串，§69 的排序是词法的',
     '资产像素内容：只带元数据与引用计数',
-    '语料摘录是命中位置附近的窗口，不是整块正文：要整块得按 sourceId 回库里取，而那条通道还没有',
+    '上下文里发的语料摘录是命中位置附近的窗口，不是整块正文：整块能按出处走 GET /api/projects/<id>/knowledge/block 取回，但这一轮没有替你取',
   ];
 
   const context: ProjectContextPayload = {

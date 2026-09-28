@@ -7,7 +7,7 @@ import { saveStoryboard } from '../src/server/domain/storyboards';
 import { saveGame } from '../src/server/domain/games';
 import { planStoryboard } from '@nexus/video-model';
 import { createGame, linkEntities, updateEntity, type GameDocument } from '@nexus/game-model';
-import { knowledgeStats, retrieveProjectKnowledge, syncProjectKnowledge } from '../src/server/domain/knowledge';
+import { knowledgeStats, readKnowledgeBlock, retrieveProjectKnowledge, syncProjectKnowledge } from '../src/server/domain/knowledge';
 import { createWorld } from '@nexus/world-model';
 import { createProject, loadDocument, saveDocument } from '../src/server/domain/projects';
 import { getDb } from '../src/server/db/client';
@@ -500,5 +500,69 @@ describe('§49 × §16：设计文档正文进语料库（真实数据库）', (
       await retrieveProjectKnowledge(b, '甲港的钟只在涨潮时响'),
       'A 的文案串到 B 的项目里 = 隔离破了',
     ).toMatchObject({ items: [] });
+  });
+});
+
+/**
+ * §49 的最后一格：按出处取回**整块**正文。
+ *
+ * 上下文装配与检索面板发出去的都是命中位置附近的窗口（那条 `unavailable` 就是这么写的），
+ * 所以这里要证的是：报文里那个 `sourceId` 真能顺回一整块，顺序稳定，且跨项目顺不回去。
+ */
+describe('§49：按出处取回整块语料（readKnowledgeBlock）', () => {
+  it('检索命中的 sourceId 顺得回整块：块比摘录大、顺序稳定、别人的项目拿不到', async () => {
+    const id = await newProject('Block Read');
+    const hit = await retrieveProjectKnowledge(id, '从一句话到一个可发布的产品');
+    const item = hit.items.find((i) => i.sourceType === 'design');
+    if (!item) throw new Error('起点就不是绿的：检索没命中设计正文');
+
+    const full = await readKnowledgeBlock(id, 'design', item.sourceId);
+    const block = full.blocks[0];
+    if (!block) throw new Error('取回了空列表：这条用例的前提断了');
+    expect(full.blocks.length).toBeGreaterThan(0);
+    expect(block.chunkIndex, '块的顺序不是从 0 开始数：拼回去的次序会变').toBe(0);
+    expect(block.content).toContain(item.snippet.replace(/^…|…$/g, ''));
+    // 这条才是开这一格的理由：整块比那块窗口大，而且带着块自己的抬头行
+    expect(block.content.length, '整块应当不小于摘录（新项目的小块与窗口一样长是正常的）').toBeGreaterThanOrEqual(
+      item.snippet.length,
+    );
+    expect(block.content).toContain('设计文档：');
+    expect(block.title).toContain('Home');
+    expect(block.tokens, '块没带 token 数：预算没法核对').toBeGreaterThan(0);
+
+    const again = await readKnowledgeBlock(id, 'design', item.sourceId);
+    expect(
+      again.blocks.map((b) => b.content),
+      '同一出处取两次内容不同：ORDER BY 没起作用',
+    ).toEqual(full.blocks.map((b) => b.content));
+
+    // 大于一眼可见的那种才证明这条通道有用：长文案的块超过摘录窗口，
+    // 只发窗口就读不全。（第一版这里直接断"块 > 摘录"，红在 145 vs 145——
+    // 新项目的块本来就短于一整个窗口，那条断言测的其实不是这条通道的理由。）
+    const longDoc = await loadDocument(id);
+    if (!longDoc) throw new Error('项目读不回来，测试前提断了');
+    const longPage = longDoc.pages[0]!;
+    const longHeadline = Object.values(longPage.nodes).find((n) => n.name === 'Headline');
+    if (!longHeadline) throw new Error('起始模板里没有 Headline 节点');
+    const longText = '夜里港口的钟一圈圈数着人：' + '雾从海面压过来，灯芯擦亮一次就多一个人回来。'.repeat(12);
+    longPage.nodes[longHeadline.id] = { ...longHeadline, text: longText };
+    await saveDocument(id, longDoc);
+
+    const longHit = await retrieveProjectKnowledge(id, '就多一个人回来');
+    const longItem = longHit.items.find((i) => i.sourceType === 'design');
+    if (!longItem) throw new Error('长文案没被检索到：这条用例的前提断了');
+    const longBlocks = (await readKnowledgeBlock(id, 'design', longItem.sourceId)).blocks;
+    const longBlock = longBlocks[0]!;
+    expect(
+      longBlock.content.length,
+      '长文案的块不比摘录窗口大：那这条通道就没有意义',
+    ).toBeGreaterThan(longItem.snippet.length);
+    expect(longBlock.content).toContain(longItem.snippet.replace(/^…|…$/g, ''));
+    const other = await newProject('Block Read Other');
+    expect(
+      (await readKnowledgeBlock(other, 'design', item.sourceId)).blocks,
+      '项目边界没生效：把别人的语料块发出去了',
+    ).toEqual([]);
+    expect((await readKnowledgeBlock(id, 'design', '#page-没有这一页')).blocks).toEqual([]);
   });
 });

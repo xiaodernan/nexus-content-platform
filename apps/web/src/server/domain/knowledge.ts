@@ -1,4 +1,4 @@
-import { and, eq, inArray, ne, or, sql } from 'drizzle-orm';
+import { and, asc, eq, inArray, ne, or, sql } from 'drizzle-orm';
 import { getDb } from '../db/client';
 import { characters, games, knowledgeChunks, memories, storyboards, worlds } from '../db/schema';
 import type { CharacterProfile, WorldDocument } from '@nexus/world-model';
@@ -674,6 +674,49 @@ function snippetAround(content: string, needle: string): string {
   const start = Math.max(0, at - 80);
   const end = Math.min(content.length, at + 160);
   return `${start > 0 ? '…' : ''}${content.slice(start, end)}${end < content.length ? '…' : ''}`;
+}
+
+/**
+ * 取回一整块语料（§49 的摘录是命中附近的窗口，不是整块正文）。
+ *
+ * 为什么要单独开这条：上下文与检索面板发的都是 snippet，Agent 真要继续往下改，
+ * 需要的是那一块的完整正文与它在来源里的位置。这里只按 (项目, 来源类别, sourceId) 取，
+ * 顺序固定（chunkIndex 升序），于是同一个引用每次拿到的都是同一串文本。
+ */
+export async function readKnowledgeBlock(
+  projectId: string,
+  sourceType: KnowledgeSourceType,
+  sourceId: string,
+  maxChunks = 8,
+): Promise<{ blocks: { chunkIndex: number; content: string; tokens: number; title: string }[] }> {
+  const db = getDb();
+  const rows = await db
+    .select({
+      chunkIndex: knowledgeChunks.chunkIndex,
+      content: knowledgeChunks.content,
+      tokens: knowledgeChunks.tokens,
+      meta: knowledgeChunks.meta,
+    })
+    .from(knowledgeChunks)
+    .where(
+      and(
+        eq(knowledgeChunks.projectId, projectId),
+        eq(knowledgeChunks.sourceType, sourceType),
+        eq(knowledgeChunks.sourceId, sourceId),
+      ),
+    )
+    .orderBy(asc(knowledgeChunks.chunkIndex))
+    .limit(maxChunks);
+  return {
+    blocks: rows.map((row) => ({
+      chunkIndex: row.chunkIndex,
+      content: row.content,
+      tokens: row.tokens ?? 0,
+      title: typeof (row.meta as { title?: unknown } | null)?.title === 'string'
+        ? ((row.meta as { title?: string }).title as string)
+        : '',
+    })),
+  };
 }
 
 /** 面板上的总览：各类语料各有多少块，索引是不是空的 */
