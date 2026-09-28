@@ -1461,8 +1461,19 @@ export class ThreeRuntime {
     if (!file || typeof file !== 'object' || Array.isArray(file)) problems.push('the bytes parse to something other than an object');
     if (file?.format !== SAVE_FILE_FORMAT) problems.push(`format is ${String(file?.format)}, not ${SAVE_FILE_FORMAT}`);
     if (file?.version !== SAVE_FILE_VERSION) problems.push(`version is ${String(file?.version)}, and this runtime reads exactly ${SAVE_FILE_VERSION}`);
-    const declaredCarries = Array.isArray(file?.carries) ? file.carries : [];
-    const declaredOmits = Array.isArray(file?.doesNotCarry) ? file.doesNotCarry.map((entry) => entry.field) : [];
+    const declaredCarries: string[] | null = Array.isArray(file?.carries) ? file.carries : null;
+    const declaredOmits: string[] | null = Array.isArray(file?.doesNotCarry) ? file.doesNotCarry.map((entry) => entry.field) : null;
+    // The claims must be the shapes `loadSaveFile` insists on, or the diagnosis reports "loadable" about a file
+    // the loader is about to refuse — and a report that can disagree with the operation it describes is an
+    // opinion about the runtime, not a report from it.
+    if (declaredCarries === null || declaredOmits === null) {
+      if (declaredCarries === null) problems.push(`carries is ${typeof file?.carries}, not an array of field names`);
+      if (declaredOmits === null) problems.push(`doesNotCarry is ${typeof file?.doesNotCarry}, not the list of fields the file leaves out`);
+      return {
+        path, bytes: contents.length, loadable: false, problems,
+        carriedButUnreadableHere: [], readableNowButNotCarried: [],
+      };
+    }
     if (problems.length > 0) {
       return {
         path, bytes: contents.length, loadable: false, problems,

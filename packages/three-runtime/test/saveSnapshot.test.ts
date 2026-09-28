@@ -1603,4 +1603,34 @@ describe('atomic save writes: a reader sees the old save or the new one, never a
   it('a runtime with no store cannot diagnose either', () => {
     expect(() => runtime.diagnoseSaveFile('x.json')).toThrow(/diagnoseSaveFile: this runtime has no SaveStore/);
   });
+
+  it('a file whose claims are the wrong shape is diagnosed unloadable, because the loader refuses it', () => {
+    // v127 treated a missing carries list as an empty one and called the file loadable, while loadSaveFile
+    // refuses that very file. The diagnosis and the operation must not be free to disagree: that is the same
+    // defect this lane keeps meeting, a report that describes a world the code does not produce.
+    const store = createMemorySaveStore();
+    const rt = runtimeWithStore(store);
+    const sceneId = rt.createScene('World').id;
+    store.write('noclaims.json', JSON.stringify({ format: 'nexus-three-runtime-save', version: 1 }));
+
+    const diagnosis = rt.diagnoseSaveFile('noclaims.json');
+    expect(diagnosis.loadable).toBe(false);
+    expect(diagnosis.problems).toEqual([
+      'carries is undefined, not an array of field names',
+      'doesNotCarry is undefined, not the list of fields the file leaves out',
+    ]);
+
+    let loadMessage = '';
+    try {
+      rt.loadSaveFile(JSON.parse(store.read('noclaims.json')!), sceneId);
+    } catch (error) {
+      loadMessage = (error as Error).message;
+    }
+    expect(loadMessage).toContain('carries is undefined, not an array of field names');
+    expect(loadMessage).toContain('doesNotCarry is undefined, not the list of fields the file leaves out');
+    // One sentence, one rule: the diagnosis quotes the loader's wording rather than paraphrasing it, so the
+    // two cannot drift into two different descriptions of the same refusal.
+    expect(diagnosis.problems[1]).toContain('not the list of fields the file leaves out');
+    rt.dispose();
+  });
 });
