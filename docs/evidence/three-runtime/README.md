@@ -1850,76 +1850,97 @@ arriving one layer down, at a case instead of a file.
 - **`inventory` is still refused on every plane**, and `sceneGraph` and `quests` are still the blocked `SaveData`
   fields.
 - **No Studio surface**: no panel shows a player's numbers and no control drives one.
+
 ## v139 — the package face stops being a hand-copied list: four wholesale re-exports, 6 derived cases that read the modules instead of repeating them, and a probe that puts the old list back
 
-`src/index.ts` is what a caller of `@nexus/three-runtime` can spell. Until this grant it spelled each module's
-exports
-out by hand, which made every grant two grants: add the export to the module, then remember the barrel line. The
-second half had no gate, no checklist and no failure mode — it just quietly decided that a name was private.
+`src/index.ts` is what a caller of `@nexus/three-runtime` can spell. Until this grant it spelled
+three of its four modules' exports out by hand (`./types.js` was already starred, which is why
+nobody looked twice at the three that were not), which made every grant two grants: add the export
+to the module, then remember the barrel line. The second half had no gate, no checklist and no
+failure mode — it just quietly decided that a name was private.
 
-**The accident this grant found.** v135 added `refusalsFor` and its row type `RefusalRow`, documented the row in
-the
-module, and never wrote the barrel line. Measured at `9bf77b1` (the ref before this landing) the reader prints
-`holes=1` and names it: `RefusalRow`. Every call site that could have noticed — the refusal
-census, its three accounts, the tests that build a table by hand — either lives inside the module or spells the
-fields out, so nothing imported the type and nothing reddened. On the moving worktree, with the v138 writer's
-in-flight names uncommitted, the same reader counted `holes=0`: the list was losing names at a rate
-of roughly one per grant, and each loss was silent.
+**The accident this grant found.** v135 added `refusalsFor` and its row type `RefusalRow`,
+documented the row in the module, and never wrote the barrel line. Measured at `9bf77b1` (the ref
+before this landing) the reader prints `holes=1` and names it: `RefusalRow`. Every call site that
+could have noticed — the refusal census, its three accounts, the tests that build a table by hand —
+either lives inside the module or spells the fields out, so nothing imported the type and nothing
+reddened.
 
-**The repair removes the class.** The face is now four `export *` clauses — the union of its modules — so a
-module
-cannot declare a name the barrel omits. The reason it had not been done is real and is now measured rather than
-weighed: two starred modules that both own a name make that name disappear with only a TS2308 note to prove it
-was ever ambiguous. At this ref the four modules own 123 names with zero pairwise collisions, and the one
-name two of them touch, `DEFAULT_THREE_CONFIG`, is owned by `types.ts` and merely forwarded by `threeRuntime.ts`
-— one binding,
-one owner. `tsc -p tsconfig.json --noEmit` exits 0 on the wholesale barrel, which settles the question by asking
-the compiler rather than me.
+**The rate, measured rather than asserted.** The first landing of this section claimed the list was
+"losing names at roughly one per grant" while quoting a fresh worktree reading as if it were a
+historical one. So the claim got a second reader: `.scratch/v139/measureOldListVsWorktree.mjs`
+grades the hand-copied list exactly as it stood at `9bf77b1` against the module bytes as they stand
+in the worktree NOW — where the v138 writer's combat names are still uncommitted. It reports
+`holes=4`: `CombatAttachOptions`, `CombatantFieldAudit`, `DEFAULT_COMBATANT`, `RefusalRow`. The same
+modules through this grant's face report `holes=0`. The four are not one kind of mistake — one is
+this lane's own forgotten line, three are a live neighbour's in-flight work that no checklist in
+this repository could have caught, because the barrel's owner cannot see a module it does not read.
+That asymmetry is the argument for `export *` over "remember to update the list", and it is now
+re-runnable instead of remembered.
 
-`test/packageFace.test.ts` holds the rule as 6 cases that derive their expectations from the module bytes and
-the barrel bytes, with no literal name list anywhere: reachability of every owned export, every module mentioned,
-no two owners of one name, a forwarded name resolving to its owner and forwarded from that owner's file, and the
-imported namespace's value layer equalling exactly the modules' own values plus their forwards. The sixth case is
-the one that makes the other five believable: it feeds the same finders a synthetic hand-listed barrel and
-requires
-them to name the shapes they exist to catch — a module the face never mentions, an owned name left off the list,
-and a name the list spells that no module declares. It runs in-process against a table rather than by editing a
-module, because `src/types.ts` and `src/threeRuntime.ts` are held by a live v138 writer and no arm of mine may
-touch them.
+**The repair removes the class.** The face is now four `export *` clauses — the union of its modules
+— so a module cannot declare a name the barrel omits. The reason it had not been done is real and is
+now measured rather than weighed: two starred modules that both own a name make that name disappear
+with only a TS2308 note to prove it was ever ambiguous. At `c30f592` the four modules own 123 names
+(`types 75`, `threeRuntime 31`, `saveStore 6`, `renderBackend 11`) with zero pairwise collisions;
+the same reader on the live worktree counts 129, because v138's in-flight names are in those bytes.
+The one name two of them touch, `DEFAULT_THREE_CONFIG`, is owned at `types.ts:774` and merely
+forwarded at `threeRuntime.ts:49` — one binding, one owner. `tsc -p tsconfig.json --noEmit` exits 0
+on the wholesale barrel, which settles the question by asking the compiler rather than me.
 
-**How the probe ran.** 10 reported lines over 3 arms, each mutating only `src/index.ts` and each asserting
-its own byte-change before grading: [summary] 3 arms, 0 mismatched · index.ts restored byte-exactly: true ·
-original sha 57e2cc864d79. Arm A put the v135 list back; it reddened the reachability case
-and the value-layer case and nothing else — 361 cases collected, 2 failed, 0 red outside `packageFace`. That is
-the
-accident reproduced on purpose, and the suite's blindness reproduced with it. Round 1 of this probe predicted
-1/3/0 reds and measured 2/4/2; the three misses were mine (the old list also hides v138's `DEFAULT_COMBATANT`, so
-the value case reddened too; case 6 read the real barrel for its clean direction and so duplicated case 1; and
-esbuild does not typecheck, so a ghost name is a behavioural red rather than a load failure), and round 2 hit all
-three. Round 1 is left in the log rather than retro-fitted.
+`test/packageFace.test.ts` holds the rule as 6 cases that derive their expectations from the module
+bytes and the barrel bytes, with no literal name list anywhere: reachability of every owned export,
+every module mentioned, no two owners of one name, a forwarded name resolving to its owner and
+forwarded from that owner's file, and the imported namespace's value layer equalling exactly the
+modules' own values plus their forwards. The sixth case is the one that makes the other five
+believable: it feeds the same finders a synthetic hand-listed barrel and requires them to name the
+shapes they exist to catch — a module the face never mentions, an owned name left off the list, and
+a name the list spells that no module declares. It runs in-process against a table rather than by
+editing a module, because `src/types.ts` and `src/threeRuntime.ts` are held by a live v138 writer
+and no arm of mine may touch them.
 
-**Measured.** 361/361 vitest cases across 7 files, 53/53 suites, 0 failed, at the landing; `tsc` exit 0; staged
-diff
-+198/−27 over 2 files. The 7-file figure is a WORKTREE reading: it includes the v138 writer's uncommitted
-`test/combatRecord.test.ts`; 6 test files are tracked at the landing ref. That distinction is the same one
-amendment
-137 had to state, and it is stated here rather than smoothed over.
+**How the probe ran.** 10 reported lines over 3 arms, each mutating only `src/index.ts` and each
+asserting its own byte-change before grading: [summary] 3 arms, 0 mismatched · index.ts restored
+byte-exactly: true · original sha 57e2cc864d79. Arm A put the v135 list back; it reddened the
+reachability case and the value-layer case and nothing else — 361 cases collected, 2 failed, 0 red
+outside `packageFace`. That is the accident reproduced on purpose, and the suite's blindness
+reproduced with it. Arm B dropped one module's clause and reddened 3 cases; arm C named a member the
+module had stopped declaring and reddened 2 while `tsc` exited 2 (TS2305). Round 1 of this probe
+predicted 1/3/0 reds and measured 2/4/2; the three misses were mine (the old list also hides v138's
+`DEFAULT_COMBATANT` — now measured at four names — so the value case reddened too; case 6 read the
+real barrel for its clean direction and so duplicated case 1; and esbuild does not typecheck, so a
+ghost name is a behavioural red rather than a load failure), and round 2 hit all three. Round 1 is
+left in the log rather than retro-fitted.
+
+**Measured.** 361/361 vitest cases across 7 files, 53/53 suites, 0 failed, at the landing; `tsc`
+exit 0; staged diff +198/−27 over 2 files. The 7-file figure is a WORKTREE reading: it includes the
+v138 writer's uncommitted `test/combatRecord.test.ts`; 6 test files are tracked at the landing ref.
+That distinction is the same one amendment 137 had to state, and it is stated here rather than
+smoothed over.
+
+**Correction on re-read (recorded, not smoothed).** This section and amendment 139 were first landed
+by `15ebe8e` with one sentence that interpolated a FRESH worktree reading (`holes=0`) into a clause
+about the HISTORICAL pre-swap state — the exact confusion this lane's own trap list names, caught by
+reading back my own committed text. The fix is not to delete the sentence but to make the claim
+derivable, which produced the `measureOldListVsWorktree` reader above. The same landing's mechanical
+reflow also dropped two-space bullet continuations and doubled two `- ` markers, so the whole region
+was rewritten rather than poked; every deleted line of the correction lies inside this section, and
+the bytes before it are byte-identical to their HEAD state.
 
 ### What v139 still does NOT cover — stated by name
 
-- **No consumer was broken, because there is no consumer.** Nothing outside `packages/three-runtime` imports the
-package yet, so `RefusalRow` being unreachable cost a caller nothing but a type they could not write. This grant
-  prevents the next one; it does not repair an outage.
-- - **The gate is a regex reader.** It understands `export const/function/class/interface/type/enum`, `export {
-  a, b as c }`
-  and `export * from`. A name any of the modules produces by another route — a computed re-export, a namespace
-object, an `export { * as ns }` — is invisible to it, and the case that proves the finders can see the broken
-shape
-  covers only the shapes this package actually uses.
-- **A wholesale face has no editorial voice.** Every exported name of every module is now public API of the
-  package. Anything that should stay internal must stop being exported at the module, which is the honest place
-  for that decision but also a decision nobody has had to make for this package yet.
-- - **The package face is not the product face.** No Studio surface, HUD or agent tool imports
-  `@nexus/three-runtime`;
-  the roadmap's M5 entry is still a runtime with tests, not a feature a user can open.
-
+- **No consumer was broken, because there is no consumer.** Nothing outside `packages/three-runtime`
+  imports the package yet, so `RefusalRow` being unreachable cost a caller nothing but a type they
+  could not write. This grant prevents the next one; it does not repair an outage.
+- **The gate is a regex reader.** It understands `export const/function/class/interface/type/enum`,
+  `export { a, b as c } from` and `export * from`. A name any of the modules produces by another
+  route — a computed re-export, a namespace object, an `export { * as ns }` — is invisible to it,
+  and the case that proves the finders can see the broken shape covers only the shapes this package
+  actually uses.
+- **A wholesale face has no editorial voice.** Every exported name of every module is now public API
+  of the package. Anything that should stay internal must stop being exported at the module, which
+  is the honest place for that decision but also a decision nobody has had to make for this package
+  yet.
+- **The package face is not the product face.** No Studio surface, HUD or agent tool imports
+  `@nexus/three-runtime`; the roadmap's M5 entry is still a runtime with tests, not a feature a user
+  can open.
