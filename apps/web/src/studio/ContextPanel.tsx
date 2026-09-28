@@ -47,6 +47,13 @@ export function ContextPanel() {
   const [context, setContext] = useState<ProjectContextPayload | null>(null);
   const [budget, setBudget] = useState('20000');
   const [corpusQuery, setCorpusQuery] = useState('');
+  // §49 的整块正文：上下文里发的是窗口，这里按出处把整块取回来看（通道是 GET …/knowledge/block）
+  const [block, setBlock] = useState<{
+    sourceId: string;
+    blocks: { chunkIndex: number; content: string; tokens: number }[];
+    error: string | null;
+    busy: boolean;
+  } | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
@@ -73,6 +80,32 @@ export function ContextPanel() {
         setMessage(error instanceof Error ? error.message : String(error));
       } finally {
         setBusy(false);
+      }
+    },
+    [studio.projectId],
+  );
+
+  const readBlock = useCallback(
+    async (sourceType: string, sourceId: string) => {
+      setBlock({ sourceId, blocks: [], error: null, busy: true });
+      try {
+        const params = new URLSearchParams({ sourceType, sourceId });
+        const res = await fetch(`/api/projects/${studio.projectId}/knowledge/block?${params.toString()}`, {
+          cache: 'no-store',
+        });
+        const body = (await res.json().catch(() => null)) as
+          | { blocks?: { chunkIndex: number; content: string; tokens: number }[]; message?: string }
+          | null;
+        // 服务端 404 给的那句原因要原样显示出去：「库里没有这一块」与「这一块是空的」是两件事
+        if (!res.ok || !body?.blocks) throw new Error(body?.message ?? `HTTP ${res.status}`);
+        setBlock({ sourceId, blocks: body.blocks, error: null, busy: false });
+      } catch (error) {
+        setBlock({
+          sourceId,
+          blocks: [],
+          error: error instanceof Error ? error.message : String(error),
+          busy: false,
+        });
       }
     },
     [studio.projectId],
@@ -310,15 +343,49 @@ export function ContextPanel() {
                 </p>
               )}
               {context.corpus.items.map((item) => (
-                <p
-                  key={`${item.sourceId}#${item.chunkIndex}`}
-                  className="text-11 leading-relaxed text-fg-2"
-                  data-context-corpus-item={item.sourceId}
-                >
-                  <span className="font-mono text-10 text-fg-3">{item.title}</span>
-                  {` · 命中方式 ${item.matchedBy.join('+')} · 分 ${item.score.toFixed(2)}\n${item.excerpt}`}
-                </p>
+                <div key={`${item.sourceId}#${item.chunkIndex}`} className="flex flex-col gap-0.5">
+                  <p className="text-11 leading-relaxed text-fg-2" data-context-corpus-item={item.sourceId}>
+                    <span className="font-mono text-10 text-fg-3">{item.title}</span>
+                    {` · 命中方式 ${item.matchedBy.join('+')} · 分 ${item.score.toFixed(2)}\n${item.excerpt}`}
+                  </p>
+                  <button
+                    type="button"
+                    disabled={block?.busy === true}
+                    onClick={() => void readBlock(item.sourceType, item.sourceId)}
+                    data-context-block-run={item.sourceId}
+                    className="self-start rounded-[var(--nexus-radius-sm)] border border-[var(--nexus-color-border-subtle)] px-1.5 py-0.5 text-10 text-fg-3 hover:bg-bg-2 disabled:opacity-50"
+                  >
+                    取整块
+                  </button>
+                </div>
               ))}
+              {block ? (
+                <div className="mt-1 rounded-[var(--nexus-radius-sm)] bg-bg-2 p-2" data-context-block>
+                  {block.busy ? <p className="text-11 text-fg-3">取整块中…</p> : null}
+                  {block.error ? (
+                    <p className="text-11 leading-relaxed text-danger" data-context-block-error>
+                      {block.error}
+                    </p>
+                  ) : null}
+                  {!block.busy && !block.error
+                    ? block.blocks.map((b) => (
+                        <p
+                          key={`${block.sourceId}#${b.chunkIndex}`}
+                          className="text-11 leading-relaxed whitespace-pre-line text-fg-1"
+                          data-context-block-text={String(b.chunkIndex)}
+                        >
+                          {b.content}
+                          {`\n（第 ${b.chunkIndex + 1}/${block.blocks.length} 块 · ${b.tokens} token）`}
+                        </p>
+                      ))
+                    : null}
+                  {!block.busy && !block.error && block.blocks.length === 0 ? (
+                    <p className="text-11 text-fg-3" data-context-block-empty>
+                      这一出处取回来是空的块列表——服务端没报错，那就真是一块都没有。
+                    </p>
+                  ) : null}
+                </div>
+              ) : null}
               {context.corpus.query !== null && context.corpus.items.length === 0 ? (
                 <p className="text-11 leading-relaxed text-fg-3" data-context-corpus-empty>
                   一条都没取到：这个项目里没有与这句话相关的语料（不是"检索坏了"）。

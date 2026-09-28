@@ -2668,7 +2668,7 @@ Python：`apps/ai-service` 全量 **66 passed / 1 skipped**（新增 2 条 corpu
 凭证：knowledge 两个文件 44/44（新增 1 条，17 条集成里的一条）。变异探针把 readKnowledgeBlock
 的项目边界删掉 → 1 failed，红的正是那条跨项目断言，还原后 md5 一致。
 
-#75 还欠一格：上下文面板的摘录旁边没有"取整块"的按钮——通道通了，入口还没接（这仓库有过同形状的前科：#66/#67）。
+#75 还欠一格：上下文面板的摘录旁边没有"取整块"的按钮——通道通了，入口还没接（这仓库有过同形状的前科：#66/#67）。（这一格已在下一片补完，见文末「整块语料的界面入口」。）
 
 这一片的红门记录（同一笔前科的第二次）：新断言里写的是 `full.blocks[0].content`，vitest 44 条全绿，
 pre-commit 的 typecheck 却红 6 条——`noUncheckedIndexedAccess` 说 Object is possibly undefined。
@@ -2680,3 +2680,20 @@ pre-commit 的 typecheck 却红 6 条——`noUncheckedIndexedAccess` 说 Object
 反引号被 shell 当成命令替换吃掉，追加进去的几行变成半句话混进正文；第二次换单引号又被内层双引号绊住。
 **多行中文文档一律用 Edit/Write 落盘**，`node -e` 只留给不含反引号、美元符与内层引号的短脚本——
 这一片里它已经三次把话讲到一半吞掉了。
+
+## §49 最后一格补完：整块语料的界面入口（#75 关掉）
+
+上一片只把通道做出来（`GET …/knowledge/block`），摘录旁边没有那个按钮——这仓库对"服务端已通、界面没入口"
+是有前科的（#66 组件删除、#67 角色→场景），所以这一片就补那一寸：每条摘录下面一个「取整块」，
+取回来显示正文 + 「第 n/N 块 · T token」，失败时把服务端那句原因原样落在界面上。
+
+- 错误路径是这一格的重点：404 不能说成"这块是空的"。`[data-context-block-error]` 显示的是
+  路由给的那句"来源已删除而索引还没重建（点「重建索引」核对）"，与"取回来确实是空列表"
+  （`[data-context-block-empty]`，另一句话）分得很开。
+- 参数仍然走 `URLSearchParams`（上一片那条纪律的第三次应用）。
+
+凭证：上下文那条 `@smoke` 加长——点「取整块」→ 断正文里出现刚改进去的那句、断「第 n/N 块 · T token」那行、
+再用 `page.route` 把 block 那一条 GET 拦成 404 → 断错误句出现且 `[data-context-block-text]` 计数 0。
+**1 passed (17.0s)**，`npm run typecheck` 0。两条变异探针各自只落一处且都红：把按钮的 onClick 换成空操作 →
+1 failed；把 catch 里那句错误原因改成 `error: null` → 1 failed（证明"失败被吞成空"这个形状真的会被抓到），
+两刀跑完都还原、md5 与探针前一致。

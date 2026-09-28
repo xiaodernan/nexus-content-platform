@@ -1544,6 +1544,27 @@ test('@smoke 上下文：目录尺寸、预算裁剪与未索引分支都写在�
   await page.fill('[data-context-corpus-input]', newSentence);
   await page.click('[data-context-corpus-run]');
   await expect(page.locator('[data-context-corpus-item]').first()).toContainText(newSentence);
+
+  // 摘录是窗口，整块要按出处取回来（§49 的最后一格：通道与入口都要在，缺一边就是半件功能）
+  await page.locator('[data-context-block-run]').first().click();
+  await expect(page.locator('[data-context-block-text]').first()).toContainText(newSentence, {
+    timeout: 30_000,
+  });
+  // 整块要带 token 数与"第几块/共几块"，读的人才知道手里这份是不是全集
+  await expect(page.locator('[data-context-block-text]').first()).toContainText(/（第 \d+\/\d+ 块 · \d+ token）/);
+
+  // 取整块失败时不许显示成"这块是空的"：原因要原样落在界面上（§73 同一条纪律）
+  await page.route('**/knowledge/block*', (route) =>
+    route.fulfill({
+      status: 404,
+      contentType: 'application/json',
+      body: JSON.stringify({ ok: false, message: '这一块的语料不在库里（测试注入）' }),
+    }),
+  );
+  await page.locator('[data-context-block-run]').first().click();
+  await expect(page.locator('[data-context-block-error]')).toContainText('测试注入');
+  await expect(page.locator('[data-context-block-text]')).toHaveCount(0);
+  await page.unroute('**/knowledge/block*');
   await page.screenshot({ path: 'screenshots/context-corpus-after-edit.png' });
 });
 
