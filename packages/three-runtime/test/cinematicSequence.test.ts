@@ -95,7 +95,7 @@ const cameraPos = (id: CameraId) => runtime.getScene(scene)!.cameras.get(id)!.th
 
 /** Read from the artifact that DECLARES the shape, so a field added in `types.ts` cannot join the silent
  *  ones. Module-level since v118: the codec cases ask the same question about the serialized interfaces. */
-const typesSource = readFileSync(new URL('../src/types.ts', import.meta.url), 'utf8');
+const typesSource = readFileSync(new URL('../src/types.ts', import.meta.url), 'utf8').replace(/\r\n/g, '\n');
 
 function declaredFields(name: string): string[] {
   const opener = new RegExp(`export interface ${name} \\{`);
@@ -1207,7 +1207,7 @@ describe('removeCinematic / clearCinematics — the registry can give an id back
   it('the duplicate-id refusal now names removeCinematic, and the shipped prose no longer claims the opposite', () => {
     define();
     expect(() => define()).toThrow(/a sequence named seq is already registered; removeCinematic it first/);
-    const shipped = readFileSync(new URL('../src/threeRuntime.ts', import.meta.url), 'utf8');
+    const shipped = readFileSync(new URL('../src/threeRuntime.ts', import.meta.url), 'utf8').replace(/\r\n/g, '\n');
     // Scan the refusal messages, not the prose: a docstring is allowed to QUOTE a retired sentence in order to
     // say it was retired, and a thrown message is not.
     const messages = shipped.split('\n').filter((line) => line.includes('throw new Error(')).join('\n');

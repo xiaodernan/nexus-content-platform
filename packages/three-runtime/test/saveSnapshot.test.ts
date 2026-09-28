@@ -484,7 +484,7 @@ describe('saveFeasibilityAudit is a reader, not a constant', () => {
 });
 
 describe('the shipped shape and the shipped builder are the same set (read from types.ts)', () => {
-  const typesSource = readFileSync(new URL('../src/types.ts', import.meta.url), 'utf8');
+  const typesSource = readFileSync(new URL('../src/types.ts', import.meta.url), 'utf8').replace(/\r\n/g, '\n');
 
   /** Read the top-level field names of one declared interface, out of the source file itself. */
   function declaredFields(name: string): string[] {
@@ -599,7 +599,7 @@ describe('the shipped shape and the shipped builder are the same set (read from 
  * needed — a file that says what it carries and what it deliberately does not — got an author and a reader.
  */
 describe('a save FILE: it survives the disk, and the loader refuses what it cannot read', () => {
-  const savedTypes = readFileSync(new URL('../src/types.ts', import.meta.url), 'utf8');
+  const savedTypes = readFileSync(new URL('../src/types.ts', import.meta.url), 'utf8').replace(/\r\n/g, '\n');
 
   /** One entity with a transform worth comparing, plus one sequence with a path. */
   function fileWithContent() {
@@ -878,7 +878,7 @@ describe('a save FILE: it survives the disk, and the loader refuses what it cann
   });
 
   it('the audit sentence that used to call cinematic unimplemented now says a file names what it omits', () => {
-    const shipped = readFileSync(new URL('../src/threeRuntime.ts', import.meta.url), 'utf8');
+    const shipped = readFileSync(new URL('../src/threeRuntime.ts', import.meta.url), 'utf8').replace(/\r\n/g, '\n');
     const at = shipped.indexOf('   * Say, for one live entity, what a save would actually carry.');
     expect(at, 'the audit method lost the docstring this claim is pinned to').toBeGreaterThan(-1);
     const doc = shipped.slice(at, shipped.indexOf('*/', at));

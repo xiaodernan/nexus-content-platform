@@ -287,7 +287,7 @@ describe('physicsFieldAudit names what a declared world still cannot buy', () =>
 });
 
 describe('the audit and the declared type are the same set (read from types.ts)', () => {
-  const typesSource = readFileSync(new URL('../src/types.ts', import.meta.url), 'utf8');
+  const typesSource = readFileSync(new URL('../src/types.ts', import.meta.url), 'utf8').replace(/\r\n/g, '\n');
 
   /** The field names of one exported interface, taken from the file that DECLARES them. */
   function declaredFields(name: string): string[] {
