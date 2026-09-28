@@ -17,6 +17,9 @@ import type {
   CharacterController,
   ControllerInput,
   SerializedEntity,
+  SerializedVector3,
+  SerializedEuler,
+  SaveFile,
   CinematicSequence,
   CinematicShot,
   SerializedCinematic,
@@ -166,7 +169,7 @@ function curveFromData(data: SerializedCurve, where: string): THREE.CatmullRomCu
   }
   const vectors = points.map((point, index) => {
     for (const axis of CURVE_AXES) {
-      const value = (point as Record<string, unknown> | null | undefined)?.[axis];
+      const value = (point as unknown as Record<string, unknown> | null | undefined)?.[axis];
       if (typeof value !== 'number' || !Number.isFinite(value)) {
         throw new Error(`restoreCinematic: ${where} control point ${index} has ${axis} = ${String(value)}; a saved coordinate has to be a finite number, and three.js reads anything else as a NaN position or a crash`);
       }
@@ -280,32 +283,40 @@ function shotFromData(saved: SerializedCinematicShot, where: string): CinematicS
 }
 
 /**
- * The `sequences` map as an ordered list, answering the ENVELOPE questions a reader has to ask before a
- * single sequence is registered.
+ * The `sequences` collection as an ordered list, answering the ENVELOPE questions a reader has to ask before
+ * a single sequence is registered.
  *
- * A plain object is refused rather than iterated, because `JSON.stringify` writes a `Map` as `{}` — a save
- * that came off a disk in the obvious way arrives exactly here, and "it was empty, restored 0 sequences,
- * success" is the answer this reader must not give. The rest are the two-spellings-of-one-fact checks the
- * runtime cannot produce (`playing` is derived from the slot while playing, and `defineCinematic` owns its
- * own key): a map key that disagrees with the record under it, an `id` that is not a name `activeSequence`
- * can address, a scene the shots do not belong to, a `currentShot` no shot answers to.
+ * A `Map` is refused by name, and that refusal is v119's correction to v118: the older shape spelled this
+ * collection as a `Map` and the reader refused a plain object — which is what a JSON write leaves behind — so
+ * the save could not survive the one trip a save exists to survive. Collections in a save shape are arrays of
+ * `[key, value]` pairs, here and in `SaveData.entities`. The rest are the two-spellings-of-one-fact checks
+ * the runtime itself cannot produce (`playing` is derived from the slot while playing, and `defineCinematic`
+ * owns its own key): a pair whose key disagrees with the record under it, an `id` that is not a name
+ * `activeSequence` can address, a scene the shots do not belong to, a `currentShot` no shot answers to.
  */
 function savedSequences(snapshot: SerializedCinematic): SerializedCinematicSequence[] {
-  const map = snapshot.sequences as unknown;
-  if (!(map instanceof Map)) {
-    throw new Error(`restoreCinematic: sequences is ${Array.isArray(map) ? 'an array' : typeof map}, not a Map — a Map does not survive a JSON write, so a save that arrived as an object has to say so instead of being read as an empty one`);
+  const pairs = snapshot.sequences as unknown;
+  if (pairs instanceof Map) {
+    throw new Error('restoreCinematic: sequences arrived as a Map, which is the shape v118 wrote and JSON erases; a save spells its collections as [key, value] arrays so the entries are still there on the way back');
+  }
+  if (!Array.isArray(pairs)) {
+    throw new Error(`restoreCinematic: sequences is ${typeof pairs}, not an array of [key, sequence] pairs`);
   }
   const list: SerializedCinematicSequence[] = [];
-  for (const [key, value] of map as Map<string, SerializedCinematicSequence>) {
+  for (const [index, pair] of (pairs as [string, SerializedCinematicSequence][]).entries()) {
+    if (!Array.isArray(pair) || pair.length !== 2) {
+      throw new Error(`restoreCinematic: sequences[${index}] is ${Array.isArray(pair) ? `an array of ${pair.length}` : typeof pair}, not a [key, sequence] pair`);
+    }
+    const [key, value] = pair;
     if (!value || typeof value !== 'object' || Array.isArray(value)) {
-      throw new Error(`restoreCinematic: sequences holds ${Array.isArray(value) ? 'an array' : typeof value} under key ${String(key)}, not a sequence object`);
+      throw new Error(`restoreCinematic: sequences[${index}] holds ${Array.isArray(value) ? 'an array' : typeof value} under key ${String(key)}, not a sequence object`);
     }
     const entry = value;
     if (typeof entry.id !== 'string' || entry.id.length === 0) {
       throw new Error(`restoreCinematic: the sequence stored under ${String(key)} calls itself ${String(entry.id)}; activeSequence addresses a sequence by its id, so an id that is not a name is a field no part of the save can point at`);
     }
     if (key !== entry.id) {
-      throw new Error(`restoreCinematic: sequences is keyed ${String(key)} but the record under it says ${entry.id}; a key and the name it stores are two spellings of one fact and the save has to pick one`);
+      throw new Error(`restoreCinematic: sequences[${index}] is keyed ${String(key)} but the record under it says ${entry.id}; a key and the name it stores are two spellings of one fact and the save has to pick one`);
     }
     if (typeof entry.sceneId !== 'string' || entry.sceneId.length === 0) {
       throw new Error(`restoreCinematic: sequence ${entry.id} sceneId is ${String(entry.sceneId)}; a shot's cameraId addresses one scene's camera set, so the save has to name the scene it belongs to`);
@@ -422,6 +433,17 @@ export interface CinematicRestoreReport {
   playheads: { id: string; time: number; currentShot: number }[];
 }
 
+/** What `loadSaveFile` answers: the scene it loaded into, the entity ids it inserted, the sequence ids it
+ *  registered, and the `carries` list it checked its own work against. Every field is a record of what
+ *  happened, so a caller can tell "loaded nothing because the file was empty" from "refused" — the latter
+ *  throws, and no report is returned at all. */
+export interface SaveFileLoadReport {
+  sceneId: SceneId;
+  entities: EntityId[];
+  sequences: string[];
+  carries: string[];
+}
+
 /** What `controllerFieldAudit` answers. The `untouched` list is the honesty surface — a field declared
  *  on `CharacterController` but never implemented shows up there BY NAME instead of being ignored in
  *  silence. `slopeLimit` and `stepOffset` are in it today: both need collision geometry this package
@@ -469,11 +491,13 @@ const SAVE_ALIAS_CLAIMS: Record<string, readonly string[]> = {
 /** Which declared `SaveData` fields the runtime can fill today, and which are waiting on a system that
  *  does not exist yet. The blocked half is the honest part: `npcs`/`quests`/`player` are declared in
  *  `types.ts` and implemented by nothing, so a `SaveData` written today would carry empty maps that look
- *  like an empty game world. `savable` means BOTH directions: `entities` has `snapshotEntity`/
- *  `restoreEntity`, and `cinematic` has had `cinematicSnapshot` since v117 and a reader since v118.
- *  The pair is not decoration — `saveSnapshot.test.ts` derives each field's stem from its own name and
- *  requires a surface name to implement a `savable` row and NONE to implement a `blocked` one, which is
- *  what makes this table unable to sit still while an implementation ships beside it. */
+ *  like an empty game world. `savable` means BOTH directions survive a FILE since v119: `entities` has
+ *  `snapshotEntity`/`restoreEntity`, `cinematic` has `cinematicSnapshot`/`restoreCinematic`, and
+ *  `buildSaveFile` runs `assertDiskSafe` over the finished file so neither half can write a `Map` or a live
+ *  object the reader could not get back. The pair is not decoration — `saveSnapshot.test.ts` derives each
+ *  field's stem from its own name and requires a surface name to implement a `savable` row and NONE to
+ *  implement a `blocked` one, which is what makes this table unable to sit still while an implementation
+ *  ships beside it. */
 const SAVE_DATA_FEASIBILITY: { savable: readonly string[]; blocked: readonly { field: string; needs: string }[] } = {
   savable: ['entities', 'cinematic'],
   blocked: [
@@ -519,6 +543,143 @@ function plainDataOrRefuse(value: unknown, path: string): void {
   for (const [key, nested] of Object.entries(value as Record<string, unknown>)) {
     plainDataOrRefuse(nested, `${path}.${key}`);
   }
+}
+
+/**
+ * The `format` literal and `version` a `SaveFile` this runtime writes and reads must carry. A file whose
+ * version is not this number is refused rather than interpreted: v117 learned with `curveType` that an
+ * unrecognized word handed to a permissive reader does not fail, it silently means something else.
+ */
+export const SAVE_FILE_FORMAT = 'nexus-three-runtime-save';
+export const SAVE_FILE_VERSION = 1;
+
+/** The rotation orders three.js composes a quaternion from. */
+const EULER_ORDERS: readonly string[] = ['XYZ', 'XZY', 'YXZ', 'YZX', 'ZXY', 'ZYX'];
+
+/** A live vector as the three numbers a file can hold. */
+function vectorToData(vector: THREE.Vector3, where: string): SerializedVector3 {
+  const data = { x: vector.x, y: vector.y, z: vector.z };
+  for (const axis of CURVE_AXES) {
+    if (!Number.isFinite(data[axis])) {
+      throw new Error(`snapshotEntity: ${where} ${axis} is ${data[axis]}; a file stores finite numbers, and JSON writes this one as null`);
+    }
+  }
+  return data;
+}
+
+/** An `Euler` as four values, including the order, because the order is part of the pose. */
+function eulerToData(euler: THREE.Euler, where: string): SerializedEuler {
+  const data = { x: euler.x, y: euler.y, z: euler.z, order: euler.order };
+  for (const axis of CURVE_AXES) {
+    if (!Number.isFinite(data[axis])) {
+      throw new Error(`snapshotEntity: ${where} ${axis} is ${data[axis]}; a file stores finite numbers, and JSON writes this one as null`);
+    }
+  }
+  if (typeof data.order !== 'string') {
+    throw new Error(`snapshotEntity: ${where} order is ${typeof data.order}, not one of ${quoted(EULER_ORDERS)}`);
+  }
+  return data;
+}
+
+/**
+ * The numbers back into a live object. `Euler.copy` is NOT usable on a plain object and this is the whole
+ * reason the shape declares `SerializedEuler`: read straight from a file, `x` is `undefined` where the
+ * flattened Euler wrote `_x`, and the entity comes back aimed at NaN with no error anywhere to say so.
+ */
+function vectorFromData(data: SerializedVector3, where: string): THREE.Vector3 {
+  const value = data as unknown as Record<string, unknown> | null;  for (const axis of CURVE_AXES) {
+    const component = value?.[axis];
+    if (typeof component !== 'number' || !Number.isFinite(component)) {
+      throw new Error(`restoreEntity: ${where} ${axis} is ${String(component)}; a saved position is three finite numbers, and a flattened THREE.Vector3 that lost its class still reads as {x,y,z} while an Euler flattened the same way arrives as _x/_y/_z and would restore as NaN`);
+    }
+  }
+  return new THREE.Vector3((data as SerializedVector3).x, (data as SerializedVector3).y, (data as SerializedVector3).z);
+}
+
+function eulerFromData(data: SerializedEuler, where: string): THREE.Euler {
+  const value = data as unknown as Record<string, unknown> | null;
+  for (const axis of CURVE_AXES) {
+    const component = value?.[axis];
+    if (typeof component !== 'number' || !Number.isFinite(component)) {
+      throw new Error(`restoreEntity: ${where} ${axis} is ${String(component)}, not a finite number of radians`);
+    }
+  }
+  if (typeof data.order !== 'string' || !EULER_ORDERS.includes(data.order)) {
+    throw new Error(`restoreEntity: ${where} order is ${String(data.order)}, which is not one of ${quoted(EULER_ORDERS)}; three.js would leave the quaternion composed from the previous order rather than refusing the word`);
+  }
+  return new THREE.Euler(data.x, data.y, data.z, data.order as THREE.EulerOrder);
+}
+
+/**
+ * Say whether a value could be a FILE: no `Map` (JSON writes one as `{}`, which is how a save with three
+ * components on it comes back with none), no `Set`, no class instance, no function, no non-finite number
+ * (JSON writes NaN and Infinity as `null`), and no `undefined` arriving as a value.
+ *
+ * The loader runs it over what it is handed and the writer runs it over what it is about to produce, so the
+ * rule has one owner and neither direction can write or accept a shape the other cannot read. A `Map` is
+ * refused BY NAME with the replacement spelled out, because "it restored zero components" is the failure this
+ * whole lane exists to prevent.
+ */
+function assertDiskSafe(value: unknown, path: string): void {
+  if (value === null || value === undefined) return;
+  if (typeof value === 'number') {
+    if (!Number.isFinite(value)) throw new Error(`saveFile: ${path} holds ${value}, which JSON writes as null`);
+    return;
+  }
+  if (typeof value !== 'object') {
+    if (typeof value !== 'string' && typeof value !== 'boolean') {
+      throw new Error(`saveFile: ${path} holds ${typeof value}, which a file cannot hold at all`);
+    }
+    return;
+  }
+  if (value instanceof Map || value instanceof Set) {
+    throw new Error(`saveFile: ${path} holds a ${value instanceof Map ? 'Map' : 'Set'}, which JSON.stringify writes as {} — a save shape spells its collections as arrays of entries so the contents survive the trip`);
+  }
+  const proto = Object.getPrototypeOf(value as object);
+  if (proto !== Object.prototype && proto !== null && !Array.isArray(value)) {
+    const name = (value as { constructor?: { name?: string } }).constructor?.name ?? 'unnamed class';
+    throw new Error(`saveFile: ${path} holds a ${name} instance, not plain data — a file stores values, not live objects`);
+  }
+  if (Array.isArray(value)) {
+    value.forEach((item, index) => assertDiskSafe(item, `${path}[${index}]`));
+    return;
+  }
+  for (const [key, nested] of Object.entries(value as Record<string, unknown>)) {
+    assertDiskSafe(nested, `${path}.${key}`);
+  }
+}
+
+/** The components entry array back into the `Map` the live record uses.
+ *
+ *  The pair's KEY and the component's own `type` are two spellings of one name — `addComponent` files every
+ *  component under `component.type` — so a save that shows them disagreeing is refused with both printed
+ *  rather than one of them being believed. A `Map` handed in is refused too, because that is the shape a save
+ *  written before this rule (or by a caller who ignored it) carries, and silently loading it would drop
+ *  every component on the floor: `for…of` over a plain `{}` yields nothing and throws nothing. */
+function componentsFromData(list: SerializedEntity['components']): [string, EntityComponent][] {
+  if (list instanceof Map) {
+    throw new Error('restoreEntity: components arrived as a Map, which JSON.stringify writes as {} — a reader that accepted it would load no components at all, so the save shape spells them as [name, component] pairs');
+  }
+  if (!Array.isArray(list)) {
+    throw new Error(`restoreEntity: components is ${typeof list}, not an array of [name, component] pairs`);
+  }
+  return list.map((pair, index) => {
+    if (!Array.isArray(pair) || pair.length !== 2) {
+      throw new Error(`restoreEntity: components[${index}] is ${Array.isArray(pair) ? `an array of ${pair.length}` : typeof pair}, not a [name, component] pair`);
+    }
+    const [key, component] = pair as [string, EntityComponent];
+    if (typeof key !== 'string' || key.length === 0) {
+      throw new Error(`restoreEntity: components[${index}] key is ${String(key)}, expected the component's type`);
+    }
+    if (!component || typeof component !== 'object' || typeof component.type !== 'string' || typeof component.enabled !== 'boolean') {
+      throw new Error(`restoreEntity: components[${index}] holds a component with no string type or no boolean enabled flag`);
+    }
+    if (component.type !== key) {
+      throw new Error(`restoreEntity: components[${index}] is filed under "${key}" but calls itself "${component.type}"; addComponent files a component under its own type, so a save with two names for one key has to pick one`);
+    }
+    plainDataOrRefuse(component.data, `components.${key}.data`);
+    return [key, { type: component.type, data: component.data, enabled: component.enabled }];
+  });
 }
 
 export class ThreeRuntime {
@@ -800,11 +961,15 @@ export class ThreeRuntime {
   /**
    * Copy one entity's state out of the running scene, under the shape `SerializedEntity` declares.
    *
-   * The three numbers-bearing fields are CLONED, not assigned: `entity.transform.position` is the very
-   * object the renderer moves, so a snapshot that stored the reference would keep changing after it was
-   * taken, and a caller would have no way to tell a saved position from a live one. The two open bags
-   * (`userData`, each component's `data`) are checked by `plainDataOrRefuse` first, so a value that is a
-   * live class instance is refused with its path named instead of being flattened into a plain object.
+   * The three numbers-bearing fields are written as DATA — `SerializedVector3` / `SerializedEuler` — and not
+   * as cloned `THREE` objects, which is what v115 did and what a file cannot hold: measured, JSON keeps a
+   * Vector3's numbers and loses its class, and turns an Euler into `_x/_y/_z/_order/isEuler`, so the read
+   * side would have had nothing to complain about while the entity came back aimed at NaN. The components
+   * are an ARRAY OF ENTRIES for the same reason a `Map` is not: `JSON.stringify` writes a Map as `{}`.
+   *
+   * The two open bags (`userData`, each component's `data`) are still checked by `plainDataOrRefuse` first,
+   * so a value that is a live class instance is refused with its path named instead of being flattened into
+   * a plain object.
    */
   snapshotEntity(sceneId: SceneId, entity: EntityId): SerializedEntity {
     const target = this.getEntity(sceneId, entity);
@@ -817,19 +982,17 @@ export class ThreeRuntime {
       id: target.id,
       name: target.name,
       type: target.type,
-      position: target.threeObject.position.clone(),
-      rotation: target.threeObject.rotation.clone(),
-      scale: target.threeObject.scale.clone(),
+      position: vectorToData(target.threeObject.position, 'position'),
+      rotation: eulerToData(target.threeObject.rotation, 'rotation'),
+      scale: vectorToData(target.threeObject.scale, 'scale'),
       visible: target.visible,
       castShadow: target.castShadow,
       receiveShadow: target.receiveShadow,
       layers: target.layers,
-      components: new Map(
-        [...target.components].map(([key, component]) => [
-          key,
-          { type: component.type, data: copy(component.data, `components.${key}.data`), enabled: component.enabled },
-        ]),
-      ),
+      components: [...target.components].map(([key, component]) => [
+        key,
+        { type: component.type, data: copy(component.data, `components.${key}.data`), enabled: component.enabled },
+      ]),
       userData: copy(target.userData, 'userData'),
     };
   }
@@ -850,6 +1013,10 @@ export class ThreeRuntime {
     if (this.getEntity(sceneId, snapshot.id)) {
       throw new Error(`restoreEntity: entity ${snapshot.id} is already in scene ${sceneId}; a restore never overwrites live state`);
     }
+    const position = vectorFromData(snapshot.position, 'position');
+    const rotation = eulerFromData(snapshot.rotation, 'rotation');
+    const scale = vectorFromData(snapshot.scale, 'scale');
+    const components = componentsFromData(snapshot.components);
     const entity = this.insertEntity(
       sceneId,
       snapshot.id,
@@ -857,9 +1024,9 @@ export class ThreeRuntime {
       snapshot.type,
       undefined,
       undefined,
-      snapshot.position,
-      snapshot.rotation,
-      snapshot.scale,
+      position,
+      rotation,
+      scale,
     );
     entity.visible = snapshot.visible;
     entity.castShadow = snapshot.castShadow;
@@ -869,9 +1036,10 @@ export class ThreeRuntime {
     entity.threeObject.castShadow = snapshot.castShadow;
     entity.threeObject.receiveShadow = snapshot.receiveShadow;
     entity.threeObject.layers.set(snapshot.layers);
-    for (const [key, component] of snapshot.components) {
+    for (const [key, component] of components) {
       entity.components.set(key, { type: component.type, data: structuredClone(component.data), enabled: component.enabled });
     }
+    plainDataOrRefuse(snapshot.userData, 'userData');
     for (const [key, value] of Object.entries(snapshot.userData)) {
       entity.userData[key] = structuredClone(value);
     }
@@ -883,14 +1051,156 @@ export class ThreeRuntime {
   }
 
   /**
+   * Build a save FILE for one scene: every entity of that scene, the cinematic registry, and the two lists
+   * that say what the file holds and what it deliberately does not.
+   *
+   * `entities` is scoped to a scene because a `SerializedEntity` names no scene — `SaveData.sceneGraph` is the
+   * field that would, and it is blocked — so a file that gathered every scene's entities could not say where
+   * they belonged on the way back. Sequences carry their own `sceneId` (v118), so the whole registry fits.
+   *
+   * `assertDiskSafe` runs on the way OUT, over the finished file: a producer that cannot name a shape its
+   * reader would refuse has no business writing one, and a silent `Map` in this file would be three
+   * components quietly becoming none.
+   */
+  buildSaveFile(sceneId: SceneId, savedAt: number): SaveFile {
+    const scene = this.sceneGraph.scenes.get(sceneId);
+    if (!scene) {
+      throw new Error(`buildSaveFile: scene ${sceneId} does not exist, and a file describing entities in a scene that is not there would be a file about nothing`);
+    }
+    if (typeof savedAt !== 'number' || !Number.isFinite(savedAt) || savedAt < 0) {
+      throw new Error(`buildSaveFile: savedAt is ${String(savedAt)}; this runtime owns a frame clock, not a wall clock, so the caller names the instant and it has to be a finite non-negative number`);
+    }
+    const entities: [EntityId, SerializedEntity][] = [...scene.entities.keys()]
+      .sort()
+      .map((id) => [id, this.snapshotEntity(sceneId, id)]);
+    const file: SaveFile = {
+      format: SAVE_FILE_FORMAT,
+      version: SAVE_FILE_VERSION,
+      savedAt,
+      carries: [...SAVE_DATA_FEASIBILITY.savable],
+      doesNotCarry: SAVE_DATA_FEASIBILITY.blocked.map(({ field, needs }) => ({ field, needs })),
+      entities,
+      cinematic: this.cinematicSnapshot(),
+    };
+    assertDiskSafe(file, 'file');
+    this.emit('saveFileBuilt', {
+      sceneId,
+      entityCount: entities.length,
+      sequenceCount: file.cinematic.sequences.length,
+      carries: [...file.carries],
+      doesNotCarry: file.doesNotCarry.map((entry) => entry.field),
+    });
+    return file;
+  }
+
+  /**
+   * Read a save FILE back. The refusal list is the interesting part, because a loader that quietly ignores
+   * what it cannot read is a loader that DELETES it: a file whose `carries` names a field this runtime cannot
+   * fill, or that has bolted a blocked field onto its object anyway, is refused with the field named rather
+   * than loaded as a smaller game.
+   *
+   * Atomicity is per half, and the boundary is stated rather than wished away: `restoreCinematic` rolls its
+   * own registry back, entity inserts are rolled back here too, and the entity ids are all pre-checked before
+   * either half runs so the common collision never reaches the second half. If the entity pass still fails
+   * after the sequences landed, this runtime has no way to un-register a sequence (v117's own hole), and the
+   * thrown message says so instead of claiming the scene is untouched.
+   */
+  loadSaveFile(file: SaveFile, sceneId: SceneId): SaveFileLoadReport {
+    const problems: string[] = [];
+    if (!file || typeof file !== 'object' || Array.isArray(file)) {
+      throw new Error(`loadSaveFile: the file is ${Array.isArray(file) ? 'an array' : typeof file}, not a save-file object`);
+    }
+    if (file.format !== SAVE_FILE_FORMAT) {
+      problems.push(`format is ${JSON.stringify(file.format)}, not ${JSON.stringify(SAVE_FILE_FORMAT)}`);
+    }
+    if (file.version !== SAVE_FILE_VERSION) {
+      problems.push(`version is ${String(file.version)} and this runtime reads exactly ${SAVE_FILE_VERSION}; guessing at a future file is how a save comes back wrong and quiet`);
+    }
+    if (!this.sceneGraph.scenes.get(sceneId)) {
+      problems.push(`scene ${sceneId} does not exist — a loader that created one would be inventing the world the file was meant to describe`);
+    }
+    if (!Array.isArray(file.carries)) {
+      problems.push(`carries is ${typeof file.carries}, not an array of field names`);
+    } else {
+      for (const field of file.carries) {
+        if (!SAVE_DATA_FEASIBILITY.savable.includes(field)) {
+          problems.push(`the file says it carries "${field}", which this runtime can neither fill nor read; loading past it would drop that field's content without a word`);
+        }
+      }
+    }
+    if (!Array.isArray(file.doesNotCarry)) {
+      problems.push(`doesNotCarry is ${typeof file.doesNotCarry}, not the list of fields the file leaves out`);
+    } else {
+      for (const entry of file.doesNotCarry) {
+        if (entry && typeof entry.field === 'string' && Array.isArray(file.carries) && file.carries.includes(entry.field)) {
+          problems.push(`"${entry.field}" appears both as carried and as not carried`);
+        }
+      }
+    }
+    for (const field of SAVE_DATA_FEASIBILITY.blocked.map((entry) => entry.field)) {
+      const value = (file as unknown as Record<string, unknown>)[field];
+      const empty = value === undefined || value === null
+        || (Array.isArray(value) && value.length === 0)
+        || (typeof value === 'object' && !Array.isArray(value) && Object.keys(value as object).length === 0);
+      if (!empty) {
+        problems.push(`the file holds content under "${field}", a field this runtime cannot read — refusing is honest, loading it and dropping it is not`);
+      }
+    }
+    if (problems.length > 0) throw new Error(`loadSaveFile refused: ${problems.join('; ')}`);
+    assertDiskSafe(file, 'file');
+
+    const pairs = file.entities;
+    if (!Array.isArray(pairs)) {
+      throw new Error(`loadSaveFile refused: entities is ${typeof pairs}, not an array of [id, entity] pairs`);
+    }
+    for (const [index, pair] of (pairs as [EntityId, SerializedEntity][]).entries()) {
+      const [key, snapshot] = Array.isArray(pair) && pair.length === 2 ? pair : [];
+      if (!snapshot || typeof snapshot !== 'object') {
+        throw new Error(`loadSaveFile refused: entities[${index}] is ${Array.isArray(pair) ? `an array of ${pair.length}` : typeof pair}, not an [id, entity] pair`);
+      }
+      if (key !== snapshot.id) {
+        throw new Error(`loadSaveFile refused: entities[${index}] is keyed ${String(key)} but the record under it says ${String(snapshot.id)}; restoreEntity files an entity under its own id, so a pair with two names for one entity has to pick one`);
+      }
+      // The collision is checked against the id the restore will actually use, and BEFORE any restore runs,
+      // so a file that would half-load never reaches the half that cannot be undone.
+      if (this.getEntity(sceneId, snapshot.id)) {
+        throw new Error(`loadSaveFile refused: entity ${snapshot.id} (entities[${index}]) is already in scene ${sceneId}; a restore never overwrites live state, and half a file is not a load`);
+      }
+    }
+
+    this.restoreCinematic(file.cinematic);
+    const restored: EntityId[] = [];
+    try {
+      for (const [, snapshot] of pairs as [EntityId, SerializedEntity][]) {
+        this.restoreEntity(sceneId, snapshot);
+        restored.push(snapshot.id);
+      }
+    } catch (error) {
+      for (const id of restored) this.removeEntity(sceneId, id);
+      const sequences = file.cinematic.sequences.length;
+      throw new Error(`${(error as Error).message} — the ${restored.length} entity(ies) this load had inserted were removed again${sequences ? `, but the ${sequences} sequence(s) restored ahead of them stay registered: this runtime has no way to unregister a sequence` : ''}`);
+    }
+    const report: SaveFileLoadReport = {
+      sceneId,
+      entities: restored,
+      sequences: file.cinematic.sequences.map(([id]) => id),
+      carries: [...file.carries],
+    };
+    this.emit('saveFileLoaded', report);
+    return report;
+  }
+
+  /**
    * Say, for one live entity, what a save would actually carry.
    *
    * `dropped` is derived by comparing the fields the runtime's OWN snapshot builder produces with the
    * fields the caller's entity has, so it cannot go stale quietly: a field added to `ThreeEntity` without
    * a matching line in `snapshotEntity` lands here by name, and `threeObject`/`transform` land here with
    * the specific claim of theirs that no longer holds (`SAVE_ALIAS_CLAIMS`). `blocked` is the other half
-   * of the honesty: the declared `SaveData` asks for npcs, quests, a player and a cinematic state the
-   * runtime does not implement, so a whole-game save written today would be a file full of empty maps.
+   * of the honesty: the declared `SaveData` asks for npcs, quests, a player, a world-state store and a
+   * serialized scene graph the runtime does not implement. Since v119 that half is not written into a
+   * file at all — `buildSaveFile` emits a `SaveFile` whose `doesNotCarry` names these fields with their
+   * reasons, so a save says what it omits instead of arriving as a page of empty maps.
    */
   saveFeasibilityAudit(sceneId: SceneId, entity: EntityId): SaveFeasibilityAudit | undefined {
     const target = this.getEntity(sceneId, entity);
@@ -1618,9 +1928,9 @@ export class ThreeRuntime {
    *  flattens a `CatmullRomCurve3` into a bag of numbers whose `getPointAt` reads back as `undefined`, so
    *  the save shape would have carried something that restores as a lie. */
   cinematicSnapshot(): SerializedCinematic {
-    const sequences = new Map<string, SerializedCinematicSequence>();
+    const sequences: [string, SerializedCinematicSequence][] = [];
     for (const [id, entry] of this.cinematics) {
-      sequences.set(id, {
+      sequences.push([id, {
         id: entry.sequence.id,
         name: entry.sequence.name,
         sceneId: entry.sceneId,
@@ -1628,7 +1938,7 @@ export class ThreeRuntime {
         duration: entry.sequence.duration,
         currentShot: entry.sequence.currentShot,
         playing: entry.sequence.playing,
-      });
+      }]);
     }
     const playing = this.playingCinematic();
     return {

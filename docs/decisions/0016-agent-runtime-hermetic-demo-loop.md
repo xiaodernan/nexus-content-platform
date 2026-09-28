@@ -5560,3 +5560,77 @@ Studio surface. Next, in order of cost: one `encodeSaveData`/`decodeSaveData` pa
 `savable` mean "survives a disk" rather than "survives a process"; then the four fields that need a subsystem;
 then `slopeLimit`/`stepOffset`/`broadphase`/`solverIterations`, all four waiting on the same missing collision
 geometry.
+### Amendment 119 — v119: a save becomes a file — every `Map` and live `THREE` object leaves the save shape, the entity transform becomes data, and the loader refuses a field it cannot read rather than loading a smaller game
+
+v118 ended with a sentence that this cycle went and tested: `savable`. The word had been earned twice over in
+one direction — v115 wrote `snapshotEntity`, v117 wrote `cinematicSnapshot`, v118 wrote `restoreCinematic` —
+and never once against a disk. Measured at `4496b22`, with nothing changed, `snapshotEntity` → `JSON.stringify`
+→ `JSON.parse` → `restoreEntity` throws `TypeError: snapshot.components is not iterable`, and a rotation comes
+back as `_x/_y/_z/_order/isEuler`. Both are the same defect wearing two failure modes: the save shape held
+things a file cannot hold. The `Map` fails loudly; the flattened `Euler` fails quietly, restoring an entity that
+exists and points at nothing, and the test that had been *requiring* `saved.position` to be
+`instanceof THREE.Vector3` was on the side of the bug.
+
+So the rule went into the shape rather than into a reader's tolerance. `SerializedEntity.position`/`scale` are
+now `SerializedVector3`, its `rotation` is `SerializedEuler` **with the order**, because three.js composes a
+quaternion from it and an order is part of a pose, and its `components` are `[name, component][]`.
+`SaveData.entities` and `SerializedCinematic.sequences` — the two collections that were `Map`s — are arrays of
+`[key, value]` pairs. Nothing reachable from the new `SaveFile` is a `Map` or a live object, and a test proves
+it by walking the closure out of `types.ts` — following every interface a field annotation names, starting at
+`SaveFile` — and refusing `: Map<` and `THREE.` anywhere in it. The closure is computed, so a field whose type
+drags in a live class reddens the gate instead of joining the save shape unnoticed.
+
+**Which shape is the file's, and which the engine's.** `SaveData` stays the in-memory aggregate — five of its
+six fields are blocked and it is never constructed. `SaveFile` is what a disk holds, and the difference is not
+cosmetic: a file states what it carries (`carries`, read out of `SAVE_DATA_FEASIBILITY.savable`) and what it
+deliberately omits (`doesNotCarry`, the blocked rows with their reasons). That makes `buildSaveFile` and the
+audit table one claim with two spellings, which is the failure shape this lane keeps relearning — so the test
+reads both out of the shipped table rather than pinning a literal pair.
+
+**A loader that ignores what it cannot read is a loader that deletes.** 44 reader refusals
+name the value found: unknown `format` or `version` (both problems printed together, because a file with two
+defects should not need two loads to say so), a `carries` entry the runtime cannot fill, a field named as both
+carried and withheld, **content under any blocked name**, a `Map`/class instance/`NaN` anywhere inside with its
+path, a pair keyed differently from the record under it, a target scene that does not exist, a live entity id.
+The blocked-content refusal is the one with teeth: a save that arrives carrying three NPCs is a save whose
+owner believes those NPCs will come back, and the honest answer is a refusal, not a smaller game.
+
+**One writer's walk, one reader's walk, no exemptions.** `assertDiskSafe` runs over the finished file in
+`buildSaveFile` as well as over what `loadSaveFile` was handed, so the producer cannot write what its own
+reader refuses — and it catches values no per-record writer looks at: a live `layers` set to `NaN` after
+registration is refused as `file.entities[0][1].layers holds NaN`. `eulerFromData` refuses an order outside
+`EULER_ORDERS` because three.js would otherwise keep composing from the previous one, and the case asserts
+that a `YXZ` save and an `XYZ` save land on **different quaternions** — the control that shows the saved order
+is not decoration.
+
+**Atomic where it can be, honest where it cannot.** Entity ids are all pre-checked before anything is written;
+inserts are rolled back by removing what the call added; `restoreCinematic` rolls back its own registry. Two
+things a rollback cannot reach, both stated in the thrown message rather than glossed: the event log has
+already spoken, and sequences restored before an entity failure stay registered because this runtime still has
+no unregister. That is v117's hole showing up in v119's boundary — a reason to build the unregister, not a
+reason to claim atomicity.
+
+Measured: `test/saveSnapshot.test.ts` is 56 cases and `test/cinematicSequence.test.ts` 74,
+package total **228** (56 save + 39 controller + 74 cinematic + 30 physics + 29 runtime), `tsc --noEmit` exit 0 on `src` — the package's tsconfig
+`exclude`s `test`, so that gate says nothing about the test file and the record says so too. The probe ran
+23 arms over the final source against an unmutated control that collected **130 with 0 red** on the
+two-file plane that reads save code; every arm collected the full population (a mutation that crashes
+collection is refused, not counted), and each arm's minimum red was written down before measuring. Reds:
+1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 5, 1, 1, 10. No arm survived. No arm reddened fewer than claimed. 2 of the 23 arms reddened MORE than written down for them (21-producer-invents-a-carried-field: 1→5, 24-table-claims-npcs-savable: 2→10).
+
+Three measurement errors from this cycle belong in the record. The probe's first draft carried an arm whose
+two-line anchor did not match the shipped indentation — the anchor gate refused the run before it produced a
+number, which is the only reason a bad anchor cannot become a fake "caught". One new case asserted
+`rotation.quaternion.z` on a bare `Euler`, where that reference is `undefined` until an `Object3D` wires it,
+so the assertion was about the right mechanism and the wrong object. And two test regexes were written against
+messages I had intended rather than shipped; one was fixed in the test, the other — "which is the shape a file
+writes as `{}`" — was weak prose about the real mechanism and got rewritten to name `JSON.stringify`.
+
+What v119 does not do, stated by name: it writes no bytes (a `writeSaveFile`/`readSaveFile` pair over an
+injected `FsWriteLike` is the next unit, and it needs no new shape); it cannot say which scene an entity came
+from, because `SaveData.sceneGraph` is blocked and `SerializedEntity` names no scene — so a file carries one
+scene's entities and the caller names where they land, while sequences carry their own scene from v118;
+rollback does not reach the event log or a half-completed load; `postProcessing`, every transition but the
+cut, and the Studio surface are unchanged. Next, in order: the byte writer, then `npcs`/`quests`/`player`/
+`worldState`, then collision geometry — which is also what `slopeLimit`, `stepOffset`, `broadphase` and
+`solverIterations` are all waiting on.

@@ -1,4 +1,4 @@
-# @nexus/three-runtime — evidence for v108 (host seams), v114 (character controller), v115 (the entity save format), v116 (the scene's physics world), v117 (the cinematic sequence) and v118 (the save that reads it back)
+# @nexus/three-runtime — evidence for v108 (host seams), v114 (character controller), v115 (the entity save format), v116 (the scene's physics world), v117 (the cinematic sequence), v118 (the save that reads it back) and v119 (the file it survives on disk)
 
 This directory records the 3D runtime lane (ROADMAP M5). Every claim here is read back out of the
 shipped source and the package's own vitest suite — `packages/three-runtime/src/*.ts` and
@@ -418,3 +418,118 @@ declared in `types.ts` and implemented by nothing. The cheap adjacent hole is th
 `encodeSaveData`/`decodeSaveData` pair over `SaveData` would make `savable` mean "survives a disk" instead of
 "survives a process", and the two directions have exactly one honest shape each — Maps to arrays of entries and
 back. And `slopeLimit`/`stepOffset`/`broadphase`/`solverIterations` still wait on collision geometry.
+## v119 — the save becomes a FILE: every `Map` and every live `THREE` object leaves the save shape, the entity transform becomes data, and the loader refuses a field it cannot read instead of loading a smaller game
+
+v118 gave the cinematic shape a reader and left one sentence standing: `savable`. This grant went and read
+what that word had been promising, and it had been promising too little. Measured at `4496b22`, with the code
+as it shipped: `snapshotEntity` → `JSON.stringify` → `JSON.parse` → `restoreEntity` threw
+`TypeError: snapshot.components is not iterable`, because `SerializedEntity.components` was a `Map` and a
+`Map` is written by JSON as `{}`; and `rotation`, declared as a live `THREE.Euler`, arrived as
+`_x/_y/_z/_order/isEuler` — the private fields — which `Euler.copy` reads as `x: undefined`. Nothing in the
+runtime could see either failure, because nothing had ever tried to write a save to a disk and read it back.
+
+| what | measured |
+| --- | --- |
+| suites | `test/saveSnapshot.test.ts` 56 cases, `test/cinematicSequence.test.ts` 74, package total **228** (56 save + 39 controller + 74 cinematic + 30 physics + 29 runtime), `tsc --noEmit` exit 0 on `src` (the package's tsconfig excludes `test/`, so the test file is typed by nothing but vitest running) |
+| the rule | nothing reachable from `SaveFile` is a `Map` or a live object: `SerializedEntity.position`/`scale` → `SerializedVector3`, `rotation` → `SerializedEuler` (**order included**, because three.js composes a quaternion from it), `components` → `[name, component][]`, `SaveData.entities` and `SerializedCinematic.sequences` → arrays of `[key, value]` pairs |
+| the shape gate | a test walks the type closure from `SaveFile` through `types.ts` — following every interface a field annotation names — and requires no `: Map<` and no `THREE.` anywhere in it. The closure is computed, so a new field whose type drags in a live object reddens the gate rather than joining the shape quietly |
+| the file | `buildSaveFile(sceneId, savedAt)` → `{format, version, savedAt, carries, doesNotCarry, entities, cinematic}`. `carries` is read out of `SAVE_DATA_FEASIBILITY.savable` and `doesNotCarry` out of its blocked rows, so the file states which halves it omits and why — the audit table and the file cannot drift apart |
+| the loader | `loadSaveFile(file, sceneId)` → `{sceneId, entities, sequences, carries}`. **44** reader refusals now, each naming the value found: unknown format or version (both problems printed at once), a `carries` entry the runtime cannot fill, a field named as both carried and withheld, content under any blocked name, a `Map`/class instance/`NaN` anywhere inside (path named), a pair whose key disagrees with the record's own id, a target scene that does not exist, a live entity id |
+| atomicity | the entity ids are pre-checked before anything is written; entity inserts are rolled back by removing what this call added; `restoreCinematic` rolls back its own registry. What no rollback reaches is the event log and the sequences that landed before an entity failure — the message says so, because this runtime still cannot unregister a sequence |
+| the writer | `assertDiskSafe` runs over the finished file too, so a value no per-record writer checks (a live `layers` number set to `NaN`) is refused at the file, naming `file.entities[0][1].layers` |
+| the record | `saveFeasibilityAudit`'s own docstring used to say the declared `SaveData` asks for "a cinematic state the runtime does not implement… a file full of empty maps". Both halves of that are now false, and a test reads the shipped comment and says so |
+
+Three things worth the sentence it costs.
+
+* **A loader that ignores a field it cannot read is a loader that deletes content.** The five blocked halves are
+  not silently absent from a file — they are named in `doesNotCarry` — and a file that arrives with content
+  under any of those names is refused with the field printed. `"npcs": [["npc-1", {}]]` in a save is not
+  something to load and forget.
+* **The Euler was the loudest bug, and the quietest.** A `Map` fails loudly (`not iterable`). A rotation
+  flattened into `_x/_y/_z` fails silently: the restore succeeds, the entity exists, and it points at
+  nothing. That is why the shape now names the four values a pose actually has, why
+  `eulerFromData` refuses an order outside `EULER_ORDERS` rather than letting three.js keep the previous
+  composition, and why the case asserts a `YXZ` save and an `XYZ` save produce **different quaternions** —
+  if the order were decoration, that control would be indistinguishable.
+* **One rule, no exemptions.** `savable` says a field survives a disk trip, and the fields that do not are in
+  `blocked`, where the runtime writes nothing. The disk-safety claim is therefore not a hand-written list of
+  "fields we remember to check": the gate reads `SAVE_DATA_FEASIBILITY` for its population, and the closure
+  gate reads `types.ts` for its shape.
+
+### How the probe ran, and what it said
+
+The probe is `mutate-v119.mjs (scratch)`: 23 arms, each anchor required to match the shipped source exactly once
+before any run (a `--anchors` pass checks that in milliseconds, so a mistyped anchor is a load-time refusal
+rather than a silent no-op — one arm's two-line anchor did not match the shipped indentation and the whole run
+was refused before it produced a number), each arm's minimum red written down in the script before measuring,
+and the pristine source restored in a `finally` (`restored the target byte-exactly: true`). Controls: the
+two-file plane collected **130** with 0 red, the whole package **228** with 0 red, and
+`tsc --noEmit` exited 0 over `src`. Reds per arm, in order: 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 5, 1, 1, 10. No arm survived.
+No arm reddened fewer than claimed. 2 of the 23 arms reddened MORE than written down for them (21-producer-invents-a-carried-field: 1→5, 24-table-claims-npcs-savable: 2→10).
+
+This cycle's probe earned its keep on the first run and not the second. Arm
+`02-loader-accepts-a-non-array-envelope` — delete the check that a save's `sequences` is an array at all —
+**survived the entire plane**: the reader's other branch is a `Map` refusal and its happy path is an array, so
+nothing in the suite ever handed it a string, and with the check gone the `for…of` would have thrown a
+`TypeError` instead of refusing. That is the same class of hole this lane keeps finding from the other
+direction: not a wrong assertion, an absent one. The case was added (one `expect`, a string and the message it
+must produce), the arm was re-run, and it now reddens like its neighbours. Every other arm was caught by
+exactly one case or by more than it was credited; the two that reddened most were the producer inventing a
+`carried` field and the audit table claiming `npcs` is savable, both because a `SaveFile`'s `carries` list is
+read by the loader, the table's own gates and the file cases at once. The pattern behind the over-predictions
+is v118's, unchanged: I predict the assertion that names the mutated clause, and the cases downstream that
+consume its output are the ones that actually redden.
+
+### What v119 still does NOT honor — stated by name
+
+* A `SaveFile` is a value, not a file: nothing here writes bytes. What v119 made true is that
+  `JSON.stringify(buildSaveFile(...))` can be parsed and loaded, which is the property a writer needs before
+  it exists.
+* Entities are saved per scene and restored into a scene the caller names, because `SerializedEntity` carries
+  no scene id — that address belongs to `SaveData.sceneGraph`, which is still blocked. Sequences do carry
+  their scene (v118), which is why the two halves are addressed differently.
+* Rollback is per half. A load whose entity pass fails after the cinematic pass leaves the sequences
+  registered, and the message says that out loud: there is still no unregister.
+* `npcs`, `quests`, `player`, `worldState` and `sceneGraph` stay blocked on systems that do not exist. Five
+  rows, unchanged since v118 moved `cinematic` out.
+* `postProcessing` is still uninterpreted, `transition` is still only `'cut'`, and there is still no Studio
+  surface for any of it.
+
+### Measurement errors, kept in the record
+
+* **A mutation survived, and it was the suite's fault, not the code's.** The first run's arm
+  `02-loader-accepts-a-non-array-envelope` deleted the check that a save's `sequences` is an array at all and
+  reddened nothing: the reader's other branch refuses a `Map`, its happy path takes an array, and no case had
+  ever handed it a string. With the check gone a `for…of` would have thrown a `TypeError` rather than
+  refusing, and the suite could not tell. One `expect` later the arm reddens like its neighbours. The hole was
+  not a wrong assertion but an absent one, which is the harder kind to see from a green run.
+* The probe harness's first draft carried an arm whose two-line anchor did not match the shipped
+  indentation — the `--anchors` gate refused the run before it produced a number, which is the only reason a
+  mistyped anchor cannot become a fake "caught".
+* One new case initially asserted `rotation.quaternion.z` on a bare `THREE.Euler`, which is `undefined`
+  unless the Euler is wired to an `Object3D`. The assertion was about the right mechanism and the wrong
+  object; it now composes a `Quaternion.setFromEuler` of each pose.
+* Two test regexes were written against messages I had intended rather than shipped
+  (`layers: NaN` vs `layers holds NaN`, `which is the shape a file writes as {}` vs `which JSON.stringify
+  writes as {}`). Both were fixed on the test side except the second, where the shipped sentence was the
+  weaker one and got rewritten.
+
+### Sentences this record retires
+
+* v115's shipped comment on `saveFeasibilityAudit`: *"…the declared `SaveData` asks for npcs, quests, a player
+  and a cinematic state the runtime does not implement, so a whole-game save written today would be a file full
+  of empty maps."* A test now reads that docstring and refuses both halves of the sentence.
+* v118's "What v118 still does NOT honor": *"The envelope is a `Map`, and `JSON.stringify` writes a Map as
+  `{}`… the values inside the cinematic shape survive disk and the container still does not."* The container
+  was changed instead of the reader being loosened.
+* v118's declared `SerializedEntity`: `position: THREE.Vector3`, `rotation: THREE.Euler`,
+  `components: Map<string, EntityComponent>` — the three fields this cycle found were never file-safe, and
+  `saveSnapshot.test.ts` had been *requiring* them to be live objects (`toBeInstanceOf(THREE.Vector3)`). That
+  assertion is retired and inverted in place, with the reason in its comment.
+* ROADMAP M5, honest bounds: *"a save is still in-memory only — no disk…"*. Swapped in the edit that added this
+  section; the cell now says a save file survives JSON and that five fields stay blocked on systems.
+
+Next: the file has an author and a reader but no writer of bytes — a `writeSaveFile`/`readSaveFile` pair over
+an injected `FsWriteLike` (the pattern the M2 lane already uses) is the smallest unit that makes "save game"
+a feature rather than a value. Then the four `SaveData` fields that need a subsystem, then collision geometry
+for `slopeLimit`/`stepOffset`/`broadphase`/`solverIterations`.

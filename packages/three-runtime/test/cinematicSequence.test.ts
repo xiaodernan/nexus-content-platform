@@ -111,6 +111,11 @@ function declaredFields(name: string): string[] {
   return fields;
 }
 
+/** One saved sequence by id, out of the `[key, record]` pairs a save is spelled as (v119). */
+function sequenceOf(saved: SerializedCinematic, id: string): SerializedCinematicSequence | undefined {
+  return saved.sequences.find(([key]) => key === id)?.[1];
+}
+
 /** A saved shot / sequence / snapshot, spelled the way a save spells them: plain data, and every field the
  *  declared interface names. `over` is what a case is about, including the shapes that are NOT data. */
 function savedShot(over: Partial<SerializedCinematicShot> = {}): SerializedCinematicShot {
@@ -123,7 +128,7 @@ function savedSequence(over: Partial<SerializedCinematicSequence> = {}): Seriali
 
 function savedSnapshot(entries: readonly SerializedCinematicSequence[], over: Partial<SerializedCinematic> = {}): SerializedCinematic {
   return {
-    sequences: new Map(entries.map((entry) => [entry.id, entry])),
+    sequences: entries.map((entry) => [entry.id, entry] as [string, SerializedCinematicSequence]),
     activeSequence: null,
     currentTime: 0,
     ...over,
@@ -149,8 +154,8 @@ function savedCurve(points: readonly (readonly [number, number, number])[], over
  */
 function runtimeRebuiltFrom(saved: SerializedCinematic): ThreeRuntime {
   const built = makeRuntime();
-  const activeEntry = saved.activeSequence === null ? undefined : saved.sequences.get(saved.activeSequence);
-  const ordered = [...saved.sequences.values()].sort((a, b) => (a === activeEntry ? -1 : b === activeEntry ? 1 : 0));
+  const activeEntry = saved.activeSequence === null ? undefined : sequenceOf(saved, saved.activeSequence);
+  const ordered = saved.sequences.map(([, entry]) => entry).sort((a, b) => (a === activeEntry ? -1 : b === activeEntry ? 1 : 0));
   for (const entry of ordered) {
     if (!built.getScene(entry.sceneId)) built.createScene(`rebuilt-${entry.sceneId}`, entry.sceneId);
     for (const shot of entry.shots) {
@@ -277,7 +282,7 @@ describe('defineCinematic — a shot is validated by the player that has to read
     list.push(shot({ id: 's1', cameraId: camB, startTime: 2, endTime: 8 }));
     expect(sequence.duration).toBe(2);
     expect(sequence.shots).toHaveLength(1);
-    expect(runtime.cinematicSnapshot().sequences.get('seq')!.shots).toHaveLength(1);
+    expect(sequenceOf(runtime.cinematicSnapshot(), 'seq')!.shots).toHaveLength(1);
   });
 });
 
@@ -416,7 +421,7 @@ describe('updateCinematics — the playhead, the cut, and where the camera ends 
     // playhead's own answer comes from the audit — and the stale reading is kept on purpose as the control:
     // a snapshot taken before the play must still say `playing: false` after the sequence has run and
     // finished, which is the claim that `updateCinematics` writes the live object and not the save.
-    const beforePlay = runtime.cinematicSnapshot().sequences.get('seq')!;
+    const beforePlay = sequenceOf(runtime.cinematicSnapshot(), 'seq')!;
     runtime.playCinematic('seq');
     runtime.simulateFrame(0.5);
     runtime.simulateFrame(0.5);
@@ -523,8 +528,8 @@ describe('cinematicSnapshot and cinematicFieldAudit, checked against types.ts', 
     // second name for the running game. v118 asserts the opposite in both halves of the new claim — two
     // snapshots of one state are DEEP-equal, and they are not the same object.
     const again = runtime.cinematicSnapshot();
-    expect(snapshot.sequences.get('seq')).toEqual(again.sequences.get('seq'));
-    expect(snapshot.sequences.get('seq')).not.toBe(again.sequences.get('seq'));
+    expect(sequenceOf(snapshot, 'seq')).toEqual(sequenceOf(again, 'seq'));
+    expect(sequenceOf(snapshot, 'seq')).not.toBe(sequenceOf(again, 'seq'));
 
     runtime.stopCinematic('seq');
     const stopped = runtime.cinematicSnapshot();
@@ -534,8 +539,8 @@ describe('cinematicSnapshot and cinematicFieldAudit, checked against types.ts', 
     expect(stopped.currentTime).toBe(0);
     expect(runtime.cinematicFieldAudit('seq')!.playhead.time).toBe(0.75);
     // The teeth of "data": the stop moved the LIVE sequence, and the snapshot taken before it did not.
-    expect(stopped.sequences.get('seq')!.playing).toBe(false);
-    expect(snapshot.sequences.get('seq')!.playing).toBe(true);
+    expect(sequenceOf(stopped, 'seq')!.playing).toBe(false);
+    expect(sequenceOf(snapshot, 'seq')!.playing).toBe(true);
   });
 
   it('partitions CinematicShot into consulted and unhonored, with no gap and no overlap', () => {
@@ -565,7 +570,7 @@ describe('cinematicSnapshot and cinematicFieldAudit, checked against types.ts', 
     // v117 read these two off `cinematicSnapshot()`, which handed back the live object. It reads off the
     // audit now, because since v118 the snapshot is data and would answer about the moment it was taken —
     // which is the case below, not this one.
-    expect(runtime.cinematicSnapshot().sequences.get('seq')).toEqual(expect.objectContaining({ playing: true, currentShot: 0 }));
+    expect(sequenceOf(runtime.cinematicSnapshot(), 'seq')).toEqual(expect.objectContaining({ playing: true, currentShot: 0 }));
     runtime.simulateFrame(3);
     expect(read()).toEqual([true, 1]);
   });
@@ -626,7 +631,7 @@ describe('the curve codec — a path is stored as points, and points are stored 
 
   it('writes exactly the fields SerializedCurve declares, and only the shot keys a shot carries', () => {
     withPath();
-    const savedShotData = runtime.cinematicSnapshot().sequences.get('seq')!.shots[0]!;
+    const savedShotData = sequenceOf(runtime.cinematicSnapshot(), 'seq')!.shots[0]!;
     expect(Object.keys(savedShotData.cameraPath!).sort()).toEqual(declaredFields('SerializedCurve').sort());
 
     // A saved shot carries the keys the live shot has, which for a plain shot is FEWER than the interface
@@ -643,7 +648,7 @@ describe('the curve codec — a path is stored as points, and points are stored 
     path.curveType = 'chordal';
     path.tension = 0.9;
     path.closed = true;
-    const saved = runtime.cinematicSnapshot().sequences.get('seq')!.shots[0]!.cameraPath!;
+    const saved = sequenceOf(runtime.cinematicSnapshot(), 'seq')!.shots[0]!.cameraPath!;
     expect([saved.curveType, saved.tension, saved.closed]).toEqual(['chordal', 0.9, true]);
     expect(saved.points).toEqual([
       { x: 0, y: 0, z: 0 }, { x: 3, y: 4, z: 0 }, { x: 6, y: 1, z: 0 }, { x: 9, y: 5, z: 0 },
@@ -669,7 +674,7 @@ describe('the curve codec — a path is stored as points, and points are stored 
     rebuilt.simulateFrame(0); // a frame of no advance: it places the camera without moving the playhead
     const there = rebuilt.getScene(scene)!.cameras.get(camA)!.threeCamera.position;
     expect(there.distanceTo(cameraPos(camA))).toBe(0);
-    expect([saved.sequences.get('seq')!.shots[0]!.cameraPath!.curveType, saved.sequences.get('seq')!.shots[0]!.cameraPath!.tension]).toEqual(['chordal', 0.9]);
+    expect([sequenceOf(saved, 'seq')!.shots[0]!.cameraPath!.curveType, sequenceOf(saved, 'seq')!.shots[0]!.cameraPath!.tension]).toEqual(['chordal', 0.9]);
   });
 
   it('a curve mutated after registration restores to the word the SAVE names, not the stale cache the live one used', () => {
@@ -688,7 +693,7 @@ describe('the curve codec — a path is stored as points, and points are stored 
     const there = rebuilt.getScene(scene)!.cameras.get(camA)!.threeCamera.position;
     // The codec's answer is the honest one: bit-exact against a curve built as `chordal` from the start…
     expect(there.distanceTo(new THREE.CatmullRomCurve3(
-      saved.sequences.get('seq')!.shots[0]!.cameraPath!.points.map((p) => new THREE.Vector3(p.x, p.y, p.z)),
+      sequenceOf(saved, 'seq')!.shots[0]!.cameraPath!.points.map((p) => new THREE.Vector3(p.x, p.y, p.z)),
       false,
       'chordal',
       0.5,
@@ -708,10 +713,10 @@ describe('the curve codec — a path is stored as points, and points are stored 
     // save with `activeSequence: null`, so the restored sequence was never playing, no frame moved the
     // camera, and the assertion measured a camera still at the origin. This one restores a RUNNING sequence
     // and compares against an honest curve sampled the way the player samples.
-    const [drifted] = JSON.parse(JSON.stringify([...saved.sequences.values()])) as SerializedCinematicSequence[];
+    const [drifted] = JSON.parse(JSON.stringify(saved.sequences.map(([, entry]) => entry))) as SerializedCinematicSequence[];
     drifted!.shots[0]!.cameraPath!.curveType = 'centripetal';
     const other = runtimeRebuiltFrom(saved);
-    other.restoreCinematic({ ...saved, sequences: new Map([[drifted!.id, drifted!]]) });
+    other.restoreCinematic({ ...saved, sequences: [[drifted!.id, drifted!]] });
     other.simulateFrame(0);
     const there = other.getScene(scene)!.cameras.get(camA)!.threeCamera.position;
     expect(there.distanceTo(whereItWas)).toBeGreaterThan(0.001);
@@ -725,19 +730,19 @@ describe('the curve codec — a path is stored as points, and points are stored 
     runtime.playCinematic('seq');
     runtime.simulateFrame(1);
     const saved = runtime.cinematicSnapshot();
-    expect(saved.sequences.get('seq')!.shots[0]!.cameraPath!.tension).toBe(0.8);
+    expect(sequenceOf(saved, 'seq')!.shots[0]!.cameraPath!.tension).toBe(0.8);
 
     const faithful = runtimeRebuiltFrom(saved);
     faithful.restoreCinematic(saved);
     faithful.simulateFrame(0);
     expect([faithful.getScene(scene)!.cameras.get(camA)!.threeCamera.position.distanceTo(cameraPos(camA)),
-      saved.sequences.get('seq')!.shots[0]!.cameraPath!.curveType]).toEqual([0, 'catmullrom']);
+      sequenceOf(saved, 'seq')!.shots[0]!.cameraPath!.curveType]).toEqual([0, 'catmullrom']);
 
     // Same points, same word, one number changed: a `catmullrom` curve reads tension as its shape.
-    const [drifted] = JSON.parse(JSON.stringify([...saved.sequences.values()])) as SerializedCinematicSequence[];
+    const [drifted] = JSON.parse(JSON.stringify(saved.sequences.map(([, entry]) => entry))) as SerializedCinematicSequence[];
     drifted!.shots[0]!.cameraPath!.tension = 0.2;
     const other = runtimeRebuiltFrom(saved);
-    other.restoreCinematic({ ...saved, sequences: new Map([[drifted!.id, drifted!]]) });
+    other.restoreCinematic({ ...saved, sequences: [[drifted!.id, drifted!]] });
     other.simulateFrame(0);
     const there = other.getScene(scene)!.cameras.get(camA)!.threeCamera.position;
     expect(there.distanceTo(cameraPos(camA))).toBeGreaterThan(0.001);
@@ -799,7 +804,7 @@ describe('the curve codec — a path is stored as points, and points are stored 
     define({ shots: [shot({ id: 's0', cameraId: camA, endTime: 2, postProcessing: config })] });
     const saved = runtime.cinematicSnapshot();
     config.passes[0]!.parameters.strength = 99; // the live bag moves; the save already written does not
-    expect(saved.sequences.get('seq')!.shots[0]!.postProcessing!.passes[0]!.parameters.strength).toBe(0.7);
+    expect(sequenceOf(saved, 'seq')!.shots[0]!.postProcessing!.passes[0]!.parameters.strength).toBe(0.7);
 
     config.passes[0]!.parameters.holder = new THREE.Object3D() as unknown as number;
     expect(() => runtime.cinematicSnapshot())
@@ -808,7 +813,7 @@ describe('the curve codec — a path is stored as points, and points are stored 
 
   it('refuses a live number a caller replaced with NaN after registration, and is inert about its own copy', () => {
     const live = define({ shots: [shot({ id: 's0', cameraId: camA, endTime: 2 })] });
-    const copy = runtime.cinematicSnapshot().sequences.get('seq')!;
+    const copy = sequenceOf(runtime.cinematicSnapshot(), 'seq')!;
     // `defineCinematic` copies the ARRAY, not the shot objects, so the live timeline is reachable from
     // outside: the door validated 2, and the caller can put NaN where 2 was. The save refuses it.
     (live.shots as unknown as { startTime: number }[])[0]!.startTime = Number.NaN;
@@ -873,7 +878,7 @@ describe('restoreCinematic — the declared save shape gets its first reader', (
     runtime.simulateFrame(3);
     runtime.stopCinematic('seq'); // 3 seconds in, shot 1 — and the shape has no time field for a stopped one
     const saved = runtime.cinematicSnapshot();
-    expect([saved.activeSequence, saved.currentTime, saved.sequences.get('seq')!.currentShot]).toEqual([null, 0, 1]);
+    expect([saved.activeSequence, saved.currentTime, sequenceOf(saved, 'seq')!.currentShot]).toEqual([null, 0, 1]);
 
     const rebuilt = runtimeRebuiltFrom(saved);
     expect(rebuilt.restoreCinematic(saved).playheads).toEqual([{ id: 'seq', time: 2, currentShot: 0 }]);
@@ -934,9 +939,9 @@ describe('restoreCinematic — the declared save shape gets its first reader', (
     expect(runtime.restoreCinematic(saved).restored).toEqual(['seq']);
   });
 
-  it('refuses a map key that disagrees with the record under it, and an id that is not a name', () => {
-    const mismatched = { sequences: new Map([['outer', savedSequence({ id: 'inner' })]]), activeSequence: null, currentTime: 0 } as unknown as SerializedCinematic;
-    expect(() => runtime.restoreCinematic(mismatched)).toThrow(/sequences is keyed outer but the record under it says inner/);
+  it('refuses a pair key that disagrees with the record under it, and an id that is not a name', () => {
+    const mismatched = { sequences: [['outer', savedSequence({ id: 'inner' })]], activeSequence: null, currentTime: 0 } as unknown as SerializedCinematic;
+    expect(() => runtime.restoreCinematic(mismatched)).toThrow(/sequences\[0\] is keyed outer but the record under it says inner/);
     expect(() => runtime.restoreCinematic(savedSnapshot([savedSequence({ id: 42 as unknown as string })])))
       .toThrow(/the sequence stored under 42 calls itself 42; activeSequence addresses a sequence by its id/);
   });
@@ -954,12 +959,23 @@ describe('restoreCinematic — the declared save shape gets its first reader', (
       .toThrow(/sequence seq playing is yes, not a boolean/);
   });
 
-  it('refuses the envelope JSON leaves behind, because iterating it would report success about nothing', () => {
-    const saved = savedSnapshot([savedSequence()]);
-    const flattened = JSON.parse(JSON.stringify(saved)) as unknown as SerializedCinematic;
-    // `sequences` was the one field with a Map in it; a JSON write emptied it rather than losing the save.
-    expect(flattened.sequences).toEqual({});
-    expect(() => runtime.restoreCinematic(flattened)).toThrow(/sequences is object, not a Map/);
+  it('spells its collection as pairs, so a JSON write is a round trip and a Map is the refused shape', () => {
+    const path = savedCurve([[0, 0, 0], [1, 2, 3], [4, 0, 1]]);
+    const saved = savedSnapshot([savedSequence({ shots: [savedShot({ cameraPath: path })] })]);
+    const throughJSON = JSON.parse(JSON.stringify(saved)) as SerializedCinematic;
+    // v118 refused this arrival because `sequences` was a Map and JSON writes a Map as `{}`. v119 changed
+    // the SHAPE rather than loosening the reader, so the entries are still here after the disk trip.
+    expect(throughJSON).toEqual(saved);
+    const rebuilt = runtimeRebuiltFrom(throughJSON);
+    expect(rebuilt.restoreCinematic(throughJSON).restored).toEqual(['seq']);
+    expect(() => runtime.restoreCinematic({ ...saved, sequences: new Map([['seq', savedSequence()]]) } as unknown as SerializedCinematic))
+      .toThrow(/sequences arrived as a Map, which is the shape v118 wrote and JSON erases/);
+    // …and the other envelope failure is not a Map but anything else. Without this line the `not an array`
+    // branch had no witness at all, and v119's first probe run came back with arm
+    // `02-loader-accepts-a-non-array-envelope` as a SURVIVOR: deleting the check left the reader throwing a
+    // TypeError out of a for-loop instead of refusing, and nothing in the plane could tell.
+    expect(() => runtime.restoreCinematic({ ...saved, sequences: 'nope' } as unknown as SerializedCinematic))
+      .toThrow(/sequences is string, not an array of \[key, sequence\] pairs/);
     expect(runtime.restoreCinematic(savedSnapshot([]))).toEqual({ restored: [], activeSequence: null, playheads: [] });
   });
 
@@ -984,7 +1000,7 @@ describe('restoreCinematic — the declared save shape gets its first reader', (
     // The half of the truth a rollback cannot reach: a listener was told about `first`, and `first` is gone.
     expect(defined).toEqual(['first']);
     expect(runtime.cinematicFieldAudit('first')).toBe(undefined);
-    expect(runtime.cinematicSnapshot().sequences.size).toBe(0);
+    expect(runtime.cinematicSnapshot().sequences.length).toBe(0);
   });
 
   it('refuses to take a slot that is already full, and leaves the sequence that holds it alone', () => {
@@ -1070,9 +1086,9 @@ describe('restoreCinematic — the declared save shape gets its first reader', (
 
     // The shape a caller actually writes: values all the way down, so a disk trip changes nothing, and the
     // only thing that does not survive JSON is the Map at the top of it — which `restoreCinematic` refuses.
-    const roundTripped = JSON.parse(JSON.stringify([...saved.sequences.values()])) as SerializedCinematicSequence[];
+    const roundTripped = JSON.parse(JSON.stringify(saved.sequences.map(([, entry]) => entry))) as SerializedCinematicSequence[];
     const asSave: SerializedCinematic = {
-      sequences: new Map(roundTripped.map((entry) => [entry.id, entry])),
+      sequences: roundTripped.map((entry) => [entry.id, entry]),
       activeSequence: null,
       currentTime: 0,
     };
@@ -1100,7 +1116,7 @@ describe('the save split moved: cinematic has a writer AND a reader', () => {
       ['currentShot', 'duration', 'id', 'name', 'playing', 'sceneId', 'shots'].sort(),
     );
     define();
-    const saved = runtime.cinematicSnapshot().sequences.get('seq')!;
+    const saved = sequenceOf(runtime.cinematicSnapshot(), 'seq')!;
     expect(Object.keys(saved).sort()).toEqual(declaredFields('SerializedCinematicSequence').sort());
     expect(saved.sceneId).toBe(scene);
   });
@@ -1110,13 +1126,13 @@ describe('the save split moved: cinematic has a writer AND a reader', () => {
     const cam = runtime.createCamera(stage, 'OnStage').id;
     define({ id: 'onStage', shots: [shot({ id: 'o0', cameraId: cam })] }, stage);
     runtime.setActiveScene(scene); // look away: the sequence is dormant, and still belongs where it is
-    const saved = runtime.cinematicSnapshot().sequences.get('onStage')!;
+    const saved = sequenceOf(runtime.cinematicSnapshot(), 'onStage')!;
     expect(saved.sceneId).toBe(stage);
     expect(runtime.getScene(scene)!.cameras.has(cam)).toBe(false);
     // Read back with the stage looked at again — the save is what says which scene to open.
     runtime.setActiveScene(stage);
     expect(runtime.restoreCinematic({
-      sequences: new Map([['revived', { ...saved, id: 'revived' }]]),
+      sequences: [['revived', { ...saved, id: 'revived' }]],
       activeSequence: null,
       currentTime: 0,
     }).restored).toEqual(['revived']);
@@ -1126,7 +1142,7 @@ describe('the save split moved: cinematic has a writer AND a reader', () => {
     define();
     expect(declaredFields('SerializedCinematic').sort()).toEqual(['activeSequence', 'currentTime', 'sequences']);
     const saved = runtime.cinematicSnapshot();
-    expect(Object.keys(saved.sequences.get('seq')!).sort()).toEqual(declaredFields('SerializedCinematicSequence').sort());
+    expect(Object.keys(sequenceOf(saved, 'seq')!).sort()).toEqual(declaredFields('SerializedCinematicSequence').sort());
     // The live type has no scene field; the save type must, which is the asymmetry the reader discovered.
     expect(declaredFields('CinematicSequence')).not.toContain('sceneId');
   });

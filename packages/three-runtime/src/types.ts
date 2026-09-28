@@ -408,11 +408,31 @@ export interface SaveSlot {
 
 export interface SaveData {
   sceneGraph: SerializedSceneGraph;
-  entities: Map<EntityId, SerializedEntity>;
+  entities: [EntityId, SerializedEntity][];
   npcs: Map<EntityId, SerializedNPC>;
   quests: SerializedQuestSystem;
   player: SerializedPlayer;
   worldState: Record<string, unknown>;
+  cinematic: SerializedCinematic;
+}
+
+/**
+ * A save FILE — what actually goes to disk, as distinct from `SaveData`, the in-memory aggregate the engine
+ * has never been able to fill. The difference is the point: a file has to survive `JSON.stringify`, so it
+ * carries no `Map` and no live object anywhere in it, and it states which `SaveData` fields it holds
+ * (`carries`) and which it does NOT (`doesNotCarry`, copied out of `saveFeasibilityAudit`'s blocked rows).
+ *
+ * `version` is a number the loader compares against its own, because a file written by a later runtime may
+ * mean something this one cannot know. `savedAt` is the caller's clock: this package owns no time source and
+ * would be inventing one to fill it.
+ */
+export interface SaveFile {
+  format: 'nexus-three-runtime-save';
+  version: number;
+  savedAt: number;
+  carries: string[];
+  doesNotCarry: { field: string; needs: string }[];
+  entities: [EntityId, SerializedEntity][];
   cinematic: SerializedCinematic;
 }
 
@@ -430,13 +450,37 @@ export interface SerializedScene {
   physics?: PhysicsConfig;
 }
 
+/**
+ * A `THREE.Vector3` as DATA. The save shape may not hold a live vector, and this is a measured claim, not a
+ * style preference: `JSON.stringify` keeps the three numbers but loses the class, so what comes back off a
+ * disk is a plain object whose methods are gone.
+ */
+export interface SerializedVector3 {
+  x: number;
+  y: number;
+  z: number;
+}
+
+/**
+ * An `Euler` as data, ORDER INCLUDED. The order is not decoration — three.js reads it when it composes the
+ * quaternion — and it is the reason a flattened `THREE.Euler` cannot be handed to `Euler.copy`: measured,
+ * `JSON.stringify` writes an Euler as `_x/_y/_z/_order/isEuler`, so `copy` reads `x` as `undefined` and the
+ * restored entity ends up pointing at NaN.
+ */
+export interface SerializedEuler {
+  x: number;
+  y: number;
+  z: number;
+  order: string;
+}
+
 export interface SerializedEntity {
   id: EntityId;
   name: string;
   type: ThreeEntity['type'];
-  position: THREE.Vector3;
-  rotation: THREE.Euler;
-  scale: THREE.Vector3;
+  position: SerializedVector3;
+  rotation: SerializedEuler;
+  scale: SerializedVector3;
   visible: boolean;
   castShadow: boolean;
   receiveShadow: boolean;
@@ -444,7 +488,9 @@ export interface SerializedEntity {
    *  restore silently resets it. `saveFeasibilityAudit` would report it as dropped if this line or the
    *  matching line in `snapshotEntity` were removed — the claim is checked, not assumed. */
   layers: number;
-  components: Map<string, EntityComponent>;
+  /** An ENTRY ARRAY, not a `Map`, for the same reason the transform fields are plain: a `Map` is written by
+   *  `JSON.stringify` as `{}`, which is how a save with three components on it comes back with none. */
+  components: [string, EntityComponent][];
   userData: Record<string, unknown>;
 }
 
@@ -486,7 +532,7 @@ export interface SerializedPlayer {
 }
 
 export interface SerializedCinematic {
-  sequences: Map<string, SerializedCinematicSequence>;
+  sequences: [string, SerializedCinematicSequence][];
   activeSequence: string | null;
   currentTime: number;
 }
@@ -499,7 +545,7 @@ export interface SerializedCinematic {
  * answer for it.
  */
 export interface SerializedCurve {
-  points: { x: number; y: number; z: number }[];
+  points: SerializedVector3[];
   closed: boolean;
   curveType: 'centripetal' | 'chordal' | 'catmullrom';
   tension: number;
