@@ -1,5 +1,5 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import { eq, inArray, sql as rawSql } from 'drizzle-orm';
+import { and, eq, inArray, sql as rawSql } from 'drizzle-orm';
 import {
   SEARCH_GROUP_KEYS,
   normalizeQuery,
@@ -8,8 +8,21 @@ import {
   type SearchResults,
 } from '../src/server/domain/search';
 import { createProject } from '../src/server/domain/projects';
+import { saveStoryboard } from '../src/server/domain/storyboards';
+import { planStoryboard } from '@nexus/video-model';
 import { getDb } from '../src/server/db/client';
-import { assets, characters, components, games, projects, publishedProjects, users, worlds } from '../src/server/db/schema';
+import {
+  assets,
+  characters,
+  components,
+  games,
+  knowledgeChunks,
+  projects,
+  publishedProjects,
+  storyboards,
+  users,
+  worlds,
+} from '../src/server/db/schema';
 
 /**
  * §165 全平台搜索。打真库，因为这里唯一值得测的东西就是可见性：
@@ -237,10 +250,86 @@ describe('全平台搜索的可见性（真实数据库）', () => {
     expect(group(roomy, 'projects').capped).toBe(false);
   });
 
-  it('八组固定都在，顺序与标签稳定', async () => {
+  it('九组固定都在，顺序与标签稳定', async () => {
     const results = await searchPlatform(RUN, meId);
     expect(results.groups.map((g) => g.key)).toEqual([...SEARCH_GROUP_KEYS]);
     expect(results.groups.every((g) => g.label.length > 0)).toBe(true);
     expect(results.q).toBe(RUN);
+  });
+});
+
+/**
+ * §165 欠的最后一组：分镜（`storyboards`）。这一类的两个来源要分开证明：
+ * 标题查 `storyboards` 表（不依赖语料库，那批内容进库之前存的分镜也搜得到），
+ * 画面描述查 §49 的语料块。孤儿块那条是机制探针——它证明搜索真的 join 回了
+ * `storyboards`，而不是把 `knowledge_chunks` 里的残留当成结果。
+ */
+describe('§165 × §40：分镜进全平台搜索', () => {
+  it('标题命中走表，画面描述命中的是那一句所在的镜头', async () => {
+    const projectId = await mine(`分镜搜索${RUN}`);
+    // 把标题改开：`planStoryboard` 的标题就是那句来源文本，任何句子片段都会先被标题那条路命中，
+    // 于是"语料块这条路"永远测不到。改标题正是用户会做的事（重命名一份分镜），不是测试替身。
+    const doc = {
+      ...planStoryboard('起重机吊起一只锈锚，雾从海面压过来', { id: `sb-s165-${RUN}` }),
+      title: `夜班分镜${RUN}`,
+    };
+    const saved = await saveStoryboard(projectId, meId, { document: doc });
+    if (!saved.ok) throw new Error(`保存失败：${saved.reason}`);
+
+    const byTitle = await searchPlatform(doc.title, meId);
+    const titleHit = group(byTitle, 'storyboards').hits.find((h) => h.title === doc.title);
+    expect(titleHit, '分镜标题搜不到 = 这一组没接进搜索').toBeDefined();
+    expect(titleHit!.href).toBe(`/studio/${projectId}`);
+    expect(titleHit!.detail).toBe('分镜标题');
+
+    expect(doc.shots.length, '这条分镜只切出一镜，测不到"序号"这回事').toBeGreaterThan(1);
+    const byShot = await searchPlatform(doc.shots[doc.shots.length - 1]!.prompt.slice(0, 10), meId);
+    const shotHit = group(byShot, 'storyboards').hits.find((h) => h.title === doc.title);
+    expect(shotHit, '画面描述搜不到 = 语料块没接进全平台搜索').toBeDefined();
+    // 标题不命中这句，所以这里能拿到结果就只有语料块那条路；命中里带着"是哪一镜"，
+    // 光说"这份分镜里有"不够定位。序号从同一份 doc 推导，不是我抄进来的常量。
+    expect(shotHit!.detail, '语料块的标题没带镜头序号').toContain(`第 ${doc.shots.length} 镜`);
+
+    // 反向控制：把查询词换成一句库里根本没有的话，这一组必须空
+    expect(group(await searchPlatform('这句描述根本不存在于任何分镜里', meId), 'storyboards').hits).toEqual([]);
+  });
+
+  it('孤儿块不产结果：分镜行删掉后那句描述再也搜不到，而块还留在库里', async () => {
+    const projectId = await mine(`孤儿分镜${RUN}`);
+    const doc = {
+      ...planStoryboard('盐海没有鱼。只有钟声在码头那边一遍遍响。', { id: `sb-s165-orphan-${RUN}` }),
+      title: `盐海分镜${RUN}`,
+    };
+    const saved = await saveStoryboard(projectId, meId, { document: doc });
+    if (!saved.ok) throw new Error(`保存失败：${saved.reason}`);
+    // 用最后一镜的句子去查：标题里没有它，能命中的只有 §49 的语料块这条路。
+    // 否则这条测试就退化成"删了行就搜不到"，证不到 join 回 storyboards 的保护作用。
+    expect(doc.shots.length, '这条分镜只切出一镜，测不到孤儿块这条路').toBeGreaterThan(1);
+    const shotTerm = doc.shots[doc.shots.length - 1]!.prompt.slice(0, 8);
+    const preDelete = group(await searchPlatform(shotTerm, meId), 'storyboards').hits;
+    expect(preDelete.length, '语料块那条路本来就没通，下面的删除测不出什么').toBe(1);
+    expect(preDelete[0]!.detail).toContain(`第 ${doc.shots.length} 镜`);
+
+    // 故意只删 `storyboards` 那一行、不重建索引：这就是"索引里留着已删内容的块"的形状
+    const db = getDb();
+    await db.delete(storyboards).where(eq(storyboards.projectId, projectId));
+    const leftovers = await db
+      .select({ sourceId: knowledgeChunks.sourceId })
+      .from(knowledgeChunks)
+      .where(and(eq(knowledgeChunks.projectId, projectId), eq(knowledgeChunks.sourceType, 'storyboard')));
+    expect(leftovers.length, '孤儿块没留下来 = 最后那条断言是在测空气').toBeGreaterThan(0);
+    expect(group(await searchPlatform(shotTerm, meId), 'storyboards').hits, '点开就是 404 的结果还是给了出来').toEqual([]);
+  });
+
+  it('别人的分镜不进我的结果，他自己搜得到，匿名也搜不到', async () => {
+    const theirs = await createProject(themId, { name: `他人分镜${RUN}`, kind: 'website' });
+    const doc = planStoryboard('灯塔只在有人失踪时才亮', { id: `sb-s165-theirs-${RUN}` });
+    const saved = await saveStoryboard(theirs.id, themId, { document: doc });
+    if (!saved.ok) throw new Error(`保存失败：${saved.reason}`);
+
+    expect(group(await searchPlatform('灯塔只在有人失踪时才亮', meId), 'storyboards').hits).toEqual([]);
+    expect(group(await searchPlatform('灯塔只在有人失踪时才亮', themId), 'storyboards').hits.length).toBeGreaterThan(0);
+    // 分镜没有发布链路（§56/§57 发的是设计文档那一版），匿名列出来就是给访客一个 404
+    expect(group(await searchPlatform('灯塔只在有人失踪时才亮', null), 'storyboards').hits).toEqual([]);
   });
 });

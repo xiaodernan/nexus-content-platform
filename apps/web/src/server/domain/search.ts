@@ -1,4 +1,4 @@
-import { and, desc, eq, ilike, isNull, notInArray, or, sql } from 'drizzle-orm';
+import { and, asc, desc, eq, ilike, isNull, notInArray, or, sql } from 'drizzle-orm';
 import { getDb } from '../db/client';
 import { hiddenAuthorIds } from './blocks';
 import {
@@ -7,16 +7,18 @@ import {
   components,
   designNodes,
   games,
+  knowledgeChunks,
   pages,
   projects,
   publishedProjects,
+  storyboards,
   users,
   worlds,
 } from '../db/schema';
 
 /**
- * §165 全平台搜索。八类目标各一组：projects / users / worlds / games /
- * characters / designs（页面与画布元素名）/ components / assets。
+ * §165 全平台搜索。九类目标各一组：projects / users / worlds / games /
+ * characters / designs（页面与画布元素名）/ components / assets / storyboards（分镜）。
  *
  * **匹配方式**：trigram 子串（`ILIKE %q%`，索引见迁移 0008）。中文没有空格分词，
  * `to_tsvector` 的 default / simple 配置都切不出"王城"这种词，所以不硬套全文检索；
@@ -25,7 +27,7 @@ import {
  * **可见性才是这里的主要工作**，不是查询语法：搜出一条打不开的结果比搜不到更糟。
  * - 项目：你自己的（未删除）**或**有 public 且未被人工拒绝的发布版本；
  * - 用户：有 handle、未注销、不是未认领的 guest——否则 `/u/<handle>` 是空页；
- * - 其余六类都挂在项目里，而 `/studio`、`/world` 与角色/资产路由只认所有权，
+ * - 其余七类都挂在项目里，而 `/studio`、`/world` 与角色/资产路由只认所有权，
  *   所以它们**只搜你自己的项目**。别人的世界条目即使匹配也不列出：
  *   那些内容没有发布链路（§56/§57 发布的是设计文档那一版），列出来就是给访客一个 404。
  *
@@ -41,6 +43,7 @@ export const SEARCH_GROUP_KEYS = [
   'designs',
   'components',
   'assets',
+  'storyboards',
 ] as const;
 
 export type SearchGroupKey = (typeof SEARCH_GROUP_KEYS)[number];
@@ -54,6 +57,7 @@ export const SEARCH_GROUP_LABELS: Record<SearchGroupKey, string> = {
   designs: '设计稿',
   components: '组件',
   assets: '资产',
+  storyboards: '分镜',
 };
 
 /** 界面照抄这份清单：搜索没覆盖到的东西要说得出为什么没覆盖 */
@@ -62,6 +66,7 @@ export const SEARCH_NOT_COVERED = [
   '画布节点里的文字内容——同上；按内容找东西请走项目内检索（§49）与上下文装配（§66-71）',
   '资产的文件内容——只搜文件名',
   '相关度排序——子串匹配没有打分，组内按更新时间排',
+  '分镜的画面描述走 §49 语料库：那批内容进库之前存下的旧分镜，其描述要等一次保存或点「重建索引」才可搜；分镜标题不依赖语料库，一直可搜',
 ];
 
 export interface SearchHit {
@@ -104,6 +109,7 @@ type OwnedRow = { id: string; name: string; projectId: string };
 type SummarisedRow = OwnedRow & { summary: string | null };
 type DescribedRow = OwnedRow & { description: string | null };
 type NodeRow = { id: string; name: string; pageId: string; pageName: string; projectId: string };
+type StoryboardRow = OwnedRow & { detail: string };
 
 /** 六类内容组的命中行：未登录时一律为空（那些路由只认所有权） */
 type ContentRows = {
@@ -114,6 +120,7 @@ type ContentRows = {
   nodes: NodeRow[];
   components: DescribedRow[];
   assets: (OwnedRow & { kind: string })[];
+  storyboards: StoryboardRow[];
 };
 
 const NO_CONTENT: ContentRows = {
@@ -124,12 +131,23 @@ const NO_CONTENT: ContentRows = {
   nodes: [],
   components: [],
   assets: [],
+  storyboards: [],
 };
 
 async function contentRows(viewerId: string, term: string, take: number): Promise<ContentRows> {
   const db = getDb();
   const owned = and(eq(projects.ownerId, viewerId), isNull(projects.deletedAt));
-  const [worlds_, games_, characters_, pages_, nodes_, components_, assets_] = await Promise.all([
+  const [
+    worlds_,
+    games_,
+    characters_,
+    pages_,
+    nodes_,
+    components_,
+    assets_,
+    storyboardTitles_,
+    storyboardShots_,
+  ] = await Promise.all([
     db
       .select({ id: worlds.id, name: worlds.name, summary: worlds.summary, projectId: projects.id })
       .from(worlds)
@@ -191,7 +209,43 @@ async function contentRows(viewerId: string, term: string, take: number): Promis
       .where(and(owned, ilike(assets.name, term)))
       .orderBy(desc(assets.createdAt))
       .limit(take),
+    // 分镜那一组有两个来源。① 标题直接查 `storyboards` 表：这条不依赖语料库，
+    // 永远可搜——语料库是后来加的，那之前存下的分镜没有块。
+    db
+      .select({ id: storyboards.id, name: storyboards.title, projectId: projects.id })
+      .from(storyboards)
+      .innerJoin(projects, eq(projects.id, storyboards.projectId))
+      .where(and(owned, ilike(storyboards.title, term)))
+      .orderBy(desc(storyboards.updatedAt))
+      .limit(take),
+    // ② 画面描述查 §49 的语料块：那份文本本来就是为检索切的（`notes` 那条断句规则不在块里，
+    // 所以搜"分镜"不会命中规则说明书）。join 回 `storyboards` 而不是直接用 chunk.projectId，
+    // 是为了让一条孤儿块（分镜已删、块还没重建）变不成一个点开就 404 的结果。
+    db
+      .select({
+        id: storyboards.id,
+        name: storyboards.title,
+        projectId: projects.id,
+        detail: sql<string>`coalesce(${knowledgeChunks.meta} ->> 'title', '分镜镜头')`,
+      })
+      .from(knowledgeChunks)
+      // 分镜的块认的是 `${行id}#shot-…` / `${行id}#source`（§49 那一片的 sourceId 形状），
+      // 不是裸的行 id——等值 join 一条都匹配不上，而这条路会安静地搜不到任何画面描述。
+      .innerJoin(storyboards, sql`${knowledgeChunks.sourceId} like ${storyboards.id}::text || '#%'`)
+      .innerJoin(projects, eq(projects.id, storyboards.projectId))
+      .where(and(eq(knowledgeChunks.sourceType, 'storyboard'), owned, ilike(knowledgeChunks.content, term)))
+      .orderBy(asc(knowledgeChunks.sourceId), asc(knowledgeChunks.chunkIndex))
+      .limit(take),
   ]);
+
+  const storyboardHits = new Map<string, StoryboardRow>();
+  for (const row of storyboardTitles_) {
+    storyboardHits.set(row.id, { ...row, detail: '分镜标题' });
+  }
+  for (const row of storyboardShots_) {
+    if (!storyboardHits.has(row.id)) storyboardHits.set(row.id, row);
+  }
+
   return {
     worlds: worlds_,
     games: games_,
@@ -200,6 +254,7 @@ async function contentRows(viewerId: string, term: string, take: number): Promis
     nodes: nodes_,
     components: components_,
     assets: assets_,
+    storyboards: [...storyboardHits.values()],
   };
 }
 
@@ -338,6 +393,14 @@ export async function searchPlatform(
       label: SEARCH_GROUP_LABELS.assets,
       hits: content.assets.slice(0, limit).map((r) => ({ id: r.id, title: r.name, detail: r.kind, href: studio(r.projectId) })),
       capped: content.assets.length > limit,
+    },
+    storyboards: {
+      key: 'storyboards',
+      label: SEARCH_GROUP_LABELS.storyboards,
+      hits: content.storyboards
+        .slice(0, limit)
+        .map((r) => ({ id: r.id, title: r.name, detail: r.detail, href: studio(r.projectId) })),
+      capped: content.storyboards.length > limit,
     },
   };
 

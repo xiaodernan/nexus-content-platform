@@ -7,7 +7,7 @@ export const dynamic = 'force-dynamic';
  * §165 全平台搜索。一个 GET 表单 + 服务端渲染的结果，没有"边打字边发请求"的
  * 假实时：那需要一个搜索 API 与防抖，而这里要的只是"打得准就能找到"。
  *
- * 页面把**搜了哪八类、没搜什么**都写在脸上。范围与可见性由 `domain/search.ts` 决定，
+ * 页面把**搜了哪九类、没搜什么**都写在脸上。范围与可见性由 `domain/search.ts` 决定，
  * 界面上不另立一套说法。
  */
 export default async function SearchPage({ searchParams }: { searchParams: Promise<{ q?: string | string[] }> }) {
@@ -21,7 +21,7 @@ export default async function SearchPage({ searchParams }: { searchParams: Promi
     <main className="mx-auto flex min-h-screen max-w-[820px] flex-col gap-6 px-6 py-10" data-search-root>
       <header className="flex flex-wrap items-baseline gap-3">
         <h1 className="text-[var(--nexus-font-size-21)] font-semibold">全平台搜索</h1>
-        <span className="font-mono text-12 text-fg-3">{result.signedIn ? '八类目标 · 内容组只覆盖你自己的项目' : '未登录：只搜公开项目与公开主页'}</span>
+        <span className="font-mono text-12 text-fg-3">{result.signedIn ? '九类目标 · 内容组只覆盖你自己的项目' : '未登录：只搜公开项目与公开主页'}</span>
       </header>
 
       <form action="/search" method="get" className="flex items-center gap-2" data-search-form>

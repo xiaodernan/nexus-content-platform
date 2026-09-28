@@ -1840,10 +1840,26 @@ test('@smoke 全平台搜索：命中的都打得开，搜不到的要说清为�
   await page.waitForURL(/\/studio\/[^/]+$/, { timeout: 30_000 });
   await waitForCanvas(page);
 
-  // 画布元素名也在八类里：Hero 是起手文档自己的节点，不是为这条用例造的
+  // 画布元素名也在九类里：Hero 是起手文档自己的节点，不是为这条用例造的
   await page.goto('/search?q=Hero');
   await expect(page.locator('[data-search-group="designs"]')).toContainText('Hero');
   await expect(page.locator('[data-search-group="designs"] a')).toHaveAttribute('href', new RegExp(`/studio/${projectId}`));
+
+  // 第九组（§165 欠的那一组）：分镜。先回编辑器存一份分镜——上面几步已经把页面导航到
+  // `/search` 了，在那里点不到 Studio 的面板标签（这条红过一次，等的是 `[data-panel-tab]`）。
+  await page.goto(`/studio/${projectId}`);
+  await waitForCanvas(page);
+  await page.click('[data-panel-tab="storyboard"]');
+  await expect(page.locator('[data-storyboard-panel]')).toBeVisible({ timeout: 30_000 });
+  await page.fill('[data-storyboard-prompt-input]', '旧灯塔的光扫过浮冰，一只信天翁落在栏杆上');
+  await page.click('[data-storyboard-create]');
+  await expect(page.locator('[data-storyboard-save-state]')).toHaveText('已保存', { timeout: 30_000 });
+
+  await page.goto(`/search?q=${encodeURIComponent('信天翁落在栏杆上')}`);
+  const sbGroup = page.locator('[data-search-group="storyboards"]');
+  // 断言里带着命中行自己的字：空组也可能挂着标签，"这一组存在"不等于"搜到了东西"
+  await expect(sbGroup).toContainText('信天翁');
+  await expect(sbGroup.locator('a')).toHaveAttribute('href', new RegExp(`/studio/${projectId}`));
   await page.screenshot({ path: 'screenshots/platform-search.png' });
 
   // 没搜到的词要说清"没有匹配"，而不是空白页或假结果
