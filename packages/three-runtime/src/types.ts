@@ -411,7 +411,7 @@ export interface SaveData {
   entities: [EntityId, SerializedEntity][];
   npcs: Map<EntityId, SerializedNPC>;
   quests: SerializedQuestSystem;
-  player: SerializedPlayer;
+  player: Player | null;
   worldState: Record<string, unknown>;
   cinematic: SerializedCinematic;
 }
@@ -442,6 +442,11 @@ export interface SaveFile {
    *  a fact about the world the file describes, and a bag shared across scenes would put one scene's
    *  facts in another scene's file. */
   worldState: Record<string, unknown>;
+  /** The scene's player, or `null` when the scene has none. The two are different claims and the loader tells
+   *  them apart: `null` is this format saying "no player was attached", while a pre-v136 file has NO `player`
+   *  key at all, which the loader reads as "this file predates the half" — see `loadSaveFile`, where the file's
+   *  own `carries` decides whether an absent key is a load or the refusal of a claim it cannot back up. */
+  player: SerializedPlayer | null;
   cinematic: SerializedCinematic;
 }
 
@@ -540,7 +545,19 @@ export interface QuestState {
   endTime?: number;
 }
 
-export interface SerializedPlayer {
+/**
+ * The LIVE player record — the one body a scene is played as, and the subject the runtime owns from v136.
+ *
+ * This interface is what `SaveData.player` names, and the reason it is a separate shape from
+ * `SerializedPlayer` is the same reason `NPC` is separate from `SerializedNPC`: three of these fields are live
+ * objects. `position` is a `THREE.Vector3`, `rotation` is a `THREE.Euler`, `skills` is a `Map` — measured by
+ * v119, `JSON.stringify` flattens the first two into `_x/_y/_z/_order`-shaped plain objects and writes the third
+ * as `{}`, so a record handed to a file would come back holding less than it was given.
+ *
+ * `inventory` is declared and not carried, for the reason `npcFieldAudit` says out loud about an NPC's bag of
+ * the same type: `InventoryItem` holds two `Map`s of its own and no inventory system exists in this package.
+ */
+export interface Player {
   entityId: EntityId;
   position: THREE.Vector3;
   rotation: THREE.Euler;
@@ -552,6 +569,32 @@ export interface SerializedPlayer {
   level: number;
   inventory: InventoryItem[];
   skills: Map<string, number>;
+  hotbar: (EntityId | null)[];
+}
+
+/**
+ * A `Player` as FILE data — the shape `SaveFile.player` holds, spelled so it survives `JSON.stringify`.
+ *
+ * Eleven of the twelve declared fields are here. `position`/`rotation` become the plain `SerializedVector3`/
+ * `SerializedEuler` pair for the reason `SerializedEntity` spells out (a flattened live object restores as NaN
+ * where `copy` reads `x`), and `skills` is an ENTRY ARRAY for the `Map` reason. `inventory` is the one left out,
+ * and `playerFieldAudit` names it from the refusal table rather than from this comment, so the omission cannot
+ * go quiet if the field ever stops being carried for a different reason.
+ */
+export interface SerializedPlayer {
+  entityId: EntityId;
+  position: SerializedVector3;
+  rotation: SerializedEuler;
+  health: number;
+  maxHealth: number;
+  mana: number;
+  maxMana: number;
+  experience: number;
+  level: number;
+  /** An ENTRY ARRAY, not a `Map`: `JSON.stringify` writes a `Map` as `{}`. */
+  skills: [string, number][];
+  /** The bodies in the quick slots, or `null` for an empty one. A slot naming an entity the file does not carry
+   *  is refused by `restorePlayer`, because a hotbar pointing at nothing is a slot that cannot be used. */
   hotbar: (EntityId | null)[];
 }
 

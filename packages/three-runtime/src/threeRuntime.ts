@@ -17,8 +17,10 @@ import type {
   CharacterController,
   ControllerInput,
   NPC,
+  Player,
   PersonalityTraits,
   SerializedNPC,
+  SerializedPlayer,
   SerializedEntity,
   SerializedVector3,
   SerializedEuler,
@@ -92,6 +94,35 @@ export const DEFAULT_NPC = {
   faction: 'neutral',
 };
 
+/** What a caller can name when attaching the player record. `skills` is a plain bag for the reason
+ *  `NpcAttachOptions.reputation` gives: the live record holds a `Map`, and making a caller build one to reach
+ *  the method would be a second spelling of the same fact. `position` and `rotation` default to where the body
+ *  ALREADY is, which is a reading of the world rather than a constant pretending to be one. */
+export interface PlayerAttachOptions {
+  position?: THREE.Vector3;
+  rotation?: THREE.Euler;
+  health?: number;
+  maxHealth?: number;
+  mana?: number;
+  maxMana?: number;
+  experience?: number;
+  level?: number;
+  skills?: Record<string, number>;
+  hotbar?: (EntityId | null)[];
+}
+
+/** The declared words the player record starts from when a caller names none. These are the numbers a DEMO MODE
+ *  world begins a playthrough at; `inventory` and `skills` start EMPTY, because a record that claimed six items
+ *  from a constant would be the kind of save this lane has spent eleven grants refusing. */
+export const DEFAULT_PLAYER = {
+  health: 100,
+  maxHealth: 100,
+  mana: 50,
+  maxMana: 50,
+  experience: 0,
+  level: 1,
+};
+
 /**
  * WHICH account of a refused field is speaking.
  *
@@ -103,15 +134,17 @@ export const DEFAULT_NPC = {
  * all: it is a savable file half (`snapshotEntity`/`restoreEntity`) AND a world-state key this runtime refuses,
  * because mirroring the scene's bodies into the bag would give one list two owners.
  *
- * So each row declares which PLANES refuse it and what it says in each of them. The three lists the callers
+ * So each row declares which PLANES refuse it and what it says in each of them. The accounts the callers
  * read are DERIVED from this table, which is what makes the table unable to sit still while one of the accounts
- * drifts.
+ * drifts. v136 added the fourth plane (`player-record`, the live player's own gaps) by lengthening this
+ * declaration and nothing else — which is the shape the table was built for: an account that ships has to be
+ * answerable, and every case that enumerates the plane set feels it in the same commit.
  */
-export type RefusalPlane = 'npc-record' | 'world-state' | 'save-file';
+export type RefusalPlane = 'npc-record' | 'world-state' | 'save-file' | 'player-record';
 
 /** The plane set `refusalCensus` partitions over — read off this declaration rather than retyped by a caller
  *  that would otherwise have to remember how many accounts exist. */
-const REFUSAL_PLANES: readonly RefusalPlane[] = ['npc-record', 'world-state', 'save-file'];
+const REFUSAL_PLANES: readonly RefusalPlane[] = ['npc-record', 'world-state', 'save-file', 'player-record'];
 
 /** One name this package refuses to keep, and the PLANES that say so. `needs` is keyed by plane, and a plane
  *  listed in `planes` with no entry there is a refusal with no reason — `refusalsFor` throws on that rather
@@ -135,10 +168,11 @@ const REFUSALS: readonly RefusalRow[] = [
   },
   {
     field: 'inventory',
-    planes: ['npc-record', 'world-state'],
+    planes: ['npc-record', 'world-state', 'player-record'],
     needs: {
       'npc-record': '`InventoryItem` holds `attributes` and `requirements` as Maps and nothing here implements an inventory; a record carrying one would put a Map in a file that JSON writes as {}',
       'world-state': '`InventoryItem` holds `attributes` and `requirements` as Maps and nothing here implements an inventory',
+      'player-record': 'the live player holds `InventoryItem[]`, whose items each carry two `Map`s, and no inventory system exists here to fill or read one — so the bag would be a file half with no owner on either side',
     },
   },
   {
@@ -157,10 +191,9 @@ const REFUSALS: readonly RefusalRow[] = [
   },
   {
     field: 'player',
-    planes: ['world-state', 'save-file'],
+    planes: ['world-state'],
     needs: {
-      'world-state': 'the runtime holds no player entity — `SerializedPlayer` names health/mana/inventory/skills that nothing here owns',
-      'save-file': 'SerializedPlayer names health/mana/inventory/skills; the runtime holds no player state',
+      'world-state': 'the runtime owns exactly one player record per scene through `attachPlayer`/`restorePlayer`, so a bag key of the same name would be a second owner of one player, and the two would drift',
     },
   },
   {
@@ -237,9 +270,22 @@ const UNTOUCHED_WORLD_STATE_FIELDS: readonly { field: string; needs: string }[] 
 
 /** What `worldStateFieldAudit` answers. `carried` is every key the scene actually holds (so a caller can
  *  see what a file would write), and `untouched` names the well-known keys this package REFUSES to keep,
- *  each with what it waits on — so a caller cannot assume the runtime is keeping a quest log, a player or
- *  an inventory for them. A name that stops being refused has to leave that table to stop being reported. */
+ *  each with what it waits on — so a caller cannot assume the runtime is keeping a quest log or an inventory
+ *  for them. A name that stops being refused has to leave that table to stop being reported; `player` stayed,
+ *  and its sentence changed under v136, because the runtime now keeps a player in a place the bag must not. */
 export interface WorldStateFieldAudit {
+  carried: string[];
+  untouched: { field: string; needs: string }[];
+}
+
+/** The declared `Player` fields this package cannot fill. v136 ships one row: `inventory`, whose items each
+ *  hold two `Map`s with no inventory system on either side of them. */
+const UNTOUCHED_PLAYER_FIELDS: readonly { field: string; needs: string }[] = refusalsFor('player-record');
+
+/** What `playerFieldAudit` answers, in the same two halves as the NPC audit: `carried` is the field list of
+ *  the FILE shape, read off the snapshot this scene's player produces, and `untouched` names every declared
+ *  live field the snapshot does not hold, in the table's own words. */
+export interface PlayerFieldAudit {
   carried: string[];
   untouched: { field: string; needs: string }[];
 }
@@ -636,6 +682,10 @@ export interface SaveFileLoadReport {
    *  state was saved empty, which is not the same claim as "this file carries no worldState" — the two are
    *  told apart by `carries`, which is what the file itself said. */
   worldState: string[];
+  /** The body this load made the scene's player, or `null` when the file carried none. `null` is the file's own
+   *  claim read back — it is not the same statement as a pre-v136 file having no player half at all, which is
+   *  what `carries` tells apart. */
+  player: EntityId | null;
   carries: string[];
 }
 
@@ -746,26 +796,25 @@ const SAVE_ALIAS_CLAIMS: Record<string, readonly string[]> = {
 };
 
 /** Which declared `SaveData` fields the runtime can fill today, and which are waiting on a system that
- *  does not exist yet. The blocked half is the honest part: `quests`/`player`/`worldState` are declared in
- *  `types.ts` and implemented by nothing, so a `SaveData` written today would carry empty maps that look
- *  like an empty game world. `savable` means BOTH directions survive a FILE since v119: `entities` has
- *  `snapshotEntity`/`restoreEntity`, `cinematic` has `cinematicSnapshot`/`restoreCinematic`, `npcs` has
- *  `npcSnapshot`/`restoreNPC`, and `buildSaveFile` runs `assertDiskSafe` over the finished file so no half
- *  can write a `Map` or a live object the reader could not get back. `sceneGraph` is blocked on the live
- *  objects inside `SerializedScene` (a `LightingConfig` whose lights are `THREE.Light`s and a
- *  `PhysicsConfig` whose gravity is a `THREE.Vector3`), which is a different kind of gap from a missing
- *  system: the shape exists and is unusable as a file. The pair is not decoration —
- *  `saveSnapshot.test.ts` derives each field's stem from its own name and requires a surface name to
- *  implement a `savable` row and NONE to implement a `blocked` one, which is what makes this table unable
- *  to sit still while an implementation ships beside it.
+ *  does not exist yet. The blocked half is the honest part: `quests` names a `QuestSystem` declared in
+ *  `types.ts` and implemented by nothing, and `sceneGraph` names a shape built out of live objects — a different
+ *  kind of gap from a missing system: the shape exists and is unusable as a file. `savable` means BOTH directions
+ *  survive a FILE since v119: `entities` has `snapshotEntity`/`restoreEntity`, `cinematic` has
+ *  `cinematicSnapshot`/`restoreCinematic`, `npcs` has `npcSnapshot`/`restoreNPC`, `worldState` has
+ *  `worldStateSnapshot`/`restoreWorldState`, and `player` has `playerSnapshot`/`restorePlayer` (v136, which is
+ *  the row this table carried as blocked for eleven grants); `buildSaveFile` runs `assertDiskSafe` over the
+ *  finished file so no half can write a `Map` or a live object the reader could not get back. The pair is not
+ *  decoration — `saveSnapshot.test.ts` derives each field's stem from its own name and requires a surface name
+ *  to implement a `savable` row and NONE to implement a `blocked` one, which is what makes this table unable to
+ *  sit still while an implementation ships beside it.
  *
- *  `blocked` is v135's derivation, not a fourth copy: the save file is one of three PLANES that refuse names,
- *  and the same three rows previously sat here as literals beside the NPC record's and the world bag's, each
- *  free to drift. Read as a flat list that drift is invisible; read per plane (`refusalCensus`) it is the whole
- *  story — `quests` is refused by all three, `sceneGraph` by the save file alone, and `entities` by the world
- *  bag alone while this very table lists it as `savable`. */
+ *  `blocked` is v135's derivation, not a fourth copy: the save file is one of the PLANES that refuse names,
+ *  and the same rows previously sat here as literals beside the NPC record's and the world bag's, each free to
+ *  drift. Read as a flat list that drift is invisible; read per plane (`refusalCensus`) it is the whole
+ *  story — `quests` is refused by every account, `sceneGraph` by the save file alone, and `entities` and `player`
+ *  by the world bag alone while this very table lists both as `savable`. */
 const SAVE_DATA_FEASIBILITY: { savable: readonly string[]; blocked: readonly { field: string; needs: string }[] } = {
-  savable: ['entities', 'cinematic', 'npcs', 'worldState'],
+  savable: ['entities', 'cinematic', 'npcs', 'worldState', 'player'],
   // The save-file slice of `REFUSALS`, so a blocked half of a file is reported with the same sentence the file
   // itself writes into `doesNotCarry` and the census answers — one owner for three readers.
   blocked: refusalsFor('save-file'),
@@ -1027,6 +1076,9 @@ export class ThreeRuntime {
    *  than an array on the entity because the record OUTLIVES nothing: the scene graph is the thing a save
    *  files, and the entity is only the body the record is about. */
   private npcs: Map<EntityId, NpcEntry> = new Map();
+  /** The player per scene — ONE record, keyed by the scene rather than by the entity, because "who is playing
+   *  this world" is a fact about a scene and a body can be named by only one of the two accounts at a time. */
+  private players: Map<SceneId, Player> = new Map();
   /** Arbitrary world state, per scene, as plain data. Keyed by scene for the same reason the NPC registry
    *  is: a save FILE is scoped to one scene, and a bag shared across scenes would make one scene's file
    *  carry another scene's facts. A value must be data a file can hold, which is why the setter refuses a
@@ -1260,6 +1312,14 @@ export class ThreeRuntime {
     // cleaned lazily by the frame loop's own walk; nothing runs an NPC per frame, so this is the moment a
     // record can lose its subject and say so.
     if (this.npcs.delete(entityId)) this.emit('npcOrphaned', { entityId });
+    // The player is owned per SCENE, so the question here is which scene the body just left: a player whose
+    // body was removed would be a record pointing at nothing, and `players` is the only place that knows the
+    // pairing, exactly as `npcs` is for the records keyed by entity.
+    const orphanedScene = [...this.players.entries()].find(([, player]) => player.entityId === entityId);
+    if (orphanedScene) {
+      this.players.delete(orphanedScene[0]);
+      this.emit('playerOrphaned', { sceneId: orphanedScene[0], entityId });
+    }
     this.emit('entityRemoved', { sceneId, entityId });
     return true;
   }
@@ -1434,6 +1494,10 @@ export class ThreeRuntime {
       entities,
       npcs,
       worldState: this.worldStateSnapshot(sceneId),
+      // `null` is written, not omitted: a file that says `player: null` claims it looked and found no player,
+      // which is a different statement from a pre-v136 file that has no such key. `carries` names the half, so
+      // the loader can tell the two apart instead of guessing from a missing field.
+      player: this.playerSnapshot(sceneId),
       cinematic: this.cinematicSnapshot(),
     };
     assertDiskSafe(file, 'file');
@@ -1443,6 +1507,7 @@ export class ThreeRuntime {
       npcCount: npcs.length,
       worldStateCount: Object.keys(file.worldState).length,
       sequenceCount: file.cinematic.sequences.length,
+      hasPlayer: file.player !== null,
       carries: [...file.carries],
       doesNotCarry: file.doesNotCarry.map((entry) => entry.field),
     });
@@ -1583,10 +1648,41 @@ export class ThreeRuntime {
       cloneWorldStateValue(value, `file.worldState.${key}`, 'loadSaveFile');
     }
 
+    // The player half obeys the same old-file rule as the two above: a file with NO `player` key predates the
+    // half and is read as carrying none, while a file that CLAIMS `player` owes a value — `null` included,
+    // because `null` is the claim "looked for a player and found none" and an absent key does not say that.
+    // Every id the player names is checked against the bodies THIS FILE carries, before any half runs, for the
+    // reason the NPC half gives: a load that registered a player pointing outside the file would leave the
+    // scene holding a player nothing in it can find, and a rollback cannot hand back a body that was never there.
+    const claimsPlayer = Array.isArray(file.carries) && file.carries.includes('player');
+    const playerHalf = (file as { player?: SerializedPlayer | null }).player;
+    if (playerHalf === undefined && claimsPlayer) {
+      throw new Error('loadSaveFile refused: the file CLAIMS to carry player but ships no player half — not even `null`, which is what a file with no player writes');
+    }
+    const savedPlayer = playerHalf ?? null;
+    if (savedPlayer !== null) {
+      if (typeof savedPlayer !== 'object' || Array.isArray(savedPlayer)) {
+        throw new Error(`loadSaveFile refused: player is ${Array.isArray(savedPlayer) ? 'an array' : typeof savedPlayer}, not the record a file writes`);
+      }
+      if (!(pairs as [EntityId, SerializedEntity][]).some(([id]) => id === savedPlayer.entityId)) {
+        throw new Error(`loadSaveFile refused: the player names ${String(savedPlayer.entityId)}, which is not among the entities this file carries; a player is the body the controls belong to, so a record about a body outside the file would restore a player that cannot be anywhere`);
+      }
+      for (const [index, slot] of (savedPlayer.hotbar ?? []).entries()) {
+        if (slot !== null && !(pairs as [EntityId, SerializedEntity][]).some(([id]) => id === slot)) {
+          throw new Error(`loadSaveFile refused: player.hotbar[${index}] names ${String(slot)}, which is not among the entities this file carries; an empty slot is legal, a slot pointing outside the file is not`);
+        }
+      }
+      const heldHere = this.getPlayer(sceneId);
+      if (heldHere) {
+        throw new Error(`loadSaveFile refused: scene ${sceneId} already has a player on entity ${heldHere.entityId}; a load never overwrites live state`);
+      }
+    }
+
     const loadedSequences = this.restoreCinematic(file.cinematic);
     const restored: EntityId[] = [];
     const restoredNpcs: EntityId[] = [];
     let restoredWorldState: string[] = [];
+    let restoredPlayer: EntityId | null = null;
     try {
       for (const [, snapshot] of pairs as [EntityId, SerializedEntity][]) {
         this.restoreEntity(sceneId, snapshot);
@@ -1597,6 +1693,10 @@ export class ThreeRuntime {
         restoredNpcs.push(record.entityId);
       }
       restoredWorldState = this.restoreWorldState(sceneId, worldState);
+      if (savedPlayer) {
+        this.restorePlayer(sceneId, savedPlayer);
+        restoredPlayer = savedPlayer.entityId;
+      }
     } catch (error) {
       // The records go back with their bodies: `removeEntity` is the one owner of orphaning a record, and
       // it emits `npcOrphaned` on the way, so a rollback that also detached them by hand would be a second
@@ -1615,7 +1715,12 @@ export class ThreeRuntime {
       // The world bag goes back the same way, key by key: the pre-check above proved the scene held none,
       // so deleting what this load set leaves exactly the state that was there before it ran.
       for (const key of restoredWorldState) this.deleteWorldState(sceneId, key);
-      throw new Error(`${(error as Error).message} — the ${restored.length} entity(ies), the ${restoredNpcs.length} NPC record(s), the ${restoredWorldState.length} world-state key(s) and the ${loadedSequences.restored.length} sequence(s) this load had registered were removed again; a load is all or nothing`);
+      // The player is NOT detached here, for the reason v131 found for the NPC records: `removeEntity` above is
+      // the one owner of "a record whose body is gone", and it already took the scene's player with the body it
+      // names (a player's body is always among `restored`, which the pre-check insisted on). A second cleanup
+      // path here would be the weaker of two owners — and would have to fire on the half of a load that failed
+      // before the player landed, where there is nothing to undo.
+      throw new Error(`${(error as Error).message} — the ${restored.length} entity(ies), the ${restoredNpcs.length} NPC record(s), the ${restoredWorldState.length} world-state key(s) and the ${loadedSequences.restored.length} sequence(s) this load had registered were removed again${restoredPlayer !== null ? `, and the player on ${restoredPlayer} went with its body` : ''}; a load is all or nothing`);
     }
     const report: SaveFileLoadReport = {
       sceneId,
@@ -1623,6 +1728,7 @@ export class ThreeRuntime {
       npcs: restoredNpcs,
       sequences: file.cinematic.sequences.map(([id]) => id),
       worldState: restoredWorldState,
+      player: restoredPlayer,
       carries: [...file.carries],
     };
     this.emit('saveFileLoaded', report);
@@ -2645,6 +2751,182 @@ export class ThreeRuntime {
         field,
         needs: UNTOUCHED_NPC_FIELDS.find((gap) => gap.field === field)?.needs
           ?? 'declared on NPC and not carried by the file shape, with no entry in the gap table saying why — which is itself the finding',
+      }));
+    return { carried, untouched };
+  }
+
+  // ── the player record ─────────────────────────────────────────────────────────────────────────
+  //
+  // v136 gives `SaveData.player` an owner. The record is a SINGLETON per scene rather than a registry keyed by
+  // entity, because "who this world is played as" is a fact about a scene: a second player in one scene would
+  // leave every later question — whose controls, whose hotbar, whose save — with two answers.
+
+  /**
+   * Name the body this scene is played as, and register it as the scene's player.
+   *
+   * Two fields are READ rather than defaulted, for the reason `attachNPC` gives for a record's home: `position`
+   * and `rotation` come from where the body is standing right now, cloned. `inventory` starts empty and stays
+   * empty — nothing in this package fills one, and `playerFieldAudit` says so in the table's own words.
+   */
+  attachPlayer(sceneId: SceneId, entity: EntityId, options: PlayerAttachOptions = {}): Player {
+    if (!this.sceneGraph.scenes.get(sceneId)) {
+      throw new Error(`attachPlayer: scene ${sceneId} does not exist (entity ${entity})`);
+    }
+    const target = this.getEntity(sceneId, entity);
+    if (!target) throw new Error(`attachPlayer: entity ${entity} is not in scene ${sceneId}`);
+    const held = this.getPlayer(sceneId);
+    if (held) {
+      throw new Error(`attachPlayer: scene ${sceneId} already has a player on entity ${held.entityId}; detachPlayer(${sceneId}) first — one scene is played as one body, and a second record would leave every later question about the controls with two answers`);
+    }
+    const hotbar = [...(options.hotbar ?? [])];
+    for (const [index, slot] of hotbar.entries()) {
+      if (slot === null) continue;
+      if (typeof slot !== 'string' || !this.getEntity(sceneId, slot)) {
+        throw new Error(`attachPlayer: hotbar[${index}] names ${String(slot)}, which is not an entity in scene ${sceneId}; a quick slot pointing at a body the scene does not hold is a slot no one can use`);
+      }
+    }
+    const player: Player = {
+      entityId: entity,
+      position: (options.position ?? target.threeObject.position).clone(),
+      rotation: new THREE.Euler().copy(options.rotation ?? target.threeObject.rotation),
+      health: options.health ?? DEFAULT_PLAYER.health,
+      maxHealth: options.maxHealth ?? DEFAULT_PLAYER.maxHealth,
+      mana: options.mana ?? DEFAULT_PLAYER.mana,
+      maxMana: options.maxMana ?? DEFAULT_PLAYER.maxMana,
+      experience: options.experience ?? DEFAULT_PLAYER.experience,
+      level: options.level ?? DEFAULT_PLAYER.level,
+      inventory: [],
+      skills: new Map(Object.entries(options.skills ?? {})),
+      hotbar,
+    };
+    // A non-finite number is refused at the door rather than stored: `JSON.stringify` writes `NaN` and
+    // `Infinity` as `null`, so the record would come back off a file holding a DIFFERENT number than the one
+    // the caller put in — the same drift `setNPCReputation` refuses a standing for.
+    for (const [name, value] of [['health', player.health], ['maxHealth', player.maxHealth], ['mana', player.mana], ['maxMana', player.maxMana], ['experience', player.experience], ['level', player.level]] as [keyof Player, number][]) {
+      if (!Number.isFinite(value)) {
+        throw new Error(`attachPlayer: ${name} is ${value}; a save writes a non-finite number as null, so the record would come back holding a different value than the one written`);
+      }
+    }
+    for (const [name, value] of player.skills.entries()) {
+      if (!Number.isFinite(value)) {
+        throw new Error(`attachPlayer: the skill "${name}" is ${value}; a save writes a non-finite number as null, so the skill would come back holding a different level than the one written`);
+      }
+    }
+    this.players.set(sceneId, player);
+    this.emit('playerAttached', { sceneId, entityId: entity, player });
+    return player;
+  }
+
+  /** The scene's player, or `undefined`. A record whose body has left the scene is dropped HERE, on the way to
+   *  answering, for the same reason `resolveNpc` drops an orphaned record: a caller must not be handed a player
+   *  that cannot be anywhere. */
+  getPlayer(sceneId: SceneId): Player | undefined {
+    const player = this.players.get(sceneId);
+    if (!player) return undefined;
+    if (!this.getEntity(sceneId, player.entityId)) {
+      this.players.delete(sceneId);
+      this.emit('playerOrphaned', { sceneId, entityId: player.entityId });
+      return undefined;
+    }
+    return player;
+  }
+
+  /** Take the scene's player back. `false` means the scene had none — an answer, not a failure, because a
+   *  rollback has to be legal on the half of a load that did not happen. */
+  detachPlayer(sceneId: SceneId): boolean {
+    const removed = this.players.delete(sceneId);
+    if (removed) this.emit('playerDetached', { sceneId });
+    return removed;
+  }
+
+  /**
+   * The player as FILE data, or `null` when the scene has no player. `null` is written by the file and is a
+   *  CLAIM — it says this format looked for a player and found none, which is not the same statement as an old
+   *  file that has no `player` key at all (see `loadSaveFile`). Every value is a copy: `position`/`rotation`
+   *  become plain numbers, `skills` becomes a sorted ENTRY ARRAY, and `hotbar` is a new array, so a caller
+   *  holding a snapshot cannot move the live record by editing what it was handed.
+   */
+  playerSnapshot(sceneId: SceneId): SerializedPlayer | null {
+    const player = this.getPlayer(sceneId);
+    if (!player) return null;
+    return {
+      entityId: player.entityId,
+      position: vectorToData(player.position, 'position', 'playerSnapshot'),
+      rotation: eulerToData(player.rotation, 'rotation'),
+      health: player.health,
+      maxHealth: player.maxHealth,
+      mana: player.mana,
+      maxMana: player.maxMana,
+      experience: player.experience,
+      level: player.level,
+      skills: [...player.skills.entries()].sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0)),
+      hotbar: [...player.hotbar],
+    };
+  }
+
+  /**
+   * Put a saved player back into a scene.
+   *
+   * The pre-checks run before anything is registered, because a restore that half-applies leaves a scene with a
+   *  player and a body that does not match it: the body has to be IN the scene, the scene has to have no player
+   *  already (`detachPlayer` first — a restore never overwrites live state), and the `skills`/`hotbar` halves have
+   *  to arrive in the shapes a file can actually hold. A `Map` written by `JSON.stringify` is `{}`, so an object
+   *  here is refused by name instead of restoring a player who quietly lost every skill.
+   *
+   * The shape checks come BEFORE the live-player one, in the same order `loadSaveFile` uses for the record it was
+   *  given: "these bytes are not a player half" is a fact about the argument that stays true whatever the scene
+   *  holds, while the state conflict tells the caller to detach and retry — and retrying a badly-shaped half
+   *  would only earn the same refusal a step later, having sent them looking at the wrong thing first.
+   */
+  restorePlayer(sceneId: SceneId, saved: SerializedPlayer): Player {
+    if (!Array.isArray(saved.skills)) {
+      throw new Error(`restorePlayer: skills is ${typeof saved.skills}, not the [name, level] entry array a file writes; a live Map is written as {}, so reading an object here would restore a player who lost every skill they had`);
+    }
+    if (!Array.isArray(saved.hotbar)) {
+      throw new Error(`restorePlayer: hotbar is ${typeof saved.hotbar}, not an array of entity ids and empty slots`);
+    }
+    if (!this.sceneGraph.scenes.get(sceneId)) {
+      throw new Error(`restorePlayer: scene ${sceneId} does not exist (entity ${saved.entityId})`);
+    }
+    if (!this.getEntity(sceneId, saved.entityId)) {
+      throw new Error(`restorePlayer: entity ${saved.entityId} is not in scene ${sceneId}; a player is the body the controls belong to, and one restored onto nothing would be a player that cannot be anywhere`);
+    }
+    const held = this.getPlayer(sceneId);
+    if (held) {
+      throw new Error(`restorePlayer: scene ${sceneId} already has a player on entity ${held.entityId}; a restore never overwrites live state`);
+    }
+    const player = this.attachPlayer(sceneId, saved.entityId, {
+      position: vectorFromData(saved.position, 'position', 'restorePlayer'),
+      rotation: eulerFromData(saved.rotation, 'rotation'),
+      health: saved.health,
+      maxHealth: saved.maxHealth,
+      mana: saved.mana,
+      maxMana: saved.maxMana,
+      experience: saved.experience,
+      level: saved.level,
+      skills: Object.fromEntries(saved.skills),
+      hotbar: [...saved.hotbar],
+    });
+    this.emit('playerRestored', { sceneId, entityId: saved.entityId, player });
+    return player;
+  }
+
+  /**
+   * Report which declared `Player` fields the file shape carries and which it does not, derived from the live
+   *  record against the snapshot rather than from a list written twice — the same rule `npcFieldAudit` runs by,
+   *  so a field added to `Player` tomorrow shows up here as the finding instead of being dropped in silence.
+   */
+  playerFieldAudit(sceneId: SceneId): PlayerFieldAudit | undefined {
+    const player = this.getPlayer(sceneId);
+    if (!player) return undefined;
+    const carried = Object.keys(this.playerSnapshot(sceneId) as SerializedPlayer).sort();
+    const untouched = Object.keys(player)
+      .filter((field) => !carried.includes(field))
+      .sort()
+      .map((field) => ({
+        field,
+        needs: UNTOUCHED_PLAYER_FIELDS.find((gap) => gap.field === field)?.needs
+          ?? 'declared on Player and not carried by the file shape, with no entry in the gap table saying why — which is itself the finding',
       }));
     return { carried, untouched };
   }

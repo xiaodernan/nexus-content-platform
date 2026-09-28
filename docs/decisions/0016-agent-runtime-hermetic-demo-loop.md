@@ -6415,3 +6415,50 @@ next grant's subject; the shipped table's own refusal has no reader, because a `
 the SHIPPED table throws during module initialisation, so it is graded through an injected row and no case can
 show what a broken shipped table looks like at runtime; and nothing outside a test reads `refusalCensus()` —
 the Studio has no face that shows which account refused which name.
+
+### Amendment 136 (M5 v136, three-runtime) — the player record gets a body and a file: `attachPlayer`/`playerSnapshot`/`restorePlayer`, `player: null` as a claim rather than an omission, and a fourth refusal plane
+
+`SaveData.player` was declared as `SerializedPlayer` and backed by nothing — the shape named a live
+`THREE.Vector3`, a live `THREE.Euler` and a `Map`, no record held one, and the field sat in `blocked` for two
+accounts. This grant gives it a record, a file shape and a home in the file, and gives the refusal table a
+fourth plane. Full narrative in `docs/evidence/three-runtime/README.md` section v136; this is the ledger entry.
+
+- **The record.** `attachPlayer(sceneId, entity, options)` holds one player per SCENE; position and rotation
+  default to where the body already stands and are cloned in both directions; `getPlayer` answers `undefined`
+  and drops a record whose body has left the scene; a second record for one scene refuses by name; `removeEntity`
+  drops the scene's record with the body it removed. A hotbar slot naming a body outside the scene and a
+  non-finite number in any scalar or skill level are refused AT THE DOOR — `JSON.stringify` writes `NaN` as
+  `null`, so a record that accepted one would come back holding a different number than the caller wrote.
+- **The file shape.** `SerializedPlayer` holds eleven of the twelve declared fields; `skills` is a sorted ENTRY
+  ARRAY and the transform is plain numbers. `playerSnapshot` returns `null` for a playerless scene;
+  `restorePlayer` pre-checks the shapes, the scene, the body and the live conflict before registering anything.
+  `inventory` stays refused, and `playerFieldAudit` names it from the table rather than from a second list.
+- **A claim, not an omission.** `buildSaveFile` always writes the half, so `null` means "looked for a player and
+  found none" while an ABSENT key is a pre-v136 file. `loadSaveFile` reads the file's own `carries` first, and
+  `diagnoseSaveFile` reports that same file loadable with `player` in `readableNowButNotCarried` — v127's rule
+  kept in both directions. Every id the player names is checked against the bodies the file carries before any
+  half runs.
+- **The fourth plane.** `RefusalPlane` gains `player-record` by lengthening the declaration, and the plane set,
+  the census, the per-plane reasons and every case that enumerates the planes move together — which is the shape
+  amendment 135 built the table for. `savable` gains `player`: five fields carried, with `sceneGraph` and
+  `quests` the only two left out.
+
+Measured: **321 vitest cases across 5 files, 0 red** (`test/saveSnapshot.test.ts` 145, +13, one of them a renamed
+v134 case so its title states the real shape), `tsc -p tsconfig.json --noEmit` exit 0. The probe ran **11 arms
+including the control, control 0 red of 145, 11 caught, 0 missed, 3 over-reds**, each over-red attributed: the
+live `Map` in `skills` is also caught by `assertDiskSafe` (4 cases instead of 2), hiding the `inventory` gap also
+reddens the shared audits case (3 instead of 2), and dropping the plane also reddens the shared census cases (4
+instead of 1).
+
+**A measurement error is kept in the record.** The probe's first run reported 17 reds for an arm predicted to
+redden 1, and 16 of them were not about the arm: the working copy was missing
+`player: this.playerSnapshot(sceneId),` from `buildSaveFile` — a mutation shaped exactly like an arm, left
+behind by an interrupted run. The line was restored, the file went back to 321/321, and the arm was re-run from a
+verified-clean baseline, where it reddened its one predicted case.
+
+Bounds added: the record is filed and NEVER DRIVEN — nothing reads `health`, `mana`, `experience`, `level`,
+`skills` or `hotbar` to change anything, and no control, HUD or hotbar binds to it; `inventory` is still refused
+on every plane; a restored player is carried as data rather than as geometry; `getPlayer`'s lazy drop and
+`removeEntity`'s eager one are two owners of one cleanup, kept because a caller who removes an entity by another
+route still must not be handed a player that cannot be anywhere; nothing outside a test reads `refusalCensus()`
+or `SAVE_DATA_FEASIBILITY`; and `sceneGraph` and `quests` are the whole of the blocked list for the first time.

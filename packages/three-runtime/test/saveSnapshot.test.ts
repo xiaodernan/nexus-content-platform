@@ -2,8 +2,8 @@ import { describe, expect, it, beforeEach, afterEach, vi } from 'vitest';
 import { readFileSync } from 'node:fs';
 import * as THREE from 'three';
 import * as publicSurface from '../src/index.js';
-import { createThreeRuntime, refusalsFor, type ThreeRuntime, type NpcAttachOptions } from '../src/threeRuntime.js';
-import type { EntityComponent, EntityId, NPC, SceneId, SerializedEntity, SerializedNPC, ThreeEntity } from '../src/types.js';
+import { createThreeRuntime, refusalsFor, type ThreeRuntime, type NpcAttachOptions, type PlayerAttachOptions } from '../src/threeRuntime.js';
+import type { EntityComponent, EntityId, NPC, Player, SaveFile, SceneId, SerializedEntity, SerializedNPC, SerializedPlayer, ThreeEntity } from '../src/types.js';
 import { entityId as eid, sceneId as sid } from '../src/types.js';
 import { createHeadlessBackend } from '../src/renderBackend.js';
 import { createFsSaveStore, createMemorySaveStore, resolveSavePath, type FsLike, type SaveStore } from '../src/saveStore.js';
@@ -516,14 +516,15 @@ describe('saveFeasibilityAudit is a reader, not a constant', () => {
     // v118 moved `cinematic` across this line: v117 gave the shape a writer, v118 gave it a reader. The
     // guard below is the one that says so, and it keys on the field's own spelling rather than a list.
     // v131 moved `npcs` across it the same way: `npcSnapshot` writes a record and `restoreNPC` reads one.
-    // v133 moved `worldState` across it too, and it is the LAST of the four that needed only a store: the
-    // three left are `sceneGraph` (repairing the live objects inside `SerializedScene`) and `quests`/`player`
-    // (subsystems that do not exist), which are different kinds of gap from a bag nobody kept.
-    expect(audit.savable).toEqual(['entities', 'cinematic', 'npcs', 'worldState']);
+    // v133 moved `worldState` across it too. v136 moved `player`, and that is the last of the four that needed
+    // only an owner plus a writer and a reader: the two left are `sceneGraph` (repairing the live objects inside
+    // `SerializedScene`) and `quests` (a subsystem that does not exist), which are different kinds of gap from
+    // a record nobody kept.
+    expect(audit.savable).toEqual(['entities', 'cinematic', 'npcs', 'worldState', 'player']);
     // The order is the derivation's, not a typing order — v135 made this list the save-file slice of `REFUSALS`
     // (see the note in the world-state audit case for why one table cannot keep three hand-written orders).
     expect(audit.blocked.map((entry) => entry.field)).toEqual(
-      ['player', 'quests', 'sceneGraph']
+      ['quests', 'sceneGraph']
     );
     for (const entry of audit.blocked) {
       expect(entry.needs.length, `${entry.field} must say WHY it is blocked`).toBeGreaterThan(0);
@@ -592,7 +593,7 @@ describe('the shipped shape and the shipped builder are the same set (read from 
     // The two verbs the save lane uses for the two directions of a shape, taken from the entity pair
     // (`snapshotEntity`/`restoreEntity`) rather than hand-picked per field.
     const saveDoors = methods.filter((name) => /snapshot|restore/i.test(name));
-    expect(saveDoors.sort()).toEqual(['cinematicSnapshot', 'npcSnapshot', 'restoreCinematic', 'restoreEntity', 'restoreNPC', 'restoreWorldState', 'snapshotEntity', 'worldStateSnapshot']);
+    expect(saveDoors.sort()).toEqual(['cinematicSnapshot', 'npcSnapshot', 'playerSnapshot', 'restoreCinematic', 'restoreEntity', 'restoreNPC', 'restorePlayer', 'restoreWorldState', 'snapshotEntity', 'worldStateSnapshot']);
 
     // A field is named by a door when the door's own spelling carries the field's stem — `entities` is the
     // singular in the method name, and the stem rule is derived from the field, never from a table of which
@@ -644,22 +645,25 @@ describe('a save FILE: it survives the disk, and the loader refuses what it cann
     return { file: runtime.buildSaveFile(scene, 1700000000000), cam };
   }
 
-  it('carries the four fields it can fill and names the three it leaves out', () => {
+  it('carries the five fields it can fill and names the two it leaves out', () => {
     const events: { entityCount: number; npcCount: number; sequenceCount: number }[] = [];
     runtime.addEventListener('saveFileBuilt', (data) => events.push(data as { entityCount: number; npcCount: number; sequenceCount: number }));
     const { file } = fileWithContent();
     expect(file.format).toBe('nexus-three-runtime-save');
     expect(file.version).toBe(1);
-    expect(file.carries).toEqual(['entities', 'cinematic', 'npcs', 'worldState']);
-    expect(file.doesNotCarry.map((entry) => entry.field)).toEqual(['player', 'quests', 'sceneGraph']);
+    expect(file.carries).toEqual(['entities', 'cinematic', 'npcs', 'worldState', 'player']);
+    expect(file.doesNotCarry.map((entry) => entry.field)).toEqual(['quests', 'sceneGraph']);
     for (const entry of file.doesNotCarry) expect(entry.needs.length, `${entry.field} must say why it is absent`).toBeGreaterThan(0);
     expect(file.entities.length).toBe(1);
     expect(file.npcs).toEqual([]);
     // v133: the bag is always written, so an empty one is a claim about the file rather than about the scene.
     expect(file.worldState).toEqual({});
+    // v136: the same rule for the player half — `null` is WRITTEN, so a file with no player says so instead of
+    // leaving a reader to guess from a missing key (which is what a pre-v136 file does).
+    expect(file.player).toBeNull();
     expect(file.cinematic.sequences.length).toBe(1);
     expect(file.savedAt).toBe(1700000000000);
-    expect(events).toEqual([{ sceneId: scene, entityCount: 1, npcCount: 0, worldStateCount: 0, sequenceCount: 1, carries: ['entities', 'cinematic', 'npcs', 'worldState'], doesNotCarry: ['player', 'quests', 'sceneGraph'] }]);
+    expect(events).toEqual([{ sceneId: scene, entityCount: 1, npcCount: 0, worldStateCount: 0, hasPlayer: false, sequenceCount: 1, carries: ['entities', 'cinematic', 'npcs', 'worldState', 'player'], doesNotCarry: ['quests', 'sceneGraph'] }]);
   });
 
   it('holds no Map and no class instance anywhere — and the walker can see one', () => {
@@ -687,7 +691,8 @@ describe('a save FILE: it survives the disk, and the loader refuses what it cann
       npcs: [],
       sequences: ['seq'],
       worldState: [],
-      carries: ['entities', 'cinematic', 'npcs', 'worldState'],
+      player: null,
+      carries: ['entities', 'cinematic', 'npcs', 'worldState', 'player'],
     });
     // The position a file carried, and the camera position the restored curve puts the player at.
     const loaded = other.getEntity(report.sceneId, bytes.entities[0][0])!;
@@ -935,8 +940,8 @@ describe('a save FILE: it survives the disk, and the loader refuses what it cann
       npcs: 0,
       worldState: 0,
       sequences: 1,
-      carries: ['entities', 'cinematic', 'npcs', 'worldState'],
-      doesNotCarry: ['player', 'quests', 'sceneGraph'],
+      carries: ['entities', 'cinematic', 'npcs', 'worldState', 'player'],
+      doesNotCarry: ['quests', 'sceneGraph'],
     });
 
     // A second runtime, sharing only the store. Nothing here came from the first one's memory.
@@ -951,7 +956,8 @@ describe('a save FILE: it survives the disk, and the loader refuses what it cann
       npcs: [],
       sequences: ['seq'],
       worldState: [],
-      carries: ['entities', 'cinematic', 'npcs', 'worldState'],
+      player: null,
+      carries: ['entities', 'cinematic', 'npcs', 'worldState', 'player'],
       path: 'saves/hero.json',
       store: 'memory',
       bytes: written.bytes,
@@ -1141,7 +1147,7 @@ describe('a save FILE: it survives the disk, and the loader refuses what it cann
     // shot → the path, so its presence proves the walk went three hops rather than returning one name.
     expect([...seen].sort()).toContain('SerializedCurve');
     expect([...seen].sort(), `names in types.ts that the walk could not open: ${[...unresolved].join(', ')}`)
-      .toEqual(['EntityComponent', 'PersonalityTraits', 'PostProcessingConfig', 'PostProcessingPass', 'SaveFile', 'SerializedCinematic', 'SerializedCinematicSequence', 'SerializedCinematicShot', 'SerializedCurve', 'SerializedEntity', 'SerializedEuler', 'SerializedNPC', 'SerializedVector3']);
+      .toEqual(['EntityComponent', 'PersonalityTraits', 'PostProcessingConfig', 'PostProcessingPass', 'SaveFile', 'SerializedCinematic', 'SerializedCinematicSequence', 'SerializedCinematicShot', 'SerializedCurve', 'SerializedEntity', 'SerializedEuler', 'SerializedNPC', 'SerializedPlayer', 'SerializedVector3']);
     expect(shape).not.toMatch(/:\s*Map</);
     expect(shape).not.toMatch(/THREE\./);
   });
@@ -1372,7 +1378,7 @@ describe('M5 v131 — an NPC record is a thing the runtime holds and files', () 
     expect(reader.getScene(stage)!.entities.size).toBe(1);
     // …and the diagnosis said this file was loadable, which is the claim the load has to agree with.
     expect(reader.diagnoseSaveFile('saves/legacy.json').loadable).toBe(true);
-    expect(reader.diagnoseSaveFile('saves/legacy.json').readableNowButNotCarried).toEqual(['npcs', 'worldState']);
+    expect(reader.diagnoseSaveFile('saves/legacy.json').readableNowButNotCarried).toEqual(['npcs', 'worldState', 'player']);
 
     // The other direction: a file that SAYS it carries npcs owes a list, and omitting one is refused.
     store.write('saves/liar.json', JSON.stringify({ ...old, carries: ['entities', 'cinematic', 'npcs'] }));
@@ -1624,7 +1630,7 @@ describe('M5 v133 — the world-state bag is held, checked and filed', () => {
     expect(report.worldState, 'a file that does not claim the bag carries none').toEqual([]);
     expect(reader.getWorldStateKeys(world), 'and the load sets nothing rather than clearing the world').toEqual([]);
     // The diagnosis has to agree with the load: readable here, simply not carried by that file.
-    expect(reader.diagnoseSaveFile('saves/legacy.json').readableNowButNotCarried).toEqual(['worldState']);
+    expect(reader.diagnoseSaveFile('saves/legacy.json').readableNowButNotCarried).toEqual(['worldState', 'player']);
 
     // The other direction: a file that SAYS it carries the bag owes one, and omitting it is refused.
     store.write('saves/liar.json', JSON.stringify({ ...legacy, carries: ['entities', 'cinematic', 'npcs', 'worldState'] }));
@@ -2138,9 +2144,10 @@ describe('atomic save writes: a reader sees the old save or the new one, never a
         'it omits "cinematic", which this runtime could now write — the file predates that capability',
         'it omits "npcs", which this runtime could now write — the file predates that capability',
         'it omits "worldState", which this runtime could now write — the file predates that capability',
+        'it omits "player", which this runtime could now write — the file predates that capability',
       ],
       carriedButUnreadableHere: ['quests'],
-      readableNowButNotCarried: ['cinematic', 'npcs', 'worldState'],
+      readableNowButNotCarried: ['cinematic', 'npcs', 'worldState', 'player'],
     });
     // The pair: the verdict is the load's verdict, not a parallel opinion about it.
     let loadMessage = '';
@@ -2320,7 +2327,7 @@ describe('v135: one refusal table, read per plane', () => {
 
   it('the census answers WHICH accounts refuse a name, so a flat refusal list cannot be read as the whole truth', () => {
     const census = runtime.refusalCensus();
-    expect(census.planes).toEqual(['npc-record', 'world-state', 'save-file']);
+    expect(census.planes).toEqual(['npc-record', 'world-state', 'save-file', 'player-record']);
     expect(census.rows.length, 'the census read no rows, so every partition below would pass vacuously').toBeGreaterThan(0);
     const names = census.rows.map((row) => row.field);
     expect(names).toEqual([...names].sort((a, b) => a.localeCompare(b)));
@@ -2332,18 +2339,28 @@ describe('v135: one refusal table, read per plane', () => {
     }
   });
 
-  it('a name refused by every account and a name refused by exactly one are kept apart, and the carried one is named', () => {
+  it('a name refused by three of the four accounts and a name refused by exactly one are kept apart, and the carried one is named', () => {
     const rowOf = (field: string) => runtime.refusalCensus().rows.find((row) => row.field === field)!;
+    // v135 could say `quests` was refused by EVERY account; with the fourth plane it is refused by three, and
+    // the one that does not refuse it is the player record — which has no quest field to refuse. That is the
+    // census doing its job: a flat list would have to either overstate the player record or lose `quests`.
     expect(rowOf('quests').refusedBy).toEqual(['npc-record', 'world-state', 'save-file']);
+    expect(rowOf('quests').notRefusedBy).toEqual(['player-record']);
+    expect(rowOf('inventory').refusedBy).toEqual(['npc-record', 'world-state', 'player-record']);
     expect(rowOf('sceneGraph').refusedBy).toEqual(['save-file']);
-    expect(rowOf('sceneGraph').notRefusedBy).toEqual(['npc-record', 'world-state']);
+    expect(rowOf('sceneGraph').notRefusedBy).toEqual(['npc-record', 'world-state', 'player-record']);
     // THE row a flat list cannot tell the truth about: the world bag refuses `entities` while the save file
     // carries it for real. A single "refused names" list would make one of those two readings false.
     expect(rowOf('entities').refusedBy).toEqual(['world-state']);
-    expect(rowOf('entities').notRefusedBy).toEqual(['npc-record', 'save-file']);
+    expect(rowOf('entities').notRefusedBy).toEqual(['npc-record', 'save-file', 'player-record']);
+    // v136 moves `player` into the same shape as `entities`: a savable file half the world bag still refuses,
+    // because the runtime now owns one player per scene and a bag key of that name would be a second owner.
+    expect(rowOf('player').refusedBy).toEqual(['world-state']);
     const file = runtime.buildSaveFile(scene, 1700000000000);
     expect(file.carries).toContain('entities');
+    expect(file.carries).toContain('player');
     expect(file.doesNotCarry.map((entry) => entry.field)).not.toContain('entities');
+    expect(file.doesNotCarry.map((entry) => entry.field)).not.toContain('player');
   });
 
   it('a refusal never ships without its reason, and never speaks in a plane that does not refuse it', () => {
@@ -2378,9 +2395,13 @@ describe('v135: one refusal table, read per plane', () => {
     expect(() => refusalsFor('save-file', blank)).toThrow(/with no reason/);
   });
 
-  it('the three accounts a caller reads are three derivations of the one table, not three copies of it', () => {
+  it('every account the census names is one derivation of the one table, not a copy of it', () => {
     expect(implSource.includes('const REFUSALS'), 'the read found no table, so this guard would grade nothing').toBe(true);
-    for (const plane of ['npc-record', 'world-state', 'save-file']) {
+    // The plane set comes from the census, not from a list typed beside it: v136 added a fourth plane, and a
+    // hand-written loop of three would have stayed green while the new account went ungraded.
+    const planes = runtime.refusalCensus().planes;
+    expect(planes.length, 'the census named no planes, so the loop below would grade nothing').toBeGreaterThan(2);
+    for (const plane of planes) {
       const hits = implSource.split(`refusalsFor('${plane}')`).length - 1;
       expect(hits, `${plane} is not read out of the table exactly once — ${hits} derivations in threeRuntime.ts`).toBe(1);
     }
@@ -2404,13 +2425,19 @@ describe('v135: one refusal table, read per plane', () => {
     expect(file.doesNotCarry.map((entry) => entry.needs)).toEqual(expected.map((row) => row.needs['save-file']));
   });
 
-  it('the two audits answer in the table\'s own sentences for their own plane, not a reason written at the call site', () => {
+  it('the audits answer in the table\'s own sentences for their own plane, not a reason written at the call site', () => {
     // Built here rather than through the NPC describe's fixture: `withNPC` is scoped to that block, and this
-    // grant's table is read by both, so the case that grades the reading lives with the table.
+    // grant's table is read by all three record-shaped accounts, so the case that grades the reading lives
+    // with the table.
     hero = runtime.createEntity(scene, 'Hero', 'mesh').id;
     runtime.attachNPC(scene, hero, {});
+    // The player account needs a live record to speak for, and it gets its own body: whether one body may be
+    // both an NPC and the scene's player is a question this grant does not answer, so the case does not
+    // accidentally answer it either.
+    const body = runtime.createEntity(scene, 'Wanderer', 'mesh').id;
+    runtime.attachPlayer(scene, body, {});
     const census = runtime.refusalCensus();
-    const said = (plane: 'npc-record' | 'world-state', entries: { field: string; needs: string }[]) => {
+    const said = (plane: 'npc-record' | 'world-state' | 'player-record', entries: { field: string; needs: string }[]) => {
       expect(entries.length, `${plane} audit carried no gaps, so this comparison would grade nothing`).toBeGreaterThan(0);
       for (const entry of entries) {
         const row = census.rows.find((r) => r.field === entry.field);
@@ -2421,6 +2448,7 @@ describe('v135: one refusal table, read per plane', () => {
     };
     said('npc-record', runtime.npcFieldAudit(hero)!.untouched);
     said('world-state', runtime.worldStateFieldAudit(scene)!.untouched);
+    said('player-record', runtime.playerFieldAudit(scene)!.untouched);
   });
 
   it('a field the live record carries that the table never heard of is named as a gap, not dropped', () => {
@@ -2443,5 +2471,327 @@ describe('v135: one refusal table, read per plane', () => {
     // And it stays the last resort: a tabled field still answers in the table's own words.
     expect(audit.untouched.find((entry) => entry.field === 'schedule')!.needs)
       .toBe(runtime.refusalCensus().rows.find((row) => row.field === 'schedule')!.needs['npc-record']);
+  });
+});
+
+/**
+ * M5 v136 — `SaveData.player` gets an owner. The field was declared as `SerializedPlayer`, a shape written
+ * against a `THREE.Vector3`, a `THREE.Euler` and a `Map`, and backed by nothing: no record to hold it, no
+ * writer, no reader — so it sat in `blocked` and a file could only ever name it as an omission. (v126's first
+ * attempt at this half is on record in ADR 0016 as a stranded grant; the shape was the problem, not the will.)
+ *
+ * This suite makes the three halves that a save lane needs, in the order the lane has always needed them: a
+ * RECORD the runtime holds and can lose (`attachPlayer`/`getPlayer`/`detachPlayer`, orphaned by
+ * `removeEntity`), a FILE shape that survives `JSON.stringify` (`SerializedPlayer` retyped to data,
+ * `playerSnapshot`/`restorePlayer`), and the FILE carrying it — where `player: null` is a claim the writer
+ * makes and an absent key is a file that predates the half, which is the same old-file rule v131 and v133
+ * had to make `diagnoseSaveFile` agree with. `inventory` stays refused by the record and is the fourth plane's
+ * first finding, so the refusal table gained `player-record` rather than a third hand-written gap list.
+ */
+describe('M5 v136 — the scene has one player, and a file can carry it', () => {
+  /** One body standing at a transform worth comparing, plus the player that is played as it.
+   *
+   *  Options may be spelled as a FUNCTION of the body's id, and must be when they name it: the object literal a
+   *  caller writes is evaluated BEFORE this helper creates the entity, so a plain `hotbar: [hero, null]` carries
+   *  the placeholder id `beforeEach` left behind and is refused at the door as a slot pointing at nothing. */
+  function withPlayer(options: PlayerAttachOptions | ((body: EntityId) => PlayerAttachOptions) = {}): Player {
+    withEntity(new THREE.Vector3(1.5, 2.25, -3.75));
+    runtime.getEntity(scene, hero)!.threeObject.rotation.set(0.25, 0.5, 0.75, 'YXZ');
+    return runtime.attachPlayer(scene, hero, typeof options === 'function' ? options(hero) : options);
+  }
+
+  /** A two-entity scene whose player has skills and a hotbar, so nothing in the round trip is an empty list. */
+  function fileWithPlayer(rt: ThreeRuntime, sceneId: SceneId, heroId: EntityId): { file: SaveFile; other: EntityId } {
+    const other = rt.createEntity(sceneId, 'Torch', 'mesh').id;
+    rt.attachPlayer(sceneId, heroId, {
+      health: 61,
+      maxHealth: 80,
+      mana: 12,
+      maxMana: 40,
+      experience: 1440,
+      level: 7,
+      skills: { sneak: 5, 'lock-picking': 3 },
+      hotbar: [heroId, null, other],
+    });
+    return { file: rt.buildSaveFile(sceneId, 1700000000000), other };
+  }
+
+  it('reads the body it is attached to rather than inventing a place to stand', () => {
+    const player = withPlayer();
+    const body = runtime.getEntity(scene, hero)!.threeObject;
+    expect([player.position.x, player.position.y, player.position.z]).toEqual([1.5, 2.25, -3.75]);
+    expect(player.position).not.toBe(body.position);
+    expect([player.rotation.x, player.rotation.y, player.rotation.z, player.rotation.order])
+      .toEqual([0.25, 0.5, 0.75, 'YXZ']);
+    expect(player.rotation).not.toBe(body.rotation);
+    // The declared numbers come from the constant, and the two bags start EMPTY — a record that claimed items
+    // from a default would be the save this lane has spent eleven grants refusing.
+    expect([player.health, player.maxHealth, player.mana, player.maxMana, player.experience, player.level])
+      .toEqual([100, 100, 50, 50, 0, 1]);
+    expect(player.inventory).toEqual([]);
+    expect(player.skills.size).toBe(0);
+    expect(player.hotbar).toEqual([]);
+    // The clone is the claim: a record that aliased the renderer's object would move when the world moved.
+    body.position.set(99, 99, 99);
+    expect(player.position.z).toBe(-3.75);
+  });
+
+  it('refuses a scene that does not exist and a body that is not in the scene', () => {
+    expect(() => runtime.attachPlayer(sid('no-such-scene'), eid('no-such-body'))).toThrow(/attachPlayer: scene no-such-scene does not exist/);
+    withEntity();
+    expect(() => runtime.attachPlayer(scene, eid('no-such-body'))).toThrow(/attachPlayer: entity no-such-body is not in scene/);
+  });
+
+  it('one scene is played as one body: a second record refuses, naming the owner it would displace', () => {
+    const first = withPlayer();
+    const second = runtime.createEntity(scene, 'Wanderer', 'mesh').id;
+    expect(() => runtime.attachPlayer(scene, second))
+      .toThrow(new RegExp(`attachPlayer: scene ${scene} already has a player on entity ${first.entityId}; detachPlayer\\(${scene}\\) first`));
+    expect(runtime.getPlayer(scene)!.entityId).toBe(first.entityId);
+    expect(runtime.detachPlayer(scene)).toBe(true);
+    expect(runtime.detachPlayer(scene), 'a second detach has nothing to take — that is an answer, not a failure').toBe(false);
+    expect(runtime.attachPlayer(scene, second).entityId).toBe(second);
+  });
+
+  it('a hotbar slot names a body in the scene or nothing at all', () => {
+    withPlayer();
+    const torch = runtime.createEntity(scene, 'Torch', 'mesh').id;
+    runtime.detachPlayer(scene);
+    expect(runtime.attachPlayer(scene, hero, { hotbar: [hero, null, torch] }).hotbar).toEqual([hero, null, torch]);
+    // The slot is checked at the door: a save would write an id the scene does not hold, and a restore would
+    // then hand back a quick slot no one can use rather than refuse the value it was given.
+    runtime.detachPlayer(scene);
+    expect(() => runtime.attachPlayer(scene, hero, { hotbar: [torch, eid('ghost')] }))
+      .toThrow(/attachPlayer: hotbar\[1\] names ghost, which is not an entity in scene/);
+    expect(runtime.getPlayer(scene), 'a refused attach leaves no half-built record behind').toBeUndefined();
+  });
+
+  it('a non-finite number is refused at the door, naming the field it would have turned into null', () => {
+    // `JSON.stringify` writes NaN and Infinity as `null`, so the record a file gives back holds a DIFFERENT
+    // number than the one put in. `setNPCReputation` refuses a standing for this reason; a player's stats are
+    // the same drift with more fields to hide it in.
+    expect(() => withPlayer({ health: Number.NaN })).toThrow(/attachPlayer: health is NaN/);
+    expect(() => withPlayer({ level: Number.POSITIVE_INFINITY })).toThrow(/attachPlayer: level is Infinity/);
+    expect(() => withPlayer({ skills: { sneak: Number.NaN } })).toThrow(/attachPlayer: the skill "sneak" is NaN/);
+    expect(runtime.getPlayer(scene), 'a refused attach leaves no half-built record behind').toBeUndefined();
+  });
+
+  it('playerSnapshot writes the file shape: no Map, no live object, and a sorted entry array for skills', () => {
+    withPlayer((body) => ({ skills: { sneak: 5, 'lock-picking': 3 }, hotbar: [body, null] }));
+    const saved = runtime.playerSnapshot(scene)!;
+    expect(Object.keys(saved).sort()).toEqual(declaredFields('SerializedPlayer').sort());
+    expect(saved.skills).toEqual([['lock-picking', 3], ['sneak', 5]]);
+    expect(saved.hotbar).toEqual([hero, null]);
+    expect(saved.position).toEqual({ x: 1.5, y: 2.25, z: -3.75 });
+    expect(saved.rotation).toEqual({ x: 0.25, y: 0.5, z: 0.75, order: 'YXZ' });
+    expect(offenders(saved)).toEqual([]);
+    // The snapshot is a copy in both directions: a caller holding one cannot move the live record.
+    saved.hotbar.push(eid('somewhere-else'));
+    saved.skills.push(['invented', 9]);
+    expect(runtime.getPlayer(scene)!.hotbar).toEqual([hero, null]);
+    expect([...runtime.getPlayer(scene)!.skills.entries()].sort()).toEqual([['lock-picking', 3], ['sneak', 5]]);
+    expect(runtime.playerSnapshot(sid('no-such-scene'))).toBeNull();
+  });
+
+  it('playerFieldAudit answers for every field Player declares, and an untabled one is named as the finding', () => {
+    withPlayer();
+    const audit = runtime.playerFieldAudit(scene)!;
+    expect(audit.carried).toEqual(declaredFields('SerializedPlayer').sort());
+    // THE gap this grant cannot close: the live record holds an `InventoryItem[]`, whose items each hold two
+    // Maps, and no inventory system here fills or reads one.
+    expect(audit.untouched.map((entry) => entry.field)).toEqual(['inventory']);
+    expect(audit.untouched[0].needs).toBe(runtime.refusalCensus().rows.find((row) => row.field === 'inventory')!.needs['player-record']);
+    // The partition is the claim: carried and untouched together name every declared field, no more and no
+    // less — which is what makes a field added tomorrow a finding instead of a silent drop.
+    const declared = declaredFields('Player').sort();
+    expect(declared.length, 'the read found no Player fields, so the partition below would grade nothing').toBeGreaterThan(10);
+    expect([...audit.carried, ...audit.untouched.map((entry) => entry.field)].sort()).toEqual(declared);
+
+    const record = runtime.getPlayer(scene)!;
+    (record as unknown as Record<string, unknown>).title = 'Captain';
+    const after = runtime.playerFieldAudit(scene)!;
+    const gap = after.untouched.find((entry) => entry.field === 'title');
+    expect(gap, `the audit dropped an untabled field: ${JSON.stringify(after.untouched.map((entry) => entry.field))}`).toBeDefined();
+    expect(gap!.needs).toContain('no entry in the gap table');
+    expect(gap!.needs).toContain('which is itself the finding');
+  });
+
+  it('a file written through the store is read by a runtime that never saw the record, and the numbers match', () => {
+    const store = createMemorySaveStore();
+    const writer = runtimeWithStore(store);
+    const stage = writer.createScene('Stage').id;
+    writer.setActiveScene(stage);
+    const body = withEntityIn(writer, stage);
+    const { file, other } = fileWithPlayer(writer, stage, body);
+    expect(file.carries).toContain('player');
+    expect(file.player).not.toBeNull();
+    expect(file.player!.entityId).toBe(body);
+    expect(file.player!.skills).toEqual([['lock-picking', 3], ['sneak', 5]]);
+
+    // The bytes, not the value: what a disk holds is the only version that has to work.
+    const parsed = JSON.parse(JSON.stringify(file));
+    expect(offenders(parsed)).toEqual([]);
+    store.write('saves/player.json', JSON.stringify(parsed));
+
+    const reader = runtimeWithStore(store);
+    reader.createScene('Again', stage);
+    reader.setActiveScene(stage);
+    const report = reader.readSaveFile('saves/player.json', stage);
+    expect(report.player, 'the load report names the body this file made the player').toBe(body);
+    const player = reader.getPlayer(stage)!;
+    expect([player.health, player.maxHealth, player.mana, player.maxMana, player.experience, player.level])
+      .toEqual([61, 80, 12, 40, 1440, 7]);
+    expect([...player.skills.entries()].sort()).toEqual([['lock-picking', 3], ['sneak', 5]]);
+    expect(player.hotbar).toEqual([body, null, other]);
+    expect([player.position.x, player.position.y, player.position.z]).toEqual([1, 2, 3]);
+    expect(player.inventory).toEqual([]);
+    const restored: unknown[] = [];
+    reader.addEventListener('playerRestored', (data) => restored.push(data));
+    reader.detachPlayer(stage);
+    expect(reader.attachPlayer(stage, body).entityId).toBe(body);
+    expect(restored, 'a direct attach is not a restore — the two events name different happenings').toEqual([]);
+    writer.dispose();
+    reader.dispose();
+  });
+
+  it('an OLD file that says nothing about the player is read as carrying none', () => {
+    const store = createMemorySaveStore();
+    const writer = runtimeWithStore(store);
+    const stage = writer.createScene('Stage').id;
+    writer.setActiveScene(stage);
+    const body = withEntityIn(writer, stage);
+    writer.attachNPC(stage, body, { name: 'Keeper' });
+    writer.writeSaveFile('saves/current.json', stage, 1700000000000);
+
+    const legacy = JSON.parse(store.read('saves/current.json')!) as Record<string, unknown>;
+    delete legacy.player;
+    legacy.carries = ['entities', 'cinematic', 'npcs', 'worldState'];
+    store.write('saves/legacy.json', JSON.stringify(legacy));
+
+    const reader = runtimeWithStore(store);
+    reader.createScene('Copy', stage);
+    reader.setActiveScene(stage);
+    const report = reader.readSaveFile('saves/legacy.json', stage);
+    expect(report.player, 'a file with no player key predates the half, and is read as carrying none').toBeNull();
+    expect(reader.getPlayer(stage)).toBeUndefined();
+    // The pair v127 made the rule of: the diagnosis must not call loadable a file the load refuses, and must
+    // name the same half the load skipped.
+    const diagnosis = reader.diagnoseSaveFile('saves/legacy.json');
+    expect(diagnosis.loadable).toBe(true);
+    expect(diagnosis.readableNowButNotCarried).toEqual(['player']);
+
+    // The other direction: a file that CLAIMS the half owes a value, and `null` is the value a playerless
+    // scene writes.
+    store.write('saves/liar.json', JSON.stringify({ ...legacy, carries: ['entities', 'cinematic', 'npcs', 'worldState', 'player'] }));
+    const second = runtimeWithStore(store);
+    second.createScene('Copy again', stage);
+    second.setActiveScene(stage);
+    expect(() => second.readSaveFile('saves/liar.json', stage))
+      .toThrow(/the file CLAIMS to carry player but ships no player half — not even `null`/);
+    // And a file that ships `null` without claiming the half is still readable: the key answers for itself.
+    store.write('saves/quiet.json', JSON.stringify({ ...legacy, player: null }));
+    const third = runtimeWithStore(store);
+    third.createScene('Copy once more', stage);
+    third.setActiveScene(stage);
+    expect(third.readSaveFile('saves/quiet.json', stage).player).toBeNull();
+    writer.dispose();
+    reader.dispose();
+    second.dispose();
+    third.dispose();
+  });
+
+  it('refuses a player whose body the file does not carry BEFORE any half runs, so nothing is half-loaded', () => {
+    const store = createMemorySaveStore();
+    const writer = runtimeWithStore(store);
+    const stage = writer.createScene('Stage').id;
+    writer.setActiveScene(stage);
+    const body = withEntityIn(writer, stage);
+    const { file } = fileWithPlayer(writer, stage, body);
+    store.write('saves/ok.json', JSON.stringify(file));
+
+    // A record about a body the bytes never carry: the player would be restored onto nothing.
+    const stranger = JSON.parse(JSON.stringify(file)) as Record<string, unknown>;
+    (stranger.player as Record<string, unknown>).entityId = eid('e300-ghost');
+    store.write('saves/stranger.json', JSON.stringify(stranger));
+    const reader = runtimeWithStore(store);
+    reader.createScene('Copy', stage);
+    reader.setActiveScene(stage);
+    expect(() => reader.readSaveFile('saves/stranger.json', stage))
+      .toThrow(/the player names e300-ghost, which is not among the entities this file carries/);
+    // The refusal is the whole point of pre-checking: nothing this load would have had to undo ever landed.
+    expect(reader.getScene(stage)!.entities.size).toBe(0);
+    expect(reader.getPlayer(stage)).toBeUndefined();
+
+    // The same rule one field in: an empty hotbar slot is legal, a slot pointing outside the file is not.
+    const slot = JSON.parse(JSON.stringify(file)) as Record<string, unknown>;
+    (slot.player as Record<string, unknown>).hotbar = [body, eid('e301-ghost')];
+    store.write('saves/slot.json', JSON.stringify(slot));
+    const second = runtimeWithStore(store);
+    second.createScene('Copy again', stage);
+    second.setActiveScene(stage);
+    expect(() => second.readSaveFile('saves/slot.json', stage))
+      .toThrow(/player\.hotbar\[1\] names e301-ghost, which is not among the entities this file carries/);
+
+    // A live player is live state, and a load never overwrites live state.
+    const third = runtimeWithStore(store);
+    third.createScene('Third', stage);
+    third.setActiveScene(stage);
+    const heldBody = withEntityIn(third, stage);
+    third.attachPlayer(stage, heldBody);
+    expect(() => third.readSaveFile('saves/ok.json', stage))
+      .toThrow(new RegExp(`loadSaveFile refused: scene ${stage} already has a player on entity ${heldBody}; a load never overwrites live state`));
+    expect(third.getPlayer(stage)!.entityId).toBe(heldBody);
+    writer.dispose();
+    reader.dispose();
+    second.dispose();
+    third.dispose();
+  });
+
+  it('restorePlayer refuses the shapes a file cannot have written, and refuses them before it registers anything', () => {
+    withPlayer({ skills: { sneak: 1 } });
+    const real = runtime.playerSnapshot(scene)!;
+    const ghost = eid('e310-ghost');
+    expect(() => runtime.restorePlayer(sid('no-such-scene'), { ...real, entityId: ghost }))
+      .toThrow(/restorePlayer: scene no-such-scene does not exist/);
+    expect(() => runtime.restorePlayer(scene, { ...real, entityId: ghost }))
+      .toThrow(new RegExp(`restorePlayer: entity e310-ghost is not in scene ${scene}`));
+    expect(() => runtime.restorePlayer(scene, { ...real, skills: { sneak: 1 } as unknown as SerializedPlayer['skills'] }))
+      .toThrow(/restorePlayer: skills is object, not the \[name, level\] entry array a file writes/);
+    expect(() => runtime.restorePlayer(scene, { ...real, hotbar: 'none' as unknown as SerializedPlayer['hotbar'] }))
+      .toThrow(/restorePlayer: hotbar is string, not an array of entity ids and empty slots/);
+    // Every one of those refused before anything registered, so the scene's player is still the original.
+    expect(runtime.getPlayer(scene)!.entityId).toBe(hero);
+    expect(() => runtime.restorePlayer(scene, real))
+      .toThrow(new RegExp(`restorePlayer: scene ${scene} already has a player on entity ${hero}; a restore never overwrites live state`));
+  });
+
+  it('removeEntity takes the scene’s player with the body it names, and the file then says null', () => {
+    const player = withPlayer();
+    const orphaned: unknown[] = [];
+    runtime.addEventListener('playerOrphaned', (data) => orphaned.push(data));
+    const fileBefore = runtime.playerSnapshot(scene);
+    expect(fileBefore).not.toBeNull();
+    expect(runtime.removeEntity(scene, player.entityId)).toBe(true);
+    expect(orphaned).toEqual([{ sceneId: scene, entityId: player.entityId }]);
+    expect(runtime.getPlayer(scene)).toBeUndefined();
+    expect(runtime.playerSnapshot(scene)).toBeNull();
+    // The half that matters for a save: a file built after the body left cannot name a player it does not have.
+    const built = runtime.buildSaveFile(scene, 1700000000000);
+    expect(built.player).toBeNull();
+    const events: { hasPlayer: boolean }[] = [];
+    runtime.addEventListener('saveFileBuilt', (data) => events.push(data as { hasPlayer: boolean }));
+    runtime.buildSaveFile(scene, 1700000000001);
+    expect(events.map((event) => event.hasPlayer)).toEqual([false]);
+  });
+
+  it('the player is a REFUSAL PLANES plane: the fourth account is enumerable and its own gaps are named', () => {
+    const census = runtime.refusalCensus();
+    expect(census.planes).toContain('player-record');
+    // Exactly one name is refused by the player record and by nothing else's reading of it: `inventory`.
+    expect(census.rows.filter((row) => row.refusedBy.includes('player-record')).map((row) => row.field)).toEqual(['inventory']);
+    // And the account a caller reads answers in the table's words, never a reason written at the call site.
+    withPlayer();
+    expect(runtime.playerFieldAudit(scene)!.untouched).toEqual(refusalsFor('player-record'));
+    expect(refusalsFor('player-record').length).toBe(1);
   });
 });

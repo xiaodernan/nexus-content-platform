@@ -1,4 +1,4 @@
-# @nexus/three-runtime — evidence for v108 (host seams), v114 (character controller), v115 (the entity save format), v116 (the scene's physics world), v117 (the cinematic sequence), v118 (the save that reads it back), v119 (the file it survives on disk), v120 (the bytes, through a store), v121 (the id comes back), v122 (a save taken back), v123 (what it holds), v124 (written atomically), v125 (flushed when asked), v126 (the debris swept), v127 (a file asked what it is worth), v128 (the listing surveyed), v129 (the survey's reason becomes a field), v131 (the NPC record gets a body and a file), v134 (the world bag gets an owner), and v135 (one refusal table, read per plane)
+# @nexus/three-runtime — evidence for v108 (host seams), v114 (character controller), v115 (the entity save format), v116 (the scene's physics world), v117 (the cinematic sequence), v118 (the save that reads it back), v119 (the file it survives on disk), v120 (the bytes, through a store), v121 (the id comes back), v122 (a save taken back), v123 (what it holds), v124 (written atomically), v125 (flushed when asked), v126 (the debris swept), v127 (a file asked what it is worth), v128 (the listing surveyed), v129 (the survey's reason becomes a field), v131 (the NPC record gets a body and a file), v134 (the world bag gets an owner), v135 (one refusal table, read per plane), and v136 (the player record gets a body and a file)
 
 This directory records the 3D runtime lane (ROADMAP M5). Every claim here is read back out of the
 shipped source and the package's own vitest suite — `packages/three-runtime/src/*.ts` and
@@ -1502,3 +1502,118 @@ decided whether an arm ran.
   cinematic]`. That order is a history of when each row arrived, and from v135 the field itself answers in
   alphabetical order; a doc that repeats a derived order by hand will disagree with the derivation forever, so
   this section names the rule instead of re-listing the rows.
+
+## v136 — the player record gets a body and a file: `attachPlayer`/`playerSnapshot`/`restorePlayer`, a fourth refusal plane, and `player: null` as a claim the writer makes
+
+`SaveData.player` was declared as `SerializedPlayer` and backed by nothing: the shape named a live
+`THREE.Vector3`, a live `THREE.Euler` and a `Map`, no record held one, no writer wrote one and no reader read
+one — so the field sat in `blocked` for two accounts and a file could only ever name it as an omission. This
+grant gives it the three halves the save lane has needed every time, plus the fourth account the refusal table
+gained for it.
+
+**The record.** `attachPlayer(sceneId, entity, options)` holds ONE player per scene, keyed by scene; position
+and rotation default to where the body ALREADY stands and are cloned in both directions; `getPlayer` answers
+`undefined` and DROPS a record whose body has left the scene (emitting `playerOrphaned`), so a caller is never
+handed a player that cannot be anywhere. A scene that already has a player refuses a second one BY NAME
+(`detachPlayer` first): one scene is played as one body, and two records would leave every later question about
+the controls with two answers. `removeEntity` drops the scene's record with the body it removes — the rule v131
+gave NPCs, one layer up, because a player is keyed by SCENE rather than by entity.
+
+**Refused at the door, not at the write.** A hotbar slot naming a body the scene does not hold, and a
+non-finite number in any of the six scalars or in a skill level, are refused by `attachPlayer` with the field
+named. `JSON.stringify` writes `NaN`/`Infinity` as `null`, so a record that accepted one would come back off a
+file holding a DIFFERENT number than the caller put in — the drift `setNPCReputation` already refuses a
+standing for. `inventory` starts empty and STAYS empty: it is the one declared field the file shape does not
+carry, and `playerFieldAudit` names it from the refusal table rather than from a second list.
+
+**The file shape.** `SerializedPlayer` holds eleven of the twelve declared fields: position and rotation as
+plain numbers, `skills` as a sorted ENTRY ARRAY (a `Map` is written `{}`), and a `hotbar` copied rather than
+aliased. `playerSnapshot` returns `null` for a scene with no player, and `restorePlayer` pre-checks the shapes,
+the scene, the body and the live conflict BEFORE it registers anything, in the same order `loadSaveFile` uses
+for the record it was handed: "these bytes are not a player half" stays true whatever the scene holds, while
+the state conflict is the one that tells the caller to detach and retry.
+
+**`player: null` is a claim; an absent key is an OLD file.** `buildSaveFile` writes the half either way, so
+`null` is this format saying "looked for a player and found none" — a different statement from a pre-v136 file
+with no `player` key at all. `loadSaveFile` reads the FILE's own `carries` first: a missing half is a refusal
+when the file claims it and an ordinary old file when it does not, and `diagnoseSaveFile` reports that same file
+loadable with `player` in `readableNowButNotCarried`. Both directions are pinned by name, because v127's rule is
+that a diagnosis may not call loadable a file the load would refuse — or refuse one it would load. Every id the
+player names (the body it is played as, and every non-empty hotbar slot) is checked against the bodies THIS FILE
+carries before any half runs.
+
+**The fourth account.** `RefusalPlane` gains `player-record` by lengthening the declaration and nothing else,
+which is the shape v135 built the table for: the plane set, the census, the per-plane reason and every case that
+enumerates the plane set move in the same commit. `savable` gains `player`, so a file carries five fields
+(`entities`, `cinematic`, `npcs`, `worldState`, `player`) and the two left out are `sceneGraph` and `quests`.
+
+**Measured.** 321 vitest cases across 5 files, 0 red (`test/saveSnapshot.test.ts` 145, was 132 — 13 new cases,
+one of them the renamed v134 case, `carries the four fields it can fill and names the three it leaves out` →
+`carries the five fields it can fill and names the two it leaves out`, so its title states the table's real
+shape); `tsc -p tsconfig.json --noEmit` exit 0.
+
+### How the probe ran, and what it said
+
+**11 arms including the control · control 0 red of 145 on the one file the arms live in · 11 caught · 0 missed ·
+3 arms reddened MORE than predicted · 0 fewer.** The source was restored byte-for-byte in a `finally` and the
+restore verified against a digest taken before the first arm.
+
+Arms, and the case each was predicted to redden — all caught: 01 aliasing the body's transform instead of
+cloning it; 02 letting a scene hold a second player; 03 skipping the hotbar slot check; 04 accepting a
+non-finite number; 05 emitting the live `Map` for `skills`; 06 hiding the `inventory` gap from
+`playerFieldAudit`; 07 ignoring the file's own claim about a missing player half; 08 skipping the pre-check that
+the player's body is among the file's entities; 09 keeping the record in `removeEntity`; 10 letting
+`restorePlayer` overwrite a live player; 11 dropping `player-record` from `REFUSAL_PLANES`.
+
+The three over-reds are witnesses, not misses, and each is attributed rather than folded into the prediction:
+
+- **05** (`skills` as a live `Map`) reddened 4 cases instead of 2. The two extras are `assertDiskSafe` seen from
+  a second angle: the file handed to `buildSaveFile` holds a Map, so every case that builds or loads a file with
+  a player reddens with `file.player.skills holds a Map, which JSON.stringify writes as {}`.
+- **06** (hiding the `inventory` gap) reddened 3 instead of 2. The extra is the shared `the audits answer in the
+  table's own sentences for their own plane` case, which asserts the `player-record` audit carries gaps at all —
+  the same claim as the case the arm was predicted against.
+- **11** (dropping the plane from the list) reddened 4 instead of 1. The three extras are the shared census
+  cases: a `refusedBy` that no longer mentions `player-record` is a census answering a different question.
+
+### Measurement error, kept in the record
+
+The probe's first run reported **17** reds for arm 01 against a prediction of 1, and 16 of them were not about
+the aliased transform at all: the working copy of `threeRuntime.ts` was missing the line
+`player: this.playerSnapshot(sceneId),` from `buildSaveFile` — a mutation shaped exactly like an arm, left
+behind by an interrupted run rather than by this one. The line was restored, the file went back to 321/321, and
+the arm was re-run from a verified-clean baseline, where it reddened its one predicted case. The lesson is the
+one v134 already put in this directory: **a probe that writes the shipped source has to be re-run from a
+baseline whose digest was taken after the tree was verified clean, because a mutation left behind is
+indistinguishable from a defect until someone measures it.** The 17-red first run is recorded rather than
+deleted, because it is the reason the second run's numbers can be trusted.
+
+### What v136 still does NOT honor — stated by name
+
+- **The record is filed and never driven.** Nothing reads `health`, `mana`, `experience`, `level`, `skills` or
+  `hotbar` to change anything: the player does not move by its own record, does not spend mana, does not level,
+  and no control, HUD or hotbar binds to it. `attachPlayer` is a fact about a scene, not a step of a game.
+- **`inventory` is still refused everywhere.** `InventoryItem` holds two `Map`s and no inventory system fills
+  or reads one, so the field is named by the fourth plane's own sentence while the record ships an empty array
+  nothing ever changes.
+- **A restored player is carried as DATA, not as geometry.** `playerSnapshot` carries position and rotation, so
+  a restored player stands where the file says, but the body it is played as is whatever `restoreEntity` built.
+- **The lazy drop is a second owner of one cleanup.** `getPlayer` removes a record whose body has left the
+  scene and `removeEntity` does the same eagerly; arm 09 shows the event assertion is what makes the eager half
+  non-vacuous, and both are kept because a caller who removes an entity by another route still must not be
+  handed a player that cannot be anywhere.
+- **Nothing outside a test reads `refusalCensus()` or `SAVE_DATA_FEASIBILITY`**, and the Studio has no surface
+  for any of this: no panel shows a player, and no file's `player` half is editable in the browser.
+- **`sceneGraph` and `quests` remain blocked** — and they are the whole of the blocked list for the first time
+  since `savable`/`blocked` was written.
+
+### Sentences this record retires
+
+- v135's bound: *"`player` is still a name with two refusals and no owner. `SerializedPlayer` is declared in
+  `types.ts`, and nothing in this package fills one or reads one, so the row stays in `blocked` for both accounts
+  that refuse it. Making it real is the next grant's subject, not this one's."* — that is this section, and the
+  row now sits on the savable side.
+- v131's `Next` line offering *"take the next blocked `SaveData` field (`player`, the smallest of the four)"* —
+  `player` is carried; `sceneGraph` and `quests` are what is left.
+- The M5 ROADMAP cell's *"`SaveData`'s four remaining blocked fields stay blocked"*, and the evidence header
+  line's grant list ending at v135 — the header now names v136, and the blocked count is two.
