@@ -1,4 +1,4 @@
-# @nexus/three-runtime — evidence for v108 (host seams), v114 (character controller), v115 (the entity save format), v116 (the scene's physics world), v117 (the cinematic sequence), v118 (the save that reads it back) and v119 (the file it survives on disk)
+# @nexus/three-runtime — evidence for v108 (host seams), v114 (character controller), v115 (the entity save format), v116 (the scene's physics world), v117 (the cinematic sequence), v118 (the save that reads it back), v119 (the file it survives on disk) and v120 (the bytes, through a store)
 
 This directory records the 3D runtime lane (ROADMAP M5). Every claim here is read back out of the
 shipped source and the package's own vitest suite — `packages/three-runtime/src/*.ts` and
@@ -532,4 +532,100 @@ consume its output are the ones that actually redden.
 Next: the file has an author and a reader but no writer of bytes — a `writeSaveFile`/`readSaveFile` pair over
 an injected `FsWriteLike` (the pattern the M2 lane already uses) is the smallest unit that makes "save game"
 a feature rather than a value. Then the four `SaveData` fields that need a subsystem, then collision geometry
+for `slopeLimit`/`stepOffset`/`broadphase`/`solverIterations`.
+## v120 — the save file gets bytes: an injected storage seam, a write that reports what it stored, and a reader that will not guess between a missing file and an empty one
+
+v119 proved the shape survives `JSON.stringify` and stopped there: "a save is still in-memory only — no
+disk". v120 adds the seam and nothing else — `packages/three-runtime/src/saveStore.ts` with `SaveStore`,
+`createMemorySaveStore`, `createFsSaveStore(fs, root)` and `resolveSavePath`, plus `writeSaveFile` /
+`readSaveFile` / `saveStore()` on the runtime. The package still imports no filesystem: the injected object is
+as small as `writeFileSync`/`readFileSync`/`existsSync`, which is also what a `localStorage` shim can
+implement, so the same seam serves a browser tab, a Node process and a test.
+
+| what | measured |
+| --- | --- |
+| suites | `test/saveSnapshot.test.ts` 63 cases, `test/cinematicSequence.test.ts` 74, package total **235** (63 save + 39 controller + 74 cinematic + 30 physics + 29 runtime), `tsc --noEmit` exit 0 on `src` |
+| headline case | one memory store, two runtimes: the writer builds a scene (an entity with a `YXZ` rotation, a component, userData, and a cinematic sequence with a path), writes `saves/hero.json`, and a SECOND runtime that never saw it reads the path back — position, rotation order, component keys and data all equal, and the rebuilt camera lands at a distance of exactly 0 from the original's after a zero-delta frame |
+| write | `writeSaveFile(path, sceneId, savedAt)` → `{path, store, bytes, sceneId, entities, sequences, carries, doesNotCarry}`; `bytes` is the length of the string the call produced, and the case asserts it against `store.read(path).length` rather than a literal |
+| read | `readSaveFile(path, sceneId)` tells apart the three failures a disk produces: **no file at that path**, **bytes that are not JSON** (with the parser's own complaint quoted, and an empty file named as empty rather than as a syntax error), and **a file that parses but cannot be loaded** — the last wrapped with the path attached around `loadSaveFile`'s own refusal, so the door stays in one voice and the disk trip adds the address |
+| no store | a runtime created without `{ storage }` refuses both directions ("this runtime has no SaveStore — create it with `{ storage }`, or keep using buildSaveFile"), and `saveStore()` reports `null` instead of a caller guessing |
+| paths | `resolveSavePath` is the only owner of the confinement rule: absolute forms (`/x`, `C:\x`), `..` segments, empty and `.` segments and an empty name are refused, and both stores call it — the case loops the same six bad names through the fs store and the memory store so neither can grow its own rule |
+| the fs store | an injected fake records the joined paths: root `saves/root/` writes `saves/root/a/deep/b.json`; `existsSync` false is `null` from `read`, not an empty string; a root that itself contains `..` is refused at construction |
+| refusals | **48** reader-side, **12** writer-side and **5** seam-side refusal sites in the shipped source, each naming the value, path or name it found — the count is a regex over the message prefixes the doors actually print |
+
+Three things worth the sentence it costs.
+
+* **A missing file and an empty file are different diagnoses.** A store that answered `''` for an absent path
+  would make every "no save here" read as "corrupt save", and the caller would try to repair something that
+  was never broken. So `read` returns `null` for absent, and `readSaveFile` keeps the two branches apart.
+* **The bytes are not trusted because they were written here.** The reader re-parses whatever the store hands
+  back and runs it through every v119 refusal — so a file edited, truncated, or copied from elsewhere is met
+  by the same door. The case writes a smuggled `"npcs": [["npc-1", {}]]` into a copy of a real save and the
+  read refuses it by name, with the path in the sentence.
+* **A load cannot rewrite the file it read.** Two runtimes read the same path and get equal reports; a second
+  read into the first runtime then hits the live-id refusal (a restore never overwrites), and the stored bytes
+  are byte-for-byte what they were before either attempt — so the store is not a scratch buffer.
+
+### How the probe ran, and what it said
+
+The probe is `mutate-v120.mjs (scratch)`: 15 arms across TWO shipped files — the runtime's `writeSaveFile` /
+`readSaveFile` / `saveStore` and the seam module itself — each anchor verified to match exactly once before any
+run, each arm's minimum red written down in the script beforehand, the control fixing the population at
+**137** with 0 red, and both files restored byte-for-byte in a `finally`. Reds per arm, in order:
+1, 1, 1, 1, 2, 2, 1, 4, 1, 2, 2, 2, 2, 2, 2. No arm survived. No arm reddened fewer than claimed. 9 of the 15 arms reddened MORE than written down for them (05-load-refusal-loses-the-path: 1→2, 06-write-report-claims-zero-bytes: 1→2, 08-file-written-as-a-stringified-object: 1→4, 10-escaping-root-accepted: 1→2, 11-root-keeps-its-trailing-separator: 1→2, 12-absent-path-reads-through-the-fs: 1→2, 13-memory-store-skips-path-rules: 1→2, 14-dot-segments-accepted: 1→2, 15-fs-store-escapes-its-root: 1→2). The whole package was re-run separately at
+**235** with 0 red, and `tsc --noEmit` exited 0 over `src`.
+
+The arms split the way the code does. Nine of them are in the runtime — deleting the "this runtime has no
+SaveStore" refusal, treating an absent file as an empty string, calling a whitespace-only file a syntax error,
+dropping the path from a wrapped load refusal, reporting zero bytes, `String(file)` instead of
+`JSON.stringify`, renaming the `saveFileWritten` event, and hollowing out `saveStore()` — and six are in the
+seam: accepting an escaping root, keeping the root's trailing separator, reading through `existsSync`,
+skipping `resolveSavePath` on write, accepting `.` segments, and joining an unvalidated path in the fs store.
+Every one was caught by at least the case it aimed at. The over-credited arms are named in the sentence above;
+the shape of that miss is the one v118 wrote down and v119 re-wrote: a report, an event payload or a joined
+path is consumed by more cases than the assertion that names the mutated clause, so a reader-side deletion
+reddenes two or four cases while the prediction was sitting on one.
+
+### What v120 still does NOT honor — stated by name
+
+* Still no unregister, so a read whose second half fails after the sequences land leaves them in the registry,
+  and the thrown message says which half stayed (v119's boundary, unchanged).
+* The store has no delete, no list and no versioning. `overwrite` is what `write` does; the runtime reports
+  the path it wrote and the bytes it put there, nothing more.
+* Nothing here compresses, encrypts, or atomic-saves (write-to-temp-then-rename); a half-written file is
+  exactly the "not valid JSON" case above, which is refused — but the refusal is not a repair.
+* An entity still names no scene, so a file is written for ONE scene and read back into a scene the caller
+  names. `SaveData.sceneGraph`, which would carry the mapping, is still blocked.
+* `postProcessing`, every transition but the cut, and any Studio surface: unchanged.
+
+### Measurement errors, kept in the record
+
+The harness, three times before it measured anything — and each one was a bug in the script, not a fact about
+the code, which is why they are listed rather than glossed:
+
+* The probe is a `.mjs`, not a `.ts`, and the first draft carried two TypeScript-isms (`new Map<string, string>`
+  and a non-null `!`). Both are syntax errors at load: the run produced no arms and no numbers, and only
+  `node --check` said so in one line.
+* One anchor was written between backticks because the production line it quotes contains backticks; the
+  anchor therefore looked for `` `saveFileWritten` `` where the source holds `'saveFileWritten'`, and matched
+  nothing. Quote-style drift in an anchor is invisible until a `hits !== 1` guard refuses the run.
+* One two-line anchor was indented as if its `if` were nested one level deeper than it is. The anchor gate
+  caught that too, before any file was written — the same gate that saved v119 from an arm whose anchor never
+  matched, and the reason the gate exists at all.
+
+Nothing above produced a number. The numbers in this section came from the run after them.
+
+### Sentences this record retires
+
+* v119's "What v119 still does NOT honor": *"…`SaveData` as a whole is still not a file… Nothing here writes a
+  `SaveData` end to end."* The file methods now write and read one end to end, through a store.
+* ROADMAP M5, honest bounds: *"a save file survives JSON in both directions but no code writes bytes yet"*.
+  Swapped by the edit that added this section; the cell now says a save is written and read through an injected
+  store and names the holes that remain.
+* `saveFeasibilityAudit`'s docstring (v119's fix): *"…`buildSaveFile` emits a `SaveFile`…"* — still true, now
+  with a writer and a reader beside it; the sentence was extended rather than replaced.
+
+Next: `removeSequence`/unregister is the smallest hole with the widest consequence — it is what keeps a
+half-failed load from being fully reversible, and what keeps `defineCinematic`'s "choose a new id" refusal as
+the only answer to a duplicate. Then the four `SaveData` fields that need a subsystem, then collision geometry
 for `slopeLimit`/`stepOffset`/`broadphase`/`solverIterations`.

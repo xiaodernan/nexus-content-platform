@@ -6,6 +6,7 @@ import { createThreeRuntime, type ThreeRuntime } from '../src/threeRuntime.js';
 import type { EntityComponent, EntityId, SceneId, SerializedEntity, ThreeEntity } from '../src/types.js';
 import { entityId as eid, sceneId as sid } from '../src/types.js';
 import { createHeadlessBackend } from '../src/renderBackend.js';
+import { createFsSaveStore, createMemorySaveStore, resolveSavePath, type FsLike, type SaveStore } from '../src/saveStore.js';
 
 /**
  * M5 v115: `SerializedEntity` / `SerializedSceneGraph` / `SaveData` were declared in `types.ts` and
@@ -38,6 +39,20 @@ function freshWorld(): ThreeRuntime {
   const created = createThreeRuntime({}, { backend: (_canvas, cfg) => createHeadlessBackend(cfg) });
   created.initialize(mockCanvas);
   return created;
+}
+
+/** A runtime that can put a save file somewhere: v120's seam, injected rather than imported. */
+function runtimeWithStore(storage: SaveStore): ThreeRuntime {
+  const created = createThreeRuntime({}, { backend: (_canvas, cfg) => createHeadlessBackend(cfg), storage });
+  created.initialize(mockCanvas);
+  return created;
+}
+
+/** One entity in a named scene of a named runtime, for the cases that run two runtimes at once. */
+function withEntityIn(rt: ThreeRuntime, sceneId: SceneId): EntityId {
+  const created = rt.createEntity(sceneId, 'Hero', 'mesh');
+  rt.getEntity(sceneId, created.id)!.threeObject.position.set(1, 2, 3);
+  return created.id;
 }
 
 /** One mesh at `position`, remembered as `hero`, with the flags a test may want to flip. */
@@ -831,6 +846,193 @@ describe('a save FILE: it survives the disk, and the loader refuses what it cann
     expect(doc).toContain('doesNotCarry');
     expect(doc, 'v117 gave the cinematic half an owner and v119 gave it a reader; a comment still calling it unimplemented is stale')
       .not.toMatch(/a cinematic state the runtime does not implement|file full of empty maps/);
+  });
+
+  it('the save store is a seam: a file written through it is read by a runtime that never saw the original', () => {
+    const store = createMemorySaveStore();
+    const writer = runtimeWithStore(store);
+    const scene = writer.createScene('World').id;
+    writer.setActiveScene(scene);
+    const cam = writer.createCamera(scene, 'Cam').id;
+    const hero = writer.createEntity(scene, 'Hero', 'mesh').id;
+    writer.addComponent(writer.getEntity(scene, hero)!, { type: 'health', data: { current: 10 }, enabled: true });
+    writer.getEntity(scene, hero)!.threeObject.position.set(1.5, 2.25, -3.75);
+    writer.getEntity(scene, hero)!.threeObject.rotation.set(0.25, 0.5, 0.75, 'YXZ');
+    writer.defineCinematic(scene, {
+      id: 'seq',
+      name: 'A cutscene',
+      shots: [{
+        id: 's0', cameraId: cam, startTime: 0, endTime: 2, transition: 'cut', transitionDuration: 0,
+        cameraPath: new THREE.CatmullRomCurve3([
+          new THREE.Vector3(0, 0, 0), new THREE.Vector3(1, 3, 0), new THREE.Vector3(4, 0, 0), new THREE.Vector3(6, 2, 0),
+        ]),
+      }],
+    });
+    writer.playCinematic('seq');
+    writer.simulateFrame(1);
+
+    const written = writer.writeSaveFile('saves/hero.json', scene, 1700000000000);
+    expect(written).toEqual({
+      path: 'saves/hero.json',
+      store: 'memory',
+      bytes: store.read('saves/hero.json')!.length,
+      sceneId: scene,
+      entities: 1,
+      sequences: 1,
+      carries: ['entities', 'cinematic'],
+      doesNotCarry: ['sceneGraph', 'npcs', 'quests', 'player', 'worldState'],
+    });
+
+    // A second runtime, sharing only the store. Nothing here came from the first one's memory.
+    const reader = runtimeWithStore(store);
+    reader.createScene('World again', scene);
+    reader.setActiveScene(scene);
+    reader.createCamera(scene, 'Cam again', 'perspective', {}, cam);
+    const read = reader.readSaveFile('saves/hero.json', scene);
+    expect(read).toEqual({
+      sceneId: scene,
+      entities: [hero],
+      sequences: ['seq'],
+      carries: ['entities', 'cinematic'],
+      path: 'saves/hero.json',
+      store: 'memory',
+      bytes: written.bytes,
+    });
+    const loaded = reader.getEntity(scene, hero)!;
+    expect(loaded.threeObject.position.toArray()).toEqual([1.5, 2.25, -3.75]);
+    expect(loaded.threeObject.rotation.toArray()).toEqual([0.25, 0.5, 0.75, 'YXZ']);
+    expect([...loaded.components.keys()]).toEqual(['health']);
+    expect(loaded.components.get('health')!.data).toEqual({ current: 10 });
+    reader.playCinematic('seq');
+    reader.simulateFrame(0); // a frame of no advance: it places the camera without moving the playhead
+    expect(reader.getScene(scene)!.cameras.get(cam)!.threeCamera.position.distanceTo(writer.getScene(scene)!.cameras.get(cam)!.threeCamera.position))
+      .toBe(0);
+    writer.dispose();
+    reader.dispose();
+  });
+
+  it('a runtime built without a store refuses both directions instead of keeping the file to itself', () => {
+    // `runtime` comes from the beforeEach with no storage — the same way every earlier suite in this file
+    // built one, which is why the file methods have to say what they do not have.
+    withEntity();
+    expect(() => runtime.writeSaveFile('saves/hero.json', scene, 1)).toThrow(/has no SaveStore — create it with \{ storage \}/);
+    expect(() => runtime.readSaveFile('saves/hero.json', scene)).toThrow(/has no SaveStore/);
+    expect(runtime.saveStore()).toBe(null);
+    const withOne = runtimeWithStore(createMemorySaveStore());
+    expect(withOne.saveStore()!.kind).toBe('memory');
+    withOne.dispose();
+  });
+
+  it('a missing file, an empty file, and bytes that are not JSON are three different answers', () => {
+    const store = createMemorySaveStore();
+    const reader = runtimeWithStore(store);
+    const scene2 = reader.createScene('Stage').id;
+    expect(() => reader.readSaveFile('saves/nope.json', scene2)).toThrow(/no save file at "saves\/nope.json" in the memory store/);
+
+    store.write('saves/blank.json', '   ');
+    expect(() => reader.readSaveFile('saves/blank.json', scene2)).toThrow(/"saves\/blank.json" is empty/);
+
+    store.write('saves/half.json', '{"format":"nexus-three-runtime-save","entities":[');
+    expect(() => reader.readSaveFile('saves/half.json', scene2)).toThrow(/"saves\/half.json" is not valid JSON/);
+
+    store.write('saves/notasave.json', '[]');
+    expect(() => reader.readSaveFile('saves/notasave.json', scene2))
+      .toThrow(/"saves\/notasave.json" holds a file this runtime cannot load: loadSaveFile: the file is an array/);
+    reader.dispose();
+  });
+
+  it('the file keeps its v119 refusals after the disk trip, with the path attached', () => {
+    const store = createMemorySaveStore();
+    const writer = runtimeWithStore(store);
+    const scene2 = writer.createScene('World').id;
+    writer.setActiveScene(scene2);
+    withEntityIn(writer, scene2);
+    const written = writer.writeSaveFile('saves/a.json', scene2, 1);
+    const smuggled = JSON.parse(store.read('saves/a.json')!) as Record<string, unknown>;
+    smuggled.npcs = [['npc-1', {}]];
+    store.write('saves/b.json', JSON.stringify(smuggled));
+
+    const reader = runtimeWithStore(store);
+    reader.createScene('Copy', scene2);
+    expect(() => reader.readSaveFile('saves/b.json', scene2))
+      .toThrow(/"saves\/b.json" holds a file this runtime cannot load: .*content under "npcs"/);
+    expect(reader.getScene(scene2)!.entities.size, 'a refused read leaves the scene alone').toBe(0);
+    expect(store.read('saves/a.json'), 'the refused copy is a different file; the good one is untouched').toBe(store.read('saves/a.json'));
+    expect(JSON.parse(store.read('saves/a.json')!).npcs).toBeUndefined();
+    writer.dispose();
+    reader.dispose();
+    void written;
+  });
+
+  it('a store joins under its own root and neither store lets a name escape it', () => {
+    const writes: string[] = [];
+    const reads: string[] = [];
+    const fakeFs: FsLike = {
+      writeFileSync: (p) => { writes.push(p); },
+      readFileSync: (p) => { reads.push(p); return '{"stored":true}'; },
+      existsSync: (p) => p.endsWith('there.json'),
+    };
+    const fs = createFsSaveStore(fakeFs, 'saves/root/');
+    fs.write('a/deep/b.json', '{}');
+    expect(writes).toEqual(['saves/root/a/deep/b.json']);
+    expect(fs.read('there.json')).toBe('{"stored":true}');
+    expect(reads).toEqual(['saves/root/there.json']);
+    expect(fs.read('gone.json'), 'an absent path is null, not an empty string').toBe(null);
+    expect(fs.kind).toBe('fs');
+
+    // One rule, one owner: both stores refuse the same names because both call `resolveSavePath`.
+    for (const bad of ['../escape', '/abs/x.json', 'C:/x.json', '', '   ', 'a/./b.json', 'a//b.json']) {
+      expect(() => fs.write(bad, '{}'), `fs store with ${JSON.stringify(bad)}`).toThrow(/saveStore:/);
+      expect(() => createMemorySaveStore().write(bad, '{}'), `memory store with ${JSON.stringify(bad)}`).toThrow(/saveStore:/);
+    }
+    expect(() => createFsSaveStore(fakeFs, 'up/../down')).toThrow(/the root "up\/\.\.\/down" itself walks out/);
+    expect(resolveSavePath('a/b.json')).toBe('a/b.json');
+  });
+
+  it('a load does not disturb the bytes, and reading the same file twice gives the same content', () => {
+    const store = createMemorySaveStore();
+    const writer = runtimeWithStore(store);
+    const scene2 = writer.createScene('World').id;
+    writer.setActiveScene(scene2);
+    withEntityIn(writer, scene2);
+    writer.writeSaveFile('saves/twice.json', scene2, 1);
+    const before = store.read('saves/twice.json')!;
+
+    const first = runtimeWithStore(store);
+    first.createScene('Copy one', scene2);
+    const second = runtimeWithStore(store);
+    second.createScene('Copy two', scene2);
+    const a = first.readSaveFile('saves/twice.json', scene2);
+    const b = second.readSaveFile('saves/twice.json', scene2);
+    expect(a.entities).toEqual(b.entities);
+    expect(store.read('saves/twice.json')).toBe(before);
+    expect(() => first.readSaveFile('saves/twice.json', scene2)).toThrow(/is already in scene/);
+    expect(store.read('saves/twice.json'), 'a failed load rewrote nothing').toBe(before);
+    writer.dispose();
+    first.dispose();
+    second.dispose();
+  });
+
+  it('writes and reads both say so on the event bus, with the report they returned', () => {
+    const store = createMemorySaveStore();
+    const writer = runtimeWithStore(store);
+    const scene2 = writer.createScene('World').id;
+    writer.setActiveScene(scene2);
+    withEntityIn(writer, scene2);
+    const events: { path: string; bytes: number; kind: string }[] = [];
+    const brief = (d: unknown) => ({ path: (d as { path: string }).path, bytes: (d as { bytes: number }).bytes });
+    writer.addEventListener('saveFileWritten', (d) => events.push({ ...brief(d), kind: 'written' }));
+    const report = writer.writeSaveFile('saves/e.json', scene2, 1);
+    const reader = runtimeWithStore(store);
+    reader.createScene('Copy', scene2);
+    reader.addEventListener('saveFileRead', (d) => events.push({ ...brief(d), kind: 'read' }));
+    reader.readSaveFile('saves/e.json', scene2);
+    expect(events).toEqual([
+      { path: 'saves/e.json', bytes: report.bytes, kind: 'written' },
+      { path: 'saves/e.json', bytes: report.bytes, kind: 'read' },
+    ]);
+    writer.dispose();
+    reader.dispose();
   });
 
   it('the declared shape reachable from SaveFile names no Map and no THREE class', () => {

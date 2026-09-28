@@ -34,6 +34,7 @@ import {
   type RenderBackend,
   type RenderBackendFactory,
 } from './renderBackend.js';
+import type { SaveStore } from './saveStore.js';
 
 export { DEFAULT_THREE_CONFIG };
 
@@ -444,6 +445,27 @@ export interface SaveFileLoadReport {
   carries: string[];
 }
 
+/** What `writeSaveFile` answers: where the bytes went, through which store, how big they are, and what the
+ *  file says it carries. `bytes` is the length of the string this call wrote — the store's own count would be
+ *  a second measurement of a value the writer already had in hand. */
+export interface SaveFileWriteReport {
+  path: string;
+  store: string;
+  bytes: number;
+  sceneId: SceneId;
+  entities: number;
+  sequences: number;
+  carries: string[];
+  doesNotCarry: string[];
+}
+
+/** What `readSaveFile` answers: the load report plus where the bytes came from. */
+export interface SaveFileReadReport extends SaveFileLoadReport {
+  path: string;
+  store: string;
+  bytes: number;
+}
+
 /** What `controllerFieldAudit` answers. The `untouched` list is the honesty surface — a field declared
  *  on `CharacterController` but never implemented shows up there BY NAME instead of being ignored in
  *  silence. `slopeLimit` and `stepOffset` are in it today: both need collision geometry this package
@@ -697,11 +719,14 @@ export class ThreeRuntime {
   private controllers: Map<EntityId, ControllerEntry> = new Map();
   /** Cinematic sequences the runtime owns, keyed by their declared id. */
   private readonly cinematics = new Map<string, CinematicEntry>();
+  /** Where save files go. `null` when the runtime was built without a store, which the file methods refuse. */
+  private readonly storage: SaveStore | null;
 
   constructor(config: Partial<ThreeRuntimeConfig> = {}, options: ThreeRuntimeOptions = {}) {
     this.config = { ...DEFAULT_THREE_CONFIG, ...config };
     this.backendFactory = options.backend ?? createWebGLBackend;
     this.scheduler = options.scheduler ?? defaultFrameScheduler();
+    this.storage = options.storage ?? null;
     this.sceneGraph = this.createEmptySceneGraph();
   }
 
@@ -1188,6 +1213,70 @@ export class ThreeRuntime {
     };
     this.emit('saveFileLoaded', report);
     return report;
+  }
+
+  /**
+   * Write the scene's save file THROUGH THE STORE and report the bytes it wrote.
+   *
+   * The store is injected (`storage`), because this package runs in a browser tab as happily as in Node and a
+   * runtime that reached for `node:fs` itself could be neither sandboxed nor tested. A runtime built without
+   * one refuses rather than keeping the file to itself: a `writeSaveFile` that quietly returned the bytes
+   * without storing them would be the loudest kind of lie this lane has been chasing.
+   */
+  writeSaveFile(path: string, sceneId: SceneId, savedAt: number): SaveFileWriteReport {
+    if (!this.storage) throw new Error(`writeSaveFile: this runtime has no SaveStore — create it with { storage } (an injected fs or createMemorySaveStore), or keep using buildSaveFile for a value you will serialize yourself`);
+    const file = this.buildSaveFile(sceneId, savedAt);
+    const contents = JSON.stringify(file);
+    this.storage.write(path, contents);
+    const report: SaveFileWriteReport = {
+      path,
+      store: this.storage.kind,
+      bytes: contents.length,
+      sceneId,
+      entities: file.entities.length,
+      sequences: file.cinematic.sequences.length,
+      carries: [...file.carries],
+      doesNotCarry: file.doesNotCarry.map((entry) => entry.field),
+    };
+    this.emit('saveFileWritten', report);
+    return report;
+  }
+
+  /**
+   * Read bytes back from the store and load them. Three failures are told apart, because the caller's next
+   * action differs for each: no file at that path, bytes that are not JSON at all, and a file that parses but
+   * describes something this runtime cannot load (every refusal in `loadSaveFile`, from a bad version to
+   * content under a blocked name). The third is reported with the path attached, because after a disk trip
+   * "which file said this" is the first question.
+   */
+  readSaveFile(path: string, sceneId: SceneId): SaveFileReadReport {
+    if (!this.storage) throw new Error(`readSaveFile: this runtime has no SaveStore — create it with { storage }, or parse the bytes and call loadSaveFile yourself`);
+    const contents = this.storage.read(path);
+    if (contents === null) {
+      throw new Error(`readSaveFile: no save file at "${path}" in the ${this.storage.kind} store; a missing file and an empty one are different problems and this reader will not guess which was meant`);
+    }
+    let parsed: unknown;
+    try {
+      parsed = JSON.parse(contents);
+    } catch (error) {
+      throw new Error(`readSaveFile: "${path}" is ${(contents.trim().length === 0 ? 'empty' : 'not valid JSON')}; ${(error as Error).message} — a corrupt save is refused, not loaded as an empty game`);
+    }
+    try {
+      const loaded = this.loadSaveFile(parsed as SaveFile, sceneId);
+      const report: SaveFileReadReport = { ...loaded, path, store: this.storage.kind, bytes: contents.length };
+      this.emit('saveFileRead', report);
+      return report;
+    } catch (error) {
+      // The load refusals are `loadSaveFile`'s own voice — the same door a caller meets when they hold the
+      // value already — and the path is what a disk trip adds to the question.
+      throw new Error(`readSaveFile: "${path}" holds a file this runtime cannot load: ${(error as Error).message}`);
+    }
+  }
+
+  /** The store this runtime was given, or `null` when it has none. Reported rather than guessed at: a caller
+   *  that asks whether saves persist deserves the same object the runtime writes through. */
+  saveStore(): SaveStore | null {
+    return this.storage ?? null;
   }
 
   /**
@@ -2173,6 +2262,9 @@ export class ThreeRuntime {
 export interface ThreeRuntimeOptions {
   backend?: RenderBackendFactory;
   scheduler?: FrameScheduler;
+  /** Where `writeSaveFile`/`readSaveFile` put bytes. Omitted means saves stay in memory: the file methods
+   *  refuse rather than pretend. */
+  storage?: SaveStore;
 }
 
 export function createThreeRuntime(

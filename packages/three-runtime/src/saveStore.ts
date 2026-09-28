@@ -1,0 +1,112 @@
+/**
+ * M5 v120 — the storage seam for save files.
+ *
+ * v119 made a `SaveFile` survive `JSON.stringify`, which proved the shape is a file but left the sentence
+ * unfinished: nothing wrote one. This module is the only place in the package that talks to somewhere outside
+ * the process, and it talks to an injected object rather than importing `node:fs`: `@nexus/three-runtime` runs
+ * in a browser tab as happily as in Node, and a runtime that reached for a real filesystem itself could not
+ * be tested, sandboxed, or run at all. The M2 lane uses the same shape for durable agent memory (§26), where
+ * the injected object is `localStorage`.
+ *
+ * Two rules are worth naming because both are load-bearing:
+ *
+ * * A `null` from `read` means "this path is not there". It never means "empty file" — an empty or whitespace
+ *   file exists, and the runtime reports THAT as a corrupt save rather than loading nothing successfully.
+ * * Every path goes through `resolveSavePath` exactly once. Two stores with two different escaping rules
+ *   would be two owners of one safety claim, and the interesting one of them would be the one nobody tested.
+ */
+
+/** The slice of a filesystem this seam needs. Deliberately small enough that `localStorage` can implement it. */
+export interface FsLike {
+  writeFileSync(path: string, data: string): void;
+  readFileSync(path: string): string;
+  existsSync(path: string): boolean;
+}
+
+/** Where a save file goes and how it comes back. Sync, because the rest of the runtime is. */
+export interface SaveStore {
+  /** Which implementation this is: `'memory'` or `'fs'`. Never guessed by callers. */
+  readonly kind: string;
+  write(path: string, contents: string): void;
+  /** The stored bytes, or `null` when no file exists at `path`. */
+  read(path: string): string | null;
+  /** Whether anything is stored at `path`. `read` answers this too; this exists so a caller can ask without
+   *  pulling bytes across the seam. */
+  exists(path: string): boolean;
+}
+
+/**
+ * Reject a path that would leave the store's own namespace, and return it unchanged otherwise.
+ *
+ * A save name arrives from a caller (and, on the read side, from a file a caller picked up somewhere), so the
+ * absolute-form and `..` checks are the boundary. `''`, `.` and a trailing separator are refused too: a
+ * "directory" is not a file name, and a store that wrote one would produce a save no reader could find.
+ */
+export function resolveSavePath(path: string): string {
+  if (typeof path !== 'string' || path.trim().length === 0) {
+    throw new Error(`saveStore: a save path must be a non-empty string, got ${JSON.stringify(path)}`);
+  }
+  if (/^[\\/]/.test(path) || /^[a-zA-Z]:/.test(path)) {
+    throw new Error(`saveStore: "${path}" is an absolute path; a save is named inside the store's own namespace, never by a location on the host`);
+  }
+  const segments = path.split(/[\\/]/);
+  if (segments.some((segment) => segment === '..')) {
+    throw new Error(`saveStore: "${path}" walks out of the store with ".."; save names are relative and stay inside`);
+  }
+  if (segments.some((segment) => segment === '' || segment === '.')) {
+    throw new Error(`saveStore: "${path}" has an empty or "." segment; a save name is one path, not a directory or a placeholder`);
+  }
+  return path;
+}
+
+/** An in-memory store — what a headless runtime and every test in this package write into. */
+export function createMemorySaveStore(): SaveStore & { paths(): string[]; bytes(path: string): number } {
+  const files = new Map<string, string>();
+  return {
+    kind: 'memory',
+    write(path, contents) {
+      files.set(resolveSavePath(path), contents);
+    },
+    read(path) {
+      return files.get(resolveSavePath(path)) ?? null;
+    },
+    exists(path) {
+      return files.has(resolveSavePath(path));
+    },
+    paths() {
+      return [...files.keys()].sort();
+    },
+    bytes(path) {
+      return files.get(resolveSavePath(path))?.length ?? 0;
+    },
+  };
+}
+
+/**
+ * A store over an injected filesystem, confined to `root`.
+ *
+ * `root` is joined by string, not by `path.join`, because the injected object may be a browser shim. The
+ * confinement has one owner: a `root` that itself walks out is refused at construction, and every path is
+ * passed through `resolveSavePath`, which rejects `..` and absolute forms — so no join here can produce an
+ * escaping name, and this module does not pretend to re-check what already cannot happen.
+ */
+export function createFsSaveStore(fs: FsLike, root: string): SaveStore {
+  const trimmed = root.replace(/[\\/]+$/, '');
+  if (/(^|[\\/])\.\.($|[\\/])/.test(trimmed)) {
+    throw new Error(`saveStore: the root "${root}" itself walks out with ".."; a confined store needs a root that stays put`);
+  }
+  const at = (path: string): string => `${trimmed}/${resolveSavePath(path)}`;
+  return {
+    kind: 'fs',
+    write(path, contents) {
+      fs.writeFileSync(at(path), contents);
+    },
+    read(path) {
+      const target = at(path);
+      return fs.existsSync(target) ? fs.readFileSync(target) : null;
+    },
+    exists(path) {
+      return fs.existsSync(at(path));
+    },
+  };
+}

@@ -5634,3 +5634,70 @@ rollback does not reach the event log or a half-completed load; `postProcessing`
 cut, and the Studio surface are unchanged. Next, in order: the byte writer, then `npcs`/`quests`/`player`/
 `worldState`, then collision geometry — which is also what `slopeLimit`, `stepOffset`, `broadphase` and
 `solverIterations` are all waiting on.
+### Amendment 120 — v120: the save file gets bytes — an injected storage seam, three kinds of "I cannot read this" kept apart, and one confinement rule with a single owner
+
+v119's record ended with the sentence it had earned: the shape survives a JSON write, and no code writes
+bytes. v120 is the writer and the reader, and the interesting decisions are about what a disk makes possible
+that memory does not: a file that is not there, a file that is empty, a file whose bytes were edited after
+being written, and a save whose name says more than the store should let it.
+
+**The seam is injected, and small.** `packages/three-runtime/src/saveStore.ts` defines `FsLike` as exactly
+`writeFileSync`/`readFileSync`/`existsSync` and `SaveStore` as `write`/`read`/`exists` plus a `kind` the caller
+never guesses. `createMemorySaveStore()` is the test-and-headless implementation;
+`createFsSaveStore(fs, root)` wraps any `FsLike` — Node's `fs`, or a `localStorage` shim of the shape the M2
+lane already uses for durable agent memory (§26), which is why the runtime keeps reaching for no filesystem of
+its own. The package's dependency list is still `three` alone.
+
+**`null` means "absent", and nothing else.** If `read` returned `''` for a path that does not exist, every
+"there is no save here" would arrive as "the save here is corrupt", and the caller would go looking for
+damage that was never there. So `readSaveFile` has three branches and the suite has three cases: no file at
+that path (naming the path and the store kind), bytes that are not JSON (quoting the parser, and calling a
+whitespace-only file `empty` rather than a syntax error), and a file that parses but describes something this
+runtime cannot load — the last wrapped so `loadSaveFile`'s own refusal keeps its voice with the path added in
+front: a door should not need to be read twice to say which file it is talking about.
+
+**One rule, one owner, both stores.** `resolveSavePath` rejects absolute forms (`/x`, `C:\x`), `..`, `.` and
+empty segments; the memory store and the fs store call it, and one case loops the same six bad names through
+both so a divergence between them cannot live quietly. The fs store adds its own construction-time check —
+a `root` containing `..` is refused when the store is made, not when a path tries to escape it later — and
+because both halves are in place, the join itself does not re-check what cannot happen. That is the
+converse of the mistake this lane keeps making: a rule stored twice drifts, and the drift is found by a
+mutation that nobody predicted.
+
+**Bytes are not trusted because this process wrote them.** The reader re-parses whatever comes back and runs
+it through every v119 refusal, and the case proves it: copy a real save, bolt `"npcs": [["npc-1", {}]]` onto
+it, and the read refuses by name instead of loading a game that quietly lost its NPCs. Another case proves the
+file is not a scratch buffer: two runtimes read the same path into two scenes and agree, a second read into
+the first runtime hits the live-id refusal, and the stored bytes are equal to what they were before either
+attempt — a failed load rewrote nothing.
+
+**What a rollback still cannot reach is said out loud.** `writeSaveFile` and `readSaveFile` inherit v119's
+boundary: a load whose sequence half lands and entity half fails removes the entities and leaves the
+sequences, because there is still no unregister, and the thrown message names both halves. A storage seam did
+not fix that hole; it made it reachable from disk, which is where a user would meet it.
+
+Measured: `test/saveSnapshot.test.ts` is 63 cases and `test/cinematicSequence.test.ts` 74,
+package total **235** (63 save + 39 controller + 74 cinematic + 30 physics + 29 runtime), `tsc --noEmit` exit 0 on `src` (this package's tsconfig
+excludes `test/`, so the type gate is not evidence about the test file). The probe ran 15 arms over
+BOTH shipped files — the runtime's methods and the seam itself — against an unmutated control of **137
+collected / 0 red**, each arm's minimum red written down first, every arm collecting the full population, and
+both files restored byte-for-byte afterwards. Reds: 1, 1, 1, 1, 2, 2, 1, 4, 1, 2, 2, 2, 2, 2, 2. No arm survived. No arm reddened fewer than claimed.
+9 of the 15 arms reddened MORE than written down for them (05-load-refusal-loses-the-path: 1→2, 06-write-report-claims-zero-bytes: 1→2, 08-file-written-as-a-stringified-object: 1→4, 10-escaping-root-accepted: 1→2, 11-root-keeps-its-trailing-separator: 1→2, 12-absent-path-reads-through-the-fs: 1→2, 13-memory-store-skips-path-rules: 1→2, 14-dot-segments-accepted: 1→2, 15-fs-store-escapes-its-root: 1→2).
+
+Three harness failures preceded that run, and each is a bug in the script rather than a fact about the code:
+the probe is a `.mjs` and its first draft carried TypeScript annotations (`new Map<string, string>`, a
+non-null `!`) that are syntax errors at load; one anchor was written between backticks because the production
+line it quotes contains backticks, so it looked for a quoted-then-backticked string and matched nothing; and
+one two-line anchor was indented as though its `if` were nested deeper than it is. The `--anchors` gate and
+the control's population floor refused all three before a byte was rewritten — the last of them caught the
+control collecting 137 where the script's floor claimed 140, which is a wrong guess about the plane, not a
+wrong result about the code.
+
+What v120 does not do, stated by name: no delete, no list, no versioning, no atomic write-then-rename and no
+compression or encryption — a half-written file is refused, which is a diagnosis and not a repair. An entity
+record still names no scene, so a file is written for one scene and read back into a scene the caller picks;
+the field that would carry the mapping (`SaveData.sceneGraph`) is still blocked, along with `npcs`, `quests`,
+`player` and `worldState`. Next: `removeSequence`/unregister, which is what keeps a half-failed load from
+being fully reversible and what makes "choose a new id" the only answer `defineCinematic` can give to a
+duplicate; then the four blocked halves that need a subsystem; then collision geometry, which is what
+`slopeLimit`, `stepOffset`, `broadphase` and `solverIterations` are all waiting on.
