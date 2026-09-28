@@ -89,7 +89,10 @@ export async function assembleAiRequest(request: AiRequest, ownerId: string): Pr
     return { ok: false, status: 404, code: 'project_not_found', message: '这个项目不存在，或者不属于你。' };
   }
 
-  const assembled = await buildProjectContext(projectId, ownerId, {});
+  // §49 × §66-71：这一轮的提示词就是语料的查询词。用户说什么，就去项目自己的语料里
+  // 按相关性取回什么（世界条目、角色、记忆、分镜、游戏设计、设计正文），
+  // 而不是只报一个"库里有多少块"。
+  const assembled = await buildProjectContext(projectId, ownerId, { corpusQuery: request.prompt });
   if (!assembled.ok) {
     return { ok: false, status: 409, code: 'context_unavailable', message: assembled.reason };
   }
@@ -147,6 +150,8 @@ export async function assembleAiRequest(request: AiRequest, ownerId: string): Pr
         ...context,
         designIndex: assembled.context.design,
         codeDigest,
+        // §49 × §66-71：这一轮按提示词从项目语料库取回的内容也发给 provider
+        corpus: assembled.context.corpus,
         indexChars: assembled.context.sizes.indexChars,
         budgetChars: assembled.context.sizes.budgetChars,
         selectionDigest: derived.selectionDigest,

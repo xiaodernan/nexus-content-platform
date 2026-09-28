@@ -39,6 +39,70 @@ async function newProject(name: string): Promise<string> {
   return (await createProject(owner, { name, kind: 'website' })).id;
 }
 
+describe('§49 × §66-71：语料内容按相关性进上下文（不只是报块数）', () => {
+  /** 把起始模板那条 Headline 换成给定文案，走真正的写库路径（它会 arm 语料同步） */
+  async function saveHeadline(projectId: string, text: string): Promise<void> {
+    const doc = await loadDocument(projectId);
+    if (!doc) throw new Error('项目读不回来，测试前提就断了');
+    const page = doc.pages[0]!;
+    const headline = Object.values(page.nodes).find((n) => n.name === 'Headline');
+    if (!headline) throw new Error('起始模板里没有 Headline 节点，切分前提变了');
+    page.nodes[headline.id] = { ...headline, text };
+    await saveDocument(projectId, doc);
+  }
+
+  it('给了查询词就带回相关块与出处，没给就如实说"这一轮没查"', async () => {
+    const id = await newProject('Ctx Corpus');
+    const sentence = '雾里的港口只有一条会响的钟';
+    await saveHeadline(id, sentence);
+
+    const withQuery = await buildProjectContext(id, owner, { corpusQuery: sentence });
+    expect(withQuery.ok).toBe(true);
+    if (!withQuery.ok) return;
+    const corpus = withQuery.context.corpus;
+    expect(corpus.query, '查询词没带出去，收到的一方分不清"没查"与"查了没中"').toBe(sentence);
+    expect(corpus.candidates, '语料里明明有这句话，检索却没取回候选').toBeGreaterThan(0);
+    expect(corpus.items.length).toBe(corpus.candidates - corpus.omitted);
+    const hit = corpus.items.find((item) => item.excerpt.includes(sentence));
+    expect(hit, '按相关性取回里没有这句 = 语料内容还是没进 AI 请求').toBeDefined();
+    expect(hit!.sourceType).toBe('design');
+    // 出处三件：哪一类、哪一块、第几块——没有这些，模型引用时无处可指
+    expect(hit!.sourceId).toContain('#page-');
+    expect(hit!.chunkIndex).toBeGreaterThanOrEqual(0);
+    expect(hit!.matchedBy.length, '命中方式没说，分数就成了不可解释的黑数').toBeGreaterThan(0);
+    expect(corpus.vectorAvailable, '没有 provider 却报告有向量').toBe(false);
+
+    const withoutQuery = await buildProjectContext(id, owner);
+    expect(withoutQuery.ok).toBe(true);
+    if (!withoutQuery.ok) return;
+    // 没给查询词 = 这一轮没查语料库，必须与"查了但都不相关"在报文上长得不一样
+    expect(withoutQuery.context.corpus.query).toBeNull();
+    expect(withoutQuery.context.corpus.candidates).toBe(0);
+    expect(withoutQuery.context.corpus.items).toEqual([]);
+  });
+
+  it('预算装不下的相关块数得出来，不静默丢', async () => {
+    const id = await newProject('Ctx Corpus Budget');
+    const sentence = '起重机吊起一只锈锚，海水顺着缆绳往上爬';
+    await saveHeadline(id, sentence);
+
+    const roomy = await buildProjectContext(id, owner, { corpusQuery: sentence });
+    if (!roomy.ok) throw new Error('装配失败，测试前提断了');
+    const all = roomy.context.corpus;
+    expect(all.omitted).toBe(0);
+
+    const tight = await buildProjectContext(id, owner, { corpusQuery: sentence, maxCorpusChars: 12 });
+    if (!tight.ok) throw new Error('装配失败，测试前提断了');
+    const cut = tight.context.corpus;
+    expect(cut.candidates, '候选数应当与宽预算一致（裁的是发送的那几块，不是检索）').toBe(all.candidates);
+    expect(cut.used, '这么小的预算还塞得进整块，裁剪没生效').toBe(0);
+    expect(cut.omitted).toBe(cut.candidates);
+    expect(cut.usedChars).toBeLessThanOrEqual(cut.budgetChars);
+    // 出处与摘录之外，预算本身也要发出去，收到的一方才知道这份列表不是全集
+    expect(cut.budgetChars).toBe(12);
+  });
+});
+
 describe('buildProjectContext（§66-71 一次装配）', () => {
   it('新项目也能装配出目录：设计与代码两个分支都索引到位', async () => {
     const id = await newProject('Ctx Bare');

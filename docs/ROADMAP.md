@@ -2579,3 +2579,45 @@ A 把标题那条 `ilike(storyboards.title, term)` 换成一个不可能的词 �
 B 把语料块的 join 退回我等值写错的那个形状（`${行id} = sourceId`）→ `2 failed / 14`，
 红的正是"画面描述命中"与"孤儿块不产结果"两条——**这条探针复现的是我这一片里真实发生过的错误**，
 所以它证明的不是断言写得严，而是这条路一旦形状错就会响。
+
+
+## §49 × §66-71：语料的**内容**按相关性进 AI 请求，不再只报一个块数
+
+§49 那三片把语料切好、索引好、面板能查了，但发给模型的那一份里始终只有"库里有几块"。
+这一片把最后一格接上：**这一轮的提示词就是语料库的查询词**，按相关性取回的块带着出处进报文。
+
+- **报文契约**（纪律 6：跨端只能用 `packages/schemas`）：新增 `CorpusDigestSchema` ——
+  `query / candidates / used / omitted / budgetChars / usedChars / vectorAvailable / items[]`，
+  每条 item 带 `sourceType / sourceId / chunkIndex / title / excerpt / score / matchedBy`。
+  出处与命中方式不是装饰：模型引用一条设定时要能指认是哪一类第几块，设定冲突时才知道改了哪一句。
+- **"没查"与"查了但都不相关"必须在报文上长得不一样**：`query: null` 是前者。
+  所以 `ProjectContextSchema.corpus` 刻意**没有默认值**——省略它和发一份空的，过 zod 之后分不出来。
+- **被预算裁掉的相关块要数得出来**（`omitted`），装配沿用 §68 那套纪律：
+  裁剪的每一刀都进报文，不留"看起来是全集"的错觉。Python 侧据此生成一句 `corpusNote`，
+  只在 `query` 非空时出现——没查却解释"有 3 条被裁掉"就是假话。
+- **两条路都要有，各自证明各自的**：标题/目录那一类（`designIndex`）继续发；
+  语料摘录是并列的第二份。`/context` 面板那条路没给查询词就不查（装配是只读的，一次全文检索不是零成本）。
+
+**一次返工值得记**：第一版把契约夹具的 `corpus` 由 `apps/web` 的 `context.ts` 导出，
+`npm run typecheck` 立刻红两条**与本片无关**的错（`notifications.ts` 找不到 `@/lib/notify-plan`）——
+原因是 `scripts/` 走的是 `tsconfig.tools.json`，那条程序里没有 `@/*` 别名，
+而我新增的 import 边把整条 `context → publish → moderation → notifications` 的图拖了进去。
+共享默认值因此落到 `packages/schemas`（`emptyCorpusDigest()` + `DEFAULT_CORPUS_CHAR_BUDGET`），
+装配与夹具同用一个出处——**顺手也把"手抄一份形状"的漂移风险消掉了**：
+Python 侧唯一的真实形状来源就是那份夹具，它现在由生产代码产出。
+
+**凭证**：`context.integration.test.ts` 新增 2 条（给查询词就带回相关块、出处、命中方式，
+并断言 `items.length === candidates - omitted`；不给就 `query: null` 且 `items: []`；
+第二条用 `maxCorpusChars: 12` 逼出 `used=0 / omitted=candidates`，`candidates` 与宽预算那次相同——
+裁的是发送的块，不是检索）。`ai-assemble.integration.test.ts` 补一条：真装配路径上
+`wire.context.corpus` 存在且 `query` 就是本轮提示词。三个文件 **22/22** 通过，`npm run typecheck` 0，
+`npm run contract:export` 重跑后夹具带上了 `{"query":null,...,"budgetChars":4000,"items":[]}`。
+Python：`apps/ai-service` 全量 **66 passed / 1 skipped**（新增 2 条 corpus 用例）。
+**变异探针**：把 `payload["corpus"]` 换成空对象 → 第一次只抓到 **1/2**（第二条断的是说明文字，不是摘要本身），
+补上 `'"omitted":3' in user` 这类转发断言后两条都抓到；第二刀把 `corpus` 本身换成 `{}`（查询词因此变 null）→ **2 failed**。
+两刀跑完都还原，`design_prompt.py` md5 一致。
+
+**这一片欠的**：摘录是命中位置附近的**窗口**，不是整块正文——要整块得按 `sourceId` 回库里取，那条通道还没有
+（已写进 `unavailable`，界面与报文都看得见）；reranker 仍是确定性融合，向量那一半仍要 provider；
+`/context` 路由没暴露 `corpusQuery`，所以检索面板看不到"这一轮到底取回了哪几块"；
+浏览器那一层的"改一句设定 → 发出去的这一段跟着变"还没证过。

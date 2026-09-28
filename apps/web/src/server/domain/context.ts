@@ -7,11 +7,11 @@ import {
   type DesignDocument,
 } from '@nexus/design-model';
 import { worldCounts } from '@nexus/world-model';
-import { ProjectContextSchema, type ProjectContextPayload } from '@nexus/schemas';
+import { DEFAULT_CORPUS_CHAR_BUDGET, ProjectContextSchema, emptyCorpusDigest, type ProjectContextPayload } from '@nexus/schemas';
 import { listProjectAssets } from './assets';
 import { buildCodeIndex, codeIndexChars, fitCodeIndexToBudget, DEFAULT_CODE_CHAR_BUDGET } from './code-index';
 import { listCharacters } from './characters';
-import { knowledgeStats } from './knowledge';
+import { knowledgeStats, retrieveProjectKnowledge, type RetrievedChunk } from './knowledge';
 import { countMemoriesByScope } from './memories';
 import { loadDocument } from './projects';
 import { getPublication } from './publish';
@@ -38,6 +38,14 @@ export interface BuildContextOptions {
   /** §69 代码目录的字符预算，与设计目录分开：两者的裁剪优先级不一样 */
   maxCodeChars?: number;
   recentChangeLimit?: number;
+  /**
+   * §49 的语料按相关性取回给这一轮用的查询词（AI 请求里就是用户那句提示）。
+   * 不给就不查：装配是只读的，但一次全文检索不是零成本，`/context` 面板那种"看看上下文长什么样"
+   * 的调用不该替每次打开都付一遍。
+   */
+  corpusQuery?: string;
+  /** 语料摘录的字符预算，与设计/代码目录分开：三者各有各的裁剪优先级 */
+  maxCorpusChars?: number;
 }
 
 export type ContextResult =
@@ -53,6 +61,24 @@ export type ContextResult =
   | { ok: false; reason: string };
 
 const RECENT_DEFAULT = 8;
+/** 先多要几条候选，再按字符预算裁；被裁掉的数量要能说出来而不是静默丢（§68） */
+const CORPUS_CANDIDATES = 12;
+
+/**
+ * 相关块的预算裁剪：分数高的先占位置。装不下的那条**不挡住后面更短的**——
+ * "这一整块太大"与"轮到它时已经没位置"是两回事，前者不该让后面的相关内容一起消失。
+ */
+function fitCorpusToBudget(items: RetrievedChunk[], maxChars: number) {
+  const kept: RetrievedChunk[] = [];
+  let usedChars = 0;
+  for (const item of items) {
+    const cost = item.title.length + item.snippet.length;
+    if (usedChars + cost > maxChars) continue;
+    usedChars += cost;
+    kept.push(item);
+  }
+  return { kept, usedChars, omitted: items.length - kept.length };
+}
 
 function tally<T extends string>(items: T[]): { kind: T; count: number }[] {
   const counts = new Map<T, number>();
@@ -70,6 +96,8 @@ export async function buildProjectContext(
   const maxIndexChars = options.maxIndexChars ?? DEFAULT_INDEX_CHAR_BUDGET;
   const maxCodeChars = options.maxCodeChars ?? DEFAULT_CODE_CHAR_BUDGET;
   const recentLimit = options.recentChangeLimit ?? RECENT_DEFAULT;
+  const maxCorpusChars = options.maxCorpusChars ?? DEFAULT_CORPUS_CHAR_BUDGET;
+  const corpusQuery = options.corpusQuery?.trim() ?? '';
 
   const document = await loadDocument(projectId);
   if (!document) return { ok: false, reason: '这个项目读不出设计文档（不存在或已删除），目录无从算起。' };
@@ -80,7 +108,7 @@ export async function buildProjectContext(
   // 而不是 IO。10k 节点那一档的耗时见 docs/PERFORMANCE.md。
   const codeIndex = fitCodeIndexToBudget(buildCodeIndex(document), maxCodeChars);
 
-  const [world, characters, memoryCounts, assetRows, knowledge, snapshots, publication] =
+  const [world, characters, memoryCounts, assetRows, knowledge, snapshots, publication, retrieved] =
     await Promise.all([
       loadWorld(projectId),
       listCharacters(projectId),
@@ -89,13 +117,17 @@ export async function buildProjectContext(
       knowledgeStats(projectId),
       listSnapshots(projectId),
       getPublication(projectId),
+      // §49 的检索接口就是这一条，装配方不自己写 SQL；没给查询词就不付这一遍
+      corpusQuery ? retrieveProjectKnowledge(projectId, corpusQuery, CORPUS_CANDIDATES) : Promise.resolve(null),
     ]);
+  const corpus = retrieved ? fitCorpusToBudget(retrieved.items, maxCorpusChars) : null;
 
   const unavailable = [
     '当前选中 / 页面 / 视口是画布的本地状态，由浏览器侧的 Context Engine 补上（§66 那三项不在这里）',
     '代码正文：目录说了有哪几份文件、里面有什么符号，但还没有"按 path 取正文"的通道给 Agent（§69 的后半截）',
     '语义检索与相关性排序：要 embedding provider，§49 只落了全文 + 子串，§69 的排序是词法的',
     '资产像素内容：只带元数据与引用计数',
+    '语料摘录是命中位置附近的窗口，不是整块正文：要整块得按 sourceId 回库里取，而那条通道还没有',
   ];
 
   const context: ProjectContextPayload = {
@@ -143,6 +175,32 @@ export async function buildProjectContext(
       vectorAvailable: knowledge.vectorized > 0,
       sources: Object.entries(knowledge.bySource).map(([sourceType, count]) => ({ sourceType, count })),
     },
+    // §49 × §66-71 的那一半：语料的**内容**按相关性进上下文，而不只是报一个块数。
+    // 每一项都带着"这条是怎么被查到的"（matchedBy / score）与出处（sourceType / sourceId / 第几块），
+    // 收到的一方才知道哪句可以当真、哪句该回库里核对。
+    corpus:
+      retrieved && corpus
+        ? {
+            query: corpusQuery,
+            candidates: retrieved.items.length,
+            used: corpus.kept.length,
+            omitted: corpus.omitted,
+            budgetChars: maxCorpusChars,
+            usedChars: corpus.usedChars,
+            vectorAvailable: retrieved.vectorAvailable,
+            items: corpus.kept.map((item) => ({
+              sourceType: item.sourceType,
+              sourceId: item.sourceId,
+              chunkIndex: item.chunkIndex,
+              title: item.title,
+              excerpt: item.snippet,
+              score: Number(item.score.toFixed(4)),
+              matchedBy: item.matchedBy,
+            })),
+          }
+        : // 没给查询词（或一条都没查到）也要发这一栏，而不是省略它：
+          // 收到的一方据此分清"这一轮没查语料库"与"查了但都不相关"
+          emptyCorpusDigest(maxCorpusChars),
     recentChanges: snapshots.slice(0, recentLimit).map((snapshot) => ({
       label: snapshot.label,
       source: snapshot.source,

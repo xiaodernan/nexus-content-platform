@@ -109,6 +109,9 @@ describe('assembleAiRequest（§67/§68：装配在服务端，文档不上线�
 
     expect(result.wire.context.designIndex).toBeTruthy();
     expect(result.wire.context.designIndex?.totals.nodes).toBeGreaterThan(0);
+    // §49 × §66-71：这一轮发出去的不止"目录 + 块数"，语料的**内容**也按相关性上了报文
+    expect(result.wire.context.corpus, 'wire 里的语料摘要没注入 = 模型还是看不见项目设定').toBeDefined();
+    expect(result.wire.context.corpus!.query, '装配没把提示词当查询词 = 查不到东西').toBeTruthy();
     expect(result.wire.context.indexChars).toBeGreaterThan(0);
     expect(result.wire.context.budgetChars).toBeGreaterThan(0);
     // 这一条就是 §68 的全部内容：provider 侧的那一份里没有整份文档

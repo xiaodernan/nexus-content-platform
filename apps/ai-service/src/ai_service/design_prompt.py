@@ -160,6 +160,19 @@ def build_prompt(request: dict[str, Any]) -> tuple[str, str]:
         **({"annotationsNote": context["annotationsNote"]} if context.get("annotationsNote") else {}),
         "recentChanges": context.get("recentChanges") or [],
     }
+    # §49 × §66-71：这一轮按相关性从项目语料库取回的内容（世界条目、角色、记忆、分镜、
+    # 游戏设计、设计正文）。空列表与"这一轮没查"是两件事，所以 query 一并带上：
+    # query 为 null 就是装配方没给查询词，不能读成"项目里没有相关设定"。
+    corpus = context.get("corpus") or {}
+    payload["corpus"] = corpus
+    if corpus.get("query"):
+        payload["corpusNote"] = (
+            f"corpus.items 是按「{corpus['query']}」从本项目语料库取回的既有设定，每条带出处"
+            f"（sourceType/sourceId/第几块）与命中方式（matchedBy）。与它冲突就是改设定，"
+            f"要在 explanation 里说清楚改了哪一条；"
+            f"{corpus.get('omitted', 0)} 条相关的因预算没带进来（candidates="
+            f"{corpus.get('candidates', 0)}），没带进来不等于项目里没有。"
+        )
     # 这个进程自己又裁的每一刀，最后一起写进 promptTruncated（§159：短了要说，别默默变短）
     truncations: list[str] = []
 

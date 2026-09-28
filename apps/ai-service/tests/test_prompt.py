@@ -31,6 +31,36 @@ def test_fixture_itself_carries_no_document() -> None:
     assert "document" not in _fixture_request()["context"]
 
 
+def test_corpus_digest_reaches_the_prompt_verbatim() -> None:
+    """§49 × §66-71：装配按相关性取回的语料摘要必须原样进提示。
+
+    夹具里这一轮没有查询词（`query` 为 null），所以 `corpusNote` 必须缺席——
+    凭空冒出一句"有 3 条相关的因预算没带进来"就是假话。
+    """
+    request = _fixture_request()
+    corpus = request["context"]["corpus"]
+    payload = _user_payload(request)
+    assert corpus["query"] is None, "夹具应当是「这一轮没查语料库」的形状"
+    assert payload["corpus"] == corpus, "语料摘要被改写或丢了"
+    assert "corpusNote" not in payload, "没查语料库却给模型解释了一番裁掉多少"
+
+
+def test_corpus_note_reports_query_and_omitted_counts() -> None:
+    """给了查询词就要说清：按什么查的、有几条相关的因为预算没发过来（§159 不许"看起来是全集"）。"""
+    request = _fixture_request()
+    corpus = request["context"]["corpus"]
+    corpus["query"] = "雾里的港口只有一条会响的钟"
+    corpus["candidates"], corpus["used"], corpus["omitted"] = 5, 2, 3
+    _, user = build_prompt(request)
+    assert "雾里的港口只有一条会响的钟" in user, "查询词没进提示：模型无从知道这是按哪句取回的设定"
+    assert "corpusNote" in user
+    # 这条也要断**摘要本身**被转发了（提示里那份 JSON 就是证据）：只断说明文字的话，
+    # 把 payload["corpus"] 换成空对象也能全绿——探针真的这么试过，第一次就是这一条没抓到。
+    assert '"corpus"' in user and '"omitted":3' in user and '"candidates":5' in user, "摘要是空的那一份？"
+    # 数字要说得出：裁掉了 3 条、候选 5 条
+    assert "3" in user and "5" in user
+
+
 def test_catalog_reaches_the_model() -> None:
     request = _fixture_request()
     payload = _user_payload(request)

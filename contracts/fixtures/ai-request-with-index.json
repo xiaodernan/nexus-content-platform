@@ -885,6 +885,16 @@
         "code-only 区域在生成的组件里是作为字符串带出的（codegen 的 leaf 分支），所以它们的符号不并进 .tsx 的目录；目录给它们的位置 code-only/<页面>/<节点>.<语言> 是我们自己起的寻址名，导出的工程里没有这份文件"
       ]
     },
+    "corpus": {
+      "query": null,
+      "candidates": 0,
+      "used": 0,
+      "omitted": 0,
+      "budgetChars": 4000,
+      "usedChars": 0,
+      "vectorAvailable": false,
+      "items": []
+    },
     "indexChars": 6628,
     "budgetChars": 20000,
     "recentChanges": []

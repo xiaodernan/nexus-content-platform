@@ -1,5 +1,5 @@
 import { buildDesignIndex, createDocument, fitIndexToBudget, type DesignDocument } from '../packages/design-model/src';
-import { AiRequestSchema, type AiRequest } from '../packages/schemas/src';
+import { AiRequestSchema, DEFAULT_CORPUS_CHAR_BUDGET, emptyCorpusDigest, type AiRequest } from '../packages/schemas/src';
 import { buildCodeDigest, buildCodeIndex, fitCodeIndexToBudget } from '../apps/web/src/server/domain/code-index';
 import { deriveContextFromDocument } from '../apps/web/src/server/ai/derive-context';
 
@@ -72,6 +72,8 @@ export function buildAiRequestFixture(): AiRequest {
       ...(derived.annotationsNote ? { annotationsNote: derived.annotationsNote } : {}),
       designIndex: index,
       codeDigest: digest,
+      // §49 × §66-71：装配现在总带这一栏，夹具就得跟着带一份（生产代码产出的形状，不是手抄）
+      corpus: emptyCorpusDigest(DEFAULT_CORPUS_CHAR_BUDGET),
       indexChars: JSON.stringify(index).length,
       budgetChars: 20_000,
       recentChanges: [],

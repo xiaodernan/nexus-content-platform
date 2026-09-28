@@ -397,6 +397,56 @@ export const AnnotationContextSchema = z.object({
 export type AnnotationContext = z.infer<typeof AnnotationContextSchema>;
 
 /** §66 Design Context：Agent 必须拿到上下文而不是每次重推 */
+/**
+ * §49 × §66-71：按相关性从项目语料库取回、发给模型的那几段摘录。
+ *
+ * 每一项都带出处（`sourceType` / `sourceId` / 第几块）与命中方式（`matchedBy`）：
+ * 只发正文的话，模型既没法指认它引用了哪一条设定，也没法在设定冲突时说出改了哪一句。
+ * `query` 为 null 表示"这一轮没有查"，与"查了但都不相关"（query 有值、items 空）是两件事，
+ * 报文上必须长得不同。`omitted` 是被字符预算裁掉的相关块数——没带进来不等于项目里没有。
+ */
+export const CorpusDigestSchema = z.object({
+  query: z.string().nullable(),
+  candidates: z.number().int().min(0),
+  used: z.number().int().min(0),
+  omitted: z.number().int().min(0),
+  budgetChars: z.number().int().min(0),
+  usedChars: z.number().int().min(0),
+  vectorAvailable: z.boolean(),
+  items: z.array(
+    z.object({
+      sourceType: z.string(),
+      sourceId: z.string(),
+      chunkIndex: z.number().int().min(0),
+      title: z.string(),
+      excerpt: z.string(),
+      score: z.number(),
+      matchedBy: z.array(z.enum(['fulltext', 'substring'])),
+    }),
+  ),
+});
+export type CorpusDigest = z.infer<typeof CorpusDigestSchema>;
+
+/** 语料摘录的默认字符预算。放在契约这一层是因为它同时是夹具与装配的公共参数（§68） */
+export const DEFAULT_CORPUS_CHAR_BUDGET = 4000;
+
+/**
+ * "这一轮没查语料库"的那一份。契约层给唯一的出处：装配（`domain/context.ts`）与
+ * Python 夹具（`scripts/ai-request-fixture.ts`）都从这里拿，两边各写一份就必然漂移。
+ */
+export function emptyCorpusDigest(budgetChars: number = DEFAULT_CORPUS_CHAR_BUDGET): CorpusDigest {
+  return {
+    query: null,
+    candidates: 0,
+    used: 0,
+    omitted: 0,
+    budgetChars,
+    usedChars: 0,
+    vectorAvailable: false,
+    items: [],
+  };
+}
+
 export const DesignContextSchema = z.object({
   projectId: z.string(),
   pageId: z.string().optional(),
@@ -432,6 +482,11 @@ export const DesignContextSchema = z.object({
    * 不是代码正文——正文要 Agent 明确伸手取（还没有那条通道，见 omissions）。
    */
   codeDigest: CodeDigestSchema.optional(),
+  /**
+   * §49 语料的内容，按这一轮的提示词取回（服务端注入，和 `designIndex` 同一类：
+   * 客户端上传一律拒）。契约上留 `optional` 是因为这 schema 也用于校验**进来**的请求。
+   */
+  corpus: CorpusDigestSchema.optional(),
   /** 目录字符数与本轮预算：让"发了多大"成为报文里可核对的数，而不是日志里的一句话 */
   indexChars: z.number().int().min(0).optional(),
   budgetChars: z.number().int().min(0).optional(),
@@ -1247,6 +1302,12 @@ export const ProjectContextSchema = z.object({
     vectorAvailable: z.boolean(),
     sources: z.array(z.object({ sourceType: z.string(), count: z.number().int().min(0) })),
   }),
+  /**
+   * §49 语料的**内容**按相关性进上下文（§66-71）。刻意没有默认值：
+   * 装配方必须显式说这一轮查没查语料库、查了几条、被预算裁掉几条——
+   * 让"没查"与"查了但都没用上"在报文上长得一样，就是让收到的一方无从判断该信多少。
+   */
+  corpus: CorpusDigestSchema,
   recentChanges: z.array(
     z.object({ label: z.string().nullable(), source: z.string(), summary: z.string().nullable(), createdAt: z.string() }),
   ),
