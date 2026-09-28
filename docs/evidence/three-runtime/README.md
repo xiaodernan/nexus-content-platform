@@ -1,4 +1,4 @@
-# @nexus/three-runtime — evidence for v108 (host seams), v114 (character controller), v115 (the entity save format), v116 (the scene's physics world), v117 (the cinematic sequence), v118 (the save that reads it back), v119 (the file it survives on disk), v120 (the bytes, through a store), v121 (the id comes back), v122 (a save taken back), v123 (what it holds), v124 (written atomically) and v125 (flushed when asked)
+# @nexus/three-runtime — evidence for v108 (host seams), v114 (character controller), v115 (the entity save format), v116 (the scene's physics world), v117 (the cinematic sequence), v118 (the save that reads it back), v119 (the file it survives on disk), v120 (the bytes, through a store), v121 (the id comes back), v122 (a save taken back), v123 (what it holds), v124 (written atomically), v125 (flushed when asked) and v126 (the debris swept)
 
 This directory records the 3D runtime lane (ROADMAP M5). Every claim here is read back out of the
 shipped source and the package's own vitest suite — `packages/three-runtime/src/*.ts` and
@@ -1001,3 +1001,69 @@ count, is that I can say which behaviour is load-bearing rather than how many as
 Next: the directory-handle question is the only durability step left and it changes what the seam injects, so
 the better next move is the thing this lane has been routing around — `npcs`, `quests`, `player` and
 `worldState` need subsystems, and four of the five blocked rows in the audit table are waiting on them.
+## v126 — the sweeper for the debris v125 named: `sweepTempFiles`, deleting through the delete it already had
+
+v125 closed its own record with a leftover: *"a temp left by a double failure is named and listed until someone
+deletes it."* Naming it was right; leaving a save screen to show a file that no reader can use was not. v126
+adds the sweeper, and the interesting part is what it refuses to invent.
+
+| what | measured |
+| --- | --- |
+| suites | `test/saveSnapshot.test.ts` 89 cases, `test/cinematicSequence.test.ts` 78, package total **265** (89 save + 39 controller + 78 cinematic + 30 physics + 29 runtime), `tsc --noEmit` exit 0 on `src` |
+| seam | `SAVE_TEMP_SUFFIX` is exported and is the only place the suffix is written — the writer that produces the temp and the sweeper that looks for it cannot drift apart by spelling |
+| runtime | `sweepTempFiles()` → `{store, removed, kept}`: it filters `list()` by the suffix and removes each through **`deleteSaveFile`**, not a second unlink path, so confinement, the `false`-means-nothing-there answer and the `saveFileDeleted` event all have one owner |
+| events | one `saveFileDeleted` per swept name, asserted from the bus rather than from the return value |
+| race | `kept` is the honest acknowledgement that a listing is a snapshot: a name `list()` returned and `delete` could not find is reported, and the case proves it with a stub store whose `delete` answers false — not by sleeping on a real filesystem |
+| untouched | the swept save is asserted by content (`"savedAt":1` still in the host's tree), and a second sweep answers `{removed: [], kept: []}` |
+
+Three things worth the sentence it costs.
+
+* **A sweeper that reaches past the delete API is a second owner of deletion.** The obvious implementation —
+  `fs.unlinkSync` on a path the sweeper assembled — would bypass `resolveSavePath`, the no-op answer, and the
+  event, giving the store two rules about removal and one of them untested. Routing through `deleteSaveFile`
+  costs a line and keeps the confinement in one place; the probe's first arm is exactly that bypass, and it is
+  caught by the event assertion.
+* **`kept` exists because a listing goes stale.** Reporting a name that vanished between `list()` and `delete`
+  is the difference between a report and a wish; the case uses a stub whose delete always answers false, which
+  is a legitimate way to make a state that a real host would race into existence.
+* **The suffix is a shared constant, not a coincidence.** `SAVE_TEMP_SUFFIX` is exported so the producer and
+  the sweeper ask the same question; a probe arm that changes the sweeper's filter to `.bak` is caught, which
+  is the only proof that a constant is load-bearing rather than decorative.
+
+### How the probe ran, and what it said
+
+The probe is `mutate-v126.mjs (scratch)`: 5 arms, anchors verified exactly-once before anything ran, the control
+fixing the plane at **167** with 0 red, and the target restored byte-for-byte in a `finally`. Reds per arm,
+in order: 1, 2, 1, 1, 1. No arm survived. No arm reddened fewer than claimed. 1 of the 5 arms reddened MORE than written down for them (02-suffix-filter-blind: 1→2). The whole package was measured
+separately at **265** with 0 red; `tsc --noEmit` exited 0 over `src`.
+
+Predictions were case names again, and all five arms reddened the case they named: bypassing `deleteSaveFile`
+for a raw store delete, changing the sweeper's suffix filter, deleting every listed name, swallowing a vanished
+name instead of reporting it, and removing the no-store refusal. One arm (the suffix filter) also reddened a
+neighbour, which is the same-claim-different-angle pattern v124 and v125 recorded rather than a surprise. The
+value of naming cases instead of counts showed up concretely here: the bypass arm's own named case is the event
+assertion, so the record can say *which* claim defends the "one owner of deletion" decision rather than
+"something went red".
+
+### What v126 still does NOT honor — stated by name
+
+* The sweep is by suffix only. A save a player legitimately named `ending.tmp` is debris-shaped and gets
+  deleted: the seam has no metadata to distinguish them, and writing a marker file to solve that would be a
+  bigger lie than the one it fixes.
+* Nothing schedules a sweep — a leftover waits until a caller asks, and no background timer exists in this
+  package.
+* A store whose `delete` throws (a host that cannot unlink) propagates: the sweep does not decide which
+  failures are acceptable, and `kept` is only for names that turned out to be absent.
+* The rename is still unflushed, the five blocked `SaveData` halves are still blocked, and there is still no
+  Studio surface for any of it.
+
+### Sentences this record retires
+
+* v125's README bounds and the ROADMAP cell: *"a temp left by a double failure is named in the message but
+  never swept"*. It is swept now, on request.
+* v125's "Next" line, which pointed at the directory-handle question; the sweeper came first because it
+  closed a gap a previous grant had already written down.
+
+Next: the directory-handle durability step (the only remaining file-layer gap, and it changes what the seam
+injects), or stop circling and fill in one blocked `SaveData` half — `npcs` first, which the audit table has
+been honestly reporting as waiting on a nonexistent system since v115.

@@ -1493,4 +1493,45 @@ describe('atomic save writes: a reader sees the old save or the new one, never a
     expect(ops.slice(-1)).toEqual(['unlink:saves/root/x.json.tmp']);
     expect(store.list()).toEqual(['x.json']);
   });
+
+  it('v126: a leftover temp is swept, and a real save is never touched', () => {
+    const { host, tree } = renameHost();
+    const store = createFsSaveStore(host, 'saves/root');
+    const rt = runtimeWithStore(store);
+    const sceneId = rt.createScene('World').id;
+    withEntityIn(rt, sceneId);
+    rt.writeSaveFile('x.json', sceneId, 1);
+    // Stand in for the debris v125 describes — a double failure that left a temp behind. Planting it here
+    // keeps the test about the sweeper rather than about rigging two host faults in sequence.
+    store.write('x.json.tmp', 'half-written junk');
+    expect(store.list()).toEqual(['x.json', 'x.json.tmp']);
+    const deleted: { path: string }[] = [];
+    rt.addEventListener('saveFileDeleted', (d) => deleted.push(d as { path: string }));
+    expect(rt.sweepTempFiles()).toEqual({ store: 'fs', removed: ['x.json.tmp'], kept: [] });
+    expect(deleted).toEqual([{ path: 'x.json.tmp', store: 'fs', removed: true }]);
+    expect(store.list()).toEqual(['x.json']);
+    expect(tree.get('saves/root/x.json'), 'a sweep never touches a name it did not pick').toContain('"savedAt":1');
+    expect(rt.sweepTempFiles()).toEqual({ store: 'fs', removed: [], kept: [] });
+    rt.dispose();
+  });
+
+  it('a name that vanished between listing and deleting is reported, not invented away', () => {
+    const backing = createMemorySaveStore();
+    const racing: SaveStore = {
+      kind: 'memory',
+      write: (p, c) => backing.write(p, c),
+      read: (p) => backing.read(p),
+      exists: (p) => backing.exists(p),
+      writeAtomic: (p, c, d) => backing.writeAtomic(p, c, d),
+      list: () => ['ghost.json.tmp'],
+      delete: () => false,
+    };
+    const rt = runtimeWithStore(racing);
+    expect(rt.sweepTempFiles()).toEqual({ store: 'memory', removed: [], kept: ['ghost.json.tmp'] });
+    rt.dispose();
+  });
+
+  it('a runtime with no store cannot sweep', () => {
+    expect(() => runtime.sweepTempFiles()).toThrow(/sweepTempFiles: this runtime has no SaveStore/);
+  });
 });

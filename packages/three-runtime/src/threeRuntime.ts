@@ -34,7 +34,7 @@ import {
   type RenderBackend,
   type RenderBackendFactory,
 } from './renderBackend.js';
-import type { SaveStore } from './saveStore.js';
+import { SAVE_TEMP_SUFFIX, type SaveStore } from './saveStore.js';
 
 export { DEFAULT_THREE_CONFIG };
 
@@ -1394,6 +1394,28 @@ export class ThreeRuntime {
       ties: readable.filter((entry) => entry.savedAt === newest.savedAt).length,
       unreadable,
     };
+  }
+
+  /**
+   * Take back the temp files a store is holding. v125 named this gap out loud — a double failure (rename
+   * fails, then cleanup fails too) leaves a `.tmp` that `listSaveFiles` reports and `readSaveFile` refuses,
+   * and nothing swept it — so a save screen could show a file that is pure debris.
+   *
+   * Removal goes through `deleteSaveFile`, not a second unlink path: the same confinement, the same
+   * no-op-means-`false` answer, the same `saveFileDeleted` event, one owner. `kept` is the honest
+   * acknowledgement that a listing is a snapshot: a name that was there when `list()` answered and gone by
+   * the time `delete` was asked is reported, not invented away.
+   */
+  sweepTempFiles(): { store: string; removed: string[]; kept: string[] } {
+    if (!this.storage) throw new Error('sweepTempFiles: this runtime has no SaveStore — create it with { storage }');
+    const removed: string[] = [];
+    const kept: string[] = [];
+    for (const path of this.storage.list()) {
+      if (!path.endsWith(SAVE_TEMP_SUFFIX)) continue;
+      if (this.deleteSaveFile(path).removed) removed.push(path);
+      else kept.push(path);
+    }
+    return { store: this.storage.kind, removed, kept };
   }
 
   /**

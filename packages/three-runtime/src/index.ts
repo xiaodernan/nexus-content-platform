@@ -6,6 +6,7 @@ export {
   createMemorySaveStore,
   createFsSaveStore,
   resolveSavePath,
+  SAVE_TEMP_SUFFIX,
   type SaveStore,
   type FsLike,
 } from './saveStore.js';

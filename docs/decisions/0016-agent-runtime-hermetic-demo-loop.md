@@ -5924,3 +5924,40 @@ removal leaves behind and the absent Studio surface are exactly where v124 left 
 file layer and build one of the subsystems — `npcs`, `quests`, `player`, `worldState` are four rows of the
 audit table that have been honestly blocked since v115, and the save format is now good enough that filling one
 in would be worth a player's time.
+### Amendment 126 — v126: the debris gets a sweeper — `sweepTempFiles`, deleting through the delete that already existed
+
+v125 wrote its own leftover into the record: when a rename fails and the cleanup fails too, the message names a
+`.tmp` that `listSaveFiles` will keep showing and no reader can load. Naming was the honest half; the other
+half was this grant — a sweeper that takes debris back without inventing a second way to delete.
+
+`SAVE_TEMP_SUFFIX` is exported from the seam and used by both sides: the atomic writer that produces the temp
+and the sweeper that looks for one cannot disagree about a name by spelling it differently. That is a
+load-bearing claim, not tidiness — the probe's second arm changes only the sweeper's filter to `.bak`, and the
+suite goes red, which is what proves the shared constant carries the rule.
+
+`sweepTempFiles()` returns `{store, removed, kept}` and removes each candidate through `deleteSaveFile`, the
+public path, so path confinement, the "`false` means there was nothing there" answer, and the
+`saveFileDeleted` event keep one owner. The alternative — calling `fs.unlinkSync` on a path the sweeper
+assembled itself — would have been a second deletion rule with its own untested edge; the first probe arm is
+exactly that bypass, and it is caught by an assertion on the event bus rather than on a return value.
+
+`kept` is the honesty about a listing being a snapshot: a name that `list()` returned and `delete` could not
+find is reported rather than quietly counted as removed. The case for it uses a stub store whose `delete`
+answers false — a legitimate way to reproduce a race a real host would produce by timing, which this suite has
+learned not to rely on. And the sweep's restraint is asserted as strongly as its action: the real save still
+holds its own bytes afterwards, a second sweep answers with two empty lists, and a runtime with no store refuses
+in the same sentence shape as every other file method since v120.
+
+Measured: `test/saveSnapshot.test.ts` is 89 cases and `test/cinematicSequence.test.ts` 78,
+package total **265** (89 save + 39 controller + 78 cinematic + 30 physics + 29 runtime), `tsc --noEmit` exit 0 on `src`. The probe ran 5 arms
+against a control of **167 collected / 0 red**, predicting case names: 1, 2, 1, 1, 1. No arm survived.
+No arm reddened fewer than claimed. 1 of the 5 arms reddened MORE than written down for them (02-suffix-filter-blind: 1→2).
+
+What v126 does not do, stated by name: it filters by suffix alone, so a save a player legitimately named
+`ending.tmp` is debris-shaped and will be taken — the seam has no metadata to tell them apart, and inventing a
+marker file to solve that would be a larger lie than the one it fixes; nothing schedules a sweep, so leftovers
+wait until asked; a store whose `delete` throws propagates, because a sweeper should not decide which failures
+are acceptable; and the rename-flush gap, the four blocked `SaveData` halves and the absent Studio surface are
+exactly where v125 left them. Next: fill in one blocked half — `npcs`, which the audit table has been honestly
+reporting as waiting on a system that does not exist since v115 — or take on the directory handle, which is
+the only file-layer claim left that cannot be checked from here.

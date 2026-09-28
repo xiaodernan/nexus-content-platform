@@ -96,6 +96,10 @@ export function resolveSavePath(path: string): string {
   return path;
 }
 
+/** The suffix a save's temp file carries. One owner: the writer that produces it and the sweeper that looks
+ *  for it must not disagree about a name, or a leftover becomes invisible exactly when it matters. */
+export const SAVE_TEMP_SUFFIX = '.tmp';
+
 /** An in-memory store — what a headless runtime and every test in this package write into. */
 export function createMemorySaveStore(): SaveStore {
   const files = new Map<string, string>();
@@ -159,7 +163,7 @@ export function createFsSaveStore(fs: FsLike, root: string): SaveStore {
         throw new Error(`saveStore: "${path}" was asked to be durable but the injected fs has no flushSync; nothing was written — an unflushed rename is still a rename that can point at nothing`);
       }
       const target = at(path);
-      const temp = `${target}.tmp`;
+      const temp = `${target}${SAVE_TEMP_SUFFIX}`;
       fs.writeFileSync(temp, contents);
       try {
         if (durable) fs.flushSync!(temp);
