@@ -6038,3 +6038,60 @@ cannot answer "which saves exist"; `unreadable` carries a prose `why` rather tha
 caller cannot branch on the difference without string matching â€” named here as the next grant's first job; and
 nothing is repaired, migrated or rewritten by a survey. The four blocked `SaveData` halves are unchanged and
 still the reason `readableNowButNotCarried` has anything to say.
+
+### Amendment 107, addendum (M2 v107 re-measured) ¡ª the record's correction claimed EBUSY 6/6, but re-measurement shows status 0 6/6; the host fault is intermittent, not absolute
+
+Amendment 107's record (line 4757) states: e-measured for this record: spawnSync fails with EBUSY 6 times out of 6, and syncApiIsBroken() returns true ¡ª so the line prints BROKEN. Re-measured for amendment 130's record at cf50329: spawnSync(process.execPath, ['-e', 'process.exit(0)']) returns status 0 with no error, 6/6, and syncApiIsBroken() returns false. The identity line prints nswers (status 0, no error) in both worktree and isolated sweeps.
+
+The host fault is **intermittent/plane-dependent**, not absolute ¡ª which is exactly why v107's identity line exists: it reports the state of this run, so a reader can tell which world the run stands in. Both the original commit's prediction (nswers...) and the record's correction (BROKEN...) were absolute claims; the truth is conditional.
+
+### Amendment 129 (M5 v129, three-runtime) ¡ª the commit ca3932d (eat(three-runtime): v129) landed but its record is still owed. This note records the debt so the ledger's newest-grant refusal in table-recount-proof.mjs ¡ì7 does not fire spuriously when 129 is finally written.
+
+### Amendment 130 (M2 v130, docs/evidence) ¡ª two rows were red only on the plane where git works, so their dead assertions are repaired on the plane that can see them
+
+Two rows in the population ¡ª cwd-axis-proof.mjs and 	imeout-axis-proof.mjs ¡ª carried assertions that were TRUE in v83 but went false when three rows landed (v91¨Cv94) that never load the shipped build at all. On the ISOLATED plane those rows die early at git ls-tree exit 128, so the false assertions were never exercised; the 42-red standing population hid them. On the WORKTREE plane git answers, the rows reach their own assertions, and both failed:
+
+- cwd-axis ¡ì1 pinned childRelative === total (70 ¡Ù 73) but three rows have no build edge; the census now names the three (asks-axis, plane-axis, table-recount) instead of letting a reader round 70/73 up to 73/73. A code-position scan also asserts no non-child-cwd row smuggles a build in through its own location (a different reader than the text-scan distRelative check).
+- timeout-axis ¡ì2 required every budget declaration to cite a measurement in its header; 	able-recount-proof.mjs declared 300 000 ms but cited none. The row now cites measured 12.2 s inside a sweep row and 15.1 s standing alone, both on 2026-09-28, against a 300 000 ms ceiling. The checker's numeric arm is widened to the repo's spaced form 12.2 s (amendment 89's lesson: a grammar that doesn't match the population manufactures failures).
+- The identity line [identity] sync spawn API on this box: prints once per run and reads nswers (status 0, no error) on this box in both planes.
+- Identical verdict sets across the two planes for the rows that run: worktree 0 failed, isolated 42 failed, the 42 being the standing population from amendment 113's addendum.
+
+Measured at cf50329: worktree 73 scripts ¡¤ 0 failed ¡¤ 0 killed ¡¤ 709s, isolated 73 scripts ¡¤ 42 failed ¡¤ 0 killed ¡¤ 146s (unchanged from amendment 113's addendum). The home build digest stays  1db41cffeab0c51 (260 dist files), tree digest 420a122818880cda (257 files), dirty-sources 0.
+docs(adr-0016): M2 v130 record + amendment 107 addendum + amendment 129 owed note + README gates fix (ADR 0016)
+
+Three records close open loops:
+
+1. Amendment 130 (M2 v130, docs/evidence): two rows were red only on the plane where git works.
+   The worktree sweep at cf50329 reports **73 scripts Â· 0 failed Â· 0 killed Â· 709s**. The isolated sweep
+   reports **73 scripts Â· 42 failed Â· 0 killed Â· 146s** (unchanged from amendment 113's addendum).
+   - cwd-axis Â§1: replaced the stale `childRelative === total` pin (70 â‰?73) with a named-remainder
+     census: three rows (asks-axis, plane-axis, table-recount) reach no build through the child's cwd
+     and are printed by name. A code-position scan also asserts no such row smuggles a build in
+     through its own location (a different reader than the text-scan distRelative check).
+   - timeout-axis Â§2: table-recount-proof now cites its measurement â€?"measured 12.2 s inside a
+     sweep row and 15.1 s standing alone, both on 2026-09-28, against a 300 000 ms ceiling". The
+     checker's numeric arm is widened to the repo's spaced form "12.2 s" (amendment 89's lesson:
+     a grammar that doesn't match the population manufactures failures).
+   - The identity line `[identity] sync spawn API on this box:` prints once per run and reads
+     `answers (status 0, no error)` on this box in both planes.
+   - Identical verdict sets across the two planes for the rows that run: worktree 0 failed,
+     isolated 42 failed, the 42 being the standing population from amendment 113's addendum.
+
+2. Amendment 107, addendum (M2 v107 re-measured): the record's "correction" claimed EBUSY 6/6.
+   Amendment 107's record (line 4757) states: "re-measured for this record: spawnSync fails with
+   EBUSY 6 times out of 6, and syncApiIsBroken() returns true â€?so the line prints BROKEN".
+   Re-measured for amendment 130's record: `spawnSync(process.execPath, ['-e', 'process.exit(0)'])`
+   returns status 0 with no error, 6/6, and syncApiIsBroken() returns false. The identity line
+   prints `answers (status 0, no error)` in both worktree and isolated sweeps at cf50329.
+   The host fault is **intermittent/plane-dependent**, not absolute â€?which is exactly why v107's
+   identity line exists: it reports the state of this run, so a reader can tell which world
+   the run stands in. Both the original commit's prediction ("answers...") and the record's
+   "correction" ("BROKEN...") were absolute claims; the truth is conditional.
+
+3. Amendment 129 (M5 v129, three-runtime): the commit `ca3932d` ("feat(three-runtime): v129")
+   landed but its record is still owed. This note records the debt so the ledger's newest-grant
+   refusal in table-recount-proof.mjs Â§7 does not fire spuriously when 129 is finally written.
+
+README line 59 updated: the gates command now reads
+`@nexus/agent-runtime 409/409 + @nexus/exec-host 275/275 vitest among all packages`
+(matching the table-recount-proof's table at HEAD: 409 cases in 30 runtime files + 275 in 8 exec-host files).
