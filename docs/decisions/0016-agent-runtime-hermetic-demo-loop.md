@@ -6566,3 +6566,59 @@ a caller names one; death is a number reaching zero rather than a state this run
 revives a corpse and nothing else notices; nothing outside a test calls any of the five operations — no Studio
 face, no HUD, no autonomy drives them; and the operations move one scene's one player, with no rule about who is
 allowed to call them.
+### Amendment 139 (M5 v139, three-runtime) — the package face stops being a hand-copied list, so a grant can no longer export a name its callers cannot spell
+
+`src/index.ts` re-exported each of the package's four modules BY NAME, which silently turned every grant into two
+grants: add the export to the module, then remember the barrel line. v135 did the first and not the second, and
+nothing said so. Full narrative in `docs/evidence/three-runtime/README.md` section v139; this is the ledger
+entry.
+
+- **The accident, measured rather than recalled.** The reader written for this grant (`.scratch/v139/barrel.mjs
+  <ref>`, which asks git for each module's bytes and compares what each DECLARES against what the barrel NAMES)
+  prints at 9bf77b1 — the ref before this grant — `holes=1 ghosts=0` and names the hole:
+  `RefusalRow`. That is the row type of `refusalsFor`'s own table parameter (amendment 135), so the
+  type that documents the refusal census could not be spelled by anyone importing `@nexus/three-runtime`. On the
+  moving worktree, while the v138 writer's in-flight names were still uncommitted, the same reader counted
+  `holes=0` — a hand list loses one name per forgotten line and reports nothing when it does. At c30f592
+  the reader prints `holes=0 ghosts=0` and the line `face is complete and honest`.
+- **The fix removes the class, not the instance.** The face is now the union of its modules: four wholesale
+`export *` clauses, so a module cannot declare a name the barrel omits. That shape had been refused before for a
+  real reason — two starred modules that both OWN one name make that name vanish silently (TS2308 calls it an
+  ambiguity; the runtime just drops it). It is now a measured precondition instead of a judgment: at this ref the
+  four modules own 123 names (`types 75`, `threeRuntime 31`, `saveStore 6`, `renderBackend 11`) with zero
+pairwise collisions, and the only name two of them touch — `DEFAULT_THREE_CONFIG` — is OWNED by `types.ts:774`
+and merely
+  FORWARDED by `threeRuntime.ts:49`, which is one binding with one owner rather than two owners. `tsc --noEmit`
+  exits 0 on the wholesale barrel: that is the arbitration of the ambiguity question, not my reading of it.
+- **The rule shipped as 6 derived cases** (`test/packageFace.test.ts`), none of which holds a literal name list:
+every export a module owns is reachable through the face; the face mentions every module it is built from; no two
+  modules own one name; a forwarded name has exactly one owner AND is forwarded from that owner's file; the value
+  layer of the imported namespace equals the modules' own values plus their forwards — nothing missing, nothing
+  invented; and a synthetic witness runs the finders against a hand-listed barrel, because a gate that has never
+  seen the broken shape it exists to catch has not been tested. The witness table is built in-process rather than
+  by editing a module, since `src/types.ts` and `src/threeRuntime.ts` were under a live v138 writer at the time.
+- - **Behavioural probe: [summary] 3 arms, 0 mismatched.** Each arm mutated only `src/index.ts` and asserted its
+  own
+  byte-change before grading. Arm A put v135's hand-copied list back and reddened exactly the reachability case
+  and the value-layer case while the rest of the package did not notice — 361 cases collected, 2 failed,
+  0 reds outside `packageFace`: the accident reproduced and the suite shown blind to it. Arm B dropped one module
+  and reddened 3 cases; arm C named a member the module had stopped declaring and reddened 2 while `tsc` exited 2
+(TS2305). Round 1 of the same probe predicted 1/3/0 reds and measured 2/4/2 — three misses, all mine, each named
+  in the landing commit — and round 2 hit all three. `src/index.ts` was restored byte-exactly between rounds.
+
+Measured at the landing: **361/361 cases across 7 files, 53/53 suites, 0 failed**, `tsc` exit 0,
+staged diff derived from the bytes it wrote: **+198/−27 over 2 files**. Landed as `c30f592`.
+
+**A hole this entry does not fill: amendment 138 does not exist.** The v138 grant (the combat record) is still in
+flight in the shared worktree — its writer holds `src/threeRuntime.ts`, `src/types.ts` and
+`test/combatRecord.test.ts` uncommitted — so 138 is that lane's entry to write, and taking the number would be
+writing someone else's record. Nothing here adopts or reverts any of their hunks: the two files this grant
+touched are `src/index.ts` and its own new test.
+
+Bounds added: a wholesale face cannot hide a name by omitting it, only by not exporting it — a different and
+visible decision; the gate reads declaration syntax with regexes, so an export form it does not recognise
+(a computed or generated re-export) is invisible to it, and the synthetic witness is the only case that exercises
+the broken shape; nothing outside this package imports `@nexus/three-runtime`, so no consumer was ever broken by
+the hole and this repair prevents rather than mends a user-visible failure; and `src/index.ts` no longer states
+which names are public — the modules are the public surface now, so a name exported by a module is shipped.
+
