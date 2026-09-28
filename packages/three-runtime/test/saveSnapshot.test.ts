@@ -1534,4 +1534,73 @@ describe('atomic save writes: a reader sees the old save or the new one, never a
   it('a runtime with no store cannot sweep', () => {
     expect(() => runtime.sweepTempFiles()).toThrow(/sweepTempFiles: this runtime has no SaveStore/);
   });
+
+  it('v127: a file that carries a field this runtime cannot read is diagnosed, and the load agrees', () => {
+    const store = createMemorySaveStore();
+    const rt = runtimeWithStore(store);
+    const sceneId = rt.createScene('World').id;
+    rt.setActiveScene(sceneId);
+    withEntityIn(rt, sceneId);
+    const file = rt.buildSaveFile(sceneId, 1) as unknown as Record<string, unknown>;
+    file.carries = ['entities', 'npcs'];
+    store.write('old.json', JSON.stringify(file));
+
+    const diagnosis = rt.diagnoseSaveFile('old.json');
+    expect(diagnosis).toEqual({
+      path: 'old.json',
+      bytes: store.read('old.json')!.length,
+      loadable: false,
+      problems: [
+        'it carries "npcs", which this runtime can neither fill nor read',
+        'it omits "cinematic", which this runtime could now write — the file predates that capability',
+      ],
+      carriedButUnreadableHere: ['npcs'],
+      readableNowButNotCarried: ['cinematic'],
+    });
+    // The pair: the verdict is the load's verdict, not a parallel opinion about it.
+    let loadMessage = '';
+    try {
+      rt.loadSaveFile(file as never, sceneId);
+    } catch (error) {
+      loadMessage = (error as Error).message;
+    }
+    expect(loadMessage).toMatch(/the file says it carries "npcs"/);
+    rt.dispose();
+  });
+
+  it('a current file diagnoses as loadable with nothing to report', () => {
+    const store = createMemorySaveStore();
+    const rt = runtimeWithStore(store);
+    const sceneId = rt.createScene('World').id;
+    rt.setActiveScene(sceneId);
+    withEntityIn(rt, sceneId);
+    rt.writeSaveFile('now.json', sceneId, 2);
+    const diagnosis = rt.diagnoseSaveFile('now.json');
+    expect(diagnosis).toMatchObject({ loadable: true, problems: [], carriedButUnreadableHere: [], readableNowButNotCarried: [] });
+    expect(diagnosis.bytes).toBe(store.read('now.json')!.length);
+    // …and the load really does succeed, which is the other half of "the verdict is the load's verdict".
+    const reader = runtimeWithStore(store);
+    reader.createScene('copy', sceneId);
+    expect(reader.loadSaveFile(JSON.parse(store.read('now.json')!), sceneId).entities).toHaveLength(1);
+    rt.dispose();
+    reader.dispose();
+  });
+
+  it('an unreadable file is refused with the reason it can check, and a missing path is its own answer', () => {
+    const store = createMemorySaveStore();
+    const rt = runtimeWithStore(store);
+    expect(() => rt.diagnoseSaveFile('nothing.json')).toThrow(/diagnoseSaveFile: no save file at "nothing.json"/);
+    store.write('broken.json', '{"carries": [');
+    expect(() => rt.diagnoseSaveFile('broken.json')).toThrow(/is not readable as JSON/);
+    store.write('wrong.json', JSON.stringify({ format: 'other', version: 9, carries: [], doesNotCarry: [] }));
+    expect(rt.diagnoseSaveFile('wrong.json')).toMatchObject({
+      loadable: false,
+      problems: ['format is other, not nexus-three-runtime-save', 'version is 9, and this runtime reads exactly 1'],
+    });
+    rt.dispose();
+  });
+
+  it('a runtime with no store cannot diagnose either', () => {
+    expect(() => runtime.diagnoseSaveFile('x.json')).toThrow(/diagnoseSaveFile: this runtime has no SaveStore/);
+  });
 });

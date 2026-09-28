@@ -478,6 +478,18 @@ export interface SaveFileDeleteReport {
   removed: boolean;
 }
 
+/** What `diagnoseSaveFile` answers. `loadable` is the verdict `loadSaveFile` would reach about the same
+ *  claims — not a guess about it — and `problems` keeps the reasons in both directions: a field the file
+ *  carries that cannot be read here, and a field this runtime could write that the file predates. */
+export interface SaveFileDiagnosis {
+  path: string;
+  bytes: number;
+  loadable: boolean;
+  problems: string[];
+  carriedButUnreadableHere: string[];
+  readableNowButNotCarried: string[];
+}
+
 /** What `latestSaveFile` answers when at least one save could be understood. `ties` counts the readable saves
  *  sharing the winning `savedAt`; the tie-break is the path, and the caller deserves to know it was arbitrary.
  *  `unreadable` is never empty by accident — a save the runtime cannot read is reported, not hidden. */
@@ -1416,6 +1428,63 @@ export class ThreeRuntime {
       else kept.push(path);
     }
     return { store: this.storage.kind, removed, kept };
+  }
+
+  /**
+   * Say what a save file claims, and whether this runtime agrees with it — without loading it.
+   *
+   * A file is a snapshot of what the writer could do. `carries` and `doesNotCarry` were copied out of
+   * `SAVE_DATA_FEASIBILITY` at write time, so a file from an older runtime can disagree with the table that
+   * exists now: it can claim to carry a field this build cannot read (a load would refuse), or omit a field
+   * this build *can* fill (a load succeeds and quietly leaves that half empty). Today neither is visible
+   * before the fact, which is how a "successful" load of an old file can be a partial restore.
+   *
+   * The diagnosis is deliberately answerable: `loadable` is computed from the same table `loadSaveFile`
+   * consults, and the suite asserts for three crafted files that the verdict and the actual load agree. A
+   * diagnosis that disagrees with the operation it describes is the failure mode this whole lane keeps
+   * chasing, so it is tested as a pair rather than trusted as a report.
+   */
+  diagnoseSaveFile(path: string): SaveFileDiagnosis {
+    if (!this.storage) throw new Error('diagnoseSaveFile: this runtime has no SaveStore — create it with { storage }');
+    const contents = this.storage.read(path);
+    if (contents === null) {
+      throw new Error(`diagnoseSaveFile: no save file at "${path}" in the ${this.storage.kind} store`);
+    }
+    let parsed: unknown;
+    try {
+      parsed = JSON.parse(contents);
+    } catch (error) {
+      throw new Error(`diagnoseSaveFile: "${path}" is not readable as JSON (${(error as Error).message}); the diagnosis needs the file's own claims, and there are none here`);
+    }
+    const file = parsed as Partial<SaveFile>;
+    const problems: string[] = [];
+    if (!file || typeof file !== 'object' || Array.isArray(file)) problems.push('the bytes parse to something other than an object');
+    if (file?.format !== SAVE_FILE_FORMAT) problems.push(`format is ${String(file?.format)}, not ${SAVE_FILE_FORMAT}`);
+    if (file?.version !== SAVE_FILE_VERSION) problems.push(`version is ${String(file?.version)}, and this runtime reads exactly ${SAVE_FILE_VERSION}`);
+    const declaredCarries = Array.isArray(file?.carries) ? file.carries : [];
+    const declaredOmits = Array.isArray(file?.doesNotCarry) ? file.doesNotCarry.map((entry) => entry.field) : [];
+    if (problems.length > 0) {
+      return {
+        path, bytes: contents.length, loadable: false, problems,
+        carriedButUnreadableHere: [], readableNowButNotCarried: [],
+      };
+    }
+    const carriedButUnreadableHere = declaredCarries.filter((field) => !SAVE_DATA_FEASIBILITY.savable.includes(field));
+    const readableNowButNotCarried = SAVE_DATA_FEASIBILITY.savable.filter((field) => !declaredCarries.includes(field));
+    for (const field of carriedButUnreadableHere) {
+      problems.push(`it carries "${field}", which this runtime can neither fill nor read`);
+    }
+    for (const field of readableNowButNotCarried) {
+      problems.push(`it omits "${field}", which this runtime could now write — the file predates that capability`);
+    }
+    return {
+      path,
+      bytes: contents.length,
+      loadable: carriedButUnreadableHere.length === 0,
+      problems,
+      carriedButUnreadableHere,
+      readableNowButNotCarried,
+    };
   }
 
   /**

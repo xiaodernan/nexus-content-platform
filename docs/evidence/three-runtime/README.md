@@ -1,4 +1,4 @@
-# @nexus/three-runtime — evidence for v108 (host seams), v114 (character controller), v115 (the entity save format), v116 (the scene's physics world), v117 (the cinematic sequence), v118 (the save that reads it back), v119 (the file it survives on disk), v120 (the bytes, through a store), v121 (the id comes back), v122 (a save taken back), v123 (what it holds), v124 (written atomically), v125 (flushed when asked) and v126 (the debris swept)
+# @nexus/three-runtime — evidence for v108 (host seams), v114 (character controller), v115 (the entity save format), v116 (the scene's physics world), v117 (the cinematic sequence), v118 (the save that reads it back), v119 (the file it survives on disk), v120 (the bytes, through a store), v121 (the id comes back), v122 (a save taken back), v123 (what it holds), v124 (written atomically), v125 (flushed when asked), v126 (the debris swept) and v127 (a file asked what it is worth)
 
 This directory records the 3D runtime lane (ROADMAP M5). Every claim here is read back out of the
 shipped source and the package's own vitest suite — `packages/three-runtime/src/*.ts` and
@@ -1067,3 +1067,68 @@ assertion, so the record can say *which* claim defends the "one owner of deletio
 Next: the directory-handle durability step (the only remaining file-layer gap, and it changes what the seam
 injects), or stop circling and fill in one blocked `SaveData` half — `npcs` first, which the audit table has
 been honestly reporting as waiting on a nonexistent system since v115.
+## v127 — a file's own claims get an answer: `diagnoseSaveFile`, and a verdict that has to agree with the load
+
+v119 gave a `SaveFile` its `carries` / `doesNotCarry` lists so a file could say what it held, and v123 let a
+caller see which files exist. What nobody could answer was the question those two features create: **a file
+written by an older runtime disagrees with the table that exists now, and until you try to load it you cannot
+tell whether the result will be a refusal, a partial restore, or a clean read.** v127 adds the diagnosis, and
+ties it to the load so it cannot drift into opinion.
+
+| what | measured |
+| --- | --- |
+| suites | `test/saveSnapshot.test.ts` 93 cases, `test/cinematicSequence.test.ts` 78, package total **269** (93 save + 39 controller + 78 cinematic + 30 physics + 29 runtime), `tsc --noEmit` exit 0 on `src` |
+| method | `diagnoseSaveFile(path)` → `{path, bytes, loadable, problems, carriedButUnreadableHere, readableNowButNotCarried}`, reading the file's own `format`/`version`/`carries`/`doesNotCarry` and comparing them to the live `SAVE_DATA_FEASIBILITY` |
+| both directions | a field the file carries that this runtime cannot read ⇒ `loadable: false` with the reason; a field this runtime **can** write that the file does not carry ⇒ a *warning* with `loadable` still true, because the file is older, not broken — "the file predates that capability" |
+| refusals | an absent path, bytes that are not JSON, and a runtime with no store each get their own sentence; a file with a foreign `format` or an unread `version` gets both problems listed at once rather than one per attempt |
+| the pair | the load case asserts the actual `loadSaveFile` refuses for the same reason the diagnosis named, and the healthy case asserts the load really succeeds — the verdict is the operation's verdict, not a parallel opinion about it |
+
+Three things worth the sentence it costs.
+
+* **The useful half is the direction nobody expected.** "The file claims it carries something you cannot read"
+  is a refusal you were already going to get. "The file does not carry something you have learned to write" is
+  the silent one: the load succeeds, and the missing half stays empty with no word said. That is the same
+  family as v119's loader that "ignores what it cannot read", arriving from the other side — a file that
+  predates a capability.
+* **`problems` is ordered and asserted as an array, not as a substring.** Both directions in one file produce
+  two lines in a fixed order, and the case compares the whole array. A report whose items can be reshuffled
+  without the suite noticing is a report whose meaning is in the reader's head.
+* **`loadable` is computed from the same table the loader consults, and checked against it.** One arm inverts
+  the filter, one hardcodes `true`, one drops the omission reporting, one drops the version check, one drops
+  the missing-file branch, one drops the no-store refusal — each is caught by the case that owns that claim.
+  That is six clauses, six witnesses, and no arm that survives by being equivalent to nothing.
+
+### How the probe ran, and what it said
+
+The probe is `mutate-v127.mjs (scratch)`: 6 arms on `threeRuntime.ts`, anchors verified exactly-once before anything
+ran, the control fixing the plane at **171** with 0 red, the file restored byte-for-byte in a `finally`.
+Reds per arm, in order: 1, 1, 1, 1, 1, 2. No arm survived. No arm reddened fewer than claimed. 1 of the 6 arms reddened MORE than written down for them (06-unreadable-filter-reversed: 1→2). The whole package
+was measured separately at **269** with 0 red; `tsc --noEmit` exited 0 over `src`.
+
+Six clauses, six named witnesses: stop reporting omissions, hardcode `loadable`, drop the version check, drop
+the no-store refusal, drop the missing-file branch, invert the unreadable filter. Five arms reddened exactly the
+case that owns the claim; the sixth (inverting the filter) also reddened a neighbour, because the healthy-file
+case asserts the omission list is empty and an inverted filter fills it — the same-claim-different-angle pattern
+recorded in v124-v126 rather than a surprise. The predictions being case names again meant the harness could say
+*which* claim each arm defends, which is the point of the practice: an over-count tells you nothing, a named
+case tells you the guard is load-bearing.
+
+### What v127 still does NOT honor — stated by name
+
+* It diagnoses one named file; there is no "which of my saves can I actually open" pass over `listSaves()`.
+* It reads the file's claims, not its content: a file that says it carries `entities` and holds an empty list
+  is reported as loadable, because the empty list is exactly what the writer was able to write.
+* A format change that keeps `version: 1` while altering meaning is beyond any check here — the version is
+  the only promise the file makes about itself.
+* `npcs`, `quests`, `player`, `worldState` and `sceneGraph` remain blocked on systems that do not exist; the
+  rename is unflushed; there is no Studio surface for any of it.
+
+### Sentences this record retires
+
+* Nothing wholesale — v126's bounds stay as written. What v127 fills in is the gap v119 left implicit: it made
+  a file *state* its coverage, and said nothing about how a reader finds out whether that statement still
+  matches the runtime.
+
+Next: the same comparison run over `listSaves()` (a save-picker needs "which of these can I open"), or the
+blocked `SaveData` halves themselves, which is the only way `readableNowButNotCarried` ever stops being empty
+for a file written today.

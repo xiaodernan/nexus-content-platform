@@ -5961,3 +5961,47 @@ are acceptable; and the rename-flush gap, the four blocked `SaveData` halves and
 exactly where v125 left them. Next: fill in one blocked half — `npcs`, which the audit table has been honestly
 reporting as waiting on a system that does not exist since v115 — or take on the directory handle, which is
 the only file-layer claim left that cannot be checked from here.
+### Amendment 127 — v127: a file's claims get an answer — `diagnoseSaveFile`, and the silent direction is the one that mattered
+
+v119 made a `SaveFile` state its own coverage (`carries`, `doesNotCarry`), and v123 let a caller enumerate the
+files a store holds. Put those together and a question appears that nobody had answered: a file written by an
+older runtime disagrees with the feasibility table that exists now, and until the load is attempted there is no
+way to know whether the outcome will be a refusal, a clean read, or — the bad one — a successful load that
+quietly restores less than the player expects. `diagnoseSaveFile(path)` answers that without loading, and the
+grant is worth writing down mainly for which half turned out to be new.
+
+The obvious direction was already covered: a file that claims to carry a field this build cannot read is
+refused by `loadSaveFile`, and has been since v119, with the reason named. The **other** direction had no
+voice at all — a file that omits a field this build *can* write. That load succeeds. It is not broken; it
+predates a capability. `diagnoseSaveFile` reports it as a problem without marking the file unloadable
+(`loadable` stays `true`), because the honest answer to "can I open this save" is yes, and the honest answer to
+"will what I get be everything I could now have" is no. `readableNowButNotCarried` is the field that carries
+that distinction, and `problems` keeps both kinds in a fixed order — asserted as an array rather than by
+substring, because a report whose items can be reshuffled unnoticed is a report whose meaning lives in the
+reader.
+
+The verdict is tied to the operation it predicts, and that tie is the part with teeth. `loadable` is computed
+from the same `SAVE_DATA_FEASIBILITY` the loader consults, and the case does not stop at comparing strings: for
+the file that carries an unreadable field it then calls `loadSaveFile` and asserts the refusal arrives for the
+same reason, and for the healthy file it asserts the load really does restore the entity. A diagnosis free to
+disagree with the load would be an opinion about the runtime rather than a report from it — the same failure
+this lane keeps meeting from the other side, a table that describes capabilities nobody implements.
+
+Refusals are separated the way the file layer has learned to separate them: no file at that path, bytes that
+are not JSON (with the parser's complaint quoted), and no store at all on the runtime each get their own
+sentence; a file with a foreign `format` **and** an unread `version` gets both problems in one pass rather than
+one per attempt.
+
+Measured: `test/saveSnapshot.test.ts` is 93 cases and `test/cinematicSequence.test.ts` 78,
+package total **269** (93 save + 39 controller + 78 cinematic + 30 physics + 29 runtime), `tsc --noEmit` exit 0 on `src`. The probe ran 6 arms
+against a control of **171 collected / 0 red**, predicting case names: 1, 1, 1, 1, 1, 2. No arm survived.
+No arm reddened fewer than claimed. 1 of the 6 arms reddened MORE than written down for them (06-unreadable-filter-reversed: 1→2).
+
+What v127 does not do, stated by name: it reads one named file — there is no pass over `listSaves()` that
+returns which saves can actually be opened, which is the thing a save picker wants; it checks the file's
+claims and not its content, so a file that claims `entities` and carries an empty list is loadable and mostly
+empty, because that is exactly what the writer could produce; and a format change that leaves `version` at 1
+while changing meaning is beyond any check this file offers, since the version is the only promise a file makes
+about itself. Next: the sweep over the listing, or the blocked halves themselves — `npcs`, `quests`, `player`,
+`worldState` — which is the only way `readableNowButNotCarried` stops being a message about files that have not
+been written yet.
