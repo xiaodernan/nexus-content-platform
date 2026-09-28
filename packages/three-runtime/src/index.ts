@@ -1,5 +1,5 @@
 export * from './types.js';
-export { ThreeRuntime, createThreeRuntime, DEFAULT_THREE_CONFIG, DEFAULT_CONTROLLER, type ThreeRuntimeOptions, type ControllerAttachOptions, type ControllerFieldAudit, type SaveFeasibilityAudit, type PhysicsFieldAudit, type CinematicSequenceInput, type CinematicFieldAudit, type CinematicRestoreReport, type SaveFileLoadReport, type SaveFileWriteReport, type SaveFileReadReport, type SaveFileDeleteReport, SAVE_FILE_FORMAT, SAVE_FILE_VERSION } from './threeRuntime.js';
+export { ThreeRuntime, createThreeRuntime, DEFAULT_THREE_CONFIG, DEFAULT_CONTROLLER, type ThreeRuntimeOptions, type ControllerAttachOptions, type ControllerFieldAudit, type SaveFeasibilityAudit, type PhysicsFieldAudit, type CinematicSequenceInput, type CinematicFieldAudit, type CinematicRestoreReport, type SaveFileLoadReport, type SaveFileWriteReport, type SaveFileReadReport, type SaveFileDeleteReport, type SaveFileLatest, SAVE_FILE_FORMAT, SAVE_FILE_VERSION } from './threeRuntime.js';
 // M5 v120 — the storage seam. `createMemorySaveStore` is what makes save files testable without a disk;
 // `createFsSaveStore` takes an injected fs-like object so the package never imports one itself.
 export {

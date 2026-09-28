@@ -1,4 +1,4 @@
-# @nexus/three-runtime — evidence for v108 (host seams), v114 (character controller), v115 (the entity save format), v116 (the scene's physics world), v117 (the cinematic sequence), v118 (the save that reads it back), v119 (the file it survives on disk), v120 (the bytes, through a store), v121 (the id comes back) and v122 (a save taken back)
+# @nexus/three-runtime — evidence for v108 (host seams), v114 (character controller), v115 (the entity save format), v116 (the scene's physics world), v117 (the cinematic sequence), v118 (the save that reads it back), v119 (the file it survives on disk), v120 (the bytes, through a store), v121 (the id comes back), v122 (a save taken back) and v123 (what it holds)
 
 This directory records the 3D runtime lane (ROADMAP M5). Every claim here is read back out of the
 shipped source and the package's own vitest suite — `packages/three-runtime/src/*.ts` and
@@ -788,3 +788,74 @@ crash, and the `saveFileDeleted` event renamed) are the runtime-side mirrors of 
 Next: `listSaves()` — the seam still cannot say what is in it, which is the first thing a save-picker needs and
 the last of the three gaps v120 named; then the four blocked `SaveData` halves that need a subsystem, then
 collision geometry.
+## v123 — the store says what it holds: `listSaveFiles`, `latestSaveFile`, and a newest that is the file's own claim rather than a clock the runtime does not have
+
+v120 named its own three gaps — "no delete, no list and no atomic rename". v122 closed the first; v123 closes
+the second, and in doing so answers the question a save picker has to ask: which of these is the one to
+continue from. Two rules decide the shape of the grant, and both are about what a store is allowed to claim.
+
+| what | measured |
+| --- | --- |
+| suites | `test/saveSnapshot.test.ts` 76 cases, `test/cinematicSequence.test.ts` 78, package total **252** (76 save + 39 controller + 78 cinematic + 30 physics + 29 runtime), `tsc --noEmit` exit 0 on `src` |
+| seam | `SaveStore.list(): string[]` — names, sorted, relative to the store's namespace; `FsLike` grows **optional** `readdirSync` and `statSync`, and the fs store throws naming BOTH when either is missing, because `[]` would be a claim that no saves exist |
+| cost | the listing reads no bytes: a fake fs counts its own `readFileSync` calls and the case asserts the list came back with **zero** of them — a menu that costs O(total bytes) is the wrong seam |
+| absent root | a root directory that does not exist yet lists `[]`: that is a fact about an empty store, distinguishable from a host that cannot browse, which throws |
+| newest | `latestSaveFile()` orders by the `savedAt` **inside each file**, not by a clock: this runtime owns a frame clock and no wall clock, so a file written with a made-up timestamp wins honestly and the caller who wrote it knows why. Ties break by path and are counted (`ties: 2`) so "which one did you pick" is answerable |
+| undecipherable files | never fatal, never hidden: a save that is not JSON, is an array, carries a foreign `format`, a `version` this runtime does not read, or a `savedAt` that is not a finite number lands in `unreadable: {path, why}[]` with its reason, and the answer is still the newest readable one |
+| pair agreement again | after `deleteSaveFile` takes the newest away, `latestSaveFile` moves to the next candidate — the same rule v122 pinned for `readSaveFile`, now across listing |
+
+Three things worth the sentence it costs.
+
+* **`[]` and a throw are different sentences.** An empty store genuinely has no saves; a host that cannot
+  browse does not know whether it has any. The memory store can answer both questions itself, the fs store
+  can only answer the second by asking the host — so `list()` throws naming `readdirSync` and `statSync`,
+  and the case asserts the refusal reaches `listSaveFiles`/`latestSaveFile` intact rather than being caught
+  into an empty menu.
+* **`savedAt` is the file's claim, and the reader says whose claim it is.** No clock is consulted, so no
+  timezone, no skew and no "newer than the last one I saw" state enters the decision; the docstring says out
+  loud that a made-up timestamp wins, because a caller that later wants monotonic ordering has to compare
+  `savedAt` values it wrote itself.
+* **A corrupt member does not own the collection.** Five unreadable files each get a reason and the answer
+  still names the good one. The alternative — the parser's `SyntaxError` escaping, or the loop skipping
+  silently — fails in the two directions a report must not: a menu that dies, or a menu that quietly lost a
+  save. The case asserts the exact reason strings, including v119's version comparison ("version is 2, and
+  this runtime reads exactly 1"), so the reporting itself cannot rot.
+
+### How the probe ran, and what it said
+
+The probe is `mutate-v123.mjs (scratch)`: 11 arms over the seam (`saveStore.ts`) and the runtime (`threeRuntime.ts`) —
+anchors verified to match exactly once before anything ran, each arm's minimum red written down in the script
+first, the control fixing the population at **154** with 0 red, both files restored byte-for-byte in a
+`finally`. Reds per arm, in order: 2, 1, 2, 2, 2, 2, 2, 2, 2, 2, 2. No arm survived. No arm reddened fewer than claimed. 10 of the 11 arms reddened MORE than written down for them (01-memory-list-forgets-to-sort: 1→2, 03-latest-picks-the-oldest: 1→2, 04-tie-break-flipped: 1→2, 05-ties-always-one: 1→2, 06-version-not-checked: 1→2, 07-format-not-checked: 1→2, 08-savedAt-not-checked: 1→2, 09-unreadable-not-reported: 1→2, 10-listing-without-a-store-works-anyway: 1→2, 11-latest-without-a-store-works-anyway: 1→2). The
+whole package was measured separately at **252** with 0 red and `tsc --noEmit` exited 0 over `src`.
+
+The arms follow the two decisions. On the seam: forgetting to sort the memory listing, and skipping the
+capability check so a browsing refusal becomes a `TypeError` out of the host. On the reader: picking the oldest
+instead of the newest, flipping the tie-break, hardcoding `ties`, dropping each of the three header checks
+(`format`, `version`, finite `savedAt`) so an undecipherable file becomes a candidate, swallowing the
+not-JSON reason instead of reporting it, and hollowing each of the two no-store refusals. each is caught by the case that pins that clause — usually by one more as well, which is what the over-prediction
+count above is measuring. That pairing is what this grant wanted: the interesting behaviour is the report, and a
+report nobody can break is a report nobody can trust.
+
+### What v123 still does NOT honor — stated by name
+
+* No atomic rename, so no "save then replace safely": a half-written file is refused with a reason, never
+  repaired or renamed out of the way, and `list` will happily show it as unreadable.
+* No size, mtime, or directory metadata is read: ordering is only ever what the files claim, so a save whose
+  `savedAt` was never set (written by another tool) sorts wherever its bytes say.
+* Listing is not filtering by scene or by playhead — `latestSaveFile` answers "newest", not "the one you mean".
+* The five blocked `SaveData` halves, the missing collision geometry, the camera a removal leaves where it was:
+  all unchanged from v122.
+
+### Sentences this record retires
+
+* v122's "Next" line: *"`listSaves()` — the last of v120's three named gaps and the first thing a save-picker
+  needs"* — arrived, with the newest-save question it unlocks.
+* v122's README bounds and the ROADMAP cell: *"the store cannot list its saves"*. Swapped by the edit that
+  added this section; the cell now says the store can list, and still cannot rename atomically.
+* v120's README, "What v120 still does NOT honor": *"The store has no delete, no list and no atomic rename."*
+  Two of three now retired, in the two grants that took them.
+
+Next: the third gap, an atomic write (temp + rename), which needs `renameSync` on the injected host and a
+decision about what `writeSaveFile` reports when the rename fails halfway. Then the four `SaveData` halves that
+need a subsystem, then collision geometry.

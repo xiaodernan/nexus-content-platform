@@ -5792,3 +5792,48 @@ not undo anything a load installed; `deleteSaveFile` trusts `existsSync`, and a 
 earns a `false` it did not deserve. Next, in order: `listSaves()` — the last of v120's three named gaps and the
 first thing a save picker needs — then `npcs`/`quests`/`player`/`worldState`, then collision geometry, which is
 also what `slopeLimit`, `stepOffset`, `broadphase` and `solverIterations` are waiting on.
+### Amendment 123 — v123: the store says what it holds — `listSaveFiles`, a newest that is the file's own claim, and a corrupt member that does not get to own the collection
+
+v120 wrote its own gaps into the record: no delete, no list, no atomic rename. v122 took the delete; v123
+takes the list, and with it the first question any save screen asks — which of these do I continue from. The
+grant is small in surface and pointed in two decisions.
+
+**A listing is names, and `[]` is a claim only some stores may make.** `SaveStore.list()` returns sorted,
+namespace-relative names and reads no bytes at all: a fake host counts its own `readFileSync` calls and the case
+asserts the menu came back with none, because a listing that costs O(total bytes) is the wrong seam. The memory
+store answers `[]` when it holds nothing — that is a fact. An fs store built over a host without `readdirSync`
+and `statSync` **throws**, naming both missing methods, because answering `[]` there would be a claim about a
+world the store cannot see. The refusal is checked all the way through `listSaveFiles` and `latestSaveFile`: a
+capability gap that gets caught into an empty list is the same lie v122 refused at delete time.
+
+**The newest is whatever the files claim, because this runtime has no wall clock.** `latestSaveFile()` orders by
+the `savedAt` inside each file, not by time now: no timezone, no skew, no remembered "later than last time"
+state, and the docstring says plainly that a made-up timestamp wins honestly. Ties break by path and are
+counted in `ties`, so an arbitrary choice is at least reported. This is the same rule that made
+`buildSaveFile` demand the caller supply `savedAt` in v120 — the runtime that will not invent a clock also
+will not borrow one to sort by.
+
+**A save the runtime cannot understand is answered, not swallowed and not fatal.** Five reasons are distinct
+in `unreadable`: not JSON (the parser's own complaint quoted), JSON but an array, a foreign `format`, a
+`version` this runtime does not read ("version is 2, and this runtime reads exactly 1"), and a `savedAt` that is
+not a finite number to order by. Each is asserted by exact text, because the reporting is the feature — the two
+wrong designs were the exception escaping (a menu that dies on one bad file) and the silent skip (a menu that
+quietly lost a save).
+
+Pair agreement, third time: v119's loader and v122's delete each had to keep their word to the other methods;
+here, taking the newest away moves `latestSaveFile` to the next candidate, which is what makes the three
+methods one store rather than three opinions.
+
+Measured: `test/saveSnapshot.test.ts` is 76 cases and `test/cinematicSequence.test.ts` 78,
+package total **252** (76 save + 39 controller + 78 cinematic + 30 physics + 29 runtime), `tsc --noEmit` exit 0 on `src`. The probe ran 11 arms
+across the seam and the runtime against an unmutated control of **154 collected / 0 red**, each arm's
+minimum red written down beforehand, every arm collecting the full population, both files restored
+byte-for-byte. Reds: 2, 1, 2, 2, 2, 2, 2, 2, 2, 2, 2. No arm survived. No arm reddened fewer than claimed. 10 of the 11 arms reddened MORE than written down for them (01-memory-list-forgets-to-sort: 1→2, 03-latest-picks-the-oldest: 1→2, 04-tie-break-flipped: 1→2, 05-ties-always-one: 1→2, 06-version-not-checked: 1→2, 07-format-not-checked: 1→2, 08-savedAt-not-checked: 1→2, 09-unreadable-not-reported: 1→2, 10-listing-without-a-store-works-anyway: 1→2, 11-latest-without-a-store-works-anyway: 1→2).
+
+What v123 does not do, stated by name: still no atomic rename, so `writeSaveFile` can leave a half-written file
+in the listing (refused with a reason, never repaired); no metadata is consulted, so ordering is only ever what
+a file claims about itself; listing does not filter by scene, playhead or version, so "newest" is not "the one
+you meant". Next: the last of v120's three gaps — a temp-write-and-rename, which needs `renameSync` on the
+injected host and a decision about what to report when the rename fails halfway — then `npcs`/`quests`/
+`player`/`worldState`, then collision geometry, which is what `slopeLimit`, `stepOffset`, `broadphase` and
+`solverIterations` all wait on.

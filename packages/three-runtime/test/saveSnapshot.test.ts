@@ -1204,3 +1204,116 @@ describe('deleteSaveFile: a save can be taken back, and a store that cannot says
     rt.dispose();
   });
 });
+
+/**
+ * M5 v123 — the last of the three gaps v120 wrote into its own record: the store could write, read and (in
+ * v122) delete, but it could not say what it held, so there was no menu and no "continue". Two rules carry the
+ * grant: a listing is names only (reading bytes to build a menu is the wrong cost), and a missing capability is
+ * refused rather than answered with an empty list, because `[]` is a claim about the world.
+ */
+describe('listSaveFiles / latestSaveFile: the store says what it holds', () => {
+  /** A fake fs over an in-memory tree, with the browsing methods optional so both cases can be built. */
+  function fakeHost(options: { browse?: boolean } = {}) {
+    const tree = new Map<string, string>([['a.json', '{}']]);
+    const dirs = new Set<string>(['saves', 'saves/old']);
+    for (const dir of ['saves/root', 'saves/root/old']) dirs.add(dir);
+    const reads: string[] = [];
+    const host: FsLike = {
+      writeFileSync: (p, data) => { tree.set(p, data); },
+      readFileSync: (p) => { reads.push(p); return tree.get(p) ?? ''; },
+      existsSync: (p) => tree.has(p) || dirs.has(p),
+    };
+    if (options.browse !== false) {
+      host.readdirSync = (p) => [...tree.keys()].filter((k) => k.startsWith(`${p}/`)).map((k) => k.slice(p.length + 1).split('/')[0]).filter((v, i, a) => a.indexOf(v) === i);
+      host.statSync = (p) => ({ isDirectory: () => dirs.has(p), isFile: () => tree.has(p) });
+    }
+    return { host, tree, dirs, reads };
+  }
+
+  const save = (savedAt: number, over: Record<string, unknown> = {}) => JSON.stringify({
+    format: 'nexus-three-runtime-save', version: 1, savedAt, carries: ['entities', 'cinematic'],
+    doesNotCarry: [], entities: [], cinematic: { sequences: [], activeSequence: null, currentTime: 0 }, ...over,
+  });
+
+  it('an empty store lists [] and a filled one lists names, sorted and relative', () => {
+    const empty = createMemorySaveStore();
+    expect(empty.list()).toEqual([]);
+    empty.write('saves/b.json', '{}');
+    empty.write('saves/a.json', '{}');
+    empty.write('deep/c.json', '{}');
+    expect(empty.list()).toEqual(['deep/c.json', 'saves/a.json', 'saves/b.json']);
+  });
+
+  it('a host with no browsing refuses to list, and the refusal reaches the runtime intact', () => {
+    const { host } = fakeHost({ browse: false });
+    const store = createFsSaveStore(host, 'saves/root');
+    expect(() => store.list()).toThrow(/needs BOTH readdirSync and statSync/);
+    const rt = runtimeWithStore(store);
+    expect(() => rt.listSaveFiles()).toThrow(/needs BOTH readdirSync and statSync/);
+    expect(() => rt.latestSaveFile()).toThrow(/needs BOTH readdirSync and statSync/);
+    rt.dispose();
+  });
+
+  it('a root that does not exist yet is an empty listing, not an error', () => {
+    const { host } = fakeHost();
+    const store = createFsSaveStore(host, 'nowhere');
+    expect(store.list()).toEqual([]);
+    expect(runtimeWithStore(store).listSaveFiles()).toEqual({ store: 'fs', paths: [] });
+  });
+
+  it('listing reads names only — no file is opened to build the menu', () => {
+    const { host, tree, reads } = fakeHost();
+    tree.set('saves/root/one.json', save(5));
+    tree.set('saves/root/two.json', save(9));
+    const rt = runtimeWithStore(createFsSaveStore(host, 'saves/root/'));
+    expect(rt.listSaveFiles().paths).toEqual(['one.json', 'two.json']);
+    expect(reads, 'a listing that cost O(total bytes) is the wrong seam').toEqual([]);
+    rt.dispose();
+  });
+
+  it('latest is the greatest savedAt the FILES claim, ties broken by path and counted', () => {
+    const store = createMemorySaveStore();
+    store.write('saves/early.json', save(100));
+    store.write('saves/late.json', save(200));
+    const rt = runtimeWithStore(store);
+    expect(rt.latestSaveFile()).toMatchObject({ path: 'saves/late.json', savedAt: 200, ties: 1, unreadable: [] });
+    store.write('saves/also-late.json', save(200));
+    expect(rt.latestSaveFile()).toMatchObject({ path: 'saves/also-late.json', savedAt: 200, ties: 2 });
+    expect(rt.deleteSaveFile('saves/late.json').removed).toBe(true);
+    expect(rt.latestSaveFile()!.ties, 'the tie was the two that shared the stamp; one of them is gone now').toBe(1);
+    rt.dispose();
+  });
+
+  it('a save the runtime cannot understand is reported, never silently skipped or fatal', () => {
+    const store = createMemorySaveStore();
+    store.write('saves/good.json', save(50));
+    store.write('saves/corrupt.json', '{"format":');
+    store.write('saves/array.json', '[]');
+    store.write('saves/foreign.json', save(60, { format: 'other-game-save' }));
+    store.write('saves/newer.json', save(70, { version: 2 }));
+    store.write('saves/nostamp.json', save('yesterday' as unknown as number));
+    const rt = runtimeWithStore(store);
+    const latest = rt.latestSaveFile()!;
+    expect(latest.path).toBe('saves/good.json');
+    expect(latest.unreadable.map((entry) => entry.path)).toEqual([
+      'saves/array.json', 'saves/corrupt.json', 'saves/foreign.json', 'saves/newer.json', 'saves/nostamp.json',
+    ]);
+    expect(latest.unreadable.map((entry) => entry.why).join(' |')).toMatch(/an array rather than a save object/);
+    expect(latest.unreadable.map((entry) => entry.why).join(' |')).toMatch(/not valid JSON/);
+    expect(latest.unreadable.map((entry) => entry.why).join(' |')).toMatch(/format is other-game-save, not nexus-three-runtime-save/);
+    expect(latest.unreadable.map((entry) => entry.why).join(' |')).toMatch(/version is 2, and this runtime reads exactly 1/);
+    expect(latest.unreadable.map((entry) => entry.why).join(' |')).toMatch(/savedAt is yesterday, which is not a finite number/);
+    rt.dispose();
+  });
+
+  it('nothing readable is null, and a runtime with no store refuses to answer at all', () => {
+    const store = createMemorySaveStore();
+    store.write('saves/junk.json', 'not json at all');
+    const rt = runtimeWithStore(store);
+    expect(rt.latestSaveFile()).toBe(null);
+    expect(rt.listSaveFiles().paths).toEqual(['saves/junk.json']);
+    expect(() => runtime.latestSaveFile()).toThrow(/has no SaveStore/);
+    expect(() => runtime.listSaveFiles()).toThrow(/has no SaveStore/);
+    rt.dispose();
+  });
+});

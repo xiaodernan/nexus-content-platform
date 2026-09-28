@@ -474,6 +474,17 @@ export interface SaveFileDeleteReport {
   removed: boolean;
 }
 
+/** What `latestSaveFile` answers when at least one save could be understood. `ties` counts the readable saves
+ *  sharing the winning `savedAt`; the tie-break is the path, and the caller deserves to know it was arbitrary.
+ *  `unreadable` is never empty by accident — a save the runtime cannot read is reported, not hidden. */
+export interface SaveFileLatest {
+  path: string;
+  savedAt: number;
+  version: number;
+  ties: number;
+  unreadable: { path: string; why: string }[];
+}
+
 /** What `controllerFieldAudit` answers. The `untouched` list is the honesty surface — a field declared
  *  on `CharacterController` but never implemented shows up there BY NAME instead of being ignored in
  *  silence. `slopeLimit` and `stepOffset` are in it today: both need collision geometry this package
@@ -1305,6 +1316,75 @@ export class ThreeRuntime {
     const report: SaveFileDeleteReport = { path, store: this.storage.kind, removed };
     this.emit('saveFileDeleted', report);
     return report;
+  }
+
+  /**
+   * Name every save the store holds, without reading one. The listing is a fact about names: an empty store
+   * answers `[]`, and a host that cannot browse throws (v122's rule for a missing capability — an empty list
+   * would be a claim about the world this store cannot support).
+   */
+  listSaveFiles(): { store: string; paths: string[] } {
+    if (!this.storage) throw new Error('listSaveFiles: this runtime has no SaveStore — create it with { storage }, or list the directory yourself');
+    return { store: this.storage.kind, paths: this.storage.list() };
+  }
+
+  /**
+   * The newest save the store can actually be asked about — newest meaning the greatest `savedAt` **the file
+   * itself carries**. This runtime has no wall clock to compare against and does not invent one, so a file
+   * written with a made-up timestamp wins honestly and the caller who wrote it knows why.
+   *
+   * A file that is listed but cannot be understood does not fail the answer: it is reported in `unreadable`
+   * with its reason (not JSON, not an object, a foreign `format`, a `version` this runtime does not read, a
+   * `savedAt` that is not a finite number), because a menu that dies on one corrupt save is unusable. Ties are
+   * broken by path and counted, so "which one did you pick" has an answer in the result.
+   */
+  latestSaveFile(): SaveFileLatest | null {
+    if (!this.storage) throw new Error('latestSaveFile: this runtime has no SaveStore — create it with { storage }');
+    const unreadable: { path: string; why: string }[] = [];
+    const readable: { path: string; savedAt: number; version: number }[] = [];
+    for (const path of this.storage.list()) {
+      const contents = this.storage.read(path);
+      if (contents === null) {
+        unreadable.push({ path, why: 'listed but nothing was read back — the store changed underneath the listing' });
+        continue;
+      }
+      let parsed: unknown;
+      try {
+        parsed = JSON.parse(contents);
+      } catch (error) {
+        unreadable.push({ path, why: `not valid JSON (${(error as Error).message})` });
+        continue;
+      }
+      const header = parsed as Partial<SaveFile> | null;
+      if (!header || typeof header !== 'object' || Array.isArray(header)) {
+        unreadable.push({ path, why: `JSON, but ${Array.isArray(parsed) ? 'an array' : typeof header} rather than a save object` });
+        continue;
+      }
+      if (header.format !== SAVE_FILE_FORMAT) {
+        unreadable.push({ path, why: `format is ${String(header.format)}, not ${SAVE_FILE_FORMAT}` });
+        continue;
+      }
+      if (header.version !== SAVE_FILE_VERSION) {
+        unreadable.push({ path, why: `version is ${String(header.version)}, and this runtime reads exactly ${SAVE_FILE_VERSION}` });
+        continue;
+      }
+      if (typeof header.savedAt !== 'number' || !Number.isFinite(header.savedAt)) {
+        unreadable.push({ path, why: `savedAt is ${String(header.savedAt)}, which is not a finite number to order by` });
+        continue;
+      }
+      readable.push({ path, savedAt: header.savedAt, version: header.version });
+    }
+    if (readable.length === 0) return null;
+    const newest = readable.reduce((best, candidate) => (
+      candidate.savedAt > best.savedAt || (candidate.savedAt === best.savedAt && candidate.path < best.path) ? candidate : best
+    ), readable[0]!);
+    return {
+      path: newest.path,
+      savedAt: newest.savedAt,
+      version: newest.version,
+      ties: readable.filter((entry) => entry.savedAt === newest.savedAt).length,
+      unreadable,
+    };
   }
 
   /**

@@ -17,14 +17,16 @@
  */
 
 /** The slice of a filesystem this seam needs. Deliberately small enough that `localStorage` can implement it —
- *  and `unlinkSync` is OPTIONAL, because the shim that made this seam worth having (v120's browser case) cannot
- *  always delete: a store built over such an fs reports the missing capability instead of pretending the save
- *  is gone. */
+ *  `unlinkSync`, `readdirSync` and `statSync` are OPTIONAL, because the shim that made this seam worth having
+ *  (v120's browser case) may not be able to delete or browse: a store built over such a host reports the
+ *  missing capability instead of pretending the operation happened. */
 export interface FsLike {
   writeFileSync(path: string, data: string): void;
   readFileSync(path: string): string;
   existsSync(path: string): boolean;
   unlinkSync?(path: string): void;
+  readdirSync?(path: string): string[];
+  statSync?(path: string): { isDirectory(): boolean; isFile(): boolean };
 }
 
 /** Where a save file goes and how it comes back. Sync, because the rest of the runtime is. */
@@ -42,6 +44,11 @@ export interface SaveStore {
    *  Throws when the injected host cannot delete: a store that reported success it could not perform would be
    *  the exact lie this seam exists to prevent. */
   delete(path: string): boolean;
+  /** Every save name the store holds, sorted, relative to the store's own namespace. A listing is a fact
+   *  about names: it reads no file's bytes (a menu that costs O(total bytes) is the wrong seam) and an empty
+   *  store answers `[]`. Where browsing needs a capability the injected host does not have, it throws —
+   *  `[]` would be a claim that there are no saves, and the store does not know that. */
+  list(): string[];
 }
 
 /**
@@ -69,7 +76,7 @@ export function resolveSavePath(path: string): string {
 }
 
 /** An in-memory store — what a headless runtime and every test in this package write into. */
-export function createMemorySaveStore(): SaveStore & { paths(): string[]; bytes(path: string): number } {
+export function createMemorySaveStore(): SaveStore {
   const files = new Map<string, string>();
   return {
     kind: 'memory',
@@ -88,11 +95,8 @@ export function createMemorySaveStore(): SaveStore & { paths(): string[]; bytes(
       files.delete(target);
       return had;
     },
-    paths() {
+    list() {
       return [...files.keys()].sort();
-    },
-    bytes(path) {
-      return files.get(resolveSavePath(path))?.length ?? 0;
     },
   };
 }
@@ -131,6 +135,25 @@ export function createFsSaveStore(fs: FsLike, root: string): SaveStore {
       }
       fs.unlinkSync(target);
       return true;
+    },
+    list() {
+      if (typeof fs.readdirSync !== 'function' || typeof fs.statSync !== 'function') {
+        throw new Error(`saveStore: browsing "${trimmed}" needs BOTH readdirSync and statSync from the injected fs; without them a listing is a guess, so this store refuses rather than answering []`);
+      }
+      if (!fs.existsSync(trimmed)) return [];
+      const readdir = fs.readdirSync;
+      const stat = fs.statSync;
+      const found: string[] = [];
+      const walk = (dir: string, prefix: string): void => {
+        for (const name of readdir(dir)) {
+          const shown = prefix ? `${prefix}/${name}` : name;
+          const full = `${dir}/${name}`;
+          if (stat(full).isDirectory()) walk(full, shown);
+          else found.push(shown);
+        }
+      };
+      walk(trimmed, '');
+      return found.sort();
     },
   };
 }
