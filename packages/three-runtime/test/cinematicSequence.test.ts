@@ -1147,3 +1147,73 @@ describe('the save split moved: cinematic has a writer AND a reader', () => {
     expect(declaredFields('CinematicSequence')).not.toContain('sceneId');
   });
 });
+
+/**
+ * M5 v121 — the hole v117, v119 and v120 each named in writing: a sequence could be registered and played but
+ * never un-registered, so a save whose second half failed left the first half installed and a taken id could
+ * never be re-registered. `removeCinematic` closes that, and two shipped sentences about being unable to
+ * unregister are retired with it — one of them pinned by a test below, because a stale claim in a message is
+ * exactly the kind of sentence nobody goes back to delete.
+ */
+describe('removeCinematic / clearCinematics — the registry can give an id back', () => {
+  it('un-registers a stopped sequence, says so on the bus, and frees the id for a new definition', () => {
+    const removed: object[] = [];
+    runtime.addEventListener('cinematicRemoved', (d) => removed.push(d));
+    define();
+    runtime.playCinematic('seq');
+    runtime.simulateFrame(1);
+    expect(runtime.stopCinematic('seq')).toBe(true);
+
+    expect(runtime.removeCinematic('seq')).toBe(true);
+    expect(removed).toEqual([{ sequenceId: 'seq', sceneId: scene }]);
+    expect(runtime.cinematicFieldAudit('seq')).toBe(undefined);
+    expect(runtime.cinematicSnapshot().sequences).toEqual([]);
+    // The capability the old refusal said did not exist.
+    expect(() => define()).not.toThrow();
+    expect(runtime.cinematicFieldAudit('seq')!.playhead.duration).toBe(5);
+  });
+
+  it('refuses to remove a playing sequence, and answers false for one that was never registered', () => {
+    const stopped: object[] = [];
+    runtime.addEventListener('cinematicStopped', (d) => stopped.push(d));
+    define();
+    runtime.playCinematic('seq');
+    expect(() => runtime.removeCinematic('seq')).toThrow(/"seq" is playing; call stopCinematic first/);
+    expect(stopped, 'a removal that stopped the cutscene for you would emit an event nobody asked for').toEqual([]);
+    expect(runtime.cinematicFieldAudit('seq')!.playhead.playing).toBe(true);
+    expect(runtime.removeCinematic('never')).toBe(false);
+  });
+
+  it('clearCinematics removes the idle ones and reports the playing one rather than interrupting it', () => {
+    const removed: { sequenceId: string; sceneId: SceneId }[] = [];
+    const stopped: object[] = [];
+    runtime.addEventListener('cinematicRemoved', (d) => removed.push(d as { sequenceId: string; sceneId: SceneId }));
+    runtime.addEventListener('cinematicStopped', (d) => stopped.push(d));
+    define();
+    define({ id: 'idle', shots: [shot({ id: 'i0', cameraId: camB })] });
+    runtime.playCinematic('seq');
+    expect(runtime.clearCinematics()).toEqual({ removed: ['idle'], stillPlaying: ['seq'] });
+    // One event per sequence that actually went away — the batch path is the same removal, and it says so the
+    // same way. (v121's first probe run silenced exactly this emit and nothing was red: an absent case.)
+    expect(removed).toEqual([{ sequenceId: 'idle', sceneId: scene }]);
+    expect(stopped, 'clearing did not stop the playing one').toEqual([]);
+    expect(runtime.cinematicSnapshot().sequences.map(([id]) => id)).toEqual(['seq']);
+    runtime.stopCinematic('seq');
+    expect(runtime.clearCinematics()).toEqual({ removed: ['seq'], stillPlaying: [] });
+    expect(removed.map((e) => e.sequenceId)).toEqual(['idle', 'seq']);
+    expect(runtime.cinematicSnapshot().sequences).toEqual([]);
+  });
+
+  it('the duplicate-id refusal now names removeCinematic, and the shipped prose no longer claims the opposite', () => {
+    define();
+    expect(() => define()).toThrow(/a sequence named seq is already registered; removeCinematic it first/);
+    const shipped = readFileSync(new URL('../src/threeRuntime.ts', import.meta.url), 'utf8');
+    // Scan the refusal messages, not the prose: a docstring is allowed to QUOTE a retired sentence in order to
+    // say it was retired, and a thrown message is not.
+    const messages = shipped.split('\n').filter((line) => line.includes('throw new Error(')).join('\n');
+    expect(messages, 'v121 gave the runtime a way to unregister; a refusal still saying otherwise is a lie to the caller')
+      .not.toMatch(/no way to unregister/);
+    expect(messages).toMatch(/is already registered; removeCinematic it first/);
+    expect(messages).toMatch(/removeCinematic: "\$\{id\}" is playing; call stopCinematic first/);
+  });
+});

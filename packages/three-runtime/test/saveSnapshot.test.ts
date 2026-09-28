@@ -751,7 +751,7 @@ describe('a save FILE: it survives the disk, and the loader refuses what it cann
     target.dispose();
   });
 
-  it('rolls back the entities it had inserted, and says the sequences stayed behind', () => {
+  it('rolls back BOTH halves of a load that fails partway, which v119 could not say', () => {
     const { file } = fileWithContent();
     const second = structuredClone(file) as typeof file;
     second.entities.push([eid('bad'), { ...structuredClone(file.entities[0][1]), id: eid('bad') }]);
@@ -761,11 +761,50 @@ describe('a save FILE: it survives the disk, and the loader refuses what it cann
     loaded.createScene('Stage', stage);
     loaded.createCamera(stage, 'Cam again', 'perspective', {}, second.cinematic.sequences[0][1].shots[0].cameraId);
     expect(() => loaded.loadSaveFile(second, stage))
-      .toThrow(/restoreEntity: position x is undefined[\s\S]*the 1 entity\(ies\) this load had inserted were removed again[\s\S]*1 sequence\(s\) restored ahead of them stay registered/);
+      .toThrow(/restoreEntity: position x is undefined[\s\S]*the 1 entity\(ies\) and the 1 sequence\(s\) this load had registered were removed again; a load is all or nothing/);
     expect(loaded.getScene(stage)!.entities.size).toBe(0);
-    // …and the half a rollback cannot reach really is there, so the message is not decoration.
-    expect(loaded.cinematicFieldAudit('seq')!.playhead.duration).toBe(2);
+    // v119 recorded the opposite of this line: it asserted the sequence stayed registered, because nothing
+    // could un-register it. v121 added `removeCinematic`, so a failed load now leaves neither half behind.
+    expect(loaded.cinematicFieldAudit('seq')).toBe(undefined);
     loaded.dispose();
+  });
+
+  it('a load that fails after STARTING a cutscene stops it and takes it back too', () => {
+    // v121's first probe run left this path unarmed: deleting the `stopCinematic` call from the rollback kept
+    // the whole suite green, because every other rollback case loads an IDLE sequence. A playing one is the
+    // case where the order matters — removing it without stopping first throws from inside the catch.
+    const store = createMemorySaveStore();
+    const writer = runtimeWithStore(store);
+    const stage = writer.createScene('Stage').id;
+    writer.setActiveScene(stage);
+    const cam = writer.createCamera(stage, 'Cam').id;
+    withEntityIn(writer, stage);
+    writer.defineCinematic(stage, {
+      id: 'roll',
+      name: 'Rolling',
+      shots: [{ id: 's0', cameraId: cam, startTime: 0, endTime: 4, transition: 'cut', transitionDuration: 0 }],
+    });
+    writer.playCinematic('roll');
+    writer.simulateFrame(1);
+
+    const file = JSON.parse(JSON.stringify(writer.buildSaveFile(stage, 1700000000001))) as Record<string, unknown>;
+    expect((file.cinematic as { sequences: [string, { playing: boolean }][] }).sequences[0][1].playing).toBe(true);
+    const entities = file.entities as [string, Record<string, unknown>][];
+    entities.push(['e-bad', { ...structuredClone(entities[0][1]), id: 'e-bad', position: 'not a vector' }]);
+
+    const reader = runtimeWithStore(store);
+    reader.createScene('Stage copy', stage);
+    reader.setActiveScene(stage);
+    reader.createCamera(stage, 'Cam copy', 'perspective', {}, cam);
+    const stopped: { sequenceId: string }[] = [];
+    reader.addEventListener('cinematicStopped', (d) => stopped.push(d as { sequenceId: string }));
+    expect(() => reader.loadSaveFile(file as never, stage))
+      .toThrow(/position x is undefined[\s\S]*the 1 entity\(ies\) and the 1 sequence\(s\) this load had registered were removed again; a load is all or nothing/);
+    expect(stopped.map((e) => e.sequenceId)).toEqual(['roll']);
+    expect(reader.getScene(stage)!.entities.size).toBe(0);
+    expect(reader.cinematicFieldAudit('roll')).toBe(undefined);
+    writer.dispose();
+    reader.dispose();
   });
 
   it('refuses the flattened Euler a v115 save arrived as, and carries the rotation order it never could', () => {

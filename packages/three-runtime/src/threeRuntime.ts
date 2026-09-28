@@ -1193,7 +1193,7 @@ export class ThreeRuntime {
       }
     }
 
-    this.restoreCinematic(file.cinematic);
+    const loadedSequences = this.restoreCinematic(file.cinematic);
     const restored: EntityId[] = [];
     try {
       for (const [, snapshot] of pairs as [EntityId, SerializedEntity][]) {
@@ -1202,8 +1202,14 @@ export class ThreeRuntime {
       }
     } catch (error) {
       for (const id of restored) this.removeEntity(sceneId, id);
-      const sequences = file.cinematic.sequences.length;
-      throw new Error(`${(error as Error).message} — the ${restored.length} entity(ies) this load had inserted were removed again${sequences ? `, but the ${sequences} sequence(s) restored ahead of them stay registered: this runtime has no way to unregister a sequence` : ''}`);
+      // Since v121 the second half is undoable too, so a load that fails partway leaves nothing: stopping
+      // first is what makes removal legal (see `removeCinematic`), and the file was the only reason those
+      // sequences existed in this runtime.
+      for (const id of loadedSequences.restored) {
+        this.stopCinematic(id);
+        this.removeCinematic(id);
+      }
+      throw new Error(`${(error as Error).message} — the ${restored.length} entity(ies) and the ${loadedSequences.restored.length} sequence(s) this load had registered were removed again; a load is all or nothing`);
     }
     const report: SaveFileLoadReport = {
       sceneId,
@@ -1897,7 +1903,7 @@ export class ThreeRuntime {
     const scene = this.sceneGraph.scenes.get(sceneId);
     if (!scene) throw new Error(`defineCinematic: scene ${sceneId} does not exist`);
     if (this.cinematics.has(input.id)) {
-      throw new Error(`defineCinematic: a sequence named ${input.id} is already registered, and this runtime has no way to unregister one — choose a new id`);
+      throw new Error(`defineCinematic: a sequence named ${input.id} is already registered; removeCinematic it first, or choose a new id`);
     }
     const shots = [...input.shots];
     if (shots.length === 0) {
@@ -2005,6 +2011,48 @@ export class ThreeRuntime {
     entry.sequence.playing = false;
     this.emit('cinematicStopped', { sequenceId: id, time: entry.time, duration: entry.sequence.duration });
     return true;
+  }
+
+  /**
+   * Un-register a sequence, which v117-v120 did not allow and named twice as a limitation: `defineCinematic`
+   * refused a taken id with "this runtime has no way to unregister one", and `loadSaveFile`'s rollback said the
+   * sequences it had restored would stay registered. Both sentences are now false and have been rewritten.
+   *
+   * Two decisions are load-bearing. Removing an id that is not registered answers `false` rather than
+   * throwing — that is `stopCinematic`'s shape, and "there was nothing to remove" is a fact, not an error. And
+   * removing a PLAYING sequence throws: `playing` belongs to `playCinematic`/`stopCinematic`, and a removal
+   * that quietly stopped a cutscene would emit a `cinematicStopped` no caller asked for, leaving a listener to
+   * explain a stop that never happened as one.
+   */
+  removeCinematic(id: string): boolean {
+    const entry = this.cinematics.get(id);
+    if (!entry) return false;
+    if (entry.sequence.playing) {
+      throw new Error(`removeCinematic: "${id}" is playing; call stopCinematic first — this method will not emit a cinematicStopped the caller did not ask for`);
+    }
+    this.cinematics.delete(id);
+    this.emit('cinematicRemoved', { sequenceId: id, sceneId: entry.sceneId });
+    return true;
+  }
+
+  /**
+   * Un-register every sequence that is not playing, and say which ones that excludes. The playing ones are
+   * reported rather than stopped: a caller clearing the registry has not asked to interrupt a cutscene, and
+   * the answer that leaves the decision where it belongs is the honest one.
+   */
+  clearCinematics(): { removed: string[]; stillPlaying: string[] } {
+    const removed: string[] = [];
+    const stillPlaying: string[] = [];
+    for (const [id, entry] of [...this.cinematics]) {
+      if (entry.sequence.playing) {
+        stillPlaying.push(id);
+        continue;
+      }
+      this.cinematics.delete(id);
+      removed.push(id);
+      this.emit('cinematicRemoved', { sequenceId: id, sceneId: entry.sceneId });
+    }
+    return { removed, stillPlaying };
   }
 
   /** The declared `SerializedCinematic` shape, built from the registry. Since v118 every value in it is a

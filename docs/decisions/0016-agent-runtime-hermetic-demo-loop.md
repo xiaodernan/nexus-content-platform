@@ -5701,3 +5701,49 @@ the field that would carry the mapping (`SaveData.sceneGraph`) is still blocked,
 being fully reversible and what makes "choose a new id" the only answer `defineCinematic` can give to a
 duplicate; then the four blocked halves that need a subsystem; then collision geometry, which is what
 `slopeLimit`, `stepOffset`, `broadphase` and `solverIterations` are all waiting on.
+### Amendment 121 — v121: the cinematic registry can give an id back — `removeCinematic`, a load that now rolls back both halves, and two refusal sentences that were lying about what this runtime can do
+
+Three grants carried the same confession in different words. v117 made `defineCinematic` refuse a taken id
+with "this runtime has no way to unregister one — choose a new id". v119 wrote into `loadSaveFile`'s failure
+message that the sequences restored before a failing entity pass "stay registered: this runtime has no way to
+unregister a sequence". v120 restated it as a property of the disk path, and its README listed it under "what
+this still does NOT honor". None of that was a design choice; it was the shape of a `Map` with no delete. v121
+changes the shape, and the interesting work is what the change costs: two thrown messages that had become
+false, and one test that had been written to prove the limitation and now has to say the opposite.
+
+`removeCinematic(id)` returns `true` when it un-registered something and `false` when nothing was registered
+under that id — the latter is `stopCinematic`'s existing shape, because "there was nothing to remove" is a fact
+a caller may act on, not an error. It **throws on a playing sequence**: `playing` belongs to
+`playCinematic`/`stopCinematic`, and a removal that stopped a cutscene to get its way would emit a
+`cinematicStopped` nobody asked for and leave a listener to explain a stop that never happened. The case asserts
+the absence of that event, not just the presence of the exception. `clearCinematics()` takes the same position
+at batch scale: it removes the idle sequences, returns `{removed, stillPlaying}`, and leaves the playing one
+alone rather than deciding for the caller.
+
+With removal, the load becomes what v119 said it could not be. `loadSaveFile`'s catch stops and then removes
+each sequence the call had registered, so a failure anywhere leaves neither half behind, and the message
+changed to match: "the N entity(ies) and the M sequence(s) this load had registered were removed again; a load
+is all or nothing". The test that pinned the old boundary — the one asserting `cinematicFieldAudit('seq')`
+still answered after a failed load — was flipped in place to `toBe(undefined)`, with the reason in a comment
+rather than deleted, because a removed assertion is invisible and a reversed one is a record.
+
+And a stale refusal message is a lie with a timestamp, so the retirement is guarded rather than trusted: a case
+reads `src/threeRuntime.ts`, keeps only the lines containing `throw new Error(`, and fails if any of them still
+says "no way to unregister" — while the sentence is allowed to survive inside a docstring, where it is history
+rather than an instruction. That distinction (prose may remember, an error may not) is the reusable part of
+this grant.
+
+Measured: `test/cinematicSequence.test.ts` 78 cases, `test/saveSnapshot.test.ts` 64, package
+total **240** (64 save + 39 controller + 78 cinematic + 30 physics + 29 runtime), `tsc --noEmit` exit 0 on `src`. The probe ran 8 arms over the
+final source against an unmutated control of **142 collected / 0 red**, each arm's minimum red written down
+before measuring, every arm collecting the full population, and the source restored byte-for-byte afterwards.
+Reds: 2, 1, 1, 2, 1, 1, 1, 1. No arm survived. No arm reddened fewer than claimed. 2 of the 8 arms reddened MORE than written down for them (01-removing-a-playing-sequence-is-allowed: 1→2, 04-load-rollback-leaves-sequences-registered: 1→2).
+
+What v121 does not do, stated by name: removing a sequence does not move the camera back — `updateCinematics`
+owns the pose and there is no undo for a written position; removal does not erase the event log, which is why
+`cinematicRemoved` exists rather than a rewind; the store still has no `deleteSaveFile`, no list and no atomic
+rename; `npcs`/`quests`/`player`/`worldState`/`sceneGraph` remain blocked on systems that do not exist; an
+entity record still carries no scene address, which is `SaveData`'s problem, not this one's. Next, in order:
+`deleteSaveFile` on the seam (removal made a whole-game load reversible, so the file layer no longer has an
+excuse for not being able to take a save back), then the four blocked halves that need a subsystem, then
+collision geometry for `slopeLimit`/`stepOffset`/`broadphase`/`solverIterations`.

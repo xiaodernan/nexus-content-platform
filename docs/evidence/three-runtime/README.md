@@ -1,4 +1,4 @@
-# @nexus/three-runtime — evidence for v108 (host seams), v114 (character controller), v115 (the entity save format), v116 (the scene's physics world), v117 (the cinematic sequence), v118 (the save that reads it back), v119 (the file it survives on disk) and v120 (the bytes, through a store)
+# @nexus/three-runtime — evidence for v108 (host seams), v114 (character controller), v115 (the entity save format), v116 (the scene's physics world), v117 (the cinematic sequence), v118 (the save that reads it back), v119 (the file it survives on disk), v120 (the bytes, through a store) and v121 (the id comes back)
 
 This directory records the 3D runtime lane (ROADMAP M5). Every claim here is read back out of the
 shipped source and the package's own vitest suite — `packages/three-runtime/src/*.ts` and
@@ -629,3 +629,93 @@ Next: `removeSequence`/unregister is the smallest hole with the widest consequen
 half-failed load from being fully reversible, and what keeps `defineCinematic`'s "choose a new id" refusal as
 the only answer to a duplicate. Then the four `SaveData` fields that need a subsystem, then collision geometry
 for `slopeLimit`/`stepOffset`/`broadphase`/`solverIterations`.
+## v121 — the registry can give an id back: `removeCinematic`, a load that rolls back both halves, and two shipped sentences that were retired by name
+
+v117 wrote it into a refusal ("this runtime has no way to unregister one — choose a new id"), v119 wrote it
+into a rollback message ("the sequence(s) restored ahead of them stay registered"), and v120 quoted the same
+thing as a limit of the disk path. All three were true then. v121 makes them false, and the interesting part of
+the cycle is the retirement: two thrown messages that now lie, one test that had been written to prove the
+limitation, and a rollback that could finally be described as complete.
+
+| what | measured |
+| --- | --- |
+| suites | `test/cinematicSequence.test.ts` 78 cases, `test/saveSnapshot.test.ts` 64, package total **240** (64 save + 39 controller + 78 cinematic + 30 physics + 29 runtime), `tsc --noEmit` exit 0 on `src` |
+| removal | `removeCinematic(id)` → `true` when a sequence was un-registered, `false` when nothing is registered under that id. It **refuses a playing sequence** ("call stopCinematic first") — `playing` belongs to `playCinematic`/`stopCinematic`, and a removal that stopped a cutscene on the way out would emit a `cinematicStopped` nobody asked for. Emits `cinematicRemoved` with the scene it was registered against |
+| batch | `clearCinematics()` → `{removed, stillPlaying}`: the idle ones go, the playing one is reported and left alone. Removal of each is the same code path, so the event log is the same either way |
+| the load is atomic now | `loadSaveFile`'s catch stops and removes every sequence it had restored, so a load that fails in its second half leaves neither half behind. The message changed with the behavior: "the 1 entity(ies) and the 1 sequence(s) this load had registered were removed again; a load is all or nothing" |
+| the id comes back | after a removal, `defineCinematic` accepts the same id again — which is the capability the duplicate-id refusal used to say did not exist, and the reason its message now points at `removeCinematic` |
+| the retirement is pinned | a test reads the shipped source, takes only its `throw new Error(` lines, and requires that none of them says "no way to unregister" — because a comment is allowed to quote a retired sentence in order to explain the retirement, and a refusal is not |
+
+Three things worth the sentence it costs.
+
+* **An absent id answers `false`; a playing one throws.** Those are different shapes on purpose. "There was
+  nothing to remove" is a fact about the world that a caller may act on, and `stopCinematic` already answers
+  that way — the removal API inherits it rather than inventing its own. "This is playing" is a request the
+  runtime will not satisfy by doing something you did not ask for. The case asserts both, and asserts that no
+  `cinematicStopped` fires when a removal is refused.
+* **The rollback needed the removal to exist, not the other way round.** v119's load could undo entities and
+  could not undo sequences, and it said so. Nothing about that was a design choice; it was the shape of the
+  registry. Adding `removeCinematic` did not "fix a bug" — it removed the reason a correct-sounding message had
+  to exist. The test that had asserted `cinematicFieldAudit('seq')` survived the failed load was flipped in
+  place, with the reason in a comment, because deleting it would have hidden what changed.
+* **A stale message is a lie with a timestamp.** Every refusal sentence this package writes is a claim about
+  what the runtime can do; two of them kept making it after the capability landed. They were re-worded by hand,
+  but the guard against the next one is a test that reads the shipped source and refuses the phrase in a
+  message — prose in a docstring is allowed to remember history, an error is not.
+
+### How the probe ran, and what it said
+
+The probe is `mutate-v121.mjs (scratch)`: 8 arms, each anchor verified to match the shipped source exactly once
+before any run, each arm's minimum red written down in the script beforehand, the control fixing the population
+at **142** with 0 red, and the file restored byte-for-byte in a `finally` (`restored the target
+byte-exactly: true`). Reds per arm, in order: 2, 1, 1, 2, 1, 1, 1, 1. No arm survived. No arm reddened fewer than claimed.
+2 of the 8 arms reddened MORE than written down for them (01-removing-a-playing-sequence-is-allowed: 1→2, 04-load-rollback-leaves-sequences-registered: 1→2). The whole package was measured separately at **240** with 0 red and
+`tsc --noEmit` exited 0 over `src`.
+
+The arms are the retirement, tested from the other side. Deleting the playing-sequence refusal, turning the
+absent-id answer into `true`, making `clearCinematics` stop the sequence it should leave alone, dropping either
+half of the load's new rollback (the stop, or the remove), and silencing `cinematicRemoved` in both the single
+and the batch path — each is caught, and the pattern is the one this lane wants: one clause, one witness.
+
+Two of them were not caught on the first run, and both were absent cases rather than wrong ones, which is the
+failure mode v119 recorded and v121 keeps meeting. Arm `05-load-rollback-forgets-to-stop-first` survived
+because every rollback case loaded an IDLE sequence, so the stop was never needed; the new case loads a file
+whose cutscene is playing and asserts the `cinematicStopped` that the rollback must emit on the way out. Arm
+`08-clear-removal-is-silent-on-the-bus` survived because the `clearCinematics` case checked the return value and
+not the event bus; it now counts one `cinematicRemoved` per removed id and none for the playing one. Both arms
+redden on the run reported above.
+
+The seventh arm is the interesting one: it restores the old duplicate-id message verbatim, including "no way to
+unregister", and is caught by the case that greps the shipped `throw new Error(` lines. A refusal sentence is a
+claim about what the runtime can do, so it is testable the same way a behavior is — and unlike a docstring, it
+is not allowed to keep saying something that stopped being true in a previous commit.
+
+### What v121 still does NOT honor — stated by name
+
+* A removed sequence's *camera* stays where the last frame left it. `updateCinematics` owns the camera;
+  removal un-registers a timeline, it does not rewind a pose — no undo path exists for that.
+* `removeCinematic` does not touch the event log: listeners have already been told about the sequence, and a
+  removal emits its own event rather than pretending the history is clean.
+* Nothing here deletes a scene or an entity-record's scene address; a `SaveFile` still carries entities for one
+  scene and the caller names where they land.
+* `npcs`, `quests`, `player`, `worldState` and `sceneGraph` stay blocked on systems that do not exist; no
+  delete, list, atomic rename or repair exists for files.
+
+### Sentences this record retires
+
+* `defineCinematic`'s duplicate-id refusal, as shipped since v117: *"…is already registered, and this runtime
+  has no way to unregister one — choose a new id"*. Now: *"…is already registered; removeCinematic it first, or
+  choose a new id"*, asserted by a case that removes and re-registers under the same id.
+* `loadSaveFile`'s rollback sentence (v119, restated by v120): *"…but the N sequence(s) restored ahead of them
+  stay registered: this runtime has no way to unregister a sequence"*. Gone, replaced by the all-or-nothing
+  message quoted above.
+* v120's README, "What v120 still does NOT honor": *"…a read whose second half fails after the sequences land
+  leaves them in the registry, and the thrown message says which half stayed"*. It no longer stays — the case
+  that pinned it now asserts `cinematicFieldAudit('seq') === undefined`, with the reversal explained inline.
+* ROADMAP M5, honest bounds: *"…a rollback reaches neither the event log nor a sequence registered before a
+  later half failed"*. The event-log half is still true and stays in the cell; the sequence half was swapped out
+  by the edit that added this section.
+
+Next: the removal makes a *whole-game* load reversible, which is the last excuse the file layer had for not
+having a delete — a `deleteSaveFile(path)` on the store seam is now the smallest honest gap, then the four
+blocked `SaveData` halves that need a subsystem, then collision geometry.
