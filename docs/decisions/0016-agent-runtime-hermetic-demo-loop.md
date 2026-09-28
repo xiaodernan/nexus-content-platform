@@ -6039,24 +6039,52 @@ caller cannot branch on the difference without string matching â€” named here as
 nothing is repaired, migrated or rewritten by a survey. The four blocked `SaveData` halves are unchanged and
 still the reason `readableNowButNotCarried` has anything to say.
 
-### Amendment 107, addendum (M2 v107 re-measured) ¡ª the record's correction claimed EBUSY 6/6, but re-measurement shows status 0 6/6; the host fault is intermittent, not absolute
+### Amendment 107, addendum (M2 v107 re-measured) ï¿½ï¿½ the record's correction claimed EBUSY 6/6, but re-measurement shows status 0 6/6; the host fault is intermittent, not absolute
 
-Amendment 107's record (line 4757) states: e-measured for this record: spawnSync fails with EBUSY 6 times out of 6, and syncApiIsBroken() returns true ¡ª so the line prints BROKEN. Re-measured for amendment 130's record at cf50329: spawnSync(process.execPath, ['-e', 'process.exit(0)']) returns status 0 with no error, 6/6, and syncApiIsBroken() returns false. The identity line prints nswers (status 0, no error) in both worktree and isolated sweeps.
+Amendment 107's record (line 4757) states: e-measured for this record: spawnSync fails with EBUSY 6 times out of 6, and syncApiIsBroken() returns true ï¿½ï¿½ so the line prints BROKEN. Re-measured for amendment 130's record at cf50329: spawnSync(process.execPath, ['-e', 'process.exit(0)']) returns status 0 with no error, 6/6, and syncApiIsBroken() returns false. The identity line prints nswers (status 0, no error) in both worktree and isolated sweeps.
 
-The host fault is **intermittent/plane-dependent**, not absolute ¡ª which is exactly why v107's identity line exists: it reports the state of this run, so a reader can tell which world the run stands in. Both the original commit's prediction (nswers...) and the record's correction (BROKEN...) were absolute claims; the truth is conditional.
+The host fault is **intermittent/plane-dependent**, not absolute ï¿½ï¿½ which is exactly why v107's identity line exists: it reports the state of this run, so a reader can tell which world the run stands in. Both the original commit's prediction (nswers...) and the record's correction (BROKEN...) were absolute claims; the truth is conditional.
 
-### Amendment 129 (M5 v129, three-runtime) ¡ª the commit ca3932d (eat(three-runtime): v129) landed but its record is still owed. This note records the debt so the ledger's newest-grant refusal in table-recount-proof.mjs ¡ì7 does not fire spuriously when 129 is finally written.
+### Amendment 129 (M5 v129, three-runtime) â€” the survey reports WHY a save could not be read, as a field not a sentence
 
-### Amendment 130 (M2 v130, docs/evidence) ¡ª two rows were red only on the plane where git works, so their dead assertions are repaired on the plane that can see them
+The `diagnoseSaveFiles` method previously returned `{ path, why }` for unreadable saves, where `why` was a free-form error sentence. A caller that wanted to branch â€” pick another slot, or tell the player "this save is damaged" â€” had to string-match that sentence, which is the fragility amendments 118 and 122 kept naming. v129 replaces the prose with a discriminated field:
 
-Two rows in the population ¡ª cwd-axis-proof.mjs and 	imeout-axis-proof.mjs ¡ª carried assertions that were TRUE in v83 but went false when three rows landed (v91¨Cv94) that never load the shipped build at all. On the ISOLATED plane those rows die early at git ls-tree exit 128, so the false assertions were never exercised; the 42-red standing population hid them. On the WORKTREE plane git answers, the rows reach their own assertions, and both failed:
+```ts
+unreadable: { path: string; reason: 'not-json' | 'listed-then-missing'; why: string }[]
+```
 
-- cwd-axis ¡ì1 pinned childRelative === total (70 ¡Ù 73) but three rows have no build edge; the census now names the three (asks-axis, plane-axis, table-recount) instead of letting a reader round 70/73 up to 73/73. A code-position scan also asserts no non-child-cwd row smuggles a build in through its own location (a different reader than the text-scan distRelative check).
-- timeout-axis ¡ì2 required every budget declaration to cite a measurement in its header; 	able-recount-proof.mjs declared 300 000 ms but cited none. The row now cites measured 12.2 s inside a sweep row and 15.1 s standing alone, both on 2026-09-28, against a 300 000 ms ceiling. The checker's numeric arm is widened to the repo's spaced form 12.2 s (amendment 89's lesson: a grammar that doesn't match the population manufactures failures).
+The `reason` is derived from **which check failed**, not from the error message wording:
+
+- `'not-json'` â€” the store returned bytes but `JSON.parse` threw (the only throw `diagnoseSaveFile` can raise for bytes that exist).
+- `'listed-then-missing'` â€” the store's `list()` returned the name but `read()` returned `null` (the name went stale between listing and the survey's own read).
+
+The survey does its own read (`this.storage.read(path)`) rather than delegating to `diagnoseSaveFile`, so it observes both situations itself. A caller can now branch on `reason` without ever string-matching a message, and the `why` field remains as the human-readable detail.
+
+Test coverage added in the same commit:
+- `a name the store lists but cannot return is reported as listed-then-missing` â€” a stub `SaveStore` whose `list()` returns `['gone.json']` and `read()` returns `null`; the survey reports `reason: 'listed-then-missing'`.
+- The existing atomic-save case now asserts `report.unreadable.map(e => e.reason) === ['not-json']` for the junk file.
+
+Measured at `ca3932d`:
+- `tsc --noEmit` exit 0 on `packages/three-runtime/src`
+- Vitest: **273 tests collected, 0 failed** (2 new cases for the two reasons, plus existing 271)
+- The two new cases exercise both branches of the new `reason` field.
+
+DEBT recorded in the commit and carried here:
+1. **Behavioural probe not run.** The harness for the mutation probe (which would mutate the `reason` field and assert the test catches it) failed to apply due to CRLF line-ending conflicts in the working copy â€” a two-line anchor never matched, and a heredoc patch produced a syntax error. The code change is not evidence for a mutation claim without the probe; this record notes the gap.
+2. **No ADR grant was added at commit time.** The ledger stood at 123 headings then; it now stands at 128 (amendments 106â€“128 landed in the docs/evidence lane). This record writes the owed grant so the ledger's newest-grant refusal in `table-recount-proof.mjs` Â§7 does not fire when the next grant (130, already written by the evidence lane) is processed.
+
+The record for amendment 129 is written in the cycle that followed the commit, not by the commit's author â€” the rule this stack keeps finding is that a citation in a commit message is not the record, and the record is the only thing that retires the debt (amendment 90, 107).s not fire spuriously when 129 is finally written.
+
+### Amendment 130 (M2 v130, docs/evidence) ï¿½ï¿½ two rows were red only on the plane where git works, so their dead assertions are repaired on the plane that can see them
+
+Two rows in the population ï¿½ï¿½ cwd-axis-proof.mjs and 	imeout-axis-proof.mjs ï¿½ï¿½ carried assertions that were TRUE in v83 but went false when three rows landed (v91ï¿½Cv94) that never load the shipped build at all. On the ISOLATED plane those rows die early at git ls-tree exit 128, so the false assertions were never exercised; the 42-red standing population hid them. On the WORKTREE plane git answers, the rows reach their own assertions, and both failed:
+
+- cwd-axis ï¿½ï¿½1 pinned childRelative === total (70 ï¿½ï¿½ 73) but three rows have no build edge; the census now names the three (asks-axis, plane-axis, table-recount) instead of letting a reader round 70/73 up to 73/73. A code-position scan also asserts no non-child-cwd row smuggles a build in through its own location (a different reader than the text-scan distRelative check).
+- timeout-axis ï¿½ï¿½2 required every budget declaration to cite a measurement in its header; 	able-recount-proof.mjs declared 300 000 ms but cited none. The row now cites measured 12.2 s inside a sweep row and 15.1 s standing alone, both on 2026-09-28, against a 300 000 ms ceiling. The checker's numeric arm is widened to the repo's spaced form 12.2 s (amendment 89's lesson: a grammar that doesn't match the population manufactures failures).
 - The identity line [identity] sync spawn API on this box: prints once per run and reads nswers (status 0, no error) on this box in both planes.
 - Identical verdict sets across the two planes for the rows that run: worktree 0 failed, isolated 42 failed, the 42 being the standing population from amendment 113's addendum.
 
-Measured at cf50329: worktree 73 scripts ¡¤ 0 failed ¡¤ 0 killed ¡¤ 709s, isolated 73 scripts ¡¤ 42 failed ¡¤ 0 killed ¡¤ 146s (unchanged from amendment 113's addendum). The home build digest stays  1db41cffeab0c51 (260 dist files), tree digest 420a122818880cda (257 files), dirty-sources 0.
+Measured at cf50329: worktree 73 scripts ï¿½ï¿½ 0 failed ï¿½ï¿½ 0 killed ï¿½ï¿½ 709s, isolated 73 scripts ï¿½ï¿½ 42 failed ï¿½ï¿½ 0 killed ï¿½ï¿½ 146s (unchanged from amendment 113's addendum). The home build digest stays  1db41cffeab0c51 (260 dist files), tree digest 420a122818880cda (257 files), dirty-sources 0.
 docs(adr-0016): M2 v130 record + amendment 107 addendum + amendment 129 owed note + README gates fix (ADR 0016)
 
 Three records close open loops:
@@ -6064,11 +6092,11 @@ Three records close open loops:
 1. Amendment 130 (M2 v130, docs/evidence): two rows were red only on the plane where git works.
    The worktree sweep at cf50329 reports **73 scripts Â· 0 failed Â· 0 killed Â· 709s**. The isolated sweep
    reports **73 scripts Â· 42 failed Â· 0 killed Â· 146s** (unchanged from amendment 113's addendum).
-   - cwd-axis Â§1: replaced the stale `childRelative === total` pin (70 â‰?73) with a named-remainder
+   - cwd-axis Â§1: replaced the stale `childRelative === total` pin (70 ï¿½?73) with a named-remainder
      census: three rows (asks-axis, plane-axis, table-recount) reach no build through the child's cwd
      and are printed by name. A code-position scan also asserts no such row smuggles a build in
      through its own location (a different reader than the text-scan distRelative check).
-   - timeout-axis Â§2: table-recount-proof now cites its measurement â€?"measured 12.2 s inside a
+   - timeout-axis Â§2: table-recount-proof now cites its measurement ï¿½?"measured 12.2 s inside a
      sweep row and 15.1 s standing alone, both on 2026-09-28, against a 300 000 ms ceiling". The
      checker's numeric arm is widened to the repo's spaced form "12.2 s" (amendment 89's lesson:
      a grammar that doesn't match the population manufactures failures).
@@ -6079,11 +6107,11 @@ Three records close open loops:
 
 2. Amendment 107, addendum (M2 v107 re-measured): the record's "correction" claimed EBUSY 6/6.
    Amendment 107's record (line 4757) states: "re-measured for this record: spawnSync fails with
-   EBUSY 6 times out of 6, and syncApiIsBroken() returns true â€?so the line prints BROKEN".
+   EBUSY 6 times out of 6, and syncApiIsBroken() returns true ï¿½?so the line prints BROKEN".
    Re-measured for amendment 130's record: `spawnSync(process.execPath, ['-e', 'process.exit(0)'])`
    returns status 0 with no error, 6/6, and syncApiIsBroken() returns false. The identity line
    prints `answers (status 0, no error)` in both worktree and isolated sweeps at cf50329.
-   The host fault is **intermittent/plane-dependent**, not absolute â€?which is exactly why v107's
+   The host fault is **intermittent/plane-dependent**, not absolute ï¿½?which is exactly why v107's
    identity line exists: it reports the state of this run, so a reader can tell which world
    the run stands in. Both the original commit's prediction ("answers...") and the record's
    "correction" ("BROKEN...") were absolute claims; the truth is conditional.
