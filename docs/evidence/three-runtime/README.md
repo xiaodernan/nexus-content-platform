@@ -1524,7 +1524,7 @@ loader can tell the two apart rather than guessing from a missing field. A fourt
 `inventory` is now refused by three planes with three different sentences, and `player` itself is refused only
 by `'world-state'`, because a bag key of that name would be a second owner of one player.
 
-**Suite at the grant: 322 passed / 5 files, 0 failed; `npm run typecheck` clean.**
+**Suite at this follow-on: 5 files / 322 cases / 0 red and `tsc --noEmit` exit 0 (114s), graded from HEAD's own bytes materialised into `.scratch/v136/headpkg/packages/three-runtime` with the write-side CRLF restored on 5 of its 12 files, and a before/after digest over every graded file saying nothing moved.** An earlier draft of this line said "322 passed / 5 files, 0 failed" and no kept artifact backed it: the two collections that exist are `5 files / 321 cases / 0 red` (`full-after-diagfix.json`, before the new case) and `5 / 322 / 1 red` (`fix-run.json`, with it — that red being the wording iteration), both taken mid-fix.
 
 ### The hole the probe found, in the order it was found
 
@@ -1547,9 +1547,13 @@ of one refusal. `null` stays loadable — it is a value, so the check reads the 
 
 ### The second probe run, at the fixed source
 
-**13 arms including the control · control 0 red of 322 · 12 caught · 1 arm predicted-but-not-red · 5 arms that
-reddened more than predicted · 0 that reddened fewer** (`probe-fixed.log`). The writer-omits arm is now caught:
-its 18 reds include the partition case and the new claim-vs-bytes case. Its one miss is
+**13 arms including the control · control 0 red · 12 caught · 1 arm predicted-but-not-red · 5 arms that
+reddened more than predicted · 0 that reddened fewer** (`probe-fixed.log`). Say the denominator, because the two
+probe runs do not share one: this version runs `test/saveSnapshot.test.ts` alone, whose population is **146 cases**
+(`npx vitest list test/saveSnapshot.test.ts`, read after the run), while the first run's harness collected across
+all five files and printed 321. A draft of this sentence put "0 red of 322" beside the control, which is a borrowed
+population — the package total at this ref is 322 and is reported as that, separately, one section above. The writer-omits arm
+is now caught: its 18 reds include the partition case and the new claim-vs-bytes case. Its one miss is
 `an OLD file that says nothing about the player is read as carrying none` — and that is my prediction being
 wrong, not the suite: deleting the writer's line does not merely omit a half, it puts `player` in `carries` with
 no key behind it, which is exactly the mismatch that case's hand-built old file exists to survive. The
@@ -1574,6 +1578,22 @@ Two of these readings were wrong before they were corrected, and both were mine.
   before it. The earlier scare that the tracked source had lost `player: this.playerSnapshot(sceneId),` is the
   same event seen from the other side: the line was there, a reader had caught the file mid-rewrite.
 
+- The whole-file writer that restored the erased Edit read `src/threeRuntime.ts` off the disk, and a concurrent M5
+  run was writing v137 (player operations: `damagePlayer`/`healPlayer`/`spendMana`/`gainExperience`) into that same
+  file at that moment, so `git add <file>` handed those hunks to `1e729f5`, whose message describes only the
+  diagnosis fix. Measured at the ref: the four operations have **0** hits in the committed `saveSnapshot.test.ts`
+  and 16/8/8/6 hits in its uncommitted worktree copy — v137's own run is still writing them. Not reverted (a shared
+  tree does not get cleaned by `git checkout`), and now the rule: in a shared worktree, staging by file is not
+  enough when the FILE is shared — read the staged hunks against the grant being committed first.
+- `git show HEAD:docs/ROADMAP.md` is **not** the worktree's bytes: `core.autocrlf=true` hands back LF-normalised
+  content, so a raw equality check against a CRLF copy reports a difference (measured: exactly the file's 24 CRLF
+  pairs) with nobody writing. A shared doc's stale-base guard is `git status --porcelain -- <path>` empty AND an
+  EOL-normalised comparison.
+- Measuring a ref means materialising it, and the copy has to keep the repository's DEPTH: laid flat, the
+  package's `extends: ../../tsconfig.base.json` cannot resolve, vite fails to transform, and every test file
+  collects **0** cases behind `runnerExit 1` with empty per-file `failureMessage`s — a green-shaped artifact that
+  grades nothing. The gate script now refuses to call a 0-case collection a result.
+
 ### What v136 does NOT honor — stated by name
 
 - **`SaveFile`'s five halves are not all graded the same way.** `claimsWithoutBytes` refuses a claim with no key
@@ -1584,11 +1604,19 @@ Two of these readings were wrong before they were corrected, and both were mine.
 - **A player still has no `inventory` writer.** The field is refused by three planes and stays refused; this
   grant made the record real, not the bag real.
 - **`detachPlayer` has no Studio face.** Nothing outside a test attaches or detaches a player.
-- **The ADR record, the ROADMAP cell, and the §7 evidence-door run at this commit are owed**, for the reason
-  they were owed at v134 and v135: the M2 lane holds uncommitted drafts in `docs/ROADMAP.md`,
-  `docs/decisions/0016-agent-runtime-hermetic-demo-loop.md`, `docs/evidence/agents/README.md`,
-  `isolated-proof.mjs` and `sweep.mjs`, and staging either shared file would publish a claim about code that has
-  not landed.
+- **The ADR record, the ROADMAP cell and the §7 evidence-door run were owed at v136 and are paid by this
+  follow-on**: amendment 136 carries an addendum, the ROADMAP M5 cell re-attributes its measurement, and §7 ran at
+  `1e729f5` — 73 rows: 3 FAIL (confession-proof.mjs, drive-axis-proof.mjs, report-kill-proof.mjs) and 4 KILL.
+  Two of the FAILs read `docs/evidence/agents/*`, which is the M2 lane's own surface and not three-runtime's, so
+  they are recorded here rather than edited; the kills belong to the runner's own 240000ms default rather than to
+  any assertion, because that run shared the box with the package gate, and the door re-runs at the docs commit.
+  The reason the clause could not be paid at v134/v135 — the M2 lane holding uncommitted drafts in the shared
+  docs — is gone at this landing: `git status --porcelain` lists 4 tracked modification(s)
+  (docs/ROADMAP.md, docs/decisions/0016-agent-runtime-hermetic-demo-loop.md, docs/evidence/three-runtime/README.md, packages/three-runtime/test/saveSnapshot.test.ts), and the ADR and ROADMAP are not among them, so this append cannot sit on a stale
+  base. Note that §7's identity line says `dirty tracked sources under packages: 0` and cannot mean the same
+  thing: `sweep.mjs:233` `dirtySources()` keeps only paths under a `src/` directory, so it reads 0 beside a
+  modified test file — which is why this clause cites `git status`, not the sweep.
+
 
 ### Sentences this record retires
 
@@ -1714,3 +1742,80 @@ deleted, because it is the reason the second run's numbers can be trusted.
   `player` is carried; `sceneGraph` and `quests` are what is left.
 - The M5 ROADMAP cell's *"`SaveData`'s four remaining blocked fields stay blocked"*, and the evidence header
   line's grant list ending at v135 — the header now names v136, and the blocked count is two.
+
+## v137 — the player record's declared numbers get operations: damage / heal / mana / experience / level, each refusing by name what a drive would otherwise invent
+
+v136 gave the record a body and a file and wrote its own loudest bound in the same breath: *"the record is FILED
+AND NEVER DRIVEN — nothing reads `health`, `mana`, `experience` or `level` to change anything"*. This grant
+drives them, and the drive is deliberately smaller than a game: five operations that move the declared numbers
+and nothing else, each with the refusal that keeps it honest.
+
+**The door every operation goes through.** `requirePlayerForOperation` refuses a scene with no player (naming
+the scene) and an amount that is not a finite non-negative number (naming the operation). The second refusal is
+`attachPlayer`'s rule moved onto the operation: `JSON.stringify` writes NaN as null, so an amount this door
+accepted would come back off a file as a different number. A NEGATIVE amount is refused rather than interpreted
+as its opposite — a caller who means "heal" has `healPlayer`, and a sign that silently reverses an operation is
+how a damage call becomes a healing one.
+
+**Damage reports what LANDED.** `damagePlayer` subtracts `min(amount, health)`, so an overkill blow reports the
+health that was actually there. `died` is true only on the call that crossed from positive to zero: a
+zero-damage blow is not a death and a blow on a corpse is not a second one. The caller's own `reason` rides
+along in the report and the event and is never read by the runtime — a listener that has to guess why a blow
+landed is a listener reading a different event than the one that fired.
+
+**Health clamps; mana refuses.** `healPlayer` clamps at `maxHealth` and answers a report of zero when the record
+is already full — asking for health it has is an answer, not an error. `spendMana` REFUSES a spend larger than
+the pool, naming both numbers. The difference is deliberate and stated: an overkill blow has an obvious reading
+(the target is dead) while a spell the player cannot afford does not, so the caller is told instead of being
+handed a spell nobody paid for.
+
+**Experience moves experience, and nothing else.** `gainExperience` adds and does NOT touch the level, and the
+report carries the unchanged level so a caller cannot read the silence as a curve that fired. There is no
+threshold table in this package on purpose: an experience curve is a design decision, and the honest place for
+one is a caller that says out loud when a level is owed. `setPlayerLevel` is therefore the ONLY door a level
+changes through, and it refuses a zero, a fractional or a non-finite level rather than flooring one.
+
+**Measured.** 333 vitest cases across 5 files, 0 red (`test/saveSnapshot.test.ts` 157, of which this grant's
+describe holds 11); `tsc -p tsconfig.json --noEmit` exit 0.
+
+### How the probe ran, and what it said
+
+**10 arms including the control · control 0 red of 157 · 10 caught · 0 missed · 2 arms reddened MORE than
+predicted · 0 fewer.** The source was restored byte-for-byte in a `finally` and the restore verified against a
+digest taken before the first arm.
+
+Arms and the case each was predicted to redden — all caught: 01 letting damage land more than the player had;
+02 accepting a negative amount; 03 firing the death boundary on a corpse; 04 not clamping a heal; 05 clamping a
+spend the pool cannot cover; 06 dragging a level along with experience; 07 accepting a level below one; 08
+inventing a player for a scene that has none; 09 moving the report without moving the record; 10 emitting no
+event.
+
+The two over-reds are the same claim seen from a second angle, and neither is folded into the prediction:
+
+- **01** reddened 2 cases instead of 1, the extra being `a dead record is still a record: health never goes
+  below zero` — the arm drives health to `-97`, which is the other half of "an overkill blow clamps".
+- **09** reddened 4 instead of 1, because "the record IS the numbers the report describes" is asserted by the
+  death-boundary case and by both save cases as well as by the damage case.
+
+### A measurement note from this grant's own accounting
+
+The runner's line for `saveSnapshot.test.ts` read **145** at the v136 commit, while that commit's own file holds
+**146** blocks and every one of them is collected today. The current file's block count and the runner's count
+agree exactly (157 / 157), so the earlier line is one short of its own file. It is recorded rather than
+reconciled, and it is the shape this host is already known for — vitest under-reporting on this Windows box —
+arriving one layer down, at a case instead of a file.
+
+### What v137 still does NOT honor — stated by name
+
+- **No game reads these numbers.** An operation moves a declared field; nothing in this package decides what a
+  dead player may do, what a spell costs, when experience is earned, or what a level unlocks. There is no combat
+  step, no cooldown, no turn and no damage formula: the runtime moves numbers a caller names.
+- **No curve and no automatic level.** `gainExperience` never changes a level and `setPlayerLevel` never reads
+  experience. The two are joined by a caller, not by this runtime.
+- **`mana` has no producer.** `spendMana` takes mana and nothing puts it back: there is no `regainMana`, no
+  regeneration tick, and no link between the pool and `maxMana` beyond the setter that already existed.
+- **Equipment, buffs and resistances do not exist**, so nothing modifies an amount between the caller and the
+  record: `damagePlayer` subtracts exactly what it is handed.
+- **`inventory` is still refused on every plane**, and `sceneGraph` and `quests` are still the blocked `SaveData`
+  fields.
+- **No Studio surface**: no panel shows a player's numbers and no control drives one.

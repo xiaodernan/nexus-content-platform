@@ -6462,3 +6462,47 @@ on every plane; a restored player is carried as data rather than as geometry; `g
 `removeEntity`'s eager one are two owners of one cleanup, kept because a caller who removes an entity by another
 route still must not be handed a player that cannot be anywhere; nothing outside a test reads `refusalCensus()`
 or `SAVE_DATA_FEASIBILITY`; and `sceneGraph` and `quests` are the whole of the blocked list for the first time.
+
+**Addendum at `1e729f5` (M5 v136 follow-on) — the diagnosis was grading the file's vocabulary, not its bytes.**
+
+The sentence above that "`loadSaveFile` reads the FILE's own `carries` … and `diagnoseSaveFile` reports that
+same file loadable" was true of the old-file direction only, and the probe arm that deletes the writer's
+`player: this.playerSnapshot(sceneId),` line is what proved it: that arm reddened every case that loads a file it
+had just built, because the loader refuses a claim whose half is missing, and left
+`the whole listing is partitioned: loadable, unloadable and unreadable are three different answers` GREEN. A
+file whose `carries` names `player` with no `player` key at all was reported loadable by a function whose own
+docstring says the two readers must not be free to disagree about one file. Fixed by `claimsWithoutBytes`
+(`threeRuntime.ts:1982`): every name in `carries` that this runtime can fill must also be a KEY in the bytes,
+so `null` stays loadable (it is a value, the check reads the key, not the name) and the problem line is the
+loader's own wording rather than a paraphrase, for the reason amendment 127's `noclaims` case already gives.
+
+Re-measured here: Measured from kept artifacts, because two of them disagree and the disagreement IS the story: `full-after-diagfix.json` grades 5 files at 321 cases with 0 red — the population before the new case. `fix-run.json` grades 5 files at 322 cases with 1 red, and that red is this fix mid-flight: the new case quoted the diagnosis's paraphrase (`M5 v136 — the scene has one player, and a file can carry it …`) while the loader says `the file CLAIMS…`. The reading at this commit is not typed by me but taken from the gate artifact: 5 files / 322 cases / 0 red and `tsc --noEmit` exit 0 (114s), graded from HEAD's own bytes materialised into `.scratch/v136/headpkg/packages/three-runtime` with the write-side CRLF restored on 5 of its 12 files, and a before/after digest over every graded file saying nothing moved. The probe's population is the one file it runs — `test/saveSnapshot.test.ts`, 146 cases at this ref — not the 322-case package total, and the probe line itself reads `control: 0 red (expected 0) · exit 0` (`probe-fixed.log`).
+
+The probe at the fixed bytes: arms 13 · caught 12 · missed 1 · arms that reddened MORE than predicted 5 · arms that reddened FEWER 0. Its one remaining miss —
+`an OLD file that says nothing about the player is read as carrying none` — is the prediction's fault, not the
+suite's: deleting the writer's line does not merely omit a half, it leaves `player` in `carries`, which is the
+claim-without-bytes mismatch that case exists to survive. Reported as a witness. New arm
+`13-diagnosis-grades-words-not-bytes` restores the vocabulary-only verdict and reddens exactly the one case that
+pins the new check.
+
+Two harness readings are kept because both were mine and both were wrong before they were corrected: a suite
+run started ~15 s after an edit reported 1 red at a case that passes before and after (it graded the file while
+it was being rewritten), and a landed source edit was found erased afterwards. `src` is therefore written by a
+script that asserts its own anchor count and re-counts its marker AFTER the run, not only before it.
+
+And one workspace reading, because it changed what this commit contains. A concurrent M5 run was writing v137
+(player OPERATIONS: `damagePlayer`/`healPlayer`/`spendMana`/`gainExperience`) into `src/threeRuntime.ts` and
+`src/types.ts` while this fix was being written; the whole-file writer that replaced the erased Edit read the
+disk, and `git add <file>` then handed those hunks to this commit. Measured at the resulting ref: the four
+operations have 0 test hits in the committed `test/saveSnapshot.test.ts` and 16/8/8/6 in the same file's
+uncommitted worktree copy, which v137's own run is still writing. Nothing here reverts that — a shared tree
+does not get cleaned by `git checkout` — but the rule it teaches is stated: in a shared worktree, staging by
+file is not enough when the FILE is shared; the staged hunk list has to be checked against the grant being
+committed before the commit is made.
+
+The §7 door at this commit: 73 rows · 3 FAIL (confession-proof.mjs, drive-axis-proof.mjs, report-kill-proof.mjs) · 4 KILL (killed by the runner's own 240000ms default, which by its own sentence "belongs to a constant in sweep.mjs and not to anything the program does", and which this run earned by sharing the box with the package gate) · the walked tree was stable across the run. Of the FAILs, `confession-proof.mjs` and `drive-axis-proof.mjs` read `docs/evidence/agents/*` — the M2 lane's own surface, not three-runtime's, and recorded rather than edited here — while `report-kill-proof.mjs` is a timing-sensitive exec-host row that this shared box made slow.
+
+Bounds added: the claim-vs-bytes check covers the shape v136 made reachable, not every shape a hand-written
+file can wear — a missing `entities` or `cinematic` half is refused by the loader whatever the file claims, while
+the diagnosis still calls that file loadable through `readableNowButNotCarried`; `inventory` is still refused on
+every plane; and no Studio face attaches, detaches or reads a player.
