@@ -1,4 +1,4 @@
-# @nexus/three-runtime — evidence for v108 (host seams), v114 (character controller) and v115 (the entity save format)
+# @nexus/three-runtime — evidence for v108 (host seams), v114 (character controller), v115 (the entity save format) and v116 (the scene's physics world)
 
 This directory records the 3D runtime lane (ROADMAP M5). Every claim here is read back out of the
 shipped source and the package's own vitest suite — `packages/three-runtime/src/*.ts` and
@@ -108,3 +108,68 @@ and requires that `snapshotEntity` produces **exactly** the fields `SerializedEn
 declared field of `ThreeEntity` is either carried or explicitly aliased, and that `savable ∪ blocked` is an
 exact partition of the fields `SaveData` declares — so a shape that drifts from its writer is a red test,
 not a save that quietly restores a default.
+
+## v116 — the scene's declared physics gets readers: a validating world, a frame that runs the step size it was given, and an audit of what a world still cannot buy
+
+`PhysicsConfig` declared five fields and `ThreeScene.physics` was an optional slot on every scene. Nothing read
+either: `updatePhysics` was a comment saying it was a stub, and a character fell with `DEFAULT_CONTROLLER.gravity`
+— a package-level constant no scene could change. v116 turns that into three readers in
+`packages/three-runtime/src/threeRuntime.ts`.
+
+| what | measured |
+| --- | --- |
+| suite | `test/scenePhysics.test.ts`, 30 cases; package total **140** (29 runtime + 39 controller + 42 save + 30 physics), `tsc` clean |
+| setter | `setScenePhysics(sceneId, physics)` — refuses an unknown scene by name; refuses `gravity.y` unless `<= 0`, which is one guard that rejects BOTH an upward vector and a `NaN` (no defaulting); refuses horizontal components by name; requires `timeStep > 0` and an integer `maxSubSteps >= 1`. Returns the scene's **own** object, and stores a **clone** of the gravity vector |
+| reader | `updatePhysics(delta)` is now the only reader of `scene.physics`. It pushes `-gravity.y` into every controller whose caller named no gravity (active scene only), then converts the frame into `min(floor(available/timeStep), maxSubSteps)` slices of `timeStep` and hands the array to `updateControllers` |
+| bounds | the per-scene backlog is capped at `maxSubSteps * timeStep`, and what the cap refuses is reported as `droppedTime` rather than kept — an uncapped accumulator loses nothing until it spends a frame simulating ten seconds of world, which is a teleport with a nicer name |
+| audit | `physicsFieldAudit(sceneId)` → `{declared, consulted, unhonored, effectiveGravity, stepping:{timeStep, maxSubSteps, lastFrame}}`; `undefined` for a scene that does not exist, and `stepping.lastFrame` is read per scene so an audit of a DORMANT world cannot answer with the active one's numbers |
+
+Three things worth the sentence it costs:
+
+* **A scene with no world takes the v114 path byte-for-byte.** `updatePhysics` returns `[delta]` when the active
+  scene declares nothing, so it is one slice of the whole frame, exactly as before. The evidence for that is not a
+  new test — it is the 39 controller cases from v114 still passing untouched, plus the case that names the default
+  as the fallback.
+* **The substepping claim is derived, not restated.** One frame of `1.0` in a `0.5`-step world must land where two
+  frames of `0.5` land in a world-less scene: the test runs the same production integrator twice and compares the
+  heights, so it stays true if the arithmetic in `advanceController` changes. Its control asserts the opposite
+  direction — a substepped fall is SHORTER than one big slice of the same second — because "equal to two small
+  steps" is only interesting if small steps differ from a big one.
+* **v116 makes one v115 sentence stale, and the shipped audit was fixed rather than annotated.** `SerializedScene`
+  carries `physics?: PhysicsConfig`, so the `sceneGraph` entry in `SAVE_DATA_FEASIBILITY.blocked` named only the
+  live `THREE.Light` objects — true when v115 wrote it, incomplete the moment gravity gained a reader. It now
+  names both live objects, and a case in this suite requires the reason to contain `THREE.Vector3` as well as
+  `THREE.Light`. A hand-written reason string is the one part of an audit that cannot derive its own truth, so it
+  gets a test instead of a comment.
+
+### How the probe ran, and what it said
+
+15 behavioral arms over the final source, each target string required to match exactly once in the file BEFORE
+any test ran, against an unmutated control that collected **140 cases with 0 red**. Reds per arm, in order:
+1, 1, 4, 3, 3, 2, 1, 2, 1, 2, 1, 2, 1, 1, 1 — no survivor, and no arm below the minimum written down for it
+before measuring. Three arms reddened MORE than predicted (the sign flip reddened two substepping cases, the
+ignored-slices arm one more than claimed, the thrown-away backlog arm one more), and the reason is the same in
+all three: a case that compares a world-driven fall against a run where the controller declares its own gravity
+is coupled to the sign convention and the step plan at once. Under-predicting the coupling in my own tests is a
+reading error, so it is recorded rather than counted as a win. The fifteenth arm is not a physics arm at all: it
+restores v115's shorter `sceneGraph` refusal sentence, which is the edit this section describes above.
+
+### What v116 still does NOT honor — stated by name
+
+`broadphase` and `solverIterations` stay in `unhonored`, each with a reason that is a sentence rather than the
+field's own name: a broadphase is a search over candidate contact pairs and this package has no collision geometry
+to search among, and solver iterations count passes over existing contacts while a character is held up by the
+`groundY` plane, not by a solver. `slopeLimit`/`stepOffset` (v114's confession) wait on the same missing geometry.
+The no-declared-world path still has no `timeStep`, so a scene without a world keeps variable-step integration —
+fixed stepping is a property of a declared world, not of the runtime. And **the world is read for the ACTIVE scene
+only**: a dormant scene's gravity does not push anything, and its characters do not move.
+
+### Two sentences this record retires
+
+Both are left in place where they were written — shared documents are append-only — and both are quoted here so
+a reader who stops at the earlier sections is not misled:
+
+* v114, "What v114 still does NOT honor": *"`scene.physics` / `PhysicsConfig` is still read by nothing"*. Since v116
+  `setScenePhysics`, `updatePhysics`, `worldGravityFor` and `physicsFieldAudit` all read it.
+* v114, "Honest bounds": *"…`updatePhysics` and `updateCinematics` are still empty stubs"*. `updatePhysics` is now a
+  subsystem; `updateCinematics` is still a stub, and `SaveData.cinematic` stays blocked for that reason.

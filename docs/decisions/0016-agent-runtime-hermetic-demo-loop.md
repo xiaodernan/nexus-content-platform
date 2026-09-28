@@ -5280,3 +5280,83 @@ is an exact partition of the fields `SaveData` declares, so a shape that drifts 
 Next: the declared physics is the same species of hole as the declared controller was in v114 — `gravity`,
 `timeStep`, `maxSubSteps`, `broadphase` and `solverIterations` are read by nothing outside `types.ts`, and the
 integrator takes its gravity from a package-level default instead of the scene that declares it.
+
+### Amendment 116 — v116: the scene's declared physics gets its readers, `updatePhysics` stops being a stub, and an audit says what a declared world still cannot buy
+
+Amendment 115's `Next:` named this hole, so this grant is a promise being paid rather than a new direction.
+`PhysicsConfig` declared `gravity`, `timeStep`, `maxSubSteps`, `broadphase` and `solverIterations`; `ThreeScene`
+and `SerializedScene` each held an optional `physics` slot; and nothing outside `types.ts` read any of them.
+`updatePhysics` was two lines of comment apologising for not existing, and a character fell at
+`DEFAULT_CONTROLLER.gravity` — a package-level constant that no scene could change, which is a strange thing for a
+3D runtime to have decided about the world.
+
+Three readers were added in `packages/three-runtime/src/threeRuntime.ts`.
+
+`setScenePhysics(sceneId, physics)` validates **by the reading the storage has to support**, which is the rule this
+lane keeps having to relearn. A controller carries gravity as a positive magnitude applied on `-y`, so `gravity.y`
+must be `<= 0` — and that is ONE guard doing two jobs, because `!(NaN <= 0)` is true, so a caller who passes an
+uninitialised vector is refused rather than silently defaulted. A vector with `x` or `z` is refused by name: a
+scalar field cannot carry it and there is no per-body dynamics here for it to push. `timeStep` must be positive
+(0 asks the accumulator for infinitely many slices) and `maxSubSteps` a whole number `>= 1` (0 asks a frame to run
+none). It stores a CLONE of the gravity vector, because a caller keeping a handle on the world means the world
+changes under a running game when someone writes to a vector they handed away once. It clears the scene's
+accumulator and its last-frame record: a new step size must not spend — or report — time measured against the old
+one. It returns the scene's OWN object, and a case asserts that, so the documented way to see what was stored is
+not a fiction.
+
+`updatePhysics(delta)` is now the only reader of `scene.physics`, and it returns a step PLAN rather than
+integrating anything itself. First it pushes `-gravity.y` into every controller whose caller did not name a
+gravity — active scene only, and non-declared controllers only, because a caller who wrote `gravity: 3` asked for
+a number and the world does not get to overrule it. The sync lives in the frame loop and nowhere else: writing it
+in the setter too would mean two write paths that can disagree, and a controller attached to a DORMANT scene would
+be handed the active scene's pull. The frame loop is the one place that already knows which scene is live. Then it
+turns the frame into `min(floor(available / timeStep), maxSubSteps)` slices of `timeStep` and
+`updateControllers(steps)` integrates exactly those, so `timeStep` and `maxSubSteps` are read by the code that
+moves things rather than by an audit about them. The per-scene backlog is capped at `maxSubSteps * timeStep` and
+what the cap refuses is REPORTED as `droppedTime` rather than kept — an uncapped accumulator loses nothing for a
+while and then spends one frame simulating ten seconds of world, which is a teleport with a nicer name. A scene
+that declares no world returns `[delta]`, i.e. the v114 path, one slice of the whole frame: fixed stepping is a
+property of a declared world, not of the runtime. `updateControllers` also resolves orphans ONCE per frame, before
+any slice runs, because stepping a corpse and then dropping it emits `controllerOrphaned` after the motion it
+claims did not happen.
+
+`physicsFieldAudit(sceneId)` answers `{declared, consulted, unhonored, effectiveGravity, stepping}`. `consulted`
+and `unhonored` come from the shipped tables, `effectiveGravity` and `stepping.lastFrame` come from the live scene
+and the last frame — and `lastFrame` is keyed per scene, because an audit of a dormant world that answered with
+the active world's numbers would be a reading of the wrong thing. The suite's last section does not restate those
+tables: it reads the `PhysicsConfig` field list out of `src/types.ts` from disk and requires `consulted ∪ unhonored`
+to be an exact partition of it, with no overlap and no gap, which is what stops a newly declared field from joining
+the silent ones. `unhonored` carries a REASON per field, not a name — a broadphase searches candidate contact pairs
+and there is no collision geometry to search among, solver iterations count passes over existing contacts and a
+character is held up by a `groundY` plane, not by a solver.
+
+v116 also made one shipped sentence stale, and the fix went into the code rather than into a footnote.
+`SAVE_DATA_FEASIBILITY` (v115) refused `sceneGraph` because `SerializedScene` holds live `THREE.Light` objects;
+`SerializedScene.physics` is now a field the runtime actually reads, and it holds a live `THREE.Vector3`, so that
+reason had become incomplete. A hand-written string inside an audit is the one part of an audit that cannot derive
+its own truth, so it got a test that requires the sentence to name both `THREE.Light` and `THREE.Vector3`, and a
+probe arm that restores the v115 wording and reddens.
+
+Measured: the suite is `packages/three-runtime/test/scenePhysics.test.ts` (30 cases), package total **140**
+(29 runtime + 39 controller + 42 save + 30 physics), `tsc --noEmit` clean. The v114 controller cases were not
+touched and still pass, which is the evidence that the no-world path is unchanged rather than a claim about it. The
+behavioral probe ran 15 arms over the final source against an unmutated control that collected 140 with 0 red, each
+arm's minimum written down before measuring; reds were 1, 1, 4, 3, 3, 2, 1, 2, 1, 2, 1, 2, 1, 1, 1 — no survivor,
+no under-prediction. Three arms caught MORE than predicted: the sign-flip arm reddened two substepping cases it was
+not credited with, and the reason is that those cases compare a world-driven fall against a run where the
+controller declares its own gravity, so they are coupled to the sign convention too. Over-claiming is the failure
+this door exists to catch, so under-predicting my own coupling is recorded as a measurement error in reading my own
+tests, not as a bonus. The substepping equality claims are derived rather than restated: a `1.0` frame in a
+`0.5`-step world must land where two `0.5` frames land with no world at all, and the control for that is a case
+asserting the substepped fall is SHORTER than one big slice of the same second.
+
+What v116 does not do, stated by name: `broadphase` and `solverIterations` remain unhonored, and so do
+`slopeLimit`/`stepOffset` (v114's confession) — all four wait on collision geometry the package does not have; the
+world is read for the ACTIVE scene only, so a dormant scene's gravity pushes nothing; horizontal gravity is
+refused, not supported; a scene with no declared world still runs variable-step; `updateCinematics` is still an
+empty stub, and `SaveData.cinematic` stays blocked for that reason. Next: the cinematic slice is the same species
+of hole as the physics world was — `CinematicSequence` and `CinematicShot` are declared at `types.ts:125` and
+`types.ts:134`, and measured at this ref those two names plus `SerializedCinematic` appear in `src/` ONLY inside
+`types.ts`: everywhere else the word survives in exactly two places, the stub's own call site in `simulateFrame`
+and the string in `SAVE_DATA_FEASIBILITY` that explains why `cinematic` is blocked. So the sequence has no writer,
+no reader and no container that anything can hold — it is the last unread type surface inside `simulateFrame`.

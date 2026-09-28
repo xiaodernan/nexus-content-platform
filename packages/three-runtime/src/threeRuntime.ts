@@ -13,6 +13,7 @@ import type {
   EntityComponent,
   ThreeRuntimeConfig,
   LightingConfig,
+  PhysicsConfig,
   CharacterController,
   ControllerInput,
   SerializedEntity,
@@ -55,6 +56,16 @@ export const DEFAULT_CONTROLLER = {
   groundY: 0,
 };
 
+/** The `PhysicsConfig` fields the frame loop READS. `physicsFieldAudit` reports the rest of the type by
+ *  name, so a declared word is never left with no reader: `broadphase` and `solverIterations` name work
+ *  on contacts, and this package has no collision geometry to have contacts with. */
+const HONORED_PHYSICS_FIELDS: readonly string[] = ['gravity', 'timeStep', 'maxSubSteps'];
+
+const UNHONORED_PHYSICS_REASONS: readonly { field: string; reason: string }[] = [
+  { field: 'broadphase', reason: 'names a search over candidate contact pairs, and there is no collision geometry in this package to search among' },
+  { field: 'solverIterations', reason: 'counts passes over existing contacts, and a character is held up by the `groundY` plane, not by a solver' },
+];
+
 /**
  * Which axes a controller type moves on, and whose frame those axes come from. `sideScroll` lives in
  * XY, so `moveForward`/`moveBackward` have nothing to push against; `firstPerson`/`thirdPerson` read
@@ -83,12 +94,28 @@ const READ_INPUT_FLAGS: readonly string[] = ['moveForward', 'moveBackward', 'mov
 interface ControllerEntry {
   controller: CharacterController;
   groundY: number;
+  /** False when the caller named no gravity, which is what makes the world's declared pull the source
+   *  for this controller: an entry that cannot say whether its number was a choice would have to ignore
+   *  `scene.physics` (refusing to honor it) or overwrite a caller's explicit value (honoring it too much). */
+  gravityDeclared: boolean;
+}
+
+/** What `physicsFieldAudit` answers for a scene. `consulted`/`unhonored` are read off the shipped tables
+ *  against the fields `PhysicsConfig` declares, and `effectiveGravity`/`stepping` are read off the live
+ *  scene and the last frame, so the answer cannot be a constant wearing a name. */
+export interface PhysicsFieldAudit {
+  declared: boolean;
+  consulted: string[];
+  unhonored: { field: string; reason: string }[];
+  effectiveGravity: number;
+  stepping: { timeStep: number | null; maxSubSteps: number | null; lastFrame: { steps: number; droppedTime: number } | null };
 }
 
 /** What `controllerFieldAudit` answers. The `untouched` list is the honesty surface — a field declared
  *  on `CharacterController` but never implemented shows up there BY NAME instead of being ignored in
  *  silence. `slopeLimit` and `stepOffset` are in it today: both need collision geometry this package
- *  does not have (`scene.physics` / `PhysicsConfig` is still read by nothing). */
+ *  does not have. (`scene.physics` / `PhysicsConfig` was in that sentence up to v116, which gave the
+ *  declared world a reader; see `physicsFieldAudit` for what it still cannot honor.) */
 export interface ControllerFieldAudit {
   consulted: string[];
   written: string[];
@@ -124,7 +151,7 @@ const SAVE_ALIAS_CLAIMS: Record<string, readonly string[]> = {
 const SAVE_DATA_FEASIBILITY: { savable: readonly string[]; blocked: readonly { field: string; needs: string }[] } = {
   savable: ['entities'],
   blocked: [
-    { field: 'sceneGraph', needs: 'SerializedScene stores a LightingConfig whose lights hold live THREE.Light objects, which nothing here can rebuild' },
+    { field: 'sceneGraph', needs: 'SerializedScene stores a LightingConfig whose lights hold live THREE.Light objects and a PhysicsConfig whose gravity is a live THREE.Vector3; nothing here rebuilds either' },
     { field: 'npcs', needs: 'NPCSystem is declared in types.ts and implemented by nothing' },
     { field: 'quests', needs: 'QuestSystem is declared in types.ts and implemented by nothing' },
     { field: 'player', needs: 'SerializedPlayer names health/mana/inventory/skills; the runtime holds no player state' },
@@ -753,22 +780,60 @@ export class ThreeRuntime {
    */
   simulateFrame(delta: number): void {
     this.updateAnimations(delta);
-    this.updatePhysics(delta);
-    this.updateControllers(delta);
+    const steps = this.updatePhysics(delta);
+    this.updateControllers(steps);
     this.updateCinematics(delta);
   }
 
-  private updatePhysics(delta: number): void {
-    // Physics update would go here
+  /** Per-scene fixed-timestep backlog, keyed by the scene that declared it. */
+  private readonly physicsAccumulators = new Map<SceneId, number>();
+  /** What the last frame actually ran, per scene that declares a world: an audit of a DORMANT scene must
+   *  not answer with the active scene's numbers. */
+  private readonly physicsFrames = new Map<SceneId, { steps: number; droppedTime: number }>();
+
+  /**
+   * The physics subsystem: the only place that reads `scene.physics`. It does the two jobs the declared
+   * type exists for. First it syncs the world's pull into every controller whose caller named no gravity,
+   * so changing a scene's gravity between frames changes the fall — which is the point of declaring it on
+   * the world rather than baked into each character. Then it turns the frame's `delta` into the fixed
+   * slices the scene asked for, and `updateControllers` integrates exactly those slices, so `timeStep`
+   * and `maxSubSteps` are read by the code that moves things rather than by an audit about them.
+   *
+   * A scene that declares no world keeps the v114 path exactly: one slice of the whole frame.
+   */
+  private updatePhysics(delta: number): number[] {
+    const scene = this.getActiveScene();
+    const physics = scene?.physics;
+    if (!scene || !physics) return [delta];
+    const worldGravity = -physics.gravity.y;
+    for (const [entity, entry] of this.controllers) {
+      if (entry.gravityDeclared) continue;
+      if (!scene.entities.has(entity)) continue;
+      entry.controller.gravity = worldGravity;
+    }
+    const available = (this.physicsAccumulators.get(scene.id) ?? 0) + delta;
+    const steps = Math.min(Math.floor(available / physics.timeStep), physics.maxSubSteps);
+    const backlog = available - steps * physics.timeStep;
+    // The backlog is capped at what ONE frame may simulate, and what the cap refuses is REPORTED rather
+    // than kept: an uncapped accumulator loses nothing for a while and then spends a frame simulating ten
+    // seconds of world, which is a teleport with a nicer name.
+    const budget = physics.maxSubSteps * physics.timeStep;
+    const dropped = Math.max(0, backlog - budget);
+    this.physicsAccumulators.set(scene.id, backlog - dropped);
+    this.physicsFrames.set(scene.id, { steps, droppedTime: dropped });
+    return new Array<number>(steps).fill(physics.timeStep);
   }
 
-  private updateControllers(delta: number): void {
+  private updateControllers(steps: number[]): void {
     if (this.controllers.size === 0) return;
     const scene = this.getActiveScene();
     // Active scene only: a controller in a dormant scene does not move, and the camera-relative types
     // would otherwise borrow a yaw from a camera that is not looking at them.
     if (!scene) return;
     const yaw = this.activeCameraYaw(scene);
+    // Orphans are resolved once per frame, before any slice runs: stepping a corpse and then dropping it
+    // would emit `controllerOrphaned` after the motion it claims did not happen.
+    const live: { target: ThreeEntity; entry: ControllerEntry }[] = [];
     for (const [entity, entry] of this.controllers) {
       const target = scene.entities.get(entity);
       if (!target) {
@@ -777,7 +842,10 @@ export class ThreeRuntime {
         this.resolveController(entity);
         continue;
       }
-      this.advanceController(target, entry, yaw, delta);
+      live.push({ target, entry });
+    }
+    for (const step of steps) {
+      for (const { target, entry } of live) this.advanceController(target, entry, yaw, step);
     }
   }
 
@@ -843,6 +911,75 @@ export class ThreeRuntime {
     // Cinematic sequence update would go here
   }
 
+  // ── declared world physics ────────────────────────────────────────────────────────────────────
+
+  /**
+   * Declare the world a scene integrates in, and validate it HERE, because a value this model cannot
+   * express has to refuse rather than be read as zero. A controller carries gravity as a positive
+   * magnitude applied on -y: a vector pointing up has no scalar reading (the sign would be a guess about
+   * what the caller meant), and a vector with horizontal components has no scalar reading at all — this
+   * package has no per-body dynamics to apply them to. `timeStep` of 0 would ask the accumulator for an
+   * infinite number of slices, and `maxSubSteps` below 1 would ask a frame to run none.
+   *
+   * The stored gravity is a CLONE, so the caller's vector moving later does not silently change the
+   * world mid-game. The object returned IS the scene's own — change the world through another
+   * `setScenePhysics`, not by reaching around it.
+   */
+  setScenePhysics(sceneId: SceneId, physics: PhysicsConfig): PhysicsConfig {
+    const scene = this.sceneGraph.scenes.get(sceneId);
+    if (!scene) throw new Error(`setScenePhysics: scene ${sceneId} does not exist`);
+    const g = physics.gravity;
+    if (!(g.y <= 0)) {
+      throw new Error(`setScenePhysics: gravity.y is ${g.y}; a controller applies gravity as a positive magnitude on -y and will not guess your sign — name gravity.y <= 0 (a falling world uses a negative y, a zero-G world uses 0), or give each controller its own gravity`);
+    }
+    if (g.x !== 0 || g.z !== 0) {
+      throw new Error(`setScenePhysics: gravity has horizontal components (${g.x}, ${g.z}) that a scalar controller gravity cannot carry; a character on a ground plane has no body for them to push`);
+    }
+    if (!(physics.timeStep > 0)) {
+      throw new Error(`setScenePhysics: timeStep is the fixed slice the integrator runs, so it must be a positive number of seconds; got ${physics.timeStep}`);
+    }
+    if (!Number.isInteger(physics.maxSubSteps) || physics.maxSubSteps < 1) {
+      throw new Error(`setScenePhysics: maxSubSteps bounds how many fixed slices ONE frame may run, so it must be a whole number >= 1; got ${physics.maxSubSteps}`);
+    }
+    scene.physics = { ...physics, gravity: g.clone() };
+    // A new world needs a new backlog AND a new frame record: keeping either would let the next frame
+    // report, or spend, time measured against a step size that no longer exists.
+    this.physicsAccumulators.delete(scene.id);
+    this.physicsFrames.delete(scene.id);
+    return scene.physics;
+  }
+
+  /** The scene's pull read the only way this model can: `-gravity.y`, or the package default when the
+   *  scene declares no world. */
+  private worldGravityFor(sceneId: SceneId): number {
+    const physics = this.sceneGraph.scenes.get(sceneId)?.physics;
+    return physics ? -physics.gravity.y : DEFAULT_CONTROLLER.gravity;
+  }
+
+  /**
+   * What the declared physics of a scene actually buys. `consulted` and `unhonored` come from the shipped
+   * tables, `effectiveGravity` and `stepping` come from the live scene and the last frame, so the answer
+   * moves when the world moves — and the suite requires these two lists to cover every field
+   * `PhysicsConfig` DECLARES (read out of `src/types.ts`), which is what stops a new declared field from
+   * joining the silent ones.
+   */
+  physicsFieldAudit(sceneId: SceneId): PhysicsFieldAudit | undefined {
+    const scene = this.sceneGraph.scenes.get(sceneId);
+    if (!scene) return undefined;
+    const physics = scene.physics;
+    return {
+      declared: physics !== undefined,
+      consulted: physics ? [...HONORED_PHYSICS_FIELDS].sort() : [],
+      unhonored: physics ? UNHONORED_PHYSICS_REASONS.map((r) => ({ ...r })) : [],
+      effectiveGravity: this.worldGravityFor(scene.id),
+      stepping: {
+        timeStep: physics?.timeStep ?? null,
+        maxSubSteps: physics?.maxSubSteps ?? null,
+        lastFrame: physics ? this.physicsFrames.get(scene.id) ?? null : null,
+      },
+    };
+  }
+
   // ── controller registry ───────────────────────────────────────────────────────────────────────
 
   /** Attach a character controller to `entity`. Throws naming the id when the scene or entity is not
@@ -863,7 +1000,7 @@ export class ThreeRuntime {
       speed: options.speed ?? DEFAULT_CONTROLLER.speed,
       runSpeed: options.runSpeed ?? DEFAULT_CONTROLLER.runSpeed,
       jumpForce: options.jumpForce ?? DEFAULT_CONTROLLER.jumpForce,
-      gravity: options.gravity ?? DEFAULT_CONTROLLER.gravity,
+      gravity: options.gravity ?? this.worldGravityFor(sceneId),
       airControl: options.airControl ?? DEFAULT_CONTROLLER.airControl,
       slopeLimit: options.slopeLimit ?? DEFAULT_CONTROLLER.slopeLimit,
       stepOffset: options.stepOffset ?? DEFAULT_CONTROLLER.stepOffset,
@@ -874,7 +1011,7 @@ export class ThreeRuntime {
       input: { ...emptyControllerInput(), ...options.input },
       state: 'idle',
     };
-    this.controllers.set(entity, { controller, groundY });
+    this.controllers.set(entity, { controller, groundY, gravityDeclared: options.gravity !== undefined });
     this.emit('controllerAttached', { entityId: entity, controller });
     return controller;
   }
