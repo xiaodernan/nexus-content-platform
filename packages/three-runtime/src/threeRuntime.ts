@@ -20,6 +20,9 @@ import type {
   CinematicSequence,
   CinematicShot,
   SerializedCinematic,
+  SerializedCinematicSequence,
+  SerializedCinematicShot,
+  SerializedCurve,
 } from './types.js';
 import {
   createWebGLBackend,
@@ -99,6 +102,227 @@ const CINEMATIC_EASINGS: Record<string, (t: number) => number> = {
   easeOut: (t) => t * (2 - t),
   easeInOut: (t) => (t < 0.5 ? 2 * t * t : -1 + (4 - 2 * t) * t),
 };
+
+/**
+ * The three `curveType` words a `THREE.CatmullRomCurve3` answers to. This is a table rather than a
+ * pass-through to the constructor because the constructor does NOT refuse an unknown one: measured,
+ * `new THREE.CatmullRomCurve3(points, false, 'bogus')` keeps the word on the object and then answers
+ * `getPointAt` with `NaN, NaN, NaN`. A save whose path is a bag of numbers has to say which interpolation
+ * rebuilt it, or the camera lands at NaN and the runtime's only complaint is that the path has no length.
+ */
+const CURVE_TYPES: readonly string[] = ['centripetal', 'chordal', 'catmullrom'];
+
+const CURVE_AXES = ['x', 'y', 'z'] as const;
+
+const quoted = (list: readonly string[]) => list.map((word) => `"${word}"`).join(', ');
+
+/**
+ * A live curve as the data `SerializedCurve` declares — the control points and the three constructor
+ * arguments that decide the shape through them.
+ *
+ * It refuses on the way OUT because `JSON.stringify` writes a NaN as `null`: a non-finite coordinate would
+ * come back as a DIFFERENT number than the one written, and the curve rebuilt from it points somewhere
+ * else. `curveToData` also refuses a `curveType` outside `CURVE_TYPES`, because the writer must not emit a
+ * word its own reader refuses.
+ */
+function curveToData(path: THREE.CatmullRomCurve3, where: string): SerializedCurve {
+  const points = path.points.map((point, index) => {
+    for (const axis of CURVE_AXES) {
+      if (!Number.isFinite(point[axis])) {
+        throw new Error(`cinematicSnapshot: ${where} control point ${index} has a non-finite ${axis} (${point[axis]}); a save stores values, and JSON writes this one as null`);
+      }
+    }
+    return { x: point.x, y: point.y, z: point.z };
+  });
+  if (!CURVE_TYPES.includes(path.curveType)) {
+    throw new Error(`cinematicSnapshot: ${where} has curveType ${JSON.stringify(path.curveType)}, which is not one of ${quoted(CURVE_TYPES)} — three.js reads an unknown word as NaN coordinates, so this codec will not write one it cannot read back`);
+  }
+  if (!Number.isFinite(path.tension)) {
+    throw new Error(`cinematicSnapshot: ${where} has tension ${path.tension}; the field is read by a "catmullrom" curve, so a non-finite one is either a destroyed shape or a destroyed round trip through JSON`);
+  }
+  return {
+    points,
+    closed: path.closed,
+    curveType: path.curveType as SerializedCurve['curveType'],
+    tension: path.tension,
+  };
+}
+
+/**
+ * The data back into a curve. Three of these refusals are about CRASHES rather than meaning: one control
+ * point makes `getLength()` throw a TypeError out of three.js (`Cannot read properties of undefined`), and
+ * an array of plain `{x,y,z}` objects makes it throw `p1.distanceToSquared is not a function`. A save that
+ * hands the player a crash is not a refused save, so the decoder checks the SHAPE here and leaves
+ * `defineCinematic` the timeline questions it already answers — the partition is deliberate, because two
+ * owners of one rule is the bug this lane keeps relearning.
+ */
+function curveFromData(data: SerializedCurve, where: string): THREE.CatmullRomCurve3 {
+  const points = data.points;
+  if (!Array.isArray(points)) {
+    throw new Error(`restoreCinematic: ${where} points is ${typeof points}, not an array of {x, y, z}`);
+  }
+  if (points.length < 2) {
+    throw new Error(`restoreCinematic: ${where} names ${points.length} control point(s); one point is not a path, and three.js answers getLength() for it by throwing a TypeError from inside the library`);
+  }
+  const vectors = points.map((point, index) => {
+    for (const axis of CURVE_AXES) {
+      const value = (point as Record<string, unknown> | null | undefined)?.[axis];
+      if (typeof value !== 'number' || !Number.isFinite(value)) {
+        throw new Error(`restoreCinematic: ${where} control point ${index} has ${axis} = ${String(value)}; a saved coordinate has to be a finite number, and three.js reads anything else as a NaN position or a crash`);
+      }
+    }
+    return new THREE.Vector3(point.x, point.y, point.z);
+  });
+  if (typeof data.closed !== 'boolean') {
+    throw new Error(`restoreCinematic: ${where} closed is ${typeof data.closed}, not a boolean; a truthy non-boolean would make a path loop without the save saying so`);
+  }
+  if (!CURVE_TYPES.includes(data.curveType)) {
+    throw new Error(`restoreCinematic: ${where} curveType ${JSON.stringify(data.curveType)} is not one of ${quoted(CURVE_TYPES)}; three.js would keep the word and answer getPointAt with NaN, which is a camera at no position wearing a named curve type`);
+  }
+  if (typeof data.tension !== 'number' || !Number.isFinite(data.tension)) {
+    throw new Error(`restoreCinematic: ${where} tension is ${String(data.tension)}; a "catmullrom" curve reads it as its shape, and JSON writes a NaN here as null`);
+  }
+  return new THREE.CatmullRomCurve3(vectors, data.closed, data.curveType, data.tension);
+}
+
+/** A live shot as data. Only the keys the shot actually carries are written: `cameraPath` and `targetPath`
+ *  are optional in the declared type, and a snapshot full of `undefined`s is a shape that claims fields the
+ *  shot does not have (and drops them on the floor the moment anything JSON-writes it).
+ *
+ *  The numeric checks are here because `defineCinematic` copies the shot ARRAY but not the shot OBJECTS: a
+ *  caller that writes `shot.startTime = NaN` after registering has a live sequence this runtime plays and
+ *  cannot save. The writer refuses what its own reader would refuse, so no snapshot this method produces is
+ *  a save that cannot be restored. */
+function shotToData(shot: CinematicShot, where: string): SerializedCinematicShot {
+  for (const name of ['startTime', 'endTime', 'transitionDuration'] as const) {
+    const value = shot[name];
+    if (typeof value !== 'number' || !Number.isFinite(value)) {
+      throw new Error(`cinematicSnapshot: ${where} ${name} is ${String(value)}; a save stores values, and this one would be unreadable by restoreCinematic`);
+    }
+  }
+  const data: SerializedCinematicShot = {
+    id: shot.id,
+    cameraId: shot.cameraId,
+    startTime: shot.startTime,
+    endTime: shot.endTime,
+    transition: shot.transition,
+    transitionDuration: shot.transitionDuration,
+  };
+  if (shot.cameraPath) data.cameraPath = curveToData(shot.cameraPath, `${where} cameraPath`);
+  if (shot.targetPath) data.targetPath = curveToData(shot.targetPath, `${where} targetPath`);
+  if (shot.fovAnimation) {
+    for (const name of ['start', 'end'] as const) {
+      const value = shot.fovAnimation[name];
+      if (typeof value !== 'number' || !Number.isFinite(value)) {
+        throw new Error(`cinematicSnapshot: ${where} fovAnimation.${name} is ${String(value)}, which JSON would write as null and a camera would read as no field of view`);
+      }
+    }
+    data.fovAnimation = {
+      start: shot.fovAnimation.start,
+      end: shot.fovAnimation.end,
+      easing: shot.fovAnimation.easing,
+    };
+  }
+  if (shot.postProcessing) {
+    plainDataOrRefuse(shot.postProcessing, `${where} postProcessing`);
+    data.postProcessing = structuredClone(shot.postProcessing);
+  }
+  return data;
+}
+
+/** The data back into a shot. Every field is checked for the PRIMITIVE it has to be, because a shot that is
+ *  not an object crashes `defineCinematic` on its first property read (`Cannot read properties of null`),
+ *  and a crash is not a refusal. What the shot MEANS — its window, its camera, its transition word, its
+ *  easing, its arc — stays `defineCinematic`'s to answer, so a drifted save meets the same door a
+ *  hand-written call does. */
+function shotFromData(saved: SerializedCinematicShot, where: string): CinematicShot {
+  const value = saved as unknown;
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    throw new Error(`restoreCinematic: ${where} is ${Array.isArray(value) ? 'an array' : typeof value}, not a shot object; defineCinematic reads its fields and a non-object would be a crash, not a refusal`);
+  }
+  for (const [name, kind] of [['id', 'string'], ['cameraId', 'string'], ['transition', 'string']] as const) {
+    const field = (value as Record<string, unknown>)[name];
+    if (typeof field !== kind) {
+      throw new Error(`restoreCinematic: ${where} ${name} is ${typeof field}, expected ${kind}`);
+    }
+  }
+  for (const name of ['startTime', 'endTime', 'transitionDuration'] as const) {
+    const field = (value as Record<string, unknown>)[name];
+    if (typeof field !== 'number' || !Number.isFinite(field)) {
+      throw new Error(`restoreCinematic: ${where} ${name} is ${String(field)}; the shot's window is in seconds, and a non-finite one makes the timeline unreadable in a way that only shows up as a NaN position`);
+    }
+  }
+  const shot: CinematicShot = {
+    id: saved.id,
+    cameraId: saved.cameraId,
+    startTime: saved.startTime,
+    endTime: saved.endTime,
+    transition: saved.transition,
+    transitionDuration: saved.transitionDuration,
+  };
+  if (saved.cameraPath) shot.cameraPath = curveFromData(saved.cameraPath, `${where} cameraPath`);
+  if (saved.targetPath) shot.targetPath = curveFromData(saved.targetPath, `${where} targetPath`);
+  if (saved.fovAnimation) {
+    const fov = saved.fovAnimation as unknown;
+    for (const name of ['start', 'end'] as const) {
+      const field = (fov as Record<string, unknown>)?.[name];
+      if (typeof field !== 'number' || !Number.isFinite(field)) {
+        throw new Error(`restoreCinematic: ${where} fovAnimation.${name} is ${String(field)}; the player interpolates it onto a camera, so a non-number there is a camera whose field of view goes NaN — an out-of-range NUMBER is defineCinematic's own refusal`);
+      }
+    }
+    shot.fovAnimation = { ...saved.fovAnimation };
+  }
+  if (saved.postProcessing) {
+    plainDataOrRefuse(saved.postProcessing, `${where} postProcessing`);
+    shot.postProcessing = structuredClone(saved.postProcessing);
+  }
+  return shot;
+}
+
+/**
+ * The `sequences` map as an ordered list, answering the ENVELOPE questions a reader has to ask before a
+ * single sequence is registered.
+ *
+ * A plain object is refused rather than iterated, because `JSON.stringify` writes a `Map` as `{}` — a save
+ * that came off a disk in the obvious way arrives exactly here, and "it was empty, restored 0 sequences,
+ * success" is the answer this reader must not give. The rest are the two-spellings-of-one-fact checks the
+ * runtime cannot produce (`playing` is derived from the slot while playing, and `defineCinematic` owns its
+ * own key): a map key that disagrees with the record under it, an `id` that is not a name `activeSequence`
+ * can address, a scene the shots do not belong to, a `currentShot` no shot answers to.
+ */
+function savedSequences(snapshot: SerializedCinematic): SerializedCinematicSequence[] {
+  const map = snapshot.sequences as unknown;
+  if (!(map instanceof Map)) {
+    throw new Error(`restoreCinematic: sequences is ${Array.isArray(map) ? 'an array' : typeof map}, not a Map — a Map does not survive a JSON write, so a save that arrived as an object has to say so instead of being read as an empty one`);
+  }
+  const list: SerializedCinematicSequence[] = [];
+  for (const [key, value] of map as Map<string, SerializedCinematicSequence>) {
+    if (!value || typeof value !== 'object' || Array.isArray(value)) {
+      throw new Error(`restoreCinematic: sequences holds ${Array.isArray(value) ? 'an array' : typeof value} under key ${String(key)}, not a sequence object`);
+    }
+    const entry = value;
+    if (typeof entry.id !== 'string' || entry.id.length === 0) {
+      throw new Error(`restoreCinematic: the sequence stored under ${String(key)} calls itself ${String(entry.id)}; activeSequence addresses a sequence by its id, so an id that is not a name is a field no part of the save can point at`);
+    }
+    if (key !== entry.id) {
+      throw new Error(`restoreCinematic: sequences is keyed ${String(key)} but the record under it says ${entry.id}; a key and the name it stores are two spellings of one fact and the save has to pick one`);
+    }
+    if (typeof entry.sceneId !== 'string' || entry.sceneId.length === 0) {
+      throw new Error(`restoreCinematic: sequence ${entry.id} sceneId is ${String(entry.sceneId)}; a shot's cameraId addresses one scene's camera set, so the save has to name the scene it belongs to`);
+    }
+    if (typeof entry.playing !== 'boolean') {
+      throw new Error(`restoreCinematic: sequence ${entry.id} playing is ${String(entry.playing)}, not a boolean; a truthy non-boolean would make the save claim a running cutscene without saying so`);
+    }
+    if (!Array.isArray(entry.shots)) {
+      throw new Error(`restoreCinematic: sequence ${entry.id} shots is ${typeof entry.shots}, not an array; defineCinematic reads shots[0] and would crash instead of refusing`);
+    }
+    if (!Number.isInteger(entry.currentShot) || entry.currentShot < 0 || entry.currentShot >= entry.shots.length) {
+      throw new Error(`restoreCinematic: sequence ${entry.id} currentShot is ${String(entry.currentShot)} and the save gives it ${entry.shots.length} shot(s); an index no shot answers to is a save lying about its own timeline`);
+    }
+    list.push(entry);
+  }
+  return list;
+}
 
 /**
  * Which axes a controller type moves on, and whose frame those axes come from. `sideScroll` lives in
@@ -188,6 +412,16 @@ export interface CinematicFieldAudit {
   };
 }
 
+/** What `restoreCinematic` answers. `playheads` is here rather than left implicit because the declared save
+ *  shape carries a per-sequence `currentShot` but a playhead TIME only for the active sequence: for a
+ *  stopped one the most specific instant a save can prove is the start of the shot it names, and the report
+ *  has to say what it landed on instead of pretending it restored what it could not read. */
+export interface CinematicRestoreReport {
+  restored: string[];
+  activeSequence: string | null;
+  playheads: { id: string; time: number; currentShot: number }[];
+}
+
 /** What `controllerFieldAudit` answers. The `untouched` list is the honesty surface — a field declared
  *  on `CharacterController` but never implemented shows up there BY NAME instead of being ignored in
  *  silence. `slopeLimit` and `stepOffset` are in it today: both need collision geometry this package
@@ -234,18 +468,20 @@ const SAVE_ALIAS_CLAIMS: Record<string, readonly string[]> = {
 
 /** Which declared `SaveData` fields the runtime can fill today, and which are waiting on a system that
  *  does not exist yet. The blocked half is the honest part: `npcs`/`quests`/`player` are declared in
- *  `types.ts` and implemented by nothing, and `cinematic` has had a runtime owner since v117 but still has
- *  nothing that can rebuild its live objects from stored points — so a `SaveData` written today would carry
- *  empty maps that look like an empty game world. */
+ *  `types.ts` and implemented by nothing, so a `SaveData` written today would carry empty maps that look
+ *  like an empty game world. `savable` means BOTH directions: `entities` has `snapshotEntity`/
+ *  `restoreEntity`, and `cinematic` has had `cinematicSnapshot` since v117 and a reader since v118.
+ *  The pair is not decoration — `saveSnapshot.test.ts` derives each field's stem from its own name and
+ *  requires a surface name to implement a `savable` row and NONE to implement a `blocked` one, which is
+ *  what makes this table unable to sit still while an implementation ships beside it. */
 const SAVE_DATA_FEASIBILITY: { savable: readonly string[]; blocked: readonly { field: string; needs: string }[] } = {
-  savable: ['entities'],
+  savable: ['entities', 'cinematic'],
   blocked: [
     { field: 'sceneGraph', needs: 'SerializedScene stores a LightingConfig whose lights hold live THREE.Light objects and a PhysicsConfig whose gravity is a live THREE.Vector3; nothing here rebuilds either' },
     { field: 'npcs', needs: 'NPCSystem is declared in types.ts and implemented by nothing' },
     { field: 'quests', needs: 'QuestSystem is declared in types.ts and implemented by nothing' },
     { field: 'player', needs: 'SerializedPlayer names health/mana/inventory/skills; the runtime holds no player state' },
     { field: 'worldState', needs: 'the runtime keeps no world-state store' },
-    { field: 'cinematic', needs: 'v117 gave this a writer — `cinematicSnapshot` fills all three `SerializedCinematic` fields — but the `sequences` map it fills holds LIVE `CinematicSequence` objects whose shots carry `THREE.CatmullRomCurve3` paths, and nothing here rebuilds a curve from stored points' },
   ],
 };
 
@@ -681,16 +917,24 @@ export class ThreeRuntime {
     };
   }
 
+  /**
+   * Create a camera, optionally UNDER A NAME. The `id` is what v118 needed to read a saved cinematic at all:
+   * a shot addresses a camera by its `CameraId`, `createCamera` used to invent one every call, and
+   * `defineCinematic` refuses a shot naming a camera the scene does not have — so a `SerializedCinematic`
+   * could only ever be restored inside the process that wrote it. `createScene(name, id?)` has taken a name
+   * since v108; this is the same seam one level down.
+   */
   createCamera(
     sceneId: SceneId,
     name: string,
     type: 'perspective' | 'orthographic' = 'perspective',
-    params: { fov?: number; aspect?: number; near?: number; far?: number; left?: number; right?: number; top?: number; bottom?: number } = {}
+    params: { fov?: number; aspect?: number; near?: number; far?: number; left?: number; right?: number; top?: number; bottom?: number } = {},
+    id?: string
   ): ThreeCamera {
     const scene = this.sceneGraph.scenes.get(sceneId);
     if (!scene) throw new Error(`Scene ${sceneId} not found`);
 
-    const cameraIdValue = cameraId(`camera-${Date.now()}-${Math.random().toString(36).slice(2)}`);
+    const cameraIdValue = id ? cameraId(id) : cameraId(`camera-${Date.now()}-${Math.random().toString(36).slice(2)}`);
 
     let threeCamera: THREE.Camera;
     if (type === 'perspective') {
@@ -1232,16 +1476,23 @@ export class ThreeRuntime {
    * images and this runtime draws one active camera per frame), a non-zero `transitionDuration` (nothing
    * would time it), an `fovAnimation` on an orthographic camera (there is no `fov` to write), a field of
    * view outside (0, 180) (the projection matrix goes degenerate), an easing word it does not implement
-   * (reading it as linear would be a guess about what the caller meant), and a zero-length path (an arc
-   * parameter divided by the arc it does not have).
+   * (reading it as linear would be a guess about what the caller meant), a path with no arc (an arc
+   * parameter divided by the arc it does not have), and a path with too few control points to have an arc
+   * at all. That last one is v118's correction to this list: asking three.js for `getLength()` on a
+   * one-point curve does not return 0, it throws `TypeError: Cannot read properties of undefined (reading
+   * 'x')` from inside the library, so up to v117 the door CRASHED on the input it claimed to refuse — and
+   * a crash is a message about three.js's internals rather than about the path the caller handed over.
    *
    * `duration` is DERIVED from the shots. A caller may name it, and then it has to agree; a declared
    * duration that disagreed with its own timeline would be two answers to "when does this end", and the
    * save shape has one field for it.
    *
    * The shot ARRAY is copied, so a caller pushing another shot later cannot move a registered timeline.
-   * The shot objects are not copied — a path is a live `THREE.CatmullRomCurve3`, and rebuilding one from
-   * stored points is the job `saveFeasibilityAudit` still lists as missing.
+   * The shot objects are not copied — a path is a live `THREE.CatmullRomCurve3`, and copying a curve means
+   * rebuilding it. v118 gave the rebuild a direction and a home: `cinematicSnapshot` reads a live path's
+   * points into a `SerializedCurve`, and `restoreCinematic` builds the curve back. That is also why the
+   * save door refuses numbers a live shot can be mutated into (`shot.startTime = NaN` after registration is
+   * reachable, because these objects are the caller's) instead of writing a save its own reader refuses.
    */
   defineCinematic(sceneId: SceneId, input: CinematicSequenceInput): CinematicSequence {
     const scene = this.sceneGraph.scenes.get(sceneId);
@@ -1289,7 +1540,14 @@ export class ThreeRuntime {
         }
       }
       for (const [name, path] of [['cameraPath', shot.cameraPath], ['targetPath', shot.targetPath]] as const) {
-        if (path && !(path.getLength() > 0)) {
+        if (!path) continue;
+        // BEFORE asking for the length: `getLength()` on a curve with fewer than two points does not answer
+        // 0, it throws a TypeError from inside three.js, and a door whose refusal is a library crash tells
+        // the caller nothing about the path they handed over.
+        if (!(path.points.length >= 2)) {
+          throw new Error(`defineCinematic("${input.id}"): shot ${shot.id} ${name} has ${path.points.length} control point(s); a path is sampled between points, so one point has no arc to sample`);
+        }
+        if (!(path.getLength() > 0)) {
           throw new Error(`defineCinematic("${input.id}"): shot ${shot.id} ${name} has no length; the camera is placed by arc position along it, so a path with no arc has no position to return`);
         }
       }
@@ -1350,19 +1608,146 @@ export class ThreeRuntime {
     return true;
   }
 
-  /** The live answer for the `SerializedCinematic` shape — all three of its fields, filled from the
-   *  registry rather than invented. This is the first WRITER the declared save type has ever had, and it is
-   *  still not a save: `saveFeasibilityAudit` keeps `cinematic` in `blocked` because the map's values are
-   *  the live sequence objects, whose shot paths are curves nothing here rebuilds from points. */
+  /** The declared `SerializedCinematic` shape, built from the registry. Since v118 every value in it is a
+   *  VALUE: the map holds `SerializedCinematicSequence` records, and a shot's path is a `SerializedCurve`
+   *  whose control points are copies rather than the live curve.
+   *
+   *  v117 put the live `CinematicSequence` objects in this map, and the difference is not cosmetic. A
+   *  snapshot of a live object MOVES when the game does — `test/cinematicSequence.test.ts` pinned that in
+   *  v117, and v118 turns it into the opposite claim — and it cannot leave the process: `JSON.stringify`
+   *  flattens a `CatmullRomCurve3` into a bag of numbers whose `getPointAt` reads back as `undefined`, so
+   *  the save shape would have carried something that restores as a lie. */
   cinematicSnapshot(): SerializedCinematic {
-    const sequences = new Map<string, CinematicSequence>();
-    for (const [id, entry] of this.cinematics) sequences.set(id, entry.sequence);
+    const sequences = new Map<string, SerializedCinematicSequence>();
+    for (const [id, entry] of this.cinematics) {
+      sequences.set(id, {
+        id: entry.sequence.id,
+        name: entry.sequence.name,
+        sceneId: entry.sceneId,
+        shots: entry.sequence.shots.map((shot) => shotToData(shot, `sequence ${id} shot ${shot.id}`)),
+        duration: entry.sequence.duration,
+        currentShot: entry.sequence.currentShot,
+        playing: entry.sequence.playing,
+      });
+    }
     const playing = this.playingCinematic();
     return {
       sequences,
       activeSequence: playing?.sequence.id ?? null,
       currentTime: playing?.time ?? 0,
     };
+  }
+
+  /**
+   * The declared save shape's first READER — and being a reader asks questions a shape has never been
+   * asked. Four of them are new since v117:
+   *
+   * * **Which scene?** `SerializedCinematicSequence.sceneId`, declared for this. A shot's `cameraId`
+   *   addresses ONE scene's camera set, so a shape that cannot name the scene could not be read at all —
+   *   the same class of hole `SerializedEntity.layers` was for v115.
+   * * **Does the save agree with itself?** `activeSequence` and the set of sequences claiming `playing` are
+   *   two spellings of one fact, and a map key and the record under it are another pair. A save showing
+   *   either pair disagreeing is refused with both answers printed, rather than one of them being believed.
+   * * **Where does the playhead land?** `currentTime` exists once, for the active sequence. Every other
+   *   sequence's position has to come from the field it does carry — `currentShot` — so a stopped one resumes
+   *   at the START of the shot it names, the most specific instant the save can prove. `playheads` prints
+   *   where each landed instead of hiding the approximation.
+   * * **Who owns `currentShot` and `playing`?** The player. Restore calls `playCinematic` to honor a saved
+   *   `playing: true` — which keeps the single-slot rule and emits the event a listener expects — and writes
+   *   only the playhead, leaving `lastShot` at -1 so the next frame re-derives the index, cuts the camera
+   *   and writes `currentShot`. This method touches no camera: a restore that aimed one too would be a
+   *   second owner of what `updateCinematics` exists to do.
+   *
+   * Shape and timeline questions go to the doors that already answer them: `savedSequences` and
+   * `shotFromData` refuse the inputs that would CRASH the player, and `defineCinematic` refuses everything it
+   * already refuses — including a saved `duration` that disagrees with its own shots, because the save's
+   * number is passed through as a caller's claim instead of being believed. One rule, one owner.
+   *
+   * A failed restore leaves nothing half-landed: every sequence this call registered is removed again before
+   * the error reaches the caller. What a rollback cannot undo is the event log — listeners were already told
+   * about the sequences that landed before the failure — so the registry and the log can disagree about the
+   * past, and the message counts what was removed instead of claiming the log never spoke.
+   */
+  restoreCinematic(snapshot: SerializedCinematic): CinematicRestoreReport {
+    const added: string[] = [];
+    try {
+      const saved = savedSequences(snapshot);
+      const active = snapshot.activeSequence;
+
+      const playingIds = saved.filter((entry) => entry.playing).map((entry) => entry.id);
+      if (active === null) {
+        if (playingIds.length > 0) {
+          throw new Error(`restoreCinematic: activeSequence is null while ${playingIds.length} sequence(s) claim playing (${playingIds.join(', ')}); this shape spells one fact twice and the two have to agree before anything is registered`);
+        }
+      } else {
+        const known = saved.find((entry) => entry.id === active);
+        if (!known) {
+          throw new Error(`restoreCinematic: activeSequence names "${active}", which the sequences map does not hold (${saved.map((entry) => entry.id).join(', ') || 'it is empty'})`);
+        }
+        if (!known.playing) {
+          throw new Error(`restoreCinematic: activeSequence names "${active}" but that sequence says playing: false, so the save would restore a cutscene that is not running`);
+        }
+        if (playingIds.length !== 1) {
+          throw new Error(`restoreCinematic: activeSequence names "${active}" while ${playingIds.length} sequence(s) claim playing (${playingIds.join(', ')}); this runtime plays one at a time, which is the reason the field holds a single id`);
+        }
+      }
+
+      if (active !== null) {
+        const known = saved.find((entry) => entry.id === active)!;
+        if (!Number.isFinite(snapshot.currentTime) || snapshot.currentTime < 0) {
+          throw new Error(`restoreCinematic: currentTime is ${String(snapshot.currentTime)}; a playhead is a non-negative number of seconds`);
+        }
+        // STRICTLY before the end: `updateCinematics` stops a sequence the instant it reaches `duration`, so
+        // a save claiming a RUNNING cutscene at its own final instant describes a state this runtime cannot
+        // have produced, and `playCinematic` would quietly rewind it to 0 on the way in.
+        if (snapshot.currentTime >= known.duration) {
+          throw new Error(`restoreCinematic: currentTime ${snapshot.currentTime} is at or past the end of "${active}", whose save says duration ${known.duration}; the player stops a sequence there, so a save calling it playing at that instant is describing something that never happened`);
+        }
+        if (this.sceneGraph.activeSceneId !== known.sceneId) {
+          throw new Error(`restoreCinematic: "${active}" belongs to scene ${known.sceneId}, which is not the active scene (${this.sceneGraph.activeSceneId ?? 'none'}); playCinematic refuses the same request, and a save that resumes a cutscene nobody is looking at is a save that is already interrupted`);
+        }
+      } else if (snapshot.currentTime !== 0) {
+        throw new Error(`restoreCinematic: currentTime is ${String(snapshot.currentTime)} with no active sequence; the field belongs to whichever one is playing, so a number with nothing to own it is a playhead in the dark`);
+      }
+
+      for (const entry of saved) {
+        this.defineCinematic(entry.sceneId, {
+          id: entry.id,
+          name: entry.name,
+          shots: entry.shots.map((shot, index) => shotFromData(shot, `sequence ${entry.id} shot ${index}`)),
+          duration: entry.duration,
+        });
+        added.push(entry.id);
+      }
+
+      // The playhead is placed BEFORE the slot is taken, so the `cinematicPlayed` event a listener sees
+      // carries the instant the save resumes at rather than the 0 a fresh `defineCinematic` starts from.
+      const playheads = saved.map((entry) => {
+        const live = this.cinematics.get(entry.id)!;
+        // The active sequence has a saved time; every other one resumes at the start of the shot the save
+        // names, because the shape carries one playhead and it is not this sequence's.
+        live.time = entry.id === active ? snapshot.currentTime : entry.shots[entry.currentShot]!.startTime;
+        // -1 so the next frame re-derives the index, cuts, and writes `currentShot` itself.
+        live.lastShot = -1;
+        return { id: entry.id, time: live.time, currentShot: live.sequence.currentShot };
+      });
+
+      // The save's `playing` is honored by the door that owns it: `playCinematic` keeps the single-slot rule,
+      // emits `cinematicPlayed`, and is the method that moves `playing` — restore never writes that field.
+      // A `false` here means the slot was already taken by a sequence this call did not restore, and the save
+      // cannot be honored beside it; rolling back is the honest answer, not a silent `playing: false`.
+      if (active !== null && !this.playCinematic(active)) {
+        throw new Error(`restoreCinematic: "${active}" cannot take the active slot because this runtime is already playing ${this.playingCinematic()?.sequence.id ?? 'something'}; the shape has one field for that answer and it is full`);
+      }
+
+      return { restored: saved.map((entry) => entry.id), activeSequence: active, playheads };
+    } catch (error) {
+      for (const id of added) this.cinematics.delete(id);
+      const rolled = added.length
+        ? `the ${added.length} sequence(s) it had already registered (${added.join(', ')}) were removed again, although their cinematicDefined events had already been emitted`
+        : 'nothing had been registered';
+      throw new Error(`${error instanceof Error ? error.message : String(error)} — the restore rolled back: ${rolled}`);
+    }
   }
 
   /** What declaring a sequence actually buys, in the same shape as `physicsFieldAudit`. */

@@ -451,9 +451,11 @@ describe('saveFeasibilityAudit is a reader, not a constant', () => {
     withEntity();
     const audit = runtime.saveFeasibilityAudit(scene, hero)!;
 
-    expect(audit.savable).toEqual(['entities']);
+    // v118 moved `cinematic` across this line: v117 gave the shape a writer, v118 gave it a reader. The
+    // guard below is the one that says so, and it keys on the field's own spelling rather than a list.
+    expect(audit.savable).toEqual(['entities', 'cinematic']);
     expect(audit.blocked.map((entry) => entry.field)).toEqual(
-      ['sceneGraph', 'npcs', 'quests', 'player', 'worldState', 'cinematic']
+      ['sceneGraph', 'npcs', 'quests', 'player', 'worldState']
     );
     for (const entry of audit.blocked) {
       expect(entry.needs.length, `${entry.field} must say WHY it is blocked`).toBeGreaterThan(0);
@@ -530,14 +532,41 @@ describe('the shipped shape and the shipped builder are the same set (read from 
     expect(new Set(accounted).size).toBe(accounted.length);
   });
 
-  it('nothing in the package\'s exported surface yet implements a blocked half', () => {
-    // Narrow but real: this proves the PUBLIC surface has no NPC/quest/player/cinematic implementation,
-    // so the `blocked` list cannot go stale by an implementation shipping and the table staying put.
+  it('a savable half has a snapshot AND a restore that name it; a blocked half has neither', () => {
+    // What this guard was, and why it had to be rewritten. v115 compared `Object.keys(publicSurface)` — the
+    // module's top-level exports — against a regex over the blocked field names, and claimed that "the
+    // `blocked` list cannot go stale by an implementation shipping and the table staying put". It could not
+    // keep that promise: every implementation this package ships is a METHOD on `ThreeRuntime`, so
+    // `cinematicSnapshot` (v117) and `restoreCinematic` (v118) were invisible to it, and the table moved
+    // while the guard stayed green. The surface is read off the class now.
     const exported = Object.keys(publicSurface);
     expect(exported).toContain('ThreeRuntime'); // the import read a real surface, not an empty module
+    withEntity();
+    const audit = runtime.saveFeasibilityAudit(scene, hero)!;
 
-    const withLayer = /(npc|quest|player|cinematic|save)/i;
-    const claiming = exported.filter((name) => withLayer.test(name));
-    expect(claiming).toEqual([]);
+    const methods = Object.getOwnPropertyNames(Object.getPrototypeOf(runtime))
+      .filter((name) => name !== 'constructor' && typeof (runtime as unknown as Record<string, Function>)[name] === 'function');
+    expect(methods.length, 'the prototype read a real class, not an empty object').toBeGreaterThan(20);
+    // The two verbs the save lane uses for the two directions of a shape, taken from the entity pair
+    // (`snapshotEntity`/`restoreEntity`) rather than hand-picked per field.
+    const saveDoors = methods.filter((name) => /snapshot|restore/i.test(name));
+    expect(saveDoors.sort()).toEqual(['cinematicSnapshot', 'restoreCinematic', 'restoreEntity', 'snapshotEntity']);
+
+    // A field is named by a door when the door's own spelling carries the field's stem — `entities` is the
+    // singular in the method name, and the stem rule is derived from the field, never from a table of which
+    // method "counts as" which field. That table would be a second owner of the claim `SAVE_DATA_FEASIBILITY`
+    // is making, which is the bug this lane keeps relearning.
+    const stem = (field: string) => field.replace(/ies$/, 'y').replace(/s$/, '').toLowerCase();
+    const doorsFor = (field: string) => saveDoors.filter((name) => name.toLowerCase().includes(stem(field)));
+
+    for (const field of audit.savable) {
+      const named = doorsFor(field);
+      expect(named, `${field} is listed savable, but no snapshot or restore method on the class names it`).not.toEqual([]);
+      expect(named.filter((n) => /snapshot/i.test(n)).length, `${field} is savable, so a writer must name it`).toBeGreaterThan(0);
+      expect(named.filter((n) => /restore/i.test(n)).length, `${field} is savable, so a reader must name it too — a shape with only a writer is a shape nothing can load`).toBeGreaterThan(0);
+    }
+    for (const field of audit.blocked.map((entry) => entry.field)) {
+      expect(doorsFor(field), `${field} is still listed blocked, but ${doorsFor(field).join(', ')} ships`).toEqual([]);
+    }
   });
 });

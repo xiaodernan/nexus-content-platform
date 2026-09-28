@@ -1,4 +1,4 @@
-# @nexus/three-runtime — evidence for v108 (host seams), v114 (character controller), v115 (the entity save format), v116 (the scene's physics world) and v117 (the cinematic sequence)
+# @nexus/three-runtime — evidence for v108 (host seams), v114 (character controller), v115 (the entity save format), v116 (the scene's physics world), v117 (the cinematic sequence) and v118 (the save that reads it back)
 
 This directory records the 3D runtime lane (ROADMAP M5). Every claim here is read back out of the
 shipped source and the package's own vitest suite — `packages/three-runtime/src/*.ts` and
@@ -261,3 +261,160 @@ not misled:
 * ROADMAP M5, honest bounds: *"`updateCinematics` is still an empty stub"* and *"the cinematic slice is not
   built"*. Both were swapped in the same edit that added this section. The slice now has a runtime player and no
   authored-content surface, which is what the cell says instead.
+## v118 — the cinematic save shape gets a reader: a curve that round-trips through points, a snapshot that stopped aliasing the running game, and a guard that had to be rewritten because it could not see methods
+
+Amendment 117's `Next:` named three `SaveData` fields still waiting on a system, and one field — `cinematic` —
+waiting only on a reader. v118 is that reader. The codec lives in `packages/three-runtime/src/threeRuntime.ts`
+as five module functions (`curveToData`, `curveFromData`, `shotToData`, `shotFromData`, `savedSequences`) and
+one method (`restoreCinematic`), and it turned `SerializedCinematic` from a shape with a writer into a shape
+with both directions — which moved a field out of `SAVE_DATA_FEASIBILITY.blocked` for the first time since v115
+wrote that table.
+
+| what | measured |
+| --- | --- |
+| suite | `test/cinematicSequence.test.ts`, 74 cases; package total **214** (74 cinematic + 39 controller + 42 save + 30 physics + 29 runtime), `tsc --noEmit` exit 0 |
+| declared shape | `types.ts` gains `SerializedCurve` (points + `closed` + `curveType` + `tension`), `SerializedCinematicShot` and `SerializedCinematicSequence`, and `SerializedCinematic.sequences` is re-pointed at the serialized record instead of at the live `CinematicSequence` |
+| writer | `cinematicSnapshot()` now builds a new record per sequence with cloned point arrays. **5** refusals on the way OUT, each naming the value it found — because `defineCinematic` copies the shot ARRAY but not the shot OBJECTS, so `shot.startTime = NaN` after registration is reachable from outside, and a snapshot that wrote it would be a save its own reader refuses |
+| reader | `restoreCinematic(snapshot)` → `{restored, activeSequence, playheads}`. **27** refusals naming the value, and only three of them are new rules: the shape's self-agreement (`activeSequence` vs the `playing` set, map key vs the record's own `id`), the playhead's bounds, and the resumed `playing` being handed to `playCinematic`. Every timeline question goes through `defineCinematic`, including the saved `duration`, which is passed through as a claim to be checked rather than believed |
+| codec | 33-arm probe below; the curve's four fields are carried because three.js reads them. Measured on the path the fidelity cases use: changing `curveType` in a save moves the sampled camera by 0.0289 world units and changing `tension` by 0.0029 world units — on a near-straight path the same two edits move it by nothing, which is the trap the first control case fell into |
+| one door corrected | v117's `defineCinematic` claimed it refused "a zero-length path". Measured: `getLength()` on a curve with one control point does not return 0, it throws `TypeError: Cannot read properties of undefined (reading 'x')` from inside three.js — so the door CRASHED on the input it said it was refusing. v118 asks the control-point count BEFORE the length, and the refusal now names the path and how many points it has |
+| scene | `SerializedCinematicSequence.sceneId`, declared because a reader needed it. A shot's `cameraId` addresses one scene's camera set; the live type keeps that fact on the registry entry, and the save shape had nowhere to put it — the same class of hole `SerializedEntity.layers` was in v115 |
+| camera naming | `createCamera(sceneId, name, type, params, id?)`. Without it a saved cinematic could only ever be read by the process that wrote it: ids were invented per call, and the door refuses a shot naming a camera the scene lacks. `createScene(name, id?)` has taken a name since v108 |
+| all or nothing | a failed restore deletes every sequence it had registered before rethrowing, with the count in the message — and the message also says the rollback cannot reach the event log, because `cinematicDefined` already fired |
+| table | `SAVE_DATA_FEASIBILITY.savable` is `['entities', 'cinematic']`, and `blocked` is five rows. `SaveData.cinematic` is the first field to leave `blocked` because of work in this lane |
+
+Three things worth the sentence it costs.
+
+* **A snapshot that aliases the game is not a snapshot.** v117's `cinematicSnapshot` filled its Map with the
+  live `CinematicSequence` objects, and the suite *pinned* that: `expect(snapshot.sequences.get('seq')).toBe(
+  runtime.cinematicSnapshot().sequences.get('seq'))` — identity, twice. v118 asserts the opposite in both
+  halves (deep-equal across calls, never the same object) and adds the observable that makes it matter: take a
+  snapshot, stop the sequence, and the snapshot still says `playing: true`.
+* **The refusals are partitioned by what the alternative would be.** The codec refuses the inputs that would
+  CRASH the player — a shot that is not an object, one control point, a `curveType` three.js answers with NaN
+  coordinates, a truthy `closed` — and `defineCinematic` keeps every decision it already owned: windows,
+  overlaps, cameras, transitions, easings, arcs, and the derived `duration`. A save whose `duration` was edited
+  to 99 is refused in `defineCinematic`'s own words, printing 99 and 2, because the reader passes the number
+  through instead of reading a second rule into itself.
+* **The `blocked` list can no longer sit still beside a shipped implementation — and the guard that claimed it
+  could not see one.** `saveSnapshot.test.ts` had a case named "nothing in the package's exported surface yet
+  implements a blocked half", whose comment promised "the `blocked` list cannot go stale by an implementation
+  shipping and the table staying put". It compared `Object.keys(publicSurface)` — module-level exports — while
+  every implementation in this package is a method on `ThreeRuntime`. v117's `cinematicSnapshot` and v118's
+  `restoreCinematic` both sailed through it. The rewritten case reads the prototype, keeps the two verbs the
+  entity pair uses (`snapshot`/`restore`) as the only thing that counts as implementing a half, and requires a
+  `savable` field to have BOTH a writer and a reader while a `blocked` field has neither — so the table and the
+  surface are now checked against each other in both directions.
+
+### How the probe ran, and what it said
+
+The probe is `mutate-v118.mjs (scratch)`: 33 arms, each anchor required to match the shipped source exactly once
+before any run (a separate `--anchors` pass does that check in milliseconds, so a mistyped anchor is a load-time
+refusal rather than a silent no-op), each arm's minimum red written down before measuring, and the pristine
+source restored in a `finally` — the run ended with `restored the target byte-exactly: true`. Controls: the
+two-file plane collected **116** with 0 red, the whole package **214** with 0 red, and
+`tsc --noEmit` exited 0 — where the last line needs its plane stated, because this package's tsconfig
+`include`s `src/**/*` and `exclude`s `test`, so the typecheck gate covers the shipped source only and the test
+file is type-checked by nothing but vitest running. Reds per arm, in order: 20, 9, 1, 5, 3, 2, 1, 1, 1, 1, 1, 1, 2, 1, 1, 1, 1, 1, 1, 1, 1, 1, 8, 1, 2, 3, 1, 8, 8, 1, 3, 4, 1. No arm survived.
+No arm reddened fewer than claimed. 12 of the 33 arms reddened MORE than written down for them (01-snapshot-aliases-live-sequences: 4→20, 02-shot-objects-aliased-into-save: 2→9, 04-writer-hardcodes-curveType: 3→5, 05-writer-hardcodes-tension: 1→3, 06-writer-hardcodes-closed: 1→2, 13-reader-accepts-one-control-point: 1→2, 23-restore-skips-playhead: 3→8, 25-restore-writes-playing-directly: 1→2, 26-restore-does-not-rollback: 2→3, 28-snapshot-currenttime-always-zero: 3→8, 29-snapshot-active-always-null: 3→8, 32-table-claims-npcs: 3→4). The over-predictions are one failure wearing many costumes: I predicted the
+assertion that names the mutated clause and not the cases downstream that consume its output. Restoring v117's
+aliasing in `cinematicSnapshot` is the extreme: I credited it four and it reddened the whole reader, because
+every `restoreCinematic` success case in the file consumes the shape that clause writes. Hardcoding `tension`
+reddened the geometry cases as well as the field case; dropping the "fewer than two control points" refusal
+reddened the rollback case too, since a second sequence that used to fail now registers.
+A reader's clauses have more consumers than a writer's, and that is what the over-predictions measured. The
+first draft of this harness never ran at all: the anchors were written inside JavaScript template literals, so
+the `${id}` inside a quoted production line was interpolation, and the script died at load with
+`ReferenceError: id is not defined` — a crash in my own quoting, one edit short of looking like a mutation that
+found nothing. The last two arms are not codec arms. `31-table-leaves-cinematic-behind` restores the `savable`
+list as v117 wrote it, which is the edit this grant makes, and reddens three cases: the cinematic suite's own
+table-row case, `saveSnapshot`'s savable-vs-blocked list, and the gate that requires the two halves to partition
+the fields `SaveData` declares. `32-table-claims-npcs` adds a fourth — the guard that reads
+`ThreeRuntime.prototype` — because a field declared savable with no writer AND no reader named after it is the
+other half of the same promise.
+
+### What v118 still does NOT honor — stated by name
+
+* `SaveData` as a whole is still not a file. `postProcessing` stays uninterpreted, `transition` stays `'cut'`,
+  `transitionDuration` stays 0, and `npcs`/`quests`/`player`/`worldState`/`sceneGraph` are still blocked on
+  systems that do not exist. Nothing here writes a `SaveData` end to end.
+* The envelope is a `Map`, and `JSON.stringify` writes a Map as `{}`. `restoreCinematic` refuses that rather
+  than reporting a successful restore of nothing, so the values inside the cinematic shape survive disk and the
+  container still does not — a codec for the container is a separate piece of work.
+* One playhead for the whole shape. `currentTime` belongs to whichever sequence is active, so a STOPPED
+  sequence resumes at the start of the shot its `currentShot` names, not where its playhead stood. v117's
+  stop-keeps-position behavior is real at runtime and unrepresentable in the declared shape; `playheads` prints
+  where each one landed instead of hiding it.
+* `restoreCinematic` rolls the registry back, not the event log: a listener was told about the sequences that
+  landed before the failure, and no rollback says so afterwards.
+* A save cannot create a camera. It names ids, and `createCamera(…, id)` lets a caller re-issue them — but a
+  runtime that has since made its cameras some other way has no way to be told, so a drifted save is refused by
+  `defineCinematic` ("not in scene"), which is the honest answer and not a helpful one.
+* There is still no Studio surface: a sequence is authored by code, as it was in v108-v117.
+
+### Measurement errors, kept in the record
+
+Four of them, all of the same family — a number that meant something other than what I took it for.
+
+* **A v117 test went accidentally green.** Four assertions broke when the snapshot stopped aliasing, and the
+  runner reported exactly those four reds. A fifth had been reading live state through the snapshot —
+  `sequence.playing` after a finish — and now passed because it was reading a frozen copy of a value that had
+  been false when the copy was made. The suite could not tell me; only reading the case did.
+* **The probe harness died at load, not at measurement.** Its anchors are quoted bytes of production code, and
+  I wrote them inside JavaScript template literals, so the `\`…${id}…\`` in a quoted line was INTERPOLATION and
+  the script threw `ReferenceError: id is not defined` before touching a file. The anchor list now builds by
+  concatenation and a `--anchors` pass checks every one matches exactly once before any vitest run.
+* **The round trip's control case was measuring a camera nobody moved.** It edits `curveType` in the save and
+  expects the camera to land elsewhere; the first draft left the save with `activeSequence: null`, so the
+  restored sequence was never playing, no frame placed a camera, and `toBeGreaterThan(0.001)` was satisfied by a
+  camera still at its origin. What caught it was the out-of-band script written to supply the prose's numbers:
+  asked to confirm that two curve types differ by more than 0.001 on the points the suite uses, it refused with
+  8.881784197001252e-16. Both measurements are right — `getPointAt` re-maps its parameter through the curve's own
+  arc-length table, so two schemes sampled at the same ARC fraction on a near-straight path land nearly together
+  — and the fix was a path that turns plus a restore that is actually playing. The case now asserts not "some
+  different number" but "exactly where an honest curve of the other word is", to the last bit.
+* **A curve mutated after registration is a different curve, and how different depends on the path.** Assigning
+  `curveType` after `defineCinematic` has called `getLength()` leaves the live object sampling through a table
+  computed under the word it no longer carries; three.js does not set `needsUpdate` on assignment. Measured
+  against an honest curve of the new word, the gap is 3.768222e-15 world units on the straight path and 0.0214 world units on
+  a turning one. So the codec's promise is "rebuilds the curve the save describes", not "reproduces whatever the
+  live object was doing" — and the fidelity case is written on a curve that was honest from the start, where the
+  two are bit-identical.
+* **The §7 title count is derived, not guessed.** v117 predicted two title lines for its newest grant and the
+  door measured three; the third was the subheading `### What v117 still does NOT honor`, because the gate reads
+  ANY `#{1,6} ` line in a `.md` as a title. This cycle the rule was read out of
+  `docs/evidence/agents/table-recount-proof.mjs:344` first, and the prediction says three for the same reason.
+
+### Sentences this record retires
+
+Left in place where they were written (shared documents are append-only), quoted so a reader who stops earlier
+is not misled:
+
+* v117, "What v117 still does NOT honor": *"`SerializedCinematic` has a writer and **no reader**. There is no
+  `restoreCinematic`… until that exists `SaveData.cinematic` stays in `blocked` — with six blocked fields,
+  exactly as before v117."* The reader exists, and the count is five.
+* v117's ADR grant: *"the honest summary of v117 is that the declared save type has a writer and still has no
+  reader."* Retired by v118; the other half of that sentence — that the writer aliased live objects — is retired
+  with it.
+* ROADMAP M5, honest bounds: *"…`SerializedCinematic` has a writer and still has no reader…"* and *"…and
+  `SaveData`'s six blocked fields stay blocked."* Both were swapped by the edit that added this section — the
+  first because `restoreCinematic` exists, the second because `cinematic` is no longer one of the rows. What the
+  cell says instead is that the shape round-trips, that its `Map` envelope is still not JSON-safe, and that five
+  fields stay blocked on systems rather than on readers.
+* v117's `defineCinematic` docstring: *"…and a zero-length path (an arc parameter divided by the arc it does not
+  have)."* True as a claim about arcs, false as a claim about the door: a one-point path never reached the length
+  test, because asking it for a length throws inside three.js. Corrected in the shipped comment and pinned by a
+  test that requires the refusal to name the control-point count.
+* `saveSnapshot.test.ts`, the guard's comment: *"Narrow but real: this proves the PUBLIC surface has no
+  NPC/quest/player/cinematic implementation."* It proved no such thing for methods; the rewritten case says what
+  it reads.
+* ROADMAP M5, honest bounds: *"`SerializedCinematic` has a writer since v117 and still no reader"*. Swapped in
+  the same edit that added this section. What the cell says instead is that the cinematic shape round-trips and
+  the remaining blocked halves are waiting on systems.
+
+Next: the same question v117 and v118 answered for `cinematic` is still open for the four `SaveData` fields
+whose blocker is a missing SYSTEM rather than a missing reader — `npcs`, `quests`, `player`, `worldState` are
+declared in `types.ts` and implemented by nothing. The cheap adjacent hole is the `Map` envelope: one
+`encodeSaveData`/`decodeSaveData` pair over `SaveData` would make `savable` mean "survives a disk" instead of
+"survives a process", and the two directions have exactly one honest shape each — Maps to arrays of entries and
+back. And `slopeLimit`/`stepOffset`/`broadphase`/`solverIterations` still wait on collision geometry.

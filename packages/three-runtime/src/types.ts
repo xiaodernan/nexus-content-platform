@@ -486,9 +486,54 @@ export interface SerializedPlayer {
 }
 
 export interface SerializedCinematic {
-  sequences: Map<string, CinematicSequence>;
+  sequences: Map<string, SerializedCinematicSequence>;
   activeSequence: string | null;
   currentTime: number;
+}
+
+/**
+ * A `THREE.CatmullRomCurve3` as DATA: the control points, and the three constructor arguments that change
+ * the shape of the curve through them. `curveType` and `tension` are here because three.js reads an
+ * UNRECOGNIZED `curveType` as `'catmullrom'` — a save that lost the word would play a different path than
+ * the one it names, so `curveFromData` refuses an unknown value by name instead of letting the default
+ * answer for it.
+ */
+export interface SerializedCurve {
+  points: { x: number; y: number; z: number }[];
+  closed: boolean;
+  curveType: 'centripetal' | 'chordal' | 'catmullrom';
+  tension: number;
+}
+
+export interface SerializedCinematicShot {
+  id: string;
+  cameraId: CameraId;
+  startTime: number;
+  endTime: number;
+  transition: 'cut' | 'fade' | 'dissolve' | 'wipe' | 'slide';
+  transitionDuration: number;
+  cameraPath?: SerializedCurve;
+  targetPath?: SerializedCurve;
+  fovAnimation?: { start: number; end: number; easing: string };
+  postProcessing?: PostProcessingConfig;
+}
+
+/**
+ * `CinematicSequence` plus `sceneId`. The scene is NOT a field of the live type — it is the registry
+ * entry's — because a sequence's shot `cameraId`s address ONE scene's camera set and nothing else. Which
+ * means `SerializedCinematic` could not say which scene a saved sequence belongs to until something
+ * actually tried to read it: `defineCinematic` needs that answer to validate the shots at all, and a shape
+ * that cannot carry it cannot be restored without the caller remembering it. So the save shape declares it
+ * and the reader checks it (the same repair `SerializedEntity.layers` was for v115).
+ */
+export interface SerializedCinematicSequence {
+  id: string;
+  name: string;
+  sceneId: SceneId;
+  shots: SerializedCinematicShot[];
+  duration: number;
+  currentShot: number;
+  playing: boolean;
 }
 
 export interface InventoryItem {

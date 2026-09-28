@@ -5443,3 +5443,120 @@ reader but a missing SYSTEM — `npcs`, `quests` and `player` are declared at `t
 so unlike `cinematic` there is no stub to replace, only a subsystem to decide the shape of. The cheaper adjacent
 hole is `slopeLimit`/`stepOffset` and `broadphase`/`solverIterations`, all four of which wait on the same missing
 collision geometry; a first capsule/box collider would move three of them out of `unhonored` at once.
+### Amendment 118 — v118: the declared cinematic save gets its reader, the snapshot stops aliasing the running game, and a field leaves `blocked` for the first time since this table was written
+
+Amendment 117 closed with a sentence about what its own grant left undone: `SerializedCinematic` had a writer
+and no reader, and the reason was that nothing rebuilt a `THREE.CatmullRomCurve3` from stored points. v118 is
+that rebuild, in `packages/three-runtime/src/threeRuntime.ts` and `packages/three-runtime/src/types.ts`, and
+the interesting part is not the codec — it is the four questions a shape cannot avoid once something tries to
+READ it.
+
+**Which scene?** A shot's `cameraId` addresses one scene's camera set, and `defineCinematic` refuses a shot
+naming a camera the scene it registers against does not have. The runtime keeps that scene on the registry
+entry, `CinematicEntry.sceneId`, and the declared `CinematicSequence` has no such field — so neither did
+`SerializedCinematicSequence` until a reader needed it. The save shape now declares `sceneId`, which is the same
+repair `SerializedEntity.layers` was in v115: a field the shape must carry or a restore silently loses.
+
+**Does the save agree with itself?** `activeSequence` and the set of sequences claiming `playing` are two
+spellings of one fact, and a `Map` key and the record filed under it are another pair. At runtime the runtime
+owns both — `playingCinematic()` derives the first from the second, and `defineCinematic` owns the key — so
+neither pair can disagree without a caller. A save can. `restoreCinematic` refuses both directions (an
+`activeSequence` that names nothing, a playing sequence with no active slot, two playing sequences, a key
+holding a record that calls itself something else) and prints both answers in the message.
+
+**Where does the playhead land?** `currentTime` exists once per save, for whichever sequence is active. The
+others carry only `currentShot`. So a stopped sequence resumes at the START of the shot its save names, the most
+specific instant the data can prove — and `CinematicRestoreReport.playheads` prints where every sequence landed,
+because "restored" without that list would let a reader believe the playhead survived when only the shot index
+did. v117's stop-keeps-position behavior stays true at runtime and is now honestly labeled as
+unrepresentable in the declared shape.
+
+**Who writes what?** `restoreCinematic` never touches `playing` and never touches a camera. It places the
+playhead, leaves `lastShot` at -1, and calls `playCinematic` to take the slot — so the single-slot rule has one
+owner, `cinematicPlayed` fires the way it does for a caller, and the first frame after a restore is the frame
+that re-derives the index, cuts, and writes `currentShot`. A restore that aimed a camera too would be a second
+owner of what `updateCinematics` exists to be.
+
+The refusals are partitioned by what the alternative would be, and that sentence is the load-bearing one. The
+codec refuses the inputs that would CRASH the player: a shot that is not an object (`defineCinematic` reads
+`shots[0].startTime`), a curve with one control point, a `curveType` outside `CURVE_TYPES` — measured,
+`new THREE.CatmullRomCurve3(points, false, 'bogus')` keeps the word and answers `getPointAt` with
+`NaN, NaN, NaN` — a truthy non-boolean `closed`, and a non-finite coordinate or tension. 27
+reader-side and 5 writer-side, each naming the value it found. Every TIMELINE decision stays
+`defineCinematic`'s: the saved `duration` is passed through as `CinematicSequenceInput.duration`, so a save
+edited to 99 is refused by the same door a hand-written call meets, printing 99 and 2. Two owners of one rule is
+the failure this lane keeps relearning, and a reader is where it shows up.
+
+The writer refuses too, and that is not symmetry for its own sake. `defineCinematic` copies the shot ARRAY and
+not the shot OBJECTS — a path is a live curve, and copying a curve means rebuilding it — so
+`live.shots[0].startTime = NaN` after registration is reachable, and the runtime would happily play the result.
+A snapshot that wrote that NaN out would produce a save its own reader refuses; a save shape that cannot be read
+back is not a save. `plainDataOrRefuse`, the check `userData` has carried since v115, runs over `postProcessing`
+too, and `structuredClone` means the copy does not move when the live pass list does.
+
+v118 also corrected a door that had been claiming a refusal it did not give. `defineCinematic`'s docstring said
+it refused a zero-length path. Measured at this ref, `getLength()` on a curve with one control point throws
+`TypeError: Cannot read properties of undefined (reading 'x')` from inside three.js — so the door crashed on the
+input it said it was refusing, and the crash named three.js's internals rather than the caller's path. The
+control-point count is now asked before the length, and the refusal names both numbers.
+
+`createCamera` grew an optional `id` for the same reason a reader needs it: camera ids were invented per call, so
+a saved shot's `cameraId` could never resolve in a fresh runtime, and the round trip was only ever a within-one-process
+claim. With it, the suite rebuilds a world FROM a save — scene by `sceneId`, camera by `cameraId` — restores, plays,
+and compares positions to the original. `centripetal` and `chordal` on the same four points differ by 0.0289 at
+arc position 0.5, so the saved `curveType` is not decoration and the test that asserts bit-equality is asserting
+something the codec could get wrong.
+
+Measured: `test/cinematicSequence.test.ts` is 74 cases and the package total is **214**
+(74 cinematic + 39 controller + 42 save + 30 physics + 29 runtime), `tsc --noEmit` exit 0. Note for whoever reads this row next: the package tsconfig
+`include`s `src/**/*` and `exclude`s `test`, so `tsc` is a gate on the shipped source only — the test file's
+types are checked by nothing but vitest running. The behavioral probe ran 33 arms over the final source
+against an unmutated control that collected **116 with 0 red** on the two-file plane that reads cinematic
+code (`test/cinematicSequence.test.ts` + `test/saveSnapshot.test.ts`), each arm's minimum red written down
+before measuring, and every arm collected the full population — a mutation that crashes collection is refused by
+the harness rather than counted as a catch. Reds: 20, 9, 1, 5, 3, 2, 1, 1, 1, 1, 1, 1, 2, 1, 1, 1, 1, 1, 1, 1, 1, 1, 8, 1, 2, 3, 1, 8, 8, 1, 3, 4, 1. No arm survived. No arm reddened fewer than claimed.
+12 of the 33 arms reddened MORE than written down for them (01-snapshot-aliases-live-sequences: 4→20, 02-shot-objects-aliased-into-save: 2→9, 04-writer-hardcodes-curveType: 3→5, 05-writer-hardcodes-tension: 1→3, 06-writer-hardcodes-closed: 1→2, 13-reader-accepts-one-control-point: 1→2, 23-restore-skips-playhead: 3→8, 25-restore-writes-playing-directly: 1→2, 26-restore-does-not-rollback: 2→3, 28-snapshot-currenttime-always-zero: 3→8, 29-snapshot-active-always-null: 3→8, 32-table-claims-npcs: 3→4).
+
+And the round trip's own control case was a vacuum until an out-of-band script caught it. The case edits
+`curveType` inside a save and expects the camera to land somewhere else; the first draft left that save with
+`activeSequence: null`, so the restored sequence never entered the single playing slot, no frame placed a camera,
+and `toBeGreaterThan(0.001)` was satisfied by a camera still at its origin. What found it was
+`curve-fidelity.mjs`, a scratch script written only to supply the prose's numbers: asked to confirm that two
+curve types differ by more than 0.001 on the points the suite uses, it refused with 8.881784197001252e-16. That
+refusal and the passing test were both correct — `getPointAt` re-maps through the curve's own arc-length table,
+so on a near-straight path two schemes sampled at the same ARC fraction land nearly together, and a save whose
+only change is a word moves nothing. The case now runs on a path that turns, restores a sequence that is
+actually playing, and asserts not "different by some amount" but "exactly where an honest curve of the other
+word is" — the same shape of claim the fidelity case makes in the other direction. It also reframed the codec's
+promise: `restoreCinematic` rebuilds the curve the save DESCRIBES, which is not the same thing as reproducing
+what a live object that had its `curveType` reassigned after `defineCinematic` had called `getLength()` was
+actually doing (3.768222e-15 world units apart on the straight path, 0.0214 world units apart on a turning one).
+
+What v118 broke deliberately, and how it was settled. Three of v117's assertions were ABOUT aliasing: one
+required `snapshot.sequences.get('seq')` to BE the live object (`toBe`, twice), one read `playing` and
+`currentShot` off a snapshot taken before the play, and one required `cinematic` to stay in `blocked` with a
+reason naming `THREE.CatmullRomCurve3`. All three were rewritten to say the opposite thing, with the reason for
+the reversal in the test comment and this ledger — not deleted. The fourth case, "holds the last frame at the
+end", did NOT go red: it read `sequence.playing` through a snapshot taken before the play, and once the snapshot
+was a copy the assertion passed for the wrong reason. An accidental green is the failure mode a change like this
+produces and the runner cannot see it; that case now reads live state through `cinematicFieldAudit` and keeps the
+frozen copy as the control.
+
+And the guard that polices this very table had to be rebuilt. `saveSnapshot.test.ts`'s "nothing in the package's
+exported surface yet implements a blocked half" compared `Object.keys(publicSurface)` against a regex over the
+blocked field names, so a class method was invisible to it — `cinematicSnapshot` (v117) and `restoreCinematic`
+(v118) both passed through while the table they should have forced stayed put. It now enumerates
+`ThreeRuntime.prototype`, treats only the two verbs the entity pair uses (`snapshot`/`restore`) as
+implementing a half, and requires a `savable` field to have both a writer AND a reader named after it while a
+`blocked` field has neither. Its field stems are derived from the field's own spelling, because a hand-written
+"which method counts as which field" table would be a second owner of the claim `SAVE_DATA_FEASIBILITY` makes.
+
+What v118 does not do, stated by name: `SaveData` as a whole is still not a file — the envelope is a `Map`,
+`JSON.stringify` writes one as `{}`, and `restoreCinematic` refuses that instead of reporting a successful
+restore of nothing, so the values survive disk and the container does not. `postProcessing` is still
+uninterpreted, `transition` is still only `'cut'`, and `npcs`/`quests`/`player`/`worldState`/`sceneGraph` are
+still blocked on systems that do not exist — five rows now, where this cycle started with six. There is still no
+Studio surface. Next, in order of cost: one `encodeSaveData`/`decodeSaveData` pair over `SaveData` would make
+`savable` mean "survives a disk" rather than "survives a process"; then the four fields that need a subsystem;
+then `slopeLimit`/`stepOffset`/`broadphase`/`solverIterations`, all four waiting on the same missing collision
+geometry.
