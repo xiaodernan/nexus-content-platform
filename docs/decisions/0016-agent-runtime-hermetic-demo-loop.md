@@ -5837,3 +5837,49 @@ you meant". Next: the last of v120's three gaps — a temp-write-and-rename, whi
 injected host and a decision about what to report when the rename fails halfway — then `npcs`/`quests`/
 `player`/`worldState`, then collision geometry, which is what `slopeLimit`, `stepOffset`, `broadphase` and
 `solverIterations` all wait on.
+### Amendment 124 — v124: the save is written atomically — a temp file and a rename, a capability asked for before any byte moves, and a failure that reports the debris it left
+
+v120 closed its own record with three gaps: no delete, no list, no atomic rename. v122 took the delete, v123 the
+list; this takes the rename, and it is the only one of the three where a partial performance is possible. A save
+screen that lists "unreadable" beside the file the player just wrote has already lost the game, however honest
+its refusal.
+
+`SaveStore.writeAtomic(path, contents)` writes `<path>.tmp` and renames it onto the real name. `FsLike` grows
+its third optional method, `renameSync`, next to `unlinkSync`, `readdirSync` and `statSync` — the seam stays
+implementable by a browser shim, and the shim that cannot rename is told so in a sentence that says no bytes
+moved. That ordering is the grant's real content: the capability is checked **before** anything is written, and
+the case asserts not just the throw but that the host recorded no operations whatsoever and its tree gained no
+key. The rejected alternative — try, fail halfway, then explain a `.tmp` to `list()` — is exactly the state v123
+had to build an `unreadable` report for.
+
+When the rename itself fails, the assertion that matters is about the file that was already there: the old bytes
+still read back unchanged, the temp has been unlinked, and the operations log proves the unlink happened. If the
+cleanup fails too, the message quotes the leftover path (`it is left at "x.json.tmp"`) rather than saying
+"cleanup failed", because the reader's next action is a delete of that name — and the listing does show it, so
+the message is checked against the world it describes.
+
+The runtime goes through the same door, and the test says so at the runtime's boundary: `writeSaveFile` asserts
+the host saw `rename:saves/root/slot.json.tmp->saves/root/slot.json`. That is the shape of the lesson v118
+learned when a guard only a regex could see was testing the author rather than the feature — a store whose
+atomic path is perfect can still be bypassed by the method that calls it, and nothing in the store's own suite
+would notice.
+
+The memory store implements `writeAtomic` as one map mutation and the docstring narrows the claim: atomic with
+respect to this process, not a durability promise, because a store that cannot outlive the tab has no window to
+be torn about. Plain `write` is left alone — still direct, still used by tests that want a file to appear without
+a rename — and one case asserts that difference in the operations log rather than in a comment.
+
+Measured: `test/saveSnapshot.test.ts` is 82 cases and `test/cinematicSequence.test.ts` 78,
+package total **258** (82 save + 39 controller + 78 cinematic + 30 physics + 29 runtime), `tsc --noEmit` exit 0 on `src`. The probe ran 6 arms
+against a control of **160 collected / 0 red** and, for the first time in this lane, its predictions were
+written as **case names** rather than red counts — No arm survived. No arm reddened fewer than claimed. 3 of the 6 arms reddened MORE than written down for them (02-rename-replaced-by-a-second-write: 2→4, 05-real-file-overwritten-before-rename: 1→2, 06-runtime-bypasses-the-atomic-path: 1→3).
+Both files were restored byte-for-byte afterwards.
+
+What v124 does not do, stated by name: there is no `fsync`, so a power loss between the temp write and the
+rename can lose the new save (the old one survives — that is the promise, and losing the new one silently is
+still possible); a host whose `renameSync` quietly copies across devices is outside what this package can
+detect; a leftover temp from a double failure is reported and never swept; and the five blocked `SaveData`
+fields, the scene address an entity record does not carry, and any Studio surface are untouched. Next: either
+give `FsLike` a durability verb and say what a shim owes, or stop widening the file layer and build the
+subsystems — `npcs`, `quests`, `player`, `worldState` — whose absence has been the honest part of this table
+since v115.

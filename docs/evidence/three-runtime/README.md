@@ -1,4 +1,4 @@
-# @nexus/three-runtime — evidence for v108 (host seams), v114 (character controller), v115 (the entity save format), v116 (the scene's physics world), v117 (the cinematic sequence), v118 (the save that reads it back), v119 (the file it survives on disk), v120 (the bytes, through a store), v121 (the id comes back), v122 (a save taken back) and v123 (what it holds)
+# @nexus/three-runtime — evidence for v108 (host seams), v114 (character controller), v115 (the entity save format), v116 (the scene's physics world), v117 (the cinematic sequence), v118 (the save that reads it back), v119 (the file it survives on disk), v120 (the bytes, through a store), v121 (the id comes back), v122 (a save taken back), v123 (what it holds) and v124 (written atomically)
 
 This directory records the 3D runtime lane (ROADMAP M5). Every claim here is read back out of the
 shipped source and the package's own vitest suite — `packages/three-runtime/src/*.ts` and
@@ -859,3 +859,79 @@ report nobody can break is a report nobody can trust.
 Next: the third gap, an atomic write (temp + rename), which needs `renameSync` on the injected host and a
 decision about what `writeSaveFile` reports when the rename fails halfway. Then the four `SaveData` halves that
 need a subsystem, then collision geometry.
+## v124 — the save is written atomically: a temp file and a rename, a capability asked for before any byte moves, and a failure that reports its own debris
+
+v123 retired the listing gap and left the last sentence it had written about itself: *"the write is not atomic,
+so a half-written file is listed as unreadable and never repaired."* Refusing a truncated save is honest, but a
+save screen that shows "unreadable" next to the file the player just wrote has lost the game anyway. v124 makes
+the write either arrive or not arrive.
+
+| what | measured |
+| --- | --- |
+| suites | `test/saveSnapshot.test.ts` 82 cases, `test/cinematicSequence.test.ts` 78, package total **258** (82 save + 39 controller + 78 cinematic + 30 physics + 29 runtime), `tsc --noEmit` exit 0 on `src` |
+| seam | `SaveStore.writeAtomic(path, contents)`; `FsLike` grows a third optional method, `renameSync`, alongside `unlinkSync`/`readdirSync`/`statSync` |
+| order | the capability is asked for **before a single byte is written**: an fs host without `renameSync` throws (`no renameSync; nothing was written`) and the case asserts the host recorded **no operations at all** and its tree gained no key — discovering the gap after the temp exists would leave a `.tmp` for `list()` to explain |
+| failure | when the rename itself fails, whatever was at the real path is untouched (the old save still reads back byte-for-byte), the temp is unlinked, and the ops log shows the unlink; when the unlink also fails the message names the leftover path (`it is left at "x.json.tmp"`) and the listing indeed shows it |
+| runtime | `writeSaveFile` now goes through `writeAtomic`, and the case asserts the host saw `rename:saves/root/slot.json.tmp->saves/root/slot.json` — because a store-level test alone would stay green if the runtime quietly went back to plain `write` |
+| memory store | one map mutation, documented as atomic **within this process** and not a durability claim; it leaves no temp to list |
+| plain `write` | still there and still direct: the atomic path is a choice at the call site, asserted by an ops comparison rather than by comment |
+
+Three things worth the sentence it costs.
+
+* **Ask about a missing capability before you need it.** v122's delete and v123's listing both threw when the
+  host could not do the job; the write has a sharper version of the same rule, because a *partially performed*
+  operation is worse than a refused one. The case does not merely assert the throw — it asserts `ops` is empty
+  and the host's tree is unchanged, which is the difference between "refused" and "failed halfway".
+* **The point of a temp-and-rename is the file you did not touch.** The failure case asserts the previous bytes
+  still read back, and separately that the temp is gone. A test that only checked "an error was thrown" would
+  pass on an implementation that clobbered the real file first.
+* **The rename is asserted at the runtime boundary, not only the seam.** That is the same lesson v118 learned
+  about guards (a rule only a regex can see is testing the author, not the feature): the store can be perfect
+  while `writeSaveFile` calls the wrong method, and the case that would catch it had to be written against the
+  call path.
+
+### How the probe ran, and what it said
+
+The probe is `mutate-v124.mjs (scratch)`: 6 arms over the seam (`saveStore.ts`) and the runtime's write
+(`threeRuntime.ts`) — anchors verified to match exactly once before anything ran, the control fixing the plane at
+**160** with 0 red, both files restored byte-for-byte in a `finally`. Reds per arm, in order: 1, 4, 1, 1, 2, 3.
+No arm survived. No arm reddened fewer than claimed. 3 of the 6 arms reddened MORE than written down for them (02-rename-replaced-by-a-second-write: 2→4, 05-real-file-overwritten-before-rename: 1→2, 06-runtime-bypasses-the-atomic-path: 1→3). The whole package was measured separately at
+**258** with 0 red, and `tsc --noEmit` exited 0 over `src`.
+
+This is the first probe in the lane whose predictions were written as **case names** rather than red counts —
+the v123 record caught that habit for what it was: "at least one, got three" tells you nothing about whether the
+right test exists. Each arm names the case that must go red (skip the capability check, rename into a second
+write, leave the temp after a failed rename, hide the leftover path, overwrite the real file before the rename,
+bypass the atomic call from the runtime), and the harness grades both directions: did that case fail, and did
+nothing else. Three arms came back exactly as predicted. Three reddened their named case **plus** neighbours —
+`02` also broke the two failure cases, because they read the same ops log and the same listing, and `06` (the
+runtime calling plain `write`) broke the ops assertion in the success case as well. That is a wider blast radius
+than I claimed, and the honest reading is that the atomic path is asserted from several angles at once.
+
+The harness needed a fix before any of that was visible: its first run reported "0 of 1 predicted cases hit" for
+every arm, because failure strings were truncated to 110 characters and the case title sits at the end of a long
+describe name. A prediction that cannot be read is not a wrong prediction — but it is also not a checked one, and
+the fix had to be made before the numbers meant anything.
+
+### What v124 still does NOT honor — stated by name
+
+* Atomicity is per store, not across them: the memory store's guarantee is one process, and an fs host that
+  lies about `renameSync` (accepting a cross-device rename, or silently doing a copy) is outside what this
+  package can detect.
+* No `fsync`, so a power loss between the temp write and the rename can still lose the new save — the old one
+  survives, which is the promise, but the new one is gone without a word.
+* A failed cleanup leaves a `.tmp` that `list()` reports as a save and `readSaveFile` refuses; the message names
+  it, but nothing sweeps it. `deleteSaveFile` is the only way back.
+* Still no Studio surface, no scene address on an entity record, and the five blocked `SaveData` fields stay
+  blocked on systems that do not exist.
+
+### Sentences this record retires
+
+* v123's README and the ROADMAP cell: *"the write is not atomic… a half-written file is listed as unreadable
+  and never repaired"*. Swapped by the edit that added this section; the cell now names `fsync` and cross-device
+  rename as the remaining gaps.
+* v120's original three-gap sentence — *"no delete, no list and no atomic rename"* — is now retired in full,
+  across v122, v123 and this grant.
+
+Next: `fsync`-or-equivalent durability (which the injected `FsLike` cannot express yet, so it needs a decision
+about how far a seam should pretend), or the four blocked `SaveData` halves that need a real subsystem.

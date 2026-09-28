@@ -27,6 +27,7 @@ export interface FsLike {
   unlinkSync?(path: string): void;
   readdirSync?(path: string): string[];
   statSync?(path: string): { isDirectory(): boolean; isFile(): boolean };
+  renameSync?(from: string, to: string): void;
 }
 
 /** Where a save file goes and how it comes back. Sync, because the rest of the runtime is. */
@@ -34,6 +35,19 @@ export interface SaveStore {
   /** Which implementation this is: `'memory'` or `'fs'`. Never guessed by callers. */
   readonly kind: string;
   write(path: string, contents: string): void;
+  /**
+   * Write so that a reader either sees the old file or the new one, never a bit of each.
+   *
+   * For an fs store that means temp-then-rename, and the capability is checked BEFORE any byte is written:
+   * discovering mid-flight that the host cannot rename would otherwise leave a `.tmp` file in the store that
+   * `list()` then has to explain. If the rename itself fails, the old file is still in place at `path` (that
+   * is the whole point) and the temp is unlinked; if that cleanup also fails, the message names the leftover
+   * path, because a half-failed error that hides debris is worse than one that admits it.
+   *
+   * The memory store implements this as a single map mutation — atomic with respect to this process, which is
+   * all a store that cannot outlive it can honestly promise.
+   */
+  writeAtomic(path: string, contents: string): void;
   /** The stored bytes, or `null` when no file exists at `path`. */
   read(path: string): string | null;
   /** Whether anything is stored at `path`. `read` answers this too; this exists so a caller can ask without
@@ -83,6 +97,11 @@ export function createMemorySaveStore(): SaveStore {
     write(path, contents) {
       files.set(resolveSavePath(path), contents);
     },
+    writeAtomic(path, contents) {
+      // One map mutation: a reader sees the old value or the new one, never a piece of each. There is no temp
+      // file to clean up here, and no durability claim beyond this process.
+      files.set(resolveSavePath(path), contents);
+    },
     read(path) {
       return files.get(resolveSavePath(path)) ?? null;
     },
@@ -119,6 +138,31 @@ export function createFsSaveStore(fs: FsLike, root: string): SaveStore {
     kind: 'fs',
     write(path, contents) {
       fs.writeFileSync(at(path), contents);
+    },
+    writeAtomic(path, contents) {
+      // The capability is asked for BEFORE any byte moves: discovering it is missing after writing the temp
+      // would leave a `.tmp` for `list()` to explain.
+      if (typeof fs.renameSync !== 'function') {
+        throw new Error(`saveStore: "${path}" cannot be written atomically because the injected fs has no renameSync; nothing was written — no file is honest, a half-written one is not`);
+      }
+      const target = at(path);
+      const temp = `${target}.tmp`;
+      fs.writeFileSync(temp, contents);
+      try {
+        fs.renameSync(temp, target);
+      } catch (error) {
+        let removed = false;
+        if (typeof fs.unlinkSync === 'function') {
+          try {
+            fs.unlinkSync(temp);
+            removed = true;
+          } catch {
+            removed = false;
+          }
+        }
+        const leftover = temp.startsWith(`${trimmed}/`) ? temp.slice(trimmed.length + 1) : temp;
+        throw new Error(`saveStore: renaming "${temp}" onto "${path}" failed (${(error as Error).message}); whatever was already at "${path}" is untouched, and ${removed ? `the temp file was removed` : `the temp file could not be removed — it is left at "${leftover}"`}`);
+      }
     },
     read(path) {
       const target = at(path);

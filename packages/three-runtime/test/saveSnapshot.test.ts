@@ -1317,3 +1317,122 @@ describe('listSaveFiles / latestSaveFile: the store says what it holds', () => {
     rt.dispose();
   });
 });
+
+/**
+ * M5 v124 — the last gap v120 wrote into its own record: "no atomic rename, so a half-written file is listed
+ * as unreadable and never repaired". Refusing a broken save is honest, but a save screen that shows "unreadable"
+ * for the file the player just wrote is a lost game. The write now goes temp-then-rename, the capability is
+ * asked for before any byte moves, and a failure is reported with whatever debris it left.
+ */
+describe('atomic save writes: a reader sees the old save or the new one, never a piece of each', () => {
+  /** A recording fs host whose rename can be made to fail, with an optional failing unlink. */
+  function renameHost(options: { failRename?: boolean; failUnlink?: boolean; canRename?: boolean } = {}) {
+    const tree = new Map<string, string>();
+    const ops: string[] = [];
+    const host: FsLike = {
+      writeFileSync: (p, data) => { ops.push(`write:${p}`); tree.set(p, data); },
+      readFileSync: (p) => tree.get(p) ?? '',
+      existsSync: (p) => tree.has(p) || p === 'saves/root',
+    };
+    if (options.canRename !== false) {
+      host.renameSync = (from, to) => {
+        ops.push(`rename:${from}->${to}`);
+        if (options.failRename) throw new Error('EBUSY: resource busy or locked');
+        tree.set(to, tree.get(from) ?? '');
+        tree.delete(from);
+      };
+    }
+    host.unlinkSync = (p) => {
+      ops.push(`unlink:${p}`);
+      if (options.failUnlink) throw new Error('EBUSY: cannot remove');
+      tree.delete(p);
+    };
+    // The browse capability, so `list()` can be asserted on the same host the rename is asserted against.
+    host.readdirSync = (p) => [...new Set(
+      [...tree.keys()].filter((k) => k.startsWith(`${p}/`)).map((k) => k.slice(p.length + 1).split('/')[0]),
+    )];
+    host.statSync = (p) => ({
+      isDirectory: () => p === 'saves/root' || [...tree.keys()].some((k) => k.startsWith(`${p}/`)),
+      isFile: () => tree.has(p),
+    });
+    return { host, tree, ops };
+  }
+
+  it('a save reaches the host as one temp write and a rename, and nothing is left behind', () => {
+    const { host, ops } = renameHost();
+    const store = createFsSaveStore(host, 'saves/root');
+    store.writeAtomic('x.json', '{"savedAt":1}');
+    expect(ops).toEqual(['write:saves/root/x.json.tmp', 'rename:saves/root/x.json.tmp->saves/root/x.json']);
+    expect(store.list()).toEqual(['x.json']);
+    expect(store.read('x.json')).toBe('{"savedAt":1}');
+  });
+
+  it('a rename that fails leaves the previous save exactly as it was and takes the temp away', () => {
+    const { host, tree, ops } = renameHost({ failRename: true });
+    const store = createFsSaveStore(host, 'saves/root');
+    tree.set('saves/root/x.json', '{"savedAt":1,"old":true}');
+    expect(() => store.writeAtomic('x.json', '{"savedAt":2}')).toThrow(/renaming "saves\/root\/x\.json\.tmp" onto "x\.json" failed \(EBUSY/);
+    expect(store.read('x.json'), 'the old save is the answer, not a truncated new one').toBe('{"savedAt":1,"old":true}');
+    expect(tree.has('saves/root/x.json.tmp'), 'the temp was cleaned up').toBe(false);
+    expect(ops.slice(-1)).toEqual(['unlink:saves/root/x.json.tmp']);
+    expect(store.list()).toEqual(['x.json']);
+  });
+
+  it('when the cleanup fails too, the message names the leftover instead of hiding it', () => {
+    const { host, tree } = renameHost({ failRename: true, failUnlink: true });
+    const store = createFsSaveStore(host, 'saves/root');
+    tree.set('saves/root/x.json', 'old');
+    expect(() => store.writeAtomic('x.json', 'new')).toThrow(/the temp file could not be removed — it is left at "x\.json\.tmp"/);
+    expect(store.list()).toEqual(['x.json', 'x.json.tmp']);
+    expect(() => store.writeAtomic('x.json', 'new again')).toThrow(/EBUSY/);
+  });
+
+  it('a host with no renameSync is refused before a single byte is written', () => {
+    const { host, tree, ops } = renameHost({ canRename: false });
+    tree.set('saves/root/x.json', 'old');
+    const store = createFsSaveStore(host, 'saves/root');
+    expect(() => store.writeAtomic('x.json', 'new')).toThrow(/no renameSync; nothing was written/);
+    expect(ops, 'the capability gap was asked about first, so no temp exists to apologise for').toEqual([]);
+    expect([...tree.keys()]).toEqual(['saves/root/x.json']);
+  });
+
+  it('writeSaveFile replaces a save whole, and a fresh runtime loads the new stamp', () => {
+    const { host, ops: hostOps } = renameHost();
+    const store = createFsSaveStore(host, 'saves/root');
+    const rt = runtimeWithStore(store);
+    const sceneId = rt.createScene('World').id;
+    rt.setActiveScene(sceneId);
+    const heroId = withEntityIn(rt, sceneId);
+    expect(rt.writeSaveFile('slot.json', sceneId, 1).bytes).toBe(store.read('slot.json')!.length);
+    // The runtime, not just the seam, is on the atomic path: if `writeSaveFile` quietly went back to
+    // `storage.write`, every store-level assertion below would still pass.
+    expect(hostOps.filter((op) => op.startsWith('rename:'))).toEqual([
+      'rename:saves/root/slot.json.tmp->saves/root/slot.json',
+    ]);
+
+    const first = runtimeWithStore(store);
+    first.createScene('copy', sceneId);
+    expect(first.readSaveFile('slot.json', sceneId).entities).toEqual([heroId]);
+
+    rt.writeSaveFile('slot.json', sceneId, 2);
+    expect((JSON.parse(store.read('slot.json')!) as { savedAt: number }).savedAt).toBe(2);
+    const second = runtimeWithStore(store);
+    second.createScene('copy two', sceneId);
+    expect(second.readSaveFile('slot.json', sceneId).entities).toEqual([heroId]);
+    expect(store.list(), 'no temp file ever surfaced in the listing').toEqual(['slot.json']);
+    rt.dispose();
+    first.dispose();
+    second.dispose();
+  });
+
+  it('the memory store mutates once and lists no temp, and plain write still writes directly', () => {
+    const store = createMemorySaveStore();
+    store.writeAtomic('a.json', 'one');
+    expect(store.list()).toEqual(['a.json']);
+    expect(store.read('a.json')).toBe('one');
+    const { host, ops } = renameHost();
+    const fsStore = createFsSaveStore(host, 'saves/root');
+    fsStore.write('b.json', 'plain');
+    expect(ops).toEqual(['write:saves/root/b.json']);
+  });
+});

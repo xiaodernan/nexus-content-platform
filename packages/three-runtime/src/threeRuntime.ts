@@ -1252,7 +1252,9 @@ export class ThreeRuntime {
     if (!this.storage) throw new Error(`writeSaveFile: this runtime has no SaveStore — create it with { storage } (an injected fs or createMemorySaveStore), or keep using buildSaveFile for a value you will serialize yourself`);
     const file = this.buildSaveFile(sceneId, savedAt);
     const contents = JSON.stringify(file);
-    this.storage.write(path, contents);
+    // Atomic on purpose: a caller who loses power, or a host whose rename fails, must be left holding the
+    // PREVIOUS save rather than a truncated one that `readSaveFile` can only refuse.
+    this.storage.writeAtomic(path, contents);
     const report: SaveFileWriteReport = {
       path,
       store: this.storage.kind,
