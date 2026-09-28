@@ -1,4 +1,4 @@
-# @nexus/three-runtime — evidence for v108 (host seams), v114 (character controller), v115 (the entity save format), v116 (the scene's physics world), v117 (the cinematic sequence), v118 (the save that reads it back), v119 (the file it survives on disk), v120 (the bytes, through a store), v121 (the id comes back), v122 (a save taken back), v123 (what it holds), v124 (written atomically), v125 (flushed when asked), v126 (the debris swept) and v127 (a file asked what it is worth)
+# @nexus/three-runtime — evidence for v108 (host seams), v114 (character controller), v115 (the entity save format), v116 (the scene's physics world), v117 (the cinematic sequence), v118 (the save that reads it back), v119 (the file it survives on disk), v120 (the bytes, through a store), v121 (the id comes back), v122 (a save taken back), v123 (what it holds), v124 (written atomically), v125 (flushed when asked), v126 (the debris swept), v127 (a file asked what it is worth) and v128 (the listing surveyed)
 
 This directory records the 3D runtime lane (ROADMAP M5). Every claim here is read back out of the
 shipped source and the package's own vitest suite — `packages/three-runtime/src/*.ts` and
@@ -1132,3 +1132,64 @@ case tells you the guard is load-bearing.
 Next: the same comparison run over `listSaves()` (a save-picker needs "which of these can I open"), or the
 blocked `SaveData` halves themselves, which is the only way `readableNowButNotCarried` ever stops being empty
 for a file written today.
+## v128 — the listing gets a verdict of its own: `diagnoseSaveFiles`, partitioned so "could not look" and "looked and refused" cannot be confused
+
+v127 answered the question for one named path; a save-picker does not have a named path, it has a store. v128
+runs the same judgement over everything `list()` returns, and the part worth writing down is how the answer is
+shaped: three buckets that must add up, and a reason given for keeping two of them apart.
+
+| what | measured |
+| --- | --- |
+| suites | `test/saveSnapshot.test.ts` 96 cases, `test/cinematicSequence.test.ts` 78, package total **272** (96 save + 39 controller + 78 cinematic + 30 physics + 29 runtime), `tsc --noEmit` exit 0 on `src` |
+| method | `diagnoseSaveFiles()` → `{store, total, loadable, unloadable, unreadable}`, calling `diagnoseSaveFile` per listed name — one owner of the verdict, not a second implementation of the same claims |
+| the partition | the case asserts `total` equals the three buckets summed, and asserts the three names appear **once between them** (`new Set(names).size === names.length`), so a file cannot be both "loadable" and "unloadable" |
+| three answers | `loadable` (claims match this build), `unloadable` (read, and refused — with the reasons carried through), `unreadable` (bytes that could not be looked at at all, e.g. not JSON, kept separate because the fix differs: one needs a newer runtime or a different slot, the other needs repair) |
+| probe | 4 arms, no survivor, all four red on exactly their named case with **zero unexpected reds** — collapsing the two verdict buckets, swallowing the unreadable bucket, deleting the no-store refusal, and inverting the bucket choice each break the partition case and nothing else |
+
+Three things worth the sentence it costs.
+
+* **A bucket you cannot name is a bucket you will merge.** The tempting implementation was
+  `{paths, ok, bad}`; "bad" would then have meant both "this file cannot be opened here" and "this file has no
+  bytes I could read", and the difference between those is the difference between "pick another slot" and
+  "the save is damaged". The case asserts the three counts separately so the taxonomy cannot quietly collapse.
+* **Delegating is the point.** Every arm that breaks the verdict — bucket collapse, inversion, swallowing a
+  throw — shows up in exactly one case, because `diagnoseSaveFile` remains the single place the claims are
+  checked. Had the listing version re-implemented the comparison, four arms would have needed eight cases to
+  say the same thing, and the two copies would drift (v117/v118 learned that with `duration`, twice).
+* **Zero unexpected reds is a result, not luck.** The prior three probe cycles all over-predicted because
+  claims were asserted from several angles; here each mechanism has one owner and one witness, which is what
+  "one clause, one case" looks like when it is actually arranged rather than asserted afterwards.
+
+### How the probe ran, and what it said
+
+The probe is `mutate.mjs (scratch)`: 4 arms on the listing-wide survey, anchors verified exactly-once
+before anything ran, the control fixing the plane at **174** with 0 red, the file restored byte-for-byte in
+a `finally`. Reds per arm, in order: 1, 1, 1, 1. No arm survived. No arm reddened fewer than claimed. No arm over-predicted. The
+package as a whole was measured at **272** with 0 red and `tsc --noEmit` exited 0 over `src`.
+
+This is the first run in the lane with **no unexpected reds at all**: every arm reddened exactly the case that
+owns the claim it broke. That is not a virtue in itself — it is the measurement of a decision made earlier,
+namely that the survey delegates to the one-place checker instead of restating the rules. Restating them
+would have made each clause provable twice, and the three previous cycles' over-prediction came precisely
+from claims being asserted from several angles at once.
+
+### What v128 still does NOT honor — stated by name
+
+* `list()` is the population: a store that cannot browse contributes nothing to the listing, so an fs host
+  without `readdirSync` still gets a refusal rather than a partial survey — by design, but it means
+  "which saves exist" remains unanswerable there.
+* `unreadable` carries a `why` string, not a structured reason; a caller that wants to branch on
+  "not JSON" versus "path vanished" has to read prose. The next grant should make that a field, not a sentence.
+* Nothing is repaired, migrated or opened twice for verification; this is a survey, not a doctor.
+* `npcs`, `quests`, `player`, `worldState` and `sceneGraph` are still blocked on systems that do not exist, and
+  a pre-v128 file still shows up in `readableNowButNotCarried` for `npcs` — which is the honest warning, not a
+  defect.
+
+### Sentences this record retires
+
+* v127's README next-step line: *"the same comparison run over `listSaves()`"* — run, with a partition to keep
+  it honest.
+
+Next: make the structured-reason gap above real (`unreadable[].reason` as an enum alongside `why`), then the
+`npcs` subsystem (#183), which is the only way `readableNowButNotCarried` stops being a warning about fields
+nobody can write yet.

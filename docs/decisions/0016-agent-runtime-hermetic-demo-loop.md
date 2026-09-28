@@ -6005,3 +6005,36 @@ while changing meaning is beyond any check this file offers, since the version i
 about itself. Next: the sweep over the listing, or the blocked halves themselves — `npcs`, `quests`, `player`,
 `worldState` — which is the only way `readableNowButNotCarried` stops being a message about files that have not
 been written yet.
+### Amendment 128 — v128: the listing gets a verdict of its own — `diagnoseSaveFiles`, three buckets that must add up
+
+v127 could tell you whether one named save would load. A save screen does not have a named save; it has a
+store, and the question is "which of these can I open". v128 answers that by delegating — `diagnoseSaveFiles()`
+walks `list()` and calls the existing `diagnoseSaveFile` per name — and by what it returns:
+`{store, total, loadable, unloadable, unreadable}`, with the case asserting that `total` is the three buckets
+summed and that no name appears in more than one of them.
+
+The interesting pressure is the temptation to merge buckets. `{ok, bad}` is the natural shorthand, and it
+would have been a lie by conflation: "this file's claims do not match this runtime" and "this file's bytes
+cannot be read at all" call for different user actions — pick another slot, versus the save is damaged.
+Keeping them apart is why `unreadable` is its own field and why the probe includes an arm that swallows it:
+that arm reddens the partition case and nothing else, which is the evidence that the separation is load-bearing
+rather than decorative.
+
+Delegating rather than re-implementing is the other half of the grant's shape, and it is the part the probe
+measures. Four arms — collapse the two verdict buckets, invert the choice, drop the no-store refusal, swallow
+the unreadable push — each break exactly one case, with **zero unexpected reds** across the run. The three
+previous cycles in this lane over-predicted because single claims were asserted from several angles at once;
+here the claim has one owner and one witness, and the prediction accuracy is the proof of that, not a lucky
+night.
+
+Measured: `test/saveSnapshot.test.ts` is 96 cases and `test/cinematicSequence.test.ts` 78,
+package total **272** (96 save + 39 controller + 78 cinematic + 30 physics + 29 runtime), `tsc --noEmit` exit 0 on `src`; probe 4 arms against
+a control of **174 collected / 0 red**, predicting case names. No arm survived. No arm reddened fewer than claimed.
+No arm over-predicted. Both fixes landed alongside this grant stay verified: the suite runs green in a CRLF working
+copy (5d8a8b8, witnessed at 47823a4), and the diagnosis can no longer disagree with the load (48cf01f).
+
+What v128 does not do, stated by name: it surveys nothing it cannot list, so an fs host without browsing still
+cannot answer "which saves exist"; `unreadable` carries a prose `why` rather than a structured reason, so a
+caller cannot branch on the difference without string matching — named here as the next grant's first job; and
+nothing is repaired, migrated or rewritten by a survey. The four blocked `SaveData` halves are unchanged and
+still the reason `readableNowButNotCarried` has anything to say.
