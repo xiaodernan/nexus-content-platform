@@ -5883,3 +5883,44 @@ fields, the scene address an entity record does not carry, and any Studio surfac
 give `FsLike` a durability verb and say what a shim owes, or stop widening the file layer and build the
 subsystems — `npcs`, `quests`, `player`, `worldState` — whose absence has been the honest part of this table
 since v115.
+### Amendment 125 — v125: durability is chosen rather than assumed — an optional `flushSync`, a memory store that refuses the word, and a rename whose own durability is named as missing
+
+v124 wrote its own remaining gap into the record: no `fsync`, so a power loss between the temp write and the
+rename can still lose the save that looks completed. The task this cycle set was to *decide* the boundary, not
+to widen it silently, and two options were on the table: give `FsLike` a flush verb and refuse when the host
+lacks one, or leave the seam alone and stamp a `flushed: false` claim into the file itself.
+
+The refusal won, and the reason is the injection. `FsLike` exists so a `localStorage` object can back a save
+file (v120's whole point); a browser shim has no device to flush, so a `flushed: false` field would be
+recording a fact every caller already knew and asking them to parse it, while an optional method plus a hard
+refusal makes the limitation arrive at the moment it matters — the call that asked for it. So
+`writeAtomic(path, contents, durable)` orders write-temp → **flush-temp** → rename, the memory store rejects
+`durable` outright (`there is no device behind it to flush`), an fs host without `flushSync` is refused before
+a single byte moves, and the case for each asserts that the host recorded **zero operations** afterwards.
+
+`writeSaveFile(..., { durable })` reports `durable`, and that field earns its place by varying: `false` is the
+default, not a failure — the caller asked for atomic, not durable — and `true` appears only on a path where the
+flush really ran, which the success case checks by counting exactly one `flush:` entry in the host's own log.
+A report field that carries the same value on every path is a field nobody consults; this lane learned that in
+v118 while auditing a cinematic shape, and it is the same test applied to a byte-level claim.
+
+What is deliberately **not** claimed is the interesting half. The rename is not flushed: durability of a
+directory entry needs a directory handle, and this seam has paths. The docstring says so, the ROADMAP cell
+says so, and there is no `flushSync('.')` in the code pretending otherwise — a durability claim nobody can
+check is worse than a named gap, because the next reader will trust it. A failed flush rides the same failure
+path as a failed rename: the old bytes stay, the temp is unlinked, and the message says "flushing and
+renaming" so the reader can tell which half broke.
+
+Measured: `test/saveSnapshot.test.ts` is 86 cases and `test/cinematicSequence.test.ts` 78,
+package total **262** (86 save + 39 controller + 78 cinematic + 30 physics + 29 runtime), `tsc --noEmit` exit 0 on `src`. The probe ran 5 arms
+over the seam and the runtime against a control of **164 collected / 0 red**, predicting **case names**
+rather than red counts, and both files were restored byte-for-byte. Reds: 2, 3, 3, 2, 3. No arm survived.
+No arm reddened fewer than claimed. 5 of the 5 arms reddened MORE than written down for them (01-runtime-ignores-the-durable-flag: 1→2, 02-flush-never-issued: 1→3, 03-flush-capability-not-checked: 1→3, 04-memory-store-accepts-a-durability-promise: 1→2, 05-flush-failure-reported-as-a-rename: 1→3).
+
+What v125 does not do, stated by name: the rename is unflushed (the missing verb needs a handle, not a path);
+a host whose `flushSync` is a no-op wearing a name cannot be detected from here; a leftover temp from a double
+failure is named and listed until someone deletes it; and the five blocked `SaveData` halves, the camera a
+removal leaves behind and the absent Studio surface are exactly where v124 left them. Next: stop circling the
+file layer and build one of the subsystems — `npcs`, `quests`, `player`, `worldState` are four rows of the
+audit table that have been honestly blocked since v115, and the save format is now good enough that filling one
+in would be worth a player's time.

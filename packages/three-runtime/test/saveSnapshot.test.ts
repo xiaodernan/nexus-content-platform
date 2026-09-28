@@ -914,6 +914,9 @@ describe('a save FILE: it survives the disk, and the loader refuses what it cann
     expect(written).toEqual({
       path: 'saves/hero.json',
       store: 'memory',
+      // v125: the report now also says whether the bytes were flushed before the rename. Default false —
+      // atomicity was asked for, durability was not.
+      durable: false,
       bytes: store.read('saves/hero.json')!.length,
       sceneId: scene,
       entities: 1,
@@ -1326,7 +1329,7 @@ describe('listSaveFiles / latestSaveFile: the store says what it holds', () => {
  */
 describe('atomic save writes: a reader sees the old save or the new one, never a piece of each', () => {
   /** A recording fs host whose rename can be made to fail, with an optional failing unlink. */
-  function renameHost(options: { failRename?: boolean; failUnlink?: boolean; canRename?: boolean } = {}) {
+  function renameHost(options: { failRename?: boolean; failUnlink?: boolean; canRename?: boolean; flush?: boolean; failFlush?: boolean } = {}) {
     const tree = new Map<string, string>();
     const ops: string[] = [];
     const host: FsLike = {
@@ -1347,6 +1350,12 @@ describe('atomic save writes: a reader sees the old save or the new one, never a
       if (options.failUnlink) throw new Error('EBUSY: cannot remove');
       tree.delete(p);
     };
+    if (options.flush) {
+      host.flushSync = (p) => {
+        ops.push(`flush:${p}`);
+        if (options.failFlush) throw new Error('EIO: input/output error');
+      };
+    }
     // The browse capability, so `list()` can be asserted on the same host the rename is asserted against.
     host.readdirSync = (p) => [...new Set(
       [...tree.keys()].filter((k) => k.startsWith(`${p}/`)).map((k) => k.slice(p.length + 1).split('/')[0]),
@@ -1434,5 +1443,54 @@ describe('atomic save writes: a reader sees the old save or the new one, never a
     const fsStore = createFsSaveStore(host, 'saves/root');
     fsStore.write('b.json', 'plain');
     expect(ops).toEqual(['write:saves/root/b.json']);
+  });
+
+  it('v125: a durable write flushes the temp before the rename, and says so in the report', () => {
+    const { host, ops } = renameHost({ flush: true });
+    const store = createFsSaveStore(host, 'saves/root');
+    const rt = runtimeWithStore(store);
+    const sceneId = rt.createScene('World').id;
+    rt.setActiveScene(sceneId);
+    withEntityIn(rt, sceneId);
+    expect(rt.writeSaveFile('d.json', sceneId, 7, { durable: true })).toMatchObject({ durable: true, store: 'fs' });
+    expect(ops).toEqual([
+      'write:saves/root/d.json.tmp',
+      'flush:saves/root/d.json.tmp',
+      'rename:saves/root/d.json.tmp->saves/root/d.json',
+    ]);
+    expect(rt.writeSaveFile('d.json', sceneId, 8).durable).toBe(false);
+    expect(ops.filter((op) => op.startsWith('flush:'))).toHaveLength(1);
+    rt.dispose();
+  });
+
+  it('a durable request is refused before any byte moves when the host cannot flush', () => {
+    const { host, tree, ops } = renameHost();
+    const store = createFsSaveStore(host, 'saves/root');
+    tree.set('saves/root/x.json', 'old');
+    expect(() => store.writeAtomic('x.json', 'new', true)).toThrow(/asked to be durable but the injected fs has no flushSync; nothing was written/);
+    expect(ops, 'no half-written temp is left behind to explain').toEqual([]);
+    expect(tree.get('saves/root/x.json')).toBe('old');
+  });
+
+  it('the memory store refuses durability rather than promising a survival it cannot arrange', () => {
+    const store = createMemorySaveStore();
+    expect(() => store.writeAtomic('a.json', 'one', true)).toThrow(/memory store cannot write durably/);
+    expect(store.list()).toEqual([]);
+    const rt = runtimeWithStore(store);
+    const sceneId = rt.createScene('World').id;
+    withEntityIn(rt, sceneId);
+    expect(() => rt.writeSaveFile('a.json', sceneId, 1, { durable: true })).toThrow(/memory store cannot write durably/);
+    expect(store.list()).toEqual([]);
+    rt.dispose();
+  });
+
+  it('when the flush itself fails, the old save is untouched and the temp is cleaned up', () => {
+    const { host, tree, ops } = renameHost({ flush: true, failFlush: true });
+    const store = createFsSaveStore(host, 'saves/root');
+    tree.set('saves/root/x.json', 'old');
+    expect(() => store.writeAtomic('x.json', 'new', true)).toThrow(/flushing and renaming "saves\/root\/x\.json\.tmp" onto "x\.json" failed \(EIO/);
+    expect(tree.get('saves/root/x.json')).toBe('old');
+    expect(ops.slice(-1)).toEqual(['unlink:saves/root/x.json.tmp']);
+    expect(store.list()).toEqual(['x.json']);
   });
 });

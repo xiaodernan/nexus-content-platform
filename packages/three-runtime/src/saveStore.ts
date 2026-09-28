@@ -28,6 +28,9 @@ export interface FsLike {
   readdirSync?(path: string): string[];
   statSync?(path: string): { isDirectory(): boolean; isFile(): boolean };
   renameSync?(from: string, to: string): void;
+  /** Push a file's bytes past the OS cache. Optional: a `localStorage` shim has nothing to flush, and a store
+   *  that cannot do it must not be able to be asked for it and stay silent — see `writeAtomic`'s `durable`. */
+  flushSync?(path: string): void;
 }
 
 /** Where a save file goes and how it comes back. Sync, because the rest of the runtime is. */
@@ -44,10 +47,14 @@ export interface SaveStore {
    * is the whole point) and the temp is unlinked; if that cleanup also fails, the message names the leftover
    * path, because a half-failed error that hides debris is worse than one that admits it.
    *
-   * The memory store implements this as a single map mutation — atomic with respect to this process, which is
-   * all a store that cannot outlive it can honestly promise.
+   * `durable` asks for one more thing: the temp is flushed before it is renamed, so a power loss cannot leave
+   * a rename pointing at an unflushed inode. It is opt-in and it is refused — before writing, again — when the
+   * host has no `flushSync`, and the memory store refuses it always: a mutation cannot be made to survive a
+   * process that no longer exists, and a store that promised it would be writing the same lie with extra
+   * ceremony. Flushing the DIRECTORY (the rename itself) is deliberately not attempted: this seam has no
+   * directory handle, and pretending otherwise would be a durability claim nobody can check.
    */
-  writeAtomic(path: string, contents: string): void;
+  writeAtomic(path: string, contents: string, durable?: boolean): void;
   /** The stored bytes, or `null` when no file exists at `path`. */
   read(path: string): string | null;
   /** Whether anything is stored at `path`. `read` answers this too; this exists so a caller can ask without
@@ -97,7 +104,10 @@ export function createMemorySaveStore(): SaveStore {
     write(path, contents) {
       files.set(resolveSavePath(path), contents);
     },
-    writeAtomic(path, contents) {
+    writeAtomic(path, contents, durable = false) {
+      if (durable) {
+        throw new Error('saveStore: the memory store cannot write durably — there is no device behind it to flush, and a promise that outlives the process would be false');
+      }
       // One map mutation: a reader sees the old value or the new one, never a piece of each. There is no temp
       // file to clean up here, and no durability claim beyond this process.
       files.set(resolveSavePath(path), contents);
@@ -139,16 +149,20 @@ export function createFsSaveStore(fs: FsLike, root: string): SaveStore {
     write(path, contents) {
       fs.writeFileSync(at(path), contents);
     },
-    writeAtomic(path, contents) {
-      // The capability is asked for BEFORE any byte moves: discovering it is missing after writing the temp
+    writeAtomic(path, contents, durable = false) {
+      // The capabilities are asked for BEFORE any byte moves: discovering them missing after writing the temp
       // would leave a `.tmp` for `list()` to explain.
       if (typeof fs.renameSync !== 'function') {
         throw new Error(`saveStore: "${path}" cannot be written atomically because the injected fs has no renameSync; nothing was written — no file is honest, a half-written one is not`);
+      }
+      if (durable && typeof fs.flushSync !== 'function') {
+        throw new Error(`saveStore: "${path}" was asked to be durable but the injected fs has no flushSync; nothing was written — an unflushed rename is still a rename that can point at nothing`);
       }
       const target = at(path);
       const temp = `${target}.tmp`;
       fs.writeFileSync(temp, contents);
       try {
+        if (durable) fs.flushSync!(temp);
         fs.renameSync(temp, target);
       } catch (error) {
         let removed = false;
@@ -161,7 +175,7 @@ export function createFsSaveStore(fs: FsLike, root: string): SaveStore {
           }
         }
         const leftover = temp.startsWith(`${trimmed}/`) ? temp.slice(trimmed.length + 1) : temp;
-        throw new Error(`saveStore: renaming "${temp}" onto "${path}" failed (${(error as Error).message}); whatever was already at "${path}" is untouched, and ${removed ? `the temp file was removed` : `the temp file could not be removed — it is left at "${leftover}"`}`);
+        throw new Error(`saveStore: ${durable ? `flushing and renaming` : `renaming`} "${temp}" onto "${path}" failed (${(error as Error).message}); whatever was already at "${path}" is untouched, and ${removed ? `the temp file was removed` : `the temp file could not be removed — it is left at "${leftover}"`}`);
       }
     },
     read(path) {

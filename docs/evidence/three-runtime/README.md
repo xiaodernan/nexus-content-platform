@@ -1,4 +1,4 @@
-# @nexus/three-runtime — evidence for v108 (host seams), v114 (character controller), v115 (the entity save format), v116 (the scene's physics world), v117 (the cinematic sequence), v118 (the save that reads it back), v119 (the file it survives on disk), v120 (the bytes, through a store), v121 (the id comes back), v122 (a save taken back), v123 (what it holds) and v124 (written atomically)
+# @nexus/three-runtime — evidence for v108 (host seams), v114 (character controller), v115 (the entity save format), v116 (the scene's physics world), v117 (the cinematic sequence), v118 (the save that reads it back), v119 (the file it survives on disk), v120 (the bytes, through a store), v121 (the id comes back), v122 (a save taken back), v123 (what it holds), v124 (written atomically) and v125 (flushed when asked)
 
 This directory records the 3D runtime lane (ROADMAP M5). Every claim here is read back out of the
 shipped source and the package's own vitest suite — `packages/three-runtime/src/*.ts` and
@@ -935,3 +935,69 @@ the fix had to be made before the numbers meant anything.
 
 Next: `fsync`-or-equivalent durability (which the injected `FsLike` cannot express yet, so it needs a decision
 about how far a seam should pretend), or the four blocked `SaveData` halves that need a real subsystem.
+## v125 — the durability boundary is chosen, not assumed: `durable` asks for a flush, the memory store refuses the word, and the rename is left honestly unflushed
+
+v124 retired the atomicity gap and wrote the next one itself: *"there is no `fsync`, so a power loss between the
+temp write and the rename can still lose the new save"*. v125 closes the gap that can be closed and names the
+one that cannot, in a seam that has no directory handle and will not pretend to have one.
+
+| what | measured |
+| --- | --- |
+| suites | `test/saveSnapshot.test.ts` 86 cases, `test/cinematicSequence.test.ts` 78, package total **262** (86 save + 39 controller + 78 cinematic + 30 physics + 29 runtime), `tsc --noEmit` exit 0 on `src` |
+| seam | `FsLike` gains a fourth optional method, `flushSync?`; `writeAtomic(path, contents, durable?)` orders the work as write temp → **flush temp** → rename |
+| refusals | a host without `flushSync` is refused **before a byte moves** (`nothing was written`), and the case asserts the host logged zero operations and the previous file is untouched; the memory store rejects `durable: true` outright — `there is no device behind it to flush` |
+| report | `writeSaveFile(..., { durable })` returns `durable: true/false`; `false` is the default and is not a failure (the caller asked for atomic, not durable), and `true` always means a flush actually happened, because every path that cannot flush throws instead of downgrading |
+| failure | a flush that throws rides the same path as a failed rename: old bytes intact, temp unlinked, and the message says **"flushing and renaming"** so the reader knows which half broke; a leftover temp from a double failure is still named and still shown by `list()` |
+| what is NOT claimed | the rename itself is not flushed: durability of a directory entry needs a directory handle this seam does not have, and the docstring says so rather than shipping a `flushSync('.')` nobody can check |
+
+Three things worth the sentence it costs.
+
+* **The choice was between a promise and a refusal, and a seam that can be handed a `localStorage` object
+  cannot promise.** Option (b) on the task — stamp `flushed: false` into the file — would have recorded a fact
+  the writer already knew and left callers to parse it. Option (a) — an optional verb plus a refusal — makes
+  the limitation someone's problem at the moment it matters: the caller who asked, not the reader who guessed.
+* **`false` in a report has to mean something.** v118's audit lesson was that a field carrying the same value on
+  every path is a field that is not consulted; `durable` earns its place because the same call answers `true`
+  only when a flush happened, and the case that asserts `durable: true` also asserts the host saw exactly one
+  `flush:` operation — the report and the world are checked against each other.
+* **Refusing before writing is a different claim than refusing after.** Three of this lane's grants now check a
+  capability first (delete, list, flush), each with a case asserting the host recorded *nothing*: "we did not do
+  the thing" is only as strong as the evidence that no half of it happened.
+
+### How the probe ran, and what it said
+
+The probe is `mutate-v125.mjs (scratch)`: 5 arms over the seam and the runtime, anchors verified exactly-once before
+anything ran, the control fixing the plane at **164** with 0 red, both files restored byte-for-byte in a
+`finally`. Reds per arm, in order: 2, 3, 3, 2, 3. No arm survived. No arm reddened fewer than claimed. 5 of the 5 arms reddened MORE than written down for them (01-runtime-ignores-the-durable-flag: 1→2, 02-flush-never-issued: 1→3, 03-flush-capability-not-checked: 1→3, 04-memory-store-accepts-a-durability-promise: 1→2, 05-flush-failure-reported-as-a-rename: 1→3). The
+whole package was measured separately at **262** with 0 red; `tsc --noEmit` exited 0 over `src`.
+
+Predictions were written as case names, as in v124, and the outcome is the honest version of that experiment:
+**all five arms reddened the case they named**, and every one of them also reddened at least one neighbour. The
+neighbours are not noise — they are the same claim seen from another angle: ignoring the runtime's `durable`
+flag also breaks the memory store's refusal (because the call reaches a store that must never accept the
+request), skipping the flush breaks the double-failure case (the temp is renamed unflushed and the ops log
+loses its `flush:` entry), and removing the capability check breaks the success case, because the flush then
+happens inside the try and turns into a rename failure. What the naming exercise bought, compared with a red
+count, is that I can say which behaviour is load-bearing rather than how many assertions happened to notice.
+
+### What v125 still does NOT honor — stated by name
+
+* The rename is unflushed, so a power loss can still drop a completed-looking save; `fsync` on the containing
+  directory is the missing verb, and it needs a handle, not a path.
+* A host whose `flushSync` is a no-op wearing a name cannot be detected from here: the seam records that it
+  *asked*, not what the device did.
+* Durability is per file; nothing sweeps a leftover temp, and `list()` will keep showing it until `delete` does.
+* Unchanged from v124: removal leaves the camera where it was, `SaveData`'s five blocked fields wait on
+  subsystems, and there is no Studio surface for any of it.
+
+### Sentences this record retires
+
+* v124's README bounds and the ROADMAP cell: *"there is no `fsync`, so a power loss between the temp write and
+  the rename can still lose the new save"*. The flush exists now; what survives in the cell is the narrower,
+  true sentence — the rename itself is not flushed.
+* v124's "Next" line (*"…a `fsync`-or-equivalent durability … needs a decision about how far a seam should
+  pretend"*) — decided here, in favour of refusing.
+
+Next: the directory-handle question is the only durability step left and it changes what the seam injects, so
+the better next move is the thing this lane has been routing around — `npcs`, `quests`, `player` and
+`worldState` need subsystems, and four of the five blocked rows in the audit table are waiting on them.

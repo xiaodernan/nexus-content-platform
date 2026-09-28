@@ -452,6 +452,10 @@ export interface SaveFileWriteReport {
   path: string;
   store: string;
   bytes: number;
+  /** Whether the bytes were flushed before the rename. `false` is the default and is not a failure: the
+   *  caller asked for atomic, not for durable. A store that cannot flush refuses the request outright, so a
+   *  `true` here always means a flush actually happened. */
+  durable: boolean;
   sceneId: SceneId;
   entities: number;
   sequences: number;
@@ -1248,17 +1252,20 @@ export class ThreeRuntime {
    * one refuses rather than keeping the file to itself: a `writeSaveFile` that quietly returned the bytes
    * without storing them would be the loudest kind of lie this lane has been chasing.
    */
-  writeSaveFile(path: string, sceneId: SceneId, savedAt: number): SaveFileWriteReport {
+  writeSaveFile(path: string, sceneId: SceneId, savedAt: number, options: { durable?: boolean } = {}): SaveFileWriteReport {
     if (!this.storage) throw new Error(`writeSaveFile: this runtime has no SaveStore — create it with { storage } (an injected fs or createMemorySaveStore), or keep using buildSaveFile for a value you will serialize yourself`);
+    const durable = options.durable === true;
     const file = this.buildSaveFile(sceneId, savedAt);
     const contents = JSON.stringify(file);
     // Atomic on purpose: a caller who loses power, or a host whose rename fails, must be left holding the
-    // PREVIOUS save rather than a truncated one that `readSaveFile` can only refuse.
-    this.storage.writeAtomic(path, contents);
+    // PREVIOUS save rather than a truncated one that `readSaveFile` can only refuse. `durable` adds the flush
+    // before the rename, and the store refuses it out loud when the host cannot provide one.
+    this.storage.writeAtomic(path, contents, durable);
     const report: SaveFileWriteReport = {
       path,
       store: this.storage.kind,
       bytes: contents.length,
+      durable,
       sceneId,
       entities: file.entities.length,
       sequences: file.cinematic.sequences.length,
