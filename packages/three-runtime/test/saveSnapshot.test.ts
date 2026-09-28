@@ -1604,6 +1604,32 @@ describe('atomic save writes: a reader sees the old save or the new one, never a
     expect(() => runtime.diagnoseSaveFile('x.json')).toThrow(/diagnoseSaveFile: this runtime has no SaveStore/);
   });
 
+  it('a shape-reading gate sees nothing on a CRLF parse, and everything after normalising', () => {
+    // The witness for 5d8a8b8. On a CRLF file `.` will not match `\r` and `$` without `m` cannot reach the end
+    // of a line that carries one, so a parser written as /^\s*key\??:\s*(.*)$/ matches NOTHING — and a gate that
+    // asserts an ABSENCE over that population passes while having read no shape at all. Both halves are
+    // asserted: the normalised parse agrees with the LF baseline, and the raw CRLF parse is still blind. That
+    // second assertion is what keeps this case from going vacuous — if the helper ever stops being blind, the
+    // test says so instead of quietly proving nothing.
+    const raw = readFileSync(new URL('../src/types.ts', import.meta.url), 'utf8').replace(/\r\n/g, '\n');
+    const annotations = (text: string) => {
+      const opener = /export interface SaveFile \{/.exec(text);
+      if (!opener) throw new Error('SaveFile is gone from src/types.ts');
+      const found: string[] = [];
+      for (const line of text.slice(opener.index + opener[0].length).split('\n')) {
+        if (line.startsWith('}')) break;
+        const m = /^\s*[A-Za-z_$][\w$]*\??:\s*(.*)$/.exec(line);
+        if (m) found.push(m[1]);
+      }
+      return found;
+    };
+    const crlf = raw.replace(/\n/g, '\r\n');
+    const lf = annotations(raw);
+    expect(lf.length, 'the baseline parse found nothing — the gate is reading an empty population').toBeGreaterThan(3);
+    expect(annotations(crlf)).toEqual([]);
+    expect(annotations(crlf.replace(/\r\n/g, '\n'))).toEqual(lf);
+  });
+
   it('a file whose claims are the wrong shape is diagnosed unloadable, because the loader refuses it', () => {
     // v127 treated a missing carries list as an empty one and called the file loadable, while loadSaveFile
     // refuses that very file. The diagnosis and the operation must not be free to disagree: that is the same
