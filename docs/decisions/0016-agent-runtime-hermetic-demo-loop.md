@@ -6123,3 +6123,59 @@ Three records close open loops:
 README line 59 updated: the gates command now reads
 `@nexus/agent-runtime 409/409 + @nexus/exec-host 275/275 vitest among all packages`
 (matching the table-recount-proof's table at HEAD: 409 cases in 30 runtime files + 275 in 8 exec-host files).
+
+### Amendment 131 (M5 v131, three-runtime) — the NPC record gets a body and a file: `npcSnapshot`/`restoreNPC`, five declared fields named as gaps, and the old-file rule that keeps pre-v131 saves loadable
+
+`SaveData.npcs` was declared in `types.ts` and backed by nothing: no record, no writer and no reader, so the
+field sat in `SAVE_DATA_FEASIBILITY.blocked` with "implemented by nothing" beside it and every file had to omit
+it. v131 adds the RECORD and its SHAPE — not the behavior — and the shape had to be repaired before it could be
+one:
+
+- **The declared `SerializedNPC` was unusable as a file.** It held `reputation: Map<string, number>` (which
+  `JSON.stringify` writes as `{}` — the v119 lesson, one level down) and `currentTask`/`schedule`, which hold a
+  live `THREE.Vector3` and an `onComplete` CALLBACK. The shape now holds what a file can hold: identity, the
+  personality numbers, `homeLocation` as three numbers, faction, wander radius and `reputation` as a sorted
+  ENTRY ARRAY.
+- **The registry**: `attachNPC(sceneId, entity, options)` / `detachNPC` / `getNPC` / `setNPCReputation`, keyed
+  by entity id, each entry remembering the scene it was attached in (an `NPC` names no scene of its own —
+  `SaveData.sceneGraph` is the blocked field that would carry the mapping). `name` falls back to the entity's own
+  name and `homeLocation` to where the entity STANDS, cloned in BOTH directions; `removeEntity` drops the record
+  of the body it removes and emits `npcOrphaned`, because nothing runs an NPC per frame and that is the moment a
+  record can lose its subject and say so.
+- **`npcSnapshot`/`restoreNPC`** are the writer and the reader, and `npcFieldAudit` names the gap from the LIVE
+  record against the snapshot rather than from a second list: `currentTask`, `dialogueTree`, `inventory`,
+  `quests`, `schedule`, each with what it waits on. A field added to `NPC` tomorrow lands there automatically,
+  and a field that gets carried stops being reported.
+- **The file carries `npcs: [EntityId, SerializedNPC][]`**, scoped to the scene like `entities` (a record names
+  an entity, so a file carrying records for bodies it does not carry would restore records about nothing), and
+  `savable` gains `npcs`. The loader pre-checks before ANY half runs: the pair's key must equal the record's own
+  `entityId`, the record's entity must be among the file's entities, and an entity that already has a record
+  here is refused. Records restore after the entities and a failure rolls both back.
+- **The compatibility rule, and why the loader may not refuse an old file.** A file written before this half
+  existed carries no `npcs` list at all, and `diagnoseSaveFile` reports that file as LOADABLE with `npcs` in
+  `readableNowButNotCarried` — so refusing it would make the diagnosis disagree with the operation it describes,
+  which is the defect v127 closed one layer up. The **file's own claim decides**: a file whose `carries` does not
+  name `npcs` is read as carrying none, while a file that DOES claim them and ships no list is refused for the
+  claim it cannot back up. Both directions are pinned by name.
+
+Measured at this ref: `tsc --noEmit` exit 0 over `packages/three-runtime/src`; **288 vitest cases, 0 failed**
+(273 before this half, so 15 new) across the package's 5 files.
+
+The probe (`probe.mjs` in scratch: 7 arms, one control, the source restored byte-for-byte in a `finally`): the
+control fixed the plane at 288 with 0 red. Arms 01–06 each reddened the case predicted before the run —
+homeLocation-as-alias (1), the snapshot emitting the live `Map` (6, see below), a hand-skipped audit gap (2), a
+removal that leaves the record registered (1), a dropped body check in the loader (1), and a missing-npc-list
+rule that ignores the file's claim (1). Arm 02 over-predicted and the extra reds are the honest part of the
+result: emitting a `Map` also reddens the FILE cases, because `buildSaveFile` runs `assertDiskSafe` and a `Map`
+in the record stops the write — the same claim seen from a second angle. **Arm 07 reddened NOTHING**: deleting
+the rollback's `detachNPC(id)` loop changed no verdict, because `removeEntity` already takes the record with the
+body. A second owner of one cleanup is how one of them eventually drifts, so the loop was REMOVED rather than
+defended, and the rollback's record cleanup is now asserted through the removal path (the orphan case) instead
+of through a detach the loader no longer performs.
+
+Honest bounds this amendment adds: **a record drives nothing** — nothing reads `schedule`, `currentTask`,
+`dialogueTree`, `inventory` or `quests`, so an NPC does not move, talk, trade or want anything; a record is
+scoped to ONE scene, and an entity id that exists in two scenes resolves against the record's own scene rather
+than against the body nearest the caller; `npcSnapshot` carries no geometry, so a restored merchant is a record
+about the default box `restoreEntity` builds; and `sceneGraph`, `quests`, `player` and `worldState` remain
+blocked on systems that do not exist or on live objects the shape cannot hold.

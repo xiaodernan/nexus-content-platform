@@ -433,6 +433,10 @@ export interface SaveFile {
   carries: string[];
   doesNotCarry: { field: string; needs: string }[];
   entities: [EntityId, SerializedEntity][];
+  /** Every NPC record the scene holds, as [entityId, record] pairs — the same entry-array spelling
+   *  `entities` uses, scoped to the same scene for the same reason, and referring only to ids that appear
+   *  in `entities` (a record about a body the file does not carry would restore onto nothing). */
+  npcs: [EntityId, SerializedNPC][];
   cinematic: SerializedCinematic;
 }
 
@@ -494,12 +498,27 @@ export interface SerializedEntity {
   userData: Record<string, unknown>;
 }
 
+/**
+ * An NPC record as FILE data — the shape a file's `npcs` list holds, spelled so it survives
+ * `JSON.stringify`.
+ *
+ * The declared `NPC` carries fields backed by systems this package does not have — `schedule` and
+ * `currentTask` (no task scheduler), `dialogueTree` (no dialogue system), `quests` (no quest system) — plus
+ * an `inventory` whose `InventoryItem` holds two `Map`s of its own. Those are named by `npcFieldAudit` from
+ * the live record, not by this comment, so the list cannot go stale beside an implementation. What is left
+ * is the half a file can hold: identity, the social standing, and where the record calls home.
+ */
 export interface SerializedNPC {
   entityId: EntityId;
-  currentTask: NPCTask | null;
-  schedule: NPCTask[];
-  reputation: Map<string, number>;
-  inventory: InventoryItem[];
+  name: string;
+  archetype: string;
+  personality: PersonalityTraits;
+  homeLocation: SerializedVector3;
+  wanderRadius: number;
+  faction: string;
+  /** An ENTRY ARRAY, not a `Map`, for the same reason `SerializedEntity.components` is: `JSON.stringify`
+   *  writes a `Map` as `{}`, which is how a record with two standings on it comes back with none. */
+  reputation: [string, number][];
 }
 
 export interface SerializedQuestSystem {

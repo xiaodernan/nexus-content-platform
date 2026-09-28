@@ -1,4 +1,4 @@
-# @nexus/three-runtime — evidence for v108 (host seams), v114 (character controller), v115 (the entity save format), v116 (the scene's physics world), v117 (the cinematic sequence), v118 (the save that reads it back), v119 (the file it survives on disk), v120 (the bytes, through a store), v121 (the id comes back), v122 (a save taken back), v123 (what it holds), v124 (written atomically), v125 (flushed when asked), v126 (the debris swept), v127 (a file asked what it is worth) and v128 (the listing surveyed)
+# @nexus/three-runtime — evidence for v108 (host seams), v114 (character controller), v115 (the entity save format), v116 (the scene's physics world), v117 (the cinematic sequence), v118 (the save that reads it back), v119 (the file it survives on disk), v120 (the bytes, through a store), v121 (the id comes back), v122 (a save taken back), v123 (what it holds), v124 (written atomically), v125 (flushed when asked), v126 (the debris swept), v127 (a file asked what it is worth), v128 (the listing surveyed), v129 (the survey's reason becomes a field) and v131 (the NPC record gets a body and a file)
 
 This directory records the 3D runtime lane (ROADMAP M5). Every claim here is read back out of the
 shipped source and the package's own vitest suite — `packages/three-runtime/src/*.ts` and
@@ -1190,6 +1190,108 @@ from claims being asserted from several angles at once.
 * v127's README next-step line: *"the same comparison run over `listSaves()`"* — run, with a partition to keep
   it honest.
 
-Next: make the structured-reason gap above real (`unreadable[].reason` as an enum alongside `why`), then the
-`npcs` subsystem (#183), which is the only way `readableNowButNotCarried` stops being a warning about fields
-nobody can write yet.
+## v129 — the survey's "could not look" answer becomes a field: `unreadable[].reason`, derived from which check failed rather than from a sentence a caller would have to string-match
+
+v128 named this gap by hand in its own bounds: *"`unreadable` carries a `why` string, not a structured reason; a
+caller that wants to branch on 'not JSON' versus 'path vanished' has to read prose. The next grant should make
+that a field, not a sentence."* v129 does that and nothing else.
+
+| what | measured |
+| --- | --- |
+| suites | `test/saveSnapshot.test.ts` 97 cases, package total **273** (97 save + 39 controller + 78 cinematic + 30 physics + 29 runtime), `tsc --noEmit` exit 0 on `src` |
+| method | `diagnoseSaveFiles()` → `unreadable: { path, reason, why }[]` with `reason: 'not-json' \| 'listed-then-missing'` |
+| the rule | `reason` is set by WHICH check failed, never by what a message said: bytes the store returned that threw in `JSON.parse` are `not-json`; a name `list()` returned whose `read()` came back `null` is `listed-then-missing` |
+| who does the reading | the survey calls `this.storage.read(path)` itself rather than delegating to `diagnoseSaveFile`, so it OBSERVES the stale name instead of inferring it from an error string |
+| `why` stays | the sentence is kept beside the field — the field is what a caller branches on, the sentence is what a person reads |
+| probe | **none ran.** The scratch mutation harness would not apply against this working copy (a two-line anchor never matched) and the commit landed without it, so this row is a measurement, not a mutation result |
+
+Two sentences worth the space.
+
+* **Derived beats matched.** A branch on `"Unexpected token"` breaks the first time a different store phrases the
+  same failure differently; a branch on `reason` cannot, because the code path that failed is what sets it. That
+  is v127's rule — tie the verdict to the operation — applied one layer down.
+* **The debt is written down rather than hidden.** Without the probe the new cases are witnesses, not evidence of
+  kill-power, and the record says so instead of implying a probe ran.
+
+### What v129 still does NOT honor — stated by name
+
+* The taxonomy is closed at two entries on purpose: a store that throws its own error kind, or bytes that are
+  valid JSON of the wrong shape, land in the nearest bucket rather than a third one of their own.
+* `why` is still unconstrained prose; nothing checks that it carries the same information as `reason`.
+* Nothing is retried or repaired — a `listed-then-missing` name is reported, not re-listed.
+
+### Measurement error, kept in the record
+
+Amendment 129's own prose says "**2 new cases** for the two reasons, plus existing 271". The tree disagrees: the
+case count in `test/saveSnapshot.test.ts` is **96** at `e2fb5ec` (v128) and **97** at `ca3932d` (v129) — one case
+ADDED and one case AMENDED, which is exactly what the amendment's own next bullet describes. So "2 new cases /
+271 existing" contradicts the sentence beneath it and the diff. Measured for this record: 96 → 97, and package
+272 → **273**. The 272 in v128's table is 96+39+78+30+29, which is correct at v128's OWN ref.
+
+### Sentences this record retires
+
+* v128's "What v128 still does NOT honor" line: *"`unreadable` carries a `why` string, not a structured
+  reason"* — it now carries both, and a caller branches on the field.
+
+## v131 — the NPC record gets a body and a file: `attachNPC`/`npcSnapshot`/`restoreNPC`, five declared fields named as gaps, and the old-file rule that keeps a pre-v131 save loadable
+
+`SaveData.npcs` was declared in `types.ts` and backed by nothing — no record, no writer, no reader — so the field
+sat in `SAVE_DATA_FEASIBILITY.blocked` with "implemented by nothing" beside it and every file had to omit it.
+v131 adds the RECORD and its SHAPE, and the shape had to be repaired before it could be one.
+
+| what | measured |
+| --- | --- |
+| suites | `test/saveSnapshot.test.ts` 112 cases, package total **288** (112 save + 39 controller + 78 cinematic + 30 physics + 29 runtime), `tsc --noEmit` exit 0 on `src` — **+15 net** over v129's 273 (16 cases added, 1 renamed) |
+| registry | `attachNPC(sceneId, entity, options)` / `detachNPC` / `getNPC` / `setNPCReputation`, keyed by entity id, each entry remembering the SCENE it was attached in — an `NPC` names no scene of its own |
+| the shape repair | the declared `SerializedNPC` held `reputation: Map<string, number>` (`JSON.stringify` writes it as `{}` — the v119 lesson, one level down) and `currentTask`/`schedule`, which hold a live `THREE.Vector3` and an `onComplete` CALLBACK. The file shape now holds identity, the personality numbers, `homeLocation` as three numbers, faction, wander radius and `reputation` as a sorted `[faction, value]` ARRAY |
+| defaults READ, not assumed | `name` falls back to the entity's own name and `homeLocation` to where the entity STANDS, cloned in BOTH directions, so a snapshot stops moving when the live record does |
+| the orphan | `removeEntity` drops the record of the body it removes and emits `npcOrphaned` — nothing runs an NPC per frame, so that is the moment a record can lose its subject and say so |
+| the audit | `npcFieldAudit` names the gap from the LIVE record against the SNAPSHOT rather than from a second list: `currentTask`, `dialogueTree`, `inventory`, `quests`, `schedule`, each with what it waits on. A field added to `NPC` tomorrow lands there automatically; a field that gets carried stops being reported |
+| the file | the file carries `npcs: [EntityId, SerializedNPC][]`, scoped to the scene like `entities` (a record names an entity, so records for bodies the file does not carry would restore records about nothing), and `savable` gains `npcs` |
+| the loader | pre-checks before ANY half runs: the pair's key must equal the record's own `entityId`, the record's entity must be among the file's entities, and an entity that already has a record here is refused. Records restore AFTER the entities and a failure rolls both back |
+| the old-file rule | the FILE's own claim decides: a file whose `carries` does not name `npcs` is read as carrying none — it loads, because `diagnoseSaveFile` calls that file loadable and refusing it would make the diagnosis disagree with the operation it describes (the defect v127 closed one layer up); a file that DOES claim them and ships no list is refused for the claim it cannot back up |
+| probe | 7 arms, one control: **6 caught, 1 missed**, 2 over-predicted. The miss is the finding — see below |
+
+### How the probe ran, and what it said
+
+The probe is `probe.mjs` in scratch: 7 arms, the control fixing the plane at **288 with 0 red**, the source
+restored byte-for-byte in a `finally` (verified: `source restored: byte-identical`).
+
+Reds per arm, in order: 01 homeLocation-is-an-alias **1**; 02 snapshot-emits-the-live-`Map` **6**; 03
+audit-hides-one-gap-by-hand **2**; 04 removal-leaves-the-record-registered **1**; 05
+loader-drops-the-records-body-check **1**; 06 missing-npc-list-ignores-the-files-claim **2**; 07
+rollback-forgets-the-records **0**.
+
+* **Arm 02 over-predicted, and the extra reds are the honest part.** Emitting a `Map` also reddens the FILE cases,
+  because `buildSaveFile` runs `assertDiskSafe` over the finished file and a `Map` in the record stops the write —
+  the same claim seen from a second angle.
+* **Arm 07 reddened NOTHING**, and that miss is a result rather than an embarrassment. It deleted the rollback's
+  `detachNPC(id)` loop and no verdict moved, because `removeEntity` already takes the record with the body. A
+  second owner of one cleanup is how one of them eventually drifts, so the loop was **REMOVED** rather than
+  defended, and the rollback's record cleanup is now asserted through the removal path (the orphan case) instead
+  of through a detach the loader no longer performs.
+* **Arm 03's two reds** are the audit's two readers: `every declared NPC field is either carried or named as a
+  gap` (read out of `types.ts`) and `npcFieldAudit names every declared NPC field the file shape does not carry`.
+
+### What v131 still does NOT honor — stated by name
+
+* **A record drives nothing.** Nothing reads `schedule`, `currentTask`, `dialogueTree`, `inventory` or `quests`,
+  so an NPC does not move, talk, trade or want anything. This half is a record and a file, not a system.
+* **A record is scoped to ONE scene.** `npcSnapshot`/`restoreNPC` take a `sceneId`, and an entity id that exists
+  in two scenes resolves against the record's own scene rather than against the body nearest the caller.
+* **No geometry travels.** `npcSnapshot` carries no mesh, so a restored merchant is a record about the default box
+  `restoreEntity` builds.
+* The old-file rule is a compatibility choice, not a migration: nothing rewrites a pre-v131 file, so it keeps
+  reporting `npcs` in `readableNowButNotCarried` every time it is diagnosed.
+* `sceneGraph`, `quests`, `player` and `worldState` remain blocked on systems that do not exist or on live objects
+  the shape cannot hold.
+
+### Sentences this record retires
+
+* v128's README next-step line: *"make the structured-reason gap above real …, then the `npcs` subsystem
+  (#183)"* — the first half is v129 above, the second is this section. `readableNowButNotCarried` still names
+  `npcs` for an old file, but the reason is now a version boundary rather than a field nobody can write.
+
+Next: give the record something to DO — the smallest honest subsystem behind one of the five gaps, so an NPC
+moves or speaks rather than merely being filed — or take the next blocked `SaveData` field (`player`, the
+smallest of the four) now that `npcs` has shown what "record first, behavior later" costs and buys.

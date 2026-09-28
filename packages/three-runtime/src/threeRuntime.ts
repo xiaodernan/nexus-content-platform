@@ -16,6 +16,9 @@ import type {
   PhysicsConfig,
   CharacterController,
   ControllerInput,
+  NPC,
+  PersonalityTraits,
+  SerializedNPC,
   SerializedEntity,
   SerializedVector3,
   SerializedEuler,
@@ -65,6 +68,50 @@ export const DEFAULT_CONTROLLER = {
   stepOffset: 0.3,
   groundY: 0,
 };
+
+/** What a caller can name when attaching an NPC record. Everything left out comes from `DEFAULT_NPC` or
+ *  from the entity itself — `homeLocation` defaults to where the entity stands, which is a reading of the
+ *  world rather than a constant pretending to be one. */
+export interface NpcAttachOptions {
+  name?: string;
+  archetype?: string;
+  personality?: Partial<PersonalityTraits>;
+  homeLocation?: THREE.Vector3;
+  wanderRadius?: number;
+  faction?: string;
+  /** Initial standing per faction, as a plain bag so the caller does not have to build a `Map` to reach
+   *  a method whose live record holds one. */
+  reputation?: Record<string, number>;
+}
+
+/** The declared words an NPC record starts from when a caller names none. */
+export const DEFAULT_NPC = {
+  archetype: 'villager',
+  personality: { aggression: 0.2, curiosity: 0.5, sociability: 0.5, bravery: 0.5, intelligence: 0.5, loyalty: 0.5 },
+  wanderRadius: 5,
+  faction: 'neutral',
+};
+
+/** The declared `NPC` fields this package cannot fill, and what each is waiting on. `npcFieldAudit` derives
+ *  its `untouched` list from the LIVE record against the shipped file shape and then names each leftover
+ *  field from THIS table — so a field added to `NPC` with no implementation lands in the audit as
+ *  "unnamed by the gap table" instead of being ignored in silence, and a gap that gets implemented has to
+ *  be removed from here to stop being reported. */
+const UNTOUCHED_NPC_FIELDS: readonly { field: string; needs: string }[] = [
+  { field: 'schedule', needs: 'the NPC task scheduler (`NPCTaskScheduler`) is declared in types.ts and implemented by nothing, so a record carries no queue this runtime could run' },
+  { field: 'currentTask', needs: 'nothing advances a task, so a record has no current one to report — the field would hold a constant wearing a name' },
+  { field: 'inventory', needs: '`InventoryItem` holds `attributes` and `requirements` as Maps and nothing here implements an inventory; a record carrying one would put a Map in a file that JSON writes as {}' },
+  { field: 'dialogueTree', needs: '`DialogueSystem` is declared in types.ts and implemented by nothing' },
+  { field: 'quests', needs: '`QuestSystem` is declared in types.ts and implemented by nothing' },
+];
+
+/** What `npcFieldAudit` answers. `carried` is read off the SNAPSHOT — the file shape is the single owner of
+ *  what a save holds — and `untouched` names every declared field the snapshot does not hold, with the
+ *  reason. A field the gap table has not named is reported as such rather than dropped from the list. */
+export interface NpcFieldAudit {
+  carried: string[];
+  untouched: { field: string; needs: string }[];
+}
 
 /** The `PhysicsConfig` fields the frame loop READS. `physicsFieldAudit` reports the rest of the type by
  *  name, so a declared word is never left with no reader: `broadphase` and `solverIterations` name work
@@ -370,6 +417,15 @@ interface ControllerEntry {
   gravityDeclared: boolean;
 }
 
+/** An NPC record attached to an entity. The entry names the scene the record was attached in because an
+ *  `NPC` has no scene field of its own (the declared type asks for `entityId`, and `SaveData.sceneGraph` is
+ *  the blocked field that would carry the mapping) — so the registry is the one place that knows where a
+ *  record belongs, and a file scoped to one scene can be built from it. */
+interface NpcEntry {
+  npc: NPC;
+  sceneId: SceneId;
+}
+
 /** What `physicsFieldAudit` answers for a scene. `consulted`/`unhonored` are read off the shipped tables
  *  against the fields `PhysicsConfig` declares, and `effectiveGravity`/`stepping` are read off the live
  *  scene and the last frame, so the answer cannot be a constant wearing a name. */
@@ -441,6 +497,9 @@ export interface CinematicRestoreReport {
 export interface SaveFileLoadReport {
   sceneId: SceneId;
   entities: EntityId[];
+  /** The ids whose NPC records this load restored, in the order the file listed them. Empty is the ordinary
+   *  answer for a scene with no NPCs, which is not the same claim as "this file carries no npcs". */
+  npcs: EntityId[];
   sequences: string[];
   carries: string[];
 }
@@ -458,6 +517,9 @@ export interface SaveFileWriteReport {
   durable: boolean;
   sceneId: SceneId;
   entities: number;
+  /** How many NPC records the file carries. Zero is the ordinary answer for a scene with no NPCs and is not
+   *  the same claim as the file omitting the field — `npcs` is always written, even when it is empty. */
+  npcs: number;
   sequences: number;
   carries: string[];
   doesNotCarry: string[];
@@ -546,20 +608,22 @@ const SAVE_ALIAS_CLAIMS: Record<string, readonly string[]> = {
 };
 
 /** Which declared `SaveData` fields the runtime can fill today, and which are waiting on a system that
- *  does not exist yet. The blocked half is the honest part: `npcs`/`quests`/`player` are declared in
+ *  does not exist yet. The blocked half is the honest part: `quests`/`player`/`worldState` are declared in
  *  `types.ts` and implemented by nothing, so a `SaveData` written today would carry empty maps that look
  *  like an empty game world. `savable` means BOTH directions survive a FILE since v119: `entities` has
- *  `snapshotEntity`/`restoreEntity`, `cinematic` has `cinematicSnapshot`/`restoreCinematic`, and
- *  `buildSaveFile` runs `assertDiskSafe` over the finished file so neither half can write a `Map` or a live
- *  object the reader could not get back. The pair is not decoration — `saveSnapshot.test.ts` derives each
- *  field's stem from its own name and requires a surface name to implement a `savable` row and NONE to
- *  implement a `blocked` one, which is what makes this table unable to sit still while an implementation
- *  ships beside it. */
+ *  `snapshotEntity`/`restoreEntity`, `cinematic` has `cinematicSnapshot`/`restoreCinematic`, `npcs` has
+ *  `npcSnapshot`/`restoreNPC`, and `buildSaveFile` runs `assertDiskSafe` over the finished file so no half
+ *  can write a `Map` or a live object the reader could not get back. `sceneGraph` is blocked on the live
+ *  objects inside `SerializedScene` (a `LightingConfig` whose lights are `THREE.Light`s and a
+ *  `PhysicsConfig` whose gravity is a `THREE.Vector3`), which is a different kind of gap from a missing
+ *  system: the shape exists and is unusable as a file. The pair is not decoration —
+ *  `saveSnapshot.test.ts` derives each field's stem from its own name and requires a surface name to
+ *  implement a `savable` row and NONE to implement a `blocked` one, which is what makes this table unable
+ *  to sit still while an implementation ships beside it. */
 const SAVE_DATA_FEASIBILITY: { savable: readonly string[]; blocked: readonly { field: string; needs: string }[] } = {
-  savable: ['entities', 'cinematic'],
+  savable: ['entities', 'cinematic', 'npcs'],
   blocked: [
     { field: 'sceneGraph', needs: 'SerializedScene stores a LightingConfig whose lights hold live THREE.Light objects and a PhysicsConfig whose gravity is a live THREE.Vector3; nothing here rebuilds either' },
-    { field: 'npcs', needs: 'NPCSystem is declared in types.ts and implemented by nothing' },
     { field: 'quests', needs: 'QuestSystem is declared in types.ts and implemented by nothing' },
     { field: 'player', needs: 'SerializedPlayer names health/mana/inventory/skills; the runtime holds no player state' },
     { field: 'worldState', needs: 'the runtime keeps no world-state store' },
@@ -614,11 +678,11 @@ export const SAVE_FILE_VERSION = 1;
 const EULER_ORDERS: readonly string[] = ['XYZ', 'XZY', 'YXZ', 'YZX', 'ZXY', 'ZYX'];
 
 /** A live vector as the three numbers a file can hold. */
-function vectorToData(vector: THREE.Vector3, where: string): SerializedVector3 {
+function vectorToData(vector: THREE.Vector3, where: string, who = 'snapshotEntity'): SerializedVector3 {
   const data = { x: vector.x, y: vector.y, z: vector.z };
   for (const axis of CURVE_AXES) {
     if (!Number.isFinite(data[axis])) {
-      throw new Error(`snapshotEntity: ${where} ${axis} is ${data[axis]}; a file stores finite numbers, and JSON writes this one as null`);
+      throw new Error(`${who}: ${where} ${axis} is ${data[axis]}; a file stores finite numbers, and JSON writes this one as null`);
     }
   }
   return data;
@@ -643,11 +707,11 @@ function eulerToData(euler: THREE.Euler, where: string): SerializedEuler {
  * reason the shape declares `SerializedEuler`: read straight from a file, `x` is `undefined` where the
  * flattened Euler wrote `_x`, and the entity comes back aimed at NaN with no error anywhere to say so.
  */
-function vectorFromData(data: SerializedVector3, where: string): THREE.Vector3 {
+function vectorFromData(data: SerializedVector3, where: string, who = 'restoreEntity'): THREE.Vector3 {
   const value = data as unknown as Record<string, unknown> | null;  for (const axis of CURVE_AXES) {
     const component = value?.[axis];
     if (typeof component !== 'number' || !Number.isFinite(component)) {
-      throw new Error(`restoreEntity: ${where} ${axis} is ${String(component)}; a saved position is three finite numbers, and a flattened THREE.Vector3 that lost its class still reads as {x,y,z} while an Euler flattened the same way arrives as _x/_y/_z and would restore as NaN`);
+      throw new Error(`${who}: ${where} ${axis} is ${String(component)}; a saved position is three finite numbers, and a flattened THREE.Vector3 that lost its class still reads as {x,y,z} while an Euler flattened the same way arrives as _x/_y/_z and would restore as NaN`);
     }
   }
   return new THREE.Vector3((data as SerializedVector3).x, (data as SerializedVector3).y, (data as SerializedVector3).z);
@@ -739,6 +803,33 @@ function componentsFromData(list: SerializedEntity['components']): [string, Enti
   });
 }
 
+/** The reputation entry array back into the `Map` a live NPC record uses, for the same reason
+ *  `componentsFromData` exists: a `Map` is what `JSON.stringify` writes as `{}`, so a reader that accepted
+ *  one would load a record with no standings at all and say nothing. A standing that is not a finite number
+ *  is refused here rather than restored, because a file writes a non-finite number as `null` and the record
+ *  would come back holding a different value than the one that was saved. */
+function reputationFromData(list: SerializedNPC['reputation']): [string, number][] {
+  if (list instanceof Map) {
+    throw new Error('restoreNPC: reputation arrived as a Map, which JSON.stringify writes as {} — a reader that accepted it would load no standings at all, so the save shape spells them as [faction, value] pairs');
+  }
+  if (!Array.isArray(list)) {
+    throw new Error(`restoreNPC: reputation is ${typeof list}, not an array of [faction, value] pairs`);
+  }
+  return list.map((pair, index) => {
+    if (!Array.isArray(pair) || pair.length !== 2) {
+      throw new Error(`restoreNPC: reputation[${index}] is ${Array.isArray(pair) ? `an array of ${pair.length}` : typeof pair}, not a [faction, value] pair`);
+    }
+    const [faction, value] = pair as [string, number];
+    if (typeof faction !== 'string' || faction.length === 0) {
+      throw new Error(`restoreNPC: reputation[${index}] key is ${String(faction)}, expected the faction's name`);
+    }
+    if (typeof value !== 'number' || !Number.isFinite(value)) {
+      throw new Error(`restoreNPC: reputation[${index}] ("${faction}") is ${String(value)}; a saved standing is a finite number, and JSON writes this one as null`);
+    }
+    return [faction, value];
+  });
+}
+
 export class ThreeRuntime {
   private config: ThreeRuntimeConfig;
   private sceneGraph: SceneGraph;
@@ -752,6 +843,10 @@ export class ThreeRuntime {
   /** Entities carrying a character controller, keyed by entity id. The registry — not a component —
    *  owns this because the integrator needs a per-entity world property (`groundY`) beside the controller. */
   private controllers: Map<EntityId, ControllerEntry> = new Map();
+  /** NPC records, keyed by entity id, each remembering the scene it was attached in. A registry rather
+   *  than an array on the entity because the record OUTLIVES nothing: the scene graph is the thing a save
+   *  files, and the entity is only the body the record is about. */
+  private npcs: Map<EntityId, NpcEntry> = new Map();
   /** Cinematic sequences the runtime owns, keyed by their declared id. */
   private readonly cinematics = new Map<string, CinematicEntry>();
   /** Where save files go. `null` when the runtime was built without a store, which the file methods refuse. */
@@ -976,6 +1071,10 @@ export class ThreeRuntime {
     this.disposeSubtree(entity.threeObject);
 
     scene.entities.delete(entityId);
+    // An NPC record is about a body, so the body going away takes the registration with it. Controllers are
+    // cleaned lazily by the frame loop's own walk; nothing runs an NPC per frame, so this is the moment a
+    // record can lose its subject and say so.
+    if (this.npcs.delete(entityId)) this.emit('npcOrphaned', { entityId });
     this.emit('entityRemoved', { sceneId, entityId });
     return true;
   }
@@ -1116,7 +1215,9 @@ export class ThreeRuntime {
    *
    * `entities` is scoped to a scene because a `SerializedEntity` names no scene — `SaveData.sceneGraph` is the
    * field that would, and it is blocked — so a file that gathered every scene's entities could not say where
-   * they belonged on the way back. Sequences carry their own `sceneId` (v118), so the whole registry fits.
+   * they belonged on the way back. `npcs` inherits that scoping for the same reason and one more: a record
+   * names an entity, so a file carrying records for bodies it does not carry would restore records about
+   * nothing. Sequences carry their own `sceneId` (v118), so the whole registry fits.
    *
    * `assertDiskSafe` runs on the way OUT, over the finished file: a producer that cannot name a shape its
    * reader would refuse has no business writing one, and a silent `Map` in this file would be three
@@ -1133,6 +1234,12 @@ export class ThreeRuntime {
     const entities: [EntityId, SerializedEntity][] = [...scene.entities.keys()]
       .sort()
       .map((id) => [id, this.snapshotEntity(sceneId, id)]);
+    // Records are gathered from the entities THIS scene holds, so a file can never list a record whose body
+    // it does not also carry — the same rule the loader refuses a foreign file for.
+    const npcs: [EntityId, SerializedNPC][] = [...scene.entities.keys()]
+      .sort()
+      .filter((id) => this.resolveNpc(id)?.sceneId === sceneId)
+      .map((id) => [id, this.npcSnapshot(sceneId, id)]);
     const file: SaveFile = {
       format: SAVE_FILE_FORMAT,
       version: SAVE_FILE_VERSION,
@@ -1140,12 +1247,14 @@ export class ThreeRuntime {
       carries: [...SAVE_DATA_FEASIBILITY.savable],
       doesNotCarry: SAVE_DATA_FEASIBILITY.blocked.map(({ field, needs }) => ({ field, needs })),
       entities,
+      npcs,
       cinematic: this.cinematicSnapshot(),
     };
     assertDiskSafe(file, 'file');
     this.emit('saveFileBuilt', {
       sceneId,
       entityCount: entities.length,
+      npcCount: npcs.length,
       sequenceCount: file.cinematic.sequences.length,
       carries: [...file.carries],
       doesNotCarry: file.doesNotCarry.map((entry) => entry.field),
@@ -1160,10 +1269,11 @@ export class ThreeRuntime {
    * than loaded as a smaller game.
    *
    * Atomicity is per half, and the boundary is stated rather than wished away: `restoreCinematic` rolls its
-   * own registry back, entity inserts are rolled back here too, and the entity ids are all pre-checked before
-   * either half runs so the common collision never reaches the second half. If the entity pass still fails
-   * after the sequences landed, this runtime has no way to un-register a sequence (v117's own hole), and the
-   * thrown message says so instead of claiming the scene is untouched.
+   * own registry back, entity inserts and NPC records are rolled back here too, and every id the file touches
+   * — the entities AND the records that name them — is pre-checked before any half runs, so a collision never
+   * reaches a half that would have to be undone. A failure after the sequences landed rolls them back through
+   * `removeCinematic` (v121 closed the hole this comment used to describe), and the thrown message names how
+   * many of each were removed rather than claiming the scene was untouched.
    */
   loadSaveFile(file: SaveFile, sceneId: SceneId): SaveFileLoadReport {
     const problems: string[] = [];
@@ -1228,14 +1338,57 @@ export class ThreeRuntime {
       }
     }
 
+    // The NPC half is checked the same way and BEFORE anything runs, for the same reason: a record is about
+    // a body, so a file whose records name entities it does not carry is refused rather than loaded with
+    // records pointing at nothing.
+    // A file written BEFORE this half existed carries no `npcs` list at all, and refusing it would make every
+    // older save unloadable — while `diagnoseSaveFile` reports that same file as loadable with `npcs` in
+    // `readableNowButNotCarried`, which is exactly the report the two must not be free to disagree about
+    // (v127's rule). So the file's OWN claim decides: a file that does not say it carries npcs is read as
+    // carrying none, and a file that DOES claim them but ships no list is refused for the claim it cannot
+    // back up.
+    const claimsNpcs = Array.isArray(file.carries) && file.carries.includes('npcs');
+    const npcPairs = file.npcs === undefined || file.npcs === null
+      ? (claimsNpcs ? undefined : [])
+      : file.npcs;
+    if (!Array.isArray(npcPairs)) {
+      throw new Error(`loadSaveFile refused: npcs is ${typeof npcPairs}, not an array of [id, record] pairs${claimsNpcs && npcPairs === undefined ? ' — and the file CLAIMS to carry npcs, so a list is owed rather than optional' : ''}`);
+    }
+    for (const [index, pair] of (npcPairs as [EntityId, SerializedNPC][]).entries()) {
+      const [key, record] = Array.isArray(pair) && pair.length === 2 ? pair : [];
+      if (!record || typeof record !== 'object') {
+        throw new Error(`loadSaveFile refused: npcs[${index}] is ${Array.isArray(pair) ? `an array of ${pair.length}` : typeof pair}, not an [id, record] pair`);
+      }
+      if (key !== record.entityId) {
+        throw new Error(`loadSaveFile refused: npcs[${index}] is keyed ${String(key)} but the record under it says ${String(record.entityId)}; a record is filed under the entity it names, so a pair with two names for one record has to pick one`);
+      }
+      if (!(pairs as [EntityId, SerializedEntity][]).some(([id]) => id === record.entityId)) {
+        throw new Error(`loadSaveFile refused: NPC ${record.entityId} (npcs[${index}]) is not among the entities this file carries; a record is about a body, and restoring one for a body the file does not carry would register an NPC with nothing to be`);
+      }
+      if (this.resolveNpc(record.entityId)) {
+        throw new Error(`loadSaveFile refused: entity ${record.entityId} already has an NPC record; a restore never overwrites live state`);
+      }
+    }
+
     const loadedSequences = this.restoreCinematic(file.cinematic);
     const restored: EntityId[] = [];
+    const restoredNpcs: EntityId[] = [];
     try {
       for (const [, snapshot] of pairs as [EntityId, SerializedEntity][]) {
         this.restoreEntity(sceneId, snapshot);
         restored.push(snapshot.id);
       }
+      for (const [, record] of npcPairs as [EntityId, SerializedNPC][]) {
+        this.restoreNPC(sceneId, record);
+        restoredNpcs.push(record.entityId);
+      }
     } catch (error) {
+      // The records go back with their bodies: `removeEntity` is the one owner of orphaning a record, and
+      // it emits `npcOrphaned` on the way, so a rollback that also detached them by hand would be a second
+      // owner of the same cleanup — and the weaker of the two, since a record registered by a `restoreNPC`
+      // that threw is not in `restoredNpcs` at all (the push happens after the call returns) while the body
+      // removal still takes it. Measured: deleting this line reddened NOTHING, which is what a duplicate
+      // owner looks like from outside (v131 probe arm 07, before it was retired).
       for (const id of restored) this.removeEntity(sceneId, id);
       // Since v121 the second half is undoable too, so a load that fails partway leaves nothing: stopping
       // first is what makes removal legal (see `removeCinematic`), and the file was the only reason those
@@ -1244,11 +1397,12 @@ export class ThreeRuntime {
         this.stopCinematic(id);
         this.removeCinematic(id);
       }
-      throw new Error(`${(error as Error).message} — the ${restored.length} entity(ies) and the ${loadedSequences.restored.length} sequence(s) this load had registered were removed again; a load is all or nothing`);
+      throw new Error(`${(error as Error).message} — the ${restored.length} entity(ies), the ${restoredNpcs.length} NPC record(s) and the ${loadedSequences.restored.length} sequence(s) this load had registered were removed again; a load is all or nothing`);
     }
     const report: SaveFileLoadReport = {
       sceneId,
       entities: restored,
+      npcs: restoredNpcs,
       sequences: file.cinematic.sequences.map(([id]) => id),
       carries: [...file.carries],
     };
@@ -1280,6 +1434,7 @@ export class ThreeRuntime {
       durable,
       sceneId,
       entities: file.entities.length,
+      npcs: file.npcs.length,
       sequences: file.cinematic.sequences.length,
       carries: [...file.carries],
       doesNotCarry: file.doesNotCarry.map((entry) => entry.field),
@@ -2132,6 +2287,158 @@ export class ThreeRuntime {
     return undefined;
   }
 
+  // ── npc records ───────────────────────────────────────────────────────────────────────────────
+
+  /**
+   * Attach an NPC record to `entity`, registered under the entity's id.
+   *
+   * The record is built from `DEFAULT_NPC` plus what the caller names, and two fields are READ rather than
+   * defaulted: `name` falls back to the entity's own name, and `homeLocation` to where the entity is
+   * STANDING right now (cloned — a record aliasing the live position would call the walk home a trip to
+   * wherever the character happens to be). Nothing here moves the body: this is the record, and no
+   * behavior reads it yet, which `npcFieldAudit` says out loud for the fields that would need one.
+   */
+  attachNPC(sceneId: SceneId, entity: EntityId, options: NpcAttachOptions = {}): NPC {
+    if (!this.sceneGraph.scenes.get(sceneId)) {
+      throw new Error(`attachNPC: scene ${sceneId} does not exist (entity ${entity})`);
+    }
+    const target = this.getEntity(sceneId, entity);
+    if (!target) throw new Error(`attachNPC: entity ${entity} is not in scene ${sceneId}`);
+    if (this.resolveNpc(entity)) {
+      throw new Error(`attachNPC: entity ${entity} already has an NPC record; detachNPC(${entity}) first`);
+    }
+    const npc: NPC = {
+      entityId: entity,
+      name: options.name ?? target.name,
+      archetype: options.archetype ?? DEFAULT_NPC.archetype,
+      personality: { ...DEFAULT_NPC.personality, ...options.personality },
+      schedule: [],
+      currentTask: null,
+      homeLocation: (options.homeLocation ?? target.threeObject.position).clone(),
+      wanderRadius: options.wanderRadius ?? DEFAULT_NPC.wanderRadius,
+      faction: options.faction ?? DEFAULT_NPC.faction,
+      reputation: new Map(Object.entries(options.reputation ?? {})),
+      inventory: [],
+      dialogueTree: [],
+      quests: [],
+    };
+    this.npcs.set(entity, { npc, sceneId });
+    this.emit('npcAttached', { entityId: entity, npc });
+    return npc;
+  }
+
+  detachNPC(entity: EntityId): boolean {
+    const removed = this.npcs.delete(entity);
+    if (removed) this.emit('npcDetached', { entityId: entity });
+    return removed;
+  }
+
+  /** The live record for `entity`, or `undefined`. An entry whose entity is gone is dropped by
+   *  `resolveNpc` before this answers, so a caller can never be handed a record with no body to be. */
+  getNPC(entity: EntityId): NPC | undefined {
+    return this.resolveNpc(entity)?.npc;
+  }
+
+  /** Write one faction's standing on a live record. `false` means there is no record for `entity` — the
+   *  same shape `setControllerInput` uses for "nothing to write to". A non-finite standing is refused
+   *  rather than stored: a file writes one as `null`, so the record would come back holding a different
+   *  number than the one written, which is the drift `assertDiskSafe` exists to catch on the way out. */
+  setNPCReputation(entity: EntityId, faction: string, value: number): boolean {
+    const entry = this.resolveNpc(entity);
+    if (!entry) return false;
+    if (!Number.isFinite(value)) {
+      throw new Error(`setNPCReputation: the standing with "${faction}" is ${value}; a save writes a non-finite number as null, so the record would come back holding a different value than the one written`);
+    }
+    entry.npc.reputation.set(faction, value);
+    return true;
+  }
+
+  /**
+   * The record as FILE data. Each field is a value, not a reference: `personality` is copied and
+   * `homeLocation` becomes three numbers, so a caller holding the snapshot cannot move the live record by
+   * mutating what it was handed. `reputation` is an ENTRY ARRAY, sorted, for the reason the type spells out
+   * — a `Map` would be written as `{}` and come back empty.
+   */
+  npcSnapshot(sceneId: SceneId, entity: EntityId): SerializedNPC {
+    const entry = this.resolveNpc(entity);
+    if (!entry || !this.getEntity(sceneId, entity)) {
+      throw new Error(`npcSnapshot: entity ${entity} has no NPC record in scene ${sceneId}`);
+    }
+    return {
+      entityId: entry.npc.entityId,
+      name: entry.npc.name,
+      archetype: entry.npc.archetype,
+      personality: { ...entry.npc.personality },
+      homeLocation: vectorToData(entry.npc.homeLocation, 'homeLocation', 'npcSnapshot'),
+      wanderRadius: entry.npc.wanderRadius,
+      faction: entry.npc.faction,
+      reputation: [...entry.npc.reputation.entries()].sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0)),
+    };
+  }
+
+  /**
+   * Put a record back onto the entity it names.
+   *
+   * A record is about a BODY, so a snapshot naming an entity this scene does not have is refused: an NPC
+   * with nothing to be would be a record whose own `entityId` points at nothing, and every later question
+   * about it (where is it, what does it want) would have no answer that came from the world. Restoring onto
+   * an occupied id is refused for the same reason `restoreEntity` refuses one — a restore never overwrites
+   * live state.
+   */
+  restoreNPC(sceneId: SceneId, snapshot: SerializedNPC): NPC {
+    if (!this.sceneGraph.scenes.get(sceneId)) {
+      throw new Error(`restoreNPC: scene ${sceneId} does not exist (entity ${snapshot.entityId})`);
+    }
+    if (!this.getEntity(sceneId, snapshot.entityId)) {
+      throw new Error(`restoreNPC: entity ${snapshot.entityId} is not in scene ${sceneId}; a record is about a body, and one restored onto nothing would be an NPC that cannot be anywhere`);
+    }
+    if (this.resolveNpc(snapshot.entityId)) {
+      throw new Error(`restoreNPC: entity ${snapshot.entityId} already has an NPC record; a restore never overwrites live state`);
+    }
+    const npc = this.attachNPC(sceneId, snapshot.entityId, {
+      name: snapshot.name,
+      archetype: snapshot.archetype,
+      personality: snapshot.personality,
+      homeLocation: vectorFromData(snapshot.homeLocation, 'homeLocation', 'restoreNPC'),
+      wanderRadius: snapshot.wanderRadius,
+      faction: snapshot.faction,
+      reputation: Object.fromEntries(reputationFromData(snapshot.reputation)),
+    });
+    this.emit('npcRestored', { sceneId, entityId: snapshot.entityId, npc });
+    return npc;
+  }
+
+  /**
+   * Report which declared `NPC` fields the file shape carries and which it does not, derived from the live
+   * record against the snapshot rather than from a list written twice. The snapshot is the single owner of
+   * what a save holds; this audit only names the leftovers, so a field added to `NPC` tomorrow shows up
+   * here without anyone remembering to add it, and a field that gets carried stops being reported.
+   */
+  npcFieldAudit(entity: EntityId): NpcFieldAudit | undefined {
+    const entry = this.resolveNpc(entity);
+    if (!entry) return undefined;
+    const carried = Object.keys(this.npcSnapshot(entry.sceneId, entity)).sort();
+    const untouched = Object.keys(entry.npc)
+      .filter((field) => !carried.includes(field))
+      .sort()
+      .map((field) => ({
+        field,
+        needs: UNTOUCHED_NPC_FIELDS.find((gap) => gap.field === field)?.needs
+          ?? 'declared on NPC and not carried by the file shape, with no entry in the gap table saying why — which is itself the finding',
+      }));
+    return { carried, untouched };
+  }
+
+  private resolveNpc(entity: EntityId): NpcEntry | undefined {
+    const entry = this.npcs.get(entity);
+    if (!entry) return undefined;
+    const scene = this.sceneGraph.scenes.get(entry.sceneId);
+    if (scene?.entities.has(entity)) return entry;
+    this.npcs.delete(entity);
+    this.emit('npcOrphaned', { entityId: entity });
+    return undefined;
+  }
+
   // ── cinematic sequences ───────────────────────────────────────────────────────────────────────
 
   /**
@@ -2553,6 +2860,9 @@ export class ThreeRuntime {
     // scenes would otherwise strand them. Clearing here (rather than orphan-walking) is deliberate: the
     // entities are already gone, and a dispose is not a caller losing one entity under a live controller.
     this.controllers.clear();
+    // Same reason as the controllers: the records are keyed by entity id, and every entity is gone by this
+    // line, so leaving them would be a registry of NPCs that cannot be anywhere.
+    this.npcs.clear();
     // Same reason as the controllers: a sequence is registered by id against a scene that no longer
     // exists, so keeping it would let `playCinematic` answer for cameras that are gone.
     this.cinematics.clear();

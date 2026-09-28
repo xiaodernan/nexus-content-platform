@@ -1104,8 +1104,8 @@ describe('the save split moved: cinematic has a writer AND a reader', () => {
     define({ shots: [shot({ id: 's0', cameraId: camA, endTime: 2, cameraPath: curve([0, 0, 0], [1, 1, 1], [2, 0, 0]) })] });
     runtime.playCinematic('seq');
     const audit = runtime.saveFeasibilityAudit(scene, hero)!;
-    expect(audit.savable).toEqual(['entities', 'cinematic']);
-    expect(audit.blocked.map((entry) => entry.field)).toEqual(['sceneGraph', 'npcs', 'quests', 'player', 'worldState']);
+    expect(audit.savable).toEqual(['entities', 'cinematic', 'npcs']);
+    expect(audit.blocked.map((entry) => entry.field)).toEqual(['sceneGraph', 'quests', 'player', 'worldState']);
     // v117's row was blocked because nothing rebuilt a curve from points. That reason must not survive the
     // reader it describes, and neither may the older one about the stub that shipped until v116.
     expect(JSON.stringify(audit.blocked), 'a stale blocker for a field that is now savable').not.toMatch(/CatmullRomCurve3|empty stub/);
