@@ -1524,6 +1524,27 @@ test('@smoke 上下文：目录尺寸、预算裁剪与未索引分支都写在�
   await expect(page.locator('[data-context-corpus-empty]')).toBeVisible();
   await expect(page.locator('[data-context-corpus-item]')).toHaveCount(0);
   await page.screenshot({ path: 'screenshots/context-corpus.png' });
+
+  // 因果那一半（§49 × §66-71）：改一句设定，发出去的那一段就得跟着换。
+  // 这一步走的是真编辑器：图层选中 → 属性面板改文案 → 防抖自动保存（它会换语料块）→ 回面板再试一次。
+  // 旧句子如果还查得到，就是"改了却还检索到旧的"那种最难查的谎，在上下文这一层重现。
+  const oldSentence = '从一句话到一个可发布的产品';
+  const newSentence = '夜里的浮岛只有一盏灯还记得数人';
+  await page.click('[data-panel-tab="layers"]');
+  // 复用开头那次 layerId 拿到的 id：本条用例一开头就把 Headline 选中过，再声明一次会撞名
+  await page.click(`[data-node-id="${headlineId}"]`);
+  await page.fill('[data-prop="text"]', newSentence);
+  await expect(page.locator('[data-save-state]')).toContainText('已保存', { timeout: 30_000 });
+
+  await page.click('[data-panel-tab="context"]');
+  await page.fill('[data-context-corpus-input]', oldSentence);
+  await page.click('[data-context-corpus-run]');
+  await expect(page.locator('[data-context-corpus-empty]')).toBeVisible({ timeout: 30_000 });
+  await expect(page.locator('[data-context-corpus-item]')).toHaveCount(0);
+  await page.fill('[data-context-corpus-input]', newSentence);
+  await page.click('[data-context-corpus-run]');
+  await expect(page.locator('[data-context-corpus-item]').first()).toContainText(newSentence);
+  await page.screenshot({ path: 'screenshots/context-corpus-after-edit.png' });
 });
 
 test('@smoke 发布机检与公开页举报：挡下要说清凭什么，举报要说清之后会发生什么（§131/§132）', async ({ page }) => {
