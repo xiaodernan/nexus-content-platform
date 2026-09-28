@@ -27,6 +27,46 @@ async function savedState(page: Page): Promise<void> {
   await expect(page.locator('[data-storyboard-save-state]')).toHaveText('已保存', { timeout: 30_000 });
 }
 
+/**
+ * §40 欠的那一寸入口：把角色挂到镜头上（`Shot.characterId`）。
+ * 模型字段与服务端归属校验早就在（`firstForeignRef` 会拒掉别人项目的 id），
+ * 缺的是界面上那个选择器——这正是本仓库犯过三次的形状（#66 / #67 / #75）。
+ * 走真浏览器所以要证的不是"能点"，而是：一次选择=一个可撤销事务，且撤销结果真的进了库。
+ */
+test('@smoke 镜头挂角色：选择器只给本项目名册、改动可撤销、刷新后还在（§40 × §46）', async ({ page }) => {
+  test.setTimeout(180_000);
+  await openStudio(page, `镜头挂角色 ${Date.now().toString(36)}`);
+
+  await page.click('[data-panel-tab="characters"]');
+  await expect(page.locator('[data-character-empty]')).toBeVisible({ timeout: 30_000 });
+  await page.fill('[data-character-new-name]', '守夜人');
+  await page.click('[data-character-create]');
+  await expect(page.locator('[data-character-count]')).toHaveText('1');
+
+  await openStoryboardPanel(page);
+  await page.fill('[data-storyboard-prompt-input]', '灯塔的光扫过浮冰，她数着回来的每一条船');
+  await page.click('[data-storyboard-create]');
+  await savedState(page);
+
+  const shotId = (await page.locator('[data-storyboard-shot]').first().getAttribute('data-storyboard-shot'))!;
+  const picker = page.locator(`[data-storyboard-character="${shotId}"]`);
+  // 名册来自服务端：选项就是那一位角色，不给用户手填一个会被服务端挡下的 id
+  await expect(picker.locator('option')).toHaveCount(2);
+  await expect(picker.locator('option').nth(1)).toHaveText('守夜人');
+
+  await picker.selectOption({ label: '守夜人' });
+  await savedState(page);
+  await page.click('[data-storyboard-undo]');
+  await expect(picker.locator('option:checked')).toHaveText('不挂角色');
+  await page.click('[data-storyboard-redo]');
+  await expect(picker.locator('option:checked')).toHaveText('守夜人');
+
+  // 撤销/重做之后落库的那一份要与之相符：刷新走的是服务端，不是内存
+  await page.click('[data-storyboard-reload]');
+  await expect(picker.locator('option:checked')).toHaveText('守夜人', { timeout: 30_000 });
+  await page.screenshot({ path: 'screenshots/shot-character-link.png' });
+});
+
 test('@smoke 分镜面板：切句成镜、改一镜能撤、撤销结果真的进了库', async ({ page }) => {
   test.setTimeout(180_000);
   await openStudio(page, `分镜面板 ${Date.now().toString(36)}`);

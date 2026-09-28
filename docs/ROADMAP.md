@@ -703,7 +703,7 @@ drizzle 把整个拼接结果当成**单个绑定参数**，生成的 SQL 是 `o
 
 ## M5 — 视频（§185）
 - [ ] Video Studio（text/image/storyboard→video）
-- [~] Storyboard → Shot list → 参考图 → 生成 → Timeline（§40-42）— `packages/video-model` 已有两片：模型半片（分镜/镜头表/时间线投影，纯函数）与 §150 的可撤销补丁（`addShot`/`removeShot`/`moveShot`/`updateShot` + 事务），详见文末「§40 的第一片 / 第二片」。存储、面板入口、镜头参考图接 §38/§39、Timeline 编辑界面都还没动。
+- [~] Storyboard → Shot list → 参考图 → 生成 → Timeline（§40-42）— 存储、分镜面板入口（切句成镜、机位/转场/时长/上下移/删除，全部走 §150 的可撤销补丁）、Timeline 条与总时长、镜头进语料库（§49 × §40）、镜头挂本项目的角色（§40 × §46，见文末）都已落地。**还欠的两半**：镜头的参考图只做到"能选本项目资产"，没把 §38 的生成按钮接到镜头上；`videoAssetId` 那一格要真 provider，本机不做假生成。逐条凭证见文末各片。
 - [ ] Timeline 编辑：trim / reorder / regenerate shot / extend / transition（§41）
 
 ## M6 — 社区（§186）
@@ -2719,3 +2719,24 @@ pre-commit 的 typecheck 却红 6 条——`noUncheckedIndexedAccess` 说 Object
 建出守夜人 → 每镜挂它的 id → `saveStoryboard` → 检索那句镜头描述 → 按出处取整块 →
 断含「角色：守夜人」且**不含那串 uuid**）。变异探针把名字表退回只写 id → `2 failed / 46`，
 红的正是纯函数那条与真库那条；还原后 46/46、md5 与探针前一致。
+
+## §40 那一寸补上了：镜头可以挂本项目名册里的角色（#76 关掉）
+
+模型字段 `Shot.characterId` / `referenceAssetId` 与服务端归属校验（`firstForeignRef`：
+挂的角色/资产不属于本项目就整份拒绝）早就都在，缺的只是界面上那个选择器——
+本仓库为这件事栽过三次（#66 组件删除、#67 角色→场景、#75 整块语料），所以这次把入口和见证一起补。
+
+- 选项**只来自服务端**：`/characters` 与 `/assets` 各拉一次，面板不给用户手填 id。
+  这样"点了才被服务端挡下"这条路在界面上出不来；名册为空时那句提示也写在脸上
+  （`data-storyboard-roster-note`：还没有角色 / 参考图要先上传），不是让下拉框默默只剩"不挂角色"。
+- 一次选择 = 一个可撤销事务（§150）：走 `storyboardStore.applyOps([{ op: 'updateShot', before, after }])`，
+  撤销是逆补丁而不是重打一遍；"不挂角色"写回 `undefined`，落库时那个键就没了。
+
+凭证：`e2e/storyboard.spec.ts:36` 新增一条 `@smoke`（真浏览器，**1 passed (13.3s)**）——
+角色面板建「守夜人」→ 分镜面板切一版 → 选择器只有 2 个 option 且第 2 个是那位角色（名册是服务端给的）→
+选上 → 撤销回到「不挂角色」→ 重做又回到「守夜人」→ **点重新装配（reload）后仍是「守夜人」**，
+这一步走的是服务端，证明落库的不是内存。整组 `e2e/storyboard.spec.ts` **4 passed (22.9s)**，typecheck 0。
+变异探针把 `after` 写成 `shot.characterId`（点了等于没改）→ 1 failed，红的正是那条选择器用例；还原后 md5 一致。
+
+§40 还没做完的那半截留在原处：镜头的**视频**（`videoAssetId`）要真 provider，本机不做假生成；
+参考图那一格这一片只上了"能选本项目资产"，还没有把 §38 的生成按钮接到镜头上。

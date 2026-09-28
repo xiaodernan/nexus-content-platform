@@ -58,10 +58,58 @@ export function StoryboardPanel() {
   const [prompt, setPrompt] = useState('');
   /** 草稿：镜头文本与时长各自独立存，失焦才写成一个事务——打字过程中不该一次次 PUT */
   const [drafts, setDrafts] = useState<Record<string, string>>({});
+  /**
+   * §40 那一格欠的入口：镜头可以挂「这一镜里是谁」与「用哪张图当参考」。
+   * 名册与资产清单从服务端读（不是让客户端猜 id）——挂上去的 id 由 `saveStoryboard`
+   * 那侧的 `firstForeignRef` 校验归属，所以这里的列表就是唯一能被接受的那一批。
+   */
+  const [roster, setRoster] = useState<{
+    characters: { id: string; name: string }[];
+    assets: { id: string; name: string }[];
+  }>({ characters: [], assets: [] });
+  const [rosterNote, setRosterNote] = useState<string | null>(null);
   const sb = snapshot.storyboard;
 
   useEffect(() => {
     storyboardStore.ensure(studio.projectId);
+  }, [studio.projectId]);
+
+  useEffect(() => {
+    let cancelled = false;
+    void (async () => {
+      try {
+        const [c, a] = await Promise.all([
+          fetch(`/api/projects/${studio.projectId}/characters`, { cache: 'no-store' })
+            .then((r) => r.json())
+            .catch(() => null),
+          fetch(`/api/projects/${studio.projectId}/assets`, { cache: 'no-store' })
+            .then((r) => r.json())
+            .catch(() => null),
+        ]);
+        if (cancelled) return;
+        const characters = ((c as { characters?: { id: string; profile: { name: string } }[] } | null)?.characters ?? []).map(
+          (item) => ({ id: item.id, name: item.profile.name || '（没有名字的角色）' }),
+        );
+        const assets = ((a as { assets?: { id: string; name: string }[] } | null)?.assets ?? []).map((item) => ({
+          id: item.id,
+          name: item.name,
+        }));
+        setRoster({ characters, assets });
+        const unreadable = ((c as { unreadable?: string[] } | null)?.unreadable ?? []).length;
+        setRosterNote(
+          characters.length === 0
+            ? '这个项目还没有角色，参考图也要先在资产库里上传（不给你手填 id）'
+            : unreadable
+              ? `${characters.length} 位角色可挂，其中 ${unreadable} 位档案读不出来，暂时不列`
+              : null,
+        );
+      } catch {
+        if (!cancelled) setRosterNote('名册或资产清单没读到，镜头上的引用暂时只能留空');
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
   }, [studio.projectId]);
 
   const timeline = useMemo(() => (sb ? timelineOf(sb) : null), [sb]);
@@ -217,6 +265,11 @@ export function StoryboardPanel() {
             {snapshot.notice}
           </p>
         ) : null}
+        {rosterNote ? (
+          <p className="mt-1 text-11 text-fg-3" data-storyboard-roster-note>
+            {rosterNote}
+          </p>
+        ) : null}
       </header>
 
       <div className="min-h-0 flex-1 overflow-auto">
@@ -285,6 +338,54 @@ export function StoryboardPanel() {
                   data-storyboard-duration={shot.id}
                   className="w-[64px] rounded-[var(--nexus-radius-sm)] bg-bg-3 px-1 py-[2px] text-11 text-fg-1"
                 />
+                {/* 挂角色 / 挂参考图：一次改动 = 一个可撤销事务（§150），选项只来自服务端名册，
+                    所以这里给不出一个"会被 firstForeignRef 挡下"的 id */}
+                <select
+                  value={shot.characterId ?? ''}
+                  onChange={(e) =>
+                    storyboardStore.applyOps([
+                      {
+                        op: 'updateShot',
+                        id: shot.id,
+                        before: { characterId: shot.characterId },
+                        after: { characterId: e.target.value || undefined },
+                      },
+                    ])
+                  }
+                  aria-label="这一镜里的角色"
+                  data-storyboard-character={shot.id}
+                  className="max-w-[110px] rounded-[var(--nexus-radius-sm)] bg-bg-3 px-1 py-[2px] text-11 text-fg-1"
+                >
+                  <option value="">不挂角色</option>
+                  {roster.characters.map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {c.name}
+                    </option>
+                  ))}
+                </select>
+                <select
+                  value={shot.referenceAssetId ?? ''}
+                  onChange={(e) =>
+                    storyboardStore.applyOps([
+                      {
+                        op: 'updateShot',
+                        id: shot.id,
+                        before: { referenceAssetId: shot.referenceAssetId },
+                        after: { referenceAssetId: e.target.value || undefined },
+                      },
+                    ])
+                  }
+                  aria-label="这一镜的参考图"
+                  data-storyboard-reference={shot.id}
+                  className="max-w-[110px] rounded-[var(--nexus-radius-sm)] bg-bg-3 px-1 py-[2px] text-11 text-fg-1"
+                >
+                  <option value="">不用参考图</option>
+                  {roster.assets.map((item) => (
+                    <option key={item.id} value={item.id}>
+                      {item.name}
+                    </option>
+                  ))}
+                </select>
                 <span className="ml-auto flex items-center gap-1">
                   <button
                     type="button"
