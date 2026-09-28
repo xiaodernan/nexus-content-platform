@@ -1593,6 +1593,37 @@ Two of these readings were wrong before they were corrected, and both were mine.
   package's `extends: ../../tsconfig.base.json` cannot resolve, vite fails to transform, and every test file
   collects **0** cases behind `runnerExit 1` with empty per-file `failureMessage`s — a green-shaped artifact that
   grades nothing. The gate script now refuses to call a 0-case collection a result.
+- **`c506d00` published v137's own evidence section, and `522b9c7` could not take it back.** The v137
+  account of itself is 76 lines of this file (HEAD 1746–1821) that were sitting UNCOMMITTED in the
+  worktree while the follow-on landing script read it in order to patch it. `git add <file>` stages the whole
+  file, so a commit whose message says it pays the v136 follow-on records also carried another grant's prose:
+  `114 added / 9 deleted` lines here, and all 76 of the section's lines are among those additions
+  (measured by intersecting the section with the commit's `+` lines — the direction is fixed by `## v137` being absent
+  from `1e729f5`'s copy). Read from the other side: `git show --name-only 522b9c7`, v137's own commit, lists this
+  README **0** times and `packages/three-runtime/src/` **0** times — by then every byte of its evidence
+  section was already in history under someone else's name, so its author had no diff left to stage. This is the second
+  time in a night, and the `1e729f5` bullet above already states the rule that was broken: in a shared worktree,
+  staging by file is not enough when the FILE is shared — read the staged hunks against the grant being committed.
+  What was missing was a check that can FAIL before the commit happens. This landing ends in one, and it has now
+  failed once on this script's own arithmetic — it printed numstat's DELETIONS field (9) where it meant its
+  additions (114), and the guard refused the stage rather than letting the wrong number into the
+  record. A record of a whole-file-stage accident that is itself written by a whole-file stage has to name its own
+  diff line by line: single file, staged additions equal to the drafted count, and no `+` line of a docs commit
+  may open a `## v` section.
+- **The §7 door re-ran at `c506d00` and cannot be paid while this package has a live writer.** 73 rows in
+  4082 s: 3 FAIL (bridge-report-proof.mjs, confession-proof.mjs, drive-axis-proof.mjs), 4 KILL (cwd-axis-proof.mjs, index-vectors-proof.mjs, provenance-proof.mjs, tree-axis-proof.mjs), 66 OK. The summary's `failed 7` and
+  this row-level FAIL count differ by 4, and the runner's source arbitrates instead of my arithmetic:
+  `sweep.mjs:1842` — `const failed = results.filter((r) => !r.ok);` — counts a kill as not-green, while `sweep.mjs:1673` is where
+  the word `killed` is minted, so a killed row gets its own verdict and never enters the FAIL count. The summary's `failed`
+  means "not 66 OK", and 3 is the number of rows that failed an assertion. All 4 kills are at the runner's own
+  240000 ms default (241660 / 240744 / 242566 / 240710 ms), none at a budget a row named, so none of them belongs to three-runtime.
+  And the summary says `tree … (MOVED mid-run)`: attributable rather than a mystery. `522b9c7` landed at 04:39 and the
+  next grant rewrote `src/threeRuntime.ts` at 05:16, both inside this 68-minute walk — and note that
+  `[identity] dirty tracked sources under packages: 0` is printed once, at identity time, so `dirty-sources 0` is true of
+  the first second of the run and says nothing about the rest of it. The promise in this file that
+  "the door re-runs at the docs commit" is retired here and replaced by its condition: the door is paid at the
+  next ref where nothing under `packages/` is dirty at the moment the run STARTS and stays dirty-free throughout,
+  which the summary's own MOVED flag is now the only honest witness for.
 
 ### What v136 does NOT honor — stated by name
 
