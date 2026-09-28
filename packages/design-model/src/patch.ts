@@ -60,6 +60,74 @@ export interface ApplyResult {
   skipped: { index: number; reason: string }[];
 }
 
+/**
+ * 结构共享（`docs/PERFORMANCE.md` §147 第一条欠账）：`applyPatch` 不再整份克隆文档。
+ *
+ * 一次补丁通常只动一两个节点，而 `clone(document)` 在 10000 节点上是每次编辑都要付的
+ * 全量同步大块——里面 99% 的节点这轮根本没被碰过。这里改成写时拷贝，三层各自懒：
+ * 文档只浅拷会被改写的容器（metadata / pages / tokens / components / assets），
+ * 页面在第一次被写时换一次（对象与 `nodes` 表，只浅拷一层），
+ * 节点在第一次被写时深拷**那一个**（它的 style / layout / children 都在里面，所以嵌套改动是安全的）。
+ *
+ * 代价必须写在前面：**历史版本从此共享未被触碰的子树**。因此
+ * ① 这次 apply 里，输入文档与 op 携带的 payload 一个字段都不许改（结构共享测试用深冻结钉死）；
+ * ② 拿到文档的调用方同样不许原地改——这本来就是 `DesignStore` 写在类注释里的不变量
+ *    （"document 只能通过 execute/undo/redo 改变"），结构共享把它从口头约定变成了必须成立的条件。
+ */
+class CopyOnWrite {
+  readonly document: DesignDocument;
+  private readonly sourcePages = new Map<string, Page>();
+
+  constructor(private readonly source: DesignDocument) {
+    for (const page of source.pages) this.sourcePages.set(page.id, page);
+    this.document = {
+      ...source,
+      metadata: { ...source.metadata },
+      pages: [...source.pages],
+      tokens: [...source.tokens],
+      components: [...source.components],
+      assets: [...source.assets],
+    };
+  }
+
+  /** 本次可写的页面；第一次拿到时把对象与 `nodes` 表换成本次的副本 */
+  page(pageId?: string): Page | undefined {
+    const source = findPage(this.source, pageId);
+    if (!source) {
+      // 不在源文档里 = 同一个补丁里 addPage 进来的新页（入库时已换成副本），直接给
+      const wanted = pageId ?? this.document.activePageId;
+      return this.document.pages.find((p) => p.id === wanted);
+    }
+    const at = this.document.pages.findIndex((p) => p.id === source.id);
+    // 源文档有、本次却没有 = 同一个补丁里刚被 removePage 掉：照旧算 page not found
+    if (at < 0) return undefined;
+    const current = this.document.pages[at]!;
+    // 不是源对象就已经是本次的（COW 换过的，或 addPage 换上来的）
+    if (current !== source) return current;
+    const copy: Page = { ...source, nodes: { ...source.nodes } };
+    this.document.pages[at] = copy;
+    return copy;
+  }
+
+  /** 本次可写的节点：仍与源文档同一对象时才深拷，这一次深拷就是全部成本 */
+  node(page: Page, nodeId: string): DesignNode | undefined {
+    const current = page.nodes[nodeId];
+    if (!current) return undefined;
+    if (this.sourcePages.get(page.id)?.nodes[nodeId] === current) {
+      const copy = clone(current);
+      page.nodes[nodeId] = copy;
+      return copy;
+    }
+    return current;
+  }
+
+  /** 跨页面取可写节点（document 级 op 的引用清理走这里）：页面先 COW，节点再 COW */
+  nodeOn(pageId: string, nodeId: string): DesignNode | undefined {
+    const page = this.page(pageId);
+    return page ? this.node(page, nodeId) : undefined;
+  }
+}
+
 function pathGet(target: Record<string, unknown>, path: string): unknown {
   let current: unknown = target;
   for (const raw of path.split(".")) {
@@ -109,18 +177,21 @@ function deepMergeInto(
   }
 }
 
-/** 在 page 上原地执行 ops；调用方传入的 page 必须是副本 */
+/**
+ * 在 page 上原地执行 ops；`page` 必须是 `cow` 给出的本次副本，
+ * 而**节点**在每次写之前都要过 `cow.node()`——那一步才决定这个节点要不要深拷。
+ */
 function applyToPage(
+  cow: CopyOnWrite,
   page: Page,
   ops: PatchOp[],
   skipped: { index: number; reason: string }[],
   touched: Set<string>,
-  document?: DesignDocument,
 ): void {
   ops.forEach((op, index) => {
     switch (op.op) {
       case "set": {
-        const node = page.nodes[op.nodeId];
+        const node = cow.node(page, op.nodeId);
         if (!node) {
           skipped.push({ index, reason: `node ${op.nodeId} not found` });
           break;
@@ -134,7 +205,7 @@ function applyToPage(
         break;
       }
       case "merge": {
-        const node = page.nodes[op.nodeId];
+        const node = cow.node(page, op.nodeId);
         if (!node) {
           skipped.push({ index, reason: `node ${op.nodeId} not found` });
           break;
@@ -153,7 +224,7 @@ function applyToPage(
         break;
       }
       case "insert": {
-        const parent = page.nodes[op.parentId];
+        const parent = cow.node(page, op.parentId);
         if (!parent) {
           skipped.push({ index, reason: `parent ${op.parentId} not found` });
           break;
@@ -191,7 +262,7 @@ function applyToPage(
         const subtree = collectSubtree(page, op.nodeId);
         for (const id of subtree) delete page.nodes[id];
         if (node.parentId) {
-          const parent = page.nodes[node.parentId];
+          const parent = cow.node(page, node.parentId);
           if (parent) {
             parent.children = parent.children.filter((c) => c !== op.nodeId);
             touched.add(parent.id);
@@ -218,24 +289,26 @@ function applyToPage(
           skipped.push({ index, reason: "reparent would create a cycle" });
           break;
         }
+        // 校验全部读源数据即可；从这里开始每一处写都要先过 cow
+        const mutableNode = cow.node(page, op.nodeId)!;
+        const mutableParent = cow.node(page, op.parentId)!;
         if (node.parentId && page.nodes[node.parentId]) {
-          page.nodes[node.parentId]!.children = page.nodes[
-            node.parentId
-          ]!.children.filter((c) => c !== op.nodeId);
+          const oldParent = cow.node(page, node.parentId)!;
+          oldParent.children = oldParent.children.filter((c) => c !== op.nodeId);
           touched.add(node.parentId);
         }
-        node.parentId = parent.id;
+        mutableNode.parentId = mutableParent.id;
         const at =
           op.index === undefined
-            ? parent.children.length
-            : Math.max(0, Math.min(parent.children.length, op.index));
-        parent.children = [
-          ...parent.children.slice(0, at),
-          node.id,
-          ...parent.children.slice(at),
+            ? mutableParent.children.length
+            : Math.max(0, Math.min(mutableParent.children.length, op.index));
+        mutableParent.children = [
+          ...mutableParent.children.slice(0, at),
+          mutableNode.id,
+          ...mutableParent.children.slice(at),
         ];
-        touched.add(node.id);
-        touched.add(parent.id);
+        touched.add(op.nodeId);
+        touched.add(op.parentId);
         break;
       }
       case "reorder": {
@@ -253,23 +326,17 @@ function applyToPage(
           skipped.push({ index, reason: "reorder: index out of range" });
           break;
         }
-        const children = [...parent.children];
+        const mutableParent = cow.node(page, op.parentId)!;
+        const children = [...mutableParent.children];
         const [moved] = children.splice(op.from, 1);
         children.splice(op.to, 0, moved!);
-        parent.children = children;
+        mutableParent.children = children;
         touched.add(parent.id);
         break;
       }
       default: {
         // token / component / asset 级操作作用于 document
-        if (!document) {
-          skipped.push({
-            index,
-            reason: `${op.op} requires a document target`,
-          });
-          break;
-        }
-        applyDocumentOp(document, op, skipped, index);
+        applyDocumentOp(cow, op, skipped, index);
       }
     }
   });
@@ -297,17 +364,20 @@ function isDocumentOp(op: PatchOp): boolean {
 }
 
 function applyDocumentOp(
-  document: DesignDocument,
+  cow: CopyOnWrite,
   op: PatchOp,
   skipped: { index: number; reason: string }[],
   index: number,
 ): void {
+  const document = cow.document;
   switch (op.op) {
     case "addPage": {
-      const at = document.pages.findIndex((p) => p.id === op.page.id);
-      if (at >= 0) document.pages[at] = op.page;
-      else document.pages.push(op.page);
-      if (op.setActive) document.activePageId = op.page.id;
+      // 换成副本再入库：op 里的 payload 不许被后续 op 原地改（结构共享的①）
+      const incoming = { ...op.page, nodes: { ...op.page.nodes } };
+      const at = document.pages.findIndex((p) => p.id === incoming.id);
+      if (at >= 0) document.pages[at] = incoming;
+      else document.pages.push(incoming);
+      if (op.setActive) document.activePageId = incoming.id;
       break;
     }
     case "removePage": {
@@ -328,16 +398,16 @@ function applyDocumentOp(
       break;
     }
     case "setToken": {
-      const token = document.tokens.find((t) => t.key === op.key);
-      if (!token) {
+      const at = document.tokens.findIndex((t) => t.key === op.key);
+      if (at < 0) {
         skipped.push({ index, reason: `token ${op.key} not found` });
         break;
       }
-      if (op.mode) {
-        token.modes = { ...(token.modes ?? {}), [op.mode]: clone(op.value) };
-      } else {
-        token.value = clone(op.value);
-      }
+      // 换一个新对象而不是改原对象：源文档里那条 token 可能正被历史版本共享着
+      const token = document.tokens[at]!;
+      document.tokens[at] = op.mode
+        ? { ...token, modes: { ...(token.modes ?? {}), [op.mode]: clone(op.value) } }
+        : { ...token, value: clone(op.value) };
       break;
     }
     case "addToken": {
@@ -364,9 +434,11 @@ function applyDocumentOp(
         break;
       }
       document.components = document.components.filter((c) => c.id !== op.componentId);
-      for (const page of document.pages) {
-        for (const node of Object.values(page.nodes)) {
-          if (node.componentId === op.componentId) node.componentId = undefined;
+      for (const page of [...document.pages]) {
+        for (const nodeId of Object.keys(page.nodes)) {
+          if (page.nodes[nodeId]!.componentId === op.componentId) {
+            cow.nodeOn(page.id, nodeId)!.componentId = undefined;
+          }
         }
       }
       break;
@@ -376,7 +448,7 @@ function applyDocumentOp(
         document.components = [...document.components, clone(op.component)];
       }
       for (const r of op.nodes) {
-        const node = document.pages.find((p) => p.id === r.pageId)?.nodes[r.nodeId];
+        const node = cow.nodeOn(r.pageId, r.nodeId);
         if (node) node.componentId = op.component.id;
       }
       break;
@@ -395,17 +467,26 @@ function applyDocumentOp(
         break;
       }
       document.assets = document.assets.filter((a) => a.id !== op.assetId);
-      for (const page of document.pages) {
-        for (const node of Object.values(page.nodes)) {
-          if (Array.isArray(node.style.fills)) {
-            const kept = node.style.fills.filter(
+      for (const page of [...document.pages]) {
+        for (const nodeId of Object.keys(page.nodes)) {
+          const node = page.nodes[nodeId]!;
+          const hitsFill =
+            Array.isArray(node.style.fills) &&
+            node.style.fills.some(
+              (p) => p.kind === "image" && p.assetId === op.assetId,
+            );
+          if (!hitsFill && node.assetId !== op.assetId) continue;
+          const mutable = cow.nodeOn(page.id, nodeId);
+          if (!mutable) continue;
+          if (Array.isArray(mutable.style.fills)) {
+            const kept = mutable.style.fills.filter(
               (p) => !(p.kind === "image" && p.assetId === op.assetId),
             );
-            if (kept.length !== node.style.fills.length) node.style.fills = kept;
+            if (kept.length !== mutable.style.fills.length) mutable.style.fills = kept;
           }
-          if (node.assetId === op.assetId) {
-            node.assetId = undefined;
-            node.src = undefined;
+          if (mutable.assetId === op.assetId) {
+            mutable.assetId = undefined;
+            mutable.src = undefined;
           }
         }
       }
@@ -416,11 +497,11 @@ function applyDocumentOp(
         document.assets = [...document.assets, clone(op.asset)];
       }
       for (const r of op.paints) {
-        const node = document.pages.find((p) => p.id === r.pageId)?.nodes[r.nodeId];
+        const node = cow.nodeOn(r.pageId, r.nodeId);
         if (node) node.style.fills = clone(r.fills);
       }
       for (const r of op.nodes) {
-        const node = document.pages.find((p) => p.id === r.pageId)?.nodes[r.nodeId];
+        const node = cow.nodeOn(r.pageId, r.nodeId);
         if (node) {
           node.assetId = r.assetId;
           if (r.src !== undefined) node.src = r.src;
@@ -458,13 +539,17 @@ export function isWithin(
   return false;
 }
 
-/** 应用补丁：返回新 document（不修改入参），并记录被触碰的节点 */
+/**
+ * 应用补丁：返回新 document（不修改入参），并记录被触碰的节点。
+ * 结构共享见 `CopyOnWrite`——不整份克隆，只拷被写过的那几层。
+ */
 export function applyPatch(
   document: DesignDocument,
   patch: DesignPatch,
 ): ApplyResult {
-  const next = clone(document);
-  const page = findPage(next, patch.pageId);
+  const cow = new CopyOnWrite(document);
+  const next = cow.document;
+  const page = cow.page(patch.pageId);
   const touched = new Set<string>();
   const skipped: { index: number; reason: string }[] = [];
   if (!page) {
@@ -475,22 +560,22 @@ export function applyPatch(
     };
   }
   const pageOps: PatchOp[] = patch.ops.filter((op) => !isDocumentOp(op));
-  applyToPage(page, pageOps, skipped, touched, next);
+  applyToPage(cow, page, pageOps, skipped, touched);
   // document 级 op 单独走一遍，index 与原始 ops 对齐以便定位
   const offsetIndexSkips: { index: number; reason: string }[] = [];
-  applyDocumentOpsWithIndex(next, patch.ops, offsetIndexSkips);
+  applyDocumentOpsWithIndex(cow, patch.ops, offsetIndexSkips);
   skipped.push(...offsetIndexSkips);
   next.metadata.updatedAt = new Date().toISOString();
   return { document: next, touchedNodeIds: [...touched], skipped };
 }
 
 function applyDocumentOpsWithIndex(
-  document: DesignDocument,
+  cow: CopyOnWrite,
   ops: PatchOp[],
   skipped: { index: number; reason: string }[],
 ): void {
   ops.forEach((op, index) => {
-    if (isDocumentOp(op)) applyDocumentOp(document, op, skipped, index);
+    if (isDocumentOp(op)) applyDocumentOp(cow, op, skipped, index);
   });
 }
 

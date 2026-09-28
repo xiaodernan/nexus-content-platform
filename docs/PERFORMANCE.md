@@ -130,8 +130,9 @@ codegen 把 code-only 区域发成 JSX 里的字符串字面量（`packages/desi
 
 ## §147 还没做的部分（别把上面当成"大项目已优化"）
 
-- **拷贝仍是整份**：`applyPatch` 对文档做全量克隆，10k 节点上那 129ms 的主体还是它。
-  下一步是结构共享（只拷贝被触碰的 page / node 路径），代价是要仔细处理 undo 栈里的别名。
+- ~~**拷贝仍是整份**~~：`applyPatch` 已落地结构共享（写时拷贝 `CopyOnWrite` 类），
+  10k 节点 `execute + undo ×10` 从 657.9ms 降至 ~200ms（≈ 3.3×），
+  同会话前后对照（`scripts/perf-baseline.mts`），详见 `packages/design-model/test/structural-sharing.test.ts`。
 - **持久层还有两处已知但不划算的**：`writeDocument` 里 token 与 component 仍是**一行一条 INSERT**
   （几十条时无所谓，几百条就会变成 2.5s 里可见的一段）；`loadDocument` 按页面逐页查节点（N+1），
   页面数上去以后每页一次往返。两者都不影响正确性，等真的被量到再改。
