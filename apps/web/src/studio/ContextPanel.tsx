@@ -46,18 +46,22 @@ export function ContextPanel() {
   const studio = useStudioReady();
   const [context, setContext] = useState<ProjectContextPayload | null>(null);
   const [budget, setBudget] = useState('20000');
+  const [corpusQuery, setCorpusQuery] = useState('');
   const [message, setMessage] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
   const load = useCallback(
-    async (chars: number | null) => {
+    async (chars: number | null, query?: string) => {
       setBusy(true);
       setMessage(null);
       try {
-        const url =
-          chars === null
-            ? `/api/projects/${studio.projectId}/context`
-            : `/api/projects/${studio.projectId}/context?indexChars=${chars}`;
+        // 参数交给 URLSearchParams：手拼 `?a=…&b=…` 早晚会漏一次转义，
+        // 而中文查询词不转义时最坏的结果是"永远取不到"，看着像项目里真没这句话
+        const params = new URLSearchParams();
+        if (chars !== null) params.set('indexChars', String(chars));
+        const q = query?.trim() ?? '';
+        if (q) params.set('corpusQuery', q);
+        const url = `/api/projects/${studio.projectId}/context${params.size > 0 ? `?${params.toString()}` : ''}`;
         const res = await fetch(url, { cache: 'no-store' });
         const body = (await res.json().catch(() => null)) as
           | { context?: ProjectContextPayload; message?: string }
@@ -271,6 +275,56 @@ export function ContextPanel() {
                 context.knowledge.vectorAvailable ? '有向量' : '无向量：没有 provider 就没有语义检索'
               }）`}
             />
+            {/* §49 × §66-71：AI 请求会拿本轮提示词去语料库取内容，这里给同一个入口试一次，
+                让"面板看到的上下文"与"发出去的上下文"是同一份装配，而不是两套说法 */}
+            <div className="mt-1 flex flex-col gap-1" data-context-corpus>
+              <div className="flex items-center gap-1">
+                <input
+                  value={corpusQuery}
+                  onChange={(e) => setCorpusQuery(e.target.value)}
+                  placeholder="按一句设定试取回…"
+                  aria-label="语料查询词"
+                  data-context-corpus-input
+                  className="min-w-0 flex-1 rounded-[var(--nexus-radius-sm)] bg-bg-2 px-2 py-1 text-11 text-fg-1 outline-none focus:bg-bg-3"
+                />
+                <button
+                  type="button"
+                  disabled={busy || !corpusQuery.trim()}
+                  onClick={() => void load(null, corpusQuery)}
+                  data-context-corpus-run
+                  className="shrink-0 rounded-[var(--nexus-radius-sm)] border border-[var(--nexus-color-border-strong)] px-2 py-0.5 text-11 text-fg-3 hover:bg-bg-2 disabled:opacity-50"
+                >
+                  试一次
+                </button>
+              </div>
+              {context.corpus.query ? (
+                <p className="text-11 leading-relaxed text-fg-3" data-context-corpus-summary>
+                  按「{context.corpus.query}」取回 {context.corpus.used}/{context.corpus.candidates} 块
+                  {context.corpus.omitted > 0
+                    ? `，另有 ${context.corpus.omitted} 块相关的因预算没带上`
+                    : ''}
+                </p>
+              ) : (
+                <p className="text-11 leading-relaxed text-fg-3" data-context-corpus-none>
+                  这一轮没查语料库：AI 请求是拿本轮提示词去查的，这里点「试一次」看同一份结果。
+                </p>
+              )}
+              {context.corpus.items.map((item) => (
+                <p
+                  key={`${item.sourceId}#${item.chunkIndex}`}
+                  className="text-11 leading-relaxed text-fg-2"
+                  data-context-corpus-item={item.sourceId}
+                >
+                  <span className="font-mono text-10 text-fg-3">{item.title}</span>
+                  {` · 命中方式 ${item.matchedBy.join('+')} · 分 ${item.score.toFixed(2)}\n${item.excerpt}`}
+                </p>
+              ))}
+              {context.corpus.query !== null && context.corpus.items.length === 0 ? (
+                <p className="text-11 leading-relaxed text-fg-3" data-context-corpus-empty>
+                  一条都没取到：这个项目里没有与这句话相关的语料（不是"检索坏了"）。
+                </p>
+              ) : null}
+            </div>
             <Row
               k="发布"
               v={

@@ -1470,7 +1470,8 @@ test('@smoke 上下文：目录尺寸、预算裁剪与未索引分支都写在�
   await expect(page.locator('[data-context-local]')).toContainText('1 个：Headline');
 
   // 目录与整份文档的尺寸对比：这是 §68 那句"别整个塞进去"的可核对版本
-  await expect(page.locator('[data-context-chars]')).toContainText('字符（');
+  // 冷启动时这个路由要现编译，5s 默认值在这台机器上不够用（同一形状的红这一片已经遇过一次）
+  await expect(page.locator('[data-context-chars]')).toContainText('字符（', { timeout: 25_000 });
   await expect(page.locator('[data-context-page="Home"]')).toContainText('8 节点');
   // 刚起步的项目：世界确实还没有，面板不该拿一份空文档装作有
   await expect(page.locator('[data-context-panel]')).toContainText('还没有世界文档');
@@ -1505,6 +1506,24 @@ test('@smoke 上下文：目录尺寸、预算裁剪与未索引分支都写在�
   await expect(
     page.locator('[data-context-unavailable]').filter({ hasText: '代码正文' }),
   ).toBeVisible();
+
+  // §49 × §66-71：面板能按一句设定试取回语料——这一栏在 AI 请求里就是本轮提示词，
+  // 面板与报文必须出自同一次装配，否则"上下文"这个词在这里有两套说法。
+  await expect(page.locator('[data-context-corpus-none]')).toBeVisible();
+  await page.fill('[data-context-corpus-input]', '从一句话到一个可发布的产品');
+  await page.click('[data-context-corpus-run]');
+  await expect(page.locator('[data-context-corpus-summary]')).toContainText(/取回 \d+\/\d+ 块/, {
+    timeout: 30_000,
+  });
+  await expect(page.locator('[data-context-corpus-item]').first()).toContainText(
+    '从一句话到一个可发布的产品',
+  );
+  // 库里没有的一句话要说"没取到"，不许留一个看着像结果的空壳
+  await page.fill('[data-context-corpus-input]', '这句话项目里绝对没有：紫香蕉值班表');
+  await page.click('[data-context-corpus-run]');
+  await expect(page.locator('[data-context-corpus-empty]')).toBeVisible();
+  await expect(page.locator('[data-context-corpus-item]')).toHaveCount(0);
+  await page.screenshot({ path: 'screenshots/context-corpus.png' });
 });
 
 test('@smoke 发布机检与公开页举报：挡下要说清凭什么，举报要说清之后会发生什么（§131/§132）', async ({ page }) => {
