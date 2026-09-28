@@ -1106,6 +1106,46 @@ test('@smoke 检索面板：设计正文一块即一页，改一句文案旧句�
 });
 
 /**
+ * §73：一次**失败的读取**不许说成"索引里有 0 块"。
+ *
+ * 触发方式是拦下真请求（不是喂假数据）：上一轮 e2e 三条全红，面板上写的是 `HTTP 404` 与
+ * 「索引里有 0 块语料」，而直接数库每个项目都有 1 块设计正文。
+ * 成因是 dev 的路由产物坏了，但界面那句谎是真的——查不到就说查不到。
+ * 所以这条两头都断：拦下来时不报块数、芯片一个都不出现；放行后点「重试」能拿回真的块数。
+ */
+test('@smoke 检索面板：读不到语料库时不报块数，重试之后芯片回来（§73）', async ({ page }) => {
+  test.setTimeout(180_000);
+  await createProject(page, `检索故障 ${Date.now().toString(36)}`);
+
+  await page.route('**/api/projects/*/knowledge', async (route) => {
+    if (route.request().method() !== 'GET') return route.continue();
+    await route.fulfill({
+      status: 503,
+      contentType: 'application/json',
+      body: JSON.stringify({ ok: false, message: '语料库读不到（测试注入的故障）' }),
+    });
+  });
+
+  await page.click('[data-panel-tab="retrieve"]');
+  await expect(page.locator('[data-knowledge-total]')).toHaveText('读不到', { timeout: 40_000 });
+  await expect(page.locator('[data-knowledge-total]')).toHaveAttribute('data-stats-failed', 'true');
+  // 这句是这一片要消灭的形状：一次故障被报成一个像内容的数字
+  await expect(page.locator('[data-retrieve-idle]')).not.toContainText('0 块');
+  await expect(page.locator('[data-retrieve-idle]')).toContainText('不报块数');
+  // 芯片缺席本来是"这一类真的没块"的证据，不能替一次网络故障作证
+  await expect(page.locator('[data-knowledge-source]')).toHaveCount(0);
+  await expect(page.locator('[data-knowledge-unavailable]')).toContainText('语料库读不到');
+
+  await page.unroute('**/api/projects/*/knowledge');
+  await page.click('[data-retrieve-stats-retry]');
+  await expect(page.locator('[data-knowledge-source="design"]')).toHaveText('设计文档 1', { timeout: 30_000 });
+  await expect(page.locator('[data-knowledge-total]')).toHaveText('1 块');
+  await expect(page.locator('[data-knowledge-total]')).toHaveAttribute('data-stats-failed', 'false');
+  await expect(page.locator('[data-knowledge-unavailable]')).toHaveCount(0);
+  await page.screenshot({ path: 'screenshots/retrieve-stats-unavailable.png' });
+});
+
+/**
  * §54 的引用图：`referenceGraph` 那份投影画成一张图，连与摘都写回同一份文档。
  * 这条用例特意同时盯着左侧面板：图与面板读的是同一个 store，
  * 两处各存一份游戏真值就是 §16 要避免的事。

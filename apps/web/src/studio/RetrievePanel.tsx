@@ -63,6 +63,9 @@ export function RetrievePanel() {
   const [searched, setSearched] = useState(false);
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
+  // 读取失败与"库里真的没块"是两件事，界面必须说不同的话：把一次 404/503 报成「0 块」，
+  // 就等于用一个像内容的数字宣布"这个项目没有语料"（§159）。
+  const [statsFailed, setStatsFailed] = useState<string | null>(null);
 
   const loadStats = useCallback(async () => {
     try {
@@ -76,8 +79,11 @@ export function RetrievePanel() {
         vectorized: body?.vectorized ?? 0,
         bySource: body?.bySource ?? {},
       });
+      setStatsFailed(null);
     } catch (error) {
-      setMessage(error instanceof Error ? error.message : String(error));
+      const reason = error instanceof Error ? error.message : String(error);
+      setStatsFailed(reason);
+      setMessage(reason);
     }
   }, [studio.projectId]);
 
@@ -131,26 +137,47 @@ export function RetrievePanel() {
       <header className="shrink-0 border-b border-[var(--nexus-color-border-subtle)] p-[var(--nexus-space-3)]">
         <div className="flex items-center gap-2">
           <h2 className="font-mono text-12 uppercase tracking-wide text-fg-3">检索</h2>
-          <span className="ml-auto font-mono text-11 text-fg-3" data-knowledge-total>
-            {stats.total} 块
+          <span
+            className="ml-auto font-mono text-11 text-fg-3"
+            data-knowledge-total
+            data-stats-failed={statsFailed ? 'true' : 'false'}
+          >
+            {statsFailed ? '读不到' : `${stats.total} 块`}
           </span>
         </div>
-        {/* 只有总数说不清"哪一类有几块"：设计正文一进来，总数就不再等于"游戏有没有内容"。
-            一块都没有的来源不出现芯片——缺哪一片就是那一类真的没内容。 */}
-        <div className="mt-2 flex flex-wrap items-center gap-1" data-knowledge-sources>
-          {Object.entries(stats.bySource)
-            .filter(([, count]) => count > 0)
-            .sort(([a], [b]) => a.localeCompare(b))
-            .map(([key, count]) => (
-              <span
-                key={key}
-                data-knowledge-source={key}
-                className="rounded-[var(--nexus-radius-sm)] bg-bg-2 px-1.5 py-0.5 font-mono text-11 text-fg-3"
-              >
-                {SOURCE_LABELS[key] ?? key} {count}
-              </span>
-            ))}
-        </div>
+        {statsFailed ? (
+          // 读失败时这里一个芯片都不许出现：芯片缺席本来是"这一类真的没块"的证据，
+          // 让它替一次网络故障作证就是把证据变成谎。
+          <div className="mt-2 flex flex-wrap items-center gap-2" data-knowledge-unavailable>
+            <span className="font-mono text-11 text-danger">语料库读不到：{statsFailed}</span>
+            <button
+              type="button"
+              disabled={busy}
+              onClick={() => void loadStats()}
+              data-retrieve-stats-retry
+              className="rounded-[var(--nexus-radius-sm)] border border-[var(--nexus-color-border-strong)] px-2 py-0.5 text-11 text-fg-3 hover:bg-bg-2 disabled:opacity-50"
+            >
+              重试
+            </button>
+          </div>
+        ) : (
+          /* 只有总数说不清"哪一类有几块"：设计正文一进来，总数就不再等于"游戏有没有内容"。
+             一块都没有的来源不出现芯片——缺哪一片就是那一类真的没内容。 */
+          <div className="mt-2 flex flex-wrap items-center gap-1" data-knowledge-sources>
+            {Object.entries(stats.bySource)
+              .filter(([, count]) => count > 0)
+              .sort(([a], [b]) => a.localeCompare(b))
+              .map(([key, count]) => (
+                <span
+                  key={key}
+                  data-knowledge-source={key}
+                  className="rounded-[var(--nexus-radius-sm)] bg-bg-2 px-1.5 py-0.5 font-mono text-11 text-fg-3"
+                >
+                  {SOURCE_LABELS[key] ?? key} {count}
+                </span>
+              ))}
+          </div>
+        )}
         <div className="mt-2 flex items-center gap-1">
           <input
             value={query}
@@ -202,7 +229,9 @@ export function RetrievePanel() {
       <div className="min-h-0 flex-1 overflow-auto p-[var(--nexus-space-2)]">
         {!searched ? (
           <p className="p-3 text-12 text-fg-3" data-retrieve-idle>
-            还没有查询。索引里有 {stats.total} 块语料。
+            {statsFailed
+              ? '还没有查询。语料库这次没读到，所以这里不报块数——点上面的「重试」再看一次。'
+              : `还没有查询。索引里有 ${stats.total} 块语料。`}
           </p>
         ) : null}
         {searched && !items.length ? (
