@@ -980,21 +980,26 @@ test('@smoke 检索面板：游戏骨架 0 块，填过的实体同一个词就�
   test.setTimeout(180_000);
   await createProject(page, `游戏检索 ${Date.now().toString(36)}`);
 
-  // 空项目：语料库是空的，界面不能显示"有 N 块"来假装同步过了
+  // 空项目：语料库里此刻只有这个设计自己那一块正文（§49 Documents），一类一块都不多
   await page.click('[data-panel-tab="retrieve"]');
   await expect(page.locator('[data-retrieve-panel]')).toBeVisible({ timeout: 40_000 });
-  await expect(page.locator('[data-knowledge-total]')).toHaveText('0 块', { timeout: 30_000 });
+  await expect(page.locator('[data-knowledge-source="design"]')).toHaveText('设计文档 1', { timeout: 30_000 });
+  await expect(page.locator('[data-knowledge-source="game"]')).toHaveCount(0);
 
   await page.click('[data-panel-tab="game"]');
   await expect(page.locator('[data-game-empty]')).toBeVisible({ timeout: 40_000 });
   await page.click('[data-game-create]');
   await expect(page.locator('[data-game-entity]')).toHaveCount(11);
-  await expect(page.locator('[data-game-state]')).toHaveText('已保存');
+  // 这一句在上一轮跑里红过一次（拿默认 5s 等"已保存"）：骨架保存要连着换一遍语料索引，
+  // 5 秒在冷启动的 dev 服务器上不是余量。兄弟断言都给到 20s，这里补齐，别把负载当回归。
+  await expect(page.locator('[data-game-state]')).toHaveText('已保存', { timeout: 20_000 });
 
-  // 建完骨架回到检索面板：块数仍然是 0。这条断言是这一片的诚实之处——
-  // 只有名字没有内容的 11 个实体进了索引，"查不到内容"就会变成"查到一堆空壳"
+  // 建完骨架回到检索面板：游戏那一类仍然一块都没有——芯片缺席就是证据。
+  // 这条断言是这一片的诚实之处：只有名字没有内容的 11 个实体一旦进了索引，
+  // "查不到内容"就会变成"查到一堆空壳"。总数不再当证据，因为设计正文本来就占一块。
   await page.click('[data-panel-tab="retrieve"]');
-  await expect(page.locator('[data-knowledge-total]')).toHaveText('0 块');
+  await expect(page.locator('[data-knowledge-source="game"]')).toHaveCount(0);
+  await expect(page.locator('[data-knowledge-source="design"]')).toHaveText('设计文档 1');
 
   await page.click('[data-panel-tab="game"]');
   const enemyId = await page
@@ -1016,8 +1021,9 @@ test('@smoke 检索面板：游戏骨架 0 块，填过的实体同一个词就�
   await expect(page.locator('[data-game-pending]')).toHaveAttribute('data-game-pending', 'false', { timeout: 20_000 });
 
   await page.click('[data-panel-tab="retrieve"]');
-  // 概述 1 块 + 填过的那位敌人 1 块；其余 10 个空壳不产生块
-  await expect(page.locator('[data-knowledge-total]')).toHaveText('2 块');
+  // 概述 1 块 + 填过的那位敌人 1 块；其余 10 个空壳不产生块。
+  // 数的是芯片上那一类的条数，不是总数——总数里还含着这个项目自己的设计正文一块（§49 Documents）
+  await expect(page.locator('[data-knowledge-source="game"]')).toHaveText('游戏 2');
   // 面板自我介绍那句也得把游戏算进语料，否则界面说的和库里装的不是同一件事
   await expect(page.locator('[data-retrieve-note]')).toContainText('游戏实体');
 
@@ -1044,6 +1050,59 @@ test('@smoke 检索面板：游戏骨架 0 块，填过的实体同一个词就�
   // 类型读的是标签表：界面上出现 kind 那种内部写法就是噪音
   await expect(summaryHit).toContainText('游戏类型：视觉小说');
   await page.screenshot({ path: 'screenshots/game-retrieved.png' });
+});
+
+/**
+ * §49 清单最后一格「Documents」：设计文档（§16）的正文进语料库。
+ *
+ * 只有真浏览器能回答的那一段：**自动保存那条路**换不换语料块。
+ * Studio 里每次编辑都 PUT 整份文档，检索吃的是节点上的文字，所以这一条走的是
+ * 图层选中 → 属性面板改 text → 防抖自动保存 → 检索面板，中间没有任何测试替身。
+ * 服务端那半（重建不抹掉设计块、两个项目不撞唯一约束）在 `knowledge.integration.test.ts`。
+ */
+test('@smoke 检索面板：设计正文一块即一页，改一句文案旧句子就再也查不到（§49 × §16）', async ({ page }) => {
+  test.setTimeout(180_000);
+  await createProject(page, `设计检索 ${Date.now().toString(36)}`);
+
+  const search = async (query: string) => {
+    await page.fill('[data-retrieve-query]', query);
+    await page.click('[data-retrieve-run]');
+    return page
+      .locator('[data-retrieve-hit]')
+      .filter({ has: page.locator('[data-retrieve-part]:has-text("Home")') });
+  };
+
+  await page.click('[data-panel-tab="retrieve"]');
+  // 起始模板带着真文案，所以建完项目就可检索：一块 = 一页
+  await expect(page.locator('[data-knowledge-source="design"]')).toHaveText('设计文档 1', { timeout: 40_000 });
+  // 面板自我介绍那句也得把设计算进去，否则界面说的和库里装的不是同一件事
+  await expect(page.locator('[data-retrieve-note]')).toContainText('设计页面的文字节点');
+
+  const template = await search('从一句话到一个可发布的产品');
+  await expect(template, '模板标题那句话查不到 = 设计正文对 AI 不存在').toHaveCount(1);
+  await expect(template.locator('[data-retrieve-source="design"]')).toBeVisible();
+  // 中文标签，不是裸的 design
+  await expect(template).toContainText('设计文档');
+
+  await page.click('[data-panel-tab="layers"]');
+  const headlineId = await layerId(page, 'Headline');
+  await page.click(`[data-node-id="${headlineId}"]`);
+  await page.fill('[data-prop="text"]', '雾里的港口只有一条会响的钟');
+  await expect(page.locator('[data-save-state]')).toContainText('已保存', { timeout: 30_000 });
+
+  await page.click('[data-panel-tab="retrieve"]');
+  // 换块不是追加块：改完仍然只有一页一块
+  await expect(page.locator('[data-knowledge-source="design"]')).toHaveText('设计文档 1');
+  await expect(
+    await search('从一句话到一个可发布的产品'),
+    '改完还查得到旧标题 = 自动保存没换语料块',
+  ).toHaveCount(0);
+  const fresh = await search('雾里的港口只有一条会响的钟');
+  await expect(fresh, '改后的句子查不到 = 设计编辑对 AI 不存在').toHaveCount(1);
+  // 块里带着节点名：拿到这块的人知道该改哪个节点，不是一坨没有出处的文案
+  await expect(fresh).toContainText('Headline：雾里的港口只有一条会响的钟');
+  await expect(fresh.locator('[data-retrieve-part]')).toBeInViewport();
+  await page.screenshot({ path: 'screenshots/design-retrieved.png' });
 });
 
 /**
@@ -1329,7 +1388,8 @@ test('@smoke 检索：世界条目进索引、中文子串命中、说明向量�
 
   await page.click('[data-panel-tab="retrieve"]');
   await expect(page.locator('[data-retrieve-panel]')).toBeVisible();
-  await expect(page.locator('[data-knowledge-total]')).not.toHaveText('0 块');
+  // 芯片按来源数：写了正文的世界条目必须自己产生一块（总数不再是证据——设计正文恒占一块）
+  await expect(page.locator('[data-knowledge-source="lore"]')).toBeVisible();
   await expect(page.locator('[data-retrieve-note]')).toContainText('向量检索未接');
 
   await page.fill('[data-retrieve-query]', '守钟人再没有敲响过');

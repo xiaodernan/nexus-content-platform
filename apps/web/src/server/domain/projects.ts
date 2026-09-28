@@ -12,6 +12,7 @@ import {
   type Token,
 } from '@nexus/design-model';
 import { recordAudit } from './audit';
+import { syncDesignKnowledge } from './knowledge';
 import { getDb } from '../db/client';
 import { assets, branches, components, designNodes, designTokens, pages, projects, snapshots } from '../db/schema';
 
@@ -110,7 +111,11 @@ export async function createProject(ownerId: string, input: CreateProjectInput):
   });
 
   // 返回从库里读回来的那份，而不是内存里的那份：创建路径本身也要被验证
-  return (await loadDocument(projectId)) ?? document;
+  const stored = await loadDocument(projectId);
+  // 同上（§49 Documents）：Duplicate 一份带文案的项目，落地那一刻文案就该查得到，
+  // 而不是等用户第一次按保存。切的是**读回来**的那份——库里没有的文字不配进语料。
+  await syncDesignKnowledge(projectId, stored ?? document);
+  return stored ?? document;
 }
 
 type Tx = Parameters<Parameters<ReturnType<typeof getDb>['transaction']>[0]>[0];
@@ -357,6 +362,11 @@ export async function saveDocument(projectId: string, document: DesignDocument):
       })
       .where(eq(projects.id, projectId));
   });
+  // §49 的 Documents 那一格：设计正文要能被检索，改一句就得换一块。
+  // 必须放在事务**外面**：同步走的是 `getDb()` 那条独立连接，它在事务里写的 chunk
+  // 不会跟着外层回滚——文档没存成而语料里已经是新句子，检索就会回答一份不存在的设计。
+  // 只删/插 `design` 这一类，别动世界/角色/分镜那些（它们各自的写入方负责）。
+  await syncDesignKnowledge(projectId, document);
 }
 
 export interface ProjectSummary {

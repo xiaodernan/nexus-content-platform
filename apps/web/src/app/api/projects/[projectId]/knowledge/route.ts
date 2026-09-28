@@ -25,6 +25,9 @@ export async function GET(_req: Request, ctx: RouteContext): Promise<NextRespons
 /**
  * 重建索引。写路径本来就会自动同步，这里是给"导入完东西想立刻确认索引跟上了"
  * 留的一个显式按钮——自动同步 + 手动重建不矛盾：前者保证不撒谎，后者保证可核对。
+ *
+ * `includeDesign` 让这颗按钮连设计正文一起重切：写路径只换改动的那一类，
+ * 所以**这批内容进库之前建好的项目**只能靠这里补上第一块（§49 清单最后一格 Documents）。
  */
 export async function POST(req: Request, ctx: RouteContext): Promise<NextResponse> {
   if (!(await csrfOk(req))) return jsonError(403, 'csrf_failed', { message: 'CSRF 校验未通过' });
@@ -32,7 +35,7 @@ export async function POST(req: Request, ctx: RouteContext): Promise<NextRespons
   try {
     const user = await requireUser();
     if (!(await projectBelongsTo(projectId, user.id))) return notFound();
-    const result = await syncProjectKnowledge(projectId);
+    const result = await syncProjectKnowledge(projectId, { includeDesign: true });
     return NextResponse.json({ ok: true, ...result });
   } catch (error) {
     return failure(error, `POST /api/projects/${projectId}/knowledge/sync`);

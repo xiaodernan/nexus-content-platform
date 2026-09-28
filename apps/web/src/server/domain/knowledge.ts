@@ -1,16 +1,17 @@
-import { and, eq, inArray, or, sql } from 'drizzle-orm';
+import { and, eq, inArray, ne, or, sql } from 'drizzle-orm';
 import { getDb } from '../db/client';
 import { characters, games, knowledgeChunks, memories, storyboards, worlds } from '../db/schema';
 import type { CharacterProfile, WorldDocument } from '@nexus/world-model';
 import { WORLD_KIND_LABELS, type WorldKind } from '@nexus/world-model';
 import type { Storyboard } from '@nexus/video-model';
 import { GAME_ENTITY_LABELS, GAME_KIND_LABELS, type GameDocument } from '@nexus/game-model';
+import { walk, type DesignDocument } from '@nexus/design-model';
 
 /**
  * §49 RAG 的语料与检索。这一层只做**不需要模型**的那一半：
  *
  * - 切分与入库：世界条目（§44）、角色档案（§46）、四类记忆（§48）、分镜镜头（§40）、
- *   游戏实体（§54）→ `knowledge_chunks`；
+ *   游戏实体（§54）、设计文档正文（§16）→ `knowledge_chunks`；
  * - 混合检索：PostgreSQL 全文（`tsvector`，'simple' 配置）+ 子串命中 + 词覆盖度，
  *   三者做一个**能解释**的确定性融合，结果里带着各项分量返回。
  *
@@ -38,7 +39,8 @@ export type KnowledgeSourceType =
   | 'character'
   | 'memory'
   | 'storyboard'
-  | 'game';
+  | 'game'
+  | 'design';
 
 const WORLD_KIND_SOURCE: Record<WorldKind, KnowledgeSourceType> = {
   lore: 'lore',
@@ -66,6 +68,7 @@ export const SOURCE_LABELS: Record<KnowledgeSourceType, string> = {
   memory: '记忆',
   storyboard: '分镜',
   game: '游戏',
+  design: '设计文档',
 };
 
 export interface Chunk {
@@ -275,6 +278,117 @@ export function chunksFromGame(document: GameDocument, gameId: string, worldId: 
   return out;
 }
 
+/**
+ * §49 清单里最后一格「Documents」：设计文档（§16）的正文进语料库。
+ *
+ * 一份设计里能被检索的只有**文字**：节点的 `text`。形状、颜色、token 引用是§70 索引的活
+ * （它列目录不抄内容，omissions 里明写了"语义检索与相关性排序"不归它），代码块是 §69 的活。
+ * 所以这里只吃 `text`，一块 = 一个页面：
+ * - 一个文字节点通常只有十几个字，逐节点切块会让 4000 节点的项目产出上千条碎语料，
+ *   面板里滚不完，检索时也读不出"这句话在哪页、上下还有什么"；
+ * - 按页聚合成一块，行与行仍然带着**节点名**，AI 拿到块能指着名字改对节点。
+ *
+ * 三条刻意不做的事：
+ * - **纯布局/样式节点不产生内容**：一个页面全是空 frame，就没有可检索的文字，
+ *   和 §54 那条"空骨架一块都不进"是同一句话（§159：别把建档痕迹当内容）。
+ * - **不写 page.meta 的描述与路由**：`pages` 表没有这两列（`writeDocument` 只落 name/尺寸/背景），
+ *   把它们切进语料等于索引一份库里没有的东西——下一次从库里重读就变了，块却是查得到的谎话。
+ * - **走不到的节点仍然进块**：`designNodes` 存的是 `Object.values(page.nodes)` 全量，
+ *   从页面根 BFS 不到的文字真的在文档里，单列一段标出来，不静默丢。
+ */
+export function chunksFromDesign(document: DesignDocument, projectId: string): Chunk[] {
+  const out: Chunk[] = [];
+  const docName = document.name || '（没有名字）';
+  for (const page of document.pages) {
+    const lines: string[] = [];
+    const reached = new Set<string>();
+    walk(page, (node) => {
+      reached.add(node.id);
+      const text = typeof node.text === 'string' ? node.text.trim() : '';
+      if (text) lines.push(`${node.name || node.type}：${text}`);
+    });
+    const orphan = Object.values(page.nodes)
+      .filter((node) => !reached.has(node.id))
+      .map((node) => {
+        const text = typeof node.text === 'string' ? node.text.trim() : '';
+        return text ? `${node.name || node.type}：${text}（不在页面树里）` : '';
+      })
+      .filter(Boolean);
+    if (!lines.length && !orphan.length) continue;
+    const body = [
+      `设计文档：${docName}`,
+      `页面：${page.name || '（没有名字）'}`,
+      '',
+      lines.join('\n'),
+      orphan.length ? `\n没有接进页面树的节点：\n${orphan.join('\n')}` : '',
+    ].join('\n');
+    chunkText(body).forEach((content, chunkIndex) => {
+      out.push({
+        sourceType: 'design',
+        sourceId: `${projectId}#page-${page.id}`,
+        chunkIndex,
+        content,
+        title: `${docName} · ${page.name || '（没有名字）'}`,
+        worldId: null,
+      });
+    });
+  }
+  return out;
+}
+
+/**
+ * 设计文档自己的同步路径：只换这个项目的 `design` 块，别碰世界/角色/记忆/分镜/游戏那些。
+ *
+ * 为什么不**只有**这条路：`syncProjectKnowledge(projectId, { includeDesign: true })`
+ * 也会重切设计正文，但那是显式「重建索引」按钮与补历史项目索引的代价；设计的写入频率是
+ * **每次自动保存**（Studio 里动一下就 PUT），让每次挪一个像素都付一遍全库重切的账是 §147 的纪律。
+ * 这条路径因此只碰 `design` 那一类，删除范围正好等于它的重写范围。
+ *
+ * `document` 由调用方给（PUT 请求里那份就是刚提交的真值），这里不再读库：
+ * 读回来要经过 `loadDocument` 那份整档重建，等于把省掉的那一遍加回去。
+ */
+export async function syncDesignKnowledge(
+  projectId: string,
+  document: DesignDocument,
+): Promise<{ chunks: number }> {
+  const db = getDb();
+  const chunks = chunksFromDesign(document, projectId);
+  await db
+    .delete(knowledgeChunks)
+    .where(
+      and(
+        eq(knowledgeChunks.projectId, projectId),
+        eq(knowledgeChunks.sourceType, 'design'),
+      ),
+    );
+  for (const part of chunkRows(chunks, projectId)) {
+    await db.insert(knowledgeChunks).values(part);
+  }
+  return { chunks: chunks.length };
+}
+
+/** 单条 INSERT 也有参数上限（`writeDocument` 那边量过是 65,535），块行 8 个字段，切到 500 一块插 */
+const KNOWLEDGE_INSERT_CHUNK = 500;
+
+function chunkRows(
+  chunks: Chunk[],
+  projectId: string,
+): Array<typeof knowledgeChunks.$inferInsert>[] {
+  const rows: Array<typeof knowledgeChunks.$inferInsert> = chunks.map((chunk) => ({
+    projectId,
+    worldId: chunk.worldId,
+    sourceType: chunk.sourceType,
+    sourceId: chunk.sourceId,
+    chunkIndex: chunk.chunkIndex,
+    content: chunk.content,
+    tokens: estimateTokens(chunk.content),
+    meta: { title: chunk.title, syncedAt: new Date().toISOString() },
+  }));
+  const out: Array<typeof knowledgeChunks.$inferInsert>[] = [];
+  for (let i = 0; i < rows.length; i += KNOWLEDGE_INSERT_CHUNK) out.push(rows.slice(i, i + KNOWLEDGE_INSERT_CHUNK));
+  return out;
+}
+
 const MEMORY_SCOPE_SOURCE: Record<string, string> = {
   session: '本次会话',
   character: '角色',
@@ -301,20 +415,35 @@ export function chunksFromMemory(input: {
 }
 
 /**
- * 重建这个项目的全部语料。删掉本项目的所有 chunk 再按当前文档重切——
- * 比"增量对齐"多花一点写代价，但不会出现"改了却还检索到旧内容"这种最难查的谎。
+ * 重建这个项目的语料。删掉本项目的 chunk 再按当前文档重切——比"增量对齐"多花一点写代价，
+ * 但不会出现"改了却还检索到旧内容"这种最难查的谎。
+ *
+ * `includeDesign` 是给界面上那颗「重建索引」按钮的（§49 清单最后一格 Documents）：
+ * 只有它需要重读整份设计文档，把**这批内容进库之前建好的项目**的设计正文补进索引。
+ * 其余写入方（世界/角色/记忆/分镜/游戏各自存一次）默认不带——那不是省一点 CPU 的问题，
+ * 而是删除范围必须等于重写范围：不带这个参数时 `design` 那一类根本不被重切，
+ * 所以它也不能被删（下面的 `ne`），否则一次世界保存就把设计正文删没了，
+ * 而它只有下一次编辑设计才会回来——正是这一片要消灭的那种"查不到了"。
  */
-export async function syncProjectKnowledge(projectId: string): Promise<{ chunks: number }> {
+export async function syncProjectKnowledge(
+  projectId: string,
+  options: { includeDesign?: boolean } = {},
+): Promise<{ chunks: number }> {
   const db = getDb();
   // 语料按项目取。「我的偏好」类记忆 project_id 是 null，因此不进任何项目的语料库：
   // §49 的语料清单是 Lore/Characters/History/Locations/Items/Quests/Documents——
   // 用户偏好不在其中，把它混进来会让"这个世界的检索结果"掺进跨项目的私人设定。
-  const [worldRows, characterRows, memoryRows, storyboardRows, gameRows] = await Promise.all([
+  const [worldRows, characterRows, memoryRows, storyboardRows, gameRows, designDocument] = await Promise.all([
     db.select().from(worlds).where(eq(worlds.projectId, projectId)),
     db.select().from(characters).where(eq(characters.projectId, projectId)),
     db.select().from(memories).where(eq(memories.projectId, projectId)),
     db.select().from(storyboards).where(eq(storyboards.projectId, projectId)),
     db.select().from(games).where(eq(games.projectId, projectId)),
+    // 只有显式重建才付这一遍整档读取（页面 + 节点 + token + 组件的全部行）。
+    // 动态 import 绕开 knowledge ↔ projects 的模块循环：两个方向都只在函数体内用它。
+    options.includeDesign
+      ? import('./projects').then((m) => m.loadDocument(projectId))
+      : Promise.resolve(null),
   ]);
 
   // 一条项目最多一份世界（v1）；记忆挂在它下面，查一次就够
@@ -349,20 +478,21 @@ export async function syncProjectKnowledge(projectId: string): Promise<{ chunks:
     if (parsed) chunks.push(...chunksFromGame(parsed, row.id, worldId));
   }
 
-  await db.delete(knowledgeChunks).where(eq(knowledgeChunks.projectId, projectId));
-  if (chunks.length) {
-    await db.insert(knowledgeChunks).values(
-      chunks.map((chunk) => ({
-        projectId,
-        worldId: chunk.worldId,
-        sourceType: chunk.sourceType,
-        sourceId: chunk.sourceId,
-        chunkIndex: chunk.chunkIndex,
-        content: chunk.content,
-        tokens: estimateTokens(chunk.content),
-        meta: { title: chunk.title, syncedAt: new Date().toISOString() },
-      })),
+  if (designDocument) chunks.push(...chunksFromDesign(designDocument, projectId));
+
+  await db
+    .delete(knowledgeChunks)
+    .where(
+      options.includeDesign
+        ? eq(knowledgeChunks.projectId, projectId)
+        : and(
+            eq(knowledgeChunks.projectId, projectId),
+            // 见函数头：不带 `includeDesign` 时这一类不重切，所以也不能删
+            ne(knowledgeChunks.sourceType, 'design'),
+          ),
     );
+  for (const part of chunkRows(chunks, projectId)) {
+    await db.insert(knowledgeChunks).values(part);
   }
   return { chunks: chunks.length };
 }

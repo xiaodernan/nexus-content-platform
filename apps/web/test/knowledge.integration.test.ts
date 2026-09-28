@@ -1,5 +1,5 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import { eq, inArray, sql as rawSql } from 'drizzle-orm';
+import { and, eq, inArray, sql as rawSql } from 'drizzle-orm';
 import { addMemory, deleteMemory } from '../src/server/domain/memories';
 import { createProjectCharacter, updateCharacterProfile } from '../src/server/domain/characters';
 import { saveWorld } from '../src/server/domain/worlds';
@@ -9,7 +9,7 @@ import { planStoryboard } from '@nexus/video-model';
 import { createGame, linkEntities, updateEntity, type GameDocument } from '@nexus/game-model';
 import { knowledgeStats, retrieveProjectKnowledge, syncProjectKnowledge } from '../src/server/domain/knowledge';
 import { createWorld } from '@nexus/world-model';
-import { createProject } from '../src/server/domain/projects';
+import { createProject, loadDocument, saveDocument } from '../src/server/domain/projects';
 import { getDb } from '../src/server/db/client';
 import { knowledgeChunks, projects, users } from '../src/server/db/schema';
 
@@ -179,7 +179,12 @@ describe('语料索引与检索（真实数据库）', () => {
     const mine = await newProject('RAG Mine');
     const other = await newProject('RAG Other');
     await saveWorld(mine, owner, worldWithText(mine));
-    expect((await knowledgeStats(other)).total).toBe(0);
+    // `other` 是新建项目，它自己的起始模板文案就是它仅有的语料（§49 Documents）；
+    // 隔离要断言的是"我这批世界内容一条都没过去"，不是"它总块数为 0"
+    const isolated = await knowledgeStats(other);
+    expect(isolated.bySource.geography ?? 0, '别的项目的世界条目串过来了').toBe(0);
+    expect(isolated.bySource.lore ?? 0, '别的项目的世界条目串过来了').toBe(0);
+    expect(isolated.bySource.design).toBe(1);
     expect((await retrieveProjectKnowledge(other, '盐海')).items).toEqual([]);
     expect((await retrieveProjectKnowledge(mine, '盐海')).items.length).toBeGreaterThan(0);
   });
@@ -283,10 +288,11 @@ describe('§49 × §54：游戏文档进语料库（真实数据库）', () => {
     await saveGame(id, owner, skeleton);
 
     // 模板骨架（11 个只有名字的实体 + 空摘要）对检索不存在：这是刻意的，
-    // 让空壳进索引等于告诉 AI "这个项目有内容"
+    // 让空壳进索引等于告诉 AI "这个项目有内容"。
+    // 注意总数不是 0——这个项目自己的设计正文有一块（§49 Documents），那是真文字。
     const empty = await knowledgeStats(id);
-    expect(empty.total).toBe(0);
-    expect(empty.bySource.game ?? 0).toBe(0);
+    expect(empty.bySource.game ?? 0, '空骨架进了索引 = 把建档痕迹当内容').toBe(0);
+    expect(empty.bySource.design, '起始模板的文案是真语料，不是空壳').toBe(1);
 
     const saved = await saveGame(id, owner, flesh(skeleton, '披着船帆的胖主教，只在钟声里移动。'));
     if (!saved.ok) throw new Error(`保存失败：${saved.reason}`);
@@ -354,11 +360,145 @@ describe('§49 × §54：游戏文档进语料库（真实数据库）', () => {
     const statsB = await knowledgeStats(b);
     expect(statsA.bySource.game).toBe(2);
     expect(statsB.bySource.game).toBe(2);
-    // 两边的块各自独立，行数就是 2 + 2
+    // 两边的块各自独立，游戏行数就是 2 + 2（只数 game：每个项目还各有一份自己的设计正文）
     const rows = await getDb()
       .select({ id: knowledgeChunks.id })
       .from(knowledgeChunks)
-      .where(inArray(knowledgeChunks.projectId, [a, b]));
+      .where(
+        and(
+          inArray(knowledgeChunks.projectId, [a, b]),
+          eq(knowledgeChunks.sourceType, 'game'),
+        ),
+      );
     expect(rows.length).toBe(4);
+  });
+});
+
+/**
+ * §49 清单最后一格「Documents」：设计文档（§16）的正文进语料库。
+ *
+ * 只有真库能回答的四件事：
+ * ① `saveDocument` 这个写入方真的挂了同步——Studio 每次自动保存都走它，不是只有 HTTP 通了；
+ * ② 改一句文案之后**旧句子再也查不到**（这一条在分镜和游戏那两片都红过，是本项目最贵的形状）；
+ * ③ 世界/游戏那次"整库重建"不许顺手把设计正文删掉——它的删除范围必须等于它的重写范围；
+ * ④ 两个项目可以有同名页面：sourceId 认的是**行 id**（`projectId#pageId`），不撞全局唯一约束。
+ */
+describe('§49 × §16：设计文档正文进语料库（真实数据库）', () => {
+  /** 把起始模板里那条 Headline 换成给定文案，然后走真正的写库路径 */
+  async function saveHeadline(projectId: string, text: string): Promise<void> {
+    const doc = await loadDocument(projectId);
+    if (!doc) throw new Error('项目读不回来，测试前提就断了');
+    const page = doc.pages[0]!;
+    const headline = Object.values(page.nodes).find((n) => n.name === 'Headline');
+    if (!headline) throw new Error('起始模板里没有 Headline 节点，切分前提变了');
+    page.nodes[headline.id] = { ...headline, text };
+    await saveDocument(projectId, doc);
+  }
+
+  it('新建项目即有设计语料；改文案后旧句子再也查不到', async () => {
+    const id = await newProject('Design RAG');
+    // 起始模板带着真文案，所以创建那一刻就可检索——这不是"空壳也算内容"，
+    // §54 那条禁的是只有名字的骨架，这里是实打实的标题文案
+    const stats = await knowledgeStats(id);
+    expect(stats.bySource.design, '新建项目的起始文案没进索引 = 创建路径没挂同步').toBe(1);
+
+    const before = await retrieveProjectKnowledge(id, '从一句话到一个可发布的产品');
+    expect(
+      before.items.some((i) => i.sourceType === 'design' && i.title.includes('Home')),
+      '模板标题那句话查不到 = 设计正文对 AI 不存在',
+    ).toBe(true);
+
+    await saveHeadline(id, '雾里的港口只有一条会响的钟');
+    const stale = await retrieveProjectKnowledge(id, '从一句话到一个可发布的产品');
+    expect(
+      stale.items.some((i) => i.sourceType === 'design'),
+      '改完还查得到旧标题 = 索引没跟着写重建',
+    ).toBe(false);
+    const fresh = await retrieveProjectKnowledge(id, '雾里的港口只有一条会响的钟');
+    expect(
+      fresh.items.some((i) => i.sourceType === 'design' && i.snippet.includes('会响的钟')),
+      '改后的句子查不到 = 保存路径没换块',
+    ).toBe(true);
+
+    // 块数不随保存次数增长：一次保存换一块，不是追加一块
+    expect((await knowledgeStats(id)).bySource.design).toBe(1);
+  });
+
+  it('写路径的重建不碰设计块；「重建索引」按钮补得回脏块', async () => {
+    const id = await newProject('Design RAG Survives Rebuild');
+    await saveHeadline(id, '灯塔只在有人失踪时才亮');
+    const designBefore = (await knowledgeStats(id)).bySource.design;
+    await saveWorld(id, owner, worldWithText(id));
+
+    // 手工把那一块内容改成一句文档里根本没有的话：这就是"这批内容进库之前建好的项目"
+    // 留下的缺块形状，或者某次同步半途失败的形状。
+    const db = getDb();
+    const dirty = '设计文档：脏 · Home\n页面：Home\nHeadline：紫色香蕉从不迟到';
+    await db
+      .update(knowledgeChunks)
+      .set({ content: dirty })
+      .where(and(eq(knowledgeChunks.projectId, id), eq(knowledgeChunks.sourceType, 'design')));
+    /** 直接数行：`RetrievedChunk` 只带 snippet，脏块有没有被动过要在行本身上看 */
+    const designContents = async () => {
+      const rows = await db
+        .select({ content: knowledgeChunks.content })
+        .from(knowledgeChunks)
+        .where(and(eq(knowledgeChunks.projectId, id), eq(knowledgeChunks.sourceType, 'design')));
+      return rows.map((r) => r.content);
+    };
+    expect(
+      await designContents(),
+      '脏块没写进去 = 下面两条断言是在测空气',
+    ).toEqual([dirty]);
+
+    // ① 世界/游戏那些写路径走的重建**不带** includeDesign：它没重切设计，所以也不许删设计。
+    //    这一步断言的是"没碰"——脏块还在原位。
+    await syncProjectKnowledge(id);
+    expect(await designContents(), '一次世界保存就把设计块删了 = 删除范围大于重写范围').toEqual([dirty]);
+    expect((await knowledgeStats(id)).bySource.geography ?? 0, '世界那批没进索引').toBeGreaterThan(0);
+
+    // ② 显式「重建索引」（按钮那条路，带 includeDesign）真的重切了设计：
+    //    脏块换掉、当前正文回来、块数不是追加。断的是"重建"这两个字覆盖清单最后一格，
+    //    而不是只对前七格成立。
+    await syncProjectKnowledge(id, { includeDesign: true });
+    const after = await knowledgeStats(id);
+    expect(after.bySource.design, '重建后设计块数变了 = 不是换块而是删了没补').toBe(designBefore);
+    expect(await designContents(), '重建之后脏块还在 = 按钮那条路没重切设计').not.toContain(dirty);
+    expect(
+      (await retrieveProjectKnowledge(id, '灯塔只在有人失踪时才亮')).items.some(
+        (i) => i.sourceType === 'design',
+      ),
+      '重建后设计正文查不到了 = 按钮那条路没重切设计',
+    ).toBe(true);
+    expect(after.bySource.geography ?? 0).toBeGreaterThan(0);
+  });
+
+  it('两个项目的同名页面各自成块，sourceId 认的是行身份', async () => {
+    const a = await newProject('Design RAG 双份 A');
+    const b = await newProject('Design RAG 双份 B');
+    await saveHeadline(a, '甲港的钟只在涨潮时响');
+    await saveHeadline(b, '乙港的桥只在退潮时塌');
+    const rows = await getDb()
+      .select({ projectId: knowledgeChunks.projectId, sourceId: knowledgeChunks.sourceId })
+      .from(knowledgeChunks)
+      .where(
+        and(
+          inArray(knowledgeChunks.projectId, [a, b]),
+          eq(knowledgeChunks.sourceType, 'design'),
+        ),
+      );
+    expect(rows.length, '两个项目各一块，行数应该是 2').toBe(2);
+    // 前缀是项目行 id：这一串是唯一约束 `(source_type, source_id, chunk_index)` 能全局成立的前提
+    for (const row of rows) {
+      expect(row.sourceId.startsWith(`${row.projectId}#page-`), `sourceId 没带项目身份：${row.sourceId}`).toBe(true);
+    }
+    expect(
+      (await retrieveProjectKnowledge(a, '甲港的钟只在涨潮时响')).items.some((i) => i.sourceType === 'design'),
+      'B 存过之后 A 的文案查不到 = 两边的块互相覆盖了',
+    ).toBe(true);
+    expect(
+      await retrieveProjectKnowledge(b, '甲港的钟只在涨潮时响'),
+      'A 的文案串到 B 的项目里 = 隔离破了',
+    ).toMatchObject({ items: [] });
   });
 });

@@ -38,6 +38,7 @@ const SOURCE_LABELS: Record<string, string> = {
   memory: '记忆',
   storyboard: '分镜',
   game: '游戏',
+  design: '设计文档',
 };
 
 /**
@@ -54,7 +55,11 @@ export function RetrievePanel() {
   const studio = useStudioReady();
   const [query, setQuery] = useState('');
   const [items, setItems] = useState<Retrieved[]>([]);
-  const [stats, setStats] = useState<{ total: number; vectorized: number }>({ total: 0, vectorized: 0 });
+  const [stats, setStats] = useState<{
+    total: number;
+    vectorized: number;
+    bySource: Record<string, number>;
+  }>({ total: 0, vectorized: 0, bySource: {} });
   const [searched, setSearched] = useState(false);
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
@@ -63,10 +68,14 @@ export function RetrievePanel() {
     try {
       const res = await fetch(`/api/projects/${studio.projectId}/knowledge`, { cache: 'no-store' });
       const body = (await res.json().catch(() => null)) as
-        | { total?: number; vectorized?: number; message?: string }
+        | { total?: number; vectorized?: number; bySource?: Record<string, number>; message?: string }
         | null;
       if (!res.ok) throw new Error(body?.message ?? `HTTP ${res.status}`);
-      setStats({ total: body?.total ?? 0, vectorized: body?.vectorized ?? 0 });
+      setStats({
+        total: body?.total ?? 0,
+        vectorized: body?.vectorized ?? 0,
+        bySource: body?.bySource ?? {},
+      });
     } catch (error) {
       setMessage(error instanceof Error ? error.message : String(error));
     }
@@ -126,6 +135,22 @@ export function RetrievePanel() {
             {stats.total} 块
           </span>
         </div>
+        {/* 只有总数说不清"哪一类有几块"：设计正文一进来，总数就不再等于"游戏有没有内容"。
+            一块都没有的来源不出现芯片——缺哪一片就是那一类真的没内容。 */}
+        <div className="mt-2 flex flex-wrap items-center gap-1" data-knowledge-sources>
+          {Object.entries(stats.bySource)
+            .filter(([, count]) => count > 0)
+            .sort(([a], [b]) => a.localeCompare(b))
+            .map(([key, count]) => (
+              <span
+                key={key}
+                data-knowledge-source={key}
+                className="rounded-[var(--nexus-radius-sm)] bg-bg-2 px-1.5 py-0.5 font-mono text-11 text-fg-3"
+              >
+                {SOURCE_LABELS[key] ?? key} {count}
+              </span>
+            ))}
+        </div>
         <div className="mt-2 flex items-center gap-1">
           <input
             value={query}
@@ -150,7 +175,8 @@ export function RetrievePanel() {
         </div>
         <div className="mt-2 flex items-start gap-2">
           <p className="min-w-0 flex-1 text-11 leading-relaxed text-fg-3" data-retrieve-note>
-            语料来自世界条目、角色档案、记忆、分镜镜头与游戏实体（§44/§46/§48/§40/§54）。命中的是全文与子串匹配，
+            语料来自世界条目、角色档案、记忆、分镜镜头、游戏实体与设计页面的文字节点（§44/§46/§48/§40/§54/§16）。
+            命中的是全文与子串匹配，
             分数由这三项相加：全文 ts_rank、子串命中、词覆盖度。
             {stats.vectorized === 0
               ? ' 向量检索未接（没有 provider 就没有 embedding），所以这里没有"语义相近"这回事。'

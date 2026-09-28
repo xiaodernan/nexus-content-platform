@@ -7,6 +7,7 @@ import {
   chunkText,
   type Chunk,
   chunksFromCharacter,
+  chunksFromDesign,
   chunksFromGame,
   chunksFromMemory,
   chunksFromStoryboard,
@@ -17,6 +18,7 @@ import { planStoryboard } from '@nexus/video-model';
 import { createGame, fleshedOutCount, linkEntities, setStat, updateEntity } from '@nexus/game-model';
 import { knowledgeChunks } from '../src/server/db/schema';
 import { createCharacter, createWorld } from '@nexus/world-model';
+import { createDocument, type DesignDocument } from '@nexus/design-model';
 
 /**
  * §49 的切分与语料映射。这些是纯函数，所以先在这里把"确定性"钉死：
@@ -308,5 +310,95 @@ describe('chunksFromGame：填过的实体才进语料，模板骨架一块都�
     const chunks = chunksFromGame(doc, ROW, null);
     expect(chunks).toHaveLength(1);
     expect(chunks[0]?.content).toContain('标签：守桥人');
+  });
+});
+
+/**
+ * §49 清单最后一格「Documents」：设计文档（§16）里能被检索的只有节点上的**文字**。
+ *
+ * 一块 = 一个页面（不是 4000 个碎块），块内逐行写着"哪个节点说了什么"——
+ * 这两条是这一格的全部设计决定，所以都在这里钉死，包括"什么不进块"。
+ */
+describe('chunksFromDesign：一页一块，块里带节点名；纯布局的页一块都不进', () => {
+  /** 行 id：projects 表那一行的主键。sourceId 用它，不认文档里的 `doc_…` */
+  const PROJECT = 'row-uuid-4f02';
+
+  /** 起始模板：Home 页有四个写了字的节点（Eyebrow / Headline / Subhead / Primary CTA） */
+  const starter = () => createDocument('黑雾港落地页', 'website');
+
+  /** 把整页文字擦干净，只留形状与布局 */
+  function stripped(doc: DesignDocument): DesignDocument {
+    for (const page of doc.pages) {
+      for (const node of Object.values(page.nodes)) delete node.text;
+    }
+    return doc;
+  }
+
+  it('起始模板的文案合成一块：四条都在，标题是「文档名 · 页面名」', () => {
+    const chunks = chunksFromDesign(starter(), PROJECT);
+    expect(chunks).toHaveLength(1);
+    const first = chunks[0]!;
+    expect(first.sourceType).toBe('design');
+    // 面板按第一个 ` · ` 拆两段显示，块名必须是页面名——这里靠 `Home` 能单独查见来钉住
+    expect(first.title).toBe('黑雾港落地页 · Home');
+    for (const line of ['NEXUS STUDIO', '从一句话到一个可发布的产品', '改模型，三处一起更新', '开始设计']) {
+      expect(first.content, `模板文案「${line}」没进块 = 设计正文对 AI 不存在`).toContain(line);
+    }
+    // 行与行带着节点名：拿到块的人知道该去改哪个节点
+    expect(first.content).toContain('Headline：从一句话到一个可发布的产品');
+  });
+
+  it('擦掉文字只剩布局 → 一块都不产生', () => {
+    expect(chunksFromDesign(stripped(starter()), PROJECT)).toEqual([]);
+  });
+
+  it('sourceId 认「项目行 id + 页面 id」：两个项目同名页面也不撞全局唯一约束', () => {
+    const doc = starter();
+    const pageId = doc.pages[0]!.id;
+    const a = chunksFromDesign(doc, 'project-aaa')[0]!;
+    const b = chunksFromDesign(doc, 'project-bbb')[0]!;
+    // 同一份文档（Duplicate 出来的）在两个项目里页面 id 相同，靠项目行 id 才分得开
+    expect(a.sourceId).toBe(`project-aaa#page-${pageId}`);
+    expect(b.sourceId).toBe(`project-bbb#page-${pageId}`);
+    expect(a.sourceId).not.toBe(b.sourceId);
+    expect([a.chunkIndex, b.chunkIndex]).toEqual([0, 0]);
+  });
+
+  it('从页面根走不到的节点仍然进块，并写明它不在树里', () => {
+    const doc = starter();
+    const page = doc.pages[0]!;
+    const hero = Object.values(page.nodes).find((n) => n.name === 'Hero')!;
+    // 孤儿：在 nodes 表里（所以真的存进了 designNodes），但没有任何 children 指向它
+    page.nodes['orphan-text'] = { ...hero, id: 'orphan-text', name: '草稿', text: '这句还挂在页面外', parentId: null, children: [] };
+    const content = chunksFromDesign(doc, PROJECT)[0]!.content;
+    expect(content, '走不到的节点被静默丢掉 = 文档里有但索引里没有，查它是查不着的谎').toContain('这句还挂在页面外');
+    expect(content).toContain('（不在页面树里）');
+    // 树上的那些行仍然按阅读顺序排在前面，不与孤儿混成一段
+    expect(content.indexOf('Headline：')).toBeLessThan(content.indexOf('草稿：'));
+  });
+
+  it('同一份文档两次切分逐字段相同（重建索引才可核对）', () => {
+    // 拿同一份文档切两遍，不是拿两份长得一样的文档：`createDocument` 每次发新 id，
+    // 那样红起来测的是发号器，不是切分器
+    const doc = starter();
+    const twice = JSON.stringify(chunksFromDesign(doc, PROJECT));
+    const once = JSON.stringify(chunksFromDesign(doc, PROJECT));
+    expect(twice).toBe(once);
+  });
+
+  it('长文案按 CHUNK_MAX 分块，块序连续不重叠', () => {
+    const doc = starter();
+    const page = doc.pages[0]!;
+    const headline = Object.values(page.nodes).find((n) => n.name === 'Headline')!;
+    headline.text = '雾。'.repeat(1200);
+    const chunks = chunksFromDesign(doc, PROJECT);
+    expect(chunks.length).toBeGreaterThan(1);
+    expect(chunks.map((c) => c.chunkIndex)).toEqual(chunks.map((_, i) => i));
+    for (const chunk of chunks) {
+      expect(chunk.content.length, '块超出 CHUNK_MAX = 检索返回的片段比整条语料还长').toBeLessThanOrEqual(CHUNK_MAX);
+      expect(chunk.content).not.toHaveLength(0);
+    }
+    // 同一页的块共用 sourceId，只靠 chunkIndex 区分
+    expect(new Set(chunks.map((c) => c.sourceId)).size).toBe(1);
   });
 });

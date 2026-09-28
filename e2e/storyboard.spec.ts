@@ -132,10 +132,11 @@ test('@smoke 检索面板：一句分镜存进去，同一个词就从查不到�
   const sentence = '夜色里的港口，一台旧起重机慢慢转身，猫跳上缆绳';
   await openStudio(page, `分镜检索 ${Date.now().toString(36)}`);
 
-  // 空项目的语料库是空的：这里不能显示"有 N 块"来假装同步过了
+  // 空项目：语料库里此刻只有这个设计自己那一块正文（§49 Documents），分镜一类快还没有
   await page.click('[data-panel-tab="retrieve"]');
   await expect(page.locator('[data-retrieve-panel]')).toBeVisible({ timeout: 30_000 });
-  await expect(page.locator('[data-knowledge-total]')).toHaveText('0 块', { timeout: 30_000 });
+  await expect(page.locator('[data-knowledge-source="design"]')).toHaveText('设计文档 1', { timeout: 30_000 });
+  await expect(page.locator('[data-knowledge-source="storyboard"]')).toHaveCount(0);
   await page.fill('[data-retrieve-query]', '缆绳');
   await page.click('[data-retrieve-run]');
   // 放宽到 30 秒：retrieve 这条路由在 dev 下第一次请求要现编译，那几秒按钮还停在 busy
@@ -146,9 +147,9 @@ test('@smoke 检索面板：一句分镜存进去，同一个词就从查不到�
   await page.click('[data-storyboard-create]');
   await savedState(page);
 
-  // 回到检索面板：块数 = 来源句子 + 3 镜，全部由那次 PUT 带出来
+  // 回到检索面板：分镜那一类 = 来源句子 + 3 镜，全部由那次 PUT 带出来（按来源数，不看总数）
   await page.click('[data-panel-tab="retrieve"]');
-  await expect(page.locator('[data-knowledge-total]')).toHaveText('4 块');
+  await expect(page.locator('[data-knowledge-source="storyboard"]')).toHaveText('分镜 4');
   // 面板自我介绍的那句也得把分镜算进语料，否则界面说的和库里装的不是同一件事
   await expect(page.locator('[data-retrieve-note]')).toContainText('分镜镜头');
   await page.fill('[data-retrieve-query]', '缆绳');
