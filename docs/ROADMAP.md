@@ -2669,3 +2669,14 @@ Python：`apps/ai-service` 全量 **66 passed / 1 skipped**（新增 2 条 corpu
 的项目边界删掉 → 1 failed，红的正是那条跨项目断言，还原后 md5 一致。
 
 #75 还欠一格：上下文面板的摘录旁边没有"取整块"的按钮——通道通了，入口还没接（这仓库有过同形状的前科：#66/#67）。
+
+这一片的红门记录（同一笔前科的第二次）：新断言里写的是 `full.blocks[0].content`，vitest 44 条全绿，
+pre-commit 的 typecheck 却红 6 条——`noUncheckedIndexedAccess` 说 Object is possibly undefined。
+**vitest 不做类型检查**，索引访问在门禁眼里就是会消失；这次是 hook 兜住的，不是我提前想到的。
+改法是绑一个 `const block = full.blocks[0]` 再判空，而不是到处加感叹号——判空那句顺手把
+「取回来是空列表」这种前提断裂变成会出声的错误。
+
+再记一条自己咬自己的：这段补记第一次是用 bash 双引号里的 `node -e` 写的，文本里带着 markdown 反引号，
+反引号被 shell 当成命令替换吃掉，追加进去的几行变成半句话混进正文；第二次换单引号又被内层双引号绊住。
+**多行中文文档一律用 Edit/Write 落盘**，`node -e` 只留给不含反引号、美元符与内层引号的短脚本——
+这一片里它已经三次把话讲到一半吞掉了。
