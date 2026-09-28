@@ -5360,3 +5360,86 @@ of hole as the physics world was — `CinematicSequence` and `CinematicShot` are
 `types.ts`: everywhere else the word survives in exactly two places, the stub's own call site in `simulateFrame`
 and the string in `SAVE_DATA_FEASIBILITY` that explains why `cinematic` is blocked. So the sequence has no writer,
 no reader and no container that anything can hold — it is the last unread type surface inside `simulateFrame`.
+
+### Amendment 117 — v117: the cinematic sequence gets a player, `updateCinematics` stops being a stub, and an audit says what a player still cannot honor
+
+Amendment 116's `Next:` named this hole, and it named it accurately: `CinematicSequence` and `CinematicShot` are
+declared at `types.ts:125` and `types.ts:134`, `SerializedCinematic` at `types.ts:488`, and outside `types.ts` the
+word survived in exactly two places — the stub's call site inside `simulateFrame`, and the `SAVE_DATA_FEASIBILITY`
+row explaining why `cinematic` is blocked. So the type surface had no writer, no reader, and no container anything
+could hold. v117 gives it all three in `packages/three-runtime/src/threeRuntime.ts`.
+
+`defineCinematic(sceneId, input)` is the registrar, and it is where the design decision lives: **a value this
+runtime cannot perform is refused at registration rather than stored and ignored.** 14 refusals, each naming
+what it was given — unknown scene, duplicate id (there is no unregister in this runtime), no shots, a first shot
+that does not open at playhead 0, a shot starting at or before its predecessor's end, a shot that does not end
+after it starts, a camera that is not in the scene the sequence registers against, a transition other than
+`'cut'`, a non-zero `transitionDuration`, an `"fov"` animation on an orthographic camera, an fov that is
+non-finite or outside `(0, 180)`, an easing name that is not a key of `CINEMATIC_EASINGS` (the message prints that
+table's own keys, so the sentence cannot go stale when an easing is added), a path whose `getLength()` is not
+positive, and a declared `duration` that disagrees with the derived one. The alternative — accept and ignore — is
+what makes an audit's `unhonored` list a description of a lie rather than of a gap: a fade blends two rendered
+images, this runtime draws one active camera per frame, and after refusing a non-cut there is no interval left for
+`transitionDuration` to time.
+
+`duration` is DERIVED as `max(shot.endTime)`, and a caller who names a different number is refused rather than
+believed. The shots and the total are one fact with two spellings, which is the shape of bug this lane keeps
+relearning; the refusal message prints both numbers so the caller can see which one the runtime is going to use.
+
+`updateCinematics(delta)` is the frame reader, and three of its readings are of declared types rather than of
+preference. The playhead advances to `min(time + delta, duration)` and the clamp is what makes "finished"
+observable — without it `entry.time >= duration` is never true and the sequence runs forever. The camera switch
+fires when the shot INDEX changes, which is the only behavior a `'cut'` can have under one camera per frame; the
+same branch writes the declared `currentShot`, so the field the type claims is the field the player moves. The
+paths are sampled with `getPointAt`, i.e. by arc length, so a shot's `startTime`/`endTime` say WHEN the move
+happens and the curve's own geometry says HOW FAST — `getPoint` would make the camera crawl past wherever the
+author put control points close together. `lookAt` runs after the position write because it reads the position it
+was just given. When the sequence's scene stops being the active one the playhead stops and
+`cinematicInterrupted` says why, but the POSITION is kept: a shot's `cameraId` addresses one scene's camera set,
+so a dormant scene cannot show the frame, and a caller who switches back can resume from where the interruption
+landed.
+
+`playCinematic(id)` / `stopCinematic(id)` own the single active slot, and the reason is a field of the declared
+save shape: `SerializedCinematic.activeSequence` is ONE id, so a runtime that could play two sequences at once
+would have nothing honest to put in it. `playingCinematic()` is therefore DERIVED by scanning `sequence.playing`
+rather than stored beside it — two sources for one fact can disagree. A play on a finished sequence rewinds it; a
+stop does not, because a stop is someone interrupting a cutscene, not a request to watch it again.
+`cinematicSnapshot()` fills all three declared fields from the registry, and is the first writer
+`SerializedCinematic` has ever had. `cinematicFieldAudit(id)` answers the two partitions plus a live playhead, and
+its `playhead` carries BOTH the declared `currentShot` and the audit's own `shotId`/`cameraId`: `currentShot`
+cannot say "nothing has been shown yet", because its type is a number and it sits at 0 before the first frame.
+
+Measured: `packages/three-runtime/test/cinematicSequence.test.ts` is 39 cases and the package total is **179**
+(39 controller + 42 save + 30 physics + 29 runtime + 39 cinematic), `tsc --noEmit` exit 0. The behavioral probe ran 27 arms over the final source against
+an unmutated control that collected **81 with 0 red** on the two-file plane that reads cinematic code
+(`test/cinematicSequence.test.ts` + `test/saveSnapshot.test.ts`), each arm's minimum red written down before
+measuring. Reds: 1, 1, 1, 1, 2, 1, 1, 1, 1, 2, 1, 1, 10, 3, 1, 1, 2, 2, 1, 2, 1, 1, 1, 1, 1, 1, 1. No arm survived. One arm reddened MORE than written down for it: `14-end-clamp-never-reached` was credited 2 and reddened 3. The third red is `updateCinematics — the playhead, the cut, and where the camera ends up keeps the playhead when stopped, and rewinds only a finished sequence on replay` — its title is about stopping and rewinding, and its BODY asserts that the playhead lands exactly on `duration`, so the clamp is one of its assertions too. I predicted from the case's name instead of reading its assertions, which is the error amendment 116 recorded for the same reason. The last arm is not a playback arm: it restores
+v116's `SAVE_DATA_FEASIBILITY` sentence about `cinematic`, which is the edit this grant describes below, and it
+reddens one case — the one that requires the shipped reason to name `THREE.CatmullRomCurve3` and forbids it from
+reading like an empty-stub confession.
+
+v117 also retired a stale reason inside shipped code. That row said `updateCinematics` was an empty stub, so there
+was no sequence state to save; v117 gave the shape a writer, so the true blocker is now that `sequences` holds LIVE
+`CinematicSequence` objects whose shots carry `THREE.CatmullRomCurve3` paths and nothing here rebuilds a curve from
+stored points. `SaveData.cinematic` therefore STAYS in `blocked` — six blocked fields, unchanged — and the honest
+summary of v117 is that the declared save type has a writer and still has no reader.
+
+Two measurement errors from this cycle are in the record rather than hidden, because both are the same failure in
+different costumes. First, the probe harness itself: `spawnSync('npx', …)` without a shell does not exec a Windows
+`.cmd`, and the vitest banner has two spellings for its summary line, so the first two runs of the probe refused
+for reasons that were about the harness and not the code — the fix was to grade the JSON reporter and to let the
+control fix the population every arm must match, which also catches a mutant that crashes collection (an
+import-time crash is zero reds, not a caught mutation). Second, and worse: while the probe was mid-run I opened
+`threeRuntime.ts` to quote it and read `activeSequence: null,` in `cinematicSnapshot` — arm 22's mutant, on disk at
+the moment of the read. It looked exactly like a one-line lie about the playhead, and only the passing suite
+contradicted it. A probe that mutates tracked files makes every concurrent read part of its own plane.
+
+What v117 does not do, stated by name: `postProcessing` is uninterpreted, and with it every transition but the
+cut; playback drives a camera and nothing else — no character, no audio, no material; one sequence at a time, one
+scene per sequence, no unregistering, four easings; an orthographic camera cannot be fov-animated; there is no
+Studio surface, so a sequence is authored by code as it has been since v108. Next: the same question this grant
+answered for `CinematicSequence` is still open for the three `SaveData` fields whose blocker is not a missing
+reader but a missing SYSTEM — `npcs`, `quests` and `player` are declared at `types.ts` and implemented by nothing,
+so unlike `cinematic` there is no stub to replace, only a subsystem to decide the shape of. The cheaper adjacent
+hole is `slopeLimit`/`stepOffset` and `broadphase`/`solverIterations`, all four of which wait on the same missing
+collision geometry; a first capsule/box collider would move three of them out of `unhonored` at once.

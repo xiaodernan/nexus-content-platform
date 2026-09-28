@@ -17,6 +17,9 @@ import type {
   CharacterController,
   ControllerInput,
   SerializedEntity,
+  CinematicSequence,
+  CinematicShot,
+  SerializedCinematic,
 } from './types.js';
 import {
   createWebGLBackend,
@@ -66,6 +69,37 @@ const UNHONORED_PHYSICS_REASONS: readonly { field: string; reason: string }[] = 
   { field: 'solverIterations', reason: 'counts passes over existing contacts, and a character is held up by the `groundY` plane, not by a solver' },
 ];
 
+/** The `CinematicShot` fields the playhead reads while time advances. `transition`, `transitionDuration`
+ *  and `postProcessing` are the declared words left over, and `cinematicFieldAudit` says WHY each one is
+ *  in the second list: a value this player cannot perform is refused at `defineCinematic`, which is not
+ *  the same claim as honoring a field — a field that can only ever hold one value changes nothing. */
+const HONORED_SHOT_FIELDS: readonly string[] = [
+  'id', 'cameraId', 'startTime', 'endTime', 'cameraPath', 'targetPath', 'fovAnimation',
+];
+
+const UNHONORED_SHOT_REASONS: readonly { field: string; reason: string }[] = [
+  { field: 'transition', reason: "only the value 'cut' is accepted; a fade, dissolve, wipe or slide blends two rendered images, and this runtime draws one active camera per frame" },
+  { field: 'transitionDuration', reason: 'the only transition available is instantaneous, so a non-zero duration is refused at defineCinematic rather than timed — after the refusal the number has nothing to control' },
+  { field: 'postProcessing', reason: 'declares a list of render passes; nothing here compiles a pass, so a shot cannot switch a filter chain the backend does not have' },
+];
+
+/** `CinematicSequence` split the same way: `duration` is DERIVED from the shots, `currentShot` and
+ *  `playing` are written by the player, and the rest identify what is being played. */
+const READ_SEQUENCE_FIELDS: readonly string[] = ['id', 'name', 'shots', 'duration'];
+const WRITTEN_SEQUENCE_FIELDS: readonly string[] = ['currentShot', 'playing'];
+
+/**
+ * The easings a `fovAnimation` can name. The declared type says `easing: string`, so the honest options
+ * were to treat an unknown word as linear (a silent guess) or to refuse it at definition; this refuses,
+ * and `defineCinematic` names the keys of THIS table in the message, so the list cannot go stale in prose.
+ */
+const CINEMATIC_EASINGS: Record<string, (t: number) => number> = {
+  linear: (t) => t,
+  easeIn: (t) => t * t,
+  easeOut: (t) => t * (2 - t),
+  easeInOut: (t) => (t < 0.5 ? 2 * t * t : -1 + (4 - 2 * t) * t),
+};
+
 /**
  * Which axes a controller type moves on, and whose frame those axes come from. `sideScroll` lives in
  * XY, so `moveForward`/`moveBackward` have nothing to push against; `firstPerson`/`thirdPerson` read
@@ -111,6 +145,49 @@ export interface PhysicsFieldAudit {
   stepping: { timeStep: number | null; maxSubSteps: number | null; lastFrame: { steps: number; droppedTime: number } | null };
 }
 
+/** What `playCinematic`/`updateCinematics` need beyond the declared sequence: which scene's cameras the
+ *  shot ids address, and where the playhead is. `CinematicSequence` has no time field — and
+ *  `SerializedCinematic` keeps `currentTime` OUTSIDE the sequence — so the playhead lives on the entry,
+ *  mirroring the declared save shape instead of inventing a field the type does not have. */
+interface CinematicEntry {
+  sequence: CinematicSequence;
+  sceneId: SceneId;
+  time: number;
+  /** Which shot the playhead was inside on the previous frame, or -1 before the first. The camera switch
+   *  happens on a CHANGE, so this is the memory that makes a cut fire once rather than every frame. */
+  lastShot: number;
+}
+
+/** What the caller declares. `duration`, `currentShot` and `playing` are the runtime's to fill: a
+ *  `duration` that disagreed with its own shots would be a timeline with two answers. */
+export interface CinematicSequenceInput {
+  id: string;
+  name: string;
+  shots: CinematicShot[];
+  duration?: number;
+}
+
+/** What `cinematicFieldAudit` answers for a sequence, in the same shape as `physicsFieldAudit`: the two
+ *  field lists are partitions of `CinematicShot` / `CinematicSequence` as DECLARED in `types.ts` (the
+ *  suite requires that, so a newly declared field cannot join the silent ones), and `playhead` is read
+ *  off the live entry so the answer moves when the timeline does. */
+export interface CinematicFieldAudit {
+  consulted: string[];
+  unhonored: { field: string; reason: string }[];
+  sequenceRead: string[];
+  sequenceWritten: string[];
+  playhead: {
+    playing: boolean;
+    time: number;
+    duration: number;
+    currentShot: number;
+    shotId: string | null;
+    cameraId: CameraId | null;
+    /** True when another sequence holds the single active slot — see `playCinematic`. */
+    blockedBy: string | null;
+  };
+}
+
 /** What `controllerFieldAudit` answers. The `untouched` list is the honesty surface — a field declared
  *  on `CharacterController` but never implemented shows up there BY NAME instead of being ignored in
  *  silence. `slopeLimit` and `stepOffset` are in it today: both need collision geometry this package
@@ -125,6 +202,17 @@ export interface ControllerFieldAudit {
 
 function emptyControllerInput(): ControllerInput {
   return { moveForward: false, moveBackward: false, moveLeft: false, moveRight: false, jump: false, run: false, crouch: false, custom: {} };
+}
+
+/** Which shot owns a playhead instant: the LAST one that has started, so a shot holds the camera until the
+ *  next one begins. `defineCinematic` has already refused a timeline with a gap or an overlap, which is
+ *  what makes this total — with a gap, the frames inside it would silently show the previous shot. */
+function shotIndexAt(shots: readonly CinematicShot[], time: number): number {
+  let index = 0;
+  for (let i = 0; i < shots.length; i += 1) {
+    if (shots[i]!.startTime <= time) index = i;
+  }
+  return index;
 }
 
 /**
@@ -145,9 +233,10 @@ const SAVE_ALIAS_CLAIMS: Record<string, readonly string[]> = {
 };
 
 /** Which declared `SaveData` fields the runtime can fill today, and which are waiting on a system that
- *  does not exist yet. The blocked half is the honest part: `npcs`/`quests`/`player`/`cinematic` are all
- *  declared in `types.ts` and implemented by nothing, so a `SaveData` written today would carry empty
- *  maps that look like an empty game world. */
+ *  does not exist yet. The blocked half is the honest part: `npcs`/`quests`/`player` are declared in
+ *  `types.ts` and implemented by nothing, and `cinematic` has had a runtime owner since v117 but still has
+ *  nothing that can rebuild its live objects from stored points — so a `SaveData` written today would carry
+ *  empty maps that look like an empty game world. */
 const SAVE_DATA_FEASIBILITY: { savable: readonly string[]; blocked: readonly { field: string; needs: string }[] } = {
   savable: ['entities'],
   blocked: [
@@ -156,7 +245,7 @@ const SAVE_DATA_FEASIBILITY: { savable: readonly string[]; blocked: readonly { f
     { field: 'quests', needs: 'QuestSystem is declared in types.ts and implemented by nothing' },
     { field: 'player', needs: 'SerializedPlayer names health/mana/inventory/skills; the runtime holds no player state' },
     { field: 'worldState', needs: 'the runtime keeps no world-state store' },
-    { field: 'cinematic', needs: 'updateCinematics is an empty stub, so there is no sequence state to save' },
+    { field: 'cinematic', needs: 'v117 gave this a writer — `cinematicSnapshot` fills all three `SerializedCinematic` fields — but the `sequences` map it fills holds LIVE `CinematicSequence` objects whose shots carry `THREE.CatmullRomCurve3` paths, and nothing here rebuilds a curve from stored points' },
   ],
 };
 
@@ -209,6 +298,8 @@ export class ThreeRuntime {
   /** Entities carrying a character controller, keyed by entity id. The registry — not a component —
    *  owns this because the integrator needs a per-entity world property (`groundY`) beside the controller. */
   private controllers: Map<EntityId, ControllerEntry> = new Map();
+  /** Cinematic sequences the runtime owns, keyed by their declared id. */
+  private readonly cinematics = new Map<string, CinematicEntry>();
 
   constructor(config: Partial<ThreeRuntimeConfig> = {}, options: ThreeRuntimeOptions = {}) {
     this.config = { ...DEFAULT_THREE_CONFIG, ...config };
@@ -907,8 +998,64 @@ export class ThreeRuntime {
     entity.threeObject.updateMatrix();
   }
 
+  /**
+   * The cinematic subsystem: advance the one playing sequence and put its camera where the shot says.
+   * It was the last comment-shaped hole inside `simulateFrame` (M5 v117 gave `CinematicSequence`,
+   * `CinematicShot` and `SerializedCinematic` their first readers).
+   *
+   * Three decisions are worth naming, because each one is a reading of a declared type rather than a
+   * preference: the playhead stops when its scene stops being the active one (a shot's `cameraId` means
+   * one scene's camera set, and a dormant scene is not being drawn); the camera switch fires on a CHANGE
+   * of shot index, which is the only behavior `'cut'` can have when one camera is rendered per frame; and
+   * the path is sampled by ARC length (`getPointAt`), so a shot's `startTime`/`endTime` say when the move
+   * happens and the curve's own geometry says how fast the camera covers it.
+   */
   private updateCinematics(delta: number): void {
-    // Cinematic sequence update would go here
+    const entry = this.playingCinematic();
+    if (!entry) return;
+    const { sequence } = entry;
+    if (this.sceneGraph.activeSceneId !== entry.sceneId) {
+      // Not an error and not a pause-with-hope: the sequence is over as far as this runtime is concerned,
+      // because the only thing that could finish it — its own scene being looked at — has gone away. The
+      // playhead keeps its position, so a caller that switches back can `playCinematic` from where it is.
+      sequence.playing = false;
+      this.emit('cinematicInterrupted', {
+        sequenceId: sequence.id,
+        time: entry.time,
+        reason: `scene ${entry.sceneId} is no longer the active scene, and this sequence's shots address its cameras`,
+      });
+      return;
+    }
+    const scene = this.sceneGraph.scenes.get(entry.sceneId)!;
+    entry.time = Math.min(entry.time + delta, sequence.duration);
+
+    const index = shotIndexAt(sequence.shots, entry.time);
+    const shot = sequence.shots[index]!;
+    if (index !== entry.lastShot) {
+      entry.lastShot = index;
+      sequence.currentShot = index;
+      this.setActiveCamera(entry.sceneId, shot.cameraId);
+      this.emit('cinematicShotChanged', {
+        sequenceId: sequence.id, shotIndex: index, shotId: shot.id, cameraId: shot.cameraId,
+      });
+    }
+
+    const camera = scene.cameras.get(shot.cameraId)!;
+    const span = shot.endTime - shot.startTime;
+    const local = Math.min(Math.max((entry.time - shot.startTime) / span, 0), 1);
+    if (shot.cameraPath) camera.threeCamera.position.copy(shot.cameraPath.getPointAt(local));
+    // `lookAt` reads the position it was just given, so an aiming path has to run after a moving one.
+    if (shot.targetPath) camera.threeCamera.lookAt(shot.targetPath.getPointAt(local));
+    if (shot.fovAnimation && camera.threeCamera instanceof THREE.PerspectiveCamera) {
+      const { start, end, easing } = shot.fovAnimation;
+      camera.threeCamera.fov = start + (end - start) * CINEMATIC_EASINGS[easing]!(local);
+      camera.threeCamera.updateProjectionMatrix();
+    }
+
+    if (entry.time >= sequence.duration) {
+      sequence.playing = false;
+      this.emit('cinematicFinished', { sequenceId: sequence.id, time: entry.time, duration: sequence.duration });
+    }
   }
 
   // ── declared world physics ────────────────────────────────────────────────────────────────────
@@ -1074,6 +1221,177 @@ export class ThreeRuntime {
     return undefined;
   }
 
+  // ── cinematic sequences ───────────────────────────────────────────────────────────────────────
+
+  /**
+   * Register a sequence against `sceneId` and validate it HERE, for the same reason `setScenePhysics`
+   * validates a world: a shot whose value this player cannot perform has to refuse at the door rather than
+   * be read as something else at play time. So `defineCinematic` refuses a shot that names a camera the
+   * scene does not have, a timeline with a gap or an overlap (two shots claiming one instant leave no
+   * answer to which camera is showing), a `transition` other than `'cut'` (blending needs two rendered
+   * images and this runtime draws one active camera per frame), a non-zero `transitionDuration` (nothing
+   * would time it), an `fovAnimation` on an orthographic camera (there is no `fov` to write), a field of
+   * view outside (0, 180) (the projection matrix goes degenerate), an easing word it does not implement
+   * (reading it as linear would be a guess about what the caller meant), and a zero-length path (an arc
+   * parameter divided by the arc it does not have).
+   *
+   * `duration` is DERIVED from the shots. A caller may name it, and then it has to agree; a declared
+   * duration that disagreed with its own timeline would be two answers to "when does this end", and the
+   * save shape has one field for it.
+   *
+   * The shot ARRAY is copied, so a caller pushing another shot later cannot move a registered timeline.
+   * The shot objects are not copied — a path is a live `THREE.CatmullRomCurve3`, and rebuilding one from
+   * stored points is the job `saveFeasibilityAudit` still lists as missing.
+   */
+  defineCinematic(sceneId: SceneId, input: CinematicSequenceInput): CinematicSequence {
+    const scene = this.sceneGraph.scenes.get(sceneId);
+    if (!scene) throw new Error(`defineCinematic: scene ${sceneId} does not exist`);
+    if (this.cinematics.has(input.id)) {
+      throw new Error(`defineCinematic: a sequence named ${input.id} is already registered, and this runtime has no way to unregister one — choose a new id`);
+    }
+    const shots = [...input.shots];
+    if (shots.length === 0) {
+      throw new Error(`defineCinematic("${input.id}"): a sequence with no shots has no timeline to play, and \`duration\` would be 0 with nothing on camera`);
+    }
+    if (shots[0]!.startTime !== 0) {
+      throw new Error(`defineCinematic("${input.id}"): the first shot starts at ${shots[0]!.startTime}; a sequence must open at playhead 0 or the frames before it show nothing while the type claims a shot is playing`);
+    }
+    let cursor = 0;
+    for (const shot of shots) {
+      if (shot.startTime < cursor) {
+        throw new Error(`defineCinematic("${input.id}"): shot ${shot.id} starts at ${shot.startTime}, at or before the previous shot's ${cursor} — two shots claiming one playhead instant have no single answer to which camera is showing`);
+      }
+      if (!(shot.endTime > shot.startTime)) {
+        throw new Error(`defineCinematic("${input.id}"): shot ${shot.id} runs ${shot.startTime} → ${shot.endTime}; progress inside a shot divides by its own length, so it must end after it starts`);
+      }
+      const camera = scene.cameras.get(shot.cameraId);
+      if (!camera) {
+        throw new Error(`defineCinematic("${input.id}"): shot ${shot.id} names camera ${shot.cameraId}, which is not in scene ${sceneId}. A sequence is registered against ONE scene because its shot ids address that scene's cameras and nothing else`);
+      }
+      if (shot.transition !== 'cut') {
+        throw new Error(`defineCinematic("${input.id}"): shot ${shot.id} asks for a '${shot.transition}' transition. This player switches the active camera and draws one camera per frame, so a blend has no two images to blend — only 'cut' is available`);
+      }
+      if (shot.transitionDuration !== 0) {
+        throw new Error(`defineCinematic("${input.id}"): shot ${shot.id} declares transitionDuration ${shot.transitionDuration} while the only available transition is an instantaneous cut; a duration that nothing times is refused rather than accepted and ignored`);
+      }
+      const fov = shot.fovAnimation;
+      if (fov) {
+        if (!(camera.threeCamera instanceof THREE.PerspectiveCamera)) {
+          throw new Error(`defineCinematic("${input.id}"): shot ${shot.id} animates the field of view of camera ${shot.cameraId}, which is ${camera.type}; an orthographic camera has no "fov" to write`);
+        }
+        for (const [which, value] of [['start', fov.start], ['end', fov.end]] as const) {
+          if (!Number.isFinite(value) || value <= 0 || value >= 180) {
+            throw new Error(`defineCinematic("${input.id}"): shot ${shot.id} fovAnimation.${which} is ${value}; a PerspectiveCamera fov must be finite and strictly between 0 and 180, or updateProjectionMatrix builds a degenerate matrix`);
+          }
+        }
+        if (!(fov.easing in CINEMATIC_EASINGS)) {
+          throw new Error(`defineCinematic("${input.id}"): shot ${shot.id} fovAnimation names easing "${fov.easing}". The easings this package implements are ${Object.keys(CINEMATIC_EASINGS).sort().map((n) => `"${n}"`).join(', ')} — an unknown word would be read as linear, which is a guess about what you meant`);
+        }
+      }
+      for (const [name, path] of [['cameraPath', shot.cameraPath], ['targetPath', shot.targetPath]] as const) {
+        if (path && !(path.getLength() > 0)) {
+          throw new Error(`defineCinematic("${input.id}"): shot ${shot.id} ${name} has no length; the camera is placed by arc position along it, so a path with no arc has no position to return`);
+        }
+      }
+      cursor = shot.endTime;
+    }
+    const duration = cursor;
+    if (input.duration !== undefined && input.duration !== duration) {
+      throw new Error(`defineCinematic("${input.id}"): duration is declared ${input.duration} but the shots run to ${duration}. The timeline the shots describe wins — name a matching number, or name none`);
+    }
+
+    const sequence: CinematicSequence = { id: input.id, name: input.name, shots, duration, currentShot: 0, playing: false };
+    this.cinematics.set(sequence.id, { sequence, sceneId, time: 0, lastShot: -1 });
+    this.emit('cinematicDefined', { sequenceId: sequence.id, sceneId, shotCount: shots.length, duration });
+    return sequence;
+  }
+
+  /** The single playing sequence, DERIVED from `sequence.playing` rather than stored beside it. Two
+   *  sources for one fact can disagree, and `SerializedCinematic.activeSequence` is a single id: a runtime
+   *  that could not answer "which one" uniquely would have nothing honest to put in that field. */
+  private playingCinematic(): CinematicEntry | undefined {
+    for (const entry of this.cinematics.values()) {
+      if (entry.sequence.playing) return entry;
+    }
+    return undefined;
+  }
+
+  /**
+   * Start (or restart) a sequence. Returns false when another one holds the single active slot — see
+   * `cinematicFieldAudit`'s `playhead.blockedBy`, which names it — and throws when the request cannot mean
+   * anything: an unregistered id, or a sequence whose scene is not the active one.
+   *
+   * Replaying a finished sequence rewinds its playhead first; stopping one does NOT, because a stop is a
+   * caller interrupting a cutscene, not a request to watch it again.
+   */
+  playCinematic(id: string): boolean {
+    const entry = this.cinematics.get(id);
+    if (!entry) throw new Error(`playCinematic: no sequence named ${id} is registered`);
+    if (this.sceneGraph.activeSceneId !== entry.sceneId) {
+      throw new Error(`playCinematic: "${id}" belongs to scene ${entry.sceneId}, which is not the active scene (${this.sceneGraph.activeSceneId ?? 'none'}); its shots address that scene's cameras`);
+    }
+    if (entry.sequence.playing) return false;
+    if (this.playingCinematic()) return false;
+    if (entry.time >= entry.sequence.duration) {
+      entry.time = 0;
+      entry.lastShot = -1;
+    }
+    entry.sequence.playing = true;
+    this.emit('cinematicPlayed', { sequenceId: id, time: entry.time, duration: entry.sequence.duration });
+    return true;
+  }
+
+  /** Stop a playing sequence where its playhead stands. False when it was not playing. */
+  stopCinematic(id: string): boolean {
+    const entry = this.cinematics.get(id);
+    if (!entry || !entry.sequence.playing) return false;
+    entry.sequence.playing = false;
+    this.emit('cinematicStopped', { sequenceId: id, time: entry.time, duration: entry.sequence.duration });
+    return true;
+  }
+
+  /** The live answer for the `SerializedCinematic` shape — all three of its fields, filled from the
+   *  registry rather than invented. This is the first WRITER the declared save type has ever had, and it is
+   *  still not a save: `saveFeasibilityAudit` keeps `cinematic` in `blocked` because the map's values are
+   *  the live sequence objects, whose shot paths are curves nothing here rebuilds from points. */
+  cinematicSnapshot(): SerializedCinematic {
+    const sequences = new Map<string, CinematicSequence>();
+    for (const [id, entry] of this.cinematics) sequences.set(id, entry.sequence);
+    const playing = this.playingCinematic();
+    return {
+      sequences,
+      activeSequence: playing?.sequence.id ?? null,
+      currentTime: playing?.time ?? 0,
+    };
+  }
+
+  /** What declaring a sequence actually buys, in the same shape as `physicsFieldAudit`. */
+  cinematicFieldAudit(id: string): CinematicFieldAudit | undefined {
+    const entry = this.cinematics.get(id);
+    if (!entry) return undefined;
+    const { sequence } = entry;
+    const names = Object.keys(sequence);
+    const showing = entry.lastShot < 0 ? undefined : sequence.shots[entry.lastShot];
+    const other = this.playingCinematic();
+    return {
+      consulted: [...HONORED_SHOT_FIELDS].sort(),
+      unhonored: UNHONORED_SHOT_REASONS.map((r) => ({ ...r })),
+      sequenceRead: names.filter((n) => READ_SEQUENCE_FIELDS.includes(n)).sort(),
+      sequenceWritten: names.filter((n) => WRITTEN_SEQUENCE_FIELDS.includes(n)).sort(),
+      playhead: {
+        playing: sequence.playing,
+        time: entry.time,
+        duration: sequence.duration,
+        // `currentShot` is the declared field, which has no way to say "nothing yet" and so sits at 0
+        // before the first frame; `shotId` is the audit's answer to what the camera is actually showing.
+        currentShot: sequence.currentShot,
+        shotId: showing?.id ?? null,
+        cameraId: showing?.cameraId ?? null,
+        blockedBy: other && other !== entry ? other.sequence.id : null,
+      },
+    };
+  }
+
   private updateStats(): void {
     if (!this.backend || !this.sceneGraph.stats) return;
     const info = this.backend.stats;
@@ -1141,6 +1459,9 @@ export class ThreeRuntime {
     // scenes would otherwise strand them. Clearing here (rather than orphan-walking) is deliberate: the
     // entities are already gone, and a dispose is not a caller losing one entity under a live controller.
     this.controllers.clear();
+    // Same reason as the controllers: a sequence is registered by id against a scene that no longer
+    // exists, so keeping it would let `playCinematic` answer for cameras that are gone.
+    this.cinematics.clear();
 
     if (this.backend) {
       this.backend.dispose();
