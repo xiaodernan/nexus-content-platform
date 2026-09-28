@@ -73,7 +73,7 @@ export type GenerateImageOutcome =
     }
   | {
       ok: false;
-      code: 'invalid_input' | 'credits_exhausted' | 'asset_rejected' | 'synth_failed';
+      code: 'invalid_input' | 'credits_exhausted' | 'storage_exhausted' | 'asset_rejected' | 'synth_failed';
       message: string;
       issues?: string[];
     };
@@ -268,7 +268,14 @@ export async function generateDemoImage(input: GenerateImageInput): Promise<Gene
   });
   if (!ingested.ok) {
     await finishTask(taskId, { ok: false, error: `生成物未通过资产摄取门：${ingested.reason}` });
-    return { ok: false, code: 'asset_rejected', message: ingested.reason, issues: ingested.issues };
+    // 摄取门有两种拒法，别混成一句：存储配额满了不是"生成物不合格"，
+    // 用户该做的是删素材（或换档），而不是换个 prompt 再试一次。
+    return {
+      ok: false,
+      code: ingested.code === 'storage_exhausted' ? 'storage_exhausted' : 'asset_rejected',
+      message: ingested.reason,
+      issues: ingested.issues,
+    };
   }
 
   // 成功收尾：这一句里发生了 §134 的那一笔扣点

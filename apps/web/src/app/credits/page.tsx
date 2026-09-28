@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import type { ReactElement } from 'react';
 import { currentUserOrNull } from '@/server/domain/session';
-import { readCredits, type LedgerEntry } from '@/server/domain/credit-ledger';
+import { readCredits, storageUsageBytes, type LedgerEntry } from '@/server/domain/credit-ledger';
 import {
   CREDIT_KINDS,
   CREDIT_KIND_LABELS,
@@ -11,6 +11,7 @@ import {
   PLAN_LABELS,
   PLAN_LIMITS,
   PLAN_MONTHLY_GRANTS,
+  humanBytes,
   UNENFORCED_PLAN_AXES,
   type PlanKey,
 } from '@/server/domain/credits';
@@ -67,6 +68,7 @@ export default async function CreditsPage(): Promise<ReactElement> {
     );
   }
 
+  const storageBytes = await storageUsageBytes(user.id);
   const view = await readCredits(user.id);
   const grants = PLAN_MONTHLY_GRANTS[view.plan];
 
@@ -164,9 +166,15 @@ export default async function CreditsPage(): Promise<ReactElement> {
           </tbody>
         </table>
         <p className="text-12 text-warn" data-credits-enforced>
-          今天<b>只有</b>「{ENFORCED_PLAN_AXES.join('、')}」这一格有真的拦截方：额度为 0 时生成会被挡下。
-          另外四格（{UNENFORCED_PLAN_AXES.join('、')}）目前只是这张表上的数字，还没有代码按它拒绝任何请求
-          ——把表上的上限当成已生效的限制，是这一页最容易说谎的方式。
+          今天有真的拦截方的只有「{ENFORCED_PLAN_AXES.join('、')}」：额度为 0 时生成会被挡下，
+          存储写满时新的素材会被拒绝（库里已有的不会被自动删掉）。另外{' '}
+          {UNENFORCED_PLAN_AXES.length} 格（{UNENFORCED_PLAN_AXES.join('、')}）
+          目前只是这张表上的数字，还没有代码按它拒绝任何请求——把表上的上限当成已生效的限制，
+          是这一页最容易说谎的方式。
+        </p>
+        <p className="text-12 text-fg-2" data-credits-storage>
+          你的存储：已用 {humanBytes(storageBytes)} / {PLAN_LIMITS[view.plan].storageMb} MB
+          （{PLAN_LABELS[view.plan]} 档，按名下所有项目合计；软删的项目仍占空间）。
         </p>
         <ul className="text-12 text-fg-2" data-credits-limits>
           <li>· 没有充值入口：这一页不会出现"加点额度"的按钮，因为支付还没有接（§133 的档位今天也只能由服务端代码改）。</li>

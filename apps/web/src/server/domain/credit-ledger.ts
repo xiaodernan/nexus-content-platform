@@ -11,7 +11,7 @@
  */
 import { and, desc, eq, sql } from 'drizzle-orm';
 import { getDb } from '../db/client';
-import { creditLedger, users, type CreditLedgerKind } from '../db/schema';
+import { assets, creditLedger, projects, users, type CreditLedgerKind } from '../db/schema';
 import {
   CREDIT_KINDS,
   GENERATION_COST,
@@ -51,6 +51,25 @@ export async function planOf(userId: string): Promise<PlanKey> {
     .limit(1);
   const stored = row?.plan;
   return isPlanKey(stored) ? stored : 'free';
+}
+
+/**
+ * 这个人（名下所有项目加起来）已经占了多少存储：`SUM(assets.bytes)`。
+ *
+ * 与余额同一套纪律——**用量是派生的**，库里没有"已用存储"这一列可以改，
+ * 所以"账面上还有空间但传不上去"这类不一致没有落脚点。
+ *
+ * 两处口径写下来，因为它们直接影响数字：
+ * - 软删的项目**仍然算**：字节还躺在存储里，删项目腾不出空间（真腾空间要做资产清理，今天没有）；
+ * - 挂在"没有项目"的资产上的字节不算（今天没有这种写入方；头图走 `avatar` 那条独立的表）。
+ */
+export async function storageUsageBytes(ownerId: string): Promise<number> {
+  const [row] = await getDb()
+    .select({ total: sql<string | number | null>`coalesce(sum(${assets.bytes}), 0)` })
+    .from(assets)
+    .innerJoin(projects, eq(projects.id, assets.projectId))
+    .where(eq(projects.ownerId, ownerId));
+  return Number(row?.total ?? 0);
 }
 
 /**

@@ -52,7 +52,13 @@ export async function POST(req: Request, ctx: RouteContext): Promise<NextRespons
       filename: file.name,
       createdById: user.id,
     });
-    if (!result.ok) return jsonError(400, 'asset_rejected', { reason: result.reason, issues: result.issues });
+    if (!result.ok) {
+      // 配额与"文件不合格"要分开：413 让用户知道该删素材，400 才是"换一份文件"
+      if (result.code === 'storage_exhausted') {
+        return jsonError(413, 'storage_exhausted', { reason: result.reason });
+      }
+      return jsonError(400, 'asset_rejected', { reason: result.reason, issues: result.issues });
+    }
     return NextResponse.json(
       { ok: true, asset: result.asset, reused: result.reused, removed: result.removed },
       { status: result.reused ? 200 : 201 },

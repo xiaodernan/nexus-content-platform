@@ -3153,9 +3153,12 @@ test('@smoke §134 跑一次生成 → 额度页少 1 点，且那一行指着�
   await expect(row).toContainText('DEMO 模板');
   await page.screenshot({ path: 'screenshots/credits-after-generation.png' });
 
-  // 这一页必须自己说清哪些限制今天真的生效：只有一格有拦截方，另四格只是表上的数字
+  // 这一页必须自己说清哪些限制今天真的生效：两格有拦截方（额度、存储），另外三格只是表上的数字。
+  // 断言要把 storage 与"已用"都钉住——只钉"只有"的话，把 storage 从这一格拿掉用例照样绿。
   await expect(page.locator('[data-credits-enforced]')).toContainText('只有');
   await expect(page.locator('[data-credits-enforced]')).toContainText('aiUsage');
+  await expect(page.locator('[data-credits-enforced]')).toContainText('storage');
+  await expect(page.locator('[data-credits-storage]')).toContainText('已用');
   await expect(page.locator('[data-credits-limits]')).toContainText('没有充值入口');
   await expect(page.locator('[data-plan-row="enterprise"]')).toBeVisible();
 });

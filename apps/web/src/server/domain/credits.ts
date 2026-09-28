@@ -56,8 +56,9 @@ export const PLAN_MONTHLY_GRANTS: Record<PlanKey, Record<CreditLedgerKind, numbe
 
 /**
  * §133 说档位按五件事设计：AI usage / storage / generation / team collaboration / publishing。
- * 今天**只有 AI usage 这一格有真的拦截方**（`refusalForRun`，在 `credit-ledger.ts`）。
- * 另四格记在这里是为了
+ * 今天**有两格有真的拦截方**：AI usage（`refusalFor`，在 `credit-ledger.ts`）与
+ * storage（`refusalForStorage`，字节进存储之前问，见 `assets.ts` 的摄取门与 ADR-0018）。
+ * 剩下三格记在这里是为了
  * 让界面能说清"哪些是已生效的限制、哪些还只是表格上的字"——把没拦截的上限写成已生效，
  * 是这一份文档里最贵的一种谎。
  */
@@ -73,8 +74,8 @@ export const PLAN_LIMITS: Record<
 };
 
 /** 今天生效的限制有哪几格——界面上那一列"已生效 / 还没拦截方"就读这里 */
-export const ENFORCED_PLAN_AXES = ['aiUsage'] as const;
-export const UNENFORCED_PLAN_AXES = ['storage', 'generation', 'teamCollaboration', 'publishing'] as const;
+export const ENFORCED_PLAN_AXES = ['aiUsage', 'storage'] as const;
+export const UNENFORCED_PLAN_AXES = ['generation', 'teamCollaboration', 'publishing'] as const;
 
 /**
  * 一次成功的生成扣几点。
@@ -155,4 +156,37 @@ export interface BalanceCheck {
 export function refusalFor(check: BalanceCheck): string | null {
   if (check.balance >= check.cost) return null;
   return `${CREDIT_KIND_LABELS[check.kind]} 不够：这一次需要 ${check.cost} 点，现在只有 ${check.balance} 点。本月额度会在下个月 1 日（UTC）重新发放，消费明细见「额度」页（/credits）。`;
+}
+
+/**
+ * §133 的 storage 那一格：写字节之前问一句"还放得下吗"。
+ *
+ * 与 `refusalFor` 同一条口径——**拒绝的话里必须带数字**。"存储满了"与
+ * "Free 档上限 200MB，已用 198MB，这一次还要 4MB"是两种可读性，后者才能让人决定删什么。
+ *
+ * 今天唯一的拒法是拒绝**新写入**，不做驱逐：已经在库里的素材不会被自动删掉。
+ * 把用户的图悄悄删掉是最坏的一种"限额"，腾地方是作者自己的动作。
+ */
+export function storageLimitBytes(plan: PlanKey): number {
+  return PLAN_LIMITS[plan].storageMb * 1024 * 1024;
+}
+
+export interface StorageCheck {
+  plan: PlanKey;
+  /** 这个人名下所有项目加起来已经占的字节（`SUM(assets.bytes)`，派生，不存） */
+  usedBytes: number;
+  /** 这一次要再写进去的字节数 */
+  incomingBytes: number;
+}
+
+/** 给人看的字节数，保留一位小数；比较一律用字节本身，别拿这个字符串回去比大小 */
+export function humanBytes(bytes: number): string {
+  return `${Math.round((bytes / 1024 / 1024) * 10) / 10}MB`;
+}
+
+export function refusalForStorage(check: StorageCheck): string | null {
+  const limit = storageLimitBytes(check.plan);
+  const after = check.usedBytes + check.incomingBytes;
+  if (after <= limit) return null;
+  return `存储放不下：${PLAN_LABELS[check.plan]} 档上限 ${humanBytes(limit)}，已用 ${humanBytes(check.usedBytes)}，这一次还要 ${humanBytes(check.incomingBytes)}，合计 ${humanBytes(after)}。删掉一些素材再传；今天没有购买流程，加不了空间（§159）。`;
 }

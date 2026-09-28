@@ -11,7 +11,9 @@ import {
   sniffImageMime,
   stripImageMetadata,
 } from '../storage/images';
-import { assetRowToRef, projectBelongsTo } from './projects';
+import { refusalForStorage } from './credits';
+import { planOf, storageUsageBytes } from './credit-ledger';
+import { assetRowToRef, projectBelongsTo, projectOwnerId } from './projects';
 import { readSnapshot } from './snapshots';
 
 /**
@@ -65,6 +67,12 @@ function displayName(raw: string | undefined, fallback: string): string {
 
 export interface UploadRejection {
   ok: false;
+  /**
+   * 哪一道门拒的。路由据此分别给 400 与 413：
+   * "这份文件不是我们能收的图"与"这次放不下了（配额）"是两件事，混成一个状态码，
+   * 用户会去改文件名，而真正该做的是删素材。
+   */
+  code: 'invalid_image' | 'storage_exhausted';
   reason: string;
   issues: string[];
 }
@@ -96,13 +104,14 @@ export async function uploadImageAsset(
   if (!mime) {
     return {
       ok: false,
+      code: 'invalid_image',
       reason: '只接受 PNG / JPEG / WebP / GIF 位图',
       issues: ['文件头（magic bytes）未识别为受支持的图片格式；扩展名与 Content-Type 不作为依据'],
     };
   }
   const size = readImageSize(bytes);
   const issues = imageLimitViolations(size, bytes.length);
-  if (issues.length) return { ok: false, reason: '图片不符合上限要求', issues };
+  if (issues.length) return { ok: false, code: 'invalid_image', reason: '图片不符合上限要求', issues };
 
   let sanitized: { bytes: Uint8Array; removed: string[] };
   try {
@@ -110,6 +119,7 @@ export async function uploadImageAsset(
   } catch (error) {
     return {
       ok: false,
+      code: 'invalid_image',
       reason: '图片结构异常，已拒绝',
       issues: [error instanceof Error ? error.message : String(error)],
     };
@@ -126,6 +136,26 @@ export async function uploadImageAsset(
   // 复用那一行时**不**改写它的 character_id：字节相同就是同一张图，归属仍是第一次写入它的那个角色，
   // 调用方从 `reused` 就知道这一张没有新建行
   if (twin) return { ok: true, asset: assetRowToRef(twin), removed: removedMetadataOf(twin), reused: true };
+
+  // §133 的 storage 那一格：字节进存储之前先问"还放得下吗"（ADR-0018）。
+  // 门放在这一处而不是路由上：上传与 §38 的生成走的是同一道摄取门，加在路由上会漏掉生成那条路。
+  // 也放在复用判断**之后**：checksum 命中的那份字节已经在库里，不该再按新写入算一次占用。
+  const ownerId = await projectOwnerId(projectId);
+  if (ownerId) {
+    const refusal = refusalForStorage({
+      plan: await planOf(ownerId),
+      usedBytes: await storageUsageBytes(ownerId),
+      incomingBytes: sanitized.bytes.length,
+    });
+    if (refusal) {
+      return {
+        ok: false,
+        code: 'storage_exhausted',
+        reason: refusal,
+        issues: ['存储配额按所有者名下所有项目合计；被拒的是这一次写入，库里已有的素材不会被自动删掉'],
+      };
+    }
+  }
 
   const id = randomUUID();
   const key = `projects/${projectId}/${id}${IMAGE_MIME_EXTENSIONS[mime]}`;

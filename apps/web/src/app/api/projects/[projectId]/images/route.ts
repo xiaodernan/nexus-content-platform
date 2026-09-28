@@ -57,7 +57,9 @@ export async function POST(req: Request, ctx: RouteContext): Promise<NextRespons
     });
     if (!result.ok) {
       // 429 与 400 分开：额度用尽要让用户知道"这个月没了"，而不是"你请求写错了"
-      const status = result.code === 'credits_exhausted' ? 429 : 400;
+      // 三种拒法各给一个状态码：额度用尽 429、存储放不下 413、其余是请求写错了 400
+      const status =
+        result.code === 'credits_exhausted' ? 429 : result.code === 'storage_exhausted' ? 413 : 400;
       return jsonError(status, result.code, { message: result.message, issues: result.issues ?? [] });
     }
     return NextResponse.json(

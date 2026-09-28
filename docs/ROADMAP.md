@@ -1042,8 +1042,9 @@ drizzle 把整个拼接结果当成**单个绑定参数**，生成的 SQL 是 `o
 ## M7 — 创作者经济（§187）
 - [ ] Marketplace（组件 / 模板 / 设计系统 / 资产 / 世界 / 游戏 / AI 角色）
 - [~] Credits 与订阅（Free/Pro/Creator/Studio/Enterprise），消费透明（§133-134）
-  —— 第一片已落地（账本 + 一类消费 + 一格拦截，见文末"§133/§134 第一片"）；
-  欠的是 image/video/compute 三类的消耗方、另四格上限的执行方、改档位的入口
+  —— 第一片已落地（账本 + 一类消费 + 一格拦截）；第二片把 storage 那一格也接上真的执行方
+  （摄取门里拒绝新字节，413，见文末"§133/§134 第二片"与 ADR-0018）；
+  欠的是 image/video/compute 三类的消耗方、generation/team collaboration/publishing 三格的执行方、改档位的入口
 
 ## M8 — 开放能力（§188）
 - [ ] MCP、外部 Agent、公开 API
@@ -1802,7 +1803,8 @@ generation / team collaboration / publishing 设计"，§134"用户看得到 AI 
 
 **这一片没有做的（照实记，不要当成已生效）**
 
-- storage / generation / team collaboration / publishing 那四格上限只是页面上的数字，没有代码按它拒绝任何请求。
+- ~~storage / generation / team collaboration / publishing 那四格上限只是页面上的数字~~ **storage 那一格后来接上了执行方**
+  （2026-09-28，见文末「§133/§134 第二片」与 ADR-0018）；generation / team collaboration / publishing 三格仍然只是数字。
 - Image / Video / Compute 三类只有发放方、没有消耗方（要等 §38 图像、§40 视频那条路）。
 - 改档位没有界面：`UPDATE users SET plan` 是服务端代码里的事。
 - 这道门**不预扣**：并发可以把余额跑到负数（预扣要一个能把 provider 调用包进去的可回滚事务，今天没有）。
@@ -2850,6 +2852,35 @@ JS 只读回 `id + page_id`。把 4008 行读回 JS 逐字段比是「957.6ms �
 红在"拖动中库里那一份还是旧的"（Expected 3000, Received 5500）；③ 落下下标减一 →
 红在顺序断言（Array [2,3,1,4] 对 [2,3,4,1]）。
 截图 `screenshots/storyboard-timeline-edit.png`（编辑面 + 轨道）与 `storyboard-timeline-dragging.png`（拖动中的目标格与读数）。
+
+## §133/§134 第二片：storage 那一格真的有执行方了（拒绝新写入，不驱逐）
+
+第一片里 storage 只是表上的数字（ADR-0014 明写着"还没有拦截方"）。这一片把它接成真的：
+`uploadImageAsset` 在**字节进对象存储之前**问一句"这个人还放得下吗"，放不下就整条拒掉——
+`413 storage_exhausted`，话里带档位与三个数字（"Free 档上限 200MB，已用 198MB，这一次还要 4MB"），
+与 `refusalFor` 同一条口径。
+
+三个决定写在 ADR-0018：**用量是派生的**（`SUM(assets.bytes)`，按所有者跨项目合计，库里没有"已用"那一列）；
+**门放在唯一的摄取门里而不是路由上**（§80：全链路只有那一处读字节，用户上传与 §38 生成共用它——
+挂路由上会漏掉生成那条路）；**只拒新写入、不驱逐**（自动删用户的图是最坏的一种限额）。
+checksum 命中的重复上传在门**之前**就返回了，所以满仓时它照样放行：那份字节已经在库里，不该收两次占用。
+
+界面上 storage 从"还没有拦截方"那一列挪到"会真拦"那一列（`ENFORCED_PLAN_AXES`），
+并多了一行「已用 X / 上限 Y MB」；两列加起来仍然等于 §133 那五件事，有单测钉着——
+把 `ENFORCED_PLAN_AXES` 改回去而忘了改页面，那条会红。
+
+**验证**：`credits.test.ts` 新增 4 条纯规则（1024 进制换算与单调性、边界在 `used + incoming` 上、
+两列互斥且加起来是五件事、给人看的字节数只留一位小数）；`assets.integration.test.ts` 新增 2 条打真库 + 真存储
+（铺满到上限 → 上传被拒且**一行都不写** → 只把档位换成 pro，同一次上传就放行；checksum 命中的重复上传在满仓时仍放行）。
+这两条用**自己的所有者**：用量是按所有者跨项目求和的，共用文件级那个 ownerId 会让别的用例留下的素材把"已用"顶到上限
+——实测就是这么红了第一次，所以拆了 owner。
+变异探针：把 `if (refusal)` 改成 `if (refusal && false)` → 「超配额拒绝新写入」那条红在 `expect(blocked.ok).toBe(false)`，
+还原后全绿。相关 8 个测试文件 **100 条全绿**（credits / credits.integration / assets.integration / avatar /
+image-safety / image-studio / ai-jobs / studio-flush，不是全量回归）；改动文件 `npx eslint` 0 问题；`apps/web` typecheck 0。
+
+**没做的（照实记）**：① 生成那条路的 413 只由代码路径与 typecheck 保证，没有单起一条集成用例
+（拒的还是同一道门里的同一个函数）；② 这道门**不预扣**——两个并发上传可能都过、合计略微越限（ADR-0018 写明）；
+③ generation / team collaboration / publishing 三格仍然只是数字；④ 改档位仍然只能改库或改服务端代码，没有界面。
 
 ## 交接点（这一轮停在这里，下一轮从这里接）
 

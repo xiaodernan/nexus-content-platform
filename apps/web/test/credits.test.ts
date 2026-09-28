@@ -12,8 +12,11 @@ import {
   creditKindForAgentKey,
   isPlanKey,
   monthPeriod,
+  humanBytes,
   pendingGrants,
   refusalFor,
+  refusalForStorage,
+  storageLimitBytes,
 } from '../src/server/domain/credits';
 
 /**
@@ -50,13 +53,14 @@ describe('§134 四类额度与档位表（纯规则）', () => {
     for (const kind of CREDIT_KINDS) expect(GENERATION_COST[kind]).toBeGreaterThan(0);
   });
 
-  it('§133 那五件事里，只有 AI usage 这一格今天真的有拦截方', () => {
+  it('§133 那五件事两列合起来一格不多一格不少，今天有拦截方的是 AI usage 与 storage', () => {
     // §133 原文列的五件事：AI usage / storage / generation / team collaboration / publishing。
     // 这条断言钉的是"已生效 + 还没拦截方 = 那五件事，一格不多一格不少"，
-    // 挡的是那种把表格上的上限说成已生效的写法。
+    // 挡的是那种把表格上的上限说成已生效的写法——storage 从下一列挪上来时，这里必须跟着改。
     const FIVE_AXES = ['aiUsage', 'storage', 'generation', 'teamCollaboration', 'publishing'];
     expect([...ENFORCED_PLAN_AXES, ...UNENFORCED_PLAN_AXES].sort()).toEqual([...FIVE_AXES].sort());
-    expect(ENFORCED_PLAN_AXES).toEqual(['aiUsage']);
+    expect(ENFORCED_PLAN_AXES).toEqual(['aiUsage', 'storage']);
+    expect(UNENFORCED_PLAN_AXES).toEqual(['generation', 'teamCollaboration', 'publishing']);
   });
 });
 
@@ -124,5 +128,49 @@ describe('§134 余额、发放与拒绝', () => {
     // 一次要 5 点的视频，4 点余额仍然被拒（不是"大于 0 就放行"）
     expect(refusalFor({ kind: 'video', cost: GENERATION_COST.video, balance: GENERATION_COST.video - 1 })).not.toBeNull();
     expect(refusalFor({ kind: 'video', cost: GENERATION_COST.video, balance: GENERATION_COST.video })).toBeNull();
+  });
+});
+
+describe('§133 storage 那一格：放不下就拒绝新写入，拒绝的话里带数字', () => {
+  it('五档的上限都是同一处 1024 进制换算出来的，且随档位单调递增', () => {
+    expect(storageLimitBytes('free')).toBe(200 * 1024 * 1024);
+    expect(storageLimitBytes('enterprise')).toBe(204800 * 1024 * 1024);
+    for (let i = 1; i < PLAN_KEYS.length; i += 1) {
+      expect(storageLimitBytes(PLAN_KEYS[i]!)).toBeGreaterThan(storageLimitBytes(PLAN_KEYS[i - 1]!));
+    }
+  });
+
+  it('刚好放得下就放行，多 1 个字节就拒（边界在 used + incoming 上，不在单个数上）', () => {
+    const limit = storageLimitBytes('free');
+    expect(refusalForStorage({ plan: 'free', usedBytes: limit - 10, incomingBytes: 10 })).toBeNull();
+    const over = refusalForStorage({ plan: 'free', usedBytes: limit - 10, incomingBytes: 11 });
+    expect(over).not.toBeNull();
+    // 拒绝的话必须自带数字：用户得知道该删一点还是删很多
+    expect(over).toContain('Free 档上限 200MB');
+    expect(over).toContain('已用');
+    expect(over).toContain('这一次还要');
+    // 同一个用量，换到上限更大的档位就不再被拒——证明看的是档位，而不是"有没有占地方"
+    expect(refusalForStorage({ plan: 'pro', usedBytes: limit - 10, incomingBytes: 11 })).toBeNull();
+  });
+
+  it('storage 进了"真的会拦"那一列，就从"还没拦截方"那一列里出去，两列加起来仍是 §133 那五件事', () => {
+    expect((ENFORCED_PLAN_AXES as readonly string[]).includes('storage')).toBe(true);
+    expect((UNENFORCED_PLAN_AXES as readonly string[]).includes('storage')).toBe(false);
+    expect([...ENFORCED_PLAN_AXES, ...UNENFORCED_PLAN_AXES].sort()).toEqual([
+      'aiUsage',
+      'generation',
+      'publishing',
+      'storage',
+      'teamCollaboration',
+    ]);
+    // 同一件事不许同时出现在两列里（界面上那一段读的就是这两列）
+    for (const axis of ENFORCED_PLAN_AXES) {
+      expect((UNENFORCED_PLAN_AXES as readonly string[]).includes(axis)).toBe(false);
+    }
+  });
+
+  it('给人看的字节数保留一位小数——它只用于显示，比较一律用字节', () => {
+    expect(humanBytes(200 * 1024 * 1024)).toBe('200MB');
+    expect(humanBytes(1536 * 1024)).toBe('1.5MB');
   });
 });

@@ -392,6 +392,20 @@ async function writeNodes(tx: Tx, page: Page): Promise<void> {
  * 归属校验（docs/SECURITY.md 数据隔离）：读写前必须调用。
  * 只返回布尔值，不暴露项目内容，避免"项目是否存在"侧信道。
  */
+/**
+ * 项目归谁（软删的不算）。
+ * 存储配额要按**所有者**的档位算（§133 的 storage 一格），而摄取门手里只有 projectId，
+ * 所以这一格得现查一次；查不到返回 null，调用方按"没有归属就不做配额判断"处理。
+ */
+export async function projectOwnerId(projectId: string): Promise<string | null> {
+  const [row] = await getDb()
+    .select({ ownerId: projects.ownerId })
+    .from(projects)
+    .where(and(eq(projects.id, projectId), isNull(projects.deletedAt)))
+    .limit(1);
+  return row?.ownerId ?? null;
+}
+
 export async function projectBelongsTo(projectId: string, ownerId: string): Promise<boolean> {
   const db = getDb();
   const rows = await db
