@@ -2840,3 +2840,164 @@ describe('M5 v136 — the scene has one player, and a file can carry it', () => 
     expect(refusalsFor('player-record').length).toBe(1);
   });
 });
+
+/**
+ * M5 v137 — the declared player numbers get OPERATIONS. v136 gave the record a body and a file and said out
+ * loud in its own bounds that the record is FILED AND NEVER DRIVEN: nothing read `health`, `mana`,
+ * `experience` or `level` to change anything. This suite drives them — and refuses, by name, everything a drive
+ * would otherwise invent: a negative amount (a sign that silently reverses an operation is how a damage call
+ * becomes a healing one), a spell the pool cannot cover (a clamp would hand over a spell nobody paid for), and a
+ * LEVEL, which this runtime derives from nothing at all.
+ */
+describe('M5 v137 — the player record’s declared numbers get operations', () => {
+  function withPlayedPlayer(options: PlayerAttachOptions = {}): Player {
+    withEntity(new THREE.Vector3(1.5, 2.25, -3.75));
+    return runtime.attachPlayer(scene, hero, options);
+  }
+
+  it('damagePlayer takes health down by what LANDS, and an overkill blow reports less than it asked for', () => {
+    withPlayedPlayer({ health: 30, maxHealth: 100 });
+    const report = runtime.damagePlayer(scene, 12, 'fall');
+    expect([report.amount, report.damage, report.health, report.maxHealth, report.died, report.reason])
+      .toEqual([12, 12, 18, 100, false, 'fall']);
+    const overkill = runtime.damagePlayer(scene, 999);
+    expect([overkill.amount, overkill.damage, overkill.health, overkill.died, overkill.reason])
+      .toEqual([999, 18, 0, true, '']);
+    // The record IS the numbers the report describes: a report that disagreed with the live record would be a
+    // second owner of one fact.
+    expect(runtime.getPlayer(scene)!.health).toBe(0);
+  });
+
+  it('damagePlayer refuses an amount that is not a finite non-negative number, and names the operation', () => {
+    withPlayedPlayer();
+    for (const bad of [-1, Number.NaN, Number.POSITIVE_INFINITY, '5' as unknown as number]) {
+      expect(() => runtime.damagePlayer(scene, bad))
+        .toThrow(/damagePlayer: amount is .*an operation takes a finite, non-negative number/);
+    }
+    expect(runtime.getPlayer(scene)!.health, 'a refused blow moved nothing').toBe(100);
+  });
+
+  it('the death boundary is crossed once: playerDied fires on the blow that reaches zero, and not on the next', () => {
+    withPlayedPlayer({ health: 5, maxHealth: 5 });
+    const died: unknown[] = [];
+    runtime.addEventListener('playerDied', (data) => died.push(data));
+    expect(runtime.damagePlayer(scene, 0).died, 'a zero-damage blow is not a death').toBe(false);
+    expect(runtime.damagePlayer(scene, 2).died).toBe(false);
+    expect(runtime.damagePlayer(scene, 3).died).toBe(true);
+    expect(runtime.damagePlayer(scene, 4).died, 'a blow on a corpse is not a second death').toBe(false);
+    expect(died.length).toBe(1);
+  });
+
+  it('healPlayer clamps at maxHealth, and a heal at full health answers a report of zero rather than refusing', () => {
+    withPlayedPlayer({ health: 90, maxHealth: 100 });
+    expect(runtime.healPlayer(scene, 4)).toMatchObject({ amount: 4, healed: 4, health: 94, maxHealth: 100 });
+    const clamped = runtime.healPlayer(scene, 50);
+    expect([clamped.healed, clamped.health]).toEqual([6, 100]);
+    const full = runtime.healPlayer(scene, 10);
+    expect([full.healed, full.health]).toEqual([0, 100]);
+  });
+
+  it('spendMana refuses a spend the pool cannot cover, naming both numbers, and takes exactly what is left', () => {
+    withPlayedPlayer({ mana: 12, maxMana: 50 });
+    expect(runtime.spendMana(scene, 12)).toMatchObject({ amount: 12, mana: 0, maxMana: 50 });
+    expect(() => runtime.spendMana(scene, 1))
+      .toThrow(/spendMana: the player holds 0 mana and this call spends 1; a spend larger than the pool is refused rather than clamped/);
+    expect(runtime.getPlayer(scene)!.mana, 'a refused spend is not a partial one').toBe(0);
+    expect(runtime.spendMana(scene, 0).mana).toBe(0);
+  });
+
+  it('gainExperience adds to the declared number and moves NO level, and the report carries the level that did not move', () => {
+    withPlayedPlayer({ experience: 0, level: 3 });
+    const report = runtime.gainExperience(scene, 12_500);
+    expect([report.amount, report.experience, report.level]).toEqual([12500, 12500, 3]);
+    // The bound stated as a case: a number this large is exactly the shape a threshold table would fire on, and
+    // nothing here fires, because this runtime implements no curve.
+    expect(runtime.gainExperience(scene, 1_000_000).level).toBe(3);
+    expect(runtime.getPlayer(scene)!.level).toBe(3);
+  });
+
+  it('setPlayerLevel is the only door a level changes through: a zero, a fractional or a non-finite level is refused', () => {
+    withPlayedPlayer({ level: 1 });
+    expect(runtime.setPlayerLevel(scene, 7)).toMatchObject({ level: 7 });
+    for (const bad of [0, 1.5, Number.NaN, Number.POSITIVE_INFINITY]) {
+      expect(() => runtime.setPlayerLevel(scene, bad))
+        .toThrow(/setPlayerLevel: level is .*a level is a finite integer of at least 1/);
+    }
+    expect(runtime.getPlayer(scene)!.level).toBe(7);
+  });
+
+  it('every operation refuses a scene with no player, by naming the scene', () => {
+    withEntity();
+    for (const call of [
+      () => runtime.damagePlayer(scene, 1),
+      () => runtime.healPlayer(scene, 1),
+      () => runtime.spendMana(scene, 1),
+      () => runtime.gainExperience(scene, 1),
+      () => runtime.setPlayerLevel(scene, 2),
+    ]) {
+      expect(call).toThrow(/has no player, and an operation on a record that is not there would move numbers nothing owns/);
+    }
+    expect(() => runtime.damagePlayer(sid('no-such-scene'), 1))
+      .toThrow(/damagePlayer: scene no-such-scene has no player/);
+  });
+
+  it('the numbers an operation leaves are the numbers a save carries, through a real store', () => {
+    const store = createMemorySaveStore();
+    const writer = runtimeWithStore(store);
+    const stage = writer.createScene('Stage').id;
+    writer.setActiveScene(stage);
+    const body = withEntityIn(writer, stage);
+    writer.attachPlayer(stage, body, {
+      health: 40, maxHealth: 40, mana: 9, maxMana: 9, experience: 0, level: 2, skills: { sneak: 4 },
+    });
+    writer.damagePlayer(stage, 6, 'trap');
+    writer.healPlayer(stage, 2);
+    writer.spendMana(stage, 4);
+    writer.gainExperience(stage, 300);
+    writer.setPlayerLevel(stage, 5);
+    const file = writer.buildSaveFile(stage, 1700000000000);
+    expect(offenders(JSON.parse(JSON.stringify(file)))).toEqual([]);
+    store.write('saves/after.json', JSON.stringify(file));
+
+    const reader = runtimeWithStore(store);
+    reader.createScene('Copy', stage);
+    reader.setActiveScene(stage);
+    reader.readSaveFile('saves/after.json', stage);
+    const player = reader.getPlayer(stage)!;
+    expect([player.health, player.maxHealth, player.mana, player.maxMana, player.experience, player.level])
+      .toEqual([36, 40, 5, 9, 300, 5]);
+    expect([...player.skills.entries()]).toEqual([['sneak', 4]]);
+    writer.dispose();
+    reader.dispose();
+  });
+
+  it('each operation says so on the event bus, with the report it returned', () => {
+    withPlayedPlayer({ health: 10, maxHealth: 10, mana: 5, maxMana: 5, level: 1 });
+    const seen: [string, unknown][] = [];
+    for (const name of ['playerDamaged', 'playerHealed', 'playerManaSpent', 'playerExperienceGained', 'playerLevelSet']) {
+      runtime.addEventListener(name, (data) => seen.push([name, data]));
+    }
+    const damaged = runtime.damagePlayer(scene, 4);
+    const healed = runtime.healPlayer(scene, 1);
+    const spent = runtime.spendMana(scene, 2);
+    const gained = runtime.gainExperience(scene, 7);
+    const leveled = runtime.setPlayerLevel(scene, 2);
+    expect(seen).toEqual([
+      ['playerDamaged', damaged],
+      ['playerHealed', healed],
+      ['playerManaSpent', spent],
+      ['playerExperienceGained', gained],
+      ['playerLevelSet', leveled],
+    ]);
+  });
+
+  it('a dead record is still a record: health never goes below zero, and a corpse can be healed', () => {
+    withPlayedPlayer({ health: 3, maxHealth: 10 });
+    expect(runtime.damagePlayer(scene, 100).health).toBe(0);
+    expect(runtime.getPlayer(scene)!.health).toBe(0);
+    expect(runtime.healPlayer(scene, 4)).toMatchObject({ healed: 4, health: 4 });
+    // And nothing about the SHAPE changed: the file still carries the half, and the audit still names one gap.
+    expect(runtime.playerSnapshot(scene)).not.toBeNull();
+    expect(runtime.playerFieldAudit(scene)!.untouched.map((entry) => entry.field)).toEqual(['inventory']);
+  });
+});

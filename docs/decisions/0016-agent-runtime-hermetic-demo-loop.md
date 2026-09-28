@@ -6506,3 +6506,63 @@ Bounds added: the claim-vs-bytes check covers the shape v136 made reachable, not
 file can wear — a missing `entities` or `cinematic` half is refused by the loader whatever the file claims, while
 the diagnosis still calls that file loadable through `readableNowButNotCarried`; `inventory` is still refused on
 every plane; and no Studio face attaches, detaches or reads a player.
+
+### Amendment 137 (M5 v137, three-runtime) — the player record's declared numbers get OPERATIONS: damage, heal, mana, experience and level, each refusing by name what a drive would otherwise invent
+
+Amendment 136 wrote its own loudest bound in the same breath as the gift: *"the record is FILED AND NEVER
+DRIVEN — nothing reads `health`, `mana`, `experience`, `level`, `skills` or `hotbar` to change anything"*. This
+grant drives four of those six numbers and leaves on the page why the other two wait. Full narrative in
+`docs/evidence/three-runtime/README.md` section v137; this is the ledger entry.
+
+- **One door.** `requirePlayerForOperation(sceneId, operation, amount)` is the only way into any of the five
+  operations: a scene with no player is refused BY NAME of the scene, and an amount that is not a finite
+  non-negative number is refused BY NAME of the operation. The second refusal is `attachPlayer`'s rule moved onto
+  the operation — `JSON.stringify` writes `NaN` as `null`, so an amount this door accepted would come back off a
+  file as a different number than the caller wrote. A NEGATIVE amount is refused rather than read as its
+  opposite: a caller who means "heal" has `healPlayer`, and a sign that silently reverses an operation is how a
+  damage call becomes a healing one.
+- **Damage reports what LANDED.** `damagePlayer(sceneId, amount, reason)` subtracts `min(amount, player.health)`
+  and answers `PlayerDamageReport { sceneId, entityId, amount, damage, health, maxHealth, died, reason }`; `died`
+  is true only where `health === 0 && landed > 0`, so a zero-damage blow is not a death and a blow on a corpse is
+  not a second one. The caller's own `reason` rides in the report and in the `playerDamaged` event and is never
+  read by this runtime — a listener that has to guess why a blow landed is a listener reading a different event
+  than the one that fired. `playerDied` fires on the crossing blow only.
+- **Health clamps; mana refuses.** `healPlayer` clamps to `min(amount, maxHealth - health)` and answers
+  `healed: 0` when the record is already full — asking for health it has is an answer, not an error. `spendMana`
+  REFUSES a spend larger than the pool, naming both numbers, and the difference between the two is deliberate and
+  stated: an overkill blow has an obvious reading (the target is dead) while a spell the player cannot afford
+  does not, so the caller is told instead of being handed a spell nobody paid for.
+- **Experience moves experience and nothing else.** `gainExperience` adds and does NOT touch the level, and
+  carries the unchanged `level` in `PlayerExperienceReport` so a caller cannot read the silence as a curve that
+  fired — there is no threshold table in this package on purpose, because an experience curve is a design
+  decision. `setPlayerLevel` is therefore the ONLY door a level changes through, and it refuses a zero, a
+  fractional or a non-finite level rather than flooring one.
+- **The numbers are the numbers a file carries.** Every operation mutates the record `playerSnapshot` writes, so
+  a blow taken in one runtime is read back by a runtime that never saw the record, through a real store, and each
+  operation emits on the event bus with the report it returned.
+
+Measured: **333 vitest cases across 5 files, 0 red** (`test/saveSnapshot.test.ts` 157, of which this grant's
+describe holds 11), `tsc -p packages/three-runtime/tsconfig.json --noEmit` exit 0. The probe ran **10 arms
+including the control · control 0 red of 157 · 10 caught · 0 missed · 2 over-reds**, each attributed: arm 01
+(damage lands more than the player had) also reddens `a dead record is still a record: health never goes below
+zero`, which is the other half of the same claim, and arm 09 (move the report without moving the record) reddens
+4 cases because the death-boundary case and both save cases assert that same identity. The source was restored
+byte-for-byte in a `finally` and the restore was checked before the evidence was written.
+
+**A shared-worktree reading, kept because it changed what this commit contains.** The five methods and the five
+report types were written into `src/threeRuntime.ts` and `src/types.ts` while the M2/v136 lane was writing
+`claimsWithoutBytes` into the same two files, and that lane's `git add <file>` handed my hunks to `1e729f5` —
+its own record says so, and states the rule it teaches: in a shared worktree, staging by file is not enough when
+the FILE is shared, so the staged hunk list has to be checked against the grant being committed. Nothing here
+reverts that. What this commit adds is the half that lane could not carry: the **11 cases** that drive the
+operations, and these records. The reading at the resulting ref is therefore stated with its file, because the
+two halves live in different places: HEAD's own `test/saveSnapshot.test.ts` contains 0 hits for the four
+operations while the worktree copy of that same file — the population every figure above was measured over —
+holds the 11 cases, and the package total is 333 only in the tree where both halves are present.
+
+Bounds added: `skills` and `hotbar` are still FILED AND NEVER DRIVEN, and `inventory` is still refused on every
+plane; there is no mana regeneration and no experience curve, so mana only ever falls and a level moves only when
+a caller names one; death is a number reaching zero rather than a state this runtime keeps, so `healPlayer`
+revives a corpse and nothing else notices; nothing outside a test calls any of the five operations — no Studio
+face, no HUD, no autonomy drives them; and the operations move one scene's one player, with no rule about who is
+allowed to call them.
