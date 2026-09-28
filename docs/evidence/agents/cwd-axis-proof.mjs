@@ -1,3 +1,5 @@
+// NEXUS M2 v130 (docs/evidence) — two rows were red only on the plane where git works, so their dead assertions are repaired on the plane that can see them
+//
 // M2 v83 proof — WHICH BUILD does a sweep grade? The child cwd decides it, and the runner never said so.
 //
 // v78 taught a sweep to name its ref and its build digest; v80 taught it to name the tree it walked. Both
@@ -7,6 +9,15 @@
 // spell the import `pathToFileURL('./agents/…')` and 3 spell it `pathToFileURL(join(root, …))` with
 // `root = process.cwd()` — `pathToFileURL` resolves a RELATIVE path against `process.cwd()`, so the whole
 // population loads the shipped code through the CHILD's cwd and none of it through its own file location.
+//
+// v130 CORRECTED: that last clause was measured over 64 rows and stopped being true of the population at
+// v91–v94, when three rows landed that never load a shipped build at all — asks-axis, plane-axis and
+// table-recount grade the RUNNER's bytes (`./sweep.mjs`), the shared spawn lib, and the doc/vitest tables.
+// §1 pinned `childRelative === total` and so went false, on the isolated plane behind an earlier
+// `git ls-tree` exit 128 that hid WHICH assertion was talking; the row sat in the standing 42 reds without
+// ever naming this one. The pin is replaced by the claim the census actually owes its reader: a row that
+// does not reach the build through the child's cwd must not reach it through its own location either, and
+// the remainder is NAMED in the printed sentence rather than left for a reader to round up.
 //
 // So `--ref <older sha>` did not run an older build. It ran the OLDER PROOF TEXT against THE BUILD THIS
 // WORKTREE LAST COMPILED, while `[identity]` quoted that build's digest as if it belonged to the run. The
@@ -60,9 +71,19 @@ const closureNow = await sw.closureOf('HEAD', root, corpus);
 // the closure counts specifiers the new code-position scanner believes. An equality here would be one rule
 // agreeing with itself, so the live claim is the DIST one above and the numbers are printed, not pinned.
 assert.ok(idioms.fileRelative >= closureNow.importers, `the census reader missed file-relative edges the closure reader found (${idioms.fileRelative} vs ${closureNow.importers})`);
-assert.equal(idioms.childRelative, idioms.total, `every tracked proof must resolve through the child's cwd, or the census sentence below overstates (child-relative ${idioms.childRelative} of ${idioms.total})`);
 assert.deepEqual(idioms.unresolved, [], `a proof that resolves the build NEITHER way would silently escape this axis: ${idioms.unresolved.join(', ')}`);
-console.log(`[1] census of HEAD's tracked proofs: ${idioms.childRelative}/${idioms.total} reach the shipped code through the CHILD's cwd · ${idioms.fileRelative} through their own file location · ${idioms.unresolved.length} through neither — all ${idioms.total} blobs in one \`git cat-file --batch\` spawn, ${censusMs}ms`);
+// v130: the v83 pin `childRelative === total` is gone (the header above says why). What replaces it is
+// read with a DIFFERENT reader than the `distRelative` one above — a code-position scan that also sees
+// dynamic `import(…)` — so this is not one rule agreeing with itself: a row that is not child-cwd may
+// not smuggle a build in through its own location, and every such row is printed by name below, which is
+// the census sentence's remainder accounted for rather than rounded up (amendment 104: an unnamed
+// remainder is a number somebody raises).
+const notChildCwd = idioms.rows.filter((r) => !r.childRelative);
+const buildFromItsOwnLocation = notChildCwd
+  .filter((r) => sw.relativeSpecs(r.text).some((s) => /\/dist\//.test(s)))
+  .map((r) => r.name);
+assert.deepEqual(buildFromItsOwnLocation, [], `a proof that skips the child-cwd idiom AND reaches a build through its own location grades the worktree's copy whatever cwd it is given: ${buildFromItsOwnLocation.join(', ')}`);
+console.log(`[1] census of HEAD's tracked proofs: ${idioms.childRelative}/${idioms.total} reach the shipped code through the CHILD's cwd · ${idioms.fileRelative} through their own file location · ${idioms.unresolved.length} through neither — all ${idioms.total} blobs in one \`git cat-file --batch\` spawn, ${censusMs}ms · the ${notChildCwd.length} that reach no build through the child's cwd are named, not rounded away: ${notChildCwd.map((r) => r.name.split('/').pop()).join(', ')}`);
 
 // --- §2 the probe: two trees, two different builds, one child asking -----------------------------
 const tinyTree = (tag, body) => {
@@ -125,7 +146,13 @@ assert.equal(s.childBuild.files, 0, `an unbuilt checkout has no dist to grade ($
 assert.notEqual(s.childBuild.digest, s.identity.distDigest, 'the graded build must be named separately from the runner’s own');
 assert.ok(s.childTree.unavailable, 'walking a tree with no built runtime is undigestable, and the runner must say so rather than guess a copy of the rule');
 assert.match(s.treeNotice, /could not be digested/, `expected the undigestable-tree notice, got ${s.treeNotice}`);
-assert.equal(s.importIdioms.childRelative, s.importIdioms.total);
+// v130: this line was the §1 pin again — `childRelative === total` — applied to the census the RUNNER
+// prints. The population stopped being all-child-cwd at v91–v94 (§1 names the three), so what §4 owes is
+// that the runner's census is the SAME number the proof measured off the same bytes, and that the printed
+// sentence carries the remainder instead of a total it can no longer claim.
+assert.equal(s.importIdioms.childRelative, idioms.childRelative, `the sweep's census disagrees with §1's read of the same bytes (${s.importIdioms.childRelative} vs ${idioms.childRelative})`);
+assert.equal(s.importIdioms.total, idioms.total, `the sweep's census counted a different population (${s.importIdioms.total} vs ${idioms.total})`);
+assert.ok(lines.some((l) => l.includes(`${idioms.childRelative}/${idioms.total} tracked proofs reach the code under test through the CHILD's cwd`)), 'the identity line must state the census with its remainder, not a total it cannot prove');
 const summary = lines[lines.length - 1];
 assert.match(summary, /graded build [0-9a-f]{16} \(0 dist files/, `the summary must name the build the child would grade: ${summary}`);
 assert.match(lines.join('\n'), /64\/64 tracked proofs reach the code under test through the CHILD's cwd|tracked proofs reach the code under test through the CHILD's cwd/, 'the identity block must state the census it is acting on');

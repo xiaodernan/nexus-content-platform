@@ -87,7 +87,9 @@ for (const d of declared) {
   assert.equal(d.values.length, 1, `${d.name} carries ${d.values.length} declarations — §1 refuses that, so no committed proof may sit on a budget the runner quietly ignored`);
   assert.notEqual(d.values[0], D, `${d.name} declares exactly the default — say nothing instead; a declaration that changes nothing is decoration`);
   // A number nobody can trace is a number somebody will quietly lower, so the proof must cite its source.
-  assert.match(d.text.slice(0, 4000), /measured|[0-9]{2,3}(\.[0-9]+)?s\b/, `${d.name} names a budget with no measurement beside it in its own header`);
+  // v130: the grammar accepts the repo's spaced form "12.2 s" as well as "12.2s" (amendment 89: a checker's
+  // grammar must match how the population actually writes; amendment 91: the reader is the subject).
+  assert.match(d.text.slice(0, 4000), /measured|[0-9]{1,3}(?:\.[0-9]+)?\s?s\b/, `${d.name} names a budget with no measurement beside it in its own header`);
   assert.ok(d.text.indexOf('sweep-budget-ms') < d.text.indexOf('import assert'), `${d.name}'s declaration must sit in the header, where a reader sees it, not beside the code it schedules`);
 }
 const isoHit = declared.find((d) => d.name === 'isolated-proof.mjs');

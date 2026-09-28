@@ -19,6 +19,11 @@
 // All vitest reports land under os.tmpdir. Run after `npm run build`:
 //   node docs/evidence/agents/table-recount-proof.mjs
 // sweep-budget-ms: 300000
+// The budget above is measured rather than comfortable (timeout-axis-proof §2 grades this sentence):
+// 12.2 s inside a sweep row and 15.1 s standing alone, both on 2026-09-28 — two vitest arms over two
+// packages, plus the mutation control. Under load the same arms took 12.2 s beside the 300 000 ms
+// ceiling, so the budget is ~25x the measurement. A number without a cited measurement is a number
+// somebody will quietly lower (amendment 85).
 import assert from 'node:assert/strict';
 import { execFileSync } from '../lib/syncproc.mjs';
 import { createHash } from 'node:crypto';
