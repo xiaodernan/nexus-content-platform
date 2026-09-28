@@ -248,3 +248,113 @@ test('@smoke 检索面板：一句分镜存进去，同一个词就从查不到�
   await expect(shotHit).toContainText('机位：');
   await page.screenshot({ path: 'screenshots/storyboard-retrieved.png' });
 });
+
+/**
+ * §41 的时间线编辑：拖右边缘 trim/extend、拖整块 reorder、点转场标记换衔接。
+ *
+ * 这一条证的不是"能拖"，而是三件容易各说各话的事：
+ * ① **拖动期间库里那一份没动**——每一步都在松手之后直接查服务端那一份，不拿界面上的读数当凭证；
+ * ② 一次拖拽/一次点击 = 一个可撤销事务（§150）：撤销之后服务端那一份回到原样；
+ * ③ 口径与列表里的数字框一致：拖出来的长度吸附到 100 毫秒刻度、下限也是一步——
+ *    时间线与镜头表是同一份模型的两个投影（§16），不是两套真值。
+ */
+
+/** 直接读服务端那一份：界面上的数字可能是本地预览，库里的才算"写进去了" */
+async function serverShots(page: Page): Promise<{ id: string; durationMs: number; transition: string }[]> {
+  const projectId = page.url().split('/').pop() ?? '';
+  return page.evaluate(async (id) => {
+    const res = await fetch(`/api/projects/${id}/storyboard`, { cache: 'no-store' });
+    const body = (await res.json()) as { storyboard?: { shots?: { id: string; durationMs: number; transition: string }[] } };
+    return body.storyboard?.shots ?? [];
+  }, projectId);
+}
+
+test('@smoke §41 时间线编辑：拖边缘改长度、拖整块换位、点标记换转场，都落成一个可撤销的事务', async ({ page }) => {
+  test.setTimeout(300_000);
+  await openStudio(page, `时间线编辑 ${Date.now().toString(36)}`);
+  await openStoryboardPanel(page);
+  await page.fill('[data-storyboard-prompt-input]', '夜色里的港口，一台旧起重机慢慢转身，猫跳上缆绳，它跑起来了');
+  await page.click('[data-storyboard-create]');
+  await savedState(page);
+
+  const blocks = page.locator('[data-timeline-block]');
+  await expect(blocks).toHaveCount(4);
+  const ids = await blocks.evaluateAll((nodes) => nodes.map((node) => node.getAttribute('data-timeline-block') ?? ''));
+  const first = ids[0] ?? '';
+  const duration = page.locator(`[data-storyboard-duration="${first}"]`);
+  const beforeMs = Number(await duration.inputValue());
+
+  // ① trim：拖第一格的右边缘往右 40 像素（条宽约 240 像素、总长上万毫秒，这一下足够跨过 100 毫秒的刻度）
+  const handle = page.locator(`[data-timeline-trim="${first}"]`);
+  // 面板是个滚动容器，时间线在镜头表下面：不先滚进视口，鼠标事件落在视口外（`elementFromPoint` 给 null，
+  // 而 Playwright 的 boundingBox 照样返回一个坐标——这一条实测红过一次，就是没滚）
+  await handle.scrollIntoViewIfNeeded();
+  await expect(handle).toBeInViewport();
+  const box = (await handle.boundingBox())!;
+  const trimY = box.y + box.height / 2;
+  await page.mouse.move(box.x + box.width / 2, trimY);
+  await page.mouse.down();
+  await page.mouse.move(box.x + box.width / 2 + 40, trimY, { steps: 8 });
+  // 拖动期间：读数在，而**库里那一份还是旧的**——松手才落事务
+  await expect(page.locator('[data-timeline-readout]')).toContainText('→');
+  // 等一会儿再读库：不写的话这 400 毫秒里什么都不该有（"拖动期间每次 pointermove 都写库"那种实现会在这里露出来）
+  await page.waitForTimeout(400);
+  expect((await serverShots(page)).find((shot) => shot.id === first)?.durationMs).toBe(beforeMs);
+  await page.mouse.up();
+  await expect(page.locator('[data-timeline-readout]')).toHaveCount(0);
+
+  await expect
+    .poll(async () => (await serverShots(page)).find((shot) => shot.id === first)?.durationMs)
+    .toBeGreaterThan(beforeMs);
+  const grown = (await serverShots(page)).find((shot) => shot.id === first)?.durationMs ?? 0;
+  // 吸附到 100 毫秒刻度：2817 这种像素误差不该进库
+  expect(grown % 100).toBe(0);
+  await expect(duration).toHaveValue(String(grown));
+
+  // 撤销：库里那一份回到拖动之前（不是"界面看起来回去了"）
+  await page.click('[data-storyboard-undo]');
+  await expect.poll(async () => (await serverShots(page)).find((shot) => shot.id === first)?.durationMs).toBe(beforeMs);
+
+  // ② transition：时间线上那个标记点一下换下一种衔接
+  const transition = page.locator(`[data-storyboard-transition="${first}"]`);
+  const beforeTransition = await transition.inputValue();
+  await page.click(`[data-timeline-transition="${first}"]`);
+  await expect
+    .poll(async () => (await serverShots(page)).find((shot) => shot.id === first)?.transition)
+    .not.toBe(beforeTransition);
+  // 镜头表那一栏必须跟着动：两个投影说的是同一件事
+  await expect(transition).toHaveValue(
+    (await serverShots(page)).find((shot) => shot.id === first)?.transition ?? '',
+  );
+  await page.click('[data-storyboard-undo]');
+  await expect
+    .poll(async () => (await serverShots(page)).find((shot) => shot.id === first)?.transition)
+    .toBe(beforeTransition);
+
+  // ③ reorder：把第一格拖到最后一格的右边
+  await blocks.first().scrollIntoViewIfNeeded();
+  await expect(blocks.last()).toBeInViewport();
+  const firstBox = (await blocks.first().boundingBox())!;
+  const lastBox = (await blocks.last().boundingBox())!;
+  // 抓格子下缘：上缘是转场标记的位置，那一下会被当成"点标记"而不是"拖整块"
+  const dragY = firstBox.y + firstBox.height - 6;
+  await page.mouse.move(firstBox.x + firstBox.width / 2, dragY);
+  await page.mouse.down();
+  await page.mouse.move(lastBox.x + lastBox.width + 20, dragY, { steps: 10 });
+  // 拖动期间看得出会落到哪儿：目标格被标出来，读数说的是第几位
+  await expect(page.locator('[data-timeline-drop-target="true"]')).toHaveCount(1);
+  await expect(page.locator('[data-timeline-readout]')).toContainText('位');
+  // 拖动中的这一张就是这一片的证据：目标格被标出来、读数在、格子跟着鼠标走
+  await page.screenshot({ path: 'screenshots/storyboard-timeline-dragging.png' });
+  await page.mouse.up();
+  await expect(page.locator('[data-timeline-readout]')).toHaveCount(0);
+  await expect.poll(async () => (await serverShots(page)).map((shot) => shot.id)).toEqual([...ids.slice(1), first]);
+
+  // 撤销：顺序回到原样
+  await page.click('[data-storyboard-undo]');
+  await expect.poll(async () => (await serverShots(page)).map((shot) => shot.id)).toEqual(ids);
+  // 截图要拍得到时间线：点上面那排按钮会把面板滚回头部，不滚回来的话这一张里没有新做的那条编辑面
+  await page.locator('[data-timeline-strip]').scrollIntoViewIfNeeded();
+  await expect(page.locator('[data-timeline-strip]')).toBeInViewport();
+  await page.screenshot({ path: 'screenshots/storyboard-timeline-edit.png' });
+});

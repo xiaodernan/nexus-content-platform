@@ -1,9 +1,14 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
+  clampShotDuration,
   DEFAULT_SHOT_MS,
+  dropIndexFor,
+  MAX_SHOT_MS,
+  MIN_SHOT_MS,
   SHOT_CAMERAS,
+  SHOT_MS_STEP,
   SHOT_TRANSITIONS,
   timelineOf,
   type ShotCamera,
@@ -52,6 +57,25 @@ const TRANSITION_LABELS: Record<ShotTransition, string> = {
   dissolve: '叠化',
   wipe: '划像',
 };
+
+/**
+ * §41 拖拽期间的状态。`preview*` 只是这一份本地预览：库里那一份在松手之前一动不动，
+ * 所以"拖到一半关掉页面"不会留下一个半截的长度，撤销栈也不会被 pointermove 塞满。
+ */
+type TimelineDrag =
+  | { kind: 'trim'; shotId: string; startX: number; startMs: number; msPerPx: number; previewMs: number }
+  | {
+      kind: 'reorder';
+      shotId: string;
+      startX: number;
+      deltaPx: number;
+      msPerPx: number;
+      /** 这一格能在条里走多远：超出条的两端就会被 `overflow-hidden` 裁掉，拖到右边时那格等于不见了 */
+      minDx: number;
+      maxDx: number;
+      fromIndex: number;
+      previewIndex: number;
+    };
 
 export function StoryboardPanel() {
   const studio = useStudioReady();
@@ -165,6 +189,126 @@ export function StoryboardPanel() {
 
   const timeline = useMemo(() => (sb ? timelineOf(sb) : null), [sb]);
 
+  /**
+   * §41 的时间线编辑：拖右边缘 trim/extend、拖整块 reorder、点左上角的转场标记换衔接。
+   *
+   * 三条纪律：
+   * - **拖动期间不写库**。预览只活在这一份本地状态里，松手才落一个补丁事务（§150）——
+   *   每一次 pointermove 都走 `applyOps` 会把撤销栈塞进几十步，Ctrl+Z 要按几十次才退得回去。
+   * - **没有变化就不记事务**：拖回原位时长度与下标都没变，这时不写库也不进撤销栈，
+   *   免得栈里多出一条"按一次什么都没发生"的撤销步。
+   * - **改的是模型里的 `durationMs` / 镜头顺序**，不是界面上的宽度：时间线是投影（§16），
+   *   所以 trim 改的是分镜本身，总长与其余格的位置跟着重算。
+   */
+  const [drag, setDrag] = useState<TimelineDrag | null>(null);
+  const dragRef = useRef<TimelineDrag | null>(null);
+  const stripRef = useRef<HTMLDivElement | null>(null);
+  /** 量出来的条宽：窄到一定程度就只画格子不留字（半个字被裁掉比不显示更难读），也用它决定转场标记放不放得下 */
+  const [stripWidth, setStripWidth] = useState(0);
+  const hasStoryboard = sb !== null;
+  useEffect(() => {
+    const el = stripRef.current;
+    if (!el || typeof ResizeObserver === 'undefined') return;
+    const measure = () => setStripWidth(el.getBoundingClientRect().width);
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [hasStoryboard]);
+
+  /** 条宽与总长是像素↔毫秒的唯一换算处：两处各算一次，拖出来的长度就会在两种算法之间跳 */
+  const msPerPx = (): number | null => {
+    const el = stripRef.current;
+    const width = el?.getBoundingClientRect().width ?? 0;
+    const totalMs = timeline?.totalMs ?? 0;
+    if (width <= 0 || totalMs <= 0) return null;
+    return totalMs / width;
+  };
+
+  const beginTrim = (event: React.PointerEvent<HTMLElement>, shot: StoryboardShot): void => {
+    const scale = msPerPx();
+    if (scale === null) return;
+    event.preventDefault();
+    // 手柄在格子内部：这一下不该同时被当成"拖动整块换位"
+    event.stopPropagation();
+    event.currentTarget.setPointerCapture(event.pointerId);
+    const next: TimelineDrag = { kind: 'trim', shotId: shot.id, startX: event.clientX, startMs: shot.durationMs, msPerPx: scale, previewMs: shot.durationMs };
+    dragRef.current = next;
+    setDrag(next);
+  };
+
+  const moveTrim = (event: React.PointerEvent<HTMLElement>): void => {
+    const active = dragRef.current;
+    if (active?.kind !== 'trim') return;
+    const next: TimelineDrag = { ...active, previewMs: clampShotDuration(active.startMs + (event.clientX - active.startX) * active.msPerPx) };
+    dragRef.current = next;
+    setDrag(next);
+  };
+
+  const endTrim = (shot: StoryboardShot): void => {
+    const active = dragRef.current;
+    dragRef.current = null;
+    setDrag(null);
+    if (active?.kind !== 'trim' || active.previewMs === shot.durationMs) return;
+    storyboardStore.applyOps([
+      { op: 'updateShot', id: shot.id, before: { durationMs: shot.durationMs }, after: { durationMs: active.previewMs } },
+    ]);
+  };
+
+  const beginReorder = (event: React.PointerEvent<HTMLElement>, shot: StoryboardShot, index: number): void => {
+    const scale = msPerPx();
+    if (scale === null) return;
+    event.currentTarget.setPointerCapture(event.pointerId);
+    const stripRect = stripRef.current?.getBoundingClientRect();
+    const rect = event.currentTarget.getBoundingClientRect();
+    const next: TimelineDrag = {
+      kind: 'reorder',
+      shotId: shot.id,
+      startX: event.clientX,
+      deltaPx: 0,
+      msPerPx: scale,
+      minDx: stripRect ? stripRect.left - rect.left : Number.NEGATIVE_INFINITY,
+      maxDx: stripRect ? stripRect.right - rect.right : Number.POSITIVE_INFINITY,
+      fromIndex: index,
+      previewIndex: index,
+    };
+    dragRef.current = next;
+    setDrag(next);
+  };
+
+  const moveReorder = (event: React.PointerEvent<HTMLElement>): void => {
+    const active = dragRef.current;
+    if (active?.kind !== 'reorder' || !sb) return;
+    const deltaPx = Math.min(active.maxDx, Math.max(active.minDx, event.clientX - active.startX));
+    let previewIndex: number;
+    try {
+      previewIndex = dropIndexFor(sb.shots, active.shotId, deltaPx * active.msPerPx);
+    } catch {
+      // 拖到一半这一镜在别的标签页里被删了：保持原位，不拿一个不存在的 id 去写库
+      previewIndex = active.fromIndex;
+    }
+    const next: TimelineDrag = { ...active, deltaPx, previewIndex };
+    dragRef.current = next;
+    setDrag(next);
+  };
+
+  const endReorder = (): void => {
+    const active = dragRef.current;
+    dragRef.current = null;
+    setDrag(null);
+    if (active?.kind !== 'reorder' || active.previewIndex === active.fromIndex) return;
+    storyboardStore.applyOps([{ op: 'moveShot', from: active.fromIndex, to: active.previewIndex }]);
+  };
+
+  /** §41 的 transition：时间线上的标记点一下换下一种衔接。一次点击仍是一个可撤销事务 */
+  const cycleTransition = (shot: StoryboardShot): void => {
+    const at = SHOT_TRANSITIONS.indexOf(shot.transition);
+    const next = SHOT_TRANSITIONS[(at + 1) % SHOT_TRANSITIONS.length]!;
+    storyboardStore.applyOps([
+      { op: 'updateShot', id: shot.id, before: { transition: shot.transition }, after: { transition: next } },
+    ]);
+  };
+
   if (!sb) {
     return (
       <div className="flex h-full min-h-0 flex-col gap-3 overflow-auto p-[var(--nexus-space-3)]" data-storyboard-panel>
@@ -245,9 +389,9 @@ export function StoryboardPanel() {
       const { [key]: _drop, ...rest } = d;
       return rest;
     });
-    if (!Number.isInteger(next) || next < 1 || next > 600_000) {
+    if (!Number.isInteger(next) || next < 1 || next > MAX_SHOT_MS) {
       storyboardStore.showNotice(
-        `时长要 1 到 600000 之间的整数毫秒，「${drafts[key] ?? ''}」没写进去——这一镜还是 ${shot.durationMs} 毫秒。`,
+        `时长要 1 到 ${MAX_SHOT_MS} 之间的整数毫秒（拖拽那条路的下限是 ${MIN_SHOT_MS}、吸附 ${SHOT_MS_STEP}），「${drafts[key] ?? ''}」没写进去——这一镜还是 ${shot.durationMs} 毫秒。`,
       );
       return;
     }
@@ -532,6 +676,104 @@ export function StoryboardPanel() {
                 : ' 不可播：还没有能直接播放的画面——镜头视频那一格要真 provider，本机不做假生成（§159）'}
             </span>
           </p>
+          {/*
+            §41 的编辑面：一格一镜，宽度就是时长。三种直接操作各有一处实现——
+            右边缘 trim/extend、整块 reorder、左上角的转场标记换衔接；
+            三者都只在松手时落一个补丁事务，拖动期间库里那一份不动。
+          */}
+          <div
+            ref={stripRef}
+            role="group"
+            aria-label="时间线：拖格子右边缘改长度，拖整块换位置"
+            className="mt-2 flex h-9 w-full min-w-0 overflow-hidden rounded-[var(--nexus-radius-sm)] border border-[var(--nexus-color-border-subtle)] bg-bg-2"
+            data-timeline-strip
+            data-timeline-total-ms={String(timeline?.totalMs ?? 0)}
+          >
+            {sb.shots.map((shot, index) => {
+              const trimming = drag?.kind === 'trim' && drag.shotId === shot.id ? drag : null;
+              const moving = drag?.kind === 'reorder' && drag.shotId === shot.id ? drag : null;
+              const shownMs = trimming?.previewMs ?? shot.durationMs;
+              // 分母跟着预览走：这一镜变长，总长就变长，其余格按比例让位——
+              // 拿旧总长当分母会把尾部裁掉半截，那等于界面在说"总长没变"
+              const layoutMs = Math.max(1, (timeline?.totalMs ?? 0) + (trimming ? trimming.previewMs - shot.durationMs : 0));
+              const pct = (shownMs / layoutMs) * 100;
+              const px = (pct / 100) * stripWidth;
+              const dropTarget = drag?.kind === 'reorder' && !moving && drag.previewIndex === index;
+              return (
+                <div
+                  key={shot.id}
+                  data-timeline-block={shot.id}
+                  data-timeline-drop-target={dropTarget ? 'true' : undefined}
+                  title={`第 ${index + 1} 镜 · ${(shownMs / 1000).toFixed(1)} 秒 · ${CAMERA_LABELS[shot.camera]} · ${TRANSITION_LABELS[shot.transition]}`}
+                  onPointerDown={(event) => beginReorder(event, shot, index)}
+                  onPointerMove={moveReorder}
+                  onPointerUp={endReorder}
+                  onPointerCancel={endReorder}
+                  className={cn(
+                    'relative flex min-w-0 shrink-0 cursor-grab items-center justify-center gap-1 border-r border-[var(--nexus-color-border-subtle)] bg-bg-3 last:border-r-0',
+                    moving ? 'z-10 opacity-60' : null,
+                    dropTarget ? 'bg-bg-1' : null,
+                  )}
+                  style={{
+                    width: `${pct}%`,
+                    // 一格 100 毫秒在 9 秒的时间线上只有 2.6 像素：不给下限的话它看上去根本"没有"
+                    minWidth: '6px',
+                    ...(moving ? { transform: `translateX(${moving.deltaPx}px)` } : {}),
+                  }}
+                >
+                  {/*
+                    两行都是绝对定位，谁也压不着谁：转场标记贴左上、序号贴右上、时长贴在底下居中。
+                    第一版把序号与时长放在居中流里，转场标记就盖在了"4.5s"的 4 上——
+                    这是截图里看出来的（面板只有 239 像素，47 像素的一格放不下三段居中文字）。
+                  */}
+                  {px >= 40 ? (
+                    <span className="pointer-events-none absolute right-[10px] top-[2px] font-mono text-11 text-fg-3">
+                      {String(index + 1).padStart(2, '0')}
+                    </span>
+                  ) : null}
+                  {px >= 34 ? (
+                    <span className="pointer-events-none absolute bottom-[3px] left-0 right-0 text-center font-mono text-11 text-fg-2">
+                      {(shownMs / 1000).toFixed(1)}s
+                    </span>
+                  ) : null}
+                  {px >= 44 ? (
+                    <button
+                      type="button"
+                      onPointerDown={(event) => event.stopPropagation()}
+                      onClick={() => cycleTransition(shot)}
+                      aria-label={`换这一镜的转场（现在是${TRANSITION_LABELS[shot.transition]}）`}
+                      title={`这一镜的衔接是${TRANSITION_LABELS[shot.transition]}，点一下换下一种（可撤销）`}
+                      data-timeline-transition={shot.id}
+                      className="absolute left-[2px] top-[2px] rounded-[var(--nexus-radius-sm)] bg-bg-1 px-[3px] font-mono text-11 leading-tight text-fg-3"
+                    >
+                      {TRANSITION_LABELS[shot.transition]}
+                    </button>
+                  ) : null}
+                  <span
+                    role="separator"
+                    aria-label={`第 ${index + 1} 镜的右边缘：拖动改长度`}
+                    data-timeline-trim={shot.id}
+                    onPointerDown={(event) => beginTrim(event, shot)}
+                    onPointerMove={moveTrim}
+                    onPointerUp={() => endTrim(shot)}
+                    onPointerCancel={() => endTrim(shot)}
+                    className="absolute right-0 top-0 h-full w-[8px] cursor-col-resize bg-transparent hover:bg-accent-2/40"
+                  />
+                </div>
+              );
+            })}
+          </div>
+          <p className="mt-1 text-11 text-fg-3">
+            拖右边缘改长度（吸附 {SHOT_MS_STEP} 毫秒，下限 {MIN_SHOT_MS} 毫秒）、拖整块换位、点左上角的转场标记换衔接；
+            松手才写库，每一步都可撤销。要写精确毫秒用列表里那个数字框——键盘那条路与这里改的是同一份模型。
+          </p>
+          {drag ? (
+            <p className="mt-1 text-11 text-accent-2" data-timeline-readout>
+              {drag.kind === 'trim'
+                ? `第 ${sb.shots.findIndex((candidate) => candidate.id === drag.shotId) + 1} 镜：${(drag.startMs / 1000).toFixed(1)} 秒 → ${(drag.previewMs / 1000).toFixed(1)} 秒`
+                : `把第 ${drag.fromIndex + 1} 镜拖到第 ${drag.previewIndex + 1} 位`}
+            </p>
+          ) : null}
           <ul className="mt-2 flex flex-col gap-1">
             {(timeline?.tracks ?? []).map((track) => (
               <li key={track.kind} className="text-11 text-fg-2" data-storyboard-track={track.kind}>

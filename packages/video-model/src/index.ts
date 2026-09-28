@@ -67,6 +67,28 @@ export const MAX_SHOTS = 12;
 /** 没有运动的镜头默认多长 */
 export const DEFAULT_SHOT_MS = 3000;
 
+/**
+ * §41 的 trim / extend 在时间线上拖出来的边界。
+ *
+ * 三个数各管一件事：`SHOT_MS_STEP` 是**吸附**（鼠标画不出整数毫秒，2817 这种数不是作者写的，
+ * 是一像素的误差）；`MIN_SHOT_MS` 是下限（拖到比一步更短等于把这一镜拖没了，
+ * 而「没有镜头」与「一镜 0 毫秒」是两件事——后者会在时间线上留下一块看不见的方块）；
+ * `MAX_SHOT_MS` 与列表里那个数字输入框的上限是**同一个数**：拖拽与手填不走两套规矩。
+ *
+ * 手填那条路的下限仍然是 1 毫秒（作者自己要写 80ms 的字卡是他的自由，界面不替他改数），
+ * 拖拽那条路的下限是一步——两条路的差别只在「输入精度」，不在「什么算合法的一镜」。
+ */
+export const SHOT_MS_STEP = 100;
+export const MIN_SHOT_MS = SHOT_MS_STEP;
+export const MAX_SHOT_MS = 600_000;
+
+/** 把拖出来的毫秒吸到刻度上并夹进上下限。非有限数按一步算（一次坏拖拽不该把这一镜变成 NaN） */
+export function clampShotDuration(durationMs: number): number {
+  if (!Number.isFinite(durationMs)) return MIN_SHOT_MS;
+  const snapped = Math.round(durationMs / SHOT_MS_STEP) * SHOT_MS_STEP;
+  return Math.max(MIN_SHOT_MS, Math.min(MAX_SHOT_MS, snapped));
+}
+
 /** 句子里出现这些词就当这一镜有运动：时长给足，机位给跟移 */
 const MOTION_WORDS = ['跑', '走', '冲', '追', '飞', '游', '跳', '逃', '奔', 'run', 'walk', 'fly', 'chase', 'drive'];
 
@@ -255,6 +277,40 @@ export function timelineOf(storyboard: Storyboard): Timeline {
     blockers,
     notes,
   };
+}
+
+/** 空分镜：新建项目里那一格"还没有分镜"的样子，与"切完是 0 镜"共用同一个形状 */
+/**
+ * §41 reorder：拖到哪个位置落下。
+ *
+ * 规则只有一条——**按其余镜头的中点分界**：拖动后这一镜的中心跨过谁的中心，就排到谁后面。
+ * 不用「目标格的左边缘」那种判据，是因为拖拽时这一镜自己的宽度也在变，
+ * 同一个位置会给出两个答案，界面就在相邻两位之间来回跳。
+ *
+ * 返回的是**最终下标**，与 `moveShot` 的 `to` 同口径（`applyStoryboardPatch` 里的 splice 就是最终位置）。
+ * 所以「拖回原位」会原样拿回它当前的下标——调用方据此判断这次拖拽没有真的换位，
+ * 不记一次什么都不改的撤销步。
+ */
+export function dropIndexFor(
+  shots: readonly Pick<StoryboardShot, 'id' | 'durationMs'>[],
+  draggedId: string,
+  deltaMs: number,
+): number {
+  const at = shots.findIndex((shot) => shot.id === draggedId);
+  if (at < 0) throw new Error(`镜头 ${draggedId} 不在这份分镜里`);
+  const dragged = shots[at]!;
+  let before = 0;
+  for (let i = 0; i < at; i += 1) before += shots[i]!.durationMs;
+  const center = before + deltaMs + dragged.durationMs / 2;
+  // 其余镜头按「把这一镜拿掉之后」的位置算：拖拽期间它们本来就显示在这个位置上
+  let target = 0;
+  let cursor = 0;
+  for (const other of shots) {
+    if (other.id === draggedId) continue;
+    if (cursor + other.durationMs / 2 < center) target += 1;
+    cursor += other.durationMs;
+  }
+  return target;
 }
 
 /** 空分镜：新建项目里那一格"还没有分镜"的样子，与"切完是 0 镜"共用同一个形状 */
