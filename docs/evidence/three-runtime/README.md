@@ -1,4 +1,4 @@
-# @nexus/three-runtime — evidence for v108 (host seams), v114 (character controller), v115 (the entity save format), v116 (the scene's physics world), v117 (the cinematic sequence), v118 (the save that reads it back), v119 (the file it survives on disk), v120 (the bytes, through a store), v121 (the id comes back), v122 (a save taken back), v123 (what it holds), v124 (written atomically), v125 (flushed when asked), v126 (the debris swept), v127 (a file asked what it is worth), v128 (the listing surveyed), v129 (the survey's reason becomes a field), v131 (the NPC record gets a body and a file) and v134 (the world bag gets an owner)
+# @nexus/three-runtime — evidence for v108 (host seams), v114 (character controller), v115 (the entity save format), v116 (the scene's physics world), v117 (the cinematic sequence), v118 (the save that reads it back), v119 (the file it survives on disk), v120 (the bytes, through a store), v121 (the id comes back), v122 (a save taken back), v123 (what it holds), v124 (written atomically), v125 (flushed when asked), v126 (the debris swept), v127 (a file asked what it is worth), v128 (the listing surveyed), v129 (the survey's reason becomes a field), v131 (the NPC record gets a body and a file), v134 (the world bag gets an owner), and v135 (one refusal table, read per plane)
 
 This directory records the 3D runtime lane (ROADMAP M5). Every claim here is read back out of the
 shipped source and the package's own vitest suite — `packages/three-runtime/src/*.ts` and
@@ -1385,3 +1385,120 @@ only the lookup that answers a scene's keys, so each half of the sentence has an
 The package runs 300/300 green across 5 files with `tsc --noEmit` exit 0, and this increment adds 12 cases to `test/saveSnapshot.test.ts` and renames one (`carries the four fields it can fill and names the three it leaves out`) so its title states the table's real shape: entities, cinematic, npcs, worldState on the savable side, sceneGraph, quests, player on the blocked one.
 
 The arm that rebuilds a scene's bag on every set is the one that taught the case: arm 06 reddened three cases and NOT `world state is scoped to the scene that set it`, because that case wrote one key per scene, and a setter that throws the bag away and builds a fresh one passes that test while losing every key the scene said before. Arm 09 (keys answered from the wrong scene's bag) exists because the OTHER half of the sentence — which scene is asked — needs an arm that breaks only it.
+
+## v135 — the three refusal accounts get ONE table, and every row says WHICH account refuses it
+
+`npcFieldAudit`, `worldStateFieldAudit` and the save file's `doesNotCarry` each print a list of names this
+package refuses to keep. Until this increment the three lists were typed by hand beside each other, so `quests`
+appeared in all three with three different sentences and `player` in two, and nothing in the package could tell
+you whether the accounts still described the same refusal. Worse, a caller reading ONE of them got a flat answer
+to "is `quests` refused?" — a question with no flat answer, because refusal is a property of an account, not of
+a name.
+
+**The table.** `REFUSALS` at `threeRuntime.ts:125` is 8 rows, each declaring `planes` — which
+of the 3 accounts refuse the name — and `needs` keyed **by plane**, so a row cannot assert a reason
+for one account while staying silent about whether another agrees. `refusalsFor(plane)` at
+`threeRuntime.ts:191` answers the account; it throws rather than emitting a blank when a row declares a plane
+and withholds that plane's sentence, because a refusal a caller cannot read is a refusal that will be worked
+around. Each account is now one derivation call:
+
+| account | reads the table as | rows |
+| --- | --- | --- |
+| `npc-record` | `UNTOUCHED_NPC_FIELDS = refusalsFor('npc-record')` | 5 |
+| `world-state` | `UNTOUCHED_WORLD_STATE_FIELDS = refusalsFor('world-state')` | 4 |
+| `save-file` | `SAVE_DATA_FEASIBILITY.blocked = refusalsFor('save-file')`, which `buildSaveFile` copies into `doesNotCarry` | 3 |
+
+**`refusalCensus()` is the reason the table exists.** At `threeRuntime.ts:2772` it answers, per row,
+`refusedBy` and `notRefusedBy` across the whole plane list. A flat refusal list is a claim that every account
+agrees, and the census makes that claim impossible to make by accident: 12 refusing sentences, each
+owned by exactly one (name, plane) pair, each appearing exactly once in the file.
+
+**The witness row is `entities`.** The world bag refuses it — the bodies a scene holds *are* the scene graph, so
+mirroring them would be a second owner of one list — while the save file carries it for real, which is what v119
+and v134 built. One flat "refused names" list would have to make one of those two readings false, and this very
+table lists `entities` as `savable`.
+
+**A table cannot honour three hand-written orders.** The accounts used to ship in three different orders; a
+derivation gives one, so the published order is alphabetical by field name. This is a user-visible change to
+`doesNotCarry`, and it went in only after being measured: 5 cases pinned the old orders and went
+red, with no other case moving, and each was then updated with a comment saying *why* the order it expects is
+alphabetical rather than by editing it to whatever the run printed. The reorder is safe for old files because
+`diagnoseSaveFile` reconciles `carries` against `doesNotCarry` by membership only — the one positional check it
+makes is the refusal at `threeRuntime.ts:1493` ("appears both as carried and as not carried"), which a
+reorder cannot reach. Every old-file case stayed green through all 8 arms.
+
+**Measured.** 308 cases across 5 files, 0 red, with `tsc -p tsconfig.json` (declaration
+emit, which `--noEmit` skips) exit 0; `test/saveSnapshot.test.ts` gains 8 cases and
+`test/cinematicSequence.test.ts` one expectation. `src/threeRuntime.ts` +160/−21,
+`src/index.ts` one re-export line (its types were already public, so the door that answers a plane ships with
+them), the two test files +160/−8.
+
+### How the probe ran, and what it said
+
+**9 arms including the control · control 0 red of 308 · 8 arms
+caught · 0 survived** (`probe.mjs`, `probe-run3.log`). The arms are behavioural: each leaves the
+module loadable and every case collectable, so a red is a case's assertion rather than an import crash. An arm
+that *deleted* a `needs` sentence would throw while the top-level consts initialised and report 0 reds, so the
+throw is graded a different way — inside a case that hands `refusalsFor` a bad row, leaving the shipped table as
+the only thing the arms touch.
+
+What the arms were chosen for, in the order they bit:
+
+- dropping one plane from `quests`, mirroring `notRefusedBy` off `refusedBy`, and shortening one plane's
+  sentence each reddened only the census and the account that reads it — the table is consistent with itself and
+  still wrong, which is the drift the old three-list shape could not report at all.
+- **retyping the NPC account as a correct-by-hand literal reddened exactly one case**, and every behavioural
+  case stayed green. That single case is the whole grant: a retyped account that happens to agree today is
+  green today, and only a derivation check can see the copy.
+- making the file refuse `entities` too reddened 26 cases, 19 of them beyond the
+  7 it was predicted to touch. That is shipped code, not a loose case: the arm puts a name in `doesNotCarry`
+  that `carries` also names, which is the refusal at `threeRuntime.ts:1493`, so every case that loads a built
+  file reddened beside it. An over-red is a witness, not a miss — but it is reported, not folded into the
+  prediction.
+- making `buildSaveFile` write its own excuse sentence at the call site, and making `npcFieldAudit` stop quoting
+  the table, each reddened the case that compares an audit's words against the census rather than against a
+  hand-picked string.
+- turning the audit's fallback into a crash (`?.needs` → `!.needs`) reddened one case: the one that puts a
+  property on the LIVE record that no row refuses. That branch is what honours the audit's own promise that a
+  field added tomorrow "shows up here without anyone remembering", and before this grant grep found no test
+  anywhere containing its sentence.
+
+### Measurement error, kept in the record
+
+This file is CRLF (3241 CR-LF pairs, no lone CR and no lone LF, read raw by node). Two of the probe's
+arms anchor on a multi-line block, and an anchor written with `\n` inside matches nothing in a CRLF file: the
+first attempt reported both as "anchor found 0 times", which is indistinguishable in the log from "the code
+changed". The probe now re-writes every anchor in the ending it read from the file and prints which ending it
+detected, so the next such report is attributable, and it keeps the bytes otherwise as read so the restore is
+byte-identical rather than a line-ending rewrite of a tracked file.
+
+Then the correction was wrong, and it is worth more than the first error. Before this section was written, a
+shell-based reading of the same file reported 0 CR bytes, and on the strength of that a scratch note declared the
+CRLF story deleted — while `toEol` was, on that reading, a no-op that had somehow fixed two arms. The
+contradiction is what forced the re-measure above, and the answer is that the file is CRLF and the shell reading
+was the error. The lesson is not "grep lies" but narrower and more checkable: **a line-ending measurement has to
+come from the same reader that will act on the answer**, because the two disagreed here and only one of them
+decided whether an arm ran.
+
+### What v135 still does NOT honor — stated by name
+
+- **`player` is still a name with two refusals and no owner.** `SerializedPlayer` is declared in `types.ts`, and
+  nothing in this package fills one or reads one, so the row stays in `blocked` for both accounts that refuse
+  it. Making it real is the next grant's subject, not this one's.
+- **The shipped table's own refusal has no reader.** A `needs` sentence missing from the shipped table is a
+  throw during module initialisation, so it is graded through an injected row and not through the file: no case
+  can show what a broken *shipped* table looks like at runtime, because nothing with one never runs.
+- **Nothing outside a test reads `refusalCensus()`.** It is the grant's point and its only consumer is
+  `saveSnapshot.test.ts`; the Studio has no face that shows which account refused which name.
+- **The ADR record and the ROADMAP cell are owed, as they were for v134.** Both shared files carry the other
+  lane's uncommitted draft, and `git add` is file-granular: staging either would publish a claim about code that
+  has not landed.
+
+### Sentences this record retires
+
+- Any reading of "`quests` is refused" as an answer. It is refused three times, by three accounts, for three
+  different reasons, and the census is now the only shape that says which one a caller is holding.
+- `README.md:95` at v115's section enumerates `blocked` as `[sceneGraph, npcs, quests, player, worldState,
+  cinematic]`. That order is a history of when each row arrived, and from v135 the field itself answers in
+  alphabetical order; a doc that repeats a derived order by hand will disagree with the derivation forever, so
+  this section names the rule instead of re-listing the rows.

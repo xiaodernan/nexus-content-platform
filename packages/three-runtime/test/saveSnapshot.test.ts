@@ -2,7 +2,7 @@ import { describe, expect, it, beforeEach, afterEach, vi } from 'vitest';
 import { readFileSync } from 'node:fs';
 import * as THREE from 'three';
 import * as publicSurface from '../src/index.js';
-import { createThreeRuntime, type ThreeRuntime, type NpcAttachOptions } from '../src/threeRuntime.js';
+import { createThreeRuntime, refusalsFor, type ThreeRuntime, type NpcAttachOptions } from '../src/threeRuntime.js';
 import type { EntityComponent, EntityId, NPC, SceneId, SerializedEntity, SerializedNPC, ThreeEntity } from '../src/types.js';
 import { entityId as eid, sceneId as sid } from '../src/types.js';
 import { createHeadlessBackend } from '../src/renderBackend.js';
@@ -520,8 +520,10 @@ describe('saveFeasibilityAudit is a reader, not a constant', () => {
     // three left are `sceneGraph` (repairing the live objects inside `SerializedScene`) and `quests`/`player`
     // (subsystems that do not exist), which are different kinds of gap from a bag nobody kept.
     expect(audit.savable).toEqual(['entities', 'cinematic', 'npcs', 'worldState']);
+    // The order is the derivation's, not a typing order — v135 made this list the save-file slice of `REFUSALS`
+    // (see the note in the world-state audit case for why one table cannot keep three hand-written orders).
     expect(audit.blocked.map((entry) => entry.field)).toEqual(
-      ['sceneGraph', 'quests', 'player']
+      ['player', 'quests', 'sceneGraph']
     );
     for (const entry of audit.blocked) {
       expect(entry.needs.length, `${entry.field} must say WHY it is blocked`).toBeGreaterThan(0);
@@ -649,7 +651,7 @@ describe('a save FILE: it survives the disk, and the loader refuses what it cann
     expect(file.format).toBe('nexus-three-runtime-save');
     expect(file.version).toBe(1);
     expect(file.carries).toEqual(['entities', 'cinematic', 'npcs', 'worldState']);
-    expect(file.doesNotCarry.map((entry) => entry.field)).toEqual(['sceneGraph', 'quests', 'player']);
+    expect(file.doesNotCarry.map((entry) => entry.field)).toEqual(['player', 'quests', 'sceneGraph']);
     for (const entry of file.doesNotCarry) expect(entry.needs.length, `${entry.field} must say why it is absent`).toBeGreaterThan(0);
     expect(file.entities.length).toBe(1);
     expect(file.npcs).toEqual([]);
@@ -657,7 +659,7 @@ describe('a save FILE: it survives the disk, and the loader refuses what it cann
     expect(file.worldState).toEqual({});
     expect(file.cinematic.sequences.length).toBe(1);
     expect(file.savedAt).toBe(1700000000000);
-    expect(events).toEqual([{ sceneId: scene, entityCount: 1, npcCount: 0, worldStateCount: 0, sequenceCount: 1, carries: ['entities', 'cinematic', 'npcs', 'worldState'], doesNotCarry: ['sceneGraph', 'quests', 'player'] }]);
+    expect(events).toEqual([{ sceneId: scene, entityCount: 1, npcCount: 0, worldStateCount: 0, sequenceCount: 1, carries: ['entities', 'cinematic', 'npcs', 'worldState'], doesNotCarry: ['player', 'quests', 'sceneGraph'] }]);
   });
 
   it('holds no Map and no class instance anywhere — and the walker can see one', () => {
@@ -934,7 +936,7 @@ describe('a save FILE: it survives the disk, and the loader refuses what it cann
       worldState: 0,
       sequences: 1,
       carries: ['entities', 'cinematic', 'npcs', 'worldState'],
-      doesNotCarry: ['sceneGraph', 'quests', 'player'],
+      doesNotCarry: ['player', 'quests', 'sceneGraph'],
     });
 
     // A second runtime, sharing only the store. Nothing here came from the first one's memory.
@@ -1697,12 +1699,16 @@ describe('M5 v133 — the world-state bag is held, checked and filed', () => {
   it('the audit names the keys the scene holds and the names this package refuses to keep', () => {
     const audit = runtime.worldStateFieldAudit(scene)!;
     expect(audit.carried).toEqual([]);
-    expect(audit.untouched.map((entry) => entry.field)).toEqual(['quests', 'player', 'inventory', 'entities']);
+    // The order is alphabetical because v135 derives this list from the same `REFUSALS` table the NPC record
+    // and the save file read, and one table cannot honour the three orders the three accounts were typed in
+    // (the NPC account put `inventory` before `quests`, this one put it after). `refusalCensus` is the reader
+    // that says WHICH accounts refuse a name; the sorted order is what makes each account's own list stable.
+    expect(audit.untouched.map((entry) => entry.field)).toEqual(['entities', 'inventory', 'player', 'quests']);
     for (const entry of audit.untouched) expect(entry.needs.length, `${entry.field} must say WHY it is not kept`).toBeGreaterThan(0);
     // A name that gets carried stops being reported as a gap, so the two lists cannot disagree about it.
     runtime.setWorldState(scene, 'quests', 'not a quest system — a caller-named fact under that name');
     expect(runtime.worldStateFieldAudit(scene)!.carried).toEqual(['quests']);
-    expect(runtime.worldStateFieldAudit(scene)!.untouched.map((entry) => entry.field)).toEqual(['player', 'inventory', 'entities']);
+    expect(runtime.worldStateFieldAudit(scene)!.untouched.map((entry) => entry.field)).toEqual(['entities', 'inventory', 'player']);
   });
 });
 
@@ -2293,5 +2299,149 @@ describe('atomic save writes: a reader sees the old save or the new one, never a
     // two cannot drift into two different descriptions of the same refusal.
     expect(diagnosis.problems[1]).toContain('not the list of fields the file leaves out');
     rt.dispose();
+  });
+});
+
+/**
+ * M5 v135 — the refusals get ONE owner. `npcFieldAudit`, `worldStateFieldAudit` and the save file each print a
+ * list of names this package refuses to keep, and until now every one of those lists was typed by hand beside
+ * the others: `quests` appeared in all three with three different sentences, `player` in two, and nothing could
+ * tell you whether the accounts still described the same refusal. Worse, a caller reading ONE of them got a
+ * flat answer to "is `quests` refused?" — a question that has no single answer, because refusal is a property of
+ * an account, not of a name. The table is now one `REFUSALS` list whose rows declare WHICH planes refuse them
+ * and say what each plane says; the three accounts are slices of it. The cases below grade the census, the
+ * derivation, and the reading where a flat list would have to lie: `entities` is refused by the world bag and
+ * carried by the save file.
+ */
+describe('v135: one refusal table, read per plane', () => {
+  /** This grant's only reader of the implementation's bytes. `typesSource` at the top of this file reads
+   *  `types.ts`; this reads `threeRuntime.ts`, so no two guards compare different copies of a file. */
+  const implSource = readFileSync(new URL('../src/threeRuntime.ts', import.meta.url), 'utf8').replace(/\r\n/g, '\n');
+
+  it('the census answers WHICH accounts refuse a name, so a flat refusal list cannot be read as the whole truth', () => {
+    const census = runtime.refusalCensus();
+    expect(census.planes).toEqual(['npc-record', 'world-state', 'save-file']);
+    expect(census.rows.length, 'the census read no rows, so every partition below would pass vacuously').toBeGreaterThan(0);
+    const names = census.rows.map((row) => row.field);
+    expect(names).toEqual([...names].sort((a, b) => a.localeCompare(b)));
+    for (const row of census.rows) {
+      expect([...row.refusedBy].filter((plane) => row.notRefusedBy.includes(plane)),
+        `${row.field} is both refused by and not refused by the same account`).toEqual([]);
+      expect([...row.refusedBy, ...row.notRefusedBy].sort()).toEqual([...census.planes].sort());
+      expect(row.refusedBy.length, `${row.field} names no refusing account, so it has no business being in the table`).toBeGreaterThan(0);
+    }
+  });
+
+  it('a name refused by every account and a name refused by exactly one are kept apart, and the carried one is named', () => {
+    const rowOf = (field: string) => runtime.refusalCensus().rows.find((row) => row.field === field)!;
+    expect(rowOf('quests').refusedBy).toEqual(['npc-record', 'world-state', 'save-file']);
+    expect(rowOf('sceneGraph').refusedBy).toEqual(['save-file']);
+    expect(rowOf('sceneGraph').notRefusedBy).toEqual(['npc-record', 'world-state']);
+    // THE row a flat list cannot tell the truth about: the world bag refuses `entities` while the save file
+    // carries it for real. A single "refused names" list would make one of those two readings false.
+    expect(rowOf('entities').refusedBy).toEqual(['world-state']);
+    expect(rowOf('entities').notRefusedBy).toEqual(['npc-record', 'save-file']);
+    const file = runtime.buildSaveFile(scene, 1700000000000);
+    expect(file.carries).toContain('entities');
+    expect(file.doesNotCarry.map((entry) => entry.field)).not.toContain('entities');
+  });
+
+  it('a refusal never ships without its reason, and never speaks in a plane that does not refuse it', () => {
+    const census = runtime.refusalCensus();
+    for (const row of census.rows) {
+      for (const plane of row.refusedBy) {
+        const needs = row.needs[plane];
+        expect(typeof needs, `${row.field} is refused by ${plane} but has no sentence`).toBe('string');
+        expect(needs!.length, `${row.field} says an empty reason in ${plane}`).toBeGreaterThan(0);
+      }
+      for (const plane of row.notRefusedBy) {
+        expect(row.needs[plane], `${row.field} carries a reason for ${plane}, which does not refuse it`).toBeUndefined();
+      }
+    }
+    // Per-plane sentences that are one sentence pasted twice would make the planes a decoration.
+    const shared = census.rows.filter((row) => row.refusedBy.length > 1);
+    expect(shared.length, 'no name is refused by more than one plane, so the per-plane shape is untested').toBeGreaterThan(0);
+    for (const row of shared) {
+      const sentences = row.refusedBy.map((plane) => row.needs[plane]);
+      expect(new Set(sentences).size, `${row.field} says the same sentence in every plane that refuses it`).toBe(sentences.length);
+    }
+  });
+
+  it('a row that declares a plane and withholds its reason is refused at the call, not printed as a blank', () => {
+    // The control first: the shipped table answers, so the throws below are about the injected rows, not a
+    // validator that refuses everything (which would be green for the wrong reason).
+    expect(refusalsFor('save-file').length).toBeGreaterThan(0);
+    const missing = [{ field: 'ghost', planes: ['world-state'] as const, needs: {} }];
+    expect(() => refusalsFor('world-state', missing)).toThrow(/with no reason/);
+    expect(() => refusalsFor('world-state', missing)).toThrow(/ghost/);
+    const blank = [{ field: 'hollow', planes: ['save-file'] as const, needs: { 'save-file': '' } }];
+    expect(() => refusalsFor('save-file', blank)).toThrow(/with no reason/);
+  });
+
+  it('the three accounts a caller reads are three derivations of the one table, not three copies of it', () => {
+    expect(implSource.includes('const REFUSALS'), 'the read found no table, so this guard would grade nothing').toBe(true);
+    for (const plane of ['npc-record', 'world-state', 'save-file']) {
+      const hits = implSource.split(`refusalsFor('${plane}')`).length - 1;
+      expect(hits, `${plane} is not read out of the table exactly once — ${hits} derivations in threeRuntime.ts`).toBe(1);
+    }
+    // And each refusing (name, plane) pair's sentence exists once: retyping an account by hand would put a
+    // second copy of its sentences in the file, which is the drift this grant exists to make impossible.
+    const census = runtime.refusalCensus();
+    const sentences = census.rows.flatMap((row) => row.refusedBy.map((plane) => row.needs[plane] as string));
+    expect(sentences.length, 'the census reported no refusals, so the sentence count would pass on nothing').toBeGreaterThan(0);
+    for (const sentence of sentences) {
+      const quoted = `'${sentence}'`;
+      const hits = implSource.split(quoted).length - 1;
+      expect(hits, `"${sentence.slice(0, 48)}…" appears ${hits} times in threeRuntime.ts; the table is its only owner, so a second copy is a second account`).toBe(1);
+    }
+  });
+
+  it('a save file names what it leaves out in the census\'s own words, in the census\'s own order', () => {
+    const expected = runtime.refusalCensus().rows.filter((row) => row.refusedBy.includes('save-file'));
+    expect(expected.length).toBeGreaterThan(0);
+    const file = runtime.buildSaveFile(scene, 1700000000000);
+    expect(file.doesNotCarry.map((entry) => entry.field)).toEqual(expected.map((row) => row.field));
+    expect(file.doesNotCarry.map((entry) => entry.needs)).toEqual(expected.map((row) => row.needs['save-file']));
+  });
+
+  it('the two audits answer in the table\'s own sentences for their own plane, not a reason written at the call site', () => {
+    // Built here rather than through the NPC describe's fixture: `withNPC` is scoped to that block, and this
+    // grant's table is read by both, so the case that grades the reading lives with the table.
+    hero = runtime.createEntity(scene, 'Hero', 'mesh').id;
+    runtime.attachNPC(scene, hero, {});
+    const census = runtime.refusalCensus();
+    const said = (plane: 'npc-record' | 'world-state', entries: { field: string; needs: string }[]) => {
+      expect(entries.length, `${plane} audit carried no gaps, so this comparison would grade nothing`).toBeGreaterThan(0);
+      for (const entry of entries) {
+        const row = census.rows.find((r) => r.field === entry.field);
+        expect(row, `${plane} reports "${entry.field}", which the table does not refuse anywhere`).toBeDefined();
+        expect(row!.refusedBy, `${plane} reports "${entry.field}", which this plane does not refuse`).toContain(plane);
+        expect(entry.needs, `${plane} says something other than the table about "${entry.field}"`).toBe(row!.needs[plane]);
+      }
+    };
+    said('npc-record', runtime.npcFieldAudit(hero)!.untouched);
+    said('world-state', runtime.worldStateFieldAudit(scene)!.untouched);
+  });
+
+  it('a field the live record carries that the table never heard of is named as a gap, not dropped', () => {
+    // The fallback at the end of the NPC audit is what stands between "a field was added" and "a field went
+    // missing from every account". It is reached the way it happens in a real change: the record gains a
+    // property the snapshot does not carry and no row refuses, and the audit's own docstring promises such a
+    // field "shows up here without anyone remembering to add it" — which is only true if the audit still has
+    // something to say about a name its table does not know.
+    hero = runtime.createEntity(scene, 'Hero', 'mesh').id;
+    runtime.attachNPC(scene, hero, {});
+    const record = runtime.getNPC(hero)!;
+    (record as unknown as Record<string, unknown>).mood = 'curious';
+    const audit = runtime.npcFieldAudit(hero)!;
+    const gap = audit.untouched.find((entry) => entry.field === 'mood');
+    expect(gap, `the audit dropped an untabled field: ${JSON.stringify(audit.untouched.map((e) => e.field))}`).toBeDefined();
+    expect(gap!.needs).toContain('no entry in the gap table');
+    // The sentence names the silence as the finding rather than inventing a plausible reason for a field
+    // nobody has read the code to explain.
+    expect(gap!.needs).toContain('which is itself the finding');
+    // And it stays the last resort: a tabled field still answers in the table's own words.
+    expect(audit.untouched.find((entry) => entry.field === 'schedule')!.needs)
+      .toBe(runtime.refusalCensus().rows.find((row) => row.field === 'schedule')!.needs['npc-record']);
   });
 });

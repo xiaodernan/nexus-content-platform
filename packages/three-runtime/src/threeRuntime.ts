@@ -92,18 +92,134 @@ export const DEFAULT_NPC = {
   faction: 'neutral',
 };
 
+/**
+ * WHICH account of a refused field is speaking.
+ *
+ * Three separate lists in this package say what it refuses to keep — `npcFieldAudit`'s untouched records,
+ * `worldStateFieldAudit`'s refused bag keys, and `saveFeasibilityAudit`'s blocked save-file halves — and they
+ * were written as three literals. That is how an account goes stale beside its neighbours: `quests` was named
+ * by all three with THREE different sentences, `player` and `inventory` by two each, and nothing said whether
+ * those differences were declared or accidental. Worse, a flat "refused" list cannot describe `entities` at
+ * all: it is a savable file half (`snapshotEntity`/`restoreEntity`) AND a world-state key this runtime refuses,
+ * because mirroring the scene's bodies into the bag would give one list two owners.
+ *
+ * So each row declares which PLANES refuse it and what it says in each of them. The three lists the callers
+ * read are DERIVED from this table, which is what makes the table unable to sit still while one of the accounts
+ * drifts.
+ */
+export type RefusalPlane = 'npc-record' | 'world-state' | 'save-file';
+
+/** The plane set `refusalCensus` partitions over — read off this declaration rather than retyped by a caller
+ *  that would otherwise have to remember how many accounts exist. */
+const REFUSAL_PLANES: readonly RefusalPlane[] = ['npc-record', 'world-state', 'save-file'];
+
+/** One name this package refuses to keep, and the PLANES that say so. `needs` is keyed by plane, and a plane
+ *  listed in `planes` with no entry there is a refusal with no reason — `refusalsFor` throws on that rather
+ *  than printing a blank. */
+export interface RefusalRow {
+  field: string;
+  planes: readonly RefusalPlane[];
+  needs: Partial<Record<RefusalPlane, string>>;
+}
+
+const REFUSALS: readonly RefusalRow[] = [
+  {
+    field: 'schedule',
+    planes: ['npc-record'],
+    needs: { 'npc-record': 'the NPC task scheduler (`NPCTaskScheduler`) is declared in types.ts and implemented by nothing, so a record carries no queue this runtime could run' },
+  },
+  {
+    field: 'currentTask',
+    planes: ['npc-record'],
+    needs: { 'npc-record': 'nothing advances a task, so a record has no current one to report — the field would hold a constant wearing a name' },
+  },
+  {
+    field: 'inventory',
+    planes: ['npc-record', 'world-state'],
+    needs: {
+      'npc-record': '`InventoryItem` holds `attributes` and `requirements` as Maps and nothing here implements an inventory; a record carrying one would put a Map in a file that JSON writes as {}',
+      'world-state': '`InventoryItem` holds `attributes` and `requirements` as Maps and nothing here implements an inventory',
+    },
+  },
+  {
+    field: 'dialogueTree',
+    planes: ['npc-record'],
+    needs: { 'npc-record': '`DialogueSystem` is declared in types.ts and implemented by nothing' },
+  },
+  {
+    field: 'quests',
+    planes: ['npc-record', 'world-state', 'save-file'],
+    needs: {
+      'npc-record': '`QuestSystem` is declared in types.ts and implemented by nothing',
+      'world-state': '`QuestSystem` is declared in types.ts and implemented by nothing, so there are no quest states to keep',
+      'save-file': 'QuestSystem is declared in types.ts and implemented by nothing',
+    },
+  },
+  {
+    field: 'player',
+    planes: ['world-state', 'save-file'],
+    needs: {
+      'world-state': 'the runtime holds no player entity — `SerializedPlayer` names health/mana/inventory/skills that nothing here owns',
+      'save-file': 'SerializedPlayer names health/mana/inventory/skills; the runtime holds no player state',
+    },
+  },
+  {
+    field: 'sceneGraph',
+    planes: ['save-file'],
+    needs: { 'save-file': 'SerializedScene stores a LightingConfig whose lights hold live THREE.Light objects and a PhysicsConfig whose gravity is a live THREE.Vector3; nothing here rebuilds either' },
+  },
+  {
+    field: 'entities',
+    planes: ['world-state'],
+    needs: { 'world-state': 'the bodies a scene holds are the scene graph itself; mirroring them into world state would be a second owner of the same list, and the two would drift' },
+  },
+];
+
+/** The rows that speak for one plane, each with the sentence that plane says. `table` is a parameter because
+ *  the check below has to be answerable without breaking the module: production calls this with `REFUSALS`,
+ *  and a caller who wants to know what a mis-declared row does can hand over the row. A row that names a plane
+ *  and withholds its reason is refused BY NAME — an account that says "refused" without a `needs` is the same
+ *  silent face this package keeps refusing in its own ledgers.
+ *
+ *  The result is sorted by field name, and that is load-bearing rather than tidy. The three accounts were
+ *  written out by hand in three different orders, and ONE table cannot honour three: the NPC account listed
+ *  `inventory` before `quests` while the world account listed it after, so whatever order the rows sit in, one
+ *  caller's list comes out rearranged. Alphabetical is the only order that does not depend on where a future
+ *  row happens to be typed. Nothing reconciles these lists positionally — the save-file reader compares `carries`
+ *  by name (`diagnoseSaveFile` uses `.includes`), and `doesNotCarry` is read as a set of names — so a file written
+ *  before this rearrangement still loads. */
+export function refusalsFor(plane: RefusalPlane, table: readonly RefusalRow[] = REFUSALS): { field: string; needs: string }[] {
+  const rows = table.filter((row) => row.planes.includes(plane)).sort((a, b) => a.field.localeCompare(b.field));
+  for (const row of rows) {
+    if (typeof row.needs[plane] !== 'string' || row.needs[plane] === '') {
+      throw new Error(`refusalsFor(${plane}): ${row.field} is declared refused by this plane with no reason; a refusal a caller cannot read is a refusal that will be worked around`);
+    }
+  }
+  return rows.map((row) => ({ field: row.field, needs: row.needs[plane] as string }));
+}
+
+/** One field's refusal partition: which accounts refuse it, which do not, and the sentence each refusing
+ *  account says. `notRefusedBy` is not an assertion that the account HOLDS the field — it says only that the
+ *  account has no row, which is exactly the distinction a flat list cannot make. `entities` is the witness:
+ *  refused by `world-state`, not refused by `save-file`, and carried there for real. */
+export interface RefusalCensusRow {
+  field: string;
+  refusedBy: RefusalPlane[];
+  notRefusedBy: RefusalPlane[];
+  needs: Partial<Record<RefusalPlane, string>>;
+}
+
+export interface RefusalCensus {
+  planes: RefusalPlane[];
+  rows: RefusalCensusRow[];
+}
+
 /** The declared `NPC` fields this package cannot fill, and what each is waiting on. `npcFieldAudit` derives
  *  its `untouched` list from the LIVE record against the shipped file shape and then names each leftover
  *  field from THIS table — so a field added to `NPC` with no implementation lands in the audit as
  *  "unnamed by the gap table" instead of being ignored in silence, and a gap that gets implemented has to
  *  be removed from here to stop being reported. */
-const UNTOUCHED_NPC_FIELDS: readonly { field: string; needs: string }[] = [
-  { field: 'schedule', needs: 'the NPC task scheduler (`NPCTaskScheduler`) is declared in types.ts and implemented by nothing, so a record carries no queue this runtime could run' },
-  { field: 'currentTask', needs: 'nothing advances a task, so a record has no current one to report — the field would hold a constant wearing a name' },
-  { field: 'inventory', needs: '`InventoryItem` holds `attributes` and `requirements` as Maps and nothing here implements an inventory; a record carrying one would put a Map in a file that JSON writes as {}' },
-  { field: 'dialogueTree', needs: '`DialogueSystem` is declared in types.ts and implemented by nothing' },
-  { field: 'quests', needs: '`QuestSystem` is declared in types.ts and implemented by nothing' },
-];
+const UNTOUCHED_NPC_FIELDS: readonly { field: string; needs: string }[] = refusalsFor('npc-record');
 
 /** What `npcFieldAudit` answers. `carried` is read off the SNAPSHOT — the file shape is the single owner of
  *  what a save holds — and `untouched` names every declared field the snapshot does not hold, with the
@@ -115,14 +231,9 @@ export interface NpcFieldAudit {
 
 /** A world-state key this package will not hold. `worldStateFieldAudit` names the rest of the bag by name
  *  instead of letting a caller believe the runtime keeps a world; `entities` is the one this runtime could
- *  honestly keep as a list of the bodies a scene holds, and the other four are state this package has no
- *  system to produce or consume. */
-const UNTOUCHED_WORLD_STATE_FIELDS: readonly { field: string; needs: string }[] = [
-  { field: 'quests', needs: '`QuestSystem` is declared in types.ts and implemented by nothing, so there are no quest states to keep' },
-  { field: 'player', needs: 'the runtime holds no player entity — `SerializedPlayer` names health/mana/inventory/skills that nothing here owns' },
-  { field: 'inventory', needs: '`InventoryItem` holds `attributes` and `requirements` as Maps and nothing here implements an inventory' },
-  { field: 'entities', needs: 'the bodies a scene holds are the scene graph itself; mirroring them into world state would be a second owner of the same list, and the two would drift' },
-];
+ *  honestly keep as a list of the bodies a scene holds, and the rest of this plane's rows are state this
+ *  package has no system to produce or consume. */
+const UNTOUCHED_WORLD_STATE_FIELDS: readonly { field: string; needs: string }[] = refusalsFor('world-state');
 
 /** What `worldStateFieldAudit` answers. `carried` is every key the scene actually holds (so a caller can
  *  see what a file would write), and `untouched` names the well-known keys this package REFUSES to keep,
@@ -646,14 +757,18 @@ const SAVE_ALIAS_CLAIMS: Record<string, readonly string[]> = {
  *  system: the shape exists and is unusable as a file. The pair is not decoration —
  *  `saveSnapshot.test.ts` derives each field's stem from its own name and requires a surface name to
  *  implement a `savable` row and NONE to implement a `blocked` one, which is what makes this table unable
- *  to sit still while an implementation ships beside it. */
+ *  to sit still while an implementation ships beside it.
+ *
+ *  `blocked` is v135's derivation, not a fourth copy: the save file is one of three PLANES that refuse names,
+ *  and the same three rows previously sat here as literals beside the NPC record's and the world bag's, each
+ *  free to drift. Read as a flat list that drift is invisible; read per plane (`refusalCensus`) it is the whole
+ *  story — `quests` is refused by all three, `sceneGraph` by the save file alone, and `entities` by the world
+ *  bag alone while this very table lists it as `savable`. */
 const SAVE_DATA_FEASIBILITY: { savable: readonly string[]; blocked: readonly { field: string; needs: string }[] } = {
   savable: ['entities', 'cinematic', 'npcs', 'worldState'],
-  blocked: [
-    { field: 'sceneGraph', needs: 'SerializedScene stores a LightingConfig whose lights hold live THREE.Light objects and a PhysicsConfig whose gravity is a live THREE.Vector3; nothing here rebuilds either' },
-    { field: 'quests', needs: 'QuestSystem is declared in types.ts and implemented by nothing' },
-    { field: 'player', needs: 'SerializedPlayer names health/mana/inventory/skills; the runtime holds no player state' },
-  ],
+  // The save-file slice of `REFUSALS`, so a blocked half of a file is reported with the same sentence the file
+  // itself writes into `doesNotCarry` and the census answers — one owner for three readers.
+  blocked: refusalsFor('save-file'),
 };
 
 /** The answer `saveFeasibilityAudit` gives. `dropped` is the list that matters: a live field the shape
@@ -2642,6 +2757,30 @@ export class ThreeRuntime {
       .filter((gap) => !carried.includes(gap.field))
       .map((gap) => ({ ...gap }));
     return { carried, untouched };
+  }
+
+  /**
+   * The one refusal table, read as a census over planes instead of as the single slice a caller happens to
+   * be about to write. `npcFieldAudit`, `worldStateFieldAudit` and `buildSaveFile` each print a `blocked`
+   * list, and each of those lists is true ONLY of its own plane: `inventory` is refused by the NPC record and
+   * by the world bag, `sceneGraph` is refused by the save file alone, and `entities` is carried by the save
+   * file while the world bag refuses it as a second owner of a list it does not hold. So "is `quests`
+   * refused?" has no single answer, and a caller that asks one question of three differently-scoped tables
+   * gets one flat list that is wrong for at least two of them. This returns, per name, the planes that refuse
+   * it and the planes that do not, so the flat reading is impossible to produce by accident.
+   */
+  refusalCensus(): RefusalCensus {
+    return {
+      planes: [...REFUSAL_PLANES],
+      rows: [...REFUSALS]
+        .sort((a, b) => a.field.localeCompare(b.field))
+        .map((row) => ({
+          field: row.field,
+          refusedBy: REFUSAL_PLANES.filter((plane) => row.planes.includes(plane)),
+          notRefusedBy: REFUSAL_PLANES.filter((plane) => !row.planes.includes(plane)),
+          needs: { ...row.needs },
+        })),
+    };
   }
 
   // ── cinematic sequences ───────────────────────────────────────────────────────────────────────

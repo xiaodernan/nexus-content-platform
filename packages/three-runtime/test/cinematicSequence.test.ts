@@ -1105,7 +1105,9 @@ describe('the save split moved: cinematic has a writer AND a reader', () => {
     runtime.playCinematic('seq');
     const audit = runtime.saveFeasibilityAudit(scene, hero)!;
     expect(audit.savable).toEqual(['entities', 'cinematic', 'npcs', 'worldState']);
-    expect(audit.blocked.map((entry) => entry.field)).toEqual(['sceneGraph', 'quests', 'player']);
+    // v135: this list is the save-file slice of one `REFUSALS` table, so its order is alphabetical rather than
+    // the order an author typed. The membership is what this case is about, and it did not move.
+    expect(audit.blocked.map((entry) => entry.field)).toEqual(['player', 'quests', 'sceneGraph']);
     // v117's row was blocked because nothing rebuilt a curve from points. That reason must not survive the
     // reader it describes, and neither may the older one about the stub that shipped until v116.
     expect(JSON.stringify(audit.blocked), 'a stale blocker for a field that is now savable').not.toMatch(/CatmullRomCurve3|empty stub/);
