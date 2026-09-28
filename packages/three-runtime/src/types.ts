@@ -437,6 +437,11 @@ export interface SaveFile {
    *  `entities` uses, scoped to the same scene for the same reason, and referring only to ids that appear
    *  in `entities` (a record about a body the file does not carry would restore onto nothing). */
   npcs: [EntityId, SerializedNPC][];
+  /** The scene's world state as a plain bag of named values, which is the shape `SaveData.worldState`
+   *  declares and the shape a file keeps whole. Scoped to the scene like `entities` and `npcs`: state is
+   *  a fact about the world the file describes, and a bag shared across scenes would put one scene's
+   *  facts in another scene's file. */
+  worldState: Record<string, unknown>;
   cinematic: SerializedCinematic;
 }
 

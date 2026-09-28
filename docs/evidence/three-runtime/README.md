@@ -1,4 +1,4 @@
-# @nexus/three-runtime — evidence for v108 (host seams), v114 (character controller), v115 (the entity save format), v116 (the scene's physics world), v117 (the cinematic sequence), v118 (the save that reads it back), v119 (the file it survives on disk), v120 (the bytes, through a store), v121 (the id comes back), v122 (a save taken back), v123 (what it holds), v124 (written atomically), v125 (flushed when asked), v126 (the debris swept), v127 (a file asked what it is worth), v128 (the listing surveyed), v129 (the survey's reason becomes a field) and v131 (the NPC record gets a body and a file)
+# @nexus/three-runtime — evidence for v108 (host seams), v114 (character controller), v115 (the entity save format), v116 (the scene's physics world), v117 (the cinematic sequence), v118 (the save that reads it back), v119 (the file it survives on disk), v120 (the bytes, through a store), v121 (the id comes back), v122 (a save taken back), v123 (what it holds), v124 (written atomically), v125 (flushed when asked), v126 (the debris swept), v127 (a file asked what it is worth), v128 (the listing surveyed), v129 (the survey's reason becomes a field), v131 (the NPC record gets a body and a file) and v134 (the world bag gets an owner)
 
 This directory records the 3D runtime lane (ROADMAP M5). Every claim here is read back out of the
 shipped source and the package's own vitest suite — `packages/three-runtime/src/*.ts` and
@@ -1295,3 +1295,93 @@ rollback-forgets-the-records **0**.
 Next: give the record something to DO — the smallest honest subsystem behind one of the five gaps, so an NPC
 moves or speaks rather than merely being filed — or take the next blocked `SaveData` field (`player`, the
 smallest of the four) now that `npcs` has shown what "record first, behavior later" costs and buys.
+
+## v134 — the scene's declared world state gets an owner: the value is checked at the SET, the getter hands back a copy, and the bag goes last in a load
+
+**Provenance, because it changed what was measured.** This section is not written by the run that wrote the
+code. The increment's implementation and cases arrived in the working tree at 00:11 on 2026-09-28 from a run of
+this lane that then stopped with its mutation probe still reporting a MISSED arm: the arm that replaces the
+per-scene bag lookup was predicted to redden `world state is scoped to the scene that set it`, and no case of
+that name existed. The run that follows this one found the tree dirty, measured it before touching anything,
+wrote the missing case, discovered that the case AS ADDED still did not catch that arm, strengthened it, added a
+second arm for the half the first arm cannot reach, and re-ran the probe. What is recorded below is that last
+measurement, not the interrupted one.
+
+The version is v134 rather than the v132 the draft's own scratch header called it, because this repository runs
+ONE grant counter shared by the lanes: 132 had already been granted to the M2 lane before the world-bag draft was
+written, and 133 is that lane's drafted-but-uncommitted grant. So this increment takes the next free number, and
+the ledger is expected to show a hole where 133 sits until that grant lands.
+
+Two shared documents are deliberately not written here: the ADR record for v134, and the ROADMAP cell. Both
+files carry the other lane's uncommitted draft, and `git add` is file-granular — staging either would publish a
+claim about code that has not landed. They are owed, and the sentence above is what says so.
+
+`SaveData.worldState` is declared as `Record<string, unknown>` in `src/types.ts` and, up to this increment, was
+read by nothing and written by nothing: the field joined the two others still in
+`SAVE_DATA_FEASIBILITY.blocked` on the argument that a scene's world state has no owner in this runtime. It now
+has one, and the row moves to `savable` — the fourth field a file carries, after `entities` (v119), `cinematic`
+(v118) and `npcs` (v131).
+
+**The methods.** `setWorldState(sceneId, key, value)` is the only door that writes a value, `getWorldState`
+reads one, `getWorldStateKeys` answers the population sorted, `deleteWorldState` answers `true`/`false` for
+"removed"/"was not there", `worldStateSnapshot(sceneId)` produces the FILE shape, `restoreWorldState` replaces a
+scene's bag and answers the keys that landed, and `worldStateFieldAudit(sceneId)` reports `carried` beside
+`untouched`.
+
+**Checked at the set, not at the write.** A value that is not data a file can hold — a `Map`, a class instance,
+an `undefined` leaf — is refused by `setWorldState` with the key path in the message. `assertDiskSafe` at
+`buildSaveFile` would also have caught it, and that is exactly the problem: by then the caller has already
+stored something this runtime can never restore. This is v117's rule ("a value this renderer cannot perform
+refuses at registration") moved from the cinematic table onto the world bag, and the case that holds it says so:
+`refuses a value a file could not hold, at the set rather than at the write`.
+
+**A getter that copies.** `getWorldState` re-clones what it reads. The reason is in its own comment: if
+`setWorldState` clones on the way in but the getter hands back the stored object, a caller can move the scene's
+state through a READ, which is the one property the input clone was there to buy. `the snapshot is data —
+sorted, deep-copied, and a shared branch copied twice rather than mistaken for a cycle` is the case that pins
+both halves, and it is deliberately one case with three claims: sorted, because a bag whose key order follows
+insertion order makes a save's bytes depend on the order the game happened to run in; deep-copied, for the
+reason above; and a shared branch copied TWICE rather than refused as a cycle, because a world bag in which two
+keys point at the same object is a thing a caller can legitimately have, and `assertDiskSafe`'s `seen` set is
+there to stop infinite recursion, not to police aliasing.
+
+**An empty bag is written, not omitted.** `worldStateSnapshot` returns `{}` for a scene that holds nothing, so
+`a scene with no world state writes an empty bag, not an absent field`. The field's presence is a fact about the
+FORMAT and its content is a fact about the world; collapsing the two is how a loader ends up unable to tell "the
+player left no notes" from "this save predates notes".
+
+**The file's own claim decides a missing bag.** `loadSaveFile` reads `carries` before it looks at the field
+(measured: `threeRuntime.ts:1450` `claimsWorldState`), and a missing `worldState` is a refusal when the file
+claims it and an ordinary old file when it does not — `an OLD file carries no bag, and the file's own claim is
+what decides how that reads`. This is v131's rule for `npcs` applied a second time, now with the sentence
+shared: `worldState is missing … and the file CLAIMS to carry worldState, so a bag is owed rather than optional`.
+
+**The bag goes last.** In a load, entities first, then records, then the bag — so a failure in an earlier half
+leaves no world state behind (`a load that fails on the entity half leaves no world state behind, because the bag
+goes last`), and a load into a scene that already holds keys is refused BEFORE anything runs, because replacing a
+live bag with a file's is a decision a caller has to make by name rather than one a loader makes on their
+behalf (`refuses to load a bag into a scene that already holds one, before anything runs`).
+
+**`restoreWorldState` replaces and answers the keys.** A merge would leave the previous state's keys standing
+beside the loaded ones with nothing saying which is which; the answer is a key list rather than a boolean so
+"restored an empty bag" is not reported as "nothing happened".
+
+**The audit needs no second list.** `worldStateFieldAudit`'s `carried` is read out of the store itself, sorted,
+and `untouched` is `UNTOUCHED_WORLD_STATE_FIELDS` minus whatever the scene actually holds — so a key a caller
+set stops being reported, and a name added to the gap table shows up without anyone remembering to announce it.
+`the audit names the keys the scene holds and the names this package refuses to keep` is the case; the probe arm
+that hides one refused name from the list reddens exactly it.
+
+**Scoping, which the probe had to be told about twice.** The bag is keyed by scene, so two scenes cannot step on
+each other's facts. This came out of the probe rather than out of a design. The first run had no case of that
+name at all, so the arm's prediction had nothing to grade; the case was written; and the SECOND run still did not
+redden it — because the case as first written set one key per scene, and a setter that throws away the scene's
+bag and builds a fresh one on every call passes that test while losing every key the scene said before. The case
+now sets two keys in each of two scenes and asserts both survive and both stay separate, and a second arm breaks
+only the lookup that answers a scene's keys, so each half of the sentence has an arm that reaches it.
+
+**Measured.** 9 arms · 9 caught · no arm survived (control 0 red, exit 0) · 1 arm (08-writer-omits-the-bag) reddened 31 cases BEYOND its prediction, and the reason is shipped code rather than a loose case: that arm deletes a field from a file whose `carries` still names it, which is the refusal v131's rule produces (`threeRuntime.ts:1450` reads the claim, `1455` refuses the missing bag), so every case that loads a built file reddened beside it. An over-red is a witness, not a miss — but it is reported, not folded into the prediction. · no arm reddened FEWER cases than predicted.
+
+The package runs 300/300 green across 5 files with `tsc --noEmit` exit 0, and this increment adds 12 cases to `test/saveSnapshot.test.ts` and renames one (`carries the four fields it can fill and names the three it leaves out`) so its title states the table's real shape: entities, cinematic, npcs, worldState on the savable side, sceneGraph, quests, player on the blocked one.
+
+The arm that rebuilds a scene's bag on every set is the one that taught the case: arm 06 reddened three cases and NOT `world state is scoped to the scene that set it`, because that case wrote one key per scene, and a setter that throws the bag away and builds a fresh one passes that test while losing every key the scene said before. Arm 09 (keys answered from the wrong scene's bag) exists because the OTHER half of the sentence — which scene is asked — needs an arm that breaks only it.

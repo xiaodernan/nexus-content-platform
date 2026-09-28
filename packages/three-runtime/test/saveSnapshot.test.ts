@@ -516,9 +516,12 @@ describe('saveFeasibilityAudit is a reader, not a constant', () => {
     // v118 moved `cinematic` across this line: v117 gave the shape a writer, v118 gave it a reader. The
     // guard below is the one that says so, and it keys on the field's own spelling rather than a list.
     // v131 moved `npcs` across it the same way: `npcSnapshot` writes a record and `restoreNPC` reads one.
-    expect(audit.savable).toEqual(['entities', 'cinematic', 'npcs']);
+    // v133 moved `worldState` across it too, and it is the LAST of the four that needed only a store: the
+    // three left are `sceneGraph` (repairing the live objects inside `SerializedScene`) and `quests`/`player`
+    // (subsystems that do not exist), which are different kinds of gap from a bag nobody kept.
+    expect(audit.savable).toEqual(['entities', 'cinematic', 'npcs', 'worldState']);
     expect(audit.blocked.map((entry) => entry.field)).toEqual(
-      ['sceneGraph', 'quests', 'player', 'worldState']
+      ['sceneGraph', 'quests', 'player']
     );
     for (const entry of audit.blocked) {
       expect(entry.needs.length, `${entry.field} must say WHY it is blocked`).toBeGreaterThan(0);
@@ -587,7 +590,7 @@ describe('the shipped shape and the shipped builder are the same set (read from 
     // The two verbs the save lane uses for the two directions of a shape, taken from the entity pair
     // (`snapshotEntity`/`restoreEntity`) rather than hand-picked per field.
     const saveDoors = methods.filter((name) => /snapshot|restore/i.test(name));
-    expect(saveDoors.sort()).toEqual(['cinematicSnapshot', 'npcSnapshot', 'restoreCinematic', 'restoreEntity', 'restoreNPC', 'snapshotEntity']);
+    expect(saveDoors.sort()).toEqual(['cinematicSnapshot', 'npcSnapshot', 'restoreCinematic', 'restoreEntity', 'restoreNPC', 'restoreWorldState', 'snapshotEntity', 'worldStateSnapshot']);
 
     // A field is named by a door when the door's own spelling carries the field's stem — `entities` is the
     // singular in the method name, and the stem rule is derived from the field, never from a table of which
@@ -639,20 +642,22 @@ describe('a save FILE: it survives the disk, and the loader refuses what it cann
     return { file: runtime.buildSaveFile(scene, 1700000000000), cam };
   }
 
-  it('carries the three fields it can fill and names the four it leaves out', () => {
+  it('carries the four fields it can fill and names the three it leaves out', () => {
     const events: { entityCount: number; npcCount: number; sequenceCount: number }[] = [];
     runtime.addEventListener('saveFileBuilt', (data) => events.push(data as { entityCount: number; npcCount: number; sequenceCount: number }));
     const { file } = fileWithContent();
     expect(file.format).toBe('nexus-three-runtime-save');
     expect(file.version).toBe(1);
-    expect(file.carries).toEqual(['entities', 'cinematic', 'npcs']);
-    expect(file.doesNotCarry.map((entry) => entry.field)).toEqual(['sceneGraph', 'quests', 'player', 'worldState']);
+    expect(file.carries).toEqual(['entities', 'cinematic', 'npcs', 'worldState']);
+    expect(file.doesNotCarry.map((entry) => entry.field)).toEqual(['sceneGraph', 'quests', 'player']);
     for (const entry of file.doesNotCarry) expect(entry.needs.length, `${entry.field} must say why it is absent`).toBeGreaterThan(0);
     expect(file.entities.length).toBe(1);
     expect(file.npcs).toEqual([]);
+    // v133: the bag is always written, so an empty one is a claim about the file rather than about the scene.
+    expect(file.worldState).toEqual({});
     expect(file.cinematic.sequences.length).toBe(1);
     expect(file.savedAt).toBe(1700000000000);
-    expect(events).toEqual([{ sceneId: scene, entityCount: 1, npcCount: 0, sequenceCount: 1, carries: ['entities', 'cinematic', 'npcs'], doesNotCarry: ['sceneGraph', 'quests', 'player', 'worldState'] }]);
+    expect(events).toEqual([{ sceneId: scene, entityCount: 1, npcCount: 0, worldStateCount: 0, sequenceCount: 1, carries: ['entities', 'cinematic', 'npcs', 'worldState'], doesNotCarry: ['sceneGraph', 'quests', 'player'] }]);
   });
 
   it('holds no Map and no class instance anywhere — and the walker can see one', () => {
@@ -679,7 +684,8 @@ describe('a save FILE: it survives the disk, and the loader refuses what it cann
       entities: bytes.entities.map(([id]) => id),
       npcs: [],
       sequences: ['seq'],
-      carries: ['entities', 'cinematic', 'npcs'],
+      worldState: [],
+      carries: ['entities', 'cinematic', 'npcs', 'worldState'],
     });
     // The position a file carried, and the camera position the restored curve puts the player at.
     const loaded = other.getEntity(report.sceneId, bytes.entities[0][0])!;
@@ -765,7 +771,7 @@ describe('a save FILE: it survives the disk, and the loader refuses what it cann
     loaded.createScene('Stage', stage);
     loaded.createCamera(stage, 'Cam again', 'perspective', {}, second.cinematic.sequences[0][1].shots[0].cameraId);
     expect(() => loaded.loadSaveFile(second, stage))
-      .toThrow(/restoreEntity: position x is undefined[\s\S]*the 1 entity\(ies\), the 0 NPC record\(s\) and the 1 sequence\(s\) this load had registered were removed again; a load is all or nothing/);
+      .toThrow(/restoreEntity: position x is undefined[\s\S]*the 1 entity\(ies\), the 0 NPC record\(s\), the 0 world-state key\(s\) and the 1 sequence\(s\) this load had registered were removed again; a load is all or nothing/);
     expect(loaded.getScene(stage)!.entities.size).toBe(0);
     // v119 recorded the opposite of this line: it asserted the sequence stayed registered, because nothing
     // could un-register it. v121 added `removeCinematic`, so a failed load now leaves neither half behind.
@@ -803,7 +809,7 @@ describe('a save FILE: it survives the disk, and the loader refuses what it cann
     const stopped: { sequenceId: string }[] = [];
     reader.addEventListener('cinematicStopped', (d) => stopped.push(d as { sequenceId: string }));
     expect(() => reader.loadSaveFile(file as never, stage))
-      .toThrow(/position x is undefined[\s\S]*the 1 entity\(ies\), the 0 NPC record\(s\) and the 1 sequence\(s\) this load had registered were removed again; a load is all or nothing/);
+      .toThrow(/position x is undefined[\s\S]*the 1 entity\(ies\), the 0 NPC record\(s\), the 0 world-state key\(s\) and the 1 sequence\(s\) this load had registered were removed again; a load is all or nothing/);
     expect(stopped.map((e) => e.sequenceId)).toEqual(['roll']);
     expect(reader.getScene(stage)!.entities.size).toBe(0);
     expect(reader.cinematicFieldAudit('roll')).toBe(undefined);
@@ -925,9 +931,10 @@ describe('a save FILE: it survives the disk, and the loader refuses what it cann
       sceneId: scene,
       entities: 1,
       npcs: 0,
+      worldState: 0,
       sequences: 1,
-      carries: ['entities', 'cinematic', 'npcs'],
-      doesNotCarry: ['sceneGraph', 'quests', 'player', 'worldState'],
+      carries: ['entities', 'cinematic', 'npcs', 'worldState'],
+      doesNotCarry: ['sceneGraph', 'quests', 'player'],
     });
 
     // A second runtime, sharing only the store. Nothing here came from the first one's memory.
@@ -941,7 +948,8 @@ describe('a save FILE: it survives the disk, and the loader refuses what it cann
       entities: [hero],
       npcs: [],
       sequences: ['seq'],
-      carries: ['entities', 'cinematic', 'npcs'],
+      worldState: [],
+      carries: ['entities', 'cinematic', 'npcs', 'worldState'],
       path: 'saves/hero.json',
       store: 'memory',
       bytes: written.bytes,
@@ -1362,7 +1370,7 @@ describe('M5 v131 — an NPC record is a thing the runtime holds and files', () 
     expect(reader.getScene(stage)!.entities.size).toBe(1);
     // …and the diagnosis said this file was loadable, which is the claim the load has to agree with.
     expect(reader.diagnoseSaveFile('saves/legacy.json').loadable).toBe(true);
-    expect(reader.diagnoseSaveFile('saves/legacy.json').readableNowButNotCarried).toEqual(['npcs']);
+    expect(reader.diagnoseSaveFile('saves/legacy.json').readableNowButNotCarried).toEqual(['npcs', 'worldState']);
 
     // The other direction: a file that SAYS it carries npcs owes a list, and omitting one is refused.
     store.write('saves/liar.json', JSON.stringify({ ...old, carries: ['entities', 'cinematic', 'npcs'] }));
@@ -1417,12 +1425,284 @@ describe('M5 v131 — an NPC record is a thing the runtime holds and files', () 
     const reader = runtimeWithStore(store);
     reader.createScene('Copy', stage);
     expect(() => reader.loadSaveFile(file as never, stage))
-      .toThrow(/restoreNPC: homeLocation y is undefined[\s\S]*the 2 entity\(ies\), the 1 NPC record\(s\) and the 0 sequence\(s\) this load had registered were removed again; a load is all or nothing/);
+      .toThrow(/restoreNPC: homeLocation y is undefined[\s\S]*the 2 entity\(ies\), the 1 NPC record\(s\), the 0 world-state key\(s\) and the 0 sequence\(s\) this load had registered were removed again; a load is all or nothing/);
     expect(reader.getScene(stage)!.entities.size, 'a refused load leaves no bodies behind').toBe(0);
     expect(reader.getNPC(one)).toBeUndefined();
     expect(reader.getNPC(two)).toBeUndefined();
     writer.dispose();
     reader.dispose();
+  });
+});
+
+/**
+ * M5 v133 — the world-state bag is held, checked and filed.
+ *
+ * `SaveData.worldState` was declared as `Record<string, unknown>` and backed by nothing, so it sat in
+ * `SAVE_DATA_FEASIBILITY.blocked` with "the runtime keeps no world-state store" written beside it. What a bag
+ * needs that a CLOSED record does not is a rule for values nobody declared — and the rule has to hold at the
+ * SET, not when a save is built, because by then the caller has already stored something this runtime could
+ * never restore. Two of the refusals are ones a plain validator cannot express: `undefined`, which
+ * `JSON.stringify` writes as no key at all, and a value that contains itself, which `JSON.stringify` refuses
+ * to write and a walk with no path stack would hang on.
+ */
+describe('M5 v133 — the world-state bag is held, checked and filed', () => {
+  it('sets, reads and forgets a key, and answers a removal rather than assuming one', () => {
+    runtime.setWorldState(scene, 'gate-open', true);
+    runtime.setWorldState(scene, 'visits', 3);
+    expect(runtime.getWorldState(scene, 'gate-open')).toBe(true);
+    expect(runtime.getWorldState(scene, 'visits')).toBe(3);
+    expect(runtime.getWorldStateKeys(scene)).toEqual(['gate-open', 'visits']);
+    expect(runtime.getWorldState(scene, 'never-set')).toBeUndefined();
+    expect(runtime.deleteWorldState(scene, 'gate-open')).toBe(true);
+    expect(runtime.deleteWorldState(scene, 'gate-open'), 'a second removal is an answer, not a failure').toBe(false);
+    expect(runtime.getWorldStateKeys(scene)).toEqual(['visits']);
+  });
+
+  it('refuses a value a file could not hold, at the set rather than at the write', () => {
+    // Every one of these is something `JSON.stringify` flattens, drops or writes as null. Storing one would
+    // leave the runtime holding a value it could never restore, and refusing LATER — at `buildSaveFile` —
+    // would be refusing after the caller had already put the value in.
+    expect(() => runtime.setWorldState(scene, 'bag', new Map([['a', 1]])))
+      .toThrow(/setWorldState: worldState\.bag holds a Map, which JSON\.stringify writes as \{\}/);
+    expect(() => runtime.setWorldState(scene, 'when', Number.NaN))
+      .toThrow(/setWorldState: worldState\.when holds NaN, which JSON writes as null/);
+    expect(() => runtime.setWorldState(scene, 'body', new THREE.Vector3(1, 2, 3)))
+      .toThrow(/setWorldState: worldState\.body holds a Vector3 instance, not plain data/);
+    expect(() => runtime.setWorldState(scene, 'fn', () => 1))
+      .toThrow(/setWorldState: worldState\.fn holds function, which a file cannot hold at all/);
+    expect(() => runtime.setWorldState(scene, 'gone', undefined))
+      .toThrow(/setWorldState: worldState\.gone is undefined; JSON\.stringify writes a key whose value is undefined as no key at all/);
+    // Nested, because a bag holds trees: the path is named rather than the top-level key alone.
+    expect(() => runtime.setWorldState(scene, 'deep', { a: [{ b: new Set([1]) }] }))
+      .toThrow(/setWorldState: worldState\.deep\.a\[0\]\.b holds a Set/);
+    // A value that contains itself is refused here rather than discovered by `JSON.stringify` at write time
+    // — and rather than hanging a walk, which is what the recursion would do without a path stack.
+    const cycle: Record<string, unknown> = { name: 'loop' };
+    cycle.self = cycle;
+    expect(() => runtime.setWorldState(scene, 'cycle', cycle))
+      .toThrow(/setWorldState: worldState\.cycle\.self contains itself/);
+    expect(runtime.getWorldStateKeys(scene), 'a refused value stored nothing').toEqual([]);
+  });
+
+  it('refuses a key with no name, and a scene that is not there', () => {
+    expect(() => runtime.setWorldState(scene, '', 1)).toThrow(/the key is ; world state is addressed by name/);
+    expect(() => runtime.setWorldState(sid('nowhere'), 'k', 1)).toThrow(/setWorldState: scene nowhere does not exist/);
+    expect(() => runtime.worldStateSnapshot(sid('nowhere'))).toThrow(/worldStateSnapshot: scene nowhere does not exist/);
+    expect(() => runtime.restoreWorldState(sid('nowhere'), {})).toThrow(/restoreWorldState: scene nowhere does not exist/);
+    expect(runtime.worldStateFieldAudit(sid('nowhere'))).toBeUndefined();
+    // `restoreWorldState` is a public door as well as the loader's half, so it checks its own argument.
+    expect(() => runtime.restoreWorldState(scene, ['visits', 3] as never))
+      .toThrow(/restoreWorldState: worldState is an array, not the bag of named values a file writes/);
+  });
+
+  it('the snapshot is data — sorted, deep-copied, and a shared branch copied twice rather than mistaken for a cycle', () => {
+    const shared = { seen: ['harbour'] };
+    runtime.setWorldState(scene, 'zeta', 1);
+    runtime.setWorldState(scene, 'alpha', { left: shared, right: shared, flags: ['a', 'b'] });
+    const snapshot = runtime.worldStateSnapshot(scene);
+    expect(Object.keys(snapshot)).toEqual(['alpha', 'zeta']);
+    expect(offenders(snapshot, 'worldState')).toEqual([]);
+    // A caller mutating what they handed over cannot move the scene's state…
+    shared.seen.push('tower');
+    expect(runtime.getWorldState(scene, 'alpha'))
+      .toEqual({ left: { seen: ['harbour'] }, right: { seen: ['harbour'] }, flags: ['a', 'b'] });
+    // …and mutating what the runtime handed BACK cannot either, on the snapshot or on a plain read.
+    (snapshot.alpha as { flags: string[] }).flags.push('c');
+    (runtime.getWorldState(scene, 'alpha') as { flags: string[] }).flags.push('d');
+    expect(runtime.getWorldState(scene, 'alpha'))
+      .toEqual({ left: { seen: ['harbour'] }, right: { seen: ['harbour'] }, flags: ['a', 'b'] });
+    // Two branches sharing ONE object is not a cycle: a file has no identity to share, so it is written
+    // twice — and the copies must be independent, which is what proves the second visit was not read as the
+    // value containing itself.
+    (runtime.getWorldState(scene, 'alpha') as { left: { seen: string[] } }).left.seen.push('deep');
+    expect((runtime.getWorldState(scene, 'alpha') as { right: { seen: string[] } }).right.seen).toEqual(['harbour']);
+  });
+
+  it('the file carries the bag, and a second runtime restores the same facts', () => {
+    const store = createMemorySaveStore();
+    const writer = runtimeWithStore(store);
+    const world = writer.createScene('World').id;
+    writer.setActiveScene(world);
+    withEntityIn(writer, world);
+    writer.setWorldState(world, 'visits', 3);
+    writer.setWorldState(world, 'gate-open', true);
+    writer.setWorldState(world, 'journal', { seen: ['harbour', 'tower'] });
+
+    const written = writer.writeSaveFile('saves/world.json', world, 1700000000000);
+    expect(written.worldState).toBe(3);
+    expect(written.carries).toContain('worldState');
+    // Sorted, so the same bag writes the same bytes twice rather than in whatever order it was set.
+    expect((JSON.parse(store.read('saves/world.json')!) as { worldState: unknown }).worldState)
+      .toEqual({ 'gate-open': true, journal: { seen: ['harbour', 'tower'] }, visits: 3 });
+
+    const reader = runtimeWithStore(store);
+    reader.createScene('World again', world);
+    reader.setActiveScene(world);
+    const report = reader.readSaveFile('saves/world.json', world);
+    expect(report.worldState).toEqual(['gate-open', 'journal', 'visits']);
+    expect(reader.getWorldState(world, 'journal')).toEqual({ seen: ['harbour', 'tower'] });
+    expect(reader.getWorldStateKeys(world)).toEqual(['gate-open', 'journal', 'visits']);
+    writer.dispose();
+    reader.dispose();
+  });
+
+  it('a scene with no world state writes an empty bag, not an absent field', () => {
+    const store = createMemorySaveStore();
+    const rt = runtimeWithStore(store);
+    const world = rt.createScene('World').id;
+    rt.setActiveScene(world);
+    withEntityIn(rt, world);
+
+    const file = rt.buildSaveFile(world, 1700000000000);
+    expect(file.worldState).toEqual({});
+    // The distinction that matters: `carries` names it, so OMITTING it would be a claim the file could not
+    // back up — which the loader refuses. An empty bag is a claim about the file, not about the scene.
+    expect(file.carries).toContain('worldState');
+    rt.dispose();
+  });
+
+  it('world state is scoped to the scene that set it', () => {
+    const other = runtime.createScene('Other').id;
+    runtime.setWorldState(scene, 'here', 1);
+    runtime.setWorldState(other, 'there', 2);
+    // Two keys per scene, because the invariant has two halves and one write tests only the cheaper one: a
+    // setter that builds a FRESH bag on every call still keeps each scene's facts apart, and still loses
+    // everything that scene said before. `getWorldStateKeys` is the answer that says which half broke.
+    runtime.setWorldState(scene, 'also', 11);
+    runtime.setWorldState(other, 'also', 22);
+    expect(runtime.getWorldStateKeys(scene)).toEqual(['also', 'here']);
+    expect(runtime.getWorldStateKeys(other)).toEqual(['also', 'there']);
+    expect(runtime.worldStateSnapshot(scene)).toEqual({ also: 11, here: 1 });
+    expect(runtime.worldStateSnapshot(other)).toEqual({ also: 22, there: 2 });
+    withEntity();
+    expect(runtime.buildSaveFile(scene, 1700000000000).worldState, 'a file carries only its own scene').toEqual({ also: 11, here: 1 });
+  });
+
+  it('refuses to load a bag into a scene that already holds one, before anything runs', () => {
+    const store = createMemorySaveStore();
+    const writer = runtimeWithStore(store);
+    const world = writer.createScene('World').id;
+    writer.setActiveScene(world);
+    withEntityIn(writer, world);
+    writer.setWorldState(world, 'visits', 3);
+    const file = writer.buildSaveFile(world, 1700000000000);
+
+    const reader = runtimeWithStore(store);
+    reader.createScene('World again', world);
+    reader.setActiveScene(world);
+    reader.setWorldState(world, 'already', true);
+    expect(() => reader.loadSaveFile(file, world))
+      .toThrow(/already holds world state \(already\); a load replaces the bag whole/);
+    // Pre-checked, so the entities the file carried were never restored either — and what the scene held is
+    // still exactly what it held.
+    expect(reader.getScene(world)!.entities.size, 'a refused load leaves no bodies behind').toBe(0);
+    expect(reader.getWorldState(world, 'already')).toBe(true);
+    writer.dispose();
+    reader.dispose();
+  });
+
+  it("an OLD file carries no bag, and the file's own claim is what decides how that reads", () => {
+    const store = createMemorySaveStore();
+    const writer = runtimeWithStore(store);
+    const world = writer.createScene('World').id;
+    writer.setActiveScene(world);
+    withEntityIn(writer, world);
+    writer.setWorldState(world, 'visits', 3);
+    writer.writeSaveFile('saves/current.json', world, 1700000000000);
+
+    const legacy = JSON.parse(store.read('saves/current.json')!) as Record<string, unknown>;
+    legacy.carries = ['entities', 'cinematic', 'npcs'];
+    delete legacy.worldState;
+    store.write('saves/legacy.json', JSON.stringify(legacy));
+
+    const reader = runtimeWithStore(store);
+    reader.createScene('Copy', world);
+    reader.setActiveScene(world);
+    const report = reader.readSaveFile('saves/legacy.json', world);
+    expect(report.worldState, 'a file that does not claim the bag carries none').toEqual([]);
+    expect(reader.getWorldStateKeys(world), 'and the load sets nothing rather than clearing the world').toEqual([]);
+    // The diagnosis has to agree with the load: readable here, simply not carried by that file.
+    expect(reader.diagnoseSaveFile('saves/legacy.json').readableNowButNotCarried).toEqual(['worldState']);
+
+    // The other direction: a file that SAYS it carries the bag owes one, and omitting it is refused.
+    store.write('saves/liar.json', JSON.stringify({ ...legacy, carries: ['entities', 'cinematic', 'npcs', 'worldState'] }));
+    const other = runtimeWithStore(store);
+    other.createScene('Copy again', world);
+    other.setActiveScene(world);
+    expect(() => other.readSaveFile('saves/liar.json', world))
+      .toThrow(/worldState is missing, not the bag of named values a file writes — and the file CLAIMS to carry worldState, so a bag is owed rather than optional/);
+    writer.dispose();
+    reader.dispose();
+    other.dispose();
+  });
+
+  it('refuses a bag that is not a bag, or that hides a value a file cannot hold', () => {
+    const store = createMemorySaveStore();
+    const writer = runtimeWithStore(store);
+    const world = writer.createScene('World').id;
+    writer.setActiveScene(world);
+    withEntityIn(writer, world);
+    const file = writer.buildSaveFile(world, 1700000000000) as unknown as Record<string, unknown>;
+    store.write('saves/array.json', JSON.stringify({ ...file, worldState: ['visits', 3] }));
+
+    const reader = runtimeWithStore(store);
+    reader.createScene('Copy', world);
+    reader.setActiveScene(world);
+    expect(() => reader.readSaveFile('saves/array.json', world))
+      .toThrow(/worldState is an array, not the bag of named values a file writes/);
+    expect(reader.getWorldStateKeys(world), 'a refused file set nothing').toEqual([]);
+
+    // An `undefined` VALUE cannot survive a JSON trip at all — `JSON.stringify` drops the key — so it is
+    // refused as data rather than loaded as a bag one key shorter than the one that was written.
+    expect(() => runtime.loadSaveFile({ ...file, worldState: { gone: undefined } } as never, scene))
+      .toThrow(/loadSaveFile: file\.worldState\.gone is undefined/);
+    // A live object smuggled in is refused by name, one level below the setter that would have stopped it —
+    // and the refusal wears the FILE walker's name rather than this half's, because `assertDiskSafe(file)`
+    // reaches it first: the per-key check above exists for what that walker deliberately allows (`undefined`,
+    // which is legal for an optional field), not to restate what it already refuses.
+    expect(() => runtime.loadSaveFile({ ...file, worldState: { body: new THREE.Vector3(1, 2, 3) } } as never, scene))
+      .toThrow(/saveFile: file\.worldState\.body holds a Vector3 instance, not plain data/);
+    // And content under a name that is STILL blocked is refused exactly as it was before this half.
+    expect(() => runtime.loadSaveFile({ ...file, quests: [['q-1', {}]] } as never, scene))
+      .toThrow(/content under "quests"/);
+    writer.dispose();
+    reader.dispose();
+  });
+
+  it('a load that fails on the entity half leaves no world state behind, because the bag goes last', () => {
+    const store = createMemorySaveStore();
+    const writer = runtimeWithStore(store);
+    const world = writer.createScene('World').id;
+    writer.setActiveScene(world);
+    withEntityIn(writer, world);
+    writer.setWorldState(world, 'visits', 3);
+    // A file whose entity half is broken the way a hand-edited save breaks: the bag is perfectly good, and
+    // the load must still leave the scene with neither.
+    const file = structuredClone(writer.buildSaveFile(world, 1700000000000)) as unknown as {
+      entities: [EntityId, { position: { x?: number } }][];
+      worldState: Record<string, unknown>;
+    };
+    file.entities[0][1].position.x = undefined;
+
+    const reader = runtimeWithStore(store);
+    reader.createScene('World again', world);
+    reader.setActiveScene(world);
+    expect(() => reader.loadSaveFile(file as never, world)).toThrow(/position x is undefined/);
+    expect(reader.getScene(world)!.entities.size).toBe(0);
+    expect(reader.getWorldStateKeys(world), 'the bag is applied after the halves that can fail').toEqual([]);
+    writer.dispose();
+    reader.dispose();
+  });
+
+  it('the audit names the keys the scene holds and the names this package refuses to keep', () => {
+    const audit = runtime.worldStateFieldAudit(scene)!;
+    expect(audit.carried).toEqual([]);
+    expect(audit.untouched.map((entry) => entry.field)).toEqual(['quests', 'player', 'inventory', 'entities']);
+    for (const entry of audit.untouched) expect(entry.needs.length, `${entry.field} must say WHY it is not kept`).toBeGreaterThan(0);
+    // A name that gets carried stops being reported as a gap, so the two lists cannot disagree about it.
+    runtime.setWorldState(scene, 'quests', 'not a quest system — a caller-named fact under that name');
+    expect(runtime.worldStateFieldAudit(scene)!.carried).toEqual(['quests']);
+    expect(runtime.worldStateFieldAudit(scene)!.untouched.map((entry) => entry.field)).toEqual(['player', 'inventory', 'entities']);
   });
 });
 
@@ -1851,9 +2131,10 @@ describe('atomic save writes: a reader sees the old save or the new one, never a
         'it carries "quests", which this runtime can neither fill nor read',
         'it omits "cinematic", which this runtime could now write — the file predates that capability',
         'it omits "npcs", which this runtime could now write — the file predates that capability',
+        'it omits "worldState", which this runtime could now write — the file predates that capability',
       ],
       carriedButUnreadableHere: ['quests'],
-      readableNowButNotCarried: ['cinematic', 'npcs'],
+      readableNowButNotCarried: ['cinematic', 'npcs', 'worldState'],
     });
     // The pair: the verdict is the load's verdict, not a parallel opinion about it.
     let loadMessage = '';

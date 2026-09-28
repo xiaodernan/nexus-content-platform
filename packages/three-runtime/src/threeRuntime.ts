@@ -113,6 +113,26 @@ export interface NpcFieldAudit {
   untouched: { field: string; needs: string }[];
 }
 
+/** A world-state key this package will not hold. `worldStateFieldAudit` names the rest of the bag by name
+ *  instead of letting a caller believe the runtime keeps a world; `entities` is the one this runtime could
+ *  honestly keep as a list of the bodies a scene holds, and the other four are state this package has no
+ *  system to produce or consume. */
+const UNTOUCHED_WORLD_STATE_FIELDS: readonly { field: string; needs: string }[] = [
+  { field: 'quests', needs: '`QuestSystem` is declared in types.ts and implemented by nothing, so there are no quest states to keep' },
+  { field: 'player', needs: 'the runtime holds no player entity — `SerializedPlayer` names health/mana/inventory/skills that nothing here owns' },
+  { field: 'inventory', needs: '`InventoryItem` holds `attributes` and `requirements` as Maps and nothing here implements an inventory' },
+  { field: 'entities', needs: 'the bodies a scene holds are the scene graph itself; mirroring them into world state would be a second owner of the same list, and the two would drift' },
+];
+
+/** What `worldStateFieldAudit` answers. `carried` is every key the scene actually holds (so a caller can
+ *  see what a file would write), and `untouched` names the well-known keys this package REFUSES to keep,
+ *  each with what it waits on — so a caller cannot assume the runtime is keeping a quest log, a player or
+ *  an inventory for them. A name that stops being refused has to leave that table to stop being reported. */
+export interface WorldStateFieldAudit {
+  carried: string[];
+  untouched: { field: string; needs: string }[];
+}
+
 /** The `PhysicsConfig` fields the frame loop READS. `physicsFieldAudit` reports the rest of the type by
  *  name, so a declared word is never left with no reader: `broadphase` and `solverIterations` name work
  *  on contacts, and this package has no collision geometry to have contacts with. */
@@ -501,6 +521,10 @@ export interface SaveFileLoadReport {
    *  answer for a scene with no NPCs, which is not the same claim as "this file carries no npcs". */
   npcs: EntityId[];
   sequences: string[];
+  /** The world-state keys this load restored, sorted. Empty is the ordinary answer for a scene whose world
+   *  state was saved empty, which is not the same claim as "this file carries no worldState" — the two are
+   *  told apart by `carries`, which is what the file itself said. */
+  worldState: string[];
   carries: string[];
 }
 
@@ -521,6 +545,9 @@ export interface SaveFileWriteReport {
    *  the same claim as the file omitting the field — `npcs` is always written, even when it is empty. */
   npcs: number;
   sequences: number;
+  /** How many world-state keys the file carries. Zero is the ordinary answer for a scene with no world
+   *  state and is not the same claim as the file omitting the field — `worldState` is always written. */
+  worldState: number;
   carries: string[];
   doesNotCarry: string[];
 }
@@ -621,12 +648,11 @@ const SAVE_ALIAS_CLAIMS: Record<string, readonly string[]> = {
  *  implement a `savable` row and NONE to implement a `blocked` one, which is what makes this table unable
  *  to sit still while an implementation ships beside it. */
 const SAVE_DATA_FEASIBILITY: { savable: readonly string[]; blocked: readonly { field: string; needs: string }[] } = {
-  savable: ['entities', 'cinematic', 'npcs'],
+  savable: ['entities', 'cinematic', 'npcs', 'worldState'],
   blocked: [
     { field: 'sceneGraph', needs: 'SerializedScene stores a LightingConfig whose lights hold live THREE.Light objects and a PhysicsConfig whose gravity is a live THREE.Vector3; nothing here rebuilds either' },
     { field: 'quests', needs: 'QuestSystem is declared in types.ts and implemented by nothing' },
     { field: 'player', needs: 'SerializedPlayer names health/mana/inventory/skills; the runtime holds no player state' },
-    { field: 'worldState', needs: 'the runtime keeps no world-state store' },
   ],
 };
 
@@ -741,33 +767,72 @@ function eulerFromData(data: SerializedEuler, where: string): THREE.Euler {
  * refused BY NAME with the replacement spelled out, because "it restored zero components" is the failure this
  * whole lane exists to prevent.
  */
-function assertDiskSafe(value: unknown, path: string): void {
+/** Walk a value and refuse anything a save file cannot hold, naming the path and the owner the caller answers
+ *  to. `seen` is a PATH stack rather than a set of everything visited: a value that contains itself has no
+ *  file spelling and is refused by name, while the same object reached twice through two different branches
+ *  is not a cycle — `JSON` has no identity to share, so it is written twice and this walk must not confuse
+ *  the two (which is also what keeps a cyclic value from hanging the walk the way it would a plain
+ *  recursion). */
+function assertDiskSafe(value: unknown, path: string, who = 'saveFile', seen: Set<object> = new Set()): void {
   if (value === null || value === undefined) return;
   if (typeof value === 'number') {
-    if (!Number.isFinite(value)) throw new Error(`saveFile: ${path} holds ${value}, which JSON writes as null`);
+    if (!Number.isFinite(value)) throw new Error(`${who}: ${path} holds ${value}, which JSON writes as null`);
     return;
   }
   if (typeof value !== 'object') {
     if (typeof value !== 'string' && typeof value !== 'boolean') {
-      throw new Error(`saveFile: ${path} holds ${typeof value}, which a file cannot hold at all`);
+      throw new Error(`${who}: ${path} holds ${typeof value}, which a file cannot hold at all`);
     }
     return;
   }
   if (value instanceof Map || value instanceof Set) {
-    throw new Error(`saveFile: ${path} holds a ${value instanceof Map ? 'Map' : 'Set'}, which JSON.stringify writes as {} — a save shape spells its collections as arrays of entries so the contents survive the trip`);
+    throw new Error(`${who}: ${path} holds a ${value instanceof Map ? 'Map' : 'Set'}, which JSON.stringify writes as {} — a save shape spells its collections as arrays of entries so the contents survive the trip`);
   }
   const proto = Object.getPrototypeOf(value as object);
   if (proto !== Object.prototype && proto !== null && !Array.isArray(value)) {
     const name = (value as { constructor?: { name?: string } }).constructor?.name ?? 'unnamed class';
-    throw new Error(`saveFile: ${path} holds a ${name} instance, not plain data — a file stores values, not live objects`);
+    throw new Error(`${who}: ${path} holds a ${name} instance, not plain data — a file stores values, not live objects`);
   }
   if (Array.isArray(value)) {
-    value.forEach((item, index) => assertDiskSafe(item, `${path}[${index}]`));
+    if (seen.has(value)) throw new Error(`${who}: ${path} contains itself — a value that appears inside its own tree is one JSON.stringify refuses to write, so a file could never hold it`);
+    seen.add(value);
+    value.forEach((item, index) => assertDiskSafe(item, `${path}[${index}]`, who, seen));
+    seen.delete(value);
     return;
   }
+  if (seen.has(value)) throw new Error(`${who}: ${path} contains itself — a value that appears inside its own tree is one JSON.stringify refuses to write, so a file could never hold it`);
+  seen.add(value);
   for (const [key, nested] of Object.entries(value as Record<string, unknown>)) {
-    assertDiskSafe(nested, `${path}.${key}`);
+    assertDiskSafe(nested, `${path}.${key}`, who, seen);
   }
+  seen.delete(value);
+}
+
+/** A world-state value, as the DATA a file holds: checked and deep-copied, and the check is not a second
+ *  implementation of anything. `assertDiskSafe` owns "what a file can hold" for every other value in a save
+ *  and states it here, with the path, BEFORE a byte is copied — so a `Map`, a class instance or a non-finite
+ *  number is refused in the canonical words rather than in a paraphrase that could drift from them. */
+function cloneWorldStateValue(value: unknown, path: string, who: string): unknown {
+  assertDiskSafe(value, path, who);
+  return copyWorldStateValue(value, path, who);
+}
+
+/** The copy half of `cloneWorldStateValue`: the one refusal a validator cannot make — an `undefined` leaf,
+ *  which `assertDiskSafe` allows elsewhere because an optional field may be absent, but which `JSON.stringify`
+ *  writes as NO KEY AT ALL, so a bag that came back one key shorter would be a different bag. No cycle guard
+ *  lives here: `assertDiskSafe` proved the value acyclic one call up, and a second guard would be a second
+ *  owner of a claim this walk does not make. */
+function copyWorldStateValue(value: unknown, path: string, who: string): unknown {
+  if (value === undefined) {
+    throw new Error(`${who}: ${path} is undefined; JSON.stringify writes a key whose value is undefined as no key at all, so the bag would come back one key shorter — use null for "no value", or delete the key instead`);
+  }
+  if (value === null || typeof value !== 'object') return value;
+  if (Array.isArray(value)) return value.map((item, index) => copyWorldStateValue(item, `${path}[${index}]`, who));
+  const out: Record<string, unknown> = {};
+  for (const [key, nested] of Object.entries(value as Record<string, unknown>)) {
+    out[key] = copyWorldStateValue(nested, `${path}.${key}`, who);
+  }
+  return out;
 }
 
 /** The components entry array back into the `Map` the live record uses.
@@ -847,6 +912,11 @@ export class ThreeRuntime {
    *  than an array on the entity because the record OUTLIVES nothing: the scene graph is the thing a save
    *  files, and the entity is only the body the record is about. */
   private npcs: Map<EntityId, NpcEntry> = new Map();
+  /** Arbitrary world state, per scene, as plain data. Keyed by scene for the same reason the NPC registry
+   *  is: a save FILE is scoped to one scene, and a bag shared across scenes would make one scene's file
+   *  carry another scene's facts. A value must be data a file can hold, which is why the setter refuses a
+   *  `Map`, a class instance or a non-finite number rather than storing something `JSON` would flatten. */
+  private worldStates: Map<SceneId, Map<string, unknown>> = new Map();
   /** Cinematic sequences the runtime owns, keyed by their declared id. */
   private readonly cinematics = new Map<string, CinematicEntry>();
   /** Where save files go. `null` when the runtime was built without a store, which the file methods refuse. */
@@ -1248,6 +1318,7 @@ export class ThreeRuntime {
       doesNotCarry: SAVE_DATA_FEASIBILITY.blocked.map(({ field, needs }) => ({ field, needs })),
       entities,
       npcs,
+      worldState: this.worldStateSnapshot(sceneId),
       cinematic: this.cinematicSnapshot(),
     };
     assertDiskSafe(file, 'file');
@@ -1255,6 +1326,7 @@ export class ThreeRuntime {
       sceneId,
       entityCount: entities.length,
       npcCount: npcs.length,
+      worldStateCount: Object.keys(file.worldState).length,
       sequenceCount: file.cinematic.sequences.length,
       carries: [...file.carries],
       doesNotCarry: file.doesNotCarry.map((entry) => entry.field),
@@ -1370,9 +1442,36 @@ export class ThreeRuntime {
       }
     }
 
+    // The world-state half obeys the same rule as the two above and is pre-checked here, before any half
+    // runs. `worldState` is a bag rather than a list, so the checks are that it IS a bag, that every value
+    // is data a file can hold, and that the scene holds NO world state at all — a restore REPLACES the bag,
+    // and replacing a live one would drop facts a rollback could not bring back, so the boundary is the
+    // same one entities already draw: a restore never overwrites live state.
+    const claimsWorldState = Array.isArray(file.carries) && file.carries.includes('worldState');
+    const worldState = file.worldState === undefined || file.worldState === null
+      ? (claimsWorldState ? undefined : {})
+      : file.worldState;
+    if (worldState === undefined || typeof worldState !== 'object' || Array.isArray(worldState)) {
+      throw new Error(`loadSaveFile refused: worldState is ${worldState === undefined ? 'missing' : Array.isArray(worldState) ? 'an array' : typeof worldState}, not the bag of named values a file writes${claimsWorldState && worldState === undefined ? ' — and the file CLAIMS to carry worldState, so a bag is owed rather than optional' : ''}`);
+    }
+    const liveWorldStateKeys = this.getWorldStateKeys(sceneId);
+    if (liveWorldStateKeys.length > 0) {
+      throw new Error(`loadSaveFile refused: scene ${sceneId} already holds world state (${liveWorldStateKeys.join(', ')}); a load replaces the bag whole, so loading into a scene that already has one would drop those facts with nothing to bring them back`);
+    }
+    for (const [key, value] of Object.entries(worldState)) {
+      if (key.length === 0) {
+        throw new Error('loadSaveFile refused: worldState holds an empty key, and a value filed under no name is one no reader could ever ask for');
+      }
+      // `assertDiskSafe(file)` above already refused a `Map`, a live object or a non-finite number anywhere
+      // in this bag, so this walk is here for the ONE thing that walk deliberately allows: `undefined`,
+      // which is legal for an optional field but is written by `JSON.stringify` as no key at all.
+      cloneWorldStateValue(value, `file.worldState.${key}`, 'loadSaveFile');
+    }
+
     const loadedSequences = this.restoreCinematic(file.cinematic);
     const restored: EntityId[] = [];
     const restoredNpcs: EntityId[] = [];
+    let restoredWorldState: string[] = [];
     try {
       for (const [, snapshot] of pairs as [EntityId, SerializedEntity][]) {
         this.restoreEntity(sceneId, snapshot);
@@ -1382,6 +1481,7 @@ export class ThreeRuntime {
         this.restoreNPC(sceneId, record);
         restoredNpcs.push(record.entityId);
       }
+      restoredWorldState = this.restoreWorldState(sceneId, worldState);
     } catch (error) {
       // The records go back with their bodies: `removeEntity` is the one owner of orphaning a record, and
       // it emits `npcOrphaned` on the way, so a rollback that also detached them by hand would be a second
@@ -1397,13 +1497,17 @@ export class ThreeRuntime {
         this.stopCinematic(id);
         this.removeCinematic(id);
       }
-      throw new Error(`${(error as Error).message} — the ${restored.length} entity(ies), the ${restoredNpcs.length} NPC record(s) and the ${loadedSequences.restored.length} sequence(s) this load had registered were removed again; a load is all or nothing`);
+      // The world bag goes back the same way, key by key: the pre-check above proved the scene held none,
+      // so deleting what this load set leaves exactly the state that was there before it ran.
+      for (const key of restoredWorldState) this.deleteWorldState(sceneId, key);
+      throw new Error(`${(error as Error).message} — the ${restored.length} entity(ies), the ${restoredNpcs.length} NPC record(s), the ${restoredWorldState.length} world-state key(s) and the ${loadedSequences.restored.length} sequence(s) this load had registered were removed again; a load is all or nothing`);
     }
     const report: SaveFileLoadReport = {
       sceneId,
       entities: restored,
       npcs: restoredNpcs,
       sequences: file.cinematic.sequences.map(([id]) => id),
+      worldState: restoredWorldState,
       carries: [...file.carries],
     };
     this.emit('saveFileLoaded', report);
@@ -1435,6 +1539,7 @@ export class ThreeRuntime {
       sceneId,
       entities: file.entities.length,
       npcs: file.npcs.length,
+      worldState: Object.keys(file.worldState).length,
       sequences: file.cinematic.sequences.length,
       carries: [...file.carries],
       doesNotCarry: file.doesNotCarry.map((entry) => entry.field),
@@ -2439,6 +2544,106 @@ export class ThreeRuntime {
     return undefined;
   }
 
+  // ── world state ───────────────────────────────────────────────────────────────────────────────
+
+  /**
+   * Set one world-state key for a scene.
+   *
+   * The value must be DATA a file can hold, checked HERE rather than when a save is built: `assertDiskSafe`
+   * would catch a `Map` or a class instance at `buildSaveFile` time, but by then the caller has already
+   * stored something this runtime can never restore, and a write that refuses later is a worse answer than
+   * a set that refuses now. `undefined` is refused rather than stored as `null`: a file writes it as no key
+   * at all, so the bag would come back shorter than the one that was set.
+   */
+  setWorldState(sceneId: SceneId, key: string, value: unknown): void {
+    if (!this.sceneGraph.scenes.get(sceneId)) {
+      throw new Error(`setWorldState: scene ${sceneId} does not exist, and state filed against a scene that is not there would be a fact about nothing`);
+    }
+    if (typeof key !== 'string' || key.length === 0) {
+      throw new Error(`setWorldState: the key is ${String(key)}; world state is addressed by name, and an empty name is one no reader could ever ask for`);
+    }
+    const stored = cloneWorldStateValue(value, `worldState.${key}`, 'setWorldState');
+    let bag = this.worldStates.get(sceneId);
+    if (!bag) {
+      bag = new Map();
+      this.worldStates.set(sceneId, bag);
+    }
+    bag.set(key, stored);
+  }
+
+  /** One world-state value, or `undefined` when the scene or the key is not there. Both answer `undefined`
+   *  on purpose — a caller asking about a key in a scene that does not exist has no value either way — and
+   *  `getWorldStateKeys` is what tells the two apart. The value is a COPY, the same way a snapshot is: a
+   *  caller who could mutate what they read would be moving the runtime's state through a getter, which is
+   *  the one thing `setWorldState` cloning on the way in would then not have bought. */
+  getWorldState(sceneId: SceneId, key: string): unknown {
+    const bag = this.worldStates.get(sceneId);
+    if (!bag?.has(key)) return undefined;
+    return cloneWorldStateValue(bag.get(key), `worldState.${key}`, 'getWorldState');
+  }
+
+  /** Every key this scene holds, sorted: the population `worldStateFieldAudit` reports over and the reason
+   *  the audit needs no second list of what is stored. */
+  getWorldStateKeys(sceneId: SceneId): string[] {
+    return [...(this.worldStates.get(sceneId)?.keys() ?? [])].sort();
+  }
+
+  /** Forget one key, answering whether it was there — so "removed" and "was never set" are not the same
+   *  silence. */
+  deleteWorldState(sceneId: SceneId, key: string): boolean {
+    return this.worldStates.get(sceneId)?.delete(key) ?? false;
+  }
+
+  /**
+   * The scene's world state as FILE data: a plain object, because that is the shape `SaveData.worldState`
+   * declares and the shape `JSON.stringify` keeps whole. `setWorldState` is the one door that checks a
+   * value, so what comes out here is data by construction rather than by hope, and every value is copied so
+   * a caller holding the snapshot cannot move the scene's state by mutating it.
+   */
+  worldStateSnapshot(sceneId: SceneId): Record<string, unknown> {
+    if (!this.sceneGraph.scenes.get(sceneId)) {
+      throw new Error(`worldStateSnapshot: scene ${sceneId} does not exist`);
+    }
+    const bag = this.worldStates.get(sceneId);
+    if (!bag) return {};
+    const out: Record<string, unknown> = {};
+    for (const key of [...bag.keys()].sort()) out[key] = cloneWorldStateValue(bag.get(key), `worldState.${key}`, 'worldStateSnapshot');
+    return out;
+  }
+
+  /**
+   * Replace a scene's world state with what a file carried, answering how many keys landed.
+   *
+   * REPLACE, not merge: a save describes a world, and merging it into whatever the scene happens to hold
+   * would leave keys from the previous state standing beside the loaded ones with nothing saying which is
+   * which. An empty object is a legitimate value — a scene saved with no world state comes back with none
+   * — which is why the answer is a count rather than a boolean that could not tell "empty" from "failed".
+   */
+  restoreWorldState(sceneId: SceneId, state: Record<string, unknown>): string[] {
+    if (!this.sceneGraph.scenes.get(sceneId)) {
+      throw new Error(`restoreWorldState: scene ${sceneId} does not exist`);
+    }
+    if (state === null || typeof state !== 'object' || Array.isArray(state)) {
+      throw new Error(`restoreWorldState: worldState is ${Array.isArray(state) ? 'an array' : typeof state}, not the bag of named values a file writes`);
+    }
+    for (const [key, value] of Object.entries(state)) cloneWorldStateValue(value, `worldState.${key}`, 'restoreWorldState');
+    const bag = new Map<string, unknown>();
+    for (const key of Object.keys(state).sort()) bag.set(key, cloneWorldStateValue(state[key], `worldState.${key}`, 'restoreWorldState'));
+    this.worldStates.set(sceneId, bag);
+    return [...bag.keys()];
+  }
+
+  /** The scene's keys and the well-known names this package refuses to keep, so "the runtime has no world
+   *  state" is answerable by name rather than by a caller reading the source. */
+  worldStateFieldAudit(sceneId: SceneId): WorldStateFieldAudit | undefined {
+    if (!this.sceneGraph.scenes.get(sceneId)) return undefined;
+    const carried = this.getWorldStateKeys(sceneId);
+    const untouched = UNTOUCHED_WORLD_STATE_FIELDS
+      .filter((gap) => !carried.includes(gap.field))
+      .map((gap) => ({ ...gap }));
+    return { carried, untouched };
+  }
+
   // ── cinematic sequences ───────────────────────────────────────────────────────────────────────
 
   /**
@@ -2863,6 +3068,8 @@ export class ThreeRuntime {
     // Same reason as the controllers: the records are keyed by entity id, and every entity is gone by this
     // line, so leaving them would be a registry of NPCs that cannot be anywhere.
     this.npcs.clear();
+    // Same reason again: the state is keyed by scene id, and every scene is gone by this line.
+    this.worldStates.clear();
     // Same reason as the controllers: a sequence is registered by id against a scene that no longer
     // exists, so keeping it would let `playCinematic` answer for cameras that are gone.
     this.cinematics.clear();
