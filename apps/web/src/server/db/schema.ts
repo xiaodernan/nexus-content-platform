@@ -995,6 +995,35 @@ export const apiTokens = pgTable(
   (t) => [uniqueIndex('api_tokens_hash_key').on(t.tokenHash), index('api_tokens_user_idx').on(t.userId)],
 );
 
+/**
+ * §188 M8 第三片：这本账答的是"哪一枚凭据在什么时候读了哪一份文档"。
+ *
+ * 一行不是"一次调用"而是"一个（凭据, 端点, 项目, 分钟）"，`calls` 是这一分钟里的次数——
+ * 这样"读接口不许变成写接口"那条纪律在开了账之后依然成立（详见迁移 0020 的开头）。
+ * 它与 §80 的 `audit_events` 是两本账：那本记**决定**（放行与拒绝），这本记**用量**。
+ * 桶必须是整分钟、`calls >= 1` 这两条 CHECK 只在库里（迁移 0020），与 `api_tokens` 的
+ * scope 名单同一个口径：drizzle 这边不重复写约束，写了也不会替库执行。
+ */
+export const apiAccessBuckets = pgTable(
+  'api_access_buckets',
+  {
+    tokenId: uuid('token_id')
+      .notNull()
+      .references(() => apiTokens.id, { onDelete: 'cascade' }),
+    /** 路由自己报失败时说的那一句，例如 `GET /api/v1/projects/[projectId]/design` */
+    endpoint: text('endpoint').notNull(),
+    /** 集合类端点没有具体项目，是空串而不是 null：这一列要进主键，而 null 之间不比相等 */
+    projectId: text('project_id').notNull().default(''),
+    bucket: timestamp('bucket', { withTimezone: true }).notNull(),
+    lastSeen: timestamp('last_seen', { withTimezone: true }).notNull().defaultNow(),
+    calls: integer('calls').notNull().default(1),
+  },
+  (t) => [
+    primaryKey({ columns: [t.tokenId, t.endpoint, t.projectId, t.bucket], name: 'api_access_buckets_pkey' }),
+    index('api_access_buckets_token_recent_idx').on(t.tokenId, t.lastSeen),
+  ],
+);
+
 export const schema = {
   users,
   sessions,
@@ -1033,4 +1062,5 @@ export const schema = {
   publicationVisits,
   notifications,
   apiTokens,
+  apiAccessBuckets,
 };

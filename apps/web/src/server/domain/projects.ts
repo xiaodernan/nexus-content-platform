@@ -120,6 +120,26 @@ export async function createProject(ownerId: string, input: CreateProjectInput):
 }
 
 type Tx = Parameters<Parameters<ReturnType<typeof getDb>['transaction']>[0]>[0];
+type Db = ReturnType<typeof getDb>;
+
+/**
+ * 能读文档的那个东西：独立连接，或者调用方已经开着的事务。
+ * 只 `Pick` 出 select——读取路径不该拿到写的能力，事务归 `writeDocument` 那边管。
+ */
+export type DocumentReader = Pick<Db, 'select'>;
+
+/** 调用方开好的事务：§188 的公开 API 补丁要在同一事务里读—改—写，类型得能带出这个文件 */
+export type DocumentTx = Tx;
+
+/**
+ * 同一项目的写入必须串行（ADR-0016）：两个并发事务各自从同一份旧文档出发会互相踩。
+ * 单独成一个函数是因为"读—改—写"那条路（§188 公开 API 的补丁）必须在**读之前**就拿到它，
+ * 而 `writeDocument` 里那句锁来得太晚——它保护的是写与写之间，保护不了读与写之间。
+ * 事务级 advisory lock 可重入，同一事务里拿两次不会自锁，commit/rollback 时自动释放。
+ */
+export async function lockProjectWrites(tx: Tx, projectId: string): Promise<void> {
+  await tx.execute(sql`select pg_advisory_xact_lock(hashtextextended(${projectId}, 0))`);
+}
 
 /**
  * 文档写入的唯一实现（`createProject` 与 `saveDocument` 都走它）。
@@ -140,11 +160,8 @@ type Tx = Parameters<Parameters<ReturnType<typeof getDb>['transaction']>[0]>[0];
  * 发补丁而不是发全量文档（§150 的 Command 已经在客户端存在），那是下一格。
  */
 async function writeDocument(tx: Tx, projectId: string, document: DesignDocument): Promise<void> {
-  // 同一项目的写入必须串行：两个并发事务各自从同一份旧文档出发会互相踩
-  //（A 删完 → B 删完 → A 插 p_x → B 插同一个 p_x ⇒ pages_pkey 冲突，整个 PUT 报 500；
-  // 2026-09-26 生产日志里那次 insert into pages 失败就是这个形状，Studio 自动保存 + 第二个标签页就会撞）。
-  // 事务级 advisory lock 在 commit/rollback 时自动释放，不改任何事务语义，也不跨项目挡。
-  await tx.execute(sql`select pg_advisory_xact_lock(hashtextextended(${projectId}, 0))`);
+  // 写与写之间串行（形状与成因见 lockProjectWrites 那段注释：2026-09-26 生产日志里的 pages_pkey 冲突）
+  await lockProjectWrites(tx, projectId);
 
   const current = await loadCurrentDocumentState(tx, projectId);
 
@@ -454,8 +471,9 @@ export function assetRowToRef(row: typeof assets.$inferSelect): AssetRef {
   };
 }
 
-export async function loadDocument(projectId: string): Promise<DesignDocument | null> {
-  const db = getDb();
+export async function loadDocument(projectId: string, reader: DocumentReader = getDb()): Promise<DesignDocument | null> {
+  // 传事务进来时，这次读就落在同一把 advisory lock 后面（§188 公开 API 的读—改—写要的就是这个）
+  const db = reader;
   const [project] = await db.select().from(projects).where(and(eq(projects.id, projectId), isNull(projects.deletedAt))).limit(1);
   if (!project) return null;
 
@@ -541,23 +559,34 @@ export async function loadDocument(projectId: string): Promise<DesignDocument | 
   return document;
 }
 
+/**
+ * 在调用方的事务里把整份文档落库（文档行 + 项目行那一份摘要列）。
+ *
+ * 从 `saveDocument` 里抽出来只为了一个理由：**写文档的实现必须只有一处**。§188 的公开 API 补丁
+ * 需要"读—改—写在同一个事务里"，如果它自己再写一遍 `update projects set name=…`，这两处迟早漂开，
+ * 漂开的那一半就是"文档改了但项目名还是旧的"这类账。
+ */
+export async function writeProjectDocument(tx: Tx, projectId: string, document: DesignDocument): Promise<void> {
+  await writeDocument(tx, projectId, document);
+  await tx
+    .update(projects)
+    .set({
+      name: document.name,
+      activePageId: document.activePageId,
+      brandKit: (document.brandKit ?? null) as unknown as Record<string, unknown>,
+      visualDna: (document.visualDna ?? null) as unknown as Record<string, unknown>,
+      // §12：主题 mode 是文档状态，不存下来就会在保存-重载后悄悄退回默认值
+      activeMode: document.activeMode ?? null,
+      modes: document.metadata.modes ?? null,
+      updatedAt: new Date(),
+    })
+    .where(eq(projects.id, projectId));
+}
+
 export async function saveDocument(projectId: string, document: DesignDocument): Promise<void> {
   const db = getDb();
   await db.transaction(async (tx) => {
-    await writeDocument(tx, projectId, document);
-    await tx
-      .update(projects)
-      .set({
-        name: document.name,
-        activePageId: document.activePageId,
-        brandKit: (document.brandKit ?? null) as unknown as Record<string, unknown>,
-        visualDna: (document.visualDna ?? null) as unknown as Record<string, unknown>,
-        // §12：主题 mode 是文档状态，不存下来就会在保存-重载后悄悄退回默认值
-        activeMode: document.activeMode ?? null,
-        modes: document.metadata.modes ?? null,
-        updatedAt: new Date(),
-      })
-      .where(eq(projects.id, projectId));
+    await writeProjectDocument(tx, projectId, document);
   });
   // §49 的 Documents 那一格：设计正文要能被检索，改一句就得换一块。
   // 必须放在事务**外面**：同步走的是 `getDb()` 那条独立连接，它在事务里写的 chunk

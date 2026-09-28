@@ -19,7 +19,8 @@ export default async function ApiTokensPage(): Promise<ReactElement> {
         <h1 className="text-14 font-medium text-fg-1">公开 API 凭据</h1>
         <p className="text-12 text-fg-3">
           给平台外的程序（外部 Agent、脚本、CI）用：<code className="text-fg-2">Authorization: Bearer &lt;token&gt;</code>
-          。今天 v1 只有两个只读端点，没有任何写端点。
+          。今天 v1 是三个只读端点加一个写端点（<code className="text-fg-2">PATCH …/design</code>，要
+          <code className="text-fg-2">design:write</code>）：写发的是补丁而不是整份文档，删除类动作在这一侧一律拒。
           <Link href="/" className="ml-2 text-accent-2 underline">
             回创作页
           </Link>

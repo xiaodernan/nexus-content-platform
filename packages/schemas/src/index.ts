@@ -1335,14 +1335,23 @@ export type ProjectContextPayload = z.infer<typeof ProjectContextSchema>;
 export { NodeTypeEnum as DesignNodeType };
 
 /**
- * §188 M8（MCP / 外部 Agent / 公开 API）的第一片：公开 API 的凭据与只读报文。
+ * §188 M8（MCP / 外部 Agent / 公开 API）：公开 API 的凭据与报文。
  *
  * 设计文档的权威形状在 `@nexus/design-model`（怎么算是那儿决定的，纪律 1），这里只规定
  * "出了进程长什么样"——所以 document 那一格是 `z.unknown()`，而配套的 `digest` 是真的会校验的数。
  */
-export const API_TOKEN_SCOPES = ['projects:read', 'design:read'] as const;
+export const API_TOKEN_SCOPES = ['projects:read', 'design:read', 'design:write'] as const;
 export const ApiTokenScopeSchema = z.enum(API_TOKEN_SCOPES);
 export type ApiTokenScope = z.infer<typeof ApiTokenScopeSchema>;
+
+/**
+ * 每个凭据每分钟的调用上限，读与写各一桶（窗口 60 秒）。
+ *
+ * 住在 schemas 而不是服务端 domain 里，是因为界面上要把这两个数说给人听：从 domain 引进来的话，
+ * 'use client' 的组件就把 drizzle 与 node:crypto 拖进浏览器包了。这里是契约的一部分（公开 API
+ * 对外的承诺），执行方在 `apps/web/src/server/domain/api-tokens.ts`，两处永远同一个数。
+ */
+export const API_TOKEN_RATE_LIMITS_PER_MINUTE = { read: 120, write: 30 } as const;
 
 export const ApiTokenRecordSchema = z.object({
   id: z.string(),
@@ -1375,6 +1384,37 @@ export const ApiTokenIssuedSchema = z.object({
   record: ApiTokenRecordSchema,
 });
 export type ApiTokenIssued = z.infer<typeof ApiTokenIssuedSchema>;
+
+/**
+ * "哪一枚凭据在什么时候读过哪一份文档"这本账留多久（§188 M8 第三片）。
+ * 界面上要说得出这个数：一份其实只留这么久的账，不写出来就是让人以为它是永久账。
+ * 数值住在这里，执行与展示读同一份（与 `API_TOKEN_RATE_LIMITS_PER_MINUTE` 同一个理由）。
+ */
+export const API_ACCESS_RETENTION_DAYS = 30;
+
+/**
+ * 一次访问的账。库里那一行的粒度是"一个分钟桶"（迁移 0020），这一份是给它的主人看的摘要：
+ * 同一（端点, 项目）的桶在读的时候聚成一条，`calls` 是窗口里的总次数。
+ */
+export const ApiAccessEntrySchema = z.object({
+  tokenId: z.string(),
+  /** 路由自己报失败时说的那一句端点名，两边同一个字符串才对得上账 */
+  endpoint: z.string(),
+  /** 空串是"这次访问不落在这个项目上"（集合类端点），不是"项目 id 未知" */
+  projectId: z.string(),
+  /** 项目已经删了：账还在，名字读不出来。留 null 让界面明说"已删除"，而不是摊一个空串 */
+  projectName: z.string().nullable(),
+  calls: z.number().int().min(1),
+  lastSeen: z.string(),
+});
+export type ApiAccessEntry = z.infer<typeof ApiAccessEntrySchema>;
+
+/** 账号侧那一份凭据列表的出口报文：凭据本身 + 每一枚最近的访问摘要 */
+export const ApiAccountTokensSchema = z.object({
+  tokens: z.array(ApiTokenRecordSchema),
+  access: z.array(ApiAccessEntrySchema),
+});
+export type ApiAccountTokens = z.infer<typeof ApiAccountTokensSchema>;
 
 export const ApiProjectSchema = z.object({
   id: z.string(),
@@ -1410,3 +1450,46 @@ export const ApiDesignDocumentSchema = z.object({
   source: z.literal('database'),
 });
 export type ApiDesignDocument = z.infer<typeof ApiDesignDocumentSchema>;
+
+/**
+ * §188 第二片：写端点的入站报文。
+ *
+ * op 的形状直接复用 `DesignPatchSchema` 的那一份（权威语义在 `@nexus/design-model`：怎么应用、
+ * 怎么求逆都是那儿决定的，这里重定义一遍就是两处定义同一件事），只收紧三件事：
+ * - `summary` 必填：一次外来的写入必须能在历史里读出"谁为的是什么"，否则那条快照只是噪音；
+ * - `ops` 至少一条：空补丁照样会落一条历史、一次语料重切，却什么也不改；
+ * - 一次最多 200 条：内部 AI 那条上限是 4000，因为它在同一个进程里；公网上的一个请求
+ *   不该让服务端把整份文档反复拷 4000 次。
+ */
+export const ApiDesignPatchRequestSchema = DesignPatchSchema.extend({
+  summary: z.string().min(1).max(200),
+  ops: z.array(PatchOpSchema).min(1).max(200),
+});
+export type ApiDesignPatchRequest = z.infer<typeof ApiDesignPatchRequestSchema>;
+
+/**
+ * 写成功后的回执。`historyRecorded` 单独一栏是因为它是事务**外面**那一步：
+ * 文档已经改完了，历史没落上的话只能说实话，不能把整次请求报成失败让人以为可以重发。
+ */
+export const ApiDesignPatchResultSchema = z.object({
+  projectId: z.string(),
+  ok: z.literal(true),
+  appliedOps: z.number().int().min(1),
+  /** 被这次补丁改到的节点 id，调用方据此局部刷新；上限就是这次 op 的条数 */
+  touchedNodeIds: z.array(z.string()),
+  pageCount: z.number().int().min(0),
+  nodeCount: z.number().int().min(0),
+  /** 落在项目历史里的那一条（带 patch 清单，Studio 的历史面板按 §151 展示它的 diff） */
+  snapshotId: z.string().nullable(),
+  historyRecorded: z.boolean(),
+  /**
+   * 文档已经改了，但后续某几步（历史 / 语料 / 审计）没成。
+   *
+   * 这几步都在事务**外面**，所以它们失败不能把整次请求报成失败：调用方一看 500 就会重发，
+   * 而重发一份 `insert` 补丁是两条节点，不是幂等的一次写。宁可把没成的那一步原样说出来。
+   */
+  warnings: z.array(z.string()),
+  /** 数的是库里那一份，不是调用方递进来的补丁自己声明的结果 */
+  source: z.literal('database'),
+});
+export type ApiDesignPatchResult = z.infer<typeof ApiDesignPatchResultSchema>;
