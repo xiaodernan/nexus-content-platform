@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   DEFAULT_SHOT_MS,
   SHOT_CAMERAS,
@@ -11,6 +11,7 @@ import {
   type StoryboardShot,
 } from '@nexus/video-model';
 import { cn } from '@/lib/cn';
+import { csrfHeaders } from '@/lib/csrf';
 import { useStudioReady } from './store';
 import { storyboardStore, useStoryboard } from './storyboardStore';
 
@@ -68,6 +69,8 @@ export function StoryboardPanel() {
     assets: { id: string; name: string }[];
   }>({ characters: [], assets: [] });
   const [rosterNote, setRosterNote] = useState<string | null>(null);
+  const [imageBusy, setImageBusy] = useState<string | null>(null);
+  const [imageError, setImageError] = useState<string | null>(null);
   const sb = snapshot.storyboard;
 
   useEffect(() => {
@@ -111,6 +114,54 @@ export function StoryboardPanel() {
       cancelled = true;
     };
   }, [studio.projectId]);
+
+  /**
+   * §38 / §39 那条箭头接到镜头上：拿这一镜的提示词生成一张参考图，成功后把资产 id 挂上去。
+   * 挂了角色就走 Character → Scene 那一条（服务端拿这位角色的肖像当参考，字节由服务端自己取）。
+   *
+   * 两句实话写在按钮上：像素来自**本地确定性合成器**（本机没有图像 provider，§160），
+   * 这不是 AI 出图；撤销只断开镜头与引用的关系，**不会删掉那张已经花过额度产出的资产**——
+   * 删资产是资产库那一格的动作，不该藏在一次 undo 里。
+   */
+  const makeReference = useCallback(
+    async (shot: StoryboardShot) => {
+      setImageBusy(shot.id);
+      setImageError(null);
+      try {
+        const res = await fetch(`/api/projects/${studio.projectId}/images`, {
+          method: 'POST',
+          headers: { 'content-type': 'application/json', ...csrfHeaders() },
+          body: JSON.stringify(
+            shot.characterId ? { prompt: shot.prompt, characterId: shot.characterId } : { prompt: shot.prompt },
+          ),
+        });
+        const body = (await res.json().catch(() => null)) as
+          | { asset?: { id: string; name?: string }; message?: string }
+          | null;
+        if (!res.ok || !body?.asset) throw new Error(body?.message ?? `HTTP ${res.status}`);
+        // 新资产要立刻出现在选择器里：名册是挂载时拉的那一份，不补上就会显示成
+        // "选了一个不存在的选项"（浏览器把这种 select 渲染成空白，用户看到的是刚刚挂上的东西不见了）
+        setRoster((prev) =>
+          prev.assets.some((item) => item.id === body.asset!.id)
+            ? prev
+            : { ...prev, assets: [...prev.assets, { id: body.asset!.id, name: body.asset!.name || '（新生成的参考图）' }] },
+        );
+        storyboardStore.applyOps([
+          {
+            op: 'updateShot',
+            id: shot.id,
+            before: { referenceAssetId: shot.referenceAssetId },
+            after: { referenceAssetId: body.asset.id },
+          },
+        ]);
+      } catch (error) {
+        setImageError(error instanceof Error ? error.message : String(error));
+      } finally {
+        setImageBusy(null);
+      }
+    },
+    [studio.projectId],
+  );
 
   const timeline = useMemo(() => (sb ? timelineOf(sb) : null), [sb]);
 
@@ -270,6 +321,11 @@ export function StoryboardPanel() {
             {rosterNote}
           </p>
         ) : null}
+        {imageError ? (
+          <p className="mt-1 text-11 text-danger" data-storyboard-image-error>
+            参考图没生成：{imageError}
+          </p>
+        ) : null}
       </header>
 
       <div className="min-h-0 flex-1 overflow-auto">
@@ -386,6 +442,17 @@ export function StoryboardPanel() {
                     </option>
                   ))}
                 </select>
+                <button
+                  type="button"
+                  onClick={() => void makeReference(shot)}
+                  disabled={imageBusy !== null}
+                  title="本地确定性合成（DEMO），不是 AI 出图；撤销只断开引用，不删除已生成的资产"
+                  aria-label="为本镜生成参考图"
+                  data-storyboard-image-gen={shot.id}
+                  className="rounded-[var(--nexus-radius-sm)] bg-bg-3 px-1 py-[2px] text-11 text-fg-2 disabled:opacity-40"
+                >
+                  {imageBusy === shot.id ? '合成中…' : 'DEMO 参考图'}
+                </button>
                 <span className="ml-auto flex items-center gap-1">
                   <button
                     type="button"

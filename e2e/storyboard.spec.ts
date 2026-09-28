@@ -61,10 +61,46 @@ test('@smoke 镜头挂角色：选择器只给本项目名册、改动可撤销�
   await page.click('[data-storyboard-redo]');
   await expect(picker.locator('option:checked')).toHaveText('守夜人');
 
-  // 撤销/重做之后落库的那一份要与之相符：刷新走的是服务端，不是内存
-  await page.click('[data-storyboard-reload]');
-  await expect(picker.locator('option:checked')).toHaveText('守夜人', { timeout: 30_000 });
-  await page.screenshot({ path: 'screenshots/shot-character-link.png' });
+  // 落库的那一份要与之相符：这一步在整组跑里红过一次——撤销/重做各自都是一个新事务，
+  // 重做之后自动保存还没落地就点重新装配，读回来的是上一次落库的状态。
+  // 所以这里不用"等文本变成已保存"（那一栏在重做的瞬间可能还是上一次的"已保存"，会假通过），
+  // 而是反复重新装配直到服务端认可：断言的仍然是"库里存的就是守夜人"。
+  await expect
+    .poll(
+      async () => {
+        await page.click('[data-storyboard-reload]');
+        return picker.locator('option:checked').textContent();
+      },
+      { timeout: 40_000, message: '重新装配后服务端那份不是"守夜人"= 重做没落库' },
+    )
+    .toBe('守夜人');
+
+  // §38 / §39 那条箭头接到镜头上：这一镜有角色，所以走的是 Character → Scene，
+  // 像素来自本地确定性合成器（按钮写着 DEMO，本机没有图像 provider，不做假 AI 出图）
+  const refPicker = page.locator(`[data-storyboard-reference="${shotId}"]`);
+  await expect(refPicker.locator('option:checked')).toHaveText('不用参考图');
+  const optionsBefore = await refPicker.locator('option').count();
+
+  // 先证一句实话：这位角色只有名字、没有视觉标识（建档时不替用户编性格，也不编 palette），
+  // 所以 Character → Scene 要**拒绝**生成，并把拒绝的理由说清楚——而不是悄悄出一张跟角色无关的图
+  await page.click(`[data-storyboard-image-gen="${shotId}"]`);
+  await expect(page.locator('[data-storyboard-image-error]')).toContainText('视觉标识', { timeout: 30_000 });
+  await expect(refPicker.locator('option')).toHaveCount(optionsBefore);
+
+  // 摘掉角色就成了 Text → Image 那条箭头：这一步应当真的产出资产并挂上镜头
+  await picker.selectOption('');
+  await savedState(page);
+  await page.click(`[data-storyboard-image-gen="${shotId}"]`);
+  await savedState(page);
+  // 新资产必须当场出现在选择器里：不补名册的话浏览器会把这个 select 渲染成"什么都没选"，
+  // 用户看到的就是"刚生成的东西不见了"
+  await expect(refPicker.locator('option')).toHaveCount(optionsBefore + 1);
+  await expect(refPicker.locator('option:checked')).not.toHaveText('不用参考图');
+  // 撤销只断开引用，不删那张已经花过额度的资产
+  await page.click('[data-storyboard-undo]');
+  await expect(refPicker.locator('option:checked')).toHaveText('不用参考图');
+  await expect(refPicker.locator('option')).toHaveCount(optionsBefore + 1);
+  await page.screenshot({ path: 'screenshots/shot-reference-demo.png' });
 });
 
 test('@smoke 分镜面板：切句成镜、改一镜能撤、撤销结果真的进了库', async ({ page }) => {
