@@ -6234,3 +6234,86 @@ Bounds, stated: nothing yet FAILS a sweep for taking the archive fallback, so th
 a host where the clone cannot run — the `[isolated]` line is the only witness. `--no-build` runs are unchanged.
 And the clone adds `.git` to a tree that three witnesses count files in; all three skip it today, and that
 skipping is now written down as a premise rather than left as an accident of `git archive`.
+
+### Amendment 133 (M2 v133, docs/evidence) — a plane DOWNGRADE is a refusal now, not a log line: the runner will not grade a ref on a tree whose own git cannot answer unless a caller says so out loud
+
+`--isolated` exists so a sweep grades a ref's proofs against that ref's own build. Amendment 132 gave that
+plane a staging and a fallback — `git clone --shared --no-checkout` + `git checkout <ref>` when the clone
+runs, `git archive` + `tar` when it does not — and it wrote the fallback's price down as a BOUND instead of
+paying it: "nothing yet FAILS a sweep for taking the archive fallback, so the 42 reds can return silently on
+a host where the clone cannot run — the `[isolated]` line is the only witness". A line nothing reads is not a
+gate, and a summary pasted into a record does not carry it at all — the 42 reds amendment 113 counted were
+read out of exactly such a summary. This amendment closes that bound.
+
+**The change.** `isolatedCheckout` REFUSES a downgrade instead of logging one. The catch that used to print a
+sentence and quietly extract an archive now throws an `Error` with `code = 'ISOLATED-PLANE-DOWNGRADE'`, whose
+message carries four things a caller needs: the clone's OWN cause, the price of the plane being refused, the
+name of the opt-in, and which staging directory the refusal left behind or removed. The fallback itself is
+kept — a clone can fail where an archive would not (no `--shared` in the installed git, an unreadable object
+store), and a runner with one way to stage a ref has one way to be unable to stage it — but it is reachable
+only behind `allowArchive: true` (CLI `--isolated --allow-archive`), which prints the same price on the
+`[isolated]` line. The CLI path wraps the staging in a try/catch and exits 2 with `REFUSED — …`: before that
+wrapper a refusal left the module's top-level await to reject, so the runner printed a stack trace where the
+sentence that says WHY belongs, and a guard whose own failure mode is an unreadable message is a guard
+nobody can act on.
+
+**One sentence, two mouths.** The price is one exported constant, `ARCHIVE_PLANE_COST`, spoken by both the
+`[isolated]` fallback line and the refusal. Two independently typed numbers would be two claims, and the
+witness asserts the two strings carry the SAME bytes rather than that either one is plausible.
+
+**§6 of `isolated-proof.mjs` — the row that owns this clause — measured on ref d77ca34, 2026-09-29.** The
+failure it injects is the NATURAL one rather than a mock: `git clone` refuses a destination that is not
+empty, so one stray file in `<dest>/repo` makes the repository plane genuinely unstowable while the ref is
+still there to archive.
+
+- REFUSE: **97 ms**. `code = ISOLATED-PLANE-DOWNGRADE`, and the message carries the clone's own stderr
+  (`destination path '…' already exists and is not an empty directory`), the price sentence, the opt-in's
+  name, and the caller-supplied staging directory — which is still on disk, as the message says it is.
+- OPT-IN: `usedClone === false`, `archiveBytes = 5 099 520`, the tree holds no `.git`, the stray file is
+  GONE (the fallback empties the tree before extracting, so a half-staged repository cannot be read as a
+  bare one), the 226 walked files are every one tracked at HEAD, and `git ls-tree -r --name-only HEAD` run
+  INSIDE that plane exits non-zero. The plane is asked the question its own rows ask instead of being
+  declared answerless from an absent directory.
+- CONTROL: with the repository plane available, `usedClone === true`, `archiveBytes === null`, no downgrade
+  sentence is printed at all, and `git rev-parse HEAD` inside the plane equals the source HEAD (`d77ca34`) —
+  so "refuse the downgrade" is measured to mean that, and not "refuse everything".
+- AGREEMENT: the refusal's message and the `[isolated]` fallback line both contain `ARCHIVE_PLANE_COST` byte
+  for byte. Home dist `2fa6222b42cb5829` (260 files) UNMOVED across the row.
+
+**The reach census, re-measured with the runner's own scanner.** This ref's 73 proof rows carry **264** git
+call sites at code position (program 119, argv 145) and **51 of 73** rows reach a git child process. That is
+amendment 130's 262 / 117 / 145 / 51 plus exactly the two program-position asks §6 adds: the same scanner
+returns **1** call site over HEAD's blob of `isolated-proof.mjs` and **3** over the working copy. Measured,
+not inferred — and it is also the control that amendment 130's census still holds at this ref.
+
+Bounds, stated: the refusal is about `isolatedCheckout`'s staging and nothing else — a caller who passes
+`allowArchive: true` still gets a red population whose only witness is the `[isolated]` line, and the
+sweep's `[summary]` does not yet carry the plane, so a pasted summary from such a run is still
+un-self-describing (the guard is that it can no longer happen by accident). The refusal says the archive is
+"the only staging left" without checking that it CAN run: on a host with no usable `git` the archive fails
+too, and that failure is only ever seen by a caller who opted in. Nothing re-measures the 42-row figure per
+run — it is a citation carrying its ref and date, not a live claim. And `--no-build` runs are unchanged: the
+flag selects whether the plane is compiled, not which plane it is.
+
+**Re-measured on 2026-09-29 at HEAD `b16b8b4`, the run that LANDED this grant.** The record above was
+written by the draft that measured `d77ca34`; this run came after the two three-runtime grants (v134, v135)
+merged, so the numbers move and both are kept rather than one replacing the other. `node
+docs/evidence/agents/isolated-proof.mjs` exits 0 with every row green:
+
+- §6 REFUSE **441 ms** (was 97 ms, and a refusal that got slower is still a refusal). `code =
+  ISOLATED-PLANE-DOWNGRADE`, the clone's own cause carried in the message, the opt-in named, and the
+  caller-supplied staging directory still on disk as the message says it is.
+- §6 OPT-IN: **226** files staged, every one tracked at HEAD, **5 171 200** bytes of tar (was 5 099 520), and
+  `git rev-parse` run INSIDE that plane answers nothing.
+- §6 CONTROL: `usedClone === true`, `archiveBytes === null`, `allowArchive` never asked, and `git rev-parse
+  HEAD` inside the clone equals the source HEAD `b16b8b4bb176`.
+- §6 AGREEMENT: the refusal and the `[isolated]` fallback line carry `ARCHIVE_PLANE_COST` byte for byte, and
+  the control arm prints no downgrade sentence at all. Home dist `2697a2ef35081a3c` (264 files) UNMOVED
+  across the isolated build; the clean checkout walks 226 of 258 worktree files.
+
+One thing this run measured that the record above did not have to face: the plane was staged on `C:` while the
+repository sits on `D:`, so the isolated tree's `@nexus/studio#build` FAILED with `Module not found: Can't
+resolve './D:/…/node_modules/next/dist/client/next.js'` — a CROSS-DRIVE failure the row itself attributes to
+where the checkout was put rather than to the ref (the same ref compiled green on the repository drive). It is
+recorded rather than smoothed over because a build exit 1 inside the plane is loud, and the next reader of a
+`[summary]` line will see it.

@@ -1,3 +1,9 @@
+// NEXUS M2 v133 (docs/evidence) — a plane DOWNGRADE is a REFUSAL now, not a log line: `isolatedCheckout`
+// throws `ISOLATED-PLANE-DOWNGRADE` unless the caller passes `allowArchive: true`, and §6 measures the
+// refusal, the weaker plane the opt-in names, the control that keeps "refuse the downgrade" from meaning
+// "refuse everything", and the one thing that makes the pair honest together — the refusal's sentence and
+// the `[isolated]` fallback line are the SAME bytes, not two plausible ones.
+//
 // NEXUS M2 v81 (docs/evidence) — 64th tracked script: the isolated clean checkout, and what it proves.
 // sweep-budget-ms: 900000
 // Run after `npm run build`:  node docs/evidence/agents/isolated-proof.mjs
@@ -30,6 +36,14 @@
 // and never reached their own assertions). §1 below still grades the no-git shape, because the shape has
 // not gone away: it is what the ARCHIVE FALLBACK produces, and its witness is a directory this row builds
 // itself rather than whatever the runner happened to stage.
+//
+// M2 v133 closes the bound v132 wrote down in its own record: "nothing yet FAILS a sweep for taking the
+// archive fallback, so the 42 reds can return silently on a host where the clone cannot run — the
+// `[isolated]` line is the only witness". A line nothing reads is not a gate, and a summary pasted into a
+// record does not carry it at all, so `isolatedCheckout` now REFUSES (code `ISOLATED-PLANE-DOWNGRADE`) with
+// the price of the weaker plane spelled out; the fallback stays reachable, but only behind an explicit
+// `allowArchive: true` (`--isolated --allow-archive`). §6 is the witness: three arms, and the assertion that
+// the refusal and the `[isolated]` fallback line carry the same `ARCHIVE_PLANE_COST` bytes.
 //
 // M2 v82 closes the gap this script found in v81 by trying to quote it. The isolated build exits 1 and
 // names `@nexus/studio#build`, but the runner kept only `tailOf(stdout+stderr, 4)` — and the reason line
@@ -235,6 +249,73 @@ console.log('§5 引用这次跑出来的数字，而不是复述');
 console.log(`  干净检出语料 ${cleanTree.files} 只 / ${cleanTree.bytes} 字节 · 工作区 ${home.files} 只 / ${home.bytes} 字节 · 差 ${home.files - cleanTree.files} 只 / ${home.bytes - cleanTree.bytes} 字节`);
 console.log(`  隔离目录 ${iso.dir} · 主仓库 HEAD ${gitOut(['rev-parse', 'HEAD']).trim().slice(0, 12)} · 主仓库 dist 全程 ${before.digest.slice(0, 16)} / ${after.digest.slice(0, 16)}`);
 
+// --- §6 降级是一条拒绝，不是一行日志（M2 v133）---
+// v132’s own bound, quoted so this section is visibly closing it: “nothing yet FAILS a sweep for taking the
+// archive fallback, so the 42 reds can return silently on a host where the clone cannot run — the
+// `[isolated]` line is the only witness”. A line nothing reads is not a gate: a summary pasted into a record
+// never carries it. The three arms below make the downgrade a REFUSAL by default, prove the opt-in still
+// stages the weaker plane (a host where a clone truly cannot run is not stranded), and prove the refusal and
+// the fallback line are the SAME sentence instead of two plausible ones.
+console.log('§6 平面降级是拒绝：默认拒绝，书面开口才降级，而且拒绝与 [isolated] 行说同一句话');
+// The injected failure is the NATURAL one, not a mock: `git clone` refuses a destination that is not empty,
+// so one stray file makes the repository plane genuinely unstowable while everything the archive arm needs
+// (a ref to archive) stays intact. The stray file is also the evidence for the next arm, where the fallback
+// must EMPTY the tree before extracting: a half-staged directory answers differently from a bare one.
+const refusalDest = mkdtempSync(join(tmpdir(), 'nexus-isolated-refusal-'));
+mkdirSync(join(refusalDest, 'repo'), { recursive: true });
+writeFileSync(join(refusalDest, 'repo', 'not-a-ref.txt'), 'this file must not survive the fallback\n');
+let refusal = null;
+const refusedMs = Date.now();
+try {
+  await sw.isolatedCheckout({ ref: 'HEAD', cwd: root, dest: refusalDest, build: false, log: () => {} });
+} catch (e) {
+  refusal = e;
+}
+assert.ok(refusal, 'a clone that cannot run and an archive nobody asked for must not produce a plane: the call returned instead of refusing');
+assert.equal(refusal.code, 'ISOLATED-PLANE-DOWNGRADE', `the refusal is not named as one (code=${refusal.code}), so a caller cannot tell a plane downgrade from a broken ref`);
+assert.ok(refusal.message.includes('git clone'), `the refusal does not carry the clone’s OWN cause (${refusal.message.slice(0, 160)}) — a refusal that hides why it refused is the silent fallback with extra steps`);
+assert.ok(refusal.message.includes(sw.ARCHIVE_PLANE_COST), 'the refusal does not state what the weaker plane costs, which is the one thing that makes it a refusal rather than a crash');
+assert.ok(refusal.message.includes('allowArchive'), 'the refusal does not name the opt-in, so a caller on a host where the clone cannot run has no way forward from the message alone');
+assert.ok(refusal.message.includes(refusalDest), `the refusal does not name the staging directory it is talking about (${refusalDest})`);
+assert.ok(existsSync(refusalDest), 'the caller supplied this dest, so the refusal must LEAVE it for them to look at — and the sentence above said so, which is the only reason a reader can trust that it is still there');
+const refusalMs = Date.now() - refusedMs;
+console.log(`  拒绝 ${refusalMs} ms · code ${refusal.code} · 目录保留=true · 拒绝文本里带着 clone 自己的原因与选项名`);
+
+// --- §6b the opt-in stages the weaker plane, and it is visibly the weaker plane ---
+const fallbackLines = [];
+const archived = await sw.isolatedCheckout({ ref: 'HEAD', cwd: root, dest: refusalDest, build: false, allowArchive: true, log: (l) => { fallbackLines.push(String(l)); } });
+assert.equal(archived.usedClone, false, 'the opt-in did not actually take the weaker plane');
+assert.ok(archived.archiveBytes > 0, `the fallback reported ${archived.archiveBytes} bytes of tar: the ref’s tracked bytes are the one thing it does deliver`);
+assert.equal(existsSync(join(archived.root, '.git')), false, 'a `.git` survived into the archive plane: a HALF-staged repository answers differently from none, which is the one thing this fallback must not do');
+assert.equal(existsSync(join(archived.root, 'not-a-ref.txt')), false, 'the stray file survived the fallback, so the tree was not emptied before extraction and the clone’s leavings are now readable as files the ref owns');
+// Ask the plane the question its own rows ask, rather than inferring the answer from a missing directory.
+const askedOnFallback = spawnSync('git', ['ls-tree', '-r', '--name-only', 'HEAD'], { cwd: archived.root, windowsHide: true, encoding: 'utf8' });
+assert.notEqual(askedOnFallback.status, 0, 'git ANSWERED inside the archive plane: either the staging is not what this section says it is, or a parent directory is a repository and the “no git” claim needs re-measuring');
+const fallbackTracked = new Set(gitOut(['ls-tree', '-r', '--name-only', 'HEAD']).split(/\r?\n/).filter(Boolean));
+const fallbackPaths = walkPaths(archived.root);
+const fallbackStrangers = fallbackPaths.filter((p) => !fallbackTracked.has(p));
+assert.deepEqual(fallbackStrangers.slice(0, 5), [], `${fallbackStrangers.length} files in the archive plane are not tracked at HEAD, e.g. ${fallbackStrangers.slice(0, 3).join(', ')}`);
+assert.ok(fallbackPaths.length > 100, `the archive plane walked ${fallbackPaths.length} text files: the fallback is supposed to stage the ref, not a stub`);
+const fallbackLine = fallbackLines.find((l) => l.startsWith('[isolated] the repository plane could not be staged'));
+assert.ok(fallbackLine, `the fallback ran without saying so on an [isolated] line — the lines were: ${fallbackLines.map((l) => l.slice(0, 60)).join(' | ') || 'none'}`);
+assert.ok(fallbackLine.includes(sw.ARCHIVE_PLANE_COST), 'the [isolated] fallback line and the refusal do not carry the same sentence: two mouths, two claims, and a reader of the transcript would be reading a different price from the one the refusal charges');
+console.log(`  降级 ${archived.usedClone ? 'CLONE' : 'ARCHIVE'} · ${archived.archiveBytes} 字节 tar · 走查 ${fallbackPaths.length} 只全部属于 HEAD · 平面内 git 拒绝作答 · [isolated] 行与拒绝共用同一句话`);
+rmSync(refusalDest, { recursive: true, force: true });
+
+// --- §6c the control: when the clone runs, the weaker plane is never consulted ---
+const controlDest = mkdtempSync(join(tmpdir(), 'nexus-isolated-control-'));
+const controlLines = [];
+const clonedPlane = await sw.isolatedCheckout({ ref: 'HEAD', cwd: root, dest: controlDest, build: false, log: (l) => { controlLines.push(String(l)); } });
+assert.equal(clonedPlane.usedClone, true, 'the control arm could not stage a repository, so “refuse the downgrade” cannot be told apart from “refuse everything” on this host');
+assert.equal(clonedPlane.archiveBytes, null, `a clone has no archive to measure, and ${clonedPlane.archiveBytes} is a number that means nothing`);
+assert.ok(controlLines.some((l) => l.includes('staged as a REPOSITORY')), 'the control arm did not report the plane it staged');
+assert.ok(!controlLines.some((l) => l.includes(sw.ARCHIVE_PLANE_COST)), 'the control arm printed the downgrade’s price on a run that did not downgrade');
+const askedOnClone = spawnSync('git', ['rev-parse', 'HEAD'], { cwd: clonedPlane.root, windowsHide: true, encoding: 'utf8' });
+assert.equal(askedOnClone.status, 0, `git did not answer inside the clone plane (${(askedOnClone.stderr || '').trim().slice(0, 120)}) — the whole point of the v132 staging`);
+assert.equal(askedOnClone.stdout.trim(), gitOut(['rev-parse', 'HEAD']).trim(), 'the repository plane answers with a different HEAD than the repository it was cloned from');
+rmSync(controlDest, { recursive: true, force: true });
+console.log(`  对照 CLONE：${clonedPlane.workspace.length} 个 workspace 链接 · 平面内 git rev-parse 与主仓库一致 ${askedOnClone.stdout.trim().slice(0, 12)} · allowArchive 未被询问`);
+
 rmSync(bare, { recursive: true, force: true });
 rmSync(iso.dir, { recursive: true, force: true });
-console.log(`\n[summary] home dist UNMOVED (${before.digest.slice(0, 16)}, ${before.files} files) across an isolated build · clean checkout walks ${cleanTree.files} of ${home.files} worktree files, every one tracked at HEAD · ${proofRel.split('/').pop()} green in both trees · census-without-git reported as null not 0 · build exit ${iso.build.code}${iso.build.failed.length ? ` naming ${iso.build.failed.join(', ')}` : ''}${iso.build.code !== 0 ? ` with a REASON quoted from its own log (${iso.build.reason ? `“${iso.build.reason.slice(0, 88)}…”` : 'NONE captured out of ' + iso.build.lines + ' lines'})` : ''}`);
+console.log(`\n[summary] home dist UNMOVED (${before.digest.slice(0, 16)}, ${before.files} files) across an isolated build · clean checkout walks ${cleanTree.files} of ${home.files} worktree files, every one tracked at HEAD · ${proofRel.split('/').pop()} green in both trees · census-without-git reported as null not 0 · §6 the downgrade REFUSES (${refusal.code} in ${refusalMs} ms) and the archive plane is reachable only behind allowArchive, where its own git answers nothing (${fallbackPaths.length} files staged, every one tracked at HEAD; ${archived.archiveBytes} bytes of tar) · build exit ${iso.build.code}${iso.build.failed.length ? ` naming ${iso.build.failed.join(', ')}` : ''}${iso.build.code !== 0 ? ` with a REASON quoted from its own log (${iso.build.reason ? `“${iso.build.reason.slice(0, 88)}…”` : 'NONE captured out of ' + iso.build.lines + ' lines'})` : ''}`);

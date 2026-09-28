@@ -47,6 +47,9 @@
 //   node docs/evidence/agents/sweep.mjs --isolated      # run them INSIDE a clean checkout of the ref, so
 //                                                       # the build they import is the ref's, not this one's
 //   node docs/evidence/agents/sweep.mjs --isolated --no-build   # same, without the clean-room compile
+//   node docs/evidence/agents/sweep.mjs --isolated --allow-archive   # v133: accept the WEAKER plane, out
+//                                                       # loud - plain `--isolated` REFUSES to grade a ref
+//                                                       # on a tree whose own git cannot answer
 import { spawn, spawnSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import { existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, statSync, symlinkSync, writeFileSync } from 'node:fs';
@@ -1447,6 +1450,22 @@ export function driveVerdict(where) {
 }
 
 /**
+ * What a DOWNGRADE costs, written ONCE because two mouths print it (M2 v133).
+ *
+ * v132 gave the isolation plane a fallback: when `git clone --shared --no-checkout` cannot run, the ref is
+ * staged with `git archive` + `tar`, which produces the ref's tracked bytes and NO `.git`. The price of that
+ * plane is a measurement, not an opinion — amendment 113's addendum counted 42 rows red, amendment 130
+ * traced those reds to the plane rather than to the ref, and amendment 132 measured one row on both planes
+ * (383 ms at `git ls-tree … exit 128` against OK in 43.9 s). The number is spelled here and nowhere else,
+ * because the sentence below is spoken by BOTH mouths of the same clause: the `[isolated]` fallback line,
+ * which a reader of a whole transcript sees, and the REFUSAL that `isolatedCheckout` throws by default,
+ * which is what a reader of a bare `--isolated` run gets. Two independently typed numbers would be two
+ * claims, and the witness (`isolated-proof.mjs` §6) asserts the two strings carry the SAME bytes rather
+ * than that either one is plausible.
+ */
+export const ARCHIVE_PLANE_COST = 'a tree with no `.git` answers NO question about the repository, so a row that asks one dies at `git ls-tree … → exit 128: not a git repository` and never reaches its own assertions: the 42 reds amendment 113 counted were this plane answering, 42 times, not 42 broken proofs (amendment 130 re-measured the reach on the real population — 51 of 73 tracked proofs reach a git child process at code position — and amendment 132 measured one row on both planes, 383 ms at exit 128 versus OK in 43.9 s)';
+
+/**
  * A CLEAN CHECKOUT of the ref, in a temp directory — the only way to run the tree-walking proofs against
  * the second axis v80 measured rather than the first.
  *
@@ -1475,8 +1494,15 @@ export function driveVerdict(where) {
  * mismatch is then reported on the `[isolated]` line as `CROSS-DRIVE` rather than quietly repaired,
  * because a witness that WANTS the cross-drive failure (v82's reason gate needs a build that fails) must
  * be able to ask for one, and the runner's job is to say which tree it built.
+ *
+ * `allowArchive` is v133's opt-in, and its default is the whole point of the option. A staging failure used
+ * to be a log line and a silent downgrade to `git archive` + `tar`; it is now a REFUSAL (see the catch
+ * below), because a caller who never learns which plane produced a verdict is a caller grading the plane.
+ * A clone can still fail for reasons the archive path does not care about, so the weaker plane is not
+ * deleted — it is kept behind `allowArchive: true` (CLI `--allow-archive`), which prints its price through
+ * the same `ARCHIVE_PLANE_COST` sentence the refusal quotes.
  */
-export async function isolatedCheckout({ ref = 'HEAD', cwd = process.cwd(), dest = null, build = true, log = console.log } = {}) {
+export async function isolatedCheckout({ ref = 'HEAD', cwd = process.cwd(), dest = null, build = true, allowArchive = false, log = console.log } = {}) {
   const where = dest ? { dir: dest, chose: 'caller-supplied', tmpDir: tmpdir(), tmpDrive: driveOf(tmpdir()), repoDrive: driveOf(cwd) } : isolatedDest(cwd);
   const root = join(where.dir, 'repo');
   mkdirSync(root, { recursive: true });
@@ -1514,7 +1540,22 @@ export async function isolatedCheckout({ ref = 'HEAD', cwd = process.cwd(), dest
     usedClone = true;
     log(`[isolated] ${ref} → ${root}: staged as a REPOSITORY — git clone --shared --no-checkout + git checkout ${ref}, so this plane answers git questions the bare tree could not · dest ${driveVerdict(where).phrase}`);
   } catch (e) {
-    log(`[isolated] the repository plane could not be staged (${e.message}) — falling back to git archive + tar, which produces the ref's tracked bytes with NO ${'.git'}: rows that ask git will answer 128 on this plane and their own assertions will not be reached`);
+    // M2 v133 — a DOWNGRADE IS A REFUSAL, not a log line. v132 built everything above and stated this hole as
+    // its own bound: "nothing yet FAILS a sweep for taking the archive fallback, so the 42 reds can return
+    // silently on a host where the clone cannot run — the `[isolated]` line is the only witness". A line
+    // nothing reads is not a gate, and a summary pasted into a record does not carry it at all. So a caller
+    // must now SAY they want the weaker plane. The fallback itself stays (a clone can fail where an archive
+    // would not — no `--shared` in the installed git, an unreadable object store — and a runner with one way
+    // to stage a ref has one way to be unable to stage it), but it is only reachable deliberately.
+    if (!allowArchive) {
+      if (!dest) rmSync(where.dir, { recursive: true, force: true });
+      const refusal = new Error(
+        `the isolated plane could not be staged as a REPOSITORY (${e.message}), and the only staging left is the weaker one — which this call did not ask for. What that plane costs: ${ARCHIVE_PLANE_COST}. Pass { allowArchive: true } (CLI: --isolated --allow-archive) to grade on it deliberately, or fix what the clone needs. ${dest ? `The staging directory ${where.dir} was supplied by the caller and is left in place to inspect.` : `The staging directory ${where.dir} has been removed.`}`,
+      );
+      refusal.code = 'ISOLATED-PLANE-DOWNGRADE';
+      throw refusal;
+    }
+    log(`[isolated] the repository plane could not be staged (${e.message}) — FALLING BACK to git archive + tar because this call asked for it (allowArchive). What that plane costs: ${ARCHIVE_PLANE_COST}`);
     // The failed clone can leave a ``.git`` (or part of one) inside the tree the archive is about to be
     // extracted into, and a HALF repository answers differently from none — which is the one thing this
     // fallback must not do. So the tree is emptied before anything is written back into it.
@@ -1889,7 +1930,17 @@ if (isMainModule(import.meta.url)) {
     // what they import is the ref's build rather than this worktree's. `--no-build` extracts the tree and
     // leaves it unbuilt, which measures the other half of the same claim (the population then finds
     // NOTHING to load) without waiting on a clean-room compile.
-    const iso = await isolatedCheckout({ ref, build: !argv.includes('--no-build'), log: (l) => console.log(l) });
+    // M2 v133: `--allow-archive` is the ONLY way a sweep grades a ref on a tree whose own git cannot answer.
+    // Without it a staging failure exits 2 with the refusal rather than printing a population of reds that
+    // are facts about the plane. The try/catch is not decoration: before it, a refusal left the module's
+    // top-level await to reject, so the runner printed a stack trace instead of the sentence that says why.
+    let iso;
+    try {
+      iso = await isolatedCheckout({ ref, build: !argv.includes('--no-build'), allowArchive: argv.includes('--allow-archive'), log: (l) => console.log(l) });
+    } catch (e) {
+      console.error(`[sweep --isolated] ${e.code === 'ISOLATED-PLANE-DOWNGRADE' ? 'REFUSED — ' : ''}${e.message}`);
+      process.exit(2);
+    }
     runSweep({ ...common, proofsCwd: iso.root })
       .then((s) => {
         const home = distDigest(process.cwd());

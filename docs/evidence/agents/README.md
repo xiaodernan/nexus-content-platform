@@ -3152,3 +3152,47 @@ place that difference is visible, and nothing yet FAILS a sweep for taking the f
 unchanged. And the clone's `.git` is the one thing the plane holds that the ref does not own: every counter of
 "files the ref owns" must keep skipping it, which is now a stated premise in three rows instead of an accident of
 `git archive`.
+
+
+## A plane downgrade is a refusal, not a log line (sweep.mjs + isolated-proof.mjs §6 — M2 v133 — ADR 0016 amendment 133)
+
+The section above ends with the bound v133 exists to close: *"nothing yet FAILS a sweep for taking the archive
+fallback, so the 42 reds can return silently on a host where the clone cannot run — the `[isolated]` line is the only
+witness."* A line nothing reads is not a gate, and a summary pasted into a record does not carry it at all — the 42
+reds amendment 113 counted were read out of exactly such a summary. So the fallback is now behind a door:
+
+```
+node docs/evidence/agents/sweep.mjs --isolated                    # REFUSES if the repository plane cannot be staged
+node docs/evidence/agents/sweep.mjs --isolated --allow-archive    # the weaker plane, deliberately, out loud
+```
+
+`isolatedCheckout` throws an `Error` with `code = 'ISOLATED-PLANE-DOWNGRADE'` instead of logging the downgrade and
+carrying on. The refusal names the clone's OWN cause, the price of the plane it is refusing, the opt-in that would
+accept it, and the staging directory it left behind (a caller-supplied `dest`) or removed (one the runner chose). The
+fallback is not deleted — a clone can fail where an archive would not — it is kept `allowArchive: true` away. The CLI
+exits 2 with `REFUSED — …`; before that try/catch a refusal left the module's top-level await to reject and the runner
+printed a stack trace where the sentence that says why belongs.
+
+The price is one exported constant, `ARCHIVE_PLANE_COST`, spoken by BOTH the `[isolated]` fallback line and the
+refusal — two independently typed numbers would be two claims. `isolated-proof.mjs` §6, the row that owns this
+clause, measures all of it on ref `d77ca34` (2026-09-29) with a failure that is the natural one rather than a mock
+(`git clone` refuses a destination that is not empty, so one stray file in `<dest>/repo` makes the plane genuinely
+unstowable):
+
+| arm | measured |
+| --- | --- |
+| REFUSE | **97 ms**, `code = ISOLATED-PLANE-DOWNGRADE`, message carrying the clone's own stderr, the price, `allowArchive`, and the dest — which is still on disk, as the message says |
+| OPT-IN | `usedClone false`, `archiveBytes 5 099 520`, no `.git` in the tree, the stray file gone, 226 walked files all tracked at HEAD, and `git ls-tree … HEAD` INSIDE that plane exits non-zero |
+| CONTROL | `usedClone true`, `archiveBytes null`, no downgrade sentence printed, `git rev-parse HEAD` inside the plane equals the source HEAD |
+| AGREEMENT | the refusal and the `[isolated]` line both contain `ARCHIVE_PLANE_COST` byte for byte |
+
+Re-measured with the runner's own scanner: this ref's 73 rows carry **264** git call sites at code position (program
+119, argv 145) and **51 of 73** rows reach a git child process — amendment 130's 262 / 117 / 145 / 51 plus exactly the
+two asks §6 adds (the scanner returns 1 call site over HEAD's blob of this row and 3 over the working copy). Home dist
+`2fa6222b42cb5829` (260 files) UNMOVED.
+
+Bounds, stated: a caller who passes `allowArchive: true` still gets a red population whose only witness is the
+`[isolated]` line — the sweep's `[summary]` does not yet carry the plane, so a pasted summary from such a run is still
+un-self-describing, and the guard is only that it can no longer happen by accident. The refusal claims the archive is
+"the only staging left" without checking that it can run: on a host with no usable `git` the archive fails too, and
+that failure is seen only by a caller who opted in.
