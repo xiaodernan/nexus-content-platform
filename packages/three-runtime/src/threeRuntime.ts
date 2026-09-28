@@ -1499,6 +1499,46 @@ export class ThreeRuntime {
   }
 
   /**
+   * Every save the store holds, diagnosed — which is the question a save-picker actually asks.
+   *
+   * v127 answers one named path, so a caller with a listing still had to attempt every file to learn which
+   * ones could be opened. This runs the same code over everything `list()` returns, so the verdict has one
+   * owner rather than a second opinion about the same claims.
+   *
+   * The result is a partition, and the suite asserts it as one: `total` equals the three buckets summed, and
+   * no name appears twice. `unreadable` is kept apart from `unloadable` on purpose — "I could not look at it"
+   * and "I looked and refused" need different fixes, and a listing that conflates them hides which one
+   * happened.
+   */
+  diagnoseSaveFiles(): {
+    store: string;
+    total: number;
+    loadable: SaveFileDiagnosis[];
+    unloadable: SaveFileDiagnosis[];
+    unreadable: { path: string; why: string }[];
+  } {
+    if (!this.storage) throw new Error('diagnoseSaveFiles: this runtime has no SaveStore — create it with { storage }');
+    const loadable: SaveFileDiagnosis[] = [];
+    const unloadable: SaveFileDiagnosis[] = [];
+    const unreadable: { path: string; why: string }[] = [];
+    for (const path of this.storage.list()) {
+      try {
+        const diagnosis = this.diagnoseSaveFile(path);
+        (diagnosis.loadable ? loadable : unloadable).push(diagnosis);
+      } catch (error) {
+        unreadable.push({ path, why: (error as Error).message });
+      }
+    }
+    return {
+      store: this.storage.kind,
+      total: loadable.length + unloadable.length + unreadable.length,
+      loadable,
+      unloadable,
+      unreadable,
+    };
+  }
+
+  /**
    * Say, for one live entity, what a save would actually carry.
    *
    * `dropped` is derived by comparing the fields the runtime's OWN snapshot builder produces with the

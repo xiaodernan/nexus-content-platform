@@ -1602,6 +1602,38 @@ describe('atomic save writes: a reader sees the old save or the new one, never a
 
   it('a runtime with no store cannot diagnose either', () => {
     expect(() => runtime.diagnoseSaveFile('x.json')).toThrow(/diagnoseSaveFile: this runtime has no SaveStore/);
+    expect(() => runtime.diagnoseSaveFiles()).toThrow(/diagnoseSaveFiles: this runtime has no SaveStore/);
+  });
+
+  it('the whole listing is partitioned: loadable, unloadable and unreadable are three different answers', () => {
+    const store = createMemorySaveStore();
+    const rt = runtimeWithStore(store);
+    const sceneId = rt.createScene('World').id;
+    rt.setActiveScene(sceneId);
+    withEntityIn(rt, sceneId);
+    rt.writeSaveFile('good.json', sceneId, 1);
+    const stale = rt.buildSaveFile(sceneId, 2);
+    stale.carries = ['entities', 'cinematic', 'quests'];
+    store.write('future.json', JSON.stringify(stale));
+    store.write('junk.json', 'not even json');
+
+    const report = rt.diagnoseSaveFiles();
+    expect(report.store).toBe('memory');
+    expect(report.total).toBe(3);
+    expect(report.total).toBe(report.loadable.length + report.unloadable.length + report.unreadable.length);
+    expect(report.loadable.map((entry) => entry.path)).toEqual(['good.json']);
+    expect(report.unloadable.map((entry) => entry.path)).toEqual(['future.json']);
+    expect(report.unloadable[0].carriedButUnreadableHere).toEqual(['quests']);
+    expect(report.unreadable.map((entry) => entry.path)).toEqual(['junk.json']);
+    // The partition claim, checked as a claim: three names, none of them in two buckets.
+    const names = [
+      ...report.loadable.map((entry) => entry.path),
+      ...report.unloadable.map((entry) => entry.path),
+      ...report.unreadable.map((entry) => entry.path),
+    ];
+    expect(new Set(names).size).toBe(names.length);
+    expect(names.sort()).toEqual(['future.json', 'good.json', 'junk.json']);
+    rt.dispose();
   });
 
   it('a shape-reading gate sees nothing on a CRLF parse, and everything after normalising', () => {
