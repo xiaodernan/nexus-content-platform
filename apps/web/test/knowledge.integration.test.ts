@@ -5,7 +5,7 @@ import { createProjectCharacter, updateCharacterProfile } from '../src/server/do
 import { saveWorld } from '../src/server/domain/worlds';
 import { saveStoryboard } from '../src/server/domain/storyboards';
 import { saveGame } from '../src/server/domain/games';
-import { planStoryboard } from '@nexus/video-model';
+import {planStoryboard, type Storyboard} from '@nexus/video-model';
 import { createGame, linkEntities, updateEntity, type GameDocument } from '@nexus/game-model';
 import { knowledgeStats, readKnowledgeBlock, retrieveProjectKnowledge, syncProjectKnowledge } from '../src/server/domain/knowledge';
 import { createWorld } from '@nexus/world-model';
@@ -564,5 +564,36 @@ describe('§49：按出处取回整块语料（readKnowledgeBlock）', () => {
       '项目边界没生效：把别人的语料块发出去了',
     ).toEqual([]);
     expect((await readKnowledgeBlock(id, 'design', '#page-没有这一页')).blocks).toEqual([]);
+  });
+});
+
+/**
+ * 挂在镜头上的角色，在语料里应当是**名字**。这里打真库：角色由 `createProjectCharacter` 建出来
+ * （id 是库生成的 uuid），分镜走 `saveStoryboard`，所以整条链——名册、写路径、同步、检索、
+ * 整块通道——用的都是同一份身份。§54 给引用定过这条规矩，镜头这一格此前漏了。
+ */
+describe('§49 × §46：镜头的角色在语料里是名字（真实数据库）', () => {
+  it('存好角色与分镜后，整块正文写「角色：守夜人」，不写那串 uuid', async () => {
+    const id = await newProject('Storyboard Named Character');
+    const created = await createProjectCharacter(id, owner, { name: '守夜人' });
+    if (!created.ok) throw new Error(`角色没建出来：${created.reason}`);
+    const characterId = created.character.id;
+
+    const planned = planStoryboard('灯塔的光扫过浮冰，她数着回来的每一条船', { id: 'sb-named' });
+    const doc: Storyboard = { ...planned, shots: planned.shots.map((s) => ({ ...s, characterId })) };
+    const saved = await saveStoryboard(id, owner, { document: doc });
+    if (!saved.ok) throw new Error(`分镜没存进去：${saved.reason}`);
+
+    const hit = await retrieveProjectKnowledge(id, '她数着回来的每一条船');
+    // 取**镜头那块**（还有一块是作者写的那句来源，它不带机位/角色这些行）
+    const block = hit.items.find((i) => i.sourceType === 'storyboard' && i.title.includes('第 '));
+    expect(block, '镜头正文查不到 = 这一片的前提断了').toBeDefined();
+
+    // 摘录是窗口，所以整块要走 §49 那条按出处取回的路（顺手也证明那条通道服务的是这件事）
+    const full = await readKnowledgeBlock(id, 'storyboard', block!.sourceId);
+    expect(full.blocks.length).toBeGreaterThan(0);
+    const text = full.blocks.map((b) => b.content).join('\n');
+    expect(text, '语料里没写出角色名字 = 名册与镜头之间那一格还空着').toContain('角色：守夜人');
+    expect(text, '内部 uuid 还留在可检索的散文里').not.toContain(characterId);
   });
 });

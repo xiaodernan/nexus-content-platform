@@ -2697,3 +2697,25 @@ pre-commit 的 typecheck 却红 6 条——`noUncheckedIndexedAccess` 说 Object
 **1 passed (17.0s)**，`npm run typecheck` 0。两条变异探针各自只落一处且都红：把按钮的 onClick 换成空操作 →
 1 failed；把 catch 里那句错误原因改成 `error: null` → 1 failed（证明"失败被吞成空"这个形状真的会被抓到），
 两刀跑完都还原、md5 与探针前一致。
+
+## §49 × §46：镜头的角色在语料里写名字，不写那串 uuid
+
+§54 那一片给引用定过规矩：块里写「追杀 → 守夜人」，因为那是查得到的一句话；「追杀 → ge_mb3k9x」不是。
+同一句话在分镜那一格漏了——`chunksFromStoryboard` 把 `shot.characterId` 原样写进散文。
+那串 uuid 是库生成的行身份（§46 明写"模型里那个临时 id 不外传"），既读不出设定，也不是能拿去核对的话。
+
+- `chunksFromStoryboard(document, storyboardId, worldId, characterNames?)`：给了名字表就写「角色：守夜人」，
+  **认不出来才退回原 id**——宁可留一句不好读但能核对的话，也不写"（不认识）"这种没有出处的字。
+- 名字表在 `syncProjectKnowledge` 已有的那次角色循环里顺手攒出来，不为这件事多开一次查询。
+- 镜头归属那条校验本来就在服务端（`firstForeignRef`：挂的角色/资产必须属于本项目），这一片不加新规则，
+  只是让已经合法的引用在语料里说人话。
+
+一条测试前提被实测纠正：第一版取"第一块命中的分镜语料"来断言，红在
+`expected '灯塔的光扫过浮冰…' to contain '角色：守夜人'`——那块是**作者写的那句来源**，
+它本来就不带机位/角色这些行。改成取标题带「第 N 镜」的那块，断的才是该断的那一块。
+整块正文走的是这一批刚补上的 `readKnowledgeBlock`：摘录窗口不够长时，它正是该用的工具。
+
+凭证：`knowledge.test.ts` 28/28、`knowledge.integration.test.ts` 18/18（真库那条：`createProjectCharacter`
+建出守夜人 → 每镜挂它的 id → `saveStoryboard` → 检索那句镜头描述 → 按出处取整块 →
+断含「角色：守夜人」且**不含那串 uuid**）。变异探针把名字表退回只写 id → `2 failed / 46`，
+红的正是纯函数那条与真库那条；还原后 46/46、md5 与探针前一致。

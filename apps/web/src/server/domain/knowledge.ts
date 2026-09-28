@@ -195,7 +195,17 @@ export function chunksFromCharacter(profile: CharacterProfile, characterId: stri
  * 模型给的 `storyboard-1`，每个项目都可能是这一串，而 `knowledge_chunks` 的唯一约束
  * 是全局的 `(source_type, source_id, chunk_index)`——用文档 id 会让第二个项目插不进去。
  */
-export function chunksFromStoryboard(document: Storyboard, storyboardId: string, worldId: string | null): Chunk[] {
+export function chunksFromStoryboard(
+  document: Storyboard,
+  storyboardId: string,
+  worldId: string | null,
+  /**
+   * 角色 id → 名字。块里要写「角色：守夜人」而不是「角色：char_9f3a」——
+   * 一个内部 id 在可检索的散文里没有落点（§54 给引用定过同一条规矩：出名字不出 id）。
+   * 名字查不到时退回原 id：那仍然是一句能拿去核对的话，只是不好读。
+   */
+  characterNames: Record<string, string> = {},
+): Chunk[] {
   const out: Chunk[] = [];
   const title = document.title || '（没有标题）';
   const push = (label: string, sourceId: string, body: string) => {
@@ -214,7 +224,7 @@ export function chunksFromStoryboard(document: Storyboard, storyboardId: string,
         `机位：${shot.camera}`,
         `转场：${shot.transition}`,
         `时长：${shot.durationMs} 毫秒`,
-        shot.characterId ? `角色：${shot.characterId}` : '',
+        shot.characterId ? `角色：${characterNames[shot.characterId] ?? shot.characterId}` : '',
         shot.referenceAssetId ? `参考图：${shot.referenceAssetId}` : '',
       ]
         .filter(Boolean)
@@ -453,9 +463,15 @@ export async function syncProjectKnowledge(
     const parsed = safeWorld(row.document);
     if (parsed) chunks.push(...chunksFromWorld(parsed, row.id));
   }
+  // 角色 id → 名字：分镜的块要写"角色：守夜人"，这条要在切镜头之前先备好（同一次循环里顺手攒出来，
+  // 不为这件事多开一次查询）
+  const characterNames: Record<string, string> = {};
   for (const row of characterRows) {
     const parsed = safeProfile(row.profile);
-    if (parsed) chunks.push(...chunksFromCharacter(parsed, row.id, row.worldId));
+    if (parsed) {
+      characterNames[row.id] = parsed.name;
+      chunks.push(...chunksFromCharacter(parsed, row.id, row.worldId));
+    }
   }
   for (const row of memoryRows) {
     chunks.push(
@@ -471,7 +487,7 @@ export async function syncProjectKnowledge(
 
   for (const row of storyboardRows) {
     const parsed = safeStoryboard(row.document);
-    if (parsed) chunks.push(...chunksFromStoryboard(parsed, row.id, worldId));
+    if (parsed) chunks.push(...chunksFromStoryboard(parsed, row.id, worldId, characterNames));
   }
   for (const row of gameRows) {
     const parsed = safeGame(row.document);

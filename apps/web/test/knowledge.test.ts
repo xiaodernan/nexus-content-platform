@@ -14,7 +14,7 @@ import {
   chunksFromWorld,
   estimateTokens,
 } from '../src/server/domain/knowledge';
-import { planStoryboard } from '@nexus/video-model';
+import {planStoryboard, type Storyboard} from '@nexus/video-model';
 import { createGame, fleshedOutCount, linkEntities, setStat, updateEntity } from '@nexus/game-model';
 import { knowledgeChunks } from '../src/server/db/schema';
 import { createCharacter, createWorld } from '@nexus/world-model';
@@ -400,5 +400,30 @@ describe('chunksFromDesign：一页一块，块里带节点名；纯布局的页
     }
     // 同一页的块共用 sourceId，只靠 chunkIndex 区分
     expect(new Set(chunks.map((c) => c.sourceId)).size).toBe(1);
+  });
+});
+
+describe('chunksFromStoryboard 的角色那一行写名字而不是内部 id', () => {
+  it('给了名字表就写「角色：守夜人」，没给才退回 id', () => {
+    const doc = planStoryboard('守夜人提着灯走上塔顶，雾从海面压过来', { id: 'sb-names' });
+    const linked: Storyboard = { ...doc, shots: doc.shots.map((s) => ({ ...s, characterId: 'char_9f3a' })) };
+
+    // 没有名字表时退回 id：那还是一句能拿去核对的话，只是不好读
+    const raw = chunksFromStoryboard(linked, 'sb-row-1', null);
+    expect(raw.some((c) => c.content.includes('角色：char_9f3a')), '退回 id 这条路应当保留').toBe(true);
+
+    const named = chunksFromStoryboard(linked, 'sb-row-1', null, { char_9f3a: '守夜人' });
+    expect(
+      named.some((c) => c.content.includes('角色：守夜人')),
+      '名字表给了名字却不写出来 = 这条改动没接到镜头行',
+    ).toBe(true);
+    expect(
+      named.some((c) => c.content.includes('char_9f3a')),
+      '换了名字还把内部 id 留在散文里 = 一句查不到也核对不了的行',
+    ).toBe(false);
+
+    // 认不出来的角色 id 不能顺手写成"（不认识）"这种没有出处的话：原样留着
+    const unknown = chunksFromStoryboard(linked, 'sb-row-1', null, { other: '别人' });
+    expect(unknown.some((c) => c.content.includes('角色：char_9f3a'))).toBe(true);
   });
 });
