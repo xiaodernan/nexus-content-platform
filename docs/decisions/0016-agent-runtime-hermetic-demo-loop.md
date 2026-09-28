@@ -6317,3 +6317,101 @@ resolve './D:/…/node_modules/next/dist/client/next.js'` — a CROSS-DRIVE fail
 where the checkout was put rather than to the ref (the same ref compiled green on the repository drive). It is
 recorded rather than smoothed over because a build exit 1 inside the plane is loud, and the next reader of a
 `[summary]` line will see it.
+
+### Amendment 134 (M5 v134, three-runtime) — the scene's declared world bag gets an owner: the value is checked at the SET, the getter hands back a copy, and the bag goes last in a load
+
+**This record is owed, and the reason it is late is part of it.** v134 and v135 shipped with no ADR
+amendment and no ROADMAP cell because both shared files carried the M2 lane's uncommitted v133 draft, and
+`git add` is file-granular: staging either would have published a claim about code that had not landed. The
+v134 evidence record says so in its own words ("They are owed, and the sentence above is what says so"). That
+draft landed as `97baaf9`, so the shared files are free and this amendment pays the debt. The full narrative
+stays in `docs/evidence/three-runtime/README.md` section v134; this is the ledger entry.
+
+`SaveData.worldState` was declared `Record<string, unknown>` and read and written by nothing, so the field sat
+in `SAVE_DATA_FEASIBILITY.blocked` with no owner. It has one now, per scene:
+
+- `setWorldState` / `getWorldState` / `getWorldStateKeys` / `deleteWorldState` is the only door that touches a
+  value. The setter REFUSES a value no file can hold — a `Map`, a class instance, an `undefined` leaf — with
+  the key path in the message, and it refuses at the SET rather than at `buildSaveFile`'s `assertDiskSafe`,
+  because by then the caller has already stored something this runtime can never restore. That is v117's rule
+  ("a value this renderer cannot perform refuses at registration") moved from the cinematic table onto the bag.
+- `getWorldState` re-clones what it reads. A setter that clones on the way in and a getter that hands back the
+  stored object is a READ a caller can move the scene through, which is the one property the input clone buys.
+- `worldStateSnapshot` writes `{}` for a scene that holds nothing rather than omitting the key: the field's
+  presence is a fact about the FORMAT and its content a fact about the world, and collapsing the two is how a
+  loader loses the difference between "the player left no notes" and "this save predates notes".
+- `loadSaveFile` reads the FILE's own `carries` before it reads the field, so a missing `worldState` is a
+  refusal when the file claims it and an ordinary old file when it does not — v131's rule applied a second
+  time, with one shared sentence.
+- The bag goes LAST in a load (entities, then records, then the bag), so a failure in an earlier half leaves
+  no world state behind; and a load into a scene that already holds keys refuses BEFORE anything runs, because
+  replacing a live bag is a decision a caller makes by name rather than one a loader makes on their behalf.
+- `worldStateFieldAudit` derives `untouched` from the gap table minus what the scene actually holds, so a name
+  added to the table tomorrow shows up without anyone remembering to announce it.
+
+Measured: the package at **300/300 green across 5 files**, `tsc --noEmit` exit 0. The probe ran **9 arms, 9
+caught, 0 missed** against a control of **0 red / exit 0**; one arm (08-writer-omits-the-bag) reddened **31**
+cases BEYOND its prediction, and that over-red is shipped code rather than a loose case — the arm deletes a
+field from a file whose `carries` still names it, which is the refusal at `threeRuntime.ts:1450`/`1455`, so
+every case that loads a built file reddened beside it. It is reported rather than folded into the prediction.
+This increment adds 12 cases to `test/saveSnapshot.test.ts` and renames one (`carries the four fields it can
+fill and names the three it leaves out`) so its title states the table's real shape.
+
+**Provenance, because it changed what was measured.** The implementation arrived in the working tree from a run
+of this lane that stopped with its probe reporting a MISSED arm: the arm predicted the case
+`world state is scoped to the scene that set it`, and no case of that name existed. The run that followed
+measured the dirty tree before touching it, wrote the missing case, found the case AS ADDED still did not catch
+the arm (a setter that throws the bag away and rebuilds it passes a one-key-per-scene test while losing every
+key the scene said before), strengthened it to two keys in each of two scenes, and added a second arm for the
+other half of the sentence. The version is v134 rather than the v132 its own scratch header called it because
+the counter is shared across lanes.
+
+Bounds added: the bag holds only data a file can hold, so anything live goes through a record instead; nothing
+outside a test reads `SAVE_DATA_FEASIBILITY`; and `sceneGraph`, `quests` and `player` remain blocked.
+
+### Amendment 135 (M5 v135, three-runtime) — the three refusal accounts get ONE table, and every row says WHICH account refuses it
+
+Also owed for the reason amendment 134 states — the shared files carried the M2 lane's v133 draft, which landed
+as `97baaf9`. Full narrative in `docs/evidence/three-runtime/README.md` section v135.
+
+`npcFieldAudit`, `worldStateFieldAudit` and the save file's `doesNotCarry` each printed a list of names this
+package refuses to keep, the three lists hand-typed beside each other: `quests` appeared in all three with
+three different sentences and `player` in two, and nothing in the package could say whether the accounts still
+described the same refusal. Worse, a caller reading ONE of them got a flat answer to "is `quests` refused?" — a
+question with no flat answer, because refusal is a property of an ACCOUNT, not of a name.
+
+- `REFUSALS` (`threeRuntime.ts:125`) is 8 rows, each declaring `planes` — which accounts refuse the name — and
+  `needs` keyed BY PLANE, so a row cannot assert a reason for one account while staying silent about whether
+  another agrees. `refusalsFor(plane)` answers the account and THROWS rather than emitting a blank when a row
+  declares a plane and withholds that plane's sentence, because a refusal a caller cannot read is a refusal
+  that gets worked around.
+- Each account is now ONE derivation: `npc-record` 5 rows, `world-state` 4, `save-file` 3 (which
+  `buildSaveFile` copies into `doesNotCarry`).
+- `refusalCensus()` answers `refusedBy`/`notRefusedBy` per row across the whole plane list: **12** refusing
+  sentences, each owned by exactly one (name, plane) pair and each appearing exactly once in the file. A flat
+  refusal list is a claim that every account agrees; the census makes that claim impossible to make by accident.
+- The witness row is `entities`: the world bag refuses it — the bodies a scene holds *are* the scene graph, so
+  mirroring them would give one list two owners — while the save file carries it for real. One flat list would
+  have to make one of those two readings false.
+- A derivation gives ONE order, so `doesNotCarry` is now alphabetical by field name. That is user-visible and
+  it went in only after being measured: **5** cases pinned the old orders and went red with no other case
+  moving, and each was then updated with a comment saying WHY alphabetical rather than to whatever the run
+  printed. The reorder is safe for old files because `diagnoseSaveFile` reconciles `carries` against
+  `doesNotCarry` by membership only; the one positional check it makes (`threeRuntime.ts:1493`, "appears both
+  as carried and as not carried") is unreachable by a reorder, and every old-file case stayed green through
+  all 8 arms.
+
+Measured: **308 vitest cases across 5 files, 0 red**, with `tsc -p tsconfig.json` (declaration emit, which
+`--noEmit` skips) exit 0; `test/saveSnapshot.test.ts` gains 8 cases and `test/cinematicSequence.test.ts` one
+expectation. The probe ran **9 arms including the control, control 0 red of 308, 8 arms** counted. Two
+measurement errors are kept in the record rather than tidied away: an arm whose anchor was written with a
+newline escape against a CRLF file matched nothing and was reported as "anchor found 0 times" —
+indistinguishable in the log from "the code changed" — and a shell-based reading of the same file reported 0 CR
+bytes, contradicting the reader the probe actually uses. The lesson the record keeps is narrower than "grep
+lies": **a line-ending measurement has to come from the same reader that will act on the answer.**
+
+Bounds added: `player` is still a name with two refusals and no owner — giving it a record and a file is the
+next grant's subject; the shipped table's own refusal has no reader, because a `needs` sentence missing from
+the SHIPPED table throws during module initialisation, so it is graded through an injected row and no case can
+show what a broken shipped table looks like at runtime; and nothing outside a test reads `refusalCensus()` —
+the Studio has no face that shows which account refused which name.
