@@ -3,6 +3,7 @@ import type { DesignDocument } from '@nexus/design-model';
 import { getDb } from '../db/client';
 import { branches, projects, snapshots } from '../db/schema';
 import { loadDocument, saveDocument } from './projects';
+import { stableKey } from './stable-key';
 
 /**
  * §27 / §108：Snapshot 是用户项目历史，与 git 的开发历史是两回事。
@@ -46,23 +47,6 @@ export interface CreateSnapshotInput extends SnapshotActor {
    * 所以这类快照写进分支线、不动 projects.currentSnapshotId（当前分支因此仍然成立）。
    */
   advanceWorkspace?: boolean;
-}
-
-/**
- * 键顺序无关、且与 JSON 序列化语义一致的比较。两个来源都会造成"看起来不同、其实相同"：
- * jsonb 不保留对象键顺序（它按长度+字节重排），而 loadDocument 重建文档时会给缺省字段填 undefined
- * ——这种字段落库时会被丢弃。用 JSON.stringify 直接比会把"没改动"判成"有改动"，
- * 于是每次恢复都多写一条无意义的安全快照。
- */
-function stableKey(value: unknown): string {
-  if (value === null || typeof value !== 'object') return JSON.stringify(value) ?? 'null';
-  if (Array.isArray(value)) return `[${value.map(stableKey).join(',')}]`;
-  const record = value as Record<string, unknown>;
-  return `{${Object.keys(record)
-    .filter((key) => record[key] !== undefined)
-    .sort()
-    .map((key) => `${JSON.stringify(key)}:${stableKey(record[key])}`)
-    .join(',')}}`;
 }
 
 function toMeta(row: typeof snapshots.$inferSelect): SnapshotMeta {

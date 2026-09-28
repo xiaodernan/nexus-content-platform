@@ -13,6 +13,7 @@ import {
 } from '@nexus/design-model';
 import { recordAudit } from './audit';
 import { syncDesignKnowledge } from './knowledge';
+import { stableKey } from './stable-key';
 import { getDb } from '../db/client';
 import { assets, branches, components, designNodes, designTokens, pages, projects, snapshots } from '../db/schema';
 
@@ -120,67 +121,187 @@ export async function createProject(ownerId: string, input: CreateProjectInput):
 
 type Tx = Parameters<Parameters<ReturnType<typeof getDb>['transaction']>[0]>[0];
 
+/**
+ * 文档写入的唯一实现（`createProject` 与 `saveDocument` 都走它）。
+ *
+ * 这是**增量**的一版：只对真正变化的行发 SQL。语义没变，仍然是「整份文档替换」——客户端每次发的都是
+ * 完整文档，文档里没有的节点就是被删掉的，所以缺失即删。做成「只增改、不删」看着更像合并，实际会让删除
+ * 静默失效（删掉一个节点再保存，读回来它还在），那是设计模型与库漂移（§16），不是优化。
+ *
+ * 为什么值得先算一遍差异：原来的写放大是「一次保存重写 10000 行」（§147 记的那半截，4000 节点实测 1525ms）。
+ * 差异怎么算也很要紧——2026-09-28 在 4000 节点上量过三种算法：
+ *   · 把全部节点行读回 JS（3.5MB jsonb）再逐字段比：读 957ms + 比对 470ms；
+ *   · 只读 id 判增删：10ms；
+ *   · 内容差异交给 Postgres 比（jsonb 相等本身就是键序无关的）：一次差集查询 180ms。
+ * 所以这里只把 id 读回 JS，内容差异让库自己算——写 1 行而不是 10000 行，代价也不再随文档大小线性涨在 JS 侧。
+ *
+ * 已知限度：仍然要把整份文档（3.5MB）序列化成一个 jsonb 参数发给库，而 `saveDocument` 之后的
+ * §49 语料同步是全量重切（4000 节点 146ms）。要落到 docs/TESTING.md 那条「属性写入 <50ms」还得让客户端
+ * 发补丁而不是发全量文档（§150 的 Command 已经在客户端存在），那是下一格。
+ */
 async function writeDocument(tx: Tx, projectId: string, document: DesignDocument): Promise<void> {
-  // 同一项目的写入必须串行：下面是"整删重插"，两个并发事务各自从同一份旧文档出发，
-  // A 删完 → B 删完 → A 插 p_x → B 插同一个 p_x ⇒ pages_pkey 冲突，整个 PUT 报 500
-  //（2026-09-26 生产日志里那次 `insert into "pages"` 失败就是这个形状；Studio 自动保存 + 第二个标签页就会撞）。
+  // 同一项目的写入必须串行：两个并发事务各自从同一份旧文档出发会互相踩
+  //（A 删完 → B 删完 → A 插 p_x → B 插同一个 p_x ⇒ pages_pkey 冲突，整个 PUT 报 500；
+  // 2026-09-26 生产日志里那次 insert into pages 失败就是这个形状，Studio 自动保存 + 第二个标签页就会撞）。
   // 事务级 advisory lock 在 commit/rollback 时自动释放，不改任何事务语义，也不跨项目挡。
   await tx.execute(sql`select pg_advisory_xact_lock(hashtextextended(${projectId}, 0))`);
-  // 只清这个项目自己的行：先删本项目页面下的节点，再删页面
-  const pageIds = await tx
-    .select({ id: pages.id })
-    .from(pages)
+
+  const current = await loadCurrentDocumentState(tx, projectId);
+
+  // ---- 令牌：按 key 对齐。顺序是文档的一部分（§16），sortIndex 参与比较 ----
+  const incomingTokens = document.tokens.map((token, index) => ({
+    key: token.key,
+    type: token.type,
+    value: token.value as unknown as Record<string, unknown>,
+    modes: token.modes ?? null,
+    description: token.description ?? null,
+    sortIndex: index,
+  }));
+  const tokenDiff = diffByKey(Array.from(current.tokens.values()), incomingTokens, (token) => token.key);
+  for (const token of tokenDiff.removed) {
+    await tx.delete(designTokens).where(and(eq(designTokens.projectId, projectId), eq(designTokens.key, token.key)));
+  }
+  for (const token of tokenDiff.added) {
+    await tx.insert(designTokens).values({ projectId, key: token.key, type: token.type, value: token.value, modes: token.modes, description: token.description, sortIndex: token.sortIndex });
+  }
+  for (const token of tokenDiff.updated) {
+    await tx.update(designTokens).set({ type: token.type, value: token.value, modes: token.modes, description: token.description, sortIndex: token.sortIndex, updatedAt: new Date() }).where(and(eq(designTokens.projectId, projectId), eq(designTokens.key, token.key)));
+  }
+
+  // 节点这一段的判断依据：库里现在有哪些行（只取 id 与所在页，不取 data）
+  const existingNodes = await tx
+    .select({ id: designNodes.id, pageId: designNodes.pageId })
+    .from(designNodes)
+    .innerJoin(pages, eq(designNodes.pageId, pages.id))
     .where(eq(pages.projectId, projectId));
-  const ids = pageIds.map((p) => p.id);
-  if (ids.length) await tx.delete(designNodes).where(inArray(designNodes.pageId, ids));
-  await tx.delete(pages).where(eq(pages.projectId, projectId));
-  await tx.delete(designTokens).where(eq(designTokens.projectId, projectId));
-  await tx.delete(components).where(eq(components.projectId, projectId));
 
-  for (const [index, token] of document.tokens.entries()) {
-    await tx.insert(designTokens).values({
-      projectId,
-      key: token.key,
-      type: token.type,
-      value: token.value as unknown as Record<string, unknown>,
-      modes: token.modes ?? null,
-      description: token.description ?? null,
-      // 顺序是文档的一部分（§16）：不写这一列，读回来就是物理行序说了算（#40 那条噪音快照的根因）
-      sortIndex: index,
-    });
+  // ---- 页面：按 id 对齐。删页面时它下面的节点由外键级联删掉（design_nodes.page_id onDelete: cascade）----
+  const incomingPages = document.pages.map((page) => ({
+    id: page.id,
+    name: page.name,
+    rootNodeId: page.rootId,
+    width: page.width,
+    height: page.height,
+    backgroundColor: typeof page.backgroundColor === 'string' ? page.backgroundColor : null,
+  }));
+  const pageDiff = diffByKey(Array.from(current.pages.values()), incomingPages, (page) => page.id);
+  const removedPageIds = new Set(pageDiff.removed.map((page) => page.id));
+  const addedPageIds = new Set(pageDiff.added.map((page) => page.id));
+  for (const page of pageDiff.removed) {
+    await tx.delete(pages).where(and(eq(pages.projectId, projectId), eq(pages.id, page.id)));
+  }
+  for (const page of pageDiff.added) {
+    await tx.insert(pages).values({ id: page.id, projectId, name: page.name, rootNodeId: page.rootNodeId, width: page.width, height: page.height, backgroundColor: page.backgroundColor });
+    await writeNodes(tx, document.pages.find((candidate) => candidate.id === page.id)!);
+  }
+  for (const page of pageDiff.updated) {
+    await tx.update(pages).set({ name: page.name, rootNodeId: page.rootNodeId, width: page.width, height: page.height, backgroundColor: page.backgroundColor, updatedAt: new Date() }).where(and(eq(pages.projectId, projectId), eq(pages.id, page.id)));
   }
 
-  for (const page of document.pages) {
-    await tx.insert(pages).values({
-      id: page.id,
-      projectId,
-      name: page.name,
-      rootNodeId: page.rootId,
-      width: page.width,
-      height: page.height,
-      backgroundColor: typeof page.backgroundColor === 'string' ? page.backgroundColor : null,
-    });
-    await writeNodes(tx, page);
+  // ---- 组件：按 id 对齐。放在页面之后：它引用 pages（外键），页面得先存在 ----
+  const incomingComponents = document.components.map((component) => ({
+    id: component.id,
+    name: component.name,
+    pageId: component.pageId || null,
+    rootNodeId: component.rootId,
+    variants: component.variants ?? null,
+    props: component.props ?? null,
+    slots: component.slots ?? null,
+  }));
+  const componentDiff = diffByKey(Array.from(current.components.values()), incomingComponents, (component) => component.id);
+  for (const component of componentDiff.removed) {
+    await tx.delete(components).where(and(eq(components.projectId, projectId), eq(components.id, component.id)));
+  }
+  for (const component of componentDiff.added) {
+    await tx.insert(components).values({ projectId, id: component.id, name: component.name, pageId: component.pageId, rootNodeId: component.rootNodeId, variants: component.variants, props: component.props, slots: component.slots });
+  }
+  for (const component of componentDiff.updated) {
+    await tx.update(components).set({ name: component.name, pageId: component.pageId, rootNodeId: component.rootNodeId, variants: component.variants, props: component.props, slots: component.slots, updatedAt: new Date() }).where(and(eq(components.projectId, projectId), eq(components.id, component.id)));
   }
 
-  for (const component of document.components) {
-    await tx.insert(components).values({
-      id: component.id,
-      projectId,
-      name: component.name,
-      pageId: component.pageId || null,
-      rootNodeId: component.rootId,
-      variants: component.variants ?? null,
-      props: component.props ?? null,
-      slots: component.slots ?? null,
-    });
+  // ---- 节点：只在 JS 里对齐 id，内容差异交给 Postgres（见函数开头那三种算法的读数）----
+  // 两个过滤器都有用：新增页面里的节点上面已经整块写过了，不该再算一次「新增」；
+  // 删掉的页面的节点由级联负责，不该进删除清单。
+  const incomingNodes = document.pages
+    .filter((page) => !addedPageIds.has(page.id) && !removedPageIds.has(page.id))
+    .flatMap((page) =>
+      Object.values(page.nodes).map((node, index) => ({
+        id: node.id,
+        pageId: page.id,
+        parentId: node.parentId,
+        nodeType: node.type,
+        name: node.name,
+        sortIndex: index,
+        data: node as unknown as Record<string, unknown>,
+        visible: node.visible,
+        locked: node.locked,
+      })),
+    );
+  const incomingById = new Map(incomingNodes.map((node) => [node.id, node]));
+  // 被删页面的那些行已经随页面级联删掉了，不能再拿它们的 id 当「库里已经有了」：
+  // 否则「同一份文档里删掉一页、同时把该页的一个节点搬到留下的页上」会把这个节点整个吞掉
+  //（级联删了旧行，而这里又判成「非新增」，于是既不插也不改 —— 设计模型与库就此漂移，§16）。
+  const survivingRows = existingNodes.filter((row) => !removedPageIds.has(row.pageId));
+  const existingIds = new Set(survivingRows.map((row) => row.id));
+  const existingPageOf = new Map(survivingRows.map((row) => [row.id, row.pageId]));
+
+  // 只在库里、不在文档里 = 删（换个页的节点在下面按「删旧 + 插新」处理，不走删除清单）。
+  // 按 (page_id, id) 分组删：design_nodes 的主键就是这两列，单独按 id 删用不上索引、会全表扫描
+  // ——本机测试库积了十万行，一次保存凭空多几百毫秒（2026-09-28 量到的）。
+  const deletedByPage = new Map<string, string[]>();
+  for (const row of survivingRows) {
+    if (incomingById.has(row.id)) continue;
+    const ids = deletedByPage.get(row.pageId);
+    if (ids) ids.push(row.id);
+    else deletedByPage.set(row.pageId, [row.id]);
+  }
+  // 只在文档里、不在库里 = 增
+  const addedNodes = incomingNodes.filter((node) => !existingIds.has(node.id));
+  // 两边都有、内容或所在页不同 = 改
+  const nodePayload = JSON.stringify(
+    incomingNodes.map((node) => ({ id: node.id, pageId: node.pageId, data: node.data })),
+  );
+  const changedRows = await tx.execute<{ id: string }>(sql`
+    with incoming as (
+      select (r->>'id') as id, (r->>'pageId') as page_id, (r->'data') as data
+      from jsonb_array_elements(${nodePayload}::jsonb) as r
+    )
+    select n.id as id
+    from design_nodes n
+    join pages p on p.id = n.page_id
+    join incoming i on i.id = n.id
+    where p.project_id = ${projectId}
+      and (n.data is distinct from i.data or n.page_id is distinct from i.page_id)
+  `);
+  const changedIds = new Set(changedRows.map((row) => row.id));
+  const updatedNodes = incomingNodes.filter((node) => changedIds.has(node.id) && existingPageOf.get(node.id) === node.pageId);
+  // 换页的节点不能走 UPDATE：主键是 (page_id, id)，按新 page_id 去 UPDATE 一行都匹配不到，
+  // 节点会悄悄留在旧页上。按「删旧行 + 插新行」处理。
+  const movedNodes = incomingNodes.filter((node) => changedIds.has(node.id) && existingPageOf.get(node.id) !== node.pageId);
+  for (const node of movedNodes) {
+    await tx.delete(designNodes).where(and(eq(designNodes.pageId, existingPageOf.get(node.id)!), eq(designNodes.id, node.id)));
+  }
+  if (addedNodes.length || movedNodes.length) {
+    for (const part of chunked([...addedNodes, ...movedNodes])) {
+      await tx.insert(designNodes).values(part);
+    }
+  }
+  for (const node of updatedNodes) {
+    await tx.update(designNodes)
+      .set({ parentId: node.parentId, nodeType: node.nodeType, name: node.name, sortIndex: node.sortIndex, data: node.data, visible: node.visible, locked: node.locked, updatedAt: new Date() })
+      .where(and(eq(designNodes.pageId, node.pageId), eq(designNodes.id, node.id)));
+  }
+  for (const [pageId, ids] of deletedByPage) {
+    for (const part of chunked(ids)) {
+      await tx.delete(designNodes).where(and(eq(designNodes.pageId, pageId), inArray(designNodes.id, part)));
+    }
   }
 }
 
 /**
- * 单条 INSERT 的参数上限是 65,535，节点行每行 9 个参数 —— 不切块的话，
+ * 单条 INSERT / DELETE 的参数上限是 65,535，节点行每行 9 个参数 —— 不切块的话，
  * 一个页面超过约 7,200 个节点就**整体存不下去**（`MAX_PARAMETERS_EXCEEDED`），
- * 而 §146 的规模目标正是 10,000 节点。切块只改"几条语句"，不改事务语义。
+ * 而 §146 的规模目标正是 10,000 节点。切块只改「几条语句」，不改事务语义。
  */
 const INSERT_CHUNK = 500;
 
@@ -188,6 +309,68 @@ function chunked<T>(items: T[], size = INSERT_CHUNK): T[][] {
   const out: T[][] = [];
   for (let i = 0; i < items.length; i += size) out.push(items.slice(i, i + size));
   return out;
+}
+
+/**
+ * 按 key 把两份清单分成 added / updated / removed。
+ * 相等默认用 `stableKey` 比（键序无关）：jsonb 读回来的键序是库重排过的，
+ * 拿 `JSON.stringify` 比会把「没变」判成「变了」，于是每次保存都把整份文档重写一遍。
+ * 只用在行数很少的表上（令牌 / 页面 / 组件）：节点是 10000 行那一档，走库里的 jsonb 差集。
+ */
+function diffByKey<T>(
+  current: T[],
+  incoming: T[],
+  keyFn: (item: T) => string,
+  equal: (a: T, b: T) => boolean = (a, b) => stableKey(a) === stableKey(b),
+): { added: T[]; updated: T[]; removed: T[] } {
+  const currentMap = new Map(current.map((item) => [keyFn(item), item]));
+  const incomingMap = new Map(incoming.map((item) => [keyFn(item), item]));
+  const added: T[] = [];
+  const updated: T[] = [];
+  const removed: T[] = [];
+  for (const [key, item] of incomingMap) {
+    const before = currentMap.get(key);
+    if (!before) added.push(item);
+    else if (!equal(before, item)) updated.push(item);
+  }
+  for (const [key, item] of currentMap) {
+    if (!incomingMap.has(key)) removed.push(item);
+  }
+  return { added, updated, removed };
+}
+
+/**
+ * 读回这个项目当前的小表（同一事务里，已持有 advisory lock）。
+ * **节点不在这里读**：那是 10000 行 / 3.5MB 那一档，读回 JS 再比是这一刀之前最贵的一步（957ms + 470ms），
+ * 现在只取 id 与所在页（10ms），内容差异交给库里的 jsonb 差集（180ms）。
+ * 只取参与比对的列：createdAt / updatedAt 这类时间戳不是内容，放进比较会让每次保存都判「变了」。
+ */
+async function loadCurrentDocumentState(
+  tx: Tx,
+  projectId: string,
+): Promise<{
+  pages: Map<string, { id: string; name: string; rootNodeId: string; width: number; height: number; backgroundColor: string | null }>;
+  tokens: Map<string, { key: string; type: string; value: unknown; modes: unknown; description: string | null; sortIndex: number }>;
+  components: Map<string, { id: string; name: string; pageId: string | null; rootNodeId: string; variants: unknown; props: unknown; slots: unknown }>;
+}> {
+  const pageRows = await tx
+    .select({ id: pages.id, name: pages.name, rootNodeId: pages.rootNodeId, width: pages.width, height: pages.height, backgroundColor: pages.backgroundColor })
+    .from(pages)
+    .where(eq(pages.projectId, projectId));
+  const tokenRows = await tx
+    .select({ key: designTokens.key, type: designTokens.type, value: designTokens.value, modes: designTokens.modes, description: designTokens.description, sortIndex: designTokens.sortIndex })
+    .from(designTokens)
+    .where(eq(designTokens.projectId, projectId));
+  const componentRows = await tx
+    .select({ id: components.id, name: components.name, pageId: components.pageId, rootNodeId: components.rootNodeId, variants: components.variants, props: components.props, slots: components.slots })
+    .from(components)
+    .where(eq(components.projectId, projectId));
+
+  return {
+    pages: new Map(pageRows.map((row) => [row.id, row])),
+    tokens: new Map(tokenRows.map((row) => [row.key, row])),
+    components: new Map(componentRows.map((row) => [row.id, row])),
+  };
 }
 
 async function writeNodes(tx: Tx, page: Page): Promise<void> {

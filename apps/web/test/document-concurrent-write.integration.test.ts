@@ -9,11 +9,15 @@ import { designNodes, pages, projects, users } from '../src/server/db/schema';
 /**
  * #64：同一个项目的两个并发 PUT 会互相踩（生产日志里已经红过一次）。
  *
- * `writeDocument` 的做法是"把本项目全部 pages/nodes/tokens/components 删掉，再按文档重插"。
+ * `writeDocument` 从前的做法是"把本项目全部 pages/nodes/tokens/components 删掉，再按文档重插"
+ *（2026-09-28 起改成增量：只写真正变化的行，见 `document-incremental-save.integration.test.ts`）。
  * 单看一次事务没问题，但两个并发事务各自都从**同一份旧文档**出发：
  * A 删完 → B 删完 → A 插 p_x → B 插同一个 p_x ⇒ `pages_pkey` 冲突，整个 PUT 报 500。
  * 2026-09-26 那次生产日志里的 `insert into "pages"` 失败就是这个形状（库里没有半写状态，事务回滚了，
  * 但用户侧是一次保存失败）。这不是假想场景：Studio 有自动保存，两个标签页 / 脚本与人工同时写同一项目都会撞上。
+ *
+ * 增量保存改的是写放大，不是并发语义：锁还在原来的位置，最后完成的那个事务仍然整体胜出。
+ * 所以下面三条断言一个字都没改——真要有人把语义换成"合并"，第二条就会红（读回来会是两份混在一起）。
  *
  * 这一节钉三件事，缺一不可：
  * ① 两个并发保存**都成功**（挡住的是"保存会失败"）；
