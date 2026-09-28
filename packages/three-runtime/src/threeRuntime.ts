@@ -18,6 +18,11 @@ import type {
   ControllerInput,
   NPC,
   Player,
+  PlayerDamageReport,
+  PlayerExperienceReport,
+  PlayerHealReport,
+  PlayerLevelReport,
+  PlayerManaSpendReport,
   PersonalityTraits,
   SerializedNPC,
   SerializedPlayer,
@@ -1969,10 +1974,21 @@ export class ThreeRuntime {
     for (const field of readableNowButNotCarried) {
       problems.push(`it omits "${field}", which this runtime could now write — the file predates that capability`);
     }
+    // A claim must be backed by BYTES, not merely be a name this runtime can fill. The loader refuses a file
+    // that names a half in `carries` and ships no value for it (`null` is a value; an absent key is not), so a
+    // diagnosis that read only the claim called such a file loadable while the load about to run refused it —
+    // v127's rule, and the half v136 introduced is what made it sharp: a file can now claim a player and write
+    // no `player` key at all. The wording is the loader's, so the two readers cannot describe one refusal twice.
+    const claimsWithoutBytes = declaredCarries.filter((field) =>
+      SAVE_DATA_FEASIBILITY.savable.includes(field)
+      && (file as Record<string, unknown>)[field] === undefined);
+    for (const field of claimsWithoutBytes) {
+      problems.push(`the file CLAIMS to carry ${field} but ships no ${field} half`);
+    }
     return {
       path,
       bytes: contents.length,
-      loadable: carriedButUnreadableHere.length === 0,
+      loadable: carriedButUnreadableHere.length === 0 && claimsWithoutBytes.length === 0,
       problems,
       carriedButUnreadableHere,
       readableNowButNotCarried,
@@ -2929,6 +2945,121 @@ export class ThreeRuntime {
           ?? 'declared on Player and not carried by the file shape, with no entry in the gap table saying why — which is itself the finding',
       }));
     return { carried, untouched };
+  }
+
+  /** The one door every player OPERATION goes through for its argument and its subject.
+   *
+   *  An amount that is not a finite non-negative number is refused rather than stored, for the reason
+   *  `attachPlayer` refuses a non-finite scalar: `JSON.stringify` writes NaN as null, so a number this door
+   *  accepted would come back off a file as a different number. And a NEGATIVE amount is refused rather than
+   *  interpreted as its opposite — a caller who means "heal" has `healPlayer`, and a sign that silently
+   *  reverses an operation is how a damage call becomes a healing one.
+   */
+  private requirePlayerForOperation(sceneId: SceneId, operation: string, amount: number): Player {
+    const player = this.getPlayer(sceneId);
+    if (!player) {
+      throw new Error(`${operation}: scene ${sceneId} has no player, and an operation on a record that is not there would move numbers nothing owns`);
+    }
+    if (typeof amount !== 'number' || !Number.isFinite(amount) || amount < 0) {
+      throw new Error(`${operation}: amount is ${String(amount)}; an operation takes a finite, non-negative number, and a save writes a non-finite one as null`);
+    }
+    return player;
+  }
+
+  /** Take health off the scene's player, and report what LANDED rather than what was asked for. `died` is
+   *  true only on the call that crossed the boundary: a blow on a corpse lands 0 and is not a second death.
+   *  Nothing here enforces what a dead player may do — this method moves a number and says so. */
+  damagePlayer(sceneId: SceneId, amount: number, reason = ''): PlayerDamageReport {
+    const player = this.requirePlayerForOperation(sceneId, 'damagePlayer', amount);
+    const landed = Math.min(amount, player.health);
+    player.health -= landed;
+    const died = player.health === 0 && landed > 0;
+    const report: PlayerDamageReport = {
+      sceneId,
+      entityId: player.entityId,
+      amount,
+      damage: landed,
+      health: player.health,
+      maxHealth: player.maxHealth,
+      died,
+      reason,
+    };
+    this.emit('playerDamaged', report);
+    if (died) this.emit('playerDied', report);
+    return report;
+  }
+
+  /** Put health back, clamped at `maxHealth`. A heal at full health answers a report of zero — asking for
+   *  health the record already has is an answer, not an error. */
+  healPlayer(sceneId: SceneId, amount: number): PlayerHealReport {
+    const player = this.requirePlayerForOperation(sceneId, 'healPlayer', amount);
+    const healed = Math.min(amount, player.maxHealth - player.health);
+    player.health += healed;
+    const report: PlayerHealReport = {
+      sceneId,
+      entityId: player.entityId,
+      amount,
+      healed,
+      health: player.health,
+      maxHealth: player.maxHealth,
+    };
+    this.emit('playerHealed', report);
+    return report;
+  }
+
+  /** Spend mana, refusing a spend the pool cannot cover. Health clamps and mana refuses, and the difference is
+   *  deliberate: an overkill blow has an obvious reading (the target is dead), while a spell the player cannot
+   *  afford does not — so the caller is told instead of being handed a spell. */
+  spendMana(sceneId: SceneId, amount: number): PlayerManaSpendReport {
+    const player = this.requirePlayerForOperation(sceneId, 'spendMana', amount);
+    if (amount > player.mana) {
+      throw new Error(`spendMana: the player holds ${player.mana} mana and this call spends ${amount}; a spend larger than the pool is refused rather than clamped, because a caller who cannot afford it has to be told instead of being handed the spell`);
+    }
+    player.mana -= amount;
+    const report: PlayerManaSpendReport = {
+      sceneId,
+      entityId: player.entityId,
+      amount,
+      mana: player.mana,
+      maxMana: player.maxMana,
+    };
+    this.emit('playerManaSpent', report);
+    return report;
+  }
+
+  /** Add experience — and NOTHING ELSE. The level does not move, and the report carries the unchanged level so
+   *  a caller cannot read the silence as a level-up rule that fired. No curve is implemented here on purpose:
+   *  a threshold table is a design decision this lane has no basis to invent, and the honest place for one is a
+   *  caller that says out loud when a level is owed. */
+  gainExperience(sceneId: SceneId, amount: number): PlayerExperienceReport {
+    const player = this.requirePlayerForOperation(sceneId, 'gainExperience', amount);
+    player.experience += amount;
+    const report: PlayerExperienceReport = {
+      sceneId,
+      entityId: player.entityId,
+      amount,
+      experience: player.experience,
+      level: player.level,
+    };
+    this.emit('playerExperienceGained', report);
+    return report;
+  }
+
+  /** Set the level by name. This is the only way a level changes, because this runtime derives none: a level
+   *  below 1 is refused (there is no level zero to be on), and a non-integer is refused rather than floored,
+   *  because silently rounding a caller's number is how two callers disagree about what a record holds. */
+  setPlayerLevel(sceneId: SceneId, level: number): PlayerLevelReport {
+    const player = this.getPlayer(sceneId);
+    if (!player) {
+      throw new Error(`setPlayerLevel: scene ${sceneId} has no player, and an operation on a record that is not there would move numbers nothing owns`);
+    }
+    if (typeof level !== 'number' || !Number.isFinite(level) || !Number.isInteger(level) || level < 1) {
+      throw new Error(`setPlayerLevel: level is ${String(level)}; a level is a finite integer of at least 1, and this runtime derives none from experience — the curve is a design decision, so a caller names the level or nothing does`);
+    }
+    player.level = level;
+    const report: PlayerLevelReport = { sceneId, entityId: player.entityId, level: player.level, experience: player.experience };
+    this.emit('playerLevelSet', report);
+    return report;
   }
 
   private resolveNpc(entity: EntityId): NpcEntry | undefined {

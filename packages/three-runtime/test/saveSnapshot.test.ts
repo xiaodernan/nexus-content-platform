@@ -2747,6 +2747,51 @@ describe('M5 v136 — the scene has one player, and a file can carry it', () => 
     third.dispose();
   });
 
+  it('a file that CLAIMS a player and ships no player key is diagnosed the way the loader refuses it', () => {
+    // v127's diagnosis graded only the file's VOCABULARY — `carries` against what this runtime can fill — so a file
+    // that named `player` and shipped no `player` key at all was reported loadable while the `loadSaveFile` about to
+    // run refused it. v136 made that shape writable-by-accident (a half can now be omitted as well as be `null`),
+    // and the probe arm that omitted the writer's player line is what caught the diagnosis still disagreeing: a
+    // report that can disagree with the operation it describes is an opinion, not a report.
+    const store = createMemorySaveStore();
+    const writer = runtimeWithStore(store);
+    const stage = writer.createScene('Stage').id;
+    writer.setActiveScene(stage);
+    const body = withEntityIn(writer, stage);
+    const { file } = fileWithPlayer(writer, stage, body);
+    const unbacked = JSON.parse(JSON.stringify(file)) as Record<string, unknown>;
+    delete unbacked.player;
+    store.write('saves/backed.json', JSON.stringify(file));
+    store.write('saves/unbacked.json', JSON.stringify(unbacked));
+    // `null` is a value, so a claimed half written as `null` is backed by bytes and stays loadable: the check is
+    // about the key, not about the name.
+    const explicitNone = JSON.parse(JSON.stringify(file)) as Record<string, unknown>;
+    explicitNone.player = null;
+    store.write('saves/explicit-none.json', JSON.stringify(explicitNone));
+
+    const reader = runtimeWithStore(store);
+    reader.createScene('Copy', stage);
+    expect(reader.diagnoseSaveFile('saves/backed.json')).toMatchObject({ loadable: true, problems: [] });
+    expect(reader.diagnoseSaveFile('saves/explicit-none.json')).toMatchObject({ loadable: true, problems: [] });
+
+    const diagnosis = reader.diagnoseSaveFile('saves/unbacked.json');
+    expect(diagnosis.loadable).toBe(false);
+    expect(diagnosis.problems).toEqual(['the file CLAIMS to carry player but ships no player half']);
+
+    let loadMessage = '';
+    try {
+      reader.loadSaveFile(JSON.parse(store.read('saves/unbacked.json')!), stage);
+    } catch (error) {
+      loadMessage = (error as Error).message;
+    }
+    // One rule, one wording: the diagnosis quotes the loader's sentence rather than paraphrasing it, so the two
+    // readers of the same file cannot drift into two different descriptions of the same refusal.
+    expect(loadMessage).toContain(diagnosis.problems[0]);
+    expect(reader.getScene(stage)!.entities.size).toBe(0);
+    writer.dispose();
+    reader.dispose();
+  });
+
   it('restorePlayer refuses the shapes a file cannot have written, and refuses them before it registers anything', () => {
     withPlayer({ skills: { sneak: 1 } });
     const real = runtime.playerSnapshot(scene)!;

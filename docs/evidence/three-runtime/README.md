@@ -1503,6 +1503,103 @@ decided whether an arm ran.
   alphabetical order; a doc that repeats a derived order by hand will disagree with the derivation forever, so
   this section names the rule instead of re-listing the rows.
 
+## v136 — the scene has one player, and a file can carry it
+
+`SerializedPlayer` was declared in `types.ts` and filled by nothing: `player` sat in `blocked` under two
+accounts, and `SaveData.player` had no writer and no reader. This grant gives the record an owner and a half in
+the file, and it turns up a second thing — a report that had been agreeing with the loader by accident.
+
+**What landed.** `attachPlayer` / `getPlayer` / `detachPlayer` / `playerSnapshot` / `restorePlayer` /
+`playerFieldAudit`, with `players: Map<SceneId, Player>` — one player per scene, keyed by the scene and not by
+the entity, because the record is "who is being controlled here", and a second owner of that would be a second
+opinion about the same body. `attachPlayer` reads the body it is attached to (`position` cloned, `rotation`
+copied, so a later transform of the entity is not a change to the player's saved stance), refuses a hotbar slot
+that names no body in the scene, refuses a non-finite number at the door naming the field it would have turned
+into `null` in a file, and refuses a second record naming the owner it would displace. `SaveFile` gains
+`player: SerializedPlayer | null`, and `null` is WRITTEN, not omitted: a file that says `player: null` claims it
+looked and found none, which is a different statement from a pre-v136 file that has no such key — the same
+old-file rule the npcs half (v131) and the world bag (v133) already obey, and `carries` names the half so the
+loader can tell the two apart rather than guessing from a missing field. A fourth refusal plane,
+`'player-record'`, joins `REFUSAL_PLANES`, and `UNTOUCHED_PLAYER_FIELDS = refusalsFor('player-record')`:
+`inventory` is now refused by three planes with three different sentences, and `player` itself is refused only
+by `'world-state'`, because a bag key of that name would be a second owner of one player.
+
+**Suite at the grant: 322 passed / 5 files, 0 failed; `npm run typecheck` clean.**
+
+### The hole the probe found, in the order it was found
+
+The first probe run (`.scratch/v136/probe.mjs`, 12 arms + control, `probe-run.log`) graded the source before
+this fix: **control 0 red of 321, 11 arms caught, 1 survived**. The survivor was the arm that deletes the
+writer's `player: this.playerSnapshot(sceneId),` line. It reddened 16 cases — every case that loads a file it
+had just built, because the loader refuses a claim without its half — but it left
+`atomic save writes: … > the whole listing is partitioned: loadable, unloadable and unreadable are three
+different answers` **green**, which is what the arm was chosen for.
+
+That green was not a loose prediction; it was a mechanism. `diagnoseSaveFile` graded a file's `carries` against
+`SAVE_DATA_FEASIBILITY.savable` — the file's VOCABULARY — and never against the halves actually in the bytes. So
+a file naming `player` and shipping no `player` key was reported `loadable: true` while `loadSaveFile` refused
+it at `threeRuntime.ts:1659`. The docstring above that function says the two must not be free to disagree, and
+the arm proved the sentence was unenforced: every case that paired the two happened to use a file where the
+claim and the bytes agreed. Fixed at `threeRuntime.ts:1982` by `claimsWithoutBytes`, and the problem sentence is
+the loader's own wording (`the file CLAIMS to carry player but ships no player half`) rather than a paraphrase,
+for the reason v127's `noclaims` case already gives: two readers of one file should not produce two descriptions
+of one refusal. `null` stays loadable — it is a value, so the check reads the key, not the name.
+
+### The second probe run, at the fixed source
+
+**13 arms including the control · control 0 red of 322 · 12 caught · 1 arm predicted-but-not-red · 5 arms that
+reddened more than predicted · 0 that reddened fewer** (`probe-fixed.log`). The writer-omits arm is now caught:
+its 18 reds include the partition case and the new claim-vs-bytes case. Its one miss is
+`an OLD file that says nothing about the player is read as carrying none` — and that is my prediction being
+wrong, not the suite: deleting the writer's line does not merely omit a half, it puts `player` in `carries` with
+no key behind it, which is exactly the mismatch that case's hand-built old file exists to survive. The
+mutation is broader than the mechanism it aimed at, and it is reported as a witness rather than folded into the
+prediction. New arm `13-diagnosis-grades-words-not-bytes` puts the diagnosis back to grading vocabulary alone and
+reddens exactly the one case that pins the new check.
+
+### Measurement error, kept in the record
+
+Two of these readings were wrong before they were corrected, and both were mine.
+
+- A test run started ~15 s after an edit to `src/threeRuntime.ts` reported **1 failed** at a case that passes
+  both before and after (`refuses a player whose body the file does not carry BEFORE any half runs`, which
+  received a rollback message from `restorePlayer` instead of the loader's pre-check). The source was graded
+  while it was being rewritten. A re-run of the same command on the same bytes reported 0 failed, and the whole
+  JSON report was then used instead of a tail. **A suite run is a reading of bytes, so it has to come after the
+  bytes stop moving.**
+- The same rewriting erased a landed edit: the Edit tool reported success, the harness reported "the file
+  baseline was refreshed", and `grep -c claimsWithoutBytes` came back 0 after the run. From that point the src
+  file is written by a script that asserts its own anchor count, writes, re-reads, and counts the marker
+  (`.scratch/v136/applyDiagnosisFix.mjs`), and the marker is counted again AFTER the test run rather than only
+  before it. The earlier scare that the tracked source had lost `player: this.playerSnapshot(sceneId),` is the
+  same event seen from the other side: the line was there, a reader had caught the file mid-rewrite.
+
+### What v136 does NOT honor — stated by name
+
+- **`SaveFile`'s five halves are not all graded the same way.** `claimsWithoutBytes` refuses a claim with no key
+  for every name in `carries`, but the loader is stricter on two of them: a missing `entities` or `cinematic` is
+  refused whatever the file claims, while the diagnosis still calls such a file loadable through
+  `readableNowButNotCarried`. The disagreement the arm found is closed for the shape v136 made reachable, not for
+  every shape a hand-written file can wear.
+- **A player still has no `inventory` writer.** The field is refused by three planes and stays refused; this
+  grant made the record real, not the bag real.
+- **`detachPlayer` has no Studio face.** Nothing outside a test attaches or detaches a player.
+- **The ADR record, the ROADMAP cell, and the §7 evidence-door run at this commit are owed**, for the reason
+  they were owed at v134 and v135: the M2 lane holds uncommitted drafts in `docs/ROADMAP.md`,
+  `docs/decisions/0016-agent-runtime-hermetic-demo-loop.md`, `docs/evidence/agents/README.md`,
+  `isolated-proof.mjs` and `sweep.mjs`, and staging either shared file would publish a claim about code that has
+  not landed.
+
+### Sentences this record retires
+
+- "`player` is a name with two refusals and no owner" — v135's closing bullet, and true when it was written. It
+  now has an owner, a half in the file, and one remaining refusal (`world-state`), which says why the bag may not
+  hold a second one.
+- "the diagnosis's verdict is the load's verdict" as a description of the code before this fix. It was a
+  promise in a docstring, enforced only by cases whose files happened to be self-consistent; from v136 the
+  claim-vs-bytes check makes it a property the suite can redden.
+
+
 ## v136 — the player record gets a body and a file: `attachPlayer`/`playerSnapshot`/`restorePlayer`, a fourth refusal plane, and `player: null` as a claim the writer makes
 
 `SaveData.player` was declared as `SerializedPlayer` and backed by nothing: the shape named a live

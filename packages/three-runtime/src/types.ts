@@ -598,6 +598,67 @@ export interface SerializedPlayer {
   hotbar: (EntityId | null)[];
 }
 
+/**
+ * What a health-changing call answers. A report rather than the record itself, because the caller has to know
+ * what ACTUALLY happened: an overkill blow lands only the health that was there, and "died" is the crossing of
+ * a boundary that a return value of "the new health" alone cannot express (0 is also what a second blow on a
+ * corpse would report).
+ */
+export interface PlayerDamageReport {
+  sceneId: SceneId;
+  entityId: EntityId;
+  /** What the caller asked for. */
+  amount: number;
+  /** What landed — `min(amount, health)`, so an overkill blow reports less than it asked for. */
+  damage: number;
+  health: number;
+  maxHealth: number;
+  /** True only on the call that took health from a positive number to zero. A blow on a corpse is not a death. */
+  died: boolean;
+  /** The caller's own word for what did it, or `''`. Never read by this runtime; carried so the event a
+   *  listener receives names its own cause instead of leaving the listener to guess. */
+  reason: string;
+}
+
+/** What `healPlayer` answers. `healed` is `min(amount, maxHealth - health)`, so a heal at full health is a
+ *  report of zero rather than a refusal: asking for health a record already has is not an error. */
+export interface PlayerHealReport {
+  sceneId: SceneId;
+  entityId: EntityId;
+  amount: number;
+  healed: number;
+  health: number;
+  maxHealth: number;
+}
+
+/** What `spendMana` answers. Unlike health, a spend larger than the pool is REFUSED rather than clamped —
+ *  see the method's own note. */
+export interface PlayerManaSpendReport {
+  sceneId: SceneId;
+  entityId: EntityId;
+  amount: number;
+  mana: number;
+  maxMana: number;
+}
+
+/** What `gainExperience` answers. The `level` is carried because it did NOT move: no curve is implemented
+ *  here, and a report that showed only the experience would leave a caller assuming one was. */
+export interface PlayerExperienceReport {
+  sceneId: SceneId;
+  entityId: EntityId;
+  amount: number;
+  experience: number;
+  level: number;
+}
+
+/** What `setPlayerLevel` answers — the level as DATA, set by name. */
+export interface PlayerLevelReport {
+  sceneId: SceneId;
+  entityId: EntityId;
+  level: number;
+  experience: number;
+}
+
 export interface SerializedCinematic {
   sequences: [string, SerializedCinematicSequence][];
   activeSequence: string | null;
