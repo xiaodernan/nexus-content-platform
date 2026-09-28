@@ -1,4 +1,5 @@
 import { sql } from 'drizzle-orm';
+import type { ApiTokenScope } from '@nexus/schemas';
 import {
   bigint,
   boolean,
@@ -962,6 +963,38 @@ export const notifications = pgTable(
   (t) => [uniqueIndex('notification_dedupe_key').on(t.dedupeKey), index('notification_inbox_idx').on(t.userId, t.createdAt)],
 );
 
+/**
+ * §188 M8（MCP / 外部 Agent / 公开 API）的凭据表。
+ *
+ * 与 `sessions` 同一口径：**只存哈希**（§80）。明文只在签发那一次出现在响应里，
+ * 之后连服务端自己都拿不回来——所以这一页只有"重发一枚"，没有"再看一眼"。
+ * `hint` 留随机段前 8 位是为了让人在列表里认出是哪一把（CI 那把 / 本地脚本那把），
+ * 它不是凭据的一部分，也不足以拼回凭据。
+ *
+ * `revokedAt` 用时间而不是布尔：吊销要留"什么时候吊销的"，一次 401 事后才解释得了。
+ * 行不删（与 notifications 那处的道理同一形状）：删了行就分不清"这枚 token 从没存在过"
+ * 和"存在过、被吊销了"，而后者才是调用方真正需要知道的那一句。
+ */
+export const apiTokens = pgTable(
+  'api_tokens',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    name: text('name').notNull(),
+    tokenHash: text('token_hash').notNull(),
+    hint: text('hint').notNull(),
+    /** 取值域在 @nexus/schemas 的 API_TOKEN_SCOPES，库侧 CHECK（迁移 0018）是同一件事的第二处写法 */
+    scopes: text('scopes').array().$type<ApiTokenScope[]>().notNull(),
+    createdAt: now(),
+    lastUsedAt: timestamp('last_used_at', { withTimezone: true }),
+    expiresAt: timestamp('expires_at', { withTimezone: true }),
+    revokedAt: timestamp('revoked_at', { withTimezone: true }),
+  },
+  (t) => [uniqueIndex('api_tokens_hash_key').on(t.tokenHash), index('api_tokens_user_idx').on(t.userId)],
+);
+
 export const schema = {
   users,
   sessions,
@@ -999,4 +1032,5 @@ export const schema = {
   saves,
   publicationVisits,
   notifications,
+  apiTokens,
 };

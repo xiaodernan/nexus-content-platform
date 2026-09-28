@@ -1333,3 +1333,80 @@ export const ProjectContextSchema = z.object({
 export type ProjectContextPayload = z.infer<typeof ProjectContextSchema>;
 
 export { NodeTypeEnum as DesignNodeType };
+
+/**
+ * §188 M8（MCP / 外部 Agent / 公开 API）的第一片：公开 API 的凭据与只读报文。
+ *
+ * 设计文档的权威形状在 `@nexus/design-model`（怎么算是那儿决定的，纪律 1），这里只规定
+ * "出了进程长什么样"——所以 document 那一格是 `z.unknown()`，而配套的 `digest` 是真的会校验的数。
+ */
+export const API_TOKEN_SCOPES = ['projects:read', 'design:read'] as const;
+export const ApiTokenScopeSchema = z.enum(API_TOKEN_SCOPES);
+export type ApiTokenScope = z.infer<typeof ApiTokenScopeSchema>;
+
+export const ApiTokenRecordSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  /** 随机段前 8 位：认哪一把用的，不是凭据 */
+  hint: z.string(),
+  scopes: z.array(ApiTokenScopeSchema),
+  createdAt: z.string(),
+  /** 分钟级节流的读数，界面上要说明它不是精确的最后一次调用 */
+  lastUsedAt: z.string().nullable(),
+  expiresAt: z.string().nullable(),
+  revokedAt: z.string().nullable(),
+});
+export type ApiTokenRecord = z.infer<typeof ApiTokenRecordSchema>;
+
+/**
+ * 建凭据的入站报文。`expiresInDays` 不给就是不过期：凭据是给人配到 CI 里去的，
+ * 到期时间得由发的人自己决定，服务端不替他设一个他不知道的期限。
+ */
+export const ApiTokenCreateRequestSchema = z.object({
+  name: z.string().min(1).max(60),
+  scopes: z.array(ApiTokenScopeSchema).min(1),
+  expiresInDays: z.number().int().min(1).max(365).optional(),
+});
+export type ApiTokenCreateRequest = z.infer<typeof ApiTokenCreateRequestSchema>;
+
+/** 明文只在这一个报文里出现这一次——库里存的是哈希，所以关掉页面就再也拿不到了 */
+export const ApiTokenIssuedSchema = z.object({
+  token: z.string(),
+  record: ApiTokenRecordSchema,
+});
+export type ApiTokenIssued = z.infer<typeof ApiTokenIssuedSchema>;
+
+export const ApiProjectSchema = z.object({
+  id: z.string(),
+  slug: z.string(),
+  name: z.string(),
+  kind: z.string(),
+  visibility: z.string(),
+  updatedAt: z.string(),
+});
+export type ApiProject = z.infer<typeof ApiProjectSchema>;
+
+export const ApiProjectListSchema = z.object({
+  /** 这个凭据只看得见它自己那个人名下的项目；公开作品走 /api/public，不在这里 */
+  projects: z.array(ApiProjectSchema),
+});
+export type ApiProjectList = z.infer<typeof ApiProjectListSchema>;
+
+export const ApiProjectDetailSchema = ApiProjectSchema.extend({
+  description: z.string().nullable(),
+  createdAt: z.string(),
+  forkOf: z.string().nullable(),
+  pageCount: z.number().int().min(0),
+  nodeCount: z.number().int().min(0),
+});
+export type ApiProjectDetail = z.infer<typeof ApiProjectDetailSchema>;
+
+export const ApiDesignDocumentSchema = z.object({
+  projectId: z.string(),
+  document: z.unknown(),
+  pageCount: z.number().int().min(0),
+  nodeCount: z.number().int().min(0),
+  /** 文档是从库里读出来的那一份（§68 同一口径），不是调用方递进来的 */
+  source: z.literal('database'),
+});
+export type ApiDesignDocument = z.infer<typeof ApiDesignDocumentSchema>;

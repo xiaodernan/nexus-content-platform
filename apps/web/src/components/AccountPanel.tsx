@@ -86,6 +86,12 @@ export function AccountPanel({ user }: { user: Identity }) {
           <Link href="/credits" className="ml-2 text-12 text-accent-2 underline" data-credits-link>
             额度与消费
           </Link>
+          {/* §188：公开 API 的凭据也是账号的一部分，游客没有可认领的项目，这一页只对登录态开 */}
+          {!user.guest ? (
+            <Link href="/api-tokens" className="ml-2 text-12 text-accent-2 underline" data-api-tokens-link>
+              API 凭据
+            </Link>
+          ) : null}
         </span>
         {!user.guest ? (
           <span className="flex items-center gap-[var(--nexus-space-2)]">

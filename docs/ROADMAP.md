@@ -2909,3 +2909,30 @@ image-safety / image-studio / ai-jobs / studio-flush，不是全量回归）；�
 
 开工顺序仍是 `agents.md` 那五步：读 ROADMAP 找 `[ ]/[~]` → 读模块文档 → `git log --oneline -15`
 → 先跑最小验证确认起点是绿的 → 实现 / Run / Test / Screenshot / Inspect / Fix / Retest / Commit。
+
+---
+
+## §188 M8 第一片：公开 API v1（只读）+ API 凭据 —— 2026-09-29
+
+- **落了什么**：`api_tokens` 表（迁移 0018：只存 SHA-256、`hint` 认哪一把、三条 CHECK、吊销留时间戳、`user_id` 上 ON DELETE CASCADE）；
+  `authorizeApiRequest` 单入口（Bearer 解析 → 鉴权 → scope → 每凭据每分钟 120 次）；三个只读端点
+  （`GET /api/v1/projects`、`GET /api/v1/projects/<id>`（含现场从文档算的 pageCount/nodeCount）、`GET /api/v1/projects/<id>/design`）；
+  `/api-tokens` 管理页（明文只给一次、列表读失败说"读不到"而不是 0 枚、吊销、两个"试一下"按钮发的是真 HTTP）。理由在 `docs/adr/0019-public-api-bearer-tokens.md`。
+- **见证**：`apps/web/test/api-tokens.test.ts` 10 条 + `api-tokens.integration.test.ts` 15 条 —— `npx vitest run` 两个文件 **25/25 绿**（真库，迁移已应用）；
+  `tsc -p apps/web` 与 `tsc -p packages/schemas` 干净；eslint 覆盖本次改动的 10 个路径 0 问题。
+  变异探针 12 个（迁移多一格 scope / CHECK 名单清空 / 端点用名单外 scope / 端点丢掉 authorize / 端点加 POST /
+  bearer 改成大小写敏感 / 去掉头长度上限 / 随机段缩到 16 字节 / hasScope 恒真 / 节流窗口改到 70s / 摘要换成 sha384 /
+  路由扫描器什么都找不到）—— **12/12 都被预测中的那一条用例抓到**，其中两处是按预测多红了姊妹用例（同一函数改坏了两条断言），
+  跑完 5 个被改文件与进场时逐字节一致。
+- **真浏览器（§158 的 Run→Test→Screenshot→Inspect）**：`e2e/api-tokens.spec.ts` 两条 @smoke，`npx playwright test e2e/api-tokens.spec.ts` **2/2 绿（45.0s）**。
+  第一条走的是真 HTTP：游客建项目→注册→进 `/api-tokens`（新账号显示"还没有发过"而不是 0 枚）→ 发一枚只带 `projects:read` 的凭据 →
+  页内 fetch 真读回 `GET /api/v1/projects` = 200 且项目名对得上 → 拿它问 `/design` = **403 insufficient_scope**（那句里带着缺的 scope 名）→
+  再发一枚两格都给的 → 页面上那两个"试一下"按钮显示 **HTTP 200 · 文档来自 1 页 / 8 个节点（库里那一份）** → 吊销它 → 同一串明文再问 = **401 revoked_token**，
+  而没吊销的那一枚照样 200（吊销按枚不按人）→ 刷新整页：两串明文在 body 文本里都找不到，只有 hint 前缀与"已吊销（时间）"那一行。
+  截图两张已看过：`screenshots/api-tokens-issued.png`（明文只在这一块里出现）与 `screenshots/api-tokens-after-reload.png`（刷新后无明文、状态列是已吊销且没有第二个吊销按钮）。
+  第二条钉游客不可达：`/api-tokens` 对游客退回首页，界面上是 `data-auth-identity=guest` 而不是一个空的凭据页。
+- **还没做（下一格取这里）**：v1 只有读，没有写端点，所以外部 Agent 现在只能"看得见"不能"改得动"（§188 的完整要求里那半截还欠着）；
+  凭据级的读审计只到 `last_used_at` 那个分钟级信号，没有"谁在什么时候读了哪一份文档"的流水。
+  M8「MCP、外部 Agent、公开 API」那一格因此仍是 `[ ]`：这一片是它的第一块，不是它本身。
+- **已知限制**：v1 没有写端点（POST 得到 405，界面上写的是"写还没做"）；设计文档整份返回，没有分页也没有字段裁剪，
+  4000 节点档的响应体积还没有量过。
