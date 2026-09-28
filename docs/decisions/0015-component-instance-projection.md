@@ -137,3 +137,86 @@ authored subtrees commit-flatten via `rotateSubtree`. One semantic refinement: b
 the instance's own angle on top, an override `rotation` is absolute *within the instance frame* —
 i.e. **local** to the instance. The *Instance overrides* input and the clone-grip commit therefore
 subtract `instance.rotation` for display/authoring, matching how x/y deltas are already master-local.
+
+## Amendment 4 — 2026-09-28 (per-instance fill + corner radius: the two style controls)
+
+Amendment 2's "the remaining gap is geometry beyond x/y/width/height/rotation (fills/radius editable
+only via detach)" and the KNOWN_ISSUES line that repeated it are **narrowed, not closed**. The
+override patch gains two more keys, both with the **replace** semantics `rotation` already has:
+
+- `fills?: Paint[]` — the master child's fill stack, **replaced whole** (not merged, not a delta).
+- `cornerRadius?: number` — the master child's authored radius, replaced.
+
+Both are per-instance and per-master-child, land in the same `overrides[masterId]` object every other
+key uses, and are applied in `applyOverrides` at view time. Nothing about the projection changed: the
+canonical document and the master are still untouched.
+
+**Why `ChildOverride`, not `GeometryOverride`.** The interface that types the patch was named for the
+four keys it held. Putting a paint in a type called `GeometryOverride` is exactly the stale sentence
+this lane keeps retiring (v118's `duration`, v119's loader that "ignored what it could not read"), so
+it was renamed in the same edit — 5 references, mechanical, no behaviour.
+
+**Two rules worth stating, because both are choices rather than consequences:**
+
+1. **The clone gets a copy of the array, never the patch's own.** `instance.overrides` lives in the
+   canonical document; a clone handed the same array would give a renderer a writable path back into
+   authored state. `clone.fills = [...geom.fills]` — asserted by identity (`not.toBe(patch.fills)`),
+   then by pushing onto the projected clone and requiring the document's patch to stay length 1.
+   **Boundary (open):** the `Paint` objects *inside* stay shared by reference. Nothing in this lane
+   mutates a paint in place, and a deep clone is the honest fix the day something does.
+2. **The studio clamps radius at 0, not 1.** `width`/`height` clamp at 1 because a zero-size box is an
+   absence; a square corner is a *value*. `Math.max(0, patch.cornerRadius)`. The store test pins
+   `cornerRadius: -4` → `{ cornerRadius: 0 }`.
+
+**Panel.** Each row of *Instance overrides* now carries a `Fill` swatch (`<input type="color">`, aria-
+labelled per row) and a `Radius` number input. The swatch writes **one solid paint over `fills[0]` with
+the tail kept** — the Properties panel's own rule for a fill edit, repeated rather than reinvented, so
+an instance and a detached copy edit a fill the same way. A token, a gradient or an empty stack shows
+the neutral `#888888` swatch. Both inputs route through `setInstanceOverride(instance.id, …)`, so each
+is one reversible op at the same granularity as every other key (undo ×2: the fill goes first, then
+the radius).
+
+### Measured
+
+- `@nexus/design-model` **32/32** (2 new style-override cases) · `tsc -p packages/design-model` exit 0.
+- `@nexus/studio` **119/119** (2 new store cases; 2 new panel wiring cases) · `tsc --noEmit` exit 0.
+- Real browser (ADR 0017): `tools/harness/studio-golden-path.mjs` **19/19** against `next dev` on
+  :3210, screenshot written to `docs/evidence/studio/harness/studio-after-compose.png`.
+
+### Mutation probe (predict-then-measure, 6 arms, per-arm restore)
+
+Re-runnable: `node docs/evidence/studio/style-override-probe.mjs` (from the repo root). It states each
+arm's predicted red, mutates one line, runs the smallest suite that can see it, restores byte-for-byte,
+and exits non-zero if any arm mispredicts or a stale anchor stops it being measured at all.
+
+Control: projection 32 passed / 0 red, studio 119 passed / 0 red.
+
+| arm | mutation | predicted red | measured |
+| --- | --- | --- | --- |
+| 01 | projection drops the radius line | 1 | red 1 |
+| 02 | projection aliases the array (`= geom.fills`) | 1 | red 1 |
+| 03 | store clamps radius at 1 | 1 | red 1 |
+| 04 | store drops the fills patch | 1 | red 1 |
+| 05 | panel writes the radius under the **master's** id | 1 | red 1 (after a guard fix, below) |
+| 06 | panel shows a constant radius (`radius: 0`) | 1 | red 1 |
+
+**Arm 05 survived the first version of the panel guard, and that is the finding of this pass.** The
+guard grepped for the literal `setInstanceOverride(instance.id, r.masterId, {`, which a file where
+*one* row was rewired to write under the master id still satisfies. The guard became an argument
+check — `[...source.matchAll(/setInstanceOverride\(([^,]+),/g)]` must all be `instance.id`, count ≥ 3 —
+and the arm was re-run against it: red 1. A grep for the seam is not a proof that the seam was called
+with the right receiver.
+
+**Honesty note on the first probe run.** It reported two *unexpected* reds; both were a bug in the
+probe itself — arm 04 removed the store's fills line and did not restore `store.ts` before arms 05/06
+ran, so they were measured against a doubly-mutated tree. Fixed by restoring per arm (byte-for-byte
+backups, `finally`), after which every arm matched its prediction exactly. Reported here because an
+unexplained red in a mutation probe is exactly the kind of thing this lane does not quietly drop.
+
+**Bounds (open, stated not implied).** No browser click has been driven through the two new controls —
+the golden path asserts the bundle, not this panel; the panel's evidence is a source-level wiring
+guard, the idiom this repo already uses where a component cannot be rendered (no jsdom / no testing-
+library in the studio suite, recorded in `apps/studio/src/lib/instancePanel.test.ts`). Still not
+overridable per instance: `opacity`, `strokes`, `effects`, text *style* (only `characters` is), and
+anything nested inside a child of a child.
+

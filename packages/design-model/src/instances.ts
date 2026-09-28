@@ -1,4 +1,4 @@
-import type { ContainerNode, DesignDocument, DesignNode, InstanceNode, NexusId, Point } from './types.js';
+import type { ContainerNode, DesignDocument, DesignNode, InstanceNode, NexusId, Paint, Point } from './types.js';
 import { childIdList } from './selectors.js';
 import { rotatePointAbout } from './geometry.js';
 
@@ -30,7 +30,12 @@ export interface ExpandedInstances {
   meta: Record<NexusId, InstanceMeta>;
 }
 
-interface GeometryOverride {
+/**
+ * One master child's patch. Named `ChildOverride` rather than `GeometryOverride` because v132 made `fills`
+ * and `cornerRadius` overridable: a name that says geometry while holding a paint is the kind of stale
+ * sentence this lane keeps retiring (v118's `duration`, v119's loader that "ignored what it could not read").
+ */
+interface ChildOverride {
   width?: number;
   height?: number;
   visible?: boolean;
@@ -39,18 +44,22 @@ interface GeometryOverride {
   y?: number;
   /** Absolute rotation in degrees, replacing the master child's authored rotation. */
   rotation?: number;
+  /** The master child's corner radius, replaced. */
+  cornerRadius?: number;
+  /** The master child's fills, replaced whole. */
+  fills?: Paint[];
 }
 
 function readOverrides(inst: InstanceNode): {
-  byId: Record<NexusId, GeometryOverride>;
+  byId: Record<NexusId, ChildOverride>;
   text: Record<NexusId, string>;
 } {
   const o = inst.overrides ?? {};
   const text = (o.text ?? {}) as Record<NexusId, string>;
-  const byId: Record<NexusId, GeometryOverride> = {};
+  const byId: Record<NexusId, ChildOverride> = {};
   for (const [key, val] of Object.entries(o)) {
     if (key === 'text') continue;
-    if (val && typeof val === 'object') byId[key] = val as GeometryOverride;
+    if (val && typeof val === 'object') byId[key] = val as ChildOverride;
   }
   return { byId, text };
 }
@@ -58,7 +67,7 @@ function readOverrides(inst: InstanceNode): {
 function applyOverrides(
   clone: DesignNode,
   masterId: NexusId,
-  byId: Record<NexusId, GeometryOverride>,
+  byId: Record<NexusId, ChildOverride>,
   text: Record<NexusId, string>,
 ): void {
   const geom = byId[masterId];
@@ -69,6 +78,12 @@ function applyOverrides(
     if (geom.x !== undefined) clone.x += geom.x;
     if (geom.y !== undefined) clone.y += geom.y;
     if (geom.rotation !== undefined) clone.rotation = geom.rotation;
+    if (geom.cornerRadius !== undefined) clone.cornerRadius = geom.cornerRadius;
+    // A COPY of the array, never the patch's own. The patch lives in `instance.overrides`, i.e. in the
+    // canonical document, so a clone that shared the array would hand a renderer a writable path back into
+    // the authored document. The paints inside stay shared by reference: nothing in this lane mutates a paint
+    // in place, and a deep clone here is the honest fix the day something does.
+    if (geom.fills !== undefined) clone.fills = [...geom.fills];
   }
   const t = text[masterId];
   if (t !== undefined && clone.type === 'text') clone.characters = t;
@@ -113,7 +128,7 @@ export function expandComponentInstances(doc: DesignDocument): ExpandedInstances
     parentCloneId: NexusId,
     ns: NexusId,
     topId: NexusId,
-    byId: Record<NexusId, GeometryOverride>,
+    byId: Record<NexusId, ChildOverride>,
     text: Record<NexusId, string>,
     stack: NexusId[],
   ): NexusId {

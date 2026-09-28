@@ -123,11 +123,13 @@ export interface ImageNode extends NodeBase {
   fit: 'cover' | 'contain' | 'stretch';
 }
 
-/** Instance references a component; `overrides` patch specific properties. `x`/`y` are deltas relative to the master's authored position; `rotation` replaces it. */
+/** Instance references a component; `overrides` patch specific properties. `x`/`y` are deltas relative to
+the master's authored position; `rotation`, `fills` and `cornerRadius` REPLACE the master child's own value, and
+`fills` is the whole array — the same rule the Properties panel uses for a fill edit (`fills[0]` written, tail kept). */
 export interface InstanceNode extends NodeBase {
   type: 'instance';
   componentId: NexusId;
-  overrides: Record<NexusId, Partial<Pick<NodeBase, 'width' | 'height' | 'visible' | 'x' | 'y' | 'rotation'>>> & {
+  overrides: Record<NexusId, Partial<Pick<NodeBase, 'width' | 'height' | 'visible' | 'x' | 'y' | 'rotation' | 'fills' | 'cornerRadius'>>> & {
     text?: Record<NexusId, string>;
   };
 }

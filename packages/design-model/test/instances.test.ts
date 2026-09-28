@@ -12,6 +12,7 @@ import {
   type DesignDocument,
   type DesignNode,
   type InstanceNode,
+  type Paint,
   type TextStyle,
 } from '../src/index.js';
 
@@ -259,6 +260,59 @@ describe('instances: nesting + cycles + meta', () => {
     expect(ownerInstanceId(meta, 'i1::cmp::rect')).toBe('i1');
     expect(ownerInstanceId(meta, 'i1')).toBe('i1');
     expect(ownerInstanceId(meta, 'cmp')).toBeNull();
+  });
+});
+
+describe('instances: style overrides (ADR 0015 amendment 4)', () => {
+  /** A two-child master, two instances of it, and a fill+radius patch on the first one. */
+  function twoInstances() {
+    let doc = createEmptyDocument();
+    const { cmp, r, t } = buttonMaster();
+    doc = seed(doc, doc.rootId, cmp, r, t);
+    doc = seed(
+      doc,
+      doc.activePageId,
+      instanceNode('Btn1', 'cmp', { id: 'i1', x: 0, y: 0, width: 120, height: 40 }),
+      instanceNode('Btn2', 'cmp', { id: 'i2', x: 0, y: 60, width: 120, height: 40 }),
+    );
+    const paint: Paint = { kind: 'solid', color: { r: 1, g: 0, b: 0, a: 1 } };
+    const patched: DesignDocument = {
+      ...doc,
+      nodes: {
+        ...doc.nodes,
+        i1: { ...(doc.nodes['i1'] as InstanceNode), overrides: { [r.id]: { fills: [paint], cornerRadius: 12 } } },
+      },
+    };
+    return { doc: patched, paint };
+  }
+
+  it("replaces a clone's fill and corner radius, leaving the master and the unpatched sibling alone", () => {
+    const { doc, paint } = twoInstances();
+    const masterFills = doc.nodes['cmp::rect']!.fills;
+    const masterRadius = doc.nodes['cmp::rect']!.cornerRadius;
+
+    const { doc: out } = expandComponentInstances(doc);
+
+    expect(out.nodes['i1::cmp::rect']!.fills).toEqual([paint]);
+    expect(out.nodes['i1::cmp::rect']!.cornerRadius).toBe(12);
+    // The instance that overrode nothing reads the master's own values…
+    expect(out.nodes['i2::cmp::rect']!.fills).toEqual(masterFills);
+    expect(out.nodes['i2::cmp::rect']!.cornerRadius).toBe(masterRadius);
+    // …and the canonical document is untouched in both halves: this is a view-time projection.
+    expect(doc.nodes['cmp::rect']!.fills).toEqual(masterFills);
+    expect(doc.nodes['cmp::rect']!.cornerRadius).toBe(masterRadius);
+  });
+
+  it('hands the clone a COPY of the override array, so a renderer cannot write back into the document', () => {
+    const { doc, paint } = twoInstances();
+    const patch = (doc.nodes['i1'] as InstanceNode).overrides['cmp::rect']!;
+    const { doc: out } = expandComponentInstances(doc);
+    const clone = out.nodes['i1::cmp::rect']!;
+
+    expect(clone.fills).toEqual([paint]);
+    expect(clone.fills, 'the array is a copy, not the patch object the document holds').not.toBe(patch.fills);
+    clone.fills.push({ kind: 'token', ref: 'color.brand' });
+    expect(patch.fills, 'a push on the projected clone must not reach the document').toHaveLength(1);
   });
 });
 

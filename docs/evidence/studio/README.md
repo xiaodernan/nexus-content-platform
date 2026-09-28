@@ -16,11 +16,11 @@ Counts below are from `NODE_OPTIONS= npx vitest run --root <pkg> --no-file-paral
 
 | Package            | Result |
 | ------------------ | ------ |
-| @nexus/design-model| 30/30 vitest (`design-model` 18 incl. 3 rotated-hitTest + 2 rigid-geometry + 2 cycle-safe/visit-once `layoutPage` cases + `instances` 12), tsc clean |
+| @nexus/design-model| 32/32 vitest (`design-model` 18 incl. 3 rotated-hitTest + 2 rigid-geometry + 2 cycle-safe/visit-once `layoutPage` cases + `instances` 14), tsc clean |
 | @nexus/ai-providers| 7/7 vitest, tsc clean |
 | @nexus/agent-runtime| 232/232 vitest · tsc clean — M2 v0–v41, ADR 0016 am. 1–41; see `docs/evidence/agents/README.md` |
 | @nexus/exec-host   | 181/181 vitest (8 files: git staged/show/commit/log tools, env isolation, exec test runner) · tsc clean |
-| @nexus/studio      | 114/114 vitest (`snap` `persist` `align` `store-variants` 18 `thumbnail` `rotate` 14 `render` `minimap` `agentDock` 17 `webfs` 3 `uiRun` 8 `dockPolicy` 6 `observability` 9) · tsc `--noEmit` clean · eslint `--max-warnings=0` clean · `next build` ✓ (4/4 static pages) |
+| @nexus/studio      | 119/119 vitest (`snap` `persist` `align` `store-variants` 20 `thumbnail` `rotate` 14 `render` `minimap` `agentDock` 18 `webfs` 3 `uiRun` 8 `dockPolicy` 6 `observability` 9 `instancePanel` 2) · tsc `--noEmit` clean · eslint `--max-warnings=0` clean · `next build` ✓ (4/4 static pages) |
 
 ## Reproducible browser verification (ADR 0017)
 
@@ -242,6 +242,32 @@ select the instance → drill in → *Instance overrides* panel **Rotation** inp
 (828.85, 51.15) to (1050, 500) commits 116° — matching the hand-computed expected angle 116.05 —
 again as one override op. Ctrl+Z ×2 returns the instance to authored state (only the pre-existing
 sub-selection `{x:73,y:50}` override remains). **No console errors.**
+
+### Per-instance fill + corner radius (ADR 0015 amendment 4)
+
+The *Instance overrides* panel gains the two style controls, so a fill or a radius no longer requires
+detaching. Design-model layer (`instances.test.ts`, +2 → 14): an `overrides[mid]` patch of
+`{ fills: [paint], cornerRadius: 12 }` **replaces** the master child's stack and radius on that
+instance's clone only — the unpatched sibling instance and the canonical master both still read the
+master's authored values. The second case is the one that matters for a renderer: the clone gets a
+**copy** of the array (`clone.fills !== patch.fills` by identity), and a `push` on the projected clone
+leaves the document's patch at length 1. Studio layer (`store-variants.test.ts`, +2 → 20): a fill and a
+radius land as one merged patch on the instance, project onto `${instId}::${masterId}`, leave the
+master alone, and undo ×2 unwinds them one edit at a time; a negative radius lands as `{cornerRadius:0}`
+(a square corner is a value, unlike `width`'s clamp at 1) and a style patch addressed to a rectangle is
+a no-op with document identity preserved.
+
+Panel evidence is a **source-level wiring guard** (`instancePanel.test.ts`, 2 cases) — this repo's
+recorded idiom for a component the studio suite cannot render (node environment, no jsdom, no
+testing-library). It parses every `setInstanceOverride(<receiver>,` in `InstanceOverrides.tsx` and
+requires the receiver to be `instance.id` (count ≥ 3), that the swatch writes a solid paint over
+`fills[0]`, that the radius input writes `{ cornerRadius: n }`, that both read the *projected* clone
+(`node.fills` / `node.cornerRadius`), and that the file never reaches for `updateNode` — which edits
+the canonical node, i.e. the master. That receiver check exists because a mutation probe arm
+**survived** the first, literal-string version of the guard (see the ADR 0015 amendment 4 record);
+what this guard still cannot prove — that a real click moves the model — is stated there too.
+Re-runnable probe: `node docs/evidence/studio/style-override-probe.mjs` — 6 mutation arms over the
+projection, the store and this panel guard; measured on this host, every arm lands exactly 1 red.
 
 ### Rigid subtree rotation (commit-flatten + projection bake, ADR 0005 amendment 3)
 

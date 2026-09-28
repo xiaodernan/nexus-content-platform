@@ -129,6 +129,38 @@ describe('store: instance overrides', () => {
     expect(inst(instId).overrides[a]).toBeUndefined();
     expect(inst(instId).overrides.text?.[textId]).toBeUndefined();
   });
+
+  it('a fill and a radius override land on the patch, project onto the clone, and leave the master alone', () => {
+    const { a, instId } = madeOneComponent();
+    const paint = { kind: 'solid' as const, color: { r: 1, g: 0, b: 0, a: 1 } };
+    st().setInstanceOverride(instId, a, { cornerRadius: 9 });
+    st().setInstanceOverride(instId, a, { fills: [paint] });
+
+    expect(inst(instId).overrides[a]).toEqual({ cornerRadius: 9, fills: [paint] });
+    const { doc: view } = instanceView(st().doc);
+    expect(view.nodes[`${instId}::${a}`]!.cornerRadius).toBe(9);
+    expect(view.nodes[`${instId}::${a}`]!.fills).toEqual([paint]);
+    // The master keeps its own paint and radius — this is the whole point of the override.
+    expect(st().doc.nodes[a]!.fills).not.toEqual([paint]);
+    expect(st().doc.nodes[a]!.cornerRadius).not.toBe(9);
+
+    // Each style edit is its own reversible op, the same granularity every other override key has:
+    // one undo takes the fill back and leaves the radius, a second takes the radius too.
+    st().undo();
+    expect(inst(instId).overrides[a]).toEqual({ cornerRadius: 9 });
+    st().undo();
+    expect(inst(instId).overrides[a]).toBeUndefined();
+  });
+
+  it('a negative radius lands as a square corner, and a style patch on a non-instance is a no-op', () => {
+    const { a, instId } = madeOneComponent();
+    st().setInstanceOverride(instId, a, { cornerRadius: -4 });
+    expect(inst(instId).overrides[a]).toEqual({ cornerRadius: 0 });
+
+    const before = st().doc;
+    st().setInstanceOverride(a, a, { cornerRadius: 5 });
+    expect(st().doc, 'a rectangle is not an instance, so nothing was committed').toBe(before);
+  });
 });
 
 describe('store: rotation', () => {

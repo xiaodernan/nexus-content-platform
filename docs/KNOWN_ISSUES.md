@@ -14,7 +14,7 @@ Live list. Nothing here is hidden behind marketing copy.
   AI-diff and local export (JSON / standalone HTML / canvas PNG) are all functional. This
   pass adds **on-canvas text editing, magnetic snapping + smart guides, multi-page
   add/switch, local-first persistence with a History/Snapshots panel** (ADR 0014), and
-  **component → instance authoring** (create/insert/detach + per-instance text/width overrides, ADR 0015)
+  **component → instance authoring** (create/insert/detach + per-instance text/width/fill/radius overrides, ADR 0015)
   and **instance sub-selection** (drill-in clone move/resize/text via x/y-delta + text overrides).
   The AI-diff card now pairs its semantic counts with **before/after thumbnails** (`lib/thumbnail.ts`).
   These are deterministic SVG snapshots from `layoutPage` + token resolution — model-derived geometry,
@@ -46,9 +46,12 @@ Live list. Nothing here is hidden behind marketing copy.
   **Clone rotation now works too** (ADR 0015 amendment 3): a `rotation` override (degrees, local to
   the instance's own angle — the projection bake composes them)
   plus the rotate grip on a focused clone, and a Rotation input per row of the *Instance overrides*
-  panel. Remaining gaps: per-instance geometry override
-  beyond x/y/width/height/rotation (fills/radius editable only via detach), and a dedicated off-page
-  "library" container.
+  panel. **Per-instance style overrides now work too** (ADR 0015 amendment 4): each row of that panel
+  carries a Fill swatch and a Radius input, so a leaf's `fills` (replaced whole — the swatch writes one
+  solid paint over `fills[0]` and keeps the tail) and `cornerRadius` are editable per instance, one
+  reversible op each, never touching the master. Remaining gaps: per-instance override of `opacity`,
+  `strokes`, `effects` and text *style* (only `characters` is), plus a dedicated off-page "library"
+  container.
 - **Sub-selection caveats:** the focused instance is studio-local view state (like active page —
   *not* persisted, *not* undoable; deliberate, ADR 0014). While a clone is selected the Properties
   panel shows nothing for it (it reads canonical nodes; clones have none — the chip + on-canvas

@@ -26,6 +26,7 @@ import {
   type InstanceNode,
   type Op,
   type OpBatch,
+  type Paint,
   type Point,
 } from '@nexus/design-model';
 import { ModelRouter } from '@nexus/ai-providers';
@@ -139,7 +140,7 @@ interface StudioState {
   setInstanceOverride: (
     instanceId: string,
     masterId: string,
-    patch: { x?: number; y?: number; width?: number; height?: number; visible?: boolean; rotation?: number; characters?: string },
+    patch: { x?: number; y?: number; width?: number; height?: number; visible?: boolean; rotation?: number; characters?: string; cornerRadius?: number; fills?: Paint[] },
   ) => void;
 
   setInteraction: (i: Interaction) => void;
@@ -637,7 +638,7 @@ export const useStudio = create<StudioState>((set, get) => ({
     const n = doc.nodes[instanceId];
     if (!n || n.type !== 'instance') return;
     const next: InstanceNode['overrides'] = { ...n.overrides };
-    const geom: { x?: number; y?: number; width?: number; height?: number; visible?: boolean; rotation?: number } = { ...(next[masterId] ?? {}) };
+    const geom: { x?: number; y?: number; width?: number; height?: number; visible?: boolean; rotation?: number; cornerRadius?: number; fills?: Paint[] } = { ...(next[masterId] ?? {}) };
     let touched = false;
     if (patch.x !== undefined) { geom.x = Math.round(patch.x); touched = true; }
     if (patch.y !== undefined) { geom.y = Math.round(patch.y); touched = true; }
@@ -645,8 +646,11 @@ export const useStudio = create<StudioState>((set, get) => ({
     if (patch.height !== undefined) { geom.height = Math.round(Math.max(1, patch.height)); touched = true; }
     if (patch.visible !== undefined) { geom.visible = patch.visible; touched = true; }
     if (patch.rotation !== undefined) { geom.rotation = Math.round(patch.rotation); touched = true; }
+    // Radius clamps at 0 rather than 1: a square corner is a value, not an absence (unlike width).
+    if (patch.cornerRadius !== undefined) { geom.cornerRadius = Math.round(Math.max(0, patch.cornerRadius)); touched = true; }
+    if (patch.fills !== undefined) { geom.fills = [...patch.fills]; touched = true; }
     if (!touched) {
-      const isEmpty = geom.x === undefined && geom.y === undefined && geom.width === undefined && geom.height === undefined && geom.visible === undefined && geom.rotation === undefined;
+      const isEmpty = geom.x === undefined && geom.y === undefined && geom.width === undefined && geom.height === undefined && geom.visible === undefined && geom.rotation === undefined && geom.cornerRadius === undefined && geom.fills === undefined;
       if (isEmpty) delete next[masterId];
     } else {
       next[masterId] = geom;
