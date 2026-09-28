@@ -1,4 +1,4 @@
-# @nexus/three-runtime — evidence for v108 (host seams), v114 (character controller), v115 (the entity save format), v116 (the scene's physics world), v117 (the cinematic sequence), v118 (the save that reads it back), v119 (the file it survives on disk), v120 (the bytes, through a store) and v121 (the id comes back)
+# @nexus/three-runtime — evidence for v108 (host seams), v114 (character controller), v115 (the entity save format), v116 (the scene's physics world), v117 (the cinematic sequence), v118 (the save that reads it back), v119 (the file it survives on disk), v120 (the bytes, through a store), v121 (the id comes back) and v122 (a save taken back)
 
 This directory records the 3D runtime lane (ROADMAP M5). Every claim here is read back out of the
 shipped source and the package's own vitest suite — `packages/three-runtime/src/*.ts` and
@@ -719,3 +719,72 @@ is not allowed to keep saying something that stopped being true in a previous co
 Next: the removal makes a *whole-game* load reversible, which is the last excuse the file layer had for not
 having a delete — a `deleteSaveFile(path)` on the store seam is now the smallest honest gap, then the four
 blocked `SaveData` halves that need a subsystem, then collision geometry.
+## v122 — the store learns to take a save back: `deleteSaveFile`, a no-op that answers `false`, and a host that cannot delete saying so instead of succeeding
+
+v120 wrote the seam and its own record said what it lacked: "no delete, no list and no atomic rename". v121
+removed the last reason a delete would be unsafe — a load that fails partway now takes back both halves, so a
+save file is the only artifact in this lane that could still outlive the decision to discard it. v122 adds the
+delete, and the two interesting questions are what a no-op means and what a missing capability means.
+
+| what | measured |
+| --- | --- |
+| suites | `test/saveSnapshot.test.ts` 69 cases, `test/cinematicSequence.test.ts` 78, package total **245** (69 save + 39 controller + 78 cinematic + 30 physics + 29 runtime), `tsc --noEmit` exit 0 on `src` |
+| seam | `SaveStore.delete(path): boolean`; `FsLike` grows an **optional** `unlinkSync`, because the shim that made this seam worth having (a `localStorage`-shaped host, v120) may not be able to delete |
+| no-op | deleting a path that holds nothing returns `false` — the same answer shape as `removeCinematic` and `stopCinematic`, so "there was nothing there" reads identically across the package instead of being an exception in one corner and a boolean in another |
+| missing capability | an `fs` host without `unlinkSync` **throws**, naming both the missing method and the fact that the save is still there. A `delete` that reported `true` on a host that cannot delete is the lie this whole lane is built to catch, and the case asserts the bytes are still readable afterwards |
+| confinement | the fs store resolves through `at(path)` before anything else, so `delete('../outside.json')` is refused by `resolveSavePath` and the case asserts the host's `unlinkSync` was never called |
+| pair agreement | after a successful delete, `readSaveFile` on the same path produces the "no save file at" refusal — the two methods must describe one world, and a delete the reader does not honour is a delete that did not happen |
+| runtime | `deleteSaveFile(path)` → `{path, store, removed}`, emits `saveFileDeleted`; a runtime built without a store refuses, and deleting a file leaves the live scene untouched (one entity still in it) |
+
+Three things worth the sentence it costs.
+
+* **`false` is the answer, not the error.** Three separate APIs in this package now say "there was nothing to
+  remove" the same way, which matters because the alternative — throwing — teaches callers to wrap a question in
+  a try/catch and to treat an idempotent operation as a failure.
+* **An optional method on an injected interface is a capability question, and it has to be asked where the
+  caller can hear it.** The alternative designs were all worse: a `delete` that silently no-ops (a lie), one
+  that throws a `TypeError` from inside the host (a message about the shim's internals — exactly the mistake
+  v118 found in `getLength()`), or a required `unlinkSync` that would have made `localStorage` hosts unable to
+  build a store at all.
+* **Deleting is not undoing the game.** The case that loads a file, deletes it and then counts the scene's
+  entities is there because "delete save" and "reset session" are two operations, and this one is the first.
+
+### How the probe ran, and what it said
+
+The probe is `mutate-v122.mjs (scratch)`: 7 arms across the seam (`saveStore.ts`) and the runtime method
+(`threeRuntime.ts`) — anchors verified to match exactly once before anything ran, each arm's minimum red
+written down in the script first, the control fixing the population at **147** with 0 red, both files
+restored byte-for-byte in a `finally`. Reds per arm, in order: 1, 1, 1, 1, 1, 2, 2. No arm survived.
+No arm reddened fewer than claimed. 2 of the 7 arms reddened MORE than written down for them (06-runtime-delete-without-a-store-pretends: 1→2, 07-delete-event-renamed: 1→2). The whole package was measured separately at **245** with 0 red and
+`tsc --noEmit` exited 0 over `src`.
+
+Five of the seven arms aim at the two decisions this grant was actually about: making `delete` report success
+for a path that held nothing, making it forget to remove, skipping the `unlinkSync` capability check, treating
+an absent path as present, and bypassing `resolveSavePath` so an escaping name reaches the host. Each is caught
+by exactly the case that pins that decision, which is the pairing this lane wants — a clause with one witness,
+not a behaviour covered by three unrelated assertions. The remaining two (a missing-store refusal turned into a
+crash, and the `saveFileDeleted` event renamed) are the runtime-side mirrors of v120's arms.
+
+### What v122 still does NOT honor — stated by name
+
+* The store has no list and no atomic rename, so there is no "most recent save", and a half-written file is
+  still only refused, never repaired. `delete` is not `rename`, and neither is a backup.
+* Deleting does not touch what a load installed: sequences, entities and cameras stay where they are —
+  `clearCinematics`/`removeEntity` are the tools for that, and they are in-memory operations.
+* `deleteSaveFile` cannot distinguish "absent" from "present but unreadable" beyond what `existsSync` says; a
+  host that lies about existence will produce a `false` that was not earned.
+* `npcs`, `quests`, `player`, `worldState` and `sceneGraph` remain blocked on systems that do not exist;
+  removal still does not move a camera it had aimed; there is no Studio surface for any of this.
+
+### Sentences this record retires
+
+* v120's README, "What v120 still does NOT honor" and "Next": *"the store has no delete…"* and *"`deleteSaveFile`
+  … needs no new shape"* — the shape arrived, and the sentence it was waiting for is now retired in place.
+* v121's README next-step line, same wording.
+* ROADMAP M5, honest bounds: *"the store has no delete, no list and no atomic rename"*. Swapped by the edit
+  that added this section; what the cell now says is that a save can be taken back and still cannot be listed
+  or renamed atomically.
+
+Next: `listSaves()` — the seam still cannot say what is in it, which is the first thing a save-picker needs and
+the last of the three gaps v120 named; then the four blocked `SaveData` halves that need a subsystem, then
+collision geometry.

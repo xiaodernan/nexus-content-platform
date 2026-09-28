@@ -16,11 +16,15 @@
  *   would be two owners of one safety claim, and the interesting one of them would be the one nobody tested.
  */
 
-/** The slice of a filesystem this seam needs. Deliberately small enough that `localStorage` can implement it. */
+/** The slice of a filesystem this seam needs. Deliberately small enough that `localStorage` can implement it —
+ *  and `unlinkSync` is OPTIONAL, because the shim that made this seam worth having (v120's browser case) cannot
+ *  always delete: a store built over such an fs reports the missing capability instead of pretending the save
+ *  is gone. */
 export interface FsLike {
   writeFileSync(path: string, data: string): void;
   readFileSync(path: string): string;
   existsSync(path: string): boolean;
+  unlinkSync?(path: string): void;
 }
 
 /** Where a save file goes and how it comes back. Sync, because the rest of the runtime is. */
@@ -33,6 +37,11 @@ export interface SaveStore {
   /** Whether anything is stored at `path`. `read` answers this too; this exists so a caller can ask without
    *  pulling bytes across the seam. */
   exists(path: string): boolean;
+  /** Take the save back. `true` when something was deleted, `false` when the path held nothing — the same
+   *  shape as `removeCinematic`'s answer, because "there was nothing there" is a fact and not an error.
+   *  Throws when the injected host cannot delete: a store that reported success it could not perform would be
+   *  the exact lie this seam exists to prevent. */
+  delete(path: string): boolean;
 }
 
 /**
@@ -73,6 +82,12 @@ export function createMemorySaveStore(): SaveStore & { paths(): string[]; bytes(
     exists(path) {
       return files.has(resolveSavePath(path));
     },
+    delete(path) {
+      const target = resolveSavePath(path);
+      const had = files.has(target);
+      files.delete(target);
+      return had;
+    },
     paths() {
       return [...files.keys()].sort();
     },
@@ -107,6 +122,15 @@ export function createFsSaveStore(fs: FsLike, root: string): SaveStore {
     },
     exists(path) {
       return fs.existsSync(at(path));
+    },
+    delete(path) {
+      const target = at(path);
+      if (!fs.existsSync(target)) return false;
+      if (typeof fs.unlinkSync !== 'function') {
+        throw new Error(`saveStore: the injected fs has no unlinkSync, so "${path}" cannot be taken back from "${trimmed}"; it reports false for nothing — the save is still there`);
+      }
+      fs.unlinkSync(target);
+      return true;
     },
   };
 }

@@ -466,6 +466,14 @@ export interface SaveFileReadReport extends SaveFileLoadReport {
   bytes: number;
 }
 
+/** What `deleteSaveFile` answers. `removed: false` means the path held nothing — see the method for why that
+ *  is an answer rather than an error. */
+export interface SaveFileDeleteReport {
+  path: string;
+  store: string;
+  removed: boolean;
+}
+
 /** What `controllerFieldAudit` answers. The `untouched` list is the honesty surface — a field declared
  *  on `CharacterController` but never implemented shows up there BY NAME instead of being ignored in
  *  silence. `slopeLimit` and `stepOffset` are in it today: both need collision geometry this package
@@ -1283,6 +1291,20 @@ export class ThreeRuntime {
    *  that asks whether saves persist deserves the same object the runtime writes through. */
   saveStore(): SaveStore | null {
     return this.storage ?? null;
+  }
+
+  /**
+   * Take a save back. `removed: false` is a real answer, not a failure — the path held nothing — and it is the
+   * same shape `removeCinematic` and `stopCinematic` use, so "there was nothing there" reads the same way in
+   * every part of this package. What a store cannot do it says out loud: an injected fs with no `unlinkSync`
+   * throws rather than reporting a delete that never happened.
+   */
+  deleteSaveFile(path: string): SaveFileDeleteReport {
+    if (!this.storage) throw new Error(`deleteSaveFile: this runtime has no SaveStore — create it with { storage }, or delete the bytes yourself`);
+    const removed = this.storage.delete(path);
+    const report: SaveFileDeleteReport = { path, store: this.storage.kind, removed };
+    this.emit('saveFileDeleted', report);
+    return report;
   }
 
   /**

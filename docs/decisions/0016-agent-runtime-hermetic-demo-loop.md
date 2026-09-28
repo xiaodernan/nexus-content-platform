@@ -5747,3 +5747,48 @@ entity record still carries no scene address, which is `SaveData`'s problem, not
 `deleteSaveFile` on the seam (removal made a whole-game load reversible, so the file layer no longer has an
 excuse for not being able to take a save back), then the four blocked halves that need a subsystem, then
 collision geometry for `slopeLimit`/`stepOffset`/`broadphase`/`solverIterations`.
+### Amendment 122 — v122: the store takes a save back — `deleteSaveFile`, a no-op that answers `false`, and an injected host that cannot delete saying so rather than succeeding
+
+v120 built the storage seam and wrote its own limits into the record: "no delete, no list and no atomic
+rename". v121 made the first of those safe — once a failed load could take back the sequences it had restored,
+the only thing left that could outlive a decision to discard it was the file itself. v122 deletes the last
+sentence by deleting the file, and the two decisions it had to make are the two this lane keeps being asked.
+
+**What a no-op means.** `delete(path)` answers `false` when the path held nothing. That is `stopCinematic`'s
+answer and `removeCinematic`'s answer, and the reason all three look alike is that "there was nothing there"
+is a question about the world with a boolean answer, not a request that failed. A throw would teach every caller
+to wrap an idempotent operation in try/catch, and an idempotent operation that cannot be retried silently is a
+worse API than one that can.
+
+**What a missing capability means.** `FsLike` grows `unlinkSync` as an OPTIONAL method — the seam exists so a
+`localStorage`-shaped host can implement it (v120's whole reason for existing), and requiring the method would
+have priced those hosts out. An fs store built over a host that cannot delete therefore **throws**, naming both
+the method and the fact that the save is still there, and the case reads the bytes back afterwards to prove the
+throw is true. The rejected alternatives are worth writing down because each is a mistake this lane has already
+paid for: returning `true` (the lie), calling `fs.unlinkSync` and letting a `TypeError` escape (a message about
+the host's internals rather than the caller's problem — v118's `getLength()` lesson), or making the method
+required (a shim that cannot build a store at all).
+
+**Confinement and agreement.** The fs store resolves the path through `at()`, which calls `resolveSavePath`,
+before touching the host, so `delete('../outside.json')` is refused and the case asserts `unlinkSync` was never
+called — a security boundary that fires after the effect is not a boundary. The other half is the pair the seam
+has to keep consistent: after a successful delete, `readSaveFile` on the same path produces v120's "no save
+file at" refusal, so `delete` and `read` describe one world rather than two opinions about it.
+
+Runtime side: `deleteSaveFile(path)` → `{path, store, removed}`, emits `saveFileDeleted`, refuses a runtime
+with no store, and — the part worth a test on its own — leaves the live scene exactly as it was. Deleting a save
+is not resetting a game; `clearCinematics`/`removeEntity` are the in-memory tools and they are still separate
+on purpose.
+
+Measured: `test/saveSnapshot.test.ts` is 69 cases and `test/cinematicSequence.test.ts` 78,
+package total **245** (69 save + 39 controller + 78 cinematic + 30 physics + 29 runtime), `tsc --noEmit` exit 0 on `src`. The probe ran 7 arms
+across the seam and the runtime method against an unmutated control of **147 collected / 0 red**, with each
+arm's minimum red written down beforehand, every arm collecting the full population, and both files restored
+byte-for-byte. Reds: 1, 1, 1, 1, 1, 2, 2. No arm survived. No arm reddened fewer than claimed. 2 of the 7 arms reddened MORE than written down for them (06-runtime-delete-without-a-store-pretends: 1→2, 07-delete-event-renamed: 1→2).
+
+What v122 does not do, stated by name: the store still cannot list what it holds and has no atomic rename, so
+there is no "most recent save" and a half-written file is refused rather than repaired; deleting a file does
+not undo anything a load installed; `deleteSaveFile` trusts `existsSync`, and a host that lies about existence
+earns a `false` it did not deserve. Next, in order: `listSaves()` — the last of v120's three named gaps and the
+first thing a save picker needs — then `npcs`/`quests`/`player`/`worldState`, then collision geometry, which is
+also what `slopeLimit`, `stepOffset`, `broadphase` and `solverIterations` are waiting on.

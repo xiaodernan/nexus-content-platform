@@ -1125,3 +1125,82 @@ describe('a save FILE: it survives the disk, and the loader refuses what it cann
     expect(shape).not.toMatch(/THREE\./);
   });
 });
+
+/**
+ * M5 v122 — the store learns to take a save back. v120 shipped `write`/`read`/`exists` and its own record said
+ * the seam "has no delete, no list and no atomic rename"; v121 removed the last reason a delete would be unsafe
+ * (a load is now reversible end to end, so a save file is the only thing left that can outlive a decision).
+ * The two decisions worth pinning are the shape of a no-op and the honesty of a missing capability.
+ */
+describe('deleteSaveFile: a save can be taken back, and a store that cannot says so', () => {
+  /** A scene with one entity, written to a path, in a runtime that has a store. */
+  function written(path = 'saves/one.json') {
+    const store = createMemorySaveStore();
+    const rt = runtimeWithStore(store);
+    const sceneId = rt.createScene('World').id;
+    rt.setActiveScene(sceneId);
+    withEntityIn(rt, sceneId);
+    rt.writeSaveFile(path, sceneId, 1);
+    return { store, rt, sceneId, path };
+  }
+
+  it('deleting a written save makes the next read say there is no file at that path', () => {
+    const { store, rt, path } = written();
+    expect(store.exists(path)).toBe(true);
+    const deleted: object[] = [];
+    rt.addEventListener('saveFileDeleted', (d) => deleted.push(d));
+    expect(rt.deleteSaveFile(path)).toEqual({ path, store: 'memory', removed: true });
+    expect(deleted).toEqual([{ path, store: 'memory', removed: true }]);
+    expect(store.exists(path)).toBe(false);
+    // The two methods have to agree: a delete the reader does not honour is a delete that did not happen.
+    expect(() => rt.readSaveFile(path, 'anything' as SceneId)).toThrow(/no save file at "saves\/one.json" in the memory store/);
+    rt.dispose();
+  });
+
+  it('a path that held nothing answers removed:false, and leaves the other saves alone', () => {
+    const { store, rt, path } = written();
+    store.write('saves/other.json', '{}');
+    expect(rt.deleteSaveFile('saves/ghost.json')).toEqual({ path: 'saves/ghost.json', store: 'memory', removed: false });
+    expect(store.read('saves/other.json')).toBe('{}');
+    expect(store.exists(path), 'a no-op delete removed nothing else').toBe(true);
+    rt.dispose();
+  });
+
+  it('an injected fs with no unlinkSync refuses the delete instead of reporting one that never happened', () => {
+    const files = new Map<string, string>([['saves/root/saves/two.json', '{}']]);
+    const host: FsLike = {
+      writeFileSync: (p, data) => { files.set(p, data); },
+      readFileSync: (p) => files.get(p) ?? '',
+      existsSync: (p) => files.has(p),
+    };
+    const fsStore = createFsSaveStore(host, 'saves/root');
+    expect(fsStore.read('saves/two.json')).toBe('{}');
+    expect(() => fsStore.delete('saves/two.json')).toThrow(/injected fs has no unlinkSync/);
+    expect(fsStore.read('saves/two.json'), 'a refused delete changed nothing').toBe('{}');
+  });
+
+  it('a host that can delete removes the joined path, and an escaping name is refused before it is touched', () => {
+    const unlinked: string[] = [];
+    const files = new Map<string, string>([['saves/root/saves/three.json', '{}']]);
+    const host: FsLike = {
+      writeFileSync: (p, data) => { files.set(p, data); },
+      readFileSync: (p) => files.get(p) ?? '',
+      existsSync: (p) => files.has(p),
+      unlinkSync: (p) => { unlinked.push(p); files.delete(p); },
+    };
+    const fsStore = createFsSaveStore(host, 'saves/root/');
+    expect(fsStore.delete('saves/three.json')).toBe(true);
+    expect(unlinked).toEqual(['saves/root/saves/three.json']);
+    expect(fsStore.delete('saves/three.json'), 'a second delete is a no-op, not an error').toBe(false);
+    expect(() => fsStore.delete('../outside.json')).toThrow(/saveStore:/);
+    expect(unlinked, 'a refused path never reached the host').toEqual(['saves/root/saves/three.json']);
+  });
+
+  it('a runtime with no store refuses to delete, and a delete never disturbs the live scene', () => {
+    expect(() => runtime.deleteSaveFile('saves/x.json')).toThrow(/has no SaveStore/);
+    const { rt, sceneId } = written();
+    expect(rt.deleteSaveFile('saves/one.json').removed).toBe(true);
+    expect(rt.getScene(sceneId)!.entities.size, 'taking back the file is not taking back the game').toBe(1);
+    rt.dispose();
+  });
+});
