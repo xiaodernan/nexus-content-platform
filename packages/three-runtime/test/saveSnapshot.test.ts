@@ -1625,6 +1625,7 @@ describe('atomic save writes: a reader sees the old save or the new one, never a
     expect(report.unloadable.map((entry) => entry.path)).toEqual(['future.json']);
     expect(report.unloadable[0].carriedButUnreadableHere).toEqual(['quests']);
     expect(report.unreadable.map((entry) => entry.path)).toEqual(['junk.json']);
+    expect(report.unreadable.map((entry) => entry.reason)).toEqual(['not-json']);
     // The partition claim, checked as a claim: three names, none of them in two buckets.
     const names = [
       ...report.loadable.map((entry) => entry.path),
@@ -1660,6 +1661,29 @@ describe('atomic save writes: a reader sees the old save or the new one, never a
     expect(lf.length, 'the baseline parse found nothing — the gate is reading an empty population').toBeGreaterThan(3);
     expect(annotations(crlf)).toEqual([]);
     expect(annotations(crlf.replace(/\r\n/g, '\n'))).toEqual(lf);
+  });
+
+  it('a name the store lists but cannot return is reported as listed-then-missing', () => {
+    // The second situation the survey can observe for itself. A stub store makes it deterministic instead of
+    // racing a real host — a listing that goes stale on its own is not something a test should try to time.
+    const ghost: SaveStore = {
+      kind: 'memory',
+      write: () => { throw new Error('unused by this case'); },
+      writeAtomic: () => { throw new Error('unused by this case'); },
+      read: () => null,
+      exists: () => false,
+      delete: () => false,
+      list: () => ['gone.json'],
+    };
+    const rt = runtimeWithStore(ghost);
+    const report = rt.diagnoseSaveFiles();
+    expect(report.total).toBe(1);
+    expect(report.unreadable).toHaveLength(1);
+    expect(report.unreadable[0].path).toBe('gone.json');
+    expect(report.unreadable[0].reason).toBe('listed-then-missing');
+    expect(report.loadable).toEqual([]);
+    expect(report.unloadable).toEqual([]);
+    rt.dispose();
   });
 
   it('a file whose claims are the wrong shape is diagnosed unloadable, because the loader refuses it', () => {

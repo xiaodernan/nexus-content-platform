@@ -1515,18 +1515,27 @@ export class ThreeRuntime {
     total: number;
     loadable: SaveFileDiagnosis[];
     unloadable: SaveFileDiagnosis[];
-    unreadable: { path: string; why: string }[];
+    unreadable: { path: string; reason: 'not-json' | 'listed-then-missing'; why: string }[];
   } {
     if (!this.storage) throw new Error('diagnoseSaveFiles: this runtime has no SaveStore — create it with { storage }');
     const loadable: SaveFileDiagnosis[] = [];
     const unloadable: SaveFileDiagnosis[] = [];
-    const unreadable: { path: string; why: string }[] = [];
+    const unreadable: { path: string; reason: 'not-json' | 'listed-then-missing'; why: string }[] = [];
     for (const path of this.storage.list()) {
+      // The reason is decided by WHICH check failed, not by reading an error sentence back: the survey does its
+      // own read, so "nothing came back" and "bytes that are not JSON" are two situations it observes itself.
+      // A caller forced to string-match a message to branch is a caller whose branch breaks the moment the
+      // wording improves — which is the fragility this field exists to remove.
+      const contents = this.storage.read(path);
+      if (contents === null) {
+        unreadable.push({ path, reason: 'listed-then-missing', why: 'listed by the store, but nothing was read back when the survey reached it' });
+        continue;
+      }
       try {
         const diagnosis = this.diagnoseSaveFile(path);
         (diagnosis.loadable ? loadable : unloadable).push(diagnosis);
       } catch (error) {
-        unreadable.push({ path, why: (error as Error).message });
+        unreadable.push({ path, reason: 'not-json', why: (error as Error).message });
       }
     }
     return {
