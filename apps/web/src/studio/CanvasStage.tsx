@@ -1,7 +1,7 @@
 'use client';
 
-import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
-import { boundsOf, visiblePaintOrder } from '@nexus/design-model';
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties, memo } from 'react';
+import { boundsOf, visiblePaintOrder, type ResolvedNode } from '@nexus/design-model';
 import { studio, useStudio } from './store';
 import { nodeStyle } from './render';
 import { AnnotationsPanel } from './AnnotationsPanel';
@@ -45,6 +45,89 @@ interface Preview {
 
 const SNAP_PX = 6;
 const GRID_STEP = 8;
+
+interface NodeRenderProps {
+  resolved: ResolvedNode;
+  tokens: ReturnType<typeof useStudio>['tokens'];
+  mode: string | null;
+  assets: ReturnType<typeof useStudio>['assetContext'];
+  moved: { dx: number; dy: number } | null;
+  resized: { x: number; y: number; width: number; height: number } | null;
+  isRoot: boolean;
+  isLocked: boolean;
+  editing: { nodeId: string; value: string } | null;
+}
+
+/** Memoized node renderer: 只有位置/尺寸/样式上下文/拖拽预览/编辑态变化才重渲染 */
+const Node = memo(function NodeComponent({
+  resolved,
+  tokens,
+  mode,
+  assets,
+  moved,
+  resized,
+  isRoot,
+  isLocked,
+  editing,
+}: NodeRenderProps) {
+  const ctx = useMemo(() => ({ tokens, mode, assets }), [tokens, mode, assets]);
+  const style = useMemo(() => {
+    const baseStyle = nodeStyle(resolved, ctx);
+    const s: CSSProperties = {
+      ...baseStyle,
+      userSelect: 'none',
+      ...(isRoot ? { boxShadow: 'none' } : {}),
+      ...(moved ? { transform: `translate(${moved.dx}px, ${moved.dy}px)` } : {}),
+      ...(resized ? { left: resized.x, top: resized.y, width: resized.width, height: resized.height } : {}),
+      ...(isLocked ? { outline: '1px dashed var(--nexus-color-warn)', outlineOffset: '-1px' } : {}),
+    };
+    if (editing?.nodeId === resolved.id) return { ...s, visibility: 'hidden' as React.CSSProperties['visibility'] };
+    return s;
+  }, [resolved, ctx, moved, resized, isRoot, isLocked, editing?.nodeId]);
+
+  return (
+    <div
+      data-node-id={resolved.id}
+      data-node-type={resolved.node.type}
+      style={style}
+    >
+      {resolved.node.text ?? null}
+    </div>
+  );
+}, (prev, next) => {
+  if (prev.resolved.id !== next.resolved.id) return false;
+  if (prev.resolved.x !== next.resolved.x) return false;
+  if (prev.resolved.y !== next.resolved.y) return false;
+  if (prev.resolved.width !== next.resolved.width) return false;
+  if (prev.resolved.height !== next.resolved.height) return false;
+  if (prev.resolved.node.locked !== next.resolved.node.locked) return false;
+  if (prev.resolved.node.visible !== next.resolved.node.visible) return false;
+  if (prev.resolved.node.style.opacity !== next.resolved.node.style.opacity) return false;
+  if (prev.resolved.node.style.cornerRadius !== next.resolved.node.style.cornerRadius) return false;
+  if (prev.resolved.node.style.fills !== next.resolved.node.style.fills) return false;
+  if (prev.resolved.node.style.strokes !== next.resolved.node.style.strokes) return false;
+  if (prev.resolved.node.style.effects !== next.resolved.node.style.effects) return false;
+  if (prev.resolved.node.style.blendMode !== next.resolved.node.style.blendMode) return false;
+  if (prev.resolved.node.style.rotation !== next.resolved.node.style.rotation) return false;
+  if (prev.resolved.node.style.cursor !== next.resolved.node.style.cursor) return false;
+  if (prev.resolved.node.style.overflowX !== next.resolved.node.style.overflowX) return false;
+  if (prev.resolved.node.style.overflowY !== next.resolved.node.style.overflowY) return false;
+  if (prev.resolved.node.layout.scroll !== next.resolved.node.layout.scroll) return false;
+  if (prev.resolved.node.typography !== next.resolved.node.typography) return false;
+  if (prev.resolved.node.style.textWrap !== next.resolved.node.style.textWrap) return false;
+  if (prev.resolved.node.style.cornerRadius !== next.resolved.node.style.cornerRadius) return false;
+  if (prev.tokens !== next.tokens) return false;
+  if (prev.mode !== next.mode) return false;
+  if (prev.assets !== next.assets) return false;
+  if (prev.moved !== next.moved) return false;
+  if (prev.resized !== next.resized) return false;
+  if (prev.isRoot !== next.isRoot) return false;
+  if (prev.isLocked !== next.isLocked) return false;
+  if (prev.editing?.nodeId !== next.editing?.nodeId) return false;
+  return true;
+});
+
+Node.displayName = 'Node';
 
 /** §8 Canvas：无限画布 + zoom/pan + 选择/框选 + 拖拽 + 8 手柄缩放 + 吸附/网格 + viewport 预览 */
 export function CanvasStage() {
@@ -416,25 +499,21 @@ export function CanvasStage() {
         {visible.ids.map((id) => {
           const resolved = layout.nodes[id];
           if (!resolved || editing?.nodeId === id) return null;
-          const style = nodeStyle(resolved, ctx);
           const moved = preview.move?.nodeId === id ? preview.move : null;
           const resized = preview.resize?.nodeId === id ? preview.resize.box : null;
           return (
-            <div
+            <Node
               key={id}
-              data-node-id={id}
-              data-node-type={resolved.node.type}
-              style={{
-                ...style,
-                userSelect: 'none',
-                ...(id === layout.rootId ? { boxShadow: 'none' } : {}),
-                ...(moved ? { transform: `translate(${moved.dx}px, ${moved.dy}px)` } : {}),
-                ...(resized ? { left: resized.x, top: resized.y, width: resized.width, height: resized.height } : {}),
-                ...(resolved.node.locked ? { outline: '1px dashed var(--nexus-color-warn)', outlineOffset: '-1px' } : {}),
-              }}
-            >
-              {resolved.node.text ?? null}
-            </div>
+              resolved={resolved}
+              tokens={state.tokens}
+              mode={state.activeMode}
+              assets={state.assetContext}
+              moved={moved}
+              resized={resized}
+              isRoot={id === layout.rootId}
+              isLocked={resolved.node.locked}
+              editing={editing}
+            />
           );
         })}
       </div>
