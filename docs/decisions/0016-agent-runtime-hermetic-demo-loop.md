@@ -6748,3 +6748,25 @@ section v140 and `docs/evidence/agents/README.md`; this is the ledger entry._
   door, and it is not registered in any default roster — a host must call `registerSceneTools` with a
   driver it built. Nothing in the Studio imports it either, so M5's product face is still open; what is
   closed is that the lane has no consumer at all.
+
+### Amendment 140 addendum — the doc gate could not tell a dropped test FILE from a missing one, so it now runs vitest the way this host needs
+
+Found while landing 140, and it is the same class of fault the lane keeps recording: a red that is the
+HOST's noise wearing the shape of a defect.
+
+`table-recount-proof.mjs` exists to compare HEAD's test-file ownership against the files a vitest run
+actually produced. It invoked vitest with the default parallel pool. On this host that pool is
+handle-starved and **silently drops files**: measured with `--reporter=json`, `agents/exec-host` reported
+**4 of its 8 files** with `gitTools.test.ts` among the missing, and the same suite reports 8/8 with
+`--no-file-parallelism`. The proof therefore went red with *"HEAD owns this test file and the run produced
+NO results for it"* — a sentence that reads as a missing test file and was in fact a dropped one. The flag
+is now part of the row's argv, with the measurement and the reason written beside it.
+
+The cost is wall time and it is stated rather than hidden: a gate whose reds cannot be told apart from the
+host's own noise is not a gate. Verified green after the change — **704 tracked cases in 39 files** across
+the two packages, every table row matching its file, both prose totals matching their row sums, and the
+newest grant (140) carrying a title.
+
+This is also why the number `140` appears in the mutation arm's own report: the proof refuses a ledger whose
+newest grant is untitled, and it proves that refusal is a real condition by renumbering the heading and
+watching the hole move.

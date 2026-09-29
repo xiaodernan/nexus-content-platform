@@ -197,7 +197,18 @@ for (const pkg of PKGS) {
   try {
     execFileSync(
       process.execPath,
-      ['node_modules/vitest/vitest.mjs', 'run', '--root', pkg.root, '--reporter=json', `--outputFile=${out}`],
+      [
+        'node_modules/vitest/vitest.mjs', 'run', '--root', pkg.root,
+        // M5 v141 — `--no-file-parallelism` is LOAD-BEARING for this row, and measured rather than
+        // preferred. This proof's whole job is to compare HEAD's test-file ownership against the files
+        // a run actually produced, so a pool that silently drops files turns a healthy suite into a
+        // FALSE "HEAD owns this file and the run produced NO results" red. Measured on this host with
+        // the default pool: `agents/exec-host` reported **4 of its 8 files** (gitTools.test.ts among the
+        // missing), and the same suite reports 8/8 with this flag. The cost is wall time; the
+        // alternative is a gate whose reds cannot be told from the host's own noise.
+        '--no-file-parallelism',
+        '--reporter=json', `--outputFile=${out}`,
+      ],
       { encoding: 'utf8', timeoutMs: 240_000, maxBuffer: 64 * 1024 * 1024 },
     );
   } catch (e) {
