@@ -55,6 +55,16 @@ export {
   type BrowserState,
   type BrowserToolOptions,
 } from './browserTools.js';
+// M5 v140 — the first consumer of the 3D lane. A DRIVER SEAM, not a package import: this lane holds the
+// capability to compose and inspect a scene without holding a renderer.
+export {
+  registerSceneTools,
+  SCENE_TOOL_SPECS,
+  SCENE_ENTITY_KINDS,
+  type SceneDriver,
+  type SceneEntitySpec,
+  type SceneSummary,
+} from './sceneTools.js';
 export {
   runRoleChain,
   runRolePipeline,

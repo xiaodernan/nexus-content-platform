@@ -6695,3 +6695,56 @@ is the only case that exercises the broken shape; nothing outside this package i
 `@nexus/three-runtime`, so no consumer was ever broken by the hole and this repair prevents rather
 than mends a user-visible failure; and `src/index.ts` no longer states which names are public — the
 modules are the public surface now, so a name exported by a module is shipped.
+
+### Amendment 140 (M5 v140, agent-runtime) — the 3D lane gets its FIRST CONSUMER: a `scene.*` tool family over a driver seam, driven by the §28 gate, with the real package behind it
+
+_Numbering: 140 was free when this was written (`grep -n "^#\{2,3\} Amendment"` tops out at 139 and
+`git log --oneline -1` is the v138 landing). Full narrative in `docs/evidence/three-runtime/README.md`
+section v140 and `docs/evidence/agents/README.md`; this is the ledger entry._
+
+- **The bound this closes.** v139's own last words were *"nothing outside `@nexus/three-runtime` imports
+  it, so this prevents rather than mends; … the roadmap's M5 entry is still a runtime with tests, not a
+  feature a user can open."* v138 and v139 both wrote that sentence and both left it standing. This grant
+  closes the **agent** half of it: `agents/runtime` can now compose and inspect a 3D scene.
+- **A driver seam, not a package import.** `agents/runtime/src/sceneTools.ts` declares the narrow
+  `SceneDriver` it needs (`engine`, `createScene`, `addEntity`, `removeEntity`, `addCamera`,
+  `setActiveCamera`, `summarize`) and the HOST supplies the implementation — the shape `browserTools`
+  uses for `BrowserDriver`, and for the same reason: the agent lane holds the capability without holding
+  the renderer, and the family is testable without a GL context. **`agents/runtime` gains no dependency
+  on `@nexus/three-runtime`**, so the two lanes stay separable and no import cycle is created.
+  Methods may answer directly or with a promise (the `TreeReaper` precedent), so a driver that must await
+  a real renderer is not forced into a fake synchronous shape.
+- **Six doors, one of them read-class.** `scene.create`, `scene.entity.add`, `scene.entity.remove`,
+  `scene.camera.add`, `scene.camera.focus` are write-class and therefore behind the §28 checkpoint;
+  `scene.inspect` is `read` and asks none. The suite asserts the read count is EXACTLY ONE, because a
+  second read door would be a mutation that skipped the gate.
+- **Refusals are spoken by the side that knows the fact.** A missing `sceneId`/`name`/`kind` is named by
+  the argument reader; an unknown scene is named by the DRIVER ("no scene X is held by the Y driver");
+  an unknown `kind` lists the six declared ones rather than storing a word nothing reads; and a position
+  is **all three axes or none** — a partial triple is refused rather than defaulted, because defaulting
+  the missing axes would place a body somewhere no caller named. A body is only ever added to a scene
+  that exists, checked BEFORE the add, so a typo in an id is refused by this family rather than swallowed
+  by a driver that happens to create-or-append.
+- **§60: this family CANNOT be mistaken for a renderer, and that is asserted rather than promised.** There
+  is no `scene.screenshot`, no door is even NAMED like one, and no description promises a picture — a door
+  that answered with one would be `browserTools`' `base64-screenshot-placeholder` defect in a new costume.
+  `scene.inspect` reports STRUCTURE (counts, names, the active camera) which is a claim this side can
+  check. The proof makes "the tools draw nothing" a MEASUREMENT: the real headless backend receives **0**
+  frames across every tool call, and the SAME backend receives 1 on `start()` and 2 after one scheduler
+  step — so the zero is a fact about the tools rather than about an idle backend. (The first draft of the
+  proof's own summary line said "2 frames drawn by the tools themselves", which was wrong and was
+  corrected in the same landing: the 2 came from the frame loop.)
+- **Evidence.** `agents/runtime/test/sceneTools.test.ts` **20 cases** against a recording fake (the
+  family's own rules), and `docs/evidence/agents/scene-tools-proof.mjs` — a RUNNABLE proof that wires the
+  **REAL** `ThreeRuntime` through the seam: §1 cross-checks every tool answer against the runtime's OWN
+  graph (the body really exists, at the position named), §2 the zero-frames measurement above, §3 one
+  refused write moves the graph by 0 and asks the gate 0 times while one approved write moves it by 1 and
+  asks once, §4 four refusals each naming its own fact with the runtime moved by 0 bodies, §5 this
+  repository's HEAD byte-identical. `agent-runtime` **409/409 → 429/429** (31 files),
+  `tsc -p agents/runtime/tsconfig.json` clean.
+- **Bounds (§60).** This is a COMPOSITION surface, not a game: it creates scenes, bodies and cameras and
+  reads them back. It does not render, it does not step the frame loop, it does not drive combat, physics,
+  controllers or cinematics (those exist in the package and have no door here yet), it has no save/load
+  door, and it is not registered in any default roster — a host must call `registerSceneTools` with a
+  driver it built. Nothing in the Studio imports it either, so M5's product face is still open; what is
+  closed is that the lane has no consumer at all.

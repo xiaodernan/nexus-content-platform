@@ -4,6 +4,17 @@ _Numbering note: v138 was AUTHORED before v139 and landed after it. The v139 sec
 live worktree it was written in and says so in its own words ("v138's in-flight names are in those
 bytes"), so the out-of-order landing is recorded rather than tidied away._
 
+**v140 — the FIRST CONSUMER (amendment 140).** Every section below ends with the same bound: *"nothing
+outside `@nexus/three-runtime` imports it … the roadmap's M5 entry is still a runtime with tests, not a
+feature a user can open."* v140 closes the **agent** half. `agents/runtime/src/sceneTools.ts` declares a
+narrow `SceneDriver` and a `scene.*` tool family over it, and the host supplies this package behind that
+seam — so the lane is consumed WITHOUT `agents/runtime` depending on `@nexus/three-runtime`, and the two
+stay separable. The family composes and inspects; it does not render, and it has no door that could be
+mistaken for a picture. Evidence lives in the agent lane: `agents/runtime/test/sceneTools.test.ts` (20
+cases) and the runnable `docs/evidence/agents/scene-tools-proof.mjs`, which wires the REAL `ThreeRuntime`
+behind the driver and cross-checks every tool answer against this package's own graph. The PRODUCT face
+(a Studio surface, a HUD, a user who can open it) is still open, and no section below is amended by this.
+
 This directory records the 3D runtime lane (ROADMAP M5). Every claim here is read back out of the
 shipped source and the package's own vitest suite — `packages/three-runtime/src/*.ts` and
 `packages/three-runtime/test/*.test.ts` — not from a description of intent. The package is `@nexus/`

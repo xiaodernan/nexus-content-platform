@@ -133,7 +133,7 @@ the SHAPE around it. One source, and no way for a loosening to look like a refac
 ## Unit tests (vitest, `agents/runtime/test`)
 
 The parenthesized counts below are the committed state, and they are checkable rather than
-decorative: the runtime rows sum to exactly **409** (30 files) and the `exec-host/*` rows to exactly
+decorative: the runtime rows sum to exactly **429** (31 files) and the `exec-host/*` rows to exactly
 **275** (8 files) — the same totals `npm test` prints. A row whose number drifts from its file is a
 documentation bug, so an increment that adds a case updates its row in the same commit. v63 found this
 table itself adrift: the `gitTools.test.ts` row still read (51) where HEAD measured 65, because every case
@@ -159,6 +159,7 @@ never the sum of the deltas.
 | `realfs.test.ts` (4) | extension/skip filtering with sorted slash keys, custom skipDirs + maxFiles cap, maxBytes drop, deterministic output independent of walk order — all against a fake fs (no host disk touched) |
 | `agentRegistry.test.ts` (17) | the roster on its own terms: register/read-back and a duplicate id refused, listing in id order regardless of insertion order, every DEFAULT agent registering without the v91 collision and each stating at least one allowed tool, a tool view scoped to exactly that agent’s `allowedTools` (a trailing `fs.*` glob honoured, an unknown agent getting an EMPTY scope rather than the full registry), `roleFor` deriving the §24 role from the agent as a copy and answering null for nobody, `getAvailableCapabilities` the agent’s own list or `[]`, a handoff naming an unregistered agent refused, a handoff journalled AND written into §26 memory under a run-scoped key, filtered by run id, `createHandoff` stamping a payload without touching the registry, and persistence OPT-IN (an fs plus a path or nothing lands; a registry with no fs still records in memory; a bare filename needs no directory) |
 | `browserTools.test.ts` (20) | the driver cannot act before `init` and names the missing call; an unmatched selector is an ERROR (the defect: a selector string used to be enough), a click on an input and a type on a button both refused BY KIND, missing required fields named, an unknown action type refused rather than ignored; `screenshot` and `evaluate` refuse IN WORDS and return NO data key, so a refusal cannot be mistaken for a picture; `navigate` adopts the host’s description and records history while an undescribed URL claims NO title and NO elements; `click`/`type` report the LABEL they acted on, `scroll` moves only the axes given, `wait` is bounded by `maxWaitMs` whatever was asked, `executeAll` stops at the first failure and returns the prefix it can name, `log()` records what ran in order and `close()` resets; every declared spec is ROUTED (an unrouted tool would be a silent hole), a dangerous door does not run without the §28 checkpoint while a read-class door runs with none, and the tools keep NO second gate — an approved call runs and a refusal surfaces as `ok:false`, args validated by the registry before the driver sees them |
+| `sceneTools.test.ts` (20) | M5 v140, the 3D lane's first consumer: every declared `scene.*` spec ROUTED and EXACTLY ONE read-class door (a second read door would be a mutation that skipped the gate); a write door does not run without the §28 checkpoint while `scene.inspect` runs with none; a body cannot be added to a scene the driver does not hold, a PARTIAL position triple is refused rather than defaulted and a non-finite axis is named by its own letter, an unknown `kind` lists the six declared ones instead of storing a word nothing reads, an empty required string is refused; `create` answers the id, the name and `rendered: false`, a position is reported as given or `null` when none was named, removing a body that is not there answers `false` rather than throwing, the FIRST camera becomes active and the report reads that from the driver rather than asserting it, focusing an unknown camera answers `false` and leaves the active one alone; `inspect` reports STRUCTURE and its answer contains no word for a picture; a driver that answers with a PROMISE is awaited like one that answers directly, and a driver that throws becomes a failed CALL rather than a crash of the registry |
 | `multiAgentPipeline.test.ts` (12) | a chain shorter than two agents refused, an unknown agent refused while reporting what already completed, an agent with no research door refused by NAMING the doors it wanted; the walk visits each EDGE once and names the agent that ran every stage, sends `fs.index {query}` and `fs.search {term}` so each door gets its OWN argument (an `fs.index`-holding agent gets `query`), carries refs forward and says so when an edge finds nothing, refuses when nothing was found and nothing was carried in; one §26 record per edge under a task-scoped key, ledger and evaluation written only when the host supplied files, the refs the LAST edge carried returned so a caller need not re-derive them, and the DEFAULT roster can actually be walked (every research-capable agent has a door) |
 | `vectorStore.test.ts` (6) | refuses at the DOOR — pgvector has no connection here, and no foreign dimension can be honest; the memory store ranks hit-for-hit like `vectordb.queryVectors` and NAMES its engine; two identical stores answer identically (determinism is part of the seam); the local store writes NOTHING until `flush`, then a COLD second store reads the same rows; a file that exists but cannot be read is refused, not silently replaced by an empty store; `syncMemoryToVectorStore` names one row per ref, stably, and is idempotent under upsert |
 | `memory.test.ts` (10) | save/list/recall scoping, deterministic tie-broken recall bounded by k, forget/clear counts, clone-in/clone-out immutability, registry round-trip with `"path:startLine"` refs, denied `memory.save` leaves memory empty + arg validation; v6 `compact()`: ≥50% ref-overlap merges within scope (listed, idempotent), cross-scope isolation; v19: `recallVectors` equals inline recall exactly, and `memory.recall` states its `engine` with the vector path surviving a fresh store |
@@ -3196,3 +3197,43 @@ Bounds, stated: a caller who passes `allowArchive: true` still gets a red popula
 un-self-describing, and the guard is only that it can no longer happen by accident. The refusal claims the archive is
 "the only staging left" without checking that it can run: on a host with no usable `git` the archive fails too, and
 that failure is seen only by a caller who opted in.
+
+## The 3D lane gets its first consumer (scene-tools-proof.mjs — M5 v140 — ADR 0016 amendment 140)
+
+Every M5 grant so far has ended with the same bound: *"nothing outside `@nexus/three-runtime` imports it, so this
+prevents rather than mends; the roadmap's M5 entry is still a runtime with tests, not a feature a user can open."*
+v138 wrote it, v139 wrote it, and both left it standing. This proof closes the **agent** half:
+
+```
+node docs/evidence/agents/scene-tools-proof.mjs   # requires `npm run build` first
+```
+
+`agents/runtime/src/sceneTools.ts` declares a narrow `SceneDriver` (`engine`, `createScene`, `addEntity`,
+`removeEntity`, `addCamera`, `setActiveCamera`, `summarize`) and the HOST supplies the implementation — the shape
+`browserTools` uses for `BrowserDriver`. **`agents/runtime` therefore gains no dependency on
+`@nexus/three-runtime`**, and the two lanes stay separable. Six doors: five write-class behind the §28 checkpoint and
+one read-class (`scene.inspect`).
+
+The proof is what makes the seam a fact rather than an interface nobody implements: it wires the **REAL**
+`ThreeRuntime` (headless backend + manual scheduler) behind the driver, so a width that only suited a fake would fail
+here.
+
+| § | what it measures |
+| --- | --- |
+| 1 | every tool answer is cross-checked against the RUNTIME'S OWN graph — the body really exists, at the position that was named, and the summary's counts equal `scene.entities.size` |
+| 2 | **the family composes WITHOUT rendering**: the real headless backend receives **0** frames across every tool call, and the SAME backend receives 1 on `start()` and 2 after one scheduler step — so the zero is a fact about the tools, not about an idle backend |
+| 3 | the §28 gate is the registry's and it is the only one: one refused write moves the graph by 0 and asks the gate 0 times, one approved write moves it by 1 and asks once |
+| 4 | four refusals, each naming its own fact (missing scene · partial position triple · unknown kind · missing arg), with the runtime moved by 0 bodies |
+| 5 | this repository's HEAD is byte-identical: everything ran in memory |
+
+Two §60 rules are asserted rather than promised. First, **no door here can be mistaken for a renderer**: there is no
+`scene.screenshot`, no door is even NAMED like one, no description promises a picture, and `scene.inspect` reports
+STRUCTURE (counts, names, the active camera) — a door that answered with an image would be `browserTools`'
+`base64-screenshot-placeholder` defect in a new costume. Second, the proof's own summary line was WRONG in its first
+draft and is corrected in the same landing: it said *"2 frames drawn by the tools themselves"* when the 2 came from
+the frame loop and the tools drew 0. That is the class of sentence this lane keeps catching in its own committed text.
+
+Bounds, stated: this is a COMPOSITION surface. It does not render, it does not step the frame loop, and it has no door
+for combat, physics, controllers, cinematics or save/load — those exist in the package and are unreachable from here
+today. It is registered in no default roster: a host must call `registerSceneTools` with a driver it built. And nothing
+in the Studio imports it, so M5's PRODUCT face is still open — what is closed is that the lane had no consumer at all.
