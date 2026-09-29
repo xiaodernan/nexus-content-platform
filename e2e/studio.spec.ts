@@ -2290,10 +2290,11 @@ test('@smoke §164 通知：别人真的动过，作者的收件箱里才有那�
   await expect(row('generation')).toContainText('DEMO 模板生成完成');
   await page.screenshot({ path: 'screenshots/notifications-unbacked.png' });
 
-  // 没有来源的那两类仍然要挂在页面上；Generation complete 已经不在那张单子上了（有真写入方）
+  // 还剩哪几类没有来源要挂在页面上：Generation 与 Agent task 两类都已摘掉（各自有了真写入方），
+  // 只剩 Build complete——"会完成的构建操作"这件事本身还没有
   await expect(page.locator('[data-notification-unbacked="Generation complete"]')).toHaveCount(0);
+  await expect(page.locator('[data-notification-unbacked="Agent task complete"]')).toHaveCount(0);
   await expect(page.locator('[data-notification-unbacked="Build complete"]')).toBeVisible();
-  await expect(page.locator('[data-notification-unbacked="Agent task complete"]')).toBeVisible();
 
   // §112 的账本：这一页列的就是刚才那一行任务
   await page.goto(`/tasks/${projectId}`);

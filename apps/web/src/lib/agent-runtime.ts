@@ -1,0 +1,322 @@
+import { z } from 'zod';
+import { AgentPlanSchema, type AgentPlan } from '@nexus/schemas';
+
+/**
+ * §112 / §25 / §113 编排的**纯规则层**：一个计划能不能跑、下一步该轮到谁、某一步失败之后
+ * 谁被牵连、相邻两步之间交接什么。这里不碰库、不碰网络，所以每一条判断都能被逐条钉住——
+ * 与 §164 的 `notify-plan.ts`、§168 的 `visit-meter.ts` 同一层。
+ *
+ * 四条纪律，全都是"不说谎"那一类：
+ *
+ * 1. **没有执行方的步骤不许进计划**。`STEP_KINDS` 里每一种都必须在执行器注册表里有一条真实现
+ *    （`server/agent/runtime.ts`）。"计划里有、跑的时候跳过"就是 §159 禁止的那种空话，
+ *    所以计划在**开跑之前**按注册表校验（`validatePlan`），未知步骤整份拒收，
+ *    而不是跑到一半才发现没人做。
+ * 2. **失败要往下传，不能装作还能跑**。依赖里有失败/跳过，这一步是 `skipped` 并带上被谁牵连——
+ *    不是 `failed`：它自己根本没跑过，说它失败是另一种谎。
+ * 3. **状态只有一个真值**。每一步的 `status` 只由这里改，界面与实时事件都读它；
+ *    不存在"事件里说完成、计划里还写着 pending"的第二份状态。
+ * 4. **计划是给用户看的**（§25）：标题写的是这件事做什么，不是内部函数名。
+ */
+
+export type PlanTask = AgentPlan['tasks'][number];
+
+/** 今天真的有执行方的步骤种类。加一种就必须同时加一个真执行方，否则 UI 会列出跑不了的步骤 */
+export const STEP_KINDS = ['context', 'seo-audit', 'qa-audit', 'report'] as const;
+export type StepKind = (typeof STEP_KINDS)[number];
+
+export interface StepSpec {
+  kind: StepKind;
+  /** 名册里的 key；执行前会用它核对名册声明的能力（§73 的口径：能力由名册说了算） */
+  agentKey: string;
+  /** 名册里的显示名。写进计划里给用户看，不许临时编一个 */
+  agentName: string;
+  title: string;
+  /** 这一步要求执行方声明过的能力。名册里没有这条 = 这一步不能跑 */
+  requires: string;
+  artifact: string;
+  dependsOn: StepKind[];
+}
+
+/**
+ * 「上架前检查」这份配方。它是**确定性规则**，不是模型规划出来的——
+ * 所以整条作业的 capability 记 `demo`（§160），界面上带 DEMO 标识，
+ * 而每一步真正算出来的东西（结构、门禁、覆盖面）是真读数，不是编的。
+ *
+ * 四种步骤各自的真实执行方：结构盘点读本项目自己的库；SEO 检查读项目元信息与设计正文；
+ * 门禁就是发布时用的同一个 `analyzeHealth`（§179 那一份，不另算一套分）；汇总是前三者的产物。
+ */
+export const READINESS_STEPS: readonly StepSpec[] = [
+  {
+    kind: 'context',
+    agentKey: 'product',
+    agentName: 'Product Agent',
+    title: '盘点项目现状：页面 / 节点 / 语料 / 发布版本',
+    requires: 'project.read',
+    artifact: 'research_notes',
+    dependsOn: [],
+  },
+  {
+    kind: 'seo-audit',
+    agentKey: 'seo',
+    agentName: 'SEO Agent',
+    title: '检查上架要用的元信息：标题 / 简介 / 可索引的正文',
+    requires: 'code.read',
+    artifact: 'seo_notes',
+    dependsOn: [],
+  },
+  {
+    kind: 'qa-audit',
+    agentKey: 'qa',
+    agentName: 'QA Agent',
+    title: '跑发布门禁：结构 / 对比度 / 点击目标 / 性能',
+    requires: 'test.run',
+    artifact: 'qa_report',
+    dependsOn: [],
+  },
+  {
+    kind: 'report',
+    agentKey: 'product',
+    agentName: 'Product Agent',
+    title: '汇总成一份结论与待办',
+    requires: 'plan.write',
+    artifact: 'agent_plan',
+    dependsOn: ['context', 'seo-audit', 'qa-audit'],
+  },
+];
+
+/** 名册里 max_steps 最大是 24（Coding Agent）；一份计划超过它就该拆成多次作业而不是硬塞 */
+export const MAX_PLAN_STEPS = 24;
+
+/** 目标最长 200 字：它是计划里的一句话标题，不是提示词本体（提示词在 provider 那侧装配） */
+export const GOAL_MAX = 200;
+
+/**
+ * 步骤状态。与 `AgentPlanSchema` 里那个 enum 是同一组取值：计划是跨端合同（`packages/schemas`），
+ * 这里把它写出来是给界面侧的报文校验用；两边一旦不一致，`withStatus` 那里过不了类型检查。
+ */
+export const STEP_STATUSES = ['pending', 'running', 'done', 'failed', 'skipped'] as const;
+export const StepStatusSchema = z.enum(STEP_STATUSES);
+export type StepStatus = z.infer<typeof StepStatusSchema>;
+
+/**
+ * 一步跑完留下的东西（§26 / §113）。形状定在这里而不是散在服务端：界面读回来的是同一份，
+ * 两边各写一遍就会漂。`counts` 是给面板直接印的读数（几页、几项不达标），`notes` 是要动手的发现。
+ */
+export const StepReportSchema = z.object({
+  id: z.string(),
+  title: z.string(),
+  agent: z.string(),
+  agentKey: z.string(),
+  status: StepStatusSchema,
+  summary: z.string(),
+  artifact: z.string().nullable(),
+  counts: z.record(z.string(), z.number()),
+  notes: z.array(z.string()),
+  durationMs: z.number(),
+  /** 被牵连而跳过时：被哪几步牵连 */
+  because: z.array(z.string()).optional(),
+  /** 失败的那一步：这句话就是原因 */
+  error: z.string().optional(),
+  /** §113 交接：这一步拿了谁的东西 */
+  handedOff: z.array(z.object({ from: z.string(), artifact: z.string().nullable() })).optional(),
+});
+export type StepReport = z.infer<typeof StepReportSchema>;
+
+/** 汇总那一步的结论：作业的终态结论就是它（待办清单 + 上游摘要） */
+export const ReadinessReportSchema = z.object({
+  actionable: z.number(),
+  notes: z.array(z.string()),
+  upstream: z.array(
+    z.object({ id: z.string(), status: StepStatusSchema, summary: z.string(), artifact: z.string().nullable() }),
+  ),
+});
+export type ReadinessReport = z.infer<typeof ReadinessReportSchema>;
+
+/** 启动一次编排的请求。今天只有一个目标字符串，其余由服务端按配方决定 */
+export const AgentRunRequestSchema = z.object({ goal: z.string().trim().max(GOAL_MAX).default('') });
+export type AgentRunRequest = z.infer<typeof AgentRunRequestSchema>;
+
+/**
+ * 界面看到的那一份（GET 与 POST 返回同一个形状）。
+ *
+ * 为什么 POST 也走这个形状：跑完之后的权威状态**在库里的那一行**，不在响应体里。
+ * 两个入口读同一条路径（`latestPlannedTask`），"刷新之后看到的东西与提交时返回的不同"这件事
+ * 就结构性地不可能发生。
+ */
+export const AgentRunViewSchema = z.object({
+  taskId: z.string(),
+  projectId: z.string(),
+  projectName: z.string().nullable(),
+  status: z.string(),
+  capability: z.enum(['real', 'demo', 'unavailable']).nullable(),
+  error: z.string().nullable(),
+  /** §25 的计划；null = 这一行没有计划（读回来照实说，不编一份） */
+  plan: AgentPlanSchema.nullable(),
+  /** 终态里那几步的结论；还在跑就是空数组 */
+  steps: z.array(StepReportSchema),
+  report: ReadinessReportSchema.nullable(),
+  startedAt: z.string().nullable(),
+  finishedAt: z.string().nullable(),
+  createdAt: z.string(),
+});
+export type AgentRunView = z.infer<typeof AgentRunViewSchema>;
+
+/** 两个入口（GET / POST）共用的响应信封。客户端拿这一份校验，不合契约就不往界面上画 */
+export const AgentRunResponseSchema = z.object({ ok: z.literal(true), run: AgentRunViewSchema.nullable() });
+export type AgentRunResponse = z.infer<typeof AgentRunResponseSchema>;
+
+export function stepSpec(kind: string): StepSpec | null {
+  return READINESS_STEPS.find((spec) => spec.kind === kind) ?? null;
+}
+
+/** §25：复杂任务先生成计划。今天这份计划的形状由配方定，goal 只改标题那一句 */
+export function buildReadinessPlan(goal: string): AgentPlan {
+  const text = goal.trim().slice(0, GOAL_MAX);
+  return {
+    goal: text || '上架前检查',
+    constraints: [
+      '只读：这一轮不改设计模型、不发布、不花额度以外的东西',
+      '每一步的结论都必须来自本机真的算得出来的东西（§159）',
+    ],
+    tasks: READINESS_STEPS.map((spec) => ({
+      id: spec.kind,
+      title: spec.title,
+      agent: spec.agentName,
+      status: 'pending' as StepStatus,
+      dependsOn: [...spec.dependsOn],
+      artifact: spec.artifact,
+    })),
+    dependencies: READINESS_STEPS.flatMap((spec) => spec.dependsOn.map((dep) => [dep, spec.kind] as [string, string])),
+    risks: [
+      '本机没有真 provider：计划由确定性配方生成，不是模型规划（§160 的 DEMO 标识）',
+      '门禁里没测的项一律是"未评估"，不能被读成通过（§178/§159）',
+    ],
+    validation: ['每一步都有真执行方', '失败会往下传并停在计划里', '结论能在 /studio 的 Agent 面板上复看'],
+  };
+}
+
+export type PlanProblemCode = 'empty' | 'too-many-steps' | 'unknown-step' | 'duplicate-id' | 'missing-dep' | 'self-dep' | 'cycle';
+
+export interface PlanProblem {
+  code: PlanProblemCode;
+  message: string;
+}
+
+/**
+ * 开跑之前把计划整份验一遍。**任何一条不过就不跑**：半跑的计划比没跑更糟——
+ * 用户会以为剩下的步骤也在做。
+ */
+export function validatePlan(plan: AgentPlan): PlanProblem[] {
+  const problems: PlanProblem[] = [];
+  const tasks = plan.tasks;
+  if (tasks.length === 0) problems.push({ code: 'empty', message: '计划里一个步骤都没有' });
+  if (tasks.length > MAX_PLAN_STEPS) {
+    problems.push({ code: 'too-many-steps', message: `计划有 ${tasks.length} 步，超过一次作业的上限 ${MAX_PLAN_STEPS} 步` });
+  }
+  const ids = new Set<string>();
+  for (const task of tasks) {
+    if (ids.has(task.id)) problems.push({ code: 'duplicate-id', message: `步骤 id 重复：${task.id}` });
+    ids.add(task.id);
+    if (!stepSpec(task.id)) problems.push({ code: 'unknown-step', message: `这一步没有执行方：${task.id}（${task.title}）` });
+  }
+  for (const task of tasks) {
+    for (const dep of task.dependsOn) {
+      if (dep === task.id) problems.push({ code: 'self-dep', message: `${task.id} 依赖自己` });
+      else if (!ids.has(dep)) problems.push({ code: 'missing-dep', message: `${task.id} 依赖的 ${dep} 不在计划里` });
+    }
+  }
+  // 环：计划一旦成环就没有"就绪"的步骤，作业会静默地什么都不做
+  const state = new Map<string, 'visiting' | 'done'>();
+  const byId = new Map(tasks.map((task) => [task.id, task]));
+  const walk = (id: string, path: string[]): void => {
+    if (state.get(id) === 'done') return;
+    if (state.get(id) === 'visiting') {
+      problems.push({ code: 'cycle', message: `步骤依赖成环：${[...path, id].join(' → ')}` });
+      return;
+    }
+    state.set(id, 'visiting');
+    for (const dep of byId.get(id)?.dependsOn ?? []) if (byId.has(dep)) walk(dep, [...path, id]);
+    state.set(id, 'done');
+  };
+  for (const task of tasks) walk(task.id, []);
+  return problems;
+}
+
+export interface PlanProgress {
+  total: number;
+  pending: number;
+  running: number;
+  done: number;
+  failed: number;
+  skipped: number;
+}
+
+export function progressOf(plan: AgentPlan): PlanProgress {
+  const progress: PlanProgress = { total: plan.tasks.length, pending: 0, running: 0, done: 0, failed: 0, skipped: 0 };
+  for (const task of plan.tasks) progress[task.status] += 1;
+  return progress;
+}
+
+/** 依赖全部完成、自己还没跑的步骤，按计划里的顺序 —— 顺序稳定才能"重跑一次结果一样" */
+export function readyIds(plan: AgentPlan): string[] {
+  const status = new Map(plan.tasks.map((task) => [task.id, task.status]));
+  return plan.tasks
+    .filter((task) => task.status === 'pending' && task.dependsOn.every((dep) => status.get(dep) === 'done'))
+    .map((task) => task.id);
+}
+
+/**
+ * 被牵连的步骤：自己没跑，但某条依赖已经失败/跳过。返回"被谁牵连"，因为界面上要说得出来
+ * —— 只说"跳过了"，用户会以为是我们自己不想做。
+ */
+export function blockedIds(plan: AgentPlan): { id: string; because: string[] }[] {
+  const status = new Map(plan.tasks.map((task) => [task.id, task.status]));
+  const out: { id: string; because: string[] }[] = [];
+  for (const task of plan.tasks) {
+    if (task.status !== 'pending') continue;
+    const because = task.dependsOn.filter((dep) => {
+      const state = status.get(dep);
+      return state === 'failed' || state === 'skipped';
+    });
+    if (because.length) out.push({ id: task.id, because });
+  }
+  return out;
+}
+
+/** 改一步的状态，返回新计划（计划是 jsonb，就地改会让"上一次读到的那份"跟着变） */
+export function withStatus(plan: AgentPlan, id: string, status: StepStatus): AgentPlan {
+  return { ...plan, tasks: plan.tasks.map((task) => (task.id === id ? { ...task, status } : task)) };
+}
+
+export interface PlanVerdict {
+  /** 没有 pending / running 了：作业该收尾 */
+  finished: boolean;
+  /** 每一步都 done —— 有 skipped 也不算成功，那是"没做完" */
+  ok: boolean;
+  reason: string | null;
+}
+
+export function verdictOf(plan: AgentPlan): PlanVerdict {
+  const progress = progressOf(plan);
+  const finished = progress.pending === 0 && progress.running === 0;
+  if (!finished) return { finished: false, ok: false, reason: null };
+  if (progress.failed === 0 && progress.skipped === 0) return { finished: true, ok: true, reason: null };
+  const parts: string[] = [];
+  if (progress.failed) parts.push(`${progress.failed} 步失败`);
+  if (progress.skipped) parts.push(`${progress.skipped} 步因上游失败被跳过`);
+  return { finished: true, ok: false, reason: parts.join('，') };
+}
+
+/**
+ * §113 Agent Handoff：这一步能拿到的东西 = 它依赖的那几步的产物名 + 对方的结论摘要。
+ * 只给**自己声明依赖**的那几步：把整份项目上下文塞给每一步，等于没有交接。
+ */
+export function handoffOf(plan: AgentPlan, id: string): { from: string; artifact: string | null }[] {
+  const task = plan.tasks.find((item) => item.id === id);
+  if (!task) return [];
+  return task.dependsOn.map((dep) => {
+    const upstream = plan.tasks.find((item) => item.id === dep);
+    return { from: dep, artifact: upstream?.artifact ?? null };
+  });
+}

@@ -246,11 +246,12 @@ describe('读取：目标还在不在、是谁的、有多少', () => {
     expect(after.items.find((item) => item.title.includes(`不认识的一类${RUN}`))?.kind).toBe('other');
   });
 
-  it('没来源的那两类随收件箱一起回来，展示面不用自己抄一份清单', async () => {
+  it('没来源的那一类随收件箱一起回来，展示面不用自己抄一份清单', async () => {
     const page = await inbox(ownerId, 1);
-    // Generation complete 以前在这里：`agent_tasks` 有了写入方之后它有真事件了，
-    // 继续挂着就是拿一条过期的"我们做不到"骗人
-    expect(page.unbacked.map((entry) => entry.spec)).toEqual(['Build complete', 'Agent task complete']);
+    // Generation complete 摘于 2026-09-25（`agent_tasks` 的写入方），Agent task complete 摘于
+    // 2026-09-29（`server/agent/runtime.ts` 的多步编排）：两件都真有了，继续挂着就是拿过期的
+    // "我们做不到"骗人。只剩 Build complete——"会完成的构建操作"本身还没有。
+    expect(page.unbacked.map((entry) => entry.spec)).toEqual(['Build complete']);
   });
 });
 

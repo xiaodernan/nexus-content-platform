@@ -8,7 +8,7 @@ import type { Visibility } from '@/server/domain/publish';
  * 同一件事反复发生时留下几条。规则写在 SQL 里就测不到，写在 route 里就只能起真服务才能测。
  */
 
-export type NotificationKind = 'publish' | 'moderation' | 'like' | 'comment' | 'follow' | 'remix' | 'generation';
+export type NotificationKind = 'publish' | 'moderation' | 'like' | 'comment' | 'follow' | 'remix' | 'generation' | 'agent';
 
 export interface NotificationPlan {
   userId: string;
@@ -20,6 +20,12 @@ export interface NotificationPlan {
   projectId: string | null;
   publicationId: string | null;
   dedupeKey: string;
+  /**
+   * 这条通知有多要紧。**只给实时事件用，不进库**（`emit` 写入前会把它摘掉）：
+   * 级别是"怎么提示"，不是"发生过什么"，存进表里就成了第二份会漂移的状态。
+   * 缺省时按 kind 推（见 `server/domain/notifications.ts` 的 `levelOf`）。
+   */
+  level?: 'info' | 'success' | 'warning' | 'error';
 }
 
 export type NotifyEvent =
@@ -94,6 +100,28 @@ export type NotifyEvent =
       capability: 'real' | 'demo' | 'unavailable';
       ok: boolean;
       durationMs: number | null;
+      detail: string | null;
+    }
+  | {
+      /**
+       * §164 点名的 "Agent task complete"。它说的**不是**一次同步请求（那是 `generation`
+       * 那一类），而是 §112 那种多步作业（Goal → 子任务 → 依赖 → 验收）有了终态：
+       * 计划落库、逐步推进、最后一步也收了尾。
+       *
+       * `planner` 必须一起给：今天计划由确定性配方生成，不写进标题就会被读成"模型规划出来的"
+       * （§160）。这里说的也是 `generation` 那一类**没有**的东西：那次请求的结果在响应里，
+       * 这次作业的结果在计划里。
+       */
+      kind: 'agent';
+      recipientId: string;
+      projectId: string;
+      projectName: string;
+      taskId: string;
+      planner: 'real' | 'demo' | 'unavailable';
+      ok: boolean;
+      durationMs: number | null;
+      /** 逐步统计：走完了几步、失败几步、因上游失败被跳过几步 */
+      steps: { total: number; done: number; failed: number; skipped: number };
       detail: string | null;
     };
 
@@ -239,6 +267,38 @@ export function planNotification(event: NotifyEvent): NotificationPlan | null {
         link: studioLink(event.projectId),
       };
     }
+
+    case 'agent': {
+      const seconds = event.durationMs === null ? null : `${Math.round(event.durationMs / 100) / 10} 秒`;
+      // 步数按真发生过的分档说：全走完说"4/4 步"，没走完就说失败几步、被跳过几步。
+      // 不要写成"4 步"糊过去——那是把"计划里有 4 步"当成"做了 4 步"
+      const count = event.ok
+        ? `${event.steps.done}/${event.steps.total} 步`
+        : [
+            event.steps.failed ? `${event.steps.failed} 步失败` : null,
+            event.steps.skipped ? `${event.steps.skipped} 步被跳过` : null,
+          ]
+            .filter(Boolean)
+            .join('，') || `一共 ${event.steps.total} 步`;
+      return {
+        ...base,
+        actorId: null,
+        publicationId: null,
+        // 一次作业一个终态：键挂在任务行上，重跑是另一行任务，所以是另一条通知
+        dedupeKey: `agent:${event.taskId}`,
+        // 多步作业失败要按 error 提示，不能和成功一样是绿的
+        level: event.ok ? 'success' : 'error',
+        title: clip(
+          `《${event.projectName}》的多步 Agent 任务${event.ok ? '完成' : '失败'}` +
+            `（${PLANNER_LABEL[event.planner]} · ${count}${event.ok && seconds ? ` · ${seconds}` : ''}）`,
+          TITLE_MAX,
+        ),
+        // 成功时是结论摘要（门禁过没过、有几项待办），失败时就是那句原因
+        body: event.detail ? clip(event.detail, BODY_MAX) : null,
+        // 结果落在工作区里的 Agent 面板上，不指向公开页
+        link: studioLink(event.projectId),
+      };
+    }
   }
 }
 
@@ -249,22 +309,25 @@ const CAPABILITY_LABEL: Record<'real' | 'demo' | 'unavailable', string> = {
   unavailable: '（provider 不可用的）',
 };
 
+/** 计划是谁给的：确定性配方（demo）与模型规划（real）在标题上就得分开读（§160） */
+const PLANNER_LABEL: Record<'real' | 'demo' | 'unavailable', string> = {
+  real: '模型规划',
+  demo: 'DEMO 规划',
+  unavailable: '没有规划器',
+};
+
 /**
- * §164 原文列的四类里，今天**仍然没有真实来源**的那两类。
+ * §164 原文列的四类里，今天**仍然没有真实来源**的那一类。
  * 列出来是为了让人问得出"为什么收件箱里没有这个"，而不是假装收件箱覆盖四类（§159）。
- * Generation complete 以前也在这里——`agent_tasks` 有了写入方之后它不再是空话，
- * 所以这一条被摘掉，而不是继续挂着一条已经不成立的说明。
+ * 摘掉一条要有理由，所以两次都记在这儿：
+ * - Generation complete 摘于 2026-09-25：`agent_tasks` 有了写入方，一次请求的终态就是它。
+ * - Agent task complete 摘于 2026-09-29：`server/agent/runtime.ts` 的编排器真的把 §112 那种
+ *   多步作业跑完（计划落库 → 逐步推进 → 收尾），于是这一类第一次有真终态可发。
  */
 export const UNBACKED_NOTIFICATIONS = [
   {
     spec: 'Build complete',
     reason: '平台目前没有会完成的构建操作（没有导出 / 打包端点），发这条通知等于凭空造',
-  },
-  {
-    spec: 'Agent task complete',
-    reason:
-      '这里说的是 §112 那种多步任务（Goal → 子任务 → 依赖 → 验收）。今天落库的任务行都是单次 AI 请求，' +
-      '它对应的是 Generation complete 那一类；多步编排还没有执行方',
   },
 ];
 

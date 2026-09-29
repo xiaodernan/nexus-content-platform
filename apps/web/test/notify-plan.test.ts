@@ -233,9 +233,9 @@ describe('反复发生留几条（dedupe_key）', () => {
   });
 });
 
-describe('§164 四类里没有来源的那两类', () => {
-  it('Generation complete 有来源了（agent_tasks 的写入方），另两类仍然挂着', () => {
-    expect(UNBACKED_NOTIFICATIONS.map((u) => u.spec)).toEqual(['Build complete', 'Agent task complete']);
+describe('§164 四类里没有来源的那一类', () => {
+  it('Generation 与 Agent task 两类都有真来源了，只剩 Build complete 挂着', () => {
+    expect(UNBACKED_NOTIFICATIONS.map((u) => u.spec)).toEqual(['Build complete']);
     for (const entry of UNBACKED_NOTIFICATIONS) {
       expect(entry.reason.length).toBeGreaterThan(10);
     }
@@ -317,10 +317,63 @@ describe('Generation complete（§164 里以前没有来源的那一类）', () 
     expect(planNotification(generation({ durationMs: null }))?.title).not.toContain('秒');
   });
 
-  it('Generation complete 已从"没有来源"那张单子上摘掉，另两类仍然挂着', () => {
+  it('Generation 与 Agent task 两类都已摘掉，只剩 Build complete', () => {
     const specs = UNBACKED_NOTIFICATIONS.map((item) => item.spec);
     expect(specs).not.toContain('Generation complete');
-    expect(specs).toContain('Build complete');
-    expect(specs).toContain('Agent task complete');
+    expect(specs).not.toContain('Agent task complete');
+    expect(specs).toEqual(['Build complete']);
+  });
+});
+
+type AgentTask = Extract<NotifyEvent, { kind: 'agent' }>;
+
+const agentTask = (over: Partial<AgentTask> = {}): NotifyEvent => ({
+  kind: 'agent',
+  recipientId: 'u-1',
+  projectId: 'p-1',
+  projectName: '深夜便利店',
+  taskId: 't-1',
+  planner: 'demo',
+  ok: true,
+  durationMs: 4200,
+  steps: { total: 4, done: 4, failed: 0, skipped: 0 },
+  detail: '4/4 步完成 · 门禁挡发布 2 条',
+  ...over,
+});
+
+describe('Agent task complete（§112 跑完之后的那一类终态）', () => {
+  it('步数按真发生过的分档说：全走完写 4/4，没走完只说失败与跳过几步', () => {
+    expect(planNotification(agentTask())?.title).toContain('4/4 步');
+    const half = planNotification(
+      agentTask({ ok: false, steps: { total: 4, done: 2, failed: 1, skipped: 1 }, detail: '门禁那一步炸了' }),
+    );
+    expect(half?.title).toContain('1 步失败');
+    expect(half?.title).toContain('1 步被跳过');
+    // "计划里有 4 步"不等于"做了 4 步"：半途失败的那次不许出现 4/4
+    expect(half?.title).not.toContain('4/4');
+  });
+
+  it('DEMO 规划与模型规划在标题上分开读（§160）；一次作业一个终态', () => {
+    const demo = planNotification(agentTask());
+    const real = planNotification(agentTask({ planner: 'real', taskId: 't-2' }));
+    expect(demo?.title).toContain('DEMO 规划');
+    expect(real?.title).toContain('模型规划');
+    expect(demo?.dedupeKey).toBe('agent:t-1');
+    expect(real?.dedupeKey).toBe('agent:t-2');
+  });
+
+  it('失败按 error 级别推、正文就是那句原因；链接指向工作区而不是公开页', () => {
+    const failed = planNotification(
+      agentTask({ ok: false, detail: 'provider 不可达', steps: { total: 4, done: 0, failed: 1, skipped: 3 } }),
+    );
+    expect(failed?.level).toBe('error');
+    expect(failed?.body).toBe('provider 不可达');
+    expect(failed?.link).toBe('/studio/p-1');
+    expect(planNotification(agentTask())?.level).toBe('success');
+  });
+
+  it('没有摘要就不编正文，没有时长就不写用时', () => {
+    expect(planNotification(agentTask({ detail: null }))?.body).toBe(null);
+    expect(planNotification(agentTask({ durationMs: null }))?.title).not.toContain('秒');
   });
 });

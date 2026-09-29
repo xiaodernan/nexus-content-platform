@@ -32,9 +32,14 @@ export async function emit(event: NotifyEvent): Promise<EmitResult> {
   if (!plan) return 'suppressed';
   if ('actorId' in event && event.actorId && (await relationOf(event.recipientId, event.actorId))) return 'suppressed';
   const db = getDb();
+  /**
+   * `level` 是实时事件的提示（成功/失败要用不同的颜色），不是表里的列——
+   * 插库前摘掉，别让 drizzle 去猜一个不存在的字段。
+   */
+  const { level: _level, ...row } = plan;
   const inserted = await db
     .insert(notifications)
-    .values(plan)
+    .values(row)
     .onConflictDoNothing({ target: notifications.dedupeKey })
     .returning({ id: notifications.id });
   if (!inserted.length) return 'duplicate';
@@ -55,7 +60,7 @@ function publishNotification(plan: NotificationPlan): void {
   const event: RealtimeEvent = {
     type: 'notification',
     ...(plan.projectId ? { projectId: plan.projectId } : {}),
-    level: levelOf(plan.kind),
+    level: plan.level ?? levelOf(plan.kind),
     title: plan.title,
     ...(plan.body ? { body: plan.body } : {}),
   };
@@ -65,8 +70,10 @@ function publishNotification(plan: NotificationPlan): void {
 /** 通知类型 → 实时事件的级别。只是把"这件事有多要紧"翻译成一个 UI 能用的档位 */
 function levelOf(kind: NotificationKind): 'info' | 'success' | 'warning' | 'error' {
   switch (kind) {
+    // agent 那一类正常情况下自带 level（成功与失败不一样）；这里是没带时的兜底
     case 'publish':
     case 'generation':
+    case 'agent':
       return 'success';
     // 审核裁决可能是撤下内容，值得一个比 info 更重的档位
     case 'moderation':
@@ -109,7 +116,7 @@ export interface Inbox {
 function isKind(value: string): value is NotificationKind {
   return (
     value === 'publish' || value === 'moderation' || value === 'like' || value === 'comment' || value === 'follow' ||
-    value === 'remix' || value === 'generation'
+    value === 'remix' || value === 'generation' || value === 'agent'
   );
 }
 

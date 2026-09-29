@@ -15,6 +15,7 @@ const KIND_LABEL: Record<InboxItem['kind'], string> = {
   follow: '关注',
   remix: '改编',
   generation: '生成',
+  agent: 'Agent',
   other: '未分类',
 };
 
@@ -28,6 +29,7 @@ const NOTIFIED = [
   '你发布的那一版完成了（第几版、给谁看的那一档）',
   '人工审核对某一版做出的结论：通过或下架',
   '别人点赞、评论、改编了你的公开作品，或开始关注你',
+  '一次生成先后收尾：一次 AI 请求（生成），或一份多步 Agent 作业（几步走完、结论是什么）',
 ];
 
 const NOT_NOTIFIED = [
@@ -66,8 +68,8 @@ function Row({ item }: { item: InboxItem }): ReactElement {
 }
 
 /**
- * §164 收件箱。四类里今天真有终态的才会出现在这里，没来源的那三类原样列在页面下面——
- * "收件箱只有两类"这件事如果只能从代码里读出来，就等着被人当成做完了的四类。
+ * §164 收件箱。四类里今天真有终态的才会出现在这里，还没来源的那一类原样列在页面下面——
+ * "收件箱覆盖到哪一类"这件事如果只能从代码里读出来，就等着被人当成做完了的四类。
  */
 export default async function NotificationsPage() {
   const user = await currentUserOrNull();
@@ -133,7 +135,9 @@ export default async function NotificationsPage() {
       </section>
 
       <section className="mt-6 rounded-[var(--nexus-radius-md)] border border-[var(--nexus-color-border-subtle)] bg-bg-1 p-4">
-        <h2 className="text-12 font-semibold text-fg-1">§164 原文列的四类里，这三类还没有真实来源</h2>
+        <h2 className="text-12 font-semibold text-fg-1">
+          {`§164 原文列的四类里，这 ${page.unbacked.length} 类还没有真实来源`}
+        </h2>
         <ul className="mt-1 space-y-1 text-11 text-fg-3">
           {page.unbacked.map((entry) => (
             <li key={entry.spec} data-notification-unbacked={entry.spec}>
@@ -142,8 +146,9 @@ export default async function NotificationsPage() {
           ))}
         </ul>
         <p className="mt-2 text-11 text-fg-3">
-          等 §162 的队列在 web 侧有了消费者，Generation 那一类才拿得到"真的完成了一次"的时刻；
-          在那之前不往收件箱里插行。
+          摘掉的两类都有真终态在背后：Generation complete 挂在一次 AI 请求的任务行上，
+          Agent task complete 挂在 §112 的多步作业上（计划落库、逐步推进、最后收尾）。
+          留着的那一类要的是"会完成的构建操作"，那件事本身还没有，所以不往收件箱里插行。
         </p>
       </section>
 

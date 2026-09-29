@@ -1,4 +1,4 @@
-import { and, desc, eq, isNull } from 'drizzle-orm';
+import { and, desc, eq, isNotNull, isNull } from 'drizzle-orm';
 import type { RealtimeEvent } from '@nexus/schemas';
 import { channels, getRealtimeBus } from '../realtime/bus';
 import { recordAudit } from './audit';
@@ -163,6 +163,121 @@ export async function attachJob(taskId: string, jobId: string): Promise<boolean>
     .where(and(eq(agentTasks.id, taskId), isNull(agentTasks.providerJobId)))
     .returning({ id: agentTasks.id });
   return rows.length > 0;
+}
+
+/**
+ * §25：把这轮的计划写进 `plan` 列。
+ *
+ * 这一列从 0000 建库起就在表上，但直到 2026-09-29 **全库没有一处写它**——于是 §25 说的
+ * "用户可以看到 Planning… 1..8" 只能活在那个请求的内存里，刷新就没了。写入方只有一处
+ * （`server/agent/runtime.ts` 的编排器），读回来仍是 `AgentPlanSchema` 那一份形状，
+ * 所以计划不会长出第二个版本。
+ */
+export async function recordPlan(taskId: string, plan: unknown): Promise<boolean> {
+  const rows = await getDb()
+    .update(agentTasks)
+    .set({ plan: plan as never })
+    .where(eq(agentTasks.id, taskId))
+    .returning({ id: agentTasks.id });
+  return rows.length > 0;
+}
+
+/** 编排作业的一行：计划 + 终态结果。这两列只给 §112 的编排读，TaskView 不带上它们 */
+export interface PlannedTaskView {
+  taskId: string;
+  projectId: string;
+  projectName: string | null;
+  status: string;
+  capability: TaskCapability | null;
+  error: string | null;
+  /**
+   * §25 的计划。形状由读的人拿 `AgentPlanSchema` 校验（jsonb 列本身没有类型）；
+   * 值是 null = 这行不是编排产生的。这里写 `unknown` 而不是 `unknown | null`——
+   * `unknown` 本来就含 null，再写一遍只会让 lint 说这是句废话。
+   */
+  plan: unknown;
+  /** 终态：每一步的结论（见 `server/agent/runtime.ts`） */
+  result: unknown;
+  startedAt: string | null;
+  finishedAt: string | null;
+  createdAt: string;
+}
+
+function plannedShape(row: { task: typeof agentTasks.$inferSelect; projectName: string | null }): PlannedTaskView {
+  return {
+    taskId: row.task.id,
+    projectId: row.task.projectId ?? '',
+    projectName: row.projectName,
+    status: row.task.status,
+    capability: row.task.capability ?? null,
+    error: row.task.error,
+    plan: row.task.plan ?? null,
+    result: row.task.result ?? null,
+    startedAt: row.task.startedAt?.toISOString() ?? null,
+    finishedAt: row.task.finishedAt?.toISOString() ?? null,
+    createdAt: row.task.createdAt.toISOString(),
+  };
+}
+
+/**
+ * 这个项目最近一次编排作业。
+ *
+ * `isNotNull(plan)` 就是"这行是编排"的判定：普通 `/api/ai/run` 从来不写 plan 列，
+ * 所以不必再拿 `input` 里那个标记当真值——多存一份状态就多一处会漂移。
+ * 归属同样按项目所有者判：别人的项目连"有没有过作业"都不给。
+ */
+export async function latestPlannedTask(projectId: string, actorId: string): Promise<PlannedTaskView | null> {
+  const [row] = await getDb()
+    .select({ task: agentTasks, projectName: projects.name })
+    .from(agentTasks)
+    .innerJoin(projects, eq(projects.id, agentTasks.projectId))
+    .where(
+      and(
+        eq(agentTasks.projectId, projectId),
+        eq(projects.ownerId, actorId),
+        isNull(projects.deletedAt),
+        isNotNull(agentTasks.plan),
+      ),
+    )
+    .orderBy(desc(agentTasks.createdAt))
+    .limit(1);
+  return row ? plannedShape(row) : null;
+}
+
+/** 一条编排作业（按归属判；别人的与不存在给同一个答案） */
+export async function plannedTask(taskId: string, actorId: string): Promise<PlannedTaskView | null> {
+  const [row] = await getDb()
+    .select({ task: agentTasks, projectName: projects.name })
+    .from(agentTasks)
+    .innerJoin(projects, eq(projects.id, agentTasks.projectId))
+    .where(and(eq(agentTasks.id, taskId), eq(projects.ownerId, actorId), isNotNull(agentTasks.plan)))
+    .limit(1);
+  return row ? plannedShape(row) : null;
+}
+
+/** 「在跑」超过这个时长还没有执行方收尾，就认为那一轮死了（编排是同步跑完的，不是长驻作业） */
+export const STALE_RUN_MS = 5 * 60 * 1000;
+
+/**
+ * 断在半路的编排行（§162 / ADR-0011 同一个口径：读的时候收敛）。
+ *
+ * 编排在 web 进程里同步跑完，所以一行 `running` 挂着超过 `STALE_RUN_MS` 只可能是
+ * 进程被重启或被杀——那行不会自己变回终态，界面上就成了"永远在跑"。这里只碰没有
+ * `providerJobId` 的行：有作业号的那些归 §162 的消费者管，两边不抢同一行。
+ */
+export async function convergeStaleRun(taskId: string, now: Date = new Date()): Promise<boolean> {
+  const [row] = await getDb()
+    .select({ status: agentTasks.status, providerJobId: agentTasks.providerJobId, startedAt: agentTasks.startedAt })
+    .from(agentTasks)
+    .where(eq(agentTasks.id, taskId))
+    .limit(1);
+  if (!row || row.status !== 'running' || row.providerJobId || !row.startedAt) return false;
+  if (now.getTime() - row.startedAt.getTime() < STALE_RUN_MS) return false;
+  await finishTask(taskId, {
+    ok: false,
+    error: `这次编排没有跑完：执行方超过 ${Math.round(STALE_RUN_MS / 60000)} 分钟没有收尾（进程被重启或被杀），计划里那一步的状态是最后一次落库的样子`,
+  });
+  return true;
 }
 
 /** 任务 + 项目名 + 游标。`actorId` 是归属判定：别人的作业查不到，连状态都不给 */
