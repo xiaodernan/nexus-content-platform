@@ -23,6 +23,9 @@ import type {
   PlayerHealReport,
   PlayerLevelReport,
   PlayerManaSpendReport,
+  CombatEntity,
+  CombatStrikeReport,
+  CombatHealReport,
   PersonalityTraits,
   SerializedNPC,
   SerializedPlayer,
@@ -126,6 +129,38 @@ export const DEFAULT_PLAYER = {
   maxMana: 50,
   experience: 0,
   level: 1,
+};
+
+/** What a caller may declare about one body's combat record. NOTHING here is a mechanic: `attackRange`,
+ *  `attackType` and `faction` are carried as declared words, and `combatFieldAudit` says per field whether
+ *  any code path here reads it. `attackSpeed` is deliberately absent — it is not an option because no caller
+ *  decision could reach a reader. */
+export interface CombatAttachOptions {
+  health?: number;
+  maxHealth?: number;
+  armor?: number;
+  attackPower?: number;
+  attackRange?: number;
+  attackType?: CombatEntity['attackType'];
+  faction?: string;
+}
+
+/** The declared words a combat record starts from when a caller names none. `health` is deliberately small:
+ *  a default that took a long fight to remove would hide the arithmetic this grant exists to make visible,
+ *  and `armor` starts at zero because a body that shrugged off blows by default would make the floor in
+ *  `strike` the first thing a caller met. */
+export const DEFAULT_COMBATANT = {
+  health: 30,
+  maxHealth: 30,
+  armor: 0,
+  attackPower: 5,
+  attackRange: 2,
+  attackType: 'melee' as const,
+  faction: 'neutral',
+  /** Carried because `CombatEntity` declares it and read by nothing — the reason is in
+   *  `UNHONORED_COMBAT_REASONS`, and the suite requires that table to name every declared field this
+   *  runtime does not consult. */
+  attackSpeed: 1,
 };
 
 /**
@@ -611,6 +646,42 @@ interface NpcEntry {
 /** What `physicsFieldAudit` answers for a scene. `consulted`/`unhonored` are read off the shipped tables
  *  against the fields `PhysicsConfig` declares, and `effectiveGravity`/`stepping` are read off the live
  *  scene and the last frame, so the answer cannot be a constant wearing a name. */
+
+/** One body's combat record and the scene it was attached in. The scene rides on the ENTRY rather than
+ *  inside `CombatEntity`, whose declared shape has no scene field — the same split `NpcEntry` uses, and for
+ *  the same reason: the record is the declared type, and the registry owns what the type does not. */
+interface CombatantEntry {
+  combatant: CombatEntity;
+  sceneId: SceneId;
+}
+
+/** The `CombatEntity` fields a code path in this runtime reads or writes. The other half is
+ *  `UNHONORED_COMBAT_REASONS`, and the suite requires the two lists to partition the declared type by
+ *  reading `src/types.ts` — so a field added to `CombatEntity` tomorrow lands in one of them instead of
+ *  joining the silent ones. */
+const CONSULTED_COMBAT_FIELDS: readonly string[] = ['aiState', 'armor', 'attackPower', 'entityId', 'health', 'maxHealth'];
+
+/** The declared `CombatEntity` fields this runtime does not consult, each with what it is waiting on. */
+const UNHONORED_COMBAT_REASONS: readonly { field: string; reason: string }[] = [
+  { field: 'attackRange', reason: 'nothing here measures the distance between two bodies: a strike NAMES its target, so a range has no reader' },
+  { field: 'attackSpeed', reason: 'nothing schedules a second blow — a strike happens when a caller makes one, so a speed has no interval to divide' },
+  { field: 'attackType', reason: 'the door refuses a word outside the four declared ones, but no rule here differs between a melee and a ranged blow' },
+  { field: 'cooldowns', reason: 'a cooldown is a clock, and the frame loop is the only clock this package has; nothing consults it before or after a strike' },
+  { field: 'faction', reason: 'stored at the door and consulted by nothing — no rule here reads a faction, so two bodies stand in the same relation to each other whatever they are named' },
+  { field: 'statusEffects', reason: '`StatusEffect` holds `onApply`/`onRemove`/`onTick` FUNCTIONS, so a record carrying one would be a record no file can hold and no tick here would run' },
+  { field: 'target', reason: 'a strike names a target for the length of the call and keeps none — nothing in this package chooses a target or remembers one' },
+];
+
+/** What `combatFieldAudit` answers, in the shape `PhysicsFieldAudit` uses: `consulted` are the declared
+ *  fields a code path here reads or writes, and `unhonored` names the rest with the reason each has no
+ *  reader. `declared` is false when the body holds no record at all, which is not the same answer as a
+ *  record whose fields are all unconsulted. */
+export interface CombatantFieldAudit {
+  declared: boolean;
+  consulted: string[];
+  unhonored: { field: string; reason: string }[];
+}
+
 export interface PhysicsFieldAudit {
   declared: boolean;
   consulted: string[];
@@ -1084,6 +1155,7 @@ export class ThreeRuntime {
   /** The player per scene — ONE record, keyed by the scene rather than by the entity, because "who is playing
    *  this world" is a fact about a scene and a body can be named by only one of the two accounts at a time. */
   private players: Map<SceneId, Player> = new Map();
+  private combatants: Map<EntityId, CombatantEntry> = new Map();
   /** Arbitrary world state, per scene, as plain data. Keyed by scene for the same reason the NPC registry
    *  is: a save FILE is scoped to one scene, and a bag shared across scenes would make one scene's file
    *  carry another scene's facts. A value must be data a file can hold, which is why the setter refuses a
@@ -1317,6 +1389,11 @@ export class ThreeRuntime {
     // cleaned lazily by the frame loop's own walk; nothing runs an NPC per frame, so this is the moment a
     // record can lose its subject and say so.
     if (this.npcs.delete(entityId)) this.emit('npcOrphaned', { entityId });
+
+    // A combat record is about a body too, and unlike an NPC record it is READ per blow, so it can lose
+    // its subject here rather than at the next strike.
+    if (this.combatants.delete(entityId)) this.emit('combatantOrphaned', { entityId });
+
     // The player is owned per SCENE, so the question here is which scene the body just left: a player whose
     // body was removed would be a record pointing at nothing, and `players` is the only place that knows the
     // pairing, exactly as `npcs` is for the records keyed by entity.
@@ -3060,6 +3137,205 @@ export class ThreeRuntime {
     const report: PlayerLevelReport = { sceneId, entityId: player.entityId, level: player.level, experience: player.experience };
     this.emit('playerLevelSet', report);
     return report;
+  }
+
+  // ── combat registry ───────────────────────────────────────────────────────────────────────────
+
+  /**
+   * Attach a combat record to `entity` — the owner `CombatEntity` has never had.
+   *
+   * Three refusals are this grant's own shape. A scene or a body that is not there is refused BY NAME, as
+   * everywhere else in this class. A body that is the scene's PLAYER is refused, because the player's
+   * numbers already have an owner in `attachPlayer`/`damagePlayer`: one health with two records is the drift
+   * this package keeps naming, and routing a blow through whichever record a caller happened to reach would
+   * make the number depend on the call. And every declared number is checked at the DOOR — a non-finite one
+   * because a file writes it as `null`, a negative one because no rule here reads a negative health, armor
+   * or power as anything but a record already at its floor.
+   */
+  attachCombatant(sceneId: SceneId, entity: EntityId, options: CombatAttachOptions = {}): CombatEntity {
+    if (!this.sceneGraph.scenes.get(sceneId)) {
+      throw new Error(`attachCombatant: scene ${sceneId} does not exist (entity ${entity})`);
+    }
+    const target = this.getEntity(sceneId, entity);
+    if (!target) throw new Error(`attachCombatant: entity ${entity} is not in scene ${sceneId}`);
+    const player = this.getPlayer(sceneId);
+    if (player && player.entityId === entity) {
+      throw new Error(`attachCombatant: entity ${entity} is scene ${sceneId}'s player, whose numbers already have an owner in attachPlayer/damagePlayer; a combat record on the same body would be a second owner of one health, and the two would drift`);
+    }
+    if (this.resolveCombatant(entity)) {
+      throw new Error(`attachCombatant: entity ${entity} already has a combat record; detachCombatant(${entity}) first — one body takes one blow at a time, and a second record would leave every later question about its health with two answers`);
+    }
+    const combatant: CombatEntity = {
+      entityId: entity,
+      health: options.health ?? DEFAULT_COMBATANT.health,
+      maxHealth: options.maxHealth ?? DEFAULT_COMBATANT.maxHealth,
+      armor: options.armor ?? DEFAULT_COMBATANT.armor,
+      attackPower: options.attackPower ?? DEFAULT_COMBATANT.attackPower,
+      attackSpeed: DEFAULT_COMBATANT.attackSpeed,
+      attackRange: options.attackRange ?? DEFAULT_COMBATANT.attackRange,
+      attackType: options.attackType ?? DEFAULT_COMBATANT.attackType,
+      cooldowns: new Map<string, number>(),
+      statusEffects: [],
+      target: null,
+      faction: options.faction ?? DEFAULT_COMBATANT.faction,
+      aiState: 'idle',
+    };
+    for (const [name, value] of [['health', combatant.health], ['maxHealth', combatant.maxHealth], ['armor', combatant.armor], ['attackPower', combatant.attackPower], ['attackRange', combatant.attackRange]] as [string, number][]) {
+      if (!Number.isFinite(value)) {
+        throw new Error(`attachCombatant: ${name} is ${String(value)}; a save writes a non-finite number as null, so the record would come back holding a different value than the one written`);
+      }
+      if (value < 0) {
+        throw new Error(`attachCombatant: ${name} is ${value}; nothing here reads a negative ${name} as anything but a record that is already at its floor`);
+      }
+    }
+    if (combatant.health > combatant.maxHealth) {
+      throw new Error(`attachCombatant: health is ${combatant.health} and maxHealth is ${combatant.maxHealth}; a record that starts above its own maximum is a claim no heal could honour, so it is refused rather than clamped`);
+    }
+    if (!['melee', 'ranged', 'magic', 'area'].includes(combatant.attackType)) {
+      throw new Error(`attachCombatant: attackType is ${String(combatant.attackType)}; the declared words are melee, ranged, magic and area, and a fifth is refused rather than stored as a word nothing here can read`);
+    }
+    this.combatants.set(entity, { combatant, sceneId });
+    this.emit('combatantAttached', { sceneId, entityId: entity, combatant });
+    return combatant;
+  }
+
+  /** The body's combat record in THIS scene, or `undefined`. A record whose body has left the scene is
+   *  dropped by `resolveCombatant` on the way to answering, and a record attached in ANOTHER scene is not an
+   *  answer about this one — a caller that asked about this scene must not be handed the other's numbers. */
+  getCombatant(sceneId: SceneId, entity: EntityId): CombatEntity | undefined {
+    const entry = this.resolveCombatant(entity);
+    return entry && entry.sceneId === sceneId ? entry.combatant : undefined;
+  }
+
+  /** Take the body's combat record back. `false` means the body had none — an answer, not a failure. */
+  detachCombatant(entity: EntityId): boolean {
+    const removed = this.combatants.delete(entity);
+    if (removed) this.emit('combatantDetached', { entityId: entity });
+    return removed;
+  }
+
+  /**
+   * One blow, from a body that holds a record to a body that holds one.
+   *
+   * The arithmetic is the whole of it, and it is stated rather than tuned. Armor SUBTRACTS, and a blow that
+   * is not zero lands at least 1, so armor can never make a body invulnerable: a rule that floored at zero
+   * would turn a large enough armor into a target nothing can reach, which is a state this package has no
+   * way to report. A zero blow is not a hit that pierces armor — it is nothing happening, and it is the one
+   * amount armor is not a floor for. `damage` is what LANDED, so an overkill blow reports less than it asked
+   * for and a blow on a corpse reports 0.
+   *
+   * `died` is true only on the blow that crossed the boundary, and that is the ONE write this runtime makes
+   * to `aiState`: `dead` is entered at zero and left only by `healCombatant` crossing back. What a dead body
+   * may do is not decided here beyond that — a strike FROM a corpse is refused, and that is the whole rule.
+   */
+  strike(sceneId: SceneId, attacker: EntityId, target: EntityId, amount?: number, reason = ''): CombatStrikeReport {
+    const striker = this.requireCombatant(sceneId, attacker, 'strike');
+    const victim = this.requireCombatant(sceneId, target, 'strike');
+    // v140 — a body may not be its own target, and the refusal comes BEFORE the striker's own state is
+    // read: "you named one body twice" is a fact about the call, while "that body is dead" is a fact about
+    // the world, and a malformed call should not be reported as a world condition. Without this a caller
+    // who transposed two arguments halved their own health and got a report that looked like a hit.
+    if (attacker === target) {
+      throw new Error(`strike: entity ${attacker} is both attacker and target; a body cannot strike itself — self-inflicted damage is a different operation from one body hitting another, and this door does not guess which was meant`);
+    }
+    if (striker.combatant.aiState === 'dead') {
+      throw new Error(`strike: entity ${attacker} is dead on its own record, and a corpse does not strike — the state a dead body is in is the one transition this runtime keeps, and this is it being read`);
+    }
+    const asked = amount ?? striker.combatant.attackPower;
+    if (typeof asked !== 'number' || !Number.isFinite(asked) || asked < 0) {
+      throw new Error(`strike: amount is ${String(asked)}; a strike takes a finite, non-negative number, and a save writes a non-finite one as null`);
+    }
+    const raw = asked === 0 ? 0 : Math.max(1, asked - victim.combatant.armor);
+    const landed = Math.min(raw, victim.combatant.health);
+    victim.combatant.health -= landed;
+    const died = victim.combatant.health === 0 && landed > 0;
+    if (died) victim.combatant.aiState = 'dead';
+    const report: CombatStrikeReport = {
+      sceneId,
+      entityId: attacker,
+      targetId: target,
+      amount: asked,
+      damage: landed,
+      armor: victim.combatant.armor,
+      health: victim.combatant.health,
+      maxHealth: victim.combatant.maxHealth,
+      died,
+      reason,
+    };
+    this.emit('combatantDamaged', report);
+    if (died) this.emit('combatantDied', report);
+    return report;
+  }
+
+  /** Put health back on a body's record, clamped at `maxHealth`, and leave `dead` only where the health
+   *  actually crossed back above zero — the other half of the one transition `strike` enters. A heal at full
+   *  health answers a report of zero rather than refusing, exactly as `healPlayer` does. */
+  healCombatant(sceneId: SceneId, entity: EntityId, amount: number): CombatHealReport {
+    const entry = this.requireCombatant(sceneId, entity, 'healCombatant');
+    if (typeof amount !== 'number' || !Number.isFinite(amount) || amount < 0) {
+      throw new Error(`healCombatant: amount is ${String(amount)}; a heal takes a finite, non-negative number, and a save writes a non-finite one as null`);
+    }
+    const healed = Math.min(amount, entry.combatant.maxHealth - entry.combatant.health);
+    entry.combatant.health += healed;
+    const revived = entry.combatant.health > 0 && entry.combatant.aiState === 'dead';
+    if (revived) entry.combatant.aiState = 'idle';
+    const report: CombatHealReport = {
+      sceneId,
+      entityId: entity,
+      amount,
+      healed,
+      health: entry.combatant.health,
+      maxHealth: entry.combatant.maxHealth,
+      revived,
+    };
+    this.emit('combatantHealed', report);
+    return report;
+  }
+
+  /** Which declared `CombatEntity` fields this runtime consults and which it does not, in the shape
+   *  `physicsFieldAudit` uses. The suite reads `src/types.ts` and requires the two lists to partition the
+   *  declared type, so a field added to `CombatEntity` cannot join the silent ones. `undefined` means the
+   *  body holds no record in this scene — a different answer from a record no code path reads. */
+  combatFieldAudit(sceneId: SceneId, entity: EntityId): CombatantFieldAudit | undefined {
+    const entry = this.resolveCombatant(entity);
+    if (!entry || entry.sceneId !== sceneId) return undefined;
+    return {
+      declared: true,
+      consulted: [...CONSULTED_COMBAT_FIELDS].sort(),
+      unhonored: UNHONORED_COMBAT_REASONS.map((row) => ({ ...row })),
+    };
+  }
+
+  /** The one door `strike` and `healCombatant` go through for their subjects. A body that is the scene's
+   *  player is refused HERE as well as at the attach door, because the routing rule has to hold for a caller
+   *  who attached no record: the numbers' owner is a fact about the body, not about the order two calls were
+   *  made in. */
+  private requireCombatant(sceneId: SceneId, entity: EntityId, operation: string): CombatantEntry {
+    const player = this.getPlayer(sceneId);
+    if (player && player.entityId === entity) {
+      throw new Error(`${operation}: entity ${entity} is scene ${sceneId}'s player, whose health is moved by damagePlayer; this runtime does not route one blow through two records`);
+    }
+    const entry = this.resolveCombatant(entity);
+    if (!entry) {
+      throw new Error(`${operation}: entity ${entity} has no combat record; attachCombatant(${sceneId}, ${entity}) first`);
+    }
+    if (entry.sceneId !== sceneId) {
+      throw new Error(`${operation}: entity ${entity} has a combat record in scene ${entry.sceneId}, not in ${sceneId}; a record is about a body in one scene, and this call is about another one`);
+    }
+    return entry;
+  }
+
+  /** The live record for `entity`, or `undefined`. An entry whose body is gone is dropped HERE, so a caller
+   *  is never handed a combat record with nothing left to be a body — the rule `resolveNpc` runs by. */
+  private resolveCombatant(entity: EntityId): CombatantEntry | undefined {
+    const entry = this.combatants.get(entity);
+    if (!entry) return undefined;
+    if (!this.getEntity(entry.sceneId, entity)) {
+      this.combatants.delete(entity);
+      this.emit('combatantOrphaned', { entityId: entity });
+      return undefined;
+    }
+    return entry;
   }
 
   private resolveNpc(entity: EntityId): NpcEntry | undefined {

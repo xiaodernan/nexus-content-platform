@@ -659,6 +659,39 @@ export interface PlayerLevelReport {
   experience: number;
 }
 
+/** What `strike` answers. `damage` is what LANDED after armor rather than what the attacker asked for —
+ *  the same word `PlayerDamageReport` uses for the same reason, because a blow and an overkill are two
+ *  different claims and a report that conflated them would make armor unmeasurable. */
+export interface CombatStrikeReport {
+  sceneId: SceneId;
+  entityId: EntityId;
+  targetId: EntityId;
+  /** What the caller asked for, or the attacker's `attackPower` when the caller named no amount. */
+  amount: number;
+  /** What the target actually lost. */
+  damage: number;
+  /** The target's armor as it stood when the blow landed — carried because it is the whole of the arithmetic
+   *  a caller would otherwise have to reconstruct from two records it may not hold. */
+  armor: number;
+  health: number;
+  maxHealth: number;
+  /** True only on the blow that took the target's health from a positive number to zero. */
+  died: boolean;
+  reason: string;
+}
+
+/** What `healCombatant` answers. `revived` is true only where the heal crossed the target's health back
+ *  above zero, which is the ONE state transition this runtime keeps on a combat record. */
+export interface CombatHealReport {
+  sceneId: SceneId;
+  entityId: EntityId;
+  amount: number;
+  healed: number;
+  health: number;
+  maxHealth: number;
+  revived: boolean;
+}
+
 export interface SerializedCinematic {
   sequences: [string, SerializedCinematicSequence][];
   activeSequence: string | null;

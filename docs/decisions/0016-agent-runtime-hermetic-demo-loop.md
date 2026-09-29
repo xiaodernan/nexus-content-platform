@@ -6567,6 +6567,60 @@ revives a corpse and nothing else notices; nothing outside a test calls any of t
 face, no HUD, no autonomy drives them; and the operations move one scene's one player, with no rule about who is
 allowed to call them.
 
+### Amendment 138 (M5 v138, three-runtime) — `CombatSystem`/`CombatEntity` stop being declared words: a body's record gets an owner, two operations, ONE death transition, and a field audit that reads the declared type instead of restating it
+
+_Numbering: 138 was claimed by the author before 139 and left uncommitted while 139 landed, and the v139 record
+says so in its own text ("v138's in-flight names are in those bytes", "held by a live v138 writer"). It lands
+here, after 139, and the README carries the same note rather than pretending the order was tidy. Full narrative
+in `docs/evidence/three-runtime/README.md` section v138; this is the ledger entry._
+
+- **The gap this closes.** `types.ts` declared `CombatEntity` (13 fields) and `CombatSystem`, and **no code in
+  this package constructed either** — M5 names `combat` among its nouns, and the only health this runtime held
+  was the player's own record (v136/v137). This grant gives ONE body's record an owner, in the shape the player
+  plane already uses, one plane over.
+- **An owner, a scene, and refusals that name the value.** `attachCombatant(sceneId, entity, options)` refuses a
+  missing scene or body by name; refuses a body that is the scene's **player**, because the player's numbers
+  already have an owner in `attachPlayer`/`damagePlayer` and one health with two records is the drift this
+  package keeps naming; refuses a **second** record on one body; refuses a non-finite number (a save writes it
+  as `null`, so the record would come back holding a different value than the one written), a negative one (no
+  rule here reads a negative health/armor/power as anything but a record already at its floor), and
+  `health > maxHealth` **rather than clamping it** — a record that starts above its own maximum is a claim no
+  heal could honour. A fifth `attackType` word is refused rather than stored as a word nothing can read.
+- **`strike` states its arithmetic.** `damage` is what LANDED after armor, the word `PlayerDamageReport` uses
+  for the same reason: a blow and an overkill are two different claims and a report that conflated them would
+  make armor unmeasurable. Armor subtracts and a non-zero blow lands **at least one**, so armor mitigates
+  rather than immunises; a zero blow lands zero; with no `amount` the attacker's own `attackPower` is used and
+  the report carries the number used. `died` is true only on the call that crossed health from positive to zero.
+- **Death is ONE transition, entered and left by exactly two calls.** `strike` writes `aiState: 'dead'`; only
+  `healCombatant` crossing health back above zero leaves it (to `idle`), and `revived` is true only there. A
+  **corpse does not strike** — refused by name. A heal at full health answers a report of zero rather than
+  refusing, exactly as `healPlayer` does, and clamps at `maxHealth`.
+- **A body may not be its own target** — added while landing this grant, and the refusal comes BEFORE the
+  striker's own state is read. "You named one body twice" is a fact about the CALL while "that body is dead" is
+  a fact about the world, and a malformed call should not be reported as a world condition. Without it a caller
+  who transposed two arguments halved their own health and got a report that looked like a hit. `damagePlayer`
+  offers no precedent either way: it takes no attacker at all.
+- **The audit reads the type.** `combatFieldAudit` answers `consulted`/`unhonored` in the shape
+  `physicsFieldAudit` uses, and the suite's last section **reads `src/types.ts` off disk** and requires the two
+  lists to PARTITION the declared `CombatEntity` — no overlap, no gap. 6 consulted (`aiState`, `armor`,
+  `attackPower`, `entityId`, `health`, `maxHealth`), 7 unhonored each with what it waits on: `attackRange` (a
+  strike NAMES its target), `attackSpeed` (nothing schedules a second blow), `attackType` (no rule differs
+  between melee and ranged), `cooldowns` (the frame loop is the only clock here), `faction` (stored, consulted
+  by nothing), `statusEffects` (`StatusEffect` holds FUNCTIONS, so a record carrying one is a record no file can
+  hold and no tick here would run), `target` (a strike keeps none). A field added to the type tomorrow lands in
+  one of those lists or the suite is red.
+- **A record dies with its body.** `resolveCombatant` drops an entry whose entity has left the scene and emits
+  `combatantOrphaned` — the rule `resolveNpc` runs by — so no caller is handed a record with nothing left to be
+  a body; a record attached in ANOTHER scene is a stated refusal rather than an answer about this one.
+- **Bounds (§60).** No turn, no initiative, no AI decision and no target choice. No formula beyond
+  `max(1, amount - armor)` — no resistances, criticals or damage types. Armor never reaches immunity, so a
+  sufficiently armored body still takes 1 per non-zero blow. No regeneration and no tick, so nothing advances a
+  combat state over time. Self-inflicted damage has no operation; it is refused at `strike` rather than served
+  by a second door. And **nothing outside a test calls any of this** — no Studio surface, no HUD, no agent tool,
+  because no consumer imports `@nexus/three-runtime` at all.
+- **Evidence.** `packages/three-runtime/test/combatRecord.test.ts` **23 cases**, package suite **362/362** across
+  7 files, `tsc -p packages/three-runtime/tsconfig.json` clean.
+
 ### Amendment 139 (M5 v139, three-runtime) — the package face stops being a hand-copied list, so a grant can no longer export a name its callers cannot spell
 
 `src/index.ts` re-exported three of the package's four modules BY NAME — the fourth, `./types.js`,

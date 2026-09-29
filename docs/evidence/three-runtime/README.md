@@ -1,4 +1,8 @@
-# @nexus/three-runtime — evidence for v108 (host seams), v114 (character controller), v115 (the entity save format), v116 (the scene's physics world), v117 (the cinematic sequence), v118 (the save that reads it back), v119 (the file it survives on disk), v120 (the bytes, through a store), v121 (the id comes back), v122 (a save taken back), v123 (what it holds), v124 (written atomically), v125 (flushed when asked), v126 (the debris swept), v127 (a file asked what it is worth), v128 (the listing surveyed), v129 (the survey's reason becomes a field), v131 (the NPC record gets a body and a file), v134 (the world bag gets an owner), v135 (one refusal table, read per plane), and v136 (the player record gets a body and a file)
+# @nexus/three-runtime — evidence for v108 (host seams), v114 (character controller), v115 (the entity save format), v116 (the scene's physics world), v117 (the cinematic sequence), v118 (the save that reads it back), v119 (the file it survives on disk), v120 (the bytes, through a store), v121 (the id comes back), v122 (a save taken back), v123 (what it holds), v124 (written atomically), v125 (flushed when asked), v126 (the debris swept), v127 (a file asked what it is worth), v128 (the listing surveyed), v129 (the survey's reason becomes a field), v131 (the NPC record gets a body and a file), v134 (the world bag gets an owner), v135 (one refusal table, read per plane), v136 (the player record gets a body and a file), v137 (the player's declared numbers get operations), v138 (the COMBAT record gets a body, two operations, one death transition and a field audit), and v139 (the package face stops being a hand-copied list)
+
+_Numbering note: v138 was AUTHORED before v139 and landed after it. The v139 section below measures the
+live worktree it was written in and says so in its own words ("v138's in-flight names are in those
+bytes"), so the out-of-order landing is recorded rather than tidied away._
 
 This directory records the 3D runtime lane (ROADMAP M5). Every claim here is read back out of the
 shipped source and the package's own vitest suite — `packages/three-runtime/src/*.ts` and
@@ -1850,6 +1854,76 @@ arriving one layer down, at a case instead of a file.
 - **`inventory` is still refused on every plane**, and `sceneGraph` and `quests` are still the blocked `SaveData`
   fields.
 - **No Studio surface**: no panel shows a player's numbers and no control drives one.
+
+## v138 — `CombatSystem`/`CombatEntity` stop being declared words: a body's record gets an owner, two operations, one death transition, and an audit that says which of the thirteen declared fields nothing reads
+
+`types.ts` declared `CombatEntity` (13 fields) and `CombatSystem`, and **no code in this package constructed
+either** — the M5 goal names `combat` among its nouns, and until this grant the only health this runtime held
+was the player's own record. v138 makes one body's record real, and it is the same shape v136/v137 gave the
+player, one plane over.
+
+**A record needs an owner and a scene.** `attachCombatant(sceneId, entity, options)` refuses a scene or a body
+that is not there, by name. It refuses a body that is the scene's **player**, because the player's numbers
+already have an owner in `attachPlayer`/`damagePlayer`: one health with two records is the drift this package
+keeps naming, and routing a blow through whichever record a caller happened to reach would make the number
+depend on the call. It refuses a **second** record on one body. Every declared number is checked at the DOOR —
+a non-finite one because `JSON.stringify` writes it as `null`, so a record would come back off a file holding a
+different value than the one written; a negative one because no rule here reads a negative health, armor or
+power as anything but a record already at its floor; and `health > maxHealth` is **refused rather than
+clamped**, because a record that starts above its own maximum is a claim no heal could honour.
+
+**`strike` states its arithmetic instead of tuning it.** `damage` is what LANDED after armor, not what the
+attacker asked for — the word `PlayerDamageReport` uses, for the same reason: a blow and an overkill are two
+different claims and a report that conflated them would make armor unmeasurable. Armor subtracts and a
+non-zero blow lands **at least one**, so armor is a mitigation rather than an immunity; a zero blow lands zero.
+With no `amount`, the attacker's own `attackPower` is used and the report carries the number that was used.
+An overkill blow reports less than it asked for; a blow on a corpse reports zero. `died` is true only on the
+call that took health from a positive number to zero.
+
+**Death is ONE transition, entered and left by exactly two calls.** `strike` sets `aiState` to `dead`; only
+`healCombatant` crossing health back above zero leaves it (to `idle`), and `revived` is true only there. A
+**corpse does not strike** — refused by name, because "the state a dead body is in is the one transition this
+runtime keeps, and this is it being read". A heal at full health answers a report of zero rather than refusing,
+exactly as `healPlayer` does, and clamps at `maxHealth`.
+
+**A body may not be its own target** (added while landing this grant). The refusal comes BEFORE the striker's
+own state is read: "you named one body twice" is a fact about the call while "that body is dead" is a fact about
+the world, and a malformed call should not be reported as a world condition. Without it a caller who transposed
+two arguments halved their own health and got a report that looked like a hit. There is no precedent either way
+in `damagePlayer`, which takes no attacker at all.
+
+**The audit is read from the type, not restated.** `combatFieldAudit` answers `consulted` / `unhonored` in the
+shape `physicsFieldAudit` uses, and the last section of the suite **reads `src/types.ts` off disk** and requires
+the two lists to partition the declared `CombatEntity` — no overlap, no gap. 6 fields are consulted
+(`aiState`, `armor`, `attackPower`, `entityId`, `health`, `maxHealth`) and 7 are not, each with what it is
+waiting on: `attackRange` (a strike NAMES its target, so a range has no reader), `attackSpeed` (nothing
+schedules a second blow), `attackType` (the door refuses a fifth word, but no rule differs between melee and
+ranged), `cooldowns` (a clock, and the frame loop is the only one here), `faction` (stored and consulted by
+nothing), `statusEffects` (`StatusEffect` holds `onApply`/`onRemove`/`onTick` FUNCTIONS — a record carrying one
+is a record no file can hold and no tick here would run), and `target` (a strike keeps none). A field added to
+the type tomorrow lands in one of those lists or the suite is red.
+
+**A record dies with its body.** `resolveCombatant` drops an entry whose entity has left the scene, emitting
+`combatantOrphaned` — the rule `resolveNpc` runs by — so no caller is ever handed a combat record with nothing
+left to be a body. A record attached in ANOTHER scene is a stated refusal rather than an answer about this one.
+
+Verified in `packages/three-runtime/test/combatRecord.test.ts`: **22 cases**, `tsc -p tsconfig.json` clean,
+package suite **361/361** across 7 files.
+
+### What v138 still does NOT cover — stated by name
+
+- **No turn, no initiative and no AI decision.** `strike` happens when a caller makes one. `aiState` is read
+  (a corpse cannot strike) and written (death, revival) but nothing chooses a target, and `target` is named as
+  an unhonored field above.
+- **No damage formula beyond `max(1, amount - armor)`.** No resistances, no criticals, no damage types:
+  `attackType` is stored as a declared word and no rule reads it.
+- **Armor never reaches immunity** — the floor of 1 is deliberate and stated, not a bug, but it does mean a
+  sufficiently armored body still takes 1 per non-zero blow.
+- **No regeneration and no tick.** `cooldowns` and `statusEffects` are unhonored for the reason given, so
+  nothing in this package advances a combat state over time.
+- **Self-inflicted damage has no operation.** It is refused at `strike` rather than supported by a second
+  door; a caller who wants it must say so in a future grant.
+- **No Studio surface and no agent tool**: no panel shows a combat record and no tool drives one.
 
 ## v139 — the package face stops being a hand-copied list: four wholesale re-exports, 6 derived cases that read the modules instead of repeating them, and a probe that puts the old list back
 
