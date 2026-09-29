@@ -71,7 +71,12 @@ M8 要求平台外部的调用方（MCP server、CI 脚本、第三方 Agent）�
   跨站的表单打不出这一格）。
 - 代价：每次调用一行 SELECT（限流在前，量级可控）；明文一次性显示，丢了只能重发——
   这一点必须在界面上说清楚，否则用户会以为「刷新一下还能看到」。
-- 已知限制：设计文档整份返回、没有分页也没有字段裁剪，4000 节点档的项目会给出很大的响应；
+- 已知限制：设计文档整份返回、没有分页也没有字段裁剪，**这一句现在有实测的数**（2026-09-30，
+  `scripts/perf-public-api.mts`，生产构建走真 HTTP）：4008 节点的那一份是**解开 3293KB / gzip 103KB，
+  每节点约 841 字节**，一次 GET 中位 513–951ms，一次 `insert` 中位 1369–1597ms（数字与口径在 `docs/PERFORMANCE.md`）。
+  报文大这件事本身已经被编码协商抵掉了 97%（第四片：`apiJson` 在 ≥1KB 且调用方收 gzip 时压，
+  线上实测 `content-encoding: gzip`、同一份内容 3293KB → 103KB），但**"一次读要反序列化整份文档"
+  这一条没有变**，10000 节点档会翻倍到约 6.6MB 且仍然没有分页；
   写只有 `design:write` 这一格（改文档），**没有项目创建/删除/发布的端点**，也没有 `projects:write` 那种一格管一切的 scope；
   读有 `api_access_buckets` 这本账（第三片）：按分钟合并、只到（端点, 项目）这一层、只留 30 天、不记报文内容，
   `last_used_at` 仍是那一个总信号。
@@ -83,5 +88,13 @@ M8 要求平台外部的调用方（MCP server、CI 脚本、第三方 Agent）�
   访问账那一寸（第三片）：同一枚凭据三次清单读在面板上不超过两行而合计仍是 3、design 那一格 ×1、
   读过的那一份带项目名、只给清单权限的那一枚账上**只有清单那一格**（那次 403 一行都没留），
   截图 `screenshots/api-access-ledger.png`。
-- 仍未验证 / 未做：4000 节点档的 GET 响应体积与 PATCH 耗时都没量过，所以"整份返回"这句限度只有上限、没有实测；
+  编码那一寸（第四片）不在浏览器里量，而在**真服务端的线上**：`scripts/perf-public-api.mts` 里的 `wireProbe`
+  自己数 chunk（fetch 会透明解压，问不出"有没有压"），要 `gzip, deflate, br` 时回 `content-encoding: gzip`
+  且线上 103KB，要 `identity` 时 3293KB——两句都在 `docs/PERFORMANCE.md` 的表里。
+  加上 `api-response.test.ts` 26 条（协商表、阈值边界、`content-length` 与体同源、CJK 长度口径、
+  以及扫 v1 目录不许再出现裸 `NextResponse.json` 的结构门），
+  和 `api-tokens.integration.test.ts` 30 条打真库（2026-09-30 补跑，覆盖改过的三个 v1 路由）。
+- 仍未验证 / 未做：10000 节点档的公网读没有量过（`MAX_NODES_PER_DOCUMENT = 20000` 允许它，
+  而这一格没有分页，所以那句限度至今只到 4008 这一档）；`PATCH` 那 1.2–1.6 秒花在**哪一段**没拆
+  （整份 `loadDocument`、`saveDocument`、语料同步、历史 diff 各占多少还没证据，只有对齐过的两个数）；
   访问账只有"按人 / 按枚"这一种视图，没有全局视图也没有导出；MCP 与外部 Agent 接入那一格还没动。

@@ -129,6 +129,15 @@ describe('apiJson：够大且对方收得住才压', () => {
     const res = apiJson(body, reqWith('gzip'));
     expect(res.headers.get('content-encoding')).toBe('gzip');
     expect(await textOf(res)).toBe(JSON.stringify(body));
+    // 同一份 CJK 报文走 identity 那一路也得有见证：头里的长度必须是 utf8 字节数。
+    // 上面那条"两条路的 content-length"用的是 ASCII 报文，字符数==字节数，看不见"把 utf16
+    // 字符数当长度挂上去"那种错——变异探针 A2 就是这么露出来的（改 production 的那一行，26 条全绿）。
+    const unpressed = apiJson(body, reqWith('identity'));
+    const unpressedBytes = Buffer.from(await unpressed.arrayBuffer());
+    expect(unpressed.headers.get('content-encoding')).toBeNull();
+    expect(Number(unpressed.headers.get('content-length'))).toBe(unpressedBytes.length);
+    // 这一格是靶子本身：字符数与字节数在这里必须不相等，相等这条用例就什么都没量
+    expect(JSON.stringify(body).length).not.toBe(unpressedBytes.length);
   });
 
   it('两条路都带着 no-store，除非调用方自己写了别的', async () => {
