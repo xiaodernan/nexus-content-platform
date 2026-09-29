@@ -21,7 +21,7 @@ import { channels, getRealtimeBus } from '../realtime/bus';
 import { getDb } from '../db/client';
 import { projects } from '../db/schema';
 import { loadRoster } from '../domain/agents';
-import { finishTask, recordPlan, startTask } from '../domain/agent-tasks';
+import { finishTask, publishTaskProgress, recordPlan, startTask } from '../domain/agent-tasks';
 import { refusalForRun } from '../domain/credit-ledger';
 import { knowledgeStats } from '../domain/knowledge';
 import { emit } from '../domain/notifications';
@@ -416,6 +416,19 @@ export async function runReadinessCheck(input: {
   let lastReport: ReadinessReport | null = null;
   const reportOf = (id: string): StepReport | undefined => reports.find((item) => item.id === id);
 
+  /**
+   * §163 说的"有真来源才推进度"：这一格的分子分母都从 `plan` 那一份数出来（`progressOf`），
+   * 分子是**已到终态**的步数（done + failed），分母是计划里的总步数。
+   * 只有真的跑过的那一步会走到这里——被牵连跳过的那一步在主循环里标状态，不发这一条，
+   * 因为它什么都没做，算一格等于把"没跑"报成"跑完了四分之一"。
+   * 只能在 `withStatus` 之后调用，否则这一格说的还是上一步的数。
+   */
+  const publishStepProgress = (stepTitle: string): void => {
+    const counts = progressOf(plan);
+    const settled = counts.done + counts.failed;
+    publishTaskProgress(input.projectId, taskId, settled / counts.total, `第 ${settled}/${counts.total} 步：${stepTitle}`);
+  };
+
   const runOne = async (id: string): Promise<void> => {
     const task = plan.tasks.find((item) => item.id === id);
     const spec = stepSpec(id);
@@ -478,6 +491,7 @@ export async function runReadinessCheck(input: {
         taskId,
         activity: activity(spec.kind, 'completed', `${task.agent}：${outcome.summary}`, outcome.counts, task.artifact),
       });
+      publishStepProgress(task.title);
       if (outcome.data) lastReport = outcome.data;
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
@@ -490,6 +504,7 @@ export async function runReadinessCheck(input: {
         taskId,
         activity: activity(spec.kind, 'failed', `${task.agent} 失败：${message}`),
       });
+      publishStepProgress(task.title);
     }
     await recordPlan(taskId, plan);
   };

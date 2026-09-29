@@ -78,17 +78,25 @@ export async function startTask(input: StartTaskInput): Promise<{ id: string; pr
     .returning({ id: agentTasks.id });
   if (!row) throw new Error('写入任务行没有返回 id');
   // §163：任务真的开始了才推一条 progress=0。这是**真实的**起点，不是编出来的刻度——
-  // 一次同步请求只有"开始"和"结束"两个真信号，中间没有可观测的分段，
+  // 一次同步的单步请求只有"开始"和"结束"两个真信号，中间没有可观测的分段，
   // 所以不编 0.2 / 0.5 / 0.9 那种假进度（ai-service 那条"没有真进度来源时 progress 恒为 null"是同一口径）。
-  publishGenerationProgress(input.projectId, row.id, 0, '已提交');
+  // **§112 的多步编排是另一回事**：那里每一步都有真的终态，所以中间刻度由 `publishTaskProgress` 从
+  // "已到终态的步数 / 总步数"算出来——分子分母都是真数过的，不是插值。
+  publishTaskProgress(input.projectId, row.id, 0, '已提交');
   return { id: row.id, projectName: owned?.name ?? null };
 }
 
 /**
  * §163：只推项目频道。没有项目的任务（projectId 为 null）没有频道可发，就不发。
  * 顺带说明为什么这里不需要另查一次项目：收尾语句的 `returning` 直接把 project_id 带回来了。
+ *
+ * 导出来是因为 §112 的多步编排（`server/agent/runtime.ts`）每跑完一步要推一格。
+ * 事件形状只有这一个构造点，别处不各自拼一份——否则"progress 恒在 0..1 之间、kind 说得清是哪一类"
+ * 这两句话就得每个生产者各证一遍。
+ * 调用方给的那个数字必须对应**已经发生的事**：分子是已到终态（done 或 failed）的步数，
+ * 分母是计划里的总步数；被牵连跳过的（skipped）那一档不在这里推进，由 `finishTask` 那一条收尾。
  */
-function publishGenerationProgress(projectId: string | null, taskId: string, progress: number, message: string): void {
+export function publishTaskProgress(projectId: string | null, taskId: string, progress: number, message: string): void {
   if (!projectId) return;
   const event: RealtimeEvent = {
     type: 'generation.progress',
@@ -138,7 +146,7 @@ export async function finishTask(
   const row = rows[0];
   if (row) {
     // 失败也推：任务页与 Studio 上的"正在生成"要能自己停下来，而不是永远转着
-    publishGenerationProgress(row.projectId, id, 1, outcome.ok ? '完成' : `失败：${reason}`);
+    publishTaskProgress(row.projectId, id, 1, outcome.ok ? '完成' : `失败：${reason}`);
     if (status === 'succeeded' && row.createdById) {
       await chargeGeneration({
         taskId: id,

@@ -125,10 +125,21 @@ describe('§112 多步编排的执行方', () => {
     // 计划一条 + 每步开始/完成各一条
     expect(events.filter((event) => event.type === 'agent.activity')).toHaveLength(9);
 
-    // §163 的真实起点与收尾：只有 0 与 1 两个真信号，不编中间刻度
+    // §163 + §112：起点 0、每步一格（已到终态的步数 / 总步数）、收尾 1。
+    // 中间那三格不是插值——每一步跑完都真的推一次，所以这里能逐格数出来。
     const progress = events.filter((event) => event.type === 'generation.progress');
-    expect(progress.map((event) => event.progress)).toEqual([0, 1]);
+    expect(progress.map((event) => event.progress)).toEqual([0, 0.25, 0.5, 0.75, 1, 1]);
     expect(progress.every((event) => event.kind === 'agent')).toBe(true);
+    // 每一格说的是哪一步：进度条上只有数字的话，用户不知道那四分之一是什么换来的。
+    // 标题从库里那一份计划取，不在这里重抄——重抄会把这条断言变成对我抄写的测试
+    expect(progress.map((event) => event.message)).toEqual([
+      '已提交',
+      ...planned.tasks.map((task, index) => `第 ${index + 1}/${planned.tasks.length} 步：${task.title}`),
+      '完成',
+    ]);
+    // 刻度单调不减：作业跑完后进度条倒回去是最刺眼的一种错
+    const ticks = progress.map((event) => event.progress);
+    expect(ticks.every((value, index) => index === 0 || value >= ticks[index - 1]!)).toBe(true);
 
     const [note] = await getDb()
       .select()
@@ -179,7 +190,8 @@ describe('§112 多步编排的执行方', () => {
     const [row] = await getDb().select().from(agentTasks).where(eq(agentTasks.id, result.taskId)).limit(1);
     expect(row?.status).toBe('failed');
     expect(row?.error).toContain('探针');
-    expect((row!.plan as AgentPlan).tasks.map((task) => task.status)).toEqual(['done', 'done', 'failed', 'skipped']);
+    const planned = row!.plan as AgentPlan;
+    expect(planned.tasks.map((task) => task.status)).toEqual(['done', 'done', 'failed', 'skipped']);
 
     const events = projectEvents(projectId);
     const stepTrace = events
@@ -202,6 +214,20 @@ describe('§112 多步编排的执行方', () => {
     );
     expect(skipActivity).toHaveLength(1);
     expect(skipActivity[0]!.activity.summary).toContain('qa-audit');
+
+    // §163 × §112：skipped 那一档不推进度——那一步什么都没做，算进分子就是把"没跑"报成"跑完了"。
+    // 这里三条刻度对应的正是三个真跑到终态的步（失败也算到终态），第四条是任务行的收尾
+    const progress = events.filter((event) => event.type === 'generation.progress');
+    expect(progress.map((event) => event.progress)).toEqual([0, 0.25, 0.5, 0.75, 1]);
+    const settledTasks = planned.tasks.filter((task) => task.status !== 'skipped');
+    expect(progress.map((event) => event.message)).toEqual([
+      '已提交',
+      ...settledTasks.map((task, index) => `第 ${index + 1}/${planned.tasks.length} 步：${task.title}`),
+      `失败：${row!.error}`,
+    ]);
+    // 对照：被跳过的那一步的名字，一条进度里都没出现
+    const skippedTitle = planned.tasks.find((task) => task.status === 'skipped')!.title;
+    expect(progress.some((event) => (event.message ?? '').includes(skippedTitle))).toBe(false);
 
     const [note] = await getDb()
       .select()
