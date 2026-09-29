@@ -1529,7 +1529,20 @@ export async function isolatedCheckout({ ref = 'HEAD', cwd = process.cwd(), dest
   /** `null` under a clone — a clone has no archive to measure, and 0 would be a number that means nothing. */
   let archiveByteCount = null;
   try {
-    const clone = await run('git', ['clone', '--shared', '--no-checkout', cwd, root], { cwd, timeoutMs: 180_000 });
+    // Measured 2026-09-29: this box's SYSTEM gitconfig sets `core.autocrlf = true` (`git config --show-origin
+    // core.autocrlf` → `file:C:/Program Files/Git/etc/gitconfig true`), so a fresh checkout materializes CRLF
+    // where `git show HEAD:file` answers LF — `disk.equals(shown)` = false, disk carries 0x0D, shown does not —
+    // and provenance-proof §2 therefore counted 0 of 74 proofs identical to their committed bytes on a cloned
+    // plane, while the home worktree measures the opposite (disk == git show, both LF: no checkout has rewritten
+    // those bytes since they were written). Two planes reading different BYTES for the same ref is the drift this
+    // runner exists to catch, and v132's claim "stages the same tracked bytes" is only true without the
+    // conversion. `clone -c` is the config's OWN door: it writes `core.autocrlf=false` into the new repository's
+    // local config (measured after this change: `git config --get core.autocrlf` → false, `status --porcelain` →
+    // clean, disk == `git show` byte for byte), so the checkout below writes the blob's own bytes — and the
+    // command word stays `clone` at argv[0] where gitCommandsIn reads it, because `git -c core.autocrlf=false
+    // checkout ref` leaves that arm at [] (measured): the tokenizer takes the first argument after the program
+    // as THE command.
+    const clone = await run('git', ['clone', '-c', 'core.autocrlf=false', '--shared', '--no-checkout', cwd, root], { cwd, timeoutMs: 180_000 });
     // v132: the exit codes are read. The first draft of this hunk dropped both on the floor and leaned on the
     // NEXT command failing in a directory that is not a repository — which is the same "the banner is not a
     // reason" mistake this file keeps finding in other people's summaries: a cause that only shows up as the
@@ -1538,7 +1551,7 @@ export async function isolatedCheckout({ ref = 'HEAD', cwd = process.cwd(), dest
     const co = await run('git', ['checkout', ref], { cwd: root, timeoutMs: 60_000 });
     if (co.code !== 0) throw new Error(`git checkout ${ref} → exit ${co.code}: ${co.stderr.trim().slice(0, 200) || 'no stderr'}`);
     usedClone = true;
-    log(`[isolated] ${ref} → ${root}: staged as a REPOSITORY — git clone --shared --no-checkout + git checkout ${ref}, so this plane answers git questions the bare tree could not · dest ${driveVerdict(where).phrase}`);
+    log(`[isolated] ${ref} → ${root}: staged as a REPOSITORY — git clone --shared --no-checkout + git checkout ${ref}, so this plane answers git questions the bare tree could not · dest ${driveVerdict(where).phrase} (chosen: ${where.chose})`);
   } catch (e) {
     // M2 v133 — a DOWNGRADE IS A REFUSAL, not a log line. v132 built everything above and stated this hole as
     // its own bound: "nothing yet FAILS a sweep for taking the archive fallback, so the 42 reds can return

@@ -236,7 +236,20 @@ const trackedAll = new Set(gitOut(['ls-tree', '-r', '--name-only', 'HEAD']).spli
 const notInRef = cleanPaths.filter((p) => !trackedAll.has(p));
 assert.deepEqual(notInRef.slice(0, 5), [], `${notInRef.length} files the clean checkout exposes are not tracked at HEAD, e.g. ${notInRef.slice(0, 3).join(', ')} — the CONTENT of the staged checkout is supposed to be the ref and nothing else (v132 stages it as a clone, so the clone's own .git is the repository rather than content, and walkPaths skips it the way it skips node_modules)`);
 assert.ok(!cleanPaths.some((p) => p.startsWith('.scratch/')), 'no .scratch/ path is in the corpus: the files that reached a shipped top-5 assertion in the worktree cannot reach one here');
-assert.ok(cleanTree.files < home.files, `a clean checkout walks ${cleanTree.files} files against this worktree's ${home.files}: isolation removed ${home.files - cleanTree.files} files no commit owns`);
+// The standing tree does not always HAVE files no commit owns, and which shape is true is a census question
+// rather than a guess about which plane this row happens to run on. On the home plane the census reads 63
+// untracked + 0 ignored (measured 2026-09-29) and the strict claim below is the whole point: a clean checkout
+// walks strictly fewer files. On the isolated plane this row STANDS in a clone the runner just staged — census
+// 230 tracked · 0 untracked · 0 ignored (measured on the failed run this branch replaces) — the comparison is
+// two clean checkouts of the same ref, and `<` reduced to 230 < 230 and could only fail. The honest claim on
+// that plane is IDENTITY, count AND bytes, which is strictly stronger than "smaller", so the census picks the
+// sentence.
+const standingUnowned = (home.untracked ?? 0) + (home.other ?? 0);
+if (standingUnowned > 0) {
+  assert.ok(cleanTree.files < home.files, `a clean checkout walks ${cleanTree.files} files against this worktree's ${home.files}: isolation removed ${home.files - cleanTree.files} files no commit owns`);
+} else {
+  assert.ok(cleanTree.files === home.files && cleanTree.digest === home.digest, `the standing tree owns every file it walks (census tracked ${home.tracked} · untracked ${home.untracked} · ignored ${home.other}), so isolation removed nothing and the claim becomes IDENTITY — and it broke: the clean checkout walks ${cleanTree.files} files / digest ${cleanTree.digest.slice(0, 16)} against the standing tree's ${home.files} / ${home.digest.slice(0, 16)}`);
+}
 const cleanRun = await sw.runProof(join(iso.root, proofRel), iso.root, 240_000);
 const dirtyRun = await sw.runProof(join(root, proofRel), root, 240_000);
 console.log(`  干净检出：ok=${cleanRun.ok} exit=${cleanRun.code} ${cleanRun.ms}ms :: ${cleanRun.tail}${cleanRun.ok ? '' : ' || ' + cleanRun.errTail}`);

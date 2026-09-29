@@ -125,7 +125,7 @@ const homeBefore = sw.distDigest(root);
 // The second blind shape M2 v93 named, in its purest form: this row never writes the word git in a call at all,
 // it asks the runner's own helper to materialise the ref, so the spawn is one frame away from these bytes and the
 // exit 128 a checkout gives this row was unforeseeable from outside. The row can say it (amendment 94).
-// sweep-asks-repository: git archive HEAD once per sw.isolatedCheckout call — the default-dest one below, plus the CROSS-DRIVE one when this host has a second drive — and these bytes themselves name no git call at all
+// sweep-asks-repository: git clone --shared --no-checkout + git checkout HEAD once per sw.isolatedCheckout call (git archive HEAD only behind the v133 refusal) — the default-dest one below, plus the CROSS-DRIVE one when this host has a second drive — and these bytes themselves name no git call at all
 const dfltLines = [];
 const dflt = await sw.isolatedCheckout({ ref: 'HEAD', cwd: root, build: false, log: (l) => dfltLines.push(String(l)) });
 checkouts += 1;

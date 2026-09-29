@@ -128,7 +128,7 @@ console.log(`[§2] naming grammar: ${namedCases.length - namedBad.length}/${name
 // is that it can return NOTHING for a helper that definitely reaches git — and the honest reading of that is not
 // "the clause is false" but "the literal lives one frame further up".
 const helperArms = [
-  ['isolatedCheckout', ['archive'], 'the runner spawns `run(\'git\', [\'archive\',…])` with a literal argv, so the command is visible AT CODE POSITION'],
+  ['isolatedCheckout', ['clone', 'checkout', 'archive'], 'the runner spawns `run(\'git\', [\'clone\',…])`, `run(\'git\', [\'checkout\',…])`, and — behind the v133 refusal — `run(\'git\', [\'archive\',…])`, each with a literal argv, so every command is visible AT CODE POSITION'],
   ['catFileBatch', ['cat-file'], 'same shape, different verb'],
   ['proofCorpus', [], 'reaches git through TWO other helpers in this file and names no argv itself — amendment 93\'s blind spot, one frame up'],
   ['trackedProofs', [], 'the discovery: this body really does write `git([\'ls-tree\', …])`, a command literal at code position, and the arm still sees nothing, because the callee is a PRIVATE WRAPPER NAMED `git` rather than the program string. Amendment 94\'s parameter-bound shape again, with the parameter in the other position'],
