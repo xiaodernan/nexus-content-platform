@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { ApiProjectListSchema } from '@nexus/schemas';
 import { apiProjectList, authorizeApiRequest, recordApiAccess } from '@/server/domain/api-tokens';
-import { failure, jsonError } from '@/server/http';
+import { apiJson, failure, jsonError } from '@/server/http';
 
 /**
  * §188 公开 API v1 的第一条：`GET /api/v1/projects`。
@@ -23,7 +23,7 @@ export async function GET(req: Request): Promise<NextResponse> {
     const checked = ApiProjectListSchema.safeParse({ projects: list });
     if (!checked.success) return failure(new Error('项目清单不符合契约'), 'GET /api/v1/projects');
     await recordApiAccess({ tokenId: authed.token.id, endpoint: 'GET /api/v1/projects' });
-    return NextResponse.json(checked.data, {
+    return apiJson(checked.data, req, {
       // 回一句 hint（不是凭据）：调用方拿 401 来问"是哪一枚配错了"时，界面与日志对得上同一把
       headers: { 'cache-control': 'no-store', 'x-nexus-token-hint': authed.token.hint },
     });

@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { ApiProjectDetailSchema } from '@nexus/schemas';
 import { apiProjectDetail, authorizeApiRequest, recordApiAccess } from '@/server/domain/api-tokens';
-import { failure, jsonError } from '@/server/http';
+import { apiJson, failure, jsonError } from '@/server/http';
 
 interface RouteContext {
   params: Promise<{ projectId: string }>;
@@ -30,7 +30,7 @@ export async function GET(req: Request, ctx: RouteContext): Promise<NextResponse
     const checked = ApiProjectDetailSchema.safeParse(detail);
     if (!checked.success) return failure(new Error('项目详情不符合契约'), 'GET /api/v1/projects/[projectId]');
     await recordApiAccess({ tokenId: authed.token.id, endpoint: 'GET /api/v1/projects/[projectId]', projectId });
-    return NextResponse.json(checked.data, { headers: { 'cache-control': 'no-store' } });
+    return apiJson(checked.data, req, { headers: { 'cache-control': 'no-store' } });
   } catch (error) {
     return failure(error, 'GET /api/v1/projects/[projectId]');
   }

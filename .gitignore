@@ -41,3 +41,7 @@ playwright-report/
 # logs
 logs/
 *.log
+
+# Agent 的临时实验区（变异探针、跑批脚本、原始日志）。不是项目内容，不进仓库；
+# 但 eslint 会扫到它，所以忽略规则要同时写在 .gitignore 与 eslint.config.mjs 两处
+.scratch/

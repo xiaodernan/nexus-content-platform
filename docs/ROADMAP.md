@@ -3074,3 +3074,45 @@ image-safety / image-studio / ai-jobs / studio-flush，不是全量回归）；�
   并把撤销凭证带回来；作业是**同步跑完**的，没有排队 / 取消 / 重试，长作业也没有真进度
   （§163 一次同步请求只有"开始"与"结束"两个真信号，所以不编中间刻度）；§74 的审批门与这一片没有交集，
   因为这一片一个写动作都没有。
+
+## §188 M8 第四片：公网 v1 的 JSON 出口带上编码协商 —— 2026-09-29
+
+**为什么要自己压**：`next start` 自带的 compress 中间件认得 `application/json`，
+但它**没接住 Route Handler 的写路径**——同一台生产服务器上 `/` 的 HTML 回 `Content-Encoding: gzip`，
+而 `/api/v1/.../design` 那份 3.2MB 的文档回 `identity`（两份头部记在 `docs/PERFORMANCE.md` §188 那一节）。
+这一格没有分页也没有字段裁剪，所以报文体积就是调用方付的全部代价：**3293KB → 103KB**。
+
+- `apiJson(data, req, init)` 是 v1 的 JSON 出口：够大（`API_GZIP_THRESHOLD_BYTES = 1024`，
+  取自 Next compress 中间件的默认阈值，同一句话不在两处各写一遍）且对方收得住才压。
+- **`content-length` 两条路都自己写，值与体同源**（gzip 那一路写的是压过的字节数）——
+  把原体长度挂到压过的体上，客户端读到的就是截断的 JSON。
+- 压过的响应补 `vary: Accept-Encoding`（同一 URL 会因这一回头给不同编码，
+  虽然现在写着 `no-store`，漏掉 vary 等于"现在没事、以后加缓存就出事"那种欠账）。
+- **结构门**：`api-response.test.ts` 里扫 v1 的路由文件，不许再出现裸的 `NextResponse.json`——
+  "漏了一格"在响应码上完全看不出差别，只能从代码形状上钉。
+
+**本轮修掉的一处真 bug（`acceptsGzip` 的最具体匹配）**：原实现是"扫一遍，看见 `gzip` 或 `*` 就算收"，
+于是 `gzip;q=0, *` 判成**收**——那一条的意思是"别的都行，就是不要 gzip"，
+通配把它盖了过去，我们就会给一个明确拒收的客户端回 gzip，它可能根本解不开。
+按 RFC 9110 的**最具体的匹配胜出**重写（显式的 `gzip` 定案，`*` 只作为兜底），
+并把两格补进测试表（`gzip;q=0, *` → 不压、`*;q=0, gzip` → 压）。
+**变异探针**：把 `acceptsGzip` 改回"看见就算收" → 红在 `accept-encoding="gzip;q=0, *" → 不压`；
+改回后 `api-response.test.ts` **26 条全过**。
+原表只有 `gzip;q=0` 单独出现那一格，而它在两种写法下都对——**这个 bug 只在两者同时出现时才露头**，
+所以"表里有一个拒收用例"并不等于"拒收这条语义被测住了"。
+
+**验证与未验证（如实记）**：`npm run lint` 0 问题；非库用例 **62 文件 / 788 条全绿**。
+本轮 Docker 起不来（WSL 被本机安全策略挡住，Agent 无法自行启动引擎），
+所以**打真库的用例这一轮没跑**——其中 `api-tokens.integration.test.ts` 覆盖的正是本次改过的三个 v1 路由，
+它是**待补的验证**，不是"已经绿了"。改动本身是响应编码层的一层包装，且结构门钉住了每一处出口，
+但这条要说清楚：下一轮 Docker 起来后先补跑它。
+
+**顺带清掉一处会误导下一个人的死契约**：`lib/tasksLedger.ts` 写着"`/api/projects/<id>/tasks` 的报文契约"，
+而那条路由**不存在**（`app/api/projects/[projectId]/tasks/` 是个空目录），全仓也没有任何引用。
+`/tasks/<项目>` 那一页是服务端组件、直接读库，本来就不需要这条 HTTP 路由。
+按 `RealtimeEventSchema` 的先例（契约可以留着、但要如实说明没人用）保留文件、把状态写进注释，
+并在本节记一笔：要让它活起来，得先有一个客户端消费者。
+
+**顺带清掉 lint 的一处噪音源**：`.scratch/`（变异探针与跑批脚本）此前既没进 `.gitignore`
+也没进 eslint 的 ignores，于是类型感知的规则集每次都报四条"文件不在 project service 里"。
+两处都补上（并互相注明），`npm run lint` 从此只报真问题。
