@@ -56,7 +56,12 @@ export function WorldPanel() {
             ? '读取世界…'
             : snapshot.error
               ? `读不出库里那份世界：${snapshot.error}。下面这个按钮会写一份新的模板骨架进去，覆盖掉读不出来的那份——先确认不是契约漂移再点。`
-              : '这个项目还没有世界。可以先建一份**模板骨架**：九类内容各留一个空条目，你自己往里填。AI 生成世界（§44 的「Create a dark fantasy world」）需要真实模型，provider 未接入前这里不做假生成。'}
+              : (
+                  <>
+                    这个项目还没有世界。可以先建一份<strong>模板骨架</strong>：九类内容各留一个空条目，你自己往里填。
+                    AI 生成世界（§44 的「Create a dark fantasy world」）需要真实模型，provider 未接入前这里不做假生成。
+                  </>
+                )}
         </p>
         {snapshot.error ? (
           <p className="text-11 text-danger" data-world-error>

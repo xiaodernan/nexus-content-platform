@@ -30,6 +30,8 @@ export interface AccountRow {
   name: string;
   handle: string | null;
   role: Role;
+  /** 当前档位（§133）。列在账号行上：改档位的入口就在同一行，读的人不用再点进去看 */
+  plan: 'free' | 'pro' | 'creator' | 'studio' | 'enterprise';
   createdAt: string;
   /** 免注册首次体验的 guest 也列出来：提权事故最可能的来源就是"随手建的身份没被认领" */
   guest: boolean;
@@ -57,6 +59,7 @@ export async function listAccounts(limit = 200): Promise<AccountRow[]> {
       name: users.displayName,
       handle: users.handle,
       role: users.role,
+      plan: users.plan,
       createdAt: users.createdAt,
       guest: users.guest,
     })
@@ -69,6 +72,7 @@ export async function listAccounts(limit = 200): Promise<AccountRow[]> {
     name: row.name,
     handle: row.handle,
     role: row.role as Role,
+    plan: row.plan,
     createdAt: row.createdAt.toISOString(),
     guest: row.guest,
   }));

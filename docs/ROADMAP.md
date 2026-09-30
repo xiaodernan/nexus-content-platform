@@ -1044,7 +1044,8 @@ drizzle 把整个拼接结果当成**单个绑定参数**，生成的 SQL 是 `o
 - [~] Credits 与订阅（Free/Pro/Creator/Studio/Enterprise），消费透明（§133-134）
   —— 第一片已落地（账本 + 一类消费 + 一格拦截）；第二片把 storage 那一格也接上真的执行方
   （摄取门里拒绝新字节，413，见文末"§133/§134 第二片"与 ADR-0018）；
-  欠的是 image/video/compute 三类的消耗方、generation/team collaboration/publishing 三格的执行方、改档位的入口
+  欠的是 image/video/compute 三类的消耗方、generation/team collaboration/publishing 三格的执行方
+  （~~改档位的入口~~ 已在 2026-09-30 接上：`/admin/users` 的档位选择，见 ADR-0021）
 
 ## M8 — 开放能力（§188）
 - [~] MCP、外部 Agent、公开 API —— 公开 API 这一格已有读与写（第一片三格只读 + 第二片 PATCH 设计补丁 +
@@ -1813,7 +1814,10 @@ generation / team collaboration / publishing 设计"，§134"用户看得到 AI 
 - ~~storage / generation / team collaboration / publishing 那四格上限只是页面上的数字~~ **storage 那一格后来接上了执行方**
   （2026-09-28，见文末「§133/§134 第二片」与 ADR-0018）；generation / team collaboration / publishing 三格仍然只是数字。
 - Image / Video / Compute 三类只有发放方、没有消耗方（要等 §38 图像、§40 视频那条路）。
-- 改档位没有界面：`UPDATE users SET plan` 是服务端代码里的事。
+- ~~改档位没有界面：`UPDATE users SET plan` 是服务端代码里的事。~~ **2026-09-30 接上了**：
+  `/admin/users` 上有档位选择（`domain/plan-admin.ts` + `PATCH /api/admin/users/[id]/plan`），
+  取舍见 ADR-0021。它**不是购买流程**（§159：账面上没有一分钱流进来，所以界面上不出现"升级"也不标价），
+  是运营兜底动作；与"改角色"刻意相反，它**允许 admin 改自己**（发额度 ≠ 授予权限）。
 - 这道门**不预扣**：并发可以把余额跑到负数（预扣要一个能把 provider 调用包进去的可回滚事务，今天没有）。
   负余额在流水里看得见，这个松是选定的，写在 `credit-ledger.ts` 注释与 ADR-0014 里。
 

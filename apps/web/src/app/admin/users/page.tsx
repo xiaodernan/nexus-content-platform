@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { countAdmins, listAccounts } from '@/server/domain/roles';
 import { currentUserOrNull } from '@/server/domain/session';
+import { PlanSelect } from './PlanSelect';
 import { RoleButton } from './RoleButton';
 
 export const dynamic = 'force-dynamic';
@@ -61,6 +62,13 @@ export default async function AdminUsersPage() {
         每一次尝试都会记进审计，被拒的那一次也记。
       </p>
 
+      <p className="text-11 text-fg-3" data-users-plan-rules>
+        改档位（§133）的入口也在这一行：只有审核员能改，<strong>可以改自己</strong>——这条与改角色刻意不同，
+        因为改角色是发权限（自己提权 = 拿到这个会话的人就能变成审核员），改档位是发额度（ADR-0021）。
+        这是运营兜底动作，不是购买流程：没有支付、页面上不标价，改完这一档每月发的额度与存储上限跟着变，
+        已经在库里的东西一样都不动（§159）。
+      </p>
+
       <ul className="flex flex-col gap-2">
         {accounts.map((account) => (
           <li
@@ -78,7 +86,10 @@ export default async function AdminUsersPage() {
                 role={account.role} · 注册于 {new Date(account.createdAt).toLocaleDateString('zh-CN')}
               </span>
             </span>
-            <RoleButton userId={account.id} handle={account.handle} role={account.role} self={account.id === user.id} guest={account.guest} />
+            <span className="flex flex-wrap items-center gap-2">
+              <PlanSelect userId={account.id} plan={account.plan} self={account.id === user.id} handle={account.handle} />
+              <RoleButton userId={account.id} handle={account.handle} role={account.role} self={account.id === user.id} guest={account.guest} />
+            </span>
           </li>
         ))}
       </ul>
