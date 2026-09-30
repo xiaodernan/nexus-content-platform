@@ -56,7 +56,7 @@ same file is then asserted to run ZERO programs. `porcelain-path-proof.mjs` (v61
 ## Reproducible gates
 
 ```
-npm test          # turbo: @nexus/agent-runtime 409/409 + @nexus/exec-host 275/275 vitest among all packages
+npm test          # turbo: @nexus/agent-runtime 429/429 + @nexus/exec-host 275/275 vitest among all packages
 npm run build     # tsc dist for agents/runtime + agents/exec-host (build order via ^build deps)
 node docs/evidence/agents/agent-proof.mjs
 node docs/evidence/agents/code-index-proof.mjs   # requires `npm run build` first
@@ -3237,3 +3237,50 @@ Bounds, stated: this is a COMPOSITION surface. It does not render, it does not s
 for combat, physics, controllers, cinematics or save/load — those exist in the package and are unreachable from here
 today. It is registered in no default roster: a host must call `registerSceneTools` with a driver it built. And nothing
 in the Studio imports it, so M5's PRODUCT face is still open — what is closed is that the lane had no consumer at all.
+
+
+## The clone plane writes the ref own bytes, the first line names its choice, and the shrink claim asks the census (sweep.mjs + isolated-proof.mjs section 4 — M2 v141 — ADR 0016 amendment 141)
+
+Three findings the v132 clone staging surfaced on the first isolated run that reached past it, measured
+2026-09-29 rather than assumed. Before v141 the isolated plane was 4 red and the worktree plane 2 red,
+all six from the staging change landing without its witnesses.
+
+**BYTES.** This box system gitconfig sets `core.autocrlf = true`, so the clone checkout materialized CRLF
+where `git show HEAD:file` answers LF — and provenance-proof section 2 therefore counted 0 of 74 proofs
+identical to their committed bytes on the cloned plane, while the home worktree measures the opposite
+(disk == `git show`, both LF: no checkout has rewritten those bytes since they were written). Two planes
+reading different BYTES for the same ref is the drift this runner exists to catch, and v132 own claim
+("stages the same tracked bytes") is only true without the conversion. `git clone -c core.autocrlf=false` is
+the config own door: measured after the change, `git config --get core.autocrlf` answers false inside the
+clone, `status --porcelain` is clean, and disk equals `git show` byte for byte. The alternative
+`git -c core.autocrlf=false checkout ref` was measured and rejected: the code-position tokenizer takes the
+first argument after the program as THE command, so that form reads as a call to `-c` and returns nothing —
+the checkout would have gone invisible to every scanner this directory owns. `clone -c` keeps `clone` at
+argv[0] (measured: `gitCommandsIn(sweep.mjs, isolatedCheckout)` is exactly clone, checkout, archive, and no
+new call site enters the plane census).
+
+**THE LINE.** drive-axis-proof takes the FIRST `[isolated]` line a caller log sees, and the clone arm line said
+WHERE the dest was but not HOW it was chosen. It now carries `chosen:` with the computed choice — the default
+arm reporting the forced repo-drive choice, the cross-drive arm `caller-supplied` — and both arms are green.
+
+**SECTION 4 SHRINK.** isolated-proof asserted the clean checkout walks strictly fewer files than the standing
+tree. The home plane census says 63 untracked files, isolation removes them, and the strict claim is correct
+there. On the isolated plane this row STANDS in a clone the runner just staged — census 230 tracked, 0
+untracked, 0 ignored — so the assertion reduced to 230 < 230 and could only fail, the first time that row ever
+reached its own assertions on this plane. The census now picks the sentence: unowned files present gives the
+strict shrink claim; none present gives IDENTITY, count AND digest, which is strictly stronger than "smaller".
+
+Two witnesses were repaired in the same commit rather than left stale: confession-proof helperArms wanted the
+old single-verb list where the body now reaches three commands, and drive-axis asks-declaration still said
+`git archive HEAD` where the body clones first (`clone` is a verb the confession grammar knows, measured).
+
+| plane | measured at c8396a3 |
+| --- | --- |
+| worktree | 74 scripts, 0 failed, 0 killed, 692 s · graded build 6fdf2eb7a3c1197b (268 dist files) · tree d5325b0eb90d624a (293 files) · dirty-sources 0 |
+| isolated | 74 scripts, 0 failed, 0 killed, 671 s · graded build 2d04ef776f68808c (288 dist files) · runner build 6fdf2eb7a3c1197b · tree 8b260da25c7617db (230 files) · home build UNMOVED |
+
+Bounds, stated: the `false` lives in the CLONE local config only — the home repository config is untouched,
+and the system `true` still governs the worktree, whose files are LF as-written, which is exactly why the two
+planes disagreed in the first place. On a host with `autocrlf=false` everywhere the flag changes nothing, so
+it is belt rather than load-bearing; the measurement that would catch its absence is provenance-proof section 2
+counting identical proofs, which is what caught it here.

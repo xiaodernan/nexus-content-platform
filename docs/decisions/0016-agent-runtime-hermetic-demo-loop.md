@@ -6770,3 +6770,143 @@ newest grant (140) carrying a title.
 This is also why the number `140` appears in the mutation arm's own report: the proof refuses a ledger whose
 newest grant is untitled, and it proves that refusal is a real condition by renumbering the heading and
 watching the hole move.
+
+### Amendment 141 (M2 v141, evidence) — the clone plane stopped lying about BYTES, and the `[isolated]` line says HOW its destination was chosen
+
+_Owed record, written at v142. The landing `c8396a3` titles itself "(ADR 0016 amendment 141)" and no such
+section existed: the sweep runner is the M2 lane's own tool, it was changed in that commit, and the ledger
+entry for it was never typed. Numbering was checked first (`grep -n "^#\{2,3\} Amendment"` topped out at 140
+and `git log` showed no competing claim), so this is the record the commit already cited rather than a new
+amendment wearing its number. Nothing here is re-measured: every figure is the landing's own, quoted because
+the lane's rule is that an unrecorded measurement is a measurement nobody can find._
+
+- **The defect was bytes, not logic.** This box's system gitconfig carries `core.autocrlf = true`
+  (`git config --show-origin core.autocrlf` → `file:C:/Program Files/Git/etc/gitconfig true`), so the v132
+  clone plane's `git checkout` materialised CRLF where `git show HEAD:file` answers LF. The plane's whole
+  credibility rests on it being the same bytes as the ref it names, and `provenance-proof.mjs` §2 therefore
+  counted **0 of 74** proofs identical to their committed bytes on the cloned plane while the home worktree
+  measured the opposite (disk == `git show`, both LF). Two planes reading different bytes for one ref is
+  exactly the drift that runner exists to catch. The fix is the config's own door —
+  `git clone -c core.autocrlf=false` — after which `git config --get core.autocrlf` answers `false` inside the
+  clone, `status --porcelain` is clean, and disk == `git show` byte for byte. The command word stays `clone` at
+  `argv[0]` where `gitCommandsIn` reads it: `git -c core.autocrlf=false checkout <ref>` leaves that arm at
+  `[]`, because the tokenizer takes the first argument after the program as THE command (measured, not
+  assumed).
+- **A line that named WHERE but not HOW.** `drive-axis-proof.mjs` reads the FIRST `[isolated]` line and
+  requires it to say how the destination was chosen; the clone arm's line named the location and not the
+  choice, so that row went red on both planes. The line now carries `chosen: ${where.chose}` — measured green
+  in both arms: `default: repo-drive (FORCED off tmpdir by the drive mismatch)` and `caller-supplied`.
+- **A shrink claim that could only fail.** `isolated-proof.mjs` §4 asserted `cleanTree.files < home.files`.
+  That is right on the home plane (**63** untracked files, which isolation removes) and impossible on the
+  isolated plane, where this row stands inside a clone the runner has just staged: census **230 tracked / 0
+  untracked / 0 ignored**, so the assertion reduced to `230 < 230`. The census now picks the sentence: unowned
+  > 0 → the strict shrink claim; 0 → IDENTITY (count AND bytes), which is strictly stronger.
+- **Two witnesses left stale by v132/v133, found by measuring rather than remembering.**
+  `confession-proof.mjs`'s `helperArms` still expected `gitCommandsIn(sweep.mjs, 'isolatedCheckout')` to be
+  `["archive"]` where the body now reaches clone + checkout + archive; `drive-axis-proof.mjs`'s
+  `asks-declaration` still said "git archive HEAD once per `sw.isolatedCheckout` call". Both were red on the
+  worktree plane before that commit and green after, with the wanted lists updated to the measured ones
+  (`["clone","checkout","archive"]`, the archive named as the v133 fallback it is).
+- **Bounds.** The 74-row sweep on the isolated plane counts 230 of this worktree's 293 files, every one
+  tracked at HEAD, and a plane that silently took the archive fallback still has only the `[isolated]` line as
+  its witness — v132's bound, closed at v133 for the runner and still true of any caller that reads the line
+  and not the code.
+
+### Amendment 142 (M5 v142, studio + three-runtime) — the 3D lane gets its FIRST PRODUCT CONSUMER, and the first consumer is what finds that a declared light was never attached
+
+_Numbering: 142 was free (`grep -n "^#\{2,3\} Amendment"` topped out at 140; 141 is the owed M2 record
+directly above, written in the same landing). Full narrative in `docs/evidence/three-runtime/README.md`
+section v142, `docs/evidence/studio/README.md` and the runnable `docs/evidence/studio/scene-surface-proof.mjs`;
+this is the ledger entry._
+
+- **The bound this closes.** Every M5 grant from v108 onward ended with the same sentence, and v139/v140 wrote
+  it verbatim: *"nothing in the Studio imports `@nexus/three-runtime` … the roadmap's M5 entry is still a
+  runtime with tests, not a feature a user can open."* v140 closed the AGENT half with a `scene.*` tool family
+  over a driver seam. This closes the **product** half: the Studio grows a 3D surface, and the package gains
+  its first UI dependency edge (`apps/studio` → `@nexus/three-runtime`, added to `transpilePackages` and to the
+  workspace dependencies so the build order is declared rather than accidental).
+- **The first consumer found a defect no test could see.** `ThreeRuntime.createScene` built two `THREE.Light`
+  objects through `createDefaultLighting`, stored them in `LightingConfig.lights` — and **put neither into the
+  scene**. `lighting` was written once and read by nothing. Every mesh this package makes is a
+  `MeshStandardMaterial`, whose colour is a function of the lights in its scene, so **every scene from this
+  runtime rendered black**, and the suite could not see it because every case above the renderer seam asserted
+  the CONFIG (`lights.length === 2`) rather than the SCENE. The fix attaches each `enabled` light to
+  `threeScene` and reuses that one `lighting` value, and the new cases assert the SCENE: both declared lights
+  are children, each is retrievable by id, a second scene gets its OWN lights, and every non-light child of a
+  fresh scene is still a registered body — because attaching lights moves the object count v140's own proof
+  records, and that boundary needed pinning rather than noticing later.
+- **The defect is now a NUMBER, not a sentence.** The proof computes the package's own lighting term over the
+  package's own light objects: ambient contributes its intensity, the directional light
+  `intensity * max(0, dot(normal, direction))`. Measured: **1.316496580927726** with the declared lights and
+  **exactly 0** without them, with every body's `emissive` black, so a body's colour can only come from light.
+  The claim "it renders" is a picture a human can open — `docs/evidence/studio/harness/studio-scene3d.png`
+  shows four LIT boxes on a dark ground rather than the black frame the defect produced.
+- **The surface is split the way ADR 0005 splits the 2D one: a pure model and a renderer.** `scene3d.ts` is
+  pure and imports neither React nor three: `buildDemoScene` composes one scene, four bodies and one camera;
+  `buildSceneReport` reads the runtime's state back; `createStudioScene` owns the frame count, because the
+  runtime does not count frames and a report that invented one would be the class of number this project keeps
+  writing amendments about. `Scene3D.tsx` is the ONLY file in the Studio that touches a canvas, a GL context or
+  three.js, which keeps the model loadable during SSR and in a plain vitest process.
+- **The camera had to be aimed, and that is where the seam earned its keep.** `createCamera` builds a camera
+  at the origin looking down -Z, and aiming it is a three.js write the pure half may not perform, so the
+  adapter is its own narrow interface (`placeCamera`) and the component holds the only implementation. The
+  split is not decoration: the package's `createEntity` takes a `THREE.Vector3` (not a plain `{x,y,z}`), an
+  entity's body is `threeObject` (not `object3D`), and `Object.assign(runtime, adapter)` type-checks while
+  silently dropping every prototype method — all three were found by measurement, and the third reddened seven
+  cases in this landing's first run.
+- **§60 on the surface itself.** The backend is chosen honestly (`webglAvailable()`), the HUD names which one
+  answered, and a host with no GL context gets the headless backend plus a visible sentence saying that no
+  pixels are drawn — the graph, the camera and the frame loop are real and the picture is not. Every HUD number
+  comes from `buildSceneReport`; the frame count is the one thing the component owns and it says so. The
+  read-only bridge grows a second, separate reader (`window.__nexusScene3d`, frozen, no mutators) rather than a
+  second global, and it answers `null` when no surface is mounted, which is the truth.
+- **Evidence.** `three-runtime` **362/362 → 364/364** (7 files, `tsc` clean). Studio **130/130 (15 files) →
+  149/149 (17 files)**, `tsc --noEmit` clean — and **the studio `typecheck` gate was RED at HEAD**:
+  `instancePanel.test.ts` carried `error TS2532` since `d77ca34`, because the ambient studio build uses
+  incremental `tsconfig.tsbuildinfo` and never re-checked that file, so the repo's own `turbo run typecheck`
+  task had been failing (or skipping) unnoticed. That is fixed here too, by reading the capture group as what
+  `noUncheckedIndexedAccess` says it is rather than dropping an unreadable receiver. A new `vitest.config.ts`
+  aliases `@nexus/three-runtime` to the package **source**, because `dist/` is gitignored and a test that
+  imported it would grade whatever the last `tsc` happened to leave on the machine.
+- **Two new suites and one new proof, and what each can and cannot say.** `scene3d.test.ts` (16 cases) pins the
+  model over a fake; `scene3dSurface.test.ts` (5 cases) runs the **real** `ThreeRuntime` on the headless seam
+  through the same functions the component calls, which is what catches the interface drift above;
+  `surface.test.ts` (7 cases) pins the surface as VIEW state (flipping it touches no document, is not undoable,
+  is not persisted) and reads the shipped component bytes to refuse a toggle wired to a surface no branch
+  renders — honest about its own limit: the Studio has no DOM test environment, so wiring is asserted by
+  reading bytes, not by rendering. The runnable `docs/evidence/studio/scene-surface-proof.mjs` grades the
+  **shipped Studio module itself** (type-stripped with `node:module`, not copied — a copy would prove only that
+  the copy works) over the shipped runtime: §1 the composed scene is the runtime's own, §2 the lighting term
+  above, §3 the aim moves a real camera and the frame carries it, §4 the surface's count and the backend's draws
+  are kept apart, §5 home HEAD byte-identical.
+- **The browser check, which is where the surface actually lives.** `tools/harness/studio-scene3d.mjs` (ADR
+  0017 harness) drives the real Studio over CDP: **11/11** assertions — the 2D canvas is still the default and
+  still paints (**482900/482900** px, before and after), pressing `3D` mounts `#nexus-scene3d` and unmounts the
+  2D canvas, the bridge's frame count advances (**12 → 23**), the report names `Studio Scene` with four bodies
+  and the active camera, the HUD names the backend, and the reading on this host 2026-09-29 is **`backend=webgl`**
+  at 878×550 with 4 draw calls — headless Chrome does provide a software GL context, so the screenshot is a
+  render rather than a fallback. Pressing `2D` restores the canvas, and the 3D reader answers `null`.
+- **Bounds (§60).** The scene is DEMO-MODE geometry: four default meshes, one default camera, no assets and no
+  model calls. There is no orbit/zoom camera control, no add/remove body from the UI, no lighting control, no
+  save/load door on the surface, and nothing it composes reaches the Design Document — the two are separate
+  systems sharing a window. The HUD's numbers are sampled at most once per 10 frames rather than per frame, the
+  component reports the backend it got rather than the one it would prefer, and `Scene3D.tsx` is not
+  unit-tested (there is no DOM test environment here): its behaviour is covered by the headless proof and the
+  browser probe, and that is stated rather than implied.
+
+
+### Amendment 141 (M2 v141, evidence) — the clone plane stops lying about BYTES: the checkout writes the blob own bytes, the first isolated line names HOW the dest was chosen, and section 4 shrink claim becomes a census decision
+
+Three findings the v132 clone staging surfaced, measured 2026-09-29 rather than assumed:
+
+1. BYTES (provenance-proof section 2 / clone checkout). This box system gitconfig has core.autocrlf = true (git config --show-origin core.autocrlf gives file:C:/Program Files/Git/etc/gitconfig true), so the clone checkout materialized CRLF where git show HEAD:file answers LF — disk bytes differ from shown bytes, disk carries 0x0D, shown does not — and provenance-proof section 2 therefore counted 0 of 74 proofs identical to their committed bytes on the cloned plane, while the home worktree measures the opposite (disk == git show, both LF: no checkout has rewritten those bytes since they were written). Two planes reading different BYTES for the same ref is the drift this runner exists to catch, and v132 own claim (stages the same tracked bytes) is only true without the conversion. git clone -c core.autocrlf=false is the config own door: measured after the change, git config --get core.autocrlf gives false inside the clone, status --porcelain is clean, disk == git show byte for byte — and the command word stays clone at argv[0] where gitCommandsIn reads it, because git -c core.autocrlf=false checkout ref leaves that arm empty (measured: the tokenizer takes the first argument after the program as THE command).
+
+2. THE LINE (drive-axis-proof section 3). The row takes the FIRST isolated line a caller log sees, and the clone arm line said WHERE the dest was but not HOW it was chosen — line 137 failed with the line must name HOW the dest was chosen, not only where it is on both planes. The line now carries chosen: where.chose as well; both arms measured green after (default: repo-drive FORCED off tmpdir by the drive mismatch; cross-drive arm: caller-supplied).
+
+3. SECTION 4 SHRINK (isolated-proof). The row asserted cleanTree.files < home.files — the home plane census says 63 untracked (isolation removes them; the strict claim is correct there), but on the isolated plane this row STANDS in a clone the runner just staged: census 230 tracked, 0 untracked, 0 ignored (measured on the failed run), so the assertion reduced to 230 < 230 and could only fail — and it did, the first time that row ever reached its own assertions on this plane (pre-v132 it died at git ls-tree exit 128 first). The census now picks the sentence: unowned > 0 gives the strict shrink claim; 0 gives IDENTITY (count AND bytes, which is strictly stronger than smaller).
+
+Two witnesses were left stale when v132/v133 landed without them, measured red on the worktree plane before this commit: confession-proof helperArms still wanted gitCommandsIn(sweep.mjs, isolatedCheckout) = archive where the body now reaches clone + checkout + archive (want updated to the measured trio), and drive-axis asks-declaration still said git archive HEAD once per sw.isolatedCheckout call where the body clones first (clone + checkout declared now, archive named as the v133 fallback it is — the grammar knows clone, measured).
+
+The sweep at commit c8396a3 verified both planes: worktree 74 scripts, 0 failed, 0 killed, 692s; isolated 74 scripts, 0 failed, 0 killed, 671s (graded build 2d04ef776f68808c / 288 dist files; runner build 6fdf2eb7a3c1197b / 268 files; tree 8b260da25c7617db / 230 files). confession section 0 finds sweep.mjs == HEAD byte-for-byte. Asks axis still 4 declaring rows. Plane axis call sites unchanged: git -c adds no spawn and clone -c keeps clone at argv[0], so gitCommandsIn(sweep.mjs, isolatedCheckout) = clone,checkout,archive (measured on the edited bytes) and no new call site enters the census. Identity sync probe still answers status 0 (measured 6/6 this session).
+
+The DEBT from v132/v133 is retired: all 4 isolated-plane reds and the 2 worktree reds are green, and the clone plane now honestly stages the ref own bytes.
