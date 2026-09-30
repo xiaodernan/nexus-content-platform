@@ -133,7 +133,7 @@ the SHAPE around it. One source, and no way for a loosening to look like a refac
 ## Unit tests (vitest, `agents/runtime/test`)
 
 The parenthesized counts below are the committed state, and they are checkable rather than
-decorative: the runtime rows sum to exactly **429** (31 files) and the `exec-host/*` rows to exactly
+decorative: the runtime rows sum to exactly **450** (32 files) and the `exec-host/*` rows to exactly
 **275** (8 files) — the same totals `npm test` prints. A row whose number drifts from its file is a
 documentation bug, so an increment that adds a case updates its row in the same commit. v63 found this
 table itself adrift: the `gitTools.test.ts` row still read (51) where HEAD measured 65, because every case
@@ -160,6 +160,7 @@ never the sum of the deltas.
 | `agentRegistry.test.ts` (17) | the roster on its own terms: register/read-back and a duplicate id refused, listing in id order regardless of insertion order, every DEFAULT agent registering without the v91 collision and each stating at least one allowed tool, a tool view scoped to exactly that agent’s `allowedTools` (a trailing `fs.*` glob honoured, an unknown agent getting an EMPTY scope rather than the full registry), `roleFor` deriving the §24 role from the agent as a copy and answering null for nobody, `getAvailableCapabilities` the agent’s own list or `[]`, a handoff naming an unregistered agent refused, a handoff journalled AND written into §26 memory under a run-scoped key, filtered by run id, `createHandoff` stamping a payload without touching the registry, and persistence OPT-IN (an fs plus a path or nothing lands; a registry with no fs still records in memory; a bare filename needs no directory) |
 | `browserTools.test.ts` (20) | the driver cannot act before `init` and names the missing call; an unmatched selector is an ERROR (the defect: a selector string used to be enough), a click on an input and a type on a button both refused BY KIND, missing required fields named, an unknown action type refused rather than ignored; `screenshot` and `evaluate` refuse IN WORDS and return NO data key, so a refusal cannot be mistaken for a picture; `navigate` adopts the host’s description and records history while an undescribed URL claims NO title and NO elements; `click`/`type` report the LABEL they acted on, `scroll` moves only the axes given, `wait` is bounded by `maxWaitMs` whatever was asked, `executeAll` stops at the first failure and returns the prefix it can name, `log()` records what ran in order and `close()` resets; every declared spec is ROUTED (an unrouted tool would be a silent hole), a dangerous door does not run without the §28 checkpoint while a read-class door runs with none, and the tools keep NO second gate — an approved call runs and a refusal surfaces as `ok:false`, args validated by the registry before the driver sees them |
 | `sceneTools.test.ts` (20) | M5 v140, the 3D lane's first consumer: every declared `scene.*` spec ROUTED and EXACTLY ONE read-class door (a second read door would be a mutation that skipped the gate); a write door does not run without the §28 checkpoint while `scene.inspect` runs with none; a body cannot be added to a scene the driver does not hold, a PARTIAL position triple is refused rather than defaulted and a non-finite axis is named by its own letter, an unknown `kind` lists the six declared ones instead of storing a word nothing reads, an empty required string is refused; `create` answers the id, the name and `rendered: false`, a position is reported as given or `null` when none was named, removing a body that is not there answers `false` rather than throwing, the FIRST camera becomes active and the report reads that from the driver rather than asserting it, focusing an unknown camera answers `false` and leaves the active one alone; `inspect` reports STRUCTURE and its answer contains no word for a picture; a driver that answers with a PROMISE is awaited like one that answers directly, and a driver that throws becomes a failed CALL rather than a crash of the registry |
+| `worldTools.test.ts` (21) | M4 v144, the WORLD lane's first consumer: every declared `world.*` spec ROUTED and EXACTLY TWO read-class doors (`world.inspect`, `world.query`) because a third read door would be a mutation that skipped the gate; `world.character.decide` is asserted NOT read and its description must carry the reason (the package records the decision on the agent); a write door and the decision door both refuse without the §28 checkpoint while both read doors run with none; an unknown location `type` lists the nine declared ones and an unknown lore `category` the ten, each refused rather than stored as a word nothing reads; a character may not be placed in a location the world does not hold — refused BEFORE the add, and placed by ID rather than by name when it does; a `limit` that is not a finite positive number is refused; deciding for a character with no agent is refused by name; an empty required string is refused; the add doors report the id they created and the count that followed, `query` passes the limit through (defaulting to the package's own 10), the decision door reports the whole answer; a driver that answers with a PROMISE is awaited and one that throws becomes a failed CALL |
 | `multiAgentPipeline.test.ts` (12) | a chain shorter than two agents refused, an unknown agent refused while reporting what already completed, an agent with no research door refused by NAMING the doors it wanted; the walk visits each EDGE once and names the agent that ran every stage, sends `fs.index {query}` and `fs.search {term}` so each door gets its OWN argument (an `fs.index`-holding agent gets `query`), carries refs forward and says so when an edge finds nothing, refuses when nothing was found and nothing was carried in; one §26 record per edge under a task-scoped key, ledger and evaluation written only when the host supplied files, the refs the LAST edge carried returned so a caller need not re-derive them, and the DEFAULT roster can actually be walked (every research-capable agent has a door) |
 | `vectorStore.test.ts` (6) | refuses at the DOOR — pgvector has no connection here, and no foreign dimension can be honest; the memory store ranks hit-for-hit like `vectordb.queryVectors` and NAMES its engine; two identical stores answer identically (determinism is part of the seam); the local store writes NOTHING until `flush`, then a COLD second store reads the same rows; a file that exists but cannot be read is refused, not silently replaced by an empty store; `syncMemoryToVectorStore` names one row per ref, stably, and is idempotent under upsert |
 | `memory.test.ts` (10) | save/list/recall scoping, deterministic tie-broken recall bounded by k, forget/clear counts, clone-in/clone-out immutability, registry round-trip with `"path:startLine"` refs, denied `memory.save` leaves memory empty + arg validation; v6 `compact()`: ≥50% ref-overlap merges within scope (listed, idempotent), cross-scope isolation; v19: `recallVectors` equals inline recall exactly, and `memory.recall` states its `engine` with the vector path surviving a fresh store |
@@ -3322,3 +3323,42 @@ and it has no door for combat, physics, controllers, cinematics or save/load —
 package and are unreachable from here today. It is registered in no default roster: a host must call
 `registerSceneTools` with a driver it built. And nothing in the Studio imports it, so M5 product face
 is still open — what is closed is that the lane had no consumer at all.
+
+## The world lane gets its first consumer (world-tools-proof.mjs — M4 v144 — ADR 0016 amendment 144)
+
+`packages/world-engine` had **31 green tests and no consumer at all**: `grep -rl '@nexus/world-engine'` across
+`apps/ agents/ packages/` matched only the package's own `package.json`. That is the shape the 3D lane was in
+before v140 — a package with tests, not a capability anything can reach.
+
+```
+node docs/evidence/agents/world-tools-proof.mjs   # requires `npm run build` first
+```
+
+`agents/runtime/src/worldTools.ts` declares a narrow `WorldDriver` (`engine`, `summarize`, `addLocation`,
+`addCharacter`, `addLore`, `query`, `decide`) and the HOST supplies the implementation, so **`agents/runtime`
+gains no dependency on `@nexus/world-engine`**. Six doors: four write-class behind the §28 checkpoint and two
+read-class (`world.inspect`, `world.query`).
+
+| § | what it measures |
+| --- | --- |
+| 1 | every tool answer is cross-checked against the ENGINE's own `getWorld()`/`getStats()` — the location exists with the name given, the character is placed where the caller said, the lore is in the world |
+| 2 | the §28 gate is the registry's and it is the only one: a refused write moved the world by 0 and asked the gate 0 times, an approved write moved it by 1 and asked once |
+| 3 | four refusals, each naming its own fact (unknown location type · unknown lore category · a character placed in a location that does not exist · a decision asked of a character with no agent), with the engine moved by nothing |
+| 4 | **the decision door's WRITE-class claim, measured**: `agent.getLastDecision()` is `null` before the call and non-null after, which is the mutation that forbids calling the door a read |
+| 5 | retrieval reaches what the TOOLS wrote — the RAG finds the lore added through the doors, so the family's writes are real writes |
+| 6 | this repository's HEAD is byte-identical: everything ran in memory |
+
+The read/write split is the interesting part. `world.inspect` and `world.query` are `read` because they ask
+the engine a question and change nothing. `world.character.decide` is **write-class** because the package's
+`CharacterAgent.decide()` stores its answer on the agent (`this.lastDecision = decision`) — and §4 does not
+take that on trust, it reads the agent's own record before and after. A door that called this a read would be
+claiming a mutation did not happen.
+
+The engine's own answer is quoted as it came rather than dressed up: for a minimally-populated world (no
+goals, no threat) every action scores zero and the agent rests with `confidence: 0`. That is DEMO-MODE
+arithmetic being honest about an empty world, and the proof prints the number instead of describing it.
+
+Bounds, stated: the family creates and reads a world's DECLARED structure. It does not tick the engine, drive
+`executeAction`, connect locations, create factions, manage relationships or goals, save/load a world, or
+configure agents. No roster registers it by default — a host must call `registerWorldTools` with a driver it
+built — and nothing in the Studio imports it yet.

@@ -6910,3 +6910,80 @@ Two witnesses were left stale when v132/v133 landed without them, measured red o
 The sweep at commit c8396a3 verified both planes: worktree 74 scripts, 0 failed, 0 killed, 692s; isolated 74 scripts, 0 failed, 0 killed, 671s (graded build 2d04ef776f68808c / 288 dist files; runner build 6fdf2eb7a3c1197b / 268 files; tree 8b260da25c7617db / 230 files). confession section 0 finds sweep.mjs == HEAD byte-for-byte. Asks axis still 4 declaring rows. Plane axis call sites unchanged: git -c adds no spawn and clone -c keeps clone at argv[0], so gitCommandsIn(sweep.mjs, isolatedCheckout) = clone,checkout,archive (measured on the edited bytes) and no new call site enters the census. Identity sync probe still answers status 0 (measured 6/6 this session).
 
 The DEBT from v132/v133 is retired: all 4 isolated-plane reds and the 2 worktree reds are green, and the clone plane now honestly stages the ref own bytes.
+
+### Amendment 143 (M2 v143, docs/evidence) — the code-position arm skips global options like the free-text matcher already does, so `run('git', ['-c', k=v, verb])` names its verb
+
+_Recorded late (§60): committed as `7ee35d3` citing "ADR 0016 amendment 143" with no amendment written, so it
+is written here from that commit rather than left as an undocumented step._
+
+- **The hole.** v141 staged the isolated plane with `git clone -c core.autocrlf=false` and measured, on the
+  way, that the confession arm reads that shape as `[]`. The tokenizer took the first literal after the
+  program as THE command (`asArgv`, which is `last === '['` — true for the first literal only), so any
+  global option before the verb (`-c k=v`, `-C dir`, `--no-pager`) blinded it. **The free-text matcher never
+  had this hole** — its option-skipping group reads `git -c x status` as one command — and the argv-form arm
+  (`['git', …]`) never had it either, since it already takes the first command-shaped literal anywhere in the
+  array. Only the program-form arm (`run('git', […])`) was one-sided, which is the direction the vocabulary
+  gate forbids an arm to err in.
+- **The fix is one condition.** The `afterProgram` branch now completes on the first command-shaped literal
+  while its frame is on top (`sub === null` keeps the first verb the winner; a nested call or array pushes a
+  new top, so only literals that ARE this argv complete it) instead of only on the literal that opens the
+  array. The v95 comment above it was updated to say the same.
+- **Measured before/after on synthetic shapes:** `['-c', k=v, 'checkout']` `[]` → `["checkout"]`;
+  `['-c', k=v]` `[]` → `[]` (the fix moves the command forward, it does not invent one);
+  `['-C', dir, 'rev-parse']` `[]` → `["rev-parse"]`; `['archive', '--format=tar']` `["archive"]` →
+  `["archive"]` (unchanged); parameter-bound argv `[]` → `[]` (the documented blind spot stays blind).
+  `gitCommandsIn(sweep.mjs, 'isolatedCheckout')` stays `["clone","checkout","archive"]` — the v141
+  `clone -c` keeps `clone` at argv[0], which is why that increment chose the clone option over `git -c`.
+- **The population impact is counted, not guessed:** ~20 `-C`-first call sites across 19 proofs were
+  invisible and now resolve, and **every one of those files already had a command-first reach**, so no row
+  enters or leaves the predicted set. The asks census is byte-identical: declared still 4 rows (closure,
+  cwd-axis, drive-axis, table-recount), uncorroborated still the same 3, corroborated still table-recount.
+  The plane-axis synthetic grammar has no flag-first case, so §1 cannot move.
+
+### Amendment 144 (M4 v144, agent-runtime) — the WORLD lane gets its FIRST CONSUMER: a `world.*` tool family over a driver seam, and its read/write split is MEASURED rather than asserted
+
+_Numbering: 144 was free (`grep -an "^### Amendment 14"` topped out at 142). Full narrative in
+`docs/evidence/agents/README.md`; this is the ledger entry._
+
+- **The gap this closes.** `packages/world-engine` had **31 green tests and no consumer at all**:
+  `grep -rl '@nexus/world-engine'` across `apps/ agents/ packages/` matched **only the package's own
+  `package.json`**. That is the same shape the 3D lane was in before v140 and the same bound its records
+  kept writing — a package with tests, not a capability anything can reach.
+- **A driver seam, not an import.** `agents/runtime/src/worldTools.ts` declares the narrow `WorldDriver` it
+  needs (`engine`, `summarize`, `addLocation`, `addCharacter`, `addLore`, `query`, `decide`) and the HOST
+  supplies the implementation — the shape `browserTools` uses for `BrowserDriver` and `sceneTools` for
+  `SceneDriver`. **`agents/runtime` gains no dependency on `@nexus/world-engine`**, so the lanes stay
+  separable and the family is testable with no world package loaded. Methods may answer directly or with a
+  promise (the `TreeReaper` precedent); the real engine's `decide()` is async and is awaited.
+- **Six doors, two of them read-class.** `world.inspect` and `world.query` are `read` and ask no
+  checkpoint; `world.location.add`, `world.character.add`, `world.lore.add` and `world.character.decide`
+  are write-class and sit behind the §28 gate. The suite asserts the read count is EXACTLY TWO, because a
+  third read door would be a mutation that skipped the gate.
+- **`world.character.decide` is NOT a read, and the proof MEASURES why.** The package's
+  `CharacterAgent.decide()` stores its answer on the agent (`this.lastDecision = decision`), so a door that
+  called this a read would be claiming a mutation did not happen. The proof reads the agent's own
+  `getLastDecision()` — **null before the call, non-null after** — which is the mutation, measured. This is
+  the same rule that lets `scene.inspect` be read-class and forbids this door from being one.
+- **Refusals are spoken by the side that knows the fact.** An unknown `type` lists the nine declared
+  location types; an unknown `category` lists the ten declared lore categories; a `limit` that is not a
+  finite positive number is refused; a **character may not be placed in a location the world does not
+  hold** — checked BEFORE the add, against the world's own ID list, so a typo is refused here rather than
+  creating a character that belongs nowhere. (An earlier draft of the file compared the id to the NAME
+  list, which would have refused every correctly-named location and accepted any location whose name
+  happened to equal an id; it is corrected in the same landing and the reason is in the code.)
+- **A missing-arg or unknown-word call never reaches the driver**, so the world cannot be half-written by a
+  call the door was going to refuse.
+- **Evidence.** `agents/runtime/test/worldTools.test.ts` **21 cases** against a recording fake, and
+  `docs/evidence/agents/world-tools-proof.mjs` — a RUNNABLE proof wiring the **REAL** `WorldEngine` behind
+  the seam: §1 every tool answer cross-checked against the ENGINE's own `getWorld()`/`getStats()`, §2 the
+  §28 gate (a refused write moved the world by 0 and asked the gate 0 times; an approved write moved it by
+  1 and asked once), §3 four refusals each naming its own fact with the engine moved by nothing, §4 the
+  measured mutation above, §5 **retrieval reaches what the tools wrote** (the RAG finds the lore added
+  through the doors, so the family's writes are real writes), §6 this repository's HEAD byte-identical.
+  `agent-runtime` **429/429 → 450/450** (32 files), `tsc -p agents/runtime/tsconfig.json` clean.
+- **Bounds (§60).** The family creates and reads a world's DECLARED structure; it does not tick the engine,
+  drive `executeAction`, connect locations, create factions, manage relationships or goals, save/load a
+  world, or configure agents. Nothing in the Studio imports it, no roster registers it by default (a host
+  must call `registerWorldTools` with a driver it built), and the decision the engine returns is its own
+  DEMO-MODE arithmetic — quoted in the proof as it came (a minimally-populated world scores every action at
+  zero and the agent rests) rather than dressed up.

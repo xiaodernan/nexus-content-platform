@@ -65,6 +65,22 @@ export {
   type SceneEntitySpec,
   type SceneSummary,
 } from './sceneTools.js';
+// M4 v144 — the first consumer of the world lane, same seam shape as the 3D one.
+export {
+  registerWorldTools,
+  WORLD_TOOL_SPECS,
+  WORLD_LOCATION_TYPES,
+  WORLD_LORE_CATEGORIES,
+  type WorldDriver,
+  type WorldSummary,
+  type WorldStats,
+  type WorldHit,
+  type WorldQueryResult,
+  type WorldDecision,
+  type WorldLocationSpec,
+  type WorldCharacterSpec,
+  type WorldLoreSpec,
+} from './worldTools.js';
 export {
   runRoleChain,
   runRolePipeline,
