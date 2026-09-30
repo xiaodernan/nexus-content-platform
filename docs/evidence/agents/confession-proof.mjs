@@ -146,6 +146,10 @@ const witnessMoves = sw.gitCommandsIn(`${selfSrc}\nfunction v95Probe() { return 
 assert.deepEqual(witnessMoves, ['for-each-ref'], `appending a spawn with a literal argv must make the arm see a command (got ${JSON.stringify(witnessMoves)})`);
 const witnessBlind = sw.gitCommandsIn(`function v95Probe2(argv) { return run('git', argv); }\n`, 'v95Probe2');
 assert.deepEqual(witnessBlind, [], `a spawn whose argv is a PARAMETER must stay invisible to the arm (got ${JSON.stringify(witnessBlind)}) — this is the shape three rows confess to`);
+const witnessConfigFlag = sw.gitCommandsIn(`function v143Probe() { return run('git', ['-c', 'core.autocrlf=false', 'checkout', 'HEAD']); }\n`, 'v143Probe');
+assert.deepEqual(witnessConfigFlag, ['checkout'], `a -c key=value pair before the verb must not hide the command (got ${JSON.stringify(witnessConfigFlag)}) — the free-text matcher already skips it, and the code-position arm stayed blind until v143`);
+const witnessConfigOnly = sw.gitCommandsIn(`function v143Probe2() { return run('git', ['-c', 'core.autocrlf=false']); }\n`, 'v143Probe2');
+assert.deepEqual(witnessConfigOnly, [], `a -c pair with NO verb after it must stay invisible (got ${JSON.stringify(witnessConfigOnly)}) — the fix moves the command forward, it does not invent one`);
 const selfNamed = [...new Set(sw.gitCommandsIn(selfSrc))];
 console.log(`[§3] byte arm over ${helperArms.length} helpers in ${selfName}: ${selfNamed.length} commands visible at code position in the runner's own file (${selfNamed.join(', ') || 'none'}) while the file spawns git through a wrapper named git — three of the five helpers return NOTHING, and two of those really do reach a repository`);
 

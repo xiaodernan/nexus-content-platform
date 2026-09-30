@@ -647,8 +647,10 @@ export function gitReaches(src, sink) {
   let last = '';
   let i = 0;
   // v95: `run('git', ['archive', …])` puts the COMMAND one argument after the program, so a git program
-  // literal hands its hit to the NEXT array that opens. One step only — every other frame clears it — because
-  // a rule that chains is a call graph, and a call graph is what amendment 94 refused to build.
+  // literal hands its hit to the NEXT array that opens — and since v143 the hit is completed by the first
+  // COMMAND-SHAPED literal in that array rather than strictly the first one, because global options
+  // (`-c k=v`, `-C dir`) sit between the program and the verb. One step only — every other frame clears
+  // it — because a rule that chains is a call graph, and a call graph is what amendment 94 refused to build.
   let pendingProgram = null;
   const familyFrame = () => [...stack].reverse().find((f) => f.callee && SPAWN_FAMILY.has(f.callee));
   while (i < text.length) {
@@ -728,7 +730,15 @@ export function gitReaches(src, sink) {
         } else if (asArm) hits.push({ via: 'conditional', callee: familyFrame().callee, sub: null, at: i });
       } else if (asArgv && top?.gitArgv && top.gitArgv.sub === null && GIT_SUBCOMMANDS.has(body)) {
         top.gitArgv.sub = body;
-      } else if (asArgv && top?.afterProgram && last === '[' && GIT_SUBCOMMANDS.has(body)) {
+      } else if (top?.afterProgram && top.afterProgram.sub === null && GIT_SUBCOMMANDS.has(body)) {
+        // v143: the command is the first COMMAND-SHAPED literal, not the first literal — `run('git', ['-c',
+        // 'core.autocrlf=false', 'checkout', ref])` names `checkout`, exactly as the argv-form arm one branch
+        // above already reads `['git', '-c', …]` and as the free-text matcher reads `git -c x status`. The old
+        // rule (`asArgv`, which is `last === '['` — true for the first literal only) made the arm blind to any
+        // global option before the verb (measured: []), which is the one-sided direction the vocabulary gate
+        // forbids the arm to err in. The frame (not the position) bounds the read: a nested call or array
+        // pushes a new top, so only literals that ARE this argv complete it — and `sub === null` keeps the
+        // first verb the winner.
         top.afterProgram.sub = body;
       }
       for (const nested of gitReaches(interp)) hits.push({ ...nested, nested: true, at: i });
