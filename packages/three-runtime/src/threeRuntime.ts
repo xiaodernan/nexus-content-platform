@@ -2917,6 +2917,21 @@ export class ThreeRuntime {
         throw new Error(`attachPlayer: ${name} is ${value}; a save writes a non-finite number as null, so the record would come back holding a different value than the one written`);
       }
     }
+    // The ceiling is a SECOND rule and the loop above is not it: finiteness is what a save file can even
+    // write, the ceiling is what the numbers are allowed to say about each other. `healPlayer` clamps with
+    // `maxHealth - health`, so a record that arrives ABOVE its own maximum makes that difference negative and
+    // the next heal removes health while emitting `playerHealed` — measured on a frozen clone of HEAD before
+    // this clause existed (health 150/100, healPlayer(10) reported healed=-50 and left the body at 100).
+    // `attachCombatant` has refused this shape since v138; the player door stored it. `restorePlayer` calls
+    // this door, so a file that already holds the impossible record is refused at load rather than played.
+    for (const [name, ceilingName, value, ceiling, mechanism] of [
+      ['health', 'maxHealth', player.health, player.maxHealth, 'healPlayer clamps with maxHealth - health, so a record that starts above the ceiling turns the next heal into a removal'],
+      ['mana', 'maxMana', player.mana, player.maxMana, 'every mana report carries maxMana beside the pool, so a pool above its own ceiling is a number no later spend can be measured against'],
+    ] as [string, string, number, number, string][]) {
+      if (value > ceiling) {
+        throw new Error(`attachPlayer: ${name} is ${value} and ${ceilingName} is ${ceiling}; a record that starts above its own maximum is a claim no later verb could honour, because nothing in this package raises a ceiling — ${mechanism}`);
+      }
+    }
     for (const [name, value] of player.skills.entries()) {
       if (!Number.isFinite(value)) {
         throw new Error(`attachPlayer: the skill "${name}" is ${value}; a save writes a non-finite number as null, so the skill would come back holding a different level than the one written`);

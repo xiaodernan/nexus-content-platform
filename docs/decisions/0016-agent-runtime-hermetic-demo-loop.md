@@ -7126,3 +7126,124 @@ debris-shaped name on purpose, and that is the behaviour the sweeper depends on.
 `packages/three-runtime` imports the package's store seam yet, so no user-visible outage is repaired here
 either;
 the v146 face is a runtime with tests.
+
+### Amendment 147 (M5 v147, three-runtime) — a player record that starts above its own ceiling is
+refused at the door, so the verb that puts health back cannot take it away
+
+`packages/three-runtime/src/threeRuntime.ts` gave the player's attach door one numeric rule: a finiteness
+loop
+over its six declared numbers, at `:2915-2919` of `39448f9`. `attachCombatant`, three methods later,
+has
+refused an above-ceiling health since v138 (`:3208-3210`). The player door stored one, and `healPlayer` does
+not
+compare a heal to the ceiling — it subtracts from it (`:3090`) — so the stored shape made that difference
+negative and the next heal removed health while reporting itself as a heal. Full narrative in
+`docs/evidence/three-runtime/README.md` section v147; this is the ledger entry.
+
+- **Measured before it was fixed, on a probe re-run against unpatched HEAD at the landing ref.**
+  `.scratch/vnext/probeAtHead.mjs` clones HEAD into a throwaway plane, drops the probe in as a test file,
+  runs
+  it, and deletes it; its first clause reads the subject file and refuses if the ceiling rule is already
+  there,
+  because a probe that runs after the fix measures a green tree and calls it a finding. What HEAD answered:
+  the
+  door accepted health 150 against maxHealth 100, then healPlayer(10) reported healed=-50 and left the body
+  at
+  100, emitting `playerHealed` while taking 50 away. The same door accepted mana 900 against maxMana 50, and
+  refused nothing else; `attachCombatant` refused, in the same run, in the same file.
+- **The rule is the two pairs the record declares, and its narrowness is measured.** One loop over
+  `(health, maxHealth)` and `(mana, maxMana)`, refusing `value > ceiling`, inserted after the finiteness
+  loop so
+  the two rules stay two rules. Each refusal names the mechanism its OWN field breaks — the
+  `maxHealth - health`
+  difference that turns into a removal for health, the report that carries maxMana beside the pool for mana
+  —
+  because a shared sentence would be a claim about the loop rather than about the number the caller passed.
+  The
+  sentence also claims nothing in this package raises a ceiling, and the new suite grades that claim against
+  the
+  source text: the scan that must find no assignment to any max field must still find the three fields that
+  do
+  move, or a broken scan would print the same zero as a true one. Deliberately NOT included: negative
+  records,
+  which the probe shows this door still accepts and which no verb here inverts — arm C5 runs exactly that
+  widening and reddens the one case whose whole job is to say negatives still pass.
+- **The file half inherits the door, and that is a disclosed behaviour change.** `restorePlayer` calls
+  `attachPlayer` (`:3008`), and `loadSaveFile` calls `restorePlayer` inside the try whose catch removes
+  everything it had already registered (`:1796`, `:1799`). A save written before this clause that holds the
+  impossible record is now refused at load instead of played with an inverted heal. Two cases pin it: the
+  direct
+  refusal, and the loader refusal with its control — the same bytes with the ceiling untouched still file
+  the
+  body and the player — so the rollback sentence describes a rollback and not a loader that never loads.
+- **11 cases in `test/playerCeiling.test.ts`**, across three subjects: what the door now refuses, what the
+  file
+  half inherits from it, and how narrow the rule is. The refusal directions are paired with their equality
+  counterparts — a record exactly at its ceiling is a full pool and stays legal, and a legal record's heal
+  report reads as a heal for every amount, including the overflow, the already-full answer of zero, and the
+  requirement that no healed figure in the sequence is negative.
+- **Arms: 5 of 5 matched their predicted red case names.**
+- C1 · MATCHED · the clause never fires (the door stores the impossible record again) · collected 386 · red
+  in playerCeiling.test.ts: attachPlayer refuses what attachCombatant already refuses health above maxHealth
+  is refused at the door rather than clamped; attachPlayer refuses what attachCombatant already refuses mana
+  above maxMana is refused by the same rule, not by a mana-specific one; attachPlayer refuses what
+  attachCombatant already refuses each refusal names the mechanism its own field would break; attachPlayer
+  refuses what attachCombatant already refuses the measured inversion is now unconstructible: no record for
+  healPlayer to invert; the file half inherits the door restorePlayer refuses an above-ceiling record
+  because it goes through attachPlayer; the file half inherits the door a save file whose player half
+  exceeds the ceiling is refused by the loader, and its half-load goes back; the rule is exactly as wide as
+  the mechanism attachCombatant still refuses its own shape, so the two doors agree by word as well as by
+  rule · red outside: 0
+- C2 · MATCHED · the mana pair is dropped from the rule (health alone is a ceiling) · collected 386 · red in
+  playerCeiling.test.ts: attachPlayer refuses what attachCombatant already refuses mana above maxMana is
+  refused by the same rule, not by a mana-specific one; attachPlayer refuses what attachCombatant already
+  refuses each refusal names the mechanism its own field would break · red outside: 0
+- C3 · MATCHED (round 3 at this ref, all 24 attributed) · the comparison becomes >= (a full pool is read as
+  impossible) · collected 386 · red in playerCeiling.test.ts: attachPlayer refuses what attachCombatant
+  already refuses a record exactly at its ceiling is a full pool, not an impossible one; attachPlayer
+  refuses what attachCombatant already refuses each refusal names the mechanism its own field would break;
+  attachPlayer refuses what attachCombatant already refuses a legal record has its heal report read as a
+  heal for every amount; the file half inherits the door restorePlayer refuses an above-ceiling record
+  because it goes through attachPlayer; the file half inherits the door a save file whose player half
+  exceeds the ceiling is refused by the loader, and its half-load goes back · red outside: 24 (declared: 24)
+- C4 · MATCHED · the two mechanism sentences are swapped (the message no longer names its own field) ·
+  collected 386 · red in playerCeiling.test.ts: attachPlayer refuses what attachCombatant already refuses
+  each refusal names the mechanism its own field would break · red outside: 0
+- C5 · MATCHED · widened to refuse any negative too (this grant is NOT a validity rule) · collected 386 ·
+  red in playerCeiling.test.ts: the rule is exactly as wide as the mechanism a negative record still passes
+  the door: no measured inversion follows from it · red outside: 0
+- **C3 is the finding, not a footnote.** A `>=` was predicted to add one case here; it reddened 5 here and
+  24 outside, across the existing suites, because on `>=` the rule fires on the DEFAULT record
+  (health 100/100 17x, mana 50/50 3x, health 5/5 1x, health 40/40 1x, health 10/10 1x) — the pool every
+  scene in this package begins a playthrough at. That is what makes strict
+  `>`
+  the rule rather than a preference.
+- **Measured on a frozen plane, because the shared worktree has live writers.** The suite ran on a local
+  clone of HEAD with -c core.autocrlf=false (39448f9, 345 files, the plane's threeRuntime.ts held 212821
+  bytes with 0 CR and hashed 11c9b05565e8, so the plane is the ref's own bytes), built because the shared
+  worktree carries other lanes' in-flight edits — baseline
+  375
+  cases over 8 files with 0 red before any of this grant's bytes entered the plane, then
+  386
+  cases over 9 files with 0 red, tsc --noEmit exit 0, and the worktree staged at +491/-0.
+  Re-run in the shared worktree at the landing, after these bytes were written there: 386 cases over 9
+  files, 0 red, with playerCeiling.test.ts collecting 11, and every per-file count equal to the plane's —
+  which is what lets a gate figure and a commit figure mean the same code
+- **This grant was measured once at a ref that HEAD outgrew, and re-measured here.** The first pass measured
+  this patch at c8396a3 — baseline 362 over 7 files, applied 373 over 8 — but 39448f9 moved 18 added and 1
+  deleted line of threeRuntime.ts itself, so the anchor, every line citation in this section and C3's
+  outside count were re-derived at the landing ref rather than carried over
+
+**Bounds this entry does not cross.** The rule is on the attach door, not on the numbers a verb produces:
+`damagePlayer`, `healPlayer` and `spendMana` keep their own clauses and gain none. Negative records still
+pass
+this door; `attachCombatant` refuses them at `:3204-3206`, and this entry does not silently widen itself to
+match, because no measured inversion follows from a negative player record the way one follows from an
+above-ceiling one. `player.maxHealth` and `player.maxMana` are still written nowhere after construction, so
+a
+full pool is permanent: this refuses an impossible record, it does not add a ceiling-raising verb the
+package has
+no demand for. Nothing outside `packages/three-runtime` calls `attachPlayer`, `restorePlayer` or
+`loadSaveFile`, so no user-visible outage is repaired here, and no pre-existing save file is rewritten — a
+file
+holding the refused shape is refused, which is the loss this entry chooses over the inverted heal.
