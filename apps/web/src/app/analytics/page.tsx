@@ -1,8 +1,20 @@
 import Link from 'next/link';
 import type { ReactElement } from 'react';
-import { creatorAnalytics, type AnalyticsNumbers } from '@/server/domain/analytics';
+import {
+  creatorAnalytics,
+  creatorOverview,
+  dayWindow,
+  publicationTrend,
+  type AnalyticsNumbers,
+} from '@/server/domain/analytics';
 import { analyzeCreatorFacts, buildCreatorFact } from '@/server/domain/analytics-agent';
 import { currentUserOrNull } from '@/server/domain/session';
+import { utcDay } from '@/lib/visit-meter';
+import { TrendChart } from './TrendChart';
+
+/** 曲线能选的三段窗口。默认 30 天：看创作数据最常看的就是这一个月 */
+const RANGE_OPTIONS = [7, 30, 90] as const;
+const DEFAULT_RANGE = 30;
 
 export const dynamic = 'force-dynamic';
 
@@ -21,6 +33,18 @@ const DEFINITIONS: { label: string; meaning: string }[] = [
   { label: '粉丝', meaning: '作者级：关注的是这个人，不是这份作品' },
   { label: '完成度', meaning: '每个访客"最远滚到页面几成"的平均值。内容比视口短时它就是 100%（没有可滚的地方=整页都在眼前）' },
   { label: '浏览时长', meaning: '只在标签页可见时累计；单次上报最多带走 60 秒，被截断过几次会另行标出' },
+  {
+    label: '窗口口径',
+    meaning: '「最近 N 天」那一节只看窗口内的行，与上面那一排累计数不是同一个数、也不能互推',
+  },
+  {
+    label: '窗口访客',
+    meaning: '窗口内出现过的人，跨天去重：库里按「人 × 天」存一行，同一个人来三天仍算一个访客',
+  },
+  {
+    label: '连续有人来',
+    meaning: '从窗口最后一天往回数，连续每天至少有一条心跳的天数；0 = 今天一个人都没来',
+  },
 ];
 
 function Cell({ value, col }: { value: number | null; col: string }): ReactElement {
@@ -53,7 +77,9 @@ function CompletionCell({ analytics }: { analytics: AnalyticsNumbers }): ReactEl
  * - 只有作者自己看过的，整行标出来——否则"1 个访客 / 40 秒"会被读成"有人在看了"；
  * - 被上限截断过的上报计数在行里，数据被动过要留得下痕迹。
  */
-export default async function AnalyticsPage(props: { searchParams: Promise<{ project?: string | string[] }> }) {
+export default async function AnalyticsPage(props: {
+  searchParams: Promise<{ project?: string | string[]; days?: string | string[] }>;
+}) {
   const user = await currentUserOrNull();
   if (!user) {
     return (
@@ -70,10 +96,18 @@ export default async function AnalyticsPage(props: { searchParams: Promise<{ pro
   const rows = await creatorAnalytics(user.id);
   // §169：按 `?project=` 逐件分析，不给整张列表按行读库（那份列表的查询纪律是"一次分组查询服务整页"）。
   // 读不到 = 不是你的项目 / 没发布过 / 已删除，三种给同一个答案，也不单列出来。
-  const wanted = (await props.searchParams).project;
+  const query = await props.searchParams;
+  const wanted = query.project;
   const projectId = typeof wanted === 'string' ? wanted : null;
+  // 窗口天数只认那三档：`?days=100000` 不该把库拉成十年，也不该在图上画出一根看不见的柱子
+  const requested = Number(typeof query.days === 'string' ? query.days : '');
+  const windowDays = (RANGE_OPTIONS as readonly number[]).includes(requested) ? requested : DEFAULT_RANGE;
+  // "今天是哪一天"由服务端说一次，窗口与曲线两端用同一个值——两边各读一次时钟会跨午夜错开一天
+  const window = dayWindow(utcDay(new Date()), windowDays);
+  const overview = rows.length ? await creatorOverview(user.id, window) : null;
   const fact = projectId ? await buildCreatorFact(projectId, user.id) : null;
   const findings = fact ? analyzeCreatorFacts(fact) : [];
+  const trend = projectId ? await publicationTrend(user.id, projectId, window) : null;
 
   return (
     <main className="mx-auto max-w-[1100px] px-6 py-10" data-analytics-page>
@@ -128,9 +162,123 @@ export default async function AnalyticsPage(props: { searchParams: Promise<{ pro
               ))}
             </ul>
           )}
-          <Link href="/analytics" className="mt-2 inline-block text-11 text-accent-2 underline">
+          {trend ? (
+            <p className="mt-3 border-t border-[var(--nexus-color-border-subtle)] pt-2 text-12 text-fg-2" data-analytics-project-trend>
+              这一版最近 {windowDays} 天：打开{' '}
+              <span className="font-mono text-fg-1" data-analytics-project-window="opens">
+                {trend.totals.opens}
+              </span>{' '}
+              次 · 访客{' '}
+              <span className="font-mono text-fg-1" data-analytics-project-window="visitors">
+                {trend.totals.visitors}
+              </span>{' '}
+              人 · 有活动的天{' '}
+              <span className="font-mono text-fg-1" data-analytics-project-window="active_days">
+                {trend.totals.activeDays}
+              </span>{' '}
+              / {windowDays} · 连续有人来{' '}
+              <span className="font-mono text-fg-1" data-analytics-project-window="streak">
+                {trend.streakDays}
+              </span>{' '}
+              天
+              {trend.totals.visitors === 0 ? (
+                <span className="ml-1 text-fg-3">（这段窗口里一个人都没来）</span>
+              ) : null}
+            </p>
+          ) : null}
+          <Link
+            href={`/analytics${windowDays === DEFAULT_RANGE ? '' : `?days=${windowDays}`}`}
+            className="mt-2 inline-block text-11 text-accent-2 underline"
+          >
             收起这份分析
           </Link>
+        </section>
+      ) : null}
+
+      {overview ? (
+        <section
+          className="mt-4 rounded-[var(--nexus-radius-md)] border border-[var(--nexus-color-border-subtle)] bg-bg-1 p-3"
+          data-analytics-trend
+        >
+          <div className="flex flex-wrap items-baseline justify-between gap-2">
+            <h2 className="text-13 font-semibold text-fg-1">
+              最近 {windowDays} 天（按 UTC 日）
+              <span className="ml-2 text-11 font-normal text-fg-3">
+                {overview.window.from} → {overview.window.to} · 名下 {overview.publications} 个发布版本合在一起
+              </span>
+            </h2>
+            <nav className="flex gap-3 text-11" data-analytics-range>
+              {RANGE_OPTIONS.map((option) => (
+                <Link
+                  key={option}
+                  href={`/analytics?days=${option}${projectId ? `&project=${projectId}` : ''}`}
+                  className={option === windowDays ? 'text-fg-1 underline' : 'text-accent-2 underline'}
+                  data-analytics-range-option={option}
+                >
+                  {option} 天
+                </Link>
+              ))}
+            </nav>
+          </div>
+
+          <ul className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-11 text-fg-3" data-analytics-window-totals>
+            <li>
+              窗口内打开{' '}
+              <span className="font-mono text-fg-1" data-analytics-window="opens">
+                {overview.totals.opens.toLocaleString('zh-CN')}
+              </span>
+            </li>
+            <li>
+              窗口内访客（跨天去重）{' '}
+              <span className="font-mono text-fg-1" data-analytics-window="visitors">
+                {overview.totals.visitors.toLocaleString('zh-CN')}
+              </span>
+            </li>
+            <li>
+              有活动的天{' '}
+              <span className="font-mono text-fg-1" data-analytics-window="active_days">
+                {overview.totals.activeDays}
+              </span>{' '}
+              / {overview.days.length}
+            </li>
+            <li>
+              连续有人来{' '}
+              <span className="font-mono text-fg-1" data-analytics-window="streak">
+                {overview.streakDays}
+              </span>{' '}
+              天
+            </li>
+            <li>
+              窗口内时长{' '}
+              {overview.totals.playTimeMs === null ? (
+                <span className="text-fg-3">未采集</span>
+              ) : (
+                <span className="font-mono text-fg-1" data-analytics-window="play_time">
+                  {duration(overview.totals.playTimeMs)}
+                </span>
+              )}
+            </li>
+            <li>
+              完成度{' '}
+              {overview.totals.completionPct === null ? (
+                <span className="text-fg-3">未采集</span>
+              ) : (
+                <span className="font-mono text-fg-1" data-analytics-window="completion">
+                  {overview.totals.completionPct}%（{overview.totals.completionOver} 条上报）
+                </span>
+              )}
+            </li>
+          </ul>
+
+          <TrendChart
+            days={overview.days}
+            emptyNote={`这 ${overview.days.length} 天里一条心跳都没有：图上的 0 是"没人来"，不是"没采到"（采集一直开着）。`}
+          />
+          <p className="mt-2 text-11 text-fg-3">
+            这一节读的是<b>窗口口径</b>，下面表格里那一排读的是<b>累计口径</b>，两者不是同一个数、也不能互相推：
+            窗口内的访客按整段去重（同一个人连着来三天算一个），缺的那天是 0（那天真的没有心跳），
+            累计那一列则包含窗口之外的全部历史。窗口外的行不进这张图，但仍在下面的表格里。
+          </p>
         </section>
       ) : null}
 
@@ -214,8 +362,9 @@ export default async function AnalyticsPage(props: { searchParams: Promise<{ pro
       )}
 
       <p className="mt-4 text-11 text-fg-3">
-        还没做的两件事：按天画曲线（数据已经在按天存，缺图），以及区分爬虫与真人（现在只有一句"含爬虫"）。
-        游戏与互动作品的 completion 需要"玩到哪儿"的事件，那要等 §50-§53 的运行时，现在这一列对它们是未采集。
+        还能往下做的三件事：区分爬虫与真人（现在只有一句"含爬虫"）、把窗口粒度做到小时
+        （库里就是一天一行，按小时画等于编一个不存在的分辨率）、以及游戏与互动作品的 completion
+        （要等 §50-§53 的运行时事件，现在这一列对它们是未采集）。
       </p>
       <Link href="/" className="mt-3 inline-block text-12 text-accent-2 underline">
         回到我的项目

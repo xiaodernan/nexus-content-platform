@@ -1,4 +1,4 @@
-import { and, eq, inArray, isNull, sql } from 'drizzle-orm';
+import { and, eq, gte, inArray, isNull, lte, sql } from 'drizzle-orm';
 import { MAX_FLUSH_MS, clampReportedMs, utcDay, validVisitorKey } from '@/lib/visit-meter';
 import { getDb } from '../db/client';
 import { follows, likes, projects, publicationVisits, publishedProjects, remixes } from '../db/schema';
@@ -264,4 +264,240 @@ export async function publicationAnalytics(
 ): Promise<PublicationAnalyticsRow | null> {
   const rows = await analyticsFor(ownerId, publicationId);
   return rows[0] ?? null;
+}
+
+/**
+ * §168 的第二片：**按天曲线**与**跨作品总览**。
+ *
+ * 上面那一份是"每个发布版本 × 六个累计数"，回答"到目前为止一共多少"。
+ * 这一片回答的是另一个问题："最近这段时间，到底有没有人在来"——
+ * 而累计数对这个问题是瞎的：昨天刚爆过的作品与半年前爆过、之后再没人来的作品，
+ * 累计数看起来可以一模一样。
+ *
+ * 四条纪律：
+ * 1. **哪一天是"今天"由调用方说**（`utcDay(now)`），这一层不读时钟——
+ *    读时钟的函数没法测"窗口边界"这种情形。
+ * 2. **访客在窗口内去重，不是把每天的人数相加**：库里按 (人 × 天) 分行是为了画曲线，
+ *    同一个人连着来三天，在"窗口内访客"里仍然是一个人。
+ * 3. **缺的那天是 0，不是跳过**：曲线跳掉没有数据的日子，会把"停更了一周"画成连续有人来。
+ *    但"这一天一条心跳都没有"的时长仍然是 null（与六个数里的 `playTimeMs` 同一口径）——
+ *    0 秒是"来过但没攒够时长"，两者不能混。
+ * 4. **窗口外的行不进曲线**：`day` 是 UTC 日字符串，两端都闭；只按日期过滤，不碰 `created_at`。
+ */
+
+/** 一个闭区间窗口，两端都是 `YYYY-MM-DD`（UTC 日） */
+export interface DayWindow {
+  from: string;
+  to: string;
+}
+
+/** 曲线上的一个点。日期密集、升序——`days` 的长度就是窗口的天数 */
+export interface DailyPoint {
+  day: string;
+  /** 这一天累计的打开次数（含作者自己与爬虫，与六个数里那个 `views` 同口径） */
+  opens: number;
+  /** 这一天来过几个不同的访客 key（同一人同一天只算一个） */
+  visitors: number;
+  /** 这一天累计的可见时长；这一天一条心跳都没有时是 null */
+  playTimeMs: number | null;
+  /** 这一天各访客"最远到达比例"的平均值；这一天没人上报过完成度时 null */
+  completionPct: number | null;
+}
+
+/** 窗口内的汇总。**与六个数的累计口径不是一回事**，界面上必须分开说 */
+export interface VisitTotals {
+  opens: number;
+  /** 窗口内出现过的人（跨天去重），不是把每天的人数相加 */
+  visitors: number;
+  /** 窗口内累计可见时长；整个窗口一条心跳都没有时 null */
+  playTimeMs: number | null;
+  /** 窗口内有完成度上报的那些行的平均值 */
+  completionPct: number | null;
+  /** 上面那个平均是几行算出来的 */
+  completionOver: number;
+  /** 窗口内有访客活动的天数（那天至少有一行心跳） */
+  activeDays: number;
+}
+
+interface VisitDayRow {
+  day: string;
+  visitorKey: string;
+  opens: number;
+  visibleMs: number;
+  completionPct: number;
+}
+
+/** `YYYY-MM-DD` → UTC 当日零点的毫秒。库里 `day` 列就是这种字符串，两边同一套换算 */
+function dayToMs(day: string): number {
+  return Date.parse(`${day}T00:00:00.000Z`);
+}
+
+function msToDay(ms: number): string {
+  return new Date(ms).toISOString().slice(0, 10);
+}
+
+/**
+ * 从"今天"往前数 `days` 天的闭区间。`days` 夹在 1..365：
+ * 一页图不该把库里几年的行一次拉出来，而"0 天"这种窗口画出来是个空壳。
+ */
+export function dayWindow(today: string, days: number): DayWindow {
+  const span = Math.min(Math.max(Math.floor(days), 1), 365);
+  return { from: msToDay(dayToMs(today) - (span - 1) * 86_400_000), to: today };
+}
+
+/** 窗口内的访客行。只取算这四样要用的列——"是不是作者自己看的"是累计那一片的事 */
+async function visitDayRows(publicationIds: string[], window: DayWindow): Promise<VisitDayRow[]> {
+  if (!publicationIds.length) return [];
+  const db = getDb();
+  const rows = await db
+    .select({
+      day: publicationVisits.day,
+      visitorKey: publicationVisits.visitorKey,
+      opens: publicationVisits.opens,
+      visibleMs: publicationVisits.visibleMs,
+      completionPct: publicationVisits.completionPct,
+    })
+    .from(publicationVisits)
+    .where(
+      and(
+        inArray(publicationVisits.publicationId, publicationIds),
+        gte(publicationVisits.day, window.from),
+        lte(publicationVisits.day, window.to),
+      ),
+    );
+  return rows.map((row) => ({
+    day: row.day,
+    visitorKey: row.visitorKey,
+    opens: int(row.opens),
+    visibleMs: int(row.visibleMs),
+    completionPct: int(row.completionPct),
+  }));
+}
+
+/** 一行都没采到时每一项都是 0 / null：`playTimeMs` 与 `completionPct` 是 null，不是 0 */
+function emptyTotals(): VisitTotals {
+  return { opens: 0, visitors: 0, playTimeMs: null, completionPct: null, completionOver: 0, activeDays: 0 };
+}
+
+function totalsOf(rows: readonly VisitDayRow[]): VisitTotals {
+  if (!rows.length) return emptyTotals();
+  // 跨天去重必须在窗口这一层做：交给 SQL 的 count(*) 会把同一个人数成三天
+  const visitors = new Set(rows.map((row) => row.visitorKey)).size;
+  const activeDays = new Set(rows.map((row) => row.day)).size;
+  const completed = rows.filter((row) => row.completionPct > 0);
+  return {
+    opens: rows.reduce((sum, row) => sum + row.opens, 0),
+    visitors,
+    // 有行就报数（哪怕加出来是 0 秒）；一条心跳都没有时才 null
+    playTimeMs: rows.reduce((sum, row) => sum + row.visibleMs, 0),
+    completionPct: completed.length
+      ? Math.round(completed.reduce((sum, row) => sum + row.completionPct, 0) / completed.length)
+      : null,
+    completionOver: completed.length,
+    activeDays,
+  };
+}
+
+/** 把窗口里缺的那些天补成 0，得到日期密集的一条曲线 */
+function dailySeries(rows: readonly VisitDayRow[], window: DayWindow): DailyPoint[] {
+  const byDay = new Map<string, VisitDayRow[]>();
+  for (const row of rows) {
+    const bucket = byDay.get(row.day);
+    if (bucket) bucket.push(row);
+    else byDay.set(row.day, [row]);
+  }
+  const points: DailyPoint[] = [];
+  const last = dayToMs(window.to);
+  for (let at = dayToMs(window.from); at <= last; at += 86_400_000) {
+    const day = msToDay(at);
+    const bucket = byDay.get(day) ?? [];
+    const completed = bucket.filter((row) => row.completionPct > 0);
+    points.push({
+      day,
+      opens: bucket.reduce((sum, row) => sum + row.opens, 0),
+      visitors: new Set(bucket.map((row) => row.visitorKey)).size,
+      playTimeMs: bucket.length ? bucket.reduce((sum, row) => sum + row.visibleMs, 0) : null,
+      completionPct: completed.length
+        ? Math.round(completed.reduce((sum, row) => sum + row.completionPct, 0) / completed.length)
+        : null,
+    });
+  }
+  return points;
+}
+
+/**
+ * 窗口末尾连续有活动的天数。0 = 最后一天一个人都没来。
+ * 判"有活动"看的是那天有没有心跳行，不是看打开次数——只看打开的话，
+ * 一个反复刷新但每次都瞬间关掉的人会被算成"没人来过"。
+ */
+function streakEndingAt(days: readonly DailyPoint[]): number {
+  let streak = 0;
+  for (let i = days.length - 1; i >= 0; i -= 1) {
+    const point = days[i]!;
+    if (point.visitors === 0 && point.opens === 0) break;
+    streak += 1;
+  }
+  return streak;
+}
+
+/** 一个作品在窗口里的曲线与窗口汇总 */
+export interface PublicationTrend {
+  publicationId: string;
+  window: DayWindow;
+  days: DailyPoint[];
+  totals: VisitTotals;
+  /** 窗口末尾连续有活动的天数 */
+  streakDays: number;
+}
+
+/**
+ * 单个作品的按天曲线。所有权判定与 `publicationAnalytics` 共用 `analyticsFor`：
+ * 不是自己的（或根本不存在）都返回 null，两种情形在调用方那里就是同一种"读不到"。
+ */
+export async function publicationTrend(
+  ownerId: string,
+  publicationId: string,
+  window: DayWindow,
+): Promise<PublicationTrend | null> {
+  const owned = await analyticsFor(ownerId, publicationId);
+  if (!owned.length) return null;
+  const rows = await visitDayRows([publicationId], window);
+  const days = dailySeries(rows, window);
+  return { publicationId, window, days, totals: totalsOf(rows), streakDays: streakEndingAt(days) };
+}
+
+/** 跨作品总览：窗口内每天的曲线 + 窗口内的汇总 */
+export interface CreatorOverview {
+  window: DayWindow;
+  /** 名下的发布版本数（与列表同一套归属与软删谓词） */
+  publications: number;
+  totals: VisitTotals;
+  streakDays: number;
+  /** 日期密集、升序；长度 = 窗口天数 */
+  days: DailyPoint[];
+}
+
+/**
+ * 创作者总览。**一次查完所有作品**（与 `analyticsFor` 同一条纪律：不按作品循环打库），
+ * 因此曲线是"名下所有作品加在一起"的一条——要按作品分开看，走 `publicationTrend`。
+ */
+export async function creatorOverview(ownerId: string, window: DayWindow): Promise<CreatorOverview> {
+  const db = getDb();
+  const publications = await db
+    .select({ publicationId: publishedProjects.id })
+    .from(publishedProjects)
+    .innerJoin(projects, eq(projects.id, publishedProjects.projectId))
+    .where(and(eq(projects.ownerId, ownerId), isNull(projects.deletedAt)));
+  const rows = await visitDayRows(
+    publications.map((row) => row.publicationId),
+    window,
+  );
+  const days = dailySeries(rows, window);
+  return {
+    window,
+    publications: publications.length,
+    totals: totalsOf(rows),
+    streakDays: streakEndingAt(days),
+    days,
+  };
 }
