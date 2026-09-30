@@ -358,3 +358,123 @@ test('@smoke §41 时间线编辑：拖边缘改长度、拖整块换位、点�
   await expect(page.locator('[data-timeline-strip]')).toBeInViewport();
   await page.screenshot({ path: 'screenshots/storyboard-timeline-edit.png' });
 });
+
+/** 图层树里的节点 id：与 `studio.spec.ts` 同一只抓手（按名字找那一行） */
+async function layerId(page: Page, name: string): Promise<string> {
+  let id = '';
+  await expect
+    .poll(async () => {
+      id = await page.evaluate((target) => {
+        const rows = Array.from(document.querySelectorAll<HTMLElement>('[data-layer-id]'));
+        const row = rows.find((r) => (r.textContent ?? '').includes(target));
+        return row?.dataset.layerId ?? '';
+      }, name);
+      return id;
+    })
+    .toBeTruthy();
+  return id;
+}
+
+/**
+ * §41 第二片：时间线自己也能用键盘改（`docs/DESIGN_SYSTEM.md` §90「全部交互可键盘到达」）。
+ *
+ * 拖拽能做的事要能用键盘做一遍，而且**标准一样**：调整期间库里那份不动、Enter 才落**一个**事务、
+ * Esc 取消不留痕、上下限挡得住（一镜不会被调成 0 毫秒）。
+ *
+ * 最后一段是这一页独有的坑：`CanvasStage` 在 window 上收着方向键（画布微调）与 Esc（退出选择）。
+ * 焦点在时间线上按这两个键时不能被画布也收走一份——所以先选中一个可自由移动的画布元素
+ * （把 Hero 切成绝对定位，它的子节点才可自由移动），再去按时间线的键，验的是**画布那一份没动**、
+ * 选择也没被 Esc 清掉。没有这一段，`stopPropagation` 掉了都不会有人发现。
+ */
+test('@smoke §41 时间线键盘那条路：方向键调长度、Enter 落库、Esc 取消，且不惊动画布', async ({ page }) => {
+  test.setTimeout(300_000);
+  await openStudio(page, `时间线键盘 ${Date.now().toString(36)}`);
+  await openStoryboardPanel(page);
+  await page.fill('[data-storyboard-prompt-input]', '夜色里的港口，一台旧起重机慢慢转身，猫跳上缆绳，它跑起来了');
+  await page.click('[data-storyboard-create]');
+  await savedState(page);
+
+  const ids = await page
+    .locator('[data-timeline-block]')
+    .evaluateAll((nodes) => nodes.map((node) => node.getAttribute('data-timeline-block') ?? ''));
+  const first = ids[0] ?? '';
+  const duration = page.locator(`[data-storyboard-duration="${first}"]`);
+  const handle = page.locator(`[data-timeline-trim="${first}"]`);
+  await handle.scrollIntoViewIfNeeded();
+  await expect(handle).toBeInViewport();
+
+  const beforeMs = Number(await duration.inputValue());
+  // 手柄要把当前值读得出来：读屏用户听到的第一句就是"现在多长"
+  await expect(handle).toHaveAttribute('aria-valuenow', String(beforeMs));
+  await expect(handle).toHaveAttribute('aria-valuetext', `${(beforeMs / 1000).toFixed(1)} 秒`);
+
+  // Tab 能到这个手柄（tabIndex=0）：直接 focus 与按 Tab 过来的效果一致
+  await handle.focus();
+  await expect(handle).toBeFocused();
+
+  // ① 方向键只改预览：aria-valuenow 跟上去、读数在，而库里那份没动
+  await page.keyboard.press('ArrowRight');
+  await page.keyboard.press('ArrowRight');
+  await expect(handle).toHaveAttribute('aria-valuenow', String(beforeMs + 200));
+  await expect(page.locator('[data-timeline-readout]')).toContainText('→');
+  await expect(page.locator('[data-timeline-announce]')).toContainText('还没写库');
+  await page.waitForTimeout(400);
+  expect((await serverShots(page)).find((shot) => shot.id === first)?.durationMs).toBe(beforeMs);
+
+  // ② Esc：预览撤掉，一格都没写（"取消"要真的什么都不留，不只是把界面改回去）
+  await page.keyboard.press('Escape');
+  await expect(handle).toHaveAttribute('aria-valuenow', String(beforeMs));
+  await expect(page.locator('[data-timeline-readout]')).toHaveCount(0);
+  await expect(page.locator('[data-timeline-announce]')).toContainText('取消');
+  expect((await serverShots(page)).find((shot) => shot.id === first)?.durationMs).toBe(beforeMs);
+
+  // ③ Shift 是粗档，一格 1 秒（= 10 × 100 毫秒，与拖动那条路同一个刻度）
+  await page.keyboard.press('Shift+ArrowRight');
+  await expect(handle).toHaveAttribute('aria-valuenow', String(beforeMs + 1000));
+
+  // ④ Enter：落**一个**可撤销的事务
+  await page.keyboard.press('Enter');
+  await expect(page.locator('[data-timeline-readout]')).toHaveCount(0);
+  await expect(page.locator('[data-timeline-announce]')).toContainText('已写库');
+  await expect
+    .poll(async () => (await serverShots(page)).find((shot) => shot.id === first)?.durationMs)
+    .toBe(beforeMs + 1000);
+  await expect(duration).toHaveValue(String(beforeMs + 1000));
+
+  // 撤销**一步**就回到原样：整段键盘调整（三下按键）只算一个事务，不是三步
+  await page.click('[data-storyboard-undo]');
+  await expect
+    .poll(async () => (await serverShots(page)).find((shot) => shot.id === first)?.durationMs)
+    .toBe(beforeMs);
+  await expect(duration).toHaveValue(String(beforeMs));
+
+  // ⑤ 下限挡得住：一直按 Shift+左 也调不出 0 毫秒的镜头（库里的 durationMs 是整数毫秒，
+  //    下限 100 与一格 100 都是 packages/video-model 里的常量）
+  await handle.focus();
+  for (let i = 0; i < 12; i += 1) await page.keyboard.press('Shift+ArrowLeft');
+  await expect(handle).toHaveAttribute('aria-valuenow', '100');
+  await expect(page.locator('[data-timeline-announce]')).toContainText('下限');
+  await page.keyboard.press('Escape');
+  expect((await serverShots(page)).find((shot) => shot.id === first)?.durationMs).toBe(beforeMs);
+
+  // ⑥ 画布不能被顺带按下：先让一个节点可自由移动（Hero 切成绝对定位），选中它，再按时间线的键
+  const hero = await layerId(page, 'Hero');
+  await page.click(`[data-layer-id="${hero}"]`);
+  await page.locator('[data-prop="模式"]').selectOption('none');
+  const headline = await layerId(page, 'Headline');
+  await page.click(`[data-node-id="${headline}"]`);
+  const xField = page.locator('[data-prop="X"]');
+  await expect(xField).toBeEnabled();
+  const x0 = await xField.inputValue();
+
+  await handle.focus();
+  await page.keyboard.press('ArrowRight');
+  await expect(handle).toHaveAttribute('aria-valuenow', String(beforeMs + 100));
+  // Esc 既要是"取消这次预览"，也不能顺带清掉画布的选择
+  await page.keyboard.press('Escape');
+  await expect(xField).toHaveValue(x0);
+  await expect(xField).toBeVisible();
+
+  await page.locator('[data-timeline-strip]').scrollIntoViewIfNeeded();
+  await page.screenshot({ path: 'screenshots/storyboard-timeline-keyboard.png' });
+});

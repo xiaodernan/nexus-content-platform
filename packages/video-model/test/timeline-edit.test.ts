@@ -3,8 +3,10 @@ import {
   applyStoryboardPatch,
   clampShotDuration,
   dropIndexFor,
+  keyboardTrimDelta,
   MAX_SHOT_MS,
   MIN_SHOT_MS,
+  SHOT_MS_COARSE_STEP,
   SHOT_MS_STEP,
   type Storyboard,
   type StoryboardShot,
@@ -93,5 +95,56 @@ describe('dropIndexFor —— 拖到哪个位置落下（返回的是最终下�
     const to = dropIndexFor(THREE, 'c', -4500);
     expect(to).toBe(0);
     expect(reordered(2, to)).toEqual(['c', 'a', 'b']);
+  });
+});
+
+/**
+ * §41 的键盘那条 trim（`docs/DESIGN_SYSTEM.md` §90「全部交互可键盘到达」）。
+ *
+ * 这一支测的是**按键到意图**那一层：哪些键归 trim 管、一次调多少。写库那一步不在纯函数里，
+ * 所以最后三条都把增量接进 `clampShotDuration` 再看结果——只看 `keyboardTrimDelta` 的话，
+ * "把一镜调成 0 毫秒"或者"调出一个不在 100ms 刻度上的数"这两种错都测不出来。
+ */
+describe('keyboardTrimDelta —— 键盘那条 trim 的档位与放行规则', () => {
+  it('左右方向键各是一格（100ms）：右是加长、左是缩短', () => {
+    expect(keyboardTrimDelta('ArrowRight', false)).toBe(SHOT_MS_STEP);
+    expect(keyboardTrimDelta('ArrowLeft', false)).toBe(-SHOT_MS_STEP);
+  });
+
+  it('Shift 是粗档：一次 1 秒，正好是细档的十倍', () => {
+    expect(keyboardTrimDelta('ArrowRight', true)).toBe(SHOT_MS_COARSE_STEP);
+    expect(keyboardTrimDelta('ArrowLeft', true)).toBe(-SHOT_MS_COARSE_STEP);
+    expect(SHOT_MS_COARSE_STEP).toBe(SHOT_MS_STEP * 10);
+  });
+
+  it('不是 trim 的键一律返回 null（不是 0）——上下方向键要留给面板滚动，不能被这里吞掉', () => {
+    for (const key of ['ArrowUp', 'ArrowDown', 'Enter', 'Escape', ' ', 'Home', 'a']) {
+      expect(keyboardTrimDelta(key, false)).toBeNull();
+      expect(keyboardTrimDelta(key, true)).toBeNull();
+    }
+  });
+
+  it('接进 clampShotDuration：下限挡得住，一镜不会被键盘调成 0 毫秒或负数', () => {
+    expect(clampShotDuration(MIN_SHOT_MS + keyboardTrimDelta('ArrowLeft', false)!)).toBe(MIN_SHOT_MS);
+    expect(clampShotDuration(MIN_SHOT_MS + keyboardTrimDelta('ArrowLeft', true)!)).toBe(MIN_SHOT_MS);
+  });
+
+  it('接进 clampShotDuration：上限挡得住，不会调出超过 MAX_SHOT_MS 的镜头', () => {
+    expect(clampShotDuration(MAX_SHOT_MS + keyboardTrimDelta('ArrowRight', true)!)).toBe(MAX_SHOT_MS);
+  });
+
+  it('接进 clampShotDuration：整条路上都停在刻度上（滑出刻度 = 整份 PUT 被契约拒掉）', () => {
+    let ms = 3000;
+    const presses = [
+      ['ArrowRight', false],
+      ['ArrowLeft', true],
+      ['ArrowRight', true],
+      ['ArrowLeft', false],
+    ] as const;
+    for (const [key, shift] of presses) {
+      ms = clampShotDuration(ms + keyboardTrimDelta(key, shift)!);
+      expect(Number.isInteger(ms)).toBe(true);
+      expect(ms % SHOT_MS_STEP).toBe(0);
+    }
   });
 });

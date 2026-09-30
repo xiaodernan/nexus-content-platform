@@ -5,9 +5,11 @@ import {
   clampShotDuration,
   DEFAULT_SHOT_MS,
   dropIndexFor,
+  keyboardTrimDelta,
   MAX_SHOT_MS,
   MIN_SHOT_MS,
   SHOT_CAMERAS,
+  SHOT_MS_COARSE_STEP,
   SHOT_MS_STEP,
   SHOT_TRANSITIONS,
   timelineOf,
@@ -59,11 +61,16 @@ const TRANSITION_LABELS: Record<ShotTransition, string> = {
 };
 
 /**
- * §41 拖拽期间的状态。`preview*` 只是这一份本地预览：库里那一份在松手之前一动不动，
- * 所以"拖到一半关掉页面"不会留下一个半截的长度，撤销栈也不会被 pointermove 塞满。
+ * §41 改长度/换位期间的状态。`preview*` 只是这一份本地预览：库里那一份在提交之前一动不动，
+ * 所以"改到一半关掉页面"不会留下一个半截的长度，撤销栈也不会被 pointermove 塞满。
+ *
+ * trim 那一支按 `via` 分两种：拖动带着指针几何（起点像素与像素↔毫秒换算），键盘只有档位。
+ * 写成两种而不是把几何字段设成可选：`moveTrim` 只该认指针那一支，
+ * 可选字段会让"键盘这条路上混进一次 pointermove"变成能编译过的写法。
  */
 type TimelineDrag =
-  | { kind: 'trim'; shotId: string; startX: number; startMs: number; msPerPx: number; previewMs: number }
+  | { kind: 'trim'; via: 'pointer'; shotId: string; startX: number; startMs: number; msPerPx: number; previewMs: number }
+  | { kind: 'trim'; via: 'keyboard'; shotId: string; startMs: number; previewMs: number }
   | {
       kind: 'reorder';
       shotId: string;
@@ -190,11 +197,13 @@ export function StoryboardPanel() {
   const timeline = useMemo(() => (sb ? timelineOf(sb) : null), [sb]);
 
   /**
-   * §41 的时间线编辑：拖右边缘 trim/extend、拖整块 reorder、点左上角的转场标记换衔接。
+   * §41 的时间线编辑：拖右边缘 trim/extend、拖整块 reorder、点左上角的转场标记换衔接；
+   * 键盘那条路（方向键调长度、Enter 落库、Esc 取消）改的是同一份模型、走同一个提交口径。
    *
    * 三条纪律：
-   * - **拖动期间不写库**。预览只活在这一份本地状态里，松手才落一个补丁事务（§150）——
-   *   每一次 pointermove 都走 `applyOps` 会把撤销栈塞进几十步，Ctrl+Z 要按几十次才退得回去。
+   * - **调整期间不写库**。预览只活在这一份本地状态里，提交时才落一个补丁事务（§150）——
+   *   每一次 pointermove（或按住方向键时的一次按键重复）都走 `applyOps` 会把撤销栈塞进几十步，
+   *   Ctrl+Z 要按几十次才退得回去，PUT 也是几十次。
    * - **没有变化就不记事务**：拖回原位时长度与下标都没变，这时不写库也不进撤销栈，
    *   免得栈里多出一条"按一次什么都没发生"的撤销步。
    * - **改的是模型里的 `durationMs` / 镜头顺序**，不是界面上的宽度：时间线是投影（§16），
@@ -205,6 +214,11 @@ export function StoryboardPanel() {
   const stripRef = useRef<HTMLDivElement | null>(null);
   /** 量出来的条宽：窄到一定程度就只画格子不留字（半个字被裁掉比不显示更难读），也用它决定转场标记放不放得下 */
   const [stripWidth, setStripWidth] = useState(0);
+  /**
+   * 读屏用的播报（`role="status"`）：焦点之外也要有一句"现在是多少、落库了没有"。
+   * 视觉上藏起来，但它是一段真文本——不是给测试看的影子状态。
+   */
+  const [announce, setAnnounce] = useState('');
   const hasStoryboard = sb !== null;
   useEffect(() => {
     const el = stripRef.current;
@@ -232,17 +246,24 @@ export function StoryboardPanel() {
     // 手柄在格子内部：这一下不该同时被当成"拖动整块换位"
     event.stopPropagation();
     event.currentTarget.setPointerCapture(event.pointerId);
-    const next: TimelineDrag = { kind: 'trim', shotId: shot.id, startX: event.clientX, startMs: shot.durationMs, msPerPx: scale, previewMs: shot.durationMs };
+    const next: TimelineDrag = { kind: 'trim', via: 'pointer', shotId: shot.id, startX: event.clientX, startMs: shot.durationMs, msPerPx: scale, previewMs: shot.durationMs };
     dragRef.current = next;
     setDrag(next);
   };
 
   const moveTrim = (event: React.PointerEvent<HTMLElement>): void => {
     const active = dragRef.current;
-    if (active?.kind !== 'trim') return;
+    // 只有拖动那一支带指针几何；键盘那条路不该被一次 pointermove 改到
+    if (active?.kind !== 'trim' || active.via !== 'pointer') return;
     const next: TimelineDrag = { ...active, previewMs: clampShotDuration(active.startMs + (event.clientX - active.startX) * active.msPerPx) };
     dragRef.current = next;
     setDrag(next);
+  };
+
+  /** 这一镜有没有待提交的预览（拖动或键盘都算）；没有就是 `null`，不返回一个"零改动"的假状态 */
+  const pendingTrimOf = (shotId: string): Extract<TimelineDrag, { kind: 'trim' }> | null => {
+    const active = dragRef.current;
+    return active?.kind === 'trim' && active.shotId === shotId ? active : null;
   };
 
   const endTrim = (shot: StoryboardShot): void => {
@@ -253,6 +274,67 @@ export function StoryboardPanel() {
     storyboardStore.applyOps([
       { op: 'updateShot', id: shot.id, before: { durationMs: shot.durationMs }, after: { durationMs: active.previewMs } },
     ]);
+    const at = sb?.shots.findIndex((candidate) => candidate.id === shot.id) ?? -1;
+    setAnnounce(
+      `${at >= 0 ? `第 ${at + 1} 镜` : '这一镜'}的长度改成 ${(active.previewMs / 1000).toFixed(1)} 秒，已写库`,
+    );
+  };
+
+  /**
+   * §41 第二片：时间线自己也能用键盘改（`docs/DESIGN_SYSTEM.md` §90「全部交互可键盘到达」）。
+   * 语义照画布那条"方向键微调"：方向键调、Enter 落库、Esc 取消。
+   *
+   * **为什么不按一下就写一次库**：这里的每次写是一整份分镜的 PUT 加一条撤销栈记录（§150），
+   * 按住方向键半秒就是三十次写、三十步撤销；而拖动那条路的口径早就是"预览期间不写库、
+   * 提交才落一个事务"。键盘复用**同一份预览状态**与同一个 `endTrim`，
+   * 所以读数行、格子宽度、提交口径两条路完全一致，不会各写一套。
+   *
+   * 空格不做"提交"：`CanvasStage` 把 Space 当成画布的平移修饰键（window 级 keydown 按下、
+   * keyup 抬起），在这里抢过来会让画布收到一个"按下没抬起"的修饰键。
+   */
+  const nudgeTrim = (event: React.KeyboardEvent<HTMLElement>, shot: StoryboardShot, index: number): void => {
+    const pending = pendingTrimOf(shot.id);
+    if (event.key === 'Enter') {
+      if (!pending) return;
+      event.preventDefault();
+      event.stopPropagation();
+      endTrim(shot);
+      return;
+    }
+    if (event.key === 'Escape') {
+      // 没有待提交的改动就不抢 Escape：画布那条「Esc 退出选择」照旧
+      if (!pending) return;
+      event.preventDefault();
+      event.stopPropagation();
+      dragRef.current = null;
+      setDrag(null);
+      setAnnounce(`第 ${index + 1} 镜还是 ${(shot.durationMs / 1000).toFixed(1)} 秒，取消了这个预览`);
+      return;
+    }
+    const delta = keyboardTrimDelta(event.key, event.shiftKey);
+    if (delta === null) return;
+    event.preventDefault();
+    // 一并挡住 window 上画布那套方向键微调：不挡的话焦点在时间线上按方向键，画布上选中的节点也跟着挪
+    event.stopPropagation();
+    const fromMs = pending ? pending.previewMs : shot.durationMs;
+    const previewMs = clampShotDuration(fromMs + delta);
+    if (previewMs === fromMs) {
+      // 停在上下限上：说清楚"这一步没改"，而不是让按键看起来像丢了
+      setAnnounce(
+        `第 ${index + 1} 镜已经是${fromMs <= MIN_SHOT_MS ? `下限 ${(MIN_SHOT_MS / 1000).toFixed(1)}` : `上限 ${(MAX_SHOT_MS / 1000).toFixed(1)}`}秒，这一步没改`,
+      );
+      return;
+    }
+    const next: TimelineDrag = {
+      kind: 'trim',
+      via: 'keyboard',
+      shotId: shot.id,
+      startMs: pending ? pending.startMs : shot.durationMs,
+      previewMs,
+    };
+    dragRef.current = next;
+    setDrag(next);
+    setAnnounce(`第 ${index + 1} 镜 ${(previewMs / 1000).toFixed(1)} 秒，还没写库`);
   };
 
   const beginReorder = (event: React.PointerEvent<HTMLElement>, shot: StoryboardShot, index: number): void => {
@@ -683,8 +765,8 @@ export function StoryboardPanel() {
           */}
           <div
             ref={stripRef}
-            role="group"
-            aria-label="时间线：拖格子右边缘改长度，拖整块换位置"
+            role="list"
+            aria-label={`时间线：${sb.shots.length} 个镜头按顺序排开。拖格子右边缘改长度、拖整块换位置；键盘按 Tab 到右边缘用方向键改`}
             className="mt-2 flex h-9 w-full min-w-0 overflow-hidden rounded-[var(--nexus-radius-sm)] border border-[var(--nexus-color-border-subtle)] bg-bg-2"
             data-timeline-strip
             data-timeline-total-ms={String(timeline?.totalMs ?? 0)}
@@ -702,6 +784,8 @@ export function StoryboardPanel() {
               return (
                 <div
                   key={shot.id}
+                  role="listitem"
+                  aria-label={`第 ${index + 1} 镜：${(shownMs / 1000).toFixed(1)} 秒，${CAMERA_LABELS[shot.camera]}，衔接${TRANSITION_LABELS[shot.transition]}`}
                   data-timeline-block={shot.id}
                   data-timeline-drop-target={dropTarget ? 'true' : undefined}
                   title={`第 ${index + 1} 镜 · ${(shownMs / 1000).toFixed(1)} 秒 · ${CAMERA_LABELS[shot.camera]} · ${TRANSITION_LABELS[shot.transition]}`}
@@ -751,13 +835,22 @@ export function StoryboardPanel() {
                   ) : null}
                   <span
                     role="separator"
-                    aria-label={`第 ${index + 1} 镜的右边缘：拖动改长度`}
+                    tabIndex={0}
+                    aria-orientation="vertical"
+                    aria-label={`第 ${index + 1} 镜的右边缘：拖动改长度；方向键一格 ${SHOT_MS_STEP} 毫秒、Shift 一格 ${SHOT_MS_COARSE_STEP} 毫秒，Enter 落库，Esc 取消`}
+                    aria-valuemin={MIN_SHOT_MS}
+                    aria-valuemax={MAX_SHOT_MS}
+                    aria-valuenow={shownMs}
+                    aria-valuetext={`${(shownMs / 1000).toFixed(1)} 秒`}
                     data-timeline-trim={shot.id}
                     onPointerDown={(event) => beginTrim(event, shot)}
                     onPointerMove={moveTrim}
                     onPointerUp={() => endTrim(shot)}
                     onPointerCancel={() => endTrim(shot)}
-                    className="absolute right-0 top-0 h-full w-[8px] cursor-col-resize bg-transparent hover:bg-accent-2/40"
+                    onKeyDown={(event) => nudgeTrim(event, shot, index)}
+                    // 焦点离开 = 提交（等价于松手）：预览过的长度不能因为 Tab 走开就悄悄消失
+                    onBlur={() => endTrim(shot)}
+                    className="absolute right-0 top-0 h-full w-[8px] cursor-col-resize bg-transparent hover:bg-accent-2/40 focus-visible:w-[12px] focus-visible:bg-accent-2/50"
                   />
                 </div>
               );
@@ -765,7 +858,8 @@ export function StoryboardPanel() {
           </div>
           <p className="mt-1 text-11 text-fg-3">
             拖右边缘改长度（吸附 {SHOT_MS_STEP} 毫秒，下限 {MIN_SHOT_MS} 毫秒）、拖整块换位、点左上角的转场标记换衔接；
-            松手才写库，每一步都可撤销。要写精确毫秒用列表里那个数字框——键盘那条路与这里改的是同一份模型。
+            松手才写库，每一步都可撤销。键盘：Tab 到格子的右边缘，左右方向键调长度（Shift 一格 {SHOT_MS_COARSE_STEP} 毫秒），
+            Enter 落库、Esc 取消；换位用镜头表里的 ↑ ↓，精确毫秒用那个数字框——四条路改的是同一份模型。
           </p>
           {drag ? (
             <p className="mt-1 text-11 text-accent-2" data-timeline-readout>
@@ -774,6 +868,10 @@ export function StoryboardPanel() {
                 : `把第 ${drag.fromIndex + 1} 镜拖到第 ${drag.previewIndex + 1} 位`}
             </p>
           ) : null}
+          {/* 读屏那一句：视觉上藏起来，但与上面那行读数说的是同一件事（§90 的键盘路要能听见结果） */}
+          <p className="sr-only" role="status" data-timeline-announce>
+            {announce}
+          </p>
           <ul className="mt-2 flex flex-col gap-1">
             {(timeline?.tracks ?? []).map((track) => (
               <li key={track.kind} className="text-11 text-fg-2" data-storyboard-track={track.kind}>

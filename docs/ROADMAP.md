@@ -2869,6 +2869,24 @@ JS 只读回 `id + page_id`。把 4008 行读回 JS 逐字段比是「957.6ms �
 红在顺序断言（Array [2,3,1,4] 对 [2,3,4,1]）。
 截图 `screenshots/storyboard-timeline-edit.png`（编辑面 + 轨道）与 `storyboard-timeline-dragging.png`（拖动中的目标格与读数）。
 
+**§41 第二片（2026-09-30）：键盘也能改长度**——`docs/DESIGN_SYSTEM.md` §90 要求"全部交互可键盘到达"，
+拖拽能做的事必须能用键盘做一遍，而且**标准一样**。
+
+- 左右方向键各一格（`SHOT_MS_STEP`，100ms），**Shift 是粗档一次 1 秒**（`SHOT_MS_COARSE_STEP = SHOT_MS_STEP × 10`）。
+  粗档**共用**拖动那条路的刻度而不是自己定一个（比如 500ms）：两条路改的是同一个 `durationMs`，
+  刻度不同的话键盘调出来的数在拖动那条路上没有对应档位，作者就会看到"明明调好了、一碰鼠标又跳一下"。
+- `keyboardTrimDelta(key, shiftKey)` **不管的键返回 `null` 而不是 `0`**：`0` 会被调用方当成
+  "一次合法的零步操作"，于是 `preventDefault` 掉一个本该交给别人的按键——上下方向键要留给面板滚动。
+  返回 `null` 就是"这个键不是 trim 的"，调用方原样放行。
+- **拖拽状态按 `via` 分成两种**（`{ kind:'trim'; via:'pointer'; … }` 与键盘那一支），
+  而不是把指针几何设成可选字段：可选字段会让"键盘这条路上混进一次 pointermove"变成**能编译过的写法**。
+- 提交语义与拖动**完全一致**：调整期间库里一动不动，Enter 才落**一个** §150 事务，Esc 取消——
+  所以整段键盘调整（三下按键）**撤销一步**就回到原样，不是三步。
+- **凭证**：`timeline-edit.test.ts` 新增 `keyboardTrimDelta` 一组，最后三条都把增量接进
+  `clampShotDuration` 再看结果——只看增量的话，"把一镜调成 0 毫秒"或"调出一个不在 100ms 刻度上的数"
+  这两种错都测不出来；`e2e/storyboard.spec.ts` 新增一条 `@smoke §41 时间线键盘那条路`：
+  方向键调长度、Shift 粗档、Enter 落库、Esc 取消，且**不惊动画布**。
+
 ## §133/§134 第二片：storage 那一格真的有执行方了（拒绝新写入，不驱逐）
 
 第一片里 storage 只是表上的数字（ADR-0014 明写着"还没有拦截方"）。这一片把它接成真的：

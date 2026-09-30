@@ -89,6 +89,28 @@ export function clampShotDuration(durationMs: number): number {
   return Math.max(MIN_SHOT_MS, Math.min(MAX_SHOT_MS, snapped));
 }
 
+/**
+ * §41 键盘那条 trim 的粗档：Shift + 方向键一次 1 秒。
+ *
+ * 为什么刻度与拖动**共用** `SHOT_MS_STEP` 而不是键盘自己定一个（比如 500ms）：
+ * 两条路改的是同一个 `durationMs`，刻度不同的话键盘调出来的数在拖动那条路上没有对应档位，
+ * 作者就会看到"明明调好了，一碰鼠标又跳一下"。
+ */
+export const SHOT_MS_COARSE_STEP = SHOT_MS_STEP * 10;
+
+/**
+ * 键盘按下的方向键 → 毫秒增量。`ArrowRight` 是**加长**（右边缘往右 = 更长），`ArrowLeft` 是缩短。
+ *
+ * 不管的键返回 `null` 而不是 `0`：`0` 会被调用方当成"一次合法的零步操作"，
+ * 于是 `preventDefault` 掉一个本该交给别人的按键——上下方向键要留给面板滚动。
+ * 返回 `null` 就是"这个键不是 trim 的"，调用方原样放行。
+ */
+export function keyboardTrimDelta(key: string, shiftKey: boolean): number | null {
+  if (key !== 'ArrowLeft' && key !== 'ArrowRight') return null;
+  const step = shiftKey ? SHOT_MS_COARSE_STEP : SHOT_MS_STEP;
+  return key === 'ArrowRight' ? step : -step;
+}
+
 /** 句子里出现这些词就当这一镜有运动：时长给足，机位给跟移 */
 const MOTION_WORDS = ['跑', '走', '冲', '追', '飞', '游', '跳', '逃', '奔', 'run', 'walk', 'fly', 'chase', 'drive'];
 
