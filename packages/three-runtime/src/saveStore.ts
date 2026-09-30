@@ -14,6 +14,9 @@
  *   file exists, and the runtime reports THAT as a corrupt save rather than loading nothing successfully.
  * * Every path goes through `resolveSavePath` exactly once. Two stores with two different escaping rules
  *   would be two owners of one safety claim, and the interesting one of them would be the one nobody tested.
+ * * A save may not be CREATED on a name that ends in `SAVE_TEMP_SUFFIX` (`resolveNewSavePath`), because that
+ *   name is where `writeAtomic` puts the save of the shorter path. Reading, listing and deleting still accept
+ *   it — a leftover the host holds is a fact about the host, not a save.
  */
 
 /** The slice of a filesystem this seam needs. Deliberately small enough that `localStorage` can implement it —
@@ -96,6 +99,30 @@ export function resolveSavePath(path: string): string {
   return path;
 }
 
+/**
+ * The name a SAVE may be created under: `resolveSavePath`, plus one rule that only creation needs.
+ *
+ * `writeAtomic(path)` puts its half-written file at `${path}${SAVE_TEMP_SUFFIX}`, and `sweepTempFiles` deletes
+ * every listed name ending in that suffix. So a save allowed to be named `x.json.tmp` shares its name with the
+ * temp of the save called `x.json`. Measured before this rule existed (`.scratch/vnext/collisionProbe.mjs`):
+ * write the first save, then atomically write the shorter one, and the temp replaces the first save's bytes and
+ * is renamed away — one call, two saves gone, `list()` reporting nothing and no error thrown.
+ *
+ * The rule is on CREATION only, and that narrowness is deliberate: `read`, `exists` and `delete` keep taking
+ * `resolveSavePath`, because a `.tmp` the host already holds is a fact about the host, and a runtime that browses
+ * its own store (`latestSaveFile` reads every header it lists) would otherwise throw at a leftover instead of
+ * classifying it. Refusing to MAKE the collision is the whole harm; pretending the name never exists on the
+ * read side would trade a silent loss for a crash in a caller that did nothing wrong.
+ */
+export function resolveNewSavePath(path: string): string {
+  resolveSavePath(path);
+  if (path.endsWith(SAVE_TEMP_SUFFIX)) {
+    const shorter = path.slice(0, -SAVE_TEMP_SUFFIX.length);
+    throw new Error(`saveStore: "${path}" ends in the temp suffix ${JSON.stringify(SAVE_TEMP_SUFFIX)}, which is where writeAtomic("${shorter}") puts its half-written file — a save may not be created on a name that debris already owns${shorter.length === 0 ? ', and here the save it collides with would be the empty name, which is not a save either' : ''}`);
+  }
+  return path;
+}
+
 /** The suffix a save's temp file carries. One owner: the writer that produces it and the sweeper that looks
  *  for it must not disagree about a name, or a leftover becomes invisible exactly when it matters. */
 export const SAVE_TEMP_SUFFIX = '.tmp';
@@ -106,7 +133,7 @@ export function createMemorySaveStore(): SaveStore {
   return {
     kind: 'memory',
     write(path, contents) {
-      files.set(resolveSavePath(path), contents);
+      files.set(resolveNewSavePath(path), contents);
     },
     writeAtomic(path, contents, durable = false) {
       if (durable) {
@@ -114,7 +141,7 @@ export function createMemorySaveStore(): SaveStore {
       }
       // One map mutation: a reader sees the old value or the new one, never a piece of each. There is no temp
       // file to clean up here, and no durability claim beyond this process.
-      files.set(resolveSavePath(path), contents);
+      files.set(resolveNewSavePath(path), contents);
     },
     read(path) {
       return files.get(resolveSavePath(path)) ?? null;
@@ -148,10 +175,12 @@ export function createFsSaveStore(fs: FsLike, root: string): SaveStore {
     throw new Error(`saveStore: the root "${root}" itself walks out with ".."; a confined store needs a root that stays put`);
   }
   const at = (path: string): string => `${trimmed}/${resolveSavePath(path)}`;
+  // Creation goes one rule further than reading; the join stays in one place so this store keeps one owner of it.
+  const atNew = (path: string): string => `${trimmed}/${resolveNewSavePath(path)}`;
   return {
     kind: 'fs',
     write(path, contents) {
-      fs.writeFileSync(at(path), contents);
+      fs.writeFileSync(atNew(path), contents);
     },
     writeAtomic(path, contents, durable = false) {
       // The capabilities are asked for BEFORE any byte moves: discovering them missing after writing the temp
@@ -162,7 +191,7 @@ export function createFsSaveStore(fs: FsLike, root: string): SaveStore {
       if (durable && typeof fs.flushSync !== 'function') {
         throw new Error(`saveStore: "${path}" was asked to be durable but the injected fs has no flushSync; nothing was written — an unflushed rename is still a rename that can point at nothing`);
       }
-      const target = at(path);
+      const target = atNew(path);
       const temp = `${target}${SAVE_TEMP_SUFFIX}`;
       fs.writeFileSync(temp, contents);
       try {

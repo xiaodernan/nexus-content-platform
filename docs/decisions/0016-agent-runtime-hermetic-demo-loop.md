@@ -7032,3 +7032,97 @@ _Numbering: 145 was free (`grep -an "^### Amendment 14"` topped out at 144). Ful
   storyboard, and it never returns bytes — because there are none. No roster registers it by default (a host
   must call `registerAssetTools` with a driver it built), and nothing in the Studio imports it, so M3's
   PRODUCT face is still open.
+
+### Amendment 146 (M5 v146, three-runtime) — a save may not be created on a name that debris already owns, so one atomic write can no longer delete two saves
+
+`packages/three-runtime/src/saveStore.ts` hands out one name for two jobs: `writeAtomic(path)` puts its
+half-written file at `${path}.tmp`, and `sweepTempFiles` deletes every listed name ending in that suffix,
+while the
+single boundary every path crosses refused absolute forms, `..`, `''` and `.` and said nothing about the
+suffix.
+Full narrative in `docs/evidence/three-runtime/README.md` section v146; this is the ledger entry.
+
+- **Measured before it was fixed, on a re-runnable probe.** `.scratch/vnext/collisionProbe.mjs` asks the
+  built
+  store seam for the behaviour, and gets it: `resolveSavePath` ACCEPTS `"x.json.tmp"`, then a plain
+  `writeAtomic("x.json")` makes that name hold the temp's bytes and renames it away, so `store.list()`
+  answers
+  `[]` — the hand-named save is gone and the save that was written is gone too, with no throw anywhere. The
+  probe's second direction replays the sweeper's own predicate over a listing and puts a caller-written
+  `real-save.tmp` INSIDE the deletion set. Neither is theoretical: `test/saveSnapshot.test.ts` planted its
+  v126
+  debris by calling `store.write('x.json.tmp', …)`, which is the repository demonstrating the hole in its
+  own
+  suite.
+- **The rule is on creation, and the narrowness is the grant.** `resolveNewSavePath` now adds one clause to
+  `resolveSavePath` and `write`/`writeAtomic` on both stores go through it; `read`, `exists`, `list` and
+  `delete`
+  keep the plain boundary. That distinction was made by a counter-example, not by taste: applying the suffix
+  rule
+  to `resolveSavePath` itself would make `latestSaveFile` throw while it reads the header of every name it
+  lists —
+  a leftover is a fact about the host, and a store that crashes on one trades a silent loss for a crash in a
+  caller that did nothing wrong. Arm W5 below is exactly that widening, and it reddens 9 cases, which is
+  how the record knows the narrowness is tested rather than asserted.
+- **10 cases in `test/saveNameCollision.test.ts`**, every expectation derived from `SAVE_TEMP_SUFFIX`
+  rather than from a typed-out `'.tmp'`, and paired: the refusal, the message that names the save whose temp
+  the
+  name is, the suffix-not-substring direction (`a.tmp.json`, `progress.tmp2` stay legal), the
+  unconstructibility
+  of the measured collision, and the four verbs that must keep accepting the name.
+- **Arms: 5 of 5 matched their predicted red case names.** - W1 · MATCHED · collected 375 · red in
+  saveNameCollision.test.ts: saveStore: a save may not be created on a name debris owns (v-next) creation
+  refuses a name that is another save half-written file, and says which save it would land on; saveStore: a
+  save may not be created on a name debris owns (v-next) a name that is nothing but the suffix is refused
+  too, admitting the save it collides with is not a name; saveStore: a save may not be created on a name
+  debris owns (v-next) both stores refuse the creation, because both cross the same creation rule;
+  saveStore: a save may not be created on a name debris owns (v-next) the measured collision is
+  unconstructible: the save cannot be made, so the atomic write has nothing to land on · red outside: 0
+- W2 · MATCHED · collected 375 · red in saveNameCollision.test.ts: saveStore: a save may not be created on a
+  name debris owns (v-next) creation refuses a name that is another save half-written file, and says which
+  save it would land on; saveStore: a save may not be created on a name debris owns (v-next) both stores
+  refuse the creation, because both cross the same creation rule; saveStore: a save may not be created on a
+  name debris owns (v-next) the measured collision is unconstructible: the save cannot be made, so the
+  atomic write has nothing to land on · red outside: 0
+- W3 · MATCHED · collected 375 · red in saveNameCollision.test.ts: saveStore: a save may not be created on a
+  name debris owns (v-next) creation refuses a name that is another save half-written file, and says which
+  save it would land on · red outside: 0
+- W4 · MATCHED · collected 375 · red in saveNameCollision.test.ts: saveStore: a save may not be created on a
+  name debris owns (v-next) both stores refuse the creation, because both cross the same creation rule;
+  saveStore: a save may not be created on a name debris owns (v-next) the measured collision is
+  unconstructible: the save cannot be made, so the atomic write has nothing to land on · red outside: 0
+- W5 · MATCHED · collected 375 · red in saveNameCollision.test.ts: saveStore: a save may not be created on a
+  name debris owns (v-next) creation refuses a name that is another save half-written file, and says which
+  save it would land on; saveStore: a save may not be created on a name debris owns (v-next) a name that is
+  nothing but the suffix is refused too, admitting the save it collides with is not a name; saveStore: a
+  save may not be created on a name debris owns (v-next) the narrowness is real: the same name still passes
+  the boundary that reading and deleting use; saveStore: a save may not be created on a name debris owns
+  (v-next) both stores refuse the creation, because both cross the same creation rule; saveStore: a save may
+  not be created on a name debris owns (v-next) the measured collision is unconstructible: the save cannot
+  be made, so the atomic write has nothing to land on; saveStore: a save may not be created on a name debris
+  owns (v-next) debris the host already holds stays listable and readable, so browsing a store cannot crash
+  on a leftover; saveStore: a save may not be created on a name debris owns (v-next) delete still takes a
+  half-written file back, and says false the second time; saveStore: a save may not be created on a name
+  debris owns (v-next) delete keeps the confinement even though it never carried the save-name rule;
+  saveStore: a save may not be created on a name debris owns (v-next) the memory store answers false for a
+  name it never held instead of pretending · red outside: 1 (declared: 1)
+- **Measured on a frozen plane, because the shared worktree had a live writer.** The suite ran on a local
+  clone of HEAD with -c core.autocrlf=false (2017f5c, 344 files, the plane's saveStore.ts held 11691 bytes
+  with 0 CR, so the plane is the ref's own bytes), built because the shared worktree carried another
+  writer's in-flight edits — baseline 365
+  cases with 0 red before any of this grant's files entered the plane, 375 across 8 files after,
+  0 red, `tsc --noEmit` exit 0, and the worktree staged at +378/-7. The gate numbers and the byte
+  claims are the clone plane's; the landed bytes were checked against it after the commit.
+
+**Bounds this entry does not cross.** The rule lives in the store seam; `sweepTempFiles` is unchanged and
+still
+decides by suffix, so a name that reaches the store from OUTSIDE this package (a file a human put in the
+saves
+directory) is still deleted by a sweep — what this grant closes is a save being created on that name by a
+caller,
+which is the direction the probe could actually reach. `deleteSaveFile` and `listSaveFiles` can still be
+handed a
+debris-shaped name on purpose, and that is the behaviour the sweeper depends on. Nothing outside
+`packages/three-runtime` imports the package's store seam yet, so no user-visible outage is repaired here
+either;
+the v146 face is a runtime with tests.

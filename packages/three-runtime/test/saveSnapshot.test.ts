@@ -2090,9 +2090,10 @@ describe('atomic save writes: a reader sees the old save or the new one, never a
     const sceneId = rt.createScene('World').id;
     withEntityIn(rt, sceneId);
     rt.writeSaveFile('x.json', sceneId, 1);
-    // Stand in for the debris v125 describes — a double failure that left a temp behind. Planting it here
-    // keeps the test about the sweeper rather than about rigging two host faults in sequence.
-    store.write('x.json.tmp', 'half-written junk');
+    // Stand in for the debris v125 describes — a double failure that left a temp behind. It goes into the
+    // HOST rather than through the store, because a `.tmp` name is no longer something a caller may create
+    // (v-next: it is the temp of the save called `x.json`); a leftover is what the filesystem holds.
+    tree.set('saves/root/x.json.tmp', 'half-written junk');
     expect(store.list()).toEqual(['x.json', 'x.json.tmp']);
     const deleted: { path: string }[] = [];
     rt.addEventListener('saveFileDeleted', (d) => deleted.push(d as { path: string }));
