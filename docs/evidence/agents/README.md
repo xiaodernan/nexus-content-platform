@@ -133,7 +133,7 @@ the SHAPE around it. One source, and no way for a loosening to look like a refac
 ## Unit tests (vitest, `agents/runtime/test`)
 
 The parenthesized counts below are the committed state, and they are checkable rather than
-decorative: the runtime rows sum to exactly **450** (32 files) and the `exec-host/*` rows to exactly
+decorative: the runtime rows sum to exactly **473** (33 files) and the `exec-host/*` rows to exactly
 **275** (8 files) — the same totals `npm test` prints. A row whose number drifts from its file is a
 documentation bug, so an increment that adds a case updates its row in the same commit. v63 found this
 table itself adrift: the `gitTools.test.ts` row still read (51) where HEAD measured 65, because every case
@@ -163,6 +163,7 @@ never the sum of the deltas.
 | `worldTools.test.ts` (21) | M4 v144, the WORLD lane's first consumer: every declared `world.*` spec ROUTED and EXACTLY TWO read-class doors (`world.inspect`, `world.query`) because a third read door would be a mutation that skipped the gate; `world.character.decide` is asserted NOT read and its description must carry the reason (the package records the decision on the agent); a write door and the decision door both refuse without the §28 checkpoint while both read doors run with none; an unknown location `type` lists the nine declared ones and an unknown lore `category` the ten, each refused rather than stored as a word nothing reads; a character may not be placed in a location the world does not hold — refused BEFORE the add, and placed by ID rather than by name when it does; a `limit` that is not a finite positive number is refused; deciding for a character with no agent is refused by name; an empty required string is refused; the add doors report the id they created and the count that followed, `query` passes the limit through (defaulting to the package's own 10), the decision door reports the whole answer; a driver that answers with a PROMISE is awaited and one that throws becomes a failed CALL |
 | `multiAgentPipeline.test.ts` (12) | a chain shorter than two agents refused, an unknown agent refused while reporting what already completed, an agent with no research door refused by NAMING the doors it wanted; the walk visits each EDGE once and names the agent that ran every stage, sends `fs.index {query}` and `fs.search {term}` so each door gets its OWN argument (an `fs.index`-holding agent gets `query`), carries refs forward and says so when an edge finds nothing, refuses when nothing was found and nothing was carried in; one §26 record per edge under a task-scoped key, ledger and evaluation written only when the host supplied files, the refs the LAST edge carried returned so a caller need not re-derive them, and the DEFAULT roster can actually be walked (every research-capable agent has a door) |
 | `vectorStore.test.ts` (6) | refuses at the DOOR — pgvector has no connection here, and no foreign dimension can be honest; the memory store ranks hit-for-hit like `vectordb.queryVectors` and NAMES its engine; two identical stores answer identically (determinism is part of the seam); the local store writes NOTHING until `flush`, then a COLD second store reads the same rows; a file that exists but cannot be read is refused, not silently replaced by an empty store; `syncMemoryToVectorStore` names one row per ref, stably, and is idempotent under upsert |
+| `assetTools.test.ts` (23) | M3 v145, the multimodal slice's first consumer: every declared `asset.*` spec ROUTED and exactly THREE read-class doors (`asset.list`, `asset.inspect`, `asset.storyboard.inspect`) with generation asserted NOT read; §60 asserted PER DOOR — no door name matches /screenshot|render|pixel|photo|picture/ and no description promises an image, while the generation door says DEMO MODE and no pixels on its own face; a generation answer WITHOUT provenance is REFUSED rather than forwarded, and one with provenance carries it through untouched; no result carries bytes or a `data` field; a write door refuses without the §28 checkpoint while all three read doors run with none; a count or size that is not a finite positive number is refused; an asset the library does not hold is named; a frame may not reference an absent asset — refused BEFORE the add, and filed when the asset exists; a frame added to a missing storyboard and an inspection of one are both refused by name; `generate` defaults to ONE asset and reports the count it got, `list` reports how many the library holds, `storyboard.inspect` reports frames in order; a driver answering with a PROMISE is awaited and one that throws becomes a failed CALL |
 | `memory.test.ts` (10) | save/list/recall scoping, deterministic tie-broken recall bounded by k, forget/clear counts, clone-in/clone-out immutability, registry round-trip with `"path:startLine"` refs, denied `memory.save` leaves memory empty + arg validation; v6 `compact()`: ≥50% ref-overlap merges within scope (listed, idempotent), cross-scope isolation; v19: `recallVectors` equals inline recall exactly, and `memory.recall` states its `engine` with the vector path surviving a fresh store |
 | `embedding.test.ts` (4) | tokenizer rules, zero-shared-tokens ⇒ score exactly 0, more shared tokens ⇒ strictly higher, unit-length embeddings |
 | `changes.test.ts` (8) | LCS patch round-trip forward/inverse, no-op patch, create/remove all-add/all-del, mismatched input refuses, sorted changed-paths change set, unified-diff headers/hunk ranges/context, whole-snapshot round-trip through patches |
@@ -3362,3 +3363,46 @@ Bounds, stated: the family creates and reads a world's DECLARED structure. It do
 `executeAction`, connect locations, create factions, manage relationships or goals, save/load a world, or
 configure agents. No roster registers it by default — a host must call `registerWorldTools` with a driver it
 built — and nothing in the Studio imports it yet.
+
+## The multimodal lane gets its first consumer (asset-tools-proof.mjs — M3 v145 — ADR 0016 amendment 145)
+
+The multimodal slice — `InMemoryAssetLibrary`, `DemoImageGenerator`, `DemoVideoGenerator`,
+`CharacterConsistencyManager`, `StoryboardManager` — shipped with **13 green tests and no consumer outside its
+own suite**. The 3D lane had that shape before v140 and the world lane before v144.
+
+```
+node docs/evidence/agents/asset-tools-proof.mjs   # requires `npm run build` first
+```
+
+`agents/runtime/src/assetTools.ts` declares a narrow `AssetDriver` (`engine`, `generateImage`, `listAssets`,
+`getAsset`, `createStoryboard`, `addFrame`, `getStoryboard`) and the HOST supplies the implementation, so
+**`agents/runtime` gains no dependency on `@nexus/ai-providers`**. Six doors: three write-class behind the §28
+checkpoint and three read-class (`asset.list`, `asset.inspect`, `asset.storyboard.inspect`).
+
+**This family exists to make §60 enforceable rather than promised.** There is no image or video model in this
+build, so:
+
+- `asset.image.generate` **REFUSES a driver answer that carries no provenance**. A result that dropped its own
+  `provenance.mode` would be indistinguishable from a real generation's — the
+  `base64-screenshot-placeholder` defect `browserTools` records, in a new costume. The door returns only
+  answers that say how they were made.
+- **No door is NAMED or DESCRIBED in a way that promises pixels**, asserted per door by the suite: no name
+  matches `/screenshot|render|pixel|photo|picture/i`, and no description claims to return an image. The
+  generation door says the opposite in words on its own face.
+- **The proof measures why there are no bytes.** The payload stored beside a generated asset is **zero
+  bytes** — the honest size of what DEMO MODE produces. A plausible non-zero size would be a fabrication, and
+  it is the number a reviewer should check.
+
+| § | what it measures |
+| --- | --- |
+| 1 | the real generator and library answer the seam; every answer is cross-checked against the LIBRARY's own metadata (id, prompt, mimeType, width/height) |
+| 2 | the three §60 measurements above: `provenance.mode === 'demo'` carried through, a ZERO-length payload, and a provenance-less answer refused |
+| 3 | the §28 gate is the registry's and it is the only one: a refused write moved the library by 0 and asked the gate 0 times, an approved write moved it by 1 and asked once |
+| 4 | four refusals, each naming its own fact (a count of zero · an asset the library does not hold · a frame referencing an absent asset · a storyboard that does not exist), with the library moved by nothing |
+| 5 | **a frame's `imageRef` is FOLLOWED, not trusted**: the reference resolves back into the library to the asset that was generated, so it is a fact rather than a string |
+| 6 | this repository's HEAD is byte-identical: everything ran in memory |
+
+Bounds, stated: the family generates image ASSETS and files storyboards. It does not generate video, apply
+character consistency, delete or update assets or frames, or export a storyboard — and it never returns bytes,
+because there are none. No roster registers it by default, and nothing in the Studio imports it, so M3's
+PRODUCT face is still open.

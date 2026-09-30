@@ -6987,3 +6987,48 @@ _Numbering: 144 was free (`grep -an "^### Amendment 14"` topped out at 142). Ful
   must call `registerWorldTools` with a driver it built), and the decision the engine returns is its own
   DEMO-MODE arithmetic — quoted in the proof as it came (a minimally-populated world scores every action at
   zero and the agent rests) rather than dressed up.
+
+### Amendment 145 (M3 v145, agent-runtime) — the MULTIMODAL slice gets its FIRST CONSUMER, and the family cannot return a result that pretends to be a picture
+
+_Numbering: 145 was free (`grep -an "^### Amendment 14"` topped out at 144). Full narrative in
+`docs/evidence/agents/README.md`; this is the ledger entry._
+
+- **The gap this closes.** The multimodal slice — `InMemoryAssetLibrary`, `DemoImageGenerator`,
+  `DemoVideoGenerator`, `CharacterConsistencyManager`, `StoryboardManager` — shipped with **13 green tests
+  and no consumer outside its own suite**: `grep -rl` for its symbols across `apps/ agents/ packages/`
+  matched the module, its barrel and its suite, and nothing else. The 3D lane had the same shape before
+  v140 and the world lane before v144.
+- **A driver seam, not an import.** `agents/runtime/src/assetTools.ts` declares the narrow `AssetDriver` it
+  needs (`engine`, `generateImage`, `listAssets`, `getAsset`, `createStoryboard`, `addFrame`,
+  `getStoryboard`) and the HOST supplies the implementation. **`agents/runtime` gains no dependency on
+  `@nexus/ai-providers`.** Methods may answer directly or with a promise; the real generators and library
+  are async and are awaited.
+- **Six doors, three of them read-class.** `asset.list`, `asset.inspect` and `asset.storyboard.inspect` are
+  `read` and ask no checkpoint; `asset.image.generate`, `asset.storyboard.create` and
+  `asset.storyboard.frame.add` are write-class behind the §28 gate. The suite asserts the read set exactly,
+  because a fourth read door would be a mutation that skipped the gate.
+- **§60 is ENFORCED here, not promised — this is the whole point of the family.** There is no image or video
+  model in this build. So: (1) `asset.image.generate` **REFUSES a driver answer that carries no
+  provenance**, rather than forwarding assets a reader could mistake for a real generation's — a result
+  that dropped its own `provenance.mode` is the `base64-screenshot-placeholder` defect in a new costume;
+  (2) no door is NAMED or DESCRIBED in a way that promises pixels, and the suite asserts both per door;
+  (3) no result carries bytes, and the proof measures the reason — **the payload stored beside a generated
+  asset is ZERO bytes**, which is the honest size of what DEMO MODE produces, where a plausible non-zero
+  size would be a fabrication.
+- **A frame's reference is FOLLOWED, not trusted.** `asset.storyboard.frame.add` refuses an `imageRef` the
+  library does not hold, checked BEFORE the add — the rule `world.character.add` applies to a location id —
+  and the proof resolves a filed frame's `imageRef` back into the library, so the reference is a fact rather
+  than a string.
+- **Refusals are spoken by the side that knows the fact**, and a missing-arg or malformed-argument call
+  never reaches the driver, so the library cannot be half-written by a call the door was going to refuse.
+- **Evidence.** `agents/runtime/test/assetTools.test.ts` **23 cases** against a recording fake, and
+  `docs/evidence/agents/asset-tools-proof.mjs` — a RUNNABLE proof wiring the **REAL** `DemoImageGenerator`,
+  `InMemoryAssetLibrary` and `StoryboardManager` behind the seam: §1 every answer cross-checked against the
+  library's own metadata, §2 the three §60 measurements above, §3 the §28 gate, §4 four refusals with the
+  library moved by nothing, §5 the followed reference, §6 this repository's HEAD byte-identical.
+  `agent-runtime` **450/450 → 473/473** (33 files), `tsc -p agents/runtime/tsconfig.json` clean.
+- **Bounds (§60).** The family generates image ASSETS and files storyboards. It does not generate video, it
+  does not apply character consistency, it does not delete or update assets or frames, it does not export a
+  storyboard, and it never returns bytes — because there are none. No roster registers it by default (a host
+  must call `registerAssetTools` with a driver it built), and nothing in the Studio imports it, so M3's
+  PRODUCT face is still open.

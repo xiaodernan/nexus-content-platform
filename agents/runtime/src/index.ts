@@ -81,6 +81,19 @@ export {
   type WorldCharacterSpec,
   type WorldLoreSpec,
 } from './worldTools.js';
+// M3 v145 — the first consumer of the multimodal slice, same seam shape as the 3D and world lanes.
+export {
+  registerAssetTools,
+  ASSET_TOOL_SPECS,
+  type AssetDriver,
+  type AssetSummary,
+  type GeneratedAssets,
+  type GeneratedAssetSummary,
+  type ImageRequest,
+  type FrameRequest,
+  type StoryboardSummary,
+  type StoryboardFrameSummary,
+} from './assetTools.js';
 export {
   runRoleChain,
   runRolePipeline,
