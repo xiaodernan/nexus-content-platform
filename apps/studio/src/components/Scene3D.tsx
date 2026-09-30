@@ -9,8 +9,6 @@ import {
 } from '@nexus/three-runtime';
 import {
   createStudioScene,
-  STUDIO_CAMERA_LOOK_AT,
-  STUDIO_CAMERA_POSITION,
   type SceneAdapterLike,
   type SceneReport,
   type SceneSurface,

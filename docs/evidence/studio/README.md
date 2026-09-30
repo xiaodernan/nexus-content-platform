@@ -514,3 +514,41 @@ when a caller supplies an exec-host runner, and if this lane ever wires one, the
 pass. Also inherited from v71: a cut is signalled, not measured (the field says which pipes lost bytes, never
 how many); `descendantsStopped` (v55) still never reaches a report; and v41's ledger row journals the human's
 decision, not the chip's caveat, so a cold replay reads the report or sees nothing.
+
+## Unread imports in the 3D surface — the whole-monorepo pre-commit gate could not pass at HEAD (M5, headless)
+
+`core.hooksPath` points at a machine-wide `pre-commit` that lints the ENTIRE monorepo for any staged
+`.ts`/`.tsx`/`.js`/`.jsx` path: it runs root `npm run lint`, i.e. `turbo run lint` over 5 packages, and
+`@nexus/studio`'s script is `eslint . --max-warnings=0`. So one warning in one package is a repository-wide
+refusal — and at `563a0ad` there were two.
+
+**Measured before anything was changed, on a frozen clone** (`git clone -c core.autocrlf=false` at
+`563a0ad`, so no other run's working-copy file was in the population): `eslint . --max-warnings=0`
+in `apps/studio` exits **1** with exactly 2 `@typescript-eslint/no-unused-vars`
+warnings, `Scene3D.tsx:12:3 'STUDIO_CAMERA_LOOK_AT'` and `13:3 'STUDIO_CAMERA_POSITION'`.
+v142 split the surface into `lib/scene3d.ts` (which owns the two values and passes them to
+`adapter.placeCamera` at `:142`) and the component (which owns the `placeCamera` MECHANISM);
+the component kept importing both names and never read them. One census over the tracked tree
+finds the readers — `lib/scene3d.ts`, `lib/scene3d.test.ts`,
+`lib/scene3dSurface.test.ts`, `docs/evidence/studio/scene-surface-proof.mjs` — and `Scene3D.tsx` as the only
+importer that does not use what it imports.
+
+**The fix is a deletion and its whole delta is 2 lines:** `0 insertions, 2 deletions`, 7778 B ->
+7770 B. No side-effect delta is possible: `@/lib/scene3d` stays imported (for `createStudioScene`),
+so the module still evaluates — only two unread bindings left the file.
+
+Witness in both directions on the frozen clone: delete those 2 lines -> `eslint` exits **0**;
+restore them -> exits **1** with 2 warnings and the file is byte-identical to
+HEAD again (true). That pairing is what makes the green a property of the deletion rather
+than of the plane. Then the hook's OWN command in the working copy: `npm run lint` ->
+`Tasks: 5 successful, 5 total`, exit 0. Studio's other gates read the same with the edit applied —
+`tsc --noEmit` exit 0 and `vitest run` 160 passed over 18 files — and the case group that actually reads this
+file's BYTES, `src/lib/surface.test.ts` (`:26` reads `components/Scene3D.tsx`), reports the same **7 passed**
+at HEAD on the clone as in the patched working copy. That is the only suite that could have noticed, and it
+did not, because the two names were never part of what it asserts.
+
+**Not claimed:** how v143-v145 got through the same gate is not measured here — the only measured fact is
+that at `563a0ad` the gate refuses. **Not fixed:** nothing new guards against the next unread
+import; a warning is a refusal only because `--max-warnings=0` in `apps/studio/package.json` says so. And the
+160-case reading belongs to this working copy, not to `563a0ad`: another run has in-flight files in
+`apps/studio/src/lib`, so that total is a property of the tree, stated as one.
