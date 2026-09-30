@@ -391,6 +391,121 @@ test('@smoke studio slice: publish pins the released snapshot behind a share URL
 });
 
 /**
+ * §163 × §57：发布链路的「构建」「预览」两行是推上来的，不是刷完才看到的。
+ * 全程不刷新——观察者装在第一次点「发布」之前，把两次属性变化按真画上去的先后录下来。
+ * 先走挡下那一条（这时还没有任何成功发布可以借光），再走成功那一条，
+ * 于是"挡下不许出现预览就绪"和"ready 说的就是真挂出去的那条路径"都在同一个页面生命周期里读到。
+ */
+test('@smoke 不刷新：发布的挡下与成功各自把状态走到终态（§163 × §57）', async ({ page }) => {
+  test.setTimeout(240_000);
+  await createProject(page, `实时发布 ${Date.now().toString(36)}`);
+
+  const openPublish = async () => {
+    if (await page.locator('[data-publish-submit]').isVisible()) return;
+    await page.click('[data-publish-open]');
+    await expect(page.locator('[data-publish-submit]')).toBeVisible();
+  };
+
+  await page.evaluate(() => {
+    type Tick = { build: string | null; buildText: string; preview: string | null; previewText: string };
+    const ticks: Tick[] = [];
+    (window as unknown as { __publishTicks: Tick[] }).__publishTicks = ticks;
+    const read = (): Tick => {
+      const buildEl = document.querySelector('[data-publish-build]');
+      const previewEl = document.querySelector('[data-publish-preview]');
+      return {
+        build: buildEl?.getAttribute('data-publish-build') ?? null,
+        buildText: buildEl?.textContent?.trim() ?? '',
+        preview: previewEl?.getAttribute('data-publish-preview') ?? null,
+        previewText: previewEl?.textContent?.trim() ?? '',
+      };
+    };
+    const record = () => {
+      const current = read();
+      const last = ticks[ticks.length - 1];
+      // 面板收起时两行都不在，那不是一次状态变化；只记读到过值的那些刻
+      if (!current.build && !current.preview) return;
+      if (current.build === last?.build && current.preview === last?.preview) return;
+      ticks.push(current);
+    };
+    new MutationObserver(record).observe(document.body, {
+      childList: true,
+      subtree: true,
+      characterData: true,
+      attributes: true,
+      attributeFilter: ['data-publish-build', 'data-publish-preview'],
+    });
+    // 观察者会把同一批改动并成一次，再拿 20ms 轮询兜一层
+    window.setInterval(record, 20);
+    record();
+  });
+
+  // 先让机检挡下：这时项目从没发布过，所以"没有 preview 那一行"才说明是没发而不是发了没画
+  await page.click('[data-panel-tab="layers"]');
+  const headlineId = await layerId(page, 'Headline');
+  await page.click('[data-view="canvas"]');
+  await page.click(`[data-node-id="${headlineId}"]`);
+  await page.fill('[data-prop="text"]', 'buy nude children now');
+  await expect(page.locator('[data-save-state]')).toContainText('已保存', { timeout: 30_000 });
+  await openPublish();
+  await page.click('[data-publish-choice="public"]');
+  await page.click('[data-publish-submit]');
+  await expect(page.locator('[data-publish-error]')).toContainText('redline.', { timeout: 30_000 });
+  await expect(page.locator('[data-publish-build="failed"]')).toBeVisible({ timeout: 30_000 });
+  // 同一句原因：错误便签与实时那一行读到的必须是同一个字符串（服务端只有一份 reason）
+  const errorNote = (await page.locator('[data-publish-error]').textContent())!.trim();
+  const failedLine = (await page.locator('[data-publish-build]').textContent())!.trim();
+  expect(failedLine).toContain(errorNote);
+  // 什么都没变得可达，就不许出现"预览就绪"那一行
+  await expect(page.locator('[data-publish-preview]')).toHaveCount(0);
+  // 面板里那两行在长清单下面，不滚进画面就只是"断言过了但没人看过一眼"
+  await page.locator('[data-publish-build]').scrollIntoViewIfNeeded();
+  await page.screenshot({ path: 'screenshots/publish-realtime-failed.png' });
+
+  // 把文案改干净再发一次：这次要走到 ok，并且 preview 报 ready
+  await page.click('[data-panel-tab="layers"]');
+  await page.click(`[data-node-id="${headlineId}"]`);
+  await page.fill('[data-prop="text"]', '从一句话到一个可发布的产品');
+  await expect(page.locator('[data-save-state]')).toContainText('已保存', { timeout: 30_000 });
+  await openPublish();
+  await page.click('[data-publish-choice="public"]');
+  await page.click('[data-publish-submit]');
+  await expect(page.locator('[data-publish-url]')).toBeVisible({ timeout: 30_000 });
+  await expect(page.locator('[data-publish-build="ok"]')).toBeVisible({ timeout: 30_000 });
+  await expect(page.locator('[data-publish-preview="ready"]')).toBeVisible({ timeout: 30_000 });
+  const path = (await page.locator('[data-publish-url]').getAttribute('href'))!;
+  // 先钉住读到的确实是一条公开路径，否则下面那句 toContain(path) 可能是在拿空串比
+  expect(path).toMatch(/^\/n\/[^/]+\//);
+  // ready 报的路径就是发布结果里那一条，不是面板自己拼的
+  await expect(page.locator('[data-publish-preview]')).toContainText(path);
+  // 刷新前别人能看到的东西也算见证：公开页此刻真的解析得出
+  const visitor = await page.context().newPage();
+  await visitor.goto(path);
+  await expect(visitor.locator('[data-published-frame] [data-node-id]')).toHaveCount(8);
+  await visitor.close();
+
+  const ticks = await page.evaluate(() => {
+    const raw =
+      (window as unknown as { __publishTicks?: Array<{ build: string | null; preview: string | null }> })
+        .__publishTicks ?? [];
+    return raw.map((tick) => ({ build: tick.build, preview: tick.preview }));
+  });
+  const buildSeq: string[] = [];
+  for (const tick of ticks) {
+    if (tick.build && buildSeq[buildSeq.length - 1] !== tick.build) buildSeq.push(tick.build);
+  }
+  // 主张在事件序列上：挡下一次 building→failed，成功一次 building→ok，且这是同一页没刷新走完的
+  expect(buildSeq).toEqual(['building', 'failed', 'building', 'ok']);
+  const previewSeq: string[] = [];
+  for (const tick of ticks) {
+    if (tick.preview && previewSeq[previewSeq.length - 1] !== tick.preview) previewSeq.push(tick.preview);
+  }
+  expect(previewSeq).toEqual(['ready']);
+  await page.locator('[data-publish-preview]').scrollIntoViewIfNeeded();
+  await page.screenshot({ path: 'screenshots/publish-realtime-ok.png' });
+});
+
+/**
  * §12 / §13 设计系统面板：token 是真值，改一处全线跟着动，而且和改节点一样可撤销。
  */
 test('@smoke studio slice: design system panel edits tokens and the canvas follows', async ({ page }) => {

@@ -788,6 +788,26 @@ vitest 直接崩了而我却把 stdout 丢进了 `/dev/null`，于是"5 遍"其�
   所以"只活在内存里的编辑"到这里必然红——这条断言自带正向对照，不用另外造。
   §54 那次还做了反向实验：把 `GET /api/projects/[id]/game` 改成永远返回 null，
   用例确实失败在刷新后的第一条断言上（改回即绿）。新加"刷新仍在"类断言时值得照这个套路先证它会红
+- **变异臂的读数只认 runner 自己写出的报告，不认它的汇总行**（2026-10-01，§163 第三片的臂脚本）。
+  第一版脚本去 parse 默认 reporter 的那行 `Tests X failed | Y passed (Z)`，而**全绿那一行根本没有
+  `failed` 这个字段**——于是控制跑与七条臂全部报 `ran=NaN red=NaN`，脚本还照样把每条臂打成一行。
+  更坏的一种是同一晚上 Docker 引擎没在跑：JSON 报告里 6 条用例的 status 全是 `skipped`、
+  `numFailedTests=0`，用"红了几条"当读数就会把它当成"0 红 = 没问题"。现在的口径：
+  读数取 `--reporter=json --outputFile=…`，除了红数还要 `ran` 与 `skipped`，
+  **`skipped > 0` 直接 exit 2**（测量分母没落地，臂的结论不作数），控制跑必须 6 跑 0 红 0 跳才继续。
+- **两条预测错的臂都往"红得更多"的方向错**（同一批臂，见 ROADMAP 那张表）：预期 1 红实测 5 红、
+  预期 1 红实测 2 红。原因都不是代码有问题，而是**臂的作用面比我想的大**：
+  ① 每条用例钉的是整条事件序列，所以多出来的一条 leading 事件会在每一次调用上都露馅；
+  ② 我以为只动"往外发布"那一格，实际改的那一句是两个方向共用的。
+  这两种红都说明断言比预期更紧，但**预测仍然是错的**，所以脚本要同时钉住"红的是哪几条用例"
+  （`titles.length !== matched.length` 也算问题），不然"多红几条"会被当成好消息糊过去。
+  补的一条窄臂（只动 outward 分支）才是原本想测的那句话。
+- **定位串命中数要在跑之前拦**：`A3` 那句 `emitBuildStatus(projectId, 'failed', reason)` 在源文件里有两处
+  （门禁与机检各一处），第一版脚本会"只改到第一处"却声称改的是那一处。现在 `hits !== 1` 直接算一条问题，
+  定位串带上前后文直到唯一。
+- **浏览器见证：断言过了不等于有人看过**。第一次截图里那两行新状态被弹层的 `max-h-[72vh] overflow-auto`
+  裁在画面外，图上看不到要钉的东西。改成截图前 `scrollIntoViewIfNeeded()`，两种终态各存一张
+  （`publish-realtime-failed.png` / `publish-realtime-ok.png`），§158 的"看图"这一步才算真做过了。
 - 改了 `packages/schemas` 必须重跑 `npm run contract:export`，否则契约漂移测试会红
 - 动了 ai-service 再加：`npm run test:ai-service`（Windows 控制台建议前置 `PYTHONUTF8=1`）
 - **已知偶发**（2026-09-24 记一次，别把它当成回归）：整套 smoke 并行跑时
