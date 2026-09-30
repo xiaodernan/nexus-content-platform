@@ -16,6 +16,7 @@ const KIND_LABEL: Record<InboxItem['kind'], string> = {
   remix: '改编',
   generation: '生成',
   agent: 'Agent',
+  approval: '审批作废',
   other: '未分类',
 };
 

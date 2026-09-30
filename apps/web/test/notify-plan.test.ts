@@ -1,11 +1,14 @@
 import { describe, expect, it } from 'vitest';
+import { APPROVAL_TTL_MS } from '@nexus/schemas';
 import {
   BODY_MAX,
+  NOTIFICATION_KINDS,
   TITLE_MAX,
   UNBACKED_NOTIFICATIONS,
   clip,
   planNotification,
   targetState,
+  ttlLabel,
   type NotifyEvent,
 } from '../src/lib/notify-plan';
 
@@ -377,3 +380,78 @@ describe('Agent task complete（§112 跑完之后的那一类终态）', () => 
     expect(planNotification(agentTask({ durationMs: null }))?.title).not.toContain('秒');
   });
 });
+
+type Approval = Extract<NotifyEvent, { kind: 'approval' }>;
+
+const approval = (over: Partial<Approval> = {}): NotifyEvent => ({
+  kind: 'approval',
+  recipientId: 'owner-1',
+  projectId: 'p-1',
+  projectName: '小站',
+  taskId: 'task-1',
+  ttlMs: APPROVAL_TTL_MS,
+  approvalCount: 3,
+  detail: '超过 24 小时无人裁决，这份挂起的结果已作废，被扣下的补丁没有落地',
+  ...over,
+});
+
+describe('§74 的过期通知：没人决定这件事要有声音，但只说得住真事', () => {
+  it('标题说清"什么作废了、等了多久、扣下几处"，链接指向工作区而不是公开页', () => {
+    const plan = planNotification(approval());
+    expect(plan?.kind).toBe('approval');
+    expect(plan?.title).toContain('《小站》的一次待审批结果过期作废');
+    // 时长这一句必须与卡片上那句出自同一个函数：两处各写一遍就会漂移
+    expect(plan?.title).toContain(`${ttlLabel(APPROVAL_TTL_MS)}未裁决`);
+    expect(plan?.title).toContain('扣下 3 处');
+    expect(plan?.link).toBe('/studio/p-1');
+    expect(plan?.level).toBe('warning');
+    // 这件事没有"造成它的人"——是没人做决定，不是某个人做了决定
+    expect(plan?.actorId).toBe(null);
+  });
+
+  it('这一类登记在名单里：读侧 isKind 由它派生，漏登记就会在收件箱里被报成"未分类"', () => {
+    expect(Object.keys(NOTIFICATION_KINDS)).toContain('approval');
+  });
+
+  it('一次挂起只作废一次：键挂在任务行上，换任务才是另一条', () => {
+    expect(planNotification(approval())?.dedupeKey).toBe('approval:task-1');
+    expect(planNotification(approval({ taskId: 'task-2' }))?.dedupeKey).toBe('approval:task-2');
+    // 同一行任务的"生成完成"与"审批作废"是两件事，共用任务行但不共用键
+    const gen = planNotification(generation({ taskId: 'task-1' }));
+    expect(gen?.dedupeKey).not.toBe(planNotification(approval())?.dedupeKey);
+  });
+
+  it('扣下几处读不出来时就不说个数：标题里不会出现"扣下 0 处"这种看着像真话的假话', () => {
+    expect(planNotification(approval({ approvalCount: null }))?.title).not.toContain('扣下');
+    expect(planNotification(approval({ approvalCount: 0 }))?.title).toContain('扣下 0 处');
+  });
+
+  it('没有理由就不编正文；项目名是用户输入，超出上限要裁短', () => {
+    expect(planNotification(approval({ detail: null }))?.body).toBe(null);
+    expect(planNotification(approval({ detail: '   ' }))?.body).toBe('');
+    const long = planNotification(approval({ projectName: '很'.repeat(300) }));
+    expect((long?.title.length ?? 0)).toBeLessThanOrEqual(TITLE_MAX);
+    expect(long?.title).toContain('…');
+  });
+});
+
+describe('ttlLabel：卡片、账本里那句理由、通知标题共用同一个读法', () => {
+  it('整小时就说小时', () => {
+    expect(ttlLabel(24 * 3_600_000)).toBe('24 小时');
+  });
+
+  it('不是整小时就留一位小数：把 1.5 小时四舍五入成"2 小时"是一句看着像真话的假话', () => {
+    expect(ttlLabel(90 * 60_000)).toBe('1.5 小时');
+  });
+
+  it('不到一小时退一档读分钟', () => {
+    expect(ttlLabel(45 * 60_000)).toBe('45 分钟');
+  });
+
+  it('不到一分钟退到秒，任何一档都不会退化成"0 …"', () => {
+    expect(ttlLabel(30_000)).toBe('30 秒');
+    expect(ttlLabel(30 * 60_000)).not.toMatch(/^0 /);
+    expect(ttlLabel(30_000)).not.toMatch(/^0 /);
+  });
+});
+

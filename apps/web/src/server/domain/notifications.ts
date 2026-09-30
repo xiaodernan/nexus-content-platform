@@ -1,6 +1,6 @@
 import { and, desc, eq, inArray, isNull, sql } from 'drizzle-orm';
 import type { RealtimeEvent } from '@nexus/schemas';
-import { planNotification, targetState, UNBACKED_NOTIFICATIONS, type NotificationKind, type NotificationPlan, type NotifyEvent } from '@/lib/notify-plan';
+import { planNotification, targetState, NOTIFICATION_KINDS, UNBACKED_NOTIFICATIONS, type NotificationKind, type NotificationPlan, type NotifyEvent } from '@/lib/notify-plan';
 import { channels, getRealtimeBus } from '../realtime/bus';
 import { relationOf } from './blocks';
 import { getDb } from '../db/client';
@@ -75,8 +75,10 @@ function levelOf(kind: NotificationKind): 'info' | 'success' | 'warning' | 'erro
     case 'generation':
     case 'agent':
       return 'success';
-    // 审核裁决可能是撤下内容，值得一个比 info 更重的档位
+    // 审核裁决可能是撤下内容，过期作废是"一件事因为没人管而永远做不成了"——
+    // 这两件都不该和"有人点了赞"同一个颜色
     case 'moderation':
+    case 'approval':
       return 'warning';
     case 'like':
     case 'comment':
@@ -114,10 +116,9 @@ export interface Inbox {
 }
 
 function isKind(value: string): value is NotificationKind {
-  return (
-    value === 'publish' || value === 'moderation' || value === 'like' || value === 'comment' || value === 'follow' ||
-    value === 'remix' || value === 'generation' || value === 'agent'
-  );
+  // 名单只有一份（notify-plan 里那个 Record）：加一类忘了登记会在 typecheck 就红，
+  // 而不是等到读回来被报成 'other' —— 那是一句"这条通知我不认识"的假话
+  return Object.prototype.hasOwnProperty.call(NOTIFICATION_KINDS, value);
 }
 
 export async function inbox(userId: string, limit = 30): Promise<Inbox> {

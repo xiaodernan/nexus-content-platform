@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 import type { AgentActivity, AgentPlan, AgentRoster, AiResponse, ModelClass } from '@nexus/schemas';
 import { AiJobObservationSchema, AiResponseSchema, AgentRosterSchema, APPROVAL_TTL_MS, DesignPatchSchema } from '@nexus/schemas';
+import { ttlLabel } from '@/lib/notify-plan';
 import { cn } from '@/lib/cn';
 import { csrfHeaders } from '@/lib/csrf';
 import { useRealtime, type RealtimeState } from '@/lib/useRealtime';
@@ -385,7 +386,7 @@ export function CommandBar() {
               "这一份放着不管会自己作废"改变的是他要不要现在去看这 3 处删除，
               而那句作废的理由（补丁从未落地）与服务端写进账本的是同一句。 */}
           <p className="mt-[2px] text-11 text-fg-3" data-approval-expiry>
-            {Math.round(APPROVAL_TTL_MS / 3_600_000)} 小时内未决定，这一份自动作废、被扣下的补丁不会落地
+            {ttlLabel(APPROVAL_TTL_MS)}内未决定，这一份自动作废、被扣下的补丁不会落地
             {held.expiresAt ? `（截止 ${new Date(held.expiresAt).toLocaleString('zh-CN', { hour12: false })}）` : ''}
           </p>
           <div className="mt-1 flex flex-wrap items-center gap-2">

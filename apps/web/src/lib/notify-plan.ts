@@ -8,7 +8,33 @@ import type { Visibility } from '@/server/domain/publish';
  * 同一件事反复发生时留下几条。规则写在 SQL 里就测不到，写在 route 里就只能起真服务才能测。
  */
 
-export type NotificationKind = 'publish' | 'moderation' | 'like' | 'comment' | 'follow' | 'remix' | 'generation' | 'agent';
+export type NotificationKind =
+  | 'publish'
+  | 'moderation'
+  | 'like'
+  | 'comment'
+  | 'follow'
+  | 'remix'
+  | 'generation'
+  | 'agent'
+  | 'approval';
+
+/**
+ * 每一类都要在这里登记一次。`Record<NotificationKind, true>` 让"加了一类忘了登记"
+ * 在 typecheck 就红（少一个键就是类型错），而不是等到收件箱把它读成 `other` 才发现——
+ * 读侧（`server/domain/notifications.ts` 的 `isKind`）从这里派生，两处不再是各写一份名单。
+ */
+export const NOTIFICATION_KINDS: Record<NotificationKind, true> = {
+  publish: true,
+  moderation: true,
+  like: true,
+  comment: true,
+  follow: true,
+  remix: true,
+  generation: true,
+  agent: true,
+  approval: true,
+};
 
 export interface NotificationPlan {
   userId: string;
@@ -122,6 +148,27 @@ export type NotifyEvent =
       durationMs: number | null;
       /** 逐步统计：走完了几步、失败几步、因上游失败被跳过几步 */
       steps: { total: number; done: number; failed: number; skipped: number };
+      detail: string | null;
+    }
+  | {
+      /**
+       * §74 的挂起结果过期作废。它说的**不是**"有人点了放弃"——那是人做的决定，
+       * 他自己知道，不需要收件箱来告知；这一类说的是**没人做决定**这件事有了后果：
+       * 被服务端扣下的那一版永远不会落地。
+       *
+       * `ttlMs` 必须一起给：标题里那个"多少小时"就是服务端判定过期用的同一个常量
+       * （`APPROVAL_TTL_MS`），在通知里另写一个数就是编（§159）。
+       * `approvalCount` 是当时扣下的动作数——说"作废了什么"要落到个数上，
+       * 而不是只说"有一件事过去了"。
+       */
+      kind: 'approval';
+      recipientId: string;
+      projectId: string;
+      projectName: string;
+      taskId: string;
+      ttlMs: number;
+      /** 当时扣下的动作数；账本里那份读不出这个数就是 null，标题里也就不说个数（不编一个 0） */
+      approvalCount: number | null;
       detail: string | null;
     };
 
@@ -299,7 +346,40 @@ export function planNotification(event: NotifyEvent): NotificationPlan | null {
         link: studioLink(event.projectId),
       };
     }
+    case 'approval': {
+      const heldClause = event.approvalCount === null ? '' : `，扣下 ${event.approvalCount} 处`;
+      // 一次挂起只会作废一次：键挂在任务行上，与 generation / agent 那两类共用一行任务但不同键
+      return {
+        ...base,
+        actorId: null,
+        publicationId: null,
+        dedupeKey: `approval:${event.taskId}`,
+        level: 'warning',
+        title: clip(
+          `《${event.projectName}》的一次待审批结果过期作废（${ttlLabel(event.ttlMs)}未裁决${heldClause}）`,
+          TITLE_MAX,
+        ),
+        // body 就是账本里那句理由的同一份说法（服务端写进 error 的是同一句），没有就不编
+        body: event.detail ? clip(event.detail, BODY_MAX) : null,
+        // 结果本来要落在工作区，所以指向 Studio 而不是公开页
+        link: studioLink(event.projectId),
+      };
+    }
   }
+}
+
+/**
+ * TTL 的人话读法。**卡片上那句与通知标题那句必须出自同一个函数**：
+ * 两处各写一遍 `Math.round(ms / 3_600_000)`，改一次常量就会一个说"24 小时"一个说"0 小时"。
+ * 小于一小时时往下退一档，而不是四舍五入成"0 小时"——那是一句看着像真话的假话。
+ */
+export function ttlLabel(ms: number): string {
+  const hours = ms / 3_600_000;
+  // 不是整小时就留一位小数：把 1.5 小时读成"2 小时"是一句看着像真话的假话
+  if (hours >= 1) return `${Number.isInteger(hours) ? hours : Math.round(hours * 10) / 10} 小时`;
+  const minutes = ms / 60_000;
+  if (minutes >= 1) return `${Math.round(minutes)} 分钟`;
+  return `${Math.round(ms / 1000)} 秒`;
 }
 
 /** DEMO Mock 的"完成"和真模型的"完成"要能在标题上分开读（§160） */

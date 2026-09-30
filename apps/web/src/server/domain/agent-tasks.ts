@@ -1,8 +1,10 @@
 import { and, desc, eq, isNotNull, isNull } from 'drizzle-orm';
 import { APPROVAL_TTL_MS, type RealtimeEvent } from '@nexus/schemas';
+import { ttlLabel } from '@/lib/notify-plan';
 import { channels, getRealtimeBus } from '../realtime/bus';
 import { recordAudit } from './audit';
 import { chargeGeneration } from './credit-ledger';
+import { emit } from './notifications';
 import { getDb } from '../db/client';
 import { agentTasks, projects } from '../db/schema';
 
@@ -344,7 +346,7 @@ export async function holdForApproval(taskId: string, record: unknown): Promise<
  * 过期那句说法只有一个来源：作废时写进 `error`、轮询侧给的那条 note、界面上的解释共用同一句。
  * 三处各写一遍的话，总有一处会先漂走，而用户看到的就是"库里说过期，界面上说被放弃"。
  */
-export const APPROVAL_EXPIRED_NOTE = `超过 ${Math.round(APPROVAL_TTL_MS / 3_600_000)} 小时无人裁决，这份挂起的结果已作废，被扣下的补丁没有落地`;
+export const APPROVAL_EXPIRED_NOTE = `超过 ${ttlLabel(APPROVAL_TTL_MS)}无人裁决，这份挂起的结果已作废，被扣下的补丁没有落地`;
 
 /** 到没到期。纯函数，把"哪一列说了算"这件事留在能单测的地方（不碰库就能试出边界） */
 export function approvalExpired(
@@ -380,7 +382,14 @@ export async function convergeExpiredApproval(taskId: string, now: Date = new Da
   if (!UUID_LIKE.test(taskId)) return false;
   const db = getDb();
   const [row] = await db
-    .select({ status: agentTasks.status, awaitingSince: agentTasks.awaitingSince })
+    .select({
+      id: agentTasks.id,
+      status: agentTasks.status,
+      awaitingSince: agentTasks.awaitingSince,
+      result: agentTasks.result,
+      createdById: agentTasks.createdById,
+      projectId: agentTasks.projectId,
+    })
     .from(agentTasks)
     .where(eq(agentTasks.id, taskId))
     .limit(1);
@@ -394,7 +403,41 @@ export async function convergeExpiredApproval(taskId: string, now: Date = new Da
     })
     .where(and(eq(agentTasks.id, taskId), eq(agentTasks.status, 'awaiting_approval')))
     .returning({ id: agentTasks.id });
+  // 只有 CAS 赢家那一次出声：四条读路径同时读到过期，收件箱也只会多一条（emit 的键挂在任务行上）
+  if (rows.length) await notifyApprovalExpired(row);
   return rows.length > 0;
+}
+
+/**
+ * §164：过期这件事**有声音**。上一片只改了状态，于是用户的感知路径是"下一次打开面板时那条已经不在了"——
+ * 一件永远做不成的事悄悄消失，和它没发生过在界面上长得一样。
+ *
+ * 发给创建者，不发给"当时可能在看的那个人"：挂起这件事的负责人是发起请求的人。
+ * 没有创建者或没有项目（匿名/游离行）就不出声——收件箱不是公告板，指不到人就不发。
+ */
+async function notifyApprovalExpired(row: {
+  id: string;
+  result: unknown;
+  createdById: string | null;
+  projectId: string | null;
+}): Promise<void> {
+  if (!row.createdById || !row.projectId) return;
+  const [project] = await getDb()
+    .select({ name: projects.name })
+    .from(projects)
+    .where(eq(projects.id, row.projectId))
+    .limit(1);
+  const record = (row.result ?? {}) as { approvals?: unknown };
+  await emit({
+    kind: 'approval',
+    recipientId: row.createdById,
+    projectId: row.projectId,
+    projectName: project?.name ?? '未命名项目',
+    taskId: row.id,
+    ttlMs: APPROVAL_TTL_MS,
+    approvalCount: Array.isArray(record.approvals) ? record.approvals.length : null,
+    detail: APPROVAL_EXPIRED_NOTE,
+  });
 }
 
 export type ApprovalDecision = 'approve' | 'reject';

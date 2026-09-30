@@ -1,6 +1,6 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { and, eq, inArray, sql as rawSql } from 'drizzle-orm';
-import { AiResponseSchema, APPROVAL_TTL_MS, type AiRequest, type AiResponse, type DesignPatchPayload } from '@nexus/schemas';
+import { AiResponseSchema, APPROVAL_TTL_MS, type AiRequest, type AiResponse, type DesignPatchPayload, type RealtimeEvent } from '@nexus/schemas';
 import { createDocument, type ComponentDefinition, type DesignDocument } from '@nexus/design-model';
 import { assembleAiRequest } from '../src/server/ai/assemble';
 import { mockProvider } from '../src/server/ai/mock';
@@ -24,8 +24,11 @@ import {
   startTask,
 } from '../src/server/domain/agent-tasks';
 import { createProject } from '../src/server/domain/projects';
+import { inbox } from '../src/server/domain/notifications';
+import { channels, getRealtimeBus } from '../src/server/realtime/bus';
+import { ttlLabel } from '../src/lib/notify-plan';
 import { getDb } from '../src/server/db/client';
-import { agentTasks, auditEvents, creditLedger, projects, users } from '../src/server/db/schema';
+import { agentTasks, auditEvents, creditLedger, notifications, projects, users } from '../src/server/db/schema';
 
 /**
  * §74 第二格：AI 结果里的高危动作要有人批准才离开服务端。
@@ -644,7 +647,8 @@ describe('§74 的到期：没人裁决的挂起不会永远等下去（打真�
     const row = await rawTask(id);
     expect(row.status).toBe('cancelled');
     expect(row.error).toContain(APPROVAL_EXPIRED_NOTE);
-    expect(row.error).toContain(`${Math.round(APPROVAL_TTL_MS / 3_600_000)} 小时`);
+    // 那句理由里的时长与卡片上那句出自同一个函数（两处各写一遍就会漂移）
+    expect(row.error).toContain(`${ttlLabel(APPROVAL_TTL_MS)}无人裁决`);
     // 过期不等于有人点了放弃：那两列必须还是空的，否则审计里就多出一个不存在的人
     expect(row.approvedBy).toBe(null);
     expect(row.approvedAt).toBe(null);
@@ -720,6 +724,113 @@ describe('§74 的到期：没人裁决的挂起不会永远等下去（打真�
     expect(after.status).toBe('succeeded');
     expect(after.error).toBe(null);
     expect((await readApprovalTask(okId, ownerId))?.expiresAt).toBe(null);
+  });
+
+  /** 这一条挂起在收件箱里留下了几条"过期作废"（写侧的键就挂在这里） */
+  async function approvalNotices(taskId: string) {
+    return getDb()
+      .select({
+        id: notifications.id,
+        kind: notifications.kind,
+        title: notifications.title,
+        body: notifications.body,
+        link: notifications.link,
+        userId: notifications.userId,
+      })
+      .from(notifications)
+      .where(eq(notifications.dedupeKey, `approval:${taskId}`));
+  }
+
+  /**
+   * 取"这一次挂起在收件箱里留下的那一条"。条数不对就在这里抛，而不是让下面八行去读一个
+   * `rows[0]` 可能不存在的字段——vitest 的 `expect(rows.length).toBe(1)` 不向 tsc 收窄（同一批用例里
+   * TS2532 红过十处），而"应当只有一条"本身就是这些用例在问的那句话。
+   */
+  async function approvalNotice(taskId: string) {
+    const rows = await approvalNotices(taskId);
+    const [row] = rows;
+    if (!row || rows.length !== 1)
+      throw new Error(
+        `键 approval:${taskId} 在收件箱里应当且只应当留下一条，实际 ${rows.length} 条${rows.length === 0 ? '（一条都没写进去）' : ''}`,
+      );
+    return row;
+  }
+
+  it('过期这件事会进收件箱：恰好一条，说的是"作废"而不是"被放弃"', async () => {
+    const id = await holdAged(OVERDUE);
+    const seen: RealtimeEvent[] = [];
+    const off = getRealtimeBus().subscribe(channels.user(ownerId), (event) => seen.push(event));
+    await listPendingApprovals(projectId, ownerId);
+    off();
+
+    const notice = await approvalNotice(id);
+    expect(notice.kind).toBe('approval');
+    // 收件人是发起请求的人，不是"当时碰巧打开面板的人"
+    expect(notice.userId).toBe(ownerId);
+    expect(notice.title).toContain('过期作废');
+    expect(notice.title).toContain(`${ttlLabel(APPROVAL_TTL_MS)}未裁决`);
+    expect(notice.title).toContain('扣下 1 处');
+    expect(notice.body).toBe(APPROVAL_EXPIRED_NOTE);
+    expect(notice.link).toBe(`/studio/${projectId}`);
+    // 实时那一路也出声：真的写进库的那一条才推，而且推给收件人自己的频道
+    expect(seen.filter((e) => e.type === 'notification' && (e.title ?? '').includes('过期作废')).length).toBe(1);
+    // 读回来是"审批作废"这一类而不是"未分类"——读写两侧共用同一份名单
+    expect((await inbox(ownerId, 30)).items.find((i) => i.title.includes('过期作废'))?.kind).toBe('approval');
+  });
+
+  it('四条读路径都问过一次，收件箱里仍然只有一条：出声的是 CAS 赢家', async () => {
+    const id = await holdAged(OVERDUE);
+    await listPendingApprovals(projectId, ownerId);
+    await readApprovalTask(id, ownerId);
+    const out = await decideApproval(id, ownerId, 'approve');
+    expect(out.ok).toBe(false);
+    expect(await convergeExpiredApproval(id)).toBe(false);
+    expect((await approvalNotices(id)).length).toBe(1);
+  });
+
+  it('三种不出声的情形：还没到期、人自己放弃了、创建者查不到（但状态照样收敛）', async () => {
+    const almost = await holdAged(ALMOST);
+    await readApprovalTask(almost, ownerId);
+    expect((await approvalNotices(almost)).length).toBe(0);
+
+    const givenUp = await holdAged(0);
+    const out = await decideApproval(givenUp, ownerId, 'reject');
+    expect(out.ok).toBe(true);
+    expect((await approvalNotices(givenUp)).length).toBe(0);
+
+    const orphan = await holdAged(OVERDUE);
+    await getDb().update(agentTasks).set({ createdById: null }).where(eq(agentTasks.id, orphan));
+    expect(await convergeExpiredApproval(orphan)).toBe(true);
+    expect((await rawTask(orphan)).status).toBe('cancelled');
+    expect((await approvalNotices(orphan)).length).toBe(0);
+
+    // 正面对照：同一个计数读得到真写过的那一条——否则上面三个 0 只是"根本没在数"
+    const rang = await holdAged(OVERDUE);
+    expect(await convergeExpiredApproval(rang)).toBe(true);
+    expect((await approvalNotices(rang)).length).toBe(1);
+  });
+
+  /**
+   * 这一条与单元里那句"读不出来就不说个数"是**同一句话的两个半边**：
+   * 单元那侧只搭了一个 `approvalCount: null` 的事件给规则，毁掉服务端"什么时候给 null"
+   * 那一条臂真的跑过之后仍然全绿（第一遍就是这个结果），因为生产端与消费端没在同一个用例里见过面。
+   * 所以这里走真路径：把挂起那一版的结果换成没有 `approvals` 数组的形状——
+   * 那正是"另一个写入方/更早的数据形态"会留下的行。
+   */
+  it('挂起那一版读不出扣下的处数时，服务端就喂 null 而不是 0（界面上"扣下 0 处"是假话）', async () => {
+    const id = await holdAged(OVERDUE);
+    await getDb().update(agentTasks).set({ result: { note: '这一版里没有 approvals 数组' } }).where(eq(agentTasks.id, id));
+    expect(await convergeExpiredApproval(id)).toBe(true);
+
+    const notice = await approvalNotice(id);
+    expect(notice.title).toContain('过期作废');
+    expect(notice.title).not.toContain('扣下');
+
+    // 反向对照：同一套代码、同一张表，数读得出的那一行必须说出"扣下 1 处"。
+    // 少了这一半，上面那句 not.toContain 只是"根本没写数字"，不是"读不出来所以不说"。
+    const counted = await holdAged(OVERDUE);
+    expect(await convergeExpiredApproval(counted)).toBe(true);
+    expect((await approvalNotice(counted)).title).toContain('扣下 1 处');
   });
 
   it('库里那一把锁：绕过 holdForApproval 直接写等待态会被 CHECK 打回', async () => {
