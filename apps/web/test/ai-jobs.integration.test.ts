@@ -3,7 +3,7 @@ import { and, eq, inArray, sql as rawSql } from 'drizzle-orm';
 import { createServer, type Server } from 'node:http';
 import type { AddressInfo } from 'node:net';
 import type { AiJobStatusResponse, AiRequest, AiResponse } from '@nexus/schemas';
-import { AiJobObservationSchema } from '@nexus/schemas';
+import { AiJobObservationSchema, APPROVAL_TTL_MS } from '@nexus/schemas';
 import { observeJob, submitJob } from '../src/server/domain/ai-jobs';
 import type { ResolvedAgent } from '../src/server/domain/agents';
 import { decideApproval, listProjectTasks } from '../src/server/domain/agent-tasks';
@@ -472,6 +472,36 @@ describe('§74 的同一道门：异步作业的结果也要先过门才交回',
     expect(record.approvals).toHaveLength(1);
     expect(record.heldOpCount).toBe(1);
     // 这一句是这一组的核心反面：异步这条路上，"跑完"不该发一条完成通知
+    expect(await generationRows(submitted.taskId)).toHaveLength(0);
+  });
+
+  /**
+   * §74 的到期在异步那条路上也要成立：作业挂起之后没人来点，Studio 是每隔几秒来问一次的，
+   * 那一条读就是这一片里"看得见等待态的入口"之一。不在这儿收敛，界面上就会出现一张
+   * 几天没动的"还等着审批"卡片——而且它的批准按钮按下去也不会生效，那才是真难解释的样子。
+   */
+  it('挂起之后一直没人裁决：下一次轮询把它作废，而不是继续说"还等着"', async () => {
+    const { submitted, seen } = await heldJob();
+    expect(seen.taskStatus).toBe('awaiting_approval');
+    await getDb()
+      .update(agentTasks)
+      .set({ awaitingSince: new Date(Date.now() - APPROVAL_TTL_MS - 60_000) })
+      .where(eq(agentTasks.id, submitted.taskId));
+
+    const again = await observeJob(submitted.jobId, ownerId);
+    expect(again?.taskStatus).toBe('cancelled');
+    // 补丁到死都没交回：作废改的是行的状态，不是"过期之后换个说法把内容发出去"
+    expect(again?.response?.patches ?? []).toEqual([]);
+    const notes = JSON.stringify(again?.notes ?? []);
+    expect(notes).toContain('已作废');
+    // 也不能反过来谎称是用户点的放弃：那一句只属于真的有人裁决过的行
+    expect(notes).not.toContain('已经被放弃');
+
+    const row = await taskRow(submitted.taskId);
+    expect(row.status).toBe('cancelled');
+    expect(row.approvedBy).toBeNull();
+    expect(row.approvedAt).toBeNull();
+    // 作废不是完成：一条生成完成的通知都不该因为"终于有了终态"而发出去
     expect(await generationRows(submitted.taskId)).toHaveLength(0);
   });
 

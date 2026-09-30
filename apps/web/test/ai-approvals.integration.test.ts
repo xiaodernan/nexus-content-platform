@@ -1,6 +1,6 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { and, eq, inArray, sql as rawSql } from 'drizzle-orm';
-import { AiResponseSchema, type AiRequest, type AiResponse, type DesignPatchPayload } from '@nexus/schemas';
+import { AiResponseSchema, APPROVAL_TTL_MS, type AiRequest, type AiResponse, type DesignPatchPayload } from '@nexus/schemas';
 import { createDocument, type ComponentDefinition, type DesignDocument } from '@nexus/design-model';
 import { assembleAiRequest } from '../src/server/ai/assemble';
 import { mockProvider } from '../src/server/ai/mock';
@@ -12,7 +12,10 @@ import {
   nodeNamer,
 } from '../src/server/ai/approvals';
 import {
+  APPROVAL_EXPIRED_NOTE,
+  approvalExpired,
   decideApproval,
+  convergeExpiredApproval,
   finishTask,
   getTask,
   holdForApproval,
@@ -22,7 +25,7 @@ import {
 } from '../src/server/domain/agent-tasks';
 import { createProject } from '../src/server/domain/projects';
 import { getDb } from '../src/server/db/client';
-import { agentTasks, auditEvents, projects, users } from '../src/server/db/schema';
+import { agentTasks, auditEvents, creditLedger, projects, users } from '../src/server/db/schema';
 
 /**
  * §74 第二格：AI 结果里的高危动作要有人批准才离开服务端。
@@ -555,5 +558,197 @@ describe('真路径：DEMO 生成 → 装配 → 门 → 挂起（打真实 Post
     expect(out.ok).toBe(false);
     if (out.ok) throw new Error('没挂起过的任务不该能被"批准"');
     expect(out.code).toBe('not_pending');
+  });
+});
+
+/**
+ * §74 的最后一格：等待要有到期。
+ *
+ * 造"已经等了很久"的方式是**直接写 `awaiting_since`**，而不是把 TTL 改小、也不是注入一个假时钟：
+ * 这一片要证的正是"到期判定读的就是那一列"，所以最省事的作假路径恰好是要防的那一条——
+ * 改 TTL 会让"服务端与卡片上说的是同一个数"这句话没被测到，假时钟会让 0021 那条 CHECK 没被测到。
+ * 直接写列意味着：如果哪一天判定改去看别的列，这些用例会全红而不是静默通过。
+ */
+describe('§74 的到期：没人裁决的挂起不会永远等下去（打真实 Postgres）', () => {
+  /** 挂起一条真任务，然后把它的时间戳按 `agedMs` 拨旧 */
+  async function holdAged(agedMs: number): Promise<string> {
+    const started = await startTask({
+      projectId,
+      agentKey: 'design-edit',
+      createdById: ownerId,
+      capability: 'demo',
+      input: { prompt: '删除 Hero 区块' },
+    });
+    taskIds.push(started.id);
+    const approvals = [{ action: 'delete', reason: 'remove → Hero' }];
+    const ok = await holdForApproval(started.id, {
+      held: respWith([{ op: 'remove', nodeId: 'n_hero' }]),
+      delivered: resp({ approvals, patches: [] }),
+      approvals,
+      policy: WEB_APPROVAL_POLICY,
+      heldOpCount: 1,
+    });
+    if (!ok) throw new Error('挂起没写下去');
+    if (agedMs) {
+      await getDb()
+        .update(agentTasks)
+        .set({ awaitingSince: new Date(Date.now() - agedMs) })
+        .where(eq(agentTasks.id, started.id));
+    }
+    return started.id;
+  }
+
+  /** 差一分钟就到期 / 已过一分钟。两边都留足余量，免得跑测试的机器把自己跑成边界 */
+  const ALMOST = APPROVAL_TTL_MS - 60_000;
+  const OVERDUE = APPROVAL_TTL_MS + 60_000;
+
+  it('挂起那一刻被记下：awaiting_since 有值，卡片上的截止时间等于它加 TTL', async () => {
+    const id = await holdAged(0);
+    const row = await rawTask(id);
+    expect(row.awaitingSince).toBeInstanceOf(Date);
+    const card = await readApprovalTask(id, ownerId);
+    // 服务端算的那一栏与库里那一列对得上（客户端不再自己算一遍，也就不各算各的）
+    expect(card?.expiresAt).toBe(new Date(row.awaitingSince!.getTime() + APPROVAL_TTL_MS).toISOString());
+    expect(card?.awaitingSince).toBe(row.awaitingSince!.toISOString());
+    expect(card?.status).toBe('awaiting_approval');
+  });
+
+  it('边界由那一列与 APPROVAL_TTL_MS 说了算：差 1 毫秒不算过期，正好等于就算', () => {
+    // 时效本身是对外承诺的一句话（卡片上写的就是这个数），所以把它钉在这里：
+    // 有人悄悄改常量又不改文档，这条会红，而不是让界面上的"24 小时"变成一句旧话
+    expect(APPROVAL_TTL_MS).toBe(24 * 60 * 60 * 1000);
+    const since = new Date('2026-06-01T00:00:00.000Z');
+    const at = (deltaMs: number) => approvalExpired({ status: 'awaiting_approval', awaitingSince: since }, new Date(since.getTime() + deltaMs));
+    expect(at(APPROVAL_TTL_MS - 1)).toBe(false);
+    expect(at(APPROVAL_TTL_MS)).toBe(true);
+    expect(at(APPROVAL_TTL_MS + 1)).toBe(true);
+    // 反向对照：不是等待态、或者没有时间戳，都不该被这一片改动
+    expect(approvalExpired({ status: 'running', awaitingSince: since }, new Date(since.getTime() + APPROVAL_TTL_MS * 10))).toBe(false);
+    expect(approvalExpired({ status: 'awaiting_approval', awaitingSince: null }, new Date(since.getTime() + APPROVAL_TTL_MS * 10))).toBe(false);
+  });
+
+  it('还没到期：列表里还在，批准照样生效', async () => {
+    const id = await holdAged(ALMOST);
+    expect((await listPendingApprovals(projectId, ownerId)).some((item) => item.taskId === id)).toBe(true);
+    const out = await decideApproval(id, ownerId, 'approve');
+    if (!out.ok) throw new Error(`差一分钟到期就不该拒：${out.message}`);
+    expect(out.status).toBe('succeeded');
+    // 批准交回的还是当初那份补丁（到期这一格不能顺手把内容换成重新生成）
+    expect((out.held as AiResponse | null)?.patches?.[0]?.ops).toEqual([{ op: 'remove', nodeId: 'n_hero' }]);
+  });
+
+  it('过期之后读列表就不出现了，行自己变成 cancelled，且没有批准人', async () => {
+    const id = await holdAged(OVERDUE);
+    const list = await listPendingApprovals(projectId, ownerId);
+    expect(list.some((item) => item.taskId === id)).toBe(false);
+    const row = await rawTask(id);
+    expect(row.status).toBe('cancelled');
+    expect(row.error).toContain(APPROVAL_EXPIRED_NOTE);
+    expect(row.error).toContain(`${Math.round(APPROVAL_TTL_MS / 3_600_000)} 小时`);
+    // 过期不等于有人点了放弃：那两列必须还是空的，否则审计里就多出一个不存在的人
+    expect(row.approvedBy).toBe(null);
+    expect(row.approvedAt).toBe(null);
+    // requires_approval 留真：这一行确实是走过审批门挂起来的，作废的是"还能被批准"，不是它的来历
+    expect(row.requiresApproval).toBe(true);
+    expect(row.finishedAt).toBeInstanceOf(Date);
+    // 读单条也要说同一句话：状态是 cancelled，截止时间不再给（没有还要等多久这回事）
+    const card = await readApprovalTask(id, ownerId);
+    expect(card?.status).toBe('cancelled');
+    expect(card?.expiresAt).toBe(null);
+  });
+
+  it('过期之后点批准：补丁不交回、不扣点，留一条 allowed:false 的现场', async () => {
+    const id = await holdAged(OVERDUE);
+    const out = await decideApproval(id, ownerId, 'approve', '203.0.113.11');
+    expect(out.ok).toBe(false);
+    if (out.ok) throw new Error('已过期的挂起结果被批准了——那正是 §74 到期这一格要挡的事');
+    expect(out.code).toBe('not_pending');
+    expect(out.message).toContain('已作废');
+    expect(out.message).toContain('没有生效');
+    const row = await rawTask(id);
+    expect(row.status).toBe('cancelled');
+    expect(row.approvedBy).toBe(null);
+    const audits = await getDb()
+      .select()
+      .from(auditEvents)
+      .where(and(eq(auditEvents.action, 'ai.approval.decide'), eq(auditEvents.targetId, id)));
+    expect(audits.filter((item) => !item.allowed)).toHaveLength(1);
+    expect((audits.find((item) => !item.allowed)?.detail as { reason?: string }).reason).toBe('expired');
+    // §134：批准才扣点，过期没扣——一条"到期还在扣点"的账是白收钱
+    expect(await getDb().select({ id: creditLedger.id }).from(creditLedger).where(eq(creditLedger.taskId, id))).toHaveLength(0);
+  });
+
+  it('只走单条读那一路也会收敛：没有人读过列表，过期的一行同样不会永远挂着', async () => {
+    // 这一条是专门为"每个入口都要收敛一次"那句注释写的：如果收敛只挂在列表那一路，
+    // 这一条会绿不下去——而任务页/重开的工作台读的正是单条那一路。
+    const id = await holdAged(OVERDUE);
+    const card = await readApprovalTask(id, ownerId);
+    expect(card?.status).toBe('cancelled');
+    expect(card?.expiresAt).toBe(null);
+    expect((await rawTask(id)).status).toBe('cancelled');
+  });
+
+  it('收敛是幂等的：第二次读不再动那一行，也不写第二个 finishedAt', async () => {
+    const id = await holdAged(OVERDUE);
+    expect(await convergeExpiredApproval(id)).toBe(true);
+    const first = await rawTask(id);
+    expect(await convergeExpiredApproval(id)).toBe(false);
+    expect(await listPendingApprovals(projectId, ownerId)).not.toEqual(expect.arrayContaining([expect.objectContaining({ taskId: id })]));
+    const second = await rawTask(id);
+    expect(second.finishedAt?.getTime()).toBe(first.finishedAt?.getTime());
+    expect(second.status).toBe('cancelled');
+  });
+
+  it('已决定的行没有"到期"这回事：截止时间那一栏是空的，拨旧也不会被收敛改动', async () => {
+    const id = await holdAged(ALMOST);
+    const out = await decideApproval(id, ownerId, 'reject');
+    if (!out.ok) throw new Error(`放弃失败：${out.message}`);
+    const card = await readApprovalTask(id, ownerId);
+    expect(card?.status).toBe('cancelled');
+    expect(card?.expiresAt).toBe(null);
+
+    // 批准之后再把挂起时刻拨到过期之后：一条已经成功的行不能被回溯成 cancelled
+    const okId = await holdAged(ALMOST);
+    const approved = await decideApproval(okId, ownerId, 'approve');
+    if (!approved.ok) throw new Error(`批准失败：${approved.message}`);
+    await getDb()
+      .update(agentTasks)
+      .set({ awaitingSince: new Date(Date.now() - OVERDUE) })
+      .where(eq(agentTasks.id, okId));
+    expect(await convergeExpiredApproval(okId)).toBe(false);
+    const after = await rawTask(okId);
+    expect(after.status).toBe('succeeded');
+    expect(after.error).toBe(null);
+    expect((await readApprovalTask(okId, ownerId))?.expiresAt).toBe(null);
+  });
+
+  it('库里那一把锁：绕过 holdForApproval 直接写等待态会被 CHECK 打回', async () => {
+    const started = await startTask({ projectId, agentKey: 'design-edit', createdById: ownerId, capability: 'demo', input: {} });
+    taskIds.push(started.id);
+    // 正面：带挂起时刻的写法能过（否则下面那条拒绝只是"约束把整张表写死了"）
+    await getDb()
+      .update(agentTasks)
+      .set({ status: 'awaiting_approval', requiresApproval: true, awaitingSince: new Date() })
+      .where(eq(agentTasks.id, started.id));
+    expect((await rawTask(started.id)).status).toBe('awaiting_approval');
+    // 反面：同一行、同一状态、只把挂起抹成不带时间——正是"将来多出一个绕过 holdForApproval 的写入方"的形态
+    const other = await startTask({ projectId, agentKey: 'design-edit', createdById: ownerId, capability: 'demo', input: {} });
+    taskIds.push(other.id);
+    let failure: { code?: string; message?: string; cause?: { code?: string; message?: string } } | null = null;
+    try {
+      await getDb().update(agentTasks).set({ status: 'awaiting_approval', requiresApproval: true }).where(eq(agentTasks.id, other.id));
+    } catch (error) {
+      // postgres-js 会把驱动报的那条错包一层：外层只有"Failed query + 参数"，
+      // 约束名与 SQLSTATE 在 cause 上。只看 message 会测到包装，而不是挡下这一笔的那一道约束。
+      failure = error as { code?: string; message?: string; cause?: { code?: string; message?: string } };
+    }
+    // 先证明"确实拒了"再读它的内容：写成 expect(...).not.toBeNull() 时 tsc 不认识这层收窄，
+    // 而这一条若没抛异常，下面的 code/约束名断言读的是一个根本不存在对象。
+    if (!failure) throw new Error('绕过 holdForApproval 直接写等待态必须被库挡下来，但这一笔 update 成功了');
+    const code = failure.code ?? failure.cause?.code;
+    const text = `${failure.message ?? ''} ${failure.cause?.message ?? ''}`;
+    expect(code).toBe('23514'); // check_violation
+    expect(text).toContain('agent_tasks_awaiting_has_since');
+    expect((await rawTask(other.id)).status).toBe('running');
   });
 });

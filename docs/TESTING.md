@@ -808,6 +808,22 @@ vitest 直接崩了而我却把 stdout 丢进了 `/dev/null`，于是"5 遍"其�
 - **浏览器见证：断言过了不等于有人看过**。第一次截图里那两行新状态被弹层的 `max-h-[72vh] overflow-auto`
   裁在画面外，图上看不到要钉的东西。改成截图前 `scrollIntoViewIfNeeded()`，两种终态各存一张
   （`publish-realtime-failed.png` / `publish-realtime-ok.png`），§158 的"看图"这一步才算真做过了。
+- **一个"读的时候顺手收敛"的机制，要在每一个入口上各有一条用例**（2026-10-01，§74 审批 TTL 的九臂）。
+  服务端有四条路会读到挂起的行（列表、单条、审批裁决、作业轮询），我专门做了三条窄臂各删掉其中一路的
+  收敛调用：A7/A8/A9 **每条只红一条用例**，其余 54 条全绿。这就是"少一个入口"的形态——它不会让别的
+  用例变红，因为那一路只是不再作废自己那一份。所以加收敛时不能只测"有一条读会收敛"，要逐条点名。
+- **postgres-js 会把驱动报的错包一层，约束名和 SQLSTATE 在 `error.cause` 上**（同一批用例里钉库 CHECK 那条）。
+  外层 `message` 只有 `Failed query: … params: …`，只断言 message 会测到包装而不是挡下这一笔的那道约束。
+  现在的口径：`code` 从 `failure.code ?? failure.cause?.code` 取，文本从 message + cause.message 拼。
+  另外 vitest 的 `expect(failure).not.toBeNull()` **不向 tsc 收窄**，后面读 `failure.code` 会 TS18047 红；
+  改成 `if (!failure) throw new Error('这一笔必须被库挡下来，但它成功了')`——既收窄又能把"没挡下来"说清楚。
+- **"过期"这种状态要用它自己的那一列来构造**：用例里是把 `awaiting_since` 直接写成 25 小时前的时间戳，
+  而不是把 `APPROVAL_TTL_MS` 改小、也不是塞一个假时钟。前者测的是"真的到点了"，后两者只测我的测试装置。
+  A2（有效期翻倍）红 6 条正是"用错了数"的形状：边界那条用例（差 1 毫秒不算、正好等于就算）最先露馅。
+- **臂的结论只对它真正读过的那份字节负责**：这次九条臂跑完（控制 55/55 绿、9 臂全部与预测对得上）之后，
+  `npm run typecheck` 才因为我中途改过测试文件而红了一次。**修完必须重跑控制跑**，不然"臂已验证"说的是
+  旧字节上的结果。同理，改了 `packages/schemas`（哪怕只是加一个常量导出）也把 `contract:export` 与
+  `git status contracts` 一起看一次，确认真的没有漂移而不是假设没有。
 - 改了 `packages/schemas` 必须重跑 `npm run contract:export`，否则契约漂移测试会红
 - 动了 ai-service 再加：`npm run test:ai-service`（Windows 控制台建议前置 `PYTHONUTF8=1`）
 - **已知偶发**（2026-09-24 记一次，别把它当成回归）：整套 smoke 并行跑时

@@ -2956,6 +2956,12 @@ test('@smoke §74 AI 的删除结果先过人工审批：扣住时画布不动�
   await expect(page.locator('[data-approval-card]')).toBeVisible({ timeout: 30_000 });
   await expect(page.locator('[data-approval-title]')).toContainText('画布还没有被改动');
   await expect(page.locator('[data-approval-reason]').first()).toContainText('Hero');
+  // §74 的时效要说在卡片上。这一张是从账本找回来的，所以连"到哪一刻作废"都是服务端算的那一栏
+  // （刚刚跑完那一次卡片上没有精确截止时间，界面上就只说时效本身——两种样子都要是真的会出现过）
+  await expect(page.locator('[data-approval-expiry]')).toContainText('24 小时内未决定', { timeout: 30_000 });
+  await expect(page.locator('[data-approval-expiry]')).toContainText('截止');
+  await page.locator('[data-approval-expiry]').scrollIntoViewIfNeeded();
+  await page.screenshot({ path: 'screenshots/ai-approval-expiry.png' });
   expect(await nodeCount()).toBe(before);
   // 任务页那一侧同一件事：这一行现在是"等审批"，不是"完成"也不是"在跑"
   await page.goto(`/tasks/${projectId}`);

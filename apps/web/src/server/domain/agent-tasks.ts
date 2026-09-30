@@ -1,5 +1,5 @@
 import { and, desc, eq, isNotNull, isNull } from 'drizzle-orm';
-import type { RealtimeEvent } from '@nexus/schemas';
+import { APPROVAL_TTL_MS, type RealtimeEvent } from '@nexus/schemas';
 import { channels, getRealtimeBus } from '../realtime/bus';
 import { recordAudit } from './audit';
 import { chargeGeneration } from './credit-ledger';
@@ -327,12 +327,72 @@ export async function bumpActivityCursor(taskId: string, from: number, to: numbe
  *
  * 条件里钉住"只有还在跑的任务能被挂起"：终态行如果被覆盖，账本上就多出一条
  * "先成功了、后又等审批"的回溯记录，而 `decideApproval` 会替它补上批准时间。
+ *
+ * `awaitingSince` 是这一片的第三条边界：挂起时刻只有这一个写入方。0021 那条 CHECK
+ * （等待中的行必须带着时间）会在有人绕过这里时直接把写入打回，而不是让一行永不到期的挂起静静长出来。
  */
 export async function holdForApproval(taskId: string, record: unknown): Promise<boolean> {
   const rows = await getDb()
     .update(agentTasks)
-    .set({ status: 'awaiting_approval', requiresApproval: true, result: record as never })
+    .set({ status: 'awaiting_approval', requiresApproval: true, awaitingSince: new Date(), result: record as never })
     .where(and(eq(agentTasks.id, taskId), eq(agentTasks.status, 'running')))
+    .returning({ id: agentTasks.id });
+  return rows.length > 0;
+}
+
+/**
+ * 过期那句说法只有一个来源：作废时写进 `error`、轮询侧给的那条 note、界面上的解释共用同一句。
+ * 三处各写一遍的话，总有一处会先漂走，而用户看到的就是"库里说过期，界面上说被放弃"。
+ */
+export const APPROVAL_EXPIRED_NOTE = `超过 ${Math.round(APPROVAL_TTL_MS / 3_600_000)} 小时无人裁决，这份挂起的结果已作废，被扣下的补丁没有落地`;
+
+/** 到没到期。纯函数，把"哪一列说了算"这件事留在能单测的地方（不碰库就能试出边界） */
+export function approvalExpired(
+  task: { status: string; awaitingSince: Date | null },
+  now: Date = new Date(),
+): boolean {
+  // 挂起时刻缺失时**不**判过期：那要么是没走过 holdForApproval 的老行（0021 回填管不到的形态），
+  // 要么是别处的写入。这里返回 false 是"这一片不改它的状态"，不是"它永远安全"——
+  // CHECK 约束才是挡这条的那一道。
+  if (task.status !== 'awaiting_approval' || !task.awaitingSince) return false;
+  return now.getTime() - task.awaitingSince.getTime() >= APPROVAL_TTL_MS;
+}
+
+/** 一份还在等的行什么时候作废。已决定/已到终态的行返回 null（没有"还要等多久"这回事） */
+export function approvalExpiresAt(task: { status: string; awaitingSince: Date | null }): Date | null {
+  if (task.status !== 'awaiting_approval' || !task.awaitingSince) return null;
+  return new Date(task.awaitingSince.getTime() + APPROVAL_TTL_MS);
+}
+
+/**
+ * 到期收敛（ADR-0011 的同一口径：**读的时候**把断掉的状态落成终态，不养一个长驻清扫进程）。
+ *
+ * 谁调它：`listPendingApprovals` / `readApprovalTask` / `decideApproval` / 作业轮询那一条读。
+ * 也就是说**任何**看得见等待态的入口都先过它一次——只挂在其中一个入口，别的入口就还在发"还等着"的旧话。
+ *
+ * 为什么作废的方向是 `cancelled` 而不是新增一档 `expired`、以及为什么等不到就作废
+ * （而不是无限期留着），都写在 `docs/adr/0022-approvals-expire.md`。
+ *
+ * 幂等靠 CAS：条件里钉着 `status = awaiting_approval`，两个标签页同时读到过期也只有一笔写进，
+ * 后到的那一次返回 false，行上的 `finishedAt` 不会被刷成第二个时间。
+ */
+export async function convergeExpiredApproval(taskId: string, now: Date = new Date()): Promise<boolean> {
+  if (!UUID_LIKE.test(taskId)) return false;
+  const db = getDb();
+  const [row] = await db
+    .select({ status: agentTasks.status, awaitingSince: agentTasks.awaitingSince })
+    .from(agentTasks)
+    .where(eq(agentTasks.id, taskId))
+    .limit(1);
+  if (!row || !approvalExpired(row, now)) return false;
+  const rows = await db
+    .update(agentTasks)
+    .set({
+      status: 'cancelled',
+      finishedAt: now,
+      error: `${APPROVAL_EXPIRED_NOTE}；要看现在的内容请重新生成一次（该过的审批门还会再过一次）`,
+    })
+    .where(and(eq(agentTasks.id, taskId), eq(agentTasks.status, 'awaiting_approval')))
     .returning({ id: agentTasks.id });
   return rows.length > 0;
 }
@@ -393,6 +453,28 @@ export async function decideApproval(
       ok: false,
       code: 'not_pending',
       message: `这条任务现在是「${row.status}」，不在等审批——挂起的结果只有第一次决定算数。`,
+    };
+  }
+  /**
+   * §74 的到期那一档：**批准之前先问这份还作不作数**。这一步不能省成"让 CAS 去挡"——
+   * CAS 只保证不写第二次，而这里要挡的是"到期之后那份补丁还能落地"这条最要命的路。
+   * 顺序也讲究：先收敛成 cancelled，再走下面那条 `not_pending` 的回话，
+   * 于是重复点击看到的是"这条任务现在是「cancelled」"，不是"已过期"配一个还挂在等待态的行。
+   */
+  if (await convergeExpiredApproval(taskId)) {
+    await recordAudit({
+      actorId,
+      action: 'ai.approval.decide',
+      targetType: 'agent_task',
+      targetId: taskId,
+      allowed: false,
+      detail: { reason: 'expired', decision, ttlMs: APPROVAL_TTL_MS },
+      ip: ip ?? null,
+    });
+    return {
+      ok: false,
+      code: 'not_pending',
+      message: `${APPROVAL_EXPIRED_NOTE}。这次「${decision === 'approve' ? '批准' : '放弃'}」没有生效，请重新生成一次。`,
     };
   }
 
@@ -476,7 +558,8 @@ export async function recordCapabilityRefusal(input: {
   });
 }
 
-function approvalShape(task: typeof agentTasks.$inferSelect) {  const record = (task.result ?? {}) as { approvals?: unknown; heldOpCount?: unknown };
+function approvalShape(task: typeof agentTasks.$inferSelect) {
+  const record = (task.result ?? {}) as { approvals?: unknown; heldOpCount?: unknown };
   return {
     taskId: task.id,
     projectId: task.projectId,
@@ -487,6 +570,9 @@ function approvalShape(task: typeof agentTasks.$inferSelect) {  const record = (
     heldOpCount: typeof record.heldOpCount === 'number' ? record.heldOpCount : null,
     capability: task.capability ?? null,
     createdAt: task.createdAt.toISOString(),
+    /** 挂起时刻与"到什么时候作废"。已决定的行两样都是 null——没有还要等多久这回事 */
+    awaitingSince: task.awaitingSince?.toISOString() ?? null,
+    expiresAt: approvalExpiresAt(task)?.toISOString() ?? null,
   };
 }
 
@@ -502,6 +588,9 @@ export type ApprovalTaskView = ReturnType<typeof approvalShape>;
  * Studio 打开时要靠它把审批卡片找回来：卡片如果只存在 React 状态里，
  * 一次刷新就变成"库内一条永远等待、界面上什么都没有"的行——那正是 §162 里
  * "没人来问就一直停在在跑"的那种洞，只是这次洞在审批那一侧。
+ *
+ * §74 的到期在这一句里也要成立：读之前先收敛，过期的那条**不出现在列表里**，
+ * 而不是发一张"还等着"的卡片、等用户按下批准再告诉他不作数。
  */
 export async function listPendingApprovals(projectId: string, actorId: string, limit = 10): Promise<ApprovalTaskView[]> {
   if (!UUID_LIKE.test(projectId)) return [];
@@ -518,7 +607,12 @@ export async function listPendingApprovals(projectId: string, actorId: string, l
     )
     .orderBy(desc(agentTasks.createdAt))
     .limit(take);
-  return rows.map((row) => approvalShape(row.task));
+  const out: ApprovalTaskView[] = [];
+  for (const row of rows) {
+    if (await convergeExpiredApproval(row.task.id)) continue;
+    out.push(approvalShape(row.task));
+  }
+  return out;
 }
 
 export async function readApprovalTask(taskId: string, actorId: string): Promise<ApprovalTaskView | null> {
@@ -528,7 +622,13 @@ export async function readApprovalTask(taskId: string, actorId: string): Promise
     .from(agentTasks)
     .where(and(eq(agentTasks.id, taskId), eq(agentTasks.createdById, actorId)))
     .limit(1);
-  return row ? approvalShape(row.task) : null;
+  if (!row) return null;
+  // 到期的那一条按"作废之后该说什么"来回答：状态是 cancelled、`expiresAt` 是 null。
+  // 不再查一次库：这一处要的是回话与实际写入自相一致，而 `convergeExpiredApproval` 已经
+  // 用 CAS 确认了这一次由它作废（没确认到手说明别人已经落过终态，那时下面这个覆盖同样是假的，
+  // 但那一条路里 `row.task.status` 早已不是 awaiting_approval，走不到这个分支）。
+  const expired = await convergeExpiredApproval(taskId);
+  return approvalShape(expired ? { ...row.task, status: 'cancelled' as const } : row.task);
 }
 
 function view(row: typeof agentTasks.$inferSelect & { projectName: string | null }): TaskView {

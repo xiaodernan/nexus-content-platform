@@ -406,6 +406,11 @@ export const agentTasks = pgTable(
     error: text('error'),
     /** §74/§177 高危动作需人工批准 */
     requiresApproval: boolean('requires_approval').notNull().default(false),
+    /**
+     * §74：挂起那一刻的时间。等待中的行**必须**有它（0021 那条 CHECK 挡着），
+     * 到期判定只读这一列——不读 created_at，异步作业从提交到挂起可以隔很久。
+     */
+    awaitingSince: timestamp('awaiting_since', { withTimezone: true }),
     approvedBy: uuid('approved_by').references(() => users.id, { onDelete: 'set null' }),
     approvedAt: timestamp('approved_at', { withTimezone: true }),
     capability: CapabilityStatus('capability'),

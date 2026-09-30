@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import type { AgentActivity, AgentPlan, AgentRoster, AiResponse, ModelClass } from '@nexus/schemas';
-import { AiJobObservationSchema, AiResponseSchema, AgentRosterSchema, DesignPatchSchema } from '@nexus/schemas';
+import { AiJobObservationSchema, AiResponseSchema, AgentRosterSchema, APPROVAL_TTL_MS, DesignPatchSchema } from '@nexus/schemas';
 import { cn } from '@/lib/cn';
 import { csrfHeaders } from '@/lib/csrf';
 import { useRealtime, type RealtimeState } from '@/lib/useRealtime';
@@ -129,11 +129,15 @@ export function CommandBar() {
       try {
         const res = await fetch(`/api/ai/pending-approvals?projectId=${encodeURIComponent(projectId)}`, { cache: 'no-store' });
         if (!res.ok || cancelled) return;
-        const body = (await res.json()) as { pending?: { taskId: string; approvals?: { action: string; reason: string }[] }[] };
+        const body = (await res.json()) as {
+          pending?: { taskId: string; approvals?: { action: string; reason: string }[]; expiresAt?: string | null }[];
+        };
         const first = body.pending?.[0];
         if (!first) return;
         // 只在没有卡片时补上：这一路是"找回现场"，不该把刚拿到的那一份盖掉
-        setHeld((current) => current ?? { taskId: first.taskId, approvals: first.approvals ?? [] });
+        setHeld((current) =>
+          current ?? { taskId: first.taskId, approvals: first.approvals ?? [], expiresAt: first.expiresAt ?? null },
+        );
       } catch {
         // 拿不到就不显示卡片。审批入口少一次自动找回，比拿一份错现场顶上要好
       }
@@ -146,8 +150,10 @@ export function CommandBar() {
   /**
    * §74：一次被服务端扣下的结果。只存"要审批什么"，不存补丁——
    * 补丁在库里那份上，界面上拿不到它，也就拿不到"绕过按钮直接应用"的可能。
+   * `expiresAt` 只有从账本找回现场那一路拿得到（服务端算好的那一栏）；
+   * 刚跑完那一次是 null，卡片上就只说时效本身，不编一个精确到分钟的截止时间。
    */
-  const [held, setHeld] = useState<{ taskId: string; approvals: { action: string; reason: string }[] } | null>(null);
+  const [held, setHeld] = useState<{ taskId: string; approvals: { action: string; reason: string }[]; expiresAt: string | null } | null>(null);
   const [approvalBusy, setApprovalBusy] = useState(false);
   const [approvalNote, setApprovalNote] = useState<string | null>(null);
 
@@ -214,7 +220,7 @@ export function CommandBar() {
    */
   const consume = (response: AiResponse, taskForApproval: string | null, text: string): void => {
     setResult(response);
-    if (response.approvals?.length && taskForApproval) setHeld({ taskId: taskForApproval, approvals: response.approvals });
+    if (response.approvals?.length && taskForApproval) setHeld({ taskId: taskForApproval, approvals: response.approvals, expiresAt: null });
     if (response.error && response.error.code !== 'approval-required') {
       setError(`${response.error.code}：${response.error.message}${response.error.hint ? `（${response.error.hint}）` : ''}`);
     } else if (response.patches?.length) {
@@ -375,6 +381,13 @@ export function CommandBar() {
               </li>
             ))}
           </ul>
+          {/* §74 的时效要说在卡片上，而不是等用户按下批准才从 409 里知道：
+              "这一份放着不管会自己作废"改变的是他要不要现在去看这 3 处删除，
+              而那句作废的理由（补丁从未落地）与服务端写进账本的是同一句。 */}
+          <p className="mt-[2px] text-11 text-fg-3" data-approval-expiry>
+            {Math.round(APPROVAL_TTL_MS / 3_600_000)} 小时内未决定，这一份自动作废、被扣下的补丁不会落地
+            {held.expiresAt ? `（截止 ${new Date(held.expiresAt).toLocaleString('zh-CN', { hour12: false })}）` : ''}
+          </p>
           <div className="mt-1 flex flex-wrap items-center gap-2">
             <button
               type="button"

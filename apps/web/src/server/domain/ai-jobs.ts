@@ -3,7 +3,7 @@ import type { AgentActivity, AiError, AiJobBackend, AiJobStatusResponse, AiJobSt
 import { fetchAiJobStatus, submitAiJob } from '../ai/client';
 import { gateResponse, heldRecord, nodeNamer, WEB_APPROVAL_POLICY, DESIGN_PATCH, type ApprovalAction, type GateResult, type HeldRecord, type NodeNamer } from '../ai/approvals';
 import { channels, getRealtimeBus } from '../realtime/bus';
-import { attachJob, bumpActivityCursor, finishTask, holdForApproval, recordCapabilityRefusal, startTask, taskByJobId, type TaskCapability } from './agent-tasks';
+import { APPROVAL_EXPIRED_NOTE, attachJob, bumpActivityCursor, convergeExpiredApproval, finishTask, holdForApproval, recordCapabilityRefusal, startTask, taskByJobId, type TaskCapability } from './agent-tasks';
 import { agentLedgerFields, findAgent, loadRoster, mentionNote, type AgentRosterEntry, type ResolvedAgent } from './agents';
 import { emit } from './notifications';
 import { getDb } from '../db/client';
@@ -311,6 +311,14 @@ export async function observeJob(jobId: string, actorId: string): Promise<JobObs
     if (status.status === 'completed' || status.status === 'failed') await settle(task, projectName, status);
   }
 
+  /**
+   * §74 的到期也要在这条路上读一次：异步作业挂起之后，Studio 是每隔几秒来问一次的，
+   * 不在这里收敛就会得到一张"几天了还在等审批"的卡片——那与 §162 修掉的
+   * "没人来问就一直停在在跑"是同一个洞，只是这次挂在异步这一侧、而且有了真时间戳可判。
+   * 放在重读之前：下面那一句 `fresh` 要读到收敛之后的那一版。
+   */
+  const expiredApproval = await convergeExpiredApproval(task.id);
+
   const [fresh] = await getDb()
     .select({
       status: agentTasks.status,
@@ -345,7 +353,11 @@ export async function observeJob(jobId: string, actorId: string): Promise<JobObs
     );
   } else if (status?.status === 'completed' && status.result) {
     if (fresh?.status === 'cancelled') {
-      notes.push('这一份挂起的结果已经被放弃，补丁不会再交回编辑区');
+      notes.push(
+        expiredApproval || (fresh?.requiresApproval && fresh.error?.includes(APPROVAL_EXPIRED_NOTE))
+          ? `${APPROVAL_EXPIRED_NOTE}（这一行现在记为已取消，但没有人点过"放弃"）`
+          : '这一份挂起的结果已经被放弃，补丁不会再交回编辑区',
+      );
     } else if (fresh?.requiresApproval) {
       response = status.result;
     } else {
