@@ -66,7 +66,7 @@ afterAll(async () => {
   await db.delete(users).where(eq(users.id, owner));
 });
 
-describe('同一项目的并发保存（#64 整删重插的互相踩）', () => {
+describe('同一项目的并发保存（#64 增量保存下依然是"最后胜出"语义）', () => {
   it(`${WRITERS} 个并发 saveDocument 都成功，并且读回来是其中一份完整文档`, async () => {
     const project = await createProject(owner, { name: 'Concurrent Save', kind: 'website' });
     const base = await loadDocument(project.id);
@@ -95,7 +95,7 @@ describe('同一项目的并发保存（#64 整删重插的互相踩）', () => 
       `读回来的各写入方节点数是 [${counts.join(', ')}]，应该是"一份完整 ${NODES_PER_DOC} + 其余为 0"（混了或半截都说明整删重插被踩）`,
     ).toBe(true);
     expect(loaded!.pages).toHaveLength(1);
-    expect(loaded!.tokens.length).toBeGreaterThan(0); // tokens 也走整删重插，并发下同样不该被踩空
+    expect(loaded!.tokens.length).toBeGreaterThan(0); // tokens 也增量，最后写的人胜出
   }, 180_000);
 
   it('并发保存之后库里没有孤儿节点行（③：行数与文档对得上）', async () => {

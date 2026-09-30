@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { Profiler, useEffect, useState, type ProfilerOnRenderCallback } from 'react';
 import type { DesignDocument } from '@nexus/design-model';
 import { cn } from '@/lib/cn';
 import { studio, useStudio } from './store';
@@ -73,6 +73,24 @@ const VIEW_LABELS: Record<WorkspaceView, string> = {
   gamegraph: '游戏图',
 };
 
+/**
+ * §147 选中响应诊断：一次"点节点 → 手柄出现"是同一个同步任务，靠外部轮询拆不开
+ * store 段与 React 段。Profiler 的 onRender 在这个任务里同步回调，把 React 渲染段
+ * 记进 __studioPerf（只在开发模式记账；生产构建里 Profiler 的 actualDuration 恒为 0）。
+ */
+const recordRender = (id: string): ProfilerOnRenderCallback => (_id, _phase, actualDuration) => {
+  if (process.env.NODE_ENV === 'production') return;
+  const perf = (globalThis as unknown as { __studioPerf?: Record<string, unknown> });
+  const bucket = perf.__studioPerf ??= {};
+  bucket.reactMs = (bucket.reactMs as number || 0) + actualDuration;
+  bucket.reactRenders = (bucket.reactRenders as number || 0) + 1;
+  const by = (bucket.reactBy as Record<string, number> || {});
+  bucket.reactBy = by;
+  by[id] = (by[id] || 0) + actualDuration;
+};
+
+const recordWorkspaceRender = recordRender('workspace');
+
 /** §4 Studio 外壳：负责载入与保存时机，不做布局细节 */
 export function StudioShell({
   projectId,
@@ -111,7 +129,9 @@ export function StudioShell({
   return (
     <div className="flex h-screen w-full flex-col overflow-hidden bg-bg-0 text-fg-1" data-studio-root data-project-id={projectId}>
       {state.ready ? (
-        <StudioWorkspace zoom={state.zoom} demoMode={demoMode} />
+        <Profiler id="workspace" onRender={recordWorkspaceRender}>
+          <StudioWorkspace zoom={state.zoom} demoMode={demoMode} />
+        </Profiler>
       ) : (
         <p className="m-auto font-mono text-13 text-fg-3" data-studio-status>
           {state.loadError ?? '载入项目…'}
@@ -130,7 +150,9 @@ function StudioWorkspace({ zoom, demoMode }: { zoom: number; demoMode: boolean }
 
   return (
     <>
-      <TopBar onOpenRail={() => setRailOpen((v) => !v)} />
+      <Profiler id="topbar" onRender={recordRender('topbar')}>
+        <TopBar onOpenRail={() => setRailOpen((v) => !v)} />
+      </Profiler>
       <div className="flex min-h-0 flex-1">
         <nav className="flex w-[44px] shrink-0 flex-col items-center gap-1 border-r border-[var(--nexus-color-border-subtle)] bg-bg-1 py-[var(--nexus-space-2)]">
           {TABS.map((item) => (
@@ -153,6 +175,7 @@ function StudioWorkspace({ zoom, demoMode }: { zoom: number; demoMode: boolean }
           ))}
         </nav>
 
+        <Profiler id="left" onRender={recordRender('left')}>
         <aside
           className={cn(
             'min-h-0 w-[264px] shrink-0 border-r border-[var(--nexus-color-border-subtle)] bg-bg-1',
@@ -188,7 +211,9 @@ function StudioWorkspace({ zoom, demoMode }: { zoom: number; demoMode: boolean }
             <HistoryPanel />
           )}
         </aside>
+      </Profiler>
 
+        <Profiler id="main" onRender={recordRender('main')}>
         <main className="flex min-w-0 flex-1 flex-col">
           <div className="relative flex min-h-0 flex-1 flex-col">
             {/* 视图切换与 DEMO 标识常驻在同一行：浮层会盖住代码视图的文件标签（§160） */}
@@ -243,6 +268,7 @@ function StudioWorkspace({ zoom, demoMode }: { zoom: number; demoMode: boolean }
           {/* 命令栏改的是设计工作区；方案板、世界图与游戏图都不是它的作用域 */}
           {view === 'variants' || view === 'graph' || view === 'gamegraph' ? null : <CommandBar />}
         </main>
+      </Profiler>
 
         {inspectorOpen ? (
           <button
@@ -252,6 +278,7 @@ function StudioWorkspace({ zoom, demoMode }: { zoom: number; demoMode: boolean }
             className="fixed inset-0 z-40 bg-black/40 xl:hidden"
           />
         ) : null}
+        <Profiler id="properties" onRender={recordRender('properties')}>
         <aside
           className={cn(
             'z-50 min-h-0 w-[300px] shrink-0 border-l border-[var(--nexus-color-border-subtle)] bg-bg-1',
@@ -271,6 +298,7 @@ function StudioWorkspace({ zoom, demoMode }: { zoom: number; demoMode: boolean }
             <PropertiesPanel />
           </div>
         </aside>
+      </Profiler>
       </div>
     </>
   );

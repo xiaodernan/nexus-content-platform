@@ -3283,3 +3283,28 @@ M8 整格仍是 `[~]`：MCP 与外部 Agent 那一格还没动，项目的创建
 完成度按行加权（一行 100% 加三行 20% 是 40% 不是 60%）、只数自己的作品（别人的访问与软删项目都不进）。
 `@smoke §168 曲线`在真浏览器里核对"窗口是密集的、缺的那天在图上看得出来"。
 **仍欠**：爬虫与真人区分、游戏侧 completion 事件（这两件不在这一片里）。
+
+## §147 选中响应第三片：记忆化先要"身份稳定"，否则它是个摆设
+
+上一片把方向改成了"找随节点数线性长的订阅者"，并顺带把画布的节点组件做了 memo。这一片说明
+**那个 memo 当时其实没有生效**，以及为什么。
+
+**根因是 store 每次 commit 都重建派生对象。** `tokens` / `assetContext` / `history` 都只随**文档**变，
+但它们在 `buildSnapshot()` 里每次 commit 都新建一份——包括**纯选中**那种不改文档的提交。
+`CanvasStage` 的 Node memo 比较的正是 `tokens` / `assets`，于是身份每次都不同、每次都判"变了"，
+memo 整个失效，节点照样全量重算 `nodeStyle`。
+
+- **按文档身份缓存派生对象**（`derivedCache`，键是 `document` 对象本身）：纯选中提交里这三个身份稳定，
+  memo 才真的生效。用**文档身份**而不是 `revision` 当键是刻意的——事务内
+  （`applyWithinTransaction`）文档变了但 `revision` 没跳，身份判据在这种半程提交上也不会拿到过期的 token 表。
+- **顺带修掉一处会画错几何的缓存**：`resolveFor` 的 `layoutCache` 原来只比
+  `revision|文档id|页id|视口|模式` 拼出来的 key。事务内文档变了而 `revision` 不跳，这个 key 不变，
+  于是**拿到的是上一版文档的布局**。现在把文档身份一并判进去。
+- **诊断也补上了**：`StudioShell` 挂一个 React `Profiler`，把渲染段记进 `__studioPerf.reactMs`
+  （只在开发模式；生产构建里 `actualDuration` 恒为 0）。配套的 `scripts/diag-selection.mts` 把
+  "点节点 → 手柄出现"这**一个同步任务**拆成 store 段 / React 段 / 其余三段——
+  外部轮询拆不开同步任务，所以它读的是页面里已有的两本账。
+
+**凭证**：`npm run lint` 0 问题（`diag-selection.mts` 此前有一处 `unknown` 参与算术的类型错，
+是**被 typecheck 挡住**的——它平时用 `tsx` 跑，`tsx` 不做类型检查，所以这个错一直没暴露）。
+**全量回归 110 文件 / 1251 条全绿**。

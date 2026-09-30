@@ -150,7 +150,22 @@ export class StudioStore {
   private projectId = '';
   private listeners = new Set<() => void>();
   private snapshot!: StudioSnapshot;
-  private layoutCache: { key: string; value: ResolvedLayout | null } | null = null;
+  private layoutCache: { key: string; doc: DesignDocument; value: ResolvedLayout | null } | null = null;
+  /**
+   * §147 选中响应：TokenStore / 资产上下文 / 撤销栈都只随文档变，以前每次 commit
+   * （包括纯选中）都重建 → 身份每次都变 → CanvasStage 的 Node memo 比较 `tokens` /
+   * `assets` 恒为不等，memo 整个失效，节点照样全量重算 nodeStyle。
+   * 按文档对象身份缓存后，选中提交里这三个身份稳定，memo 才真的生效。
+   * 用 document 身份而不是 revision 当键：事务内（applyWithinTransaction）文档变了
+   * 但 revision 没跳，身份判据在这种半程提交上也不会拿到过期的 token 表。
+   */
+  private derivedCache: {
+    document: DesignDocument;
+    tokens: TokenStore;
+    assetContext: AssetUrlContext;
+    history: ReturnType<DesignStore['history']>;
+    historyFlat: HistoryEntry[];
+  } | null = null;
   private saveTimer: ReturnType<typeof setTimeout> | null = null;
   private inflight: Promise<void> | null = null;
   private loadedFor: string | null = null;
@@ -196,15 +211,31 @@ export class StudioStore {
     const page = document.pages.length ? (findPage(document, document.activePageId) ?? document.pages[0]!) : null;
     // 补丁可能删掉被选中的节点：先收敛选区，再产出快照，渲染层就不会引用不存在的节点
     if (this.selection.length) this.selection = this.selection.filter((id) => id && page?.nodes[id]);
-    // token 表可能随补丁增长（addToken），每次快照重建，代价与 token 数成正比
-    const tokens = new TokenStore(document.tokens);
+    // token 表只随文档变；资产上下文与撤销栈同理。
+    // 按文档身份缓存 → 纯选中提交复用同一身份，CanvasStage 的 Node memo（比较
+    // tokens/assets）才不会每次都被判为"变了"而全量重算 nodeStyle（§147 选中响应）。
+    if (this.derivedCache?.document !== document) {
+      this.derivedCache = {
+        document,
+        tokens: new TokenStore(document.tokens),
+        // 资产解析器按清单构造：清单来自文档（§16），所以"能不能显示"与
+        // "设计里有没有这条资产"是同一件事，不需要再问一次网络。
+        assetContext: assetContextFor(document, apiAssetUrl),
+        history: this.design.history(),
+        historyFlat: [],
+      };
+      this.derivedCache.historyFlat = [
+        ...this.derivedCache.history.undo,
+        // history() 已经是拷贝；保持原来的"redo 倒序跟在 undo 后面"的展示顺序
+        ...this.derivedCache.history.redo.reverse(),
+      ];
+    }
+    const derived = this.derivedCache;
+    const tokens = derived.tokens;
     const tTokens = performance.now();
     const layout = page ? this.resolveFor(page, document, tokens) : null;
     const tLayout = performance.now();
-    const history = this.design.history();
-    // 资产解析器按清单构造：清单来自文档（§16），所以"能不能显示"与
-    // "设计里有没有这条资产"是同一件事，不需要再问一次网络。
-    const assetContext = assetContextFor(document, apiAssetUrl);
+    const assetContext = derived.assetContext;
     const tAssets = performance.now();
     // §147 的常驻诊断：一次"改属性 → 画布重绘"要 1.2 秒，而模型层的基准说 resolveLayout
     // 在 10000 节点只要 57ms——那 1.2 秒不在求解上。到底是哪一段、以及一次按键到底跑了几次
@@ -240,7 +271,7 @@ export class StudioStore {
       canRedo: state.canRedo,
       undoLabel: state.undoLabel,
       redoLabel: state.redoLabel,
-      history: [...history.undo, ...history.redo.reverse()],
+      history: derived.historyFlat,
       lastEntry: state.lastEntry,
       snapshots: this.snapshotList,
       snapshotBusy: this.snapshotBusyValue,
@@ -267,7 +298,8 @@ export class StudioStore {
   private resolveFor(page: Page, document: DesignDocument, tokens: TokenStore): ResolvedLayout | null {
     const mode = document.activeMode ?? null;
     const key = `${this.design.getState().revision}|${document.id}|${page.id}|${this.viewport}|${mode}`;
-    if (this.layoutCache?.key === key) return this.layoutCache.value;
+    // doc 身份一并判：事务内文档会变而 revision 不跳，只比 key 会拿到上一版文档的布局
+    if (this.layoutCache?.key === key && this.layoutCache.doc === document) return this.layoutCache.value;
     let layout: ResolvedLayout | null;
     try {
       layout = resolveLayout(page, {
@@ -280,7 +312,7 @@ export class StudioStore {
       console.error('[studio] resolveLayout failed', error);
       layout = null;
     }
-    this.layoutCache = { key, value: layout };
+    this.layoutCache = { key, doc: document, value: layout };
     return layout;
   }
 
