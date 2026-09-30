@@ -8,7 +8,7 @@ import {
   textNode,
   type DesignDocument,
 } from '@nexus/design-model';
-import { buildSnapshot, installBridge, type ObservableState } from './observability';
+import { buildSnapshot, installBridge, installSceneBridge, type ObservableState } from './observability';
 
 const pageOf = (doc: DesignDocument): string => childIdList(doc.nodes[doc.rootId]!)[0]!;
 
@@ -173,6 +173,33 @@ describe('installBridge', () => {
     expect(() => {
       'use strict';
       (bridge as unknown as Record<string, unknown>).snapshot = () => null;
+    }).toThrow();
+  });
+});
+
+describe('installSceneBridge (M5 v142)', () => {
+  it('reads the 3D surface LIVE, and answers null when no surface is mounted', () => {
+    const target: Record<string, unknown> = {};
+    let report: unknown = null;
+    const bridge = installSceneBridge(() => report, target);
+
+    expect(target.__nexusScene3d).toBe(bridge);
+    expect(bridge.version).toBe('nexus-studio-scene3d/1');
+    // No surface yet: the honest answer is "nothing is running", not an empty scene.
+    expect(bridge.scene3d()).toBeNull();
+
+    report = { schema: 1, backend: 'headless', frames: 3 };
+    expect(bridge.scene3d()).toEqual({ schema: 1, backend: 'headless', frames: 3 });
+    report = { schema: 1, backend: 'headless', frames: 4 };
+    expect((bridge.scene3d() as { frames: number }).frames).toBe(4);
+  });
+
+  it('is frozen, so a harness cannot drive the runtime through the reader', () => {
+    const bridge = installSceneBridge(() => null, {});
+    expect(Object.isFrozen(bridge)).toBe(true);
+    expect(() => {
+      'use strict';
+      (bridge as unknown as Record<string, unknown>).scene3d = () => null;
     }).toThrow();
   });
 });

@@ -22,7 +22,14 @@ describe('InstanceOverrides panel wiring', () => {
     // the override under the master's id — which is the failure this case exists for. Found by arm 05 of this
     // pass's probe: that arm survived the first version of this guard, so the guard became an argument check
     // (every receiver must be `instance.id`) and the arm was re-run against it.
-    const receivers = [...source.matchAll(/setInstanceOverride\(([^,]+),/g)].map((m) => m[1].trim());
+    // `noUncheckedIndexedAccess` is on repo-wide, so the capture group is `string | undefined` here —
+    // which is exactly the kind of reading this file is about: a receiver that could not be READ is
+    // not a receiver that matched, and silently dropping it would make the guard below weaker than it
+    // claims to be. It throws instead.
+    const receivers = [...source.matchAll(/setInstanceOverride\(([^,]+),/g)].map((m) => {
+      if (!m[1]) throw new Error(`setInstanceOverride call with no readable receiver: ${m[0]}`);
+      return m[1].trim();
+    });
     expect(receivers.length, 'the panel has three override rows (text, fill, radius)').toBeGreaterThanOrEqual(3);
     expect([...new Set(receivers)], 'every override write must be addressed to the instance, never the master').toEqual(['instance.id']);
     expect(source, 'the swatch must write the fills patch').toMatch(/fills:\s*\[\{ kind: 'solid'/);

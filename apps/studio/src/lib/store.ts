@@ -35,6 +35,15 @@ import { subtreeRotatePlan } from './rotate';
 
 export type Tool = 'select' | 'frame' | 'rectangle' | 'ellipse' | 'text';
 
+/**
+ * Which surface the main pane is showing (M5 v142).
+ *
+ * This is VIEW state, exactly like `previewOpen`: it is not part of the document, it is not undoable,
+ * and it is deliberately not persisted (ADR 0014). The 3D surface composes its own scene against
+ * `@nexus/three-runtime`; the 2D canvas is untouched and remains the default.
+ */
+export type Surface = '2d' | '3d';
+
 export interface Viewport {
   x: number;
   y: number;
@@ -93,6 +102,8 @@ interface StudioState {
   /** Instance drilled into for sub-selection; hit-testing keeps projected clone ids while set. */
   focusedInstanceId: string | null;
   previewOpen: boolean;
+  /** Which surface the main pane shows: the 2D canvas (default) or the M5 3D scene. */
+  surface: Surface;
   aiBusy: boolean;
   lastDiff: DiffSummary | null;
   lastBefore: DesignDocument | null;
@@ -150,6 +161,7 @@ interface StudioState {
   setRotations: (r: Record<string, number>) => void;
   setFocused: (id: string | null) => void;
   setPreview: (open: boolean) => void;
+  setSurface: (surface: Surface) => void;
   setStatus: (s: string) => void;
 
   loadDocument: (doc: DesignDocument) => void;
@@ -230,6 +242,7 @@ export const useStudio = create<StudioState>((set, get) => ({
   rotations: {},
   focusedInstanceId: null,
   previewOpen: false,
+  surface: '2d',
   aiBusy: false,
   lastDiff: null,
   lastBefore: null,
@@ -666,6 +679,7 @@ export const useStudio = create<StudioState>((set, get) => ({
   setRotations: (r) => set({ rotations: r }),
   setFocused: (id) => set({ focusedInstanceId: id }),
   setPreview: (open) => set({ previewOpen: open }),
+  setSurface: (surface) => set({ surface }),
   setStatus: (s) => set({ status: s }),
 
   loadDocument: (doc) => {

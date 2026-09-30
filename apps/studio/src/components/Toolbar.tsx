@@ -22,6 +22,8 @@ export default function Toolbar() {
   const redo = useStudio((s) => s.redo);
   const setPreview = useStudio((s) => s.setPreview);
   const newProject = useStudio((s) => s.newProject);
+  const surface = useStudio((s) => s.surface);
+  const setSurface = useStudio((s) => s.setSurface);
 
   const exportPng = () => {
     const el = document.getElementById('nexus-canvas') as HTMLCanvasElement | null;
@@ -54,6 +56,27 @@ export default function Toolbar() {
       <div style={{ display: 'flex', gap: 4 }}>
         <button className="btn" onClick={undo} title="Undo (Ctrl+Z)">↶</button>
         <button className="btn" onClick={redo} title="Redo (Ctrl+Shift+Z)">↷</button>
+      </div>
+
+      {/* M5 v142: the 3D surface is a VIEW, so it is a toggle next to the view-level controls rather
+          than a document tool. `2D` is the default the golden-path harness drives. */}
+      <div style={{ display: 'flex', gap: 4, alignItems: 'center', marginLeft: 4 }}>
+        <button
+          className={`btn ${surface === '2d' ? 'tool-active' : ''}`}
+          title="2D canvas (the Design Model)"
+          onClick={() => setSurface('2d')}
+          data-surface-toggle="2d"
+        >
+          2D
+        </button>
+        <button
+          className={`btn ${surface === '3d' ? 'tool-active' : ''}`}
+          title="3D scene (@nexus/three-runtime, M5)"
+          onClick={() => setSurface('3d')}
+          data-surface-toggle="3d"
+        >
+          3D
+        </button>
       </div>
 
       <div style={{ flex: 1 }} />

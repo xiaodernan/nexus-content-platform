@@ -20,6 +20,8 @@
     "test": "turbo run test",
     "verify:harness": "node tools/harness/smoke.mjs",
     "verify:studio": "node tools/harness/studio-golden-path.mjs",
+    "verify:scene": "node tools/harness/studio-scene3d.mjs",
+    "verify:scene-surface": "node docs/evidence/studio/scene-surface-proof.mjs",
     "clean": "turbo run clean && rm -rf node_modules"
   },
   "devDependencies": {

@@ -1205,6 +1205,23 @@ export class ThreeRuntime {
   createScene(name: string, id?: string): ThreeScene {
     const sceneIdValue = id ? sceneId(id) : sceneId(`scene-${Date.now()}-${Math.random().toString(36).slice(2)}`);
     const threeScene = new THREE.Scene();
+    const lighting = this.createDefaultLighting();
+
+    // M5 v142 — the declared lighting is ATTACHED, which it never was.
+    //
+    // `createDefaultLighting` built two `THREE.Light` objects, stored them in `LightingConfig.lights` and
+    // put neither into the scene: `lighting` was written once and read by nothing. Every mesh in this
+    // package is a `MeshStandardMaterial`, whose colour is a function of the lights in its scene, so a
+    // scene from this runtime rendered BLACK — and no test could see it, because every test above the
+    // renderer seam asserted the CONFIG (`lights.length === 2`) rather than the scene. The first consumer
+    // that actually looked at a pixel is what made it a defect (ADR 0016 amendment 142).
+    //
+    // A light that declares `enabled: false` is deliberately NOT attached. Nothing in the package can
+    // produce one today (there is no `setLighting`); the branch exists so the day one can, the rule is
+    // already the one the declared field implies.
+    for (const light of lighting.lights) {
+      if (light.enabled) threeScene.add(light.threeLight);
+    }
 
     const scene: ThreeScene = {
       id: sceneIdValue,
@@ -1213,7 +1230,7 @@ export class ThreeRuntime {
       entities: new Map(),
       cameras: new Map(),
       animations: new Map(),
-      lighting: this.createDefaultLighting(),
+      lighting,
       metadata: {},
     };
 

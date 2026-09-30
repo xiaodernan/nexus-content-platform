@@ -1,8 +1,33 @@
-# @nexus/three-runtime — evidence for v108 (host seams), v114 (character controller), v115 (the entity save format), v116 (the scene's physics world), v117 (the cinematic sequence), v118 (the save that reads it back), v119 (the file it survives on disk), v120 (the bytes, through a store), v121 (the id comes back), v122 (a save taken back), v123 (what it holds), v124 (written atomically), v125 (flushed when asked), v126 (the debris swept), v127 (a file asked what it is worth), v128 (the listing surveyed), v129 (the survey's reason becomes a field), v131 (the NPC record gets a body and a file), v134 (the world bag gets an owner), v135 (one refusal table, read per plane), v136 (the player record gets a body and a file), v137 (the player's declared numbers get operations), v138 (the COMBAT record gets a body, two operations, one death transition and a field audit), and v139 (the package face stops being a hand-copied list)
+# @nexus/three-runtime — evidence for v108 (host seams), v114 (character controller), v115 (the entity save format), v116 (the scene's physics world), v117 (the cinematic sequence), v118 (the save that reads it back), v119 (the file it survives on disk), v120 (the bytes, through a store), v121 (the id comes back), v122 (a save taken back), v123 (what it holds), v124 (written atomically), v125 (flushed when asked), v126 (the debris swept), v127 (a file asked what it is worth), v128 (the listing surveyed), v129 (the survey's reason becomes a field), v131 (the NPC record gets a body and a file), v134 (the world bag gets an owner), v135 (one refusal table, read per plane), v136 (the player record gets a body and a file), v137 (the player's declared numbers get operations), v138 (the COMBAT record gets a body, two operations, one death transition and a field audit), v139 (the package face stops being a hand-copied list), and v142 (the declared lights are ATTACHED, found by the surface that consumes the package)
 
 _Numbering note: v138 was AUTHORED before v139 and landed after it. The v139 section below measures the
 live worktree it was written in and says so in its own words ("v138's in-flight names are in those
 bytes"), so the out-of-order landing is recorded rather than tidied away._
+
+**v142 — the PRODUCT face, and the defect the first consumer found (amendment 142).** v140's section below
+closes with the bound every M5 section after v108 writes: *"the PRODUCT face (a Studio surface, a HUD, a user
+who can open it) is still open."* v142 closes it — `apps/studio` now depends on this package, and its
+`src/components/Scene3D.tsx` mounts a real runtime on a real canvas — and the first thing a consumer that
+looks at a scene instead of a config found was a defect in THIS package:
+
+`createScene` built two `THREE.Light` objects through `createDefaultLighting`, stored them in
+`LightingConfig.lights`, and **attached neither to the scene**. `lighting` was written once and read by
+nothing. Every mesh this package creates is a `MeshStandardMaterial`, whose colour is a function of the
+lights in its scene, so every scene from this runtime rendered **black** — and 362 green cases could not see
+it, because each one asserted the CONFIG (`lights.length === 2`) rather than the SCENE. `createScene` now
+attaches every `enabled` light to `threeScene` and stores that same `lighting` value; three new cases in
+`test/threeRuntime.test.ts` assert the scene rather than the config — both declared lights are children,
+each is retrievable by id, a second scene gets its OWN lights, and every non-light child of a fresh scene is
+still a registered body (attaching lights moves the object count v140's proof records, so that boundary is
+pinned). Package suite **362/362 → 364/364** across 7 files, `tsc -p tsconfig.json --noEmit` exit 0.
+
+The measurement is repeated where a consumer can run it: `docs/evidence/studio/scene-surface-proof.mjs` §2
+computes the package's own lighting term over the package's own light objects and gets
+**1.316496580927726** with the lights attached versus **exactly 0** without them, with every body's
+`emissive` black. The browser probe's screenshot shows four LIT boxes rather than a black frame. Bounds: the
+surface composes DEMO-MODE geometry only (four default meshes, one camera, no assets), it does not reach
+save/load, combat, physics, controllers or cinematics, and nothing it composes reaches the Studio's Design
+Document.
 
 **v140 — the FIRST CONSUMER (amendment 140).** Every section below ends with the same bound: *"nothing
 outside `@nexus/three-runtime` imports it … the roadmap's M5 entry is still a runtime with tests, not a
@@ -12,8 +37,8 @@ seam — so the lane is consumed WITHOUT `agents/runtime` depending on `@nexus/t
 stay separable. The family composes and inspects; it does not render, and it has no door that could be
 mistaken for a picture. Evidence lives in the agent lane: `agents/runtime/test/sceneTools.test.ts` (20
 cases) and the runnable `docs/evidence/agents/scene-tools-proof.mjs`, which wires the REAL `ThreeRuntime`
-behind the driver and cross-checks every tool answer against this package's own graph. The PRODUCT face
-(a Studio surface, a HUD, a user who can open it) is still open, and no section below is amended by this.
+behind the driver and cross-checks every tool answer against this package's own graph. The PRODUCT face (a
+Studio surface, a HUD, a user who can open it) was still open at v140 — v142 is what closed it, above.
 
 This directory records the 3D runtime lane (ROADMAP M5). Every claim here is read back out of the
 shipped source and the package's own vitest suite — `packages/three-runtime/src/*.ts` and

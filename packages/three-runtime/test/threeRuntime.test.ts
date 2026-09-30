@@ -420,4 +420,40 @@ describe('Lighting', () => {
     expect(scene.lighting.lights[1].type).toBe('directional');
     expect(scene.lighting.shadows).toBe(true);
   });
+
+  // M5 v142: the case above asserted the CONFIG and nothing looked at the SCENE, so a runtime that
+  // declared two lights and attached none passed every test in this file. The colour of a
+  // `MeshStandardMaterial` is a function of the lights in its scene, so that scene rendered black.
+  it('the declared lights are IN the three scene, identically — not merely described in a config', () => {
+    const scene = runtime.createScene('Test');
+    const attached = scene.threeScene.children.filter((child) => (child as { isLight?: boolean }).isLight === true);
+    expect(attached).toHaveLength(2);
+    for (const light of scene.lighting.lights) {
+      expect(scene.threeScene.children).toContain(light.threeLight);
+      expect(scene.threeScene.getObjectById(light.threeLight.id)).toBe(light.threeLight);
+    }
+    const ambient = scene.lighting.lights.find((l) => l.type === 'ambient')!;
+    expect((ambient.threeLight as { isAmbientLight?: boolean }).isAmbientLight).toBe(true);
+  });
+
+  it('a new scene gets its OWN lights, so one scene cannot light another', () => {
+    const first = runtime.createScene('First');
+    const second = runtime.createScene('Second');
+    expect(first.threeScene.children).toHaveLength(2);
+    expect(second.threeScene.children).toHaveLength(2);
+    expect(second.lighting.lights[0].threeLight).not.toBe(first.lighting.lights[0].threeLight);
+  });
+
+  it('the lights do not wear an entity\'s clothes: every non-light child is still a REGISTERED body', () => {
+    // v140's proof counted a scene's objects through the headless backend, and those numbers were taken
+    // from a runtime whose scenes held no lights at all. Attaching the declared lighting moves that
+    // number, so the thing worth pinning is the boundary rather than the total: what a scene gains is
+    // LIGHTS, and nothing that used to be a body stops being one.
+    const scene = runtime.createScene('Counted');
+    runtime.createEntity(scene.id, 'Cube', 'mesh');
+    const registered = new Set([...scene.entities.values()].map((e) => e.threeObject));
+    const nonLights = scene.threeScene.children.filter((child) => (child as { isLight?: boolean }).isLight !== true);
+    expect(nonLights).toHaveLength(1);
+    expect(registered.has(nonLights[0]!)).toBe(true);
+  });
 });

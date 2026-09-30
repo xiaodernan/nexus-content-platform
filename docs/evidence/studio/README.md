@@ -9,6 +9,8 @@ fabricated results. Where the environment limited a check, that is stated honest
 npm run build lint typecheck test     # via turbo: build 4/4 · lint 3/3 · typecheck 6/6 · test 6/6
 npm run verify:harness                # 8/8 harness capabilities (ADR 0017)
 npm run verify:studio                 # 19/19 golden-path assertions against the real bundle
+npm run verify:scene-surface          # the 3D surface's headless proof (M5 v142, amendment 142)
+npm run verify:scene                  # 11/11 3D-surface assertions in a real browser (needs the Studio on :3210)
 ```
 
 Counts below are from `NODE_OPTIONS= npx vitest run --root <pkg> --no-file-parallelism`
@@ -20,7 +22,11 @@ Counts below are from `NODE_OPTIONS= npx vitest run --root <pkg> --no-file-paral
 | @nexus/ai-providers| 7/7 vitest, tsc clean |
 | @nexus/agent-runtime| 232/232 vitest · tsc clean — M2 v0–v41, ADR 0016 am. 1–41; see `docs/evidence/agents/README.md` |
 | @nexus/exec-host   | 181/181 vitest (8 files: git staged/show/commit/log tools, env isolation, exec test runner) · tsc clean |
-| @nexus/studio      | 119/119 vitest (`snap` `persist` `align` `store-variants` 20 `thumbnail` `rotate` 14 `render` `minimap` `agentDock` 18 `webfs` 3 `uiRun` 8 `dockPolicy` 6 `observability` 9 `instancePanel` 2) · tsc `--noEmit` clean · eslint `--max-warnings=0` clean · `next build` ✓ (4/4 static pages) |
+| @nexus/studio      | 149/149 vitest (17 files: `snap` `persist` `align` `store-variants` 20 `thumbnail` `rotate` 14 `render` `minimap` `agentDock` 18 `webfs` 3 `uiRun` 8 `dockPolicy` 6 `observability` 11 `instancePanel` 2 `scene3d` 16 `scene3dSurface` 5 `surface` 7) · tsc `--noEmit` clean · eslint `--max-warnings=0` clean · `next build` ✓ (4/4 static pages) |
+
+_Counts moved at M5 v142: the studio row was `119/119 (15 files)` and is now `149/149 (17 files)`.
+`instancePanel` gained no case — it gained a FIX (see the v142 section below), and the three new files are
+the 3D surface's. The `observability` row moved 9 → 11 with the second, separate reader._
 
 ## Reproducible browser verification (ADR 0017)
 
@@ -59,6 +65,59 @@ Proven end-to-end with assertions:
    instances of one master into **disjoint** clone subtrees, applies a text `override` to the clone
    while the master stays untouched (purity), maps each clone back to its owning instance, and the
    off-page master never appears in page layout.
+
+## The 3D surface (M5 v142, ADR 0016 amendment 142)
+
+The Studio's second surface, and the first PRODUCT consumer of `@nexus/three-runtime`. It is split the way
+ADR 0005 splits the 2D one — a pure model plus a renderer:
+
+- `src/lib/scene3d.ts` — pure, no React and no three. `buildDemoScene` composes one scene with four bodies
+  and one camera; `buildSceneReport` reads the runtime back as a plain JSON-safe report; `createStudioScene`
+  owns the frame count and performs exactly one frame write per step. Structural interfaces
+  (`SceneComposerLike`, `SceneAdapterLike`) keep it loadable during SSR and in a plain vitest process.
+- `src/components/Scene3D.tsx` — the ONLY file in the Studio that touches a canvas, a GL context or
+  three.js. It picks the backend with `webglAvailable()`, mounts the runtime, aims the camera through the
+  adapter, drives the loop, publishes the report on the read-only bridge and disposes everything on unmount.
+- The surface is VIEW state (`store.surface`, default `'2d'`): not part of the document, not undoable, not
+  persisted. The 2D canvas is untouched and the golden-path harness still drives it.
+
+**A defect the first consumer found.** Every M5 grant's own bound said the package had no product consumer;
+v142 built one, and the first thing it did was render a scene. `createScene` had been building two lights,
+storing them in `LightingConfig.lights` and attaching neither — so every scene from the package was **black**
+under its `MeshStandardMaterial` meshes, and 362 green cases could not see it because they asserted the
+config. Fixed in `packages/three-runtime/src/threeRuntime.ts`; the measurement is §2 of the proof below.
+
+**What is proven where.**
+
+| Check | What it grades | Result |
+| --- | --- | --- |
+| `src/lib/scene3d.test.ts` (16 cases) | the model, over a fake composer | 16/16 |
+| `src/lib/scene3dSurface.test.ts` (5 cases) | the model over the **real** `ThreeRuntime` on the headless seam | 5/5 |
+| `src/lib/surface.test.ts` (7 cases) | the surface as view state + the shipped component bytes (a toggle wired to no branch is refused) | 7/7 |
+| `docs/evidence/studio/scene-surface-proof.mjs` | the **shipped** Studio module (type-stripped, not copied) over the shipped runtime | all assertions |
+| `tools/harness/studio-scene3d.mjs` | the real bundle in a real browser | **11/11** |
+
+The proof's five sections: §1 the composed scene IS the runtime's own (every body id is a registered
+`ThreeEntity`, the graph names that scene active); §2 the lighting term — **1.316496580927726** with the
+declared lights attached and **exactly 0** without them, every body's `emissive` black; §3 the camera is a
+real `THREE.Camera`, aiming it moves it off the identity world matrix, and the frame the loop produced
+carried THAT camera and THAT scene into the backend; §4 the surface's step count and the backend's draw count
+are different questions, kept apart; §5 this repository's HEAD byte-identical.
+
+The browser probe, measured on this host 2026-09-29 (`NODE_OPTIONS= …/next dev -p 3210`, Chrome 153 over
+`--headless=new`): the Studio still opens on the 2D canvas painting `482900/482900` px; pressing `3D` mounts
+`#nexus-scene3d` and unmounts the 2D canvas; the bridge's frame count advances `12 → 23`; the report names
+`Studio Scene` with four bodies and one active camera; **`backend=webgl`** at `878×550` with 4 draw calls; a
+`92525`-byte PNG is written to `harness/studio-scene3d.png`; pressing `2D` restores the canvas, still fully
+painted; and the 3D reader answers `null` once the surface is unmounted. Headless Chrome does provide a
+software GL context on this box, so the screenshot is a render rather than a fallback.
+
+**Bounds (§60).** DEMO-MODE geometry only — four default meshes, one default camera, no assets, no model
+calls. No orbit/zoom camera control, no add/remove body from the UI, no lighting control, no save/load door,
+and nothing the 3D scene composes reaches the Design Document (two separate systems sharing a window).
+`Scene3D.tsx` has no unit test because there is no DOM test environment in this repo — its behaviour is
+covered by the headless proof and the browser probe, which is stated rather than implied. The HUD samples the
+report at most once per 10 frames, and the headless path says on screen that it draws no pixels.
 
 ## In-browser golden path (live React app)
 

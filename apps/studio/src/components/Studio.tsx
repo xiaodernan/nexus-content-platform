@@ -13,6 +13,7 @@ import HistoryPanel from './HistoryPanel';
 import AgentPanel from './AgentPanel';
 import PromptBar from './PromptBar';
 import PreviewOverlay from './PreviewOverlay';
+import Scene3D from './Scene3D';
 import { useStudio } from '@/lib/store';
 import { deserializeApp, serializeApp } from '@/lib/persist';
 import { browserStorage, STUDIO_DOC_KEY } from '@/lib/storage';
@@ -22,6 +23,7 @@ const SAVE_DEBOUNCE_MS = 500;
 
 export default function Studio() {
   const previewOpen = useStudio((s) => s.previewOpen);
+  const surface = useStudio((s) => s.surface);
 
   // Read-only observability bridge (§56/§57/§32): exposes editor state on `window.__nexus`
   // so verification and evaluation assert against the canonical model, not scraped markup.
@@ -59,7 +61,7 @@ export default function Studio() {
   }, []);
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', background: 'var(--nexus-bg)' }}>
+    <div data-surface={surface} style={{ display: 'flex', flexDirection: 'column', height: '100vh', background: 'var(--nexus-bg)' }}>
       <Toolbar />
       <div style={{ display: 'flex', flex: 1, minHeight: 0 }}>
         <aside className="panel" style={{ width: 240, borderLeft: 'none', borderBottom: 'none', borderTop: 'none', display: 'flex', flexDirection: 'column', minHeight: 0 }}>
@@ -81,10 +83,19 @@ export default function Studio() {
           <PageTabs />
           <AlignBar />
           <div style={{ flex: 1, minHeight: 0, position: 'relative' }}>
-            <Canvas />
-            <div style={{ position: 'absolute', left: 12, bottom: 12, zIndex: 5 }}>
-              <Minimap />
-            </div>
+            {/* M5 v142: the main pane shows ONE surface. The 2D canvas is the default and is untouched;
+                the 3D scene is the runtime's, mounted only while it is asked for, so its frame loop is
+                not running behind the editor. */}
+            {surface === '3d' ? (
+              <Scene3D />
+            ) : (
+              <>
+                <Canvas />
+                <div style={{ position: 'absolute', left: 12, bottom: 12, zIndex: 5 }}>
+                  <Minimap />
+                </div>
+              </>
+            )}
           </div>
           <PromptBar />
         </main>

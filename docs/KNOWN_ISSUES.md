@@ -107,6 +107,29 @@ Live list. Nothing here is hidden behind marketing copy.
   (it proves paint + captures the PNG for human/§30 inspection), and it is a local verification
   tool, not the §28/ADR 0013 untrusted-code sandbox.
 
+## Studio 3D surface (M5 v142, ADR 0016 amendment 142)
+- The Studio has a second surface: a **3D scene** mounted from `components/Scene3D.tsx` over
+  `@nexus/three-runtime` (the package's first product consumer). It is reached with the `3D`
+  toggle in the toolbar; the 2D canvas is the default and is untouched. `npm run verify:scene`
+  drives it in a real browser (**11/11**, `backend=webgl` on this host) and
+  `npm run verify:scene-surface` is the headless proof.
+- **DEMO-MODE geometry only.** One scene, four default meshes, one camera, no assets, no model
+  calls, no textures, no lights you can edit and no camera control (no orbit/zoom/pan). There is
+  no way to add or remove a body from the UI, and no save/load door.
+- **The 3D scene and the Design Document are separate systems** sharing a window. Nothing composed
+  in 3D appears in the 2D document, in exports, in the History panel or in the op log, and the
+  surface toggle is view state (not undoable, not persisted, per ADR 0014).
+- `Scene3D.tsx` itself has **no unit test**: this repo has no DOM test environment (no jsdom, no
+  testing-library). Its wiring is asserted by reading the shipped component bytes plus the headless
+  proof, and its behaviour by the CDP probe — stated rather than implied.
+- On a host with no GL context the surface falls back to the package's **headless** backend and
+  says so on screen; the graph, camera and frame loop are real there but no pixels are drawn. The
+  HUD samples the runtime's report at most once per 10 frames, so the frame count it shows can lag
+  the loop by up to 9 frames by construction.
+- A defect this surface found and v142 fixed: `createScene` declared two lights and attached
+  neither, so every scene rendered black under `MeshStandardMaterial`. If you build a scene by hand
+  outside `createScene`, attaching lights is still the caller's job — there is no `setLighting`.
+
 ## Architecture
 - `agents/runtime` (`@nexus/agent-runtime`) is now **implemented** through M2 v0–v6 (ADR 0016):
   the loop, permission-gated registry, hermetic workspace tools, hybrid code index (`fs.index`),

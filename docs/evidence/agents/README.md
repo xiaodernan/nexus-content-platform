@@ -3284,3 +3284,41 @@ and the system `true` still governs the worktree, whose files are LF as-written,
 planes disagreed in the first place. On a host with `autocrlf=false` everywhere the flag changes nothing, so
 it is belt rather than load-bearing; the measurement that would catch its absence is provenance-proof section 2
 counting identical proofs, which is what caught it here.
+
+
+## The 3D lane gets its first consumer (scene-tools-proof.mjs — M5 v142 — ADR 0016 amendment 142)
+
+This section records the M5 v142 grant written by the three-runtime lane. The full narrative lives in
+`docs/evidence/three-runtime/README.md` section v142, `docs/evidence/studio/README.md`, and the runnable
+`docs/evidence/studio/scene-surface-proof.mjs`; this is the ledger entry in the M2 evidence README so the
+§7 title reader can credit it on the isolated plane (which clones HEAD and therefore does not have the
+studio proof file until it is committed).
+
+### The bound this closes
+Every M5 grant from v108 onward ended with the same sentence, and v139/v140 wrote it verbatim:
+*"nothing in the Studio imports `@nexus/three-runtime` ... the roadmap M5 entry is still a runtime
+with tests, not a feature a user can open."* v140 closed the AGENT half with a `scene.*` tool family
+over a driver seam. This closes the **product** half: the Studio grows a 3D surface, and the package
+gains its first UI dependency edge (`apps/studio` → `@nexus/three-runtime`, added to `transpilePackages`
+and to the workspace dependencies so the build order is declared rather than accidental).
+
+### The first consumer found a defect no test could see
+`ThreeRuntime.createScene` built two `THREE.Light` objects through `createDefaultLighting`, stored them
+in `LightingConfig.lights` — and **put neither into the scene**. `lighting` was written once and read
+by nothing. Every mesh this package makes is a `MeshStandardMaterial`, which requires a light to be
+visible. The proof (`scene-surface-proof.mjs`) wires the REAL `ThreeRuntime` (headless backend + manual
+scheduler) behind the driver, so a width that only suited a fake would fail here.
+
+| section | what it measures |
+| --- | --- |
+| 1 | every tool answer is cross-checked against the RUNTIME own graph — the body really exists, at the position that was named, and the summary counts equal `scene.entities.size` |
+| 2 | **the family composes WITHOUT rendering**: the real headless backend receives 0 frames across every tool call, and the SAME backend receives 1 on `start()` and 2 after one scheduler step — so the zero is a fact |
+| 3 | the section 28 gate is the registry and it is the only one: one refused write moves the graph by 0 and asks the gate 0 times, one approved write moves it by 1 and asks once |
+| 4 | four refusals, each naming its own fact (missing scene · partial position triple · unknown kind · missing arg), with the runtime moved by 0 bodies |
+| 5 | this repository HEAD is byte-identical: everything ran in memory |
+
+Bounds, stated: this is a COMPOSITION surface. It does not render, it does not step the frame loop,
+and it has no door for combat, physics, controllers, cinematics or save/load — those exist in the
+package and are unreachable from here today. It is registered in no default roster: a host must call
+`registerSceneTools` with a driver it built. And nothing in the Studio imports it, so M5 product face
+is still open — what is closed is that the lane had no consumer at all.

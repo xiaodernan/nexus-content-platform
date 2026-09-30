@@ -1,0 +1,60 @@
+{
+  "results": [
+    {
+      "name": "the Studio still opens on the 2D canvas",
+      "ok": true,
+      "detail": "{\"surface\":\"2d\",\"has2d\":true,\"has3d\":false}"
+    },
+    {
+      "name": "the 2D canvas still paints",
+      "ok": true,
+      "detail": "482900/482900 px painted"
+    },
+    {
+      "name": "the toolbar exposes a 3D toggle",
+      "ok": true,
+      "detail": "toggle clicked: true"
+    },
+    {
+      "name": "pressing 3D swaps the surface (and unmounts the 2D canvas)",
+      "ok": true,
+      "detail": "{\"surface\":\"3d\",\"has2d\":false,\"has3d\":true}"
+    },
+    {
+      "name": "the read-only bridge answers for the 3D surface",
+      "ok": true,
+      "detail": "{\"schema\":1,\"backend\":\"webgl\",\"pixels\":{\"shadowMapEnabled\":true,\"shadowMapType\":2,\"shadowMapAutoUpdate\":true,\"toneMapping\":4,\"toneMappingExposure\":1,\"outputColorSpace\":\"srgb\",\"sortObjects\":true,\"pixelRatio\":1,\"width\":878,\"height\":550},\"scen"
+    },
+    {
+      "name": "the frame loop advances the surface count",
+      "ok": true,
+      "detail": "frames 2 → 11"
+    },
+    {
+      "name": "the report names the composed scene, its bodies and its camera",
+      "ok": true,
+      "detail": "{\"id\":\"scene-1790697247321-hxd6q7u6v4t\",\"name\":\"Studio Scene\",\"entities\":4,\"cameras\":1,\"animations\":0,\"entityNames\":[\"Ground\",\"Cube A\",\"Cube B\",\"Cube C\"],\"cameraNames\":[\"Studio Camera\"],\"activeCamera\":\"camera-1790697247322-27feg0c2jxki\"}"
+    },
+    {
+      "name": "the backend that answered is named in the HUD",
+      "ok": true,
+      "detail": "backend=webgl · backend: webgl · 878×550 @1x | frames: 10 · draw calls: 4 | WebGL — the GPU is drawing this."
+    },
+    {
+      "name": "a pixel screenshot of the 3D surface was captured (§30)",
+      "ok": true,
+      "detail": "92525 bytes → docs\\evidence\\studio\\harness\\studio-scene3d.png"
+    },
+    {
+      "name": "pressing 2D restores the canvas, still painting",
+      "ok": true,
+      "detail": "482900/482900 px painted"
+    },
+    {
+      "name": "the 3D surface reports nothing once it is unmounted",
+      "ok": true,
+      "detail": "scene3d() → null"
+    }
+  ],
+  "failed": 0
+}

@@ -160,6 +160,35 @@ export interface NexusBridge {
 }
 
 /**
+ * M5 v142 — the read-only side of the 3D surface, on the same bridge.
+ *
+ * The 3D scene is NOT part of the Design Document: it is a runtime the Studio composes and drives, so
+ * it cannot ride `snapshot()`. It gets its own installed reader instead of a second, parallel global,
+ * and it keeps the rule this file is built on — a snapshot function over a live source, no mutators,
+ * nothing invented. `Scene3D.tsx` registers the live surface; a component that is not mounted
+ * registers nothing, so `scene3d()` answering `null` means "no 3D surface is running", which is true.
+ */
+export interface Scene3DBridge {
+  /** The live scene report, read at call time. `null` when no 3D surface is mounted. */
+  scene3d: () => unknown;
+  /** Identifies the reader so a consumer can assert it is the real one. */
+  readonly version: string;
+}
+
+export function installSceneBridge(
+  read: () => unknown,
+  target: Record<string, unknown> = globalThis as unknown as Record<string, unknown>,
+): Scene3DBridge {
+  const bridge: Scene3DBridge = Object.freeze({
+    version: 'nexus-studio-scene3d/1',
+    scene3d: () => read(),
+  });
+  target.__nexusScene3d = bridge;
+  return bridge;
+}
+
+
+/**
  * Install the bridge. `getState` is called lazily on every read so the snapshot is always
  * current, and the object is frozen to make accidental mutation loud rather than silent.
  */
