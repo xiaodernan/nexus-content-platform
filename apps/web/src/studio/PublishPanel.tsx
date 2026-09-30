@@ -3,6 +3,7 @@
 import { useMemo, useState } from 'react';
 import { analyzeHealth } from '@nexus/design-model';
 import { cn } from '@/lib/cn';
+import { useRealtime } from '@/lib/useRealtime';
 import type { Visibility } from '@/server/domain/publish';
 import { HealthPanel } from './HealthPanel';
 import { studio, useStudioReady } from './store';
@@ -14,7 +15,14 @@ import { studio, useStudioReady } from './store';
  * 所以这里的数字不是"发布失败后才回传的残骸"，而是随时能读到的当前状态。
  * 测不了的（性能实测、视觉回归、AI 评审）明确落在"未运行"里——
  * 一条都没检查却显示"门禁通过"就是假绿（§159）。
+ *
+ * §163：面板还订着项目频道，把发布链路上推来的 `build.status` / `preview.status` 画成两行实时读数。
+ * 这两行只在**真的收到过事件**时出现（刚进 Studio 时不显示"构建：空闲"那种没来源的状态）；
+ * 权威状态依旧是上面那块从库里读出来的发布结果，实时只是让它快一点跟上。
  */
+
+const BUILD_LABEL = { idle: '空闲', building: '构建中', ok: '成功', failed: '失败' } as const;
+const PREVIEW_LABEL = { idle: '公开地址已收回', starting: '打开中', ready: '可达', failed: '解析不出来' } as const;
 
 const CHOICES: { id: Visibility; label: string; hint: string }[] = [
   { id: 'public', label: '公开', hint: '任何人拿到链接都能看；将来会出现在探索页' },
@@ -31,6 +39,17 @@ export function PublishPanel() {
     () => (state.document ? analyzeHealth(state.document) : null),
     [state.document],
   );
+  const [build, setBuild] = useState<{ status: keyof typeof BUILD_LABEL; log?: string } | null>(null);
+  const [preview, setPreview] = useState<{ status: keyof typeof PREVIEW_LABEL; url?: string } | null>(null);
+  const realtime = useRealtime({
+    projectId: state.projectId,
+    enabled: Boolean(state.projectId),
+    onEvent: (event) => {
+      if (event.projectId !== state.projectId) return;
+      if (event.type === 'build.status') setBuild({ status: event.status, log: event.log });
+      if (event.type === 'preview.status') setPreview({ status: event.status, url: event.url });
+    },
+  });
 
   const statusLabel = publication
     ? `${publication.visibility === 'private' ? '已停' : '已发布'} v${publication.version}`
@@ -122,6 +141,21 @@ export function PublishPanel() {
           {state.publishError ? (
             <p className="mb-2 text-11 text-danger" data-publish-error>
               {state.publishError}
+            </p>
+          ) : null}
+
+          {build ? (
+            <p className="mb-2 text-11 text-fg-3" data-publish-build={build.status}>
+              构建：{BUILD_LABEL[build.status]}
+              {build.log ? ` · ${build.log}` : ''}
+              {realtime.state === 'closed' ? '（实时已断开，以刷新后的数据为准）' : ''}
+            </p>
+          ) : null}
+          {preview ? (
+            <p className="mb-2 text-11 text-fg-3" data-publish-preview={preview.status}>
+              预览：{PREVIEW_LABEL[preview.status]}
+              {/* 路径是服务端给的那一条，不在这里用 origin 拼一遍——拼出来的和真能打开的那个可能不是一回事 */}
+              {preview.url ? ` · ${preview.url}` : ''}
             </p>
           ) : null}
 

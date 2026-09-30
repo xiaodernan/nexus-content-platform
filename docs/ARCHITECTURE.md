@@ -237,12 +237,14 @@ Postgres 为领域库 + pgvector 为检索；Redis 做队列/缓存/限流/实�
 多实例部署时换 Redis pub/sub 驱动（§94 说的 `realtime` 落在 Redis，就是这一处），生产者一行不改。
 报文只用 `packages/schemas` 的 `RealtimeEventSchema`：`agent.plan` `agent.step` `agent.activity`
 `generation.progress` `build.status` `preview.status` `notification`。
-**今天真的有生产者的是五类**：`generation.progress`（任务开始、每跑完一步、终态各推一格——
+**七种事件现在全部有生产者**（2026-09-30 补齐最后一对）：`generation.progress`（任务开始、每跑完一步、终态各推一格——
 中间那几格的分子是"已到终态的步数"，不是插值，见 `server/domain/agent-tasks.ts` 的 `publishTaskProgress`）、
-`notification`（新写了一条才推）、以及 §112 编排推的 `agent.plan` / `agent.step` / `agent.activity`
-（§162 的异步作业消费者把 provider 的活动翻译成后两类）。
-**仍没有生产者的是 `build.status` 与 `preview.status`**：它们要的是"会分步完成的构建 / 预览"，
-今天这条路还没有服务端终态可推（§164 的"没有来源"清单里剩下的就是 Build complete）。
+`notification`（新写了一条才推）、§112 编排推的 `agent.plan` / `agent.step` / `agent.activity`
+（§162 的异步作业消费者把 provider 的活动翻译成后两类），以及 `build.status` / `preview.status`
+——它们的生产者是**发布链路**：仓库里唯一真的分步走完的构建动作（门禁 → 机检 → 钉快照 → 落 publication 行
+→ 公网 URL 生效或收回），每一格都挂在一个真发生了的节点上，中间不插刻度。
+`preview.status` 读的是 `resolvePublishedPath` 那一遍**真实解析**的结果，所以"往外发布了却解析不出来"
+（多半是人工裁决挡的）与"收回之后还解析得出来"都报 `failed`，不跟着发布意图闭眼报就绪。
 一条纪律：实时是加速器不是权威来源——断线不补发（没有 `Last-Event-ID`），
 所以任何"数"（未读数、任务状态）都必须能从库里重新读到，UI 断开时明说"以刷新后的数据为准"。
 活动流只展示安全的工作状态，不暴露模型隐藏推理（§26）。

@@ -1216,8 +1216,12 @@ drizzle 把整个拼接结果当成**单个绑定参数**，生成的 SQL 是 `o
   界面上那句"正在生成"要能自己停下来；§112 的多步作业还每跑完一步推一格，见下面 §112 那一节）、
   `notification`（真的新写了一条才推，duplicate/suppressed 不推）、
   以及 §162 的 web 侧消费者与 §112 的编排推的 `agent.step` / `agent.activity`（异步作业的活动按游标推，推过的不推第二遍）。
-  仍欠：`build.status` / `preview.status` 两种事件**还没有生产者**
-  （它们要的是"会分步完成的构建 / 预览"，今天服务端没有这样的终态可推）；
+  `build.status` / `preview.status` 两种事件**也有生产者了**（2026-09-30）：发布链路是仓库里唯一
+  **真的分步走完**的构建动作（门禁 → 机检 → 钉快照 → 落 publication 行 → 公网 URL 生效或收回），
+  每一格都挂在一个真发生了的节点上，中间不插刻度。`preview.status` 读的是
+  `resolvePublishedPath` 那一遍**真实解析**的结果，所以"往外发布了却解析不出来"（多半是人工裁决挡的）
+  与"收回之后还解析得出来"都报 `failed`，不跟着发布意图闭眼报就绪。
+  至此 `RealtimeEventSchema` 里**七种事件全部有生产者**；
   断线期间的事件不补发（没有 `Last-Event-ID`），所以实时只当加速器、权威状态一律读库——这条限度写在 ADR 后果第 4 条，
   UI 上断开时显示"以刷新后的数据为准"而不是假装还在实时。
   顺带修掉一处会污染终态的假象：provider 带 `error` 返回 HTTP 200（DEMO Mock 遇到没实现的指令就是这样）
@@ -3227,8 +3231,9 @@ M8 整格仍是 `[~]`：MCP 与外部 Agent 那一格还没动，项目的创建
   （连 `/api/auth/register` 也是），看上去像我把代码改坏了。判据：404 遍布全部路由就先查端口上是谁在听
   （`netstat -ano` + 按 PID 杀那个子进程），不要先改代码。
 - **文档 census 跟着改**：`ARCHITECTURE.md` 与本页那句"只有 `generation.progress` 与 `notification` 有生产者"
-  从 34a22bb 起就过期了。现在写的是七种事件里**五类有生产者**
-  （`generation.progress`、`notification`、以及编排与 §162 消费者都推的 `agent.plan` / `agent.step` / `agent.activity`），
-  仍欠 `build.status` / `preview.status`——那正对应 §164 的"没有来源"清单里剩下的 Build complete。
-- **还没做**：跨实例（总线是进程内的，多实例部署收不到别的实例的事件）；`build.status` / `preview.status` 还没有生产者；
-  `awaiting_approval` 那一档没有 TTL。§163 那一格因此仍是 `[~]`。
+  从 34a22bb 起就过期了。**2026-09-30 更新：七种事件现在全部有生产者**——
+  `generation.progress`、`notification`、`agent.plan` / `agent.step` / `agent.activity`（编排与 §162 消费者），
+  以及最后一对 `build.status` / `preview.status`（发布链路，见上面 §163 那一条）。
+  所以 §164 的"没有来源"清单里，Build complete 也**不再是"没有来源"**。
+- **还没做**：跨实例（总线是进程内的，多实例部署收不到别的实例的事件）；
+  `awaiting_approval` 那一档没有 TTL。§163 那一格因此仍是 `[~]`（欠的是跨实例与补发，不再是生产者）。

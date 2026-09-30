@@ -1,6 +1,7 @@
 import { cache } from 'react';
 import { and, desc, eq, isNotNull, isNull, ne, sql as rawSql } from 'drizzle-orm';
 import { analyzeHealth, type DesignDocument, type HealthReport } from '@nexus/design-model';
+import type { RealtimeEvent } from '@nexus/schemas';
 import { getDb } from '../db/client';
 import { recordAudit } from './audit';
 import { assets, games, projects, publishedProjects, users } from '../db/schema';
@@ -9,6 +10,7 @@ import { loadDocument } from './projects';
 import { currentBranchId } from './branches';
 import { emit } from './notifications';
 import { createSnapshot, readSnapshot } from './snapshots';
+import { channels, getRealtimeBus } from '../realtime/bus';
 
 /**
  * §56 / §57：Publish 与分享链接 `/n/<handle>/<slug>`。
@@ -99,6 +101,36 @@ async function assetProvenance(projectId: string): Promise<AssetProvenance[]> {
   return rows.map((row) => ({ id: row.id, name: row.name, kind: row.kind, source: row.source as AssetProvenance['source'] }));
 }
 
+/**
+ * §163：`build.status` 与 `preview.status` 的第一（也是今天唯一）个生产者。
+ * 之所以是发布：它是仓库里唯一**真的分步走完**的构建动作——门禁 → 机检 → 钉快照 → 落 publication 行
+ * → 公网 URL 生效或收回。每一格都挂在一个真发生了的节点上，中间不插刻度（同 §163 对生成进度的口径）。
+ *
+ * `preview.status` 不是"库里有行就说就绪"：它读的是 `resolvePublishedPath` 那一遍**真实解析**的结果，
+ * 也就是公开页自己用的那条路。人工裁决 rejected、快照读不出来、行没写上一致——这些情况这里会说 `failed`，
+ * 而不是跟着发布意图报就绪。
+ */
+function emitBuildStatus(projectId: string, status: 'building' | 'ok' | 'failed', log: string): void {
+  const event: RealtimeEvent = { type: 'build.status', projectId, status, log };
+  getRealtimeBus().publish(channels.project(projectId), event);
+}
+
+function emitPreviewStatus(projectId: string, status: 'ready' | 'idle' | 'failed', url: string): void {
+  const event: RealtimeEvent = { type: 'preview.status', projectId, status, url };
+  getRealtimeBus().publish(channels.project(projectId), event);
+}
+
+/**
+ * 把"公网那一条路径现在到底解不解得出来"翻成 `preview.status` 的一格。
+ * 判据来自解析结果而不是 `visibility`：往外发布却解析不出来 = `failed`（多半是人工裁决挡的），
+ * 收回之后还解析得出来同样 = `failed`（该断的没断），而不是闭眼报 `idle`。
+ */
+async function publishPreviewStatus(projectId: string, path: string, outward: boolean): Promise<void> {
+  const reachable = await resolvePublishedPath(path);
+  if (outward) emitPreviewStatus(projectId, reachable ? 'ready' : 'failed', path);
+  else emitPreviewStatus(projectId, reachable ? 'failed' : 'idle', path);
+}
+
 export async function publishProject(
   projectId: string,
   input: { visibility: Visibility } & PublishActor,
@@ -113,6 +145,8 @@ export async function publishProject(
 
   const document = await loadDocument(projectId);
   if (!document) return null;
+  // 真的开工了才推 building：项目不存在、文档读不出来这些情况连这一步都没到，不该有一条事件
+  emitBuildStatus(projectId, 'building', `门禁与机检 · 可见性 ${input.visibility}`);
   const gate = runPublishGate(document);
   // 门禁与机检都只管"往外公开"的方向：切成 private 是把链接收回来的下架动作，
   // 拿质量标准或审核去挡住作者下架，等于逼着一个不合格/有问题的页面继续挂在公网上的反面
@@ -127,7 +161,10 @@ export async function publishProject(
   const version = (existing?.version ?? 0) + 1;
   const scan = scanPublication(document, await assetProvenance(projectId));
   if (outward && !gate.passed) {
-    return { ok: false, reason: `门禁未通过：${gate.blockers[0] ?? '见检查清单'}`, gate, scan };
+    // 事件里的 log 与返回给客户端的 reason 是同一个字符串，不是各写一遍的两句同义话
+    const reason = `门禁未通过：${gate.blockers[0] ?? '见检查清单'}`;
+    emitBuildStatus(projectId, 'failed', reason);
+    return { ok: false, reason, gate, scan };
   }
   if (outward && scan.decision === 'blocked') {
     // 挡下也要立案：这次没有 publication 行可挂，所以 publicationId 为 null
@@ -139,12 +176,9 @@ export async function publishProject(
       scan,
     });
     const hit = scan.findings.find((f) => f.level === 'blocked');
-    return {
-      ok: false,
-      reason: `发布被机检挡下（${hit?.rule ?? 'redline'}）：${hit?.why ?? '命中 §129 硬红线'}`,
-      gate,
-      scan,
-    };
+    const reason = `发布被机检挡下（${hit?.rule ?? 'redline'}）：${hit?.why ?? '命中 §129 硬红线'}`;
+    emitBuildStatus(projectId, 'failed', reason);
+    return { ok: false, reason, gate, scan };
   }
 
   const handle = await ensureHandle(project.ownerId);
@@ -227,6 +261,9 @@ export async function publishProject(
     version,
     visibility: input.visibility,
   });
+  // 到这里才是"这一版构建产物真的落库了"：publication 行写好、审计与通知都记上了
+  emitBuildStatus(projectId, 'ok', `v${version} · ${publication.path} · 可见性 ${input.visibility}`);
+  await publishPreviewStatus(projectId, publication.path, outward);
   return { ok: true, publication, gate, scan, snapshotId: snapshot.id };
 }
 
@@ -261,6 +298,9 @@ export async function unpublishProject(projectId: string, actorId: string | null
       allowed: true,
       detail: { projectId, path: deleted[0]!.path },
     });
+    // 下架不是"构建"，所以这里只有 preview.status；而那一格读的还是解析结果——
+    // 行删了但路径仍解析得出来（例如另一行抢到了同一条 path）就是真故障，不能闭眼报 idle
+    await publishPreviewStatus(projectId, deleted[0]!.path, false);
   }
   return deleted.length > 0;
 }
