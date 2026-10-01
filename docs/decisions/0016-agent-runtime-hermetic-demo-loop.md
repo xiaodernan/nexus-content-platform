@@ -6812,6 +6812,8 @@ the lane's rule is that an unrecorded measurement is a measurement nobody can fi
   its witness — v132's bound, closed at v133 for the runner and still true of any caller that reads the line
   and not the code.
 
+The landing's two-plane sweep table and spot-witness census live in the README v141 section (worktree 74 rows / 0 failed / 0 killed in 692 s, isolated 74 / 0 / 0 in 671 s, both at `c8396a3`); this record keeps the narrative, that table keeps the numbers.
+
 ### Amendment 142 (M5 v142, studio + three-runtime) — the 3D lane gets its FIRST PRODUCT CONSUMER, and the first consumer is what finds that a declared light was never attached
 
 _Numbering: 142 was free (`grep -n "^#\{2,3\} Amendment"` topped out at 140; 141 is the owed M2 record
@@ -6894,22 +6896,6 @@ this is the ledger entry._
   unit-tested (there is no DOM test environment here): its behaviour is covered by the headless proof and the
   browser probe, and that is stated rather than implied.
 
-
-### Amendment 141 (M2 v141, evidence) — the clone plane stops lying about BYTES: the checkout writes the blob own bytes, the first isolated line names HOW the dest was chosen, and section 4 shrink claim becomes a census decision
-
-Three findings the v132 clone staging surfaced, measured 2026-09-29 rather than assumed:
-
-1. BYTES (provenance-proof section 2 / clone checkout). This box system gitconfig has core.autocrlf = true (git config --show-origin core.autocrlf gives file:C:/Program Files/Git/etc/gitconfig true), so the clone checkout materialized CRLF where git show HEAD:file answers LF — disk bytes differ from shown bytes, disk carries 0x0D, shown does not — and provenance-proof section 2 therefore counted 0 of 74 proofs identical to their committed bytes on the cloned plane, while the home worktree measures the opposite (disk == git show, both LF: no checkout has rewritten those bytes since they were written). Two planes reading different BYTES for the same ref is the drift this runner exists to catch, and v132 own claim (stages the same tracked bytes) is only true without the conversion. git clone -c core.autocrlf=false is the config own door: measured after the change, git config --get core.autocrlf gives false inside the clone, status --porcelain is clean, disk == git show byte for byte — and the command word stays clone at argv[0] where gitCommandsIn reads it, because git -c core.autocrlf=false checkout ref leaves that arm empty (measured: the tokenizer takes the first argument after the program as THE command).
-
-2. THE LINE (drive-axis-proof section 3). The row takes the FIRST isolated line a caller log sees, and the clone arm line said WHERE the dest was but not HOW it was chosen — line 137 failed with the line must name HOW the dest was chosen, not only where it is on both planes. The line now carries chosen: where.chose as well; both arms measured green after (default: repo-drive FORCED off tmpdir by the drive mismatch; cross-drive arm: caller-supplied).
-
-3. SECTION 4 SHRINK (isolated-proof). The row asserted cleanTree.files < home.files — the home plane census says 63 untracked (isolation removes them; the strict claim is correct there), but on the isolated plane this row STANDS in a clone the runner just staged: census 230 tracked, 0 untracked, 0 ignored (measured on the failed run), so the assertion reduced to 230 < 230 and could only fail — and it did, the first time that row ever reached its own assertions on this plane (pre-v132 it died at git ls-tree exit 128 first). The census now picks the sentence: unowned > 0 gives the strict shrink claim; 0 gives IDENTITY (count AND bytes, which is strictly stronger than smaller).
-
-Two witnesses were left stale when v132/v133 landed without them, measured red on the worktree plane before this commit: confession-proof helperArms still wanted gitCommandsIn(sweep.mjs, isolatedCheckout) = archive where the body now reaches clone + checkout + archive (want updated to the measured trio), and drive-axis asks-declaration still said git archive HEAD once per sw.isolatedCheckout call where the body clones first (clone + checkout declared now, archive named as the v133 fallback it is — the grammar knows clone, measured).
-
-The sweep at commit c8396a3 verified both planes: worktree 74 scripts, 0 failed, 0 killed, 692s; isolated 74 scripts, 0 failed, 0 killed, 671s (graded build 2d04ef776f68808c / 288 dist files; runner build 6fdf2eb7a3c1197b / 268 files; tree 8b260da25c7617db / 230 files). confession section 0 finds sweep.mjs == HEAD byte-for-byte. Asks axis still 4 declaring rows. Plane axis call sites unchanged: git -c adds no spawn and clone -c keeps clone at argv[0], so gitCommandsIn(sweep.mjs, isolatedCheckout) = clone,checkout,archive (measured on the edited bytes) and no new call site enters the census. Identity sync probe still answers status 0 (measured 6/6 this session).
-
-The DEBT from v132/v133 is retired: all 4 isolated-plane reds and the 2 worktree reds are green, and the clone plane now honestly stages the ref own bytes.
 
 ### Amendment 143 (M2 v143, docs/evidence) — the code-position arm skips global options like the free-text matcher already does, so `run('git', ['-c', k=v, verb])` names its verb
 

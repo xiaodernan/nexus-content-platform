@@ -56,7 +56,7 @@ same file is then asserted to run ZERO programs. `porcelain-path-proof.mjs` (v61
 ## Reproducible gates
 
 ```
-npm test          # turbo: @nexus/agent-runtime 429/429 + @nexus/exec-host 275/275 vitest among all packages
+npm test          # turbo: @nexus/agent-runtime 473/473 + @nexus/exec-host 275/275 vitest among all packages
 npm run build     # tsc dist for agents/runtime + agents/exec-host (build order via ^build deps)
 node docs/evidence/agents/agent-proof.mjs
 node docs/evidence/agents/code-index-proof.mjs   # requires `npm run build` first
@@ -3288,6 +3288,8 @@ it is belt rather than load-bearing; the measurement that would catch its absenc
 counting identical proofs, which is what caught it here.
 
 
+Spot witnesses stayed as the census found them: `confession-proof` section 0 finds `sweep.mjs` byte-equal to HEAD on both planes, the asks census still declares its 4 rows (closure, cwd-axis, drive-axis, table-recount) with the same 3 uncorroborated, the plane-axis call sites are unchanged (`git -c` adds no spawn and `clone -c` keeps `clone` at argv[0]), and the identity sync probe answers status 0 (measured 6/6 in the session). The v132/v133 debt is retired: all 4 isolated-plane reds and the 2 worktree reds are green, and the clone plane now honestly stages the ref own bytes.
+
 ## The 3D lane gets its first consumer (scene-tools-proof.mjs — M5 v142 — ADR 0016 amendment 142)
 
 This section records the M5 v142 grant written by the three-runtime lane. The full narrative lives in
@@ -3324,6 +3326,32 @@ and it has no door for combat, physics, controllers, cinematics or save/load —
 package and are unreachable from here today. It is registered in no default roster: a host must call
 `registerSceneTools` with a driver it built. And nothing in the Studio imports it, so M5 product face
 is still open — what is closed is that the lane had no consumer at all.
+
+## A flag-first argv names its verb, because the free-text matcher already skips global options (sweep.mjs — M2 v143 — ADR 0016 amendment 143)
+
+The code-position arm read THE command as the first literal after the program (`asArgv` is `last ===`
+`['` — true for the first literal only), so a global option in front of the verb blinded it:
+`run('git', ['-c', 'core.autocrlf=false', 'checkout', ref])` extracted `[]`, and the ~20 `-C`-first
+call sites across 19 proofs were invisible to the very arm whose free-text twin reads `git -c x status`
+as one command. The `afterProgram` branch now completes on the first COMMAND-shaped literal while its
+frame is on top — `sub === null` keeps the first verb the winner; a nested call or array pushes a new
+frame, so only literals that ARE this argv complete it — and the v95 comment above it was updated to
+say the same.
+
+Measured on synthetic shapes, before → after: `["-c", k=v, "checkout"]` `[]` → `["checkout"]` ·
+`["-c", k=v]` `[]` → `[]` (the command moves forward, it is not invented) · `["-C", dir, "rev-parse"]`
+`[]` → `["rev-parse"]` · `["archive", "--format=tar"]` unchanged · parameter-bound argv unchanged
+(the documented blind spot stays blind) · `gitCommandsIn(sweep.mjs, "isolatedCheckout")` still
+`["clone","checkout","archive"]`, which is why v141 chose `clone -c` over `git -c`.
+
+Population, counted rather than guessed: those ~20 call sites resolve now, every one of their files
+already had a command-first reach, so the asks census is byte-identical — declared still 4 rows,
+uncorroborated still the same 3 — and the plane-axis synthetic grammar has no flag-first case, so its
+section 1 cannot move. Confession gained two witnesses for the fixed shape: `-c` plus a verb names the
+verb, `-c` alone names nothing. At `7ee35d3` the three grammar rows (confession, asks-axis, plane-axis)
+ran green; the full sweep at that commit had 3 worktree + 1 isolated red, none of them this arm's —
+untracked `.scratch` copies outranked real paths in the worktree index, and grant 142 had no record
+title where a title reader looks (since closed by the README 142 section above).
 
 ## The world lane gets its first consumer (world-tools-proof.mjs — M4 v144 — ADR 0016 amendment 144)
 
