@@ -24,6 +24,15 @@ class Completion:
     latency_ms: float
 
 
+@dataclass(frozen=True)
+class EmbeddingResult:
+    vectors: list[list[float]]
+    provider: str
+    model: str
+    tokens_in: int
+    latency_ms: float
+
+
 class LLMProvider(Protocol):
     kind: str
     name: str
@@ -31,3 +40,12 @@ class LLMProvider(Protocol):
     def models(self) -> list[str]: ...
 
     def complete(self, *, model: str, system: str, user: str) -> Completion: ...
+
+
+class EmbeddingProvider(Protocol):
+    kind: str
+    name: str
+
+    def models(self) -> list[str]: ...
+
+    def embed(self, *, model: str, texts: list[str]) -> EmbeddingResult: ...

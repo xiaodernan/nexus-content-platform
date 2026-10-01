@@ -11,6 +11,7 @@ MODEL_CLASS_ENV = {
     "balanced": "NEXUS_MODEL_BALANCED",
     "reasoning": "NEXUS_MODEL_REASONING",
     "vision": "NEXUS_MODEL_VISION",
+    "embedding": "NEXUS_MODEL_EMBEDDING",
 }
 
 DEFAULT_MODELS = {
@@ -18,6 +19,7 @@ DEFAULT_MODELS = {
     "balanced": "gpt-4o",
     "reasoning": "gpt-4o",
     "vision": "gpt-4o",
+    "embedding": "text-embedding-3-small",
 }
 
 
