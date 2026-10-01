@@ -47,7 +47,7 @@ import {
   type RenderBackend,
   type RenderBackendFactory,
 } from './renderBackend.js';
-import { SAVE_TEMP_SUFFIX, type SaveStore } from './saveStore.js';
+import { SAVE_TEMP_SUFFIX, savePathRefusal, type SaveStore } from './saveStore.js';
 
 export { DEFAULT_THREE_CONFIG };
 
@@ -1935,15 +1935,25 @@ export class ThreeRuntime {
    * written with a made-up timestamp wins honestly and the caller who wrote it knows why.
    *
    * A file that is listed but cannot be understood does not fail the answer: it is reported in `unreadable`
-   * with its reason (not JSON, not an object, a foreign `format`, a `version` this runtime does not read, a
-   * `savedAt` that is not a finite number), because a menu that dies on one corrupt save is unusable. Ties are
-   * broken by path and counted, so "which one did you pick" has an answer in the result.
+   * with its reason (a name this build will not re-enter, not JSON, not an object, a foreign `format`, a
+   * `version` this runtime does not read, a `savedAt` that is not a finite number), because a menu that dies on
+   * one corrupt save is unusable. Ties are broken by path and counted, so "which one did you pick" has an answer
+   * in the result.
    */
   latestSaveFile(): SaveFileLatest | null {
     if (!this.storage) throw new Error('latestSaveFile: this runtime has no SaveStore — create it with { storage }');
     const unreadable: { path: string; why: string }[] = [];
     const readable: { path: string; savedAt: number; version: number }[] = [];
     for (const path of this.storage.list()) {
+      // The store's own name comes back through the store's own door, and the two can disagree: a POSIX listing
+      // can hold a name this build's naming rule refuses (v150). `read` would throw that refusal out of the
+      // menu, so the survey asks the door first and reports it — the name stays visible and the other saves stay
+      // readable. A caller who NAMED the file still meets the door where they met it (`readSaveFile` throws).
+      const refusal = savePathRefusal(path);
+      if (refusal !== null) {
+        unreadable.push({ path, why: `listed by the store under a name this build will not re-enter: ${refusal}` });
+        continue;
+      }
       const contents = this.storage.read(path);
       if (contents === null) {
         unreadable.push({ path, why: 'listed but nothing was read back — the store changed underneath the listing' });
@@ -1997,17 +2007,28 @@ export class ThreeRuntime {
    * no-op-means-`false` answer, the same `saveFileDeleted` event, one owner. `kept` is the honest
    * acknowledgement that a listing is a snapshot: a name that was there when `list()` answered and gone by
    * the time `delete` was asked is reported, not invented away.
+   *
+   * `refused` is the third answer and it is NOT `kept`: a name the store lists that this build's naming rule
+   * will not re-enter (a POSIX `legacy\x.tmp` predating v150) is still on the host, so calling it `kept` would
+   * be right about the bytes and wrong about the reason, while the current `kept` means "asked, found nothing".
+   * One such name must not stop the sweep from taking the rest, so the sweep reports it and moves on.
    */
-  sweepTempFiles(): { store: string; removed: string[]; kept: string[] } {
+  sweepTempFiles(): { store: string; removed: string[]; kept: string[]; refused: { path: string; why: string }[] } {
     if (!this.storage) throw new Error('sweepTempFiles: this runtime has no SaveStore — create it with { storage }');
     const removed: string[] = [];
     const kept: string[] = [];
+    const refused: { path: string; why: string }[] = [];
     for (const path of this.storage.list()) {
       if (!path.endsWith(SAVE_TEMP_SUFFIX)) continue;
+      const refusal = savePathRefusal(path);
+      if (refusal !== null) {
+        refused.push({ path, why: `listed temp debris this build will not re-enter, so the sweep left it on the host: ${refusal}` });
+        continue;
+      }
       if (this.deleteSaveFile(path).removed) removed.push(path);
       else kept.push(path);
     }
-    return { store: this.storage.kind, removed, kept };
+    return { store: this.storage.kind, removed, kept, refused };
   }
 
   /**
@@ -2106,13 +2127,22 @@ export class ThreeRuntime {
     total: number;
     loadable: SaveFileDiagnosis[];
     unloadable: SaveFileDiagnosis[];
-    unreadable: { path: string; reason: 'not-json' | 'listed-then-missing'; why: string }[];
+    unreadable: { path: string; reason: 'not-json' | 'listed-then-missing' | 'name-not-reenterable'; why: string }[];
   } {
     if (!this.storage) throw new Error('diagnoseSaveFiles: this runtime has no SaveStore — create it with { storage }');
     const loadable: SaveFileDiagnosis[] = [];
     const unloadable: SaveFileDiagnosis[] = [];
-    const unreadable: { path: string; reason: 'not-json' | 'listed-then-missing'; why: string }[] = [];
+    const unreadable: { path: string; reason: 'not-json' | 'listed-then-missing' | 'name-not-reenterable'; why: string }[] = [];
     for (const path of this.storage.list()) {
+      // A name the store lists and this build refuses is its OWN reason, decided by the door answering, before
+      // any byte is read: it is neither "nothing came back" nor "bytes that are not JSON", and folding it into
+      // either would send the caller to fix the file instead of the name. `why` quotes the door's sentence for
+      // the reader; `reason` never depends on that wording.
+      const refusal = savePathRefusal(path);
+      if (refusal !== null) {
+        unreadable.push({ path, reason: 'name-not-reenterable', why: `listed by the store, but this build will not re-enter the name: ${refusal}` });
+        continue;
+      }
       // The reason is decided by WHICH check failed, not by reading an error sentence back: the survey does its
       // own read, so "nothing came back" and "bytes that are not JSON" are two situations it observes itself.
       // A caller forced to string-match a message to branch is a caller whose branch breaks the moment the

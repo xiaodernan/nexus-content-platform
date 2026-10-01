@@ -7286,3 +7286,92 @@ _Numbering: 148 — 146 and 147 were claimed by the three-runtime lane in the sa
   no relationship or goal is simulated, and the RAG is queryable from the agent lane rather than from the
   panel. The world is not part of the design document and is not persisted (the same boundary `previewOpen`
   and the 3D scene sit on), and the surface is one of three views rather than a new document concept.
+
+### Amendment 150 (M5 v150, three-runtime) — a save name has ONE owner between the confinement and the host: the
+backslash that already decided a refusal now decides the bytes on disk
+
+`packages/three-runtime/src/saveStore.ts` confined a save name by splitting it on `[\\/]` (`:92` at `0ea322e`) and
+then handed the name to the host UNCHANGED. One policy, two owners of the name's identity: a backslash was a
+separator when it helped refuse `saves\..\escape.json`, and an ordinary character the moment the same bytes reached
+a POSIX host — where `saves\hero.json` is one file whose NAME holds a backslash — while this host writes it into a
+directory. So `list()` was a count that depended on the machine reading it, and a save the caller wrote under one
+spelling could be silently replaced by a write under the other. Measured by a 12-leg probe
+(`.scratch/vnext/probe196.mjs`, `probe196-measurement.json`: all 12 legs green at `c8396a3`), and re-collected at the
+landing ref as run A: 12 legs collected, 11 green, and the twelfth — `sweepTempFiles` reaching a backslash-named temp
+— is now UNREACHABLE for a v146 reason (`resolveNewSavePath` refuses to CREATE a name ending in `.tmp`,
+`saveStore.ts:121`). That red is attributed and recorded beside the hole rather than counted as the hole closing.
+
+- **Canonicalising was measured and REJECTED, not skipped.** `decide196.mjs` ran one decision probe under three
+  rules on the same frozen plane — `none` (shipped), `refuse`, and `canonical` (`return path.replace(/\\/g,'/')`) —
+  with the legacy name seeded BELOW the seam, which is what the shipped code produced before any rule existed. The
+  third rule answers `delete() -> false` ("the path held nothing") while the host still holds the bytes, and sends a
+  write under the other spelling to a file the caller never named. That is the lie this seam refuses everywhere
+  else — v122's rule, a store must not report a success it cannot perform, and by the same logic must not report an
+  emptiness it cannot see — so `refuse` won, and a case pins the absence: the shipped door contains
+  `replace(/\\/g, '/')` exactly 0 times.
+- **The rule is a re-join, and the obvious clause was FALSIFIED by measurement.** The first draft asked
+  `segments.some((segment) => segment.includes('\\'))` AFTER that split — and the split had already eaten every
+  backslash, so the clause could never fire. Round 1 of the grant's own run said so out loud: `tsc --noEmit` exit 0,
+  403 cases collected, and the door refusing nothing while ten refusal cases printed
+  `expected [Function] to throw an error`. The rule that can still see the difference is
+  `segments.join('/') !== path` (`:111`): a name whose segments do not re-join is precisely a name that was split on
+  something the store does not join with, and every other shape is already refused by the clauses above it. The
+  grant file now pins the vacuous shape itself — `cannot be written against the segments, because the split that
+  reads the name already ate the backslash` — and the census asserts the segment scan appears 0 times beside the
+  re-join appearing once, so a future edit that restores the dead clause reddens the file rather than hiding in it.
+- **A name the CALLER chose meets the door; a name the STORE chose is reported.** `resolveSavePath` throws for
+  write, read, exists, delete and — through `resolveNewSavePath` — for creation. `list()` is a fact about the host,
+  so a name that predates the rule stays listed, and `savePathRefusal` (`:126`, the same door without the throw)
+  turns it into a bucket instead of an exception escaping a menu: `latestSaveFile` asks at `:1952`,
+  `sweepTempFiles` at `:2023` (its record gains `refused`), `diagnoseSaveFiles` at `:2141` (its reason union gains
+  `name-not-reenterable`). No branch keys on the wording — the case that seeds `a/.` joins the same bucket carrying
+  the `.` rule's own sentence, which is what makes the bucket structural rather than a string match.
+- **18 cases in `test/saveNameSpelling.test.ts`**, across four subjects: what the door refuses, what the store
+  reports about a name it cannot re-enter, every verb refusing a caller-chosen name out loud, and how narrow the
+  rule is. Three shipped `toEqual` pins in `test/saveSnapshot.test.ts` gain `refused: []`, because a sweep record
+  that grows a field must be re-pinned where it was pinned rather than exempted.
+- **Arms: 7 of 8 MATCHED their predicted red case names; W2 is deliberately COUNTED, not predicted.** Every arm is a
+  single edit applied to run C's plane, restored before the next, and 0 red landed outside the grant file in any of
+  them.
+  - W1 · MATCHED · the re-join clause is deleted from the door · collected 404 · 12 red, all predicted, in
+    saveNameSpelling.test.ts · outside 0 · the naming-rule census GREEN
+  - W2 · COUNTED · the clause widens to refuse EVERY name · collected 404 · 61 red = 10 in-grant + 51 outside, in
+    saveNameCollision (10), saveNameSpelling (10) and saveSnapshot (41) — the blast radius of the rule measured
+    rather than asserted · outside 0 by construction, since outside IS the count
+  - W3 · MATCHED · the guard is removed from `latestSaveFile` · 2 red: the save menu survives the refused name… /
+    the three surveys that re-enter a listed name all ask the door… · census RED · outside 0
+  - W4 · MATCHED · removed from `diagnoseSaveFiles` · 3 red: the diagnosis gives it a reason of its own / the branch
+    does not read the message / the three surveys… · census RED · outside 0
+  - W5 · MATCHED · removed from `sweepTempFiles` · 2 red: the sweep reports a refused temp… / the three surveys… ·
+    census RED · outside 0
+  - W6 · MATCHED · a refused temp is pushed into `kept` instead of `refused` · 1 red: the sweep reports a refused
+    temp, still removes the rest, and does not call it kept · census GREEN · outside 0
+  - W7 · MATCHED · the refused name borrows the `not-json` reason · 3 red: its own reason / the branch does not read
+    the message / the three surveys… · census RED · outside 0
+  - W8 · MATCHED · `savePathRefusal` always answers `null` (the door stays, the surveys stop asking) · 5 red: the
+    four reporting cases + `savePathRefusal answers about every name` · **census GREEN** — this is the arm that
+    separates behaviour from tokens: the call sites are still in the text while the behaviour is gone, and the file
+    says so
+- **Measured on a frozen plane, because the shared worktree has live writers.** `git clone -c core.autocrlf=false`
+  of `0ea322ecb8b0095c0011917d7b6540589c60c261` into `.scratch/vnext/plane6`; plane identity asserted before any run
+  (the plane's `saveStore.ts` 13,957 B / `79f8772f2136`, `threeRuntime.ts` 214,370 B / `d997aa881675`,
+  `saveSnapshot.test.ts` 167,816 B / `999980ce683a`, 0 CR in each). A0: 386 cases over 9 files, 0 red — v147's
+  published number, re-measured here rather than carried over. C: 404 cases over 10 files, 0 red, `tsc --noEmit`
+  exit 0. The final tree was restored to run C and graded again: 404 over 10, 0 failed, `equals run C: true`.
+  Harness `.scratch/vnext/planeMeasure196.mjs`, artifact `.scratch/vnext/plane6-measurement.json`, predictions
+  `.scratch/vnext/PREDICTIONS-196.md` (round 1 and round 2, both kept). Nothing in this grant wrote to the shared
+  worktree during measurement.
+
+**Bounds this entry does not cross.** The rule is about NAMES, not contents: a readable save whose name re-joins is
+still a readable save, and a refused name is never rewritten onto another file. Nothing rewrites or deletes a legacy
+file the host already holds — `list()` still prints its name, and the surveys now say out loud that this build will
+not re-enter it; the repair is outside the seam, on the host, by whoever owns the directory. This grant adds no
+consumer: 66 sites call `writeSaveFile`/`readSaveFile`/`deleteSaveFile` at `0ea322e`, and outside the package's own
+tests the carriers are three docs plus the declarations in `src/threeRuntime.ts`, so no shipped caller passes a
+backslash today and no user-visible outage is repaired here — the exposure is a caller's own string (a pasted
+Windows path in a save dialog is the obvious one), which is exactly the class a confinement rule exists for. The
+POSIX half of the divergence is measured against an injected POSIX-semantics host inside the grant file, not against
+this machine, which is Windows; the Windows half was measured on it. `sweepTempFiles()` gained a field, so a reader
+that pinned the whole record had to be re-pinned — three such pins, all in `test/saveSnapshot.test.ts` — and no
+other return shape changed.
+

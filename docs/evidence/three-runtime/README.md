@@ -2395,3 +2395,171 @@ section and C3's outside count were re-derived at the landing ref rather than ca
   `restorePlayer`
   or `loadSaveFile`, so this prevents a wrong number rather than repairing an outage a user has
   already seen.
+
+## v150 — a save name has ONE owner between the confinement and the host: the backslash that already decided a
+refusal now decides the bytes on disk
+
+`src/saveStore.ts` confined a save name in four clauses: not empty, not absolute, does not walk out with `..`,
+has no empty or `.` segment. Every one of them reads the name by splitting it — `const segments = path.split(/[\\/]/)`
+at `:92` of `0ea322e` — and then the function returned the caller's string **unchanged**. That is one policy with two
+owners of the name's identity. The store's own rule says a backslash is a separator: it is what refuses
+`saves\..\escape.json`. The host gets the raw bytes and decides for itself: on a POSIX host `saves\hero.json` is one
+file whose NAME contains a backslash, and on this Windows host it is a directory `saves` containing `hero.json`. So
+`list()` — v123's promise of "every save name the store holds" — was a count that depended on the machine reading
+it, and worse, a save the caller wrote under one spelling could be replaced, byte for byte, by a write under a name
+the other host considers the same file.
+
+**Measured before anything was written, on a 12-leg probe** (`.scratch/vnext/probe196.mjs`,
+`probe196-measurement.json`, all legs green at `c8396a3`):
+
+| leg | what the unpatched door answered |
+| --- | --- |
+| P-A1 | `resolveSavePath('saves\\hero.json')` returns the name unchanged |
+| P-A2 | the same function already calls a backslash a separator: `saves\..\escape.json` throws on `..` |
+| P-A3 | the memory store keeps `saves/hero.json` and `saves\hero.json` as TWO saves with distinct contents |
+| P-B1 | on a POSIX-semantics host a backslash stays an ordinary character in a name |
+| P-B2 | there the two spellings are two files, and each deletes on its own |
+| P-C1 | on THIS host the write into an existing root throws `ENOENT` — for a name the policy accepted |
+| P-C2 | once the directory exists the two spellings are ONE file and the last write won |
+| P-C3 | **the same script and the same store type report 2 saves on POSIX and 1 here** |
+| P-D1 | `writeSaveFile` accepts the backslash name and echoes it verbatim in `report.path` |
+| P-D2 | `latestSaveFile` treats the two spellings as two saves and answers the newest |
+| P-D3 | on a POSIX host the runtime lists and re-reads a save whose printed name contains a backslash |
+| P-D4 | `sweepTempFiles` reaches a backslash-named temp |
+
+P-C3 is the finding and P-C2 is its worst edge: a save is destroyed by a name the caller never typed, silently,
+because the host settled it. P-C1 is the same divergence from the write side — an OS error that blames the disk for
+what is a naming rule.
+
+**The probe was re-collected at the landing ref, and one leg is now unreachable for a reason of its own.** Run A put
+the same 12 legs onto a plane of `0ea322e` and collected 12, with 11 green and 1 red: P-D4 no longer reaches
+`sweepTempFiles`, because v146's rule refuses to CREATE a save whose name ends in the temp suffix
+(`resolveNewSavePath`, `saveStore.ts:121`). The prediction was written to expect exactly that one attributed red —
+`unattributed 0 · reason off prediction 0` — because a probe leg that dies for an unrelated rule is not the hole
+closing, and reporting it as one would have been the loudest possible way of hiding it.
+
+**The repair was chosen between two candidates by running both** (`decide196.mjs`, one decision probe under three
+rules on the same plane, the legacy file seeded BELOW the seam so it is exactly what shipped code could leave
+behind):
+
+| asked about a name whose spelling the rule changes | `none` (shipped) | `refuse` | `canonical` (`replace(/\\/g,'/')`) |
+| --- | --- | --- | --- |
+| `read(listed)` | the bytes | throws the refusal | `null` |
+| `exists(listed)` | `true` | throws | `false` |
+| `delete(listed)` | `true`, and it goes | throws | **`false`, while the host still holds the bytes** |
+| a write under the OTHER spelling | a second save | throws, no second save | lands on the canonical name; the legacy bytes survive as an orphan |
+
+`canonical` is a silent lie: `delete()` answering `false` means "the path held nothing", and here the host plainly
+holds it. That is the same class this seam has refused since v122 — a store must not report a success it cannot
+perform, and by the same logic must not report an emptiness it cannot see. So `refuse` is the rule, and a case pins
+the rejection in the shipped file: `resolveSavePath` contains `replace(/\\/g, '/')` exactly 0 times.
+
+**The obvious clause was falsified by this grant's own first run.** The draft asked, right after the split,
+`segments.some((segment) => segment.includes('\\'))`. It typechecked. The suite collected 403 cases. And the door
+refused nothing: ten refusal cases printed `expected [Function] to throw an error`, because the split that the
+clause sat behind had already eaten every backslash, so no segment could ever contain one. The rule that can see the
+difference is the one that asks the name to survive its own reading:
+
+```ts
+if (segments.join('/') !== path) {
+  throw new Error(`saveStore: "${path}" does not re-join to itself after this rule splits it on "/" and "\\", …`);
+}
+```
+
+A name whose segments do not re-join is precisely a name that was split on something this store does not join with —
+and every other shape that clause could catch is already caught by the four clauses above it, which is what makes it
+the narrow end rather than a fifth rule. The vacuous shape is now a case in its own right
+(`cannot be written against the segments, because the split that reads the name already ate the backslash`), and the
+text census asserts `segment.includes('\\')` appears 0 times beside `segments.join('/') !== path` appearing once, so
+a future edit cannot restore the dead clause quietly.
+
+**A name the CALLER chose meets the door; a name the STORE chose is reported.** That split is the design of the two
+halves. `write`, `read`, `exists`, `delete` and creation all go through `resolveSavePath`, so a caller is told, out
+loud, in a sentence that names both hosts and carries the name it refused. `list()` is different: it is a fact about
+the host, and a store may hold a file that predates the rule. A save menu that throws on such a name cannot show
+the other nine, so the three surveys that RE-ENTER a listed name ask `savePathRefusal` (`:126` — the same door, with
+the throw taken out) and classify instead: `latestSaveFile` at `:1952`, `sweepTempFiles` at `:2023` (its record gains
+a `refused` list), `diagnoseSaveFiles` at `:2141` (its reason union gains `name-not-reenterable`). No branch keys on
+the refusal's wording: the case that seeds a file named `a/.` joins the same bucket carrying the `.` rule's own
+sentence, which is what makes the bucket structural.
+
+**18 cases in `test/saveNameSpelling.test.ts`**, in four subjects: the door (`refuses a backslash…`,
+`refuses before any byte moves, on both stores`, `refuses the same name for creation too`, `does not canonicalise`,
+and the segment-shape case), what the store reports about a name it cannot re-enter (6 cases, including
+`a store holding nothing has all three answers empty, so a silent bucket cannot be a passing scan` — a bucket that
+is empty because nothing was refused and a bucket that is empty because the scan never ran must not both pass),
+every verb refusing a caller-chosen name (`write, read, delete and the single-file diagnosis all refuse it and none
+of them half-does the job`), and how narrow the rule is (3 text-level cases, including the rejection of
+canonicalisation). Three shipped `toEqual` pins in `test/saveSnapshot.test.ts` gain `refused: []`, because a record
+that grows a field is re-pinned where it was pinned, not exempted from the pin.
+
+**Arms: 7 of 8 MATCHED their predicted red case names, 0 red outside the grant file in any of them; W2 is
+deliberately COUNTED rather than predicted, because the point of it is a blast radius.** Each arm is one edit on
+run C's plane, restored before the next. The `census` column is the state of
+`the three surveys that re-enter a listed name all ask the door…` under that arm, and its point is that the arm
+which removes the BEHAVIOUR while leaving the TOKENS (W8) must find the census GREEN — otherwise the case would be
+testing the text, not the seam.
+
+| arm | edit | red (all inside the grant file) | census |
+| --- | --- | --- | --- |
+| W1 | the re-join clause is deleted from the door | 12: refuses a backslash… / refuses before any byte moves… / refuses the same name for creation… / does not canonicalise… / cannot be written against the segments… / the save menu survives… / the diagnosis gives it a reason… / the sweep reports a refused temp… / write, read, delete and the single-file diagnosis… / a backslash-named directory… / savePathRefusal answers about every name / the naming rule has one owner | GREEN |
+| W2 | the clause widens to refuse EVERY name | 61 total: 10 here + 51 outside (saveNameCollision 10, saveNameSpelling 10, saveSnapshot 41) | — |
+| W3 | the guard is removed from `latestSaveFile` | 2: the save menu survives the refused name / the three surveys… | RED |
+| W4 | removed from `diagnoseSaveFiles` | 3: its own reason / the branch does not read the message / the three surveys… | RED |
+| W5 | removed from `sweepTempFiles` | 2: the sweep reports a refused temp / the three surveys… | RED |
+| W6 | a refused temp is pushed into `kept` instead of `refused` | 1: the sweep reports a refused temp, still removes the rest, and does not call it kept | GREEN |
+| W7 | the refused name borrows the `not-json` reason | 3: its own reason / the branch does not read the message / the three surveys… | RED |
+| W8 | `savePathRefusal` always answers `null` (the door stays, the surveys stop asking) | 5: the 4 reporting cases + savePathRefusal answers about every name | **GREEN** |
+
+W2's number is the one worth keeping in mind when someone proposes widening this rule: refusing "every name" is not
+a stricter version of the same policy, it is a different program — 51 of the package's 404 cases die with it.
+
+**Measured on a frozen plane, because the shared worktree has live writers.** The suite ran on a local clone of HEAD
+with `-c core.autocrlf=false` (`0ea322ecb8b0095c0011917d7b6540589c60c261`), built because the shared worktree carries
+other lanes' in-flight edits; plane identity was asserted before any run (the plane's `saveStore.ts` held 13,957 B
+and hashed `79f8772f2136`, `threeRuntime.ts` 214,370 B / `d997aa881675`, `saveSnapshot.test.ts` 167,816 B /
+`999980ce683a`, each with 0 CR, so the plane is the ref's own bytes). Baseline A0 re-measured here rather than copied:
+**386 cases over 9 files, 0 red** — v147's published number, confirmed at this ref. With this grant's bytes applied
+(run C): **404 cases over 10 files, 0 red**, `tsc --noEmit` exit 0. After every arm ran, the plane was restored to
+run C's tree and graded again: 404 over 10, 0 failed, `equals run C: true`.
+
+| test file | cases | red |
+| --- | --- | --- |
+| characterController.test.ts | 39 | 0 |
+| cinematicSequence.test.ts | 78 | 0 |
+| combatRecord.test.ts | 23 | 0 |
+| packageFace.test.ts | 6 | 0 |
+| playerCeiling.test.ts | 11 | 0 |
+| saveNameCollision.test.ts | 10 | 0 |
+| saveNameSpelling.test.ts | 18 | 0 |
+| saveSnapshot.test.ts | 157 | 0 |
+| scenePhysics.test.ts | 30 | 0 |
+| threeRuntime.test.ts | 32 | 0 |
+| **10 files** | **404** | **0** |
+
+Re-run in the shared worktree at the landing, after these bytes were written there: 404 cases over 10 files, 0 red,
+with `saveNameSpelling.test.ts` collecting 18 and every per-file count equal to the plane's — which is what lets a
+gate figure and a commit figure mean the same code.
+
+### What v150 still does NOT cover — stated by name
+
+- **`listSaveFiles()` is still a bare list.** The runtime's own listing verb (`:1929`, `paths: this.storage.list()`)
+  does not classify: a store holding a name this build will not re-enter reports it as a path, and a caller who then
+  reads it gets a throw. The three SURVEYS classify; the plain listing does not, and no case pretends otherwise.
+- **A legacy file stays exactly where it is.** Nothing renames, rewrites or deletes a backslash-named save: it is
+  still listed, still unreadable through the seam, and now named in a bucket that says why. The repair is outside
+  this package, on the host, by whoever owns the directory.
+- **No UI face shows either bucket.** `sweepTempFiles().refused` and `unreadable[].reason === 'name-not-reenterable'`
+  have no consumer outside `packages/three-runtime`; nothing outside the package calls the save verbs at all (66
+  sites, and outside the package's own tests they are three docs plus the declarations).
+- **Names, not contents.** A save whose name re-joins is judged by the readers that already judge it; this grant
+  adds nothing about what is inside the bytes, and the temp-suffix rule (v146) is a separate clause with its own
+  arms.
+- **The POSIX half is simulated.** This machine is Windows, so P-C1/P-C2 were measured on it and the two-files side
+  of the divergence is measured against a POSIX-semantics `FsLike` written into the grant file (where `/` is the only
+  separator). A real POSIX runner would re-measure that half rather than trust the fixture.
+- **`refusalCensus()` does not count this door.** The census walks the `REFUSALS` table declared inside
+  `src/threeRuntime.ts` (`:3523`) and keys its rows by FIELD; a save-name refusal is raised in `src/saveStore.ts`
+  and is not a row there, so the number that census reports still understates how many named refusals a save can
+  meet on the way to the host.
+

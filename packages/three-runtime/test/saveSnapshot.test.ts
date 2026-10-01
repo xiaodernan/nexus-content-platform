@@ -2097,11 +2097,11 @@ describe('atomic save writes: a reader sees the old save or the new one, never a
     expect(store.list()).toEqual(['x.json', 'x.json.tmp']);
     const deleted: { path: string }[] = [];
     rt.addEventListener('saveFileDeleted', (d) => deleted.push(d as { path: string }));
-    expect(rt.sweepTempFiles()).toEqual({ store: 'fs', removed: ['x.json.tmp'], kept: [] });
+    expect(rt.sweepTempFiles()).toEqual({ store: 'fs', removed: ['x.json.tmp'], kept: [], refused: [] });
     expect(deleted).toEqual([{ path: 'x.json.tmp', store: 'fs', removed: true }]);
     expect(store.list()).toEqual(['x.json']);
     expect(tree.get('saves/root/x.json'), 'a sweep never touches a name it did not pick').toContain('"savedAt":1');
-    expect(rt.sweepTempFiles()).toEqual({ store: 'fs', removed: [], kept: [] });
+    expect(rt.sweepTempFiles()).toEqual({ store: 'fs', removed: [], kept: [], refused: [] });
     rt.dispose();
   });
 
@@ -2117,7 +2117,7 @@ describe('atomic save writes: a reader sees the old save or the new one, never a
       delete: () => false,
     };
     const rt = runtimeWithStore(racing);
-    expect(rt.sweepTempFiles()).toEqual({ store: 'memory', removed: [], kept: ['ghost.json.tmp'] });
+    expect(rt.sweepTempFiles()).toEqual({ store: 'memory', removed: [], kept: ['ghost.json.tmp'], refused: [] });
     rt.dispose();
   });
 

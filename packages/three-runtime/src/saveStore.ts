@@ -81,6 +81,18 @@ export interface SaveStore {
  * A save name arrives from a caller (and, on the read side, from a file a caller picked up somewhere), so the
  * absolute-form and `..` checks are the boundary. `''`, `.` and a trailing separator are refused too: a
  * "directory" is not a file name, and a store that wrote one would produce a save no reader could find.
+ *
+ * A backslash is refused on the same grounds it is READ on: the split below is `[\\/]`, so this rule already
+ * calls a backslash a separator when it refuses `saves\..\escape.json`, and then handed the name to the host
+ * unchanged — where POSIX keeps it as one file whose NAME holds the backslash and Windows writes it into a
+ * directory. One policy, two owners of the name's identity, and a store whose `list()` count depends on the
+ * machine reading it.
+ *
+ * The test is that the segments RE-JOIN to the name the caller passed, not that a segment contains a backslash:
+ * the segment split has already eaten every backslash, so a clause that scanned the segments for one could never
+ * fire — the first draft of this rule did exactly that and stayed green while refusing nothing. A name whose
+ * segments do not re-join is precisely a name that was split on something the store does not join with, and
+ * every other shape this rule refuses is already refused by the clauses above it.
  */
 export function resolveSavePath(path: string): string {
   if (typeof path !== 'string' || path.trim().length === 0) {
@@ -96,7 +108,28 @@ export function resolveSavePath(path: string): string {
   if (segments.some((segment) => segment === '' || segment === '.')) {
     throw new Error(`saveStore: "${path}" has an empty or "." segment; a save name is one path, not a directory or a placeholder`);
   }
+  if (segments.join('/') !== path) {
+    throw new Error(`saveStore: "${path}" does not re-join to itself after this rule splits it on "/" and "\\", so the name holds a backslash the store cannot own — the same bytes are one file NAMED with a backslash on a POSIX host and a directory on a Windows one. Name the save with "/" and the same bytes mean the same save on every machine`);
+  }
   return path;
+}
+
+/**
+ * The sentence `resolveSavePath` would throw for this name, or `null` when this build can re-enter it.
+ *
+ * A listing is a fact about the host and a refusal is a rule this build holds, so the two can disagree: a POSIX
+ * store may list `legacy\x.json` that predates the clause above, and `list()` still names it. A survey that then
+ * calls `read` meets the door and dies with it — one undeletable, unreadable name would take the whole save
+ * menu down. This hands the survey the door's OWN sentence as data so it can report the name instead of throwing
+ * it, and it holds no second naming rule: it asks `resolveSavePath`, so the two can never drift apart.
+ */
+export function savePathRefusal(path: string): string | null {
+  try {
+    resolveSavePath(path);
+    return null;
+  } catch (error) {
+    return (error as Error).message;
+  }
 }
 
 /**
