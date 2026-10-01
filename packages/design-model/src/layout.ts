@@ -877,6 +877,392 @@ export function resolveLayout(
   };
 }
 
+/**
+ * §147 增量布局：只重新计算受影响的子树。
+ * 当节点的 size/position/padding/layout 改变时，只有该节点的祖先链（到根）与后代需要重算；
+ * 其余分支直接复用上一帧的 resolved 节点与 paintOrder 位置。
+ * 调用方负责传入上一帧的 ResolvedLayout 与本次改动涉及的 nodeId 集合。
+ */
+export interface IncrementalLayoutOptions extends LayoutOptions {
+  prevLayout?: ResolvedLayout | null;
+  /** 本次改动直接涉及的节点（如拖拽改 size 的节点、改 padding 的容器等） */
+  changedNodeIds?: Set<string>;
+}
+
+export function resolveLayoutIncremental(
+  page: Page,
+  options: IncrementalLayoutOptions = {},
+): ResolvedLayout {
+  const { prevLayout, changedNodeIds = new Set(), ...layoutOpts } = options;
+
+  // 无旧布局、或根节点变了、或改动集合为空（全量更安全） → 走全量
+  if (!prevLayout || changedNodeIds.size === 0 || changedNodeIds.has(prevLayout.rootId)) {
+    return resolveLayout(page, layoutOpts);
+  }
+
+  const { tokens, mode = null, breakpoint, maxDepth = 60 } = layoutOpts;
+  const defaultFontSize = layoutOpts.defaultFontSize ?? 16;
+  const measureText = layoutOpts.measureText ?? heuristicMeasure;
+
+  // --- 复用上一帧的辅助函数/缓存（measure 缓存、resolvedTypography 等） ---
+  // 为避免把 resolveLayout 全抽成类，这里复制关键纯函数与常量（体积小、不随节点数增长）
+  const resolveNum = (value: unknown, fallback: number): number => {
+    if (value === undefined || value === null) return fallback;
+    if (typeof value === "number") return toNumber(value, fallback);
+    const raw = tokens?.resolveValue(value, mode) ?? value;
+    if (typeof raw === "number") return raw;
+    if (typeof raw !== "string") return fallback;
+    const parsed = Number.parseFloat(raw);
+    return Number.isFinite(parsed) ? parsed : fallback;
+  };
+
+  const axisSize = (
+    value: DesignNode["size"]["width"],
+  ): number | "hug" | "fill" =>
+    value === "hug" || value === "fill" ? value : resolveNum(value, 0);
+
+  const resolvedTypography = (node: DesignNode): ResolvedTypography => {
+    const t = node.typography;
+    return {
+      fontFamily: (() => {
+        const raw = tokens?.resolveValue(t?.fontFamily ?? "{font.body}", mode);
+        return typeof raw === "string" ? raw : "Inter, sans-serif";
+      })(),
+      fontSize: resolveNum(t?.fontSize ?? defaultFontSize, defaultFontSize),
+      fontWeight: toNumber(t?.fontWeight, 400),
+      lineHeight: t?.lineHeight ?? 1.5,
+      letterSpacing: resolveNum(t?.letterSpacing, 0),
+      align: t?.align ?? "left",
+      verticalAlign: t?.verticalAlign ?? "top",
+      decoration: t?.decoration ?? "none",
+      textCase: t?.textCase ?? "original",
+      runs: t?.runs,
+      nowrap: node.style.textWrap === "nowrap",
+    };
+  };
+
+  const paddingOf = (node: DesignNode) => ({
+    top: resolveNum(node.layout?.padding?.top, 0),
+    right: resolveNum(node.layout?.padding?.right, 0),
+    bottom: resolveNum(node.layout?.padding?.bottom, 0),
+    left: resolveNum(node.layout?.padding?.left, 0),
+  });
+
+  const RASTER_TYPES = new Set(["image", "video", "svg", "shape", "three", "webgl"]);
+  const TEXT_LIKE_TYPES = new Set(["text", "button", "input"]);
+
+  const intrinsicRaster = (node: DesignNode, avail: Box2): Box => {
+    const fallback = node.type === "svg" ? 24 : 120;
+    const w = axisSize(node.size.width);
+    const h = axisSize(node.size.height);
+    const baseW = w === "hug" ? fallback : w === "fill" ? (avail.width ?? fallback) : w;
+    const baseH = h === "hug" ? fallback : h === "fill" ? (avail.height ?? fallback) : h;
+    if (node.style.aspectRatio) return { width: baseW, height: baseW / node.style.aspectRatio };
+    return { width: baseW, height: baseH };
+  };
+
+  interface Box2 { width: number | null; height: number | null; }
+
+  const measureTextNode = (node: DesignNode, availWidth: number | null): Box => {
+    const typography = resolvedTypography(node);
+    const wrapMode = node.style.textWrap ?? "wrap";
+    const constrained = wrapMode === "nowrap" ? null : availWidth;
+    const result = measureText(node.text ?? "", typography, constrained);
+    const lineHeight = typography.lineHeight === "auto" ? 1.2 : Number(typography.lineHeight) || 1.2;
+    const leading = lineHeight > 3 ? lineHeight : lineHeight * typography.fontSize;
+    const maxLines = wrapMode === "truncate" ? 1 : wrapMode === "truncate-2" ? 2 : wrapMode === "truncate-3" ? 3 : Infinity;
+    const height = Math.min(result.height, leading * Math.min(result.lines ?? 1, maxLines));
+    const width = constrained !== null && wrapMode !== "wrap" ? Math.min(result.width, constrained) : result.width;
+    return { width, height: Math.max(leading, height) };
+  };
+
+  const cache = new Map<string, Box>();
+
+  const childAvail = (
+    parent: DesignNode,
+    child: DesignNode,
+    innerW: number | null,
+    innerH: number | null,
+  ): Box2 => {
+    const layoutMode = parent.layout.mode;
+    if (layoutMode === "none" || layoutMode === "stack") return { width: null, height: null };
+    const gap = resolveNum(parent.layout.gap, 0);
+    if (layoutMode === "grid") {
+      const columns = Math.max(1, parent.layout.columns ?? 1);
+      return { width: innerW === null ? null : Math.max(0, (innerW - gap * (columns - 1)) / columns), height: null };
+    }
+    if (layoutMode === "wrap") return { width: innerW, height: null };
+    const horizontal = layoutMode === "horizontal";
+    const mainSize = child.size[horizontal ? "width" : "height"];
+    const crossSize = child.size[horizontal ? "height" : "width"];
+    const crossAvail = horizontal ? innerH : innerW;
+    const mainConstraint = typeof mainSize === "number" ? mainSize : null;
+    const crossConstraint = typeof crossSize === "number" ? crossSize : crossAvail;
+    return horizontal ? { width: mainConstraint, height: crossConstraint } : { width: crossConstraint, height: mainConstraint };
+  };
+
+  // ---- 计算受影响的节点集合：changedNodeIds 的所有祖先 + 所有后代 ----
+  const affected = new Set<string>();
+  const collectAncestors = (id: string) => {
+    let cur = id;
+    while (cur) {
+      if (affected.has(cur)) break;
+      affected.add(cur);
+      const node = page.nodes[cur];
+      cur = node?.parentId ?? "";
+    }
+  };
+  const collectDescendants = (id: string) => {
+    const stack = [id];
+    while (stack.length) {
+      const cur = stack.pop()!;
+      if (affected.has(cur)) continue;
+      affected.add(cur);
+      const node = page.nodes[cur];
+      if (node) {
+        const kids = childrenOf(page, node);
+        for (const k of kids) if (k.visible) stack.push(k.id);
+      }
+    }
+  };
+  for (const id of changedNodeIds) {
+    collectAncestors(id);
+    collectDescendants(id);
+  }
+
+  // ---- 复用上一帧的 resolved 节点：未受影响的直接拷贝 ----
+  const prevResolved = prevLayout.nodes;
+  const resolved: Record<string, ResolvedNode> = {};
+  const paintOrder: string[] = [];
+
+  // 预先把未受影响的节点直接拷过来（保持 paintOrder 相对顺序）
+  for (const id of prevLayout.paintOrder) {
+    if (!affected.has(id)) {
+      const prev = prevResolved[id];
+      if (prev) {
+        resolved[id] = { ...prev, children: [...prev.children] };
+        paintOrder.push(id);
+      }
+    }
+  }
+
+  // ---- measure / place：只对受影响节点跑，其余复用缓存/结果 ----
+  // measure 缓存键同全量版；受影响节点会重算，未受影响的不会被查到
+  const measure = (rawNode: DesignNode, avail: Box2, depth = 0): Box => {
+    const node = applyResponsive(rawNode, breakpoint);
+    if (!affected.has(node.id)) {
+      // 未受影响：若旧布局里有该节点且几何没变，直接返回旧盒（不入缓存也行，反正不再查）
+      const old = prevResolved[node.id];
+      if (old) return { width: old.width, height: old.height };
+    }
+    const key = `${node.id}|${avail.width ?? "-"}|${avail.height ?? "-"}|${depth}`;
+    const cached = cache.get(key);
+    if (cached) return cached;
+    const box = measureUncached(node, avail, depth);
+    cache.set(key, box);
+    return box;
+  };
+
+  const measureUncached = (node: DesignNode, avail: Box2, depth: number): Box => {
+    const width = axisSize(node.size.width);
+    const height = axisSize(node.size.height);
+    const pad = paddingOf(node);
+    const gap = resolveNum(node.layout.gap, 0);
+    const crossPadX = pad.left + pad.right;
+    const crossPadY = pad.top + pad.bottom;
+
+    if (TEXT_LIKE_TYPES.has(node.type)) {
+      const wrapWidth = typeof width === "number" ? Math.max(0, width - crossPadX) : avail.width === null ? null : Math.max(0, (avail.width ?? 0) - crossPadX);
+      const measured = measureTextNode(node, wrapWidth);
+      const w = width === "hug" ? measured.width + crossPadX : width === "fill" ? (avail.width ?? measured.width + crossPadX) : (width as number);
+      const h = height === "hug" ? measured.height + crossPadY : height === "fill" ? (avail.height ?? measured.height + crossPadY) : (height as number);
+      return { width: w, height: h };
+    }
+    if (RASTER_TYPES.has(node.type)) {
+      const raster = intrinsicRaster(node, { width: avail.width, height: avail.height });
+      const w = width === "hug" ? raster.width : width === "fill" ? (avail.width ?? raster.width) : (width as number);
+      const h = node.style.aspectRatio ? w / node.style.aspectRatio : height === "hug" ? raster.height : height === "fill" ? (avail.height ?? raster.height) : (height as number);
+      return { width: w, height: h };
+    }
+
+    const children = visibleChildren(page, node, breakpoint);
+    if (!children.length) {
+      const w = width === "hug" ? crossPadX : width === "fill" ? (avail.width ?? crossPadX) : (width as number);
+      const h = height === "hug" ? crossPadY : height === "fill" ? (avail.height ?? crossPadY) : (height as number);
+      return { width: w, height: h };
+    }
+
+    const layoutMode = node.layout.mode;
+    if (layoutMode === "none" || layoutMode === "stack") {
+      let maxW = 0, maxH = 0;
+      for (const child of children) {
+        const box = measure(child, childAvail(node, child, avail.width, avail.height), depth + 1);
+        maxW = Math.max(maxW, box.width);
+        maxH = Math.max(maxH, box.height);
+      }
+      const w = width === "hug" ? maxW + crossPadX : width === "fill" ? (avail.width ?? maxW + crossPadX) : (width as number);
+      const h = height === "hug" ? maxH + crossPadY : height === "fill" ? (avail.height ?? maxH + crossPadY) : (height as number);
+      return { width: w, height: h };
+    }
+    if (layoutMode === "grid") {
+      const columns = Math.max(1, node.layout.columns ?? 1);
+      let row = 0, col = 0, rowH = 0, maxW = 0;
+      for (const child of children) {
+        const box = measure(child, childAvail(node, child, avail.width, avail.height), depth + 1);
+        maxW = Math.max(maxW, box.width);
+        rowH = Math.max(rowH, box.height);
+        col++;
+        if (col === columns) { col = 0; row++; rowH = 0; }
+      }
+      const totalH = (row + (col > 0 ? 1 : 0)) * rowH + gap * Math.max(0, row + (col > 0 ? 1 : 0) - 1);
+      const w = width === "hug" ? maxW * columns + gap * (columns - 1) + crossPadX : width === "fill" ? (avail.width ?? maxW * columns + gap * (columns - 1) + crossPadX) : (width as number);
+      const h = height === "hug" ? totalH + crossPadY : height === "fill" ? (avail.height ?? totalH + crossPadY) : (height as number);
+      return { width: w, height: h };
+    }
+    if (layoutMode === "wrap") {
+      let lineW = 0, lineH = 0, maxLineW = 0, totalH = 0;
+      for (const child of children) {
+        const box = measure(child, childAvail(node, child, avail.width, avail.height), depth + 1);
+        if (avail.width !== null && lineW > 0 && lineW + box.width > avail.width) {
+          maxLineW = Math.max(maxLineW, lineW - gap);
+          totalH += lineH + gap;
+          lineW = 0; lineH = 0;
+        }
+        lineW += box.width + gap;
+        lineH = Math.max(lineH, box.height);
+      }
+      maxLineW = Math.max(maxLineW, Math.max(0, lineW - gap));
+      totalH += lineH;
+      const w = width === "hug" ? maxLineW + crossPadX : width === "fill" ? (avail.width ?? maxLineW + crossPadX) : (width as number);
+      const h = height === "hug" ? totalH + crossPadY : height === "fill" ? (avail.height ?? totalH + crossPadY) : (height as number);
+      return { width: w, height: h };
+    }
+    // vertical / horizontal
+    const horizontal = layoutMode === "horizontal";
+    let intrinsicMain = 0, maxCross = 0;
+    for (const child of children) {
+      const childMainSize = child.size[horizontal ? "width" : "height"];
+      const box = measure(child, childAvail(node, child, avail.width, avail.height), depth + 1);
+      if (childMainSize !== "fill") intrinsicMain += horizontal ? box.width : box.height;
+      maxCross = Math.max(maxCross, horizontal ? box.height : box.width);
+    }
+    intrinsicMain += gap * Math.max(0, children.length - 1);
+    const mainIntrinsic = intrinsicMain + (horizontal ? crossPadX : crossPadY);
+    const crossIntrinsic = maxCross + (horizontal ? crossPadY : crossPadX);
+    const w = horizontal
+      ? width === "hug" ? mainIntrinsic : width === "fill" ? (avail.width ?? mainIntrinsic) : (width as number)
+      : width === "hug" ? crossIntrinsic : width === "fill" ? (avail.width ?? crossIntrinsic) : (width as number);
+    const h = horizontal
+      ? height === "hug" ? crossIntrinsic : height === "fill" ? (avail.height ?? crossIntrinsic) : (height as number)
+      : height === "hug" ? mainIntrinsic : height === "fill" ? (avail.height ?? mainIntrinsic) : (height as number);
+    return { width: w, height: h };
+  };
+
+  // place：受影响节点重新放置，并把 paintOrder 重建（受影响段插入到原位置）
+  // 为简化实现：受影响的子树整体重新 place，paintOrder 从旧的过滤掉受影响再插新
+  const place = (rawNode: DesignNode, x: number, y: number, box: Box, depth: number): void => {
+    const node = applyResponsive(rawNode, breakpoint);
+    const entry: ResolvedNode = {
+      id: node.id,
+      node,
+      x, y,
+      width: Math.max(0, box.width),
+      height: Math.max(0, box.height),
+      depth,
+      parentId: node.parentId,
+      children: [],
+    };
+    resolved[node.id] = entry;
+    if (node.parentId && resolved[node.parentId]) resolved[node.parentId]!.children.push(node.id);
+    paintOrder.push(node.id);
+    if (depth >= maxDepth) return;
+
+    const pad = paddingOf(node);
+    const gap = resolveNum(node.layout.gap, 0);
+    const children = visibleChildren(page, node, breakpoint);
+    if (!children.length) return;
+
+    const innerW = Math.max(0, box.width - pad.left - pad.right);
+    const innerH = Math.max(0, box.height - pad.top - pad.bottom);
+
+    if (node.layout.mode === "none" || node.layout.mode === "stack") {
+      for (const child of children) {
+        const measured = measure(child, childAvail(node, child, innerW, innerH), depth + 1);
+        const w = axisSize(child.size.width) === "fill" ? innerW : measured.width;
+        const h = axisSize(child.size.height) === "fill" ? innerH : measured.height;
+        place(child, x + pad.left + child.position.x, y + pad.top + child.position.y, { width: w, height: h }, depth + 1);
+      }
+      return;
+    }
+    if (node.layout.mode === "grid") {
+      const columns = Math.max(1, node.layout.columns ?? 1);
+      const cellW = Math.max(0, (innerW - gap * (columns - 1)) / columns);
+      let cursorX = x + pad.left, cursorY = y + pad.top, rowH = 0, col = 0;
+      const placements: { child: DesignNode; x: number; y: number; w: number; h: number }[] = [];
+      for (const child of children) {
+        const measured = measure(child, childAvail(node, child, innerW, innerH), depth + 1);
+        if (col === columns) { col = 0; cursorX = x + pad.left; cursorY += rowH + gap; rowH = 0; }
+        placements.push({ child, x: cursorX, y: cursorY, w: cellW, h: measured.height });
+        cursorX += cellW + gap; rowH = Math.max(rowH, measured.height); col++;
+      }
+      for (const p of placements) place(p.child, p.x, p.y, { width: p.w, height: p.h }, depth + 1);
+      return;
+    }
+    if (node.layout.mode === "wrap") {
+      let cursorX = x + pad.left, cursorY = y + pad.top, lineH = 0;
+      for (const child of children) {
+        const measured = measure(child, childAvail(node, child, innerW, innerH), depth + 1);
+        if (innerW !== null && cursorX > x + pad.left && cursorX + measured.width > x + pad.left + innerW) {
+          cursorX = x + pad.left; cursorY += lineH + gap; lineH = 0;
+        }
+        place(child, cursorX, cursorY, { width: measured.width, height: measured.height }, depth + 1);
+        cursorX += measured.width + gap; lineH = Math.max(lineH, measured.height);
+      }
+      return;
+    }
+    // vertical / horizontal
+    const horizontal = node.layout.mode === "horizontal";
+    let cursor = horizontal ? x + pad.left : y + pad.top;
+    let maxCross = 0;
+    for (const child of children) {
+      const measured = measure(child, childAvail(node, child, innerW, innerH), depth + 1);
+      const childMain = horizontal ? measured.width : measured.height;
+      const childCross = horizontal ? measured.height : measured.width;
+      const childX = horizontal ? cursor : x + pad.left + child.position.x;
+      const childY = horizontal ? y + pad.top + child.position.y : cursor;
+      place(child, childX, childY, { width: measured.width, height: measured.height }, depth + 1);
+      if (horizontal) cursor += childMain + gap; else cursor += childMain + gap;
+      maxCross = Math.max(maxCross, childCross);
+    }
+  };
+
+  const root = requireNode(page, page.rootId);
+  const rootAvail: Box2 = breakpoint
+    ? { width: BREAKPOINT_WIDTH[breakpoint], height: null }
+    : { width: null, height: null };
+  const rootBox = measure(root, rootAvail, 0);
+  const viewportWidth = breakpoint ? BREAKPOINT_WIDTH[breakpoint] : null;
+  const modelRoot: Box = {
+    width: axisSize(root.size.width) === "hug" ? rootBox.width : (axisSize(root.size.width) as number) || rootBox.width || page.width,
+    height: axisSize(root.size.height) === "hug" ? rootBox.height : (axisSize(root.size.height) as number) || rootBox.height || page.height,
+  };
+  const finalRoot: Box = {
+    width: viewportWidth ?? modelRoot.width,
+    height: root.layout.clipContent ? modelRoot.height : Math.max(modelRoot.height, rootBox.height),
+  };
+  place(root, 0, 0, finalRoot, 0);
+
+  // paintOrder：把旧的未受影响节点保持相对顺序，受影响段按新 place 顺序追加
+  // （旧 paintOrder 已在开头拷贝了未受影响节点；place 已把受影响节点按新顺序追加到 paintOrder）
+  return {
+    rootId: root.id,
+    width: finalRoot.width,
+    height: finalRoot.height,
+    nodes: resolved,
+    paintOrder: paintOrder.filter((id) => resolved[id]?.node.visible !== false),
+  };
+}
+
 function visibleChildren(
   page: Page,
   node: DesignNode,
