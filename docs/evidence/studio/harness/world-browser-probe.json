@@ -1,0 +1,75 @@
+{
+  "results": [
+    {
+      "name": "the Studio still opens on the 2D canvas",
+      "ok": true,
+      "detail": "{\"surface\":\"2d\",\"has2d\":true,\"hasWorld\":false}"
+    },
+    {
+      "name": "the 2D canvas still paints",
+      "ok": true,
+      "detail": "482900/482900 px painted"
+    },
+    {
+      "name": "the toolbar exposes a World toggle",
+      "ok": true,
+      "detail": "toggle clicked: true"
+    },
+    {
+      "name": "pressing World swaps the surface (and unmounts the 2D canvas)",
+      "ok": true,
+      "detail": "{\"surface\":\"world\",\"has2d\":false,\"hasWorld\":true}"
+    },
+    {
+      "name": "the read-only bridge answers for the world surface",
+      "ok": true,
+      "detail": "{\"schema\":1,\"id\":\"world-1\",\"name\":\"New World\",\"genre\":\"fantasy\",\"description\":\"A procedurally generated world\",\"stats\":{\"characters\":3,\"locations\":3,\"factions\":0,\"lore\":2,\"events\":8,\"agents\":3,\"ticks\":0},\"characters\":[{\"id\":\"char-1790838421"
+    },
+    {
+      "name": "the report names the composed world, its counts and its contents",
+      "ok": true,
+      "detail": "{\"name\":\"New World\",\"stats\":{\"characters\":3,\"locations\":3,\"factions\":0,\"lore\":2,\"events\":8,\"agents\":3,\"ticks\":0},\"locations\":[\"Ashen Ford\",\"The Grey Ridge\",\"Lowmarch\"]}"
+    },
+    {
+      "name": "every character stands in a location the world holds",
+      "ok": true,
+      "detail": "[\"Mira@Ashen Ford\",\"Cassian@Lowmarch\",\"Vane@The Grey Ridge\"]"
+    },
+    {
+      "name": "the panel renders every character the bridge reports",
+      "ok": true,
+      "detail": "[\"Mira rogue @ Ashen Ford\",\"Cassian merchant @ Lowmarch\",\"Vane ranger @ The Grey Ridge\"]"
+    },
+    {
+      "name": "the panel renders every location the bridge reports",
+      "ok": true,
+      "detail": "[\"Ashen Ford town\",\"The Grey Ridge wilderness\",\"Lowmarch village\"]"
+    },
+    {
+      "name": "the surface names its own mode (§60)",
+      "ok": true,
+      "detail": "mode on screen: \"DEMO MODE · no model is attached\""
+    },
+    {
+      "name": "the stat tiles are labelled, one per count the report carries",
+      "ok": true,
+      "detail": "[\"locations\",\"characters\",\"lore\",\"agents\",\"events\",\"ticks\"]"
+    },
+    {
+      "name": "a pixel screenshot of the world surface was captured (§30)",
+      "ok": true,
+      "detail": "106862 bytes → .scratch\\v148\\studio-world.png"
+    },
+    {
+      "name": "pressing 2D restores the canvas, still painting",
+      "ok": true,
+      "detail": "482900/482900 px painted"
+    },
+    {
+      "name": "the world reports nothing once it is unmounted",
+      "ok": true,
+      "detail": "world() → null"
+    }
+  ],
+  "failed": 0
+}

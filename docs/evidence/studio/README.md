@@ -598,3 +598,11 @@ Bounds, stated: the surface COMPOSES and READS a world. Nothing ticks the engine
 relationship or goal is simulated, and the RAG is queryable from the agent lane rather than from the panel.
 The world is not part of the design document and is not persisted — the same boundary `previewOpen` and the
 3D scene sit on — and it is one of three views rather than a new document concept.
+
+**A flake, recorded rather than hidden.** On the first run after the v148 rename the browser probe reported
+**13/14**: one assertion failed while the Studio's dev server was recompiling the edited modules. Two
+subsequent runs on the SAME bytes reported 14/14. The failing assertion was not captured, so the cause is
+stated as what it looked like — a page read during a dev-server recompile — and not as a diagnosis. The
+lesson is the one this lane keeps writing: **a browser proof is only as trustworthy as the state the page
+was in when it was read**, so a red here should be re-run before it is believed, and a proof that can flake
+is not yet a gate.
