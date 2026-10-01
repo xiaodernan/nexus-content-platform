@@ -14,6 +14,7 @@ import AgentPanel from './AgentPanel';
 import PromptBar from './PromptBar';
 import PreviewOverlay from './PreviewOverlay';
 import Scene3D from './Scene3D';
+import WorldPanel from './WorldPanel';
 import { useStudio } from '@/lib/store';
 import { deserializeApp, serializeApp } from '@/lib/persist';
 import { browserStorage, STUDIO_DOC_KEY } from '@/lib/storage';
@@ -83,11 +84,13 @@ export default function Studio() {
           <PageTabs />
           <AlignBar />
           <div style={{ flex: 1, minHeight: 0, position: 'relative' }}>
-            {/* M5 v142: the main pane shows ONE surface. The 2D canvas is the default and is untouched;
-                the 3D scene is the runtime's, mounted only while it is asked for, so its frame loop is
-                not running behind the editor. */}
+            {/* M5 v142 / M4 v148: the main pane shows ONE surface. The 2D canvas is the default and is
+                untouched; the 3D scene and the world are each mounted only while they are asked for, so
+                neither one's runtime is alive behind the editor. */}
             {surface === '3d' ? (
               <Scene3D />
+            ) : surface === 'world' ? (
+              <WorldPanel />
             ) : (
               <>
                 <Canvas />

@@ -77,6 +77,14 @@ export default function Toolbar() {
         >
           3D
         </button>
+        <button
+          className={`btn ${surface === 'world' ? 'tool-active' : ''}`}
+          title="World (@nexus/world-engine, M4)"
+          onClick={() => setSurface('world')}
+          data-surface-toggle="world"
+        >
+          World
+        </button>
       </div>
 
       <div style={{ flex: 1 }} />

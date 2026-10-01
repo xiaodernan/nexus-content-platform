@@ -2,7 +2,18 @@
   "name": "@nexus/world-engine",
   "version": "0.1.0",
   "private": true,
+  "description": "NEXUS M4 world engine: world/lore/character/location/faction types, WorldRAG retrieval, CharacterAgent, and the WorldEngine that orchestrates them (ADR 0016 amendments 144-146).",
   "type": "module",
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "files": ["dist", "src"],
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "typecheck": "tsc -p tsconfig.json --noEmit",
@@ -11,8 +22,7 @@
   },
   "dependencies": {
     "@nexus/agent-runtime": "*",
-    "@nexus/ai-providers": "*",
-    "@nexus/design-model": "*"
+    "@nexus/ai-providers": "*"
   },
   "devDependencies": {
     "typescript": "^5.7.2",

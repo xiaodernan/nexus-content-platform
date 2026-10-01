@@ -18,6 +18,7 @@
     "@nexus/ai-providers": "*",
     "@nexus/design-model": "*",
     "@nexus/three-runtime": "*",
+    "@nexus/world-engine": "*",
     "next": "^15.1.4",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",

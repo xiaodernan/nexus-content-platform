@@ -209,3 +209,30 @@ export function installBridge(
   target.__nexus = bridge;
   return bridge;
 }
+/**
+ * M4 v148 — the read-only side of the world surface, on the same terms as the 3D one above.
+ *
+ * The world is NOT part of the Design Document: it is an engine the Studio composes, so it cannot ride
+ * `snapshot()` either. It gets its own installed reader, keeps the rule this file is built on — a
+ * snapshot function over a live source, no mutators, nothing invented — and `WorldPanel.tsx` registers
+ * the live engine. A panel that is not mounted registers nothing, so `world()` answering `null` means
+ * "no world surface is running", which is true rather than an empty world.
+ */
+export interface WorldBridge {
+  /** The live world report, read at call time. `null` when no world surface is mounted. */
+  world: () => unknown;
+  /** Identifies the reader so a consumer can assert it is the real one. */
+  readonly version: string;
+}
+
+export function installWorldBridge(
+  read: () => unknown,
+  target: Record<string, unknown> = globalThis as unknown as Record<string, unknown>,
+): WorldBridge {
+  const bridge: WorldBridge = Object.freeze({
+    version: 'nexus-studio-world/1',
+    world: () => read(),
+  });
+  target.__nexusWorld = bridge;
+  return bridge;
+}

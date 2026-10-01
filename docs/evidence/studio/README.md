@@ -552,3 +552,49 @@ that at `563a0ad` the gate refuses. **Not fixed:** nothing new guards against th
 import; a warning is a refusal only because `--max-warnings=0` in `apps/studio/package.json` says so. And the
 160-case reading belongs to this working copy, not to `563a0ad`: another run has in-flight files in
 `apps/studio/src/lib`, so that total is a property of the tree, stated as one.
+
+## The world surface (M4 v148 — ADR 0016 amendment 148)
+
+The Studio's main pane has three surfaces: `2D` (the Design Model canvas, the default), `3D` (M5 v142) and
+`World` (M4 v148). This section records the third.
+
+**Why the world lane had no product consumer, and why that was not an oversight.** `packages/world-engine`
+declared **no `main`, no `module`, no `types`, no `exports` and no `files`** — nothing outside the package
+could import it. Its own suite reached it through `../src/index.js`, so 31 green tests never surfaced the
+gap. The fix is five fields (the shape `three-runtime` already carried) plus the removal of a declared
+dependency on `@nexus/design-model` that zero files imported.
+
+**The split, the same one the 3D surface uses:**
+
+- `apps/studio/src/lib/world.ts` — the PURE half: `buildStudioWorld` (three locations, three characters,
+  two lore entries, every character placed in a location that exists) and `buildWorldReport` (the engine's
+  state as a plain JSON-safe report), over a structural `WorldEngineLike`. No React, no DOM, no world
+  package — which is also what keeps it loadable during Next's SSR pass.
+- `apps/studio/src/components/WorldPanel.tsx` — the only file that touches a real `WorldEngine`. It says
+  `DEMO MODE · no model is attached` on its own face, and its closing line states what it does not do.
+- `installWorldBridge` publishes `window.__nexusWorld.world()`, a lazy read over the live engine with no
+  mutators. The panel UNREGISTERS on teardown, so `world()` answers `null` once the surface is gone rather
+  than describing a world that is no longer on screen.
+
+**The surface set is DERIVED now, not restated.** v142 wrote `['2d', '3d']` into two cases by hand, so
+adding a third surface failed them on a literal rather than on a wiring mistake. `surface.test.ts` reads the
+members out of the store's own `export type Surface = …` and asserts that the declared set, the toolbar's
+`data-surface-toggle` attrs and the branches Studio renders are the SAME SET.
+
+| layer | what it proves |
+| --- | --- |
+| `src/lib/world.test.ts` (11) | the pure rules: what is composed, that every character stands somewhere, that a place is resolved to the LOCATION'S NAME, that a dangling place reports `null` and never leaks the id, that the report is JSON-safe |
+| `docs/evidence/studio/world-surface-proof.mjs` | grades the SHIPPED Studio module (type-stripped through `node:module`, not copied) over the SHIPPED engine: the composed world IS the engine's · every character's place verified by looking the id up (a name can be right while the relation is wrong) · the report is DERIVED — moving the engine through its own API moves it · §60 vocabulary and no-model checks · HEAD byte-identical |
+| `tools/harness/studio-world.mjs` | the REAL browser over CDP, **14/14**: the 2D canvas is still the default and still paints · the `World` toggle swaps the surface · the bridge answers · every character stands in a location the world holds · **the panel's rows are the bridge's report** · the mode is named on screen · the stat tiles are labelled · a PNG is written · `2D` restores the canvas · `world()` is `null` once unmounted |
+
+Run them:
+
+```
+node docs/evidence/studio/world-surface-proof.mjs     # requires `npm run build` first
+node tools/harness/studio-world.mjs                   # requires the Studio running on :3210
+```
+
+Bounds, stated: the surface COMPOSES and READS a world. Nothing ticks the engine, no character acts, no
+relationship or goal is simulated, and the RAG is queryable from the agent lane rather than from the panel.
+The world is not part of the design document and is not persisted — the same boundary `previewOpen` and the
+3D scene sit on — and it is one of three views rather than a new document concept.

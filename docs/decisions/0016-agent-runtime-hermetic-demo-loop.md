@@ -7247,3 +7247,56 @@ no demand for. Nothing outside `packages/three-runtime` calls `attachPlayer`, `r
 `loadSaveFile`, so no user-visible outage is repaired here, and no pre-existing save file is rewritten — a
 file
 holding the refused shape is refused, which is the loss this entry chooses over the inverted heal.
+
+### Amendment 148 (M4 v148, studio + world-engine) — the WORLD lane gets its PRODUCT consumer, and the reason it had none was that the package could not be imported at all
+
+_Numbering: 148 — 146 and 147 were claimed by the three-runtime lane in the same cycle (`39448f9`,
+`afc16a7`). Full narrative in `docs/evidence/studio/README.md`; this is the ledger entry._
+
+- **The bound this closes.** v144 gave the world lane an AGENT consumer and wrote its own remaining gap in
+  the same breath: *"nothing in the Studio imports it, so M4's PRODUCT face is still open."* This closes
+  the product half: the Studio grows a `World` surface beside `2D` and `3D`.
+- **Why the package had no consumer at all — the finding, not the assumption.** `packages/world-engine`
+  declared **no `main`, no `module`, no `types`, no `exports` and no `files`**. Nothing outside the package
+  could import it: its own suite reached it through `../src/index.js`, which is why 31 green tests never
+  surfaced the gap. The missing consumer was not an oversight in the lanes; **the package was not
+  consumable.** v148 adds the five fields (the shape `three-runtime` already had) and removes a declared
+  dependency on `@nexus/design-model` that **zero files imported** — the same correction v108 made to the
+  3D package's dependency list.
+- **The split, the same one v142 used for the 3D surface.** `apps/studio/src/lib/world.ts` is the PURE half
+  (`buildStudioWorld`, `buildWorldReport`, over a structural `WorldEngineLike`), unit-testable with no
+  React, no DOM and no world package — which is also what keeps it loadable during Next's SSR pass.
+  `apps/studio/src/components/WorldPanel.tsx` is the only file that touches a real `WorldEngine`.
+  `apps/studio` gains `@nexus/world-engine` in `dependencies` and `transpilePackages`, so the build order
+  is declared rather than accidental.
+- **The read-only bridge, on the same terms as the scene one.** `installWorldBridge` publishes
+  `window.__nexusWorld.world()`, a lazy read over the live engine with no mutators, and the panel
+  UNREGISTERS on teardown so `world()` answers `null` once the surface is gone rather than describing a
+  world that is no longer on screen.
+- **The surface set is now DERIVED, not restated.** v142 wrote `['2d', '3d']` into two cases by hand, so a
+  third surface failed them on a literal rather than on a wiring mistake. `surface.test.ts` now reads the
+  members out of the store's own `export type Surface = …`, and asserts that the declared set, the
+  toolbar's `data-surface-toggle` attrs and the branches Studio renders are the SAME SET — so a surface
+  added to the union with no toggle fails, and a toggle wired to an undeclared name fails.
+- **§60 holds on this surface too.** The panel says `DEMO MODE · no model is attached` on its own face; the
+  headless proof asserts the composed world uses ONLY the package's declared location types and lore
+  categories, and that the report carries **no field naming a provider or a model** — because none is
+  attached. The panel's own closing line states what it does not do: it composes and reads a world, it does
+  not simulate one.
+- **Evidence, in three layers that agree.** `apps/studio/src/lib/world.test.ts` (11 cases, no DOM);
+  `docs/evidence/studio/world-surface-proof.mjs` — which grades the SHIPPED Studio module (type-stripped
+  through `node:module`, not copied) over the SHIPPED engine: §1 the composed world IS the engine's, §2
+  every character's place verified by looking its id up (a name can be right while the relation is wrong),
+  §3 the report is DERIVED — moving the engine through its own API moves the report, and a dangling place
+  reports `null` rather than an id or a wrong name, §4 the §60 vocabulary and no-model checks, §5 HEAD
+  byte-identical; and `tools/harness/studio-world.mjs` — the REAL browser over CDP, **14/14 assertions**:
+  the 2D canvas is still the default and still paints, the `World` toggle swaps the surface, the bridge
+  answers, every character stands in a location the world holds, **the panel's rows are the bridge's
+  report** (so the surface is not a second story), the mode is named on screen, the stat tiles are
+  labelled, a PNG is written, `2D` restores the canvas, and `world()` is `null` once unmounted.
+- **Gates.** apps/studio **149/149 → 164/164** (18 files), `tsc --noEmit` clean · packages/world-engine
+  31/31 · `world-surface-proof.mjs` green · `studio-world.mjs` 14/14 in a real browser.
+- **Bounds (§60).** The surface COMPOSES and READS a world. Nothing ticks the engine, no character acts,
+  no relationship or goal is simulated, and the RAG is queryable from the agent lane rather than from the
+  panel. The world is not part of the design document and is not persisted (the same boundary `previewOpen`
+  and the 3D scene sit on), and the surface is one of three views rather than a new document concept.
