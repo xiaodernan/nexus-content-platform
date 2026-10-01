@@ -3434,3 +3434,38 @@ Bounds, stated: the family generates image ASSETS and files storyboards. It does
 character consistency, delete or update assets or frames, or export a storyboard — and it never returns bytes,
 because there are none. No roster registers it by default, and nothing in the Studio imports it, so M3's
 PRODUCT face is still open.
+## The index does not count a tree that is not this tree (collectTextFiles + code-index-proof — M2 v149 — ADR 0016 amendment 149)
+
+A directory that carries its own `.git` is ANOTHER repository — a clone, a scratch checkout, a
+submodule worktree — and its files belong to that tree, not this one. The fix adds a lookahead
+peek in `realfs.collectTextFiles` (the runtime walker) and mirrors the same rule in the
+proof's own walk (`code-index-proof.mjs`): before descending into a child directory, read its
+entries once; if any entry is named `.git`, skip the whole subtree.
+
+Measured before this commit on the worktree plane:
+
+- `code-index-proof` indexed 1787 files (seven nested repositories under `.scratch/`), the query
+  `rigidRotateRect rotatePointAbout` returned five clone copies of `geometry.ts` in every top-5
+  slot, and the real `packages/design-model/src/geometry.ts` was pushed out — the proof was red.
+- `isolated-proof` compared the worktree run (red) against the clean run (green) and failed on
+  "the VERDICT does not depend on which tree it ran in".
+- `provenance-proof` materialized the smallest committed proof (code-index) and it exited 1.
+
+Measured after the fix on the worktree plane (standalone, dist rebuilt):
+
+- `code-index-proof` indexes 353 files, `geometry.ts` is at #1 in the top-5, all three queries
+  surface their expected files, exit 0.
+- Walked tree drops from 1787 to 353 files (the seven nested-repo directories under `.scratch/`
+  are excluded), untracked-in-corpus drops from ~1500 to ~100.
+- `npm test` 12/12 tasks green (agent-runtime 33, exec-host 8, studio 18, etc.), `lint` and
+  `typecheck` green.
+
+A unit witness was added to `realfs.test.ts`: a directory containing `.git` (whether a dir or a
+gitlink file) is not ingested; the host tree still ingests. The proof's regression witness is
+the code-index top-5 assertion, which was red without the rule and green with it.
+
+Bounds, stated honestly: the root is never tested this way — a walk that starts inside a
+repository must not refuse it — so a submodule's content is not indexed here (it answers to
+another tree; this repo has none). The rule reads the directory, so a name-based skip cannot
+be the answer (`vnext/plane4` is not a magic name). The fix is one condition, measured on
+both planes.
