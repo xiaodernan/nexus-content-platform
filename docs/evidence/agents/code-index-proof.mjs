@@ -22,7 +22,15 @@ function collect(root) {
     for (const ent of readdirSync(dir, { withFileTypes: true })) {
       const abs = path.join(dir, ent.name);
       if (ent.isDirectory()) {
-        if (!SKIP_DIRS.has(ent.name)) walk(abs);
+        if (SKIP_DIRS.has(ent.name)) continue;
+        // The production rule (realfs.collectTextFiles, ADR 0016 amendment 149): a directory that
+        // carries its own `.git` is ANOTHER repository — its files answer to that tree, not this
+        // one. This proof keeps its own walk (it always has), so it keeps the rule in step too:
+        // measured before, five clones under `.scratch/vnext/` outranked the real geometry.ts in
+        // every top-5 slot and this proof went red on the worktree plane and green on the clean one.
+        const child = readdirSync(abs, { withFileTypes: true });
+        if (child.some((e) => e.name === '.git')) continue;
+        walk(abs);
       } else if (TEXT_EXT.test(ent.name) && statSync(abs).size <= MAX_BYTES) {
         files[path.relative(root, abs).split(path.sep).join('/')] = readFileSync(abs, 'utf8');
       }

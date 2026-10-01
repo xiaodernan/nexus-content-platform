@@ -88,4 +88,17 @@ describe('realfs.collectTextFiles', () => {
     expect(Object.keys(c)).toEqual(Object.keys(b));
     expect(Object.keys(a)).toEqual(['README.md', 'src/app.test.ts', 'src/app.ts']);
   });
+
+  it('does not ingest a directory that carries its own .git (another repository\'s files)', () => {
+    const files = collectTextFiles('root', new FakeFs({
+      ...FIXTURE,
+      'clone/.git/HEAD': 'ref: refs/heads/main\n',
+      'clone/src/secret.ts': 'clone content\n',
+      'wtclone/.git': 'gitdir: ../.git/worktrees/wt\n',
+      'wtclone/lib.ts': 'worktree content\n',
+    }));
+    expect(files['clone/src/secret.ts']).toBeUndefined();
+    expect(files['wtclone/lib.ts']).toBeUndefined();
+    expect(files['src/app.ts']).toBeDefined();
+  });
 });

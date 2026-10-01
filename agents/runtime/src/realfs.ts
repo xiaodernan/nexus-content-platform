@@ -44,20 +44,40 @@ export function collectTextFiles(root: string, fsLike: FsLike, opts: IngestOptio
   const found: Record<string, string> = {};
   const base = root.replace(/[\\/]+$/, '');
 
-  const walk = (absDir: string, relDir: string): void => {
+  const walk = (absDir: string, relDir: string, preloaded?: FsDirentLike[]): void => {
     if (Object.keys(found).length >= maxFiles) return;
     let entries: FsDirentLike[];
-    try {
-      entries = fsLike.readdirSync(absDir, { withFileTypes: true });
-    } catch {
-      return; // unreadable directory: skip rather than abort the walk
+    if (preloaded) {
+      entries = preloaded;
+    } else {
+      try {
+        entries = fsLike.readdirSync(absDir, { withFileTypes: true });
+      } catch {
+        return; // unreadable directory: skip rather than abort the walk
+      }
     }
     for (const ent of entries) {
       if (Object.keys(found).length >= maxFiles) return;
       const abs = `${absDir}/${ent.name}`;
       const rel = relDir ? `${relDir}/${ent.name}` : ent.name;
       if (ent.isDirectory()) {
-        if (!skip.has(ent.name)) walk(abs, rel);
+        if (skip.has(ent.name)) continue;
+        // A directory carrying its own `.git` is ANOTHER repository — a clone, a scratch checkout, a
+        // submodule worktree — and its files belong to that tree, not this one. A name-based skip
+        // cannot be the answer (`vnext/plane4` is not a magic name): the rule reads the directory.
+        // Measured 2026-10-01 (ADR 0016 amendment 149): seven such clones under `.scratch/` made the
+        // walked tree 1787 files instead of ~360, and their copies of `geometry.ts` took every slot
+        // of the real file's top-5. The ROOT is never tested this way — a walk that started inside a
+        // repository must not refuse it — so a submodule's content is not indexed here (it answers to
+        // another tree; this repo has none).
+        let childEntries: FsDirentLike[];
+        try {
+          childEntries = fsLike.readdirSync(abs, { withFileTypes: true });
+        } catch {
+          continue; // unreadable: the walk would have returned on this same read
+        }
+        if (childEntries.some((e) => e.name === '.git')) continue;
+        walk(abs, rel, childEntries);
       } else if (ent.isFile() && ext.test(ent.name)) {
         try {
           if (fsLike.statSync(abs).size > maxBytes) continue;
