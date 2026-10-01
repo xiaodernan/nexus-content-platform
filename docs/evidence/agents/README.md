@@ -133,7 +133,7 @@ the SHAPE around it. One source, and no way for a loosening to look like a refac
 ## Unit tests (vitest, `agents/runtime/test`)
 
 The parenthesized counts below are the committed state, and they are checkable rather than
-decorative: the runtime rows sum to exactly **473** (33 files) and the `exec-host/*` rows to exactly
+decorative: the runtime rows sum to exactly **474** (33 files) and the `exec-host/*` rows to exactly
 **275** (8 files) — the same totals `npm test` prints. A row whose number drifts from its file is a
 documentation bug, so an increment that adds a case updates its row in the same commit. v63 found this
 table itself adrift: the `gitTools.test.ts` row still read (51) where HEAD measured 65, because every case
