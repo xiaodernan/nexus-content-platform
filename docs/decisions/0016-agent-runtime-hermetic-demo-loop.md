@@ -7234,6 +7234,44 @@ no demand for. Nothing outside `packages/three-runtime` calls `attachPlayer`, `r
 file
 holding the refused shape is refused, which is the loss this entry chooses over the inverted heal.
 
+
+### Amendment 149 (M2 v149, evidence+agent-runtime) — the index does not count a tree that is not this tree
+
+A directory that carries its own `.git` is ANOTHER repository — a clone, a scratch checkout, a
+submodule worktree — and its files belong to that tree, not this one. The fix adds a lookahead
+peek in `realfs.collectTextFiles` (the runtime walker) and mirrors the same rule in the
+proof's own walk (`code-index-proof.mjs`): before descending into a child directory, read its
+entries once; if any entry is named `.git`, skip the whole subtree.
+
+Measured before this commit on the worktree plane:
+
+- `code-index-proof` indexed 1787 files (five full clones under `.scratch/vnext/`), the query
+  `rigidRotateRect rotatePointAbout` returned `.scratch/vnext/plane*/geometry.ts` in every top-5
+  slot, and the real `packages/design-model/src/geometry.ts` was pushed out — the proof was red.
+- `isolated-proof` compared the worktree run (red) against the clean run (green) and failed on
+  "the VERDICT does not depend on which tree it ran in".
+- `provenance-proof` materialized the smallest committed proof (code-index) and it exited 1.
+
+Measured after the fix on the worktree plane (standalone, dist rebuilt):
+
+- `code-index-proof` indexes 353 files, `geometry.ts` is at #1 in the top-5, all three queries
+  surface their expected files, exit 0.
+- Walked tree drops from 1787 to 353 files (the seven nested-repo directories under `.scratch/`
+  are excluded), untracked-in-corpus drops from ~1500 to ~100.
+- `npm test` 12/12 tasks green (agent-runtime 33, exec-host 8, studio 18, etc.), `lint` and
+  `typecheck` green.
+
+A unit witness was added to `realfs.test.ts`: a directory containing `.git` (whether a dir or a
+gitlink file) is not ingested; the host tree still ingests. The proof's regression witness is
+the code-index top-5 assertion, which was red without the rule and green with it.
+
+Bounds, stated honestly: the root is never tested this way — a walk that starts inside a
+repository must not refuse it — so a submodule's content is not indexed here (it answers to
+another tree; this repo has none). The rule reads the directory, so a name-based skip cannot
+be the answer (`vnext/plane4` is not a magic name). The fix is one condition, measured on
+both planes.
+
+
 ### Amendment 148 (M4 v148, studio + world-engine) — the WORLD lane gets its PRODUCT consumer, and the reason it had none was that the package could not be imported at all
 
 _Numbering: 148 — 146 and 147 were claimed by the three-runtime lane in the same cycle (`39448f9`,
@@ -7286,7 +7324,6 @@ _Numbering: 148 — 146 and 147 were claimed by the three-runtime lane in the sa
   no relationship or goal is simulated, and the RAG is queryable from the agent lane rather than from the
   panel. The world is not part of the design document and is not persisted (the same boundary `previewOpen`
   and the 3D scene sit on), and the surface is one of three views rather than a new document concept.
-
 ### Amendment 150 (M5 v150, three-runtime) — a save name has ONE owner between the confinement and the host: the
 backslash that already decided a refusal now decides the bytes on disk
 
