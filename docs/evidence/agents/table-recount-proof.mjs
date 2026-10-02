@@ -352,7 +352,11 @@ try {
     return h;
   };
   const adrText = norm(readFileSync(ADR, 'utf8'));
-  const corpus = listFiles('docs').filter((p) => !p.startsWith('docs/decisions/') && (p.endsWith('.md') || p.endsWith('.mjs')));
+  const corpus = (() => {
+  const tracked = new Set(execFileSync('git', ['ls-files', '-z', '--', 'docs'], { encoding: 'utf8', maxBuffer: 1e8 })
+    .split('\0').filter(Boolean).map((p) => p.replace(/\\/g, '/')));
+  return listFiles('docs').filter((p) => tracked.has(p) && !p.startsWith('docs/decisions/') && (p.endsWith('.md') || p.endsWith('.mjs')));
+})();
   // A .mjs TITLE is POSITIONAL: the comment line that OPENS the module, after an optional shebang. The first
   // version of this reader took "any comment line among the first 8" instead, and the witness below measures
   // what that window bought: header blocks in this population run 0 to 50 lines wide, so 8 is a choice about
