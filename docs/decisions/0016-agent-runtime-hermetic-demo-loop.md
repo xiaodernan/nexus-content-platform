@@ -7556,3 +7556,22 @@ different grant. One limit of the new gate is said rather than hidden: its "decl
 three modules plus `types.ts`, while `index.ts` is a barrel that declares nothing locally at
 `b73165c` — so a shape declared in the package face today would be invisible to the census, and whoever adds one must
 widen that list in the same grant.
+
+### Amendment 156 — v156 (docs/evidence): amendment 82's record was owed, and a citation in a neighbour's sentence is not a record
+
+- **The hole §7 named and this increment closes.** `table-recount-proof.mjs` reported the one-sided set as 21 and 82:
+  granted in this ledger, titled nowhere in the record corpus. v82 is not unmentioned — it is mentioned inside v81's
+  bounds, v84's withdrawal and the census prose, where it functions as a neighbour. The reader's rule ("a record TITLE
+  is a heading in a doc or the line that opens a proof") is what separates the two, so the fix is the heading, not
+  another paragraph of thanks.
+- **Written from HEAD's bytes, not from the ledger's memory.** Every citation in `README.md`'s new section is derived
+  at landing time from `git show HEAD:` of `sweep.mjs` and `isolated-proof.mjs` (`describeBuild()` and its two
+  refusals, the `dest`-not-`root` log rule, the re-read-and-re-derive assertion, §3b's asserted banner distance), and
+  the landing script refuses if any needle does not match exactly one line. The ref quoted for the historical run is
+  checked with `git cat-file -e` rather than typed.
+- **The record keeps v84's correction inside itself.** Amendment 82's own bullet quotes a studio build that v84 showed
+  was produced by the runner's drive placement. The section says so in the same breath as the rule, because a record
+  that restores the original wording would restore the wrong attribution too — and the RULE survives precisely because
+  §3b grades it on text no host can change.
+- **Not written here, on purpose.** Amendment 21 stays one-sided: its ledger bullets carry per-ref test counts that
+  nobody has re-measured since, and this cycle refuses to launder them into a record.

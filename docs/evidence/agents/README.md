@@ -2104,6 +2104,50 @@ passing transcript yielding no failures and no reason. Control + 2 probes: m0 (u
 rewiring) green across six sections; m1 (banner as reason) RED; m2 (log truncated after the verdict was
 computed) RED.
 
+## Build-verdict attribution record (`sweep.mjs` + `isolated-proof.mjs`, M2 v82 record written at v156 — a verdict that names the PACKAGE is not a verdict)
+
+Amendment 82 was granted and never recorded. §7's ledger door counts it as one-sided to this ref, and the reason is
+worth stating rather than smoothing over: every mention of v82 in this document sits inside someone else's section —
+v81's bounds, v84's withdrawal, the census prose — where it credits 82 as a NEIGHBOUR. A sentence about a hole is not
+its record, which is the very rule §7's positional title reader exists to enforce. The ledger's own heading is:
+`— v82 (docs/evidence): a verdict that names the PACKAGE is not a verdict — `describeBuild()` quotes the line the BUILD wrote, and answers `null` when it cannot`
+
+**What the increment changed, read off HEAD's bytes at `8b77fa6`.**
+- `describeBuild()` (`docs/evidence/agents/sweep.mjs:1402`) is pure, exported, and returns
+  `{ lines, bytes, failed, reasons, reason, tail, head }` from one scan (`docs/evidence/agents/sweep.mjs:1410`). The selection
+  at `docs/evidence/agents/sweep.mjs:1409` prefers a line the FAILING task itself printed — turbo prefixes every task line
+  `@scope/name:task:`, so `@nexus/studio#build` maps to `@nexus/studio:build:` — then falls back to the first
+  reason-shaped line, then to `null`. The `null` is the point: two refusals are load-bearing, the summary banner is
+  not a reason, and an error printed by a package that BUILT fine is not *this* build's reason.
+- Capture fidelity came before reporting. The whole transcript is written to `<dest>/build.log` — in `dest`, NOT in
+  `root`, because the sweep counts files inside the checked-out tree and a file this runner wrote must never be
+  mistaken for a file the ref owns (`docs/evidence/agents/isolated-proof.mjs:173`). §3 then RE-READS that file (`docs/evidence/agents/isolated-proof.mjs:172`),
+  re-derives every figure it prints from those bytes, and asserts the quote is findable in its source
+  (`docs/evidence/agents/isolated-proof.mjs:184`). That re-derivation is the difference between "the object agrees with itself" and "the
+  file says this".
+- `§3b` (`docs/evidence/agents/isolated-proof.mjs:202`) grades the RULE on text the witness wrote, because a rule tested only by whatever the
+  ref's build happens to do is untested when the build passes. The fixture puts the reason far above the banner and
+  asserts the distance (`bannerAt - reasonAt > 4`, `docs/evidence/agents/isolated-proof.mjs:215`) so the case cannot rot into one
+  `tailOf(4)` would have caught by luck; alongside it, a banner-only transcript names the package and reports
+  `reason: null`, two tasks resolve to the one that FAILED (`docs/evidence/agents/isolated-proof.mjs:219`), and a passing transcript has
+  no failures and no reason (`docs/evidence/agents/isolated-proof.mjs:220`).
+
+**What its run quote turned out to be, stated here so the record is not a monument to a wrong attribution.** The
+ledger bullet for amendment 82 quotes a real isolated run at `2a62ddb` — studio build exit 1, reason
+`Module not found: Can't resolve './D:/…/next.js'` — and v84 later measured that transcript as an artifact of WHERE
+THE RUNNER WROTE: the same ref, dest on the repository's own drive, compiles GREEN, so the attribution to the ref was
+`withdrawn in favour of an attribution to` where `os.tmpdir()` sits (`README.md:2169`). The consequence for
+the shipped witness is the part worth remembering (`README.md:2213): §3 only ever reached a failing build by
+accident of drive placement; fix the default, `reason` is `null`, both reason assertions are skipped, and
+`isolated-proof.mjs` stays GREEN having tested nothing. §3b is why the increment still holds: the selection rule was
+graded on text that does not depend on the host's drive, which is exactly the reason it was written.
+
+**Bounds.** This section changes no code and no verdict. It records amendment 82 and titles itself for §7; the
+remaining one-sided grant is 21, whose record is owed the same treatment and is deliberately not written here (its
+runtime counts — `Runtime 129/129`, `studio 90/90` — belong to a ref no one has re-measured, and a record that
+repeats an unreproducible figure is worse than no record). The numbers quoted above are line numbers at `8b77fa6`
+and the door re-derives its own census at every ref, so this page is not where a stale count can hide.
+
 ## Child-cwd proof (`cwd-axis-proof.mjs`, M2 v83 — which BUILD does a sweep grade?)
 
 65th tracked proof (66th script in `docs/evidence/agents`, counting `sweep.mjs`). v78 named the ref's
