@@ -3508,3 +3508,28 @@ async path — is load-bearing rather than a convenience, and why every proof th
 
 The proof is a MEASUREMENT, not a gate: it always exits 0, prints the verdict, and writes a JSON artifact to
 `.scratch/ebusy-<plane>-<ts>.json`. The isolated plane is measured by the sweep and recorded when it runs.
+## The Amendment 129 behavioral probe runs: all reason-field mutations are caught (amendment129-probe.mjs — M2 v154 — ADR 0016 amendment 154)
+
+Amendment 129 introduced a discriminated `reason` field on the `unreadable` entries of the save-file survey:
+`'not-json' | 'listed-then-missing' | 'name-not-reenterable'`. The 129 record carried a debt:
+the mutation probe harness could not be applied because CRLF line-ending conflicts in the working copy
+prevented the patch from applying (a two-line anchor never matched, and a heredoc patch produced a
+syntax error). The code change was not evidence for a mutation claim without the probe.
+
+Since then, Amendment 149 fixed the CRLF line-ending issue (nested-repo exclusion, `core.autocrlf=false`
+on the isolated plane). This increment applies the mutation probe programmatically — no patch, no
+heredoc, no manual edit — and verifies that the three-runtime tests catch every mutation of the three
+reason strings:
+
+- `'not-json'` → `'not-json-mutated'`: tests FAIL (mutation caught)
+- `'listed-then-missing'` → `'listed-then-missing-mutated'`: tests FAIL (mutation caught)
+- `'name-not-reenterable'` → `'name-not-reenterable-mutated'`: tests FAIL (mutation caught)
+
+All three mutations are caught by the existing `saveSnapshot.test.ts` suite. The probe is implemented
+as `docs/evidence/agents/amendment129-probe.mjs` (committed as `0432ef6`): it programmatically mutates
+each reason string in `packages/three-runtime/src/threeRuntime.ts`, runs the `saveSnapshot.test.ts`
+suite via `vitest run`, and asserts the tests fail. The probe restores the original source after each
+mutation. All three mutations are caught — the debt from Amendment 129 is retired.
+
+The probe is committed as `docs/evidence/agents/amendment129-probe.mjs` and can be run independently:
+`node docs/evidence/agents/amendment129-probe.mjs`.

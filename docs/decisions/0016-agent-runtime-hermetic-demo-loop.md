@@ -7443,6 +7443,34 @@ that pinned the whole record had to be re-pinned — three such pins, all in `te
 other return shape changed.
 
 
+
+### Amendment 154 (M2 v154, evidence) — the Amendment 129 behavioral probe runs and all reason-field mutations are caught
+
+Amendment 129 introduced a discriminated `reason` field on the `unreadable` entries of the save-file survey:
+`'not-json' | 'listed-then-missing' | 'name-not-reenterable'`. The 129 record carried a debt:
+the mutation probe harness could not be applied because CRLF line-ending conflicts in the working copy
+prevented the patch from applying (a two-line anchor never matched, and a heredoc patch produced a
+syntax error). The code change was not evidence for a mutation claim without the probe.
+
+Since then, Amendment 149 fixed the CRLF line-ending issue (nested-repo exclusion, `core.autocrlf=false`
+on the isolated plane). This increment applies the mutation probe programmatically — no patch, no
+heredoc, no manual edit — and verifies that the three-runtime tests catch every mutation of the three
+reason strings:
+
+- `'not-json'` → `'not-json-mutated'`: tests FAIL (mutation caught)
+- `'listed-then-missing'` → `'listed-then-missing-mutated'`: tests FAIL (mutation caught)
+- `'name-not-reenterable'` → `'name-not-reenterable-mutated'`: tests FAIL (mutation caught)
+
+All three mutations are caught by the existing `saveSnapshot.test.ts` suite. The probe is implemented
+as `docs/evidence/agents/amendment129-probe.mjs` (committed as `0432ef6`): it programmatically mutates
+each reason string in `packages/three-runtime/src/threeRuntime.ts`, runs the `saveSnapshot.test.ts`
+suite via `vitest run`, and asserts the tests fail. The probe restores the original source after each
+mutation. All three mutations are caught — the debt from Amendment 129 is retired.
+
+The probe is committed as `docs/evidence/agents/amendment129-probe.mjs` and can be run independently:
+`node docs/evidence/agents/amendment129-probe.mjs`.
+
+
 ### Amendment 152 (M2 v152, evidence) — the EBUSY fault is the SYNC SPAWN FAMILY, not contention: amendment 151's "0.00%" does not reproduce, and the proof that produced it could not have settled the question
 
 _Corrects amendment 151. Numbering: 152 was free (`grep -an "^### Amendment 15"` topped out at 151)._
