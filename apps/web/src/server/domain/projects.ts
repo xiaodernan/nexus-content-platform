@@ -424,17 +424,20 @@ export async function projectOwnerId(projectId: string): Promise<string | null> 
 }
 
 /**
- * 项目名。通知标题、导出回执这些地方都要它——没有它标题就会变成"《prj_9f3c…》"，
- * 那种标题没人读得懂（与 `agent-tasks.ts` 里为通知顺手取项目名同一条理由）。
+ * 项目的名字与类型。通知标题、导出清单这些地方都要它——没有名字，标题就会变成"《prj_9f3c…》"，
+ * 那种标题没人读得懂（与 `agent-tasks.ts` 里为通知顺手取项目名同一条理由）；
+ * `kind` 则不在设计文档里（文档只管内容，类型是项目这一行的事），所以导出清单要从这里取。
  * 不存在或已软删时返回 null，调用方按"没有这个项目"处理。
  */
-export async function loadProjectName(projectId: string): Promise<string | null> {
+export async function loadProjectIdentity(
+  projectId: string,
+): Promise<{ name: string; kind: string } | null> {
   const [row] = await getDb()
-    .select({ name: projects.name })
+    .select({ name: projects.name, kind: projects.kind })
     .from(projects)
     .where(and(eq(projects.id, projectId), isNull(projects.deletedAt)))
     .limit(1);
-  return row?.name ?? null;
+  return row ? { name: row.name, kind: row.kind } : null;
 }
 
 export async function projectBelongsTo(projectId: string, ownerId: string): Promise<boolean> {

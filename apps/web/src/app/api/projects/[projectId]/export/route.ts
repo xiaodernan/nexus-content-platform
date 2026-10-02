@@ -3,7 +3,7 @@ import { z } from 'zod';
 import { requireUser } from '@/server/domain/session';
 import { buildProjectExport, notifyBuildComplete, publishBuildStatus } from '@/server/domain/export';
 import type { ExportPart } from '@/server/domain/export';
-import { loadProjectName, projectBelongsTo } from '@/server/domain/projects';
+import { loadProjectIdentity, projectBelongsTo } from '@/server/domain/projects';
 import { jsonError } from '@/server/http';
 
 /**
@@ -45,12 +45,13 @@ export async function GET(req: Request, ctx: RouteContext): Promise<NextResponse
   const parts = parsed.data.parts as ExportPart[];
   const label = parts.join('+');
 
-  const projectName = await loadProjectName(projectId);
+  const identity = await loadProjectIdentity(projectId);
   // 归属与"这个项目还在不在"先问一遍，再推 building：不是自己的项目、不存在的项目
   // 都连这一步都没到，不该留下"导出跑了一次"的刻度（domain 里那道检查是给直接调用方的，两道各管各的入口）
-  if (!projectName || !(await projectBelongsTo(projectId, user.id))) {
+  if (!identity || !(await projectBelongsTo(projectId, user.id))) {
     return jsonError(404, 'not_found', { message: '没有这个项目' });
   }
+  const projectName = identity.name;
   publishBuildStatus(projectId, 'building', `导出 ${label}`);
 
   let outcome: Awaited<ReturnType<typeof buildProjectExport>> = null;

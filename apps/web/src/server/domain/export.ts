@@ -1,10 +1,10 @@
 import { generateProject, type DesignDocument } from '@nexus/design-model';
 import type { RealtimeEvent } from '@nexus/schemas';
-import { textEntry, zipStore, type ZipEntry } from '@/lib/zip';
+import { crc32, textEntry, zipStore, type ZipEntry } from '@/lib/zip';
 import { channels, getRealtimeBus } from '../realtime/bus';
 import { listProjectAssets, openAssetForOwner } from './assets';
 import { emit } from './notifications';
-import { loadDocument, projectBelongsTo } from './projects';
+import { loadDocument, loadProjectIdentity, projectBelongsTo } from './projects';
 
 /**
  * §144 NO LOCK-IN 的导出那一半：把一份项目**交还到作者手里**。
@@ -86,6 +86,57 @@ function manifest(args: {
   return lines.join('\n');
 }
 
+/**
+ * `.nexus/manifest.json` 的格式版本。**导入侧必须按它判**，而不是"看起来像就试着读"：
+ * 将来包里多一层或少一层，导入那边要能明确说"这份包是 v1、我认的是 v1"，
+ * 而不是在一个形状变了的包上猜着解析，然后以某种方式读出一份**不完整的项目**——
+ * 那种失败比"版本不认识"难查得多（ADR-0024 后果里定的下一片第一件就是这个）。
+ */
+export const EXPORT_FORMAT = 'nexus-project-export';
+export const EXPORT_FORMAT_VERSION = 1;
+
+/** 机器可读的那一层。与 README.txt 分工：这份给程序看，那份给人看 */
+export interface NexusManifest {
+  format: typeof EXPORT_FORMAT;
+  formatVersion: number;
+  generatedAt: string;
+  project: { name: string; kind: string };
+  parts: ExportPart[];
+  /**
+   * 包里除 `.nexus/manifest.json` 自己以外的每一个条目：路径、字节数、CRC32。
+   *
+   * 为什么清单不把自己列进去：它的字节取决于列表内容，列进去就成了自指。
+   * 为什么带 CRC：导入侧拿它跟 zip 中央目录里声明的值对一遍，
+   * **两份声明对不上就整包拒绝**——一份"内容被改过但清单没改"的包，比一份坏包更危险。
+   */
+  entries: { path: string; bytes: number; crc32: string }[];
+  /** 库里有记录、字节却取不回来的资产名（与 README 的"缺了什么"同一份来源） */
+  missingAssets: string[];
+}
+
+function buildNexusManifest(args: {
+  projectName: string;
+  kind: string;
+  parts: ExportPart[];
+  entries: ZipEntry[];
+  missingAssets: string[];
+}): NexusManifest {
+  return {
+    format: EXPORT_FORMAT,
+    formatVersion: EXPORT_FORMAT_VERSION,
+    generatedAt: new Date().toISOString(),
+    project: { name: args.projectName, kind: args.kind },
+    parts: args.parts,
+    entries: args.entries.map((entry) => ({
+      path: entry.path,
+      bytes: entry.contents.length,
+      // 大写 8 位十六进制：与 zip 工具显示 CRC 的写法一致，肉眼核对时不用换算
+      crc32: crc32(entry.contents).toString(16).toUpperCase().padStart(8, '0'),
+    })),
+    missingAssets: args.missingAssets,
+  };
+}
+
 export async function buildProjectExport(
   projectId: string,
   actorId: string,
@@ -97,7 +148,9 @@ export async function buildProjectExport(
   if (!document) return null;
 
   const startedAt = Date.now();
-  const [projectName] = [document.name];
+  // 类型取自项目行（设计文档里没有它）；项目行读不到就退回文档名，清单里照实写 website 之外的默认
+  const identity = await loadProjectIdentity(projectId);
+  const projectName = identity?.name ?? document.name;
   const counts: Record<ExportPart, number> = { design: 0, code: 0, assets: 0 };
   const missingAssets: string[] = [];
   const entries: ZipEntry[] = [];
@@ -129,6 +182,23 @@ export async function buildProjectExport(
   }
 
   entries.unshift(textEntry('README.txt', manifest({ projectName, parts, counts, missingAssets, document })));
+  // 机器可读的那一层放在**最前面**：读回来的一方要先认格式版本，再谈里面的内容
+  entries.unshift(
+    textEntry(
+      '.nexus/manifest.json',
+      JSON.stringify(
+        buildNexusManifest({
+          projectName,
+          kind: identity?.kind ?? 'website',
+          parts,
+          entries,
+          missingAssets,
+        }),
+        null,
+        2,
+      ),
+    ),
+  );
 
   const bytes = zipStore(entries);
   return {
