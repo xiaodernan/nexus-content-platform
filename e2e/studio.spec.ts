@@ -1,4 +1,5 @@
 import { deflateSync } from 'node:zlib';
+import { readFile } from 'node:fs/promises';
 import { expect, test, type Page, type Request } from '@playwright/test';
 
 /**
@@ -2405,11 +2406,12 @@ test('@smoke §164 通知：别人真的动过，作者的收件箱里才有那�
   await expect(row('generation')).toContainText('DEMO 模板生成完成');
   await page.screenshot({ path: 'screenshots/notifications-unbacked.png' });
 
-  // 还剩哪几类没有来源要挂在页面上：Generation 与 Agent task 两类都已摘掉（各自有了真写入方），
-  // 只剩 Build complete——"会完成的构建操作"这件事本身还没有
+  // §164 原文点名的四类到这里就全部有来源了：这张"没有来源"的单子现在是空的，
+  // 但页面照旧把它带出来——将来加一类而没有真终态时，它得有个地方冒出来（§144 的导出见下面那一条）
   await expect(page.locator('[data-notification-unbacked="Generation complete"]')).toHaveCount(0);
   await expect(page.locator('[data-notification-unbacked="Agent task complete"]')).toHaveCount(0);
-  await expect(page.locator('[data-notification-unbacked="Build complete"]')).toBeVisible();
+  await expect(page.locator('[data-notification-unbacked="Build complete"]')).toHaveCount(0);
+  await expect(page.locator('[data-notification-unbacked-count="0"]')).toBeVisible();
 
   // §112 的账本：这一页列的就是刚才那一行任务
   await page.goto(`/tasks/${projectId}`);
@@ -3283,4 +3285,64 @@ test('@smoke §134 跑一次生成 → 额度页少 1 点，且那一行指着�
   await expect(page.locator('[data-credits-storage]')).toContainText('已用');
   await expect(page.locator('[data-credits-limits]')).toContainText('没有充值入口');
   await expect(page.locator('[data-plan-row="enterprise"]')).toBeVisible();
+});
+
+test('@smoke §144 导出：顶栏点一下就下载，回执说的和包里的一样（§164 的 Build complete 从此有来源）', async ({ page }) => {
+  test.setTimeout(150_000);
+  const _projectId = await createProject(page, `导出 ${Date.now().toString(36)}`);
+
+  // ① 三样默认全勾：下载到的那份 zip 里真的有 README、设计文档与投出来的代码
+  await page.click('[data-export-open]');
+  for (const part of ['design', 'code', 'assets']) {
+    await expect(page.locator(`[data-export-part="${part}"] input`)).toBeChecked();
+  }
+  const firstDownload = page.waitForEvent('download');
+  await page.click('[data-export-run]');
+  const download = await firstDownload;
+  const suggested = download.suggestedFilename();
+  expect(suggested, `下载到的文件名不对：${suggested}`).toMatch(/^nexus-导出-[0-9a-z]+\.zip$/);
+  const tempPath = await download.path();
+  if (!tempPath) throw new Error('浏览器没有把这份下载落到磁盘上');
+  const bytes = await readFile(tempPath);
+  // store zip 的头四个字节是 "PK" + 03 04：界面报"导出完成"而到手不是 zip，是最难被发现的那种谎
+  expect(bytes.subarray(0, 2).toString('latin1')).toBe('PK');
+  expect(bytes[2]).toBe(0x03);
+  expect(bytes[3]).toBe(0x04);
+  // store（不压缩）意味着中央目录里的路径就是明文，直接在字节里数得出这几个名字
+  const listing = bytes.toString('latin1');
+  expect(listing).toContain('README.txt');
+  expect(listing).toContain('design/document.json');
+  expect(listing).toContain('code/');
+  // 交给真解压器验一遍（`python -m zipfile`）：结果记在 ROADMAP 那一节，不写进用例——
+  // 门禁里 spawn 外部解释器会让它在别人机器上以与环境有关的原因变红（同一理由见 zip.test.ts 顶部）
+  await download.saveAs('.scratch/browser-export.zip');
+
+  // 界面上那句回执是服务端数出来的，不是界面自己数一遍包
+  await expect(page.locator('[data-export-composition]')).toContainText('设计文档 1');
+  await expect(page.locator('[data-export-composition]')).toContainText('代码');
+
+  // ② 只勾代码：包里没有设计文档，回执也不写它（"0 个文档"这种话不该出现在界面上）
+  await page.uncheck('[data-export-part="design"] input');
+  await page.uncheck('[data-export-part="assets"] input');
+  const secondDownload = page.waitForEvent('download');
+  await page.click('[data-export-run]');
+  const secondPath = await (await secondDownload).path();
+  if (!secondPath) throw new Error('第二次导出没落到磁盘');
+  const secondListing = (await readFile(secondPath)).toString('latin1');
+  expect(secondListing).toContain('code/');
+  expect(secondListing, "没勾 design 却还在包里").not.toContain('design/document.json');
+  await expect(page.locator('[data-export-composition]')).not.toContainText('设计文档');
+
+  // ③ 三个都不勾：那颗按钮点不动，而不是点出一个"完成"
+  await page.uncheck('[data-export-part="code"] input');
+  await expect(page.locator('[data-export-run]')).toBeDisabled();
+
+  // ④ §164 的第四类：这两次导出在收件箱里各留一条（第二次也出声，因为键挂在每次导出自己的 id 上）
+  await page.goto('/notifications');
+  await expect(page.locator('[data-notification-kind="build"]')).toHaveCount(2, { timeout: 30_000 });
+  const notice = page.locator('[data-notification-kind="build"]').first();
+  await expect(notice.locator('[data-notification-title]')).toContainText('导出完成');
+  await expect(notice.locator('[data-notification-title]')).not.toContainText('资产');
+  await expect(page.locator('[data-notification-unbacked="Build complete"]')).toHaveCount(0);
+  await page.screenshot({ path: 'screenshots/project-export.png' });
 });
