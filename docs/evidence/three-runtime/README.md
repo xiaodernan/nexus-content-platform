@@ -2563,3 +2563,70 @@ gate figure and a commit figure mean the same code.
   and is not a row there, so the number that census reports still understates how many named refusals a save can
   meet on the way to the host.
 
+## v155 — a declared file shape is owned by a field path or refused by name: the shape gate counts `Serialized*` shapes instead of trusting one root's reach
+
+**The gap, measured at `b73165c`.** `src/types.ts` declares 12 `Serialized*` interfaces. The suite's
+shape gates call `declaredFields('NAME')` with a `Serialized*` name in 2 of the 10 shipped test files, and the
+union of the `Serialized*` names they ask about is 7. The 5 nobody asks about: SerializedEuler, SerializedQuestSystem, SerializedScene, SerializedSceneGraph, SerializedVector3.
+2 of them are WRITTEN by src — `vectorToData` (`threeRuntime.ts:947`) and
+`eulerToData` (`:958`) — and sit inside `SaveFile`'s reach, under `SerializedEntity.position`
+and `.rotation`. Every exact-key gate stops at the top level of `SerializedEntity`, so the nested shapes were
+compared by nobody, including the `order` that `types.ts:484` documents as part of the pose.
+
+**The rule.** A declared shape is legal only if it is ACCOUNTED:
+
+| account | who satisfies it |
+| --- | --- |
+| a field path owns it | the census climbs declared field types from `SaveFile` and from `SaveData` and prints the chain; every link is re-checked against the parent's declared field list |
+| a writer's keys are compared to its declaration | `SerializedVector3` and `SerializedEuler`, here — `snapshotEntity` and `playerSnapshot` both write them, and a round-trip case proves the compared shape still loads |
+| some shipped gate compares it | read out of the test sources at run time (`declaredFields('NAME')` appears in one of them), so a later grant's gate counts without editing this file |
+| the blocked half refuses it | a shape outside the file is legal only if its chain's FIRST hop leaves `SaveData` at a field `saveFeasibilityAudit` reports blocked, with a reason: `quests`, `sceneGraph` |
+
+The two roots are different sets and the gate pins the difference: `SerializedPlayer` — 1
+shape — is typed on `SaveFile` and
+on no `SaveData` field (`SaveData.player` is a live `Player`); `SerializedQuestSystem`, `SerializedScene` and `SerializedSceneGraph` — 3
+of them — are owned only by `SaveData`, and `SerializedScene` only one hop deeper
+(`SaveData.sceneGraph → SerializedSceneGraph.scenes`), which is why the first draft's "typed by a `SaveData`
+field" was false.
+
+**Measured.** Plane `.scratch/vnext/plane7e` — a clone of `b73165cb1fa111bb87985c09f329b0dd1ed28fdf` with `core.autocrlf=false`, so the plane is LF and
+every figure below is the plane's, not the shared worktree's. Round 4 measured this gate at `edf8681`; since then HEAD has taken 9 more commits and the shared ADR-0016 ledger has grown from amendment 150 to 154, so the plane was re-cloned at `b73165c` and re-run end to end: every one of the six measurement fields (baseline, withGate, tscWith, arms, final, finalTsc) in `.scratch/vnext/p7e-measurement.json` is byte-identical to the `plane7d` file at `edf8681`, which is the check that the intervening commits touched nothing this package owns.
+
+| run | cases | files | red | tsc |
+| --- | --- | --- | --- | --- |
+| baseline (HEAD, no gate file) | 404 | 10 | 0 | — |
+| with the gate | 417 | 11 | 0 | 0 |
+| final (gate re-based, after the arms) | 417 | 11 | 0 | 0 |
+
+The gate itself is 13 cases over 303 lines. 5 arms, each applied to HEAD's bytes and re-based before the
+next: S1 MATCHED, S2 MATCHED, S3 MATCHED, S4 MATCHED, S5 MATCHED. Each arm reports `2 / 3 / 6 / 6 / 10` red, of which
+2 / 3 / 3 / 6 / 1 land in this file.
+
+| arm | what it breaks | predicted red (in this file) | verdict |
+| --- | --- | --- | --- |
+| S1 | SerializedVector3 declares a fourth field the writers never fill | snapshotEntity writes exactly the fields SerializedVector3 declares, in position and in scale; playerSnapshot writes the same two nested shapes | MATCHED |
+| S2 | a 13th Serialized* shape is declared and owned by no field of either root | no declared shape is owned by neither root — a shape no field names is a shape that quietly exists; the shapes the file does not reach are exactly the ones with no writer to compare; each unreached shape's owner chain starts at a SaveData field the audit reports as blocked, with a reason | MATCHED |
+| S3 | the Euler writer keeps every declared key but stops carrying the live order (it always writes 'XYZ') | snapshotEntity writes exactly the fields SerializedEuler declares, order included; playerSnapshot writes the same two nested shapes; what the writers write still restores, so the comparisons above are not describing an unloadable shape | MATCHED |
+| S4 | the SaveFile climb reads nothing (an empty reach wearing a green coverage case) | no declared shape is owned by neither root — a shape no field names is a shape that quietly exists; the file's reach is a real set, read from the shape the loader actually accepts; every shape the file writes has its keys compared to its declaration, somewhere in the suite; the shapes the file does not reach are exactly the ones with no writer to compare; each unreached shape's owner chain starts at a SaveData field the audit reports as blocked, with a reason; the two roots reach different shapes, and each asymmetry has a named owner | MATCHED |
+| S5 | the sceneGraph row stops speaking for the save-file plane, so the Map the file refuses has no refusal | each unreached shape's owner chain starts at a SaveData field the audit reports as blocked, with a reason | MATCHED |
+
+The reds that land OUTSIDE this file belong to S3, S5 — S3 3, S5 9 — and they are named here rather than
+buried in a total, because a census that only reddens its own file is not comparing the writers against the
+declaration the rest of the suite reads.
+
+**3 rounds of self-falsification, recorded because they are the finding.** Round 1 reddened on
+`SerializedScene is declared but no SaveData field is typed with it`: true, and my clause was the wrong claim —
+the shape is owned through `SerializedSceneGraph.scenes`. Round 2 reddened naming `SaveData.scenes`, a field that
+does not exist: the chain printer had returned `hops.reverse()`, and `reverse()` mutates, so the caller's "root
+field" was the leaf. Both were caught by the gate's own first run on HEAD, before any arm was trusted; the clause
+now asserts the chain starts at `SaveData` instead of inferring which end it ended at. Round 3 made the gate green and then returned 1 arm whose in-gate reds were exceptions rather than verdicts (S3 — 5 of its 5 in-gate reds read `Error:`, and 98 more reds landed outside the gate), 2 arms whose red lists came out larger than predicted (S3, S4) and 1 arm whose predicted `tsc` exit was wrong (S1: predicted 1, measured 2); all 5 arms published here redden on assertions only.
+The arm round 4 published keeps every declared key and lies about the value instead (`the Euler writer keeps every declared key but stops carrying the live order (it always writes 'XYZ')`), so
+the writer's own order check stays out of the way and the only red left is the comparison's; the empty-climb arm
+(`the SaveFile climb reads nothing (an empty reach wearing a green coverage case)`) reddens the coverage case as well, because that case pins that the shapes it compares are still
+reached — a self-pin written and never predicted. Round 4 re-armed, re-predicted, and re-measured, and is the table above.
+
+**Bounds.** No src behaviour and no file format changed. The 3 shapes this grant refuses by name (`SerializedQuestSystem`, `SerializedScene` and `SerializedSceneGraph`) remain
+blocked rows — the census keeps them honest rather than making them savable. 27 of the 72
+exported names in `types.ts` are still named by none of the three code modules, and the gate's own
+"declared outside `types.ts`" scan does not read `index.ts` (a barrel with no local declarations at this ref);
+this grant accounts for `Serialized*` shapes, not for every declared type.

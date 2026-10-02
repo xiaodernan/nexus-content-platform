@@ -7510,3 +7510,49 @@ _Corrects amendment 151. Numbering: 152 was free (`grep -an "^### Amendment 15"`
 - **Evidence.** `docs/evidence/agents/ebusy-proof.mjs` (rewritten; a MEASUREMENT, not a gate — it always
   exits 0, prints the verdict and writes `.scratch/ebusy-<plane>-<ts>.json`), and the corrected section in
   `docs/evidence/agents/README.md`.
+
+### Amendment 155 (M5 v155, three-runtime) — a declared file shape is owned by a FIELD PATH or it is refused by name: the shape gate now counts `Serialized*` shapes instead of trusting one root's reach
+
+`src/types.ts` declares 12 `Serialized*` interfaces at `b73165c` (SerializedCinematic, SerializedCinematicSequence, SerializedCinematicShot, SerializedCurve, SerializedEntity, SerializedEuler, SerializedNPC, SerializedPlayer, SerializedQuestSystem, SerializedScene, SerializedSceneGraph, SerializedVector3).
+The suite ships a `declaredFields('NAME')` helper, and 2 of its 10 test files call it with a
+`Serialized*` name; together they ask about 7 of the declared names, so the other 5 —
+SerializedEuler, SerializedQuestSystem, SerializedScene, SerializedSceneGraph, SerializedVector3 — were named by no gate at all. 2 of them sit INSIDE `SaveFile`'s reach and are
+written by src code (`vectorToData` at `threeRuntime.ts:947`, `eulerToData` at
+`:958`): every exact-key gate in the suite stops at the top level of `SerializedEntity`, so a
+nested shape could grow, shrink, or lose the field its own docstring calls part of the pose
+(`types.ts:484` — an Euler flattened without its `order` restores as NaN) and nothing would say so.
+
+The new gate (`test/serializedShapeName.test.ts`, 13 cases) is a CENSUS rather than a list. Its population is read off
+`export interface Serialized*\b` declarations, so a shape added tomorrow joins without anyone editing a table. Each declared
+shape must then be owned: the file climbs declared field types from either root and prints the chain
+(`SaveData.sceneGraph → SerializedSceneGraph.scenes`), and every link is re-checked against the parent's own
+field list. A shape inside `SaveFile`'s reach is legal only if some test file compares a writer's keys to it —
+read out of the test sources themselves, so a gate another grant adds later counts — or if this file does it,
+which it now does for the 2 transform shapes. A shape outside it is legal only if its chain's FIRST hop leaves
+`SaveData` at a field the audit reports as blocked, with a reason; measured, that is
+`quests` and `sceneGraph` (`threeRuntime.ts:240` is the row that owns the Map the file refuses).
+The two roots are different sets and the gate pins the difference instead of assuming it: only the file reaches
+1 shape (SerializedPlayer), only `SaveData` reaches
+3 (SerializedQuestSystem, SerializedScene, SerializedSceneGraph).
+
+**Measured.** Plane `.scratch/vnext/plane7e` (clone of `b73165cb1fa111bb87985c09f329b0dd1ed28fdf`, `core.autocrlf=false`): baseline 404 cases over 10
+files, 0 red; with the gate 417 over 11, 0 red, `tsc --noEmit` exit 0; after restoring the
+gate file the final run is 417 over 11, 0 red, tsc exit 0. Round 4 measured this gate at `edf8681`; since then HEAD has taken 9 more commits and the shared ADR-0016 ledger has grown from amendment 150 to 154, so the plane was re-cloned at `b73165c` and re-run end to end: every one of the six measurement fields (baseline, withGate, tscWith, arms, final, finalTsc) in `.scratch/vnext/p7e-measurement.json` is byte-identical to the `plane7d` file at `edf8681`, which is the check that the intervening commits touched nothing this package owns. 5 arms, each re-based to HEAD's
+bytes before it was applied: S1 MATCHED, S2 MATCHED, S3 MATCHED, S4 MATCHED, S5 MATCHED. Round 1 and round 2 of this grant were spent on the gate reddening on its own
+HEAD: first a clause that claimed each unreached shape is typed by a `SaveData` FIELD (`SerializedScene` is
+typed by `SerializedSceneGraph.scenes` — a true defect in my claim, not in the tree), then a chain printer that
+returned `hops.reverse()`, which mutates, so its caller read the LEAF hop as the root and named a field
+(`SaveData.scenes`) that does not exist. The clause now asserts `hops[0].parent === 'SaveData'` so the
+direction is checked, not assumed. Round 3 made the gate green and then returned 1 arm whose in-gate reds were exceptions rather than verdicts (S3 — 5 of its 5 in-gate reds read `Error:`, and 98 more reds landed outside the gate), 2 arms whose red lists came out larger than predicted (S3, S4) and 1 arm whose predicted `tsc` exit was wrong (S1: predicted 1, measured 2); all 5 arms published here redden on assertions only. The arm that round 4 published instead keeps every declared key and lies about the value (`the Euler writer keeps every declared key but stops carrying the live order (it always writes 'XYZ')`), so the writer's own type check stays out of the way and the only red left is the comparison's; and the empty-climb arm (`the SaveFile climb reads nothing (an empty reach wearing a green coverage case)`) reddens the coverage case as well, because that case pins that the shapes it compares are still reached — a self-pin written and never predicted.
+
+**Bounds this entry does not cross.** This grant changes no src behaviour and no file format: `SaveFile` and
+`SaveData` are exactly as they were, and the gate is a reader of `types.ts`. It does not make a refused shape
+savable — the 3 shapes no shipped gate named and this file does not compare (`SerializedQuestSystem`, `SerializedScene` and `SerializedSceneGraph`) stay in the blocked half, and the census is what
+keeps them honest there. `SerializedScene` is owned through a Map the file cannot hold, so the chain's root row,
+not the shape, is what the audit refuses. 27 of the 72 exported type names in `types.ts`
+are named by none of the package's three code modules (`threeRuntime.ts`, `saveStore.ts`, `renderBackend.ts`); that count and
+the face claim just below are derived from HEAD's bytes by `.scratch/vnext/land155.mjs` itself, and naming those types is a
+different grant. One limit of the new gate is said rather than hidden: its "declared outside `types.ts`" scan reads those
+three modules plus `types.ts`, while `index.ts` is a barrel that declares nothing locally at
+`b73165c` — so a shape declared in the package face today would be invisible to the census, and whoever adds one must
+widen that list in the same grant.
