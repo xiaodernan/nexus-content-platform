@@ -3469,7 +3469,7 @@ repository must not refuse it — so a submodule's content is not indexed here (
 another tree; this repo has none). The rule reads the directory, so a name-based skip cannot
 be the answer (`vnext/plane4` is not a magic name). The fix is one condition, measured on
 both planes.
-## The EBUSY fault is the SYNC SPAWN FAMILY, not contention (ebusy-proof.mjs — M2 v152 — ADR 0016 amendment 152, correcting 151)
+## The EBUSY fault is the SYNC SPAWN FAMILY, not contention (ebusy-proof.mjs — M2 v152 — ADR 0016 amendment 152, correcting amendment 151)
 
 **v151 recorded this probe as "0 EBUSY in 340 spawns (0.00%)" and concluded that the failures attributed to
 EBUSY in amendment 107 were `otherErr` rather than EBUSY. That record does not reproduce, and this section
