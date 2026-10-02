@@ -1,0 +1,63 @@
+// NEXUS M2 v154 — Amendment 129 behavioral probe: the reason field in diagnoseSaveFiles is mutation-resistant.
+// Amendment 129 recorded a debt: the mutation probe harness could not be applied due to CRLF line-ending conflicts.
+// This proof applies the mutation programmatically (no patch, no heredoc) and asserts the three-runtime tests catch it.
+// Run: node docs/evidence/agents/amendment129-probe.mjs
+import assert from 'node:assert/strict';
+import { readFileSync, writeFileSync } from 'node:fs';
+import { execFileSync } from 'node:child_process';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const REPO_ROOT = path.resolve(__dirname, '../../..');
+const SRC = path.join(REPO_ROOT, 'packages/three-runtime/src/threeRuntime.ts');
+
+const REASONS = [
+  { original: "'not-json'", mutated: "'not-json-mutated'", label: 'not-json' },
+  { original: "'listed-then-missing'", mutated: "'listed-then-missing-mutated'", label: 'listed-then-missing' },
+  { original: "'name-not-reenterable'", mutated: "'name-not-reenterable-mutated'", label: 'name-not-reenterable' },
+];
+
+function runTests() {
+  try {
+    execFileSync('npx', ['vitest', 'run', 'packages/three-runtime/test/saveSnapshot.test.ts'], {
+      cwd: REPO_ROOT,
+      encoding: 'utf8',
+      timeout: 120000,
+      stdio: 'pipe',
+    });
+    return { passed: true, output: '' };
+  } catch (e) {
+    return { passed: false, output: e.stdout?.toString() ?? e.stderr?.toString() ?? e.message };
+  }
+}
+
+async function main() {
+  console.log('[v154] Amendment 129 behavioral probe: mutating reason field in diagnoseSaveFiles');
+  const original = readFileSync(SRC, 'utf8');
+  let allCaught = true;
+
+  for (const r of REASONS) {
+    console.log(`\n[mutate] ${r.label}: ${r.original} -> ${r.mutated}`);
+    const mutated = original.replace(r.original, r.mutated);
+    if (mutated === original) {
+      console.log(`  FAIL: pattern not found: ${r.original}`);
+      allCaught = false;
+      continue;
+    }
+    writeFileSync(SRC, mutated, 'utf8');
+    const result = runTests();
+    if (result.passed) {
+      console.log(`  FAIL: tests PASSED with mutated ${r.label} — mutation NOT caught!`);
+      allCaught = false;
+    } else {
+      console.log(`  OK: tests FAILED as expected (mutation caught)`);
+    }
+    writeFileSync(SRC, original, 'utf8');
+  }
+
+  console.log('\n[v154] Summary:', allCaught ? 'ALL MUTATIONS CAUGHT' : 'SOME MUTATIONS NOT CAUGHT');
+  if (!allCaught) process.exit(1);
+}
+
+await main().catch(e => { console.error(e); process.exit(1); });
