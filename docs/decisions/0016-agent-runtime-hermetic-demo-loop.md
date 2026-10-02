@@ -7272,6 +7272,13 @@ be the answer (`vnext/plane4` is not a magic name). The fix is one condition, me
 both planes.
 
 
+
+Two-plane sweep at `6478308` (this commit plus its docs):
+
+- **worktree**: 76 scripts · 0 failed · 0 killed · 727 s · graded build `4695286965bc2cb1` (296 dist files) · tree `6e648ab19d2da653` (395 files) · dirty-sources 0
+- **isolated**: 76 scripts · 0 failed · 0 killed · 601 s · graded build `4695286965bc2cb1` · tree `dbdf0a1d58d4d3ca` (248 files) · dirty-sources 0
+
+The sweep's `code-index-proof` now indexes ~395 files (was 1787) and returns the real `geometry.ts` at #1 for the first query; all three queries surface their expected files. The `isolated-proof` verdict-independence check passes because the worktree run is now green. The `provenance-proof` materialized proof passes.
 ### Amendment 148 (M4 v148, studio + world-engine) — the WORLD lane gets its PRODUCT consumer, and the reason it had none was that the package could not be imported at all
 
 _Numbering: 148 — 146 and 147 were claimed by the three-runtime lane in the same cycle (`39448f9`,
