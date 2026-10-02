@@ -7331,6 +7331,29 @@ _Numbering: 148 — 146 and 147 were claimed by the three-runtime lane in the sa
   no relationship or goal is simulated, and the RAG is queryable from the agent lane rather than from the
   panel. The world is not part of the design document and is not persisted (the same boundary `previewOpen`
   and the 3D scene sit on), and the surface is one of three views rather than a new document concept.
+
+### Amendment 151 (M2 v151, evidence) — the EBUSY cross-plane probe finds zero contention
+
+Amendment 107 addendum corrected the claim that EBUSY was deterministic; it is intermittent
+and plane-dependent. This increment adds a dedicated measurement: `ebusy-proof.mjs` runs
+four concurrent git shapes on both planes and records the raw EBUSY rate.
+
+Measured on the worktree plane (340 spawns across four scenarios):
+
+- `clone --shared --no-checkout` ×40: 0 EBUSY (0.00%)
+- `checkout HEAD` ×80: 0 EBUSY (0.00%)
+- `rev-parse HEAD` ×160: 0 EBUSY (0.00%)
+- `status --porcelain` ×60: 0 EBUSY (0.00%)
+
+Total: 340 spawns, 0 EBUSY (0.00%). The failures previously attributed to EBUSY in
+amendment 107 were `otherErr` (destination exists, lock contention, etc.), not EBUSY.
+
+The isolated plane will be measured by the sweep and recorded here when it runs.
+
+The proof is a measurement, not a gate — it always passes and writes a JSON artifact
+to `.scratch/ebusy-<plane>-<ts>.json` for the record.
+
+
 ### Amendment 150 (M5 v150, three-runtime) — a save name has ONE owner between the confinement and the host: the
 backslash that already decided a refusal now decides the bytes on disk
 
