@@ -14,8 +14,8 @@
  */
 
 import { randomUUID } from 'node:crypto';
-import { getDb } from '@/server/db/client';
-import { knowledgeChunks } from '@/server/db/schema';
+import { getDb } from '../db/client';
+import { knowledgeChunks } from '../db/schema';
 import { eq, and, sql, desc, isNotNull } from 'drizzle-orm';
 
 /** §49 embedding 切片的 TypeScript 接口（Python ai-service 侧的对应物） */

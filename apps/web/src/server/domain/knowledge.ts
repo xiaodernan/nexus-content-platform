@@ -6,6 +6,8 @@ import { WORLD_KIND_LABELS, type WorldKind } from '@nexus/world-model';
 import type { Storyboard } from '@nexus/video-model';
 import { GAME_ENTITY_LABELS, GAME_KIND_LABELS, type GameDocument } from '@nexus/game-model';
 import { walk, type DesignDocument } from '@nexus/design-model';
+import { getEmbeddingProvider } from '../ai/embedding';
+import { VectorStore } from '../ai/vector-store';
 
 /**
  * §49 RAG 的语料与检索。这一层只做**不需要模型**的那一半：
@@ -496,19 +498,34 @@ export async function syncProjectKnowledge(
 
   if (designDocument) chunks.push(...chunksFromDesign(designDocument, projectId));
 
-  await db
-    .delete(knowledgeChunks)
-    .where(
-      options.includeDesign
-        ? eq(knowledgeChunks.projectId, projectId)
-        : and(
-            eq(knowledgeChunks.projectId, projectId),
-            // 见函数头：不带 `includeDesign` 时这一类不重切，所以也不能删
-            ne(knowledgeChunks.sourceType, 'design'),
-          ),
-    );
-  for (const part of chunkRows(chunks, projectId)) {
-    await db.insert(knowledgeChunks).values(part);
+  // §49: 如果有 embedding provider，走 VectorStore.upsertChunks（生成向量并 upsert）
+  // 没有时回落到原逻辑（embedding 留 null）
+  const embeddingProvider = getEmbeddingProvider();
+  if (embeddingProvider) {
+    const vectorStore = new VectorStore(embeddingProvider, embeddingProvider.model_for('embedding'));
+    await vectorStore.upsertChunks(projectId, chunks.map((c) => ({
+      worldId: c.worldId,
+      sourceType: c.sourceType,
+      sourceId: c.sourceId,
+      chunkIndex: c.chunkIndex,
+      content: c.content,
+      meta: { title: c.title, syncedAt: new Date().toISOString() },
+    })));
+  } else {
+    // 无 embedding provider：回落到原逻辑（embedding 留 null）
+    await db
+      .delete(knowledgeChunks)
+      .where(
+        options.includeDesign
+          ? eq(knowledgeChunks.projectId, projectId)
+          : and(
+              eq(knowledgeChunks.projectId, projectId),
+              ne(knowledgeChunks.sourceType, 'design'),
+            ),
+      );
+    for (const part of chunkRows(chunks, projectId)) {
+      await db.insert(knowledgeChunks).values(part);
+    }
   }
   return { chunks: chunks.length };
 }
