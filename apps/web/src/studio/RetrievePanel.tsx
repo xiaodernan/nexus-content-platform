@@ -63,6 +63,7 @@ export function RetrievePanel() {
   const [searched, setSearched] = useState(false);
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
+  const [vectorAvailable, setVectorAvailable] = useState(false);
   // 读取失败与"库里真的没块"是两件事，界面必须说不同的话：把一次 404/503 报成「0 块」，
   // 就等于用一个像内容的数字宣布"这个项目没有语料"（§159）。
   const [statsFailed, setStatsFailed] = useState<string | null>(null);
@@ -97,14 +98,20 @@ export function RetrievePanel() {
     setMessage(null);
     try {
       const res = await fetch(
-        `/api/projects/${studio.projectId}/retrieve?q=${encodeURIComponent(query)}`,
-        { cache: 'no-store' },
+        `/api/projects/${studio.projectId}/knowledge/search`,
+        {
+          method: 'POST',
+          headers: { 'content-type': 'application/json', ...csrfHeaders() },
+          body: JSON.stringify({ q: query }),
+          cache: 'no-store',
+        },
       );
       const body = (await res.json().catch(() => null)) as
-        | { items?: Retrieved[]; message?: string }
+        | { results?: Retrieved[]; vectorAvailable?: boolean; query?: string; message?: string }
         | null;
       if (!res.ok) throw new Error(body?.message ?? `HTTP ${res.status}`);
-      setItems(body?.items ?? []);
+      setItems(body?.results ?? []);
+      setVectorAvailable(body?.vectorAvailable ?? false);
       setSearched(true);
     } catch (error) {
       setMessage(error instanceof Error ? error.message : String(error));
@@ -205,7 +212,11 @@ export function RetrievePanel() {
             语料来自世界条目、角色档案、记忆、分镜镜头、游戏实体与设计页面的文字节点（§44/§46/§48/§40/§54/§16）。
             命中的是全文与子串匹配，
             分数由这三项相加：全文 ts_rank、子串命中、词覆盖度。
-            {stats.vectorized === 0
+            {searched && !vectorAvailable
+              ? ' 向量检索未接（没有 provider 就没有 embedding），所以这里没有"语义相近"这回事。'
+              : searched && vectorAvailable
+              ? ' 向量检索已接（语义相近也能搜到）。'
+              : stats.vectorized === 0
               ? ' 向量检索未接（没有 provider 就没有 embedding），所以这里没有"语义相近"这回事。'
               : ` 其中 ${stats.vectorized} 块已有向量。`}
           </p>
