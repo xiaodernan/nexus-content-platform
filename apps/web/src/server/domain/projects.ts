@@ -423,6 +423,20 @@ export async function projectOwnerId(projectId: string): Promise<string | null> 
   return row?.ownerId ?? null;
 }
 
+/**
+ * 项目名。通知标题、导出回执这些地方都要它——没有它标题就会变成"《prj_9f3c…》"，
+ * 那种标题没人读得懂（与 `agent-tasks.ts` 里为通知顺手取项目名同一条理由）。
+ * 不存在或已软删时返回 null，调用方按"没有这个项目"处理。
+ */
+export async function loadProjectName(projectId: string): Promise<string | null> {
+  const [row] = await getDb()
+    .select({ name: projects.name })
+    .from(projects)
+    .where(and(eq(projects.id, projectId), isNull(projects.deletedAt)))
+    .limit(1);
+  return row?.name ?? null;
+}
+
 export async function projectBelongsTo(projectId: string, ownerId: string): Promise<boolean> {
   const db = getDb();
   const rows = await db

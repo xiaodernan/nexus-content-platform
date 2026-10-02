@@ -36,6 +36,8 @@
 10c 真实 provider 生成方案方向（现在是确定性配方，UI 常驻 DEMO MODE）
 11  Publish 过 Quality Gate → /n/<user>/<slug> 可访问（private/unlisted/public 语义正确，§56-57/§179）
 12 导出 ZIP 含 .nexus/ 结构，能在干净实例导入还原（§102-104/§144）
+   —— 2026-10-01 走通的是前半：Studio 顶栏「导出」在真浏览器里点得下来，下载到的 zip 由 zip 工具读回来看过；
+   `.nexus/` 结构与"干净实例导入还原"仍欠（包里今天没有那层机器可读结构，见 ADR-0024）
 ```
 
 ## 质量门禁（§179，Publish 前必须全绿）

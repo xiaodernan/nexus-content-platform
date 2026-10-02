@@ -85,3 +85,31 @@ npm run contract:export   # 改了 packages/schemas 后必须重跑，导出 con
 3. 对 `.py` 做语法检查；若根 `package.json` 含 `lint` 脚本且 `node_modules` 存在则**执行 lint 并阻断**
    → `npm run lint` 必须始终可通过且够快
 4. 禁止使用 `--no-verify` 绕过；hook 失败时修复根因
+
+## Docker 引擎掉了一半时的假红形状（2026-10-02 实录）
+
+现象（一次全量 `npm test`）：**49 个文件红，且 49 个全是 `*.integration.test.ts`**，唯一的报错是
+`Hook timed out in 30000ms`（95 次），一条断言失败都没有；而非打库的 64 个文件全绿。
+`Duration 2940s`（平时约三分之一）。这形状本身就是判据：**全红组恰好等于"要打库的那一组"时，
+先怀疑引擎，不要怀疑代码。**
+
+带外探测（三个信号，按顺序看）：
+
+1. `netstat -ano | grep 55433` → 端口在 LISTENING。**端口在不代表库活着**：那是 `com.docker.backend.exe`
+   留下的转发，后端已经不再转发到容器。
+2. `docker version --format '{{.Server.Version}}'` → `Error response from daemon: Docker Desktop is unable to start`，
+   退出码 1。这一条才是权威结论。
+3. `.scratch/dbprobe.mjs`（直接用 `postgres` 连 `NEXUS_DATABASE_URL` 的默认值）→
+   `select 1` 也 `write CONNECT_TIMEOUT localhost:55433`，10 秒超时。TCP 连上、写不进去，
+   与首页那次 e2e 失败（`write CONNECT_TIMEOUT localhost:55433` + `Timed out waiting 120000ms from config.webServer`）
+   是同一件事的两个面。
+
+引擎掉的时候 `Start-Process 'Docker Desktop.exe'` 未必能救回来（这次等了 4 分钟仍是 "unable to start"）。
+**不要**用 `wsl --shutdown` / 删 distro 去硬复位：同一台机上有别的项目的容器与卷（见上"已有容器"），
+那是别人在跑的东西，复位属于要人来做决定的动作。
+
+顺带一条同源坑：dev server 被中途杀掉会把生成物写坏 —— `apps/web/.next/dev/types/routes.d.ts`
+留下半截 JSDoc 拼进代码，`npm run lint` 报 `TS1109` × 5 + `TS1160 Unterminated template literal`，
+全部指向这个 gitignore 掉的缓存文件（`git check-ignore -v` 能确认）。把 `apps/web/.next/dev/types`
+移走（不是删）lint 就跳过它，下一次 dev/build 会重新生成。看到"源码一行没改，lint 突然红在
+`.next/` 里"，先按这一条查。

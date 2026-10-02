@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 import { cn } from '@/lib/cn';
 import { studio, useStudioReady, type ViewportMode } from './store';
 import { PublishPanel } from './PublishPanel';
+import { ExportPanel } from './ExportPanel';
 
 const VIEWPORTS: { id: ViewportMode; label: string; hint: string }[] = [
   { id: 'design', label: '设计', hint: '模型原始画布宽度' },
@@ -122,6 +123,7 @@ export function TopBar({ onOpenRail }: { onOpenRail: () => void }) {
           ))}
         </select>
         <TopButton label="网格" shortcut="Ctrl+G" active={state.grid} onClick={() => studio.toggleGrid()} />
+        <ExportPanel />
         <PublishPanel />
         <a
           href={`/preview/${state.projectId}`}

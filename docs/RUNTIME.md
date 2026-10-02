@@ -74,3 +74,8 @@ M1 用 Redis List + FastAPI 后台 worker（同进程多 worker，可水平扩�
 M1：PNG · SVG · PDF · HTML · React · Project ZIP（含 `.nexus/` 结构，§102）。
 未来：Figma · Godot · Unity · Unreal。
 所有导出必须能被"另一个 NEXUS 实例"重新导入（无锁定，§144）。
+
+**Project ZIP 那一格今天到位到哪一步**（2026-10-01）：第一片落地——`design/document.json` + `code/` +
+`assets/` + 一份 `README.txt`，只装当前那一版投影。
+上面那句"必须能被另一个实例重新导入"**还没兑现**：包里今天**没有** `.nexus/` 那层机器可读结构，
+因为没有能读它的一方；导入与干净实例还原是下一片（决定与理由见 `docs/adr/0024-project-export-zip.md`）。

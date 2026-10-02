@@ -17,6 +17,7 @@ const KIND_LABEL: Record<InboxItem['kind'], string> = {
   generation: '生成',
   agent: 'Agent',
   approval: '审批作废',
+  build: '导出',
   other: '未分类',
 };
 
@@ -136,8 +137,10 @@ export default async function NotificationsPage() {
       </section>
 
       <section className="mt-6 rounded-[var(--nexus-radius-md)] border border-[var(--nexus-color-border-subtle)] bg-bg-1 p-4">
-        <h2 className="text-12 font-semibold text-fg-1">
-          {`§164 原文列的四类里，这 ${page.unbacked.length} 类还没有真实来源`}
+        <h2 className="text-12 font-semibold text-fg-1" data-notification-unbacked-count={page.unbacked.length}>
+          {page.unbacked.length === 0
+            ? '§164 原文列的四类，今天都有真实来源了'
+            : `§164 原文列的四类里，这 ${page.unbacked.length} 类还没有真实来源`}
         </h2>
         <ul className="mt-1 space-y-1 text-11 text-fg-3">
           {page.unbacked.map((entry) => (
@@ -147,9 +150,11 @@ export default async function NotificationsPage() {
           ))}
         </ul>
         <p className="mt-2 text-11 text-fg-3">
-          摘掉的两类都有真终态在背后：Generation complete 挂在一次 AI 请求的任务行上，
-          Agent task complete 挂在 §112 的多步作业上（计划落库、逐步推进、最后收尾）。
-          留着的那一类要的是"会完成的构建操作"，那件事本身还没有，所以不往收件箱里插行。
+          四类各自的真终态：Like / Comment / Follow 挂在社区互动那三张表上，
+          Generation complete 挂在一次 AI 请求的任务行上，Agent task complete 挂在 §112 的多步作业上
+          （计划落库、逐步推进、最后收尾），审批过期挂在挂起时刻到期那一次收敛上，
+          Build complete 挂在 §144 的一次导出上（读完文档、投出代码、取回资产、打成包，才算"完成"）。
+          没有真终态可挂的那一类不往收件箱里插行。
         </p>
       </section>
 

@@ -17,7 +17,8 @@ export type NotificationKind =
   | 'remix'
   | 'generation'
   | 'agent'
-  | 'approval';
+  | 'approval'
+  | 'build';
 
 /**
  * 每一类都要在这里登记一次。`Record<NotificationKind, true>` 让"加了一类忘了登记"
@@ -34,6 +35,7 @@ export const NOTIFICATION_KINDS: Record<NotificationKind, true> = {
   generation: true,
   agent: true,
   approval: true,
+  build: true,
 };
 
 export interface NotificationPlan {
@@ -169,6 +171,32 @@ export type NotifyEvent =
       ttlMs: number;
       /** 当时扣下的动作数；账本里那份读不出这个数就是 null，标题里也就不说个数（不编一个 0） */
       approvalCount: number | null;
+      detail: string | null;
+    }
+  | {
+      /**
+       * §164 点名的"Build complete"。它**最后一个**拿到真来源（2026-09-30）：
+       * 导出（§144 NO LOCK-IN）就是那个会走完的构建动作——它读文档、投出代码、取资产、
+       * 打成一份 zip，每一步都挂在一个真发生了的节点上。
+       * 在此之前这一类挂在"没有来源"的清单上，理由写的是"今天没有导出 / 打包端点"。
+       *
+       * `exportId` 是这一次导出的 id：每次导出都是一件新事，所以键挂在它上面
+       * （而不是"这个项目今天导出过"——那样第二次导出就不出声了）。
+       */
+      kind: 'build';
+      recipientId: string;
+      projectId: string;
+      projectName: string;
+      exportId: string;
+      ok: boolean;
+      /** 各部分实际进了几个文件；为零的那一档不写进标题 */
+      counts: { design: number; code: number; assets: number };
+      /**
+       * 库里有行、字节却取不回来的资产数。它是"导完了"里的一个**缺口**，
+       * 所以导出成功但缺了东西时标题仍要带上——默默少几个文件，比明说少几个更糟（§159）。
+       */
+      missingAssets: number;
+      durationMs: number | null;
       detail: string | null;
     };
 
@@ -365,6 +393,36 @@ export function planNotification(event: NotifyEvent): NotificationPlan | null {
         link: studioLink(event.projectId),
       };
     }
+    case 'build': {
+      const seconds = event.durationMs === null ? null : `${Math.round(event.durationMs / 100) / 10} 秒`;
+      // 只说真的进包的那几档：选了只导代码就不该出现"0 个资产"
+      const packed = [
+        event.counts.design ? `文档 ${event.counts.design}` : null,
+        event.counts.code ? `代码 ${event.counts.code} 个文件` : null,
+        event.counts.assets ? `资产 ${event.counts.assets} 个` : null,
+      ].filter(Boolean);
+      // 缺了资产是"导完了但有缺口"，级别往下拉一档而不是报成功——默默少几个文件更糟
+      const level = event.ok ? (event.missingAssets > 0 ? 'warning' : 'success') : 'error';
+      return {
+        ...base,
+        actorId: null,
+        publicationId: null,
+        // 每次导出都是一件新事，所以键挂在这次导出的 id 上
+        dedupeKey: `build:${event.exportId}`,
+        level,
+        title: clip(
+          `《${event.projectName}》导出${event.ok ? '完成' : '失败'}` +
+            (packed.length ? `（${packed.join(' · ')}）` : '') +
+            (event.ok && event.missingAssets > 0 ? `，但缺了 ${event.missingAssets} 个资产` : '') +
+            (event.ok && seconds ? `（${seconds}）` : ''),
+          TITLE_MAX,
+        ),
+        // 成功时是包里的构成摘要，失败时就是那句原因
+        body: event.detail ? clip(event.detail, BODY_MAX) : null,
+        // 导出结果是下载下来的那份 zip，页面上没有它，所以指向 Studio
+        link: studioLink(event.projectId),
+      };
+    }
   }
 }
 
@@ -399,17 +457,17 @@ const PLANNER_LABEL: Record<'real' | 'demo' | 'unavailable', string> = {
 /**
  * §164 原文列的四类里，今天**仍然没有真实来源**的那一类。
  * 列出来是为了让人问得出"为什么收件箱里没有这个"，而不是假装收件箱覆盖四类（§159）。
- * 摘掉一条要有理由，所以两次都记在这儿：
+ * 摘掉一条要有理由，所以三次都记在这儿：
  * - Generation complete 摘于 2026-09-25：`agent_tasks` 有了写入方，一次请求的终态就是它。
  * - Agent task complete 摘于 2026-09-29：`server/agent/runtime.ts` 的编排器真的把 §112 那种
  *   多步作业跑完（计划落库 → 逐步推进 → 收尾），于是这一类第一次有真终态可发。
+ * - Build complete 摘于 2026-10-01：§144 的导出（`domain/export.ts`）就是那句"会完成的构建操作"
+ *   ——读文档、投代码、取资产、打成一份 zip，每一步都挂在一个真发生了的节点上。
+ *
+ * 这一张单子今天是空的。**空着也要留着**：它留着，下一个人加第五类通知时才有个地方
+ * 记"这一类还没有来源"；删掉它，"没有来源"这件事就又变成只有代码知道的事了。
  */
-export const UNBACKED_NOTIFICATIONS = [
-  {
-    spec: 'Build complete',
-    reason: '平台目前没有会完成的构建操作（没有导出 / 打包端点），发这条通知等于凭空造',
-  },
-];
+export const UNBACKED_NOTIFICATIONS: readonly { spec: string; reason: string }[] = [];
 
 /** 读取时判定"这条通知还指得到东西吗"——目标被删或被下架时不悄悄消失，说明原因（§59 同一口径） */
 export type TargetState = { ok: true } | { ok: false; why: string };

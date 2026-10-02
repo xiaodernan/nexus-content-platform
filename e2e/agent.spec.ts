@@ -118,9 +118,9 @@ test('@smoke agent orchestration runs in the studio and lands a real notificatio
   await expect(item.locator('[data-notification-title]')).toContainText('多步 Agent 任务完成');
   await expect(item.locator('[data-notification-title]')).toContainText('DEMO 规划');
   await expect(item.locator('[data-notification-title]')).toContainText('4/4 步');
-  // 这一片之后"没有来源"的只剩 Build complete 那一类
+  // 这一片之后"没有来源"的单子上连 Build complete 都不挂了（§144 的导出接上的是 §164 的第四类）
   await expect(page.locator('[data-notification-unbacked="Agent task complete"]')).toHaveCount(0);
-  await expect(page.locator('[data-notification-unbacked="Build complete"]')).toBeVisible();
+  await expect(page.locator('[data-notification-unbacked="Build complete"]')).toHaveCount(0);
   await page.screenshot({ path: 'screenshots/agent-notification.png' });
 });
 

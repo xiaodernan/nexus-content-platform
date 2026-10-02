@@ -70,10 +70,12 @@ function publishNotification(plan: NotificationPlan): void {
 /** 通知类型 → 实时事件的级别。只是把"这件事有多要紧"翻译成一个 UI 能用的档位 */
 function levelOf(kind: NotificationKind): 'info' | 'success' | 'warning' | 'error' {
   switch (kind) {
-    // agent 那一类正常情况下自带 level（成功与失败不一样）；这里是没带时的兜底
+    // build / agent 那两类正常情况下自带 level（成功与失败不一样，导出缺资产还要再降一档）；
+    // 这里是没带时的兜底
     case 'publish':
     case 'generation':
     case 'agent':
+    case 'build':
       return 'success';
     // 审核裁决可能是撤下内容，过期作废是"一件事因为没人管而永远做不成了"——
     // 这两件都不该和"有人点了赞"同一个颜色

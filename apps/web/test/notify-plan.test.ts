@@ -236,12 +236,13 @@ describe('反复发生留几条（dedupe_key）', () => {
   });
 });
 
-describe('§164 四类里没有来源的那一类', () => {
-  it('Generation 与 Agent task 两类都有真来源了，只剩 Build complete 挂着', () => {
-    expect(UNBACKED_NOTIFICATIONS.map((u) => u.spec)).toEqual(['Build complete']);
-    for (const entry of UNBACKED_NOTIFICATIONS) {
-      expect(entry.reason.length).toBeGreaterThan(10);
-    }
+describe('§164 原文点名的四类：单子内已经空了', () => {
+  it('四条名字逐条对过，都不在"没有来源"的单子上（空是数出来的，不是没数）', () => {
+    // 这四条抄自原文 §164 那一段，不从代码里推：单子空了而名字也悄悄改掉，就没人记得对过一遍
+    const specs = ['Generation complete', 'Build complete', 'Agent task complete', 'Publish complete'];
+    const unbacked = UNBACKED_NOTIFICATIONS.map((u) => u.spec);
+    for (const spec of specs) expect(unbacked, `「${spec}」还挂在没有来源的单子上`).not.toContain(spec);
+    expect(unbacked).toEqual([]);
   });
 });
 
@@ -320,11 +321,62 @@ describe('Generation complete（§164 里以前没有来源的那一类）', () 
     expect(planNotification(generation({ durationMs: null }))?.title).not.toContain('秒');
   });
 
-  it('Generation 与 Agent task 两类都已摘掉，只剩 Build complete', () => {
+  it('Generation、Agent task 与 Build 三类都摘掉了，单子上不再挂着东西', () => {
     const specs = UNBACKED_NOTIFICATIONS.map((item) => item.spec);
     expect(specs).not.toContain('Generation complete');
     expect(specs).not.toContain('Agent task complete');
-    expect(specs).toEqual(['Build complete']);
+    expect(specs).not.toContain('Build complete');
+    expect(specs).toEqual([]);
+  });
+});
+
+type Build = Extract<NotifyEvent, { kind: 'build' }>;
+
+const build = (over: Partial<Build> = {}): NotifyEvent => ({
+  kind: 'build',
+  recipientId: 'u-1',
+  projectId: 'p-1',
+  projectName: '深夜便利店',
+  exportId: 'e-1',
+  ok: true,
+  counts: { design: 1, code: 12, assets: 3 },
+  missingAssets: 0,
+  durationMs: 1234,
+  detail: '包里 16 个文件',
+  ...over,
+});
+
+describe('Build complete（§164 最后拿到来源的那一类：§144 的导出）', () => {
+  it('每次导出都是一件新事：键挂在这次导出的 id 上，第二次导出还会出声', () => {
+    expect(planNotification(build())?.dedupeKey).toBe('build:e-1');
+    expect(planNotification(build({ exportId: 'e-2' }))?.dedupeKey).toBe('build:e-2');
+  });
+
+  it('标题只说真的进包的那几档：没勾 assets 就不写"资产 0 个"', () => {
+    const plan = planNotification(build({ counts: { design: 1, code: 12, assets: 0 } }));
+    expect(plan?.title).toContain('代码 12');
+    expect(plan?.title, '没导出的那一档被写成了 0，读的人以为包里有东西').not.toContain('资产');
+    expect(planNotification(build({ counts: { design: 0, code: 0, assets: 0 } }))?.title).toBe('《深夜便利店》导出完成（1.2 秒）');
+  });
+
+  it('成功但缺了资产：降成 warning，并把缺的数量写在标题上（§159）', () => {
+    const plan = planNotification(build({ missingAssets: 2 }));
+    expect(plan?.level).toBe('warning');
+    expect(plan?.title).toContain('缺了 2 个资产');
+    expect(planNotification(build())?.level).toBe('success');
+  });
+
+  it('失败那一次：标题写失败、正文是那句原因、不写构成也不写用时', () => {
+    const plan = planNotification(build({ ok: false, counts: { design: 0, code: 0, assets: 0 }, durationMs: 0, detail: '存储取不回来' }));
+    expect(plan?.title).toBe('《深夜便利店》导出失败');
+    expect(plan?.level).toBe('error');
+    expect(plan?.body).toBe('存储取不回来');
+  });
+
+  it('没有时长就不写用时，没有摘要就不编正文，链接指向编辑区', () => {
+    expect(planNotification(build({ durationMs: null }))?.title).not.toContain('秒');
+    expect(planNotification(build({ detail: null }))?.body).toBe(null);
+    expect(planNotification(build())?.link).toBe('/studio/p-1');
   });
 });
 
