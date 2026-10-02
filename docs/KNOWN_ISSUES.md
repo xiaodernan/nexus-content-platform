@@ -171,6 +171,22 @@ Live list. Nothing here is hidden behind marketing copy.
     `NODE_OPTIONS` for the run removes it.
   Turbo can also fail with `os error 231 (all pipe instances are in use)` when several builds
   run at once; build the affected package directly with `tsc -p tsconfig.json` instead.
+- **The SYNCHRONOUS spawn family is unusable on this host; the ASYNC family is clean.** Measured
+  2026-10-02 (`docs/evidence/agents/ebusy-proof.mjs`, ADR 0016 amendment 152): a sequential
+  `spawnSync('git', ['rev-parse','HEAD'])` fails **20/20 with `EBUSY`**, and across four git shapes the
+  sequential arm fails **60/60 (100%)** while the concurrent arm using async `spawn` — up to 8 children
+  alive at once — is **0/340 (0.00%)**. So this is **not** contention and **not** intermittent: it is
+  the `spawnSync`/`execFileSync`/`execSync` API itself. Consequences:
+  - **Every proof that shells out must import `docs/evidence/lib/syncproc.mjs`**, which re-implements the
+    sync API on the async path (Worker + `Atomics.wait`). That file is load-bearing, not a convenience —
+    do not delete it.
+  - A proof that calls the sync family directly does not fail honestly; it fails *always*, which is why
+    an earlier record could claim 0% while its own proof measured 100% (amendment 151, corrected by 152).
+  - **A claim about contention must measure a concurrent arm against a sequential control.** A "concurrent"
+    arm built by wrapping a synchronous call in `new Promise` never overlaps, and its numbers describe the
+    sync path while its label describes a race.
+  - One real concurrency artifact does exist and is classified separately: concurrent `checkout` in one
+    repository contends on the index lock and reports as `otherErr`, not `EBUSY`.
 - **`next dev` needs a clean `NODE_OPTIONS`** in this environment: the ambient `--require`
   language shim intercepts `unlink`, and Next's dev cache cleanup then aborts the process with
   `SAFE_DELETE_BULK_GUARD_ERROR`. Start it as `NODE_OPTIONS= ../../node_modules/.bin/next dev -p <port>`

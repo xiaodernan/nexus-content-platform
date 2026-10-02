@@ -3469,23 +3469,42 @@ repository must not refuse it — so a submodule's content is not indexed here (
 another tree; this repo has none). The rule reads the directory, so a name-based skip cannot
 be the answer (`vnext/plane4` is not a magic name). The fix is one condition, measured on
 both planes.
-## The EBUSY cross-plane probe finds zero contention (ebusy-proof.mjs — M2 v151 — ADR 0016 amendment 151)
+## The EBUSY fault is the SYNC SPAWN FAMILY, not contention (ebusy-proof.mjs — M2 v152 — ADR 0016 amendment 152, correcting 151)
 
-Amendment 107 addendum corrected the claim that EBUSY was deterministic; it is intermittent
-and plane-dependent. This increment adds a dedicated measurement: `ebusy-proof.mjs` runs
-four concurrent git shapes on both planes and records the raw EBUSY rate.
+**v151 recorded this probe as "0 EBUSY in 340 spawns (0.00%)" and concluded that the failures attributed to
+EBUSY in amendment 107 were `otherErr` rather than EBUSY. That record does not reproduce, and this section
+replaces it.** Re-run on 2026-10-02 against the proof as it was shipped, the same four scenarios reported
+**340 EBUSY in 340 spawns (100.00%)**, and a plain sequential `spawnSync('git', ['rev-parse','HEAD'])` ×20
+reported **20/20 EBUSY**.
 
-Measured on the worktree plane (340 spawns across four scenarios):
+**Why the shipped proof could not settle it.** It wrapped a SYNCHRONOUS `spawnSync` inside a `new Promise`
+executor:
 
-- `clone --shared --no-checkout` ×40: 0 EBUSY (0.00%)
-- `checkout HEAD` ×80: 0 EBUSY (0.00%)
-- `rev-parse HEAD` ×160: 0 EBUSY (0.00%)
-- `status --porcelain` ×60: 0 EBUSY (0.00%)
+```js
+promises.push(new Promise(resolve => { const r = runGit([command, ...args]); resolve(r); }));
+```
 
-Total: 340 spawns, 0 EBUSY (0.00%). The failures previously attributed to EBUSY in
-amendment 107 were `otherErr` (destination exists, lock contention, etc.), not EBUSY.
+`runGit` runs to completion before the executor returns, so the four "concurrent" spawns in each batch ran
+**one after another** — the concurrency was decorative. A contention measurement whose spawns never contend
+cannot tell contention from an unconditional fault, and the number it produced (0%) is what the ASYNC path
+gives, not what the sync path it actually called gives.
 
-The isolated plane will be measured by the sweep and recorded here when it runs.
+**The rewrite measures both arms.** The concurrent arm now uses async `spawn`, so `concurrency` children
+really are alive at once; the sequential arm is the control. Measured on the worktree plane:
 
-The proof is a measurement, not a gate — it always passes and writes a JSON artifact
-to `.scratch/ebusy-<plane>-<ts>.json` for the record.
+| arm | mechanism | EBUSY |
+| --- | --- | --- |
+| CONCURRENT | async `spawn` (up to 8 at once) | **0 / 340 (0.00%)** |
+| SEQUENTIAL | `spawnSync` (one at a time) | **60 / 60 (100.00%)** |
+
+Per shape, concurrent: `rev-parse HEAD` 160/160 ok · `status --porcelain` 60/60 ok · `clone --shared
+--no-checkout` 40/40 ok · `checkout HEAD` 39 ok / 41 `otherErr` (concurrent checkouts in one repository
+contend on the index lock — a real contention artifact, and it is `otherErr`, not EBUSY).
+
+**The verdict the numbers support: `SYNC-FAMILY`.** The sequential control fails at 100% while the
+concurrent arm is clean, so the fault belongs to the `spawnSync` API itself and has nothing to do with
+contention. This also explains why `docs/evidence/lib/syncproc.mjs` — which re-implements the sync API on the
+async path — is load-bearing rather than a convenience, and why every proof that imports it works.
+
+The proof is a MEASUREMENT, not a gate: it always exits 0, prints the verdict, and writes a JSON artifact to
+`.scratch/ebusy-<plane>-<ts>.json`. The isolated plane is measured by the sweep and recorded when it runs.

@@ -7442,3 +7442,43 @@ this machine, which is Windows; the Windows half was measured on it. `sweepTempF
 that pinned the whole record had to be re-pinned — three such pins, all in `test/saveSnapshot.test.ts` — and no
 other return shape changed.
 
+
+### Amendment 152 (M2 v152, evidence) — the EBUSY fault is the SYNC SPAWN FAMILY, not contention: amendment 151's "0.00%" does not reproduce, and the proof that produced it could not have settled the question
+
+_Corrects amendment 151. Numbering: 152 was free (`grep -an "^### Amendment 15"` topped out at 151)._
+
+- **What 151 recorded.** *"Measured on the worktree plane (340 spawns across four scenarios): 0 EBUSY
+  (0.00%) … The failures previously attributed to EBUSY in amendment 107 were `otherErr` (destination
+  exists, lock contention, etc.), not EBUSY."*
+- **What reproduces.** Re-run on 2026-10-02 against the proof as shipped, the SAME four scenarios reported
+  **340 EBUSY in 340 spawns (100.00%)**, and a plain sequential `spawnSync('git', ['rev-parse','HEAD'])` ×20
+  reported **20/20 EBUSY**. The record therefore contradicted both its own proof and `docs/KNOWN_ISSUES.md`,
+  which had said the sync family was broken on this host all along. **§60: a record that does not reproduce
+  is a defect, and it is the record that is corrected here — not the measurement.**
+- **Why the shipped proof could not have settled it.** It wrapped a SYNCHRONOUS `spawnSync` inside a
+  `new Promise` executor — `promises.push(new Promise(resolve => { const r = runGit(...); resolve(r); }))`.
+  `runGit` completes before the executor returns, so the four "concurrent" spawns in each batch ran one
+  after another: **the concurrency was decorative.** A contention measurement whose spawns never contend
+  cannot distinguish contention from an unconditional fault. The number it printed (0%) is what the ASYNC
+  path gives, not what the sync path it actually called gives — which is exactly the confusion the record
+  then repeated.
+- **The rewrite measures BOTH arms**, so the comparison is in the data rather than in a reader's head: the
+  concurrent arm uses async `spawn` (up to 8 children genuinely alive at once) and the sequential arm is the
+  control. Measured on the worktree plane: **concurrent 0/340 (0.00%) · sequential 60/60 (100.00%)**.
+- **The verdict, as arithmetic: `SYNC-FAMILY`.** The sequential control fails at 100% while the concurrent
+  arm is clean, so the fault belongs to the `spawnSync` API itself and has nothing to do with contention.
+  The proof states this verdict itself (with the two other cases — `CONTENTION`, `CLEAN` — named as
+  alternatives) rather than leaving it to prose.
+- **A real contention artifact, kept apart from EBUSY.** Concurrent `checkout HEAD` reported 39 ok / **41
+  `otherErr`** — concurrent checkouts in one repository contend on the index lock. It is classified as
+  `otherErr`, not EBUSY, and the record says so; this is the one shape where concurrency does cause failures,
+  and it is not the failure 107 named.
+- **Why this matters beyond the record.** `docs/evidence/lib/syncproc.mjs` — which re-implements the sync API
+  on the async path through a Worker and `Atomics.wait` — is load-bearing rather than a convenience, and
+  every proof that imports it works for a measured reason: **the async family is clean at 8-way concurrency
+  while the sync family fails unconditionally.** The rule for any future proof is now sharper than "avoid
+  spawnSync": *the sync family is unusable on this host, and a claim about contention must measure a
+  concurrent arm against a sequential control.*
+- **Evidence.** `docs/evidence/agents/ebusy-proof.mjs` (rewritten; a MEASUREMENT, not a gate — it always
+  exits 0, prints the verdict and writes `.scratch/ebusy-<plane>-<ts>.json`), and the corrected section in
+  `docs/evidence/agents/README.md`.
