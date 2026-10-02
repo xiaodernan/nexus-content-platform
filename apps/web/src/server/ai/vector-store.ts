@@ -17,20 +17,7 @@ import { randomUUID } from 'node:crypto';
 import { getDb } from '../db/client';
 import { knowledgeChunks } from '../db/schema';
 import { eq, and, sql, desc, isNotNull } from 'drizzle-orm';
-
-/** §49 embedding 切片的 TypeScript 接口（Python ai-service 侧的对应物） */
-export interface EmbeddingProvider {
-  models(): string[];
-  embed(args: { model: string; texts: string[] }): Promise<{ vectors: number[][]; provider: string; model: string; tokens_in: number; latency_ms: number }>;
-}
-
-export interface EmbeddingResult {
-  vectors: number[][];
-  provider: string;
-  model: string;
-  tokens_in: number;
-  latency_ms: number;
-}
+import type { EmbeddingProvider, RerankerProvider } from './embedding';
 
 export interface ChunkRecord {
   id: string;
@@ -73,10 +60,6 @@ export interface SearchResult {
   vectorScore: number | null;
   /** 全文检索排名（BM25 近似） */
   textRank: number | null;
-}
-
-export interface RerankerProvider {
-  rerank(query: string, documents: string[]): Promise<number[]>;
 }
 
 const DEFAULT_VECTOR_WEIGHT = 0.6;
@@ -296,7 +279,9 @@ export class VectorStore {
     // 4. 可选：reranker 重排
     if (reranker && results.length > 1) {
       const docs = results.map((r) => r.chunk.content);
-      const scores = await reranker.rerank(query, docs);
+      const rerankModel = reranker.models()[0] ?? 'default-reranker';
+      const rerankResult = await reranker.rerank({ model: rerankModel, query, documents: docs });
+      const scores = rerankResult.scores;
       results = results
         .map((r, i) => ({ ...r, score: scores[i] ?? r.score }))
         .sort((a, b) => b.score - a.score);

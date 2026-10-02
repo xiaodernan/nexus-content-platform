@@ -18,6 +18,19 @@ export interface EmbeddingResult {
   latency_ms: number;
 }
 
+/** §93 reranker 切片的 TypeScript 接口 */
+export interface RerankerProvider {
+  models(): string[];
+  rerank(args: { model: string; query: string; documents: string[] }): Promise<{ scores: number[]; provider: string; model: string; latency_ms: number }>;
+}
+
+export interface RerankerResult {
+  scores: number[];
+  provider: string;
+  model: string;
+  latency_ms: number;
+}
+
 class OpenAICompatibleEmbeddingProvider {
   kind = 'embedding';
   name = 'openai-compatible';
@@ -101,10 +114,10 @@ class OpenAICompatibleEmbeddingProvider {
   }
 }
 
-let cachedProvider: OpenAICompatibleEmbeddingProvider | null = null;
+let cachedEmbeddingProvider: OpenAICompatibleEmbeddingProvider | null = null;
 
 export function getEmbeddingProvider(): OpenAICompatibleEmbeddingProvider | null {
-  if (cachedProvider) return cachedProvider;
+  if (cachedEmbeddingProvider) return cachedEmbeddingProvider;
 
   const apiKey = process.env.NEXUS_OPENAI_API_KEY;
   if (!apiKey) return null;
@@ -114,10 +127,113 @@ export function getEmbeddingProvider(): OpenAICompatibleEmbeddingProvider | null
   const embeddingModelEnv = process.env.NEXUS_MODEL_EMBEDDING;
   if (embeddingModelEnv) models.embedding = embeddingModelEnv;
 
-  cachedProvider = new OpenAICompatibleEmbeddingProvider(apiKey, baseUrl, models);
-  return cachedProvider;
+  cachedEmbeddingProvider = new OpenAICompatibleEmbeddingProvider(apiKey, baseUrl, models);
+  return cachedEmbeddingProvider;
 }
 
 export function hasEmbeddingProvider(): boolean {
+  return !!process.env.NEXUS_OPENAI_API_KEY;
+}
+
+/** §93 OpenAI 兼容 reranker provider（跨模型复用，支持 /v1/rerank 等兼容端点） */
+class OpenAICompatibleRerankerProvider {
+  kind = 'reranker';
+  name = 'openai-compatible';
+
+  private _models: Record<string, string>;
+  private _baseUrl: string;
+  private _apiKey: string;
+  private _timeout: number;
+
+  constructor(
+    api_key: string,
+    base_url: string,
+    models: Record<string, string>,
+    timeout_s: number = 60.0,
+  ) {
+    this._models = { ...models };
+    this._baseUrl = base_url;
+    this._apiKey = api_key;
+    this._timeout = timeout_s * 1000;
+  }
+
+  models(): string[] {
+    return [...new Set(Object.values(this._models))].sort();
+  }
+
+  model_for(model_class: string): string {
+    const model = this._models[model_class];
+    if (!model) throw new Error(`未配置 ${model_class} 档 reranker 模型`);
+    return model;
+  }
+
+  async rerank({ model, query, documents }: { model: string; query: string; documents: string[] }): Promise<RerankerResult> {
+    if (!documents.length) {
+      return { scores: [], provider: this.name, model, latency_ms: 0 };
+    }
+    const body = { model, query, documents };
+    const started = performance.now();
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), this._timeout);
+    try {
+      const response = await fetch(`${this._baseUrl}/rerank`, {
+        method: 'POST',
+        headers: {
+          authorization: `Bearer ${this._apiKey}`,
+          'content-type': 'application/json',
+        },
+        body: JSON.stringify(body),
+        signal: controller.signal,
+      });
+      clearTimeout(timeoutId);
+      const latency_ms = Math.round(performance.now() - started);
+
+      if (response.status === 401 || response.status === 403) {
+        throw new Error('reranker provider 拒绝了凭据（401/403），检查 NEXUS_OPENAI_API_KEY');
+      }
+      if (response.status >= 400) {
+        const detail = (await response.text()).slice(0, 400).replace('\n', ' ');
+        throw new Error(`reranker provider 返回 ${response.status}：${detail}`);
+      }
+
+      const payload = await response.json();
+      const data = payload.data;
+      const scores = data.map((item: { score: number }) => item.score);
+      return {
+        scores,
+        provider: this.name,
+        model: payload.model ?? model,
+        latency_ms,
+      };
+    } catch (err) {
+      clearTimeout(timeoutId);
+      if (err instanceof Error) throw err;
+      throw new Error(`reranker provider 调用失败：${String(err)}`, { cause: err });
+    }
+  }
+
+  close(): void {
+    // fetch 无需显式关闭
+  }
+}
+
+let cachedRerankerProvider: OpenAICompatibleRerankerProvider | null = null;
+
+export function getRerankerProvider(): OpenAICompatibleRerankerProvider | null {
+  if (cachedRerankerProvider) return cachedRerankerProvider;
+
+  const apiKey = process.env.NEXUS_OPENAI_API_KEY;
+  if (!apiKey) return null;
+
+  const baseUrl = process.env.NEXUS_OPENAI_BASE_URL ?? 'https://api.openai.com/v1';
+  const models: Record<string, string> = { reranker: 'text-embedding-3-small' }; // OpenAI 没有官方 reranker，兼容层可换成 Cohere 等
+  const rerankerModelEnv = process.env.NEXUS_MODEL_RERANKER;
+  if (rerankerModelEnv) models.reranker = rerankerModelEnv;
+
+  cachedRerankerProvider = new OpenAICompatibleRerankerProvider(apiKey, baseUrl, models);
+  return cachedRerankerProvider;
+}
+
+export function hasRerankerProvider(): boolean {
   return !!process.env.NEXUS_OPENAI_API_KEY;
 }
