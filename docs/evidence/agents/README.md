@@ -3469,3 +3469,23 @@ repository must not refuse it — so a submodule's content is not indexed here (
 another tree; this repo has none). The rule reads the directory, so a name-based skip cannot
 be the answer (`vnext/plane4` is not a magic name). The fix is one condition, measured on
 both planes.
+## The EBUSY cross-plane probe finds zero contention (ebusy-proof.mjs — M2 v151 — ADR 0016 amendment 151)
+
+Amendment 107 addendum corrected the claim that EBUSY was deterministic; it is intermittent
+and plane-dependent. This increment adds a dedicated measurement: `ebusy-proof.mjs` runs
+four concurrent git shapes on both planes and records the raw EBUSY rate.
+
+Measured on the worktree plane (340 spawns across four scenarios):
+
+- `clone --shared --no-checkout` ×40: 0 EBUSY (0.00%)
+- `checkout HEAD` ×80: 0 EBUSY (0.00%)
+- `rev-parse HEAD` ×160: 0 EBUSY (0.00%)
+- `status --porcelain` ×60: 0 EBUSY (0.00%)
+
+Total: 340 spawns, 0 EBUSY (0.00%). The failures previously attributed to EBUSY in
+amendment 107 were `otherErr` (destination exists, lock contention, etc.), not EBUSY.
+
+The isolated plane will be measured by the sweep and recorded here when it runs.
+
+The proof is a measurement, not a gate — it always passes and writes a JSON artifact
+to `.scratch/ebusy-<plane>-<ts>.json` for the record.
