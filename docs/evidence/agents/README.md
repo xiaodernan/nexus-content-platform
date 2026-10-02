@@ -3577,3 +3577,37 @@ mutation. All three mutations are caught — the debt from Amendment 129 is reti
 
 The probe is committed as `docs/evidence/agents/amendment129-probe.mjs` and can be run independently:
 `node docs/evidence/agents/amendment129-probe.mjs`.
+
+## §7's window-vs-positional witness re-anchored on title SITES (`table-recount-proof.mjs`, M2 v157 — an arm whose subject a correct record can delete is watching the wrong thing)
+
+**What broke, and what broke it.** The grant above (`M2 v82 record written at v156`) closed amendment 82's title hole,
+and §7 died on the way: `table-recount-proof.mjs:524` at `215026c` asserted that the set
+`c.hole − wide.hole` is non-empty — that is, that some granted number's only title is a header line BELOW a module's
+opening line. That set is a subset of the holes, so every honest record written for a hole removes one of its members,
+and the last one leaves the door unable to run at all. The assertion's own message named the situation ("no subject in
+this tree … unfalsified here rather than verified") and its comment above said an empty answer must be SAID OUT LOUD;
+the code asserted instead. v156 is the measurement that proved the arm was watching a quantity it was guaranteed to
+destroy.
+
+**The fix, read off the bytes that now ship.** The contrast keeps a subject that records cannot remove: the
+window-only SITE population. `deepOnly(pos, wid)` (`docs/evidence/agents/table-recount-proof.mjs:529`) is one function used by both mouths — the
+live claim and the falsification arm — and `deepRows = deepOnly(c, wide)` (`:536`) asks which lines the 8-deep
+window titles and the positional reader refuses. The floor `:537` refuses a tree where the two readers agree
+everywhere, and the claim `:541` says what the rule actually promises: **refusing a deep line loses no record**,
+because every number a deep line credits is titled positionally as well. A row that fails it is the positional rule
+being wrong about that line, and the red names the site.
+
+**The arm, and why it is a witness rather than a restatement.** `:547` takes the first deep row and deletes
+EVERY positional title of the number it credits, in memory (`census`'s edit hook), then requires three things at once:
+the number falls into the positional hole (`:563`), the window still titles it from the deep line
+(`:564`), and the same `deepOnly` derivation now reports that deep row as its only remaining credit
+(`:565`). Those three together are the claim "the two readers differ by POSITION, not by coverage", and the
+scrub is the only state in which it is red. Measured by the door at `215026c`: **153 deep sites over
+68 grants, all of them also titled positionally**, and the scrub of 142's 5 positional
+title(s) left `docs/evidence/studio/scene-surface-proof.mjs:2` as its only credit — caught, not asserted.
+
+**Bounds.** No verdict, table row or test case moved: the same run reports 1 one-sided grant
+[21] and the newest grant 156 titled, both unchanged by this increment. The 153/68
+figures are the door's own line at `215026c`, not constants; they are repeated here because the commit message
+quotes the run, and the door re-derives them at every ref thereafter. Amendment 21 remains owed its record for the
+reason stated in v156's bounds — its ledger bullets carry per-ref counts nobody has re-measured.

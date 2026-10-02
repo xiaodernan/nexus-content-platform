@@ -7575,3 +7575,16 @@ widen that list in the same grant.
   §3b grades it on text no host can change.
 - **Not written here, on purpose.** Amendment 21 stays one-sided: its ledger bullets carry per-ref test counts that
   nobody has re-measured since, and this cycle refuses to launder them into a record.
+
+### Amendment 157 — v157 (docs/evidence): a witness whose subject is the hole it exists to close will be deleted by its own success
+- **Measured, not theorised.** Amendment 82's record (`215026c`'s successor, grant 156) closed v82's title hole
+  and the §7 door CRASHED on the way to grading it: `assert.ok(chained.length, …)` demanded that some granted number
+  be titled ONLY below a module's opening line, and that set is a subset of the holes this ledger is working to empty.
+  Writing records was therefore guaranteed to destroy the arm, one grant at a time.
+- **What replaced it.** The subject is now the window-only SITE population — the lines the deep reader titles and the
+  positional reader refuses — with a floor that refuses a tree where the readers agree everywhere, a per-row claim that
+  refusing a deep line loses no record, and an in-memory scrub arm that deletes every positional title of one deep
+  row's number and requires the hole to name it while the window still titles it. One derivation (`deepOnly`) serves
+  both the claim and the arm, so the arm cannot pass by testing a population the printed sentence never used.
+- **The rule it records did not change.** Titles are still read positionally, the one-sided set is still 21, and no
+  test row moved; what changed is which quantity the door is allowed to depend on.

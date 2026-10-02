@@ -514,14 +514,57 @@ try {
     assert.deepEqual(strip.dangling, c.dangling, 'deleting a citation cannot create a dangling one, so a change here means the two readers are entangled');
     checkContainment(strip, 'a title with its numbers scrubbed');
     console.log(`  caught  ${hFile} line ${hIdx + 1} loses every number it was the sole title for (${L.join(', ')}) → the hole gains exactly those and dangling does not move`);
-    // What the positional rule REPLACED, measured rather than asserted: re-open the title reader with the
-    // window the first version used and ask which numbers that window alone titled. An empty answer means the
-    // two rules agree in this tree and the arm has no subject — which is said out loud, not reported as a
-    // caught mutation.
+    // What the positional rule REPLACED, keyed on the SITE population rather than on a surviving hole. The
+    // first version asked for a hole number the window reader still titles (`chained` below) and ASSERTED that
+    // list was non-empty — so writing an honest record for a hole ERASED this arm's subject, and amendment 82's
+    // record (grant 156) is the measurement that did it: the door crashed on its own witness at the very ref
+    // that closed the hole it was watching. The comment above the old assert already said an empty answer must
+    // be SAID OUT LOUD; the code asserted instead, and the text was right about the hazard and wrong about
+    // where the subject lives. Measured at this ref, the site population is three digits wide and every record
+    // written only deepens it, so the contrast no longer depends on a hole staying open.
     const wide = census(adrText, null, 8);
     assert.ok(wide.hole.every((n) => c.hole.includes(n)), `widening the reader may only REMOVE holes, since an opening line sits inside every window deep enough to reach it; got ${wide.hole.filter((n) => !c.hole.includes(n)).join(', ')}`);
+    // ONE derivation, both mouths: the live claim and the falsification arm below ask the same function, so the
+    // arm cannot pass by testing a population the printed sentence never used.
+    const deepOnly = (pos, wid) => {
+      const ps = new Set();
+      for (const ss of pos.titleSites.values()) for (const s of ss) ps.add(s);
+      const rows = [];
+      for (const [n, ss] of wid.titleSites) for (const s of ss) if (!ps.has(s)) rows.push({ n, s });
+      return rows;
+    };
+    const deepRows = deepOnly(c, wide);
+    assert.ok(deepRows.length, `no line below a module's opening line credits a granted number, so the window reader and the positional reader agree everywhere in this tree and the contrast has no subject — say that out loud instead of reporting a verified rule`);
+    // The claim, per row: refusing a deep line loses no RECORD, because its number is titled where a reader
+    // follows it. A row that fails this is the positional rule being WRONG about that line, named by site.
+    const unrecorded = deepRows.filter((r) => !sole(r.n).length);
+    assert.equal(unrecorded.length, 0, `these deep lines are the ONLY title their number has, so the positional rule is wrong about them: ${unrecorded.map((r) => `${r.s} = ${r.n}`).join(', ')}`);
     const chained = c.hole.filter((n) => !wide.hole.includes(n));
-    assert.ok(chained.length, "no number is titled ONLY below a module's opening line, so window-vs-positional has no subject in this tree and the rule above is unfalsified here rather than verified");
+    console.log(`  measured the window reader would title ${deepRows.length} line(s) the positional reader refuses, crediting ${new Set(deepRows.map((r) => r.n)).size} grant(s), and EVERY one of them is titled positionally as well · holes turning on the difference: ${chained.length} (${chained.join(', ') || 'none'})`);
+    // The difference is POSITION, not one reader seeing fewer files: delete every positional title one deep row
+    // credits and the number must fall into the positional hole while the WINDOW still titles it from that deep
+    // line. Predicted before running: red on the hole claim, green under the window, and the deep row flagged.
+    const victim = deepRows[0];
+    const vSites = sole(victim.n);
+    const scrub = (p, t) => {
+      const idx = vSites.filter((s) => s.slice(0, s.lastIndexOf(':')) === p).map((s) => Number(s.slice(p.length + 1)) - 1);
+      if (!idx.length) return t;
+      const orig = t.split('\n');
+      const lines = orig.slice();
+      for (const i of idx) {
+        lines[i] = lines[i].replace(/\d+/g, '');
+        assert.notEqual(lines[i], orig[i], `the scrub found no digits on ${p}:${i + 1}, so the arm changed nothing and its green would be a claim about the untouched tree`);
+        assert.equal(nums(lines[i], EXPLICIT).size + nums(lines[i], RECORD).size, 0, `the scrubbed title still credits something: ${lines[i].slice(0, 70)}`);
+      }
+      return lines.join('\n');
+    };
+    const lost = census(adrText, scrub);
+    const lostWide = census(adrText, scrub, 8);
+    assert.ok(lost.hole.includes(victim.n), `MUTATION SURVIVED: deleting all ${vSites.length} positional title(s) of ${victim.n} did not put it in the hole, so the strip did not reach the lines the census named`);
+    assert.ok(!lostWide.hole.includes(victim.n), `${victim.n} left the hole under the window as well, so its deep credit ${victim.s} is not what the window reader titles it from — the two readers differ by something other than position`);
+    assert.ok(deepOnly(lost, lostWide).some((r) => r.n === victim.n), `after the scrub the deep row ${victim.s} is not reported as ${victim.n}'s only remaining credit, so the claim above is not bound to the derivation it prints`);
+    assert.deepEqual(lost.dangling, c.dangling, 'deleting a citation cannot create a dangling one, so a change here means the two readers are entangled');
+    console.log(`  caught  ${victim.n}'s ${vSites.length} positional title(s) scrubbed leaves ${victim.s} as its only credit → the hole names it, the window still titles it, and the rule's difference is position, not coverage`);
     for (const n of chained) {
       const only = (wide.titleSites.get(n) ?? []).filter((s) => !sole(n).includes(s));
       assert.ok(only.length, `${n} left the hole when the window opened, yet no title site differs — the two readers disagree about something other than position`);
