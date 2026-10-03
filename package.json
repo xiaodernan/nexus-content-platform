@@ -23,6 +23,7 @@
     "test:e2e:smoke": "playwright test --grep @smoke",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "tsx scripts/db-migrate.mts",
+    "two:instance": "tsx scripts/two-instance-roundtrip.mts",
     "db:push": "drizzle-kit push",
     "db:seed": "tsx scripts/db-seed.mts",
     "db:studio": "drizzle-kit studio",

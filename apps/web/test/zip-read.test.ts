@@ -145,6 +145,12 @@ const REFUSALS: { label: string; bytes: Uint8Array; message: string }[] = [
     message: '名字为空',
   },
   {
+    // 1025 字符这个名字其余规则全合规，只有长度这一条能挡它——A14 变异臂的见证
+    label: '路径过长',
+    bytes: buildZip([{ ...file('a'.repeat(1025), 'x') }]),
+    message: '路径过长：1025 字符',
+  },
+  {
     label: '两份同名',
     bytes: buildZip([file('a.txt', '1'), file('a.txt', '2')]),
     message: '两份同名条目：第 1 条与第 2 条',

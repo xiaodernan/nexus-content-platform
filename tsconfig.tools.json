@@ -5,7 +5,16 @@
     "types": ["node"],
     "lib": ["ES2022", "DOM", "DOM.Iterable"],
     "allowJs": true,
-    "checkJs": false
+    "checkJs": false,
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["./apps/web/src/*"],
+      "@nexus/design-model": ["./packages/design-model/src/index.ts"],
+      "@nexus/schemas": ["./packages/schemas/src/index.ts"],
+      "@nexus/world-model": ["./packages/world-model/src/index.ts"],
+      "@nexus/game-model": ["./packages/game-model/src/index.ts"],
+      "@nexus/video-model": ["./packages/video-model/src/index.ts"]
+    }
   },
   "include": [
     "scripts/**/*.mts",

@@ -3,6 +3,7 @@ import { aiServiceUrl, fetchAiServiceHealth } from '@/server/ai/client';
 import { requireUser } from '@/server/domain/session';
 import { listDeletedProjects, listProjects } from '@/server/domain/projects';
 import { NewProjectForm } from '@/components/NewProjectForm';
+import { ImportPanel } from '@/components/ImportPanel';
 import { AccountPanel } from '@/components/AccountPanel';
 import { ProfileEditor } from '@/components/ProfileEditor';
 import { AvatarEditor } from '@/components/AvatarEditor';
@@ -76,6 +77,7 @@ export default async function HomePage() {
       <section className="border-t border-[var(--nexus-color-border-subtle)] pt-[var(--nexus-space-6)]">
         <h2 className="mb-[var(--nexus-space-3)] text-[var(--nexus-font-size-16)] font-medium">项目</h2>
         <NewProjectForm />
+        <ImportPanel />
         {projects.length ? (
           <ul className="mt-[var(--nexus-space-4)] grid gap-[var(--nexus-space-3)]">
             {projects.map((project) => (

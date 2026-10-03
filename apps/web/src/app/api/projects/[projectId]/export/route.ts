@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
-import { requireUser } from '@/server/domain/session';
+import { currentUserOrNull } from '@/server/domain/session';
 import { buildProjectExport, notifyBuildComplete, publishBuildStatus } from '@/server/domain/export';
 import type { ExportPart } from '@/server/domain/export';
 import { loadProjectIdentity, projectBelongsTo } from '@/server/domain/projects';
@@ -32,7 +32,8 @@ interface RouteContext {
 }
 
 export async function GET(req: Request, ctx: RouteContext): Promise<NextResponse> {
-  const user = await requireUser();
+  // requireUser 在没有 cookie 时是**抛错**（翻成 500），而这里承诺的是 401，所以用 nullable 的那一个显式判空
+  const user = await currentUserOrNull();
   if (!user) return jsonError(401, 'unauthenticated', { message: '需要先登录' });
   const { projectId } = await ctx.params;
 

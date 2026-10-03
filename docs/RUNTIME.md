@@ -77,5 +77,8 @@ M1：PNG · SVG · PDF · HTML · React · Project ZIP（含 `.nexus/` 结构，
 
 **Project ZIP 那一格今天到位到哪一步**（2026-10-01）：第一片落地——`design/document.json` + `code/` +
 `assets/` + 一份 `README.txt`，只装当前那一版投影。
-上面那句"必须能被另一个实例重新导入"**还没兑现**：包里今天**没有** `.nexus/` 那层机器可读结构，
-因为没有能读它的一方；导入与干净实例还原是下一片（决定与理由见 `docs/adr/0024-project-export-zip.md`）。
+上面那句"必须能被另一个实例重新导入"**已经兑现**（2026-10-04）：包里有 `.nexus/manifest.json`
+（带 `formatVersion` 与 `assetRefs`），导入侧读它，并且 `npm run two:instance` 跑的是真两实例——
+第二个库、第二个存储目录、独立进程，A 导出的那份字节在 B 装回成一个新项目，文档摘要与资产字节逐位对上。
+剩下的限度只有一条：`413`（整包超上限）还没有被真 HTTP 请求证过，domain 层那条已经证过。
+决定与理由见 `docs/adr/0024-project-export-zip.md`（含两则补记）。

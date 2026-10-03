@@ -91,9 +91,13 @@ function manifest(args: {
  * 将来包里多一层或少一层，导入那边要能明确说"这份包是 v1、我认的是 v1"，
  * 而不是在一个形状变了的包上猜着解析，然后以某种方式读出一份**不完整的项目**——
  * 那种失败比"版本不认识"难查得多（ADR-0024 后果里定的下一片第一件就是这个）。
+ *
+ * 1 → 2 的唯一原因：v1 没有 `assetRefs`。导入侧要靠它把包里的字节对回文档里引用的那个资产，
+ * 少了它只能让新项目的节点指向**源项目**的资产行（共享一行记录 = 删源项目把导入项目的图一起删掉，§80）
+ * 或者干脆断掉引用。宁可对拿着 v1 包的人说一句"请重新导出"，也不要导出一份图不见了的项目。
  */
 export const EXPORT_FORMAT = 'nexus-project-export';
-export const EXPORT_FORMAT_VERSION = 1;
+export const EXPORT_FORMAT_VERSION = 2;
 
 /** 机器可读的那一层。与 README.txt 分工：这份给程序看，那份给人看 */
 export interface NexusManifest {
@@ -110,6 +114,14 @@ export interface NexusManifest {
    * **两份声明对不上就整包拒绝**——一份"内容被改过但清单没改"的包，比一份坏包更危险。
    */
   entries: { path: string; bytes: number; crc32: string }[];
+  /**
+   * `assets/**` 每一项对应的**库里**的资产 id 与名字。
+   *
+   * 为什么单独列一层而不是塞进 `entries`：`entries` 是"包里有什么字节"，一个字节都不多，
+   * 校验侧只看那三样；这一层是"这些字节在模型里是谁"，导入侧才用得上。
+   * 合在一起的话，每一份代码文件都要带上两个它永远不读的字段。
+   */
+  assetRefs: { path: string; assetId: string; name: string }[];
   /** 库里有记录、字节却取不回来的资产名（与 README 的"缺了什么"同一份来源） */
   missingAssets: string[];
 }
@@ -119,6 +131,7 @@ function buildNexusManifest(args: {
   kind: string;
   parts: ExportPart[];
   entries: ZipEntry[];
+  assetRefs: NexusManifest['assetRefs'];
   missingAssets: string[];
 }): NexusManifest {
   return {
@@ -133,6 +146,7 @@ function buildNexusManifest(args: {
       // 大写 8 位十六进制：与 zip 工具显示 CRC 的写法一致，肉眼核对时不用换算
       crc32: crc32(entry.contents).toString(16).toUpperCase().padStart(8, '0'),
     })),
+    assetRefs: args.assetRefs,
     missingAssets: args.missingAssets,
   };
 }
@@ -153,6 +167,7 @@ export async function buildProjectExport(
   const projectName = identity?.name ?? document.name;
   const counts: Record<ExportPart, number> = { design: 0, code: 0, assets: 0 };
   const missingAssets: string[] = [];
+  const assetRefs: NexusManifest['assetRefs'] = [];
   const entries: ZipEntry[] = [];
 
   if (parts.includes('design')) {
@@ -176,7 +191,10 @@ export async function buildProjectExport(
         missingAssets.push(ref.name);
         continue;
       }
-      entries.push({ path: assetName(file.name, ref.id, index), contents: file.bytes });
+      const path = assetName(file.name, ref.id, index);
+      entries.push({ path, contents: file.bytes });
+      // 导入侧靠这一行把字节对回模型里的那个资产；没有它，导回来的项目会指向别人的那一份字节
+      assetRefs.push({ path, assetId: ref.id, name: ref.name });
       counts.assets += 1;
     }
   }
@@ -192,6 +210,7 @@ export async function buildProjectExport(
           kind: identity?.kind ?? 'website',
           parts,
           entries,
+          assetRefs,
           missingAssets,
         }),
         null,
