@@ -39,6 +39,24 @@ async function findByEmail(email: string) {
   return row ?? null;
 }
 
+/**
+ * 注册那一侧的"这个邮箱被占了没有"：**连已注销的账号一起算**，与上面的 `findByEmail` 故意不同。
+ *
+ * `users_email_key` 是不带 where 条件的唯一索引（`db/schema.ts` 里 users 那一段），
+ * 而注销只打 `deletedAt` 不删行（ADR-0025 决定一）。所以这个邮箱在库里仍然占着位置：
+ * 注册若照 `findByEmail` 的口径查，注销过的人拿同一邮箱再注册会绕过检查，
+ * 最后撞在唯一索引上变成一句"服务器处理失败"，而不是一句"这个邮箱已经用过了"。
+ * "同一邮箱此后不能再有新身份"本来就是刻意的取舍，那就把它说明白，别让库替我们报错。
+ */
+async function emailTaken(email: string): Promise<boolean> {
+  const [row] = await getDb()
+    .select({ id: users.id })
+    .from(users)
+    .where(sql`lower(${users.email}) = ${email}`)
+    .limit(1);
+  return row !== undefined;
+}
+
 async function countProjects(userId: string): Promise<number> {
   const db = getDb();
   const [row] = await db
@@ -60,7 +78,7 @@ export async function register(
 ): Promise<AuthError | (Authenticated & { claimedProjects: number })> {
   if (!current.guest) return { code: 'already_registered', status: 409 };
   const email = normalizeEmail(input.email);
-  if (await findByEmail(email)) return { code: 'email_taken', status: 409 };
+  if (await emailTaken(email)) return { code: 'email_taken', status: 409 };
 
   const passwordHash = await hashPassword(input.password);
   const db = getDb();

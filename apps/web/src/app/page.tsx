@@ -5,6 +5,7 @@ import { listDeletedProjects, listProjects } from '@/server/domain/projects';
 import { NewProjectForm } from '@/components/NewProjectForm';
 import { ImportPanel } from '@/components/ImportPanel';
 import { AccountPanel } from '@/components/AccountPanel';
+import { AccountDeletionPanel } from '@/components/AccountDeletionPanel';
 import { ProfileEditor } from '@/components/ProfileEditor';
 import { AvatarEditor } from '@/components/AvatarEditor';
 import { ProjectDescriptionEditor } from '@/components/ProjectDescriptionEditor';
@@ -72,6 +73,11 @@ export default async function HomePage() {
       <section className="border-t border-[var(--nexus-color-border-subtle)] pt-[var(--nexus-space-6)]">
         <h2 className="mb-[var(--nexus-space-3)] text-[var(--nexus-font-size-16)] font-medium">账号</h2>
         <AccountPanel user={user} />
+        {/* §144 / ADR-0025：注销入口对游客与登录用户都开——游客那条也是 users 表里一行真记录，
+            能登进来就能注销出去，没有理由只给注册过的账号留出口 */}
+        <div className="mt-[var(--nexus-space-4)]">
+          <AccountDeletionPanel />
+        </div>
       </section>
 
       <section className="border-t border-[var(--nexus-color-border-subtle)] pt-[var(--nexus-space-6)]">

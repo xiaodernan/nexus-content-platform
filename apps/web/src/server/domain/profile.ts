@@ -3,6 +3,7 @@ import { getDb } from '../db/client';
 import { characters, comments, follows, likes, projects, publishedProjects, remixes, saves, users, worlds } from '../db/schema';
 import type { DiscoverCard } from './social';
 import { relationOf } from './blocks';
+import { DELETED_USER_LABEL } from './audit';
 
 /**
  * §60 创作者主页与 §59 的 Save。
@@ -92,16 +93,28 @@ export interface ProfileView {
   /** §132：当前查看者对这个人做过什么（别人看不到这个状态，它只属于做选择的那个人） */
   blockedByViewer: 'block' | 'mute' | null;
   isSelf: boolean;
+  /** 这个人已经注销（ADR-0025）：主页照常开，署名换成"已注销的用户"，界面上要说明发生了什么 */
+  accountDeleted: boolean;
 }
 
 export async function profileOf(handle: string, viewerId: string | null): Promise<ProfileView | null> {
   const db = getDb();
   const [person] = await db
-    .select({ id: users.id, name: users.displayName, handle: users.handle, avatarUrl: users.avatarUrl, bio: users.bio })
+    .select({
+      id: users.id,
+      name: users.displayName,
+      handle: users.handle,
+      avatarUrl: users.avatarUrl,
+      bio: users.bio,
+      deletedAt: users.deletedAt,
+    })
     .from(users)
     .where(eq(users.handle, handle))
     .limit(1);
   if (!person) return null;
+  // 注销之后主页照常开（ADR-0025 决定二：已发布的内容不跟着人消失），但署名换成
+  // "已注销的用户"——继续挂真名等于对读者说这个人还在
+  const accountDeleted = person.deletedAt !== null;
 
   const works = await publicWorksOf(person.id);
   const scope = works.map((w) => w.publicationId);
@@ -145,9 +158,12 @@ export async function profileOf(handle: string, viewerId: string | null): Promis
 
   return {
     handle: person.handle ?? handle,
-    name: person.name,
-    avatarUrl: person.avatarUrl,
-    bio: person.bio,
+    name: accountDeleted ? DELETED_USER_LABEL : person.name,
+    accountDeleted,
+    // 注销之后不再对外投影这两样：头像是本人挑的图，简介是本人写的话——人都走了还挂着，
+    // 等于替一个不再同意的人继续展示他自己的表达。作品是当初主动放上公网的，所以留。
+    avatarUrl: accountDeleted ? null : person.avatarUrl,
+    bio: accountDeleted ? null : person.bio,
     works,
     worlds: worldRows.map((w) => ({ name: w.name, summary: w.summary, project: w.project })),
     characters: characterRows.map((c) => ({

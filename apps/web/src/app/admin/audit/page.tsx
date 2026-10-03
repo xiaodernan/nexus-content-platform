@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { listAudit } from '@/server/domain/audit';
+import { listAudit, DELETED_USER_LABEL } from '@/server/domain/audit';
 import { currentUserOrNull } from '@/server/domain/session';
 
 export const dynamic = 'force-dynamic';
@@ -80,7 +80,7 @@ export default async function AdminAuditPage() {
               <tr key={event.id} data-audit-row={event.action}>
                 <td>{new Date(event.createdAt).toLocaleString('zh-CN', { hour12: false })}</td>
                 <td data-audit-actor={event.actorId ? 'known' : 'none'}>
-                  {event.actorName ?? (event.actorId ? '已注销的用户' : '没有身份')}
+                  {event.actorName ?? (event.actorId ? DELETED_USER_LABEL : '没有身份')}
                 </td>
                 <td>{event.action}</td>
                 <td>{event.targetType ? `${event.targetType}${event.targetId ? ` ${String(event.targetId).slice(0, 8)}` : ''}` : '—'}</td>

@@ -28,6 +28,7 @@ let captured: Captured[] = [];
 const bus: RealtimeBus = {
   publish: (channel, event) => captured.push({ channel, event }),
   subscribe: () => () => undefined,
+  closeChannel: () => undefined,
   subscriberCount: () => 0,
 };
 

@@ -16,6 +16,16 @@ import { auditEvents, users } from '../db/schema';
  *   审核员就点不动放行"。返回 false 并打到 stderr，让它在服务端日志里看得见。
  */
 
+/**
+ * 账号注销之后，公开面上对那个人的称呼（ADR-0025 决定二）。
+ *
+ * 只有这一处写这串字：审计页、公开作品页与创作者主页都从这里取。同一个意思在四个文件里
+ * 各抄一遍，改日换措辞就会变成"有的页面说注销、有的页面还挂着真名"那种不一致。
+ * 放在 audit.ts 而不是 account.ts：注销是**写入方**的事，而这一串是**读出来怎么显示**的事，
+ * 且 account.ts 要用 recordAudit——反过来 import 就成一个循环。
+ */
+export const DELETED_USER_LABEL = '已注销的用户';
+
 export interface AuditInput {
   /** 做这件事的人；被拒绝的登录尝试没有身份，是 null */
   actorId: string | null;
@@ -87,8 +97,10 @@ export async function listAudit(limit = 100): Promise<AuditEntry[]> {
   return rows.map((row) => ({
     id: row.id,
     actorId: row.actorId,
-    // 账号注销后名字读不出来：写"已注销的用户"而不是留一个空串让人以为是谁名字没填
-    actorName: row.actorName ?? (row.actorId ? '已注销的用户' : null),
+    // 这一格管的是"行读不出来"（归档或硬删），不是"账号注销了"：注销按 ADR-0025 是软删，
+    // 名字照旧留在这里——审计要回答的是"这件事是谁做的"，把名字换成一句泛称就答不了了。
+    // 公开面上才用 DELETED_USER_LABEL（publish.ts / profile.ts）
+    actorName: row.actorName ?? (row.actorId ? DELETED_USER_LABEL : null),
     action: row.action,
     targetType: row.targetType,
     targetId: row.targetId,

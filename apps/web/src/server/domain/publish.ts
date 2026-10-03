@@ -11,6 +11,7 @@ import { currentBranchId } from './branches';
 import { emit } from './notifications';
 import { createSnapshot, readSnapshot } from './snapshots';
 import { channels, getRealtimeBus } from '../realtime/bus';
+import { DELETED_USER_LABEL } from './audit';
 
 /**
  * §56 / §57：Publish 与分享链接 `/n/<handle>/<slug>`。
@@ -342,7 +343,10 @@ export async function resolvePublishedPath(path: string): Promise<PublishedPage 
   return {
     publication: toPublication(row.pub),
     document: snapshot.document,
-    ownerName: row.owner.displayName,
+    // 作者注销之后，公开面上不再挂他的名字（ADR-0025 决定二）：真名照旧留在库里，
+    // 因为审计与互动要靠它认人；但一个"点进主页是空的"的名字挂在公开页上，
+    // 对读者来说就是一句还活着的话。`DELETED_USER_LABEL` 与审计那处同一串字。
+    ownerName: row.owner.deletedAt ? DELETED_USER_LABEL : row.owner.displayName,
     ownerHandle: row.owner.handle,
     projectName: row.project.name,
     description: row.project.description,

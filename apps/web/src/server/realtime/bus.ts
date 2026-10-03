@@ -20,6 +20,16 @@ export interface RealtimeBus {
   publish(channel: string, event: RealtimeEvent): void;
   /** 订阅一个频道，返回退订函数。退订必须幂等：重复调用不能把别人的订阅摘掉 */
   subscribe(channel: string, listener: (event: RealtimeEvent) => void): () => void;
+  /**
+   * 摘掉这个频道上本进程内的全部订阅，之后的 `publish` 一条也不送达这些人（§144 / ADR-0025 第六件：
+   * 账号注销之后不该再向他推任何东西）。
+   *
+   * 它停的是**推送**，不是**连接**：已经打开的那条 SSE 还挂着，只是再也收不到事件；
+   * 这个人的下一次请求会因为没有会话而失败。今天这条总线没有任何"从服务端掐断一条 HTTP 长连接"
+   * 的原语（`connections.ts` 只数人数），所以界面上不写"连接已断开"这种话。
+   * 换成 Redis 驱动时这一格必须照样能做，否则第六件就只在一个进程里成立。
+   */
+  closeChannel(channel: string): void;
   /** 当前订阅者数量，用于诊断与测试（"有没有人真的在听"） */
   subscriberCount(channel?: string): number;
 }
@@ -65,6 +75,15 @@ class MemoryRealtimeBus implements RealtimeBus {
       // 空集合就删掉，避免长跑进程里按项目累积出一堆空 Set
       if (current.size === 0) this.listeners.delete(channel);
     };
+  }
+
+  /**
+   * 直接删掉整个 Set：这些订阅者从此收不到这个频道的任何事件。
+   * 已经拿到退订函数的那些连接稍后会各自调用它，走到 `listeners.get(channel)` 拿到 undefined
+   * 就返回——退订函数本来就是幂等的，这里删掉它不会把别人的订阅误摘。
+   */
+  closeChannel(channel: string): void {
+    this.listeners.delete(channel);
   }
 
   subscriberCount(channel?: string): number {

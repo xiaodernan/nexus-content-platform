@@ -28,6 +28,7 @@ let captured: Captured[] = [];
 const bus: RealtimeBus = {
   publish: (channel, event) => captured.push({ channel, event }),
   subscribe: () => () => undefined,
+  closeChannel: () => undefined,
   subscriberCount: () => 0,
 };
 
@@ -144,7 +145,7 @@ describe('通知 → 实时事件（§163/§164）', () => {
 
   it('写通知的那次调用不因为实时通道而改变结果', async () => {
     // 总线上没有任何订阅者时，emit 仍然要如实返回 created（实时是加速器，不是前提）
-    setRealtimeBus({ publish: () => undefined, subscribe: () => () => undefined, subscriberCount: () => 0 });
+    setRealtimeBus({ publish: () => undefined, subscribe: () => () => undefined, closeChannel: () => undefined, subscriberCount: () => 0 });
     const projectId = await newProject('实时无人听');
     const result = await emit(generationEvent(projectId, crypto.randomUUID()));
     expect(result).toBe('created');

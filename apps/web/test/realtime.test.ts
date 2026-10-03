@@ -117,11 +117,57 @@ describe('RealtimeBus', () => {
     expect(bus.subscriberCount()).toBe(0);
   });
 
+  it('closeChannel 摘掉这个频道上的全部订阅，别的频道照旧收得到', () => {
+    const bus = getRealtimeBus();
+    const closed: RealtimeEvent[] = [];
+    const other: RealtimeEvent[] = [];
+    bus.subscribe(channels.user('gone'), (e) => closed.push(e));
+    bus.subscribe(channels.user('gone'), (e) => closed.push(e));
+    bus.subscribe(channels.project('p1'), (e) => other.push(e));
+    expect(bus.subscriberCount(channels.user('gone'))).toBe(2);
+
+    bus.closeChannel(channels.user('gone'));
+
+    // 两个订阅者一起摘掉，并且之后的 publish 一条也不送达（§144 第六件：注销后不再向他推任何东西）
+    bus.publish(channels.user('gone'), note('注销之后的事件'));
+    expect(closed).toEqual([]);
+    expect(bus.subscriberCount(channels.user('gone'))).toBe(0);
+    // 对照：这不是"把总线关了"，别的频道还是活的
+    bus.publish(channels.project('p1'), note('还在的人收到'));
+    expect(other).toHaveLength(1);
+  });
+
+  it('closeChannel 之后，拿着旧退订函数的人再调用一次不会抛，也不会误摘新订阅', () => {
+    const bus = getRealtimeBus();
+    const off = bus.subscribe(channels.user('gone'), () => undefined);
+    bus.closeChannel(channels.user('gone'));
+    // SSE 那条连接关掉时照常调用它自己那份退订——频道集合早没了，必须是无操作
+    expect(() => off()).not.toThrow();
+
+    const seen: RealtimeEvent[] = [];
+    const renewed = bus.subscribe(channels.user('gone'), (e) => seen.push(e));
+    off();
+    bus.publish(channels.user('gone'), note('重新订阅的人收到'));
+    expect(seen).toHaveLength(1);
+    // 频道也没被永久封死：注销是关上门，不是把这路频道名从总线里抹掉
+    renewed();
+  });
+
+  it('closeChannel 对没有订阅的频道与已经不存在的频道都是无操作', () => {
+    const bus = getRealtimeBus();
+    expect(() => bus.closeChannel(channels.user('never-subscribed'))).not.toThrow();
+    expect(bus.subscriberCount()).toBe(0);
+    const off = bus.subscribe(channels.user('u2'), () => undefined);
+    off();
+    expect(() => bus.closeChannel(channels.user('u2'))).not.toThrow();
+  });
+
   it('总线可替换（多实例扇出换 Redis 驱动时生产者不用改）', () => {
     const seen: RealtimeEvent[] = [];
     const fake: RealtimeBus = {
       publish: (_channel, event) => seen.push(event),
       subscribe: () => () => undefined,
+      closeChannel: () => undefined,
       subscriberCount: () => 0,
     };
     setRealtimeBus(fake);

@@ -1,6 +1,6 @@
 import { createHash } from 'node:crypto';
 import { cookies } from 'next/headers';
-import { eq } from 'drizzle-orm';
+import { and, eq, isNull } from 'drizzle-orm';
 import { getDb } from '../db/client';
 import { sessions, users } from '../db/schema';
 import { SESSION_COOKIE } from '../security/cookieNames';
@@ -28,6 +28,26 @@ export interface CurrentUser {
 }
 
 /**
+ * 会话 → 用户这一眼判定的唯一去处（§80 的会话表 + ADR-0025 注销的第三件）。
+ *
+ * `users.deletedAt is null` 写在 join 上而不是写在调用方：注销已经把这个人所有的会话行删掉了，
+ * 但"点注销的同时另一个标签页正在登录"这种并发会在事务之后留下一行属于已注销账号的会话。
+ * 少了这一句，那扇门是他自己开回来的。抽成这一个函数也是因为 `requireUser` 与
+ * `currentUserOrNull` 原本各抄了一遍同样的 join——补一处漏另一处还在。
+ */
+export async function sessionOwnerByToken(
+  token: string,
+): Promise<{ user: typeof users.$inferSelect; session: typeof sessions.$inferSelect } | null> {
+  const [row] = await getDb()
+    .select({ user: users, session: sessions })
+    .from(sessions)
+    .innerJoin(users, and(eq(users.id, sessions.userId), isNull(users.deletedAt)))
+    .where(eq(sessions.tokenHash, hashToken(token)))
+    .limit(1);
+  return row ?? null;
+}
+
+/**
  * 免注册首次体验（§137）：没有有效会话时直接建一个 guest 用户，
  * 让用户先跑通 Create → Design → Publish，注册时再认领（claim）。
  *
@@ -39,14 +59,7 @@ export async function requireUser(): Promise<CurrentUser> {
   const token = store.get(SESSION_COOKIE)?.value;
   if (!token) throw new Error('缺少会话 cookie：middleware 未签发 nexus_session');
   const db = getDb();
-  const tokenHash = hashToken(token);
-
-  const [row] = await db
-    .select({ user: users, session: sessions })
-    .from(sessions)
-    .innerJoin(users, eq(users.id, sessions.userId))
-    .where(eq(sessions.tokenHash, tokenHash))
-    .limit(1);
+  const row = await sessionOwnerByToken(token);
 
   if (row) {
     if (row.session.expiresAt.getTime() <= Date.now()) {
@@ -95,12 +108,7 @@ async function createUserSession(token: string) {
 export async function currentUserOrNull(): Promise<CurrentUser | null> {
   const token = (await cookies()).get(SESSION_COOKIE)?.value;
   if (!token) return null;
-  const [row] = await getDb()
-    .select({ user: users, session: sessions })
-    .from(sessions)
-    .innerJoin(users, eq(users.id, sessions.userId))
-    .where(eq(sessions.tokenHash, hashToken(token)))
-    .limit(1);
+  const row = await sessionOwnerByToken(token);
   if (!row) return null;
   if (row.session.expiresAt.getTime() <= Date.now()) return null;
   return toCurrentUser(row.user);
