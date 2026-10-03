@@ -488,32 +488,84 @@ try {
     assert.ok(prose.nowhere.length <= c.nowhere.length, 'a sentence can only ever reduce the any-mention reading, never enlarge it');
     checkContainment(prose, 'a sentence, not a record');
     console.log(`  caught  the same number in PROSE → the title hole still names ${t4}, because a sentence about a hole is not its record`);
-    // And the hole must be losable for the right reason: delete the ONLY title crediting a number. The site
-    // is read out of the census and its own file is opened, because with a corpus-wide edit hook there is no
-    // reason to assume the sole title lives in the README.
+    // And the hole must be losable for the right reason: DELETE the record titles crediting a number. Grant 157
+    // caught this arm's predecessor to the same disease it was written to catch — it selected a number with EXACTLY
+    // ONE title site, and a .md heading is a title wherever it stands, so records only ever ADD sites: the day no
+    // granted number sits at one site, the arm dies on its own floor line. The subject is now the SPARSEST site
+    // count, which exists as long as anything is titled at all (and the newest-grant refusal below requires that).
+    // Its second failure mode is measured rather than predicted: the predecessor also asserted that EVERY number on
+    // its chosen line was sole-titled there, so a lowest-numbered subject sharing its heading with a better-recorded
+    // grant would have crashed the arm while plenty of strippable subjects remained. The `shared` arm below is that
+    // case, and it is the half that proves the rule discriminates WITHIN a title line instead of refusing such lines.
     const sole = (n) => (c.titleSites.get(n) ?? []);
-    const single = [...c.titleSites].filter(([, ss]) => ss.length === 1).sort((a, b) => a[0] - b[0]);
-    assert.ok(single.length, 'no granted number has exactly one title site, so the strip arm has no single-site subject — say so rather than report a caught mutation');
-    const [hNum, [hSite]] = single[0];
-    const hFile = hSite.slice(0, hSite.lastIndexOf(':'));
-    const hIdx = Number(hSite.slice(hFile.length + 1)) - 1;
-    const hLines = norm(readFileSync(hFile, 'utf8')).split('\n');
-    const hLine = hLines[hIdx];
-    assert.ok(titleAt(hFile, hLines, hIdx, c.window), `the derived site ${hSite} is not a title line under the rule being tested: ${hLine.slice(0, 60)}`);
-    const L = [...new Set([...nums(hLine, EXPLICIT), ...nums(hLine, RECORD)])].filter((n) => c.headings.has(n));
-    for (const n of L) assert.deepEqual(sole(n), [hSite], `${n} is credited by more than this one title, so scrubbing it is not a single-site mutation`);
-    const strip = census(adrText, (p, t) => {
-      if (p !== hFile) return t;
-      const lines = t.split('\n');
-      lines[hIdx] = lines[hIdx].replace(/\d+/g, '');
-      assert.notEqual(lines[hIdx], hLine, 'the scrub found no digits on the title it selected, so it changed nothing');
-      assert.equal(nums(lines[hIdx], EXPLICIT).size + nums(lines[hIdx], RECORD).size, 0, `the scrubbed title still credits something: ${lines[hIdx].slice(0, 70)}`);
+    // One derivation of "what this title line credits", shared by both arms and by the expected sets they print, so
+    // no sentence can describe a population the assertion never read.
+    const creditedAt = (s) => {
+      const f = s.slice(0, s.lastIndexOf(':'));
+      const ln = norm(readFileSync(f, 'utf8')).split('\n')[Number(s.slice(f.length + 1)) - 1];
+      return [...new Set([...nums(ln, EXPLICIT), ...nums(ln, RECORD)])].filter((m) => c.headings.has(m));
+    };
+    const siteLines = (s) => norm(readFileSync(s.slice(0, s.lastIndexOf(':')), 'utf8')).split('\n');
+    // A scrub over a chosen set of sites that refuses to be a no-op and refuses to leave a credit behind.
+    const scrubOf = (sites) => (p, t) => {
+      const idx = [...sites].filter((s) => s.slice(0, s.lastIndexOf(':')) === p).map((s) => Number(s.slice(p.length + 1)) - 1);
+      if (!idx.length) return t;
+      const orig = t.split('\n');
+      const lines = orig.slice();
+      for (const i of idx) {
+        lines[i] = lines[i].replace(/\d+/g, '');
+        assert.notEqual(lines[i], orig[i], `the scrub found no digits on ${p}:${i + 1}, so the arm changed nothing and its green would describe an untouched tree`);
+        assert.equal(nums(lines[i], EXPLICIT).size + nums(lines[i], RECORD).size, 0, `the scrubbed title still credits something: ${lines[i].slice(0, 70)}`);
+      }
       return lines.join('\n');
-    });
-    assert.deepEqual(strip.hole, [...new Set([...c.hole, ...L])].sort((a, b) => a - b), `deleting the only title for ${L.join(', ')} must put exactly those numbers back in the hole, got [${strip.hole.join(', ')}]`);
-    assert.deepEqual(strip.dangling, c.dangling, 'deleting a citation cannot create a dangling one, so a change here means the two readers are entangled');
-    checkContainment(strip, 'a title with its numbers scrubbed');
-    console.log(`  caught  ${hFile} line ${hIdx + 1} loses every number it was the sole title for (${L.join(', ')}) → the hole gains exactly those and dangling does not move`);
+    };
+    const sparse = [...c.titleSites].sort((a, b) => a[1].length - b[1].length || a[0] - b[0])[0];
+    assert.ok(sparse, 'no granted number is titled anywhere in the corpus, so the strip arm has no subject — the newest-grant refusal below cannot have passed either');
+    const sites = new Set(sparse[1]);
+    for (const s of sites) {
+      const lines = siteLines(s);
+      const i = Number(s.slice(s.lastIndexOf(':') + 1)) - 1;
+      assert.ok(titleAt(s.slice(0, s.lastIndexOf(':')), lines, i, undefined), `the derived site ${s} is not a title line under the rule being tested: ${lines[i].slice(0, 60)}`);
+    }
+    const lostAll = census(adrText, scrubOf(sites));
+    const touched = new Set();
+    for (const s of sites) for (const m of creditedAt(s)) touched.add(m);
+    const expected = [...touched].filter((m) => sole(m).every((s) => sites.has(s))).sort((a, b) => a - b);
+    assert.ok(expected.includes(sparse[0]), `${sparse[0]} was selected for its ${sites.size} title site(s), yet after scrubbing all of them it is not expected in the hole — the site list and the census disagree about what a title is`);
+    assert.deepEqual(lostAll.hole, [...new Set([...c.hole, ...expected])].sort((a, b) => a - b), `scrubbing every title of ${expected.join(', ')} must put exactly those grants into the hole, got [${lostAll.hole.join(', ')}]`);
+    assert.deepEqual(lostAll.dangling, c.dangling, 'deleting a citation cannot create a dangling one, so a change here means the two readers are entangled');
+    checkContainment(lostAll, 'every title of the sparsest grant scrubbed');
+    console.log(`  caught  every title of grant ${sparse[0]} (${[...sites].sort().join(', ')}) scrubbed → ${expected.length} grant(s) enter the hole (${expected.join(', ')}) and dangling does not move`);
+    // The within-a-line half, with its subject derived from the census rather than assumed: a grant titled at ONE
+    // line that also credits a grant titled ELSEWHERE. Scrubbing that line must redden the first and leave the
+    // second titled — which is exactly the discrimination the predecessor forbade itself by requiring a sole-site
+    // line. If no grant has that shape in this tree the sentence says so instead of claiming a caught mutation.
+    const sharedCandidates = [...c.titleSites]
+      .filter(([n, ss]) => ss.length === 1 && creditedAt(ss[0]).some((m) => m !== n && sole(m).length > 1))
+      .sort((a, b) => a[0] - b[0]);
+    const shared = sharedCandidates[0];
+    if (shared) {
+      const [sNum, [sSite]] = shared;
+      const onLine = creditedAt(sSite);
+      const gained = onLine.filter((m) => sole(m).length === 1).sort((a, b) => a - b);
+      const kept = onLine.filter((m) => sole(m).length > 1).sort((a, b) => a - b);
+      assert.ok(gained.includes(sNum), `the derived subject ${sNum} is not sole-titled at ${sSite} — the filter and the site census disagree`);
+      assert.ok(kept.length, `${sSite} was selected because it credits a better-recorded grant, yet nothing is kept — creditedAt and the site census disagree about this line`);
+      const lostShared = census(adrText, scrubOf(new Set([sSite])));
+      assert.deepEqual(lostShared.hole, [...new Set([...c.hole, ...gained])].sort((a, b) => a - b), `scrubbing the one line ${sSite} must redden exactly the grants sole-titled there (${gained.join(', ')}) and leave ${kept.join(', ')} titled by their other record(s), got [${lostShared.hole.join(', ')}]`);
+      assert.deepEqual(lostShared.dangling, c.dangling, 'deleting a citation cannot create a dangling one, so a change here means the two readers are entangled');
+      checkContainment(lostShared, 'one title line scrubbed, its better-recorded numbers kept');
+      console.log(`  caught  the single line ${sSite} credits ${onLine.sort((a, b) => a - b).join(', ')} → scrubbing it reddens ${gained.join(', ')} and leaves ${kept.join(', ')} titled elsewhere, so a multi-grant heading is read grant by grant rather than refused as the sole-site rule refused it`);
+    } else {
+      console.log('  no subject  every sole-site grant is credited by a line that names no better-recorded grant, so the within-a-line half of this rule has no witness in this tree — said out loud rather than reported as a caught mutation');
+    }
+    // The headroom the sole-site rule needed, printed rather than assumed: a doc heading is a title wherever it
+    // stands, so writing records only ever moves grants OUT of the one-site bucket. The number is published here so
+    // the next reader can re-measure the shrink without rebuilding a scratch census.
+    const buckets = new Map();
+    for (const ss of c.titleSites.values()) buckets.set(ss.length, (buckets.get(ss.length) ?? 0) + 1);
+    console.log(`  measured title sites per granted number: ${[...buckets].sort((a, b) => a[0] - b[0]).map(([k, v]) => `${k} site(s): ${v} grant(s)`).join(' · ')} · ${sharedCandidates.length} of the ${buckets.get(1) ?? 0} one-site grants share their title line with a better-recorded number, the shape a sole-site rule could not strip — grants titled at exactly one site are the population such a rule lives on, and records only ever leave it`);
+
     // What the positional rule REPLACED, keyed on the SITE population rather than on a surviving hole. The
     // first version asked for a hole number the window reader still titles (`chained` below) and ASSERTED that
     // list was non-empty — so writing an honest record for a hole ERASED this arm's subject, and amendment 82's

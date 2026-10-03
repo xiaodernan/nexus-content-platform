@@ -7588,3 +7588,16 @@ widen that list in the same grant.
   both the claim and the arm, so the arm cannot pass by testing a population the printed sentence never used.
 - **The rule it records did not change.** Titles are still read positionally, the one-sided set is still 21, and no
   test row moved; what changed is which quantity the door is allowed to depend on.
+
+### Amendment 158 — v158 (docs/evidence): an arm that requires its subject to be a rare shape is a witness until the tree gets healthier
+- **Measured, not theorised.** §7's strip arm selected "a granted number with EXACTLY ONE title site" and then refused any line
+  that also credited a grant titled elsewhere. Both conditions are shrunk by writing records: a doc heading is a title wherever it
+  stands, so each new section adds a site to the numbers it credits. At this ref the census the door now prints reads
+  **1 site(s): 39 grant(s) · 2 site(s): 59 grant(s) · 3 site(s): 46 grant(s) · 4 site(s): 3 grant(s) · 5 site(s): 4 grant(s)** — 39 grants still sit at one site, and 2 of them share that site with a better-recorded grant, which is
+  the state in which the old per-line guard would have crashed the arm with the rest of that population still strippable.
+- **What replaced it.** The subject is the SPARSEST site count (a floor that cannot starve while anything is titled), scrubbing
+  reaches EVERY site of that grant, and the gained set is derived from one `creditedAt`/`scrubOf` pair shared by the claim and the
+  arm. A second arm takes the shape the old guard forbade — a one-site grant heading-in-common with a well-recorded one — and
+  requires the scrub to redden the first while the second stays titled: 109 in, [110] out, measured on `docs/evidence/agents/README.md:3031`.
+- **The rule it records did not change.** Titles are still read positionally, the one-sided set is still [21], and no test
+  row moved; what changed is which populations the door may depend on, and the multi-grant heading went from an exclusion to a case.

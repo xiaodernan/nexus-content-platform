@@ -3611,3 +3611,39 @@ title(s) left `docs/evidence/studio/scene-surface-proof.mjs:2` as its only credi
 figures are the door's own line at `215026c`, not constants; they are repeated here because the commit message
 quotes the run, and the door re-derives them at every ref thereafter. Amendment 21 remains owed its record for the
 reason stated in v156's bounds — its ledger bullets carry per-ref counts nobody has re-measured.
+
+## §7's strip arm stops requiring a SOLE title site, and learns to read a multi-grant heading (`table-recount-proof.mjs`, M2 v158 — an arm that forbids itself the common case is not a witness)
+
+**What the increment answers, measured before writing it.** §7 proves that a grant's record can be lost the right way: delete
+its title lines in memory and require the number to fall into the one-sided hole. The version that landed with v112 chose its
+subject as `a granted number with EXACTLY ONE title site` (`:496` at `3d34207`) and then asserted, for that one
+line, that nothing else on it was titled anywhere else (`:504`). Both halves are quantities that honest records only
+ever shrink: a `.md` heading is a title wherever it stands, so each new section ADDS a site, and each title that credits two
+grants makes a line the old arm could not touch. Measured by the door at this ref, the site-count census is
+**1 site(s): 39 grant(s) · 2 site(s): 59 grant(s) · 3 site(s): 46 grant(s) · 4 site(s): 3 grant(s) · 5 site(s): 4 grant(s)**, and 2 of the 39 one-site grants share their heading with a better-recorded number — the
+old arm's chooser sorts by number, so the moment the low half of that population got its records written it would have died on
+its own per-line guard with the rest of that population still strippable. Grant 157 is the same
+species caught earlier: it starved on a floor line; this one starves on a guard.
+
+**The two arms that ship, read off the bytes.** The subject is now the SPARSEST site count (`sparse`, `:522`), which
+exists as long as anything is titled at all — the floor `:523` says so instead of assuming a bucket stays non-empty.
+One derivation of "what this line credits" (`creditedAt`, `:503`) and one in-memory scrubber over a chosen site set
+(`scrubOf`, `:510`) serve both arms and both printed sentences, so no sentence can describe a population the assertion
+never read (the rule v157 landed with, applied to its neighbour). The sparsest arm scrubs EVERY title of its subject and requires
+the hole to gain exactly the numbers whose last title was in that set (`:535`) — measured here: grant **13**
+at `docs/evidence/studio/README.md:416`, hole gains **13**.
+
+**The half the old guard refused to test.** `shared` (`:546`) selects a one-site grant whose title line ALSO credits a
+better-recorded grant — the exact shape the predecessor called "not a single-site mutation". Scrubbing that single line must
+redden the numbers sole-titled there (`gained`, `:550`) and leave the others titled (`:555`): measured here
+on `docs/evidence/agents/README.md:3031`, which credits [109, 110] and came out as **109 in the hole, 110 still titled**.
+That is the discrimination the rule's own shape depends on — a title line is positional, not one-per-title — and it now has an
+arm instead of an exclusion. If no grant in the corpus ever has that shape, `:560` prints the absence rather than a
+caught mutation; today the arm runs.
+
+**Bounds.** No verdict, table row or test case moved: the same run reports 1 one-sided grant [21],
+153 window-only title sites over 68 grants with holes turning on position 0, 15 title lines
+naming more than one grant under the positional rule (41 under the window), and newest grant 157 titled. Amendment
+21 stays owed for the reason v156 stated — its ledger bullets carry per-ref counts nobody has re-measured. The figures above are the
+door's own lines at `3d34207`, not constants; the door also prints the site-count census (`:567`) so the next reader can
+re-measure the headroom without a scratch probe.
