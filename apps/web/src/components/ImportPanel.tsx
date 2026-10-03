@@ -89,7 +89,7 @@ export function ImportPanel() {
       <p className="mb-1 text-[var(--nexus-font-size-13)] text-fg-2">导入一份导出过的包</p>
       <p className="mb-[var(--nexus-space-3)] text-11 text-fg-3" data-import-hint>
         只收本平台「导出」产出的 zip（包里有 <span className="font-mono">.nexus/manifest.json</span>）。
-        导入的结果是**一个新项目**，页面与资产都会换号，不会改动你现有的任何项目。
+        导入的结果是<strong className="text-fg-2">一个新项目</strong>，页面与资产都会换号，不会改动你现有的任何项目。
       </p>
       <input
         ref={inputRef}
