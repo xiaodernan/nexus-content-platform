@@ -233,8 +233,13 @@ Postgres 为领域库 + pgvector 为检索；Redis 做队列/缓存/限流/实�
 一句话版本：这四类进度全是单向通知，而独立 WS 进程要重新实现一遍会话与所有权鉴权。
 `GET /api/realtime`（可带 `?projectId=`）是一条长连接，覆盖两个频道：
 `user:<id>`（§164 的通知）与 `project:<id>`（进度，先校验项目归属，不属于你一律 404）。
-生产者不碰传输：`server/realtime/bus.ts` 的 `RealtimeBus` 接口 + 进程内默认驱动，
-多实例部署时换 Redis pub/sub 驱动（§94 说的 `realtime` 落在 Redis，就是这一处），生产者一行不改。
+生产者不碰传输：`server/realtime/bus.ts` 的 `RealtimeBus` 接口 + 两个驱动。默认（`NEXUS_REDIS_URL` 未设）
+是进程内驱动；设了它才换成 `server/realtime/redisBus.ts` 的 Redis pub/sub 扇出（§94 说的 `realtime`
+落在 Redis，就是这一处），**生产者一行没改**——2026-10-06 落地，取舍与连接参数写在 `docs/adr/0028-…`。
+线路只有一条 `nexus:realtime:v1`，每帧自带目标逻辑频道与 `origin`（本机回环那一帧靠它摘掉），
+帧的格式是 `packages/schemas` 的 `RealtimeWireFrameSchema`：收到先 `safeParse` 再落到本机订阅者，
+线路上的字节与浏览器发来的一样是不可信输入。连接坏了不拖业务：`publish` 永不抛，只让
+`wireErrorCount` 与一行日志出声，`ready` 回答"这台实例的跨实例那半边接上了没有"。
 报文只用 `packages/schemas` 的 `RealtimeEventSchema`：`agent.plan` `agent.step` `agent.activity`
 `generation.progress` `build.status` `preview.status` `notification`。
 **七种事件现在全部有生产者**（2026-09-30 补齐最后一对）：`generation.progress`（任务开始、每跑完一步、终态各推一格——

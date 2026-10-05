@@ -1,15 +1,18 @@
 import type { RealtimeEvent } from '@nexus/schemas';
+import { MemoryRealtimeBus } from './localBus';
+import { REDIS_URL_ENV, RedisRealtimeBus, WIRE_CHANNEL } from './redisBus';
 
 /**
  * 实时事件总线（§163 / §94）。取舍见 `docs/adr/0010-realtime-sse-not-websocket.md`。
  *
  * 只做一件事：把生产者发出的事件，送到订阅了同一个频道的连接上。
  * 传输（今天是一条 SSE 长连接）与报文（`RealtimeEventSchema`，早已是契约）都不在这一层里——
- * 所以将来加 Redis 驱动做多实例扇出、甚至补一条 WS 传输，**生产者一行都不用改**。
+ * 所以加 Redis 驱动做多实例扇出、甚至补一条 WS 传输，**生产者一行都不用改**。
  *
- * 与 `security/rateLimit.ts` 同一个套路、同一句说明：默认进程内驱动，
- * 单实例正确；多实例部署时换 Redis pub/sub 驱动，接口形状不变。
- * **进程内驱动在多实例下收不到别的实例的事件**，这是要接 Redis 的原因。
+ * 与 `security/rateLimit.ts` 同一个套路：这一层有两个驱动，选哪个看环境变量——
+ * 默认 `MemoryRealtimeBus`（进程内，单实例正确，**在多实例下收不到别的实例的事件**），
+ * 设了 `NEXUS_REDIS_URL` 才换成 `RedisRealtimeBus`（跨实例扇出，见 `docs/adr/0028-…`）。
+ * 两个驱动都实现下面这四个方法，所以换驱动不换调用方。
  *
  * 一条纪律：`publish` **不抛异常**。实时通道是加速器，不是权威来源（见 ADR 的后果第 4 条）——
  * 一个坏掉的订阅者不该把正在写库的那个请求带崩。
@@ -27,10 +30,14 @@ export interface RealtimeBus {
    * 它停的是**推送**，不是**连接**：已经打开的那条 SSE 还挂着，只是再也收不到事件；
    * 这个人的下一次请求会因为没有会话而失败。今天这条总线没有任何"从服务端掐断一条 HTTP 长连接"
    * 的原语（`connections.ts` 只数人数），所以界面上不写"连接已断开"这种话。
-   * 换成 Redis 驱动时这一格必须照样能做，否则第六件就只在一个进程里成立。
+   * 两个驱动都做得到：进程内驱动删掉本地那份订阅，Redis 驱动另外往线路上发一帧 `close`，
+   * 让别的实例各自关掉自己那份——第六件因此不只在一个进程里成立。
    */
   closeChannel(channel: string): void;
-  /** 当前订阅者数量，用于诊断与测试（"有没有人真的在听"） */
+  /**
+   * 当前订阅者数量，用于诊断与测试（"有没有人真的在听"）。
+   * Redis 驱动下这是**本进程**的人数：pub/sub 线路查不到远端有谁在订，别拿它当全平台的数。
+   */
   subscriberCount(channel?: string): number;
 }
 
@@ -43,56 +50,6 @@ export const channels = {
   project: (projectId: string) => `project:${projectId}`,
   user: (userId: string) => `user:${userId}`,
 };
-
-class MemoryRealtimeBus implements RealtimeBus {
-  private readonly listeners = new Map<string, Set<(event: RealtimeEvent) => void>>();
-
-  publish(channel: string, event: RealtimeEvent): void {
-    const set = this.listeners.get(channel);
-    if (!set?.size) return;
-    // 先复制再遍历：订阅者可能在回调里退订（关掉页面就会），直接遍历原集合会漏掉后面的人
-    for (const listener of [...set]) {
-      try {
-        listener(event);
-      } catch (error) {
-        // 一个订阅者出错不能影响同一频道的其他人，也不能影响发事件的请求
-        console.error('[realtime] 订阅者回调出错', channel, event.type, error instanceof Error ? error.message : String(error));
-      }
-    }
-  }
-
-  subscribe(channel: string, listener: (event: RealtimeEvent) => void): () => void {
-    let set = this.listeners.get(channel);
-    if (!set) {
-      set = new Set();
-      this.listeners.set(channel, set);
-    }
-    set.add(listener);
-    return () => {
-      const current = this.listeners.get(channel);
-      if (!current) return;
-      current.delete(listener);
-      // 空集合就删掉，避免长跑进程里按项目累积出一堆空 Set
-      if (current.size === 0) this.listeners.delete(channel);
-    };
-  }
-
-  /**
-   * 直接删掉整个 Set：这些订阅者从此收不到这个频道的任何事件。
-   * 已经拿到退订函数的那些连接稍后会各自调用它，走到 `listeners.get(channel)` 拿到 undefined
-   * 就返回——退订函数本来就是幂等的，这里删掉它不会把别人的订阅误摘。
-   */
-  closeChannel(channel: string): void {
-    this.listeners.delete(channel);
-  }
-
-  subscriberCount(channel?: string): number {
-    if (channel !== undefined) return this.listeners.get(channel)?.size ?? 0;
-    let total = 0;
-    for (const set of this.listeners.values()) total += set.size;
-    return total;
-  }
-}
 
 /**
  * 单例挂在 globalThis 上，不是模块变量。
@@ -108,12 +65,39 @@ type GlobalStore = typeof globalThis & { [GLOBAL_KEY]?: RealtimeBus };
 
 const store = globalThis as GlobalStore;
 
+/**
+ * 选驱动：只看 `NEXUS_REDIS_URL`，非空即用 Redis 扇出，否则进程内。
+ *
+ * 为什么默认还是进程内：本机开发、vitest、e2e 都只有一个 web 进程，跨实例那一格在那里
+ * 不是被测试的功能而是多余的依赖；而"多实例部署"是真的需要时才打开的开关。
+ * 这条开关是 opt-in 的，所以建单例那一刻会把**装上了哪个驱动**打进日志——
+ * 只看环境变量的人会在"设了但没生效"和"生效了但没人说"之间分不清。
+ *
+ * 不做的事：不在连接失败时悄悄退回进程内。那会让一台配了 Redis 的实例看起来正常、
+ * 实际上收不到别家的事件，比直接报错更难查（`RedisRealtimeBus` 自己在 `publish` 里
+ * 记账并放行业务，那是同一句话的另一半：线路坏了不拖垮请求，但要说出来）。
+ */
+function createDefaultBus(): RealtimeBus {
+  const url = process.env[REDIS_URL_ENV]?.trim();
+  if (!url) {
+    console.log(`[realtime] 驱动=进程内（单实例；多实例部署设 ${REDIS_URL_ENV} 换成 Redis 扇出）`);
+    return new MemoryRealtimeBus();
+  }
+  console.log(`[realtime] 驱动=Redis 扇出（线路 ${WIRE_CHANNEL}）`);
+  return new RedisRealtimeBus({ url });
+}
+
 export function getRealtimeBus(): RealtimeBus {
-  if (!store[GLOBAL_KEY]) store[GLOBAL_KEY] = new MemoryRealtimeBus();
+  if (!store[GLOBAL_KEY]) store[GLOBAL_KEY] = createDefaultBus();
   return store[GLOBAL_KEY];
 }
 
-/** 测试用：换掉单例，或清空。传 undefined 恢复默认的内存驱动 */
+/**
+ * 测试用：换掉单例，或清空。传 undefined 恢复默认的驱动选择（也就是重新读一次环境变量）。
+ *
+ * 换掉之前手上那份 Redis 驱动请自己 `dispose()`——接口里没有这一格（生产者的生命周期
+ * 不归总线门面管），漏掉就是漏掉两条到 Redis 的连接。
+ */
 export function setRealtimeBus(bus: RealtimeBus | undefined): void {
   if (bus) store[GLOBAL_KEY] = bus;
   else delete store[GLOBAL_KEY];

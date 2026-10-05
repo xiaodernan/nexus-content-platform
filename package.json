@@ -24,6 +24,7 @@
     "db:generate": "drizzle-kit generate",
     "db:migrate": "tsx scripts/db-migrate.mts",
     "two:instance": "tsx scripts/two-instance-roundtrip.mts",
+    "realtime:two-process": "tsx scripts/realtime-two-process.mts",
     "db:push": "drizzle-kit push",
     "db:seed": "tsx scripts/db-seed.mts",
     "db:studio": "drizzle-kit studio",

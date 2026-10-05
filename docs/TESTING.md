@@ -13,6 +13,7 @@
 | 契约 | Vitest + `contracts/*.schema.json` | web ↔ ai-service 报文：zod 为权威，导出 JSON Schema 供 Python 运行期校验，测试保证导出文件不漂移 | 每次改动 |
 | 服务 | pytest（`apps/ai-service/tests`） | 契约校验、Model Router、provider 成功/失败/噪声、审批门、dryRun、体积上限 | ai-service 改动 |
 | 集成 | Vitest + 真 Postgres(容器) | 项目 CRUD、snapshot/branch、publish、usage | 每里程碑 |
+| 集成（跨实例） | Vitest + 真 Redis(容器)，另加 `npm run realtime:two-process` 起真实第二个进程 | 实时总线扇出：进程与进程之间的投递、关门、坏帧、线路断开不拖业务（§163 / ADR-0028） | 实时驱动或连接参数改动 |
 | 端到端 | Playwright | Studio 全流程竖向切片（见下 Golden Path） | 每里程碑 + 发布前 |
 | 视觉 | Playwright screenshot + Visual Benchmark | 渲染快照、AI Diff 前后对比、参考图 vs 生成图 | Studio/渲染器改动 |
 | Agent 评测 | `evals/` | design accuracy / code correctness / tool selection / RAG / accessibility | ai-service 改动 |
@@ -319,8 +320,11 @@ vitest 直接崩了而我却把 stdout 丢进了 `/dev/null`，于是"5 遍"其�
   `/healthz.queue` 的 `pending`/`running` 现在带**正向对照**：先证明计数器能到非零，
   才允许用"这里仍是 0"去说"非法请求没进队列"（否则就是一条空断言）。
   Redis 后端要连真服务测（假客户端只会测到我给自己写的假行为）：
-  `NEXUS_REDIS_URL=redis://127.0.0.1:6380/0 python -m pytest apps/ai-service/tests/test_jobs.py -q`
-  → 9/9 通过（含"换一个 store 仍然读得到"这条内存后端做不到的事）；不设这个变量时那一条**显式 skip**，
+  `NEXUS_REDIS_URL=redis://127.0.0.1:56379/0 python -m pytest apps/ai-service/tests/test_jobs.py -q`
+  → 9/9 通过（含"换一个 store 仍然读得到"这条内存后端做不到的事；2026-10-06 在本项目自己的
+  `nexus-redis` 上重跑过一遍，1.71s。这里原先写的是 `6380`，那台属于**另一个项目**的 `nexus-platform-redis`，
+  拿它测会得到一样的绿——因为对面确实有个能用的 Redis，端口这件事从 `docker port <容器名>` 取，见 `docs/ENVIRONMENT.md`）；
+  不设这个变量时那一条**显式 skip**，
   跳过理由打在 pytest 输出里，不是静默通过。
   反向实验两次：计数器改回写死 0 → 非法请求那条红；worker 改成"无论 HTTP 什么都算 completed" → 失败作业那条红
 - 发布审核（§131/§132）：`apps/web/test/moderation.integration.test.ts` 16 条，钉的是四条会被含糊掉的边界，
@@ -589,7 +593,7 @@ vitest 直接崩了而我却把 stdout 丢进了 `/dev/null`，于是"5 遍"其�
   按它判定等于把这条规则专门为它存在的那个场景整份关掉（死链又回来了）；
   切成私有的那条发布通知反而被判成"点不开"（它指向 `/studio/`，本来一直打得开）。
   也就是说这个错误实现不是"少测一点"，而是同时犯两个方向相反的错。
-- 实时通道（§163）：分三层，每层只测自己那层能测的东西。
+- 实时通道（§163）：分四层，每层只测自己那层能测的东西。
   `realtime.test.ts` 12 条纯单测测总线与连接计数——**不碰网络也不碰库**：
   同一频道多个订阅者都收到、跨频道一条不漏、订阅者抛异常不能连累同频道其他人更不能连累发布方
   （实时是加速器不是业务前提）、在回调里退订自己不会漏掉后面的人（先复制再遍历）、
@@ -612,6 +616,22 @@ vitest 直接崩了而我却把 stdout 丢进了 `/dev/null`，于是"5 遍"其�
   顺手修掉一处会污染终态的假象：provider 带 `error` 返回 200 以前记 `succeeded` + "生成完成"，
   现在账本 / 通知 / 实时进度三处都判失败，`@smoke §164` 因此换成一条 Mock 真实现的指令
   （拿一条它不实现的指令去断言"生成完成"，测的正是刚修掉的那个假终态）。
+  **跨实例那一层（2026-10-06，ADR-0028）分两遍跑，因为单进程里那两件事测不到**：
+  `realtime.redis.integration.test.ts` 6 例打真 Redis（2.22s，两条独立总线 + 一条绕过总线直接往
+  线路上发字节的原生连接）——别机投递、origin 去重（`seenAlpha` 停在 1：少了那一刀这里会是 2，
+  Studio 上同一个进度条动两次）、关门在另一台直接可见（`beta.subscriberCount` 归 0，不是"没收到"那种反证）、
+  坏帧只让 `wireErrorCount` 动、端点连不上时不抛且 `ready=false`、驱动选择本身。
+  这一层是**唯一一个能抓到连接参数那处 bug 的地方**：两条连接原本共用一份 `enableOfflineQueue:false`，
+  构造里的 `SUBSCRIBE` 在 socket 就绪前就被当场拒掉，这台总线永远订不上线路——而本机那半边始终是对的，
+  所以单元测试一条都不会红。
+  `npm run realtime:two-process`（`scripts/realtime-two-process.mts`）再补"两个真实操作系统进程"那一寸：
+  上面那两条总线共享一个进程与一份 globalThis，测不到生产路径上那台单例会在两个进程里各自选到 Redis 驱动。
+  实测 5 个进程、4 次往返、8 条判据全绿，其中"关门之后那条频道没再收到"配了一条
+  "另一条频道收到了"作对照（否则那句只是反证），`ORIGINS_ALL_DISTINCT` 钉的是各进程 origin 必然不同
+  ——摘错方向的 bug 长得和成功一模一样，所以这句话要单独一条。
+  反向控制手工跑过：把发送侧的 `NEXUS_REDIS_URL` 指到没人听的端口，那一趟**零退出**
+  （`publish` 不抛在另一个进程里也一样）、`ready=false`、`wireErrorCount=10`，监听侧 `receivedClosed` 停在空——
+  所以那条投递判据读的是线路，不是磁盘上那份报告。7 条变异臂各拆一句纪律，**7/7 红在预测的那几条用例上**。
 - 头像与项目简介（§60 / §49）：`avatar.integration.test.ts` 9 条打真库 + **真存储目录**（用例独占，跑完删），
   断言里有一半在数磁盘：`objectsOf(userId)` 直接 `readdirSync`，所以"换一张之后旧字节不在了""同一份字节交两次只有一份"
   这两件事不是读接口读出来的，是看文件系统看出来的。元数据剥离用**字节序列**取证（原始字节里有 `GPS:`、

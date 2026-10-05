@@ -43,11 +43,26 @@
 > 端口 `3000` 已被机器上另一个项目的 Next dev server 占用（`D:\求职平台\frontend`，属外部进程，禁止终止），
 > 因此 NEXUS Web 固定使用 **3100**，e2e / 预览 / 截图脚本都以 `http://localhost:3100` 为基准。
 
-> 2026-09-24 实测的 Redis 端口不一致：compose 与本文件都写 `56379`，但**当前在跑的** `nexus-redis`
-> 映射的是 `127.0.0.1:6380`（`docker port nexus-redis` 可核对；`56379` 那时没有监听）。
-> §162 的队列默认走内存后端，所以这个差异不影响功能；要用 Redis 后端时按实测填
-> `NEXUS_REDIS_URL=redis://127.0.0.1:6380/0`。以容器现状为准还是重建到 `56379`，留待下次动 infra 时一起决定，
-> 现在先不擅自重启别人的容器。
+> 2026-09-24 这里记过一次"Redis 端口不一致"：说当时在跑的 `nexus-redis` 映射的是 `127.0.0.1:6380`。
+> **那条把两台容器看混了**（2026-10-06 实测更正）：`docker port nexus-redis` 现在给的是
+> `6379/tcp -> 0.0.0.0:56379`，而 `127.0.0.1:6380` 属于**另一个项目**的 `nexus-platform-redis`
+> （`nexus-platform-*` 那一组容器不归本项目动，见仓库根 AGENTS.md）。
+> 按那条旧记录去设 `NEXUS_REDIS_URL=…:6380` 会把本项目的事件发到别人家的 Redis 上——
+> 界面照样亮、测试照样绿，因为对面确实有个能用的 Redis。所以这一串端口以 `docker port <容器名>` 为准，
+> 不要从 `docker ps` 那一列里按"看着像"的那行抄。
+>
+> 还有一个更阴的：**Docker 引擎死了之后，发布出来的端口会继续 LISTENING**（本机 2026-10-05 实测过一次，
+> 表现是"数据库全线红"）。所以判断服务在不在，先用 `docker version` 确认引擎活着，再打一条真命令
+> （`redis-cli ping` / `psql -Atc "select 1"`）；只 `netstat` 看端口会读到假绿。
+
+### `NEXUS_REDIS_URL`（§162 队列与 §163 实时扇出共用这一串）
+
+- **不设**：实时总线用进程内驱动（本机开发、vitest、e2e 都只有一个 web 进程，这样少一个依赖也少一套失败模式）；
+- **设为非空**：换成 Redis pub/sub 扇出驱动，装载那一刻打一行 `[realtime] 驱动=Redis 扇出（线路 nexus:realtime:v1）`。
+  空格串算"没设"（`bus.ts` 读的是 `.trim()` 后的值）。连接失败**不会**退回进程内，只让日志、
+  `wireErrorCount` 与 `ready=false` 出声——详见 `docs/adr/0028-realtime-redis-fanout.md`。
+- 本机跑法：`NEXUS_REDIS_URL=redis://127.0.0.1:56379`；跨实例那层用 `npm run realtime:two-process` 验，
+  它只要 Redis、不要数据库，起不来时会先打一句"线路不通"而不是等 25 秒超时。
 
 ## 凭据现状
 

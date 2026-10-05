@@ -568,6 +568,31 @@ export const AiResponseSchema = z.object({
 export type AiResponse = z.infer<typeof AiResponseSchema>;
 
 /**
+ * §47 角色对话的跨端契约。`system` 是 web 侧 `server/domain/character-chat.ts`
+ * 拼好的人设 + 记忆 + 语料（ai-service 不碰业务库，自己拼不出来）；
+ * `user` 是用户这一句话。回的是纯文本，不带补丁、不走审批门——
+ * 对话只落记忆行，不改设计文档，所以 §73/§74 的补丁口径不适用这一路。
+ */
+export const AiChatRequestSchema = z.object({
+  requestId: z.string(),
+  system: z.string().min(1).max(12000),
+  user: z.string().min(1).max(4000),
+  modelClass: ModelClass.default('balanced'),
+});
+export type AiChatRequest = z.infer<typeof AiChatRequestSchema>;
+
+export const AiChatResponseSchema = z.object({
+  requestId: z.string(),
+  capability: CapabilityStatus,
+  provider: z.string(),
+  model: z.string(),
+  text: z.string().max(4000),
+  usage: UsageSchema,
+  error: AiErrorSchema.optional(),
+});
+export type AiChatResponse = z.infer<typeof AiChatResponseSchema>;
+
+/**
  * §131 机检结果。放在 schemas 而不是 web 内部类型：发布面板要把它原样画出来，
  * 客户端拿到的一份如果和服务端算的那份形状不同，"几项待人工复核"就变成一个猜出来的数。
  */
@@ -841,6 +866,23 @@ export const RealtimeEventSchema = z.discriminatedUnion('type', [
   z.object({ type: z.literal('notification'), projectId: z.string().optional(), level: z.enum(['info', 'success', 'warning', 'error']), title: z.string(), body: z.string().optional() }),
 ]);
 export type RealtimeEvent = z.infer<typeof RealtimeEventSchema>;
+
+/**
+ * §163：多实例扇出时，实例之间在 Redis 线路上走的那一帧。
+ *
+ * 和 `AgentRosterSchema` 同一个道理（见上面那段注释）：这是**两份定义里的第二份**，
+ * 只在 web 的进程之间走，ai-service 不参与，所以不进 `CONTRACT_EXPORTS`——
+ * 否则导出的 ai-request 契约里会多出根本不属于 provider 的东西。
+ * 但它是货真价实的跨进程报文，接收侧必须先 `safeParse` 再落到本机总线：
+ * 线路上的字节和浏览器发来的一样是不可信输入，不能因为"这是我们自己发的"就直接对象化。
+ *
+ * `origin` 是发帧那一台总线的身份，收侧用它跳过自己回环的那一份（否则本机订阅者会收到两次）。
+ */
+export const RealtimeWireFrameSchema = z.discriminatedUnion('kind', [
+  z.object({ kind: z.literal('event'), origin: z.string().min(1), channel: z.string().min(1), event: RealtimeEventSchema }),
+  z.object({ kind: z.literal('close'), origin: z.string().min(1), channel: z.string().min(1) }),
+]);
+export type RealtimeWireFrame = z.infer<typeof RealtimeWireFrameSchema>;
 
 export const ScreenshotRequestSchema = z.object({
   url: z.string().url(),
