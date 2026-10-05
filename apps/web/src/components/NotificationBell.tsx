@@ -51,6 +51,9 @@ export function NotificationBell() {
     onEvent: (event) => {
       if (event.type === 'notification') void refresh();
     },
+    // §163：断线那段时间里过来的通知，一条帧都没收到。接回来就重读一次，
+    // 否则铃铛会停在断线前那一刻——要等下一条事件或者用户自己刷新（ADR-0029）
+    onReconnect: () => void refresh(),
   });
 
   if (signedOut) return null;
