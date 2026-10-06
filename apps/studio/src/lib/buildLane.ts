@@ -38,7 +38,7 @@ export interface BuildLaneAnswer {
 
 export async function probeBuildLane(): Promise<BuildLaneProbe> {
   try {
-    const res = await fetch('/api/agent/build', { cache: 'no-store' });
+    const res = await fetch('/api/agent/build-arc', { cache: 'no-store' });
     if (!res.ok) {
       return { available: false, serverVersion: '', reason: `probe route answered ${res.status}`, arcId: '', goal: '', engine: '', steps: [] };
     }
@@ -58,7 +58,7 @@ export async function probeBuildLane(): Promise<BuildLaneProbe> {
 
 export async function requestBuildArcRun(): Promise<BuildLaneAnswer> {
   try {
-    const res = await fetch('/api/agent/build', { method: 'POST' });
+    const res = await fetch('/api/agent/build-arc', { method: 'POST' });
     const parsed: unknown = await res.json().catch(() => null);
     if (parsed && typeof parsed === 'object') return parsed as BuildLaneAnswer;
     return { ok: false, reason: `build route answered ${res.status} with a non-JSON body` };

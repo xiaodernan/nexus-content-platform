@@ -8089,7 +8089,7 @@ _records the catch-up itself._
   cannot name a single argv; the walk uses the runtime's own `policyCheckpoint` (the §28 stance as data —
   `build.verify` granted because the human allowed the arc once at the panel, everything else default-deny)
   with `recordReceipts: true`, so the answer carries ONE RECEIPT PER WALKED DOOR — callId, grant, reason — and
-  the panel shows WHO the door let in and why, not a bare green tick. `apps/studio/src/app/api/agent/build/route.ts`
+  the panel shows WHO the door let in and why, not a bare green tick. `apps/studio/src/app/api/agent/build-arc/route.ts`
   serves it (Node runtime, bodyless POST); `apps/studio/src/lib/buildLane.ts` is the client fetch adapter — it
   imports NOTHING from `@nexus/agent-runtime` or `@nexus/exec-host` (the browser bundle stays runtime-free and
   spawn-free); `AgentPanel` gains the build face: status line, Allow-once ask naming the steps and the engine,

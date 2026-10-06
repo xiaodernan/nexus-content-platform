@@ -113,8 +113,8 @@ try {
   console.log(`[build-lane-proof] §4 red verdict: ${red.detail}`);
 
   // ── §5 the request cannot widen anything ─────────────────────────────────────────────────────────
-  const routeSrc = readFileSync('apps/studio/src/app/api/agent/build/route.ts', 'utf8');
-  assert.ok(/export async function POST\(\): Promise<NextResponse>/, 'the POST takes NO body — the browser cannot name a step');
+  const routeSrc = readFileSync('apps/studio/src/app/api/agent/build-arc/route.ts', 'utf8');
+  assert.ok(/export async function POST\(\): Promise<NextResponse>/.test(routeSrc), 'the POST takes NO body — the browser cannot name a step');
   assert.ok(routeSrc.includes("runtime = 'nodejs'"), 'the route declares the Node runtime explicitly');
   const noWiden = await buildArcState({ spawnLike: (_c, _a) => ({ onData: () => {}, onEnd: (l) => setImmediate(() => l({ code: null, signal: null, error: 'spawn ENOENT' })), kill: () => {} }) });
   assert.equal(noWiden.available, false, 'unavailability is stated, never faked');
