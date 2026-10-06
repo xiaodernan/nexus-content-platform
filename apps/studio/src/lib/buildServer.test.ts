@@ -1,15 +1,16 @@
 import { describe, expect, it } from 'vitest';
 import { CONTAINER_ISOLATION_ARGS, CONTAINER_MOUNT_FLAGS } from '@nexus/exec-host';
-import { planBuildArc } from '@nexus/agent-runtime';
+import { planBuildArc, templateBuildPlanner } from '@nexus/agent-runtime';
 
 import {
   buildArcState,
   runStudioBuildArc,
-  STUDIO_BUILD_ARC,
   STUDIO_BUILD_ARC_ID,
+  STUDIO_BUILD_CATALOG,
   STUDIO_BUILD_CHECKPOINT_POLICY,
   STUDIO_BUILD_ENGINE,
-  studioBuildArcAllowlistError,
+  STUDIO_BUILD_GOAL,
+  studioBuildCatalogAllowlistError,
   studioBuildCheckpointPolicyError,
 } from './buildServer';
 
@@ -31,37 +32,40 @@ function fakeSpawn(stdout = 'arc ok:5\n', code: number | null = 0) {
   return { spawnLike, calls };
 }
 
-describe('studio build arc facts (v174)', () => {
-  it('pins the arc as data: two steps, both inside the SAME container allowlist', () => {
-    expect(STUDIO_BUILD_ARC.arcId).toBe('studio-build-arc');
-    expect(STUDIO_BUILD_ARC.steps).toHaveLength(2);
-    expect(STUDIO_BUILD_ARC.steps.map((s) => s.stepId)).toEqual(['runtime', 'compute']);
+describe('studio build lane facts (v175, planned)', () => {
+  it('pins the catalog as data: every template inside the SAME container allowlist', () => {
+    expect(STUDIO_BUILD_ARC_ID).toBe('studio-build-arc');
+    expect(STUDIO_BUILD_CATALOG).toHaveLength(2);
+    expect(STUDIO_BUILD_CATALOG.map((t) => t.id)).toEqual(['runtime', 'compute']);
     expect(STUDIO_BUILD_ENGINE).toBe('container:node:22-alpine');
-    expect(studioBuildArcAllowlistError()).toBeNull();
-    expect(planBuildArc(STUDIO_BUILD_ARC).ok).toBe(true);
+    expect(studioBuildCatalogAllowlistError()).toBeNull();
+    const planner = templateBuildPlanner(STUDIO_BUILD_CATALOG, STUDIO_BUILD_ARC_ID);
+    const d = planner({ goal: STUDIO_BUILD_GOAL });
+    expect(d.ok).toBe(true);
+    if (d.ok) expect(planBuildArc(d.draft.spec).ok).toBe(true);
   });
 
   it('validates the §28 checkpoint policy: build.verify granted on record, everything else default-deny', () => {
     expect(studioBuildCheckpointPolicyError()).toBeNull();
-    expect(STUDIO_BUILD_CHECKPOINT_POLICY.rules).toHaveLength(1);
     expect(STUDIO_BUILD_CHECKPOINT_POLICY.rules[0]!.tool).toBe('build.verify');
-    expect(STUDIO_BUILD_CHECKPOINT_POLICY.rules[0]!.grant).toBe(true);
     expect(STUDIO_BUILD_CHECKPOINT_POLICY.default.grant).toBe(false);
   });
 });
 
-describe('studio build arc walk (v174, fake spawn)', () => {
-  it('walks both steps green through the real container wall (isolation on, mount flags off)', async () => {
+describe('studio build lane walk (v175, planned, fake spawn)', () => {
+  it('the default goal summons both templates and walks them green through the real container wall', async () => {
     const { spawnLike, calls } = fakeSpawn();
     const a = await runStudioBuildArc({ spawnLike });
     expect(a.ok).toBe(true);
     if (!a.ok) return;
     expect(a.status).toBe('completed');
+    expect(a.goal).toBe(STUDIO_BUILD_GOAL);
     expect(a.detail).toContain('2/2 step(s) green');
-    expect(a.detail).toContain('container:node:22-alpine');
+    expect(a.detail).toContain('planned by template');
+    expect(a.planned?.picked).toEqual(['runtime', 'compute']);
     expect(a.steps.map((s) => s.callId)).toEqual([`${STUDIO_BUILD_ARC_ID}:runtime`, `${STUDIO_BUILD_ARC_ID}:compute`]);
     expect(a.steps.every((s) => s.ok)).toBe(true);
-    expect(a.steps[1]!.detail).toContain('exit 0');
+    expect(a.steps[1]!.stdout).toBe('arc ok:5\n');
     expect(a.receipts).toHaveLength(2);
     expect(a.receipts.every((r) => r.granted)).toBe(true);
     expect(calls).toHaveLength(2);
@@ -70,6 +74,31 @@ describe('studio build arc walk (v174, fake spawn)', () => {
       for (const flag of CONTAINER_ISOLATION_ARGS) expect(c.args).toContain(flag);
       for (const flag of CONTAINER_MOUNT_FLAGS) expect(c.args).not.toContain(flag);
     }
+  });
+
+  it('the request can name a GOAL (never argv): a narrower goal summons a narrower arc', async () => {
+    const { spawnLike, calls } = fakeSpawn();
+    const a = await runStudioBuildArc({ spawnLike, goal: 'check the numbers' });
+    expect(a.ok).toBe(true);
+    if (!a.ok) return;
+    expect(a.status).toBe('completed');
+    expect(a.goal).toBe('check the numbers');
+    expect(a.planned?.picked).toEqual(['compute']);
+    expect(a.steps).toHaveLength(1);
+    expect(a.steps[0]!.callId).toBe(`${STUDIO_BUILD_ARC_ID}:compute`);
+    expect(calls).toHaveLength(1);
+  });
+
+  it('a goal that summons nothing is an honest unplanned answer — zero spawn, zero receipts', async () => {
+    const { spawnLike, calls } = fakeSpawn();
+    const a = await runStudioBuildArc({ spawnLike, goal: 'zzz qqq nonsense' });
+    expect(a.ok).toBe(true);
+    if (!a.ok) return;
+    expect(a.status).toBe('unplanned');
+    expect(a.reason).toContain('invents nothing');
+    expect(a.steps).toEqual([]);
+    expect(a.receipts).toEqual([]);
+    expect(calls).toHaveLength(0);
   });
 
   it('a red verdict stops the walk with the engine\'s own words and one receipt', async () => {
@@ -86,12 +115,16 @@ describe('studio build arc walk (v174, fake spawn)', () => {
     expect(calls).toHaveLength(1);
   });
 
-  it('the state merges the probe with the pinned arc facts', async () => {
+  it('the state merges the probe with the pinned lane facts (catalog, not a promise)', async () => {
     const { spawnLike } = fakeSpawn('29.8.2\n');
     const s = await buildArcState({ spawnLike });
     expect(s.available).toBe(true);
     expect(s.arcId).toBe('studio-build-arc');
+    expect(s.goal).toBe(STUDIO_BUILD_GOAL);
     expect(s.engine).toBe('container:node:22-alpine');
-    expect(s.steps).toEqual([['node', '--version'], ['node', '-e', 'console.log("arc ok:" + String(2 + 3))']]);
+    expect(s.steps).toEqual([
+      ['node', '--version'],
+      ['node', '-e', 'console.log("arc ok:" + String(2 + 3))'],
+    ]);
   });
 });

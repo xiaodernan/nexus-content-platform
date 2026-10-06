@@ -8109,3 +8109,41 @@ _records the catch-up itself._
   hand-pinned data, no planner chooses steps, nothing writes to the workspace, and the arc's receipts live in
   the browser's localStorage ledger like every other dock decision (§26's durability question applies to them
   too). The runtime's exec/git doors remain headless. ADR 0013 stays Proposed.
+
+### Amendment 175 (M6 v175, queue item 8, close-out) — the build-arc PLANNER: a goal picks the steps; the planner still invents nothing
+
+- **What landed.** `agents/runtime/src/buildPlanner.ts` is the build arc's planning seam — the door's
+  shape v173 promised would not change, unchanged. A `BuildArcPlanner` turns a request
+  (`{ arcId?, goal }`) into a `BuildArcDraftDecision`; `templateBuildPlanner(catalog, fixedArcId?)` is
+  the first backend. The planner's entire freedom is the HOST-DECLARED CATALOG of `BuildStepTemplate`s
+  — frozen argv the policy has already validated — so it NEVER writes a single argv: it selects whole
+  templates (a template's `keywords` summon it when any goal token matches; no `keywords` means
+  always-on), in catalog order, deterministically per `(arcId, goal)` — the seed (`hashString`) is
+  PROVENANCE, not randomness. Zero matches is a reachable honest answer (`{ ok: false, reason }` —
+  the planner invents nothing, §60), and every accepted draft self-checks through `planBuildArc`
+  before it can be walked. The studio server consumes the seam: `buildServer.ts` now holds
+  `STUDIO_BUILD_CATALOG` (both templates re-validated against the SAME container allowlist at boot)
+  and `runStudioBuildArc({ goal? })` plans the arc for the request's goal (default: the face's own
+  goal) — an unplanned goal is a NORMAL `{ ok: true, status: 'unplanned' }` answer, and a planned
+  answer carries `goal` (echoed) and `planned` (backend, seed, picked ids) so the panel states WHO
+  planned the arc, not just who ran it. The route's POST relaxes from bodyless to ONE legal field:
+  `{ goal }` — a string, or 400 ("goal must be a string (a goal, never argv)"); an absent body still
+  plans the default. `buildLane.ts` gains `requestBuildArcRun(goal?)` (no goal → bodyless, exactly the
+  v174 shape).
+- **Measured (2026-10-07).** agent-runtime **527/527** (519 → 527: 8 `buildPlanner` cases — catalog
+  validation throws, keyword summoning in catalog order, the zero-summon refusal, determinism + seed
+  variance by goal, arcId derivation, argv copy isolation, draft self-check, the empty-goal refusal);
+  studio **241/241** (239 → 241: `buildServer` 5 → 7 — the narrow goal plans exactly the compute step,
+  the nonsense goal is unplanned with 0 spawn); `build-lane-proof.mjs` §1–§6 ALL PASSED against the
+  real daemon 29.8.2 (§3 the planned walk carries provenance — `planned by template (seed …; picked
+  runtime+compute)` — with stdout `arc ok:5` measured and 2 receipts on record; §4 goal-not-argv:
+  "check the numbers" plans exactly 1 step, "zzz qqq" is unplanned with 0 spawn; §6 the route's
+  boundary assertions — `POST(request)`, "never a step, never an argv", the 400 wording); browser
+  harness `tools/harness/studio-build.mjs` **8/8** (the walk line now reads "planned by template
+  (seed 3374758339; picked runtime+compute)" — no harness change needed, the provenance rides the
+  detail line v174 already rendered).
+- **Bounds (§60).** The planner is template SELECTION, not model-quality reasoning — goal tokens only
+  ever choose among host-declared steps, the catalog is still two pinned verify steps, and nothing
+  writes to the workspace. A future backend (model-scored selection over the same catalog) can drop
+  in behind the seam without touching the door, the wall, or the §28 stance. The runtime's exec/git
+  doors remain headless. ADR 0013 stays Proposed.

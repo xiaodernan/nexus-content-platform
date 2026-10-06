@@ -284,3 +284,14 @@ export {
   type BuildVerifier,
   type BuildVerifyRequest,
 } from './buildArc.js';
+// M6 v175 — the build-arc planner: the seam that picks steps from a goal. The planner never
+// writes argv — it instantiates templates from a host-declared catalog the policy validated.
+export {
+  templateBuildPlanner,
+  type BuildArcDraft,
+  type BuildArcDraftDecision,
+  type BuildArcPlanner,
+  type BuildArcProvenance,
+  type BuildArcRequest,
+  type BuildStepTemplate,
+} from './buildPlanner.js';

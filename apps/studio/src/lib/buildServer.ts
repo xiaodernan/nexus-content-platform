@@ -1,15 +1,17 @@
 /**
- * M6 v174 (ADR 0016 amendment 174): the SERVER half of the dock's BUILD face — the first
- * product consumer of the build arc (am. 173). The pattern is v172's container lane lifted
- * one level: the ARC is pinned here as data (the browser cannot name a single argv — the
- * POST body is empty by design), each verify step runs inside the SAME policy wall as every
- * container exec (am. 166/172), and the walk uses the runtime's own recording checkpoint
- * (`policyCheckpoint`) so the §28 receipts travel with the answer — the panel shows WHO the
- * door let in and why, per callId, not a bare green tick.
+ * M6 v175 (ADR 0016 amendment 175): the SERVER half of the dock's BUILD face now PLANS. The
+ * pattern is v174's pinned face lifted one level: the ARC is no longer one hand-pinned
+ * constant — the server holds a step CATALOG (frozen argv templates the container policy has
+ * validated) and the request's GOAL summons templates through the runtime's template planner
+ * (`templateBuildPlanner`, am. 175). The browser can name a GOAL; it can still never name a
+ * single argv — the planner invents nothing, it only selects among the catalog, in catalog
+ * order, deterministically per (arcId, goal), and the answer carries the provenance (backend,
+ * seed, picked) so the panel states WHO planned the arc, not just who ran it.
  *
- * The human gate stays where v172 put it: the dock panel's Allow-once dialog. The route's
- * checkpoint policy states that out loud — `build.verify` is granted BECAUSE the human
- * allowed the arc once, and every other tool is default-deny.
+ * Everything v174 established holds: the walk uses the runtime's own recording checkpoint
+ * (`policyCheckpoint` — `build.verify` granted because the human allowed the arc once,
+ * everything else default-deny), each verify step runs inside the SAME policy wall as every
+ * container exec, and the receipts travel with the answer per callId.
  */
 import {
   planContainerRun,
@@ -17,29 +19,44 @@ import {
   type SpawnLike,
 } from '@nexus/exec-host';
 import {
-  planBuildArc,
   policyCheckpoint,
   registerBuildTools,
   runBuildArc,
+  templateBuildPlanner,
   validateCheckpointPolicy,
   ToolRegistry,
+  type BuildArcProvenance,
   type BuildArcSpec,
   type BuildArcStatus,
+  type BuildStepTemplate,
   type CheckpointPolicy,
 } from '@nexus/agent-runtime';
 
 import { containerLaneState, createStudioContainerHost, STUDIO_CONTAINER_IMAGE, STUDIO_CONTAINER_POLICY } from './containerServer';
 
-/** The ONE arc this face serves, pinned as data — the request can never name a step. */
+/** The ONE arc id this face serves; every callId joins to it. */
 export const STUDIO_BUILD_ARC_ID = 'studio-build-arc';
-export const STUDIO_BUILD_ARC: BuildArcSpec = {
-  arcId: STUDIO_BUILD_ARC_ID,
-  goal: 'verify the dock build lane end to end inside the pinned container',
-  steps: [
-    { stepId: 'runtime', argv: ['node', '--version'], rationale: 'the container runtime answers with its own version' },
-    { stepId: 'compute', argv: ['node', '-e', 'console.log("arc ok:" + String(2 + 3))'], rationale: 'the container computes and prints — stdout is the measured fact' },
-  ],
-};
+/** The goal the face plans for when the request names none — also what the panel displays. */
+export const STUDIO_BUILD_GOAL = 'verify the dock build lane end to end inside the pinned container';
+/**
+ * The step CATALOG: the planner's entire freedom. Each argv is frozen here and validated
+ * against the SAME container allowlist the exec lane serves (see the allowlist check below) —
+ * a template that the policy would refuse can never exist in this lane.
+ */
+export const STUDIO_BUILD_CATALOG: readonly BuildStepTemplate[] = [
+  {
+    id: 'runtime',
+    argv: ['node', '--version'],
+    rationale: 'the container runtime answers with its own version',
+    keywords: ['runtime', 'verify', 'lane', 'container'],
+  },
+  {
+    id: 'compute',
+    argv: ['node', '-e', 'console.log("arc ok:" + String(2 + 3))'],
+    rationale: 'the container computes and prints — stdout is the measured fact',
+    keywords: ['compute', 'verify', 'check'],
+  },
+];
 /** WHO answers the verify doors — the same engine the container lane names. */
 export const STUDIO_BUILD_ENGINE = `container:${STUDIO_CONTAINER_IMAGE}`;
 
@@ -61,18 +78,18 @@ export function studioBuildCheckpointPolicyError(): string | null {
   }
 }
 
-/** Every pinned step must fit the SAME container allowlist the exec lane serves — asserted, not assumed. */
-export function studioBuildArcAllowlistError(): string | null {
-  const planned = planBuildArc(STUDIO_BUILD_ARC);
-  if (!planned.ok) return planned.reason;
-  for (const step of STUDIO_BUILD_ARC.steps) {
-    const decision = planContainerRun({ argv: [...step.argv], ...(step.cwd === undefined ? {} : { cwd: step.cwd }) }, STUDIO_CONTAINER_POLICY);
-    if (!decision.ok) return `step "${step.stepId}" is outside the container policy: ${decision.reason}`;
+/** Every catalog template must fit the SAME container allowlist the exec lane serves — asserted, not assumed. */
+export function studioBuildCatalogAllowlistError(): string | null {
+  const planner = templateBuildPlanner(STUDIO_BUILD_CATALOG, STUDIO_BUILD_ARC_ID);
+  for (const t of STUDIO_BUILD_CATALOG) {
+    const decision = planContainerRun({ argv: [...t.argv], ...(t.cwd === undefined ? {} : { cwd: t.cwd }) }, STUDIO_CONTAINER_POLICY);
+    if (!decision.ok) return `template "${t.id}" is outside the container policy: ${decision.reason}`;
   }
-  return null;
+  const draft = planner({ goal: STUDIO_BUILD_GOAL });
+  return draft.ok ? null : `the default goal plans nothing from this catalog: ${draft.reason}`;
 }
 
-/** What the dock's build status line states: the probe's honest answer plus the pinned arc facts. */
+/** What the dock's build status line states: the probe's honest answer plus the pinned lane facts. */
 export interface BuildArcState {
   available: boolean;
   serverVersion: string;
@@ -80,6 +97,7 @@ export interface BuildArcState {
   arcId: string;
   goal: string;
   engine: string;
+  /** The step CATALOG (what CAN be planned), not a promise of what will run. */
   steps: string[][];
 }
 
@@ -89,10 +107,10 @@ export async function buildArcState(options: { spawnLike?: SpawnLike } = {}): Pr
     available: lane.available,
     serverVersion: lane.serverVersion,
     reason: lane.reason,
-    arcId: STUDIO_BUILD_ARC.arcId,
-    goal: STUDIO_BUILD_ARC.goal,
+    arcId: STUDIO_BUILD_ARC_ID,
+    goal: STUDIO_BUILD_GOAL,
     engine: STUDIO_BUILD_ENGINE,
-    steps: STUDIO_BUILD_ARC.steps.map((s) => [...s.argv]),
+    steps: STUDIO_BUILD_CATALOG.map((t) => [...t.argv]),
   };
 }
 
@@ -106,16 +124,21 @@ export interface BuildArcAnswerStep {
 }
 
 /**
- * The route's answer. A walked-but-red arc is an HONEST answer (`status: 'failed'` plus the
- * engine's own words), never an error; only an unexpected route failure is `ok: false`.
+ * The route's answer. A planner that finds nothing to summon and a walked-but-red arc are
+ * both HONEST answers (`status: 'unplanned'` / `'failed'` plus the stated reason), never
+ * errors; only an unexpected route failure is `ok: false`.
  */
 export type BuildArcAnswer =
   | { ok: false; reason: string }
   | {
       ok: true;
-      status: BuildArcStatus;
+      status: BuildArcStatus | 'unplanned';
       stoppedAt?: string;
       reason?: string;
+      /** The goal this walk planned for (the request's, or the face's default). */
+      goal: string;
+      /** WHO chose the steps — the planner's provenance, stamped on the answer (§63). */
+      planned?: BuildArcProvenance;
       /** One line for the panel and the ledger — the arc's verdict in its own words. */
       detail: string;
       steps: BuildArcAnswerStep[];
@@ -123,25 +146,41 @@ export type BuildArcAnswer =
       receipts: { callId: string; granted: boolean; reason: string }[];
     };
 
-export async function runStudioBuildArc(options: { spawnLike?: SpawnLike } = {}): Promise<BuildArcAnswer> {
+export async function runStudioBuildArc(options: { spawnLike?: SpawnLike; goal?: string } = {}): Promise<BuildArcAnswer> {
+  const planner = templateBuildPlanner(STUDIO_BUILD_CATALOG, STUDIO_BUILD_ARC_ID);
+  const goal = typeof options.goal === 'string' && options.goal.trim() !== '' ? options.goal : STUDIO_BUILD_GOAL;
+  const drafted = planner({ goal });
+  if (!drafted.ok) {
+    return {
+      ok: true,
+      status: 'unplanned',
+      reason: drafted.reason,
+      goal,
+      detail: `build arc ${STUDIO_BUILD_ARC_ID}: unplanned — ${drafted.reason}`,
+      steps: [],
+      receipts: [],
+    };
+  }
+  const spec: BuildArcSpec = drafted.draft.spec;
   const host = createStudioContainerHost(options);
   const registry = registerBuildTools(new ToolRegistry(), containerVerifyRunner(host));
   const checkpoint = policyCheckpoint(STUDIO_BUILD_CHECKPOINT_POLICY);
-  const outcome = await runBuildArc(STUDIO_BUILD_ARC, { registry, checkpoint, recordReceipts: true });
+  const outcome = await runBuildArc(spec, { registry, checkpoint, recordReceipts: true });
   const steps: BuildArcAnswerStep[] = outcome.results.map((r) => {
     const verdict = (r.output ?? {}) as { ok?: boolean; detail?: string; stdout?: string };
     return {
       callId: r.callId,
-      stepId: r.callId.slice(STUDIO_BUILD_ARC_ID.length + 1),
+      stepId: r.callId.slice(spec.arcId.length + 1),
       ok: r.ok && verdict.ok === true,
       detail: r.ok ? (verdict.detail ?? '') : (r.error ?? 'refused'),
       ...(verdict.stdout === undefined ? {} : { stdout: verdict.stdout }),
     };
   });
   const green = steps.filter((s) => s.ok).length;
+  const plannedBy = `planned by ${drafted.draft.provenance.backend} (seed ${drafted.draft.provenance.seed}; picked ${drafted.draft.provenance.picked.join('+')})`;
   const detail =
     outcome.status === 'completed'
-      ? `build arc ${outcome.arcId}: ${green}/${steps.length} step(s) green — engine ${STUDIO_BUILD_ENGINE}`
+      ? `build arc ${outcome.arcId}: ${green}/${steps.length} step(s) green — engine ${STUDIO_BUILD_ENGINE} — ${plannedBy}`
       : outcome.status === 'denied'
         ? `build arc ${outcome.arcId}: denied at ${outcome.stoppedAt ?? '?'} — ${outcome.reason ?? ''}`
         : `build arc ${outcome.arcId}: ${outcome.status} at ${outcome.stoppedAt ?? '?'} — ${outcome.reason ?? ''}`;
@@ -150,6 +189,8 @@ export async function runStudioBuildArc(options: { spawnLike?: SpawnLike } = {})
     status: outcome.status,
     ...(outcome.stoppedAt === undefined ? {} : { stoppedAt: outcome.stoppedAt }),
     ...(outcome.reason === undefined ? {} : { reason: outcome.reason }),
+    goal,
+    planned: drafted.draft.provenance,
     detail,
     steps,
     receipts: (outcome.decisions ?? []).map((d) => ({ callId: d.call.callId, granted: d.granted, reason: d.reason })),
