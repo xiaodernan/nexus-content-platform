@@ -334,14 +334,39 @@ export function createFsSaveStore(fs: FsLike, root: string): SaveStore {
  * * Atomic writes use the same temp-then-rename pattern as the fs store, but "rename" means write-temp then
  *   copy-to-target then delete-temp (localStorage has no rename syscall). The suffix is `SAVE_TEMP_SUFFIX` so
  *   the policy gate already knows which names are debris.
+ *
+ * M5 v179 — the storage is a SEAM, not a global. v170 reached for `window.localStorage` directly, which made
+ * the store unconstructible (and therefore untestable) anywhere but a real browser tab — the one store in this
+ * package with zero coverage. `options.storage` injects the minimal slice the store actually needs
+ * (`StorageLike`), so headless Node tests can drive the same code the browser runs; the default (no option)
+ * keeps probing `window.localStorage`, so the Studio consumer (`Scene3D`, `nexus-save:studio-scene`) is
+ * unchanged byte for byte.
+ *
+ * And one honesty gap the seam's first tests caught: `writeAtomic`'s `durable` used to be silently IGNORED —
+ * the memory store refuses it outright and the fs store checks for `flushSync` before writing, but this store
+ * swallowed the promise. Now it refuses it like the others: localStorage has no flush handle, so a durable
+ * write here would be a claim nobody can check (§60).
  */
-export function createLocalStorageSaveStore(namespace: string): SaveStore {
+
+/** The minimal slice of a storage the localStorage-backed store needs. Deliberately NOT the full `Storage`
+ *  interface — `length`/`key()`/`clear()` are capability this store never uses, and an interface that asks for
+ *  what it ignores makes every fake bigger and every claim weaker. The index gives `list()` its names, so no
+ *  key-enumeration is needed either. */
+export interface StorageLike {
+  getItem(key: string): string | null;
+  setItem(key: string, value: string): void;
+  removeItem(key: string): void;
+}
+
+export function createLocalStorageSaveStore(namespace: string, options: { storage?: StorageLike } = {}): SaveStore {
   if (!namespace || namespace.trim() === '') {
     throw new Error('saveStore: a localStorage store needs a non-empty namespace to avoid colliding with other apps');
   }
   const prefix = `nexus-save:${namespace}`;
   const indexKey = `${prefix}:__index`;
-  const storage = typeof window !== 'undefined' && window.localStorage ? window.localStorage : null;
+  const storage: StorageLike | null =
+    options.storage ??
+    (typeof window !== 'undefined' && window.localStorage ? window.localStorage : null);
   if (!storage) {
     throw new Error(`saveStore: localStorage is not available in this environment; a browser-backed store cannot be created without it`);
   }
@@ -396,6 +421,12 @@ export function createLocalStorageSaveStore(namespace: string): SaveStore {
       addToIndex(path);
     },
     writeAtomic(path, contents, durable = false) {
+      // v179: `durable` is REFUSED, not ignored — localStorage has no flush handle, so a durable write here
+      // would be a promise nobody can check. The memory store refuses it outright and the fs store checks for
+      // flushSync first; this store swallowed the argument silently, which was the one lie left in the family.
+      if (durable) {
+        throw new Error('saveStore: the localStorage store cannot write durably — the browser storage behind it has no flush handle, and a promise it cannot keep is not kept silently');
+      }
       // localStorage has no rename syscall, so atomicity means: write temp, then copy temp to target, then delete temp.
       // The capability check happens BEFORE any byte moves.
       const refusal = savePathRefusal(path);

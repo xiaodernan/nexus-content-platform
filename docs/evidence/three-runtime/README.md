@@ -2795,3 +2795,52 @@ The ThreeRuntime exposes `renameSaveFile()` which delegates directly to `this.st
 | suites at HEAD b97a01e (2026-10-07) | — | three-runtime **422/422**, studio **214/214** |
 
 **Bounds (§60).** Rename is a storage-level operation (like delete/list), not a runtime-level operation (like read/write which are scene-aware). The rename does NOT validate whether the new name collides with an existing save — if a collision exists, the store overwrites it (same behavior as writeAtomic). The fs store's atomicity depends on `renameSync` availability; the fallback path (copy+unlink) is not atomic. localStorage store updates the index by removing the old name and adding the new one, but a crash between these two operations could leave the index inconsistent (the orphaned key would be debris). No undo capability, no rename history tracking, no batch rename support. The browser prompt() blocks the main thread and provides no custom styling.
+
+## v179 — the localStorage store becomes DRIVABLE: storage as an injected seam, and the durable lie refused (ADR 0016 amendment 179)
+
+v170 shipped `createLocalStorageSaveStore(namespace)` with zero coverage and named the reason in its own
+bounds: the constructor read the GLOBAL `window.localStorage` and accepted no injectable storage, so the
+package's Node suite could not even CONSTRUCT the one store that persists across page reloads. Honesty
+about being untestable is not a substitute for tests — v179 closes that debt and, in doing so, catches a
+lie the store had been telling since birth.
+
+**The seam is the minimal slice, not the whole interface.** The constructor takes
+`options: { storage?: StorageLike } = {}`, where `StorageLike` is `getItem`/`setItem`/`removeItem` —
+deliberately NOT the full `Storage` interface: `length`, `key()` and `clear()` are capabilities this
+store never uses, and the index key gives `list()` its names, so no key-enumeration is needed either.
+The default path is byte-for-byte what v170 shipped: `options.storage ?? (typeof window !== 'undefined'
+&& window.localStorage ? window.localStorage : null)`, and the no-storage constructor refusal (the
+honest throw v170 wrote) is unchanged and pinned. The one browser consumer, Scene3D's
+`createLocalStorageSaveStore('studio-scene')`, passes no options and runs the same code it ran before.
+
+**The seam's first run caught a real lie.** `writeAtomic`'s `durable` argument was silently IGNORED by
+this store: the memory store refuses it outright and the fs store checks for `flushSync` first, so a
+durability promise that outlives a browser tab was swallowed here — the one store in the family whose
+durable answer was "yes, whatever". Now it refuses BEFORE any byte moves, with a sentence that names the
+missing capability ("the browser storage behind it has no flush handle, and a promise it cannot keep is
+not kept silently"), and the refusal is tested with the zero-write guarantee the fs store's own tests
+use: no target key, no temp key, nothing in the index, and a plain atomic write right after still works.
+
+**14 cases in `test/saveLocalStorage.test.ts`** (three-runtime 422 → **436**, `tsc` clean), over a
+Map-backed `StorageLike` with set-failure injection (a quota-style mid-flight error at an chosen set
+number, so the temp cleanup path is exercised the way a real browser would hit it):
+
+| subject | what is pinned |
+| --- | --- |
+| the injected seam | constructs headlessly and reports `kind: 'localStorage'`; empty/blank namespace refused with or without injection; no storage and no injection refuses with v170's own sentence |
+| the store itself | byte-for-byte round-trip (a miss reads `null`, never empty); delete true/false, never an error; index-driven `list()` sorted with no index name and no debris; namespace isolation over ONE backing storage (the emptied `__index` key remains by design — the assertion filters non-index keys rather than pretending it vanishes) |
+| refusals | `../escape.json` traversal (a non-empty sentence containing `..`), absolute path, and backslash names refused on write/read/delete by the same door; CREATE refused on the temp suffix while READ/DELETE of a leftover still answer |
+| atomicity | `writeAtomic` round-trips leaving no temp key; a `durable` request throws with ZERO bytes written; a mid-flight copy failure cleans the temp, reports the failure, and reads `null` after |
+| the index | a non-JSON index answers `[]` instead of a guess; an index holding non-strings keeps only the strings; `rename` moves bytes and index together and refuses a ghost |
+
+**Regression at the landing (2026-10-07):** three-runtime **436/436**, studio **256/256** (no studio
+case touches the store directly — the seam is additive), browser harness studio-scene3d **25/25**
+re-verified against the real `window.localStorage` default path.
+
+**Bounds (§60).** The seam is a testing capability, not a persistence upgrade: saves are still
+per-origin, ~5MB quota, unauthenticated, and there is still no delete in the browse UI, no quota
+handling, no cross-tab sync, and no sweeper for a `.tmp` key a crash leaves behind. The durable
+refusal is a capability statement Studio cannot observe today (nothing passes `durable` through the
+panel). The fs store's `durable` still requires `flushSync` on the injected `FsLike`; the memory
+store's refusal is unchanged; this grant only made the third member of the family say what its
+siblings already said. Hosted persistence for real deployment remains M7–M10 work.

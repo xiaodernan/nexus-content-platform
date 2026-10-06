@@ -8265,3 +8265,34 @@ _records the catch-up itself._
   it grants nothing. The display cap is a PANEL budget, the file stays append-only and uncapped.
   Deploy still means records, never a push or a publish; the runtime still holds no write
   capability of its own. ADR 0013 stays Proposed.
+
+### Amendment 179 — the localStorage save store is DRIVABLE: storage becomes a seam, and the durable lie is refused (2026-10-07)
+
+**What landed.** M5's v170 open item closed: `createLocalStorageSaveStore` had ZERO coverage because it
+reached for `window.localStorage` directly, so it could not even be CONSTRUCTED outside a browser tab.
+v179 makes the storage an injected seam — `options.storage` (the minimal `StorageLike`:
+`getItem`/`setItem`/`removeItem`, deliberately NOT the full `Storage` interface, since the index gives
+`list()` its names and no key-enumeration is needed) drives the SAME code headlessly, and the no-option
+default keeps probing `window.localStorage`, so the Studio consumer (`Scene3D`, `nexus-save:studio-scene`)
+is unchanged byte for byte. The seam's first tests caught one real lie in the store itself:
+`writeAtomic`'s `durable` argument was silently IGNORED — the memory store refuses it outright and the
+fs store checks for `flushSync` before writing; now this store refuses it too, and the refusal is tested
+with the zero-write guarantee its siblings' tests pin.
+
+**Measured.** `@nexus/three-runtime` 422 → **436** tests (+14 in the new `test/saveLocalStorage.test.ts`):
+headless construction with an injected storage, byte-for-byte round-trips (a miss reads as null, never
+empty), index-driven listing sorted with no `__index` key named and no debris, namespace isolation over
+ONE backing storage (keys carry the namespace; an emptied index key remains by design), the
+creation-only temp-suffix rule (refused to CREATE, readable as a leftover the host already holds),
+refusal classification without reading any bytes, a writeAtomic round-trip leaving NO temp key behind,
+the durable refusal with zero bytes written (and the store still works right after), a mid-flight quota
+failure cleaning up its temp and writing nothing to the target, a corrupt index answered honestly
+(`[]`, and non-string names type-filtered), and a rename moving bytes and index together. tsc clean;
+`tools/harness/studio-scene3d.mjs` **25/25** in a REAL browser — the unchanged default path still saves
+and loads across the surface.
+
+**Bounds (§60).** The seam changes nothing about WHERE saves live: still per-origin, ~5MB-capped,
+unauthenticated browser localStorage — hosted persistence remains M7 (ADR 0014 stays the local-first
+story). The emptied `__index` key stays on file by design. The durable refusal is a capability
+statement the Studio cannot observe today (nothing passes `durable`); when a consumer needs durability
+it needs a different host, not a softer promise here.

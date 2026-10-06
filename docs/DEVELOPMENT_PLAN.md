@@ -41,8 +41,14 @@ headless proof → product surface → real-browser verification → record the 
   doors 6 → 8 (`scene.save`/`scene.load`). **Now RELOAD-SAFE (v165/168/169/170):** the listing verb classifies
   refused names, the store itself answers `savePathRefusal`, the panel browses and loads a SELECTED
   save, and the backend is a namespaced localStorage store (`nexus-save:studio-scene`) — saves
-  survive page reloads. Still open: pan + keyboard controls, per-body picker,
-  lighting control, fs-backed persistence via a Node seam, unit coverage for the localStorage store.
+  survive page reloads. **Now DRIVABLE (v179):** the localStorage save store takes an injected
+  `options.storage` seam (the minimal `StorageLike`), so the same code is driven headlessly by tests
+  while the browser default still probes `window.localStorage` and `Scene3D` is unchanged byte for
+  byte — and the seam's first tests caught and fixed a real lie: `writeAtomic`'s `durable` was
+  silently ignored, now refused like its siblings with a zero-write guarantee (three-runtime
+  422 → **436**, harness **25/25** re-verified; ADR 0016 amendment 179). Still open: pan + keyboard
+  controls, per-body picker, lighting control, fs-backed persistence via a Node seam, browse
+  delete/quota handling.
 - **M6–M10:** planned, not started (autonomous build, community, creator economy, ops, external agents).
 
 ## Execution order (next increments)
