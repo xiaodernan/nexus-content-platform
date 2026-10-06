@@ -74,8 +74,10 @@ function Row({ item }: { item: InboxItem }): ReactElement {
 /**
  * §164 收件箱。注册表里的每一类都要有真终态可挂，才允许出现在这一页——
  * 这句话的"每一类"从 `NOTIFICATION_KINDS` 现算，不是这里手抄的名单（任务 #94 修的就是抄漏的那一版）。
+ * 
+ * 支持分页：默认第 1 页、每页 50 条；超过一页时显示"另有 N 条未列出"并给出翻页按钮。
  */
-export default async function NotificationsPage() {
+export default async function NotificationsPage({ searchParams }: { searchParams?: { page?: string } }) {
   const user = await currentUserOrNull();
   if (!user) {
     return (
@@ -89,7 +91,8 @@ export default async function NotificationsPage() {
     );
   }
 
-  const page = await inbox(user.id, 50);
+  const currentPage = Math.max(1, parseInt(searchParams?.page ?? '1', 10) || 1);
+  const page = await inbox(user.id, { page: currentPage, limit: 50 });
   const unreadIds = page.items.filter((item) => !item.read).map((item) => item.id);
 
   return (
@@ -109,15 +112,41 @@ export default async function NotificationsPage() {
           只有真到了终态、而且收件人是你的一件事才会写到这里，下面"会通知的"逐类列了各自挂在哪一次收尾上。
         </p>
       ) : (
-        <ul className="mt-4 rounded-[var(--nexus-radius-md)] border border-[var(--nexus-color-border-subtle)] bg-bg-1 px-4 py-1">
-          {page.items.map((item) => (
-            <Row key={item.id} item={item} />
-          ))}
-        </ul>
+        <>
+          <ul className="mt-4 rounded-[var(--nexus-radius-md)] border border-[var(--nexus-color-border-subtle)] bg-bg-1 px-4 py-1">
+            {page.items.map((item) => (
+              <Row key={item.id} item={item} />
+            ))}
+          </ul>
+          {page.pagination ? (
+            <div className="mt-3 flex items-center justify-between">
+              <p className="text-11 text-fg-3">
+                第 {page.pagination.page} 页 · 每页 {page.pagination.limit} 条 · 共 {page.total} 条
+              </p>
+              <div className="flex gap-2">
+                {page.pagination.page > 1 ? (
+                  <Link
+                    href={`/notifications?page=${page.pagination.page - 1}`}
+                    className="rounded-[var(--nexus-radius-sm)] bg-bg-2 px-3 py-1.5 text-12 text-fg-2 hover:bg-bg-3"
+                    data-pagination-prev
+                  >
+                    ← 上一页
+                  </Link>
+                ) : null}
+                {page.pagination.hasMore ? (
+                  <Link
+                    href={`/notifications?page=${page.pagination.page + 1}`}
+                    className="rounded-[var(--nexus-radius-sm)] bg-accent-1 px-3 py-1.5 text-12 text-accent-2 hover:bg-accent-2"
+                    data-pagination-next
+                  >
+                    下一页 →
+                  </Link>
+                ) : null}
+              </div>
+            </div>
+          ) : null}
+        </>
       )}
-      {page.total > page.items.length ? (
-        <p className="mt-2 text-11 text-fg-3">这一页只列出最近 {page.items.length} 条，总数是 {page.total} 条（没有分页）。</p>
-      ) : null}
 
       <section className="mt-8 grid gap-4 sm:grid-cols-2">
         <div>
