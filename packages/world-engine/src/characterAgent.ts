@@ -16,6 +16,7 @@ import type {
 } from './types.js';
 import { worldId, characterId, locationId, factionId, loreId, eventId } from './types.js';
 import { WorldRAG } from './rag.js';
+import { RELATIONSHIP_FLOOR, gainStrength, deriveRelationType, isDerivableRelationType } from './relationships.js';
 
 export interface CharacterAgentConfig {
   decisionThreshold: number;
@@ -55,9 +56,14 @@ export class CharacterAgent {
   }
 
   getContext(): CharacterAgentContext {
-    const currentLocationId = this.character.locationId ?? locationId('');
-    const location = this.world.locations.get(currentLocationId)!;
-    const nearbyCharacters = this.getNearbyCharacters(location);
+    // v162 — a character between places (locationId null) is still IN the world: it can rest, tend
+    // its goals and be asked for a decision. The old code asserted a location that was never
+    // guaranteed and crashed `decide()` for locationless characters — surfacing now that tickOnce
+    // counts every consulted agent instead of swallowing the error in an interval.
+    const location = this.character.locationId
+      ? this.world.locations.get(this.character.locationId) ?? null
+      : null;
+    const nearbyCharacters = location ? this.getNearbyCharacters(location) : [];
     const recentEvents = this.getRecentEvents();
     const activeGoals = this.character.goals.filter(g => g.status === 'active');
     const availableActions = this.getAvailableActions(location);
@@ -86,7 +92,7 @@ export class CharacterAgent {
       .reverse();
   }
 
-  private getAvailableActions(location: Location): CharacterAction[] {
+  private getAvailableActions(location: Location | null): CharacterAction[] {
     const actions: CharacterAction[] = [];
 
     actions.push({
@@ -98,6 +104,7 @@ export class CharacterAgent {
       cooldown: 1800,
     });
 
+    if (location) {
     for (const [targetId, conn] of location.connectedLocations) {
       actions.push({
         id: `move-${targetId}`,
@@ -109,17 +116,24 @@ export class CharacterAgent {
       });
     }
 
-    for (const npcId of location.npcs) {
-      const npc = this.world.characters.get(npcId);
-      if (npc) {
-        actions.push({
-          id: `speak-${npcId}`,
-          type: 'speak',
-          name: `Talk to ${npc.name}`,
-          description: `Engage in dialogue with ${npc.name}`,
-          duration: 300,
-        });
-      }
+    // v162 — anyone CO-LOCATED can be spoken to, not only characters a world-builder registered as
+    // `npcs`: the agent's own nearby-characters list is the inhabitants, and a simulation where Mira
+    // cannot greet Toma because nobody declared him an NPC is not a simulation of meeting people.
+    // The union is de-duplicated; a declared NPC who is also an inhabitant is one candidate, not two.
+    const candidates = [...location.npcs, ...location.inhabitants];
+    const spoken = new Set<string>();
+    for (const otherId of candidates) {
+      if (otherId === this.character.id || spoken.has(otherId)) continue;
+      const npc = this.world.characters.get(otherId);
+      if (!npc) continue;
+      spoken.add(otherId);
+      actions.push({
+        id: `speak-${otherId}`,
+        type: 'speak',
+        name: `Talk to ${npc.name}`,
+        description: `Engage in dialogue with ${npc.name}`,
+        duration: 300,
+      });
     }
 
     for (const item of location.items) {
@@ -133,6 +147,7 @@ export class CharacterAgent {
       });
     }
 
+    }
     for (const goal of this.character.goals.filter(g => g.status === 'active')) {
       actions.push({
         id: `pursue-${goal.id}`,
@@ -241,7 +256,7 @@ export class CharacterAgent {
   private evaluateRisk(action: CharacterAction, context: CharacterAgentContext): number {
     if (action.type === 'move') {
       const targetId = action.id.replace('move-', '');
-      const conn = context.currentLocation.connectedLocations.get(locationId(targetId));
+      const conn = context.currentLocation?.connectedLocations.get(locationId(targetId));
       if (conn && conn.difficulty > 5) return -2 * this.config.riskTolerance;
     }
     if (action.type === 'combat') return -3 * this.config.riskTolerance;
@@ -327,20 +342,13 @@ export class CharacterAgent {
       case 'speak': {
         const targetId = actionId.replace('speak-', '');
         const target = this.world.characters.get(characterId(targetId))!;
-        const rel = this.character.relationships.get(characterId(targetId));
-        if (rel) {
-          rel.strength = Math.min(100, rel.strength + 5);
-          outcome = `Spoke with ${target.name}, relationship improved`;
-        } else {
-          this.character.relationships.set(characterId(targetId), {
-            targetId: characterId(targetId),
-            type: 'neutral',
-            strength: 10,
-            description: 'First meeting',
-            establishedAt: Date.now(),
-          });
-          outcome = `Met ${target.name} for the first time`;
-        }
+        // v162 — a bond is TWO-sided: both characters gain (or first-meet) together, and each side's
+        // type is derived from the number it now carries.
+        const mine = this.upsertBond(this.character, target);
+        const theirs = this.upsertBond(target, this.character);
+        outcome = mine.created
+          ? `Met ${target.name} for the first time`
+          : `Spoke with ${target.name}, bond now ${mine.rel.strength}`;
         events.push({
           id: eventId(`evt-${Date.now()}`),
           timestamp: Date.now(),
@@ -349,7 +357,10 @@ export class CharacterAgent {
           participants: [this.character.id, target.id],
           locationId: this.character.locationId,
           cause: 'social interaction',
-          effects: [{ type: 'relationship-change', target: this.character.id, change: { with: targetId, delta: 5 }, permanent: true }],
+          effects: [
+            { type: 'relationship-change', target: this.character.id, change: { with: targetId, strength: mine.rel.strength, created: mine.created }, permanent: true },
+            { type: 'relationship-change', target: target.id, change: { with: this.character.id, strength: theirs.rel.strength, created: theirs.created }, permanent: true },
+          ],
           visibility: 'participants',
           metadata: {},
         });
@@ -402,6 +413,27 @@ export class CharacterAgent {
 
   addRelationship(targetId: CharacterId, relationship: Relationship): void {
     this.character.relationships.set(targetId, relationship);
+  }
+
+  /** v162 — find-or-create a bond on `from`'s side toward `to`, gaining one interaction's worth of
+   *  strength when it already exists. Only the four derivable types are re-derived; a declared bond
+   *  (`family`, `rival`, and friends) keeps its name and just carries the number. */
+  private upsertBond(from: Character, to: Character): { rel: Relationship; created: boolean } {
+    const existing = from.relationships.get(to.id);
+    if (existing) {
+      existing.strength = gainStrength(existing.strength);
+      if (isDerivableRelationType(existing.type)) existing.type = deriveRelationType(existing.strength);
+      return { rel: existing, created: false };
+    }
+    const rel: Relationship = {
+      targetId: to.id,
+      type: 'neutral',
+      strength: RELATIONSHIP_FLOOR,
+      description: 'First meeting',
+      establishedAt: Date.now(),
+    };
+    from.relationships.set(to.id, rel);
+    return { rel, created: true };
   }
 
   updateGoalProgress(goalId: string, progress: number): void {

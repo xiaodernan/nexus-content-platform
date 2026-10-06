@@ -3692,3 +3692,43 @@ could be read as a generation would be the §60 defect in a new place.
 Bounds, stated: still no real model anywhere — every generator is DEMO MODE and every stored payload is zero
 bytes, measured on the video path too. There is no storyboard frame EDIT or DELETE, no character UPDATE or
 DELETE, and no asset byte editing: the library has no such method, so no door invents one.
+
+## The world doors learn to RUN (world-tools-proof.mjs §6–§8 — M4 v162 — ADR 0016 amendment 162)
+
+v144 gave this lane a world driver with six doors that could COMPOSE and READ a world but not RUN one —
+its own record said so. v162 adds two doors — the family is now **8** — over the same seam, and the new
+proof sections run them over the REAL engine:
+
+```
+node docs/evidence/agents/world-tools-proof.mjs   # requires `npm run build` first
+```
+
+| door | class | what it does |
+| --- | --- | --- |
+| `world.simulate` | write | `steps` ticks of the engine's own `tickOnce()`, aggregated into one report |
+| `world.relationships.list` | read | every bond, BOTH sides, by name |
+
+**Simulation refuses nonsense at the door.** `steps` must be a positive integer no greater than
+`WORLD_SIMULATE_MAX_STEPS` (1000): zero, negative, fractional and over-cap steps are named and refused —
+and for a non-numeric step the registry's own type gate answers before the door does.
+
+**A tick is the engine's decision loop, not a counter.** §6 steps a healthy world twice and watches
+NOTHING execute; then wounds Rowan to 30/100 health, steps once, and watches the agent's own confidence
+gate choose `rest` and EXECUTE it (30 → 40). A thousand-and-one-step request is refused by name.
+
+**Bonds are born two-sided and erode when unmaintained.** §7: one tick introduces two co-located
+characters — the first speak writes BOTH directions at the floor (10/10), the reply gains on both sides
+(15/15), and the tick's own decay pass erodes them (13/13, `relationshipsChanged` = 2). §8 lists every
+bond BY NAME through the read door, before and after.
+
+| § | what it measures |
+| --- | --- |
+| 6 | `world.simulate`: a healthy world executes nothing (2 ticks · 0 actions), a wounded agent chooses and executes `rest` through its own gate (30 → 40), and 1001 steps are refused |
+| 7 | the deterministic introduction trace over the REAL engine: 10/10 → 15/15 → 13/13 on BOTH sides, `relationshipsChanged` = 2 |
+| 8 | `world.relationships.list`: every bond by name from both sides — a read door, zero checkpoints |
+| 9 | this repository's HEAD is byte-identical |
+
+Bounds, stated: the tick consults every agent's OWN decision gate — still no model anywhere (DEMO MODE
+arithmetic, labeled). `world.simulate` aggregates the engine's own reports rather than narrating one.
+Decay floors at the first-meeting anchor, so the enemy band is unreachable through simulation and no
+number the doors return can be read as hatred. Factions and lore do not tick yet.

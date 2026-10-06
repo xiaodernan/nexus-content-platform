@@ -24,6 +24,12 @@ import type { ToolSpec } from './types.js';
  * and the package's `CharacterAgent.decide()` **stores the answer on the agent** (`this.lastDecision =
  * decision`). Calling that a read would be claiming a mutation did not happen, so it is write-class and
  * says so — the same reason `scene.inspect` is allowed to be read and this is not.
+ *
+ * M4 v162 — the family deepens from six doors to EIGHT. `world.simulate` (write-class) steps the world N
+ * deterministic ticks — every agent decides, actions that pass the engine's confidence gate execute,
+ * unmaintained bonds decay — and `world.relationships.list` (read-class) reads every bond with both sides
+ * named. The simulate bound (positive WHOLE steps, at most 1000 per call) is refused by name, so an
+ * agent can neither freeze a world with an unbounded step count nor tick it a fraction of a time.
  */
 
 /** The world's counts, exactly the seven the package's own `getStats()` answers. */
@@ -77,6 +83,33 @@ export interface WorldDecision {
   expectedOutcome: string;
 }
 
+/** What `steps` deterministic simulation ticks did, in the engine's own numbers. */
+export interface WorldSimReport {
+  steps: number;
+  /** The engine's tick counter AFTER the last step — absolute, not per-call. */
+  ticks: number;
+  decisions: number;
+  actions: number;
+  events: number;
+  relationshipsChanged: number;
+}
+
+/** One bond, both sides named where the world can name them. A target the world does not hold reports
+ *  `null` for its name rather than a dangling one — the same rule the Studio's report uses for places. */
+export interface WorldRelationshipPair {
+  characterId: string;
+  characterName: string;
+  targetId: string;
+  targetName: string | null;
+  type: string;
+  strength: number;
+}
+
+export interface WorldRelationshipsResult {
+  pairs: WorldRelationshipPair[];
+  characters: number;
+}
+
 export interface WorldLocationSpec {
   name: string;
   description: string;
@@ -112,6 +145,11 @@ export interface WorldDriver {
   query(text: string, limit: number): WorldQueryResult | Promise<WorldQueryResult>;
   /** `undefined` when the world holds no agent for that character — a different answer from a refusal. */
   decide(characterId: string): WorldDecision | undefined | Promise<WorldDecision | undefined>;
+  /** v162 — run N deterministic simulation steps (agent decisions, executed actions, relationship
+   *  decay) and report what moved, in the engine's own numbers. WRITE-class by nature. */
+  simulate(steps: number): WorldSimReport | Promise<WorldSimReport>;
+  /** v162 — every bond the world holds, both sides named where it can name them. */
+  relationships(): WorldRelationshipsResult | Promise<WorldRelationshipsResult>;
 }
 
 export const WORLD_LOCATION_TYPES: readonly string[] = [
@@ -121,6 +159,9 @@ export const WORLD_LOCATION_TYPES: readonly string[] = [
 export const WORLD_LORE_CATEGORIES: readonly string[] = [
   'history', 'myth', 'geography', 'magic', 'technology', 'culture', 'person', 'event', 'artifact', 'other',
 ];
+
+/** The simulate door's own ceiling: one call moves the world at most this many ticks. */
+export const WORLD_SIMULATE_MAX_STEPS = 1000;
 
 /** A function DECLARATION with an explicit `never` return, so TypeScript narrows control flow after it. */
 function refused(message: string): never {
@@ -196,6 +237,18 @@ export const WORLD_TOOL_SPECS: ToolSpec[] = [
     description: 'Ask what a character would do. WRITE-class, because the package records the decision on the agent — a door that called this a read would be claiming a mutation did not happen.',
     permissions: ['write'],
     args: [{ name: 'characterId', type: 'string', required: true }],
+  },
+  {
+    name: 'world.simulate',
+    description: 'Run N deterministic simulation steps of the world: every agent decides, actions that pass the engine’s confidence gate execute, unmaintained bonds decay. WRITE-class: the world moves.',
+    permissions: ['write'],
+    args: [{ name: 'steps', type: 'number', required: true }],
+  },
+  {
+    name: 'world.relationships.list',
+    description: 'List every relationship bond the world holds, with both sides named. Read-class: no checkpoint is asked.',
+    permissions: ['read'],
+    args: [],
   },
 ];
 
@@ -290,6 +343,23 @@ export function registerWorldTools(registry: ToolRegistry, driver: WorldDriver):
         refused(`world.character.decide: this world holds no agent for ${characterId}; a decision is asked of a character the engine has an agent for`);
       }
       return { engine: driver.engine, ...decision };
+    },
+
+    'world.simulate': async (args) => {
+      const steps = args.steps;
+      if (typeof steps !== 'number' || !Number.isInteger(steps) || steps <= 0) {
+        refused(`world.simulate steps is ${JSON.stringify(steps)}; steps is a positive whole number of ticks`);
+      }
+      if (steps > WORLD_SIMULATE_MAX_STEPS) {
+        refused(`world.simulate steps is ${steps}; one call moves the world at most ${WORLD_SIMULATE_MAX_STEPS} ticks — call it again for more`);
+      }
+      const report = await driver.simulate(steps);
+      return { engine: driver.engine, ...report };
+    },
+
+    'world.relationships.list': async () => {
+      const result = await driver.relationships();
+      return { engine: driver.engine, ...result };
     },
   };
 

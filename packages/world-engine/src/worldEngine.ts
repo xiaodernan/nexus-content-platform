@@ -25,6 +25,7 @@ import type {
 import { WorldRAG } from './rag.js';
 import { CharacterAgent, type CharacterAgentConfig } from './characterAgent.js';
 import { worldId, characterId, locationId, factionId, loreId, eventId } from './types.js';
+import { decayStrength, deriveRelationType, isDerivableRelationType } from './relationships.js';
 
 export interface WorldEngineEvents {
   onEvent?: (event: WorldEvent) => void;
@@ -34,6 +35,22 @@ export interface WorldEngineEvents {
   onLoreUpdate?: (lore: LoreEntry) => void;
   onAgentDecision?: (characterId: CharacterId, decision: AgentDecision) => void;
   onAgentAction?: (characterId: CharacterId, actionId: string, outcome: string) => void;
+}
+
+/** What one deterministic simulation step did — the numbers a caller (door, panel, proof) quotes. */
+export interface TickReport {
+  /** The tick number AFTER the step — 1 on a fresh engine's first step. */
+  tick: number;
+  /** How many agents were consulted (the engine's own concurrency cap applies). */
+  agents: number;
+  /** How many decisions were made — one per agent consulted. */
+  decisions: number;
+  /** How many decisions passed the engine's confidence gate AND executed successfully. */
+  actions: number;
+  /** How many events the executed actions emitted. */
+  events: number;
+  /** How many bonds decayed this tick. */
+  relationshipsChanged: number;
 }
 
 export class WorldEngine {
@@ -116,26 +133,75 @@ export class WorldEngine {
   }
 
   private tick(): void {
+    void this.tickOnce().catch((error) => console.error('Tick error:', error));
+  }
+
+  /**
+   * M4 v162 — ONE deterministic simulation step, public so a caller (test, proof, agent door, panel)
+   * can step the world without hanging it off a wall-clock interval.
+   *
+   * Determinism comes from the shape, not from frozen time: the agents run in insertion order, each
+   * decision is awaited before the next agent is consulted, and the per-tick relationship decay is a
+   * pure function of the tick. Timestamps on emitted events still come from the wall clock, which is
+   * what "when did the engine run this" means here — the SEMANTICS of a tick (who decided, who acted,
+   * which bonds eroded) do not depend on it.
+   */
+  async tickOnce(): Promise<TickReport> {
     this.currentTick++;
     this.world.currentTime = Date.now();
 
+    const report: TickReport = {
+      tick: this.currentTick,
+      agents: 0,
+      decisions: 0,
+      actions: 0,
+      events: 0,
+      relationshipsChanged: 0,
+    };
+
     const agentEntries = Array.from(this.agents.entries());
     const activeAgents = agentEntries.slice(0, this.config.maxConcurrentAgents);
+    report.agents = activeAgents.length;
 
     for (const [characterId, agent] of activeAgents) {
       try {
-        this.processAgent(characterId, agent);
+        const outcome = await this.processAgent(characterId, agent);
+        report.decisions += 1;
+        report.actions += outcome.actionExecuted ? 1 : 0;
+        report.events += outcome.events;
       } catch (error) {
         console.error(`Agent error for ${characterId}:`, error);
       }
     }
 
+    report.relationshipsChanged = this.decayRelationships();
     this.cleanupOldEvents();
+    return report;
   }
 
-  private async processAgent(characterId: CharacterId, agent: CharacterAgent): Promise<void> {
+  /** Every bond nobody maintained erodes one step toward the floor; only the four derivable types are
+   *  re-derived — a declared `family` or `rival` bond is never retyped by arithmetic. */
+  private decayRelationships(): number {
+    let changed = 0;
+    for (const character of this.world.characters.values()) {
+      for (const [targetId, rel] of character.relationships) {
+        const next = decayStrength(rel.strength);
+        if (next !== rel.strength) {
+          rel.strength = next;
+          if (isDerivableRelationType(rel.type)) rel.type = deriveRelationType(next);
+          changed++;
+        }
+      }
+    }
+    return changed;
+  }
+
+  private async processAgent(
+    characterId: CharacterId,
+    agent: CharacterAgent,
+  ): Promise<{ actionExecuted: boolean; events: number }> {
     const character = this.world.characters.get(characterId);
-    if (!character) return;
+    if (!character) return { actionExecuted: false, events: 0 };
 
     const decision = await agent.decide();
     if (this.eventCallbacks.onAgentDecision) {
@@ -151,8 +217,10 @@ export class WorldEngine {
         if (this.eventCallbacks.onAgentAction) {
           this.eventCallbacks.onAgentAction(characterId, decision.actionId, result.outcome);
         }
+        return { actionExecuted: true, events: result.events.length };
       }
     }
+    return { actionExecuted: false, events: 0 };
   }
 
   private cleanupOldEvents(): void {
@@ -474,13 +542,37 @@ export class WorldEngine {
     }
   }
 
+  /** Knowledge holds Sets and a Map — shapes JSON.stringify flattens into `{}` and `{}`, which is how
+   *  save quietly dropped every fact a character knew. Both directions are explicit now. */
+  private serializeKnowledge(k: KnowledgeState) {
+    return {
+      knownFacts: [...k.knownFacts],
+      knownLocations: [...k.knownLocations],
+      knownCharacters: [...k.knownCharacters],
+      knownLore: [...k.knownLore],
+      secrets: [...k.secrets],
+      rumors: Array.from(k.rumors.entries()),
+    };
+  }
+
+  private static hydrateKnowledge(raw: Partial<KnowledgeState> | undefined): KnowledgeState {
+    return {
+      knownFacts: new Set(raw?.knownFacts ?? []),
+      knownLocations: new Set(raw?.knownLocations ?? []),
+      knownCharacters: new Set(raw?.knownCharacters ?? []),
+      knownLore: new Set(raw?.knownLore ?? []),
+      secrets: new Set(raw?.secrets ?? []),
+      rumors: new Map(raw?.rumors ?? []),
+    };
+  }
+
   save(): string {
     const serializable = {
       world: {
         ...this.world,
         characters: Array.from(this.world.characters.entries()).map(([id, char]) => [
           id,
-          { ...char, relationships: Array.from(char.relationships.entries()) },
+          { ...char, relationships: Array.from(char.relationships.entries()), knowledge: this.serializeKnowledge(char.knowledge) },
         ]),
         locations: Array.from(this.world.locations.entries()).map(([id, loc]) => [
           id,
@@ -506,7 +598,7 @@ export class WorldEngine {
       characters: new Map(
         data.world.characters.map(([id, char]: [string, any]) => [
           id,
-          { ...char, relationships: new Map(char.relationships) },
+          { ...char, relationships: new Map(char.relationships), knowledge: WorldEngine.hydrateKnowledge(char.knowledge) },
         ])
       ),
       locations: new Map(

@@ -7753,3 +7753,62 @@ the ledger entry._
   keyboard controls; added bodies are DEMO meshes, not document content — nothing here touches the 2D Design
   Document, the op log, history or persistence, and the surface toggle stays ephemeral view state (ADR 0014).
   Removal is last-body only (there is no per-body picker), and the save/load door remains item 5 of the plan.
+
+### Amendment 162 (M4 v162, world) — the world becomes a SIMULATION: tickOnce over a connected composition, two-sided relationship bonds, lossless save/load, and a Studio surface that steps it
+
+_Numbering: 162 was free (`grep -ao "^### Amendment 1[0-9][0-9]"` topped out at 161). This is item 4 of
+the priority queue in `docs/DEVELOPMENT_PLAN.md`. Full narrative in `docs/evidence/agents/README.md` and
+`docs/evidence/studio/README.md`; this is the ledger entry._
+
+- **The gap this closes.** v148's own bounds said it: "relationships are declared but not simulated … no
+  tick, no `executeAction`, no location connections, no save/load". A world that can be composed and read
+  but not RUN is a filing cabinet; this makes it a clockwork — characters decide through their own gate,
+  actions execute, unmaintained bonds erode, and the Studio panel drives all of it with a button.
+- **Relationship strength is PURE ARITHMETIC, in its own module.** `relationships.ts`: bands (enemy < 10
+  ≤ neutral < 60 ≤ friend < 85 ≤ ally), `decayStrength` floors at `RELATIONSHIP_FLOOR` = 10 — the
+  first-meeting anchor, so decay can erode a bond to acquaintance but NEVER manufacture hatred (the
+  enemy band is unreachable through simulation) — and caps at 100. `isDerivableRelationType` keeps
+  DECLARED bonds (family/romantic/rival/mentor/servant) outside arithmetic's reach: a suite case asserts
+  a family bond decays in strength while keeping its declared type.
+- **speak lands on BOTH sides.** One `upsertBond` per direction: an existing bond gains (+5, its type
+  re-derived only if derivable), a first meeting is born at the floor (10/10). The event's effects carry
+  both directions, so a reader sees a meeting, not a one-way compliment.
+- **`tickOnce()` is the engine's public heartbeat.** Deterministic: agents in insertion order, each
+  consulted in sequence, then a decay pass, then event cleanup; it answers a `TickReport` (`tick`,
+  `agents`, `decisions`, `actions`, `events`, `relationshipsChanged`). The legacy interval `tick()`
+  delegates to it, so the panel and the doors run exactly what the tests run.
+- **Three real defects found while landing it.** (1) save/load silently DROPPED knowledge — a reloaded
+  agent relearned from nothing; `serializeKnowledge`/`hydrateKnowledge` make the round trip lossless,
+  asserted for knowledge, rumors AND relationships. (2) A character standing NOWHERE crashed `decide()`
+  (the old interval silently ate the throw — exactly the bug a `TickReport` makes visible); context now
+  tolerates a null location and such an agent still rests. (3) speak candidates came from
+  `location.npcs` while "nearby" read `inhabitants` — co-located characters could not meet; candidates
+  are now the deduped union, which is the change that makes the whole simulation reachable.
+- **The agent doors grew 6 → 8.** `world.simulate` (write) aggregates `steps` × `tickOnce()` into one
+  report and refuses zero/negative/fractional/over-cap steps (`WORLD_SIMULATE_MAX_STEPS` = 1000; the
+  registry's own type gate answers first for a non-number); `world.relationships.list` (read) answers
+  every bond from BOTH sides, by name. The driver seam grew `simulate`/`relationships`, so hosts keep
+  owning the engine.
+- **The Studio surface steps the world.** Report schema 2: a `relationships` view with bonds resolved BY
+  NAME (ghost targets report `null`, ids never printed as names). The composition connects ford↔ridge
+  (path) and ford↔hamlet (road) and seats Mira & Toma at the ford — a tick CAN introduce someone. The
+  panel gains a Simulate row (Step ×1/×5, a last-tick line) and a Relationships section, and runs the
+  engine's own `tickOnce()` behind a 0.02 gate (a first meeting scores 0.3/10, which floats a hair below
+  the literal 0.03 — the trap the proof documents).
+- **Evidence.** `packages/world-engine` tests **31 → 43** (relationship bands/floor/cap, declared bonds
+  immune, tickOnce on an empty world and the wounded-rest trace, decay re-derivation, two-sided speak, a
+  repeated-dialogue climb to the ally edge, lossless save/load, co-located speak); `agents/runtime`
+  **492 → 498** (8 doors, gate refusals, the read door's checkpoint count), `tsc` clean; studio
+  **201 → 204** (schema 2, the connections, the shared ford, ghost-target null, JSON-safe). Proofs:
+  `world-tools-proof.mjs` gains §6–§8 (a healthy world executes nothing / a wounded agent executes `rest`
+  30 → 40 / 1001 steps refused; the introduction trace 10/10 → 15/15 → 13/13 with `relationshipsChanged`
+  = 2; bonds by name), `world-surface-proof.mjs` gains §4 (the SHIPPED engine + module stepped once
+  reproduces the trace and lists the bond both ways by name); `tools/harness/studio-world.mjs`
+  **14 → 25 browser assertions** — the empty state, Step ×1 reproducing `tick 1 · 4 decisions ·
+  2 actions · 2 bonds eroded` ON SCREEN, both sides at 13 on screen AND in the bridge, Step ×5 to tick 6
+  with floor and bands holding, PNG. `npm run build` clean; all suites green.
+- **Bounds (§60).** Still no model anywhere: every decision is the engine's own DEMO-MODE arithmetic and
+  the surface says so on its own face. Factions and lore do not tick; there is no violence path (decay
+  floors at the anchor — the engine cannot be stepped into hatred); no per-tick configuration and no
+  disk persistence (save/load is JSON in memory); the bridge stays READ-ONLY — stepping happens through
+  the panel's own engine, never through the bridge.

@@ -15,6 +15,11 @@ import {
   type LoreEntry,
   type WorldEvent,
   type RAGQuery,
+  RELATIONSHIP_FLOOR,
+  deriveRelationType,
+  decayStrength,
+  gainStrength,
+  isDerivableRelationType,
 } from '../src/index.js';
 
 function createWorldId(id: string) { return id as any; }
@@ -420,5 +425,162 @@ describe('World Events', () => {
   it('emits events on lore creation', () => {
     engine.createLore('Lore', 'Content', 'history');
     expect(events.length).toBeGreaterThan(0);
+  });
+});
+
+describe('Relationship simulation (v162)', () => {
+  it('derives a bond type from its strength bands', () => {
+    expect(deriveRelationType(9)).toBe('enemy');
+    expect(deriveRelationType(10)).toBe('neutral');
+    expect(deriveRelationType(59)).toBe('neutral');
+    expect(deriveRelationType(60)).toBe('friend');
+    expect(deriveRelationType(84)).toBe('friend');
+    expect(deriveRelationType(85)).toBe('ally');
+  });
+
+  it('decays toward the first-meeting floor and never through it', () => {
+    expect(decayStrength(50)).toBe(48);
+    expect(decayStrength(11)).toBe(10);
+    expect(decayStrength(10)).toBe(10);
+    expect(decayStrength(4)).toBe(10);
+  });
+
+  it('gains with a cap', () => {
+    expect(gainStrength(10)).toBe(15);
+    expect(gainStrength(99)).toBe(100);
+  });
+
+  it('never retypes a declared bond', () => {
+    expect(isDerivableRelationType('family')).toBe(false);
+    expect(isDerivableRelationType('romantic')).toBe(false);
+    expect(isDerivableRelationType('rival')).toBe(false);
+    expect(isDerivableRelationType('neutral')).toBe(true);
+    expect(isDerivableRelationType('ally')).toBe(true);
+  });
+
+  it('steps the world deterministically: ticks advance and an empty world decides nothing', async () => {
+    const engine = new WorldEngine();
+    const report = await engine.tickOnce();
+    expect(report.tick).toBe(1);
+    expect(report.agents).toBe(0);
+    expect(report.decisions).toBe(0);
+    expect(report.actions).toBe(0);
+    expect(engine.getStats().ticks).toBe(1);
+    const second = await engine.tickOnce();
+    expect(second.tick).toBe(2);
+  });
+
+  it('a hurt character executes rest through the tick, measurably', async () => {
+    const engine = new WorldEngine();
+    const char = engine.createCharacter('Hurt', 'needs rest', 'warrior');
+    char.status.health = 30;
+    const report = await engine.tickOnce();
+    expect(report.decisions).toBe(1);
+    expect(report.actions).toBe(1);
+    expect(char.status.health).toBe(40);
+  });
+
+  it('a healthy world executes nothing: the confidence gate refuses zero-score decisions', async () => {
+    const engine = new WorldEngine();
+    engine.createCharacter('Idle', 'nothing to do', 'commoner');
+    const report = await engine.tickOnce();
+    expect(report.decisions).toBe(1);
+    expect(report.actions).toBe(0);
+  });
+
+  it('decay erodes unmaintained bonds and retypes only the derivable bands', async () => {
+    const engine = new WorldEngine();
+    const a = engine.createCharacter('A', 'a', 'commoner');
+    const b = engine.createCharacter('B', 'b', 'commoner');
+    const c = engine.createCharacter('C', 'c', 'commoner');
+    a.relationships.set(b.id, { targetId: b.id, type: 'ally', strength: 86, description: 'war-forged', establishedAt: 0 });
+    a.relationships.set(c.id, { targetId: c.id, type: 'family', strength: 30, description: 'kin', establishedAt: 0 });
+
+    const report = await engine.tickOnce();
+
+    expect(report.relationshipsChanged).toBe(2);
+    const allyBond = a.relationships.get(b.id)!;
+    expect(allyBond.strength).toBe(84);
+    expect(allyBond.type).toBe('friend');
+    const familyBond = a.relationships.get(c.id)!;
+    expect(familyBond.strength).toBe(28);
+    expect(familyBond.type).toBe('family');
+  });
+
+  it('speak builds the bond on BOTH sides (v162 reciprocity)', async () => {
+    const engine = new WorldEngine();
+    const city = engine.createLocation('City', 'c', 'city');
+    const mira = engine.createCharacter('Mira', 'm', 'rogue', city.id);
+    const toma = engine.createCharacter('Toma', 't', 'commoner', city.id);
+    city.npcs.push(toma.id);
+    const agent = engine.getAgent(mira.id)!;
+
+    await agent.executeAction(`speak-${toma.id}`);
+    const m2t = mira.relationships.get(toma.id);
+    const t2m = toma.relationships.get(mira.id);
+    expect(m2t).toBeDefined();
+    expect(t2m).toBeDefined();
+    expect(m2t!.strength).toBe(10);
+    expect(t2m!.strength).toBe(10);
+    expect(m2t!.type).toBe('neutral');
+
+    await agent.executeAction(`speak-${toma.id}`);
+    expect(mira.relationships.get(toma.id)!.strength).toBe(15);
+    expect(toma.relationships.get(mira.id)!.strength).toBe(15);
+  });
+
+  it('enough dialogue promotes the bond through the bands', async () => {
+    const engine = new WorldEngine();
+    const city = engine.createLocation('City', 'c', 'city');
+    const mira = engine.createCharacter('Mira', 'm', 'rogue', city.id);
+    const toma = engine.createCharacter('Toma', 't', 'commoner', city.id);
+    city.npcs.push(toma.id);
+    const agent = engine.getAgent(mira.id)!;
+
+    await agent.executeAction(`speak-${toma.id}`);
+    for (let i = 0; i < 15; i++) await agent.executeAction(`speak-${toma.id}`);
+    const bond = mira.relationships.get(toma.id)!;
+    expect(bond.strength).toBe(85);
+    expect(bond.type).toBe('ally');
+  });
+
+  it('save/load is LOSSLESS for knowledge now: facts, secrets and rumors survive, and the loaded agent still learns', () => {
+    const engine = new WorldEngine();
+    const city = engine.createLocation('City', 'c', 'city');
+    const char = engine.createCharacter('Scribe', 's', 'scholar', city.id);
+    const friend = engine.createCharacter('Friend', 'f', 'commoner');
+    char.knowledge.knownFacts.add('The ford is guarded');
+    char.knowledge.secrets.add('Vane never comes down');
+    char.knowledge.rumors.set('a ghost on the ridge', 3);
+    char.knowledge.knownCharacters.add(friend.id);
+    engine.getAgent(char.id)!.addRelationship(friend.id, {
+      targetId: friend.id, type: 'friend', strength: 70, description: 'pen pals', establishedAt: 0,
+    });
+
+    const json = engine.save();
+    const loaded = new WorldEngine();
+    loaded.load(json);
+    const restored = loaded.getWorld().characters.get(char.id)!;
+
+    expect(restored.knowledge.knownFacts instanceof Set).toBe(true);
+    expect(restored.knowledge.knownFacts.has('The ford is guarded')).toBe(true);
+    expect(restored.knowledge.secrets.has('Vane never comes down')).toBe(true);
+    expect(restored.knowledge.rumors.get('a ghost on the ridge')).toBe(3);
+    expect(restored.knowledge.knownCharacters.has(friend.id)).toBe(true);
+    expect(restored.relationships.get(friend.id)?.strength).toBe(70);
+    expect(() => loaded.getAgent(char.id)!.addKnowledge('learned after the round-trip')).not.toThrow();
+    expect(restored.knowledge.knownFacts.has('learned after the round-trip')).toBe(true);
+  });
+});
+describe('v162 — speak reaches co-located characters, declared NPC or not', () => {
+  it('offers speak for an inhabitant nobody registered as an NPC, and not for oneself', async () => {
+    const engine = new WorldEngine();
+    const city = engine.createLocation('City', 'c', 'city');
+    const mira = engine.createCharacter('Mira', 'm', 'rogue', city.id);
+    const toma = engine.createCharacter('Toma', 't', 'commoner', city.id);
+    const agent = engine.getAgent(mira.id)!;
+    const context = agent.getContext();
+    const ids = context.availableActions.filter((a) => a.id.startsWith('speak-')).map((a) => a.id);
+    expect(ids).toEqual([`speak-${toma.id}`]);
   });
 });

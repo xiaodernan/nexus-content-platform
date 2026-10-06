@@ -693,3 +693,41 @@ Bounds, stated: the interaction generates and removes IMAGE assets only. There i
 character consistency, no asset UPDATE, and no way to edit a storyboard from the panel. The asset library is
 generator state, not the design document — not persisted, not undoable, not exported. The library lists
 assets newest-first; the prompt order is guaranteed only in the storyboard's `frames`.
+
+## The World surface (M4 v148, simulated v162 — ADR 0016 amendments 148 and 162)
+
+The Studio's fifth surface, and the first PRODUCT consumer of `@nexus/world-engine` (the agent doors
+`worldTools.ts` were v144; v162 made the family 8). Split the same way v142/v148/v153 split theirs:
+
+- `src/lib/world.ts` — pure, no React, no DOM, no engine import. `buildStudioWorld` composes the demo
+  world through a structural `WorldEngineLike` — since v162 it also CONNECTS its three places
+  (ford↔ridge path, ford↔hamlet road) and seats TWO characters at the ford, because a world of
+  unconnected rooms with solitary occupants has nothing to simulate. `buildWorldReport` reads the engine
+  back as a JSON-safe report — schema 2 since v162, carrying a `relationships` view whose bonds are
+  resolved BY NAME against the character table (a ghost target reports `null`, and the dangling id is
+  never printed as a name).
+- `src/components/WorldPanel.tsx` — the ONLY file touching the real `WorldEngine`. It owns the engine
+  instance (RAG on, autosave off, the decision gate's threshold at 0.02 — the value the deterministic
+  trace needs, since a first-meeting score of 0.3/10 sits a float's hair below the literal 0.03), steps
+  it with the engine's own `tickOnce()`, and publishes the DERIVED report through the read-only
+  `window.__nexusWorld.world()` bridge, unregistered on teardown.
+- `src/lib/observability.ts` — `installWorldBridge`, on the same terms as the scene and assets ones.
+
+**v162 made the surface a SIMULATION you can drive.** A Simulate row (Step ×1 / Step ×5) runs ticks and
+reports the last one (`tick N · decisions · actions · bonds eroded`); a Relationships section lists every
+bond BY NAME from both sides, with an empty state that says bonds form only through simulated dialogue.
+The deterministic first tick — 4 decisions · 2 actions · the newborn Mira↔Toma bond eroded to 13/13 — is
+asserted identically by the unit suite, the headless proof and the browser harness.
+
+Evidence in three agreeing layers: `src/lib/world.test.ts` (14 cases — composition counts, the
+connections, the shared ford, schema 2 with by-name bonds and ghost targets reporting null, JSON-safety);
+`world-surface-proof.mjs` (§1–§3 the report IS the engine's and DERIVED; §4 the SHIPPED engine + module
+stepped once reproduces the trace and lists the bond both ways by name; §5 §60 measured; §6 HEAD
+byte-identical); and `tools/harness/studio-world.mjs` (**25/25 in a real browser**, PNG written): the
+probe checks the empty state, presses Step ×1 and reads `tick 1 · 4 decisions · 2 actions · 2 bonds
+eroded` off the screen, sees both sides of the bond at 13 on screen AND in the bridge, presses Step ×5 to
+tick 6 with the floor and bands holding, and the toggle back to 2D still restores a painting canvas.
+
+Bounds, stated: DEMO MODE only — every decision is the engine's own arithmetic and the surface says so on
+its own face. The bridge stays read-only (stepping happens through the panel's own engine). No factions
+or lore in the tick, no per-tick configuration, and save/load is JSON in memory, not the local snapshot.

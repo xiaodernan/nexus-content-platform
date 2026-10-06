@@ -160,6 +160,30 @@ Live list. Nothing here is hidden behind marketing copy.
   local snapshot, not undoable and not exported. The read-only bridge `window.__nexusAssets.assets()`
   answers `null` once the surface unmounts. The library lists assets newest-first; the prompt order is
   guaranteed only in the storyboard's `frames`.
+## World surface (M4 v148, simulated v162 — ADR 0016 amendments 148 and 162)
+- The Studio's fifth surface: a **World** panel mounted from `components/WorldPanel.tsx` over
+  `@nexus/world-engine` (the lane's first PRODUCT consumer; the agent doors `worldTools.ts` were v144,
+  8 doors since v162). Reached with the `World` toggle; the 2D canvas is the default and is untouched.
+  `npm run verify:world` drives it in a real browser (**25/25** after v162) and
+  `npm run verify:world-surface` is the headless proof over the shipped Studio module + engine.
+- **v162 — the surface STEPS the world.** A Simulate row runs the engine's own `tickOnce()` (Step ×1 /
+  Step ×5, plus a last-tick line naming the tick, decisions, actions and eroded bonds) and a
+  Relationships section lists every bond BY NAME from both sides. The composition connects its three
+  places (ford↔ridge path, ford↔hamlet road) and seats **two characters at the ford**, so a tick can
+  introduce them: the deterministic first tick is 4 decisions · 2 actions · the newborn bond eroded to
+  13/13 — asserted identically by the unit suite, the headless proof and the browser harness.
+- **DEMO MODE only — no model behind the agents.** Every decision is the engine's own arithmetic
+  (confidence gate + persona scoring), the surface says `DEMO MODE · no model is attached` on its own
+  face, and no field of the report claims a provider or a model. Strength is pure arithmetic with a
+  floor at the first-meeting anchor (decay can never manufacture hatred — the enemy band is unreachable
+  through simulation) and a cap at 100; declared bonds (family/romantic/rival/mentor/servant) are never
+  re-derived from arithmetic.
+- **The bridge stays read-only.** `window.__nexusWorld.world()` answers the DERIVED report (schema 2)
+  and unregisters on teardown (`null` once the surface is gone); stepping happens through the panel's
+  own engine, not through the bridge.
+- **Still absent from the product surface:** factions and lore events in the tick, a real model behind
+  the persona, per-tick configuration, and persistence (save/load is JSON in memory, not the local
+  snapshot).
 ## Architecture
 - `agents/runtime` (`@nexus/agent-runtime`) is now **implemented** through M2 v0–v6 (ADR 0016):
   the loop, permission-gated registry, hermetic workspace tools, hybrid code index (`fs.index`),

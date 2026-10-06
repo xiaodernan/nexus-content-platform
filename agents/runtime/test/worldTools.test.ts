@@ -95,6 +95,14 @@ function fakeDriver(over: Partial<WorldDriver> = {}) {
         expectedOutcome: 'nothing happens',
       };
     },
+    simulate(steps) {
+      calls.push(`simulate:${steps}`);
+      return { steps, ticks: steps, decisions: steps * characters.length, actions: 0, events: 0, relationshipsChanged: 0 };
+    },
+    relationships() {
+      calls.push('relationships');
+      return { pairs: [], characters: characters.length };
+    },
   };
   return { driver: { ...base, ...over } as WorldDriver, calls, locations, characters, lore };
 }
@@ -116,12 +124,12 @@ describe('world tools — the family routes every spec it declares', () => {
     }
   });
 
-  it('declares exactly TWO read-class doors, and the decision door is not one of them', () => {
+  it('declares exactly THREE read-class doors, and the decision door is not one of them', () => {
     // `CharacterAgent.decide()` stores the answer on the agent (`this.lastDecision = decision`), so a
     // door that called it a read would be claiming a mutation did not happen. The count is asserted, not
-    // just the membership, because a third read door would be a mutation that skipped the §28 gate.
+    // just the membership, because a fourth read door would be a mutation that skipped the §28 gate.
     const read = WORLD_TOOL_SPECS.filter((s) => s.permissions.includes('read')).map((s) => s.name).sort();
-    expect(read).toEqual(['world.inspect', 'world.query']);
+    expect(read).toEqual(['world.inspect', 'world.query', 'world.relationships.list']);
     const decide = WORLD_TOOL_SPECS.find((s) => s.name === 'world.character.decide')!;
     expect(decide.permissions).not.toContain('read');
     expect(decide.description).toMatch(/WRITE-class/); // the reason is on the door, not only in a comment
@@ -145,10 +153,11 @@ describe('world tools — the §28 gate is the registry’s, and it is the only 
     expect(calls).toEqual([]);
   });
 
-  it('both read doors run with NO checkpoint', async () => {
+  it('all three read doors run with NO checkpoint', async () => {
     const { invoke } = wired();
     expect((await invoke('world.inspect', {}, {})).ok).toBe(true);
     expect((await invoke('world.query', { text: 'sundering' }, {})).ok).toBe(true);
+    expect((await invoke('world.relationships.list', {}, {})).ok).toBe(true);
   });
 
   it('args are validated by the registry before the driver sees them', async () => {
@@ -300,5 +309,58 @@ describe('world tools — what a door answers', () => {
   it('the declared word lists are exactly the package’s own', () => {
     expect([...WORLD_LOCATION_TYPES]).toEqual(['city', 'town', 'village', 'dungeon', 'wilderness', 'landmark', 'building', 'room', 'other']);
     expect([...WORLD_LORE_CATEGORIES]).toEqual(['history', 'myth', 'geography', 'magic', 'technology', 'culture', 'person', 'event', 'artifact', 'other']);
+  });
+});
+describe('world tools — v162: the world simulates and its bonds are readable', () => {
+  it('simulate passes whole positive steps through and reports the engine’s own numbers', async () => {
+    const { invoke, calls } = wired();
+    const r = await invoke('world.simulate', { steps: 3 });
+    expect(r.ok).toBe(true);
+    expect(r.output).toMatchObject({ engine: 'fake-world', steps: 3, ticks: 3, decisions: 0, actions: 0 });
+    expect(calls).toContain('simulate:3');
+  });
+
+  it('simulate is WRITE-class: no checkpoint, no movement', async () => {
+    const { invoke, calls } = wired();
+    const r = await invoke('world.simulate', { steps: 2 }, {});
+    expect(r.ok).toBe(false);
+    expect(r.error).toMatch(/checkpoint/i);
+    expect(calls.some((c) => c.startsWith('simulate'))).toBe(false);
+  });
+
+  it('simulate refuses steps that are not positive whole numbers', async () => {
+    const { invoke } = wired();
+    expect((await invoke('world.simulate', { steps: 0 })).error).toMatch(/steps is 0/);
+    expect((await invoke('world.simulate', { steps: -4 })).error).toMatch(/steps is -4/);
+    expect((await invoke('world.simulate', { steps: 1.5 })).error).toMatch(/steps is 1\.5/);
+    expect((await invoke('world.simulate', { steps: 'ten' })).error).toMatch(/expected number, got string/); // the registry's own type gate answers first
+    expect((await invoke('world.simulate', { steps: Number.NaN })).error).toMatch(/steps is null/);
+  });
+
+  it('simulate refuses to move the world more than 1000 ticks in one call, and names the bound', async () => {
+    const { invoke } = wired();
+    const r = await invoke('world.simulate', { steps: 1001 });
+    expect(r.ok).toBe(false);
+    expect(r.error).toMatch(/at most 1000 ticks/);
+  });
+
+  it('relationships.list is read-class and reports pairs with both sides named', async () => {
+    const { invoke } = wired({
+      relationships: () => ({
+        pairs: [{ characterId: 'char-1', characterName: 'Mira', targetId: 'char-2', targetName: 'Toma', type: 'neutral', strength: 10 }],
+        characters: 2,
+      }),
+    });
+    const r = await invoke('world.relationships.list', {}, {});
+    expect(r.ok).toBe(true);
+    expect(r.output).toMatchObject({ engine: 'fake-world', characters: 2 });
+    expect((r.output as { pairs: { characterName: string; targetName: string | null }[] }).pairs[0]).toMatchObject({ characterName: 'Mira', targetName: 'Toma', type: 'neutral', strength: 10 });
+  });
+
+  it('a v144-shaped driver that never grew simulate fails as a failed CALL, not a crash', async () => {
+    const { invoke } = wired({ simulate: undefined as unknown as WorldDriver['simulate'] });
+    const r = await invoke('world.simulate', { steps: 1 });
+    expect(r.ok).toBe(false);
+    expect(r.error).toMatch(/not a function/);
   });
 });

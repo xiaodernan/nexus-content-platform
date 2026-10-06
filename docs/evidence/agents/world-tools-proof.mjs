@@ -20,7 +20,15 @@
 //   §4 the decision door's WRITE-class claim is MEASURED, not asserted: the agent's own `getLastDecision()`
 //      is null before the call and non-null after, which is the mutation that forbids calling it a read;
 //   §5 retrieval reaches content that was added THROUGH the tools, so the family's writes are real writes;
-//   §6 this repository's HEAD is byte-identical: everything here ran in memory.
+//   §6 the SIMULATE door moves the real world deterministically: an all-healthy world steps with zero
+//      actions (the engine's confidence gate refuses zero-score decisions — quoted, not dressed up), and
+//      one tick with a hurt character executes rest through the package's own +10 arithmetic, read back
+//      through the ENGINE;
+//   §7 the bonds are TWO-sided and they ERODE: two co-located characters speak through the package's own
+//      executeAction, both sides of the bond are born, a second dialogue strengthens BOTH sides, and one
+//      tickOnce() decays both sides by the same step — the reciprocity v161 lacked;
+//   §8 the relationships door (read-class) lists that bond from both sides with both parties NAMED;
+//   §9 this repository's HEAD is byte-identical: everything here ran in memory.
 // Run after `npm run build`:  node docs/evidence/agents/world-tools-proof.mjs
 import assert from 'node:assert/strict';
 import { execFileSync } from '../lib/syncproc.mjs';
@@ -73,6 +81,31 @@ const driver = {
     if (!agent) return undefined;
     // `decide()` is async in the package; the seam allows a promise, and the tool awaits it.
     return agent.decide().then((d) => ({ characterId, ...d }));
+  },
+  // v162 — the driver grows with the seam: simulate steps the REAL engine's tickOnce() and aggregates
+  // its own reports; relationships flattens the world's bonds with both sides named.
+  simulate: async (steps) => {
+    let ticks = 0, decisions = 0, actions = 0, events = 0, relationshipsChanged = 0;
+    for (let i = 0; i < steps; i++) {
+      const r = await engine.tickOnce();
+      ticks = r.tick;
+      decisions += r.decisions;
+      actions += r.actions;
+      events += r.events;
+      relationshipsChanged += r.relationshipsChanged;
+    }
+    return { steps, ticks, decisions, actions, events, relationshipsChanged };
+  },
+  relationships: () => {
+    const w = engine.getWorld();
+    const names = new Map([...w.characters.values()].map((c) => [c.id, c.name]));
+    const pairs = [];
+    for (const c of w.characters.values()) {
+      for (const rel of c.relationships.values()) {
+        pairs.push({ characterId: c.id, characterName: c.name, targetId: rel.targetId, targetName: names.get(rel.targetId) ?? null, type: rel.type, strength: rel.strength });
+      }
+    }
+    return { pairs, characters: w.characters.size };
   },
 };
 
@@ -185,8 +218,78 @@ assert.ok(
 );
 console.log(`[§5] retrieval over the family’s own writes: ${found.output.totalHits} hit(s) for "Sundering ford", top = "${found.output.hits[0].title}" (${found.output.hits[0].type})`);
 
-// ── §6 the home repository never moved ───────────────────────────────────────────────────────────────
-assert.equal(execFileSync('git', ['rev-parse', 'HEAD'], { encoding: 'utf8' }).trim(), homeHead, '§6: this repository HEAD byte-identical — everything here ran in memory');
+// ── §6 the SIMULATE door moves the real world, deterministically ─────────────────────────────────────
+// The engine's own gate: a decision whose confidence is below `ragScoreThreshold` never executes. An
+// all-healthy character scores every action at zero, so steps move the TICK and nothing else — quoted,
+// not dressed up. A HURT character scores `rest` high enough to pass the gate, and the package's own
+// +10-health arithmetic fires through the door.
+const idle = await invoke('world.simulate', { steps: 2 });
+assert.equal(idle.ok, true, `world.simulate failed: ${idle.error}`);
+assert.equal(idle.output.steps, 2);
+assert.equal(idle.output.ticks, 2);
+assert.equal(idle.output.decisions, 2, 'the world\'s one agent was consulted once per tick');
+assert.equal(idle.output.actions, 0, 'an all-healthy world executes NOTHING: the confidence gate refuses zero-score decisions');
 
-console.log(`\n[summary] the FIRST consumer of @nexus/world-engine: ${WORLD_TOOL_SPECS.length} world.* doors over a driver seam, driven through the registry's §28 gate, with the REAL engine behind it · 1 world + location + character + lore composed in memory · ${WORLD_LOCATION_TYPES.length} location types and ${WORLD_LORE_CATEGORIES.length} lore categories refused by name · the decision door's write-class claim measured on the agent's own record · home HEAD byte-identical: yes`);
+const hurt = await invoke('world.character.add', { name: 'Rowan', description: 'a fordside watcher', archetype: 'ranger' });
+assert.equal(hurt.ok, true, `world.character.add failed: ${hurt.error}`);
+const hurtId = hurt.output.characterId;
+const rowan = engine.getWorld().characters.get(hurtId);
+assert.ok(rowan, 'the engine holds the character the tools created');
+rowan.status.health = 30;
+
+const stepped = await invoke('world.simulate', { steps: 1 });
+assert.equal(stepped.output.decisions, 2, 'now two agents are consulted per tick');
+assert.equal(stepped.output.actions, 1, 'and the hurt watcher\'s rest passes the gate and executes');
+assert.equal(rowan.status.health, 40, 'the engine\'s own rest arithmetic: 30 + 10, read back through the ENGINE');
+
+const tooMany = await invoke('world.simulate', { steps: 1001 });
+assert.equal(tooMany.ok, false);
+assert.match(tooMany.error, /at most 1000 ticks/);
+console.log(`[§6] world.simulate over the REAL engine: 2 all-healthy ticks = ${idle.output.decisions} decisions, 0 actions · 1 tick with a hurt watcher = ${stepped.output.actions} action, health 30 → ${rowan.status.health} (the package's own +10) · 1001 steps refused by name`);
+
+// ── §7 the bonds are TWO-sided, and they ERODE ───────────────────────────────────────────────────────
+// The package's own `executeAction('speak-…')` is called directly here (not through a door — the doors
+// ask a character what it would decide; they do not script dialogue), which is exactly what makes this
+// a test of the PACKAGE: v161 wrote only the speaker's side of a bond, so the other character remembered
+// nothing. v162 writes both sides, and the tick erodes both sides together.
+engine.addCharacterToLocation(hurtId, locationId);
+engine.getWorld().locations.get(locationId).npcs.push(hurtId);
+
+const miraAgent = engine.getAgent(characterId);
+await miraAgent.executeAction(`speak-${hurtId}`);
+const mira = engine.getWorld().characters.get(characterId);
+const m2r = mira.relationships.get(hurtId);
+const r2m = rowan.relationships.get(characterId);
+assert.ok(m2r && r2m, 'v162: BOTH sides of the bond exist after one dialogue');
+assert.equal(m2r.strength, 10, 'a first meeting lands at the floor, on the speaker\'s side');
+assert.equal(r2m.strength, 10, 'and on the TARGET\'s side — the side v161 never wrote');
+
+await miraAgent.executeAction(`speak-${hurtId}`);
+assert.equal(m2r.strength, 15, 'the second dialogue strengthens the speaker\'s side');
+assert.equal(r2m.strength, 15, 'and the target\'s side, by the same gain');
+
+const decayed = await engine.tickOnce();
+assert.equal(decayed.relationshipsChanged, 2, 'one unmaintained tick erodes BOTH sides (15 → 13, twice)');
+assert.equal(mira.relationships.get(hurtId).strength, 13);
+assert.equal(rowan.relationships.get(characterId).strength, 13);
+console.log(`[§7] two-sided bonds over the REAL engine: "Mira"↔"Rowan" born at 10/10 on first speak, 15/15 on the second, 13/13 after one unmaintained tick (relationshipsChanged=${decayed.relationshipsChanged})`);
+
+// ── §8 the relationships door: both sides NAMED, and no gate asked ───────────────────────────────────
+const gateCallsBefore = checkpointCalls;
+const rels = await invoke('world.relationships.list', {}, {});
+assert.equal(rels.ok, true, `world.relationships.list failed: ${rels.error}`);
+assert.equal(checkpointCalls, gateCallsBefore, 'a read-class door asked the gate ZERO times');
+assert.equal(rels.output.characters, 2);
+assert.equal(rels.output.pairs.length, 2, 'one bond, listed from both sides');
+const named = rels.output.pairs.find((p) => p.characterName === 'Mira');
+assert.ok(named, 'the speaker side is listed');
+assert.equal(named.targetName, 'Rowan', 'and the target is NAMED, not an id the reader must resolve');
+assert.equal(named.type, 'neutral');
+assert.equal(named.strength, 13);
+console.log(`[§8] world.relationships.list (read-class, ${checkpointCalls - gateCallsBefore} checkpoints asked): 2 pairs for one bond — "Mira"→"Rowan" and "Rowan"→"Mira", both neutral @ ${named.strength}, both sides NAMED`);
+
+// ── §9 the home repository never moved ───────────────────────────────────────────────────────────────
+assert.equal(execFileSync('git', ['rev-parse', 'HEAD'], { encoding: 'utf8' }).trim(), homeHead, '§9: this repository HEAD byte-identical — everything here ran in memory');
+
+console.log(`\n[summary] the FIRST consumer of @nexus/world-engine: ${WORLD_TOOL_SPECS.length} world.* doors over a driver seam, driven through the registry's §28 gate, with the REAL engine behind it · 1 world + 2 locations + 2 characters + lore composed in memory · 3 deterministic ticks stepped and both sides of one bond born, strengthened and eroded · ${WORLD_LOCATION_TYPES.length} location types and ${WORLD_LORE_CATEGORIES.length} lore categories refused by name · the decision door's write-class claim measured on the agent's own record · home HEAD byte-identical: yes`);
 console.log('[world-tools-proof] ALL ASSERTIONS PASSED (the world lane now has a consumer, and its read/write split is measured rather than asserted)');

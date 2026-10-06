@@ -215,7 +215,7 @@ export interface RAGHit {
 export interface CharacterAgentContext {
   character: Character;
   world: WorldState;
-  currentLocation: Location;
+  currentLocation: Location | null;
   nearbyCharacters: Character[];
   recentEvents: WorldEvent[];
   activeGoals: Goal[];
