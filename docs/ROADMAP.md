@@ -1303,6 +1303,12 @@ drizzle 把整个拼接结果当成**单个绑定参数**，生成的 SQL 是 `o
   它同时是**两个**欠账的同一个根：§164 的第四类通知，和 §144 NO LOCK-IN 的导出。
   导出接上之后两件一起结清；导出成功但缺资产时那条通知按 `warning` 发而不是 `success`
   （默默少几个文件比明说少几个更糟，§159）。
+  **披露面走样已修（2026-10-06，任务 #94）**：收件箱页以前用一份手写的四条清单描述"会通知的"，
+  登记已经长到十类，于是页面在说谎。现在那一列从 `lib/notify-plan.ts` 的 `NOTIFICATION_TERMINAL_STATE` 现算，
+  一行一类；`apps/web/test/notify-producers.test.ts` 第 4 条结构门钉住"表键 = 注册表键 + 每类一句非空终态 + 页面不再手写名单"。
+  e2e `@smoke §164` 也加了断言：`[data-notification-backing]` 恰好 10 行。
+  同一 commit 里 `e2e/studio.spec.ts` 还有另一个会话的 65 行未提交改动，所以这 4 行没进本次提交——
+  下次该会话提交时会一并带上。
 - [x] Agent 任务账本（§112 的地基 + §164 的 Generation complete）— **2026-09-25 落地**：
   `agent_tasks` 这张表从建库起就有完整结构却**全库没有一处写它**，所以"Agent task / Generation complete"
   两类通知一直只能挂在收件箱的"没有来源"清单上。现在 `/api/ai/run` 每次请求开始落一行 `running`、
