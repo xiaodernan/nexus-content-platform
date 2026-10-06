@@ -5,6 +5,16 @@ import {
   createStudioScene,
   spinAt,
   STUDIO_CAMERA_LOOK_AT,
+  STUDIO_ORBIT_DEFAULT,
+  ORBIT_DISTANCE_MAX,
+  ORBIT_DISTANCE_MIN,
+  ORBIT_ELEVATION_LIMIT,
+  orbitToPlacement,
+  orbitFromPlacement,
+  applyOrbit,
+  normalizeAngle,
+  nextBodyPlacement,
+  type OrbitState,
   STUDIO_CAMERA_POSITION,
   type SceneAdapterLike,
   type SceneComposerLike,
@@ -52,6 +62,18 @@ function fakeRuntime(over: Partial<SceneComposerLike> = {}) {
       const camera = { id: id('camera'), name, active: scene.cameras.size === 0 };
       scene.cameras.set(camera.id, camera);
       return camera;
+    },
+    removeEntity(sceneId, entityId) {
+      const scene = scenes.get(sceneId);
+      if (!scene) return false;
+      const entity = scene.entities.get(entityId);
+      if (!entity) return false;
+      scene.entities.delete(entityId);
+      // Keep the recorder consistent with the graph, so an assertion about what was CREATED still means
+      // what it says after a removal.
+      const at = created.findIndex((c) => c.scene === sceneId && c.name === entity.name);
+      if (at !== -1) created.splice(at, 1);
+      return true;
     },
     getScene(sceneId) {
       return scenes.get(sceneId);
@@ -250,5 +272,178 @@ describe('spinAt — the animation is a function of TIME, not of a frame counter
     for (let t = 0; t < 20; t += 0.13) {
       expect(Math.abs(spinAt(t).bob)).toBeLessThanOrEqual(0.25 + 1e-12);
     }
+  });
+});
+
+describe('the camera orbit — v142’s fixed placement becomes a default rather than the only view', () => {
+  it('the DEFAULT orbit round-trips to the position v142 hard-coded', () => {
+    // This is what makes the increment non-breaking: the Studio opens on exactly the view it opened on
+    // before, and the orbit is derived from the constants rather than restating their numbers.
+    const { position, lookAt } = orbitToPlacement(STUDIO_ORBIT_DEFAULT, STUDIO_CAMERA_LOOK_AT);
+    expect(position.x).toBeCloseTo(STUDIO_CAMERA_POSITION.x, 10);
+    expect(position.y).toBeCloseTo(STUDIO_CAMERA_POSITION.y, 10);
+    expect(position.z).toBeCloseTo(STUDIO_CAMERA_POSITION.z, 10);
+    expect(lookAt).toEqual(STUDIO_CAMERA_LOOK_AT);
+  });
+
+  it('orbitFromPlacement is the inverse of orbitToPlacement', () => {
+    for (const orbit of [
+      { azimuth: 0, elevation: 0, distance: 5 },
+      { azimuth: 1.2, elevation: -0.6, distance: 12 },
+      { azimuth: -2.9, elevation: 1.1, distance: 30 },
+    ] as OrbitState[]) {
+      const back = orbitFromPlacement(orbitToPlacement(orbit, STUDIO_CAMERA_LOOK_AT).position, STUDIO_CAMERA_LOOK_AT);
+      expect(back.azimuth).toBeCloseTo(orbit.azimuth, 10);
+      expect(back.elevation).toBeCloseTo(orbit.elevation, 10);
+      expect(back.distance).toBeCloseTo(orbit.distance, 10);
+    }
+  });
+
+  it('the camera keeps its DISTANCE from the target wherever it orbits', () => {
+    // The property that makes it an orbit rather than a drift: turning the camera must not also move it
+    // closer or further away.
+    for (let i = 0; i < 24; i++) {
+      const orbit = { azimuth: (i * Math.PI) / 12, elevation: ((i % 7) - 3) * 0.3, distance: 9 };
+      const { position } = orbitToPlacement(orbit, STUDIO_CAMERA_LOOK_AT);
+      const d = Math.hypot(
+        position.x - STUDIO_CAMERA_LOOK_AT.x,
+        position.y - STUDIO_CAMERA_LOOK_AT.y,
+        position.z - STUDIO_CAMERA_LOOK_AT.z,
+      );
+      expect(d).toBeCloseTo(9, 10);
+    }
+  });
+
+  it('normalizeAngle folds into (−π, π] and leaves an angle already inside it alone', () => {
+    expect(normalizeAngle(0)).toBe(0);
+    expect(normalizeAngle(0.5)).toBeCloseTo(0.5, 12);
+    expect(normalizeAngle(Math.PI)).toBeCloseTo(Math.PI, 12);
+    expect(normalizeAngle(Math.PI + 0.1)).toBeCloseTo(-Math.PI + 0.1, 12);
+    expect(normalizeAngle(-Math.PI - 0.1)).toBeCloseTo(Math.PI - 0.1, 12);
+    // Ten full turns is still one angle, not a number that grows with how much the user dragged.
+    expect(Math.abs(normalizeAngle(Math.PI * 20 + 0.3))).toBeLessThanOrEqual(Math.PI);
+    expect(normalizeAngle(Math.PI * 20 + 0.3)).toBeCloseTo(0.3, 10);
+  });
+
+  it('applyOrbit clamps elevation at the poles and distance at its range', () => {
+    const flat: OrbitState = { azimuth: 0, elevation: 0, distance: 10 };
+    expect(applyOrbit(flat, { elevation: 10 }).elevation).toBeCloseTo(ORBIT_ELEVATION_LIMIT, 12);
+    expect(applyOrbit(flat, { elevation: -10 }).elevation).toBeCloseTo(-ORBIT_ELEVATION_LIMIT, 12);
+    expect(applyOrbit(flat, { distance: 1000 }).distance).toBe(ORBIT_DISTANCE_MAX);
+    expect(applyOrbit(flat, { distance: -1000 }).distance).toBe(ORBIT_DISTANCE_MIN);
+    // A delta that names nothing changes nothing, and the result is a new object rather than the same one.
+    const same = applyOrbit(flat, {});
+    expect(same).toEqual(flat);
+    expect(same).not.toBe(flat);
+  });
+
+  it('applyOrbit FOLDS azimuth rather than clamping it — it has no natural bound', () => {
+    const spun = applyOrbit({ azimuth: Math.PI - 0.05, elevation: 0, distance: 10 }, { azimuth: 0.1 });
+    expect(spun.azimuth).toBeCloseTo(-Math.PI + 0.05, 10); // wrapped, not pinned at π
+  });
+
+  it('nextBodyPlacement gives every added body its own place', () => {
+    const places = Array.from({ length: 6 }, (_, i) => nextBodyPlacement(i));
+    const keys = places.map((p) => [p.x.toFixed(6), p.z.toFixed(6)].join(':'));
+    expect(new Set(keys).size).toBe(places.length);
+    // And none of them sits at the origin, where the composed shots already are.
+    for (const p of places) expect(Math.hypot(p.x, p.z)).toBeCloseTo(2.6, 10);
+  });
+});
+
+describe('the surface is CONTROLLABLE — orbit, zoom, and add/remove a body (M5 v161)', () => {
+  it('orbitBy moves the camera through the adapter, and the surface reports the new orbit', () => {
+    const aims: { position: SceneVec3; lookAt: SceneVec3 }[] = [];
+    const { runtime } = fakeRuntime();
+    const surface = createStudioScene(runtime, () => {}, {
+      placeCamera: (_s, _c, position, lookAt) => {
+        aims.push({ position, lookAt });
+        return true;
+      },
+    });
+
+    const before = aims.length;
+    const report = surface.orbitBy({ azimuth: 0.5, elevation: 0.2 });
+    expect(aims.length).toBe(before + 1); // the adapter was asked to aim, exactly once
+    expect(surface.orbit.azimuth).toBeCloseTo(STUDIO_ORBIT_DEFAULT.azimuth + 0.5, 10);
+    expect(report.frames).toBe(surface.frames); // turning the camera is not a frame
+    // And the placement handed to the adapter is the one the new orbit describes.
+    const expected = orbitToPlacement(surface.orbit, STUDIO_CAMERA_LOOK_AT);
+    expect(aims[aims.length - 1]!.position.x).toBeCloseTo(expected.position.x, 10);
+    expect(aims[aims.length - 1]!.position.z).toBeCloseTo(expected.position.z, 10);
+  });
+
+  it('resetOrbit returns to the view the Studio opens with', () => {
+    const { runtime } = fakeRuntime();
+    const surface = createStudioScene(runtime, () => {}, { placeCamera: () => true });
+    surface.orbitBy({ azimuth: 1.5, elevation: 0.4, distance: 6 });
+    expect(surface.orbit).not.toEqual(STUDIO_ORBIT_DEFAULT);
+    surface.resetOrbit();
+    expect(surface.orbit).toEqual(STUDIO_ORBIT_DEFAULT);
+  });
+
+  it('a surface with NO adapter still orbits — a fake without cameras is a legitimate host', () => {
+    const { runtime } = fakeRuntime();
+    const surface = createStudioScene(runtime, () => {});
+    expect(() => surface.orbitBy({ azimuth: 0.3 })).not.toThrow();
+    expect(surface.orbit.azimuth).toBeCloseTo(STUDIO_ORBIT_DEFAULT.azimuth + 0.3, 10);
+  });
+
+  it('addBody grows BOTH the surface’s list and the runtime’s graph', () => {
+    const { runtime } = fakeRuntime();
+    const surface = createStudioScene(runtime, () => {});
+    const before = surface.bodyIds.length;
+    const sceneBefore = runtime.getScene(surface.sceneId)!.entities.size;
+
+    const added = surface.addBody('Cube D', 'mesh');
+    expect(added).not.toBeNull();
+    expect(added!.count).toBe(before + 1);
+    expect(surface.bodyIds).toHaveLength(before + 1);
+    expect(surface.bodyIds).toContain(added!.bodyId);
+    // The report counts what the RUNTIME holds, so a body added only to the surface's array would show here.
+    expect(runtime.getScene(surface.sceneId)!.entities.size).toBe(sceneBefore + 1);
+    expect(surface.report().scene!.entities).toBe(sceneBefore + 1);
+  });
+
+  it('removeBody shrinks both, and answers false for an id this surface does not hold', () => {
+    const { runtime } = fakeRuntime();
+    const surface = createStudioScene(runtime, () => {});
+    const added = surface.addBody('Cube D', 'mesh')!;
+    const sceneBefore = runtime.getScene(surface.sceneId)!.entities.size;
+
+    expect(surface.removeBody(added.bodyId)).toBe(true);
+    expect(surface.bodyIds).not.toContain(added.bodyId);
+    expect(runtime.getScene(surface.sceneId)!.entities.size).toBe(sceneBefore - 1);
+    expect(surface.report().scene!.entities).toBe(sceneBefore - 1);
+
+    // Removing it twice, or removing a body this surface never added, is a `false` rather than a throw.
+    expect(surface.removeBody(added.bodyId)).toBe(false);
+    expect(surface.removeBody('entity-never-existed')).toBe(false);
+  });
+
+  it('a REMOVED body is not written by the frame loop', () => {
+    // The write callback receives the live list, so a surface that removed a body from its array but left
+    // the loop writing it would be caught here.
+    const written: string[][] = [];
+    const { runtime } = fakeRuntime();
+    const surface = createStudioScene(runtime, (ids) => written.push([...ids]));
+    const added = surface.addBody('Cube D', 'mesh')!;
+    surface.step(1);
+    expect(written[0]).toContain(added.bodyId);
+
+    surface.removeBody(added.bodyId);
+    surface.step(2);
+    expect(written[1]).not.toContain(added.bodyId);
+    expect(written[1]).toHaveLength(written[0]!.length - 1);
+  });
+
+  it('the composed scene is UNTOUCHED by add/remove — the four v142 bodies keep their places', () => {
+    const { runtime, created } = fakeRuntime();
+    const surface = createStudioScene(runtime, () => {});
+    const originalNames = created.map((c) => c.name);
+    const added = surface.addBody('Cube D', 'mesh')!;
+    surface.removeBody(added.bodyId);
+    expect(created.map((c) => c.name)).toEqual(originalNames);
+    expect(surface.bodyIds).toHaveLength(4);
   });
 });

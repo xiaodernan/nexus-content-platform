@@ -32,8 +32,9 @@ headless proof → product surface → real-browser verification → record the 
   agent) + agent doors + product surface (`World` panel, v148). Still open: real model behind the persona,
   relationship simulation, factions/tick/`executeAction`, save/load.
 - **M5 — Three.js Runtime:** `@nexus/three-runtime` scene graph/entities/cameras/lighting/animations +
-  save/quest/combat/NPC type surface + document/op-log integration (v141+). Product surface (`3D`, v142).
-  Still open: full camera control, add/remove body from UI, lighting control, save/load door, 3D→document
+  save/quest/combat/NPC type surface + document/op-log integration (v141+). Product surface (`3D`, v142),
+  **now CONTROLLABLE (v161):** camera orbit (drag/wheel/reset) and add/remove body from the panel.
+  Still open: pan + keyboard controls, per-body picker, lighting control, save/load door, 3D→document
   composition.
 - **M6–M10:** planned, not started (autonomous build, community, creator economy, ops, external agents).
 
@@ -45,7 +46,7 @@ The cadence is deliberately small and verifiable. The current priority queue, in
 |---|-----------|-----------|---------|
 | ~~1~~ | M3 | ~~Asset surface `generate`/`delete` interaction~~ | **DONE — v159** (ADR 0016 amendment 159): `generateAsset`/`removeAsset` in the shipped module, a prompt form + per-row Remove in the panel, §5 of the headless proof growing and shrinking the REAL library, and the browser probe at **24/24** (it types, generates, removes, and checks the storyboard is unmoved and every byte count still reads 0) |
 | ~~2~~ | M3 | ~~`asset.video.generate`, `asset.character.*` and `asset.delete`/`asset.update` doors~~ | **DONE — v160** (ADR 0016 amendment 160): the family went 6 → **13** doors (video, search, update, delete, the character trio), 41 unit cases, and §6–§8 of the proof over the REAL generators + library + consistency manager. The empty-patch no-op the LIBRARY calls a success is refused by the door; the panel's Remove and the agent's `asset.delete` now have their difference stated in the door's own description |
-| 3 | M5 | Camera orbit/zoom + add/remove-body on the `3D` surface | The biggest visible UX gap on the runtime surface |
+| ~~3~~ | M5 | ~~Camera orbit/zoom + add/remove-body on the `3D` surface~~ | **DONE — v161** (ADR 0016 amendment 161): a pure `OrbitState` (azimuth fold, elevation/distance clamps) whose default is DERIVED from v142's placement with a round-trip case; drag-to-orbit with pointer capture, proportional wheel zoom, reset view; **+ body**/**− body** through the surface (ring placement, `false` for foreign ids, last-body-only removal, composed scene provably untouched); `scene3d.test.ts` 16 → 30 (studio 187 → 201), headless proof §5 over the REAL camera (world matrix moved, distance preserved, graph 4→5→4), browser harness **19/19** |
 | 4 | M4 | Relationship simulation + `executeAction`/tick + save/load in the world engine | Moves the world lane from "compose & read" toward "simulate" |
 | 5 | M5 | 3D save/load door + 3D→document composition | Unblocks authored content entering the Design Document |
 | 6 | M2 | Exec sandbox (ADR 0013): container isolation + out-of-jail disk/git/exec tools | The §63 door that unlocks the real coding-agent duties |

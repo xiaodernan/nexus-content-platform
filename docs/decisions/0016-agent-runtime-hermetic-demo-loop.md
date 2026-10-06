@@ -7706,3 +7706,50 @@ ledger entry._
   there is no storyboard frame EDIT or DELETE, no character UPDATE or DELETE, and no asset byte editing
   (the library has no such method, so no door invents one). Nothing in the Studio imports this family, so
   the product face for video and character consistency remains open.
+
+### Amendment 161 (M5 v161, studio) — the 3D surface becomes CONTROLLABLE: the camera gains an orbit (drag, wheel, reset) and the scene gains add/remove body
+
+_Numbering: 161 was free (`grep -ao "^### Amendment 1[0-9][0-9]"` topped out at 160). This is item 3 of the
+priority queue in `docs/DEVELOPMENT_PLAN.md`. Full narrative in `docs/evidence/studio/README.md`; this is
+the ledger entry._
+
+- **The gap this closes.** v142 placed the camera ONCE, at a fixed position, and never moved it again — its own
+  record said so, and the surface's KNOWN-ISSUES row listed "no camera control (no orbit/zoom/pan)" and "no way
+  to add or remove a body from the UI". A viewer you cannot turn is a picture; this makes the surface a viewer.
+- **The orbit is PURE ARITHMETIC, not a controller class.** `OrbitState` is three numbers (azimuth folded to
+  (−π, π], elevation clamped just short of the poles, distance clamped to [2, 40]); `orbitToPlacement` /
+  `orbitFromPlacement` are exact inverses; `applyOrbit` clamps what has a limit and folds what does not. The
+  Studio's DEFAULT orbit is **derived** from v142's `STUDIO_CAMERA_POSITION` by `orbitFromPlacement`, and a pure
+  suite case asserts the round trip lands back on that position — the opening view is unchanged by construction,
+  not by a hand-copied constant that could drift.
+- **The controls live on the SURFACE, not in the component.** `orbitBy`/`resetOrbit` go through the adapter (the
+  one writer allowed to touch the camera), `addBody` places each new body on a ring (`nextBodyPlacement`) so two
+  added bodies never share a slot and none lands inside the composed shots, and `removeBody` answers the same
+  `false` for an id the surface does not hold that `disk.write` gives for a path it was never given. `bodyIds` is
+  now LIVE (mutated in place) so the frame loop writes the current set, not the mount-time one; a removed body is
+  provably not written again.
+- **The composed scene is UNTOUCHED by design.** Ground and Cube A/B/C keep the positions v142 gave them, and a
+  suite case asserts it — a "add a body" feature that also moved the demo would be a different increment wearing
+  this one's name. Removal takes the LAST body the surface holds, so a click can never delete the demo.
+- **The component forwards events and NOTHING else.** Pointer-drag (with pointer capture, so a drag leaving the
+  canvas keeps turning), wheel (deltaMode-normalised to notches, scroll-down-zooms-out — the convention every 3D
+  viewer uses), a live orbit readout, and four buttons. It never reaches past the surface to edit a three.js
+  object; the HUD panel is `pointerEvents: none` so it never eats a drag.
+- **A defect found while landing it.** The first draft named the first user-added body `Cube A` — `64 + counter`
+  collides with the composed `Cube A`, putting a second one into the graph on the first click. Added bodies now
+  continue at D (`67 + counter`), and the counter is per-mount and never decremented by Remove, so names stay
+  unique across add/remove cycles. The harness and proof pass explicit names, which is why only the UI path
+  carried the bug — the lesson being: *the layer with no test is where the collision lived.*
+- **Evidence.** `apps/studio/src/lib/scene3d.test.ts` **16 → 30** cases (the orbit block: round-trip, inverse,
+  distance-preservation, fold/clamp, ring placement; the controllable block: orbit through the adapter, reset,
+  orbit with NO adapter, add/remove against the runtime's graph, removed-not-written, composed-untouched) —
+  studio **187 → 201**; `docs/evidence/studio/scene-surface-proof.mjs` gains **§5** over the REAL runtime and a
+  REAL `THREE.Camera` (world matrix moved by the orbit, distance preserved, frame count unmoved, graph
+  4 → 5 → 4 → unchanged); `tools/harness/studio-scene3d.mjs` **11 → 19** browser assertions — the probe DRAGS
+  the canvas (azimuth 0.581 → −0.419, elevation 0.407 → 0.107, distance bit-identical), WHEELS out and back,
+  presses **+ body** and **− body** (entities 4 → 5 → 4 against the bridge) and **reset view** (back to 0.581).
+  `tsc` clean; `npm run verify:scene-surface` ALL ASSERTIONS PASSED.
+- **Bounds (§60).** Still ONE demo scene with NO assets, textures, editable lights or model calls; no pan and no
+  keyboard controls; added bodies are DEMO meshes, not document content — nothing here touches the 2D Design
+  Document, the op log, history or persistence, and the surface toggle stays ephemeral view state (ADR 0014).
+  Removal is last-body only (there is no per-body picker), and the save/load door remains item 5 of the plan.

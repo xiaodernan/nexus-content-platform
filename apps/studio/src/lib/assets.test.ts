@@ -117,7 +117,7 @@ function fakeStack(over: Partial<AssetGeneratorLike> = {}) {
 
 describe('buildStudioAssets — what the surface composes', () => {
   it('generates one still per shot, in the declared order', async () => {
-    const { generator, library, storyboards, calls } = fakeStack();
+    const { generator, library, calls } = fakeStack();
     const built = await buildStudioAssets(generator, library, storyboards);
 
     expect(built.assetIds).toHaveLength(STUDIO_SHOTS.length);
@@ -255,7 +255,7 @@ describe('buildAssetReport — what is actually stored', () => {
 
 describe('generateAsset / removeAsset — the interactive surface can grow and shrink the library', () => {
   it('generateAsset calls the generator with the prompt and stores one asset (empty payload)', async () => {
-    const { generator, library, storyboards, calls } = fakeStack();
+    const { generator, library, calls } = fakeStack();
     const out = await generateAsset(generator, library, 'a new beat the user asked for');
     expect(calls).toContain('generate:a new beat the user asked for');
     expect(out.provenanceMode).toBe('demo');

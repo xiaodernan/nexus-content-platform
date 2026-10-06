@@ -107,15 +107,22 @@ Live list. Nothing here is hidden behind marketing copy.
   (it proves paint + captures the PNG for human/§30 inspection), and it is a local verification
   tool, not the §28/ADR 0013 untrusted-code sandbox.
 
-## Studio 3D surface (M5 v142, ADR 0016 amendment 142)
+## Studio 3D surface (M5 v142, interactive v161 — ADR 0016 amendments 142 and 161)
 - The Studio has a second surface: a **3D scene** mounted from `components/Scene3D.tsx` over
   `@nexus/three-runtime` (the package's first product consumer). It is reached with the `3D`
   toggle in the toolbar; the 2D canvas is the default and is untouched. `npm run verify:scene`
-  drives it in a real browser (**11/11**, `backend=webgl` on this host) and
+  drives it in a real browser (**19/19** after v161, `backend=webgl` on this host) and
   `npm run verify:scene-surface` is the headless proof.
-- **DEMO-MODE geometry only.** One scene, four default meshes, one camera, no assets, no model
-  calls, no textures, no lights you can edit and no camera control (no orbit/zoom/pan). There is
-  no way to add or remove a body from the UI, and no save/load door.
+- **The surface is INTERACTIVE since v161.** The camera has an ORBIT — drag to turn (pointer capture,
+  so a drag leaving the canvas keeps turning), wheel to zoom (proportional to the current distance), a
+  reset button returning to the opening view (derived from v142's placement, so it is unchanged by
+  construction). The scene grows and shrinks from the panel: **+ body** places the next body on a ring
+  slot (two added bodies never share a place, none lands inside the composed shots), **− body** removes
+  the LAST body (so a click can never delete the composed demo), and the HUD prints the live orbit.
+  Still absent: pan, keyboard controls, a per-body picker, editable lights, and a save/load door.
+- **DEMO-MODE geometry only.** One scene, four default meshes plus whatever you add, one camera, no
+  assets, no model calls, no textures and no lights you can edit. Added bodies are demo meshes —
+  not document content.
 - **The 3D scene and the Design Document are separate systems** sharing a window. Nothing composed
   in 3D appears in the 2D document, in exports, in the History panel or in the op log, and the
   surface toggle is view state (not undoable, not persisted, per ADR 0014).

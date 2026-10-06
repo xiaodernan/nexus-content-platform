@@ -1,5 +1,5 @@
 'use client';
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import * as THREE from 'three';
 import {
   ThreeRuntime,
@@ -9,6 +9,8 @@ import {
 } from '@nexus/three-runtime';
 import {
   createStudioScene,
+  ORBIT_RADIANS_PER_PIXEL,
+  ORBIT_ZOOM_PER_NOTCH,
   type SceneAdapterLike,
   type SceneReport,
   type SceneSurface,
@@ -56,6 +58,11 @@ const panel: React.CSSProperties = {
 
 export default function Scene3D() {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  // v161: a handle to the running surface, so the orbit/body controls can reach it without the surface
+  // becoming React state (it is not a value to re-render on; it owns a frame loop).
+  const surfaceRef = useRef<SceneSurface | null>(null);
+  // Pointer-drag bookkeeping. A ref, not state: a drag must not re-render on every move.
+  const dragRef = useRef<{ id: number; x: number; y: number } | null>(null);
   const [report, setReport] = useState<SceneReport | null>(null);
   const [note, setNote] = useState('');
 
@@ -128,6 +135,10 @@ export default function Scene3D() {
     // The bridge reads the LIVE surface and caches nothing, so a harness always sees the current frame.
     installSceneBridge(() => surface.report());
     setReport(surface.report());
+    // v161: the controls live OUTSIDE this effect (they are React handlers), so the surface has to be
+    // reachable from them. A ref rather than state, because the surface is not a value React should
+    // re-render on — it is a handle to a running loop.
+    surfaceRef.current = surface;
 
     const onResize = () => {
       size();
@@ -152,10 +163,61 @@ export default function Scene3D() {
       // `dispose()` stops the loop it owns, drops every entity/record registry and disposes the
       // backend — so a teardown needs no second call here, and the next mount starts clean.
       runtime.dispose();
+      surfaceRef.current = null;
+      dragRef.current = null;
       installSceneBridge(() => null);
       setReport(null);
       setNote('');
     };
+  }, []);
+
+  /**
+   * M5 v161 — the controls. Every one of them goes THROUGH the surface, so what changes is the runtime's
+   * own state and the report follows from it; this component never reaches past the surface to edit a
+   * three.js object, except where the adapter (the one place that owns that write) does it for the camera.
+   */
+  const onOrbit = useCallback((dxPixels: number, dyPixels: number) => {
+    const surface = surfaceRef.current;
+    if (!surface) return;
+    // Dragging RIGHT turns the camera left, and dragging DOWN raises it — the sign a person expects from
+    // pushing the world rather than the camera.
+    setReport(surface.orbitBy({ azimuth: -dxPixels * ORBIT_RADIANS_PER_PIXEL, elevation: -dyPixels * ORBIT_RADIANS_PER_PIXEL }));
+  }, []);
+
+  const onZoom = useCallback((notches: number) => {
+    const surface = surfaceRef.current;
+    if (!surface) return;
+    // PROPORTIONAL: a notch moves the camera a fraction of how far it already is, so zooming feels the
+    // same up close and far out. An absolute step is unusable at both ends.
+    setReport(surface.orbitBy({ distance: notches * ORBIT_ZOOM_PER_NOTCH * surface.orbit.distance }));
+  }, []);
+
+  const addedRef = useRef(0);
+  const onAddBody = useCallback(() => {
+    const surface = surfaceRef.current;
+    if (!surface) return;
+    addedRef.current += 1;
+    // `buildDemoScene` composed Cube A/B/C, so user-added bodies continue at D — starting at A would put
+    // a second `Cube A` into the graph on the first click. The counter is per-mount and never decremented
+    // by Remove, so the names stay unique across add/remove cycles.
+    const added = surface.addBody(`Cube ${String.fromCharCode(67 + addedRef.current)}`, 'mesh');
+    if (added) setReport(surface.report());
+  }, []);
+
+  const onRemoveBody = useCallback(() => {
+    const surface = surfaceRef.current;
+    if (!surface) return;
+    // Remove the LAST body this surface added, not one of the four it composed — the composed scene is the
+    // demo the other proofs assert, and a control that could delete it would make those proofs depend on
+    // what a user clicked.
+    const last = surface.bodyIds[surface.bodyIds.length - 1];
+    if (last && surface.removeBody(last)) setReport(surface.report());
+  }, []);
+
+  const onResetOrbit = useCallback(() => {
+    const surface = surfaceRef.current;
+    if (!surface) return;
+    setReport(surface.resetOrbit());
   }, []);
 
   const s = report?.scene ?? null;
@@ -168,7 +230,33 @@ export default function Scene3D() {
         ref={canvasRef}
         id="nexus-scene3d"
         data-surface="3d"
-        style={{ display: 'block', width: '100%', height: '100%' }}
+        style={{ display: 'block', width: '100%', height: '100%', cursor: 'grab', touchAction: 'none' }}
+        // M5 v161 — drag to orbit, wheel to zoom. Pointer capture so a drag that leaves the canvas keeps
+        // turning the camera instead of stopping when the cursor crosses the panel.
+        onPointerDown={(e) => {
+          (e.target as HTMLElement).setPointerCapture?.(e.pointerId);
+          dragRef.current = { id: e.pointerId, x: e.clientX, y: e.clientY };
+        }}
+        onPointerMove={(e) => {
+          const drag = dragRef.current;
+          if (!drag || drag.id !== e.pointerId) return;
+          const dx = e.clientX - drag.x;
+          const dy = e.clientY - drag.y;
+          dragRef.current = { id: drag.id, x: e.clientX, y: e.clientY };
+          onOrbit(dx, dy);
+        }}
+        onPointerUp={(e) => {
+          if (dragRef.current?.id === e.pointerId) dragRef.current = null;
+        }}
+        onPointerCancel={() => {
+          dragRef.current = null;
+        }}
+        onWheel={(e) => {
+          // `deltaMode` is lines on some hosts and pixels on others; the sign is what the control uses, so
+          // the two are normalised to one notch rather than compared.
+          const notches = e.deltaY > 0 ? 1 : e.deltaY < 0 ? -1 : 0;
+          if (notches !== 0) onZoom(notches);
+        }}
       />
 
       <div style={panel}>
@@ -185,10 +273,28 @@ export default function Scene3D() {
               frames: <strong data-scene3d-frames>{report.frames}</strong> · draw calls: {report.draws.calls}
             </div>
             <div>active camera: {activeName}</div>
+            {/* The orbit is reported as the surface holds it, not as a counter this component keeps. */}
+            <div data-scene3d-orbit>
+              orbit: az {report.orbit.azimuth.toFixed(3)} · el {report.orbit.elevation.toFixed(3)} · d{' '}
+              {report.orbit.distance.toFixed(2)}
+            </div>
           </>
         ) : (
           <div>starting…</div>
         )}
+        {/* The panel is `pointerEvents: none` so it never eats a drag meant for the canvas; the controls
+            are the one part that must be clickable, so they re-enable it for themselves. */}
+        <div style={{ display: 'flex', gap: 6, marginTop: 8, pointerEvents: 'auto', flexWrap: 'wrap' }}>
+          <button type="button" className="btn" data-scene-add-body onClick={onAddBody}>
+            + body
+          </button>
+          <button type="button" className="btn" data-scene-remove-body onClick={onRemoveBody}>
+            − body
+          </button>
+          <button type="button" className="btn" data-scene-reset-view onClick={onResetOrbit}>
+            reset view
+          </button>
+        </div>
         {note && <div style={{ marginTop: 6, color: 'var(--nexus-muted)', maxWidth: 280 }}>{note}</div>}
       </div>
     </div>

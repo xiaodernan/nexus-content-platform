@@ -68,7 +68,7 @@ Proven end-to-end with assertions:
    while the master stays untouched (purity), maps each clone back to its owning instance, and the
    off-page master never appears in page layout.
 
-## The 3D surface (M5 v142, ADR 0016 amendment 142)
+## The 3D surface (M5 v142, interactive v161 — ADR 0016 amendments 142 and 161)
 
 The Studio's second surface, and the first PRODUCT consumer of `@nexus/three-runtime`. It is split the way
 ADR 0005 splits the 2D one — a pure model plus a renderer:
@@ -93,11 +93,11 @@ config. Fixed in `packages/three-runtime/src/threeRuntime.ts`; the measurement i
 
 | Check | What it grades | Result |
 | --- | --- | --- |
-| `src/lib/scene3d.test.ts` (16 cases) | the model, over a fake composer | 16/16 |
+| `src/lib/scene3d.test.ts` (30 cases after v161) | the model, over a fake composer | 30/30 |
 | `src/lib/scene3dSurface.test.ts` (5 cases) | the model over the **real** `ThreeRuntime` on the headless seam | 5/5 |
 | `src/lib/surface.test.ts` (7 cases) | the surface as view state + the shipped component bytes (a toggle wired to no branch is refused) | 7/7 |
 | `docs/evidence/studio/scene-surface-proof.mjs` | the **shipped** Studio module (type-stripped, not copied) over the shipped runtime | all assertions |
-| `tools/harness/studio-scene3d.mjs` | the real bundle in a real browser | **11/11** |
+| `tools/harness/studio-scene3d.mjs` | the real bundle in a real browser | **19/19** (after v161) |
 
 The proof's five sections: §1 the composed scene IS the runtime's own (every body id is a registered
 `ThreeEntity`, the graph names that scene active); §2 the lighting term — **1.316496580927726** with the
@@ -114,13 +114,49 @@ The browser probe, measured on this host 2026-09-29 (`NODE_OPTIONS= …/next dev
 painted; and the 3D reader answers `null` once the surface is unmounted. Headless Chrome does provide a
 software GL context on this box, so the screenshot is a render rather than a fallback.
 
-**Bounds (§60).** DEMO-MODE geometry only — four default meshes, one default camera, no assets, no model
-calls. No orbit/zoom camera control, no add/remove body from the UI, no lighting control, no save/load door,
+**Bounds (§60).** DEMO-MODE geometry only — four default meshes (plus whatever the user adds), one default
+camera, no assets, no model calls. v161 added the orbit and add/remove (below); still no pan, no keyboard
+controls, no per-body picker, no lighting control, no save/load door,
 and nothing the 3D scene composes reaches the Design Document (two separate systems sharing a window).
 `Scene3D.tsx` has no unit test because there is no DOM test environment in this repo — its behaviour is
 covered by the headless proof and the browser probe, which is stated rather than implied. The HUD samples the
 report at most once per 10 frames, and the headless path says on screen that it draws no pixels.
 
+## The 3D surface becomes CONTROLLABLE (M5 v161 — ADR 0016 amendment 161)
+
+v142 placed the camera ONCE and never moved it again — its own bounds row said "no orbit/zoom camera control,
+no add/remove body from the UI". v161 closes both halves with the smallest machinery that survives the lane's
+purity rules:
+
+- **The orbit is pure arithmetic.** `OrbitState` is three numbers; `orbitToPlacement`/`orbitFromPlacement` are
+  exact inverses; `applyOrbit` folds azimuth (it has no natural bound) and clamps elevation (just short of the
+  poles, where `lookAt` has no stable up) and distance ([2, 40]). The DEFAULT orbit is **derived** from v142's
+  `STUDIO_CAMERA_POSITION`, and the suite asserts the round trip lands back on that position — the opening view
+  is unchanged by construction, not by a restated constant that could drift.
+- **The controls live on the surface, not in the component.** `orbitBy`/`resetOrbit` aim the camera through the
+  adapter (the one writer allowed to touch it); `addBody` places each new body on a ring slot
+  (`nextBodyPlacement`, one step of π/3 at radius 2.6 — two added bodies never share a place, none lands inside
+  the composed shots); `removeBody` answers the same `false` for a foreign id that `disk.write` gives for a
+  path it was never given. `bodyIds` went LIVE (mutated in place) so the frame loop writes the CURRENT set, and
+  a suite case proves a removed body is written no more.
+- **The composed demo is untouched by design.** Ground and Cube A/B/C keep their v142 positions (asserted), and
+  removal takes the LAST body the surface holds — a click can never delete the demo the other proofs read.
+- **The component forwards events and nothing else.** Pointer-drag with capture, wheel normalised to notches
+  (scroll-down zooms out — the convention every 3D viewer uses), a live `orbit: az · el · d` readout, four
+  buttons; the HUD panel is `pointerEvents: none` so it never eats a drag meant for the canvas.
+- **A defect caught before landing.** The first draft named the first added body `Cube A` (`64 + counter`),
+  colliding with the composed `Cube A`. Added bodies continue at D (`67 + counter`), and the counter is
+  per-mount and never decremented by Remove, so names stay unique across add/remove cycles. Only the UI path
+  carried the bug because the tests and proof pass explicit names — the untested layer was where the collision
+  lived.
+
+**Evidence.** `scene3d.test.ts` 16 → 30 (studio 187 → 201); the headless proof gains **§5** over the REAL
+runtime and a REAL `THREE.Camera`: orbiting moved the world matrix (x `4.200 → 6.545 → 4.200` after reset)
+with the distance to target preserved and the frame count unmoved; add/remove moved the runtime's own graph
+`4 → 5 → 4`. The browser harness is **19/19**: the probe DRAGS the canvas (azimuth `0.581 → −0.419`,
+elevation `0.407 → 0.107`, distance bit-identical through a turn), WHEELS out (`8.336 → 9.170`) and back in,
+presses **+ body** and **− body** (entities `4 → 5 → 4` against the bridge) and **reset view** (azimuth back
+to `0.581`).
 ## In-browser golden path (live React app)
 
 Driven through the running `next dev` server via the browser automation surface:

@@ -209,9 +209,55 @@ assert.equal(buildSceneReport(runtime, 7).frames, 7, 'a report never invents a c
 assert.equal(afterStep.draws.triangles, 0, 'the headless backend refuses to invent a triangle count (§60)');
 console.log(`[§4] the surface's count (${surface.frames} step, ${writeCalls} write) is NOT the backend's (${backend.frames.length} draws): the loop drew without a step, and a step drew nothing 路 spinAt(1.25).y = ${atQuarter.y} — a function of the instant, not of a frame index 路 the unmeasurable tallies stay 0`);
 
-// ── §5 the home repository never moved ───────────────────────────────────────────────────────────────
+// ── §5 the surface is CONTROLLABLE, over the REAL runtime and a REAL THREE.Camera (M5 v161) ─────────
+// v161 turned the camera from a placement written once into an orbit. The pure suite asserts the arithmetic;
+// THIS asserts the part only the real package can answer — that orbiting through the surface actually moves
+// the runtime's own THREE.Camera, and that add/remove move the runtime's own graph.
+const surfaceCamera = runtime.getScene(surface.sceneId)?.cameras.get(surface.cameraId);
+assert.ok(surfaceCamera, "the real runtime holds the surface's camera");
+const matrixBefore = surfaceCamera.threeCamera.matrixWorld.elements.slice();
+const orbitBefore = surface.orbit;
+const positionBefore = surfaceCamera.threeCamera.position.clone();
+
+const orbited = surface.orbitBy({ azimuth: 0.6, elevation: 0.15 });
+assert.notDeepEqual(surface.orbit, orbitBefore, "the surface's orbit moved");
+// The REAL camera's world matrix changed — which is what "the camera turned" means, and what a surface that
+// only updated its own numbers would fail.
+assert.notDeepEqual(surfaceCamera.threeCamera.matrixWorld.elements, matrixBefore, "the runtime camera's world matrix moved with the orbit");
+assert.notEqual(surfaceCamera.threeCamera.position.x, positionBefore.x, 'and its position is not the one it had');
+// Distance is preserved: an orbit turns the camera, it does not also move it closer.
+const distanceTo = (p) => Math.hypot(p.x, p.y + 0.2, p.z);
+assert.ok(
+  Math.abs(distanceTo(surfaceCamera.threeCamera.position) - distanceTo(positionBefore)) < 1e-6,
+  'the camera kept its distance from the target',
+);
+// Turning the camera is not a frame, and the report says so.
+assert.equal(orbited.frames, surface.frames, 'orbiting did not advance the frame count');
+// Captured HERE, before the reset below: printing the position after the reset would show two identical
+// numbers and read as "nothing moved" — the number a reader checks has to be the orbited one.
+const orbitedX = surfaceCamera.threeCamera.position.x;
+assert.deepEqual(orbited.orbit, surface.orbit, 'and the report carries the orbit the surface holds');
+
+// Reset returns it to the view the surface opened with — checked on the real camera again.
+surface.resetOrbit();
+assert.deepEqual(surface.orbit, orbitBefore, 'reset restored the opening orbit');
+assert.ok(Math.abs(surfaceCamera.threeCamera.position.x - positionBefore.x) < 1e-9, 'and the real camera is back at its opening position');
+
+// Add and remove a body, checked against the RUNTIME's graph rather than the surface's array.
+const graphBefore = runtime.getScene(surface.sceneId).entities.size;
+const added = surface.addBody('Cube D', 'mesh');
+assert.ok(added, 'addBody produced a body');
+assert.equal(runtime.getScene(surface.sceneId).entities.size, graphBefore + 1, 'the RUNTIME holds one more entity');
+assert.ok(runtime.getEntity(surface.sceneId, added.bodyId), 'and it is retrievable from the runtime by id');
+assert.equal(surface.removeBody(added.bodyId), true);
+assert.equal(runtime.getScene(surface.sceneId).entities.size, graphBefore, 'the runtime is back to its original size');
+assert.equal(runtime.getEntity(surface.sceneId, added.bodyId), undefined, 'and the entity is gone from the runtime too');
+assert.equal(surface.removeBody(added.bodyId), false, 'removing it twice answers false');
+console.log(`[§5] the controls over the REAL runtime: orbiting moved the THREE.Camera's world matrix (x ${positionBefore.x.toFixed(3)} → ${orbitedX.toFixed(3)} orbited → ${surfaceCamera.threeCamera.position.x.toFixed(3)} after reset) without changing its distance · the frame count did not move · add/remove moved the runtime's own graph ${graphBefore} → ${graphBefore + 1} → ${graphBefore}`);
+
+// ── §6 the home repository never moved ───────────────────────────────────────────────────────────────
 rmSync(box, { recursive: true, force: true });
-assert.equal(execFileSync('git', ['rev-parse', 'HEAD'], { encoding: 'utf8' }).trim(), homeHead, '§5: this repository HEAD byte-identical — everything here ran in memory');
+assert.equal(execFileSync('git', ['rev-parse', 'HEAD'], { encoding: 'utf8' }).trim(), homeHead, '§6: this repository HEAD byte-identical — everything here ran in memory');
 
 console.log(`\n[summary] M5 v142: the FIRST product consumer of @nexus/three-runtime — the Studio's 3D surface, graded from the SHIPPED Studio module (type-stripped, not copied) over the SHIPPED runtime 路 1 scene + ${report.scene.entities} bodies + 1 aimed camera composed in memory with 0 GL objects 路 the v142 lighting defect measured as a term: ${withLights} lit vs ${withoutLights} unlit 路 ${backend.frames.length} draw(s) carried by the frame loop 路 surface steps ${surface.frames} vs backend draws ${backend.frames.length}, kept apart 路 home HEAD byte-identical: yes`);
 console.log('[scene-surface-proof] ALL ASSERTIONS PASSED (the 3D lane is reachable from the product, and the surface does not claim to have drawn what it did not)');
