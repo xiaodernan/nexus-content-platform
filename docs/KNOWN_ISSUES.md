@@ -204,10 +204,12 @@ Live list. Nothing here is hidden behind marketing copy.
   retrieval scoring behind one `hybridScore` seam (index + memory; zero token overlap ⇒
   exactly 0) and adds listed, idempotent memory `compact()`.
   It is
-  still *not* a general coding agent: no process execution, browser, git, or out-of-jail disk
-  access — those §63 duties stay unimplemented until ADR 0013's exec sandbox exists. Known
+  still *not* a general coding agent: no browser automation of its own; process execution and git run
+  through the §28-gated exec-host policy sandbox (am. 30–37), and since am. 166 a policy-approved
+  argv can be sealed inside an ephemeral container — though the runtime's own tools do not route
+  through that container yet. Known
   limits, stated not hidden (§60): the "embeddings" are deterministic hash token-bags, not
-  trained vectors; the jail is a path check + human gate rather than container isolation; and
+  trained vectors; the runtime's own disk jail is a path check + human gate (the exec-host container wall of am. 166 is a separate lane the runtime's tools do not use yet); and
   the template planner fails honestly (`failed_verification`) when both memory and the index
   are absent. Dock repairs (v12) are heuristic moves (nudge/clamp/grow, 16px gutter): they
   never resize content, so residuals no move can fix (a section taller than the page) stay
@@ -216,8 +218,10 @@ Live list. Nothing here is hidden behind marketing copy.
   the Studio intentionally does not depend on them for the slice.
 - Sandbox/security enforcement (ADR 0013) is **partially realized**: the permission-scoped Tool
   Registry + Human-Checkpoint gate are executable and tested; the v3 disk jail is path-level
-  only — container isolation for untrusted code is still not built (and nothing runs untrusted
-  code today).
+  only — container isolation EXISTS as a Docker backend (am. 166: ephemeral, no host mount by
+  construction, capped, read-only rootfs, egress denied — measured by container-proof §1–§8);
+  still open: gVisor/Firecracker, per-job secret injection, a warm pool — and no lane generates
+  untrusted code for the wall to hold yet.
 
 ## Tooling
 - Package manager is **npm workspaces**, not pnpm: `corepack` cannot write the global pnpm

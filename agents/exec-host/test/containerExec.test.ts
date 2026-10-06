@@ -95,7 +95,7 @@ function harness(
 const OK_GATE = { checkpoint: () => true };
 const mountFlagsIn = (args: string[]): string[] => args.filter((a) => CONTAINER_MOUNT_FLAGS.includes(a));
 
-describe('planContainerRun (v164: the v29 decision, one layer out)', () => {
+describe('planContainerRun (v166: the v29 decision, one layer out)', () => {
   it('an allowlisted request plans the inner argv verbatim, the pinned image, and a guarded workdir', () => {
     const d = planContainerRun({ argv: ['node', 'app.js'], cwd: 'sub/dir' }, POLICY);
     expect(d.ok).toBe(true);

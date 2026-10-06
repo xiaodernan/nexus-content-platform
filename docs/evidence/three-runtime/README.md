@@ -2750,3 +2750,31 @@ The census gate in `test/saveNameSpelling.test.ts` pins all four callers of `sto
 | **TOTAL** | **417** | **0** |
 
 **Bounds.** No src behaviour and no file format changed. The `paths` array keeps its meaning (every listed name), so a store holding a name this build will not re-enter still reports it as a path — the host fact is preserved, and the `refused` subset is additive. The census gate pins the population at 4 callers of `storage.list()` inside `src/`, so a fifth caller that forgets to classify reddens immediately. 27 of the 72 exported names in `types.ts` are still named by none of the three code modules, and this grant accounts for the listing verb's classification, not for every declared type.
+## v170 — saves survive the reload: a localStorage store behind the same `SaveStore` seam, and the Studio switches to it (ADR 0016 amendment 170)
+
+_This record was written at v171 (see the ledger), because the b03b193 commit shipped with none. It is
+recorded here, in the lane's own README, so the store's bounds live beside the seam they modify._
+
+b03b193 added `createLocalStorageSaveStore(namespace)` to `src/saveStore.ts` and switched the Studio's
+Scene3D to it (`createLocalStorageSaveStore('studio-scene')`). The store implements the SAME `SaveStore`
+seam: keys are namespaced (`nexus-save:<namespace>:<name>`), an index key holds the name list so `list()`
+reads no bytes beyond the index, every verb classifies through `savePathRefusal` BEFORE touching storage,
+and `writeAtomic` is temp-then-copy-then-remove (localStorage has no rename syscall; the temp key carries
+`SAVE_TEMP_SUFFIX` so the debris policy already knows the name). Construction REFUSES an environment
+without `window.localStorage` rather than silently degrading.
+
+| what changed | before | after |
+| --- | --- | --- |
+| Studio store | `createMemorySaveStore()` (process-scoped, v169) | `createLocalStorageSaveStore('studio-scene')` — saves persist across page reloads |
+| store kinds | memory, fs | memory, fs, localStorage |
+| suites at HEAD b03b193 (2026-10-07) | — | three-runtime **422/422**, studio **214/214** |
+| browser harness (re-run 2026-10-07) | — | studio-scene3d **25/25**, backend webgl |
+
+**Bounds (§60).** NO unit coverage for the localStorage store itself: the constructor reads the GLOBAL
+`window.localStorage` and accepts no injectable storage, so the package's Node suite cannot exercise it —
+the injectability that made the v120 seam worth having is exactly what this store skipped; a follow-up
+should take the storage as a parameter. The panel's save note still reads "nothing written to disk" (v163
+text) — true of the file system, but the save now persists in origin localStorage; the note should name
+the store. Atomicity is copy-based: a crash between copy and remove can leave a `.tmp` key the index
+never lists (debris by policy, but no sweeper walks the namespace). No delete in the browse UI, no quota
+handling, no cross-tab sync. Origin quota ~5MB.

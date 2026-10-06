@@ -3771,94 +3771,86 @@ Bounds, stated: both doors refuse a scene the driver does not hold, and both ans
 a door never claims pixels. The format is the runtime's own, not a door invention; disk persistence is
 still nobody's job here — the file exists in memory, and that is all the door claims.
 
-## The exec host learns to CONTAIN (container-proof.mjs §6–§8 — M6 v166 — ADR 0016 amendment 166)
+## The exec host learns to CONTAIN (container-proof.mjs §1–§8 — M2 — ADR 0016 amendment 166)
 
-v144 gave this lane a git-aware exec host that could run commands on the real filesystem but had no
-isolation boundary. v166 adds a full container execution layer — Docker/Podman-based command execution
-with policy, auditing, and deterministic replay. The new proof sections run the container subsystem over
-a real container runtime:
+v30's exec host could run a policy-approved command on the real filesystem, but the only wall around it was
+the plan itself. Amendment 166 adds the OS-level wall ADR 0013 proposed: the SAME `planExec` decision
+(argv allowlist, bare-name executables, env scrubbing, budget clamping — its `guardedJoin` jail check is
+pure slash math, so the same check that guarded a host path guards a container workdir) now executes inside
+an EPHEMERAL Docker container. `agents/exec-host/src/containerExec.ts` is that container layer; the
+division of labour stays v29/v30's — `@nexus/agent-runtime` remains the single decision function, and the
+container host adds what the plan cannot say: a POLICY-PINNED image (the request can never name one), a
+CONTAINER-side workdir root, and `docker run` as the spawned argv — still through the ONE `SpawnLike` seam,
+so the v30 audit's answer ("exactly ONE module in the monorepo may talk to node's process-spawn module")
+keeps its teeth (exec-host-proof re-run at v171: the §60 line still reads capability confined to execHost.js).
+
+> Record-keeping note (v171): this section and the next were first published with a35310f/3bf329e describing
+> a system this code is not — three doors (`container.run`, `container.policy.validate`,
+> `container.audit.list`) that do not exist, proof sections §6–§9 that do not exist, and the M6 milestone,
+> which is not this lane. The ledger (amendments 164–171) carries the correction; the text below is re-pinned
+> to the SHIPPED module.
 
 ```
-node docs/evidence/agents/container-proof.mjs   # requires `npm run build` first
+node docs/evidence/agents/container-proof.mjs   # requires `npm run build` first — and a running Docker engine
 ```
 
 | door | class | what it does |
 | --- | --- | --- |
-| `container.run` | write | execute a command inside an isolated container with resource caps and mount policy |
-| `container.policy.validate` | read | check if a container configuration is safe to run |
-| `container.audit.list` | read | list all past container executions with their decisions and outcomes |
+| `container.exec` | exec | run a policy-approved argv inside an ephemeral container — the §28 checkpoint and the `exec` permission class gate it exactly like every other exec-host door |
 
-**Policy refuses unsafe mounts at the door.** `validateContainerPolicy` rejects absolute paths outside
-allowed directories, relative paths with `..` segments, and any mount that would expose host secrets
-(`/etc`, `/root`, `.env` files). Resource limits are capped: CPU ≤ 2 cores, memory ≤ 4GB, timeout ≤ 300s.
-A policy that passes validation produces a `ContainerPlan` with deterministic Docker args.
+**The wall is 10 argv flags, audited from the spawned argv itself.** `CONTAINER_ISOLATION_ARGS` is exported
+as data so the audit reads the array the builder reads: `--rm` (ephemeral), `--network none` (egress denied
+at the socket layer), `--pull never` (a missing image FAILS — the host never reaches for a registry the
+policy never asked about), `--cap-drop ALL` with `no-new-privileges`, a `--read-only` rootfs over one
+`--tmpfs` scratch (`/tmp:rw,noexec,nosuid,size=64m`), `--memory 512m` (+ swap), `--cpus 1`,
+`--pids-limit 128`. `CONTAINER_MOUNT_FLAGS` is the empty-audit list: the builder has NO mount flag it can
+ever emit, and §2 of the proof counts mount flags in the real argv (0). Caps are policy fields clamped by
+`validateContainerPolicy`; the probe answers `{available, serverVersion, reason}` — absence is a normal
+answer, not an error. Wall-clock is a HOST budget: when it fires the docker client is killed and
+`docker rm -f <name>` retires a container the client may have left running — attempted AND reported
+(`cleanup.removed`), never assumed.
 
-**Execution is audited end-to-end.** Every `container.run` call logs a `ContainerDecision` with the plan's
-SHA-256 hash, the policy verdict, resource caps, and wall-clock timing. The audit trail survives process
-restarts via JSONL files in the agent workspace. A failed container (non-zero exit) is still audited —
-the decision record names WHY it failed (policy refused, runtime missing, command crashed).
-
-**Deterministic replay proves isolation.** §6 runs `echo hello` in a fresh container, captures the stdout,
-and replays the same plan — identical args, identical output. §7 attempts a forbidden mount (`/etc/shadow`)
-and verifies the policy refuses BEFORE any container starts. §8 lists the audit trail and confirms every
-run has a decision record with matching plan hash.
+**§1–§8, measured against a real daemon (29.8.x, re-run 2026-10-07 at v171):**
 
 | § | what it measures |
 | --- | --- |
-| 6 | `container.run` executes `echo hello` in isolation, returns stdout, and replays identically; plan hash matches across runs |
-| 7 | `container.policy.validate` refuses `/etc/shadow` mount by name, refuses `../escape` path, refuses CPU > 2; allowed configs pass |
-| 8 | `container.audit.list` returns all past runs with decisions; each record has plan hash, policy verdict, timing, and exit code |
-| 9 | this repository's HEAD is byte-identical |
+| 1 | the probe answers — the nested template `{{.Server.Version}}`, not `{{.ServerVersion}}` |
+| 2 | the plan audit: 10 isolation flags in the argv, mount flags 0, caps as declared, `executes: false` |
+| 3 | a REAL run: the pinned `node:22-alpine` answers `container-alive:` + its node version, exit 0 |
+| 4 | the wall, measured: rootfs write → `EROFS`, `/tmp` writable, host fs ABSENT (no bind mount exists), egress denied immediately at the socket layer |
+| 5 | the budget kills `sleep 60` at 4s AND retires the container by name — the daemon listing is empty after; on a cold engine an `rm -f` exceeding the proof's own 10s cleanup budget FAILS the proof (a slow engine is a failed claim — the right bias) |
+| 6 | the policy outranks the gate: an unallowlisted argv never reaches docker — default-deny, no spawn, recorded |
+| 7 | the JSONL journal: every outcome above in order, a rule number exactly when the policy said yes |
+| 8 | the door: `container.exec` is exec-permission, gated at the registry, answered by the container |
 
-Bounds, stated: the container layer is opt-in — existing `exec.spawn` continues unchanged. Docker/Podman
-must be installed on the host; if neither runtime is found, `probeContainerRuntime` answers `{found: false}`
-and all container calls refuse with `runtime unavailable`. The isolation boundary is as strong as the
-container engine's — this layer enforces policy but cannot prevent a compromised engine from escaping.
-Resource caps are advisory unless the engine enforces them (Docker does, Podman may not on rootless).
+26 vitest cases in `agents/exec-host/test/containerExec.test.ts` — package total 301/301, tsc clean.
+Bounds, stated: this is a Docker backend for ADR 0013's first container sentence — gVisor/Firecracker,
+per-job secret injection from `services/ai-svc`, a warm pool, and egress policy beyond `--network none`
+are still open, and the ADR stays **Proposed** until they exist. The engine is trusted: this layer
+enforces policy and cannot prevent a compromised engine from escaping. No image build/pull, no volumes
+(by construction), no exec into a running container. The runtime's own tools do not route through the
+container yet.
 
-## Container execution wired into agent-runtime (M6 v167 — ADR 0016 amendment 167)
+## The wiring is a record, not a re-export (M2 — ADR 0016 amendment 167)
 
-v166 landed the container subsystem in `@nexus/exec-host`, but it lived outside the agent-runtime tool
-registry — agents could not invoke `container.exec` as a scoped tool. v167 documents the CORRECT wiring
-pattern: consumers import directly from `@nexus/exec-host` (not via a re-export through agent-runtime),
-because exec-host already depends on agent-runtime for types like `ToolRegistry` and `Checkpoint`, creating
-a one-way dependency that must not be reversed.
-
-**The wiring is documented, not re-exported.** `agents/runtime/src/index.ts` does NOT re-export container
-types — doing so would create a circular dependency (`exec-host → agent-runtime → exec-host`). Instead,
-consumers wire the two halves at the call site:
+`@nexus/exec-host` depends on `@nexus/agent-runtime` for `ToolRegistry`, `Checkpoint` and `planExec` — a
+one-way dependency that must never be reversed (agent-runtime stays spawn-free, ADR 0013), so container
+types are NOT re-exported through agent-runtime. A consumer wires the halves at the call site:
 
 ```typescript
 import { ToolRegistry } from '@nexus/agent-runtime';
 import { createContainerExecHost, registerContainerExecTools, type ContainerPolicy } from '@nexus/exec-host';
 
-const policy: ContainerPolicy = { image: 'node:20-alpine', workdirRoot: '/workspace', allow: [...] };
+const policy: ContainerPolicy = { image: 'node:22-alpine', workdirRoot: '/workspace', allow: [/* ... */] };
 const host = createContainerExecHost(policy);
 const registry = new ToolRegistry();
-registerContainerExecTools(registry, host);
-// Now registry.has('container.exec') === true
+registerContainerExecTools(registry, host); // validates the policy BEFORE registering
+// the registry now answers 'container.exec' behind the exec permission class and §28
 ```
 
-**Dependency stays one-way.** `@nexus/exec-host/package.json` depends on `@nexus/agent-runtime:*` (for
-`ToolRegistry`, `Checkpoint`, `planExec`, etc.). Agent-runtime remains spawn-free (ADR 0013). The container
-tools are registered like any other exec-host tools (git doors, test runner bridge) — they live in exec-host,
-not in agent-runtime.
-
-**Five tests prove the container subsystem works.** The tests remain in `agents/exec-host/test/containerExec.test.ts`
-(26 tests total for the container layer, landed as v166). No new tests were added to agent-runtime because the
-wiring is a consumer-level pattern, not a runtime-level feature.
-
-| § | what it measures |
-| --- | --- |
-| 1 | `validateContainerPolicy` accepts a valid policy (image, workdirRoot, allowlist) |
-| 2 | `planContainerRun` produces a plan with docker args carrying isolation flags |
-| 3 | Tool spec declares exec permission and required argv arg |
-| 4 | Registry integration succeeds — tool is callable after registration |
-| 5 | Runtime probe handles missing Docker gracefully |
-
-Bounds, stated: this is DOCUMENTATION only — no code was added or changed. The container subsystem's 26
-tests (landed v166) prove the functionality; this increment clarifies HOW to wire it into an agent's tool
-registry. The tool remains gated by the §28 checkpoint like all exec-class tools. Agents must still be granted
-the `exec` permission class to see this tool through role scoping. The container runtime must be installed on
-the host machine; `probeContainerRuntime` answers `{available: false}` when Docker/Podman is absent.
-
+`registerContainerExecTools` refuses an invalid policy at construction rather than at first call, and the
+tool answers `ok` only for exit 0 with no budget kill — a refused run THROWS with the door's reason, so a
+silent failure cannot masquerade as an answer. The container subsystem's 26 cases live in
+`agents/exec-host/test/containerExec.test.ts` under their own structure (the five-row test table first
+published here matched no real suite). Bounds: this is a record, not a feature — no new code, and the
+runtime's own tools do not route through the container yet.

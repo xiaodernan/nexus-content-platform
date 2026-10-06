@@ -12,7 +12,7 @@ PUBLISH → REMIX`) and the spec's milestones. The working method is the repo's 
 one deep, *verified*, increment at a time — pure model layer → agent door (when a lane needs one) →
 headless proof → product surface → real-browser verification → record the amendment in the ledger.
 
-## Current honest status (2026-10-06)
+## Current honest status (2026-10-07)
 
 - **M0 — Foundation:** done (git, monorepo, docs, CI, ADRs 0001–0017).
 - **M1 — Studio Vertical Slice:** core + many polish passes done (canvas, layers, properties, design
@@ -22,7 +22,7 @@ headless proof → product surface → real-browser verification → record the 
 - **M2 — Agentic Coding:** model/registry/workspace/planner/orchestrator, hybrid code index + memory,
   change-sets/ledger, roles + rubric, §25 pipeline, Studio dock + §28 checkpoint, visual QA + repair loop,
   browser-durable memory, role-chain editor, vector recall, near-miss QA lints + align-nudge proposals,
-  UI-capable task running. Exec sandbox (§63) still gated on ADR 0013.
+  UI-capable task running. **Exec sandbox: policy layer (v29–v37) + container isolation (v166, Docker backend, real-daemon proof §1–§8)** landed — ADR 0013 stays Proposed (gVisor/Firecracker, per-job secrets, warm pool open) and the runtime's own tools do not route through the container yet.
 - **M3 — Multimodal Assets:** `@nexus/ai-providers` multimodal slice (asset library, demo image/video
   generators, character consistency, storyboard manager) + agent doors (`assetTools.ts`). **Product face
   now built (v153) and INTERACTIVE (v159):** Studio gains the `Assets` surface (asset/storyboard report,
@@ -38,8 +38,11 @@ headless proof → product surface → real-browser verification → record the 
   **now CONTROLLABLE (v161):** camera orbit (drag/wheel/reset) and add/remove body from the panel.
   **Now PERSISTENT (v163):** save/load through the runtime's own file format and 3D→document
   composition — authored bodies filed into the Design Document as one undoable `addSubtree`; agent
-  doors 6 → 8 (`scene.save`/`scene.load`). Still open: pan + keyboard controls, per-body picker,
-  lighting control, disk persistence.
+  doors 6 → 8 (`scene.save`/`scene.load`). **Now RELOAD-SAFE (v165/168/169/170):** the listing verb classifies
+  refused names, the store itself answers `savePathRefusal`, the panel browses and loads a SELECTED
+  save, and the backend is a namespaced localStorage store (`nexus-save:studio-scene`) — saves
+  survive page reloads. Still open: pan + keyboard controls, per-body picker,
+  lighting control, fs-backed persistence via a Node seam, unit coverage for the localStorage store.
 - **M6–M10:** planned, not started (autonomous build, community, creator economy, ops, external agents).
 
 ## Execution order (next increments)
@@ -53,9 +56,10 @@ The cadence is deliberately small and verifiable. The current priority queue, in
 | ~~3~~ | M5 | ~~Camera orbit/zoom + add/remove-body on the `3D` surface~~ | **DONE — v161** (ADR 0016 amendment 161): a pure `OrbitState` (azimuth fold, elevation/distance clamps) whose default is DERIVED from v142's placement with a round-trip case; drag-to-orbit with pointer capture, proportional wheel zoom, reset view; **+ body**/**− body** through the surface (ring placement, `false` for foreign ids, last-body-only removal, composed scene provably untouched); `scene3d.test.ts` 16 → 30 (studio 187 → 201), headless proof §5 over the REAL camera (world matrix moved, distance preserved, graph 4→5→4), browser harness **19/19** |
 | ~~4~~ | M4 | ~~Relationship simulation + `executeAction`/tick + save/load in the world engine~~ | **DONE — v162** (ADR 0016 amendment 162): `tickOnce()` consults every agent's own gate and decays unmaintained bonds (deterministic `TickReport`); `relationships.ts` makes strength pure arithmetic — bands, first-meeting floor (decay never manufactures hatred), declared bonds immune; speak writes BOTH sides; save/load is lossless; the composition connects its places and seats Mira & Toma at the ford so the panel's Step buttons can introduce them (`world-engine` 31 → 43, `agent-runtime` 492 → 498 with 8 world doors, studio 201 → 204, proofs §6–§8 + §4, browser harness 14 → **25/25**) |
 | ~~5~~ | M5 | ~~3D save/load door + 3D→document composition~~ | **DONE — v163** (ADR 0016 amendment 163): `scene.save`/`scene.load` over the REAL runtime's `buildSaveFile`/`loadSaveFile` (doors 6 → 8; the file crosses as a JSON string the door parses, malformed/bare/array refused by name; a live scene refuses its own file — "a restore never overwrites live state"); the surface gains save/load/**send to doc** — load restores into a FRESH sibling scene, the demo never touched; `composeDocumentOps` files the AUTHORED bodies as one real `ops.addSubtree` (frame `Scene: <scene>` + one text child per body, §60 spec text not a fake preview), undoable; save-format consumers 0 → 2 (`scene3d.test.ts` 30 → 40 / studio 204 → 214, `agent-runtime` 498 → 506, proofs §6, harness 19 → **25/25**) |
-| 6 | M2 | Exec sandbox (ADR 0013): container isolation + out-of-jail disk/git/exec tools | The §63 door that unlocks the real coding-agent duties |
-| 7 | M6 | Autonomous build: end-to-end plan→deploy with checkpoints | First milestone that uses everything built so far |
-| 8 | M7–M10 | Hosted publish + community; then creator economy, ops, external agents | Product-goal milestones; require `nexus-api` + real persistence |
+| ~~6~~ | M2 | ~~Exec sandbox (ADR 0013): container isolation~~ | **DONE — v166** (ADR 0016 amendment 166): `createContainerExecHost` in `@nexus/exec-host` — the SAME `planExec` decision executed inside an EPHEMERAL container (10 isolation argv flags audited from the spawned argv, no mount flag the builder can emit, caps, read-only rootfs over noexec tmpfs, `--network none`, host wall-clock kill + `docker rm -f` by-name retirement), one `container.exec` door behind §28, 26 cases (exec-host 301/301), real-daemon proof §1–§8 ALL PASSED. The second half — routing the runtime's disk/git/exec duties through the container — is item 7 |
+| 7 | M2 | Route the runtime's disk/git/exec duties through the container host: the agent's file/git/exec work happens inside the jail-free container, not on the host | Completes item 6's second half on the v166 wall; the §63 duties stop touching the host FS |
+| 8 | M6 | Autonomous build: end-to-end plan→deploy with checkpoints | First milestone that uses everything built so far |
+| 9 | M7–M10 | Hosted publish + community; then creator economy, ops, external agents | Product-goal milestones; require `nexus-api` + real persistence |
 
 ## Guardrails (what "done" means here)
 

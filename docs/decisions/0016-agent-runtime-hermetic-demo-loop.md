@@ -7860,3 +7860,167 @@ the priority queue in `docs/DEVELOPMENT_PLAN.md`. Full narrative in `docs/eviden
   the surface's own face. The document holds spec text, not a 3D preview. Authored bodies only — the
   composed demo never enters the document. Still open on this surface: pan, keyboard controls, a
   per-body picker, editable lights, disk persistence. The bridge stays read-only.
+
+---
+
+### Amendment 164 (M2 v164, docs/evidence) — the prose totals followed the suites late, so the evidence tables were re-pinned to what the suites actually answer
+
+_Numbering: claimed in 7241a28's message (2026-10-06) without a ledger entry; the ledger grants the number,_
+_and this is the grant (am. 111: the ledger grants numbers)._
+
+v161/v163 grew two suites and the evidence prose kept the old answers: `sceneTools.test.ts` was 20 in the
+table while the file answered 28, `worldTools.test.ts` 21 vs 27, and the prose total said 492 where the
+suites said 506. The only honest fix for a drifted count is the suites' own answer: the tables and the
+total were re-pinned to them. Bounds: evidence prose only; counts follow suites, never memory.
+
+### Amendment 165 (M5 v165, three-runtime) — the listing verb classifies every name it holds: `listSaveFiles()` reports the refused subset via `savePathRefusal(path)` without reading a file
+
+_Numbering: claimed in 0e95f04's message without a ledger entry; granted here. Full narrative in_
+_`docs/evidence/three-runtime/README.md` (v165)._
+
+- **The gap.** `listSaveFiles()` was the only caller of `storage.list()` in the package that did not
+  classify: it listed every name the host holds — including names this build's naming rule refuses
+  (backslash segments, temp suffixes) — and a caller who then tried to read one met the door's throw.
+- **The fix.** The listing returns `{ store, paths, refused: { path, why }[] }`; the classification is pure
+  string work through `savePathRefusal(path)` — zero reads — and the census gate in
+  `test/saveNameSpelling.test.ts` pins all FOUR callers of `storage.list()` in `src/` to classify.
+- **Evidence.** 417/417 at 0e95f04 (one `toEqual` widened to pin the new field). **Bounds:** `paths` keeps
+  its meaning — a fact about the host, not a build opinion; `refused` is additive.
+
+### Amendment 166 (M2 v166, exec-host) — the sandbox gains its first OS-level wall: a policy-approved plan runs inside an ephemeral container, and the proof measures the wall instead of narrating it
+
+_Numbering: authored as v164 (the module header said so) but landed at v166 in a35310f; the ledger grants_
+_the number — v164 is amendment 164's count fix above. The evidence sections first published with_
+_a35310f/3bf329e misdescribed the system (three doors that do not exist, proof sections §6–§9 that do not_
+_exist, milestone M6 which is not this lane); the text is re-pinned to the SHIPPED module in the same_
+_commit that writes this entry (v171)._
+
+- **The gap this closes.** v30's exec host ran a policy-approved argv on the real filesystem with the plan
+  as the only wall. ADR 0013's first sentence — ephemeral containers, no host FS, caps, wall-clock,
+  default-deny egress — had no code, and KNOWN_ISSUES carried it open ("container isolation … still not
+  built").
+- **The design keeps one owner of the decision.** `planExec` in `@nexus/agent-runtime` remains the SINGLE
+  decision function (argv allowlist, bare-name executables, env scrubbing, budget clamping — and its
+  `guardedJoin` is pure slash math, so the same jail check that guarded a host path guards the container
+  workdir). `agents/exec-host/src/containerExec.ts` adds what the plan cannot say: a POLICY-PINNED image
+  (the request can never name one), a CONTAINER-side `workdirRoot`, and `docker run` as the spawned argv —
+  still through the ONE `SpawnLike` seam, so the v30 audit's "exactly ONE module may talk to node's spawn
+  module" keeps its teeth (exec-host-proof greps dist; this file never spells that module's name, and a
+  comment would count).
+- **The wall is 10 argv flags, audited from the spawned argv itself** (`CONTAINER_ISOLATION_ARGS` is
+  exported as data so the audit reads the array the builder reads): `--rm`, `--network none`, `--pull
+  never` (a missing image FAILS — no registry the policy never asked about), `--cap-drop ALL` with
+  `no-new-privileges`, `--read-only` rootfs over one `--tmpfs` scratch
+  (`/tmp:rw,noexec,nosuid,size=64m`), `--memory 512m` (+ swap), `--cpus 1`, `--pids-limit 128`.
+  `CONTAINER_MOUNT_FLAGS` is the empty-audit list: the builder has NO mount flag it can ever emit, and
+  proof §2 counts mount flags in the real argv (0). Caps are policy fields clamped by
+  `validateContainerPolicy`. Wall-clock is a HOST budget: when it fires the docker client is killed and
+  `docker rm -f <name>` retires a container the client may have left running — attempted AND reported
+  (`cleanup.removed`), never assumed.
+- **One door.** `container.exec` (`CONTAINER_EXEC_TOOL_SPECS`) — exec permission, §28-gated at the
+  registry like every exec-host door; `registerContainerExecTools` validates the policy BEFORE registering
+  and refuses an invalid one at construction. `probeContainerRuntime` answers
+  `{available, serverVersion, reason}` — absence is a normal answer, not an error.
+- **Evidence.** `containerExec.test.ts` 26 cases (301/301 across the package, tsc clean); REAL-daemon
+  proof `container-proof.mjs` §1–§8 ALL PASSED (daemon 29.8.x; re-verified 2026-10-07 after the engine's
+  WSL2 flake — on a cold engine §5's `rm -f` once exceeded the proof's own 10s cleanup budget and the
+  proof REFUSED to count the retirement: a slow engine is a failed claim, which is the right bias):
+  §2 counts 10 isolation flags / 0 mount flags in the argv; §3 runs the pinned `node:22-alpine` for real
+  (exit 0, whole stdout); §4 measures the wall (rootfs write → `EROFS`, `/tmp` writable, host fs ABSENT,
+  egress denied immediately); §5 kills `sleep 60` at 4s and the daemon listing is empty after; §6 the
+  default-deny refusal never spawns; §7 the JSONL journal holds every outcome in order — a rule number
+  exactly when the policy said yes; §8 the door answers through the registry.
+- **Bounds (§60).** ADR 0013 stays **Proposed**: gVisor/Firecracker, per-job secret injection from
+  `services/ai-svc`, a warm pool, and egress policy beyond `--network none` do not exist. The engine is
+  trusted — this layer enforces policy and cannot prevent a compromised engine from escaping. No image
+  build/pull, no volumes (by construction), no exec into a running container. The runtime's own tools
+  (disk/git/exec) do NOT route through the container yet — the wall exists; nobody is behind it.
+### Amendment 167 (M2 v167, docs/evidence) — the wiring is a record, not a re-export: the dependency stays one-way (exec-host → agent-runtime)
+
+_Numbering: claimed in 4876fb4's message without a ledger entry; granted here. The section as first_
+_published carried a five-row test table that matches no real suite; re-pinned in the same commit that_
+_writes this entry (v171)._
+
+The record consumers need: `@nexus/exec-host` depends on `@nexus/agent-runtime` (`ToolRegistry`,
+`Checkpoint`, `planExec`) — one-way, never reversed, so agent-runtime stays spawn-free (ADR 0013) and
+container types are NOT re-exported through it. A consumer wires the halves at the call site:
+`createContainerExecHost(policy)` + `registerContainerExecTools(registry, host)` — after which the
+registry answers `container.exec` behind the `exec` permission class and §28. The ROADMAP cell that
+placed this work under M6 is restored to ⬜ planned — the milestone is M2 (DEVELOPMENT_PLAN queue item 6),
+and the container module's own header says so. Evidence: docs-only; the 26 cases live in
+`containerExec.test.ts` under their own structure. **Bounds:** this grant wires nothing new — it records
+the shape so the next consumer cannot invent a second one.
+
+### Amendment 168 (M5 v168, three-runtime) — the store itself answers "will you refuse this name?": `savePathRefusal(path)` joins the `SaveStore` interface
+
+_Numbering: claimed in ce2a551's message without a ledger entry; granted here. Full narrative in_
+_`docs/evidence/three-runtime/README.md` (v168)._
+
+- **The gap.** Classification lived only as a module-level helper; the interface had no way to ask, so a
+  caller had to import the helper or try-and-catch.
+- **The fix.** `SaveStore.savePathRefusal(path): string | null` — both stores delegate to the module-level
+  helper, which stays the one owner (via `resolveSavePath`), so the halves cannot drift. Additive: zero
+  behaviour change, 5 new cases pin the delegation (valid → `null`; debris, traversal and backslash → the
+  door's own sentence; interface ≡ helper across 8 names).
+- **Evidence.** The v168 record says 417 → 423, but its own per-file rows sum to 422 — the drift was that
+  record's arithmetic, and HEAD measures **422/422** (2026-10-07, b03b193). **Bounds:** no src behaviour
+  changed; the census gate still pins 4 callers of `storage.list()`.
+
+### Amendment 169 (M5 v169, studio) — the save/load system gets a face: browse saves, select one, load it
+
+_Numbering: claimed in e8b9ccb's message without a ledger entry; granted here. Record in_
+_`docs/evidence/three-runtime/README.md` (v169)._
+
+Scene3D gains a storage backend (`createMemorySaveStore()` injected into the runtime — the step toward
+persistence), `SceneSaverLike` grows an optional `listSaveFiles()` that reads HEADERS only (format,
+version, entity count — never full entity data), and the panel grows a browse list: click a save, and
+load loads THAT one instead of only the last. Studio 214/214, build clean per the record; the browser
+harness re-run at v171 answers 25/25 against this face. **Bounds at v169:** the memory store was
+process-scoped — saves died with the tab; v170 replaces the backend (below).
+### Amendment 170 (M5 v170, three-runtime + studio) — saves survive the reload: a localStorage store behind the same `SaveStore` seam, and the Studio switches to it
+
+_Numbering: claimed in b03b193's message without a ledger entry — and that commit shipped with NO evidence_
+_record at all; this entry is the record, written at v171 after measuring the tree it landed on._
+
+- **What landed.** `createLocalStorageSaveStore(namespace)` in `packages/three-runtime/src/saveStore.ts`:
+  keys are namespaced (`nexus-save:<namespace>:<name>`), an index key holds the name list so `list()`
+  reads no bytes beyond the index, every verb classifies through `savePathRefusal` BEFORE touching
+  storage, `writeAtomic` is temp-then-copy-then-remove (localStorage has no rename syscall; the temp key
+  carries `SAVE_TEMP_SUFFIX` so the debris policy already knows the name), and construction REFUSES an
+  environment without `window.localStorage` rather than silently degrading. Studio wiring (Scene3D): the
+  injected store becomes `createLocalStorageSaveStore('studio-scene')` — saves persist across page
+  reloads within the origin (~5MB quota).
+- **Evidence (measured 2026-10-07 at b03b193).** three-runtime **422/422**, studio **214/214** — the
+  landing changed no covered behaviour (the new store has its own bounds below); the browser harness
+  re-run at v171 answers **25/25** (backend webgl) against the v169/v170 UI.
+- **Bounds (§60).** NO unit coverage for the localStorage store itself: the constructor reads the GLOBAL
+  `window.localStorage` and accepts no injectable storage, so the package's Node suite cannot exercise it
+  — the injectability that made the v120 seam worth having is exactly what this store skipped; a
+  follow-up should take the storage as a parameter. The panel's save note still reads "nothing written to
+  disk" (v163 text) — true of the file system, but the save now persists in origin localStorage; the note
+  should name the store. Atomicity is copy-based: a crash between copy and remove can leave a `.tmp` key
+  the index never lists (debris by policy, but no sweeper walks the namespace). No delete in the browse
+  UI, no quota handling, no cross-tab sync.
+
+### Amendment 171 (M2+M5 v171, docs/evidence + three version labels) — the ledger catches up: seven amendments claimed in messages and prose but never written here are written now, and the container evidence is re-pinned to the shipped module
+
+_Numbering: v164–v170 landed across 7241a28..b03b193 (2026-10-06/07) with amendment numbers claimed in_
+_commit messages and evidence prose but NO entry here — the ledger grants the numbers (am. 111), so_
+_entries 164–170 above are the grants, written from what the commits actually shipped, and this entry_
+_records the catch-up itself._
+
+- **What this grant is.** Seven ledger entries (164–170) written after the fact from the shipped commits,
+  the packages' own suites and the proofs — not from the messages that claimed them. Three version
+  labels self-corrected to the numbers the ledger granted (containerExec.ts header, containerExec.test.ts
+  describe line, container-proof.mjs header: authored v164, landed v166). The evidence README's two
+  container sections were re-pinned to the SHIPPED module (the first-published text named doors, proof
+  sections and a milestone that do not exist — see the record-keeping note in the re-pinned text).
+- **Measured at this grant (2026-10-07).** exec-host **301/301**, three-runtime **422/422**, studio
+  **214/214**; exec-host-proof ALL PASSED (§60 line: capability confined to execHost.js);
+  container-proof §1–§8 ALL PASSED against the real daemon 29.8.2; browser harness studio-scene3d
+  **25/25** (backend webgl) re-run against the v169/v170 UI — the browse/save/load/send-to-doc face
+  survives on the current build.
+- **Bounds (§60).** The v170 save note still reads "nothing written to disk" — recorded open on the M5
+  lane (the note should name the store). The M6 ROADMAP cell that briefly carried the container work is
+  restored to ⬜ planned — the milestone is M2. DEVELOPMENT_PLAN's queue gained item 7 (route the
+  runtime's disk/git/exec duties through the container) — the wall exists; nobody is behind it yet.

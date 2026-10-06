@@ -3,7 +3,7 @@ import { planExec, validatePolicy } from '@nexus/agent-runtime';
 import { NODE_SPAWN, type ExecJournalDisk, type ExecJournalRef, type ExecChild, type SpawnLike } from './execHost.js';
 
 /**
- * M2 v164 (ADR 0016 amendment 164, ADR 0013 third slice): the CONTAINER executor — the first
+ * M2 v166 (ADR 0016 amendment 166, ADR 0013 third slice): the CONTAINER executor — the first
  * OS-level isolation in the repo. What ADR 0013 proposed and this file now enforces for a
  * policy-approved plan: the command runs inside an EPHEMERAL container (`--rm`) whose argv can
  * contain NO host filesystem mount (there is no `-v`/`--volume`/`--mount` flag this module can

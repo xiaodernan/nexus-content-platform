@@ -1,4 +1,4 @@
-// NEXUS M2 v164 — container proof (ADR 0016 amendment 164, ADR 0013 third slice).
+// NEXUS M2 v166 — container proof (ADR 0016 amendment 166, ADR 0013 third slice).
 // The sandbox gained its first OS-level isolation: a policy-approved plan now runs inside an
 // EPHEMERAL container whose argv can carry no host mount, with egress denied, caps enforced and
 // a read-only rootfs — every claim below measured against the REAL docker daemon on this host.
