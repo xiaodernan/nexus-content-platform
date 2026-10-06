@@ -13,8 +13,10 @@ import {
   orbitToPlacement,
   orbitFromPlacement,
   applyOrbit,
+  applyPan,
   normalizeAngle,
   nextBodyPlacement,
+  ORBIT_PAN_LIMIT,
   type OrbitState,
   STUDIO_CAMERA_POSITION,
   type SceneAdapterLike,
@@ -337,9 +339,9 @@ describe('the camera orbit — v142’s fixed placement becomes a default rather
 
   it('orbitFromPlacement is the inverse of orbitToPlacement', () => {
     for (const orbit of [
-      { azimuth: 0, elevation: 0, distance: 5 },
-      { azimuth: 1.2, elevation: -0.6, distance: 12 },
-      { azimuth: -2.9, elevation: 1.1, distance: 30 },
+      { azimuth: 0, elevation: 0, distance: 5, panX: 0, panZ: 0 },
+      { azimuth: 1.2, elevation: -0.6, distance: 12, panX: 0, panZ: 0 },
+      { azimuth: -2.9, elevation: 1.1, distance: 30, panX: 0, panZ: 0 },
     ] as OrbitState[]) {
       const back = orbitFromPlacement(orbitToPlacement(orbit, STUDIO_CAMERA_LOOK_AT).position, STUDIO_CAMERA_LOOK_AT);
       expect(back.azimuth).toBeCloseTo(orbit.azimuth, 10);
@@ -352,7 +354,7 @@ describe('the camera orbit — v142’s fixed placement becomes a default rather
     // The property that makes it an orbit rather than a drift: turning the camera must not also move it
     // closer or further away.
     for (let i = 0; i < 24; i++) {
-      const orbit = { azimuth: (i * Math.PI) / 12, elevation: ((i % 7) - 3) * 0.3, distance: 9 };
+      const orbit = { azimuth: (i * Math.PI) / 12, elevation: ((i % 7) - 3) * 0.3, distance: 9, panX: 0, panZ: 0 };
       const { position } = orbitToPlacement(orbit, STUDIO_CAMERA_LOOK_AT);
       const d = Math.hypot(
         position.x - STUDIO_CAMERA_LOOK_AT.x,
@@ -375,7 +377,7 @@ describe('the camera orbit — v142’s fixed placement becomes a default rather
   });
 
   it('applyOrbit clamps elevation at the poles and distance at its range', () => {
-    const flat: OrbitState = { azimuth: 0, elevation: 0, distance: 10 };
+    const flat: OrbitState = { azimuth: 0, elevation: 0, distance: 10, panX: 0, panZ: 0 };
     expect(applyOrbit(flat, { elevation: 10 }).elevation).toBeCloseTo(ORBIT_ELEVATION_LIMIT, 12);
     expect(applyOrbit(flat, { elevation: -10 }).elevation).toBeCloseTo(-ORBIT_ELEVATION_LIMIT, 12);
     expect(applyOrbit(flat, { distance: 1000 }).distance).toBe(ORBIT_DISTANCE_MAX);
@@ -387,7 +389,7 @@ describe('the camera orbit — v142’s fixed placement becomes a default rather
   });
 
   it('applyOrbit FOLDS azimuth rather than clamping it — it has no natural bound', () => {
-    const spun = applyOrbit({ azimuth: Math.PI - 0.05, elevation: 0, distance: 10 }, { azimuth: 0.1 });
+    const spun = applyOrbit({ azimuth: Math.PI - 0.05, elevation: 0, distance: 10, panX: 0, panZ: 0 }, { azimuth: 0.1 });
     expect(spun.azimuth).toBeCloseTo(-Math.PI + 0.05, 10); // wrapped, not pinned at π
   });
 
@@ -397,6 +399,97 @@ describe('the camera orbit — v142’s fixed placement becomes a default rather
     expect(new Set(keys).size).toBe(places.length);
     // And none of them sits at the origin, where the composed shots already are.
     for (const p of places) expect(Math.hypot(p.x, p.z)).toBeCloseTo(2.6, 10);
+  });
+});
+
+describe('pan — the camera rig slides across the ground (M5 v181)', () => {
+  it('applyPan converts CAMERA-relative deltas with the orbit’s own azimuth', () => {
+    // Facing −Z (azimuth 0): "forward" is −Z, "right" is +X.
+    const facing = applyPan(
+      { azimuth: 0, elevation: 0.3, distance: 8, panX: 0, panZ: 0 },
+      { forward: 0.5, right: 0.5 },
+    );
+    expect(facing.panX).toBeCloseTo(0.5, 10);
+    expect(facing.panZ).toBeCloseTo(-0.5, 10);
+    // Facing +X (azimuth π/2): "forward" is now −X — the WORLD axis moved with the camera, which is what
+    // makes W mean "into the screen" instead of "north".
+    const turned = applyPan({ azimuth: Math.PI / 2, elevation: 0, distance: 8, panX: 0, panZ: 0 }, { forward: 0.5 });
+    expect(turned.panX).toBeCloseTo(-0.5, 10);
+    expect(turned.panZ).toBeCloseTo(0, 10);
+    // A pan turns nothing and zooms nothing.
+    expect(turned.azimuth).toBe(Math.PI / 2);
+    expect(turned.elevation).toBe(0);
+    expect(turned.distance).toBe(8);
+  });
+
+  it('applyPan clamps each axis independently at ±ORBIT_PAN_LIMIT', () => {
+    const panned = applyPan(
+      { azimuth: 0.7, elevation: 0, distance: 8, panX: 0, panZ: 0 },
+      { forward: 1000, right: -1000 },
+    );
+    expect(panned.panX).toBeCloseTo(-ORBIT_PAN_LIMIT, 10);
+    expect(panned.panZ).toBeCloseTo(-ORBIT_PAN_LIMIT, 10);
+    // One wall stops its own axis; the other keeps its room.
+    const atWall = applyPan({ azimuth: 0, elevation: 0, distance: 8, panX: ORBIT_PAN_LIMIT, panZ: 0 }, { right: 5 });
+    expect(atWall.panX).toBe(ORBIT_PAN_LIMIT);
+    expect(atWall.panZ).toBe(0);
+  });
+
+  it('orbitBy preserves the pan offsets — turning never moves what the camera looks at', () => {
+    const panned = applyPan({ azimuth: 0, elevation: 0, distance: 8, panX: 0, panZ: 0 }, { right: 3 });
+    const turned = applyOrbit(panned, { azimuth: 1, elevation: 0.2 });
+    expect(turned.panX).toBe(panned.panX);
+    expect(turned.panZ).toBe(panned.panZ);
+  });
+
+  it('orbitToPlacement pans the whole rig: lookAt moves WITH the camera', () => {
+    const orbit: OrbitState = { azimuth: 0.9, elevation: 0.4, distance: 7, panX: 2, panZ: -3 };
+    const { position, lookAt } = orbitToPlacement(orbit, STUDIO_CAMERA_LOOK_AT);
+    expect(lookAt.x).toBeCloseTo(STUDIO_CAMERA_LOOK_AT.x + 2, 10);
+    expect(lookAt.z).toBeCloseTo(STUDIO_CAMERA_LOOK_AT.z - 3, 10);
+    // And the camera stands exactly `distance` from the PANNED anchor — pan changes neither the turn
+    // nor the reach.
+    const d = Math.hypot(position.x - lookAt.x, position.y - lookAt.y, position.z - lookAt.z);
+    expect(d).toBeCloseTo(7, 10);
+  });
+
+  it('the DEFAULT orbit carries no pan, so the opening view is unchanged', () => {
+    expect(STUDIO_ORBIT_DEFAULT.panX).toBe(0);
+    expect(STUDIO_ORBIT_DEFAULT.panZ).toBe(0);
+  });
+
+  it('panBy moves the surface’s orbit and aims the adapter at the PANNED target', () => {
+    const aims: { position: SceneVec3; lookAt: SceneVec3 }[] = [];
+    const { runtime } = fakeRuntime();
+    const surface = createStudioScene(runtime, () => {}, {
+      placeCamera: (_s, _c, position, lookAt) => {
+        aims.push({ position, lookAt });
+        return true;
+      },
+    });
+
+    const before = aims.length;
+    const report = surface.panBy({ right: 2, forward: -1 });
+    expect(aims.length).toBe(before + 1);
+    expect(report.frames).toBe(surface.frames); // sliding the view is not a frame
+    // The world deltas come from the camera-relative input through the azimuth the surface holds —
+    // re-derived here from the documented vectors, not read back out of `applyPan`.
+    const az = surface.orbit.azimuth;
+    expect(surface.orbit.panX).toBeCloseTo(2 * Math.cos(az) + Math.sin(az), 10);
+    expect(surface.orbit.panZ).toBeCloseTo(-2 * Math.sin(az) + Math.cos(az), 10);
+    // And the placement handed to the adapter is the one the panned orbit describes.
+    const expected = orbitToPlacement(surface.orbit, STUDIO_CAMERA_LOOK_AT);
+    expect(aims[aims.length - 1]!.lookAt.x).toBeCloseTo(expected.lookAt.x, 10);
+    expect(aims[aims.length - 1]!.lookAt.z).toBeCloseTo(expected.lookAt.z, 10);
+  });
+
+  it('resetOrbit clears the pan — back to the view the Studio opens with', () => {
+    const { runtime } = fakeRuntime();
+    const surface = createStudioScene(runtime, () => {}, { placeCamera: () => true });
+    surface.panBy({ forward: 4, right: 4 });
+    expect(surface.orbit).not.toEqual(STUDIO_ORBIT_DEFAULT);
+    surface.resetOrbit();
+    expect(surface.orbit).toEqual(STUDIO_ORBIT_DEFAULT);
   });
 });
 

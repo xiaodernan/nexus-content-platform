@@ -183,6 +183,72 @@ try {
     `azimuth ${dragged.azimuth?.toFixed(3)} → ${reset.azimuth?.toFixed(3)}`,
   );
 
+  // ── M5 v181: the surface PANS — WASD/arrows walk it, shift-drag grabs the ground ─────────────────
+  // Pan is read through the same bridge orbit is: a handler that moved a local counter without reaching
+  // the runtime would fail here. Direction checks lean on the reset above restoring the DEFAULT azimuth:
+  // facing into the screen, W walks forward and D strafes to the view's right.
+  const panAfterReset = await orbitOf();
+  check(
+    'the default orbit carries no pan (the opening view is unchanged)',
+    panAfterReset.panX === 0 && panAfterReset.panZ === 0,
+    `pan ${panAfterReset.panX}/${panAfterReset.panZ}`,
+  );
+
+  const pressKey = async (key, code, vk) => {
+    await page.send('Input.dispatchKeyEvent', { type: 'keyDown', key, code, windowsVirtualKeyCode: vk, nativeVirtualKeyCode: vk, text: key });
+    await page.send('Input.dispatchKeyEvent', { type: 'keyUp', key, code, windowsVirtualKeyCode: vk, nativeVirtualKeyCode: vk });
+  };
+  for (let i = 0; i < 4; i++) await pressKey('w', 'KeyW', 87);
+  const walkedIn = await page.waitForFunction(
+    `(() => { const o = window.__nexusScene3d?.scene3d()?.orbit; return o && o.panX < -0.3 && o.panZ < -0.3 ? o : null; })()`,
+    { timeout: 10000 },
+  );
+  check(
+    'pressing W pans INTO the screen (camera-relative, not a world axis)',
+    walkedIn !== null,
+    `pan ${panAfterReset.panX}/${panAfterReset.panZ} → ${walkedIn?.panX?.toFixed(3)}/${walkedIn?.panZ?.toFixed(3)}`,
+  );
+
+  for (let i = 0; i < 2; i++) await pressKey('d', 'KeyD', 68);
+  const strafed = await page.waitForFunction(
+    `(() => { const o = window.__nexusScene3d?.scene3d()?.orbit; return o && o.panX > ${walkedIn.panX} + 0.2 ? o : null; })()`,
+    { timeout: 10000 },
+  );
+  check('and pressing D strafes toward the view’s right', strafed !== null, `panX ${walkedIn.panX?.toFixed(3)} → ${strafed?.panX?.toFixed(3)}`);
+
+  await page.evaluate("document.querySelector('[data-scene-reset-view]').click()");
+  const clearedPan = await page.waitForFunction(
+    `(() => { const o = window.__nexusScene3d?.scene3d()?.orbit; return o && o.panX === 0 && o.panZ === 0 ? o : null; })()`,
+    { timeout: 10000 },
+  );
+  check('pressing “reset view” clears the pan too', clearedPan !== null, `pan ${strafed?.panX?.toFixed(3)}/${strafed?.panZ?.toFixed(3)} → 0/0`);
+
+  // Shift-drag = grab the ground. The discriminator is the AZIMUTH: panning never turns the camera, so
+  // pan moved + azimuth frozen is a pan — pan moved + azimuth moved would be an orbit wearing its name.
+  const azBeforeShift = (await orbitOf()).azimuth;
+  await page.send('Input.dispatchMouseEvent', { type: 'mousePressed', x: box.x, y: box.y, button: 'left', buttons: 1, clickCount: 1, modifiers: 8 });
+  for (let i = 1; i <= 5; i++) {
+    await page.send('Input.dispatchMouseEvent', { type: 'mouseMoved', x: box.x + i * 12, y: box.y + i * 8, button: 'left', buttons: 1, modifiers: 8 });
+  }
+  await page.send('Input.dispatchMouseEvent', { type: 'mouseReleased', x: box.x + 60, y: box.y + 40, button: 'left', buttons: 0, clickCount: 1, modifiers: 8 });
+  const shiftPanned = await page.waitForFunction(
+    `(() => { const o = window.__nexusScene3d?.scene3d()?.orbit; return o && (Math.abs(o.panX) > 0.3 || Math.abs(o.panZ) > 0.3) ? o : null; })()`,
+    { timeout: 10000 },
+  );
+  const azAfterShift = (await orbitOf()).azimuth;
+  check(
+    'shift-drag PANS the ground without turning the camera',
+    shiftPanned !== null && Math.abs(azAfterShift - azBeforeShift) < 1e-9,
+    `pan ${clearedPan.panX}/${clearedPan.panZ} → ${shiftPanned?.panX?.toFixed(3)}/${shiftPanned?.panZ?.toFixed(3)} · az ${azBeforeShift?.toFixed(3)} → ${azAfterShift?.toFixed(3)}`,
+  );
+
+  // Leave the camera where the Studio opened for everything that follows.
+  await page.evaluate("document.querySelector('[data-scene-reset-view]').click()");
+  await page.waitForFunction(
+    `(() => { const o = window.__nexusScene3d?.scene3d()?.orbit; return o && o.panX === 0 && o.panZ === 0 ? o : null; })()`,
+    { timeout: 10000 },
+  );
+
   // ── M5 v163: the scene SURVIVES the surface — save, load, and the document door ─────────────────
   // Save records the LIVE scene in the runtime's own format; load restores it into a FRESH scene (the
   // demo scene and its loop are never touched); send-to-document files the AUTHORED bodies into the

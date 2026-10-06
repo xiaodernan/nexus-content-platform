@@ -8322,3 +8322,36 @@ engine messages vary; a private-mode `SecurityError` is NOT quota-shaped and sta
 index-update-fails path (target bytes written, index stale) is still raw — the write surfaces a
 quota-named throw only when the DATA write refuses. The Studio save dialog has no quota meter; the
 browse UI's delete buttons (v169/171) are the remedy the note names.
+### Amendment 181 — M5: the 3D surface PANS — the camera rig slides across the ground, by shift-drag and by keyboard (2026-10-07)
+
+**What landed.** The first of M5's "still open" controls, built the way v161 built the orbit — pure
+arithmetic first, the component only forwarding input:
+
+1. `scene3d.ts` — `OrbitState` gains `panX`/`panZ`: world-unit offsets that slide the orbit TARGET along
+   the ground plane. New `applyPan` converts CAMERA-relative deltas (`forward`, `right`) with the azimuth
+   the orbit already holds — forward is `(−sin az, 0, −cos az)`, right is `(cos az, 0, −sin az)` — so a
+   key means "into the screen", not "−Z". Each axis clamps independently at `±ORBIT_PAN_LIMIT` (12 world
+   units); `applyOrbit` rides the offsets through untouched (turning never moves what the camera looks
+   at); `orbitToPlacement` slides the whole rig (`lookAt = anchor + pan`, `position = anchor + pan +
+   spherical`) so a pan changes neither the turn nor the reach; `orbitFromPlacement` answers pan zero by
+   definition. Pan is HORIZONTAL-ONLY by declaration — a vertical target would fight the elevation clamp,
+   and an undeclared axis that silently did nothing would be a control that lies. The surface grows one
+   verb, `panBy({forward?, right?})`; `resetOrbit` clears the pan because the default carries none.
+2. `Scene3D.tsx` — SHIFT-drag grabs the ground (the world follows the cursor, so the target moves
+   opposite the drag); WASD and the arrow keys walk camera-relatively (W into the screen, S out, A/D
+   sideways). The keydown listener is its own effect with its own cleanup, and a key aimed at an
+   input/textarea/select/contentEditable is ignored — typing in the agent panel is not camera input. The
+   HUD's orbit line reports the pan alongside az/el/distance.
+
+**Measured.** studio 256 → **263** (+7 pan cases in `scene3d.test.ts`: the camera-relative conversion at
+two azimuths, independent per-axis clamps, `orbitBy` preserving pan, the rig-wide `orbitToPlacement`, the
+default carrying none, `surface.panBy` through the adapter, `resetOrbit` clearing it); `npm run build`
+clean; harness studio-scene3d 25 → **30/30** in a real browser — W pans `0/0 → −1.097/−1.672`, D strafes,
+reset clears, and shift-drag moves the pan while the azimuth sits frozen at 0.581 (pan moved + azimuth
+frozen is a pan; an orbit wearing this one's name would have turned).
+
+**Bounds (§60).** Pan is horizontal-only: Y never pans. The keyboard listener consumes WASD/arrows
+page-wide (scoped by the input guard, not by focus), so a surface that wanted its own key map inside a
+page with other key consumers would need a narrower rule. The pan limit is a constant, not a setting;
+there is no pan inertia, no held-key interpolation, and no pan meter in the HUD beyond the two numbers
+the report already prints.

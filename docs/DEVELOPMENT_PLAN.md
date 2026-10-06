@@ -51,9 +51,13 @@ headless proof → product surface → real-browser verification → record the 
   was written (write / writeAtomic's temp step / rename; unclassifiable errors stay raw — no
   invented diagnosis), and the save note stops claiming "nothing written to disk" — it names the
   store: `persisted in this origin's localStorage (reload-safe), not on disk` (three-runtime
-  436 → **440**, harness **25/25** re-verified; ADR 0016 amendment 180). Still open: pan + keyboard
-  controls, per-body picker, lighting control, fs-backed persistence via a Node seam, a quota
-  meter in the save dialog.
+  436 → **440**, harness **25/25** re-verified; ADR 0016 amendment 180). **Now PANNABLE (v181):** the
+  orbit target slides along the ground plane — `OrbitState` gains `panX`/`panZ`, pure `applyPan`
+  converts camera-relative input (`forward`/`right`) with the orbit's own azimuth so W means "into the
+  screen", each axis clamps at `±ORBIT_PAN_LIMIT`, a turn rides the offsets through untouched, and the
+  surface grows `panBy` wired to SHIFT-drag and WASD/arrows (typing in a text field never pans) (studio
+  256 → **263**, harness **25 → 30/30**; ADR 0016 amendment 181). Still open: per-body picker, lighting
+  control, fs-backed persistence via a Node seam, a quota meter in the save dialog.
 - **M6–M10:** planned, not started (autonomous build, community, creator economy, ops, external agents).
 
 ## Execution order (next increments)

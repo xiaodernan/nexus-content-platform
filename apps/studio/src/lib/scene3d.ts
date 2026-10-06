@@ -156,6 +156,13 @@ export const STUDIO_CAMERA_LOOK_AT: SceneVec3 = { x: 0, y: -0.2, z: 0 };
  * person can use. This turns the same placement into spherical coordinates — the two v142 constants become
  * the DEFAULT orbit rather than the only view — so orbit and zoom are arithmetic the pure suite can assert
  * with no DOM and no three.js, and the component only has to forward pointer events.
+ *
+ * M5 v181 — the orbit gains PAN: `panX`/`panZ` offset the TARGET laterally along the ground plane, so the
+ * camera rig (target + spherical offset) slides as one piece. Pan is HORIZONTAL-ONLY by declaration — the
+ * ground plane is what a person pans across, a vertical target would fight the elevation clamp, and an
+ * undeclared axis that silently does nothing would be a control that lies. The offsets are stored in WORLD
+ * units but applied from CAMERA-relative input (a key press means "into the screen", not "−Z"), which is
+ * the arithmetic `applyPan` owns.
  */
 export interface OrbitState {
   /** Rotation about the world Y axis, in radians, normalised to (−π, π]. */
@@ -164,6 +171,10 @@ export interface OrbitState {
   elevation: number;
   /** Distance from the target, in world units. */
   distance: number;
+  /** v181 — how far the orbit target sits EAST of its anchor, in world units. Clamped to ±`ORBIT_PAN_LIMIT`. */
+  panX: number;
+  /** v181 — how far the orbit target sits SOUTH of its anchor (+Z), in world units. Clamped to ±`ORBIT_PAN_LIMIT`. */
+  panZ: number;
 }
 
 /** How far the camera may tilt. Just short of the poles, where `lookAt` has no stable up vector. */
@@ -182,21 +193,27 @@ export function normalizeAngle(radians: number): number {
   return a;
 }
 
-/** The placement a given orbit produces, relative to `target`. */
+/** The placement a given orbit produces, relative to `target`. The pan offsets (v181) slide the whole rig:
+ *  the camera looks at `target + pan`, and sits at `target + pan + spherical(orbit)` — so panning moves the
+ *  view across the ground without turning it or changing how far the camera stands from what it looks at. */
 export function orbitToPlacement(orbit: OrbitState, target: SceneVec3): { position: SceneVec3; lookAt: SceneVec3 } {
+  const anchor = { x: target.x + orbit.panX, y: target.y, z: target.z + orbit.panZ };
   const cosElevation = Math.cos(orbit.elevation);
   return {
     position: {
-      x: target.x + orbit.distance * cosElevation * Math.sin(orbit.azimuth),
-      y: target.y + orbit.distance * Math.sin(orbit.elevation),
-      z: target.z + orbit.distance * cosElevation * Math.cos(orbit.azimuth),
+      x: anchor.x + orbit.distance * cosElevation * Math.sin(orbit.azimuth),
+      y: anchor.y + orbit.distance * Math.sin(orbit.elevation),
+      z: anchor.z + orbit.distance * cosElevation * Math.cos(orbit.azimuth),
     },
-    lookAt: { x: target.x, y: target.y, z: target.z },
+    lookAt: { x: anchor.x, y: anchor.y, z: anchor.z },
   };
 }
 
 /** The orbit that produces a given placement — the inverse, used below to turn v142's fixed pair into the
- *  default orbit instead of restating its numbers here where the two could drift apart. */
+ *  default orbit instead of restating its numbers here where the two could drift apart. The pan offsets are
+ *  ZERO by definition here: a placement is stated against its anchor, so anything else would be the
+ *  function inventing an offset nobody gave it. Round-trips hold for pan-zero orbits — the only kind this
+ *  inverse is for. */
 export function orbitFromPlacement(position: SceneVec3, target: SceneVec3): OrbitState {
   const dx = position.x - target.x;
   const dy = position.y - target.y;
@@ -206,6 +223,8 @@ export function orbitFromPlacement(position: SceneVec3, target: SceneVec3): Orbi
     azimuth: normalizeAngle(Math.atan2(dx, dz)),
     elevation: Math.atan2(dy, horizontal),
     distance: Math.hypot(horizontal, dy),
+    panX: 0,
+    panZ: 0,
   };
 }
 
@@ -222,6 +241,14 @@ export const STUDIO_ORBIT_DEFAULT: OrbitState = orbitFromPlacement(STUDIO_CAMERA
 export const ORBIT_RADIANS_PER_PIXEL = 0.01;
 export const ORBIT_ZOOM_PER_NOTCH = 0.1;
 
+/** How far the orbit target may slide from its anchor, in world units, per axis. The demo scene fits well
+ *  inside this box; the limit exists so a held key cannot walk the camera away from everything it orbits. */
+export const ORBIT_PAN_LIMIT = 12;
+/** World units one shift-dragged pixel pans — the same "push the world" scale the orbit uses. */
+export const ORBIT_PAN_PER_PIXEL = 0.02;
+/** World units one key press pans. Key repeat makes a held key continuous; one press is one step. */
+export const ORBIT_PAN_PER_KEY = 0.5;
+
 /**
  * Apply a delta to an orbit, clamping what has a limit and folding what does not.
  *
@@ -235,6 +262,40 @@ export function applyOrbit(orbit: OrbitState, delta: { azimuth?: number; elevati
     azimuth: normalizeAngle(orbit.azimuth + (delta.azimuth ?? 0)),
     elevation: clamp(orbit.elevation + (delta.elevation ?? 0), -ORBIT_ELEVATION_LIMIT, ORBIT_ELEVATION_LIMIT),
     distance: clamp(orbit.distance + (delta.distance ?? 0), ORBIT_DISTANCE_MIN, ORBIT_DISTANCE_MAX),
+    // Pan is NOT an orbit concern: turning the camera must never move what it looks at, so the offsets
+    // ride along untouched — a turn that zeroed them would be a reset wearing an orbit's name.
+    panX: orbit.panX,
+    panZ: orbit.panZ,
+  };
+}
+
+/**
+ * v181 — pan the orbit target, from CAMERA-relative input.
+ *
+ * A key press or a dragged pixel means "left of the view" or "into the screen", not a world axis, so the
+ * deltas arrive as `forward` (along the camera's horizontal view direction) and `right` (along its
+ * horizontal right), and THIS function converts them with the azimuth the orbit already holds:
+ * forward is `(−sin az, 0, −cos az)` and right is `(cos az, 0, −sin az)`. Both are horizontal by
+ * construction, which is what keeps the pan-inside-the-ground-plane promise `OrbitState` makes.
+ *
+ * Each axis clamps independently at `±ORBIT_PAN_LIMIT` — a pan that stops at one wall while the other
+ * axis still has room is the behaviour a person expects from a bounded plane.
+ */
+export function applyPan(
+  orbit: OrbitState,
+  delta: { forward?: number; right?: number },
+): OrbitState {
+  const clamp = (value: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, value));
+  const forward = delta.forward ?? 0;
+  const right = delta.right ?? 0;
+  const sin = Math.sin(orbit.azimuth);
+  const cos = Math.cos(orbit.azimuth);
+  return {
+    azimuth: orbit.azimuth,
+    elevation: orbit.elevation,
+    distance: orbit.distance,
+    panX: clamp(orbit.panX + right * cos - forward * sin, -ORBIT_PAN_LIMIT, ORBIT_PAN_LIMIT),
+    panZ: clamp(orbit.panZ - right * sin - forward * cos, -ORBIT_PAN_LIMIT, ORBIT_PAN_LIMIT),
   };
 }
 
@@ -498,6 +559,10 @@ export interface SceneSurface {
   report(): SceneReport;
   /** Turn the camera by a delta. Elevation clamps at the poles, distance at its range, azimuth folds. */
   orbitBy(delta: { azimuth?: number; elevation?: number; distance?: number }): SceneReport;
+  /** v181 — slide the orbit target across the ground, from CAMERA-relative deltas: `forward` is into the
+   *  screen, `right` is to the view's right. Clamps at `±ORBIT_PAN_LIMIT` per world axis; a pan never
+   *  turns the camera or changes its distance. */
+  panBy(delta: { forward?: number; right?: number }): SceneReport;
   /** Put the camera back to the default orbit — the view the Studio opens with. */
   resetOrbit(): SceneReport;
   /** Add a body at the next free slot. Answers `null` when the runtime produced no entity. */
@@ -592,6 +657,11 @@ export function createStudioScene(
     },
     orbitBy(delta) {
       orbit = applyOrbit(orbit, delta);
+      aim();
+      return buildSceneReport(runtime, counted, orbit);
+    },
+    panBy(delta) {
+      orbit = applyPan(orbit, delta);
       aim();
       return buildSceneReport(runtime, counted, orbit);
     },

@@ -12,6 +12,8 @@ import { childIdList } from '@nexus/design-model';
 import {
   composeDocumentOps,
   createStudioScene,
+  ORBIT_PAN_PER_KEY,
+  ORBIT_PAN_PER_PIXEL,
   ORBIT_RADIANS_PER_PIXEL,
   ORBIT_ZOOM_PER_NOTCH,
   type SceneAdapterLike,
@@ -288,6 +290,48 @@ export default function Scene3D() {
     setReport(surface.orbitBy({ distance: notches * ORBIT_ZOOM_PER_NOTCH * surface.orbit.distance }));
   }, []);
 
+  /**
+   * M5 v181 — pan. The world follows the cursor, so dragging right slides the scene right and the TARGET
+   * moves left — the same "push the world" sign the orbit drag uses. Everything goes THROUGH the surface
+   * (`panBy`), which owns the camera-relative → world conversion.
+   */
+  const onPan = useCallback((dxPixels: number, dyPixels: number) => {
+    const surface = surfaceRef.current;
+    if (!surface) return;
+    setReport(surface.panBy({ right: -dxPixels * ORBIT_PAN_PER_PIXEL, forward: -dyPixels * ORBIT_PAN_PER_PIXEL }));
+  }, []);
+
+  /** The keyboard half of pan: W walks INTO the screen, S back out, A/D sideways — camera-relative, like
+   *  the drag. Arrows repeat the same four moves for people who never touch WASD. */
+  const onKeyPan = useCallback((key: string) => {
+    const surface = surfaceRef.current;
+    if (!surface) return;
+    if (key === 'w' || key === 'ArrowUp') setReport(surface.panBy({ forward: ORBIT_PAN_PER_KEY }));
+    else if (key === 's' || key === 'ArrowDown') setReport(surface.panBy({ forward: -ORBIT_PAN_PER_KEY }));
+    else if (key === 'a' || key === 'ArrowLeft') setReport(surface.panBy({ right: -ORBIT_PAN_PER_KEY }));
+    else if (key === 'd' || key === 'ArrowRight') setReport(surface.panBy({ right: ORBIT_PAN_PER_KEY }));
+  }, []);
+
+  // The keyboard listener is its own effect so it can depend on the stable `onKeyPan` without touching
+  // the mount effect that owns the runtime's lifecycle.
+  useEffect(() => {
+    const onKeyDown = (e: KeyboardEvent) => {
+      const t = e.target as HTMLElement | null;
+      // Typing in the agent panel is not camera input: a text field's WASD must not pan the scene.
+      if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.tagName === 'SELECT' || t.isContentEditable)) {
+        return;
+      }
+      const k = e.key.length === 1 ? e.key.toLowerCase() : e.key;
+      if (k === 'w' || k === 'a' || k === 's' || k === 'd' || k.startsWith('Arrow')) {
+        // Arrows would otherwise scroll the page; the letters are consumed so nothing else answers them.
+        e.preventDefault();
+        onKeyPan(k);
+      }
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [onKeyPan]);
+
   const addedRef = useRef(0);
   const onAddBody = useCallback(() => {
     const surface = surfaceRef.current;
@@ -484,8 +528,9 @@ export default function Scene3D() {
         id="nexus-scene3d"
         data-surface="3d"
         style={{ display: 'block', width: '100%', height: '100%', cursor: 'grab', touchAction: 'none' }}
-        // M5 v161 — drag to orbit, wheel to zoom. Pointer capture so a drag that leaves the canvas keeps
-        // turning the camera instead of stopping when the cursor crosses the panel.
+        // M5 v161/v181 — drag to orbit, SHIFT-drag to pan, wheel to zoom, WASD/arrows to pan. Pointer
+        // capture so a drag that leaves the canvas keeps driving the camera instead of stopping when
+        // the cursor crosses the panel.
         onPointerDown={(e) => {
           (e.target as HTMLElement).setPointerCapture?.(e.pointerId);
           dragRef.current = { id: e.pointerId, x: e.clientX, y: e.clientY };
@@ -496,7 +541,9 @@ export default function Scene3D() {
           const dx = e.clientX - drag.x;
           const dy = e.clientY - drag.y;
           dragRef.current = { id: drag.id, x: e.clientX, y: e.clientY };
-          onOrbit(dx, dy);
+          // v181: shift = grab the ground and slide it; plain drag still orbits.
+          if (e.shiftKey) onPan(dx, dy);
+          else onOrbit(dx, dy);
         }}
         onPointerUp={(e) => {
           if (dragRef.current?.id === e.pointerId) dragRef.current = null;
@@ -529,7 +576,7 @@ export default function Scene3D() {
             {/* The orbit is reported as the surface holds it, not as a counter this component keeps. */}
             <div data-scene3d-orbit>
               orbit: az {report.orbit.azimuth.toFixed(3)} · el {report.orbit.elevation.toFixed(3)} · d{' '}
-              {report.orbit.distance.toFixed(2)}
+              {report.orbit.distance.toFixed(2)} · pan {report.orbit.panX.toFixed(2)}/{report.orbit.panZ.toFixed(2)}
             </div>
           </>
         ) : (
