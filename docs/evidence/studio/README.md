@@ -768,3 +768,25 @@ gained EXACTLY 2 nodes (`Scene: Studio Scene`, 1 child) in ONE history row. `age
 Bounds, stated: save/load is JSON in memory — nothing is written to disk and the note says so; no pan,
 no keyboard controls, no per-body picker, no editable lights, no disk persistence; the document holds
 spec text, not a 3D preview.
+
+## Save browser with delete (M5 v171 — ADR 0016 amendment 171)
+
+v169 gave the Studio a UI face for the save/load system; v170 wired it to localStorage-backed persistence;
+v171 makes the browser usable by adding **delete** — the first way to take a save back from the store.
+
+- `src/lib/scene3d.ts` — `SceneSaverLike` gained an optional `deleteSaveFile?(path: string): boolean` method.
+  Optional keeps backward compatibility for hosts that do not support deletion. Returns true when something
+  was removed, false when the path held nothing.
+- `src/components/Scene3D.tsx` — the saver implementation delegates to `runtime.deleteSaveFile(path)` and
+  returns `report.removed`. The UI adds a red-styled **delete** button beside each save entry in the browser
+  list. Clicking delete calls `stopPropagation` to prevent accidental selection, refreshes the available saves
+  list, clears the selection if the deleted save was selected, and updates the save note with success/failure.
+
+Evidence: builds clean (Next.js 15.5.25), **214/214 Studio tests green** (same suite, no regressions). The
+delete button renders only when the host provides `listSaveFiles`, keeping the surface honest about what the
+store can do.
+
+Bounds, stated: delete operates on the injected filesystem abstraction — in the Studio's case localStorage
+via `createLocalStorageSaveStore`. No trash/recycle bin, no confirmation dialog beyond the small button size
+and red color scheme. A failed delete (permission denied, race condition) is caught silently and reported in
+the note rather than crashing the UI.
