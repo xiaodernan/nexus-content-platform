@@ -2,11 +2,13 @@ import { describe, expect, it } from "vitest";
 import {
   HEALTH_THRESHOLDS,
   MAX_FINDINGS,
+  TokenStore,
   analyzeHealth,
   createDocument,
   createNode,
   createPage,
   formatHealthValue,
+  resolveLayout,
   type DesignDocument,
   type HealthCheck,
   type HealthId,
@@ -217,5 +219,20 @@ describe("analyzeHealth（§178 七行 + §179 门禁）", () => {
     expect(report.checks.length).toBe(7);
     expect(row(report, "build").state).toBe("fail");
     expect(row(report, "build").findings.map((f) => f.code)).toContain("orphan-node");
+  });
+
+  it("§147：传入已算好的布局与内部求解结果一致（复用路径不改变判分）", () => {
+    const document = blankDoc();
+    add(document, "text", { name: "Second" });
+    makeLowContrast(document);
+    const full = analyzeHealth(document);
+    // 按 analyzeHealth 内部 resolvePages 同一套参数求解，再喂回去
+    const tokens = new TokenStore(document.tokens);
+    const layouts: Record<string, ReturnType<typeof resolveLayout>> = {};
+    for (const page of document.pages) {
+      layouts[page.id] = resolveLayout(page, { tokens, mode: document.activeMode });
+    }
+    const reused = analyzeHealth(document, { layouts });
+    expect(reused).toEqual(full);
   });
 });

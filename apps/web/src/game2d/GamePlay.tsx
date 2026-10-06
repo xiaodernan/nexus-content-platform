@@ -21,6 +21,8 @@ import {
   type SimInput,
   type SimState,
 } from '@nexus/game-model';
+import { KIND_COLORS } from './palette';
+import { GameCanvas3D } from './GameCanvas3D';
 
 /**
  * §50 的可玩投影：把 `compileGame` 排出来的关卡计划交给 `step` 跑，画在 2D 画布上。
@@ -32,8 +34,10 @@ import {
  *   §34 的 3D 模型与 §43 的动画在这里都没有，页面上就这么写。
  * - 作者没填的数值一律走兜底，并且把"有几个实体是兜底跑起来的"写在脸上：
  *   让人以为"敌人伤害 1 是设计的"就是假数据（§159）。
- * - `view` 只换画法（§51 的 2.5D = 同一份计划的等轴测投影）：循环、输入、HUD、
- *   playtest 全部共用，所以"2.5D 玩起来不一样"这句话在这里说不出来——它就是同一个游戏。
+ * - `view` 只换画法（§51 的 2.5D = 等轴测投影，3D = 同一份计划的立体视角）：循环、输入、HUD、
+ *   playtest 全部共用，所以"换画法玩起来不一样"这句话在这里说不出来——它就是同一个游戏。
+ *   唯一的分叉点是那个 `draw`（2D 画进 canvas / 3D 交给 `GameCanvas3D` 的 three.js 场景），
+ *   规则一个字都没动。
  */
 
 const KEY_MAP: Record<string, [number, number]> = {
@@ -54,15 +58,12 @@ function shapeOf(kind: string): 'circle' | 'square' | 'diamond' | 'triangle' {
   return 'circle';
 }
 
-/** 画法（§51）：`topdown` 是 2D，`isometric` 是 2.5D——同一条计划、同一个 step，只换坐标到屏幕的映射 */
-export type GameView = 'topdown' | 'isometric';
+/** 画法（§51）：`topdown` 是 2D，`isometric` 是 2.5D，`3d` 是同一份计划的立体视角——
+ * 三条画法共用同一个 step 与同一份 HUD，所以"换画法玩起来不一样"这句话在这里说不出来 */
+export type GameView = 'topdown' | 'isometric' | '3d';
 
-const COLORS: Record<string, string> = {
-  player: '#7dd3fc',
-  enemy: '#f59e0b',
-  item: '#a3e635',
-  npc: '#c4b5fd',
-};
+/** 颜色表在 `palette.ts`：2D 与 3D 两个组件共用一份，别在这里再写第二份（§16） */
+const COLORS = KIND_COLORS;
 
 /** 一个个体的标记：类别形状 + 血条 + 名字。`ground` 是等轴测那条画法的地面投影（俯视为 null） */
 function paintActor(
@@ -264,7 +265,13 @@ function drawIso(ctx: CanvasRenderingContext2D, plan: GamePlan, state: SimState)
   for (const entry of entries) entry.paint();
 }
 
-function draw(ctx: CanvasRenderingContext2D, plan: GamePlan, state: SimState, view: GameView): void {
+/** 2D 那两条画法的分派。`3d` 不在这里：它由 `GameCanvas3D` 用自己的渲染循环画（three.js 掌握时机） */
+function draw(
+  ctx: CanvasRenderingContext2D,
+  plan: GamePlan,
+  state: SimState,
+  view: 'topdown' | 'isometric',
+): void {
   if (view === 'isometric') drawIso(ctx, plan, state);
   else drawTopdown(ctx, plan, state);
 }
@@ -303,6 +310,10 @@ export function GamePlay({ plan, view = 'topdown' }: { plan: GamePlan; view?: Ga
 
   useEffect(() => {
     if (!plan.playable) return;
+    // 3D 画法的循环由 `GameCanvas3D` 的 useFrame 驱动（three.js 要自己掌握渲染时机）。
+    // 这里必须直接退出：两个循环各推一次 step，同一份状态每帧被推进两遍，
+    // 规则会悄悄变快一倍而两边的单测都还是绿的（§159 的反方向：能跑 ≠ 跑对了）。
+    if (view === '3d') return;
     let raf = 0;
     let hudAt = 0;
     const frame = (now: number) => {
@@ -390,15 +401,20 @@ export function GamePlay({ plan, view = 'topdown' }: { plan: GamePlan; view?: Ga
       <p className="text-11 text-fg-3" data-game-controls>
         移动：WASD / 方向键 · 攻击：空格（够得着才打得到；触及 {plan.player?.reach ?? 0}px 是
         {plan.player?.reachIsDesign ? '武器 range 里写的' : '投影按贴身算的'}）
+        {view === '3d' ? ' · 按住拖动转视角（WASD 跟着视角走，和 2D 的屏幕方向同一套语义）' : ''}
       </p>
 
-      <canvas
-        ref={canvas}
-        width={ARENA.width}
-        height={ARENA.height}
-        className="w-full rounded border border-[var(--nexus-color-border-subtle)]"
-        data-game-canvas
-      />
+      {view === '3d' ? (
+        <GameCanvas3D plan={plan} keys={keys} stateRef={stateRef} onHud={setHud} />
+      ) : (
+        <canvas
+          ref={canvas}
+          width={ARENA.width}
+          height={ARENA.height}
+          className="w-full rounded border border-[var(--nexus-color-border-subtle)]"
+          data-game-canvas
+        />
+      )}
 
       <section className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         <div>

@@ -209,13 +209,21 @@ describe("compileForKind：类型 → 管线的唯一分派点", () => {
       expect(iso.plan).toEqual(topdown.plan);
     }
 
+    // 3D 同理：three.js 只是另一种画法，规则与数值必须与 2D 逐字段相同（§16）
+    const three = compileForKind({ ...base, kind: "3d" });
+    expect(three.pipeline).toBe("topdown");
+    if (three.pipeline === "topdown" && topdown.pipeline === "topdown") {
+      expect(three.view).toBe("3d");
+      expect(three.plan).toEqual(topdown.plan);
+    }
+
     const story = compileForKind({ ...base, kind: "interactive-story" });
     expect(story.pipeline).toBe("story");
     const novel = compileForKind({ ...base, kind: "visual-novel" });
     expect(novel.pipeline).toBe("story");
 
     // 没接的三种：给出的是 reason，不是一个空场子也不是硬跑 2D
-    for (const kind of ["3d", "puzzle", "exploration"] as const) {
+    for (const kind of ["rpg-prototype", "puzzle", "exploration"] as const) {
       const projection = compileForKind({ ...base, kind });
       expect(projection.pipeline).toBeNull();
       if (projection.pipeline === null) expect(projection.reason).toContain("还没接");

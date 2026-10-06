@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useDeferredValue, useMemo, useState } from 'react';
 import { analyzeHealth, formatHealthValue, type HealthCheck, type HealthReport } from '@nexus/design-model';
 import { cn } from '@/lib/cn';
 import { useStudioReady } from './store';
@@ -49,13 +49,25 @@ export function HealthPanel({ report, source }: { report: HealthReport; source?:
   );
 }
 
-/** §178：Studio 左侧常驻的一栏，改一下文档就实时重算 */
+/**
+ * §178：Studio 左侧常驻的一栏，改一下文档就实时重算。
+ *
+ * §147：连续按键时不同步跟每一次 commit——`useDeferredValue` 让 React 先画旧读数，
+ * 重算只发生在停顿后（防抖）；已算好的当页布局直接复用，不再解第二遍。
+ * 只有 design 视口的布局才能复用：断点视口的几何是按断点宽度裁过的，
+ * 拿它喂门禁会把"响应式换行后的尺寸"当成设计尺寸判（off-canvas / tap-target 全错）。
+ */
 export function HealthRail() {
   const state = useStudioReady();
-  const report = useMemo(
-    () => (state.document ? analyzeHealth(state.document) : null),
-    [state.document],
-  );
+  const deferred = useDeferredValue(state);
+  const report = useMemo(() => {
+    if (!deferred.document) return null;
+    const layouts =
+      deferred.viewport === 'design' && deferred.layout && deferred.page
+        ? { [deferred.page.id]: deferred.layout }
+        : undefined;
+    return analyzeHealth(deferred.document, layouts ? { layouts } : undefined);
+  }, [deferred]);
   return (
     <div className="flex h-full min-h-0 flex-col" data-health-rail>
       <header className="flex shrink-0 items-center justify-between border-b border-[var(--nexus-color-border-subtle)] px-[var(--nexus-space-3)] py-2">
@@ -73,7 +85,7 @@ export function HealthRail() {
       </header>
       <div className="min-h-0 flex-1 overflow-auto p-[var(--nexus-space-2)]">
         {report ? (
-          <HealthPanel report={report} source="改动即重算" />
+          <HealthPanel report={report} source="随改动更新" />
         ) : (
           <p className="px-3 py-8 text-center text-12 text-fg-3">文档还没载入完，算不出健康度。</p>
         )}

@@ -35,10 +35,20 @@ export function PublishPanel() {
   const [open, setOpen] = useState(false);
   const [visibility, setVisibility] = useState<Visibility>('public');
   const publication = state.publication;
-  const health = useMemo(
-    () => (state.document ? analyzeHealth(state.document) : null),
-    [state.document],
-  );
+  /**
+   * §147：弹层合着时不算——打开才需要门禁读数。每次按键都重算 10k 节点的全量体检，
+   * 而用户根本没在看它，是纯浪费。打开后的那次计算仍是全量（门禁不能读旧数），
+   * 只是不再为闭合状态下的每一次 commit 付账。
+   * 布局复用与 HealthRail 同一条纪律：只有 design 视口的几何才能喂给门禁。
+   */
+  const health = useMemo(() => {
+    if (!open || !state.document) return null;
+    const layouts =
+      state.viewport === 'design' && state.layout && state.page
+        ? { [state.page.id]: state.layout }
+        : undefined;
+    return analyzeHealth(state.document, layouts ? { layouts } : undefined);
+  }, [open, state.document, state.layout, state.page, state.viewport]);
   const [build, setBuild] = useState<{ status: keyof typeof BUILD_LABEL; log?: string } | null>(null);
   const [preview, setPreview] = useState<{ status: keyof typeof PREVIEW_LABEL; url?: string } | null>(null);
   const realtime = useRealtime({

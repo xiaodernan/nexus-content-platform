@@ -156,15 +156,16 @@ export function isGameKind(value: unknown): value is GameKind {
 /**
  * 一条类型今天由哪条构建管线跑（`null` = 还没接），以及试玩页该说的那句话。
  *
- * 这张表就是 §51 的进度条：8 种里列了四种能跑的，其余四种**只有清单没有投影**，
+ * 这张表就是 §51 的进度条：8 种里列了五种能跑的（2D / 2.5D / 3D 共用同一条关卡计划，
+ * 互动故事 / 视觉小说共用对话管线），其余三种**只有清单没有投影**，
  * 界面上必须照这么说——把没接的类型渲染成"加载中"或者干脆给个空场子，
  * 看起来和能跑没区别（§159）。
  */
 export interface GameKindStatus {
-  /** `topdown` = §50 的俯视关卡（2D / 2.5D 共用同一条计划与同一个 step）；`story` = 对话驱动；null = 没接 */
+  /** `topdown` = §50 的俯视关卡（2D / 2.5D / 3D 共用同一条计划与同一个 step）；`story` = 对话驱动；null = 没接 */
   pipeline: "topdown" | "story" | null;
   /** 同一条管线的哪一种画法；缺省是俯视。只影响绘制，不影响规则 */
-  view?: "topdown" | "isometric";
+  view?: "topdown" | "isometric" | "3d";
   /** 界面直接用的那句话，不许在这里写"敬请期待"式的空头承诺 */
   note: string;
 }
@@ -176,7 +177,13 @@ export const GAME_KIND_STATUS: Record<GameKind, GameKindStatus> = {
     view: "isometric",
     note: "已接入：2.5D 是同一份关卡计划的等轴测画法——规则与 2D 走同一个 step，没有纵深碰撞与 3D 模型。",
   },
-  "3d": { pipeline: null, note: "还没接：§51 列了这一种，但今天没有能把 3D 投影出来的管线。" },
+  "3d": {
+    pipeline: "topdown",
+    view: "3d",
+    note:
+      "已接入：3D 是同一份关卡计划的立体画法（three.js）——规则仍在地平面上判定，没有纵深碰撞与高度；" +
+      "几何体是类别标记（球=玩家、方=敌人、菱=物品、锥=NPC），不是 3D 美术模型，也没有名字标签。",
+  },
   "interactive-story": {
     pipeline: "story",
     note: "已接入：对话管线的最小实现——正文来自对话实体的说明，选择来自它指向其它对话的引用。",
