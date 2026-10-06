@@ -520,7 +520,7 @@ drizzle 把整个拼接结果当成**单个绑定参数**，生成的 SQL 是 `o
   写在 HUD 文案与组件注释里（世界条目是九类正文，档案才有人设与记忆）。
   仍欠：地形/碰撞/寻路、
   3D 资产与贴图（§34 的 model 类资产还没接进场景）。条目名字已经用 DOM 投影标签解决（没引 drei）
-- [~] Game Studio：2D / 2.5D / 3D / 探索 / Interactive Story / RPG 原型 / Puzzle / Visual Novel（§51）
+- [x] Game Studio：2D / 2.5D / 3D / 探索 / Interactive Story / RPG 原型 / Puzzle / Visual Novel（§51）
   — **2026-09-25 第一片（2D 可玩）落地**：`packages/game-model` 新增 `play.ts`（编译关卡计划）与
   `sim.ts`（纯函数模拟器），`/game/<项目>` 用 canvas 把它跑起来，Studio 的「游戏」面板上有「试玩这份设计 →」。
   **这一片守的是 §16：试玩读的就是那份 §54 文档，没有第二份"关卡文件"**——改完数值回这一页刷新，
@@ -624,6 +624,24 @@ drizzle 把整个拼接结果当成**单个绑定参数**，生成的 SQL 是 `o
   `story-play-puzzle.png`），反向对照改用 rpg-prototype（唯一没接的类型仍然不许退回 2D 关卡），
   用例标题同步改成"标解谜出机关连线"。
   **仍欠的一种**：RPG 原型（模型里没有成长/战斗循环的语义）。
+  **2026-10-07 第八片（RPG 原型接上，八种全部派得出真管线——这一格从此 `[x]`）**：
+  `GAME_KIND_STATUS["rpg-prototype"]` 拿到第三条管线 `pipeline: "rpg"`——不是 topdown 的又一种画法，
+  加的是规则层。战斗逐字复用 `sim.step`（移动/追击/接触伤害/挥击与 2D 同一套算术），`rpg.ts` 只加成长：
+  经验来自作者写的 `xpReward`（数值是自由 Record，xpReward 只是建议键），敌人没写用投影兜底
+  `XP_PER_KILL_FALLBACK=10` 并逐个标 `default`，任务没写就不发——管线不替设计补经验；
+  升级曲线是投影常量（`xpToNext = XP_BASE + (level-1)×XP_STEP`，每级生命上限 +10 并回复、伤害 +1），
+  `RPG_RULE_NOTES` 随 plan.notes 原样上页面；任务上的 `requiredLevel` 按等级门解释。
+  **等级门是帧序敏感的**：底层 step 在同一帧里「标记完成 → 判胜」，门在帧后删除 questDone
+  拦不住已经宣布的通关——所以门扣下的那一帧要同时把 won 撤回；升到级的下一帧底层 step 重判
+  （goals 每帧重评），不需要第二套判定。伤害加成走派生的 `planAtLevel`（plan 是常量，不改原对象）。
+  web 侧 `RpgPlay` 复用 GamePlay 的 `drawTopdown`（画法不抄第二份），HUD 有等级/经验/伤害（含加成）
+  读数与逐敌人的经验 provenance 清单；`describeProjection` 页首写「RPG 成长循环（战斗与 2D 同一个 step）」
+  与兜底个数。
+  **测试**：`rpg.test.ts` 20 条（provenance 两向、任务经验无兜底、曲线常量、纯函数确定性、
+  等级门过/不过对照对——25 经验同一次击杀升级过门 vs 10 经验被扣且 questDone 保持为空但敌人已死、
+  状态表对齐）；game-model 112 条全绿；全仓 typecheck + eslint 绿。
+  `@smoke §51 类型分派` 的「还没接」反向对照换岗：rpg-prototype 现在断言它派的是自己的播放器
+  （`data-rpg-root` / `data-rpg-level`，不是 2D 画法也不是对话播放器顶上），截图 `story-play-rpg.png`。
 - [~] Game Agent + Playtest Agent（§52-53）
   — **2026-09-25 §53 的可确定那一半落地**：`packages/game-model/src/playtest.ts` 用四种固定走法
   （站着不动 / 冲向最近的敌人并挥击 / 一直躲开 / 定种子随机游走）把一份设计各跑 60 秒，
@@ -659,8 +677,9 @@ drizzle 把整个拼接结果当成**单个绑定参数**，生成的 SQL 是 `o
   "只能躲、不能打"——给一个看不见的 1 点攻击力就是造假数据（§159）。
   任务的完成条件同样只在"引用了敌人或物品"时才算可判定，判不出来的列在任务表里说清为什么，
   不悄悄算作自动完成，也不会因为它永远不满足而谎称"这版没有赢"以外的话。
-  **仍欠**：§52 Game Agent 与 §53 Playtest Agent 的编排、§51 其余两种类型的构建管线（RPG 原型 / 解谜）、
-  地形与碰撞、`talk`（§47 要 provider）——所以是 `[~]` 不是 `[x]`。
+  **仍欠**：§52 Game Agent 与 §53 Playtest Agent 的编排、地形与碰撞、`talk`（§47 要 provider）——
+  这些各有自己的条目在跟；§51 的八种类型已于 2026-10-07 全部接上真管线（RPG 是最后一种），
+  Game Studio 那一条因此是 `[x]`。
   （公开可玩与 §168 的 play time 已在上面的"第二片"接上；`/game/<项目>` 仍是作者自己的试玩页，
   公网那一版走 `/n/<handle>/<slug>/play`。）
 
@@ -755,9 +774,9 @@ drizzle 把整个拼接结果当成**单个绑定参数**，生成的 SQL 是 `o
   这条用例的"点抓手摘引用"那一步就是先红后绿的（直线版本点不到边），不是补上去摆设。
   截图核对过实际长相，据此删掉了界面文案里漏出来的 markdown 星号（`**模板骨架**` 这种写法
   在 JSX 里是原样显示的）。
-- **§54 现在欠的**：§52/§53 的 Game Agent 与 Playtest 编排、§51 其余两种类型的构建管线（RPG 原型 / 解谜）
-  ——这两样都要真 provider 或真运行时，不在面板里塞假按钮。（"引擎类型选择"本身已经在
-  2026-09-26 接上：类型是文档字段，两个试玩页共用 `compileForKind` 分派。）
+- **§54 现在欠的**：§52/§53 的 Game Agent 与 Playtest 编排（§51 的八种类型已于 2026-10-07
+  全部接上，不再欠类型管线）——编排那半要真 provider 或真运行时，不在面板里塞假按钮。
+  （"引擎类型选择"本身已经在 2026-09-26 接上：类型是文档字段，两个试玩页共用 `compileForKind` 分派。）
 
 ## M5 — 视频（§185）
 - [ ] Video Studio（text/image/storyboard→video）
