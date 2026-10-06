@@ -12,6 +12,7 @@ import {
   type SceneEntity,
   type WorldScene,
 } from '@nexus/world-model';
+import { CharacterChat } from '@/studio/CharacterChat';
 
 /**
  * §140 的"走进去"：Three.js + React Three Fiber 渲染 §140 那份场景计划，
@@ -24,8 +25,8 @@ import {
  * -  走近才展开正文：远处只有名字，正文要走到跟前（或点名字）才给（§140 的 explore）；
  * -  `fallback` 位置的条目在 HUD 里标出来：那是按序号排在环上的，不是作者摆过的地形。
  *
- * 没有做的事（也不假装）：地形网格、碰撞、寻路、3D 资产（§34 的 model）、
- * 以及和角色对话（§47 要 provider）。
+ * 没有做的事（也不假装）：地形网格、碰撞、寻路、3D 资产（§34 的 model）。
+ * talk（§47）接的是 §46 角色档案的对话 API——目标不是场景里的世界条目。
  */
 
 const WALK_SPEED = 9; // 单位/秒：一个条目半径约 1，走起来约 9 个身位每秒
@@ -221,11 +222,25 @@ function LabelProjector({
   return null;
 }
 
-export function WorldWalk({ scene, projectName }: { scene: WorldScene; projectName: string }) {
+export function WorldWalk({
+  scene,
+  projectName,
+  projectId,
+  characters,
+}: {
+  scene: WorldScene;
+  projectName: string;
+  projectId: string;
+  characters: { id: string; name: string }[];
+}) {
   const [webgl, setWebgl] = useState<boolean | null>(null);
   const [at, setAt] = useState({ x: 0, z: 0 });
   const [selected, setSelected] = useState<string | null>(null);
   const [labels, setLabels] = useState<ScreenLabel[]>([]);
+  // §140 的 talk：目标永远是 §46 的角色档案，不是场景里那些同名的世界条目——
+  // 世界条目是九类正文之一，档案才是有人设、有声音、聊完落记忆的那一个
+  const [talkOpen, setTalkOpen] = useState(false);
+  const [talkTarget, setTalkTarget] = useState<string | null>(characters[0]?.id ?? null);
 
   useEffect(() => {
     try {
@@ -317,8 +332,51 @@ export function WorldWalk({ scene, projectName }: { scene: WorldScene; projectNa
           </p>
           <p className="mt-2 text-11 text-fg-2">WASD / 方向键走动，按住鼠标拖动转视角。走近条目会展开它的正文。</p>
           <p className="text-11 text-fg-3">
-            没有碰撞与地形：能穿过去，也不算走在实地上。角色对话（§47）要 provider，这里不放假聊天。
+            没有碰撞与地形：能穿过去，也不算走在实地上。对话（§47）跟的是 §46 角色档案，不是这些世界条目。
           </p>
+          <button
+            type="button"
+            onClick={() => setTalkOpen((open) => !open)}
+            data-world-talk-toggle
+            aria-expanded={talkOpen}
+            className="mt-2 rounded-[var(--nexus-radius-sm)] bg-bg-2 px-2 py-1 text-11 text-fg-2 hover:bg-bg-3"
+          >
+            {talkOpen ? '收起对话' : '跟角色说话'}
+          </button>
+          {talkOpen ? (
+            <div className="mt-2" data-world-talk>
+              {characters.length ? (
+                <>
+                  <select
+                    aria-label="对话的角色"
+                    data-world-talk-target
+                    value={talkTarget ?? ''}
+                    onChange={(e) => setTalkTarget(e.target.value || null)}
+                    className="mb-1 w-full rounded-[var(--nexus-radius-sm)] bg-bg-2 px-1 py-1 text-11 text-fg-1"
+                  >
+                    {characters.map((character) => (
+                      <option key={character.id} value={character.id}>
+                        {character.name}
+                      </option>
+                    ))}
+                  </select>
+                  {/* key 换人即换对话：与角色面板共用同一块（CharacterChat） */}
+                  {talkTarget ? (
+                    <CharacterChat
+                      key={talkTarget}
+                      projectId={projectId}
+                      characterId={talkTarget}
+                      characterName={characters.find((c) => c.id === talkTarget)?.name ?? ''}
+                    />
+                  ) : null}
+                </>
+              ) : (
+                <p className="text-11 text-fg-3" data-world-talk-empty>
+                  这个项目还没有角色档案（§46）。对话是跟档案说的——先回 Studio 的角色面板建一个。
+                </p>
+              )}
+            </div>
+          ) : null}
         </div>
         <div className="pointer-events-auto rounded-[var(--nexus-radius-sm)] bg-bg-1/90 p-2" data-world-legend>
           {sceneLegend(scene).map((entry) => (

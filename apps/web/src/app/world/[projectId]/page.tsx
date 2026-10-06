@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { buildWorldScene } from '@nexus/world-model';
+import { listCharacters } from '@/server/domain/characters';
 import { loadWorld } from '@/server/domain/worlds';
 import { loadDocument, projectBelongsTo } from '@/server/domain/projects';
 import { requireUser } from '@/server/domain/session';
@@ -49,9 +50,19 @@ export default async function WorldRuntimePage({ params }: { params: Promise<{ p
   }
 
   const scene = buildWorldScene(world.document);
+  // §140 的 talk 目标是 §46 角色档案：名册在服务端取好传下去，客户端不自己再拉一份
+  const roster = await listCharacters(projectId);
   return (
     <div className="h-dvh w-full">
-      <WorldWalk scene={scene} projectName={project.name} />
+      <WorldWalk
+        scene={scene}
+        projectName={project.name}
+        projectId={projectId}
+        characters={roster.items.map((character) => ({
+          id: character.id,
+          name: character.profile.name || '（没有名字）',
+        }))}
+      />
     </div>
   );
 }
