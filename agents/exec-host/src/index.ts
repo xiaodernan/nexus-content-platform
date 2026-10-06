@@ -48,6 +48,10 @@ export {
   type ContainerRuntimeProbe,
 } from './containerExec.js';
 export { execTestRunner, NEVER_RAN, type ExecTestRunnerOptions } from './execTestRunner.js';
+// M6 v173 — the container verifier: the first wired BuildVerifier for the build lane. The
+// dependency points runtime-ward (legal, am.167); the arc's verify steps run inside the
+// policy-pinned container through the SAME planContainerRun every container exec uses.
+export { containerVerifyRunner, type ContainerVerifierOptions } from './containerVerifier.js';
 export {
   GIT_LOG_TOOL_SPECS,
   GIT_LOG_FLAGS,

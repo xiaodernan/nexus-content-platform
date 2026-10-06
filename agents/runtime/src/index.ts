@@ -263,3 +263,24 @@ export {
 } from './gitArc.js';
 export { demoPlanner, routerPlanner, validatePlan, type PlanBackend, type Planned, type ProviderLike } from './planBackend.js';
 export { runTask, type RunOptions } from './orchestrator.js';
+// M6 v173 — the build arc: plan→verify→record whose ONE execution door (build.verify) is an
+// injected BuildVerifier SEAM. The runtime plans and walks; it never executes — the container
+// adapter in @nexus/exec-host (legal direction, am.167) is the first wired runner.
+export {
+  BUILD_TOOL_SPECS,
+  BUILD_VERIFY_TOOL,
+  planBuildArc,
+  registerBuildTools,
+  runBuildArc,
+  type BuildArcOptions,
+  type BuildArcOutcome,
+  type BuildArcPlan,
+  type BuildArcPlanDecision,
+  type BuildArcSpec,
+  type BuildArcStage,
+  type BuildArcStatus,
+  type BuildArcStepSpec,
+  type BuildVerifyAnswer,
+  type BuildVerifier,
+  type BuildVerifyRequest,
+} from './buildArc.js';

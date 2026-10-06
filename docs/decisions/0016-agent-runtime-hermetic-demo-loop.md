@@ -8048,3 +8048,35 @@ _records the catch-up itself._
   headless host needs exec. The route machine-approves because the human decision already happened in the panel (the
   dock pipeline's own model, stated in the route source). The dock's file work is the in-browser corpus and its git
   duties are none — item 7 closes for the product face, not for headless lanes. ADR 0013 stays Proposed.
+### Amendment 173 (M6 v173, queue item 8, first slice) — the BUILD ARC: plan→verify→record over ONE injected verify door, with the container verifier as its first wired runner
+
+- **What landed.** `agents/runtime/src/buildArc.ts` is the autonomous-build milestone's first orchestrator, in
+  gitArc's shape (v47): `planBuildArc` turns a spec into ONE inert datum — `executes: false` in the very type
+  (v29's discipline), stage-ordered blueprint→verify→record, malformed specs refused with reasons, never a
+  half-plan; `runBuildArc` walks it door by door where the ONE door is `build.verify` (permissions `['exec']`)
+  behind an INJECTED `BuildVerifier` seam (`registerBuildTools`) — the runtime holds zero execution capability;
+  the first refusal ends the walk `denied`, the first red verdict ends it `failed` (the verification succeeded
+  at proving the step bad — a verdict, not an error), all green is `completed`; receipts ride the v50/v54 rule
+  (`receiptsOrNote`), so "empty" cannot mean two things in one repo. `agents/exec-host/src/containerVerifier.ts`
+  is the first wired runner: `containerVerifyRunner` maps each verify step through the SAME `planContainerRun`
+  wall every container exec uses (v166 — pinned image, mount-free argv, egress denied, budgets), `preApproved`
+  being v30's "the registry already gated it" restated (the §28 gate fired on `build.verify`, one layer up) and
+  the callId joined to `<arcId>:<stepId>` so every receipt names the arc step that asked; the answer carries the
+  engine name and the container's own stdout. Dependency direction stays am.167-legal — runtime → exec-host
+  remains impossible, and this closes the consumer half of v172's headless-lane bound for the build lane.
+- **Measured (2026-10-07).** `@nexus/agent-runtime` **519/519** (506 → 519: 13 `buildArc` cases — inert plans,
+  spec refusals, no-verifier walk, §28 denial with receipt, red-verdict carrying the engine's detail, receipts
+  note on a plain checkpoint, callId join), `@nexus/exec-host` **309/309** (301 → 309: 8 `containerVerifier`
+  cases — preApproved/callId mapping, refusal/client-failure/exit-code/budget-kill verdicts, and on the REAL
+  host path the full v166 flag set with zero mount flags); `docs/evidence/agents/build-arc-proof.mjs` §1–§7 ALL
+  PASSED against the real daemon 29.8.2 (§1 inert plan; §2 a registry without the door walks nowhere, stated;
+  §3 a §28 denial stops the walk with the verifier-call count at ZERO and a `granted:false` receipt naming the
+  door; §4 a two-step green arc whose computed answer `arc-ok:5` is read from the container's stdout, receipts
+  joined to callIds; §5 `process.exit(3)` → failed with the engine verdict quoted; §6 the policy outranks the
+  arc — a refused step spawns NOTHING while the green argv carries all 10 isolation flags and no mount flag;
+  §7 the dist audit: no exec-host import and no `child_process` anywhere in the runtime dist, the manifest
+  direction legal, the adapter's public surface typed against the seam).
+- **Bounds (§60).** The arc VERIFIES; it does not yet build — no workspace write door is wired into the walk
+  and the steps are caller-supplied data (no planner claim, no LLM provenance): a planning backend can be
+  wired later without changing the door's shape. No product face exists yet: M6's Studio build surface is the
+  next slice. The runtime's exec/git tool doors are still headless proof-lane only. ADR 0013 stays Proposed.
