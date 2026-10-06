@@ -1,9 +1,10 @@
 'use client';
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useStudio } from '@/lib/store';
 import { browserStorage } from '@/lib/storage';
 import {
   appendLedgerLine,
+  containerLedgerLine,
   ledgerLine,
   planAgentChain,
   planAgentRun,
@@ -21,10 +22,14 @@ import {
 } from '@/lib/agentDock';
 import type { ChainStageHandoff, QaReport } from '@nexus/agent-runtime';
 import { createDomDriver, runUiTask } from '@/lib/uiRun';
+import { probeContainerLane, requestContainerExec, type ContainerLaneProbe } from '@/lib/containerLane';
 
 type Phase = 'idle' | 'planning' | 'awaiting' | 'done';
 
 const label: React.CSSProperties = { fontSize: 11, color: 'var(--nexus-muted)' };
+
+/** v172: the one command the dock's lane offers by name — proves the whole path alive. */
+const JAIL_SELF_CHECK = ['node', '-e', 'console.log("jail ok")'];
 
 /** v33: verification chips — every §63 report on a RunOutcome, stated by its engine. */
 function TestChips({ chips }: { chips: TestChip[] }) {
@@ -68,6 +73,10 @@ export default function AgentPanel() {
   const [uiReports, setUiReports] = useState<TestChip[]>([]);
   const [uiBusy, setUiBusy] = useState(false);
   const decider = useRef<(v: boolean) => void>(() => {});
+  const [container, setContainer] = useState<ContainerLaneProbe | null>(null);
+  const [containerAsk, setContainerAsk] = useState<string[] | null>(null);
+  const [containerLine, setContainerLine] = useState('');
+  const [containerBusy, setContainerBusy] = useState(false);
 
   const agentUiRun = async () => {
     if (uiBusy) return;
@@ -90,6 +99,34 @@ export default function AgentPanel() {
   const answerUi = (v: boolean) => {
     decider.current(v);
     if (!v) setUiLog((l) => [...l, '(denied — the run stops here)']);
+  };
+
+  useEffect(() => {
+    let alive = true;
+    void probeContainerLane().then((p) => {
+      if (alive) setContainer(p);
+    });
+    return () => {
+      alive = false;
+    };
+  }, []);
+
+  const allowContainer = async () => {
+    if (!containerAsk || !container) return;
+    setContainerBusy(true);
+    const answer = await requestContainerExec({ argv: containerAsk });
+    const line = answer.ok ? (answer.ran ? (answer.detail ?? '') : (answer.reason ?? 'refused')) : (answer.reason ?? 'container route failed');
+    setContainerLine(line);
+    setContainerAsk(null);
+    setContainerBusy(false);
+    appendLedgerLine(browserStorage(), containerLedgerLine(containerAsk, container.image, true, line));
+    syncLedger();
+  };
+
+  const denyContainer = () => {
+    if (containerAsk && container) appendLedgerLine(browserStorage(), containerLedgerLine(containerAsk, container.image, false, undefined, 'denied at human checkpoint'));
+    setContainerAsk(null);
+    syncLedger();
   };
 
   const syncLedger = () => setEntries(readAgentLedger(browserStorage()).entries.slice(-8).reverse());
@@ -205,6 +242,34 @@ export default function AgentPanel() {
       )}
       {uiLog.length > 0 && <div style={label}>gated actions: {uiLog.join(' → ')}</div>}
       {uiReports.length > 0 && <TestChips chips={uiReports} />}
+      <div style={{ borderTop: '1px solid var(--nexus-border)', paddingTop: 4, display: 'flex', flexDirection: 'column', gap: 4 }}>
+        <div style={label} data-testid="container-status">
+          {container === null
+            ? 'container exec: probing…'
+            : container.available
+              ? `container exec: ✓ docker ${container.serverVersion} · ${container.image} · ${container.workdirRoot}`
+              : `container exec: unavailable — ${container.reason}`}
+        </div>
+        {container?.available && (
+          <button className="btn" style={{ fontSize: 10, padding: '1px 8px', alignSelf: 'flex-start' }} onClick={() => setContainerAsk(JAIL_SELF_CHECK)} disabled={containerBusy} data-testid="container-run">
+            Run jail self-check (§28 · allow-once)
+          </button>
+        )}
+        {containerAsk && container && (
+          <div data-testid="container-ask" style={{ border: '1px solid #ffd24a', borderRadius: 8, padding: 6, display: 'flex', flexDirection: 'column', gap: 4 }}>
+            <div style={{ fontSize: 11 }}>
+              Agent wants to run <b>{containerAsk.join(' ')}</b> inside container <b>{container.image}</b> ({container.workdirRoot}) — ephemeral, no network, read-only rootfs. Allow once?
+            </div>
+            <div style={{ display: 'flex', gap: 6 }}>
+              <button className="btn btn-primary" onClick={() => void allowContainer()} disabled={containerBusy} data-testid="container-allow">Allow once</button>
+              <button className="btn" onClick={denyContainer} data-testid="container-deny">Deny</button>
+            </div>
+          </div>
+        )}
+        {containerLine && (
+          <div style={label} data-testid="container-line">{containerLine}</div>
+        )}
+      </div>
       <label style={{ ...label, display: 'flex', gap: 6, alignItems: 'center', cursor: 'pointer' }}>
         <input type="checkbox" checked={chainMode} onChange={(e) => setChainMode(e.target.checked)} />
         role chain (researcher → designer → qa → editor, §24)
@@ -282,7 +347,7 @@ export default function AgentPanel() {
           {entries.map((e, i) => (
             <div key={i} style={{ ...label, display: 'flex', gap: 6 }}>
               <span style={{ color: e.approved ? '#7dd97d' : '#ff7a7a' }}>{e.approved ? 'approved' : 'denied'}</span>
-              <span style={{ flex: 1 }}>{e.goal.slice(0, 26)}{e.qa ? ` · qa:${e.qa}` : ''}{e.repairs !== undefined ? ` · fix×${e.repairs}` : ''}{e.tests ? ` · ${e.tests}` : ''}{e.gate ? ` · ${e.gate}` : ''}</span>
+              <span style={{ flex: 1 }}>{e.goal.slice(0, 26)}{e.qa ? ` · qa:${e.qa}` : ''}{e.repairs !== undefined ? ` · fix×${e.repairs}` : ''}{e.tests ? ` · ${e.tests}` : ''}{e.gate ? ` · ${e.gate}` : ''}{e.exec ? ` · ${e.exec.slice(0, 80)}` : ''}</span>
             </div>
           ))}
         </div>

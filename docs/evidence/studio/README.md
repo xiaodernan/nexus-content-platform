@@ -790,3 +790,24 @@ Bounds, stated: delete operates on the injected filesystem abstraction — in th
 via `createLocalStorageSaveStore`. No trash/recycle bin, no confirmation dialog beyond the small button size
 and red color scheme. A failed delete (permission denied, race condition) is caught silently and reported in
 the note rather than crashing the UI.
+## Container lane in the Agent dock (M2 v172 — ADR 0016 amendment 172)
+
+The dock's exec door is BORN in the container — there is no host-exec lane behind it.
+
+- Server: `src/lib/containerServer.ts` pins the policy as data (image `node:22-alpine`, container root
+  `/workspace`, a two-rule allowlist: `node -e *` and `node --version`, empty env allow, 15s/16KiB budgets)
+  and serves `app/api/agent/container`: GET fuses the daemon probe with the pinned facts; POST runs a fresh
+  `createContainerExecHost` per call.
+- Client: `src/lib/containerLane.ts` is a fetch adapter that imports nothing from `@nexus/exec-host` — the
+  browser bundle stays spawn-free by construction (headless proof §6).
+- Face: `AgentPanel` states the probe honestly (available with daemon version + pins, or "unavailable" with
+  the reason), offers one named self-check behind an Allow-once §28 dialog, prints the run's detail line, and
+  lands the decision in the same dock ledger (`containerLedgerLine` / `LedgerEntry.exec`).
+
+Evidence: studio 214 → **229** tests; `docs/evidence/studio/container-lane-proof.mjs` §1–§6 ALL PASSED against
+the real daemon (real ephemeral run, 10 isolation flags, 0 mount flags); `tools/harness/studio-container.mjs`
+**7/7** in a real browser.
+
+Bounds, stated: the route machine-approves because the human Allow-once already happened in the panel (the
+dock pipeline's own model, stated in the route source); one command is offered by name — the lane is a proof
+of life, not a shell; the runtime's headless tool doors remain unconsumed.

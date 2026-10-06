@@ -338,6 +338,8 @@ export interface LedgerEntry {
   tests?: string;
   /** v41: WHO passed §28 and how — `human: ui.type granted · …` / `policy: …` / `mixed: …`. */
   gate?: string;
+  /** v172: the container lane's stated outcome — the route's own detail line for the run. */
+  exec?: string;
   at: number;
 }
 
@@ -421,4 +423,20 @@ export function studioMemoryForget(id: string, kv: Kv = browserStorage()): boole
   for (const r of keep) store.restore(r);
   webFs.writeFileSync(STUDIO_MEMORY_FILE, serializeMemory(store), 'utf8');
   return true;
+}
+/* ---- v172: the container lane's §28 line — same ledger, exec detail stated ---- */
+
+/** One JSONL line for a dock container-exec decision (the panel's Allow-once is the gate). */
+export function containerLedgerLine(command: string[], image: string, approved: boolean, detail?: string, reason?: string): string {
+  const e: LedgerEntry = {
+    goal: `container exec: ${command.join(' ')}`,
+    target: image,
+    via: 'container.exec',
+    score: approved ? 1 : 0,
+    approved,
+    ...(reason ? { reason } : {}),
+    ...(detail ? { exec: detail } : {}),
+    at: Date.now(),
+  };
+  return JSON.stringify(e);
 }

@@ -8024,3 +8024,27 @@ _records the catch-up itself._
   lane (the note should name the store). The M6 ROADMAP cell that briefly carried the container work is
   restored to ⬜ planned — the milestone is M2. DEVELOPMENT_PLAN's queue gained item 7 (route the
   runtime's disk/git/exec duties through the container) — the wall exists; nobody is behind it yet.
+### Amendment 172 (M2 v172, queue item 7) — the dock's exec lane is BORN in the container: the first product consumer behind the v166 wall, with no host-exec lane to migrate
+
+- **What landed.** The Studio dock gained a container lane end to end. SERVER: `apps/studio/src/lib/containerServer.ts`
+  pins the policy as data (image `node:22-alpine` — the same pin container-proof §4 measured; container workdir root
+  `/workspace`; a two-rule allowlist — `node -e *` and `node --version`; empty env allowlist; 15s/16KiB budgets) and
+  serves it behind `app/api/agent/container` (GET = daemon probe fused with the pinned facts; POST = `runContainerExec`
+  over a fresh `createContainerExecHost`). CLIENT: `containerLane.ts` is a fetch adapter importing NOTHING from
+  `@nexus/exec-host` — the browser bundle stays spawn-free by construction (proof §6). FACE: `AgentPanel` states the
+  probe honestly ("✓ docker <ver> · <image> · <root>", or "unavailable — <reason>"), offers ONE named self-check
+  (`node -e console.log("jail ok")`) behind an Allow-once §28 dialog, prints the run's own detail line, and lands the
+  decision in the SAME dock ledger (`containerLedgerLine`, `LedgerEntry.exec`). No host-exec lane is being migrated:
+  the dock's exec door never touched the host FS — the §63-style duties of this product face are container-only from
+  day one.
+- **Measured (2026-10-07).** studio **229/229** (214 → 229: 8 `containerServer` + 5 `containerLane` + 2 ledger cases),
+  typecheck + lint clean; `docs/evidence/studio/container-lane-proof.mjs` §1–§6 ALL PASSED against the real daemon
+  29.8.2 (§4: a REAL ephemeral run `nexus-exec-*-1`, exit 0, all 10 isolation flags from the SAME array the audit
+  reads, zero mount flags; §5: no-gate and deny-gate refusals stated before any spawn); browser harness
+  `tools/harness/studio-container.mjs` **7/7** (probe lands in the panel, the ask names command/image/jail,
+  Allow-once runs it server-side, the ledger entry is approved via `container.exec`, no console errors).
+- **Bounds (§60).** The runtime's own tool doors (`registerExecHostTools`/`registerGitTools`/
+  `registerContainerExecTools`) still have no consumer — headless proof-lane only; a future slice routes them when a
+  headless host needs exec. The route machine-approves because the human decision already happened in the panel (the
+  dock pipeline's own model, stated in the route source). The dock's file work is the in-browser corpus and its git
+  duties are none — item 7 closes for the product face, not for headless lanes. ADR 0013 stays Proposed.

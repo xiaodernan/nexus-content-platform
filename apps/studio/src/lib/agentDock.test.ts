@@ -337,3 +337,23 @@ describe('agentDock visual QA (v11)', () => {
     expect(hits[0]!.meta?.paths).toContain((res as AgentPlan).targetId);
   });
 });
+describe('agentDock container ledger line (v172)', () => {
+  it('lands one parseable JSONL entry with the exec detail stated', async () => {
+    const { containerLedgerLine } = await import('./agentDock');
+    const line = containerLedgerLine(['node', '-e', 'console.log("jail ok")'], 'node:22-alpine', true, 'container node:22-alpine node -e console.log("jail ok") → exit 0');
+    const e = JSON.parse(line) as { goal: string; target: string; via: string; approved: boolean; exec?: string };
+    if (e.goal !== 'container exec: node -e console.log("jail ok")') throw new Error(`goal: ${e.goal}`);
+    if (e.target !== 'node:22-alpine') throw new Error('target');
+    if (e.via !== 'container.exec') throw new Error('via');
+    if (e.approved !== true) throw new Error('approved');
+    if (!e.exec || !e.exec.includes('exit 0')) throw new Error('exec detail');
+  });
+
+  it('records a denial without an exec detail', async () => {
+    const { containerLedgerLine } = await import('./agentDock');
+    const e = JSON.parse(containerLedgerLine(['node', '-e', '1'], 'node:22-alpine', false, undefined, 'denied at human checkpoint')) as { approved: boolean; reason?: string; exec?: string };
+    if (e.approved !== false) throw new Error('approved');
+    if (e.reason !== 'denied at human checkpoint') throw new Error('reason');
+    if (e.exec !== undefined) throw new Error('exec must be absent on a denial');
+  });
+});

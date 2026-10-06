@@ -17,6 +17,7 @@
     "@nexus/agent-runtime": "*",
     "@nexus/ai-providers": "*",
     "@nexus/design-model": "*",
+    "@nexus/exec-host": "*",
     "@nexus/three-runtime": "*",
     "@nexus/world-engine": "*",
     "next": "^15.1.4",
