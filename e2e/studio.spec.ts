@@ -2412,6 +2412,10 @@ test('@smoke §164 通知：别人真的动过，作者的收件箱里才有那�
   await expect(page.locator('[data-notification-unbacked="Agent task complete"]')).toHaveCount(0);
   await expect(page.locator('[data-notification-unbacked="Build complete"]')).toHaveCount(0);
   await expect(page.locator('[data-notification-unbacked-count="0"]')).toBeVisible();
+  // §164 的披露面：那一列逐类从注册表印出来，页面上就是登记的这十类，一个不多一个不少（任务 #94）
+  await expect(page.locator('[data-notification-backing]')).toHaveCount(10);
+  await expect(page.locator('[data-notification-backing="publish"]')).toBeVisible();
+  await expect(page.locator('[data-notification-backing="build"]')).toBeVisible();
 
   // §112 的账本：这一页列的就是刚才那一行任务
   await page.goto(`/tasks/${projectId}`);
@@ -3106,10 +3110,10 @@ test('@smoke §112/§73 名册下拉：点了 QA 就不能把补丁交回画布�
  * §51 的第二片：游戏类型是文档字段，它决定试玩页跑哪条投影。
  *
  * 这一条要证明的不是"下拉框能选"，而是四件容易各自说谎的事：
- * 面板上那句"接没接"、分派点选的那条管线与它的画法（2.5D 是同一条管线的等轴测）、
- * 没接的类型给出的页面——三者必须来自同一张表（`GAME_KIND_STATUS`）。
+ * 面板上那句"接没接"、分派点选的那条管线与它的画法（2.5D 是等轴测、3D 是立体视角，
+ * 两者都是**同一条计划**）、以及没接的类型给出的页面——三者必须来自同一张表（`GAME_KIND_STATUS`）。
  */
-test('@smoke §51 类型分派：标互动故事就出对话播放器，标 2.5D 就出等轴测，标 3D 就照实说没接', async ({ page }) => {
+test('@smoke §51 类型分派：标互动故事就出对话播放器，标 2.5D 出等轴测，标 3D 出立体视角', async ({ page }) => {
   test.setTimeout(300_000);
   const stamp = Date.now().toString(36);
   const projectId = await createProject(page, `对话游戏 ${stamp}`);
@@ -3211,10 +3215,55 @@ test('@smoke §51 类型分派：标互动故事就出对话播放器，标 2.5D
   await expect(game.locator('[data-game-note]').filter({ hasText: '不是 3D 模型' })).toBeVisible();
   await game.screenshot({ path: 'screenshots/story-play-isometric.png' });
 
-  // 反向对照：同一个项目改成没接的类型，试玩页不许退回 2D 关卡，也不许给空场子
+  // §51 的第五种：3D 是**同一条计划**的立体画法——还走 topdown 那条管线（同一个 data-game-root、
+  // 同一套 step 与 HUD），换成 three.js 场景。"真的画出来了"按像素断言：开 preserveDrawingBuffer 之后
+  // readPixels 读得到东西；这里数的是**玩家那颗球的颜色**，只数非背景会把地面也算进去、断言就空了。
   await page.bringToFront();
   await page.selectOption('[data-game-kind]', '3d');
-  await expect(page.locator('[data-game-kind-note="3d"]')).toContainText('还没接');
+  await expect(page.locator('[data-game-kind-note="3d"]')).toContainText('已接入');
+  await expect(page.locator('[data-game-state]')).toHaveText('已保存', { timeout: 20_000 });
+  await game.reload({ waitUntil: 'domcontentloaded' });
+  // 后台标签页的 rAF 不跑：不 bringToFront，画布就一直是空的，截图与断言都会骗人
+  await game.bringToFront();
+  await expect(game.locator('[data-game-root][data-game-view="3d"]')).toBeVisible({ timeout: 60_000 });
+  await expect(game.locator('[data-game-3d="live"]')).toBeVisible();
+  await expect
+    .poll(
+      () =>
+        game.evaluate(() => {
+          const canvas = document.querySelector('[data-game-canvas-3d] canvas') as HTMLCanvasElement | null;
+          const gl =
+            (canvas?.getContext('webgl2') as WebGL2RenderingContext | null) ??
+            (canvas?.getContext('webgl') as WebGLRenderingContext | null);
+          if (!canvas || !gl) return 0;
+          const pixels = new Uint8Array(canvas.width * canvas.height * 4);
+          gl.readPixels(0, 0, canvas.width, canvas.height, gl.RGBA, gl.UNSIGNED_BYTE, pixels);
+          let painted = 0;
+          for (let i = 0; i < pixels.length; i += 4) {
+            // KIND_COLORS.player = #7dd3fc（125,211,252）；打了光的球会往旁边偏，容差放宽
+            if (
+              Math.abs(pixels[i]! - 125) < 55 &&
+              Math.abs(pixels[i + 1]! - 211) < 55 &&
+              Math.abs(pixels[i + 2]! - 252) < 45
+            )
+              painted += 1;
+          }
+          return painted;
+        }),
+      { timeout: 30_000 },
+    )
+    // 一个都没有 = 场景没画出来（DOM 里有 canvas 只说明组件挂上了，这一条才是"画出来了"的证据）
+    .toBeGreaterThan(20);
+  await expect(game.locator('[data-game-subtitle]')).toContainText('3D 视角');
+  // 限度写在页面上，不只写在注释里：判定仍在地平面上、几何体不是美术模型
+  await expect(game.locator('[data-game-kind-note="3d"]')).toContainText('地平面上判定');
+  await expect(game.locator('[data-game-kind-note="3d"]')).toContainText('不是 3D 美术模型');
+  await game.screenshot({ path: 'screenshots/story-play-3d.png' });
+
+  // 反向对照：换成一个真没接的类型，试玩页不许退回 2D 关卡，也不许给空场子
+  await page.bringToFront();
+  await page.selectOption('[data-game-kind]', 'puzzle');
+  await expect(page.locator('[data-game-kind-note="puzzle"]')).toContainText('还没接');
   await expect(page.locator('[data-game-state]')).toHaveText('已保存', { timeout: 20_000 });
   await game.reload({ waitUntil: 'domcontentloaded' });
   await expect(game.locator('[data-play="kind-not-wired"]')).toBeVisible({ timeout: 60_000 });

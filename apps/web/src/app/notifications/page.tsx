@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import type { ReactElement } from 'react';
 import { inbox, type InboxItem } from '@/server/domain/notifications';
+import { NOTIFICATION_KINDS, NOTIFICATION_TERMINAL_STATE } from '@/lib/notify-plan';
 import { currentUserOrNull } from '@/server/domain/session';
 import { MarkRead } from '@/components/NotificationActions';
 import { NotificationBell } from '@/components/NotificationBell';
@@ -26,13 +27,14 @@ function stamp(iso: string): string {
   return `${iso.slice(0, 10)} ${iso.slice(11, 16)} UTC`;
 }
 
-/** 页面上写清楚的边界：哪些事进收件箱、哪些刻意不进、哪三类还没有来源（§159） */
-const NOTIFIED = [
-  '你发布的那一版完成了（第几版、给谁看的那一档）',
-  '人工审核对某一版做出的结论：通过或下架',
-  '别人点赞、评论、改编了你的公开作品，或开始关注你',
-  '一次生成先后收尾：一次 AI 请求（生成），或一份多步 Agent 作业（几步走完、结论是什么）',
-];
+/**
+ * 页面上写清楚的边界：哪些事进收件箱、哪些刻意不进（§159）。
+ *
+ * "会通知的"这一列**不在这里写**——它从 `lib/notify-plan.ts` 的 `NOTIFICATION_TERMINAL_STATE` 现算，
+ * 一行一类。上一版这里是手写的四条，而登记已经长到十类，于是页面在说谎（任务 #94）。
+ * "不通知的"反过来：那是刻意的排除，写下来才有意义，所以它留成字面清单。
+ */
+const KIND_ORDER = Object.keys(NOTIFICATION_KINDS) as (keyof typeof NOTIFICATION_TERMINAL_STATE)[];
 
 const NOT_NOTIFIED = [
   '取消点赞 / 取消关注：那是"没发生"，不是一条新消息',
@@ -70,8 +72,8 @@ function Row({ item }: { item: InboxItem }): ReactElement {
 }
 
 /**
- * §164 收件箱。四类里今天真有终态的才会出现在这里，还没来源的那一类原样列在页面下面——
- * "收件箱覆盖到哪一类"这件事如果只能从代码里读出来，就等着被人当成做完了的四类。
+ * §164 收件箱。注册表里的每一类都要有真终态可挂，才允许出现在这一页——
+ * 这句话的"每一类"从 `NOTIFICATION_KINDS` 现算，不是这里手抄的名单（任务 #94 修的就是抄漏的那一版）。
  */
 export default async function NotificationsPage() {
   const user = await currentUserOrNull();
@@ -103,8 +105,8 @@ export default async function NotificationsPage() {
 
       {page.items.length === 0 ? (
         <p className="mt-6 rounded-[var(--nexus-radius-md)] border border-[var(--nexus-color-border-subtle)] bg-bg-1 p-4 text-12 text-fg-3" data-notification-empty>
-          还没有通知。这不是"系统没有产生消息"，而是还没有人做过与你有关的事：发布、审核结论、别人对你的作品动手，
-          这三类才往这里写。
+          还没有通知。这不是"系统没有产生消息"，而是还没有人做过与你有关的事：
+          只有真到了终态、而且收件人是你的一件事才会写到这里，下面"会通知的"逐类列了各自挂在哪一次收尾上。
         </p>
       ) : (
         <ul className="mt-4 rounded-[var(--nexus-radius-md)] border border-[var(--nexus-color-border-subtle)] bg-bg-1 px-4 py-1">
@@ -119,10 +121,14 @@ export default async function NotificationsPage() {
 
       <section className="mt-8 grid gap-4 sm:grid-cols-2">
         <div>
-          <h2 className="text-12 font-semibold text-fg-1">会通知的</h2>
+          <h2 className="text-12 font-semibold text-fg-1" data-notification-backed-count={KIND_ORDER.length}>
+            会通知的（登记了 {KIND_ORDER.length} 类，逐类从注册表现算）
+          </h2>
           <ul className="mt-1 list-disc pl-4 text-11 text-fg-3">
-            {NOTIFIED.map((line) => (
-              <li key={line}>{line}</li>
+            {KIND_ORDER.map((kind) => (
+              <li key={kind} data-notification-backing={kind}>
+                <span className="text-fg-2">{KIND_LABEL[kind]}</span>：{NOTIFICATION_TERMINAL_STATE[kind]}
+              </li>
             ))}
           </ul>
         </div>
@@ -139,8 +145,8 @@ export default async function NotificationsPage() {
       <section className="mt-6 rounded-[var(--nexus-radius-md)] border border-[var(--nexus-color-border-subtle)] bg-bg-1 p-4">
         <h2 className="text-12 font-semibold text-fg-1" data-notification-unbacked-count={page.unbacked.length}>
           {page.unbacked.length === 0
-            ? '§164 原文列的四类，今天都有真实来源了'
-            : `§164 原文列的四类里，这 ${page.unbacked.length} 类还没有真实来源`}
+            ? `§164 登记的 ${KIND_ORDER.length} 类，今天都有真实来源了`
+            : `§164 登记的 ${KIND_ORDER.length} 类里，这 ${page.unbacked.length} 类还没有真实来源`}
         </h2>
         <ul className="mt-1 space-y-1 text-11 text-fg-3">
           {page.unbacked.map((entry) => (
@@ -150,11 +156,9 @@ export default async function NotificationsPage() {
           ))}
         </ul>
         <p className="mt-2 text-11 text-fg-3">
-          四类各自的真终态：Like / Comment / Follow 挂在社区互动那三张表上，
-          Generation complete 挂在一次 AI 请求的任务行上，Agent task complete 挂在 §112 的多步作业上
-          （计划落库、逐步推进、最后收尾），审批过期挂在挂起时刻到期那一次收敛上，
-          Build complete 挂在 §144 的一次导出上（读完文档、投出代码、取回资产、打成包，才算"完成"）。
-          没有真终态可挂的那一类不往收件箱里插行。
+          没有真终态可挂的那一类不往收件箱里插行；上面"会通知的"逐类写明了各自挂在哪一次收尾上，
+          那张表与生产者普查（`apps/web/test/notify-producers.test.ts`）用的是同一份注册表，
+          所以页面这句不会再和代码里的类数对不上。
         </p>
       </section>
 

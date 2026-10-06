@@ -38,6 +38,27 @@ export const NOTIFICATION_KINDS: Record<NotificationKind, true> = {
   build: true,
 };
 
+/**
+ * 每一类挂在哪一个**真终态**上。收件箱页"会通知的"那一列就是从这张表现算印出来的（§164 / 任务 #94）：
+ * 上一版那里是一份手写的四条清单，登记已经长到十类、页面还在说"四类"，
+ * 而说谎的清单比没有清单更糟——它让人以为覆盖是那四件事。
+ *
+ * `Record<NotificationKind, string>` 让"加了一类没写终态"在 typecheck 就红；
+ * 每类到底有没有走得通的生产者由 `apps/web/test/notify-producers.test.ts` 现算，两处都要过。
+ */
+export const NOTIFICATION_TERMINAL_STATE: Record<NotificationKind, string> = {
+  publish: '你发布的那一版真的落库了：第几版、给谁看的那一档、公开页的链接都拿到，才算"发布完成"。',
+  moderation: '人工审核对某一版给出结论（通过或下架），结论写在那一版的审核记录上。',
+  like: '别人在你的公开作品上点下的那一次赞，落在社区互动表里（取消点赞不是一条新消息）。',
+  comment: '别人在你的公开作品上留下的一条评论。',
+  follow: '有人开始关注你（取关同样不出声）。',
+  remix: '有人以你的公开作品为底改编出一份新的。',
+  generation: '一次 AI 请求的任务行收尾：出图或出错，任务行有了终态才通知。',
+  agent: '§112 的一份多步作业走完：计划落库、逐步推进、最后给出结论。',
+  approval: '§74 的一道审批门在挂起时刻到期作废——不是"有人点了同意"，而是它真的结束了。',
+  build: '§144 的一次导出打成包：读完文档、投出代码、取回资产，zip 合上才算完成。',
+};
+
 export interface NotificationPlan {
   userId: string;
   actorId: string | null;
