@@ -1,10 +1,12 @@
 import Link from 'next/link';
+import { use, useState } from 'react';
 import type { ReactElement } from 'react';
 import { inbox, type InboxItem } from '@/server/domain/notifications';
 import { NOTIFICATION_KINDS, NOTIFICATION_TERMINAL_STATE } from '@/lib/notify-plan';
 import { currentUserOrNull } from '@/server/domain/session';
 import { MarkRead } from '@/components/NotificationActions';
 import { NotificationBell } from '@/components/NotificationBell';
+import { NotificationSettings } from '@/components/NotificationSettings';
 
 export const dynamic = 'force-dynamic';
 
@@ -190,6 +192,8 @@ export default async function NotificationsPage({ searchParams }: { searchParams
           所以页面这句不会再和代码里的类数对不上。
         </p>
       </section>
+
+      <NotificationSettings />
 
       <p className="mt-8 text-11 text-fg-3">
         <Link href="/" className="text-accent-2 underline">

@@ -969,6 +969,30 @@ export const notifications = pgTable(
 );
 
 /**
+ * §164 NotificationSettings：用户对每一类通知的开关。
+ *
+ * 一行 = 一个用户对某一类通知的偏好。没有行就用默认值（全开），
+ * 这样新用户不需要初始化 10 行数据就能开始收通知；
+ * 而"我关掉了哪一类"这件事对这个人来说必须是可查可改的，所以有表而不是硬编码。
+ *
+ * kind 的取值域与 lib/notify-plan.ts 的 NotificationKind 一致（迁移 0022 用 CHECK 钉住）。
+ */
+export const notificationSettings = pgTable(
+  'notification_settings',
+  {
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    /** 取值由 lib/notify-plan.ts 把住，库侧 CHECK（迁移 0022）是同一件事的第二处写法 */
+    kind: text('kind').notNull(),
+    /** 关掉就是 false：true 或不存在这一行都表示"收" */
+    enabled: boolean('enabled').notNull().default(true),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [primaryKey({ columns: [t.userId, t.kind] })],
+);
+
+/**
  * §188 M8（MCP / 外部 Agent / 公开 API）的凭据表。
  *
  * 与 `sessions` 同一口径：**只存哈希**（§80）。明文只在签发那一次出现在响应里，
@@ -1066,6 +1090,7 @@ export const schema = {
   saves,
   publicationVisits,
   notifications,
+  notificationSettings,
   apiTokens,
   apiAccessBuckets,
 };

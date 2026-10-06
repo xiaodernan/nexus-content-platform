@@ -4,7 +4,7 @@ import { planNotification, targetState, NOTIFICATION_KINDS, UNBACKED_NOTIFICATIO
 import { channels, getRealtimeBus } from '../realtime/bus';
 import { relationOf } from './blocks';
 import { getDb } from '../db/client';
-import { notifications, projects, publishedProjects, users } from '../db/schema';
+import { notificationSettings, notifications, projects, publishedProjects, users } from '../db/schema';
 
 /**
  * §164 收件箱的读写。规则不在这里（在 `lib/notify-plan.ts`），这里只做三件事：
@@ -22,15 +22,18 @@ import { notifications, projects, publishedProjects, users } from '../db/schema'
 export type EmitResult = 'created' | 'duplicate' | 'suppressed';
 
 /**
- * 写一条通知。`suppressed` 现在有两种原因：规则说这件事不出声（`notify-plan`），
- * 或者**收件人自己说过不想再听到这个人**（§132 的 block / mute）。
- * 两种都不写行、都不报错——一个人屏蔽了骚扰者之后，收件箱不该在背后继续长大。
- * 测试要分清这两层：同一种事件只换收件人就必须出声。
+ * 写一条通知。`suppressed` 现在有三种原因：规则说这件事不出声（`notify-plan`），
+ * **收件人自己说过不想再听到这个人**（§132 的 block / mute），或者
+ * **收件人关掉了这一类通知**（§164 NotificationSettings）。
+ * 三种都不写行、都不报错——一个人屏蔽了骚扰者或关掉某一类之后，收件箱不该在背后继续长大。
+ * 测试要分清这三层：同一种事件只换收件人就必须出声。
  */
 export async function emit(event: NotifyEvent): Promise<EmitResult> {
   const plan = planNotification(event);
   if (!plan) return 'suppressed';
   if ('actorId' in event && event.actorId && (await relationOf(event.recipientId, event.actorId))) return 'suppressed';
+  // §164：检查用户是否关掉了这一类通知
+  if (!(await shouldSendNotification(event.recipientId, plan.kind))) return 'suppressed';
   const db = getDb();
   /**
    * `level` 是实时事件的提示（成功/失败要用不同的颜色），不是表里的列——
@@ -256,4 +259,102 @@ export async function markAllRead(userId: string): Promise<number> {
     .where(and(eq(notifications.userId, userId), isNull(notifications.readAt)))
     .returning({ id: notifications.id });
   return updated.length;
+}
+
+/**
+ * §164 NotificationSettings：读取用户对每一类通知的偏好。
+ *
+ * 没有行就用默认值（全开），所以新用户不需要初始化数据就能开始收通知。
+ * 返回一个 Record<NotificationKind, boolean>，true 表示开启，false 表示关闭。
+ */
+export async function getNotificationSettings(userId: string): Promise<Record<NotificationKind, boolean>> {
+  const db = getDb();
+  const rows = await db
+    .select({ kind: notificationSettings.kind, enabled: notificationSettings.enabled })
+    .from(notificationSettings)
+    .where(eq(notificationSettings.userId, userId));
+
+  // 从默认全开开始，用数据库里的设置覆盖
+  const settings: Record<NotificationKind, boolean> = {
+    publish: true,
+    moderation: true,
+    like: true,
+    comment: true,
+    follow: true,
+    remix: true,
+    generation: true,
+    agent: true,
+    approval: true,
+    build: true,
+  };
+
+  for (const row of rows) {
+    if (isKind(row.kind)) {
+      settings[row.kind] = row.enabled;
+    }
+  }
+
+  return settings;
+}
+
+/**
+ * §164 NotificationSettings：更新某一类通知的开关。
+ *
+ * upsert 语义：有就改，没有就插。这样前端可以一个一个开关地改，
+ * 不需要一次性传 10 个值。
+ */
+export async function updateNotificationSetting(
+  userId: string,
+  kind: NotificationKind,
+  enabled: boolean,
+): Promise<void> {
+  const db = getDb();
+  await db
+    .insert(notificationSettings)
+    .values({ userId, kind, enabled, updatedAt: new Date() })
+    .onConflictDoUpdate({
+      target: [notificationSettings.userId, notificationSettings.kind],
+      set: { enabled, updatedAt: new Date() },
+    });
+}
+
+/**
+ * §164 NotificationSettings：批量更新所有通知偏好。
+ *
+ * 一次事务写完 10 行，比发 10 次请求快。
+ */
+export async function updateNotificationSettings(
+  userId: string,
+  settings: Partial<Record<NotificationKind, boolean>>,
+): Promise<void> {
+  const db = getDb();
+  const entries = Object.entries(settings) as Array<[NotificationKind, boolean]>;
+
+  for (const [kind, enabled] of entries) {
+    await db
+      .insert(notificationSettings)
+      .values({ userId, kind, enabled, updatedAt: new Date() })
+      .onConflictDoUpdate({
+        target: [notificationSettings.userId, notificationSettings.kind],
+        set: { enabled, updatedAt: new Date() },
+      });
+  }
+}
+
+/**
+ * §164 NotificationSettings：检查某一类通知是否应该发送。
+ *
+ * 在 emit() 里调用这个函数，用户关掉的那一类就直接 suppressed，
+ * 连库都不写——收件箱不会在背后继续长大。
+ */
+export async function shouldSendNotification(userId: string, kind: NotificationKind): Promise<boolean> {
+  const db = getDb();
+  const [row] = await db
+    .select({ enabled: notificationSettings.enabled })
+    .from(notificationSettings)
+    .where(and(eq(notificationSettings.userId, userId), eq(notificationSettings.kind, kind)))
+    .limit(1);
+
+  // 没有行 = 默认开启
+  return row?.enabled ?? true;
 }
