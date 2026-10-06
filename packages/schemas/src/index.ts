@@ -1216,6 +1216,12 @@ export const GameEntitySchema = z.object({
    */
   stats: z.record(z.string().trim().min(1).max(60), z.number().finite()),
   refs: z.array(GameRefSchema).max(500),
+  /**
+   * §34 的 model 类资产 ID：这个实体在 3D 场景里用哪个模型渲染。
+   * 库里 assets.kind='model' 的那一行就是它的来源（storageKey 指向 .glb/.gltf 文件）。
+   * 没有它时 3D 画法退回到类别几何体（球/方/锥/八面体）——不是美术模型，只是标记。
+   */
+  modelAssetId: z.string().min(1).max(128).optional(),
   updatedAt: z.string().min(1),
 });
 export type GameEntityPayload = z.infer<typeof GameEntitySchema>;

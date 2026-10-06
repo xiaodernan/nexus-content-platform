@@ -102,6 +102,12 @@ export interface GameEntity {
   stats: Record<string, number>;
   /** 本实体发出的引用 */
   refs: GameRef[];
+  /**
+   * §34 的 model 类资产 ID：这个实体在 3D 场景里用哪个模型渲染。
+   * 没有它时 3D 画法退回到类别几何体（球/方/锥/八面体）——不是美术模型，只是标记。
+   * 库里 assets.kind='model' 的那一行就是它的来源（storageKey 指向 .glb/.gltf 文件）。
+   */
+  modelAssetId?: string;
   updatedAt: string;
 }
 
