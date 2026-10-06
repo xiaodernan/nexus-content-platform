@@ -117,7 +117,7 @@ function fakeStack(over: Partial<AssetGeneratorLike> = {}) {
 
 describe('buildStudioAssets — what the surface composes', () => {
   it('generates one still per shot, in the declared order', async () => {
-    const { generator, library, calls } = fakeStack();
+    const { generator, library, storyboards, calls } = fakeStack();
     const built = await buildStudioAssets(generator, library, storyboards);
 
     expect(built.assetIds).toHaveLength(STUDIO_SHOTS.length);
