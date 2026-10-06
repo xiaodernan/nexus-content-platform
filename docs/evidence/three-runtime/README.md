@@ -2844,3 +2844,45 @@ refusal is a capability statement Studio cannot observe today (nothing passes `d
 panel). The fs store's `durable` still requires `flushSync` on the injected `FsLike`; the memory
 store's refusal is unchanged; this grant only made the third member of the family say what its
 siblings already said. Hosted persistence for real deployment remains M7–M10 work.
+## v180 — a quota refusal is NAMED, not quoted raw; the save note stops lying about disk (ADR 0016 amendment 180)
+
+v179 made the store drivable and caught the durable lie; its own tests then exposed the NEXT lie, in the
+error channel. A `setItem` throw from a full origin arrives as `QuotaExceededError` with an engine-specific
+message that says neither "quota" plainly nor "your save did not land" — the caller sees a raw browser
+complaint that no sentence of ours owns. And the product face was lying too: Scene3D's save note still said
+"nothing written to disk", a sentence v163 wrote when nothing was persisted anywhere, which v170's
+localStorage backend turned into a falsehood — the bytes DO survive a reload.
+
+**The refusal is named, narrowly.** A module-level `rethrowQuotaAsNamed(path, error)` wraps a `setItem`
+throw ONLY when the error's name+message is quota-shaped (`/quota/i` or `/exceed/i`), rethrowing with a
+sentence that names the quota, names the path, and states the fact that matters: NOTHING was written (delete
+saves and retry, or clear this origin), with the storage's own words attached. An unclassifiable error is
+re-thrown untouched — a `TypeError('boom')` is not ours to diagnose, and inventing a diagnosis is exactly
+what §60 forbids. The wrap covers the three data-writing entries: `write`, `writeAtomic`'s TEMP step (the
+copy step keeps v179's mid-flight ownership — by then a temp exists, so the state is mid-flight, not a clean
+refusal), and `rename`'s write of the new name (named with the NEW path — the save that failed to land is
+the new one).
+
+**The note names the store.** Scene3D's onSave note now reads `persisted in this origin's localStorage
+(reload-safe), not on disk` — honest about what the bytes are and what they are not.
+
+**4 cases in `test/saveLocalStorage.test.ts`** (three-runtime 436 → **440**, `tsc` clean), over the same
+fake storage with `failSetFrom(n)`:
+
+| subject | what is pinned |
+| --- | --- |
+| `write` quota | the refusal matches "quota is full" AND "NOTHING was written" AND carries the storage's own words; `keys()` and `list()` stay empty — zero bytes |
+| `writeAtomic` | a quota at the TEMP step names the quota with nothing stored; a quota at the COPY step is v179's mid-flight sentence — the two failure points sound different because they ARE different |
+| unclassifiable | a `TypeError('boom: setter vanished')` re-thrown verbatim — named errors are for named causes, not for everything |
+| `rename` quota | the refusal names the NEW path; the old name's bytes and index entry survive untouched |
+
+**Regression at the landing (2026-10-07):** three-runtime **440/440**, studio **256/256** (Scene3D's note is
+asserted by prefix in the harness — `saved N bodies` — so the honest tail changed nothing there), build
+clean, browser harness studio-scene3d **25/25** re-verified in the real browser.
+
+**Bounds (§60).** Quota detection is SHAPE-based: a quota that does not say "quota" or "exceed" stays raw
+(a `SecurityError` from a privacy-mode origin is not claimed as a quota). An index-update failure AFTER a
+landed write is still raw — that path has its own story and gets none of this sentence. The save dialog has
+no quota meter: the user learns the origin is full only when the refusal arrives. The v179 bounds' "no
+delete in the browse UI" clause is retired — the browse has had delete since v169/v171; this record
+corrects the ledger, not the code.

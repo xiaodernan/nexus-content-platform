@@ -46,9 +46,14 @@ headless proof → product surface → real-browser verification → record the 
   while the browser default still probes `window.localStorage` and `Scene3D` is unchanged byte for
   byte — and the seam's first tests caught and fixed a real lie: `writeAtomic`'s `durable` was
   silently ignored, now refused like its siblings with a zero-write guarantee (three-runtime
-  422 → **436**, harness **25/25** re-verified; ADR 0016 amendment 179). Still open: pan + keyboard
-  controls, per-body picker, lighting control, fs-backed persistence via a Node seam, browse
-  delete/quota handling.
+  422 → **436**, harness **25/25** re-verified; ADR 0016 amendment 179). **Now PLAIN (v180):** a
+  quota-shaped `setItem` throw is re-thrown with a sentence that names the quota AND that nothing
+  was written (write / writeAtomic's temp step / rename; unclassifiable errors stay raw — no
+  invented diagnosis), and the save note stops claiming "nothing written to disk" — it names the
+  store: `persisted in this origin's localStorage (reload-safe), not on disk` (three-runtime
+  436 → **440**, harness **25/25** re-verified; ADR 0016 amendment 180). Still open: pan + keyboard
+  controls, per-body picker, lighting control, fs-backed persistence via a Node seam, a quota
+  meter in the save dialog.
 - **M6–M10:** planned, not started (autonomous build, community, creator economy, ops, external agents).
 
 ## Execution order (next increments)

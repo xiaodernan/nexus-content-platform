@@ -189,3 +189,63 @@ describe('createLocalStorageSaveStore — the store itself', () => {
     expect(() => store.rename('ghost.json', 'anywhere.json')).toThrow(/does not exist/);
   });
 });
+
+describe('a quota refusal is NAMED, not quoted raw (v180)', () => {
+  it('write re-throws a quota-shaped setItem failure with the quota sentence and NOTHING was written', () => {
+    const storage = fakeStorage();
+    const store = createLocalStorageSaveStore('t', { storage });
+    storage.failSetFrom(1);
+    const thrown = (() => {
+      try {
+        store.write('full.json', 'F');
+        return null;
+      } catch (error) {
+        return (error as Error).message;
+      }
+    })();
+    expect(thrown).toMatch(/quota is full/);
+    expect(thrown).toMatch(/NOTHING was written/);
+    expect(thrown).toMatch(/fake storage quota exceeded/); // the original words ride along
+    // The refusal is real: no target, no index entry, nothing.
+    expect(storage.keys()).toEqual([]);
+    expect(store.list()).toEqual([]);
+  });
+
+  it('writeAtomic names a quota refusal at the TEMP step (before any byte moved) and leaves no debris', () => {
+    const storage = fakeStorage();
+    const store = createLocalStorageSaveStore('t', { storage });
+    storage.failSetFrom(1); // set #1 is the temp write
+    expect(() => store.writeAtomic('a.json', 'A')).toThrow(/quota is full/);
+    expect(storage.keys()).toEqual([]);
+    // The mid-flight sentence stays owned by the COPY step (v179), where the temp already exists.
+    const storage2 = fakeStorage();
+    const store2 = createLocalStorageSaveStore('t', { storage: storage2 });
+    storage2.failSetFrom(2); // set #1 temp, set #2 copy — the refusal fires MID-flight, not before
+    expect(() => store2.writeAtomic('b.json', 'B')).toThrow(/mid-flight/);
+  });
+
+  it('an error the store cannot classify is re-thrown untouched — no invented diagnosis', () => {
+    const hostile: StorageLike = {
+      getItem: () => null,
+      setItem: () => {
+        throw new TypeError('boom: setter vanished');
+      },
+      removeItem: () => undefined,
+    };
+    const store = createLocalStorageSaveStore('t', { storage: hostile });
+    expect(() => store.write('x.json', 'X')).toThrow(/boom: setter vanished/);
+    expect(() => store.write('x.json', 'X')).not.toThrow(/quota is full/);
+  });
+
+  it('rename re-throws a quota refusal on the NEW name and the old save survives untouched', () => {
+    const storage = fakeStorage();
+    const store = createLocalStorageSaveStore('t', { storage });
+    store.write('keep.json', 'K');
+    storage.failSetFrom(2); // set #1 was the original write; set #2 is the rename's setItem
+    expect(() => store.rename('keep.json', 'big.json')).toThrow(/quota is full/);
+    expect(() => store.rename('keep.json', 'big.json')).toThrow(/"big\.json"/); // the refusal names the NEW name
+    // The old name still holds its bytes and its index entry — a failed rename moved nothing.
+    expect(store.read('keep.json')).toBe('K');
+    expect(store.list()).toEqual(['keep.json']);
+  });
+});

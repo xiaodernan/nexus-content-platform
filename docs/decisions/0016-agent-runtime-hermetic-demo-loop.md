@@ -8296,3 +8296,29 @@ unauthenticated browser localStorage — hosted persistence remains M7 (ADR 0014
 story). The emptied `__index` key stays on file by design. The durable refusal is a capability
 statement the Studio cannot observe today (nothing passes `durable`); when a consumer needs durability
 it needs a different host, not a softer promise here.
+
+### Amendment 180 — M5: a quota refusal is NAMED, not quoted raw (localStorage store), and the save note stops lying about disk (2026-10-07)
+
+**What landed.** Two sentences the product owed its user, both paid:
+
+1. `saveStore.ts` — the localStorage store's three data-writing verbs (`write`, `writeAtomic`'s temp step,
+   `rename`) now catch a quota-SHAPED `setItem` throw and re-throw a sentence that names the quota AND the
+   fact that nothing was written (`the origin's quota is full and NOTHING was written; delete saves and
+   retry, or clear this origin`), with the original storage words riding along. Any error the store cannot
+   classify is re-thrown untouched — no invented diagnosis (§60). The mid-flight sentence of v179 keeps
+   ownership of the copy-step failure, where the temp already exists.
+2. `Scene3D.tsx` — the save note no longer says "nothing written to disk" (v163 text, true only before the
+   localStorage backend of v170 existed): it now says `persisted in this origin's localStorage
+   (reload-safe), not on disk`. The browser harness pinned `includes('saved 5 bodies')`, which the honest
+   suffix keeps matching.
+
+**Measured.** three-runtime 436 → **440** (+4: write quota + zero-write, temp-step quota vs mid-flight
+ownership, unclassifiable error re-thrown untouched, rename quota with the OLD save surviving); studio
+**256/256** regression; `npm run build` (tsc) clean; harness studio-scene3d **25/25** against the real
+default path.
+
+**Bounds (§60).** The quota detection is shape-based (`/quota/i` or `/exceed/i` over name+message) because
+engine messages vary; a private-mode `SecurityError` is NOT quota-shaped and stays raw. The
+index-update-fails path (target bytes written, index stale) is still raw — the write surfaces a
+quota-named throw only when the DATA write refuses. The Studio save dialog has no quota meter; the
+browse UI's delete buttons (v169/171) are the remedy the note names.

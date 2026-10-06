@@ -346,6 +346,11 @@ export function createFsSaveStore(fs: FsLike, root: string): SaveStore {
  * the memory store refuses it outright and the fs store checks for `flushSync` before writing, but this store
  * swallowed the promise. Now it refuses it like the others: localStorage has no flush handle, so a durable
  * write here would be a claim nobody can check (§60).
+ *
+ * M5 v180 — a quota refusal is NAMED, not quoted raw. When the browser storage throws on `setItem`, the raw
+ * error names neither the quota nor the fact that nothing was written; a user whose save was refused by a
+ * full origin deserves the sentence that says both. Only quota-SHAPED errors are re-thrown with the note —
+ * the store does not pretend to classify what it cannot (§60).
  */
 
 /** The minimal slice of a storage the localStorage-backed store needs. Deliberately NOT the full `Storage`
@@ -356,6 +361,22 @@ export interface StorageLike {
   getItem(key: string): string | null;
   setItem(key: string, value: string): void;
   removeItem(key: string): void;
+}
+
+/** v180: a quota-shaped `setItem` throw is re-thrown with a sentence that names the quota AND the fact that
+ *  nothing was written; any other error is re-thrown untouched. localStorage `setItem` has essentially one
+ *  caller-fixable failure — the origin's ~5MB is full — and the raw browser error (`QuotaExceededError`,
+ *  message varying by engine) says neither "quota" plainly nor "your save did not land". */
+function rethrowQuotaAsNamed(path: string, error: unknown): never {
+  const err = error as Error | null;
+  const raw = `${err && err.name ? err.name : ''} ${err && err.message ? err.message : ''}`;
+  if (/quota/i.test(raw) || /exceed/i.test(raw)) {
+    throw new Error(
+      `saveStore: writing "${path}" was refused by the browser storage — the origin's quota is full and NOTHING was written (delete saves and retry, or clear this origin); the storage said: ${err?.message ?? String(error)}`,
+    );
+  }
+  if (err instanceof Error) throw err;
+  throw new Error(String(error));
 }
 
 export function createLocalStorageSaveStore(namespace: string, options: { storage?: StorageLike } = {}): SaveStore {
@@ -417,7 +438,11 @@ export function createLocalStorageSaveStore(namespace: string, options: { storag
     write(path, contents) {
       const refusal = savePathRefusal(path);
       if (refusal !== null) throw new Error(`saveStore: "${path}" is refused: ${refusal}`);
-      storage.setItem(keyForNew(path), contents);
+      try {
+        storage.setItem(keyForNew(path), contents);
+      } catch (error) {
+        rethrowQuotaAsNamed(path, error);
+      }
       addToIndex(path);
     },
     writeAtomic(path, contents, durable = false) {
@@ -435,8 +460,12 @@ export function createLocalStorageSaveStore(namespace: string, options: { storag
       const targetKey = keyForNew(path);
       const tempKey = `${targetKey}${SAVE_TEMP_SUFFIX}`;
 
-      // Write to temp first
-      storage.setItem(tempKey, contents);
+      // Write to temp first — a quota refusal here happened BEFORE any byte moved, so it is named as such
+      try {
+        storage.setItem(tempKey, contents);
+      } catch (error) {
+        rethrowQuotaAsNamed(path, error);
+      }
 
       try {
         // Copy temp to target (this is the "rename")
@@ -492,7 +521,11 @@ export function createLocalStorageSaveStore(namespace: string, options: { storag
       const contents = storage.getItem(oldKey);
       if (contents === null) throw new Error(`saveStore: "${oldPath}" does not exist`);
       const newKey = keyForNew(newPath);
-      storage.setItem(newKey, contents);
+      try {
+        storage.setItem(newKey, contents);
+      } catch (error) {
+        rethrowQuotaAsNamed(newPath, error);
+      }
       storage.removeItem(oldKey);
       // Update index: remove old, add new
       removeFromIndex(oldPath);

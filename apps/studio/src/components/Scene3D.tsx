@@ -329,7 +329,12 @@ export default function Scene3D() {
     try {
       const file = surface.save(Math.round(performance.now()));
       setLastFile(file);
-      setSaveNote(`saved ${file.entities.length} bodies · ${file.format} v${file.version} · nothing written to disk`);
+      // v180: the note names the store — v163's "nothing written to disk" predates the localStorage backend
+      // (v170) and lied about where the save lives. The bytes DO persist (origin localStorage, reload-safe);
+      // what they are not is a file on the server's disk.
+      setSaveNote(
+        `saved ${file.entities.length} bodies · ${file.format} v${file.version} · persisted in this origin's localStorage (reload-safe), not on disk`,
+      );
     } catch (error) {
       setSaveNote(`save refused: ${(error as Error).message}`);
     }
