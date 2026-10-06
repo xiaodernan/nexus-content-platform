@@ -604,7 +604,21 @@ drizzle 把整个拼接结果当成**单个绑定参数**，生成的 SQL 是 `o
   `story.test.ts` 的分派用例加探索格，"没接"清单从三种减为两种（RPG 原型 / 解谜）；
   `@smoke §51 类型分派` 多一格（换探索 → 走一步 → **发现计数单调不减** → 像素断言玩家在场 → 截图
   `story-play-exploration.png`），用例标题同步改成"标探索出走近才看得见"。
-  **仍欠的两种**：RPG 原型（模型里没有成长/战斗循环的语义）、解谜（需要新的判定语义，不硬凑进 step）。
+  **2026-10-06 第七片（解谜有了真投影：机关连线是画法，任务判定多了「激活」这一格）**：`GAME_KIND_STATUS["puzzle"]`
+  从 `pipeline: null` 改成 `pipeline: "topdown"` + `view: "puzzle"`——解谜与 2D / 2.5D / 3D / 探索是**同一条计划**
+  的第五种画法：`compileForKind` 照样派 `compileGame` 的产物，规则仍在同一个 `step` 里。
+  `PlayQuestGoal.kind` 新增 `"activate"`：引用了触发器的任务按首次踩到的时刻判定完成；
+  `SimState.activated: Record<string, number>` 记每个机关首次被踩到的模拟时刻；
+  `puzzleLinks(plan)` 把作者连了的引用画成连线（机关→目标），没连的就是孤立的开关。
+  GamePlay 的 `drawTopdown` 新增 `links` 参数：激活过的机关连线实线黄色、未激活虚线淡黄，
+  激活过的机关范围圈实线圈（不再是虚线）。HUD 不额外加读数——谜题结构在画布上已经一目了然。
+  限度三条随画法一起显示（`PUZZLE_VIEW_NOTES` 进 `data-game-note`）：
+  规则与 2D 走同一个 step、连线只画作者连了的引用、模型里没有表达顺序的字段所以不假装支持「按正确顺序踩」的谜题。
+  **测试**：`puzzle.test.ts` 新增 9 条（goal kind 是 activate、判不出 NPC/对话、首次踩到记账、
+  再次踩到不重复、无任务时纯记账、连线只画场上有的目标、没连的目标没有这条线、空文档返回空数组、
+  移除实体后连线消失）；`story.test.ts` 的分派用例加解谜格，"没接"清单从两种减为一种（只剩 RPG 原型）；
+  `play.test.ts` 更新 why 文案断言（"不是敌人、物品或触发器"）；game-model 全测 102/102 绿。
+  **仍欠的一种**：RPG 原型（模型里没有成长/战斗循环的语义）。
 - [~] Game Agent + Playtest Agent（§52-53）
   — **2026-09-25 §53 的可确定那一半落地**：`packages/game-model/src/playtest.ts` 用四种固定走法
   （站着不动 / 冲向最近的敌人并挥击 / 一直躲开 / 定种子随机游走）把一份设计各跑 60 秒，
