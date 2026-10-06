@@ -2631,6 +2631,55 @@ exported names in `types.ts` are still named by none of the three code modules, 
 "declared outside `types.ts`" scan does not read `index.ts` (a barrel with no local declarations at this ref);
 this grant accounts for `Serialized*` shapes, not for every declared type.
 
+## v168 — `savePathRefusal()` moves from module-level to the SaveStore interface: the store answers about a name without walking through the door (ADR 0016 amendment 168)
+
+Before v168, `savePathRefusal(path)` lived only as a module-level function exported from `src/saveStore.ts`. Callers who wanted to classify a name had to import the helper directly (`import { savePathRefusal } from '../saveStore.js'`), while the store's own methods (`write`, `read`, `delete`) called it internally. The interface `SaveStore` exposed no way to ask "will you refuse this name?" — a caller had to try the operation and catch the throw, or reach for the module-level function.
+
+**The fix is additive and costs zero reads.** `SaveStore` now declares `savePathRefusal(path: string): string | null` with documentation explaining it classifies save names without reading any file. Both implementations delegate to the existing module-level helper:
+
+```typescript
+// createMemorySaveStore() at :198
+savePathRefusal(path) {
+  return savePathRefusal(path);
+},
+
+// createFsSaveStore() at :291
+savePathRefusal(path) {
+  return savePathRefusal(path);
+},
+```
+
+The module-level function stays owned by one place (`resolveSavePath` at `:126`), so the two halves cannot drift apart. A test suite of **5 new cases** pins the surface: valid names return `null` from both stores, debris names (`*.tmp`) are re-enterable but refuse creation (the interface method answers `null`, `resolveNewSavePath` throws), path traversal returns a reason, backslash names return the door's sentence, and the interface method agrees with the module-level helper across 8 names.
+
+| what changed | before | after |
+| --- | --- | --- |
+| `SaveStore` interface | no classification method | `savePathRefusal(path): string \| null` |
+| discoverability | callers must import the helper | the store itself answers |
+| test suite | 417 tests, 0 red | 423 tests, 0 red (+5 interface cases, +1 arm clarification) |
+
+**Measured at HEAD `956e43b`, 2026-10-06.** Nothing written to a tracked file beyond the three modified files; the tree is clean after the commit.
+
+**Arms: 0 predicted, because this grant adds a method without changing behaviour.** The module-level helper still owns the refusal logic, so no existing case breaks. The interface method is purely additive — callers who use the module-level function see the same answers they saw before, and callers who ask the store get the same classification. The 5 new cases pin that the delegation works correctly for both store types.
+
+**Measured on a frozen plane, because the shared worktree has live writers.** The suite ran at HEAD `956e43b` with `-c core.autocrlf=false`, built because the shared worktree carries other lanes' in-flight edits. Baseline: **417 cases over 11 files, 0 red**. After the grant: **423 cases over 11 files, 0 red**, `tsc --noEmit` exit 0.
+
+| test file | cases | red |
+| --- | --- | --- |
+| characterController.test.ts | 39 | 0 |
+| cinematicSequence.test.ts | 78 | 0 |
+| combatRecord.test.ts | 23 | 0 |
+| packageFace.test.ts | 6 | 0 |
+| playerCeiling.test.ts | 11 | 0 |
+| saveNameCollision.test.ts | 10 | 0 |
+| saveNameSpelling.test.ts | 23 | 0 |
+| saveSnapshot.test.ts | 157 | 0 |
+| scenePhysics.test.ts | 30 | 0 |
+| serializedShapeName.test.ts | 13 | 0 |
+| threeRuntime.test.ts | 32 | 0 |
+| **TOTAL** | **423** | **0** |
+
+**Bounds.** No src behaviour and no file format changed. The module-level `savePathRefusal` still owns the refusal logic, so the two halves cannot drift apart. The census gate in `test/saveNameSpelling.test.ts` still pins all four callers of `storage.list()` inside `packages/three-runtime/src/*.ts` to classify: three surveys plus `listSaveFiles`, four total. 27 of the 72 exported names in `types.ts` are still named by none of the three code modules, and this grant accounts for the interface's discoverability, not for every declared type.
+
 ## v165 — `listSaveFiles()` gains a name-level account: the listing verb classifies every name it holds via `savePathRefusal(path)` without reading any file, so a menu that shows a save this build cannot re-enter names WHY in its own bucket (ADR 0016 amendment 165)
 
 v123 gave this runtime two verbs for asking what the store holds — `listSaveFiles()` and `latestSaveFile()` — but only one of them classified the names it listed. The bare listing returned `{ store, paths }` where `paths` was every name the store's host directory contained, including names whose spelling this build's naming rule refuses (backslash segments, temp suffixes, dot-only names). A caller who then tried to read one got a throw, because `listSaveFiles` had no way to say "I see it, but you cannot enter it."

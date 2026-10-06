@@ -73,6 +73,10 @@ export interface SaveStore {
    *  store answers `[]`. Where browsing needs a capability the injected host does not have, it throws —
    *  `[]` would be a claim that there are no saves, and the store does not know that. */
   list(): string[];
+  /** Classify a save name WITHOUT reading any file. Returns `null` when the name is legal, or a refusal
+   *  sentence explaining WHY it cannot be used (path traversal, debris suffix, etc.). M5 v168: callers can
+   *  now ask the store itself instead of importing the module-level helper. */
+  savePathRefusal(path: string): string | null;
 }
 
 /**
@@ -191,6 +195,9 @@ export function createMemorySaveStore(): SaveStore {
     list() {
       return [...files.keys()].sort();
     },
+    savePathRefusal(path) {
+      return savePathRefusal(path);
+    },
   };
 }
 
@@ -278,6 +285,9 @@ export function createFsSaveStore(fs: FsLike, root: string): SaveStore {
       };
       walk(trimmed, '');
       return found.sort();
+    },
+    savePathRefusal(path) {
+      return savePathRefusal(path);
     },
   };
 }

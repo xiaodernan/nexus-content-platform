@@ -287,6 +287,68 @@ describe('a name the caller chose: the door, out loud', () => {
   });
 });
 
+describe('the store surface: savePathRefusal on the interface (M5 v168)', () => {
+  it('a valid name returns null from both store types', () => {
+    const memory = createMemorySaveStore();
+    const fs = posixFs();
+    const store = createFsSaveStore(fs, '/saves');
+    expect(memory.savePathRefusal('game.json')).toBeNull();
+    expect(store.savePathRefusal('game.json')).toBeNull();
+    expect(memory.savePathRefusal('saves/hero.json')).toBeNull();
+    expect(store.savePathRefusal('saves/hero.json')).toBeNull();
+  });
+
+  it('a debris name (*.tmp) is re-enterable but refuses creation — savePathRefusal answers null, resolveNewSavePath throws', () => {
+    const memory = createMemorySaveStore();
+    const fs = posixFs();
+    const store = createFsSaveStore(fs, '/saves');
+    // savePathRefusal only asks resolveSavePath, which allows *.tmp (it's a valid name on the host)
+    expect(memory.savePathRefusal('backup.json.tmp')).toBeNull();
+    expect(store.savePathRefusal('backup.json.tmp')).toBeNull();
+    // But creation is refused by resolveNewSavePath
+    expect(() => memory.write('backup.json.tmp', 'data')).toThrow(/temp suffix/);
+    expect(() => store.write('backup.json.tmp', 'data')).toThrow(/temp suffix/);
+  });
+
+  it('path traversal returns a reason from both store types', () => {
+    const memory = createMemorySaveStore();
+    const fs = posixFs();
+    const store = createFsSaveStore(fs, '/saves');
+    const reason = memory.savePathRefusal('../escape.json');
+    expect(reason).not.toBeNull();
+    expect(reason).toMatch(/\.\./);
+    const fsReason = store.savePathRefusal('../escape.json');
+    expect(fsReason).not.toBeNull();
+    expect(fsReason).toMatch(/\.\./);
+  });
+
+  it('a backslash name returns the door\'s sentence from both store types', () => {
+    const memory = createMemorySaveStore();
+    const fs = posixFs();
+    const store = createFsSaveStore(fs, '/saves');
+    const reason = memory.savePathRefusal(BS);
+    expect(reason).not.toBeNull();
+    expect(reason).toMatch(/backslash/);
+    expect(reason).toMatch(/POSIX/);
+    const fsReason = store.savePathRefusal(BS);
+    expect(fsReason).not.toBeNull();
+    expect(fsReason).toMatch(/backslash/);
+    expect(fsReason).toMatch(/POSIX/);
+  });
+
+  it('the interface method agrees with the module-level helper', () => {
+    const names = [BS, LEGACY, 'x/../y.json', '', 'a/.', SL, 'hero.json', 'saves/x.tmp'];
+    const memory = createMemorySaveStore();
+    const fs = posixFs();
+    const store = createFsSaveStore(fs, '/saves');
+    for (const name of names) {
+      const expected = savePathRefusal(name);
+      expect(memory.savePathRefusal(name)).toBe(expected);
+      expect(store.savePathRefusal(name)).toBe(expected);
+    }
+  });
+});
+
 describe('how narrow the rule is', () => {
   it('the naming rule has one owner: the split that reads a name is the split that refuses it', () => {
     const shipped = readSource('src/saveStore.ts');
