@@ -520,7 +520,7 @@ drizzle 把整个拼接结果当成**单个绑定参数**，生成的 SQL 是 `o
   写在 HUD 文案与组件注释里（世界条目是九类正文，档案才有人设与记忆）。
   仍欠：地形/碰撞/寻路、
   3D 资产与贴图（§34 的 model 类资产还没接进场景）。条目名字已经用 DOM 投影标签解决（没引 drei）
-- [~] Game Studio：2D / 2.5D / 3D / Interactive Story / RPG 原型 / Puzzle / Visual Novel（§51）
+- [~] Game Studio：2D / 2.5D / 3D / 探索 / Interactive Story / RPG 原型 / Puzzle / Visual Novel（§51）
   — **2026-09-25 第一片（2D 可玩）落地**：`packages/game-model` 新增 `play.ts`（编译关卡计划）与
   `sim.ts`（纯函数模拟器），`/game/<项目>` 用 canvas 把它跑起来，Studio 的「游戏」面板上有「试玩这份设计 →」。
   **这一片守的是 §16：试玩读的就是那份 §54 文档，没有第二份"关卡文件"**——改完数值回这一页刷新，
@@ -589,6 +589,22 @@ drizzle 把整个拼接结果当成**单个绑定参数**，生成的 SQL 是 `o
   3D 那格的像素断言数的是**玩家球的颜色**而不是"非背景 > 1000"：铺了地面之后非背景几乎恒真，
   断言会变成一句空话；为此 `Canvas` 开了 `preserveDrawingBuffer`（默认关掉时 `readPixels` 读到的是
   已清空的缓冲，同样会把断言变成谎话）。教训照记：DOM 里有 canvas 只说明组件挂上了。
+  **2026-10-06 第六片（探索有了真投影：走近才看得见是画法，不是第二种游戏）**：`GAME_KIND_STATUS["exploration"]`
+  从 `pipeline: null` 改成 `pipeline: "topdown"` + `view: "exploration"`——探索与 2D / 2.5D / 3D 是**同一条计划**
+  的第四种画法：`compileForKind` 照样派 `compileGame` 的产物，规则仍在同一个 `step` 里（单测钉死 plan 逐字段相等）。
+  揭示的算式放在 `play.ts`（`revealedNow` 欧氏距离、`discoverableIds` 四类清单、`EXPLORATION_REVEAL_RADIUS = 150`），
+  不进组件——位置本来就是这一层排出来的（与 2.5D 投影同一条理由）。
+  绘制不另写第二个函数：`drawTopdown` 加一道 `revealed` 过滤，探索就是"只画看见过的"俯视；玩家不参与发现。
+  「看见过」是视图层的 `Set`（`useRef`），不进模型也不进库——模型里没有探索进度这个字段，刷新就重摸一遍；
+  限度三条随画法一起显示（`EXPLORATION_VIEW_NOTES` 进 `data-game-note`）：规则与 2D 走同一个 step、
+  发现不进文档也不进库、可发现的只有摆上场的那四类（§54 文档说有什么就有什么，探索不发明新东西）。
+  HUD 多一个读数 `data-game-discovered="x/y"`（分母 = `discoverableIds(plan).length`），restart 清空集合从头摸。
+  **测试**：`exploration.test.ts` 新增 5 条（半径 0 圆心取等、欧氏而非曼哈顿/切比雪夫——106+106 照得见
+  120+120 照不见、可发现清单就是四类且不含玩家、换画法 plan 逐字段相等、半径是常量不随场地缩放）；
+  `story.test.ts` 的分派用例加探索格，"没接"清单从三种减为两种（RPG 原型 / 解谜）；
+  `@smoke §51 类型分派` 多一格（换探索 → 走一步 → **发现计数单调不减** → 像素断言玩家在场 → 截图
+  `story-play-exploration.png`），用例标题同步改成"标探索出走近才看得见"。
+  **仍欠的两种**：RPG 原型（模型里没有成长/战斗循环的语义）、解谜（需要新的判定语义，不硬凑进 step）。
 - [~] Game Agent + Playtest Agent（§52-53）
   — **2026-09-25 §53 的可确定那一半落地**：`packages/game-model/src/playtest.ts` 用四种固定走法
   （站着不动 / 冲向最近的敌人并挥击 / 一直躲开 / 定种子随机游走）把一份设计各跑 60 秒，
@@ -624,7 +640,7 @@ drizzle 把整个拼接结果当成**单个绑定参数**，生成的 SQL 是 `o
   "只能躲、不能打"——给一个看不见的 1 点攻击力就是造假数据（§159）。
   任务的完成条件同样只在"引用了敌人或物品"时才算可判定，判不出来的列在任务表里说清为什么，
   不悄悄算作自动完成，也不会因为它永远不满足而谎称"这版没有赢"以外的话。
-  **仍欠**：§52 Game Agent 与 §53 Playtest Agent 的编排、§51 其余四种类型的构建管线（3D / RPG 原型 / 探索 / 解谜）、
+  **仍欠**：§52 Game Agent 与 §53 Playtest Agent 的编排、§51 其余两种类型的构建管线（RPG 原型 / 解谜）、
   地形与碰撞、`talk`（§47 要 provider）——所以是 `[~]` 不是 `[x]`。
   （公开可玩与 §168 的 play time 已在上面的"第二片"接上；`/game/<项目>` 仍是作者自己的试玩页，
   公网那一版走 `/n/<handle>/<slug>/play`。）
@@ -720,7 +736,7 @@ drizzle 把整个拼接结果当成**单个绑定参数**，生成的 SQL 是 `o
   这条用例的"点抓手摘引用"那一步就是先红后绿的（直线版本点不到边），不是补上去摆设。
   截图核对过实际长相，据此删掉了界面文案里漏出来的 markdown 星号（`**模板骨架**` 这种写法
   在 JSX 里是原样显示的）。
-- **§54 现在欠的**：§52/§53 的 Game Agent 与 Playtest 编排、§51 其余四种类型的构建管线
+- **§54 现在欠的**：§52/§53 的 Game Agent 与 Playtest 编排、§51 其余两种类型的构建管线（RPG 原型 / 解谜）
   ——这两样都要真 provider 或真运行时，不在面板里塞假按钮。（"引擎类型选择"本身已经在
   2026-09-26 接上：类型是文档字段，两个试玩页共用 `compileForKind` 分派。）
 

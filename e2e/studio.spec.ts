@@ -3113,7 +3113,7 @@ test('@smoke §112/§73 名册下拉：点了 QA 就不能把补丁交回画布�
  * 面板上那句"接没接"、分派点选的那条管线与它的画法（2.5D 是等轴测、3D 是立体视角，
  * 两者都是**同一条计划**）、以及没接的类型给出的页面——三者必须来自同一张表（`GAME_KIND_STATUS`）。
  */
-test('@smoke §51 类型分派：标互动故事就出对话播放器，标 2.5D 出等轴测，标 3D 出立体视角', async ({ page }) => {
+test('@smoke §51 类型分派：标互动故事就出对话播放器，标 2.5D 出等轴测，标 3D 出立体视角，标探索出走近才看得见', async ({ page }) => {
   test.setTimeout(300_000);
   const stamp = Date.now().toString(36);
   const projectId = await createProject(page, `对话游戏 ${stamp}`);
@@ -3227,38 +3227,64 @@ test('@smoke §51 类型分派：标互动故事就出对话播放器，标 2.5D
   await game.bringToFront();
   await expect(game.locator('[data-game-root][data-game-view="3d"]')).toBeVisible({ timeout: 60_000 });
   await expect(game.locator('[data-game-3d="live"]')).toBeVisible();
-  await expect
-    .poll(
-      () =>
-        game.evaluate(() => {
-          const canvas = document.querySelector('[data-game-canvas-3d] canvas') as HTMLCanvasElement | null;
-          const gl =
-            (canvas?.getContext('webgl2') as WebGL2RenderingContext | null) ??
-            (canvas?.getContext('webgl') as WebGLRenderingContext | null);
-          if (!canvas || !gl) return 0;
-          const pixels = new Uint8Array(canvas.width * canvas.height * 4);
-          gl.readPixels(0, 0, canvas.width, canvas.height, gl.RGBA, gl.UNSIGNED_BYTE, pixels);
-          let painted = 0;
-          for (let i = 0; i < pixels.length; i += 4) {
-            // KIND_COLORS.player = #7dd3fc（125,211,252）；打了光的球会往旁边偏，容差放宽
-            if (
-              Math.abs(pixels[i]! - 125) < 55 &&
-              Math.abs(pixels[i + 1]! - 211) < 55 &&
-              Math.abs(pixels[i + 2]! - 252) < 45
-            )
-              painted += 1;
-          }
-          return painted;
-        }),
-      { timeout: 30_000 },
-    )
-    // 一个都没有 = 场景没画出来（DOM 里有 canvas 只说明组件挂上了，这一条才是"画出来了"的证据）
-    .toBeGreaterThan(20);
+  // live = 组件挂上了；three.js 的大 chunk 在冷 dev server 上要几十秒才编译完，
+  // 所以这里的上限放宽到 90 秒。"真的画出来了"由 App 自己作证：渲染循环内的探针
+  // 读默认帧缓冲、数出玩家球色判据 20+ 颗像素后，在容器上落 data-game-3d-painted="1"
+  // ——循环外 readPixels 在这台机器上实测不可靠（画面明明在渲染，帧间读数 78~90 秒全 0），
+  // App 在循环里读刚写完的缓冲，不赌帧间状态。
+  await expect(game.locator('[data-game-canvas-3d][data-game-3d-painted="1"]')).toBeVisible({ timeout: 90_000 });
   await expect(game.locator('[data-game-subtitle]')).toContainText('3D 视角');
   // 限度写在页面上，不只写在注释里：判定仍在地平面上、几何体不是美术模型
   await expect(game.locator('[data-game-kind-note="3d"]')).toContainText('地平面上判定');
   await expect(game.locator('[data-game-kind-note="3d"]')).toContainText('不是 3D 美术模型');
   await game.screenshot({ path: 'screenshots/story-play-3d.png' });
+
+  // §51 的第六种：探索是**同一条计划**的又一种画法——还是 topdown 那条管线与同一个 step，
+  // 只是走近才看得见：没被看见的东西一律不画，看见过的记在视图层的集合里（刷新就重摸，
+  // 模型里没有探索进度这个字段）。「发现」的证据走 HUD 计数的单调性：走两步之后只许多、不许少。
+  await page.bringToFront();
+  await page.selectOption('[data-game-kind]', 'exploration');
+  await expect(page.locator('[data-game-kind-note="exploration"]')).toContainText('已接入');
+  await expect(page.locator('[data-game-kind-note="exploration"]')).toContainText('走近才看得见');
+  await expect(page.locator('[data-game-state]')).toHaveText('已保存', { timeout: 20_000 });
+  await game.reload({ waitUntil: 'domcontentloaded' });
+  await game.bringToFront();
+  await expect(game.locator('[data-game-root][data-game-view="exploration"]')).toBeVisible({ timeout: 60_000 });
+  await expect(game.locator('[data-game-canvas]')).toBeVisible();
+  // 画布上至少有玩家那颗圆：其余实体没走近时一个都不画（背景是 clear() 那层 #0b0d12）
+  await expect
+    .poll(
+      () =>
+        game.evaluate(() => {
+          const canvas = document.querySelector('[data-game-canvas]') as HTMLCanvasElement | null;
+          const ctx = canvas?.getContext('2d');
+          if (!canvas || !ctx) return 0;
+          const { data } = ctx.getImageData(0, 0, canvas.width, canvas.height);
+          let nonBackground = 0;
+          for (let i = 0; i < data.length; i += 4) {
+            if (data[i] !== 11 || data[i + 1] !== 13 || data[i + 2] !== 18) nonBackground += 1;
+          }
+          return nonBackground;
+        }),
+      { timeout: 30_000 },
+    )
+    .toBeGreaterThan(100);
+  await expect(game.locator('[data-game-subtitle]')).toContainText('探索画法');
+  await expect(game.locator('[data-game-note]').filter({ hasText: '走近才看得见' }).first()).toBeVisible();
+  await expect(game.locator('[data-game-note]').filter({ hasText: '重摸' }).first()).toBeVisible();
+
+  const discovered = () =>
+    game
+      .locator('[data-game-discovered]')
+      .getAttribute('data-game-discovered')
+      .then((value) => Number(value ?? '0'));
+  const seenBefore = await discovered();
+  // 走一步：计数只会变大或不变——「看见了就一直看得见」钉在这条单调性里
+  await game.keyboard.down('d');
+  await game.waitForTimeout(1200);
+  await game.keyboard.up('d');
+  await expect.poll(discovered, { timeout: 15_000 }).toBeGreaterThanOrEqual(seenBefore);
+  await game.screenshot({ path: 'screenshots/story-play-exploration.png' });
 
   // 反向对照：换成一个真没接的类型，试玩页不许退回 2D 关卡，也不许给空场子
   await page.bringToFront();

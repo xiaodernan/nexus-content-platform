@@ -378,6 +378,42 @@ export const ISO_VIEW_NOTES = [
   "标记形状不随远近缩放、没有转身：模型里没有尺寸与朝向，它们仍然是类别标记，不是 3D 模型。",
 ];
 
+/**
+ * 探索画法（§51 的 Exploration）：同一份计划，走近才看得见。
+ * 半径是这一格的视图常量——模型里没有"视野"字段，按实体类别给不同半径就是编出来的差异。
+ */
+export const EXPLORATION_REVEAL_RADIUS = 150;
+
+/** 探索这条画法的限度，与等轴测那三条并排显示 */
+export const EXPLORATION_VIEW_NOTES = [
+  "探索只是同一份关卡计划的又一种画法：走近才看得见，看见了就一直看得见；规则与 2D 走同一个 step，逐字相同。",
+  "「发现」是这一局界面上的状态，不进文档也不进库：刷新就重摸一遍，因为模型里没有探索进度这个字段。",
+  "可发现的只有摆上场的东西（敌人 / 物品 / NPC / 触发器）：谁在场上由 §54 文档决定，探索不发明新的东西。",
+];
+
+/** 这一局总共有哪些可发现的东西：revealedNow 扫的是同一份清单，HUD 的分母也从这里来 */
+export function discoverableIds(plan: GamePlan): string[] {
+  return [...plan.enemies, ...plan.items, ...plan.npcs, ...plan.triggers].map((entity) => entity.id);
+}
+
+/**
+ * 以玩家所在点为圆心、半径内的可发现物 id。纯函数，无状态：
+ * "看见了就一直看得见"由视图层自己记（一个 Set），这一格只回答"现在照得见谁"。
+ */
+export function revealedNow(
+  plan: GamePlan,
+  at: { x: number; y: number },
+  radius: number = EXPLORATION_REVEAL_RADIUS,
+): string[] {
+  const out: string[] = [];
+  for (const entity of [...plan.enemies, ...plan.items, ...plan.npcs, ...plan.triggers]) {
+    const dx = entity.x - at.x;
+    const dy = entity.y - at.y;
+    if (dx * dx + dy * dy <= radius * radius) out.push(entity.id);
+  }
+  return out;
+}
+
 /** 图例：形状与类别的固定对应，界面上写"形状=类别"，别让人读成"红色=危险" */
 export const PLAY_KIND_SHAPES: Partial<Record<GameEntityKind, "circle" | "square" | "triangle" | "diamond">> = {
   player: "circle",

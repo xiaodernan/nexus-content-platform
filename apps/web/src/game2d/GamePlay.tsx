@@ -3,15 +3,19 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ARENA,
+  EXPLORATION_REVEAL_RADIUS,
+  EXPLORATION_VIEW_NOTES,
   ISO_VIEW_NOTES,
   PLAY_DEFAULTS,
   SIM_RULE_NOTES,
+  discoverableIds,
   initialState,
   isoDepth,
   isoGroundRadius,
   isoProject,
   isoView,
   playtest,
+  revealedNow,
   simSummary,
   step,
   type GamePlan,
@@ -58,9 +62,9 @@ function shapeOf(kind: string): 'circle' | 'square' | 'diamond' | 'triangle' {
   return 'circle';
 }
 
-/** 画法（§51）：`topdown` 是 2D，`isometric` 是 2.5D，`3d` 是同一份计划的立体视角——
- * 三条画法共用同一个 step 与同一份 HUD，所以"换画法玩起来不一样"这句话在这里说不出来 */
-export type GameView = 'topdown' | 'isometric' | '3d';
+/** 画法（§51）：`topdown` 是 2D，`isometric` 是 2.5D，`exploration` 是走近才看得见的探索画法，
+ * `3d` 是同一份计划的立体视角——四条画法共用同一个 step 与同一份 HUD，所以"换画法玩起来不一样"这句话在这里说不出来 */
+export type GameView = 'topdown' | 'isometric' | 'exploration' | '3d';
 
 /** 颜色表在 `palette.ts`：2D 与 3D 两个组件共用一份，别在这里再写第二份（§16） */
 const COLORS = KIND_COLORS;
@@ -157,11 +161,19 @@ function clear(ctx: CanvasRenderingContext2D): void {
   ctx.fillRect(0, 0, ARENA.width, ARENA.height);
 }
 
-/** 俯视画法：位置就是计划里的世界坐标，一步映射都不加 */
-function drawTopdown(ctx: CanvasRenderingContext2D, plan: GamePlan, state: SimState): void {
+/** 俯视画法：位置就是计划里的世界坐标，一步映射都不加。
+ * `revealed` 不为 null 时只画看见过的东西——探索画法（§51）复用这同一条路径，只是加一道过滤，
+ * 不另写第二个绘制函数：两条画法的差别就必须只有这道过滤 */
+function drawTopdown(
+  ctx: CanvasRenderingContext2D,
+  plan: GamePlan,
+  state: SimState,
+  revealed: Set<string> | null = null,
+): void {
   clear(ctx);
 
   for (const trigger of plan.triggers) {
+    if (revealed && !revealed.has(trigger.id)) continue;
     const sim = state.triggers.find((t) => t.id === trigger.id);
     ctx.beginPath();
     ctx.arc(trigger.x, trigger.y, trigger.radius, 0, Math.PI * 2);
@@ -173,6 +185,7 @@ function drawTopdown(ctx: CanvasRenderingContext2D, plan: GamePlan, state: SimSt
 
   for (const { actor, sim } of actorDots(plan, state)) {
     if (sim && !sim.active) continue; // 被打倒/已拾取的不画：画着就是"场上还有"的谎
+    if (revealed && !revealed.has(actor.id)) continue;
     paintActor(ctx, sim?.x ?? actor.x, sim?.y ?? actor.y, actor, sim, null);
   }
 
@@ -265,15 +278,16 @@ function drawIso(ctx: CanvasRenderingContext2D, plan: GamePlan, state: SimState)
   for (const entry of entries) entry.paint();
 }
 
-/** 2D 那两条画法的分派。`3d` 不在这里：它由 `GameCanvas3D` 用自己的渲染循环画（three.js 掌握时机） */
+/** 2D 那三条画法的分派。`3d` 不在这里：它由 `GameCanvas3D` 用自己的渲染循环画（three.js 掌握时机） */
 function draw(
   ctx: CanvasRenderingContext2D,
   plan: GamePlan,
   state: SimState,
-  view: 'topdown' | 'isometric',
+  view: 'topdown' | 'isometric' | 'exploration',
+  revealed: Set<string> | null,
 ): void {
   if (view === 'isometric') drawIso(ctx, plan, state);
-  else drawTopdown(ctx, plan, state);
+  else drawTopdown(ctx, plan, state, view === 'exploration' ? revealed : null);
 }
 
 export function GamePlay({ plan, view = 'topdown' }: { plan: GamePlan; view?: GameView }) {
@@ -281,6 +295,9 @@ export function GamePlay({ plan, view = 'topdown' }: { plan: GamePlan; view?: Ga
   const keys = useRef<Record<string, boolean>>({});
   const stateRef = useRef<SimState>(initialState(plan));
   const lastFrame = useRef<number>(0);
+  // 探索画法（§51）的「看见过」集合：视图层的状态，不进模型也不进库——
+  // 模型里没有探索进度这个字段，刷新就重摸一遍，这条限度写在 EXPLORATION_VIEW_NOTES 里
+  const revealed = useRef<Set<string>>(new Set());
   const [hud, setHud] = useState<SimState>(() => stateRef.current);
   // §53：报告是点出来的，不是每次进页面就自动跑——四种走法各 60 秒定步长，
   // 一进来就占住主线程的话，第一个画面反而出不来
@@ -288,6 +305,7 @@ export function GamePlay({ plan, view = 'topdown' }: { plan: GamePlan; view?: Ga
 
   const restart = useCallback(() => {
     stateRef.current = initialState(plan);
+    revealed.current.clear();
     setHud(stateRef.current);
   }, [plan]);
 
@@ -314,6 +332,7 @@ export function GamePlay({ plan, view = 'topdown' }: { plan: GamePlan; view?: Ga
     // 这里必须直接退出：两个循环各推一次 step，同一份状态每帧被推进两遍，
     // 规则会悄悄变快一倍而两边的单测都还是绿的（§159 的反方向：能跑 ≠ 跑对了）。
     if (view === '3d') return;
+    if (view === 'exploration') revealed.current.clear(); // 新的一份计划，重新摸
     let raf = 0;
     let hudAt = 0;
     const frame = (now: number) => {
@@ -331,8 +350,14 @@ export function GamePlay({ plan, view = 'topdown' }: { plan: GamePlan; view?: Ga
       }
       const input: SimInput = { dx, dy, attack: Boolean(keys.current[' ']) };
       stateRef.current = step(plan, stateRef.current, input, dt);
+      if (view === 'exploration') {
+        // 揭示是视图层每帧算的（欧氏距离，见 revealedNow），加进集合就一直看得见
+        for (const id of revealedNow(plan, { x: stateRef.current.px, y: stateRef.current.py })) {
+          revealed.current.add(id);
+        }
+      }
       const ctx = canvas.current?.getContext('2d') ?? null;
-      if (ctx) draw(ctx, plan, stateRef.current, view);
+      if (ctx) draw(ctx, plan, stateRef.current, view, view === 'exploration' ? revealed.current : null);
       // HUD 每 100ms 同步一次：60fps 的 React 重渲染只会把主线程吃光，而读数不需要那么新
       if (now - hudAt > 100) {
         hudAt = now;
@@ -386,6 +411,11 @@ export function GamePlay({ plan, view = 'topdown' }: { plan: GamePlan; view?: Ga
           敌人 {hud.enemies.filter((e) => e.active).length}/{hud.enemies.length}
         </span>
         <span data-game-items={hud.counters.pickups}>物品 {hud.counters.pickups}/{hud.items.length}</span>
+        {view === 'exploration' ? (
+          <span data-game-discovered={revealed.current.size}>
+            发现 {revealed.current.size}/{discoverableIds(plan).length}
+          </span>
+        ) : null}
         <span data-game-summary>{simSummary(hud)}</span>
         <button type="button" onClick={restart} className="rounded bg-bg-2 px-2 py-1 text-11" data-game-restart>
           重新开始
@@ -402,6 +432,9 @@ export function GamePlay({ plan, view = 'topdown' }: { plan: GamePlan; view?: Ga
         移动：WASD / 方向键 · 攻击：空格（够得着才打得到；触及 {plan.player?.reach ?? 0}px 是
         {plan.player?.reachIsDesign ? '武器 range 里写的' : '投影按贴身算的'}）
         {view === '3d' ? ' · 按住拖动转视角（WASD 跟着视角走，和 2D 的屏幕方向同一套语义）' : ''}
+        {view === 'exploration'
+          ? ` · 走近才看得见：视野半径 ${EXPLORATION_REVEAL_RADIUS}px，看见过的会一直在`
+          : ''}
       </p>
 
       {view === '3d' ? (
@@ -519,7 +552,12 @@ export function GamePlay({ plan, view = 'topdown' }: { plan: GamePlan; view?: Ga
           {PLAY_DEFAULTS.senseRadius}）；场上共 {fallbackStats.total} 个可显示个体。
         </p>
         <ul className="mt-2 flex flex-col gap-1">
-          {[...plan.notes, ...(view === 'isometric' ? ISO_VIEW_NOTES : []), ...SIM_RULE_NOTES].map((note) => (
+          {[
+            ...plan.notes,
+            ...(view === 'isometric' ? ISO_VIEW_NOTES : []),
+            ...(view === 'exploration' ? EXPLORATION_VIEW_NOTES : []),
+            ...SIM_RULE_NOTES,
+          ].map((note) => (
             <li key={note} className="text-11 text-fg-3" data-game-note>
               · {note}
             </li>

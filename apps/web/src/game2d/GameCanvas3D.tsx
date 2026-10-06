@@ -347,6 +347,57 @@ function Actors({ plan, keys, stateRef, onHud }: GameCanvas3DProps) {
 }
 
 /**
+ * e2e 断言「真的画出来了」的落点：在渲染循环**内**读默认帧缓冲，数出玩家球色判据的像素，
+ * 命中就在容器上落 `data-game-3d-painted="1"` 并停手；约 30 秒还数不到落 `"empty"` 停手
+ * （e2e 等 "1" 会超时失败，页面上留一个诚实的标记，而不是无限烧 GPU→CPU 拷贝）。
+ *
+ * 为什么在循环内读：e2e 在循环外 readPixels 实测两次全军覆没——画面明明在渲染（sim 在走、
+ * 截图有场景），帧间读出来 78~90 秒全是 0。帧间的缓冲状态在这台机器上不可靠；循环内读的
+ * 是上一帧刚写完的缓冲（本组件的 useFrame 先于 R3F 渲染，读到的是 preserveDrawingBuffer
+ * 保留下的上一帧），不赌帧间状态。判据用色相式（b>150 且 b>r×1.15 且 g>r）：固定色窗会被
+ * ACES 色调映射推离原色，实测命中 0；数到 20+ 就是球在画面里。
+ */
+function PaintProbe() {
+  const { gl } = useThree();
+  const frames = useRef(0);
+  const buffer = useRef<Uint8Array | null>(null);
+
+  useFrame(() => {
+    // R3F 的 Canvas 在 canvas 外还包了自己的内层 div,.parentElement 不是 data-game-canvas-3d
+    // 那个容器——用 closest 向上找,标记落在 e2e 看得见的地方
+    const holder = gl.domElement.closest('[data-game-canvas-3d]');
+    if (!holder || holder.getAttribute('data-game-3d-painted')) return;
+    // R3F 给的 gl 是 WebGLRenderer,readPixels 与 isContextLost 都在它包着的裸上下文上
+    const raw = gl.getContext();
+    if (raw.isContextLost()) return;
+    const canvas = gl.domElement;
+    // 300×150 是浏览器给 canvas 的默认空壳：R3F 还没量过尺寸，读了也是白读
+    if (canvas.width < 400 || canvas.height < 300) return;
+    frames.current += 1;
+    if (frames.current > 1800) {
+      holder.setAttribute('data-game-3d-painted', 'empty');
+      return;
+    }
+    if (!buffer.current || buffer.current.length !== canvas.width * canvas.height * 4) {
+      buffer.current = new Uint8Array(canvas.width * canvas.height * 4);
+    }
+    const pixels = buffer.current;
+    raw.readPixels(0, 0, canvas.width, canvas.height, raw.RGBA, raw.UNSIGNED_BYTE, pixels);
+    let hue = 0;
+    for (let i = 0; i < pixels.length; i += 4) {
+      const r = pixels[i] ?? 0;
+      const g = pixels[i + 1] ?? 0;
+      const b = pixels[i + 2] ?? 0;
+      if (b > 150 && b > r * 1.15 && g > r) hue += 1;
+      if (hue > 20) break;
+    }
+    if (hue > 20) holder.setAttribute('data-game-3d-painted', '1');
+  });
+
+  return null;
+}
+
+/**
  * 3D 画法的入口：WebGL 探测 → 场景 → 相机 → 活体与循环。
  * 高度用 `aspectRatio` 锁成 1200×760，和 2D 画布占同一块地方（切换画法不会让页面跳一下）。
  */
@@ -394,6 +445,7 @@ export function GameCanvas3D({ plan, keys, stateRef, onHud }: GameCanvas3DProps)
       >
         <StaticScene />
         <CameraRig />
+        <PaintProbe />
         <Actors plan={plan} keys={keys} stateRef={stateRef} onHud={onHud} />
       </Canvas>
     </div>

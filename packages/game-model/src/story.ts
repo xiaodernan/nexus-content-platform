@@ -192,7 +192,7 @@ export function compileStory(document: GameDocument): StoryPlan {
 
 /** 一份文档按它自己标的类型编译出来的投影；`pipeline: null` = 这个类型今天没接 */
 export type GameProjection =
-  | { pipeline: "topdown"; view: "topdown" | "isometric" | "3d"; plan: GamePlan }
+  | { pipeline: "topdown"; view: "topdown" | "isometric" | "3d" | "exploration"; plan: GamePlan }
   | { pipeline: "story"; plan: StoryPlan }
   | { pipeline: null; reason: string };
 

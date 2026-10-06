@@ -162,10 +162,10 @@ export function isGameKind(value: unknown): value is GameKind {
  * 看起来和能跑没区别（§159）。
  */
 export interface GameKindStatus {
-  /** `topdown` = §50 的俯视关卡（2D / 2.5D / 3D 共用同一条计划与同一个 step）；`story` = 对话驱动；null = 没接 */
+  /** `topdown` = §50 的俯视关卡（2D / 2.5D / 3D / 探索共用同一条计划与同一个 step）；`story` = 对话驱动；null = 没接 */
   pipeline: "topdown" | "story" | null;
   /** 同一条管线的哪一种画法；缺省是俯视。只影响绘制，不影响规则 */
-  view?: "topdown" | "isometric" | "3d";
+  view?: "topdown" | "isometric" | "3d" | "exploration";
   /** 界面直接用的那句话，不许在这里写"敬请期待"式的空头承诺 */
   note: string;
 }
@@ -189,7 +189,13 @@ export const GAME_KIND_STATUS: Record<GameKind, GameKindStatus> = {
     note: "已接入：对话管线的最小实现——正文来自对话实体的说明，选择来自它指向其它对话的引用。",
   },
   "rpg-prototype": { pipeline: null, note: "还没接：数值与任务能填，但没有把它们串成成长/战斗循环的管线。" },
-  exploration: { pipeline: null, note: "还没接：§51 列了这一种，但今天没有探索向的投影。" },
+  exploration: {
+    pipeline: "topdown",
+    view: "exploration",
+    note:
+      "已接入：探索是同一份关卡计划的又一种画法——走近才看得见（看见了就一直看得见），" +
+      "规则与 2D 走同一个 step，发现的计数在 HUD 里，输赢仍由任务条件判定。",
+  },
   puzzle: { pipeline: null, note: "还没接：§51 列了这一种，但今天没有解谜向的投影。" },
   "visual-novel": {
     pipeline: "story",

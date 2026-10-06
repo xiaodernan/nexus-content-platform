@@ -217,13 +217,21 @@ describe("compileForKind：类型 → 管线的唯一分派点", () => {
       expect(three.plan).toEqual(topdown.plan);
     }
 
+    // 探索同理（2026-10-06 接上）：走近才看得见是画法，规则与 2D 是同一个 step
+    const exploration = compileForKind({ ...base, kind: "exploration" });
+    expect(exploration.pipeline).toBe("topdown");
+    if (exploration.pipeline === "topdown" && topdown.pipeline === "topdown") {
+      expect(exploration.view).toBe("exploration");
+      expect(exploration.plan).toEqual(topdown.plan);
+    }
+
     const story = compileForKind({ ...base, kind: "interactive-story" });
     expect(story.pipeline).toBe("story");
     const novel = compileForKind({ ...base, kind: "visual-novel" });
     expect(novel.pipeline).toBe("story");
 
-    // 没接的三种：给出的是 reason，不是一个空场子也不是硬跑 2D
-    for (const kind of ["rpg-prototype", "puzzle", "exploration"] as const) {
+    // 没接的两种：给出的是 reason，不是一个空场子也不是硬跑 2D
+    for (const kind of ["rpg-prototype", "puzzle"] as const) {
       const projection = compileForKind({ ...base, kind });
       expect(projection.pipeline).toBeNull();
       if (projection.pipeline === null) expect(projection.reason).toContain("还没接");

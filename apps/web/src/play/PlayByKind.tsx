@@ -65,7 +65,14 @@ export function describeProjection(document: GameDocument, projection: GameProje
     const plan = projection.plan;
     // 画法要写进页首：2.5D / 3D 与 2D 跑的是同一条计划，差别只在这句话和画布上
     // （不写就会被读成"三种游戏"，而它们是同一个 step 算出来的同一份结果）
-    const paint = projection.view === 'isometric' ? '等轴测投影 · ' : projection.view === '3d' ? '3D 视角 · ' : '';
+    const paint =
+      projection.view === 'isometric'
+        ? '等轴测投影 · '
+        : projection.view === '3d'
+          ? '3D 视角 · '
+          : projection.view === 'exploration'
+            ? '探索画法（走近才看得见） · '
+            : '';
     return `${label} · ${paint}${plan.enemies.length} 个敌人 · ${plan.items.length} 个物品 · ${plan.quests.length} 条任务 · 场地 ${plan.arena.width}×${plan.arena.height}`;
   }
   if (projection.pipeline === 'story') {
