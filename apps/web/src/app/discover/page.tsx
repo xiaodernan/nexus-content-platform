@@ -1,6 +1,8 @@
 import Link from 'next/link';
+import Image from 'next/image';
 import { discover, type DiscoverSort } from '@/server/domain/social';
 import { currentUserOrNull } from '@/server/domain/session';
+import { publicAssetUrl } from '@/studio/assets';
 
 export const dynamic = 'force-dynamic';
 
@@ -65,22 +67,38 @@ export default async function DiscoverPage({ searchParams }: { searchParams: Pro
       <ul className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3" data-discover-grid>
         {result.cards.map((card) => (
           <li key={card.publicationId} data-discover-card={card.path}>
-            <Link href={card.path} className="flex h-full flex-col gap-1 rounded border border-[var(--nexus-color-border-subtle)] bg-bg-1 p-3">
-              <span className="text-13 font-semibold text-fg-1" data-discover-name>
-                {card.name}
-              </span>
-              <span className="text-11 text-fg-3">
-                {card.owner} · {card.kind} · {new Date(card.publishedAt).toLocaleDateString('zh-CN')}
-              </span>
-              <span className="mt-auto text-11 text-fg-2" data-discover-counts>
-                {card.views} 次浏览 · {card.likes} 赞 · {card.comments} 评论 · {card.remixes} 改编
-              </span>
-              {/* 分数只在"最近最热"这一栏有：它是算法输出，不是事实，所以连同排法一起显示 */}
-              {card.score !== undefined ? (
-                <span className="text-11 text-fg-3" data-discover-score={card.score}>
-                  热度分 {card.score}
+            <Link href={card.path} className="flex h-full flex-col gap-1 rounded border border-[var(--nexus-color-border-subtle)] bg-bg-1 overflow-hidden">
+              {/* §927 封面图：有就显示，没有就留一个占位 */}
+              {card.coverAssetId && card.ownerHandle ? (
+                <div className="relative aspect-video w-full bg-bg-2">
+                  <Image
+                    src={publicAssetUrl(card.ownerHandle, card.coverAssetId)}
+                    alt={card.name}
+                    fill
+                    sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+                    className="object-cover"
+                  />
+                </div>
+              ) : (
+                <div className="aspect-video w-full bg-bg-2 flex items-center justify-center text-fg-3 text-11">无封面</div>
+              )}
+              <div className="p-3 flex flex-col gap-1">
+                <span className="text-13 font-semibold text-fg-1" data-discover-name>
+                  {card.name}
                 </span>
-              ) : null}
+                <span className="text-11 text-fg-3">
+                  {card.owner} · {card.kind} · {new Date(card.publishedAt).toLocaleDateString('zh-CN')}
+                </span>
+                <span className="mt-auto text-11 text-fg-2" data-discover-counts>
+                  {card.views} 次浏览 · {card.likes} 赞 · {card.comments} 评论 · {card.remixes} 改编
+                </span>
+                {/* 分数只在"最近最热"这一栏有：它是算法输出，不是事实，所以连同排法一起显示 */}
+                {card.score !== undefined ? (
+                  <span className="text-11 text-fg-3" data-discover-score={card.score}>
+                    热度分 {card.score}
+                  </span>
+                ) : null}
+              </div>
             </Link>
           </li>
         ))}

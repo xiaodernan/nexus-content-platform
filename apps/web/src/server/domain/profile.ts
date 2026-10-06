@@ -1,6 +1,6 @@
 import { and, desc, eq, inArray, isNull, sql } from 'drizzle-orm';
 import { getDb } from '../db/client';
-import { characters, comments, follows, likes, projects, publishedProjects, remixes, saves, users, worlds } from '../db/schema';
+import { characters, comments, follows, likes, projects, publishedProjects, remixes, saves, snapshots, users, worlds } from '../db/schema';
 import type { DiscoverCard } from './social';
 import { relationOf } from './blocks';
 import { DELETED_USER_LABEL } from './audit';
@@ -42,9 +42,13 @@ export async function publicWorksOf(ownerId: string): Promise<DiscoverCard[]> {
       publishedAt: publishedProjects.publishedAt,
       views: publishedProjects.views,
       kind: projects.kind,
+      handle: users.handle,
+      snapshotDocument: snapshots.document,
     })
     .from(publishedProjects)
     .innerJoin(projects, eq(projects.id, publishedProjects.projectId))
+    .innerJoin(users, eq(users.id, projects.ownerId))
+    .leftJoin(snapshots, eq(snapshots.id, publishedProjects.snapshotId))
     .where(
       and(
         eq(projects.ownerId, ownerId),
@@ -56,19 +60,55 @@ export async function publicWorksOf(ownerId: string): Promise<DiscoverCard[]> {
     .orderBy(desc(publishedProjects.publishedAt));
 
   return Promise.all(
-    rows.map(async (r) => ({
-      publicationId: r.publicationId,
-      path: r.path,
-      name: r.name,
-      owner: '',
-      handle: null,
-      publishedAt: r.publishedAt.toISOString(),
-      views: r.views,
-      likes: await countBy('likes', r.projectId),
-      comments: await countBy('comments', r.projectId),
-      remixes: await countBy('remixes', r.projectId),
-      kind: r.kind,
-    })),
+    rows.map(async (r) => {
+      // §927 从快照文档里找第一个被页面引用的图片资产作为封面
+      let coverAssetId: string | null = null;
+      if (r.snapshotDocument) {
+        const doc = r.snapshotDocument as { assets?: Array<{ id: string; kind: string }>; pages?: any[] };
+        const assetIds = new Set<string>();
+        // 收集所有页面节点引用的资产 ID
+        if (doc.pages && Array.isArray(doc.pages)) {
+          for (const page of doc.pages) {
+            const collectAssetRefs = (node: any): void => {
+              if (!node) return;
+              if (node.assetId && typeof node.assetId === 'string') {
+                assetIds.add(node.assetId);
+              }
+              if (node.children && Array.isArray(node.children)) {
+                for (const child of node.children) collectAssetRefs(child);
+              }
+            };
+            if (page.nodes && Array.isArray(page.nodes)) {
+              for (const node of page.nodes) collectAssetRefs(node);
+            }
+          }
+        }
+        // 找到第一个是图片且被引用的资产
+        if (doc.assets && Array.isArray(doc.assets)) {
+          for (const asset of doc.assets) {
+            if (asset.kind === 'image' && assetIds.has(asset.id)) {
+              coverAssetId = asset.id;
+              break;
+            }
+          }
+        }
+      }
+      return {
+        publicationId: r.publicationId,
+        path: r.path,
+        name: r.name,
+        owner: '',
+        handle: r.handle,
+        publishedAt: r.publishedAt.toISOString(),
+        views: r.views,
+        likes: await countBy('likes', r.projectId),
+        comments: await countBy('comments', r.projectId),
+        remixes: await countBy('remixes', r.projectId),
+        kind: r.kind,
+        coverAssetId,
+        ownerHandle: r.handle,
+      };
+    }),
   );
 }
 
@@ -255,32 +295,70 @@ export async function listSaves(actorId: string, limit = 30): Promise<SavedCard[
       savedAt: saves.createdAt,
       visibility: publishedProjects.visibility,
       moderation: publishedProjects.moderation,
+      snapshotDocument: snapshots.document,
     })
     .from(saves)
     .innerJoin(publishedProjects, eq(publishedProjects.id, saves.publicationId))
     .innerJoin(projects, eq(projects.id, publishedProjects.projectId))
     .innerJoin(users, eq(users.id, projects.ownerId))
+    .leftJoin(snapshots, eq(snapshots.id, publishedProjects.snapshotId))
     .where(eq(saves.userId, actorId))
     .orderBy(desc(saves.createdAt))
     .limit(limit);
 
   return Promise.all(
-    rows.map(async (r) => ({
-      publicationId: r.publicationId,
-      path: r.path,
-      name: r.name,
-      owner: r.owner,
-      handle: r.handle,
-      publishedAt: r.publishedAt.toISOString(),
-      views: r.views,
-      likes: await countBy('likes', r.projectId),
-      comments: await countBy('comments', r.projectId),
-      remixes: await countBy('remixes', r.projectId),
-      kind: r.kind,
-      savedAt: r.savedAt.toISOString(),
-      unavailableReason:
-        r.moderation === 'rejected' ? '被人工拒绝，已经不可访问' : r.visibility === 'private' ? '作者已下架' : null,
-    })),
+    rows.map(async (r) => {
+      // §927 从快照文档里找第一个被页面引用的图片资产作为封面
+      let coverAssetId: string | null = null;
+      if (r.snapshotDocument) {
+        const doc = r.snapshotDocument as { assets?: Array<{ id: string; kind: string }>; pages?: any[] };
+        const assetIds = new Set<string>();
+        // 收集所有页面节点引用的资产 ID
+        if (doc.pages && Array.isArray(doc.pages)) {
+          for (const page of doc.pages) {
+            const collectAssetRefs = (node: any): void => {
+              if (!node) return;
+              if (node.assetId && typeof node.assetId === 'string') {
+                assetIds.add(node.assetId);
+              }
+              if (node.children && Array.isArray(node.children)) {
+                for (const child of node.children) collectAssetRefs(child);
+              }
+            };
+            if (page.nodes && Array.isArray(page.nodes)) {
+              for (const node of page.nodes) collectAssetRefs(node);
+            }
+          }
+        }
+        // 找到第一个是图片且被引用的资产
+        if (doc.assets && Array.isArray(doc.assets)) {
+          for (const asset of doc.assets) {
+            if (asset.kind === 'image' && assetIds.has(asset.id)) {
+              coverAssetId = asset.id;
+              break;
+            }
+          }
+        }
+      }
+      return {
+        publicationId: r.publicationId,
+        path: r.path,
+        name: r.name,
+        owner: r.owner,
+        handle: r.handle,
+        publishedAt: r.publishedAt.toISOString(),
+        views: r.views,
+        likes: await countBy('likes', r.projectId),
+        comments: await countBy('comments', r.projectId),
+        remixes: await countBy('remixes', r.projectId),
+        kind: r.kind,
+        savedAt: r.savedAt.toISOString(),
+        unavailableReason:
+          r.moderation === 'rejected' ? '被人工拒绝，已经不可访问' : r.visibility === 'private' ? '作者已下架' : null,
+        coverAssetId,
+        ownerHandle: r.handle,
+      };
+    }),
   );
 }
 

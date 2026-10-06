@@ -1,7 +1,7 @@
 import { and, desc, eq, gte, inArray, isNull, notInArray, sql, type SQLWrapper } from 'drizzle-orm';
 import { duplicateDocument, remapAssetIds } from '@nexus/design-model';
 import { getDb } from '../db/client';
-import { comments, follows, likes, projects, publishedProjects, publicationVisits, remixes, saves, users } from '../db/schema';
+import { comments, follows, likes, projects, publishedProjects, publicationVisits, remixes, saves, snapshots, users } from '../db/schema';
 import { createProject, saveDocument } from './projects';
 import { copyProjectAssets } from './assets';
 import { readSnapshot } from './snapshots';
@@ -365,6 +365,10 @@ export interface DiscoverCard {
   kind: string;
   /** 只有 trending 那一栏会填：折了时间衰减的互动分，页面上要能把数说出来 */
   score?: number;
+  /** §927 封面图：快照文档里第一个被页面引用的图片资产 ID；没有就是 null */
+  coverAssetId: string | null;
+  /** 作者 handle（拼公共图片 URL 要用，§57） */
+  ownerHandle: string | null;
 }
 
 export interface DiscoverResult {
@@ -439,10 +443,13 @@ export async function discover(input: { sort: DiscoverSort; viewerId?: string | 
       likes: sql<number>`(select count(*)::int from likes where likes.project_id = ${publishedProjects.projectId})`,
       comments: sql<number>`(select count(*)::int from comments where comments.project_id = ${publishedProjects.projectId})`,
       remixes: sql<number>`(select count(*)::int from remixes where remixes.source_project_id = ${publishedProjects.projectId})`,
+      /** §927 封面图：快照文档里的第一个图片资产（被页面引用的） */
+      snapshotDocument: snapshots.document,
     })
     .from(publishedProjects)
     .innerJoin(projects, eq(projects.id, publishedProjects.projectId))
     .innerJoin(users, eq(users.id, projects.ownerId))
+    .leftJoin(snapshots, eq(snapshots.id, publishedProjects.snapshotId))
     .where(where)
     .orderBy(
       input.sort === 'popular'
@@ -452,19 +459,54 @@ export async function discover(input: { sort: DiscoverSort; viewerId?: string | 
     // trending 要在"最近这么多条公开版本"里算分：候选集就是这一句，页面上也照这句话写
     .limit(input.sort === 'trending' ? TRENDING_CANDIDATE_CAP : limit);
 
-  const cards: DiscoverCard[] = rows.map((r) => ({
-    publicationId: r.publicationId,
-    path: r.path,
-    name: r.name,
-    owner: r.owner,
-    handle: r.handle,
-    publishedAt: r.publishedAt.toISOString(),
-    views: r.views,
-    likes: Number(r.likes),
-    comments: Number(r.comments),
-    remixes: Number(r.remixes),
-    kind: r.kind,
-  }));
+  const cards: DiscoverCard[] = rows.map((r) => {
+    // §927 从快照文档里找第一个被页面引用的图片资产作为封面
+    let coverAssetId: string | null = null;
+    if (r.snapshotDocument) {
+      const doc = r.snapshotDocument as { assets?: Array<{ id: string; kind: string }> };
+      const pages = (doc as any).pages || [];
+      const assetIds = new Set<string>();
+      // 收集所有页面节点引用的资产 ID
+      for (const page of pages) {
+        const collectAssetRefs = (node: any): void => {
+          if (!node) return;
+          if (node.assetId && typeof node.assetId === 'string') {
+            assetIds.add(node.assetId);
+          }
+          if (node.children && Array.isArray(node.children)) {
+            for (const child of node.children) collectAssetRefs(child);
+          }
+        };
+        if (page.nodes && Array.isArray(page.nodes)) {
+          for (const node of page.nodes) collectAssetRefs(node);
+        }
+      }
+      // 找到第一个是图片且被引用的资产
+      if (doc.assets && Array.isArray(doc.assets)) {
+        for (const asset of doc.assets) {
+          if (asset.kind === 'image' && assetIds.has(asset.id)) {
+            coverAssetId = asset.id;
+            break;
+          }
+        }
+      }
+    }
+    return {
+      publicationId: r.publicationId,
+      path: r.path,
+      name: r.name,
+      owner: r.owner,
+      handle: r.handle,
+      publishedAt: r.publishedAt.toISOString(),
+      views: r.views,
+      likes: Number(r.likes),
+      comments: Number(r.comments),
+      remixes: Number(r.remixes),
+      kind: r.kind,
+      coverAssetId,
+      ownerHandle: r.handle,
+    };
+  });
 
   let method: string | null = null;
   if (input.sort === 'trending') {
