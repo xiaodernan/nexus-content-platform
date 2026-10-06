@@ -50,6 +50,22 @@ export type UserPlan = (typeof USER_PLANS)[number];
 export const CREDIT_LEDGER_KINDS = ['ai', 'image', 'video', 'compute'] as const;
 export type CreditLedgerKind = (typeof CREDIT_LEDGER_KINDS)[number];
 
+/** Marketplace 物品类型：组件 / 模板 / 设计系统 / 资产 / 世界 / 游戏 / AI 角色 */
+export const MARKETPLACE_ITEM_TYPES = [
+  'component',
+  'template',
+  'design_system',
+  'asset',
+  'world',
+  'game',
+  'character',
+] as const;
+export type MarketplaceItemType = (typeof MARKETPLACE_ITEM_TYPES)[number];
+
+/** Marketplace 物品可见性：公开出售 / 免费分享 / 私有草稿 */
+export const MARKETPLACE_VISIBILITY = ['public', 'free', 'private'] as const;
+export type MarketplaceVisibility = (typeof MARKETPLACE_VISIBILITY)[number];
+
 /** 一行流水为什么存在：档位发放、一次生成扣点、服务端代码里的一次调整（今天没有 HTTP 入口） */
 export const CREDIT_LEDGER_SOURCES = ['plan_grant', 'generation', 'adjust'] as const;
 export type CreditLedgerSource = (typeof CREDIT_LEDGER_SOURCES)[number];
@@ -1053,6 +1069,66 @@ export const apiAccessBuckets = pgTable(
   ],
 );
 
+/**
+ * Marketplace：用户发布的可交易物品（§127-128）。
+ * 
+ * 支持七类物品：组件 / 模板 / 设计系统 / 资产 / 世界 / 游戏 / AI 角色。
+ * 每类物品的"内容"不同，但元数据与交易逻辑统一：
+ * - 作者、标题、描述、标签、预览图
+ * - 价格（credits）、可见性、下载次数
+ * - 关联的源项目/快照（可选，用于从现有作品发布）
+ * 
+ * 边界纪律：
+ * - `source_project_id` 是可选的：有些物品是专门创建的，不来自某个项目
+ * - `snapshot_id` 钉住的是发布那一刻的版本，作者后续修改不影响已购买的副本
+ * - `price_credits` 为 0 表示免费；负数不允许（CHECK 约束保证）
+ * - 删除策略：软删（`deleted_at`），保留购买记录与审计轨迹
+ */
+export const marketplaceItems = pgTable(
+  'marketplace_items',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    /** 发布者 */
+    creatorId: uuid('creator_id').notNull(),
+    /** 物品类型 */
+    itemType: text('item_type', { enum: MARKETPLACE_ITEM_TYPES }).notNull(),
+    /** 标题 */
+    title: text('title').notNull(),
+    /** 描述（最多 2000 字） */
+    description: text('description').notNull().default(''),
+    /** 标签数组（最多 5 个） */
+    tags: text('tags').array().notNull().default(sql`ARRAY[]::text[]`),
+    /** 预览图 asset id（可选） */
+    previewAssetId: uuid('preview_asset_id'),
+    /** 源项目（如果来自某个项目的发布） */
+    sourceProjectId: uuid('source_project_id'),
+    /** 钉住的快照版本（发布那一刻的） */
+    snapshotId: uuid('snapshot_id'),
+    /** 关联的设计文档/世界文档/游戏文档 id（根据 item_type 指向不同的表） */
+    documentId: uuid('document_id'),
+    /** 价格（credits），0 表示免费 */
+    priceCredits: integer('price_credits').notNull().default(0),
+    /** 可见性 */
+    visibility: text('visibility', { enum: MARKETPLACE_VISIBILITY }).notNull().default('private'),
+    /** 下载次数 */
+    downloadCount: integer('download_count').notNull().default(0),
+    /** 软删标记 */
+    deletedAt: timestamp('deleted_at', { withTimezone: true }),
+    createdAt: now(),
+    updatedAt: timestamp('updated_at', { withTimezone: true })
+      .notNull()
+      .defaultNow()
+      .$onUpdate(() => new Date()),
+  },
+  (t) => [
+    index('marketplace_items_creator_idx').on(t.creatorId),
+    index('marketplace_items_type_idx').on(t.itemType),
+    index('marketplace_items_visibility_idx').on(t.visibility),
+    index('marketplace_items_price_idx').on(t.priceCredits),
+    index('marketplace_items_created_idx').on(t.createdAt),
+  ],
+);
+
 export const schema = {
   users,
   sessions,
@@ -1093,4 +1169,5 @@ export const schema = {
   notificationSettings,
   apiTokens,
   apiAccessBuckets,
+  marketplaceItems,
 };
