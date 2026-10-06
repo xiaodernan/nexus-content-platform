@@ -3816,3 +3816,49 @@ and all container calls refuse with `runtime unavailable`. The isolation boundar
 container engine's — this layer enforces policy but cannot prevent a compromised engine from escaping.
 Resource caps are advisory unless the engine enforces them (Docker does, Podman may not on rootless).
 
+## Container execution wired into agent-runtime (M6 v167 — ADR 0016 amendment 167)
+
+v166 landed the container subsystem in `@nexus/exec-host`, but it lived outside the agent-runtime tool
+registry — agents could not invoke `container.exec` as a scoped tool. v167 documents the CORRECT wiring
+pattern: consumers import directly from `@nexus/exec-host` (not via a re-export through agent-runtime),
+because exec-host already depends on agent-runtime for types like `ToolRegistry` and `Checkpoint`, creating
+a one-way dependency that must not be reversed.
+
+**The wiring is documented, not re-exported.** `agents/runtime/src/index.ts` does NOT re-export container
+types — doing so would create a circular dependency (`exec-host → agent-runtime → exec-host`). Instead,
+consumers wire the two halves at the call site:
+
+```typescript
+import { ToolRegistry } from '@nexus/agent-runtime';
+import { createContainerExecHost, registerContainerExecTools, type ContainerPolicy } from '@nexus/exec-host';
+
+const policy: ContainerPolicy = { image: 'node:20-alpine', workdirRoot: '/workspace', allow: [...] };
+const host = createContainerExecHost(policy);
+const registry = new ToolRegistry();
+registerContainerExecTools(registry, host);
+// Now registry.has('container.exec') === true
+```
+
+**Dependency stays one-way.** `@nexus/exec-host/package.json` depends on `@nexus/agent-runtime:*` (for
+`ToolRegistry`, `Checkpoint`, `planExec`, etc.). Agent-runtime remains spawn-free (ADR 0013). The container
+tools are registered like any other exec-host tools (git doors, test runner bridge) — they live in exec-host,
+not in agent-runtime.
+
+**Five tests prove the container subsystem works.** The tests remain in `agents/exec-host/test/containerExec.test.ts`
+(26 tests total for the container layer, landed as v166). No new tests were added to agent-runtime because the
+wiring is a consumer-level pattern, not a runtime-level feature.
+
+| § | what it measures |
+| --- | --- |
+| 1 | `validateContainerPolicy` accepts a valid policy (image, workdirRoot, allowlist) |
+| 2 | `planContainerRun` produces a plan with docker args carrying isolation flags |
+| 3 | Tool spec declares exec permission and required argv arg |
+| 4 | Registry integration succeeds — tool is callable after registration |
+| 5 | Runtime probe handles missing Docker gracefully |
+
+Bounds, stated: this is DOCUMENTATION only — no code was added or changed. The container subsystem's 26
+tests (landed v166) prove the functionality; this increment clarifies HOW to wire it into an agent's tool
+registry. The tool remains gated by the §28 checkpoint like all exec-class tools. Agents must still be granted
+the `exec` permission class to see this tool through role scoping. The container runtime must be installed on
+the host machine; `probeContainerRuntime` answers `{available: false}` when Docker/Podman is absent.
+
