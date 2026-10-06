@@ -60,7 +60,15 @@ export interface WorldLink {
 export interface WorldPoint {
   x: number;
   y: number;
+  /**
+   * §140 的高程（世界单位，0–6）：这个条目在 3D 世界里"浮"多高。缺省 0 = 贴地。
+   * 高程是**条目的视觉属性**，不是可走地形——脚下的地没有坡（scene.ts 的限度里照实说）。
+   */
+  elevation?: number;
 }
+
+/** 高程的上界：给一个能看见的范围，不给"随便多高" */
+export const WORLD_ELEVATION_MAX = 6;
 
 export interface WorldDocument {
   id: string;
@@ -249,17 +257,67 @@ export function removeWorldLink(document: WorldDocument, linkId: string): WorldD
   return { ...document, links: links.filter((link) => link.id !== linkId), updatedAt: stamp() };
 }
 
-/** 拖拽落点。只记位置，不碰条目内容、也不碰 updatedAt 之外的任何东西 */
+/**
+ * 拖拽落点。只记位置，不碰条目内容、也不碰 updatedAt 之外的任何东西。
+ * `point.elevation` 省略时**保留原值**——拖动平面坐标不该把作者写过的高度打回地面。
+ * 高度 0 不落键：贴地就是缺省，库里不存"没写过的数"。
+ */
 export function setWorldNodePosition(
   document: WorldDocument,
   nodeId: string,
   point: WorldPoint,
 ): WorldDocument {
   if (!findWorldNode(document, nodeId)) return document;
+  const existing = document.positions?.[nodeId];
+  const elevation =
+    point.elevation !== undefined && Number.isFinite(point.elevation)
+      ? Math.min(WORLD_ELEVATION_MAX, Math.max(0, point.elevation))
+      : (existing?.elevation ?? 0);
   return {
     ...document,
-    positions: { ...(document.positions ?? {}), [nodeId]: { x: point.x, y: point.y } },
+    positions: {
+      ...(document.positions ?? {}),
+      [nodeId]: elevation !== 0 ? { x: point.x, y: point.y, elevation } : { x: point.x, y: point.y },
+    },
     updatedAt: stamp(),
+  };
+}
+
+/**
+ * 只写高程（§140 的高程输入走这里）。与位置写入同一个纪律的另一半：
+ * **不合法就不写**，把原因交回调用方（面板负责显示）；
+ * 没摆过位置的条目没有坐标，高程也不收——先在世界图上摆一次，再写高度。
+ */
+export function setWorldNodeElevation(
+  document: WorldDocument,
+  nodeId: string,
+  elevation: number,
+): { document: WorldDocument; reason: string | null } {
+  if (!findWorldNode(document, nodeId)) {
+    return { document, reason: "这个条目不在世界文档里，没有写入。" };
+  }
+  const existing = document.positions?.[nodeId];
+  if (!existing) {
+    return { document, reason: "这条还没有摆过的位置——先在世界图上拖一下，再写高度。" };
+  }
+  if (typeof elevation !== "number" || !Number.isFinite(elevation)) {
+    return { document, reason: `高度需要是一个数（收到 ${String(elevation)}）。` };
+  }
+  if (elevation < 0 || elevation > WORLD_ELEVATION_MAX) {
+    return { document, reason: `高度要在 0 到 ${WORLD_ELEVATION_MAX} 之间（收到 ${elevation}）。` };
+  }
+  // 高度 0 = 贴地 = 没写过：把键拿掉，库里不留"显式的缺省值"
+  const { elevation: _dropped, ...rest } = existing;
+  return {
+    document: {
+      ...document,
+      positions: {
+        ...(document.positions ?? {}),
+        [nodeId]: elevation !== 0 ? { x: existing.x, y: existing.y, elevation } : rest,
+      },
+      updatedAt: stamp(),
+    },
+    reason: null,
   };
 }
 

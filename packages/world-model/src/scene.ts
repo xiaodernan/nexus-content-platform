@@ -40,6 +40,8 @@ export interface SceneEntity {
   placed: "authored" | "fallback";
   /** 条目正文，走近了给 HUD 显示。3D 里没有"看不见就不必读"这回事，所以整段带上 */
   body: string;
+  /** 图上写过的高程（0–6）：条目浮在写的高度上。没写就是 0（贴地） */
+  elevation: number;
 }
 
 export interface SceneLink {
@@ -79,7 +81,8 @@ export const SCENE_LIMITS: string[] = [
   "位置来自 §45 那张世界图上摆过的坐标；没摆过的按文档顺序排在同心环上——那不是作者设计过的地形。",
   "所有条目大小一样：世界文档里没有「重要性」也没有「体积」字段，给不同大小就是编出来的等级。",
   "颜色只表示九类内容中的哪一类，不表示危险、阵营或温度。",
-  "没有地形（模型里没有高程字段），脚下是平地；条目占位会挡路（圆碰撞），点击行走是直线加碰撞滑动，不是导航网格。",
+  "高程是图上写的条目属性（0–6）：条目浮在写的高度上，柱子是它的标架；脚下的地没有坡——走近高处的条目是它浮着，不是你在爬山。",
+  "条目占位会挡路（圆碰撞），点击行走是直线加碰撞滑动，不是导航网格。",
   "3D 模型与贴图（§34 的 model 资产）还没接进来：现在每个条目是一个占位几何体。",
 ];
 
@@ -101,6 +104,7 @@ export function buildWorldScene(document: WorldDocument): WorldScene {
       z: at.z,
       placed,
       body: node.body,
+      elevation: point?.elevation ?? 0,
     });
   }
 

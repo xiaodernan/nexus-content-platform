@@ -2,11 +2,13 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import {
+  WORLD_ELEVATION_MAX,
   WORLD_KINDS,
   WORLD_KIND_LABELS,
   addWorldNode,
   countLinksFor,
   removeWorldNode,
+  setWorldNodeElevation,
   updateWorldNode,
   worldCounts,
   type WorldDocument,
@@ -179,6 +181,36 @@ export function WorldPanel() {
                       rows={3}
                       className="mt-1 w-full resize-y rounded-[3px] bg-bg-1 px-1 py-[2px] text-12 leading-relaxed text-fg-1 outline-none focus:bg-bg-3"
                     />
+                    <div className="mt-1 flex items-center gap-1">
+                      <label htmlFor={`world-elevation-${node.id}`} className="shrink-0 text-11 text-fg-3">
+                        高度
+                      </label>
+                      <input
+                        id={`world-elevation-${node.id}`}
+                        type="number"
+                        min={0}
+                        max={WORLD_ELEVATION_MAX}
+                        step={0.5}
+                        value={world.positions?.[node.id]?.elevation ?? 0}
+                        disabled={!world.positions?.[node.id]}
+                        onChange={(e) => {
+                          const value = Number(e.target.value);
+                          const result = setWorldNodeElevation(world, node.id, value);
+                          if (result.reason) {
+                            // 不合法就不写：把原因说出来，而不是让一次按键悄悄消失
+                            worldStore.showNotice(result.reason);
+                            return;
+                          }
+                          edit(result.document, true);
+                        }}
+                        aria-label={`高度 ${node.title}`}
+                        data-world-elevation={node.id}
+                        className="w-16 rounded-[3px] bg-bg-1 px-1 py-[2px] text-12 text-fg-1 outline-none focus:bg-bg-3 disabled:opacity-50"
+                      />
+                      <span className="text-11 text-fg-3">
+                        0–{WORLD_ELEVATION_MAX}；3D 世界里条目会浮在这个高度上（先在世界图上摆过位置才能写）
+                      </span>
+                    </div>
                   </li>
                 ))}
             </ul>

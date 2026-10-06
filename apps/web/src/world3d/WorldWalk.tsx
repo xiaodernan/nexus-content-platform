@@ -177,12 +177,20 @@ function Controls({
 
 function EntityMesh({ entity }: { entity: SceneEntity }) {
   const near = entity.placed === 'fallback';
+  // 高程（图上写的 0–6）：条目浮在写的高度上，柱子从地面把它撑起来——那是标架，不是你在爬的坡
+  const base = entity.elevation;
   return (
-    <group position={[entity.x, 0, entity.z]}>
+    <group position={[entity.x, base, entity.z]}>
       <mesh position={[0, ENTITY_SIZE / 2, 0]}>
         <boxGeometry args={[ENTITY_SIZE, ENTITY_SIZE, ENTITY_SIZE]} />
         <meshStandardMaterial color={entity.color} wireframe={near} />
       </mesh>
+      {base > 0 ? (
+        <mesh position={[0, -base / 2, 0]}>
+          <cylinderGeometry args={[0.08, 0.08, base, 6]} />
+          <meshBasicMaterial color="#5a6478" />
+        </mesh>
+      ) : null}
       {/* 一根细柱当"路标"，让远处也能看出这里有个条目；不画文字是因为文字要跟着朝向转，
           那一块还没做（用 drei 的 Html 会引入新依赖，先不扩面） */}
       <mesh position={[0, ENTITY_SIZE + 1.2, 0]}>
