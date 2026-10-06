@@ -24,7 +24,9 @@
     "verify:scene-surface": "node docs/evidence/studio/scene-surface-proof.mjs",
     "clean": "turbo run clean && rm -rf node_modules",
     "verify:world": "node tools/harness/studio-world.mjs",
-    "verify:world-surface": "node docs/evidence/studio/world-surface-proof.mjs"
+    "verify:world-surface": "node docs/evidence/studio/world-surface-proof.mjs",
+    "verify:assets": "node tools/harness/studio-assets.mjs",
+    "verify:assets-surface": "node docs/evidence/studio/asset-surface-proof.mjs"
   },
   "devDependencies": {
     "turbo": "^2.3.3",

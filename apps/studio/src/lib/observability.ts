@@ -236,3 +236,34 @@ export function installWorldBridge(
   target.__nexusWorld = bridge;
   return bridge;
 }
+
+/**
+ * M3 v153 — the read-only side of the asset surface, on the same terms as the scene and world ones.
+ *
+ * The asset library is NOT part of the Design Document: it is a generator the Studio drives, so it cannot
+ * ride `snapshot()`. It gets its own installed reader, keeps the rule this file is built on — a snapshot
+ * function over a live source, no mutators, nothing invented — and `AssetPanel.tsx` registers it. A panel
+ * that is not mounted registers nothing, so `assets()` answering `null` means "no asset surface is
+ * running", which is true rather than an empty library.
+ *
+ * §60 rides the bridge too: this reader reports what the LIBRARY holds, including the zero byte count that
+ * says no pixels exist, so a consumer cannot read a size that would imply one.
+ */
+export interface AssetBridge {
+  /** The live asset report, read at call time. `null` when no asset surface is mounted. */
+  assets: () => unknown;
+  /** Identifies the reader so a consumer can assert it is the real one. */
+  readonly version: string;
+}
+
+export function installAssetBridge(
+  read: () => unknown,
+  target: Record<string, unknown> = globalThis as unknown as Record<string, unknown>,
+): AssetBridge {
+  const bridge: AssetBridge = Object.freeze({
+    version: 'nexus-studio-assets/1',
+    assets: () => read(),
+  });
+  target.__nexusAssets = bridge;
+  return bridge;
+}

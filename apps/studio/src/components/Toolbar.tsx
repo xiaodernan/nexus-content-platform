@@ -85,6 +85,14 @@ export default function Toolbar() {
         >
           World
         </button>
+        <button
+          className={`btn ${surface === 'assets' ? 'tool-active' : ''}`}
+          title="Assets (@nexus/ai-providers multimodal, M3)"
+          onClick={() => setSurface('assets')}
+          data-surface-toggle="assets"
+        >
+          Assets
+        </button>
       </div>
 
       <div style={{ flex: 1 }} />

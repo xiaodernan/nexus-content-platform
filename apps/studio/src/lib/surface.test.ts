@@ -18,6 +18,10 @@ import { useStudio } from './store';
  * set in the three-runtime lane.
  */
 
+/** Source with comments removed, so a case can assert on CODE rather than on prose about the code. */
+const stripComments = (source: string) =>
+  source.replace(/\/\*[\s\S]*?\*\//g, '').replace(/(^|\s)\/\/[^\n]*/g, '');
+
 const read = (relative: string) =>
   readFileSync(fileURLToPath(new URL(relative, import.meta.url)), 'utf8');
 
@@ -25,6 +29,7 @@ const STUDIO = read('../components/Studio.tsx');
 const TOOLBAR = read('../components/Toolbar.tsx');
 const SCENE = read('../components/Scene3D.tsx');
 const WORLD = read('../components/WorldPanel.tsx');
+const ASSETS_PANEL = read('../components/AssetPanel.tsx');
 const STORE = read('./store.ts');
 
 /**
@@ -166,5 +171,46 @@ describe('the wiring that makes the WORLD surface reachable (M4 v148)', () => {
     // Read-only: no mutator may be installed on the bridge, or verification could drive the product
     // through a back door.
     expect(obs).toMatch(/version: 'nexus-studio-world\/1'/);
+  });
+});
+
+describe('the wiring that makes the ASSET surface reachable (M3 v153)', () => {
+  it('Studio renders AssetPanel on the assets surface', () => {
+    expect(STUDIO).toMatch(/surface === 'assets' \? \(\s*<AssetPanel \/>/);
+    expect(STUDIO).toMatch(/import AssetPanel from '\.\/AssetPanel'/);
+  });
+
+  it('AssetPanel owns the generators, composes through the pure module, and registers the bridge', () => {
+    expect(ASSETS_PANEL).toMatch(/^'use client';/m);
+    expect(ASSETS_PANEL).toMatch(/id="nexus-assets"/);
+    expect(ASSETS_PANEL).toMatch(/data-surface="assets"/);
+    expect(ASSETS_PANEL).toMatch(/new DemoImageGenerator\(\)/);
+    expect(ASSETS_PANEL).toMatch(/new InMemoryAssetLibrary\(\)/);
+    expect(ASSETS_PANEL).toMatch(/new StoryboardManager\(\)/);
+    // The composition and the report come from the PURE module, which is what makes them testable with
+    // no React and no DOM — a panel that re-implemented either would put the two out of step.
+    expect(ASSETS_PANEL).toMatch(/buildStudioAssets\(/);
+    expect(ASSETS_PANEL).toMatch(/buildAssetReport\(/);
+    expect(ASSETS_PANEL).toMatch(/installAssetBridge\(/);
+    // The teardown must UNREGISTER, or a harness could read a library that is no longer on screen.
+    expect(ASSETS_PANEL).toMatch(/installAssetBridge\(\(\) => null\)/);
+    // §60: the surface names its own mode, and it renders NO <img> — there is no image to render, and an
+    // <img> would imply one exists.
+    expect(ASSETS_PANEL).toMatch(/DEMO MODE/);
+    // Stripped of comments first: the panel's own prose explains WHY it renders no image, and a check
+    // against the raw bytes would fail on that explanation rather than on an element.
+    expect(stripComments(ASSETS_PANEL)).not.toMatch(/<img/);
+  });
+
+  it('the assets bridge is a separate read-only global, like the scene and world ones', () => {
+    const obs = read('./observability.ts');
+    expect(obs).toMatch(/export function installAssetBridge\(/);
+    expect(obs).toMatch(/target\.__nexusAssets = bridge/);
+    expect(obs).toMatch(/version: 'nexus-studio-assets\/1'/);
+  });
+
+  it('the asset library is NOT part of the design document the Studio persists', () => {
+    const persist = read('./persist.ts');
+    expect(persist).not.toMatch(/assetLibrary|AssetReport|multimodal/i);
   });
 });

@@ -36,14 +36,14 @@ import { subtreeRotatePlan } from './rotate';
 export type Tool = 'select' | 'frame' | 'rectangle' | 'ellipse' | 'text';
 
 /**
- * Which surface the main pane is showing (M5 v142, extended M4 v148).
+ * Which surface the main pane is showing (M5 v142, extended M4 v148 and M3 v153).
  *
  * This is VIEW state, exactly like `previewOpen`: it is not part of the document, it is not undoable,
  * and it is deliberately not persisted (ADR 0014). The 3D surface composes its own scene against
  * `@nexus/three-runtime` and the world surface composes its own world against `@nexus/world-engine`;
  * the 2D canvas is untouched and remains the default.
  */
-export type Surface = '2d' | '3d' | 'world';
+export type Surface = '2d' | '3d' | 'world' | 'assets';
 
 export interface Viewport {
   x: number;

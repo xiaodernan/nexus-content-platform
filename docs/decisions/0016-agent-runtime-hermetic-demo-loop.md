@@ -7444,6 +7444,19 @@ other return shape changed.
 
 
 
+
+### Amendment 153 (M3 v153, studio + ai-providers) — the MULTIMODAL lane gets its PRODUCT consumer: a Studio `Assets` surface that composes and reads a storyboard, and reports what DEMO MODE really holds
+
+_Numbering: 153 — the agent lane's `assetTools.ts` was 145; 146–152 were taken by the three-runtime and evidence lanes. Full narrative in `docs/evidence/studio/README.md`; this is the ledger entry._
+
+- **The bound this closes.** v145 gave the multimodal lane an AGENT consumer and wrote its own remaining gap in the same breath: *"no Studio surface for any of it yet, so the product half is still open."* This closes the product half: the Studio grows an `Assets` surface beside `2D`, `3D` and `World`.
+- **The split, the same one v142 and v148 used.** `apps/studio/src/lib/assets.ts` is the PURE half (`buildStudioAssets`, `buildAssetReport`, over narrow structural `AssetGeneratorLike`/`AssetLibraryLike`/`StoryboardManagerLike`), unit-testable with no React, no DOM and no ai-providers — and loadable during Next's SSR pass, where importing a generator would be pointless work. `apps/studio/src/components/AssetPanel.tsx` is the only file that touches the real `DemoImageGenerator`, `InMemoryAssetLibrary` and `StoryboardManager`. The surface is added to `export type Surface` and the toolbar, so the derived-set check in `surface.test.ts` now enumerates `['2d','3d','world','assets']`.
+- **The read-only bridge, on the same terms as the scene and world ones.** `installAssetBridge` publishes `window.__nexusAssets.assets()`, a lazy read over the latest report with no mutators, and the panel UNREGISTERS on teardown (`installAssetBridge(() => null)`) so `assets()` answers `null` once the surface is gone rather than describing a library no longer on screen.
+- **§60 is built into the types, not asserted in prose.** The structural interfaces declare only the fields the module reads — including `provenance.mode` as the one provenance field used, so a type carrying a wider `Provenance` still satisfies it. Every asset is stored with an EMPTY payload because DEMO MODE produces no pixels, and `storedBytes` is summed from what the LIBRARY holds, so the number is checkable rather than believable. The panel renders **no `<img>`** (there is no image, and an element would imply one), states `DEMO MODE · no image model is attached` on its own face, and the report names no provider, model or picture.
+- **The library's order is the library's, not the prompt's.** `InMemoryAssetLibrary` returns assets newest-first (`updatedAt` desc, id tiebreak); the surface presents that order and puts the prompt order only where it is guaranteed — in the storyboard's `frames`. Both the unit suite and the proof assert the report lists assets in the LIBRARY's order and NOT in the composition order.
+- **Evidence, in three layers that agree.** `apps/studio/src/lib/assets.test.ts` (14 cases, no DOM); `docs/evidence/studio/asset-surface-proof.mjs` — graded from the SHIPPED Studio module (type-stripped through `node:module`, not copied) over the SHIPPED generators: §1 the composed assets ARE the library's (each id retrievable with the name/mimeType/prompt asked for), §2 §60 measured (`demo` carried through, `storedBytes` 0, zero-byte payloads, no model/provider named), §3 the report is DERIVED (growing the library moves the count 3→4 while the storyboard keeps its frames), §4 every frame's `imageRef` is FOLLOWED back into the library and resolves to the asset for its own shot, §5 home HEAD byte-identical; and `tools/harness/studio-assets.mjs` (**17/17 in a real browser**): default surface stays the 2D canvas (482900/482900 px), the `Assets` toggle mounts `#nexus-assets` and unmounts the canvas, the bridge answers once composition lands, `storedBytes` and every per-asset byte read 0, zero `<img>` elements, the on-screen rows match the bridge report, a 125 KB PNG is written, pressing `2D` restores the canvas to full paint, and `assets()` answers `null` after unmount.
+- **Studio suite moved 149/149 (17 files) → 182/182 (19 files)**; `tsc --noEmit` clean; the two new files are the asset surface's. `@nexus/ai-providers` remains 20/20.
+- **Honest bounds, stated not hidden.** The surface composes ONE fixed scene (three harbour shots) and does not let the user add/delete assets or storyboards (those write doors live in the agent lane); video generation and character consistency still have no product surface; the generators remain DEMO MODE (no keys, no pixels); `lib/assets.ts` is structural/SSR-safe by design, so the panel — the only consumer of the real classes — owns the demo behavior.
 ### Amendment 154 (M2 v154, evidence) — the Amendment 129 behavioral probe runs and all reason-field mutations are caught
 
 Amendment 129 introduced a discriminated `reason` field on the `unreadable` entries of the save-file survey:
@@ -7601,3 +7614,45 @@ widen that list in the same grant.
   requires the scrub to redden the first while the second stays titled: 109 in, [110] out, measured on `docs/evidence/agents/README.md:3031`.
 - **The rule it records did not change.** Titles are still read positionally, the one-sided set is still [21], and no test
   row moved; what changed is which populations the door may depend on, and the multi-grant heading went from an exclusion to a case.
+
+### Amendment 159 (M3 v159, studio) — the Assets surface becomes INTERACTIVE: the library can be grown and shrunk from the panel, and §60 holds across both writes
+
+_Numbering: 159 was free (`grep -ao "^### Amendment 1[0-9][0-9]"` topped out at 158). This is item 1 of the
+priority queue in `docs/DEVELOPMENT_PLAN.md`. Full narrative in `docs/evidence/studio/README.md`; this is
+the ledger entry._
+
+- **The gap this closes.** v153's surface COMPOSED a fixed set of three shots on mount. That demonstrates
+  what a storyboard is; it does not answer *"what if I generate one more?"*, and its own record said so:
+  *"the surface composes a fixed scene"*. v159 adds the smallest pair that makes it a surface a person can
+  use — generate one, remove one.
+- **`generateAsset(generator, library, prompt)`** trims the prompt and **refuses an empty one at the door**
+  rather than sending it: an asset whose name says nothing would still be listed as if it were something. It
+  generates one still, stores it with an **EMPTY payload** (the same zero-length store the composed shots
+  use, because DEMO MODE produces no pixels), and returns `{ assetId, provenanceMode }` — the GENERATOR's own
+  provenance word, so the panel carries it into the next report instead of inventing one.
+- **`removeAsset(library, assetId)`** answers the LIBRARY's own `false` for an id it does not hold rather
+  than throwing. Removing something twice is a caller's mistake, not a corrupt library, and a panel that
+  turned it into an error banner would be reporting a failure that did not happen.
+- **The library and the storyboard are SEPARATE state, and the proof measures it.** Generating into the
+  library moves the asset count and the `storedBytes` tally; it does not move the storyboard's frames. A
+  surface that conflated them would report a storyboard growing because someone generated a stray still.
+- **§60 holds across the interactive write, as NUMBERS.** The new asset stores **0 bytes**, the library's
+  `storedBytes` stays 0, and the panel renders no `<img>` — checked in the browser against the DOM, because
+  an element would imply an image exists.
+- **Evidence.** `src/lib/assets.test.ts` (the interactive describe block: generate stores one asset with an
+  empty payload, leaves the storyboard untouched, remove deletes by id and the derived report follows,
+  removing an unknown id answers `false`, and a second generate still produces metadata only);
+  `docs/evidence/studio/asset-surface-proof.mjs` §5 grows and shrinks the **REAL** library through the
+  shipped module; and `tools/harness/studio-assets.mjs` — the REAL browser, now **24/24**: the probe TYPES
+  into the prompt input, presses **Generate**, and waits for the bridge's asset count to rise by exactly one;
+  it then presses that row's **Remove** and waits for the count to fall back with the id gone, checking the
+  storyboard is unmoved and the byte count is still zero throughout.
+- **A defect found while landing it.** §5's first draft asserted the grown count against §1's mount-time
+  report (`report.assets.length + 1`), but §3 had already grown the library by one, so the assertion read
+  **5 !== 4**. The baseline is now read immediately before the write. The lesson is the one this lane keeps
+  writing: *a section that measures against another section's snapshot is testing an arithmetic assumption
+  about the sections before it, not the door.*
+- **Bounds (§60).** The interaction generates and removes IMAGE assets only. There is no video generation, no
+  character consistency, no asset UPDATE, and no way to edit a storyboard from the panel — those doors live
+  in the agent lane (`assetTools.ts`) and the ones that do not exist there are listed as open in the plan.
+  The library remains generator state: not the design document, not persisted, not undoable.

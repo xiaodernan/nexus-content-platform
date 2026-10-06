@@ -1,0 +1,125 @@
+{
+  "results": [
+    {
+      "name": "the Studio still opens on the 2D canvas",
+      "ok": true,
+      "detail": "{\"surface\":\"2d\",\"has2d\":true,\"hasAssets\":false}"
+    },
+    {
+      "name": "the 2D canvas still paints",
+      "ok": true,
+      "detail": "482900/482900 px painted"
+    },
+    {
+      "name": "the toolbar exposes an Assets toggle",
+      "ok": true,
+      "detail": "toggle clicked: true"
+    },
+    {
+      "name": "pressing Assets swaps the surface (and unmounts the 2D canvas)",
+      "ok": true,
+      "detail": "{\"surface\":\"assets\",\"has2d\":false,\"hasAssets\":true}"
+    },
+    {
+      "name": "the read-only bridge answers for the asset surface, once the composition lands",
+      "ok": true,
+      "detail": "{\"schema\":1,\"provenanceMode\":\"demo\",\"assets\":[{\"id\":\"img-2851860763\",\"type\":\"image\",\"name\":\"Generated: the far quay, close on the mooring post\",\"mimeType\":\"image/png\",\"bytes\":0,\"width\":1024,\"height\":1"
+    },
+    {
+      "name": "the report names the composed assets and the storyboard",
+      "ok": true,
+      "detail": "{\"provenanceMode\":\"demo\",\"assets\":3,\"frames\":3}"
+    },
+    {
+      "name": "§60: storedBytes is ZERO and every asset reports zero bytes",
+      "ok": true,
+      "detail": "storedBytes=0 · per-asset [0,0,0]"
+    },
+    {
+      "name": "§60: every frame references an asset the report actually holds",
+      "ok": true,
+      "detail": "[\"img-3259564404\",\"img-863630362\",\"img-2851860763\"]"
+    },
+    {
+      "name": "the surface names its own mode (§60)",
+      "ok": true,
+      "detail": "mode on screen: \"DEMO MODE · no image model is attached, so these assets hold metadata and NO pixels\""
+    },
+    {
+      "name": "the panel renders every asset the bridge reports",
+      "ok": true,
+      "detail": "panel rows 3 vs report 3"
+    },
+    {
+      "name": "the panel renders every frame the bridge reports, with its order",
+      "ok": true,
+      "detail": "[\"#0 a quiet harbour at dusk, wide establishing shot · wide · 3s · ref img-3259564404\",\"#1 a skiff crossing the harbour, medium shot · medium · 2.5s · ref img-863630362\",\"#2 the far quay, close on the mooring post · close · 2s · ref img-2851860763\"]"
+    },
+    {
+      "name": "§60 on screen: every rendered byte count reads 0",
+      "ok": true,
+      "detail": "[\"0\",\"0\",\"0\"]"
+    },
+    {
+      "name": "the panel renders NO <img> — there is no image, and an element would imply one",
+      "ok": true,
+      "detail": "img elements inside the surface: 0"
+    },
+    {
+      "name": "the stat tiles are labelled, one per figure the report carries",
+      "ok": true,
+      "detail": "[\"assets\",\"frames\",\"stored bytes\",\"provenance\"]"
+    },
+    {
+      "name": "the panel exposes a prompt input the probe can type into",
+      "ok": true,
+      "detail": "input value: \"a beat the browser asked for\""
+    },
+    {
+      "name": "pressing Generate STORES a new asset in the real library",
+      "ok": true,
+      "detail": "assets 3 → 4"
+    },
+    {
+      "name": "the new asset carries the prompt that was typed",
+      "ok": true,
+      "detail": "{\"prompt\":\"a beat the browser asked for\",\"name\":\"Generated: a beat the browser asked for\"}"
+    },
+    {
+      "name": "§60 on the interactive write: the new asset stored ZERO bytes",
+      "ok": true,
+      "detail": "bytes=0 · storedBytes=0"
+    },
+    {
+      "name": "the panel renders the new asset AND a remove control for every row",
+      "ok": true,
+      "detail": "{\"rows\":4,\"removeButtons\":4}"
+    },
+    {
+      "name": "pressing that row’s Remove DELETES it from the real library",
+      "ok": true,
+      "detail": "assets 4 → 3, the removed id is gone"
+    },
+    {
+      "name": "the storyboard is untouched by a library change — the two are separate state",
+      "ok": true,
+      "detail": "frames 3 → 3"
+    },
+    {
+      "name": "a pixel screenshot of the asset surface was captured (§30)",
+      "ok": true,
+      "detail": "134893 bytes → .scratch\\v153\\studio-assets.png"
+    },
+    {
+      "name": "pressing 2D restores the canvas, still painting",
+      "ok": true,
+      "detail": "482900/482900 px painted"
+    },
+    {
+      "name": "the asset surface reports nothing once it is unmounted",
+      "ok": true,
+      "detail": "assets() → null"
+    }
+  ],
+  "failed": 0
+}

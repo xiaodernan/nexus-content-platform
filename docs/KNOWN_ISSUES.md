@@ -130,6 +130,29 @@ Live list. Nothing here is hidden behind marketing copy.
   neither, so every scene rendered black under `MeshStandardMaterial`. If you build a scene by hand
   outside `createScene`, attaching lights is still the caller's job — there is no `setLighting`.
 
+
+## Studio Assets surface (M3 v153, interactive v159 — ADR 0016 amendments 153 and 159)
+- The Studio has a fourth surface: an **Assets** panel mounted from `components/AssetPanel.tsx` over
+  `@nexus/ai-providers`' multimodal slice (the lane's first PRODUCT consumer; the agent door `assetTools.ts`
+  was v145). Reached with the `Assets` toggle; the 2D canvas is the default and is untouched.
+  `npm run verify:assets` drives it in a real browser (**24/24** after v159) and
+  `npm run verify:assets-surface` is the headless proof over the shipped Studio module + generators.
+- **DEMO MODE only — no pixels exist.** `DemoImageGenerator` produces deterministic metadata and an
+  empty payload. The panel says `DEMO MODE · no image model is attached` on its own face, every stored
+  asset's byte count is what the library actually holds (**zero**), and the panel renders **no `<img>`**
+  because there is no image to render and an element would imply one.
+- **The surface is INTERACTIVE since v159.** A prompt form generates into the REAL library
+  (`generateAsset`, storing the same zero-length payload) and every library row has a **Remove**
+  (`removeAsset`). The browser probe types, generates, removes and checks the storyboard is unmoved and
+  every byte count still reads `0` — the library and the storyboard are separate state.
+- **Still absent from the product surface:** video generation, character consistency, asset UPDATE, and
+  storyboard editing. Removal also exists as an agent door (`asset.delete`-shaped work lives in
+  `assetTools.ts`'s write doors behind the §28 checkpoint); the panel's Remove is NOT gated, because it acts
+  on the panel's own in-memory library rather than on the design document.
+- The asset library is generator state, **not** part of the Design Document: it is not persisted in the
+  local snapshot, not undoable and not exported. The read-only bridge `window.__nexusAssets.assets()`
+  answers `null` once the surface unmounts. The library lists assets newest-first; the prompt order is
+  guaranteed only in the storyboard's `frames`.
 ## Architecture
 - `agents/runtime` (`@nexus/agent-runtime`) is now **implemented** through M2 v0–v6 (ADR 0016):
   the loop, permission-gated registry, hermetic workspace tools, hybrid code index (`fs.index`),

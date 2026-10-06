@@ -11,6 +11,8 @@ npm run verify:harness                # 8/8 harness capabilities (ADR 0017)
 npm run verify:studio                 # 19/19 golden-path assertions against the real bundle
 npm run verify:scene-surface          # the 3D surface's headless proof (M5 v142, amendment 142)
 npm run verify:scene                  # 11/11 3D-surface assertions in a real browser (needs the Studio on :3210)
+npm run verify:assets-surface         # the Assets surface's headless proof (M3 v153, amendment 153)
+npm run verify:assets                 # 17/17 Assets-surface assertions in a real browser (needs the Studio on :3210)
 ```
 
 Counts below are from `NODE_OPTIONS= npx vitest run --root <pkg> --no-file-parallelism`
@@ -22,7 +24,7 @@ Counts below are from `NODE_OPTIONS= npx vitest run --root <pkg> --no-file-paral
 | @nexus/ai-providers| 7/7 vitest, tsc clean |
 | @nexus/agent-runtime| 232/232 vitest · tsc clean — M2 v0–v41, ADR 0016 am. 1–41; see `docs/evidence/agents/README.md` |
 | @nexus/exec-host   | 181/181 vitest (8 files: git staged/show/commit/log tools, env isolation, exec test runner) · tsc clean |
-| @nexus/studio      | 149/149 vitest (17 files: `snap` `persist` `align` `store-variants` 20 `thumbnail` `rotate` 14 `render` `minimap` `agentDock` 18 `webfs` 3 `uiRun` 8 `dockPolicy` 6 `observability` 11 `instancePanel` 2 `scene3d` 16 `scene3dSurface` 5 `surface` 7) · tsc `--noEmit` clean · eslint `--max-warnings=0` clean · `next build` ✓ (4/4 static pages) |
+| @nexus/studio      | 182/182 vitest (19 files: `agentDock` 18 `store-variants` 20 `assets` 14 `surface` 15 `scene3d` 16 `world` 11 `scene3dSurface` 5 `observability` 11 `rotate` 14 `dockPolicy` 6 `uiRun` 8 `render` 5 `minimap` 7 `instancePanel` 2 `align` 9 `persist` 7 `thumbnail` 5 `webfs` 3 `snap` 6) · tsc `--noEmit` clean · eslint `--max-warnings=0` clean · `next build` ✓ (4/4 static pages) |
 
 _Counts moved at M5 v142: the studio row was `119/119 (15 files)` and is now `149/149 (17 files)`.
 `instancePanel` gained no case — it gained a FIX (see the v142 section below), and the three new files are
@@ -606,3 +608,52 @@ stated as what it looked like — a page read during a dev-server recompile — 
 lesson is the one this lane keeps writing: **a browser proof is only as trustworthy as the state the page
 was in when it was read**, so a red here should be re-run before it is believed, and a proof that can flake
 is not yet a gate.
+
+
+## The Assets surface (M3 v153, interactive v159 — ADR 0016 amendments 153 and 159)
+
+The Studio's fourth surface, and the first PRODUCT consumer of `@nexus/ai-providers`' multimodal slice
+(the agent door `assetTools.ts` was v145). Split the same way v142 and v148 split theirs:
+
+- `src/lib/assets.ts` — pure, no React, no DOM, no ai-providers. `buildStudioAssets` composes one ordered
+  storyboard (three harbour shots, a still each) through structural `AssetGeneratorLike`/`AssetLibraryLike`/
+  `StoryboardManagerLike`; `buildAssetReport` reads the library + storyboard back as a JSON-safe report;
+  and the v159 pair `generateAsset`/`removeAsset` is the INTERACTIVE half. Keeping it structural is what lets
+  it load during Next's SSR pass and run in a plain vitest process.
+- `src/components/AssetPanel.tsx` — the ONLY file touching the real `DemoImageGenerator`/`InMemoryAssetLibrary`/
+  `StoryboardManager`, publishing `window.__nexusAssets.assets()` through a read-only bridge that the panel
+  UNREGISTERS on teardown (`assets()` answers `null` once the surface is gone).
+- `src/lib/observability.ts` — `installAssetBridge`, a separate read-only global on the same terms as the
+  scene and world ones (`__nexusAssets`).
+
+**§60 is built into the types, not asserted in prose.** `DemoImageGenerator` produces deterministic metadata
+and NO pixels, so every stored asset carries an empty payload, `storedBytes` is summed from what the LIBRARY
+holds (zero), the report names the generator's own `provenance` word (`demo`) and neither a provider nor a
+model, and the panel renders **no `<img>`** because there is no image to render.
+
+**v159 made it a surface you can USE rather than one you can look at.** v153 composed a fixed set of three
+shots on mount; v159 adds a prompt input, a **Generate** button and a **Remove** control per library row:
+
+- `generateAsset` refuses an EMPTY prompt at the door (an asset whose name says nothing would still be
+  listed as if it were something), generates one still, stores it with the same **zero-length payload** the
+  composed shots use, and returns the GENERATOR's own provenance word so the panel carries it forward.
+- `removeAsset` answers the LIBRARY's own `false` for an id it does not hold rather than throwing — removing
+  something twice is a caller's mistake, not a corrupt library.
+- **The library and the storyboard are separate state.** Generating into the library moves the asset count
+  and the byte tally; it does NOT move the storyboard's frames, and the proof measures both.
+
+Evidence in three agreeing layers: `src/lib/assets.test.ts` (no DOM — including the interactive block:
+generate stores one asset with an empty payload, the storyboard is untouched, remove deletes by id and the
+derived report follows, an unknown id answers `false`); `asset-surface-proof.mjs` (grades the SHIPPED Studio
+module type-stripped through `node:module`, over the SHIPPED generators — §1 the composed assets ARE the
+library's, §2 §60 measured, §3 the report DERIVED, §4 every `imageRef` followed back, §5 the REAL library
+grown and shrunk through the interactive pair, §6 home HEAD byte-identical); and
+`tools/harness/studio-assets.mjs` (**24/24 in a real browser**, PNG written): the probe types into the prompt
+input, presses **Generate**, waits for the bridge's count to rise by exactly one, presses that row's
+**Remove**, and waits for it to fall back with the id gone — checking the storyboard is unmoved and every
+byte count still reads `0` throughout.
+
+Bounds, stated: the interaction generates and removes IMAGE assets only. There is no video generation, no
+character consistency, no asset UPDATE, and no way to edit a storyboard from the panel. The asset library is
+generator state, not the design document — not persisted, not undoable, not exported. The library lists
+assets newest-first; the prompt order is guaranteed only in the storyboard's `frames`.
