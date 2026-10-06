@@ -12,6 +12,8 @@ describe('contracts/ 导出', () => {
     expect(CONTRACT_EXPORTS.map((e) => e.file)).toEqual([
       'ai-request.schema.json',
       'ai-response.schema.json',
+      'ai-chat-request.schema.json',
+      'ai-chat-response.schema.json',
       'ai-error.schema.json',
       'ai-job-accepted.schema.json',
       'ai-job-status.schema.json',

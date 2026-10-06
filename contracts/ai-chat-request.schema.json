@@ -1,0 +1,38 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "requestId": {
+      "type": "string"
+    },
+    "system": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 12000
+    },
+    "user": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 4000
+    },
+    "modelClass": {
+      "default": "balanced",
+      "type": "string",
+      "enum": [
+        "fast",
+        "balanced",
+        "reasoning",
+        "vision",
+        "image",
+        "video",
+        "embedding",
+        "reranker"
+      ]
+    }
+  },
+  "required": [
+    "requestId",
+    "system",
+    "user"
+  ]
+}

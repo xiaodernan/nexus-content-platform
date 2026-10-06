@@ -210,3 +210,81 @@ async def execute_ai_request(payload: dict[str, Any], *, registry: Registry) -> 
             error("internal", "ai-service 产出的响应不符合契约", "；".join(response_issues[:5])),
         )
     return (200, response)
+
+
+async def execute_chat_request(payload: dict[str, Any], *, registry: Registry) -> tuple[int, dict[str, Any]]:
+    """§47 角色对话：校验 → 选模型 → 调 provider 取纯文本。
+    与设计请求同一条纪律：没配 provider 就报 provider-unavailable，绝不编回复（§159）。
+    回的是纯文本，不带补丁——对话只落记忆行，不改设计文档，
+    所以 §73/§74 的补丁校验与审批挂起不适用这一路。
+    """
+    request_issues = contract_issues("ai-chat-request.schema.json", payload)
+    if request_issues:
+        return (
+            400,
+            error("validation-failed", "AiChatRequest 不符合契约", "；".join(request_issues[:5])),
+        )
+
+    if not registry.llm:
+        return (
+            503,
+            error(
+                "provider-unavailable",
+                "没有可用的文本 provider",
+                "配置 NEXUS_OPENAI_API_KEY 后重试；未配置时 web 侧直接 409，不会走到这里。",
+            ),
+        )
+
+    model_class = str(payload.get("modelClass") or "balanced")
+    if model_class not in LLM_MODEL_CLASSES:
+        return (
+            503,
+            error(
+                "provider-unavailable",
+                f"{model_class} 档模型尚未接入",
+                "对话只走文本档（fast / balanced / reasoning / vision）。",
+            ),
+        )
+    try:
+        model = registry.llm.model_for(model_class)
+    except ProviderFailed as exc:
+        return (503, error("provider-unavailable", str(exc)))
+
+    system = str(payload.get("system") or "")
+    user = str(payload.get("user") or "")
+    try:
+        completion = await anyio.to_thread.run_sync(
+            lambda: registry.llm.complete(model=model, system=system, user=user)
+        )
+    except ProviderFailed as exc:
+        return (502, error("provider-failed", str(exc), retryable=True))
+
+    text = (completion.text or "").strip()[:4000]
+    if not text:
+        return (502, error("provider-failed", "provider 返回了空回复", retryable=True))
+
+    response: dict[str, Any] = {
+        "requestId": str(payload.get("requestId") or ""),
+        "capability": "real",
+        "provider": completion.provider,
+        "model": completion.model,
+        "text": text,
+        "usage": {
+            "provider": completion.provider,
+            "model": completion.model,
+            "modelClass": model_class,
+            "tokensIn": completion.tokens_in,
+            "tokensOut": completion.tokens_out,
+            "latencyMs": completion.latency_ms,
+            "costUsd": 0,
+            "toolCalls": 1,
+            "demoMode": False,
+        },
+    }
+    response_issues = contract_issues("ai-chat-response.schema.json", response)
+    if response_issues:
+        return (
+            500,
+            error("internal", "ai-service 产出的对话响应不符合契约", "；".join(response_issues[:5])),
+        )
+    return (200, response)

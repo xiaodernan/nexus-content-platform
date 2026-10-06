@@ -20,7 +20,7 @@ from .config import Settings, load_settings
 from .contract import ContractMissing, contract_dir
 from .contract import issues as contract_issues
 from .execution import error as make_error
-from .execution import execute_ai_request, parse_request_body
+from .execution import execute_ai_request, execute_chat_request, parse_request_body
 from .jobs import JobStore, Worker, build_store, job_capacity
 from .providers.registry import Registry
 
@@ -118,6 +118,17 @@ def create_app(settings: Settings | None = None, *, registry: Registry | None = 
             return JSONResponse(body, status_code=status)
         assert payload is not None
         status, body = await execute_ai_request(payload, registry=registry)
+        return JSONResponse(body, status_code=status)
+
+    @app.post("/v1/ai/chat")
+    async def chat(request: Request) -> JSONResponse:
+        """§47 角色对话：人设与上下文由 web 侧拼好发过来，这里只做模型调用。"""
+        payload, rejected = parse_request_body(await request.body(), settings.max_body_bytes)
+        if rejected is not None:
+            status, body = rejected
+            return JSONResponse(body, status_code=status)
+        assert payload is not None
+        status, body = await execute_chat_request(payload, registry=registry)
         return JSONResponse(body, status_code=status)
 
     @app.post("/v1/ai/jobs")

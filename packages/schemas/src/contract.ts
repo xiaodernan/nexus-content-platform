@@ -1,5 +1,7 @@
 import { z } from 'zod';
 import {
+  AiChatRequestSchema,
+  AiChatResponseSchema,
   AiErrorSchema,
   AiJobAcceptedSchema,
   AiJobStatusResponseSchema,
@@ -22,6 +24,8 @@ import {
 export const CONTRACT_EXPORTS: { file: string; schema: z.ZodType; io: 'input' | 'output' }[] = [
   { file: 'ai-request.schema.json', schema: AiRequestSchema, io: 'input' },
   { file: 'ai-response.schema.json', schema: AiResponseSchema, io: 'output' },
+  { file: 'ai-chat-request.schema.json', schema: AiChatRequestSchema, io: 'input' },
+  { file: 'ai-chat-response.schema.json', schema: AiChatResponseSchema, io: 'output' },
   { file: 'ai-error.schema.json', schema: AiErrorSchema, io: 'output' },
   { file: 'ai-job-accepted.schema.json', schema: AiJobAcceptedSchema, io: 'output' },
   { file: 'ai-job-status.schema.json', schema: AiJobStatusResponseSchema, io: 'output' },
