@@ -8080,3 +8080,32 @@ _records the catch-up itself._
   and the steps are caller-supplied data (no planner claim, no LLM provenance): a planning backend can be
   wired later without changing the door's shape. No product face exists yet: M6's Studio build surface is the
   next slice. The runtime's exec/git tool doors are still headless proof-lane only. ADR 0013 stays Proposed.
+
+### Amendment 174 (M6 v174, queue item 8, product slice) — the dock's BUILD FACE: the arc walks in the browser's service, receipts on record
+
+- **What landed.** `apps/studio/src/lib/buildServer.ts` is the first product consumer of the build arc (am. 173):
+  the ARC is pinned as data (`STUDIO_BUILD_ARC` — two verify steps: the container runtime answers with its own
+  version; the container computes `arc ok:5` and prints it), so the route's POST takes NO body and the browser
+  cannot name a single argv; the walk uses the runtime's own `policyCheckpoint` (the §28 stance as data —
+  `build.verify` granted because the human allowed the arc once at the panel, everything else default-deny)
+  with `recordReceipts: true`, so the answer carries ONE RECEIPT PER WALKED DOOR — callId, grant, reason — and
+  the panel shows WHO the door let in and why, not a bare green tick. `apps/studio/src/app/api/agent/build/route.ts`
+  serves it (Node runtime, bodyless POST); `apps/studio/src/lib/buildLane.ts` is the client fetch adapter — it
+  imports NOTHING from `@nexus/agent-runtime` or `@nexus/exec-host` (the browser bundle stays runtime-free and
+  spawn-free); `AgentPanel` gains the build face: status line, Allow-once ask naming the steps and the engine,
+  per-step engine detail lines, and a ledger line via `buildArcLedgerLine` (`via: 'build.verify'`, the arc's
+  detail in the `exec` field).
+- **Measured (2026-10-07).** Studio **239/239** (229 → 239: 5 `buildServer` cases — pinned facts, allowlist-fit
+  assertion, §28 policy validation, the green walk through the REAL isolation flags with receipts, the red walk
+  stopping with the engine's words; 5 `buildLane` cases); `docs/evidence/studio/build-lane-proof.mjs` §1–§6 ALL
+  PASSED against the real daemon 29.8.2 (§1 probe + pinned arc facts; §2 both validators green; §3 the REAL
+  walk — ephemeral `nexus-exec-*`, all 10 isolation flags, no mount flag, 2 receipts with stated reasons, stdout
+  `arc ok:5` measured; §4 exit 3 → failed at the first red step, exactly one receipt; §5 no widening — bodyless
+  POST, pinned exports, honest unavailability; §6 the §60 dependency audit — the client lane import-free, the
+  server core the one legal junction of both layers); browser harness `tools/harness/studio-build.mjs` **8/8**
+  (probe lands, ask names steps + engine, walk 2/2 green, per-step lines, ledger entry `via build.verify`, zero
+  console errors).
+- **Bounds (§60).** The face VERIFIES the pinned lane; it is not yet an autonomous builder — the arc is
+  hand-pinned data, no planner chooses steps, nothing writes to the workspace, and the arc's receipts live in
+  the browser's localStorage ledger like every other dock decision (§26's durability question applies to them
+  too). The runtime's exec/git doors remain headless. ADR 0013 stays Proposed.

@@ -4,6 +4,7 @@ import { useStudio } from '@/lib/store';
 import { browserStorage } from '@/lib/storage';
 import {
   appendLedgerLine,
+  buildArcLedgerLine,
   containerLedgerLine,
   ledgerLine,
   planAgentChain,
@@ -23,6 +24,7 @@ import {
 import type { ChainStageHandoff, QaReport } from '@nexus/agent-runtime';
 import { createDomDriver, runUiTask } from '@/lib/uiRun';
 import { probeContainerLane, requestContainerExec, type ContainerLaneProbe } from '@/lib/containerLane';
+import { probeBuildLane, requestBuildArcRun, type BuildLaneProbe } from '@/lib/buildLane';
 
 type Phase = 'idle' | 'planning' | 'awaiting' | 'done';
 
@@ -77,6 +79,11 @@ export default function AgentPanel() {
   const [containerAsk, setContainerAsk] = useState<string[] | null>(null);
   const [containerLine, setContainerLine] = useState('');
   const [containerBusy, setContainerBusy] = useState(false);
+  const [build, setBuild] = useState<BuildLaneProbe | null>(null);
+  const [buildAsk, setBuildAsk] = useState(false);
+  const [buildLine, setBuildLine] = useState('');
+  const [buildSteps, setBuildSteps] = useState<{ callId: string; stepId: string; ok: boolean; detail: string }[]>([]);
+  const [buildBusy, setBuildBusy] = useState(false);
 
   const agentUiRun = async () => {
     if (uiBusy) return;
@@ -106,6 +113,9 @@ export default function AgentPanel() {
     void probeContainerLane().then((p) => {
       if (alive) setContainer(p);
     });
+    void probeBuildLane().then((p) => {
+      if (alive) setBuild(p);
+    });
     return () => {
       alive = false;
     };
@@ -126,6 +136,29 @@ export default function AgentPanel() {
   const denyContainer = () => {
     if (containerAsk && container) appendLedgerLine(browserStorage(), containerLedgerLine(containerAsk, container.image, false, undefined, 'denied at human checkpoint'));
     setContainerAsk(null);
+    syncLedger();
+  };
+
+  const allowBuild = async () => {
+    if (!build) return;
+    setBuildBusy(true);
+    const a = await requestBuildArcRun();
+    const detail = a.ok ? (a.detail ?? '') : (a.reason ?? 'build route failed');
+    setBuildLine(detail);
+    setBuildSteps(a.ok ? (a.steps ?? []) : []);
+    setBuildAsk(false);
+    setBuildBusy(false);
+    const approved = a.ok && a.status === 'completed';
+    appendLedgerLine(
+      browserStorage(),
+      buildArcLedgerLine(build.arcId, build.engine, a.ok ? (a.status ?? 'failed') : 'failed', approved, detail, approved ? undefined : a.ok ? (a.reason ?? 'red verdict') : detail),
+    );
+    syncLedger();
+  };
+
+  const denyBuild = () => {
+    if (build) appendLedgerLine(browserStorage(), buildArcLedgerLine(build.arcId, build.engine, 'denied', false, undefined, 'denied at human checkpoint'));
+    setBuildAsk(false);
     syncLedger();
   };
 
@@ -269,6 +302,41 @@ export default function AgentPanel() {
         {containerLine && (
           <div style={label} data-testid="container-line">{containerLine}</div>
         )}
+      </div>
+      <div style={{ borderTop: '1px solid var(--nexus-border)', paddingTop: 4, display: 'flex', flexDirection: 'column', gap: 4 }}>
+        <div style={label} data-testid="build-status">
+          {build === null
+            ? 'build arc: probing…'
+            : build.available
+              ? `build arc: ✓ ${build.arcId} · ${build.steps.length} verify step(s) · engine ${build.engine}`
+              : `build arc: unavailable — ${build.reason}`}
+        </div>
+        {build?.available && (
+          <button className="btn" style={{ fontSize: 10, padding: '1px 8px', alignSelf: 'flex-start' }} onClick={() => setBuildAsk(true)} disabled={buildBusy} data-testid="build-run">
+            Run build arc (§28 · allow-once)
+          </button>
+        )}
+        {buildAsk && build && (
+          <div data-testid="build-ask" style={{ border: '1px solid #ffd24a', borderRadius: 8, padding: 6, display: 'flex', flexDirection: 'column', gap: 4 }}>
+            <div style={{ fontSize: 11 }}>
+              The arc plans <b>{build.steps.length}</b> verify step(s) — {build.steps.map((s) => s.join(' ')).join('; ')} — inside <b>{build.engine}</b> through the ONE build.verify door. Allow once opens the arc&apos;s doors; each step still asks §28, the route answers on your behalf, on record.
+            </div>
+            <div style={{ display: 'flex', gap: 6 }}>
+              <button className="btn btn-primary" onClick={() => void allowBuild()} disabled={buildBusy} data-testid="build-allow">Allow once</button>
+              <button className="btn" onClick={denyBuild} data-testid="build-deny">Deny</button>
+            </div>
+          </div>
+        )}
+        {buildSteps.length > 0 && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+            {buildSteps.map((s) => (
+              <div key={s.callId} style={label} data-testid="build-step">
+                {s.ok ? '✓' : '✗'} {s.stepId}: {s.detail}
+              </div>
+            ))}
+          </div>
+        )}
+        {buildLine && <div style={label} data-testid="build-line">{buildLine}</div>}
       </div>
       <label style={{ ...label, display: 'flex', gap: 6, alignItems: 'center', cursor: 'pointer' }}>
         <input type="checkbox" checked={chainMode} onChange={(e) => setChainMode(e.target.checked)} />

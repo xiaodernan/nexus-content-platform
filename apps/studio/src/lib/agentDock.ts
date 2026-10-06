@@ -440,3 +440,20 @@ export function containerLedgerLine(command: string[], image: string, approved: 
   };
   return JSON.stringify(e);
 }
+
+/* ---- v174: the build arc's §28 line — same ledger, the arc's own door stated ---- */
+
+/** One JSONL line for a dock build-arc decision (the panel's Allow-once is the gate). */
+export function buildArcLedgerLine(arcId: string, engine: string, status: string, approved: boolean, detail?: string, reason?: string): string {
+  const e: LedgerEntry = {
+    goal: `build arc: ${arcId}`,
+    target: engine,
+    via: 'build.verify',
+    score: approved ? 1 : 0,
+    approved,
+    ...(reason ? { reason } : {}),
+    ...(detail ? { exec: detail } : {}),
+    at: Date.now(),
+  };
+  return JSON.stringify(e);
+}
