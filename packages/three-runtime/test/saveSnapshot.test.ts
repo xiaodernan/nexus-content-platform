@@ -1850,7 +1850,7 @@ describe('listSaveFiles / latestSaveFile: the store says what it holds', () => {
     const { host } = fakeHost();
     const store = createFsSaveStore(host, 'nowhere');
     expect(store.list()).toEqual([]);
-    expect(runtimeWithStore(store).listSaveFiles()).toEqual({ store: 'fs', paths: [] });
+    expect(runtimeWithStore(store).listSaveFiles()).toEqual({ store: 'fs', paths: [], refused: [] });
   });
 
   it('listing reads names only — no file is opened to build the menu', () => {

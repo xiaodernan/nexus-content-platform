@@ -1924,9 +1924,15 @@ export class ThreeRuntime {
    * answers `[]`, and a host that cannot browse throws (v122's rule for a missing capability — an empty list
    * would be a claim about the world this store cannot support).
    */
-  listSaveFiles(): { store: string; paths: string[] } {
+  listSaveFiles(): { store: string; paths: string[]; refused: { path: string; why: string }[] } {
     if (!this.storage) throw new Error('listSaveFiles: this runtime has no SaveStore — create it with { storage }, or list the directory yourself');
-    return { store: this.storage.kind, paths: this.storage.list() };
+    const paths = this.storage.list();
+    const refused: { path: string; why: string }[] = [];
+    for (const path of paths) {
+      const why = savePathRefusal(path);
+      if (why !== null) refused.push({ path, why });
+    }
+    return { store: this.storage.kind, paths, refused };
   }
 
   /**

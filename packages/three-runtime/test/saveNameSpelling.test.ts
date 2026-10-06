@@ -298,9 +298,9 @@ describe('how narrow the rule is', () => {
     expect(countOf(shipped, 'throw new Error'), 'the scan reads a real file').toBeGreaterThan(10);
   });
 
-  it('the three surveys that re-enter a listed name all ask the door, and none of them keys a branch on its wording', () => {
+  it('every caller of storage.list() classifies the name via savePathRefusal — three surveys plus listSaveFiles, four total', () => {
     const shipped = readSource('src/threeRuntime.ts');
-    expect(countOf(shipped, 'savePathRefusal(path)')).toBe(3);
+    expect(countOf(shipped, 'savePathRefusal(path)')).toBe(4);
     expect(countOf(shipped, "'name-not-reenterable'")).toBe(3);
     expect(countOf(shipped, 'storage.list()')).toBe(4);
   });
