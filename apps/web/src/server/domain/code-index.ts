@@ -104,7 +104,6 @@ export interface CodeIndex {
 }
 
 export const CODE_INDEX_OMISSIONS: string[] = [
-  '代码正文本身（这里只有目录与位置；要读实现得按 path 取，仍然受 §68 预算约束）',
   '第三方包内部的符号（只记被 import 了什么，不展开 node_modules）',
   'CSS 变量与代码里 var(--nx-*) 引用之间的边（两边都列了，没连成图）',
   '语义检索与意图判断（这里是词法匹配；向量化要 embedding provider，见 §49）',
@@ -564,6 +563,82 @@ export function rankCodeFiles(index: CodeIndex, input: CodeRankInput): CodeFileM
     return tierA - tierB || a.path.localeCompare(b.path);
   });
   return matches.slice(0, limit);
+}
+
+export interface CodeFileContent {
+  path: string;
+  language: CodeFileEntry['language'];
+  origin: CodeFileOrigin;
+  lines: number;
+  chars: number;
+  /** 文件完整内容：Agent 明确伸手取时才给，仍受 §68 预算约束 */
+  content: string;
+  symbols: CodeSymbol[];
+  deps: string[];
+  externals: string[];
+}
+
+/**
+ * §69 的后半截："按 path 取正文"。从设计文档重新生成项目，找到指定路径的文件并返回完整内容。
+ * 这是纯函数：不读库、不碰时钟，同一份文档两次结果完全一致。
+ *
+ * 为什么每次都要重新生成：codegen 是投影（§16），文档一改代码就变。存一份副本进库就是第二份真值，
+ * 迟早读到旧的。所以这里宁可多花一点 CPU 重跑一遍 generateProject()，保证拿到的永远是最新投影。
+ *
+ * @param document 设计文档（权威来源）
+ * @param path 文件路径（来自 CodeIndex.files[].path）
+ * @param options 可选：投影 mode，与 buildCodeIndex 保持一致
+ * @returns 文件内容与元数据，找不到返回 null
+ */
+export function fetchCodeByPath(
+  document: DesignDocument,
+  path: string,
+  options: BuildCodeIndexOptions = {},
+): CodeFileContent | null {
+  const mode = options.mode ?? null;
+
+  // 先找生成的文件
+  for (const file of generateProject(document, { mode })) {
+    if (file.path === path) {
+      const extension = file.path.split('.').pop() ?? '';
+      const analysis = analyzeByLanguage(file.path, file.contents, languageOf(extension));
+      return {
+        path: file.path,
+        language: languageOf(extension),
+        origin: file.origin,
+        lines: file.contents.split('\n').length,
+        chars: file.contents.length,
+        content: file.contents,
+        symbols: analysis.symbols,
+        deps: analysis.deps,
+        externals: analysis.externals,
+      };
+    }
+  }
+
+  // 再找 code-only 区域（模型里的代码片段）
+  for (const page of document.pages) {
+    for (const node of Object.values(page.nodes)) {
+      if (!node.code) continue;
+      const codePath = `code-only/${page.id}/${node.id}.${node.code.language}`;
+      if (codePath === path) {
+        const analysis = analyzeByLanguage(codePath, node.code.content, languageOf(node.code.language));
+        return {
+          path: codePath,
+          language: languageOf(node.code.language),
+          origin: { kind: 'node-region', pageId: page.id, pageName: page.name, nodeId: node.id, nodeName: node.name },
+          lines: node.code.content.split('\n').length,
+          chars: node.code.content.length,
+          content: node.code.content,
+          symbols: analysis.symbols,
+          deps: analysis.deps,
+          externals: analysis.externals,
+        };
+      }
+    }
+  }
+
+  return null;
 }
 
 export interface CodeDigestFile {

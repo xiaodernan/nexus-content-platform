@@ -10,6 +10,7 @@ import {
   buildCodeDigest,
   buildCodeIndex,
   codeIndexChars,
+  fetchCodeByPath,
   fitCodeIndexToBudget,
   queryTokens,
   rankCodeFiles,
@@ -218,5 +219,47 @@ describe('预算（§68 对代码目录同样成立）', () => {
     expect(first.reasons.length).toBeGreaterThan(0);
     expect(first.symbols.some((symbol) => symbol.includes('CouponCountdown'))).toBe(true);
     expect(digest.query).toBe('结算页 CouponCountdown');
+  });
+});
+
+describe('fetchCodeByPath（§69 后半截）', () => {
+  const document = fixture();
+
+  it('按路径取回生成文件的完整内容', () => {
+    const index = buildCodeIndex(document);
+    const pageFile = index.files.find((file) => file.origin.kind === 'page')!;
+    const result = fetchCodeByPath(document, pageFile.path);
+    expect(result).not.toBeNull();
+    expect(result!.path).toBe(pageFile.path);
+    expect(result!.content).toContain('export function Page1');
+    expect(result!.symbols.length).toBeGreaterThan(0);
+    expect(result!.lines).toBeGreaterThan(0);
+    expect(result!.chars).toBeGreaterThan(0);
+  });
+
+  it('按路径取回 code-only 区域的代码', () => {
+    const settlementPage = document.pages[1];
+    if (!settlementPage) throw new Error('settlement page not found');
+    const regionNode = Object.values(settlementPage.nodes).find((node) => node.code && node.code.language === 'tsx')!;
+    const expectedPath = `code-only/${settlementPage.id}/${regionNode.id}.tsx`;
+    const result = fetchCodeByPath(document, expectedPath);
+    expect(result).not.toBeNull();
+    expect(result!.path).toBe(expectedPath);
+    expect(result!.content).toContain('CouponCountdown');
+    expect(result!.content).toContain('minutes');
+    expect(result!.origin.kind).toBe('node-region');
+  });
+
+  it('找不到路径时返回 null', () => {
+    const result = fetchCodeByPath(document, 'components/nexus/NonExistent.tsx');
+    expect(result).toBeNull();
+  });
+
+  it('取回的符号列表与目录一致', () => {
+    const index = buildCodeIndex(document);
+    const barrelFile = index.files.find((file) => file.origin.kind === 'barrel')!;
+    const result = fetchCodeByPath(document, barrelFile.path);
+    expect(result).not.toBeNull();
+    expect(result!.symbols.map((s) => s.name)).toEqual(barrelFile.symbols.map((s) => s.name));
   });
 });
