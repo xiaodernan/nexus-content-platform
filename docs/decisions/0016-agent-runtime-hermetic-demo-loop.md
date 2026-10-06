@@ -7656,3 +7656,53 @@ the ledger entry._
   character consistency, no asset UPDATE, and no way to edit a storyboard from the panel — those doors live
   in the agent lane (`assetTools.ts`) and the ones that do not exist there are listed as open in the plan.
   The library remains generator state: not the design document, not persisted, not undoable.
+
+### Amendment 160 (M3 v160, agent-runtime) — the multimodal lane's doors deepen: video, search, update, delete, and the character-consistency trio — and the library's own no-op is REFUSED rather than forwarded
+
+_Numbering: 160 was free (`grep -ao "^### Amendment 1[0-9][0-9]"` topped out at 159). This is item 2 of the
+priority queue in `docs/DEVELOPMENT_PLAN.md`. Full narrative in `docs/evidence/agents/README.md`; this is the
+ledger entry._
+
+- **The gap this closes.** v145 gave the lane six doors — image generation, list, inspect, and the storyboard
+  trio. The package it wraps has far more: a VIDEO generator, a metadata `search`, `updateMetadata`,
+  `remove`, and a whole `CharacterConsistencyManager`. Those were reachable from the package's own tests and
+  from nowhere else.
+- **Seven new doors, taking the family from 6 to 13.** `asset.video.generate`; `asset.search`;
+  `asset.update`; `asset.delete`; `asset.character.register`; `asset.character.list`; `asset.character.apply`.
+  Four are write-class behind the §28 gate and three are read-class. **The read set is asserted EXACTLY**
+  (six now), because a read door is one that skips the gate.
+- **The rule the library cannot make for itself.** `InMemoryAssetLibrary.updateMetadata` answers **`true` for
+  a patch that changes nothing** — verified in the proof against the real library, printed as `true` beside
+  the door's refusal. So `asset.update` **refuses an empty patch** rather than forwarding it: a door that
+  passed one through would report a successful update that updated nothing, which is a no-op wearing a
+  success. An asset's BYTES and its id are not editable, and the door says so.
+- **Two removal semantics, stated rather than left to a reader.** `asset.delete` is write-class and asks the
+  checkpoint; the Studio panel's `Remove` (v159) is ungated because it acts on the panel's own in-memory
+  library. The door's own DESCRIPTION carries that sentence, and a suite case asserts it is still there — a
+  reader comparing the two should not have to infer why one asks a gate and the other does not.
+- **`asset.video.generate` does not stamp the type it is named for.** The `type` and `mimeType` in the result
+  come from the GENERATOR, so a driver that answered with an image under the video door would produce an
+  image result, and the proof checks `type === 'video'` against the package's own generator rather than
+  against a label the door applied.
+- **`asset.character.apply` answers a REQUEST, not an asset, and says so.** It runs no generator; the result
+  carries `derived: 'request'` and the reference images that *would* be attached. A door whose answer could
+  be read as a generation would be the §60 defect in a new place. The package's manager THROWS for an
+  unregistered character; the driver checks first, so the door can NAME the fact ("no character is
+  registered as …") instead of forwarding a raw error string.
+- **`asset.character.register` refuses two things the package would accept**: a character with no reference
+  images (it would anchor nothing) and a `consistencyStrength` above 1 (the field means a fraction, and the
+  package's own default is 0.8).
+- **The §60 provenance rule is now SHARED, not duplicated.** Both generate doors call one
+  `requireProvenance`, because two copies of the check the family exists to make could drift — and a suite
+  case feeds a provenance-less answer to EACH door to prove neither forwards it.
+- **Evidence.** `agents/runtime/test/assetTools.test.ts` **23 → 41 cases** (the new describe block covers
+  every door, both directions of the provenance rule, the empty-patch refusal, the two removal semantics, the
+  no-reference and strength-above-1 refusals, the derived-request answer, and the gate on each new door);
+  `docs/evidence/agents/asset-tools-proof.mjs` gains **§6 video, §7 update/delete, §8 character trio** over
+  the REAL generators, library and consistency manager (with the HEAD check renumbered to §9). `agent-runtime`
+  **473/473 → 492/492** (33 files), `tsc -p agents/runtime/tsconfig.json` clean.
+- **Bounds (§60).** Still no real model anywhere: every generator is DEMO MODE, every stored payload is zero
+  bytes, and the proof measures that on the video path too. The doors cover the package's declared surface —
+  there is no storyboard frame EDIT or DELETE, no character UPDATE or DELETE, and no asset byte editing
+  (the library has no such method, so no door invents one). Nothing in the Studio imports this family, so
+  the product face for video and character consistency remains open.

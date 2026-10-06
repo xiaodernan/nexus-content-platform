@@ -30,7 +30,7 @@ import { pathToFileURL } from 'node:url';
 const rt = await import(pathToFileURL('./agents/runtime/dist/index.js').href);
 const { ToolRegistry, registerAssetTools, ASSET_TOOL_SPECS } = rt;
 const ai = await import(pathToFileURL('./packages/ai-providers/dist/index.js').href);
-const { InMemoryAssetLibrary, DemoImageGenerator, StoryboardManager } = ai;
+const { InMemoryAssetLibrary, DemoImageGenerator, DemoVideoGenerator, StoryboardManager, CharacterConsistencyManager } = ai;
 
 const homeHead = execFileSync('git', ['rev-parse', 'HEAD'], { encoding: 'utf8' }).trim();
 
@@ -38,6 +38,8 @@ const homeHead = execFileSync('git', ['rev-parse', 'HEAD'], { encoding: 'utf8' }
 const library = new InMemoryAssetLibrary();
 const generator = new DemoImageGenerator();
 const storyboards = new StoryboardManager();
+const videoGenerator = new DemoVideoGenerator();
+const characters = new CharacterConsistencyManager();
 
 const toSummary = (m) => ({
   id: m.id,
@@ -131,6 +133,66 @@ const driver = {
         duration: f.duration ?? null,
         cameraAngle: f.cameraAngle ?? null,
       })),
+    };
+  },
+  // ── M3 v160: the deeper doors, over the REAL generators and library ─────────────────────────────────
+  async generateVideo(request) {
+    const result = await videoGenerator.generate({
+      type: 'video',
+      prompt: request.prompt,
+      count: request.count,
+      ...(request.duration !== undefined ? { parameters: { duration: request.duration } } : {}),
+    });
+    for (const asset of result.assets) await library.add(asset, Buffer.alloc(0));
+    return {
+      provenance: result.provenance,
+      model: result.metadata.model,
+      seed: result.metadata.seed,
+      assets: result.assets.map((a) => ({
+        assetId: a.assetId,
+        type: a.type,
+        name: a.metadata.name,
+        url: a.url,
+        mimeType: a.metadata.mimeType,
+        width: a.metadata.width ?? null,
+        height: a.metadata.height ?? null,
+      })),
+    };
+  },
+  async searchAssets(text, limit) {
+    const refs = await library.search(text, { limit });
+    const out = [];
+    for (const ref of refs) {
+      const entry = await library.get(ref.assetId);
+      if (entry) out.push(toSummary(entry.metadata));
+    }
+    return out;
+  },
+  removeAsset: (id) => library.remove(id),
+  updateAsset: (id, patch) => library.updateMetadata(id, patch),
+  registerCharacter: (spec) => characters.registerCharacter({
+    characterId: spec.characterId,
+    referenceImages: spec.referenceImages,
+    consistencyStrength: spec.consistencyStrength ?? undefined,
+    styleTransfer: spec.styleTransfer ?? undefined,
+  }),
+  listCharacters: () => characters.listCharacters().map((c) => ({
+    characterId: c.characterId,
+    referenceImages: [...c.referenceImages],
+    consistencyStrength: c.consistencyStrength ?? null,
+    styleTransfer: c.styleTransfer ?? null,
+  })),
+  async applyConsistency(prompt, characterId) {
+    const character = characters.getCharacter(characterId);
+    if (!character) return undefined;
+    // The package THROWS for an unknown character; the driver checks first so the door can name the fact.
+    const derived = await characters.applyConsistency({ type: 'image', prompt }, characterId);
+    return {
+      characterId,
+      prompt: derived.prompt,
+      referenceImages: character.referenceImages,
+      consistencyStrength: (derived.parameters?.characterConsistency?.consistencyStrength) ?? 0.8,
+      referenceCount: derived.referenceAssets?.length ?? 0,
     };
   },
 };
@@ -249,8 +311,73 @@ assert.ok(resolved, `the frame's imageRef ${ref} resolves in the library`);
 assert.equal(resolved.metadata.prompt, 'a quiet harbour at dusk');
 console.log(`[§5] a storyboard frame's reference is followed: imageRef ${ref} resolves in the library to "${resolved.metadata.name}", and the manager holds ${storyboards.get(storyboardId).frames.length} frame(s)`);
 
-// ── §6 the home repository never moved ───────────────────────────────────────────────────────────────
-assert.equal(execFileSync('git', ['rev-parse', 'HEAD'], { encoding: 'utf8' }).trim(), homeHead, '§6: this repository HEAD byte-identical — everything here ran in memory');
+// ── §6 the VIDEO door, over the package's own video generator ────────────────────────────────────────
+// The door must not stamp `video` itself: the type and mimeType come from the GENERATOR, so a driver that
+// answered with an image would produce an image result under a video door, and that would be visible here.
+const video = await invoke('asset.video.generate', { prompt: 'a skiff crossing the harbour', duration: 6 });
+assert.equal(video.ok, true, `asset.video.generate failed: ${video.error}`);
+assert.equal(video.output.provenance.mode, 'demo', 'the video generator’s own provenance, carried through');
+assert.equal(video.output.assets[0].type, 'video', 'the GENERATOR said video');
+assert.equal(video.output.assets[0].mimeType, 'video/mp4');
+const videoId = video.output.assets[0].assetId;
+const storedVideo = await library.get(videoId);
+assert.ok(storedVideo, 'the video asset is retrievable');
+assert.equal(storedVideo.data.length, 0, 'and it too stores zero bytes — DEMO MODE has no footage');
+assert.equal(storedVideo.metadata.duration, 6, 'the duration the caller named reached the generator');
+console.log(`[§6] the video door over the package's own generator: "${video.output.assets[0].name}" is ${video.output.assets[0].mimeType} ${video.output.assets[0].width}×${video.output.assets[0].height} for ${storedVideo.metadata.duration}s · ${storedVideo.data.length} byte(s) stored · provenance "${video.output.provenance.mode}"`);
 
-console.log(`\n[summary] the FIRST consumer of the multimodal slice: ${ASSET_TOOL_SPECS.length} asset.* doors over a driver seam, driven through the registry's §28 gate, with the REAL generator + library + storyboard manager behind it · ${gen.output.assets.length} asset(s) generated and stored with a ZERO-LENGTH payload because DEMO MODE has no pixels · provenance carried through and a provenance-less answer REFUSED · a frame's imageRef followed back into the library · home HEAD byte-identical: yes`);
-console.log('[asset-tools-proof] ALL ASSERTIONS PASSED (the multimodal lane now has a consumer, and it cannot return a result that pretends to be a picture)');
+// ── §7 update and delete, on the REAL library ────────────────────────────────────────────────────────
+const renamed = await invoke('asset.update', { assetId: videoId, name: 'Skiff, renamed', tags: 'final, harbour' });
+assert.equal(renamed.ok, true, `asset.update failed: ${renamed.error}`);
+const afterUpdate = await library.get(videoId);
+assert.equal(afterUpdate.metadata.name, 'Skiff, renamed', 'the name the caller gave is what the library holds');
+assert.deepEqual([...afterUpdate.metadata.tags], ['final', 'harbour'], 'and the comma-separated string became a list');
+assert.equal(afterUpdate.data.length, 0, 'an update did not invent bytes');
+
+// The rule the library cannot make for itself: `updateMetadata` answers `true` for a patch that changes
+// NOTHING, so the door refuses an empty patch rather than reporting a no-op as a success.
+const noPatch = await invoke('asset.update', { assetId: videoId });
+assert.equal(noPatch.ok, false, 'an empty patch is refused');
+assert.match(noPatch.error, /a patch that names nothing would be reported as an update/);
+// And the library's own answer to that same empty patch, to show what the door is protecting against.
+assert.equal(await library.updateMetadata(videoId, {}), true, 'the library itself calls an empty patch a successful update — which is why the door refuses it');
+
+const deleted = await invoke('asset.delete', { assetId: videoId });
+assert.equal(deleted.ok, true);
+assert.equal(deleted.output.removed, true);
+assert.equal(await library.get(videoId), null, 'the asset is gone from the library');
+const deletedAgain = await invoke('asset.delete', { assetId: videoId });
+assert.equal(deletedAgain.ok, true);
+assert.equal(deletedAgain.output.removed, false, 'deleting twice is reported as false, not raised');
+console.log(`[§7] update and delete on the REAL library: renamed "${afterUpdate.metadata.name}" with tags ${JSON.stringify([...afterUpdate.metadata.tags])} · an empty patch is REFUSED by the door while the library calls it a success (${true}) · delete removed it and a second delete answered false`);
+
+// ── §8 the character-consistency trio, over the package's own manager ────────────────────────────────
+const registered = await invoke('asset.character.register', { characterId: 'mira', referenceImages: 'https://example.invalid/mira-a.png, https://example.invalid/mira-b.png', consistencyStrength: 0.7 });
+assert.equal(registered.ok, true, `asset.character.register failed: ${registered.error}`);
+assert.equal(registered.output.referenceImages, 2);
+
+const roster = await invoke('asset.character.list');
+assert.equal(roster.output.count, 1);
+assert.equal(roster.output.characters[0].characterId, 'mira');
+assert.deepEqual(roster.output.characters[0].referenceImages, ['https://example.invalid/mira-a.png', 'https://example.invalid/mira-b.png']);
+
+// `apply` answers a REQUEST. Nothing generated: the door says `derived: 'request'`, and the reference
+// images that WOULD be attached are in the answer rather than being claimed as produced.
+const applied = await invoke('asset.character.apply', { characterId: 'mira', prompt: 'a wide shot of the ford' });
+assert.equal(applied.ok, true, `asset.character.apply failed: ${applied.error}`);
+assert.equal(applied.output.derived, 'request', 'the answer says what it is');
+assert.equal(applied.output.prompt, 'a wide shot of the ford', 'the prompt is carried through');
+assert.equal(applied.output.referenceCount, 2, 'and both references would be attached');
+assert.equal(applied.output.consistencyStrength, 0.7);
+assert.equal(applied.output.assets, undefined, 'no assets — no generator ran');
+// The package THROWS for an unregistered character; the door names the fact instead of forwarding that.
+const unregistered = await invoke('asset.character.apply', { characterId: 'nobody', prompt: 'x' });
+assert.equal(unregistered.ok, false);
+assert.match(unregistered.error, /no character is registered as "nobody"/);
+console.log(`[§8] the character-consistency trio: registered "mira" with ${registered.output.referenceImages} references · apply answered a DERIVED REQUEST (${applied.output.referenceCount} references, strength ${applied.output.consistencyStrength}) and no assets · an unregistered character is refused by name`);
+
+// ── §9 the home repository never moved ───────────────────────────────────────────────────────────────
+assert.equal(execFileSync('git', ['rev-parse', 'HEAD'], { encoding: 'utf8' }).trim(), homeHead, '§9: this repository HEAD byte-identical — everything here ran in memory');
+
+console.log(`\n[summary] the multimodal lane's consumer, deepened: ${ASSET_TOOL_SPECS.length} asset.* doors over a driver seam, driven through the registry's §28 gate, with the REAL generators + library + storyboard manager + consistency manager behind it · ${gen.output.assets.length} image(s) and 1 video generated and stored with ZERO-LENGTH payloads because DEMO MODE has no pixels · provenance carried through and a provenance-less answer REFUSED · update/delete exercised on the real library with the empty-patch no-op REFUSED · consistency answers a REQUEST rather than an asset · home HEAD byte-identical: yes`);
+console.log('[asset-tools-proof] ALL ASSERTIONS PASSED (the multimodal lane can now generate video, search, update and delete, and it still cannot return a result that pretends to be a picture)');

@@ -5,6 +5,7 @@ import {
   registerAssetTools,
   type AssetDriver,
   type AssetSummary,
+  type CharacterSummary,
   type StoryboardFrameSummary,
   type StoryboardSummary,
 } from '../src/assetTools.js';
@@ -24,6 +25,7 @@ import {
 function fakeDriver(over: Partial<AssetDriver> = {}) {
   const assets = new Map<string, AssetSummary>();
   const storyboards = new Map<string, StoryboardSummary>();
+  const characters = new Map<string, CharacterSummary>();
   const calls: string[] = [];
   let seq = 0;
 
@@ -86,8 +88,65 @@ function fakeDriver(over: Partial<AssetDriver> = {}) {
     getStoryboard(id) {
       return storyboards.get(id);
     },
+    // ── M3 v160: the deeper doors ────────────────────────────────────────────────────────────────────
+    generateVideo(request) {
+      calls.push(`generateVideo:${request.prompt}:${request.count}`);
+      const made = Array.from({ length: request.count }, (_, i) => {
+        const assetId = `vid-${request.prompt.slice(0, 4)}-${i}`;
+        assets.set(assetId, {
+          id: assetId,
+          type: 'video',
+          name: `Generated Video: ${request.prompt}`,
+          mimeType: 'video/mp4',
+          size: 0,
+          width: 1024,
+          height: 576,
+          tags: ['generated', 'demo'],
+          source: 'generated',
+          prompt: request.prompt,
+        });
+        return { assetId, type: 'video', name: `Generated Video: ${request.prompt}`, url: `asset://${assetId}`, mimeType: 'video/mp4', width: 1024, height: 576 };
+      });
+      return { provenance: { mode: 'demo', provider: 'demo' }, model: 'demo-video-model', seed: 999, assets: made };
+    },
+    searchAssets(text, limit) {
+      calls.push(`searchAssets:${text}:${limit}`);
+      return [...assets.values()].filter((a) => a.name.includes(text) || (a.prompt ?? '').includes(text)).slice(0, limit);
+    },
+    removeAsset(id) {
+      calls.push(`removeAsset:${id}`);
+      return assets.delete(id);
+    },
+    updateAsset(id, patch) {
+      calls.push(`updateAsset:${id}:${Object.keys(patch).join('+')}`);
+      const existing = assets.get(id);
+      if (!existing) return false;
+      // The REAL library answers `true` for a patch that changes nothing — the behaviour the door refuses
+      // an empty patch to avoid reporting.
+      assets.set(id, { ...existing, ...patch });
+      return true;
+    },
+    registerCharacter(spec) {
+      calls.push(`registerCharacter:${spec.characterId}`);
+      characters.set(spec.characterId, spec);
+    },
+    listCharacters() {
+      return [...characters.values()];
+    },
+    applyConsistency(prompt, characterId) {
+      calls.push(`applyConsistency:${characterId}`);
+      const c = characters.get(characterId);
+      if (!c) return undefined;
+      return {
+        characterId,
+        prompt,
+        referenceImages: c.referenceImages,
+        consistencyStrength: c.consistencyStrength ?? 0.8,
+        referenceCount: c.referenceImages.length,
+      };
+    },
   };
-  return { driver: { ...base, ...over } as AssetDriver, calls, assets, storyboards };
+  return { driver: { ...base, ...over } as AssetDriver, calls, assets, storyboards, characters };
 }
 
 function wired(over: Partial<AssetDriver> = {}) {
@@ -107,9 +166,19 @@ describe('asset tools — the family routes every spec it declares', () => {
     }
   });
 
-  it('declares exactly THREE read-class doors, and generation is not one of them', () => {
+  it('declares exactly SIX read-class doors, and neither generation door is one', () => {
+    // v145 shipped three; v160 added `asset.search`, `asset.character.list` and `asset.character.apply`.
+    // The set is asserted EXACTLY, because a read door is one that skips the §28 gate — a door that mutated
+    // and joined this list would be a write nothing checked.
     const read = ASSET_TOOL_SPECS.filter((s) => s.permissions.includes('read')).map((s) => s.name).sort();
-    expect(read).toEqual(['asset.inspect', 'asset.list', 'asset.storyboard.inspect']);
+    expect(read).toEqual([
+      'asset.character.apply',
+      'asset.character.list',
+      'asset.inspect',
+      'asset.list',
+      'asset.search',
+      'asset.storyboard.inspect',
+    ]);
     const gen = ASSET_TOOL_SPECS.find((s) => s.name === 'asset.image.generate')!;
     expect(gen.permissions).not.toContain('read');
   });
@@ -317,5 +386,207 @@ describe('asset tools — what a door answers', () => {
     const r = await invoke('asset.list', {}, {});
     expect(r.ok).toBe(false);
     expect(r.error).toMatch(/asset store exploded/);
+  });
+});
+
+describe('asset tools — the deeper doors (M3 v160)', () => {
+  it('every door v160 ADDED that mutates is write-class, and the three new read doors are the queries', () => {
+    // The full read set is pinned by the v145 case above; what this one owns is that the FOUR mutating
+    // doors v160 added did not sneak in as reads. `asset.character.apply` runs no generator, so it is a
+    // query — but it is listed here as an explicit decision rather than an omission.
+    const byName = new Map(ASSET_TOOL_SPECS.map((s) => [s.name, s]));
+    for (const name of ['asset.video.generate', 'asset.update', 'asset.delete', 'asset.character.register']) {
+      expect(byName.get(name)?.permissions, `${name} is not write-class`).toContain('write');
+      expect(byName.get(name)?.permissions, `${name} is read-class`).not.toContain('read');
+    }
+    for (const name of ['asset.search', 'asset.character.list', 'asset.character.apply']) {
+      expect(byName.get(name)?.permissions, `${name} is not read-class`).toContain('read');
+    }
+  });
+
+  it('every newly declared door is ROUTED (an unrouted tool is a silent hole)', () => {
+    const { registry } = wired();
+    for (const name of ['asset.video.generate', 'asset.search', 'asset.update', 'asset.delete', 'asset.character.register', 'asset.character.list', 'asset.character.apply']) {
+      expect(registry.get(name), `${name} is not registered`).toBeDefined();
+    }
+  });
+
+  it('asset.video.generate reports the assets the VIDEO generator made, type and mimeType included', async () => {
+    const { invoke, calls } = wired();
+    const r = await invoke('asset.video.generate', { prompt: 'a skiff crossing', duration: 6 });
+    expect(r.ok).toBe(true);
+    expect(r.output).toMatchObject({ engine: 'fake-assets', provenance: { mode: 'demo' }, model: 'demo-video-model' });
+    const assets = (r.output as { assets: { type: string; mimeType: string }[] }).assets;
+    expect(assets[0].type).toBe('video'); // the GENERATOR's word, not a label this door stamped
+    expect(assets[0].mimeType).toBe('video/mp4');
+    expect(calls).toContain('generateVideo:a skiff crossing:1');
+  });
+
+  it('BOTH generate doors refuse a provenance-less answer — the rule is shared, not duplicated', async () => {
+    const naked = { provenance: undefined } as never;
+    for (const [tool, args] of [
+      ['asset.image.generate', { prompt: 'x' }],
+      ['asset.video.generate', { prompt: 'x' }],
+    ] as const) {
+      const { invoke } = wired(tool.includes('video') ? { generateVideo: () => naked } : { generateImage: () => naked });
+      const r = await invoke(tool, args);
+      expect(r.ok, `${tool} forwarded a provenance-less answer`).toBe(false);
+      expect(r.error).toMatch(/answered without provenance/);
+    }
+  });
+
+  it('asset.search passes the text and limit through, and reports what came back', async () => {
+    const { invoke, calls } = wired();
+    await invoke('asset.image.generate', { prompt: 'a quiet harbour' });
+    const r = await invoke('asset.search', { text: 'harbour', limit: 3 });
+    expect(r.ok).toBe(true);
+    expect(calls).toContain('searchAssets:harbour:3');
+    expect((r.output as { count: number }).count).toBe(1);
+    expect((r.output as { assets: { prompt: string }[] }).assets[0].prompt).toBe('a quiet harbour');
+  });
+
+  it('asset.search defaults to a limit of 10 and refuses a bad one', async () => {
+    const { invoke, calls } = wired();
+    await invoke('asset.search', { text: 'x' });
+    expect(calls).toContain('searchAssets:x:10');
+    expect((await invoke('asset.search', { text: 'x', limit: 0 })).error).toMatch(/limit is 0/);
+  });
+
+  it('asset.update changes the metadata the caller named, and reports the asset it now holds', async () => {
+    const { invoke, assets } = wired();
+    const gen = await invoke('asset.image.generate', { prompt: 'a quiet harbour' });
+    const assetId = (gen.output as { assets: { assetId: string }[] }).assets[0].assetId;
+
+    const r = await invoke('asset.update', { assetId, name: 'Harbour, renamed', tags: 'final, dusk' });
+    expect(r.ok).toBe(true);
+    expect(assets.get(assetId)!.name).toBe('Harbour, renamed');
+    expect(assets.get(assetId)!.tags).toEqual(['final', 'dusk']); // a comma-separated string becomes a list
+    expect((r.output as { asset: AssetSummary }).asset.name).toBe('Harbour, renamed');
+  });
+
+  it('asset.update REFUSES a patch that names nothing — the library would call it an update', async () => {
+    // The library's `updateMetadata` answers `true` for a patch that changes nothing, so a door that
+    // forwarded an empty patch would report a success that changed nothing. This is the rule.
+    const { invoke, calls } = wired();
+    const gen = await invoke('asset.image.generate', { prompt: 'a quiet harbour' });
+    const assetId = (gen.output as { assets: { assetId: string }[] }).assets[0].assetId;
+    const before = calls.length;
+
+    const r = await invoke('asset.update', { assetId });
+    expect(r.ok).toBe(false);
+    expect(r.error).toMatch(/a patch that names nothing would be reported as an update/);
+    expect(calls.length).toBe(before); // and it never reached the driver
+  });
+
+  it('asset.update on an asset the library does not hold is refused by name', async () => {
+    const { invoke } = wired();
+    const r = await invoke('asset.update', { assetId: 'img-ghost', name: 'x' });
+    expect(r.ok).toBe(false);
+    expect(r.error).toMatch(/holds no asset img-ghost/);
+  });
+
+  it('asset.delete removes by id, and answers false for one the library does not hold', async () => {
+    const { invoke, assets } = wired();
+    const gen = await invoke('asset.image.generate', { prompt: 'a quiet harbour' });
+    const assetId = (gen.output as { assets: { assetId: string }[] }).assets[0].assetId;
+
+    const gone = await invoke('asset.delete', { assetId });
+    expect(gone.ok).toBe(true);
+    expect((gone.output as { removed: boolean }).removed).toBe(true);
+    expect(assets.has(assetId)).toBe(false);
+
+    // Twice is a caller's mistake, not a corrupt library — reported, not raised.
+    const again = await invoke('asset.delete', { assetId });
+    expect(again.ok).toBe(true);
+    expect((again.output as { removed: boolean }).removed).toBe(false);
+  });
+
+  it('the delete door SAYS how it relates to the panel’s Remove (two removal semantics, explained)', async () => {
+    // v159 gave the Studio an ungated Remove on its own in-memory library; this door is write-class behind
+    // the §28 checkpoint. The difference is who owns the library — and the door's own description says so
+    // rather than leaving a reader to guess why one removal asks a checkpoint and the other does not.
+    const spec = ASSET_TOOL_SPECS.find((s) => s.name === 'asset.delete')!;
+    expect(spec.permissions).toContain('write');
+    expect(spec.description).toMatch(/panel/i);
+    expect(spec.description).toMatch(/write-class/);
+  });
+
+  it('asset.character.register stores the reference images and reports the roster size', async () => {
+    const { invoke, characters } = wired();
+    const r = await invoke('asset.character.register', { characterId: 'mira', referenceImages: 'a.png, b.png', consistencyStrength: 0.7 });
+    expect(r.ok).toBe(true);
+    expect(r.output).toMatchObject({ characterId: 'mira', referenceImages: 2, characters: 1 });
+    expect(characters.get('mira')!.referenceImages).toEqual(['a.png', 'b.png']);
+    expect(characters.get('mira')!.consistencyStrength).toBe(0.7);
+  });
+
+  it('registering a character with NO reference images is refused — it would anchor nothing', async () => {
+    const { invoke, calls } = wired();
+    const before = calls.length;
+    const r = await invoke('asset.character.register', { characterId: 'mira', referenceImages: ' , , ' });
+    expect(r.ok).toBe(false);
+    expect(r.error).toMatch(/anchors nothing/);
+    expect(calls.length).toBe(before);
+  });
+
+  it('a consistency strength above 1 is refused — the field means a fraction', async () => {
+    const { invoke } = wired();
+    const r = await invoke('asset.character.register', { characterId: 'mira', referenceImages: 'a.png', consistencyStrength: 2 });
+    expect(r.ok).toBe(false);
+    expect(r.error).toMatch(/a fraction in \(0, 1\]/);
+  });
+
+  it('asset.character.list reports the roster', async () => {
+    const { invoke } = wired();
+    await invoke('asset.character.register', { characterId: 'mira', referenceImages: 'a.png' });
+    await invoke('asset.character.register', { characterId: 'vane', referenceImages: 'c.png' });
+    const r = await invoke('asset.character.list');
+    expect(r.ok).toBe(true);
+    expect((r.output as { count: number }).count).toBe(2);
+  });
+
+  it('asset.character.apply answers a DERIVED REQUEST, and says so rather than looking like an asset', async () => {
+    // No generator runs here. A door whose answer could be read as a generation would be the §60 defect in
+    // a new place, so the result carries `derived: 'request'` and the reference images that WOULD be sent.
+    const { invoke, calls } = wired();
+    await invoke('asset.character.register', { characterId: 'mira', referenceImages: 'a.png, b.png', consistencyStrength: 0.7 });
+
+    const r = await invoke('asset.character.apply', { characterId: 'mira', prompt: 'a wide shot' });
+    expect(r.ok).toBe(true);
+    expect(r.output).toMatchObject({ derived: 'request', characterId: 'mira', prompt: 'a wide shot', referenceCount: 2, consistencyStrength: 0.7 });
+    expect((r.output as { referenceImages: string[] }).referenceImages).toEqual(['a.png', 'b.png']);
+    // Nothing generated: the only driver call was the apply itself.
+    expect(calls.filter((c) => c.startsWith('generate')).length).toBe(0);
+    expect((r.output as Record<string, unknown>)).not.toHaveProperty('assets');
+  });
+
+  it('applying consistency for an unregistered character is refused by name, not as a raw throw', async () => {
+    const { invoke } = wired();
+    const r = await invoke('asset.character.apply', { characterId: 'nobody', prompt: 'a wide shot' });
+    expect(r.ok).toBe(false);
+    expect(r.error).toMatch(/no character is registered as "nobody"/);
+  });
+
+  it('the new write doors refuse without a checkpoint, and the new read doors do not', async () => {
+    const { invoke } = wired();
+    for (const [tool, args] of [
+      ['asset.video.generate', { prompt: 'x' }],
+      ['asset.update', { assetId: 'a', name: 'x' }],
+      ['asset.delete', { assetId: 'a' }],
+      ['asset.character.register', { characterId: 'c', referenceImages: 'a.png' }],
+    ] as const) {
+      const denied = await invoke(tool, args, {});
+      expect(denied.ok, `${tool} ran without a checkpoint`).toBe(false);
+      expect(denied.error).toMatch(/checkpoint/i);
+    }
+    for (const [tool, args] of [
+      ['asset.search', { text: 'x' }],
+      ['asset.character.list', {}],
+      ['asset.character.apply', { characterId: 'c', prompt: 'p' }],
+    ] as const) {
+      // `apply`/`list` answer for an empty roster; what matters is that the GATE did not refuse them.
+      const r = await invoke(tool, args, {});
+      expect(r.error ?? '', `${tool} was refused by the gate`).not.toMatch(/checkpoint/i);
+    }
   });
 });

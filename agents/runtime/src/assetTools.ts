@@ -95,13 +95,52 @@ export interface FrameRequest {
  * Methods may answer directly or with a promise (the `TreeReaper` precedent), so a driver that has to await
  * a real generator is not forced into a fake synchronous shape.
  */
+/** A patch to an asset's metadata. Only the fields a caller may change are declared — an asset's BYTES are
+ *  not editable, and neither is its id: `updateMetadata` merges what it is given over what it holds. */
+export interface AssetPatch {
+  name?: string;
+  description?: string;
+  tags?: string[];
+}
+
+/** A registered character's consistency options, flattened. */
+export interface CharacterSummary {
+  characterId: string;
+  referenceImages: string[];
+  consistencyStrength: number | null;
+  styleTransfer: boolean | null;
+}
+
+/** What applying a character's consistency to a prompt produces: a DERIVED request, not an asset. The
+ *  distinction is the point of the door's description — no generator has run when this answers. */
+export interface ConsistencyResult {
+  characterId: string;
+  prompt: string;
+  referenceImages: string[];
+  consistencyStrength: number;
+  referenceCount: number;
+}
+
 export interface AssetDriver {
   /** Which implementation is answering, so a result never has to guess. */
   readonly engine: string;
   generateImage(request: ImageRequest): GeneratedAssets | Promise<GeneratedAssets>;
+  /** The same shape as `generateImage`, answered by the package's video generator. */
+  generateVideo(request: ImageRequest): GeneratedAssets | Promise<GeneratedAssets>;
   listAssets(): AssetSummary[] | Promise<AssetSummary[]>;
   /** `null` when the library holds no such asset — a different answer from an empty one. */
   getAsset(id: string): AssetSummary | null | Promise<AssetSummary | null>;
+  searchAssets(text: string, limit: number): AssetSummary[] | Promise<AssetSummary[]>;
+  /** `false` when the library holds no such asset. */
+  removeAsset(id: string): boolean | Promise<boolean>;
+  /** `false` when the library holds no such asset. NOTE the library answers `true` for a patch that
+   *  changes nothing, so the DOOR refuses an empty patch rather than reporting a no-op as a success. */
+  updateAsset(id: string, patch: AssetPatch): boolean | Promise<boolean>;
+  registerCharacter(spec: CharacterSummary): void | Promise<void>;
+  listCharacters(): CharacterSummary[] | Promise<CharacterSummary[]>;
+  /** `undefined` when no character is registered under that id — the door names it rather than forwarding
+   *  the package's throw, which would surface as a raw error string. */
+  applyConsistency(prompt: string, characterId: string): ConsistencyResult | undefined | Promise<ConsistencyResult | undefined>;
   createStoryboard(name: string, description?: string): StoryboardSummary | Promise<StoryboardSummary>;
   /** `null` when the storyboard does not exist. */
   addFrame(storyboardId: string, frame: FrameRequest): StoryboardFrameSummary | null | Promise<StoryboardFrameSummary | null>;
@@ -142,6 +181,16 @@ export const ASSET_TOOL_SPECS: ToolSpec[] = [
     ],
   },
   {
+    name: 'asset.video.generate',
+    description: 'Generate video ASSETS from a prompt. DEMO MODE: no video model is attached, so this produces deterministic metadata and no footage — the answer carries the generator’s own provenance and the door refuses one that does not.',
+    permissions: ['write'],
+    args: [
+      { name: 'prompt', type: 'string', required: true },
+      { name: 'count', type: 'number', required: false },
+      { name: 'duration', type: 'number', required: false },
+    ],
+  },
+  {
     name: 'asset.list',
     description: 'List the asset library’s metadata. Read-class: no checkpoint is asked, and no bytes are returned.',
     permissions: ['read'],
@@ -152,6 +201,57 @@ export const ASSET_TOOL_SPECS: ToolSpec[] = [
     description: 'Read one asset’s metadata by id. Read-class: no checkpoint is asked.',
     permissions: ['read'],
     args: [{ name: 'assetId', type: 'string', required: true }],
+  },
+  {
+    name: 'asset.search',
+    description: 'Search the library’s metadata by text. Read-class: no checkpoint is asked, and no bytes are returned.',
+    permissions: ['read'],
+    args: [
+      { name: 'text', type: 'string', required: true },
+      { name: 'limit', type: 'number', required: false },
+    ],
+  },
+  {
+    name: 'asset.update',
+    description: 'Change an asset’s metadata (name, description, tags). An asset’s BYTES and its id are not editable. The door refuses a patch that names nothing, because the library answers "updated" for a no-op.',
+    permissions: ['write'],
+    args: [
+      { name: 'assetId', type: 'string', required: true },
+      { name: 'name', type: 'string', required: false },
+      { name: 'description', type: 'string', required: false },
+      { name: 'tags', type: 'string', required: false },
+    ],
+  },
+  {
+    name: 'asset.delete',
+    description: 'Remove an asset from the library by id. The same removal the Studio panel’s Remove performs (M3 v159): the panel is ungated because it acts on its own in-memory library, while THIS door is write-class and asks the §28 checkpoint — the difference is who owns the library, not what removal means.',
+    permissions: ['write'],
+    args: [{ name: 'assetId', type: 'string', required: true }],
+  },
+  {
+    name: 'asset.character.register',
+    description: 'Register a character’s reference images so later generations can be made consistent with them. Reference images are URLs; nothing is fetched or stored here.',
+    permissions: ['write'],
+    args: [
+      { name: 'characterId', type: 'string', required: true },
+      { name: 'referenceImages', type: 'string', required: true },
+      { name: 'consistencyStrength', type: 'number', required: false },
+    ],
+  },
+  {
+    name: 'asset.character.list',
+    description: 'List the registered characters and the reference images each one anchors to. Read-class: no checkpoint is asked.',
+    permissions: ['read'],
+    args: [],
+  },
+  {
+    name: 'asset.character.apply',
+    description: 'Derive the request that WOULD be sent to a generator for a prompt under a character’s consistency. It answers a REQUEST, not an asset: no generator runs, and the result carries the reference images that would be attached.',
+    permissions: ['read'],
+    args: [
+      { name: 'characterId', type: 'string', required: true },
+      { name: 'prompt', type: 'string', required: true },
+    ],
   },
   {
     name: 'asset.storyboard.create',
@@ -191,35 +291,74 @@ export const ASSET_TOOL_SPECS: ToolSpec[] = [
  * refused here rather than filing a frame that points at nothing; and it never returns bytes.
  */
 export function registerAssetTools(registry: ToolRegistry, driver: AssetDriver): ToolRegistry {
+  /** The count rule, shared by both generate doors rather than written twice. */
+  const readCount = (raw: unknown, door: string): number => {
+    if (raw === undefined) return 1;
+    if (typeof raw !== 'number' || !Number.isFinite(raw) || raw <= 0) {
+      refused(`${door} count is ${JSON.stringify(raw)}; a count is a finite positive number`);
+    }
+    return Math.floor(raw);
+  };
+
+  /**
+   * §60, enforced once for every generation door: an answer with no provenance is one a reader could
+   * mistake for a real generation. The door refuses it instead of forwarding it — the check the whole
+   * family exists to make, and it must not be re-implemented per door or the two could drift.
+   */
+  const requireProvenance = (result: GeneratedAssets | undefined, door: string): GeneratedAssets => {
+    if (!result || typeof result.provenance !== 'object' || result.provenance === null || typeof result.provenance.mode !== 'string') {
+      refused(
+        `${door}: the ${driver.engine} driver answered without provenance, so this result could be mistaken for a real generation; this door returns only answers that say how they were made`,
+      );
+    }
+    return result;
+  };
+
   const impls: Record<string, ToolImpl> = {
     'asset.image.generate': async (args) => {
-      const prompt = requireString(args.prompt, 'asset.image.generate prompt');
-      const rawCount = args.count;
-      let count = 1;
-      if (rawCount !== undefined) {
-        if (typeof rawCount !== 'number' || !Number.isFinite(rawCount) || rawCount <= 0) {
-          refused(`asset.image.generate count is ${JSON.stringify(rawCount)}; a count is a finite positive number`);
-        }
-        count = Math.floor(rawCount);
-      }
-      const width = optionalPositiveNumber(args.width, 'asset.image.generate width');
-      const height = optionalPositiveNumber(args.height, 'asset.image.generate height');
+      const door = 'asset.image.generate';
+      const prompt = requireString(args.prompt, `${door} prompt`);
+      const count = readCount(args.count, door);
+      const width = optionalPositiveNumber(args.width, `${door} width`);
+      const height = optionalPositiveNumber(args.height, `${door} height`);
 
-      const result = await driver.generateImage({
+      const result = requireProvenance(
+        await driver.generateImage({
+          prompt,
+          count,
+          ...(width !== undefined ? { width } : {}),
+          ...(height !== undefined ? { height } : {}),
+        }),
+        door,
+      );
+
+      return {
+        engine: driver.engine,
         prompt,
-        count,
-        ...(width !== undefined ? { width } : {}),
-        ...(height !== undefined ? { height } : {}),
-      });
+        provenance: result.provenance,
+        model: result.model,
+        seed: result.seed,
+        assets: result.assets,
+      };
+    },
 
-      // §60, enforced: a generation answer with no provenance is one a reader could mistake for a real
-      // image. The door refuses it instead of forwarding it — the check the whole family exists to make.
-      if (!result || typeof result.provenance !== 'object' || result.provenance === null || typeof result.provenance.mode !== 'string') {
-        refused(
-          `asset.image.generate: the ${driver.engine} driver answered without provenance, so this result could be mistaken for a real generation; this door returns only answers that say how they were made`,
-        );
-      }
+    'asset.video.generate': async (args) => {
+      const door = 'asset.video.generate';
+      const prompt = requireString(args.prompt, `${door} prompt`);
+      const count = readCount(args.count, door);
+      const duration = optionalPositiveNumber(args.duration, `${door} duration`);
 
+      const result = requireProvenance(
+        await driver.generateVideo({
+          prompt,
+          count,
+          ...(duration !== undefined ? { duration } : {}),
+        }),
+        door,
+      );
+
+      // The assets' own `type` and `mimeType` come from the generator, not from this door — a door that
+      // stamped `video` itself could label an image as footage if the driver answered with one.
       return {
         engine: driver.engine,
         prompt,
@@ -242,6 +381,106 @@ export function registerAssetTools(registry: ToolRegistry, driver: AssetDriver):
         refused(`asset.inspect: the ${driver.engine} library holds no asset ${assetId}`);
       }
       return { engine: driver.engine, ...asset };
+    },
+
+    'asset.search': async (args) => {
+      const text = requireString(args.text, 'asset.search text');
+      const rawLimit = args.limit;
+      let limit = 10;
+      if (rawLimit !== undefined) {
+        if (typeof rawLimit !== 'number' || !Number.isFinite(rawLimit) || rawLimit <= 0) {
+          refused(`asset.search limit is ${JSON.stringify(rawLimit)}; a limit is a finite positive number`);
+        }
+        limit = Math.floor(rawLimit);
+      }
+      const assets = await driver.searchAssets(text, limit);
+      return { engine: driver.engine, text, count: assets.length, assets };
+    },
+
+    'asset.update': async (args) => {
+      const door = 'asset.update';
+      const assetId = requireString(args.assetId, `${door} assetId`);
+      const patch: AssetPatch = {};
+      if (args.name !== undefined) patch.name = requireString(args.name, `${door} name`);
+      if (args.description !== undefined) patch.description = requireString(args.description, `${door} description`);
+      if (args.tags !== undefined) {
+        // Tags arrive as a comma-separated string because `ToolArgSpec` has no array type; an empty list is
+        // a legitimate patch (it clears them), so `''` means "no tags" rather than "not given".
+        patch.tags = String(args.tags)
+          .split(',')
+          .map((t) => t.trim())
+          .filter((t) => t.length > 0);
+      }
+
+      // The library's `updateMetadata` answers `true` for a patch that changes NOTHING, so a door that
+      // forwarded an empty patch would report a successful update that updated nothing — a no-op wearing a
+      // success, which is the class of defect this family exists to refuse.
+      if (Object.keys(patch).length === 0) {
+        refused(`${door}: a patch that names nothing would be reported as an update by the library, so this door refuses it; name at least one of name, description or tags`);
+      }
+
+      const updated = await driver.updateAsset(assetId, patch);
+      if (!updated) {
+        refused(`${door}: the ${driver.engine} library holds no asset ${assetId}`);
+      }
+      const asset = await driver.getAsset(assetId);
+      return { engine: driver.engine, assetId, updated: true, asset: asset ?? null };
+    },
+
+    'asset.delete': async (args) => {
+      const assetId = requireString(args.assetId, 'asset.delete assetId');
+      const removed = await driver.removeAsset(assetId);
+      // `false` is the library's own answer for an id it does not hold, and it is REPORTED rather than
+      // raised: removing something twice is a caller's mistake, not a corrupt library.
+      return { engine: driver.engine, assetId, removed };
+    },
+
+    'asset.character.register': async (args) => {
+      const door = 'asset.character.register';
+      const characterId = requireString(args.characterId, `${door} characterId`);
+      const raw = requireString(args.referenceImages, `${door} referenceImages`);
+      const referenceImages = raw
+        .split(',')
+        .map((u) => u.trim())
+        .filter((u) => u.length > 0);
+      if (referenceImages.length === 0) {
+        refused(`${door}: a character with no reference images anchors nothing, so this door refuses it`);
+      }
+      const strength = optionalPositiveNumber(args.consistencyStrength, `${door} consistencyStrength`);
+      if (strength !== undefined && strength > 1) {
+        // The package's own default is 0.8 and its field means a fraction; a value above 1 would be stored
+        // and never read the way the caller meant.
+        refused(`${door} consistencyStrength is ${strength}; a strength is a fraction in (0, 1]`);
+      }
+
+      await driver.registerCharacter({
+        characterId,
+        referenceImages,
+        consistencyStrength: strength ?? null,
+        styleTransfer: null,
+      });
+      const characters = await driver.listCharacters();
+      return { engine: driver.engine, characterId, referenceImages: referenceImages.length, characters: characters.length };
+    },
+
+    'asset.character.list': async () => {
+      const characters = await driver.listCharacters();
+      return { engine: driver.engine, count: characters.length, characters };
+    },
+
+    'asset.character.apply': async (args) => {
+      const door = 'asset.character.apply';
+      const characterId = requireString(args.characterId, `${door} characterId`);
+      const prompt = requireString(args.prompt, `${door} prompt`);
+      const applied = await driver.applyConsistency(prompt, characterId);
+      if (!applied) {
+        // The package THROWS for an unknown character; the driver answers `undefined` so this door can name
+        // the fact instead of forwarding a raw error string.
+        refused(`${door}: no character is registered as "${characterId}"; register one with asset.character.register first`);
+      }
+      // What this answers is a REQUEST. No generator ran, and the result says so rather than looking like
+      // an asset — a door whose answer could be read as a generation would be the §60 defect in a new place.
+      return { engine: driver.engine, derived: 'request', ...applied };
     },
 
     'asset.storyboard.create': async (args) => {

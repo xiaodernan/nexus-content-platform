@@ -93,6 +93,10 @@ export {
   type FrameRequest,
   type StoryboardSummary,
   type StoryboardFrameSummary,
+  // M3 v160 — the deeper doors: video, search, update, delete, and the character-consistency trio.
+  type AssetPatch,
+  type CharacterSummary,
+  type ConsistencyResult,
 } from './assetTools.js';
 export {
   runRoleChain,
