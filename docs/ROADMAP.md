@@ -924,7 +924,7 @@ drizzle 把整个拼接结果当成**单个绑定参数**，生成的 SQL 是 `o
   已了结的一笔：`projects.deletedAt` 以前只有读没有写，sitemap 那条谓词只是防御性的——
   2026-09-26 §74 补上写入方之后它变成可测的，`project-delete.integration.test.ts` 里
   "删掉的项目不在 sitemap、恢复后又在"就是那条断言。
-  仍欠：带真实图片资产的封面只在单测里覆盖谓词，浏览器里那一张还是空清单；
+  **封面图已在 2026-10-07 落地**（见 commit 9353d02：发现页卡片显示封面图）；
   `/u/<handle>` 与 `/discover` 的 per-page metadata 没做（§166 原文范围是 public projects）；
   sitemap 截到 5000 条，超了只 warn + 截断，没有 sitemap index。
 - [x] Analytics（§168）— **2026-09-25 落地**：`/analytics` 一张表，六个数各写清自己数的是什么。
@@ -976,8 +976,7 @@ drizzle 把整个拼接结果当成**单个绑定参数**，生成的 SQL 是 `o
   另外一条**证伪**记在这里：`contentHeight <= viewportHeight → 100` 那个提前返回是死分支
   （下面的 100 上限本来就给出同样答案），删掉之后测试仍然全绿，所以留着它只是假装钉住了规则。
 
-  仍欠：按天曲线（数据已经按天存，缺的只是图）；爬虫与真人不区分（现在只有一句"含爬虫"）；
-  游戏与互动作品的 completion 需要"玩到哪儿"的运行时事件，要等 §50-§53，现在那一列对它们是未采集；
+  **按天曲线已在 2026-09-30 落地**（见文末「§168 第二片」）；爬虫与真人区分、游戏侧 completion 事件仍欠。
   **取消发布会把这一版的统计一起删掉**——`unpublishProject` 删 `published_projects` 行，
   `publication_visits` 跟着 `ON DELETE CASCADE`（`views` 本来就是这个行为，新表继承了它），
   要留历史得把粒度改成挂 project_id 或让下架只改 visibility；没有导出；没有跨作品的汇总视图。
@@ -1020,8 +1019,7 @@ drizzle 把整个拼接结果当成**单个绑定参数**，生成的 SQL 是 `o
   **§164 分页已在 2026-10-07 落地**：`inbox(userId, { page, limit })` 支持页码与每页条数（默认 50、最大 100），
   返回 `pagination.hasMore` 如实反映是否还有更多；向后兼容旧调用方式（直接传数字当 limit 时不返回 pagination 元数据）；
   新增 4 条集成测试验证分页正确性、hasMore 边界、超范围页返回空列表、向后兼容性（`apps/web/test/notifications.integration.test.ts` 18 passed）。
-  仍欠：没有邮件 / Webpush；没有每人 NotificationSettings（§164 只点名了"看到"，没点名"可配置"，
-  默认全开是今天的口径）。
+  **通知偏好设置已在 2026-10-07 落地**（见 commit 9a6ff89：每人可按 10 类开关通知）；没有邮件 / Webpush。
   `projects.deletedAt` 那条谓词以前是防御性的（全库没有软删写入方），2026-09-26 §74 补上写入方之后它才真的可测：
   §74 的集成用例里删掉项目，指向它的那条历史通知**行还在**（那是作者的事件历史），但链接收走、
   理由写明"项目已经不存在"，恢复后又原样能点开——不需要重发一条。
