@@ -295,3 +295,23 @@ export {
   type BuildArcRequest,
   type BuildStepTemplate,
 } from './buildPlanner.js';
+// M6 v176 — the deploy arc: what a COMPLETED build arc does next. The engine's own stdout
+// becomes a durable record through an injected DeploySink — only green arcs deploy, only
+// measured facts deploy, and every deploy.record door asks §28 for itself.
+export {
+  DEPLOY_RECORD_TOOL,
+  DEPLOY_TOOL_SPECS,
+  planDeployArc,
+  registerDeployTools,
+  runDeployArc,
+  type DeployArcOptions,
+  type DeployArcOutcome,
+  type DeployArcStatus,
+  type DeployFact,
+  type DeployPlan,
+  type DeployPlanDecision,
+  type DeployRecordAnswer,
+  type DeployRecordRequest,
+  type DeploySink,
+  type DeployStage,
+} from './deployArc.js';

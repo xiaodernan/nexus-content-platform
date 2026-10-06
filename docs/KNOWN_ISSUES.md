@@ -208,7 +208,7 @@ Live list. Nothing here is hidden behind marketing copy.
   through the §28-gated exec-host policy sandbox (am. 30–37), and since am. 166 a policy-approved
   argv can be sealed inside an ephemeral container — since am. 172 the Studio dock's exec lane runs inside
   that container (its route is the first product consumer), while the runtime's own tool doors remain
-  headless proof-lane only — since am. 173 the build arc's `build.verify` door has its first real consumer (the exec-host container verifier), so a verify step can run inside the policy-pinned container — and since am. 174 the dock's build face walks that arc from the browser — since am. 175 that walk is PLANNED (a goal selects whole templates from a host-declared catalog; argv never leaves the catalog), so the build lane is headless no more. Known
+  headless proof-lane only — since am. 173 the build arc's `build.verify` door has its first real consumer (the exec-host container verifier), so a verify step can run inside the policy-pinned container — and since am. 174 the dock's build face walks that arc from the browser — since am. 175 that walk is PLANNED (a goal selects whole templates from a host-declared catalog; argv never leaves the catalog), so the build lane is headless no more — and since am. 176 a completed arc's deploy leg walks `deploy.record` doors (one §28 gate per measured fact, the host injects the `DeploySink`; the runtime holds no sink and no write path itself). Known
   limits, stated not hidden (§60): the "embeddings" are deterministic hash token-bags, not
   trained vectors; the runtime's own disk jail is a path check + human gate (the exec-host container wall of am. 166 is a separate lane the runtime's tools do not use yet); and
   the template planner fails honestly (`failed_verification`) when both memory and the index
@@ -222,7 +222,7 @@ Live list. Nothing here is hidden behind marketing copy.
   only — container isolation EXISTS as a Docker backend (am. 166: ephemeral, no host mount by
   construction, capped, read-only rootfs, egress denied — measured by container-proof §1–§8);
   still open: gVisor/Firecracker, per-job secret injection, a warm pool — and no lane generates
-  untrusted code for the wall to hold yet (the dock lane, am. 172, runs a policy-allowlisted self-check only; the build arc, am. 173, verifies policy-allowlisted steps inside the same wall; since am. 174 the dock's build face runs that same arc from the browser, and am. 175's planner can only SELECT among policy-validated templates — still nothing written).
+  untrusted code for the wall to hold yet (the dock lane, am. 172, runs a policy-allowlisted self-check only; the build arc, am. 173, verifies policy-allowlisted steps inside the same wall; since am. 174 the dock's build face runs that same arc from the browser, and am. 175's planner can only SELECT among policy-validated templates — still nothing written by the wall itself; am. 176's deploy arc writes ONLY through a host-injected `DeploySink` the runtime does not own, and no production sink exists yet).
 
 ## Tooling
 - Package manager is **npm workspaces**, not pnpm: `corepack` cannot write the global pnpm

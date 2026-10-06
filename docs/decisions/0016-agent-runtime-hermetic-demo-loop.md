@@ -8147,3 +8147,44 @@ _records the catch-up itself._
   writes to the workspace. A future backend (model-scored selection over the same catalog) can drop
   in behind the seam without touching the door, the wall, or the §28 stance. The runtime's exec/git
   doors remain headless. ADR 0013 stays Proposed.
+
+### Amendment 176 (M6 v176, queue item 8, the deploy leg) — the DEPLOY ARC: only a green arc deploys, only MEASURED facts deploy, the human gates every record
+
+- **What landed.** `agents/runtime/src/deployArc.ts` is the build arc's deploy leg — what a COMPLETED
+  build arc does next, stated as data and doors, never as a push. `planDeployArc(outcome)` is a pure
+  function from a `BuildArcOutcome` to a `DeployPlanDecision`: a non-`completed` outcome deploys
+  NOTHING ("a build arc that did not complete (status X) deploys nothing" — named, not summarized);
+  a fact is exactly what the engine MEASURED — a verify step's non-empty stdout, carried verbatim —
+  and a green step the engine measured nothing from lands in `unmeasured` BY NAME; an arc where every
+  step verified green but nothing was measured is refused ("every step verified green but the engine
+  measured nothing"). The ONE write door is `deploy.record` (`DEPLOY_RECORD_TOOL`), permissions
+  `['write']`, typed args `{ arcId, stepId, fact }` — one §28 gate per fact, never one for the arc.
+  `registerDeployTools(registry, sink)` injects a `DeploySink` — the host owns where records go, the
+  runtime owns only that they are the engine's own words (the v173 `BuildVerifier` seam pattern, for
+  writing). `runDeployArc(outcome, opts)` walks door by door with `recordReceipts` semantics:
+  callIds are `${arcId}:deploy:${stepId}` (the `:deploy:` infix keeps receipts distinct from the
+  build arc's), and the outcome is one of `recorded | not-green | nothing-measured | no-sink |
+  denied | failed` — a registry without the door is `no-sink` ("planning alone deploys nothing"),
+  a §28 refusal is `denied` with a `granted:false` receipt naming the exact door, and the sink's
+  own refusal is `failed` with the step named. The runtime holds no sink and no write path: an
+  empty registry records nowhere, and it says so.
+- **Measured (2026-10-07).** agent-runtime **540/540** (527 → 540: 13 `deployArc` cases — the
+  non-green refusal, fact extraction with `unmeasured` named, the silent-arc refusal, sink passthrough
+  verbatim, no-checkpoint no-run, the spec's declared permissions, the full recorded walk, `not-green`
+  with 0 sink calls, `no-sink`, the sink's refusal as `failed` with `stoppedAt`, `denied` with 0
+  records, receipts for deny and grant (`arc-1:deploy:s1`), and the plain-checkpoint
+  `NO_RECEIPTS_NOTE`); `deploy-arc-proof.mjs` §1–§6 ALL PASSED against the real daemon 29.8.2 —
+  §1 the plan is inert data (red arcs refused, facts `['v22.11.0','arc-ok:5']`, the silent arc
+  refused); §2 the doorless registry records nowhere; §3 the §28 denial stops the walk with the sink
+  never asked; §4 the REAL green arc — a container verifier runs both steps against daemon 29.8.2 and
+  the sink receives each fact byte-for-byte equal to the verify step's measured stdout
+  (`assert.deepEqual`), with 2 receipts joined to their doors; §5 the sink's refusal of `s2` ends the
+  walk at `failed`/`stoppedAt: s2` with both calls still on record; §6 the dist audit —
+  `deployArc.js` imports neither `@nexus/exec-host` nor `child_process`, and `DeploySink` is a
+  compile-time-only type.
+- **Bounds (§60).** Deploy here means ONE thing: the green arc's measured facts become a durable
+  record through a host-injected sink. It is NOT a push, a publish, or a release — nothing in the
+  runtime claims otherwise. The runtime still holds no write capability of its own; writing happens
+  sink-side, gated by §28 one record at a time. The build door's shape (v173) and the planner's
+  honesty (v175) are untouched — the deploy leg consumes the outcome, it does not redefine it. The
+  runtime's exec/git doors remain headless. ADR 0013 stays Proposed.
