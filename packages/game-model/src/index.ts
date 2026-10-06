@@ -162,14 +162,14 @@ export function isGameKind(value: unknown): value is GameKind {
 /**
  * 一条类型今天由哪条构建管线跑（`null` = 还没接），以及试玩页该说的那句话。
  *
- * 这张表就是 §51 的进度条：8 种里接了七种（2D / 2.5D / 3D / 探索 / 解谜共用同一条关卡计划，
- * 互动故事 / 视觉小说共用对话管线），剩下 RPG 原型**只有清单没有投影**，
- * 界面上必须照这么说——把没接的类型渲染成"加载中"或者干脆给个空场子，
- * 看起来和能跑没区别（§159）。
+ * 这张表就是 §51 的进度条：8 种全接了（2D / 2.5D / 3D / 探索 / 解谜共用同一条关卡计划，
+ * 互动故事 / 视觉小说共用对话管线，RPG 原型在同一个战斗 step 上加成长循环）。
+ * 界面上仍必须照这张表说话——每种画法/管线的限度都在 note 里，
+ * 把限度藏起来就会让"画法没有的东西"被读成"游戏没有"（§159）。
  */
 export interface GameKindStatus {
-  /** `topdown` = §50 的俯视关卡（2D / 2.5D / 3D / 探索共用同一条计划与同一个 step）；`story` = 对话驱动；null = 没接 */
-  pipeline: "topdown" | "story" | null;
+  /** `topdown` = §50 的俯视关卡（2D / 2.5D / 3D / 探索共用同一条计划与同一个 step）；`story` = 对话驱动；`rpg` = 同一个战斗 step + 成长循环；null = 没接 */
+  pipeline: "topdown" | "story" | "rpg" | null;
   /** 同一条管线的哪一种画法；缺省是俯视。只影响绘制，不影响规则 */
   view?: "topdown" | "isometric" | "3d" | "exploration" | "puzzle";
   /** 界面直接用的那句话，不许在这里写"敬请期待"式的空头承诺 */
@@ -194,7 +194,12 @@ export const GAME_KIND_STATUS: Record<GameKind, GameKindStatus> = {
     pipeline: "story",
     note: "已接入：对话管线的最小实现——正文来自对话实体的说明，选择来自它指向其它对话的引用。",
   },
-  "rpg-prototype": { pipeline: null, note: "还没接：数值与任务能填，但没有把它们串成成长/战斗循环的管线。" },
+  "rpg-prototype": {
+    pipeline: "rpg",
+    note:
+      "已接入：战斗与 2D 走同一个 step，RPG 加的是成长循环——打倒敌人与完成任务发经验、" +
+      "攒够升级（曲线与加成来自投影，HUD 说得出这一点）；没有背包、技能树或回合制。",
+  },
   exploration: {
     pipeline: "topdown",
     view: "exploration",
@@ -607,3 +612,4 @@ export * from "./play";
 export * from "./sim";
 export * from "./playtest";
 export * from "./story";
+export * from "./rpg";

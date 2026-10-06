@@ -4,6 +4,7 @@ import {
   type GameKind,
 } from "./index";
 import { compileGame, type GamePlan } from "./play";
+import { compileRpg, type RpgPlan } from "./rpg";
 
 /**
  * §51 里 Interactive Story / Visual Novel 那两种类型的可玩投影：对话驱动。
@@ -194,6 +195,7 @@ export function compileStory(document: GameDocument): StoryPlan {
 export type GameProjection =
   | { pipeline: "topdown"; view: "topdown" | "isometric" | "3d" | "exploration" | "puzzle"; plan: GamePlan }
   | { pipeline: "story"; plan: StoryPlan }
+  | { pipeline: "rpg"; plan: RpgPlan }
   | { pipeline: null; reason: string };
 
 /**
@@ -212,5 +214,6 @@ export function compileForKind(document: GameDocument): GameProjection {
     return { pipeline: "topdown", view: status.view ?? "topdown", plan: compileGame(document) };
   }
   if (status.pipeline === "story") return { pipeline: "story", plan: compileStory(document) };
+  if (status.pipeline === "rpg") return { pipeline: "rpg", plan: compileRpg(document) };
   return { pipeline: null, reason: status.note };
 }

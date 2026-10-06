@@ -47,7 +47,7 @@ import { GameCanvas3D } from './GameCanvas3D';
  *   规则一个字都没动。
  */
 
-const KEY_MAP: Record<string, [number, number]> = {
+export const KEY_MAP: Record<string, [number, number]> = {
   arrowup: [0, -1],
   w: [0, -1],
   arrowdown: [0, 1],
@@ -315,6 +315,10 @@ function draw(
   else if (view === 'puzzle') drawTopdown(ctx, plan, state, null, puzzleLinks(plan));
   else drawTopdown(ctx, plan, state, view === 'exploration' ? revealed : null);
 }
+
+/** 俯视画法导出给 RpgPlay（§51 最后一条管线）：战斗与这里同一个 step、同一张画法，
+ * RPG 只在 HUD 上多出等级与经验——绘制函数不抄第二份（§16） */
+export { drawTopdown };
 
 export function GamePlay({ plan, view = 'topdown' }: { plan: GamePlan; view?: GameView }) {
   const canvas = useRef<HTMLCanvasElement | null>(null);

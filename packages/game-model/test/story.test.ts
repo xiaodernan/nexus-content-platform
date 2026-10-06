@@ -194,7 +194,7 @@ describe("compileStory：起点与形状", () => {
 });
 
 describe("compileForKind：类型 → 管线的唯一分派点", () => {
-  it("2d 走俯视关卡、2.5d 走同一份计划的等轴测画法，互动故事/视觉小说走对话，其余类型如实说没接", () => {
+  it("2d 走俯视关卡、2.5d 走同一份计划的等轴测画法，互动故事/视觉小说走对话，RPG 原型走成长循环——八种全部派得出真管线", () => {
     const base = createGame("分派");
 
     const topdown = compileForKind({ ...base, kind: "2d" });
@@ -238,10 +238,15 @@ describe("compileForKind：类型 → 管线的唯一分派点", () => {
     const novel = compileForKind({ ...base, kind: "visual-novel" });
     expect(novel.pipeline).toBe("story");
 
-    // 没接的一种：给出的是 reason，不是一个空场子也不是硬跑 2D
+    // RPG 原型（2026-10-06 接上，§51 最后一种）：新管线，不是 topdown 的画法——
+    // 它带成长循环（经验/等级），所以 plan 类型不同；但战斗跑在同一个 step 上，
+    // 底层计划与 2D 的逐字段相同（同一个 compileGame 编出来的）
     const rpg = compileForKind({ ...base, kind: "rpg-prototype" });
-    expect(rpg.pipeline).toBeNull();
-    if (rpg.pipeline === null) expect(rpg.reason).toContain("还没接");
+    expect(rpg.pipeline).toBe("rpg");
+    if (rpg.pipeline === "rpg" && topdown.pipeline === "topdown") {
+      expect(rpg.plan.base).toEqual(topdown.plan);
+      expect(rpg.plan.playable).toBe(true);
+    }
   });
 
   it('状态表说"已接入"的类型，这里一定派得出真管线（表与实现不许各说各话）', () => {

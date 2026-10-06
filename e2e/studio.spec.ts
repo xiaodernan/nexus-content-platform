@@ -3333,17 +3333,21 @@ test('@smoke §51 类型分派：标互动故事就出对话播放器，标 2.5D
   await expect.poll(activated, { timeout: 15_000 }).toBeGreaterThan(activatedBefore);
   await game.screenshot({ path: 'screenshots/story-play-puzzle.png' });
 
-  // 反向对照：换成一个真没接的类型，试玩页不许退回 2D 关卡，也不许给空场子
+  // §51 的第八种（2026-10-07 接上）：RPG 原型出成长循环——这条块曾经是"真没接"的反向对照，
+  // 最后一个类型落地后它换了个岗位：断言 RPG 出**自己的**播放器（等级/经验读数在 HUD 上），
+  // 不许 2D 播放器或对话播放器顶上——表说接了，页面就必须真的有那条管线。
   await page.bringToFront();
   await page.selectOption('[data-game-kind]', 'rpg-prototype');
-  await expect(page.locator('[data-game-kind-note="rpg-prototype"]')).toContainText('还没接');
+  await expect(page.locator('[data-game-kind-note="rpg-prototype"]')).toContainText('已接入');
   await expect(page.locator('[data-game-state]')).toHaveText('已保存', { timeout: 20_000 });
   await game.reload({ waitUntil: 'domcontentloaded' });
-  await expect(game.locator('[data-play="kind-not-wired"]')).toBeVisible({ timeout: 60_000 });
-  await expect(game.locator('[data-play-kind-reason]')).toContainText('还没接');
+  await expect(game.locator('[data-rpg-root]')).toBeVisible({ timeout: 60_000 });
+  await expect(game.locator('[data-rpg-canvas]')).toBeVisible();
+  await expect(game.locator('[data-rpg-level="1"]')).toBeVisible();
+  await expect(game.locator('[data-game-subtitle]')).toContainText('RPG 成长循环');
+  await expect(game.locator('[data-game-root]')).toHaveCount(0); // 不是 2D 画法顶上的
   await expect(game.locator('[data-story-play]')).toHaveCount(0);
-  await expect(game.locator('[data-game-root]')).toHaveCount(0);
-  await game.screenshot({ path: 'screenshots/story-play-kind-not-wired.png' });
+  await game.screenshot({ path: 'screenshots/story-play-rpg.png' });
 });
 
 /**

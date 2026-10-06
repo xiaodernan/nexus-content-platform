@@ -6,6 +6,7 @@ import {
   type GameProjection,
 } from '@nexus/game-model';
 import { GamePlay } from '@/game2d/GamePlay';
+import { RpgPlay } from '@/game2d/RpgPlay';
 import { StoryPlay } from './StoryPlay';
 
 /**
@@ -39,6 +40,14 @@ export function PlayByKind({ document, projection }: { document: GameDocument; p
     return (
       <>
         <StoryPlay plan={projection.plan} />
+        {kindNote}
+      </>
+    );
+  }
+  if (projection.pipeline === 'rpg') {
+    return (
+      <>
+        <RpgPlay plan={projection.plan} />
         {kindNote}
       </>
     );
@@ -81,6 +90,14 @@ export function describeProjection(document: GameDocument, projection: GameProje
     const plan = projection.plan;
     const start = plan.beats.find((beat) => beat.id === plan.startId);
     return `${label} · 对话投影 · ${plan.beats.length} 段可读 · 起点「${start?.name ?? '没有'}」 · ${plan.notes.length} 条如实说明`;
+  }
+  if (projection.pipeline === 'rpg') {
+    const plan = projection.plan;
+    // 战斗与 2D 是同一个 step：这句话要写在页首，不然读起来像"多了一种战斗规则"
+    const fallbackXp = plan.enemyXp.filter((enemy) => enemy.from === 'default').length;
+    return `${label} · RPG 成长循环（战斗与 2D 同一个 step） · ${plan.base.enemies.length} 个敌人 · ${plan.quests.length} 条任务 · 场地 ${plan.base.arena.width}×${plan.base.arena.height}${
+      fallbackXp ? ` · ${fallbackXp} 个敌人的经验是兜底值` : ''
+    }`;
   }
   return `${label} · 这条类型没有可玩投影`;
 }
