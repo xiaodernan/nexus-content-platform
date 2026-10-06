@@ -25,6 +25,7 @@ import {
   templateBuildPlanner,
   validateCheckpointPolicy,
   ToolRegistry,
+  type BuildArcOutcome,
   type BuildArcProvenance,
   type BuildArcSpec,
   type BuildArcStatus,
@@ -146,19 +147,32 @@ export type BuildArcAnswer =
       receipts: { callId: string; granted: boolean; reason: string }[];
     };
 
-export async function runStudioBuildArc(options: { spawnLike?: SpawnLike; goal?: string } = {}): Promise<BuildArcAnswer> {
+/**
+ * v177 (ADR 0016 amendment 177): what the deploy face needs — the DISPLAY answer AND the
+ * raw BuildArcOutcome (`planDeployArc`'s input). `outcome` is present iff the arc was
+ * actually planned and walked; an unplanned goal walks nothing, so there is no outcome.
+ */
+export interface StudioBuildWalk {
+  answer: BuildArcAnswer;
+  outcome: BuildArcOutcome | null;
+}
+
+export async function runStudioBuildArcOutcome(options: { spawnLike?: SpawnLike; goal?: string } = {}): Promise<StudioBuildWalk> {
   const planner = templateBuildPlanner(STUDIO_BUILD_CATALOG, STUDIO_BUILD_ARC_ID);
   const goal = typeof options.goal === 'string' && options.goal.trim() !== '' ? options.goal : STUDIO_BUILD_GOAL;
   const drafted = planner({ goal });
   if (!drafted.ok) {
     return {
-      ok: true,
-      status: 'unplanned',
-      reason: drafted.reason,
-      goal,
-      detail: `build arc ${STUDIO_BUILD_ARC_ID}: unplanned — ${drafted.reason}`,
-      steps: [],
-      receipts: [],
+      outcome: null,
+      answer: {
+        ok: true,
+        status: 'unplanned',
+        reason: drafted.reason,
+        goal,
+        detail: `build arc ${STUDIO_BUILD_ARC_ID}: unplanned — ${drafted.reason}`,
+        steps: [],
+        receipts: [],
+      },
     };
   }
   const spec: BuildArcSpec = drafted.draft.spec;
@@ -185,14 +199,21 @@ export async function runStudioBuildArc(options: { spawnLike?: SpawnLike; goal?:
         ? `build arc ${outcome.arcId}: denied at ${outcome.stoppedAt ?? '?'} — ${outcome.reason ?? ''}`
         : `build arc ${outcome.arcId}: ${outcome.status} at ${outcome.stoppedAt ?? '?'} — ${outcome.reason ?? ''}`;
   return {
-    ok: true,
-    status: outcome.status,
-    ...(outcome.stoppedAt === undefined ? {} : { stoppedAt: outcome.stoppedAt }),
-    ...(outcome.reason === undefined ? {} : { reason: outcome.reason }),
-    goal,
-    planned: drafted.draft.provenance,
-    detail,
-    steps,
-    receipts: (outcome.decisions ?? []).map((d) => ({ callId: d.call.callId, granted: d.granted, reason: d.reason })),
+    outcome,
+    answer: {
+      ok: true,
+      status: outcome.status,
+      ...(outcome.stoppedAt === undefined ? {} : { stoppedAt: outcome.stoppedAt }),
+      ...(outcome.reason === undefined ? {} : { reason: outcome.reason }),
+      goal,
+      planned: drafted.draft.provenance,
+      detail,
+      steps,
+      receipts: (outcome.decisions ?? []).map((d) => ({ callId: d.call.callId, granted: d.granted, reason: d.reason })),
+    },
   };
+}
+
+export async function runStudioBuildArc(options: { spawnLike?: SpawnLike; goal?: string } = {}): Promise<BuildArcAnswer> {
+  return (await runStudioBuildArcOutcome(options)).answer;
 }

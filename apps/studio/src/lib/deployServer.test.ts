@@ -1,0 +1,209 @@
+import { describe, expect, it } from 'vitest';
+
+import {
+  createStudioDeploySink,
+  deployArcState,
+  runStudioDeployArc,
+  studioDeployCheckpointPolicyError,
+  STUDIO_DEPLOY_CHECKPOINT_POLICY,
+  STUDIO_DEPLOY_RECORDS_PATH,
+  studioDeployRecordCount,
+  type DeployRecord,
+  type StudioDeployFs,
+} from './deployServer';
+import { STUDIO_BUILD_ARC_ID, STUDIO_BUILD_GOAL } from './buildServer';
+
+/**
+ * Minimal SpawnLike fake — the host never knows it is not docker. Unlike v174's, the
+ * stdout is derived from the argv, so the facts the sink receives are distinguishable:
+ * `--version` answers v22.11.0, the compute step answers arc ok:5.
+ */
+function fakeSpawn(code: number | null = 0) {
+  const calls: Array<{ cmd: string; args: string[] }> = [];
+  const spawnLike = (cmd: string, args: string[]) => {
+    calls.push({ cmd, args });
+    const stdout = args.includes('--version') ? 'v22.11.0\n' : 'arc ok:5\n';
+    return {
+      onData: (l: (s: 'stdout' | 'stderr', c: Buffer | string) => void) => l('stdout', Buffer.from(stdout)),
+      onEnd: (l: (e: { code: number | null; signal: string | null; error?: string }) => void) => {
+        setImmediate(() => l({ code, signal: null }));
+      },
+      kill: () => {},
+    };
+  };
+  return { spawnLike, calls };
+}
+
+/** An in-memory fs the records land in — the fake that proves where the words went. */
+function fakeFs() {
+  const files = new Map<string, string>();
+  const appends: Array<{ path: string; data: string }> = [];
+  const fs: StudioDeployFs = {
+    appendFileSync: (path, data) => {
+      appends.push({ path, data });
+      files.set(path, (files.get(path) ?? '') + data);
+    },
+    readFileSync: (path, encoding) => {
+      const raw = files.get(path);
+      if (raw === undefined) throw new Error(`no file at ${path}`);
+      if (encoding !== 'utf8') throw new Error(`unsupported encoding ${String(encoding)}`);
+      return raw;
+    },
+  };
+  return { fs, files, appends };
+}
+
+/** Parse the records file the way a cold reader would. */
+function readRecords(files: Map<string, string>, path: string): DeployRecord[] {
+  const raw = files.get(path) ?? '';
+  return raw
+    .split('\n')
+    .filter((l) => l.trim() !== '')
+    .map((l) => JSON.parse(l) as DeployRecord);
+}
+
+describe('studio deploy lane facts (v177)', () => {
+  it('pins the §28 policy: deploy.record granted on record, everything else default-deny', () => {
+    expect(STUDIO_DEPLOY_RECORDS_PATH).toBe('.nexus/deployments.jsonl');
+    expect(studioDeployCheckpointPolicyError()).toBeNull();
+    expect(STUDIO_DEPLOY_CHECKPOINT_POLICY.rules[0]!.tool).toBe('deploy.record');
+    expect(STUDIO_DEPLOY_CHECKPOINT_POLICY.default.grant).toBe(false);
+  });
+
+  it('the sink writes the engine\'s own words to the records file and refuses nothing silently', async () => {
+    const { fs, files, appends } = fakeFs();
+    const { sink, records } = createStudioDeploySink({ fs, recordsPath: 'records.jsonl', arcId: 'a1', goal: 'g', engine: 'container:node:22-alpine' });
+    const ok = await sink({ arcId: 'a1', stepId: 's1', fact: 'arc ok:5\n' });
+    expect(ok.ok).toBe(true);
+    expect(ok.detail).toContain('recorded s1 → records.jsonl');
+    expect(records).toHaveLength(1);
+    expect(records[0]).toMatchObject({ arcId: 'a1', goal: 'g', stepId: 's1', fact: 'arc ok:5\n' });
+    expect(appends).toHaveLength(1);
+    const stored = readRecords(files, 'records.jsonl');
+    expect(stored[0]!.fact).toBe('arc ok:5\n');
+
+    const broken: StudioDeployFs = { ...fs, appendFileSync: () => { throw new Error('disk full'); } };
+    const refused = createStudioDeploySink({ fs: broken, recordsPath: 'records.jsonl', arcId: 'a1', goal: 'g', engine: 'e' });
+    const bad = await refused.sink({ arcId: 'a1', stepId: 's2', fact: 'x' });
+    expect(bad.ok).toBe(false);
+    expect(bad.detail).toContain('the record did not land');
+    expect(bad.detail).toContain('disk full');
+  });
+
+  it('counts the durable lines already on file — 0 when none exist', () => {
+    const { fs, files } = fakeFs();
+    expect(studioDeployRecordCount({ fs, recordsPath: 'r.jsonl' })).toBe(0);
+    files.set('r.jsonl', '{"a":1}\n\n{"b":2}\n');
+    expect(studioDeployRecordCount({ fs, recordsPath: 'r.jsonl' })).toBe(2);
+  });
+});
+
+describe('studio deploy lane walk (v177, fake spawn, fake fs)', () => {
+  it('a green build arc deploys its measured facts — sink first, records on file, receipts on record', async () => {
+    const { spawnLike } = fakeSpawn();
+    const { fs, files } = fakeFs();
+    const a = await runStudioDeployArc({ spawnLike, fs, recordsPath: 'records.jsonl' });
+    expect(a.ok).toBe(true);
+    if (!a.ok) return;
+    expect(a.status).toBe('recorded');
+    expect(a.goal).toBe(STUDIO_BUILD_GOAL);
+    expect(a.detail).toContain('2 fact(s) recorded → records.jsonl');
+    expect(a.build.status).toBe('completed');
+    expect(a.facts.map((f) => f.stepId)).toEqual(['runtime', 'compute']);
+    expect(a.facts.map((f) => f.stdout)).toEqual(['v22.11.0\n', 'arc ok:5\n']);
+    expect(a.unmeasured).toEqual([]);
+    expect(a.recordsPath).toBe('records.jsonl');
+    expect(a.deployReceipts).toHaveLength(2);
+    expect(a.deployReceipts.map((r) => r.callId)).toEqual([`${STUDIO_BUILD_ARC_ID}:deploy:runtime`, `${STUDIO_BUILD_ARC_ID}:deploy:compute`]);
+    expect(a.deployReceipts.every((r) => r.granted)).toBe(true);
+    const stored = readRecords(files, 'records.jsonl');
+    expect(stored).toHaveLength(2);
+    expect(stored[0]).toMatchObject({ arcId: STUDIO_BUILD_ARC_ID, stepId: 'runtime', fact: 'v22.11.0\n' });
+    expect(stored[1]).toMatchObject({ stepId: 'compute', fact: 'arc ok:5\n' });
+    expect(typeof stored[0]!.at).toBe('number');
+  });
+
+  it('a narrower goal deploys exactly the facts its own arc measured', async () => {
+    const { spawnLike } = fakeSpawn();
+    const { fs, files } = fakeFs();
+    const a = await runStudioDeployArc({ spawnLike, fs, goal: 'check the numbers' });
+    expect(a.ok).toBe(true);
+    if (!a.ok) return;
+    expect(a.status).toBe('recorded');
+    expect(a.facts).toHaveLength(1);
+    expect(a.facts[0]).toEqual({ stepId: 'compute', stdout: 'arc ok:5\n' });
+    expect(readRecords(files, STUDIO_DEPLOY_RECORDS_PATH)).toHaveLength(1);
+  });
+
+  it('a red build arc deploys NOTHING — not-green, zero appends, zero receipts', async () => {
+    const { spawnLike } = fakeSpawn(3);
+    const { fs, appends, files } = fakeFs();
+    const a = await runStudioDeployArc({ spawnLike, fs });
+    expect(a.ok).toBe(true);
+    if (!a.ok) return;
+    expect(a.status).toBe('not-green');
+    expect(a.reason).toContain('verified red');
+    expect(a.detail).toContain('did not complete (failed)');
+    expect(a.build.status).toBe('failed');
+    expect(a.facts).toEqual([]);
+    expect(a.deployReceipts).toEqual([]);
+    expect(a.recordsPath).toBeUndefined();
+    expect(appends).toHaveLength(0);
+    expect(files.size).toBe(0);
+  });
+
+  it('a goal that plans no arc is an honest unplanned deploy — zero spawn of the write door', async () => {
+    const { spawnLike, calls } = fakeSpawn();
+    const { fs, appends } = fakeFs();
+    const a = await runStudioDeployArc({ spawnLike, fs, goal: 'zzz qqq nonsense' });
+    expect(a.ok).toBe(true);
+    if (!a.ok) return;
+    expect(a.status).toBe('unplanned');
+    expect(a.detail).toContain('nothing deployed');
+    expect(a.facts).toEqual([]);
+    expect(appends).toHaveLength(0);
+    expect(calls).toHaveLength(0);
+  });
+
+  it('a sink that cannot write ends the walk failed — the fact named, the file untouched', async () => {
+    const { spawnLike } = fakeSpawn();
+    const broken: StudioDeployFs = {
+      appendFileSync: () => { throw new Error('disk full'); },
+      readFileSync: () => { throw new Error('no file'); },
+    };
+    const a = await runStudioDeployArc({ spawnLike, fs: broken });
+    expect(a.ok).toBe(true);
+    if (!a.ok) return;
+    expect(a.status).toBe('failed');
+    expect(a.reason).toContain('disk full');
+    expect(a.facts).toEqual([]);
+    expect(a.recordsPath).toBeUndefined();
+    // the walk stops at the first refused fact: exactly ONE door was asked (runtime's)
+    expect(a.deployReceipts).toHaveLength(1);
+    expect(a.deployReceipts[0]!.callId).toBe(`${STUDIO_BUILD_ARC_ID}:deploy:runtime`);
+  });
+
+  it('the state merges the probe with the records file facts (path + count)', async () => {
+    const { spawnLike } = fakeSpawn();
+    const { fs, files } = fakeFs();
+    files.set(STUDIO_DEPLOY_RECORDS_PATH, '{"at":1}\n');
+    const s = await deployArcState({ spawnLike, fs });
+    expect(s.available).toBe(true);
+    expect(s.recordsPath).toBe(STUDIO_DEPLOY_RECORDS_PATH);
+    expect(s.recordCount).toBe(1);
+    expect(s.steps).toHaveLength(2);
+  });
+
+  it('deploys accumulate on the file: a second, narrower deploy lands beside the first', async () => {
+    const { spawnLike } = fakeSpawn();
+    const { fs, files } = fakeFs();
+    const first = await runStudioDeployArc({ spawnLike, fs, recordsPath: STUDIO_DEPLOY_RECORDS_PATH });
+    const second = await runStudioDeployArc({ spawnLike, fs, goal: 'check the numbers' });
+    expect(first.ok && first.status === 'recorded').toBe(true);
+    expect(second.ok && second.status === 'recorded').toBe(true);
+    const stored = readRecords(files, STUDIO_DEPLOY_RECORDS_PATH);
+    expect(stored).toHaveLength(3);
+    expect(studioDeployRecordCount({ fs, recordsPath: STUDIO_DEPLOY_RECORDS_PATH })).toBe(3);
+    expect(stored.map((r) => r.stepId)).toEqual(['runtime', 'compute', 'compute']);
+  });
+});

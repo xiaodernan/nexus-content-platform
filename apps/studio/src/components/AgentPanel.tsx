@@ -6,6 +6,7 @@ import {
   appendLedgerLine,
   buildArcLedgerLine,
   containerLedgerLine,
+  deployLedgerLine,
   ledgerLine,
   planAgentChain,
   planAgentRun,
@@ -25,6 +26,7 @@ import type { ChainStageHandoff, QaReport } from '@nexus/agent-runtime';
 import { createDomDriver, runUiTask } from '@/lib/uiRun';
 import { probeContainerLane, requestContainerExec, type ContainerLaneProbe } from '@/lib/containerLane';
 import { probeBuildLane, requestBuildArcRun, type BuildLaneProbe } from '@/lib/buildLane';
+import { probeDeployLane, requestDeployArcRun, type DeployLaneProbe } from '@/lib/deployLane';
 
 type Phase = 'idle' | 'planning' | 'awaiting' | 'done';
 
@@ -84,6 +86,11 @@ export default function AgentPanel() {
   const [buildLine, setBuildLine] = useState('');
   const [buildSteps, setBuildSteps] = useState<{ callId: string; stepId: string; ok: boolean; detail: string }[]>([]);
   const [buildBusy, setBuildBusy] = useState(false);
+  const [deploy, setDeploy] = useState<DeployLaneProbe | null>(null);
+  const [deployAsk, setDeployAsk] = useState(false);
+  const [deployLine, setDeployLine] = useState('');
+  const [deployFacts, setDeployFacts] = useState<{ stepId: string; stdout: string }[]>([]);
+  const [deployBusy, setDeployBusy] = useState(false);
 
   const agentUiRun = async () => {
     if (uiBusy) return;
@@ -115,6 +122,9 @@ export default function AgentPanel() {
     });
     void probeBuildLane().then((p) => {
       if (alive) setBuild(p);
+    });
+    void probeDeployLane().then((p) => {
+      if (alive) setDeploy(p);
     });
     return () => {
       alive = false;
@@ -159,6 +169,29 @@ export default function AgentPanel() {
   const denyBuild = () => {
     if (build) appendLedgerLine(browserStorage(), buildArcLedgerLine(build.arcId, build.engine, 'denied', false, undefined, 'denied at human checkpoint'));
     setBuildAsk(false);
+    syncLedger();
+  };
+
+  const allowDeploy = async () => {
+    if (!deploy) return;
+    setDeployBusy(true);
+    const a = await requestDeployArcRun();
+    const detail = a.ok ? (a.detail ?? '') : (a.reason ?? 'deploy route failed');
+    setDeployLine(detail);
+    setDeployFacts(a.ok ? (a.facts ?? []) : []);
+    setDeployAsk(false);
+    setDeployBusy(false);
+    const approved = a.ok && a.status === 'recorded';
+    appendLedgerLine(
+      browserStorage(),
+      deployLedgerLine(deploy.arcId, a.ok ? (a.status ?? 'failed') : 'failed', approved, detail, approved ? undefined : a.ok ? (a.reason ?? 'nothing recorded') : detail),
+    );
+    syncLedger();
+  };
+
+  const denyDeploy = () => {
+    if (deploy) appendLedgerLine(browserStorage(), deployLedgerLine(deploy.arcId, 'denied', false, undefined, 'denied at human checkpoint'));
+    setDeployAsk(false);
     syncLedger();
   };
 
@@ -337,6 +370,41 @@ export default function AgentPanel() {
           </div>
         )}
         {buildLine && <div style={label} data-testid="build-line">{buildLine}</div>}
+      </div>
+      <div style={{ borderTop: '1px solid var(--nexus-border)', paddingTop: 4, display: 'flex', flexDirection: 'column', gap: 4 }}>
+        <div style={label} data-testid="deploy-status">
+          {deploy === null
+            ? 'deploy arc: probing…'
+            : deploy.available
+              ? `deploy arc: ✓ ${deploy.arcId} · records → ${deploy.recordsPath} · ${deploy.recordCount} on file`
+              : `deploy arc: unavailable — ${deploy.reason}`}
+        </div>
+        {deploy?.available && (
+          <button className="btn" style={{ fontSize: 10, padding: '1px 8px', alignSelf: 'flex-start' }} onClick={() => setDeployAsk(true)} disabled={deployBusy} data-testid="deploy-run">
+            Deploy measured facts (§28 · allow-once)
+          </button>
+        )}
+        {deployAsk && deploy && (
+          <div data-testid="deploy-ask" style={{ border: '1px solid #ffd24a', borderRadius: 8, padding: 6, display: 'flex', flexDirection: 'column', gap: 4 }}>
+            <div style={{ fontSize: 11 }}>
+              Deploy plans and walks the build arc for <b>{deploy.goal}</b>, then records each verify step&apos;s measured stdout through the ONE deploy.record door into <b>{deploy.recordsPath}</b>. A build arc that did not complete deploys nothing. Allow once?
+            </div>
+            <div style={{ display: 'flex', gap: 6 }}>
+              <button className="btn btn-primary" onClick={() => void allowDeploy()} disabled={deployBusy} data-testid="deploy-allow">Allow once</button>
+              <button className="btn" onClick={denyDeploy} data-testid="deploy-deny">Deny</button>
+            </div>
+          </div>
+        )}
+        {deployFacts.length > 0 && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+            {deployFacts.map((f) => (
+              <div key={f.stepId} style={label} data-testid="deploy-fact">
+                ✓ recorded {f.stepId}: {f.stdout.trim() || '(the engine measured nothing)'}
+              </div>
+            ))}
+          </div>
+        )}
+        {deployLine && <div style={label} data-testid="deploy-line">{deployLine}</div>}
       </div>
       <label style={{ ...label, display: 'flex', gap: 6, alignItems: 'center', cursor: 'pointer' }}>
         <input type="checkbox" checked={chainMode} onChange={(e) => setChainMode(e.target.checked)} />

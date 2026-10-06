@@ -8188,3 +8188,52 @@ _records the catch-up itself._
   sink-side, gated by §28 one record at a time. The build door's shape (v173) and the planner's
   honesty (v175) are untouched — the deploy leg consumes the outcome, it does not redefine it. The
   runtime's exec/git doors remain headless. ADR 0013 stays Proposed.
+
+### Amendment 177 (M6 v177, queue item 8, the product face) — the dock's DEPLOY face: the deploy arc's first product consumer, records on file
+
+- **What landed.** v176's deploy arc gets its first PRODUCT consumer: the Studio dock's DEPLOY face,
+  the same shape as v174/v175's build face lifted one leg. `apps/studio/src/lib/deployServer.ts` is
+  the server half: `runStudioDeployArc({ goal?, recordsPath?, fs? })` re-uses the build face's OWN
+  walk — `buildServer.ts` splits out `runStudioBuildArcOutcome` (returning the display answer AND the
+  raw `BuildArcOutcome` `planDeployArc` consumes; `runStudioBuildArc` stays as a thin wrapper, one
+  owner of the build semantics) — then hands that outcome to `planDeployArc` and walks it through
+  `runDeployArc`. The host sink is REAL for the first time: `createStudioDeploySink` appends one JSONL
+  line per fact to `.nexus/deployments.jsonl` (`{at, arcId, goal, stepId, fact, engine}` — the fact
+  verbatim, the arc and engine that measured it), append-only, with `nodeDeployFs` creating the
+  records directory on first write. `STUDIO_DEPLOY_CHECKPOINT_POLICY` grants `deploy.record` on
+  record — pressing Deploy IS the human's Allow-once — everything else default-deny, every decision
+  riding the answer as a receipt. `app/api/agent/deploy/route.ts` (Node runtime): GET answers the
+  state (the build probe merged with `recordsPath` + the file's actual record count), POST takes ONE
+  optional field `{goal}` — never a step, never an argv, never a fact; a non-string goal is a 400.
+  `deployLane.ts` is the client adapter (pure fetch, no runtime imports); `AgentPanel.tsx` renders
+  the deploy block (status line, the ask naming the door and the honest limit, Allow-once/Deny, the
+  recorded facts verbatim, the answer line); `agentDock.ts` grows `deployLedgerLine` (via
+  `deploy.record`); `.gitignore` excludes `.nexus/` — the records are this server's, not the repo's.
+- **Measured (2026-10-07).** studio **251/251** (241 → 251: 10 `deployServer` cases — the policy pin,
+  the sink writing verbatim and refusing loudly, the record count, the default-goal recorded walk with
+  facts in door order and `:deploy:` receipts, the narrower goal, the red arc deploying NOTHING with
+  zero appends, the unplanned goal with zero spawns, the sink's refusal ending the walk `failed` at
+  the first unrecorded fact with exactly ONE receipt, the state merging the probe with the file, and
+  deploys accumulating 3 lines on one file); `deploy-lane-proof.mjs` §1–§6 ALL PASSED against the
+  real daemon 29.8.2 — §1 the state's record count equals what is ACTUALLY on file; §2 the validated
+  §28 stance plus the sink writing a verbatim fact and naming a failed write's cause; §3 a REAL green
+  arc deploys — two facts (`v22.23.2` from the container's `node --version`, the computed
+  `arc ok:5`) land as two JSONL lines with 2 `Allow-once` receipts joined through `:deploy:`; §4 the
+  narrower goal deploys exactly its own arc's one fact (3 accumulate on the file) and a nonsense goal
+  is `unplanned` with the file untouched; §5 a red arc is `not-green` with zero appends and a
+  sink that cannot write ends the walk `failed` with the cause quoted; §6 the §60 audit — the client
+  lane imports no runtime and no spawn module, the server core is the one junction (runtime + the
+  build face), the route states goal-not-argv, `.nexus/` is gitignored on purpose.
+  `tools/harness/studio-deploy.mjs` **8/8** in a REAL browser against the REAL daemon: the probe
+  line, the ask, the walk answering `2 fact(s) recorded → .nexus/deployments.jsonl`, both facts
+  rendered verbatim (`✓ recorded compute: arc ok:5`), and the §28 decision in the dock ledger
+  (approved, via `deploy.record`). The harness caught one real product bug before a user could:
+  the records directory did not exist, the sink refused honestly (`the record did not land: ENOENT`)
+  and the walk answered `failed` — fixed in `nodeDeployFs` (mkdir on first append; note: the bundler's
+  `node:fs` interop lacks `dirname` — import it from `node:path`).
+- **Bounds (§60).** Deploy still means ONE thing: the green arc's measured facts become durable
+  records, now IN A REAL FILE on this server. It is NOT a push, a publish, or a release. The runtime
+  still holds no write capability of its own — the sink is injected by the Studio server, gated by
+  §28 one record at a time, and the browser still cannot name a step, an argv, or a fact. The build
+  face's shape (v174/v175) is untouched — the deploy face re-uses its walk rather than redefining it.
+  The runtime's exec/git doors remain headless. ADR 0013 stays Proposed.

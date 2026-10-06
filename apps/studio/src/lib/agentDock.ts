@@ -457,3 +457,20 @@ export function buildArcLedgerLine(arcId: string, engine: string, status: string
   };
   return JSON.stringify(e);
 }
+
+/* ---- v177: the deploy arc's §28 line — same ledger, the WRITE door stated ---- */
+
+/** One JSONL line for a dock deploy-arc decision (the panel's Allow-once is the gate). */
+export function deployLedgerLine(arcId: string, status: string, approved: boolean, detail?: string, reason?: string): string {
+  const e: LedgerEntry = {
+    goal: `deploy arc: ${arcId}`,
+    target: 'deploy.record',
+    via: 'deploy.record',
+    score: approved ? 1 : 0,
+    approved,
+    ...(reason ? { reason } : {}),
+    ...(detail ? { exec: detail } : {}),
+    at: Date.now(),
+  };
+  return JSON.stringify(e);
+}
