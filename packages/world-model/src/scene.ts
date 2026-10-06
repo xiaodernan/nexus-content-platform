@@ -79,7 +79,7 @@ export const SCENE_LIMITS: string[] = [
   "位置来自 §45 那张世界图上摆过的坐标；没摆过的按文档顺序排在同心环上——那不是作者设计过的地形。",
   "所有条目大小一样：世界文档里没有「重要性」也没有「体积」字段，给不同大小就是编出来的等级。",
   "颜色只表示九类内容中的哪一类，不表示危险、阵营或温度。",
-  "没有地形、碰撞与导航网格：能走过去看到，不等于走在实地上。",
+  "没有地形（模型里没有高程字段），脚下是平地；条目占位会挡路（圆碰撞），点击行走是直线加碰撞滑动，不是导航网格。",
   "3D 模型与贴图（§34 的 model 资产）还没接进来：现在每个条目是一个占位几何体。",
 ];
 
@@ -179,4 +179,71 @@ export function pickLabelTargets(
     .sort((a, b) => a.distance - b.distance || (a.entity.id < b.entity.id ? -1 : 1))
     .slice(0, Math.max(0, limit))
     .map(({ entity, distance }) => ({ ...entity, distance: Math.round(distance * 100) / 100 }));
+}
+
+/**
+ * 走动与碰撞（§140 的 walk 第一片）。这两条**不是模型字段**：世界文档里没有体积、
+ * 没有高程，占位与行走者是这份场景投影自己定义的几何（所以进 `limits` 披露）。
+ * 放在模型包而不是三维组件里，与 isoProject 同一条理由：能被单测钉住的算术
+ * 不该埋在组件里靠肉眼看（§16）。
+ */
+
+/** 行走者的脚印半径（世界单位） */
+export const WALKER_RADIUS = 0.8;
+/** 每个条目的占位半径：与渲染的 1.6 盒子同级，略大于半宽，给路标柱留一点余量 */
+export const ENTITY_FOOTPRINT_RADIUS = 1.2;
+
+export interface WalkPosition {
+  x: number;
+  z: number;
+  /** 这一帧把行走者推出过脚印的条目（多个重叠时是第一个挡路的）；没被挡就是 null */
+  blockedBy: string | null;
+}
+
+/**
+ * 把行走者从所有条目占位里推出来（圆-圆，逐条目按场景顺序解，确定性）。
+ * 站在条目正中心这种退化情况沿 +x 推出——不抛异常、不 NaN。
+ */
+export function resolveWalkCollision(scene: WorldScene, x: number, z: number): WalkPosition {
+  let cx = x;
+  let cz = z;
+  let blockedBy: string | null = null;
+  const min = ENTITY_FOOTPRINT_RADIUS + WALKER_RADIUS;
+  for (const entity of scene.entities) {
+    const dx = cx - entity.x;
+    const dz = cz - entity.z;
+    const d = Math.hypot(dx, dz);
+    if (d >= min) continue;
+    if (d > 1e-6) {
+      cx = entity.x + (dx / d) * min;
+      cz = entity.z + (dz / d) * min;
+    } else {
+      cx = entity.x + min;
+    }
+    blockedBy = blockedBy ?? entity.id;
+  }
+  return { x: cx, z: cz, blockedBy };
+}
+
+/**
+ * 点击行走的一步：朝 target 最多走 step 个单位，然后解碰撞。
+ * step 内就到（或已经站在 target 上）算 arrived——target 在占位里时（比如点了条目身上）
+ * 停在占位表面并仍报 arrived，调用方不需要再处理"到不了"。
+ * 被占位挡住时滑动到表面为止：这不是寻路网格，绕不过大障碍——调用方（HUD）照实说。
+ */
+export function walkToward(
+  scene: WorldScene,
+  from: { x: number; z: number },
+  target: { x: number; z: number },
+  step: number,
+): WalkPosition & { arrived: boolean } {
+  const dx = target.x - from.x;
+  const dz = target.z - from.z;
+  const dist = Math.hypot(dx, dz);
+  if (dist <= Math.max(0, step)) {
+    return { ...resolveWalkCollision(scene, target.x, target.z), arrived: true };
+  }
+  const nx = from.x + (dx / dist) * step;
+  const nz = from.z + (dz / dist) * step;
+  return { ...resolveWalkCollision(scene, nx, nz), arrived: false };
 }

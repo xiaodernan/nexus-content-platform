@@ -2002,6 +2002,16 @@ test('@smoke 3D 世界：图上摆过的位置就是地面布局，走近才展�
     // 展开的是那条正文本身，不是"已为你生成"之类的空话
     await expect(page.locator('[data-nearby-focus]')).toContainText('三座浮岛与一条会说谎的河');
     await page.screenshot({ path: 'screenshots/world3d-focus.png' });
+
+    // 走动真的会动（2026-10-07 碰撞片）：HUD 上的位置读数来自 Controls 每帧
+    // resolveWalkCollision 之后的相机坐标——按住一个方向它必须变化，
+    // 这条把"碰撞解析在真帧循环里跑着"钉住，而不是只看模型层的单测
+    const readAt = () => page.locator('[data-world3d="live"]').getAttribute('data-walk-at');
+    const beforeWalk = await readAt();
+    await page.keyboard.down('d');
+    await page.waitForTimeout(900);
+    await page.keyboard.up('d');
+    await expect.poll(readAt, { timeout: 5_000 }).not.toBe(beforeWalk);
   }
 });
 

@@ -8,7 +8,9 @@ import {
   NEARBY_RADIUS,
   nearestEntities,
   pickLabelTargets,
+  resolveWalkCollision,
   sceneLegend,
+  walkToward,
   type SceneEntity,
   type WorldScene,
 } from '@nexus/world-model';
@@ -25,7 +27,10 @@ import { CharacterChat } from '@/studio/CharacterChat';
  * -  走近才展开正文：远处只有名字，正文要走到跟前（或点名字）才给（§140 的 explore）；
  * -  `fallback` 位置的条目在 HUD 里标出来：那是按序号排在环上的，不是作者摆过的地形。
  *
- * 没有做的事（也不假装）：地形网格、碰撞、寻路、3D 资产（§34 的 model）。
+ * 碰撞与点击行走（2026-10-07 接上）：条目占位会挡路（`resolveWalkCollision`，模型包的纯函数），
+ * 点地面/条目名朝那儿走（`walkToward`：直线 + 碰撞滑动）。
+ * 没有做的事（也不假装）：地形/高程（模型里没有字段，脚下是平的）、
+ * 导航网格（点击行走绕不过大障碍，会停在障碍前——限度写在 HUD）、3D 资产（§34 的 model）。
  * talk（§47）接的是 §46 角色档案的对话 API——目标不是场景里的世界条目。
  */
 
@@ -36,9 +41,11 @@ type Keys = Record<string, boolean>;
 
 function Controls({
   onPosition,
+  scene,
   enabled,
 }: {
   onPosition: (at: { x: number; z: number }) => void;
+  scene: WorldScene;
   enabled: boolean;
 }) {
   const { camera, gl } = useThree();
@@ -49,6 +56,14 @@ function Controls({
   const yaw = useRef(Math.PI);
   const pitch = useRef(-0.12);
   const reported = useRef(0);
+  // 点击行走（walkToward）：点地面设目标，每帧朝它走；键盘一动就交还给人
+  const target = useRef<{ x: number; z: number } | null>(null);
+  const stuckFor = useRef(0);
+  // 点地面 = 指针按下与抬起几乎没移动；拖动转视角共用同一对事件
+  const raycaster = useRef(new THREE.Raycaster());
+  const groundPlane = useRef(new THREE.Plane(new THREE.Vector3(0, 1, 0), 0));
+  const hitPoint = useRef(new THREE.Vector3());
+  const ndc = useRef(new THREE.Vector2());
 
   useEffect(() => {
     const down = (e: KeyboardEvent) => {
@@ -78,6 +93,19 @@ function Controls({
       pitch.current = Math.min(1.2, Math.max(-1.2, drag.current.pitch + (e.clientY - drag.current.y) * 0.004));
     };
     const onUp = (e: PointerEvent) => {
+      // 按下与抬起几乎没动：是点击地面（不是拖视角），把落点设为行走目标
+      if (drag.current && Math.hypot(e.clientX - drag.current.x, e.clientY - drag.current.y) < 6) {
+        const rect = el.getBoundingClientRect();
+        ndc.current.set(
+          ((e.clientX - rect.left) / rect.width) * 2 - 1,
+          -((e.clientY - rect.top) / rect.height) * 2 + 1,
+        );
+        raycaster.current.setFromCamera(ndc.current, camera);
+        if (raycaster.current.ray.intersectPlane(groundPlane.current, hitPoint.current)) {
+          target.current = { x: hitPoint.current.x, z: hitPoint.current.z };
+          stuckFor.current = 0;
+        }
+      }
       drag.current = null;
       try {
         el.releasePointerCapture(e.pointerId);
@@ -95,7 +123,7 @@ function Controls({
       el.removeEventListener('pointerup', onUp);
       el.removeEventListener('pointercancel', onUp);
     };
-  }, [gl]);
+  }, [gl, camera]);
 
   useFrame((_, delta) => {
     if (!enabled) return;
@@ -103,13 +131,35 @@ function Controls({
     // 前进方向取相机朝向在地面上的投影：转身之后 W 就该往看着的那边走
     const forward = (k['w'] || k['arrowup'] ? 1 : 0) - (k['s'] || k['arrowdown'] ? 1 : 0);
     const strafe = (k['d'] || k['arrowright'] ? 1 : 0) - (k['a'] || k['arrowleft'] ? 1 : 0);
-    const sin = Math.sin(yaw.current);
-    const cos = Math.cos(yaw.current);
-    // 视线方向投到地面：抬头低头不改变"走多快"，否则仰角一大就走不动
-    const dx = (sin * forward + cos * strafe) * WALK_SPEED * delta;
-    const dz = (cos * forward - sin * strafe) * WALK_SPEED * delta;
+    const walking = forward !== 0 || strafe !== 0;
+    let dx = 0;
+    let dz = 0;
+    if (walking) {
+      target.current = null; // 手动接管：点击目标作废
+      const sin = Math.sin(yaw.current);
+      const cos = Math.cos(yaw.current);
+      // 视线方向投到地面：抬头低头不改变"走多快"，否则仰角一大就走不动
+      dx = (sin * forward + cos * strafe) * WALK_SPEED * delta;
+      dz = (cos * forward - sin * strafe) * WALK_SPEED * delta;
+    } else if (target.current) {
+      const prevX = camera.position.x;
+      const prevZ = camera.position.z;
+      const step = walkToward(scene, { x: prevX, z: prevZ }, target.current, WALK_SPEED * delta);
+      dx = step.x - prevX;
+      dz = step.z - prevZ;
+      if (step.arrived) target.current = null;
+      else if (Math.hypot(dx, dz) < WALK_SPEED * delta * 0.1) {
+        // 被占位挡住原地蹭：半秒没进展就停，不说"已到达"也不永远卡着
+        stuckFor.current += delta;
+        if (stuckFor.current > 0.6) target.current = null;
+      } else stuckFor.current = 0;
+    }
     camera.position.x += dx;
     camera.position.z += dz;
+    // 占位碰撞（模型包的纯函数，与单测同一份算术）：条目挡路，穿不过去
+    const resolved = resolveWalkCollision(scene, camera.position.x, camera.position.z);
+    camera.position.x = resolved.x;
+    camera.position.z = resolved.z;
     camera.position.y = 3.2;
     camera.rotation.order = 'YXZ';
     camera.rotation.y = yaw.current;
@@ -273,7 +323,12 @@ export function WorldWalk({
   }
 
   return (
-    <div className="relative h-full w-full bg-bg-0" data-world3d="live" data-world-name={scene.worldName}>
+    <div
+      className="relative h-full w-full bg-bg-0"
+      data-world3d="live"
+      data-world-name={scene.worldName}
+      data-walk-at={`${Math.round(at.x * 10) / 10},${Math.round(at.z * 10) / 10}`}
+    >
       <Canvas
         camera={{ position: [0, 3.2, -Math.max(16, scene.bounds.radius * 0.9)], fov: 60, near: 0.1, far: 400 }}
         gl={{ antialias: true }}
@@ -288,7 +343,7 @@ export function WorldWalk({
           <EntityMesh key={entity.id} entity={entity} />
         ))}
         <LinkLines scene={scene} />
-        <Controls onPosition={setAt} enabled />
+        <Controls onPosition={setAt} scene={scene} enabled />
         <LabelProjector scene={scene} onLabels={setLabels} limit={LABEL_LIMIT} />
       </Canvas>
 
@@ -330,9 +385,13 @@ export function WorldWalk({
             位置：{scene.stats.authored} 个来自你在世界图上摆过的坐标，{scene.stats.fallback} 个按文档顺序排在同心环上
             （线框的那些）。
           </p>
-          <p className="mt-2 text-11 text-fg-2">WASD / 方向键走动，按住鼠标拖动转视角。走近条目会展开它的正文。</p>
+          <p className="mt-2 text-11 text-fg-2">
+            WASD / 方向键走动，按住鼠标拖动转视角；点地面走过去（直线加碰撞滑动——绕不过大障碍时会停在障碍前）。
+            点条目名是展开正文，不会把你搬过去。
+          </p>
           <p className="text-11 text-fg-3">
-            没有碰撞与地形：能穿过去，也不算走在实地上。对话（§47）跟的是 §46 角色档案，不是这些世界条目。
+            条目占位会挡路（圆碰撞）。没有地形：模型里没有高程字段，脚下是平的。对话（§47）跟的是 §46
+            角色档案，不是这些世界条目。
           </p>
           <button
             type="button"
