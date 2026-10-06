@@ -23,7 +23,15 @@
  * interface and two of them would have been wrong at runtime. `test/scene3dSurface.test.ts` runs the
  * REAL `ThreeRuntime` through these functions on the headless seam, so the structural claim is
  * measured rather than asserted.
+ *
+ * M5 v163 adds the second half of that split: persistence and the document. `SceneSaverLike` is the
+ * save-file seam (structural, for the same SSR reason), the surface's `save()`/`load()` go through it
+ * rather than paraphrasing the runtime's format, and `composeDocumentOps` is a pure function over the
+ * real design-model ops — so what the "send to document" button commits is an ordinary, undoable
+ * `addSubtree` that every existing document tool can already read, undo and export.
  */
+
+import { frameNode, ops, textNode, type Op } from '@nexus/design-model';
 
 /** The parts of a scene the Studio reports. Structural, so a test can build one without three.js. */
 export interface SceneLike {
@@ -76,6 +84,48 @@ export interface SceneAdapterLike {
   /** Put a camera at `position` looking at `lookAt`. Returns false when it could not (a missing
    *  scene/camera, or a runtime whose cameras are not three.js objects). */
   placeCamera(sceneId: string, cameraId: string, position: SceneVec3, lookAt: SceneVec3): boolean;
+}
+
+/**
+ * M5 v163 — the save-file seam, structural for the same reason every interface above is: the pure half
+ * must stay loadable where the package's types (and its GL context) are not.
+ *
+ * The shapes are the runtime's OWN save format read loosely — the door counts and carries, it does not
+ * interpret entity snapshots. A real `SaveFile` assigns to `SceneSaveFile`, and a `SceneSaveFile` flows
+ * back into `loadSaveFile` only through the host's converter (the one place allowed to know the real
+ * brands), exactly how `SceneAdapterLike` handles `THREE.Vector3`.
+ */
+export interface SceneSaveFile {
+  format: string;
+  version: number;
+  /** The instant the CALLER named. The runtime owns a frame clock, not a wall clock, and refuses to
+   *  invent one — so the surface's `save()` takes it as an argument rather than reading a clock. */
+  savedAt: number;
+  carries: string[];
+  doesNotCarry: { field: string; needs: string }[];
+  entities: [string, unknown][];
+  npcs: [string, unknown][];
+  worldState: Record<string, unknown>;
+  player: unknown;
+  cinematic: unknown;
+}
+
+/** What a restore answers: the runtime's own report, read loosely the same way. */
+export interface SceneLoadReport {
+  sceneId: string;
+  entities: string[];
+  npcs: string[];
+  sequences: string[];
+  worldState: string[];
+  player: string | null;
+  carries: string[];
+}
+
+export interface SceneSaverLike {
+  buildSaveFile(sceneId: string, savedAt: number): SceneSaveFile;
+  /** Read a file back into the scene named. Refusals are the DRIVER's own — a foreign format, a version
+   *  this runtime cannot read, or a restore that would overwrite live state all throw here. */
+  loadSaveFile(file: SceneSaveFile, sceneId: string): SceneLoadReport;
 }
 
 /** Where the demo camera stands. Far enough out to see four bodies, close enough to read their faces. */
@@ -294,6 +344,111 @@ export function spinAt(elapsedSeconds: number): { y: number; bob: number } {
   return { y: elapsedSeconds * 0.8, bob: Math.sin(elapsedSeconds * 1.6) * 0.25 };
 }
 
+/** A function DECLARATION with an explicit `never` return, so control flow narrows after a refusal. */
+function refused(message: string): never {
+  throw new Error(message);
+}
+
+/**
+ * M5 v163 — a scene body's STRUCTURED FACT, as it enters the Design Document.
+ *
+ * Deliberately a name, a kind and a position — the three things a document can hold honestly. There is
+ * no geometry, no material and no pixels here (§60): the document gets a SPEC of the scene, not a fake
+ * picture of one.
+ */
+export interface SceneBodyFact {
+  id: string;
+  name: string;
+  kind: string;
+  position: SceneVec3;
+}
+
+export interface SceneDocumentInput {
+  /** The page (or any container) the scene's frame is filed under. */
+  pageId: string;
+  /** Where in the parent's child list the frame lands. */
+  index: number;
+  sceneName: string;
+  bodies: SceneBodyFact[];
+  /** Where the frame lands on the page. Defaults out of the origin, where composed content usually sits. */
+  at?: { x: number; y: number };
+}
+
+/** Where the scene frame lands when the caller names no place. */
+export const SCENE_DOCUMENT_DEFAULT_AT = { x: 40, y: 40 };
+
+/** A coordinate in a document is a finite number, written to 2 decimals — a spec, not a measurement. */
+function docCoordinate(value: number, axis: string): number {
+  if (typeof value !== 'number' || !Number.isFinite(value)) {
+    refused(`body position ${axis} is ${String(value)}; a coordinate in a document is a finite number`);
+  }
+  return Math.round(value * 100) / 100;
+}
+
+/**
+ * M5 v163 — turn a scene's bodies into ONE ordinary document op.
+ *
+ * The result is a single `ops.addSubtree`: a frame named after the scene, with one text child per body
+ * carrying the body's name and its world position. This is deliberately NOT a new node kind and not a
+ * 3D preview — it is the document's own vocabulary describing a scene, which is why it is undoable,
+ * selectable, exportable and persistable by every tool that already exists, with no new code anywhere.
+ *
+ * The bodies are passed in by the caller (the component reads names and positions off the runtime; the
+ * pure half cannot touch a `threeObject`). Authored bodies only, says the panel: the four composed demo
+ * shots are the demo every other proof asserts, and a button that filed THEM would make those proofs
+ * depend on what a user clicked.
+ */
+export function composeDocumentOps(input: SceneDocumentInput): Op[] {
+  const sceneName = input.sceneName.trim();
+  if (!sceneName) refused('sceneName is empty; a frame filed about no scene names nothing');
+  if (!input.pageId) refused('pageId is empty; the frame has to land somewhere');
+  if (!Array.isArray(input.bodies) || input.bodies.length === 0) {
+    refused('a scene with no bodies would file a frame about nothing — add one first');
+  }
+
+  const at = input.at ?? SCENE_DOCUMENT_DEFAULT_AT;
+  const frame = frameNode(`Scene: ${sceneName}`, {
+    mode: 'vertical',
+    gap: 6,
+    padding: { top: 12, right: 12, bottom: 12, left: 12 },
+    primaryAxis: 'start',
+    counterAxis: 'start',
+  }, {
+    x: at.x,
+    y: at.y,
+    width: 300,
+    height: 24 + input.bodies.length * 30,
+    fills: [{ kind: 'token', ref: 'color.surface' }],
+  });
+
+  const nodes: (typeof frame | ReturnType<typeof textNode>)[] = [frame];
+  for (const body of input.bodies) {
+    if (!body || typeof body.name !== 'string' || body.name === '') {
+      refused(`a body without a name cannot be filed — the document records names, not anonymous ids`);
+    }
+    const x = docCoordinate(body.position.x, 'x');
+    const y = docCoordinate(body.position.y, 'y');
+    const z = docCoordinate(body.position.z, 'z');
+    const label = textNode(
+      body.name,
+      `${body.kind} · (${x}, ${y}, ${z})`,
+      {
+        fontFamilyToken: 'font.family.body',
+        sizeToken: 'font.size.sm',
+        weight: 500,
+        lineHeight: 1.3,
+        letterSpacing: 0,
+        align: 'left',
+      },
+      { width: 264, height: 24, fills: [{ kind: 'token', ref: 'color.text' }] },
+    );
+    label.parentId = frame.id;
+    frame.childIds.push(label.id);
+    nodes.push(label);
+  }
+  return [ops.addSubtree(input.pageId, input.index, nodes)];
+}
+
 /**
  * A composed, running Studio scene — everything the React component needs, and the only thing that
  * knows how many frames have gone by.
@@ -310,6 +465,13 @@ export interface SceneSurface {
    * the frame writer the component passed in always sees the current set rather than the mount-time one.
    */
   readonly bodyIds: string[];
+  /**
+   * The bodies a person AUTHORED through this surface — **LIVE** the same way. The four composed demo
+   * bodies are absent by definition: they are the demo the other proofs assert, not user content. This
+   * is the list `composeDocumentOps` files, and after a load it is deliberately untouched — a restored
+   * scene is a sibling the runtime holds, not content this surface authored.
+   */
+  readonly authoredBodyIds: string[];
   /** Frames this surface has advanced. Reported, never estimated by a reader. */
   readonly frames: number;
   /** The camera's orbit as the surface currently has it. */
@@ -327,6 +489,13 @@ export interface SceneSurface {
   /** Remove a body. Answers `false` when this surface does not hold it — the same answer `disk.write` gives
    *  for a path it was never given. */
   removeBody(bodyId: string): boolean;
+  /** M5 v163 — serialise THIS surface's scene into the runtime's own save file. `savedAt` is the caller's
+   *  instant; the runtime owns a frame clock, not a wall clock. Refuses when the host supplied no saver. */
+  save(savedAt: number): SceneSaveFile;
+  /** M5 v163 — read a save file back. A restore never overwrites live state (the saver's own rule), so
+   *  the file lands in a FRESH sibling scene the runtime composes for exactly that, and this surface's
+   *  scene — and its frame loop — are untouched. Answers the new scene's id and the saver's report. */
+  load(file: SceneSaveFile): { sceneId: string; report: SceneLoadReport };
 }
 
 /**
@@ -354,12 +523,17 @@ export function nextBodyPlacement(index: number): SceneVec3 {
  * `ThreeRuntime` carries its methods on the prototype, so spreading it into an object literal silently
  * drops `getScene` and every other method behind it. Measured the hard way — `Object.assign(runtime,
  * adapter)` type-checks and fails at the first call.
+ *
+ * M5 v163: `saver` is the same story one seam over — a host that can persist passes one, and a host
+ * that cannot (the pure suite's fakes) still builds a legal surface; `save()`/`load()` refuse honestly
+ * instead of pretending.
  */
 export function createStudioScene(
   runtime: SceneComposerLike,
   writeFrame: (bodyIds: string[], motion: { y: number; bob: number }) => void,
   adapter?: SceneAdapterLike,
   frames = 0,
+  saver?: SceneSaverLike,
 ): SceneSurface {
   const built = buildDemoScene(runtime, adapter);
   let counted = frames;
@@ -368,6 +542,10 @@ export function createStudioScene(
   // A copy, not the array `buildDemoScene` returned: the surface owns its body list from here on, and the
   // builder's array is a construction detail. Mutated in place so the frame writer sees the current set.
   const bodyIds = [...built.bodyIds];
+  // What the person using this surface AUTHORED (v163). Starts empty — the four composed bodies are the
+  // demo, not user content — and is maintained by exactly the two controls below, so the list a document
+  // button files can never quietly include a body nobody authored.
+  const authoredIds: string[] = [];
   let added = 0;
 
   /** Aim the camera at the current orbit. A no-op when there is no adapter — a fake without cameras is a
@@ -381,6 +559,7 @@ export function createStudioScene(
     sceneId: built.sceneId,
     cameraId: built.cameraId,
     bodyIds,
+    authoredBodyIds: authoredIds,
     get frames() {
       return counted;
     },
@@ -417,6 +596,7 @@ export function createStudioScene(
       if (!entity?.id) return null;
       added += 1;
       bodyIds.push(entity.id);
+      authoredIds.push(entity.id);
       return { bodyId: entity.id, count: bodyIds.length };
     },
     removeBody(bodyId) {
@@ -426,7 +606,32 @@ export function createStudioScene(
       // The runtime owns the entity; this surface only stops tracking it. Both must move, or the report
       // would count a body the loop no longer writes.
       runtime.removeEntity(built.sceneId, bodyId);
+      const authoredAt = authoredIds.indexOf(bodyId);
+      if (authoredAt !== -1) authoredIds.splice(authoredAt, 1);
       return true;
+    },
+    save(savedAt) {
+      if (!saver) {
+        refused('this surface was built without a saver; the host that composed it must pass one to save');
+      }
+      if (typeof savedAt !== 'number' || !Number.isFinite(savedAt) || savedAt < 0) {
+        refused(`savedAt is ${String(savedAt)}; the caller names the instant and it has to be a finite non-negative number`);
+      }
+      return saver.buildSaveFile(built.sceneId, savedAt);
+    },
+    load(file) {
+      if (!saver) {
+        refused('this surface was built without a saver; the host that composed it must pass one to load');
+      }
+      if (!file || typeof file !== 'object' || Array.isArray(file)) {
+        refused(`file is ${Array.isArray(file) ? 'an array' : typeof file}, not a save-file object`);
+      }
+      // A restore never overwrites live state — that is the saver's own rule, and this surface obeys it
+      // by giving the restore a FRESH scene instead of its own: the demo scene and its frame loop stay
+      // exactly what they were, and the restored world is there to be inspected.
+      const fresh = runtime.createScene('Restored Scene');
+      const report = saver.loadSaveFile(file, fresh.id);
+      return { sceneId: fresh.id, report };
     },
   };
 }

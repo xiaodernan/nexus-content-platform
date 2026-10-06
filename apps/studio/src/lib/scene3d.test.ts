@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   buildDemoScene,
   buildSceneReport,
+  composeDocumentOps,
   createStudioScene,
   spinAt,
   STUDIO_CAMERA_LOOK_AT,
@@ -19,8 +20,11 @@ import {
   type SceneAdapterLike,
   type SceneComposerLike,
   type SceneLike,
+  type SceneSaveFile,
+  type SceneSaverLike,
   type SceneVec3,
 } from './scene3d';
+import { applyOp, createEmptyDocument, invertOp } from '@nexus/design-model';
 
 /**
  * M5 v142 — the Studio's 3D surface, PURE half.
@@ -30,6 +34,12 @@ import {
  * are functions of a narrow structural interface. What they can NOT prove is that the real package
  * answers these calls the same way; that is `scene3dSurface.test.ts`, which runs the shipped
  * `ThreeRuntime` through this same module on the headless seam.
+ *
+ * v163 extends the same discipline to persistence and the document: the save/load seam is answered by
+ * a recording fake here (the REAL file format is proven against the shipped runtime in the headless
+ * proof), while `composeDocumentOps` is asserted against the REAL design model — the op it returns is
+ * applied to a real document, inverted, and re-applied, because an op that only the suite believes in
+ * would be a button that does nothing on a real page.
  */
 
 function fakeRuntime(over: Partial<SceneComposerLike> = {}) {
@@ -98,6 +108,45 @@ function fakeAdapter(): SceneAdapterLike & { placed: { sceneId: string; cameraId
       return true;
     },
   };
+}
+
+/** M5 v163 — a recording saver: it answers in the runtime's own format and remembers what it was asked. */
+function fakeSaver() {
+  const saved: { sceneId: string; savedAt: number }[] = [];
+  const loaded: { sceneId: string; file: SceneSaveFile }[] = [];
+  const saver: SceneSaverLike = {
+    buildSaveFile(sceneId, savedAt) {
+      saved.push({ sceneId, savedAt });
+      return {
+        format: 'nexus-three-runtime-save',
+        version: 1,
+        savedAt,
+        carries: ['entities', 'npcs', 'worldState', 'player', 'cinematic'],
+        doesNotCarry: [{ field: 'videoTextures', needs: 'a video system' }],
+        entities: [
+          ['e-1', { id: 'e-1', name: 'Ground' }],
+          ['e-2', { id: 'e-2', name: 'Cube D' }],
+        ],
+        npcs: [],
+        worldState: { hour: 9 },
+        player: null,
+        cinematic: { sequences: [] },
+      };
+    },
+    loadSaveFile(file, sceneId) {
+      loaded.push({ sceneId, file });
+      return {
+        sceneId,
+        entities: file.entities.map(([id]) => id),
+        npcs: [],
+        sequences: [],
+        worldState: Object.keys(file.worldState ?? {}),
+        player: null,
+        carries: [...file.carries],
+      };
+    },
+  };
+  return { saver, saved, loaded };
 }
 
 describe('buildDemoScene — what the Studio puts on screen', () => {
@@ -320,7 +369,7 @@ describe('the camera orbit — v142’s fixed placement becomes a default rather
     expect(normalizeAngle(Math.PI)).toBeCloseTo(Math.PI, 12);
     expect(normalizeAngle(Math.PI + 0.1)).toBeCloseTo(-Math.PI + 0.1, 12);
     expect(normalizeAngle(-Math.PI - 0.1)).toBeCloseTo(Math.PI - 0.1, 12);
-    // Ten full turns is still one angle, not a number that grows with how much the user dragged.
+    // Ten full turns is still one angle, not a number that grows with how much the user has dragged.
     expect(Math.abs(normalizeAngle(Math.PI * 20 + 0.3))).toBeLessThanOrEqual(Math.PI);
     expect(normalizeAngle(Math.PI * 20 + 0.3)).toBeCloseTo(0.3, 10);
   });
@@ -445,5 +494,156 @@ describe('the surface is CONTROLLABLE — orbit, zoom, and add/remove a body (M5
     surface.removeBody(added.bodyId);
     expect(created.map((c) => c.name)).toEqual(originalNames);
     expect(surface.bodyIds).toHaveLength(4);
+  });
+});
+
+describe('save / load — the scene survives the process (M5 v163)', () => {
+  it('save passes THIS surface’s scene and the instant it was given through to the saver', () => {
+    const { runtime } = fakeRuntime();
+    const { saver, saved } = fakeSaver();
+    const surface = createStudioScene(runtime, () => {}, undefined, 0, saver);
+
+    const file = surface.save(5000);
+    expect(saved).toEqual([{ sceneId: surface.sceneId, savedAt: 5000 }]);
+    expect(file.savedAt).toBe(5000);
+    expect(file.format).toBe('nexus-three-runtime-save');
+    expect(file.entities).toHaveLength(2);
+  });
+
+  it('save refuses a non-finite or negative instant — the caller names the clock', () => {
+    const { runtime } = fakeRuntime();
+    const { saver } = fakeSaver();
+    const surface = createStudioScene(runtime, () => {}, undefined, 0, saver);
+    expect(() => surface.save(Number.NaN)).toThrow(/savedAt is NaN/);
+    expect(() => surface.save(-1)).toThrow(/savedAt is -1/);
+  });
+
+  it('a surface with NO saver refuses to save, instead of pretending', () => {
+    const { runtime } = fakeRuntime();
+    const surface = createStudioScene(runtime, () => {});
+    expect(() => surface.save(1)).toThrow(/built without a saver/);
+    expect(() => surface.load({} as SceneSaveFile)).toThrow(/built without a saver/);
+  });
+
+  it('load gives the restore a FRESH scene — the surface’s scene and loop are untouched', () => {
+    const { runtime, scenes } = fakeRuntime();
+    const { saver, loaded } = fakeSaver();
+    const surface = createStudioScene(runtime, () => {}, undefined, 0, saver);
+    const before = surface.report();
+
+    const file = surface.save(5000);
+    const result = surface.load(file);
+
+    expect(loaded).toEqual([{ sceneId: result.sceneId, file }]);
+    expect(scenes.size).toBe(2); // the demo scene, plus the one the restore landed in
+    expect(result.sceneId).not.toBe(surface.sceneId);
+    expect(result.report.entities).toEqual(['e-1', 'e-2']);
+    expect(result.report.carries).toContain('entities');
+    // The surface's own scene is exactly what it was: same id, same body count, same loop.
+    expect(runtime.getScene(surface.sceneId)!.entities.size).toBe(before.scene!.entities);
+    expect(surface.report().scene!.id).toBe(before.scene!.id);
+    const written: string[][] = [];
+    const loop = createStudioScene(runtime, (ids) => written.push([...ids]));
+    expect(loop.bodyIds).toHaveLength(4); // the loop still writes the demo bodies, not the restored ones
+  });
+
+  it('load refuses a file that is not an object, rather than asking the saver about it', () => {
+    const { runtime } = fakeRuntime();
+    const { saver, loaded } = fakeSaver();
+    const surface = createStudioScene(runtime, () => {}, undefined, 0, saver);
+    expect(() => surface.load([1, 2] as unknown as SceneSaveFile)).toThrow(/parses|an array|not a save-file object/);
+    expect(() => surface.load(undefined as unknown as SceneSaveFile)).toThrow(/not a save-file object/);
+    expect(loaded).toHaveLength(0); // the saver was never asked
+  });
+
+  it('addBody and removeBody maintain the AUTHORED list — the composed demo stays out of it', () => {
+    const { runtime } = fakeRuntime();
+    const surface = createStudioScene(runtime, () => {});
+    expect(surface.authoredBodyIds).toHaveLength(0); // the four composed bodies are not user content
+
+    const first = surface.addBody('Cube D', 'mesh')!;
+    const second = surface.addBody('Cube E', 'mesh')!;
+    expect(surface.authoredBodyIds).toEqual([first.bodyId, second.bodyId]);
+    expect(surface.bodyIds).toHaveLength(6); // 4 composed + 2 authored
+
+    expect(surface.removeBody(second.bodyId)).toBe(true);
+    expect(surface.authoredBodyIds).toEqual([first.bodyId]);
+    // Removing a composed body is refused by `bodyIds` lookup semantics — it is not in the authored list
+    // to begin with, so a document send can never file it.
+    expect(surface.authoredBodyIds).not.toContain(surface.bodyIds[0]);
+  });
+});
+
+describe('composeDocumentOps — a scene becomes an ordinary document subtree (M5 v163)', () => {
+  const bodies = [
+    { id: 'e-9', name: 'Cube D', kind: 'mesh', position: { x: 2.6, y: 0.51648, z: -0.00001 } },
+    { id: 'e-10', name: 'Cube E', kind: 'mesh', position: { x: -2.6, y: 0, z: 0 } },
+  ];
+
+  it('returns ONE addSubtree op: a frame named after the scene, one text child per body', () => {
+    const opsList = composeDocumentOps({ pageId: 'page-1', index: 0, sceneName: 'Studio Scene', bodies });
+    expect(opsList).toHaveLength(1);
+    const op = opsList[0]!;
+    expect(op.type).toBe('addSubtree');
+    if (op.type !== 'addSubtree') return;
+    expect(op.parentId).toBe('page-1');
+    expect(op.nodes).toHaveLength(3); // frame + two body labels
+    const [frame, ...labels] = op.nodes;
+    expect(frame!.name).toBe('Scene: Studio Scene');
+    expect(frame!.childIds).toHaveLength(2);
+    for (const label of labels) expect(label.parentId).toBe(frame!.id);
+    expect(labels.map((l) => l.name)).toEqual(['Cube D', 'Cube E']);
+  });
+
+  it('the op APPLIES to a real document, carries positions in its text, and INVERTS cleanly', () => {
+    // Against the REAL design model — an op the suite believes in but the reducer refuses would be a
+    // button that does nothing on a real page.
+    const opsList = composeDocumentOps({ pageId: 'page-1', index: 0, sceneName: 'Studio Scene', bodies });
+    let doc = createEmptyDocument();
+    const op = opsList[0]!;
+    // The page the caller named must be the document's real page — the reducer checks parents.
+    doc = applyOp(doc, { ...op, parentId: doc.activePageId } as typeof op);
+
+    const frame = Object.values(doc.nodes).find((n) => n.name === 'Scene: Studio Scene');
+    expect(frame).toBeDefined();
+    expect(frame!.childIds).toHaveLength(2);
+    const texts = frame!.childIds.map((id) => doc.nodes[id]!);
+    // Coordinates are written to 2 decimals — a spec, not a measurement — and finite garbage is refused
+    // long before it becomes document text.
+    expect(texts[0]!.type).toBe('text');
+    expect(JSON.stringify(texts[0])).toContain('mesh · (2.6, 0.52, 0)'); // -0.00001 rounds to a clean 0
+    expect(JSON.stringify(texts[1])).toContain('(-2.6, 0, 0)');
+
+    // And the subtree is ordinary document content: invert the op and it is gone, every node of it.
+    const undone = applyOp(doc, invertOp(doc, op));
+    expect(undone.nodes[frame!.id]).toBeUndefined();
+    expect(Object.values(undone.nodes).filter((n) => n.type === 'text' && n.name === 'Cube D')).toHaveLength(0);
+  });
+
+  it('two sends compose DIFFERENT node ids, so a second send lands beside the first', () => {
+    const first = composeDocumentOps({ pageId: 'p', index: 0, sceneName: 'S', bodies })[0]!;
+    const second = composeDocumentOps({ pageId: 'p', index: 1, sceneName: 'S', bodies })[0]!;
+    expect(first.type === 'addSubtree' && second.type === 'addSubtree' ? first.nodes[0]!.id : '').not.toBe(
+      second.type === 'addSubtree' ? second.nodes[0]!.id : 'mismatch',
+    );
+    // And both apply against the same document — the second does not collide with the first.
+    let doc = createEmptyDocument();
+    doc = applyOp(doc, { ...first, parentId: doc.activePageId } as typeof first);
+    doc = applyOp(doc, { ...second, parentId: doc.activePageId } as typeof second);
+    expect(Object.values(doc.nodes).filter((n) => n.name === 'Scene: S')).toHaveLength(2);
+  });
+
+  it('refuses what would file a lie: no bodies, no scene name, no page, a non-finite coordinate', () => {
+    expect(() => composeDocumentOps({ pageId: 'p', index: 0, sceneName: 'S', bodies: [] })).toThrow(/about nothing/);
+    expect(() => composeDocumentOps({ pageId: 'p', index: 0, sceneName: '   ', bodies })).toThrow(/names nothing/);
+    expect(() => composeDocumentOps({ pageId: '', index: 0, sceneName: 'S', bodies })).toThrow(/has to land somewhere/);
+    expect(() =>
+      composeDocumentOps({
+        pageId: 'p',
+        index: 0,
+        sceneName: 'S',
+        bodies: [{ id: 'e', name: 'B', kind: 'mesh', position: { x: Number.NaN, y: 0, z: 0 } }],
+      }),
+    ).toThrow(/position x is NaN/);
   });
 });

@@ -7812,3 +7812,51 @@ the priority queue in `docs/DEVELOPMENT_PLAN.md`. Full narrative in `docs/eviden
   floors at the anchor — the engine cannot be stepped into hatred); no per-tick configuration and no
   disk persistence (save/load is JSON in memory); the bridge stays READ-ONLY — stepping happens through
   the panel's own engine, never through the bridge.
+
+### Amendment 163 (M5 v163, studio) — the scene survives the surface: save/load doors over the runtime's own format, and authored bodies filed into the Design Document
+
+_Numbering: 163 was free (`grep -ao "^### Amendment 1[0-9][0-9]"` topped out at 162). This is item 5 of
+the priority queue in `docs/DEVELOPMENT_PLAN.md`. Full narrative in `docs/evidence/agents/README.md` and
+`docs/evidence/studio/README.md`; this is the ledger entry._
+
+- **The gap this closes.** v161's own bounds left the surface interactive but ephemeral, and
+  KNOWN_ISSUES carried two open items: "no save/load door" and "the 3D scene and the Design Document
+  are separate systems … nothing composed in 3D appears in the 2D document". Meanwhile
+  `buildSaveFile`/`loadSaveFile` — the runtime's own declared save format — sat in
+  `@nexus/three-runtime` with ZERO consumers. v163 is the consumption chain: two agent doors, two
+  surface doors, and one pure function that files authored bodies into the document.
+- **Agent lane: 6 → 8 doors.** `scene.save` (`sceneId` required, `savedAt` optional — the CALLER names
+  the instant because the runtime has no wall clock) and `scene.load` (the file arrives as a JSON
+  string the door parses itself — the registry's `ArgType` has no object type; malformed JSON, a bare
+  value, an array and the empty string are refused BY NAME before the driver is asked). Both doors
+  refuse a scene the driver does not hold and both answer with the counts the engine actually
+  reported (`rendered: false` — a door never claims pixels). The loader's anti-overwrite semantics
+  are proven over the REAL runtime: a load into a live scene is refused ("already in scene … a
+  restore never overwrites live state").
+- **Studio surface: save / load / send to doc.** `SceneSurface.save(savedAt)` answers the REAL
+  `buildSaveFile` (the save format's first PRODUCT consumer); `load(file)` restores into a FRESH
+  sibling scene (`Restored Scene`) — the demo scene, its bodies and its frame loop are never touched,
+  and the runtime's own "already in scene" rule stands behind it. The panel's three buttons read their
+  answers off the screen as counts, not moods: `saved 5 bodies · nexus-three-runtime-save v1 ·
+  nothing written to disk`, `restored 5 bodies into a fresh scene — the runtime now holds 2 scenes,
+  and the demo scene is untouched`, `sent 1 authored bodies to the document — one addSubtree of 2
+  nodes, undoable like any other edit`.
+- **3D→document composition is a PURE function over real ops.** `composeDocumentOps` turns the
+  AUTHORED bodies (added via + body; the composed demo is deliberately excluded, so every other
+  proof's demo scene stays byte-stable) into ONE `ops.addSubtree`: a frame named `Scene: <scene>` with
+  one text child per body carrying kind and position (`mesh · (1.3, 0, 2.25)`). It is applied to a
+  real document, read back, and inverted cleanly in the suite; the browser harness reads the
+  `__nexus` editor bridge and finds the document gained exactly 2 nodes in one history row. §60: the
+  document files structured spec TEXT — it never claims to render the scene.
+- **Evidence.** `sceneTools.test.ts` +8 (506/506 across 33 files, tsc clean); scene-tools-proof §6
+  over the REAL runtime (§1–§7 ALL PASSED: the caller's instant + 2 bodies through a JSON round-trip
+  unchanged, fresh-scene load under the SAME ids verified through `runtime.getEntity`, live-scene
+  restore refused, 3 garbage files refused by the door); `scene3d.test.ts` 30 → 40 (studio 204 → 214);
+  scene-surface-proof §6 (save 5 bodies / instant 777 through JSON, fresh-scene restore with the demo
+  scene still active, 1 authored body → one addSubtree applied and undone by a real document);
+  browser harness `tools/harness/studio-scene3d.mjs` 19 → **25/25** (notes read off the screen; the
+  editor bridge shows nodes 2 → 4 and one history row). `npm run build` clean; all suites green.
+- **Bounds (§60).** save/load is JSON in memory — nothing is written to disk, and the note says so on
+  the surface's own face. The document holds spec text, not a 3D preview. Authored bodies only — the
+  composed demo never enters the document. Still open on this surface: pan, keyboard controls, a
+  per-body picker, editable lights, disk persistence. The bridge stays read-only.

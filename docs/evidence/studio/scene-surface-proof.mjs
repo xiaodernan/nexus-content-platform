@@ -1,5 +1,5 @@
 // NEXUS M5 v142 — the Studio's 3D surface, the FIRST PRODUCT consumer of @nexus/three-runtime
-// (ADR 0016 amendment 142).
+// (ADR 0016 amendment 142); v163 added §6.
 //
 // Every M5 grant before this one ended with the same bound, and it was written down every time:
 // "nothing in the Studio imports `@nexus/three-runtime`; the roadmap's M5 entry is still a runtime with
@@ -10,7 +10,9 @@
 //     added, so no GPU and no browser are involved;
 //   - the surface is `apps/studio/src/lib/scene3d.ts` — the ACTUAL Studio module, read off disk and
 //     run through Node's own TypeScript type-stripper. A copy of its functions here would prove that
-//     the copy works, which is the failure mode this file exists to avoid.
+//     the copy works, which is the failure mode this file exists to avoid. (Since v163 the module
+//     imports `@nexus/design-model`, so the stripped copy is written INSIDE the workspace — under
+//     apps/studio — where Node can resolve that bare specifier to the package's SHIPPED dist.)
 //
 // What it asserts, in order:
 //   §1 the Studio's composed scene IS the runtime's: every body id it reports is a registered
@@ -23,7 +25,13 @@
 //      changes its world matrix; a frame then reaches the backend carrying THAT camera and THAT scene;
 //   §4 the frame count is the SURFACE's, not the renderer's — the loop can draw without the surface
 //      counting, and a `step()` counts without a draw (the two are different questions);
-//   §5 this repository's HEAD is byte-identical: everything here ran in memory.
+//   §5 the surface is CONTROLLABLE, over the REAL runtime and a REAL THREE.Camera (v161);
+//   §6 (v163) the scene survives the process and enters the document: surface.save serialises the
+//      runtime's own save file (with the AUTHORED bodies counted apart from the composed demo), a load
+//      restores it into a fresh sibling scene under the SAME ids, and `composeDocumentOps` turns the
+//      authored bodies into ONE ordinary design-model op that a REAL document accepts, renders as a
+//      frame + spec text, and undoes cleanly;
+//   §7 this repository's HEAD is byte-identical: everything here ran in memory.
 //
 // Run after `npm run build`:  node docs/evidence/studio/scene-surface-proof.mjs
 import assert from 'node:assert/strict';
@@ -39,17 +47,22 @@ const { ThreeRuntime, createHeadlessBackend, manualFrameScheduler, entityId, sce
 const THREE = await import(pathToFileURL('./node_modules/three/build/three.module.js').href);
 
 // ── the SHIPPED Studio module, type-stripped rather than copied ──────────────────────────────────────
-// Node can strip TypeScript syntax itself (node:module). The module is written out beside its own
-// source so any relative import it grows (it has none today) would still resolve, then imported.
+// Node can strip TypeScript syntax itself (node:module). The module is written out INSIDE the studio
+// workspace so the bare `@nexus/design-model` import it grew in v163 resolves — to the package's own
+// SHIPPED dist, not to a copy — and then imported.
 const { stripTypeScriptTypes } = await import('node:module');
 const STUDIO_MODULE = './apps/studio/src/lib/scene3d.ts';
 const stripped = stripTypeScriptTypes(readFileSync(STUDIO_MODULE, 'utf8'), { mode: 'strip' });
-const box = mkdtempSync(join(tmpdir(), 'nexus-scene-surface-'));
+const box = mkdtempSync(join('apps/studio', 'nexus-scene-surface-'));
 const modulePath = join(box, 'scene3d.mjs');
 writeFileSync(modulePath, stripped, 'utf8');
 const studio = await import(pathToFileURL(modulePath).href);
-const { createStudioScene, buildSceneReport, spinAt, STUDIO_CAMERA_POSITION, STUDIO_CAMERA_LOOK_AT } = studio;
+const { createStudioScene, buildSceneReport, composeDocumentOps, spinAt, STUDIO_CAMERA_POSITION, STUDIO_CAMERA_LOOK_AT } = studio;
 assert.equal(typeof createStudioScene, 'function', 'the Studio module was really imported, not re-implemented');
+assert.equal(typeof composeDocumentOps, 'function', 'and the document composer came with it');
+
+// The document side of §6 is the SHIPPED design model, the same dist the stripped module resolves to.
+const dm = await import(pathToFileURL('./packages/design-model/dist/index.js').href);
 
 const homeHead = execFileSync('git', ['rev-parse', 'HEAD'], { encoding: 'utf8' }).trim();
 
@@ -89,6 +102,13 @@ const adapter = {
   },
 };
 
+// The component's saver (v163), written the same way: the ONLY place the runtime's real save file and
+// the surface's structural one meet. What passes through is unparaphrased.
+const saver = {
+  buildSaveFile: (sid, savedAt) => runtime.buildSaveFile(sceneId(sid), savedAt),
+  loadSaveFile: (file, sid) => runtime.loadSaveFile(file, sceneId(sid)),
+};
+
 let writeCalls = 0;
 const surface = createStudioScene(
   runtime,
@@ -103,6 +123,8 @@ const surface = createStudioScene(
     }
   },
   adapter,
+  0,
+  saver,
 );
 
 // ── §1 the Studio's scene IS the runtime's ───────────────────────────────────────────────────────────
@@ -119,7 +141,7 @@ const composed = runtime.getScene(sceneId(surface.sceneId));
 for (const id of surface.bodyIds) assert.ok(composed.entities.has(entityId(id)), `body ${id} is registered`);
 assert.equal(report.scene.entities, surface.bodyIds.length);
 assert.equal(report.draws.calls, 0, 'nothing has been drawn yet — composing is not rendering');
-console.log(`[§1] the Studio composed the runtime's own scene: 1 scene 路 ${report.scene.entities} bodies ${report.scene.entityNames.join('/')} 路 1 camera (active) 路 the report and the graph are the same object read twice 路 ${report.draws.calls} draws so far`);
+console.log(`[§1] the Studio composed the runtime's own scene: 1 scene · ${report.scene.entities} bodies ${report.scene.entityNames.join('/')} · 1 camera (active) · the report and the graph are the same object read twice · ${report.draws.calls} draws so far`);
 
 // ── §2 the v142 defect, measured ─────────────────────────────────────────────────────────────────────
 // The claim is NOT "there are two lights in a config" — that was true while every mesh rendered black.
@@ -207,7 +229,7 @@ assert.equal(atQuarter.y, 1, 'spinAt is linear in seconds: 1.25 s of spin is 1 r
 assert.deepEqual(atQuarter, spinAt(1.25));
 assert.equal(buildSceneReport(runtime, 7).frames, 7, 'a report never invents a count it was not given');
 assert.equal(afterStep.draws.triangles, 0, 'the headless backend refuses to invent a triangle count (§60)');
-console.log(`[§4] the surface's count (${surface.frames} step, ${writeCalls} write) is NOT the backend's (${backend.frames.length} draws): the loop drew without a step, and a step drew nothing 路 spinAt(1.25).y = ${atQuarter.y} — a function of the instant, not of a frame index 路 the unmeasurable tallies stay 0`);
+console.log(`[§4] the surface's count (${surface.frames} step, ${writeCalls} write) is NOT the backend's (${backend.frames.length} draws): the loop drew without a step, and a step drew nothing · spinAt(1.25).y = ${atQuarter.y} — a function of the instant, not of a frame index · the unmeasurable tallies stay 0`);
 
 // ── §5 the surface is CONTROLLABLE, over the REAL runtime and a REAL THREE.Camera (M5 v161) ─────────
 // v161 turned the camera from a placement written once into an orbit. The pure suite asserts the arithmetic;
@@ -255,9 +277,68 @@ assert.equal(runtime.getEntity(surface.sceneId, added.bodyId), undefined, 'and t
 assert.equal(surface.removeBody(added.bodyId), false, 'removing it twice answers false');
 console.log(`[§5] the controls over the REAL runtime: orbiting moved the THREE.Camera's world matrix (x ${positionBefore.x.toFixed(3)} → ${orbitedX.toFixed(3)} orbited → ${surfaceCamera.threeCamera.position.x.toFixed(3)} after reset) without changing its distance · the frame count did not move · add/remove moved the runtime's own graph ${graphBefore} → ${graphBefore + 1} → ${graphBefore}`);
 
-// ── §6 the home repository never moved ───────────────────────────────────────────────────────────────
-rmSync(box, { recursive: true, force: true });
-assert.equal(execFileSync('git', ['rev-parse', 'HEAD'], { encoding: 'utf8' }).trim(), homeHead, '§6: this repository HEAD byte-identical — everything here ran in memory');
+// ── §6 the scene survives the process, and enters the document (M5 v163) ─────────────────────────────
+// The file is the runtime's OWN save format, reached through the surface; the bodies it carries are
+// counted apart from the composed demo; a restore lands in a FRESH sibling scene under the SAME ids;
+// and the authored bodies become ONE ordinary design-model op — which a real document applies, reads
+// back, and undoes like any other edit.
+assert.deepEqual(surface.authoredBodyIds, [], 'before anyone authors, the authored list is empty — the four composed bodies are the demo, not user content');
+const authored = surface.addBody('Cube D', 'mesh');
+assert.ok(authored, 'a body was authored');
+assert.deepEqual(surface.authoredBodyIds, [authored.bodyId], 'and the authored list holds exactly it');
 
-console.log(`\n[summary] M5 v142: the FIRST product consumer of @nexus/three-runtime — the Studio's 3D surface, graded from the SHIPPED Studio module (type-stripped, not copied) over the SHIPPED runtime 路 1 scene + ${report.scene.entities} bodies + 1 aimed camera composed in memory with 0 GL objects 路 the v142 lighting defect measured as a term: ${withLights} lit vs ${withoutLights} unlit 路 ${backend.frames.length} draw(s) carried by the frame loop 路 surface steps ${surface.frames} vs backend draws ${backend.frames.length}, kept apart 路 home HEAD byte-identical: yes`);
-console.log('[scene-surface-proof] ALL ASSERTIONS PASSED (the 3D lane is reachable from the product, and the surface does not claim to have drawn what it did not)');
+const namedInstant = 777;
+const file = surface.save(namedInstant);
+assert.equal(file.savedAt, namedInstant, 'the instant the CALLER named is what the file carries');
+assert.equal(file.format, 'nexus-three-runtime-save', 'the file is the runtime’s own format, unparaphrased');
+assert.equal(file.entities.length, 5, 'the file carries all five bodies the runtime holds (4 composed + 1 authored)');
+assert.ok(file.carries.includes('entities'), 'and states what it carries');
+assert.deepEqual(JSON.parse(JSON.stringify(file)), file, 'and survives JSON round-for-round — the disk-safety claim, measured');
+
+const restored = surface.load(file);
+assert.equal(runtime.getSceneGraph().scenes.size, 2, 'the restore landed in a FRESH scene — the runtime now holds two');
+assert.notEqual(restored.sceneId, surface.sceneId, 'and that scene is not the surface’s own');
+const restoredScene = runtime.getScene(sceneId(restored.sceneId));
+assert.equal(restoredScene.entities.size, 5, 'the restored scene holds all five bodies');
+const keptId = file.entities[0][0];
+assert.ok(restoredScene.entities.has(entityId(keptId)), 'under the SAME ids the file carried');
+assert.equal(runtime.getEntity(sceneId(restored.sceneId), entityId(authored.bodyId)).name, 'Cube D', 'the authored body is among them, by name');
+// The surface's own scene — and its loop — are exactly what they were.
+assert.equal(surface.report().scene.entities, 5, 'the demo scene is untouched by the load');
+assert.equal(surface.report().activeSceneId, surface.sceneId, 'and the surface still reports its own scene as active');
+
+// The document half: the AUTHORED bodies become one ordinary op, applied to a REAL document.
+const doc = dm.createEmptyDocument();
+const facts = surface.authoredBodyIds.map((id) => {
+  const entity = runtime.getScene(sceneId(surface.sceneId)).entities.get(entityId(id));
+  const p = entity.threeObject.position;
+  return { id, name: entity.name, kind: entity.type, position: { x: p.x, y: p.y, z: p.z } };
+});
+assert.equal(facts.length, 1, 'one authored body is filed — not the four composed ones');
+const opsList = composeDocumentOps({ pageId: doc.activePageId, index: 0, sceneName: 'Studio Scene', bodies: facts });
+assert.equal(opsList.length, 1, 'the scene becomes ONE op');
+const op = opsList[0];
+assert.equal(op.type, 'addSubtree', 'and that op is the document’s own addSubtree — nothing new was invented');
+const applied = dm.applyOp(doc, op);
+const frame = Object.values(applied.nodes).find((n) => n.name === 'Scene: Studio Scene');
+assert.ok(frame, 'a real document accepted it, and the frame is there');
+assert.equal(frame.childIds.length, facts.length, 'with one child per authored body');
+const label = applied.nodes[frame.childIds[0]];
+assert.match(label.characters, /mesh · \(/, 'the child is a SPEC of the body — name, kind and position — not a fake preview (§60)');
+// Ring slot 1 (§5's add/remove already used slot 0): the position is the one the body was authored at.
+assert.match(label.characters, /1\.3, 0, 2\.25/, 'and the position is the ring placement the body was authored at');
+// It undoes like any other edit, because it IS any other edit.
+const undone = dm.applyOp(applied, dm.invertOp(applied, op));
+assert.equal(undone.nodes[frame.id], undefined, 'inverting the op removes the frame');
+assert.equal(Object.values(undone.nodes).filter((n) => n.parentId === frame.id).length, 0, 'and every node filed under it');
+// The refusals are the composer's own: nothing to file, no place to file it.
+assert.throws(() => composeDocumentOps({ pageId: doc.activePageId, index: 0, sceneName: 'Studio Scene', bodies: [] }), /about nothing/, 'an empty scene is refused rather than filed');
+assert.throws(() => composeDocumentOps({ pageId: '', index: 0, sceneName: 'S', bodies: facts }), /has to land somewhere/, 'and so is a frame with no parent');
+console.log(`[§6] the scene survives the process and enters the document: save carried the caller's instant (${namedInstant}) and 5 bodies through JSON unchanged · a load restored them into a fresh scene under the same ids while the demo scene stayed active and untouched · the 1 AUTHORED body became one addSubtree of ${op.nodes.length} nodes a real document applied, read back as a spec, and undid cleanly`);
+
+// ── §7 the home repository never moved ───────────────────────────────────────────────────────────────
+rmSync(box, { recursive: true, force: true });
+assert.equal(execFileSync('git', ['rev-parse', 'HEAD'], { encoding: 'utf8' }).trim(), homeHead, '§7: this repository HEAD byte-identical — everything here ran in memory');
+
+console.log(`\n[summary] M5 v142+v163: the FIRST product consumer of @nexus/three-runtime — the Studio's 3D surface, graded from the SHIPPED Studio module (type-stripped, not copied) over the SHIPPED runtime · 1 scene + ${report.scene.entities} bodies + 1 aimed camera composed in memory with 0 GL objects · the v142 lighting defect measured as a term: ${withLights} lit vs ${withoutLights} unlit · the scene saved and restored in memory, the authored body filed into a REAL document as an undoable op · home HEAD byte-identical: yes`);
+console.log('[scene-surface-proof] ALL ASSERTIONS PASSED (the 3D lane is reachable from the product, saves and restores what it composed, and files honest specs — never fake previews)');

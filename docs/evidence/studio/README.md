@@ -731,3 +731,40 @@ tick 6 with the floor and bands holding, and the toggle back to 2D still restore
 Bounds, stated: DEMO MODE only — every decision is the engine's own arithmetic and the surface says so on
 its own face. The bridge stays read-only (stepping happens through the panel's own engine). No factions
 or lore in the tick, no per-tick configuration, and save/load is JSON in memory, not the local snapshot.
+
+## The 3D scene survives the surface — and enters the document (M5 v163 — ADR 0016 amendment 163)
+
+v161 left the `3D` surface controllable but ephemeral: KNOWN_ISSUES carried "no save/load door" and
+"the 3D scene and the Design Document are separate systems — nothing composed in 3D appears in the 2D
+document". v163 closes both, in the smallest honest slice:
+
+- `src/lib/scene3d.ts` — the surface gains `save(savedAt)` and `load(file)` over a structural
+  `SceneSaverLike` the component wires to the REAL runtime's `buildSaveFile`/`loadSaveFile` (the save
+  format's first PRODUCT consumer; the agent door was the first consumer of any kind). `load` restores
+  into a FRESH sibling scene (`Restored Scene`) — the demo scene, its bodies and its frame loop are
+  never touched, and the loader's own anti-overwrite rule (refuse a scene that already holds state)
+  stands. It also gains the pure `composeDocumentOps`: the AUTHORED bodies (added via + body; the
+  composed demo is deliberately excluded, so every other proof's demo scene stays byte-stable) become
+  ONE real `ops.addSubtree` — a frame named `Scene: <scene>` with one text child per body carrying kind
+  and position (`mesh · (1.3, 0, 2.25)`) as structured spec text. §60: the document never claims to
+  render the scene; it files a spec that is honest about being a spec.
+- `src/components/Scene3D.tsx` — the ONLY file touching the real runtime — grew three buttons: **save**
+  (note names the format and counts: `saved 5 bodies · nexus-three-runtime-save v1 · nothing written to
+  disk`), **load** (`restored 5 bodies into a fresh scene — the runtime now holds 2 scenes, and the
+  demo scene is untouched`), and **send to doc** (`sent N authored bodies to the document — one
+  addSubtree of M nodes, undoable like any other edit`), which commits through the same `commitOps` any
+  editor edit uses.
+
+Evidence in three agreeing layers: `scene3d.test.ts` 30 → 40 — the op `composeDocumentOps` returns is
+applied to a REAL document, read back, and undone cleanly via `invertOp` (an op only the suite believed
+in would be a button that does nothing); `scene-surface-proof.mjs` §6 — save carries a caller-named
+instant and 5 bodies through JSON unchanged, load lands them in a fresh scene under the same ids while
+the demo stays active, and the 1 authored body becomes one addSubtree a real document applies and
+undoes; and `tools/harness/studio-scene3d.mjs` **19 → 25/25 in a real browser** — the probe presses
+save/load/send and reads the notes off the screen, then reads the `__nexus` editor bridge: the document
+gained EXACTLY 2 nodes (`Scene: Studio Scene`, 1 child) in ONE history row. `agent-runtime` 498 → 506
+(`scene.save`/`scene.load`, the family 6 → 8; scene-tools-proof §6 over the REAL runtime).
+
+Bounds, stated: save/load is JSON in memory — nothing is written to disk and the note says so; no pan,
+no keyboard controls, no per-body picker, no editable lights, no disk persistence; the document holds
+spec text, not a 3D preview.

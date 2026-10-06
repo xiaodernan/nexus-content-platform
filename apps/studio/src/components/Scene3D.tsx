@@ -7,15 +7,20 @@ import {
   createWebGLBackend,
   webglAvailable,
 } from '@nexus/three-runtime';
+import { childIdList } from '@nexus/design-model';
 import {
+  composeDocumentOps,
   createStudioScene,
   ORBIT_RADIANS_PER_PIXEL,
   ORBIT_ZOOM_PER_NOTCH,
   type SceneAdapterLike,
   type SceneReport,
+  type SceneSaveFile,
+  type SceneSaverLike,
   type SceneSurface,
 } from '@/lib/scene3d';
 import { installSceneBridge } from '@/lib/observability';
+import { useStudio } from '@/lib/store';
 
 /**
  * M5 v142 — the Studio's 3D surface, RENDERER half. This is the only file in the Studio that touches a
@@ -35,6 +40,11 @@ import { installSceneBridge } from '@/lib/observability';
  *   - the frame count is the one thing this component DOES own, and it says so.
  *
  * The scene is the runtime's own DEMO-MODE geometry: four default meshes, no assets, no model calls.
+ *
+ * M5 v163 adds the persistence and document controls. The saver is built HERE, next to the adapter:
+ * it is the one place that knows the runtime's real id brands, exactly the split `placeCamera` made.
+ * "Load" restores into a fresh sibling scene (a restore never overwrites live state), and "send to
+ * document" files only AUTHORED bodies — the four composed demo shots are the demo, not user content.
  */
 
 /** Frames between HUD samples. The loop runs every frame; the HUD does not need to. */
@@ -61,10 +71,17 @@ export default function Scene3D() {
   // v161: a handle to the running surface, so the orbit/body controls can reach it without the surface
   // becoming React state (it is not a value to re-render on; it owns a frame loop).
   const surfaceRef = useRef<SceneSurface | null>(null);
+  // v163: a handle to the runtime, so the send-to-document control can read the authored bodies' names
+  // and positions at click time — the renderer half is where a `threeObject` may be touched.
+  const runtimeRef = useRef<ThreeRuntime | null>(null);
   // Pointer-drag bookkeeping. A ref, not state: a drag must not re-render on every move.
   const dragRef = useRef<{ id: number; x: number; y: number } | null>(null);
   const [report, setReport] = useState<SceneReport | null>(null);
   const [note, setNote] = useState('');
+  // v163: the last file this surface saved, and what the last save/load/send answered — the harness
+  // reads the note through its data attribute, so it carries counts rather than moods.
+  const [lastFile, setLastFile] = useState<SceneSaveFile | null>(null);
+  const [saveNote, setSaveNote] = useState('');
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -99,6 +116,23 @@ export default function Scene3D() {
       },
     };
 
+    /**
+     * The saver (v163): the same story one seam over. The conversions from the Studio's plain strings
+     * into the package's branded ids happen HERE and nowhere else, and the file passes through
+     * unparaphrased — what `surface.save()` answers is the runtime's own save format.
+     */
+    const saver: SceneSaverLike = {
+      buildSaveFile(sceneId, savedAt) {
+        return runtime.buildSaveFile(sceneId as Parameters<typeof runtime.buildSaveFile>[0], savedAt);
+      },
+      loadSaveFile(file, sceneId) {
+        return runtime.loadSaveFile(
+          file as Parameters<typeof runtime.loadSaveFile>[0],
+          sceneId as Parameters<typeof runtime.loadSaveFile>[1],
+        );
+      },
+    };
+
     const sceneOf = (sceneId: string) => runtime.getScene(sceneId as Parameters<typeof runtime.getScene>[0]);
 
     const surface: SceneSurface = createStudioScene(
@@ -115,6 +149,8 @@ export default function Scene3D() {
         }
       },
       adapter,
+      0,
+      saver,
     );
 
     const size = () => {
@@ -139,6 +175,7 @@ export default function Scene3D() {
     // reachable from them. A ref rather than state, because the surface is not a value React should
     // re-render on — it is a handle to a running loop.
     surfaceRef.current = surface;
+    runtimeRef.current = runtime;
 
     const onResize = () => {
       size();
@@ -164,6 +201,7 @@ export default function Scene3D() {
       // backend — so a teardown needs no second call here, and the next mount starts clean.
       runtime.dispose();
       surfaceRef.current = null;
+      runtimeRef.current = null;
       dragRef.current = null;
       installSceneBridge(() => null);
       setReport(null);
@@ -218,6 +256,91 @@ export default function Scene3D() {
     const surface = surfaceRef.current;
     if (!surface) return;
     setReport(surface.resetOrbit());
+  }, []);
+
+  /**
+   * M5 v163 — save, load, send to document.
+   *
+   * The instant is named HERE because the runtime owns a frame clock, not a wall clock, and refuses to
+   * invent one. Load restores into a fresh sibling scene — the demo scene and its loop stay untouched.
+   * Send files only the AUTHORED bodies (the ones `+ body` added), as one ordinary undoable op.
+   */
+  const onSave = useCallback(() => {
+    const surface = surfaceRef.current;
+    if (!surface) return;
+    try {
+      const file = surface.save(Math.round(performance.now()));
+      setLastFile(file);
+      setSaveNote(`saved ${file.entities.length} bodies · ${file.format} v${file.version} · nothing written to disk`);
+    } catch (error) {
+      setSaveNote(`save refused: ${(error as Error).message}`);
+    }
+  }, []);
+
+  const onLoad = useCallback(() => {
+    const surface = surfaceRef.current;
+    if (!surface) return;
+    if (!lastFile) {
+      setSaveNote('nothing saved yet — save first, then load');
+      return;
+    }
+    try {
+      const result = surface.load(lastFile);
+      setReport(surface.report());
+      setSaveNote(
+        `restored ${result.report.entities.length} bodies into a fresh scene — the runtime now holds ${surface.report().scenes} scenes, and the demo scene is untouched`,
+      );
+    } catch (error) {
+      setSaveNote(`load refused: ${(error as Error).message}`);
+    }
+  }, [lastFile]);
+
+  const sendCountRef = useRef(0);
+  const onSendToDocument = useCallback(() => {
+    const surface = surfaceRef.current;
+    const runtime = runtimeRef.current;
+    if (!surface || !runtime) return;
+    const authored = surface.authoredBodyIds;
+    if (authored.length === 0) {
+      setSaveNote('nothing authored to send — add a body first');
+      return;
+    }
+    const scene = runtime.getScene(surface.sceneId as Parameters<typeof runtime.getScene>[0]);
+    if (!scene) return;
+    const { doc, activePageId, commitOps } = useStudio.getState();
+    const page = doc.nodes[activePageId];
+    if (!page) {
+      setSaveNote('no page to file the scene under');
+      return;
+    }
+    // Names and positions are read off the RUNTIME's own entities — the renderer half is where a
+    // `threeObject` may be touched. A body the runtime no longer holds is skipped, not invented.
+    const facts = authored.flatMap((id) => {
+      const entity = scene.entities.get(id as never);
+      if (!entity) return [];
+      const p = entity.threeObject.position;
+      return [{ id, name: entity.name, kind: entity.type, position: { x: p.x, y: p.y, z: p.z } }];
+    });
+    if (facts.length === 0) {
+      setSaveNote('nothing authored to send — add a body first');
+      return;
+    }
+    const n = sendCountRef.current;
+    sendCountRef.current += 1;
+    const opsList = composeDocumentOps({
+      pageId: activePageId,
+      index: childIdList(page).length,
+      sceneName: surface.report().scene?.name ?? 'Studio Scene',
+      bodies: facts,
+      // Each send lands beside the last, so two sends do not stack into one pile.
+      at: { x: 40 + n * 24, y: 40 + n * 24 },
+    });
+    commitOps(opsList, `Send 3D scene to document (${facts.length} bodies)`);
+    const op = opsList[0];
+    const nodeCount = op?.type === 'addSubtree' ? op.nodes.length : 0;
+    setSaveNote(
+      `sent ${facts.length} authored bodies to the document — one addSubtree of ${nodeCount} nodes, undoable like any other edit`,
+    );
   }, []);
 
   const s = report?.scene ?? null;
@@ -295,7 +418,23 @@ export default function Scene3D() {
             reset view
           </button>
         </div>
+        <div style={{ display: 'flex', gap: 6, marginTop: 6, pointerEvents: 'auto', flexWrap: 'wrap' }}>
+          <button type="button" className="btn" data-scene-save onClick={onSave}>
+            save
+          </button>
+          <button type="button" className="btn" data-scene-load onClick={onLoad}>
+            load
+          </button>
+          <button type="button" className="btn" data-scene-send-doc onClick={onSendToDocument}>
+            send to doc
+          </button>
+        </div>
         {note && <div style={{ marginTop: 6, color: 'var(--nexus-muted)', maxWidth: 280 }}>{note}</div>}
+        {saveNote && (
+          <div data-scene3d-save-note style={{ marginTop: 6, color: 'var(--nexus-muted)', maxWidth: 280 }}>
+            {saveNote}
+          </div>
+        )}
       </div>
     </div>
   );

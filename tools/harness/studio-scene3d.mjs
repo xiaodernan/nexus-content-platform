@@ -11,7 +11,10 @@
  *   3. the frame counter ADVANCES while the loop runs (read live through the read-only bridge);
  *   4. the report names the scene the runtime really holds;
  *   5. whichever backend answered is named on screen — `webgl` or the honest `HEADLESS` note — and the
- *      reading is recorded either way, because a headless host proving a GL surface would be a lie.
+ *      reading is recorded either way, because a headless host proving a GL surface would be a lie;
+ *   6. (v163) save records the live scene in the runtime's own format, load restores it into a FRESH
+ *      scene while the demo keeps running, and the authored bodies are filed into the canonical Design
+ *      Document as a real addSubtree — read back through the `__nexus` editor bridge.
  *
  * Usage: node tools/harness/studio-scene3d.mjs [--url http://127.0.0.1:3210] [--out DIR]
  *
@@ -180,6 +183,70 @@ try {
     `azimuth ${dragged.azimuth?.toFixed(3)} → ${reset.azimuth?.toFixed(3)}`,
   );
 
+  // ── M5 v163: the scene SURVIVES the surface — save, load, and the document door ─────────────────
+  // Save records the LIVE scene in the runtime's own format; load restores it into a FRESH scene (the
+  // demo scene and its loop are never touched); send-to-document files the AUTHORED bodies into the
+  // canonical Design Document as a real addSubtree — asserted against the `__nexus` editor bridge, so
+  // a handler that only moved local state would fail here.
+
+  // One authored body first: the composer's four demo bodies are deliberately NOT authored, and a send
+  // with none would be refused — the surface does not file a frame about nothing.
+  await page.evaluate("document.querySelector('[data-scene-add-body]').click()");
+  await page.waitForFunction(
+    `(() => { const r = window.__nexusScene3d?.scene3d(); return r && r.scene.entities === ${bodiesBefore + 1} ? r : null; })()`,
+    { timeout: 10000 },
+  );
+
+  // `__nexus` is a bridge of READERS (snapshot()/nodeCount()), not a snapshot — call snapshot() and read
+  // the plain fields off it.
+  const docBefore = await page.evaluate(
+    'window.__nexus ? ((s) => ({ nodes: s.nodeCount, cursor: s.history.cursor }))(window.__nexus.snapshot()) : null',
+  );
+  check('the editor bridge answers while the 3D surface is up', docBefore !== null, JSON.stringify(docBefore));
+
+  await page.evaluate("document.querySelector('[data-scene-save]').click()");
+  const savedNote = await page.waitForFunction(
+    `(() => { const n = document.querySelector('[data-scene3d-save-note]'); return n && n.textContent.includes('saved 5 bodies') ? n.textContent : null; })()`,
+    { timeout: 10000 },
+  );
+  check(
+    'pressing “save” records the live scene in the runtime’s own save format',
+    savedNote !== null && savedNote.includes('nexus-three-runtime-save'),
+    savedNote,
+  );
+
+  await page.evaluate("document.querySelector('[data-scene-load]').click()");
+  const loadedNote = await page.waitForFunction(
+    `(() => { const n = document.querySelector('[data-scene3d-save-note]'); return n && n.textContent.includes('restored 5 bodies') ? n.textContent : null; })()`,
+    { timeout: 10000 },
+  );
+  check(
+    'pressing “load” restores into a FRESH scene — two scenes, demo untouched',
+    loadedNote !== null && loadedNote.includes('2 scenes'),
+    loadedNote,
+  );
+  const stillDemo = await page.evaluate('window.__nexusScene3d.scene3d()');
+  check(
+    'the visible scene after the restore is still the demo scene',
+    stillDemo?.scene?.name === 'Studio Scene' && stillDemo?.scene?.entities === bodiesBefore + 1 && stillDemo?.scenes === 2,
+    JSON.stringify(stillDemo?.scene),
+  );
+
+  await page.evaluate("document.querySelector('[data-scene-send-doc]').click()");
+  const sentNote = await page.waitForFunction(
+    `(() => { const n = document.querySelector('[data-scene3d-save-note]'); return n && n.textContent.includes('sent 1 authored bodies') ? n.textContent : null; })()`,
+    { timeout: 10000 },
+  );
+  check('pressing “send to doc” answers with the addSubtree it filed', sentNote !== null && sentNote.includes('addSubtree of 2 nodes'), sentNote);
+
+  const docAfter = await page.evaluate(
+    `(() => { const s = window.__nexus.snapshot(); const f = s.nodes.find((n) => n.type === 'frame' && n.name.startsWith('Scene: ')); return { nodes: s.nodeCount, cursor: s.history.cursor, frame: f ? { name: f.name, children: f.childCount } : null }; })()`,
+  );
+  check(
+    'the document really holds the filed scene frame (a real addSubtree of 2 nodes)',
+    docAfter !== null && docAfter.frame?.children === 1 && docAfter.cursor > docBefore.cursor && docAfter.nodes === docBefore.nodes + 2,
+    JSON.stringify(docAfter),
+  );
 
   // Back to 2D: the toggle must be reversible and the canvas must come back with its pixels.
   await page.evaluate("document.querySelector('[data-surface-toggle=\"2d\"]').click()");
@@ -204,4 +271,4 @@ if (failed.length) {
   console.log('[scene3d-browser-probe] FAILED');
   process.exit(1);
 }
-console.log('[scene3d-browser-probe] ALL ASSERTIONS PASSED (the 3D surface is reachable, live, and honest about its backend)');
+console.log('[scene3d-browser-probe] ALL ASSERTIONS PASSED (the 3D surface is reachable, live, honest about its backend — and its scene survives the surface)');

@@ -1,4 +1,4 @@
-// NEXUS M5 v140 — the FIRST consumer of @nexus/three-runtime (ADR 0016 amendment 140).
+// NEXUS M5 v140 — the FIRST consumer of @nexus/three-runtime (ADR 0016 amendment 140); v163 added §6.
 //
 // Every M5 grant so far has had to write the same bound: "no consumer imports `@nexus/three-runtime`;
 // the roadmap's M5 entry is still a runtime with tests, not a feature a user can open." v138 gave the
@@ -21,7 +21,11 @@
 //      times, and the same call with an approval reaches it exactly once;
 //   §4 the refusals are spoken by the side that knows the fact, and the runtime's state is untouched by a
 //      refused call;
-//   §5 this repository's HEAD is byte-identical: everything here ran in memory.
+//   §6 (v163) the scene survives the process: scene.save serialises the runtime's own save file through
+//      the door, scene.load reads it back into a fresh scene with the SAME body ids, the runtime's
+//      anti-overwrite rule refuses a live target, and a file that is not a save-file object is refused
+//      before the driver is asked anything;
+//   §7 this repository's HEAD is byte-identical: everything here ran in memory.
 // Run after `npm run build`:  node docs/evidence/agents/scene-tools-proof.mjs
 import assert from 'node:assert/strict';
 import { execFileSync } from '../lib/syncproc.mjs';
@@ -81,6 +85,9 @@ const driver = {
       activeCamera: active ? active.id : null,
     };
   },
+  // v163 — persistence delegates to the runtime's own save file; the driver paraphrases nothing.
+  saveScene: (sceneId, savedAt) => runtime.buildSaveFile(sceneId, savedAt),
+  loadScene: (sceneId, file) => runtime.loadSaveFile(file, sceneId),
 };
 
 const registry = registerSceneTools(new ToolRegistry(), driver);
@@ -185,8 +192,57 @@ assert.equal(missingArg.ok, false);
 assert.match(missingArg.error, /missing required/, 'the registry names a missing argument before any body runs');
 console.log(`[§4] 4 refusals, each naming its own fact, and the runtime moved by 0 bodies: scene-missing · partial triple · unknown kind · missing arg`);
 
-// ── §5 the home repository never moved ───────────────────────────────────────────────────────────────
-assert.equal(execFileSync('git', ['rev-parse', 'HEAD'], { encoding: 'utf8' }).trim(), homeHead, '§5: this repository HEAD byte-identical — everything here ran in memory');
+// ── §6 the scene survives the process (M5 v163) ──────────────────────────────────────────────────────
+const vault = await invoke('scene.create', { name: 'Vault' });
+const vaultId = vault.output.sceneId;
+await invoke('scene.entity.add', { sceneId: vaultId, name: 'Kept A', kind: 'mesh', x: 1, y: 2, z: 3 });
+await invoke('scene.entity.add', { sceneId: vaultId, name: 'Kept B', kind: 'mesh' });
 
-console.log(`\n[summary] the FIRST consumer of @nexus/three-runtime: ${SCENE_TOOL_SPECS.length} scene.* doors over a driver seam, driven through the registry's §28 gate, with the REAL package behind it · 1 real scene + bodies + camera composed in memory · ${afterCompose} frames drawn by the TOOL CALLS (the ${afterStep} in §2 came from the frame loop, and are counted here only as the control that proves the zero) · the runtime's own graph cross-checked against every tool answer · home HEAD byte-identical: yes`);
-console.log('[scene-tools-proof] ALL ASSERTIONS PASSED (the 3D lane now has a consumer, and it composes without pretending to render)');
+const namedInstant = 54321;
+const save = await invoke('scene.save', { sceneId: vaultId, savedAt: namedInstant });
+assert.equal(save.ok, true, `scene.save failed: ${save.error}`);
+assert.equal(save.output.savedAt, namedInstant, 'the instant the CALLER named is what the file carries — the runtime owns no wall clock');
+assert.equal(save.output.entities, 2, 'the door reports the file’s structure, not a paraphrase of it');
+assert.equal(save.output.rendered, false, 'and saving rendered nothing');
+const savedFile = save.output.file;
+assert.equal(savedFile.format, 'nexus-three-runtime-save', 'the file is the runtime’s own format');
+assert.ok(savedFile.carries.includes('entities'), 'the file states what it carries');
+assert.deepEqual(JSON.parse(JSON.stringify(savedFile)), savedFile, 'the file survives JSON round-for-round — the runtime’s own disk-safety claim, measured');
+
+// Into a FRESH scene, through the JSON text, exactly as a caller over the registry would send it.
+const fresh = await invoke('scene.create', { name: 'Fresh' });
+const freshId = fresh.output.sceneId;
+const load = await invoke('scene.load', { sceneId: freshId, file: JSON.stringify(savedFile) });
+assert.equal(load.ok, true, `scene.load failed: ${load.error}`);
+assert.equal(load.output.entities, 2, 'the door answers the driver’s own restore report');
+// Cross-checked against the RUNTIME: the restored bodies exist, under the SAME ids the file carried.
+const firstKeptId = savedFile.entities[0][0];
+const restoredEntity = runtime.getEntity(freshId, firstKeptId);
+assert.ok(restoredEntity, 'the runtime holds the restored body');
+assert.equal(restoredEntity.name, 'Kept A', 'under the name the file carried');
+const freshInspect = await invoke('scene.inspect', { sceneId: freshId });
+assert.deepEqual([...freshInspect.output.entityNames].sort(), ['Kept A', 'Kept B'], 'and inspect — through the same door — sees both');
+
+// Anti-overwrite: back into the LIVE vault, the driver refuses — a restore never overwrites live state.
+const live = await invoke('scene.load', { sceneId: vaultId, file: JSON.stringify(savedFile) });
+assert.equal(live.ok, false, 'loading a scene’s file back into that live scene is refused');
+assert.match(live.error, /already in scene/, 'and the refusal is the driver’s own reason, intact');
+assert.equal(runtime.getScene(vaultId).entities.size, 2, 'the live scene was not touched by the refused call');
+
+// Garbage is refused by the DOOR, before the driver is asked anything.
+const badJson = await invoke('scene.load', { sceneId: freshId, file: '{nope' });
+assert.equal(badJson.ok, false);
+assert.match(badJson.error, /not JSON a loader can read/, 'malformed JSON names itself');
+const bare = await invoke('scene.load', { sceneId: freshId, file: '17' });
+assert.equal(bare.ok, false);
+assert.match(bare.error, /parses to number, not a save-file object/, 'a bare value names what it is');
+const noSuchScene = await invoke('scene.load', { sceneId: 'scene-nope', file: '{}' });
+assert.equal(noSuchScene.ok, false);
+assert.match(noSuchScene.error, /no scene scene-nope is held/, 'a missing target is named before any file is read');
+console.log(`[§6] the scene survives the process: scene.save carried the caller's instant (${namedInstant}) and 2 bodies through JSON unchanged · scene.load restored them into a fresh scene under the SAME ids (runtime-verified) · the live scene refused its own file (a restore never overwrites) · 3 garbage files refused by the door: not-JSON · bare number · missing target`);
+
+// ── §7 the home repository never moved ───────────────────────────────────────────────────────────────
+assert.equal(execFileSync('git', ['rev-parse', 'HEAD'], { encoding: 'utf8' }).trim(), homeHead, '§7: this repository HEAD byte-identical — everything here ran in memory');
+
+console.log(`\n[summary] the FIRST consumer of @nexus/three-runtime: ${SCENE_TOOL_SPECS.length} scene.* doors over a driver seam (compose, inspect, and now save/load), driven through the registry's §28 gate, with the REAL package behind it · scenes composed AND restored in memory with 0 frames drawn by the tool calls · every tool answer cross-checked against the runtime's own graph · home HEAD byte-identical: yes`);
+console.log('[scene-tools-proof] ALL ASSERTIONS PASSED (the 3D lane now composes, inspects, AND survives the process — without pretending to render)');

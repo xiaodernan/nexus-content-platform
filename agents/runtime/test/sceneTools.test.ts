@@ -6,6 +6,7 @@ import {
   registerSceneTools,
   type SceneDriver,
   type SceneEntitySpec,
+  type SceneSaveFileLike,
   type SceneSummary,
 } from '../src/sceneTools.js';
 
@@ -19,7 +20,10 @@ import {
  *
  * What is asserted is what the family OWNS: the doors' refusals, that the scene must exist before a body
  * is added to it, that a partial position triple is refused rather than defaulted, that the registry's §28
- * gate is the only gate, and that nothing in this family can be mistaken for a rendered picture.
+ * gate is the only one, and that nothing in this family can be mistaken for a rendered picture. v163 adds
+ * the save/load pair and the rules only a DOOR can own: the file is passed through unparaphrased, the
+ * JSON string is parsed once and refused when it is not a save-file object, and the load target must
+ * exist before the driver is asked anything.
  */
 
 /** A recording fake that answers like a small scene graph and remembers every call. */
@@ -84,6 +88,50 @@ function fakeDriver(over: Partial<SceneDriver> = {}) {
         activeCamera: scene.active,
       };
       return summary;
+    },
+    // M5 v163 — the save/load pair, answered the way the real runtime answers: the file is the scene's
+    // bodies plus the format's own claims, and a restore refuses a live target instead of overwriting it.
+    saveScene(sceneId, savedAt) {
+      calls.push(`saveScene:${sceneId}:${savedAt}`);
+      const scene = scenes.get(sceneId);
+      if (!scene) throw new Error(`fake: no scene ${sceneId}`);
+      const file: SceneSaveFileLike = {
+        format: 'nexus-three-runtime-save',
+        version: 1,
+        savedAt,
+        carries: ['entities', 'npcs', 'worldState', 'player', 'cinematic'],
+        doesNotCarry: [{ field: 'videoTextures', needs: 'a video system' }],
+        entities: scene.entities.map((e) => [e.id, { id: e.id, name: e.spec.name }]),
+        npcs: [],
+        worldState: { hour: 9 },
+        player: null,
+        cinematic: { sequences: [] },
+      };
+      return file;
+    },
+    loadScene(sceneId, file) {
+      calls.push(`loadScene:${sceneId}:${file.entities.length}`);
+      const scene = scenes.get(sceneId);
+      if (!scene) throw new Error(`fake: no scene ${sceneId}`);
+      // The driver's own anti-overwrite rule, in the fake exactly as the real runtime states it.
+      for (const [id] of file.entities) {
+        if (scene.entities.some((e) => e.id === id)) {
+          throw new Error(`loadSaveFile refused: entity ${id} is already in scene ${sceneId}; a restore never overwrites live state`);
+        }
+      }
+      for (const [id, snapshot] of file.entities) {
+        const record = snapshot as { id: string; name: string };
+        scene.entities.push({ id, spec: { id, name: record.name, kind: 'mesh' } });
+      }
+      return {
+        sceneId,
+        entities: file.entities.map(([id]) => id),
+        npcs: [],
+        sequences: [],
+        worldState: Object.keys(file.worldState ?? {}),
+        player: null,
+        carries: [...file.carries],
+      };
     },
   };
   return { driver: { ...base, ...over } as SceneDriver, calls, scenes };
@@ -304,5 +352,125 @@ describe('scene tools — what a door answers', () => {
     const r = await invoke('scene.create', { name: 'Arena' });
     expect(r.ok).toBe(false);
     expect(r.error).toMatch(/driver exploded/);
+  });
+});
+
+describe('scene.save / scene.load — the scene survives the process (M5 v163)', () => {
+  it('save answers the file’s STRUCTURE and hands the file itself along, unparaphrased', async () => {
+    const { invoke } = wired();
+    const created = await invoke('scene.create', { name: 'Vault' });
+    const sceneId = (created.output as { sceneId: string }).sceneId;
+    await invoke('scene.entity.add', { sceneId, name: 'Cube', kind: 'mesh' });
+    await invoke('scene.entity.add', { sceneId, name: 'Cube II', kind: 'mesh' });
+
+    const r = await invoke('scene.save', { sceneId, savedAt: 5000 });
+    expect(r.ok).toBe(true);
+    const out = r.output as { engine: string; savedAt: number; format: string; entities: number; carries: string[]; file: SceneSaveFileLike; rendered: boolean };
+    expect(out).toMatchObject({ engine: 'fake-scene', savedAt: 5000, format: 'nexus-three-runtime-save', entities: 2, rendered: false });
+    expect(out.carries).toContain('entities');
+    // The file is the DRIVER's own object, not the door's paraphrase of one — the savedAt the caller
+    // named is what the file carries, because the runtime owns no clock of its own.
+    expect(out.file.savedAt).toBe(5000);
+    expect(out.file.entities).toHaveLength(2);
+    expect(JSON.stringify(out.file)).not.toMatch(/screenshot|base64|png|jpeg/i);
+  });
+
+  it('save refuses a scene the driver does not hold, before the driver is asked', async () => {
+    const { invoke, calls } = wired();
+    const r = await invoke('scene.save', { sceneId: 'scene-nope', savedAt: 1 });
+    expect(r.ok).toBe(false);
+    expect(r.error).toMatch(/no scene scene-nope is held/);
+    expect(calls.some((c) => c.startsWith('saveScene'))).toBe(false);
+  });
+
+  it('load takes the JSON TEXT of a save result, and answers the driver’s own report', async () => {
+    const { invoke } = wired();
+    const created = await invoke('scene.create', { name: 'Vault' });
+    const sceneId = (created.output as { sceneId: string }).sceneId;
+    await invoke('scene.entity.add', { sceneId, name: 'Cube', kind: 'mesh', x: 1, y: 2, z: 3 });
+    const saved = await invoke('scene.save', { sceneId, savedAt: 5000 });
+    const file = (saved.output as { file: SceneSaveFileLike }).file;
+
+    // The roundtrip goes through the string, exactly as a caller over the registry would send it.
+    const fresh = await invoke('scene.create', { name: 'Fresh' });
+    const freshId = (fresh.output as { sceneId: string }).sceneId;
+    const r = await invoke('scene.load', { sceneId: freshId, file: JSON.stringify(file) });
+    expect(r.ok).toBe(true);
+    const out = r.output as { engine: string; entities: number; worldStateKeys: number; player: unknown; rendered: boolean };
+    expect(out).toMatchObject({ engine: 'fake-scene', entities: 1, worldStateKeys: 1, player: null, rendered: false });
+
+    // And the fresh scene really holds the body the file carried, name and all.
+    const inspected = await invoke('scene.inspect', { sceneId: freshId });
+    expect((inspected.output as { entityNames: string[] }).entityNames).toEqual(['Cube']);
+  });
+
+  it('load refuses malformed JSON, a bare value and an array — each by name', async () => {
+    const { invoke } = wired();
+    const created = await invoke('scene.create', { name: 'Target' });
+    const sceneId = (created.output as { sceneId: string }).sceneId;
+
+    const broken = await invoke('scene.load', { sceneId, file: '{not json' });
+    expect(broken.ok).toBe(false);
+    expect(broken.error).toMatch(/file is not JSON a loader can read/);
+
+    const bare = await invoke('scene.load', { sceneId, file: '17' });
+    expect(bare.ok).toBe(false);
+    expect(bare.error).toMatch(/parses to number, not a save-file object/);
+
+    const array = await invoke('scene.load', { sceneId, file: '[1,2]' });
+    expect(array.ok).toBe(false);
+    expect(array.error).toMatch(/parses to an array, not a save-file object/);
+
+    const empty = await invoke('scene.load', { sceneId, file: '' });
+    expect(empty.ok).toBe(false);
+    expect(empty.error).toMatch(/file must be the JSON text of a scene.save result/);
+  });
+
+  it('load refuses a target the driver does not hold, before the file is even parsed deep', async () => {
+    const { invoke, calls } = wired();
+    const r = await invoke('scene.load', { sceneId: 'scene-nope', file: '{"format":"x"}' });
+    expect(r.ok).toBe(false);
+    expect(r.error).toMatch(/no scene scene-nope is held/);
+    expect(calls.some((c) => c.startsWith('loadScene'))).toBe(false);
+  });
+
+  it('loading a scene’s file back into that LIVE scene is refused — a restore never overwrites', async () => {
+    // The driver owns this rule; the door's job is to surface it as a failed call with the reason intact.
+    const { invoke } = wired();
+    const created = await invoke('scene.create', { name: 'Vault' });
+    const sceneId = (created.output as { sceneId: string }).sceneId;
+    await invoke('scene.entity.add', { sceneId, name: 'Cube', kind: 'mesh' });
+    const saved = await invoke('scene.save', { sceneId, savedAt: 5000 });
+    const file = (saved.output as { file: SceneSaveFileLike }).file;
+
+    const r = await invoke('scene.load', { sceneId, file: JSON.stringify(file) });
+    expect(r.ok).toBe(false);
+    expect(r.error).toMatch(/already in scene .* a restore never overwrites live state/);
+  });
+
+  it('a driver refusal that is not the door’s business still arrives with its reason intact', async () => {
+    const { invoke } = wired({
+      loadScene: () => {
+        throw new Error('loadSaveFile refused: version is 99 and this runtime reads exactly 1');
+      },
+    });
+    const created = await invoke('scene.create', { name: 'Target' });
+    const sceneId = (created.output as { sceneId: string }).sceneId;
+    const r = await invoke('scene.load', { sceneId, file: '{"format":"nexus-three-runtime-save","version":99}' });
+    expect(r.ok).toBe(false);
+    expect(r.error).toMatch(/version is 99/);
+  });
+
+  it('an absent savedAt defaults to the host process’s own clock — finite and non-negative', async () => {
+    const { invoke } = wired();
+    const created = await invoke('scene.create', { name: 'Vault' });
+    const sceneId = (created.output as { sceneId: string }).sceneId;
+    const before = Date.now();
+    const r = await invoke('scene.save', { sceneId });
+    const after = Date.now();
+    expect(r.ok).toBe(true);
+    const savedAt = (r.output as { savedAt: number }).savedAt;
+    expect(savedAt).toBeGreaterThanOrEqual(before);
+    expect(savedAt).toBeLessThanOrEqual(after);
   });
 });

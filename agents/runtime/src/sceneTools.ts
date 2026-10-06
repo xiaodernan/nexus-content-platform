@@ -23,6 +23,16 @@ import type { ToolSpec } from './types.js';
  * a new costume. Every result therefore says which engine answered, and `scene.inspect` reports the scene's
  * STRUCTURE — counts and names — which is a claim this side can actually check.
  *
+ * **M5 v163 — the scene survives the process.** `scene.save` serialises a scene into the runtime's own
+ * JSON-safe save file, and `scene.load` reads one back into an EXISTING scene. Two honesty rules shape the
+ * pair. First, the door reports the file's STRUCTURE (counts, `carries`, `savedAt`) and hands the file
+ * itself along — it does not paraphrase the runtime's format into something of its own invention, and what
+ * comes back from `scene.save` is exactly what `scene.load` accepts. Second, the load target must already
+ * exist and the driver's OWN anti-overwrite rules stand: a restore never overwrites live state, so loading
+ * a scene's file back into that same live scene is refused by the driver and surfaces here as `ok:false`
+ * with the driver's reason. The file travels as a JSON string because `ArgType` has no object type — the
+ * registry validates declared shapes, and an undeclared one would be a gate with a hole in it.
+ *
  * **The gate is the registry's.** The tool bodies do not gate themselves: `ToolRegistry.invoke` validates
  * args, asks the §28 checkpoint for every dangerous permission, and turns a thrown error into `ok:false`.
  * A second gate here could disagree with the first — the defect `browserTools` records in its own header.
@@ -51,6 +61,36 @@ export interface SceneSummary {
 }
 
 /**
+ * M5 v163 — the save file, as THIS side may hold it. Structural and deliberately shallow: the door counts
+ * and carries, it does not interpret entity snapshots. Every field is one the real `ThreeRuntime` writes
+ * (`buildSaveFile`), and a file that survives `JSON.stringify` — which the runtime itself guarantees — is
+ * exactly what `scene.load` takes back in.
+ */
+export interface SceneSaveFileLike {
+  format: string;
+  version: number;
+  savedAt: number;
+  carries: string[];
+  doesNotCarry: { field: string; needs: string }[];
+  entities: [string, unknown][];
+  npcs: [string, unknown][];
+  worldState: Record<string, unknown>;
+  player: unknown;
+  cinematic: unknown;
+}
+
+/** What `scene.load` gets back from the driver: the report the runtime itself writes about a restore. */
+export interface SceneLoadReportLike {
+  sceneId: string;
+  entities: string[];
+  npcs: string[];
+  sequences: string[];
+  worldState: string[];
+  player: string | null;
+  carries: string[];
+}
+
+/**
  * The slice of a 3D runtime an agent is allowed to reach.
  *
  * Methods may answer synchronously or with a promise — the same allowance `TreeReaper` makes — so a driver
@@ -67,6 +107,12 @@ export interface SceneDriver {
   setActiveCamera(sceneId: string, cameraId: string): boolean | Promise<boolean>;
   /** `undefined` when the driver holds no such scene — a different answer from an empty one. */
   summarize(sceneId: string): SceneSummary | undefined | Promise<SceneSummary | undefined>;
+  /** M5 v163 — serialise a scene into the runtime's own save file. `savedAt` is the CALLER's instant: the
+   *  runtime owns a frame clock, not a wall clock, and refuses to invent one. */
+  saveScene(sceneId: string, savedAt: number): SceneSaveFileLike | Promise<SceneSaveFileLike>;
+  /** M5 v163 — read a save file back into an EXISTING scene. Refusals are the driver's own: a missing
+   *  target, a foreign format, or a restore that would overwrite live state all throw here. */
+  loadScene(sceneId: string, file: SceneSaveFileLike): SceneLoadReportLike | Promise<SceneLoadReportLike>;
 }
 
 export const SCENE_ENTITY_KINDS: readonly SceneEntitySpec['kind'][] = [
@@ -107,6 +153,24 @@ function readKind(kind: unknown): SceneEntitySpec['kind'] {
     refused(`kind is ${String(kind)}; the declared kinds are ${SCENE_ENTITY_KINDS.join(', ')}`);
   }
   return kind as SceneEntitySpec['kind'];
+}
+
+/** M5 v163 — the file argument arrives as a JSON STRING (`ArgType` has no object type), so the door owns
+ *  the parse and refuses what no loader should ever see: malformed JSON, a bare value, an array. */
+function readSaveFile(raw: unknown): SceneSaveFileLike {
+  if (typeof raw !== 'string' || raw === '') {
+    refused(`file must be the JSON text of a scene.save result, got ${raw === '' ? 'an empty string' : typeof raw}`);
+  }
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(raw);
+  } catch (error) {
+    refused(`file is not JSON a loader can read: ${(error as Error).message}`);
+  }
+  if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
+    refused(`file parses to ${Array.isArray(parsed) ? 'an array' : typeof parsed}, not a save-file object`);
+  }
+  return parsed as SceneSaveFileLike;
 }
 
 export const SCENE_TOOL_SPECS: ToolSpec[] = [
@@ -154,6 +218,28 @@ export const SCENE_TOOL_SPECS: ToolSpec[] = [
     args: [
       { name: 'sceneId', type: 'string', required: true },
       { name: 'cameraId', type: 'string', required: true },
+    ],
+  },
+  {
+    name: 'scene.save',
+    description:
+      'Serialise a scene into the runtime’s own JSON-safe save file — bodies, NPC records, world state, player, cinematic sequences. ' +
+      'Answers the file’s STRUCTURE (counts, carries, savedAt) plus the file itself; nothing is rendered and nothing reaches a disk.',
+    permissions: ['write'],
+    args: [
+      { name: 'sceneId', type: 'string', required: true },
+      { name: 'savedAt', type: 'number', required: false },
+    ],
+  },
+  {
+    name: 'scene.load',
+    description:
+      'Read a save file back into an EXISTING scene — pass the JSON text of a scene.save result as `file`. ' +
+      'A restore never overwrites live state: loading into the scene the file was saved FROM is refused, load into a fresh scene.',
+    permissions: ['write'],
+    args: [
+      { name: 'sceneId', type: 'string', required: true },
+      { name: 'file', type: 'string', required: true },
     ],
   },
   {
@@ -237,6 +323,50 @@ export function registerSceneTools(registry: ToolRegistry, driver: SceneDriver):
       const focused = await driver.setActiveCamera(sceneId, cameraId);
       const summary = await driver.summarize(sceneId);
       return { engine: driver.engine, sceneId, cameraId, focused, activeCamera: summary?.activeCamera ?? null };
+    },
+
+    'scene.save': async (args) => {
+      const sceneId = requireString(args.sceneId, 'scene.save sceneId');
+      await summarizeOrRefuse(sceneId);
+      // The instant is the CALLER's to name (the runtime owns no wall clock); the door's host process is
+      // a legitimate caller, so an absent savedAt defaults to this process's own clock.
+      const savedAt = args.savedAt === undefined ? Date.now() : (args.savedAt as number);
+      const file = await driver.saveScene(sceneId, savedAt);
+      return {
+        engine: driver.engine,
+        sceneId,
+        savedAt: file.savedAt,
+        format: file.format,
+        version: file.version,
+        entities: file.entities.length,
+        npcs: file.npcs.length,
+        worldStateKeys: Object.keys(file.worldState ?? {}).length,
+        carries: [...file.carries],
+        // The file itself, unparaphrased: what comes back here is exactly what scene.load takes in.
+        file,
+        rendered: false,
+      };
+    },
+
+    'scene.load': async (args) => {
+      const sceneId = requireString(args.sceneId, 'scene.load sceneId');
+      const file = readSaveFile(args.file);
+      // The target must exist — a loader that created one would be inventing the world the file was meant
+      // to describe, so the same "scene must exist first" rule the write doors keep applies here.
+      await summarizeOrRefuse(sceneId);
+      const report = await driver.loadScene(sceneId, file);
+      return {
+        engine: driver.engine,
+        sceneId,
+        loadedInto: report.sceneId,
+        entities: report.entities.length,
+        npcs: report.npcs.length,
+        sequences: report.sequences.length,
+        worldStateKeys: report.worldState.length,
+        player: report.player,
+        carries: [...report.carries],
+        rendered: false,
+      };
     },
 
     'scene.inspect': async (args) => {

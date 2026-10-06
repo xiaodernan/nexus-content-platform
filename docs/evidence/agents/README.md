@@ -3732,3 +3732,41 @@ Bounds, stated: the tick consults every agent's OWN decision gate — still no m
 arithmetic, labeled). `world.simulate` aggregates the engine's own reports rather than narrating one.
 Decay floors at the first-meeting anchor, so the enemy band is unreachable through simulation and no
 number the doors return can be read as hatred. Factions and lore do not tick yet.
+
+## The scene doors learn to PERSIST (scene-tools-proof.mjs §6 — M5 v163 — ADR 0016 amendment 163)
+
+v142 gave this lane a scene driver with six doors that could COMPOSE and INSPECT a scene but not SAVE
+one — and the runtime's own save format (`buildSaveFile`/`loadSaveFile`) sat in `@nexus/three-runtime`
+with zero consumers. v163 adds two doors — the family is now **8** — and the new proof section runs
+them over the REAL runtime:
+
+```
+node docs/evidence/agents/scene-tools-proof.mjs   # requires `npm run build` first
+```
+
+| door | class | what it does |
+| --- | --- | --- |
+| `scene.save` | write | the scene's own save file in the runtime's format — `savedAt` is optional because the CALLER names the instant; the runtime has no wall clock |
+| `scene.load` | write | restore a save file into a scene — refused for a scene that already holds state |
+
+**The file crosses the door as a JSON string.** The registry's `ArgType` has no object type, so
+`scene.load` parses the string itself and refuses — by name — malformed JSON, a bare value (`parses to
+number, not a save-file object`), an array and the empty string, before the driver is ever asked.
+`scene.save` answers with the file AND the counts (`entities`/`npcs`/`worldStateKeys`), so an agent can
+reason about a scene without printing bytes.
+
+**A restore never overwrites live state.** §6 saves a two-body scene with a caller-named instant
+(54321), round-trips the file through `JSON.stringify`/`JSON.parse` — the form an agent actually
+handles — loads it into a FRESH scene and verifies the SAME entity ids landed through
+`runtime.getEntity` itself; the same file against the LIVE scene is refused (`already in scene … a
+restore never overwrites live state`), and three malformed files are refused by the door, not the
+driver.
+
+| § | what it measures |
+| --- | --- |
+| 6 | `scene.save` carries the caller's instant and both bodies through a JSON round-trip unchanged; `scene.load` restores them into a fresh scene under the SAME ids (runtime-verified); the live scene refuses its own file; 3 garbage files refused by name |
+| 7 | this repository's HEAD is byte-identical |
+
+Bounds, stated: both doors refuse a scene the driver does not hold, and both answer `rendered: false` —
+a door never claims pixels. The format is the runtime's own, not a door invention; disk persistence is
+still nobody's job here — the file exists in memory, and that is all the door claims.

@@ -107,11 +107,11 @@ Live list. Nothing here is hidden behind marketing copy.
   (it proves paint + captures the PNG for human/§30 inspection), and it is a local verification
   tool, not the §28/ADR 0013 untrusted-code sandbox.
 
-## Studio 3D surface (M5 v142, interactive v161 — ADR 0016 amendments 142 and 161)
+## Studio 3D surface (M5 v142, interactive v161, persistent v163 — ADR 0016 amendments 142, 161 and 163)
 - The Studio has a second surface: a **3D scene** mounted from `components/Scene3D.tsx` over
   `@nexus/three-runtime` (the package's first product consumer). It is reached with the `3D`
   toggle in the toolbar; the 2D canvas is the default and is untouched. `npm run verify:scene`
-  drives it in a real browser (**19/19** after v161, `backend=webgl` on this host) and
+  drives it in a real browser (**25/25** after v163, `backend=webgl` on this host) and
   `npm run verify:scene-surface` is the headless proof.
 - **The surface is INTERACTIVE since v161.** The camera has an ORBIT — drag to turn (pointer capture,
   so a drag leaving the canvas keeps turning), wheel to zoom (proportional to the current distance), a
@@ -119,13 +119,22 @@ Live list. Nothing here is hidden behind marketing copy.
   construction). The scene grows and shrinks from the panel: **+ body** places the next body on a ring
   slot (two added bodies never share a place, none lands inside the composed shots), **− body** removes
   the LAST body (so a click can never delete the composed demo), and the HUD prints the live orbit.
-  Still absent: pan, keyboard controls, a per-body picker, editable lights, and a save/load door.
+  Still absent: pan, keyboard controls, a per-body picker, and editable lights.
 - **DEMO-MODE geometry only.** One scene, four default meshes plus whatever you add, one camera, no
   assets, no model calls, no textures and no lights you can edit. Added bodies are demo meshes —
-  not document content.
-- **The 3D scene and the Design Document are separate systems** sharing a window. Nothing composed
-  in 3D appears in the 2D document, in exports, in the History panel or in the op log, and the
-  surface toggle is view state (not undoable, not persisted, per ADR 0014).
+  not document content — until you file them into the document with **send to doc** (v163).
+- **v163 gave the scene a persistence and a document door.** **save** records the whole live scene in
+  the runtime's own format (`buildSaveFile` — the caller names the instant, the runtime has no wall
+  clock); **load** restores it into a FRESH sibling scene, so the demo scene and its frame loop are
+  never touched, and a load into a scene that already holds state is refused (a restore never
+  overwrites live state); **send to doc** files the AUTHORED bodies (added via + body — the composed
+  demo is deliberately excluded) into the Design Document as one real `ops.addSubtree`: a frame named
+  `Scene: <scene>` with one text child per body carrying kind and position as structured spec text
+  (§60: no fake 3D preview) — so filed content DOES appear in the 2D document, in exports, in the
+  History panel and in the op log, undoable like any other edit.
+- **What remains separate:** the composed demo bodies stay 3D-only; save/load is JSON in memory
+  (nothing is written to disk, and the note says so); the surface toggle is view state (not undoable,
+  not persisted, per ADR 0014).
 - `Scene3D.tsx` itself has **no unit test**: this repo has no DOM test environment (no jsdom, no
   testing-library). Its wiring is asserted by reading the shipped component bytes plus the headless
   proof, and its behaviour by the CDP probe — stated rather than implied.
