@@ -1,0 +1,30 @@
+server:
+  port: 8081
+
+spring:
+  application:
+    name: nexus-domain-service
+  datasource:
+    url: jdbc:postgresql://localhost:5432/nexus
+    username: ${DB_USERNAME:nexus}
+    password: ${DB_PASSWORD:nexus_password}
+    driver-class-name: org.postgresql.Driver
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    show-sql: false
+    properties:
+      hibernate:
+        format_sql: true
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+  data:
+    redis:
+      host: localhost
+      port: 6379
+
+logging:
+  level:
+    com.nexus: INFO
+    org.springframework.web: WARN
