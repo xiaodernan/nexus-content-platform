@@ -1,5 +1,5 @@
-import { AiErrorSchema, AiJobAcceptedSchema, AiJobStatusResponseSchema, AiResponseSchema, HealthResponseSchema } from '@nexus/schemas';
-import type { AiError, AiJobAccepted, AiJobStatusResponse, AiRequest, AiResponse, HealthResponse } from '@nexus/schemas';
+import { AiChatResponseSchema, AiErrorSchema, AiJobAcceptedSchema, AiJobStatusResponseSchema, AiResponseSchema, HealthResponseSchema } from '@nexus/schemas';
+import type { AiChatRequest, AiChatResponse, AiError, AiJobAccepted, AiJobStatusResponse, AiRequest, AiResponse, HealthResponse } from '@nexus/schemas';
 
 /**
  * web → ai-service 的客户端（docs/ARCHITECTURE.md 边界纪律 2：补丁由 web 应用，service 只产出结果）。
@@ -148,6 +148,72 @@ async function jobRequest<T>(
     return { ok: false, status: raw.status, error: localError('internal', `${parseFailMessage}：${String(parsed.error)}`.slice(0, 600)) };
   }
   return { ok: true, data: parsed.data };
+}
+
+/**
+ * §47 角色对话的传输。与 `runAiService` 同一形状：HTTP + 双端契约复核，
+ * 拿不到真实结果时明确报不可用，绝不在这里回落到模板（§159）。
+ * 超时给足 60 秒：对话是一次完整生成，不是入队/读状态那种轻查询。
+ */
+export type AiChatResult = { ok: true; response: AiChatResponse } | { ok: false; status: number | null; error: AiError };
+
+export async function chatWithCharacter(
+  request: AiChatRequest,
+  fetchImpl: typeof fetch = fetch,
+): Promise<AiChatResult> {
+  const base = aiServiceUrl();
+  if (!base) {
+    return {
+      ok: false,
+      status: null,
+      error: localError(
+        'provider-unavailable',
+        '未配置 NEXUS_AI_SERVICE_URL',
+        '启动 AI Service（npm run dev:ai）并把地址配到 web 的环境变量里。',
+      ),
+    };
+  }
+
+  let raw: Response;
+  try {
+    raw = await fetchImpl(`${base}/v1/ai/chat`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify(request),
+      signal: AbortSignal.timeout(RUN_TIMEOUT_MS),
+      cache: 'no-store',
+    });
+  } catch (error) {
+    const reason = error instanceof Error ? error.name : 'unknown';
+    return {
+      ok: false,
+      status: null,
+      error: localError('provider-unavailable', `ai-service 不可达（${reason}）`, `确认 ${base} 是否在运行。`, true),
+    };
+  }
+
+  if (!raw.ok) {
+    return { ok: false, status: raw.status, error: await readAiError(raw, raw.status === 503 ? 'provider-unavailable' : 'provider-failed') };
+  }
+
+  let body: unknown;
+  try {
+    body = await raw.json();
+  } catch {
+    return { ok: false, status: raw.status, error: localError('internal', 'ai-service 返回了非 JSON 响应') };
+  }
+  const parsed = AiChatResponseSchema.safeParse(body);
+  if (!parsed.success) {
+    return {
+      ok: false,
+      status: raw.status,
+      error: localError(
+        'internal',
+        `ai-service 对话响应不符合契约：${parsed.error.issues.map((i) => `${i.path.join('.')}: ${i.message}`).join('；')}`,
+      ),
+    };
+  }
+  return { ok: true, response: parsed.data };
 }
 
 export type AiJobAcceptedResult = { ok: true; accepted: AiJobAccepted } | { ok: false; status: number | null; error: AiError };

@@ -325,7 +325,7 @@ warm 方向奶油字压亮橙 3.35:1、cyber 的 light 模式是深底配深字 
 - [x] World Graph 可视化 + 可拖拽节点（§45）— 关系（有向、可带标签）与拖拽位置都存在世界文档里，
   Studio 第四个视图「世界图」画出来；见下方进度记录。自动避障 / 缩放 / 多选没做，不在 §45 的验收里。
 - [~] Character System + Character Agent 对话（§46-47）— §46 档案（含关系、声音、视觉标识）已落地，
-  见下方进度记录；§47 的"跟角色说话"要真 provider，没接之前不做假对话。
+  见下方进度记录；§47 的"跟角色说话"的 provider 侧与 web 传输在 2026-10-06 接通（见文末「§47」一节），还欠界面对话入口——API 现在没有调用方。
 - [x] Memory 四类（Session/Character/World/User）可查看可删除（§48）— 见下方进度记录。
   四类都能记、能列、能单条删、能按类清空；**没有"全部抹掉"的入口，也没有搜索框**（检索要 embedding，§49）。
 - [~] pgvector RAG：hybrid retrieval + rerank（§49/93）— 语料索引（世界条目/角色档案/记忆 →
@@ -3849,6 +3849,34 @@ B 的存储目录里躺着一张**自己那份新路径**的 PNG（`projects/<B 
   收不到，界靠刷新与 SSE 首帧重读兜住。要做补发得另立 ADR 选 Redis Streams（连同裁剪与消费位点）。
 - **真跨机**：两进程见证走的是同一台机器的同一条 Redis；跨机多出来的那一寸是延迟、防火墙与多机房路由。
 - **诊断入口**：`wireErrorCount` / `ready` 现在只在 stderr 与测试里，界面上还看不到"这台实例掉了几帧"。
+
+## §47：角色对话的 provider 侧接通——两端契约、DEMO 409、真回复才落记忆 —— 2026-10-06
+
+"跟角色说话"从 501 占位变成真链路，三段各守一条边界：
+
+- **ai-service 侧**（`2ef6d11`）：`POST /v1/ai/chat`。没配 provider 就 503，**绝不编回复**（§159，
+  判决书 ADR-0026）；回纯文本不带补丁，所以 §73/§74 的审批挂起不适用这一路。
+  两份跨端契约（`ai-chat-request/response.schema.json`）进 `packages/schemas`，
+  ai-service 的测试直接对着 JSON Schema 校验报文。
+- **web 传输**（`server/ai/client.ts` 的 `chatWithCharacter`）：与 `runAiService` 同一形状——
+  HTTP + 双端契约复核（响应过 `AiChatResponseSchema`，不合契约报 internal，不把坏形状交出去），
+  不可达报可重试的 provider-unavailable，60 秒超时（对话是一次完整生成，不是轻查询）。
+- **对话路由**（`/api/projects/[id]/characters/[cid]/chat`）：CSRF → 会话 → 项目归属 →
+  限流（20 次 / 10 分钟）→ zod → 角色存在 → **DEMO MODE 409**（`caps.text !== 'real'` 时不生成、
+  不落记忆）→ 人设 + 近 5 条记忆 + 语料检索（有 embedding provider 才有语义那半）装配上下文 →
+  调 ai-service → 失败原样透传状态码，**成功才落一行记忆**（用户原话 + 角色原话，写名字不写 uuid）。
+
+**验证**：`npm run lint`（typecheck + eslint）0 问题；
+`ai-client-chat.test.ts` 5 例（200 透传 / 未配地址 / 不可达 / 503 透传 / 契约不符）+
+`character-chat.test.ts` 5 例（人设拼装与上下文截断）全绿；
+ai-service 侧 `test_chat.py` 在 `2ef6d11` 那一轮跑过（无 provider 503 / 契约外拒收 / 空回复报错）。
+
+**这一片明确不做的**：
+- **界面入口**：API 现在还没有调用方——角色面板上还没有"对话"那一块（下一片做，DEMO MODE 下
+  要把 409 的原因说在界面上，不是静默失败）。
+- **多轮线程**：`sessionId` 只是回显，没有专门的会话历史；上下文靠记忆表近 5 条间接带一点。
+  要真多轮得另立会话存储，不假装 sessionId 已经做到了。
+- **模型重排**：语料检索沿用 §49 现状（规则融合），没有因为对话而悄悄升级成模型 rerank。
 
 
 
