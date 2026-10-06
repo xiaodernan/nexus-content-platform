@@ -163,7 +163,7 @@ describe('任务的完成条件判不判得出来', () => {
     expect(a.goals.map((g) => g.kind).sort()).toEqual(['collect', 'defeat']);
     const t = byId.get(questTalk.id)!;
     expect(t.judgeable).toBe(false);
-    expect(t.why).toContain('不是敌人也不是物品');
+    expect(t.why).toContain('不是敌人、物品或触发器');
     const e = byId.get(questEmpty.id)!;
     expect(e.judgeable).toBe(false);
     expect(e.why).toContain('没有引用任何对象');

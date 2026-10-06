@@ -225,17 +225,23 @@ describe("compileForKind：类型 → 管线的唯一分派点", () => {
       expect(exploration.plan).toEqual(topdown.plan);
     }
 
+    // 解谜同理（2026-10-06 接上）：机关连线是画法，任务判定多了「激活」这一格但规则仍是同一个 step
+    const puzzle = compileForKind({ ...base, kind: "puzzle" });
+    expect(puzzle.pipeline).toBe("topdown");
+    if (puzzle.pipeline === "topdown" && topdown.pipeline === "topdown") {
+      expect(puzzle.view).toBe("puzzle");
+      expect(puzzle.plan).toEqual(topdown.plan);
+    }
+
     const story = compileForKind({ ...base, kind: "interactive-story" });
     expect(story.pipeline).toBe("story");
     const novel = compileForKind({ ...base, kind: "visual-novel" });
     expect(novel.pipeline).toBe("story");
 
-    // 没接的两种：给出的是 reason，不是一个空场子也不是硬跑 2D
-    for (const kind of ["rpg-prototype", "puzzle"] as const) {
-      const projection = compileForKind({ ...base, kind });
-      expect(projection.pipeline).toBeNull();
-      if (projection.pipeline === null) expect(projection.reason).toContain("还没接");
-    }
+    // 没接的一种：给出的是 reason，不是一个空场子也不是硬跑 2D
+    const rpg = compileForKind({ ...base, kind: "rpg-prototype" });
+    expect(rpg.pipeline).toBeNull();
+    if (rpg.pipeline === null) expect(rpg.reason).toContain("还没接");
   });
 
   it('状态表说"已接入"的类型，这里一定派得出真管线（表与实现不许各说各话）', () => {

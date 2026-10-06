@@ -6,7 +6,7 @@ import {
   EXPLORATION_REVEAL_RADIUS,
   EXPLORATION_VIEW_NOTES,
   ISO_VIEW_NOTES,
-  PLAY_DEFAULTS,
+  PUZZLE_VIEW_NOTES,
   SIM_RULE_NOTES,
   discoverableIds,
   initialState,
@@ -15,17 +15,20 @@ import {
   isoProject,
   isoView,
   playtest,
+  puzzleLinks,
   revealedNow,
   simSummary,
   step,
   type GamePlan,
   type PlayActor,
   type PlaytestReport,
+  type PuzzleLink,
   type SimActor,
   type SimInput,
   type SimState,
 } from '@nexus/game-model';
 import { KIND_COLORS } from './palette';
+import { PLAY_DEFAULTS } from '@nexus/game-model';
 import { GameCanvas3D } from './GameCanvas3D';
 
 /**
@@ -63,8 +66,9 @@ function shapeOf(kind: string): 'circle' | 'square' | 'diamond' | 'triangle' {
 }
 
 /** 画法（§51）：`topdown` 是 2D，`isometric` 是 2.5D，`exploration` 是走近才看得见的探索画法，
- * `3d` 是同一份计划的立体视角——四条画法共用同一个 step 与同一份 HUD，所以"换画法玩起来不一样"这句话在这里说不出来 */
-export type GameView = 'topdown' | 'isometric' | 'exploration' | '3d';
+ * `puzzle` 是把机关引用连线画出来的解谜画法，`3d` 是同一份计划的立体视角——
+ * 五条画法共用同一个 step 与同一份 HUD，所以"换画法玩起来不一样"这句话在这里说不出来 */
+export type GameView = 'topdown' | 'isometric' | 'exploration' | 'puzzle' | '3d';
 
 /** 颜色表在 `palette.ts`：2D 与 3D 两个组件共用一份，别在这里再写第二份（§16） */
 const COLORS = KIND_COLORS;
@@ -163,22 +167,43 @@ function clear(ctx: CanvasRenderingContext2D): void {
 
 /** 俯视画法：位置就是计划里的世界坐标，一步映射都不加。
  * `revealed` 不为 null 时只画看见过的东西——探索画法（§51）复用这同一条路径，只是加一道过滤，
- * 不另写第二个绘制函数：两条画法的差别就必须只有这道过滤 */
+ * 不另写第二个绘制函数：两条画法的差别就必须只有这道过滤。
+ * `links` 不为 null 时画机关→影响的引用连线——解谜画法同样复用这同一条路径：
+ * 连线是谜题的结构信息（作者连了什么谜题就是什么），判定仍然走同一个 step */
 function drawTopdown(
   ctx: CanvasRenderingContext2D,
   plan: GamePlan,
   state: SimState,
   revealed: Set<string> | null = null,
+  links: PuzzleLink[] | null = null,
 ): void {
   clear(ctx);
+
+  if (links) {
+    // 连线画在实体下面：谜题玩家要先看清"机关连着什么"。激活过的机关连线实线、未激活虚线
+    ctx.lineWidth = 2;
+    for (const link of links) {
+      const done = state.activated[link.triggerId] !== undefined;
+      ctx.strokeStyle = done ? 'rgba(250,204,21,0.8)' : 'rgba(250,204,21,0.3)';
+      ctx.setLineDash(done ? [] : [4, 10]);
+      ctx.beginPath();
+      ctx.moveTo(link.from.x, link.from.y);
+      ctx.lineTo(link.to.x, link.to.y);
+      ctx.stroke();
+      ctx.setLineDash([]);
+    }
+    ctx.lineWidth = 1;
+  }
 
   for (const trigger of plan.triggers) {
     if (revealed && !revealed.has(trigger.id)) continue;
     const sim = state.triggers.find((t) => t.id === trigger.id);
     ctx.beginPath();
     ctx.arc(trigger.x, trigger.y, trigger.radius, 0, Math.PI * 2);
-    ctx.strokeStyle = sim && sim.readyAt > state.t ? 'rgba(255,255,255,0.35)' : 'rgba(255,255,255,0.14)';
-    ctx.setLineDash([6, 8]);
+    // 激活过的机关画实线圈（解谜画法里"扳下了"必须看得出来）；冷却中的亮虚线仍是原语义
+    const lit = state.activated[trigger.id] !== undefined || Boolean(sim && sim.readyAt > state.t);
+    ctx.strokeStyle = lit ? 'rgba(255,255,255,0.45)' : 'rgba(255,255,255,0.14)';
+    ctx.setLineDash(state.activated[trigger.id] !== undefined ? [] : [6, 8]);
     ctx.stroke();
     ctx.setLineDash([]);
   }
@@ -278,15 +303,16 @@ function drawIso(ctx: CanvasRenderingContext2D, plan: GamePlan, state: SimState)
   for (const entry of entries) entry.paint();
 }
 
-/** 2D 那三条画法的分派。`3d` 不在这里：它由 `GameCanvas3D` 用自己的渲染循环画（three.js 掌握时机） */
+/** 2D 那四条画法的分派。`3d` 不在这里：它由 `GameCanvas3D` 用自己的渲染循环画（three.js 掌握时机） */
 function draw(
   ctx: CanvasRenderingContext2D,
   plan: GamePlan,
   state: SimState,
-  view: 'topdown' | 'isometric' | 'exploration',
+  view: 'topdown' | 'isometric' | 'exploration' | 'puzzle',
   revealed: Set<string> | null,
 ): void {
   if (view === 'isometric') drawIso(ctx, plan, state);
+  else if (view === 'puzzle') drawTopdown(ctx, plan, state, null, puzzleLinks(plan));
   else drawTopdown(ctx, plan, state, view === 'exploration' ? revealed : null);
 }
 
@@ -416,6 +442,11 @@ export function GamePlay({ plan, view = 'topdown' }: { plan: GamePlan; view?: Ga
             发现 {revealed.current.size}/{discoverableIds(plan).length}
           </span>
         ) : null}
+        {view === 'puzzle' ? (
+          <span data-game-activated={Object.keys(hud.activated).length}>
+            机关 {Object.keys(hud.activated).length}/{hud.triggers.length}
+          </span>
+        ) : null}
         <span data-game-summary>{simSummary(hud)}</span>
         <button type="button" onClick={restart} className="rounded bg-bg-2 px-2 py-1 text-11" data-game-restart>
           重新开始
@@ -435,6 +466,7 @@ export function GamePlay({ plan, view = 'topdown' }: { plan: GamePlan; view?: Ga
         {view === 'exploration'
           ? ` · 走近才看得见：视野半径 ${EXPLORATION_REVEAL_RADIUS}px，看见过的会一直在`
           : ''}
+        {view === 'puzzle' ? ' · 走进机关范围即激活（首次记账）；黄线是它引用的东西，没连线的机关踩了没有东西响应' : ''}
       </p>
 
       {view === '3d' ? (
@@ -556,6 +588,7 @@ export function GamePlay({ plan, view = 'topdown' }: { plan: GamePlan; view?: Ga
             ...plan.notes,
             ...(view === 'isometric' ? ISO_VIEW_NOTES : []),
             ...(view === 'exploration' ? EXPLORATION_VIEW_NOTES : []),
+            ...(view === 'puzzle' ? PUZZLE_VIEW_NOTES : []),
             ...SIM_RULE_NOTES,
           ].map((note) => (
             <li key={note} className="text-11 text-fg-3" data-game-note>

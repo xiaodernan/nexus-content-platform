@@ -50,6 +50,8 @@ export interface SimState {
   triggers: SimActor[];
   /** 每条可判定任务的完成时刻；没有就是还没完成 */
   questDone: Record<string, number>;
+  /** 每个机关**首次**被踩到的模拟时刻：解谜画法里「激活 X」的目标判定读它；没踩过就没有键 */
+  activated: Record<string, number>;
   status: "playing" | "won" | "lost";
   /** 为什么结束：赢/输都指得回具体规则，不留"不知道为什么就结束了" */
   outcome: string | null;
@@ -75,6 +77,7 @@ export function initialState(plan: GamePlan): SimState {
     items: plan.items.map(actor),
     triggers: plan.triggers.map((t) => ({ id: t.id, x: t.x, y: t.y, health: 1, active: true, readyAt: 0 })),
     questDone: {},
+    activated: {},
     status: player ? "playing" : "lost",
     outcome: player ? null : "没有玩家实体，跑不起来。",
     events: [],
@@ -113,6 +116,7 @@ export function step(plan: GamePlan, state: SimState, input: SimInput, dt: numbe
     items: state.items.map((e) => ({ ...e })),
     triggers: state.triggers.map((e) => ({ ...e })),
     questDone: { ...state.questDone },
+    activated: { ...state.activated },
     events: state.events.slice(),
     counters: { ...state.counters },
   };
@@ -174,7 +178,7 @@ export function step(plan: GamePlan, state: SimState, input: SimInput, dt: numbe
     }
   }
 
-  // —— 触发器：只记账（见文件头那条限度） ——
+  // —— 触发器：只记账（见文件头那条限度）。首次踩到记为「激活」，解谜任务判定读它 ——
   const triggerById = new Map(plan.triggers.map((t) => [t.id, t]));
   for (const sim of next.triggers) {
     const design = triggerById.get(sim.id)!;
@@ -182,7 +186,13 @@ export function step(plan: GamePlan, state: SimState, input: SimInput, dt: numbe
     if (next.t < sim.readyAt) continue;
     sim.readyAt = next.t + Math.max(design.cooldown, design.delay, 1);
     next.counters.triggersFired += 1;
-    push(next.events, next.t, `踩到触发器 ${design.name}${design.affects ? `（它引用的是 ${design.affects.name}；模型里没有"之后发生什么"）` : ""}`);
+    const first = next.activated[design.id] === undefined;
+    if (first) next.activated[design.id] = next.t;
+    push(
+      next.events,
+      next.t,
+      `${first ? "激活" : "再次踩到"}触发器 ${design.name}${design.affects ? `（它引用的是 ${design.affects.name}；模型里没有"之后发生什么"）` : ""}`,
+    );
   }
 
   // —— 任务完成判定 ——
@@ -190,6 +200,7 @@ export function step(plan: GamePlan, state: SimState, input: SimInput, dt: numbe
   for (const quest of plan.quests) {
     if (!quest.judgeable || next.questDone[quest.id] !== undefined) continue;
     const allMet = quest.goals.every((goal) => {
+      if (goal.kind === "activate") return next.activated[goal.actorId] !== undefined;
       const sim = goal.kind === "defeat" ? next.enemies.find((e) => e.id === goal.actorId) : next.items.find((i) => i.id === goal.actorId);
       return sim ? !sim.active : false;
     });
@@ -224,6 +235,7 @@ export function simSummary(state: SimState): string {
     `敌人剩 ${state.enemies.filter((e) => e.active).length}/${state.enemies.length}`,
     `物品拾取 ${state.counters.pickups}/${state.items.length}`,
     `任务完成 ${Object.keys(state.questDone).length}`,
+    `机关激活 ${Object.keys(state.activated).length}/${state.triggers.length}`,
     state.status === "playing" ? "进行中" : state.status === "won" ? "通关" : "失败",
   ].join(" · ");
 }

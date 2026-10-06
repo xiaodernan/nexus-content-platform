@@ -156,8 +156,8 @@ export function isGameKind(value: unknown): value is GameKind {
 /**
  * 一条类型今天由哪条构建管线跑（`null` = 还没接），以及试玩页该说的那句话。
  *
- * 这张表就是 §51 的进度条：8 种里列了五种能跑的（2D / 2.5D / 3D 共用同一条关卡计划，
- * 互动故事 / 视觉小说共用对话管线），其余三种**只有清单没有投影**，
+ * 这张表就是 §51 的进度条：8 种里接了七种（2D / 2.5D / 3D / 探索 / 解谜共用同一条关卡计划，
+ * 互动故事 / 视觉小说共用对话管线），剩下 RPG 原型**只有清单没有投影**，
  * 界面上必须照这么说——把没接的类型渲染成"加载中"或者干脆给个空场子，
  * 看起来和能跑没区别（§159）。
  */
@@ -165,7 +165,7 @@ export interface GameKindStatus {
   /** `topdown` = §50 的俯视关卡（2D / 2.5D / 3D / 探索共用同一条计划与同一个 step）；`story` = 对话驱动；null = 没接 */
   pipeline: "topdown" | "story" | null;
   /** 同一条管线的哪一种画法；缺省是俯视。只影响绘制，不影响规则 */
-  view?: "topdown" | "isometric" | "3d" | "exploration";
+  view?: "topdown" | "isometric" | "3d" | "exploration" | "puzzle";
   /** 界面直接用的那句话，不许在这里写"敬请期待"式的空头承诺 */
   note: string;
 }
@@ -196,7 +196,13 @@ export const GAME_KIND_STATUS: Record<GameKind, GameKindStatus> = {
       "已接入：探索是同一份关卡计划的又一种画法——走近才看得见（看见了就一直看得见），" +
       "规则与 2D 走同一个 step，发现的计数在 HUD 里，输赢仍由任务条件判定。",
   },
-  puzzle: { pipeline: null, note: "还没接：§51 列了这一种，但今天没有解谜向的投影。" },
+  puzzle: {
+    pipeline: "topdown",
+    view: "puzzle",
+    note:
+      "已接入：解谜是同一份关卡计划的谜题画法——机关=触发器，机关影响谁来自作者连的引用，" +
+      "引用了触发器的任务按「激活」判定；规则与 2D 走同一个 step，没有顺序谜题的字段。",
+  },
   "visual-novel": {
     pipeline: "story",
     note: "已接入：与互动故事同一条对话管线，只有正文与选择，没有立绘/背景/音乐。",

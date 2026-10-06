@@ -72,7 +72,9 @@ export function describeProjection(document: GameDocument, projection: GameProje
           ? '3D 视角 · '
           : projection.view === 'exploration'
             ? '探索画法（走近才看得见） · '
-            : '';
+            : projection.view === 'puzzle'
+              ? '解谜画法（机关连线） · '
+              : '';
     return `${label} · ${paint}${plan.enemies.length} 个敌人 · ${plan.items.length} 个物品 · ${plan.quests.length} 条任务 · 场地 ${plan.arena.width}×${plan.arena.height}`;
   }
   if (projection.pipeline === 'story') {

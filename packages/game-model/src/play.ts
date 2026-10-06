@@ -88,7 +88,8 @@ export interface PlayTrigger {
 }
 
 export interface PlayQuestGoal {
-  kind: "defeat" | "collect";
+  /** activate = 引用到了触发器：踩进它的范围就算达成（§54 里触发器唯一可判定的语义） */
+  kind: "defeat" | "collect" | "activate";
   actorId: string;
   label: string;
 }
@@ -275,6 +276,7 @@ export function compileGame(document: GameDocument): GamePlan {
       if (!target) continue;
       if (target.kind === "enemy") goals.push({ kind: "defeat", actorId: target.id, label: `打倒 ${target.name}` });
       else if (target.kind === "item") goals.push({ kind: "collect", actorId: target.id, label: `拾取 ${target.name}` });
+      else if (target.kind === "trigger") goals.push({ kind: "activate", actorId: target.id, label: `激活 ${target.name}` });
     }
     const timeLimit = stat(entity, "timeLimit");
     return {
@@ -285,7 +287,7 @@ export function compileGame(document: GameDocument): GamePlan {
       why: goals.length
         ? `引用了 ${goals.length} 个可判定的对象`
         : (entity.refs ?? []).length
-          ? "引用的不是敌人也不是物品（可能是对话、触发器或已删除的实体）——投影判不出这条任务什么时候算完成。"
+          ? "引用的不是敌人、物品或触发器（可能是对话、NPC 或已删除的实体）——投影判不出这条任务什么时候算完成。"
           : "这条任务没有引用任何对象，没有可判定的完成条件。",
       timeLimit: timeLimit === null ? null : Math.max(0, timeLimit),
     };
@@ -394,6 +396,57 @@ export const EXPLORATION_VIEW_NOTES = [
 /** 这一局总共有哪些可发现的东西：revealedNow 扫的是同一份清单，HUD 的分母也从这里来 */
 export function discoverableIds(plan: GamePlan): string[] {
   return [...plan.enemies, ...plan.items, ...plan.npcs, ...plan.triggers].map((entity) => entity.id);
+}
+
+/**
+ * 解谜画法（§51 的 Puzzle）：同一份计划，把谜题的**结构**画出来。
+ *
+ * §54 没有"门 / 钥匙 / 按钮"这些实体，谜题结构就是文档里已有的引用图：
+ * 机关 = 触发器（sim 里唯一可判定的交互是"踩进它的范围"），
+ * 机关影响谁 = 它发出的引用（作者连了什么谜题就是什么），
+ * 谜题目标 = 引用了触发器的任务按「激活」判定（`step` 里记首次踩到的时刻）。
+ * 所以解谜不是第二套规则，是同一份计划的又一种画法 + 任务判定本来就欠的那一格。
+ */
+export const PUZZLE_VIEW_NOTES = [
+  "解谜只是同一份关卡计划的又一种画法：把机关→影响的引用连线画出来，规则与 2D 走同一个 step，逐字相同。",
+  "连线只画作者连了的引用：没连的机关就是孤立的开关，踩了没有任何东西响应——画法不替设计补谜题。",
+  "「激活」= 玩家踩进机关的范围（首次记账）；模型里没有表达顺序的字段，不假装支持「按正确顺序踩」的谜题。",
+];
+
+/** 一条谜题连线：机关 → 它引用的目标（两端坐标都是投影摆的位置）。目标不在场上就没有这条线 */
+export interface PuzzleLink {
+  triggerId: string;
+  triggerName: string;
+  from: { x: number; y: number };
+  to: { x: number; y: number };
+  targetName: string;
+  targetKind: GameEntityKind;
+}
+
+/** 谜题的结构数据：每个引用了场上目标的机关给出一条连线。纯函数，顺序按 plan.triggers 稳定给出 */
+export function puzzleLinks(plan: GamePlan): PuzzleLink[] {
+  const placed = new Map<string, { x: number; y: number; name: string; kind: GameEntityKind }>();
+  for (const actor of [plan.player, ...plan.enemies, ...plan.items, ...plan.npcs]) {
+    if (actor) placed.set(actor.id, { x: actor.x, y: actor.y, name: actor.name, kind: actor.kind });
+  }
+  for (const trigger of plan.triggers) {
+    placed.set(trigger.id, { x: trigger.x, y: trigger.y, name: trigger.name, kind: "trigger" });
+  }
+  const links: PuzzleLink[] = [];
+  for (const trigger of plan.triggers) {
+    if (!trigger.affects) continue;
+    const target = placed.get(trigger.affects.id);
+    if (!target) continue;
+    links.push({
+      triggerId: trigger.id,
+      triggerName: trigger.name,
+      from: { x: trigger.x, y: trigger.y },
+      to: { x: target.x, y: target.y },
+      targetName: target.name,
+      targetKind: target.kind,
+    });
+  }
+  return links;
 }
 
 /**
