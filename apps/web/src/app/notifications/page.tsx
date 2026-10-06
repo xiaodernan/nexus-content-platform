@@ -1,5 +1,4 @@
 import Link from 'next/link';
-import { use, useState } from 'react';
 import type { ReactElement } from 'react';
 import { inbox, type InboxItem } from '@/server/domain/notifications';
 import { NOTIFICATION_KINDS, NOTIFICATION_TERMINAL_STATE } from '@/lib/notify-plan';

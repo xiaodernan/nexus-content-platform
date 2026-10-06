@@ -28,19 +28,18 @@ export function NotificationSettings() {
       .catch(() => {});
   }, []);
 
-  async function toggle(kind: NotificationKind, enabled: boolean) {
+  function toggle(kind: NotificationKind, enabled: boolean) {
     setSaving(true);
-    try {
-      const res = await fetch('/api/notifications/settings', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ kind, enabled }),
-      });
-      const data = await res.json();
-      if (data.settings) setSettings(data.settings);
-    } finally {
-      setSaving(false);
-    }
+    void fetch('/api/notifications/settings', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ kind, enabled }),
+    })
+      .then((r) => r.json())
+      .then((data) => {
+        if (data.settings) setSettings(data.settings);
+      })
+      .finally(() => setSaving(false));
   }
 
   if (!settings) return <p className="text-12 text-fg-3">加载设置中…</p>;

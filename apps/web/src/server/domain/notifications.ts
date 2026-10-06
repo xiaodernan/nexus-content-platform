@@ -149,7 +149,7 @@ export async function inbox(userId: string, options: InboxOptions | number = {})
   // 兼容旧调用方式：直接传数字当 limit
   const isLegacyCall = typeof options === 'number';
   let page = 1;
-  let limit = 50;
+  let limit: number;
   if (isLegacyCall) {
     limit = options;
   } else {
