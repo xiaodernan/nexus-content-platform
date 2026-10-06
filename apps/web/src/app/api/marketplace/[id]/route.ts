@@ -1,61 +1,65 @@
 import { NextResponse } from 'next/server';
-import { requireAuth } from '@/server/domain/session';
+import { requireUser } from '@/server/domain/session';
 import { getMarketplaceItem, updateMarketplaceItem, deleteMarketplaceItem } from '@/server/domain/marketplace';
 import { MARKETPLACE_VISIBILITY } from '@/server/db/schema';
 import { scanTextForRedlines } from '@/server/domain/moderation';
+import { csrfOk } from '@/server/security/csrf';
+import { jsonError } from '@/server/http';
 
 /**
  * §127-128 Marketplace 单个物品的查询、更新与删除。
  *
  * GET：获取物品详情（包括已下架的，用于收藏者查看原因）。
- * PATCH：更新物品元数据（仅创作者可操作），标题/描述/标签过发布机检。
- * DELETE：软删除物品（仅创作者可操作）。
+ * PATCH：更新物品元数据（仅创作者可操作 + CSRF 门），标题/描述/标签过发布机检。
+ * DELETE：软删除物品（仅创作者可操作 + CSRF 门）。
  */
 
 export async function GET(
-  req: Request,
-  { params }: { params: { id: string } },
+  _req: Request,
+  { params }: { params: Promise<{ id: string }> },
 ): Promise<NextResponse> {
-  const item = await getMarketplaceItem(params.id);
+  const { id } = await params;
+  const item = await getMarketplaceItem(id);
 
   if (!item) {
     return NextResponse.json({ error: 'Item not found' }, { status: 404 });
   }
 
-  return NextResponse.json({ item });
+  return NextResponse.json({ item }, { headers: { 'cache-control': 'no-store' } });
 }
 
 export async function PATCH(
   req: Request,
-  { params }: { params: { id: string } },
+  { params }: { params: Promise<{ id: string }> },
 ): Promise<NextResponse> {
-  const user = await requireAuth();
-  const body = (await req.json()) as any;
+  if (!(await csrfOk(req))) return jsonError(403, 'csrf_failed', { message: 'CSRF 校验未通过' });
+  const user = await requireUser();
+  const { id } = await params;
+  const body = (await req.json()) as {
+    title?: string;
+    description?: string;
+    tags?: string[];
+    previewAssetId?: string;
+    priceCredits?: number;
+    visibility?: 'public' | 'free' | 'private';
+  };
 
-  // 验证 visibility
   if (body.visibility && !MARKETPLACE_VISIBILITY.includes(body.visibility)) {
     return NextResponse.json({ error: `Invalid visibility: ${body.visibility}` }, { status: 400 });
   }
 
   // 内容安全：如果更新了标题/描述/标签，过发布机检同一份红线词表
-  const textsToCheck = [
-    body.title ?? '',
-    body.description ?? '',
-    ...(body.tags ?? []),
-  ].join(' ');
+  const textsToCheck = [body.title ?? '', body.description ?? '', ...(body.tags ?? [])].join(' ');
 
   if (textsToCheck.trim()) {
-    const redlines = await scanTextForRedlines(textsToCheck);
+    const redlines = scanTextForRedlines(textsToCheck);
     if (redlines.length > 0) {
-      return NextResponse.json(
-        { error: 'Content contains prohibited terms', redlines },
-        { status: 400 },
-      );
+      return NextResponse.json({ error: 'Content contains prohibited terms', redlines }, { status: 400 });
     }
   }
 
   try {
-    const updated = await updateMarketplaceItem(params.id, user.id, {
+    const updated = await updateMarketplaceItem(id, user.id, {
       title: body.title,
       description: body.description,
       tags: body.tags,
@@ -65,21 +69,23 @@ export async function PATCH(
     });
 
     return NextResponse.json({ item: updated });
-  } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 400 });
+  } catch (error) {
+    return NextResponse.json({ error: error instanceof Error ? error.message : '更新失败' }, { status: 400 });
   }
 }
 
 export async function DELETE(
   req: Request,
-  { params }: { params: { id: string } },
+  { params }: { params: Promise<{ id: string }> },
 ): Promise<NextResponse> {
-  const user = await requireAuth();
+  if (!(await csrfOk(req))) return jsonError(403, 'csrf_failed', { message: 'CSRF 校验未通过' });
+  const user = await requireUser();
+  const { id } = await params;
 
   try {
-    const deleted = await deleteMarketplaceItem(params.id, user.id);
+    const deleted = await deleteMarketplaceItem(id, user.id);
     return NextResponse.json({ item: deleted });
-  } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 400 });
+  } catch (error) {
+    return NextResponse.json({ error: error instanceof Error ? error.message : '删除失败' }, { status: 400 });
   }
 }

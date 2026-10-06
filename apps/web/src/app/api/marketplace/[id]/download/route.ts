@@ -9,10 +9,11 @@ import { incrementDownloadCount, getMarketplaceItem } from '@/server/domain/mark
  */
 
 export async function POST(
-  req: Request,
-  { params }: { params: { id: string } },
+  _req: Request,
+  { params }: { params: Promise<{ id: string }> },
 ): Promise<NextResponse> {
-  const item = await getMarketplaceItem(params.id);
+  const { id } = await params;
+  const item = await getMarketplaceItem(id);
 
   if (!item) {
     return NextResponse.json({ error: 'Item not found or has been removed' }, { status: 404 });
@@ -23,7 +24,7 @@ export async function POST(
     return NextResponse.json({ error: 'This item is not available for download' }, { status: 403 });
   }
 
-  const newCount = await incrementDownloadCount(params.id);
+  const newCount = await incrementDownloadCount(id);
 
   return NextResponse.json({ downloadCount: newCount });
 }

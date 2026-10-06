@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { getDb } from '../db/client';
-import { users, projects, assets, snapshots, marketplaceItems } from '../db/schema';
-import { eq, isNull } from 'drizzle-orm';
+import { users, projects, marketplaceItems } from '../db/schema';
+import { eq } from 'drizzle-orm';
 import {
   listMarketplaceItems,
   createMarketplaceItem,
@@ -13,7 +13,6 @@ import {
 
 describe('marketplace domain', () => {
   let testUser: typeof users.$inferSelect;
-  let testProject: typeof projects.$inferSelect;
 
   beforeEach(async () => {
     const db = getDb();
@@ -32,18 +31,7 @@ describe('marketplace domain', () => {
         passwordHash: 'dummy',
       })
       .returning();
-    testUser = user;
-
-    // Create test project
-    const [project] = await db
-      .insert(projects)
-      .values({
-        name: 'Test Project',
-        slug: `test-project-${timestamp}`,
-        ownerId: testUser.id,
-      })
-      .returning();
-    testProject = project;
+    testUser = user!;
   });
 
   describe('createMarketplaceItem', () => {
@@ -95,7 +83,7 @@ describe('marketplace domain', () => {
         .values({
           name: 'Other Project',
           slug: `other-project-${otherTimestamp}`,
-          ownerId: otherUser.id,
+          ownerId: otherUser!.id,
         })
         .returning();
 
@@ -104,7 +92,7 @@ describe('marketplace domain', () => {
           creatorId: testUser.id,
           itemType: 'world',
           title: 'Test World',
-          sourceProjectId: otherProject.id,
+          sourceProjectId: otherProject!.id,
         }),
       ).rejects.toThrow('Only project owner can publish items from it');
     });
@@ -146,7 +134,7 @@ describe('marketplace domain', () => {
     it('filters by item type', async () => {
       const items = await listMarketplaceItems({ itemType: 'component' });
       expect(items).toHaveLength(1);
-      expect(items[0].itemType).toBe('component');
+      expect(items[0]!.itemType).toBe('component');
     });
 
     it('filters by price range', async () => {
@@ -157,7 +145,7 @@ describe('marketplace domain', () => {
     it('searches by title', async () => {
       const items = await listMarketplaceItems({ search: 'Component' });
       expect(items).toHaveLength(1);
-      expect(items[0].title).toContain('Component');
+      expect(items[0]!.title).toContain('Component');
     });
   });
 
@@ -199,7 +187,7 @@ describe('marketplace domain', () => {
         })
         .returning();
 
-      await expect(updateMarketplaceItem(itemId, otherUser.id, { title: 'Hacked' })).rejects.toThrow(
+      await expect(updateMarketplaceItem(itemId, otherUser!.id, { title: 'Hacked' })).rejects.toThrow(
         'Only creator can update this item',
       );
     });
@@ -240,7 +228,7 @@ describe('marketplace domain', () => {
         .where(eq(marketplaceItems.id, itemId))
         .limit(1);
 
-      expect(row.deletedAt).not.toBeNull();
+      expect(row!.deletedAt).not.toBeNull();
     });
 
     it('rejects non-creator deletion', async () => {
@@ -256,7 +244,7 @@ describe('marketplace domain', () => {
         })
         .returning();
 
-      await expect(deleteMarketplaceItem(itemId, otherUser.id)).rejects.toThrow(
+      await expect(deleteMarketplaceItem(itemId, otherUser!.id)).rejects.toThrow(
         'Only creator can delete this item',
       );
     });

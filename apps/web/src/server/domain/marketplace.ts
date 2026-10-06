@@ -208,7 +208,7 @@ export async function createMarketplaceItem(input: CreateMarketplaceItemInput) {
     })
     .returning();
 
-  return newItem;
+  return newItem!;
 }
 
 export async function updateMarketplaceItem(itemId: string, userId: string, input: UpdateMarketplaceItemInput) {
@@ -256,7 +256,7 @@ export async function updateMarketplaceItem(itemId: string, userId: string, inpu
     .where(eq(marketplaceItems.id, itemId))
     .returning();
 
-  return updated;
+  return updated!;
 }
 
 export async function deleteMarketplaceItem(itemId: string, userId: string) {
@@ -284,7 +284,7 @@ export async function deleteMarketplaceItem(itemId: string, userId: string) {
     .where(eq(marketplaceItems.id, itemId))
     .returning();
 
-  return deleted;
+  return deleted!;
 }
 
 export async function incrementDownloadCount(itemId: string) {
