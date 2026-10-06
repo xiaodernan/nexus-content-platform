@@ -171,6 +171,14 @@ export default function Scene3D() {
           return [];
         }
       },
+      deleteSaveFile(path) {
+        try {
+          const report = runtime.deleteSaveFile(path);
+          return report.removed;
+        } catch {
+          return false;
+        }
+      },
     };
     saverRef.current = saver;
 
@@ -370,6 +378,22 @@ export default function Scene3D() {
     setSaveNote(`found ${saves.length} save${saves.length === 1 ? '' : 's'} in the store`);
   }, []);
 
+  const onDeleteSave = useCallback((path: string) => {
+    const saver = saverRef.current;
+    if (!saver || !saver.deleteSaveFile) return;
+    try {
+      const removed = saver.deleteSaveFile(path);
+      // Refresh the list after deletion
+      const remaining = saver.listSaveFiles?.() ?? [];
+      setAvailableSaves(remaining);
+      // Clear selection if the deleted save was selected
+      if (selectedSavePath === path) setSelectedSavePath(null);
+      setSaveNote(removed ? `deleted ${path}` : `${path} was already gone`);
+    } catch (error) {
+      setSaveNote(`delete refused: ${(error as Error).message}`);
+    }
+  }, [selectedSavePath]);
+
   const sendCountRef = useRef(0);
   const onSendToDocument = useCallback(() => {
     const surface = surfaceRef.current;
@@ -507,29 +531,54 @@ export default function Scene3D() {
             send to doc
           </button>
         </div>
-        {/* M5 v169 — available saves list, shown after browsing */}
+        {/* M5 v169/v171 — available saves list with delete buttons */}
         {availableSaves.length > 0 && (
           <div style={{ marginTop: 8, pointerEvents: 'auto', maxHeight: 200, overflowY: 'auto' }}>
             <div style={{ fontWeight: 600, marginBottom: 4, fontSize: 10 }}>Available Saves:</div>
             {availableSaves.map((save) => (
               <div
                 key={save.path}
-                onClick={() => setSelectedSavePath(save.path)}
                 style={{
+                  display: 'flex',
+                  alignItems: 'center',
                   padding: '4px 6px',
                   margin: '2px 0',
                   background: selectedSavePath === save.path ? 'rgba(66, 133, 244, 0.2)' : 'transparent',
                   border: selectedSavePath === save.path ? '1px solid rgba(66, 133, 244, 0.5)' : '1px solid transparent',
                   borderRadius: 3,
-                  cursor: 'pointer',
                   fontSize: 10,
                   lineHeight: 1.4,
                 }}
               >
-                <div>{save.path}</div>
-                <div style={{ color: 'var(--nexus-muted)', fontSize: 9 }}>
-                  v{save.version} · {save.entityCount ?? '?'} bodies · savedAt {save.savedAt}
+                <div
+                  onClick={() => setSelectedSavePath(save.path)}
+                  style={{ flex: 1, cursor: 'pointer' }}
+                >
+                  <div>{save.path}</div>
+                  <div style={{ color: 'var(--nexus-muted)', fontSize: 9 }}>
+                    v{save.version} · {save.entityCount ?? '?'} bodies · savedAt {save.savedAt}
+                  </div>
                 </div>
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onDeleteSave(save.path);
+                  }}
+                  style={{
+                    marginLeft: 8,
+                    padding: '2px 6px',
+                    fontSize: 9,
+                    background: 'rgba(244, 67, 54, 0.1)',
+                    border: '1px solid rgba(244, 67, 54, 0.3)',
+                    borderRadius: 3,
+                    cursor: 'pointer',
+                    color: 'var(--nexus-danger)',
+                  }}
+                  title={`Delete ${save.path}`}
+                >
+                  delete
+                </button>
               </div>
             ))}
           </div>

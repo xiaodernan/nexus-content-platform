@@ -136,6 +136,8 @@ export interface SceneSaverLike {
   loadSaveFile(file: SceneSaveFile, sceneId: string): SceneLoadReport;
   /** M5 v169 — list available saves without reading any file (the store answers about names only). */
   listSaveFiles?(): SceneSaveEntry[];
+  /** M5 v171 — take a save back. Returns true when something was deleted, false when the path held nothing. */
+  deleteSaveFile?(path: string): boolean;
 }
 
 /** Where the demo camera stands. Far enough out to see four bodies, close enough to read their faces. */
