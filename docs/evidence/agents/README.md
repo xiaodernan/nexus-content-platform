@@ -3770,3 +3770,49 @@ driver.
 Bounds, stated: both doors refuse a scene the driver does not hold, and both answer `rendered: false` —
 a door never claims pixels. The format is the runtime's own, not a door invention; disk persistence is
 still nobody's job here — the file exists in memory, and that is all the door claims.
+
+## The exec host learns to CONTAIN (container-proof.mjs §6–§8 — M6 v166 — ADR 0016 amendment 166)
+
+v144 gave this lane a git-aware exec host that could run commands on the real filesystem but had no
+isolation boundary. v166 adds a full container execution layer — Docker/Podman-based command execution
+with policy, auditing, and deterministic replay. The new proof sections run the container subsystem over
+a real container runtime:
+
+```
+node docs/evidence/agents/container-proof.mjs   # requires `npm run build` first
+```
+
+| door | class | what it does |
+| --- | --- | --- |
+| `container.run` | write | execute a command inside an isolated container with resource caps and mount policy |
+| `container.policy.validate` | read | check if a container configuration is safe to run |
+| `container.audit.list` | read | list all past container executions with their decisions and outcomes |
+
+**Policy refuses unsafe mounts at the door.** `validateContainerPolicy` rejects absolute paths outside
+allowed directories, relative paths with `..` segments, and any mount that would expose host secrets
+(`/etc`, `/root`, `.env` files). Resource limits are capped: CPU ≤ 2 cores, memory ≤ 4GB, timeout ≤ 300s.
+A policy that passes validation produces a `ContainerPlan` with deterministic Docker args.
+
+**Execution is audited end-to-end.** Every `container.run` call logs a `ContainerDecision` with the plan's
+SHA-256 hash, the policy verdict, resource caps, and wall-clock timing. The audit trail survives process
+restarts via JSONL files in the agent workspace. A failed container (non-zero exit) is still audited —
+the decision record names WHY it failed (policy refused, runtime missing, command crashed).
+
+**Deterministic replay proves isolation.** §6 runs `echo hello` in a fresh container, captures the stdout,
+and replays the same plan — identical args, identical output. §7 attempts a forbidden mount (`/etc/shadow`)
+and verifies the policy refuses BEFORE any container starts. §8 lists the audit trail and confirms every
+run has a decision record with matching plan hash.
+
+| § | what it measures |
+| --- | --- |
+| 6 | `container.run` executes `echo hello` in isolation, returns stdout, and replays identically; plan hash matches across runs |
+| 7 | `container.policy.validate` refuses `/etc/shadow` mount by name, refuses `../escape` path, refuses CPU > 2; allowed configs pass |
+| 8 | `container.audit.list` returns all past runs with decisions; each record has plan hash, policy verdict, timing, and exit code |
+| 9 | this repository's HEAD is byte-identical |
+
+Bounds, stated: the container layer is opt-in — existing `exec.spawn` continues unchanged. Docker/Podman
+must be installed on the host; if neither runtime is found, `probeContainerRuntime` answers `{found: false}`
+and all container calls refuse with `runtime unavailable`. The isolation boundary is as strong as the
+container engine's — this layer enforces policy but cannot prevent a compromised engine from escaping.
+Resource caps are advisory unless the engine enforces them (Docker does, Podman may not on rootless).
+
