@@ -95,6 +95,14 @@ export interface SceneAdapterLike {
  * back into `loadSaveFile` only through the host's converter (the one place allowed to know the real
  * brands), exactly how `SceneAdapterLike` handles `THREE.Vector3`.
  */
+/** M5 v169 — what listSaveFiles() answers about each save, structural for the same SSR reason. */
+export interface SceneSaveEntry {
+  path: string;
+  savedAt: number;
+  version: number;
+  entityCount?: number;
+}
+
 export interface SceneSaveFile {
   format: string;
   version: number;
@@ -126,6 +134,8 @@ export interface SceneSaverLike {
   /** Read a file back into the scene named. Refusals are the DRIVER's own — a foreign format, a version
    *  this runtime cannot read, or a restore that would overwrite live state all throw here. */
   loadSaveFile(file: SceneSaveFile, sceneId: string): SceneLoadReport;
+  /** M5 v169 — list available saves without reading any file (the store answers about names only). */
+  listSaveFiles?(): SceneSaveEntry[];
 }
 
 /** Where the demo camera stands. Far enough out to see four bodies, close enough to read their faces. */

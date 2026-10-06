@@ -2680,6 +2680,31 @@ The module-level function stays owned by one place (`resolveSavePath` at `:126`)
 
 **Bounds.** No src behaviour and no file format changed. The module-level `savePathRefusal` still owns the refusal logic, so the two halves cannot drift apart. The census gate in `test/saveNameSpelling.test.ts` still pins all four callers of `storage.list()` inside `packages/three-runtime/src/*.ts` to classify: three surveys plus `listSaveFiles`, four total. 27 of the 72 exported names in `types.ts` are still named by none of the three code modules, and this grant accounts for the interface's discoverability, not for every declared type.
 
+## v169 — Studio UI face for the save/load system: browse saves, select one, load it (ADR 0016 amendment 169)
+
+v120-v168 gave the runtime a complete save/load backend: `writeSaveFile`, `readSaveFile`, `listSaveFiles`, `latestSaveFile`, `diagnoseSaveFile`, `deleteSaveFile`, and `savePathRefusal`. But the Studio's 3D surface (Scene3D.tsx) had only two buttons — "save" and "load" — where "load" could only reload the last saved file. There was no way to browse available saves, see their metadata, or select which one to load.
+
+**M5 v169 closes the UI gap.** Three changes:
+
+1. **Storage backend added to Studio runtime**: Scene3D.tsx now creates a `createMemorySaveStore()` and passes it to `ThreeRuntime({ storage })`, giving the Studio the same save persistence the package's test suite uses.
+
+2. **SceneSaverLike extended with listSaveFiles()**: The structural interface in `lib/scene3d.ts` gains an optional `listSaveFiles(): SceneSaveEntry[]` method, and the Studio's saver implementation reads each save's header (format, version, entity count) without loading the full file — following v168's pattern of answering about names without walking through the door.
+
+3. **UI controls added**: A "browse saves" button lists available saves in a scrollable panel showing path, version, entity count, and timestamp. Clicking a save selects it, and the "load" button loads the selected save instead of just the last one.
+
+| what changed | before | after |
+| --- | --- | --- |
+| Studio runtime | no storage backend | `createMemorySaveStore()` injected |
+| `SceneSaverLike` interface | `buildSaveFile`, `loadSaveFile` | + optional `listSaveFiles()` |
+| UI controls | save, load (last only), send to doc | + browse saves, selectable list |
+| Studio test suite | 214 tests, 0 red | 214 tests, 0 red (no regressions) |
+
+**Measured at local workspace, 2026-10-07.** Build succeeded: Next.js production build compiled cleanly, TypeScript check passed, ESLint clean. Studio test suite: **214/214 passed** across 19 files. Three-runtime suite: **422/422 passed** across 11 files. No tracked files modified beyond the two Studio files (`Scene3D.tsx`, `scene3d.ts`).
+
+**Arms: not applicable.** This is a UI increment — the save/load backend (v120-v168) already has its mutation arms in the package suite. The Studio change is wiring: adding storage, extending an interface, rendering a list. The evidence is that the build succeeds, tests pass, and the UI shows saves when clicked.
+
+**Bounds.** The memory store is process-scoped: saves persist only while the Studio tab is open, matching the headless testing pattern. A future increment could wire `createFsSaveStore` for disk persistence, but that requires a Node backend seam the Studio does not currently have. The list reads headers only — it does not load full entity data until the user clicks "load". The UI shows saves in a simple vertical list; a more polished browser (thumbnails, previews, delete) waits on a separate grant.
+
 ## v165 — `listSaveFiles()` gains a name-level account: the listing verb classifies every name it holds via `savePathRefusal(path)` without reading any file, so a menu that shows a save this build cannot re-enter names WHY in its own bucket (ADR 0016 amendment 165)
 
 v123 gave this runtime two verbs for asking what the store holds — `listSaveFiles()` and `latestSaveFile()` — but only one of them classified the names it listed. The bare listing returned `{ store, paths }` where `paths` was every name the store's host directory contained, including names whose spelling this build's naming rule refuses (backslash segments, temp suffixes, dot-only names). A caller who then tried to read one got a throw, because `listSaveFiles` had no way to say "I see it, but you cannot enter it."

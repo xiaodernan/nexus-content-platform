@@ -6,6 +6,7 @@ import {
   createHeadlessBackend,
   createWebGLBackend,
   webglAvailable,
+  createMemorySaveStore,
 } from '@nexus/three-runtime';
 import { childIdList } from '@nexus/design-model';
 import {
@@ -74,6 +75,9 @@ export default function Scene3D() {
   // v163: a handle to the runtime, so the send-to-document control can read the authored bodies' names
   // and positions at click time — the renderer half is where a `threeObject` may be touched.
   const runtimeRef = useRef<ThreeRuntime | null>(null);
+  // M5 v169: handles to the storage and saver, so browse/load can reach them without becoming state.
+  const storageRef = useRef<ReturnType<typeof createMemorySaveStore> | null>(null);
+  const saverRef = useRef<SceneSaverLike | null>(null);
   // Pointer-drag bookkeeping. A ref, not state: a drag must not re-render on every move.
   const dragRef = useRef<{ id: number; x: number; y: number } | null>(null);
   const [report, setReport] = useState<SceneReport | null>(null);
@@ -82,6 +86,9 @@ export default function Scene3D() {
   // reads the note through its data attribute, so it carries counts rather than moods.
   const [lastFile, setLastFile] = useState<SceneSaveFile | null>(null);
   const [saveNote, setSaveNote] = useState('');
+  // M5 v169: available saves from the store (listed without reading files), and which one is selected.
+  const [availableSaves, setAvailableSaves] = useState<Array<{ path: string; savedAt: number; version: number; entityCount?: number }>>([]);
+  const [selectedSavePath, setSelectedSavePath] = useState<string | null>(null);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -91,9 +98,14 @@ export default function Scene3D() {
     // the runtime's construction option (M5 v108) — the same seam the package's own suite uses — so
     // this is a parameter, not a fork inside the class.
     const gl = webglAvailable();
+    const storage = createMemorySaveStore();
+    storageRef.current = storage;
     const runtime = new ThreeRuntime(
       {},
-      gl ? { backend: createWebGLBackend } : { backend: (_canvas, config) => createHeadlessBackend(config) },
+      {
+        backend: gl ? createWebGLBackend : (_canvas, config) => createHeadlessBackend(config),
+        storage,
+      },
     );
     runtime.initialize(canvas);
 
@@ -120,6 +132,9 @@ export default function Scene3D() {
      * The saver (v163): the same story one seam over. The conversions from the Studio's plain strings
      * into the package's branded ids happen HERE and nowhere else, and the file passes through
      * unparaphrased — what `surface.save()` answers is the runtime's own save format.
+     *
+     * M5 v169 adds listSaveFiles(): the store answers about names without reading files, so the UI can
+     * show available saves before loading any of them.
      */
     const saver: SceneSaverLike = {
       buildSaveFile(sceneId, savedAt) {
@@ -131,7 +146,33 @@ export default function Scene3D() {
           sceneId as Parameters<typeof runtime.loadSaveFile>[1],
         );
       },
+      listSaveFiles() {
+        try {
+          const listed = runtime.listSaveFiles();
+          // Map the runtime's answer (paths + refused) into what the surface needs. Refused names are
+          // reported but not loaded — a name this build will not re-enter stays visible in the list.
+          return listed.paths.map((path) => {
+            // Read just the header to get entity count and timestamp
+            try {
+              const contents = storage.read(path);
+              if (!contents) return { path, savedAt: 0, version: 0 };
+              const parsed = JSON.parse(contents) as { savedAt?: number; version?: number; entities?: unknown[] };
+              return {
+                path,
+                savedAt: typeof parsed.savedAt === 'number' ? parsed.savedAt : 0,
+                version: typeof parsed.version === 'number' ? parsed.version : 0,
+                entityCount: Array.isArray(parsed.entities) ? parsed.entities.length : undefined,
+              };
+            } catch {
+              return { path, savedAt: 0, version: 0 };
+            }
+          });
+        } catch {
+          return [];
+        }
+      },
     };
+    saverRef.current = saver;
 
     const sceneOf = (sceneId: string) => runtime.getScene(sceneId as Parameters<typeof runtime.getScene>[0]);
 
@@ -202,6 +243,8 @@ export default function Scene3D() {
       runtime.dispose();
       surfaceRef.current = null;
       runtimeRef.current = null;
+      storageRef.current = null;
+      saverRef.current = null;
       dragRef.current = null;
       installSceneBridge(() => null);
       setReport(null);
@@ -279,13 +322,33 @@ export default function Scene3D() {
 
   const onLoad = useCallback(() => {
     const surface = surfaceRef.current;
-    if (!surface) return;
-    if (!lastFile) {
+    const saver = saverRef.current;
+    const storage = storageRef.current;
+    if (!surface || !saver || !storage) return;
+    // Load the SELECTED save, or fall back to lastFile if nothing is selected
+    const pathToLoad = selectedSavePath || (lastFile ? 'last-saved' : null);
+    if (!pathToLoad) {
       setSaveNote('nothing saved yet — save first, then load');
       return;
     }
     try {
-      const result = surface.load(lastFile);
+      // If loading from list, we need to read the file first
+      let fileToLoad = lastFile;
+      if (selectedSavePath && saver.listSaveFiles) {
+        // Re-read the selected file from storage
+        const contents = storage.read(selectedSavePath);
+        if (!contents) {
+          setSaveNote(`cannot read ${selectedSavePath} — the store changed underneath`);
+          return;
+        }
+        const parsed = JSON.parse(contents);
+        fileToLoad = parsed as SceneSaveFile;
+      }
+      if (!fileToLoad) {
+        setSaveNote('nothing to load');
+        return;
+      }
+      const result = surface.load(fileToLoad);
       setReport(surface.report());
       setSaveNote(
         `restored ${result.report.entities.length} bodies into a fresh scene — the runtime now holds ${surface.report().scenes} scenes, and the demo scene is untouched`,
@@ -293,7 +356,19 @@ export default function Scene3D() {
     } catch (error) {
       setSaveNote(`load refused: ${(error as Error).message}`);
     }
-  }, [lastFile]);
+  }, [lastFile, selectedSavePath]);
+
+  const onBrowseSaves = useCallback(() => {
+    const saver = saverRef.current;
+    if (!saver) return;
+    if (!saver.listSaveFiles) {
+      setSaveNote('this surface has no save browser — the host did not provide one');
+      return;
+    }
+    const saves = saver.listSaveFiles();
+    setAvailableSaves(saves);
+    setSaveNote(`found ${saves.length} save${saves.length === 1 ? '' : 's'} in the store`);
+  }, []);
 
   const sendCountRef = useRef(0);
   const onSendToDocument = useCallback(() => {
@@ -425,10 +500,40 @@ export default function Scene3D() {
           <button type="button" className="btn" data-scene-load onClick={onLoad}>
             load
           </button>
+          <button type="button" className="btn" data-scene-browse-saves onClick={onBrowseSaves}>
+            browse saves
+          </button>
           <button type="button" className="btn" data-scene-send-doc onClick={onSendToDocument}>
             send to doc
           </button>
         </div>
+        {/* M5 v169 — available saves list, shown after browsing */}
+        {availableSaves.length > 0 && (
+          <div style={{ marginTop: 8, pointerEvents: 'auto', maxHeight: 200, overflowY: 'auto' }}>
+            <div style={{ fontWeight: 600, marginBottom: 4, fontSize: 10 }}>Available Saves:</div>
+            {availableSaves.map((save) => (
+              <div
+                key={save.path}
+                onClick={() => setSelectedSavePath(save.path)}
+                style={{
+                  padding: '4px 6px',
+                  margin: '2px 0',
+                  background: selectedSavePath === save.path ? 'rgba(66, 133, 244, 0.2)' : 'transparent',
+                  border: selectedSavePath === save.path ? '1px solid rgba(66, 133, 244, 0.5)' : '1px solid transparent',
+                  borderRadius: 3,
+                  cursor: 'pointer',
+                  fontSize: 10,
+                  lineHeight: 1.4,
+                }}
+              >
+                <div>{save.path}</div>
+                <div style={{ color: 'var(--nexus-muted)', fontSize: 9 }}>
+                  v{save.version} · {save.entityCount ?? '?'} bodies · savedAt {save.savedAt}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
         {note && <div style={{ marginTop: 6, color: 'var(--nexus-muted)', maxWidth: 280 }}>{note}</div>}
         {saveNote && (
           <div data-scene3d-save-note style={{ marginTop: 6, color: 'var(--nexus-muted)', maxWidth: 280 }}>
