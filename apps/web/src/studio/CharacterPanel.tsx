@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   WORLD_KIND_LABELS,
   addRelationship,
@@ -42,6 +42,13 @@ export function CharacterPanel() {
   const [saving, setSaving] = useState(false);
   const [newName, setNewName] = useState('');
   const [relKind, setRelKind] = useState('');
+  // §47 跟角色说话：本地一段临时对话 + 一条错误说明。服务端没有会话线程（§47 进度记录），
+  // 真实回复落的是 §48 的角色记忆，界面这段刷新就没了——不假装它存了档
+  const [chatLog, setChatLog] = useState<{ role: 'user' | 'character'; text: string }[]>([]);
+  const [chatDraft, setChatDraft] = useState('');
+  const [chatBusy, setChatBusy] = useState(false);
+  const [chatError, setChatError] = useState<string | null>(null);
+  const chatSessionRef = useRef(`chat_${Date.now().toString(36)}`);
 
   useEffect(() => {
     worldStore.ensure(studio.projectId);
@@ -150,11 +157,39 @@ export function CharacterPanel() {
       }
       setSelectedId(null);
       setDraft(null);
+      setChatLog([]);
+      setChatError(null);
+      setChatDraft('');
       await reload();
     } catch (error) {
       setMessage(error instanceof Error ? error.message : String(error));
     } finally {
       setSaving(false);
+    }
+  };
+
+  /** §47 跟角色说话。回复只有一种来源：ai-service 背后的真模型。
+      409（DEMO MODE）/ 429（太频繁）/ 其它失败都把服务器的原话亮出来，界面不编一句假的顶上（§159） */
+  const sendChat = async () => {
+    const text = chatDraft.trim();
+    if (!text || chatBusy || !selected) return;
+    setChatLog((prev) => [...prev, { role: 'user', text }]);
+    setChatDraft('');
+    setChatBusy(true);
+    setChatError(null);
+    try {
+      const res = await fetch(`/api/projects/${studio.projectId}/characters/${selected.id}/chat`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json', ...csrfHeaders() },
+        body: JSON.stringify({ message: text, sessionId: chatSessionRef.current }),
+      });
+      const body = (await res.json().catch(() => null)) as { reply?: string; message?: string } | null;
+      if (!res.ok || !body?.reply) throw new Error(body?.message ?? `HTTP ${res.status}`);
+      setChatLog((prev) => [...prev, { role: 'character', text: body.reply! }]);
+    } catch (error) {
+      setChatError(error instanceof Error ? error.message : String(error));
+    } finally {
+      setChatBusy(false);
     }
   };
 
@@ -262,6 +297,9 @@ export function CharacterPanel() {
                   setSelectedId(character.id);
                   setDraft(character.profile);
                   setMessage(null);
+                  setChatLog([]);
+                  setChatError(null);
+                  setChatDraft('');
                 }}
                 data-character-tab={character.id}
                 aria-pressed={character.id === selectedId}
@@ -489,6 +527,62 @@ export function CharacterPanel() {
               {!world.world ? (
                 <p className="mt-1 text-11 text-warn">这个项目还没有世界，关系没有可指向的条目。</p>
               ) : null}
+            </section>
+
+            {/* §47 跟角色说话。没有 provider 就没有回复——409 的原话亮在这里，
+                不在界面上拼一句"角色风"的模板话冒充它开口（§159） */}
+            <section data-character-chat>
+              <h3 className="mb-1 text-11 text-fg-3">跟角色说话</h3>
+              <p className="mb-1 text-11 text-fg-3">
+                对话没有会话线程：真实回复会进 §48 的角色记忆，界面这段刷新就不在了。
+              </p>
+              {chatLog.length ? (
+                <ul className="mb-1 flex flex-col gap-1" data-character-chat-log>
+                  {chatLog.map((entry, index) => (
+                    <li
+                      key={`${entry.role}-${index}`}
+                      data-character-chat-msg={entry.role}
+                      className={cn(
+                        'rounded-[var(--nexus-radius-sm)] px-2 py-1 text-12',
+                        entry.role === 'user' ? 'bg-bg-2 text-fg-1' : 'bg-bg-3 text-fg-1',
+                      )}
+                    >
+                      <span className="mr-1 font-mono text-10 text-fg-3">
+                        {entry.role === 'user' ? '你' : draft.name || '角色'}：
+                      </span>
+                      {entry.text}
+                    </li>
+                  ))}
+                </ul>
+              ) : null}
+              {chatError ? (
+                <p className="mb-1 text-11 text-warn" data-character-chat-error>
+                  {chatError}
+                </p>
+              ) : null}
+              <div className="flex items-center gap-1">
+                <input
+                  value={chatDraft}
+                  onChange={(e) => setChatDraft(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') void sendChat();
+                  }}
+                  placeholder="说点什么…"
+                  aria-label="给角色的话"
+                  data-character-chat-input
+                  disabled={chatBusy}
+                  className="min-w-0 flex-1 rounded-[var(--nexus-radius-sm)] bg-bg-2 px-2 py-1 text-12 text-fg-1 outline-none focus:bg-bg-3 disabled:opacity-50"
+                />
+                <button
+                  type="button"
+                  disabled={chatBusy || !chatDraft.trim()}
+                  onClick={() => void sendChat()}
+                  data-character-chat-send
+                  className="shrink-0 rounded-[var(--nexus-radius-sm)] bg-bg-2 px-2 py-1 text-11 text-fg-2 hover:bg-bg-3 disabled:opacity-50"
+                >
+                  {chatBusy ? '在想…' : '说'}
+                </button>
+              </div>
             </section>
 
             {issues.length ? (
