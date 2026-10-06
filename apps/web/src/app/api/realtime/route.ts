@@ -25,6 +25,17 @@ export const dynamic = 'force-dynamic';
 /** 25s：低于常见代理的 30–60s 空闲超时，又不至于让心跳占满带宽 */
 const HEARTBEAT_MS = 25_000;
 
+/**
+ * 最长连接寿命（毫秒），0 = 不限（生产默认）。
+ *
+ * 这格旋钮只有一个用途：给 e2e 一条**诚实**的断线制造法。CDP 的
+ * `emulateNetworkConditions({offline:true})` 打不断已建立的 SSE（旧 e2e 因此删掉而不说假话，
+ * 记在 ADR-0029 的验证一节），而"服务端主动关流"正是生产断线在客户端走的那条同一路径：
+ * 流结束 → error（浏览器自动重连）→ open → onReconnect 重读权威。
+ * 到点走的是同一个 `cleanup`（退订 + 停心跳 + 释放名额），不会留下半条连接。
+ */
+const MAX_LIFETIME_MS = Number(process.env.NEXUS_REALTIME_MAX_LIFETIME_MS ?? 0) || 0;
+
 export async function GET(req: Request): Promise<Response> {
   const user = await currentUserOrNull();
   if (!user) return jsonError(401, 'unauthenticated', { message: '需要先登录' });
@@ -45,6 +56,7 @@ export async function GET(req: Request): Promise<Response> {
   let unsubscribeUser: (() => void) | null = null;
   let unsubscribeProject: (() => void) | null = null;
   let heartbeat: ReturnType<typeof setInterval> | null = null;
+  let lifetime: ReturnType<typeof setTimeout> | null = null;
   let closed = false;
 
   /** 收尾：退订 + 停心跳 + 释放名额。必须幂等——abort 与 stream.cancel 都可能走到这里 */
@@ -52,6 +64,7 @@ export async function GET(req: Request): Promise<Response> {
     if (closed) return;
     closed = true;
     if (heartbeat) clearInterval(heartbeat);
+    if (lifetime) clearTimeout(lifetime);
     unsubscribeUser?.();
     unsubscribeProject?.();
     releaseConnection(user.id);
@@ -95,6 +108,18 @@ export async function GET(req: Request): Promise<Response> {
       };
       if (req.signal.aborted) onAbort();
       else req.signal.addEventListener('abort', onAbort, { once: true });
+
+      // 寿命到点：与断开同一条收尾路径（幂等），然后真正关掉流——客户端看到的就是一次断线
+      if (MAX_LIFETIME_MS > 0) {
+        lifetime = setTimeout(() => {
+          cleanup();
+          try {
+            controller.close();
+          } catch {
+            // 已经关了，忽略
+          }
+        }, MAX_LIFETIME_MS);
+      }
     },
     cancel() {
       // 客户端主动取消（关标签页、切路由）

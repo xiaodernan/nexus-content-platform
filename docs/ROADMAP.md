@@ -1348,9 +1348,16 @@ drizzle 把整个拼接结果当成**单个绑定参数**，生成的 SQL 是 `o
   2 条从源文件扫 `useRealtime(...)` 的选项对象钉**接线**——前 6 条只证明信号会发，删掉 `onReconnect` 它们一条都不红；
   六条变异臂 A/B/C/D/E/F 分别红 4 / 2 / 1 / 1 / 1 / 1 条（A 的预测是 1 条，实测 4 条，差额写在 ADR 的验证一节；
   E 把线接成空函数、F 接到别的 setter 上，都单独红在接线那一条）。
-  **真浏览器断线那一格没拿到**：CDP `emulateNetworkConditions({offline:true})` 打断不了已建立的 SSE 连接
-  （30 秒里 `data-realtime` 一直是 `open`），所以那条 e2e 用例删掉了而不是留着说假话——
-  要补这一寸得从服务端主动关流。
+  **真浏览器断线那一格已拿到（2026-10-07）**：CDP `emulateNetworkConditions({offline:true})` 打断不了
+  已建立的 SSE（30 秒里 `data-realtime` 一直是 `open`），所以断线用唯一诚实的办法制造——**服务端自己关流**：
+  `/api/realtime` 增加显式 env 才生效的最长连接寿命（`NEXUS_REALTIME_MAX_LIFETIME_MS`，默认 0 = 不限，
+  生产不变），到点走同一个 `cleanup`（退订 + 停心跳 + 释放名额）再关流，客户端看到的就是一次真断线
+  （流结束 → error → 浏览器自动重连 → onReconnect）。
+  `@smoke §163 断线重开`（14.2s live 过）：两条凭证都在网络层，不赌 DOM 状态的闪烁（connecting 只存在
+  几十毫秒）——`/api/realtime` 请求数 ≥ 2（首连 + 重连，请求计数必须先于 goto 注册：EventSource 的
+  GET 在连接"可见地 open"之前 ~300ms 就发出，注册晚了会漏掉首连——第一次跑就是这么红的）；
+  `/api/notifications` 的下一次请求（没有访客互动也没有事件进来，它只能来自 onReconnect 的重读）。
+  截图 `realtime-reconnect.png`。
 - [x] 通知中心（§164）— 收件箱与真事件已在上面 M6 那条落地；原文点名的**四类到今天全部有来源**。
   Generation complete 2026-09-25 落地，Agent task complete **2026-09-29 落地**
   （§112 的多步编排有了执行方，见文件末尾那一节），

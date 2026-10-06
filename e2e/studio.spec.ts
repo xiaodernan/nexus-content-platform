@@ -2822,6 +2822,40 @@ test('@smoke §163 实时通道：别人刚做完的那件事，作者这一端�
   await visitorCtx.close();
 });
 
+test('@smoke §163 断线重开：服务端真关流，客户端自动重连并重读权威（ADR-0029 的真浏览器凭证）', async ({ page }) => {
+  // 运行前提：web server 进程要带 NEXUS_REALTIME_MAX_LIFETIME_MS（playwright 的 webServer
+  // 继承本进程 env），例如：
+  //   NEXUS_REALTIME_MAX_LIFETIME_MS=1500 npx playwright test --grep 断线重开
+  // 为什么不用 CDP 制造断线：emulateNetworkConditions({offline:true}) 打不断已建立的 SSE
+  // （30 秒里一直是 open，旧用例因此删掉而不是说假话）。唯一诚实的办法是让服务端自己
+  // 到点关流——那正是生产断线在客户端走的那条同一路径：流结束 → error → 浏览器自动重连
+  // → onReconnect 重读权威（重读的接线另有 realtime-reconnect.test.ts 钉着）。
+  test.setTimeout(180_000);
+  // 请求计数必须先于 goto 注册：EventSource 的 GET /api/realtime 在连接"可见地 open"之前
+  // ~300ms 就发出了，注册晚了会把首连漏掉，计数就只剩重连那一条（第一次跑就是这么红的）
+  let streamRequests = 0;
+  page.on('request', (req) => {
+    if (new URL(req.url()).pathname === '/api/realtime') streamRequests += 1;
+  });
+  await createProject(page, `断线重开${Date.now().toString(36)}`);
+  // 铃铛的连接是用户频道（首页顶栏）——Studio 里的 CommandBar 是项目频道，
+  // 它的 onReconnect 重读的是项目数据，不是收件箱
+  await page.goto('/');
+  await expect(page.locator('[data-notification-bell="ready"]')).toBeVisible({ timeout: 30_000 });
+  await expect(page.locator('[data-realtime="open"]').first()).toBeVisible({ timeout: 30_000 });
+
+  // 两条真凭证都在网络层，不赌 DOM 状态的闪烁（connecting 只存在几十毫秒，采样会漏）：
+  // - /api/realtime 的请求次数 ≥ 2：首连 + 重连（EventSource 不会复用死连接）
+  // - /api/notifications 的下一次请求：挂载读数在 goto 后已经发生，没有访客互动也没有事件进来，
+  //   它只能来自 onReconnect → 铃铛重读权威（ADR-0029 那格信号在真浏览器里的回执）
+  const refetch = page.waitForRequest((req) => req.url().endsWith('/api/notifications?limit=1'), { timeout: 30_000 });
+
+  await refetch; // 寿命（默认 1500ms）到点 → 服务端关流 → 重连 → 重读
+  expect(streamRequests).toBeGreaterThanOrEqual(2);
+  await expect(page.locator('[data-realtime="open"]').first()).toBeVisible({ timeout: 30_000 });
+  await page.screenshot({ path: 'screenshots/realtime-reconnect.png' });
+});
+
 test('@smoke §74 删除项目：确认词打不动接口，删掉的公开页与互动一起关门', async ({ page }) => {
   // 这条用例的卖点是"审批真的在服务端"，所以关键一步是绕过界面直接打接口：
   // 只测界面上的确认卡片，测到的是一个恰好长得像审批门的输入框
