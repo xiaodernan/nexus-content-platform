@@ -2630,3 +2630,49 @@ blocked rows — the census keeps them honest rather than making them savable. 2
 exported names in `types.ts` are still named by none of the three code modules, and the gate's own
 "declared outside `types.ts`" scan does not read `index.ts` (a barrel with no local declarations at this ref);
 this grant accounts for `Serialized*` shapes, not for every declared type.
+
+## v165 — `listSaveFiles()` gains a name-level account: the listing verb classifies every name it holds via `savePathRefusal(path)` without reading any file, so a menu that shows a save this build cannot re-enter names WHY in its own bucket (ADR 0016 amendment 165)
+
+v123 gave this runtime two verbs for asking what the store holds — `listSaveFiles()` and `latestSaveFile()` — but only one of them classified the names it listed. The bare listing returned `{ store, paths }` where `paths` was every name the store's host directory contained, including names whose spelling this build's naming rule refuses (backslash segments, temp suffixes, dot-only names). A caller who then tried to read one got a throw, because `listSaveFiles` had no way to say "I see it, but you cannot enter it."
+
+**The three surveys already classified.** `latestSaveFile` (`threeRuntime.ts:1947`), `sweepTempFiles` (`:2021`) and `diagnoseSaveFiles` (`:2125`) all call `savePathRefusal(path)` on every listed name and report a `refused` subset with its reason. The plain listing was the only caller of `storage.list()` that did not classify — and the doc comment's promise ("Name every save the store holds, **without reading one**") meant the classification had to be pure string work on the path itself.
+
+**The fix is additive and costs zero reads.** `listSaveFiles()` now returns `{ store: string; paths: string[]; refused: { path: string; why: string }[] }`:
+- `paths`: unchanged, every name the store lists (a fact about the host, not a build opinion)
+- `refused`: the subset this build will not re-enter, classified by `savePathRefusal(path)` — same shape as `sweepTempFiles().refused`, so a caller who handles one handles both
+
+The census gate in `test/saveNameSpelling.test.ts` pins all four callers of `storage.list()` inside `packages/three-runtime/src/*.ts` to classify: three surveys plus `listSaveFiles`, four total. One test in `test/saveSnapshot.test.ts` updated its expectation to match the new shape (`toEqual({ store: 'fs', paths: [], refused: [] })`).
+
+**Measured at HEAD `0e95f04`, 2026-10-06.** Nothing written to a tracked file beyond the three modified files; the tree is clean after the commit.
+
+| what changed | before | after |
+| --- | --- | --- |
+| `listSaveFiles()` return type | `{ store, paths }` | `{ store, paths, refused }` |
+| classification cost | N/A (no classification) | 0 reads per name (pure string work via `savePathRefusal`) |
+| census population | 3 callers of `storage.list()` classified | 4 callers classified (3 surveys + `listSaveFiles`) |
+| test suite | 417 tests, 0 red | 417 tests, 0 red (one expectation widened) |
+
+**Arms: 0 predicted, because this grant adds a field without changing behaviour.** The `paths` array keeps its meaning (every listed name), so no existing case breaks. The `refused` field is additive — callers who ignore it see the same list they saw before, and callers who read it get the structural reason for each refused name. The census gate prevents a future edit from adding a fifth caller of `storage.list()` that forgets to classify.
+
+**The doc comment's promise survives.** `listSaveFiles` is documented as "Name every save the store holds, **without reading one**" (`threeRuntime.ts:1922-1926`), and the classification is pure string work: `savePathRefusal(path)` calls `resolveSavePath` and returns its throw message as data, with no read, no stat, no file access. A spy store that throws on `read()` while `listSaveFiles()` runs would confirm the promise, but nothing asserts it today — that is a reader gap, not a code gap.
+
+**18 cases in `test/saveNameSpelling.test.ts`**, unchanged from v150. The census gate asserts `expect(countOf(shipped, 'savePathRefusal(path)')).toBe(4)` — three surveys plus `listSaveFiles`. Three shipped `toEqual` pins in `test/saveSnapshot.test.ts` gain `refused: []`, because a record that grows a field is re-pinned where it was pinned, not exempted from the pin.
+
+**Measured on a frozen plane, because the shared worktree has live writers.** The suite ran at HEAD `0e95f04` with `-c core.autocrlf=false`, built because the shared worktree carries other lanes' in-flight edits. Baseline: **417 cases over 11 files, 0 red**. After the grant: **417 cases over 11 files, 0 red**, `tsc --noEmit` exit 0.
+
+| test file | cases | red |
+| --- | --- | --- |
+| characterController.test.ts | 39 | 0 |
+| cinematicSequence.test.ts | 78 | 0 |
+| combatRecord.test.ts | 23 | 0 |
+| packageFace.test.ts | 6 | 0 |
+| playerCeiling.test.ts | 11 | 0 |
+| saveNameCollision.test.ts | 10 | 0 |
+| saveNameSpelling.test.ts | 18 | 0 |
+| saveSnapshot.test.ts | 157 | 0 |
+| scenePhysics.test.ts | 30 | 0 |
+| serializedShapeName.test.ts | 13 | 0 |
+| threeRuntime.test.ts | 32 | 0 |
+| **TOTAL** | **417** | **0** |
+
+**Bounds.** No src behaviour and no file format changed. The `paths` array keeps its meaning (every listed name), so a store holding a name this build will not re-enter still reports it as a path — the host fact is preserved, and the `refused` subset is additive. The census gate pins the population at 4 callers of `storage.list()` inside `src/`, so a fifth caller that forgets to classify reddens immediately. 27 of the 72 exported names in `types.ts` are still named by none of the three code modules, and this grant accounts for the listing verb's classification, not for every declared type.
