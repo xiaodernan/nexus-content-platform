@@ -2778,3 +2778,20 @@ text) — true of the file system, but the save now persists in origin localStor
 the store. Atomicity is copy-based: a crash between copy and remove can leave a `.tmp` key the index
 never lists (debris by policy, but no sweeper walks the namespace). No delete in the browse UI, no quota
 handling, no cross-tab sync. Origin quota ~5MB.
+
+## v172 — rename a save from the Studio browser (ADR 0016 amendment 172)
+
+b97a01e added `rename(oldPath, newPath): string` to the `SaveStore` interface and implemented it across all three stores (memory, fs, localStorage). The method moves a save's contents to a new name in-place without reading or writing the full payload: memory store swaps keys in the Map, fs store uses `fs.renameSync` (or copy+unlink fallback), and localStorage store updates both the data key and the index list atomically.
+
+The ThreeRuntime exposes `renameSaveFile()` which delegates directly to `this.storage.rename()`. The Studio's SceneSaverLike interface gained optional `renameSaveFile` and `savePathRefusal` methods, and the browse saves UI adds a rename button next to each delete button. Clicking rename opens a browser `prompt()` for the new name, validates it through `savePathRefusal` before attempting the operation, refreshes the list after success, and updates the selection if the renamed save was currently selected.
+
+| what changed | before | after |
+| --- | --- | --- |
+| SaveStore interface | read/write/list/delete only | + `rename(oldPath, newPath): string` |
+| Store implementations | 3 stores (memory/fs/localStorage) | all three implement rename |
+| ThreeRuntime API | deleteSaveFile only | + `renameSaveFile(oldPath, newPath)` |
+| Studio UI | save/load/browse/delete | + rename button with prompt() |
+| validation | manual name entry only | savePathRefusal checked before rename |
+| suites at HEAD b97a01e (2026-10-07) | — | three-runtime **422/422**, studio **214/214** |
+
+**Bounds (§60).** Rename is a storage-level operation (like delete/list), not a runtime-level operation (like read/write which are scene-aware). The rename does NOT validate whether the new name collides with an existing save — if a collision exists, the store overwrites it (same behavior as writeAtomic). The fs store's atomicity depends on `renameSync` availability; the fallback path (copy+unlink) is not atomic. localStorage store updates the index by removing the old name and adding the new one, but a crash between these two operations could leave the index inconsistent (the orphaned key would be debris). No undo capability, no rename history tracking, no batch rename support. The browser prompt() blocks the main thread and provides no custom styling.
