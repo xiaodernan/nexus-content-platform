@@ -19,6 +19,20 @@ export interface DeployLaneProbe {
   /** Where deploy records land, and how many already have. */
   recordsPath: string;
   recordCount: number;
+  /** v178: the records ON FILE, newest first — the read side of the sink. */
+  records?: DeployLaneRecordView[];
+  /** v178: lines on file that are not a readable record — named as a count, never hidden. */
+  malformed?: number;
+}
+
+/** One record on file, display-ready (re-stated locally; the records file stays server-side). */
+export interface DeployLaneRecordView {
+  at: number;
+  arcId: string;
+  goal: string;
+  stepId: string;
+  fact: string;
+  engine: string;
 }
 
 /** The slice of the route's POST answer the panel renders. */

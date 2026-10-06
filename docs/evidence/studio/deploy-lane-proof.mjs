@@ -29,6 +29,10 @@
 //      spawn-capable package and names no process-spawn module; the server core is the legal
 //      junction (runtime + the build face it deploys from); the route declares Node runtime
 //      and states goal-not-argv; the records path is gitignored on purpose.
+//   §7 (v178) the records READ BACK: the read side of the sink returns the file's records
+//      in file order, facts byte for byte, a line that is not a readable record is COUNTED
+//      (never hidden, the valid ones untouched), and the probe exposes the records NEWEST
+//      FIRST, display-capped, with the malformed count named.
 //
 // Run after `npm run build`:  node docs/evidence/studio/deploy-lane-proof.mjs
 import assert from 'node:assert/strict';
@@ -58,11 +62,13 @@ try {
     createStudioDeploySink,
     deployArcState,
     nodeDeployFs,
+    readStudioDeployRecords,
     runStudioDeployArc,
     studioDeployCheckpointPolicyError,
     studioDeployRecordCount,
     STUDIO_DEPLOY_CHECKPOINT_POLICY,
     STUDIO_DEPLOY_RECORDS_PATH,
+    STUDIO_DEPLOY_RECORDS_SHOWN,
   } = deployServer;
   const { STUDIO_BUILD_ARC_ID, STUDIO_BUILD_ENGINE, STUDIO_BUILD_GOAL } = await import(pathToFileURL(join(box, 'buildServer.mjs')).href);
   assert.equal(typeof runStudioDeployArc, 'function', 'the Studio route core was really imported, not re-implemented');
@@ -199,7 +205,26 @@ try {
   assert.ok(/^\.nexus\/$/m.test(gitignore), 'the records path is gitignored on purpose — deploy records are this server\'s, not the repo\'s');
   console.log('[deploy-lane-proof] §6 §60: browser bundle runtime-free and spawn-free; deployServer is the one junction; goal-not-argv at the boundary; .nexus/ untracked');
 
-  console.log('[deploy-lane-proof] ALL PASSED (§1–§6) — the deploy face records a green arc\'s measured facts through the ONE write door');
+  // ── §7 the records read back — the read side of the sink (v178) ───────────────────────────────────
+  const read = readStudioDeployRecords({ recordsPath });
+  assert.equal(read.total, 3, 'every valid line parses back');
+  assert.equal(read.malformed, 0, 'nothing malformed after the walks above');
+  assert.deepEqual(read.records.map((r) => r.stepId), ['runtime', 'compute', 'compute'], 'records read back in file order');
+  assert.equal(read.records[0].fact, a.facts[0].stdout, 'the fact returns byte for byte');
+  assert.equal(read.records[2].goal, 'check the numbers', 'each record still names the goal it deployed for');
+  writeFileSync(recordsPath, `${readFileSync(recordsPath, 'utf8')}this line is not a record\n`, 'utf8');
+  const polluted = readStudioDeployRecords({ recordsPath });
+  assert.equal(polluted.malformed, 1, 'a line that is not a readable record is COUNTED, never hidden (§60)');
+  assert.equal(polluted.total, 3, 'the valid records are exactly the valid records');
+  assert.deepEqual(polluted.records, read.records, 'the valid records are untouched by the unreadable one');
+  const state = await deployArcState();
+  const prod = readStudioDeployRecords({});
+  assert.deepEqual(state.records, prod.records.slice(-STUDIO_DEPLOY_RECORDS_SHOWN).reverse(), 'the probe exposes the records NEWEST FIRST, display-capped');
+  assert.equal(state.malformed, prod.malformed, 'the probe states the file\'s malformed count');
+  assert.ok(state.records.length <= STUDIO_DEPLOY_RECORDS_SHOWN, 'the display cap holds');
+  console.log(`[deploy-lane-proof] §7 read-back: 3 records in order, facts byte-for-byte; a garbage line counted (malformed=1), valid untouched; probe exposes ${state.records.length} record(s) newest-first, malformed=${state.malformed}`);
+
+  console.log('[deploy-lane-proof] ALL PASSED (§1–§7) — the deploy face records a green arc\'s measured facts and reads them back');
 } finally {
   rmSync(box, { recursive: true, force: true });
 }

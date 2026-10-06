@@ -11,7 +11,10 @@
  *   §3 the per-fact lines render — the engine's own stdout, verbatim;
  *   §4 the §28 decision lands in the dock ledger: the last entry is approved, names
  *      deploy.record as the via, and carries the deploy's detail line;
- *   §5 the whole run raises no console errors.
+ *   §5 (v178) the records READ BACK: the probe refresh after the walk renders the records
+ *      on file NEWEST FIRST — the compute fact (recorded last) is the first row, the
+ *      runtime fact is in the history, verbatim;
+ *   §6 the whole run raises no console errors.
  *
  * Usage: node tools/harness/studio-deploy.mjs [--url http://127.0.0.1:3211]
  */
@@ -98,11 +101,24 @@ try {
     !!ledger && ledger.approved === true && ledger.via === "deploy.record" && typeof ledger.goal === "string" && ledger.goal.startsWith("deploy arc:") && typeof ledger.exec === "string" && ledger.exec.includes("recorded"),
     `last=${JSON.stringify(ledger)}`,
   );
+  // §5 the records read back — the probe refresh renders the history NEWEST FIRST (v178)
+  const records = await until(
+    () => allTestIds("deploy-record"),
+    (arr) => Array.isArray(arr) && arr.length >= 2 && arr[0].includes("compute") && arr[0].includes("arc ok:5"),
+    20_000,
+  );
+  check(
+    "§5 the records on file render NEWEST FIRST (the last-recorded fact first), verbatim",
+    Array.isArray(records) && records.length >= 2 && records[0].includes("compute") && records[0].includes("arc ok:5") && records.some((r) => r.includes("runtime") && r.includes("container:node:22-alpine")),
+    `records=${JSON.stringify(records)}`,
+  );
+  const malformed = await page.evaluate("[...document.querySelectorAll('[data-testid=\"deploy-malformed\"]')].length");
+  check("§5b no unreadable line is hidden or invented", malformed === 0, `malformed rows=${malformed}`);
 } catch (err) {
   check("deploy lane completed without harness error", false, String(err?.stack ?? err));
 } finally {
   const consoleErrors = session.consoleMessages.filter((m) => m.type === "error");
-  check("§5 no console errors during the run", consoleErrors.length === 0, `${session.consoleMessages.length} console message(s), ${consoleErrors.length} error(s)`);
+  check("§6 no console errors during the run", consoleErrors.length === 0, `${session.consoleMessages.length} console message(s), ${consoleErrors.length} error(s)`);
   await session.close();
 }
 

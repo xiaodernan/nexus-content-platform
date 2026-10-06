@@ -187,6 +187,7 @@ export default function AgentPanel() {
       deployLedgerLine(deploy.arcId, a.ok ? (a.status ?? 'failed') : 'failed', approved, detail, approved ? undefined : a.ok ? (a.reason ?? 'nothing recorded') : detail),
     );
     syncLedger();
+    void probeDeployLane().then((p) => setDeploy(p)); // v178: the history reads back what this deploy just wrote
   };
 
   const denyDeploy = () => {
@@ -379,6 +380,20 @@ export default function AgentPanel() {
               ? `deploy arc: ✓ ${deploy.arcId} · records → ${deploy.recordsPath} · ${deploy.recordCount} on file`
               : `deploy arc: unavailable — ${deploy.reason}`}
         </div>
+        {deploy?.available && (deploy.records?.length ?? 0) > 0 && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+            {(deploy.records ?? []).map((r, i) => (
+              <div key={`${r.at}-${i}`} style={label} data-testid="deploy-record" title={`${r.fact.trim()} — recorded ${new Date(r.at).toLocaleTimeString()} via deploy.record`}>
+                ¶ {r.stepId}: {r.fact.trim() || '(the engine measured nothing)'} · {r.engine}
+              </div>
+            ))}
+            {(deploy.malformed ?? 0) > 0 && (
+              <div style={label} data-testid="deploy-malformed">
+                {deploy.malformed} line(s) on file are not readable records — named, not hidden (§60)
+              </div>
+            )}
+          </div>
+        )}
         {deploy?.available && (
           <button className="btn" style={{ fontSize: 10, padding: '1px 8px', alignSelf: 'flex-start' }} onClick={() => setDeployAsk(true)} disabled={deployBusy} data-testid="deploy-run">
             Deploy measured facts (§28 · allow-once)

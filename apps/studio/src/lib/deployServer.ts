@@ -107,19 +107,85 @@ export function studioDeployRecordCount(options: { fs: StudioDeployFs; recordsPa
   return raw.split('\n').filter((l) => l.trim() !== '').length;
 }
 
+/**
+ * v178: the READ side of the sink. What a cold reader finds on file — every line parsed
+ * back into a record, malformed lines COUNTED and surfaced, never hidden (§60) and never
+ * silently dropped. A missing file is the normal state before the first deploy, not an error.
+ */
+export interface DeployRecordsAnswer {
+  /** The valid records, in FILE ORDER (oldest first). */
+  records: DeployRecord[];
+  /** How many valid records were parsed. */
+  total: number;
+  /** Lines on file that are not a readable record — named as a count. */
+  malformed: number;
+}
+
+/** Parse one JSONL line into a record — null unless EVERY field has its declared type. */
+function parseDeployRecordLine(line: string): DeployRecord | null {
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(line);
+  } catch {
+    return null;
+  }
+  if (typeof parsed !== 'object' || parsed === null) return null;
+  const r = parsed as Record<string, unknown>;
+  if (
+    typeof r.at !== 'number' ||
+    typeof r.arcId !== 'string' ||
+    typeof r.goal !== 'string' ||
+    typeof r.stepId !== 'string' ||
+    typeof r.fact !== 'string' ||
+    typeof r.engine !== 'string'
+  ) {
+    return null;
+  }
+  return { at: r.at, arcId: r.arcId, goal: r.goal, stepId: r.stepId, fact: r.fact, engine: r.engine };
+}
+
+export function readStudioDeployRecords(options: { fs?: StudioDeployFs; recordsPath?: string } = {}): DeployRecordsAnswer {
+  const fs = options.fs ?? nodeDeployFs;
+  let raw: string;
+  try {
+    raw = fs.readFileSync(options.recordsPath ?? STUDIO_DEPLOY_RECORDS_PATH, 'utf8');
+  } catch {
+    return { records: [], total: 0, malformed: 0 };
+  }
+  const records: DeployRecord[] = [];
+  let malformed = 0;
+  for (const line of raw.split('\n')) {
+    if (line.trim() === '') continue;
+    const record = parseDeployRecordLine(line);
+    if (record === null) malformed += 1;
+    else records.push(record);
+  }
+  return { records, total: records.length, malformed };
+}
+
+/** How many records the state exposes — a DISPLAY cap; the file itself keeps everything. */
+export const STUDIO_DEPLOY_RECORDS_SHOWN = 8;
+
 /** What the dock's deploy status line states: the build lane it deploys from, plus the records file. */
 export interface DeployArcState extends BuildArcState {
   recordsPath: string;
   recordCount: number;
+  /** v178: the records ON FILE, NEWEST FIRST (display order, capped) — the read side of the sink. */
+  records: DeployRecord[];
+  /** v178: lines on file that are not a readable record — named as a count, never hidden (§60). */
+  malformed: number;
 }
 
 export async function deployArcState(options: { spawnLike?: SpawnLike; fs?: StudioDeployFs } = {}): Promise<DeployArcState> {
   const base = await buildArcState(options);
   const fs = options.fs ?? nodeDeployFs;
+  const read = readStudioDeployRecords({ fs, recordsPath: STUDIO_DEPLOY_RECORDS_PATH });
   return {
     ...base,
     recordsPath: STUDIO_DEPLOY_RECORDS_PATH,
     recordCount: studioDeployRecordCount({ fs, recordsPath: STUDIO_DEPLOY_RECORDS_PATH }),
+    records: read.records.slice(-STUDIO_DEPLOY_RECORDS_SHOWN).reverse(),
+    malformed: read.malformed,
   };
 }
 

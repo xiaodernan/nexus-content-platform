@@ -3,10 +3,12 @@ import { describe, expect, it } from 'vitest';
 import {
   createStudioDeploySink,
   deployArcState,
+  readStudioDeployRecords,
   runStudioDeployArc,
   studioDeployCheckpointPolicyError,
   STUDIO_DEPLOY_CHECKPOINT_POLICY,
   STUDIO_DEPLOY_RECORDS_PATH,
+  STUDIO_DEPLOY_RECORDS_SHOWN,
   studioDeployRecordCount,
   type DeployRecord,
   type StudioDeployFs,
@@ -205,5 +207,72 @@ describe('studio deploy lane walk (v177, fake spawn, fake fs)', () => {
     expect(stored).toHaveLength(3);
     expect(studioDeployRecordCount({ fs, recordsPath: STUDIO_DEPLOY_RECORDS_PATH })).toBe(3);
     expect(stored.map((r) => r.stepId)).toEqual(['runtime', 'compute', 'compute']);
+  });
+});
+
+describe('studio deploy records read-back (v178)', () => {
+  it('a missing records file reads as an empty answer — the normal state before the first deploy', () => {
+    const { fs } = fakeFs();
+    expect(readStudioDeployRecords({ fs, recordsPath: 'r.jsonl' })).toEqual({ records: [], total: 0, malformed: 0 });
+  });
+
+  it('valid lines read back in file order, the fact byte for byte', async () => {
+    const { spawnLike } = fakeSpawn();
+    const { fs } = fakeFs();
+    await runStudioDeployArc({ spawnLike, fs, recordsPath: 'r.jsonl' });
+    const read = readStudioDeployRecords({ fs, recordsPath: 'r.jsonl' });
+    expect(read.total).toBe(2);
+    expect(read.malformed).toBe(0);
+    expect(read.records.map((r) => r.stepId)).toEqual(['runtime', 'compute']);
+    expect(read.records[0]!.fact).toBe('v22.11.0\n');
+    expect(typeof read.records[0]!.at).toBe('number');
+  });
+
+  it('a line that is not a readable record is counted, never hidden', () => {
+    const { fs, files } = fakeFs();
+    files.set(
+      'r.jsonl',
+      [
+        JSON.stringify({ at: 1, arcId: 'a', goal: 'g', stepId: 's1', fact: 'f1', engine: 'e' }),
+        'not json at all',
+        '{"at":2}',
+        JSON.stringify({ at: 3, arcId: 'a', goal: 'g', stepId: 's2', fact: 'f2', engine: 'e' }),
+        '',
+      ].join('\n') + '\n',
+    );
+    const read = readStudioDeployRecords({ fs, recordsPath: 'r.jsonl' });
+    expect(read.total).toBe(2);
+    expect(read.malformed).toBe(2);
+    expect(read.records.map((r) => r.stepId)).toEqual(['s1', 's2']);
+  });
+
+  it('the state exposes the read side: newest first, with the malformed count named', async () => {
+    const { spawnLike } = fakeSpawn();
+    const { fs, files } = fakeFs();
+    await runStudioDeployArc({ spawnLike, fs, recordsPath: STUDIO_DEPLOY_RECORDS_PATH });
+    files.set(STUDIO_DEPLOY_RECORDS_PATH, (files.get(STUDIO_DEPLOY_RECORDS_PATH) ?? '') + 'garbage\n');
+    const s = await deployArcState({ spawnLike, fs });
+    expect(s.recordCount).toBe(3);
+    expect(s.malformed).toBe(1);
+    expect(s.records).toHaveLength(2);
+    expect(s.records[0]!.stepId).toBe('compute');
+    expect(s.records[1]!.stepId).toBe('runtime');
+    expect(s.records[0]!.fact).toBe('arc ok:5\n');
+  });
+
+  it('the state shows at most the display cap — newest first, the file keeps everything', async () => {
+    const { spawnLike } = fakeSpawn();
+    const { fs, files } = fakeFs();
+    const lines: string[] = [];
+    for (let i = 0; i < 10; i += 1) {
+      lines.push(JSON.stringify({ at: i, arcId: 'a', goal: 'g', stepId: `s${i}`, fact: `f${i}`, engine: 'e' }));
+    }
+    files.set(STUDIO_DEPLOY_RECORDS_PATH, lines.join('\n') + '\n');
+    const s = await deployArcState({ spawnLike, fs });
+    expect(s.recordCount).toBe(10);
+    expect(s.records).toHaveLength(STUDIO_DEPLOY_RECORDS_SHOWN);
+    expect(s.records[0]!.stepId).toBe('s9');
+    expect(s.records[STUDIO_DEPLOY_RECORDS_SHOWN - 1]!.stepId).toBe(`s${9 - (STUDIO_DEPLOY_RECORDS_SHOWN - 1)}`);
+    expect(readStudioDeployRecords({ fs, recordsPath: STUDIO_DEPLOY_RECORDS_PATH }).total).toBe(10);
   });
 });

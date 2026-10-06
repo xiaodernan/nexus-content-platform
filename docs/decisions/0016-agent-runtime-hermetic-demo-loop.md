@@ -8237,3 +8237,31 @@ _records the catch-up itself._
   §28 one record at a time, and the browser still cannot name a step, an argv, or a fact. The build
   face's shape (v174/v175) is untouched — the deploy face re-uses its walk rather than redefining it.
   The runtime's exec/git doors remain headless. ADR 0013 stays Proposed.
+### Amendment 178 (M6 v178, queue item 8, bounds) — the deploy records READ BACK: append-only becomes reviewable
+
+- **What landed.** The read side of v177's sink, at the same junction. `deployServer.ts` grows
+  `readStudioDeployRecords` — every line of `.nexus/deployments.jsonl` parsed back into a record
+  (EVERY field's type checked), a line that is not a readable record COUNTED as `malformed` and
+  surfaced, never silently dropped (§60); a missing file is the normal state before the first
+  deploy, an empty answer, not an error. `deployArcState` (the GET probe) now carries the records
+  NEWEST FIRST, display-capped (`STUDIO_DEPLOY_RECORDS_SHOWN = 8` — the file itself keeps
+  everything), plus the malformed count; `recordCount` stays the file's raw line count.
+  `deployLane.ts` re-states the view types locally (the records file stays server-side);
+  `AgentPanel.tsx` renders the history under the status line (`deploy-record` rows — step, fact
+  verbatim, engine — and a `deploy-malformed` line when the file holds unreadable lines) and
+  re-probes after every walk, so the history shows what THIS deploy just wrote.
+- **Measured (2026-10-07).** studio **256/256** (251 → 256: 5 read-back cases — the empty answer
+  for a missing file, records in file order with the fact byte for byte, two kinds of unreadable
+  line counted not hidden, the state exposing newest-first with the malformed count named, and
+  the display cap holding while the file keeps all 10); tsc + lint clean;
+  `deploy-lane-proof.mjs` §1–§7 ALL PASSED against the real daemon 29.8.2 — §7 the three walked
+  records read back in file order with facts byte-for-byte, a garbage line appended to the real
+  file is counted (malformed=1) with the valid records untouched, and the probe's records
+  deep-equal the file's newest-first, display-capped view; `tools/harness/studio-deploy.mjs`
+  **10/10** in a REAL browser — the history renders NEWEST FIRST under the status line
+  (first row `compute: arc ok:5 · container:node:22-alpine`), no unreadable line invented, and
+  no console errors.
+- **Bounds (§60).** Reading is not approving: the history shows the engine's own recorded words,
+  it grants nothing. The display cap is a PANEL budget, the file stays append-only and uncapped.
+  Deploy still means records, never a push or a publish; the runtime still holds no write
+  capability of its own. ADR 0013 stays Proposed.
