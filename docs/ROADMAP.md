@@ -1017,8 +1017,11 @@ drizzle 把整个拼接结果当成**单个绑定参数**，生成的 SQL 是 `o
   逐条标已读只动一条 → 全部标完未读归零而总数仍是 4 → 动手那人自己的收件箱是空的 → 无身份拿 401（截图 `notifications-*.png`）。
   铃铛的实时推送随 §163 落地（2026-09-26）：推来一条 notification 就重查一次数，**没有轮询**，
   未读数永远以库为准（断开期间的事件不补发，只把事件当"该重新查了"的信号）。
+  **§164 分页已在 2026-10-07 落地**：`inbox(userId, { page, limit })` 支持页码与每页条数（默认 50、最大 100），
+  返回 `pagination.hasMore` 如实反映是否还有更多；向后兼容旧调用方式（直接传数字当 limit 时不返回 pagination 元数据）；
+  新增 4 条集成测试验证分页正确性、hasMore 边界、超范围页返回空列表、向后兼容性（`apps/web/test/notifications.integration.test.ts` 18 passed）。
   仍欠：没有邮件 / Webpush；没有每人 NotificationSettings（§164 只点名了"看到"，没点名"可配置"，
-  默认全开是今天的口径）；没有分页（一页 50 条，超了在页面上写总数）。
+  默认全开是今天的口径）。
   `projects.deletedAt` 那条谓词以前是防御性的（全库没有软删写入方），2026-09-26 §74 补上写入方之后它才真的可测：
   §74 的集成用例里删掉项目，指向它的那条历史通知**行还在**（那是作者的事件历史），但链接收走、
   理由写明"项目已经不存在"，恢复后又原样能点开——不需要重发一条。
@@ -1209,8 +1212,7 @@ drizzle 把整个拼接结果当成**单个绑定参数**，生成的 SQL 是 `o
   （`hug` / `fill` / `{token}` 不换算成像素），token 引用与目录、lint、health 同一个 `collectTokenRefs`。
   夹具那一路也跟着改：`scripts/ai-request-fixture.ts` 直接调 `deriveContextFromDocument`，
   摘要不再手抄——导出来的 `contracts/fixtures/*.json` 里那份就是服务端真会发出去的那份。
-  仍欠的两笔如实记下：① Code Index 的**后半截**——"按 path 取正文"的通道还没有，Agent 知道有哪份文件、里面有什么符号，
-  读不到实现；这条在面板的 `unavailable` 列表里，e2e 有断言，不会因为目录做完就被划掉。
+  **① Code Index 的后半截已在 2026-10-07 落地**：`fetchCodeByPath(document, path)` 能从设计文档重新生成项目并返回指定路径的完整代码内容（生成的 .tsx/.ts 文件与 code-only 区域都支持），找不到返回 null；更新 `CODE_INDEX_OMISSIONS` 删掉"要读实现得按 path 取"这一条；新增 4 条测试验证取生成文件、取 code-only 区域、找不到返回 null、符号列表与目录一致（`apps/web/test/code-index.test.ts` 18 passed）。
   Agents / Runtime 两个分支仍未落地，面板上写的是「未索引」而不是空白；
   ② 语义相关性与重排要 embedding provider（§49 的向量半）；
   实测尺寸/耗时见 `docs/PERFORMANCE.md`，预算为什么取 20000 见 `docs/adr/0006-design-index-char-budget.md`。

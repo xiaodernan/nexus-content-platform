@@ -115,6 +115,12 @@ export interface Inbox {
   total: number;
   /** 原文列了四类，这里如实交代没来源的那三类（§159） */
   unbacked: { spec: string; reason: string }[];
+  /** 分页信息：当前页、每页条数、是否还有更多 */
+  pagination?: {
+    page: number;
+    limit: number;
+    hasMore: boolean;
+  };
 }
 
 function isKind(value: string): value is NotificationKind {
@@ -123,9 +129,34 @@ function isKind(value: string): value is NotificationKind {
   return Object.prototype.hasOwnProperty.call(NOTIFICATION_KINDS, value);
 }
 
-export async function inbox(userId: string, limit = 30): Promise<Inbox> {
+export interface InboxOptions {
+  /** 页码，从 1 开始；默认第 1 页 */
+  page?: number;
+  /** 每页条数，默认 50，最大 100 */
+  limit?: number;
+}
+
+/**
+ * 读收件箱。支持分页：默认第 1 页、每页 50 条（符合 §164 的口径）。
+ * 超过一页时返回 `pagination.hasMore = true`，界面上可以显示"另有 N 条未列出"。
+ */
+export async function inbox(userId: string, options: InboxOptions | number = {}): Promise<Inbox> {
   const db = getDb();
-  const take = Math.min(Math.max(Math.trunc(limit) || 1, 1), 100);
+  
+  // 兼容旧调用方式：直接传数字当 limit
+  const isLegacyCall = typeof options === 'number';
+  let page = 1;
+  let limit = 50;
+  if (isLegacyCall) {
+    limit = options;
+  } else {
+    page = Math.max(1, Math.trunc(options.page ?? 1));
+    limit = options.limit ?? 50;
+  }
+  
+  const take = Math.min(Math.max(limit, 1), 100);
+  const offset = (page - 1) * take;
+
   const rows = await db
     .select({
       id: notifications.id,
@@ -148,9 +179,14 @@ export async function inbox(userId: string, limit = 30): Promise<Inbox> {
     .leftJoin(publishedProjects, eq(publishedProjects.id, notifications.publicationId))
     .where(eq(notifications.userId, userId))
     .orderBy(desc(notifications.createdAt))
-    .limit(take);
+    .limit(take + 1) // 多取一条判断是否还有更多
+    .offset(offset);
 
-  const items: InboxItem[] = rows.map((row) => {
+  // 判断是否还有更多：如果取回的比请求的多一条，说明后面还有
+  const hasMore = rows.length > take;
+  const actualRows = hasMore ? rows.slice(0, take) : rows;
+
+  const items: InboxItem[] = actualRows.map((row) => {
     // 判断依据是链接形态而不是 kind：切成私有的那条发布通知指向编辑区，不该按公开页去查
     const needsPublication = row.link?.startsWith('/n/') ?? false;
     const state = targetState({
@@ -182,7 +218,23 @@ export async function inbox(userId: string, limit = 30): Promise<Inbox> {
     .from(notifications)
     .where(eq(notifications.userId, userId));
 
-  return { items, unread: counts?.unread ?? 0, total: counts?.total ?? 0, unbacked: [...UNBACKED_NOTIFICATIONS] };
+  const result: Inbox = { 
+    items, 
+    unread: counts?.unread ?? 0, 
+    total: counts?.total ?? 0, 
+    unbacked: [...UNBACKED_NOTIFICATIONS] 
+  };
+  
+  // 只有当使用新的 options 格式时才返回 pagination 信息（向后兼容）
+  if (!isLegacyCall) {
+    result.pagination = {
+      page,
+      limit: take,
+      hasMore,
+    };
+  }
+
+  return result;
 }
 
 /** 标已读只认"这个人的行"：传别人的通知 id 不会改动任何东西，返回实际标掉的条数 */

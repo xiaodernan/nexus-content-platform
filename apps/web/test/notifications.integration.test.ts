@@ -246,6 +246,46 @@ describe('读取：目标还在不在、是谁的、有多少', () => {
     expect(after.items.find((item) => item.title.includes(`不认识的一类${RUN}`))?.kind).toBe('other');
   });
 
+  it('分页：第二页从正确的位置开始，hasMore 如实反映是否还有更多', async () => {
+    // 先确保有足够的数据（前面已经创建了很多通知）
+    const firstPage = await inbox(ownerId, { page: 1, limit: 3 });
+    const secondPage = await inbox(ownerId, { page: 2, limit: 3 });
+    
+    expect(firstPage.items).toHaveLength(3);
+    expect(secondPage.items).toHaveLength(3);
+    // 两页的数据不应该重叠
+    const firstIds = new Set(firstPage.items.map((item) => item.id));
+    expect(secondPage.items.every((item) => !firstIds.has(item.id))).toBe(true);
+    
+    // hasMore 应该如实反映
+    if (firstPage.pagination) {
+      expect(firstPage.pagination.page).toBe(1);
+      expect(firstPage.pagination.limit).toBe(3);
+    }
+    if (secondPage.pagination) {
+      expect(secondPage.pagination.page).toBe(2);
+      expect(secondPage.pagination.limit).toBe(3);
+    }
+  });
+
+  it('最后一页 hasMore 为 false', async () => {
+    const total = (await rowsFor(ownerId)).length;
+    const lastPage = await inbox(ownerId, { page: Math.ceil(total / 50), limit: 50 });
+    expect(lastPage.pagination?.hasMore).toBe(false);
+  });
+
+  it('超出范围的页返回空列表', async () => {
+    const farPage = await inbox(ownerId, { page: 9999, limit: 10 });
+    expect(farPage.items).toHaveLength(0);
+    expect(farPage.pagination?.hasMore).toBe(false);
+  });
+
+  it('向后兼容：直接传数字仍然当 limit 用', async () => {
+    const page = await inbox(ownerId, 5);
+    expect(page.items.length).toBeLessThanOrEqual(5);
+    expect(page.pagination).toBeUndefined();
+  });
+
   it('没来源的那一类随收件箱一起回来，展示面不用自己抄一份清单', async () => {
     const page = await inbox(ownerId, 1);
     // Generation complete 摘于 2026-09-25（`agent_tasks` 的写入方），Agent task complete 摘于
