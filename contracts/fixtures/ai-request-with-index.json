@@ -878,7 +878,6 @@
       "omittedFiles": 2,
       "trimmed": [],
       "omissions": [
-        "代码正文本身（这里只有目录与位置；要读实现得按 path 取，仍然受 §68 预算约束）",
         "第三方包内部的符号（只记被 import 了什么，不展开 node_modules）",
         "CSS 变量与代码里 var(--nx-*) 引用之间的边（两边都列了，没连成图）",
         "语义检索与意图判断（这里是词法匹配；向量化要 embedding provider，见 §49）",
