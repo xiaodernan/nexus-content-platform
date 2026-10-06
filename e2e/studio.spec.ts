@@ -3113,7 +3113,7 @@ test('@smoke §112/§73 名册下拉：点了 QA 就不能把补丁交回画布�
  * 面板上那句"接没接"、分派点选的那条管线与它的画法（2.5D 是等轴测、3D 是立体视角，
  * 两者都是**同一条计划**）、以及没接的类型给出的页面——三者必须来自同一张表（`GAME_KIND_STATUS`）。
  */
-test('@smoke §51 类型分派：标互动故事就出对话播放器，标 2.5D 出等轴测，标 3D 出立体视角，标探索出走近才看得见', async ({ page }) => {
+test('@smoke §51 类型分派：标互动故事就出对话播放器，标 2.5D 出等轴测，标 3D 出立体视角，标探索出走近才看得见，标解谜出机关连线', async ({ page }) => {
   test.setTimeout(300_000);
   const stamp = Date.now().toString(36);
   const projectId = await createProject(page, `对话游戏 ${stamp}`);
@@ -3286,10 +3286,57 @@ test('@smoke §51 类型分派：标互动故事就出对话播放器，标 2.5D
   await expect.poll(discovered, { timeout: 15_000 }).toBeGreaterThanOrEqual(seenBefore);
   await game.screenshot({ path: 'screenshots/story-play-exploration.png' });
 
-  // 反向对照：换成一个真没接的类型，试玩页不许退回 2D 关卡，也不许给空场子
+  // §51 的第七种：解谜是**同一条计划**的谜题画法——机关=触发器，激活就是 sim 里"首次踩到"的记账，
+  // 规则与 2D 走同一个 step；视图只多做一件事：把机关→它引用的目标画成黄线（激活后实线圈），
+  // 不新增任何规则。证据走 HUD 的激活计数：模板骨架里那一个触发器恰好排在场地正右方
+  // （单实体同心环 angle=0），从中心向右走必然踩进它的范围——所以这里敢断言计数**变多**，
+  // 不是只验它没变小。
   await page.bringToFront();
   await page.selectOption('[data-game-kind]', 'puzzle');
-  await expect(page.locator('[data-game-kind-note="puzzle"]')).toContainText('还没接');
+  await expect(page.locator('[data-game-kind-note="puzzle"]')).toContainText('已接入');
+  await expect(page.locator('[data-game-kind-note="puzzle"]')).toContainText('谜题画法');
+  await expect(page.locator('[data-game-state]')).toHaveText('已保存', { timeout: 20_000 });
+  await game.reload({ waitUntil: 'domcontentloaded' });
+  await game.bringToFront();
+  await expect(game.locator('[data-game-root][data-game-view="puzzle"]')).toBeVisible({ timeout: 60_000 });
+  await expect(game.locator('[data-game-canvas]')).toBeVisible();
+  await expect
+    .poll(
+      () =>
+        game.evaluate(() => {
+          const canvas = document.querySelector('[data-game-canvas]') as HTMLCanvasElement | null;
+          const ctx = canvas?.getContext('2d');
+          if (!canvas || !ctx) return 0;
+          const { data } = ctx.getImageData(0, 0, canvas.width, canvas.height);
+          let nonBackground = 0;
+          for (let i = 0; i < data.length; i += 4) {
+            if (data[i] !== 11 || data[i + 1] !== 13 || data[i + 2] !== 18) nonBackground += 1;
+          }
+          return nonBackground;
+        }),
+      { timeout: 30_000 },
+    )
+    .toBeGreaterThan(100);
+  await expect(game.locator('[data-game-subtitle]')).toContainText('解谜画法');
+  await expect(game.locator('[data-game-note]').filter({ hasText: '不替设计补谜题' }).first()).toBeVisible();
+  await expect(game.locator('[data-game-note]').filter({ hasText: '同一个 step' }).first()).toBeVisible();
+  const activated = () =>
+    game
+      .locator('[data-game-activated]')
+      .getAttribute('data-game-activated')
+      .then((value) => Number(value ?? '0'));
+  // 换类型时页面整个重载过：模拟从头开始，此刻还没有踩到任何机关
+  const activatedBefore = await activated();
+  await game.keyboard.down('d');
+  await game.waitForTimeout(1200);
+  await game.keyboard.up('d');
+  await expect.poll(activated, { timeout: 15_000 }).toBeGreaterThan(activatedBefore);
+  await game.screenshot({ path: 'screenshots/story-play-puzzle.png' });
+
+  // 反向对照：换成一个真没接的类型，试玩页不许退回 2D 关卡，也不许给空场子
+  await page.bringToFront();
+  await page.selectOption('[data-game-kind]', 'rpg-prototype');
+  await expect(page.locator('[data-game-kind-note="rpg-prototype"]')).toContainText('还没接');
   await expect(page.locator('[data-game-state]')).toHaveText('已保存', { timeout: 20_000 });
   await game.reload({ waitUntil: 'domcontentloaded' });
   await expect(game.locator('[data-play="kind-not-wired"]')).toBeVisible({ timeout: 60_000 });

@@ -10,11 +10,23 @@
 
 from __future__ import annotations
 
+import os
 from contextlib import asynccontextmanager
+from pathlib import Path
 from typing import Any
 
+from dotenv import load_dotenv
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
+
+# 加载 .env 文件（开发环境），生产环境由环境变量注入
+_env_file = Path(__file__).resolve().parent.parent.parent / ".env"
+if _env_file.exists():
+    load_dotenv(_env_file, override=True)
+    import os as _os
+    print(f"[dotenv] Loaded from {_env_file}, NEXUS_REDIS_URL={_os.environ.get('NEXUS_REDIS_URL')!r}")
+else:
+    print(f"[dotenv] .env not found at {_env_file}")
 
 from .config import Settings, load_settings
 from .contract import ContractMissing, contract_dir
