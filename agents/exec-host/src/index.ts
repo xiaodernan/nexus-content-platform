@@ -20,6 +20,33 @@ export {
   type ExecSpawnOptions,
   type SpawnLike,
 } from './execHost.js';
+export {
+  buildDockerArgs,
+  CONTAINER_DEFAULTS,
+  CONTAINER_EXEC_TOOL_SPECS,
+  CONTAINER_ISOLATION_ARGS,
+  CONTAINER_MOUNT_FLAGS,
+  CONTAINER_NAME_PREFIX,
+  createContainerExecHost,
+  formatContainerLine,
+  appendContainerRun,
+  loadContainerAudits,
+  loadContainerRuns,
+  minimalClientEnv,
+  planContainerRun,
+  probeContainerRuntime,
+  registerContainerExecTools,
+  validateContainerPolicy,
+  type ContainerAuditRecord,
+  type ContainerDecision,
+  type ContainerHost,
+  type ContainerHostOptions,
+  type ContainerPlan,
+  type ContainerPolicy,
+  type ContainerPolicyBase,
+  type ContainerRunResult,
+  type ContainerRuntimeProbe,
+} from './containerExec.js';
 export { execTestRunner, NEVER_RAN, type ExecTestRunnerOptions } from './execTestRunner.js';
 export {
   GIT_LOG_TOOL_SPECS,
