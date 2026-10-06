@@ -60,6 +60,9 @@ export default async function HomePage() {
         <a href="/discover" className="text-accent-2 underline" data-nav-discover>
           发现
         </a>
+        <a href="/marketplace" className="text-accent-2 underline" data-nav-marketplace>
+          市场
+        </a>
         <a href="/analytics" className="text-accent-2 underline" data-nav-analytics>
           创作数据
         </a>

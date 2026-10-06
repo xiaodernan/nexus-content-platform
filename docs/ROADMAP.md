@@ -1136,7 +1136,21 @@ drizzle 把整个拼接结果当成**单个绑定参数**，生成的 SQL 是 `o
 `publish.integration.test.ts` 7 条（含本轮转绿的那条）。
 
 ## M7 — 创作者经济（§187）
-- [ ] Marketplace（组件 / 模板 / 设计系统 / 资产 / 世界 / 游戏 / AI 角色）
+- [~] Marketplace（组件 / 模板 / 设计系统 / 资产 / 世界 / 游戏 / AI 角色）
+  —— **2026-10-06 后端落地**：`marketplace_items`（迁移 0023，七类物品 CHECK、可见性
+  public/free/private、软删、下载计数）+ `domain/marketplace.ts`（列表只出 public/free、
+  所有权判定在 SQL 的 where 里）+ `/api/marketplace` 三条路由（GET/POST 列表与创建、
+  PATCH/DELETE 所有权、POST 下载计数只认 public/free），标题/描述/标签过发布机检同一份红线词表。
+  **2026-10-07 店面落地**：`/marketplace`——类型过滤、条目卡（价格/可见性/创作者/预览图）、
+  上架表单（类型/标题/描述/标签/价格/可见性 + 来源项目与预览素材选择，资产清单按项目
+  现拉）、我的物品与下架（confirm + DELETE + CSRF 双提交）。预览图走**市场自己的公开路由**
+  `/api/marketplace/[id]/preview`（匿名场景自己的口；可见性跟条目走，所以缓存 `public, max-age=3600`
+  而不是 immutable——素材字节不变，但"能不能看"会变）。导航加了「市场」。
+  **测试**：`@smoke §127 创作者市场`（上架 → 出现在店面与我的物品 → 下载计数 0→1
+  → 下架消失，15.6s 过）；domain 14 条（2026-10-06）；路由层的 `requireUser`/CSRF 门
+  与 0f8404e 一起补齐并过全仓 typecheck。
+  **仍欠**：工程文件本体的交付（条目内容怎么走到买家手里——项目导出包与 credits 结算，
+  页面上照实说"下载只记计数"）；条目元数据的编辑入口（PATCH 路由有，界面还没有）。
 - [~] Credits 与订阅（Free/Pro/Creator/Studio/Enterprise），消费透明（§133-134）
   —— 第一片已落地（账本 + 一类消费 + 一格拦截）；第二片把 storage 那一格也接上真的执行方
   （摄取门里拒绝新字节，413，见文末"§133/§134 第二片"与 ADR-0018）；

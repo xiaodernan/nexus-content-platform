@@ -2856,6 +2856,39 @@ test('@smoke §163 断线重开：服务端真关流，客户端自动重连并�
   await page.screenshot({ path: 'screenshots/realtime-reconnect.png' });
 });
 
+test('@smoke §127 创作者市场：上架、出现在店面、下载计数、下架', async ({ page }) => {
+  test.setTimeout(180_000);
+  await createProject(page, `市场${Date.now().toString(36)}`);
+  await page.goto('/marketplace');
+  await expect(page.locator('[data-marketplace-create]')).toBeVisible({ timeout: 30_000 });
+
+  const title = `浮岛组件包 ${Date.now().toString(36)}`;
+  await page.selectOption('[data-marketplace-create-type]', 'world');
+  await page.fill('[data-marketplace-create-title]', title);
+  await page.fill('[data-marketplace-create-description]', '三座浮岛的素材打包。');
+  await page.fill('[data-marketplace-create-tags]', '浮岛,素材');
+  await page.fill('[data-marketplace-create-price]', '25');
+  await page.click('[data-marketplace-create-submit]');
+  await expect(page.locator('[data-marketplace-create-message]')).toContainText('已上架', { timeout: 30_000 });
+
+  // 店面列表里出现（同一页 router.refresh 之后），「我的物品」里也有同一条
+  const mine = page.locator('[data-marketplace-mine] [data-marketplace-item]').filter({ hasText: title });
+  await expect(mine).toHaveCount(1, { timeout: 30_000 });
+
+  // 下载：只记计数，并诚实说明内容交付还没接（计数从 0 变 1 是接口回的真实数字）
+  await mine.locator('[data-marketplace-download]').first().click();
+  await expect(mine.locator('[data-marketplace-item-message]').first()).toContainText('交付还没接', { timeout: 15_000 });
+  await expect(mine.locator('[data-marketplace-download]').first()).toContainText('下载（1）');
+
+  // 下架：confirm 弹窗 → 我的物品里消失
+  page.on('dialog', (dialog) => void dialog.accept());
+  await mine.locator('[data-marketplace-remove]').first().click();
+  await expect(page.locator('[data-marketplace-mine] [data-marketplace-item]').filter({ hasText: title })).toHaveCount(0, {
+    timeout: 30_000,
+  });
+  await page.screenshot({ path: 'screenshots/marketplace.png' });
+});
+
 test('@smoke §74 删除项目：确认词打不动接口，删掉的公开页与互动一起关门', async ({ page }) => {
   // 这条用例的卖点是"审批真的在服务端"，所以关键一步是绕过界面直接打接口：
   // 只测界面上的确认卡片，测到的是一个恰好长得像审批门的输入框
