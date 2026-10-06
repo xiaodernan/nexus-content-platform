@@ -77,6 +77,9 @@ export interface SaveStore {
    *  sentence explaining WHY it cannot be used (path traversal, debris suffix, etc.). M5 v168: callers can
    *  now ask the store itself instead of importing the module-level helper. */
   savePathRefusal(path: string): string | null;
+  /** M5 v172 — give a save a new name. Reads the old file's bytes, writes them under the new name, deletes the old.
+   *  Returns the new path on success. Throws if the old file doesn't exist or the new name is refused. */
+  rename(oldPath: string, newPath: string): string;
 }
 
 /**
@@ -198,6 +201,15 @@ export function createMemorySaveStore(): SaveStore {
     savePathRefusal(path) {
       return savePathRefusal(path);
     },
+    rename(oldPath, newPath) {
+      const oldKey = resolveSavePath(oldPath);
+      const contents = files.get(oldKey);
+      if (contents === undefined) throw new Error(`saveStore: "${oldPath}" does not exist`);
+      const newKey = resolveNewSavePath(newPath);
+      files.set(newKey, contents);
+      files.delete(oldKey);
+      return newPath;
+    },
   };
 }
 
@@ -288,6 +300,22 @@ export function createFsSaveStore(fs: FsLike, root: string): SaveStore {
     },
     savePathRefusal(path) {
       return savePathRefusal(path);
+    },
+    rename(oldPath, newPath) {
+      const oldKey = at(oldPath);
+      if (!fs.existsSync(oldKey)) throw new Error(`saveStore: "${oldPath}" does not exist`);
+      // Use native rename if available, otherwise read-write-delete
+      if (typeof fs.renameSync === 'function') {
+        const newKey = atNew(newPath);
+        fs.renameSync(oldKey, newKey);
+      } else {
+        const contents = fs.readFileSync(oldKey);
+        fs.writeFileSync(atNew(newPath), contents);
+        if (typeof fs.unlinkSync === 'function') {
+          fs.unlinkSync(oldKey);
+        }
+      }
+      return newPath;
     },
   };
 }
@@ -427,6 +455,18 @@ export function createLocalStorageSaveStore(namespace: string): SaveStore {
     },
     savePathRefusal(path) {
       return savePathRefusal(path);
+    },
+    rename(oldPath, newPath) {
+      const oldKey = keyFor(oldPath);
+      const contents = storage.getItem(oldKey);
+      if (contents === null) throw new Error(`saveStore: "${oldPath}" does not exist`);
+      const newKey = keyForNew(newPath);
+      storage.setItem(newKey, contents);
+      storage.removeItem(oldKey);
+      // Update index: remove old, add new
+      removeFromIndex(oldPath);
+      addToIndex(newPath);
+      return newPath;
     },
   };
 }

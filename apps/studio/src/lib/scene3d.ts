@@ -138,6 +138,10 @@ export interface SceneSaverLike {
   listSaveFiles?(): SceneSaveEntry[];
   /** M5 v171 — take a save back. Returns true when something was deleted, false when the path held nothing. */
   deleteSaveFile?(path: string): boolean;
+  /** M5 v172 — give a save a new name. Returns the new path on success, or throws with a refusal reason if the name is illegal. */
+  renameSaveFile?(oldPath: string, newPath: string): string;
+  /** M5 v168 — classify whether a save name is legal for this build's naming policy. */
+  savePathRefusal?(path: string): string | null;
 }
 
 /** Where the demo camera stands. Far enough out to see four bodies, close enough to read their faces. */

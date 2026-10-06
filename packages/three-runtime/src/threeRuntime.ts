@@ -1919,6 +1919,12 @@ export class ThreeRuntime {
     return report;
   }
 
+  /** M5 v172 — rename a save. Delegates to the SaveStore's rename method. */
+  renameSaveFile(oldPath: string, newPath: string): string {
+    if (!this.storage) throw new Error(`renameSaveFile: this runtime has no SaveStore — create it with { storage }`);
+    return this.storage.rename(oldPath, newPath);
+  }
+
   /**
    * Name every save the store holds, without reading one. The listing is a fact about names: an empty store
    * answers `[]`, and a host that cannot browse throws (v122's rule for a missing capability — an empty list

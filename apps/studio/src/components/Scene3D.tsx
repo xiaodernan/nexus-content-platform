@@ -179,6 +179,13 @@ export default function Scene3D() {
           return false;
         }
       },
+      renameSaveFile(oldPath, newPath) {
+        try {
+          return runtime.renameSaveFile(oldPath, newPath);
+        } catch (error) {
+          throw error;
+        }
+      },
     };
     saverRef.current = saver;
 
@@ -394,6 +401,25 @@ export default function Scene3D() {
     }
   }, [selectedSavePath]);
 
+  const onRenameSave = useCallback((oldPath: string, newPath: string) => {
+    const saver = saverRef.current;
+    if (!saver || !saver.renameSaveFile) return;
+    try {
+      // Validate new name before attempting rename (if savePathRefusal is available)
+      const refusal = saver.savePathRefusal?.(newPath);
+      if (refusal !== null && refusal !== undefined) throw new Error(refusal);
+      const renamed = saver.renameSaveFile(oldPath, newPath);
+      // Refresh the list after rename
+      const updated = saver.listSaveFiles?.() ?? [];
+      setAvailableSaves(updated);
+      // Update selection if the renamed save was selected
+      if (selectedSavePath === oldPath) setSelectedSavePath(renamed);
+      setSaveNote(`renamed "${oldPath}" to "${renamed}"`);
+    } catch (error) {
+      setSaveNote(`rename refused: ${(error as Error).message}`);
+    }
+  }, [selectedSavePath]);
+
   const sendCountRef = useRef(0);
   const onSendToDocument = useCallback(() => {
     const surface = surfaceRef.current;
@@ -578,6 +604,29 @@ export default function Scene3D() {
                   title={`Delete ${save.path}`}
                 >
                   delete
+                </button>
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    const newName = prompt('Enter new name for this save:', save.path);
+                    if (newName && newName !== save.path) {
+                      onRenameSave(save.path, newName);
+                    }
+                  }}
+                  style={{
+                    marginLeft: 4,
+                    padding: '2px 6px',
+                    fontSize: 9,
+                    background: 'rgba(33, 150, 243, 0.1)',
+                    border: '1px solid rgba(33, 150, 243, 0.3)',
+                    borderRadius: 3,
+                    cursor: 'pointer',
+                    color: 'var(--nexus-info)',
+                  }}
+                  title={`Rename ${save.path}`}
+                >
+                  rename
                 </button>
               </div>
             ))}
