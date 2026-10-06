@@ -2880,6 +2880,15 @@ test('@smoke §127 创作者市场：上架、出现在店面、下载计数、�
   await expect(mine.locator('[data-marketplace-item-message]').first()).toContainText('交付还没接', { timeout: 15_000 });
   await expect(mine.locator('[data-marketplace-download]').first()).toContainText('下载（1）');
 
+  // 改价格/可见性：PATCH 走创作者自己的门，保存后卡片上的数就是改过的那个
+  await mine.locator('[data-marketplace-edit]').first().click();
+  await page.fill('[data-marketplace-edit-price] >> visible=true', '40');
+  await page.selectOption('[data-marketplace-edit-visibility] >> visible=true', 'free');
+  await page.click('[data-marketplace-edit-save] >> visible=true');
+  await expect(mine.locator('[data-marketplace-item-message]').first()).toContainText('已保存', { timeout: 15_000 });
+  await expect(mine.locator('[data-marketplace-item-price="40"]')).toHaveCount(1, { timeout: 30_000 });
+  await expect(mine.locator('[data-marketplace-item-visibility="free"]')).toHaveCount(1);
+
   // 下架：confirm 弹窗 → 我的物品里消失
   page.on('dialog', (dialog) => void dialog.accept());
   await mine.locator('[data-marketplace-remove]').first().click();
