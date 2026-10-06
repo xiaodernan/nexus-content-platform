@@ -1129,7 +1129,18 @@ drizzle 把整个拼接结果当成**单个绑定参数**，生成的 SQL 是 `o
 - [~] MCP、外部 Agent、公开 API —— 公开 API 这一格已有读与写（第一片三格只读 + 第二片 PATCH 设计补丁 +
   第三片凭据级的访问账 + 第四片 JSON 出口的编码协商，2026-09-29/30）；4000 节点档的公网读/写
   **有了实测**（3293KB → 线上 gzip 103KB、GET 中位 513–951ms、一次 insert 中位 1369–1597ms，
-  数与口径在 `docs/PERFORMANCE.md`）；MCP server 与外部 Agent 接入还没有，项目的创建/删除也不对外（写只有改文档这一格）
+  数与口径在 `docs/PERFORMANCE.md`）。
+  **2026-10-07 第五片（MCP server 落地）**：`apps/mcp-server`（stdio）——定位是 **v1 的外部客户端**，
+  不是特权通道（ADR-0031）：不 import 业务代码、不连库，四个工具与 v1 四条端点一一对应
+  （`nexus_list_projects` / `nexus_get_project` / `nexus_get_design` / `nexus_patch_design`），
+  token 鉴权、scope、凭据级访问账三道门自动继承；工具描述自带限度（先看规模再拉整份、
+  删除类 op 会被 `approval_required` 拒、打不到的 op 被 `ops_skipped` 整体拒）。
+  **测试**：`mcp.test.ts` 7 条对真本地 HTTP 后端量（tools/list 恰好四个、Bearer 头、PATCH body
+  原样透传、404/401 变 isError 且错误码留文本、连接被拒是另一条错误路径）；stdio 冒烟两臂
+  ——真进程 initialize 报 `nexus` + tools/list 四个、缺 `NEXUS_API_TOKEN` 退出 1 且 stderr
+  说清凭据在哪签发（`npm run mcp:serve` 起服务；typecheck 链已纳入 apps/mcp-server）。
+  **仍欠**：项目的创建/删除/发布不对外（写只有改文档这一格）；托管远端 Agent 需要的
+  Streamable HTTP 入口（工具层不用改，挂的仍是 v1）。
 
 ## 横向能力（随里程碑推进，不单列里程碑）
 - Agent 工具注册表 + 权限 + 人工审批门（§72-74/177）— **§74 点名的「删除项目」这一格已落地（2026-09-26）**：

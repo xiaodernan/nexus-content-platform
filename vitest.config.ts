@@ -5,7 +5,7 @@ const from = (p: string) => fileURLToPath(new URL(p, import.meta.url));
 
 export default defineConfig({
   test: {
-    include: ['packages/*/test/**/*.test.ts', 'apps/web/test/**/*.test.ts', 'apps/web/src/**/*.test.ts'],
+    include: ['packages/*/test/**/*.test.ts', 'apps/web/test/**/*.test.ts', 'apps/web/src/**/*.test.ts', 'apps/mcp-server/test/**/*.test.ts'],
     environment: 'node',
     globals: false,
     reporters: 'dot',
