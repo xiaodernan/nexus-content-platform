@@ -6,7 +6,7 @@ import {
   createHeadlessBackend,
   createWebGLBackend,
   webglAvailable,
-  createMemorySaveStore,
+  createLocalStorageSaveStore,
 } from '@nexus/three-runtime';
 import { childIdList } from '@nexus/design-model';
 import {
@@ -75,8 +75,8 @@ export default function Scene3D() {
   // v163: a handle to the runtime, so the send-to-document control can read the authored bodies' names
   // and positions at click time — the renderer half is where a `threeObject` may be touched.
   const runtimeRef = useRef<ThreeRuntime | null>(null);
-  // M5 v169: handles to the storage and saver, so browse/load can reach them without becoming state.
-  const storageRef = useRef<ReturnType<typeof createMemorySaveStore> | null>(null);
+  // M5 v169/v170: handles to the storage and saver, so browse/load can reach them without becoming state.
+  const storageRef = useRef<ReturnType<typeof createLocalStorageSaveStore> | null>(null);
   const saverRef = useRef<SceneSaverLike | null>(null);
   // Pointer-drag bookkeeping. A ref, not state: a drag must not re-render on every move.
   const dragRef = useRef<{ id: number; x: number; y: number } | null>(null);
@@ -98,7 +98,7 @@ export default function Scene3D() {
     // the runtime's construction option (M5 v108) — the same seam the package's own suite uses — so
     // this is a parameter, not a fork inside the class.
     const gl = webglAvailable();
-    const storage = createMemorySaveStore();
+    const storage = createLocalStorageSaveStore('studio-scene');
     storageRef.current = storage;
     const runtime = new ThreeRuntime(
       {},

@@ -291,3 +291,142 @@ export function createFsSaveStore(fs: FsLike, root: string): SaveStore {
     },
   };
 }
+
+/**
+ * M5 v170 — a store over browser `localStorage`, confined to a namespace prefix.
+ *
+ * Unlike `createMemorySaveStore` (process-scoped) and `createFsSaveStore` (Node fs), this persists across page
+ * reloads but stays within one origin's localStorage quota (~5MB). The namespace is a simple string prefix so
+ * that saves from different apps or tabs do not collide: `createLocalStorageSaveStore('my-app')` writes to keys
+ * like `nexus-save:my-app:hero.json`.
+ *
+ * Two design choices keep it honest:
+ * * An index key (`${prefix}:__index`) holds a JSON array of all save names, so `list()` reads no bytes beyond
+ *   the index itself. Adding/removing a save updates the index atomically (JSON.parse → mutate → JSON.stringify).
+ * * Atomic writes use the same temp-then-rename pattern as the fs store, but "rename" means write-temp then
+ *   copy-to-target then delete-temp (localStorage has no rename syscall). The suffix is `SAVE_TEMP_SUFFIX` so
+ *   the policy gate already knows which names are debris.
+ */
+export function createLocalStorageSaveStore(namespace: string): SaveStore {
+  if (!namespace || namespace.trim() === '') {
+    throw new Error('saveStore: a localStorage store needs a non-empty namespace to avoid colliding with other apps');
+  }
+  const prefix = `nexus-save:${namespace}`;
+  const indexKey = `${prefix}:__index`;
+  const storage = typeof window !== 'undefined' && window.localStorage ? window.localStorage : null;
+  if (!storage) {
+    throw new Error(`saveStore: localStorage is not available in this environment; a browser-backed store cannot be created without it`);
+  }
+
+  /** Read the index (array of save names) or return empty array if none exists yet. */
+  const readIndex = (): string[] => {
+    try {
+      const raw = storage.getItem(indexKey);
+      if (raw === null) return [];
+      const parsed = JSON.parse(raw);
+      if (!Array.isArray(parsed)) return [];
+      return parsed.filter((name): name is string => typeof name === 'string');
+    } catch {
+      return [];
+    }
+  };
+
+  /** Write the index back. Throws if serialization fails, matching the fs store's honesty. */
+  const writeIndex = (names: string[]): void => {
+    storage.setItem(indexKey, JSON.stringify(names));
+  };
+
+  /** Add a name to the index if not already present. */
+  const addToIndex = (name: string): void => {
+    const index = readIndex();
+    if (!index.includes(name)) {
+      index.push(name);
+      index.sort();
+      writeIndex(index);
+    }
+  };
+
+  /** Remove a name from the index. */
+  const removeFromIndex = (name: string): void => {
+    const index = readIndex();
+    const filtered = index.filter((n) => n !== name);
+    if (filtered.length !== index.length) {
+      writeIndex(filtered);
+    }
+  };
+
+  /** Build the localStorage key for a save name. */
+  const keyFor = (path: string): string => `${prefix}:${resolveSavePath(path)}`;
+  const keyForNew = (path: string): string => `${prefix}:${resolveNewSavePath(path)}`;
+
+  return {
+    kind: 'localStorage',
+    write(path, contents) {
+      const refusal = savePathRefusal(path);
+      if (refusal !== null) throw new Error(`saveStore: "${path}" is refused: ${refusal}`);
+      storage.setItem(keyForNew(path), contents);
+      addToIndex(path);
+    },
+    writeAtomic(path, contents, durable = false) {
+      // localStorage has no rename syscall, so atomicity means: write temp, then copy temp to target, then delete temp.
+      // The capability check happens BEFORE any byte moves.
+      const refusal = savePathRefusal(path);
+      if (refusal !== null) throw new Error(`saveStore: "${path}" is refused: ${refusal}`);
+
+      const targetKey = keyForNew(path);
+      const tempKey = `${targetKey}${SAVE_TEMP_SUFFIX}`;
+
+      // Write to temp first
+      storage.setItem(tempKey, contents);
+
+      try {
+        // Copy temp to target (this is the "rename")
+        const tempContents = storage.getItem(tempKey);
+        if (tempContents !== null) {
+          storage.setItem(targetKey, tempContents);
+        }
+        // Delete temp
+        storage.removeItem(tempKey);
+      } catch (error) {
+        // If something goes wrong mid-flight, clean up the temp
+        try {
+          storage.removeItem(tempKey);
+        } catch {
+          // Best effort cleanup
+        }
+        throw new Error(`saveStore: writing "${path}" failed mid-flight (${(error as Error).message}); the temp was cleaned up and nothing was written to the target`);
+      }
+
+      // Add to index after successful write
+      addToIndex(path);
+    },
+    read(path) {
+      const refusal = savePathRefusal(path);
+      if (refusal !== null) throw new Error(`saveStore: "${path}" is refused: ${refusal}`);
+      return storage.getItem(keyFor(path));
+    },
+    exists(path) {
+      const refusal = savePathRefusal(path);
+      if (refusal !== null) throw new Error(`saveStore: "${path}" is refused: ${refusal}`);
+      return storage.getItem(keyFor(path)) !== null;
+    },
+    delete(path) {
+      const refusal = savePathRefusal(path);
+      if (refusal !== null) throw new Error(`saveStore: "${path}" is refused: ${refusal}`);
+      const key = keyFor(path);
+      const had = storage.getItem(key) !== null;
+      if (had) {
+        storage.removeItem(key);
+        removeFromIndex(path);
+      }
+      return had;
+    },
+    list() {
+      // Return the index directly — no need to scan all localStorage keys
+      return readIndex().sort();
+    },
+    savePathRefusal(path) {
+      return savePathRefusal(path);
+    },
+  };
+}
