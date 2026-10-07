@@ -1570,6 +1570,16 @@ export class ThreeRuntime {
     return entity.components.get(componentType);
   }
 
+  /** v201 — return only enabled components on an entity. The enabled flag gates participation in queries,
+   *  not rendering or game logic. Disabled components are stored but invisible to iteration. */
+  getEnabledComponents(entity: ThreeEntity): EntityComponent[] {
+    const result: EntityComponent[] = [];
+    for (const comp of entity.components.values()) {
+      if (comp.enabled !== false) result.push(comp);
+    }
+    return result;
+  }
+
   /**
    * Toggle a component's enabled flag in the registry. Answers false when the scene, entity or the
    * component is missing (the caller can tell the difference from the message if it needs to). Emits

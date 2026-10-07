@@ -8973,3 +8973,51 @@ ledger entry._
   question this service does not answer yet. No ownership: anyone who can reach the service can unpublish
   anything. No soft delete and no history: a taken-down publication is gone, and there is no record that it
   existed. Listing returns metadata only, and the Studio's list shows at most 20 rows with no way to page.
+
+### Amendment 196 (M7 v196, studio) — the ARTIFACT PAGE: a published project at a URL a person can open, drawn by the Studio's own renderer
+
+_Numbering: 196 was free (`grep -ao "^### Amendment [0-9][0-9][0-9]"` topped out at 195). This is item 12 of
+the priority queue in `docs/DEVELOPMENT_PLAN.md`, and it closes the thing **M1 explicitly deferred to M7**:
+*"Hosted publish deferred to M7."* Full narrative in `docs/evidence/m7/README.md`; this is the ledger entry._
+
+- **The gap this closes.** v193–v195 built the API half: a publication is a row, it can be read, listed and
+  taken down. Every one of those is reachable only by a CLIENT that already knows the id. A person with a
+  browser had nothing to open. `GET /p/{projectId}` is that missing half.
+- **A route HANDLER, not a page, and that is the point.** What it answers with is not a React tree: it is the
+  artifact, drawn by `renderPreviewHtml` — **the same function the Studio's local Preview and its HTML export
+  use**. "What you published is what you get" is only true if the published page and the preview are the same
+  code; a second renderer would be a second answer to the same question and the two would drift.
+- **Three answers, and the status codes carry the difference.** `200` the artifact · `404` nothing is
+  published under this id · `503` **the service** could not be reached or answered unusably. That last one is
+  not a 404 on purpose: "nothing is published here" and "the thing that knows what is published is not
+  running" are different facts, and a reader given the wrong one looks for the problem in the wrong place.
+  The two failure PAGES say different things too, and a suite case asserts they are distinguishable.
+- **A structural flag rather than a sentence match.** The route first decided 404-vs-503 by testing whether the
+  lane's `reason` started with `"nothing is published"` — which would silently start answering 503 the day
+  someone reworded that sentence. `readPublication` now reports `notFound: true`, and the route reads that.
+- **A document that cannot be drawn gets its own page, not an empty stage.** A publication whose document is
+  not an object, or whose `activePageId` names no page it holds, answers "Artifact unavailable" — because an
+  empty stage looks like an artifact that happens to be blank rather than a broken record.
+- **The panel links to it.** Each row of the Published panel gained an `open` link to `/p/{id}`. The link is
+  one the STUDIO is the author of (it is the Studio's own route); the service's `url` names its JSON endpoint
+  and stays what it is. Two addresses for two readers, and the code says so.
+- **Two proof bugs found while adding this, both worth keeping.** (1) `studio-publish.mjs` had the SAME hole
+  `publish-proof.mjs` had just been fixed for: it verified postgres with `docker exec … pg_isready`, which
+  runs inside the container and says nothing about the host port the service connects through. Fixed the same
+  way — a host-side TCP probe. (2) **The startup timeout sat at the median.** The service starts in ~12s on an
+  idle machine and was MEASURED at **40.4s** while the machine ran containers and dev servers; both proofs
+  waited 40s, so they failed intermittently for a reason unrelated to the code. The wait is now a named
+  constant (180 tries × 1s) whose comment carries the measurement. **A proof whose timeout sits at the median
+  is a proof that flakes.**
+- **Evidence.** `src/lib/artifact.test.ts` — 5 cases (a publication renders the document through the
+  renderer's own shell · a non-object document and a document naming no page both get the UNAVAILABLE page and
+  NOT an empty stage · the missing and unavailable pages say different things and both escape caller-supplied
+  text); `tools/harness/studio-publish.mjs` **15 → 20 assertions**, now drawing a rectangle first so the
+  artifact has content, then fetching `/p/{id}` (200 + the stage), opening it in a REAL browser (the stage
+  renders and has content), and checking an unpublished id answers 404 with its own page rather than the
+  service-down page. apps/studio **386 → 391** (31 files), `tsc` clean.
+- **Bounds (§60).** The artifact is the document and nothing else: no author, no publish date, no version, no
+  navigation, no styling controls — a reader gets the drawing, not a page ABOUT the drawing. No auth: anyone
+  who knows an id can open it, and anyone who can reach the Studio can publish or unpublish. The page renders
+  the document with the preview renderer's fixed dark styling rather than the document's own `tokens` being
+  themeable by the reader.

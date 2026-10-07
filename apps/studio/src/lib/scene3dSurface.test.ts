@@ -382,6 +382,57 @@ describe('the Studio’s scene, composed on the REAL runtime', () => {
     ]);
   });
 
+  // M5 v201 — enabled gates query participation: getEnabledComponents returns only enabled components,
+  // disabled ones are stored but invisible to iteration.
+  it('getEnabledComponents filters out disabled components — the enabled flag gates queries, not storage', () => {
+    const headless = headlessRuntime();
+    runtime = headless.runtime;
+    const adapter: SceneAdapterLike = {
+      placeCamera(sceneId: string, cameraId: string, position: SceneVec3, lookAt: SceneVec3) {
+        const found = headless.runtime.getScene(toSceneId(sceneId))?.cameras.get(toCameraId(cameraId));
+        if (!found) return false;
+        found.threeCamera.position.set(position.x, position.y, position.z);
+        found.threeCamera.lookAt(new THREE.Vector3(lookAt.x, lookAt.y, lookAt.z));
+        return true;
+      },
+      pickAt(sceneId: string, nx: number, ny: number) {
+        return headless.runtime.pickAt(toSceneId(sceneId), nx, ny);
+      },
+    };
+    const surface = createStudioScene(runtime, () => {}, adapter);
+    headless.runtime.resize(800, 600);
+    surface.pickAt(400, 300);
+    const scene = headless.runtime.getScene(toSceneId(surface.sceneId))!;
+    const entity = scene.entities.get(toEntityId(surface.bodyIds[2]!))!;
+
+    // Add three components: two enabled, one disabled.
+    runtime.addComponent(entity, { type: 'health', data: { amount: 100 }, enabled: true });
+    runtime.addComponent(entity, { type: 'shield', data: {}, enabled: false });
+    runtime.addComponent(entity, { type: 'stamina', data: { current: 50 }, enabled: true });
+
+    // All three are stored.
+    expect(entity.components.size).toBe(3);
+
+    // Only two are visible to queries.
+    const enabled = runtime.getEnabledComponents?.(entity);
+    expect(enabled).toBeDefined();
+    expect(enabled!.length).toBe(2);
+    expect(enabled!.map((c) => c.type)).toEqual(['health', 'stamina']);
+
+    // Disable health — now only stamina is queryable.
+    runtime.setComponentEnabled?.(surface.sceneId, entity.id, 'health', false);
+    const afterHealthOff = runtime.getEnabledComponents?.(entity);
+    expect(afterHealthOff?.length).toBe(1);
+    expect(afterHealthOff?.[0].type).toBe('stamina');
+
+    // Re-enable shield — back to two queryable.
+    runtime.setComponentEnabled?.(surface.sceneId, entity.id, 'shield', true);
+    const afterShieldOn = runtime.getEnabledComponents?.(entity);
+    expect(afterShieldOn?.length).toBe(2);
+    // Order follows Map insertion order: health(first), shield(second), stamina(third) → after health disabled: [shield, stamina]
+    expect(afterShieldOn?.map((c) => c.type)).toEqual(['shield', 'stamina']);
+  });
+
   it('every body the surface hands the frame write is a REAL three.js object it can move', () => {
     const headless = headlessRuntime();
     runtime = headless.runtime;

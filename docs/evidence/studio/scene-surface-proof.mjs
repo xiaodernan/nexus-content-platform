@@ -481,6 +481,41 @@ assert.deepEqual(
 );
 console.log('[§7] and the component registry is EDITABLE: setComponentEnabled flips the enabled flag through the host gate (health on→off, shield off→on), the report follows the live registry, and a ghost component is refused silently');
 
+// v201 — enabled gates query participation: `getEnabledComponents` returns only enabled components.
+// Disabled ones are stored but invisible to iteration — the flag gates queries, not storage or rendering.
+const entity = runtime.getEntity?.(surface.sceneId, cubeA.id);
+assert.ok(entity, 'the real runtime holds Cube A for the query test');
+// Re-add health (removed in v199) so we have three components to test with.
+runtime.addComponent(entity, { type: 'health', data: { amount: 100 }, enabled: true });
+runtime.addComponent(entity, { type: 'stamina', data: { current: 50 }, enabled: true });
+assert.equal(entity.components.size, 3, 'three components are stored on the entity (shield from v199 + health re-added + stamina)');
+
+const enabledBefore = runtime.getEnabledComponents?.(entity);
+assert.ok(enabledBefore, 'getEnabledComponents exists');
+assert.equal(enabledBefore.length, 2, 'only two are visible to queries — shield is disabled');
+assert.deepEqual(
+  enabledBefore.map((c) => c.type),
+  ['health', 'stamina'],
+  'enabled components returned in registry order',
+);
+
+// Disable stamina — now only health is queryable.
+runtime.setComponentEnabled?.(surface.sceneId, cubeA.id, 'stamina', false);
+const afterStaminaOff = runtime.getEnabledComponents?.(entity);
+assert.equal(afterStaminaOff.length, 1, 'disabling stamina leaves one queryable');
+assert.equal(afterStaminaOff[0].type, 'health', 'and it is health');
+
+// Re-enable shield — back to two queryable.
+runtime.setComponentEnabled?.(surface.sceneId, cubeA.id, 'shield', true);
+const afterShieldReenabled = runtime.getEnabledComponents?.(entity);
+assert.equal(afterShieldReenabled.length, 2, 're-enabling shield brings it back to queries');
+assert.deepEqual(
+  afterShieldReenabled.map((c) => c.type),
+  ['shield', 'health'],
+  'registry order preserved: shield(first), health(second) — stamina disabled',
+);
+console.log('[§7] and enabled gates query participation: getEnabledComponents filters out disabled components (3 stored → 2 queryable → disable stamina → 1 → re-enable shield → 2), the flag gates queries not storage');
+
 // A body that LEAVES the scene has nothing to inspect: the selection stays a name, the facts go null, and
 // nothing invents a position for a body that is gone. Remove the CURRENTLY SELECTED body (Cube B).
 surface.removeBody(cubeB.id);

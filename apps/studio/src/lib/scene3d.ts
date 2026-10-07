@@ -96,6 +96,9 @@ export interface SceneComposerLike extends SceneRuntimeLike {
   /** v200 — read one component from an entity. Takes the entity object (the runtime's own signature).
    *  Optional like the other gates. */
   getComponent?(entity: unknown, componentType: string): { enabled?: boolean } | undefined;
+  /** v201 — return only enabled components on an entity. The enabled flag gates participation in queries,
+   *  not rendering or game logic. Disabled components are stored but invisible to iteration. */
+  getEnabledComponents?(entity: unknown): Array<{ type: string; enabled: boolean }>;
   /** v200 — toggle a component's enabled flag on the picked body. Answers false when the entity or
    *  the component is missing. Optional like the other gates: a host without the verb is legitimate,
    *  and the surface answers the unchanged report. */

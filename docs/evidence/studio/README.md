@@ -1031,6 +1031,26 @@ v192's, and child counts remain unread (v199's bounds still hold); the `data` pa
 registry owns it); there is no add/remove verb here (that is the runtime's own `addComponent`/`removeComponent`).
 The ADR 0016 amendment record for this grant is owed.
 
+## The component registry queries by enabled (M5 v201)
+
+v200 added the write verb (`setComponentEnabled`) but `enabled` was still just a stored field that gated no
+behavior. v201 makes it gate query participation: `getEnabledComponents(entity)` returns only components whose
+`enabled !== false`, so disabled components are stored but invisible to iteration.
+
+This gives `enabled` behavioral meaning without coupling to rendering or game logic — components are purely
+data records (health, shield, stamina), and the flag gates whether they participate in active queries rather
+than gating material visibility or animation playback. The method follows the host-gate pattern: optional on
+the runtime, exposed through the surface interface as `getEnabledComponents?(entity): Array<{type, enabled}>`.
+
+Measured on this host 2026-10-08: Studio suite **406/406** (31 files; `scene3dSurface` 17 → 18), three-runtime
+463/463 unchanged, tsc clean, browser harness **62/62** unchanged (the bridge is read-only, so the query filter
+is proven at the surface-suite and proof layers), proof ALL ASSERTIONS PASSED with the new §7 query line.
+
+Bounds, stated: the filter applies only to iteration — save/restore still carries all components regardless of
+enabled state; the HUD still reports all components (v199's read remains unchanged); `data` payloads remain
+uneditable; there is no bulk enable/disable verb (each toggle is individual). The ADR 0016 amendment record
+for this grant is owed.
+
 ## The dock's BUILD face (M6 v174 — ADR 0016 amendment 174)
 
 The first product consumer of the build arc (amendment 173), and the section this increment never had: the
