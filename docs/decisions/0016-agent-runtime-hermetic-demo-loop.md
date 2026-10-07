@@ -8454,3 +8454,55 @@ requires rebuilding that package before any browser-facing check is meaningful.*
 move them, or touch colour — the demo's two declared lights are what it names. There is no
 persistent lighting state: a save file still records nothing about a light the person dimmed.
 
+
+## Amendment 184 — the save REALLY persists: store AND disk (M5 v184)
+
+v163-v180's save note said "persisted in this origin's localStorage" and it was a LIE the whole
+time: `surface.save()` only BUILT the runtime's file, nothing in the product face ever called
+`writeSaveFile`, and the store stayed empty through every green run - the harness checked the
+note and the in-memory round trip, never the store, so 37/37 kept passing over an unbuilt claim.
+v184 closes the lie and spends the runtime's oldest waiting capability: the fs-backed SaveStore
+of v120 finally gets a product consumer.
+
+**Studio (the store write).** `onSave` now calls `runtime.writeSaveFile('last-saved', ...)` and
+the note carries the write report's OWN byte count (`2307 bytes in this origin's localStorage
+('last-saved', reload-safe), not on disk`) - every number on screen is the store's receipt, and a
+refusing store (quota) fails the save loudly instead of quietly keeping the file to itself.
+
+**Studio (server).** `saveFsServer.ts` + `app/api/agent/save-fs` (route, nodejs): the route
+speaks exactly two actions (`write`, `read`) plus a GET probe. The store is the runtime's OWN
+`createFsSaveStore` over node:fs injected as `FsLike` (`nodeSaveFs` - its `writeFileSync` mkdirs
+the parent first, and it deliberately offers no `flushSync`, so a `durable` ask is refused by the
+store's own sentence rather than downgraded). The naming rules stay the store's - no absolute
+forms, no `..`, no backslash, no temp suffix on creation - and every refusal crosses as
+`ok:false` plus the store's sentence, paraphrased by nobody. A non-object file is refused BEFORE
+any byte moves (the v163 door rule, one seam over); a read tells missing, not-JSON and
+parses-but-not-an-object apart by name. Saves land in `.nexus/scene-saves` (gitignored since
+v177, beside the deploy records).
+
+**Studio (lane + face).** `saveFsLane.ts` is a fetch adapter importing nothing from the runtime
+or the server module (types re-stated locally); the HUD grows `save to disk` (one save, two named
+destinations - the store and the disk get the same bytes), `browse disk` (names only - a listing
+is a fact about names, not bytes), and disk rows that load a save into a FRESH scene through the
+same non-overwriting `surface.load`.
+
+**Harness.** 37 -> **42**: the store's own browse verb now lists what save wrote (the lie's
+direct counter-proof), `save to disk` answers with path + bytes, the file is read back OFF DISK
+with node:fs and parses to the runtime's format (5 bodies), the disk row lists, and clicking it
+round-trips through the real disk into a fresh scene. The run also caught a real regression of
+its own: the HUD panel had grown wide enough to cover the canvas center, so drags and picks
+aimed at the scene landed on the panel's clickable rows instead - the press point moved to the
+lower-right quadrant and the panel got a max width, because a HUD that swallows input meant for
+the scene it describes is a HUD gone wrong.
+
+**Verification.** studio 283 -> **297** (+14: 7 server over a memFs fake + a REAL tmpdir round
+trip proving `nodeSaveFs` lands bytes on disk through a nested root, 7 lane over a stubbed
+fetch); tsc clean via `next build`, lint clean at `--max-warnings=0`, harness **42/42** with
+`backend=webgl`; the disk file's bytes are asserted from OUTSIDE the page (node:fs), so a write
+that only claimed to happen would fail twice - in the route answer and in the file read.
+
+**Bounds (§60).** One fixed save name (`last-saved`) per store; the disk store holds what the
+route wrote and nothing browses sub-directories differently; no disk delete or rename from the
+panel (the store supports both; the face does not expose them yet); no quota meter; `durable`
+is refused, not downgraded; and a save on disk is a file on THIS server - not a publish, not a
+backup, not a cloud.

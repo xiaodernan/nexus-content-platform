@@ -24,7 +24,7 @@
  * assertions, and the screenshot shows four LIT boxes rather than the black frame the v142 defect
  * produced.
  */
-import { mkdirSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { launch } from './cdp.mjs';
 
@@ -114,8 +114,11 @@ try {
 
   // Drag across the canvas to orbit. Chrome turns mouse input into pointer events, which is what the
   // component listens for — so this drives the same path a hand does.
+  // The press point is the surface's LOWER-RIGHT quadrant, not its center: the HUD panel grew wide
+  // enough (v184 added the disk controls) to cover the center with its clickable rows, and a drag
+  // that lands on the panel exercises the panel, not the camera.
   const box = await page.evaluate(
-    "(() => { const c = document.getElementById('nexus-scene3d'); const r = c.getBoundingClientRect(); return { x: Math.round(r.left + r.width / 2), y: Math.round(r.top + r.height / 2) }; })()",
+    "(() => { const c = document.getElementById('nexus-scene3d'); const r = c.getBoundingClientRect(); return { x: Math.round(r.left + r.width * 0.75), y: Math.round(r.top + r.height * 0.7) }; })()",
   );
   await page.send('Input.dispatchMouseEvent', { type: 'mousePressed', x: box.x, y: box.y, button: 'left', buttons: 1, clickCount: 1 });
   for (let i = 1; i <= 5; i++) {
@@ -420,6 +423,56 @@ try {
     { timeout: 10000 },
   );
   check('toggling back ON re-enables the light — v142’s attach rule, pressed by hand twice', backOn === 'enabled', JSON.stringify(backOn));
+
+  // ── M5 v184: the save REALLY persists — in the browser store AND on the server's disk ────────────
+  // v163-v180's note claimed localStorage persistence while nothing ever called writeSaveFile, and
+  // the harness never looked — the store stayed empty through every green run. From v184 the store
+  // holds the bytes (its own browse verb lists them) and the disk lane writes the SAME file through
+  // the route into apps/studio/.nexus/scene-saves/, read back here with node:fs.
+
+  await page.evaluate("document.querySelector('[data-scene-browse-saves]').click()");
+  const storeNote = await page.waitForFunction(
+    `(() => { const n = document.querySelector('[data-scene3d-save-note]'); return n && n.textContent.includes('found 1 save in the store') ? n.textContent : null; })()`,
+    { timeout: 10000 },
+  );
+  check(
+    'browse lists the save the store now really holds (the v163-v180 note lie is closed)',
+    storeNote !== null,
+    storeNote,
+  );
+
+  await page.evaluate("document.querySelector('[data-scene-save-disk]').click()");
+  const diskNote = await page.waitForFunction(
+    `(() => { const n = document.querySelector('[data-scene3d-save-note]'); return n && n.textContent.includes('server disk (last-saved') ? n.textContent : null; })()`,
+    { timeout: 15000 },
+  );
+  check(
+    'save to disk answers with the disk write (path + bytes), the same bytes the store got',
+    diskNote !== null,
+    diskNote,
+  );
+
+  const diskFile = join(process.cwd(), 'apps', 'studio', '.nexus', 'scene-saves', 'last-saved');
+  const onDisk = existsSync(diskFile) ? JSON.parse(readFileSync(diskFile, 'utf8')) : null;
+  check(
+    'the file really exists on the server disk and parses to the runtime save format (5 bodies)',
+    onDisk !== null && onDisk.format === 'nexus-three-runtime-save' && Array.isArray(onDisk.entities) && onDisk.entities.length === 5,
+    onDisk === null ? `no file at ${diskFile}` : `format ${onDisk.format} · ${onDisk.entities.length} entities`,
+  );
+
+  await page.evaluate("document.querySelector('[data-scene-browse-disk]').click()");
+  const diskRow = await page.waitForFunction(
+    `(() => { const n = document.querySelector('[data-scene3d-disk-save=\"last-saved\"]'); return n ? n.getAttribute('data-scene3d-disk-save') : null; })()`,
+    { timeout: 10000 },
+  );
+  check('browse disk lists the save the route just wrote', diskRow === 'last-saved', JSON.stringify(diskRow));
+
+  await page.evaluate("document.querySelector('[data-scene3d-disk-save=\"last-saved\"]').click()");
+  const fromDisk = await page.waitForFunction(
+    `(() => { const n = document.querySelector('[data-scene3d-save-note]'); return n && n.textContent.includes('restored 5 bodies from the server') ? n.textContent : null; })()`,
+    { timeout: 10000 },
+  );
+  check('clicking a disk row loads it into a FRESH scene (round trip through the real disk)', fromDisk !== null, fromDisk);
 
   // Back to 2D: the toggle must be reversible and the canvas must come back with its pixels.
   await page.evaluate("document.querySelector('[data-surface-toggle=\"2d\"]').click()");

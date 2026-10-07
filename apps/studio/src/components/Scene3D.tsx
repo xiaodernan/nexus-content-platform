@@ -24,6 +24,7 @@ import {
   type SceneSurface,
 } from '@/lib/scene3d';
 import { installSceneBridge } from '@/lib/observability';
+import { SAVE_FS_LANE_DISK_SAVE_PATH, probeSaveFs, readSaveFromDisk, writeSaveToDisk } from '@/lib/saveFsLane';
 import { useStudio } from '@/lib/store';
 
 /**
@@ -71,6 +72,10 @@ const panel: React.CSSProperties = {
   borderRadius: 6,
   color: 'var(--nexus-text, #e6e8ec)',
   minWidth: 200,
+  // v184: a MAX width too — the disk controls made the natural width cover the canvas center, and a
+  // HUD that swallows drags and picks aimed at the scene it describes is a HUD gone wrong. The rows
+  // wrap; the canvas keeps its clicks.
+  maxWidth: 320,
   pointerEvents: 'none',
 };
 
@@ -99,6 +104,9 @@ export default function Scene3D() {
   // M5 v169: available saves from the store (listed without reading files), and which one is selected.
   const [availableSaves, setAvailableSaves] = useState<Array<{ path: string; savedAt: number; version: number; entityCount?: number }>>([]);
   const [selectedSavePath, setSelectedSavePath] = useState<string | null>(null);
+  // v184: saves on the SERVER's disk, from the save-fs lane's probe (names only — a listing is a
+  // fact about names, and reading every file's bytes to decorate a menu is the wrong seam).
+  const [diskSaves, setDiskSaves] = useState<string[]>([]);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -409,15 +417,23 @@ export default function Scene3D() {
    */
   const onSave = useCallback(() => {
     const surface = surfaceRef.current;
-    if (!surface) return;
+    const runtime = runtimeRef.current;
+    if (!surface || !runtime) return;
     try {
-      const file = surface.save(Math.round(performance.now()));
+      const savedAt = Math.round(performance.now());
+      const file = surface.save(savedAt);
       setLastFile(file);
-      // v180: the note names the store — v163's "nothing written to disk" predates the localStorage backend
-      // (v170) and lied about where the save lives. The bytes DO persist (origin localStorage, reload-safe);
-      // what they are not is a file on the server's disk.
+      // v184: the note's persistence claim is now TRUE. v163-v180 built the file and only held it in
+      // React state — nothing ever called writeSaveFile, so the store (and every browse after a
+      // reload) stayed empty while the note said "persisted". The store receives the bytes now, and
+      // the note carries the write report's OWN byte count.
+      const report = runtime.writeSaveFile(
+        'last-saved',
+        surface.sceneId as Parameters<typeof runtime.writeSaveFile>[1],
+        savedAt,
+      );
       setSaveNote(
-        `saved ${file.entities.length} bodies · ${file.format} v${file.version} · persisted in this origin's localStorage (reload-safe), not on disk`,
+        `saved ${file.entities.length} bodies · ${file.format} v${file.version} · ${report.bytes} bytes in this origin's localStorage ('last-saved', reload-safe), not on disk`,
       );
     } catch (error) {
       setSaveNote(`save refused: ${(error as Error).message}`);
@@ -508,6 +524,73 @@ export default function Scene3D() {
       setSaveNote(`rename refused: ${(error as Error).message}`);
     }
   }, [selectedSavePath]);
+
+  // M5 v184 — the disk lane. One save, two named destinations: the browser store gets the same
+  // bytes the server's disk gets, and every answer (byte counts, refusals) is the stores' own.
+  const onSaveToDisk = useCallback(() => {
+    const surface = surfaceRef.current;
+    const runtime = runtimeRef.current;
+    if (!surface || !runtime) return;
+    void (async () => {
+      try {
+        const savedAt = Math.round(performance.now());
+        const file = surface.save(savedAt);
+        setLastFile(file);
+        const storeReport = runtime.writeSaveFile(
+          SAVE_FS_LANE_DISK_SAVE_PATH,
+          surface.sceneId as Parameters<typeof runtime.writeSaveFile>[1],
+          savedAt,
+        );
+        const answer = await writeSaveToDisk(SAVE_FS_LANE_DISK_SAVE_PATH, file);
+        if (answer.ok) {
+          setSaveNote(
+            `saved ${file.entities.length} bodies → server disk (${answer.path}, ${answer.bytes} bytes) + localStorage (${storeReport.bytes} bytes, 'last-saved')`,
+          );
+        } else {
+          setSaveNote(
+            `saved to localStorage (${storeReport.bytes} bytes) but the disk save was refused: ${answer.reason}`,
+          );
+        }
+      } catch (error) {
+        setSaveNote(`save refused: ${(error as Error).message}`);
+      }
+    })();
+  }, []);
+
+  const onBrowseDisk = useCallback(() => {
+    void (async () => {
+      const probe = await probeSaveFs();
+      if (probe.available) {
+        const saves = probe.saves ?? [];
+        setDiskSaves(saves);
+        setSaveNote(`found ${saves.length} save${saves.length === 1 ? '' : 's'} on the server's disk (${probe.root})`);
+      } else {
+        setDiskSaves([]);
+        setSaveNote(`the disk save lane is unavailable: ${probe.reason}`);
+      }
+    })();
+  }, []);
+
+  const onLoadFromDisk = useCallback((path: string) => {
+    const surface = surfaceRef.current;
+    if (!surface) return;
+    void (async () => {
+      const answer = await readSaveFromDisk(path);
+      if (!answer.ok || answer.file === undefined) {
+        setSaveNote(`disk load refused: ${answer.reason}`);
+        return;
+      }
+      try {
+        const result = surface.load(answer.file as SceneSaveFile);
+        setReport(surface.report());
+        setSaveNote(
+          `restored ${result.report.entities.length} bodies from the server's disk (${path}) into a fresh scene — the demo scene is untouched`,
+        );
+      } catch (error) {
+        setSaveNote(`load refused: ${(error as Error).message}`);
+      }
+    })();
+  }, []);
 
   const sendCountRef = useRef(0);
   const onSendToDocument = useCallback(() => {
@@ -692,6 +775,9 @@ export default function Scene3D() {
           <button type="button" className="btn" data-scene-save onClick={onSave}>
             save
           </button>
+          <button type="button" className="btn" data-scene-save-disk onClick={onSaveToDisk}>
+            save to disk
+          </button>
           <button type="button" className="btn" data-scene-load onClick={onLoad}>
             load
           </button>
@@ -777,6 +863,36 @@ export default function Scene3D() {
             ))}
           </div>
         )}
+        {/* M5 v184 — saves on the SERVER's disk, via the save-fs lane (route → the runtime's fs
+            store). A row click loads that save into a fresh scene, exactly like the panel's own
+            load button; the bytes never cross the client's store to get here. */}
+        <div style={{ marginTop: 8, pointerEvents: 'auto' }}>
+          <button type="button" className="btn" data-scene-browse-disk onClick={onBrowseDisk}>
+            browse disk
+          </button>
+          {diskSaves.map((path) => (
+            <div
+              key={path}
+              data-scene3d-disk-save={path}
+              onClick={() => onLoadFromDisk(path)}
+              style={{
+                padding: '4px 6px',
+                margin: '2px 0',
+                borderRadius: 3,
+                fontSize: 10,
+                lineHeight: 1.4,
+                cursor: 'pointer',
+                border: '1px solid rgba(102, 187, 106, 0.4)',
+                background: 'rgba(102, 187, 106, 0.08)',
+              }}
+            >
+              <div>{path}</div>
+              <div style={{ color: 'var(--nexus-muted)', fontSize: 9 }}>
+                on the server&apos;s disk — click to restore into a fresh scene
+              </div>
+            </div>
+          ))}
+        </div>
         {note && <div style={{ marginTop: 6, color: 'var(--nexus-muted)', maxWidth: 280 }}>{note}</div>}
         {saveNote && (
           <div data-scene3d-save-note style={{ marginTop: 6, color: 'var(--nexus-muted)', maxWidth: 280 }}>

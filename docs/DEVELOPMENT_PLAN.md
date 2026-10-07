@@ -67,8 +67,17 @@ headless proof → product surface → real-browser verification → record the 
   ask into 0..2 (`clampLightIntensity`) BEFORE the host sees it, the report re-reads the live scene
   (`scene.lighting`), and the HUD gives each declared light an on/off toggle and −/+ brightness at
   0.1 a press (three-runtime 448 → **453**, studio 274 → **283**, harness **33 → 37/37**; ADR 0016
-  amendment 183). Still open: fs-backed persistence via a Node seam, a quota meter in the save
-  dialog.
+  amendment 183). **Now DISK-PERSISTENT (v184):** the save REALLY persists — v163–v180's note
+  claimed localStorage persistence while nothing ever called `writeSaveFile` (the store stayed
+  empty through every green run; the harness never looked); the panel's save now writes the store
+  for real and reports the write report's own byte count, and the runtime's fs-backed `SaveStore`
+  (v120) gains its first product consumer: a `save-fs` route over the runtime's own
+  `createFsSaveStore` with node:fs injected as its `FsLike` (the naming rules stay the store's;
+  saves land in gitignored `.nexus/scene-saves`), a fetch-only lane, and `save to disk`/`browse
+  disk` HUD controls whose rows load a disk save into a fresh scene — the harness reads the file
+  back off disk with node:fs (2307 bytes, 5 bodies), and the HUD panel gets a max width so it
+  stops swallowing drags aimed at the canvas (studio 283 → **297**, harness 37 → **42/42**; ADR
+  0016 amendment 184). Still open: a quota meter in the save dialog.
 - **M6–M10:** planned, not started (autonomous build, community, creator economy, ops, external agents).
 
 ## Execution order (next increments)
