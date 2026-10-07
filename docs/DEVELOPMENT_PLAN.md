@@ -27,7 +27,10 @@ headless proof → product surface → real-browser verification → record the 
   generators, character consistency, storyboard manager) + agent doors (`assetTools.ts`). **Product face
   now built (v153) and INTERACTIVE (v159):** Studio gains the `Assets` surface (asset/storyboard report,
   §60 byte-zero honesty) with a prompt form that generates into the real library and a per-row Remove.
-  Still open: video generation, character consistency, asset update, and storyboard editing.
+  **Footage (v187):** the same surface can now ASK for video — `generateAsset` takes a type and the panel
+  dispatches to the video generator (measured: the image generator answers a video ask with a still, so a
+  single-generator panel would mislabel footage).
+  Still open: character consistency, asset update, and storyboard editing.
 - **M4 — World Engine:** `@nexus/world-engine` (world/lore/character/location/faction + RAG + character
   agent) + agent doors (8) + product surface (`World` panel, v148). **Now a SIMULATION (v162):**
   `tickOnce()` + `executeAction`, two-sided relationship bonds with a decay floor, lossless save/load,

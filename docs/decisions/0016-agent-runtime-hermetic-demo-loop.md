@@ -8581,3 +8581,40 @@ one fixed save name per store; no quota-fill prediction and no polling.
 
 Tests: studio 327/327 (saveFsServer 12, saveFsLane 11 — nine new), three-runtime untouched at
 453/453, harness 53/53 (backend=webgl). tsc, eslint, next build clean.
+
+### Amendment 187 (M3 v187, studio) — the Assets surface can ask for FOOTAGE: the type crosses to the generator untouched, and the panel's dispatch is what keeps a still from being stored under a video ask
+
+_Numbering: 187 was free (`grep -ao "^### Amendment 1[0-9][0-9]"` topped out at 186). Full narrative in
+`docs/evidence/studio/README.md`; this is the ledger entry._
+
+- **The gap this closes.** The plan listed video generation as having **no product surface** — the agent door
+  `asset.video.generate` existed since v160, and nothing in the Studio could reach it. `generateAsset` gains
+  a `type: 'image' | 'video'` (defaulting to `'image'`, so every existing caller is unchanged) and the panel
+  gains an image/video toggle.
+- **The defect the dispatch prevents, MEASURED rather than asserted.** Both demo generators answer whatever
+  they are asked: `DemoImageGenerator.generate({ type: 'video', … })` returns an **`image/png`**. So a panel
+  holding ONE generator would store a still under a video ask and label it footage. The proof measures that
+  first (§6a prints `image/png`), then shows the fix (§6b: the ask reaches the video generator and comes back
+  `video/mp4`). The dispatch lives in the panel, where the real classes are touched — `lib/assets.ts` never
+  inspects the type, it forwards it.
+- **The type in the report is the GENERATOR's, not this module's.** `generateAsset` does not stamp
+  `'video'` on the result; what the generator answered is what the library stores, and `buildAssetReport`
+  reads back the metadata the library holds. A module that relabelled would make the proof's
+  `type === 'video'` check pass against its own label instead of against the package.
+- **A still and footage are told apart by a `null`, not a zero.** `AssetSummary` gains `duration: number |
+  null`: footage reports the seconds it was made for, a still reports **`null`** — because `0` would claim a
+  still is a zero-length video. The proof asserts both sides of that.
+- **§60 holds on the video write.** The footage stores **0 bytes** and the library's `storedBytes` stays 0 —
+  DEMO MODE has no footage any more than it has pixels — and the panel still renders **no `<img>`**, checked
+  in the browser against the DOM. The surface's mode line now says *"no image **or video** model is
+  attached"*.
+- **Evidence.** `src/lib/assets.test.ts` **14 → 24 cases** (the video block: the type reaches the generator,
+  footage reports a duration, a still reports null, the payload is still empty, and the default stays
+  `'image'` for an untyped call); `asset-surface-proof.mjs` gains **§6a/§6b** over the REAL generators;
+  `tools/harness/studio-assets.mjs` — the REAL browser, **24/24 → 29/29**: the probe clicks the video
+  toggle, types, presses Generate, waits for the count to rise, and checks the new asset is `video/mp4` with
+  a positive duration and zero bytes. apps/studio **201 → 332** (27 files), `tsc` clean.
+- **Bounds (§60).** The surface can now ASK for footage; it cannot play it, scrub it, or see it — there is no
+  video element anywhere, because there is no video. `asset.video.generate`'s agent door and this surface
+  both exist now, and they agree on what the type means. Character consistency still has no product surface,
+  and there is still no asset UPDATE or storyboard editing.

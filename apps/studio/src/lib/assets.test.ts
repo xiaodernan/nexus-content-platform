@@ -58,12 +58,14 @@ function fakeStack(over: Partial<AssetGeneratorLike> = {}) {
 
   const library: AssetLibraryLike = {
     async add(asset, data) {
-      const a = asset as { assetId: string; metadata: Record<string, unknown> };
+      const a = asset as { assetId: string; type?: string; metadata: Record<string, unknown> };
       // The REAL library stamps `updatedAt` on add and returns assets NEWEST-FIRST with the id as the
       // tiebreak (`picked.sort((a, b) => b.updatedAt - a.updatedAt || a.id.localeCompare(b.id))`). A fake
       // that returned insertion order would let a case pass here that fails against the shipped library —
       // which is exactly what the first draft of this suite did, and the headless proof caught it.
-      stored.set(a.assetId, { metadata: { id: a.assetId, ...a.metadata }, data, updatedAt: ++clock });
+      // v187: the real `add` also fills metadata.type from the REFERENCE's own type — a fake that
+      // dropped it would mislabel every asset `image` (and did, in the first v187 run).
+      stored.set(a.assetId, { metadata: { id: a.assetId, ...(a.type !== undefined ? { type: a.type } : {}), ...a.metadata }, data, updatedAt: ++clock });
     },
     async remove(id) {
       return stored.delete(id);
@@ -86,6 +88,9 @@ function fakeStack(over: Partial<AssetGeneratorLike> = {}) {
           size: entry.data.length,
           width: m.width as number | undefined,
           height: m.height as number | undefined,
+          // v187: duration is part of the shape the REAL library round-trips; a whitelist that
+          // dropped it would report every still-and-footage pair as `null` (and did).
+          ...(m.duration !== undefined ? { duration: m.duration as number } : {}),
           tags: (m.tags as string[]) ?? [],
           source: m.source as string | undefined,
           prompt: m.prompt as string | undefined,
@@ -300,5 +305,87 @@ describe('generateAsset / removeAsset — the interactive surface can grow and s
     const entry = await library.get(out.assetId);
     if (!entry) throw new Error('the generated asset should exist');
     expect(entry.data.length).toBe(0);
+  });
+});
+
+describe('video generation — the surface can ask for FOOTAGE (v187)', () => {
+  /** A fake shaped like the REAL pair: the type crosses untouched, each kind answers its own metadata. */
+  function dispatchingStack() {
+    const base = fakeStack();
+    const generator: AssetGeneratorLike = {
+      async generate(request) {
+        base.calls.push(`generate:${request.type}:${request.prompt}`);
+        const assetId = `gen-${request.type}-1`;
+        const video = request.type === 'video';
+        return {
+          assets: [
+            {
+              assetId,
+              type: request.type,
+              url: `asset://${assetId}`,
+              metadata: {
+                name: `${video ? 'Generated Video' : 'Generated'}: ${request.prompt}`,
+                mimeType: video ? 'video/mp4' : 'image/png',
+                width: 1024,
+                height: video ? 576 : 1024,
+                ...(video ? { duration: 4 } : {}),
+                tags: ['generated', 'demo'],
+                source: 'generated',
+                prompt: request.prompt,
+              },
+            },
+          ],
+          provenance: { mode: 'demo', provider: 'demo' },
+          metadata: { model: video ? 'demo-video-model' : 'demo-model', seed: 12345 },
+        };
+      },
+    };
+    return { ...base, generator };
+  }
+
+  it("the ask's type crosses to the generator untouched, and the footage metadata lands in the library", async () => {
+    const { generator, library, calls } = dispatchingStack();
+    const out = await generateAsset(generator, library, 'a skiff crossing the harbour', 'video');
+    expect(calls).toContain('generate:video:a skiff crossing the harbour');
+    const entry = await library.get(out.assetId);
+    if (!entry) throw new Error('the generated asset should exist');
+    expect(entry.metadata.type).toBe('video');
+    expect(entry.metadata.mimeType).toBe('video/mp4');
+    expect(entry.metadata.duration).toBe(4);
+    expect(out.provenanceMode).toBe('demo'); // the generator's own word, still untouched
+  });
+
+  it('the report carries duration for footage and null for a still — 0 would read as a measured zero', async () => {
+    const { generator, library, storyboards } = dispatchingStack();
+    await generateAsset(generator, library, 'a still beat', 'image');
+    await generateAsset(generator, library, 'a filmed beat', 'video');
+    const report = await buildAssetReport(library, storyboards, 'demo', null);
+    const still = report.assets.find((a) => a.mimeType === 'image/png');
+    const footage = report.assets.find((a) => a.mimeType === 'video/mp4');
+    expect(still?.duration).toBeNull();
+    expect(footage?.duration).toBe(4);
+    expect(footage?.width).toBe(1024);
+    expect(footage?.height).toBe(576);
+  });
+
+  it("§60 holds for footage too: the stored payload is EMPTY and the provenance word is the generator's", async () => {
+    const { generator, library, stored } = dispatchingStack();
+    const out = await generateAsset(generator, library, 'footage, but demo', 'video');
+    const entry = await library.get(out.assetId);
+    if (!entry) throw new Error('the generated asset should exist');
+    expect(entry.data.length).toBe(0);
+    expect([...stored.values()].every((s) => s.data.length === 0)).toBe(true);
+  });
+
+  it('an empty VIDEO answer is refused by name, like an empty image answer is', async () => {
+    const { library } = fakeStack();
+    const empty: AssetGeneratorLike = { async generate() { return { assets: [], provenance: { mode: 'demo' }, metadata: { model: 'demo-video-model', seed: 1 } }; } };
+    await expect(generateAsset(empty, library, 'nothing came back', 'video')).rejects.toThrow(/the video generator returned no assets/);
+  });
+
+  it('the default ask is still a STILL — no caller had to change for v187', async () => {
+    const { generator, library, calls } = dispatchingStack();
+    await generateAsset(generator, library, 'plain default');
+    expect(calls).toContain('generate:image:plain default');
   });
 });

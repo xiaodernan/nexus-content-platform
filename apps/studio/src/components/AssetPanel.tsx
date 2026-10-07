@@ -1,7 +1,7 @@
 'use client';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { InMemoryAssetLibrary, DemoImageGenerator, StoryboardManager } from '@nexus/ai-providers';
-import { buildStudioAssets, buildAssetReport, generateAsset, removeAsset, type AssetReport } from '@/lib/assets';
+import { InMemoryAssetLibrary, DemoImageGenerator, DemoVideoGenerator, StoryboardManager } from '@nexus/ai-providers';
+import { buildStudioAssets, buildAssetReport, generateAsset, removeAsset, type AssetReport, type GenerationRequestLike } from '@/lib/assets';
 import { installAssetBridge } from '@/lib/observability';
 
 /**
@@ -26,14 +26,34 @@ import { installAssetBridge } from '@/lib/observability';
 export default function AssetPanel() {
   // One generator/library/storyboard set per mount. Built in `useMemo` so React 19's development
   // double-invoke does not hand the effect two different libraries.
+  //
+  // v187 — the generator dispatches on the ASK's type: images to the image generator, footage to the
+  // video one. `DemoImageGenerator` ignores the type and would answer a video ask with a still, so a
+  // single-generator stack would quietly mislabel footage — the dispatch lives here, where the real
+  // classes are touched, and neither generator is asked for what it does not produce.
   const stack = useMemo(
-    () => ({ generator: new DemoImageGenerator(), library: new InMemoryAssetLibrary(), storyboards: new StoryboardManager() }),
+    () => {
+      const images = new DemoImageGenerator();
+      const videos = new DemoVideoGenerator();
+      return {
+        library: new InMemoryAssetLibrary(),
+        storyboards: new StoryboardManager(),
+        generator: {
+          generate: async (request: GenerationRequestLike) =>
+            request.type === 'video'
+              ? videos.generate(request as Parameters<typeof videos.generate>[0])
+              : images.generate(request as Parameters<typeof images.generate>[0]),
+        },
+      };
+    },
     [],
   );
 
   const [report, setReport] = useState<AssetReport | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [prompt, setPrompt] = useState('');
+  // v187 — which KIND the form asks for. A still by default; the buttons say which is armed.
+  const [genType, setGenType] = useState<'image' | 'video'>('image');
   // The report is read by the bridge at call time, so the bridge needs the LATEST report without being
   // re-installed on every state change; a ref carries it. `meta` carries the composition's identity so a
   // refresh (after a generate/remove) re-reads the SAME storyboard rather than inventing a new one.
@@ -84,14 +104,14 @@ export default function AssetPanel() {
     if (!text) return;
     setError(null);
     try {
-      const out = await generateAsset(stack.generator, stack.library, text);
+      const out = await generateAsset(stack.generator, stack.library, text, genType);
       if (out.provenanceMode) meta.current.provenanceMode = out.provenanceMode;
       setPrompt('');
       await refresh();
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
     }
-  }, [prompt, refresh, stack]);
+  }, [prompt, genType, refresh, stack]);
 
   const onRemove = useCallback(
     async (assetId: string) => {
@@ -125,7 +145,7 @@ export default function AssetPanel() {
       <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, marginBottom: 4 }}>
         <strong style={{ letterSpacing: 0.4 }}>ASSETS (M3)</strong>
         <span style={{ color: 'var(--nexus-muted)' }} data-asset-mode>
-          DEMO MODE · no image model is attached, so these assets hold metadata and NO pixels
+          DEMO MODE · no image or video model is attached, so these assets hold metadata and NO pixels
         </span>
       </div>
 
@@ -145,11 +165,31 @@ export default function AssetPanel() {
               void onGenerate();
             }}
           >
+            <div style={{ display: 'flex', gap: 4 }}>
+              {(['image', 'video'] as const).map((t) => (
+                <button
+                  key={t}
+                  type="button"
+                  data-asset-type={t}
+                  onClick={() => setGenType(t)}
+                  className="btn"
+                  style={{
+                    fontSize: 10,
+                    padding: '2px 8px',
+                    border: genType === t ? '1px solid var(--nexus-text, #e6e8ec)' : '1px solid var(--nexus-border)',
+                    opacity: genType === t ? 1 : 0.6,
+                  }}
+                  title={t === 'video' ? 'Ask the DEMO video generator (metadata only, no footage)' : 'Ask the DEMO image generator (metadata only, no pixels)'}
+                >
+                  {t}
+                </button>
+              ))}
+            </div>
             <input
               data-asset-prompt
               value={prompt}
               onChange={(e) => setPrompt(e.target.value)}
-              placeholder="a beat to generate (DEMO MODE — metadata only, no pixels)"
+              placeholder={genType === 'video' ? 'a beat to film (DEMO MODE — metadata only, no footage)' : 'a beat to generate (DEMO MODE — metadata only, no pixels)'}
               style={{ flex: 1, maxWidth: 380, padding: '4px 8px', fontSize: 12 }}
             />
             <button type="submit" data-asset-generate className="btn">
@@ -170,7 +210,8 @@ export default function AssetPanel() {
                 <li key={a.id} style={{ ...item, display: 'flex', alignItems: 'center', gap: 8 }}>
                   <strong>{a.name}</strong>{' '}
                   <span style={dim}>
-                    {a.mimeType} · {a.width}×{a.height} · <span data-asset-bytes>{a.bytes}</span> B stored · {a.source}
+                    {a.mimeType} · {a.width}×{a.height}
+                    {a.duration !== null ? ` · ${a.duration}s` : ''} · <span data-asset-bytes>{a.bytes}</span> B stored · {a.source}
                   </span>
                   <button
                     type="button"

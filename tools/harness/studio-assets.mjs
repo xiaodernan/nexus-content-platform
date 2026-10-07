@@ -177,6 +177,43 @@ try {
     `frames ${report.storyboard.frames.length} → ${storyboardAfter}`,
   );
 
+  // 7. THE VIDEO ASK (M3 v187). The type toggle decides which GENERATOR the ask reaches; the panel's own
+  //    `generate` routes on it. Checked against the bridge, so a toggle that only changed a button's
+  //    appearance would fail here.
+  const armed = await page.evaluate(
+    "(() => { const b = document.querySelector('[data-asset-type=\"video\"]'); if (!b) return null; b.click(); return true; })()",
+  );
+  check('the panel exposes an image/video type toggle', armed === true, `video toggle clicked: ${armed}`);
+
+  const assetsBeforeVideo = (await page.evaluate('window.__nexusAssets.assets()')).assets.length;
+  await page.evaluate(
+    "(() => { const el = document.querySelector('[data-asset-prompt]'); const setter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value').set; setter.call(el, 'a skiff crossing the harbour'); el.dispatchEvent(new Event('input', { bubbles: true })); return true; })()",
+  );
+  await page.evaluate("document.querySelector('[data-asset-generate]').click()");
+  const withFootage = await page.waitForFunction(
+    `(() => { const r = window.__nexusAssets?.assets(); return r && r.assets.length === ${assetsBeforeVideo + 1} ? r : null; })()`,
+    { timeout: 15000 },
+  );
+  const footage = withFootage?.assets?.find((a) => a.prompt === 'a skiff crossing the harbour');
+  check(
+    'a VIDEO ask reaches the video generator and is stored as footage',
+    footage?.type === 'video' && footage?.mimeType === 'video/mp4',
+    JSON.stringify({ type: footage?.type, mimeType: footage?.mimeType, name: footage?.name }),
+  );
+  check(
+    'the footage reports its DURATION, where a still reports null',
+    typeof footage?.duration === 'number' && footage.duration > 0,
+    `duration ${JSON.stringify(footage?.duration)} · the composed stills report ${JSON.stringify(withFootage?.assets?.filter((a) => a.type === 'image').map((a) => a.duration))}`,
+  );
+  check(
+    '§60 on the video write: footage stored ZERO bytes too',
+    footage?.bytes === 0 && withFootage?.storedBytes === 0,
+    `bytes=${footage?.bytes} · storedBytes=${withFootage?.storedBytes}`,
+  );
+  // And the surface still renders no <img> — footage is metadata here, exactly as a still is.
+  const imgsAfterVideo = await page.evaluate("document.querySelectorAll('#nexus-assets img').length");
+  check('and the panel still renders no <img> for footage either', imgsAfterVideo === 0, `img elements: ${imgsAfterVideo}`);
+
   // A pixel screenshot of the surface (§30).
   const shot = await page.send('Page.captureScreenshot', { format: 'png' });
   const png = Buffer.from(shot.data, 'base64');

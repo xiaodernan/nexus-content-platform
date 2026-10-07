@@ -29,6 +29,8 @@ export interface StudioAssetSummary {
   bytes: number;
   width: number | null;
   height: number | null;
+  /** v187 — footage reports its duration; a still has none, and the report says null rather than 0. */
+  duration: number | null;
   tags: string[];
   source: string | null;
   prompt: string | null;
@@ -99,7 +101,7 @@ export interface AssetLibraryLike {
   add(asset: unknown, data: Uint8Array): Promise<void>;
   remove(id: string): Promise<boolean>;
   list(): Promise<{ assetId: string; type: string }[]>;
-  get(id: string): Promise<{ metadata: { id: string; type: string; name: string; mimeType: string; size: number; width?: number; height?: number; tags: string[]; source?: string; prompt?: string }; data: Uint8Array } | null>;
+  get(id: string): Promise<{ metadata: { id: string; type: string; name: string; mimeType: string; size: number; width?: number; height?: number; duration?: number; tags: string[]; source?: string; prompt?: string }; data: Uint8Array } | null>;
 }
 
 export interface StoryboardManagerLike {
@@ -163,21 +165,27 @@ export async function buildStudioAssets(
 }
 
 /**
- * Generate ONE image asset for a caller-supplied prompt and store it in the library, so the interactive
+ * Generate ONE asset for a caller-supplied prompt and store it in the library, so the interactive
  * surface can GROW the library rather than only reading the three shots it composed on mount.
  *
- * Like every other write in this module, the stored payload is EMPTY (DEMO MODE has no pixels) and the
- * returned provenance word is the GENERATOR's own, carried through untouched.
+ * v187 — the surface can ask for FOOTAGE: the type crosses to the generator untouched ('image' or
+ * 'video'), and whichever asset comes back is stored by the library's own rules. The module never
+ * checks the type itself — what the generator answered is what gets stored, and the report reads
+ * the metadata the library actually holds.
+ *
+ * Like every other write in this module, the stored payload is EMPTY (DEMO MODE has no pixels and
+ * no footage) and the returned provenance word is the GENERATOR's own, carried through untouched.
  */
 export async function generateAsset(
   generator: AssetGeneratorLike,
   library: AssetLibraryLike,
   prompt: string,
+  type: 'image' | 'video' = 'image',
 ): Promise<{ assetId: string; provenanceMode: string }> {
-  const result = await generator.generate({ type: 'image', prompt, count: 1 });
+  const result = await generator.generate({ type, prompt, count: 1 });
   const provenanceMode = result.provenance?.mode ?? '';
   const asset = result.assets[0];
-  if (!asset) throw new Error('the image generator returned no assets');
+  if (!asset) throw new Error(`the ${type} generator returned no assets`);
 
   await library.add(asset, new Uint8Array(0));
   return { assetId: asset.assetId, provenanceMode };
@@ -223,6 +231,7 @@ export async function buildAssetReport(
       bytes: entry.data.length,
       width: m.width ?? null,
       height: m.height ?? null,
+      duration: m.duration ?? null,
       tags: [...m.tags],
       source: m.source ?? null,
       prompt: m.prompt ?? null,

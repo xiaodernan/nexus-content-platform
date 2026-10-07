@@ -32,7 +32,7 @@ import { execFileSync } from '../lib/syncproc.mjs';
 
 // ── the shipped generators, library and storyboard manager ───────────────────────────────────────────
 const ai = await import(pathToFileURL('./packages/ai-providers/dist/index.js').href);
-const { InMemoryAssetLibrary, DemoImageGenerator, StoryboardManager } = ai;
+const { InMemoryAssetLibrary, DemoImageGenerator, DemoVideoGenerator, StoryboardManager } = ai;
 
 // ── the SHIPPED Studio module, type-stripped rather than copied ──────────────────────────────────────
 const { stripTypeScriptTypes } = await import('node:module');
@@ -153,8 +153,56 @@ assert.equal(afterGrow.storedBytes, 0, 'a freshly generated asset did not give t
 assert.equal(afterGrow.storyboard.frames.length, beforeGrow.storyboard.frames.length, 'generating into the library did not move the storyboard');
 console.log(`[§5] the surface is interactive: generateAsset grew the report ${beforeGrow.assets.length} -> ${afterGrow.assets.length}, removeAsset shrank it back to ${afterShrink.assets.length}, the new asset stored ${grownEntry.data.length} byte(s), the storyboard stayed at ${afterGrow.storyboard.frames.length} frame(s), and removing the id again answers false`);
 
-// ── §6 the home repository never moved ───────────────────────────────────────────────────────────────
-assert.equal(execFileSync('git', ['rev-parse', 'HEAD'], { encoding: 'utf8' }).trim(), homeHead, '§6: this repository HEAD byte-identical — everything here ran in memory');
+// ── §6 the surface can ask for FOOTAGE (M3 v187) ─────────────────────────────────────────────────────
+// `generateAsset` gained a `type`, and the PANEL dispatches on it: an ask for 'video' goes to the video
+// generator, an ask for 'image' to the image one. That dispatch is not decoration — the two demo generators
+// both answer whatever they are asked, so a single-generator stack would answer a video ask with a STILL
+// and store it under a video name. This section measures that first, then shows the dispatch fixing it.
+const imageOnly = new DemoImageGenerator();
+const mislabelled = await imageOnly.generate({ type: 'video', prompt: 'a skiff crossing', count: 1 });
+assert.equal(
+  mislabelled.assets[0].metadata.mimeType,
+  'image/png',
+  'the image generator answers a VIDEO ask with a still — the defect the dispatch exists to prevent',
+);
+console.log(`[§6a] measured the defect the dispatch prevents: asking the image generator for 'video' answers a ${mislabelled.assets[0].metadata.mimeType} — so a single-generator stack would store a still under a video ask`);
+
+// The stack the PANEL builds: one `generate` that routes by the ask's type.
+const videos = new DemoVideoGenerator();
+const routed = {
+  generate: async (request) => (request.type === 'video' ? videos.generate(request) : imageOnly.generate(request)),
+};
+
+const beforeVideo = await buildAssetReport(library, storyboards, report.provenanceMode, built.storyboardId);
+const footage = await generateAsset(routed, library, 'a skiff crossing the harbour, three seconds', 'video');
+const footageEntry = await library.get(footage.assetId);
+assert.ok(footageEntry, 'the footage is retrievable from the library');
+assert.equal(footageEntry.metadata.type, 'video', 'and it is a video, because the dispatch sent the ask to the video generator');
+assert.equal(footageEntry.metadata.mimeType, 'video/mp4');
+assert.equal(footage.provenanceMode, 'demo', 'the provenance is still the generator’s own word');
+assert.equal(footageEntry.data.length, 0, 'and the payload is still EMPTY — DEMO MODE has no footage either');
+
+// A STILL has no duration and the report says `null`; footage reports the seconds it was made for. A report
+// that printed 0 for both would be claiming a still is a zero-length video.
+const still = await generateAsset(routed, library, 'a still beside the footage', 'image');
+const stillEntry = await library.get(still.assetId);
+assert.equal(stillEntry.metadata.type, 'image');
+assert.equal(stillEntry.metadata.duration, undefined, 'a still carries no duration at all');
+const afterBoth = await buildAssetReport(library, storyboards, report.provenanceMode, built.storyboardId);
+const footageRow = afterBoth.assets.find((a) => a.id === footage.assetId);
+const stillRow = afterBoth.assets.find((a) => a.id === still.assetId);
+assert.ok(footageRow && stillRow, 'both are in the report');
+assert.equal(typeof footageRow.duration, 'number', 'the report gives footage its duration');
+assert.equal(footageRow.duration > 0, true, 'and it is a positive number of seconds');
+assert.equal(stillRow.duration, null, 'while a still reports null rather than 0 — not the same claim');
+assert.equal(afterBoth.storedBytes, 0, 'and NEITHER write gave the library a byte count');
+// The type is the generator's, so the report can tell the two apart without being told.
+assert.equal(footageRow.type, 'video');
+assert.equal(stillRow.type, 'image');
+console.log(`[§6b] the dispatch works: a 'video' ask reached the video generator ("${footageEntry.metadata.mimeType}", ${footageRow.duration}s reported) and an 'image' ask reached the image one (${stillEntry.metadata.mimeType}, duration ${JSON.stringify(stillRow.duration)}) · both stored ${footageEntry.data.length} byte(s) · the report tells them apart by the GENERATOR's type, not by anything this module set`);
+
+// ── §7 the home repository never moved ───────────────────────────────────────────────────────────────
+assert.equal(execFileSync('git', ['rev-parse', 'HEAD'], { encoding: 'utf8' }).trim(), homeHead, '§7: this repository HEAD byte-identical — everything here ran in memory');
 
 rmSync(box, { recursive: true, force: true });
 

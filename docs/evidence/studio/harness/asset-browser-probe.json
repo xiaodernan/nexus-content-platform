@@ -43,7 +43,7 @@
     {
       "name": "the surface names its own mode (§60)",
       "ok": true,
-      "detail": "mode on screen: \"DEMO MODE · no image model is attached, so these assets hold metadata and NO pixels\""
+      "detail": "mode on screen: \"DEMO MODE · no image or video model is attached, so these assets hold metadata and NO pixels\""
     },
     {
       "name": "the panel renders every asset the bridge reports",
@@ -106,9 +106,34 @@
       "detail": "frames 3 → 3"
     },
     {
+      "name": "the panel exposes an image/video type toggle",
+      "ok": true,
+      "detail": "video toggle clicked: true"
+    },
+    {
+      "name": "a VIDEO ask reaches the video generator and is stored as footage",
+      "ok": true,
+      "detail": "{\"type\":\"video\",\"mimeType\":\"video/mp4\",\"name\":\"Generated Video: a skiff crossing the harbour\"}"
+    },
+    {
+      "name": "the footage reports its DURATION, where a still reports null",
+      "ok": true,
+      "detail": "duration 4 · the composed stills report [null,null,null]"
+    },
+    {
+      "name": "§60 on the video write: footage stored ZERO bytes too",
+      "ok": true,
+      "detail": "bytes=0 · storedBytes=0"
+    },
+    {
+      "name": "and the panel still renders no <img> for footage either",
+      "ok": true,
+      "detail": "img elements: 0"
+    },
+    {
       "name": "a pixel screenshot of the asset surface was captured (§30)",
       "ok": true,
-      "detail": "134893 bytes → .scratch\\v153\\studio-assets.png"
+      "detail": "144644 bytes → .scratch\\v153\\studio-assets.png"
     },
     {
       "name": "pressing 2D restores the canvas, still painting",

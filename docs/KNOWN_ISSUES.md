@@ -147,11 +147,11 @@ Live list. Nothing here is hidden behind marketing copy.
   outside `createScene`, attaching lights is still the caller's job — there is no `setLighting`.
 
 
-## Studio Assets surface (M3 v153, interactive v159 — ADR 0016 amendments 153 and 159)
+## Studio Assets surface (M3 v153, interactive v159, footage v187 — ADR 0016 amendments 153, 159 and 187)
 - The Studio has a fourth surface: an **Assets** panel mounted from `components/AssetPanel.tsx` over
   `@nexus/ai-providers`' multimodal slice (the lane's first PRODUCT consumer; the agent door `assetTools.ts`
   was v145). Reached with the `Assets` toggle; the 2D canvas is the default and is untouched.
-  `npm run verify:assets` drives it in a real browser (**24/24** after v159) and
+  `npm run verify:assets` drives it in a real browser (**29/29** after v187) and
   `npm run verify:assets-surface` is the headless proof over the shipped Studio module + generators.
 - **DEMO MODE only — no pixels exist.** `DemoImageGenerator` produces deterministic metadata and an
   empty payload. The panel says `DEMO MODE · no image model is attached` on its own face, every stored
@@ -161,7 +161,14 @@ Live list. Nothing here is hidden behind marketing copy.
   (`generateAsset`, storing the same zero-length payload) and every library row has a **Remove**
   (`removeAsset`). The browser probe types, generates, removes and checks the storyboard is unmoved and
   every byte count still reads `0` — the library and the storyboard are separate state.
-- **Still absent from the product surface:** video generation, character consistency, asset UPDATE, and
+- **v187 added FOOTAGE.** `generateAsset` takes a `type: 'image' | 'video'` and the panel dispatches to the
+  right generator. Both demo generators answer whatever they are asked — `DemoImageGenerator` answers a video
+  ask with an `image/png` — so a single-generator panel would store a still and call it footage; the routing
+  is what prevents that, and the proof measures the defect before showing the fix. A still reports
+  `duration: null` and footage its seconds, so the two are told apart by a null rather than a zero. The
+  surface can ASK for footage but cannot PLAY it: there is no video element anywhere, because there is no
+  video.
+- **Still absent from the product surface:** character consistency, asset UPDATE, and
   storyboard editing. Removal also exists as an agent door (`asset.delete`-shaped work lives in
   `assetTools.ts`'s write doors behind the §28 checkpoint); the panel's Remove is NOT gated, because it acts
   on the panel's own in-memory library rather than on the design document.

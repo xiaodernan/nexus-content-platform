@@ -12,7 +12,7 @@ npm run verify:studio                 # 19/19 golden-path assertions against the
 npm run verify:scene-surface          # the 3D surface's headless proof (M5 v142, amendment 142)
 npm run verify:scene                  # 11/11 3D-surface assertions in a real browser (needs the Studio on :3210)
 npm run verify:assets-surface         # the Assets surface's headless proof (M3 v153, amendment 153)
-npm run verify:assets                 # 17/17 Assets-surface assertions in a real browser (needs the Studio on :3210)
+npm run verify:assets                 # 29/29 Assets-surface assertions in a real browser (needs the Studio on :3210)
 ```
 
 Counts below are from `NODE_OPTIONS= npx vitest run --root <pkg> --no-file-parallelism`
@@ -646,7 +646,7 @@ was in when it was read**, so a red here should be re-run before it is believed,
 is not yet a gate.
 
 
-## The Assets surface (M3 v153, interactive v159 — ADR 0016 amendments 153 and 159)
+## The Assets surface (M3 v153, interactive v159, footage v187 — ADR 0016 amendments 153, 159 and 187)
 
 The Studio's fourth surface, and the first PRODUCT consumer of `@nexus/ai-providers`' multimodal slice
 (the agent door `assetTools.ts` was v145). Split the same way v142 and v148 split theirs:
@@ -675,6 +675,16 @@ shots on mount; v159 adds a prompt input, a **Generate** button and a **Remove**
   composed shots use, and returns the GENERATOR's own provenance word so the panel carries it forward.
 - `removeAsset` answers the LIBRARY's own `false` for an id it does not hold rather than throwing — removing
   something twice is a caller's mistake, not a corrupt library.
+- **v187 added FOOTAGE.** The plan listed video generation as having no product surface; `generateAsset`
+  gained a `type: 'image' | 'video'` (defaulting to `'image'`, so existing callers are unchanged) and the
+  panel gained an image/video toggle. **The dispatch is the point, and it is measured**: both demo generators
+  answer whatever they are asked, so `DemoImageGenerator.generate({ type: 'video', … })` returns an
+  `image/png` — a single-generator panel would store a still under a video ask and label it footage. The
+  proof prints that `image/png` (§6a) before showing the fix (§6b), and the routing lives in the PANEL,
+  where the real classes are touched; `lib/assets.ts` never inspects the type, it forwards it.
+- **A still and footage are told apart by a `null`, not a zero.** `AssetSummary` carries `duration: number |
+  null`: footage reports its seconds, a still reports `null`, because `0` would claim a still is a
+  zero-length video. The type in the report is the GENERATOR's, not a label this module stamped.
 - **The library and the storyboard are separate state.** Generating into the library moves the asset count
   and the byte tally; it does NOT move the storyboard's frames, and the proof measures both.
 
@@ -684,15 +694,17 @@ derived report follows, an unknown id answers `false`); `asset-surface-proof.mjs
 module type-stripped through `node:module`, over the SHIPPED generators — §1 the composed assets ARE the
 library's, §2 §60 measured, §3 the report DERIVED, §4 every `imageRef` followed back, §5 the REAL library
 grown and shrunk through the interactive pair, §6 home HEAD byte-identical); and
-`tools/harness/studio-assets.mjs` (**24/24 in a real browser**, PNG written): the probe types into the prompt
+`tools/harness/studio-assets.mjs` (**29/29 in a real browser**, PNG written): the probe types into the prompt
 input, presses **Generate**, waits for the bridge's count to rise by exactly one, presses that row's
 **Remove**, and waits for it to fall back with the id gone — checking the storyboard is unmoved and every
 byte count still reads `0` throughout.
 
-Bounds, stated: the interaction generates and removes IMAGE assets only. There is no video generation, no
-character consistency, no asset UPDATE, and no way to edit a storyboard from the panel. The asset library is
-generator state, not the design document — not persisted, not undoable, not exported. The library lists
-assets newest-first; the prompt order is guaranteed only in the storyboard's `frames`.
+Bounds, stated: the interaction generates and removes IMAGE and VIDEO assets. The surface can ASK for
+footage; it cannot play it, scrub it or see it — there is no video element anywhere, because there is no
+video. Character consistency still has no product surface, and there is no asset UPDATE and no way to edit a
+storyboard from the panel. The asset library is generator state, not the design document — not persisted, not
+undoable, not exported. The library lists assets newest-first; the prompt order is guaranteed only in the
+storyboard's `frames`.
 
 ## The World surface (M4 v148, simulated v162 — ADR 0016 amendments 148 and 162)
 
