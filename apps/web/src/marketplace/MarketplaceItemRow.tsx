@@ -40,7 +40,12 @@ export function MarketplaceItemRow({
   const [visibility, setVisibility] = useState(item.visibility);
 
   const download = async () => {
-    const res = await fetch(`/api/marketplace/${item.id}/download`, { method: 'POST' });
+    // 与同一个组件里的 DELETE / PATCH 一样带上 CSRF：这一处以前漏了，而服务端也漏了检查，
+    // 两边一起漏所以一直没红——服务端补上之后，这里不带就会 403
+    const res = await fetch(`/api/marketplace/${item.id}/download`, {
+      method: 'POST',
+      headers: csrfHeaders(),
+    });
     if (!res.ok) {
       setMessage(`下载失败（${res.status}）`);
       return;
