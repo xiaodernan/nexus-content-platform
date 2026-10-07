@@ -505,8 +505,8 @@ const heap = await page.evaluate(() => {
 });
 console.log(
   heap
-    ? `  JS 堆${scope}：峰值约 ${Math.round(heap / 1024 / 1024)} MB（50ms 轮询取最大；` +
-      `启动带 --enable-precise-memory-info，否则这个浏览器返回的是量化过的近似值）`
+    ? `  JS 堆${scope}：**峰值** ${Math.round(heap / 1024 / 1024)} MB（50ms 轮询期间取最大值；` +
+      `浏览器启动时加了 --enable-precise-memory-info，否则 usedJSHeapSize 会被量化到几十 MB 一档）`
     : `  JS 堆${scope}：量不到（这个浏览器不暴露 performance.memory）`,
 );
   // PERF_PROFILE=1：再跑一次并抓 CPU 采样，把"那 1.2 秒在谁身上"按自时长列出来。
