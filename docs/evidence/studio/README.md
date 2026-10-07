@@ -916,6 +916,55 @@ prompt ask, so it is human-initiated by construction; the toggle is a boolean, a
 everything else. The ADR 0016 amendment record for this grant is OWED: the shared decisions file carries
 another lane's uncommitted amendment, and the record lands after that lane's commit closes the gap.
 
+## The shipped dist must know what src declares (M5 v198)
+
+v197's defect, made permanent. The resolution-plane incident ended with a rebuilt dist and a documented
+lesson, but nothing in the repository FORCED the dist to stay in sync — the next stale dist would ship
+another silent no-op behind green suites. `packages/three-runtime/test/distSync.test.ts` is the gate:
+
+- `classMethodNames(classSource)` extracts the methods the src `ThreeRuntime` class declares, by the
+  declaration shape `  [modifiers]name(` — with paren balancing so a signature wrapped across lines still
+  extracts, and `get`/`async`/static modifiers read. An OVERLOAD SIGNATURE (a `;` where a body would be)
+  is not a method the dist must carry and is skipped.
+- `distMissing(srcNames, distSource)` answers, per name, whether the dist carries it — tolerant of the
+  compiled shapes tsc emits (`async` added, deeper indentation).
+- The real-plane case reads `dist/threeRuntime.js` and refuses any gap with the incident's own sentence in
+  the message, naming the rebuild command (`npm run build -w @nexus/three-runtime`). A plane that never
+  built the package (no dist) skips and is NAMED — there is nothing to grade; a dist that EXISTS but lags
+  src is the lie, and it reddens.
+
+**A defect the section found in its own first draft.** Case 2 (the in-sync control) originally passed the
+WHOLE class's extracted names (~100 methods) against a THREE-method synthetic dist fixture — every real
+method counted as "missing", so the case could only ever fail. Restructured so the synthetic text is the
+SRC side: the extraction asserts the exact three names (one-line, wrapped, getter), and a small dist
+fixture carrying all three (one compiled with `async`, one wrapped) answers `[]`. The class-slice bounds
+are asserted at module load (`export class ThreeRuntime` … `export interface ThreeRuntimeOptions`), so
+the gate fails loudly if the class it guards moves or dissolves.
+
+| layer | what it proves |
+| --- | --- |
+| `test/distSync.test.ts` case 1 | the finder catches exactly the v197 shape — a dist compiled before `setEntityName`/`setEntityVisible` reddens BY NAME, while `pickAt`/`setLightState` stay absent from the missing list |
+| case 2 | extraction is exact (three declared names, no more) and matching tolerates the compiled dist shapes — the in-sync answer is `[]` |
+| case 3 | an overload signature (no body) is not a method the dist must carry |
+| case 4 (the gate) | the SHIPPED dist carries everything the src file declares — **154** names read from threeRuntime.ts by the gate's own scan (the class's own **113** within its slice, plus the rest of the module's 2-space declarations; overload signatures excluded), 0 missing |
+
+**Witness arm.** The dist's `setEntityVisible` declaration line was renamed (`setEntityViz`) with hits
+asserted `=== 1` first; the gate reddened with exactly `[ 'setEntityVisible' ]` as the missing list and
+the other three cases green; the backup restored byte-identically (sha256
+`73f72b3a…` before and after) and the file returned to 4/4.
+
+Measured on this host 2026-10-08: package suite 459 → **463** (13 files, +4), witness arm red → restored
+→ green.
+
+Bounds, stated: case 4's population is the WHOLE src file's 2-space declarations — the class's own
+methods plus any other method-shaped declarations in `threeRuntime.ts` (interface signatures and overload
+rows end in `;` and are excluded); exports of OTHER files (`saveStore`, `renderBackend`) are unguarded
+here. The finder is shape-based: a src method whose wrapped signature loses its name-and-`(` from the
+first line, or a dist that carries a method through a shape the per-name regex cannot see, escapes this
+gate (case 2's exact-list assertion pins the extraction of the shapes v197 actually introduced). The gate
+reads the dist that exists at test time; it does not build one. The ADR 0016 amendment record for this
+grant is OWED behind v196/v197.
+
 ## The dock's BUILD face (M6 v174 — ADR 0016 amendment 174)
 
 The first product consumer of the build arc (amendment 173), and the section this increment never had: the

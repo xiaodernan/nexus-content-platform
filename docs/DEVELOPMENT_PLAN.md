@@ -120,6 +120,10 @@ headless proof → product surface → real-browser verification → record the 
   exposed the resolution plane: unit suites read the package's `src/`, the Studio build reads `dist/` —
   a stale dist silently no-op'd both gates in the real browser behind green suites (three-runtime 45 →
   **51**; scene3d 65 → **72**; surface 12 → **13**; harness 55 → **61/61**; ADR record owed, see below).
+  **The resolution plane gets a gate (v198):** `test/distSync.test.ts` — every 2-space method
+  declaration in `threeRuntime.ts` (154 names by the gate's own scan; overload signatures excluded) must
+  appear in `dist/threeRuntime.js` or the gate reddens naming the gap and the rebuild command; a
+  never-built plane skips and is named (three-runtime 459 → **463**; witness arm red → restored → green).
   Still open: the inspector reports what a host DECLARES — no components, materials, children or animation
   state, and no way to edit any of them.
 - **M7 — Community:** 🟡 **STARTED (v193)** — `services/nexus-api` is a real Spring Boot 3.5.16 service on Java 25
