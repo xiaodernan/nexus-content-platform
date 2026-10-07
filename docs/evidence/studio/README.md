@@ -965,6 +965,43 @@ gate (case 2's exact-list assertion pins the extraction of the shapes v197 actua
 reads the dist that exists at test time; it does not build one. The ADR 0016 amendment record for this
 grant is OWED behind v196/v197.
 
+## The inspector reads the component registry (M5 v199)
+
+v197's inspector made the picked body's facts editable but still read only position and visibility — the
+runtime has a REAL component subsystem it never surfaced: `addComponent`/`removeComponent`/`getComponent`
+over a `Map` keyed by `component.type`, saved in the entry-array shape since v119, completely unread by
+the Studio surface. v199 adds the reading face (not an editing face): the inspector reports each
+component's name and enabled state, and the HUD appends a `components:` segment only when the registry is
+non-empty, naming a disabled component with an `(off)` suffix.
+
+One honest negative recorded first: child counts stay uncounted. The runtime scene graph is FLAT — there
+is no entity parent/child API (`ThreeScene.entities` is a flat `Map`; children exist only on the
+renderer-level `threeObject.children`, which no runtime method exposes or counts). Inventing a `children`
+number from the renderer's internals would be exactly the fake-fact move this lane exists to refuse, so
+the unread thing v199 reads is the registry the runtime actually owns.
+
+The reader is a LOOSE one because the registry reaches the report through three spellings: the live `Map`
+(the runtime's own), the entry array (the save shape), and a plain object (a stringify accident). All
+three decode to the same facts, in their own order; `enabled !== false` follows the same default-visible
+rule v192 set for bodies; a value with no readable `type` answers its key.
+
+| layer | what it proves |
+| --- | --- |
+| `scene3d.test.ts` (pure) | all three spellings decode in their own order; `undefined`/`null`/`42`/a string/a non-object pair value answer none — nothing invented |
+| `scene3dSurface.test.ts` (real runtime) | the picked body's empty registry reads as `components: []`; `addComponent` (health, then shield disabled) is answered in registry order with the disabled one named so; `removeComponent` moves the NEXT report — the facts re-read the live registry, no shadow |
+| browser harness (`studio-scene3d.mjs`) | the report carries the empty-registry FACT and the HUD adds no segment for it. The bridge is a frozen read-only reader, so the browser layer cannot attach components — the non-empty population is proven at the surface-suite and proof layers, and this check states exactly the half it can see |
+| `scene-surface-proof.mjs` §7 | components added through the SHIPPED runtime's `addComponent` reach the type-stripped Studio module's report — empty fact stated for a body with none, two adds answered in order (shield disabled), removal followed |
+
+Measured on this host 2026-10-08: Studio suite **404/404** (31 files; `scene3d` 72 → 74 cases,
+`scene3dSurface` 13 → 16), three-runtime 463/463 unchanged, tsc clean, browser harness **62/62** (was
+61), proof ALL ASSERTIONS PASSED with the new §7 components line.
+
+Bounds, stated: the face is read-only — the HUD states the registry, it does not add or remove components
+(that is the runtime's verbs, and the proof layer drives them directly); a component's `data` payload is
+not surfaced (amounts and shapes are the registry's business, the inspector names the parts); materials,
+light state beyond v192's, and animation state remain unread. The ADR 0016 amendment record for this
+grant is OWED behind v196/v197/v198.
+
 ## The dock's BUILD face (M6 v174 — ADR 0016 amendment 174)
 
 The first product consumer of the build arc (amendment 173), and the section this increment never had: the

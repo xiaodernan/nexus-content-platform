@@ -20,6 +20,7 @@ import {
   ORBIT_PAN_LIMIT,
   clampLightIntensity,
   clampEntityName,
+  entityComponentsOf,
   lightIntensityOf,
   LIGHT_INTENSITY_MAX,
   LIGHT_INTENSITY_MIN,
@@ -990,6 +991,45 @@ describe('inspector edit (v197) — the picked body becomes renamable and hideab
     const before = surface.report();
     expect(surface.setSelectedVisible(false)).toEqual(before);
     expect(surface.renameSelected('Hero')).toEqual(before);
+  });
+});
+
+describe('entityComponentsOf (v199) — one registry, three spellings, none invented', () => {
+  it('reads Map, entry-array and plain-object hosts in their own order', () => {
+    const mapHost = new Map([
+      ['b', { type: 'b-type', enabled: false }],
+      ['a', { type: 'a-type', enabled: true }],
+    ]);
+    expect(entityComponentsOf(mapHost)).toEqual([
+      { name: 'b-type', enabled: false },
+      { name: 'a-type', enabled: true },
+    ]);
+    expect(
+      entityComponentsOf([
+        ['b', { type: 'b-type', enabled: false }],
+        ['a', { type: 'a-type', enabled: true }],
+      ]),
+    ).toEqual([
+      { name: 'b-type', enabled: false },
+      { name: 'a-type', enabled: true },
+    ]);
+    expect(entityComponentsOf({ a: { type: 'a-type', enabled: true } })).toEqual([
+      { name: 'a-type', enabled: true },
+    ]);
+  });
+
+  it('refuses to invent: undeclared, garbage and valueless entries answer none — a nameless value answers its key', () => {
+    expect(entityComponentsOf(undefined)).toEqual([]);
+    expect(entityComponentsOf(null)).toEqual([]);
+    expect(entityComponentsOf(42)).toEqual([]);
+    expect(entityComponentsOf('components')).toEqual([]);
+    expect(entityComponentsOf([['k', 42], ['j', null]])).toEqual([
+      { name: 'k', enabled: true },
+      { name: 'j', enabled: true },
+    ]);
+    expect(entityComponentsOf([['filed-as', { enabled: false }]])).toEqual([
+      { name: 'filed-as', enabled: false },
+    ]);
   });
 });
 

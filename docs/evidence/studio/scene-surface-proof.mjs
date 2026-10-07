@@ -407,6 +407,27 @@ surface.pickAt(400, 300);
 
 // A body that LEAVES the scene has nothing to inspect: the selection stays a name, the facts go null, and
 // nothing invents a position for a body that is gone.
+// (the v199 components block below re-picks first, so the removed body here is asserted before it)
+
+// v199 — the components half: components enter through the RUNTIME'S OWN registry (addComponent), and
+// the inspector reads that registry live. The Studio composes none, so the empty fact comes first, then
+// a real population, then the removal — each answered by the report, never by the HUD's opinion.
+assert.deepEqual(surface.report().inspector.components, [], 'a Studio-composed body has an empty components FACT (present, not missing)');
+runtime.addComponent(cubeA, { type: 'health', data: { amount: 100 }, enabled: true });
+runtime.addComponent(cubeA, { type: 'shield', data: {}, enabled: false });
+const withComponents = surface.report().inspector;
+assert.deepEqual(
+  withComponents.components,
+  [
+    { name: 'health', enabled: true },
+    { name: 'shield', enabled: false },
+  ],
+  'the inspector reads the live registry in the order the runtime holds it, disabled named as disabled',
+);
+assert.equal(runtime.removeComponent(cubeA, 'health'), true, 'the runtime owns removal');
+assert.deepEqual(surface.report().inspector.components, [{ name: 'shield', enabled: false }], 'and the next report follows the registry, not a shadow');
+console.log('[§7] and it reads the COMPONENT registry the runtime owns: empty fact stated for a body with none, two components added through addComponent answered in registry order (shield disabled), then removeComponent moved the next report — the report re-reads the live registry');
+
 surface.removeBody(cubeA.id);
 const goneReport = surface.report();
 assert.equal(goneReport.inspector, null, 'a removed body has no facts');

@@ -825,6 +825,17 @@ export default function Scene3D() {
                   ? `(${report.inspector.position.x.toFixed(2)}, ${report.inspector.position.y.toFixed(2)}, ${report.inspector.position.z.toFixed(2)})`
                   : '(position unknown)'}{' '}
                 · {report.inspector.visible ? 'visible' : 'hidden'}
+                {/* v199 — the components the live registry holds, as text: names in the registry's own
+                    order, `(off)` naming the disabled. A body with none shows no segment — an empty
+                    fact is not a missing one, and inventing a count for it would be. */}
+                {report.inspector.components.length > 0 && (
+                  <>
+                    {' '}· components:{' '}
+                    {report.inspector.components
+                      .map((c) => (c.enabled ? c.name : `${c.name} (off)`))
+                      .join(', ')}
+                  </>
+                )}
                 {/* v197 — the inspector's own edit verbs, over the same selection the facts read. The
                     labels state the ACTION; what actually happened is the report that follows, read
                     from the live scene. */}

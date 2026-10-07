@@ -161,6 +161,7 @@ describe('the Studio’s scene, composed on the REAL runtime', () => {
       kind: 'mesh',
       position: { x: 0, y: 0.4, z: 0 },
       visible: true,
+      components: [],
     });
 
     // Remove the SELECTED body and the selection STAYS a name while the inspector answers null —
@@ -282,6 +283,50 @@ describe('the Studio’s scene, composed on the REAL runtime', () => {
     expect(shown.inspector?.visible).toBe(true);
   });
 
+  // M5 v199 — the components half, on the SHIPPED runtime: components enter through the runtime's own
+  // `addComponent`, and the inspector reads the live registry — so what the report states is what the
+  // registry holds, in the order it holds it, not a shadow the surface keeps.
+  it('the inspector reads the component registry the runtime owns — added, disabled, removed, live', () => {
+    const headless = headlessRuntime();
+    runtime = headless.runtime;
+    const adapter: SceneAdapterLike = {
+      placeCamera(sceneId: string, cameraId: string, position: SceneVec3, lookAt: SceneVec3) {
+        const found = headless.runtime.getScene(toSceneId(sceneId))?.cameras.get(toCameraId(cameraId));
+        if (!found) return false;
+        found.threeCamera.position.set(position.x, position.y, position.z);
+        found.threeCamera.lookAt(new THREE.Vector3(lookAt.x, lookAt.y, lookAt.z));
+        found.threeCamera.updateMatrixWorld(true);
+        return true;
+      },
+      pickAt(sceneId: string, nx: number, ny: number) {
+        return headless.runtime.pickAt(toSceneId(sceneId), nx, ny);
+      },
+    };
+    const surface = createStudioScene(headless.runtime, () => {}, adapter);
+    headless.runtime.resize(800, 600);
+    const picked = surface.pickAt(400, 300);
+    expect(picked.selected?.name).toBe('Cube B');
+    const scene = headless.runtime.getScene(toSceneId(surface.sceneId))!;
+    const entity = scene.entities.get(toEntityId(surface.bodyIds[2]!))!;
+
+    // The Studio builds no components, so the honest baseline is an empty fact — stated, not missing.
+    expect(surface.report().inspector?.components).toEqual([]);
+
+    headless.runtime.addComponent(entity, { type: 'health', data: { amount: 100 }, enabled: true });
+    const added = surface.report().inspector;
+    expect(added?.components).toEqual([{ name: 'health', enabled: true }]);
+
+    headless.runtime.addComponent(entity, { type: 'shield', data: {}, enabled: false });
+    expect(surface.report().inspector?.components).toEqual([
+      { name: 'health', enabled: true },
+      { name: 'shield', enabled: false },
+    ]);
+
+    // The registry is the owner: removing through the runtime moves the next report.
+    expect(headless.runtime.removeComponent(entity, 'health')).toBe(true);
+    expect(surface.report().inspector?.components).toEqual([{ name: 'shield', enabled: false }]);
+  });
+
   it('every body the surface hands the frame write is a REAL three.js object it can move', () => {
     const headless = headlessRuntime();
     runtime = headless.runtime;
@@ -369,6 +414,7 @@ describe('the selection facts are the LIVE scene’s answer, not the pick’s ec
     visible?: boolean;
     position?: SceneVec3;
     transform?: { position?: SceneVec3 };
+    components?: unknown;
   }) {
     const entities = new Map<string, NonNullable<typeof entity>>();
     if (entity) entities.set(entity.id, entity);
@@ -383,7 +429,7 @@ describe('the selection facts are the LIVE scene’s answer, not the pick’s ec
 
   it('reads what the host declares and never invents what it does not: kind unknown, position null, visible true', () => {
     const facts = selectionFactsOf(sceneWith({ id: 'e1', name: 'Cube A' }), SELECTED);
-    expect(facts).toEqual({ id: 'e1', name: 'Cube A', kind: 'unknown', position: null, visible: true });
+    expect(facts).toEqual({ id: 'e1', name: 'Cube A', kind: 'unknown', position: null, visible: true, components: [] });
   });
 
   it('a visible:false body is reported hidden, and a non-finite position is a fact the report refuses to state', () => {
@@ -406,5 +452,57 @@ describe('the selection facts are the LIVE scene’s answer, not the pick’s ec
     expect(nested?.position).toEqual({ x: 4, y: 5, z: 6 });
     const declared = selectionFactsOf(sceneWith({ id: 'e1', name: 'Cube A', type: 'mesh' }), SELECTED);
     expect(declared?.kind).toBe('mesh');
+  });
+
+  // v199 — the components half of the bounds, read LOOSELY: the live runtime keeps a Map, the save
+  // shape is an entry array (v119: a Map is not JSON), and a stringify accident arrives as an object.
+  // All three spellings are one registry; the reader answers all three, in the registry's own order.
+  it('components read from the live registry in the host’s own order, enabled by the default rule', () => {
+    const mapHost = new Map<string, { type: string; enabled: boolean }>([
+      ['health', { type: 'health', enabled: true }],
+      ['mana', { type: 'mana', enabled: false }],
+    ]);
+    const fromMap = selectionFactsOf(sceneWith({ id: 'e1', name: 'Cube A', components: mapHost }), SELECTED);
+    expect(fromMap?.components).toEqual([
+      { name: 'health', enabled: true },
+      { name: 'mana', enabled: false },
+    ]);
+    const entryArray = selectionFactsOf(
+      sceneWith({
+        id: 'e1',
+        name: 'Cube A',
+        components: [
+          ['stamina', { type: 'stamina', enabled: true }],
+          ['shield', { type: 'shield', enabled: false }],
+        ],
+      }),
+      SELECTED,
+    );
+    expect(entryArray?.components).toEqual([
+      { name: 'stamina', enabled: true },
+      { name: 'shield', enabled: false },
+    ]);
+    const objectHost = selectionFactsOf(
+      sceneWith({ id: 'e1', name: 'Cube A', components: { health: { type: 'health', enabled: true } } }),
+      SELECTED,
+    );
+    expect(objectHost?.components).toEqual([{ name: 'health', enabled: true }]);
+  });
+
+  it('a component filed under one name that calls itself another answers the name the VALUE carries; a nameless one answers its key', () => {
+    const mismatched = selectionFactsOf(
+      sceneWith({ id: 'e1', name: 'Cube A', components: [['key-name', { type: 'value-type', enabled: true }]] }),
+      SELECTED,
+    );
+    expect(mismatched?.components).toEqual([{ name: 'value-type', enabled: true }]);
+    const nameless = selectionFactsOf(
+      sceneWith({ id: 'e1', name: 'Cube A', components: [['filed-as', { enabled: false }]] }),
+      SELECTED,
+    );
+    expect(nameless?.components).toEqual([{ name: 'filed-as', enabled: false }]);
+    // A registry the host never declared — or one holding garbage — answers none, not an invented row.
+    expect(selectionFactsOf(sceneWith({ id: 'e1', name: 'Cube A' }), SELECTED)?.components).toEqual([]);
+    const garbage = selectionFactsOf(sceneWith({ id: 'e1', name: 'Cube A', components: 42 }), SELECTED);
+    expect(garbage?.components).toEqual([]);
   });
 });

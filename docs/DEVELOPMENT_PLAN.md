@@ -124,8 +124,18 @@ headless proof → product surface → real-browser verification → record the 
   declaration in `threeRuntime.ts` (154 names by the gate's own scan; overload signatures excluded) must
   appear in `dist/threeRuntime.js` or the gate reddens naming the gap and the rebuild command; a
   never-built plane skips and is named (three-runtime 459 → **463**; witness arm red → restored → green).
-  Still open: the inspector reports what a host DECLARES — no components, materials, children or animation
-  state, and no way to edit any of them.
+  **The inspector reads the component registry (v199):** `entityComponentsOf` decodes the three registry
+  spellings (live `Map` / save-shape entry array / stringify object) with the `enabled !== false` default,
+  the HUD names each component (disabled as `(off)`) only when the registry is non-empty, and the layers
+  prove it — pure 72 → **74**, surface 13 → **16** over the real runtime (`addComponent` answered in order,
+  `removeComponent` followed), harness 61 → **62/62** (empty fact + no HUD segment; the frozen read-only
+  bridge cannot attach components), proof §7 drives both verbs through the shipped dist runtime. Child
+  counts stay uncounted on purpose: the scene graph is flat, there is no entity parent/child API, and a
+  number invented from renderer internals would be the fake-fact move this lane refuses. Studio suite
+  404/404 on this host.
+  Still open: the inspector reports what a host DECLARES — no materials, children or animation state
+  (children stay uncounted while the graph is flat), components are read but not editable, and there is
+  no way to edit position or any other fact.
 - **M7 — Community:** 🟡 **STARTED (v193)** — `services/nexus-api` is a real Spring Boot 3.5.16 service on Java 25
   (ADR 0011's stack) with one aggregate and two endpoints: publish a project, read it back. Proven against a
   throwaway PostgreSQL in Docker, including that the publication SURVIVES A SERVICE RESTART.

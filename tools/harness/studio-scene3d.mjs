@@ -313,6 +313,20 @@ try {
     `${JSON.stringify(inspectorA)} · HUD ${JSON.stringify(hudInspectorA)}`,
   );
 
+  // v199 — the components half: the Studio composes no components, so the honest reading is an EMPTY
+  // fact — present in the report, absent from the HUD text. (The bridge is a reader, so the browser
+  // cannot attach components; the NON-EMPTY population is proven against the real runtime one plane
+  // over, in the surface suite and the scene-surface proof.)
+  check(
+    'the inspector states the components fact — an empty registry reads as an empty list, and the HUD adds no segment',
+    inspectorA !== null
+      && Array.isArray(inspectorA.components)
+      && inspectorA.components.length === 0
+      && hudInspectorA !== null
+      && !hudInspectorA.includes('components:'),
+    `report ${JSON.stringify(inspectorA?.components)} · HUD ${JSON.stringify(hudInspectorA)}`,
+  );
+
   await clickNdc(0.1316, -0.0287, 'Cube C');
   check(
     'and clicking where Cube C stands names a DIFFERENT body — the pick is spatial, not a constant',

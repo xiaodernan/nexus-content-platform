@@ -41,7 +41,7 @@ export interface SceneLike {
    *  kind, visibility and position are wherever the host keeps them (the real runtime keeps the
    *  position on the wrapped three.js object, reachable through `transform.position`), and a host that
    *  declares none simply reports an inspector with fewer facts. */
-  entities: Map<string, { id: string; name: string; type?: string; visible?: boolean; position?: SceneVec3; transform?: { position?: SceneVec3 } }>;
+  entities: Map<string, { id: string; name: string; type?: string; visible?: boolean; position?: SceneVec3; transform?: { position?: SceneVec3 }; components?: unknown }>;
   cameras: Map<string, { id: string; name: string; active: boolean }>;
   animations: Map<string, { id: string }>;
   /** v183 — the scene's declared lights, read LOOSELY: a host that declares none simply reports none,
@@ -408,6 +408,38 @@ export interface SceneSelectionFacts {
    *  the report refuses to invent (the `duration: null` rule, one surface over). */
   position: SceneVec3 | null;
   visible: boolean;
+  /** v199 — the entity's registered components, read from the LIVE registry in the host's own order.
+   *  `[]` = the host declares none — an empty fact, not a missing one. */
+  components: SceneSelectionComponent[];
+}
+
+export interface SceneSelectionComponent {
+  /** The component's own name — the runtime files a component under its `type`; a value that carries
+   *  no type falls back to the key it is filed under, never to an invented label. */
+  name: string;
+  /** `enabled !== false` — the `visible !== false` rule: a host that declares nothing is declaring
+   *  the default, not a disabled component. */
+  enabled: boolean;
+}
+
+/** Read a host's component registry LOOSELY — three spellings exist in this repo: the live runtime
+ *  keeps a `Map` (keyed by the component's own type), the SAVE shape is an entry ARRAY (v119: a Map
+ *  is not JSON), and a Map that survived a stringify-shaped accident arrives as a plain object.
+ *  Anything else — a field the host never declared — is none. */
+export function entityComponentsOf(value: unknown): SceneSelectionComponent[] {
+  const pairs: [string, unknown][] =
+    value instanceof Map
+      ? [...value.entries()]
+      : Array.isArray(value)
+        ? value.filter(Array.isArray).map((p) => p as [string, unknown])
+        : value && typeof value === 'object'
+          ? Object.entries(value as Record<string, unknown>)
+          : [];
+  return pairs.map(([key, c]) => {
+    const comp = (c && typeof c === 'object' ? c : {}) as { type?: unknown; enabled?: unknown };
+    const name = typeof comp.type === 'string' && comp.type.length > 0 ? comp.type : key;
+    return { name, enabled: comp.enabled !== false };
+  });
 }
 
 /** Read the selected body's facts off the LIVE scene. Null when nothing is selected, there is no
@@ -427,6 +459,7 @@ export function selectionFactsOf(scene: SceneLike | null, selected: { id: string
     // A three.js Object3D is visible by default; the runtime sets `visible: true` on every entity it
     // builds. A host that declares nothing is declaring the default, not an invisible body.
     visible: e.visible !== false,
+    components: entityComponentsOf(e.components),
   };
 }
 
