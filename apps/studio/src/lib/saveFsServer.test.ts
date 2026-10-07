@@ -9,8 +9,10 @@ import {
   STUDIO_SCENE_DISK_SAVE_PATH,
   STUDIO_SCENE_SAVES_ROOT,
   createStudioSceneSaveStore,
+  deleteStudioSceneSave,
   nodeSaveFs,
   readStudioSceneSave,
+  renameStudioSceneSave,
   saveFsState,
   writeStudioSceneSave,
 } from './saveFsServer';
@@ -165,5 +167,74 @@ describe('studio disk save lane facts (v184)', () => {
     } finally {
       rmSync(dir, { recursive: true, force: true });
     }
+  });
+});
+
+describe('studio disk delete/rename facts (v186)', () => {
+  it('delete answers the store’s own boolean: true when taken, false when the name held nothing', () => {
+    const { fs } = memFs();
+    const options = { fs, root: 'studio-saves' };
+    writeStudioSceneSave({ path: STUDIO_SCENE_DISK_SAVE_PATH, file: SAVE_FILE }, options);
+    const taken = deleteStudioSceneSave({ path: STUDIO_SCENE_DISK_SAVE_PATH }, options);
+    expect(taken.ok).toBe(true);
+    expect(taken.deleted).toBe(true);
+    expect(saveFsState(options).saves).toEqual([]);
+    const again = deleteStudioSceneSave({ path: STUDIO_SCENE_DISK_SAVE_PATH }, options);
+    expect(again.ok).toBe(true);
+    expect(again.deleted).toBe(false); // "already gone" is an answer, not an error
+  });
+
+  it('rename moves the bytes: the new name lists, the old name is gone, the file reads back intact', () => {
+    const { fs } = memFs();
+    const options = { fs, root: 'studio-saves' };
+    writeStudioSceneSave({ path: STUDIO_SCENE_DISK_SAVE_PATH, file: SAVE_FILE }, options);
+    const renamed = renameStudioSceneSave({ from: STUDIO_SCENE_DISK_SAVE_PATH, to: 'renamed-save' }, options);
+    expect(renamed.ok).toBe(true);
+    expect(renamed.from).toBe(STUDIO_SCENE_DISK_SAVE_PATH);
+    expect(renamed.to).toBe('renamed-save');
+    expect(saveFsState(options).saves).toEqual(['renamed-save']);
+    const read = readStudioSceneSave({ path: 'renamed-save' }, options);
+    expect(read.ok).toBe(true);
+    expect(read.file).toEqual(SAVE_FILE);
+  });
+
+  it('a rename whose OLD name holds nothing is refused by the store’s own sentence', () => {
+    const { fs } = memFs();
+    const options = { fs, root: 'studio-saves' };
+    const answer = renameStudioSceneSave({ from: 'nowhere', to: 'somewhere' }, options);
+    expect(answer.ok).toBe(false);
+    expect(answer.reason).toContain('"nowhere" does not exist');
+    expect(saveFsState(options).saves).toEqual([]);
+  });
+
+  it('the NEW name is a creation: absolute forms, traversal and the temp suffix are refused by the store’s rule, and nothing moved', () => {
+    const { fs, files } = memFs();
+    const options = { fs, root: 'studio-saves' };
+    writeStudioSceneSave({ path: 'keep', file: SAVE_FILE }, options);
+    const absolute = renameStudioSceneSave({ from: 'keep', to: 'C:/escape.json' }, options);
+    expect(absolute.ok).toBe(false);
+    expect(absolute.reason).toContain('absolute path');
+    const traversal = renameStudioSceneSave({ from: 'keep', to: 'a/../escape.json' }, options);
+    expect(traversal.ok).toBe(false);
+    expect(traversal.reason).toContain('walks out');
+    const temp = renameStudioSceneSave({ from: 'keep', to: 'escape.json.tmp' }, options);
+    expect(temp.ok).toBe(false);
+    expect(temp.reason).toContain('temp suffix');
+    expect(saveFsState(options).saves).toEqual(['keep']); // every refusal left the save where it was
+    expect([...files.keys()].filter((key) => key.includes('escape'))).toEqual([]);
+  });
+
+  it('a non-string path is refused before any store call — one sentence per missing half', () => {
+    const { fs } = memFs();
+    const options = { fs, root: 'studio-saves' };
+    const badDelete = deleteStudioSceneSave({ path: 42 }, options);
+    expect(badDelete.ok).toBe(false);
+    expect(badDelete.reason).toContain('a disk delete needs a save path');
+    const badTo = renameStudioSceneSave({ from: 'a', to: null }, options);
+    expect(badTo.ok).toBe(false);
+    expect(badTo.reason).toContain('a disk rename needs a to path');
+    const badFrom = renameStudioSceneSave({ from: undefined, to: 'b' }, options);
+    expect(badFrom.ok).toBe(false);
+    expect(badFrom.reason).toContain('a disk rename needs a from path');
   });
 });

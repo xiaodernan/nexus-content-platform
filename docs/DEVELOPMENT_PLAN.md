@@ -84,7 +84,15 @@ headless proof → product surface → real-browser verification → record the 
   `storage.estimate()` labelled for what it covers (`browser estimate, all storage APIs`), a
   missing estimate is named rather than invented, the percent bar renders only when both halves
   are numeric, and every store mutation re-measures (studio 297 → **318**, harness 42 → **46/46**;
-  ADR 0016 amendment 185). Still open: none — M5's open list is empty as of v185.
+  ADR 0016 amendment 185). **Now MANAGEABLE (v186):** the disk rows carry delete and rename
+  (`data-scene3d-disk-delete` / `data-scene3d-disk-rename`, `stopPropagation` so the row's
+  click-to-load never fires beneath them) through the route's `delete | rename` actions — the
+  server refuses only non-string paths itself and hands everything else to the store's own words
+  (`delete` answers its boolean, "already gone" is `ok: true, deleted: false`; a rename's NEW name
+  is a server-side creation under the store's creation rule, a missing OLD name refused by name),
+  and the rows are re-probed after each verb, never hand-edited (studio 318 → **327**, harness
+  46 → **53/53**; ADR 0016 amendment 186). Still open: none — M5's open list stays empty through
+  v186 (the v184 bound "no disk delete or rename from the panel" is retired).
 - **M6–M10:** planned, not started (autonomous build, community, creator economy, ops, external agents).
 
 ## Execution order (next increments)

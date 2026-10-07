@@ -8544,3 +8544,40 @@ estimate, the bar renders, and DELETING the save re-measures the meter to `0 sav
 **Bounds (§60).** The meter reports what it measured and what the browser estimated - it does not
 predict when the quota will fill, it does not poll (a re-read happens on mutation, not on a
 timer), and the chars figure is this build's own measure of its namespace, not the origin total.
+
+## Amendment 186 — the disk rows are MANAGEABLE: delete and rename reach the server's real file (M5 v186)
+
+M5's open list closed at v185 with one entry still parked in the v184 bounds: the disk rows could be
+listed and loaded, but the verbs the store rows have had since v172 — delete and rename — stopped at
+the store boundary. The runtime's fs-backed SaveStore has answered those verbs all along (`delete`
+returns the store's own boolean, `rename` resolves the new name through the creation rule); only the
+product face was missing. v186 wires the face, and every naming rule stays the store's.
+
+- **Server** (`saveFsServer.ts`): `deleteStudioSceneSave` and `renameStudioSceneSave`. A non-string
+  path is refused here (one sentence per missing half); everything else is the store's own answer —
+  `delete` passes the boolean through ("already gone" is `ok: true, deleted: false`, not an error),
+  and `rename` refuses a missing OLD name with the store's sentence while the NEW name goes through
+  the store's creation rule (`resolveNewSavePath`: no absolute forms, no `..`, no temp-suffix
+  collision). This module paraphrases nobody.
+- **Route** (`app/api/agent/save-fs`): the POST action whitelist grows from `write | read` to
+  `write | read | delete | rename`; dispatch only. Refusals stay honest answers (`ok: false`), 400s.
+- **Lane** (`saveFsLane.ts`): `deleteSaveOnDisk` and `renameSaveOnDisk` — fetch adapters, still
+  importing nothing from the runtime. Unreachability is an answer, as in v184.
+- **Panel** (`Scene3D.tsx`): each disk row carries delete/rename buttons (`data-scene3d-disk-delete`
+  / `data-scene3d-disk-rename`), `stopPropagation` so the row's click-to-load never fires beneath
+  them. After either verb the rows are RE-PROBED, not hand-edited — what the panel lists stays a
+  fact about the disk. The rename prompt is the browser's own; the new name is a server-side
+  creation and is validated there.
+- **Harness** (studio-scene3d.mjs, 46 → 53): rename through the panel (`prompt` overridden in the
+  page), the file's move read back with node:fs (old gone, new present), rows following the rename,
+  delete through the panel, absence proven on the real disk, rows following the delete. The disk
+  baseline is swept before launch — a renamed leftover would otherwise stand between the facts and
+  the run. Two probes learned the harness's own rule again: a `waitForFunction` predicate that
+  always returns an object never waits (first `{"gone":false,"here":false}` was the probe's timing,
+  not the panel's); predicates now return null until the fact they name holds.
+
+Bounds retired from v184's list: "no disk delete or rename from the panel". Bounds that remain:
+one fixed save name per store; no quota-fill prediction and no polling.
+
+Tests: studio 327/327 (saveFsServer 12, saveFsLane 11 — nine new), three-runtime untouched at
+453/453, harness 53/53 (backend=webgl). tsc, eslint, next build clean.

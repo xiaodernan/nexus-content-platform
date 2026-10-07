@@ -24,7 +24,7 @@
  * assertions, and the screenshot shows four LIT boxes rather than the black frame the v142 defect
  * produced.
  */
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { launch } from './cdp.mjs';
 
@@ -36,6 +36,13 @@ const arg = (name, fallback) => {
 const URL_BASE = arg('url', 'http://127.0.0.1:3210');
 const OUT_DIR = arg('out', '.scratch/v142');
 mkdirSync(OUT_DIR, { recursive: true });
+
+// The disk-save facts assume a KNOWN disk baseline: the v184 block's save-to-disk is the first write
+// to apps/studio/.nexus/scene-saves/, so leftovers from an earlier run — a RENAMED save among them,
+// since v186 the disk verbs can move names — are swept before the browser is launched. The browser
+// store needs no sweep: the harness profile is fresh every launch.
+const savesDir = join(process.cwd(), 'apps', 'studio', '.nexus', 'scene-saves');
+if (existsSync(savesDir)) rmSync(savesDir, { recursive: true, force: true });
 
 const results = [];
 const check = (name, ok, detail) => {
@@ -500,6 +507,51 @@ try {
     { timeout: 10000 },
   );
   check('deleting the save re-measures the meter to empty — the reading follows the store', emptied !== null, emptied);
+
+  // ── M5 v186: the disk rows are MANAGEABLE — delete and rename reach the server's real file ────────
+  // The store rows have had these verbs since v172; until v186 the disk rows could only be loaded.
+  // The disk file still holds `last-saved` from the v184 block above (the delete just now was the
+  // BROWSER store's row). Rename goes through the panel (prompt overridden in the page), the file's
+  // move is read back with node:fs, and delete is proven by absence on the real disk.
+  await page.evaluate("document.querySelector('[data-scene-browse-disk]').click()");
+  const diskRowAgain = await page.waitForFunction(
+    `(() => { const n = document.querySelector('[data-scene3d-disk-save=\"last-saved\"]'); return n ? n.getAttribute('data-scene3d-disk-save') : null; })()`,
+    { timeout: 10000 },
+  );
+  check('browse disk still lists last-saved before the v186 verbs touch it', diskRowAgain === 'last-saved', JSON.stringify(diskRowAgain));
+
+  await page.evaluate("window.prompt = () => 'renamed-save'");
+  await page.evaluate("document.querySelector('[data-scene3d-disk-rename=\"last-saved\"]').click()");
+  const renamedNote = await page.waitForFunction(
+    `(() => { const n = document.querySelector('[data-scene3d-save-note]'); return n && n.textContent.includes('renamed \\"last-saved\\" to \\"renamed-save\\" on the server') ? n.textContent : null; })()`,
+    { timeout: 10000 },
+  );
+  check('renaming a disk save answers with the rename (from → to), the store’s own resolution', renamedNote !== null, renamedNote);
+
+  const renamedOnDisk = !existsSync(diskFile) && existsSync(join(process.cwd(), 'apps', 'studio', '.nexus', 'scene-saves', 'renamed-save'));
+  check('the rename really moved the file on the server disk (old name gone, new name present)', renamedOnDisk, `old exists: ${existsSync(diskFile)} · renamed exists: ${existsSync(join(process.cwd(), 'apps', 'studio', '.nexus', 'scene-saves', 'renamed-save'))}`);
+
+  const rowsFollowRename = await page.waitForFunction(
+    `(() => { const gone = !document.querySelector('[data-scene3d-disk-save=\"last-saved\"]'); const here = !!document.querySelector('[data-scene3d-disk-save=\"renamed-save\"]'); return gone && here ? { gone, here } : null; })()`,
+    { timeout: 10000 },
+  );
+  check('the disk rows follow the rename — re-probed from the disk, not hand-edited', rowsFollowRename.gone === true && rowsFollowRename.here === true, JSON.stringify(rowsFollowRename));
+
+  await page.evaluate("document.querySelector('[data-scene3d-disk-delete=\"renamed-save\"]').click()");
+  const deletedNote = await page.waitForFunction(
+    `(() => { const n = document.querySelector('[data-scene3d-save-note]'); return n && n.textContent.includes("deleted renamed-save on the server's disk") ? n.textContent : null; })()`,
+    { timeout: 10000 },
+  );
+  check('deleting a disk save answers with the delete (the store’s own boolean)', deletedNote !== null, deletedNote);
+
+  const renamedGone = !existsSync(join(process.cwd(), 'apps', 'studio', '.nexus', 'scene-saves', 'renamed-save'));
+  check('the file is really gone from the server disk after the delete', renamedGone, `renamed-save exists: ${!renamedGone}`);
+
+  const rowsFollowDelete = await page.waitForFunction(
+    `(() => !document.querySelector('[data-scene3d-disk-save]') ? 'no disk row remains' : null)()`,
+    { timeout: 10000 },
+  );
+  check('the disk rows follow the delete (no disk row remains)', rowsFollowDelete === 'no disk row remains', JSON.stringify(rowsFollowDelete));
 
   // Back to 2D: the toggle must be reversible and the canvas must come back with its pixels.
   await page.evaluate("document.querySelector('[data-surface-toggle=\"2d\"]').click()");

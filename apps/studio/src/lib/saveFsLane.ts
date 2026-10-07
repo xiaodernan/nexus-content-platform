@@ -90,3 +90,58 @@ export async function readSaveFromDisk(path: string): Promise<SaveFsLaneReadAnsw
     return { ok: false, reason: `studio server unreachable: ${e instanceof Error ? e.message : String(e)}` };
   }
 }
+
+/** The slice of the delete answer the panel renders: whether the name was there to take. */
+export interface SaveFsLaneDeleteAnswer {
+  ok: boolean;
+  path?: string;
+  deleted?: boolean;
+  reason?: string;
+}
+
+/**
+ * v186 — take one disk save back by name. "Already gone" arrives as ok:true + deleted:false (the
+ * store's own boolean); a refused name arrives as ok:false + the store's own sentence.
+ */
+export async function deleteSaveOnDisk(path: string): Promise<SaveFsLaneDeleteAnswer> {
+  try {
+    const res = await fetch('/api/agent/save-fs', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ action: 'delete', path }),
+    });
+    const parsed: unknown = await res.json().catch(() => null);
+    if (parsed && typeof parsed === 'object') return parsed as SaveFsLaneDeleteAnswer;
+    return { ok: false, reason: `save-fs route answered ${res.status} with a non-JSON body` };
+  } catch (e) {
+    return { ok: false, reason: `studio server unreachable: ${e instanceof Error ? e.message : String(e)}` };
+  }
+}
+
+/** The slice of the rename answer the panel renders: where the bytes ended up. */
+export interface SaveFsLaneRenameAnswer {
+  ok: boolean;
+  from?: string;
+  to?: string;
+  reason?: string;
+}
+
+/**
+ * v186 — give one disk save a new name. The new name is a CREATION on the server: its rules (no
+ * absolute forms, no `..`, no temp suffix) are the store's creation rule, and a refusal arrives as
+ * ok:false plus the store's own sentence.
+ */
+export async function renameSaveOnDisk(from: string, to: string): Promise<SaveFsLaneRenameAnswer> {
+  try {
+    const res = await fetch('/api/agent/save-fs', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ action: 'rename', from, to }),
+    });
+    const parsed: unknown = await res.json().catch(() => null);
+    if (parsed && typeof parsed === 'object') return parsed as SaveFsLaneRenameAnswer;
+    return { ok: false, reason: `save-fs route answered ${res.status} with a non-JSON body` };
+  } catch (e) {
+    return { ok: false, reason: `studio server unreachable: ${e instanceof Error ? e.message : String(e)}` };
+  }
+}

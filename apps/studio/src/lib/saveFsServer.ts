@@ -186,3 +186,75 @@ export function readStudioSceneSave(
   }
   return { ok: true, path: request.path, file: parsed };
 }
+
+/** What a successful delete answers: whether the name was there to take (the store's own boolean). */
+export interface SaveFsDeleteAnswer {
+  ok: boolean;
+  path?: string;
+  deleted?: boolean;
+  reason?: string;
+}
+
+/**
+ * Take ONE save back by name. `false` from the store means the name held nothing — "already gone"
+ * is an ANSWER (ok: true, deleted: false), not an error, exactly as the store's contract words it.
+ * A refusal to type the name is the caller's to see here; everything else is the store's own.
+ */
+export function deleteStudioSceneSave(
+  request: { path: unknown },
+  options: { fs?: StudioSaveFs; root?: string } = {},
+): SaveFsDeleteAnswer {
+  if (typeof request.path !== 'string' || request.path.trim().length === 0) {
+    return { ok: false, reason: `a disk delete needs a save path (a non-empty string), got ${JSON.stringify(request.path)}` };
+  }
+  let store: SaveStore;
+  try {
+    store = createStudioSceneSaveStore(options);
+  } catch (e) {
+    return { ok: false, reason: e instanceof Error ? e.message : String(e) };
+  }
+  try {
+    const deleted = store.delete(request.path);
+    return { ok: true, path: request.path, deleted };
+  } catch (e) {
+    return { ok: false, reason: e instanceof Error ? e.message : String(e) };
+  }
+}
+
+/** What a successful rename answers: where the bytes ended up (the store's own resolution). */
+export interface SaveFsRenameAnswer {
+  ok: boolean;
+  from?: string;
+  to?: string;
+  reason?: string;
+}
+
+/**
+ * Give ONE save a new name. The NEW name is a creation, so it goes through the store's creation
+ * rule (`resolveNewSavePath` — no absolute forms, no `..`, no temp-suffix collision); the OLD name
+ * must exist, and when it does not the store says so by name. Both sentences arrive as
+ * `ok: false` — this module paraphrases nobody.
+ */
+export function renameStudioSceneSave(
+  request: { from: unknown; to: unknown },
+  options: { fs?: StudioSaveFs; root?: string } = {},
+): SaveFsRenameAnswer {
+  if (typeof request.from !== 'string' || request.from.trim().length === 0) {
+    return { ok: false, reason: `a disk rename needs a from path (a non-empty string), got ${JSON.stringify(request.from)}` };
+  }
+  if (typeof request.to !== 'string' || request.to.trim().length === 0) {
+    return { ok: false, reason: `a disk rename needs a to path (a non-empty string), got ${JSON.stringify(request.to)}` };
+  }
+  let store: SaveStore;
+  try {
+    store = createStudioSceneSaveStore(options);
+  } catch (e) {
+    return { ok: false, reason: e instanceof Error ? e.message : String(e) };
+  }
+  try {
+    const to = store.rename(request.from, request.to);
+    return { ok: true, from: request.from, to };
+  } catch (e) {
+    return { ok: false, reason: e instanceof Error ? e.message : String(e) };
+  }
+}

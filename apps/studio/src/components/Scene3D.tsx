@@ -24,7 +24,7 @@ import {
   type SceneSurface,
 } from '@/lib/scene3d';
 import { installSceneBridge } from '@/lib/observability';
-import { SAVE_FS_LANE_DISK_SAVE_PATH, probeSaveFs, readSaveFromDisk, writeSaveToDisk } from '@/lib/saveFsLane';
+import { SAVE_FS_LANE_DISK_SAVE_PATH, deleteSaveOnDisk, probeSaveFs, readSaveFromDisk, renameSaveOnDisk, writeSaveToDisk } from '@/lib/saveFsLane';
 import {
   footprintOf,
   formatFootprint,
@@ -612,6 +612,44 @@ export default function Scene3D() {
     })();
   }, []);
 
+  // v186 — the disk rows get the same verbs the store rows have had since v172. The answer comes
+  // from the route (the store's own boolean or sentence); the rows are then RE-PROBED, not
+  // hand-edited — what the panel lists stays a fact about the disk, not a guess about it.
+  const refreshDiskSaves = useCallback(() => {
+    void (async () => {
+      const probe = await probeSaveFs();
+      setDiskSaves(probe.available ? probe.saves ?? [] : []);
+    })();
+  }, []);
+
+  const onDeleteDiskSave = useCallback((path: string) => {
+    void (async () => {
+      const answer = await deleteSaveOnDisk(path);
+      if (!answer.ok) {
+        setSaveNote(`disk delete refused: ${answer.reason}`);
+        return;
+      }
+      setSaveNote(
+        answer.deleted
+          ? `deleted ${path} on the server's disk`
+          : `${path} was already gone from the server's disk`,
+      );
+      refreshDiskSaves();
+    })();
+  }, [refreshDiskSaves]);
+
+  const onRenameDiskSave = useCallback((from: string, to: string) => {
+    void (async () => {
+      const answer = await renameSaveOnDisk(from, to);
+      if (!answer.ok) {
+        setSaveNote(`disk rename refused: ${answer.reason}`);
+        return;
+      }
+      setSaveNote(`renamed "${from}" to "${answer.to}" on the server's disk`);
+      refreshDiskSaves();
+    })();
+  }, [refreshDiskSaves]);
+
   const onLoadFromDisk = useCallback((path: string) => {
     const surface = surfaceRef.current;
     if (!surface) return;
@@ -920,6 +958,8 @@ export default function Scene3D() {
               data-scene3d-disk-save={path}
               onClick={() => onLoadFromDisk(path)}
               style={{
+                display: 'flex',
+                alignItems: 'center',
                 padding: '4px 6px',
                 margin: '2px 0',
                 borderRadius: 3,
@@ -930,10 +970,57 @@ export default function Scene3D() {
                 background: 'rgba(102, 187, 106, 0.08)',
               }}
             >
-              <div>{path}</div>
-              <div style={{ color: 'var(--nexus-muted)', fontSize: 9 }}>
-                on the server&apos;s disk — click to restore into a fresh scene
+              <div style={{ flex: 1 }}>
+                <div>{path}</div>
+                <div style={{ color: 'var(--nexus-muted)', fontSize: 9 }}>
+                  on the server&apos;s disk — click to restore into a fresh scene
+                </div>
               </div>
+              <button
+                type="button"
+                data-scene3d-disk-delete={path}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onDeleteDiskSave(path);
+                }}
+                style={{
+                  marginLeft: 8,
+                  padding: '2px 6px',
+                  fontSize: 9,
+                  background: 'rgba(244, 67, 54, 0.1)',
+                  border: '1px solid rgba(244, 67, 54, 0.3)',
+                  borderRadius: 3,
+                  cursor: 'pointer',
+                  color: 'var(--nexus-danger)',
+                }}
+                title={`Delete disk save ${path}`}
+              >
+                delete
+              </button>
+              <button
+                type="button"
+                data-scene3d-disk-rename={path}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  const newName = prompt('Enter a new name for this disk save:', path);
+                  if (newName && newName !== path) {
+                    onRenameDiskSave(path, newName);
+                  }
+                }}
+                style={{
+                  marginLeft: 4,
+                  padding: '2px 6px',
+                  fontSize: 9,
+                  background: 'rgba(33, 150, 243, 0.1)',
+                  border: '1px solid rgba(33, 150, 243, 0.3)',
+                  borderRadius: 3,
+                  cursor: 'pointer',
+                  color: 'var(--nexus-info)',
+                }}
+                title={`Rename disk save ${path}`}
+              >
+                rename
+              </button>
             </div>
           ))}
         </div>
