@@ -1,7 +1,7 @@
 'use client';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { InMemoryAssetLibrary, DemoImageGenerator, DemoVideoGenerator, StoryboardManager } from '@nexus/ai-providers';
-import { buildStudioAssets, buildAssetReport, generateAsset, removeAsset, type AssetReport, type GenerationRequestLike } from '@/lib/assets';
+import { buildStudioAssets, buildAssetReport, generateAsset, removeAsset, removeStoryboardFrame, reorderStoryboardFrames, type AssetReport, type GenerationRequestLike } from '@/lib/assets';
 import { installAssetBridge } from '@/lib/observability';
 
 /**
@@ -126,7 +126,44 @@ export default function AssetPanel() {
     [refresh, stack],
   );
 
-  const frames = report?.storyboard?.frames ?? [];
+  // `frames` leads the callbacks that read it — a `const` below its reader would be a TDZ hit at render.
+  // useMemo keeps the identity stable so the reorder callback's deps do not churn every render.
+  const frames = useMemo(() => report?.storyboard?.frames ?? [], [report]);
+
+  // v188 — edit the BOARD. Remove passes the manager's boolean through (false for an unknown frame is
+  // shown, not swallowed); reorder swaps the two neighbours the button names and hands the manager the
+  // FULL id sequence, because resequencing is the manager's word, not the panel's. Neither verb touches
+  // the library — the frames reference assets, they are not assets.
+  const onRemoveFrame = useCallback(
+    async (storyboardId: string, frameId: string) => {
+      setError(null);
+      try {
+        removeStoryboardFrame(stack.storyboards, storyboardId, frameId);
+        await refresh();
+      } catch (e) {
+        setError(e instanceof Error ? e.message : String(e));
+      }
+    },
+    [refresh, stack],
+  );
+
+  const onMoveFrame = useCallback(
+    async (storyboardId: string, frameId: string, dir: -1 | 1) => {
+      setError(null);
+      try {
+        const ids = frames.map((f) => f.id);
+        const at = ids.indexOf(frameId);
+        const to = at + dir;
+        if (at < 0 || to < 0 || to >= ids.length) return;
+        [ids[at], ids[to]] = [ids[to]!, ids[at]!];
+        reorderStoryboardFrames(stack.storyboards, storyboardId, ids);
+        await refresh();
+      } catch (e) {
+        setError(e instanceof Error ? e.message : String(e));
+      }
+    },
+    [frames, refresh, stack],
+  );
 
   return (
     <div
@@ -227,13 +264,47 @@ export default function AssetPanel() {
             </ul>
           </Section>
 
-          <Section title={report.storyboard ? `Storyboard — ${report.storyboard.name} (ordered)` : 'Storyboard'}>
+          <Section title={report.storyboard ? `Storyboard — ${report.storyboard.name} (ordered, editable)` : 'Storyboard'}>
             <ul style={list} data-asset-frames>
-              {frames.map((f) => (
-                <li key={f.id} style={item}>
+              {frames.map((f, i) => (
+                <li key={f.id} style={{ ...item, display: 'flex', alignItems: 'center', gap: 8 }}>
                   <span style={dim}>#{f.order}</span> <strong>{f.prompt}</strong>{' '}
                   <span style={dim}>
                     · {f.cameraAngle ?? '—'} · {f.duration ?? 0}s · ref {f.imageRef ?? 'none'}
+                  </span>
+                  <span style={{ marginLeft: 'auto', display: 'flex', gap: 4 }}>
+                    <button
+                      type="button"
+                      data-frame-up={f.id}
+                      className="btn"
+                      disabled={i === 0}
+                      title={`Move frame #${f.order} up`}
+                      style={{ fontSize: 10, padding: '1px 6px' }}
+                      onClick={() => report.storyboard && void onMoveFrame(report.storyboard.id, f.id, -1)}
+                    >
+                      ↑
+                    </button>
+                    <button
+                      type="button"
+                      data-frame-down={f.id}
+                      className="btn"
+                      disabled={i === frames.length - 1}
+                      title={`Move frame #${f.order} down`}
+                      style={{ fontSize: 10, padding: '1px 6px' }}
+                      onClick={() => report.storyboard && void onMoveFrame(report.storyboard.id, f.id, 1)}
+                    >
+                      ↓
+                    </button>
+                    <button
+                      type="button"
+                      data-frame-remove={f.id}
+                      className="btn"
+                      title={`Remove frame #${f.order} — the board's own state, not the library's`}
+                      style={{ fontSize: 10, padding: '1px 6px' }}
+                      onClick={() => report.storyboard && void onRemoveFrame(report.storyboard.id, f.id)}
+                    >
+                      remove
+                    </button>
                   </span>
                 </li>
               ))}
@@ -244,9 +315,10 @@ export default function AssetPanel() {
             This surface composes and reads a storyboard; it does not render one. Each asset is stored with an
             empty payload because DEMO MODE produces no pixels — the byte count above is what the library
             actually holds, not what an image of that size would weigh (§60). The library lists assets newest
-            first and promises no other order; the STORYBOARD is where the order is the shots&rsquo;. The
-            Generate field grows the library with metadata-only assets, and Remove shrinks it — both through
-            the same read-only report the bridge exposes.
+            first and promises no other order; the STORYBOARD is where the order is the shots&rsquo;. The Generate field grows the library with metadata-only assets, and Remove shrinks it — both through
+            the same read-only report the bridge exposes. The storyboard itself is editable too (v188): a frame
+            can be removed or moved, and the manager&rsquo;s answer — including the honest order hole a removal
+            leaves — is what this panel shows.
           </div>
         </>
       ) : (

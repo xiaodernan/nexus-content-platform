@@ -14,6 +14,10 @@
  *     rather than a sentence they have to believe;
  *   - nothing in this module names a provider, a model or a picture.
  *
+ * v188 — the board is EDITABLE: the surface can remove a frame and reorder the rest, and what the
+ * manager answers (`false` for an unknown frame, a rewritten `order` for the survivors) is what the
+ * surface shows. A storyboard is an ordered set or it is a pile.
+ *
  * The interfaces are STRUCTURAL rather than `import type { InMemoryAssetLibrary }`: Next.js evaluates this
  * module during SSR, where loading a generator is pointless work and a needless dependency edge. The panel
  * is the only place that touches the real classes.
@@ -108,6 +112,9 @@ export interface StoryboardManagerLike {
   create(name: string, description?: string): { id: string; name: string; description?: string };
   addFrame(storyboardId: string, frame: { order: number; prompt: string; imageRef?: unknown; duration?: number; cameraAngle?: string }): { id: string; order: number; prompt: string; imageRef?: { assetId: string }; duration?: number; cameraAngle?: string } | null;
   get(id: string): { id: string; name: string; description?: string; frames: { id: string; order: number; prompt: string; imageRef?: { assetId: string }; duration?: number; cameraAngle?: string }[] } | undefined;
+  /** v188 — the surface can EDIT the board, and the manager's answers pass through untouched. */
+  removeFrame(storyboardId: string, frameId: string): boolean;
+  reorderFrames(storyboardId: string, frameIds: string[]): boolean;
 }
 
 /**
@@ -198,6 +205,31 @@ export async function generateAsset(
  */
 export async function removeAsset(library: AssetLibraryLike, assetId: string): Promise<boolean> {
   return library.remove(assetId);
+}
+
+/**
+ * v188 — edit the BOARD. The storyboard was read-only on this surface since v153; the manager has had
+ * `removeFrame` and `reorderFrames` all along, and these are their thin product doors.
+ *
+ * Both pass the MANAGER's own answer through: `removeFrame` answers false for a frame it does not hold
+ * (and leaves the surviving frames' `order` exactly as it was — a hole is the manager's honest state,
+ * not something the panel papers over), and `reorderFrames` rewrites `order` to 0..n-1 in the sequence
+ * given. Neither touches the library — the frames reference assets, they are not assets.
+ */
+export function removeStoryboardFrame(
+  storyboards: StoryboardManagerLike,
+  storyboardId: string,
+  frameId: string,
+): boolean {
+  return storyboards.removeFrame(storyboardId, frameId);
+}
+
+export function reorderStoryboardFrames(
+  storyboards: StoryboardManagerLike,
+  storyboardId: string,
+  frameIds: string[],
+): boolean {
+  return storyboards.reorderFrames(storyboardId, frameIds);
 }
 
 /**

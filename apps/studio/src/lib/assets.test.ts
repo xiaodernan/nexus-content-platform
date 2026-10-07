@@ -4,6 +4,8 @@ import {
   buildAssetReport,
   generateAsset,
   removeAsset,
+  removeStoryboardFrame,
+  reorderStoryboardFrames,
   STUDIO_SHOTS,
   type AssetGeneratorLike,
   type AssetLibraryLike,
@@ -114,6 +116,31 @@ function fakeStack(over: Partial<AssetGeneratorLike> = {}) {
     get(id) {
       if (!board || id !== board.id) return undefined;
       return { ...board, frames };
+    },
+    // v188: aligned with the REAL manager — remove splices and leaves the survivors' `order` untouched
+    // (a hole is honest state), reorder rewrites `order` to 0..n-1 in the sequence GIVEN and appends any
+    // frame the sequence did not name, in its previous shape.
+    removeFrame(storyboardId, frameId) {
+      if (!board || storyboardId !== board.id) return false;
+      const idx = frames.findIndex((f) => f.id === frameId);
+      if (idx < 0) return false;
+      frames.splice(idx, 1);
+      return true;
+    },
+    reorderFrames(storyboardId, frameIds) {
+      if (!board || storyboardId !== board.id) return false;
+      if (new Set(frameIds).size !== frameIds.length) return false;
+      const map = new Map(frames.map((f) => [f.id, f] as const));
+      const next: typeof frames = [];
+      for (let i = 0; i < frameIds.length; i++) {
+        const f = map.get(frameIds[i]!);
+        if (!f) return false;
+        next.push({ ...f, order: i });
+      }
+      for (const f of frames) if (!frameIds.includes(f.id)) next.push(f);
+      frames.length = 0;
+      frames.push(...next);
+      return true;
     },
   };
 
@@ -389,3 +416,79 @@ describe('video generation — the surface can ask for FOOTAGE (v187)', () => {
     expect(calls).toContain('generate:image:plain default');
   });
 });
+
+describe('storyboard editing — the surface can edit the BOARD (v188)', () => {
+  /**
+   * The manager had `removeFrame` and `reorderFrames` all along; v188 is the product face. The claims are
+   * the MANAGER's own semantics: a removal leaves a hole in `order` (honest state, not renumbered), a
+   * reorder rewrites `order` to 0..n-1 in the sequence GIVEN, and neither verb touches the library.
+   */
+  it('remove drops the named frame and leaves the survivors\' order HONEST — a hole, not a renumber', async () => {
+    const { storyboards } = fakeStack();
+    const built = await buildStudioAssets(noopGenerator(), noopLibrary(), storyboards);
+    const board = storyboards.get(built.storyboardId)!;
+    const middle = board.frames[1]!;
+    expect(removeStoryboardFrame(storyboards, built.storyboardId, middle.id)).toBe(true);
+    const after = storyboards.get(built.storyboardId)!.frames;
+    expect(after).toHaveLength(2);
+    expect(after.map((f) => f.order)).toEqual([0, 2]); // the hole stays; nothing renumbered it behind the reader's back
+    expect(after.map((f) => f.id)).not.toContain(middle.id);
+  });
+
+  it('reorder rewrites order to 0..n-1 in the sequence GIVEN, and the report shows that sequence', async () => {
+    const { storyboards } = fakeStack();
+    const built = await buildStudioAssets(noopGenerator(), noopLibrary(), storyboards);
+    const board = storyboards.get(built.storyboardId)!;
+    const ids = board.frames.map((f) => f.id);
+    const reversed = [...ids].reverse();
+    expect(reorderStoryboardFrames(storyboards, built.storyboardId, reversed)).toBe(true);
+    const after = storyboards.get(built.storyboardId)!.frames;
+    expect(after.map((f) => f.id)).toEqual(reversed);
+    expect(after.map((f) => f.order)).toEqual([0, 1, 2]); // rewritten by the manager, contiguous again
+  });
+
+  it('remove answers FALSE for a frame the board does not hold, and the board is untouched', async () => {
+    const { storyboards } = fakeStack();
+    const built = await buildStudioAssets(noopGenerator(), noopLibrary(), storyboards);
+    expect(removeStoryboardFrame(storyboards, built.storyboardId, 'frame-nowhere')).toBe(false);
+    expect(storyboards.get(built.storyboardId)!.frames).toHaveLength(3);
+    expect(removeStoryboardFrame(storyboards, 'sb-nowhere', 'f-1')).toBe(false);
+  });
+
+  it('reorder refuses an unknown id and a duplicated id — a partial resequence is exactly the quiet side effect nobody wants', async () => {
+    const { storyboards } = fakeStack();
+    const built = await buildStudioAssets(noopGenerator(), noopLibrary(), storyboards);
+    const board = storyboards.get(built.storyboardId)!;
+    const ids = board.frames.map((f) => f.id);
+    const before = board.frames.map((f) => f.order);
+    expect(reorderStoryboardFrames(storyboards, built.storyboardId, [...ids.slice(0, 2), 'frame-nowhere'])).toBe(false);
+    expect(reorderStoryboardFrames(storyboards, built.storyboardId, [ids[0]!, ids[0]!, ids[1]!])).toBe(false);
+    expect(storyboards.get(built.storyboardId)!.frames.map((f) => f.order)).toEqual(before);
+  });
+
+  it('editing the board does NOT touch the library — the frames reference assets, they are not assets', async () => {
+    const { generator, library, storyboards, stored } = fakeStack();
+    const built = await buildStudioAssets(generator, library, storyboards);
+    const board = storyboards.get(built.storyboardId)!;
+    removeStoryboardFrame(storyboards, built.storyboardId, board.frames[0]!.id);
+    reorderStoryboardFrames(storyboards, built.storyboardId, board.frames.map((f) => f.id).reverse());
+    expect(stored.size).toBe(3);
+    expect((await library.list()).map((r) => r.assetId).sort()).toEqual([...built.assetIds].sort());
+  });
+
+  it('§60 holds: a frame edit moves no bytes, because there were none to move', async () => {
+    const { generator, library, storyboards, stored } = fakeStack();
+    const built = await buildStudioAssets(generator, library, storyboards);
+    const board = storyboards.get(built.storyboardId)!;
+    reorderStoryboardFrames(storyboards, built.storyboardId, board.frames.map((f) => f.id).reverse());
+    for (const entry of stored.values()) expect(entry.data.length).toBe(0);
+  });
+});
+
+/** Minimal no-op halves for storyboard-only cases — the board is the state under test, not the library. */
+function noopGenerator(): AssetGeneratorLike {
+  return { async generate() { return { assets: [], provenance: { mode: 'demo' }, metadata: { model: 'demo-model', seed: 1 } }; } };
+}
+function noopLibrary(): AssetLibraryLike {
+  return { async add() {}, async remove() { return false; }, async list() { return []; }, async get() { return null; } };
+}

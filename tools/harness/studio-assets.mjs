@@ -214,6 +214,58 @@ try {
   const imgsAfterVideo = await page.evaluate("document.querySelectorAll('#nexus-assets img').length");
   check('and the panel still renders no <img> for footage either', imgsAfterVideo === 0, `img elements: ${imgsAfterVideo}`);
 
+  // v188 — the BOARD is editable. The buttons pass the manager's own verbs through; the bridge reports
+  // the storyboard the manager actually holds, so a control that only changed the DOM would fail here.
+  const frameControls = await page.evaluate(
+    "(() => { const ups = [...document.querySelectorAll('[data-frame-up]')]; const downs = [...document.querySelectorAll('[data-frame-down]')]; const removes = [...document.querySelectorAll('[data-frame-remove]')]; return { ups: ups.length, downs: downs.length, removes: removes.length, firstUpDisabled: ups[0]?.disabled ?? null, lastDownDisabled: downs.length ? downs[downs.length - 1].disabled : null }; })()",
+  );
+  const framesBefore = report.storyboard.frames.length;
+  check(
+    'every frame row carries move-up, move-down and remove controls, edges disabled',
+    frameControls.ups === framesBefore && frameControls.downs === framesBefore && frameControls.removes === framesBefore && frameControls.firstUpDisabled === true && frameControls.lastDownDisabled === true,
+    JSON.stringify({ frames: framesBefore, ...frameControls }),
+  );
+
+  const firstId = report.storyboard.frames[0].id;
+  const secondId = report.storyboard.frames[1].id;
+  await page.evaluate(`(() => { const b = document.querySelector('[data-frame-down="${firstId}"]'); if (b) b.click(); })()`);
+  const reordered = await page.waitForFunction(
+    `(() => { const r = window.__nexusAssets?.assets(); return r && r.storyboard && r.storyboard.frames.length === ${framesBefore} && r.storyboard.frames[0].id === '${secondId}' ? r : null; })()`,
+    { timeout: 15000 },
+  );
+  check(
+    'move-down REORDERS the board — the manager rewrote the order to the sequence given',
+    reordered !== null && reordered.storyboard.frames[0].id === secondId && reordered.storyboard.frames[1].id === firstId,
+    `frame order now ${JSON.stringify(reordered?.storyboard?.frames?.map((f) => f.id))}`,
+  );
+  const rowsAfterReorder = await page.evaluate(
+    "(() => [...document.querySelectorAll('[data-asset-frames] li')].map((li) => li.innerText.replace(/\\s+/g, ' ').trim()))()",
+  );
+  check(
+    'the panel rows follow the reorder — #0 is the frame that moved up',
+    rowsAfterReorder.length === framesBefore && rowsAfterReorder[0].startsWith('#0') && rowsAfterReorder[0].includes(reordered.storyboard.frames[0].prompt),
+    JSON.stringify(rowsAfterReorder.map((r) => r.slice(0, 60))),
+  );
+
+  const middleId = reordered.storyboard.frames[1].id;
+  await page.evaluate(`(() => { const b = document.querySelector('[data-frame-remove="${middleId}"]'); if (b) b.click(); })()`);
+  const afterRemove = await page.waitForFunction(
+    `(() => { const r = window.__nexusAssets?.assets(); return r && r.storyboard && r.storyboard.frames.length === ${framesBefore - 1} && !r.storyboard.frames.some((f) => f.id === '${middleId}') ? r : null; })()`,
+    { timeout: 15000 },
+  );
+  const ordersAfter = afterRemove?.storyboard?.frames?.map((f) => f.order) ?? [];
+  check(
+    'remove DROPS the frame and the surviving order keeps its honest hole',
+    afterRemove !== null && JSON.stringify(ordersAfter) === JSON.stringify([0, 2]),
+    `orders now ${JSON.stringify(ordersAfter)} — no silent renumber`,
+  );
+  const libraryAfterEdit = await page.evaluate('window.__nexusAssets.assets().assets.length');
+  check(
+    'editing the board never touched the library — the footage and stills are all still there',
+    libraryAfterEdit === report.assets.length + 1,
+    `assets ${report.assets.length} composed + 1 footage = ${libraryAfterEdit} held`,
+  );
+
   // A pixel screenshot of the surface (§30).
   const shot = await page.send('Page.captureScreenshot', { format: 'png' });
   const png = Buffer.from(shot.data, 'base64');

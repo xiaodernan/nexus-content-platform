@@ -8618,3 +8618,41 @@ _Numbering: 187 was free (`grep -ao "^### Amendment 1[0-9][0-9]"` topped out at 
   video element anywhere, because there is no video. `asset.video.generate`'s agent door and this surface
   both exist now, and they agree on what the type means. Character consistency still has no product surface,
   and there is still no asset UPDATE or storyboard editing.
+###SPLIT###
+## Amendment 188 — the board is EDITABLE: remove and reorder reach the storyboard manager (M3 v188)
+
+M3's open list shrank to three at v187, and all three had the same shape as the video ask did: the
+package has answered the verb for versions, only the Studio product face was missing. v188 takes the
+first of them — storyboard editing. `StoryboardManager` has had `removeFrame` (splice, survivors keep
+their `order`) and `reorderFrames` (full-sequence resequencing, `order` rewritten 0..n-1) since v91;
+since v153 the Studio's Assets surface has READ the board. Now it can edit it, and every rule stays
+the manager's.
+
+- **Pure layer** (`assets.ts`): `removeStoryboardFrame` and `reorderStoryboardFrames` — thin doors over
+  the manager's two verbs, answering the manager's own boolean. A `false` (unknown frame, duplicate id,
+  unknown board) is passed through, not swallowed; a removal leaves the survivors' `order` exactly as
+  the manager kept it — a hole is honest state, and the panel does not renumber behind the reader's
+  back. `StoryboardManagerLike` grows the two methods, so a fake that cannot edit fails here rather
+  than in the browser.
+- **Face** (`AssetPanel.tsx`): each frame row carries `↑` / `↓` / `remove` (edge buttons disabled —
+  the first row cannot move up). Reorder swaps the two neighbours the button names and hands the
+  manager the FULL id sequence, because resequencing is the manager's word. Neither verb touches the
+  library — the frames reference assets, they are not assets, and the report's byte counts cannot move
+  because there are none.
+- **The measured defect the dispatch bar prevented, again**: the first fake's storyboards could not
+  edit, which is exactly what `StoryboardManagerLike` growing the two methods now catches at typecheck.
+  The unit block pins the manager's semantics as NUMBERS: after removing the middle of three, the
+  orders read `[0, 2]` — the hole stays — and after a full reorder they read `[0, 1, 2]` again, in the
+  sequence GIVEN.
+- **Evidence.** `src/lib/assets.test.ts` **24 → 30 cases** (remove drops and leaves the hole; reorder
+  rewrites; both refuse unknown/duplicate ids with the board untouched; neither verb moves the library
+  or any byte); `tools/harness/studio-assets.mjs` — the REAL browser, **29/29 → 34/34**: every row
+  carries its three controls with the edges disabled, move-down reorders (bridge order AND DOM row
+  follow), remove drops the middle frame and the surviving orders read `[0, 2]` on the bridge, and the
+  library still holds all four assets. apps/studio **332 → 338** (27 files), `tsc` and `eslint`
+  (`--max-warnings=0`) clean.
+- **Bounds (§60).** The surface can now edit the board's MEMBERSHIP and ORDER; it cannot yet rename a
+  frame or change its duration (`updateFrame` has no product door), and there is no frame-ADD form —
+  the board is still composed by the surface itself at mount. Character consistency and asset update
+  still have no product surface. Nothing renders a board as pixels; there is no video, still.
+
