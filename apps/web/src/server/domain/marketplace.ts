@@ -1,7 +1,8 @@
 import { and, desc, eq, gte, isNull, sql } from 'drizzle-orm';
 import { getDb } from '../db/client';
-import { marketplaceItems, assets, projects, snapshots, users } from '../db/schema';
+import { marketplaceItems, assets, projects, snapshots, users, marketplacePurchases, creditLedger, marketplaceSplits } from '../db/schema';
 import type { MarketplaceItemType, MarketplaceVisibility } from '../db/schema';
+import { monthPeriod } from './credits';
 
 /**
  * §127-128 Marketplace 系统：组件 / 模板 / 设计系统 / 资产 / 世界 / 游戏 / AI 角色的交易与分享。
@@ -299,4 +300,310 @@ export async function incrementDownloadCount(itemId: string) {
     .returning({ downloadCount: marketplaceItems.downloadCount });
 
   return updated?.downloadCount ?? 0;
+}
+
+/**
+ * §127-128 Marketplace 购买：用 credits 结算一次购买。
+ *
+ * 三条纪律：
+ * - **幂等**：同一用户对同一物品只买一次（库里的 `UNIQUE(item_id, buyer_id)` 挡着）；
+ * - **余额是派生的**：扣点走 `credit_ledger` 的 `SUM(delta)`，没有"当前余额"可写；
+ * - **没有支付**（§159）：额度只有档位发放与代码调整两个来源，界面上不许出现"充值"按钮。
+ */
+export interface PurchaseMarketplaceItemInput {
+  buyerId: string;
+  itemId: string;
+}
+
+export interface PurchaseResult {
+  /** 购买记录 id */
+  purchaseId: string;
+  /** 这次扣了多少点 */
+  pricePaid: number;
+}
+
+export async function purchaseMarketplaceItem(input: PurchaseMarketplaceItemInput): Promise<PurchaseResult> {
+  const db = getDb();
+
+  // 先查物品：必须存在、未下架、公开或免费
+  const [item] = await db
+    .select({
+      id: marketplaceItems.id,
+      creatorId: marketplaceItems.creatorId,
+      priceCredits: marketplaceItems.priceCredits,
+      visibility: marketplaceItems.visibility,
+    })
+    .from(marketplaceItems)
+    .where(and(eq(marketplaceItems.id, input.itemId), isNull(marketplaceItems.deletedAt)))
+    .limit(1);
+
+  if (!item) {
+    throw new Error('Item not found or deleted');
+  }
+
+  // 免费物品不用买
+  if (item.visibility === 'free') {
+    throw new Error('Free items do not require purchase');
+  }
+
+  // 不能买自己的东西
+  if (item.creatorId === input.buyerId) {
+    throw new Error('Cannot purchase your own item');
+  }
+
+  // 检查是否已经买过（幂等）
+  const [existing] = await db
+    .select({ id: marketplacePurchases.id })
+    .from(marketplacePurchases)
+    .where(
+      and(
+        eq(marketplacePurchases.itemId, input.itemId),
+        eq(marketplacePurchases.buyerId, input.buyerId),
+      ),
+    )
+    .limit(1);
+
+  if (existing) {
+    throw new Error('Already purchased');
+  }
+
+  // 价格 > 0 才扣点；价格为 0 的物品直接记一笔购买记录
+  const pricePaid = item.priceCredits;
+
+  if (pricePaid > 0) {
+    // 扣点：往 credit_ledger 写一行负的 delta
+    // 注意：这里不预查余额——负余额在流水里看得见，预扣需要把 provider 调用包进事务（今天没有）
+    const [ledgerRow] = await db
+      .insert(creditLedger)
+      .values({
+        userId: input.buyerId,
+        kind: 'marketplace',
+        delta: -pricePaid,
+        reason: `购买物品 ${input.itemId}，扣 ${pricePaid} 点`,
+        source: 'marketplace_purchase',
+        period: monthPeriod(new Date()),
+      })
+      .returning({ id: creditLedger.id });
+
+    if (!ledgerRow) {
+      throw new Error('Failed to charge credits');
+    }
+  }
+
+  // 插入购买记录
+  const [purchase] = await db
+    .insert(marketplacePurchases)
+    .values({
+      itemId: input.itemId,
+      buyerId: input.buyerId,
+      pricePaid,
+    })
+    .returning({ id: marketplacePurchases.id });
+
+  if (!purchase) {
+    throw new Error('Failed to record purchase');
+  }
+
+  return { purchaseId: purchase.id, pricePaid };
+}
+
+/**
+ * 检查某个用户是否已经购买了某件物品（用于下载端点的鉴权）。
+ */
+export async function hasPurchased(itemId: string, userId: string): Promise<boolean> {
+  const db = getDb();
+
+  const [row] = await db
+    .select({ id: marketplacePurchases.id })
+    .from(marketplacePurchases)
+    .where(
+      and(
+        eq(marketplacePurchases.itemId, itemId),
+        eq(marketplacePurchases.buyerId, userId),
+      ),
+    )
+    .limit(1);
+
+  return !!row;
+}
+
+/**
+ * §128 Marketplace 创作者分成：一次购买后，把价格的一部分记成创作者收入。
+ *
+ * 三条纪律：
+ * - **幂等**：一次购买只记一次分成（库里的 `UNIQUE(purchase_id)` 挡着）；
+ * - **余额是派生的**：收入走 `credit_ledger` 的正 delta，没有"当前余额"可写；
+ * - **没有真支付**（§159）：额度只有档位发放与代码调整两个来源，界面上不许出现"充值"按钮。
+ *
+ * 默认分成比例：70% 给创作者，30% 留平台（今天只是记账，没有提现链路）。
+ */
+export interface SettlePurchaseInput {
+  purchaseId: string;
+  /** 分成比例（0-1），默认 0.7 */
+  creatorShare?: number;
+}
+
+export interface SettleResult {
+  splitId: string;
+  amount: number;
+}
+
+export async function settlePurchase(input: SettlePurchaseInput): Promise<SettleResult> {
+  const db = getDb();
+  const creatorShare = input.creatorShare ?? 0.7;
+
+  // 先查购买记录
+  const [purchase] = await db
+    .select({
+      id: marketplacePurchases.id,
+      itemId: marketplacePurchases.itemId,
+      buyerId: marketplacePurchases.buyerId,
+      pricePaid: marketplacePurchases.pricePaid,
+    })
+    .from(marketplacePurchases)
+    .where(eq(marketplacePurchases.id, input.purchaseId))
+    .limit(1);
+
+  if (!purchase) {
+    throw new Error('Purchase not found');
+  }
+
+  // 查物品拿创作者
+  const [item] = await db
+    .select({ creatorId: marketplaceItems.creatorId })
+    .from(marketplaceItems)
+    .where(eq(marketplaceItems.id, purchase.itemId))
+    .limit(1);
+
+  if (!item) {
+    throw new Error('Item not found');
+  }
+
+  // 检查是否已经分过账（幂等）
+  const [existing] = await db
+    .select({ id: marketplaceSplits.id })
+    .from(marketplaceSplits)
+    .where(eq(marketplaceSplits.purchaseId, input.purchaseId))
+    .limit(1);
+
+  if (existing) {
+    throw new Error('Already settled');
+  }
+
+  // 算分成金额（向下取整，避免小数）
+  const amount = Math.floor(purchase.pricePaid * creatorShare);
+
+  // 价格为 0 的物品不分成
+  if (amount === 0) {
+    throw new Error('No revenue to split');
+  }
+
+  // 写 ledger 正 delta（创作者收入）
+  const [ledgerRow] = await db
+    .insert(creditLedger)
+    .values({
+      userId: item.creatorId,
+      kind: 'marketplace',
+      delta: amount,
+      reason: `物品 ${purchase.itemId} 的销售分成（${Math.round(creatorShare * 100)}%），收入 ${amount} 点`,
+      source: 'marketplace_sale',
+      period: monthPeriod(new Date()),
+    })
+    .returning({ id: creditLedger.id });
+
+  if (!ledgerRow) {
+    throw new Error('Failed to record income');
+  }
+
+  // 记分账记录
+  const [split] = await db
+    .insert(marketplaceSplits)
+    .values({
+      purchaseId: input.purchaseId,
+      creatorId: item.creatorId,
+      amount,
+    })
+    .returning({ id: marketplaceSplits.id });
+
+  if (!split) {
+    throw new Error('Failed to record split');
+  }
+
+  return { splitId: split.id, amount };
+}
+
+/**
+ * §128 Marketplace 创作者收入明细：查分账记录与 ledger，按天聚合。
+ */
+export interface CreatorEarningsInput {
+  creatorId: string;
+  /** 可选的时间范围过滤 */
+  startDate?: Date;
+  endDate?: Date;
+}
+
+export interface DailyEarnings {
+  date: string; // YYYY-MM-DD
+  totalAmount: number;
+  salesCount: number;
+}
+
+export interface CreatorEarningsSummary {
+  totalEarned: number;
+  totalSales: number;
+  dailyBreakdown: DailyEarnings[];
+}
+
+export async function getCreatorEarnings(input: CreatorEarningsInput): Promise<CreatorEarningsSummary> {
+  const db = getDb();
+
+  // 基础查询条件
+  const conditions = [eq(marketplaceSplits.creatorId, input.creatorId)];
+
+  if (input.startDate) {
+    conditions.push(sql`${marketplaceSplits.splitAt} >= ${input.startDate}`);
+  }
+
+  if (input.endDate) {
+    conditions.push(sql`${marketplaceSplits.splitAt} <= ${input.endDate}`);
+  }
+
+  // 查分账记录
+  const splits = await db
+    .select({
+      amount: marketplaceSplits.amount,
+      splitAt: marketplaceSplits.splitAt,
+    })
+    .from(marketplaceSplits)
+    .where(and(...conditions))
+    .orderBy(desc(marketplaceSplits.splitAt));
+
+  // 按天聚合
+  const byDay = new Map<string, { total: number; count: number }>();
+  let totalEarned = 0;
+  let totalSales = 0;
+
+  for (const split of splits) {
+    const date = split.splitAt.toISOString().split('T')[0]!;
+    const existing = byDay.get(date) || { total: 0, count: 0 };
+    existing.total += split.amount;
+    existing.count += 1;
+    byDay.set(date, existing);
+    totalEarned += split.amount;
+    totalSales += 1;
+  }
+
+  const dailyBreakdown: DailyEarnings[] = Array.from(byDay.entries())
+    .map(([date, data]) => ({
+      date,
+      totalAmount: data.total,
+      salesCount: data.count,
+    }))
+    .sort((a, b) => b.date.localeCompare(a.date));
+
+  return {
+    totalEarned,
+    totalSales,
+    dailyBreakdown,
+  };
 }

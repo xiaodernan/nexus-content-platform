@@ -6,7 +6,7 @@ import { csrfHeaders } from '@/lib/csrf';
 
 /**
  * 市场物品的一行：卡片信息 + （自己的）删除 + 下载计数。
- * 「下载」只记一次计数并诚实说明内容交付还没接（店面页的限度那段）。
+ * §127-128 Marketplace 购买与交付：付费物品先买后下，免费物品直接下。
  */
 
 interface ItemView {
@@ -33,26 +33,55 @@ export function MarketplaceItemRow({
   visibilityLabel: string;
 }) {
   const router = useRouter();
-  const [downloads, setDownloads] = useState(item.downloadCount);
+  const [downloads] = useState(item.downloadCount);
   const [message, setMessage] = useState<string | null>(null);
   const [editing, setEditing] = useState(false);
   const [price, setPrice] = useState(item.priceCredits);
   const [visibility, setVisibility] = useState(item.visibility);
+  const [purchased, setPurchased] = useState(false);
+  const [purchasing, setPurchasing] = useState(false);
 
-  const download = async () => {
-    // 与同一个组件里的 DELETE / PATCH 一样带上 CSRF：这一处以前漏了，而服务端也漏了检查，
-    // 两边一起漏所以一直没红——服务端补上之后，这里不带就会 403
-    const res = await fetch(`/api/marketplace/${item.id}/download`, {
-      method: 'POST',
-      headers: csrfHeaders(),
-    });
-    if (!res.ok) {
-      setMessage(`下载失败（${res.status}）`);
+  const purchase = async () => {
+    if (item.priceCredits === 0) {
+      setMessage('免费物品无需购买');
       return;
     }
-    const json = (await res.json().catch(() => null)) as { downloadCount?: number } | null;
-    setDownloads(json?.downloadCount ?? downloads + 1);
-    setMessage('已记一次下载（工程文件本体的交付还没接——见页面底部的限度）。');
+    if (!window.confirm(`确认花费 ${item.priceCredits} credits 购买「${item.title}」？`)) return;
+    setPurchasing(true);
+    try {
+      const res = await fetch(`/api/marketplace/${item.id}/purchase`, {
+        method: 'POST',
+        headers: csrfHeaders(),
+      });
+      if (!res.ok) {
+        const json = (await res.json().catch(() => null)) as { error?: string } | null;
+        setMessage(json?.error ?? `购买失败（${res.status}）`);
+        return;
+      }
+      setPurchased(true);
+      setMessage('购买成功！现在可以下载了。');
+    } finally {
+      setPurchasing(false);
+    }
+  };
+
+  const download = async () => {
+    // 付费物品需要先购买（除非是自己的）
+    if (item.priceCredits > 0 && !mine && !purchased) {
+      setMessage('请先完成购买再下载');
+      return;
+    }
+
+    // 触发浏览器下载
+    const url = `/api/marketplace/${item.id}/content`;
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${item.title}.zip`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+
+    setMessage('正在下载...');
   };
 
   const remove = async () => {
@@ -109,6 +138,11 @@ export function MarketplaceItemRow({
         <span className="text-12 text-accent-2" data-marketplace-item-price={item.priceCredits}>
           {item.priceCredits > 0 ? `${item.priceCredits} credits` : '免费'}
         </span>
+        {purchased ? (
+          <span className="rounded bg-green-900/30 px-1 text-11 text-green-400" data-marketplace-purchased>
+            已购买
+          </span>
+        ) : null}
         <span className="ml-auto text-11 text-fg-3">{item.creatorName ?? '匿名创作者'}</span>
         {mine ? (
           <button
@@ -119,6 +153,17 @@ export function MarketplaceItemRow({
             className="rounded bg-bg-3 px-2 py-1 text-11 text-fg-2 hover:bg-bg-1"
           >
             {editing ? '收起' : '改价格/可见性'}
+          </button>
+        ) : null}
+        {item.priceCredits > 0 && !mine && !purchased ? (
+          <button
+            type="button"
+            onClick={() => void purchase()}
+            disabled={purchasing}
+            data-marketplace-purchase={item.id}
+            className="rounded bg-accent-1 px-2 py-1 text-11 hover:bg-accent-2"
+          >
+            {purchasing ? '购买中...' : '购买'}
           </button>
         ) : null}
         <button
