@@ -10,6 +10,8 @@ M7 v193 is this service's first slice: **publish a project, read it back.** That
 | --- | --- | --- |
 | `POST` | `/projects/{projectId}/publish` | `201` + a receipt when the id was new, `200` + a receipt when it already had a publication |
 | `GET` | `/projects/{projectId}` | `200` + the publication (document included), or `404` when nothing was ever published |
+| `GET` | `/projects?limit=N` | `200` + the newest N publications — metadata only, no documents |
+| `DELETE` | `/projects/{projectId}` | `200` + `{ removed }` — `false` when there was nothing to take down |
 
 A **receipt** names what was recorded — id, title, version, instant, URL — and deliberately does **not** echo
 the document back: the caller just sent it, and a receipt that repeats a large payload grows with the
@@ -52,8 +54,9 @@ instead — see the note below.
 
 - **No auth, no accounts, no ownership.** Anyone who can reach the service can publish any project id.
   M7's profiles/likes/comments/follow/remix are later slices; this one is one aggregate and two endpoints.
-- **No listing.** There is no "explore" query — the repository has no finder beyond the inherited ones,
-  because listing is the next slice and an unproven surface in the service is worse than a missing one.
+- **Listing is capped, not paged.** `GET /projects` answers at most 100 (20 by default) newest-first, and the
+  answer reports the cap it applied. A caller that wants the 5000th publication is asking a question this
+  service does not answer yet.
 - **`ddl-auto: update`, no migrations.** The schema is one table and this service is the only writer. A
   migration tool is the honest answer once a second writer or a destructive change exists.
 - **The URL is this server's.** No CDN, no rewrite rule, no custom domain. "Hosted publish" here means a row
@@ -62,8 +65,8 @@ instead — see the note below.
   projection, no versioning of the document's own shape. A row read back is the bytes that were published.
 - **A publication is replaced, not versioned.** Re-publishing bumps a counter; the previous document is
   gone. History is a later slice.
-- **No unpublish and no listing.** A publication can be replaced and read; it cannot be taken down, and
-  there is no way to ask what has been published.
+- **Unpublish is hard.** A taken-down publication is gone; there is no soft delete and no record that it
+  existed.
 
 ## A note on how the proof configures this service
 

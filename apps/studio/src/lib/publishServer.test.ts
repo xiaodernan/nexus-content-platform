@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { publishDocument, publishState, readPublication, nexusApiBase, type FetchLike } from './publishServer';
+import { listPublications, publishDocument, publishState, readPublication, unpublishProject, nexusApiBase, type FetchLike } from './publishServer';
 
 /**
  * M7 v194 — the Studio's half of the publish lane.
@@ -147,5 +147,101 @@ describe('publishServer — reading a publication back', () => {
 
     expect(answer.ok).toBe(false);
     expect(answer.reason).toBe('nothing is published as "nobody"');
+  });
+});
+
+describe('publishServer — listing (v195)', () => {
+  const LISTING = {
+    publications: [
+      { projectId: 'doc-b', title: 'Newer', version: 2, publishedAt: '2026-10-07T15:20:00Z', url: 'http://127.0.0.1:8080/projects/doc-b' },
+      { projectId: 'doc-a', title: 'Older', version: 1, publishedAt: '2026-10-07T15:19:00Z', url: 'http://127.0.0.1:8080/projects/doc-a' },
+    ],
+    count: 2,
+    limit: 20,
+  };
+
+  it('asks the service for a listing and reports the cap the SERVICE applied', async () => {
+    const urls: string[] = [];
+    const fetchImpl = (async (url: string) => {
+      urls.push(url);
+      return response(200, LISTING);
+    }) as unknown as FetchLike;
+
+    const answer = await listPublications(20, fetchImpl);
+
+    expect(urls[0]).toBe('http://127.0.0.1:8080/projects?limit=20');
+    expect(answer.ok).toBe(true);
+    expect(answer.count).toBe(2);
+    // The cap comes from the service's answer, not from the number this caller asked for: asking for 10 000
+    // would be answered with `limit: 100`, and the panel must show THAT.
+    expect(answer.limit).toBe(20);
+    expect(answer.publications).toHaveLength(2);
+    expect(answer.publications?.[0]?.projectId).toBe('doc-b');
+  });
+
+  it('a listing entry carries no document — the service sends none and nothing here adds one', async () => {
+    const fetchImpl = vi.fn(async () => response(200, LISTING)) as unknown as FetchLike;
+
+    const answer = await listPublications(20, fetchImpl);
+
+    for (const row of answer.publications ?? []) {
+      expect(row).not.toHaveProperty('document');
+    }
+  });
+
+  it('a refused limit keeps the service’s own sentence', async () => {
+    const fetchImpl = vi.fn(async () => response(400, { error: 'invalid-publication', message: 'limit must be a positive number, got 0' })) as unknown as FetchLike;
+
+    const answer = await listPublications(0, fetchImpl);
+
+    expect(answer.ok).toBe(false);
+    expect(answer.reason).toBe('limit must be a positive number, got 0');
+  });
+
+  it('an unreachable service is a normal answer', async () => {
+    const fetchImpl = vi.fn(async () => {
+      throw new Error('ECONNREFUSED');
+    }) as unknown as FetchLike;
+
+    const answer = await listPublications(20, fetchImpl);
+
+    expect(answer.ok).toBe(false);
+    expect(answer.reason).toContain('ECONNREFUSED');
+  });
+});
+
+describe('publishServer — unpublish (v195)', () => {
+  it('sends a DELETE to the project URL and reports what was removed', async () => {
+    const calls: { url: string; method?: string }[] = [];
+    const fetchImpl = (async (url: string, init?: { method?: string }) => {
+      calls.push({ url, method: init?.method });
+      return response(200, { projectId: 'doc-1', removed: true });
+    }) as unknown as FetchLike;
+
+    const answer = await unpublishProject('doc-1', fetchImpl);
+
+    expect(calls[0]).toEqual({ url: 'http://127.0.0.1:8080/projects/doc-1', method: 'DELETE' });
+    expect(answer).toEqual({ ok: true, projectId: 'doc-1', removed: true });
+  });
+
+  it('“already down” is ok:true with removed:false — not a failure', async () => {
+    const fetchImpl = vi.fn(async () => response(200, { projectId: 'gone', removed: false })) as unknown as FetchLike;
+
+    const answer = await unpublishProject('gone', fetchImpl);
+
+    expect(answer.ok).toBe(true);
+    expect(answer.removed).toBe(false);
+  });
+
+  it('URL-encodes the project id so a slash cannot change the path', async () => {
+    const urls: string[] = [];
+    const fetchImpl = (async (url: string) => {
+      urls.push(url);
+      return response(200, { projectId: 'a/b', removed: true });
+    }) as unknown as FetchLike;
+
+    await unpublishProject('a/b', fetchImpl);
+
+    expect(urls[0]).toBe('http://127.0.0.1:8080/projects/a%2Fb');
   });
 });

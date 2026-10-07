@@ -11,12 +11,15 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneOffset;
+import java.util.List;
 import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.domain.PageRequest;
 
 /**
  * The four rules {@link PublishService} owns, and the one behaviour that is not a rule: re-publishing
@@ -205,5 +208,82 @@ class PublishServiceTest {
         assertThat(saved.getPublishedAt()).isEqualTo(Instant.parse("2026-10-07T15:19:01.824829Z"));
         // And the truncated value is the one a PostgreSQL round-trip returns unchanged.
         assertThat(saved.getPublishedAt().getNano() % 1000).isZero();
+    }
+
+    // ── v195: listing ────────────────────────────────────────────────────────────────────────────────
+
+    @Test
+    void listingAsksTheRepositoryForTheDefaultCapWhenNothingIsNamed() {
+        when(repository.findAllByOrderByPublishedAtDesc(any(PageRequest.class))).thenReturn(List.of());
+
+        service.list(PublishService.DEFAULT_LIST_LIMIT);
+
+        ArgumentCaptor<PageRequest> asked = ArgumentCaptor.forClass(PageRequest.class);
+        verify(repository).findAllByOrderByPublishedAtDesc(asked.capture());
+        assertThat(asked.getValue().getPageSize()).isEqualTo(PublishService.DEFAULT_LIST_LIMIT);
+        assertThat(asked.getValue().getPageNumber()).isZero();
+    }
+
+    @Test
+    void aLimitAboveTheCapIsCLAMPEDRatherThanRefused() {
+        // "As many as you will give me" is a legitimate thing to mean, so 10 000 gets the cap instead of a
+        // 400 that would make the caller guess the number.
+        when(repository.findAllByOrderByPublishedAtDesc(any(PageRequest.class))).thenReturn(List.of());
+
+        service.list(10_000);
+
+        ArgumentCaptor<PageRequest> asked = ArgumentCaptor.forClass(PageRequest.class);
+        verify(repository).findAllByOrderByPublishedAtDesc(asked.capture());
+        assertThat(asked.getValue().getPageSize()).isEqualTo(PublishService.MAX_LIST_LIMIT);
+    }
+
+    @Test
+    void aNonPositiveLimitIsRefusedBecauseThereIsNoHonestReadingOfIt() {
+        assertThatThrownBy(() -> service.list(0))
+                .isInstanceOf(InvalidPublication.class)
+                .hasMessageContaining("limit must be a positive number, got 0");
+        assertThatThrownBy(() -> service.list(-5))
+                .isInstanceOf(InvalidPublication.class)
+                .hasMessageContaining("got -5");
+        verify(repository, never()).findAllByOrderByPublishedAtDesc(any());
+    }
+
+    @Test
+    void listingReturnsWhatTheRepositoryHeldInTheOrderItGaveThem() {
+        PublishedProject newer = new PublishedProject("doc-b", "Newer", "{}", 1, PUBLISHED_AT);
+        PublishedProject older = new PublishedProject("doc-a", "Older", "{}", 1, PUBLISHED_AT.minusSeconds(60));
+        when(repository.findAllByOrderByPublishedAtDesc(any(PageRequest.class))).thenReturn(List.of(newer, older));
+
+        assertThat(service.list(10)).containsExactly(newer, older);
+    }
+
+    // ── v195: unpublish ──────────────────────────────────────────────────────────────────────────────
+
+    @Test
+    void unpublishingARowThatExistsDeletesItAndAnswersTrue() {
+        when(repository.existsById("doc-1")).thenReturn(true);
+
+        assertThat(service.unpublish("doc-1")).isTrue();
+
+        verify(repository).deleteById("doc-1");
+    }
+
+    @Test
+    void unpublishingSomethingAlreadyDownAnswersFalseRatherThanThrowing() {
+        // Taking down what is already down is a caller's mistake, not a corrupt store — the same rule the
+        // Studio's own disk lane uses for a delete of a name that is not there.
+        when(repository.existsById("gone")).thenReturn(false);
+
+        assertThat(service.unpublish("gone")).isFalse();
+
+        verify(repository, never()).deleteById(any());
+    }
+
+    @Test
+    void unpublishingAnUnusableIdIsRefusedBeforeTheRepositoryIsAsked() {
+        assertThatThrownBy(() -> service.unpublish("  "))
+                .isInstanceOf(InvalidPublication.class)
+                .hasMessageContaining("project id must not be blank");
+        verify(repository, never()).existsById(any());
     }
 }

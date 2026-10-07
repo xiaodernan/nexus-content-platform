@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 
-import { publishDocument, publishState, readPublication } from '@/lib/publishServer';
+import { DEFAULT_LIST_LIMIT as LIST_DEFAULT, listPublications, publishDocument, publishState, readPublication, unpublishProject } from '@/lib/publishServer';
 
 /**
  * M7 v194 (ADR 0016 amendment 194): the route where a Studio document crosses into `services/nexus-api`.
@@ -34,7 +34,15 @@ export async function POST(request: Request): Promise<NextResponse> {
     return NextResponse.json({ ok: false, reason: 'the body is not an object; this route answers { action: "publish" | "read", projectId, … }' }, { status: 400 });
   }
 
-  const { action, projectId, title, document } = body as { action?: unknown; projectId?: unknown; title?: unknown; document?: unknown };
+  const { action, projectId, title, document, limit } = body as { action?: unknown; projectId?: unknown; title?: unknown; document?: unknown; limit?: unknown };
+
+  // `list` is the one action that names no project — it asks what is published, so it is answered before the
+  // projectId guard rather than being given a sentinel id to satisfy it.
+  if (action === 'list') {
+    const asked = typeof limit === 'number' && Number.isFinite(limit) ? Math.floor(limit) : LIST_DEFAULT;
+    return NextResponse.json(await listPublications(asked));
+  }
+
   if (typeof projectId !== 'string' || !projectId.trim()) {
     return NextResponse.json({ ok: false, reason: 'projectId is required and must be a non-empty string' }, { status: 400 });
   }
@@ -48,8 +56,11 @@ export async function POST(request: Request): Promise<NextResponse> {
   if (action === 'read') {
     return NextResponse.json(await readPublication(projectId));
   }
+  if (action === 'unpublish') {
+    return NextResponse.json(await unpublishProject(projectId));
+  }
   return NextResponse.json(
-    { ok: false, reason: `action is ${typeof action === 'string' ? `"${action}"` : String(action)}; this route speaks "publish" and "read" only` },
+    { ok: false, reason: `action is ${typeof action === 'string' ? `"${action}"` : String(action)}; this route speaks "publish", "read" and "unpublish" only` },
     { status: 400 },
   );
 }

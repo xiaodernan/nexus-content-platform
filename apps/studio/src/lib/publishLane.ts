@@ -72,3 +72,61 @@ export async function readPublished(projectId: string): Promise<PublishLaneAnswe
     return { ok: false, reason: `studio server unreachable: ${e instanceof Error ? e.message : String(e)}` };
   }
 }
+
+/** One row of a listing, as the service states it — receipt facts and no document. */
+export interface PublishLaneListingEntry {
+  projectId: string;
+  title: string;
+  version: number;
+  publishedAt: string;
+  url: string;
+}
+
+/** A listing. `count` is what the answer carries; `limit` is the cap the SERVICE applied. */
+export interface PublishLaneListing {
+  ok: boolean;
+  publications?: PublishLaneListingEntry[];
+  count?: number;
+  limit?: number;
+  reason?: string;
+}
+
+/** What an unpublish did. `removed: false` means there was nothing to take down — not a failure. */
+export interface PublishLaneRemoval {
+  ok: boolean;
+  projectId?: string;
+  removed?: boolean;
+  reason?: string;
+}
+
+/** What is published, newest first. The service caps it; nothing is trimmed here. */
+export async function listPublished(limit: number): Promise<PublishLaneListing> {
+  try {
+    const res = await fetch('/api/publish', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ action: 'list', limit }),
+    });
+    const parsed: unknown = await res.json().catch(() => null);
+    if (parsed && typeof parsed === 'object') return parsed as PublishLaneListing;
+    return { ok: false, reason: `publish route answered ${res.status} with a non-JSON body` };
+  } catch (e) {
+    return { ok: false, reason: `studio server unreachable: ${e instanceof Error ? e.message : String(e)}` };
+  }
+}
+
+/** Take a publication down. */
+export async function unpublish(projectId: string): Promise<PublishLaneRemoval> {
+  try {
+    const res = await fetch('/api/publish', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ action: 'unpublish', projectId }),
+    });
+    const parsed: unknown = await res.json().catch(() => null);
+    if (parsed && typeof parsed === 'object') return parsed as PublishLaneRemoval;
+    return { ok: false, reason: `publish route answered ${res.status} with a non-JSON body` };
+  } catch (e) {
+    return { ok: false, reason: `studio server unreachable: ${e instanceof Error ? e.message : String(e)}` };
+  }
+}

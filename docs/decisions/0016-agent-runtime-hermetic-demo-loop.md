@@ -8921,3 +8921,55 @@ v193 left open — its own record said *"the Studio does not call this service y
   publish history, no unpublish, no "who published this", and no auth — the service takes any id from anyone
   who can reach it. The Studio does not READ a publication back in its UI (the lane can; nothing renders it),
   and a publication still REPLACES the previous one rather than versioning it.
+
+### Amendment 195 (M7 v195, nexus-api + studio) — listing and unpublish: what is published, and taking one down — and a proof bug that hid behind a green check
+
+_Numbering: 195 was free (`grep -ao "^### Amendment 1[0-9][0-9]"` topped out at 194). This is item 11 of the
+priority queue in `docs/DEVELOPMENT_PLAN.md`. Full narrative in `docs/evidence/m7/README.md`; this is the
+ledger entry._
+
+- **The gap this closes.** v193's own record listed it: *"No listing (the repository has no finder beyond the
+  inherited ones; listing is the next slice)"* and *"No unpublish"*. A publishing feature that cannot say
+  what is published and cannot take anything down is a one-way door.
+- **The first finder on the repository, and it is a `Pageable` on purpose.** `findAllByOrderByPublishedAtDesc`
+  reaches the DATABASE with the cap rather than reading everything and trimming in memory — which would work
+  until the table is large and then be a table scan on every page load. Still no `findByTitle`: a search has
+  its own rules (ranking, paging, a blank query) and an unproven surface is worse than a missing one.
+- **The cap is CLAMPED, a non-positive limit is REFUSED, and the answer says which cap it used.** Asking for
+  10 000 gets `MAX_LIST_LIMIT` (100) because "as many as you will give me" is a legitimate thing to mean and
+  a 400 would make the caller guess the number; asking for 0 is a 400 because there is no honest reading of
+  "fewer than one". The listing carries `count` AND `limit`, so a caller can tell "there are twenty" from
+  "there are at least twenty" — a bare array cannot say that.
+- **A listing entry carries NO document.** 100 entries must not mean 100 documents; the caller who cares
+  about one gets it with the read endpoint it already has. The proof asserts the key is absent rather than
+  merely empty.
+- **Unpublish answers the store's own boolean.** `removed: true` when a row was deleted, `removed: false`
+  when there was nothing to take down — 200 either way, because the URL names a PROJECT, not a resource that
+  must exist. Taking down what is already down is a caller's mistake, not a corrupt store; the same rule the
+  Studio's disk lane uses for a delete of a name that is not there.
+- **The Studio's Publish face grew a list.** The lane gained `list` and `unpublish` (the route gained a
+  `list` action, which is the one action that names NO project and is therefore answered before the
+  `projectId` guard rather than being given a sentinel id to satisfy it). The toolbar's Published button
+  opens a panel whose rows are the SERVICE's answer, re-fetched after every verb — never hand-edited, so a
+  row that is gone cannot linger.
+- **A PROOF BUG that had been hiding behind a green check.** `publish-proof.mjs` waited for postgres with
+  `docker exec … pg_isready`, which runs INSIDE the container and therefore says nothing about the HOST port
+  mapping — and it is the host mapping the service connects through. A `-p` that lost a race for the port
+  passes the inside check and then leaves the service hanging on a datasource it can never reach, which reads
+  as "the service is broken". The proof now ALSO polls a host-side TCP connection and fails with a sentence
+  that names the difference. This is why the new sections could not be added until it was fixed: the failure
+  appeared as a service that would not start.
+- **Evidence.** `services/nexus-api/src/test` **14 → 21 cases** (the default cap reaches the repository as a
+  `PageRequest` · a limit above the cap is clamped, asserted through an `ArgumentCaptor` · a non-positive
+  limit is refused BEFORE the repository is asked · unpublish deletes when it exists and answers `false`
+  without touching the repository when it does not); `src/lib/publishServer.test.ts` **10 → 17 cases** (the
+  listing passes the limit through and reports the SERVICE's cap, an entry carries no document, a DELETE goes
+  to the encoded project URL, "already down" is `ok: true` with `removed: false`); `publish-proof.mjs` gains
+  **§6 listing and §7 unpublish** against the real database (newest-first checked against the instants, the
+  cap reported, the row counted out of the DATABASE at 0); `tools/harness/studio-publish.mjs` **11 → 15/15**,
+  driving the Published button and the take-down control in a real browser. apps/studio **379 → 386** (30
+  files), `tsc` clean.
+- **Bounds (§60).** No paging beyond the cap — a caller that wants the 5000th publication is asking a
+  question this service does not answer yet. No ownership: anyone who can reach the service can unpublish
+  anything. No soft delete and no history: a taken-down publication is gone, and there is no record that it
+  existed. Listing returns metadata only, and the Studio's list shows at most 20 rows with no way to page.

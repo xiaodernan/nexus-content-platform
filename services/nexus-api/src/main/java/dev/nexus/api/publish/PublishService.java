@@ -5,8 +5,10 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.time.Clock;
 import java.time.Instant;
+import java.util.List;
 import java.time.temporal.ChronoUnit;
 import java.util.Optional;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -52,6 +54,46 @@ public class PublishService {
     @Transactional(readOnly = true)
     public Optional<PublishedProject> find(String projectId) {
         return repository.findById(projectId);
+    }
+
+    /** How many publications a listing answers with when the caller names no limit. */
+    public static final int DEFAULT_LIST_LIMIT = 20;
+    /**
+     * The most a caller may ask for. A cap rather than paging: this slice answers "what is published", and a
+     * caller that wants the 5000th publication is asking a different question (search) that this service
+     * does not answer yet. Without a cap, one request could read the whole table.
+     */
+    public static final int MAX_LIST_LIMIT = 100;
+
+    /**
+     * The newest publications first, at most {@code limit} of them.
+     *
+     * <p>The limit is clamped rather than refused: a caller asking for 10 000 gets the cap, because "as many
+     * as you will give me" is a legitimate thing to mean and a 400 would make them guess the number. A
+     * NON-POSITIVE limit is refused, because there is no honest reading of "give me fewer than one".
+     */
+    @Transactional(readOnly = true)
+    public List<PublishedProject> list(int limit) {
+        if (limit <= 0) {
+            throw new InvalidPublication("limit must be a positive number, got " + limit);
+        }
+        int effective = Math.min(limit, MAX_LIST_LIMIT);
+        return repository.findAllByOrderByPublishedAtDesc(PageRequest.of(0, effective));
+    }
+
+    /**
+     * Take a publication down. Answers {@code false} for an id that has none — the repository's own answer,
+     * not an error, because taking down something that is already down is a caller's mistake rather than a
+     * corrupt store (the same rule `asset.delete` uses on the Studio side).
+     */
+    @Transactional
+    public boolean unpublish(String projectId) {
+        requireUsableId(projectId);
+        if (!repository.existsById(projectId)) {
+            return false;
+        }
+        repository.deleteById(projectId);
+        return true;
     }
 
     /**

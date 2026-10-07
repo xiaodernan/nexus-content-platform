@@ -24,7 +24,7 @@
 // Requires: Java 25, Maven, and a running Docker daemon. Run:  node docs/evidence/m7/publish-proof.mjs
 import assert from 'node:assert/strict';
 import { spawn } from 'node:child_process';
-import { createServer } from 'node:net';
+import { createConnection, createServer } from 'node:net';
 import { existsSync, readFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { fileURLToPath } from 'node:url';
@@ -44,6 +44,22 @@ const DB_USER = 'nexus';
 const DB_PASSWORD = 'nexus';
 // The service writes the port it bound here. A THROWAWAY path under the OS temp dir, removed in teardown.
 const PORT_FILE = path.join(tmpdir(), `nexus-api-proof-port-${STAMP}.txt`);
+
+/** Can this host open a TCP connection to `port`? Proves a PUBLISHED docker port is usable. */
+function canConnect(port, timeoutMs = 1000) {
+  return new Promise((resolve) => {
+    const socket = createConnection({ host: '127.0.0.1', port });
+    const done = (answer) => {
+      socket.removeAllListeners();
+      socket.destroy();
+      resolve(answer);
+    };
+    socket.setTimeout(timeoutMs);
+    socket.on('connect', () => done(true));
+    socket.on('timeout', () => done(false));
+    socket.on('error', () => done(false));
+  });
+}
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
@@ -178,12 +194,22 @@ try {
   assert.equal(startDb.code, 0, `could not start the throwaway database: ${startDb.stderr}`);
   dbStarted = true;
 
-  const ready = await until(async () => {
+  // Ready means TWO things, and the first version of this proof only checked one of them: `pg_isready`
+  // runs INSIDE the container, so it proves postgres is up but says nothing about the HOST port mapping —
+  // and it is the host mapping the service actually connects through. A `-p` that lost a race for the port
+  // passes the inside check and then leaves the service hanging on a datasource it can never reach, which
+  // reads as "the service is broken". So the host socket is polled too.
+  const inside = await until(async () => {
     const r = await run('docker', ['exec', DB_CONTAINER, 'pg_isready', '-U', DB_USER, '-d', DB_NAME]);
     return r.code === 0;
-  }, { tries: 60, gapMs: 1000, label: 'postgres to accept connections' });
-  assert.ok(ready, 'the throwaway database never became ready');
-  console.log(`[m7] throwaway ${DB_IMAGE} up on 127.0.0.1:${dbPort} (container ${DB_CONTAINER})`);
+  }, { tries: 60, gapMs: 1000, label: 'postgres to accept connections inside its container' });
+  assert.ok(inside, 'the throwaway database never became ready');
+  const reachableFromHost = await until(() => canConnect(dbPort), { tries: 30, gapMs: 500, label: `the database to be reachable on 127.0.0.1:${dbPort}` });
+  assert.ok(
+    reachableFromHost,
+    `the database answers inside its container but 127.0.0.1:${dbPort} does not accept a connection — the published port is not usable from this host`,
+  );
+  console.log(`[m7] throwaway ${DB_IMAGE} up and reachable on 127.0.0.1:${dbPort} (container ${DB_CONTAINER})`);
 
   const dbUrl = `jdbc:postgresql://127.0.0.1:${dbPort}/${DB_NAME}`;
 
@@ -351,7 +377,70 @@ try {
   assert.equal(missing.status, 404, 'an unpublished id must be a 404, not an empty 200');
   console.log('[§5] refusals named their rule (a JSON string and a JSON number both named by their shape · a blank title) · an unparseable body was refused by Jackson with its own shape · an unpublished id answered 404');
 
-  // ── §6 the publication SURVIVES A RESTART ───────────────────────────────────────────────────────
+  // ── §6 v195: what is published, newest first, capped, and WITHOUT documents ──────────────────────────
+// A second project so "newest first" has something to order. It is published with a title the listing can
+// be recognised by, and it is the one taken down in §7 — the §2 publication is left alone because §8 reads
+// it back across a restart.
+const secondId = `doc-second-${STAMP}`;
+const secondPublish = await fetch(`${base}/projects/${secondId}/publish`, {
+  method: 'POST', headers: { 'content-type': 'application/json' },
+  body: JSON.stringify({ title: 'A second publication', document: { pages: [] } }),
+});
+assert.equal(secondPublish.status, 201, `publishing a second project must be 201, got ${secondPublish.status}`);
+
+const listed = await fetch(`${base}/projects`);
+assert.equal(listed.status, 200, `the listing must be 200, got ${listed.status}`);
+const listing = await listed.json();
+assert.ok(Array.isArray(listing.publications), 'the listing carries an array of publications');
+assert.equal(listing.limit, 20, 'the default limit is 20 and the answer says so');
+assert.equal(listing.count, listing.publications.length, 'count is how many this answer carries');
+assert.ok(listing.count >= 2, `both publications must be listed, got ${listing.count}`);
+
+// NEWEST FIRST — the order the repository promises, checked against the instants rather than assumed.
+const stamps = listing.publications.map((p) => Date.parse(p.publishedAt));
+assert.deepEqual(stamps, [...stamps].sort((a, b) => b - a), 'publications come back newest first');
+// The second publication was made after the first, so it must lead.
+assert.equal(listing.publications[0].projectId, secondId, 'the newest publication is first');
+
+// A listing entry carries the RECEIPT's facts and NO document: 100 entries must not mean 100 documents.
+const entry = listing.publications[0];
+for (const forbidden of ['document', 'documentJson']) {
+  assert.equal(forbidden in entry, false, `a listing entry must not carry "${forbidden}"`);
+}
+assert.ok(entry.url.endsWith(`/projects/${secondId}`), `the entry names a URL that serves it: ${entry.url}`);
+assert.equal(typeof entry.version, 'number');
+
+// The cap is CLAMPED rather than refused, and the answer reports the cap it applied.
+const capped = await (await fetch(`${base}/projects?limit=10000`)).json();
+assert.equal(capped.limit, 100, 'a limit above the cap is clamped to it, and the answer says which cap was used');
+const refusedLimit = await fetch(`${base}/projects?limit=0`);
+assert.equal(refusedLimit.status, 400, 'a non-positive limit is refused — there is no honest reading of it');
+assert.match((await refusedLimit.json()).message, /limit must be a positive number/);
+console.log(`[§6] the listing answers newest first and capped: ${listing.count} publication(s) at limit ${listing.limit} (asking for 10000 reports the ${capped.limit} cap), entries carry no document, and a limit of 0 is a 400 naming the rule`);
+
+// ── §7 v195: taking one down ────────────────────────────────────────────────────────────────────────
+const removed = await fetch(`${base}/projects/${secondId}`, { method: 'DELETE' });
+assert.equal(removed.status, 200, `unpublish must be 200, got ${removed.status}`);
+const removal = await removed.json();
+assert.equal(removal.projectId, secondId);
+assert.equal(removal.removed, true, 'a publication that existed was removed');
+
+const takenDown = await fetch(`${base}/projects/${secondId}`);
+assert.equal(takenDown.status, 404, 'the taken-down publication is gone');
+const rowsLeft = await run('docker', ['exec', DB_CONTAINER, 'psql', '-U', DB_USER, '-d', DB_NAME, '-tAc',
+  `select count(*) from published_project where project_id = '${secondId}'`]);
+assert.equal(rowsLeft.stdout.trim(), '0', `the row is gone from the DATABASE, got ${rowsLeft.stdout.trim()} row(s)`);
+
+// Taking down what is already down is a caller's mistake, not a corrupt store: `removed: false`, not a throw.
+const again = await fetch(`${base}/projects/${secondId}`, { method: 'DELETE' });
+assert.equal(again.status, 200, 'unpublishing something already down is still 200');
+assert.equal((await again.json()).removed, false, 'and it answers removed:false');
+
+// The §2 publication is untouched — a removal must take down ONE thing.
+assert.equal((await fetch(firstBody.url)).status, 200, 'the other publication is still there');
+console.log('[§7] unpublish took the row out of the DATABASE (404 afterwards, 0 rows), a second DELETE answered removed:false rather than throwing, and the other publication was left alone');
+
+// ── §8 the publication SURVIVES A RESTART ───────────────────────────────────────────────────────
   // The claim a fake repository cannot make. The process that wrote the row is killed, a NEW process is
   // started against the same database, and the row is read back through HTTP.
   const beforeRestartPid = serviceProcess.pid;
@@ -370,18 +459,18 @@ try {
   assert.equal(survivedBody.version, 2, 'and it must still be version 2');
   assert.deepEqual(survivedBody.document, changed, 'with the document the re-publish stored');
   assert.equal(survivedBody.publishedAt, secondBody.publishedAt, 'and the instant that re-publish recorded');
-  console.log(`[§6] the publication SURVIVED A RESTART: process ${beforeRestartPid} was killed, a new process served version ${survivedBody.version} from the same database — this is a system of record, not a cache`);
+  console.log(`[§8] the publication SURVIVED A RESTART: process ${beforeRestartPid} was killed, a new process served version ${survivedBody.version} from the same database — this is a system of record, not a cache`);
 
-  // ── §7 teardown ─────────────────────────────────────────────────────────────────────────────────
+  // ── §9 teardown ─────────────────────────────────────────────────────────────────────────────────
   await stopService(serviceProcess);
   const rm = await run('docker', ['rm', '-f', DB_CONTAINER]);
   assert.equal(rm.code, 0, `could not remove the throwaway database: ${rm.stderr}`);
   dbStarted = false;
   const gone = await run('docker', ['ps', '-a', '--filter', `name=^/${DB_CONTAINER}$`, '--format', '{{.Names}}']);
   assert.equal(gone.stdout.trim(), '', `the throwaway container is still listed: ${gone.stdout.trim()}`);
-  console.log(`[§7] teardown: the service process is gone and the throwaway container ${DB_CONTAINER} is removed`);
+  console.log(`[§9] teardown: the service process is gone and the throwaway container ${DB_CONTAINER} is removed`);
 
-  console.log('\n[summary] M7 v193: services/nexus-api BUILT and RAN against a real PostgreSQL · a publish created version 1 (201) and a re-publish updated it to version 2 (200) with the DATABASE counted at exactly one row · the document round-tripped as JSON rather than as an escaped string · refusals answered 400 naming their rule and an unpublished id answered 404 · and the publication SURVIVED A SERVICE RESTART — hosted publish is no longer deferred');
+  console.log('\n[summary] M7 v193+v195: services/nexus-api BUILT and RAN against a real PostgreSQL · a publish created version 1 (201) and a re-publish updated it to version 2 (200) with the DATABASE counted at exactly one row · the document round-tripped as JSON rather than as an escaped string · refusals answered 400 naming their rule and an unpublished id answered 404 · the LISTING answered newest-first and capped with no documents in its entries · UNPUBLISH took the row out of the database and a second DELETE answered removed:false · and the publication SURVIVED A SERVICE RESTART');
   console.log('[m7-publish-proof] ALL ASSERTIONS PASSED (a real backend service, a real database, and a row that outlives the process that wrote it)');
 } finally {
   // Teardown runs even on a failed assertion: a proof that leaves a database container behind is a proof

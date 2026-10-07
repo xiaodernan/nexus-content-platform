@@ -2,18 +2,24 @@ package dev.nexus.api.publish;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import dev.nexus.api.publish.PublishDtos.Listing;
+import dev.nexus.api.publish.PublishDtos.ListingEntry;
 import dev.nexus.api.publish.PublishDtos.Publication;
 import dev.nexus.api.publish.PublishDtos.PublishRequest;
 import dev.nexus.api.publish.PublishDtos.Receipt;
+import dev.nexus.api.publish.PublishDtos.Removal;
+import java.util.List;
 import java.util.Map;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
@@ -63,6 +69,32 @@ public class PublishController {
         return service.find(projectId)
                 .map(row -> ResponseEntity.ok(new Publication(row.getProjectId(), row.getTitle(), row.getVersion(), row.getPublishedAt(), urlFor(row.getProjectId()), parseDocument(row.getDocumentJson()))))
                 .orElseGet(() -> ResponseEntity.notFound().build());
+    }
+
+    /**
+     * What is published, newest first, capped.
+     *
+     * <p>The cap is CLAMPED rather than refused (asking for 10 000 gets {@link PublishService#MAX_LIST_LIMIT})
+     * but a non-positive limit is a 400: there is no honest reading of "give me fewer than one". The answer
+     * carries `count` AND `limit` so a caller can tell "there are twenty" from "there are at least twenty".
+     */
+    @GetMapping
+    public ResponseEntity<Listing> list(@RequestParam(name = "limit", required = false) Integer limit) {
+        int asked = limit == null ? PublishService.DEFAULT_LIST_LIMIT : limit;
+        List<ListingEntry> entries = service.list(asked).stream()
+                .map(row -> new ListingEntry(row.getProjectId(), row.getTitle(), row.getVersion(), row.getPublishedAt(), urlFor(row.getProjectId())))
+                .toList();
+        return ResponseEntity.ok(new Listing(entries, entries.size(), Math.min(Math.max(asked, 0), PublishService.MAX_LIST_LIMIT)));
+    }
+
+    /**
+     * Take a publication down. 200 with `removed: false` when there was nothing to take down — the same
+     * "already gone is not an error" rule the Studio's own disk lane uses — and 200 with `removed: true`
+     * when a row was deleted. There is no 404: the URL names a project, not a resource that must exist.
+     */
+    @DeleteMapping("/{projectId}")
+    public ResponseEntity<Removal> unpublish(@PathVariable String projectId) {
+        return ResponseEntity.ok(new Removal(projectId, service.unpublish(projectId)));
     }
 
     /** A rule the caller broke is a 400 that NAMES it. Anything else is a 500 and says nothing. */

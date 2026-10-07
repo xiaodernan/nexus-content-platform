@@ -92,3 +92,36 @@ compared is the point; "the document matches" would be a claim about bytes this 
 `publish-proof.mjs` grades the SERVICE alone (four rules, a restart, teardown). `studio-publish.mjs` grades
 the PATH from a Studio document to a row. Neither covers auth, concurrency, listing, or unpublishing — none
 of those exist yet, and the ROADMAP's M7 row lists them as open.
+
+## Listing and unpublish (M7 v195 — amendment 195)
+
+The two things v193's record listed as missing, added together because a publishing feature that cannot say
+what is published and cannot take anything down is a one-way door.
+
+**Service.** `GET /projects?limit=N` answers the newest N, metadata only — 100 entries must not mean 100
+documents. `DELETE /projects/{id}` answers `{ removed }`, `false` for a project that has none, 200 either way
+because the URL names a project and not a resource that must exist. The cap is **clamped** (asking for 10 000
+gets 100) while a non-positive limit is **refused** (there is no honest reading of "fewer than one"), and the
+answer carries `count` AND `limit` so "there are twenty" cannot be mistaken for "there are at least twenty".
+
+**Studio.** The lane gained `list` and `unpublish`; the route's `list` action is the one action that names no
+project, so it is answered before the `projectId` guard rather than being handed a sentinel id to satisfy it.
+The toolbar's **Published** button opens a panel whose rows are the service's answer, re-fetched after every
+verb — never hand-edited, so a row that is gone cannot linger.
+
+**A proof bug this exposed.** `publish-proof.mjs` waited for postgres with `docker exec … pg_isready`, which
+runs **inside the container** and says nothing about the **host** port mapping — and the host mapping is what
+the service connects through. A `-p` that lost a race for the port passes the inside check and then leaves
+the service hanging on a datasource it can never reach, which reads as *"the service is broken"*. The proof
+now also polls a host-side TCP connection and fails with a sentence naming the difference. It was found
+because the new sections could not be added until it was fixed — the symptom was a service that would not
+start, and the cause was two layers away from where it appeared.
+
+| layer | what it proves |
+| --- | --- |
+| `services/nexus-api/src/test` (21) | the cap reaches the repository as a `PageRequest` · a limit above the cap is clamped · a non-positive limit is refused BEFORE the repository is asked · unpublish deletes when it exists and answers `false` without touching the repository when it does not |
+| `publish-proof.mjs` §6–§7 | against the REAL database: newest-first checked against the instants · the cap reported · entries carry no document · the taken-down row counted out of the DATABASE at 0 · a second DELETE answers `removed: false` |
+| `studio-publish.mjs` (15/15) | in a REAL browser: the Published button renders the service's rows · the row for this project is there · "take down" removes it from the list AND from the service |
+
+Bounds: no paging beyond the cap, no ownership (anyone can unpublish anything), no soft delete or history,
+and the Studio's list shows at most 20 rows with no way to page.

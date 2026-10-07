@@ -295,6 +295,31 @@ try {
     `typeof document: ${Array.isArray(final.document) ? 'array' : typeof final.document}`,
   );
 
+  // ── §7 the published LIST, and taking one down (v195) ───────────────────────────────────────────
+  await page.evaluate("document.querySelector('[data-toolbar-published-toggle]').click()");
+  // Wait for the ROWS, not for the panel: the panel renders immediately with "asking the service…" and a
+  // wait on the element alone would pass before the service had answered.
+  const rowsAppeared = await until(
+    async () => (await page.evaluate("document.querySelectorAll('[data-published-row]').length")) > 0,
+    { tries: 40, gapMs: 500, label: 'the published list to render rows' },
+  );
+  const panelText = await page.evaluate("document.querySelector('[data-toolbar-published]')?.innerText ?? null");
+  check('opening the published list asks the SERVICE and renders its rows', rowsAppeared, `panel says: ${JSON.stringify(panelText)}`);
+
+  const rowIds = await page.evaluate("[...document.querySelectorAll('[data-published-row]')].map((el) => el.getAttribute('data-published-row'))");
+  check('the published row for this project is in the list', rowIds.includes(projectId), `rows: ${JSON.stringify(rowIds)}`);
+
+  await page.evaluate(`document.querySelector('[data-published-unpublish="${projectId}"]').click()`);
+  const rowGone = await page.waitForFunction(
+    `(() => { const el = document.querySelector('[data-toolbar-published]'); return el && !el.querySelector('[data-published-row="${projectId}"]') ? true : null; })()`,
+    { timeout: 20000 },
+  );
+  check('pressing “take down” removes the row from the list', rowGone === true, 'the row is no longer rendered');
+
+  // And the ROW is really gone from the database — the list is the service's answer, not a local edit.
+  const afterUnpublish = await fetch(`${apiBase}/projects/${encodeURIComponent(projectId)}`);
+  check('and the publication is gone from the SERVICE', afterUnpublish.status === 404, `GET answered ${afterUnpublish.status}`);
+
   const shot = await page.send('Page.captureScreenshot', { format: 'png' });
   const png = Buffer.from(shot.data, 'base64');
   const shotPath = join(REPO_ROOT, '.scratch', 'v194', 'studio-publish.png');

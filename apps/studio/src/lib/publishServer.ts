@@ -62,6 +62,10 @@ export interface PublicationAnswer {
 /** A `fetch` shaped narrowly enough to inject in a test and to stand in for the global one. */
 export type FetchLike = (input: string, init?: { method?: string; headers?: Record<string, string>; body?: string; signal?: AbortSignal }) => Promise<Response>;
 
+/** How many publications a listing asks for when the caller names no limit. Mirrors the service's own
+ *  default; the SERVICE still applies its cap, and the answer says which cap it used. */
+export const DEFAULT_LIST_LIMIT = 20;
+
 const probeId = '__nexus_studio_probe__';
 
 /** A timeout that does not keep the process alive. */
@@ -145,6 +149,84 @@ export async function readPublication(projectId: string, fetchImpl: FetchLike = 
         url: typeof body.url === 'string' ? body.url : undefined,
         document: body.document,
       };
+    }
+    return { ok: false, reason: `nexus-api answered ${res.status} with a non-JSON body` };
+  } catch (e) {
+    return { ok: false, reason: `nexus-api unreachable at ${apiBase}: ${e instanceof Error ? e.message : String(e)}` };
+  }
+}
+
+/** One row of a listing: the receipt's facts, and NO document — the service's own shape. */
+export interface ListingEntry {
+  projectId: string;
+  title: string;
+  version: number;
+  publishedAt: string;
+  url: string;
+}
+
+/** A listing as the service states it. `count` is what this answer carries; `limit` is the cap applied. */
+export interface ListingAnswer {
+  ok: boolean;
+  publications?: ListingEntry[];
+  count?: number;
+  limit?: number;
+  reason?: string;
+}
+
+/** What an unpublish did. `removed: false` means there was nothing to take down — not a failure. */
+export interface RemovalAnswer {
+  ok: boolean;
+  projectId?: string;
+  removed?: boolean;
+  reason?: string;
+}
+
+/**
+ * What is published, newest first. The SERVICE caps the answer and says which cap it used, so this function
+ * passes the limit through and reports what came back rather than trimming anything itself.
+ */
+export async function listPublications(limit: number, fetchImpl: FetchLike = fetch as FetchLike): Promise<ListingAnswer> {
+  const apiBase = nexusApiBase();
+  try {
+    const res = await fetchImpl(`${apiBase}/projects?limit=${encodeURIComponent(String(limit))}`, { signal: callSignal() });
+    const parsed: unknown = await res.json().catch(() => null);
+    if (parsed && typeof parsed === 'object') {
+      const body = parsed as Record<string, unknown>;
+      if (res.ok && Array.isArray(body.publications)) {
+        return {
+          ok: true,
+          publications: body.publications as ListingEntry[],
+          count: typeof body.count === 'number' ? body.count : body.publications.length,
+          limit: typeof body.limit === 'number' ? body.limit : limit,
+        };
+      }
+      const message = typeof body.message === 'string' ? body.message : undefined;
+      return { ok: false, reason: message ?? `nexus-api answered ${res.status}` };
+    }
+    return { ok: false, reason: `nexus-api answered ${res.status} with a non-JSON body` };
+  } catch (e) {
+    return { ok: false, reason: `nexus-api unreachable at ${apiBase}: ${e instanceof Error ? e.message : String(e)}` };
+  }
+}
+
+/**
+ * Take a publication down. `removed: false` for a project that has none is the service's own answer and is
+ * reported as a success with `removed: false` — the same rule the Studio's disk lane uses for a delete of a
+ * name that is not there.
+ */
+export async function unpublishProject(projectId: string, fetchImpl: FetchLike = fetch as FetchLike): Promise<RemovalAnswer> {
+  const apiBase = nexusApiBase();
+  try {
+    const res = await fetchImpl(`${apiBase}/projects/${encodeURIComponent(projectId)}`, { method: 'DELETE', signal: callSignal() });
+    const parsed: unknown = await res.json().catch(() => null);
+    if (parsed && typeof parsed === 'object') {
+      const body = parsed as Record<string, unknown>;
+      if (res.ok) {
+        return { ok: true, projectId: typeof body.projectId === 'string' ? body.projectId : projectId, removed: body.removed === true };
+      }
+      const message = typeof body.message === 'string' ? body.message : undefined;
+      return { ok: false, reason: message ?? `nexus-api answered ${res.status}` };
     }
     return { ok: false, reason: `nexus-api answered ${res.status} with a non-JSON body` };
   } catch (e) {

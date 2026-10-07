@@ -2,7 +2,7 @@
 import { useEffect, useState } from 'react';
 import { renderPreviewHtml } from '@/lib/preview';
 import { exportCanvasPng, exportHtml, exportJson, slug } from '@/lib/export';
-import { probePublish, publishProject, type PublishLaneProbe } from '@/lib/publishLane';
+import { listPublished, probePublish, publishProject, unpublish, type PublishLaneListing, type PublishLaneProbe } from '@/lib/publishLane';
 import { useStudio, type Tool } from '@/lib/store';
 
 const TOOLS: { id: Tool; label: string; icon: string; key: string }[] = [
@@ -65,9 +65,37 @@ export default function Toolbar() {
       setPublishNote(answer.ok ? `published v${answer.version} → ${answer.url}` : `not published: ${answer.reason}`);
       // A publish can also be the first thing that discovers the service went away.
       if (!answer.ok) setService(await probePublish());
+      else if (showPublished) await refreshPublished();
     } finally {
       setPublishing(false);
     }
+  };
+
+  /**
+   * v195 — what is published, and taking one down.
+   *
+   * The list is fetched only when the panel is OPENED, and re-fetched after anything that changes it: a
+   * Studio that polled would be asking the service a question nobody asked it, and a list that went stale
+   * after an unpublish would show a row that is already gone.
+   */
+  const [showPublished, setShowPublished] = useState(false);
+  const [published, setPublished] = useState<PublishLaneListing | null>(null);
+
+  const refreshPublished = async () => {
+    setPublished(await listPublished(20));
+  };
+
+  const onTogglePublished = async () => {
+    const next = !showPublished;
+    setShowPublished(next);
+    if (next) await refreshPublished();
+  };
+
+  const onUnpublish = async (projectId: string) => {
+    const answer = await unpublish(projectId);
+    setPublishNote(answer.ok ? (answer.removed ? `took down ${projectId}` : `${projectId} was already down`) : `not taken down: ${answer.reason}`);
+    // Re-probed rather than hand-edited: the rows are the service's answer, so they are asked for again.
+    await refreshPublished();
   };
 
   return (
@@ -188,9 +216,83 @@ export default function Toolbar() {
         >
           {publishNote || (service === null ? 'publish: checking…' : service.available ? 'publish: service ready' : 'publish: service unavailable')}
         </span>
+        <button
+          className={`btn ${showPublished ? 'tool-active' : ''}`}
+          data-toolbar-published-toggle
+          onClick={() => void onTogglePublished()}
+          disabled={service?.available === false}
+          title="what is published on the service"
+        >
+          Published
+        </button>
         <button className="btn" onClick={newProject}>New</button>
         <button className="btn btn-primary" onClick={() => setPreview(true)}>Preview</button>
       </div>
+
+      {/*
+        v195 — the published list. Fixed-positioned rather than in the header flow, because the header is one
+        row and a list inside it would push the tools around. The rows are the SERVICE's answer and are
+        re-fetched after every verb — never hand-edited, so a row that is gone cannot linger.
+      */}
+      {showPublished && (
+        <div
+          data-toolbar-published
+          style={{
+            position: 'fixed',
+            top: 54,
+            right: 16,
+            zIndex: 40,
+            width: 440,
+            maxHeight: 320,
+            overflow: 'auto',
+            background: 'var(--nexus-panel, #12151b)',
+            border: '1px solid var(--nexus-border, #262b34)',
+            borderRadius: 6,
+            padding: 10,
+            fontSize: 11,
+            boxShadow: '0 8px 24px rgba(0,0,0,0.35)',
+          }}
+        >
+          <div style={{ fontWeight: 700, letterSpacing: 0.4, marginBottom: 6 }}>PUBLISHED</div>
+          {published === null ? (
+            <div style={{ color: 'var(--nexus-muted)' }}>asking the service…</div>
+          ) : !published.ok ? (
+            <div style={{ color: 'var(--nexus-muted)' }}>could not list: {published.reason}</div>
+          ) : (published.publications ?? []).length === 0 ? (
+            <div style={{ color: 'var(--nexus-muted)' }}>nothing is published yet</div>
+          ) : (
+            <>
+              <ul style={{ listStyle: 'none', margin: 0, padding: 0 }}>
+                {(published.publications ?? []).map((row) => (
+                  <li
+                    key={row.projectId}
+                    data-published-row={row.projectId}
+                    style={{ display: 'flex', alignItems: 'baseline', gap: 8, padding: '3px 0' }}
+                  >
+                    <strong>{row.title}</strong>
+                    <span style={{ color: 'var(--nexus-muted)' }}>
+                      v{row.version} · {row.projectId}
+                    </span>
+                    <button
+                      className="btn"
+                      data-published-unpublish={row.projectId}
+                      style={{ marginLeft: 'auto', fontSize: 10, padding: '1px 6px' }}
+                      onClick={() => void onUnpublish(row.projectId)}
+                    >
+                      take down
+                    </button>
+                  </li>
+                ))}
+              </ul>
+              {/* What the answer CARRIES versus the cap the service applied — so "20" is never mistaken for
+                  "there are only 20". */}
+              <div style={{ marginTop: 6, color: 'var(--nexus-muted)' }}>
+                {published.count} row(s) at limit {published.limit}
+              </div>
+            </>
+          )}
+        </div>
+      )}
     </header>
   );
 }
