@@ -1,6 +1,8 @@
 'use client';
+import { useEffect, useState } from 'react';
 import { renderPreviewHtml } from '@/lib/preview';
 import { exportCanvasPng, exportHtml, exportJson, slug } from '@/lib/export';
+import { probePublish, publishProject, type PublishLaneProbe } from '@/lib/publishLane';
 import { useStudio, type Tool } from '@/lib/store';
 
 const TOOLS: { id: Tool; label: string; icon: string; key: string }[] = [
@@ -28,6 +30,44 @@ export default function Toolbar() {
   const exportPng = () => {
     const el = document.getElementById('nexus-canvas') as HTMLCanvasElement | null;
     if (el) exportCanvasPng(el, slug(doc.name));
+  };
+
+  /**
+   * M7 v194 — the Publish face.
+   *
+   * The service is PROBED on mount so the control can say what it will do before it is pressed: a Studio
+   * whose backend is not running should say so, rather than offering a button that fails when clicked.
+   * `services/nexus-api` not running is the ordinary state of this repository, so "unavailable" is a
+   * NORMAL answer with a reason, never an error banner.
+   */
+  const [service, setService] = useState<PublishLaneProbe | null>(null);
+  const [publishNote, setPublishNote] = useState('');
+  const [publishing, setPublishing] = useState(false);
+
+  useEffect(() => {
+    let live = true;
+    void probePublish().then((probe) => {
+      if (live) setService(probe);
+    });
+    return () => {
+      live = false;
+    };
+  }, []);
+
+  const onPublish = async () => {
+    setPublishing(true);
+    setPublishNote('');
+    try {
+      // The project id and the title come from the document; the VERSION, the INSTANT and the URL come back
+      // from the service. This component computes none of them — it would be reporting its own guess about a
+      // record it did not write.
+      const answer = await publishProject(doc.id, doc.name, doc);
+      setPublishNote(answer.ok ? `published v${answer.version} → ${answer.url}` : `not published: ${answer.reason}`);
+      // A publish can also be the first thing that discovers the service went away.
+      if (!answer.ok) setService(await probePublish());
+    } finally {
+      setPublishing(false);
+    }
   };
 
   return (
@@ -119,6 +159,35 @@ export default function Toolbar() {
         <button className="btn" onClick={exportPng}>PNG</button>
         <button className="btn" onClick={() => exportHtml(renderPreviewHtml(doc, activePageId), slug(doc.name))}>HTML</button>
         <button className="btn" onClick={() => exportJson(doc)}>JSON</button>
+        <button
+          className="btn"
+          data-toolbar-publish
+          onClick={() => void onPublish()}
+          disabled={publishing || service?.available === false}
+          title={
+            service === null
+              ? 'checking whether nexus-api is running…'
+              : service.available
+                ? `publish this document to ${service.apiBase}`
+                : `nexus-api is not reachable at ${service.apiBase} — ${service.reason ?? 'no reason given'}`
+          }
+        >
+          {publishing ? 'Publishing…' : 'Publish'}
+        </button>
+        {/* The service's state is shown, not implied by whether a button looks enabled. */}
+        <span
+          data-toolbar-publish-note
+          style={{
+            fontSize: 11,
+            maxWidth: 300,
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
+            whiteSpace: 'nowrap',
+            color: publishNote.startsWith('published') ? 'var(--nexus-brand)' : 'var(--nexus-muted)',
+          }}
+        >
+          {publishNote || (service === null ? 'publish: checking…' : service.available ? 'publish: service ready' : 'publish: service unavailable')}
+        </span>
         <button className="btn" onClick={newProject}>New</button>
         <button className="btn btn-primary" onClick={() => setPreview(true)}>Preview</button>
       </div>

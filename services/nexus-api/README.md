@@ -62,6 +62,8 @@ instead — see the note below.
   projection, no versioning of the document's own shape. A row read back is the bytes that were published.
 - **A publication is replaced, not versioned.** Re-publishing bumps a counter; the previous document is
   gone. History is a later slice.
+- **No unpublish and no listing.** A publication can be replaced and read; it cannot be taken down, and
+  there is no way to ask what has been published.
 
 ## A note on how the proof configures this service
 

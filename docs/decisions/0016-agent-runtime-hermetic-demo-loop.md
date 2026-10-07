@@ -8872,3 +8872,52 @@ backend at all. Full narrative in `docs/evidence/m7/README.md`; this is the ledg
   versioned: re-publishing bumps a counter and the previous document is gone. The document is stored, not
   understood — no validation beyond "is a JSON object". And **the Studio does not call this service yet**:
   v193 is the backend half, and the Publish control that reaches it is the next increment.
+
+### Amendment 194 (M7 v194, studio + evidence) — the Studio CALLS the service: a Publish control over a fetch-only lane, proven end to end against a real database
+
+_Numbering: 194 was free (`grep -ao "^### Amendment 1[0-9][0-9]"` topped out at 193). This closes the half
+v193 left open — its own record said *"the Studio does not call this service yet"*. Full narrative in
+`docs/evidence/m7/README.md`; this is the ledger entry._
+
+- **The gap this closes, in v193's own words.** v193 made `services/nexus-api` work and left it with no
+  consumer: a working backend nothing called. v194 adds the Publish control, so a Studio document reaches the
+  service and becomes a row.
+- **The same three-file split v172 and v184 established.** `src/lib/publishServer.ts` holds the service's
+  address (`NEXUS_API_URL`, defaulting to the local service) and does the fetching — server-side only.
+  `src/app/api/publish/route.ts` is the hop (`GET` = probe, `POST` = `publish` | `read`, Node runtime).
+  `src/lib/publishLane.ts` is the CLIENT adapter and imports nothing from either, so the browser bundle never
+  learns the service's address. The toolbar gains a Publish button and a note.
+- **The Studio computes NOTHING it did not write.** It sends the project, the title and the document; the
+  version, the instant and the URL come back from the service and are passed through unchanged. A Studio that
+  computed a version or built a URL itself would be reporting its own guess about a record it did not write —
+  and the proof checks the shown URL is the SERVICE's (`http://127.0.0.1:<service-port>/projects/…`), not one
+  the Studio assembled.
+- **"The service is not running" is a NORMAL answer.** The control probes on mount so it can say what it will
+  do before it is pressed, and a down service is reported as `available: false` with a reason rather than as
+  an error banner — `services/nexus-api` not running is the ordinary state of a frontend-first repository.
+  A refused publish keeps the SERVICE's own sentence (`document must be a JSON object, got string`), because
+  that sentence names the rule that was broken and "publish failed" does not.
+- **The end-to-end proof stands up ALL THREE LAYERS.** `tools/harness/studio-publish.mjs` starts a throwaway
+  PostgreSQL, builds and starts the real service on a port the OS picks, starts the REAL Studio dev server
+  pointed at it, and drives the Publish button in a real browser — **11/11 assertions**: the toolbar reports
+  the service ready · pressing Publish reports a publication · the id is parsed from the URL the SERVICE
+  returned · the publication is read back **independently of the browser** · the shown URL is the service's ·
+  a second press reports **version 2** with the **DATABASE counted at exactly one row** · the stored
+  document's name and node count both match the Studio's · it is a JSON object · and teardown removes the
+  container and both processes.
+- **The proof starts the Studio ITSELF, and the order is part of the subject.** Every other harness probe
+  requires a Studio on :3210. This one cannot: the service binds a port the OS picks and the Studio's route
+  reads `NEXUS_API_URL` at request time, so a Studio started first would point at the wrong address.
+- **One thing the proof deliberately does NOT claim.** It compares the stored document to the Studio's by
+  NAME and NODE COUNT, not byte for byte: `window.__nexus.snapshot()` is a frozen read-only summary that
+  carries neither the canonical document nor its id — which is also why the project id is taken from the
+  service's URL. "The document matches" would be a claim about bytes this proof never saw, so it says which
+  two facts it compared instead.
+- **Evidence.** `src/lib/publishServer.test.ts` — 10 cases with an injected `fetch` (the receipt passes
+  through unchanged, the project id is URL-encoded so a slash cannot change the path, the service's refusal
+  sentence is kept, and a down service is a normal answer); `tools/harness/studio-publish.mjs` — the run
+  above, with a PNG under `docs/evidence/m7/harness/`. apps/studio **369 → 379** (30 files), `tsc` clean.
+- **Bounds (§60).** Publishing is a button in the toolbar, not a product surface: no project picker, no
+  publish history, no unpublish, no "who published this", and no auth — the service takes any id from anyone
+  who can reach it. The Studio does not READ a publication back in its UI (the lane can; nothing renders it),
+  and a publication still REPLACES the previous one rather than versioning it.

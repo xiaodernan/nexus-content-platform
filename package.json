@@ -28,7 +28,8 @@
     "verify:assets": "node tools/harness/studio-assets.mjs",
     "verify:assets-surface": "node docs/evidence/studio/asset-surface-proof.mjs",
     "verify:publish": "node docs/evidence/m7/publish-proof.mjs",
-    "verify:api-tests": "mvn -B test -f services/nexus-api/pom.xml"
+    "verify:api-tests": "mvn -B test -f services/nexus-api/pom.xml",
+    "verify:publish-e2e": "node tools/harness/studio-publish.mjs"
   },
   "devDependencies": {
     "turbo": "^2.3.3",

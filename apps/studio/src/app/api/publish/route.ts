@@ -1,0 +1,55 @@
+import { NextResponse } from 'next/server';
+
+import { publishDocument, publishState, readPublication } from '@/lib/publishServer';
+
+/**
+ * M7 v194 (ADR 0016 amendment 194): the route where a Studio document crosses into `services/nexus-api`.
+ *
+ * Node runtime, because this is the hop that holds the service's address (`NEXUS_API_URL`) and does the
+ * fetching — the browser never learns either. The POST body names an ACTION and the project:
+ *
+ *   { action: "publish", projectId, title, document }   → the service's receipt, passed through
+ *   { action: "read",    projectId }                    → the publication, document included
+ *
+ * A service that is NOT RUNNING is the ordinary state of a frontend-first repository, so it arrives as
+ * `ok: false` with a reason rather than as a 500 — the panel needs to say "the service is not up", not
+ * "something went wrong". The status codes follow the same rule: 200 when the Studio got an answer it can
+ * show, 400 when the CALLER asked something malformed.
+ */
+export const runtime = 'nodejs';
+export const dynamic = 'force-dynamic';
+
+export async function GET(): Promise<NextResponse> {
+  return NextResponse.json(await publishState());
+}
+
+export async function POST(request: Request): Promise<NextResponse> {
+  let body: unknown;
+  try {
+    body = await request.json();
+  } catch {
+    return NextResponse.json({ ok: false, reason: 'the body is not JSON; this route answers { action: "publish" | "read", projectId, … }' }, { status: 400 });
+  }
+  if (typeof body !== 'object' || body === null) {
+    return NextResponse.json({ ok: false, reason: 'the body is not an object; this route answers { action: "publish" | "read", projectId, … }' }, { status: 400 });
+  }
+
+  const { action, projectId, title, document } = body as { action?: unknown; projectId?: unknown; title?: unknown; document?: unknown };
+  if (typeof projectId !== 'string' || !projectId.trim()) {
+    return NextResponse.json({ ok: false, reason: 'projectId is required and must be a non-empty string' }, { status: 400 });
+  }
+
+  if (action === 'publish') {
+    if (typeof title !== 'string' || !title.trim()) {
+      return NextResponse.json({ ok: false, reason: 'title is required and must be a non-empty string' }, { status: 400 });
+    }
+    return NextResponse.json(await publishDocument(projectId, title, document));
+  }
+  if (action === 'read') {
+    return NextResponse.json(await readPublication(projectId));
+  }
+  return NextResponse.json(
+    { ok: false, reason: `action is ${typeof action === 'string' ? `"${action}"` : String(action)}; this route speaks "publish" and "read" only` },
+    { status: 400 },
+  );
+}

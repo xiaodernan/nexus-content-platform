@@ -12,7 +12,7 @@ PUBLISH → REMIX`) and the spec's milestones. The working method is the repo's 
 one deep, *verified*, increment at a time — pure model layer → agent door (when a lane needs one) →
 headless proof → product surface → real-browser verification → record the amendment in the ledger.
 
-## Current honest status (2026-10-07, evening)
+## Current honest status (2026-10-07, night)
 
 - **M0 — Foundation:** done (git, monorepo, docs, CI, ADRs 0001–0017).
 - **M1 — Studio Vertical Slice:** core + many polish passes done (canvas, layers, properties, design
@@ -118,8 +118,10 @@ headless proof → product surface → real-browser verification → record the 
 - **M7 — Community:** 🟡 **STARTED (v193)** — `services/nexus-api` is a real Spring Boot 3.5.16 service on Java 25
   (ADR 0011's stack) with one aggregate and two endpoints: publish a project, read it back. Proven against a
   throwaway PostgreSQL in Docker, including that the publication SURVIVES A SERVICE RESTART.
-  Still open: no auth/accounts/ownership, no listing, no migrations, a publication is replaced rather than
-  versioned, and **the Studio does not call it yet** — v193 is the backend half.
+  **The Studio CALLS it (v194):** the toolbar has a Publish control over a fetch-only lane, and
+  `tools/harness/studio-publish.mjs` proves the whole path end to end (PostgreSQL + service + Studio, 11/11).
+  Still open: no auth/accounts/ownership, no listing, no unpublish, no migrations, a publication is replaced
+  rather than versioned, and publishing is a toolbar button rather than a product surface.
 - **M8–M10:** planned, not started (creator economy, ops, external agents).
 
 ## Execution order (next increments)
@@ -137,8 +139,8 @@ The cadence is deliberately small and verifiable. The current priority queue, in
 | ~~7~~ | M2 | ~~Route the runtime's disk/git/exec duties through the container host: the agent's file/git/exec work happens inside the jail-free container, not on the host~~ | **DONE — v172** (ADR 0016 amendment 172): the Studio dock's exec lane is BORN in the container — `containerServer.ts` + `app/api/agent/container` (pinned node:22-alpine, 2-rule allowlist, probe-fused GET) behind a fetch-only client lane and an Allow-once §28 face in the panel; studio 214 → **229**, headless proof §1–§6 vs daemon 29.8.2, harness **7/7**. Bounds: the runtime's headless tool doors stay unconsumed (proof-lane); the dock's file work is the in-browser corpus and its git duties are none |
 | ~~8~~ | ~~M6~~ | ~~Autonomous build: end-to-end plan→deploy with checkpoints~~ | **DONE — four slices** — **headless build arc v173** (am. 173): `planBuildArc`/`runBuildArc` (blueprint→verify→record over ONE §28-gated `build.verify` door, receipts v50-rule) + the container verifier as its first wired runner (`containerVerifyRunner` over the SAME v166 wall); **product face v174** (am. 174): the dock build face — pinned two-step arc walked through the SAME wall, §28 receipts per door on record, harness 8/8; **planning backend v175** (am. 175): `templateBuildPlanner` — a goal selects whole templates from a host-declared catalog (argv never written, seed-as-provenance, unplanned is a normal answer); **deploy leg v176 + product face v177** (am. 176/177): the headless deploy arc (`planDeployArc`/`runDeployArc` — only a green arc deploys, only MEASURED facts deploy, each `deploy.record` door §28-gated, the host injects the `DeploySink`) and the dock's DEPLOY face — the build face's own walk redeployed through `planDeployArc`, facts landing as append-only JSONL records in `.nexus/deployments.jsonl` (studio 241 → **251**, `deploy-lane-proof` §1–§6 vs daemon 29.8.2, harness **8/8** — the dock's first durable server-side artifact); **records read-back v178** (am. 178): the read side of the sink — `readStudioDeployRecords` parses the file back (every field typed, malformed lines COUNTED never hidden), the GET probe carries the records NEWEST FIRST display-capped, and the panel renders the history under the status line (studio 251 → **256**, `deploy-lane-proof` §1–§7, harness **10/10**) |
 | ~~9~~ | M7 | ~~First slice: publish a project and get a URL back~~ | **DONE — v193** (ADR 0016 amendment 193): `services/nexus-api` is a REAL Spring Boot 3.5.16 service on Java 25 with two endpoints and one aggregate; 14 unit cases with no Spring context, and `docs/evidence/m7/publish-proof.mjs` builds the jar, starts a throwaway PostgreSQL 16 in Docker, and proves the document round-trips as JSON, a re-publish UPDATES to version 2 with the DATABASE counted at exactly one row, refusals name their rule, and the publication SURVIVES A SERVICE RESTART. Four defects it found that reading would not: a receipt claiming nanosecond precision PostgreSQL had already dropped, a 400 on every well-formed publish, a signal-killed process reading as still alive, and an injected `SERVER_PORT` silently outranking the configured one |
-| 10 | M7 | **The Studio CALLS the service**: a Publish control over a fetch-only lane (the shape v172/v184 use), so a design document reaches `nexus-api` and the published URL is shown | Closes the half v193 left open — the service works and NOTHING calls it. Small, testable, and it is what makes the backend a product |
-| 11 | M8–M10 | Creator economy, ops, external agents | Product-goal milestones; each needs the M7 backend to exist first |
+| ~~10~~ | M7 | ~~The Studio CALLS the service~~ | **DONE — v194** (ADR 0016 amendment 194): the toolbar has a Publish control over a fetch-only lane (`publishServer.ts` / `api/publish` route / `publishLane.ts`), it passes the SERVICE's version+instant+URL through unchanged, and a down service is a normal answer. `tools/harness/studio-publish.mjs` stands up PostgreSQL + nexus-api + the real Studio and drives the button: **11/11**, including the row read back through the service independently of the UI |
+| 11 | M7 | **Listing + unpublish**: a way to ask what has been published and to take one down | The two things the service cannot do that a publishing feature needs. Needs a finder on the repository (there is none) and a DELETE endpoint, plus a Studio surface for them |
 
 ## Guardrails (what "done" means here)
 
