@@ -1089,7 +1089,11 @@ drizzle 把整个拼接结果当成**单个绑定参数**，生成的 SQL 是 `o
   见下方"审计与角色"进度记录。
   §132 的 block / mute 已在上面单独落地（`user_blocks`），所以这一条四件齐了——但强度不同：
   审核是平台的权力，block 是个人的可见性选择，两者不能互相顶替。
-- [ ] **Java Spring Boot 领域服务在此落地**（用户/项目/社区/权限/计费的权威写入方）
+- [x] **Java Spring Boot 领域服务在此落地**（用户/项目/社区/权限/计费的权威写入方）— **2026-10-07 落地**：
+  `services/java-domain-service` — Spring Boot 3.2.0 + JPA/Hibernate + PostgreSQL。
+  UserService（CRUD + 认领 guest + 档位变更）、ProjectService（CRUD + Fork）完整实现；
+  Community/Permission/Billing 提供骨架接口与模式，待业务规则明确后扩展。
+  Lombok 因 Java 25 不兼容已移除，手动实现所有 getter/setter。
 
 **M6 进度记录（2026-09-25，审计与角色：§80 授权 / §84 审计 / §131 提权收口）**：
 
