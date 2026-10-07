@@ -1584,6 +1584,9 @@ export class ThreeRuntime {
    * Toggle a component's enabled flag in the registry. Answers false when the scene, entity or the
    * component is missing (the caller can tell the difference from the message if it needs to). Emits
    * `componentStateChanged` so a reader wired to the surface can report the change at once.
+   * 
+   * v202 — if the component has a targetObject, its visible property follows the enabled flag: disabled
+   * components hide their visual target, making the flag gate rendering, not just query participation.
    */
   setComponentEnabled(sceneId: SceneId, entityId: EntityId, componentType: string, enabled: boolean): boolean {
     const scene = this.sceneGraph.scenes.get(sceneId);
@@ -1593,6 +1596,10 @@ export class ThreeRuntime {
     const comp = entity.components.get(componentType);
     if (!comp) return false;
     comp.enabled = enabled;
+    // v202: gate material visibility through the enabled flag
+    if (comp.targetObject) {
+      comp.targetObject.visible = enabled;
+    }
     this.emit('componentStateChanged', { entityId, componentType, enabled });
     return true;
   }

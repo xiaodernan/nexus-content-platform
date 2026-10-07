@@ -40,6 +40,8 @@ export interface EntityComponent {
   type: string;
   data: Record<string, unknown>;
   enabled: boolean;
+  /** v202 — optional visual target this component controls. When disabled, this object is hidden. */
+  targetObject?: THREE.Object3D;
 }
 
 export interface Transform {

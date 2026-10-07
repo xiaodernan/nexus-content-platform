@@ -433,6 +433,51 @@ describe('the Studio’s scene, composed on the REAL runtime', () => {
     expect(afterShieldOn?.map((c) => c.type)).toEqual(['shield', 'stamina']);
   });
 
+  // M5 v202 — enabled gates material visibility: when a component with a targetObject is disabled,
+  // its visual target is hidden in the scene. The flag now controls rendering, not just queries.
+  it('setComponentEnabled hides the component’s targetObject — enabled gates rendering, not just storage', () => {
+    const headless = headlessRuntime();
+    runtime = headless.runtime;
+    const adapter: SceneAdapterLike = {
+      placeCamera(sceneId: string, cameraId: string, position: SceneVec3, lookAt: SceneVec3) {
+        const found = headless.runtime.getScene(toSceneId(sceneId))?.cameras.get(toCameraId(cameraId));
+        if (!found) return false;
+        found.threeCamera.position.set(position.x, position.y, position.z);
+        found.threeCamera.lookAt(new THREE.Vector3(lookAt.x, lookAt.y, lookAt.z));
+        return true;
+      },
+      pickAt(sceneId: string, nx: number, ny: number) {
+        return headless.runtime.pickAt(toSceneId(sceneId), nx, ny);
+      },
+    };
+    const surface = createStudioScene(runtime, () => {}, adapter);
+    headless.runtime.resize(800, 600);
+    surface.pickAt(400, 300);
+    const scene = headless.runtime.getScene(toSceneId(surface.sceneId))!;
+    const entity = scene.entities.get(toEntityId(surface.bodyIds[2]!))!;
+
+    // Add a component WITH a targetObject (the entity's own threeObject).
+    runtime.addComponent(entity, { type: 'health', data: { amount: 100 }, enabled: true, targetObject: entity.threeObject });
+    
+    // The target starts visible.
+    expect(entity.threeObject.visible).toBe(true);
+
+    // Disable the component — the target should be hidden.
+    runtime.setComponentEnabled?.(surface.sceneId, entity.id, 'health', false);
+    expect(entity.threeObject.visible).toBe(false);
+
+    // Re-enable — the target becomes visible again.
+    runtime.setComponentEnabled?.(surface.sceneId, entity.id, 'health', true);
+    expect(entity.threeObject.visible).toBe(true);
+
+    // A component without a targetObject does nothing when toggled (no crash, no change).
+    runtime.addComponent(entity, { type: 'shield', data: {}, enabled: true });
+    runtime.setComponentEnabled?.(surface.sceneId, entity.id, 'shield', false);
+    // No targetObject means no visible property to change — the flag still updates.
+    const comp = entity.components.get('shield');
+    expect(comp?.enabled).toBe(false);
+  });
+
   it('every body the surface hands the frame write is a REAL three.js object it can move', () => {
     const headless = headlessRuntime();
     runtime = headless.runtime;

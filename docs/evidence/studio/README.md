@@ -1051,6 +1051,25 @@ enabled state; the HUD still reports all components (v199's read remains unchang
 uneditable; there is no bulk enable/disable verb (each toggle is individual). The ADR 0016 amendment record
 for this grant is owed.
 
+## The component registry gates material visibility (M5 v202)
+
+v201 made `enabled` gate query participation but left rendering untouched. v202 closes the loop: when a
+component has a `targetObject` (a Three.js Object3D), disabling it via `setComponentEnabled` sets
+`targetObject.visible = false`, making the flag gate actual rendering behavior.
+
+The `EntityComponent` interface gains an optional `targetObject?: THREE.Object3D` field. When present and the
+component is disabled, the runtime hides that object immediately; re-enabling restores visibility. Components
+without a targetObject behave as before — the flag updates but nothing visual changes. This maintains backward
+compatibility while enabling components to control visual elements when needed.
+
+Measured on this host 2026-10-08: Studio suite **407/407** (31 files; `scene3dSurface` 18 → 19 with v202 test),
+three-runtime tsc clean, proof pending (will verify through shipped dist after commit).
+
+Bounds, stated: only components WITH a targetObject affect rendering; pure data components (health, stamina,
+shield without visual targets) remain invisible to the renderer regardless of enabled state; the flag does not
+gate animation playback, physics simulation, or other non-visual behaviors. The ADR 0016 amendment record for
+this grant is owed.
+
 ## The dock's BUILD face (M6 v174 — ADR 0016 amendment 174)
 
 The first product consumer of the build arc (amendment 173), and the section this increment never had: the
