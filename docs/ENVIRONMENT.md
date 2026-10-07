@@ -128,3 +128,29 @@ npm run contract:export   # 改了 packages/schemas 后必须重跑，导出 con
 全部指向这个 gitignore 掉的缓存文件（`git check-ignore -v` 能确认）。把 `apps/web/.next/dev/types`
 移走（不是删）lint 就跳过它，下一次 dev/build 会重新生成。看到"源码一行没改，lint 突然红在
 `.next/` 里"，先按这一条查。
+
+## Playwright e2e 在本机跑不起来：沙箱的批量删除守卫挡住它清 `test-results/`
+
+**现象**：`npx playwright test ...` 一条用例都还没跑就退出，日志里是
+
+```text
+Error: [safe-delete][SAFE_DELETE_BULK_CONFIRM_REQUIRED] {"count":105,"threshold":50,"scope":"turn","targets":["...\test-results"],"targetCount":1}
+```
+
+**根因**：Playwright 每次启动会先清 `test-results/`，而那一清是一次**递归**删除，
+条目数超过沙箱 `node-safe-delete` 垫片的阈值（50）。守卫按**本轮对话**累计计数，
+所以同一轮里重试也不会变好。
+
+**手动腾空也没用**：把 `test-results/` 清空之后再跑，守卫照样报同一个数
+（它数的是 Playwright 想删的那一整棵，不是当前实际有多少）。
+
+**结论**：这台机器上 e2e 这一路**暂时不可用**。需要真 HTTP 的验证改走脚本：
+
+- 起 `npm run dev`（用工具的 `run_in_background`，`nohup ... &` 会随会话被杀）；
+- 再跑 `scripts/` 下对应的探针（如 `npm run probe:413`），或 `curl` / 一段 `node:http`。
+
+已有的先例：`realtime-two-process.mts`、`two-instance-roundtrip.mts`、`import-413-probe.mts`。
+e2e 用例仍然要写、要维护（能跑 Playwright 的环境靠它守），只是**不能把"我跑过 e2e"写进本机的凭证**。
+
+同一个守卫还挡过 `next build`（清理 `.next` 时条目数超阈值）——看到
+`SAFE_DELETE_BULK_CONFIRM_REQUIRED` 就先想这条，不要先去改代码。

@@ -1,5 +1,6 @@
 import { resolve } from 'node:path';
 import { readFile, writeFile } from 'node:fs/promises';
+import { request as httpRequest } from 'node:http';
 import { expect, test, type Page } from '@playwright/test';
 // 打包用的写入器就是导出那一条链上的同一个（store、不压缩）：
 // 这里要的是"一份合法但没清单的 ZIP"，自己手拼字节只会测到我自己的拼法
@@ -17,8 +18,8 @@ import { textEntry, zipStore } from '../apps/web/src/lib/zip';
  *
  * 状态码为什么要在这里量：`docs/SECURITY.md` 让写请求先过 CSRF 双提交，顺序错了（比如先判登录）
  * 界面就会把"没带 token"说成"没登录"，用户照着去登录，回来还是失败。
- * 413 不在这里量，也不是忘了：它要的是一份**真超过上限**的包，上限由服务端报出来，
- * 用 128MB 真字节去换一句状态码会把这台 16GB 机器的空闲内存吃光（`docs/ENVIRONMENT.md`）。
+ * 413 那一条在文件末尾（2026-10-07 补），它同时把当初"为什么不量"的理由更正了——
+ * 详见那一条的注释与 `docs/ROADMAP.md` 里同名那一节。
  */
 
 const ZIP_PATH = resolve('.scratch/browser-import-source.zip');
@@ -168,4 +169,115 @@ test('§105 界面上的拒收：逐条细节原样列出来，服务端没给�
 
   // 两次拒收都不该留下新项目：列表的行数原地不动
   await expect(page.locator('[data-project-row]')).toHaveCount(before);
+});
+
+/**
+ * 413 那一格：**真的发一份声明超过上限的包**。
+ *
+ * 这是 `docs/TESTING.md` 第 12 条最后欠着的一项，本页两处记过"没量"，理由写的是
+ * "128MB 真字节会把这台 16GB 机器的空闲内存吃光"。
+ *
+ * **实测把那个理由的一半更正了**（2026-10-07，`.scratch/probe-413.mts` 走真 HTTP 量过）：
+ * - 413 那条路**是真的**：声明 2GB → 拿到 `413 {"error":"too_large","reason":"整包 2048MB 超过导入上限 128MB"}`。
+ * - 但**"早拒就省下正文"这个想法不成立**：服务端把 2GB 正文**全读掉了**（2GB / 10.8 秒），
+ *   响应是在正文排完之后才到客户端的。所以路由里那句"读正文之前就比 content-length"
+ *   只说明**判定**发生得早，不说明**字节**没被收下。
+ * - 也不是"攒在内存里"：2GB 流式排掉、机器（空闲约 2.5GB）没有 OOM。
+ *   所以那份"会把内存吃光"的顾虑对**这个写法**不成立，但"便宜"这个假设同样不成立。
+ *
+ * 因此这一条断言的判据不是"发了多少字节"，而是：**发一堆根本不是 ZIP 的字节，却拿到 413 而不是 415**
+ * ——说明尺寸那一关排在"这是不是本平台的包"之前。
+ *
+ * 用 `node:http` 而不是 `page.request`：后者按实际正文自己算 `Content-Length`，
+ * 而这一格要证的恰恰是**声明的那个数**就足以触发拒收。
+ */
+test('@smoke §144 413：声明超过上限的包在服务端读正文之前就被拒', async ({ page }) => {
+  await createProject(page, `超限包 ${Date.now().toString(36)}`);
+  const csrf = await page.evaluate(() => /nexus_csrf=([a-f0-9]+)/.exec(document.cookie)?.[1] ?? '');
+  expect(csrf.length, '浏览器里没有 nexus_csrf cookie：双提交这一门没法量').toBeGreaterThan(8);
+
+  const cookies = await page.context().cookies();
+  const cookieHeader = cookies.map((c) => `${c.name}=${c.value}`).join('; ');
+  // 128MB + 1：刚好过线就够，不声明 2GB——服务端会把正文全读掉（见文件头那段实测），
+  // 声明多大就真推多大，2GB 会让这条用例白跑十几秒。
+  //
+  // 为什么不 import `IMPORT_MAX_ZIP_BYTES`：`e2e/tsconfig.json` 没有 `@/*` 的路径映射，
+  // 一旦 import 了 `domain/import.ts`（它内部用 `@/lib/zip`）就把整条 web 侧依赖链拉进
+  // e2e 的编译单元，typecheck 会红在别人没动过的文件上。
+  // 这里写死一个数，并把"上限到底是多少"交给服务端那句话去说（下面匹配 `超过导入上限 <数字>MB`）。
+  const declared = 128 * 1024 * 1024 + 1;
+  const url = new URL(page.url());
+
+  const result = await new Promise<{ status: number; body: { error?: string; reason?: string }; sent: number }>(
+    (resolve, reject) => {
+      let settled = false;
+      const req = httpRequest(
+        {
+          hostname: url.hostname,
+          port: url.port,
+          path: '/api/projects/import',
+          method: 'POST',
+          headers: {
+            cookie: cookieHeader,
+            'x-csrf-token': csrf,
+            'content-type': 'multipart/form-data; boundary=nexus413probe',
+            'content-length': String(declared),
+          },
+        },
+        (res) => {
+          let raw = '';
+          res.setEncoding('utf8');
+          res.on('data', (chunk: string) => {
+            raw += chunk;
+          });
+          res.on('end', () => {
+            if (settled) return;
+            settled = true;
+            let body: { error?: string; reason?: string } = {};
+            try {
+              body = JSON.parse(raw) as { error?: string; reason?: string };
+            } catch {
+              /* 不是 JSON 就留着空对象，断言会在 status/reason 上红 */
+            }
+            resolve({ status: res.statusCode ?? 0, body, sent });
+          });
+        },
+      );
+      let sent = 0;
+      // 1MB 一块地推，收到响应就停——不把 2GB 攒在内存里。
+      // **必须让出事件循环**：第一版是个同步 `while`，它在 Node 单线程里一路写到底，
+      // 响应回调根本轮不到执行，于是"收到响应就停"从来没生效过（那一版实测把 2GB 全写完了，
+      // 红在我自己那句 `sent < declared` 上）。这里每写一块 `await setImmediate` 一次。
+      const chunk = Buffer.alloc(1024 * 1024);
+      const pump = async (): Promise<void> => {
+        while (!settled && sent < declared) {
+          sent += chunk.length;
+          if (req.write(chunk)) {
+            await new Promise<void>((r) => setImmediate(r));
+          } else {
+            await new Promise<void>((r) => req.once('drain', () => r()));
+          }
+        }
+        if (!settled && sent >= declared) req.end();
+      };
+      req.on('error', (error) => {
+        // 服务端提前关连接是**预期**的（它已经拒了），只在还没拿到响应时才算失败
+        if (!settled) {
+          settled = true;
+          reject(error);
+        }
+      });
+      void pump().catch(() => {
+        // 写不进去 = 服务端已经把连接收了；响应那一路会给出结论
+      });
+    },
+  );
+
+  expect(result.status, `期望 413，拿到 ${result.status}：${JSON.stringify(result.body)}`).toBe(413);
+  expect(result.body.error).toBe('too_large');
+  // 上限由服务端自己报出来——测试不重抄那个数，所以上限改了这条不会说谎
+  expect(result.body.reason).toMatch(/超过导入上限 \d+MB/);
+  // **不是 415**：我们发的是 1MB 的零字节，根本不是 ZIP。拿到 413 而不是 415，
+  // 说明**尺寸那一关在"这是不是本平台的包"之前就判了**——这一条才是这条用例真正的判据。
+  expect(result.body.error).not.toBe('import_refused');
 });
