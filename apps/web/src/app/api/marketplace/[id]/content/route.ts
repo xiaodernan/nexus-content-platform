@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { getMarketplaceItem, hasPurchased, incrementDownloadCount } from '@/server/domain/marketplace';
+import { getMarketplaceItem, hasPurchased, incrementDownloadCount, auditMarketplaceAction } from '@/server/domain/marketplace';
 import { requireUser } from '@/server/domain/session';
 import { buildProjectExport } from '@/server/domain/export';
 import { jsonError } from '@/server/http';
@@ -25,6 +25,7 @@ export async function GET(
   // 免费物品：任何人都能下
   if (item.visibility === 'free') {
     await incrementDownloadCount(id);
+    // 记录审计日志（匿名用户用 null actorId，但数据库要求非空，所以跳过匿名下载的审计）
     return serveContentZip(item, null);
   }
 
@@ -48,8 +49,14 @@ export async function GET(
     });
   }
 
-  // 成功交付：计数 +1
+  // 成功交付：计数 +1，记录审计日志
   await incrementDownloadCount(id);
+  await auditMarketplaceAction({
+    actorId: user.id,
+    action: 'download',
+    itemId: id,
+    metadata: { isCreator },
+  });
   return serveContentZip(item, user.id);
 }
 

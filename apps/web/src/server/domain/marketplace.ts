@@ -1,6 +1,6 @@
 import { and, desc, eq, gte, isNull, sql } from 'drizzle-orm';
 import { getDb } from '../db/client';
-import { marketplaceItems, assets, projects, snapshots, users, marketplacePurchases, creditLedger, marketplaceSplits } from '../db/schema';
+import { marketplaceItems, assets, projects, snapshots, users, marketplacePurchases, creditLedger, marketplaceSplits, marketplaceAuditLog, marketplaceReports } from '../db/schema';
 import type { MarketplaceItemType, MarketplaceVisibility } from '../db/schema';
 import { monthPeriod } from './credits';
 
@@ -607,3 +607,245 @@ export async function getCreatorEarnings(input: CreatorEarningsInput): Promise<C
     dailyBreakdown,
   };
 }
+
+/**
+ * §123 Marketplace：审计日志动作类型。
+ */
+export type AuditAction = 'purchase' | 'download' | 'settle' | 'price_change' | 'list' | 'delist';
+
+export interface AuditMarketplaceActionInput {
+  actorId: string;
+  action: AuditAction;
+  itemId: string;
+  metadata?: Record<string, unknown>;
+  ipAddress?: string;
+}
+
+/**
+ * §123 记录一次市场操作到审计日志（自动调用，不对外暴露）。
+ */
+export async function auditMarketplaceAction(input: AuditMarketplaceActionInput): Promise<void> {
+  const db = getDb();
+  await db.insert(marketplaceAuditLog).values({
+    actorId: input.actorId,
+    action: input.action,
+    itemId: input.itemId,
+    metadata: input.metadata ?? {},
+    ipAddress: input.ipAddress,
+  });
+}
+
+export interface FlagSuspiciousActivityInput {
+  reporterId: string;
+  itemId: string;
+  reason: 'fraud' | 'spam' | 'copyright' | 'inappropriate' | 'other';
+  description?: string;
+}
+
+export interface FlagResult {
+  reportId: string;
+  isDuplicate: boolean;
+}
+
+/**
+ * §123 标记可疑活动（用户举报或系统自动检测）。
+ * 同一用户对同一物品只能举报一次（幂等）。
+ */
+export async function flagSuspiciousActivity(input: FlagSuspiciousActivityInput): Promise<FlagResult> {
+  const db = getDb();
+
+  // 检查是否已举报过
+  const existing = await db
+    .select()
+    .from(marketplaceReports)
+    .where(and(eq(marketplaceReports.reporterId, input.reporterId), eq(marketplaceReports.itemId, input.itemId)))
+    .limit(1);
+
+  if (existing.length > 0) {
+    const first = existing[0];
+    if (!first) throw new Error('Unexpected empty result');
+    return { reportId: first.id, isDuplicate: true };
+  }
+
+  // 插入新举报
+  const [report] = await db
+    .insert(marketplaceReports)
+    .values({
+      reporterId: input.reporterId,
+      itemId: input.itemId,
+      reason: input.reason,
+      description: input.description,
+    })
+    .returning({ id: marketplaceReports.id });
+
+  if (!report) {
+    throw new Error('Failed to create report');
+  }
+
+  return { reportId: report.id, isDuplicate: false };
+}
+
+export interface GetAuditLogInput {
+  itemId?: string;
+  actorId?: string;
+  action?: AuditAction;
+  startDate?: Date;
+  endDate?: Date;
+  limit?: number;
+  offset?: number;
+}
+
+export interface AuditLogEntry {
+  id: string;
+  actorId: string;
+  action: AuditAction;
+  itemId: string;
+  metadata: Record<string, unknown>;
+  occurredAt: Date;
+  ipAddress: string | null;
+}
+
+/**
+ * §123 查询审计日志（管理员用）。
+ */
+export async function getAuditLog(input: GetAuditLogInput): Promise<AuditLogEntry[]> {
+  const db = getDb();
+  const limit = input.limit ?? 50;
+  const offset = input.offset ?? 0;
+
+  let query = db.select().from(marketplaceAuditLog).orderBy(desc(marketplaceAuditLog.occurredAt));
+
+  const conditions = [];
+  if (input.itemId) conditions.push(eq(marketplaceAuditLog.itemId, input.itemId));
+  if (input.actorId) conditions.push(eq(marketplaceAuditLog.actorId, input.actorId));
+  if (input.action) conditions.push(eq(marketplaceAuditLog.action, input.action));
+  if (input.startDate) conditions.push(gte(marketplaceAuditLog.occurredAt, input.startDate));
+  if (input.endDate) conditions.push(gte(marketplaceAuditLog.occurredAt, input.endDate));
+
+  if (conditions.length > 0) {
+    // @ts-expect-error drizzle-orm 的类型推导在这里不够聪明
+    query = query.where(and(...conditions));
+  }
+
+  const rows = await query.limit(limit).offset(offset);
+
+  return rows.map((row) => ({
+    id: row.id,
+    actorId: row.actorId,
+    action: row.action as AuditAction,
+    itemId: row.itemId,
+    metadata: (row.metadata as Record<string, unknown>) || {},
+    occurredAt: row.occurredAt,
+    ipAddress: row.ipAddress,
+  }));
+}
+
+export interface GetReportsInput {
+  status?: 'pending' | 'reviewing' | 'resolved' | 'dismissed';
+  itemId?: string;
+  limit?: number;
+  offset?: number;
+}
+
+export interface ReportEntry {
+  id: string;
+  reporterId: string;
+  itemId: string;
+  reason: string;
+  description: string | null;
+  status: string;
+  adminNotes: string | null;
+  createdAt: Date;
+  resolvedAt: Date | null;
+}
+
+/**
+ * §123 查询举报列表（管理员用）。
+ */
+export async function getReports(input: GetReportsInput): Promise<ReportEntry[]> {
+  const db = getDb();
+  const limit = input.limit ?? 50;
+  const offset = input.offset ?? 0;
+
+  let query = db.select().from(marketplaceReports).orderBy(desc(marketplaceReports.createdAt));
+
+  const conditions = [];
+  if (input.status) conditions.push(eq(marketplaceReports.status, input.status));
+  if (input.itemId) conditions.push(eq(marketplaceReports.itemId, input.itemId));
+
+  if (conditions.length > 0) {
+    // @ts-expect-error drizzle-orm 的类型推导在这里不够聪明
+    query = query.where(and(...conditions));
+  }
+
+  const rows = await query.limit(limit).offset(offset);
+
+  return rows.map((row) => ({
+    id: row.id,
+    reporterId: row.reporterId,
+    itemId: row.itemId,
+    reason: row.reason,
+    description: row.description,
+    status: row.status,
+    adminNotes: row.adminNotes,
+    createdAt: row.createdAt,
+    resolvedAt: row.resolvedAt,
+  }));
+}
+
+/**
+ * §123 检测可疑行为模式（系统自动风控）。
+ * 规则：
+ * - 短时间内同一买家对同一物品多次购买（刷量）
+ * - 创作者给自己刷量（buyerId === creatorId）
+ * - 短时间内大量购买行为（可能是机器人）
+ */
+export async function detectSuspiciousPatterns(itemId: string, buyerId: string): Promise<boolean> {
+  const db = getDb();
+  const now = new Date();
+  const oneHourAgo = new Date(now.getTime() - 60 * 60 * 1000);
+  const twentyFourHoursAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+
+  // 规则 1：一小时内同一买家对同一物品购买超过 3 次
+  const recentPurchasesBySameBuyer = await db
+    .select({ count: sql<number>`count(*)` })
+    .from(marketplacePurchases)
+    .where(
+      and(
+        eq(marketplacePurchases.itemId, itemId),
+        eq(marketplacePurchases.buyerId, buyerId),
+        gte(marketplacePurchases.purchasedAt, oneHourAgo),
+      ),
+    );
+
+  if ((recentPurchasesBySameBuyer[0]?.count ?? 0) > 3) {
+    return true;
+  }
+
+  // 规则 2：创作者给自己购买（自刷）
+  const item = await db
+    .select({ creatorId: marketplaceItems.creatorId })
+    .from(marketplaceItems)
+    .where(eq(marketplaceItems.id, itemId))
+    .limit(1);
+
+  if (item.length > 0) {
+    const first = item[0];
+    if (first && first.creatorId === buyerId) {
+      return true;
+    }
+  }
+
+  // 规则 3：24 小时内该买家总购买次数异常多（> 50 次）
+  const totalRecentPurchases = await db
+    .select({ count: sql<number>`count(*)` })
+    .from(marketplacePurchases)
+    .where(and(eq(marketplacePurchases.buyerId, buyerId), gte(marketplacePurchases.purchasedAt, twentyFourHoursAgo)));
+
+  if ((totalRecentPurchases[0]?.count ?? 0) > 50) {
+    return true;
+  }
+
+  return false;
+}
+

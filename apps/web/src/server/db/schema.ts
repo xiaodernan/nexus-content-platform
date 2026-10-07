@@ -1177,6 +1177,62 @@ export const marketplaceSplits = pgTable(
   ],
 );
 
+/**
+ * §123 Marketplace：交易审计日志表。记录所有关键操作（购买、下载、分成结算、价格修改、上下架）。
+ */
+export const marketplaceAuditLog = pgTable(
+  'marketplace_audit_log',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    actorId: uuid('actor_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    /** action: purchase / download / settle / price_change / list / delist */
+    action: text('action').notNull(),
+    itemId: uuid('item_id')
+      .notNull()
+      .references(() => marketplaceItems.id, { onDelete: 'cascade' }),
+    metadata: jsonb('metadata').default('{}'),
+    occurredAt: timestamp('occurred_at', { withTimezone: true }).notNull().defaultNow(),
+    ipAddress: text('ip_address'),
+  },
+  (t) => [
+    index('marketplace_audit_item_idx').on(t.itemId),
+    index('marketplace_audit_actor_idx').on(t.actorId),
+    index('marketplace_audit_occurred_idx').on(t.occurredAt),
+  ],
+);
+
+/**
+ * §123 Marketplace：用户举报与可疑行为记录表。
+ */
+export const marketplaceReports = pgTable(
+  'marketplace_reports',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    reporterId: uuid('reporter_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    itemId: uuid('item_id')
+      .notNull()
+      .references(() => marketplaceItems.id, { onDelete: 'cascade' }),
+    /** reason: fraud / spam / copyright / inappropriate / other */
+    reason: text('reason').notNull(),
+    description: text('description'),
+    /** status: pending / reviewing / resolved / dismissed */
+    status: text('status').notNull().default('pending'),
+    adminNotes: text('admin_notes'),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+    resolvedAt: timestamp('resolved_at', { withTimezone: true }),
+  },
+  (t) => [
+    index('marketplace_reports_status_idx').on(t.status),
+    index('marketplace_reports_item_idx').on(t.itemId),
+    index('marketplace_reports_created_idx').on(t.createdAt),
+    uniqueIndex('marketplace_reports_unique_reporter_item').on(t.reporterId, t.itemId),
+  ],
+);
+
 export const schema = {
   users,
   sessions,
@@ -1220,4 +1276,6 @@ export const schema = {
   marketplaceItems,
   marketplacePurchases,
   marketplaceSplits,
+  marketplaceAuditLog,
+  marketplaceReports,
 };

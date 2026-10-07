@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { purchaseMarketplaceItem, settlePurchase } from '@/server/domain/marketplace';
+import { purchaseMarketplaceItem, settlePurchase, auditMarketplaceAction, detectSuspiciousPatterns } from '@/server/domain/marketplace';
 import { requireUser } from '@/server/domain/session';
 import { csrfOk } from '@/server/security/csrf';
 import { jsonError } from '@/server/http';
@@ -24,6 +24,21 @@ export async function POST(
       buyerId: user.id,
       itemId: id,
     });
+
+    // 记录审计日志
+    await auditMarketplaceAction({
+      actorId: user.id,
+      action: 'purchase',
+      itemId: id,
+      metadata: { pricePaid: result.pricePaid },
+    });
+
+    // 检测可疑行为
+    const isSuspicious = await detectSuspiciousPatterns(id, user.id);
+    if (isSuspicious) {
+      console.warn(`[FRAUD] Suspicious purchase detected: buyer=${user.id}, item=${id}`);
+      // TODO: 自动创建举报或标记为待审核
+    }
 
     // 购买成功后触发创作者分成（静默失败，不影响购买流程）
     try {
