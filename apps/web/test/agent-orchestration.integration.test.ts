@@ -80,6 +80,8 @@ describe('§112 多步编排的执行方', () => {
       ['context', 'done'],
       ['seo-audit', 'done'],
       ['qa-audit', 'done'],
+      // `game` 与那三份检查互不依赖，所以它在同一批里跑，且位置在 report 之前（steps 是执行序）
+      ['game', 'done'],
       ['report', 'done'],
     ]);
     // 汇总那一步真的产出了结论（形状由 ReadinessReportSchema 管）
@@ -93,14 +95,14 @@ describe('§112 多步编排的执行方', () => {
     expect(row?.error).toBeNull();
     expect(row?.finishedAt).not.toBeNull();
     const planned = row!.plan as AgentPlan;
-    expect(planned.tasks.map((task) => task.status)).toEqual(['done', 'done', 'done', 'done']);
+    expect(planned.tasks.map((task) => task.status)).toEqual(['done', 'done', 'done', 'done', 'done']);
 
     // 刷新后读到的是库里那一份，不是内存里的
     const view = await latestPlannedTask(projectId, owner);
     expect(view?.taskId).toBe(result.taskId);
     expect(view?.status).toBe('succeeded');
     expect(view?.capability).toBe('demo');
-    expect((view?.result as { steps?: unknown[] })?.steps).toHaveLength(4);
+    expect((view?.result as { steps?: unknown[] })?.steps).toHaveLength(5);
 
     const events = projectEvents(projectId);
     // 计划事件只有一条，而且排在第一步开始之前（库里是权威，事件只是加速器）
@@ -120,22 +122,28 @@ describe('§112 多步编排的执行方', () => {
       'seo-audit:completed',
       'qa-audit:started',
       'qa-audit:completed',
+      // `game` 与那三份检查一批，跑在汇总之前
+      'game:started',
+      'game:completed',
       'report:started',
       'report:completed',
     ]);
-    // 计划一条 + 每步开始/完成各一条
-    expect(events.filter((event) => event.type === 'agent.activity')).toHaveLength(9);
+    // 计划一条 + 每步开始/完成各一条（现在是五步）
+    expect(events.filter((event) => event.type === 'agent.activity')).toHaveLength(11);
 
     // §163 + §112：起点 0、每步一格（已到终态的步数 / 总步数）、收尾 1。
-    // 中间那三格不是插值——每一步跑完都真的推一次，所以这里能逐格数出来。
+    // 中间那几格不是插值——每一步跑完都真的推一次，所以这里能逐格数出来。
     const progress = events.filter((event) => event.type === 'generation.progress');
-    expect(progress.map((event) => event.progress)).toEqual([0, 0.25, 0.5, 0.75, 1, 1]);
+    expect(progress.map((event) => event.progress)).toEqual([0, 0.2, 0.4, 0.6, 0.8, 1, 1]);
     expect(progress.every((event) => event.kind === 'agent')).toBe(true);
     // 每一格说的是哪一步：进度条上只有数字的话，用户不知道那四分之一是什么换来的。
-    // 标题从库里那一份计划取，不在这里重抄——重抄会把这条断言变成对我抄写的测试
+    // 标题从库里那一份计划取，不在这里重抄——重抄会把这条断言变成对我抄写的测试。
+    // **按执行序**（`result.steps`）而不是计划序：`game` 与那三份检查互不依赖，
+    // 声明上排在 report 之后、执行上排在它之前，进度刻度跟的是执行。
+    const titleOf = new Map(planned.tasks.map((task) => [task.id, task.title]));
     expect(progress.map((event) => event.message)).toEqual([
       '已提交',
-      ...planned.tasks.map((task, index) => `第 ${index + 1}/${planned.tasks.length} 步：${task.title}`),
+      ...result.steps.map((step, index) => `第 ${index + 1}/${result.steps.length} 步：${titleOf.get(step.id)}`),
       '完成',
     ]);
     // 刻度单调不减：作业跑完后进度条倒回去是最刺眼的一种错
@@ -149,7 +157,7 @@ describe('§112 多步编排的执行方', () => {
     expect(note?.kind).toBe('agent');
     expect(note?.title).toContain('多步 Agent 任务完成');
     expect(note?.title).toContain('DEMO 规划');
-    expect(note?.title).toContain('4/4 步');
+    expect(note?.title).toContain('5/5 步');
     const pushed = notificationEvents().filter((event) => event.type === 'notification');
     expect(pushed).toHaveLength(1);
     expect(pushed[0]!.level).toBe('success');
@@ -181,6 +189,9 @@ describe('§112 多步编排的执行方', () => {
       ['context', 'done'],
       ['seo-audit', 'done'],
       ['qa-audit', 'failed'],
+      // qa-audit 炸了，但 `game` 不依赖它，所以照跑且是 done——**失败没有扩散到无关的那一步**，
+      // 这正是这一条要证的（依赖它的 report 才是 skipped）
+      ['game', 'done'],
       ['report', 'skipped'],
     ]);
     const skipped = result.steps.find((step) => step.id === 'report')!;
@@ -192,13 +203,15 @@ describe('§112 多步编排的执行方', () => {
     expect(row?.status).toBe('failed');
     expect(row?.error).toContain('探针');
     const planned = row!.plan as AgentPlan;
-    expect(planned.tasks.map((task) => task.status)).toEqual(['done', 'done', 'failed', 'skipped']);
+    // 这一份是**计划里的顺序**（声明序），与上面 steps 的执行序不同：
+    // 计划里 game 排在 report 之后，执行时它和那三份检查一批跑完
+    expect(planned.tasks.map((task) => task.status)).toEqual(['done', 'done', 'failed', 'skipped', 'done']);
 
     const events = projectEvents(projectId);
     const stepTrace = events
       .filter((event) => event.type === 'agent.step')
       .map((event) => `${event.stepId}:${event.status}`);
-    // 被跳过的那一步从没开始过，所以一条 agent.step 都不该有它；对照：另外三步都有
+    // 被跳过的那一步从没开始过，所以一条 agent.step 都不该有它；对照：其余四步都有
     expect(stepTrace).toEqual([
       'context:started',
       'context:completed',
@@ -206,6 +219,9 @@ describe('§112 多步编排的执行方', () => {
       'seo-audit:completed',
       'qa-audit:started',
       'qa-audit:failed',
+      // `game` 不依赖 qa-audit，所以它照跑完——失败**没有扩散到无关的那一步**
+      'game:started',
+      'game:completed',
     ]);
     expect(stepTrace.some((line) => line.startsWith('report:'))).toBe(false);
     // 跳过只发一条活动说明，说明"被谁牵连"
@@ -219,7 +235,7 @@ describe('§112 多步编排的执行方', () => {
     // §163 × §112：skipped 那一档不推进度——那一步什么都没做，算进分子就是把"没跑"报成"跑完了"。
     // 这里三条刻度对应的正是三个真跑到终态的步（失败也算到终态），第四条是任务行的收尾
     const progress = events.filter((event) => event.type === 'generation.progress');
-    expect(progress.map((event) => event.progress)).toEqual([0, 0.25, 0.5, 0.75, 1]);
+    expect(progress.map((event) => event.progress)).toEqual([0, 0.2, 0.4, 0.6, 0.8, 1]);
     const settledTasks = planned.tasks.filter((task) => task.status !== 'skipped');
     expect(progress.map((event) => event.message)).toEqual([
       '已提交',

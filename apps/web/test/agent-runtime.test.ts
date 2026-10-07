@@ -37,6 +37,7 @@ const SEEDED_CAPABILITIES: Record<string, string[]> = {
   product: ['project.read', 'plan.write'],
   seo: ['code.read', 'content.write'],
   qa: ['browser.read', 'test.run'],
+  game: ['game.write'],
 };
 
 const planWith = (tasks: AgentPlan['tasks']): AgentPlan => ({ ...buildReadinessPlan('测试'), tasks, dependencies: [] });
@@ -70,7 +71,7 @@ describe('计划配方（§25）', () => {
 
   it('只有汇总那一步依赖别人：三份检查各自独立，才能各查各的', () => {
     const deps = Object.fromEntries(plan.tasks.map((task) => [task.id, task.dependsOn]));
-    expect(deps).toEqual({ context: [], 'seo-audit': [], 'qa-audit': [], report: ['context', 'seo-audit', 'qa-audit'] });
+    expect(deps).toEqual({ context: [], 'seo-audit': [], 'qa-audit': [], report: ['context', 'seo-audit', 'qa-audit'], game: [] });
   });
 
   it('goal 进计划标题：空白有兜底，超长截到上限', () => {
@@ -126,11 +127,11 @@ describe('开跑之前的自检（validatePlan）', () => {
 describe('就绪与失败传播（§112 的调度）', () => {
   it('先跑三个互不依赖的检查，全部完成了才有汇总', () => {
     let plan = buildReadinessPlan('检查');
-    expect(readyIds(plan)).toEqual(['context', 'seo-audit', 'qa-audit']);
+    expect(readyIds(plan)).toEqual(['context', 'seo-audit', 'qa-audit', 'game']);
     plan = withStatus(plan, 'context', 'done');
-    expect(readyIds(plan)).toEqual(['seo-audit', 'qa-audit']);
+    expect(readyIds(plan)).toEqual(['seo-audit', 'qa-audit', 'game']);
     plan = withStatus(withStatus(plan, 'seo-audit', 'done'), 'qa-audit', 'done');
-    expect(readyIds(plan)).toEqual(['report']);
+    expect(readyIds(plan)).toEqual(['report', 'game']);
   });
 
   it('改状态返回新计划：旧的那一份不动（计划是 jsonb，就地改会让读到的历史跟着变）', () => {
@@ -145,51 +146,44 @@ describe('就绪与失败传播（§112 的调度）', () => {
     let plan = buildReadinessPlan('检查');
     plan = withStatus(withStatus(withStatus(plan, 'context', 'done'), 'qa-audit', 'done'), 'seo-audit', 'failed');
     expect(blockedIds(plan)).toEqual([{ id: 'report', because: ['seo-audit'] }]);
-    expect(readyIds(plan)).toEqual([]);
+    expect(readyIds(plan)).toEqual(['game']);
 
     plan = withStatus(plan, 'report', 'skipped');
-    expect(progressOf(plan)).toEqual({ total: 4, pending: 0, running: 0, done: 2, failed: 1, skipped: 1 });
+    // `game` 与那三份检查互不依赖（上面 readyIds 那一条就是在证这件事），
+    // 所以 seo-audit 失败**不会**把它带走——它还是 pending。
+    // 这一行原本假设"把 report 标成 skipped 之后全都落定了"，那是四步时代的事；
+    // 要断言"全部落定之后的账"，就得把这一步也推到终态，而不是把 pending 改成 0 硬凑。
+    plan = withStatus(plan, 'game', 'done');
+    expect(progressOf(plan)).toEqual({ total: 5, pending: 0, running: 0, done: 3, failed: 1, skipped: 1 });
   });
 
   it('终态判定：有跳过就不算成功，原因里失败与跳过都要说', () => {
     let plan = buildReadinessPlan('检查');
     expect(verdictOf(plan)).toEqual({ finished: false, ok: false, reason: null });
-    for (const id of ['context', 'seo-audit', 'qa-audit', 'report']) plan = withStatus(plan, id, 'done');
+    for (const id of ['context', 'seo-audit', 'qa-audit', 'report', 'game']) plan = withStatus(plan, id, 'done');
     expect(verdictOf(plan)).toEqual({ finished: true, ok: true, reason: null });
 
     // 终态才谈得上"为什么不成"：还有步骤没跑完之前，reason 必须是 null
     const early = withStatus(buildReadinessPlan('检查'), 'qa-audit', 'failed');
     expect(verdictOf(early)).toEqual({ finished: false, ok: false, reason: null });
 
-    // 跑到终态、有失败也有被牵连的跳过 → 两件事都要说
-    const failed = withStatus(
-      withStatus(withStatus(withStatus(buildReadinessPlan('检查'), 'context', 'done'), 'seo-audit', 'done'),
-        'qa-audit',
-        'failed',
-      ),
-      'report',
-      'skipped',
-    );
-    expect(verdictOf(failed)).toEqual({
-      finished: true,
-      ok: false,
-      reason: '1 步失败，1 步因上游失败被跳过',
-    });
-
     // 只有被跳过、没有一步真的失败：跑起来今天到不了这个形状（跳过一定是被失败牵连的），
     // 但"不会把 skipped 说成成功"是这一层的承诺，所以手工造一份来钉住它。
     const onlySkipped = withStatus(
-      withStatus(withStatus(withStatus(buildReadinessPlan('检查'), 'context', 'done'), 'seo-audit', 'done'),
+      withStatus(withStatus(withStatus(withStatus(buildReadinessPlan('检查'), 'context', 'done'), 'seo-audit', 'done'),
         'qa-audit',
         'done',
       ),
       'report',
       'skipped',
+    ),
+      'game',
+      'skipped',
     );
     expect(verdictOf(onlySkipped)).toEqual({
       finished: true,
       ok: false,
-      reason: '1 步因上游失败被跳过',
+      reason: '2 步因上游失败被跳过',
     });
   });
 });

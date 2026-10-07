@@ -247,9 +247,8 @@ const reportStep: Runner = async (ctx) => {
  * 这是一个独立的步骤种类，不依赖上游步骤，直接读取目标描述生成 GameDocument。
  * 输出是一份完整的 GameDocument，可直接在 Game Studio 里试玩或继续编辑。
  */
-const gameStep: Runner = async (ctx) => {
-  const { document, facts } = ctx;
-  const goal = ctx.goal;
+const gameStep: Runner = async (_ctx) => {
+  const goal = _ctx.goal;
 
   // 从目标文本提取关键信息（简化版：实际生产环境会调用 LLM）
   // 这里用确定性配方生成可玩的游戏骨架，作为 DEMO MODE 的演示
@@ -268,7 +267,11 @@ const gameStep: Runner = async (ctx) => {
     updatedAt: new Date().toISOString(),
   };
 
-  const plan = await import('@nexus/game-model').then((m) => m.compileRpg(gameDoc));
+  // 直接调上面那个静态导入。原来这里写的是 `await import('@nexus/game-model').then(...)`，
+  // 但同一个模块在文件头已经静态导入过了（为了 GameDocument / GameKind 两个类型），
+  // 所以那次动态导入**一个字节都没推迟**——模块早就在包里了，它只剩一个误导人的形状。
+  // 两处并存的结果是静态那个成了"未使用的导入"，HEAD 上的 lint 因此是红的。
+  const plan = compileRpg(gameDoc);
 
   return {
     summary: `已生成 RPG 原型：${plan.enemyXp.length} 种敌人、${plan.quests.length} 条任务，可直接试玩`,
