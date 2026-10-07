@@ -18,12 +18,13 @@ import { CREDIT_LEDGER_KINDS, USER_PLANS, type CreditLedgerKind, type UserPlan }
 export const CREDIT_KINDS = CREDIT_LEDGER_KINDS;
 export type { CreditLedgerKind };
 
-/** 用户看得见的四类额度（§134 原文点名的顺序） */
+/** 用户看得见的五类额度（marketplace 消费是第五格，见 §127-128） */
 export const CREDIT_KIND_LABELS: Record<CreditLedgerKind, string> = {
   ai: 'AI credits',
   image: 'Image credits',
   video: 'Video credits',
   compute: 'Compute credits',
+  marketplace: 'Marketplace credits',
 };
 
 export type PlanKey = UserPlan;
@@ -45,13 +46,15 @@ export const PLAN_LABELS: Record<PlanKey, string> = {
  * 数字怎么来的：按"这一档大概做多少事"给的整数，不是成本核算。
  * 本机没有真 provider key，所有生成走的都是模板（DEMO MODE，§160），
  * 所以任何"这值等于 X 美分成本"的说法都是编的。接上真 provider 之后要改成按 provider 报价算。
+ *
+ * marketplace 这一格今天不发（购买走的是消费路径，不是发放），给 0 占位。
  */
 export const PLAN_MONTHLY_GRANTS: Record<PlanKey, Record<CreditLedgerKind, number>> = {
-  free: { ai: 100, image: 20, video: 5, compute: 50 },
-  pro: { ai: 1000, image: 200, video: 40, compute: 500 },
-  creator: { ai: 3000, image: 600, video: 120, compute: 1500 },
-  studio: { ai: 12000, image: 2500, video: 500, compute: 6000 },
-  enterprise: { ai: 60000, image: 12000, video: 2500, compute: 30000 },
+  free: { ai: 100, image: 20, video: 5, compute: 50, marketplace: 0 },
+  pro: { ai: 1000, image: 200, video: 40, compute: 500, marketplace: 0 },
+  creator: { ai: 3000, image: 600, video: 120, compute: 1500, marketplace: 0 },
+  studio: { ai: 12000, image: 2500, video: 500, compute: 6000, marketplace: 0 },
+  enterprise: { ai: 60000, image: 12000, video: 2500, compute: 30000, marketplace: 0 },
 };
 
 /**
@@ -83,12 +86,15 @@ export const UNENFORCED_PLAN_AXES = ['generation', 'teamCollaboration', 'publish
  * 只有跑成功的任务才记账（失败的请求用户没拿到东西，扣点等于罚）；
  * 计量单位是"一次任务"，不是 token 数——本机没有真 provider，拿不到真 token 数，
  * 编一个"这次用了 1234 token"就是 §159 禁止的那种假。
+ *
+ * marketplace 这一格不用于生成（购买走的是 `purchaseMarketplaceItem`），给 0 占位。
  */
 export const GENERATION_COST: Record<CreditLedgerKind, number> = {
   ai: 1,
   image: 2,
   video: 5,
   compute: 1,
+  marketplace: 0,
 };
 
 /**

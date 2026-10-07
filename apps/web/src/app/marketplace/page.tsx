@@ -59,9 +59,16 @@ export default async function MarketplacePage({
             组件 / 模板 / 设计系统 / 素材 / 世界 / 游戏 / AI 角色。列表只显示公开在售与免费的物品。
           </p>
         </div>
-        <Link href="/" className="text-accent-2 underline" data-marketplace-back>
-          回首页
-        </Link>
+        <div className="flex items-center gap-3">
+          {user ? (
+            <Link href="/marketplace/earnings" className="text-accent-2 underline" data-marketplace-earnings>
+              我的收入
+            </Link>
+          ) : null}
+          <Link href="/" className="text-accent-2 underline" data-marketplace-back>
+            回首页
+          </Link>
+        </div>
       </header>
 
       <nav className="flex flex-wrap items-center gap-2 text-12" data-marketplace-type-nav>

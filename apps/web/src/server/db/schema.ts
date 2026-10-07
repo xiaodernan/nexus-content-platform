@@ -46,8 +46,8 @@ export const UserRole = pgEnum('user_role', ['creator', 'admin']);
 export const USER_PLANS = ['free', 'pro', 'creator', 'studio', 'enterprise'] as const;
 export type UserPlan = (typeof USER_PLANS)[number];
 
-/** §134 原文点名的四类额度，顺序就是余额页读的顺序 */
-export const CREDIT_LEDGER_KINDS = ['ai', 'image', 'video', 'compute'] as const;
+/** §134 原文点名的四类额度 + marketplace 消费（§127-128） */
+export const CREDIT_LEDGER_KINDS = ['ai', 'image', 'video', 'compute', 'marketplace'] as const;
 export type CreditLedgerKind = (typeof CREDIT_LEDGER_KINDS)[number];
 
 /** Marketplace 物品类型：组件 / 模板 / 设计系统 / 资产 / 世界 / 游戏 / AI 角色 */
@@ -66,8 +66,8 @@ export type MarketplaceItemType = (typeof MARKETPLACE_ITEM_TYPES)[number];
 export const MARKETPLACE_VISIBILITY = ['public', 'free', 'private'] as const;
 export type MarketplaceVisibility = (typeof MARKETPLACE_VISIBILITY)[number];
 
-/** 一行流水为什么存在：档位发放、一次生成扣点、服务端代码里的一次调整（今天没有 HTTP 入口） */
-export const CREDIT_LEDGER_SOURCES = ['plan_grant', 'generation', 'adjust'] as const;
+/** 一行流水为什么存在：档位发放、一次生成扣点、服务端代码里的一次调整、marketplace 购买/分成 */
+export const CREDIT_LEDGER_SOURCES = ['plan_grant', 'generation', 'adjust', 'marketplace_purchase', 'marketplace_sale'] as const;
 export type CreditLedgerSource = (typeof CREDIT_LEDGER_SOURCES)[number];
 /** 取值与 @nexus/design-model 的 ProjectType 完全一致，避免两套词汇（§9 模型即真值） */
 export const ProjectKind = pgEnum('project_kind', [
@@ -1129,6 +1129,54 @@ export const marketplaceItems = pgTable(
   ],
 );
 
+/**
+ * §127-128 Marketplace：购买记录表。一个用户对一件物品只买一次（幂等）。
+ */
+export const marketplacePurchases = pgTable(
+  'marketplace_purchases',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    itemId: uuid('item_id')
+      .notNull()
+      .references(() => marketplaceItems.id, { onDelete: 'cascade' }),
+    buyerId: uuid('buyer_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    /** 购买时支付的价格（credits） */
+    pricePaid: integer('price_paid').notNull(),
+    purchasedAt: now(),
+  },
+  (t) => [
+    uniqueIndex('marketplace_purchases_item_buyer_key').on(t.itemId, t.buyerId),
+    index('marketplace_purchases_buyer_idx').on(t.buyerId),
+    index('marketplace_purchases_item_idx').on(t.itemId),
+    index('marketplace_purchases_purchased_idx').on(t.purchasedAt),
+  ],
+);
+
+/**
+ * §128 Marketplace：创作者分账记录表。一次购买只记一次分成（幂等）。
+ */
+export const marketplaceSplits = pgTable(
+  'marketplace_splits',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    purchaseId: uuid('purchase_id')
+      .notNull()
+      .references(() => marketplacePurchases.id, { onDelete: 'cascade' }),
+    creatorId: uuid('creator_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    /** 分给创作者的 credits */
+    amount: integer('amount').notNull(),
+    splitAt: now(),
+  },
+  (t) => [
+    uniqueIndex('marketplace_splits_purchase_key').on(t.purchaseId),
+    index('marketplace_splits_creator_idx').on(t.creatorId),
+  ],
+);
+
 export const schema = {
   users,
   sessions,
@@ -1170,4 +1218,6 @@ export const schema = {
   apiTokens,
   apiAccessBuckets,
   marketplaceItems,
+  marketplacePurchases,
+  marketplaceSplits,
 };
