@@ -266,6 +266,103 @@ try {
     `assets ${report.assets.length} composed + 1 footage = ${libraryAfterEdit} held`,
   );
 
+  // v189 — CHARACTERS. Registering anchors a character to an asset the library holds; applying answers
+  // the DERIVED REQUEST a generator would receive — never an asset, because no generator runs. The
+  // measured crux is TWO numbers that must NOT agree: the register holds NO strength for mira (the
+  // report reads null), and her derivation carries the manager's own 0.8. Both are asserted.
+  const charsAtStart = await page.evaluate('window.__nexusAssets.assets().characters.length');
+  check('the register starts EMPTY — no character exists until the surface anchors one', charsAtStart === 0, `characters: ${charsAtStart}`);
+
+  const assetsBeforeChars = await page.evaluate('window.__nexusAssets.assets().assets.length');
+  const anchorA = await page.evaluate('window.__nexusAssets.assets().assets[0].id');
+  const anchorB = await page.evaluate('window.__nexusAssets.assets().assets[1].id');
+  await page.evaluate(
+    `(() => {
+      const inputSetter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value').set;
+      const selectSetter = Object.getOwnPropertyDescriptor(window.HTMLSelectElement.prototype, 'value').set;
+      const id = document.querySelector('[data-character-id]');
+      inputSetter.call(id, 'mira'); id.dispatchEvent(new Event('input', { bubbles: true }));
+      const ref = document.querySelector('[data-character-ref]');
+      selectSetter.call(ref, 'asset://${anchorA}'); ref.dispatchEvent(new Event('change', { bubbles: true }));
+      return true;
+    })()`,
+  );
+  await page.evaluate("document.querySelector('[data-character-register]').click()");
+  const miraHeld = await page.waitForFunction(
+    `(() => { const c = window.__nexusAssets?.assets()?.characters; return c && c.length === 1 && c[0].characterId === 'mira' ? c : null; })()`,
+    { timeout: 15000 },
+  );
+  check(
+    'registering ANCHORS mira to the chosen asset, and the register holds NO strength (null, never a pre-applied default)',
+    miraHeld !== null && miraHeld[0].consistencyStrength === null && miraHeld[0].referenceImages[0] === `asset://${anchorA}`,
+    JSON.stringify(miraHeld),
+  );
+
+  await page.evaluate(
+    `(() => {
+      const inputSetter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value').set;
+      const selectSetter = Object.getOwnPropertyDescriptor(window.HTMLSelectElement.prototype, 'value').set;
+      const id = document.querySelector('[data-character-id]');
+      inputSetter.call(id, 'toma'); id.dispatchEvent(new Event('input', { bubbles: true }));
+      const ref = document.querySelector('[data-character-ref]');
+      selectSetter.call(ref, 'asset://${anchorB}'); ref.dispatchEvent(new Event('change', { bubbles: true }));
+      const st = document.querySelector('[data-character-strength]');
+      inputSetter.call(st, '0.5'); st.dispatchEvent(new Event('input', { bubbles: true }));
+      return true;
+    })()`,
+  );
+  await page.evaluate("document.querySelector('[data-character-register]').click()");
+  const tomaHeld = await page.waitForFunction(
+    `(() => { const c = window.__nexusAssets?.assets()?.characters; return c && c.length === 2 && c.some((x) => x.characterId === 'toma' && x.consistencyStrength === 0.5) ? c : null; })()`,
+    { timeout: 15000 },
+  );
+  check(
+    'toma registers with the strength he was GIVEN, and the report reads it as a number',
+    tomaHeld !== null,
+    JSON.stringify(tomaHeld),
+  );
+
+  const charRows = await page.evaluate(
+    "(() => [...document.querySelectorAll('[data-character-row]')].map((li) => li.innerText.replace(/\\s+/g, ' ').trim()))()",
+  );
+  check(
+    'the panel rows say what the register HOLDS — mira "none held", toma 0.5',
+    charRows.length === 2 && charRows.some((t) => t.startsWith('mira') && t.includes('none held')) && charRows.some((t) => t.startsWith('toma') && t.includes('0.5')),
+    JSON.stringify(charRows.map((t) => t.slice(0, 72))),
+  );
+
+  await page.evaluate(
+    "(() => { const el = document.querySelector('[data-asset-prompt]'); const setter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value').set; setter.call(el, 'mira on the far quay, medium shot'); el.dispatchEvent(new Event('input', { bubbles: true })); return true; })()",
+  );
+  await page.evaluate("document.querySelector('[data-character-apply=\"mira\"]').click()");
+  const miraDerived = await page.waitForFunction(
+    `(() => { const d = document.querySelector('[data-character-derived]'); return d && d.textContent.includes('mira') && d.textContent.includes('0.8') && d.textContent.includes('no generator ran') ? d.textContent.replace(/\\s+/g, ' ').trim() : null; })()`,
+    { timeout: 15000 },
+  );
+  check(
+    'applying mira answers the DERIVED REQUEST — the manager’s own 0.8 lands where the register held none, and no generator ran',
+    miraDerived !== null,
+    miraDerived,
+  );
+
+  await page.evaluate("document.querySelector('[data-character-apply=\"toma\"]').click()");
+  const tomaDerived = await page.waitForFunction(
+    `(() => { const d = document.querySelector('[data-character-derived]'); return d && d.textContent.includes('toma') && d.textContent.includes('0.5') ? d.textContent.replace(/\\s+/g, ' ').trim() : null; })()`,
+    { timeout: 15000 },
+  );
+  check(
+    'applying toma carries the strength he HOLDS — 0.5 stays 0.5',
+    tomaDerived !== null,
+    tomaDerived,
+  );
+
+  const assetsAfterChars = await page.evaluate('window.__nexusAssets.assets().assets.length');
+  check(
+    'register and apply moved NEITHER the library NOR the generator — the assets are exactly as before',
+    assetsAfterChars === assetsBeforeChars,
+    `assets ${assetsBeforeChars} → ${assetsAfterChars}`,
+  );
+
   // A pixel screenshot of the surface (§30).
   const shot = await page.send('Page.captureScreenshot', { format: 'png' });
   const png = Buffer.from(shot.data, 'base64');

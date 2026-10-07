@@ -6,9 +6,12 @@ import {
   removeAsset,
   removeStoryboardFrame,
   reorderStoryboardFrames,
+  registerCharacter,
+  applyCharacterConsistency,
   STUDIO_SHOTS,
   type AssetGeneratorLike,
   type AssetLibraryLike,
+  type CharacterManagerLike,
   type StoryboardManagerLike,
 } from './assets';
 
@@ -144,7 +147,46 @@ function fakeStack(over: Partial<AssetGeneratorLike> = {}) {
     },
   };
 
-  return { generator: { ...generator, ...over } as AssetGeneratorLike, library, storyboards, stored, frames, calls };
+  // v189: mirrors the REAL manager's own answers — `applyConsistency` THROWS for a character it does not
+  // hold, attaches one reference asset per anchor url, and stamps `characterConsistency` with the
+  // manager's own 0.8 default where the register held none. A fake that pre-filled 0.8 at rest would let
+  // the report and the derivation agree where the real pair deliberately disagrees.
+  const characterMap = new Map<string, { characterId: string; referenceImages: string[]; consistencyStrength?: number }>();
+  const characters: CharacterManagerLike = {
+    registerCharacter(opts) {
+      characterMap.set(opts.characterId, {
+        characterId: opts.characterId,
+        referenceImages: [...opts.referenceImages],
+        ...(opts.consistencyStrength !== undefined ? { consistencyStrength: opts.consistencyStrength } : {}),
+      });
+    },
+    listCharacters() {
+      return [...characterMap.values()].map((c) => ({ ...c, referenceImages: [...c.referenceImages] }));
+    },
+    async applyConsistency(request, characterId) {
+      const c = characterMap.get(characterId);
+      if (!c) throw new Error(`no character registered as "${characterId}"`);
+      return {
+        ...request,
+        referenceAssets: c.referenceImages.map((url, i) => ({
+          assetId: `ref-${characterId}-${i}`,
+          type: 'image',
+          url,
+          metadata: { tags: ['character-reference', characterId] },
+        })),
+        parameters: {
+          ...request.parameters,
+          characterConsistency: {
+            characterId,
+            referenceImages: [...c.referenceImages],
+            consistencyStrength: c.consistencyStrength ?? 0.8,
+          },
+        },
+      };
+    },
+  };
+
+  return { generator: { ...generator, ...over } as AssetGeneratorLike, library, storyboards, characters, stored, frames, calls };
 }
 
 describe('buildStudioAssets — what the surface composes', () => {
@@ -196,9 +238,9 @@ describe('buildStudioAssets — what the surface composes', () => {
 
 describe('buildAssetReport — what is actually stored', () => {
   it('reports every stored asset, its metadata and the provenance word', async () => {
-    const { generator, library, storyboards } = fakeStack();
+    const { generator, library, storyboards, characters } = fakeStack();
     const built = await buildStudioAssets(generator, library, storyboards);
-    const report = await buildAssetReport(library, storyboards, built.provenanceMode, built.storyboardId);
+    const report = await buildAssetReport(library, storyboards, characters, built.provenanceMode, built.storyboardId);
 
     expect(report.schema).toBe(1);
     expect(report.provenanceMode).toBe('demo');
@@ -215,9 +257,9 @@ describe('buildAssetReport — what is actually stored', () => {
     // The library returns newest-first by `updatedAt`; the Studio composes in shot order. A report that
     // presented the Studio's insertion order as the library's would be showing a caller something the
     // library never said — the same class of error as a title claiming a number it does not own.
-    const { generator, library, storyboards } = fakeStack();
+    const { generator, library, storyboards, characters } = fakeStack();
     const built = await buildStudioAssets(generator, library, storyboards);
-    const report = await buildAssetReport(library, storyboards, built.provenanceMode, built.storyboardId);
+    const report = await buildAssetReport(library, storyboards, characters, built.provenanceMode, built.storyboardId);
 
     const libraryOrder = (await library.list()).map((r) => r.assetId);
     expect(report.assets.map((a) => a.id)).toEqual(libraryOrder);
@@ -228,26 +270,26 @@ describe('buildAssetReport — what is actually stored', () => {
   });
 
   it('the storyboard IS ordered, and it is where order is guaranteed', async () => {
-    const { generator, library, storyboards } = fakeStack();
+    const { generator, library, storyboards, characters } = fakeStack();
     const built = await buildStudioAssets(generator, library, storyboards);
-    const report = await buildAssetReport(library, storyboards, built.provenanceMode, built.storyboardId);
+    const report = await buildAssetReport(library, storyboards, characters, built.provenanceMode, built.storyboardId);
     expect(report.storyboard!.frames.map((f) => f.order)).toEqual([0, 1, 2]);
     expect(report.storyboard!.frames.map((f) => f.prompt)).toEqual(STUDIO_SHOTS.map((s) => s.prompt));
   });
 
   it('§60: storedBytes is ZERO and every asset reports zero bytes', async () => {
-    const { generator, library, storyboards } = fakeStack();
+    const { generator, library, storyboards, characters } = fakeStack();
     const built = await buildStudioAssets(generator, library, storyboards);
-    const report = await buildAssetReport(library, storyboards, built.provenanceMode, built.storyboardId);
+    const report = await buildAssetReport(library, storyboards, characters, built.provenanceMode, built.storyboardId);
 
     expect(report.storedBytes).toBe(0);
     for (const a of report.assets) expect(a.bytes).toBe(0);
   });
 
   it('the storyboard reports its frames in order, with the asset each one references', async () => {
-    const { generator, library, storyboards } = fakeStack();
+    const { generator, library, storyboards, characters } = fakeStack();
     const built = await buildStudioAssets(generator, library, storyboards);
-    const report = await buildAssetReport(library, storyboards, built.provenanceMode, built.storyboardId);
+    const report = await buildAssetReport(library, storyboards, characters, built.provenanceMode, built.storyboardId);
 
     expect(report.storyboard).not.toBeNull();
     const frames = report.storyboard!.frames;
@@ -257,26 +299,26 @@ describe('buildAssetReport — what is actually stored', () => {
   });
 
   it('an empty library answers with empty collections rather than a fabricated asset', async () => {
-    const { library, storyboards } = fakeStack();
-    const report = await buildAssetReport(library, storyboards, 'demo', null);
+    const { library, storyboards, characters } = fakeStack();
+    const report = await buildAssetReport(library, storyboards, characters, 'demo', null);
     expect(report.assets).toEqual([]);
     expect(report.storedBytes).toBe(0);
     expect(report.storyboard).toBeNull(); // not "a storyboard with no frames"
   });
 
   it('the report is JSON-safe — no Maps, no Uint8Array, nothing a harness cannot read', async () => {
-    const { generator, library, storyboards } = fakeStack();
+    const { generator, library, storyboards, characters } = fakeStack();
     const built = await buildStudioAssets(generator, library, storyboards);
-    const report = await buildAssetReport(library, storyboards, built.provenanceMode, built.storyboardId);
+    const report = await buildAssetReport(library, storyboards, characters, built.provenanceMode, built.storyboardId);
     const round = JSON.parse(JSON.stringify(report));
     expect(round).toEqual(report);
     expect(JSON.stringify(report)).not.toMatch(/base64|data:image/i);
   });
 
   it('§60: the report names no provider, model or picture', async () => {
-    const { generator, library, storyboards } = fakeStack();
+    const { generator, library, storyboards, characters } = fakeStack();
     const built = await buildStudioAssets(generator, library, storyboards);
-    const report = await buildAssetReport(library, storyboards, built.provenanceMode, built.storyboardId);
+    const report = await buildAssetReport(library, storyboards, characters, built.provenanceMode, built.storyboardId);
     const flat = JSON.stringify(report).toLowerCase();
     for (const word of ['openai', 'gpt', 'llm', 'pixel', 'base64']) {
       expect(flat.includes(word), `the report mentions "${word}"`).toBe(false);
@@ -299,25 +341,25 @@ describe('generateAsset / removeAsset — the interactive surface can grow and s
   });
 
   it('generateAsset leaves the storyboard untouched — the library and the board are separate state', async () => {
-    const { generator, library, storyboards } = fakeStack();
+    const { generator, library, storyboards, characters } = fakeStack();
     const built = await buildStudioAssets(generator, library, storyboards);
-    const before = await buildAssetReport(library, storyboards, built.provenanceMode, built.storyboardId);
+    const before = await buildAssetReport(library, storyboards, characters, built.provenanceMode, built.storyboardId);
     await generateAsset(generator, library, 'a shot outside the storyboard');
-    const after = await buildAssetReport(library, storyboards, built.provenanceMode, built.storyboardId);
+    const after = await buildAssetReport(library, storyboards, characters, built.provenanceMode, built.storyboardId);
     if (!before.storyboard || !after.storyboard) throw new Error('the storyboard report should exist');
     expect(after.assets.length).toBe(before.assets.length + 1);
     expect(after.storyboard.frames.length).toBe(before.storyboard.frames.length);
   });
 
   it('removeAsset deletes by id and the derived report follows', async () => {
-    const { generator, library, storyboards } = fakeStack();
+    const { generator, library, storyboards, characters } = fakeStack();
     const built = await buildStudioAssets(generator, library, storyboards);
     const victim = built.assetIds[0];
     if (!victim) throw new Error('the composed assets should include an id to remove');
     const ok = await removeAsset(library, victim);
     expect(ok).toBe(true);
     expect(await library.get(victim)).toBeNull();
-    const report = await buildAssetReport(library, storyboards, built.provenanceMode, built.storyboardId);
+    const report = await buildAssetReport(library, storyboards, characters, built.provenanceMode, built.storyboardId);
     expect(report.assets.map((a) => a.id)).not.toContain(victim);
   });
 
@@ -383,10 +425,10 @@ describe('video generation — the surface can ask for FOOTAGE (v187)', () => {
   });
 
   it('the report carries duration for footage and null for a still — 0 would read as a measured zero', async () => {
-    const { generator, library, storyboards } = dispatchingStack();
+    const { generator, library, storyboards, characters } = dispatchingStack();
     await generateAsset(generator, library, 'a still beat', 'image');
     await generateAsset(generator, library, 'a filmed beat', 'video');
-    const report = await buildAssetReport(library, storyboards, 'demo', null);
+    const report = await buildAssetReport(library, storyboards, characters, 'demo', null);
     const still = report.assets.find((a) => a.mimeType === 'image/png');
     const footage = report.assets.find((a) => a.mimeType === 'video/mp4');
     expect(still?.duration).toBeNull();
@@ -482,6 +524,87 @@ describe('storyboard editing — the surface can edit the BOARD (v188)', () => {
     const board = storyboards.get(built.storyboardId)!;
     reorderStoryboardFrames(storyboards, built.storyboardId, board.frames.map((f) => f.id).reverse());
     for (const entry of stored.values()) expect(entry.data.length).toBe(0);
+  });
+});
+
+describe('character consistency — the surface can ANCHOR a character (v189)', () => {
+  /**
+   * The consistency trio has had agent doors since v160; v189 is the product face. The claims are the
+   * MANAGER's own semantics, and they hold TWO different numbers on purpose: the report says what the
+   * manager HOLDS (strength `null` when none was registered), the derived summary says what the manager
+   * WOULD SEND (its own 0.8 default lands there). Pre-applying the default into the report would be the
+   * report inventing a number it does not own.
+   */
+  it('register anchors a character, and the at-rest report shows the strength it HOLDS — null when none', async () => {
+    const { generator, library, storyboards, characters, stored } = fakeStack();
+    await buildStudioAssets(generator, library, storyboards);
+    registerCharacter(characters, { characterId: 'mira', referenceImages: ['asset://img-1'] });
+    const report = await buildAssetReport(library, storyboards, characters, 'demo', null);
+    expect(report.characters).toEqual([
+      { characterId: 'mira', referenceImages: ['asset://img-1'], consistencyStrength: null },
+    ]);
+    expect(stored.size).toBe(3); // a character is an anchor set, not an asset — nothing was stored
+  });
+
+  it('register carries a strength the register was GIVEN, and the report reads it as a number', async () => {
+    const { generator, library, storyboards, characters } = fakeStack();
+    await buildStudioAssets(generator, library, storyboards);
+    registerCharacter(characters, { characterId: 'toma', referenceImages: ['asset://img-2'], consistencyStrength: 0.5 });
+    const report = await buildAssetReport(library, storyboards, characters, 'demo', null);
+    expect(report.characters[0]).toEqual({ characterId: 'toma', referenceImages: ['asset://img-2'], consistencyStrength: 0.5 });
+  });
+
+  it('apply answers the DERIVED REQUEST: the manager’s own 0.8 default lands where the register held none', async () => {
+    const { generator, library, storyboards, characters, calls } = fakeStack();
+    await buildStudioAssets(generator, library, storyboards);
+    registerCharacter(characters, { characterId: 'mira', referenceImages: ['asset://img-1', 'asset://img-2'] });
+    const derived = await applyCharacterConsistency(characters, 'mira on the quay, medium shot', 'mira');
+    expect(derived).toEqual({
+      type: 'image',
+      prompt: 'mira on the quay, medium shot',
+      characterId: 'mira',
+      consistencyStrength: 0.8, // the manager's default — a DIFFERENT number from the null the report held
+      referenceAssets: 2,
+      referenceImages: ['asset://img-1', 'asset://img-2'],
+    });
+    // No generator ran for the apply: the calls are exactly the composition's own three, nothing more.
+    expect(calls).toEqual([
+      'generate:a quiet harbour at dusk, wide establishing shot',
+      'generate:a skiff crossing the harbour, medium shot',
+      'generate:the far quay, close on the mooring post',
+    ]);
+  });
+
+  it('apply carries the strength the register HOLDS when it holds one, and the ask’s type crosses untouched', async () => {
+    const { generator, library, storyboards, characters } = fakeStack();
+    await buildStudioAssets(generator, library, storyboards);
+    registerCharacter(characters, { characterId: 'toma', referenceImages: ['asset://img-3'], consistencyStrength: 0.5 });
+    const derived = await applyCharacterConsistency(characters, 'toma crossing the harbour', 'toma', 'video');
+    expect(derived.type).toBe('video');
+    expect(derived.consistencyStrength).toBe(0.5);
+    expect(derived.characterId).toBe('toma');
+    expect(derived.referenceAssets).toBe(1);
+    expect(derived.referenceImages).toEqual(['asset://img-3']);
+  });
+
+  it('an unknown character is the MANAGER’s own throw, quoted as it came', async () => {
+    const { generator, library, storyboards, characters } = fakeStack();
+    await buildStudioAssets(generator, library, storyboards);
+    await expect(applyCharacterConsistency(characters, 'a ghost beat', 'nobody')).rejects.toThrow(
+      'no character registered as "nobody"',
+    );
+  });
+
+  it('register and apply touch NEITHER the library NOR the generator — a derivation answers a request, it stores nothing', async () => {
+    const { generator, library, storyboards, characters, stored, calls } = fakeStack();
+    await buildStudioAssets(generator, library, storyboards);
+    const storedBefore = stored.size;
+    const callsBefore = calls.length;
+    registerCharacter(characters, { characterId: 'mira', referenceImages: ['asset://img-1'] });
+    await applyCharacterConsistency(characters, 'mira on the quay', 'mira');
+    expect(stored.size).toBe(storedBefore);
+    expect(calls.length).toBe(callsBefore);
+    expect((await library.list()).length).toBe(storedBefore);
   });
 });
 

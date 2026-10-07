@@ -32,7 +32,7 @@ import { execFileSync } from '../lib/syncproc.mjs';
 
 // ── the shipped generators, library and storyboard manager ───────────────────────────────────────────
 const ai = await import(pathToFileURL('./packages/ai-providers/dist/index.js').href);
-const { InMemoryAssetLibrary, DemoImageGenerator, DemoVideoGenerator, StoryboardManager } = ai;
+const { InMemoryAssetLibrary, DemoImageGenerator, DemoVideoGenerator, CharacterConsistencyManager, StoryboardManager } = ai;
 
 // ── the SHIPPED Studio module, type-stripped rather than copied ──────────────────────────────────────
 const { stripTypeScriptTypes } = await import('node:module');
@@ -42,7 +42,7 @@ const box = mkdtempSync(join(tmpdir(), 'nexus-asset-surface-'));
 const modulePath = join(box, 'assets.mjs');
 writeFileSync(modulePath, stripped, 'utf8');
 const studio = await import(pathToFileURL(modulePath).href);
-const { buildStudioAssets, buildAssetReport, generateAsset, removeAsset, STUDIO_SHOTS } = studio;
+const { buildStudioAssets, buildAssetReport, generateAsset, removeAsset, registerCharacter, applyCharacterConsistency, STUDIO_SHOTS } = studio;
 assert.equal(typeof buildStudioAssets, 'function', 'the Studio module was really imported, not re-implemented');
 assert.equal(typeof buildAssetReport, 'function', 'and so was its report builder');
 
@@ -52,9 +52,10 @@ const homeHead = execFileSync('git', ['rev-parse', 'HEAD'], { encoding: 'utf8' }
 const generator = new DemoImageGenerator();
 const library = new InMemoryAssetLibrary();
 const storyboards = new StoryboardManager();
+const consistency = new CharacterConsistencyManager();
 
 const built = await buildStudioAssets(generator, library, storyboards);
-const report = await buildAssetReport(library, storyboards, built.provenanceMode, built.storyboardId);
+const report = await buildAssetReport(library, storyboards, consistency, built.provenanceMode, built.storyboardId);
 
 // ── §1 the Studio's assets ARE the library's ─────────────────────────────────────────────────────────
 assert.equal(built.assetIds.length, STUDIO_SHOTS.length, 'one asset per declared shot');
@@ -100,10 +101,10 @@ for (const word of ['openai', 'gpt', 'llm', 'provider', 'base64', 'data:image'])
 console.log(`[§2] §60 measured: provenance "${report.provenanceMode}" carried through · storedBytes = ${report.storedBytes} and every payload in the library is ${(await library.get(built.assetIds[0])).data.length} byte(s), because DEMO MODE has no pixels · the report names no model, provider or picture`);
 
 // ── §3 the report is DERIVED, not remembered ─────────────────────────────────────────────────────────
-const before = await buildAssetReport(library, storyboards, built.provenanceMode, built.storyboardId);
+const before = await buildAssetReport(library, storyboards, consistency, built.provenanceMode, built.storyboardId);
 const extra = await generator.generate({ type: 'image', prompt: 'a shot the Studio never composed', count: 1 });
 await library.add(extra.assets[0], new Uint8Array(0));
-const after = await buildAssetReport(library, storyboards, built.provenanceMode, built.storyboardId);
+const after = await buildAssetReport(library, storyboards, consistency, built.provenanceMode, built.storyboardId);
 assert.equal(after.assets.length, before.assets.length + 1, 'a change through the LIBRARY moves the report');
 assert.ok(after.assets.some((a) => a.prompt === 'a shot the Studio never composed'), 'and the new asset is in it');
 // The Studio's own frames are unaffected by a library that grew under them.
@@ -132,18 +133,18 @@ console.log(`[§4] every frame's reference is followed: ${frames.length}/${frame
 // baseline captured at mount time would be stale and the first draft of this section asserted 4 against a
 // real 5. Measuring against the current count is the difference between testing the door and testing an
 // arithmetic assumption about the sections before it.
-const beforeGrow = await buildAssetReport(library, storyboards, report.provenanceMode, built.storyboardId);
+const beforeGrow = await buildAssetReport(library, storyboards, consistency, report.provenanceMode, built.storyboardId);
 const grown = await generateAsset(generator, library, 'a beat the surface never composed on mount');
 assert.equal(grown.provenanceMode, 'demo', 'the interactive write carries the generator’s own provenance word');
 const grownEntry = await library.get(grown.assetId);
 assert.ok(grownEntry, 'the interactive generate stored a retrievable asset');
 assert.equal(grownEntry.data.length, 0, 'and it stored zero bytes, because DEMO MODE has no pixels');
-const afterGrow = await buildAssetReport(library, storyboards, report.provenanceMode, built.storyboardId);
+const afterGrow = await buildAssetReport(library, storyboards, consistency, report.provenanceMode, built.storyboardId);
 assert.equal(afterGrow.assets.length, beforeGrow.assets.length + 1, 'the interactive generate grew the derived report by exactly one');
 assert.ok(afterGrow.assets.some((a) => a.id === grown.assetId), 'and the new asset is in it');
 const removed = await removeAsset(library, grown.assetId);
 assert.equal(removed, true, 'the interactive remove deletes by id');
-const afterShrink = await buildAssetReport(library, storyboards, report.provenanceMode, built.storyboardId);
+const afterShrink = await buildAssetReport(library, storyboards, consistency, report.provenanceMode, built.storyboardId);
 assert.equal(afterShrink.assets.length, beforeGrow.assets.length, 'the interactive remove shrank the derived report back');
 assert.ok(!afterShrink.assets.some((a) => a.id === grown.assetId), 'and the removed asset is gone');
 assert.equal(await removeAsset(library, grown.assetId), false, 'removing an id the library no longer holds answers false, not an error');
@@ -173,7 +174,7 @@ const routed = {
   generate: async (request) => (request.type === 'video' ? videos.generate(request) : imageOnly.generate(request)),
 };
 
-const beforeVideo = await buildAssetReport(library, storyboards, report.provenanceMode, built.storyboardId);
+const beforeVideo = await buildAssetReport(library, storyboards, consistency, report.provenanceMode, built.storyboardId);
 const footage = await generateAsset(routed, library, 'a skiff crossing the harbour, three seconds', 'video');
 const footageEntry = await library.get(footage.assetId);
 assert.ok(footageEntry, 'the footage is retrievable from the library');
@@ -188,7 +189,7 @@ const still = await generateAsset(routed, library, 'a still beside the footage',
 const stillEntry = await library.get(still.assetId);
 assert.equal(stillEntry.metadata.type, 'image');
 assert.equal(stillEntry.metadata.duration, undefined, 'a still carries no duration at all');
-const afterBoth = await buildAssetReport(library, storyboards, report.provenanceMode, built.storyboardId);
+const afterBoth = await buildAssetReport(library, storyboards, consistency, report.provenanceMode, built.storyboardId);
 const footageRow = afterBoth.assets.find((a) => a.id === footage.assetId);
 const stillRow = afterBoth.assets.find((a) => a.id === still.assetId);
 assert.ok(footageRow && stillRow, 'both are in the report');
@@ -201,10 +202,64 @@ assert.equal(footageRow.type, 'video');
 assert.equal(stillRow.type, 'image');
 console.log(`[§6b] the dispatch works: a 'video' ask reached the video generator ("${footageEntry.metadata.mimeType}", ${footageRow.duration}s reported) and an 'image' ask reached the image one (${stillEntry.metadata.mimeType}, duration ${JSON.stringify(stillRow.duration)}) · both stored ${footageEntry.data.length} byte(s) · the report tells them apart by the GENERATOR's type, not by anything this module set`);
 
-// ── §7 the home repository never moved ───────────────────────────────────────────────────────────────
-assert.equal(execFileSync('git', ['rev-parse', 'HEAD'], { encoding: 'utf8' }).trim(), homeHead, '§7: this repository HEAD byte-identical — everything here ran in memory');
+// ── §7 CHARACTERS: the consistency trio's product doors (M3 v189) ────────────────────────────────────
+// The agent lane has held `asset.character.register` / `list` / `apply` since v160; nothing in the Studio
+// imported them. v189 is the product face, and it keeps the lane's one rule: APPLY ANSWERS A REQUEST,
+// NEVER AN ASSET — no generator runs. The measured crux is TWO numbers that must NOT agree: the report
+// says what the manager HOLDS (a strength nobody registered reads `null`), the derived summary says what
+// the manager WOULD SEND (its own 0.8 default lands there). A surface that pre-applied the default into
+// the report would be showing the reader a number the register does not own.
+const atRest = await buildAssetReport(library, storyboards, consistency, report.provenanceMode, built.storyboardId);
+assert.deepEqual(atRest.characters, [], 'an empty register reports an empty character list');
+const miraUrl = `asset://${built.assetIds[0]}`;
+const tomaUrl = `asset://${built.assetIds[1]}`;
+registerCharacter(consistency, { characterId: 'mira', referenceImages: [miraUrl] });
+registerCharacter(consistency, { characterId: 'toma', referenceImages: [tomaUrl], consistencyStrength: 0.5 });
+const held = await buildAssetReport(library, storyboards, consistency, report.provenanceMode, built.storyboardId);
+assert.deepEqual(
+  held.characters,
+  [
+    { characterId: 'mira', referenceImages: [miraUrl], consistencyStrength: null },
+    { characterId: 'toma', referenceImages: [tomaUrl], consistencyStrength: 0.5 },
+  ],
+  "the at-rest report shows the strength the register HOLDS — null where none was given, never a pre-applied default",
+);
+
+const miraDerived = await applyCharacterConsistency(consistency, 'mira on the far quay, medium shot', 'mira');
+assert.deepEqual(
+  miraDerived,
+  {
+    type: 'image',
+    prompt: 'mira on the far quay, medium shot',
+    characterId: 'mira',
+    consistencyStrength: 0.8,
+    referenceAssets: 1,
+    referenceImages: [miraUrl],
+  },
+  "the derivation carries the manager's own 0.8 where the register held none, and counts what it actually attached",
+);
+assert.notEqual(
+  held.characters[0].consistencyStrength,
+  miraDerived.consistencyStrength,
+  "the two numbers are different ON PURPOSE — the register holds null, the derivation carries the manager's 0.8",
+);
+
+const tomaDerived = await applyCharacterConsistency(consistency, 'toma crossing the harbour, three seconds', 'toma', 'video');
+assert.equal(tomaDerived.type, 'video', "the ask's type crosses to the derivation untouched");
+assert.equal(tomaDerived.consistencyStrength, 0.5, 'a strength the register HOLDS lands in the derivation as itself');
+
+await assert.rejects(
+  applyCharacterConsistency(consistency, 'a ghost beat', 'nobody'),
+  /no character registered as "nobody"/,
+  "an unknown character is the MANAGER's own throw, quoted as it came",
+);
+assert.equal(held.assets.length, atRest.assets.length, 'register and apply moved NEITHER the library NOR the generator — a derivation answers a request, it stores nothing');
+console.log(`[§7] characters are anchored and derivable: mira holds ${JSON.stringify(held.characters[0].consistencyStrength)} at rest while her derivation carries ${miraDerived.consistencyStrength} (the manager's own 0.8, landing where the register held none) · ${miraDerived.referenceAssets} reference asset(s) attached · toma's 0.5 crossed as ${tomaDerived.consistencyStrength} on a '${tomaDerived.type}' ask · an unknown character threw the manager's own words · assets unchanged at ${held.assets.length}`);
+
+// ── §8 the home repository never moved ───────────────────────────────────────────────────────────────
+assert.equal(execFileSync('git', ['rev-parse', 'HEAD'], { encoding: 'utf8' }).trim(), homeHead, '§8: this repository HEAD byte-identical — everything here ran in memory');
 
 rmSync(box, { recursive: true, force: true });
 
-console.log(`\n[summary] the FIRST product consumer of the multimodal slice: the Studio's asset surface, graded from the SHIPPED Studio module (type-stripped, not copied) over the SHIPPED generators · ${report.assets.length} assets generated and stored with ZERO bytes each · 1 storyboard, ${frames.length} frames, every imageRef followed back into the library · the report proven DERIVED by growing the library under it · no model attached and none claimed · home HEAD byte-identical: yes`);
+console.log(`\n[summary] the FIRST product consumer of the multimodal slice: the Studio's asset surface, graded from the SHIPPED Studio module (type-stripped, not copied) over the SHIPPED generators · ${report.assets.length} assets generated and stored with ZERO bytes each · 1 storyboard, ${frames.length} frames, every imageRef followed back into the library · the report proven DERIVED by growing the library under it · ${held.characters.length} characters anchored, an apply answering a REQUEST and never an asset · no model attached and none claimed · home HEAD byte-identical: yes`);
 console.log('[asset-surface-proof] ALL ASSERTIONS PASSED (the multimodal lane is reachable from the product, and the surface cannot show a size that implies pixels exist)');

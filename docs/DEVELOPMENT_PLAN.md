@@ -32,7 +32,11 @@ headless proof → product surface → real-browser verification → record the 
   single-generator panel would mislabel footage).
   **Editable board (v188):** frame rows carry remove/move controls — the manager's own verbs; a removal
   leaves the surviving order honest, a reorder rewrites it to the sequence given.
-  Still open: character consistency and asset update.
+  **Characters (v189):** the consistency trio's product doors — a register form anchors a character to
+  an asset the library ACTUALLY holds, the report reads what the register HOLDS (`null` where none was
+  given), and apply answers the DERIVED REQUEST a generator would receive (no generator runs; the
+  manager's own 0.8 default lands where the register held none).
+  Still open: asset update.
 - **M4 — World Engine:** `@nexus/world-engine` (world/lore/character/location/faction + RAG + character
   agent) + agent doors (8) + product surface (`World` panel, v148). **Now a SIMULATION (v162):**
   `tickOnce()` + `executeAction`, two-sided relationship bonds with a decay floor, lossless save/load,

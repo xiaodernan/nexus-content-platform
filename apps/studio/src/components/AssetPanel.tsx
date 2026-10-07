@@ -1,7 +1,7 @@
 'use client';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { InMemoryAssetLibrary, DemoImageGenerator, DemoVideoGenerator, StoryboardManager } from '@nexus/ai-providers';
-import { buildStudioAssets, buildAssetReport, generateAsset, removeAsset, removeStoryboardFrame, reorderStoryboardFrames, type AssetReport, type GenerationRequestLike } from '@/lib/assets';
+import { InMemoryAssetLibrary, DemoImageGenerator, DemoVideoGenerator, StoryboardManager, CharacterConsistencyManager } from '@nexus/ai-providers';
+import { buildStudioAssets, buildAssetReport, generateAsset, removeAsset, removeStoryboardFrame, reorderStoryboardFrames, registerCharacter, applyCharacterConsistency, type AssetReport, type DerivedConsistencySummary, type GenerationRequestLike } from '@/lib/assets';
 import { installAssetBridge } from '@/lib/observability';
 
 /**
@@ -38,6 +38,9 @@ export default function AssetPanel() {
       return {
         library: new InMemoryAssetLibrary(),
         storyboards: new StoryboardManager(),
+        // v189 — the consistency register. Its product doors are pure passthroughs; this is the only
+        // place the real manager exists.
+        characters: new CharacterConsistencyManager(),
         generator: {
           generate: async (request: GenerationRequestLike) =>
             request.type === 'video'
@@ -60,8 +63,15 @@ export default function AssetPanel() {
   const latest = useRef<AssetReport | null>(null);
   const meta = useRef<{ provenanceMode: string; storyboardId: string | null }>({ provenanceMode: '', storyboardId: null });
 
+  // v189 — the consistency register's form state, and the derived request the last apply produced
+  // (null until one does — applying answers a REQUEST, it does not create anything).
+  const [charId, setCharId] = useState('');
+  const [charRef, setCharRef] = useState('');
+  const [charStrength, setCharStrength] = useState('');
+  const [derived, setDerived] = useState<{ characterId: string; summary: DerivedConsistencySummary } | null>(null);
+
   const refresh = useCallback(async () => {
-    const next = await buildAssetReport(stack.library, stack.storyboards, meta.current.provenanceMode, meta.current.storyboardId);
+    const next = await buildAssetReport(stack.library, stack.storyboards, stack.characters, meta.current.provenanceMode, meta.current.storyboardId);
     latest.current = next;
     setReport(next);
   }, [stack]);
@@ -74,7 +84,7 @@ export default function AssetPanel() {
         const built = await buildStudioAssets(stack.generator, stack.library, stack.storyboards);
         if (cancelled) return;
         meta.current = { provenanceMode: built.provenanceMode, storyboardId: built.storyboardId };
-        const next = await buildAssetReport(stack.library, stack.storyboards, built.provenanceMode, built.storyboardId);
+        const next = await buildAssetReport(stack.library, stack.storyboards, stack.characters, built.provenanceMode, built.storyboardId);
         if (cancelled) return;
         latest.current = next;
         setReport(next);
@@ -165,6 +175,58 @@ export default function AssetPanel() {
     [frames, refresh, stack],
   );
 
+  // v189 — CHARACTERS. Register anchors a character to a reference image the library actually holds (the
+  // same `asset://` form the composition files frames under); the manager stores whatever it is given, so
+  // the form refuses what the manager would silently hold — an empty id, no anchor, a strength outside
+  // (0, 1]. Apply answers the DERIVED REQUEST the manager would hand a generator: no generator runs, and
+  // the line says so. Neither verb touches the library.
+  const onRegisterCharacter = useCallback(async () => {
+    const id = charId.trim();
+    if (!id || !charRef) return;
+    const raw = charStrength.trim();
+    let strength: number | undefined;
+    if (raw) {
+      const n = Number(raw);
+      if (!Number.isFinite(n) || n <= 0 || n > 1) {
+        setError('a strength is a fraction in (0, 1]');
+        return;
+      }
+      strength = n;
+    }
+    setError(null);
+    try {
+      registerCharacter(stack.characters, {
+        characterId: id,
+        referenceImages: [charRef],
+        ...(strength !== undefined ? { consistencyStrength: strength } : {}),
+      });
+      setCharId('');
+      setCharRef('');
+      setCharStrength('');
+      await refresh();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e));
+    }
+  }, [charId, charRef, charStrength, refresh, stack]);
+
+  const onApplyCharacter = useCallback(
+    async (characterId: string) => {
+      const text = prompt.trim();
+      if (!text) {
+        setError('type a prompt first — applying derives the request a generator would receive');
+        return;
+      }
+      setError(null);
+      try {
+        const summary = await applyCharacterConsistency(stack.characters, text, characterId);
+        setDerived({ characterId, summary });
+      } catch (e) {
+        setError(e instanceof Error ? e.message : String(e));
+      }
+    },
+    [prompt, stack],
+  );
+
   return (
     <div
       id="nexus-assets"
@@ -188,7 +250,7 @@ export default function AssetPanel() {
 
       {error && (
         <div data-asset-error style={{ color: '#d9534f', marginBottom: 10 }}>
-          generation failed: {error}
+          error: {error}
         </div>
       )}
 
@@ -311,6 +373,81 @@ export default function AssetPanel() {
             </ul>
           </Section>
 
+          <Section title="Characters (anchored, derivable)">
+            <form
+              data-character-form
+              style={{ display: 'flex', gap: 8, margin: '2px 0 8px', alignItems: 'center', flexWrap: 'wrap' }}
+              onSubmit={(e) => {
+                e.preventDefault();
+                void onRegisterCharacter();
+              }}
+            >
+              <input
+                data-character-id
+                value={charId}
+                onChange={(e) => setCharId(e.target.value)}
+                placeholder="character id"
+                style={{ width: 110, padding: '4px 8px', fontSize: 12 }}
+              />
+              <select
+                data-character-ref
+                value={charRef}
+                onChange={(e) => setCharRef(e.target.value)}
+                style={{ padding: '4px 8px', fontSize: 12, maxWidth: 300 }}
+                title="Anchor the character to an asset the library actually holds"
+              >
+                <option value="">anchor to an asset…</option>
+                {report.assets.map((a) => (
+                  <option key={a.id} value={`asset://${a.id}`}>
+                    {a.name}
+                  </option>
+                ))}
+              </select>
+              <input
+                data-character-strength
+                value={charStrength}
+                onChange={(e) => setCharStrength(e.target.value)}
+                placeholder="strength (optional)"
+                style={{ width: 120, padding: '4px 8px', fontSize: 12 }}
+                title="A fraction in (0, 1]; left empty the register holds none and the manager applies its own 0.8 default at apply time"
+              />
+              <button type="submit" data-character-register className="btn" disabled={!charId.trim() || !charRef} title="Anchor this character to the chosen asset">
+                register
+              </button>
+            </form>
+            <ul style={list} data-character-list>
+              {report.characters.length === 0 && (
+                <li style={{ ...item, ...dim }}>no characters registered — a character is an anchor set, not an asset</li>
+              )}
+              {report.characters.map((c) => (
+                <li key={c.characterId} data-character-row={c.characterId} style={{ ...item, display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <strong>{c.characterId}</strong>{' '}
+                  <span style={dim}>
+                    · {c.referenceImages.length} reference image{c.referenceImages.length === 1 ? '' : 's'} ({c.referenceImages.join(', ')}) · strength{' '}
+                    {c.consistencyStrength === null ? 'none held' : c.consistencyStrength}
+                  </span>
+                  <button
+                    type="button"
+                    data-character-apply={c.characterId}
+                    className="btn"
+                    style={{ marginLeft: 'auto', fontSize: 10, padding: '1px 6px' }}
+                    title="Derive the request a generator would receive for the prompt above — no generator runs"
+                    onClick={() => void onApplyCharacter(c.characterId)}
+                  >
+                    apply prompt
+                  </button>
+                </li>
+              ))}
+            </ul>
+            {derived && (
+              <div data-character-derived style={{ ...dim, marginTop: 4 }}>
+                derived request for “{derived.summary.prompt}” — character {derived.characterId} ·{' '}
+                {derived.summary.referenceAssets} reference asset{derived.summary.referenceAssets === 1 ? '' : 's'} attached · strength{' '}
+                {derived.summary.consistencyStrength === null ? 'none carried' : derived.summary.consistencyStrength} · no generator ran
+              </div>
+            )}
+          </Section>
+
           <div style={{ color: 'var(--nexus-muted)', marginTop: 14, maxWidth: 620 }}>
             This surface composes and reads a storyboard; it does not render one. Each asset is stored with an
             empty payload because DEMO MODE produces no pixels — the byte count above is what the library
@@ -318,7 +455,9 @@ export default function AssetPanel() {
             first and promises no other order; the STORYBOARD is where the order is the shots&rsquo;. The Generate field grows the library with metadata-only assets, and Remove shrinks it — both through
             the same read-only report the bridge exposes. The storyboard itself is editable too (v188): a frame
             can be removed or moved, and the manager&rsquo;s answer — including the honest order hole a removal
-            leaves — is what this panel shows.
+            leaves — is what this panel shows. Characters (v189) anchor to an asset the library holds, and
+            applying answers the DERIVED REQUEST a generator would receive — no generator runs, and the
+            derived line shows the manager&rsquo;s own 0.8 default landing where the register held none.
           </div>
         </>
       ) : (

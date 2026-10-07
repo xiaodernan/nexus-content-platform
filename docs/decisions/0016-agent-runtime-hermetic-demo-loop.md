@@ -8618,7 +8618,6 @@ _Numbering: 187 was free (`grep -ao "^### Amendment 1[0-9][0-9]"` topped out at 
   video element anywhere, because there is no video. `asset.video.generate`'s agent door and this surface
   both exist now, and they agree on what the type means. Character consistency still has no product surface,
   and there is still no asset UPDATE or storyboard editing.
-###SPLIT###
 ## Amendment 188 — the board is EDITABLE: remove and reorder reach the storyboard manager (M3 v188)
 
 M3's open list shrank to three at v187, and all three had the same shape as the video ask did: the
@@ -8655,4 +8654,40 @@ the manager's.
   frame or change its duration (`updateFrame` has no product door), and there is no frame-ADD form —
   the board is still composed by the surface itself at mount. Character consistency and asset update
   still have no product surface. Nothing renders a board as pixels; there is no video, still.
+
+## Amendment 189 — characters are ANCHORED and DERIVABLE: register and apply reach the consistency manager, apply answers a request and never an asset (M3 v189)
+
+M3's open list is down to one. The consistency trio — `registerCharacter` / `listCharacters` /
+`applyConsistency` — has lived in the package since before v160, and the AGENT lane has had its doors
+since v160 (`asset.character.register` / `list` / `apply`); nothing in the Studio imported any of it.
+v189 is the product face, and it keeps the lane's one rule: **APPLY ANSWERS A REQUEST, NEVER AN
+ASSET** — no generator runs, because no generator is attached.
+
+- **Pure layer** (`assets.ts`): `registerCharacter` and `applyCharacterConsistency` — thin doors over
+  the manager's verbs. `CharacterManagerLike` is the structural seam (method syntax, so the real
+  class's wider `applyConsistency` parameter satisfies it), and `DerivedRequestLike` asks only for the
+  fields the summary reads. An unknown character is the MANAGER's own throw, quoted as it came —
+  `no character registered as "nobody"` passes through untouched.
+- **The measured crux is TWO numbers that must NOT agree.** The report says what the manager HOLDS: a
+  strength nobody registered reads `null` — the same null-means-absent rule a still's `duration`
+  follows. The derived summary says what the manager WOULD SEND: the manager's own `?? 0.8` default
+  lands there. The unit fake and the headless proof both pin the pair — mira holds `null` at rest and
+  her derivation carries `0.8` — because a surface that pre-applied the default into the report would
+  be showing the reader a number the register does not own.
+- **Face** (`AssetPanel.tsx`): a Characters section with a register form (id, an anchor select over
+  the assets the library ACTUALLY holds, an optional strength) and one `apply prompt` button per row.
+  The panel refuses what the manager would silently hold — an empty id, no anchor, a strength outside
+  (0, 1] — and the derived line names itself: `no generator ran`.
+- **Evidence.** `src/lib/assets.test.ts` **30 → 36 cases** (register holds null vs a given 0.5; apply
+  carries the manager's 0.8 where none was held; the ask's type crosses untouched; the unknown
+  character throws the manager's own words; register and apply move neither library nor generator);
+  `docs/evidence/studio/asset-surface-proof.mjs` grew **§7** (the two numbers measured against the
+  SHIPPED manager, assets unchanged) and the HEAD check became §8; `tools/harness/studio-assets.mjs`
+  **34/34 → 41/41** — register mira/toma in the REAL browser, the rows read `none held` and `0.5`,
+  mira's derivation shows the manager's `0.8` landing where the register held none, and the library is
+  untouched. apps/studio **338 → 344** (27 files), `tsc` and `eslint` (`--max-warnings=0`) clean.
+- **Bounds (§60).** A character is an anchor SET, not an asset: nothing stores bytes, nothing renders
+  a picture, and the derived request is a SUMMARY the panel shows, not a payload it keeps. The
+  surface cannot yet EDIT or DELETE a registered character (re-register is the manager's upsert), and
+  there is no character UPDATE door. `asset.update` is the last open item on M3's list.
 

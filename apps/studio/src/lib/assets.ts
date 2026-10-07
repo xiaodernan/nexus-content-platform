@@ -18,6 +18,13 @@
  * manager answers (`false` for an unknown frame, a rewritten `order` for the survivors) is what the
  * surface shows. A storyboard is an ordered set or it is a pile.
  *
+ * v189 — CHARACTERS: the consistency trio's product doors (the agent lane has held them since v160,
+ * and nothing in the Studio imported them). Registering anchors a character to reference images;
+ * applying answers the DERIVED REQUEST a generator would receive — never an asset, because no
+ * generator runs. The report says what the manager HOLDS (strength `null` when none was registered);
+ * the derived summary says what the manager WOULD SEND (its own 0.8 default lands there). The two
+ * are different numbers on purpose.
+ *
  * The interfaces are STRUCTURAL rather than `import type { InMemoryAssetLibrary }`: Next.js evaluates this
  * module during SSR, where loading a generator is pointless work and a needless dependency edge. The panel
  * is the only place that touches the real classes.
@@ -56,6 +63,15 @@ export interface StudioStoryboardSummary {
   frames: StudioFrameSummary[];
 }
 
+/** v189 — what the consistency manager HOLDS, read at rest. `consistencyStrength` is `null` when none was
+ *  registered: the manager's own 0.8 default exists only inside an APPLY, and the report does not pre-apply
+ *  it — the same null-means-absent rule a still's `duration` follows. */
+export interface StudioCharacterSummary {
+  characterId: string;
+  referenceImages: string[];
+  consistencyStrength: number | null;
+}
+
 /** The surface's state as a plain JSON-safe report. */
 export interface AssetReport {
   schema: 1;
@@ -66,6 +82,8 @@ export interface AssetReport {
   /** Total bytes actually stored across every asset. Zero here, and asserted to be. */
   storedBytes: number;
   storyboard: StudioStoryboardSummary | null;
+  /** v189 — the characters the consistency manager holds, read from the manager itself. */
+  characters: StudioCharacterSummary[];
 }
 
 export interface GenerationRequestLike {
@@ -115,6 +133,38 @@ export interface StoryboardManagerLike {
   /** v188 — the surface can EDIT the board, and the manager's answers pass through untouched. */
   removeFrame(storyboardId: string, frameId: string): boolean;
   reorderFrames(storyboardId: string, frameIds: string[]): boolean;
+}
+
+/** The shape of a derived request this module READS. The real `applyConsistency` returns the package's own
+ *  `GenerationRequest`; this asks only for the fields the summary is built from, so the wider real answer
+ *  satisfies it without this module importing the package. */
+export interface DerivedRequestLike {
+  type: string;
+  prompt: string;
+  referenceAssets?: { assetId: string; type: string; url: string; metadata?: { tags?: string[] } }[];
+  parameters?: Record<string, unknown>;
+}
+
+/** v189 — the consistency manager, structurally. The real `CharacterConsistencyManager` satisfies this:
+ *  `registerCharacter` stores the anchors verbatim, `listCharacters` reads them back, and `applyConsistency`
+ *  derives a request — THROWING for an unknown character, which is the manager's own answer and passes
+ *  through untouched. */
+export interface CharacterManagerLike {
+  registerCharacter(opts: { characterId: string; referenceImages: string[]; consistencyStrength?: number }): void;
+  listCharacters(): { characterId: string; referenceImages: string[]; consistencyStrength?: number }[];
+  applyConsistency(request: GenerationRequestLike, characterId: string): Promise<DerivedRequestLike>;
+}
+
+/** What an APPLY answered, as plain data. `consistencyStrength` is what the DERIVED REQUEST carries — the
+ *  manager's 0.8 default lands here when the character holds none, which is a different number from the
+ *  `null` the at-rest report shows. */
+export interface DerivedConsistencySummary {
+  type: string;
+  prompt: string;
+  characterId: string | null;
+  consistencyStrength: number | null;
+  referenceAssets: number;
+  referenceImages: string[];
 }
 
 /**
@@ -233,16 +283,56 @@ export function reorderStoryboardFrames(
 }
 
 /**
- * Read the library and the storyboard back as a plain report.
+ * v189 — CHARACTERS. The consistency trio has had agent doors since v160 (`asset.character.register` /
+ * `list` / `apply`), and nothing in the Studio imported them; these are their product doors, and the
+ * shape follows the doors'.
+ *
+ * `registerCharacter` stores the anchors verbatim — the panel refuses what the manager would silently
+ * hold (an empty id, no anchor, a strength outside (0, 1]), and everything else is the manager's.
+ * `applyCharacterConsistency` answers a DERIVED REQUEST, never an asset: no generator runs, and the
+ * summary counts what the derivation actually attached. An unknown character is the MANAGER's own
+ * throw, quoted as it came.
+ */
+export function registerCharacter(
+  manager: CharacterManagerLike,
+  opts: { characterId: string; referenceImages: string[]; consistencyStrength?: number },
+): void {
+  manager.registerCharacter(opts);
+}
+
+export async function applyCharacterConsistency(
+  manager: CharacterManagerLike,
+  prompt: string,
+  characterId: string,
+  type: 'image' | 'video' = 'image',
+): Promise<DerivedConsistencySummary> {
+  const derived = await manager.applyConsistency({ type, prompt, count: 1 }, characterId);
+  const cc = (derived.parameters?.characterConsistency ?? null) as
+    | { characterId?: string; referenceImages?: string[]; consistencyStrength?: number }
+    | null;
+  return {
+    type: derived.type,
+    prompt: derived.prompt,
+    characterId: typeof cc?.characterId === 'string' ? cc.characterId : null,
+    consistencyStrength: typeof cc?.consistencyStrength === 'number' ? cc.consistencyStrength : null,
+    referenceAssets: derived.referenceAssets?.length ?? 0,
+    referenceImages: Array.isArray(cc?.referenceImages) ? [...cc.referenceImages] : [],
+  };
+}
+
+/**
+ * Read the library, the storyboard and the character register back as a plain report.
  *
  * `storedBytes` is summed from what the LIBRARY holds rather than from what the generator claimed, so a
  * surface that stored nothing reports zero and a surface that stored something reports its real size. A
  * frame's `imageRef` is reported as the id it names; whether that asset EXISTS is the panel's check, and
- * the surface's own composition guarantees it.
+ * the surface's own composition guarantees it. The characters are what the register HOLDS — a strength
+ * nobody registered reads `null`, never the manager's apply-time default.
  */
 export async function buildAssetReport(
   library: AssetLibraryLike,
   storyboards: StoryboardManagerLike,
+  characters: CharacterManagerLike,
   provenanceMode: string,
   storyboardId: string | null,
 ): Promise<AssetReport> {
@@ -271,11 +361,17 @@ export async function buildAssetReport(
   }
 
   const board = storyboardId ? storyboards.get(storyboardId) : undefined;
+  const characterRows = characters.listCharacters().map((c) => ({
+    characterId: c.characterId,
+    referenceImages: [...c.referenceImages],
+    consistencyStrength: typeof c.consistencyStrength === 'number' ? c.consistencyStrength : null,
+  }));
   return {
     schema: 1,
     provenanceMode,
     assets,
     storedBytes,
+    characters: characterRows,
     storyboard: board
       ? {
           id: board.id,
