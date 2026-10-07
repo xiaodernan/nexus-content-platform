@@ -91,6 +91,15 @@ export interface SceneComposerLike extends SceneRuntimeLike {
   /** v197 — show or hide one body. `false` when the host holds no such scene/entity or refuses the
    *  ask. The real runtime moves the registry record and the three.js object TOGETHER. */
   setEntityVisible?(sceneId: string, entityId: string, visible: boolean): boolean;
+  /** v200 — read one entity from a scene. Optional like the other gates: a host without it is legitimate. */
+  getEntity?(sceneId: string, entityId: string): unknown;
+  /** v200 — read one component from an entity. Takes the entity object (the runtime's own signature).
+   *  Optional like the other gates. */
+  getComponent?(entity: unknown, componentType: string): { enabled?: boolean } | undefined;
+  /** v200 — toggle a component's enabled flag on the picked body. Answers false when the entity or
+   *  the component is missing. Optional like the other gates: a host without the verb is legitimate,
+   *  and the surface answers the unchanged report. */
+  setComponentEnabled?(sceneId: string, entityId: string, componentType: string, enabled: boolean): boolean;
 }
 
 /**
@@ -783,6 +792,9 @@ export interface SceneSurface {
   /** v197 — show or hide the SELECTED body. The answer re-reads the live scene, so a host without the
    *  gate answers the unchanged report; a hidden body keeps its selection and its facts (visible: false). */
   setSelectedVisible(visible: boolean): SceneReport;
+  /** v200 — toggle one component's enabled flag on the selected body. Answers the unchanged report when
+   *  there is no selection or the host holds no such verb; the inspector re-reads the registry at once. */
+  toggleComponentEnabled(componentType: string): SceneReport;
   /** Put the camera back to the default orbit — the view the Studio opens with. */
   resetOrbit(): SceneReport;
   /** Add a body at the next free slot. Answers `null` when the runtime produced no entity. */
@@ -927,6 +939,17 @@ export function createStudioScene(
       const target = selected;
       if (!target) return buildSceneReport(runtime, counted, orbit, selected);
       runtime.setEntityVisible?.(built.sceneId, target.id, visible);
+      return buildSceneReport(runtime, counted, orbit, selected);
+    },
+    toggleComponentEnabled(componentType) {
+      const target = selected;
+      if (!target) return buildSceneReport(runtime, counted, orbit, selected);
+      // Read the current enabled state from the live registry, then flip it through the host gate.
+      const entity = runtime.getEntity?.(built.sceneId, target.id);
+      if (!entity) return buildSceneReport(runtime, counted, orbit, selected);
+      const comp = runtime.getComponent?.(entity, componentType);
+      const next = comp ? !comp.enabled : true;
+      runtime.setComponentEnabled?.(built.sceneId, target.id, componentType, next);
       return buildSceneReport(runtime, counted, orbit, selected);
     },
     resetOrbit() {

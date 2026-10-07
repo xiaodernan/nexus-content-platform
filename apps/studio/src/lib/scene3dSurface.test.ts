@@ -327,6 +327,61 @@ describe('the Studio’s scene, composed on the REAL runtime', () => {
     expect(surface.report().inspector?.components).toEqual([{ name: 'shield', enabled: false }]);
   });
 
+  // M5 v200 — the component toggle verb: the surface flips a component's enabled flag through the host
+  // gate and the inspector re-reads the live registry at once.
+  it('the component toggle flips the enabled flag through the host gate — the report follows the live registry', () => {
+    const headless = headlessRuntime();
+    runtime = headless.runtime;
+    const adapter: SceneAdapterLike = {
+      placeCamera(sceneId: string, cameraId: string, position: SceneVec3, lookAt: SceneVec3) {
+        const found = headless.runtime.getScene(toSceneId(sceneId))?.cameras.get(toCameraId(cameraId));
+        if (!found) return false;
+        found.threeCamera.position.set(position.x, position.y, position.z);
+        found.threeCamera.lookAt(new THREE.Vector3(lookAt.x, lookAt.y, lookAt.z));
+        found.threeCamera.updateMatrixWorld(true);
+        return true;
+      },
+      pickAt(sceneId: string, nx: number, ny: number) {
+        return headless.runtime.pickAt(toSceneId(sceneId), nx, ny);
+      },
+    };
+    const surface = createStudioScene(headless.runtime, () => {}, adapter);
+    headless.runtime.resize(800, 600);
+    const picked = surface.pickAt(400, 300);
+    expect(picked.selected?.name).toBe('Cube B');
+    const scene = headless.runtime.getScene(toSceneId(surface.sceneId))!;
+    const entity = scene.entities.get(toEntityId(surface.bodyIds[2]!))!;
+
+    // Add two components: one enabled, one disabled.
+    headless.runtime.addComponent(entity, { type: 'health', data: { amount: 100 }, enabled: true });
+    headless.runtime.addComponent(entity, { type: 'shield', data: {}, enabled: false });
+    expect(surface.report().inspector?.components).toEqual([
+      { name: 'health', enabled: true },
+      { name: 'shield', enabled: false },
+    ]);
+
+    // Toggle health OFF through the surface: the report re-reads the live registry.
+    const afterHealthOff = surface.toggleComponentEnabled('health');
+    expect(afterHealthOff.inspector?.components).toEqual([
+      { name: 'health', enabled: false },
+      { name: 'shield', enabled: false },
+    ]);
+
+    // Toggle shield ON: both are now enabled.
+    const afterShieldOn = surface.toggleComponentEnabled('shield');
+    expect(afterShieldOn.inspector?.components).toEqual([
+      { name: 'health', enabled: false },
+      { name: 'shield', enabled: true },
+    ]);
+
+    // Toggle a non-existent component: the report is unchanged (no selection or no such component).
+    const noChange = surface.toggleComponentEnabled('ghost');
+    expect(noChange.inspector?.components).toEqual([
+      { name: 'health', enabled: false },
+      { name: 'shield', enabled: true },
+    ]);
+  });
+
   it('every body the surface hands the frame write is a REAL three.js object it can move', () => {
     const headless = headlessRuntime();
     runtime = headless.runtime;

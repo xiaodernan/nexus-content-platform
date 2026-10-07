@@ -428,7 +428,62 @@ assert.equal(runtime.removeComponent(cubeA, 'health'), true, 'the runtime owns r
 assert.deepEqual(surface.report().inspector.components, [{ name: 'shield', enabled: false }], 'and the next report follows the registry, not a shadow');
 console.log('[§7] and it reads the COMPONENT registry the runtime owns: empty fact stated for a body with none, two components added through addComponent answered in registry order (shield disabled), then removeComponent moved the next report — the report re-reads the live registry');
 
-surface.removeBody(cubeA.id);
+// v200 — the component registry becomes EDITABLE: `setComponentEnabled` is a write verb over the same
+// registry the inspector reads. The surface's `toggleComponentEnabled` calls through this gate; what
+// passes through is unparaphrased.
+pickTarget = 'Cube B';
+surface.pickAt(400, 300);
+const cubeB = [...runtime.getScene(surface.sceneId).entities.values()].find((e) => e.name === 'Cube B');
+assert.ok(cubeB, 'the real runtime holds Cube B');
+runtime.addComponent(cubeB, { type: 'health', data: { amount: 100 }, enabled: true });
+runtime.addComponent(cubeB, { type: 'shield', data: {}, enabled: false });
+const beforeToggle = surface.report().inspector;
+assert.deepEqual(
+  beforeToggle.components,
+  [
+    { name: 'health', enabled: true },
+    { name: 'shield', enabled: false },
+  ],
+  'two components added through the runtime are reported in registry order',
+);
+
+// Toggle health off through the surface's own verb.
+const afterHealthOff = surface.toggleComponentEnabled('health');
+assert.deepEqual(
+  afterHealthOff.inspector.components,
+  [
+    { name: 'health', enabled: false },
+    { name: 'shield', enabled: false },
+  ],
+  'toggling health flipped its enabled flag through the host gate',
+);
+
+// Toggle shield on.
+const afterShieldOn = surface.toggleComponentEnabled('shield');
+assert.deepEqual(
+  afterShieldOn.inspector.components,
+  [
+    { name: 'health', enabled: false },
+    { name: 'shield', enabled: true },
+  ],
+  'toggling shield flipped it from disabled to enabled',
+);
+
+// A ghost component does nothing.
+const noChange = surface.toggleComponentEnabled('ghost');
+assert.deepEqual(
+  noChange.inspector.components,
+  [
+    { name: 'health', enabled: false },
+    { name: 'shield', enabled: true },
+  ],
+  'a component that does not exist leaves the report unchanged',
+);
+console.log('[§7] and the component registry is EDITABLE: setComponentEnabled flips the enabled flag through the host gate (health on→off, shield off→on), the report follows the live registry, and a ghost component is refused silently');
+
+// A body that LEAVES the scene has nothing to inspect: the selection stays a name, the facts go null, and
+// nothing invents a position for a body that is gone. Remove the CURRENTLY SELECTED body (Cube B).
+surface.removeBody(cubeB.id);
 const goneReport = surface.report();
 assert.equal(goneReport.inspector, null, 'a removed body has no facts');
 assert.ok(goneReport.selected, 'while the selection is still the name it was — the two are separate state');

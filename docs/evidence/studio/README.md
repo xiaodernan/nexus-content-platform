@@ -1002,6 +1002,35 @@ not surfaced (amounts and shapes are the registry's business, the inspector name
 light state beyond v192's, and animation state remain unread. The ADR 0016 amendment record for this
 grant is OWED behind v196/v197/v198.
 
+## The component registry becomes EDITABLE (M5 v200)
+
+v199's inspector read the component registry but could not change it — `enabled` was a declared field that
+gated no behavior, carried through save/restore and reported by the HUD as text only. v200 adds the WRITE
+verb: `setComponentEnabled(sceneId, entityId, componentType, enabled)` on the runtime, surfaced through the
+Studio as `toggleComponentEnabled(componentType)`, which flips the flag and re-reads the live registry for
+the report.
+
+The write verb follows the same host-gate pattern v197 set for rename/visibility: an optional method on the
+runtime (`setComponentEnabled`) that the surface calls through; absent gate = unchanged report. The signature
+takes `(sceneId, entityId, ...)` like `setEntityName`/`setEntityVisible`, not an entity object. The runtime
+emits `'componentStateChanged'` when the flag changes, so any downstream consumer can react — but v200 does
+not invent one. The HUD renders each component row as an interactive toggle button instead of text, clicking
+it flips the enabled state.
+
+| layer | what it proves |
+| --- | --- |
+| `scene3dSurface.test.ts` (real runtime) | two components added through the runtime are toggled through the surface's `toggleComponentEnabled`: health on→off, shield off→on; a ghost component leaves the report unchanged |
+| `scene-surface-proof.mjs` §7 | components added through the SHIPPED runtime's `addComponent` are toggled through the type-stripped Studio module's `toggleComponentEnabled`; the report follows the live registry after each flip; a ghost component is refused silently |
+
+Measured on this host 2026-10-08: Studio suite **405/405** (31 files; `scene3dSurface` 16 → 17), three-runtime
+463/463 unchanged, tsc clean, browser harness **62/62** unchanged (the bridge is read-only, so the toggle is
+proven at the surface-suite and proof layers), proof ALL ASSERTIONS PASSED with the new §7 toggle line.
+
+Bounds, stated: the face is write-only for the enabled flag — materials, animation, light state beyond
+v192's, and child counts remain unread (v199's bounds still hold); the `data` payload is not editable (the
+registry owns it); there is no add/remove verb here (that is the runtime's own `addComponent`/`removeComponent`).
+The ADR 0016 amendment record for this grant is owed.
+
 ## The dock's BUILD face (M6 v174 — ADR 0016 amendment 174)
 
 The first product consumer of the build arc (amendment 173), and the section this increment never had: the

@@ -399,6 +399,12 @@ export default function Scene3D() {
     setReport(surface.setSelectedVisible(!facts.visible));
   }, []);
 
+  const onToggleComponentEnabled = useCallback((componentType: string) => {
+    const surface = surfaceRef.current;
+    if (!surface) return;
+    setReport(surface.toggleComponentEnabled(componentType));
+  }, []);
+
   // The keyboard listener is its own effect so it can depend on the stable `onKeyPan` without touching
   // the mount effect that owns the runtime's lifecycle.
   useEffect(() => {
@@ -825,15 +831,26 @@ export default function Scene3D() {
                   ? `(${report.inspector.position.x.toFixed(2)}, ${report.inspector.position.y.toFixed(2)}, ${report.inspector.position.z.toFixed(2)})`
                   : '(position unknown)'}{' '}
                 · {report.inspector.visible ? 'visible' : 'hidden'}
-                {/* v199 — the components the live registry holds, as text: names in the registry's own
-                    order, `(off)` naming the disabled. A body with none shows no segment — an empty
-                    fact is not a missing one, and inventing a count for it would be. */}
+                {/* v199 → v200 — the components the live registry holds, now EDITABLE: each row gets its
+                    own toggle. A disabled component names itself `(off)`; the button flips it through the
+                    host gate and the report re-reads the registry at once. */}
                 {report.inspector.components.length > 0 && (
                   <>
                     {' '}· components:{' '}
-                    {report.inspector.components
-                      .map((c) => (c.enabled ? c.name : `${c.name} (off)`))
-                      .join(', ')}
+                    <span style={{ display: 'inline-flex', gap: 4, flexWrap: 'wrap' }}>
+                      {report.inspector.components.map((c) => (
+                        <button
+                          key={c.name}
+                          type="button"
+                          className="btn"
+                          data-scene3d-component-enabled={c.enabled ? 'on' : 'off'}
+                          onClick={() => onToggleComponentEnabled(c.name)}
+                          style={{ fontSize: '0.85em', padding: '1px 6px' }}
+                        >
+                          {c.enabled ? c.name : `${c.name} (off)`}
+                        </button>
+                      ))}
+                    </span>
                   </>
                 )}
                 {/* v197 — the inspector's own edit verbs, over the same selection the facts read. The

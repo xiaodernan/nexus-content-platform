@@ -1571,6 +1571,23 @@ export class ThreeRuntime {
   }
 
   /**
+   * Toggle a component's enabled flag in the registry. Answers false when the scene, entity or the
+   * component is missing (the caller can tell the difference from the message if it needs to). Emits
+   * `componentStateChanged` so a reader wired to the surface can report the change at once.
+   */
+  setComponentEnabled(sceneId: SceneId, entityId: EntityId, componentType: string, enabled: boolean): boolean {
+    const scene = this.sceneGraph.scenes.get(sceneId);
+    if (!scene) return false;
+    const entity = scene.entities.get(entityId);
+    if (!entity) return false;
+    const comp = entity.components.get(componentType);
+    if (!comp) return false;
+    comp.enabled = enabled;
+    this.emit('componentStateChanged', { entityId, componentType, enabled });
+    return true;
+  }
+
+  /**
    * Copy one entity's state out of the running scene, under the shape `SerializedEntity` declares.
    *
    * The three numbers-bearing fields are written as DATA — `SerializedVector3` / `SerializedEuler` — and not
