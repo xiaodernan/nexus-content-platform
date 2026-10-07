@@ -42,6 +42,8 @@ export interface SceneEntity {
   body: string;
   /** 图上写过的高程（0–6）：条目浮在写的高度上。没写就是 0（贴地） */
   elevation: number;
+  /** §34 的 model 类资产 ID：这个条目用哪个 .glb/.gltf 渲染。没有时用占位几何体 */
+  modelAssetId?: string;
 }
 
 export interface SceneLink {
@@ -83,7 +85,7 @@ export const SCENE_LIMITS: string[] = [
   "颜色只表示九类内容中的哪一类，不表示危险、阵营或温度。",
   "高程是图上写的条目属性（0–6）：条目浮在写的高度上，柱子是它的标架；脚下的地没有坡——走近高处的条目是它浮着，不是你在爬山。",
   "条目占位会挡路（圆碰撞），点击行走是直线加碰撞滑动，不是导航网格。",
-  "3D 模型与贴图（§34 的 model 资产）还没接进来：现在每个条目是一个占位几何体。",
+  "条目可以挂 §34 的 model 资产（.glb/.gltf）：有模型时显示模型，没有时用占位几何体。",
 ];
 
 export function buildWorldScene(document: WorldDocument): WorldScene {
@@ -105,6 +107,7 @@ export function buildWorldScene(document: WorldDocument): WorldScene {
       placed,
       body: node.body,
       elevation: point?.elevation ?? 0,
+      modelAssetId: node.modelAssetId,
     });
   }
 

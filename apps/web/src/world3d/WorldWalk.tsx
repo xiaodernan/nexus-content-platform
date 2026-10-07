@@ -1,8 +1,9 @@
 'use client';
 
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState, Suspense } from 'react';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import * as THREE from 'three';
+import { GLTFLoader } from 'three-stdlib';
 import {
   LABEL_LIMIT,
   NEARBY_RADIUS,
@@ -175,10 +176,86 @@ function Controls({
   return null;
 }
 
-function EntityMesh({ entity }: { entity: SceneEntity }) {
+/** §34 GLTF 模型加载：从项目资产目录读取 .glb/.gltf 并渲染 */
+function ModelAsset({
+  assetId,
+  projectId,
+  scale = 1,
+}: {
+  assetId: string;
+  projectId: string;
+  scale?: number;
+}) {
+  const [gltf, setGltf] = useState<THREE.Group | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    // 模型资产的 URL：复用头像/封面的同一套公开读路由
+    const url = `/api/assets/${projectId}/${assetId}`;
+    const loader = new GLTFLoader();
+    loader.load(
+      url,
+      (result) => {
+        if (!cancelled) setGltf(result.scene);
+      },
+      undefined,
+      (err) => {
+        if (!cancelled) setError(err instanceof Error ? err.message : 'GLTF load failed');
+      },
+    );
+    return () => {
+      cancelled = true;
+    };
+  }, [assetId, projectId]);
+
+  if (error) {
+    // 模型加载失败：退回占位几何体，不在控制台报错让用户看不见
+    console.warn(`[WorldWalk] 模型 ${assetId} 加载失败：`, error);
+    return null;
+  }
+
+  if (!gltf) return null;
+
+  // GLTF 模型默认朝 -Z（three.js 相机看向的方向），但我们的场景条目需要调整朝向
+  // 缩放：没有尺寸字段，给一个合理缺省让模型不至于太大或太小
+  return <primitive object={gltf} scale={scale} />;
+}
+
+function EntityMesh({ entity, projectId }: { entity: SceneEntity; projectId: string }) {
   const near = entity.placed === 'fallback';
   // 高程（图上写的 0–6）：条目浮在写的高度上，柱子从地面把它撑起来——那是标架，不是你在爬的坡
   const base = entity.elevation;
+
+  // 有 modelAssetId 时尝试加载 GLTF，失败则退回占位几何体
+  if (entity.modelAssetId) {
+    return (
+      <group position={[entity.x, base, entity.z]}>
+        <Suspense fallback={null}>
+          <ModelAsset assetId={entity.modelAssetId} projectId={projectId} scale={ENTITY_SIZE / 2} />
+        </Suspense>
+        {/* 占位标记：fallback 位置用线框，贴一根细柱当路标 */}
+        {near && (
+          <mesh position={[0, ENTITY_SIZE / 2, 0]}>
+            <boxGeometry args={[ENTITY_SIZE, ENTITY_SIZE, ENTITY_SIZE]} />
+            <meshStandardMaterial color={entity.color} wireframe />
+          </mesh>
+        )}
+        {base > 0 ? (
+          <mesh position={[0, -base / 2, 0]}>
+            <cylinderGeometry args={[0.08, 0.08, base, 6]} />
+            <meshBasicMaterial color="#5a6478" />
+          </mesh>
+        ) : null}
+        <mesh position={[0, ENTITY_SIZE + 1.2, 0]}>
+          <cylinderGeometry args={[0.08, 0.08, 2.4, 6]} />
+          <meshBasicMaterial color={entity.color} />
+        </mesh>
+      </group>
+    );
+  }
+
+  // 没有 modelAssetId：用占位几何体
   return (
     <group position={[entity.x, base, entity.z]}>
       <mesh position={[0, ENTITY_SIZE / 2, 0]}>
@@ -348,7 +425,7 @@ export function WorldWalk({
         <directionalLight position={[20, 30, 10]} intensity={0.7} />
         <gridHelper args={[scene.bounds.radius * 2, Math.max(8, Math.round(scene.bounds.radius / 2) * 2), '#2a3040', '#171b23']} />
         {scene.entities.map((entity) => (
-          <EntityMesh key={entity.id} entity={entity} />
+          <EntityMesh key={entity.id} entity={entity} projectId={projectId} />
         ))}
         <LinkLines scene={scene} />
         <Controls onPosition={setAt} scene={scene} enabled />

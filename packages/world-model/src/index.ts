@@ -44,6 +44,12 @@ export interface WorldNode {
   body: string;
   /** 条目级时间戳：世界文档没有画布那套 revision，先按条目记录最后改动 */
   updatedAt: string;
+  /**
+   * §34 的 model 类资产 ID：这个条目在 3D 场景里用哪个模型渲染。
+   * 没有它时退回到类别几何体（球/方/锥等）——不是美术模型，只是标记。
+   * 库里 assets.kind='model' 的那一行就是它的来源（storageKey 指向 .glb/.gltf 文件）。
+   */
+  modelAssetId?: string;
 }
 
 /**
