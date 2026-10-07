@@ -1587,6 +1587,9 @@ export class ThreeRuntime {
    * 
    * v202 — if the component has a targetObject, its visible property follows the enabled flag: disabled
    * components hide their visual target, making the flag gate rendering, not just query participation.
+   * 
+   * v203 — if the component has animationIds, those animations pause/resume with the enabled flag: disabled
+   * components pause their animations, re-enabling resumes them from where they left off.
    */
   setComponentEnabled(sceneId: SceneId, entityId: EntityId, componentType: string, enabled: boolean): boolean {
     const scene = this.sceneGraph.scenes.get(sceneId);
@@ -1599,6 +1602,20 @@ export class ThreeRuntime {
     // v202: gate material visibility through the enabled flag
     if (comp.targetObject) {
       comp.targetObject.visible = enabled;
+    }
+    // v203: gate animation playback through the enabled flag
+    if (comp.animationIds) {
+      for (const animId of comp.animationIds) {
+        const anim = scene.animations.get(animId);
+        if (anim) {
+          if (enabled) {
+            anim.threeAnimation.enabled = true;
+            anim.threeAnimation.play();
+          } else {
+            anim.threeAnimation.enabled = false;
+          }
+        }
+      }
     }
     this.emit('componentStateChanged', { entityId, componentType, enabled });
     return true;

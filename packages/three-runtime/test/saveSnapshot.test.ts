@@ -1147,7 +1147,7 @@ describe('a save FILE: it survives the disk, and the loader refuses what it cann
     // shot → the path, so its presence proves the walk went three hops rather than returning one name.
     expect([...seen].sort()).toContain('SerializedCurve');
     expect([...seen].sort(), `names in types.ts that the walk could not open: ${[...unresolved].join(', ')}`)
-      .toEqual(['EntityComponent', 'PersonalityTraits', 'PostProcessingConfig', 'PostProcessingPass', 'SaveFile', 'SerializedCinematic', 'SerializedCinematicSequence', 'SerializedCinematicShot', 'SerializedCurve', 'SerializedEntity', 'SerializedEuler', 'SerializedNPC', 'SerializedPlayer', 'SerializedVector3']);
+      .toEqual(['PersonalityTraits', 'PostProcessingConfig', 'PostProcessingPass', 'SaveFile', 'SerializedCinematic', 'SerializedCinematicSequence', 'SerializedCinematicShot', 'SerializedCurve', 'SerializedEntity', 'SerializedEntityComponent', 'SerializedEuler', 'SerializedNPC', 'SerializedPlayer', 'SerializedVector3']);
     expect(shape).not.toMatch(/:\s*Map</);
     expect(shape).not.toMatch(/THREE\./);
   });

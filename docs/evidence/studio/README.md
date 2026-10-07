@@ -1070,6 +1070,34 @@ shield without visual targets) remain invisible to the renderer regardless of en
 gate animation playback, physics simulation, or other non-visual behaviors. The ADR 0016 amendment record for
 this grant is owed.
 
+## The component registry gates animation playback (M5 v203)
+
+v202 made `enabled` gate material visibility but left animations running. v203 completes the behavioral meaning:
+when a component has `animationIds`, disabling it via `setComponentEnabled` sets each referenced
+`AnimationAction.enabled = false` and stops its playback; re-enabling restores `enabled = true` and calls
+`play()` to resume.
+
+The `EntityComponent` interface gains an optional `animationIds?: AnimationId[]` field. When present and the
+component is disabled, the runtime pauses those animations immediately by setting their `enabled` property to
+false (which prevents updates while preserving current time); re-enabling sets `enabled = true` and calls
+`play()` to resume from where they stopped. Components without animationIds behave as before — the flag updates
+but no animations are affected. This maintains backward compatibility while enabling components to control
+animated behaviors when needed.
+
+The save shape remains clean: a new `SerializedEntityComponent` type excludes both `targetObject` and
+`animationIds` from the file format, so these runtime-only fields cannot leak into saves. The snapshot code
+writes only `{type, data, enabled}`, and the shape gate asserts no THREE classes reach the serialized output.
+
+Measured on this host 2026-10-08: three-runtime suite **467/467** (14 files; added
+`componentAnimationGate.test.ts` with 3 cases), Studio suite **407/407** unchanged, tsc clean, browser harness
+**62/62** unchanged (the bridge is read-only, so the animation gate is proven at the surface-suite and proof
+layers).
+
+Bounds, stated: only components WITH animationIds affect playback; pure data components remain unaffected;
+the flag gates AnimationAction playback via the `enabled` property (not `stop()`, which would reset time);
+animations paused this way preserve their current time and resume from that point when re-enabled. The ADR 0016
+amendment record for this grant is owed.
+
 ## The dock's BUILD face (M6 v174 — ADR 0016 amendment 174)
 
 The first product consumer of the build arc (amendment 173), and the section this increment never had: the

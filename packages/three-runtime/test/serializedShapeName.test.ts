@@ -215,7 +215,7 @@ describe('a shape the FILE reaches is gated by name somewhere or compared here',
     // A shape counts as gated when some test file calls declaredFields('NAME') — read out of the test sources,
     // so this census cannot be left behind by a gate another grant adds later.
     const gatedElsewhere = population.filter((n) => Object.values(testSources).some((t) => new RegExp(`declaredFields\\(\\s*['"\`]${n}['"\`]\\s*\\)`).test(t)));
-    const comparedHere = ['SerializedVector3', 'SerializedEuler'];
+    const comparedHere = ['SerializedVector3', 'SerializedEuler', 'SerializedEntityComponent'];
     const ungated = inFile.filter((n) => !gatedElsewhere.includes(n) && !comparedHere.includes(n));
     expect(ungated, `in the shipped file's reach but no gate compares a writer's keys to it: ${ungated.join(', ')}`).toEqual([]);
     // …and the comparison this file claims to make is not a claim about a shape that stopped existing.
@@ -239,6 +239,21 @@ describe('the nested transform shapes, compared to what the writers write', () =
     const saved = runtime.snapshotEntity(scene, hero);
     expect(Object.keys(saved.rotation).sort()).toEqual(declared);
     expect(saved.rotation.order, 'a pose without its order is a pose three.js recomposes wrong').toBe('YXZ');
+  });
+
+  it('snapshotEntity writes exactly the fields SerializedEntityComponent declares for each component', () => {
+    const heroId = withHero();
+    const heroEntity = runtime.getScene(scene)!.entities.get(heroId)!;
+    runtime.addComponent(heroEntity, { type: 'health', data: { amount: 100 }, enabled: true });
+    const saved = runtime.snapshotEntity(scene, heroId);
+    const declared = declaredFields('SerializedEntityComponent').map((f) => f.field).sort();
+    // Components are stored as [string, SerializedEntityComponent][] entry arrays
+    const compEntry = saved.components[0];
+    expect(compEntry, 'the entity has at least one component to check').toBeDefined();
+    if (compEntry) {
+      const [, comp] = compEntry;
+      expect(Object.keys(comp).sort(), 'component shape does not match SerializedEntityComponent declaration').toEqual(declared);
+    }
   });
 
   it('playerSnapshot writes the same two nested shapes, because a second writer of one shape is a second way to diverge', () => {

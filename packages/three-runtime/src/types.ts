@@ -42,6 +42,19 @@ export interface EntityComponent {
   enabled: boolean;
   /** v202 — optional visual target this component controls. When disabled, this object is hidden. */
   targetObject?: THREE.Object3D;
+  /** v203 — optional animation ids this component gates. When disabled, these animations pause. */
+  animationIds?: AnimationId[];
+}
+
+/**
+ * The save-shape of an entity component — excludes runtime-only fields (`targetObject`, `animationIds`)
+ * that cannot be serialized to JSON. This is what `snapshotEntity` actually writes and what
+ * `restoreEntity` reads back.
+ */
+export interface SerializedEntityComponent {
+  type: string;
+  data: Record<string, unknown>;
+  enabled: boolean;
 }
 
 export interface Transform {
@@ -517,7 +530,7 @@ export interface SerializedEntity {
   layers: number;
   /** An ENTRY ARRAY, not a `Map`, for the same reason the transform fields are plain: a `Map` is written by
    *  `JSON.stringify` as `{}`, which is how a save with three components on it comes back with none. */
-  components: [string, EntityComponent][];
+  components: [string, SerializedEntityComponent][];
   userData: Record<string, unknown>;
 }
 
