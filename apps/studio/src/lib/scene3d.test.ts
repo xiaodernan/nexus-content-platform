@@ -19,6 +19,7 @@ import {
   nextBodyPlacement,
   ORBIT_PAN_LIMIT,
   clampLightIntensity,
+  clampEntityName,
   lightIntensityOf,
   LIGHT_INTENSITY_MAX,
   LIGHT_INTENSITY_MIN,
@@ -860,6 +861,135 @@ describe('lighting control (v183) — the surface folds the ask, the host owns t
     // At the bottom, below zero clamps to the floor.
     const bottom = surface.setLight('ambient', { intensity: LIGHT_INTENSITY_MIN - LIGHT_INTENSITY_STEP });
     expect(bottom.scene?.lighting.find((l) => l.id === 'ambient')!.intensity).toBe(LIGHT_INTENSITY_MIN);
+  });
+});
+
+describe('inspector edit (v197) — the picked body becomes renamable and hideable', () => {
+  /** An adapter that names the demo scene's FIRST body at the view center, so a click selects a body
+   *  the fake graph really holds — the pick plumbing itself is proven one file over. */
+  function pickAdapterFor(runtime: SceneComposerLike, scenes: Map<string, SceneLike>): SceneAdapterLike {
+    return {
+      placeCamera: () => true,
+      pickAt(_sceneId, nx, ny) {
+        if (nx !== 0 || ny !== 0) return null;
+        const graph = runtime.getSceneGraph();
+        const scene = graph.activeSceneId ? scenes.get(graph.activeSceneId) : undefined;
+        const first = scene?.entities.values().next().value;
+        return first ? { entityId: first.id, name: first.name, distance: 1 } : null;
+      },
+    };
+  }
+
+  /** A host WITH the entity gates: it records every ask and applies it to the fake scene's records —
+   *  the same apply-rules the real `setEntityName`/`setEntityVisible` uphold, in fake form. The real
+   *  gates (and the BOTH-records visibility rule) are proven one file over, on the shipped runtime. */
+  function editFixture() {
+    const askedName: { sceneId: string; entityId: string; name: string }[] = [];
+    const askedVisible: { sceneId: string; entityId: string; visible: boolean }[] = [];
+    const { runtime, scenes } = fakeRuntime({
+      setEntityName(sceneId, entityId, name) {
+        askedName.push({ sceneId, entityId, name });
+        const entity = scenes.get(sceneId)?.entities.get(entityId);
+        if (!entity || typeof name !== 'string' || name.trim().length === 0) return false;
+        entity.name = name;
+        return true;
+      },
+      setEntityVisible(sceneId, entityId, visible) {
+        askedVisible.push({ sceneId, entityId, visible });
+        const entity = scenes.get(sceneId)?.entities.get(entityId) as { visible?: boolean } | undefined;
+        if (!entity || typeof visible !== 'boolean') return false;
+        entity.visible = visible;
+        return true;
+      },
+    });
+    const surface = createStudioScene(runtime, () => {}, pickAdapterFor(runtime, scenes));
+    return { surface, scenes, askedName, askedVisible };
+  }
+
+  it('clampEntityName folds a rename ask — trimmed, or null when the ask names nothing', () => {
+    expect(clampEntityName('  Hero  ')).toBe('Hero');
+    expect(clampEntityName('Hero')).toBe('Hero');
+    expect(clampEntityName('   ')).toBeNull();
+    expect(clampEntityName('')).toBeNull();
+    expect(clampEntityName(null)).toBeNull();
+    expect(clampEntityName(undefined)).toBeNull();
+  });
+
+  it('renameSelected reaches the host gate FOLDED, and both name records follow an accepted rename', () => {
+    const { surface, askedName } = editFixture();
+    surface.pickAt(400, 300);
+    const picked = surface.report().selected!;
+
+    const answered = surface.renameSelected('  Hero  ');
+    expect(askedName).toEqual([{ sceneId: surface.sceneId, entityId: picked.id, name: 'Hero' }]);
+    // The pick record moved WITH the accepted rename (the restore rule), and the inspector reads the
+    // live record — so one report cannot disagree about what the body is called.
+    expect(answered.selected).toEqual({ id: picked.id, name: 'Hero' });
+    expect(answered.inspector?.name).toBe('Hero');
+  });
+
+  it('a blank ask is a NO-ASK — the gate is never called and the report is unchanged', () => {
+    const { surface, askedName } = editFixture();
+    surface.pickAt(400, 300);
+    const before = surface.report();
+    const after = surface.renameSelected('   ');
+    expect(askedName).toEqual([]);
+    expect(after).toEqual(before);
+  });
+
+  it('no selection answers the unchanged report — there is nothing to rename', () => {
+    const { surface, askedName } = editFixture();
+    const before = surface.report();
+    const after = surface.renameSelected('Hero');
+    expect(askedName).toEqual([]);
+    expect(after).toEqual(before);
+    expect(after.inspector).toBeNull();
+  });
+
+  it('a host that refuses leaves the pick record alone — the report reads the name the live scene holds', () => {
+    const refused: string[] = [];
+    const { runtime, scenes } = fakeRuntime({
+      setEntityName(_sceneId, _entityId, name) {
+        refused.push(name);
+        return false;
+      },
+    });
+    const surface = createStudioScene(runtime, () => {}, pickAdapterFor(runtime, scenes));
+    surface.pickAt(400, 300);
+    const before = surface.report();
+
+    const answered = surface.renameSelected('Hero');
+    expect(refused).toEqual(['Hero']);
+    expect(answered.selected).toEqual(before.selected);
+    expect(answered.inspector?.name).toBe(before.inspector?.name);
+  });
+
+  it('setSelectedVisible reaches the host gate and the report re-reads the live scene', () => {
+    const { surface, askedVisible } = editFixture();
+    surface.pickAt(400, 300);
+    const picked = surface.report().selected!;
+
+    const hidden = surface.setSelectedVisible(false);
+    expect(askedVisible).toEqual([{ sceneId: surface.sceneId, entityId: picked.id, visible: false }]);
+    // Hiding keeps the selection — the body is still IN the scene, its facts just say hidden.
+    expect(hidden.selected).toEqual(picked);
+    expect(hidden.inspector?.visible).toBe(false);
+
+    const shown = surface.setSelectedVisible(true);
+    expect(askedVisible).toEqual([
+      { sceneId: surface.sceneId, entityId: picked.id, visible: false },
+      { sceneId: surface.sceneId, entityId: picked.id, visible: true },
+    ]);
+    expect(shown.inspector?.visible).toBe(true);
+  });
+
+  it('a host without the gates answers the unchanged report — asking is not changing', () => {
+    const { runtime, scenes } = fakeRuntime();
+    const surface = createStudioScene(runtime, () => {}, pickAdapterFor(runtime, scenes));
+    surface.pickAt(400, 300);
+    const before = surface.report();
+    expect(surface.setSelectedVisible(false)).toEqual(before);
+    expect(surface.renameSelected('Hero')).toEqual(before);
   });
 });
 

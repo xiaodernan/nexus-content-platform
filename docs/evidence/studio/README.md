@@ -870,6 +870,52 @@ Bounds, stated: the inspector reports what a host DECLARES — id, name, kind, p
 not read components, materials, children or animation state, and it cannot edit any of them: there is no
 setter and the HUD renders the facts as text.
 
+## The inspector's facts become EDITABLE (M5 v197)
+
+v192's closing bound — "there is no setter and the HUD renders the facts as text" — is the debt this
+increment pays. Two of the four declared facts become writable: the NAME and the VISIBILITY, each through
+the runtime's own gate, in the shape `setLightState` set (v183): a boolean answer that refuses WHOLE, never
+partially.
+
+- `ThreeRuntime.setEntityName(sceneId, entityId, name)` writes `entity.name` AS GIVEN — trimming is the
+  surface's folding half, so the host stores what it was asked to store — and refuses the blank/whitespace/
+  non-string ask whole. `setEntityVisible(sceneId, entityId, visible)` refuses the non-boolean ask and, on
+  acceptance, moves BOTH records (the restoreEntity rule): `entity.visible` in the registry — what `pickAt`
+  reads, so a hidden body stops answering picks — and `entity.threeObject.visible` in the renderer.
+- The surface folds before the gate sees the ask: `clampEntityName` turns a blank answer into a NO-ASK (the
+  gate is never called), and `renameSelected` re-points the pick record to the new name ONLY when the host
+  answered `true` — a refusal or a host without the gate leaves the pick record holding the name the body
+  still has. `setSelectedVisible` passes the ask through and lets the report re-read the live scene.
+- The HUD's inspector gains the verbs as buttons: rename (a `window.prompt` ask) and hide/show (a toggle
+  whose label states the ACTION and whose data attribute states the STATE).
+
+**A defect only the harness could see.** Every unit suite was green — 459/459 on the runtime, both surfaces
+files green — while the REAL browser had neither gate at all: the first harness run failed at the hide-click
+check with no error, no exception and a live report (the bob still animating). The cause was the resolution
+plane: vitest aliases `@nexus/three-runtime` to `src/`, but the Studio's production build resolves the
+package's `main: ./dist/index.js` — and `dist/` was last compiled at v192, so the served bundle contained
+the surface's `setEntityVisible?.(` CALL but not the runtime's METHOD, and the optional call no-op'd
+silently. The harness is the only reader in the repo that reads the package through `dist`; rebuilding the
+package (`tsc -p tsconfig.json`) before the Studio build turned the same assertions green. The lesson is
+v192's inverse: the unit seam proves the code, the harness proves the SHIPPED thing — and "shipped" here
+means the compiled dist, not the source the suites read.
+
+| layer | what it proves |
+| --- | --- |
+| `packages/three-runtime/test/threeRuntime.test.ts` | 45 → **51** cases: rename writes the live registry (snapshot reads the new name) · blank/non-string refuses WHOLE · unknown scene/entity answers `false` · hiding moves BOTH records and `pickAt` then SKIPS the hidden body · non-boolean visible refuses WHOLE · a hidden body SAVES hidden and RESTORES hidden into a fresh scene (both records) |
+| `src/lib/scene3d.test.ts` | 65 → **72** cases: `clampEntityName` folds trim/blank/null/undefined · the rename reaches the gate FOLDED and both records follow · a blank ask is a no-ask (gate never called) · no selection answers unchanged · a refusing host leaves the pick record alone · the toggle reaches the gate and the report re-reads · a host without the gates answers unchanged |
+| `src/lib/scene3dSurface.test.ts` | 12 → **13**: the REAL runtime end to end — pick Cube B, rename through the surface, the live registry AND the pick record carry it, hide through the surface and BOTH records move |
+| `tools/harness/studio-scene3d.mjs` | the REAL browser, **61/61**: the probe picks Cube A, hides it (report `visible:false`, HUD `hidden`, both records), shows it again (reversible), refuses a blank prompt (pick record keeps `Cube A`), renames it (pick record, live registry and inspector all read `Renamed Body`), then clears the selection and re-picks the same body by its NEW name |
+
+Measured on this host 2026-10-08: `next build` (after `tsc` for the package) + `next start` + headless
+Chrome 153 — 61/61 PASS.
+
+Bounds, stated: name and visibility are the only editable facts — components, materials, children and
+animation state remain declared-only, and the inspector still has no opinion about them. The rename is a
+prompt ask, so it is human-initiated by construction; the toggle is a boolean, and the runtime refuses
+everything else. The ADR 0016 amendment record for this grant is OWED: the shared decisions file carries
+another lane's uncommitted amendment, and the record lands after that lane's commit closes the gap.
+
 ## The dock's BUILD face (M6 v174 — ADR 0016 amendment 174)
 
 The first product consumer of the build arc (amendment 173), and the section this increment never had: the

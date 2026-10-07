@@ -112,9 +112,16 @@ headless proof → product surface → real-browser verification → record the 
   `selectionFactsOf` reads the live scene at report time (kind, world position, visibility; `position`
   is `null` rather than invented when the host declares none, the `duration: null` rule one surface
   over), the HUD renders them, and a body that has LEFT the scene reports nothing while the selection
-  stays the name it was (studio 327 → **369**, harness 53 → **55/55**; ADR 0016 amendment 192). Still
-  open: the inspector reports what a host DECLARES — no components, materials, children or animation
-  state, and no way to edit any of it.
+  stays the name it was (studio 327 → **369**, harness 53 → **55/55**; ADR 0016 amendment 192). **Now
+  EDITABLE (v197):** two of the declared facts are writable through the runtime's own gates —
+  `setEntityName` (stored AS GIVEN; blank/non-string refuses whole; the surface folds the trim first and
+  re-points the pick record only on an ACCEPTED rename) and `setEntityVisible` (the both-records rule, so
+  `pickAt` then skips the hidden body) — with rename/hide buttons on the inspector. The harness run also
+  exposed the resolution plane: unit suites read the package's `src/`, the Studio build reads `dist/` —
+  a stale dist silently no-op'd both gates in the real browser behind green suites (three-runtime 45 →
+  **51**; scene3d 65 → **72**; surface 12 → **13**; harness 55 → **61/61**; ADR record owed, see below).
+  Still open: the inspector reports what a host DECLARES — no components, materials, children or animation
+  state, and no way to edit any of them.
 - **M7 — Community:** 🟡 **STARTED (v193)** — `services/nexus-api` is a real Spring Boot 3.5.16 service on Java 25
   (ADR 0011's stack) with one aggregate and two endpoints: publish a project, read it back. Proven against a
   throwaway PostgreSQL in Docker, including that the publication SURVIVES A SERVICE RESTART.

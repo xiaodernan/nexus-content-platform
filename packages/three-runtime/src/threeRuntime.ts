@@ -1456,6 +1456,50 @@ export class ThreeRuntime {
     return true;
   }
 
+  /**
+   * M5 v197 — rename one entity. Until now a body's name was fixed at creation: the registry carried it,
+   * `snapshotEntity` saved it, and `pickAt` reported it, but nothing in the package could change any of
+   * that, so an "inspector edit" above this package had nothing to call.
+   *
+   * The gate refuses WHOLE and answers `false` — the same shape as `setLightState`: unknown scene or
+   * entity changed nothing, and a name that is not a non-empty string names nothing (the registry has
+   * carried a name since `createEntity` and every reader of it — the report, the save file, the pick —
+   * would otherwise have to agree on what an empty name means). The name is stored AS GIVEN: trimming is
+   * the surface's folding half, and a gate that edits the ask would be a second owner of the policy.
+   */
+  setEntityName(sceneId: SceneId, entityId: EntityId, name: string): boolean {
+    const scene = this.sceneGraph.scenes.get(sceneId);
+    if (!scene) return false;
+    const entity = scene.entities.get(entityId);
+    if (!entity) return false;
+    if (typeof name !== 'string' || name.trim().length === 0) return false;
+    entity.name = name;
+    return true;
+  }
+
+  /**
+   * M5 v197 — show or hide one entity. The two records that carry visibility move TOGETHER, or not at
+   * all: `entity.visible` is what the registry, `pickAt` and `snapshotEntity` read, `threeObject.visible`
+   * is what the renderer draws, and `restoreEntity` already holds the precedent that a change to one is
+   * a change to both. A gate that flipped only the registry field would render a body the save swears is
+   * hidden; one that flipped only the three.js field would leave `pickAt` skipping a body that is plainly
+   * on screen.
+   *
+   * Refusals match the other gates: unknown scene or entity answers `false`, and a non-boolean ask
+   * refuses WHOLE — `visible: 0` is not "falsy but acceptable", it is a value the records cannot hold
+   * without every reader of the field having to invent what it means.
+   */
+  setEntityVisible(sceneId: SceneId, entityId: EntityId, visible: boolean): boolean {
+    const scene = this.sceneGraph.scenes.get(sceneId);
+    if (!scene) return false;
+    const entity = scene.entities.get(entityId);
+    if (!entity) return false;
+    if (typeof visible !== 'boolean') return false;
+    entity.visible = visible;
+    entity.threeObject.visible = visible;
+    return true;
+  }
+
   removeEntity(sceneId: SceneId, entityId: EntityId): boolean {
     const scene = this.sceneGraph.scenes.get(sceneId);
     if (!scene) return false;

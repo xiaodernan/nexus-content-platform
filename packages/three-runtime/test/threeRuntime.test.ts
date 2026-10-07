@@ -512,6 +512,83 @@ describe('Lighting', () => {
       expect(second.lighting.lights[0]!.threeLight.intensity).toBe(0.5);
     });
   });
+
+  // M5 v197 — until setEntityName/setEntityVisible existed, a body's name and visibility were fixed at
+  // creation: the registry carried them, the save file copied them, pickAt and the renderer read them,
+  // and nothing in the package could change any of that.
+  describe('setEntityName / setEntityVisible (v197) — the picked body\'s declared facts become EDITABLE', () => {
+    it('renaming writes the LIVE registry record — the next snapshot reads the new name', () => {
+      const scene = runtime.createScene('Rename');
+      const box = runtime.createEntity(scene.id, 'Box', 'mesh');
+
+      expect(runtime.setEntityName(scene.id, box.id, 'Hero')).toBe(true);
+      expect(scene.entities.get(box.id)!.name).toBe('Hero');
+      expect(runtime.snapshotEntity(scene.id, box.id).name).toBe('Hero');
+    });
+
+    it('a blank or non-string name refuses WHOLE — the registry never holds a nameless body', () => {
+      const scene = runtime.createScene('Refuse Name');
+      const box = runtime.createEntity(scene.id, 'Box', 'mesh');
+
+      expect(runtime.setEntityName(scene.id, box.id, '   ')).toBe(false);
+      expect(runtime.setEntityName(scene.id, box.id, undefined as unknown as string)).toBe(false);
+      expect(scene.entities.get(box.id)!.name).toBe('Box');
+    });
+
+    it('an unknown scene or entity answers false — nothing changed, and that is the answer', () => {
+      const scene = runtime.createScene('Missing Name');
+      runtime.createEntity(scene.id, 'Box', 'mesh');
+      expect(runtime.setEntityName(scene.id, entityId('no-such-entity'), 'Hero')).toBe(false);
+      expect(runtime.setEntityName(sceneId('no-such-scene'), entityId('anything'), 'Hero')).toBe(false);
+      expect([...scene.entities.values()][0]!.name).toBe('Box');
+    });
+
+    it('hiding moves BOTH records together — and pickAt then skips the hidden body', () => {
+      const rig = headlessRuntime();
+      rig.runtime.initialize(mockCanvas);
+      const scene = rig.runtime.createScene('Hide');
+      const camera = rig.runtime.createCamera(scene.id, 'Cam');
+      camera.threeCamera.position.set(0, 0, 5);
+      camera.threeCamera.lookAt(new THREE.Vector3(0, 0, 0));
+      camera.threeCamera.updateMatrixWorld(true);
+      const box = rig.runtime.createEntity(scene.id, 'Box', 'mesh');
+      expect(rig.runtime.pickAt(scene.id, 0, 0)!.entityId).toBe(box.id);
+
+      expect(rig.runtime.setEntityVisible(scene.id, box.id, false)).toBe(true);
+      expect(scene.entities.get(box.id)!.visible).toBe(false);
+      expect(scene.entities.get(box.id)!.threeObject.visible).toBe(false);
+      expect(rig.runtime.pickAt(scene.id, 0, 0)).toBeNull();
+
+      expect(rig.runtime.setEntityVisible(scene.id, box.id, true)).toBe(true);
+      expect(scene.entities.get(box.id)!.visible).toBe(true);
+      expect(rig.runtime.pickAt(scene.id, 0, 0)!.entityId).toBe(box.id);
+    });
+
+    it('a non-boolean ask refuses WHOLE — neither record moves', () => {
+      const scene = runtime.createScene('Refuse Visible');
+      const box = runtime.createEntity(scene.id, 'Box', 'mesh');
+
+      expect(runtime.setEntityVisible(scene.id, box.id, 0 as unknown as boolean)).toBe(false);
+      expect(runtime.setEntityVisible(scene.id, box.id, 'yes' as unknown as boolean)).toBe(false);
+      expect(scene.entities.get(box.id)!.visible).toBe(true);
+      expect(scene.entities.get(box.id)!.threeObject.visible).toBe(true);
+    });
+
+    it('a hidden body saves hidden and restores hidden — the save file and the renderer agree', () => {
+      const scene = runtime.createScene('Save Hidden');
+      const box = runtime.createEntity(scene.id, 'Box', 'mesh');
+      expect(runtime.setEntityVisible(scene.id, box.id, false)).toBe(true);
+
+      const snapshot = runtime.snapshotEntity(scene.id, box.id);
+      expect(snapshot.visible).toBe(false);
+      // Restore into a FRESH scene (a restore never overwrites live state), then read the restored
+      // record the way the registry and the renderer each would.
+      const fresh = runtime.createScene('Fresh');
+      const restored = runtime.restoreEntity(fresh.id, snapshot);
+      expect(restored.visible).toBe(false);
+      expect(restored.threeObject.visible).toBe(false);
+    });
+  });
 });
 describe('pickAt (v182) — the runtime names the body under a view point', () => {
   /** A rig aimed at the origin from +Z, so NDC (0, 0) IS the origin — every case reasons from there. */

@@ -84,6 +84,13 @@ export interface SceneComposerLike extends SceneRuntimeLike {
    *  fake without a lighting gate is a legitimate host, and `setLight` on the surface answers honestly
    *  (the unchanged report) when absent. */
   setLightState?(sceneId: string, lightId: string, change: { enabled?: boolean; intensity?: number }): boolean;
+  /** v197 — rename one body. `false` when the host holds no such scene/entity or the name is blank.
+   *  Optional like `setLightState`: a host without the gate is legitimate, and `renameSelected` on the
+   *  surface answers the unchanged report. */
+  setEntityName?(sceneId: string, entityId: string, name: string): boolean;
+  /** v197 — show or hide one body. `false` when the host holds no such scene/entity or refuses the
+   *  ask. The real runtime moves the registry record and the three.js object TOGETHER. */
+  setEntityVisible?(sceneId: string, entityId: string, visible: boolean): boolean;
 }
 
 /**
@@ -370,6 +377,18 @@ export const LIGHT_INTENSITY_STEP = 0.1;
 export function clampLightIntensity(value: number): number {
   if (!Number.isFinite(value)) return LIGHT_INTENSITY_MIN;
   return Math.min(LIGHT_INTENSITY_MAX, Math.max(LIGHT_INTENSITY_MIN, value));
+}
+
+/**
+ * v197 — fold a rename ask into the name the host gate may receive: trimmed, non-empty. `null` when the
+ * ask names nothing — a blank prompt answer is a NO-ASK, not a rename to some invented name (the
+ * `clampLightIntensity` rule's string half: the surface folds BEFORE the host gate, and where a broken
+ * number folds to "off", a broken name folds to nothing at all).
+ */
+export function clampEntityName(raw: string | null | undefined): string | null {
+  if (typeof raw !== 'string') return null;
+  const trimmed = raw.trim();
+  return trimmed.length > 0 ? trimmed : null;
 }
 
 /**
@@ -723,6 +742,14 @@ export interface SceneSurface {
    *  range BEFORE the host sees it. The answer re-reads the live scene, so a host without a lighting
    *  gate answers the unchanged report — and the HUD shows what actually is, not what was asked. */
   setLight(lightId: string, change: { enabled?: boolean; intensity?: number }): SceneReport;
+  /** v197 — rename the SELECTED body. The ask is folded (trimmed) BEFORE the host gate; a blank ask or
+   *  no selection answers the unchanged report. When the host ACCEPTS, the pick record is re-pointed at
+   *  the accepted name — the same both-records-move rule the runtime's restore holds — so `selected`
+   *  and the live inspector can never disagree about what the body is called. */
+  renameSelected(name: string): SceneReport;
+  /** v197 — show or hide the SELECTED body. The answer re-reads the live scene, so a host without the
+   *  gate answers the unchanged report; a hidden body keeps its selection and its facts (visible: false). */
+  setSelectedVisible(visible: boolean): SceneReport;
   /** Put the camera back to the default orbit — the view the Studio opens with. */
   resetOrbit(): SceneReport;
   /** Add a body at the next free slot. Answers `null` when the runtime produced no entity. */
@@ -847,6 +874,26 @@ export function createStudioScene(
       // honest about a host that has no lighting gate at all.
       const asked = change.intensity !== undefined ? { ...change, intensity: clampLightIntensity(change.intensity) } : change;
       runtime.setLightState?.(built.sceneId, lightId, asked);
+      return buildSceneReport(runtime, counted, orbit, selected);
+    },
+    renameSelected(name) {
+      const next = clampEntityName(name);
+      const target = selected;
+      // A blank ask is a no-ask and no selection is nothing to rename — both answer the unchanged report
+      // rather than a refusal the host would have to phrase for a call that carried no question.
+      if (next === null || !target) return buildSceneReport(runtime, counted, orbit, selected);
+      if (runtime.setEntityName?.(built.sceneId, target.id, next) === true) {
+        // The pick record carries the name the pick SAW; an accepted rename makes that record stale, so
+        // it moves WITH the body (the runtime's restore rule). A host without the gate — or one that
+        // refused — leaves it as it was, and the report reads whichever name the live scene holds.
+        selected = { id: target.id, name: next };
+      }
+      return buildSceneReport(runtime, counted, orbit, selected);
+    },
+    setSelectedVisible(visible) {
+      const target = selected;
+      if (!target) return buildSceneReport(runtime, counted, orbit, selected);
+      runtime.setEntityVisible?.(built.sceneId, target.id, visible);
       return buildSceneReport(runtime, counted, orbit, selected);
     },
     resetOrbit() {

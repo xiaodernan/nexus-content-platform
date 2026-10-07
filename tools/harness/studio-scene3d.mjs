@@ -338,6 +338,69 @@ try {
     `report ${JSON.stringify(inspectorEmpty)} · HUD ${JSON.stringify(hudInspectorEmpty)}`,
   );
 
+  // ── M5 v197: the inspector's facts become EDITABLE — rename and hide, through the runtime's gate ──
+  // Pick Cube A again, then drive the inspector's own buttons. Every report is re-read from the live
+  // scene, so each assertion is about what the host now holds — never about what a button pressed.
+  await clickNdc(-0.1082, 0.0764, 'Cube A');
+  const hudEditVerbs = await page.evaluate(
+    "(() => { const rename = !!document.querySelector('[data-scene3d-inspector-rename]'); const vis = document.querySelector('[data-scene3d-inspector-visible]'); return { rename, vis: vis ? vis.textContent : null }; })()",
+  );
+  check(
+    'a picked body carries its edit verbs — a rename button and a hide button that states the state',
+    hudEditVerbs.rename === true && hudEditVerbs.vis === 'hide',
+    JSON.stringify(hudEditVerbs),
+  );
+
+  await page.evaluate("document.querySelector('[data-scene3d-inspector-visible]').click()");
+  const hiddenInspector = await page.waitForFunction(
+    "(() => { const r = window.__nexusScene3d?.scene3d(); return r && r.inspector && r.inspector.visible === false ? r.inspector : null; })()",
+    { timeout: 10000 },
+  );
+  const hudHidden = await page.evaluate("document.querySelector('[data-scene3d-inspector]')?.textContent ?? null");
+  check(
+    'hiding the picked body moves BOTH records — the report says hidden and the verb flips to show',
+    hiddenInspector !== null && hudHidden !== null && hudHidden.includes('hidden'),
+    `${JSON.stringify(hiddenInspector)} · HUD ${JSON.stringify(hudHidden)}`,
+  );
+
+  await page.evaluate("document.querySelector('[data-scene3d-inspector-visible]').click()");
+  const shownInspector = await page.waitForFunction(
+    "(() => { const r = window.__nexusScene3d?.scene3d(); return r && r.inspector && r.inspector.visible === true ? r.inspector : null; })()",
+    { timeout: 10000 },
+  );
+  check('showing it again restores every record — the toggle is reversible', shownInspector !== null, JSON.stringify(shownInspector));
+
+  // The rename asks through a prompt, and the harness owns the dialog. A BLANK answer is a no-ask:
+  // the gate must never be called, so the pick record keeps the name the body still has. The check
+  // counts prompt invocations because a dead button would also leave the name unchanged — the count
+  // proves the ask HAPPENED and the folding (not silence) held the name.
+  await page.evaluate("window.prompt = () => { window.__v197prompts = (window.__v197prompts ?? 0) + 1; return '   '; }");
+  await page.evaluate("document.querySelector('[data-scene3d-inspector-rename]').click()");
+  const blankHeld = await page.waitForFunction(
+    "(() => { const r = window.__nexusScene3d?.scene3d(); return r && r.selected && r.selected.name === 'Cube A' && window.__v197prompts === 1 ? r.selected : null; })()",
+    { timeout: 10000 },
+  );
+  check('a blank prompt answer is a no-ask — the pick record keeps the name the body still holds', blankHeld !== null, JSON.stringify(blankHeld));
+
+  await page.evaluate("window.prompt = () => 'Renamed Body'");
+  await page.evaluate("document.querySelector('[data-scene3d-inspector-rename]').click()");
+  const renamedInspector = await page.waitForFunction(
+    "(() => { const r = window.__nexusScene3d?.scene3d(); return r && r.selected && r.selected.name === 'Renamed Body' && r.inspector && r.inspector.name === 'Renamed Body' ? r.inspector : null; })()",
+    { timeout: 10000 },
+  );
+  const hudRenamed = await page.evaluate("document.querySelector('[data-scene3d-inspector]')?.textContent ?? null");
+  check(
+    'the rename reaches the runtime — pick record, live registry and inspector all read the new name',
+    renamedInspector !== null && hudRenamed !== null && hudRenamed.includes('Renamed Body'),
+    `${JSON.stringify(renamedInspector)} · HUD ${JSON.stringify(hudRenamed)}`,
+  );
+
+  // The rename is REAL state, not HUD text: clear the selection, pick the same spot again, and the
+  // picker — which reads the live registry — answers the NEW name.
+  await clickNdc(-0.84, 0.88, '');
+  await clickNdc(-0.1082, 0.0764, 'Renamed Body');
+  check('a fresh pick of the same body names it by its NEW name — the registry really moved', (await selectedOf())?.name === 'Renamed Body', JSON.stringify(await selectedOf()));
+
   // ── M5 v163: the scene SURVIVES the surface — save, load, and the document door ─────────────────
   // Save records the LIVE scene in the runtime's own format; load restores it into a FRESH scene (the
   // demo scene and its loop are never touched); send-to-document files the AUTHORED bodies into the

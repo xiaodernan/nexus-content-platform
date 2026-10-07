@@ -232,6 +232,56 @@ describe('the Studio’s scene, composed on the REAL runtime', () => {
     expect(scene.threeScene.children).toContain(directional.threeLight);
   });
 
+  // M5 v197 — the inspector's edit chain on the shipped runtime: the surface folds the ask, the
+  // runtime's gate writes the LIVE records (BOTH of them, for visibility), and the report re-reads the
+  // scene — so the HUD states the body's state, never the button's opinion.
+  it('the inspector is EDITABLE end to end — surface ask, runtime gate, both records, honest report', () => {
+    const headless = headlessRuntime();
+    runtime = headless.runtime;
+    const adapter: SceneAdapterLike = {
+      placeCamera(sceneId: string, cameraId: string, position: SceneVec3, lookAt: SceneVec3) {
+        const found = headless.runtime.getScene(toSceneId(sceneId))?.cameras.get(toCameraId(cameraId));
+        if (!found) return false;
+        found.threeCamera.position.set(position.x, position.y, position.z);
+        found.threeCamera.lookAt(new THREE.Vector3(lookAt.x, lookAt.y, lookAt.z));
+        found.threeCamera.updateMatrixWorld(true);
+        return true;
+      },
+      pickAt(sceneId: string, nx: number, ny: number) {
+        return headless.runtime.pickAt(toSceneId(sceneId), nx, ny);
+      },
+    };
+    const surface = createStudioScene(headless.runtime, () => {}, adapter);
+    headless.runtime.resize(800, 600);
+    // The pick is v182's answer: Cube B stands under the view center.
+    const picked = surface.pickAt(400, 300);
+    expect(picked.selected).toEqual({ id: surface.bodyIds[2], name: 'Cube B' });
+    const selectedId = surface.bodyIds[2]!;
+    const scene = headless.runtime.getScene(toSceneId(surface.sceneId))!;
+
+    // Rename through the surface: the live registry record carries it, the pick record moves WITH it
+    // (the runtime's restore rule), and the inspector reads the new name off the live scene.
+    const renamed = surface.renameSelected('  Hero  ');
+    expect(renamed.selected).toEqual({ id: selectedId, name: 'Hero' });
+    expect(renamed.inspector?.name).toBe('Hero');
+    expect(scene.entities.get(toEntityId(selectedId))!.name).toBe('Hero');
+
+    // Hide through the surface: BOTH records move together — and the runtime's own picker then skips
+    // the hidden body, so the registry and the ray agree about what is on screen.
+    const hidden = surface.setSelectedVisible(false);
+    const entity = scene.entities.get(toEntityId(selectedId))!;
+    expect(entity.visible).toBe(false);
+    expect(entity.threeObject.visible).toBe(false);
+    expect(hidden.inspector?.visible).toBe(false);
+    expect(hidden.selected).toEqual({ id: selectedId, name: 'Hero' });
+
+    // Show it again and every record says so.
+    const shown = surface.setSelectedVisible(true);
+    expect(scene.entities.get(toEntityId(selectedId))!.visible).toBe(true);
+    expect(scene.entities.get(toEntityId(selectedId))!.threeObject.visible).toBe(true);
+    expect(shown.inspector?.visible).toBe(true);
+  });
+
   it('every body the surface hands the frame write is a REAL three.js object it can move', () => {
     const headless = headlessRuntime();
     runtime = headless.runtime;

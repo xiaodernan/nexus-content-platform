@@ -379,6 +379,26 @@ export default function Scene3D() {
     setReport(surface.setLight(lightId, { intensity: light.intensity + direction * LIGHT_INTENSITY_STEP }));
   }, []);
 
+  /** v197 — the inspector's edit controls. Both go THROUGH the surface (`renameSelected` /
+   *  `setSelectedVisible`), which folds the ask and hands the rest to the runtime's gate; the report
+   *  that comes back re-reads the live scene, so the inspector line is the body's state, never the
+   *  button's opinion. The rename ask comes from a prompt — a cancelled or blank one is a no-ask. */
+  const onInspectorRename = useCallback(() => {
+    const surface = surfaceRef.current;
+    if (!surface) return;
+    const answer = window.prompt('Rename the selected body');
+    if (answer === null) return;
+    setReport(surface.renameSelected(answer));
+  }, []);
+
+  const onInspectorToggleVisible = useCallback(() => {
+    const surface = surfaceRef.current;
+    if (!surface) return;
+    const facts = surface.report().inspector;
+    if (!facts) return;
+    setReport(surface.setSelectedVisible(!facts.visible));
+  }, []);
+
   // The keyboard listener is its own effect so it can depend on the stable `onKeyPan` without touching
   // the mount effect that owns the runtime's lifecycle.
   useEffect(() => {
@@ -805,6 +825,22 @@ export default function Scene3D() {
                   ? `(${report.inspector.position.x.toFixed(2)}, ${report.inspector.position.y.toFixed(2)}, ${report.inspector.position.z.toFixed(2)})`
                   : '(position unknown)'}{' '}
                 · {report.inspector.visible ? 'visible' : 'hidden'}
+                {/* v197 — the inspector's own edit verbs, over the same selection the facts read. The
+                    labels state the ACTION; what actually happened is the report that follows, read
+                    from the live scene. */}
+                <span style={{ marginLeft: 6, display: 'inline-flex', gap: 4, pointerEvents: 'auto' }}>
+                  <button type="button" className="btn" data-scene3d-inspector-rename onClick={onInspectorRename}>
+                    rename
+                  </button>
+                  <button
+                    type="button"
+                    className="btn"
+                    data-scene3d-inspector-visible={report.inspector.visible ? 'on' : 'off'}
+                    onClick={onInspectorToggleVisible}
+                  >
+                    {report.inspector.visible ? 'hide' : 'show'}
+                  </button>
+                </span>
               </div>
             )}
             {/* v183 — the scene's declared lights, each with on/off and −/+ brightness. The numbers come
