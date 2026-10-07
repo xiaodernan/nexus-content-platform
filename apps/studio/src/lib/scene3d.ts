@@ -37,7 +37,11 @@ import { frameNode, ops, textNode, type Op } from '@nexus/design-model';
 export interface SceneLike {
   id: string;
   name: string;
-  entities: Map<string, { id: string; name: string }>;
+  /** v192 — the entity shape is read LOOSELY (the way `lighting` is): every host declares id and name;
+   *  kind, visibility and position are wherever the host keeps them (the real runtime keeps the
+   *  position on the wrapped three.js object, reachable through `transform.position`), and a host that
+   *  declares none simply reports an inspector with fewer facts. */
+  entities: Map<string, { id: string; name: string; type?: string; visible?: boolean; position?: SceneVec3; transform?: { position?: SceneVec3 } }>;
   cameras: Map<string, { id: string; name: string; active: boolean }>;
   animations: Map<string, { id: string }>;
   /** v183 — the scene's declared lights, read LOOSELY: a host that declares none simply reports none,
@@ -369,6 +373,45 @@ export function clampLightIntensity(value: number): number {
 }
 
 /**
+ * v192 — the selected body's INSPECTOR facts, as the report states them (plain, JSON-safe).
+ *
+ * Read from the LIVE scene at report time — the same rule the lighting follows — so the panel shows
+ * what the host holds NOW, not what the pick named THEN. A body the scene no longer holds (removed,
+ * or the scene swapped) has no facts: the selection stays a name, the inspector answers null, and
+ * nothing invents a position for a body that is gone.
+ */
+export interface SceneSelectionFacts {
+  id: string;
+  name: string;
+  /** The entity's declared kind (`mesh`, `group`, …). `unknown` when the host declares none. */
+  kind: string;
+  /** World position from wherever the host keeps it. null = the host declared no position — a fact
+   *  the report refuses to invent (the `duration: null` rule, one surface over). */
+  position: SceneVec3 | null;
+  visible: boolean;
+}
+
+/** Read the selected body's facts off the LIVE scene. Null when nothing is selected, there is no
+ *  live scene, or the selected body is no longer in it — each an honest "nothing to inspect". */
+export function selectionFactsOf(scene: SceneLike | null, selected: { id: string; name: string } | null): SceneSelectionFacts | null {
+  if (!selected || !scene) return null;
+  const e = scene.entities.get(selected.id);
+  if (!e) return null;
+  const p = e.position ?? e.transform?.position;
+  const finite = (v: number | undefined): v is number => typeof v === 'number' && Number.isFinite(v);
+  const position = p && finite(p.x) && finite(p.y) && finite(p.z) ? { x: p.x, y: p.y, z: p.z } : null;
+  return {
+    id: e.id,
+    name: e.name,
+    kind: typeof e.type === 'string' ? e.type : 'unknown',
+    position,
+    // A three.js Object3D is visible by default; the runtime sets `visible: true` on every entity it
+    // builds. A host that declares nothing is declaring the default, not an invisible body.
+    visible: e.visible !== false,
+  };
+}
+
+/**
  * The Studio's scene, as a plain JSON-safe report.
  *
  * `frames` is passed IN rather than read off the runtime: the runtime does not count frames, the frame
@@ -410,6 +453,12 @@ export interface SceneReport {
    * every later report carries the selection until another pick replaces or clears it.
    */
   selected: { id: string; name: string } | null;
+  /**
+   * v192 — the selected body's facts, read from the LIVE scene at report time (the lighting rule):
+   * kind, position and visibility as the host holds them NOW. Null when nothing is selected, or the
+   * selected body is no longer in the live scene — a name whose body left has nothing to inspect.
+   */
+  inspector: SceneSelectionFacts | null;
 }
 
 const EMPTY_STATS = { drawCalls: 0, triangles: 0, points: 0, lines: 0 };
@@ -498,6 +547,7 @@ export function buildSceneReport(
     },
     orbit,
     selected,
+    inspector: selectionFactsOf(scene ?? null, selected),
   };
 }
 

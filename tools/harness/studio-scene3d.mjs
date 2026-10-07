@@ -294,6 +294,25 @@ try {
     `${JSON.stringify(await selectedOf())} · HUD ${JSON.stringify(hudPickedA)}`,
   );
 
+  // v192 — the pick's INSPECTOR: the selected body's facts read from the LIVE scene at report time.
+  // The kind and visibility are exact; the position is asserted as PRESENT but never as a number —
+  // the product's frame loop bobs every body, so any printed coordinate would drift.
+  const hudInspectorA = await page.evaluate("document.querySelector('[data-scene3d-inspector]')?.textContent ?? null");
+  const inspectorA = (await page.evaluate('window.__nexusScene3d.scene3d()'))?.inspector ?? null;
+  check(
+    'the selected body has an inspector — kind and visibility from the live scene, position shown',
+    inspectorA !== null
+      && inspectorA.name === 'Cube A'
+      && inspectorA.kind === 'mesh'
+      && inspectorA.visible === true
+      && inspectorA.position !== null
+      && hudInspectorA !== null
+      && hudInspectorA.includes('Cube A')
+      && hudInspectorA.includes('mesh')
+      && hudInspectorA.includes('visible'),
+    `${JSON.stringify(inspectorA)} · HUD ${JSON.stringify(hudInspectorA)}`,
+  );
+
   await clickNdc(0.1316, -0.0287, 'Cube C');
   check(
     'and clicking where Cube C stands names a DIFFERENT body — the pick is spatial, not a constant',
@@ -308,6 +327,15 @@ try {
     'clicking empty sky CLEARS the selection, and the HUD shows an honest dash',
     (await selectedOf()) === null && hudPickedEmpty !== null && hudPickedEmpty.includes('—'),
     `${JSON.stringify(await selectedOf())} · HUD ${JSON.stringify(hudPickedEmpty)}`,
+  );
+
+  // v192 — a cleared selection has NO inspector: the HUD shows nothing rather than stale facts.
+  const hudInspectorEmpty = await page.evaluate("document.querySelector('[data-scene3d-inspector]')?.textContent ?? null");
+  const inspectorEmpty = (await page.evaluate('window.__nexusScene3d.scene3d()'))?.inspector ?? null;
+  check(
+    'a cleared selection leaves no inspector — no stale facts about a body nobody picked',
+    inspectorEmpty === null && hudInspectorEmpty === null,
+    `report ${JSON.stringify(inspectorEmpty)} · HUD ${JSON.stringify(hudInspectorEmpty)}`,
   );
 
   // ── M5 v163: the scene SURVIVES the surface — save, load, and the document door ─────────────────

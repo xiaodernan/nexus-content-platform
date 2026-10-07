@@ -102,6 +102,16 @@ const adapter = {
   },
 };
 
+// v192 — the pick seam, deterministic on purpose. The real raycaster needs a GL context and lives in the
+// component; what this proof exercises is the INSPECTOR, so the adapter answers whichever body
+// `pickTarget` names (null = a miss, which must clear the selection).
+let pickTarget = null;
+adapter.pickAt = (sid, _nx, _ny) => {
+  const scene = runtime.getScene(sceneId(sid));
+  const target = [...(scene?.entities.values() ?? [])].find((e) => e.name === pickTarget);
+  return target ? { entityId: target.id, name: target.name, distance: 1 } : null;
+};
+
 // The component's saver (v163), written the same way: the ONLY place the runtime's real save file and
 // the surface's structural one meet. What passes through is unparaphrased.
 const saver = {
@@ -336,9 +346,76 @@ assert.throws(() => composeDocumentOps({ pageId: doc.activePageId, index: 0, sce
 assert.throws(() => composeDocumentOps({ pageId: '', index: 0, sceneName: 'S', bodies: facts }), /has to land somewhere/, 'and so is a frame with no parent');
 console.log(`[§6] the scene survives the process and enters the document: save carried the caller's instant (${namedInstant}) and 5 bodies through JSON unchanged · a load restored them into a fresh scene under the same ids while the demo scene stayed active and untouched · the 1 AUTHORED body became one addSubtree of ${op.nodes.length} nodes a real document applied, read back as a spec, and undid cleanly`);
 
-// ── §7 the home repository never moved ───────────────────────────────────────────────────────────────
+// ── §7 the selected body's INSPECTOR, over the REAL runtime (M5 v192) ────────────────────────────────
+// The facts are read from the LIVE scene at report time (the lighting rule), so this section checks both
+// halves: that a pick produces facts, and that those facts FOLLOW the scene rather than being cached at the
+// moment of the pick.
+//
+// The selection is made through the surface's OWN `pickAt`, not by reaching into it — but the raycaster is
+// this proof's: the real one lives in the component and needs a GL context, and a raycaster's accuracy is
+// v182's subject, not this section's. `pickTarget` is what the deterministic adapter below answers.
+runtime.resize(800, 600);
+assert.equal(surface.report().inspector, null, 'nothing selected means nothing to inspect');
+
+pickTarget = 'Cube A';
+surface.pickAt(400, 300);
+const picked = surface.report();
+assert.ok(picked.selected, 'the pick recorded a selection');
+assert.equal(picked.selected.name, 'Cube A');
+
+const inspectorFacts = picked.inspector;
+assert.ok(inspectorFacts, 'a selected body has an inspector');
+assert.equal(inspectorFacts.id, picked.selected.id);
+assert.equal(inspectorFacts.name, 'Cube A');
+assert.equal(inspectorFacts.kind, 'mesh', 'the kind is the RUNTIME’s own, not a label this module chose');
+assert.equal(inspectorFacts.visible, true);
+assert.ok(inspectorFacts.position, 'and a position, because this host declares one');
+// Compared against the runtime's OWN object rather than a constant: the controller pins
+// `transform.position === threeObject.position`, so agreeing with it means the inspector read the live
+// source. A hard-coded -1.6/0/0 here would pass even if the inspector invented its numbers.
+const cubeA = [...runtime.getScene(surface.sceneId).entities.values()].find((e) => e.name === 'Cube A');
+assert.ok(cubeA, 'the real runtime holds Cube A');
+assert.ok(
+  Math.abs(inspectorFacts.position.x - cubeA.threeObject.position.x) < 1e-9 &&
+    Math.abs(inspectorFacts.position.y - cubeA.threeObject.position.y) < 1e-9 &&
+    Math.abs(inspectorFacts.position.z - cubeA.threeObject.position.z) < 1e-9,
+  'the position is the one the runtime holds',
+);
+console.log(`[§7] the inspector reads the LIVE scene: "${inspectorFacts.name}" is a ${inspectorFacts.kind}, ${inspectorFacts.visible ? 'visible' : 'hidden'}, at (${inspectorFacts.position.x}, ${inspectorFacts.position.y}, ${inspectorFacts.position.z}) — the runtime's own position, not a constant`);
+
+// MOVE the body through the runtime and the inspector follows. A report that cached the facts at pick time
+// would answer the OLD position here, which is exactly the failure this check exists to catch.
+const movedBy = 3;
+cubeA.threeObject.position.x += movedBy;
+const movedInspector = surface.report().inspector;
+assert.ok(movedInspector, 'the inspector is still there after the body moved');
+assert.ok(
+  Math.abs(movedInspector.position.x - (inspectorFacts.position.x + movedBy)) < 1e-9,
+  `the inspector followed the live body: expected ${inspectorFacts.position.x + movedBy}, got ${movedInspector.position.x}`,
+);
+console.log(`[§7] and it FOLLOWS the scene: moving the body +${movedBy} moved the reported x ${inspectorFacts.position.x} → ${movedInspector.position.x} with no re-pick — the facts are read at report time, not remembered from the pick`);
+
+// A pick that hits nothing CLEARS the selection, and a cleared selection has no inspector.
+pickTarget = null;
+surface.pickAt(400, 300); // the pick that MISSES — without it the selection is untouched, which is the
+// first draft of this section's bug: it read the report and expected a clearing that no call had performed.
+const cleared = surface.report();
+assert.equal(cleared.selected, null, 'a pick into empty space clears the selection');
+assert.equal(cleared.inspector, null, 'and leaves no inspector behind');
+pickTarget = 'Cube A';
+surface.pickAt(400, 300);
+
+// A body that LEAVES the scene has nothing to inspect: the selection stays a name, the facts go null, and
+// nothing invents a position for a body that is gone.
+surface.removeBody(cubeA.id);
+const goneReport = surface.report();
+assert.equal(goneReport.inspector, null, 'a removed body has no facts');
+assert.ok(goneReport.selected, 'while the selection is still the name it was — the two are separate state');
+console.log('[§7] and a body that LEAVES the scene has nothing to inspect: the selection stays a name, the inspector answers null, and no position is invented for a body that is gone');
+
+// ── §8 the home repository never moved ───────────────────────────────────────────────────────────────
 rmSync(box, { recursive: true, force: true });
-assert.equal(execFileSync('git', ['rev-parse', 'HEAD'], { encoding: 'utf8' }).trim(), homeHead, '§7: this repository HEAD byte-identical — everything here ran in memory');
+assert.equal(execFileSync('git', ['rev-parse', 'HEAD'], { encoding: 'utf8' }).trim(), homeHead, '§8: this repository HEAD byte-identical — everything here ran in memory');
 
 console.log(`\n[summary] M5 v142+v163: the FIRST product consumer of @nexus/three-runtime — the Studio's 3D surface, graded from the SHIPPED Studio module (type-stripped, not copied) over the SHIPPED runtime · 1 scene + ${report.scene.entities} bodies + 1 aimed camera composed in memory with 0 GL objects · the v142 lighting defect measured as a term: ${withLights} lit vs ${withoutLights} unlit · the scene saved and restored in memory, the authored body filed into a REAL document as an undoable op · home HEAD byte-identical: yes`);
 console.log('[scene-surface-proof] ALL ASSERTIONS PASSED (the 3D lane is reachable from the product, saves and restores what it composed, and files honest specs — never fake previews)');

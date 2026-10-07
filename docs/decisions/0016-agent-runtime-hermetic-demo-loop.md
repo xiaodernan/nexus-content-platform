@@ -8775,3 +8775,42 @@ ASSET** — no generator runs, because no generator is attached.
   load replaces the live world in place (the demo is the initial state, not a fresh sibling the way
   the 3D surface's demo scene is), and the engine's own `autoSaveInterval` stays 0 in the panel —
   persistence here is a verb the surface performs, not a timer it starts.
+
+### Amendment 192 (M5 v192, studio) — the picked body gets an INSPECTOR, read from the LIVE scene at report time — and a body that has left the scene reports NOTHING rather than stale facts
+
+_Numbering: 192 was free (`grep -ao "^### Amendment 1[0-9][0-9]"` topped out at 191). Full narrative in
+`docs/evidence/studio/README.md`; this is the ledger entry._
+
+- **The gap this closes.** v182 made a body PICKABLE: a click named it and the HUD printed the name. That is
+  a label, not information — the panel could say WHICH body was picked and nothing about it. v192 adds the
+  facts: kind, world position and visibility.
+- **Read at REPORT time, not remembered from the pick.** `selectionFactsOf(scene, selected)` reads the live
+  scene every time a report is built, and all seven of the surface's report call sites pass the current
+  selection. A report that cached the facts at pick time would describe a body where it USED to be, which is
+  the failure the proof exists to catch: it moves a body +3 through the runtime and asserts the reported x
+  moves with it, with no re-pick.
+- **The position is compared against the runtime's own object, not a constant.** The frame loop BOBS every
+  body, so the live y is a fraction that changes per frame (measured: `0.0022` headlessly, `0.1269` in the
+  browser). A proof asserting `-1.6, 0, 0` would pass against an inspector that invented its numbers; this
+  one asserts agreement with `threeObject.position`, which the controller pins to `transform.position`.
+- **A fact the report refuses to invent.** `position: SceneVec3 | null` — null when the host declares no
+  position, the same rule as `duration: null` on the asset surface, one surface over. `kind` answers
+  `'unknown'` for a host that declares no type rather than guessing one.
+- **A body that LEAVES the scene has nothing to inspect.** The selection stays the NAME it was (the two are
+  separate state) and the inspector answers `null`; nothing invents a position for a body that is gone. A
+  pick that hits empty space clears the selection and with it the facts — no stale rows about a body nobody
+  picked.
+- **Evidence.** `src/lib/scene3dSurface.test.ts` gains the inspector cases over the REAL runtime;
+  `scene-surface-proof.mjs` gains **§7** (renumbering HEAD to §8) and, with it, a **deterministic
+  `pickAt` on the proof's adapter** — the real raycaster needs a GL context and a raycaster's accuracy is
+  v182's subject, so this proof supplies the seam and exercises the surface's own `pickAt` path rather than
+  reaching into it; `tools/harness/studio-scene3d.mjs` — the REAL browser, **53/53 → 55/55**: the probe picks
+  Cube A, checks the report and the HUD carry `mesh` / a position / `visible`, then clears the selection and
+  checks both answer nothing. apps/studio **332 → 369** (29 files), `tsc` clean.
+- **A defect the section found in ITSELF.** The first draft set the pick target to null and then read the
+  report WITHOUT performing the miss-pick, so it expected a clearing no call had performed — `actual:
+  {id, name: 'Cube A'}, expected: null`. The pick is now made explicitly. A section that asserts a state
+  change must perform the action that causes it.
+- **Bounds (§60).** The inspector reports FOUR facts a host declares (id, name, kind, position, visibility).
+  It does not read components, materials, children, animation state or anything else the runtime holds, and
+  it cannot EDIT any of them — there is no setter, and the panel renders the facts as text.

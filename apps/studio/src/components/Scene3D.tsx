@@ -795,6 +795,18 @@ export default function Scene3D() {
             <div data-scene3d-picked>
               picked: {report.selected ? <strong>{report.selected.name}</strong> : '—'}
             </div>
+            {/* v192 — the selected body's facts, read from the LIVE scene at report time (the lighting
+                rule). Absent when nothing is selected or the body left the scene: a name whose body
+                is gone has nothing to inspect, and the HUD shows nothing rather than stale facts. */}
+            {report.inspector && (
+              <div data-scene3d-inspector>
+                {report.inspector.name} · {report.inspector.kind} ·{' '}
+                {report.inspector.position
+                  ? `(${report.inspector.position.x.toFixed(2)}, ${report.inspector.position.y.toFixed(2)}, ${report.inspector.position.z.toFixed(2)})`
+                  : '(position unknown)'}{' '}
+                · {report.inspector.visible ? 'visible' : 'hidden'}
+              </div>
+            )}
             {/* v183 — the scene's declared lights, each with on/off and −/+ brightness. The numbers come
                 from the report (the LIVE scene), so a host without a lighting gate shows its lights
                 unchanged rather than pretending a press did something. */}

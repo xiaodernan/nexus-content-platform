@@ -108,8 +108,13 @@ headless proof → product surface → real-browser verification → record the 
   (`delete` answers its boolean, "already gone" is `ok: true, deleted: false`; a rename's NEW name
   is a server-side creation under the store's creation rule, a missing OLD name refused by name),
   and the rows are re-probed after each verb, never hand-edited (studio 318 → **327**, harness
-  46 → **53/53**; ADR 0016 amendment 186). Still open: none — M5's open list stays empty through
-  v186 (the v184 bound "no disk delete or rename from the panel" is retired).
+  46 → **53/53**; ADR 0016 amendment 186). **Now INSPECTABLE (v192):** the picked body has FACTS —
+  `selectionFactsOf` reads the live scene at report time (kind, world position, visibility; `position`
+  is `null` rather than invented when the host declares none, the `duration: null` rule one surface
+  over), the HUD renders them, and a body that has LEFT the scene reports nothing while the selection
+  stays the name it was (studio 327 → **369**, harness 53 → **55/55**; ADR 0016 amendment 192). Still
+  open: the inspector reports what a host DECLARES — no components, materials, children or animation
+  state, and no way to edit any of it.
 - **M6–M10:** planned, not started (autonomous build, community, creator economy, ops, external agents).
 
 ## Execution order (next increments)

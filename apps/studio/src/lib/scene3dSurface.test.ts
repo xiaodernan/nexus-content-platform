@@ -12,6 +12,7 @@ import {
 import {
   buildDemoScene,
   createStudioScene,
+  selectionFactsOf,
   STUDIO_CAMERA_LOOK_AT,
   STUDIO_CAMERA_POSITION,
   type SceneAdapterLike,
@@ -128,6 +129,51 @@ describe('the Studio’s scene, composed on the REAL runtime', () => {
     expect(picked.selected).toEqual({ id: surface.bodyIds[2], name: 'Cube B' });
     // Empty sky at the top-left corner: a miss, and the report says so.
     expect(surface.pickAt(40, 30).selected).toBeNull();
+  });
+
+  it('the pick gains INSPECTOR facts read from the live scene — kind, position, visibility (v192)', () => {
+    const headless = headlessRuntime();
+    runtime = headless.runtime;
+    const adapter: SceneAdapterLike = {
+      placeCamera(sceneId: string, cameraId: string, position: SceneVec3, lookAt: SceneVec3) {
+        const found = headless.runtime.getScene(toSceneId(sceneId))?.cameras.get(toCameraId(cameraId));
+        if (!found) return false;
+        found.threeCamera.position.set(position.x, position.y, position.z);
+        found.threeCamera.lookAt(new THREE.Vector3(lookAt.x, lookAt.y, lookAt.z));
+        found.threeCamera.updateMatrixWorld(true);
+        return true;
+      },
+      pickAt(sceneId: string, nx: number, ny: number) {
+        return headless.runtime.pickAt(toSceneId(sceneId), nx, ny);
+      },
+    };
+    const surface = createStudioScene(headless.runtime, () => {}, adapter);
+    headless.runtime.resize(800, 600);
+
+    // The writeFrame here is a no-op, so Cube B still stands where the demo composed it — the one
+    // place an EXACT position assertion is honest. (The product's frame loop bobs bodies; the
+    // browser harness asserts the fact shape, never the number.)
+    const picked = surface.pickAt(400, 300);
+    expect(picked.selected?.name).toBe('Cube B');
+    expect(picked.inspector).toEqual({
+      id: surface.bodyIds[2],
+      name: 'Cube B',
+      kind: 'mesh',
+      position: { x: 0, y: 0.4, z: 0 },
+      visible: true,
+    });
+
+    // Remove the SELECTED body and the selection STAYS a name while the inspector answers null —
+    // the facts are the live scene's, and a scene that no longer holds the body has none.
+    const bodyId = surface.bodyIds[2]!;
+    surface.removeBody(bodyId);
+    const after = surface.report();
+    expect(after.selected).toEqual({ id: bodyId, name: 'Cube B' });
+    expect(after.inspector).toBeNull();
+
+    // A miss clears BOTH: no selection, and no facts to inspect.
+    expect(surface.pickAt(40, 30).inspector).toBeNull();
+    expect(surface.report().selected).toBeNull();
   });
 
   it('the declared lighting is IN the scene — the v142 defect, measured on the shipped runtime', () => {
@@ -259,5 +305,56 @@ describe('the Studio’s scene, composed on the REAL runtime', () => {
     // loop a reader can ask about with no GPU present.
     expect(surface.step(1).frames).toBe(1);
     expect(surface.report().frames).toBe(1);
+  });
+});
+
+describe('the selection facts are the LIVE scene’s answer, not the pick’s echo (v192)', () => {
+  const SELECTED = { id: 'e1', name: 'Cube A' };
+
+  /** A minimal structural scene: only id/name are required, exactly like the interface says. */
+  function sceneWith(entity?: {
+    id: string;
+    name: string;
+    type?: string;
+    visible?: boolean;
+    position?: SceneVec3;
+    transform?: { position?: SceneVec3 };
+  }) {
+    const entities = new Map<string, NonNullable<typeof entity>>();
+    if (entity) entities.set(entity.id, entity);
+    return { id: 's1', name: 'Studio Scene', entities, cameras: new Map(), animations: new Map() };
+  }
+
+  it('answers null for every honest "nothing to inspect": no selection, no scene, or the body is gone', () => {
+    expect(selectionFactsOf(sceneWith({ id: 'e1', name: 'Cube A' }), null)).toBeNull();
+    expect(selectionFactsOf(null, SELECTED)).toBeNull();
+    expect(selectionFactsOf(sceneWith(), SELECTED)).toBeNull();
+  });
+
+  it('reads what the host declares and never invents what it does not: kind unknown, position null, visible true', () => {
+    const facts = selectionFactsOf(sceneWith({ id: 'e1', name: 'Cube A' }), SELECTED);
+    expect(facts).toEqual({ id: 'e1', name: 'Cube A', kind: 'unknown', position: null, visible: true });
+  });
+
+  it('a visible:false body is reported hidden, and a non-finite position is a fact the report refuses to state', () => {
+    const hidden = selectionFactsOf(sceneWith({ id: 'e1', name: 'Cube A', visible: false }), SELECTED);
+    expect(hidden?.visible).toBe(false);
+    const drifted = selectionFactsOf(
+      sceneWith({ id: 'e1', name: 'Cube A', position: { x: Number.NaN, y: 0, z: 0 } }),
+      SELECTED,
+    );
+    expect(drifted?.position).toBeNull();
+  });
+
+  it('the position comes from wherever the host keeps it — top-level or transform.position', () => {
+    const top = selectionFactsOf(sceneWith({ id: 'e1', name: 'Cube A', position: { x: 1, y: 2, z: 3 } }), SELECTED);
+    expect(top?.position).toEqual({ x: 1, y: 2, z: 3 });
+    const nested = selectionFactsOf(
+      sceneWith({ id: 'e1', name: 'Cube A', transform: { position: { x: 4, y: 5, z: 6 } } }),
+      SELECTED,
+    );
+    expect(nested?.position).toEqual({ x: 4, y: 5, z: 6 });
+    const declared = selectionFactsOf(sceneWith({ id: 'e1', name: 'Cube A', type: 'mesh' }), SELECTED);
+    expect(declared?.kind).toBe('mesh');
   });
 });

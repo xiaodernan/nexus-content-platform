@@ -10,7 +10,7 @@ npm run build lint typecheck test     # via turbo: build 4/4 · lint 3/3 · type
 npm run verify:harness                # 8/8 harness capabilities (ADR 0017)
 npm run verify:studio                 # 19/19 golden-path assertions against the real bundle
 npm run verify:scene-surface          # the 3D surface's headless proof (M5 v142, amendment 142)
-npm run verify:scene                  # 11/11 3D-surface assertions in a real browser (needs the Studio on :3210)
+npm run verify:scene                  # 55/55 3D-surface assertions in a real browser (needs the Studio on :3210)
 npm run verify:assets-surface         # the Assets surface's headless proof (M3 v153, amendment 153)
 npm run verify:assets                 # 29/29 Assets-surface assertions in a real browser (needs the Studio on :3210)
 ```
@@ -21,14 +21,19 @@ Counts below are from `NODE_OPTIONS= npx vitest run --root <pkg> --no-file-paral
 | Package            | Result |
 | ------------------ | ------ |
 | @nexus/design-model| 32/32 vitest (`design-model` 18 incl. 3 rotated-hitTest + 2 rigid-geometry + 2 cycle-safe/visit-once `layoutPage` cases + `instances` 14), tsc clean |
-| @nexus/ai-providers| 7/7 vitest, tsc clean |
-| @nexus/agent-runtime| 232/232 vitest · tsc clean — M2 v0–v41, ADR 0016 am. 1–41; see `docs/evidence/agents/README.md` |
-| @nexus/exec-host   | 181/181 vitest (8 files: git staged/show/commit/log tools, env isolation, exec test runner) · tsc clean |
-| @nexus/studio      | 182/182 vitest (19 files: `agentDock` 18 `store-variants` 20 `assets` 14 `surface` 15 `scene3d` 16 `world` 11 `scene3dSurface` 5 `observability` 11 `rotate` 14 `dockPolicy` 6 `uiRun` 8 `render` 5 `minimap` 7 `instancePanel` 2 `align` 9 `persist` 7 `thumbnail` 5 `webfs` 3 `snap` 6) · tsc `--noEmit` clean · eslint `--max-warnings=0` clean · `next build` ✓ (4/4 static pages) |
+| @nexus/ai-providers| **20/20** vitest, tsc clean — the multimodal slice (asset library, demo image + video generators, character consistency, storyboard manager) |
+| @nexus/three-runtime| **453/453** vitest, tsc clean — M5: scene graph, entities, cameras, lighting, save/quest/combat/NPC surface, document/op-log integration |
+| @nexus/world-engine  | **43/43** vitest, tsc clean — M4: world/lore/character/location + relationships + tick + save/load |
+| @nexus/agent-runtime| **540/540** vitest · tsc clean — M2/M3/M4/M5 doors; see `docs/evidence/agents/README.md` |
+| @nexus/exec-host   | **309/309** vitest · tsc clean — the only `child_process` holder (ADR 0013 policy sandbox, incl. the v166 container host) |
+| @nexus/studio      | **369/369** vitest (29 files: `scene3d` 65 `assets` 41 `storageMeter` 21 `agentDock` 20 `store-variants` 20 `deployServer` 15 `surface` 15 `rotate` 14 `world` 14 `scene3dSurface` 12 `saveFsServer` 12 `observability` 11 `saveFsLane` 11 `align` 9 `containerServer` 8 `uiRun` 8 `worldSaveServer` 8 `buildServer` 7 `minimap` 7 `persist` 7 `worldSaveLane` 7 `dockPolicy` 6 `snap` 6 `buildLane` 5 `containerLane` 5 `render` 5 `thumbnail` 5 `webfs` 3 `instancePanel` 2) · tsc `--noEmit` clean |
 
-_Counts moved at M5 v142: the studio row was `119/119 (15 files)` and is now `149/149 (17 files)`.
-`instancePanel` gained no case — it gained a FIX (see the v142 section below), and the three new files are
-the 3D surface's. The `observability` row moved 9 → 11 with the second, separate reader._
+_The whole table was RE-MEASURED at M5 v192 and had drifted badly: it had stood at `agent-runtime 232`,
+`exec-host 181`, `ai-providers 7` and `studio 182/182 (19 files)`, and it listed **no row at all** for
+`three-runtime` or `world-engine` — two packages the Studio consumes directly. Every number above is a
+`vitest run --root <pkg> --no-file-parallelism` count taken on 2026-10-07. The `studio` row's per-file
+breakdown is machine-extracted rather than hand-written, because a hand-maintained list of 29 files is a
+list nobody re-reads. `verify:scene` also said `11/11` while the probe had grown to 55 assertions._
 
 ## Reproducible browser verification (ADR 0017)
 
@@ -823,3 +828,44 @@ the real daemon (real ephemeral run, 10 isolation flags, 0 mount flags); `tools/
 Bounds, stated: the route machine-approves because the human Allow-once already happened in the panel (the
 dock pipeline's own model, stated in the route source); one command is offered by name — the lane is a proof
 of life, not a shell; the runtime's headless tool doors remain unconsumed.
+
+## The picked body gets an INSPECTOR (M5 v192 — ADR 0016 amendment 192)
+
+v182 made a body pickable: a click named it and the HUD printed the name. A name is a label, not
+information. v192 adds the FACTS — kind, world position, visibility — read from the live scene at report
+time.
+
+- `selectionFactsOf(scene, selected)` in `src/lib/scene3d.ts` reads the live scene on every report build;
+  all seven of the surface's report call sites pass the current selection, so nothing is cached at pick time.
+- `SceneReport` gains `inspector: SceneSelectionFacts | null`. `position` is `SceneVec3 | null` — **null when
+  the host declares none, never invented**, the same rule as `duration: null` on the Assets surface one
+  milestone over. `kind` answers `'unknown'` rather than guessing.
+- The HUD renders `data-scene3d-inspector`: `Cube A · mesh · (-1.60, 0.12, 0.00) · visible`.
+- **A body that has LEFT the scene reports nothing.** The selection stays the NAME it was (the two are
+  separate state) and the inspector answers `null`; a pick into empty space clears both.
+
+**Why the position can never be asserted as a constant.** The frame loop BOBS every body, so the live y is a
+fraction that changes per frame — measured `0.0022732435670642045` headlessly and `0.12688570962266804` in
+the browser. A proof asserting `-1.6, 0, 0` would pass against an inspector that invented its numbers. The
+proof therefore asserts agreement with the runtime's own `threeObject.position`, which the controller pins to
+`transform.position`, and separately MOVES the body +3 to prove the facts follow (`-1.6 → 1.4` with no
+re-pick).
+
+| layer | what it proves |
+| --- | --- |
+| `src/lib/scene3dSurface.test.ts` | the inspector cases over the REAL runtime |
+| `scene-surface-proof.mjs` §7 | nothing selected → `null` · a pick produces facts whose position AGREES with the runtime's own object · moving the body moves the reported x · a miss-pick clears both · a removed body reports `null` while the selection survives |
+| `tools/harness/studio-scene3d.mjs` | the REAL browser, **55/55**: the probe picks Cube A, checks the report AND the HUD carry `mesh` / a position / `visible`, then clears the selection and checks both answer nothing |
+
+**The proof supplies its own raycaster, and says why.** The real `pickAt` needs a GL context and lives in the
+component; a raycaster's accuracy is v182's subject, not this section's. So the proof's adapter answers a
+deterministic target and the section exercises the surface's OWN `pickAt` path rather than reaching into the
+surface's internals.
+
+**A defect the section found in itself.** The first draft set the pick target to null and then read the report
+WITHOUT performing the miss-pick, expecting a clearing no call had performed (`actual: {id, name: 'Cube A'},
+expected: null`). A section that asserts a state change must perform the action that causes it.
+
+Bounds, stated: the inspector reports what a host DECLARES — id, name, kind, position, visibility. It does
+not read components, materials, children or animation state, and it cannot edit any of them: there is no
+setter and the HUD renders the facts as text.
