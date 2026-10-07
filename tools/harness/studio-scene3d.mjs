@@ -474,6 +474,33 @@ try {
   );
   check('clicking a disk row loads it into a FRESH scene (round trip through the real disk)', fromDisk !== null, fromDisk);
 
+  // ── M5 v185: the quota meter — the save area MEASURES what the store holds and shows the browser's
+  // own origin estimate, instead of guessing either ─────────────────────────────────────────────────
+  const meterLine = await page.waitForFunction(
+    "(() => { const n = document.querySelector('[data-scene3d-store-footprint]'); return n && /1 save · \\d+ chars in 'studio-scene'/.test(n.textContent) ? n.textContent : null; })()",
+    { timeout: 10000 },
+  );
+  check('the save area meters the store it really holds (measured chars, not a guess)', meterLine !== null, meterLine);
+
+  const originLine = await page.waitForFunction(
+    "(() => { const n = document.querySelector('[data-scene3d-origin-estimate]'); return n && n.textContent.includes('browser estimate, all storage APIs') ? n.textContent : null; })()",
+    { timeout: 10000 },
+  );
+  check('the origin line is the browser’s own estimate and labels what it covers', originLine !== null, originLine);
+
+  const barWidth = await page.waitForFunction(
+    "(() => { const n = document.querySelector('[data-scene3d-quota-bar]'); return n ? n.style.width : null; })()",
+    { timeout: 10000 },
+  );
+  check('the quota bar renders with the browser’s numbers (a real reading, not decoration)', typeof barWidth === 'string' && barWidth.endsWith('%'), barWidth);
+
+  await page.evaluate("document.querySelector('button[title=\"Delete last-saved\"]').click()");
+  const emptied = await page.waitForFunction(
+    "(() => { const n = document.querySelector('[data-scene3d-store-footprint]'); return n && n.textContent.includes('0 saves · 0 chars') ? n.textContent : null; })()",
+    { timeout: 10000 },
+  );
+  check('deleting the save re-measures the meter to empty — the reading follows the store', emptied !== null, emptied);
+
   // Back to 2D: the toggle must be reversible and the canvas must come back with its pixels.
   await page.evaluate("document.querySelector('[data-surface-toggle=\"2d\"]').click()");
   await page.waitForSelector('#nexus-canvas', 15000);

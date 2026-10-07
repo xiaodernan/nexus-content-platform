@@ -77,7 +77,14 @@ headless proof → product surface → real-browser verification → record the 
   disk` HUD controls whose rows load a disk save into a fresh scene — the harness reads the file
   back off disk with node:fs (2307 bytes, 5 bodies), and the HUD panel gets a max width so it
   stops swallowing drags aimed at the canvas (studio 283 → **297**, harness 37 → **42/42**; ADR
-  0016 amendment 184). Still open: a quota meter in the save dialog.
+  0016 amendment 184). **Now METERED (v185):** the save area measures what it holds instead of
+  guessing — the store line sums the chars the decorated listing measured (a JS string's length,
+  the unit localStorage quotas are counted in; `list()` still reads no bytes — the meter is the
+  caller that pays that cost on purpose), the origin line carries the browser's own
+  `storage.estimate()` labelled for what it covers (`browser estimate, all storage APIs`), a
+  missing estimate is named rather than invented, the percent bar renders only when both halves
+  are numeric, and every store mutation re-measures (studio 297 → **318**, harness 42 → **46/46**;
+  ADR 0016 amendment 185). Still open: none — M5's open list is empty as of v185.
 - **M6–M10:** planned, not started (autonomous build, community, creator economy, ops, external agents).
 
 ## Execution order (next increments)

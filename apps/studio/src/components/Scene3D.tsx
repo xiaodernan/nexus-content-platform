@@ -25,6 +25,15 @@ import {
 } from '@/lib/scene3d';
 import { installSceneBridge } from '@/lib/observability';
 import { SAVE_FS_LANE_DISK_SAVE_PATH, probeSaveFs, readSaveFromDisk, writeSaveToDisk } from '@/lib/saveFsLane';
+import {
+  footprintOf,
+  formatFootprint,
+  formatOriginEstimate,
+  originStorageEstimate,
+  quotaPct,
+  type OriginStorageEstimateView,
+  type StoreFootprint,
+} from '@/lib/storageMeter';
 import { useStudio } from '@/lib/store';
 
 /**
@@ -107,6 +116,10 @@ export default function Scene3D() {
   // v184: saves on the SERVER's disk, from the save-fs lane's probe (names only — a listing is a
   // fact about names, and reading every file's bytes to decorate a menu is the wrong seam).
   const [diskSaves, setDiskSaves] = useState<string[]>([]);
+  // v185: the quota meter — what the store MEASURES (the meter reads the bytes it reports, the cost
+  // the store's own listing refuses to pay) and what the browser estimates for the whole origin.
+  const [storeMeter, setStoreMeter] = useState<StoreFootprint | null>(null);
+  const [originEstimate, setOriginEstimate] = useState<OriginStorageEstimateView | null>(null);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -185,6 +198,8 @@ export default function Scene3D() {
                 savedAt: typeof parsed.savedAt === 'number' ? parsed.savedAt : 0,
                 version: typeof parsed.version === 'number' ? parsed.version : 0,
                 entityCount: Array.isArray(parsed.entities) ? parsed.entities.length : undefined,
+                // v185 — the meter's raw material: this string's own length, in chars.
+                chars: contents.length,
               };
             } catch {
               return { path, savedAt: 0, version: 0 };
@@ -255,6 +270,10 @@ export default function Scene3D() {
     // re-render on — it is a handle to a running loop.
     surfaceRef.current = surface;
     runtimeRef.current = runtime;
+
+    // v185 — the meter measures as it boots, so the save area never guesses what it holds.
+    setStoreMeter(footprintOf(saver.listSaveFiles?.() ?? []));
+    void originStorageEstimate(navigator).then(setOriginEstimate);
 
     const onResize = () => {
       size();
@@ -409,6 +428,17 @@ export default function Scene3D() {
   }, []);
 
   /**
+   * v185 — the quota meter's refresh. The footprint is measured from the decorated listing (the same
+   * read a browse makes), and the origin estimate is the browser's own. Both are re-measured after
+   * every store mutation — a meter that kept a stale reading would be a counter with a dial on it.
+   */
+  const refreshMeter = useCallback(() => {
+    const saver = saverRef.current;
+    setStoreMeter(footprintOf(saver?.listSaveFiles?.() ?? []));
+    void originStorageEstimate(navigator).then(setOriginEstimate);
+  }, []);
+
+  /**
    * M5 v163 — save, load, send to document.
    *
    * The instant is named HERE because the runtime owns a frame clock, not a wall clock, and refuses to
@@ -435,10 +465,12 @@ export default function Scene3D() {
       setSaveNote(
         `saved ${file.entities.length} bodies · ${file.format} v${file.version} · ${report.bytes} bytes in this origin's localStorage ('last-saved', reload-safe), not on disk`,
       );
+      // v185 — the store just changed; the meter re-measures rather than arithmetic-ing the delta.
+      refreshMeter();
     } catch (error) {
       setSaveNote(`save refused: ${(error as Error).message}`);
     }
-  }, []);
+  }, [refreshMeter]);
 
   const onLoad = useCallback(() => {
     const surface = surfaceRef.current;
@@ -487,6 +519,8 @@ export default function Scene3D() {
     }
     const saves = saver.listSaveFiles();
     setAvailableSaves(saves);
+    // v185 — the browse already holds the decorated listing; the footprint sums it for free.
+    setStoreMeter(footprintOf(saves));
     setSaveNote(`found ${saves.length} save${saves.length === 1 ? '' : 's'} in the store`);
   }, []);
 
@@ -501,10 +535,12 @@ export default function Scene3D() {
       // Clear selection if the deleted save was selected
       if (selectedSavePath === path) setSelectedSavePath(null);
       setSaveNote(removed ? `deleted ${path}` : `${path} was already gone`);
+      // v185 — a deletion frees origin storage; the meter re-measures both halves.
+      refreshMeter();
     } catch (error) {
       setSaveNote(`delete refused: ${(error as Error).message}`);
     }
-  }, [selectedSavePath]);
+  }, [selectedSavePath, refreshMeter]);
 
   const onRenameSave = useCallback((oldPath: string, newPath: string) => {
     const saver = saverRef.current;
@@ -520,10 +556,13 @@ export default function Scene3D() {
       // Update selection if the renamed save was selected
       if (selectedSavePath === oldPath) setSelectedSavePath(renamed);
       setSaveNote(`renamed "${oldPath}" to "${renamed}"`);
+      // v185 — same store, different name; the footprint is unchanged but re-measured anyway, so the
+      // meter never arithmetic-s what the store can answer directly.
+      refreshMeter();
     } catch (error) {
       setSaveNote(`rename refused: ${(error as Error).message}`);
     }
-  }, [selectedSavePath]);
+  }, [selectedSavePath, refreshMeter]);
 
   // M5 v184 — the disk lane. One save, two named destinations: the browser store gets the same
   // bytes the server's disk gets, and every answer (byte counts, refusals) is the stores' own.
@@ -542,6 +581,8 @@ export default function Scene3D() {
           savedAt,
         );
         const answer = await writeSaveToDisk(SAVE_FS_LANE_DISK_SAVE_PATH, file);
+        // v185 — the localStorage half landed above; the meter re-measures whatever the answer was.
+        refreshMeter();
         if (answer.ok) {
           setSaveNote(
             `saved ${file.entities.length} bodies → server disk (${answer.path}, ${answer.bytes} bytes) + localStorage (${storeReport.bytes} bytes, 'last-saved')`,
@@ -555,7 +596,7 @@ export default function Scene3D() {
         setSaveNote(`save refused: ${(error as Error).message}`);
       }
     })();
-  }, []);
+  }, [refreshMeter]);
 
   const onBrowseDisk = useCallback(() => {
     void (async () => {
@@ -641,6 +682,9 @@ export default function Scene3D() {
   }, []);
 
   const s = report?.scene ?? null;
+  // v185 — the quota bar renders only when the browser gave numbers; a percent that cannot be
+  // computed honestly is not computed (§60).
+  const originPct = quotaPct(originEstimate);
   // A scene the Studio composed holds exactly one camera; name it only when that is what the report says.
   const activeName = s && s.cameras === 1 ? s.cameraNames[0] ?? '—' : s?.activeCamera ? s.activeCamera : '—';
 
@@ -892,6 +936,25 @@ export default function Scene3D() {
               </div>
             </div>
           ))}
+        </div>
+        {/* v185 — the QUOTA METER, in the save area. The store line is measured (the meter reads the
+            bytes it reports); the origin line is the browser's own estimate and covers every storage
+            API, not just localStorage — the label says so. A missing estimate is named, not guessed. */}
+        <div data-scene3d-storage-meter style={{ marginTop: 8, fontSize: 10, color: 'var(--nexus-muted)' }}>
+          <div data-scene3d-store-footprint>
+            store: {storeMeter ? formatFootprint(storeMeter, 'studio-scene') : 'measuring…'}
+          </div>
+          <div data-scene3d-origin-estimate>
+            {originEstimate ? formatOriginEstimate(originEstimate) : 'origin: measuring…'}
+          </div>
+          {originPct !== null && (
+            <div style={{ marginTop: 3, height: 4, background: 'rgba(255,255,255,0.08)', borderRadius: 2, overflow: 'hidden' }}>
+              <div
+                data-scene3d-quota-bar
+                style={{ height: '100%', width: `${Math.max(0.5, originPct)}%`, background: 'rgba(102, 187, 106, 0.65)' }}
+              />
+            </div>
+          )}
         </div>
         {note && <div style={{ marginTop: 6, color: 'var(--nexus-muted)', maxWidth: 280 }}>{note}</div>}
         {saveNote && (

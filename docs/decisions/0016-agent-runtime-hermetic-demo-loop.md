@@ -8506,3 +8506,41 @@ route wrote and nothing browses sub-directories differently; no disk delete or r
 panel (the store supports both; the face does not expose them yet); no quota meter; `durable`
 is refused, not downgraded; and a save on disk is a file on THIS server - not a publish, not a
 backup, not a cloud.
+
+## Amendment 185 — the save area METERERS what it holds (M5 v185)
+
+v180 taught the store to refuse a full quota with a sentence; nothing above it showed the numbers
+that sentence is about. The save dialog asked for a quota meter, and the honest version of one
+measures instead of guessing. Two figures, each owned by whoever can actually measure it:
+
+**The store's own footprint.** `list()` still reads no bytes - that rule stands, because a menu
+that costs O(total bytes) is the wrong seam. The meter is the CALLER that pays the cost on
+purpose: the decorated listing (v169) already reads each save to show its header, and it now
+carries the file's `chars` with it; `footprintOf` sums what was measured. The unit is CHARS, not
+bytes - the figure is a JS string's `length` (UTF-16 code units), the same unit localStorage
+quotas are counted in, and "bytes" would be a claim about encodings this code does not make.
+An entry whose read failed stays in the save count and contributes nothing to the total - a
+meter that invented a size would be a lie with digits.
+
+**The origin's usage.** `navigator.storage.estimate()` is the browser's own answer, and it covers
+EVERY storage API on the origin, not just localStorage - the label says so. The adapter is a
+structural slice of `navigator` (`StorageEstimateHost`), half-answered estimates keep their
+unknown half ("quota unknown"), a missing estimate or a throwing one answers "the browser
+exposes no storage estimate here", and a percent is only computed when both halves are numeric
+and the quota is not zero - a percent that cannot be computed is not computed (§60).
+
+**Face.** The save area grows a meter block: the store line (`1 save · 2311 chars in
+'studio-scene'`), the origin line with its honesty tag (`browser estimate, all storage APIs`),
+and a 4px bar whose width is the percent (a 0.5% floor so a near-empty origin still shows a
+sliver). The meter re-MEASURES after every store mutation - save, save-to-disk, delete, rename,
+browse - never arithmetic-ing a delta the store can answer directly.
+
+**Verification.** studio 297 -> **318** (+21: footprint/format/bytes/estimate-adapter/percent/
+origin-sentence, including a half-answered estimate and a throwing one); tsc clean, lint clean
+at `--max-warnings=0`, `next build` clean, harness **46/46** (`backend=webgl`) - the meter reads
+`1 save · 2311 chars` after the store write, the origin line carries the browser's 10.0 GB
+estimate, the bar renders, and DELETING the save re-measures the meter to `0 saves · 0 chars`.
+
+**Bounds (§60).** The meter reports what it measured and what the browser estimated - it does not
+predict when the quota will fill, it does not poll (a re-read happens on mutation, not on a
+timer), and the chars figure is this build's own measure of its namespace, not the origin total.

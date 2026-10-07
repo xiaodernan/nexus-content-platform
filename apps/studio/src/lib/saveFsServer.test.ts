@@ -40,7 +40,10 @@ function memFs() {
       const prefix = `${path}/`;
       const names = new Set<string>();
       for (const key of files.keys()) {
-        if (key.startsWith(prefix)) names.add(key.slice(prefix.length).split('/')[0]);
+        if (key.startsWith(prefix)) {
+          const first = key.slice(prefix.length).split('/')[0];
+          if (first !== undefined) names.add(first);
+        }
       }
       return [...names];
     },

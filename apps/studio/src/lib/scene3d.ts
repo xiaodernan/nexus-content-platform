@@ -108,12 +108,15 @@ export interface SceneAdapterLike {
  * back into `loadSaveFile` only through the host's converter (the one place allowed to know the real
  * brands), exactly how `SceneAdapterLike` handles `THREE.Vector3`.
  */
-/** M5 v169 — what listSaveFiles() answers about each save, structural for the same SSR reason. */
+/** M5 v169 — what listSaveFiles() answers about each save, structural for the same SSR reason.
+ *  v185 adds `chars`: the file's string length, measured when the listing reads it for its header.
+ *  The store's `list()` still reads no bytes — the METER is the caller that pays that cost on purpose. */
 export interface SceneSaveEntry {
   path: string;
   savedAt: number;
   version: number;
   entityCount?: number;
+  chars?: number;
 }
 
 export interface SceneSaveFile {
