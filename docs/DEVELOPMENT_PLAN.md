@@ -36,7 +36,11 @@ headless proof → product surface → real-browser verification → record the 
   an asset the library ACTUALLY holds, the report reads what the register HOLDS (`null` where none was
   given), and apply answers the DERIVED REQUEST a generator would receive (no generator runs; the
   manager's own 0.8 default lands where the register held none).
-  Still open: asset update.
+  **Library edit (v190):** the `asset.update` door's product face — a select + three optional fields
+  merge the FILLED fields over the metadata the library holds (name/description/tags; bytes and id are
+  NOT editable), a patch that names nothing is refused in the door's own words (the library would call
+  it a success), and the row reads its tags back while the bridge carries the description.
+  Still open: none — M3's list is clear.
 - **M4 — World Engine:** `@nexus/world-engine` (world/lore/character/location/faction + RAG + character
   agent) + agent doors (8) + product surface (`World` panel, v148). **Now a SIMULATION (v162):**
   `tickOnce()` + `executeAction`, two-sided relationship bonds with a decay floor, lossless save/load,

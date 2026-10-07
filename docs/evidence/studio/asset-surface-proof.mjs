@@ -42,7 +42,7 @@ const box = mkdtempSync(join(tmpdir(), 'nexus-asset-surface-'));
 const modulePath = join(box, 'assets.mjs');
 writeFileSync(modulePath, stripped, 'utf8');
 const studio = await import(pathToFileURL(modulePath).href);
-const { buildStudioAssets, buildAssetReport, generateAsset, removeAsset, registerCharacter, applyCharacterConsistency, STUDIO_SHOTS } = studio;
+const { buildStudioAssets, buildAssetReport, generateAsset, removeAsset, updateAssetMetadata, registerCharacter, applyCharacterConsistency, STUDIO_SHOTS } = studio;
 assert.equal(typeof buildStudioAssets, 'function', 'the Studio module was really imported, not re-implemented');
 assert.equal(typeof buildAssetReport, 'function', 'and so was its report builder');
 
@@ -256,10 +256,36 @@ await assert.rejects(
 assert.equal(held.assets.length, atRest.assets.length, 'register and apply moved NEITHER the library NOR the generator — a derivation answers a request, it stores nothing');
 console.log(`[§7] characters are anchored and derivable: mira holds ${JSON.stringify(held.characters[0].consistencyStrength)} at rest while her derivation carries ${miraDerived.consistencyStrength} (the manager's own 0.8, landing where the register held none) · ${miraDerived.referenceAssets} reference asset(s) attached · toma's 0.5 crossed as ${tomaDerived.consistencyStrength} on a '${tomaDerived.type}' ask · an unknown character threw the manager's own words · assets unchanged at ${held.assets.length}`);
 
+// ── §9 the library is EDITABLE: updateMetadata's product door (M3 v190) ─────────────────────────────
+// The `asset.update` agent door has existed since v160, and its first sentence is a refusal: an empty
+// patch would be REPORTED as an update by the library, which answers `true` for a patch that changes
+// nothing. What may be patched is metadata only — an asset's BYTES and its id are not editable — and
+// the merge is over what the library HOLDS, so what the patch leaves out keeps its value. Measured
+// here against the SHIPPED library, and read back through the report the surface would show.
+const renameTarget = built.assetIds[0];
+const nameBefore = (await library.getMetadata(renameTarget)).name;
+assert.equal(await updateAssetMetadata(library, renameTarget, { name: 'renamed by the surface', description: 'a beat the surface annotated', tags: ['annotated', 'kept'] }), true, '§9: the library answers true for a patch on an asset it holds');
+const afterPatch = await library.getMetadata(renameTarget);
+assert.equal(afterPatch.name, 'renamed by the surface', '§9: the name the library HOLDS is the patched name');
+assert.equal(afterPatch.description, 'a beat the surface annotated', '§9: the description landed in the metadata the library holds');
+assert.deepEqual(afterPatch.tags, ['annotated', 'kept'], '§9: tags landed as the array the patch gave');
+assert.equal(typeof afterPatch.updatedAt, 'number', '§9: the merge re-stamped updatedAt — the library keeps its own bookkeeping');
+assert.equal((await library.getMetadata(renameTarget)).id, renameTarget, '§9: the id is NOT editable — the patch could not move it');
+assert.equal((await library.get(renameTarget)).data.length, 0, '§9: the BYTES are NOT editable — the payload is still the zero the demo stored');
+const updatedReport = await buildAssetReport(library, storyboards, consistency, report.provenanceMode, built.storyboardId);
+const updatedRow = updatedReport.assets.find((a) => a.id === renameTarget);
+assert.equal(updatedRow.name, 'renamed by the surface', '§9: the report the surface shows reads the patched name');
+assert.equal(updatedRow.description, 'a beat the surface annotated', '§9: the report reads the patched description');
+assert.deepEqual(updatedRow.tags, ['annotated', 'kept'], '§9: the report reads the patched tags');
+assert.equal(updatedRow.name !== nameBefore, true, '§9: the name CHANGED — this is an update, not a no-op wearing one');
+assert.equal(await updateAssetMetadata(library, 'no-such-asset', { name: 'ghost' }), false, '§9: an id the library does not hold is the library’s own false');
+assert.equal(updatedReport.assets.length, held.assets.length, '§9: the library holds the SAME count after an update — a patch edits, it neither grows nor shrinks');
+console.log(`[§9] the library is editable: "${nameBefore}" → "${updatedRow.name}" (description + [${updatedRow.tags.join(', ')}] landed, id and zero bytes untouched) · the report reads the merge back · an unknown id answered the library's own false · ${updatedReport.assets.length} assets, unchanged in count`);
+
 // ── §8 the home repository never moved ───────────────────────────────────────────────────────────────
 assert.equal(execFileSync('git', ['rev-parse', 'HEAD'], { encoding: 'utf8' }).trim(), homeHead, '§8: this repository HEAD byte-identical — everything here ran in memory');
 
 rmSync(box, { recursive: true, force: true });
 
-console.log(`\n[summary] the FIRST product consumer of the multimodal slice: the Studio's asset surface, graded from the SHIPPED Studio module (type-stripped, not copied) over the SHIPPED generators · ${report.assets.length} assets generated and stored with ZERO bytes each · 1 storyboard, ${frames.length} frames, every imageRef followed back into the library · the report proven DERIVED by growing the library under it · ${held.characters.length} characters anchored, an apply answering a REQUEST and never an asset · no model attached and none claimed · home HEAD byte-identical: yes`);
+console.log(`\n[summary] the FIRST product consumer of the multimodal slice: the Studio's asset surface, graded from the SHIPPED Studio module (type-stripped, not copied) over the SHIPPED generators · ${report.assets.length} assets generated and stored with ZERO bytes each · 1 storyboard, ${frames.length} frames, every imageRef followed back into the library · the report proven DERIVED by growing the library under it · ${held.characters.length} characters anchored, an apply answering a REQUEST and never an asset · the library's metadata EDITABLE ("${updatedRow.name}") with bytes and id untouchable · no model attached and none claimed · home HEAD byte-identical: yes`);
 console.log('[asset-surface-proof] ALL ASSERTIONS PASSED (the multimodal lane is reachable from the product, and the surface cannot show a size that implies pixels exist)');

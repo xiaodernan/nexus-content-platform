@@ -4,6 +4,7 @@ import {
   buildAssetReport,
   generateAsset,
   removeAsset,
+  updateAssetMetadata,
   removeStoryboardFrame,
   reorderStoryboardFrames,
   registerCharacter,
@@ -75,6 +76,16 @@ function fakeStack(over: Partial<AssetGeneratorLike> = {}) {
     async remove(id) {
       return stored.delete(id);
     },
+    // v190: mirrors the REAL library's `updateMetadata` — a MERGE over what the metadata holds (the
+    // real one also re-stamps `updatedAt`, which this fake's whitelist never reads), and `false` for
+    // an id it does not hold. Crucially it answers `true` even for a patch that changes NOTHING —
+    // that is exactly why the panel must refuse an empty patch itself.
+    async updateMetadata(id, patch) {
+      const entry = stored.get(id);
+      if (!entry) return false;
+      entry.metadata = { ...entry.metadata, ...patch };
+      return true;
+    },
     async list() {
       return [...stored.entries()]
         .sort(([idA, a], [idB, b]) => b.updatedAt - a.updatedAt || idA.localeCompare(idB))
@@ -97,6 +108,9 @@ function fakeStack(over: Partial<AssetGeneratorLike> = {}) {
           // dropped it would report every still-and-footage pair as `null` (and did).
           ...(m.duration !== undefined ? { duration: m.duration as number } : {}),
           tags: (m.tags as string[]) ?? [],
+          // v190: description is part of the shape the real library round-trips; a whitelist that
+          // dropped it would report every asset's description `null` no matter what was patched in.
+          description: m.description as string | undefined,
           source: m.source as string | undefined,
           prompt: m.prompt as string | undefined,
         },
@@ -613,5 +627,69 @@ function noopGenerator(): AssetGeneratorLike {
   return { async generate() { return { assets: [], provenance: { mode: 'demo' }, metadata: { model: 'demo-model', seed: 1 } }; } };
 }
 function noopLibrary(): AssetLibraryLike {
-  return { async add() {}, async remove() { return false; }, async list() { return []; }, async get() { return null; } };
+  return { async add() {}, async remove() { return false; }, async list() { return []; }, async get() { return null; }, async updateMetadata() { return false; } };
 }
+
+/**
+ * v190 — the library's metadata is EDITABLE. The `asset.update` agent door has refused an empty patch
+ * since v160 (the real library answers `true` for a patch that changes nothing), and nothing in the
+ * Studio imported the door; these are its product-side twins. The door here is the thin pure-layer
+ * passthrough, and what it must pass through is the LIBRARY's own answer: `false` for an id it does
+ * not hold. A patch may name metadata only — bytes and id are not editable, and the merge is over what
+ * the library HOLDS, so a field the patch leaves out keeps its value.
+ */
+describe('v190 — the library is EDITABLE: updateAssetMetadata patches metadata, never bytes or id', () => {
+  it('a patch renames the asset the library HOLDS, and the report reads the new name back', async () => {
+    const { generator, library, storyboards, characters } = fakeStack();
+    const built = await buildStudioAssets(generator, library, storyboards);
+    const target = (await library.list())[0]!.assetId;
+    expect(await updateAssetMetadata(library, target, { name: 'renamed by the surface' })).toBe(true);
+    const report = await buildAssetReport(library, storyboards, characters, built.provenanceMode, built.storyboardId);
+    const row = report.assets.find((a) => a.id === target);
+    expect(row?.name).toBe('renamed by the surface');
+  });
+
+  it('the merge keeps what the patch leaves out: tags and description land WITHOUT erasing the name', async () => {
+    const { generator, library, storyboards, characters } = fakeStack();
+    const built = await buildStudioAssets(generator, library, storyboards);
+    const target = (await library.list())[0]!.assetId;
+    const nameBefore = (await library.get(target))!.metadata.name;
+    expect(await updateAssetMetadata(library, target, { description: 'a beat the surface annotated', tags: ['kept', 'annotated'] })).toBe(true);
+    const m = (await library.get(target))!.metadata;
+    expect(m.name).toBe(nameBefore);
+    expect(m.description).toBe('a beat the surface annotated');
+    expect(m.tags).toEqual(['kept', 'annotated']);
+    const report = await buildAssetReport(library, storyboards, characters, built.provenanceMode, built.storyboardId);
+    const row = report.assets.find((a) => a.id === target);
+    expect(row?.description).toBe('a beat the surface annotated');
+    expect(row?.tags).toEqual(['kept', 'annotated']);
+  });
+
+  it('an asset’s BYTES and id are not editable: the payload stays zero and the id stays put', async () => {
+    const { generator, library, storyboards, characters } = fakeStack();
+    const built = await buildStudioAssets(generator, library, storyboards);
+    const target = (await library.list())[0]!.assetId;
+    expect(await updateAssetMetadata(library, target, { name: 'renamed' })).toBe(true);
+    const report = await buildAssetReport(library, storyboards, characters, built.provenanceMode, built.storyboardId);
+    const row = report.assets.find((a) => a.id === target);
+    expect(row?.id).toBe(target);
+    expect(row?.bytes).toBe(0);
+    expect(report.storedBytes).toBe(0);
+  });
+
+  it('an id the library does not hold is the library’s own `false`, passed through', async () => {
+    const { generator, library, storyboards } = fakeStack();
+    await buildStudioAssets(generator, library, storyboards);
+    expect(await updateAssetMetadata(library, 'no-such-asset', { name: 'ghost' })).toBe(false);
+  });
+
+  it('the library holds the SAME count after an update — a patch edits, it neither grows nor shrinks', async () => {
+    const { generator, library, storyboards, stored } = fakeStack();
+    await buildStudioAssets(generator, library, storyboards);
+    const sizeBefore = stored.size;
+    const target = (await library.list())[0]!.assetId;
+    await updateAssetMetadata(library, target, { name: 'renamed', tags: ['one'] });
+    expect(stored.size).toBe(sizeBefore);
+    expect((await library.list()).length).toBe(sizeBefore);
+  });
+});

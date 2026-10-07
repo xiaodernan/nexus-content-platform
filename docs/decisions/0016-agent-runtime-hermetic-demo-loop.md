@@ -8691,3 +8691,45 @@ ASSET** — no generator runs, because no generator is attached.
   surface cannot yet EDIT or DELETE a registered character (re-register is the manager's upsert), and
   there is no character UPDATE door. `asset.update` is the last open item on M3's list.
 
+## Amendment 190 — the library is EDITABLE: updateMetadata's product door lands, and M3's open list is EMPTY (M3 v190)
+
+- **The door.** The `asset.update` agent door has existed since v160, and its FIRST sentence is a
+  refusal: *a patch that names nothing would be reported as an update by the library, so this door
+  refuses it* — the library answers `true` for a patch that changes NOTHING, and a success that
+  updated nothing is the class of defect this family exists to refuse. v190 is that door's product
+  face, and it keeps the refusal. What may be patched is METADATA only: name, description, tags —
+  an asset's BYTES and its id are not editable, and the form offers no way to try. The merge is over
+  what the library HOLDS, so what the patch leaves out keeps its value, and the library's own
+  `false` (an id it does not hold) is passed through and SHOWN, not swallowed.
+- **Pure layer.** `AssetMetadataPatch` (name?/description?/tags?) — the same shape the door calls
+  `AssetPatch` — plus one thin passthrough, `updateAssetMetadata(library, assetId, patch)`, answering
+  the LIBRARY's boolean. `AssetLibraryLike` grows `updateMetadata`; `StudioAssetSummary` grows
+  `description: string | null` (read verbatim from the metadata the library holds — `null` where none
+  was given, the same null-means-absent rule a still's `duration` follows), because a row that
+  cannot show the description would leave the patch half-invisible.
+- **The refusal is the panel's.** The pure layer does not police the patch; the FORM does. Filled
+  fields go into the patch verbatim (tags split on commas, blanks dropped), and a patch that names
+  nothing is refused in the door's own words BEFORE any bytes could move. The UI is a two-state
+  input: an empty field means "leave it alone", not "clear it" — the door's `''`-clears-tags reading
+  is a three-state arg the form does not pretend to have.
+- **Face.** The Library section gains an update form — asset select + three optional fields + an
+  update button that is disabled until an asset is picked. The asset row now reads its tags back
+  (`tags a, b` where tags exist), and the bridge report carries the description.
+- **Evidence.** `src/lib/assets.test.ts` **36 → 41 cases** (a patch renames and the report reads the
+  new name; the merge keeps what the patch leaves out; bytes and id are NOT editable — payload stays
+  zero, id stays put; an unknown id is the library's own `false`; the count neither grows nor
+  shrinks); `docs/evidence/studio/asset-surface-proof.mjs` grew **§9** (measured against the SHIPPED
+  library: rename + description + tags land, `updatedAt` re-stamped, id and zero bytes untouched, an
+  unknown id answered `false`, the report reads the merge back); `tools/harness/studio-assets.mjs`
+  **41/41 → 46/46** — the form exists and is disabled until a pick, the empty patch is refused in the
+  door's own words, the rename + tags land in the row, the bridge carries the description, count and
+  zero bytes unchanged. apps/studio **344 → 349** (27 files), `tsc` and `eslint`
+  (`--max-warnings=0`) clean.
+- **Bounds (§60), and M3's list.** The patch is metadata-only BY DESIGN — an asset's bytes exist only
+  as an empty payload in DEMO MODE, and no id ever moves. The panel refuses an empty patch but the
+  pure layer does not (the door's refusal is the caller's discipline, and the harness asserts the
+  panel keeps it). M3's open list is now EMPTY: the surface cannot PLAY footage, characters have no
+  UPDATE/DELETE, and the generators remain DEMO MODE — those are bounds, not open items; the
+  capability the doors cover (generate, remove, update, board-edit, characters) is all reachable
+  from the product.
+

@@ -36,6 +36,8 @@ export interface StudioAssetSummary {
   id: string;
   type: string;
   name: string;
+  /** v190 — what the library's metadata holds for this asset, read verbatim (`null` where none was given). */
+  description: string | null;
   mimeType: string;
   bytes: number;
   width: number | null;
@@ -119,11 +121,24 @@ export interface AssetGeneratorLike {
   generate(request: GenerationRequestLike): Promise<GenerationResultLike>;
 }
 
+/** v190 — the slice of an asset's metadata a caller may change. An asset's BYTES and its id are not
+ *  editable: `updateMetadata` merges what it is given over what it holds. The same shape the agent door
+ *  `asset.update` (v160) calls `AssetPatch`. */
+export interface AssetMetadataPatch {
+  name?: string;
+  description?: string;
+  tags?: string[];
+}
+
 export interface AssetLibraryLike {
   add(asset: unknown, data: Uint8Array): Promise<void>;
   remove(id: string): Promise<boolean>;
   list(): Promise<{ assetId: string; type: string }[]>;
-  get(id: string): Promise<{ metadata: { id: string; type: string; name: string; mimeType: string; size: number; width?: number; height?: number; duration?: number; tags: string[]; source?: string; prompt?: string }; data: Uint8Array } | null>;
+  get(id: string): Promise<{ metadata: { id: string; type: string; name: string; mimeType: string; size: number; width?: number; height?: number; duration?: number; description?: string; tags: string[]; source?: string; prompt?: string }; data: Uint8Array } | null>;
+  /** v190 — `false` when the library holds no such asset. NOTE the real library answers `true` for a
+   *  patch that changes nothing, so the PANEL refuses an empty patch rather than reporting a no-op as a
+   *  success — the same refusal the `asset.update` door has made since v160. */
+  updateMetadata(id: string, patch: AssetMetadataPatch): Promise<boolean>;
 }
 
 export interface StoryboardManagerLike {
@@ -258,6 +273,21 @@ export async function removeAsset(library: AssetLibraryLike, assetId: string): P
 }
 
 /**
+ * v190 — edit the LIBRARY's metadata. The agent door `asset.update` has existed since v160 and nothing
+ * in the Studio imported it; this is its product door, and it passes the LIBRARY's own answer through:
+ * `false` for an asset the library does not hold. What may be patched is metadata only — an asset's
+ * bytes and its id are not editable — and an EMPTY patch is the panel's refusal, because the library
+ * would answer `true` for a patch that changes nothing.
+ */
+export async function updateAssetMetadata(
+  library: AssetLibraryLike,
+  assetId: string,
+  patch: AssetMetadataPatch,
+): Promise<boolean> {
+  return library.updateMetadata(assetId, patch);
+}
+
+/**
  * v188 — edit the BOARD. The storyboard was read-only on this surface since v153; the manager has had
  * `removeFrame` and `reorderFrames` all along, and these are their thin product doors.
  *
@@ -349,6 +379,7 @@ export async function buildAssetReport(
       id: m.id,
       type: m.type,
       name: m.name,
+      description: (m as { description?: string }).description ?? null,
       mimeType: m.mimeType,
       bytes: entry.data.length,
       width: m.width ?? null,

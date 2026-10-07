@@ -1,7 +1,7 @@
 'use client';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { InMemoryAssetLibrary, DemoImageGenerator, DemoVideoGenerator, StoryboardManager, CharacterConsistencyManager } from '@nexus/ai-providers';
-import { buildStudioAssets, buildAssetReport, generateAsset, removeAsset, removeStoryboardFrame, reorderStoryboardFrames, registerCharacter, applyCharacterConsistency, type AssetReport, type DerivedConsistencySummary, type GenerationRequestLike } from '@/lib/assets';
+import { buildStudioAssets, buildAssetReport, generateAsset, removeAsset, updateAssetMetadata, removeStoryboardFrame, reorderStoryboardFrames, registerCharacter, applyCharacterConsistency, type AssetMetadataPatch, type AssetReport, type DerivedConsistencySummary, type GenerationRequestLike } from '@/lib/assets';
 import { installAssetBridge } from '@/lib/observability';
 
 /**
@@ -70,6 +70,13 @@ export default function AssetPanel() {
   const [charStrength, setCharStrength] = useState('');
   const [derived, setDerived] = useState<{ characterId: string; summary: DerivedConsistencySummary } | null>(null);
 
+  // v190 — the library's update form. Three optional fields; whatever is filled goes into the patch,
+  // and a patch that names nothing is refused (the library would report a no-op as an update).
+  const [updId, setUpdId] = useState('');
+  const [updName, setUpdName] = useState('');
+  const [updDesc, setUpdDesc] = useState('');
+  const [updTags, setUpdTags] = useState('');
+
   const refresh = useCallback(async () => {
     const next = await buildAssetReport(stack.library, stack.storyboards, stack.characters, meta.current.provenanceMode, meta.current.storyboardId);
     latest.current = next;
@@ -135,6 +142,39 @@ export default function AssetPanel() {
     },
     [refresh, stack],
   );
+
+  // v190 — UPDATE the library's metadata. The `asset.update` door (v160) has refused an empty patch
+  // since it shipped — the library answers `true` for a patch that changes nothing, and a success that
+  // updated nothing is the defect this refusal exists to prevent — so the panel refuses it too, in the
+  // door's own words. Filled fields go into the patch verbatim; an asset's bytes and id are not editable
+  // and the form offers no way to try. The library's own `false` (an id it does not hold) is shown.
+  const onUpdateMetadata = useCallback(async () => {
+    if (!updId) return;
+    const name = updName.trim();
+    const description = updDesc.trim();
+    const patch: AssetMetadataPatch = {};
+    if (name) patch.name = name;
+    if (description) patch.description = description;
+    if (updTags.trim()) patch.tags = updTags.split(',').map((t) => t.trim()).filter((t) => t.length > 0);
+    if (Object.keys(patch).length === 0) {
+      setError('a patch that names nothing would be reported as an update by the library, so this surface refuses it; name at least one of name, description or tags');
+      return;
+    }
+    setError(null);
+    try {
+      const updated = await updateAssetMetadata(stack.library, updId, patch);
+      if (!updated) {
+        setError(`the library holds no asset "${updId}"`);
+        return;
+      }
+      setUpdName('');
+      setUpdDesc('');
+      setUpdTags('');
+      await refresh();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e));
+    }
+  }, [updId, updName, updDesc, updTags, refresh, stack]);
 
   // `frames` leads the callbacks that read it — a `const` below its reader would be a TDZ hit at render.
   // useMemo keeps the identity stable so the reorder callback's deps do not churn every render.
@@ -304,6 +344,53 @@ export default function AssetPanel() {
           </div>
 
           <Section title="Library (the library’s own order — newest first)">
+            <form
+              data-asset-update-form
+              style={{ display: 'flex', gap: 8, margin: '2px 0 8px', alignItems: 'center', flexWrap: 'wrap' }}
+              onSubmit={(e) => {
+                e.preventDefault();
+                void onUpdateMetadata();
+              }}
+            >
+              <select
+                data-asset-update-id
+                value={updId}
+                onChange={(e) => setUpdId(e.target.value)}
+                style={{ padding: '4px 8px', fontSize: 12, maxWidth: 300 }}
+                title="Pick an asset the library actually holds"
+              >
+                <option value="">pick an asset…</option>
+                {report.assets.map((a) => (
+                  <option key={a.id} value={a.id}>
+                    {a.name}
+                  </option>
+                ))}
+              </select>
+              <input
+                data-asset-update-name
+                value={updName}
+                onChange={(e) => setUpdName(e.target.value)}
+                placeholder="new name (optional)"
+                style={{ width: 170, padding: '4px 8px', fontSize: 12 }}
+              />
+              <input
+                data-asset-update-description
+                value={updDesc}
+                onChange={(e) => setUpdDesc(e.target.value)}
+                placeholder="new description (optional)"
+                style={{ width: 200, padding: '4px 8px', fontSize: 12 }}
+              />
+              <input
+                data-asset-update-tags
+                value={updTags}
+                onChange={(e) => setUpdTags(e.target.value)}
+                placeholder="tags, comma-separated (optional)"
+                style={{ width: 200, padding: '4px 8px', fontSize: 12 }}
+              />
+              <button type="submit" data-asset-update className="btn" disabled={!updId} title="Merge the filled fields into the asset's metadata — bytes and id are not editable">
+                update
+              </button>
+            </form>
             <ul style={list} data-asset-list>
               {report.assets.map((a) => (
                 <li key={a.id} style={{ ...item, display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -311,6 +398,7 @@ export default function AssetPanel() {
                   <span style={dim}>
                     {a.mimeType} · {a.width}×{a.height}
                     {a.duration !== null ? ` · ${a.duration}s` : ''} · <span data-asset-bytes>{a.bytes}</span> B stored · {a.source}
+                    {a.tags.length > 0 ? ` · tags ${a.tags.join(', ')}` : ''}
                   </span>
                   <button
                     type="button"
@@ -453,7 +541,9 @@ export default function AssetPanel() {
             empty payload because DEMO MODE produces no pixels — the byte count above is what the library
             actually holds, not what an image of that size would weigh (§60). The library lists assets newest
             first and promises no other order; the STORYBOARD is where the order is the shots&rsquo;. The Generate field grows the library with metadata-only assets, and Remove shrinks it — both through
-            the same read-only report the bridge exposes. The storyboard itself is editable too (v188): a frame
+            the same read-only report the bridge exposes. The library&rsquo;s metadata is editable too (v190): a
+            patch merges the filled fields over what the asset&rsquo;s metadata holds — its bytes and id are not
+            editable, and a patch that names nothing is refused rather than reported as an update. The storyboard itself is editable too (v188): a frame
             can be removed or moved, and the manager&rsquo;s answer — including the honest order hole a removal
             leaves — is what this panel shows. Characters (v189) anchor to an asset the library holds, and
             applying answers the DERIVED REQUEST a generator would receive — no generator runs, and the

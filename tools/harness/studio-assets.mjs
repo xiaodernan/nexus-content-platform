@@ -363,6 +363,74 @@ try {
     `assets ${assetsBeforeChars} → ${assetsAfterChars}`,
   );
 
+  // v190 — THE LIBRARY IS EDITABLE. The `asset.update` agent door has refused an empty patch since v160
+  // (the library answers `true` for a patch that changes nothing), and the panel refuses it in the
+  // door's own words. A patch may name METADATA only — bytes and id are not editable — and the row the
+  // surface shows must read back what the library actually merged.
+  const updForm = await page.evaluate(
+    "(() => ({ select: !!document.querySelector('[data-asset-update-id]'), name: !!document.querySelector('[data-asset-update-name]'), description: !!document.querySelector('[data-asset-update-description]'), tags: !!document.querySelector('[data-asset-update-tags]'), disabled: document.querySelector('[data-asset-update]')?.disabled ?? null }))()",
+  );
+  check(
+    'the panel exposes an update form, and its button is disabled until an asset is picked',
+    updForm.select && updForm.name && updForm.description && updForm.tags && updForm.disabled === true,
+    JSON.stringify(updForm),
+  );
+
+  // An empty patch is refused BEFORE any bytes could move: pick the asset, leave every field blank.
+  await page.evaluate(
+    `(() => { const sel = document.querySelector('[data-asset-update-id]'); const setter = Object.getOwnPropertyDescriptor(window.HTMLSelectElement.prototype, 'value').set; setter.call(sel, '${anchorA}'); sel.dispatchEvent(new Event('change', { bubbles: true })); return true; })()`,
+  );
+  await page.evaluate("document.querySelector('[data-asset-update]').click()");
+  const emptyRefused = await page.waitForFunction(
+    "(() => { const e = document.querySelector('[data-asset-error]'); return e && e.textContent.includes('names nothing') ? e.textContent.trim() : null; })()",
+    { timeout: 15000 },
+  );
+  check(
+    'a patch that names nothing is REFUSED in the asset.update door’s own words — a no-op is never reported as an update',
+    emptyRefused !== null,
+    emptyRefused,
+  );
+
+  // A real patch: name, description and tags land in the library's metadata, the row reads them back,
+  // and the bridge report carries the description the row does not show.
+  await page.evaluate(
+    `(() => {
+      const inputSetter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value').set;
+      const n = document.querySelector('[data-asset-update-name]');
+      inputSetter.call(n, 'a beat the surface renamed'); n.dispatchEvent(new Event('input', { bubbles: true }));
+      const d = document.querySelector('[data-asset-update-description]');
+      inputSetter.call(d, 'annotated by the browser probe'); d.dispatchEvent(new Event('input', { bubbles: true }));
+      const t = document.querySelector('[data-asset-update-tags]');
+      inputSetter.call(t, 'probe-tag, second-tag'); t.dispatchEvent(new Event('input', { bubbles: true }));
+      return true;
+    })()`,
+  );
+  await page.evaluate("document.querySelector('[data-asset-update]').click()");
+  const renamedRow = await page.waitForFunction(
+    `(() => { const row = [...document.querySelectorAll('[data-asset-list] li')].find((li) => li.textContent.includes('a beat the surface renamed')); return row && row.textContent.includes('tags probe-tag, second-tag') ? row.textContent.replace(/\\s+/g, ' ').trim() : null; })()`,
+    { timeout: 15000 },
+  );
+  check(
+    'the patch RENAMES the asset the library holds, and the row reads the new name and tags back',
+    renamedRow !== null,
+    renamedRow,
+  );
+  const patchedReport = await page.waitForFunction(
+    `(() => { const a = window.__nexusAssets?.assets()?.assets?.find((x) => x.id === '${anchorA}'); return a && a.name === 'a beat the surface renamed' && a.description === 'annotated by the browser probe' ? a : null; })()`,
+    { timeout: 15000 },
+  );
+  const countAfterUpdate = await page.evaluate('window.__nexusAssets.assets().assets.length');
+  check(
+    'the bridge report carries the merge — the description landed in the metadata the library HOLDS',
+    patchedReport !== null && patchedReport.description === 'annotated by the browser probe',
+    JSON.stringify({ name: patchedReport?.name, description: patchedReport?.description, tags: patchedReport?.tags }),
+  );
+  check(
+    'a patch edits, it neither grows nor shrinks: same count, and the bytes stay ZERO',
+    patchedReport !== null && patchedReport.bytes === 0 && countAfterUpdate === assetsAfterChars,
+    `bytes ${patchedReport?.bytes} · count ${countAfterUpdate} (before ${assetsAfterChars})`,
+  );
+
   // A pixel screenshot of the surface (§30).
   const shot = await page.send('Page.captureScreenshot', { format: 'png' });
   const png = Buffer.from(shot.data, 'base64');
