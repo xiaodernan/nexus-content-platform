@@ -22,7 +22,7 @@ import { AgentPlanSchema, type AgentPlan } from '@nexus/schemas';
 export type PlanTask = AgentPlan['tasks'][number];
 
 /** 今天真的有执行方的步骤种类。加一种就必须同时加一个真执行方，否则 UI 会列出跑不了的步骤 */
-export const STEP_KINDS = ['context', 'seo-audit', 'qa-audit', 'report'] as const;
+export const STEP_KINDS = ['context', 'seo-audit', 'qa-audit', 'report', 'game'] as const;
 export type StepKind = (typeof STEP_KINDS)[number];
 
 export interface StepSpec {
@@ -82,6 +82,15 @@ export const READINESS_STEPS: readonly StepSpec[] = [
     requires: 'plan.write',
     artifact: 'agent_plan',
     dependsOn: ['context', 'seo-audit', 'qa-audit'],
+  },
+  {
+    kind: 'game',
+    agentKey: 'game',
+    agentName: 'Game Agent',
+    title: '生成游戏设计：从自然语言到可玩的游戏文档',
+    requires: 'game.write',
+    artifact: 'game_spec',
+    dependsOn: [],
   },
 ];
 
