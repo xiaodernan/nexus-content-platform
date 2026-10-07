@@ -869,3 +869,31 @@ expected: null`). A section that asserts a state change must perform the action 
 Bounds, stated: the inspector reports what a host DECLARES — id, name, kind, position, visibility. It does
 not read components, materials, children or animation state, and it cannot edit any of them: there is no
 setter and the HUD renders the facts as text.
+
+## The dock's BUILD face (M6 v174 — ADR 0016 amendment 174)
+
+The first product consumer of the build arc (amendment 173), and the section this increment never had: the
+gate's §7 arm found that grant 174's only mention in the record corpus was a *deep* line inside
+`build-lane-proof.mjs` (line 4, "v174 wired the product face around ONE pinned arc"), which the positional
+title reader does not read as a title — so 174 sat in the hole set with nothing that titled it.
+
+**What landed.** `src/lib/buildServer.ts` walks the arc inside the browser's service:
+
+- **The ARC is pinned as data** (`STUDIO_BUILD_ARC` — two verify steps: the container runtime answers with its
+  own version; the container computes `arc ok:5` and prints it). The route's POST takes **no body**, so the
+  browser cannot name a single argv — the same rule v172's container lane established, one layer up.
+- **The walk uses the runtime's own `policyCheckpoint`** — the §28 stance as DATA (`build.verify` granted
+  because the human allowed the arc once at the panel, everything else default-deny) — with
+  `recordReceipts: true`, so the answer carries **one receipt per walked door** (callId, grant, reason) and
+  the panel shows WHO the door let in and why rather than a bare green tick.
+- `src/app/api/agent/build-arc/route.ts` serves it (Node runtime, bodyless POST);
+  `src/lib/buildLane.ts` is the client fetch adapter and imports **nothing** from `@nexus/agent-runtime` or
+  `@nexus/exec-host`, so the browser bundle stays runtime-free and spawn-free.
+- `AgentPanel` gains the build face: a status line, an Allow-once ask naming the steps and the engine,
+  per-step engine detail lines, and a ledger line via `buildArcLedgerLine` (`via: 'build.verify'`).
+
+**Measured.** Studio 229 → **239** (5 `buildServer` cases, incl. the green walk through the REAL isolation
+flags with receipts and the red walk), harness 7 → **8/8**.
+
+Bounds, stated: the arc is two pinned steps over one `build.verify` door, and the deploy leg is a LATER
+increment (v176/v177). Nothing here publishes, pushes or releases — the walk records what it verified.
