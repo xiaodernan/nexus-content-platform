@@ -1,0 +1,35 @@
+# NEXUS nexus-api (ADR 0011) — M7 v193.
+#
+# Every value here is overridable by environment, because the proof that runs this service must point it at
+# its OWN throwaway database and its OWN port. A hard-coded datasource would make the proof depend on
+# whatever happens to be listening on 5432 — and on this machine that is somebody else's container.
+spring:
+  application:
+    name: nexus-api
+  datasource:
+    url: ${NEXUS_DB_URL:jdbc:postgresql://127.0.0.1:5432/nexus}
+    username: ${NEXUS_DB_USER:nexus}
+    password: ${NEXUS_DB_PASSWORD:nexus}
+  jpa:
+    hibernate:
+      # `update` for the first slice: the schema is one table and the service is the only writer. A
+      # migration tool (Flyway/Liquibase) is the honest answer once a SECOND writer or a destructive change
+      # exists, and the bound is stated in the README rather than implied by this line.
+      ddl-auto: update
+    open-in-view: false
+
+server:
+  port: ${NEXUS_API_PORT:8080}
+
+logging:
+  level:
+    root: warn
+    dev.nexus.api: info
+
+# M7 v193 — where the service writes the port it actually bound, when a caller asks it to.
+#
+# Empty by default (no file, no behaviour change). A proof or a test that starts the service with
+# `server.port=0` sets this and reads the number back, because "which port did the OS give you?" cannot be
+# answered from the caller's side and must not be answered by parsing a log whose level someone may change.
+nexus:
+  port-file: ${NEXUS_PORT_FILE:}

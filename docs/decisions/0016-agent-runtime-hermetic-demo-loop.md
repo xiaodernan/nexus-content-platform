@@ -8814,3 +8814,61 @@ _Numbering: 192 was free (`grep -ao "^### Amendment 1[0-9][0-9]"` topped out at 
 - **Bounds (§60).** The inspector reports FOUR facts a host declares (id, name, kind, position, visibility).
   It does not read components, materials, children, animation state or anything else the runtime holds, and
   it cannot EDIT any of them — there is no setter, and the panel renders the facts as text.
+
+### Amendment 193 (M7 v193, nexus-api + evidence) — HOSTED PUBLISH stops being deferred: a real Spring Boot service, a real PostgreSQL, and a publication that outlives the process that wrote it
+
+_Numbering: 193 was free (`grep -ao "^### Amendment 1[0-9][0-9]"` topped out at 192). This is item 9 of the
+priority queue in `docs/DEVELOPMENT_PLAN.md`, and the first increment in this repository that needs a
+backend at all. Full narrative in `docs/evidence/m7/README.md`; this is the ledger entry._
+
+- **The bound this closes, which had been written down every time.** M1 deferred hosted publish to M7. Every
+  milestone since ended with the same sentence — most recently the M6 deploy face's own record: *"deploy means
+  RECORDS on this server — not a push, not a publish, not a release"*. v193 is the first thing here that runs
+  a real service against a real database and reads back what it stored.
+- **`services/nexus-api` is real, not a contract shell.** ADR 0011 fixed the stack (Java 25 + Spring Boot +
+  PostgreSQL); this implements the first slice of it: **Spring Boot 3.5.16 on Java 25**, web + JPA + the
+  Postgres driver, and nothing else — no Redis, no security, no AI-services boundary, because each starter
+  added is a dependency the service owes an answer for later.
+- **Two endpoints and one aggregate.** `POST /projects/{id}/publish` answers **201** with a receipt when the
+  id was new and **200** when it already had a publication; `GET /projects/{id}` answers the publication or
+  **404**. A RECEIPT does not echo the document back (the caller just sent it, and an echo grows with the
+  payload); a READ does carry it (that is what reading a publication is for).
+- **The URL is built from the request that asked** (`ServletUriComponentsBuilder`), so it names an address
+  that actually serves the publication rather than a configured "public base" that could point at nothing.
+  The bound is stated with it: **this is this server's URL** — no CDN, no rewrite, no custom domain.
+- **Four rules, each with a reason.** A project id must be usable (a row keyed by a blank id is a row nothing
+  can address); a title must be non-blank (a name the SERVER invented is not a fact about the project); the
+  document must be a JSON **object** (not "valid JSON" — `42` parses and is not a design document), stored
+  VERBATIM afterwards because this service is a record, not an interpreter; and re-publishing **updates** the
+  row and increments its version, because "the publication of project X" must have exactly one answer.
+- **Three defects the proof found that reading would not have.** (1) The receipt reported an instant with
+  **nanosecond** precision while PostgreSQL stores **microseconds** — `…01.824829200Z` against a read-back of
+  `…01.824829Z`, a receipt claiming precision the database had already dropped; the service now truncates to
+  microseconds, and a unit case pins it. (2) `PublishRequest.document` was declared a `String`, so Jackson
+  rejected every well-formed publish with a 400 — the contract is a JSON OBJECT, and the DTO now says so.
+  (3) The proof itself read a process's exit as `exitCode !== null`, but **a process killed by a signal has
+  `exitCode === null` and `signalCode` set** — so its restart waited forever for a service that had already
+  died.
+- **The proof runs the REAL thing, and says what it needs.** `docs/evidence/m7/publish-proof.mjs`: checks
+  Java 25 and a reachable Docker daemon, builds the jar with Maven, starts a throwaway
+  `pgvector/pgvector:pg16` on a port nothing else holds, starts the service on **port 0** and reads the port
+  the service itself wrote, then asserts: 201 + a URL naming this server · the document deep-equal as JSON
+  (which is what catches double-encoding) · re-publish → version 2 with the **DATABASE counted at exactly one
+  row** · refusals answering 400 with their rule named and an unpublished id answering 404 · **the
+  publication surviving a service RESTART** · and a teardown that removes the container even when an
+  assertion failed.
+- **Configuration crosses as ARGUMENTS, and the reason is measured.** The first version exported
+  `NEXUS_API_PORT`; the service ignored it and bound a constant 61212 that this host's own tooling holds.
+  `--debug` showed `--server.port=18099` taking effect while the same value in the environment did not, which
+  is what an injected `SERVER_PORT` looks like — it outranks a `${…}` placeholder in `application.yml`.
+  Command-line arguments outrank environment properties in Spring Boot, so they are what a proof must use: a
+  proof should not be at the mercy of the ambient environment.
+- **Evidence.** `services/nexus-api/src/test` — **14 cases**, no Spring context and no database, because
+  "a blank title is refused" should not need one; `docs/evidence/m7/publish-proof.mjs` — the run above,
+  against a real PostgreSQL 16 in Docker on a daemon reporting 29.8.2; `mvn -B test` BUILD SUCCESS.
+- **Bounds (§60).** No auth, no accounts, no ownership — anyone who can reach it can publish any id. No
+  listing (the repository has no finder beyond the inherited ones; listing is the NEXT slice). `ddl-auto:
+  update` rather than migrations, because there is one table and one writer. A publication is REPLACED, not
+  versioned: re-publishing bumps a counter and the previous document is gone. The document is stored, not
+  understood — no validation beyond "is a JSON object". And **the Studio does not call this service yet**:
+  v193 is the backend half, and the Publish control that reaches it is the next increment.
