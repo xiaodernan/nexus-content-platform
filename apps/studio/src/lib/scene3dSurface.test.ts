@@ -147,6 +147,45 @@ describe('the Studio’s scene, composed on the REAL runtime', () => {
     expect(lights.length).toBeGreaterThan(0);
   });
 
+  // M5 v183 — the full lighting chain on the shipped runtime: the surface folds the ask, the runtime's
+  // gate writes the LIVE three.js light (attaching and detaching it, per v142's rule), and the report
+  // re-reads the scene — so the HUD states what the renderer will actually shade with.
+  it('the lighting is CONTROLLABLE end to end — surface ask, runtime gate, live light, honest report', () => {
+    const headless = headlessRuntime();
+    runtime = headless.runtime;
+    const surface = createStudioScene(headless.runtime, () => {});
+    const scene = headless.runtime.getScene(toSceneId(surface.sceneId))!;
+
+    // The report reads the REAL brightness where the real runtime keeps it (the wrapped three.js object).
+    expect(surface.report().scene?.lighting).toEqual([
+      { id: 'ambient', type: 'ambient', enabled: true, intensity: 0.5 },
+      { id: 'directional', type: 'directional', enabled: true, intensity: 1 },
+    ]);
+
+    // Dim through the surface: the live light carries it, and so does the next report.
+    const dimmed = surface.setLight('directional', { intensity: 0.25 });
+    const directional = scene.lighting.lights.find((l) => l.id === 'directional')!;
+    expect(directional.threeLight.intensity).toBe(0.25);
+    expect(dimmed.scene?.lighting.find((l) => l.id === 'directional')!.intensity).toBe(0.25);
+
+    // An out-of-range ask is folded by the surface BEFORE the runtime sees it.
+    surface.setLight('ambient', { intensity: 99 });
+    expect(scene.lighting.lights.find((l) => l.id === 'ambient')!.threeLight.intensity).toBe(2);
+
+    // Disabling through the surface DETACHES the real light — v142's rule through the whole chain.
+    surface.setLight('directional', { enabled: false });
+    expect(scene.threeScene.children).not.toContain(directional.threeLight);
+    expect(surface.report().scene?.lighting.find((l) => l.id === 'directional')).toEqual({
+      id: 'directional',
+      type: 'directional',
+      enabled: false,
+      intensity: 0.25,
+    });
+    // Re-enabling attaches it back.
+    surface.setLight('directional', { enabled: true });
+    expect(scene.threeScene.children).toContain(directional.threeLight);
+  });
+
   it('every body the surface hands the frame write is a REAL three.js object it can move', () => {
     const headless = headlessRuntime();
     runtime = headless.runtime;

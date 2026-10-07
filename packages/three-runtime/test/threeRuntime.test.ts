@@ -456,6 +456,62 @@ describe('Lighting', () => {
     expect(nonLights).toHaveLength(1);
     expect(registered.has(nonLights[0]!)).toBe(true);
   });
+
+  // M5 v183 — until setLightState existed, the declared lighting was write-once: createScene attached
+  // what createDefaultLighting built and nothing above this package could change a single value of it.
+  describe('setLightState (v183) — the lighting is CONTROLLABLE, and v142\'s rule holds through every change', () => {
+    it('dimming writes the LIVE three.js light, not a config shadow', () => {
+      const scene = runtime.createScene('Dim');
+      const directional = scene.lighting.lights.find((l) => l.id === 'directional')!;
+      expect(directional.threeLight.intensity).toBe(1);
+
+      expect(runtime.setLightState(scene.id, 'directional', { intensity: 0.25 })).toBe(true);
+      expect(directional.threeLight.intensity).toBe(0.25);
+    });
+
+    it('disabling DETACHES the light and re-enabling attaches it back — v142\'s rule through the gate', () => {
+      const scene = runtime.createScene('Toggle');
+      const attachedLights = () =>
+        scene.threeScene.children.filter((c) => (c as { isLight?: boolean }).isLight === true).length;
+
+      expect(runtime.setLightState(scene.id, 'directional', { enabled: false })).toBe(true);
+      expect(scene.lighting.lights.find((l) => l.id === 'directional')!.enabled).toBe(false);
+      expect(attachedLights()).toBe(1);
+
+      expect(runtime.setLightState(scene.id, 'directional', { enabled: true })).toBe(true);
+      expect(attachedLights()).toBe(2);
+    });
+
+    it('an illegal intensity refuses the WHOLE change — nothing half-applies', () => {
+      const scene = runtime.createScene('Refuse');
+      const directional = scene.lighting.lights.find((l) => l.id === 'directional')!;
+      expect(runtime.setLightState(scene.id, 'directional', { enabled: false, intensity: -1 })).toBe(false);
+      expect(directional.enabled).toBe(true);
+      expect(directional.threeLight.intensity).toBe(1);
+      expect(scene.threeScene.children).toContain(directional.threeLight);
+
+      expect(runtime.setLightState(scene.id, 'directional', { intensity: Number.NaN })).toBe(false);
+      expect(directional.threeLight.intensity).toBe(1);
+    });
+
+    it('an unknown light or scene answers false — nothing changed, and that is the answer', () => {
+      const scene = runtime.createScene('Missing');
+      expect(runtime.setLightState(scene.id, 'no-such-light', { intensity: 1 })).toBe(false);
+      expect(runtime.setLightState(sceneId('no-such-scene'), 'ambient', { intensity: 1 })).toBe(false);
+      expect(scene.lighting.lights.find((l) => l.id === 'ambient')!.threeLight.intensity).toBe(0.5);
+    });
+
+    it('light ids are SCENE-LOCAL names — same name in both scenes, and only the named scene\'s light moves', () => {
+      // The default lighting names its lights `ambient` and `directional` in EVERY scene, so an id is not
+      // a global brand the way an entity's is: the gate resolves it against the scene it was handed, and
+      // a sibling scene holding the same-named light is untouched.
+      const first = runtime.createScene('First');
+      const second = runtime.createScene('Second');
+      expect(runtime.setLightState(first.id, 'ambient', { intensity: 0.1 })).toBe(true);
+      expect(first.lighting.lights[0]!.threeLight.intensity).toBe(0.1);
+      expect(second.lighting.lights[0]!.threeLight.intensity).toBe(0.5);
+    });
+  });
 });
 describe('pickAt (v182) — the runtime names the body under a view point', () => {
   /** A rig aimed at the origin from +Z, so NDC (0, 0) IS the origin — every case reasons from there. */

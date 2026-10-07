@@ -40,6 +40,10 @@ export interface SceneLike {
   entities: Map<string, { id: string; name: string }>;
   cameras: Map<string, { id: string; name: string; active: boolean }>;
   animations: Map<string, { id: string }>;
+  /** v183 — the scene's declared lights, read LOOSELY: a host that declares none simply reports none,
+   *  the same way `threeScene` is optional. The brightness lives wherever the host keeps it — on the
+   *  real runtime that is the wrapped three.js object — so `lightIntensityOf` is what reads it. */
+  lighting?: { lights: SceneLightSource[] };
   /** The three.js scene itself, when the object in hand really is the package's. Read by the adapter
    *  to reach a camera; never touched by the pure functions above it. */
   threeScene?: unknown;
@@ -71,6 +75,11 @@ export interface SceneComposerLike extends SceneRuntimeLike {
   /** `false` when the runtime holds no such entity. Added in v161 with the remove-body control — the
    *  runtime has always had it; nothing in the Studio had ever called it. */
   removeEntity(sceneId: string, entityId: string): boolean;
+  /** v183 — change one scene-local light (`{ enabled, intensity }`, both optional). `false` when the
+   *  host holds no such scene/light or refuses the change. Optional the way `removeEntity` is NOT: a
+   *  fake without a lighting gate is a legitimate host, and `setLight` on the surface answers honestly
+   *  (the unchanged report) when absent. */
+  setLightState?(sceneId: string, lightId: string, change: { enabled?: boolean; intensity?: number }): boolean;
 }
 
 /**
@@ -304,6 +313,59 @@ export function applyPan(
 }
 
 /**
+ * v183 — one declared light, as the surface READS it (loose, like every shape above) and as the
+ * report STATES it (plain).
+ *
+ * `SceneLightSource` is the host's shape: the real runtime keeps the brightness on the wrapped three.js
+ * object, a structural fake may keep it directly — `lightIntensityOf` is the one reader that knows both,
+ * so no caller ever reaches into a host object to fish a number out. `SceneLightState` is the report's
+ * shape: JSON-safe, and identical for every host that declares a light at all.
+ */
+export interface SceneLightSource {
+  id: string;
+  type: string;
+  enabled: boolean;
+  /** Where a host that owns no three.js object keeps the brightness. */
+  intensity?: number;
+  /** Where the real runtime keeps it. Read, never written — writes go through the host's gate. */
+  threeLight?: { intensity?: number };
+}
+
+export interface SceneLightState {
+  id: string;
+  type: string;
+  enabled: boolean;
+  intensity: number;
+}
+
+/** The brightness of one light source, from whichever place the host declared it. A host that declares
+ *  neither place has declared a light of unknown brightness — 0 says so rather than inventing a value. */
+export function lightIntensityOf(light: SceneLightSource): number {
+  if (typeof light.intensity === 'number') return light.intensity;
+  return typeof light.threeLight?.intensity === 'number' ? light.threeLight.intensity : 0;
+}
+
+/** The brightness range a lighting control may ask for. The demo opens at 0.5 (ambient) and 1.0
+ *  (directional), so 0..2 covers "off-black" through "twice the sun" without a second UI. */
+export const LIGHT_INTENSITY_MIN = 0;
+export const LIGHT_INTENSITY_MAX = 2;
+/** How much one press of the −/+ control changes a light. */
+export const LIGHT_INTENSITY_STEP = 0.1;
+
+/**
+ * v183 — fold a requested brightness into the range the control may ask for.
+ *
+ * This is the pure half of the lighting control: the surface clamps BEFORE it calls the host's gate, so
+ * the host never receives a value the range forbids (the runtime refuses non-finite and negative on its
+ * own — that guard is the last line, not the first). Non-finite input folds to the MINIMUM: "off" is the
+ * only brightness a broken number could honestly mean.
+ */
+export function clampLightIntensity(value: number): number {
+  if (!Number.isFinite(value)) return LIGHT_INTENSITY_MIN;
+  return Math.min(LIGHT_INTENSITY_MAX, Math.max(LIGHT_INTENSITY_MIN, value));
+}
+
+/**
  * The Studio's scene, as a plain JSON-safe report.
  *
  * `frames` is passed IN rather than read off the runtime: the runtime does not count frames, the frame
@@ -327,6 +389,9 @@ export interface SceneReport {
     entityNames: string[];
     cameraNames: string[];
     activeCamera: string | null;
+    /** v183 — the scene's declared lights, read from the LIVE scene (never a shadow the surface keeps):
+     *  a change goes through the host's gate, and the next report re-reads what the host now holds. */
+    lighting: SceneLightState[];
   } | null;
   /** Frames the LOOP produced, counted by its owner — not by the renderer. */
   frames: number;
@@ -413,6 +478,12 @@ export function buildSceneReport(
           entityNames: [...scene.entities.values()].map((e) => e.name),
           cameraNames: [...scene.cameras.values()].map((c) => c.name),
           activeCamera: [...scene.cameras.values()].find((c) => c.active)?.id ?? null,
+          lighting: (scene.lighting?.lights ?? []).map((l) => ({
+            id: l.id,
+            type: l.type,
+            enabled: l.enabled,
+            intensity: lightIntensityOf(l),
+          })),
         }
       : null,
     frames,
@@ -594,6 +665,11 @@ export interface SceneSurface {
    *  CLEARS it. A host without a picking adapter, or without pixel dimensions to convert with, answers
    *  the unchanged report — asking nothing is not the same answer as picking nothing. */
   pickAt(px: number, py: number): SceneReport;
+  /** v183 — change one light of THIS surface's scene: `enabled` flips it (the runtime attaches/detaches
+   *  the real three.js light) and `intensity` dims/brightens it, folded into the 0..LIGHT_INTENSITY_MAX
+   *  range BEFORE the host sees it. The answer re-reads the live scene, so a host without a lighting
+   *  gate answers the unchanged report — and the HUD shows what actually is, not what was asked. */
+  setLight(lightId: string, change: { enabled?: boolean; intensity?: number }): SceneReport;
   /** Put the camera back to the default orbit — the view the Studio opens with. */
   resetOrbit(): SceneReport;
   /** Add a body at the next free slot. Answers `null` when the runtime produced no entity. */
@@ -709,6 +785,15 @@ export function createStudioScene(
         const hit = adapter.pickAt(built.sceneId, ndc.x, ndc.y);
         selected = hit ? { id: hit.entityId, name: hit.name } : null;
       }
+      return buildSceneReport(runtime, counted, orbit, selected);
+    },
+    setLight(lightId, change) {
+      // The pure half first: the requested brightness is folded into the range the control owns, so the
+      // host's own refusal is a second wall and never the first. Whether the host ACCEPTS is its answer
+      // to give — the report that follows reads the live scene either way, which is what keeps the HUD
+      // honest about a host that has no lighting gate at all.
+      const asked = change.intensity !== undefined ? { ...change, intensity: clampLightIntensity(change.intensity) } : change;
+      runtime.setLightState?.(built.sceneId, lightId, asked);
       return buildSceneReport(runtime, counted, orbit, selected);
     },
     resetOrbit() {

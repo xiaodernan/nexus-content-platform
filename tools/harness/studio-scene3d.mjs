@@ -365,6 +365,62 @@ try {
     JSON.stringify(docAfter),
   );
 
+  // ── M5 v183: the lighting is CONTROLLABLE in the real browser ────────────────────────────────────
+  // The HUD's light rows render the REPORT (the live scene), so a press that moved only local state
+  // would fail here: the bridge re-reads the surface after every press, and the number that changes is
+  // the runtime's own. The toggle is v142's attach rule, pressed by hand.
+  const lightsOf = async () => (await page.evaluate('window.__nexusScene3d.scene3d()'))?.scene?.lighting ?? null;
+  const lightsBefore = await lightsOf();
+  const hudLights = await page.evaluate("document.querySelector('[data-scene3d-lights]')?.textContent ?? null");
+  check(
+    'the HUD shows the scene’s two declared lights with their live brightness',
+    Array.isArray(lightsBefore) &&
+      lightsBefore.length === 2 &&
+      lightsBefore.some((l) => l.id === 'ambient' && Math.abs(l.intensity - 0.5) < 1e-9) &&
+      lightsBefore.some((l) => l.id === 'directional' && Math.abs(l.intensity - 1) < 1e-9) &&
+      hudLights !== null &&
+      hudLights.includes('ambient') &&
+      hudLights.includes('directional'),
+    `${JSON.stringify(lightsBefore)} · HUD ${JSON.stringify(hudLights)}`,
+  );
+
+  await page.evaluate("document.querySelector('[data-scene3d-light-dim=\"directional\"]').click()");
+  const dimmed = await page.waitForFunction(
+    `(() => { const r = window.__nexusScene3d?.scene3d(); const l = r && r.scene && r.scene.lighting.find((x) => x.id === 'directional'); return l && Math.abs(l.intensity - 0.9) < 1e-9 ? l.intensity : null; })()`,
+    { timeout: 10000 },
+  );
+  const dimHud = await page.waitForFunction(
+    `(() => { const v = document.querySelector('[data-scene3d-light-value=\"directional\"]'); return v && v.textContent === '0.90' ? v.textContent : null; })()`,
+    { timeout: 10000 },
+  );
+  check(
+    'one press of − dims the directional light by one step, and the HUD number follows',
+    dimmed !== null && dimHud === '0.90',
+    `report ${JSON.stringify(dimmed)} · HUD ${JSON.stringify(dimHud)}`,
+  );
+
+  await page.evaluate("document.querySelector('[data-scene3d-light-toggle=\"directional\"]').click()");
+  const off = await page.waitForFunction(
+    `(() => { const r = window.__nexusScene3d?.scene3d(); const l = r && r.scene && r.scene.lighting.find((x) => x.id === 'directional'); return l && l.enabled === false ? 'disabled' : null; })()`,
+    { timeout: 10000 },
+  );
+  const offLabel = await page.waitForFunction(
+    `(() => { const b = document.querySelector('[data-scene3d-light-toggle=\"directional\"]'); return b && b.textContent === 'off' ? 'off' : null; })()`,
+    { timeout: 10000 },
+  );
+  check(
+    'toggling the light OFF says so twice — the report (enabled false) and the HUD label',
+    off === 'disabled' && offLabel === 'off',
+    `report ${JSON.stringify(off)} · label ${JSON.stringify(offLabel)}`,
+  );
+
+  await page.evaluate("document.querySelector('[data-scene3d-light-toggle=\"directional\"]').click()");
+  const backOn = await page.waitForFunction(
+    `(() => { const r = window.__nexusScene3d?.scene3d(); const l = r && r.scene && r.scene.lighting.find((x) => x.id === 'directional'); return l && l.enabled === true ? 'enabled' : null; })()`,
+    { timeout: 10000 },
+  );
+  check('toggling back ON re-enables the light — v142’s attach rule, pressed by hand twice', backOn === 'enabled', JSON.stringify(backOn));
+
   // Back to 2D: the toggle must be reversible and the canvas must come back with its pixels.
   await page.evaluate("document.querySelector('[data-surface-toggle=\"2d\"]').click()");
   await page.waitForSelector('#nexus-canvas', 15000);

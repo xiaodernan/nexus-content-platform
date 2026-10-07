@@ -61,8 +61,14 @@ headless proof → product surface → real-browser verification → record the 
   surface converts pixels to NDC, a release within 4 px of its press is a CLICK (longer travel was
   a drag), the report carries `selected`, empty sky clears it, and the HUD answers `picked: <name>`
   (three-runtime 440 → **448**, studio 263 → **274**, harness **30 → 33/33**; ADR 0016 amendment
-  182). Still open: lighting control, fs-backed persistence via a Node seam, a quota meter in the
-  save dialog.
+  182). **Now LIGHTABLE (v183):** the declared lighting is CONTROLLABLE — the runtime's `setLightState`
+  toggles a light by attaching/detaching the real `THREE.Light` (v142's rule through the gate) and
+  writes live intensity, refusing a non-finite/negative ask whole; the surface folds every brightness
+  ask into 0..2 (`clampLightIntensity`) BEFORE the host sees it, the report re-reads the live scene
+  (`scene.lighting`), and the HUD gives each declared light an on/off toggle and −/+ brightness at
+  0.1 a press (three-runtime 448 → **453**, studio 274 → **283**, harness **33 → 37/37**; ADR 0016
+  amendment 183). Still open: fs-backed persistence via a Node seam, a quota meter in the save
+  dialog.
 - **M6–M10:** planned, not started (autonomous build, community, creator economy, ops, external agents).
 
 ## Execution order (next increments)

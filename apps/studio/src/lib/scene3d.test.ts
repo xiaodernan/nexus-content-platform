@@ -18,7 +18,13 @@ import {
   normalizeAngle,
   nextBodyPlacement,
   ORBIT_PAN_LIMIT,
+  clampLightIntensity,
+  lightIntensityOf,
+  LIGHT_INTENSITY_MAX,
+  LIGHT_INTENSITY_MIN,
+  LIGHT_INTENSITY_STEP,
   type OrbitState,
+  type SceneLightSource,
   STUDIO_CAMERA_POSITION,
   type SceneAdapterLike,
   type SceneComposerLike,
@@ -749,6 +755,111 @@ describe('pickAt — the surface names the body under a click (M5 v182)', () => 
     surface.pickAt(400, 300);
     const turned = surface.orbitBy({ azimuth: 1 });
     expect(turned.selected).toEqual({ id: 'e-9', name: 'Cube K' });
+  });
+});
+
+describe('lighting control (v183) — the surface folds the ask, the host owns the light', () => {
+  /**
+   * A host WITH a lighting gate: it records every ask and applies it to the declared lights it hangs on
+   * the demo scene — the same apply-rules the real `setLightState` upholds, in fake form. The lights use
+   * the fake shape (`intensity` directly on the source); the real runtime's shape is proven one file over
+   * (`scene3dSurface.test.ts`), through `lightIntensityOf`'s other branch.
+   */
+  function lightingFixture() {
+    const asked: { sceneId: string; lightId: string; change: { enabled?: boolean; intensity?: number } }[] = [];
+    const { runtime, scenes } = fakeRuntime({
+      setLightState(sceneId, lightId, change) {
+        asked.push({ sceneId, lightId, change });
+        const scene = scenes.get(sceneId);
+        const light = scene?.lighting?.lights.find((l) => l.id === lightId);
+        if (!scene || !light) return false;
+        if (change.intensity !== undefined && (!Number.isFinite(change.intensity) || change.intensity < 0)) return false;
+        if (change.enabled !== undefined) light.enabled = change.enabled;
+        if (change.intensity !== undefined) light.intensity = change.intensity;
+        return true;
+      },
+    });
+    const surface = createStudioScene(runtime, () => {}, fakeAdapter());
+    const scene = scenes.get(surface.sceneId)!;
+    const lights: SceneLightSource[] = [
+      { id: 'ambient', type: 'ambient', enabled: true, intensity: 0.5 },
+      { id: 'directional', type: 'directional', enabled: true, intensity: 1 },
+    ];
+    scene.lighting = { lights };
+    return { surface, scene, lights, asked };
+  }
+
+  it('clampLightIntensity folds any ask into the range the control owns', () => {
+    expect(clampLightIntensity(1.23)).toBe(1.23);
+    expect(clampLightIntensity(-3)).toBe(LIGHT_INTENSITY_MIN);
+    expect(clampLightIntensity(9)).toBe(LIGHT_INTENSITY_MAX);
+    // One rule for EVERY non-finite number, +Infinity included: a brightness that is not a number
+    // means "off" — the only thing a broken ask could honestly mean.
+    expect(clampLightIntensity(Number.NaN)).toBe(LIGHT_INTENSITY_MIN);
+    expect(clampLightIntensity(Number.POSITIVE_INFINITY)).toBe(LIGHT_INTENSITY_MIN);
+  });
+
+  it('lightIntensityOf reads both host shapes, and an undeclared brightness reads 0', () => {
+    expect(lightIntensityOf({ id: 'a', type: 'ambient', enabled: true, intensity: 0.5 })).toBe(0.5);
+    expect(lightIntensityOf({ id: 'a', type: 'ambient', enabled: true, threeLight: { intensity: 1 } })).toBe(1);
+    // The direct field wins when both exist — the fake shape is the declared one.
+    expect(lightIntensityOf({ id: 'a', type: 'ambient', enabled: true, intensity: 0.5, threeLight: { intensity: 1 } })).toBe(0.5);
+    expect(lightIntensityOf({ id: 'a', type: 'ambient', enabled: true })).toBe(0);
+  });
+
+  it('the report states the lights as the host holds them — read from the scene, JSON-safe', () => {
+    const { surface, lights } = lightingFixture();
+    expect(surface.report().scene?.lighting).toEqual([
+      { id: lights[0]!.id, type: 'ambient', enabled: true, intensity: 0.5 },
+      { id: lights[1]!.id, type: 'directional', enabled: true, intensity: 1 },
+    ]);
+  });
+
+  it('setLight reaches the host gate with THIS surface\'s scene id, and the report follows', () => {
+    const { surface, lights, asked } = lightingFixture();
+    const answered = surface.setLight('directional', { intensity: 0.3 });
+    expect(asked).toEqual([{ sceneId: surface.sceneId, lightId: 'directional', change: { intensity: 0.3 } }]);
+    expect(answered.scene?.lighting.find((l) => l.id === 'directional')!.intensity).toBe(0.3);
+    // And the NEXT report still says so — the light holds its state, the report re-reads it.
+    expect(surface.report().scene?.lighting.find((l) => l.id === 'directional')!.intensity).toBe(0.3);
+    expect(lights.find((l) => l.id === 'directional')!.intensity).toBe(0.3);
+  });
+
+  it('an out-of-range ask is folded BEFORE the host sees it — the host never receives what the range forbids', () => {
+    const { surface, asked } = lightingFixture();
+    surface.setLight('ambient', { intensity: 9 });
+    surface.setLight('ambient', { intensity: -3 });
+    surface.setLight('ambient', { intensity: Number.NaN });
+    expect(asked.map((a) => a.change.intensity)).toEqual([LIGHT_INTENSITY_MAX, LIGHT_INTENSITY_MIN, LIGHT_INTENSITY_MIN]);
+  });
+
+  it('an enabled flip goes through the same gate', () => {
+    const { surface, asked } = lightingFixture();
+    const answered = surface.setLight('ambient', { enabled: false });
+    expect(asked).toEqual([{ sceneId: surface.sceneId, lightId: 'ambient', change: { enabled: false } }]);
+    expect(answered.scene?.lighting.find((l) => l.id === 'ambient')!.enabled).toBe(false);
+  });
+
+  it('a host without a lighting gate answers the unchanged report — asking is not changing', () => {
+    const { runtime } = fakeRuntime();
+    const surface = createStudioScene(runtime, () => {}, fakeAdapter());
+    const before = surface.report();
+    const after = surface.setLight('ambient', { intensity: 0.3, enabled: false });
+    expect(after).toEqual(before);
+  });
+
+  it('one press of the control moves a light exactly LIGHT_INTENSITY_STEP, clamped at both ends', () => {
+    const { surface } = lightingFixture();
+    // From 1.0, one brighten press; the pure suite cannot press a button, so it asks the same ask the
+    // button would — the step arithmetic the component uses is this constant, not a second number.
+    const brightened = surface.setLight('directional', { intensity: 1 + LIGHT_INTENSITY_STEP });
+    expect(brightened.scene?.lighting.find((l) => l.id === 'directional')!.intensity).toBeCloseTo(1.1, 10);
+    // At the top of the range the step cannot push past it.
+    const top = surface.setLight('directional', { intensity: LIGHT_INTENSITY_MAX + LIGHT_INTENSITY_STEP });
+    expect(top.scene?.lighting.find((l) => l.id === 'directional')!.intensity).toBe(LIGHT_INTENSITY_MAX);
+    // At the bottom, below zero clamps to the floor.
+    const bottom = surface.setLight('ambient', { intensity: LIGHT_INTENSITY_MIN - LIGHT_INTENSITY_STEP });
+    expect(bottom.scene?.lighting.find((l) => l.id === 'ambient')!.intensity).toBe(LIGHT_INTENSITY_MIN);
   });
 });
 

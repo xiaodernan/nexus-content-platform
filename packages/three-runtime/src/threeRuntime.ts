@@ -1422,6 +1422,40 @@ export class ThreeRuntime {
     return best;
   }
 
+  /**
+   * M5 v183 — the gate that changes a light. Until now the declared lighting was write-once: `createScene`
+   * attached whatever `createDefaultLighting` built and nothing in the package could touch it again, so a
+   * "lighting control" above this package had nothing to call.
+   *
+   * The one rule this must uphold is v142's: a light declared `enabled: false` is NOT in the scene. Toggling
+   * `enabled` therefore attaches and detaches the wrapped `THREE.Light`, not merely flips a config field —
+   * a control that flipped the field alone would describe a darkness the renderer never renders.
+   *
+   * An illegal intensity (non-finite or negative) refuses the WHOLE change and answers `false` — a call that
+   * half-applied would leave the caller guessing which part took. Unknown scene or light answers `false` the
+   * same way `removeEntity` does: nothing changed, and that is the report.
+   */
+  setLightState(sceneId: SceneId, lightId: string, change: { enabled?: boolean; intensity?: number }): boolean {
+    const scene = this.sceneGraph.scenes.get(sceneId);
+    if (!scene) return false;
+    const light = scene.lighting.lights.find((l) => l.id === lightId);
+    if (!light) return false;
+
+    if (change.intensity !== undefined && (!Number.isFinite(change.intensity) || change.intensity < 0)) {
+      return false;
+    }
+
+    if (change.enabled !== undefined && light.enabled !== change.enabled) {
+      light.enabled = change.enabled;
+      if (change.enabled) scene.threeScene.add(light.threeLight);
+      else scene.threeScene.remove(light.threeLight);
+    }
+    if (change.intensity !== undefined) {
+      light.threeLight.intensity = change.intensity;
+    }
+    return true;
+  }
+
   removeEntity(sceneId: SceneId, entityId: EntityId): boolean {
     const scene = this.sceneGraph.scenes.get(sceneId);
     if (!scene) return false;

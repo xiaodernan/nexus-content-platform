@@ -12,6 +12,7 @@ import { childIdList } from '@nexus/design-model';
 import {
   composeDocumentOps,
   createStudioScene,
+  LIGHT_INTENSITY_STEP,
   ORBIT_PAN_PER_KEY,
   ORBIT_PAN_PER_PIXEL,
   ORBIT_RADIANS_PER_PIXEL,
@@ -334,6 +335,23 @@ export default function Scene3D() {
     setReport(surface.pickAt(clientX - rect.left, clientY - rect.top));
   }, []);
 
+  /** v183 — the lighting controls. Both go THROUGH the surface (`setLight`), which folds the ask into the
+   *  range the lib owns and hands the rest to the runtime's gate; the report that comes back re-reads the
+   *  live scene, so the HUD numbers are the light's state, never the button's opinion. */
+  const onLightToggle = useCallback((lightId: string, enabled: boolean) => {
+    const surface = surfaceRef.current;
+    if (!surface) return;
+    setReport(surface.setLight(lightId, { enabled }));
+  }, []);
+
+  const onLightStep = useCallback((lightId: string, direction: 1 | -1) => {
+    const surface = surfaceRef.current;
+    if (!surface) return;
+    const light = surface.report().scene?.lighting.find((l) => l.id === lightId);
+    if (!light) return;
+    setReport(surface.setLight(lightId, { intensity: light.intensity + direction * LIGHT_INTENSITY_STEP }));
+  }, []);
+
   // The keyboard listener is its own effect so it can depend on the stable `onKeyPan` without touching
   // the mount effect that owns the runtime's lifecycle.
   useEffect(() => {
@@ -612,6 +630,47 @@ export default function Scene3D() {
             <div data-scene3d-picked>
               picked: {report.selected ? <strong>{report.selected.name}</strong> : '—'}
             </div>
+            {/* v183 — the scene's declared lights, each with on/off and −/+ brightness. The numbers come
+                from the report (the LIVE scene), so a host without a lighting gate shows its lights
+                unchanged rather than pretending a press did something. */}
+            {s && s.lighting.length > 0 && (
+              <div data-scene3d-lights style={{ marginTop: 4, pointerEvents: 'auto' }}>
+                {s.lighting.map((light) => (
+                  <div key={light.id} data-scene3d-light={light.id} style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
+                    <span style={{ minWidth: 74 }}>
+                      {light.id} ({light.type})
+                    </span>
+                    <button
+                      type="button"
+                      className="btn"
+                      data-scene3d-light-toggle={light.id}
+                      onClick={() => onLightToggle(light.id, !light.enabled)}
+                    >
+                      {light.enabled ? 'on' : 'off'}
+                    </button>
+                    <button
+                      type="button"
+                      className="btn"
+                      data-scene3d-light-dim={light.id}
+                      onClick={() => onLightStep(light.id, -1)}
+                    >
+                      −
+                    </button>
+                    <span data-scene3d-light-value={light.id} style={{ minWidth: 34, textAlign: 'right' }}>
+                      {light.intensity.toFixed(2)}
+                    </span>
+                    <button
+                      type="button"
+                      className="btn"
+                      data-scene3d-light-brighten={light.id}
+                      onClick={() => onLightStep(light.id, 1)}
+                    >
+                      +
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
           </>
         ) : (
           <div>starting…</div>

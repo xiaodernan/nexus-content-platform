@@ -8400,3 +8400,57 @@ half-box, ~0.5) plus spatial discrimination, and the exact center answer is pinn
 inspector, no edit semantics ride on `selected` yet. The 4 px threshold is a constant, not a
 setting. The pick answers the nearest VISIBLE entity only — occlusion by invisible geometry is not
 modeled, and cameras, lights and helpers are not pickable, only bodies.
+
+### Amendment 183 — the lighting is CONTROLLABLE (M5 v183)
+
+`createScene` attached two lights (v142) and nothing in the package could touch them again: the
+lighting was write-once, so a "lighting control" above the package had nothing to call. v183 adds
+the gate, and the Studio becomes its first consumer.
+
+**Runtime.** `ThreeRuntime.setLightState(sceneId, lightId, { enabled?, intensity? }): boolean` —
+the one method that changes a declared light. It upholds v142's rule THROUGH the gate: toggling
+`enabled` attaches and detaches the wrapped `THREE.Light` (a control that flipped a config field
+alone would describe a darkness the renderer never renders). An illegal intensity (non-finite or
+negative) refuses the WHOLE change — nothing half-applies — and an unknown scene or light answers
+`false`, the same report `removeEntity` gives. Light ids are SCENE-LOCAL names (`ambient`,
+`directional` in every scene), not global brands: the gate resolves against the scene it was
+handed, and a sibling scene holding the same-named light is untouched.
+
+**Studio (pure).** `clampLightIntensity` folds any ask into `LIGHT_INTENSITY_MIN..MAX` (0..2 — the
+demo opens at 0.5 and 1.0, so the range covers "off-black" through "twice the sun"); one rule for
+every non-finite number, +Infinity included: a brightness that is not a number means "off". The
+surface clamps BEFORE the host sees the ask, so the runtime's own refusal is a second wall, never
+the first. `lightIntensityOf` is the one reader that knows both host shapes — the real runtime
+keeps brightness on the wrapped three.js object, a structural fake may keep it directly; a light
+that declares neither reads 0 rather than inventing a value. `SceneReport.scene.lighting` is the
+scene's lights as the LIVE scene holds them (never a shadow the surface keeps — a change goes
+through the gate and the next report re-reads what the host now holds), and a host without a gate
+answers the unchanged report: asking is not changing.
+
+**Surface.** `setLight(lightId, { enabled?, intensity? })` — clamps, hands the rest to the host's
+gate, returns the re-read report.
+
+**Face.** The HUD lists each declared light with an on/off toggle and −/+ brightness buttons
+(one press = `LIGHT_INTENSITY_STEP` = 0.1, clamped at both ends). The numbers are the report's, so
+a press that moved only local state would show nothing — and the honest text for a gate-less host
+is its unchanged lights.
+
+**Verification.** three-runtime 448 → **453** (+5: live-write vs config-shadow, detach/re-attach,
+whole-change refusal, unknown light/scene, scene-local ids); studio 274 → **283** (+8 pure-surface
+cases incl. the range fold and the unchanged-report guarantee, +1 end-to-end on the shipped
+headless runtime: surface ask → runtime gate → live light → honest report); tsc/lint/build clean;
+harness studio-scene3d 33 → **37/37** — the toggle, the dim (1.00 → 0.90) and the re-enable are
+pressed BY HAND in a real browser, each read back through the bridge.
+
+**A build found a second defect, not in the diff.** First harness run: the HUD buttons rendered,
+the click landed, and the runtime did not change. The cause: `transpilePackages` compiles the
+shared packages, but module RESOLUTION still follows `main` — the Studio's browser bundle runs
+`packages/three-runtime/dist`, and dist was v182. The new method did not exist there, and the
+surface's optional call silently skipped it. The unit suites never saw this: they import the
+package through vitest's source mapping. Rule the incident pins: **changing `packages/*/src`
+requires rebuilding that package before any browser-facing check is meaningful.**
+
+**Bounds (§60).** The control changes enabled and intensity; it does not create or delete lights,
+move them, or touch colour — the demo's two declared lights are what it names. There is no
+persistent lighting state: a save file still records nothing about a light the person dimmed.
+
