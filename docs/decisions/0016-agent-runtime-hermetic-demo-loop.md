@@ -8355,3 +8355,48 @@ page-wide (scoped by the input guard, not by focus), so a surface that wanted it
 page with other key consumers would need a narrower rule. The pan limit is a constant, not a setting;
 there is no pan inertia, no held-key interpolation, and no pan meter in the HUD beyond the two numbers
 the report already prints.
+### Amendment 182 — M5: the surface NAMES what a click touches — the per-body picker (2026-10-07)
+
+**What landed.** The second of M5's "still open" controls, built the way v161 built the orbit and
+v181 the pan — the geometry lives in the runtime, the arithmetic lives in the lib, the component
+only forwards input:
+
+1. `three-runtime` — new `pickAt(sceneId, nx, ny): ScenePick | null`. NDC in (y points UP, the
+   convention `ndcFromPixel` converts to), a `ScenePick` out: `{ entityId, name, distance }`. The
+   ray is a real `THREE.Raycaster.setFromCamera` into the LIVE scene — `updateMatrixWorld(true)`
+   first, so the answer describes the scene AS IT STANDS, not as the last frame left it (a pick
+   after a drag must not answer with yesterday's matrices). Invisible bodies are skipped, the
+   nearest hit across entities wins (distance is along the pick ray, so an overlap names the closer
+   body), no active camera answers `null`, and a missing scene throws the way every other lookup
+   does.
+2. `scene3d.ts` — `ndcFromPixel(px, py, w, h)` is pure arithmetic with ONE non-obvious detail: y is
+   written `1 − (py/h)·2`, not `−((py/h)·2 − 1)` — the second form produces `-0` at the center, and
+   deep-equal distinguishes `-0` from `0`. The report gains `selected: { id, name } | null` (the
+   SURFACE holds it, the way it holds the orbit), and the surface grows `pickAt(px, py)`: no adapter
+   pick or no backend dimensions is an honest NO-OP that answers the unchanged report — asking
+   nothing is not the same answer as picking nothing.
+3. `Scene3D.tsx` — the adapter forwards to the runtime; a pointer release within
+   `PICK_MAX_CLICK_PIXELS` (4) of its press is a CLICK and picks (anything farther was a drag, and
+   drags only move the camera); pointerCancel clears both refs; the HUD carries a `picked:` line
+   that shows the name or an honest `—` when the sky was clicked.
+
+**Measured.** three-runtime 440 → **448** (+8: center hit, corner sky, near-beats-far, invisible is
+unpickable, no camera, unknown scene throws, the pick follows the LIVE scene both ways — a body
+moved away unpicks and a re-aimed camera re-picks — and the NDC y-up convention pinned at ±0.26);
+studio 263 → **274** (+4 `ndcFromPixel` cases including the −0 trap, +6 pure pick cases through the
+fake adapter, +1 end-to-end on the REAL runtime: the view center names Cube B, the corner answers
+null); `npm run build` clean; harness studio-scene3d 30 → **33/33** in a real browser — a pinned
+click names Cube A and the HUD agrees, a second pinned click names Cube C (DIFFERENT: the pick is
+spatial, not a constant), and empty sky clears the selection with the HUD answering `picked: —`.
+
+**The center-pin decision.** The probe (`.scratch/v182/probe-pick.mjs`) measured the demo view: the
+pixel at the exact center names Cube B with a margin of only ~0.16 world units, because the demo's
+frame loop drifts every body's y by `bob·0.01` PER FRAME — an unbounded random walk in a
+long-running page. So the BROWSER assertion pins Cube A and Cube C (whose margins are the whole
+half-box, ~0.5) plus spatial discrimination, and the exact center answer is pinned in
+`scene3dSurface.test.ts`, where no frame loop runs and the ray is deterministic.
+
+**Bounds (§60).** A pick NAMES a body; it does not yet DO anything to it — no highlight, no
+inspector, no edit semantics ride on `selected` yet. The 4 px threshold is a constant, not a
+setting. The pick answers the nearest VISIBLE entity only — occlusion by invisible geometry is not
+modeled, and cameras, lights and helpers are not pickable, only bodies.

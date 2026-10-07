@@ -245,8 +245,59 @@ try {
   // Leave the camera where the Studio opened for everything that follows.
   await page.evaluate("document.querySelector('[data-scene-reset-view]').click()");
   await page.waitForFunction(
-    `(() => { const o = window.__nexusScene3d?.scene3d()?.orbit; return o && o.panX === 0 && o.panZ === 0 ? o : null; })()`,
+    `(() => { const o = window.__nexusScene3d?.scene3d(); return o && o.orbit.panX === 0 && o.orbit.panZ === 0 ? o : null; })()`,
     { timeout: 10000 },
+  );
+
+  // ── M5 v182: the surface NAMES what a click touches — the per-body picker ───────────────────────
+  // The probe (`.scratch/v182/probe-pick.mjs`) measured where the demo bodies project on the default
+  // view: Cube A's center sits at NDC (-0.1082, 0.0764), Cube C's at (0.1316, -0.0287). Those two are
+  // the pinned targets because their hit margin is the whole half-box (~0.5 world units): the demo's
+  // frame loop drifts every body's y by `bob·0.01` per frame — a slow random walk in a long-running
+  // page — and the view center (whose margin to Cube B is only ~0.16) cannot carry a stable answer.
+  // Which exact body sits under the CENTER pixel is pinned deterministically in `scene3dSurface.test.ts`
+  // instead, where no frame loop runs. A and C naming DIFFERENT bodies is also what proves spatial
+  // discrimination: a picker that answered one name for every pixel would fail exactly here.
+  const selectedOf = async () => (await page.evaluate('window.__nexusScene3d.scene3d()'))?.selected ?? null;
+  const rect = await page.evaluate(
+    "(() => { const r = document.getElementById('nexus-scene3d').getBoundingClientRect(); return { left: r.left, top: r.top, width: r.width, height: r.height }; })()",
+  );
+  // NDC → pixel: x = (ndc+1)/2·W, y = (1−ndc)/2·H (pixel y points DOWN).
+  const clickNdc = async (nx, ny, label) => {
+    const px = Math.round(rect.left + ((1 + nx) / 2) * rect.width);
+    const py = Math.round(rect.top + ((1 - ny) / 2) * rect.height);
+    await page.send('Input.dispatchMouseEvent', { type: 'mousePressed', x: px, y: py, button: 'left', buttons: 1, clickCount: 1 });
+    await page.send('Input.dispatchMouseEvent', { type: 'mouseReleased', x: px, y: py, button: 'left', buttons: 0, clickCount: 1 });
+    // An EMPTY label means the click is expected to MISS — wait for the report to CLEAR instead.
+    // (`'—'` is the HUD's fallback text, never a report value, so it can never be waited on here.)
+    const cond = label
+      ? `(() => { const r = window.__nexusScene3d?.scene3d(); return r && r.selected && r.selected.name === '${label}' ? r : null; })()`
+      : `(() => { const r = window.__nexusScene3d?.scene3d(); return r && r.selected === null ? r : null; })()`;
+    await page.waitForFunction(cond, { timeout: 10000 });
+  };
+
+  await clickNdc(-0.1082, 0.0764, 'Cube A');
+  const hudPickedA = await page.evaluate("document.querySelector('[data-scene3d-picked]')?.textContent ?? null");
+  check(
+    'clicking where Cube A stands names Cube A, and the HUD agrees',
+    (await selectedOf())?.name === 'Cube A' && hudPickedA !== null && hudPickedA.includes('Cube A'),
+    `${JSON.stringify(await selectedOf())} · HUD ${JSON.stringify(hudPickedA)}`,
+  );
+
+  await clickNdc(0.1316, -0.0287, 'Cube C');
+  check(
+    'and clicking where Cube C stands names a DIFFERENT body — the pick is spatial, not a constant',
+    (await selectedOf())?.name === 'Cube C',
+    JSON.stringify(await selectedOf()),
+  );
+
+  // Empty sky at the top-left: a miss, and the report clears — the HUD answers with an honest dash.
+  await clickNdc(-0.84, 0.88, ''); // the click is expected to MISS: clickNdc waits for the report to clear
+  const hudPickedEmpty = await page.evaluate("document.querySelector('[data-scene3d-picked]')?.textContent ?? null");
+  check(
+    'clicking empty sky CLEARS the selection, and the HUD shows an honest dash',
+    (await selectedOf()) === null && hudPickedEmpty !== null && hudPickedEmpty.includes('—'),
+    `${JSON.stringify(await selectedOf())} · HUD ${JSON.stringify(hudPickedEmpty)}`,
   );
 
   // ── M5 v163: the scene SURVIVES the surface — save, load, and the document door ─────────────────

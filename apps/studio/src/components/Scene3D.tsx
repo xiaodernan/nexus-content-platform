@@ -53,6 +53,10 @@ import { useStudio } from '@/lib/store';
 /** Frames between HUD samples. The loop runs every frame; the HUD does not need to. */
 const HUD_EVERY_FRAMES = 10;
 
+/** v182 — a release within this many pixels of its press is a CLICK (and picks); anything more was a
+ *  drag (and only moved the camera). Big enough for a resting hand, small enough to never swallow a turn. */
+const PICK_MAX_CLICK_PIXELS = 4;
+
 const panel: React.CSSProperties = {
   position: 'absolute',
   top: 10,
@@ -82,6 +86,9 @@ export default function Scene3D() {
   const saverRef = useRef<SceneSaverLike | null>(null);
   // Pointer-drag bookkeeping. A ref, not state: a drag must not re-render on every move.
   const dragRef = useRef<{ id: number; x: number; y: number } | null>(null);
+  // v182: where the CURRENT press started, so a release can tell a CLICK from a drag — a click picks
+  // the body under the cursor, a drag only ever moves the camera.
+  const downRef = useRef<{ id: number; x: number; y: number } | null>(null);
   const [report, setReport] = useState<SceneReport | null>(null);
   const [note, setNote] = useState('');
   // v163: the last file this surface saved, and what the last save/load/send answered — the harness
@@ -127,6 +134,11 @@ export default function Scene3D() {
         camera.threeCamera.lookAt(new THREE.Vector3(lookAt.x, lookAt.y, lookAt.z));
         camera.threeCamera.updateMatrixWorld(true);
         return true;
+      },
+      // v182 — the pick path. The runtime owns the raycast (it owns the scene graph); this adapter is
+      // the one place the Studio's plain strings become the package's branded ids, exactly as above.
+      pickAt(sceneId, nx, ny) {
+        return runtime.pickAt(sceneId as Parameters<typeof runtime.pickAt>[0], nx, ny);
       },
     };
 
@@ -310,6 +322,16 @@ export default function Scene3D() {
     else if (key === 's' || key === 'ArrowDown') setReport(surface.panBy({ forward: -ORBIT_PAN_PER_KEY }));
     else if (key === 'a' || key === 'ArrowLeft') setReport(surface.panBy({ right: -ORBIT_PAN_PER_KEY }));
     else if (key === 'd' || key === 'ArrowRight') setReport(surface.panBy({ right: ORBIT_PAN_PER_KEY }));
+  }, []);
+
+  /** v182 — a click picks the body under the cursor. The canvas is where pixels are counted from: the
+   *  surface converts them to NDC and the adapter casts the ray, so the HUD names what a hand would. */
+  const onPick = useCallback((clientX: number, clientY: number) => {
+    const surface = surfaceRef.current;
+    const canvas = canvasRef.current;
+    if (!surface || !canvas) return;
+    const rect = canvas.getBoundingClientRect();
+    setReport(surface.pickAt(clientX - rect.left, clientY - rect.top));
   }, []);
 
   // The keyboard listener is its own effect so it can depend on the stable `onKeyPan` without touching
@@ -528,11 +550,13 @@ export default function Scene3D() {
         id="nexus-scene3d"
         data-surface="3d"
         style={{ display: 'block', width: '100%', height: '100%', cursor: 'grab', touchAction: 'none' }}
-        // M5 v161/v181 — drag to orbit, SHIFT-drag to pan, wheel to zoom, WASD/arrows to pan. Pointer
-        // capture so a drag that leaves the canvas keeps driving the camera instead of stopping when
-        // the cursor crosses the panel.
+        // M5 v161/v181/v182 — drag to orbit, SHIFT-drag to pan, wheel to zoom, WASD/arrows to pan, and a
+        // click (a release that barely moved) PICKS the body under the cursor. Pointer capture so a drag
+        // that leaves the canvas keeps driving the camera instead of stopping when the cursor crosses
+        // the panel.
         onPointerDown={(e) => {
           (e.target as HTMLElement).setPointerCapture?.(e.pointerId);
+          downRef.current = { id: e.pointerId, x: e.clientX, y: e.clientY };
           dragRef.current = { id: e.pointerId, x: e.clientX, y: e.clientY };
         }}
         onPointerMove={(e) => {
@@ -546,9 +570,15 @@ export default function Scene3D() {
           else onOrbit(dx, dy);
         }}
         onPointerUp={(e) => {
-          if (dragRef.current?.id === e.pointerId) dragRef.current = null;
+          const down = downRef.current;
+          if (down && down.id === e.pointerId && Math.hypot(e.clientX - down.x, e.clientY - down.y) < PICK_MAX_CLICK_PIXELS) {
+            onPick(e.clientX, e.clientY);
+          }
+          downRef.current = null;
+          dragRef.current = null;
         }}
         onPointerCancel={() => {
+          downRef.current = null;
           dragRef.current = null;
         }}
         onWheel={(e) => {
@@ -577,6 +607,10 @@ export default function Scene3D() {
             <div data-scene3d-orbit>
               orbit: az {report.orbit.azimuth.toFixed(3)} · el {report.orbit.elevation.toFixed(3)} · d{' '}
               {report.orbit.distance.toFixed(2)} · pan {report.orbit.panX.toFixed(2)}/{report.orbit.panZ.toFixed(2)}
+            </div>
+            {/* v182 — what the last click picked, or an honest dash when the click hit empty space. */}
+            <div data-scene3d-picked>
+              picked: {report.selected ? <strong>{report.selected.name}</strong> : '—'}
             </div>
           </>
         ) : (

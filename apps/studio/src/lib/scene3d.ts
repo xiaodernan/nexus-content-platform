@@ -84,6 +84,10 @@ export interface SceneAdapterLike {
   /** Put a camera at `position` looking at `lookAt`. Returns false when it could not (a missing
    *  scene/camera, or a runtime whose cameras are not three.js objects). */
   placeCamera(sceneId: string, cameraId: string, position: SceneVec3, lookAt: SceneVec3): boolean;
+  /** v182 — name the body under one NDC point of the scene's ACTIVE camera, or null when nothing is
+   *  there. Optional the same way `placeCamera` is load-bearing-optional: a fake without a pick
+   *  raycaster is a legitimate host, and `pickAt` on the surface answers honestly when absent. */
+  pickAt?(sceneId: string, nx: number, ny: number): { entityId: string; name: string; distance: number } | null;
 }
 
 /**
@@ -332,6 +336,12 @@ export interface SceneReport {
    * own, so a report that invented one would be describing a camera nobody moved.
    */
   orbit: OrbitState;
+  /**
+   * v182 — the body the last pick named, or null when the last pick hit empty space (or nothing has been
+   * picked yet). Held by the SURFACE the same way `orbit` is: a click is an input to this surface, and
+   * every later report carries the selection until another pick replaces or clears it.
+   */
+  selected: { id: string; name: string } | null;
 }
 
 const EMPTY_STATS = { drawCalls: 0, triangles: 0, points: 0, lines: 0 };
@@ -375,7 +385,12 @@ export function buildDemoScene(
  * `activeSceneId` is the graph's own answer, and the scene summary is read from the scene the graph
  * points at — so a report can never describe a scene the runtime is not actually holding as active.
  */
-export function buildSceneReport(runtime: SceneRuntimeLike, frames: number, orbit: OrbitState = STUDIO_ORBIT_DEFAULT): SceneReport {
+export function buildSceneReport(
+  runtime: SceneRuntimeLike,
+  frames: number,
+  orbit: OrbitState = STUDIO_ORBIT_DEFAULT,
+  selected: { id: string; name: string } | null = null,
+): SceneReport {
   const graph = runtime.getSceneGraph();
   const activeSceneId = graph.activeSceneId;
   const scene = activeSceneId ? runtime.getScene(activeSceneId) : undefined;
@@ -408,6 +423,7 @@ export function buildSceneReport(runtime: SceneRuntimeLike, frames: number, orbi
       lines: stats.lines,
     },
     orbit,
+    selected,
   };
 }
 
@@ -419,6 +435,17 @@ export function buildSceneReport(runtime: SceneRuntimeLike, frames: number, orbi
  */
 export function spinAt(elapsedSeconds: number): { y: number; bob: number } {
   return { y: elapsedSeconds * 0.8, bob: Math.sin(elapsedSeconds * 1.6) * 0.25 };
+}
+
+/**
+ * v182 — canvas pixels to normalized device coordinates, the one conversion a pick needs and the one
+ * place it lives. NDC y points UP while pixel y points DOWN, which is exactly the kind of sign flip
+ * that reads fine and picks the wrong body — hence a named function the suite can pin, not an inline
+ * expression in a click handler. The y algebra is written `1 − t·2` rather than `−(t·2 − 1)` so the
+ * center answers +0, not −0 — a distinction deep-equal assertions rightly refuse to blur.
+ */
+export function ndcFromPixel(px: number, py: number, width: number, height: number): { x: number; y: number } {
+  return { x: (px / width) * 2 - 1, y: 1 - (py / height) * 2 };
 }
 
 /** A function DECLARATION with an explicit `never` return, so control flow narrows after a refusal. */
@@ -563,6 +590,10 @@ export interface SceneSurface {
    *  screen, `right` is to the view's right. Clamps at `±ORBIT_PAN_LIMIT` per world axis; a pan never
    *  turns the camera or changes its distance. */
   panBy(delta: { forward?: number; right?: number }): SceneReport;
+  /** v182 — pick the body under one canvas pixel. A hit names it in `selected` from now on; empty space
+   *  CLEARS it. A host without a picking adapter, or without pixel dimensions to convert with, answers
+   *  the unchanged report — asking nothing is not the same answer as picking nothing. */
+  pickAt(px: number, py: number): SceneReport;
   /** Put the camera back to the default orbit — the view the Studio opens with. */
   resetOrbit(): SceneReport;
   /** Add a body at the next free slot. Answers `null` when the runtime produced no entity. */
@@ -619,6 +650,9 @@ export function createStudioScene(
   const built = buildDemoScene(runtime, adapter);
   let counted = frames;
   let orbit = STUDIO_ORBIT_DEFAULT;
+  // v182 — what the last pick named. Surface state, like the orbit: it survives frames and turns, and
+  // only another pick replaces or clears it.
+  let selected: { id: string; name: string } | null = null;
 
   // A copy, not the array `buildDemoScene` returned: the surface owns its body list from here on, and the
   // builder's array is a construction detail. Mutated in place so the frame writer sees the current set.
@@ -648,27 +682,39 @@ export function createStudioScene(
       return orbit;
     },
     report() {
-      return buildSceneReport(runtime, counted, orbit);
+      return buildSceneReport(runtime, counted, orbit, selected);
     },
     step(elapsedSeconds) {
       counted += 1;
       writeFrame(bodyIds, spinAt(elapsedSeconds));
-      return buildSceneReport(runtime, counted, orbit);
+      return buildSceneReport(runtime, counted, orbit, selected);
     },
     orbitBy(delta) {
       orbit = applyOrbit(orbit, delta);
       aim();
-      return buildSceneReport(runtime, counted, orbit);
+      return buildSceneReport(runtime, counted, orbit, selected);
     },
     panBy(delta) {
       orbit = applyPan(orbit, delta);
       aim();
-      return buildSceneReport(runtime, counted, orbit);
+      return buildSceneReport(runtime, counted, orbit, selected);
+    },
+    pickAt(px, py) {
+      // Convert only when there is something to convert WITH: dimensions from the backend the surface
+      // actually draws into, and an adapter that can cast the ray. Otherwise this answers the current
+      // report untouched — a no-op pick, not a fabricated miss.
+      const size = runtime.getBackend()?.state;
+      if (adapter?.pickAt && size && size.width > 0 && size.height > 0) {
+        const ndc = ndcFromPixel(px, py, size.width, size.height);
+        const hit = adapter.pickAt(built.sceneId, ndc.x, ndc.y);
+        selected = hit ? { id: hit.entityId, name: hit.name } : null;
+      }
+      return buildSceneReport(runtime, counted, orbit, selected);
     },
     resetOrbit() {
       orbit = STUDIO_ORBIT_DEFAULT;
       aim();
-      return buildSceneReport(runtime, counted, orbit);
+      return buildSceneReport(runtime, counted, orbit, selected);
     },
     addBody(name, kind) {
       const entity = runtime.createEntity(

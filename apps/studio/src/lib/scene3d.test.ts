@@ -14,6 +14,7 @@ import {
   orbitFromPlacement,
   applyOrbit,
   applyPan,
+  ndcFromPixel,
   normalizeAngle,
   nextBodyPlacement,
   ORBIT_PAN_LIMIT,
@@ -664,6 +665,90 @@ describe('save / load — the scene survives the process (M5 v163)', () => {
     // Removing a composed body is refused by `bodyIds` lookup semantics — it is not in the authored list
     // to begin with, so a document send can never file it.
     expect(surface.authoredBodyIds).not.toContain(surface.bodyIds[0]);
+  });
+});
+
+describe('ndcFromPixel — canvas pixels to pick coordinates (M5 v182)', () => {
+  it('the pixel at the CENTER of the canvas is NDC origin', () => {
+    expect(ndcFromPixel(400, 300, 800, 600)).toEqual({ x: 0, y: 0 });
+  });
+
+  it('the TOP-LEFT pixel is NDC (-1, +1) — pixel y points DOWN while NDC y points UP', () => {
+    expect(ndcFromPixel(0, 0, 800, 600)).toEqual({ x: -1, y: 1 });
+  });
+
+  it('the BOTTOM-RIGHT pixel is NDC (+1, -1) — the same flip, read from the other corner', () => {
+    expect(ndcFromPixel(800, 600, 800, 600)).toEqual({ x: 1, y: -1 });
+  });
+
+  it('a quarter point maps proportionally, so off-center picks land where they should', () => {
+    expect(ndcFromPixel(600, 150, 800, 600)).toEqual({ x: 0.5, y: 0.5 });
+  });
+});
+
+describe('pickAt — the surface names the body under a click (M5 v182)', () => {
+  /** The fake adapter plus a pick raycaster the suite scripts: `hits` answers one pick per entry. */
+  function pickingFixture() {
+    const { runtime } = fakeRuntime();
+    const asked: { sceneId: string; nx: number; ny: number }[] = [];
+    const hits: { entityId: string; name: string; distance: number }[] = [];
+    const adapter: SceneAdapterLike = {
+      ...fakeAdapter(),
+      pickAt(sceneId: string, nx: number, ny: number) {
+        asked.push({ sceneId, nx, ny });
+        return hits.shift() ?? null;
+      },
+    };
+    const surface = createStudioScene(runtime, () => {}, adapter);
+    return { surface, asked, hits };
+  }
+
+  it('canvas pixels reach the adapter as NDC — the surface converts, it does not guess', () => {
+    const { surface, asked } = pickingFixture();
+    surface.pickAt(600, 150);
+    expect(asked).toEqual([{ sceneId: surface.sceneId, nx: 0.5, ny: 0.5 }]);
+  });
+
+  it('a hit names the body from then on — a selection is state, not a one-shot answer', () => {
+    const { surface, hits } = pickingFixture();
+    hits.push({ entityId: 'e-9', name: 'Cube K', distance: 3.5 });
+    const picked = surface.pickAt(400, 300);
+    expect(picked.selected).toEqual({ id: 'e-9', name: 'Cube K' });
+    // And the NEXT report — a frame later, a turn later — still carries it.
+    expect(surface.report().selected).toEqual({ id: 'e-9', name: 'Cube K' });
+  });
+
+  it('clicking empty space CLEARS the selection — a miss is an input, not silence', () => {
+    const { surface, hits } = pickingFixture();
+    hits.push({ entityId: 'e-9', name: 'Cube K', distance: 3.5 });
+    expect(surface.pickAt(400, 300).selected).toEqual({ id: 'e-9', name: 'Cube K' });
+    expect(surface.pickAt(10, 10).selected).toBeNull();
+    expect(surface.report().selected).toBeNull();
+  });
+
+  it('a host without a picking adapter answers the unchanged report — asking nothing is not a miss', () => {
+    const { runtime } = fakeRuntime();
+    const surface = createStudioScene(runtime, () => {}, fakeAdapter());
+    const before = surface.report();
+    const after = surface.pickAt(400, 300);
+    expect(after.selected).toBeNull();
+    expect(after).toEqual(before);
+  });
+
+  it('a pick never moves the camera — selecting is not a turn', () => {
+    const { surface, hits } = pickingFixture();
+    hits.push({ entityId: 'e-9', name: 'Cube K', distance: 3.5 });
+    const orbitBefore = { ...surface.orbit };
+    surface.pickAt(400, 300);
+    expect(surface.orbit).toEqual(orbitBefore);
+  });
+
+  it('a turn keeps the selection — orbiting to look around does not drop what you had picked', () => {
+    const { surface, hits } = pickingFixture();
+    hits.push({ entityId: 'e-9', name: 'Cube K', distance: 3.5 });
+    surface.pickAt(400, 300);
+    const turned = surface.orbitBy({ azimuth: 1 });
+    expect(turned.selected).toEqual({ id: 'e-9', name: 'Cube K' });
   });
 });
 

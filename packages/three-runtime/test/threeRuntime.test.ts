@@ -457,3 +457,87 @@ describe('Lighting', () => {
     expect(registered.has(nonLights[0]!)).toBe(true);
   });
 });
+describe('pickAt (v182) — the runtime names the body under a view point', () => {
+  /** A rig aimed at the origin from +Z, so NDC (0, 0) IS the origin — every case reasons from there. */
+  function pickRig() {
+    const runtime = headlessRuntime().runtime;
+    runtime.initialize(mockCanvas);
+    const scene = runtime.createScene('Pick Scene');
+    const camera = runtime.createCamera(scene.id, 'Pick Camera');
+    camera.threeCamera.position.set(0, 0, 5);
+    camera.threeCamera.lookAt(new THREE.Vector3(0, 0, 0));
+    camera.threeCamera.updateMatrixWorld(true);
+    return { runtime, scene, camera };
+  }
+
+  it('the center of the view names the body standing there', () => {
+    const { runtime, scene } = pickRig();
+    const box = runtime.createEntity(scene.id, 'Box', 'mesh');
+
+    const picked = runtime.pickAt(scene.id, 0, 0);
+    expect(picked).not.toBeNull();
+    expect(picked!.entityId).toBe(box.id);
+    expect(picked!.name).toBe('Box');
+    expect(picked!.distance).toBeGreaterThan(0);
+    expect(picked!.distance).toBeLessThan(5);
+  });
+
+  it('a corner that no body occupies answers null — a miss is an honest answer', () => {
+    const { runtime, scene } = pickRig();
+    runtime.createEntity(scene.id, 'Box', 'mesh');
+    expect(runtime.pickAt(scene.id, 0.95, 0.95)).toBeNull();
+  });
+
+  it('two bodies on one ray answer the NEARER one', () => {
+    const { runtime, scene } = pickRig();
+    const far = runtime.createEntity(scene.id, 'Far', 'mesh', undefined, undefined, new THREE.Vector3(0, 0, -2));
+    const near = runtime.createEntity(scene.id, 'Near', 'mesh', undefined, undefined, new THREE.Vector3(0, 0, 1));
+
+    const picked = runtime.pickAt(scene.id, 0, 0);
+    expect(picked!.entityId).toBe(near.id);
+    expect(picked!.entityId).not.toBe(far.id);
+  });
+
+  it('an invisible body is not pickable — a pick answers what an eye could see', () => {
+    const { runtime, scene } = pickRig();
+    const box = runtime.createEntity(scene.id, 'Ghost', 'mesh');
+    box.visible = false;
+    expect(runtime.pickAt(scene.id, 0, 0)).toBeNull();
+  });
+
+  it('a scene with no active camera answers null — nothing to ask through', () => {
+    const runtime = headlessRuntime().runtime;
+    runtime.initialize(mockCanvas);
+    const bare = runtime.createScene('No Camera');
+    runtime.createEntity(bare.id, 'Box', 'mesh');
+    expect(runtime.pickAt(bare.id, 0, 0)).toBeNull();
+  });
+
+  it('an unknown scene is refused, not answered with a fake miss', () => {
+    const runtime = headlessRuntime().runtime;
+    runtime.initialize(mockCanvas);
+    expect(() => runtime.pickAt(sceneId('nope'), 0, 0)).toThrow(/not found/);
+  });
+
+  it('the pick follows the LIVE scene, not the last matrices somebody left behind', () => {
+    const { runtime, scene } = pickRig();
+    const box = runtime.createEntity(scene.id, 'Box', 'mesh');
+    // Walked out of the aimed-at spot: the center is now empty...
+    box.threeObject.position.set(2, 0, 0);
+    expect(runtime.pickAt(scene.id, 0, 0)).toBeNull();
+    // ...and re-aiming at where it went finds it again — same center, different answer.
+    const camera = runtime.getScene(scene.id)!.cameras.get([...runtime.getScene(scene.id)!.cameras.keys()][0]!);
+    camera!.threeCamera.position.set(2, 0, 5);
+    camera!.threeCamera.lookAt(new THREE.Vector3(2, 0, 0));
+    expect(runtime.pickAt(scene.id, 0, 0)!.name).toBe('Box');
+  });
+
+  it('NDC y points UP: the body ABOVE the aim point is picked above center, not below', () => {
+    const { runtime, scene } = pickRig();
+    // fov 75: half-height at depth 5 is 5·tan(37.5°) ≈ 3.84, so the box center at y=1 sits at NDC
+    // y ≈ +0.26. A y-DOWN implementation would answer exactly the opposite pair here.
+    runtime.createEntity(scene.id, 'High', 'mesh', undefined, undefined, new THREE.Vector3(0, 1, 0));
+    expect(runtime.pickAt(scene.id, 0, 0.26)!.name).toBe('High');
+    expect(runtime.pickAt(scene.id, 0, -0.26)).toBeNull();
+  });
+});

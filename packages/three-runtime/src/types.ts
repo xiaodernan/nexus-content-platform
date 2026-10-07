@@ -60,6 +60,17 @@ export interface ThreeCamera {
   postProcessing?: PostProcessingConfig;
 }
 
+/**
+ * v182 — what one pick answers: the entity under a view point, as the runtime knows it. `distance` is
+ * along the pick ray, so an overlapping pair of bodies answers the NEARER one — the same rule a hand
+ * and a mouse expect.
+ */
+export interface ScenePick {
+  entityId: EntityId;
+  name: string;
+  distance: number;
+}
+
 export interface LightingConfig {
   ambient: THREE.Color;
   ambientIntensity: number;

@@ -14,6 +14,8 @@ import {
   createStudioScene,
   STUDIO_CAMERA_LOOK_AT,
   STUDIO_CAMERA_POSITION,
+  type SceneAdapterLike,
+  type SceneVec3,
 } from './scene3d';
 
 /**
@@ -96,6 +98,36 @@ describe('the Studio’s scene, composed on the REAL runtime', () => {
     for (const id of surface.bodyIds) {
       expect(composed.entities.has(toEntityId(id))).toBe(true);
     }
+  });
+
+  it('a click at the view center names the body the real ray finds — Cube B (v182)', () => {
+    const headless = headlessRuntime();
+    runtime = headless.runtime;
+    // The component's adapter, written the same way here: aim + pick both go through the real package.
+    const adapter: SceneAdapterLike = {
+      placeCamera(sceneId: string, cameraId: string, position: SceneVec3, lookAt: SceneVec3) {
+        const found = headless.runtime.getScene(toSceneId(sceneId))?.cameras.get(toCameraId(cameraId));
+        if (!found) return false;
+        found.threeCamera.position.set(position.x, position.y, position.z);
+        found.threeCamera.lookAt(new THREE.Vector3(lookAt.x, lookAt.y, lookAt.z));
+        found.threeCamera.updateMatrixWorld(true);
+        return true;
+      },
+      pickAt(sceneId: string, nx: number, ny: number) {
+        return headless.runtime.pickAt(toSceneId(sceneId), nx, ny);
+      },
+    };
+    const surface = createStudioScene(headless.runtime, () => {}, adapter);
+
+    // The component resizes its backend on mount; the headless state starts at 0×0, and a pick with no
+    // dimensions to convert with is an honest no-op — so resize FIRST, exactly like the product does.
+    headless.runtime.resize(800, 600);
+    // The aimed-at point sits INSIDE Cube B (the probe measured it), so the pixel at the exact center
+    // converts to NDC (0, 0) and names Cube B.
+    const picked = surface.pickAt(400, 300);
+    expect(picked.selected).toEqual({ id: surface.bodyIds[2], name: 'Cube B' });
+    // Empty sky at the top-left corner: a miss, and the report says so.
+    expect(surface.pickAt(40, 30).selected).toBeNull();
   });
 
   it('the declared lighting is IN the scene — the v142 defect, measured on the shipped runtime', () => {

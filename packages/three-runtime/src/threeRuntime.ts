@@ -11,6 +11,7 @@ import type {
   CameraId,
   AnimationId,
   EntityComponent,
+  ScenePick,
   ThreeRuntimeConfig,
   LightingConfig,
   PhysicsConfig,
@@ -1389,6 +1390,36 @@ export class ThreeRuntime {
 
   getEntity(sceneId: SceneId, entityId: EntityId): ThreeEntity | undefined {
     return this.sceneGraph.scenes.get(sceneId)?.entities.get(entityId);
+  }
+
+  /**
+   * v182 — what sits under one point of the ACTIVE camera's view, or null when nothing does. `nx`/`ny`
+   * are normalized device coordinates (x right, y UP, −1..1 — the convention `setFromCamera` speaks).
+   *
+   * This is pure math over the scene graph (THREE.Raycaster), so a headless host answers exactly what a
+   * GL one would — the same rule `simulateFrame` follows. Matrices are refreshed BEFORE the ray: the
+   * answer must describe the scene as it IS, not as the last render left it. Invisible bodies are not
+   * pickable — a pick that answers something the eye cannot see would be a surface lying about itself.
+   */
+  pickAt(sceneId: SceneId, nx: number, ny: number): ScenePick | null {
+    const scene = this.sceneGraph.scenes.get(sceneId);
+    if (!scene) throw new Error(`Scene ${sceneId} not found`);
+    const camera = [...scene.cameras.values()].find((c) => c.active);
+    if (!camera) return null;
+
+    scene.threeScene.updateMatrixWorld(true);
+    const raycaster = new THREE.Raycaster();
+    raycaster.setFromCamera(new THREE.Vector2(nx, ny), camera.threeCamera);
+
+    let best: ScenePick | null = null;
+    for (const entity of scene.entities.values()) {
+      if (!entity.visible) continue;
+      const hit = raycaster.intersectObject(entity.threeObject, true)[0];
+      if (hit && (best === null || hit.distance < best.distance)) {
+        best = { entityId: entity.id, name: entity.name, distance: hit.distance };
+      }
+    }
+    return best;
   }
 
   removeEntity(sceneId: SceneId, entityId: EntityId): boolean {
