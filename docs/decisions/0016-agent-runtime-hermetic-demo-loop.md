@@ -8733,3 +8733,45 @@ ASSET** — no generator runs, because no generator is attached.
   capability the doors cover (generate, remove, update, board-edit, characters) is all reachable
   from the product.
 
+
+
+## Amendment 191 — the world REALLY persists: the engine's own save()/load() gain a disk lane, and the live world can be a saved one (M4 v191)
+
+- **The lane.** M4's "Still open" has named disk persistence since v162, and the shape it takes is
+  v184's: the browser holds the LIVE engine (`WorldPanel` composes it), the engine's own `save()`
+  produces the file and its own `load()` consumes it, and `src/lib/worldSaveServer.ts` is only the
+  disk between them. The store is the SAME tested one the scene lane rides — the runtime's
+  `createFsSaveStore` over the REAL `node:fs` (reused from `saveFsServer`, so no second naming
+  policy is invented next to it) — under a new root, `.nexus/world-saves`, the same gitignored
+  `.nexus` the scene saves and the deploy records live in. The route (`app/api/agent/world-saves`)
+  is the only door (GET probe + POST `write`/`read`), the browser holds a fetch adapter
+  (`worldSaveLane.ts`) that imports nothing from `@nexus/three-runtime` or `node:fs`, and
+  unavailability is a normal answer, not an error.
+- **The one world-specific rule.** A file that does not carry an object `world` is not a world save.
+  It is refused by name BEFORE any byte moves (write) or BEFORE it reaches the loader (read) — the
+  engine's loader deserves a file it can actually parse, not a `TypeError` one seam away from the
+  bytes that caused it. Everything else is the store's own words: a refused name, a missing file and
+  non-JSON bytes all arrive as `ok: false` plus the store's sentence, paraphrased by nobody.
+- **Face.** The world surface gains a Persist row — `save to disk` (engine.save() → parse → lane
+  write → the note reports the byte count and the name), `browse disk` (probe → rows, click a row to
+  load it), and a note that names the disk (`.nexus/world-saves`) rather than implying something
+  vaguer. Loading hands the file back to the engine's own `load()` and re-reads the report: the live
+  world BECOMES the saved one. The surface states the bound in its own footnote — the demo
+  composition returns only when the surface remounts.
+- **Evidence.** `src/lib/worldSaveServer.test.ts` (8 cases: lane facts as data, write → probe → read
+  round trip, a refused name is the store's own sentence, a non-object and a worldless file are
+  refused before any byte moves, read tells its four failures apart by name, a REAL-engine
+  compose → save → write → read → load round trip is lossless, and a tmpdir round trip lands a REAL
+  file) + `src/lib/worldSaveLane.test.ts` (7: probe passthrough, non-200 and unreachable are honest
+  unavailability, the POST body shape, refusal and non-JSON bodies pass through). `tools/harness/
+  studio-world.mjs` **25/25 → 34/34** — the persist row exists, the save note reports bytes, the
+  file is read back off the REAL disk with node:fs AT THE TICK THE BRIDGE REPORTED (6), the rows
+  list it, one step PAST the save (7) then load and the bridge counts the SAVED tick again (6) with
+  the bonds restored from both sides. apps/studio **349 → 364** (30 files), `tsc` and `eslint`
+  (`--max-warnings=0`) clean, `next build` clean with the route registered.
+- **Bounds (§60).** `@nexus/world-engine` is UNTOUCHED — its lossless save/load, verified in v162,
+  is the whole story; this amendment adds no engine code, only a disk for the file to rest on. The
+  world panel has no delete/rename verbs yet (the scene panel's v186 verbs are the precedent), a
+  load replaces the live world in place (the demo is the initial state, not a fresh sibling the way
+  the 3D surface's demo scene is), and the engine's own `autoSaveInterval` stays 0 in the panel —
+  persistence here is a verb the surface performs, not a timer it starts.

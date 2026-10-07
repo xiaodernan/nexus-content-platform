@@ -44,8 +44,12 @@ headless proof → product surface → real-browser verification → record the 
 - **M4 — World Engine:** `@nexus/world-engine` (world/lore/character/location/faction + RAG + character
   agent) + agent doors (8) + product surface (`World` panel, v148). **Now a SIMULATION (v162):**
   `tickOnce()` + `executeAction`, two-sided relationship bonds with a decay floor, lossless save/load,
-  a connected composition the panel steps (Step ×1/×5). Still open: real model behind the persona,
-  factions/lore ticking, per-tick configuration, disk persistence.
+  a connected composition the panel steps (Step ×1/×5). **Now PERSISTENT (v191):** the engine's own
+  save()/load() gain a disk lane — the same tested fs store the scene lane rides (root
+  `.nexus/world-saves`), a file that carries no object `world` is refused before bytes move or reach
+  the loader, and the panel's Persist row saves the engine's own file and loads a disk row back into
+  the live world (harness 25/25 → 34/34, studio 349 → 364). Still open: real model behind the persona,
+  factions/lore ticking, per-tick configuration.
 - **M5 — Three.js Runtime:** `@nexus/three-runtime` scene graph/entities/cameras/lighting/animations +
   save/quest/combat/NPC type surface + document/op-log integration (v141+). Product surface (`3D`, v142),
   **now CONTROLLABLE (v161):** camera orbit (drag/wheel/reset) and add/remove body from the panel.

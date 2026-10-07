@@ -2,6 +2,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { WorldEngine, type TickReport } from '@nexus/world-engine';
 import { buildStudioWorld, buildWorldReport, type WorldReport } from '@/lib/world';
+import { probeWorldSaves, readWorldSaveFromDisk, writeWorldSaveToDisk, WORLD_SAVE_LANE_DISK_SAVE_PATH } from '@/lib/worldSaveLane';
 import { installWorldBridge } from '@/lib/observability';
 
 /**
@@ -41,11 +42,18 @@ export default function WorldPanel() {
   const [report, setReport] = useState<WorldReport | null>(null);
   const [busy, setBusy] = useState(false);
   const [lastTick, setLastTick] = useState<TickReport | null>(null);
+  // v191 — the disk lane: `null` until the first probe answers (or when it answers unavailable),
+  // an array of save names when the server's store is reachable.
+  const [saveNote, setSaveNote] = useState<string | null>(null);
+  const [diskSaves, setDiskSaves] = useState<string[] | null>(null);
 
   useEffect(() => {
     // The bridge reads the LIVE engine and caches nothing, so a harness always sees the current world.
     installWorldBridge(() => buildWorldReport(engine));
     setReport(buildWorldReport(engine));
+    void probeWorldSaves().then((probe) => {
+      setDiskSaves(probe.available ? probe.saves ?? [] : null);
+    });
 
     return () => {
       // Unregistering matters: `world()` must answer `null` once this panel is gone, so a harness cannot
@@ -65,6 +73,64 @@ export default function WorldPanel() {
       }
       setLastTick(last);
       setReport(buildWorldReport(engine));
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  // v191 — the engine's own save()/load() are the only story; disk is where the file rests.
+  const refreshDiskSaves = async () => {
+    const probe = await probeWorldSaves();
+    setDiskSaves(probe.available ? probe.saves ?? [] : null);
+    return probe;
+  };
+
+  const onSaveToDisk = async () => {
+    if (busy) return;
+    setBusy(true);
+    try {
+      const file: unknown = JSON.parse(engine.save());
+      const answer = await writeWorldSaveToDisk(WORLD_SAVE_LANE_DISK_SAVE_PATH, file);
+      if (!answer.ok) {
+        setSaveNote(answer.reason ?? 'the write was refused');
+        return;
+      }
+      setSaveNote(`saved ${answer.bytes} bytes to disk as "${answer.path}"`);
+      await refreshDiskSaves();
+    } catch (e) {
+      setSaveNote(e instanceof Error ? e.message : String(e));
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const onBrowseDisk = async () => {
+    if (busy) return;
+    setBusy(true);
+    try {
+      const probe = await refreshDiskSaves();
+      if (!probe.available) setSaveNote(probe.reason ?? 'the disk lane is unavailable');
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const onLoadFromDisk = async (path: string) => {
+    if (busy) return;
+    setBusy(true);
+    try {
+      const answer = await readWorldSaveFromDisk(path);
+      if (!answer.ok) {
+        setSaveNote(answer.reason ?? 'the read was refused');
+        return;
+      }
+      // The engine's own loader, on the file the store read back. Anything it refuses is the
+      // engine's own refusal, shown as the note rather than swallowed.
+      engine.load(JSON.stringify(answer.file));
+      setReport(buildWorldReport(engine));
+      setSaveNote(`loaded "${path}" from disk — the live world is now the saved one`);
+    } catch (e) {
+      setSaveNote(e instanceof Error ? e.message : String(e));
     } finally {
       setBusy(false);
     }
@@ -138,6 +204,47 @@ export default function WorldPanel() {
             )}
           </div>
 
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 14, flexWrap: 'wrap' }} data-world-persist>
+            <span style={{ fontSize: 11, letterSpacing: 1, color: 'var(--nexus-muted)', textTransform: 'uppercase' }}>
+              Persist
+            </span>
+            <button data-world-save-disk onClick={onSaveToDisk} disabled={busy} style={buttonStyle}>
+              save to disk
+            </button>
+            <button data-world-browse-disk onClick={onBrowseDisk} disabled={busy} style={buttonStyle}>
+              browse disk
+            </button>
+            <span style={{ color: 'var(--nexus-muted)' }} data-world-save-note>
+              {saveNote ?? "the engine's own save()/load(), persisted on THIS server's disk (.nexus/world-saves)"}
+            </span>
+          </div>
+
+          {diskSaves !== null && (
+            <div style={{ marginBottom: 14 }} data-world-disk>
+              <div style={{ fontSize: 11, letterSpacing: 1, color: 'var(--nexus-muted)', textTransform: 'uppercase', marginBottom: 4 }}>
+                World saves on disk ({diskSaves.length}) — click a row to load it into the live world
+              </div>
+              <ul style={list} data-world-disk-list>
+                {diskSaves.length === 0 ? (
+                  <li style={item} data-world-disk-none>
+                    <span style={dim}>none yet — save to disk writes the engine&apos;s own file</span>
+                  </li>
+                ) : (
+                  diskSaves.map((name) => (
+                    <li
+                      key={name}
+                      style={{ ...item, cursor: 'pointer' }}
+                      data-world-disk-save={name}
+                      onClick={() => onLoadFromDisk(name)}
+                    >
+                      {name}
+                    </li>
+                  ))
+                )}
+              </ul>
+            </div>
+          )}
+
           <Section title="Locations">
             <ul style={list} data-world-locations>
               {report.locations.map((l) => (
@@ -191,7 +298,10 @@ export default function WorldPanel() {
             tickOnce() — every character decides, actions that pass its confidence gate execute, unmaintained
             bonds decay — and every number on screen is the engine&apos;s own report. The decisions are the
             package&apos;s deterministic arithmetic, not a model: DEMO MODE, no model attached (§60). The RAG is
-            queryable from the agent lane rather than from here.
+            queryable from the agent lane rather than from here. It also persists (v191): save to disk
+            writes the engine&apos;s own save() file to the studio server&apos;s disk, and loading a disk row hands
+            that file back to the engine&apos;s own load() — the live world becomes the saved one (the demo
+            composition returns only when this surface remounts).
           </div>
         </>
       ) : (

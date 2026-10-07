@@ -17,14 +17,19 @@
  *      deterministic trace the headless proof pinned (4 decisions · 2 actions · the newborn Mira↔Toma
  *      bond listed from BOTH sides at 13), and `Step ×5` pushes the tick counter to 6 with the decay
  *      floor and the band vocabulary still holding;
- *   6. the surface names its own mode (`DEMO MODE`) rather than letting a reader assume a model.
+ *   6. the surface names its own mode (`DEMO MODE`) rather than letting a reader assume a model;
+ *   7. v191 — the surface PERSISTS: `save to disk` writes the engine's own save() file through the
+ *      server lane and the note reports the byte count, the file is read back off the REAL disk
+ *      with node:fs (a world save, at the tick the bridge reported), the disk rows list it, and
+ *      loading the row hands the file back to the engine's own load() — a step past the save, then
+ *      load, and the bridge counts the SAVED tick again with the bonds restored.
  *
  * Usage: node tools/harness/studio-world.mjs [--url http://127.0.0.1:3210] [--out DIR]
  *
  * The Studio must be running first: from `apps/studio`, `NODE_OPTIONS= ../../node_modules/.bin/next
  * dev -p 3210`.
  */
-import { mkdirSync, writeFileSync } from 'node:fs';
+import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { launch, sleep } from './cdp.mjs';
 
@@ -206,6 +211,110 @@ try {
     JSON.stringify(rows6),
   );
 
+  // 9. v191 — the surface PERSISTS. The engine's own save()/load() are the only story; disk is where
+  //    the file rests. Each step is checked against the BRIDGE and the REAL disk, so a UI that
+  //    re-rendered without writing anything would fail here.
+  const saveNoteText = async () =>
+    page.evaluate("(() => (document.querySelector('[data-world-save-note]')?.innerText ?? '').replace(/\\s+/g, ' ').trim())()");
+  const waitSaveNote = async (pred, timeout = 15000) => {
+    const end = Date.now() + timeout;
+    for (;;) {
+      const text = await saveNoteText();
+      if (pred(text)) return text;
+      if (Date.now() > end) throw new Error(`timeout waiting for the save note, last saw: ${JSON.stringify(text)}`);
+      await sleep(100);
+    }
+  };
+
+  const persistRow = await page.evaluate(
+    "(() => ({ persist: !!document.querySelector('[data-world-persist]'), save: !!document.querySelector('[data-world-save-disk]'), browse: !!document.querySelector('[data-world-browse-disk]'), note: !!document.querySelector('[data-world-save-note]') }))()",
+  );
+  check(
+    'the surface offers the persist row: save to disk, browse disk, and a note that names the disk',
+    persistRow.persist && persistRow.save && persistRow.browse && persistRow.note,
+    JSON.stringify(persistRow),
+  );
+
+  const saveClicked = await page.evaluate("(() => { const b = document.querySelector('[data-world-save-disk]'); if (!b) return false; b.click(); return true; })()");
+  check('pressing save to disk dispatches the write', saveClicked === true, `clicked: ${saveClicked}`);
+  const savedNote = await waitSaveNote((t) => t.includes('saved') && t.includes('bytes to disk'));
+  check(
+    'the note reports the engine file landing on disk with its byte count',
+    savedNote.includes('saved') && /\d+ bytes to disk as "world-saved"/.test(savedNote),
+    `note: ${JSON.stringify(savedNote)}`,
+  );
+
+  // The REAL file, read back with node:fs — the thing a store that only re-rendered could not produce.
+  const diskPath = join(process.cwd(), 'apps', 'studio', '.nexus', 'world-saves', 'world-saved');
+  const raw = readFileSync(diskPath, 'utf8');
+  const parsed = JSON.parse(raw);
+  const bridgeNow = await page.evaluate('window.__nexusWorld ? window.__nexusWorld.world() : null');
+  check(
+    'the file on the REAL disk is a world save at the tick the bridge reported',
+    typeof parsed?.world === 'object' && parsed?.world !== null && parsed?.currentTick === bridgeNow?.stats?.ticks && bridgeNow?.stats?.ticks === 6,
+    `world ${typeof parsed?.world} · currentTick ${parsed?.currentTick} · bridge ticks ${bridgeNow?.stats?.ticks} · ${raw.length} bytes`,
+  );
+
+  // The re-probe inside the save flow re-renders the rows; the harness WAITS for the fact instead of
+  // reading the DOM a frame too early (and the row also proves the flow released its busy guard).
+  const endRows = Date.now() + 15000;
+  let diskRows = [];
+  for (;;) {
+    diskRows = await page.evaluate(
+      "[...document.querySelectorAll('[data-world-disk-list] [data-world-disk-save]')].map((li) => li.getAttribute('data-world-disk-save'))",
+    );
+    if (JSON.stringify(diskRows) === JSON.stringify(['world-saved'])) break;
+    if (Date.now() > endRows) throw new Error(`timeout waiting for the disk row, last saw: ${JSON.stringify(diskRows)}`);
+    await sleep(100);
+  }
+  check('the disk rows list the save the server holds', JSON.stringify(diskRows) === JSON.stringify(['world-saved']), JSON.stringify(diskRows));
+
+  // The round trip: one step PAST the save, then load — the bridge must count the SAVED tick again.
+  // The step click is only dispatched once the save flow has released its busy guard (the buttons
+  // re-enable); a click during busy is swallowed by the surface's own guard, and rightly so.
+  const waitStepReady = async (timeout = 15000) => {
+    const endWait = Date.now() + timeout;
+    for (;;) {
+      const disabled = await page.evaluate("document.querySelector('[data-sim-step=\"1\"]')?.disabled ?? true");
+      if (!disabled) return;
+      if (Date.now() > endWait) throw new Error('timeout waiting for the step button to re-enable');
+      await sleep(100);
+    }
+  };
+  await waitStepReady();
+  await page.evaluate("(() => { const b = document.querySelector('[data-sim-step=\"1\"]'); if (!b) return false; b.click(); return true; })()");
+  await waitLastTick((t) => t.startsWith('tick 7 '));
+  const steppedPast = await page.evaluate('window.__nexusWorld ? window.__nexusWorld.world() : null');
+  check('the live world was stepped one tick past the save', steppedPast?.stats?.ticks === 7, `ticks: ${steppedPast?.stats?.ticks}`);
+
+  await waitStepReady();
+  await page.evaluate("(() => { const row = document.querySelector('[data-world-disk-save=\"world-saved\"]'); if (!row) return false; row.click(); return true; })()");
+  const end = Date.now() + 15000;
+  let loadedReport = null;
+  for (;;) {
+    loadedReport = await page.evaluate('window.__nexusWorld ? window.__nexusWorld.world() : null');
+    if (loadedReport?.stats?.ticks === 6) break;
+    if (Date.now() > end) throw new Error(`timeout waiting for the load, bridge still: ${JSON.stringify(loadedReport?.stats)}`);
+    await sleep(100);
+  }
+  check(
+    'loading the disk row hands the file to the engine: the bridge counts the SAVED tick again',
+    loadedReport?.stats?.ticks === 6,
+    `ticks 7 → ${loadedReport?.stats?.ticks}`,
+  );
+  const rowsAfterLoad = await pairRows();
+  check(
+    'the loaded world still holds the bond, listed on screen from both sides',
+    rowsAfterLoad.length === 2 && rowsAfterLoad.every((r) => r.includes('Mira') && r.includes('Toma')),
+    JSON.stringify(rowsAfterLoad),
+  );
+  const loadedNote = await saveNoteText();
+  check(
+    'the note says the live world is now the saved one',
+    loadedNote.includes('loaded') && loadedNote.includes('world-saved') && loadedNote.includes('now the saved one'),
+    `note: ${JSON.stringify(loadedNote)}`,
+  );
+
   // A pixel screenshot of the surface (§30).
   const shot = await page.send('Page.captureScreenshot', { format: 'png' });
   const png = Buffer.from(shot.data, 'base64');
@@ -222,7 +331,7 @@ try {
   check('the world reports nothing once it is unmounted', gone === null, `world() → ${JSON.stringify(gone)}`);
 
   console.log(
-    `\n[device] surface=world · ${report?.stats?.locations} locations · ${report?.stats?.characters} characters · ${report?.stats?.lore} lore · ticks 0→${stepped6?.stats?.ticks} · bond rows ${rows1.length} · screenshot ${png.length} B`,
+    `\n[device] surface=world · ${report?.stats?.locations} locations · ${report?.stats?.characters} characters · ${report?.stats?.lore} lore · ticks 0→${stepped6?.stats?.ticks} · bond rows ${rows1.length} · PERSISTED (${raw.length} B on disk, load ${steppedPast?.stats?.ticks}→${loadedReport?.stats?.ticks}) · screenshot ${png.length} B`,
   );
 } finally {
   await page.close().catch(() => {});
@@ -236,4 +345,4 @@ if (failed.length) {
   console.log('[world-browser-probe] FAILED');
   process.exit(1);
 }
-console.log('[world-browser-probe] ALL ASSERTIONS PASSED (the world surface is reachable, steps its engine, and the panel and the bridge tell one story)');
+console.log('[world-browser-probe] ALL ASSERTIONS PASSED (the world surface is reachable, steps its engine, persists its world to disk, and the panel and the bridge tell one story)');
