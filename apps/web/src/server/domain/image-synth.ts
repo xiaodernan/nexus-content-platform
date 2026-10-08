@@ -59,17 +59,26 @@ export function synthLimitViolations(input: SynthInput): string[] {
   return issues;
 }
 
-/** 只依赖 prompt/seed/尺寸/色相锚点/统计值：不读时钟、不读随机数，所以两次调用必须给同一份字节 */
+/**
+ * 只依赖 prompt/seed/尺寸/色相锚点/统计值：不读时钟、不读随机数，所以两次调用必须给同一份字节。
+ *
+ * **没有 referenceStats 时，哈希输入与加这个字段之前逐字节相同**（`parts.join('|')` 里没有那一格）。
+ * 这不是洁癖：DEMO 模式下"同一句话生成的图"要能跨代码版本对得上——否则同一句 prompt
+ * 今天和昨天出两张不同的图，历史资产行与新生成行静默对不上，而那种漂移没人能从界面上发现。
+ * 给参考图统计值时才多出一格，于是"变体"必然是另一份字节，原图那份原地不动。
+ */
 function seedBytes(input: SynthInput): Buffer {
   const seed = (input.seed ?? 0).toString(36);
   const anchor = input.hueAnchor === undefined ? '-' : input.hueAnchor.toFixed(6);
-  // referenceStats 参与哈希：同一句话同一 seed，但参考图统计不同，就不是同一份字节
-  const statsHash = input.referenceStats
-    ? `${input.referenceStats.meanLuminance.toFixed(4)}-${input.referenceStats.luminanceStdev.toFixed(4)}-${input.referenceStats.meanSaturation.toFixed(4)}`
-    : '-';
-  return createHash('sha256')
-    .update(`${seed}|${input.width}x${input.height}|${anchor}|${statsHash}|${input.prompt.trim().toLowerCase()}`)
-    .digest();
+  const parts = [seed, `${input.width}x${input.height}`, anchor];
+  if (input.referenceStats) {
+    // referenceStats 参与哈希：同一句话同一 seed，但参考图统计不同，就不是同一份字节
+    parts.push(
+      `${input.referenceStats.meanLuminance.toFixed(4)}-${input.referenceStats.luminanceStdev.toFixed(4)}-${input.referenceStats.meanSaturation.toFixed(4)}`,
+    );
+  }
+  parts.push(input.prompt.trim().toLowerCase());
+  return createHash('sha256').update(parts.join('|')).digest();
 }
 
 /** 一个小到能一眼看完的伪随机流：从摘要出发，每次取 4 字节滚动 */
@@ -98,17 +107,24 @@ function renderPixels(input: SynthInput): Uint8Array {
   const drawnHue = rand();
   const hue = input.hueAnchor ?? drawnHue;
   
-  // §38 Image → Image：如果有参考图统计值，用它们来调制基底颜色
+  // §38 Image → Image：有参考图统计值时才调制基底颜色与渐变末端。
+  // 没有参考图时 r1/r2 保持**这个字段加进来之前的基线**（0.45/0.28 与 0.55/0.62）：
+  // image-synth.test.ts 里"颜色数 > 200"那条断言是拿旧基线校准的，顺手改基线会让
+  // "没有参考图也变了一个样"——合成器变矮了而没人看得出来，那是最难发现的一类漂移。
   let baseLightness = 0.28;
   let baseSaturation = 0.45;
+  let endLightness = 0.62;
+  let endSaturation = 0.55;
   if (input.referenceStats) {
-    // 用参考图的亮度与饱和度来调制基底的明暗与鲜艳程度
+    // 用参考图的亮度与饱和度调制基底的明暗与鲜艳程度；渐变末端跟着同一组调制走
     baseLightness = Math.max(0.1, Math.min(0.9, input.referenceStats.meanLuminance * 0.6 + 0.2));
     baseSaturation = Math.max(0.2, Math.min(0.8, input.referenceStats.meanSaturation * 0.7 + 0.3));
+    endLightness = baseLightness * 1.3;
+    endSaturation = baseSaturation * 1.2;
   }
-  
+
   const [r1, g1, b1] = hslToRgb(hue, baseSaturation, baseLightness);
-  const [r2, g2, b2] = hslToRgb((hue + 0.18) % 1, baseSaturation * 1.2, baseLightness * 1.3);
+  const [r2, g2, b2] = hslToRgb((hue + 0.18) % 1, endSaturation, endLightness);
   const pixels = new Uint8Array(width * height * 3);
 
   // 没有参考图：画底色渐变；有参考图时仍然画渐变，但用统计值调过色

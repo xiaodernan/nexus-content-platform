@@ -136,6 +136,25 @@ describe('§38 DEMO 图像合成器：真字节、可复现、随 prompt 变', (
     });
   });
 
+  it('参考图统计值参与身份：同一 prompt 给不同统计值是另一张图，同一组统计值逐字节可复现', () => {
+    // §38 Image → Image：变体必须是"另一张图"（否则第二次点击被去重成原图），
+    // 同时必须可复现（DEMO 模式没有第三次随机的余地）
+    const stats = { meanLuminance: 0.55, luminanceStdev: 0.18, meanSaturation: 0.42, edgeDensity: 0.2, warmth: 0.6 };
+    const base = mustSynth(synthesizeDemoImage({ prompt: '同一句话', width: 32, height: 32 }));
+    const variant = mustSynth(synthesizeDemoImage({ prompt: '同一句话', width: 32, height: 32, referenceStats: stats }));
+    const again = mustSynth(synthesizeDemoImage({ prompt: '同一句话', width: 32, height: 32, referenceStats: { ...stats } }));
+    const other = mustSynth(
+      synthesizeDemoImage({ prompt: '同一句话', width: 32, height: 32, referenceStats: { ...stats, meanLuminance: 0.2 } }),
+    );
+    expect(hashOf(variant.bytes), '给了统计值还是原图，"变体"会被去重').not.toBe(hashOf(base.bytes));
+    expect(hashOf(variant.bytes)).toBe(hashOf(again.bytes));
+    expect(hashOf(other.bytes), '换一组统计值还是同一张图，统计值没进依据').not.toBe(hashOf(variant.bytes));
+    // 变体也要是结构合法的 PNG：调制只改颜色，不改编码路径
+    const dump = parsePng(variant.bytes);
+    expect(dump.width).toBe(32);
+    expect(colorCount(dump)).toBeGreaterThan(50);
+  });
+
   // 反向对照：上面那套 CRC 校验本身必须能报错，否则"结构合法"是它给的绿灯而不是事实
   it('反向对照：改掉 IHDR 一个字节的 PNG 会被同一套校验挡下', () => {
     const out = mustSynth(synthesizeDemoImage({ prompt: '反向对照', width: 16, height: 16 }));
