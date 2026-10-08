@@ -1507,6 +1507,24 @@ export class ThreeRuntime {
     const entity = scene.entities.get(entityId);
     if (!entity) return false;
 
+    // v206: clean up all components' behavioral effects before removing the entity
+    for (const comp of entity.components.values()) {
+      // Clean up targetObject visibility
+      if (comp.targetObject) {
+        comp.targetObject.visible = true;
+      }
+      // Clean up animation playback state
+      if (comp.animationIds) {
+        for (const animId of comp.animationIds) {
+          const anim = scene.animations.get(animId);
+          if (anim) {
+            anim.threeAnimation.enabled = true;
+            anim.threeAnimation.play();
+          }
+        }
+      }
+    }
+
     scene.threeScene.remove(entity.threeObject);
     this.disposeSubtree(entity.threeObject);
 

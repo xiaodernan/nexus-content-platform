@@ -1144,6 +1144,29 @@ and `type` are simply discarded as before; if the scene is missing, animation cl
 removing a component without runtime-only fields succeeds with no side effects. The ADR 0016 amendment record
 for this grant is owed.
 
+## Entity removal cleans up all component effects (M5 v206)
+
+v205 made `removeComponent()` clean up behavioral effects when a single component is removed, but left a gap
+when an entire entity is removed: if the entity had components with `targetObject` or `animationIds`, those
+side effects would be lost forever when the entity disappeared.
+
+v206 closes this gap: `removeEntity()` now iterates over all components on the entity and cleans up their
+runtime-only fields before removing the entity:
+- **targetObject**: restored to `visible = true` so objects are not left hidden
+- **animationIds**: each animation's `enabled` is set to `true` and `play()` is called to resume playback
+
+This mirrors v205's cleanup logic but applies it at the entity level, ensuring no component side effects
+survive their host entity's removal.
+
+Measured on this host 2026-10-09: three-runtime suite **477/477** (16 files; added
+`entityRemovalComponentCleanup.test.ts` with 5 cases covering single component cleanup, multiple component
+cleanup, animation cleanup, entities without components, and non-existent entities), tsc clean. No Studio
+changes — the surface does not call `removeEntity`, so the cleanup is proven at the runtime layer.
+
+Bounds, stated: cleanup applies to ALL components on the entity uniformly; if the scene is missing, animation
+cleanup is skipped gracefully (same as v205); entities without components succeed with no side effects. The
+ADR 0016 amendment record for this grant is owed.
+
 ## The dock's BUILD face (M6 v174 — ADR 0016 amendment 174)
 
 The first product consumer of the build arc (amendment 173), and the section this increment never had: the
