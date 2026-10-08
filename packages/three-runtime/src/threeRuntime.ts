@@ -1587,6 +1587,29 @@ export class ThreeRuntime {
     }
   }
 
+  /**
+   * v209 — the disable-leg counterpart of `cleanupComponentEffects`: a component filed with
+   * `enabled: false` declares its gates AT FILE TIME, exactly what `setComponentEnabled(..., false)`
+   * applies at toggle time (same legs, same one-way animation semantics: `enabled = false`, no play).
+   * Only the disabled half is enforced on add: an enabled add declares the DEFAULT state the effects
+   * already hold, and re-asserting it would trample state its owner set independently (a target the
+   * scene itself keeps hidden).
+   */
+  private enforceComponentDisabled(entityId: EntityId, component: EntityComponent): void {
+    if (component.targetObject) {
+      component.targetObject.visible = false;
+    }
+    if (component.animationIds) {
+      for (const scene of this.sceneGraph.scenes.values()) {
+        if (!scene.entities.has(entityId)) continue;
+        for (const animId of component.animationIds) {
+          const anim = scene.animations.get(animId);
+          if (anim) anim.threeAnimation.enabled = false;
+        }
+      }
+    }
+  }
+
   addComponent(entity: ThreeEntity, component: EntityComponent): void {
     const previous = entity.components.get(component.type);
     // v208 — a same-type add REPLACES the old component, and an uncleaned eviction strands its effects
@@ -1595,6 +1618,10 @@ export class ThreeRuntime {
     // would undo the effects the caller has just declared, so identity is exempted.
     if (previous && previous !== component) this.cleanupComponentEffects(entity.id, previous);
     entity.components.set(component.type, component);
+    // v209 — the NEW component's own disabled declaration is enforced after filing, and after the
+    // v208 eviction cleanup: a disabled replacement over the same target restores then re-hides it,
+    // so the last writer is the component the registry actually holds.
+    if (component.enabled === false) this.enforceComponentDisabled(entity.id, component);
     this.emit('componentAdded', { entityId: entity.id, component });
   }
 

@@ -1258,6 +1258,57 @@ enforcement of v202/v203 semantics is a separate grant); `restoreEntity` files f
 carry no runtime-only fields (`threeRuntime.ts:1755`), so the replace path cannot strand through a load. The
 ADR 0016 amendment record for this grant is owed.
 
+## A component filed DISABLED declares its gates at file time (M5 v209)
+
+v208's bounds named the open door itself: "a component added with `enabled: false` and a `targetObject`
+does NOT hide its target until the toggle moves (the add-time enforcement of v202/v203 semantics is a
+separate grant)". Until now, filing a disabled component was a promise the runtime kept only after a
+later `setComponentEnabled` call — between the add and any toggle, the target stayed shown and the
+animations kept running, contradicting what the registry said the component was.
+
+**What landed.**
+- `enforceComponentDisabled(entityId, component)` — the disable-leg counterpart of v208's
+  `cleanupComponentEffects`: hide `targetObject` (`visible = false`), and for each `animationIds`
+  animation set `enabled = false` — the SAME one-way semantics as v203's disable leg (no pause call),
+  reached through the same registry walk (find the scene that holds the entity).
+- `addComponent` enforces it AFTER filing and AFTER the v208 eviction cleanup, and ONLY for
+  `enabled === false`. The ordering is load-bearing for the replace path: a disabled replacement over
+  the same target is restored by the eviction cleanup and then re-hidden by its own declaration, so the
+  last writer is the component the registry actually holds. The narrow rule is deliberate: an ENABLED
+  add declares the default state the effects already hold, and re-asserting it would trample state its
+  owner set independently — a target the scene itself keeps hidden.
+- New `test/componentAddEnforcement.test.ts` — 7 cases: disabled add hides the target at file time
+  (no toggle call anywhere in the case); disabled add disables the animation (`enabled` false AND
+  `isRunning()` false); an enabled add does not show a hidden target; an enabled add does not hide a
+  SHOWN target nor disable a RUNNING animation (the both-directions case); a disabled replacement over
+  the same target ends hidden and the registry answers the replacement's data; a disabled add with
+  dangling animationId does not throw; a disabled plain component stores and is excluded by
+  `getEnabledComponents` (v201).
+
+**Mutation probes (arms measured, not asserted):** deleting the enforcement call went red on EXACTLY
+the three disabled-add cases — hide-at-add, disable-at-add, replace-ordering (3 failed | 18 passed
+across the four component-cleanup files; v208's, v205's and v203's suites stayed green untouched).
+Enforcing UNCONDITIONALLY (`if (component.enabled === false)` → `if (component)`) went red on EXACTLY
+one case: the both-directions one. The finding is worth its own line: every other fixture in the arc
+starts its targets/animations in the very state unconditional enforcement would write, so that case is
+the SOLE WITNESS of the over-broad rule — it exists precisely to be that witness. Both arms restored;
+the shipped line at `threeRuntime.ts:1624` re-verified before the suite.
+
+Measured on this host 2026-10-09: three-runtime suite **490/490** (18 files; 483 → +7), dist rebuilt
+BEFORE the suite so the v198 dist-sync gate judged `enforceComponentDisabled` present, tsc-build clean,
+Studio suite **407/407** against the rebuilt package, Studio tsc exit 0. No Studio test moved: the
+proofs and surface tests file disabled components without runtime-only fields, where enforcement is a
+no-op by construction (collision census: every `enabled: false` add in the tracked tree carries no
+`targetObject`/`animationIds`).
+
+Bounds, stated: `setComponentEnabled` keeps its own inline legs — the disable semantics now live in two
+carriers (the toggle's else-branch and `enforceComponentDisabled`), deliberately NOT unified, because
+the toggle also owns the enable leg that has no add-time counterpart; `restoreEntity` files components
+that carry no runtime-only fields at all (v119: the save shape excludes them), so there is nothing for
+add-time enforcement to apply through a load — a restored disabled component gates nothing until the
+save round-trip is given runtime re-attachment, a different grant. The ADR 0016 amendment record for
+this grant is owed.
+
 ## The dock's BUILD face (M6 v174 — ADR 0016 amendment 174)
 
 The first product consumer of the build arc (amendment 173), and the section this increment never had: the
