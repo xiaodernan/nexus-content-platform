@@ -798,7 +798,7 @@ drizzle 把整个拼接结果当成**单个绑定参数**，生成的 SQL 是 `o
 
 ## M5 — 视频（§185）
 - [ ] Video Studio（text/image/storyboard→video）
-- [~] Storyboard → Shot list → 参考图 → 生成 → Timeline（§40-42）— 存储、分镜面板入口（切句成镜、机位/转场/时长/上下移/删除，全部走 §150 的可撤销补丁）、Timeline 条与总时长、镜头进语料库（§49 × §40）、镜头挂本项目的角色（§40 × §46，见文末）都已落地。**还欠的两半**：镜头的参考图只做到"能选本项目资产"，没把 §38 的生成按钮接到镜头上；`videoAssetId` 那一格要真 provider，本机不做假生成。逐条凭证见文末各片。
+- [~] Storyboard → Shot list → 参考图 → 生成 → Timeline（§40-42）— 存储、分镜面板入口（切句成镜、机位/转场/时长/上下移/删除，全部走 §150 的可撤销补丁）、Timeline 条与总时长、镜头进语料库（§49 × §40）、镜头挂本项目的角色（§40 × §46，见文末）都已落地。**这一条原来写着"还欠两半：参考图只做到能选本项目资产，没把 §38 的生成按钮接到镜头上；`videoAssetId` 要真 provider"——前半句 2026-10-08 核对时已经不成立了**：`StoryboardPanel.tsx` 里那颗 `data-storyboard-image-gen`（"DEMO 参考图"）调 `makeReference()`，POST `/api/projects/<id>/images`，挂了角色就走 Character → Scene 那条；成功后把新资产补进名册（不补上 select 会渲染成空白，用户看到"刚挂上的东西不见了"），再落一个只改 `referenceAssetId` 的 §150 补丁；按钮的 `title` 上写着"本地确定性合成（DEMO），不是 AI 出图；撤销只断开引用，不删除已生成的资产"。**所以这一条现在只剩一半欠着**：`videoAssetId` 要真视频 provider，本机不做假生成（`packages/video-model/src/index.ts` 头部写着同一句）。逐条凭证见文末各片。
 - [~] Timeline 编辑：trim / reorder / regenerate shot / extend / transition（§41）— **2026-09-28 第一片落地**：
   时间线从"一条只读的读数"变成编辑面——一格一镜、宽度即时长，拖右边缘 trim/extend（吸附 100ms、下限 100ms），
   拖整块 reorder（按**其余镜头的中点**分界，返回最终下标），点左上角的转场标记换衔接；拖动期间只在本地预览，
@@ -1175,8 +1175,18 @@ drizzle 把整个拼接结果当成**单个绑定参数**，生成的 SQL 是 `o
   原样透传、404/401 变 isError 且错误码留文本、连接被拒是另一条错误路径）；stdio 冒烟两臂
   ——真进程 initialize 报 `nexus` + tools/list 四个、缺 `NEXUS_API_TOKEN` 退出 1 且 stderr
   说清凭据在哪签发（`npm run mcp:serve` 起服务；typecheck 链已纳入 apps/mcp-server）。
-  **仍欠**：项目的创建/删除/发布不对外（写只有改文档这一格）；托管远端 Agent 需要的
-  Streamable HTTP 入口（工具层不用改，挂的仍是 v1）。
+  **2026-10-09 第六片（建/删项目对外）**：`POST /api/v1/projects`（回 201 + `ApiProjectDetail`，
+  `kind` 不认识回 400 并列出可选值，**不悄悄兜底成 `website`**——界面那条路是 `<select>` 送不出坏值，
+  外部调用方写错类型必须知道）+ `DELETE /api/v1/projects/<id>?confirm=<项目名>`（复用
+  `softDeleteProject()`：确认词逐字比对、越权 404、软删、审计留行；回执里写着"v1 没有恢复端点"，
+  限度不靠调用方读文档）。scope 名单多一格 `projects:write`（迁移 0027 换 CHECK 不追加，
+  手法同 0019；`ApiTokensPanel` 有对应的中文标签）。守卫同步：端点清单 4→6、写方法名单加 `DELETE`、
+  "名单外 scope"反例从 `projects:write` 换成 `projects:delete`（它已经合法了，拿它当反例是假信号）。
+  `api-v1-write.integration.test.ts` 8 条对真库量（403 点名缺哪格 / 真落库 / 未知 kind 400 且库不涨 /
+  确认词不对 400 且项目还在 / 软删后详情 404 / 删别人 404 / 审计 allowed 各一条）。
+  **仍欠**：项目的**发布**不对外；MCP server 的工具还是四个（建/删没接，见 ADR-0031 的定位——
+  加工具时 v1 这两条已可直接对应）；托管远端 Agent 需要的 Streamable HTTP 入口
+  （工具层不用改，挂的仍是 v1）。
 
 ## 横向能力（随里程碑推进，不单列里程碑）
 - Agent 工具注册表 + 权限 + 人工审批门（§72-74/177）— **§74 点名的「删除项目」这一格已落地（2026-09-26）**：
