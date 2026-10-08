@@ -64,6 +64,16 @@ function canConnect(port, timeoutMs = 1000) {
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
 /**
+ * How long a Spring Boot JVM gets to answer, in seconds.
+ *
+ * MEASURED, and the number is not the happy path: this service starts in ~12s on an idle machine and took
+ * **40.4s** while the same machine was running containers and dev servers. The first version of these
+ * proofs waited 40s and failed intermittently for a reason that had nothing to do with the code under test
+ * — a proof whose timeout sits at the median is a proof that flakes.
+ */
+const SERVICE_START_TRIES = 180;
+
+/**
  * Maven, invoked EXPLICITLY rather than through a shell.
  *
  * Two Windows facts this has to survive, both measured the hard way while writing this proof:
@@ -268,7 +278,7 @@ try {
       } catch {
         return false;
       }
-    }, { tries: 80, gapMs: 500, label: 'the service to answer' });
+    }, { tries: SERVICE_START_TRIES, gapMs: 1000, label: 'the service to answer' });
     if (!up) {
       child.kill();
       throw new Error(`the service never answered. Its output was:\n${log.slice(-4000)}`);

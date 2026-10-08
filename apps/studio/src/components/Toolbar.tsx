@@ -273,10 +273,23 @@ export default function Toolbar() {
                     <span style={{ color: 'var(--nexus-muted)' }}>
                       v{row.version} · {row.projectId}
                     </span>
+                    {/* v196 — the artifact page is THIS Studio's route, so the link is one the Studio is the
+                        author of. (The service's own `url` names its JSON endpoint and is shown in the note
+                        after a publish; the two are different addresses for different readers.) */}
+                    <a
+                      className="btn"
+                      data-published-open={row.projectId}
+                      href={`/p/${encodeURIComponent(row.projectId)}`}
+                      target="_blank"
+                      rel="noreferrer"
+                      style={{ marginLeft: 'auto', fontSize: 10, padding: '1px 6px', textDecoration: 'none' }}
+                    >
+                      open
+                    </a>
                     <button
                       className="btn"
                       data-published-unpublish={row.projectId}
-                      style={{ marginLeft: 'auto', fontSize: 10, padding: '1px 6px' }}
+                      style={{ fontSize: 10, padding: '1px 6px' }}
                       onClick={() => void onUnpublish(row.projectId)}
                     >
                       take down

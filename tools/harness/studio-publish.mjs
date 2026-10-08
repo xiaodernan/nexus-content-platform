@@ -23,7 +23,7 @@
 import assert from 'node:assert/strict';
 import { spawn } from 'node:child_process';
 import { existsSync, readFileSync, rmSync } from 'node:fs';
-import { createServer } from 'node:net';
+import { createConnection, createServer } from 'node:net';
 import { tmpdir } from 'node:os';
 import { join, resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -42,7 +42,33 @@ const DB_USER = 'nexus';
 const DB_PASSWORD = 'nexus';
 const DB_NAME = 'nexus';
 
+/** Can this host open a TCP connection to `port`? Proves a PUBLISHED docker port is usable. */
+function canConnect(port, timeoutMs = 1000) {
+  return new Promise((resolve) => {
+    const socket = createConnection({ host: '127.0.0.1', port });
+    const done = (answer) => {
+      socket.removeAllListeners();
+      socket.destroy();
+      resolve(answer);
+    };
+    socket.setTimeout(timeoutMs);
+    socket.on('connect', () => done(true));
+    socket.on('timeout', () => done(false));
+    socket.on('error', () => done(false));
+  });
+}
+
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
+/**
+ * How long a Spring Boot JVM gets to answer, in seconds.
+ *
+ * MEASURED, and the number is not the happy path: this service starts in ~12s on an idle machine and took
+ * **40.4s** while the same machine was running containers and dev servers. The first version of these
+ * proofs waited 40s and failed intermittently for a reason that had nothing to do with the code under test
+ * — a proof whose timeout sits at the median is a proof that flakes.
+ */
+const SERVICE_START_TRIES = 180;
 const MVN = process.platform === 'win32' ? 'mvn.cmd' : 'mvn';
 
 /** Ask the OS for a port nothing is listening on, then let it go. Only used for the DATABASE and the
@@ -149,10 +175,20 @@ try {
   ]);
   assert.equal(startDb.code, 0, `could not start the throwaway database: ${startDb.stderr}`);
   dbStarted = true;
+  // Ready means TWO things. `pg_isready` runs INSIDE the container, so it proves postgres is up but says
+  // nothing about the HOST port mapping — and it is the host mapping the service connects through. A `-p`
+  // that lost a race for the port passes the inside check and then leaves the service hanging on a datasource
+  // it can never reach, which reads as "the service is broken". (Found the hard way in `publish-proof.mjs`,
+  // whose first version had this same hole; this probe had it too.)
+  const inside = await until(
+    async () => (await run('docker', ['exec', DB_CONTAINER, 'pg_isready', '-U', DB_USER, '-d', DB_NAME])).code === 0,
+    { tries: 60, gapMs: 1000, label: 'postgres to accept connections inside its container' },
+  );
+  assert.ok(inside, 'the throwaway database never became ready');
+  const reachableFromHost = await until(() => canConnect(dbPort), { tries: 30, gapMs: 500, label: `the database to be reachable on 127.0.0.1:${dbPort}` });
   assert.ok(
-    await until(async () => (await run('docker', ['exec', DB_CONTAINER, 'pg_isready', '-U', DB_USER, '-d', DB_NAME])).code === 0,
-      { tries: 60, gapMs: 1000, label: 'postgres to accept connections' }),
-    'the throwaway database never became ready',
+    reachableFromHost,
+    `the database answers inside its container but 127.0.0.1:${dbPort} does not accept a connection — the published port is not usable from this host`,
   );
 
   const dbUrl = `jdbc:postgresql://127.0.0.1:${dbPort}/${DB_NAME}`;
@@ -180,7 +216,7 @@ try {
     } catch {
       return false;
     }
-  }, { tries: 80, gapMs: 500, label: 'nexus-api to answer' });
+  }, { tries: SERVICE_START_TRIES, gapMs: 1000, label: 'nexus-api to answer' });
   assert.ok(servicePort, `nexus-api never answered. Its output was:\n${serviceLog.slice(-3000)}`);
   const apiBase = `http://127.0.0.1:${servicePort}`;
   console.log(`[e2e] postgres on :${dbPort} · nexus-api on :${servicePort}`);
@@ -216,11 +252,19 @@ try {
   await page.navigate(`${studioBase}/`, { waitForSelector: '#nexus-canvas', waitMs: 1200 });
 
   // ── §2 the Studio reports the service as ready ──────────────────────────────────────────────────
-  const ready = await page.waitForFunction(
-    "(() => { const n = document.querySelector('[data-toolbar-publish-note]')?.textContent ?? ''; return n.includes('service ready') ? n : null; })()",
-    { timeout: 20000 },
+  // Waited for with a REPORTING failure rather than `waitForFunction`, whose timeout says only that a
+  // condition was not met. The Studio compiles its routes on demand, so the first request to `/api/publish`
+  // in a dev server can take a while — and if the note says something else entirely, that is the fact worth
+  // printing.
+  const ready = await until(
+    async () => {
+      const note = await page.evaluate("document.querySelector('[data-toolbar-publish-note]')?.textContent ?? null");
+      return note && note.includes('service ready') ? note : false;
+    },
+    { tries: 60, gapMs: 500, label: 'the Studio to report the service ready' },
   );
-  check('the Studio probes the service on mount and reports it ready', ready !== null, `note: ${JSON.stringify(ready)}`);
+  const noteNow = await page.evaluate("document.querySelector('[data-toolbar-publish-note]')?.textContent ?? null");
+  check('the Studio probes the service on mount and reports it ready', ready !== false && ready !== null, `note: ${JSON.stringify(noteNow)}`);
   const probe = await page.evaluate("fetch('/api/publish').then((r) => r.json())");
   check(
     'the Studio’s own route answers for the service',
@@ -228,7 +272,28 @@ try {
     JSON.stringify(probe),
   );
 
-  // ── §3 pressing Publish puts a ROW in the database ──────────────────────────────────────────────
+  // ── §3 DRAW SOMETHING FIRST, so the artifact has content to render ──────────────────────────────
+  // A fresh Studio document is a root and an empty page, so publishing it and finding an empty stage would
+  // prove the plumbing and nothing about the rendering. One rectangle is enough to make the artifact page's
+  // "the document is drawn" a claim about a drawing.
+  const nodesBefore = await page.evaluate('window.__nexus.snapshot().nodeCount');
+  const drew = await page.evaluate(
+    "(() => { const b = [...document.querySelectorAll('button')].find((x) => (x.getAttribute('title') || '').startsWith('Rectangle')); if (!b) return false; b.click(); return true; })()",
+  );
+  assert.ok(drew, 'the toolbar exposes the Rectangle tool');
+  const canvasBox = await page.evaluate(
+    "(() => { const r = document.getElementById('nexus-canvas').getBoundingClientRect(); return { x: Math.round(r.left + 90), y: Math.round(r.top + 90) }; })()",
+  );
+  await page.send('Input.dispatchMouseEvent', { type: 'mousePressed', x: canvasBox.x, y: canvasBox.y, button: 'left', buttons: 1, clickCount: 1 });
+  await page.send('Input.dispatchMouseEvent', { type: 'mouseMoved', x: canvasBox.x + 170, y: canvasBox.y + 110, button: 'left', buttons: 1 });
+  await page.send('Input.dispatchMouseEvent', { type: 'mouseReleased', x: canvasBox.x + 170, y: canvasBox.y + 110, button: 'left', buttons: 0, clickCount: 1 });
+  const nodesAfter = await page.waitForFunction(
+    `(() => { const n = window.__nexus.snapshot().nodeCount; return n > ${nodesBefore} ? n : null; })()`,
+    { timeout: 10000 },
+  );
+  check('the document has something in it before it is published', nodesAfter !== null, `nodes ${nodesBefore} → ${nodesAfter}`);
+
+  // ── §4 pressing Publish puts a ROW in the database ──────────────────────────────────────────────
   // The project id is taken from the URL the SERVICE returned, not from the bridge: `window.__nexus` is a
   // frozen read-only snapshot and deliberately exposes no document id, and the URL is the authoritative
   // statement of what was published anyway.
@@ -253,14 +318,14 @@ try {
     `status ${readBack?.status} · version ${publication?.version}`,
   );
 
-  // ── §4 the URL the Studio shows is the SERVICE's ────────────────────────────────────────────────
+  // ── §5 the URL the Studio shows is the SERVICE's ────────────────────────────────────────────────
   check(
     'the URL the Studio shows is the one the service returned',
     typeof published === 'string' && published.includes(`${apiBase}/projects/`),
     `the note contains ${apiBase}/projects/… : ${published?.includes(`${apiBase}/projects/`)}`,
   );
 
-  // ── §5 publishing again UPDATES ─────────────────────────────────────────────────────────────────
+  // ── §6 publishing again UPDATES ─────────────────────────────────────────────────────────────────
   await page.evaluate("document.querySelector('[data-toolbar-publish]').click()");
   const republished = await page.waitForFunction(
     "(() => { const n = document.querySelector('[data-toolbar-publish-note]')?.textContent ?? ''; return n.includes('published v2') ? n : null; })()",
@@ -276,7 +341,7 @@ try {
     `rows: ${countRows.stdout.trim()}`,
   );
 
-  // ── §6 the document that reached the database is the Studio's OWN ───────────────────────────────
+  // ── §7 the document that reached the database is the Studio's OWN ───────────────────────────────
   // Compared through what the frozen bridge EXPOSES — the document's name and its node count — rather than
   // the whole document, because `window.__nexus.snapshot()` deliberately carries a summary and not the
   // canonical document. Saying which two facts were compared is the point; "the document matches" would be
@@ -295,7 +360,53 @@ try {
     `typeof document: ${Array.isArray(final.document) ? 'array' : typeof final.document}`,
   );
 
-  // ── §7 the published LIST, and taking one down (v195) ───────────────────────────────────────────
+  // ── §8 the ARTIFACT PAGE — a URL a PERSON can open (v196) ───────────────────────────────────────
+  // Everything above reaches the publication through an API. This is the half M1 deferred: a browser opens
+  // the URL and the DOCUMENT is drawn.
+  const artifactUrl = `${studioBase}/p/${encodeURIComponent(projectId)}`;
+  const artifact = await fetch(artifactUrl);
+  const artifactHtml = await artifact.text();
+  check(
+    'the artifact page answers 200 with HTML',
+    artifact.status === 200 && (artifact.headers.get('content-type') ?? '').includes('text/html'),
+    `status ${artifact.status} · content-type ${artifact.headers.get('content-type')}`,
+  );
+  check(
+    'and it is the DOCUMENT — the Studio’s own preview renderer, stage and all',
+    artifactHtml.includes('class="stage"') && artifactHtml.startsWith('<!doctype html>'),
+    `html is ${artifactHtml.length} bytes; carries a stage: ${artifactHtml.includes('class="stage"')}`,
+  );
+
+  // Opened in the BROWSER, because "a URL a person can open" is a claim about a browser and not about fetch.
+  const artifactPage = await session.newPage('about:blank');
+  await artifactPage.navigate(artifactUrl, { waitForSelector: '.stage', waitMs: 500 });
+  const rendered = await artifactPage.evaluate(
+    "(() => ({ stage: !!document.querySelector('.stage'), body: document.body.innerText.length, boxes: document.querySelectorAll('.stage *').length }))()",
+  );
+  check(
+    'a real browser renders it: the stage is there and it has content',
+    rendered.stage === true && rendered.boxes > 0,
+    JSON.stringify(rendered),
+  );
+
+  // The two failure pages, and they must be DISTINGUISHABLE: "nothing here" and "the service is down" send a
+  // reader to different places.
+  const missingPage = await fetch(`${studioBase}/p/never-published-${STAMP}`);
+  const missingHtml = await missingPage.text();
+  check(
+    'an id nothing was published under answers 404 with its OWN page',
+    missingPage.status === 404 && missingHtml.includes('Nothing published here'),
+    `status ${missingPage.status}`,
+  );
+  check(
+    'and that page is NOT the “service is down” page',
+    !missingHtml.includes('The publication service is not answering'),
+    'the two failures say different things',
+  );
+  await artifactPage.close();
+
+
+  // ── §9 the published LIST, and taking one down (v195) ───────────────────────────────────────────
   await page.evaluate("document.querySelector('[data-toolbar-published-toggle]').click()");
   // Wait for the ROWS, not for the panel: the panel renders immediately with "asking the service…" and a
   // wait on the element alone would pass before the service had answered.
@@ -328,7 +439,7 @@ try {
   writeFileSync(shotPath, png);
   check('a pixel screenshot of the published Studio was captured (§30)', png.length > 5000, `${png.length} bytes → ${shotPath}`);
 
-  // ── §7 teardown ─────────────────────────────────────────────────────────────────────────────────
+  // ── §10 teardown ─────────────────────────────────────────────────────────────────────────────────
   await page.close();
   await session.close();
   session = null;
@@ -340,7 +451,7 @@ try {
   const rm = await run('docker', ['rm', '-f', DB_CONTAINER]);
   assert.equal(rm.code, 0, `could not remove the throwaway database: ${rm.stderr}`);
   dbStarted = false;
-  console.log('[§7] teardown: Studio, service and the throwaway database are all gone');
+  console.log('[§10] teardown: Studio, service and the throwaway database are all gone');
 } finally {
   if (page) await page.close().catch(() => {});
   if (session) await session.close().catch(() => {});

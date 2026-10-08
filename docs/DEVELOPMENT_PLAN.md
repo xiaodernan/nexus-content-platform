@@ -143,6 +143,12 @@ headless proof → product surface → real-browser verification → record the 
   `tools/harness/studio-publish.mjs` proves the whole path end to end (PostgreSQL + service + Studio, 11/11).
   **Now listable and removable (v195):** the service answers what is published (newest-first, capped) and can take
   one down, and the Studio's Published panel drives both.
+  **Now OPENABLE (v196):** `GET /p/{id}` is the ARTIFACT PAGE — the half M1 deferred, since every other door needs
+  a client that already knows the id. It answers the document drawn by the Studio's OWN `renderPreviewHtml` (the
+  same function the local Preview and the HTML export use), 404 when nothing is published, and **503 when the
+  service is unreachable** — not a 404, because those are different facts. 5 rendering cases; the E2E probe draws
+  a rectangle, publishes, then opens `/p/{id}` in a REAL browser (200 + a non-empty stage) and checks an
+  unpublished id answers 404 with its own page rather than the service-down page (**21/21**).
   Still open: no auth/accounts/ownership, no paging beyond the cap, no soft delete or history, no migrations, a
   publication is replaced rather than versioned, and publishing is still a toolbar control rather than a
   product surface.
@@ -165,6 +171,7 @@ The cadence is deliberately small and verifiable. The current priority queue, in
 | ~~9~~ | M7 | ~~First slice: publish a project and get a URL back~~ | **DONE — v193** (ADR 0016 amendment 193): `services/nexus-api` is a REAL Spring Boot 3.5.16 service on Java 25 with two endpoints and one aggregate; 14 unit cases with no Spring context, and `docs/evidence/m7/publish-proof.mjs` builds the jar, starts a throwaway PostgreSQL 16 in Docker, and proves the document round-trips as JSON, a re-publish UPDATES to version 2 with the DATABASE counted at exactly one row, refusals name their rule, and the publication SURVIVES A SERVICE RESTART. Four defects it found that reading would not: a receipt claiming nanosecond precision PostgreSQL had already dropped, a 400 on every well-formed publish, a signal-killed process reading as still alive, and an injected `SERVER_PORT` silently outranking the configured one |
 | ~~10~~ | M7 | ~~The Studio CALLS the service~~ | **DONE — v194** (ADR 0016 amendment 194): the toolbar has a Publish control over a fetch-only lane (`publishServer.ts` / `api/publish` route / `publishLane.ts`), it passes the SERVICE's version+instant+URL through unchanged, and a down service is a normal answer. `tools/harness/studio-publish.mjs` stands up PostgreSQL + nexus-api + the real Studio and drives the button: **11/11**, including the row read back through the service independently of the UI |
 | ~~11~~ | M7 | ~~Listing + unpublish~~ | **DONE — v195** (ADR 0016 amendment 195): `GET /projects?limit=N` (newest-first, metadata only, cap clamped and reported) and `DELETE /projects/{id}` in the service; the Studio's Published panel renders the service's rows and takes one down. 21 service cases · 17 lane cases · proof §6–§7 against the real database · E2E **15/15**. Also fixed a proof bug that had been hiding behind a green check (postgres was verified inside its container, not on the host port the service uses) |
+| ~~12~~ | M7 | ~~The artifact page: a published project at a URL a person can open~~ | **DONE — v196** (ADR 0016 amendment 196): `GET /p/{projectId}` renders the publication with the Studio's OWN `renderPreviewHtml`, so the published bytes and the previewed bytes are the same code rather than two renderers that drift. Three answers with the status codes carrying the difference: 200 the artifact · 404 nothing is published here · **503 the SERVICE is not answering** (not a 404 — a reader given the wrong one looks for the problem in the wrong place). The lane reports the 404 STRUCTURALLY (`notFound`) so the route cannot start answering 503 because someone reworded a sentence. 5 rendering cases · E2E **15 → 21/21** (draws a rectangle, publishes, opens `/p/{id}` in a real browser, and checks an unpublished id gets its OWN page)
 
 ## Guardrails (what "done" means here)
 

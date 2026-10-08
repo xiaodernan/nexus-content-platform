@@ -56,6 +56,13 @@ export interface PublicationAnswer {
   publishedAt?: string;
   url?: string;
   document?: unknown;
+  /**
+   * v196 — the service said NOTHING IS PUBLISHED under this id (a 404), which is a different fact from "the
+   * service did not answer". A caller that needs to tell them apart must not read the `reason` sentence:
+   * the artifact page's 404-vs-503 depends on this flag, and a route that pattern-matched the wording would
+   * silently start answering 503 the day someone reworded it.
+   */
+  notFound?: boolean;
   reason?: string;
 }
 
@@ -136,7 +143,7 @@ export async function readPublication(projectId: string, fetchImpl: FetchLike = 
   const apiBase = nexusApiBase();
   try {
     const res = await fetchImpl(`${apiBase}/projects/${encodeURIComponent(projectId)}`, { signal: callSignal() });
-    if (res.status === 404) return { ok: false, reason: `nothing is published as "${projectId}"` };
+    if (res.status === 404) return { ok: false, notFound: true, reason: `nothing is published as "${projectId}"` };
     const parsed: unknown = await res.json().catch(() => null);
     if (parsed && typeof parsed === 'object') {
       const body = parsed as Record<string, unknown>;

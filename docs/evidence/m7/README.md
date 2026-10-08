@@ -125,3 +125,45 @@ start, and the cause was two layers away from where it appeared.
 
 Bounds: no paging beyond the cap, no ownership (anyone can unpublish anything), no soft delete or history,
 and the Studio's list shows at most 20 rows with no way to page.
+
+## `GET /p/{id}` — the ARTIFACT PAGE (M7 v196 — amendment 196)
+
+```bash
+curl -i http://127.0.0.1:3210/p/<projectId>      # 200 + the document · 404 nothing here · 503 service down
+```
+
+The half M1 deferred. v193–v195 built the API: a publication is a row, and it can be read, listed and taken
+down — but every one of those doors needs a CLIENT that already knows the id. A person with a browser had
+nothing to open.
+
+**A route HANDLER, not a page, and that is the point.** What it answers with is not a React tree: it is the
+artifact, drawn by `renderPreviewHtml` — **the same function the Studio's local Preview and its HTML export
+use**. "What you published is what you get" is only true if the published page and the preview are the same
+code; a second renderer would be a second answer to the same question, and the two would drift.
+
+**Three answers, and the status codes carry the difference.**
+
+| answer | when | why not the other |
+| --- | --- | --- |
+| `200` + the artifact | the service holds a publication | — |
+| `404` "Nothing published here" | the service answered 404 | it may never have been published, or it may have been taken down |
+| `503` "The publication service is not answering" | the service is unreachable or answered unusably | **not a 404**: "nothing is published here" and "the thing that knows what is published is not running" are different facts, and a reader given the wrong one looks for the problem in the wrong place |
+
+**The 404 is reported STRUCTURALLY.** The route first decided 404-vs-503 by testing whether the lane's `reason`
+started with `"nothing is published"` — which would have silently started answering 503 the day someone
+reworded that sentence. `readPublication` now reports `notFound: true` and the route reads that. A route that
+pattern-matches a sentence is a route that breaks when the sentence changes.
+
+**A document that cannot be drawn gets its own page, not an empty stage.** A publication whose document is not
+an object, or whose `activePageId` names no page it holds, answers "Artifact unavailable" — an empty stage
+would look like an artifact that happens to be blank rather than a broken record.
+
+| layer | what it proves |
+| --- | --- |
+| `src/lib/artifact.test.ts` (5) | the document is drawn by the renderer's own shell · a non-object document and a document naming no page both get UNAVAILABLE and NOT an empty stage · the missing and unavailable pages say different things and both escape caller-supplied text |
+| `studio-publish.mjs` (§8, 21/21) | in a REAL browser: the probe draws a rectangle first, publishes, fetches `/p/{id}` (200 + the stage), OPENS it in a browser and checks the stage renders with content, and checks an unpublished id answers 404 with its own page rather than the service-down page |
+
+Bounds: the artifact is the document and nothing else — no author, no publish date, no version, no
+navigation, no styling controls. A reader gets the drawing, not a page ABOUT the drawing. No auth: anyone who
+knows an id can open it. The page uses the preview renderer's fixed styling rather than making the document's
+own `tokens` themeable by the reader.

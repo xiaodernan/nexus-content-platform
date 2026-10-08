@@ -9021,3 +9021,21 @@ the priority queue in `docs/DEVELOPMENT_PLAN.md`, and it closes the thing **M1 e
   who knows an id can open it, and anyone who can reach the Studio can publish or unpublish. The page renders
   the document with the preview renderer's fixed dark styling rather than the document's own `tokens` being
   themeable by the reader.
+
+#### Amendment 196 — a landing note, written when the CODE finally landed
+
+This record was written before its code, and the two landed in different commits. The paragraph above was
+swept into `8ebdd75` (an M5 commit) by a `git add -A` that did not distinguish an in-flight M7 doc edit from
+the M5 work being committed — so for a while the ledger described an artifact page the tree did not have.
+
+Stated plainly, because the numbers above are deltas from when they were written and the tree has moved:
+
+- **The count in the paragraph above (`386 → 391`, 31 files) was measured at the time of writing.** At
+  LANDING, after the M5 line's v197–v203 had also landed, the same suite measures **391 → 407** in 31 files.
+  Both numbers are true; they are true about different trees, and a reader deserves to know which.
+- **The E2E probe is at `15 → 21/21`** — one assertion beyond the paragraph above: opening `/p/{id}` in a real
+  browser and checking the stage renders WITH CONTENT (the probe now draws a rectangle before publishing, so
+  the artifact is not an empty document that would pass a weaker check).
+- The lesson is the one this ledger keeps relearning: **a doc edit in a dirty tree belongs to the commit that
+  sweeps it, not to the increment it describes.** Commit the code and its record together, or the record will
+  describe a tree that does not exist.
