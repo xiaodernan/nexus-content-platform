@@ -28,6 +28,17 @@ export interface SynthInput {
    * 否则"变体"会被去重复用成原图那一张，第二次点击等于什么都没生成。
    */
   hueAnchor?: number;
+  /**
+   * §38 Image → Image：参考图的像素统计值（亮度、对比度、饱和度等），供合成器做确定性扰动。
+   * 与 referencePixels 互斥：给了原始像素就不再传统计值（优先用像素）。
+   */
+  referenceStats?: {
+    meanLuminance: number;
+    luminanceStdev: number;
+    meanSaturation: number;
+    edgeDensity: number;
+    warmth: number;
+  };
 }
 
 const MAX_EDGE = 1024;
@@ -48,11 +59,17 @@ export function synthLimitViolations(input: SynthInput): string[] {
   return issues;
 }
 
-/** 只依赖 prompt/seed/尺寸/色相锚点：不读时钟、不读随机数，所以两次调用必须给同一份字节 */
+/** 只依赖 prompt/seed/尺寸/色相锚点/统计值：不读时钟、不读随机数，所以两次调用必须给同一份字节 */
 function seedBytes(input: SynthInput): Buffer {
   const seed = (input.seed ?? 0).toString(36);
   const anchor = input.hueAnchor === undefined ? '-' : input.hueAnchor.toFixed(6);
-  return createHash('sha256').update(`${seed}|${input.width}x${input.height}|${anchor}|${input.prompt.trim().toLowerCase()}`).digest();
+  // referenceStats 参与哈希：同一句话同一 seed，但参考图统计不同，就不是同一份字节
+  const statsHash = input.referenceStats
+    ? `${input.referenceStats.meanLuminance.toFixed(4)}-${input.referenceStats.luminanceStdev.toFixed(4)}-${input.referenceStats.meanSaturation.toFixed(4)}`
+    : '-';
+  return createHash('sha256')
+    .update(`${seed}|${input.width}x${input.height}|${anchor}|${statsHash}|${input.prompt.trim().toLowerCase()}`)
+    .digest();
 }
 
 /** 一个小到能一眼看完的伪随机流：从摘要出发，每次取 4 字节滚动 */
@@ -80,9 +97,21 @@ function renderPixels(input: SynthInput): Uint8Array {
   // 于是"变体"确实是同一张图的换色，而不是另一张不相干的图
   const drawnHue = rand();
   const hue = input.hueAnchor ?? drawnHue;
-  const [r1, g1, b1] = hslToRgb(hue, 0.45, 0.28);
-  const [r2, g2, b2] = hslToRgb((hue + 0.18) % 1, 0.55, 0.62);
+  
+  // §38 Image → Image：如果有参考图统计值，用它们来调制基底颜色
+  let baseLightness = 0.28;
+  let baseSaturation = 0.45;
+  if (input.referenceStats) {
+    // 用参考图的亮度与饱和度来调制基底的明暗与鲜艳程度
+    baseLightness = Math.max(0.1, Math.min(0.9, input.referenceStats.meanLuminance * 0.6 + 0.2));
+    baseSaturation = Math.max(0.2, Math.min(0.8, input.referenceStats.meanSaturation * 0.7 + 0.3));
+  }
+  
+  const [r1, g1, b1] = hslToRgb(hue, baseSaturation, baseLightness);
+  const [r2, g2, b2] = hslToRgb((hue + 0.18) % 1, baseSaturation * 1.2, baseLightness * 1.3);
   const pixels = new Uint8Array(width * height * 3);
+
+  // 没有参考图：画底色渐变；有参考图时仍然画渐变，但用统计值调过色
   for (let y = 0; y < height; y += 1) {
     for (let x = 0; x < width; x += 1) {
       const t = (x / Math.max(width - 1, 1) + y / Math.max(height - 1, 1)) / 2;
@@ -92,6 +121,7 @@ function renderPixels(input: SynthInput): Uint8Array {
       pixels[i + 2] = Math.round(b1 + (b2 - b1) * t);
     }
   }
+
   const put = (x: number, y: number, [r, g, b]: readonly [number, number, number]) => {
     if (x < 0 || y < 0 || x >= width || y >= height) return;
     const i = (Math.floor(y) * width + Math.floor(x)) * 3;

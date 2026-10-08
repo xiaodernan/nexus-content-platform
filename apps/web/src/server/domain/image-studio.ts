@@ -5,7 +5,7 @@ import { refusalForRun } from './credit-ledger';
 import { listCharacters } from './characters';
 import { emit } from './notifications';
 import { synthLimitViolations, synthesizeDemoImage } from './image-synth';
-import { extractVisualDna } from './visualDna';
+import { extractVisualDna, type PixelStats } from './visualDna';
 
 /**
  * §38 Image Studio 的第一条箭头（Text → Image）端到端那一段。
@@ -100,20 +100,25 @@ export function hueOfHex(hex: string): number {
 }
 
 /**
- * 从一张参考图量出色相锚点。三条拒绝路径都带回原因，**绝不返回"没有锚点，随便生成一张"**：
+ * 从一张参考图量出色相锚点与更多统计值。三条拒绝路径都带回原因，**绝不返回"没有锚点，随便生成一张"**：
  * 那条路让"生成变体"这个按钮变成一个说谎的按钮。
  */
 async function hueAnchorOfReference(
   assetId: string,
   userId: string,
-): Promise<{ ok: true; hue: number; dominant: string } | { ok: false; message: string }> {
+): Promise<{ ok: true; hue: number; dominant: string; stats: PixelStats } | { ok: false; message: string }> {
   const file = await openAssetForOwner(assetId, userId);
   if (!file) return { ok: false, message: `参考图 ${assetId} 不在这个项目里，或者你并不拥有它` };
   const measured = extractVisualDna(file.bytes, { assetId });
   if (!measured.ok) return { ok: false, message: `这张参考图量不出颜色：${measured.reason}` };
   const dominant = measured.stats.palette[0]?.color;
   if (!dominant) return { ok: false, message: '这张参考图没有可复用的主色' };
-  return { ok: true, hue: hueOfHex(dominant), dominant };
+  return { 
+    ok: true, 
+    hue: hueOfHex(dominant), 
+    dominant,
+    stats: measured.stats 
+  };
 }
 
 export async function generateDemoImage(input: GenerateImageInput): Promise<GenerateImageOutcome> {
@@ -140,13 +145,13 @@ export async function generateDemoImage(input: GenerateImageInput): Promise<Gene
       message: 'generateCharacterPortrait 需要同时提供 characterId',
     };
   }
-  let anchor: { hue: number; dominant: string } | null = null;
+  let anchor: { hue: number; dominant: string; stats?: PixelStats } | null = null;
   let effectivePrompt = input.prompt;
   let isCharacterPortrait = false;
   if (input.referenceAssetId) {
     const measured = await hueAnchorOfReference(input.referenceAssetId, input.userId);
     if (!measured.ok) return { ok: false, code: 'invalid_input', message: measured.message };
-    anchor = { hue: measured.hue, dominant: measured.dominant };
+    anchor = { hue: measured.hue, dominant: measured.dominant, stats: measured.stats };
   }
   if (input.characterId) {
     const roster = await listCharacters(input.projectId);
@@ -236,7 +241,20 @@ export async function generateDemoImage(input: GenerateImageInput): Promise<Gene
     },
   });
 
-  const synth = synthesizeDemoImage({ prompt: effectivePrompt, width, height, seed, hueAnchor: anchor?.hue });
+  const synth = synthesizeDemoImage({ 
+    prompt: effectivePrompt, 
+    width, 
+    height, 
+    seed, 
+    hueAnchor: anchor?.hue,
+    referenceStats: anchor?.stats ? {
+      meanLuminance: anchor.stats.meanLuminance,
+      luminanceStdev: anchor.stats.luminanceStdev,
+      meanSaturation: anchor.stats.meanSaturation,
+      edgeDensity: anchor.stats.edgeDensity,
+      warmth: anchor.stats.warmth,
+    } : undefined,
+  });
   if (!synth.ok) {
     await finishTask(taskId, { ok: false, error: `合成失败：${synth.issues.join('；')}` });
     return { ok: false, code: 'synth_failed', message: '本地合成器没有给出图片', issues: synth.issues };
