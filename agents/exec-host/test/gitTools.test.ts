@@ -1,7 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { ToolRegistry, planExec } from '@nexus/agent-runtime';
-import type { SpawnLike } from '@nexus/agent-runtime';
-import { createExecHost, type ExecChild } from '../src/execHost.js';
+import { createExecHost, type ExecChild, type SpawnLike } from '../src/execHost.js';
 import { GIT_TOOL_SPECS, GIT_DIFF_FLAGS, budgetFlags, diffWindowNotice, gitEnv, gitReadOnlyPolicy, gitVerdict, isDiffHeaderPairLine, isQuotedRendering, logWindowNotice, parseDiffHeader, parseDiffStat, parseFileLine, parseGitDiff, parseGitStatus, pathShapeNotices, quoteVerdict, refusedNotAbsence, registerGitTools, stdoutWasCut, treeSplitNotice, UNMERGED_XY, unmergedNotice, unmergedNotAbsence, unmergedStatusNotice, unnamableDiffSections, unnamableSectionsNotice, unwrapRendering, windowField, killedField, killedNotRefusal } from '../src/gitTools.js';
 import { GIT_ABSENT_CONFIG, GIT_FORCED_CONFIG, GIT_ISOLATION_ENV, GIT_PASS_THROUGH_ENV_NAMES, forcedConfigEnv } from '../src/gitEnvIsolation.js';
 
@@ -317,6 +316,7 @@ describe('gitReadOnlyPolicy (three exact argv, NOTHING else)', () => {
     for (const argv of [['git', 'diff'], ['git', 'diff', '--stat'], ['git', 'diff', '--ext-diff'], ['git', 'diff', '--textconv'], ['git', 'diff', '--no-ext-diff', '--ext-diff']]) {
       const d = planExec({ argv }, policy);
       expect(d.ok).toBe(false);
+      if (d.ok) throw new Error('expected a refusal, got a plan');
       expect(d.reason).toMatch(/default-deny/);
     }
   });
@@ -324,7 +324,10 @@ describe('gitReadOnlyPolicy (three exact argv, NOTHING else)', () => {
     const env = gitEnv({ PATH: '/bin', SYSTEMROOT: 'C:/w', TOKEN: 'secret', HOME: undefined });
     expect(Object.keys(env).filter((k) => GIT_PASS_THROUGH_ENV_NAMES.includes(k))).toEqual(['PATH', 'SYSTEMROOT']);
     expect(env.TOKEN).toBeUndefined();
-    expect(env).toMatchObject(GIT_ISOLATION_ENV, forcedConfigEnv());
+    // v204: this used to be `toMatchObject(GIT_ISOLATION_ENV, forcedConfigEnv())`, and the matcher takes ONE
+    // argument — so the second object was silently DROPPED and the forced-config half never ran. Two calls.
+    expect(env).toMatchObject(GIT_ISOLATION_ENV);
+    expect(env).toMatchObject(forcedConfigEnv());
   });
   it('a caller cannot opt out: even a source that names the pinned keys gets OUR values', () => {
     const env = gitEnv({

@@ -1,6 +1,5 @@
 import { describe, expect, it } from 'vitest';
 import { ToolRegistry } from '@nexus/agent-runtime';
-import type { SpawnLike } from '@nexus/agent-runtime';
 import {
   CONTAINER_DEFAULTS,
   CONTAINER_EXEC_TOOL_SPECS,
@@ -21,7 +20,7 @@ import {
   type ContainerRunResult,
   type ContainerRuntimeProbe,
 } from '../src/containerExec.js';
-import type { ExecChild } from '../src/execHost.js';
+import type { ExecChild, SpawnLike } from '../src/execHost.js';
 
 const POLICY: ContainerPolicy = {
   image: 'node:22-alpine',

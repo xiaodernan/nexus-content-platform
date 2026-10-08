@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { InMemoryWorkspace, ToolRegistry, registerTestTools, registerWorkspaceTools, runTask } from '@nexus/agent-runtime';
-import type { ExecPolicy, SpawnLike } from '@nexus/agent-runtime';
-import { createExecHost, type ExecChild } from '../src/execHost.js';
+import type { ExecPolicy } from '@nexus/agent-runtime';
+import { createExecHost, type ExecChild, type SpawnLike } from '../src/execHost.js';
 import { execTestRunner, NEVER_RAN } from '../src/execTestRunner.js';
 
 const POLICY: ExecPolicy = {
@@ -124,7 +124,7 @@ describe('execTestRunner (v31: a real command answers the §63 verify step)', ()
     expect(out.report.total, 'total 0 here would make the tool answer "no test predicate named exit-zero"').toBe(1);
     expect(out.report.failures[0]!.name).toBe(NEVER_RAN);
     expect(out.detail).toContain('never ran:');
-    expect(h.calls).toHaveLength(0, 'a refusal must not pay for a spawn just to fill in a number');
+    expect(h.calls, 'a refusal must not pay for a spawn just to fill in a number').toHaveLength(0);
   });
 
   it('`only` on another name → vacuous total-0 report (the tool turns it into a stated error)', async () => {
@@ -132,7 +132,7 @@ describe('execTestRunner (v31: a real command answers the §63 verify step)', ()
     const rep = await execTestRunner(h.host, ['node', 'app.js'], PASS_OPTS).run('ghost');
     expect(rep).toMatchObject({ total: 0, ok: false });
     expect(rep.detail).toContain('vacuous: no predicate ran');
-    expect(h.calls).toHaveLength(0, 'a filter miss must not even pay for a spawn');
+    expect(h.calls, 'a filter miss must not even pay for a spawn').toHaveLength(0);
   });
 });
 

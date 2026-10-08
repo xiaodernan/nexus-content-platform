@@ -9098,3 +9098,38 @@ grades everything else._
   `agents/exec-host` count includes 4 files importing `SpawnLike` from `@nexus/agent-runtime`, which does not
   export it — whether that symbol should be exported or the imports corrected is a question for that
   increment, not this one.
+
+### Amendment 205 (v205, agents/exec-host) — the type-gate coverage, package 4 of 6: 27 errors, including an assertion whose second half had never run
+
+_Numbering: 205 was free (`grep -ao "^### Amendment 2[0-9][0-9]"` matched nothing but 204). Item 14 of the
+priority queue; the second increment of the v204 repair, one package at a time so the tree is never left worse
+than it was found._
+
+- **The mechanism, reused.** `agents/exec-host/tsconfig.test.json` (extends the package's own config,
+  `rootDir: "."`, `noEmit: true`, `include: ["src", "test"]`, `exclude: ["node_modules", "dist"]`) with
+  `typecheck` pointed at it. `build` is untouched, so `dist/` keeps its layout. Gate: **27 → 0**.
+- **Four files imported a type from the wrong package.** `import type { SpawnLike } from '@nexus/agent-runtime'`
+  — `SpawnLike` is declared and exported by **`@nexus/exec-host`** (`src/execHost.ts` → `src/index.ts`); the
+  runtime package has never exported it. A type-only import ERASES at runtime, so the suites passed while four
+  files typed their spawn mocks against a symbol that was not there. Fixed by importing it from
+  `../src/execHost.js`, where the tests already get `ExecChild`. (`ExecPolicy` genuinely IS the runtime's and
+  stayed put — the point is that the two were indistinguishable to a green suite.)
+- **A silently weakened assertion.** `gitTools.test.ts` had
+  `expect(env).toMatchObject(GIT_ISOLATION_ENV, forcedConfigEnv())`. **`toMatchObject` takes ONE argument**, so
+  the second object was dropped and only the first half ever ran — an assertion that LOOKS like it checks two
+  things and checks one. Split into two calls; both pass, so the fix strengthens the test without changing its
+  verdict. The same shape appears twice in `execTestRunner.test.ts` as
+  `expect(h.calls).toHaveLength(0, 'a message')` — there the second argument was a MESSAGE, so nothing was
+  unverified, but the sentence the author wrote to explain a failure could never appear. Moved to
+  `expect(h.calls, 'a message')`, which is where this runner takes a message.
+- **A discriminated union read optimistically, twice.** `planExec` answers
+  `{ ok: true; plan } | { ok: false; reason }`, and two tests wrote `expect(d.ok).toBe(false); expect(d.reason)…`
+  — reading `reason` off the union. Unchecked, a decision that came back `ok` would have asserted against
+  `undefined` and failed for the wrong reason. Both now narrow with `if (d.ok) throw new Error('expected a
+  refusal, got a plan')`.
+- **Evidence.** `tsc -p agents/exec-host/tsconfig.test.json` **0**; suite **309/309** in 10 files — including
+  the assertion that had never run, which passes. Still open and named in the plan: `agents/runtime 80`,
+  `three-runtime 102`.
+- **Bounds (§60).** This closes exec-host's TESTS being unread, not the package's behaviour — no runtime code
+  changed. `SpawnLike` is now imported from the package that owns it, which is a correction, not a new export:
+  whether the RUNTIME should also export a spawn seam is a question nothing here answers.

@@ -54,6 +54,10 @@ describe('gitCommitPolicy (ONE argv shape; the message is the only free token)',
   it('an EMPTY message never plans (request shape is checked before the allowlist)', () => {
     const d = planExec({ argv: ['git', 'commit', '-m', ''] }, policy);
     expect(d.ok).toBe(false);
+    // `ExecDecision` is a discriminated union, so the branch is NARROWED rather than read optimistically:
+    // reading `d.reason` off the union was unchecked until v204, and a non-refusal would have asserted
+    // against `undefined` instead of failing for the real reason.
+    if (d.ok) throw new Error('expected a refusal, got a plan');
     expect(d.reason).toMatch(/non-empty strings/);
   });
 });

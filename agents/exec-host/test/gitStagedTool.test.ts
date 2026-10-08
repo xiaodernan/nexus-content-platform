@@ -269,7 +269,7 @@ describe('git.staged as a registry tool (the index behind §28 — a process sti
       totals: { files: 2, hunks: 2, additions: 3, deletions: 1, binary: 0 },
       paths: ['notes/widget.md', 'docs/a.md'],
     });
-    expect((res.output as { files: Array<{ addedLines: string[] }> }).files[0].addedLines).toEqual(['widget notes', 'NOTE (DEMO MODE · seed 42)']);
+    expect((res.output as { files: Array<{ addedLines: string[] }> }).files[0]!.addedLines).toEqual(['widget notes', 'NOTE (DEMO MODE · seed 42)']);
     expect((res.output as { detail: string }).detail).toBe('git.staged → exit 0: index holds 2 change(s): 1 added, 1 modified · +3 −1 across 2 hunk(s)');
   });
 

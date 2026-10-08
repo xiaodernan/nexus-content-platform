@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { ToolRegistry } from '@nexus/agent-runtime';
-import type { ExecPolicy, SpawnLike } from '@nexus/agent-runtime';
+import type { ExecPolicy } from '@nexus/agent-runtime';
 import {
   DEFAULT_TREE_REAPER,
   EXEC_HOST_TOOL_SPECS,
@@ -15,6 +15,7 @@ import {
   type ExecChild,
   type ExecJournalRef,
   type ExecRunResult,
+  type SpawnLike,
   type TreeReaper,
 } from '../src/execHost.js';
 
