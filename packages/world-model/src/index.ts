@@ -226,6 +226,44 @@ export function countLinksFor(document: WorldDocument, nodeId: string): number {
 }
 
 /**
+ * 给条目挂（或摘掉）§34 的 model 类资产：3D 世界里这个条目用哪个 .glb/.gltf 渲染。
+ *
+ * 写入纪律与 `setWorldNodeElevation` 同一边：**不合法就不写，原因交回调用方**（面板显示）。
+ * 这一格刻意不做归属校验——世界文档是模型，不认识资产表；"这个 id 是不是本项目的
+ * model 资产"由面板那一端保证（选择器只列本项目 kind='model' 的资产，见 WorldPanel）。
+ * 模型侧只保证形状：非空字符串，或 `null`（摘掉）。
+ *
+ * `null` 是**删键**而不是写空串：`{}` 表示"没挂模型、用类别几何体占位"，
+ * 与 `{ modelAssetId: '' }`（挂了一个空 id，加载必然失败）是两件事，后者会在 3D 世界里
+ * 留下一个"永远转圈然后没东西"的条目——那比不挂更难查。
+ */
+export function setWorldNodeModelAsset(
+  document: WorldDocument,
+  nodeId: string,
+  assetId: string | null,
+): { document: WorldDocument; reason: string | null } {
+  if (!findWorldNode(document, nodeId)) {
+    return { document, reason: "这个条目不在世界文档里，没有写入。" };
+  }
+  if (assetId !== null && (typeof assetId !== "string" || assetId.trim().length === 0)) {
+    return { document, reason: "资产 id 不能是空的：不挂模型就传 null（用类别几何体占位）。" };
+  }
+  const at = stamp();
+  const nodes = document.nodes.map((node) => {
+    if (node.id !== nodeId) return node;
+    if (assetId === null) {
+      const { modelAssetId: _dropped, ...rest } = node;
+      return rest;
+    }
+    return { ...node, modelAssetId: assetId.trim() };
+  });
+  return {
+    document: { ...document, nodes, updatedAt: at },
+    reason: null,
+  };
+}
+
+/**
  * 连一条有向边。端点不存在、自己连自己、同一对再来一条，都不写进去——
  * 但绝不静默：`reason` 带回那句原因，调用方（面板 / AI 补丁）负责把它显示出来。
  */

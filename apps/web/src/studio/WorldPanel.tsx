@@ -9,6 +9,7 @@ import {
   countLinksFor,
   removeWorldNode,
   setWorldNodeElevation,
+  setWorldNodeModelAsset,
   updateWorldNode,
   worldCounts,
   type WorldDocument,
@@ -45,6 +46,26 @@ export function WorldPanel() {
 
   useEffect(() => {
     worldStore.ensure(studio.projectId);
+  }, [studio.projectId]);
+
+  // §34 的 model 类资产名册：给每个条目挑 3D 世界里的模型。
+  // 只列本项目 kind='model' 的资产——"这个 id 是不是本项目的"在这里保证，
+  // 模型包里那个 setter 只管形状（世界文档不认识资产表，§16）。
+  const [modelAssets, setModelAssets] = useState<{ id: string; name: string }[]>([]);
+  useEffect(() => {
+    let cancelled = false;
+    fetch(`/api/projects/${studio.projectId}/assets`, { cache: 'no-store' })
+      .then((r) => r.json())
+      .then((body: { assets?: { id: string; name: string; kind: string }[] }) => {
+        if (cancelled) return;
+        setModelAssets((body.assets ?? []).filter((a) => a.kind === 'model').map((a) => ({ id: a.id, name: a.name })));
+      })
+      .catch(() => {
+        if (!cancelled) setModelAssets([]);
+      });
+    return () => {
+      cancelled = true;
+    };
   }, [studio.projectId]);
 
   const counts = useMemo(() => (world ? worldCounts(world) : null), [world]);
@@ -209,6 +230,38 @@ export function WorldPanel() {
                       />
                       <span className="text-11 text-fg-3">
                         0–{WORLD_ELEVATION_MAX}；3D 世界里条目会浮在这个高度上（先在世界图上摆过位置才能写）
+                      </span>
+                    </div>
+                    <div className="mt-1 flex items-center gap-1">
+                      <label htmlFor={`world-model-${node.id}`} className="shrink-0 text-11 text-fg-3">
+                        3D 模型
+                      </label>
+                      <select
+                        id={`world-model-${node.id}`}
+                        value={node.modelAssetId ?? ''}
+                        onChange={(e) => {
+                          const result = setWorldNodeModelAsset(world, node.id, e.target.value === '' ? null : e.target.value);
+                          if (result.reason) {
+                            worldStore.showNotice(result.reason);
+                            return;
+                          }
+                          edit(result.document, true);
+                        }}
+                        aria-label={`3D 模型 ${node.title}`}
+                        data-world-model={node.id}
+                        className="min-w-0 flex-1 rounded-[3px] bg-bg-1 px-1 py-[2px] text-12 text-fg-1 outline-none focus:bg-bg-3"
+                      >
+                        <option value="">
+                          {modelAssets.length ? '类别几何体（占位）' : '类别几何体（本项目还没有 model 资产）'}
+                        </option>
+                        {modelAssets.map((asset) => (
+                          <option key={asset.id} value={asset.id}>
+                            {asset.name}
+                          </option>
+                        ))}
+                      </select>
+                      <span className="shrink-0 text-11 text-fg-3">
+                        在 3D 世界里渲染哪个模型；加载不出来时退回类别几何体，不会留空白
                       </span>
                     </div>
                   </li>

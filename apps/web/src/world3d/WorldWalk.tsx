@@ -16,6 +16,7 @@ import {
   type WorldScene,
 } from '@nexus/world-model';
 import { CharacterChat } from '@/studio/CharacterChat';
+import { apiAssetUrl } from '@/studio/assets';
 
 /**
  * §140 的"走进去"：Three.js + React Three Fiber 渲染 §140 那份场景计划，
@@ -30,8 +31,10 @@ import { CharacterChat } from '@/studio/CharacterChat';
  *
  * 碰撞与点击行走（2026-10-07 接上）：条目占位会挡路（`resolveWalkCollision`，模型包的纯函数），
  * 点地面/条目名朝那儿走（`walkToward`：直线 + 碰撞滑动）。
- * 没有做的事（也不假装）：地形/高程（模型里没有字段，脚下是平的）、
- * 导航网格（点击行走绕不过大障碍，会停在障碍前——限度写在 HUD）、3D 资产（§34 的 model）。
+ * 3D 资产（2026-10-09 接通）：挂了 §34 model 资产的条目用 GLTF 渲染，URL 走 `apiAssetUrl`
+ * 那条鉴权路由，加载中与失败都退回类别占位几何体（不空白、不只剩气墙）。
+ * 没有做的事（也不假装）：地形/高程（模型里没有可走地形字段，脚下是平的）、
+ * 导航网格（点击行走绕不过大障碍，会停在障碍前——限度写在 HUD）。
  * talk（§47）接的是 §46 角色档案的对话 API——目标不是场景里的世界条目。
  */
 
@@ -179,62 +182,72 @@ function Controls({
 /** §34 GLTF 模型加载：从项目资产目录读取 .glb/.gltf 并渲染 */
 function ModelAsset({
   assetId,
-  projectId,
-  scale = 1,
+  scale,
+  color,
 }: {
   assetId: string;
-  projectId: string;
-  scale?: number;
+  scale: number;
+  color: string;
 }) {
   const [gltf, setGltf] = useState<THREE.Group | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const [failed, setFailed] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
-    // 模型资产的 URL：复用头像/封面的同一套公开读路由
-    const url = `/api/assets/${projectId}/${assetId}`;
+    setGltf(null);
+    setFailed(false);
     const loader = new GLTFLoader();
     loader.load(
-      url,
+      // 走 apiAssetUrl()——Studio/预览场景下"assetId → 可请求地址"的唯一投影（§16）。
+      // 自己拼路径必错：这一格第一版拼的是 /api/assets/<projectId>/<assetId>，
+      // 而真路由是鉴权的 /api/assets/<assetId>/file（两段 vs 一段）——每个模型都 404，
+      // 控制台刷一屏 warn，条目位置上只剩一个看不见但挡路的气墙。
+      apiAssetUrl(assetId),
       (result) => {
         if (!cancelled) setGltf(result.scene);
       },
       undefined,
       (err) => {
-        if (!cancelled) setError(err instanceof Error ? err.message : 'GLTF load failed');
+        if (cancelled) return;
+        setFailed(true);
+        // 失败出声，但只在控制台：用户看得见的"失败"是下面那个占位几何体，不是空白
+        console.warn(`[WorldWalk] 模型 ${assetId} 加载失败，退回占位几何体：`, err instanceof Error ? err.message : err);
       },
     );
     return () => {
       cancelled = true;
     };
-  }, [assetId, projectId]);
+  }, [assetId]);
 
-  if (error) {
-    // 模型加载失败：退回占位几何体，不在控制台报错让用户看不见
-    console.warn(`[WorldWalk] 模型 ${assetId} 加载失败：`, error);
-    return null;
+  if (gltf && !failed) {
+    // GLTF 模型默认朝 -Z（three.js 相机看向的方向）；缩放没有尺寸字段可依，
+    // 给调用方传来的那个合理缺省，让模型不至于太大或太小
+    return <primitive object={gltf} scale={scale} />;
   }
 
-  if (!gltf) return null;
-
-  // GLTF 模型默认朝 -Z（three.js 相机看向的方向），但我们的场景条目需要调整朝向
-  // 缩放：没有尺寸字段，给一个合理缺省让模型不至于太大或太小
-  return <primitive object={gltf} scale={scale} />;
+  // 加载中与加载失败都不留空白：退回类别占位几何体（线框盒）。
+  // "转圈半天然后没东西"和"一个路标"是两种可读性——后者至少告诉你这里有个东西
+  return (
+    <mesh position={[0, ENTITY_SIZE / 2, 0]}>
+      <boxGeometry args={[ENTITY_SIZE, ENTITY_SIZE, ENTITY_SIZE]} />
+      <meshStandardMaterial color={color} wireframe />
+    </mesh>
+  );
 }
 
-function EntityMesh({ entity, projectId }: { entity: SceneEntity; projectId: string }) {
+function EntityMesh({ entity }: { entity: SceneEntity }) {
   const near = entity.placed === 'fallback';
   // 高程（图上写的 0–6）：条目浮在写的高度上，柱子从地面把它撑起来——那是标架，不是你在爬的坡
   const base = entity.elevation;
 
-  // 有 modelAssetId 时尝试加载 GLTF，失败则退回占位几何体
+  // 挂了 §34 model 资产的条目：加载 / 失败都回到类别占位几何体（ModelAsset 里做），
+  // 再加 fallback 与高程两根标架柱
   if (entity.modelAssetId) {
     return (
       <group position={[entity.x, base, entity.z]}>
         <Suspense fallback={null}>
-          <ModelAsset assetId={entity.modelAssetId} projectId={projectId} scale={ENTITY_SIZE / 2} />
+          <ModelAsset assetId={entity.modelAssetId} scale={ENTITY_SIZE / 2} color={entity.color} />
         </Suspense>
-        {/* 占位标记：fallback 位置用线框，贴一根细柱当路标 */}
         {near && (
           <mesh position={[0, ENTITY_SIZE / 2, 0]}>
             <boxGeometry args={[ENTITY_SIZE, ENTITY_SIZE, ENTITY_SIZE]} />
@@ -425,7 +438,7 @@ export function WorldWalk({
         <directionalLight position={[20, 30, 10]} intensity={0.7} />
         <gridHelper args={[scene.bounds.radius * 2, Math.max(8, Math.round(scene.bounds.radius / 2) * 2), '#2a3040', '#171b23']} />
         {scene.entities.map((entity) => (
-          <EntityMesh key={entity.id} entity={entity} projectId={projectId} />
+          <EntityMesh key={entity.id} entity={entity} />
         ))}
         <LinkLines scene={scene} />
         <Controls onPosition={setAt} scene={scene} enabled />
