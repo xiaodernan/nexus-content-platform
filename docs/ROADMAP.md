@@ -1187,15 +1187,19 @@ drizzle 把整个拼接结果当成**单个绑定参数**，生成的 SQL 是 `o
   "名单外 scope"反例从 `projects:write` 换成 `projects:delete`（它已经合法了，拿它当反例是假信号）。
   `api-v1-write.integration.test.ts` 8 条对真库量（403 点名缺哪格 / 真落库 / 未知 kind 400 且库不涨 /
   确认词不对 400 且项目还在 / 软删后详情 404 / 删别人 404 / 审计 allowed 各一条）。
-  **2026-10-09 第七片（MCP 工具面同步 4→6，ADR-0031 自己定的"v1 加端点就同步加工具"）**：
-  `nexus_create_project` / `nexus_delete_project` 两个工具照 v1 镜像接入——`callV1` 方法面放宽到
-  GET/POST/PATCH/DELETE；工具描述自带限度（kind 不认识 400 给 allowed、confirm 逐字等于项目名、
-  软删且 v1 没有恢复端点）；`index.ts` 的 stderr 提示补上四格 scope 各自买什么。
-  `mcp.test.ts` 7→11 条（真本地 HTTP 后端，不 mock fetch）：建项目 body 原样透传 + 201 回执、
-  kind 不认识时平台 400 + `unknown_kind` 留在 isError 文本、DELETE 查询串里中文确认词百分号编码后
-  仍逐字对上、确认词不对回 400 `approval_required`；stdio 真进程冒烟 `tools/list` 恰好六个。
-  **仍欠**：项目的**发布**不对外；托管远端 Agent 需要的 Streamable HTTP 入口
-  （工具层不用改，挂的仍是 v1）。
+  **2026-10-09 同日第八片（发布/下架对外，`publish:write`）**：`POST /api/v1/projects/<id>/publish`，
+  响应 `ApiPublication`（path / version / visibility / publishedAt）。**v1 只收 unlisted / private，
+  public 一律 400 并说明"回平台界面"**：§131 的机检与人工裁决在人的路径上，§74 把公开发布列在
+  必须人工审批的清单，而一枚 Bearer 凭据背后没有可点批准的人——让外部 Agent 走 v1 直接进公网
+  等于把审批从链上摘掉。scope **没有并进 `projects:write`**：发布（把内容放到公网）与建项目、
+  删项目是三种风险，合成一格的话一枚为建项目签的凭据就顺带学会了发布（比 0019 那次更细一层的
+  least-privilege）。private 走 `publishProject` 而不是 `unpublishProject`：回执永远是同一份
+  publication 形状，且行留着（URL 一样解析不出来）。迁移 0028 换 CHECK。真库用例
+  `api-v1-publish.integration.test.ts` 7 条：403 点名缺格 / unlisted 落库且 `resolvePublishedPath`
+  真解析得出 / 重发布同 URL 涨版本不开新行 / **public 400 且行一个字节不动** / private 下架后
+  解析不出而行还在 / 别人项目 404 / 审计 allowed:true。MCP 工具面同日 7→8（`nexus_publish`，
+  public 收在 inputSchema 里，发都发不出去）。
+  **仍欠**：MCP 托管的 Streamable HTTP 入口（工具层不用改，挂的仍是 v1）。
 
 ## 横向能力（随里程碑推进，不单列里程碑）
 - Agent 工具注册表 + 权限 + 人工审批门（§72-74/177）— **§74 点名的「删除项目」这一格已落地（2026-09-26）**：

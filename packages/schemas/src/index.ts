@@ -1412,8 +1412,19 @@ export { NodeTypeEnum as DesignNodeType };
  * `/projects/<id>/design` 的 PATCH，所以 scope 表里只有 design 那一格有 write。
  * 加它的时候要一起想清楚的是**破坏面**：`projects:write` 能删项目，而删除是软删
  * （可恢复、公开作品仍在公网），限度写在接口的话里，不靠调用方猜。
+ *
+ * `publish:write` 是 2026-10-09 加的（发布/下架）。**没有并进 `projects:write`**：
+ * 发布把一页内容放到公网上（哪怕只是 unlisted 也拿到了 URL），与"建一个空项目"、
+ * "删一个自己的项目"是三种不同的风险，合成一格的话，一枚为了建项目签的凭据
+ * 就顺带着学会了发布——least-privilege 在那天下午表演过一次（0019 的注释）。
  */
-export const API_TOKEN_SCOPES = ['projects:read', 'projects:write', 'design:read', 'design:write'] as const;
+export const API_TOKEN_SCOPES = [
+  'projects:read',
+  'projects:write',
+  'publish:write',
+  'design:read',
+  'design:write',
+] as const;
 export const ApiTokenScopeSchema = z.enum(API_TOKEN_SCOPES);
 export type ApiTokenScope = z.infer<typeof ApiTokenScopeSchema>;
 
@@ -1529,6 +1540,39 @@ export const ApiProjectCreateRequestSchema = z.object({
   kind: z.string().trim().min(1).max(40).optional(),
 });
 export type ApiProjectCreateRequest = z.infer<typeof ApiProjectCreateRequestSchema>;
+
+/**
+ * 发布一个项目（`POST /api/v1/projects/<id>/publish`，2026-10-09 加）。
+ *
+ * **v1 只收 unlisted / private，不收 public**：这不是枚举抄漏，是策略分流——
+ * 公网发布（public）在 §131 之后要走机检 + 人工裁决队列，而一枚 Bearer 凭据
+ * 背后没有可点"批准"的人（§74 把公开发布列在必须人工审批的清单上）。
+ * 让外部 Agent 走 v1 直接进公网，等于把那个审批从链上摘掉。
+ * 所以：`unlisted` = 链接可达（不进发现、不进搜索），`private` = 收回发布，
+ * 想 public 的人回平台界面走完那条路。
+ */
+export const ApiPublishRequestSchema = z.object({
+  visibility: z.enum(['unlisted', 'private']),
+});
+export type ApiPublishRequest = z.infer<typeof ApiPublishRequestSchema>;
+
+/**
+ * 发布回执：平台这一侧 `Publication` 的对外投影。
+ *
+ * 只留调用方**拿它做事**要用的几格：`path` 是发布出来的 URL（unlisted 时拿出来分享），
+ * `version` 是同一 URL 下的第几版（重发布不新开 URL），`visibility` 是回执那一刻的档
+ * （private 表示"刚才是下架，行还在"）。内部那几格（moderation / snapshotId / hasGame / views）
+ * 不出现：它们要么是给人看的内部状态，要么一亮出来就成了一个可以刷的计数器。
+ */
+export const ApiPublicationSchema = z.object({
+  id: z.string(),
+  projectId: z.string(),
+  path: z.string(),
+  visibility: z.enum(['private', 'unlisted', 'public']),
+  version: z.number().int().positive(),
+  publishedAt: z.string(),
+});
+export type ApiPublication = z.infer<typeof ApiPublicationSchema>;
 
 export const ApiDesignDocumentSchema = z.object({
   projectId: z.string(),

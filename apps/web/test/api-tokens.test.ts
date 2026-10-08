@@ -284,8 +284,8 @@ describe('三处 scope 名单是同一份：常量 / 迁移里生效的 CHECK / 
         seen.add(label);
       }
     }
-    // 下限：v1 至少要有已落的那六个方法，否则上面那两个循环是在比空集
-    expect(seen.size, `v1 只推导出 ${seen.size} 个端点名，这一格根本没扫到东西`).toBeGreaterThanOrEqual(6);
+    // 下限：v1 至少要有已落的那七个方法，否则上面那两个循环是在比空集
+    expect(seen.size, `v1 只推导出 ${seen.size} 个端点名，这一格根本没扫到东西`).toBeGreaterThanOrEqual(7);
     // 名单本身也要说得出是哪几个：漂成拼错的写法（projectz）在这里红，而不是悄悄多出一格
     expect([...seen].sort()).toEqual([
       'DELETE /api/v1/projects/[projectId]',
@@ -294,6 +294,7 @@ describe('三处 scope 名单是同一份：常量 / 迁移里生效的 CHECK / 
       'GET /api/v1/projects/[projectId]/design',
       'PATCH /api/v1/projects/[projectId]/design',
       'POST /api/v1/projects',
+      'POST /api/v1/projects/[projectId]/publish',
     ]);
   });
 

@@ -55,3 +55,13 @@
 其余架构决定不动。测试 7→11 条（新增的四条仍是对真本地 HTTP 后端量：body 透传、平台 400
 进 isError 文本、查询串里中文确认词编码后逐字对上、确认词不对不动库）；stdio 真进程冒烟
 `tools/list` 恰好六个。
+
+
+## 第二轮后续（2026-10-09）
+
+v1 加了 `POST /api/v1/projects/<id>/publish`（`publish:write`，迁移 0028），工具面同日 7→8
+（`nexus_publish`）。**v1 只收 unlisted / private**：public 一律 400——§131 的机检与人工裁决
+在人的路径上，§74 把公开发布列在必须人工审批的清单，凭据背后没有人可批。这条策略落在
+`ApiPublishRequestSchema` 的枚举与端点的话里，MCP 工具层照抄同一放行范围（inputSchema 就
+进不了平台）。private 走 `publishProject`（回执同一份 shape、行留着）而不是界面的
+`unpublishProject`（删行）——两处故意不同的选择都写在路由注释里。

@@ -3,14 +3,15 @@ import { z } from 'zod';
 import { callV1, V1TransportError, type NexusApiConfig } from './api.js';
 
 /**
- * NEXUS 的 MCP 工具面。六个工具与 v1 的六条端点一一对应，一行逻辑都不多：
- * 读四条（清单 / 详情 / 设计文档 / …）+ 写两条（设计补丁、建/删项目）。
+ * NEXUS 的 MCP 工具面。七个工具与 v1 的七条端点一一对应，一行逻辑都不多：
+ * 读四条（清单 / 详情 / 设计文档 / …）+ 写三条（设计补丁、建/删项目、发布/下架）。
  *
  * 工具描述里写的是调用方**必须先知道**的限度（§159：写在它看得见的地方）：
  * - 拉整份文档之前先看规模（§146 的顶档是几万节点，一份可能几 MB）；
  * - 删除类 op 会被 `approval_required` 拒——公网这一侧没有人能批准；
  * - op 打不到存在的东西会被 `ops_skipped` 整体拒绝（写一半比不写更难查）；
- * - 删项目要 `?confirm=` 逐字等于项目名，且是软删、v1 没有恢复端点。
+ * - 删项目要 `?confirm=` 逐字等于项目名，且是软删、v1 没有恢复端点；
+ * - 发布只到 unlisted 为止：public 要走平台界面（机检与人工裁决在人的路径上）。
  */
 export function createNexusMcpServer(config: NexusApiConfig): McpServer {
   const server = new McpServer({ name: 'nexus', version: '0.1.0' });
@@ -132,6 +133,25 @@ export function createNexusMcpServer(config: NexusApiConfig): McpServer {
         'DELETE',
         `/api/v1/projects/${encodeURIComponent(projectId)}?confirm=${encodeURIComponent(confirm)}`,
       ),
+  );
+
+  server.registerTool(
+    'nexus_publish',
+    {
+      title: '发布 / 下架 NEXUS 项目',
+      description:
+        '发布一个项目为 unlisted（拿到链接：拿得到这个 URL 的人都能看，不进发现也不进搜索），' +
+        '或下架（visibility: private，链接立刻失效，发布历史留着）。' +
+        '需要凭据有 publish:write scope。**只能到 unlisted 为止**：public 要回平台界面——' +
+        '机检与人工裁决在人的路径上，凭据背后没有可点批准的人。' +
+        '门禁或机检挡下时平台回 400，话里带着原因，照着修再发。',
+      inputSchema: {
+        projectId: z.string().min(1).describe('项目 id（来自 nexus_list_projects）'),
+        visibility: z.enum(['unlisted', 'private']).describe('unlisted = 发布；private = 下架'),
+      },
+    },
+    async ({ projectId, visibility }) =>
+      result('POST', `/api/v1/projects/${encodeURIComponent(projectId)}/publish`, { visibility }),
   );
 
   return server;

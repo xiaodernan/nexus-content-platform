@@ -69,6 +69,33 @@ const stub = createServer((req: IncomingMessage, res: ServerResponse) => {
       );
       return;
     }
+    if (req.method === 'POST' && req.url === '/api/v1/projects/p1/publish') {
+      // 仿真 v1 发布端点：body 原样收下，public 这一档连真 v1 都到不了（枚举外），
+      // 但 stub 仍按平台的第二道防线照回 400（schema 之外还有策略分流）
+      let parsedBody: { visibility?: unknown };
+      try {
+        parsedBody = JSON.parse(raw || '{}') as { visibility?: unknown };
+      } catch {
+        parsedBody = {};
+      }
+      if (parsedBody.visibility === 'public') {
+        res.writeHead(400, { 'content-type': 'application/json' });
+        res.end(JSON.stringify({ error: 'public_requires_human', message: '公网发布（public）不在 v1 的能力里：回平台界面走完那一趟' }));
+        return;
+      }
+      res.writeHead(200, { 'content-type': 'application/json' });
+      res.end(
+        JSON.stringify({
+          id: 'pub1',
+          projectId: 'p1',
+          path: '/n/demo/p1',
+          visibility: parsedBody.visibility ?? 'unlisted',
+          version: 1,
+          publishedAt: '2026-10-09T00:00:00.000Z',
+        }),
+      );
+      return;
+    }
     if (req.method === 'POST' && req.url === '/api/v1/projects') {
       // 仿真的正是真 v1 的两条拒法：校验失败 400、kind 不认识 400 且带 allowed 清单
       let payload: Record<string, unknown>;
@@ -145,7 +172,7 @@ const textOf = (result: unknown): string => {
 };
 
 describe('MCP 工具面（§188）', () => {
-  it('tools/list 恰好六个工具，名字一个不多一个不少（与 v1 六条端点一一对应）', async () => {
+  it('tools/list 恰好七个工具，名字一个不多一个不少（与 v1 七条端点一一对应）', async () => {
     const client = await connect(config);
     const tools = await client.listTools();
     expect(tools.tools.map((tool) => tool.name).sort()).toEqual([
@@ -155,6 +182,7 @@ describe('MCP 工具面（§188）', () => {
       'nexus_get_project',
       'nexus_list_projects',
       'nexus_patch_design',
+      'nexus_publish',
     ]);
     // 工具描述必须自带限度：写工具的 description 说过删除类 op 会被拒（§159：写在调用方看得见的地方）
     const patch = tools.tools.find((tool) => tool.name === 'nexus_patch_design')!;
@@ -163,6 +191,10 @@ describe('MCP 工具面（§188）', () => {
     const del = tools.tools.find((tool) => tool.name === 'nexus_delete_project')!;
     expect(del.description).toContain('逐字');
     expect(del.description).toContain('没有恢复端点');
+    // 发布的限度：只能到 unlisted，public 回界面（描述里必须指路，不能只说"不行"）
+    const pub = tools.tools.find((tool) => tool.name === 'nexus_publish')!;
+    expect(pub.description).toContain('unlisted');
+    expect(pub.description).toContain('界面');
     await client.close();
   });
 
@@ -244,6 +276,29 @@ describe('MCP 工具面（§188）', () => {
     expect(result.isError).toBe(true);
     expect(textOf(result)).toContain('400');
     expect(textOf(result)).toContain('approval_required');
+    await client.close();
+  });
+
+  it('nexus_publish 用 POST 且 visibility 原样透传，回执（path/版本）原样带回', async () => {
+    const client = await connect(config);
+    const result = await client.callTool({ name: 'nexus_publish', arguments: { projectId: 'p1', visibility: 'unlisted' } });
+    expect(result.isError).toBeFalsy();
+    expect(last?.method).toBe('POST');
+    expect(last?.url).toBe('/api/v1/projects/p1/publish');
+    expect(JSON.parse(last?.body ?? '{}')).toEqual({ visibility: 'unlisted' });
+    const payload = JSON.parse(textOf(result)) as { path: string; visibility: string };
+    expect(payload.path).toBe('/n/demo/p1');
+    expect(payload.visibility).toBe('unlisted');
+    await client.close();
+  });
+
+  it('public 这一档在工具层就被拒：inputSchema 放行范围只有 unlisted / private（不进平台）', async () => {
+    const client = await connect(config);
+    const before = last;
+    const result = await client.callTool({ name: 'nexus_publish', arguments: { projectId: 'p1', visibility: 'public' } });
+    expect(result.isError).toBe(true);
+    // 连请求都没发出去：放行范围收在 schema 里，不是发到平台再被拒一次
+    expect(last?.url).toBe(before?.url);
     await client.close();
   });
 
