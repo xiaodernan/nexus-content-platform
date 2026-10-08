@@ -84,6 +84,18 @@ function colorCount(dump: PngDump): number {
 
 const hashOf = (bytes: Uint8Array) => createHash('sha256').update(bytes).digest('hex');
 
+/** 整张图的平均亮度（0..1）：合成器只写 filter 0，raw 去掉行首字节就是像素本身 */
+function meanLuminanceOf(bytes: Uint8Array): number {
+  const dump = parsePng(bytes);
+  const stride = dump.width * 3;
+  let sum = 0;
+  for (let y = 0; y < dump.height; y += 1) {
+    const base = y * (stride + 1) + 1;
+    for (let x = 0; x < stride; x += 1) sum += dump.raw[base + x] ?? 0;
+  }
+  return sum / (stride * dump.height) / 255;
+}
+
 /** 前置失败要立刻报错，而不是把 `undefined` 传进下一句断言 */
 function mustSynth(out: SynthOutcome): SynthResult {
   if (!out.ok) throw new Error(`合成被拒：${out.issues.join('；')}`);
@@ -163,5 +175,35 @@ describe('§38 DEMO 图像合成器：真字节、可复现、随 prompt 变', (
     const ihdrData = 8 + 4 + 4;
     bytes[ihdrData] = (bytes[ihdrData] ?? 0) ^ 0xff;
     expect(() => parsePng(bytes)).toThrow(/CRC/);
+  });
+
+  it('草图统计值参与身份：同 prompt 同 seed，换草图就是换字节，同一份草图逐字节可复现', () => {
+    // §38 Sketch → Image 的身份证据：不给草图的那一张必须原地不动（72b28d1 的教训——
+    // 上次就是"顺手把基线改了"让无参考路径的字节跟着漂移），给了草图才多出一格哈希。
+    const plain = mustSynth(synthesizeDemoImage({ prompt: '草图底座', width: 32, height: 32 }));
+    const light = mustSynth(
+      synthesizeDemoImage({ prompt: '草图底座', width: 32, height: 32, sketchStats: { inkCoverage: 0.05, strokeDensity: 0.02 } }),
+    );
+    const lightAgain = mustSynth(
+      synthesizeDemoImage({ prompt: '草图底座', width: 32, height: 32, sketchStats: { inkCoverage: 0.05, strokeDensity: 0.02 } }),
+    );
+    const heavy = mustSynth(
+      synthesizeDemoImage({ prompt: '草图底座', width: 32, height: 32, sketchStats: { inkCoverage: 0.8, strokeDensity: 0.3 } }),
+    );
+    expect(hashOf(light.bytes), '给了草图统计值还是没草图那一张，"从草图生成"会被去重').not.toBe(hashOf(plain.bytes));
+    expect(hashOf(light.bytes)).toBe(hashOf(lightAgain.bytes));
+    expect(hashOf(heavy.bytes), '换一张草图还是同一份字节，草图没进依据').not.toBe(hashOf(light.bytes));
+    // 行为见证：落墨多 → 整体更暗。只钉方向不钉像素，合成器换实现时这一句仍然说的是"草图在起作用"
+    expect(meanLuminanceOf(light.bytes)).toBeGreaterThan(meanLuminanceOf(heavy.bytes));
+    // 两张都得是结构合法的 PNG：调制只改像素，不改编码路径
+    expect(colorCount(parsePng(heavy.bytes))).toBeGreaterThan(50);
+  });
+
+  it('草图统计值的 preflight：越界与非有限数拒掉，0 与 1 两个端点放过', () => {
+    expect(synthLimitViolations({ prompt: 'x', width: 64, height: 64, sketchStats: { inkCoverage: 1.2, strokeDensity: 0.1 } }))
+      .toContain('落墨占比要在 0 到 1 之间，收到 1.2');
+    expect(synthLimitViolations({ prompt: 'x', width: 64, height: 64, sketchStats: { inkCoverage: 0.5, strokeDensity: NaN } }))
+      .toContain('笔画密度要在 0 到 1 之间，收到 NaN');
+    expect(synthLimitViolations({ prompt: 'x', width: 64, height: 64, sketchStats: { inkCoverage: 0, strokeDensity: 1 } })).toEqual([]);
   });
 });

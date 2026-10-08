@@ -4,6 +4,7 @@ import { useMemo, useState } from 'react';
 import type { AssetRef, DesignDocument } from '@nexus/design-model';
 import { cn } from '@/lib/cn';
 import { apiAssetUrl } from './assets';
+import { SketchPad } from './SketchPad';
 import { studio, useStudioReady } from './store';
 
 /**
@@ -89,6 +90,22 @@ export function AssetsPanel() {
           {state.assetBusy ? '生成中…' : '生成图片（DEMO · 扣 2 点）'}
         </button>
       </div>
+
+      {/* §38 Sketch → Image 的入口：同一句 prompt，构图来源从"随机"换成"你画的这张"。
+          折叠着放——绘制面 240px 见方，常驻会把资产列表挤出可视区。 */}
+      <details className="shrink-0 border-b border-[var(--nexus-color-border-subtle)] px-[var(--nexus-space-3)] py-2" data-sketch-section>
+        <summary className="cursor-pointer font-mono text-11 text-fg-3">从草图生成（DEMO）</summary>
+        <div className="mt-2">
+          <SketchPad
+            busy={state.assetBusy}
+            canGenerate={prompt.trim().length > 0}
+            onGenerate={(file) => studio.generateImageFromSketch(prompt, file).then((ok) => {
+              if (ok) setPrompt('');
+              return ok;
+            })}
+          />
+        </div>
+      </details>
 
       {state.assetError ? (
         <p className="shrink-0 bg-warn/15 px-[var(--nexus-space-3)] py-2 text-12 text-warn" data-asset-error>

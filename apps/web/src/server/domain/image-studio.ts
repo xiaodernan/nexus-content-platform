@@ -53,6 +53,15 @@ export interface GenerateImageInput {
    */
   characterId?: string;
   /**
+   * §38 的 Sketch → Image：以用户画的一张草图为来源生成。
+   * 与 `referenceAssetId` **互斥**——两个来源同时给，"这张图是照谁画的"就又不成立了；
+   * 与 `generateCharacterPortrait` 也互斥——肖像由档案驱动，混进一张草图那句话就假了。
+   * 草图同样按归属取字节（`openAssetForOwner`），量出的统计值只喂**构图**（落墨→明暗、
+   * 笔画→元素密度），不钉色相：草图是黑白线条，钉它的"主色"当色相锚点是在撒谎。
+   * 量不出来（非 8 位 PNG 等）就拒绝，不退化成"没草图随便画一张"（§159）。
+   */
+  sketchAssetId?: string;
+  /**
    * §39 的角色一致性生成：为角色生成它自己的参考图（portrait）。
    * 与 `characterId` 搭配使用；`prompt` 将被忽略，改用角色档案的 visualIdentity + profile
    * 组装成角色描述 prompt。产出资产打上 `characterPortrait: true` 标记，
@@ -100,15 +109,29 @@ export function hueOfHex(hex: string): number {
 }
 
 /**
+ * "这张 id 是不是**本项目**的"——`openAssetForOwner` 钉的是用户归属，同一个人的**另一个**
+ * 项目里的图在那道门后面是放行的是；而生成链的契约（面板只列本项目资产、genMeta 的引用关系）
+ * 说的是"这个项目且这个用户"。所以字节归属之外还要按项目清单再查一遍——
+ * 少了这一格，从别的自己项目里挑一张图当"参考/草图"就绕过了界面上的名册。
+ */
+async function inProjectAssetIds(projectId: string): Promise<Set<string>> {
+  return new Set((await listProjectAssets(projectId)).map((ref) => ref.id));
+}
+
+/**
  * 从一张参考图量出色相锚点与更多统计值。三条拒绝路径都带回原因，**绝不返回"没有锚点，随便生成一张"**：
  * 那条路让"生成变体"这个按钮变成一个说谎的按钮。
  */
 async function hueAnchorOfReference(
   assetId: string,
   userId: string,
+  projectId: string,
 ): Promise<{ ok: true; hue: number; dominant: string; stats: PixelStats } | { ok: false; message: string }> {
+  if (!(await inProjectAssetIds(projectId)).has(assetId)) {
+    return { ok: false, message: `参考图 ${assetId} 不在这个项目里` };
+  }
   const file = await openAssetForOwner(assetId, userId);
-  if (!file) return { ok: false, message: `参考图 ${assetId} 不在这个项目里，或者你并不拥有它` };
+  if (!file) return { ok: false, message: `参考图 ${assetId} 读不到字节，或者你并不拥有它` };
   const measured = extractVisualDna(file.bytes, { assetId });
   if (!measured.ok) return { ok: false, message: `这张参考图量不出颜色：${measured.reason}` };
   const dominant = measured.stats.palette[0]?.color;
@@ -119,6 +142,29 @@ async function hueAnchorOfReference(
     dominant,
     stats: measured.stats 
   };
+}
+
+/**
+ * §38 Sketch → Image：从一张草图量出两个构图统计值。拒绝路径与参考图同一纪律——
+ * 绝不退化成"量不到就当没有草图，随便画一张"，那会让「从草图生成」这颗按钮说谎。
+ * 取的是**亮度与邻差密度**，不取色相：黑白线条纸的"主色"是纸白，钉它当色相锚点
+ * 等于宣称"画面跟着草图走"而实际只跟了背景亮度，这是能写进注释却不该写进 genMeta 的那种谎。
+ */
+async function sketchStatsOf(
+  assetId: string,
+  userId: string,
+  projectId: string,
+): Promise<{ ok: true; inkCoverage: number; strokeDensity: number } | { ok: false; message: string }> {
+  if (!(await inProjectAssetIds(projectId)).has(assetId)) {
+    return { ok: false, message: `草图 ${assetId} 不在这个项目里` };
+  }
+  const file = await openAssetForOwner(assetId, userId);
+  if (!file) return { ok: false, message: `草图 ${assetId} 读不到字节，或者你并不拥有它` };
+  const measured = extractVisualDna(file.bytes, { assetId });
+  if (!measured.ok) return { ok: false, message: `这张草图量不出像素统计：${measured.reason}` };
+  const inkCoverage = Math.max(0, Math.min(1, 1 - measured.stats.meanLuminance));
+  const strokeDensity = Math.max(0, Math.min(1, measured.stats.edgeDensity));
+  return { ok: true, inkCoverage, strokeDensity };
 }
 
 export async function generateDemoImage(input: GenerateImageInput): Promise<GenerateImageOutcome> {
@@ -145,13 +191,34 @@ export async function generateDemoImage(input: GenerateImageInput): Promise<Gene
       message: 'generateCharacterPortrait 需要同时提供 characterId',
     };
   }
+  // 草图不与参考图/肖像并存：三个来源各说各的"这张图照谁画"，同时给就没有一句话是真的
+  if (input.sketchAssetId && input.referenceAssetId) {
+    return {
+      ok: false,
+      code: 'invalid_input',
+      message: '草图与参考图互斥：要照草图画就别带参考图（草图管构图，参考图管色调，同一张图别混着来源）',
+    };
+  }
+  if (input.sketchAssetId && input.generateCharacterPortrait) {
+    return {
+      ok: false,
+      code: 'invalid_input',
+      message: '角色肖像由档案驱动，不接受草图来源',
+    };
+  }
   let anchor: { hue: number; dominant: string; stats?: PixelStats } | null = null;
+  let sketch: { inkCoverage: number; strokeDensity: number } | null = null;
   let effectivePrompt = input.prompt;
   let isCharacterPortrait = false;
   if (input.referenceAssetId) {
-    const measured = await hueAnchorOfReference(input.referenceAssetId, input.userId);
+    const measured = await hueAnchorOfReference(input.referenceAssetId, input.userId, input.projectId);
     if (!measured.ok) return { ok: false, code: 'invalid_input', message: measured.message };
     anchor = { hue: measured.hue, dominant: measured.dominant, stats: measured.stats };
+  }
+  if (input.sketchAssetId) {
+    const measured = await sketchStatsOf(input.sketchAssetId, input.userId, input.projectId);
+    if (!measured.ok) return { ok: false, code: 'invalid_input', message: measured.message };
+    sketch = { inkCoverage: measured.inkCoverage, strokeDensity: measured.strokeDensity };
   }
   if (input.characterId) {
     const roster = await listCharacters(input.projectId);
@@ -215,7 +282,14 @@ export async function generateDemoImage(input: GenerateImageInput): Promise<Gene
     }
   }
 
-  const issues = synthLimitViolations({ prompt: effectivePrompt, width, height, seed, hueAnchor: anchor?.hue });
+  const issues = synthLimitViolations({
+    prompt: effectivePrompt,
+    width,
+    height,
+    seed,
+    hueAnchor: anchor?.hue,
+    ...(sketch ? { sketchStats: sketch } : {}),
+  });
   if (issues.length) {
     return { ok: false, code: 'invalid_input', message: '这次请求不符合合成器的规格上限', issues };
   }
@@ -236,6 +310,7 @@ export async function generateDemoImage(input: GenerateImageInput): Promise<Gene
       height,
       seed,
       ...(input.referenceAssetId ? { referenceAssetId: input.referenceAssetId } : {}),
+      ...(input.sketchAssetId ? { sketchAssetId: input.sketchAssetId } : {}),
       ...(input.characterId ? { characterId: input.characterId } : {}),
       ...(input.generateCharacterPortrait ? { generateCharacterPortrait: true } : {}),
     },
@@ -247,6 +322,7 @@ export async function generateDemoImage(input: GenerateImageInput): Promise<Gene
     height, 
     seed, 
     hueAnchor: anchor?.hue,
+    ...(sketch ? { sketchStats: sketch } : {}),
     referenceStats: anchor?.stats ? {
       meanLuminance: anchor.stats.meanLuminance,
       luminanceStdev: anchor.stats.luminanceStdev,
@@ -279,9 +355,13 @@ export async function generateDemoImage(input: GenerateImageInput): Promise<Gene
       // 事后要能看出这一张是"以哪张图/哪个角色为来源、用了它哪个主色量的色相"，
       // 而不是只写着 prompt——否则变体与原图（或场景与角色）的关系只存在于界面上
       ...(input.referenceAssetId ? { referenceAssetId: input.referenceAssetId } : {}),
+      ...(input.sketchAssetId ? { sketchAssetId: input.sketchAssetId } : {}),
       ...(input.characterId ? { characterId: input.characterId } : {}),
       ...(input.generateCharacterPortrait ? { characterPortrait: true } : {}),
       ...(anchor ? { hueAnchor: anchor.hue, anchorDominant: anchor.dominant } : {}),
+      // 草图来源要连**量出来的那两个数**一起落库：事后要能复算这一张为什么是这一张，
+      // 只记一个 assetId 的话，草图被删之后就什么都追不回来
+      ...(sketch ? { sketchInkCoverage: sketch.inkCoverage, sketchStrokeDensity: sketch.strokeDensity } : {}),
     },
   });
   if (!ingested.ok) {
@@ -311,7 +391,7 @@ export async function generateDemoImage(input: GenerateImageInput): Promise<Gene
     capability: 'demo',
     ok: true,
     durationMs: Date.now() - startedAt,
-    detail: `一张 ${synth.width}×${synth.height} 的图片（DEMO 本地合成${input.referenceAssetId ? `，以 ${input.referenceAssetId} 为参考的变体` : ''}）`,
+    detail: `一张 ${synth.width}×${synth.height} 的图片（DEMO 本地合成${input.referenceAssetId ? `，以 ${input.referenceAssetId} 为参考的变体` : ''}${input.sketchAssetId ? `，以草图 ${input.sketchAssetId} 为构图来源` : ''}）`,
   });
 
   return { ok: true, asset: ingested.asset, taskId, reused: ingested.reused, removed: ingested.removed };

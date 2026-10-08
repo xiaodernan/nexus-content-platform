@@ -21,6 +21,9 @@ const RequestBody = z.object({
   // 参考图按 id 给，字节由服务端自己取（带归属校验）——不接受客户端塞进来的 base64，
   // 那等于绕过摄取门喂一张没被审过的图
   referenceAssetId: z.string().min(1).optional(),
+  // §38 Sketch → Image：与 referenceAssetId 互斥（服务端那一侧拒同时给）；
+  // 草图同样是按 id 取字节走归属校验，不接受客户端直接塞 base64
+  sketchAssetId: z.string().min(1).optional(),
   // §39/§40 Character → Scene：与 referenceAssetId 互斥，服务端那一侧会拒掉同时给的情况
   characterId: z.string().min(1).optional(),
   // §39 角色一致性生成：生成角色自己的参考图（portrait）。需与 characterId 搭配，
@@ -52,6 +55,7 @@ export async function POST(req: Request, ctx: RouteContext): Promise<NextRespons
       height: parsed.data.height,
       seed: parsed.data.seed,
       referenceAssetId: parsed.data.referenceAssetId,
+      sketchAssetId: parsed.data.sketchAssetId,
       characterId: parsed.data.characterId,
       generateCharacterPortrait: parsed.data.generateCharacterPortrait,
     });

@@ -39,6 +39,19 @@ export interface SynthInput {
     edgeDensity: number;
     warmth: number;
   };
+  /**
+   * §38 Sketch → Image：从草图量出来的两个构图统计值，都归一到 0..1。
+   * - `inkCoverage`：落墨占比（1 - 平均亮度；白纸上黑线，空白纸≈0，涂满≈1）；
+   * - `strokeDensity`：笔画密度（像素邻差密度，线越多越碎越大）。
+   * 与 `referenceStats` 同一纪律：**给了才生效**，没给时哈希输入与渲染基线与两者都不存在时
+   * 逐字节相同——同一句 prompt 的历史资产要能对上今天新生成的那一张（72b28d1 的教训）。
+   * 边界写在注释里：草图影响的是**构图密度与明暗**，不是"照草图的形状画"——后者要真 provider
+   * 的 img2img，这一格欠的是像素，不是接线。
+   */
+  sketchStats?: {
+    inkCoverage: number;
+    strokeDensity: number;
+  };
 }
 
 const MAX_EDGE = 1024;
@@ -48,6 +61,14 @@ export function synthLimitViolations(input: SynthInput): string[] {
   if (input.prompt.trim().length === 0) issues.push('prompt 不能是空的');
   if (input.hueAnchor !== undefined && !(input.hueAnchor >= 0 && input.hueAnchor < 1)) {
     issues.push(`色相锚点要在 0（含）到 1（不含）之间，收到 ${input.hueAnchor}`);
+  }
+  for (const [key, value] of [
+    ['落墨占比', input.sketchStats?.inkCoverage],
+    ['笔画密度', input.sketchStats?.strokeDensity],
+  ] as const) {
+    if (value !== undefined && !(value >= 0 && value <= 1)) {
+      issues.push(`${key}要在 0 到 1 之间，收到 ${value}`);
+    }
   }
   for (const [key, value] of [
     ['宽', input.width],
@@ -76,6 +97,10 @@ function seedBytes(input: SynthInput): Buffer {
     parts.push(
       `${input.referenceStats.meanLuminance.toFixed(4)}-${input.referenceStats.luminanceStdev.toFixed(4)}-${input.referenceStats.meanSaturation.toFixed(4)}`,
     );
+  }
+  if (input.sketchStats) {
+    // 草图也参与身份：换一张草图就是另一份字节，否则"从草图生成"会被去重复用成同一张
+    parts.push(`sketch:${input.sketchStats.inkCoverage.toFixed(4)}-${input.sketchStats.strokeDensity.toFixed(4)}`);
   }
   parts.push(input.prompt.trim().toLowerCase());
   return createHash('sha256').update(parts.join('|')).digest();
@@ -122,6 +147,13 @@ function renderPixels(input: SynthInput): Uint8Array {
     endLightness = baseLightness * 1.3;
     endSaturation = baseSaturation * 1.2;
   }
+  // §38 Sketch → Image：落墨越多底色越暗（白纸轻稿 → 亮底，涂满 → 暗底）；
+  // 笔画越碎图形越多（edgeDensity 在真草图上落在 0.02–0.15，×24 后是 0–4 个追加，封顶 8）。
+  // 与 referenceStats 同一纪律：这个字段不给时下面两行都不执行，基线原样。
+  if (input.sketchStats) {
+    baseLightness = Math.max(0.1, Math.min(0.9, 0.75 - 0.65 * input.sketchStats.inkCoverage));
+    endLightness = Math.min(0.95, baseLightness * 1.6);
+  }
 
   const [r1, g1, b1] = hslToRgb(hue, baseSaturation, baseLightness);
   const [r2, g2, b2] = hslToRgb((hue + 0.18) % 1, endSaturation, endLightness);
@@ -145,7 +177,8 @@ function renderPixels(input: SynthInput): Uint8Array {
     pixels[i + 1] = g;
     pixels[i + 2] = b;
   };
-  const shapes = 3 + Math.floor(rand() * 5);
+  const shapes =
+    3 + Math.floor(rand() * 5) + (input.sketchStats ? Math.min(8, Math.round(input.sketchStats.strokeDensity * 24)) : 0);
   for (let s = 0; s < shapes; s += 1) {
     const cx = rand() * width;
     const cy = rand() * height;

@@ -2,7 +2,8 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { and, eq, inArray, sql as rawSql, type SQL } from 'drizzle-orm';
 import type { AssetRef } from '@nexus/design-model';
 import { generateDemoImage, IMAGE_AGENT_KEY, type GenerateImageOutcome } from '../src/server/domain/image-studio';
-import { listProjectAssets, openAssetForOwner } from '../src/server/domain/assets';
+import { listProjectAssets, openAssetForOwner, uploadImageAsset } from '../src/server/domain/assets';
+import { synthesizeDemoImage } from '../src/server/domain/image-synth';
 import { extractVisualDna } from '../src/server/domain/visualDna';
 import { createProjectCharacter, updateCharacterProfile } from '../src/server/domain/characters';
 import { createProject } from '../src/server/domain/projects';
@@ -695,5 +696,133 @@ describe('§39 角色一致性生成（Character Portrait）打真库', () => {
       characterId: mine.id, referenceAssetId: myPortrait.asset.id,
     });
     expect(ok.ok, '这个角色自己的肖像当参考也被拒了——上面那两次红就不是守卫起作用').toBe(true);
+  });
+});
+
+describe('§38 Sketch → Image 打真库', () => {
+  async function ensureCredits(floor: number): Promise<void> {
+    const balance = (await readCredits(userId)).balances.image;
+    if (balance < floor) {
+      await adjustCredits({ userId, kind: 'image', delta: floor - balance, reason: '用例：补足草图链路需要的额度' });
+    }
+  }
+
+  /** 拒绝路径的完整口径：任务、账本、资产三样都不许多一行 */
+  async function counts(): Promise<{ tasks: number; ledger: number; assets: number }> {
+    const db = getDb();
+    const [t] = await db
+      .select({ n: rawSql<number>`count(*)::int` })
+      .from(agentTasks)
+      .where(and(eq(agentTasks.createdById, userId), eq(agentTasks.agentKey, IMAGE_AGENT_KEY)));
+    const [l] = await db
+      .select({ n: rawSql<number>`count(*)::int` })
+      .from(creditLedger)
+      .where(eq(creditLedger.userId, userId));
+    const [a] = await db.select({ n: rawSql<number>`count(*)::int` }).from(assets).where(eq(assets.projectId, projectId));
+    return { tasks: t?.n ?? 0, ledger: l?.n ?? 0, assets: a?.n ?? 0 };
+  }
+
+  /**
+   * 造一张"草图"放进项目：字节来自本地合成器（真 PNG，过得了摄取门），
+   * 但按**上传路径**落库（source='upload'）——与面板草图区导出的 PNG 走的是同一道门。
+   * 用不同 prompt 拿到的两张 fixture 亮度/边缘密度不同，足够区分"统计值真的参与身份"。
+   */
+  async function makeSketchAsset(label: string): Promise<AssetRef> {
+    const synth = synthesizeDemoImage({ prompt: `草图原料 ${label}`, width: 64, height: 64 });
+    if (!synth.ok) throw new Error(`fixture 合成本身就失败了：${synth.issues.join('；')}`);
+    const up = await uploadImageAsset(projectId, {
+      data: synth.bytes,
+      filename: `sketch-${label}.png`,
+      createdById: userId,
+      source: 'upload',
+    });
+    if (!up.ok) throw new Error(`草图 fixture 进不了摄取门：${up.reason}`);
+    return up.asset;
+  }
+
+  async function genMetaOf(id: string): Promise<Record<string, unknown>> {
+    const [row] = await getDb().select({ genMeta: assets.genMeta }).from(assets).where(eq(assets.id, id)).limit(1);
+    return (row?.genMeta ?? {}) as Record<string, unknown>;
+  }
+
+  it('草图进构图：同 prompt 同 seed，带草图与不带的字节不同，genMeta 记下来源与量出来的两个数', async () => {
+    await ensureCredits(40);
+    const sketch = await makeSketchAsset('甲');
+    const plain = mustOk(await generateDemoImage({ projectId, userId, prompt: '草图底座', width: 64, height: 64, seed: 41 }), '不带草图');
+    const withSketch = mustOk(
+      await generateDemoImage({ projectId, userId, prompt: '草图底座', width: 64, height: 64, seed: 41, sketchAssetId: sketch.id }),
+      '带草图那一次',
+    );
+    expect(withSketch.reused, '带草图却被复用成不带草图那一张，草图没进依据').toBe(false);
+    // 按 id 各查各的 checksum：一条 in 查询的行序不保证，解构对撞会把两条拿反
+    const checksumOf = async (id: string): Promise<string> => {
+      const [row] = await getDb().select({ checksum: assets.checksum }).from(assets).where(eq(assets.id, id)).limit(1);
+      return row?.checksum ?? '';
+    };
+    const plainSum = await checksumOf(plain.asset.id);
+    const sketchSum = await checksumOf(withSketch.asset.id);
+    expect(sketchSum, '两张 checksum 相同：从草图生成拿回的就是没草图那一张').not.toBe(plainSum);
+
+    const meta = await genMetaOf(withSketch.asset.id);
+    expect(meta.sketchAssetId, '事后查不出这张图以哪张草图为构图来源').toBe(sketch.id);
+    // 量出来的两个数要一起落库：草图行将来被删，这两个数还能解释"这一张为什么是这一张"
+    for (const key of ['sketchInkCoverage', 'sketchStrokeDensity']) {
+      const value = meta[key];
+      expect(typeof value, `${key} 没进 genMeta`).toBe('number');
+      expect(Number(value) >= 0 && Number(value) <= 1, `${key} 越界：${String(value)}`).toBe(true);
+    }
+    // 草图不钉色相：黑白线条纸的"主色"是纸白，钉它当锚点是在撒谎
+    expect(meta.hueAnchor, '草图不该带出色相锚点').toBeUndefined();
+  });
+
+  it('两张不同的草图就是两张不同的图；同一张草图两次调用复用字节但任务与扣点各算', async () => {
+    await ensureCredits(40);
+    const a = await makeSketchAsset('乙');
+    const b = await makeSketchAsset('丙');
+    const runA1 = mustOk(await generateDemoImage({ projectId, userId, prompt: '同一句话', width: 64, height: 64, seed: 42, sketchAssetId: a.id }), '草图乙');
+    const runA2 = mustOk(await generateDemoImage({ projectId, userId, prompt: '同一句话', width: 64, height: 64, seed: 42, sketchAssetId: a.id }), '草图乙第二次');
+    const runB = mustOk(await generateDemoImage({ projectId, userId, prompt: '同一句话', width: 64, height: 64, seed: 42, sketchAssetId: b.id }), '草图丙');
+    expect(runA2.reused, '同一张草图第二次没复用字节——身份串可能抖了别的东西').toBe(true);
+    expect(runB.asset.id, '换一张草图还是同一行：草图统计没进依据').not.toBe(runA1.asset.id);
+    expect(await genMetaOf(runB.asset.id), '草图丙的记录指向了别处').toMatchObject({ sketchAssetId: b.id });
+  });
+
+  it('草图不属于本项目时拒绝，任务、账本、资产一行都不许多', async () => {
+    await ensureCredits(40);
+    const otherDoc = await createProject(userId, { name: '草图越权用例', kind: 'website' });
+    const synth = synthesizeDemoImage({ prompt: '别人项目里的图', width: 64, height: 64 });
+    if (!synth.ok) throw new Error('fixture 合成失败');
+    const up = await uploadImageAsset(otherDoc.id, { data: synth.bytes, filename: 'foreign-sketch.png', createdById: userId, source: 'upload' });
+    if (!up.ok) throw new Error(`越权 fixture 上传失败：${up.reason}`);
+
+    const before = await counts();
+    const bad = await generateDemoImage({ projectId, userId, prompt: '越权草图', width: 64, height: 64, seed: 43, sketchAssetId: up.asset.id });
+    expect(bad.ok, '别的项目的图被当成本项目草图收下了').toBe(false);
+    if (!bad.ok) expect(bad.code).toBe('invalid_input');
+    expect(await counts(), '越权拒绝留下了行').toEqual(before);
+    // 先删资产再删项目：assets.projectId 的外键会挡住"带着资产删项目"
+    await getDb().delete(assets).where(eq(assets.projectId, otherDoc.id));
+    await getDb().delete(projects).where(eq(projects.id, otherDoc.id));
+  });
+
+  it('草图与参考图、与肖像互斥：两个来源同时给就拒绝，不碰额度', async () => {
+    await ensureCredits(40);
+    const sketch = await makeSketchAsset('丁');
+    const ref = await makeSketchAsset('戊');
+    const before = await counts();
+
+    const both = await generateDemoImage({
+      projectId, userId, prompt: '两个来源', width: 64, height: 64, seed: 44, sketchAssetId: sketch.id, referenceAssetId: ref.id,
+    });
+    expect(both.ok, '草图与参考图同时给竟然放行了——这张图"照谁画"没有一句真话').toBe(false);
+    if (!both.ok) expect(both.message).toMatch(/互斥/);
+
+    const portrait = await generateDemoImage({
+      projectId, userId, prompt: 'x', width: 64, height: 64, seed: 45,
+      characterId: 'no-such-character', sketchAssetId: sketch.id, generateCharacterPortrait: true,
+    });
+    expect(portrait.ok, '肖像混进草图也放行了').toBe(false);
+
+    expect(await counts(), '两次互斥拒绝留下了行').toEqual(before);
   });
 });

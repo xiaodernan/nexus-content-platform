@@ -111,3 +111,63 @@ test('@smoke 图像生成：DEMO 角标可见、一次点击一个事务、额�
   await expect(entry.locator('[data-credit-task]')).not.toHaveText('不绑定任务');
   expect(projectId).toMatch(/^[a-z0-9-]+$/i);
 });
+
+/**
+ * §38 Sketch → Image 在真浏览器里走一遍。要看到的不是"能画能生成"，而是四件用户可感的事：
+ * 1. 空白纸点不动生成（防止一张没画的纸被喂进生成链）；画了笔但没写描述时，缺料的原因就地说清；
+ * 2. 一次点击 = 一个事务：草图与生成图**两条清单项同时进**（§149），撤销也同时走；
+ * 3. 生成那张带 DEMO 角标、草图那张不带——角标说的是"这不是模型给的图"，
+ *    你自己画的笔迹当然不是合成物，两枚徽章各有事实（§159/§160）；
+ * 4. 回执里写着构图来源是草图的测量值，不是"照轮廓画"——边界不夸大。
+ */
+test('@smoke 草图生成：空白不可点、一次事务两张卡、DEMO 只贴在生成那张', async ({ page }) => {
+  test.setTimeout(180_000);
+  await createProject(page, `草图生成 ${Date.now().toString(36)}`);
+  await page.click('[data-panel-tab="assets"]');
+  await expect(page.locator('[data-assets-panel]')).toBeVisible();
+
+  await page.click('[data-sketch-section] summary');
+  const generateButton = page.locator('[data-sketch-generate]');
+  // 空白纸 + 空描述：这颗按钮不该点得动
+  await expect(generateButton).toBeDisabled();
+
+  const pad = page.locator('[data-sketch-pad]');
+  const box = await pad.boundingBox();
+  if (!box) throw new Error('草图绘制区没有尺寸，浏览器里它没被画出来');
+  // 真鼠标按-拖-放：pointer 事件要走浏览器的命中测试，dispatchEvent 那种合成不算凭证
+  await page.mouse.move(box.x + box.width * 0.2, box.y + box.height * 0.2);
+  await page.mouse.down();
+  await page.mouse.move(box.x + box.width * 0.8, box.y + box.height * 0.3, { steps: 10 });
+  await page.mouse.move(box.x + box.width * 0.5, box.y + box.height * 0.85, { steps: 10 });
+  await page.mouse.up();
+  await expect(page.locator('[data-sketch-strokes]')).toHaveText('1 笔');
+  // 有笔迹但没描述：缺料要就地说清，而不是让按钮哑着
+  await expect(page.locator('[data-sketch-need-prompt]')).toBeVisible();
+  await expect(generateButton).toBeDisabled();
+
+  const prompt = '黄昏后的海岸城市';
+  await page.fill('[data-image-prompt]', prompt);
+  await expect(page.locator('[data-sketch-need-prompt]')).toHaveCount(0);
+  await expect(generateButton).toBeEnabled();
+
+  const cardsBefore = await page.locator('[data-asset-card]').count();
+  await generateButton.click();
+  await expect(page.locator('[data-assets-panel] [data-asset-notice]')).toContainText('明暗与元素密度取自草图', { timeout: 60_000 });
+  // 一次点击进两张卡：草图（你画的，无 DEMO）+ 生成图（合成物，有 DEMO）
+  await expect(page.locator('[data-asset-card]')).toHaveCount(cardsBefore + 2, { timeout: 30_000 });
+  const cards = page.locator('[data-asset-card]');
+  const sketchCard = cards.nth(cardsBefore);
+  const generatedCard = cards.nth(cardsBefore + 1);
+  await expect(sketchCard).toContainText('草图');
+  await expect(sketchCard.locator('[data-asset-demo-badge]')).toHaveCount(0);
+  await expect(generatedCard.locator('[data-asset-demo-badge]')).toHaveText('DEMO');
+  await expect(generatedCard.locator('img')).toHaveAttribute('src', /\/api\/assets\/[^/]+\/file/);
+  await expect
+    .poll(async () => generatedCard.locator('img').evaluate((el) => (el as HTMLImageElement).naturalWidth), { timeout: 20_000 })
+    .toBeGreaterThan(0);
+  await page.screenshot({ path: 'screenshots/image-studio-sketch.png' });
+
+  // 撤销：两张一起走——草图与生成图绑在同一事务里，撤销不该留下半截清单（§149）
+  await page.getByTitle('撤销（Ctrl+Z）').click();
+  await expect(page.locator('[data-asset-card]')).toHaveCount(cardsBefore, { timeout: 20_000 });
+});

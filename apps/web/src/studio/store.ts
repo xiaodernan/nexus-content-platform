@@ -1218,6 +1218,71 @@ export class StudioStore {
   }
 
   /**
+   * §38 Sketch → Image：把本地画的草图存进项目，再让它以测量值参与生成。
+   *
+   * 一次点击 = 一次事务：草图与生成图两条 `addAsset`（加可选的贴合）绑在一起撤销，
+   * 不会出现"清单里有草图但没人引用它参与了哪次生成"的半截状态（§149）。
+   *
+   * 但上传成功那一刻字节就已落在服务端：若生成那步失败（互斥、量不出像素、额度），
+   * 草图字节成了孤儿而清单里还没有它——这条非对称如实写进错误回执，不假装能回滚
+   * 服务器（§159）。草图只喂构图（落墨→明暗、笔画密度→元素数），不钉色相，回执照实说。
+   */
+  async generateImageFromSketch(prompt: string, sketchFile: File): Promise<boolean> {
+    if (!this.projectId) return false;
+    this.assetBusyValue = true;
+    this.assetErrorValue = null;
+    this.assetNoticeValue = null;
+    this.commit();
+    let sketchAsset: AssetRef | null = null;
+    try {
+      const form = new FormData();
+      form.append('file', sketchFile);
+      const upRes = await fetch(`/api/projects/${this.projectId}/assets`, { method: 'POST', headers: csrfHeaders(), body: form });
+      const upBody = (await upRes.json().catch(() => null)) as { asset?: AssetRef; reason?: string; issues?: string[] } | null;
+      if (!upRes.ok || !upBody?.asset) {
+        throw new Error(upBody?.issues?.filter(Boolean).join('；') || upBody?.reason || `草图上传失败：HTTP ${upRes.status}`);
+      }
+      sketchAsset = upBody.asset;
+
+      const res = await fetch(`/api/projects/${this.projectId}/images`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json', ...csrfHeaders() },
+        body: JSON.stringify({ prompt, sketchAssetId: sketchAsset.id }),
+      });
+      const body = (await res.json().catch(() => null)) as { asset?: AssetRef; message?: string; issues?: string[] } | null;
+      if (!res.ok || !body?.asset) {
+        throw new Error(body?.issues?.filter(Boolean).join('；') || body?.message || `HTTP ${res.status}`);
+      }
+      const asset = body.asset;
+      const targetId = this.selection[0];
+      const node = targetId ? this.snapshot.page?.nodes[targetId] : undefined;
+      const ops: PatchOp[] = [{ op: 'addAsset', asset: sketchAsset }, { op: 'addAsset', asset }];
+      if (node) {
+        ops.push({
+          op: 'set',
+          nodeId: node.id,
+          path: 'style.fills',
+          value: [{ kind: 'image', assetId: asset.id, fit: 'cover' }, ...(node.style.fills as unknown[])],
+        });
+      }
+      this.execute(`从草图生成图片 ${asset.name}`, ops);
+      this.assetNoticeValue = `已生成一张 ${asset.width ?? '?'}×${asset.height ?? '?'} 的图（DEMO 本地合成：明暗与元素密度取自草图「${sketchAsset.name}」的测量值，不管形状本身、不钉色相，扣 image 额度 2 点）${
+        node ? '，并已贴到选中的元素上' : '；选中元素后生成才会同时贴上'
+      }。`;
+      return true;
+    } catch (error) {
+      const reason = error instanceof Error ? error.message : String(error);
+      this.assetErrorValue = sketchAsset
+        ? `草图「${sketchAsset.name}」已存进项目存储，但生成那一步没成：${reason}。两张图都没进清单，那份草图字节目前没人引用，可在资产清理时一并处理。`
+        : reason;
+      return false;
+    } finally {
+      this.assetBusyValue = false;
+      this.commit();
+    }
+  }
+
+  /**
    * Asset Library 删除（M2 line 227）：一次可撤销事务把资产移出清单，并让模型顺带剥掉
    * 所有页面上引用它的图片填充 / 节点（removeAsset 有 document 全域可达，§149）。
    *
