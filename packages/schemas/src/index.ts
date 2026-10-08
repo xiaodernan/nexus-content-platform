@@ -1404,7 +1404,16 @@ export { NodeTypeEnum as DesignNodeType };
  * 设计文档的权威形状在 `@nexus/design-model`（怎么算是那儿决定的，纪律 1），这里只规定
  * "出了进程长什么样"——所以 document 那一格是 `z.unknown()`，而配套的 `digest` 是真的会校验的数。
  */
-export const API_TOKEN_SCOPES = ['projects:read', 'design:read', 'design:write'] as const;
+/**
+ * 公开 API 的 scope。**读与写分开，项目与设计也分开**：
+ * 一枚只该"读设计"的凭据不该因为顺手就拿到"删项目"的能力。
+ *
+ * `projects:write` 是 2026-10-08 加的（建项目与删项目）。在那之前 v1 的写只有
+ * `/projects/<id>/design` 的 PATCH，所以 scope 表里只有 design 那一格有 write。
+ * 加它的时候要一起想清楚的是**破坏面**：`projects:write` 能删项目，而删除是软删
+ * （可恢复、公开作品仍在公网），限度写在接口的话里，不靠调用方猜。
+ */
+export const API_TOKEN_SCOPES = ['projects:read', 'projects:write', 'design:read', 'design:write'] as const;
 export const ApiTokenScopeSchema = z.enum(API_TOKEN_SCOPES);
 export type ApiTokenScope = z.infer<typeof ApiTokenScopeSchema>;
 
@@ -1504,6 +1513,22 @@ export const ApiProjectDetailSchema = ApiProjectSchema.extend({
   nodeCount: z.number().int().min(0),
 });
 export type ApiProjectDetail = z.infer<typeof ApiProjectDetailSchema>;
+
+/**
+ * 建一个项目（`POST /api/v1/projects`，2026-10-08 加）。
+ *
+ * 响应**不另立契约**：建完回的就是 `ApiProjectDetail`，与 `GET /projects/<id>` 同一份形状——
+ * 调用方建完之后紧接着要做的事就是拿这份详情去 PATCH 设计，两处形状不同只会逼它写两次解析。
+ *
+ * `kind` 收字符串而不是字面量联合：合法的 kind 由服务端建项目那条路自己判（它本来就判），
+ * 在这里再收窄一份就等于把 web 侧那个枚举抄第二遍，改一处忘一处时红的是调用方而不是本仓。
+ */
+export const ApiProjectCreateRequestSchema = z.object({
+  name: z.string().trim().min(1).max(120),
+  /** 不传时按 web 侧的默认类型（`website`）建 */
+  kind: z.string().trim().min(1).max(40).optional(),
+});
+export type ApiProjectCreateRequest = z.infer<typeof ApiProjectCreateRequestSchema>;
 
 export const ApiDesignDocumentSchema = z.object({
   projectId: z.string(),

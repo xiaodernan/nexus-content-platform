@@ -155,7 +155,9 @@ describe('签发：库里面没有明文', () => {
     // 下面三条走的是绕过 domain 的裸插入：证明拦人的是库上的 CHECK，不是只有 JS 在挡
     const bare = { userId: ownerId, name: '裸写', tokenHash: hashApiToken(newApiToken()), hint: 'abcd1234' };
     await expectRejected(
-      getDb().insert(apiTokens).values({ ...bare, scopes: ['projects:write'] as never }),
+      // 名单外的例子必须真的在名单外：`projects:write` 2026-10-08 起是合法值（§188 建/删项目），
+      // 拿它当反例会让这条用例在库里"竟然拒了合法值"或"居然放行了"两个方向上给出假信号
+      getDb().insert(apiTokens).values({ ...bare, scopes: ['projects:delete'] as never }),
       /api_tokens_scopes_known|violates check/,
     );
     await expectRejected(

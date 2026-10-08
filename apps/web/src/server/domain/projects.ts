@@ -35,7 +35,14 @@ export const PROJECT_KINDS: ProjectType[] = [
   'prototype',
 ];
 
-function kindToProjectType(kind: string): ProjectType {
+/**
+ * 把一个字符串收成合法的项目类型，**不认识就落到 `website`**。
+ *
+ * 这是**界面**那条路的语义：那个输入是 `<select>`，送不出坏值，所以兜底只是防御。
+ * 公开 API 那条路**不许用这个语义**——外部调用方写错类型时要拿到 400 与可选值清单，
+ * 而不是一个类型悄悄不对的项目（`/api/v1/projects` 里就是这么做的）。
+ */
+export function kindToProjectType(kind: string): ProjectType {
   return (PROJECT_KINDS as string[]).includes(kind) ? (kind as ProjectType) : 'website';
 }
 

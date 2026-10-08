@@ -25,6 +25,7 @@ import { csrfHeaders } from '@/lib/csrf';
 
 const SCOPE_LABELS: Record<ApiTokenScope, string> = {
   'projects:read': '读我自己名下的项目清单与详情',
+  'projects:write': '建项目与删项目（删除是软删：可恢复、已发布的作品仍在公网）',
   'design:read': '读设计文档本体（整份，没有分页）',
   'design:write': '给设计文档打补丁（一次调用 = 一个事务，删除类 op 一律拒）',
 };

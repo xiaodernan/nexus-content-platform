@@ -242,8 +242,10 @@ describe('三处 scope 名单是同一份：常量 / 迁移里生效的 CHECK / 
         // 而界面上写的是"补丁要走 PATCH"——所以配对必须按方法看，不能按文件看。
         for (const scope of handler.scopes) {
           if (isWriteScope(scope)) {
+            // DELETE 算写方法：`projects:write` 的一半能力就是删项目（§188，2026-10-08），
+            // 而"删除不算改文档"这句话在权限语义上说不通
             expect(
-              ['PATCH', 'PUT', 'POST'],
+              ['PATCH', 'PUT', 'POST', 'DELETE'],
               `${route.path} 的 ${handler.method} 用了写 scope ${scope}：读方法不该有改文档的能力`,
             ).toContain(handler.method);
           } else {
@@ -259,7 +261,7 @@ describe('三处 scope 名单是同一份：常量 / 迁移里生效的 CHECK / 
         const carrier = route.perMethod.find((h) => h.scopes.includes(scope));
         expect(carrier, `${route.path} 里 ${scope} 不在任何方法的身子里`).toBeDefined();
         expect(
-          ['PATCH', 'PUT', 'POST'],
+          ['PATCH', 'PUT', 'POST', 'DELETE'],
           `没有写方法执行 ${scope}：这一格名单是空的（§159）`,
         ).toContain(carrier?.method);
       }
@@ -282,14 +284,16 @@ describe('三处 scope 名单是同一份：常量 / 迁移里生效的 CHECK / 
         seen.add(label);
       }
     }
-    // 下限：v1 至少要有已落的那四个方法，否则上面那两个循环是在比空集
-    expect(seen.size, `v1 只推导出 ${seen.size} 个端点名，这一格根本没扫到东西`).toBeGreaterThanOrEqual(4);
+    // 下限：v1 至少要有已落的那六个方法，否则上面那两个循环是在比空集
+    expect(seen.size, `v1 只推导出 ${seen.size} 个端点名，这一格根本没扫到东西`).toBeGreaterThanOrEqual(6);
     // 名单本身也要说得出是哪几个：漂成拼错的写法（projectz）在这里红，而不是悄悄多出一格
     expect([...seen].sort()).toEqual([
+      'DELETE /api/v1/projects/[projectId]',
       'GET /api/v1/projects',
       'GET /api/v1/projects/[projectId]',
       'GET /api/v1/projects/[projectId]/design',
       'PATCH /api/v1/projects/[projectId]/design',
+      'POST /api/v1/projects',
     ]);
   });
 
