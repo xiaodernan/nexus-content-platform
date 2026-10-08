@@ -1120,6 +1120,30 @@ filter applies uniformly across all component spellings (Map, entry array, plain
 unaffected (SerializedEntityComponent still excludes runtime-only fields). The ADR 0016 amendment record for
 this grant is owed.
 
+## Component removal cleans up behavioral effects (M5 v205)
+
+v204 made `enabled` gate HUD visibility but left a gap when components are removed entirely: if a component had
+a `targetObject` (v202) or `animationIds` (v203), removing it would leave those side effects in place permanently.
+The targetObject would stay hidden forever, and animations would remain paused forever with no way to restore them.
+
+v205 closes this gap: `removeComponent()` now cleans up both runtime-only fields before deleting the component:
+- **targetObject**: restored to `visible = true` so the object is not left hidden
+- **animationIds**: each animation's `enabled` is set to `true` and `play()` is called to resume playback
+
+The method signature changes from `removeComponent(entity, componentType)` to
+`removeComponent(sceneId, entity, componentType)` because animation cleanup requires access to the scene's
+animation registry. The existing test in `threeRuntime.test.ts` was updated to match.
+
+Measured on this host 2026-10-09: three-runtime suite **472/472** (15 files; added
+`componentRemovalCleanup.test.ts` with 5 cases covering targetObject cleanup, animation cleanup, plain data
+components, non-existent components, and non-existent animationIds), tsc clean. No Studio changes — the surface
+does not call `removeComponent`, so the cleanup is proven at the runtime layer.
+
+Bounds, stated: cleanup only affects runtime-only fields (`targetObject`, `animationIds`); the component's `data`
+and `type` are simply discarded as before; if the scene is missing, animation cleanup is skipped gracefully;
+removing a component without runtime-only fields succeeds with no side effects. The ADR 0016 amendment record
+for this grant is owed.
+
 ## The dock's BUILD face (M6 v174 — ADR 0016 amendment 174)
 
 The first product consumer of the build arc (amendment 173), and the section this increment never had: the

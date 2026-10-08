@@ -396,7 +396,7 @@ describe('Scene Management', () => {
     const retrieved = runtime.getComponent(entity, 'test');
     expect(retrieved).toEqual(component);
 
-    runtime.removeComponent(entity, 'test');
+    runtime.removeComponent(scene.id, entity, 'test');
     expect(runtime.getComponent(entity, 'test')).toBeUndefined();
   });
 });

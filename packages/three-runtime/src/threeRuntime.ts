@@ -1558,9 +1558,35 @@ export class ThreeRuntime {
     this.emit('componentAdded', { entityId: entity.id, component });
   }
 
-  removeComponent(entity: ThreeEntity, componentType: string): boolean {
+  /**
+   * Remove a component from an entity and clean up its behavioral effects.
+   *
+   * v205 — when a component is removed, its runtime-only fields must be cleaned up:
+   * - targetObject (v202): restore visibility to true so the object is not left hidden forever
+   * - animationIds (v203): resume any paused animations so they are not left disabled forever
+   * Without this cleanup, removing a component would leave its side effects in place permanently.
+   */
+  removeComponent(sceneId: SceneId, entity: ThreeEntity, componentType: string): boolean {
+    const comp = entity.components.get(componentType);
     const removed = entity.components.delete(componentType);
-    if (removed) {
+    if (removed && comp) {
+      // v205: clean up targetObject visibility
+      if (comp.targetObject) {
+        comp.targetObject.visible = true;
+      }
+      // v205: clean up animation playback state
+      if (comp.animationIds) {
+        const scene = this.sceneGraph.scenes.get(sceneId);
+        if (scene) {
+          for (const animId of comp.animationIds) {
+            const anim = scene.animations.get(animId);
+            if (anim) {
+              anim.threeAnimation.enabled = true;
+              anim.threeAnimation.play();
+            }
+          }
+        }
+      }
       this.emit('componentRemoved', { entityId: entity.id, componentType });
     }
     return removed;
