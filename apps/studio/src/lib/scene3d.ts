@@ -438,6 +438,10 @@ export interface SceneSelectionComponent {
  *  keeps a `Map` (keyed by the component's own type), the SAVE shape is an entry ARRAY (v119: a Map
  *  is not JSON), and a Map that survived a stringify-shaped accident arrives as a plain object.
  *  Anything else — a field the host never declared — is none. */
+/** v204 — disabled components are filtered from the HUD. The enabled flag gates participation in queries
+ *  (v201), rendering (v202), animation playback (v203), and now visibility in the inspector panel. A
+ *  component that is not enabled is stored but invisible to iteration — the same rule the runtime applies
+ *  to getEnabledComponents, so the HUD shows only what the query layer sees. */
 export function entityComponentsOf(value: unknown): SceneSelectionComponent[] {
   const pairs: [string, unknown][] =
     value instanceof Map
@@ -447,11 +451,13 @@ export function entityComponentsOf(value: unknown): SceneSelectionComponent[] {
         : value && typeof value === 'object'
           ? Object.entries(value as Record<string, unknown>)
           : [];
-  return pairs.map(([key, c]) => {
-    const comp = (c && typeof c === 'object' ? c : {}) as { type?: unknown; enabled?: unknown };
-    const name = typeof comp.type === 'string' && comp.type.length > 0 ? comp.type : key;
-    return { name, enabled: comp.enabled !== false };
-  });
+  return pairs
+    .map(([key, c]) => {
+      const comp = (c && typeof c === 'object' ? c : {}) as { type?: unknown; enabled?: unknown };
+      const name = typeof comp.type === 'string' && comp.type.length > 0 ? comp.type : key;
+      return { name, enabled: comp.enabled !== false };
+    })
+    .filter((comp) => comp.enabled);
 }
 
 /** Read the selected body's facts off the LIVE scene. Null when nothing is selected, there is no

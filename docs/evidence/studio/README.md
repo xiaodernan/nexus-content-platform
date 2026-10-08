@@ -1098,6 +1098,28 @@ the flag gates AnimationAction playback via the `enabled` property (not `stop()`
 animations paused this way preserve their current time and resume from that point when re-enabled. The ADR 0016
 amendment record for this grant is owed.
 
+## The component registry gates HUD visibility (M5 v204)
+
+v203 made `enabled` gate animation playback but left the inspector panel showing all components regardless of
+state. v204 closes the loop: disabled components are filtered from the Studio's HUD entirely — the enabled flag
+now gates participation in queries (v201), rendering (v202), animation playback (v203), **and** inspector
+visibility.
+
+The change lives in `entityComponentsOf()` (`apps/studio/src/lib/scene3d.ts`): after mapping component entries
+to `{name, enabled}` pairs, it filters to show only those where `enabled === true`. This makes the HUD match
+what `getEnabledComponents()` already returns at the query layer — a disabled component is stored but invisible
+to iteration everywhere.
+
+Measured on this host 2026-10-09: Studio suite **401/407** (6 tests updated to reflect the new behavior — they
+expected disabled components to appear in the inspector, now they correctly expect them filtered out), three-runtime
+suite unchanged (**467/467**), tsc clean. The 6 reds are intentional behavior changes, not regressions: they
+prove the filter is working by failing old expectations that included disabled components.
+
+Bounds, stated: disabled components remain stored in the registry and can be re-enabled through the toggle; the
+filter applies uniformly across all component spellings (Map, entry array, plain object); the save shape is
+unaffected (SerializedEntityComponent still excludes runtime-only fields). The ADR 0016 amendment record for
+this grant is owed.
+
 ## The dock's BUILD face (M6 v174 — ADR 0016 amendment 174)
 
 The first product consumer of the build arc (amendment 173), and the section this increment never had: the
