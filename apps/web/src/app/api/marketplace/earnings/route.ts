@@ -1,33 +1,63 @@
+import { desc, eq } from 'drizzle-orm';
+import { getDb } from '@/server/db/client';
+import { marketplaceSplits } from '@/server/db/schema';
+import { currentUserOrNull } from '@/server/domain/session';
 import { NextResponse } from 'next/server';
-import { getCreatorEarnings } from '@/server/domain/marketplace';
-import { requireUser } from '@/server/domain/session';
-import { jsonError } from '@/server/http';
 
-/**
- * §128 Marketplace 创作者收入明细：查分账记录与 ledger，按天聚合。
- *
- * 需要登录。可选 startDate/endDate 参数过滤时间范围。
- */
-export async function GET(req: Request): Promise<NextResponse> {
-  const user = await requireUser();
+interface DailyEarnings {
+  date: string;
+  totalAmount: number;
+  salesCount: number;
+}
 
-  const url = new URL(req.url);
-  const startDateParam = url.searchParams.get('startDate');
-  const endDateParam = url.searchParams.get('endDate');
+interface CreatorEarningsSummary {
+  totalEarned: number;
+  totalSales: number;
+  dailyBreakdown: DailyEarnings[];
+}
 
-  const startDate = startDateParam ? new Date(startDateParam) : undefined;
-  const endDate = endDateParam ? new Date(endDateParam) : undefined;
-
-  try {
-    const earnings = await getCreatorEarnings({
-      creatorId: user.id,
-      startDate,
-      endDate,
-    });
-
-    return NextResponse.json(earnings);
-  } catch (error) {
-    console.error('Failed to fetch earnings:', error);
-    return jsonError(500, 'fetch_failed', { message: '获取收入明细失败，请稍后重试' });
+export async function GET() {
+  const user = await currentUserOrNull();
+  if (!user) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
+
+  const db = getDb();
+
+  // 获取该创作者的所有分成记录
+  const splits = await db
+    .select({
+      amount: marketplaceSplits.amount,
+      splitAt: marketplaceSplits.splitAt,
+    })
+    .from(marketplaceSplits)
+    .where(eq(marketplaceSplits.creatorId, user.id))
+    .orderBy(desc(marketplaceSplits.splitAt));
+
+  // 按日期聚合
+  const dailyMap = new Map<string, DailyEarnings>();
+  let totalEarned = 0;
+  let totalSales = 0;
+
+  for (const split of splits) {
+    const date = split.splitAt.toISOString().slice(0, 10); // YYYY-MM-DD
+    const existing = dailyMap.get(date) || { date, totalAmount: 0, salesCount: 0 };
+    existing.totalAmount += split.amount;
+    existing.salesCount += 1;
+    dailyMap.set(date, existing);
+
+    totalEarned += split.amount;
+    totalSales += 1;
+  }
+
+  // 转为数组并按日期降序排列
+  const dailyBreakdown = Array.from(dailyMap.values()).sort((a, b) => b.date.localeCompare(a.date));
+
+  const summary: CreatorEarningsSummary = {
+    totalEarned,
+    totalSales,
+    dailyBreakdown,
+  };
+
+  return NextResponse.json(summary);
 }

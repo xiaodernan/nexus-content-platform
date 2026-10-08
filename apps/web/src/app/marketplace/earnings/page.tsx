@@ -63,13 +63,13 @@ export default function EarningsPage() {
         <div className="flex gap-8">
           <div>
             <div className="text-11 text-fg-3">累计收入</div>
-            <div className="text-[var(--nexus-font-size-20)] font-semibold text-accent-2" data-earnings-total>
+            <div className="text-[var(--nexus-font-size-21)] font-semibold text-accent-2" data-earnings-total>
               {summary.totalEarned} credits
             </div>
           </div>
           <div>
             <div className="text-11 text-fg-3">总销量</div>
-            <div className="text-[var(--nexus-font-size-20)] font-semibold" data-earnings-sales>
+            <div className="text-[var(--nexus-font-size-21)] font-semibold" data-earnings-sales>
               {summary.totalSales} 次
             </div>
           </div>

@@ -69,6 +69,46 @@ const stub = createServer((req: IncomingMessage, res: ServerResponse) => {
       );
       return;
     }
+    if (req.method === 'POST' && req.url === '/api/v1/projects') {
+      // 仿真的正是真 v1 的两条拒法：校验失败 400、kind 不认识 400 且带 allowed 清单
+      let payload: Record<string, unknown>;
+      try {
+        payload = JSON.parse(raw || '{}') as Record<string, unknown>;
+      } catch {
+        payload = {};
+      }
+      const allowedKinds = ['website', 'design-system', 'game', 'world', 'storyboard', 'prototype'];
+      if (typeof payload.name !== 'string' || !payload.name.trim()) {
+        res.writeHead(400, { 'content-type': 'application/json' });
+        res.end(JSON.stringify({ error: 'validation_failed', message: 'body: 项目名不能为空' }));
+        return;
+      }
+      const kindStr = typeof payload.kind === 'string' ? payload.kind : '';
+      if (payload.kind !== undefined && !allowedKinds.includes(kindStr)) {
+        res.writeHead(400, { 'content-type': 'application/json' });
+        res.end(
+          JSON.stringify({ error: 'unknown_kind', message: `没有 ${kindStr} 这个项目类型`, allowed: allowedKinds }),
+        );
+        return;
+      }
+      res.writeHead(201, { 'content-type': 'application/json' });
+      res.end(JSON.stringify({ id: 'p2', name: payload.name, kind: kindStr || 'website', pageCount: 0, nodeCount: 0 }));
+      return;
+    }
+    if (req.method === 'DELETE' && (req.url ?? '').startsWith('/api/v1/projects/p1?confirm=')) {
+      // 确认词逐字比对（真 v1 走 softDeleteProject）；查询串里是百分号编码，比对前要解码
+      const confirm = decodeURIComponent((req.url ?? '').split('confirm=')[1] ?? '');
+      if (confirm !== '演示项目') {
+        res.writeHead(400, { 'content-type': 'application/json' });
+        res.end(JSON.stringify({ error: 'approval_required', message: '确认词与项目名不一致，没有删除这个项目' }));
+        return;
+      }
+      res.writeHead(200, { 'content-type': 'application/json' });
+      res.end(
+        JSON.stringify({ deleted: true, id: 'p1', name: '演示项目', recoverable: '软删：快照与发布行都还在，公开页从这一刻起 404。v1 没有恢复端点，恢复要回界面。' }),
+      );
+      return;
+    }
     res.writeHead(404, { 'content-type': 'application/json' });
     res.end(JSON.stringify({ error: 'project_not_found', message: '项目 missing 不在这一枚凭据所属的人名下，或已被删除' }));
   });
@@ -105,10 +145,12 @@ const textOf = (result: unknown): string => {
 };
 
 describe('MCP 工具面（§188）', () => {
-  it('tools/list 恰好四个工具，名字一个不多一个不少', async () => {
+  it('tools/list 恰好六个工具，名字一个不多一个不少（与 v1 六条端点一一对应）', async () => {
     const client = await connect(config);
     const tools = await client.listTools();
     expect(tools.tools.map((tool) => tool.name).sort()).toEqual([
+      'nexus_create_project',
+      'nexus_delete_project',
       'nexus_get_design',
       'nexus_get_project',
       'nexus_list_projects',
@@ -117,6 +159,10 @@ describe('MCP 工具面（§188）', () => {
     // 工具描述必须自带限度：写工具的 description 说过删除类 op 会被拒（§159：写在调用方看得见的地方）
     const patch = tools.tools.find((tool) => tool.name === 'nexus_patch_design')!;
     expect(patch.description).toContain('approval_required');
+    // 删项目的两条限度也必须在描述里：确认词逐字比对 + 软删且 v1 没有恢复端点
+    const del = tools.tools.find((tool) => tool.name === 'nexus_delete_project')!;
+    expect(del.description).toContain('逐字');
+    expect(del.description).toContain('没有恢复端点');
     await client.close();
   });
 
@@ -155,6 +201,49 @@ describe('MCP 工具面（§188）', () => {
     expect(JSON.parse(last?.body ?? '{}')).toEqual({ summary: '改个名字', ops });
     const payload = JSON.parse(textOf(result)) as { appliedOps: number };
     expect(payload.appliedOps).toBe(1);
+    await client.close();
+  });
+
+  it('nexus_create_project 用 POST 且 name/kind 原样透传，回 201 的详情原样带回', async () => {
+    const client = await connect(config);
+    const result = await client.callTool({ name: 'nexus_create_project', arguments: { name: '新项目', kind: 'game' } });
+    expect(result.isError).toBeFalsy();
+    expect(last?.method).toBe('POST');
+    expect(last?.url).toBe('/api/v1/projects');
+    expect(last?.authorization).toBe('Bearer test-token');
+    expect(JSON.parse(last?.body ?? '{}')).toEqual({ name: '新项目', kind: 'game' });
+    const payload = JSON.parse(textOf(result)) as { id: string; kind: string };
+    expect(payload.id).toBe('p2');
+    expect(payload.kind).toBe('game');
+    await client.close();
+  });
+
+  it('kind 不认识：平台的 400 + allowed 清单变成 isError，错误码留在文本里', async () => {
+    const client = await connect(config);
+    const result = await client.callTool({ name: 'nexus_create_project', arguments: { name: '新项目', kind: 'roguelike' } });
+    expect(result.isError).toBe(true);
+    expect(textOf(result)).toContain('400');
+    expect(textOf(result)).toContain('unknown_kind');
+    await client.close();
+  });
+
+  it('nexus_delete_project 用 DELETE，confirm 走查询串且中文名百分号编码后仍能逐字对上', async () => {
+    const client = await connect(config);
+    const result = await client.callTool({ name: 'nexus_delete_project', arguments: { projectId: 'p1', confirm: '演示项目' } });
+    expect(result.isError).toBeFalsy();
+    expect(last?.method).toBe('DELETE');
+    expect(last?.url).toBe('/api/v1/projects/p1?confirm=%E6%BC%94%E7%A4%BA%E9%A1%B9%E7%9B%AE');
+    const payload = JSON.parse(textOf(result)) as { deleted: boolean };
+    expect(payload.deleted).toBe(true);
+    await client.close();
+  });
+
+  it('确认词不对：平台的 400 approval_required 变成 isError，一个字节都没删', async () => {
+    const client = await connect(config);
+    const result = await client.callTool({ name: 'nexus_delete_project', arguments: { projectId: 'p1', confirm: '别的名字' } });
+    expect(result.isError).toBe(true);
+    expect(textOf(result)).toContain('400');
+    expect(textOf(result)).toContain('approval_required');
     await client.close();
   });
 
