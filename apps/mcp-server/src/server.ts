@@ -3,18 +3,19 @@ import { z } from 'zod';
 import { callV1, V1TransportError, type NexusApiConfig } from './api.js';
 
 /**
- * NEXUS 的 MCP 工具面。四个工具与 v1 的四条端点一一对应，一行逻辑都不多：
- * 读三条（清单 / 详情 / 设计文档）+ 写一条（设计补丁）。
+ * NEXUS 的 MCP 工具面。六个工具与 v1 的六条端点一一对应，一行逻辑都不多：
+ * 读四条（清单 / 详情 / 设计文档 / …）+ 写两条（设计补丁、建/删项目）。
  *
  * 工具描述里写的是调用方**必须先知道**的限度（§159：写在它看得见的地方）：
  * - 拉整份文档之前先看规模（§146 的顶档是几万节点，一份可能几 MB）；
  * - 删除类 op 会被 `approval_required` 拒——公网这一侧没有人能批准；
- * - op 打不到存在的东西会被 `ops_skipped` 整体拒绝（写一半比不写更难查）。
+ * - op 打不到存在的东西会被 `ops_skipped` 整体拒绝（写一半比不写更难查）；
+ * - 删项目要 `?confirm=` 逐字等于项目名，且是软删、v1 没有恢复端点。
  */
 export function createNexusMcpServer(config: NexusApiConfig): McpServer {
   const server = new McpServer({ name: 'nexus', version: '0.1.0' });
 
-  async function result(method: 'GET' | 'PATCH', path: string, body?: unknown) {
+  async function result(method: 'GET' | 'POST' | 'PATCH' | 'DELETE', path: string, body?: unknown) {
     try {
       const { status, body: payload } = await callV1(config, method, path, body);
       if (status >= 400) {
@@ -88,6 +89,49 @@ export function createNexusMcpServer(config: NexusApiConfig): McpServer {
     },
     async ({ projectId, summary, ops }) =>
       result('PATCH', `/api/v1/projects/${encodeURIComponent(projectId)}/design`, { summary, ops }),
+  );
+
+  server.registerTool(
+    'nexus_create_project',
+    {
+      title: '新建 NEXUS 项目',
+      description:
+        '建一个空项目（需要这枚凭据有 projects:write scope，没有时 403 会点名缺哪一格）。' +
+        '回 201 与项目详情（与 nexus_get_project 同形，可直接接着打补丁）。' +
+        'kind 不认识时 400 并在 allowed 里列出可选值——不会悄悄建成 website，' +
+        '所以拿到 400 就从 allowed 里挑，别猜。不传 kind 默认 website。',
+      inputSchema: {
+        name: z.string().min(1).max(120).describe('项目名（1-120 字符）'),
+        kind: z
+          .string()
+          .min(1)
+          .max(40)
+          .optional()
+          .describe('项目类型；不传默认 website，传错会 400 并给出可选清单'),
+      },
+    },
+    async ({ name, kind }) => result('POST', '/api/v1/projects', kind !== undefined ? { name, kind } : { name }),
+  );
+
+  server.registerTool(
+    'nexus_delete_project',
+    {
+      title: '删除 NEXUS 项目',
+      description:
+        '删一个项目（需要 projects:write）。confirm 必须**逐字等于项目名**，不一致回 400 ' +
+        'approval_required 且项目一个字节都不动——先用 nexus_list_projects 查准确名字再删。' +
+        '这是软删：快照与发布记录都还在，公开页从这一刻起 404；**v1 没有恢复端点**，' +
+        '恢复要回平台界面。别人的项目回 404（与"不存在"同一个答案）。',
+      inputSchema: {
+        projectId: z.string().min(1).describe('项目 id（来自 nexus_list_projects）'),
+        confirm: z.string().min(1).describe('确认词：项目名，逐字一致'),
+      },
+    },
+    async ({ projectId, confirm }) =>
+      result(
+        'DELETE',
+        `/api/v1/projects/${encodeURIComponent(projectId)}?confirm=${encodeURIComponent(confirm)}`,
+      ),
   );
 
   return server;

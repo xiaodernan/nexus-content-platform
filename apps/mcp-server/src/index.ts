@@ -14,7 +14,10 @@ import { createNexusMcpServer } from './server.js';
 const baseUrl = process.env.NEXUS_BASE_URL ?? 'http://localhost:3100';
 const token = process.env.NEXUS_API_TOKEN;
 if (!token) {
-  console.error('缺少 NEXUS_API_TOKEN 环境变量：先在平台的「账号 → API 凭据」签发一枚（需要 design:read / design:write scope）。');
+  console.error(
+    '缺少 NEXUS_API_TOKEN 环境变量：先在平台的「账号 → API 凭据」签发一枚' +
+      '（读要 projects:read / design:read，打补丁要 design:write，建/删项目要 projects:write）。',
+  );
   process.exit(1);
 }
 

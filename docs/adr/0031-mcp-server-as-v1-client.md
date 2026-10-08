@@ -46,3 +46,12 @@
   传输不可达是另一条错误路径。
 - stdio 冒烟（两臂）：真进程 `initialize` 报 `serverInfo.name === "nexus"` + `tools/list` 四个；
   缺 `NEXUS_API_TOKEN` 退出码 1 且 stderr 说出哪里签发凭据。
+
+## 后续（2026-10-09）
+
+"v1 以后加端点时同步加工具"这句承诺兑现了第一轮：v1 加了 `POST /api/v1/projects` 与
+`DELETE /api/v1/projects/<id>`（`projects:write` scope，迁移 0027），工具面同日 4→6
+（`nexus_create_project` / `nexus_delete_project`）。`callV1` 的方法面放宽到 GET/POST/PATCH/DELETE，
+其余架构决定不动。测试 7→11 条（新增的四条仍是对真本地 HTTP 后端量：body 透传、平台 400
+进 isError 文本、查询串里中文确认词编码后逐字对上、确认词不对不动库）；stdio 真进程冒烟
+`tools/list` 恰好六个。

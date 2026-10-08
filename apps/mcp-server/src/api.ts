@@ -21,7 +21,7 @@ export class V1TransportError extends Error {}
 
 export async function callV1(
   config: NexusApiConfig,
-  method: 'GET' | 'PATCH',
+  method: 'GET' | 'POST' | 'PATCH' | 'DELETE',
   path: string,
   body?: unknown,
 ): Promise<V1CallResult> {
