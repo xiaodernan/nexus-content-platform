@@ -1120,6 +1120,10 @@ filter applies uniformly across all component spellings (Map, entry array, plain
 unaffected (SerializedEntityComponent still excludes runtime-only fields). The ADR 0016 amendment record for
 this grant is owed.
 
+**Corrected by v207:** the re-enable bound above did not hold as shipped — filtering disabled components out of
+the report removed the toggle that could re-enable them, and the "6 tests updated, 401/407" measurement was
+never true (the tests stayed red, 6 in total, measured directly before the fix). See the v207 section.
+
 ## Component removal cleans up behavioral effects (M5 v205)
 
 v204 made `enabled` gate HUD visibility but left a gap when components are removed entirely: if a component had
@@ -1166,6 +1170,50 @@ changes — the surface does not call `removeEntity`, so the cleanup is proven a
 Bounds, stated: cleanup applies to ALL components on the entity uniformly; if the scene is missing, animation
 cleanup is skipped gracefully (same as v205); entities without components succeed with no side effects. The
 ADR 0016 amendment record for this grant is owed.
+
+## The HUD's gate stops stranding: the report carries the disabled half (M5 v207)
+
+v204 made `enabled` gate HUD visibility by filtering disabled components out of `entityComponentsOf` —
+and in doing so removed the ONLY re-enable affordance: a component the report never carries can never be
+rendered as a toggle, so a disabled component could not be clicked back on from the inspector. The v199/v200
+`(off)` button rendering in `Scene3D.tsx` became dead code, and the suite went red under the old expectations.
+
+**Measurement that shaped the fix (correcting this section's own record):** measured on this host 2026-10-09,
+before any v207 change, `scene3dSurface.test.ts` stood at **4 failed | 15 passed (19)** — the four cases were
+the v199 live-registry test, the v200 toggle test, the loose-reader test, and the filed-name test, each holding
+pre-v204 expectations. The v204 section above claimed "6 tests updated to reflect the new behavior… 401/407" —
+that claim is **corrected**: no tests were updated, and the reds were 6 (4 here plus the two
+`entityComponentsOf` cases in `scene3d.test.ts`, which expect the full registry with disabled rows). The
+"filter is proven by updated expectations" sentence described work that had not been done.
+
+**What landed.**
+- `entityComponentsOf()` (`apps/studio/src/lib/scene3d.ts`) returns the FULL registry again — a loose reader
+  reports what is stored, it does not editorialize. This restores the two `scene3d.test.ts` cases by design.
+- `SceneSelectionFacts` gains **`disabledComponents: SceneSelectionComponent[]`**; `selectionFactsOf()` splits
+  the registry: `components` keeps only `enabled !== false` rows (v204's product rule stands — the active list
+  shows what the query layer iterates), and the disabled half is *reported*, not dropped, in registry order.
+- `Scene3D.tsx` renders `[...components, ...disabledComponents]` as ONE toggle row set — the `(off)` label and
+  `data-scene3d-component-enabled` attribute v204 made unreachable are live again, and each disabled row is a
+  re-enable door through the same `onToggleComponentEnabled` host gate.
+- The four red tests are re-pointed at the split (each now asserts BOTH halves — v204's filter on `components`
+  AND the new reachability on `disabledComponents`), plus the two full-object `toEqual` inspector pins gained
+  `disabledComponents: []`.
+
+**A hidden site the first-red masked (v205 fallout):** `scene3dSurface.test.ts:326` still called the OLD
+`removeComponent(entity, 'health')` 2-arg signature. v205's record claimed "No Studio changes — the surface
+does not call `removeComponent`" — true of the surface, false of its TEST: the call was unreachable because
+that test died at an earlier assertion. Making the earlier assertions pass would have crashed it; v207 updated
+the call to `removeComponent(scene.id, entity, 'health')` and it passes.
+
+Measured on this host 2026-10-09: Studio suite **407/407** (31 files, all green — the 6 v204 reds resolved by
+the split, not by deletion), `tsc --noEmit` exit 0, eslint on the three edited files exit 0. No three-runtime
+change in this grant (the suite stands at 477/477 from v206).
+
+Bounds, stated: the split is a REPORT change only — nothing about v201's query gate, v202's rendering gate or
+v203's playback gate moves; `entityComponentsOf` stays loose (garbage and undeclared hosts still answer `[]`,
+which lands in `components`, never in `disabledComponents`); the save shape is untouched; a registry where all
+components are disabled shows an empty active list and a full disabled half — the toggle for every one of them
+is on screen. The ADR 0016 amendment record for this grant is owed.
 
 ## The dock's BUILD face (M6 v174 — ADR 0016 amendment 174)
 

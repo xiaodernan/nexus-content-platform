@@ -162,6 +162,7 @@ describe('the Studio’s scene, composed on the REAL runtime', () => {
       position: { x: 0, y: 0.4, z: 0 },
       visible: true,
       components: [],
+      disabledComponents: [],
     });
 
     // Remove the SELECTED body and the selection STAYS a name while the inspector answers null —
@@ -311,20 +312,22 @@ describe('the Studio’s scene, composed on the REAL runtime', () => {
 
     // The Studio builds no components, so the honest baseline is an empty fact — stated, not missing.
     expect(surface.report().inspector?.components).toEqual([]);
+    expect(surface.report().inspector?.disabledComponents).toEqual([]);
 
     headless.runtime.addComponent(entity, { type: 'health', data: { amount: 100 }, enabled: true });
     const added = surface.report().inspector;
     expect(added?.components).toEqual([{ name: 'health', enabled: true }]);
 
+    // v207 — the disabled half is REPORTED, in `disabledComponents`: the registry order is kept across
+    // the two halves (health was filed first), and nothing is dropped from either.
     headless.runtime.addComponent(entity, { type: 'shield', data: {}, enabled: false });
-    expect(surface.report().inspector?.components).toEqual([
-      { name: 'health', enabled: true },
-      { name: 'shield', enabled: false },
-    ]);
+    expect(surface.report().inspector?.components).toEqual([{ name: 'health', enabled: true }]);
+    expect(surface.report().inspector?.disabledComponents).toEqual([{ name: 'shield', enabled: false }]);
 
     // The registry is the owner: removing through the runtime moves the next report.
-    expect(headless.runtime.removeComponent(entity, 'health')).toBe(true);
-    expect(surface.report().inspector?.components).toEqual([{ name: 'shield', enabled: false }]);
+    expect(headless.runtime.removeComponent(scene.id, entity, 'health')).toBe(true);
+    expect(surface.report().inspector?.components).toEqual([]);
+    expect(surface.report().inspector?.disabledComponents).toEqual([{ name: 'shield', enabled: false }]);
   });
 
   // M5 v200 — the component toggle verb: the surface flips a component's enabled flag through the host
@@ -352,34 +355,31 @@ describe('the Studio’s scene, composed on the REAL runtime', () => {
     const scene = headless.runtime.getScene(toSceneId(surface.sceneId))!;
     const entity = scene.entities.get(toEntityId(surface.bodyIds[2]!))!;
 
-    // Add two components: one enabled, one disabled.
+    // Add two components: one enabled, one disabled. v207 — the report splits them: the active list
+    // carries only the enabled row, and the disabled one lands in `disabledComponents`, still reachable.
     headless.runtime.addComponent(entity, { type: 'health', data: { amount: 100 }, enabled: true });
     headless.runtime.addComponent(entity, { type: 'shield', data: {}, enabled: false });
-    expect(surface.report().inspector?.components).toEqual([
-      { name: 'health', enabled: true },
-      { name: 'shield', enabled: false },
-    ]);
+    expect(surface.report().inspector?.components).toEqual([{ name: 'health', enabled: true }]);
+    expect(surface.report().inspector?.disabledComponents).toEqual([{ name: 'shield', enabled: false }]);
 
-    // Toggle health OFF through the surface: the report re-reads the live registry.
+    // Toggle health OFF through the surface: it MOVES between the halves — registry order kept, since
+    // health was filed before shield.
     const afterHealthOff = surface.toggleComponentEnabled('health');
-    expect(afterHealthOff.inspector?.components).toEqual([
+    expect(afterHealthOff.inspector?.components).toEqual([]);
+    expect(afterHealthOff.inspector?.disabledComponents).toEqual([
       { name: 'health', enabled: false },
       { name: 'shield', enabled: false },
     ]);
 
-    // Toggle shield ON: both are now enabled.
+    // Toggle shield ON: it moves back into the active half.
     const afterShieldOn = surface.toggleComponentEnabled('shield');
-    expect(afterShieldOn.inspector?.components).toEqual([
-      { name: 'health', enabled: false },
-      { name: 'shield', enabled: true },
-    ]);
+    expect(afterShieldOn.inspector?.components).toEqual([{ name: 'shield', enabled: true }]);
+    expect(afterShieldOn.inspector?.disabledComponents).toEqual([{ name: 'health', enabled: false }]);
 
     // Toggle a non-existent component: the report is unchanged (no selection or no such component).
     const noChange = surface.toggleComponentEnabled('ghost');
-    expect(noChange.inspector?.components).toEqual([
-      { name: 'health', enabled: false },
-      { name: 'shield', enabled: true },
-    ]);
+    expect(noChange.inspector?.components).toEqual([{ name: 'shield', enabled: true }]);
+    expect(noChange.inspector?.disabledComponents).toEqual([{ name: 'health', enabled: false }]);
   });
 
   // M5 v201 — enabled gates query participation: getEnabledComponents returns only enabled components,
@@ -580,7 +580,15 @@ describe('the selection facts are the LIVE scene’s answer, not the pick’s ec
 
   it('reads what the host declares and never invents what it does not: kind unknown, position null, visible true', () => {
     const facts = selectionFactsOf(sceneWith({ id: 'e1', name: 'Cube A' }), SELECTED);
-    expect(facts).toEqual({ id: 'e1', name: 'Cube A', kind: 'unknown', position: null, visible: true, components: [] });
+    expect(facts).toEqual({
+      id: 'e1',
+      name: 'Cube A',
+      kind: 'unknown',
+      position: null,
+      visible: true,
+      components: [],
+      disabledComponents: [],
+    });
   });
 
   it('a visible:false body is reported hidden, and a non-finite position is a fact the report refuses to state', () => {
@@ -608,16 +616,16 @@ describe('the selection facts are the LIVE scene’s answer, not the pick’s ec
   // v199 — the components half of the bounds, read LOOSELY: the live runtime keeps a Map, the save
   // shape is an entry array (v119: a Map is not JSON), and a stringify accident arrives as an object.
   // All three spellings are one registry; the reader answers all three, in the registry's own order.
+  // v207 — the answer SPLITS across two fields by the enabled flag; the registry's own order is kept
+  // within each half, and the union of the halves is the registry.
   it('components read from the live registry in the host’s own order, enabled by the default rule', () => {
     const mapHost = new Map<string, { type: string; enabled: boolean }>([
       ['health', { type: 'health', enabled: true }],
       ['mana', { type: 'mana', enabled: false }],
     ]);
     const fromMap = selectionFactsOf(sceneWith({ id: 'e1', name: 'Cube A', components: mapHost }), SELECTED);
-    expect(fromMap?.components).toEqual([
-      { name: 'health', enabled: true },
-      { name: 'mana', enabled: false },
-    ]);
+    expect(fromMap?.components).toEqual([{ name: 'health', enabled: true }]);
+    expect(fromMap?.disabledComponents).toEqual([{ name: 'mana', enabled: false }]);
     const entryArray = selectionFactsOf(
       sceneWith({
         id: 'e1',
@@ -629,15 +637,14 @@ describe('the selection facts are the LIVE scene’s answer, not the pick’s ec
       }),
       SELECTED,
     );
-    expect(entryArray?.components).toEqual([
-      { name: 'stamina', enabled: true },
-      { name: 'shield', enabled: false },
-    ]);
+    expect(entryArray?.components).toEqual([{ name: 'stamina', enabled: true }]);
+    expect(entryArray?.disabledComponents).toEqual([{ name: 'shield', enabled: false }]);
     const objectHost = selectionFactsOf(
       sceneWith({ id: 'e1', name: 'Cube A', components: { health: { type: 'health', enabled: true } } }),
       SELECTED,
     );
     expect(objectHost?.components).toEqual([{ name: 'health', enabled: true }]);
+    expect(objectHost?.disabledComponents).toEqual([]);
   });
 
   it('a component filed under one name that calls itself another answers the name the VALUE carries; a nameless one answers its key', () => {
@@ -650,7 +657,9 @@ describe('the selection facts are the LIVE scene’s answer, not the pick’s ec
       sceneWith({ id: 'e1', name: 'Cube A', components: [['filed-as', { enabled: false }]] }),
       SELECTED,
     );
-    expect(nameless?.components).toEqual([{ name: 'filed-as', enabled: false }]);
+    // v207 — the nameless value is DISABLED, so it lives in the second half, still named by its key.
+    expect(nameless?.components).toEqual([]);
+    expect(nameless?.disabledComponents).toEqual([{ name: 'filed-as', enabled: false }]);
     // A registry the host never declared — or one holding garbage — answers none, not an invented row.
     expect(selectionFactsOf(sceneWith({ id: 'e1', name: 'Cube A' }), SELECTED)?.components).toEqual([]);
     const garbage = selectionFactsOf(sceneWith({ id: 'e1', name: 'Cube A', components: 42 }), SELECTED);

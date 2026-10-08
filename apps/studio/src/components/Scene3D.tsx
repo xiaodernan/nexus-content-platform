@@ -833,12 +833,16 @@ export default function Scene3D() {
                 · {report.inspector.visible ? 'visible' : 'hidden'}
                 {/* v199 → v200 — the components the live registry holds, now EDITABLE: each row gets its
                     own toggle. A disabled component names itself `(off)`; the button flips it through the
-                    host gate and the report re-reads the registry at once. */}
-                {report.inspector.components.length > 0 && (
+                    host gate and the report re-reads the registry at once.
+                    v207 — the report now carries the two halves apart (`components` enabled,
+                    `disabledComponents` not). The HUD joins them back into ONE row set: the active ones
+                    first, the disabled ones after, each still a toggle — v204's gate must not strand a
+                    component out of the only surface that can click it back on. */}
+                {report.inspector.components.length + report.inspector.disabledComponents.length > 0 && (
                   <>
                     {' '}· components:{' '}
                     <span style={{ display: 'inline-flex', gap: 4, flexWrap: 'wrap' }}>
-                      {report.inspector.components.map((c) => (
+                      {[...report.inspector.components, ...report.inspector.disabledComponents].map((c) => (
                         <button
                           key={c.name}
                           type="button"

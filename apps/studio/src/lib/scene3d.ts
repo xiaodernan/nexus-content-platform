@@ -420,9 +420,14 @@ export interface SceneSelectionFacts {
    *  the report refuses to invent (the `duration: null` rule, one surface over). */
   position: SceneVec3 | null;
   visible: boolean;
-  /** v199 — the entity's registered components, read from the LIVE registry in the host's own order.
-   *  `[]` = the host declares none — an empty fact, not a missing one. */
+  /** v199 — the entity's ENABLED components, read from the LIVE registry in the host's own order.
+   *  `[]` = the host declares none, or holds only disabled ones — an empty fact, not a missing one. */
   components: SceneSelectionComponent[];
+  /** v207 — the registry's disabled half. v204 gated disabled components out of `components` so the HUD
+   *  would show only what the query layer sees — and in doing so removed the ONLY re-enable affordance:
+   *  a stored-but-invisible component can never be clicked back on. The gate stands (the active list
+   *  stays filtered); the stripped half moves HERE, where the panel can render it as a re-enable door. */
+  disabledComponents: SceneSelectionComponent[];
 }
 
 export interface SceneSelectionComponent {
@@ -437,11 +442,11 @@ export interface SceneSelectionComponent {
 /** Read a host's component registry LOOSELY — three spellings exist in this repo: the live runtime
  *  keeps a `Map` (keyed by the component's own type), the SAVE shape is an entry ARRAY (v119: a Map
  *  is not JSON), and a Map that survived a stringify-shaped accident arrives as a plain object.
- *  Anything else — a field the host never declared — is none. */
-/** v204 — disabled components are filtered from the HUD. The enabled flag gates participation in queries
- *  (v201), rendering (v202), animation playback (v203), and now visibility in the inspector panel. A
- *  component that is not enabled is stored but invisible to iteration — the same rule the runtime applies
- *  to getEnabledComponents, so the HUD shows only what the query layer sees. */
+ *  Anything else — a field the host never declared — is none.
+ *  v207 — this reader returns the FULL registry, enabled and disabled alike: a loose reader
+ *  reports what is stored, it does not editorialize. v204 filtered disabled components HERE, which
+ *  stranded them — the split into active/disabled is `selectionFactsOf`'s job, one layer up, where
+ *  both halves remain named and reachable. */
 export function entityComponentsOf(value: unknown): SceneSelectionComponent[] {
   const pairs: [string, unknown][] =
     value instanceof Map
@@ -451,13 +456,11 @@ export function entityComponentsOf(value: unknown): SceneSelectionComponent[] {
         : value && typeof value === 'object'
           ? Object.entries(value as Record<string, unknown>)
           : [];
-  return pairs
-    .map(([key, c]) => {
-      const comp = (c && typeof c === 'object' ? c : {}) as { type?: unknown; enabled?: unknown };
-      const name = typeof comp.type === 'string' && comp.type.length > 0 ? comp.type : key;
-      return { name, enabled: comp.enabled !== false };
-    })
-    .filter((comp) => comp.enabled);
+  return pairs.map(([key, c]) => {
+    const comp = (c && typeof c === 'object' ? c : {}) as { type?: unknown; enabled?: unknown };
+    const name = typeof comp.type === 'string' && comp.type.length > 0 ? comp.type : key;
+    return { name, enabled: comp.enabled !== false };
+  });
 }
 
 /** Read the selected body's facts off the LIVE scene. Null when nothing is selected, there is no
@@ -469,6 +472,10 @@ export function selectionFactsOf(scene: SceneLike | null, selected: { id: string
   const p = e.position ?? e.transform?.position;
   const finite = (v: number | undefined): v is number => typeof v === 'number' && Number.isFinite(v);
   const position = p && finite(p.x) && finite(p.y) && finite(p.z) ? { x: p.x, y: p.y, z: p.z } : null;
+  // v204's gate, v207's split: the ACTIVE list stays filtered (the HUD shows what the query layer
+  // iterates), and the disabled half is reported alongside it rather than dropped — a component the
+  // panel cannot see is a component the user cannot click back on.
+  const registry = entityComponentsOf(e.components);
   return {
     id: e.id,
     name: e.name,
@@ -477,7 +484,8 @@ export function selectionFactsOf(scene: SceneLike | null, selected: { id: string
     // A three.js Object3D is visible by default; the runtime sets `visible: true` on every entity it
     // builds. A host that declares nothing is declaring the default, not an invisible body.
     visible: e.visible !== false,
-    components: entityComponentsOf(e.components),
+    components: registry.filter((c) => c.enabled),
+    disabledComponents: registry.filter((c) => !c.enabled),
   };
 }
 
