@@ -28,9 +28,9 @@ import {
  * - **反向对照要改变被对照的那个量**：每个负面断言旁边都要有一个"只改一个输入"的正面版本，
  *   否则那条断言可能只是恒真（比如一个永远返回同一类别的函数也能让"不是 video"通过）。
  */
-describe('§134 四类额度与档位表（纯规则）', () => {
-  it('四类就是 §134 原文点名的四类，顺序也是余额页读的顺序', () => {
-    expect([...CREDIT_KINDS]).toEqual(['ai', 'image', 'video', 'compute']);
+describe('§134 五类额度与档位表（纯规则）', () => {
+  it('五类就是 §134 原文点名的五类，顺序也是余额页读的顺序', () => {
+    expect([...CREDIT_KINDS]).toEqual(['ai', 'image', 'video', 'compute', 'marketplace']);
     expect(CREDIT_KIND_LABELS.ai).toBe('AI credits');
     expect(CREDIT_KIND_LABELS.compute).toBe('Compute credits');
   });
@@ -40,7 +40,12 @@ describe('§134 四类额度与档位表（纯规则）', () => {
       expect(Object.keys(PLAN_MONTHLY_GRANTS[plan]).sort()).toEqual([...CREDIT_KINDS].sort());
       expect(Object.keys(PLAN_LIMITS[plan]).length).toBe(3);
       for (const kind of CREDIT_KINDS) {
-        expect(PLAN_MONTHLY_GRANTS[plan][kind]).toBeGreaterThan(0);
+        if (kind === 'marketplace') {
+          // marketplace 不发放额度，值为 0 占位
+          expect(PLAN_MONTHLY_GRANTS[plan][kind]).toBe(0);
+        } else {
+          expect(PLAN_MONTHLY_GRANTS[plan][kind]).toBeGreaterThan(0);
+        }
       }
     }
     // 反向对照：档位表里没有这一档，isPlanKey 要说不认（不是靠 PLAN_KEYS 恰好有它）
@@ -48,9 +53,15 @@ describe('§134 四类额度与档位表（纯规则）', () => {
     expect(isPlanKey('ultra')).toBe(false);
   });
 
-  it('单价表覆盖四类，且都是正整数', () => {
+  it('单价表覆盖五类，且都是正整数（marketplace 为 0 占位）', () => {
     expect(Object.keys(GENERATION_COST).sort()).toEqual([...CREDIT_KINDS].sort());
-    for (const kind of CREDIT_KINDS) expect(GENERATION_COST[kind]).toBeGreaterThan(0);
+    for (const kind of CREDIT_KINDS) {
+      if (kind === 'marketplace') {
+        expect(GENERATION_COST[kind]).toBe(0);
+      } else {
+        expect(GENERATION_COST[kind]).toBeGreaterThan(0);
+      }
+    }
   });
 
   it('§133 那五件事两列合起来一格不多一格不少，今天有拦截方的是 AI usage 与 storage', () => {
@@ -109,12 +120,14 @@ describe('§134 余额、发放与拒绝', () => {
 
   it('发过的类不再发，没发过的补齐', () => {
     const all = pendingGrants('free', '2026-09', new Set());
-    expect(all.map((g) => g.kind)).toEqual([...CREDIT_KINDS]);
+    // marketplace grant 是 0，被 pendingGrants 过滤掉了，只剩 4 类；顺序跟随 CREDIT_KINDS
+    const expectedKinds = [...CREDIT_KINDS].filter((k) => PLAN_MONTHLY_GRANTS.free[k] > 0);
+    expect(all.map((g) => g.kind)).toEqual(expectedKinds);
     expect(all[0]?.delta).toBe(PLAN_MONTHLY_GRANTS.free.ai);
     expect(all[0]?.reason).toContain('2026-09');
     // 反向对照：只把 ai 记成已发，回来的必须少了 ai 那一行，其它三行不动
     const minusAi = pendingGrants('free', '2026-09', new Set(['ai']));
-    expect(minusAi.map((g) => g.kind)).toEqual(['image', 'video', 'compute']);
+    expect(minusAi.map((g) => g.kind)).toEqual(expectedKinds.filter((k) => k !== 'ai'));
     expect(pendingGrants('free', '2026-09', new Set(CREDIT_KINDS))).toEqual([]);
   });
 
