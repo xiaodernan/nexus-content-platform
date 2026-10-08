@@ -737,7 +737,13 @@ describe('a save FILE: it survives the disk, and the loader refuses what it cann
     expect(() => runtime.loadSaveFile({ ...file, entities: new Map() } as unknown as typeof file, scene))
       .toThrow(/saveFile: file\.entities holds a Map/);
     const live = structuredClone(file) as typeof file;
-    live.entities[0][1].position = new THREE.Vector3(1, 2, 3) as unknown as typeof live.entities[0][1].position;
+    // The annotation is written as `SerializedEntity['position']` rather than `typeof live.entities[0][1].position`,
+    // which TypeScript CANNOT PARSE: `typeof` in a type position takes an entity name, and an indexed access
+    // (`[0][1]`) is not one. It said so — `error TS1005: ';' expected` — but only to a gate that reads this
+    // file, and until v204 no gate did: this package's `tsconfig.json` excludes `test/` because `rootDir: "src"`
+    // is required by the BUILD, and vitest strips types instead of checking them, so an unparseable annotation
+    // ran happily for as long as it has existed. (v204 — see ADR 0016 amendment 204.)
+    live.entities[0]![1].position = new THREE.Vector3(1, 2, 3) as unknown as SerializedEntity['position'];
     expect(() => runtime.loadSaveFile(live, scene)).toThrow(/saveFile: file\.entities\[0\]\[1\]\.position holds a Vector3/);
   });
 

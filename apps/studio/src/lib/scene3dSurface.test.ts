@@ -420,13 +420,13 @@ describe('the Studio’s scene, composed on the REAL runtime', () => {
     expect(enabled!.map((c) => c.type)).toEqual(['health', 'stamina']);
 
     // Disable health — now only stamina is queryable.
-    runtime.setComponentEnabled?.(surface.sceneId, entity.id, 'health', false);
+    runtime.setComponentEnabled?.(toSceneId(surface.sceneId), entity.id, 'health', false);
     const afterHealthOff = runtime.getEnabledComponents?.(entity);
     expect(afterHealthOff?.length).toBe(1);
-    expect(afterHealthOff?.[0].type).toBe('stamina');
+    expect(afterHealthOff?.[0]?.type).toBe('stamina');
 
     // Re-enable shield — back to two queryable.
-    runtime.setComponentEnabled?.(surface.sceneId, entity.id, 'shield', true);
+    runtime.setComponentEnabled?.(toSceneId(surface.sceneId), entity.id, 'shield', true);
     const afterShieldOn = runtime.getEnabledComponents?.(entity);
     expect(afterShieldOn?.length).toBe(2);
     // Order follows Map insertion order: health(first), shield(second), stamina(third) → after health disabled: [shield, stamina]
@@ -463,16 +463,16 @@ describe('the Studio’s scene, composed on the REAL runtime', () => {
     expect(entity.threeObject.visible).toBe(true);
 
     // Disable the component — the target should be hidden.
-    runtime.setComponentEnabled?.(surface.sceneId, entity.id, 'health', false);
+    runtime.setComponentEnabled?.(toSceneId(surface.sceneId), entity.id, 'health', false);
     expect(entity.threeObject.visible).toBe(false);
 
     // Re-enable — the target becomes visible again.
-    runtime.setComponentEnabled?.(surface.sceneId, entity.id, 'health', true);
+    runtime.setComponentEnabled?.(toSceneId(surface.sceneId), entity.id, 'health', true);
     expect(entity.threeObject.visible).toBe(true);
 
     // A component without a targetObject does nothing when toggled (no crash, no change).
     runtime.addComponent(entity, { type: 'shield', data: {}, enabled: true });
-    runtime.setComponentEnabled?.(surface.sceneId, entity.id, 'shield', false);
+    runtime.setComponentEnabled?.(toSceneId(surface.sceneId), entity.id, 'shield', false);
     // No targetObject means no visible property to change — the flag still updates.
     const comp = entity.components.get('shield');
     expect(comp?.enabled).toBe(false);

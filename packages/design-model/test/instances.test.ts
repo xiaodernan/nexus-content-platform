@@ -13,6 +13,7 @@ import {
   type DesignNode,
   type InstanceNode,
   type Paint,
+  type TextNode,
   type TextStyle,
 } from '../src/index.js';
 
@@ -72,7 +73,10 @@ describe('instances: single expansion', () => {
     expect(i1.childIds).toEqual(['i1::cmp::rect', 'i1::cmp::label']);
     expect(out.nodes['i1::cmp::rect']?.parentId).toBe('i1');
     expect(out.nodes['i1::cmp::rect']?.type).toBe('rectangle');
-    expect(out.nodes['i1::cmp::label']?.characters).toBe('Save');
+    // `DesignNode` is a union and `characters` belongs to `TextNode` alone, so the projection is narrowed
+    // before reading it — the same shape the `i1 as InstanceNode` cast above uses. (v204: this package's type
+    // gate did not read `test/` until then, so an unnarrowed access here was never checked.)
+    expect((out.nodes['i1::cmp::label'] as TextNode | undefined)?.characters).toBe('Save');
 
     const layout = layoutPage(out, doc.activePageId);
     expect(layout['i1']).toEqual({ x: 20, y: 30, width: 120, height: 40 });
@@ -111,16 +115,23 @@ describe('instances: multiple + overrides', () => {
     const { cmp, r, t } = buttonMaster();
     doc = seed(doc, doc.rootId, cmp, r, t);
     const inst = instanceNode('B', 'cmp', { id: 'i2' });
+    // The cast is the SAME ONE `readOverrides` makes in `src/instances.ts`, and it is here for a real reason:
+    // `InstanceNode['overrides']` is `Record<NexusId, Partial<Pick<NodeBase, …>>> & { text?: Record<NexusId, string> }`,
+    // so an object literal's `text` key has to satisfy the INDEX SIGNATURE as well as the named field — and
+    // `{ 'cmp::label': 'Clicked' }` cannot. No correctly-typed code can write a text override. Found by v204's
+    // widened gate; NOT fixed here, because the fix is a canonical-model decision (the format also lets a master
+    // child whose id is literally `text` be unreachable for geometry patches, since `readOverrides` skips that
+    // key). Filed as its own increment in `docs/DEVELOPMENT_PLAN.md`.
     inst.overrides = {
       'cmp::rect': { width: 300 },
       text: { 'cmp::label': 'Clicked' },
-    };
+    } as InstanceNode['overrides'];
     doc = seed(doc, doc.activePageId, inst);
     const { doc: out } = expandComponentInstances(doc);
     expect(out.nodes['i2::cmp::rect']?.width).toBe(300);
-    expect(out.nodes['i2::cmp::label']?.characters).toBe('Clicked');
+    expect((out.nodes['i2::cmp::label'] as TextNode | undefined)?.characters).toBe('Clicked');
     // untouched master stays as authored
-    expect(doc.nodes['cmp::label']?.characters).toBe('Save');
+    expect((doc.nodes['cmp::label'] as TextNode | undefined)?.characters).toBe('Save');
   });
 
   it('applies x/y overrides as deltas off the master authored position', () => {

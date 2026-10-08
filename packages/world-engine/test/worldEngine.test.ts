@@ -22,11 +22,6 @@ import {
   isDerivableRelationType,
 } from '../src/index.js';
 
-function createWorldId(id: string) { return id as any; }
-function createCharacterId(id: string) { return id as any; }
-function createLocationId(id: string) { return id as any; }
-function createFactionId(id: string) { return id as any; }
-function createLoreId(id: string) { return id as any; }
 
 describe('WorldEngine', () => {
   let engine: WorldEngine;
@@ -196,8 +191,8 @@ describe('WorldRAG', () => {
     });
 
     expect(result.results.length).toBeGreaterThan(0);
-    expect(result.results[0].title).toBe('Aragorn');
-    expect(result.results[0].type).toBe('character');
+    expect(result.results[0]!.title).toBe('Aragorn');
+    expect(result.results[0]!.type).toBe('character');
   });
 
   it('queries locations', () => {
@@ -211,7 +206,7 @@ describe('WorldRAG', () => {
     });
 
     expect(result.results.length).toBeGreaterThan(0);
-    expect(result.results[0].type).toBe('location');
+    expect(result.results[0]!.type).toBe('location');
   });
 
   it('queries lore', () => {
@@ -225,7 +220,7 @@ describe('WorldRAG', () => {
     });
 
     expect(result.results.length).toBeGreaterThan(0);
-    expect(result.results[0].type).toBe('lore');
+    expect(result.results[0]!.type).toBe('lore');
   });
 
   it('returns context when requested', () => {
@@ -254,7 +249,7 @@ describe('WorldRAG', () => {
     });
 
     expect(result.results.length).toBe(1);
-    expect(result.results[0].metadata.archetype).toBe('warrior');
+    expect(result.results[0]!.metadata.archetype).toBe('warrior');
   });
 });
 
@@ -352,7 +347,7 @@ describe('CharacterAgent', () => {
 
     const history = agent.getActionHistory();
     expect(history.length).toBe(2);
-    expect(history[0].actionId).toBe('rest');
+    expect(history[0]!.actionId).toBe('rest');
   });
 
   it('updates goal progress', () => {
@@ -366,11 +361,11 @@ describe('CharacterAgent', () => {
     });
 
     agent.updateGoalProgress('goal-1', 50);
-    expect(char.goals[0].progress).toBe(50);
+    expect(char.goals[0]!.progress).toBe(50);
 
     agent.updateGoalProgress('goal-1', 100);
-    expect(char.goals[0].progress).toBe(100);
-    expect(char.goals[0].status).toBe('completed');
+    expect(char.goals[0]!.progress).toBe(100);
+    expect(char.goals[0]!.status).toBe('completed');
   });
 
   it('adds knowledge', () => {

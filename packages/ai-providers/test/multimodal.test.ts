@@ -8,6 +8,7 @@ import {
   type AssetMetadata,
   type AssetReference,
   type AssetType,
+  type CharacterConsistencyOptions,
   type GenerationRequest,
   type StoryboardFrame,
 } from '../src/multimodal.js';
@@ -77,7 +78,7 @@ describe('multimodal asset library', () => {
 
     const taggedAC = await lib.list({ tags: ['a', 'c'] });
     expect(taggedAC.length).toBe(1);
-    expect(taggedAC[0].assetId).toBe('img-2');
+    expect(taggedAC[0]!.assetId).toBe('img-2');
   });
 
   it('searches assets by query terms', async () => {
@@ -122,14 +123,14 @@ describe('multimodal asset library', () => {
 
     const catResults = await lib.search('cat');
     expect(catResults.length).toBe(1);
-    expect(catResults[0].assetId).toBe('cat-img');
+    expect(catResults[0]!.assetId).toBe('cat-img');
 
     const animalResults = await lib.search('animal');
     expect(animalResults.length).toBe(2);
 
     const runningResults = await lib.search('running');
     expect(runningResults.length).toBe(1);
-    expect(runningResults[0].assetId).toBe('dog-img');
+    expect(runningResults[0]!.assetId).toBe('dog-img');
   });
 
   it('updates and removes assets', async () => {
@@ -170,9 +171,9 @@ describe('DemoImageGenerator', () => {
     const result = await gen.generate(request);
 
     expect(result.assets.length).toBe(2);
-    expect(result.assets[0].type).toBe('image');
-    expect(result.assets[0].metadata.source).toBe('generated');
-    expect(result.assets[0].metadata.prompt).toBe('a beautiful sunset');
+    expect(result.assets[0]!.type).toBe('image');
+    expect(result.assets[0]!.metadata.source).toBe('generated');
+    expect(result.assets[0]!.metadata.prompt).toBe('a beautiful sunset');
     expect(result.metadata.seed).toBe(42);
     expect(result.metadata.model).toBe('demo-model');
   });
@@ -183,7 +184,7 @@ describe('DemoImageGenerator', () => {
     const r1 = await gen.generate({ type: 'image', prompt: 'test', seed: 1, count: 1 });
     const r2 = await gen.generate({ type: 'image', prompt: 'test', seed: 2, count: 1 });
 
-    expect(r1.assets[0].assetId).not.toBe(r2.assets[0].assetId);
+    expect(r1.assets[0]!.assetId).not.toBe(r2.assets[0]!.assetId);
   });
 });
 
@@ -201,10 +202,10 @@ describe('DemoVideoGenerator', () => {
     const result = await gen.generate(request);
 
     expect(result.assets.length).toBe(1);
-    expect(result.assets[0].type).toBe('video');
-    expect(result.assets[0].metadata.duration).toBe(5);
-    expect(result.assets[0].metadata.width).toBe(1920);
-    expect(result.assets[0].metadata.height).toBe(1080);
+    expect(result.assets[0]!.type).toBe('video');
+    expect(result.assets[0]!.metadata.duration).toBe(5);
+    expect(result.assets[0]!.metadata.width).toBe(1920);
+    expect(result.assets[0]!.metadata.height).toBe(1080);
   });
 });
 
@@ -230,8 +231,9 @@ describe('CharacterConsistencyManager', () => {
     expect(enhanced.referenceAssets).toBeDefined();
     expect(enhanced.referenceAssets!.length).toBe(2);
     expect(enhanced.parameters?.characterConsistency).toBeDefined();
-    expect(enhanced.parameters!.characterConsistency.characterId).toBe('hero');
-    expect(enhanced.parameters!.characterConsistency.consistencyStrength).toBe(0.9);
+    const consistency = enhanced.parameters!.characterConsistency as CharacterConsistencyOptions;
+    expect(consistency.characterId).toBe('hero');
+    expect(consistency.consistencyStrength).toBe(0.9);
   });
 
   it('throws for unknown character (no silent no-op)', async () => {
@@ -259,8 +261,8 @@ describe('StoryboardManager', () => {
 
     const frames = mgr.get(sb.id)!.frames;
     expect(frames.length).toBe(2);
-    expect(frames[0].prompt).toBe('Opening scene');
-    expect(frames[1].prompt).toBe('Action scene');
+    expect(frames[0]!.prompt).toBe('Opening scene');
+    expect(frames[1]!.prompt).toBe('Action scene');
   });
 
   it('updates, removes, and reorders frames', () => {
@@ -279,13 +281,13 @@ describe('StoryboardManager', () => {
 
     mgr.addFrame(sb.id, { order: 2, prompt: 'New Scene 2' });
     mgr.addFrame(sb.id, { order: 3, prompt: 'Scene 3' });
-    const reordered = mgr.reorderFrames(sb.id, [f1.id, mgr.get(sb.id)!.frames[1].id, mgr.get(sb.id)!.frames[2].id]);
+    const reordered = mgr.reorderFrames(sb.id, [f1.id, mgr.get(sb.id)!.frames[1]!.id, mgr.get(sb.id)!.frames[2]!.id]);
     expect(reordered).toBe(true);
     const finalFrames = mgr.get(sb.id)!.frames;
-    expect(finalFrames[0].id).toBe(f1.id);
-    expect(finalFrames[0].order).toBe(0);
-    expect(finalFrames[1].order).toBe(1);
-    expect(finalFrames[2].order).toBe(2);
+    expect(finalFrames[0]!.id).toBe(f1.id);
+    expect(finalFrames[0]!.order).toBe(0);
+    expect(finalFrames[1]!.order).toBe(1);
+    expect(finalFrames[2]!.order).toBe(2);
   });
 
   it('exports storyboard to prompts', () => {

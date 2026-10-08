@@ -9039,3 +9039,62 @@ Stated plainly, because the numbers above are deltas from when they were written
 - The lesson is the one this ledger keeps relearning: **a doc edit in a dirty tree belongs to the commit that
   sweeps it, not to the increment it describes.** Commit the code and its record together, or the record will
   describe a tree that does not exist.
+
+### Amendment 204 (M0/v204, repo-wide) — the type gate did not read TESTS in six of seven packages, and the one that did was RED: 249 errors were hiding, measured rather than guessed
+
+_Numbering: 204 was free (`grep -ao "^### Amendment 2[0-9][0-9]"` matched nothing). This is item 13 of the
+priority queue in `docs/DEVELOPMENT_PLAN.md`. It is not a milestone feature; it is a hole in the thing that
+grades everything else._
+
+- **The defect, in one sentence.** Every package's `typecheck` script ran the SAME tsconfig as its `build`, and
+  that config needs `rootDir: "src"` so `dist/` mirrors `src/` — so `test/` was `exclude`d, which quietly
+  removed **61 test files** from every type gate except `apps/studio`'s (its tests live in `src/`, so it was
+  the only package whose gate read them).
+- **And the one gate that DID read tests was red.** `apps/studio/src/lib/scene3dSurface.test.ts` had **6
+  errors** — five call sites passing `surface.sceneId` (a `string`) where the runtime wants the branded
+  `SceneId`, though the SAME file brands it with `toSceneId(...)` eleven other times, plus one dereference of a
+  possibly-undefined array slot. Every intervening commit's message said "tsc clean". A gate is only worth the
+  coverage it actually has.
+- **The measurement, and why it took three attempts to trust.** Widening a package's `include` is not enough:
+  `extends` inherits `exclude`, so the first attempt measured `0` everywhere; overriding `exclude` alone still
+  measured `0`, because the `include` was `["src"]` and never named `test/`; and once tests were in the program,
+  47 of the 48 errors were `TS6059` — the gate complaining about its own `rootDir`, not about code. Only
+  widening **both** `include` and `rootDir` measures the code. The real total is **249 errors**:
+  `three-runtime 102 · agents/runtime 80 · exec-host 27 · ai-providers 22 · world-engine 14 · design-model 4`.
+  A number produced by a config that cannot see the files is not a measurement.
+- **`three-runtime`'s count was reported as `1`, and that was the most misleading number of the lot.** Its first
+  error is `TS1005: ';' expected` — a **parse** error, which aborts TypeScript's analysis of the rest of that
+  file, so a single unparseable annotation hid 101 others. The annotation was
+  `typeof live.entities[0][1].position`: `typeof` in a type position takes an entity NAME, and an indexed
+  access is not one. `vitest` strips types instead of checking them, so it ran happily for as long as it has
+  existed.
+- **The design that closes it.** A dedicated `tsconfig.test.json` per package — `extends` the package's own
+  config, `rootDir: "."`, `noEmit: true`, `include: ["src", "test"]`, `exclude: ["node_modules", "dist"]` —
+  with `typecheck` pointed at it and `build` left alone. The build keeps the dist layout it needs; the gate
+  gains the 61 files. Test type-checking is NOT a weaker gate here: it is the same `strict` +
+  `noUncheckedIndexedAccess` the source gets, because a test's array index that CAN be undefined is a real
+  hazard too.
+- **Three defects the widened gate found, none of which a green suite could have.** (1) `worldEngine.test.ts`
+  imported `createWorldId` and five siblings, then declared its OWN local
+  `function createWorldId(id: string) { return id as any; }` — the locals shadowed the imports, so the library's
+  constructors were **never exercised** and the imports were dead code. The library's versions are
+  `id as WorldId` (the same behaviour, minus the `any`), so deleting the locals is behaviour-preserving and
+  makes the imports live. (2) `instances.test.ts` read `.characters` off a `DesignNode` union without
+  narrowing — `characters` belongs to `TextNode` alone. (3) **`InstanceNode['overrides']` cannot express a text
+  override at all**: it is
+  `Record<NexusId, Partial<Pick<NodeBase, …>>> & { text?: Record<NexusId, string> }`, so an object literal's
+  `text` key must satisfy the index signature AS WELL as the named field, and `{ 'cmp::label': 'Clicked' }`
+  cannot. `readOverrides` in `src/instances.ts` casts around it. The format ALSO lets a master child whose id is
+  literally `text` be unreachable for geometry patches, because `readOverrides` skips that key. **Both are
+  canonical-model decisions and are NOT fixed here** — the test carries the same cast with the reason written
+  next to it, and the defect is filed as its own increment rather than smuggled into a gate repair.
+- **Evidence.** `tsc -p <pkg>/tsconfig.test.json` returns **0** for `design-model`, `ai-providers` and
+  `world-engine`, and their suites still pass — **32/32**, **20/20**, **43/43**. The studio gate is **0** with
+  `tsc --noEmit -p apps/studio/tsconfig.json`, suite **407/407**. Still red and named in the plan:
+  `three-runtime 102`, `agents/runtime 80`, `exec-host 27`.
+- **Bounds (§60).** Three of six packages are closed; the other three still have their gates pointed at the old
+  config, so **their tests remain unchecked** — the numbers above are what is still hiding, not what has been
+  fixed. Nothing here makes a test stronger: it makes the gate able to SEE the tests it never read. The
+  `agents/exec-host` count includes 4 files importing `SpawnLike` from `@nexus/agent-runtime`, which does not
+  export it — whether that symbol should be exported or the imports corrected is a question for that
+  increment, not this one.
