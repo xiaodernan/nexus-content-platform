@@ -1309,6 +1309,62 @@ add-time enforcement to apply through a load — a restored disabled component g
 save round-trip is given runtime re-attachment, a different grant. The ADR 0016 amendment record for
 this grant is owed.
 
+## The surface watches the registry: component events get their first subscriber (M5 v210)
+
+The runtime has carried an event bus since its beginning, and every component write path has always
+announced itself on it — the census of `this.emit(` in `threeRuntime.ts` names `componentAdded`
+(line 1625), `componentRemoved` (1643) and `componentStateChanged` (1699), one per write verb. The Studio
+subscribed to NONE of them: before this grant, every `addEventListener` call in `apps/studio/src` was on
+`window` (resize, keydown) — not one was on the runtime. The inspector was PULL-only: the report moved
+when a Studio control pulled it after its own write, and a registry changed by anything else — a console
+command, an agent holding the same runtime — stayed invisible until an unrelated event happened to
+re-read it. A stale inspector in a game editor is a lie about the scene.
+
+**What landed.**
+- `SceneComposerLike` gains the runtime's OWN two verbs, `addEventListener?`/`removeEventListener?`,
+  optional like every other gate: a fake without a listener registry is a legitimate host.
+- `SceneSurface` gains `watchComponents(listener): () => void`. One listener joins all three component
+  names — the listener's IDENTITY is load-bearing, because the runtime's `removeEventListener` is
+  indexOf-based and must be handed the same function it was given. The listener is called with NO
+  payload: the message is "re-read the report", and the report stays the runtime's single source —
+  the watch never invents a second path from the registry to the panel. A host without the verbs
+  answers a no-op unsubscribe instead of crashing. The returned unsubscribe is idempotent, safe to
+  call in a teardown.
+- `Scene3D.tsx` subscribes `() => setReport(surface.report())` in its mount effect and unsubscribes in
+  the cleanup, so the HUD and the inspector move with the registry however it changed.
+- New cases: 3 in `scene3d.test.ts` (pure layer, over `fakeRuntime`: no-verbs host answers a no-op
+  unsubscribe; a verbs host is subscribed to exactly the three names with ONE shared listener, and
+  unsubscribed from all three with the same identity; an emit of `componentAdded` actually fires the
+  listener), 5 in `scene3dSurface.test.ts` (on the REAL headless runtime: add fires the watcher;
+  removed + stateChanged call it too; the re-read report MOVES with a registry change made behind the
+  surface's back — the user-visible claim; unsubscribe stops the calls and is idempotent; two watchers
+  both hear and each unsubscribe drops only its own).
+
+**Mutation probes (arms measured, not asserted):** A1 — dropping `'componentStateChanged'` from the
+events list went red on EXACTLY the 2 named cases that count the subscription set and the all-three
+call sequence (2 failed | 99 passed). A2 — neutering the unsubscribe (`return () => {}` after the
+subscriptions) went red on 3: the two predicted (the pure three-names/unsubscribe case; the surface's
+"changes after it call the listener no more"), PLUS the two-watchers case, which the prediction had
+missed — with no removal, watcher A kept hearing after `unwatchA()` and the tally came back
+`{a: 2, b: 2}`. The miss is recorded honestly: the arm caught MORE than was predicted, and the extra
+red is a legitimate capture of the same mutation, not a hole in the code. A3 — deleting the
+verbs-presence guard went red on EXACTLY the no-verbs-host case, which then crashes on
+`runtime.addEventListener` being undefined (1 failed | 100 passed). All three arms restored; the
+shipped body at `scene3d.ts:988-995` re-verified from disk before the suite.
+
+Measured on this host 2026-10-09: Studio suite **415/415** (31 files; 407 → +8), Studio tsc exit 0;
+three-runtime suite **490/490** UNCHANGED — this grant touches no runtime source, and the read confirms
+it. The two watch files alone ran 101/101 after restoration.
+
+Bounds, stated: the watch covers the component family ONLY — the runtime's other ~55 event names
+(`entityCreated`, `entityRemoved`, `sceneCreated`, save-file and cinematic reports, the frame tick) still
+have no Studio subscriber; a body added by console does not move the panel, only a component change does.
+The rename/visibility verbs (`setEntityName`, `setEntityVisible`, v197) emit NOTHING at all — an
+out-of-band rename is still invisible to the surface, and closing that needs an emit added to the
+runtime, not a subscription. The subscription lives in the mount effect with empty deps and reads the
+captured `surface`, matching the pull pattern of the rAF loop it joins. The ADR 0016 amendment record
+for this grant is owed.
+
 ## The dock's BUILD face (M6 v174 — ADR 0016 amendment 174)
 
 The first product consumer of the build arc (amendment 173), and the section this increment never had: the

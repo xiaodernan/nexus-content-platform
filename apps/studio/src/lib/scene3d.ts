@@ -103,6 +103,10 @@ export interface SceneComposerLike extends SceneRuntimeLike {
    *  the component is missing. Optional like the other gates: a host without the verb is legitimate,
    *  and the surface answers the unchanged report. */
   setComponentEnabled?(sceneId: string, entityId: string, componentType: string, enabled: boolean): boolean;
+  /** v210 — the runtime's event log, its OWN two verbs. Optional like the other gates: a fake without
+   *  listeners is a legitimate host, and `watchComponents` on the surface answers a no-op unsubscribe. */
+  addEventListener?(event: string, listener: (data?: unknown) => void): void;
+  removeEventListener?(event: string, listener: (data?: unknown) => void): void;
 }
 
 /**
@@ -812,6 +816,14 @@ export interface SceneSurface {
   /** v200 — toggle one component's enabled flag on the selected body. Answers the unchanged report when
    *  there is no selection or the host holds no such verb; the inspector re-reads the registry at once. */
   toggleComponentEnabled(componentType: string): SceneReport;
+  /** v210 — be told when the COMPONENT registry changes by anyone, not just through this surface's own
+   *  verbs: the runtime emits `componentAdded`/`componentRemoved`/`componentStateChanged` from every
+   *  write path, and a change made elsewhere (a console command, an agent) left the inspector showing a
+   *  stale registry until something else happened to re-read it. The listener is called with NO payload:
+   *  the message is "re-read the report", and the report stays the runtime's own single source. Answers
+   *  an unsubscribe — idempotent, safe in a teardown. A host without event verbs answers a no-op
+   *  unsubscribe: the surface keeps working, it just cannot be told. */
+  watchComponents(listener: () => void): () => void;
   /** Put the camera back to the default orbit — the view the Studio opens with. */
   resetOrbit(): SceneReport;
   /** Add a body at the next free slot. Answers `null` when the runtime produced no entity. */
@@ -968,6 +980,18 @@ export function createStudioScene(
       const next = comp ? !comp.enabled : true;
       runtime.setComponentEnabled?.(built.sceneId, target.id, componentType, next);
       return buildSceneReport(runtime, counted, orbit, selected);
+    },
+    // v210 — the three component events the runtime emits from EVERY write path (its own emit is
+    // private; these are the public verbs). One listener joins all three names, so no event can be
+    // added to the runtime's component family without a subscription here going stale in plain sight
+    // — the stale set is what the watch tests count.
+    watchComponents(listener) {
+      if (!runtime.addEventListener || !runtime.removeEventListener) return () => {};
+      const events = ['componentAdded', 'componentRemoved', 'componentStateChanged'];
+      for (const event of events) runtime.addEventListener(event, listener);
+      return () => {
+        for (const event of events) runtime.removeEventListener?.(event, listener);
+      };
     },
     resetOrbit() {
       orbit = STUDIO_ORBIT_DEFAULT;

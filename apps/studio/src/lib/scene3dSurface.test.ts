@@ -666,3 +666,109 @@ describe('the selection facts are the LIVE scene’s answer, not the pick’s ec
     expect(garbage?.components).toEqual([]);
   });
 });
+
+// M5 v210 — the surface's WATCH leg: the runtime emits componentAdded/componentRemoved/
+// componentStateChanged from EVERY write path, and watchComponents is the Studio's first subscriber.
+// The cases call the runtime DIRECTLY (nothing through the surface's own verbs) — that is the whole
+// point: a registry change made by anyone must reach a watcher.
+describe('watchComponents — the registry tells the surface when it changed (M5 v210)', () => {
+  let runtime: ThreeRuntime | null = null;
+  afterEach(() => {
+    runtime?.dispose();
+    runtime = null;
+  });
+
+  function surfaceOnHeadless() {
+    const headless = headlessRuntime();
+    runtime = headless.runtime;
+    // The component's adapter, written the same way as the pick cases above: the inspector only has
+    // facts once a body is SELECTED, and selecting is a pick.
+    const adapter: SceneAdapterLike = {
+      placeCamera(sceneId: string, cameraId: string, position: SceneVec3, lookAt: SceneVec3) {
+        const found = headless.runtime.getScene(toSceneId(sceneId))?.cameras.get(toCameraId(cameraId));
+        if (!found) return false;
+        found.threeCamera.position.set(position.x, position.y, position.z);
+        found.threeCamera.lookAt(new THREE.Vector3(lookAt.x, lookAt.y, lookAt.z));
+        found.threeCamera.updateMatrixWorld(true);
+        return true;
+      },
+      pickAt(sceneId: string, nx: number, ny: number) {
+        return headless.runtime.pickAt(toSceneId(sceneId), nx, ny);
+      },
+    };
+    const surface = createStudioScene(headless.runtime, () => {}, adapter);
+    headless.runtime.resize(800, 600);
+    surface.pickAt(400, 300);
+    const scene = headless.runtime.getScene(toSceneId(surface.sceneId))!;
+    const entity = scene.entities.get(toEntityId(surface.bodyIds[2]!))!;
+    return { headless, surface, scene, entity };
+  }
+
+  it('a componentAdded from OUTSIDE the surface calls the watcher exactly once', () => {
+    const { surface, entity } = surfaceOnHeadless();
+    const calls: unknown[] = [];
+    surface.watchComponents(() => calls.push('added'));
+
+    runtime!.addComponent(entity, { type: 'health', data: { amount: 100 }, enabled: true });
+    expect(calls).toEqual(['added']);
+  });
+
+  it('componentRemoved and componentStateChanged call the watcher too — all three names are watched', () => {
+    const { surface, scene, entity } = surfaceOnHeadless();
+    const events: string[] = [];
+    surface.watchComponents(() => events.push('change'));
+
+    runtime!.addComponent(entity, { type: 'health', data: {}, enabled: true });
+    expect(events.length).toBe(1);
+    runtime!.setComponentEnabled(scene.id, entity.id, 'health', false);
+    expect(events.length).toBe(2);
+    runtime!.removeComponent(scene.id, entity, 'health');
+    expect(events.length).toBe(3);
+  });
+
+  it('the watcher fired by a registry change can re-read and the report MOVES with the registry', () => {
+    const { surface, entity } = surfaceOnHeadless();
+    let reportAfterChange: string[] | null = null;
+    surface.watchComponents(() => {
+      const r = surface.report();
+      reportAfterChange = [...(r.inspector?.components ?? []), ...(r.inspector?.disabledComponents ?? [])].map((c) => c.name);
+    });
+
+    // The entity starts with no components; the watch must see the registry the runtime now holds.
+    expect(surface.report().inspector?.components).toEqual([]);
+    runtime!.addComponent(entity, { type: 'shield', data: {}, enabled: true });
+    expect(reportAfterChange).toEqual(['shield']);
+  });
+
+  it('the unsubscribe drops the watch: changes after it call the listener no more', () => {
+    const { surface, entity } = surfaceOnHeadless();
+    const events: string[] = [];
+    const unwatch = surface.watchComponents(() => events.push('change'));
+
+    runtime!.addComponent(entity, { type: 'health', data: {}, enabled: true });
+    expect(events.length).toBe(1);
+    unwatch();
+    runtime!.addComponent(entity, { type: 'shield', data: {}, enabled: true });
+    expect(events.length).toBe(1);
+    // Idempotent: a teardown calling it twice must not throw.
+    expect(() => unwatch()).not.toThrow();
+  });
+
+  it('two watchers on one runtime both hear, and each unsubscribe drops only its own', () => {
+    const { surface, entity } = surfaceOnHeadless();
+    let a = 0;
+    let b = 0;
+    const unwatchA = surface.watchComponents(() => {
+      a += 1;
+    });
+    surface.watchComponents(() => {
+      b += 1;
+    });
+
+    runtime!.addComponent(entity, { type: 'health', data: {}, enabled: true });
+    expect({ a, b }).toEqual({ a: 1, b: 1 });
+    unwatchA();
+    runtime!.addComponent(entity, { type: 'shield', data: {}, enabled: true });
+    expect({ a, b }).toEqual({ a: 1, b: 2 });
+  });
+});

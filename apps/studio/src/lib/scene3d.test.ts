@@ -1106,3 +1106,67 @@ describe('composeDocumentOps — a scene becomes an ordinary document subtree (M
     ).toThrow(/position x is NaN/);
   });
 });
+
+// M5 v210 — the watch seam over the two honest host shapes the interfaces already allow.
+describe('watchComponents (M5 v210)', () => {
+  it('a host without event verbs answers a no-op unsubscribe instead of crashing', () => {
+    const { runtime } = fakeRuntime();
+    const surface = createStudioScene(runtime, () => {});
+    const unwatch = surface.watchComponents(() => {});
+    expect(typeof unwatch).toBe('function');
+    expect(() => unwatch()).not.toThrow();
+  });
+
+  it('a host WITH verbs is subscribed to exactly the three component names with one shared listener, and unsubscribed from all three on the way out', () => {
+    const on: Array<{ event: string; listener: unknown }> = [];
+    const off: Array<{ event: string; listener: unknown }> = [];
+    const { runtime } = fakeRuntime({
+      addEventListener: (event, listener) => {
+        on.push({ event, listener });
+      },
+      removeEventListener: (event, listener) => {
+        off.push({ event, listener });
+      },
+    });
+    const surface = createStudioScene(runtime, () => {});
+    const listener = () => {};
+    const unwatch = surface.watchComponents(listener);
+
+    expect(on.map((entry) => entry.event).sort()).toEqual(
+      ['componentAdded', 'componentRemoved', 'componentStateChanged'].sort(),
+    );
+    // ONE listener joins all three names — a per-event wrapper would make the unsubscribe a different
+    // function than the subscription, and the runtime's indexOf would silently drop nothing.
+    expect(new Set(on.map((entry) => entry.listener)).size).toBe(1);
+    expect(on[0]!.listener).toBe(listener);
+
+    unwatch();
+    expect(off.map((entry) => entry.event).sort()).toEqual(on.map((entry) => entry.event).sort());
+    for (const entry of off) expect(entry.listener).toBe(listener);
+  });
+
+  it('the listener fires when the host emits one of the watched names — the runtime drives, the surface obeys', () => {
+    const listeners = new Map<string, ((data?: unknown) => void)[]>();
+    const { runtime } = fakeRuntime({
+      addEventListener: (event, listener) => {
+        const list = listeners.get(event) ?? [];
+        list.push(listener);
+        listeners.set(event, list);
+      },
+      removeEventListener: (event, listener) => {
+        const list = listeners.get(event) ?? [];
+        const at = list.indexOf(listener);
+        if (at !== -1) list.splice(at, 1);
+      },
+    });
+    const surface = createStudioScene(runtime, () => {});
+    let fired = 0;
+    surface.watchComponents(() => {
+      fired += 1;
+    });
+
+    // Emit the way the real runtime does: every listener under the name, with the event's data.
+    for (const listener of listeners.get('componentAdded') ?? []) listener({ entityId: 'e1' });
+    expect(fired).toBe(1);
+  });
+});

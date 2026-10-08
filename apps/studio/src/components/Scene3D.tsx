@@ -265,6 +265,10 @@ export default function Scene3D() {
     // The bridge reads the LIVE surface and caches nothing, so a harness always sees the current frame.
     installSceneBridge(() => surface.report());
     setReport(surface.report());
+    // v210 — the registry can change WITHOUT anything this component called (a console command, an
+    // agent writing through the runtime). The event leg keeps the inspector honest about THAT: any
+    // component event re-reads the report. This surface's own verbs already re-read on return.
+    const unwatchComponents = surface.watchComponents(() => setReport(surface.report()));
     // v161: the controls live OUTSIDE this effect (they are React handlers), so the surface has to be
     // reachable from them. A ref rather than state, because the surface is not a value React should
     // re-render on — it is a handle to a running loop.
@@ -295,6 +299,7 @@ export default function Scene3D() {
     return () => {
       cancelAnimationFrame(raf);
       window.removeEventListener('resize', onResize);
+      unwatchComponents();
       // `dispose()` stops the loop it owns, drops every entity/record registry and disposes the
       // backend — so a teardown needs no second call here, and the next mount starts clean.
       runtime.dispose();
