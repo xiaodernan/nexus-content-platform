@@ -1155,6 +1155,9 @@ drizzle 把整个拼接结果当成**单个绑定参数**，生成的 SQL 是 `o
   与 0f8404e 一起补齐并过全仓 typecheck。
   **仍欠**：工程文件本体的交付（条目内容怎么走到买家手里——项目导出包与 credits 结算，
   页面上照实说"下载只记计数"）。
+  **2026-10-09 收益明细落地**：`/api/marketplace/earnings` GET 端点 + `/marketplace/earnings` 页面——
+  聚合 `marketplace_splits` 表按日期分组，返回 totalEarned / totalSales / dailyBreakdown；
+  创作者能看到自己的分成流水（一次销售 = 一行记录，按天汇总）。
 - [~] Credits 与订阅（Free/Pro/Creator/Studio/Enterprise），消费透明（§133-134）
   —— 第一片已落地（账本 + 一类消费 + 一格拦截）；第二片把 storage 那一格也接上真的执行方
   （摄取门里拒绝新字节，413，见文末"§133/§134 第二片"与 ADR-0018）；
