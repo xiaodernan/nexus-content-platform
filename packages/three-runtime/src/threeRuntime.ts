@@ -1508,21 +1508,9 @@ export class ThreeRuntime {
     if (!entity) return false;
 
     // v206: clean up all components' behavioral effects before removing the entity
+    // v208: the cleanup rule is one statement (cleanupComponentEffects) shared with v205/v207's paths
     for (const comp of entity.components.values()) {
-      // Clean up targetObject visibility
-      if (comp.targetObject) {
-        comp.targetObject.visible = true;
-      }
-      // Clean up animation playback state
-      if (comp.animationIds) {
-        for (const animId of comp.animationIds) {
-          const anim = scene.animations.get(animId);
-          if (anim) {
-            anim.threeAnimation.enabled = true;
-            anim.threeAnimation.play();
-          }
-        }
-      }
+      this.cleanupComponentEffects(entityId, comp);
     }
 
     scene.threeScene.remove(entity.threeObject);
@@ -1571,7 +1559,41 @@ export class ThreeRuntime {
     });
   }
 
+  /**
+   * v208 — release the runtime-only effects of ONE component:
+   * - targetObject (v202): restored to `visible = true` so the object is not left hidden forever
+   * - animationIds (v203): each paused animation is re-enabled and played
+   *
+   * The scene is found by asking the registry which scene holds the entity — an entity carries no
+   * back-pointer, and the three callers (removeComponent, removeEntity, and addComponent's replace
+   * path) all know the entity, not always the scene id. A component whose entity is in no scene
+   * still gets its targetObject restored; only the animation leg is skipped.
+   */
+  private cleanupComponentEffects(entityId: EntityId, component: EntityComponent): void {
+    if (component.targetObject) {
+      component.targetObject.visible = true;
+    }
+    if (component.animationIds) {
+      for (const scene of this.sceneGraph.scenes.values()) {
+        if (!scene.entities.has(entityId)) continue;
+        for (const animId of component.animationIds) {
+          const anim = scene.animations.get(animId);
+          if (anim) {
+            anim.threeAnimation.enabled = true;
+            anim.threeAnimation.play();
+          }
+        }
+      }
+    }
+  }
+
   addComponent(entity: ThreeEntity, component: EntityComponent): void {
+    const previous = entity.components.get(component.type);
+    // v208 — a same-type add REPLACES the old component, and an uncleaned eviction strands its effects
+    // exactly the way v205's removal hole did: a disabled predecessor's hidden targetObject and paused
+    // animations would survive their owner's silent eviction. Cleaning the same object it replaces
+    // would undo the effects the caller has just declared, so identity is exempted.
+    if (previous && previous !== component) this.cleanupComponentEffects(entity.id, previous);
     entity.components.set(component.type, component);
     this.emit('componentAdded', { entityId: entity.id, component });
   }
@@ -1583,28 +1605,14 @@ export class ThreeRuntime {
    * - targetObject (v202): restore visibility to true so the object is not left hidden forever
    * - animationIds (v203): resume any paused animations so they are not left disabled forever
    * Without this cleanup, removing a component would leave its side effects in place permanently.
+   * v208 — the two-leg cleanup moved into `cleanupComponentEffects`, the single statement of the rule
+   * now shared by removeComponent, removeEntity and addComponent's replace path.
    */
   removeComponent(sceneId: SceneId, entity: ThreeEntity, componentType: string): boolean {
     const comp = entity.components.get(componentType);
     const removed = entity.components.delete(componentType);
     if (removed && comp) {
-      // v205: clean up targetObject visibility
-      if (comp.targetObject) {
-        comp.targetObject.visible = true;
-      }
-      // v205: clean up animation playback state
-      if (comp.animationIds) {
-        const scene = this.sceneGraph.scenes.get(sceneId);
-        if (scene) {
-          for (const animId of comp.animationIds) {
-            const anim = scene.animations.get(animId);
-            if (anim) {
-              anim.threeAnimation.enabled = true;
-              anim.threeAnimation.play();
-            }
-          }
-        }
-      }
+      this.cleanupComponentEffects(entity.id, comp);
       this.emit('componentRemoved', { entityId: entity.id, componentType });
     }
     return removed;

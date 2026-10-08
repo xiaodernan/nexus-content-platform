@@ -1215,6 +1215,49 @@ which lands in `components`, never in `disabledComponents`); the save shape is u
 components are disabled shows an empty active list and a full disabled half — the toggle for every one of them
 is on screen. The ADR 0016 amendment record for this grant is owed.
 
+## addComponent's replace path releases the evicted component's effects (M5 v208)
+
+v205 taught `removeComponent` to release a component's runtime-only effects (v202's hidden
+`targetObject`, v203's paused animations); v206 did the same for `removeEntity`. The third eviction door
+was still open: `addComponent(entity, comp)` files under `comp.type` with a plain `Map.set` — a same-type
+add SILENTLY REPLACES the old component, and the evicted one's effects stranded: its hidden target stayed
+hidden and its paused animations stayed paused with no owner left to clean them.
+
+**What landed.**
+- `cleanupComponentEffects(entityId, component)` — one private statement of the release rule (restore
+  `targetObject.visible = true`; re-enable and play each `animationIds` animation). The scene is found by
+  asking the registry which scene holds the entity — an entity carries no scene back-pointer, and the
+  replace-path caller knows only the entity. `removeComponent` (v205) and `removeEntity` (v206) now CALL
+  this helper instead of each carrying its own inline copy — the duplication v205/v206 left behind is gone.
+- `addComponent` cleans the PREVIOUS occupant of the key before filing the new component, with an
+  IDENTITY exemption: re-adding the same object the registry already holds under that key is a no-op
+  re-file, not an eviction, and cleaning it would undo the effects that very component declared.
+- New `test/componentReplaceCleanup.test.ts` — 6 cases: evicted hidden target restored; evicted paused
+  animation resumed; same-object re-add keeps its own state (the identity arm); the replacement still
+  replaces (registry answers the NEW object); evicted dangling animationId does not crash; a FIRST add
+  performs no cleanup at all.
+
+**Mutation probes (arms measured, not asserted):** deleting the cleanup call (`if (previous && …)` → no-op)
+went red on EXACTLY the 2 behavioral cases (2 failed | 4 passed); deleting only the identity exemption
+(`if (previous)`) went red on EXACTLY the re-add case (1 failed | 5 passed); both arms restored and the
+file re-ran 6/6.
+
+**The v198 dist-sync gate caught this grant mid-flight:** the first full suite run after the src edit was
+**1 failed | 482 passed** — `distSync.test.ts` named `cleanupComponentEffects` as declared in src but
+absent from dist. Rebuilt (`tsc -p tsconfig.json`), the gate is green. This is the third live demonstration
+of the gate the arc has been feeding.
+
+Measured on this host 2026-10-09: three-runtime suite **483/483** (17 files; 477 → +6), tsc-build clean,
+Studio suite **407/407** against the rebuilt package (the v205/v206 cleanup cases, 10 in all, stayed green
+across the refactor — the helper is behaviorally identical for their paths).
+
+Bounds, stated: `removeComponent` keeps its `sceneId` parameter (the public signature v205 shipped) while the
+helper resolves the scene from the registry itself; a FIRST add performs no effect application — a component
+added with `enabled: false` and a `targetObject` does NOT hide its target until the toggle moves (the add-time
+enforcement of v202/v203 semantics is a separate grant); `restoreEntity` files freshly built components that
+carry no runtime-only fields (`threeRuntime.ts:1755`), so the replace path cannot strand through a load. The
+ADR 0016 amendment record for this grant is owed.
+
 ## The dock's BUILD face (M6 v174 — ADR 0016 amendment 174)
 
 The first product consumer of the build arc (amendment 173), and the section this increment never had: the
