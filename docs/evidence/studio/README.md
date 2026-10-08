@@ -1365,6 +1365,61 @@ runtime, not a subscription. The subscription lives in the mount effect with emp
 captured `surface`, matching the pull pattern of the rAF loop it joins. The ADR 0016 amendment record
 for this grant is owed.
 
+## The silent verbs announce themselves: entityRenamed and entityVisibilityChanged join the bus (M5 v211)
+
+v210's bounds named the door that stayed open: "The rename/visibility verbs (`setEntityName`,
+`setEntityVisible`, v197) emit NOTHING at all — an out-of-band rename is still invisible to the surface,
+and closing that needs an emit added to the runtime, not a subscription." The census of `this.emit(`
+proved it: the component family announced its three write verbs (what v210's watch subscribes to), but
+the two v197 entity verbs changed the registry and said nothing — every reader (the report, `pickAt`,
+the save) saw the new name only because it happened to re-read.
+
+**What landed.**
+- `setEntityName` (threeRuntime.ts:1482) and `setEntityVisible` (1507) now emit `entityRenamed
+  { sceneId, entityId, name }` and `entityVisibilityChanged { sceneId, entityId, visible }` — AFTER the
+  registry mutation, and for visibility AFTER both records move (`entity.visible` and
+  `threeObject.visible`, the v197 two-record rule: the announcement may not arrive while the records
+  disagree). A refusal emits nothing: news of a change that did not happen is a lie on the bus.
+- New `test/entityEvents.test.ts` — 8 cases: rename payload exact; rename ordering (the listener reads
+  the REGISTRY at emit time, not the payload); refused renames silent (blank, non-string, unknown
+  entity, unknown scene); visibility emits on both legs — hide and show; visibility ordering (both
+  records already agree at emit time); refused visibility changes silent (non-boolean `0` and `'true'`,
+  unknown owners); the two names do not cross; `removeEventListener` silences the verb.
+
+**The witness defect this grant found in its own tests.** The first draft of the two ordering cases
+asserted INSIDE the listener. `emit()` try/CATCHES every listener and only logs the swallowed error, so
+the D2 arm (moving the emit BEFORE the mutation) ran the whole file GREEN — a listener-side `expect` is
+an assertion whose failure the runtime eats. Both cases now RECORD what the listener observed and assert
+OUTSIDE, and the same rule is written into the shipped comment at the rename emit site so the next
+listener-based witness does not repeat it. Re-running D2 after the fix reddened exactly the case it
+should.
+
+**Mutation probes (arms measured, not asserted):** D1a — deleting the rename emission went red on
+EXACTLY the 4 cases that hear it (payload, ordering, no-cross, removeEventListener; 4 failed | 4
+passed). D1b — deleting the visibility emission went red on EXACTLY its 3 (both-legs, ordering,
+no-cross; 3 failed | 5 passed). D2 — rename emit moved BEFORE `entity.name = name` went red on EXACTLY
+the ordering case (`['Test Entity']` where the registry should already say `Villain`) — after the
+witness fix; before the fix it went falsely green, and that false green is this section's headline
+finding. D2b — visibility emit moved before both record writes went red on EXACTLY its ordering case
+(`[[true, true]]` at emit time). D3 — hoisting the rename emit above every guard (announcing refusals
+too) was predicted to redden only the silent-refusals case and reddened FIVE: with the guard-position
+emit kept, the success path emits TWICE, so payload, ordering, no-cross and removeEventListener joined
+it. The extra reds are legitimate captures of a strictly larger mutation than the one predicted — the
+miss was in choosing the arm, not in the code. All arms restored; the shipped emissions re-verified
+from disk at lines 1482/1507 before the suites.
+
+Measured on this host 2026-10-09: three-runtime suite **498/498** (19 files; 490 → +8), dist rebuilt
+BEFORE the suite (the v198 gate judges the shipped package), build exit 0; Studio suite against the
+rebuilt package **415/415** (31 files; unchanged — v211 touches no Studio source, and the v210 watch
+still counts exactly its three component names, untouched by the two new emissions).
+
+Bounds, stated: the payloads carry the SCENE the verb was asked about — same shape as the component
+family's; the Studio side does not yet SUBSCRIBE to these two names — v210's `watchComponents` list is
+still exactly three, and joining the entity pair (moving the v210 pins honestly, with the watch renamed
+or split) is a separate grant; `setLightState` and `removeEntity` already emit, and the remaining silent
+registry verbs (none in the component family) were censused from the same `this.emit(` walk. The ADR
+0016 amendment record for this grant is owed.
+
 ## The dock's BUILD face (M6 v174 — ADR 0016 amendment 174)
 
 The first product consumer of the build arc (amendment 173), and the section this increment never had: the

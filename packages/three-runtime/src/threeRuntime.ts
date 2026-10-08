@@ -1474,6 +1474,12 @@ export class ThreeRuntime {
     if (!entity) return false;
     if (typeof name !== 'string' || name.trim().length === 0) return false;
     entity.name = name;
+    // v211 — the announcement comes AFTER the mutation: a listener that reads the registry at emit time
+    // must see the NEW name, not the one being replaced. A refusal emits nothing — news of a change
+    // that did not happen is a lie on the bus. (The runtime's emit try/CATCHES every listener, so a
+    // witness case must RECORD what the bus carried and assert outside the listener — an inline
+    // expect would be swallowed and the case would certify nothing.)
+    this.emit('entityRenamed', { sceneId, entityId, name });
     return true;
   }
 
@@ -1497,6 +1503,8 @@ export class ThreeRuntime {
     if (typeof visible !== 'boolean') return false;
     entity.visible = visible;
     entity.threeObject.visible = visible;
+    // v211 — BOTH records move, then the bus says so; the ordering rule is setEntityName's.
+    this.emit('entityVisibilityChanged', { sceneId, entityId, visible });
     return true;
   }
 
