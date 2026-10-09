@@ -44,3 +44,10 @@ target/
 __pycache__/
 *.pyc
 .venv/
+
+# scratch: proof runs materialise a ref here, so this tree holds WHOLE COPIES of test files (measured
+# 2026-10-09: 879 *.test.ts under four .scratch dirs). Two things went wrong while it was unignored: a
+# `git add -A` swept an in-flight doc edit into an unrelated commit (amendment 196's record landed inside an
+# M5 commit and described a tree that did not exist), and a root-level vitest run would have graded those
+# stale copies. `vitest.config.ts` excludes them; this keeps them out of commits too.
+.scratch/

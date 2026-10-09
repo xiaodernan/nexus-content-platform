@@ -9216,3 +9216,30 @@ queue, and the LAST package: with it, every package in the monorepo type-checks 
   (item 17). And it found no shortage of the thing it was built for: a mock missing two methods in six of eight
   suites, an assertion whose second half had never run, four messages passed to a one-argument matcher, a test
   importing a type from a package that does not export it, and an annotation TypeScript cannot parse.
+
+### Amendment 215 (v215, repo hygiene) — `.scratch/` was not ignored, and it holds 879 copies of real test files
+
+_Numbering: 215 was free (`grep -ao "^### Amendment 2[0-9][0-9]"` topped out at 214). Not a milestone feature:
+this closes the mechanism behind an incident already in this ledger._
+
+- **What `.scratch/` is.** The proof runs in this repo materialise a ref — a WHOLE COPY of the tree — to grade
+  it, and ad-hoc probes are written there. Measured 2026-10-09: **879 `*.test.ts` files** live under the four
+  `.scratch/` directories (`.scratch/`, `agents/exec-host/.scratch/`, `apps/studio/.scratch/`,
+  `packages/three-runtime/.scratch/`), and every one is a STALE COPY of a real suite. None of them is tracked.
+- **The two failures it was already causing.** (1) A root-level `vitest` run would glob those 879 files and
+  grade last week's code while reporting it as this tree's result — which is why a root `vitest.config.ts`
+  existed, UNTRACKED, excluding them. A guard against a real hazard that is not in git is a guard that a fresh
+  clone does not have. (2) A `git add -A` swept an in-flight doc edit into an unrelated commit: that is exactly
+  how **amendment 196's record landed inside an M5 commit** (`8ebdd75`) and spent a while describing an artifact
+  page the tree did not have.
+- **The fix, both halves.** `.scratch/` is added to `.gitignore` (one pattern covers all four directories, since
+  it matches at any level), and the root `vitest.config.ts` is COMMITTED with the reason written in it rather
+  than left as an orphan file. Per-package runs are unaffected — `turbo run test` and
+  `vitest run --root <pkg>` resolve their own root, and `apps/studio` keeps its own config for the source-alias
+  reason recorded at v142.
+- **Evidence.** `git check-ignore -v .scratch/ agents/exec-host/.scratch/` both answer `.gitignore:53:.scratch/`;
+  `git status --short` no longer lists four scratch trees as untracked.
+- **Bounds (§60).** This stops scratch files REACHING a commit; it does not clean up what is already on disk
+  (879 stale files stay, and deleting them would destroy the materialised refs some proofs reuse). It also does
+  not make the `.scratch/` convention itself any good — a proof that writes into the working tree is a proof
+  that can leak into it, and the scene-surface proof has already been caught leaking temp dirs twice.
