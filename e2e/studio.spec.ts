@@ -3265,6 +3265,15 @@ test('@smoke §51 类型分派：标互动故事就出对话播放器，标 2.5D
   await expect(game.locator('[data-story-name]')).toHaveText('钟楼下');
   await expect(game.locator('[data-story-progress]')).toContainText('走过 1 段');
 
+  // §53 对话管线的"自动查一遍"：没有走法可跑，查的是按引用连线的可达性——
+  // 这份两段全部可达（2/2）、停点 1（城门旁没下一段）、空正文 1（城门旁没写正文）
+  await game.click('[data-playtest-run]');
+  await expect(game.locator('[data-playtest-story-stats]')).toContainText('可达 2/2');
+  await expect(game.locator('[data-playtest-finding]').first()).toContainText('全部可达');
+  // 限度与报告一起显示：算的是"连不连得到"，不冒充玩家行为测试
+  await expect(game.locator('[data-playtest-limits]')).toContainText('连不连得到');
+  await game.screenshot({ path: 'screenshots/story-play-playtest.png' });
+
   // §51 的第四种：2.5D 是**同一条计划**的等轴测画法——还走 topdown 那条管线（同一个 data-game-root、
   // 同一套 step 与 HUD），只有坐标到屏幕的映射变了，所以页首要写"等轴测"、限度要一起显示
   await page.bringToFront();
@@ -3433,6 +3442,14 @@ test('@smoke §51 类型分派：标互动故事就出对话播放器，标 2.5D
   await expect(game.locator('[data-game-subtitle]')).toContainText('RPG 成长循环');
   await expect(game.locator('[data-game-root]')).toHaveCount(0); // 不是 2D 画法顶上的
   await expect(game.locator('[data-story-play]')).toHaveCount(0);
+
+  // §53 在 RPG 这边跑的仍是那四种走法，但推进用 rpgStep：报告里有等级列，
+  // 限度必须点名 rpgStep——只跑底层战斗的报告会把等级门说成"任务完成了"
+  await game.click('[data-playtest-run]');
+  await expect(game.locator('[data-playtest-run-row="beeline"]')).toBeVisible({ timeout: 30_000 });
+  await expect(game.locator('[data-playtest-run-row="idle"] [data-playtest-level]')).toBeVisible();
+  await expect(game.locator('[data-playtest-limits]')).toContainText('rpgStep');
+  await game.screenshot({ path: 'screenshots/story-play-rpg-playtest.png' });
   await game.screenshot({ path: 'screenshots/story-play-rpg.png' });
 });
 

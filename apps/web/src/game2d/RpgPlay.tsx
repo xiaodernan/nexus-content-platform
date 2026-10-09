@@ -4,10 +4,12 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   ARENA,
   initialRpgState,
+  playtestRpg,
   rpgStep,
   rpgSummary,
   xpToNext,
   type RpgPlan,
+  type RpgPlaytestReport,
   type RpgState,
   type SimInput,
 } from '@nexus/game-model';
@@ -29,6 +31,8 @@ export function RpgPlay({ plan }: { plan: RpgPlan }) {
   const stateRef = useRef<RpgState>(initialRpgState(plan));
   const lastFrame = useRef<number>(0);
   const [hud, setHud] = useState<RpgState>(() => stateRef.current);
+  // §53：与 2D 同一个"跑四种走法"，但跑的是 rpgStep——经验、等级门参与判定（报告里的等级列就是它）
+  const [report, setReport] = useState<RpgPlaytestReport | null>(null);
 
   const restart = useCallback(() => {
     stateRef.current = initialRpgState(plan);
@@ -189,6 +193,74 @@ export function RpgPlay({ plan }: { plan: RpgPlan }) {
             {hud.base.events.length === 0 ? <li className="text-11 text-fg-3">还没有事情发生。</li> : null}
           </ul>
         </div>
+      </section>
+
+      {/* §53：RPG 这边跑的仍是四种走法，但推进用 rpgStep——报告里的等级/经验与门是成长语义算的 */}
+      <section className="rounded border border-[var(--nexus-color-border-subtle)] p-3">
+        <div className="flex items-center gap-3">
+          <h3 className="text-12 font-semibold text-fg-1">自动跑一遍（Playtest）</h3>
+          <button
+            type="button"
+            onClick={() => setReport(playtestRpg(plan))}
+            className="rounded bg-bg-2 px-2 py-1 text-11"
+            data-playtest-run
+          >
+            跑四种走法
+          </button>
+        </div>
+        {report ? (
+          <>
+            <table className="mt-2 w-full text-11">
+              <thead className="text-left text-fg-3">
+                <tr>
+                  <th>走法</th>
+                  <th>结果</th>
+                  <th>秒数</th>
+                  <th>承伤 / 输出</th>
+                  <th>任务</th>
+                  <th>等级 / 经验</th>
+                  <th>过了等级门</th>
+                </tr>
+              </thead>
+              <tbody>
+                {report.runs.map((run) => (
+                  <tr key={run.policy} data-playtest-run-row={run.policy}>
+                    <td>{run.label}</td>
+                    <td data-playtest-status={run.status}>
+                      {run.timedOut ? '跑到时间上限' : run.status === 'won' ? '通关' : '倒下'}
+                    </td>
+                    <td>{run.seconds}</td>
+                    <td>
+                      {run.damageTaken} / {run.damageDealt}
+                    </td>
+                    <td>{run.questsDone}</td>
+                    <td data-playtest-level={run.level}>
+                      {run.level} / {run.xp}
+                    </td>
+                    <td data-playtest-gated={run.gatedPassed.join('、') || 'none'}>
+                      {run.gatedPassed.length ? run.gatedPassed.join('、') : '—'}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            <p className="mt-1 text-11 text-fg-3" data-playtest-max-level={report.maxLevel}>
+              这几种走法到达过的最高等级：{report.maxLevel}
+            </p>
+            <ul className="mt-2 flex flex-col gap-1">
+              {report.findings.map((line) => (
+                <li key={line} className="text-11 text-fg-2" data-playtest-finding>
+                  · {line}
+                </li>
+              ))}
+            </ul>
+            <p className="mt-2 text-11 text-fg-3" data-playtest-limits>
+              {report.limits.join(' ')}
+            </p>
+          </>
+        ) : (
+          <p className="mt-1 text-11 text-fg-3">还没跑。这一步不需要人操作，也不需要模型或 provider——成长语义（经验、升级、等级门）会参与判定。</p>
+        )}
       </section>
 
       <section className="rounded bg-bg-1 p-3">

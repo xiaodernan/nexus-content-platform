@@ -686,9 +686,25 @@ drizzle 把整个拼接结果当成**单个绑定参数**，生成的 SQL 是 `o
   不冒充失败；随机游走用定种子（默认 7），所以同一份设计两次报告逐字段相同（换种子才是换一次抽样）。
   三条具体能点出的毛病：没有可判定条件（说的是"任务没连上敌人或物品"，不是"太难"）、
   玩家没有伤害来源（"打倒"类条件永远满足不了）、站着不动也会死（察觉半径或伤害过高）。
-  **仍欠**：§53 的 Capture screenshots / Fix 两格（要接浏览器与模型）、§52 那条
-  Game Design → Combat → Level → … → Code 的编排链。
-  前置条件已经好了：`sim.ts` 是无头、定步长、可复现的（同一份计划 + 同一段输入 = 同一个状态，有测试钉住）。
+   **2026-10-09 第二片（试玩报告覆盖另外两条管线，八种类型都有了着落）**：
+   四种走法此前只在 topdown 那五种的 `GamePlay` 上有按钮——RPG 与对话两种页面连入口都没有。
+   - RPG：`playtestRpg` 跑的是 `rpgStep`（与 HUD、手动试玩同一个函数）——经验、升级、等级门
+     参与判定。关键对照钉在测试里：同一份带 99 级门的文档，底层 `playtest(rpg.base)` 会宣布通关，
+     `playtestRpg` 扣成 0 种通关（门没开、完成被撤回）——只跑底层战斗的报告在 RPG 页面上就是谎。
+     报告多两列（等级/经验、过了哪些等级门）与一个最高等级读数；兜底经验与"没过门"各是
+     findings 里一条（"等级不够还是条件没满足，报告分不开这两种"）。
+   - 对话管线：`playtestStory`——这一格**没有"走法"**（四种空间走法对着一段对话什么都不是），
+     能确定回答的是"点不点得到"：按引用连线 BFS 可达、停点数、空正文数、走不到的段落点名。
+     限度头一条就说这不是玩家行为测试（§53 的 Detect bugs 要浏览器与模型，那两格仍欠）。
+   - 共用口径抽成 `summarize()` + `PLAYTEST_BASE_LIMITS`：2D 与 RPG 的 findings 不说两遍。
+   - UI：RpgPlay / StoryPlay 各一个区块，与 GamePlay 同一套 `data-playtest-*` 属性。
+   - 测试：`playtest.test.ts` 9→17 条（门开/不开对照、兜底两向、确定性与限度；可达正反两向、
+     停点与空正文、成环、跑不起来）；game-model 120 条全绿；`@smoke §51` 多两格
+     （对话页查可达性 2/2 + 截图 `story-play-playtest.png`；RPG 页跑四种走法 + 限度含 rpgStep
+     + 截图 `story-play-rpg-playtest.png`；真浏览器 26s 通过）。
+   **仍欠**：§53 的 Capture screenshots / Fix 两格（要接浏览器与模型）、§52 那条
+   Game Design → Combat → Level → … → Code 的编排链。
+   前置条件已经好了：`sim.ts` 是无头、定步长、可复现的（同一份计划 + 同一段输入 = 同一个状态，有测试钉住）。
 - [~] 游戏设计系统：Player/Enemy/Weapon/Item/Quest/Dialogue/Trigger/NPC/Camera/Animation/Particle（§54）
   — **2026-09-24 落地模型层**：新开 `packages/game-model`（与 design-model / world-model 同一条纪律：
   无 React、无 IO，两端跑同一份校验）。11 类实体 + 数值旋钮 + 实体间引用 + 引用完整性校验 + 确定性投影，

@@ -1,7 +1,7 @@
 'use client';
 
 import { useMemo, useState } from 'react';
-import type { StoryPlan } from '@nexus/game-model';
+import { playtestStory, type StoryPlan, type StoryPlaytestReport } from '@nexus/game-model';
 
 /**
  * §51 的 Interactive Story / Visual Novel 走的那条投影：`compileStory` 排出来的段落与选择，
@@ -20,6 +20,8 @@ export function StoryPlay({ plan }: { plan: StoryPlan }) {
   const [currentId, setCurrentId] = useState<string | null>(plan.startId);
   /** 走过的顺序（含重复）：面包屑与"第 N 次走到这里"都从这份算 */
   const [path, setPath] = useState<string[]>(plan.startId ? [plan.startId] : []);
+  // §53：对话管线没有"走法"，能确定回答的是"点不点得到"——按引用连线算可达性（报告见下）
+  const [report, setReport] = useState<StoryPlaytestReport | null>(null);
 
   const beat = currentId ? byId.get(currentId) ?? null : null;
   const repeats = beat ? path.filter((id) => id === beat.id).length : 0;
@@ -102,6 +104,43 @@ export function StoryPlay({ plan }: { plan: StoryPlan }) {
       <div className="text-11 text-fg-3" data-story-trail>
         {path.map((id, index) => `${index + 1}. ${byId.get(id)?.name ?? '（读不到名字）'}`).join(' → ')}
       </div>
+
+      {/* §53 对话管线的"自动跑一遍"：查可达性，不是跑走法——按钮的话与报告的限度一起显示 */}
+      <section className="rounded border border-[var(--nexus-color-border-subtle)] p-3">
+        <div className="flex items-center gap-3">
+          <h3 className="text-12 font-semibold text-fg-1">自动查一遍（Playtest）</h3>
+          <button
+            type="button"
+            onClick={() => setReport(playtestStory(plan))}
+            className="rounded bg-bg-2 px-2 py-1 text-11"
+            data-playtest-run
+          >
+            查可达性
+          </button>
+        </div>
+        {report ? (
+          <>
+            <p className="mt-2 text-11 text-fg-3" data-playtest-story-stats>
+              可达 {report.reachable}/{report.total} · 停点 {report.reachableEndings} · 空正文 {report.reachableEmptyText}
+              {report.unreachableNames.length ? ` · 走不到：${report.unreachableNames.slice(0, 5).join('、')}` : ''}
+            </p>
+            <ul className="mt-2 flex flex-col gap-1">
+              {report.findings.map((line) => (
+                <li key={line} className="text-11 text-fg-2" data-playtest-finding>
+                  · {line}
+                </li>
+              ))}
+            </ul>
+            <p className="mt-2 text-11 text-fg-3" data-playtest-limits>
+              {report.limits.join(' ')}
+            </p>
+          </>
+        ) : (
+          <p className="mt-1 text-11 text-fg-3">
+            还没查。这一步按引用连线算「连不连得到」，不需要人点，也不需要模型或 provider。
+          </p>
+        )}
+      </section>
 
       <details className="text-11 text-fg-3" data-story-notes>
         <summary className="cursor-pointer">这条管线如实说明的 {plan.notes.length} 件事</summary>
