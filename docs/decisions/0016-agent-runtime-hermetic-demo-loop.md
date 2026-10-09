@@ -9134,6 +9134,299 @@ than it was found._
   changed. `SpawnLike` is now imported from the package that owns it, which is a correction, not a new export:
   whether the RUNTIME should also export a spawn seam is a question nothing here answers.
 
+_Records 206–212 below were written together, eight grants after their code, from the seven commits that carry
+their numbers — a documentation increment with no code, the pattern amendment 82 set (`v156` wrote the records
+three increments late). Every **suite total** quoted in them is the number measured on that grant's own landing
+day, 2026-10-09, and belongs to that tree; every **line citation** was re-verified today on the tree these
+records land in, so where a later grant inserted lines above a citation the record says what it was then and
+what it is now. Writing them here rather than appending them at the end keeps the ledger's only ordering
+guarantee — a reader who follows `amendment 208` arrives at 208._
+
+### Amendment 206 (v206, three-runtime) — entity removal releases every component's effects: the second eviction door after v205
+
+_Numbering: 206 is the number `398411b` names in its own message. Its record was owed and is written here from
+that commit; the suite totals are its landing readings._
+
+- **The gap v205 left standing.** v205 taught `removeComponent` to release one component's runtime-only effects
+  (v202's hidden `targetObject`, v203's paused animations). Removing the whole ENTITY was a different door: the
+  registry dropped the components with their host, and whatever those components had done to objects and
+  animations outside the registry stayed done — a target hidden forever, animations paused forever, with no
+  owner left to undo either.
+- **What shipped.** `removeEntity` walks every component of the entity and releases each one's effects BEFORE
+  the entity goes. At the time it was an inline copy of v205's logic; v208 converged the three copies into
+  `cleanupComponentEffects`, so the walk this grant added is now `threeRuntime.ts:1520-1521` calling the shared
+  statement, and `removeEntity` itself begins at 1511.
+- **Evidence.** `test/entityRemovalComponentCleanup.test.ts` — 5 cases: one component's target restored ·
+  several components cleaned in one removal · an animation resumed · an entity with no components succeeds with
+  no side effects · a non-existent entity. three-runtime **477/477** (16 files), `tsc` clean. No Studio change:
+  the surface does not call `removeEntity`, so the proof lives at the runtime layer.
+- **Arms: none were scored, and the record says so rather than inventing a number.** This grant's evidence is 5
+  new cases and a green suite — which is the weaker witness the arc kept having to name. The arm that should
+  have been run is the one v208 ran on the same rule (delete the release call, expect exactly the behavioural
+  cases to redden), and its absence is the reason this record does not claim a falsified mutation.
+- **Bounds (§60).** Cleanup applies uniformly to ALL components on the entity; a missing scene skips the
+  animation leg gracefully, as in v205; an entity without components succeeds with no side effects.
+
+### Amendment 207 (v207, studio) — the report carries the disabled half: v204's filter had shut the only re-enable door, and this grant corrected a false measurement in this repository's own record
+
+_Numbering: 207, named by `e0b0a86`. The commit message itself said "amendment 207 owed" — which is the phrase
+this lane's §7 door is designed to refuse as a citation, and it was right to._
+
+- **The defect was a product rule applied one layer too high.** v204 made `enabled` gate HUD visibility by
+  filtering disabled components OUT of `entityComponentsOf` — and that function is the only thing the inspector
+  iterates. A component the report never carries can never be rendered as a toggle, so the `(off)` button
+  v199/v200 built became dead code and a disabled component could not be clicked back on from the panel at all.
+  Hiding the state is not the same as hiding the control, and v204 had conflated them.
+- **A measurement that corrected this ledger.** Measured on 2026-10-09 before any v207 change,
+  `scene3dSurface.test.ts` stood at **4 failed | 15 passed (19)**: the v199 live-registry case, the v200 toggle
+  case, the loose-reader case, the filed-name case. The v204 section had claimed "6 tests updated to reflect the
+  new behavior… 401/407" — **no tests had been updated**, and the reds were 6 (those 4 plus two
+  `entityComponentsOf` cases in `scene3d.test.ts`). The sentence described work that had not been done; v207
+  struck it from the v204 section and put the measurement in its place.
+- **What landed.** `entityComponentsOf` returns the FULL registry again — a loose reader reports what is stored,
+  it does not editorialize. `SceneSelectionFacts` gains `disabledComponents: SceneSelectionComponent[]`
+  (`apps/studio/src/lib/scene3d.ts:434`), and `selectionFactsOf` SPLITS the registry: `components` keeps only
+  `enabled !== false` rows — v204's product rule stands, the active list shows what the query layer iterates —
+  and the disabled half is REPORTED rather than dropped, in registry order (`scene3d.ts:492`). `Scene3D.tsx`
+  renders `[...components, ...disabledComponents]` as ONE row set (850 gates the block on the sum, 854 renders
+  it), so every disabled row is a re-enable door through the same `onToggleComponentEnabled` host gate.
+- **The hidden site the first red was masking.** `scene3dSurface.test.ts:326` still called the OLD 2-arg
+  `removeComponent(entity, 'health')`. v205's bound "No Studio changes — the surface does not call
+  `removeComponent`" was true of the surface and FALSE of its test: the line was unreachable because that case
+  died at an earlier assertion, so it could not red until the reds above it were fixed. It was updated to the
+  v205 signature — the same "a case runs only to its first failure" blindness this arc keeps hitting.
+- **Evidence.** Studio **407/407** (31 files): the 6 v204 reds resolved by re-pointing them at the split (each
+  now asserts BOTH halves) and not by deletion; the two whole-object `toEqual` inspector pins gained
+  `disabledComponents: []`. `tsc --noEmit` exit 0, eslint exit 0 on the three edited files. No three-runtime
+  change (its suite stood at 477/477 from v206).
+- **Arms: none were scored.** The witness here is a false claim struck and six reds turned green by re-pointing;
+  the split has no behavioural surface in this grant, and the record does not dress a report change up as a
+  falsified mutation.
+- **Bounds (§60).** Report-only: v201's query gate, v202's rendering gate and v203's playback gate do not move;
+  `entityComponentsOf` stays loose, so garbage and undeclared hosts still answer `[]`, which lands in
+  `components` and never in `disabledComponents`; the save shape is untouched; a registry where everything is
+  disabled shows an empty active list and a full disabled half — every toggle on screen.
+
+### Amendment 208 (v208, three-runtime) — the third eviction door: `addComponent`'s same-type replace, and the release rule becomes ONE statement
+
+_Numbering: 208, named by `5df39e3` — whose message carried the "amendment 208 owed" phrase §7 later refused as a
+citation (see `6272fd4`). The record is here now, which is the fix that door asked for._
+
+- **The door nobody knocked on.** `addComponent(entity, comp)` filed under `comp.type` with a plain `Map.set` —
+  so a same-type add SILENTLY REPLACED the old component. v205 had covered the explicit removal and v206 the
+  entity removal; this third eviction path had no code in it at all, and the evicted component's effects
+  stranded with no owner: its hidden target stayed hidden, its paused animations stayed paused.
+- **One statement of the rule.** `cleanupComponentEffects(entityId, component)` (`threeRuntime.ts:1580`) —
+  restore `targetObject.visible = true`, re-enable and `play()` each `animationIds` animation. The scene is
+  found by asking the registry which scene holds the entity, because an entity carries no scene back-pointer and
+  the replace-path caller knows only the entity. v205's and v206's inline copies now CALL it: 1521
+  (`removeEntity`), 1627 (this grant's replace path), 1650 (`removeComponent`). The duplication v205/v206 left
+  behind is gone, which is what makes the rule impossible to fix in one place and forget in two.
+- **The identity exemption.** `if (previous && previous !== component)` (1627): re-adding the SAME object the
+  registry already holds under that key is a no-op re-file, not an eviction. Without the exemption, cleaning the
+  "evicted" component would undo the effects that very component declared.
+- **Evidence.** `test/componentReplaceCleanup.test.ts` — 6 cases: evicted hidden target restored · evicted
+  paused animation resumed · same-object re-add keeps its own state · the replacement really replaces (the
+  registry answers the NEW object) · an evicted dangling `animationId` does not crash · a FIRST add performs no
+  cleanup. three-runtime **483/483** (17 files; 477 → +6), Studio **407/407** against the rebuilt package — the
+  10 v205/v206 cleanup cases stayed green across the refactor, which is the extraction's real test.
+- **Arms, both predicted before running:** deleting the cleanup call went red on EXACTLY the 2 behavioural cases
+  (2 failed | 4 passed); deleting only the identity exemption went red on EXACTLY the re-add case (1 failed |
+  5 passed). Both restored, file re-ran 6/6.
+- **The v198 dist-sync gate caught this grant mid-flight:** the first full run after the src edit was
+  **1 failed | 482 passed**, `distSync.test.ts` naming `cleanupComponentEffects` as declared in src and absent
+  from dist. Rebuilt, green. That is the third live demonstration that the gate is not decorative — a suite that
+  reads `src` would have shipped a stale `dist`.
+- **Bounds (§60).** `removeComponent` keeps its `sceneId` parameter (the public signature v205 shipped) while the
+  helper resolves the scene from the registry itself; a FIRST add applies nothing — a component filed with
+  `enabled: false` and a `targetObject` does NOT hide its target until the toggle moves — and that named door is
+  what amendment 209 walked through. `restoreEntity` files freshly built components carrying no runtime-only
+  fields (`threeRuntime.ts:1790`; the v208 section cited it as 1755, before 209's helper moved the line), so the
+  replace path cannot strand through a load.
+
+### Amendment 209 (v209, three-runtime) — a component filed DISABLED declares its gates at file time, and one case is the sole witness of the over-broad rule
+
+_Numbering: 209, named by `901e91c`._
+
+- **The gap was named by its own predecessor.** v208's bounds: "the add-time enforcement of v202/v203 semantics
+  is a separate grant". Until now, filing a disabled component was a promise the runtime kept only after a later
+  `setComponentEnabled` — between the add and any toggle, the target stayed shown and the animations kept
+  running, contradicting what the registry said the component was.
+- **What landed.** `enforceComponentDisabled(entityId, component)` (`threeRuntime.ts:1606`) is the disable-leg
+  counterpart of `cleanupComponentEffects`: hide the `targetObject` (`visible = false`) and set
+  `enabled = false` on each `animationIds` animation — the SAME one-way semantics as v203's disable leg (no
+  `pause()` call), reached through the same registry walk.
+- **The ordering is load-bearing, not incidental.** `addComponent` enforces it AFTER filing and AFTER the v208
+  eviction cleanup (`threeRuntime.ts:1632`): a disabled replacement over the same target is restored by the
+  eviction and then re-hidden by its own declaration, so the LAST writer is the component the registry actually
+  holds. And the rule is narrow on purpose — only `enabled === false`. An ENABLED add declares the default state
+  the effects already hold, so re-asserting it would trample state its owner set independently: a target the
+  scene itself keeps hidden.
+- **Evidence.** `test/componentAddEnforcement.test.ts` — 7 cases: a disabled add hides the target at file time
+  (no toggle call anywhere in the case) · a disabled add disables the animation (`enabled` false AND
+  `isRunning()` false) · an enabled add does NOT show a hidden target · an enabled add does not hide a shown
+  target nor disable a running animation · a disabled replacement over the same target ends hidden and the
+  registry answers the replacement's data · a dangling `animationId` does not throw · a disabled plain component
+  stores and is excluded by `getEnabledComponents` (v201). three-runtime **490/490** (18 files; 483 → +7), dist
+  rebuilt BEFORE the suite so the v198 gate judged the new declaration, Studio **407/407** against it.
+- **Arms, and the finding worth keeping.** Deleting the enforcement call went red on EXACTLY the three
+  disabled-add cases (hide-at-add, disable-at-add, replace-ordering — 3 failed | 18 passed across the four
+  component-cleanup files; v203's, v205's and v208's suites stayed green untouched). Enforcing
+  UNCONDITIONALLY (`component.enabled === false` → `if (component)`) went red on EXACTLY one case: the
+  both-directions one. Every other fixture in the arc starts its targets and animations in the very state
+  unconditional enforcement would write, so that single case is the SOLE WITNESS of the over-broad rule — it
+  exists precisely to be that witness, which is why it survives as its own case instead of merging into the
+  pair above it. Both arms restored; the shipped line re-verified before the suite (1624 then, 1632 now).
+- **No Studio test moved, and that was measured rather than assumed:** a collision census over the tracked tree
+  found every `enabled: false` add carries no `targetObject`/`animationIds`, so enforcement is a no-op by
+  construction in those fixtures.
+- **Bounds (§60).** `setComponentEnabled` keeps its own inline legs: the disable semantics now live in TWO
+  carriers (the toggle's else-branch and this helper), deliberately NOT unified, because the toggle also owns
+  the ENABLE leg, which has no add-time counterpart. `restoreEntity` files components that carry no runtime-only
+  fields at all (v119's save shape excludes them), so a restored disabled component gates nothing until the save
+  round-trip is given runtime re-attachment — a different grant, and the honest reason a load can still answer
+  "disabled" while nothing is gated.
+
+### Amendment 210 (v210, studio) — the registry gets a subscriber: the component family's three events stop announcing into an empty room
+
+_Numbering: 210, named by `8630590`._
+
+- **The claim the census supported.** `this.emit(` in `threeRuntime.ts` names `componentAdded`, `componentRemoved`
+  and `componentStateChanged` — one per write verb (1625/1643/1699 as this record was written; 1633/1651/1707
+  now, shifted by v211's eight lines above them). The Studio subscribed to NONE of them: before this grant every
+  `addEventListener` call in `apps/studio/src` was on `window` (resize, keydown), and not one was on the
+  runtime. The inspector was PULL-only — the report moved when a Studio control pulled it after its own write,
+  and a registry changed by anything else (a console command, an agent holding the same runtime) stayed invisible
+  until an unrelated event happened to re-read it. A stale inspector in a game editor is a lie about the scene.
+- **What landed.** `SceneComposerLike` gains the runtime's own two verbs as OPTIONAL members
+  (`addEventListener?`/`removeEventListener?`), the same host-honesty gate the arc uses everywhere: a fake
+  without a listener registry is a legitimate host. `SceneSurface.watchComponents(listener): () => void`
+  (`apps/studio/src/lib/scene3d.ts:826`, implemented 995-1002) joins ONE listener to all three names and returns
+  an idempotent unsubscribe that drops all three with the same identity — identity is load-bearing because the
+  runtime's `removeEventListener` is `indexOf`-based. The listener is called with NO payload: the message is
+  "re-read the report", so the watch never invents a second path from the registry to the panel and the report
+  stays the runtime's single source. A host without the verbs answers a no-op unsubscribe instead of crashing.
+  `Scene3D.tsx` subscribes `() => setReport(surface.report())` in its mount effect (271) and unsubscribes in the
+  cleanup (305).
+- **Evidence.** 3 new pure cases in `scene3d.test.ts` (no-verbs host answers a no-op unsubscribe · a verbs host is
+  subscribed to exactly the three names with ONE shared listener and unsubscribed from all three with the same
+  identity · an emitted `componentAdded` actually fires the listener) and 5 in `scene3dSurface.test.ts` on the
+  REAL headless runtime (add fires it · removed and stateChanged call it too · the re-read report MOVES with a
+  registry change made behind the surface's back, which is the user-visible claim · unsubscribe stops the calls
+  and is idempotent · two watchers both hear and each unsubscribe drops only its own). Studio **415/415**
+  (31 files; 407 → +8), Studio `tsc` exit 0; three-runtime **490/490** UNCHANGED, because this grant touches no
+  runtime source.
+- **Arms.** A1 dropping `componentStateChanged` from the list → red on EXACTLY the 2 cases that count the
+  subscription set and the all-three sequence (2 failed | 99 passed). A2 neutering the unsubscribe (`return
+  () => {}` after the subscriptions) → red on 3: the two predicted PLUS the two-watchers case the prediction had
+  missed, because with no removal watcher A kept hearing after `unwatchA()` and the tally came back `{a: 2, b:
+  2}` — the miss is recorded as a miss in the choosing, not a hole in the code. A3 deleting the verbs-presence
+  guard → red on EXACTLY the no-verbs case, which then crashes on `runtime.addEventListener` being undefined
+  (1 failed | 100 passed). All arms restored; the shipped body re-verified from disk before the suites, and the
+  two watch files alone ran 101/101 after restoration.
+- **Bounds (§60).** The watch covers the COMPONENT family only — the runtime's other ~55 names
+  (`entityCreated`, `entityRemoved`, `sceneCreated`, save-file and cinematic reports, the frame tick) still had
+  no Studio subscriber, so a body added by console did not move the panel. `setEntityName`/`setEntityVisible`
+  (v197) emitted NOTHING at all, and closing that needed an emit added to the RUNTIME, not a subscription —
+  amendment 211 did the emit, 212 the listener. The subscription lives in the mount effect with empty deps and
+  reads the captured `surface`, matching the pull pattern of the rAF loop it joins. And one bound this grant
+  should have named and did not: nothing in the suite read `Scene3D.tsx` for the wiring it had just shipped —
+  the verb was tested, the component that installs it was not. amendment 212 found and closed that.
+
+### Amendment 211 (v211, three-runtime) — the two silent entity verbs get voices, and the grant found a witness defect in its own tests
+
+_Numbering: 211, named by `7e9aa30`._
+
+- **What the census proved.** v210's bounds named the door. The component family announced its three write verbs;
+  the two v197 entity verbs changed the registry and said nothing — every reader (the report, `pickAt`, the save)
+  saw a new name only because it happened to re-read. `setEntityName` (`threeRuntime.ts:1470`) now emits
+  `entityRenamed { sceneId, entityId, name }` at 1482 and `setEntityVisible` (1498) emits
+  `entityVisibilityChanged { sceneId, entityId, visible }` at 1507 — AFTER the registry mutation, and for
+  visibility AFTER both records move (`entity.visible` and `threeObject.visible`, the v197 two-record rule; the
+  comment at 1506): the announcement may not arrive while the records disagree. A refusal emits nothing — news of
+  a change that did not happen is a lie on the bus.
+- **The headline finding is about the tests, not the code.** The first draft of the two ordering cases asserted
+  INSIDE the listener. `emit()` try/CATCHES every listener and only logs the swallowed error, so the D2 arm
+  (moving the emit BEFORE the mutation) ran the whole file GREEN — a listener-side `expect` is an assertion whose
+  failure the runtime eats. Both cases now RECORD what the listener observed and assert OUTSIDE, and the same rule
+  is written into the shipped comment at the rename emit site so the next listener-based witness does not repeat
+  it. Re-running D2 after the fix reddened exactly the case it should.
+- **Evidence.** `test/entityEvents.test.ts` — 8 cases: rename payload exact · rename ordering (the listener reads
+  the REGISTRY at emit time, not the payload) · refused renames silent (blank, non-string, unknown entity,
+  unknown scene) · visibility emits on both legs, hide and show · visibility ordering (both records already agree
+  at emit time) · refused visibility changes silent (non-boolean `0` and `'true'`, unknown owners) · the two names
+  do not cross · `removeEventListener` silences the verb. three-runtime **498/498** (19 files; 490 → +8), dist
+  rebuilt BEFORE the suite so the v198 gate judged the shipped package, build exit 0; Studio **415/415** against
+  the rebuilt package, unchanged — v210's watch still counts exactly its three names, untouched by the two new
+  emissions.
+- **Arms.** D1a deleting the rename emission → red on EXACTLY the 4 cases that hear it (payload, ordering,
+  no-cross, removeEventListener; 4 failed | 4 passed). D1b deleting the visibility emission → EXACTLY its 3
+  (both-legs, ordering, no-cross; 3 failed | 5 passed). D2 rename emit moved before `entity.name = name` → EXACTLY
+  the ordering case (`['Test Entity']` where the registry should already say `Villain`) — after the witness fix;
+  before it, falsely green. D2b visibility emit moved before both record writes → EXACTLY its ordering case
+  (`[[true, true]]` at emit time). D3 hoisting the rename emit above every guard, announcing refusals too, was
+  predicted to redden only the silent-refusals case and reddened FIVE: with the guard-position emit kept, the
+  success path emits TWICE, so payload, ordering, no-cross and removeEventListener joined it. The extra reds are
+  legitimate captures of a strictly larger mutation than the one predicted — the miss was in choosing the arm, not
+  in the code. All arms restored; the shipped emissions re-verified from disk at 1482/1507 before the suites.
+- **Bounds (§60).** The payloads carry the SCENE the verb was asked about, same shape as the component family's.
+  The Studio side did not yet SUBSCRIBE to these two names — v210's list was still exactly three, and joining the
+  pair was a separate grant (amendment 212). `setLightState` and `removeEntity` already emitted; the remaining
+  silent registry verbs were censused from the same `this.emit(` walk.
+
+### Amendment 212 (v212, studio) — the surface watches the entity pair, and the component's wiring gets its first reader
+
+_Numbering: 212, named by `f81aa4e`. It is the newest grant of the seven; the §7 door requires a record TITLE for
+the newest, and the headings above exist so that door has something to read._
+
+- **Why the emit alone was not enough.** v211's bounds: "the Studio side does not yet SUBSCRIBE to the two entity
+  names." So the runtime could announce a rename made by anyone — console, agent, another panel — and the Studio
+  would keep showing the replaced name until something else happened to re-read. News on a bus with no listener
+  is the same silence.
+- **What landed.** `SceneSurface.watchEntities(listener): () => void` (declared
+  `apps/studio/src/lib/scene3d.ts:833`, implemented 1005-1012): one listener joined to exactly `entityRenamed`
+  and `entityVisibilityChanged`, an idempotent unsubscribe that drops both, and the same host-honest guard as its
+  sibling. `Scene3D.tsx` subscribes BOTH legs in the mount effect (271 components, 274 entities), each with the
+  same pull the rAF loop uses, and leaves both in the cleanup (305, 306).
+- **A deliberate design choice, recorded because it changes what the witnesses may claim.** This is a SEPARATE
+  verb, not a fifth name inside `watchComponents`: v210's witnesses pin that subscription to EXACTLY three names,
+  and widening it there would have made those pins lie about a promise they no longer describe. Arm A4 tests the
+  REFUSED shape instead of merely asserting that it was refused.
+- **Evidence (10 new cases).** `scene3d.test.ts` 77 → 81: no-verbs host answers a no-op unsubscribe · the joined
+  set is exactly the two names with ONE shared listener (identity, because the runtime unsubscribes by `indexOf`)
+  · the two legs join DISJOINT name sets · an `entityVisibilityChanged` fires the entity watcher and no component
+  watcher. `scene3dSurface.test.ts` 24 → 29, against the shipped package with every write going through the
+  RUNTIME and none through the surface: a rename re-reads to `Villain` at emit time (v211's ordering rule, now
+  consumed from the SUBSCRIBER side) · a hide then a show re-reads `visible` false→true · component events do not
+  move the entity watcher and vice versa · a refused write (blank name, non-boolean `'true'`, unknown entity)
+  calls the watcher ZERO times and the case then lands a REAL rename to prove the silence was the refusal's and
+  not a dead watch's · the unsubscribe drops the leg.
+- **The wiring got its first reader.** Grepping the suite found that NOTHING read `Scene3D.tsx` for the watch —
+  v210's subscription shipped with no test of the component that installs it, only of the verb (the hole its own
+  bounds should have named). `surface.test.ts`, which already grades this component's wiring from source, gained
+  one case (15 → 16): the joined names in mount order must be exactly `['watchComponents','watchEntities']`, the
+  leaves exactly `['unwatchComponents','unwatchEntities']`, and the count of `=> setReport(surface.report())`
+  pulls must EQUAL the count of joined legs — DERIVED from the file rather than hand-typed, so a leg subscribed
+  by some other expression is the red rather than a number to widen.
+- **Arms.** A1 `entityVisibilityChanged` dropped from the watched set: predicted 5 reds, got 5, names identical
+  (both DISJOINT pins, the pure emit case, the surface hide-legs case, the surface news-crossing case). A2 the
+  host-honest guard deleted: predicted 1, got 1 (the no-verbs case). A3 a per-event wrapper instead of one shared
+  listener: predicted 2, got 2 — the identity pin and the unsubscribe case, exactly the failure mode a wrapper
+  creates, since `indexOf` never finds a fresh arrow and an "unsubscribed" watcher keeps firing. A4 the REFUSED
+  design, `watchEntities` joined to all five names: first predicted 3, re-predicted 4 before the run because the
+  exact-set case counts the joined names too; got 4. A5 `unwatchEntities()` deleted from the cleanup: predicted
+  1, got 1 — the new source pin, the suite's only reader of the wiring, and A5 is what proves that pin is not
+  decorative. 13 reds across 5 arms, 13 attributed, 0 unexplained; every arm restored byte-identical and
+  re-verified before the suites.
+- **Measured** on 2026-10-09: Studio `tsc` exit 0, Studio suite **425/425** (31 files; 415 → +10). No
+  three-runtime source was touched, so no rebuild was needed and its suite re-ran at **498/498** (19 files)
+  against the package v211 shipped.
+- **Bounds (§60).** The source pin grades TEXT, not behaviour: it cannot see that the subscription lives in the
+  mount effect with empty deps, and an `unwatchEntities()` placed anywhere in the file satisfies it — closing
+  that needs a React render harness, not a stronger regex. `entityCreated`/`entityRemoved` still have no
+  subscriber (a body added by console does not move the panel), and the component `data` bag is still unread by
+  the inspector.
+
 ### Amendment 213 (v213, agents/runtime) — the type-gate coverage, package 5 of 6: 48 errors, and a mock that satisfied its interface in six of eight suites
 
 _Numbering: 213 was free (`grep -ao "^### Amendment 2[0-9][0-9]"` topped out at 205). Item 15 of the priority
