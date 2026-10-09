@@ -9133,3 +9133,43 @@ than it was found._
 - **Bounds (§60).** This closes exec-host's TESTS being unread, not the package's behaviour — no runtime code
   changed. `SpawnLike` is now imported from the package that owns it, which is a correction, not a new export:
   whether the RUNTIME should also export a spawn seam is a question nothing here answers.
+
+### Amendment 213 (v213, agents/runtime) — the type-gate coverage, package 5 of 6: 48 errors, and a mock that satisfied its interface in six of eight suites
+
+_Numbering: 213 was free (`grep -ao "^### Amendment 2[0-9][0-9]"` topped out at 205). Item 15 of the priority
+queue; the third increment of the v204 repair, one package at a time so the tree is never left worse than it was
+found. Gate: **48 → 0**, suite **540/540** in 36 files._
+
+- **The dominant defect was ONE root cause with ~24 call sites.** `FsWriteLike` extends `FsLike`, which requires
+  `readdirSync` and `statSync` — and **six of the eight suites that define their own `MemDisk` mock had
+  neither.** Nothing on those paths reads a directory or stats a file, so every suite stayed green while the
+  mock was incomplete against the interface it is passed to. (The eight mocks have also drifted APART: two
+  implement the methods, with different behaviour — `memory.test.ts` answers an empty listing, `pipeline.test.ts`
+  answers a real one. Same name, different disk.)
+- **The completion THROWS rather than answering an empty listing.** A mock that reports "no entries" for a disk
+  that has entries is exactly the kind of lie a future test would pass against; throwing means the first test
+  that needs the capability fails loudly and says why. (This half landed ahead of the gate, as `715a312`.)
+- **`toEqual` takes ONE argument, four more times.** `expect(h.actions).toEqual([...], 'the read ran BEFORE the
+  write it informs')` — the sentence the author wrote to explain a failure could never appear. Moved to
+  `expect(h.actions, '…')`, which is where this runner takes a message. The same shape was found twice in
+  exec-host (amendment 205), so it is a habit rather than a one-off.
+- **`PlannerOptions.hasVerify` is REQUIRED, and three cases expressed "no verify tier" by OMITTING it.** The
+  planner reads it as a truthy check, so absent behaved as false and the tests passed — but "the host did not
+  say" and "the host said no" are different statements, and the field is required precisely because the host is
+  supposed to say. The cases now pass `hasVerify: false`, which is what they always meant.
+- **Two unions read optimistically, and one optional field depended on without saying so.** `chain.test.ts` did
+  `expect(arc.arc).toEqual(res.release)` where `ChainResult` is a union and `release` is OPTIONAL even on the
+  green branch; `pipeline.test.ts` read `res.editorOutcome` off `PipelineResult` the same way. Both now narrow
+  with `if (!res.ok) throw …`, and the chain additionally asserts `res.release` is defined — the durable walk
+  was asked for, so its presence is a claim the test should make.
+- **`TestRunner.run` is declared `TestReport | Promise<TestReport>`; one test read `.ok` off the union.** It is
+  sync in that implementation, so it passed — but the declaration allows a promise, and a promise's `.ok` is
+  `undefined`. The test now awaits, which is true either way.
+- **Two smaller ones.** A `res.output` cast omitted `report.detail` while the very next line read it; and the UI
+  fixture's `PAGE` was an untyped literal, so `PAGE[i].label` was both an implicit-any and a
+  possibly-undefined access, and `{ kind: string; label: string }[]` was not `UiElement[]`.
+- **Evidence.** `tsc -p agents/runtime/tsconfig.test.json` **0**; `vitest run --root agents/runtime` **540/540**
+  in 36 files. Still open and named in the plan: `three-runtime 118`.
+- **Bounds (§60).** No runtime source changed — this closes the package's TESTS being unread. The `MemDisk`
+  duplication (eight copies, two behaviours) is now VISIBLE and still there: consolidating them into one helper
+  is a real piece of work, and doing it inside a gate repair would have changed what several suites mean.

@@ -109,7 +109,7 @@ describe('registerTestTools + predicateRunner (the tool the §63 loop verifies w
     const { registry } = build([pass('a'), failWith('b', 'broken')], new InMemoryWorkspace(FILES));
     const res = await registry.invoke({ callId: 'c2', tool: 'test.run', args: {} }, { checkpoint: () => true });
     expect(res.ok).toBe(true);
-    const out = res.output as { ok: boolean; detail: string; report: { engine: string; failures: unknown[] } };
+    const out = res.output as { ok: boolean; detail: string; report: { engine: string; detail: string; failures: unknown[] } };
     expect(out.ok).toBe(false);
     expect(out.report.engine).toBe('in-process-predicates');
     expect(out.report.failures).toEqual([{ name: 'b', message: 'broken' }]);
@@ -123,12 +123,12 @@ describe('registerTestTools + predicateRunner (the tool the §63 loop verifies w
     expect(res.error).toContain('no test predicate named "ghost"');
   });
 
-  it('the runner reads files LAZILY: a later write changes the next verdict, no re-registration', () => {
+  it('the runner reads files LAZILY: a later write changes the next verdict, no re-registration', async () => {
     const ws = new InMemoryWorkspace({ 'docs/a.md': 'plain' });
     const runner = predicateRunner('e', [{ name: 'has-marker', check: (f) => (f['docs/a.md']?.includes('MARKER') ? null : 'no MARKER yet') }], () => ws.snapshot());
-    expect(runner.run().ok).toBe(false);
+    expect((await runner.run()).ok).toBe(false);
     ws.write('docs/a.md', 'plain + MARKER');
-    expect(runner.run().ok).toBe(true);
+    expect((await runner.run()).ok).toBe(true);
   });
 });
 

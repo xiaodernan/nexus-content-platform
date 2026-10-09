@@ -3,7 +3,7 @@ import { ToolRegistry, type Checkpoint } from '../src/registry.js';
 import { InMemoryWorkspace, registerWorkspaceTools } from '../src/workspace.js';
 import { goalKeyword, planTask } from '../src/planner.js';
 import { runTask } from '../src/orchestrator.js';
-import { registerUiTools } from '../src/domkit.js';
+import { registerUiTools, type UiElement } from '../src/domkit.js';
 import { MemoryStore, registerMemoryTools } from '../src/memory.js';
 import type { AgentTask } from '../src/types.js';
 
@@ -80,7 +80,7 @@ describe('planner: deterministic templates', () => {
     for (const opts of [
       { hasVerify: true, hasCommit: true, hasRemember: true }, // no confirm tier
       { hasVerify: true, hasRemember: true }, // no commit tier
-      { hasRemember: true }, // no verify → nothing green to remember
+      { hasVerify: false, hasRemember: true }, // no verify → nothing green to remember
     ]) {
       expect(planTask({ id: 't', goal: 'add widget docs' }, opts).steps.map((s) => s.tool)).not.toContain('memory.save');
     }
@@ -99,7 +99,7 @@ describe('planner: deterministic templates', () => {
     for (const opts of [
       { hasVerify: true, hasCommit: true, hasContent: true }, // no confirm tier
       { hasVerify: true, hasContent: true }, // no commit tier
-      { hasContent: true }, // no verify → nothing green to read back
+      { hasVerify: false, hasContent: true }, // no verify → nothing green to read back
     ]) {
       expect(planTask({ id: 't', goal: 'add widget docs' }, opts).steps.map((s) => s.tool)).not.toContain('git.show');
     }
@@ -119,7 +119,7 @@ describe('planner: deterministic templates', () => {
     const everything = planTask({ id: 't', goal: 'add widget docs' }, { hasVerify: true, hasCommit: true, hasStaged: true, hasConfirm: true, hasContent: true, hasRemember: true });
     expect(everything.steps.map((s) => s.stepId)).toEqual(['search', 'read', 'annotate', 'verify', 'staged', 'commit', 'confirm', 'inspect', 'remember']);
     // pull the commit and the read vanishes with it — nobody is asked what nobody will record
-    for (const o of [{ hasVerify: true, hasStaged: true }, { hasStaged: true }, { hasCommit: true, hasStaged: true }]) {
+    for (const o of [{ hasVerify: true, hasStaged: true }, { hasVerify: false, hasStaged: true }, { hasVerify: false, hasCommit: true, hasStaged: true }]) {
       expect(planTask({ id: 't', goal: 'add widget docs' }, o).steps.map((s) => s.tool)).not.toContain('git.staged');
     }
     // hosts without the door keep the v44 face byte-for-byte
@@ -137,7 +137,7 @@ describe('orchestrator: golden path', () => {
     expect(out.provenance).toEqual({ mode: 'demo', runtime: 'nexus-agent-runtime', version: '0.1.0' });
     expect(out.results.every((r) => r.ok)).toBe(true);
     // @ref dataflow resolved the read target from the live search hit
-    expect(out.results[1].callId).toBe('t1:read');
+    expect(out.results[1]!.callId).toBe('t1:read');
     const readCall = out.plan.steps[1]!.args.path;
     expect(readCall).toBe('@search.hits.0.path');
     expect(h.ws.read('docs/a.md')).toContain(`NOTE (DEMO MODE · agent t1 · seed ${out.plan.seed})`);
@@ -658,7 +658,7 @@ describe('orchestrator: the index is read BEFORE the write is asked (v45)', () =
     const out = await runTask(h.task, h);
     expect(out.status).toBe('completed');
     expect(out.plan.steps.map((s) => s.stepId)).toEqual(['search', 'read', 'annotate', 'verify', 'staged', 'commit', 'confirm']);
-    expect(h.actions).toEqual(['staged:false', 'commit', 'log'], 'the read ran BEFORE the write it informs');
+    expect(h.actions, 'the read ran BEFORE the write it informs').toEqual(['staged:false', 'commit', 'log']);
     expect(out.results.map((r) => r.callId)).toEqual(['t1:search', 't1:read', 't1:annotate', 't1:verify', 't1:staged', 't1:commit', 't1:confirm']);
     expect(out.results.at(-3)!.tool).toBe('git.staged');
     expect((out.results.at(-3)!.output as { paths: string[] }).paths).toEqual(['docs/a.md']);
@@ -674,7 +674,7 @@ describe('orchestrator: the index is read BEFORE the write is asked (v45)', () =
     const h = intentHarness(noteTest, ({ call }) => call.tool !== 'git.staged');
     const out = await runTask(h.task, h);
     expect(out.status).toBe('denied');
-    expect(h.actions).toEqual([], 'the commit was never even asked: the plan reads before it records');
+    expect(h.actions, 'the commit was never even asked: the plan reads before it records').toEqual([]);
     expect(out.results.at(-1)!.error).toContain('denied at checkpoint');
     expect(out.results.at(-2)!.tool).toBe('test.run');
     expect(h.ws.read('docs/a.md')).toContain('NOTE (DEMO'); // the earlier work still stands
@@ -689,7 +689,7 @@ describe('orchestrator: the index is read BEFORE the write is asked (v45)', () =
     }));
     const out = await runTask(h.task, h);
     expect(out.status).toBe('completed');
-    expect(h.actions).toEqual(['staged:false', 'commit', 'log'], 'the demo planner has no conditional: the read INFORMS the human at the gate, it does not branch the plan');
+    expect(h.actions, 'the demo planner has no conditional: the read INFORMS the human at the gate, it does not branch the plan').toEqual(['staged:false', 'commit', 'log']);
     expect((out.results.at(-3)!.output as { detail: string }).detail).toContain('index is EMPTY');
   });
 
@@ -700,7 +700,7 @@ describe('orchestrator: the index is read BEFORE the write is asked (v45)', () =
     const out = await runTask(h.task, h);
     expect(out.status).toBe('failed_verification');
     expect(out.results.at(-1)!.error).toContain('policy refused');
-    expect(h.actions).toEqual(['staged:false'], 'the commit and the confirm never ran');
+    expect(h.actions, 'the commit and the confirm never ran').toEqual(['staged:false']);
   });
 
   it('a run that never verifies green NEVER reads the index', async () => {
@@ -712,18 +712,18 @@ describe('orchestrator: the index is read BEFORE the write is asked (v45)', () =
 });
 
 describe('runTask drives the UI plan (v20)', () => {
-  const PAGE = [
+  const PAGE: UiElement[] = [
     { kind: 'input', label: 'analytics dashboard' },
     { kind: 'button', label: 'Compose' },
   ];
   function driver() {
-    const calls = [];
-    const reg = registerUiTools(new ToolRegistry(), { elements: () => PAGE, click: (i) => { calls.push(`click:${PAGE[i].label}`); return calls.join('|'); }, type: (i, t) => { calls.push(`type:${PAGE[i].label}=${t}`); return calls.join('|'); } });
+    const calls: string[] = [];
+    const reg = registerUiTools(new ToolRegistry(), { elements: () => PAGE, click: (i) => { calls.push(`click:${PAGE[i]!.label}`); return calls.join('|'); }, type: (i, t) => { calls.push(`type:${PAGE[i]!.label}=${t}`); return calls.join('|'); } });
     return { reg, calls };
   }
   it('plans observe→type→click and executes with per-step checkpoints', async () => {
     const { reg, calls } = driver();
-    const asked = [];
+    const asked: string[] = [];
     const out = await runTask({ id: 'ui-1', goal: 'an analytics dashboard' }, {
       registry: reg,
       checkpoint: async ({ call }) => { asked.push(call.tool); return call.tool !== 'ui.click' || true; },

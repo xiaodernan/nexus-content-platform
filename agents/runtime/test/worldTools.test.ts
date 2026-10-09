@@ -199,7 +199,7 @@ describe('world tools — refusals that name the fact', () => {
     const locationId = (loc.output as { locationId: string }).locationId;
     const r = await invoke('world.character.add', { name: 'Mira', description: 'a scout', archetype: 'rogue', locationId });
     expect(r.ok).toBe(true);
-    expect(characters[0].locationId).toBe(locationId); // the ID was used, not the name
+    expect(characters[0]!.locationId).toBe(locationId); // the ID was used, not the name
   });
 
   it('a query limit that is not a finite positive number is refused', async () => {
@@ -254,7 +254,7 @@ describe('world tools — what a door answers', () => {
     expect(r.ok).toBe(true);
     const out = r.output as { hits: { title: string }[]; totalHits: number };
     expect(out.hits).toHaveLength(1); // the limit was honoured by the driver
-    expect(out.hits[0].title).toBe('The Sundering');
+    expect(out.hits[0]!.title).toBe('The Sundering');
     expect(calls).toContain('query:sundering:1');
   });
 

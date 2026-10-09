@@ -129,6 +129,8 @@ describe('runRolePipeline run-line receipts (v54)', () => {
     const h = host();
     const res = await runRolePipeline(task, { roles: h.roles, registry: h.registry, store: h.store, checkpoint: policy(), fsLike: disk, ledgerFile: 'state/ledger.jsonl' });
     expect(res.ok).toBe(true);
+    // `PipelineResult` is a union; the green branch is narrowed rather than read optimistically (v213).
+    if (!res.ok) throw new Error(`expected a green pipeline, got: ${res.reason}`);
     const read = loadLedger(disk, 'state/ledger.jsonl');
     expect(read.malformed).toBe(0);
     expect(read.runs[0]).toEqual(res.editorOutcome); // the line in the file IS the outcome handed back

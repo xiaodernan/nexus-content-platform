@@ -76,20 +76,20 @@ describe('auditGateHistory — divergences', () => {
     const audit = auditGateHistory(permissive, [human('git.commit', false)]);
     expect(audit.divergences).toHaveLength(1);
     expect(audit.divergences[0]).toMatchObject({ tool: 'git.commit', human: false, policy: true, matched: 'git.commit', kind: 'too-permissive' });
-    expect(audit.divergences[0].reason).toBe('we trust the agent here');
+    expect(audit.divergences[0]!.reason).toBe('we trust the agent here');
   });
 
   it('records the exact index, the matched pattern and the table’s own reason', () => {
     const audit = auditGateHistory(openPolicy, [human('fs.read', true), human('git.commit', true), human('fs.read', true)]);
     expect(audit.divergences.map((d) => d.index)).toEqual([1]);
-    expect(audit.divergences[0].matched).toBe('git.commit');
-    expect(audit.divergences[0].reason).toBe('committing is a human act (v35)');
+    expect(audit.divergences[0]!.matched).toBe('git.commit');
+    expect(audit.divergences[0]!.reason).toBe('committing is a human act (v35)');
   });
 
   it('names the DEFAULT row when no rule spoke', () => {
     const audit = auditGateHistory(openPolicy, [human('net.fetch', true)]);
     expect(audit.divergences[0]).toMatchObject({ matched: 'default', kind: 'too-strict', tool: 'net.fetch' });
-    expect(audit.divergences[0].reason).toBe('unlisted capabilities default-deny');
+    expect(audit.divergences[0]!.reason).toBe('unlisted capabilities default-deny');
   });
 
   it('a wildcard rule that grants everything shows up as one too-permissive per vetoed call', () => {
@@ -175,7 +175,7 @@ describe('bridging real v40 receipts into an audit', () => {
       { tool: 'fs.read', granted: true, by: 'policy', reason: 'reading the workspace is the agent’s job' },
       { tool: 'git.commit', granted: false, by: 'policy', reason: 'committing is a human act (v35)' },
     ]);
-    expect(recordFromDecision(cp.decisions[0])).toEqual(records[0]);
+    expect(recordFromDecision(cp.decisions[0]!)).toEqual(records[0]);
 
     // Those records are then SKIPPED by the audit, not mistaken for human agreement.
     const audit = auditGateHistory(openPolicy, records);

@@ -289,7 +289,7 @@ describe('asset tools — refusals that name the fact', () => {
   it('and IS filed when the asset exists', async () => {
     const { invoke, storyboards } = wired();
     const gen = await invoke('asset.image.generate', { prompt: 'a quiet harbour' });
-    const assetId = (gen.output as { assets: { assetId: string }[] }).assets[0].assetId;
+    const assetId = (gen.output as { assets: { assetId: string }[] }).assets[0]!.assetId;
     const sb = await invoke('asset.storyboard.create', { name: 'Shot list' });
     const storyboardId = (sb.output as { storyboardId: string }).storyboardId;
 
@@ -346,7 +346,7 @@ describe('asset tools — what a door answers', () => {
   it('inspect answers one asset’s metadata', async () => {
     const { invoke } = wired();
     const gen = await invoke('asset.image.generate', { prompt: 'a quiet harbour' });
-    const assetId = (gen.output as { assets: { assetId: string }[] }).assets[0].assetId;
+    const assetId = (gen.output as { assets: { assetId: string }[] }).assets[0]!.assetId;
     const r = await invoke('asset.inspect', { assetId });
     expect(r.ok).toBe(true);
     expect(r.output).toMatchObject({ id: assetId, type: 'image', source: 'generated', prompt: 'a quiet harbour' });
@@ -417,8 +417,8 @@ describe('asset tools — the deeper doors (M3 v160)', () => {
     expect(r.ok).toBe(true);
     expect(r.output).toMatchObject({ engine: 'fake-assets', provenance: { mode: 'demo' }, model: 'demo-video-model' });
     const assets = (r.output as { assets: { type: string; mimeType: string }[] }).assets;
-    expect(assets[0].type).toBe('video'); // the GENERATOR's word, not a label this door stamped
-    expect(assets[0].mimeType).toBe('video/mp4');
+    expect(assets[0]!.type).toBe('video'); // the GENERATOR's word, not a label this door stamped
+    expect(assets[0]!.mimeType).toBe('video/mp4');
     expect(calls).toContain('generateVideo:a skiff crossing:1');
   });
 
@@ -442,7 +442,7 @@ describe('asset tools — the deeper doors (M3 v160)', () => {
     expect(r.ok).toBe(true);
     expect(calls).toContain('searchAssets:harbour:3');
     expect((r.output as { count: number }).count).toBe(1);
-    expect((r.output as { assets: { prompt: string }[] }).assets[0].prompt).toBe('a quiet harbour');
+    expect((r.output as { assets: { prompt: string }[] }).assets[0]!.prompt).toBe('a quiet harbour');
   });
 
   it('asset.search defaults to a limit of 10 and refuses a bad one', async () => {
@@ -455,7 +455,7 @@ describe('asset tools — the deeper doors (M3 v160)', () => {
   it('asset.update changes the metadata the caller named, and reports the asset it now holds', async () => {
     const { invoke, assets } = wired();
     const gen = await invoke('asset.image.generate', { prompt: 'a quiet harbour' });
-    const assetId = (gen.output as { assets: { assetId: string }[] }).assets[0].assetId;
+    const assetId = (gen.output as { assets: { assetId: string }[] }).assets[0]!.assetId;
 
     const r = await invoke('asset.update', { assetId, name: 'Harbour, renamed', tags: 'final, dusk' });
     expect(r.ok).toBe(true);
@@ -469,7 +469,7 @@ describe('asset tools — the deeper doors (M3 v160)', () => {
     // forwarded an empty patch would report a success that changed nothing. This is the rule.
     const { invoke, calls } = wired();
     const gen = await invoke('asset.image.generate', { prompt: 'a quiet harbour' });
-    const assetId = (gen.output as { assets: { assetId: string }[] }).assets[0].assetId;
+    const assetId = (gen.output as { assets: { assetId: string }[] }).assets[0]!.assetId;
     const before = calls.length;
 
     const r = await invoke('asset.update', { assetId });
@@ -488,7 +488,7 @@ describe('asset tools — the deeper doors (M3 v160)', () => {
   it('asset.delete removes by id, and answers false for one the library does not hold', async () => {
     const { invoke, assets } = wired();
     const gen = await invoke('asset.image.generate', { prompt: 'a quiet harbour' });
-    const assetId = (gen.output as { assets: { assetId: string }[] }).assets[0].assetId;
+    const assetId = (gen.output as { assets: { assetId: string }[] }).assets[0]!.assetId;
 
     const gone = await invoke('asset.delete', { assetId });
     expect(gone.ok).toBe(true);

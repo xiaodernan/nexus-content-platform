@@ -121,7 +121,7 @@ function fakeDriver(over: Partial<SceneDriver> = {}) {
       }
       for (const [id, snapshot] of file.entities) {
         const record = snapshot as { id: string; name: string };
-        scene.entities.push({ id, spec: { id, name: record.name, kind: 'mesh' } });
+        scene.entities.push({ id, spec: { name: record.name, kind: 'mesh' } });
       }
       return {
         sceneId,

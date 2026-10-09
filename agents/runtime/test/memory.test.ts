@@ -151,7 +151,7 @@ describe('vector-backed recall (v19)', () => {
     const registry = registerMemoryTools(new ToolRegistry(), store, { vectorsFile: 'vectors.json', fsLike: disk });
     const viaVectors = await registry.invoke({ callId: 'c1', tool: 'memory.recall', args: { query: 'embed tokens' } }, {});
     expect((viaVectors.output as { engine: string }).engine).toBe('vectors');
-    expect(((viaVectors.output as { hits: { path: string }[] }).hits)[0].path).toBe('embedding.ts');
+    expect(((viaVectors.output as { hits: { path: string }[] }).hits)[0]!.path).toBe('embedding.ts');
     const noFile = registerMemoryTools(new ToolRegistry(), new MemoryStore(), { vectorsFile: 'gone.json', fsLike: disk });
     const inline = await noFile.invoke({ callId: 'c2', tool: 'memory.recall', args: { query: 'anything at all' } }, {});
     expect((inline.output as { engine: string }).engine).toBe('inline');

@@ -131,9 +131,9 @@ describe('runMultiAgentPipeline — the walk', () => {
     // researcher holds only fs.search, so the walk must reach for that door and use ITS argument.
     const c = chain();
     await runMultiAgentPipeline(task, ['researcher', 'editor'], c.opts);
-    expect(c.researchCalls[0].tool).toBe('fs.search');
-    expect(c.researchCalls[0].args).toEqual({ term: 'widget' }); // first word of the goal
-    expect(c.researchCalls[0].args).not.toHaveProperty('query'); // the defect's shape
+    expect(c.researchCalls[0]!.tool).toBe('fs.search');
+    expect(c.researchCalls[0]!.args).toEqual({ term: 'widget' }); // first word of the goal
+    expect(c.researchCalls[0]!.args).not.toHaveProperty('query'); // the defect's shape
   });
 
   it('an fs.index-holding agent gets {query} instead', async () => {
@@ -178,8 +178,8 @@ describe('runMultiAgentPipeline — the walk', () => {
     if (!res.ok) return;
     expect(res.stages).toHaveLength(2);
     // Edge 1 found a ref; edge 2 found none and carried it forward, saying so.
-    expect(res.stages[0].handoff.summary).toMatch(/Researcher found 1 ref\(s\) for Empty/);
-    const second = res.stages[1];
+    expect(res.stages[0]!.handoff.summary).toMatch(/Researcher found 1 ref\(s\) for Empty/);
+    const second = res.stages[1]!;
     expect(second.handoff.summary).toMatch(/Empty found nothing; 1 ref\(s\) carried from the previous handoff to Editor/);
     expect(second.handoff.refs).toEqual([{ path: 'docs/widget.md' }]);
   });
@@ -210,8 +210,8 @@ describe('runMultiAgentPipeline — what it records', () => {
     await runMultiAgentPipeline(task, ['researcher', 'editor', 'archivist'], c.opts);
     const records = c.memoryStore.list('multi-agent:ma-1');
     expect(records).toHaveLength(2);
-    expect(records[0].summary).toMatch(/Researcher found 1 ref\(s\) for Editor/);
-    expect(records[0].runId).toBe('ma-1');
+    expect(records[0]!.summary).toMatch(/Researcher found 1 ref\(s\) for Editor/);
+    expect(records[0]!.runId).toBe('ma-1');
   });
 
   it('writes the ledger and the evaluation when the host supplied files', async () => {
@@ -258,6 +258,6 @@ describe('runMultiAgentPipeline — what it records', () => {
     expect(res.ok).toBe(true);
     if (!res.ok) return;
     expect(res.stages).toHaveLength(1);
-    expect(res.stages[0].runner).toBe('editor');
+    expect(res.stages[0]!.runner).toBe('editor');
   });
 });

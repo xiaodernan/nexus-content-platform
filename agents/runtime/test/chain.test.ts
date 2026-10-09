@@ -363,6 +363,10 @@ describe('runRoleChain ledger records (v49)', () => {
     const disk = new MemDisk();
     const res = await runRoleChain(task, durableOptions(h, disk));
     expect(res.ok).toBe(true);
+    // `ChainResult` is a discriminated union and `release` is optional even on the green branch, so the
+    // narrowing and the presence check are both STATED rather than assumed (v213).
+    if (!res.ok) throw new Error(`expected a green chain, got ${res.stage}: ${res.reason}`);
+    expect(res.release).toBeDefined();
     expect(disk.readFileSync(LEDGER).trimEnd().split('\n')).toHaveLength(2);
     const { runs, arcs, malformed } = loadLedger(disk, LEDGER);
     expect(malformed).toBe(0);
@@ -413,6 +417,10 @@ describe('runRoleChain ledger records (v49)', () => {
     const disk = new MemDisk();
     const res = await runRoleChain(task, durableOptions(h, disk));
     expect(res.ok).toBe(true);
+    // `ChainResult` is a discriminated union and `release` is optional even on the green branch, so the
+    // narrowing and the presence check are both STATED rather than assumed (v213).
+    if (!res.ok) throw new Error(`expected a green chain, got ${res.stage}: ${res.reason}`);
+    expect(res.release).toBeDefined();
     if (!res.ok) return;
     const { arcs } = loadLedger(disk, LEDGER);
     expect(arcs).toHaveLength(1);
@@ -546,6 +554,10 @@ describe('runRoleChain arc receipts on the ledger (v50)', () => {
     const disk = new MemDisk();
     const res = await runRoleChain(task, durableOptions(h, disk));
     expect(res.ok).toBe(true);
+    // `ChainResult` is a discriminated union and `release` is optional even on the green branch, so the
+    // narrowing and the presence check are both STATED rather than assumed (v213).
+    if (!res.ok) throw new Error(`expected a green chain, got ${res.stage}: ${res.reason}`);
+    expect(res.release).toBeDefined();
     const durable = loadLedger(disk, LEDGER).arcs[0]!.arc;
     expect(durable.status).toBe('no-arc');
     // An empty receipt list with zero asks is the truth, so no note is owed beside it.
@@ -648,6 +660,10 @@ describe('runRoleChain run-line receipts (v54)', () => {
     const disk = new MemDisk();
     const res = await runRoleChain(task, durableOptions(h, disk));
     expect(res.ok).toBe(true);
+    // `ChainResult` is a discriminated union and `release` is optional even on the green branch, so the
+    // narrowing and the presence check are both STATED rather than assumed (v213).
+    if (!res.ok) throw new Error(`expected a green chain, got ${res.stage}: ${res.reason}`);
+    expect(res.release).toBeDefined();
     if (!res.ok) return;
     const { runs, arcs } = loadLedger(disk, LEDGER);
     expect(runs[0]!.decisions).toEqual([]);
