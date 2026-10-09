@@ -1,12 +1,19 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
-import type { RealtimeEvent } from '@nexus/schemas';
+import { APPROVAL_TTL_MS, type RealtimeEvent } from '@nexus/schemas';
 import { eq } from 'drizzle-orm';
 import { createProject } from '../src/server/domain/projects';
 import { emit } from '../src/server/domain/notifications';
-import { finishTask, startTask } from '../src/server/domain/agent-tasks';
+import {
+  APPROVAL_EXPIRED_NOTE,
+  convergeExpiredApproval,
+  decideApproval,
+  finishTask,
+  holdForApproval,
+  startTask,
+} from '../src/server/domain/agent-tasks';
 import { channels, setRealtimeBus, type RealtimeBus } from '../src/server/realtime/bus';
 import { getDb } from '../src/server/db/client';
-import { notifications, projects, users } from '../src/server/db/schema';
+import { agentTasks, notifications, projects, users } from '../src/server/db/schema';
 
 /**
  * §163：真实流程有没有真的发出事件。
@@ -223,6 +230,102 @@ describe('生成任务 → 实时进度（§163）', () => {
   it('收尾一个不存在的任务：如实 updated=false，也不推事件', async () => {
     const result = await finishTask('00000000-0000-4000-8000-000000000000', { ok: true });
     expect(result.updated).toBe(false);
+    expect(captured).toEqual([]);
+  });
+});
+
+describe('任务落账的每一条状态写出都要出声（#10 账本实时）', () => {
+  // 这一组钉的是"**每个状态写入方各推一条**"这条不变量的后半截：
+  // startTask / finishTask / cancelTask 前面已测；挂起、裁决、过期作废三处以前一条都不推——
+  // 于是开着的任务列表永远等不到它们（库变了、界面不知道）。事件里不带行数据，
+  // 只是催客户端来重读（读侧契约在 lib/tasksLedger.ts，消费者是 TasksLedgerLive）。
+
+  function progressEvents(): Captured[] {
+    return captured.filter((c) => c.event.type === 'generation.progress');
+  }
+
+  async function startIn(projectId: string | null): Promise<string> {
+    const started = await startTask({ projectId, agentKey: 'design-agent', createdById: owner, capability: 'demo', input: { note: 'live-ledger' } });
+    return started.id;
+  }
+
+  it('挂起推一条（等审批），批准推一条（已批准）；决定过第二次一条都不推', async () => {
+    const projectId = await newProject('账本挂起与裁决');
+    const taskId = await startIn(projectId);
+    captured = [];
+
+    expect(await holdForApproval(taskId, { approvals: [], heldOpCount: 0 })).toBe(true);
+    let hits = progressEvents();
+    expect(hits).toHaveLength(1);
+    expect(hits[0]!.channel).toBe(channels.project(projectId));
+    const heldEvent = hits[0]!.event;
+    if (heldEvent.type !== 'generation.progress') throw new Error('类型已断言');
+    expect(heldEvent.message).toContain('等审批');
+    expect(heldEvent.taskId).toBe(taskId);
+
+    captured = [];
+    const approved = await decideApproval(taskId, owner, 'approve');
+    expect(approved.ok).toBe(true);
+    hits = progressEvents();
+    expect(hits).toHaveLength(1);
+    const approvedEvent = hits[0]!.event;
+    if (approvedEvent.type !== 'generation.progress') throw new Error('类型已断言');
+    expect(approvedEvent.message).toContain('已批准');
+
+    // 第二次决定：not_pending 早退，没有状态写出 → 没有理由让界面多来一次
+    captured = [];
+    const again = await decideApproval(taskId, owner, 'reject');
+    expect(again.ok).toBe(false);
+    expect(captured).toHaveLength(0);
+  });
+
+  it('放弃那条路也推（行落 cancelled，列表要能自己变）', async () => {
+    const projectId = await newProject('账本放弃');
+    const taskId = await startIn(projectId);
+    await holdForApproval(taskId, { approvals: [], heldOpCount: 0 });
+    captured = [];
+
+    const rejected = await decideApproval(taskId, owner, 'reject');
+    expect(rejected.ok).toBe(true);
+    if (!rejected.ok) throw new Error('上面已断言');
+    expect(rejected.status).toBe('cancelled');
+    const hits = progressEvents();
+    expect(hits).toHaveLength(1);
+    const event = hits[0]!.event;
+    if (event.type !== 'generation.progress') throw new Error('类型已断言');
+    expect(event.message).toContain('已放弃');
+  });
+
+  it('到期作废只有 CAS 赢家出声：推一条、措辞用同一个常量、第二次收敛零条', async () => {
+    const projectId = await newProject('账本过期');
+    const taskId = await startIn(projectId);
+    await holdForApproval(taskId, { approvals: [], heldOpCount: 0 });
+    // 挂起时刻拨到 TTL 之前：这个列只有 holdForApproval 一个写入方，测试直接改它等价于"挂了很久"
+    await getDb()
+      .update(agentTasks)
+      .set({ awaitingSince: new Date(Date.now() - APPROVAL_TTL_MS - 60_000) })
+      .where(eq(agentTasks.id, taskId));
+    captured = [];
+
+    expect(await convergeExpiredApproval(taskId)).toBe(true);
+    const hits = progressEvents();
+    expect(hits).toHaveLength(1);
+    expect(hits[0]!.channel).toBe(channels.project(projectId));
+    const event = hits[0]!.event;
+    if (event.type !== 'generation.progress') throw new Error('类型已断言');
+    // "过期那句话只有一个来源"这条纪律对实时事件同样成立
+    expect(event.message).toBe(APPROVAL_EXPIRED_NOTE);
+
+    // 输家那次收敛：既不推进度，也不再发通知（收件箱的 dedupe 挡着，实时这层同理）
+    captured = [];
+    expect(await convergeExpiredApproval(taskId)).toBe(false);
+    expect(captured).toHaveLength(0);
+  });
+
+  it('挂起一条没有项目的行：没有频道可发，一条都不推（与 start/finish 同口径）', async () => {
+    const taskId = await startIn(null);
+    captured = [];
+    expect(await holdForApproval(taskId, { approvals: [], heldOpCount: 0 })).toBe(true);
     expect(captured).toEqual([]);
   });
 });

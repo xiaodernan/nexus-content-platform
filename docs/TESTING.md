@@ -487,6 +487,22 @@ vitest 直接崩了而我却把 stdout 丢进了 `/dev/null`，于是"5 遍"其�
   且 DEMO 作业的两段等待刻意拉长到 2.2~3.4 秒——完成得比第一次轮询（1.5 秒）还快的话，
   观察会先把行落成 `awaiting_approval`，"受理在先"的语义就成了抢跑。
   **仍然没有测到**：真 provider 下的取消/重试端到端（要接上 key 的 ai-service + worker）。
+- #10 账本实时（2026-10-09）：每一条任务状态写出都发一条 `generation.progress`，账本页订阅重读。
+  `apps/web/test/realtime.integration.test.ts` 新 describe **4 条**（假 bus + 真库）：
+  挂起推一条「等审批：结果被扣下，等一次决定」（progress=1，与 finishTask 失败、cancelTask 同口径）；
+  裁决两分支各推一条「已批准…」/「已放弃…」且 `not_pending` 早退一条都不推；
+  过期收敛赢家在 `notifyApprovalExpired` 之后推 `APPROVAL_EXPIRED_NOTE`；
+  CAS 输家（`rows[0]` 为空）一条都不推这条钉死。新 `apps/web/test/tasks-ledger.test.ts` **11 条**
+  纯读契约（fetcher 可注入，不碰库不碰路由）：三条失败措辞（`HTTP 404` / `返回的报文不合契约` / error.message）、
+  走的是那条读接口且 `cache: 'no-store'`、`mine` 过契约、状态标签单源 `REALTIME_TEXT`。
+  新 `apps/web/test/tasks-ledger.integration.test.ts` **2 条**打真库：真行过 `TasksLedgerSchema`、
+  陌生人的行 `mine` 一律 false。探针各一次：摘掉组件里的 `schedule()` → e2e 红（账本停在
+  「还没有跑过一次」，等不到「在跑」）；摘掉 `holdForApproval` 的 `publishTaskProgress` → 集成测试红
+  （hits 0 ≠ 1）——两处 revert 后对照全绿。e2e `@smoke #10`（约 25 秒，与 §162 连跑绿）：
+  第二个标签页开 `/tasks/<projectId>` + 预热一次读 + 计数 + 提交异步 + 不刷新看见 `在跑`→`完成`
+  + 4 秒稳态 + 库里 succeeded 数与 DOM 对账 + 陌生人 404；截图 `screenshots/tasks-ledger-live.png`
+  （芯片 `实时：已连接`、摘要、一行 succeeded）。全量 vitest 137 个文件绿；`npm run lint` 绿。
+  **仍然没有测到**：`onReconnect` 的补读（重连本身没有探针）；真 provider 下的进度。
 - Agent 名册与 @提及（§112/§113 第一片 + §73 第一格）：三份 TS + 一份 Python。
   `agents.test.ts` 17 条**纯单测**（名册手写三份，不连库）——这里能测的都是解析规则本身：
   `@design` / `@Design Agent` / `design` / `" design "` 是同一个 key；`a@b.com` 与 `someone@design.com`

@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { useCallback, useEffect, useState } from 'react';
-import { useRealtime } from '@/lib/useRealtime';
+import { REALTIME_TEXT, useRealtime } from '@/lib/useRealtime';
 
 /**
  * §164 顶栏铃铛：只报"查到了没有"和"几条没读"。
@@ -78,13 +78,7 @@ export function NotificationBell() {
         通知<span data-notification-unread={unread}>{unread > 0 ? `（${unread} 条未读）` : `（${summary.total ?? 0} 条）`}</span>
       </Link>
       <span className="text-11 text-fg-3" data-realtime={realtime.state}>
-        {realtime.state === 'open'
-          ? '实时：已连接'
-          : realtime.state === 'connecting'
-            ? '实时：连接中'
-            : realtime.state === 'idle'
-              ? '实时：未开'
-              : '实时：已断开，以刷新后的数据为准'}
+        实时：{REALTIME_TEXT[realtime.state]}
       </span>
     </span>
   );

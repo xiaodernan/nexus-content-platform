@@ -6,7 +6,7 @@ import { AiJobObservationSchema, AiResponseSchema, AgentRosterSchema, APPROVAL_T
 import { ttlLabel } from '@/lib/notify-plan';
 import { cn } from '@/lib/cn';
 import { csrfHeaders } from '@/lib/csrf';
-import { useRealtime, type RealtimeState } from '@/lib/useRealtime';
+import { REALTIME_TEXT, useRealtime } from '@/lib/useRealtime';
 import { studio, toModelPatches, useStudioReady } from './store';
 
 const MODES: { id: ModelClass; label: string }[] = [
@@ -23,14 +23,6 @@ const EXAMPLES = [
   // §74：删除类动作的入口。点了它会拿到一份被服务端扣下的结果，而不是直接改动画布
   '删除 Hero 区块',
 ];
-
-/** §163：这条通道只是加速器，断开时要把"以库为准"说出口，别让人以为还在实时 */
-const REALTIME_TEXT: Record<RealtimeState, string> = {
-  idle: '未开',
-  connecting: '连接中',
-  open: '已连接',
-  closed: '已断开，以刷新后的数据为准',
-};
 
 /** §7 底部 AI 命令栏：输入 → Agent Plan → 执行 → Activity → 一次事务落地 → AI Diff → 可整体撤销 */
 export function CommandBar() {

@@ -3168,6 +3168,68 @@ test('@smoke §162 异步作业：DEMO 队列提交、过 §74 的门、取消�
   await page.screenshot({ path: 'screenshots/ai-task-retry.png' });
 });
 
+test('@smoke #10 账本实时：另一个标签页提交，任务列表不刷新也看见状态自己变', async ({ page }) => {
+  // 这一条的卖点与 §163 那两条一样是"没有 reload"，只是这次的读者是任务账本页：
+  // 它以前是纯服务端组件，库里变了界面上只能等 F5。现在第一屏仍是服务端给的，
+  // 之后靠 generation.progress 事件催一条 GET 重读权威（ADR-0010/0029：事件是加速器）。
+  // 它同时数请求而不是数定时器——重读是事件驱动的，轮询会让这个数一路涨。
+  test.setTimeout(300_000);
+  const projectId = await createProject(page, `账本实时${Date.now().toString(36)}`);
+  // 预热账本读接口：dev server 第一次命中这条动态路由要现场编译，那一两秒会把
+  // 第一次事件后的重读拖到终态之后（"在跑"那一眼就没了）
+  await page.request.get(`/api/projects/${projectId}/tasks`);
+
+  // 账本开在第二个标签页（同会话），先确认它挂上了实时连接再提交
+  const ledger = await page.context().newPage();
+  await ledger.goto(`/tasks/${projectId}`);
+  await expect(ledger.locator('[data-tasks-root]')).toBeVisible({ timeout: 30_000 });
+  await expect(ledger.locator('[data-tasks-empty]')).toBeVisible();
+  await expect(ledger.locator('[data-tasks-realtime="open"]')).toBeVisible({ timeout: 30_000 });
+
+  let ledgerCalls = 0;
+  ledger.on('request', (req) => {
+    if (req.url().endsWith(`/api/projects/${projectId}/tasks`)) ledgerCalls += 1;
+  });
+  const baseline = ledgerCalls;
+
+  // 第一个标签页把作业交给 DEMO 队列（良性指令：不过审批，终态是完成）
+  await page.check('[data-ai-async]');
+  await page.fill('[data-ai-input]', 'Make the hero 30% taller.');
+  await page.click('[data-ai-submit]');
+
+  // 不刷新：新行先出现（在跑），随后自己走到完成——两眼都来自事件催的重读
+  await expect(ledger.locator('[data-tasks-summary]')).toContainText('在跑', { timeout: 60_000 });
+  await expect(ledger.locator('td[data-task-status="succeeded"]').first()).toBeVisible({ timeout: 90_000 });
+
+  const afterTerminal = ledgerCalls;
+  // 起步一读（提交那条 progress=0）+ 终态一读（finishTask 那条），合并节流下至少两次
+  expect(afterTerminal).toBeGreaterThanOrEqual(baseline + 2);
+  // 之后就静住了——真有轮询的话这个数一定涨
+  await ledger.waitForTimeout(4_000);
+  expect(ledgerCalls).toBe(afterTerminal);
+  await ledger.screenshot({ path: 'screenshots/tasks-ledger-live.png' });
+
+  // 终态与库一致：拿读接口的权威那份，和界面上的完成行逐个对数
+  const res = await page.request.get(`/api/projects/${projectId}/tasks`);
+  expect(res.status()).toBe(200);
+  const payload = (await res.json()) as { ok: true; tasks: { status: string }[] };
+  expect(payload.ok).toBe(true);
+  const succeeded = payload.tasks.filter((t) => t.status === 'succeeded');
+  expect(succeeded.length).toBeGreaterThan(0);
+  expect(await ledger.locator('td[data-task-status="succeeded"]').count()).toBe(succeeded.length);
+
+  // 别人的会话来读这条接口：404，与页面同一口径（归属由 listProjectTasks 判）
+  const browser = page.context().browser();
+  if (!browser) throw new Error('这条用例需要一个可派生上下文的浏览器');
+  const visitorCtx = await browser.newContext();
+  const visitor = await visitorCtx.newPage();
+  await visitor.goto('/'); // 先有一份会话 cookie（middleware 签发），否则 requireUser 会 500 而不是 404
+  const stranger = await visitorCtx.request.get(`/api/projects/${projectId}/tasks`);
+  expect(stranger.status()).toBe(404);
+  await visitorCtx.close();
+  await ledger.close();
+});
+
 test('@smoke §112/§73 名册下拉：点了 QA 就不能把补丁交回画布，而点 Design 照样要过审批门', async ({ page }) => {
   // 这一条要跑三次真 AI 提交（拒收 / 挂起 / 拼错名字），开发模式下单次实测 8~9 秒。
   // 它证明的不是"下拉框能选"，而是三件容易各说各话的事：

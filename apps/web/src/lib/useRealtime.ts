@@ -24,6 +24,20 @@ import { RealtimeEventSchema, type RealtimeEvent } from '@nexus/schemas';
 
 export type RealtimeState = 'idle' | 'connecting' | 'open' | 'closed';
 
+/**
+ * 四档连接状态的用户文案，三个订阅方（铃铛 / 命令栏 / 任务账本）共用这一份。
+ * 以前各抄一份：文案改一次要改三处，漏一处就在同一个界面上出现两种"断开"的说法。
+ * 保持裸状态词（不带"实时："前缀），前缀由各处按自己的句式拼：
+ * 铃铛与账本是「实时：已连接」，命令栏是「实时通道：已连接」。
+ * closed 那档必须自己带着"以刷新后的数据为准"——那是断开时唯一诚实的交代（ADR-0029）。
+ */
+export const REALTIME_TEXT: Record<RealtimeState, string> = {
+  idle: '未开',
+  connecting: '连接中',
+  open: '已连接',
+  closed: '已断开，以刷新后的数据为准',
+};
+
 export interface RealtimeOptions {
   /** 项目频道；不传就只订用户频道（通知） */
   projectId?: string | null;

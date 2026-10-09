@@ -34,7 +34,8 @@ Create Project → Prompt → AI Design → Canvas → Layers → Properties
 - [x] AI Service（FastAPI, `apps/ai-service`）：契约强制 + Provider 抽象 + Model Router + OpenAI 兼容适配器 + 删除类审批门
 - [~] AI Service 任务队列 / 异步生成作业（§162）— **两侧现在接上了**：ai-service 那侧有真 worker（入队 / 执行 / 状态，
   9 条 python 测试钉着），web 这侧有消费者（提交、按游标翻译活动、把观察到的终态落进账本，见 M6 那条）。
-  仍欠：界面上的提交入口、Redis 后端跨实例（今天默认内存）、embedding/RAG、图像/视频 provider
+   仍欠：Redis 后端跨实例（今天默认内存）、embedding/RAG、图像/视频 provider
+   （界面上的提交入口已接上：提交/取消/重试与账本实时见 2026-09-26 / 10-09 那两条）
 - [x] Design Agent：意图 → Plan → design patch → 画布更新 → AI Diff 说明（§20/25/151，DEMO MODE 确定性规则；真实模型规划待 line 43 的 provider）
 - [x] Design → Code（React + TS + Tailwind，`packages/design-model/src/codegen.ts` + Studio 代码视图）
 - [x] Code → Design（受限 JSX 解析，不可逆区域保留为 code-only，§17-19，`packages/design-model/src/code-parse.ts`）
@@ -1585,6 +1586,40 @@ drizzle 把整个拼接结果当成**单个绑定参数**，生成的 SQL 是 `o
     让取消窗口先于任何终态收敛（受理在先是语义，不是抢跑）。
   - 仍然没有测到：真 provider 下的异步取消（要一台接上 key 的 ai-service + worker）；
     Redis 队列后端（跨实例游标、进程内存重启即失这一点照旧写在报文 `backend` 里）。
+- [x] #10 账本实时：每一条任务状态写出都出声，账本页不刷新自己变（2026-10-09）—
+  事件用的是 `packages/schemas` 里早就有、却一直没有写入方的 `generation.progress`
+  （`RealtimeEventSchema` 那个 union，ADR-0010/0029 的"事件只是加速器、权威永远是库"口径）。
+  - **服务端补三条发出**（此前只有 start/finish/cancel 三处，挂起/裁决/过期三处落账无声）：
+    `holdForApproval` 推「等审批：结果被扣下，等一次决定」（progress=1 与 finishTask 失败、
+    cancelTask 同一口径：这一轮生成到头了，等待中的真实状态由库里的 status 说了算）；
+    `decideApproval` 在 CAS 赢家之后推「已批准：补丁已交回画布」/「已放弃：补丁没有落地」
+    （`not_pending` 早退一条都不推）；`convergeExpiredApproval` CAS 赢家在 `notifyApprovalExpired`
+    之后推 `APPROVAL_EXPIRED_NOTE`。至此任务状态的六处写出方一一对应一条 `generation.progress`。
+  - **账本复活**：`lib/tasksLedger.ts` 那份休眠契约（`app/api/projects/[projectId]/tasks/` 目录一直是空的，
+    注释写着"要活起来得先有一个客户端消费者"）挂上了真的消费者——`GET` 路由按既有模式
+    `requireUser → listProjectTasks → null 落 404 → TasksLedgerSchema.safeParse（不过就 500）→ apiJson`；
+    契约补 `mine: z.boolean().optional()`（重试按钮只对自己的 failed/cancelled 行出现这件事，
+    客户端从此读得出来），`readTasksLedger` 的 fetcher 可注入，失败措辞「HTTP 404」/「返回的报文不合契约」/ error.message。
+  - **页面**：`/tasks/[projectId]` 退成薄 server shell（鉴权 + 初读 + `<TasksLedgerLive>`），
+    组件承担表头摘要、`data-tasks-realtime` 状态芯片、`text-danger` 的读失败注记与整张表。
+    订阅面刻意窄：只认 `type === 'generation.progress' && projectId` 对得上的事件，
+    收到就 250ms 合并地重读一次，`onReconnect` 补一次；没有 ledger 侧的观察触发（收敛仍按
+    ADR-0011 on-read，convergence 是收敛不是观察）。状态文案单源 `REALTIME_TEXT`
+    （`lib/useRealtime.ts`），CommandBar 的本地 map 与 NotificationBell 的三元都换成同一份。
+  - 探针各一次，都按预期变红再 revert：摘掉组件里那句 `schedule()` → e2e 红
+    （账本停在「还没有跑过一次」，等不到「在跑」）；摘掉 `holdForApproval` 的
+    `publishTaskProgress` → `realtime.integration.test.ts` 红（hits 0 ≠ 1）。
+  - 验证：`realtime.integration.test.ts` 新 describe **4 条**（挂起 / 裁决两分支 / 过期，
+    假 bus + 真库；CAS 输家一条都不推这条钉死）；新 `tasks-ledger.test.ts` **11 条**纯读契约
+    （三条失败措辞、`cache: 'no-store'`、`mine` 契约、状态标签单源）；新 `tasks-ledger.integration.test.ts`
+    **2 条**打真库（形状过 `TasksLedgerSchema`、陌生人的 `mine` 一律 false）；
+    全量 vitest 137 个文件绿；`npm run lint`（typecheck + eslint）绿。
+    e2e `@smoke #10` 与 §162 连跑绿（账本页薄化后 §162 那条没坏）：第二个标签页开账本 +
+    预热一次读 + 计数 + 提交异步 + 不刷新看见 `在跑`→`完成` + 4 秒稳态 + 库里 succeeded 数与
+    DOM 对账 + 陌生人 404；截图 `screenshots/tasks-ledger-live.png`（表头芯片 `实时：已连接`、
+    摘要 `共 N 行 · 完成 N`、一行 succeeded）。
+  - 仍然没有测到：`onReconnect` 的补读（重连本身没有探针）；真 provider 下的进度
+    （要一台接上 key 的 ai-service + worker）。
 - [x] Agent 名册有写入方、@提及解析生效、`design.patch` 有第一个执行方（§112/§113 第一片，2026-09-26）—
   上面 §111 那条记的"`@Agent` 提及解析才是真欠的那一条"到这里接上了，但要先说清动手前的三个对不上账：
   `agents` 表建库以来**没有写入方也没有读取方**；`docs/AGENTS.md` 声称的 `agents/registry.py` 与 `AgentSpec`
@@ -3198,10 +3233,12 @@ image-safety / image-studio / ai-jobs / studio-flush，不是全量回归）；�
 
 下一格（不依赖外部授权，可自主推进，按优先级二选一）：
 
-1. **#10 §162/§163 作业队列的 web 侧实时进度**。ai-service 那侧有真 worker，web 这一侧
-   消费者对齐了状态但没把进度摊到界面上；§163 的 SSE 通道已经存在，接上它就行。
-   见证照这一天的惯例：一条 @smoke 走「提交作业 → 看到进度变化 → 终态与库一致」，
-   外加「把进度写入摘掉就没这条流」的探针，以及读取失败要说「读不到」（§73 那条纪律）。
+1. ~~**#10 §162/§163 作业队列的 web 侧实时进度**~~ **2026-10-09 已落地**，见前面
+   「[x] #10 账本实时」那一条：任务状态的六处写出都发 `generation.progress`，
+   账本页订阅这条事件重读（`/api/projects/[id]/tasks` 那条读接口一并复活），
+   见证按当天的惯例齐了——`@smoke #10` 走「提交作业 → 不刷新看见状态自己变 → 终态与库一致」，
+   外加两个探针（摘掉组件里的 `schedule()` → e2e 红；摘掉 `holdForApproval` 的发出 → 集成测试红），
+   读取失败在页面上如实写「读不到」。
 2. **#62 剩下的两格**：① 10000 档补一次「同一会话里量两遍」的读数（写放大那一半已经落地，见上）；
    ② 属性写入要真正进 50ms，得让客户端发补丁而不是发全量文档（§150 的 Command 已在客户端），那是单独一片。
    先量再改——这一格的红线是数字，不是感觉。

@@ -418,7 +418,14 @@ export async function holdForApproval(taskId: string, record: unknown): Promise<
     .update(agentTasks)
     .set({ status: 'awaiting_approval', requiresApproval: true, awaitingSince: new Date(), result: record as never })
     .where(and(eq(agentTasks.id, taskId), eq(agentTasks.status, 'running')))
-    .returning({ id: agentTasks.id });
+    .returning({ id: agentTasks.id, projectId: agentTasks.projectId });
+  if (rows[0]) {
+    // §163 × 账本实时：挂起也是一次状态写出，任务列表要能自己变到"等审批"。
+    // progress=1 的语义与 finishTask（失败也推 1）、cancelTask（取消推 1）同一口径：
+    // 这一轮生成到头了，1 说的是"不再有新的产出"，等待中的真实状态由库里的 status 说了算，
+    // 事件只是 nudging 界面来重读——不拿进度数字冒充"已经批准"。
+    publishTaskProgress(rows[0].projectId, taskId, 1, '等审批：结果被扣下，等一次决定');
+  }
   return rows.length > 0;
 }
 
@@ -484,7 +491,12 @@ export async function convergeExpiredApproval(taskId: string, now: Date = new Da
     .where(and(eq(agentTasks.id, taskId), eq(agentTasks.status, 'awaiting_approval')))
     .returning({ id: agentTasks.id });
   // 只有 CAS 赢家那一次出声：四条读路径同时读到过期，收件箱也只会多一条（emit 的键挂在任务行上）
-  if (rows.length) await notifyApprovalExpired(row);
+  if (rows.length) {
+    await notifyApprovalExpired(row);
+    // 实时同样只有赢家出声（publish 不抛，写库成功后顺手一推）；措辞复用同一个常量——
+    // "过期那句话只有一个来源"这条纪律对实时事件同样成立
+    publishTaskProgress(row.projectId, row.id, 1, APPROVAL_EXPIRED_NOTE);
+  }
   return rows.length > 0;
 }
 
@@ -620,6 +632,10 @@ export async function decideApproval(
     // 两个标签页同时点：后到的那一次读到的还是 awaiting，写的时候已经被前面那笔改掉了
     return { ok: false, code: 'not_pending', message: '这一条刚刚已经被决定过了，这次没有改动。' };
   }
+  // 裁决也是一次状态写出（§163 × 账本实时）：批准落 succeeded、放弃落 cancelled，
+  // 两条都要让开着的任务列表自己变——这条路上没有 finishTask/cancelTask，不补这一推就会漏。
+  // not_pending 那两条早退不推：没有写出发生，界面上也不该多一次没有理由的重读。
+  publishTaskProgress(row.projectId, taskId, 1, decision === 'approve' ? '已批准：补丁已交回画布' : '已放弃：补丁没有落地');
   await recordAudit({
     actorId,
     action: 'ai.approval.decide',

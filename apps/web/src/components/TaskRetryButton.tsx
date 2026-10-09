@@ -9,9 +9,10 @@ import { csrfHeaders } from '@/lib/csrf';
  *
  * 只在**自己的**失败/已取消的行上出现（服务端 `mine` 算的，别人行上的按钮点了也只会 404）。
  * 点下之后走 `POST /api/ai/tasks/<id>/retry`：请求原话从上一行取回、重跑同一条提交流水线，
- * 结果是**新的一行**（`attempt` + 1）——所以按钮的回执里带着新任务号，
- * 而表格刷新（`router.refresh()`，只重取 server component 那一层）之后新行才会出现：
- * 这一页没有乐观更新，表里的每一行都必须是库里真有的一行。
+ * 结果是**新的一行**（`attempt` + 1）——回执里带着新任务号。新行怎么出现在表里有两条路：
+ * 这里的 `router.refresh()`（重取 server component 那一层）与账本实时订阅收到的
+ * `generation.progress` 事件催的重读（`TasksLedgerLive`）。两条读的是同一张表，
+ * 谁先到都一样；没有乐观更新，表里的每一行都必须是库里真有的一行。
  */
 export function TaskRetryButton({ taskId }: { taskId: string }) {
   const router = useRouter();
