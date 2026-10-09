@@ -50,6 +50,15 @@ export function CommandBar() {
    */
   const [asyncMode, setAsyncMode] = useState(false);
   const [asyncStatus, setAsyncStatus] = useState<string | null>(null);
+  /** 这次提交的作业号：取消按钮要知道向谁取消（提交之后到终态之前一直挂着） */
+  const [asyncJobId, setAsyncJobId] = useState<string | null>(null);
+  /**
+   * "取消已被受理"的存根（受理成功才置真）。waitJob 里同样是 `cancelled` 的两种来路要说两句话：
+   * 用户自己点的取消（这里为真）说"你取消了这次作业"；审批被放弃的那一种说"先前已被放弃"。
+   * 不靠这个标志分，两句话就会混成一句，而"我刚取消的"与"几天前有人放弃的"不是一件事。
+   */
+  const cancelRequested = useRef(false);
+  const [cancelBusy, setCancelBusy] = useState(false);
   /**
    * §112 的名册：库里那一份（`GET /api/ai/agents`），不是前端抄的 13 个名字。
    * 读失败就留空数组 + 一句原因——选择器只剩"不点名"，界面上仍然说得出为什么。
@@ -61,14 +70,16 @@ export function CommandBar() {
   const [runAgent, setRunAgent] = useState<string | null>(null);
   /** 提及没解析成 Agent 时服务端说的那一句（点名点错了 / 名册没播种） */
   const [agentNote, setAgentNote] = useState<string | null>(null);
-  /** 组件卸载之后不许再有第二次 fetch：那会在没有界面的地方 setState */
+  /** 组件卸载之后不许再有第二次 fetch：那会在没有界面的地方 setState。
+      StrictMode/HMR 会把 effect 走一遍"清理再挂载"，所以每次挂载都要把开关拨回来，
+      否则轮询还没开始就被上一轮的清理判了死刑（作业会被误报成超时） */
   const pollStop = useRef(false);
-  useEffect(
-    () => () => {
+  useEffect(() => {
+    pollStop.current = false;
+    return () => {
       pollStop.current = true;
-    },
-    [],
-  );
+    };
+  }, []);
 
   // §163：订本项目频道。生成任务开始与结束各推一条，这一条连接让界面不必等 HTTP 响应。
   // 进度单独存一份：同一条连接也会推通知事件，用"最后一条事件"当进度显示会被别的类型顶掉，
@@ -259,12 +270,48 @@ export function CommandBar() {
       if (seen.jobStatus === 'failed' || seen.taskStatus === 'failed') {
         throw new Error(seen.outcome ?? '作业失败，没有给出原因');
       }
-      if (seen.taskStatus === 'cancelled') {
-        setApprovalNote('这一份挂起的结果先前已被放弃，异步这一路不会再交回补丁。');
+      // cancelled 有两种来路，各说各的（见 cancelRequested 的注释）。都停在这里：
+      // 取消之后队列不再交回补丁，继续轮询只会把用户已知的终态再读一百遍
+      if (seen.jobStatus === 'cancelled' || seen.taskStatus === 'cancelled') {
+        if (cancelRequested.current) {
+          setAsyncStatus(`已取消 · 作业 ${jobId}${seen.outcome ? ` · ${seen.outcome}` : ''}`);
+          setApprovalNote('这次作业已经取消：没有补丁交回，画布没有被改动。任务列表里可以重试。');
+        } else {
+          setApprovalNote('这一份挂起的结果先前已被放弃，异步这一路不会再交回补丁。');
+        }
         return;
       }
     }
     throw new Error(`等了 3 分钟，这个作业还没结束（作业号 ${jobId}）。它还在队列里跑，可以再回来问，或者在任务列表里看它。`);
+  };
+
+  /**
+   * §162 取消：先把请求送到服务端（队列先立标志、账本后 CAS），受理成功才置 `cancelRequested`。
+   * 没受理就照实报错——409"已经落成 succeeded"意味着结果已经在回来的路上，把按钮说成成功才是骗人。
+   * 受理之后 jobStatus 可能仍是 running（只立了标志），所以状态行写"已受理"而不是"已取消"；
+   * 真正的 cancelled 由下一次轮询观察到，那句话在 waitJob 里说。
+   */
+  const cancelAsync = async () => {
+    const jobId = asyncJobId;
+    if (!jobId || cancelBusy || cancelRequested.current) return;
+    setCancelBusy(true);
+    try {
+      const res = await fetch(`/api/ai/jobs/${encodeURIComponent(jobId)}/cancel`, { method: 'POST', headers: csrfHeaders() });
+      const body = (await res.json().catch(() => null)) as
+        | { message?: string; error?: string; note?: string; jobStatus?: string | null; taskStatus?: string }
+        | null;
+      if (!res.ok) throw new Error(body?.message ?? body?.error ?? `HTTP ${res.status}`);
+      cancelRequested.current = true;
+      setAsyncStatus(
+        `取消已受理 · 作业 ${jobId} · 账本 ${body?.taskStatus ?? 'cancelled'}${
+          body?.jobStatus === 'running' ? ' · 队列在跑，检查点落成 cancelled 之前状态仍是 running' : ''
+        }${body?.note ? ` · ${body.note}` : ''}`,
+      );
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e));
+    } finally {
+      setCancelBusy(false);
+    }
   };
 
   const submit = async () => {
@@ -278,6 +325,10 @@ export function CommandBar() {
     setAsyncStatus(null);
     setRunAgent(null);
     setAgentNote(null);
+    // 新一次提交从干净的状态开始：上一轮的作业号与"取消受理过"都不能跟着过来——
+    // 拿着旧作业号的取消按钮会去取消上一次的作业
+    setAsyncJobId(null);
+    cancelRequested.current = false;
     // 服务端只能从库里装配上下文（§68），所以先把编辑器里的改动落库；存不上就停下报原因，
     // 而不是悄悄按旧版本生成
     const flushed = await studio.flushBeforeAi();
@@ -330,6 +381,7 @@ export function CommandBar() {
       }
       if (asyncMode) {
         if (!payload.jobId) throw new Error('提交没有拿到作业号，因此没东西可以问');
+        setAsyncJobId(payload.jobId);
         setAsyncStatus(`已交给队列 · 作业 ${payload.jobId} · 后端 ${payload.backend ?? '未知'}${payload.note ? ` · ${payload.note}` : ''}`);
         await waitJob(payload.jobId, taskIdHeader, text);
         return;
@@ -360,6 +412,19 @@ export function CommandBar() {
         <p className="text-11 text-fg-3" data-async-status>
           {asyncStatus}
         </p>
+      ) : null}
+      {/* §162 取消：只在"有作业号 + 还在等 + 取消还没受理"时挂出来——终态后的取消按钮
+          会去点一个已经落账的行，那只会得到一条 409 的坏消息 */}
+      {asyncJobId && busy && !cancelRequested.current ? (
+        <button
+          type="button"
+          onClick={() => void cancelAsync()}
+          disabled={cancelBusy}
+          data-async-cancel
+          className="mb-1 rounded-[var(--nexus-radius-sm)] border border-[var(--nexus-color-border-subtle)] px-2 py-[2px] text-11 text-fg-2 disabled:opacity-50"
+        >
+          {cancelBusy ? '取消请求发送中…' : '取消这次作业'}
+        </button>
       ) : null}
       {taskId ? (
         <p className="text-11 text-fg-3" data-ai-task>

@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
+import { TaskRetryButton } from '@/components/TaskRetryButton';
 import { listProjectTasks } from '@/server/domain/agent-tasks';
 import { requireUser } from '@/server/domain/session';
 
@@ -64,6 +65,8 @@ export default async function TasksPage({ params }: { params: Promise<{ projectI
         能力那一列区分 real（真 provider）与 demo（DEMO 模板），两者不混写（§160）。
         「等审批」那一行是 §74 的审批门挂起来的：被扣下的补丁不在这里交回，决定要在 Studio 的命令栏里做——
         交回之后仍要走那一条可撤销的编辑事务，而这一页没有画布。
+        重试（§162）开的是<strong>新行</strong>：失败的那一次留在表里不抹，「第几次」列写出这是第几回，
+        <code>input.retryOf</code> 在库里把两行接起来——历史里看得见"第一次为什么失败"。
       </p>
 
       {result.tasks.length === 0 ? (
@@ -76,10 +79,12 @@ export default async function TasksPage({ params }: { params: Promise<{ projectI
             <tr>
               <th>时间</th>
               <th>意图</th>
+              <th>第几次</th>
               <th>能力</th>
               <th>状态</th>
               <th>用时</th>
               <th>结果 / 原因</th>
+              <th>操作</th>
             </tr>
           </thead>
           <tbody>
@@ -89,12 +94,20 @@ export default async function TasksPage({ params }: { params: Promise<{ projectI
                   {new Date(task.createdAt).toLocaleString('zh-CN', { hour12: false })}
                 </td>
                 <td>{task.agentKey}</td>
+                <td data-task-attempt={task.attempt}>第 {task.attempt} 次</td>
                 <td data-task-capability={task.capability ?? 'unknown'}>
                   {task.capability === 'real' ? '真模型' : task.capability === 'demo' ? 'DEMO 模板' : '未知'}
                 </td>
                 <td data-task-status={task.status}>{STATUS_TEXT[task.status] ?? task.status}</td>
                 <td>{task.durationMs === null ? '—' : `${Math.round(task.durationMs / 100) / 10} 秒`}</td>
                 <td className="text-fg-2">{task.error ?? '—'}</td>
+                <td>
+                  {/* 只有自己的失败/取消行才有按钮：别人行上的按钮点了也只会 404，
+                      与其让人点了才知道，不如不挂出来 */}
+                  {task.mine && (task.status === 'failed' || task.status === 'cancelled') ? (
+                    <TaskRetryButton taskId={task.id} />
+                  ) : null}
+                </td>
               </tr>
             ))}
           </tbody>

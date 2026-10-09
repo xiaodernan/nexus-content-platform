@@ -13,7 +13,8 @@
       "enum": [
         "none",
         "memory",
-        "redis"
+        "redis",
+        "demo-memory"
       ]
     },
     "status": {
@@ -22,7 +23,8 @@
         "queued",
         "running",
         "completed",
-        "failed"
+        "failed",
+        "cancelled"
       ]
     },
     "queuedAt": {

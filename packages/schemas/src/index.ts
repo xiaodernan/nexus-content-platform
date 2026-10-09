@@ -757,11 +757,19 @@ export type BlocksClearRequest = z.infer<typeof BlocksClearRequestSchema>;
 /**
  * §162 作业队列：图片 / 视频 / 3D / 复杂 Agent 任务不能挂在一个 HTTP 请求上等结果，
  * 所以走 Queue → Worker → Progress → Result。这两份是 ai-service ↔ web 之间的报文。
+ *
+ * `cancelled` 是 2026-10-09 那一刀加的第四档终态：作业在跑完之前被取消（§162 取消/重试那一片）。
+ * 它与 `failed` 分开是因为原因不同——失败是"做砸了"，取消是"有人不要了"，账本与界面上要各说各话。
  */
-export const AiJobStatusSchema = z.enum(['queued', 'running', 'completed', 'failed']);
+export const AiJobStatusSchema = z.enum(['queued', 'running', 'completed', 'failed', 'cancelled']);
 export type AiJobStatusValue = z.infer<typeof AiJobStatusSchema>;
 
-export const AiJobBackend = z.enum(['none', 'memory', 'redis']);
+/**
+ * `demo-memory` 是 web 进程内那条 DEMO 队列（`server/ai/mock-jobs.ts`）的自报后端。
+ * 它与 ai-service 的 `memory` 是两台不同的进程，混成一档的话，观察报文会把
+ * "存在 web 进程里"说成"存在 ai-service 进程里"——那句 note 指错了地方。
+ */
+export const AiJobBackend = z.enum(['none', 'memory', 'redis', 'demo-memory']);
 export type AiJobBackend = z.infer<typeof AiJobBackend>;
 
 export const AiJobAcceptedSchema = z.object({

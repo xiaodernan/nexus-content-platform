@@ -241,3 +241,22 @@ export async function fetchAiJobStatus(jobId: string, fetchImpl: typeof fetch = 
   );
   return r.ok ? { ok: true, status: r.data } : r;
 }
+
+/**
+ * §162 取消/重试：受理一次取消。200 不等于"已经停了"——在跑的作业只立了标志，
+ * 状态由 worker 在检查点落成 cancelled；所以 200 那份 body 是**受理后的当前状态**（可能仍是 running），
+ * 调用方要照实显示"已受理"，不许把它改写成"已取消"。
+ * 404（作业不在后端）与 409（已经结束，取消来不及）原样带出，由 web 侧决定怎么回话。
+ */
+export type AiJobCancelResult = { ok: true; status: AiJobStatusResponse } | { ok: false; status: number | null; error: AiError };
+
+export async function cancelAiJob(jobId: string, fetchImpl: typeof fetch = fetch): Promise<AiJobCancelResult> {
+  const r = await jobRequest(
+    `/v1/ai/jobs/${encodeURIComponent(jobId)}/cancel`,
+    { method: 'POST' },
+    AiJobStatusResponseSchema,
+    'ai-service 的取消回执不符合契约',
+    fetchImpl,
+  );
+  return r.ok ? { ok: true, status: r.data } : r;
+}

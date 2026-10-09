@@ -175,6 +175,58 @@ def create_app(settings: Settings | None = None, *, registry: Registry | None = 
             return JSONResponse(_error("internal", "作业回执不符合契约", "；".join(issues[:5])), status_code=500)
         return JSONResponse(accepted, status_code=202)
 
+    @app.post("/v1/ai/jobs/{job_id}/cancel")
+    async def cancel_job(job_id: str) -> JSONResponse:
+        """§162 取消/重试：受理一次取消。三种回话各说各的，不互相冒充：
+
+        - 404：这个作业号在后端里没有（与 GET 同一个口径，不说"存在但不给你看"）；
+        - 409：作业已经 completed / failed——取消来不及了，不假装受理；
+        - 200：受理。排队中的当场落成 cancelled；在跑的只立取消标志，状态由 worker
+          在执行前后两个检查点落（provider 调用不被打断，理由写在 `jobs.py` 的 run_job）。
+        已经 cancelled 的再按一次也回 200：重复点"取消"是同一件事说了两遍，不是错误。
+        """
+        state = runtime()
+        if state is None:
+            return queue_unavailable()
+        job = await state.store.get(job_id)
+        if job is None:
+            return JSONResponse(
+                _error(
+                    "validation-failed",
+                    f"没有 id 为 {job_id} 的作业",
+                    "作业只在提交它的那个队列后端里可见；内存后端重启即失，Redis 后端过期即失。",
+                ),
+                status_code=404,
+            )
+        if job.status in {"completed", "failed"}:
+            return JSONResponse(
+                _error(
+                    "validation-failed",
+                    f"作业已经结束（{job.status}），取消来不及了",
+                    "结果按那次执行落库；想再来一次走重试，不要把取消说成成功。",
+                ),
+                status_code=409,
+            )
+        accepted = await state.store.request_cancel(job_id)
+        if accepted is None:
+            # get 与 request_cancel 之间被清掉（内存后端淘汰 / Redis 过期）：按查不到回答
+            return JSONResponse(
+                _error(
+                    "validation-failed",
+                    f"没有 id 为 {job_id} 的作业",
+                    "作业只在提交它的那个队列后端里可见；内存后端重启即失，Redis 后端过期即失。",
+                ),
+                status_code=404,
+            )
+        body = accepted.public()
+        issues = contract_issues("ai-job-status.schema.json", body)
+        if issues:
+            return JSONResponse(
+                _error("internal", "作业状态不符合契约", "；".join(issues[:5])),
+                status_code=500,
+            )
+        return JSONResponse(body)
+
     @app.get("/v1/ai/jobs/{job_id}")
     async def job_status(job_id: str) -> JSONResponse:
         state = runtime()

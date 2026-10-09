@@ -1,5 +1,5 @@
 import { and, desc, eq, isNotNull, isNull } from 'drizzle-orm';
-import { APPROVAL_TTL_MS, type RealtimeEvent } from '@nexus/schemas';
+import { APPROVAL_TTL_MS, AiRequestSchema, type AiRequest, type RealtimeEvent } from '@nexus/schemas';
 import { ttlLabel } from '@/lib/notify-plan';
 import { channels, getRealtimeBus } from '../realtime/bus';
 import { recordAudit } from './audit';
@@ -31,6 +31,12 @@ export interface StartTaskInput {
   createdById: string;
   capability: TaskCapability;
   conversationId?: string | null;
+  /**
+   * 第几次跑同一件事（§162 取消/重试）。首跑不给这个参数（建库默认 1）；
+   * 重试那一行由 retry 路由算出 `上一次 + 1` 传进来——同一件事的每一次尝试都是独立的行，
+   * 历史里失败的那次不被抹掉，`input.retryOf` 说清两行的关系。
+   */
+  attempt?: number;
   /** 这次请求的输入摘要（不是整份文档，§68 那条纪律同样适用于账本） */
   input: unknown;
 }
@@ -53,6 +59,8 @@ export interface TaskView {
   approvedAt: string | null;
   /** 跑完用了多久；没跑完是 null，不拿"到现在为止"冒充时长 */
   durationMs: number | null;
+  /** 这一行是不是看的人自己建的；列表里只有自己的行才挂"重试/取消"按钮（别人的行点了也只会 404） */
+  mine?: boolean;
 }
 
 export async function startTask(input: StartTaskInput): Promise<{ id: string; projectName: string | null }> {
@@ -76,6 +84,7 @@ export async function startTask(input: StartTaskInput): Promise<{ id: string; pr
       input: input.input as never,
       createdById: input.createdById,
       startedAt: new Date(),
+      ...(input.attempt !== undefined ? { attempt: input.attempt } : {}),
     })
     .returning({ id: agentTasks.id });
   if (!row) throw new Error('写入任务行没有返回 id');
@@ -160,6 +169,77 @@ export async function finishTask(
     }
   }
   return { status, updated: rows.length > 0 };
+}
+
+/**
+ * 取消一条在跑的异步任务（§162 取消/重试）。**CAS 只认 `running`**：
+ * 终态的行不被这一步改写（已经落账的失败不能倒回去变成取消），
+ * `awaiting_approval` 也不认——挂起结果的"放弃"属于审批，走 `decideApproval`，
+ * 那条路会把补丁与决定一起记进 result，两件事各有各的账。
+ *
+ * 不扣点：用户没拿到任何东西，扣点等于罚（与 `finishTask` 只在 succeeded 扣点同一口径）。
+ * 不发通知：这是一次用户自己的点击，UI 当场就有回话；收件箱留给"没人看着时自己发生的事"
+ * （与 `decideApproval` 不发通知同一口径）。审计由路由那侧记——决定类动作都有审计。
+ */
+export async function cancelTask(taskId: string, reason: string): Promise<boolean> {
+  const rows = await getDb()
+    .update(agentTasks)
+    .set({ status: 'cancelled', finishedAt: new Date(), error: reason })
+    .where(and(eq(agentTasks.id, taskId), eq(agentTasks.status, 'running')))
+    .returning({ id: agentTasks.id, projectId: agentTasks.projectId });
+  if (rows[0]) {
+    // 推一格真刻度：收尾的那一步确实发生了（取消），"正在生成"要能停下来
+    publishTaskProgress(rows[0].projectId, taskId, 1, '已取消');
+  }
+  return rows.length > 0;
+}
+
+/**
+ * 按归属读一行任务（取消/重试的入口）。不属于这个人的行连 null 都不说"存在但不给你"——
+ * 与 `readApprovalTask` 同一口径：这行里存着提示词摘要，"别人的行存在"本身就是信息。
+ */
+export async function readOwnTask(taskId: string, actorId: string): Promise<typeof agentTasks.$inferSelect | null> {
+  if (!UUID_LIKE.test(taskId)) return null;
+  const [row] = await getDb()
+    .select({ task: agentTasks })
+    .from(agentTasks)
+    .where(and(eq(agentTasks.id, taskId), eq(agentTasks.createdById, actorId)))
+    .limit(1);
+  return row?.task ?? null;
+}
+
+/** 重试入口的回话：过门时把解析好的请求原话一并带出（路由不再 parse 第二遍） */
+export type RetryCheck =
+  | { ok: true; task: typeof agentTasks.$inferSelect; request: AiRequest }
+  | { ok: false; status: number; message: string };
+
+/**
+ * 重试的四道门（§162 取消/重试），在这里一次说完，路由只做门面——
+ * 这几条判据单独住在路由里就没人测得到，而它们每一条的"拒绝话"都是给用户看的承诺：
+ * - 不是你的行 / 查不到 → 404（与"没有这一行"同一个答案，不泄露存在性）；
+ * - 没有作业号的同步行 → 409：它没有"队列里那次"可重跑，再按一次执行就是重试；
+ * - 不是失败/取消的行 → 409：还在跑的不能插队，成功的没有重试的理由；
+ * - 没存 `input.request` 的老行 / 存了但读不回来 → 409：不猜当时说了什么，
+ *   诚实请用户重新提交——猜出来的提示词跑一遍，账本上就多出一次谁也没说过的请求。
+ */
+export async function readRetryableTask(taskId: string, actorId: string): Promise<RetryCheck> {
+  const prev = await readOwnTask(taskId, actorId);
+  if (!prev) return { ok: false, status: 404, message: '没有这一行（或者它不属于你）' };
+  if (!prev.providerJobId) {
+    return { ok: false, status: 409, message: '这一行是同步请求，没有队列里的作业可重试：再按一次执行就是重跑。' };
+  }
+  if (prev.status !== 'failed' && prev.status !== 'cancelled') {
+    return { ok: false, status: 409, message: `只有失败或已取消的行能重试，这一行现在是「${prev.status}」。` };
+  }
+  const input = (prev.input ?? null) as { request?: unknown } | null;
+  if (!input || typeof input !== 'object' || input.request === undefined) {
+    return { ok: false, status: 409, message: '这一行建于重试功能之前，没有存下当时那份请求：重试不了，请重新提交一次。' };
+  }
+  const request = AiRequestSchema.safeParse(input.request);
+  if (!request.success) {
+    return { ok: false, status: 409, message: '当时那份请求读不回来（可能已超出今天的契约）：请重新提交一次。' };
+  }
+  return { ok: true, task: prev, request: request.data };
 }
 
 /**
@@ -674,7 +754,7 @@ export async function readApprovalTask(taskId: string, actorId: string): Promise
   return approvalShape(expired ? { ...row.task, status: 'cancelled' as const } : row.task);
 }
 
-function view(row: typeof agentTasks.$inferSelect & { projectName: string | null }): TaskView {
+function view(row: typeof agentTasks.$inferSelect & { projectName: string | null }, actorId?: string): TaskView {
   const started = row.startedAt?.getTime() ?? null;
   const finished = row.finishedAt?.getTime() ?? null;
   return {
@@ -692,6 +772,7 @@ function view(row: typeof agentTasks.$inferSelect & { projectName: string | null
     requiresApproval: row.requiresApproval,
     approvedAt: row.approvedAt?.toISOString() ?? null,
     durationMs: started !== null && finished !== null ? Math.max(0, finished - started) : null,
+    ...(actorId ? { mine: row.createdById === actorId } : {}),
   };
 }
 
@@ -719,7 +800,7 @@ export async function listProjectTasks(
     .where(eq(agentTasks.projectId, projectId))
     .orderBy(desc(agentTasks.createdAt))
     .limit(take);
-  return { projectName: owned.name, tasks: rows.map((r) => view({ ...r.task, projectName: r.projectName })) };
+  return { projectName: owned.name, tasks: rows.map((r) => view({ ...r.task, projectName: r.projectName }, actorId)) };
 }
 
 export async function getTask(id: string): Promise<TaskView | null> {

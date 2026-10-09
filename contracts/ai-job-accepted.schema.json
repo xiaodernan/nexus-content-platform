@@ -14,7 +14,8 @@
         "queued",
         "running",
         "completed",
-        "failed"
+        "failed",
+        "cancelled"
       ]
     },
     "backend": {
@@ -22,7 +23,8 @@
       "enum": [
         "none",
         "memory",
-        "redis"
+        "redis",
+        "demo-memory"
       ]
     },
     "note": {

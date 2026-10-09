@@ -3103,35 +3103,69 @@ test('@smoke §74 AI 的删除结果先过人工审批：扣住时画布不动�
   expect(afterDelete).toBeLessThan(before);
 });
 
-test('@smoke §162 异步作业入口：DEMO MODE 下拒收就是拒收，不替它演一个"在跑的作业"', async ({ page }) => {
-  // 这一条要跑两次 AI 提交（一次被 409 拒掉、一次走完同步那一路的审批），开发模式下单次请求实测 8~9 秒。
-  // 它证明的是两件事：① 没有真 provider 时异步这条路明确拒，而且拒了之后界面上不留下任何"已经交给队列"的痕迹；
-  // ② 多出来的这个入口没有开出第二条绕过 §74 的路——同一句话换个入口，照样要过同一道门。
-  test.setTimeout(240_000);
-  // createProject 已经把这个项目打开在工作台里，这一条不需要它的 id：所有断言都在界面上
-  await createProject(page, `异步入口${Date.now().toString(36)}`);
+test('@smoke §162 异步作业：DEMO 队列提交、过 §74 的门、取消受理、任务列表重试开新行', async ({ page }) => {
+  // 这一条跑三次 AI 提交（挂起+放弃、提交后立刻取消、重试）。旧版钉的是一句 409
+  // （"异步作业要有一个接上真 provider 的 AI Service"）——那句话在 a1c2f1f（DEMO 队列入口）之后
+  // 就不存在了，这一条自那天起一直是红的；现在钉的是真链路的四件事：
+  // ① DEMO MODE 下异步入口真的在跑：后端报 demo-memory，状态行与作业号都来自队列；
+  // ② 多出来的入口没有开出第二条绕过 §74 的路：同一句"删除 Hero 区块"，异步照样被扣成审批卡片；
+  // ③ 取消是"受理 → 轮询观察 → 落账"的真链路：先说"取消已受理"，下一次观察把 cancelled 带回来，
+  //    两句话不许互相冒充；画布从头到尾没动过；
+  // ④ 任务列表里重试开的是**新行**（第 2 次），被取消的历史留在表里不抹。
+  test.setTimeout(300_000);
+  const projectId = await createProject(page, `异步${Date.now().toString(36)}`);
+  // 预热取消那条动态路由：dev server 第一次命中 [jobId]/cancel 要现场编译，
+  // 那一两秒会把"受理"拖到第一次观察落账之后——200 就变成了 409。
+  // 生产没有编译这一段，这里补的只是同一条起跑线（POST 到路由里才会触发编译）
+  await page.request.post('/api/ai/jobs/warmup/cancel', { failOnStatusCode: false });
   const nodeCount = (): Promise<number> => page.evaluate(() => document.querySelectorAll('[data-node-id]').length);
   const before = await nodeCount();
 
+  // ① 交给队列：状态行说作业号与后端；取消按钮只在这段"还在等"的窗口里挂着
   await page.check('[data-ai-async]');
   await page.fill('[data-ai-input]', '删除 Hero 区块');
   await page.click('[data-ai-submit]');
-  await expect(page.locator('[data-ai-error]')).toContainText('异步作业要有一个接上真 provider 的 AI Service', { timeout: 60_000 });
-  // 409 就是没提交：那一句拒收的话原样报出来，而"已交给队列 · 作业 job-…"一行不许出现
-  await expect(page.locator('[data-async-status]')).toHaveCount(0);
-  await expect(page.locator('[data-approval-card]')).toHaveCount(0);
-  expect(await nodeCount()).toBe(before);
-  await page.screenshot({ path: 'screenshots/ai-async-refused.png' });
+  await expect(page.locator('[data-async-status]')).toContainText('已交给队列', { timeout: 60_000 });
+  await expect(page.locator('[data-async-status]')).toContainText('demo-memory');
+  await expect(page.locator('[data-async-cancel]')).toBeVisible();
+  await page.screenshot({ path: 'screenshots/ai-async-queued.png' });
 
-  // 反向对照：取消勾选，同一句话走同步那一路——门还在，卡片还在，画布还是没动
-  await page.uncheck('[data-ai-async]');
-  await page.click('[data-ai-submit]');
+  // ② 异步照样过 §74：补丁被扣成卡片，画布没动，放弃之后删除也没有发生
   await expect(page.locator('[data-approval-card]')).toBeVisible({ timeout: 60_000 });
   await expect(page.locator('[data-approval-title]')).toContainText('画布还没有被改动');
   expect(await nodeCount()).toBe(before);
+  await page.screenshot({ path: 'screenshots/ai-async-approval-held.png' });
   await page.click('[data-approval-reject]');
   await expect(page.locator('[data-approval-note]')).toContainText('删除也没有发生', { timeout: 30_000 });
   expect(await nodeCount()).toBe(before);
+
+  // ③ 第二次提交后立刻取消：先看到"受理"，再由轮询观察到"已取消"——受理≠停止
+  await page.fill('[data-ai-input]', '删除 Hero 区块');
+  await page.click('[data-ai-submit]');
+  await expect(page.locator('[data-async-status]')).toContainText('已交给队列', { timeout: 60_000 });
+  await expect(page.locator('[data-async-cancel]')).toBeVisible();
+  await page.click('[data-async-cancel]');
+  await expect(page.locator('[data-async-status]')).toContainText('取消已受理', { timeout: 30_000 });
+  await expect(page.locator('[data-approval-note]')).toContainText('这次作业已经取消', { timeout: 30_000 });
+  // 受理之后按钮不再挂（再点只会得到一条已经取消的坏消息），审批卡片与错误行都不许出现
+  await expect(page.locator('[data-async-cancel]')).toHaveCount(0);
+  await expect(page.locator('[data-approval-card]')).toHaveCount(0);
+  await expect(page.locator('[data-ai-error]')).toHaveCount(0);
+  expect(await nodeCount()).toBe(before);
+  await page.screenshot({ path: 'screenshots/ai-async-cancelled.png' });
+
+  // ④ 任务列表：取消的行挂着重试，点下去开的是第 2 次的新行（历史那行还在，状态与次数都还在）
+  await page.goto(`/tasks/${projectId}`);
+  await expect(page.locator('[data-tasks-root]')).toBeVisible({ timeout: 30_000 });
+  await expect(page.locator('td[data-task-status="cancelled"]').first()).toBeVisible();
+  const retryButton = page.locator('[data-task-retry]').first();
+  await expect(retryButton).toBeVisible();
+  await page.screenshot({ path: 'screenshots/ai-tasks-cancelled.png' });
+  await retryButton.click();
+  await expect(page.locator('[data-task-attempt="2"]')).toBeVisible({ timeout: 30_000 });
+  await expect(page.locator('[data-task-retry-note]')).toContainText('已重试');
+  await expect(page.locator('td[data-task-status="cancelled"]').first()).toBeVisible();
+  await page.screenshot({ path: 'screenshots/ai-task-retry.png' });
 });
 
 test('@smoke §112/§73 名册下拉：点了 QA 就不能把补丁交回画布，而点 Design 照样要过审批门', async ({ page }) => {

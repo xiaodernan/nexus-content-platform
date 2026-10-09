@@ -1483,7 +1483,8 @@ drizzle 把整个拼接结果当成**单个绑定参数**，生成的 SQL 是 `o
   （真模型与 DEMO 的标题必须不同、没有时长就不写用时、没有摘要就不编正文）+
   `@smoke §164` 末尾跑一次真请求，断言账本一行、通知第 5 条、"Generation complete 已从没有来源那张单子上摘掉"
   （截图 `agent-task-ledger.png`）。
-  仍欠：取消 / 重试（`attempt` 列还没有第二次的写入方）；审批流当时记的是"`requires_approval` 全库无人置真"，
+   取消 / 重试**已于 2026-10-09 补上**（`attempt` 有了第二次的写入方，见下面「§162 取消与重试」那一条）；
+   审批流当时记的是"`requires_approval` 全库无人置真"，
   **同日已经补上**（见上面 §74 agent 侧那一条），但那一格只接在同步的 `/api/ai/run` 上；
   接到 §162 异步队列那一条也**同日已经补上**（见下面 §162 × §74 那一条）——
   异步那一路现在同样先过门再交回，所以这一行不需要再等"以后"。
@@ -1538,11 +1539,52 @@ drizzle 把整个拼接结果当成**单个绑定参数**，生成的 SQL 是 `o
   同一次挂起被问两次给的是同一份 `delivered`、文档里查不到的 id 理由退回那个 id 而照样拦）。
   两次行为性变异：把 `settle` 里那个 if 关掉 → **5 条红 1 条绿**，而那条绿正是反向对照（它本来就不该红）；
   把等待中交回的 `delivered` 换成 `held`（= 把补丁漏给还没批准的客户端）→ 2 条红。
-  e2e `@smoke §162 异步作业入口` 在真浏览器里 1 条通过（4.9 分钟，慢的是 dev 模式首次编译那两条路由，
-  不是断言在等）：截图 `screenshots/ai-async-refused.png` 上勾着"异步作业"、红字是服务端那句 409 原文、
-  右侧仍是「1440 × 900 · 8 个节点」——**没有多出一条"在跑的作业"，也没有审批卡**。
-  `npm run test:ai-service` 56 passed + 1 skipped（那道跨语言的 `DESTRUCTIVE_OPS` 比对读的是 web 源码，
-  这次动了 `approvals.ts` 所以必须重跑）。下面那片接上名册之后，同一个命令是 62 passed + 1 skipped。
+   e2e `@smoke §162 异步作业入口` 在真浏览器里 1 条通过（4.9 分钟，慢的是 dev 模式首次编译那两条路由，
+   不是断言在等）：截图 `screenshots/ai-async-refused.png` 上勾着"异步作业"、红字是服务端那句 409 原文、
+   右侧仍是「1440 × 900 · 8 个节点」——**没有多出一条"在跑的作业"，也没有审批卡**。
+   （**2026-10-09 更新**：a1c2f1f 的 DEMO 队列入口让那句 409 不复存在，这条 e2e 自那天起一直红，
+   现已整条重写成四段真链路，见下面「§162 取消与重试」那一条。）
+   `npm run test:ai-service` 56 passed + 1 skipped（那道跨语言的 `DESTRUCTIVE_OPS` 比对读的是 web 源码，
+   这次动了 `approvals.ts` 所以必须重跑）。下面那片接上名册之后，同一个命令是 62 passed + 1 skipped。
+- [x] §162 取消与重试：队列先受理、账本后 CAS，重试开新行（2026-10-09）— 详见 `docs/adr/0032-ai-job-cancel-retry.md`。
+  动手前先补了同一个 §162 留下的真值洞：`demo_job_` 前缀的观察此前一律去问 ai-service → 404 →
+  任务行被错落成 failed（或没有 URL 时永远 running）；现在真值在哪个进程就问哪个进程
+  （web 进程内存的 `getDemoJob` + `demoStatusOf`，形状仍是同一份 `AiJobStatusResponse`），
+  DEMO worker 的终态口径与 ai-service `jobs.py` 对齐（provider 回 error → job `failed`、error 原样落账）。
+  - **取消**：`POST /api/ai/jobs/<jobId>/cancel`（csrf + 限速 30/10min）。**队列先受理、账本后 CAS**——
+    标志没立上就先写行，worker 照样会把结果生出来，那时行是 cancelled、算力却花了。
+    200 = 受理而不是已停止（jobStatus 可能仍是 running，检查点落账前它就是 running）；
+    404 陌生人/查不到、409 行已终态/等审批/队列已终态/行刚好被改、503 队列问不到且**账本一字不动**
+    （不能先把行说成取消、结果却可能还会完成）；行已 cancelled 再点一次照样 200（幂等）。
+    用户主动取消不发通知不扣点，审计记 `ai.job.cancel`。DEMO 侧排队中的当场落账
+    （claim 只认 queued，状态一改自然跳过），运行中立标志、worker 三个检查点
+    （领取后/生成前/结果落地前）看见就丢弃——已经算出来的补丁也按取消丢弃，`response` 永远 null。
+  - **重试**：`POST /api/ai/tasks/<taskId>/retry`（csrf + 限速 20/10min），四道门：
+    404 / 409 非异步行 / 409 只允许 failed·cancelled / 409 老行没有存 `input.request`（诚实回"重试不了"，不猜）。
+    门过了才落**新行**：`attempt = 上一行 + 1`、`input.retryOf` 把两行接起来，旧行一个字不动；
+    新行走与 `POST /api/ai/jobs` 同一条共享管线 `submitClientRequest`——两条入口不许长出两套提交语义。
+  - **界面**：命令栏的取消按钮只挂在"有作业号 + 还在等 + 取消还没受理"的窗口里（终态后再点只会得到 409）；
+    状态行把"取消已受理"与观察到的"已取消"分成两句话，先后顺序钉进 e2e；任务列表挂"重试"
+    （只对自己的 failed/cancelled 行出现），点了开 `attempt=2` 的新行、旧行还在表里。
+  - 契约：`AiJobStatus` 枚举 += `cancelled`，`AiJobBackend` += `demo-memory`（`npm run contract:export` 已跑）；
+    ai-service 侧 `POST /v1/ai/jobs/<id>/cancel` 同口径（404/409/200 幂等、queued 当场 cancelled、
+    running 只立标志），`test_jobs.py` 随 `npm run test:ai-service` 77 passed。
+  - 验证：`ai-jobs.integration.test.ts` 23 → **41 条**（取消 9 + 重试四道门 5 + 重试落账 2 + DEMO 观察 2；
+    其中"取消之后观察"那条钉 outcome 与行 error 都是「取消受理」那句话、活动一条不许多发）；
+    全量 vitest 1552 绿（顺带修掉 jsx-text 抓到的 `**新行**` 漏进 JSX 文案一处）；
+    e2e `@smoke §162` **整条重写**并连跑两次绿（旧版钉的是 a1c2f1f 之前那句 409，
+    那句话当天起就不存在了，测试一直红到现在）——现在钉四段真链路：①DEMO 队列提交
+    （状态行带 demo-memory、取消按钮在窗口里）→ ②同一句"删除 Hero 区块"异步照样被扣成审批卡、
+    放弃后"删除也没有发生" → ③提交后立刻取消：先"取消已受理"、下一次轮询再"这次作业已经取消"，
+    卡片/错误/画布改动三样都不许出现 → ④任务列表里 cancelled 行挂重试，点了开 `attempt=2` 的新行。
+    截图 `ai-async-queued/approval-held/cancelled.png`、`ai-tasks-cancelled.png`、`ai-task-retry.png`。
+  - 调试中钉死的两个真 bug（都不在原计划里）：StrictMode 的 effect 清理会把 `pollStop` 拨真而挂载侧
+    不再拨回，轮询没开始就被上一轮清理判死刑（误报"等了 3 分钟"）——挂载时必须复位；
+    dev server 首次命中 `[jobId]/cancel` 要现场编译，那一两秒会把"受理"拖到第一次观察落账之后
+    （200 变 409）——e2e 开跑时先预热一次，且 DEMO 作业两段等待刻意拉长到 2.2~3.4 秒，
+    让取消窗口先于任何终态收敛（受理在先是语义，不是抢跑）。
+  - 仍然没有测到：真 provider 下的异步取消（要一台接上 key 的 ai-service + worker）；
+    Redis 队列后端（跨实例游标、进程内存重启即失这一点照旧写在报文 `backend` 里）。
 - [x] Agent 名册有写入方、@提及解析生效、`design.patch` 有第一个执行方（§112/§113 第一片，2026-09-26）—
   上面 §111 那条记的"`@Agent` 提及解析才是真欠的那一条"到这里接上了，但要先说清动手前的三个对不上账：
   `agents` 表建库以来**没有写入方也没有读取方**；`docs/AGENTS.md` 声称的 `agents/registry.py` 与 `AgentSpec`

@@ -4,9 +4,9 @@ import { createServer, type Server } from 'node:http';
 import type { AddressInfo } from 'node:net';
 import type { AiJobStatusResponse, AiRequest, AiResponse } from '@nexus/schemas';
 import { AiJobObservationSchema, APPROVAL_TTL_MS } from '@nexus/schemas';
-import { observeJob, submitJob } from '../src/server/domain/ai-jobs';
+import { observeJob, submitJob, cancelJob } from '../src/server/domain/ai-jobs';
 import type { ResolvedAgent } from '../src/server/domain/agents';
-import { decideApproval, listProjectTasks } from '../src/server/domain/agent-tasks';
+import { decideApproval, listProjectTasks, readRetryableTask } from '../src/server/domain/agent-tasks';
 import { createProject, listProjects, loadDocument } from '../src/server/domain/projects';
 import { channels, getRealtimeBus } from '../src/server/realtime/bus';
 import { getDb } from '../src/server/db/client';
@@ -37,6 +37,9 @@ let statusForUnknown: { status: number; body: unknown } = { status: 404, body: {
 let getCalls = 0;
 let postCalls = 0;
 let lastSubmitted: unknown = null;
+/** 取消端点的可变剧本：默认"受理、作业还在跑（只立标志，状态仍是 running）" */
+let cancelScript: { status: number; body: unknown } | null = null;
+let cancelCalls: string[] = [];
 /** 手工推进的作业状态：每个用例自己决定下一次 GET 报什么 */
 function scriptedJob(over: Partial<AiJobStatusResponse>): AiJobStatusResponse {
   return {
@@ -113,6 +116,15 @@ beforeAll(async () => {
       });
       return;
     }
+    // 取消端点（§162）：与真 ai-service 同一形状——200 回受理后的状态、404/409 回 AiError
+    if (req.method === 'POST' && req.url?.startsWith('/v1/ai/jobs/') && req.url.endsWith('/cancel')) {
+      const jobId = req.url.slice('/v1/ai/jobs/'.length, -'/cancel'.length);
+      cancelCalls.push(jobId);
+      const script = cancelScript ?? { status: 200, body: scriptedJob({ jobId, status: 'running' }) };
+      res.writeHead(script.status, { 'content-type': 'application/json' });
+      res.end(JSON.stringify(script.body));
+      return;
+    }
     if (req.method === 'GET' && req.url?.startsWith('/v1/ai/jobs/')) {
       getCalls += 1;
       if (nextStatus && req.url === `/v1/ai/jobs/${nextStatus.jobId}`) {
@@ -136,6 +148,8 @@ afterEach(() => {
   nextStatus = null;
   getCalls = 0;
   lastSubmitted = null;
+  cancelScript = null;
+  cancelCalls = [];
   statusForUnknown = { status: 404, body: { code: 'not_found', message: 'job not found' } };
 });
 
@@ -146,6 +160,7 @@ afterAll(async () => {
   const db = getDb();
   // 审计行不会因为删任务而消失（那张表本来就是"删了业务行也要留下当时发生过什么"），自己收干净
   await db.delete(auditEvents).where(and(eq(auditEvents.action, 'ai.agent.capability'), eq(auditEvents.actorId, ownerId)));
+  await db.delete(auditEvents).where(and(eq(auditEvents.action, 'ai.job.cancel'), eq(auditEvents.actorId, ownerId)));
   await db.delete(agentTasks).where(inArray(agentTasks.projectId, createdProjects));
   await db.delete(projects).where(inArray(projects.id, createdProjects));
   await db.delete(users).where(inArray(users.id, [ownerId, otherId]));
@@ -683,5 +698,339 @@ describe('§73 的越权拒收：被点名的人没有 design.patch', () => {
     const { seen } = await refusedJob(v.nodeId, v.pageId, { op: 'set', nodeId: v.nodeId, path: 'name', value: 'x' });
     expect(seen.agent).toEqual({ key: 'qa', name: 'QA Agent' });
     expect(AiJobObservationSchema.safeParse(seen).success).toBe(true);
+  });
+});
+
+/**
+ * §162 取消/重试（2026-10-09）。这一组钉的是**顺序与不冒充**：
+ * 队列先受理（它才是"还跑不跑"的真值）、账本后 CAS；200 不等于"已经停了"；
+ * 每一种不受理（别人的、已结束的、等审批的、队列失联的）各自说各自的，不许互相顶替。
+ */
+describe('§162 取消：先让队列受理，再 CAS 账本行', () => {
+  async function cancelAudits(taskId: string) {
+    return getDb()
+      .select({ action: auditEvents.action, allowed: auditEvents.allowed, detail: auditEvents.detail, targetId: auditEvents.targetId })
+      .from(auditEvents)
+      .where(and(eq(auditEvents.action, 'ai.job.cancel'), eq(auditEvents.targetId, taskId)));
+  }
+
+  it('路人取消别人的作业：404，而且队列一次都没被问（归属判断在前）', async () => {
+    const submitted = await submit();
+    const outcome = await cancelJob(submitted.jobId, otherId, '127.0.0.1');
+    expect(outcome.ok).toBe(false);
+    if (outcome.ok) throw new Error('前提不成立');
+    expect(outcome.status).toBe(404);
+    expect(cancelCalls).toHaveLength(0);
+    expect((await taskRow(submitted.taskId)).status).toBe('running');
+  });
+
+  it('取消在跑的作业：队列 200（状态可能仍是 running）、行落 cancelled、审计留一条', async () => {
+    const submitted = await submit();
+    const outcome = await cancelJob(submitted.jobId, ownerId, '127.0.0.1');
+    expect(outcome.ok).toBe(true);
+    if (!outcome.ok) throw new Error('前提不成立');
+    // 受理≠停止：假服务按真语义回了 running（只立了标志），这一份回执照实透传
+    expect(outcome.jobStatus).toBe('running');
+    expect(outcome.taskStatus).toBe('cancelled');
+    expect(outcome.note).toContain('取消已受理');
+
+    const row = await taskRow(submitted.taskId);
+    expect(row.status).toBe('cancelled');
+    expect(row.error).toContain('取消已受理');
+    expect(row.finishedAt).not.toBeNull();
+    // 用户自己点的取消不发通知（UI 当场就有回话）：收件箱只留给"没人看着时自己发生的事"
+    expect(await generationRows(submitted.taskId)).toHaveLength(0);
+
+    expect(cancelCalls).toEqual([submitted.jobId]);
+    const audits = await cancelAudits(submitted.taskId);
+    expect(audits).toHaveLength(1);
+    expect(audits[0]?.allowed).toBe(true);
+    expect(audits[0]?.detail).toMatchObject({ jobId: submitted.jobId, reason: 'accepted' });
+  });
+
+  it('已经是 cancelled 再按一次：幂等 200，而且不再问队列', async () => {
+    const submitted = await submit();
+    await cancelJob(submitted.jobId, ownerId, '127.0.0.1');
+    const again = await cancelJob(submitted.jobId, ownerId, '127.0.0.1');
+    expect(again.ok).toBe(true);
+    if (!again.ok) throw new Error('前提不成立');
+    expect(again.note).toContain('已经是已取消');
+    expect(cancelCalls).toHaveLength(1);
+    expect((await taskRow(submitted.taskId)).status).toBe('cancelled');
+  });
+
+  it('已经落终态的行：409 说"取消来不及了"，行不许被改写、队列不被问', async () => {
+    const submitted = await submit();
+    nextStatus = scriptedJob({ jobId: submitted.jobId, status: 'completed', result: okResponse() });
+    await observeJob(submitted.jobId, ownerId);
+    expect((await taskRow(submitted.taskId)).status).toBe('succeeded');
+
+    const outcome = await cancelJob(submitted.jobId, ownerId, '127.0.0.1');
+    expect(outcome.ok).toBe(false);
+    if (outcome.ok) throw new Error('前提不成立');
+    expect(outcome.status).toBe(409);
+    expect(outcome.error.message).toContain('取消来不及了');
+    expect(outcome.error.message).toContain('重试');
+    expect(cancelCalls).toHaveLength(0);
+    expect((await taskRow(submitted.taskId)).status).toBe('succeeded');
+  });
+
+  it('挂起等审批的行：409 指向审批接口——放弃属于审批那条路，不在这条路上盖章', async () => {
+    const { submitted } = await heldJob();
+    expect((await taskRow(submitted.taskId)).status).toBe('awaiting_approval');
+    const outcome = await cancelJob(submitted.jobId, ownerId, '127.0.0.1');
+    expect(outcome.ok).toBe(false);
+    if (outcome.ok) throw new Error('前提不成立');
+    expect(outcome.status).toBe(409);
+    expect(outcome.error.message).toContain('/approval');
+    expect(cancelCalls).toHaveLength(0);
+    expect((await taskRow(submitted.taskId)).status).toBe('awaiting_approval');
+  });
+
+  it('队列那边先结束了（409）：这一行不动，交给观察去落它的终态', async () => {
+    const submitted = await submit();
+    cancelScript = { status: 409, body: { code: 'validation-failed', message: '作业已经结束（completed），取消来不及了', retryable: false } };
+    const outcome = await cancelJob(submitted.jobId, ownerId, '127.0.0.1');
+    expect(outcome.ok).toBe(false);
+    if (outcome.ok) throw new Error('前提不成立');
+    expect(outcome.status).toBe(409);
+    expect(outcome.error.message).toContain('取消来不及了');
+    expect((await taskRow(submitted.taskId)).status).toBe('running');
+    const audits = await cancelAudits(submitted.taskId);
+    expect(audits[0]?.allowed).toBe(false);
+    expect(audits[0]?.detail).toMatchObject({ reason: 'queue-terminal' });
+  });
+
+  it('队列失联（503）：503 说清"可能还会完成"，行一动不动', async () => {
+    const submitted = await submit();
+    cancelScript = { status: 503, body: { code: 'provider-unavailable', message: 'ai-service 正在重启', retryable: true } };
+    const outcome = await cancelJob(submitted.jobId, ownerId, '127.0.0.1');
+    expect(outcome.ok).toBe(false);
+    if (outcome.ok) throw new Error('前提不成立');
+    expect(outcome.status).toBe(503);
+    expect(outcome.error.message).toContain('没能送到');
+    expect(outcome.error.message).toContain('不能先说成已取消');
+    // 行不动是这一条的核心：谎报成"已取消"，下一次观察看到 completed 就会当场打脸
+    expect((await taskRow(submitted.taskId)).status).toBe('running');
+  });
+
+  it('队列查不到（404）：行按取消落账——留一条永远查不回来的 running 更糟', async () => {
+    const submitted = await submit();
+    cancelScript = { status: 404, body: { code: 'validation-failed', message: `没有 id 为 ${submitted.jobId} 的作业`, retryable: false } };
+    const outcome = await cancelJob(submitted.jobId, ownerId, '127.0.0.1');
+    expect(outcome.ok).toBe(true);
+    if (!outcome.ok) throw new Error('前提不成立');
+    expect(outcome.jobStatus).toBeNull();
+    const row = await taskRow(submitted.taskId);
+    expect(row.status).toBe('cancelled');
+    expect(row.error).toContain('查不到');
+  });
+
+  it('取消之后观察：outcome 是取消的理由；队列后来报 cancelled 也不覆盖行、不发通知', async () => {
+    const submitted = await submit();
+    await cancelJob(submitted.jobId, ownerId, '127.0.0.1');
+
+    // 队列还没到检查点（仍是 running）：观察不能把 cancelled 的行改回别的，outcome 给出取消理由
+    nextStatus = scriptedJob({ jobId: submitted.jobId, status: 'running' });
+    const stillRunning = await observeJob(submitted.jobId, ownerId);
+    expect(stillRunning?.taskStatus).toBe('cancelled');
+    expect(stillRunning?.jobStatus).toBe('running');
+    expect(stillRunning?.outcome).toContain('取消已受理');
+
+    // 检查点落了：观察把 cancelled 镜像出来，但任务行的错误栏（取消理由）原样保留
+    nextStatus = scriptedJob({ jobId: submitted.jobId, status: 'cancelled', finishedAt: new Date().toISOString() });
+    const done = await observeJob(submitted.jobId, ownerId);
+    expect(done?.jobStatus).toBe('cancelled');
+    expect(done?.taskStatus).toBe('cancelled');
+    expect(done?.response).toBeNull();
+    expect(JSON.stringify(done?.notes)).toContain('已被取消');
+    expect((await taskRow(submitted.taskId)).error).toContain('取消已受理');
+    expect(await generationRows(submitted.taskId)).toHaveLength(0);
+  });
+});
+
+/**
+ * 重试的四道门住在 `readRetryableTask`（路由只是门面），所以这里直接测那一个函数——
+ * 每句拒绝话都是给用户看的承诺，不能只在 e2e 的 happy path 里顺带路过。
+ */
+describe('§162 重试的四道门', () => {
+  it('路人 / 查不到的行：404，与"没有这一行"同一个答案', async () => {
+    const submitted = await submit();
+    const stranger = await readRetryableTask(submitted.taskId, otherId);
+    expect(stranger.ok).toBe(false);
+    if (stranger.ok) throw new Error('前提不成立');
+    expect(stranger.status).toBe(404);
+    const ghost = await readRetryableTask('00000000-0000-4000-8000-000000000000', ownerId);
+    expect(ghost.ok).toBe(false);
+    if (ghost.ok) throw new Error('前提不成立');
+    expect(ghost.status).toBe(404);
+  });
+
+  it('同步行（没有作业号）：409，建议再按一次执行', async () => {
+    const db = getDb();
+    const [syncRow] = await db
+      .insert(agentTasks)
+      .values({ projectId, agentKey: 'design-edit', status: 'failed', createdById: ownerId, error: '同步那一次失败了', startedAt: new Date(), finishedAt: new Date() })
+      .returning({ id: agentTasks.id });
+    const check = await readRetryableTask(syncRow!.id, ownerId);
+    expect(check.ok).toBe(false);
+    if (check.ok) throw new Error('前提不成立');
+    expect(check.status).toBe(409);
+    expect(check.message).toContain('同步请求');
+    expect(check.message).toContain('再按一次执行');
+  });
+
+  it('还在跑的行：409——不能插队，成功的也没有重试的理由', async () => {
+    const submitted = await submit();
+    const running = await readRetryableTask(submitted.taskId, ownerId);
+    expect(running.ok).toBe(false);
+    if (running.ok) throw new Error('前提不成立');
+    expect(running.message).toContain('只有失败或已取消');
+
+    nextStatus = scriptedJob({ jobId: submitted.jobId, status: 'completed', result: okResponse() });
+    await observeJob(submitted.jobId, ownerId);
+    const succeeded = await readRetryableTask(submitted.taskId, ownerId);
+    expect(succeeded.ok).toBe(false);
+    if (succeeded.ok) throw new Error('前提不成立');
+    expect(succeeded.message).toContain('只有失败或已取消');
+  });
+
+  it('老行没存请求原话：409，不猜当时说了什么', async () => {
+    const submitted = await submit(); // helper 没传 request：正是"建于重试功能之前"的形状
+    nextStatus = scriptedJob({ jobId: submitted.jobId, status: 'failed', error: { code: 'provider-failed', message: '上游炸了', retryable: true } });
+    await observeJob(submitted.jobId, ownerId);
+    expect((await taskRow(submitted.taskId)).status).toBe('failed');
+    const check = await readRetryableTask(submitted.taskId, ownerId);
+    expect(check.ok).toBe(false);
+    if (check.ok) throw new Error('前提不成立');
+    expect(check.status).toBe(409);
+    expect(check.message).toContain('没有存下当时那份请求');
+  });
+
+  it('失败行 + 存了原话：过门，把解析好的请求原话一并带出', async () => {
+    const request = { ...wireFor(projectId), requestId: `req-retry-${RUN}`, prompt: '把对比度提高 30%' };
+    const first = await submitJob({ wire: request, request, projectId, createdById: ownerId, agent: UNNAMED, fallbackAgentKey: 'design-edit', capability: 'real' });
+    if (!first.ok) throw new Error('前提不成立');
+    nextStatus = scriptedJob({ jobId: first.jobId, status: 'failed', error: { code: 'provider-failed', message: 'worker 崩了', retryable: true } });
+    await observeJob(first.jobId, ownerId);
+    const check = await readRetryableTask(first.taskId, ownerId);
+    expect(check.ok).toBe(true);
+    if (!check.ok) throw new Error('过门了才对');
+    expect(check.request.prompt).toBe('把对比度提高 30%');
+    expect(check.task.attempt).toBe(1);
+  });
+});
+
+describe('§162 重试落账：新的一行，历史不抹', () => {
+  it('attempt+1、input.retryOf 接上旧行；旧行原样不动，两行都在列表里', async () => {
+    const request = { ...wireFor(projectId), requestId: `req-chain-${RUN}` };
+    const first = await submitJob({ wire: request, request, projectId, createdById: ownerId, agent: UNNAMED, fallbackAgentKey: 'design-edit', capability: 'real' });
+    if (!first.ok) throw new Error('前提不成立');
+    nextStatus = scriptedJob({ jobId: first.jobId, status: 'failed', error: { code: 'provider-failed', message: '第一次失败了', retryable: true } });
+    await observeJob(first.jobId, ownerId);
+    const oldRow = await taskRow(first.taskId);
+    expect(oldRow.status).toBe('failed');
+
+    const check = await readRetryableTask(first.taskId, ownerId);
+    if (!check.ok) throw new Error('过门了才对');
+    const second = await submitJob({
+      wire: request,
+      request,
+      projectId,
+      createdById: ownerId,
+      agent: UNNAMED,
+      fallbackAgentKey: 'design-edit',
+      capability: 'real',
+      retry: { of: check.task.id, attempt: check.task.attempt + 1 },
+    });
+    if (!second.ok) throw new Error('第二次提交本身失败了，用例的前提不成立');
+
+    const newRow = await taskRow(second.taskId);
+    expect(newRow.id).not.toBe(first.taskId);
+    expect(newRow.attempt).toBe(2);
+    expect(newRow.status).toBe('running');
+    const input = newRow.input as { retryOf?: string; request?: { prompt?: string } };
+    expect(input.retryOf).toBe(first.taskId);
+    expect(input.request?.prompt).toBe(request.prompt);
+
+    // 历史不抹：第一次失败那行的终态、错误与 attempt 都还在
+    const oldAfter = await taskRow(first.taskId);
+    expect(oldAfter.status).toBe('failed');
+    expect(oldAfter.error).toBe('第一次失败了');
+    expect(oldAfter.attempt).toBe(1);
+
+    const listed = await listProjectTasks(projectId, ownerId);
+    expect(listed?.tasks.filter((t) => t.id === first.taskId || t.id === second.taskId)).toHaveLength(2);
+    expect(listed?.tasks.find((t) => t.id === second.taskId)?.attempt).toBe(2);
+    // 只有自己的行才给 `mine`：重试按钮的显示条件就是这一栏
+    expect(listed?.tasks.find((t) => t.id === second.taskId)?.mine).toBe(true);
+  });
+
+  it('取消行与失败行同一口径：也能过门', async () => {
+    const request = { ...wireFor(projectId), requestId: `req-retry-cancel-${RUN}` };
+    const first = await submitJob({ wire: request, request, projectId, createdById: ownerId, agent: UNNAMED, fallbackAgentKey: 'design-edit', capability: 'real' });
+    if (!first.ok) throw new Error('前提不成立');
+    const cancelled = await cancelJob(first.jobId, ownerId, '127.0.0.1');
+    expect(cancelled.ok).toBe(true);
+    const check = await readRetryableTask(first.taskId, ownerId);
+    expect(check.ok).toBe(true);
+  });
+});
+
+/**
+ * DEMO 异步（`demo-memory` 后端）：作业活在 web 进程内存里，**观察永远不去问 ai-service**。
+ * 2026-10-09 之前这条分支不存在：DEMO 提交出去的作业，观察一律问 ai-service 得到 404，
+ * 任务行被错落成 failed（或者在没有 URL 的环境里永远 running）——这一组钉住那扇分支。
+ * 结果必须是一份**合法的 AiResponse**（与同步那条路共用 DeterministicMockProvider），
+ * 所以提示词要匹配得上确定性规则（'加一个定价区块' → add-section）。
+ */
+describe('DEMO 异步作业：真值在 web 进程内存，不去问 ai-service', () => {
+  async function submitDemo() {
+    const wire = { ...wireFor(projectId), requestId: `req-demo-${RUN}-${Math.random().toString(36).slice(2, 8)}`, prompt: '加一个定价区块' };
+    const document = await loadDocument(projectId);
+    const result = await submitJob({ wire, document, request: wire, projectId, createdById: ownerId, agent: UNNAMED, fallbackAgentKey: 'design-edit', capability: 'demo', isDemo: true });
+    if (!result.ok) throw new Error('DEMO 提交失败，用例的前提不成立');
+    return result;
+  }
+
+  it('轮询到完成：假 ai-service 一次都没被问，回交的是一份过门的合法结果', async () => {
+    const submitted = await submitDemo();
+    expect(submitted.backend).toBe('demo-memory');
+    const callsBefore = getCalls;
+    let seen = await observeJob(submitted.jobId, ownerId);
+    for (let i = 0; i < 60 && seen?.taskStatus === 'running'; i += 1) {
+      await new Promise((resolve) => setTimeout(resolve, 200));
+      seen = await observeJob(submitted.jobId, ownerId);
+    }
+    expect(seen?.backend).toBe('demo-memory');
+    expect(seen?.jobStatus).toBe('completed');
+    expect(seen?.taskStatus).toBe('succeeded');
+    // 这一行是这组的重点：demo 作业的真值在本进程内存，去问 ai-service 是走错了门
+    expect(getCalls).toBe(callsBefore);
+    expect(seen?.response).not.toBeNull();
+    expect(AiJobObservationSchema.safeParse(seen).success).toBe(true);
+    const row = await taskRow(submitted.taskId);
+    expect(row.status).toBe('succeeded');
+    expect(row.capability).toBe('demo');
+    expect(await generationRows(submitted.taskId)).toHaveLength(1);
+  });
+
+  it('提交后立刻取消：标志被检查点落成 cancelled，结果永远不生成', async () => {
+    const submitted = await submitDemo();
+    const callsBefore = getCalls;
+    const outcome = await cancelJob(submitted.jobId, ownerId, '127.0.0.1');
+    expect(outcome.ok).toBe(true);
+
+    let seen = await observeJob(submitted.jobId, ownerId);
+    for (let i = 0; i < 60 && seen?.jobStatus !== 'cancelled'; i += 1) {
+      await new Promise((resolve) => setTimeout(resolve, 200));
+      seen = await observeJob(submitted.jobId, ownerId);
+    }
+    expect(seen?.jobStatus).toBe('cancelled');
+    expect(seen?.taskStatus).toBe('cancelled');
+    expect(seen?.response).toBeNull();
+    expect(getCalls).toBe(callsBefore);
+    expect((await taskRow(submitted.taskId)).status).toBe('cancelled');
+    expect(await generationRows(submitted.taskId)).toHaveLength(0);
   });
 });

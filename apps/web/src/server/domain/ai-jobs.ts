@@ -1,10 +1,13 @@
 import { eq } from 'drizzle-orm';
+import type { DesignDocument } from '@nexus/design-model';
 import type { AgentActivity, AiError, AiJobBackend, AiJobStatusResponse, AiJobStatusValue, AiRequest, AiResponse, RealtimeEvent } from '@nexus/schemas';
-import { fetchAiJobStatus, submitAiJob } from '../ai/client';
+import { cancelAiJob, fetchAiJobStatus, submitAiJob } from '../ai/client';
+import { cancelDemoJob, enqueueDemoJob, getDemoJob, startDemoWorker, type DemoJob } from '../ai/mock-jobs';
 import { gateResponse, heldRecord, nodeNamer, WEB_APPROVAL_POLICY, DESIGN_PATCH, type ApprovalAction, type GateResult, type HeldRecord, type NodeNamer } from '../ai/approvals';
 import { channels, getRealtimeBus } from '../realtime/bus';
-import { APPROVAL_EXPIRED_NOTE, attachJob, bumpActivityCursor, convergeExpiredApproval, finishTask, holdForApproval, recordCapabilityRefusal, startTask, taskByJobId, type TaskCapability } from './agent-tasks';
+import { APPROVAL_EXPIRED_NOTE, attachJob, bumpActivityCursor, cancelTask, convergeExpiredApproval, finishTask, holdForApproval, recordCapabilityRefusal, startTask, taskByJobId, type TaskCapability } from './agent-tasks';
 import { agentLedgerFields, findAgent, loadRoster, mentionNote, type AgentRosterEntry, type ResolvedAgent } from './agents';
+import { recordAudit } from './audit';
 import { emit } from './notifications';
 import { getDb } from '../db/client';
 import { agentTasks } from '../db/schema';
@@ -44,9 +47,16 @@ export type JobSubmitResult =
     }
   | { ok: false; status: number | null; error: AiError };
 
-/** 提交一次异步作业：先落任务行，再入队；入队没成功就把那行立刻结掉，不停在 running */
+/** 提交一次异步作业：先落任务行，再入队；入队没成功就把那行立刻结掉，不停在 running。
+ * DEMO 与真两条队列在这一处合流（2026-10-09 之前 DEMO 那一支散在路由里，两边各自拼任务行的 input），
+ * 所以"记摘要、记客户端原话、§74 策略、§134 额度门"这些口径只有一份。 */
 export async function submitJob(input: {
   wire: AiRequest;
+  /** 权威文档：只给 DEMO 入队用（同进程本地调用，§68 不过网）。真 provider 那条路不需要——
+   * `wire.context` 里本来就没有 document（装配层剥掉的），ai-service 也读不到 */
+  document?: DesignDocument | null;
+  /** 客户端原话（不是装配后的 wire）：重试要拿它从头再跑一遍装配。防御性摘掉 document 那一栏 */
+  request?: AiRequest;
   projectId: string;
   createdById: string;
   /** §112：服务端按名册解析出的这一轮负责人（含"点了名但名册里没有"的那几份） */
@@ -54,16 +64,26 @@ export async function submitJob(input: {
   /** 没人被点名时账本那行的归属：这次请求的意图类别，与同步那条路同一口径 */
   fallbackAgentKey: string;
   capability: TaskCapability;
+  /** DEMO MODE：本地内存队列（mock-jobs），不发 ai-service */
+  isDemo?: boolean;
+  /** 重试那一行：`attempt` 进列、`retryOf` 进 input JSON——同一件事的两次尝试是两行，历史不抹 */
+  retry?: { of: string; attempt: number };
 }): Promise<JobSubmitResult> {
   const fields = agentLedgerFields(input.agent, {
     askedAgentKey: input.wire.agentKey,
     fallbackKey: input.fallbackAgentKey,
   });
+  // document 是服务端注入的现场，从来不是客户端发来的那一份；真发了也会在装配层被拒。
+  // 重试要存的是"当时那句话"，所以这一栏在这里再摘一次（纵深：存进 JSON 的东西不带现场）
+  const storedRequest = input.request
+    ? { ...input.request, context: { ...input.request.context, document: undefined } }
+    : undefined;
   const started = await startTask({
     projectId: input.projectId,
     agentKey: fields.agentKey,
     createdById: input.createdById,
     capability: input.capability,
+    ...(input.retry ? { attempt: input.retry.attempt } : {}),
     // 账本记的是摘要不是整份文档——§68 那条纪律对账本同样成立
     input: {
       prompt: input.wire.prompt.slice(0, 500),
@@ -72,23 +92,88 @@ export async function submitJob(input: {
       async: true,
       // §74：策略是服务端定的，异步这一路也要看得清"这一行归哪份规矩管"
       approvalPolicy: WEB_APPROVAL_POLICY,
+      // 重试的入口读的这一份（没有它的老行诚实回"重试不了"，不猜当时说了什么）
+      ...(storedRequest ? { request: storedRequest } : {}),
+      ...(input.retry ? { retryOf: input.retry.of } : {}),
       ...fields,
     },
   });
-  const submitted = await submitAiJob(input.wire);
-  if (!submitted.ok) {
-    await finishTask(started.id, { ok: false, error: submitted.error.message });
-    return { ok: false, status: submitted.status, error: submitted.error };
+
+  let accepted: Extract<JobSubmitResult, { ok: true }>;
+  if (input.isDemo) {
+    // DEMO MODE：本地内存队列。`document` 随 payload 进队列——DeterministicMockProvider 要读
+    // 权威文档才产得出合法补丁，而同步那条路把 toolDocument 递给 provider 是同一件事（§68：不过网）
+    startDemoWorker();
+    try {
+      const job = await enqueueDemoJob({
+        ...input.wire,
+        context: {
+          ...input.wire.context,
+          ...(input.document ? { document: input.document as unknown as Record<string, unknown> } : {}),
+          projectId: input.projectId,
+        },
+        requestId: input.wire.requestId,
+      });
+      const attached = await attachJob(started.id, job.id);
+      if (!attached) {
+        const message = '作业号没能写进任务行，这次提交没有被账本认领';
+        await finishTask(started.id, { ok: false, error: message });
+        return { ok: false, status: null, error: { code: 'internal', message, retryable: true } };
+      }
+      accepted = {
+        ok: true,
+        jobId: job.id,
+        taskId: started.id,
+        requestId: job.requestId,
+        status: 'queued',
+        backend: 'demo-memory',
+        note: 'DEMO MODE：作业存在 web 进程内存中，刷新页面、重启即失',
+        capacity: 1,
+      };
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      await finishTask(started.id, { ok: false, error: message });
+      return { ok: false, status: null, error: { code: 'internal', message, retryable: true } };
+    }
+  } else {
+    const submitted = await submitAiJob(input.wire);
+    if (!submitted.ok) {
+      await finishTask(started.id, { ok: false, error: submitted.error.message });
+      return { ok: false, status: submitted.status, error: submitted.error };
+    }
+    const attached = await attachJob(started.id, submitted.accepted.jobId);
+    if (!attached) {
+      // 理论上到不了这里（jobId 是 ai-service 刚生成的）。真的到了——比如同一 jobId 已被别行认领——
+      // 宁可结掉这行也不留一条查不回来的 running
+      const message = '作业号没能写进任务行，这次提交没有被账本认领';
+      await finishTask(started.id, { ok: false, error: message });
+      return { ok: false, status: null, error: { code: 'internal', message, retryable: true } };
+    }
+    accepted = { ...submitted.accepted, taskId: started.id, ok: true };
   }
-  const attached = await attachJob(started.id, submitted.accepted.jobId);
-  if (!attached) {
-    // 理论上到不了这里（jobId 是 ai-service 刚生成的）。真的到了——比如同一 jobId 已被别行认领——
-    // 宁可结掉这行也不留一条查不回来的 running
-    const message = '作业号没能写进任务行，这次提交没有被账本认领';
-    await finishTask(started.id, { ok: false, error: message });
-    return { ok: false, status: null, error: { code: 'internal', message, retryable: true } };
-  }
-  return { ...submitted.accepted, taskId: started.id, ok: true };
+  return accepted;
+}
+
+/**
+ * DEMO 作业的状态镜像：`demo_job_` 前缀的作业活在 **web 进程的内存里**（mock-jobs），
+ * ai-service 那一侧根本没有它——2026-10-09 之前这条分支不存在，DEMO 异步提交之后
+ * 观察一律去问 ai-service，得到 404 再把任务行错落成 failed（或者没有 URL 时永远 running）。
+ * 形状与 ai-service 同一份契约（AiJobStatusResponse），只是真值来源换了个进程。
+ */
+function demoStatusOf(job: DemoJob): AiJobStatusResponse {
+  return {
+    jobId: job.id,
+    requestId: job.requestId,
+    backend: 'demo-memory',
+    status: job.status,
+    queuedAt: job.queuedAt,
+    startedAt: job.startedAt,
+    finishedAt: job.finishedAt,
+    progress: job.progress,
+    activities: job.activities,
+    ...(job.result ? { result: job.result as AiResponse } : {}),
+    ...(job.error ? { error: job.error as AiError } : {}),
+  };
 }
 
 export interface JobObservation {
@@ -276,25 +361,49 @@ export async function observeJob(jobId: string, actorId: string): Promise<JobObs
     });
     if (mentionNoteOf) notes.push(mentionNoteOf);
   }
-  const fetched = await fetchAiJobStatus(jobId);
-  const status: AiJobStatusResponse | null = fetched.ok ? fetched.status : null;
+  /**
+   * 真值在哪儿按作业号分两条路：`demo_job_` 的活在 web 进程内存里（DEMO MODE），
+   * 其余的活在 ai-service 那一侧。2026-10-09 之前这一处一律问 ai-service——
+   * DEMO 异步提交（§162 上一半留下的 `demo-memory` 后端）因此从来没有收敛过。
+   */
+  const isDemoJob = jobId.startsWith('demo_job_');
+  let status: AiJobStatusResponse | null = null;
+  let failure: { status: number | null; error: AiError } | null = null;
+  if (isDemoJob) {
+    const demo = await getDemoJob(jobId);
+    status = demo ? demoStatusOf(demo) : null;
+    if (!status) {
+      failure = {
+        status: 404,
+        error: { code: 'validation-failed', message: '这个 DEMO 作业在 web 进程的内存里查不到了（重启即失，它不落任何库）', retryable: false },
+      };
+    }
+  } else {
+    const fetched = await fetchAiJobStatus(jobId);
+    if (fetched.ok) status = fetched.status;
+    else failure = { status: fetched.status, error: fetched.error };
+  }
 
-  if (!fetched.ok) {
-    const error = fetched.error;
-    if (fetched.status === 404) {
-      const reason = `作业在 ai-service 那一侧查不到了（${error.message}）`;
-      // 已经是终态的行不再改：一次查不到不该把"成功"倒回去改成失败
-      if (task.status !== 'succeeded' && task.status !== 'failed') {
+  if (failure && status === null) {
+    if (failure.status === 404) {
+      const reason = isDemoJob
+        ? `作业在 web 进程的内存里查不到了（${failure.error.message}）`
+        : `作业在 ai-service 那一侧查不到了（${failure.error.message}）`;
+      // 已经是终态的行不再改：一次查不到不该把"成功"倒回去改成失败。
+      // `cancelled` 也在其中：用户点了取消之后存档被回收，不能把取消改回失败。
+      if (task.status !== 'succeeded' && task.status !== 'failed' && task.status !== 'cancelled') {
         await finishTask(task.id, { ok: false, error: reason });
       }
       notes.push(reason);
     } else {
-      notes.push(`这次没能问到作业状态：${error.message}`);
+      notes.push(`这次没能问到作业状态：${failure.error.message}`);
     }
   }
 
   if (status) {
     if (status.backend === 'memory') notes.push('这个作业存在 ai-service 进程的内存里：重启即失，也只有那一个进程看得到');
+    if (status.backend === 'demo-memory') notes.push('这个作业存在 web 进程的内存里（DEMO MODE）：重启即失，它不发往任何外部服务');
+    if (status.status === 'cancelled') notes.push('这次作业已被取消：队列那侧不再产结果，任务行按取消落账');
     if (status.progress === null) notes.push('这条队列没有真进度来源：进度只在真的知道时给，所以一直是空的');
 
     const unseen = status.activities.slice(task.activityCursor);
@@ -309,6 +418,12 @@ export async function observeJob(jobId: string, actorId: string): Promise<JobObs
       }
     }
     if (status.status === 'completed' || status.status === 'failed') await settle(task, projectName, status);
+    else if (status.status === 'cancelled' && task.status === 'running') {
+      // 队列那侧报了取消但这一侧的行还在跑：正常情况 web 的取消路由已经把行写成 cancelled 了
+      // （先受理队列、后 CAS 行），走到这里是那一笔 CAS 没赶上或者取消不是从这里发起的。
+      // 不谎报成 failed——用户看到的词必须还是"已取消"。
+      await cancelTask(task.id, '队列那侧报了取消（不是这一侧发起的）：作业没有结果，按取消落账');
+    }
   }
 
   /**
@@ -381,10 +496,160 @@ export async function observeJob(jobId: string, actorId: string): Promise<JobObs
     startedAt: status?.startedAt ?? null,
     finishedAt: status?.finishedAt ?? null,
     taskStatus: fresh?.status ?? task.status,
-    outcome: fresh?.status === 'failed' ? (fresh?.error ?? null) : typeof detail === 'string' ? detail : null,
+    // failed 与 cancelled 都把 error 那一栏当回话：取消的理由（"排队中被取消…"）与失败的理由
+    // 走同一列，前端不用再分一次哪一列是哪个
+    outcome:
+      fresh?.status === 'failed' || fresh?.status === 'cancelled'
+        ? (fresh?.error ?? null)
+        : typeof detail === 'string'
+          ? detail
+          : null,
     notes,
     approvals,
     agent: stated?.agent ?? null,
     response,
   };
+}
+
+export type CancelOutcome =
+  | {
+      ok: true;
+      taskId: string;
+      jobId: string;
+      /** 账本行落定后的状态（CAS 保证这一轮真的写进去了；重复点是读出来的） */
+      taskStatus: string;
+      /** 队列那侧受理后的状态：可能仍是 running（只立了标志）——UI 照实显示"已受理" */
+      jobStatus: AiJobStatusValue | null;
+      note: string;
+    }
+  | { ok: false; status: number; error: AiError };
+
+/**
+ * §162 取消：**队列先受理、账本后落**，两条各记各的，谁也不冒充谁。
+ *
+ * 顺序是故意的：先让队列立住标志（它才是"这个作业还跑不跑"的真值），
+ * 成功之后再 CAS 账本行。反过来先写行的话，标志没立上、worker 照样把结果生出来，
+ * 那时行是 cancelled、结果却已经花了算力——两边对不上。
+ *
+ * 三种不受理各说各的，与 ai-service 的 cancel 端点同一口径：
+ * - 别人的/查不到的作业 → 404（不泄露"存在但不给你看"）；
+ * - 已经落终态的行 → 409（取消来不及了，不假装受理）；
+ * - 等审批的行 → 409（放弃属于审批那条路，补丁与决定一起记账）；
+ * - provider 失联 → 503（行不动：作业可能还会完成，谎报成"已取消"下一次就会被观察打脸）。
+ * 重复点取消是同一件事说了两遍：行已是 cancelled 就回 200，不报错。
+ */
+export async function cancelJob(jobId: string, actorId: string, ip?: string | null): Promise<CancelOutcome> {
+  const found = await taskByJobId(jobId, actorId);
+  const audit = (targetId: string, allowed: boolean, detail: Record<string, unknown>) =>
+    recordAudit({
+      actorId,
+      action: 'ai.job.cancel',
+      targetType: 'agent_task',
+      targetId,
+      allowed,
+      detail: { jobId, ...detail },
+      ip: ip ?? null,
+    });
+
+  if (!found) {
+    await audit(jobId, false, { reason: 'not-mine-or-missing' });
+    return { ok: false, status: 404, error: { code: 'validation-failed', message: '这个作业号在你的任务里查不到', retryable: false } };
+  }
+  const { task } = found;
+
+  if (task.status === 'cancelled') {
+    await audit(task.id, true, { reason: 'already-cancelled', jobStatus: null });
+    return {
+      ok: true,
+      taskId: task.id,
+      jobId,
+      taskStatus: 'cancelled',
+      jobStatus: null,
+      note: '这一行已经是已取消（重复点取消不会改第二次）',
+    };
+  }
+  if (task.status === 'succeeded' || task.status === 'failed') {
+    await audit(task.id, false, { reason: 'already-terminal', taskStatus: task.status });
+    return {
+      ok: false,
+      status: 409,
+      error: { code: 'validation-failed', message: `取消来不及了：这一行已经落成「${task.status}」。想再来一次走重试。`, retryable: false },
+    };
+  }
+  if (task.status === 'awaiting_approval') {
+    await audit(task.id, false, { reason: 'approval-pending', taskStatus: task.status });
+    return {
+      ok: false,
+      status: 409,
+      error: {
+        code: 'validation-failed',
+        message: `这一行在等审批，放弃要走 POST /api/ai/tasks/${task.id}/approval（那条路会把决定一起记进账）`,
+        retryable: false,
+      },
+    };
+  }
+
+  // 到这里 task.status === 'running'：让队列先受理
+  let jobStatus: AiJobStatusValue | null;
+  let reason: string;
+  if (jobId.startsWith('demo_job_')) {
+    const demo = await cancelDemoJob(jobId);
+    if (!demo) {
+      jobStatus = null;
+      reason = 'DEMO 队列里已经查不到这个作业（web 重启即失）：这一行按取消落账，不留一条查不回来的 running';
+    } else {
+      jobStatus = demo.status;
+      reason =
+        demo.status === 'cancelled'
+          ? '队列已受理取消：作业还没被 worker 领走，当场落成 cancelled'
+          : '取消已受理：作业在跑，标志已立，worker 在检查点落成取消（生成结果按取消丢弃，不交回）';
+    }
+  } else {
+    const r = await cancelAiJob(jobId);
+    if (r.ok) {
+      jobStatus = r.status.status;
+      reason =
+        jobStatus === 'cancelled'
+          ? '队列已受理取消：作业落成 cancelled'
+          : '取消已受理：作业在跑，标志已立，worker 在检查点落成取消（生成结果按取消丢弃，不交回）';
+    } else if (r.status === 404) {
+      // 后端查不到（内存重启/过期）：行本来也永远等不到回话，按取消落账比留 running 诚实
+      jobStatus = null;
+      reason = 'ai-service 那一侧已经查不到这个作业（内存后端重启即失）：这一行按取消落账';
+    } else if (r.status === 409) {
+      // 队列那侧说作业已经结束：不碰这一行——观察那条路马上会把终态落进去
+      await audit(task.id, false, { reason: 'queue-terminal', provider: r.error });
+      return { ok: false, status: 409, error: r.error };
+    } else {
+      await audit(task.id, false, { reason: 'queue-unreachable', provider: r.error });
+      return {
+        ok: false,
+        status: 503,
+        error: {
+          ...r.error,
+          message: `取消请求没能送到 ai-service：${r.error.message}。账本行没有动——作业可能还会完成，不能先说成已取消。`,
+          retryable: true,
+        },
+      };
+    }
+  }
+
+  const wrote = await cancelTask(task.id, reason);
+  if (!wrote) {
+    // CAS 没赶上：这一行在我们受理取消的同时已经落了别的终态。照实说，不覆盖
+    const [now] = await getDb().select({ status: agentTasks.status }).from(agentTasks).where(eq(agentTasks.id, task.id)).limit(1);
+    const status = now?.status ?? 'unknown';
+    await audit(task.id, status === 'cancelled', { reason: 'row-changed', taskStatus: status, jobStatus });
+    if (status === 'cancelled') {
+      return { ok: true, taskId: task.id, jobId, taskStatus: 'cancelled', jobStatus, note: '这一行刚刚已经被取消了' };
+    }
+    return {
+      ok: false,
+      status: 409,
+      error: { code: 'validation-failed', message: `这一行刚刚已经落成「${status}」，这次取消没有改动。`, retryable: false },
+    };
+  }
+
+  await audit(task.id, true, { reason: 'accepted', taskStatus: 'cancelled', jobStatus });
+  return { ok: true, taskId: task.id, jobId, taskStatus: 'cancelled', jobStatus, note: reason };
 }

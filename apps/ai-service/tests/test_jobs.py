@@ -83,7 +83,7 @@ def wait_for_terminal(client: TestClient, job_id: str, *, timeout_s: float = 8.0
         response = client.get(f"/v1/ai/jobs/{job_id}")
         assert response.status_code == 200, response.text
         last = response.json()
-        if last["status"] in {"completed", "failed"}:
+        if last["status"] in {"completed", "failed", "cancelled"}:
             return last
         time.sleep(0.05)
     raise AssertionError(f"作业 {job_id} 在 {timeout_s}s 内没有结束，最后一次状态：{last.get('status')}")
@@ -181,6 +181,84 @@ class TestQueueAndResult:
         body = response.json()
         assert "job_不存在" in body["message"]
         assert "后端" in body["hint"]
+
+
+class TestCancel:
+    """§162 取消/重试的 provider 那一半（web 侧的账本落笔在 vitest 的 integration 里）。
+
+    三种回话必须各说各的：排队中的当场落终态且**从未被执行**、在跑的受理之后由
+    worker 在检查点丢弃结果、已经跑完的 409——"取消来不及了"不能被说成受理成功。
+    """
+
+    def test_cancel_queued_is_terminal_immediately_and_never_claims(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        gated = GatedProvider()
+        with queue_client(gated, monkeypatch=monkeypatch) as busy:
+            first = submit(busy, requestId="req_c1")
+            second = submit(busy, requestId="req_c2")
+            assert gated.started.wait(timeout=5), "worker 没开始跑第一件活"
+            # 第一件还卡在 provider 里（容量 1），第二件必然是 queued
+            resp = busy.post(f"/v1/ai/jobs/{second['jobId']}/cancel")
+            assert resp.status_code == 200, resp.text
+            body = resp.json()
+            # 受理的当场就是终态：排队中的取消不需要等 worker
+            assert body["status"] == "cancelled"
+            assert not contract_issues("ai-job-status.schema.json", body), "cancelled 必须是契约里的一档"
+            assert any("取消" in a["summary"] for a in body["activities"])
+
+            gated.release.set()
+            assert wait_for_terminal(busy, first["jobId"])["status"] == "completed"
+            # 给 worker 一轮心跳的机会再看：被取消的那件不会"之后又自己跑起来"，也从未被领取
+            time.sleep(0.3)
+            done = busy.get(f"/v1/ai/jobs/{second['jobId']}").json()
+            assert done["status"] == "cancelled"
+            assert not any("worker 已领取" in a["summary"] for a in done["activities"])
+            assert "result" not in done
+
+    def test_cancel_running_is_accepted_then_result_is_discarded(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        gated = GatedProvider()
+        with queue_client(gated, monkeypatch=monkeypatch) as busy:
+            accepted = submit(busy, requestId="req_r")
+            assert gated.started.wait(timeout=5), "worker 没开始跑这件活"
+            resp = busy.post(f"/v1/ai/jobs/{accepted['jobId']}/cancel")
+            assert resp.status_code == 200, resp.text
+            # 受理时作业还在跑：回话如实报 running（受理≠已结束），由 worker 落终态
+            assert resp.json()["status"] == "running"
+            gated.release.set()
+            done = wait_for_terminal(busy, accepted["jobId"])
+            assert done["status"] == "cancelled"
+            # 结果被丢弃而不是报完成：调用方已经拿到"取消受理"，不能再对同一个作业说两件事
+            assert "result" not in done
+            assert "error" not in done
+            assert done["finishedAt"] is not None
+            assert any("丢弃" in a["summary"] for a in done["activities"])
+
+    def test_cancel_finished_job_is_409_not_a_fake_ack(self, client: TestClient) -> None:
+        accepted = submit(client)
+        assert wait_for_terminal(client, accepted["jobId"])["status"] == "completed"
+        resp = client.post(f"/v1/ai/jobs/{accepted['jobId']}/cancel")
+        assert resp.status_code == 409
+        assert "取消来不及了" in resp.json()["message"]
+        # 409 之后作业状态一个字都没动
+        assert client.get(f"/v1/ai/jobs/{accepted['jobId']}").json()["status"] == "completed"
+
+    def test_cancel_unknown_job_is_404_with_the_same_answer_as_get(self, client: TestClient) -> None:
+        resp = client.post("/v1/ai/jobs/job_不存在/cancel")
+        assert resp.status_code == 404
+        body = resp.json()
+        assert "job_不存在" in body["message"]
+        assert "后端" in body["hint"]
+
+    def test_cancel_twice_is_idempotent_not_an_error(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        gated = GatedProvider()
+        with queue_client(gated, monkeypatch=monkeypatch) as busy:
+            accepted = submit(busy, requestId="req_idem")
+            assert gated.started.wait(timeout=5)
+            assert busy.post(f"/v1/ai/jobs/{accepted['jobId']}/cancel").status_code == 200
+            gated.release.set()
+            assert wait_for_terminal(busy, accepted["jobId"])["status"] == "cancelled"
+            again = busy.post(f"/v1/ai/jobs/{accepted['jobId']}/cancel")
+            assert again.status_code == 200
+            assert again.json()["status"] == "cancelled"
 
 
 class TestWorkerConcurrency:
