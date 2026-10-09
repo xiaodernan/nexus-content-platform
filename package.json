@@ -20,6 +20,7 @@
     "test:ai-service": "apps\\ai-service\\.venv\\Scripts\\python.exe -m pytest apps/ai-service/tests -q",
     "contract:export": "tsx scripts/export-ai-contract.mts",
     "mcp:serve": "npm run start -w @nexus/mcp-server",
+    "mcp:serve:http": "npm run start:http -w @nexus/mcp-server",
     "test:e2e": "playwright test",
     "test:e2e:smoke": "playwright test --grep @smoke",
     "db:generate": "drizzle-kit generate",

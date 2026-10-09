@@ -59,9 +59,35 @@
 
 ## 第二轮后续（2026-10-09）
 
-v1 加了 `POST /api/v1/projects/<id>/publish`（`publish:write`，迁移 0028），工具面同日 7→8
+v1 加了 `POST /api/v1/projects/<id>/publish`（`publish:write`，迁移 0028），工具面同日 6→7
 （`nexus_publish`）。**v1 只收 unlisted / private**：public 一律 400——§131 的机检与人工裁决
 在人的路径上，§74 把公开发布列在必须人工审批的清单，凭据背后没有人可批。这条策略落在
 `ApiPublishRequestSchema` 的枚举与端点的话里，MCP 工具层照抄同一放行范围（inputSchema 就
 进不了平台）。private 走 `publishProject`（回执同一份 shape、行留着）而不是界面的
 `unpublishProject`（删行）——两处故意不同的选择都写在路由注释里。
+
+## 第三轮后续（2026-10-09）：Streamable HTTP 入口
+
+"要托管给远端 Agent 时需要另外的 Streamable HTTP 入口"兑现了，落地形态**仍在这份 ADR
+的选择里**：不是把 MCP 处理器搬进 Next.js 路由（选项 2 依旧没选），而是给
+`apps/mcp-server` 加第二个传输入口——`src/http.ts`（`npm run mcp:serve:http`，
+默认 `127.0.0.1:3400/mcp`）。工具层一个字没改：七个工具还是 v1 七条端点的镜像，
+挂的还是 `{NEXUS_BASE_URL}/api/v1/*`，三道门一跳不少。
+
+托管形态改的只有**凭据的形状**：stdio 那枚 token 在本机环境变量里；HTTP 这边每条请求
+带 `Authorization: Bearer`，initialize 建会话时那枚 token 绑定整条会话——同会话换 token
+回 401 `session_token_mismatch`（要换凭据就重新 initialize；不然"会话 A 建立、token B
+调用"就是一条提权缝）。HTTP 层只查"有没有、对不对得上会话"，**token 真假仍然只有 v1
+说了算**：值错的 token 出去照样是 v1 的 401，进工具的 isError 文本，这一层不做第二套
+凭据库。会话模型是一个会话一个 `McpServer` 实例 + 一枚 token；DELETE 由传输层自答 200
+并回调 `onsessionclosed` 清账。
+
+测试 `mcp-http.test.ts` 7 条（全部对真本地 HTTP 后端量）：缺 Bearer 401 带
+WWW-Authenticate / 路径错 404 / 会话绑定全链（换 token 401 → 原 token DELETE 200 →
+删完 404）/ 缺会话 id 400·未知会话 404 / 坏 JSON 400 / 真 `StreamableHTTPClientTransport`
+完整握手后 `tools/list` 恰好七个且限度话还在描述里 / 工具调用的 Bearer 逐字出现在 v1
+的 Authorization 里 / 值错的 token 走 v1 的 401 进 isError。stdio 那半 13 条一个字没动。
+真进程冒烟：`initialize` 200 + `mcp-session-id`，缺 Bearer 401。
+
+顺带修一处差一：本 ADR 第二轮后续与 ROADMAP 原写"工具面 7→8"，实际是 **6→7**
+（publish 之前 6 个工具；`api-tokens.test.ts` 数的 v1 端点也是 7 条 = 7 个工具）。

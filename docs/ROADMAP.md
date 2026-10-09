@@ -1213,9 +1213,20 @@ drizzle 把整个拼接结果当成**单个绑定参数**，生成的 SQL 是 `o
   publication 形状，且行留着（URL 一样解析不出来）。迁移 0028 换 CHECK。真库用例
   `api-v1-publish.integration.test.ts` 7 条：403 点名缺格 / unlisted 落库且 `resolvePublishedPath`
   真解析得出 / 重发布同 URL 涨版本不开新行 / **public 400 且行一个字节不动** / private 下架后
-  解析不出而行还在 / 别人项目 404 / 审计 allowed:true。MCP 工具面同日 7→8（`nexus_publish`，
-  public 收在 inputSchema 里，发都发不出去）。
-  **仍欠**：MCP 托管的 Streamable HTTP 入口（工具层不用改，挂的仍是 v1）。
+   解析不出而行还在 / 别人项目 404 / 审计 allowed:true。MCP 工具面同日 6→7（`nexus_publish`，
+   public 收在 inputSchema 里，发都发不出去）。
+   **2026-10-09 第九片：Streamable HTTP 入口**（原"仍欠：MCP 托管的 Streamable HTTP 入口"清账）：
+   `apps/mcp-server` 加第二个传输入口 `src/http.ts`（`npm run mcp:serve:http`，`/mcp`，默认 3400）
+   ——**工具层一个字没改**（七个工具还是 v1 七条端点的镜像），挂的还是 v1，ADR-0031 的选择
+   一字不动（没有把 MCP 处理器搬进 Next.js）。托管形态改的只有凭据形状：每条请求带
+   `Authorization: Bearer`，initialize 那枚 token **绑定整条会话**（换 token → 401
+   `session_token_mismatch`，不然"会话 A 建立、token B 调用"就是提权缝）；token 真假仍只有
+   v1 说了算，这一层不做第二套凭据库（值错的 token 出去是 v1 的 401，进 isError 文本）。
+   测试 `mcp-http.test.ts` 7 条（401+WWW-Authenticate / 404 / 会话绑定全链：换 token 401 →
+   原 token DELETE 200 → 删完 404 / 缺会话 400·未知会话 404 / 坏 JSON 400 / 真客户端完整握手
+   tools/list 恰好七个且限度话还在 / 工具调用的 Bearer 逐字到 v1 / 值错 token 走 v1 401 进
+   isError）；stdio 13 条不动；真进程冒烟 initialize 200 + `mcp-session-id`、缺 Bearer 401。
+   （原两处文档写"工具面 7→8"是差一：实际 6→7，v1 端点也是 7 条，已一并改正。）
 
 ## 横向能力（随里程碑推进，不单列里程碑）
 - Agent 工具注册表 + 权限 + 人工审批门（§72-74/177）— **§74 点名的「删除项目」这一格已落地（2026-09-26）**：
