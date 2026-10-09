@@ -269,6 +269,9 @@ export default function Scene3D() {
     // agent writing through the runtime). The event leg keeps the inspector honest about THAT: any
     // component event re-reads the report. This surface's own verbs already re-read on return.
     const unwatchComponents = surface.watchComponents(() => setReport(surface.report()));
+    // v212 — the entity leg: an out-of-band rename or hide now moves the panel too. Two separate
+    // subscriptions, not one wider watch: each family's name set is pinned by its own witnesses.
+    const unwatchEntities = surface.watchEntities(() => setReport(surface.report()));
     // v161: the controls live OUTSIDE this effect (they are React handlers), so the surface has to be
     // reachable from them. A ref rather than state, because the surface is not a value React should
     // re-render on — it is a handle to a running loop.
@@ -300,6 +303,7 @@ export default function Scene3D() {
       cancelAnimationFrame(raf);
       window.removeEventListener('resize', onResize);
       unwatchComponents();
+      unwatchEntities();
       // `dispose()` stops the loop it owns, drops every entity/record registry and disposes the
       // backend — so a teardown needs no second call here, and the next mount starts clean.
       runtime.dispose();

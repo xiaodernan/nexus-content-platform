@@ -824,6 +824,13 @@ export interface SceneSurface {
    *  an unsubscribe — idempotent, safe in a teardown. A host without event verbs answers a no-op
    *  unsubscribe: the surface keeps working, it just cannot be told. */
   watchComponents(listener: () => void): () => void;
+  /** v212 — the same promise over the ENTITY pair: v211 gave `setEntityName`/`setEntityVisible` their
+   *  voices (`entityRenamed`/`entityVisibilityChanged`), so an out-of-band rename or hide now exists as
+   *  news on the bus — and this surface was not listening. A separate verb, NOT a fifth name inside
+   *  `watchComponents`: v210's witnesses pin that subscription to EXACTLY the three component names, and
+   *  widening it there would make those pins lie. Same contract as its sibling — no payload, an
+   *  idempotent unsubscribe, and a host without event verbs answers a no-op unsubscribe. */
+  watchEntities(listener: () => void): () => void;
   /** Put the camera back to the default orbit — the view the Studio opens with. */
   resetOrbit(): SceneReport;
   /** Add a body at the next free slot. Answers `null` when the runtime produced no entity. */
@@ -988,6 +995,16 @@ export function createStudioScene(
     watchComponents(listener) {
       if (!runtime.addEventListener || !runtime.removeEventListener) return () => {};
       const events = ['componentAdded', 'componentRemoved', 'componentStateChanged'];
+      for (const event of events) runtime.addEventListener(event, listener);
+      return () => {
+        for (const event of events) runtime.removeEventListener?.(event, listener);
+      };
+    },
+    // v212 — the entity pair the runtime announces after its OWN mutations (v211): the same one-listener-
+    // joins-all-names shape as the component leg, over the two names that family holds.
+    watchEntities(listener) {
+      if (!runtime.addEventListener || !runtime.removeEventListener) return () => {};
+      const events = ['entityRenamed', 'entityVisibilityChanged'];
       for (const event of events) runtime.addEventListener(event, listener);
       return () => {
         for (const event of events) runtime.removeEventListener?.(event, listener);

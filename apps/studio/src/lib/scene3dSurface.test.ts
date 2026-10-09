@@ -772,3 +772,108 @@ describe('watchComponents — the registry tells the surface when it changed (M5
     expect({ a, b }).toEqual({ a: 1, b: 2 });
   });
 });
+
+// M5 v212 — the ENTITY leg of the watch, against the SHIPPED package. v211 gave the runtime's two silent
+// verbs a voice; this is the subscriber that turns that news into a moved panel. Every write here goes
+// through the RUNTIME, never through the surface's own verbs — the whole claim is that a change made by
+// anyone reaches the watcher. The listener RECORDS and the case asserts OUTSIDE: the runtime's emit
+// try/CATCHES each listener, so an expect inside one would be swallowed and certify nothing.
+describe('watchEntities — an out-of-band rename or hide moves the report (M5 v212)', () => {
+  let runtime: ThreeRuntime | null = null;
+  afterEach(() => {
+    runtime?.dispose();
+    runtime = null;
+  });
+
+  function surfaceOnHeadless() {
+    const headless = headlessRuntime();
+    runtime = headless.runtime;
+    const adapter: SceneAdapterLike = {
+      placeCamera(sceneId: string, cameraId: string, position: SceneVec3, lookAt: SceneVec3) {
+        const found = headless.runtime.getScene(toSceneId(sceneId))?.cameras.get(toCameraId(cameraId));
+        if (!found) return false;
+        found.threeCamera.position.set(position.x, position.y, position.z);
+        found.threeCamera.lookAt(new THREE.Vector3(lookAt.x, lookAt.y, lookAt.z));
+        found.threeCamera.updateMatrixWorld(true);
+        return true;
+      },
+      pickAt(sceneId: string, nx: number, ny: number) {
+        return headless.runtime.pickAt(toSceneId(sceneId), nx, ny);
+      },
+    };
+    const surface = createStudioScene(headless.runtime, () => {}, adapter);
+    headless.runtime.resize(800, 600);
+    surface.pickAt(400, 300);
+    const scene = headless.runtime.getScene(toSceneId(surface.sceneId))!;
+    const entity = scene.entities.get(toEntityId(surface.bodyIds[2]!))!;
+    return { headless, surface, scene, entity };
+  }
+
+  it('a rename made outside the surface re-reads to the NEW name — the news arrives after the mutation', () => {
+    const { surface, scene, entity } = surfaceOnHeadless();
+    const before = surface.report().inspector?.name ?? null;
+    const names: (string | null)[] = [];
+    surface.watchEntities(() => names.push(surface.report().inspector?.name ?? null));
+
+    expect(before).toBe(entity.name);
+    runtime!.setEntityName(scene.id, entity.id, 'Villain');
+    // The recorded read happened AT EMIT TIME, so it must already be the new name: a bus that announced
+    // before writing would record `before` here and the panel would show the name it just replaced.
+    expect(names).toEqual(['Villain']);
+    expect(surface.report().inspector?.name).toBe('Villain');
+  });
+
+  it('a hide made outside the surface re-reads to visible: false, and showing it again re-reads to true', () => {
+    const { surface, scene, entity } = surfaceOnHeadless();
+    const seen: (boolean | undefined)[] = [];
+    surface.watchEntities(() => seen.push(surface.report().inspector?.visible));
+
+    runtime!.setEntityVisible(scene.id, entity.id, false);
+    expect(seen).toEqual([false]);
+    runtime!.setEntityVisible(scene.id, entity.id, true);
+    expect(seen).toEqual([false, true]);
+  });
+
+  it('the two legs hear DISJOINT news on the real bus — component events do not move the entity watcher', () => {
+    const { surface, scene, entity } = surfaceOnHeadless();
+    const componentCalls: number[] = [];
+    const entityCalls: number[] = [];
+    surface.watchComponents(() => componentCalls.push(componentCalls.length));
+    surface.watchEntities(() => entityCalls.push(entityCalls.length));
+
+    runtime!.setEntityName(scene.id, entity.id, 'Villain');
+    runtime!.setEntityVisible(scene.id, entity.id, false);
+    expect({ component: componentCalls.length, entity: entityCalls.length }).toEqual({ component: 0, entity: 2 });
+
+    runtime!.addComponent(entity, { type: 'health', data: {}, enabled: true });
+    expect({ component: componentCalls.length, entity: entityCalls.length }).toEqual({ component: 1, entity: 2 });
+  });
+
+  it('a refused write is no news: a blank name and a non-boolean visibility call the watcher zero times', () => {
+    const { surface, scene, entity } = surfaceOnHeadless();
+    const news: string[] = [];
+    surface.watchEntities(() => news.push('change'));
+
+    expect(runtime!.setEntityName(scene.id, entity.id, '   ')).toBe(false);
+    expect(runtime!.setEntityVisible(scene.id, entity.id, 'true' as unknown as boolean)).toBe(false);
+    expect(runtime!.setEntityName(scene.id, toEntityId('no-such-entity'), 'Ghost')).toBe(false);
+    expect(news).toEqual([]);
+
+    // And the subscription is ALIVE — the silence above was the refusals', not a dead watch.
+    runtime!.setEntityName(scene.id, entity.id, 'Villain');
+    expect(news).toEqual(['change']);
+  });
+
+  it('the unsubscribe drops the entity watch: later news moves the report through no watcher', () => {
+    const { surface, scene, entity } = surfaceOnHeadless();
+    const news: string[] = [];
+    const unwatch = surface.watchEntities(() => news.push('change'));
+
+    runtime!.setEntityName(scene.id, entity.id, 'First');
+    expect(news).toEqual(['change']);
+    unwatch();
+    runtime!.setEntityName(scene.id, entity.id, 'Second');
+    expect(news).toEqual(['change']);
+    expect(() => unwatch()).not.toThrow();
+  });
+});

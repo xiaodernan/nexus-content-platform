@@ -1170,3 +1170,90 @@ describe('watchComponents (M5 v210)', () => {
     expect(fired).toBe(1);
   });
 });
+
+// M5 v212 — the entity leg of the same seam. These cases are deliberately shaped like v210's, because the
+// whole claim of v212 is that the two legs are the SAME promise over a DIFFERENT name set: any drift in
+// the shape (a payload, a per-event wrapper, a missing no-verbs guard) should read as a diff here.
+describe('watchEntities (M5 v212)', () => {
+  it('a host without event verbs answers a no-op unsubscribe instead of crashing', () => {
+    const { runtime } = fakeRuntime();
+    const surface = createStudioScene(runtime, () => {});
+    const unwatch = surface.watchEntities(() => {});
+    expect(typeof unwatch).toBe('function');
+    expect(() => unwatch()).not.toThrow();
+  });
+
+  it('a host WITH verbs joins exactly the two entity names with one shared listener, and leaves on both', () => {
+    const on: Array<{ event: string; listener: unknown }> = [];
+    const off: Array<{ event: string; listener: unknown }> = [];
+    const { runtime } = fakeRuntime({
+      addEventListener: (event, listener) => {
+        on.push({ event, listener });
+      },
+      removeEventListener: (event, listener) => {
+        off.push({ event, listener });
+      },
+    });
+    const surface = createStudioScene(runtime, () => {});
+    const listener = () => {};
+    const unwatch = surface.watchEntities(listener);
+
+    expect(on.map((entry) => entry.event).sort()).toEqual(['entityRenamed', 'entityVisibilityChanged']);
+    expect(new Set(on.map((entry) => entry.listener)).size).toBe(1);
+    expect(on[0]!.listener).toBe(listener);
+
+    unwatch();
+    expect(off.map((entry) => entry.event).sort()).toEqual(on.map((entry) => entry.event).sort());
+    for (const entry of off) expect(entry.listener).toBe(listener);
+  });
+
+  it('the two legs watch DISJOINT name sets — watchEntities takes no component name and vice versa', () => {
+    const on: string[] = [];
+    const { runtime } = fakeRuntime({
+      addEventListener: (event) => {
+        on.push(event);
+      },
+      removeEventListener: () => {},
+    });
+    const surface = createStudioScene(runtime, () => {});
+    surface.watchComponents(() => {});
+    const componentNames = on.slice();
+    surface.watchEntities(() => {});
+    const entityNames = on.slice(componentNames.length);
+
+    expect(componentNames).toEqual(['componentAdded', 'componentRemoved', 'componentStateChanged']);
+    expect(entityNames).toEqual(['entityRenamed', 'entityVisibilityChanged']);
+    expect(entityNames.filter((name) => componentNames.includes(name))).toEqual([]);
+  });
+
+  it('an entityRenamed from the host fires the entity watcher and no component watcher', () => {
+    const listeners = new Map<string, ((data?: unknown) => void)[]>();
+    const { runtime } = fakeRuntime({
+      addEventListener: (event, listener) => {
+        const list = listeners.get(event) ?? [];
+        list.push(listener);
+        listeners.set(event, list);
+      },
+      removeEventListener: (event, listener) => {
+        const list = listeners.get(event) ?? [];
+        const at = list.indexOf(listener);
+        if (at !== -1) list.splice(at, 1);
+      },
+    });
+    const surface = createStudioScene(runtime, () => {});
+    let entityFires = 0;
+    let componentFires = 0;
+    surface.watchEntities(() => {
+      entityFires += 1;
+    });
+    surface.watchComponents(() => {
+      componentFires += 1;
+    });
+
+    for (const listener of listeners.get('entityVisibilityChanged') ?? []) listener({ entityId: 'e1', visible: false });
+    expect({ entityFires, componentFires }).toEqual({ entityFires: 1, componentFires: 0 });
+
+    for (const listener of listeners.get('componentAdded') ?? []) listener({ entityId: 'e1' });
+    expect({ entityFires, componentFires }).toEqual({ entityFires: 1, componentFires: 1 });
+  });
+});

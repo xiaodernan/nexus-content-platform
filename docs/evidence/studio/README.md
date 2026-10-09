@@ -1420,6 +1420,68 @@ or split) is a separate grant; `setLightState` and `removeEntity` already emit, 
 registry verbs (none in the component family) were censused from the same `this.emit(` walk. The ADR
 0016 amendment record for this grant is owed.
 
+## The surface watches the entity pair: an out-of-band rename or hide moves the panel (M5 v212)
+
+v211's bounds named this grant: "the Studio side does not yet SUBSCRIBE to the two entity names — v210's
+`watchComponents` list is still exactly three." So the runtime could now announce a rename made by anyone
+(console, agent, another panel) and the Studio would still show the replaced name until something else
+happened to re-read the report. News on a bus with no listener is the same silence.
+
+**What landed.**
+- `SceneSurface.watchEntities(listener): () => void` (declared `apps/studio/src/lib/scene3d.ts:833`,
+  implemented 1005-1012) — one listener joined to exactly `entityRenamed` and `entityVisibilityChanged`,
+  an idempotent unsubscribe that drops both, and the same host-honest guard as its sibling: a host
+  without `addEventListener`/`removeEventListener` answers a no-op unsubscribe rather than crashing.
+- `Scene3D.tsx` subscribes BOTH legs in the mount effect (271 components, 274 entities), each with the
+  same pull the rAF loop uses — `() => setReport(surface.report())` — and leaves both in the cleanup
+  (305, 306).
+- A DELIBERATE design choice, recorded because it changes what the witnesses can claim: this is a SEPARATE
+  verb, not a fifth name inside `watchComponents`. v210's witnesses pin that subscription to EXACTLY three
+  names; widening it there would have made those pins lie about a promise they no longer describe. Arm A4
+  below tests the refused shape instead of merely asserting it was refused.
+
+**New cases (10).** `scene3d.test.ts` 77 → 81: no-verbs host answers a no-op unsubscribe; the joined set is
+exactly the two names with ONE shared listener (identity, because the runtime unsubscribes by `indexOf`);
+the two legs join DISJOINT name sets; an `entityVisibilityChanged` fires the entity watcher and no
+component watcher. `scene3dSurface.test.ts` 24 → 29, against the shipped package with every write going
+through the RUNTIME and none through the surface: a rename re-reads to `Villain` at emit time (the v211
+ordering rule, now consumed from the subscriber side); a hide then a show re-reads `visible` false→true;
+component events do not move the entity watcher and vice versa; a refused write (blank name, non-boolean
+`'true'`, unknown entity) calls the watcher ZERO times and the case then lands a real rename to prove the
+silence was the refusal's, not a dead watch; the unsubscribe drops the leg.
+
+**The wiring got its first reader.** Grepping the suite found that NOTHING read `Scene3D.tsx` for the
+watch: v210's subscription shipped with no test of the component that installs it — only of the verb. The
+`surface.test.ts` file already grades this component's wiring from source, so v212 adds one case there
+(15 → 16): the joined names, in mount order, must be exactly `['watchComponents','watchEntities']`, the
+leaves exactly `['unwatchComponents','unwatchEntities']`, and the count of `=> setReport(surface.report())`
+pulls must EQUAL the count of joined legs — derived from the file, not hand-typed, so a leg subscribed by
+some other expression is the red rather than a number to widen.
+
+**Mutation probes (arms measured, not asserted).** A1 — `entityVisibilityChanged` dropped from the watched
+set: predicted 5 reds, got 5, names identical (both DISJOINT pins, the pure emit case, the surface
+hide-legs case, the surface news-crossing case). A2 — host-honest guard deleted: predicted 1, got 1 (the
+no-verbs case). A3 — a per-event wrapper instead of one shared listener: predicted 2, got 2 (the identity
+pin and the unsubscribe case, which is exactly the failure mode the wrapper creates — `indexOf` never finds
+a fresh arrow, so an "unsubscribed" watcher keeps firing). A4 — the REFUSED design, `watchEntities` joined
+to all five names: first predicted 3 (the crossing pins), re-predicted 4 before the run because the
+exact-set case counts the joined names too; got 4. A5 — `unwatchEntities()` deleted from the cleanup:
+predicted 1, got 1 — the new source pin, i.e. the suite's only reader of the wiring, and A5 is what proves
+that pin is not decorative. 13 reds across 5 arms, 13 attributed, 0 unexplained; every arm restored byte-
+identical and re-verified before the suites.
+
+Measured on this host 2026-10-09: Studio tsc exit 0, Studio suite **425/425** (31 files; 415 → +10). No
+three-runtime source was touched, so no rebuild was needed and its suite re-ran at **498/498** (19 files)
+against the package v211 shipped.
+
+Bounds, stated: the source pin grades TEXT, not behaviour — it cannot see that the subscription lives in the
+mount effect with empty deps, and an `unwatchEntities()` placed anywhere in the file satisfies it (a React
+render test would be the reader that closes this, and no such harness exists for `Scene3D.tsx`);
+`entityCreated`/`entityRemoved` still have NO Studio subscriber, so a body added or removed out-of-band
+still does not move the panel — the census of `this.emit(` shows those names carrying no listener above the
+runtime; the component `data` bag is still unread by the inspector (v199 counts names, v212 reads none of
+their values). The ADR 0016 amendment record for this grant is owed.
+
 ## The dock's BUILD face (M6 v174 — ADR 0016 amendment 174)
 
 The first product consumer of the build arc (amendment 173), and the section this increment never had: the

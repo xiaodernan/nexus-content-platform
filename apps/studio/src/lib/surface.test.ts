@@ -129,6 +129,21 @@ describe('the wiring that makes the 3D surface reachable', () => {
     expect(SCENE).toMatch(/HEADLESS — this host has no GL context/);
   });
 
+  it('the 3D component joins BOTH watch legs and leaves BOTH on teardown (M5 v212)', () => {
+    // The surface verbs are tested against a runtime; this case tests the COMPONENT — the only place
+    // they are ever called in production. Pairing is counted from the file rather than hand-typed, and
+    // the order is the mount's: a subscription with no matching unwatch leaks a listener into a runtime
+    // that outlives the component, and a second leg added without its own leave would pass a prose test.
+    const joined = [...SCENE.matchAll(/surface\.(watchComponents|watchEntities)\(/g)].map((m) => m[1]);
+    const left = [...SCENE.matchAll(/(unwatchComponents|unwatchEntities)\(\);/g)].map((m) => m[1]);
+    expect(joined).toEqual(['watchComponents', 'watchEntities']);
+    expect(left).toEqual(['unwatchComponents', 'unwatchEntities']);
+    // Both legs re-read the SAME way the rAF pull does: through the captured surface's own report.
+    // Counted against `joined` rather than hand-typed, so a leg subscribed some other way is the red.
+    const pullArrows = [...SCENE.matchAll(/=> setReport\(surface\.report\(\)\)/g)].length;
+    expect(pullArrows).toBe(joined.length);
+  });
+
   it('the 3D scene is NOT part of the design document the Studio persists', () => {
     // The persistence path serialises `doc` only; a scene that leaked into it would be saved as part
     // of the user's design. This is the same boundary `previewOpen` sits on.
