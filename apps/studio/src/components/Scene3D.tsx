@@ -276,6 +276,11 @@ export default function Scene3D() {
     // a name whose body left has nothing to inspect. The third leg of the same seam, with its own name set:
     // a restore counts here, because the runtime's insert emits `entityCreated` for a restore too.
     const unwatchBodies = surface.watchBodies(() => setReport(surface.report()));
+    // v217 — the scene leg: a scene created or made active by anyone moves the scene rows (which scene is
+    // named, how many exist), which no earlier leg hears. `disposed` is NOT in this set: this very effect's
+    // teardown calls it, so watching it would re-read the report against a graph the same teardown has
+    // just cleared.
+    const unwatchScenes = surface.watchScenes(() => setReport(surface.report()));
     // v161: the controls live OUTSIDE this effect (they are React handlers), so the surface has to be
     // reachable from them. A ref rather than state, because the surface is not a value React should
     // re-render on — it is a handle to a running loop.
@@ -309,6 +314,7 @@ export default function Scene3D() {
       unwatchComponents();
       unwatchEntities();
       unwatchBodies();
+      unwatchScenes();
       // `dispose()` stops the loop it owns, drops every entity/record registry and disposes the
       // backend — so a teardown needs no second call here, and the next mount starts clean.
       runtime.dispose();

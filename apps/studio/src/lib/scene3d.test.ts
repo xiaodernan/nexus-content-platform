@@ -1389,3 +1389,149 @@ describe('watchBodies (M5 v216)', () => {
     expect(heard).toEqual(['news']);
   });
 });
+
+// M5 v217 — the SCENE leg, the fourth and last family the Studio panel listens for. Its name set comes from
+// the same write census as v216's, and reaches the OPPOSITE verdict: both names carry, because the runtime
+// activates the FIRST scene from inside `createScene` without emitting `activeSceneChanged`
+// (threeRuntime.ts:1240-1241). A switch-only leg would therefore miss a scene APPEARING at all — the
+// surface cases below prove that on the shipped package, where the refusal would be silent.
+describe('watchScenes (M5 v217)', () => {
+  function withBus() {
+    const listeners = new Map<string, ((data?: unknown) => void)[]>();
+    const { runtime } = fakeRuntime({
+      addEventListener: (event, listener) => {
+        const list = listeners.get(event) ?? [];
+        list.push(listener);
+        listeners.set(event, list);
+      },
+      removeEventListener: (event, listener) => {
+        const list = listeners.get(event) ?? [];
+        const at = list.indexOf(listener);
+        if (at !== -1) list.splice(at, 1);
+      },
+    });
+    const emit = (event: string, data?: unknown) => {
+      for (const listener of listeners.get(event) ?? []) listener(data);
+    };
+    return { runtime, listeners, emit };
+  }
+
+  it('a host without event verbs answers a no-op unsubscribe instead of crashing', () => {
+    const { runtime } = fakeRuntime();
+    const surface = createStudioScene(runtime, () => {});
+    const unwatch = surface.watchScenes(() => {});
+    expect(typeof unwatch).toBe('function');
+    expect(() => unwatch()).not.toThrow();
+  });
+
+  it('a host WITH verbs joins exactly the two scene names with one shared listener, and leaves on both', () => {
+    const on: Array<{ event: string; listener: unknown }> = [];
+    const off: Array<{ event: string; listener: unknown }> = [];
+    const { runtime } = fakeRuntime({
+      addEventListener: (event, listener) => {
+        on.push({ event, listener });
+      },
+      removeEventListener: (event, listener) => {
+        off.push({ event, listener });
+      },
+    });
+    const surface = createStudioScene(runtime, () => {});
+    const listener = () => {};
+    const unwatch = surface.watchScenes(listener);
+
+    expect(on.map((entry) => entry.event)).toEqual(['sceneCreated', 'activeSceneChanged']);
+    expect(new Set(on.map((entry) => entry.listener)).size).toBe(1);
+    expect(on[0]!.listener).toBe(listener);
+
+    unwatch();
+    expect(off.map((entry) => entry.event).sort()).toEqual(on.map((entry) => entry.event).sort());
+    for (const entry of off) expect(entry.listener).toBe(listener);
+  });
+
+  it('ALL FOUR legs join pairwise DISJOINT name sets — the scene family borrows no name from the other three', () => {
+    const on: string[] = [];
+    const { runtime } = fakeRuntime({
+      addEventListener: (event) => {
+        on.push(event);
+      },
+      removeEventListener: () => {},
+    });
+    const surface = createStudioScene(runtime, () => {});
+    surface.watchComponents(() => {});
+    const componentNames = on.slice();
+    surface.watchEntities(() => {});
+    const afterEntities = on.slice();
+    const entityNames = afterEntities.slice(componentNames.length);
+    surface.watchBodies(() => {});
+    const bodyNames = on.slice(afterEntities.length);
+    surface.watchScenes(() => {});
+    const sceneNames = on.slice(on.length - 2);
+
+    expect(componentNames).toEqual(['componentAdded', 'componentRemoved', 'componentStateChanged']);
+    expect(entityNames).toEqual(['entityRenamed', 'entityVisibilityChanged']);
+    expect(bodyNames).toEqual(['entityCreated', 'entityRemoved']);
+    expect(sceneNames).toEqual(['sceneCreated', 'activeSceneChanged']);
+
+    // The whole seam, not one leg: 9 joins, 9 distinct names. v216's three-leg case cannot see a name
+    // that only the fourth leg adds, so this is the pin that reddens if `sceneCreated` is ever joined
+    // twice or the scene family starts sharing news with the body family.
+    const joined = [...componentNames, ...entityNames, ...bodyNames, ...sceneNames];
+    expect(on.length).toBe(9);
+    expect(joined.length).toBe(9);
+    expect(new Set(joined).size).toBe(joined.length);
+    // And the scene names appear in NO earlier leg's slice.
+    for (const name of sceneNames) {
+      expect(componentNames).not.toContain(name);
+      expect(entityNames).not.toContain(name);
+      expect(bodyNames).not.toContain(name);
+    }
+  });
+
+  it('sceneCreated and activeSceneChanged each fire the scene leg and none of the other three', () => {
+    const { runtime, emit } = withBus();
+    const surface = createStudioScene(runtime, () => {});
+    let sceneFires = 0;
+    let bodyFires = 0;
+    let entityFires = 0;
+    let componentFires = 0;
+    const bump = (counter: 'sceneFires' | 'bodyFires' | 'entityFires' | 'componentFires') => () => {
+      if (counter === 'sceneFires') sceneFires += 1;
+      if (counter === 'bodyFires') bodyFires += 1;
+      if (counter === 'entityFires') entityFires += 1;
+      if (counter === 'componentFires') componentFires += 1;
+    };
+    surface.watchScenes(bump('sceneFires'));
+    surface.watchBodies(bump('bodyFires'));
+    surface.watchEntities(bump('entityFires'));
+    surface.watchComponents(bump('componentFires'));
+
+    const counts = () => ({ sceneFires, bodyFires, entityFires, componentFires });
+
+    emit('sceneCreated', { scene: { id: 'second' } });
+    expect(counts()).toEqual({ sceneFires: 1, bodyFires: 0, entityFires: 0, componentFires: 0 });
+
+    emit('activeSceneChanged', { sceneId: 'second' });
+    expect(counts()).toEqual({ sceneFires: 2, bodyFires: 0, entityFires: 0, componentFires: 0 });
+
+    // The body pair stays the BODY leg's news: a scene appearing is not a body appearing.
+    emit('entityCreated', { sceneId: 'second', entity: { id: 'e1' } });
+    expect(counts()).toEqual({ sceneFires: 2, bodyFires: 1, entityFires: 0, componentFires: 0 });
+  });
+
+  it('disposed is NOT a watched name — and the leg stays alive without it', () => {
+    const { runtime, emit } = withBus();
+    const surface = createStudioScene(runtime, () => {});
+    const heard: string[] = [];
+    surface.watchScenes(() => heard.push('news'));
+
+    // The absence is a DECISION recorded in the declaration: `dispose()` clears the whole graph
+    // (threeRuntime.ts:4212) and the Studio calls it from the same teardown that unwatches, so a `disposed`
+    // leg would re-read the report against a runtime the panel is shutting down.
+    emit('disposed');
+    expect(heard).toEqual([]);
+
+    // The silence is this name's, not a dead subscription.
+    emit('activeSceneChanged', { sceneId: 'other' });
+    expect(heard).toEqual(['news']);
+  });
+});

@@ -9616,3 +9616,97 @@ v210 opened and v212 widened, and it closes the gap v212's Bounds named.
   `activeSceneChanged` still has no subscriber, so an out-of-band scene switch does not move the panel. The
   component `data` bag is still unread by the inspector: v199 counts names, v212 and v216 read none of their
   values.
+
+### Amendment 217 (v217, studio) — the surface watches the scene pair, and the same write census that cut v216's name set down says BOTH scene names carry
+
+_Numbering: 217 was free. This ledger's own headings topped out at 216, and `### Amendment 217` matched 0 lines
+before this write — both read from the file's bytes, not from a shell grep. Amendments 213, 214 and 215 belong to
+the type-gate and repo-hygiene lane and are untouched here._ This is the fourth and last family of the watch seam
+v210 opened and v212 and v216 widened, and it closes the gap v216's Bounds left standing.
+
+- **Why the emit alone was not enough.** v216's bounds, verbatim: "`activeSceneChanged` still has no subscriber,
+  so an out-of-band scene switch does not move the panel." The runtime has announced both scene names since the bus
+  existed and nothing above it listened, so a console command or an agent could move the reported scene while the
+  panel kept naming the one it mounted on. News on a bus with no listener is the same silence.
+- **What landed.** `SceneSurface.watchScenes(listener): () => void` (declared `apps/studio/src/lib/scene3d.ts:848`,
+  census comment 848-863, implemented 1058-1065): one listener joined to exactly `sceneCreated` and
+  `activeSceneChanged`, an idempotent unsubscribe that drops both, and the same host-honest guard as its three
+  siblings — a host without `addEventListener`/`removeEventListener` answers a no-op unsubscribe instead of
+  crashing. `Scene3D.tsx` subscribes all FOUR legs in its mount effect (271 components, 274 entities, 278 bodies,
+  283 scenes), each with the same pull the rAF loop uses, and leaves all four in the cleanup (314, 315, 316, 317). No
+  three-runtime source changed, so the package this runs against is still the one v211 shipped.
+- **The census REVERSES, which is why this record exists.** The rule since v210 is: watch a name only if some input
+  moves a reported field AND only that name announces it. Applied to v216's family it deleted a name; applied to
+  this one it keeps both, and the two verdicts come from the same arithmetic, not from a preference for more
+  subscriptions.
+  - Only two methods write what the report reads: `createScene` does `scenes.set(...)` (threeRuntime.ts:1238) and,
+    when the graph was empty, `activeSceneId` too (1240-1241); `setActiveScene` writes `activeSceneId` alone (1285).
+    No verb deletes a scene, so `report.scenes` only ever grows.
+  - The names move DIFFERENT fields. A second `createScene` moves `scenes` alone; a switch moves
+    `activeSceneId`/`scene` alone. The surface witnesses assert that split rather than "something changed": the add
+    case pins `activeSceneId` and the scene name unchanged while `scenes` moves, and the switch case pins `scenes`
+    unchanged while the name and roster move.
+  - `sceneCreated` is NOT subsumed by the switch name — the exact inverse of v216's `entityRestored`. The FIRST
+    scene on an empty graph activates from inside `createScene` and emits no `activeSceneChanged`, so a switch-only
+    leg would leave the panel naming no scene after one appeared. The runtime-level case measures that on the
+    shipped package: `activeSceneId` moves from `null` to the new scene's id while the two raw listeners record
+    exactly `['created']` — and then, for a real later switch, `['changed']`, so the first half is not "the runtime
+    never emits that name". A pair drafted by analogy with v216 would have been wrong in the direction that
+    silently mis-reports a user-visible panel.
+- **`disposed` is refused, and the refusal is witnessed twice.** `dispose()` empties the graph (4212) and emits
+  `disposed` (4232). It is not in this leg because `Scene3D.tsx` calls `runtime.dispose()` from the same cleanup
+  that unwatches (320), so a `disposed` leg would re-read a report off a graph being torn down — a pull into a dead
+  panel, for news no live panel can show. The pure case pins the emit as silent and then lands a real
+  `activeSceneChanged` to prove the silence was the name's; the surface case proves the leg was ALIVE before
+  `dispose()` and quiet through it. The absence is a decision, named where a reader would look for it.
+- **Evidence (13 new cases).** `scene3d.test.ts` 86 → 91 against a local bus: no-verbs host answers a no-op
+  unsubscribe · the joined set is exactly the two names with ONE shared listener (identity, because the runtime
+  unsubscribes by `indexOf`) and both leaves · ALL FOUR legs join pairwise DISJOINT name sets, 9 joins and 9
+  distinct names, with neither scene name present in any earlier leg's slice · each scene name fires the scene leg
+  alone against the other three · and `disposed` is pinned as NOT a watched name.
+  `scene3dSurface.test.ts` 36 → 44 against the shipped package, every write going through the RUNTIME and none
+  through the surface: a second scene re-reads `{scenes: before+1, activeSceneId: <the surface's own>}` AT EMIT TIME ·
+  a switch re-reads the other scene's name and roster while `surface.sceneId` keeps naming the scene whose frame loop
+  it owns · the silent-first-activation census claim on the bare shipped runtime · a switch clears `inspector` but
+  NOT `selected` and switching back restores the facts, i.e. v192/v197's two-record rule survives a scene change · a
+  refused switch (`setActiveScene` on an unknown id returns false at 1283-1284, before any emit) calls the watcher
+  ZERO times and the case then lands a real add to prove the silence was the refusal's · leg isolation both ways on
+  the real bus · the unsubscribe drops the scene leg only and a double unwatch does not throw · `dispose()` moves
+  nothing here.
+- **The wiring pin went from a triple to four — and proved itself on my own mistake.** `surface.test.ts`'s component
+  case (count unchanged at 16, RENAMED `ALL THREE` → `ALL FOUR`, so its old title leaves the corpus by design) now
+  requires joined names in mount order exactly
+  `['watchComponents','watchEntities','watchBodies','watchScenes']`, leaves exactly the four `unwatch…`, and the
+  count of `=> setReport(surface.report())` pulls must EQUAL the count of joined legs — DERIVED from the file, so it
+  rose to 4 by itself. The first run of the three files had exactly one red, and it was real: I wired the fourth
+  join and forgot the fourth `unwatchScenes();`, and this pin named it. v212 and v216 each argued from theory that
+  the source pin is not decorative; here it caught the same defect arm A5 plants, in the same shape, on an honest
+  pass.
+- **Arms.** A0 control: 0 reds over the 151 cases these three files collect. A1 `activeSceneChanged` dropped from
+  the pair: predicted 6, got 6 (the exact-set pin, the four-leg DISJOINT pin, the fire-alone case whose second emit
+  IS that name, the `disposed` case whose alive-proof emits it, and both switch-carrying surface cases). A2
+  host-honest guard deleted: predicted 1, got 1. A3 a per-event wrapper instead of one shared listener: predicted 2,
+  got 2 — the identity pin and the surface unsubscribe case, exactly the failure mode a wrapper creates, since
+  `indexOf` never finds a fresh arrow and an "unsubscribed" leg keeps firing. A4 the REFUSED design, `disposed` added
+  to the set: predicted 4, got 4 (the two exact-set pins, the pure not-a-watched-name pin, and the surface
+  `dispose()` case, which stops being quiet). A5 `unwatchScenes();` deleted from the cleanup: predicted 1, got 1 —
+  the source pin. **14 reds across 5 arms, 14 attributed, 0 unexplained, 6/6 arms MATCHED with no re-prediction** —
+  the first battery in this arc that needed no second guess. Each arm re-based from the bytes on disk at its own top,
+  verified its needle hit exactly once and that the mutant text was present before running, then restored to a
+  sha-equal file (`scene3d.ts` d469218da682 before and after A1-A4, `Scene3D.tsx` dfe6eb1f3282 after A5).
+- **Measured** on 2026-10-10: Studio `tsc --noEmit` exit 0 and Studio suite **450/450** (31 files; 437 → +13);
+  three-runtime **498/498** (19 files, the runner's own exit code read directly), re-run against the same shipped
+  dist because no runtime source moved. The §7 ledger-vs-records door reads the ledger off the worktree (its HEAD
+  blob discipline is §0-§6's table, not §7's ADR), so this record and its README title are graded in the same run.
+- **Bounds (§60).** The source pin grades TEXT, not behaviour: it cannot see that the subscription lives in the mount
+  effect with empty deps, and an `unwatchScenes();` anywhere in the file satisfies it — closing that needs a React
+  render harness, which still does not exist for `Scene3D.tsx`. `watchScenes` carries no payload, so a scene event
+  from ANYWHERE re-reads; for this leg that is correct rather than merely harmless, because the report reads the
+  ACTIVE scene globally (`buildSceneReport`, scene3d.ts:593-595), but the same property means a switch into a scene
+  the Studio never composed shows an empty roster and no active camera — the truth of that scene, and no case
+  measures it yet. The surface's own `load()` (1116) creates a scene, so a restore now re-reads through the bus as
+  well as through its return value: a duplicated pull, harmless, like v210's siblings. `entityCreated`/`entityRemoved`
+  from another scene still re-read the active scene (v216's bound, unchanged). The component `data` bag is still
+  unread by the inspector. The lifecycle family — `initialized` (1193), `resize` (1199), `disposed` (4232) — is
+  still unwatched; `started` (2614), `stopped` (2624) and `frame` (2645) are already refused there because no
+  reported field moves for them, and that census is the next unit of this seam.

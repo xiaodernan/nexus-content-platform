@@ -1035,3 +1035,210 @@ describe('watchBodies — an out-of-band add or removal moves the roster (M5 v21
     expect(() => unwatch()).not.toThrow();
   });
 });
+
+
+// M5 v217 — the SCENE leg, against the SHIPPED package. The body leg says what is IN the reported scene;
+// this leg says WHICH scene is reported and how many exist, so the witnesses below read `scenes`,
+// `activeSceneId` and `scene` — all read off the LIVE graph inside `buildSceneReport` (scene3d.ts:593-622),
+// never copied by the surface. Two claims need real-package evidence that a fake cannot give: the FIRST
+// scene on an empty graph activates WITHOUT emitting `activeSceneChanged` (threeRuntime.ts:1240-1241), and
+// `dispose()` clears the graph (4212) without announcing it on either watched name.
+describe('watchScenes — an out-of-band scene add or switch moves the panel’s scene rows (M5 v217)', () => {
+  let runtime: ThreeRuntime | null = null;
+  afterEach(() => {
+    runtime?.dispose();
+    runtime = null;
+  });
+
+  function surfaceOnHeadless() {
+    const headless = headlessRuntime();
+    runtime = headless.runtime;
+    const adapter: SceneAdapterLike = {
+      placeCamera(sceneId: string, cameraId: string, position: SceneVec3, lookAt: SceneVec3) {
+        const found = headless.runtime.getScene(toSceneId(sceneId))?.cameras.get(toCameraId(cameraId));
+        if (!found) return false;
+        found.threeCamera.position.set(position.x, position.y, position.z);
+        found.threeCamera.lookAt(new THREE.Vector3(lookAt.x, lookAt.y, lookAt.z));
+        found.threeCamera.updateMatrixWorld(true);
+        return true;
+      },
+      pickAt(sceneId: string, nx: number, ny: number) {
+        return headless.runtime.pickAt(toSceneId(sceneId), nx, ny);
+      },
+    };
+    const surface = createStudioScene(headless.runtime, () => {}, adapter);
+    headless.runtime.resize(800, 600);
+    surface.pickAt(400, 300);
+    const scene = headless.runtime.getScene(toSceneId(surface.sceneId))!;
+    const entity = scene.entities.get(toEntityId(surface.bodyIds[2]!))!;
+    return { headless, surface, scene, entity };
+  }
+
+  it('a second scene created outside the surface re-reads the COUNT, and the reported scene stays this surface’s', () => {
+    const { surface } = surfaceOnHeadless();
+    const before = surface.report();
+    expect(before.scene?.name).toBe('Studio Scene');
+    const seen: Array<{ scenes: number; activeSceneId: string | null; name: string | null }> = [];
+    surface.watchScenes(() => {
+      const r = surface.report();
+      seen.push({ scenes: r.scenes, activeSceneId: r.activeSceneId, name: r.scene?.name ?? null });
+    });
+
+    runtime!.createScene('Backlot', 'backlot');
+    // Creating a scene ADDS one; it does not take the camera's seat. So this leg's news moves `scenes`
+    // ALONE — the same field no other leg can move, which is what makes the name load-bearing.
+    expect(seen).toEqual([{ scenes: before.scenes + 1, activeSceneId: surface.sceneId, name: 'Studio Scene' }]);
+  });
+
+  it('making another scene active outside the surface re-reads the OTHER scene while `surface.sceneId` stays', () => {
+    const { surface } = surfaceOnHeadless();
+    const own = surface.sceneId;
+    const other = runtime!.createScene('Backlot', 'backlot');
+    runtime!.createEntity(other.id, 'Alien', 'mesh');
+
+    const seen: Array<{ name: string | null; names: string[]; scenes: number }> = [];
+    surface.watchScenes(() => {
+      const r = surface.report();
+      seen.push({ name: r.scene?.name ?? null, names: r.scene?.entityNames ?? [], scenes: r.scenes });
+    });
+
+    expect(runtime!.setActiveScene(other.id)).toBe(true);
+    // The panel now reports a scene the surface never built and a body it never added. `scenes` did NOT
+    // move — that is the OTHER name's news — so the two names differ in which field they carry.
+    expect(seen).toEqual([{ name: 'Backlot', names: ['Alien'], scenes: 2 }]);
+    // And the surface's OWN handle is not a view of the active scene: it still names the scene whose frame
+    // loop and bodies it owns, so a switch does not silently re-target the panel's write verbs.
+    expect(surface.sceneId).toBe(own);
+    expect(own).not.toBe(other.id);
+    expect(surface.report().scene?.name).toBe('Backlot');
+  });
+
+  it('the census claim the leg rests on: the FIRST scene on an empty graph activates with NO activeSceneChanged', () => {
+    const fresh = headlessRuntime();
+    runtime = fresh.runtime;
+    const heard: string[] = [];
+    fresh.runtime.addEventListener('sceneCreated', () => heard.push('created'));
+    fresh.runtime.addEventListener('activeSceneChanged', () => heard.push('changed'));
+
+    expect(fresh.runtime.getSceneGraph().activeSceneId).toBeNull();
+    const first = fresh.runtime.createScene('First', 'first');
+    // The graph is no longer empty and the report would now read a scene — but only ONE of the two names
+    // spoke. A switch-only leg would show a panel that names no scene after one appeared, so `sceneCreated`
+    // is load-bearing, which is the opposite verdict to v216's `entityRestored`.
+    expect(fresh.runtime.getSceneGraph().activeSceneId).toBe(first.id);
+    expect(heard).toEqual(['created']);
+
+    // And the switch name does exist and does carry the SECOND kind of news, so the refusal above is not
+    // "the runtime never emits it".
+    fresh.runtime.createScene('Second', 'second');
+    heard.length = 0;
+    expect(fresh.runtime.setActiveScene(toSceneId('first'))).toBe(true);
+    expect(heard).toEqual(['changed']);
+  });
+
+  it('a scene switch clears the inspector but not the pick, and switching back restores the facts', () => {
+    const { surface, entity } = surfaceOnHeadless();
+    const other = runtime!.createScene('Backlot', 'backlot');
+    const inspectorAtNews: (string | null)[] = [];
+    const selectedAtNews: (string | null)[] = [];
+    surface.watchScenes(() => {
+      const r = surface.report();
+      inspectorAtNews.push(r.inspector?.name ?? null);
+      selectedAtNews.push(r.selected?.name ?? null);
+    });
+
+    runtime!.setActiveScene(other.id);
+    // The two-record rule survives the switch: `selected` is this surface's pick, held across a scene it
+    // cannot see; `inspector` is the LIVE scene's answer about that id, and the other scene has no such
+    // body. A panel that kept showing the facts would be inspecting a body in a scene it is not showing.
+    expect(inspectorAtNews).toEqual([null]);
+    expect(selectedAtNews).toEqual([entity.name]);
+
+    runtime!.setActiveScene(toSceneId(surface.sceneId));
+    expect(inspectorAtNews).toEqual([null, entity.name]);
+    expect(surface.report().inspector?.name).toBe(entity.name);
+  });
+
+  it('a refused switch is no news: an unknown scene answers false and calls the watcher zero times', () => {
+    const { surface } = surfaceOnHeadless();
+    const heard: string[] = [];
+    surface.watchScenes(() => heard.push('news'));
+
+    expect(runtime!.setActiveScene(toSceneId('no-such-scene'))).toBe(false);
+    expect(heard).toEqual([]);
+
+    // And the subscription is ALIVE — the silence above was the refusal's, not a dead watch.
+    runtime!.createScene('Backlot', 'backlot');
+    expect(heard).toEqual(['news']);
+  });
+
+  it('scene news moves the scene leg alone on the real bus — and a body add is not scene news', () => {
+    const { surface, scene } = surfaceOnHeadless();
+    const sceneNews: number[] = [];
+    const body: number[] = [];
+    const entity: number[] = [];
+    const component: number[] = [];
+    surface.watchScenes(() => sceneNews.push(sceneNews.length));
+    surface.watchBodies(() => body.push(body.length));
+    surface.watchEntities(() => entity.push(entity.length));
+    surface.watchComponents(() => component.push(component.length));
+
+    runtime!.createScene('Backlot', 'backlot');
+    expect({ scene: sceneNews.length, body: body.length, entity: entity.length, component: component.length }).toEqual({
+      scene: 1,
+      body: 0,
+      entity: 0,
+      component: 0,
+    });
+
+    // The reverse crossing: a body added to the CURRENT scene is the body leg's news and moves no scene
+    // row, so the fourth leg does not re-read for it.
+    runtime!.createEntity(scene.id, 'Intruder', 'mesh');
+    expect({ scene: sceneNews.length, body: body.length, entity: entity.length, component: component.length }).toEqual({
+      scene: 1,
+      body: 1,
+      entity: 0,
+      component: 0,
+    });
+  });
+
+  it('the unsubscribe drops the scene leg only — the body leg keeps hearing', () => {
+    const { surface, scene } = surfaceOnHeadless();
+    const sceneNews: string[] = [];
+    const body: string[] = [];
+    const unwatch = surface.watchScenes(() => sceneNews.push('news'));
+    surface.watchBodies(() => body.push('news'));
+
+    runtime!.createScene('First', 'first');
+    expect({ scene: sceneNews, body }).toEqual({ scene: ['news'], body: [] });
+
+    unwatch();
+    runtime!.createScene('Second', 'second');
+    expect(sceneNews).toEqual(['news']);
+
+    // The leg that stayed proves the unsubscribe was the scene leg's, not a dropped bus listener.
+    runtime!.createEntity(scene.id, 'Intruder', 'mesh');
+    expect(body).toEqual(['news']);
+    expect(() => unwatch()).not.toThrow();
+  });
+
+  it('dispose() clears every scene and is NOT watched — the leg was alive before it, and quiet through it', () => {
+    const { surface } = surfaceOnHeadless();
+    const heard: string[] = [];
+    surface.watchScenes(() => heard.push('news'));
+
+    // Alive first: a real scene creation reaches the leg.
+    runtime!.createScene('Backlot', 'backlot');
+    expect(heard).toEqual(['news']);
+
+    // Then the refusal, measured against the runtime's own end. `dispose()` empties the graph (4212) and
+    // emits `disposed` (4232) — a name this leg deliberately does not hold, because Scene3D.tsx calls
+    // dispose from the same teardown that unwatches, so a `disposed` leg would re-read a report off a
+    // graph being cleared.
+    const live = runtime!;
+    runtime = null;
+    live.dispose();
+    expect(heard).toEqual(['news']);
+    expect(live.getSceneGraph().scenes.size).toBe(0);
+  });
+});

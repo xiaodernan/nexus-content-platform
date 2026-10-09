@@ -845,6 +845,23 @@ export interface SceneSurface {
    *  Same contract as its siblings: no payload, one shared listener, idempotent unsubscribe, and a host
    *  without event verbs answers a no-op unsubscribe. */
   watchBodies(listener: () => void): () => void;
+  /** v217 — the SCENE pair: `sceneCreated` and `activeSceneChanged`. The body pair says what is IN the
+   *  reported scene; this says WHICH scene is reported and how many exist. The name set again comes from a
+   *  write census, and this time the census says the two names are each load-bearing:
+   *  - Only two methods touch what the report reads: `createScene` sets `scenes.set(...)` and, when the
+   *    graph was empty, `activeSceneId` too (threeRuntime.ts:1238-1241), and `setActiveScene` writes
+   *    `activeSceneId` alone (1285). Nothing deletes a scene, so `report.scenes` only ever grows.
+   *  - `sceneCreated` is NOT subsumed by the switch name, which is the opposite of v216's `entityRestored`:
+   *    the FIRST scene on an empty graph moves `activeSceneId` from inside `createScene`, and that silent
+   *    first activation emits no `activeSceneChanged`. A switch-only leg would therefore miss a scene
+   *    APPEARING. A second scene moves `scenes` and nothing else, so the two names also differ in WHICH
+   *    field they move.
+   *  - `disposed` (4212 clears the whole graph) is deliberately absent: it is the runtime's own end, and
+   *    the Studio calls it from the component teardown, so it is not news about a scene the panel still
+   *    shows. Named here so the absence is a decision, not an oversight.
+   *  Same contract as its siblings: no payload, one shared listener, idempotent unsubscribe, and a host
+   *  without event verbs answers a no-op unsubscribe. */
+  watchScenes(listener: () => void): () => void;
   /** Put the camera back to the default orbit — the view the Studio opens with. */
   resetOrbit(): SceneReport;
   /** Add a body at the next free slot. Answers `null` when the runtime produced no entity. */
@@ -1030,6 +1047,17 @@ export function createStudioScene(
     watchBodies(listener) {
       if (!runtime.addEventListener || !runtime.removeEventListener) return () => {};
       const events = ['entityCreated', 'entityRemoved'];
+      for (const event of events) runtime.addEventListener(event, listener);
+      return () => {
+        for (const event of events) runtime.removeEventListener?.(event, listener);
+      };
+    },
+    // v217 — the scene pair. Both names carry, for opposite reasons from v216: the first scene on an empty
+    // graph activates from inside `createScene` and emits no `activeSceneChanged`, so a switch-only leg
+    // would miss a scene appearing (see the declaration's census).
+    watchScenes(listener) {
+      if (!runtime.addEventListener || !runtime.removeEventListener) return () => {};
+      const events = ['sceneCreated', 'activeSceneChanged'];
       for (const event of events) runtime.addEventListener(event, listener);
       return () => {
         for (const event of events) runtime.removeEventListener?.(event, listener);
