@@ -1257,3 +1257,135 @@ describe('watchEntities (M5 v212)', () => {
     expect({ entityFires, componentFires }).toEqual({ entityFires: 1, componentFires: 1 });
   });
 });
+
+// M5 v216 — the BODY leg of the same seam. Its name set is decided by the emit census, not by the size of
+// the family: `entityRestored` is NOT watched, because `restoreEntity` builds its body through the same
+// private `insertEntity` that `createEntity` calls, and that path emits `entityCreated` unconditionally
+// before `restoreEntity` emits its own name. The shape is v210's and v212's on purpose: any drift (a
+// payload, a per-event wrapper, a missing no-verbs guard, a third name sneaking in) reads as a diff here.
+describe('watchBodies (M5 v216)', () => {
+  function withBus() {
+    const listeners = new Map<string, ((data?: unknown) => void)[]>();
+    const { runtime } = fakeRuntime({
+      addEventListener: (event, listener) => {
+        const list = listeners.get(event) ?? [];
+        list.push(listener);
+        listeners.set(event, list);
+      },
+      removeEventListener: (event, listener) => {
+        const list = listeners.get(event) ?? [];
+        const at = list.indexOf(listener);
+        if (at !== -1) list.splice(at, 1);
+      },
+    });
+    // Emit the way the real runtime does: every listener under the name, with the event's data.
+    const emit = (event: string, data?: unknown) => {
+      for (const listener of listeners.get(event) ?? []) listener(data);
+    };
+    return { runtime, listeners, emit };
+  }
+
+  it('a host without event verbs answers a no-op unsubscribe instead of crashing', () => {
+    const { runtime } = fakeRuntime();
+    const surface = createStudioScene(runtime, () => {});
+    const unwatch = surface.watchBodies(() => {});
+    expect(typeof unwatch).toBe('function');
+    expect(() => unwatch()).not.toThrow();
+  });
+
+  it('a host WITH verbs joins exactly the two body names with one shared listener, and leaves on both', () => {
+    const on: Array<{ event: string; listener: unknown }> = [];
+    const off: Array<{ event: string; listener: unknown }> = [];
+    const { runtime } = fakeRuntime({
+      addEventListener: (event, listener) => {
+        on.push({ event, listener });
+      },
+      removeEventListener: (event, listener) => {
+        off.push({ event, listener });
+      },
+    });
+    const surface = createStudioScene(runtime, () => {});
+    const listener = () => {};
+    const unwatch = surface.watchBodies(listener);
+
+    expect(on.map((entry) => entry.event)).toEqual(['entityCreated', 'entityRemoved']);
+    expect(new Set(on.map((entry) => entry.listener)).size).toBe(1);
+    expect(on[0]!.listener).toBe(listener);
+
+    unwatch();
+    expect(off.map((entry) => entry.event).sort()).toEqual(on.map((entry) => entry.event).sort());
+    for (const entry of off) expect(entry.listener).toBe(listener);
+  });
+
+  it('the THREE legs join pairwise DISJOINT name sets — every name belongs to exactly one leg', () => {
+    const on: string[] = [];
+    const { runtime } = fakeRuntime({
+      addEventListener: (event) => {
+        on.push(event);
+      },
+      removeEventListener: () => {},
+    });
+    const surface = createStudioScene(runtime, () => {});
+    surface.watchComponents(() => {});
+    const componentNames = on.slice();
+    surface.watchEntities(() => {});
+    const afterEntities = on.slice();
+    const entityNames = afterEntities.slice(componentNames.length);
+    surface.watchBodies(() => {});
+    const bodyNames = on.slice(afterEntities.length);
+
+    expect(componentNames).toEqual(['componentAdded', 'componentRemoved', 'componentStateChanged']);
+    expect(entityNames).toEqual(['entityRenamed', 'entityVisibilityChanged']);
+    expect(bodyNames).toEqual(['entityCreated', 'entityRemoved']);
+    // One name, one leg: a shared name would make two panels re-read for one event and would mean the
+    // legs above no longer describe three families. Derived from the slices, so the claim is about THIS
+    // file's joins, not about a hand-typed count.
+    const joined = [...componentNames, ...entityNames, ...bodyNames];
+    expect(new Set(joined).size).toBe(joined.length);
+  });
+
+  it('an entityCreated fires the body watcher and neither of the other two legs', () => {
+    const { runtime, emit } = withBus();
+    const surface = createStudioScene(runtime, () => {});
+    let bodyFires = 0;
+    let entityFires = 0;
+    let componentFires = 0;
+    surface.watchBodies(() => {
+      bodyFires += 1;
+    });
+    surface.watchEntities(() => {
+      entityFires += 1;
+    });
+    surface.watchComponents(() => {
+      componentFires += 1;
+    });
+
+    emit('entityCreated', { sceneId: 's', entity: { id: 'e1' } });
+    expect({ bodyFires, entityFires, componentFires }).toEqual({ bodyFires: 1, entityFires: 0, componentFires: 0 });
+
+    emit('entityRemoved', { sceneId: 's', entityId: 'e1' });
+    expect({ bodyFires, entityFires, componentFires }).toEqual({ bodyFires: 2, entityFires: 0, componentFires: 0 });
+
+    // The entity pair stays the ENTITY leg's news: adding a body is not a rename or a hide.
+    emit('entityRenamed', { sceneId: 's', entityId: 'e1', name: 'X' });
+    expect({ bodyFires, entityFires, componentFires }).toEqual({ bodyFires: 2, entityFires: 1, componentFires: 0 });
+  });
+
+  it('entityRestored is NOT a watched name — the census says the pair already hears a restore', () => {
+    const { runtime, emit } = withBus();
+    const surface = createStudioScene(runtime, () => {});
+    const heard: string[] = [];
+    surface.watchBodies(() => heard.push('news'));
+
+    // The runtime's own restore announcement, on its own, moves NOTHING here. This is the refused shape:
+    // if `entityRestored` were added to the watched set the case below would fire twice and this pin is
+    // the only thing that would notice the difference.
+    emit('entityRestored', { sceneId: 's', entity: { id: 'e1' }, entityId: 'e1' });
+    expect(heard).toEqual([]);
+
+    // And the leg is ALIVE — the silence above is the name's, not a dead subscription. The real-package
+    // cases prove the restore itself does reach this leg, through the `entityCreated` the insert emits.
+    emit('entityCreated', { sceneId: 's', entity: { id: 'e2' } });
+    expect(heard).toEqual(['news']);
+  });
+});

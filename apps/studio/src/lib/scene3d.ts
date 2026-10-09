@@ -831,6 +831,20 @@ export interface SceneSurface {
    *  widening it there would make those pins lie. Same contract as its sibling — no payload, an
    *  idempotent unsubscribe, and a host without event verbs answers a no-op unsubscribe. */
   watchEntities(listener: () => void): () => void;
+  /** v216 — the BODY pair: `entityCreated` and `entityRemoved`, the two names that can add a body to, or
+   *  take one out of, the scene this surface reports. v212's bounds named this grant; the NAME SET is
+   *  decided by the emit census, not by the family's size:
+   *  - `entityRestored` is NOT watched, because it is a SUBSUMED echo. `restoreEntity` builds its body
+   *    through the same private `insertEntity` that `createEntity` uses, and that path emits
+   *    `entityCreated` unconditionally (threeRuntime.ts:1387) before `restoreEntity` emits
+   *    `entityRestored` (1799). There is no input where a restore news a body WITHOUT the pair already
+   *    newing it, so watching the third name would add a subscription and no information — the witness
+   *    for that claim is a real restore moving this leg exactly once.
+   *  - `activeSceneChanged` can also move `report.scene`, but it changes WHICH scene is reported, not
+   *    what is in it — a different fact, and a different leg. Named in bounds, not claimed here.
+   *  Same contract as its siblings: no payload, one shared listener, idempotent unsubscribe, and a host
+   *  without event verbs answers a no-op unsubscribe. */
+  watchBodies(listener: () => void): () => void;
   /** Put the camera back to the default orbit — the view the Studio opens with. */
   resetOrbit(): SceneReport;
   /** Add a body at the next free slot. Answers `null` when the runtime produced no entity. */
@@ -1005,6 +1019,17 @@ export function createStudioScene(
     watchEntities(listener) {
       if (!runtime.addEventListener || !runtime.removeEventListener) return () => {};
       const events = ['entityRenamed', 'entityVisibilityChanged'];
+      for (const event of events) runtime.addEventListener(event, listener);
+      return () => {
+        for (const event of events) runtime.removeEventListener?.(event, listener);
+      };
+    },
+    // v216 — the body pair. `entityRestored` is deliberately absent: the restore path emits
+    // `entityCreated` from the shared insert it routes through, so the pair already hears a restore
+    // (see the declaration's census). One listener joins both names, as in the other two legs.
+    watchBodies(listener) {
+      if (!runtime.addEventListener || !runtime.removeEventListener) return () => {};
+      const events = ['entityCreated', 'entityRemoved'];
       for (const event of events) runtime.addEventListener(event, listener);
       return () => {
         for (const event of events) runtime.removeEventListener?.(event, listener);

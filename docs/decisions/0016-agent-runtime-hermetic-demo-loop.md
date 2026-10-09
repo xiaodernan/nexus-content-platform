@@ -9536,3 +9536,83 @@ this closes the mechanism behind an incident already in this ledger._
   (879 stale files stay, and deleting them would destroy the materialised refs some proofs reuse). It also does
   not make the `.scratch/` convention itself any good — a proof that writes into the working tree is a proof
   that can leak into it, and the scene-surface proof has already been caught leaking temp dirs twice.
+
+### Amendment 216 (v216, studio) — the surface watches the body pair, and the watched name set is decided by an emit census rather than by the family's size
+
+_Numbering: 216 was free. This ledger's own headings topped out at 215, and `### Amendment 216` matched 0
+lines before this write — both read from the file's bytes, not from a shell grep. Amendments 213, 214 and 215
+belong to the type-gate and repo-hygiene lane and are untouched here._ This is the third leg of the watch seam
+v210 opened and v212 widened, and it closes the gap v212's Bounds named.
+
+- **Why the emit alone was not enough.** v212's bounds: "`entityCreated`/`entityRemoved` still have no
+  subscriber (a body added by console does not move the panel)". The runtime has announced both names ever
+  since the bus existed and nothing above it listened, so a console command or an agent writing through the
+  runtime could add a body to, or take one out of, the scene the Studio is reporting while the roster kept
+  naming the scene as it was at mount time. News on a bus with no listener is the same silence.
+- **What landed.** `SceneSurface.watchBodies(listener): () => void` (declared
+  `apps/studio/src/lib/scene3d.ts:847`, census comment 834-846, implemented 1030-1037): one listener joined to
+  exactly `entityCreated` and `entityRemoved`, an idempotent unsubscribe that drops both, and the same
+  host-honest guard as its two siblings — a host without `addEventListener`/`removeEventListener` answers a
+  no-op unsubscribe instead of crashing. `Scene3D.tsx` subscribes all THREE legs in its mount effect (271
+  components, 274 entities, 278 bodies), each with the same pull the rAF loop uses, and leaves all three in the
+  cleanup (309, 310, 311). No three-runtime source changed, so the package this runs against is still the one
+  v211 shipped.
+- **The census, not the family, chose the names** — recorded because the obvious drafting was wrong. The
+  natural set was `['entityCreated','entityRemoved','entityRestored']`, three names for "the body family".
+  `createEntity` (threeRuntime.ts:1290) and `restoreEntity` (1759) both build their body through the same
+  private `insertEntity` (1319), which emits `entityCreated` UNCONDITIONALLY (1387) before `restoreEntity`
+  emits `entityRestored` (1799). So no input makes a restore news a body without the pair already newing it,
+  and the third name would buy a subscription and no information. Watching it anyway is not conservatism — it
+  is a claim that a restore can go unheard. The REFUSED shape is measured (A4), and the census's positive half
+  is measured as behaviour too: a real snapshot→remove→restore cycle moves the leg exactly once.
+- **`activeSceneChanged` (1286) is deliberately not in this leg.** It can move `report.scene`, but it changes
+  WHICH scene is reported rather than what is in it — a different fact, therefore a different leg. Named here
+  and in Bounds so the next cycle inherits a gap rather than a mystery.
+- **Evidence (12 new cases).** `scene3d.test.ts` 81 → 86 against a local bus: no-verbs host answers a no-op
+  unsubscribe · the joined set is exactly the two names with ONE shared listener (identity, because the runtime
+  unsubscribes by `indexOf`) · the THREE legs join pairwise DISJOINT name sets and no name is joined twice ·
+  each body name fires the body leg · and `entityRestored` is pinned as NOT a watched name — 0 fires, then a
+  real `entityCreated` fires 1, so the silence is the name set's and not a dead watch's.
+  `scene3dSurface.test.ts` 29 → 36 against the shipped package, every write going through the RUNTIME and none
+  through the surface: an add re-reads `before+1` with the new name in `entityNames` · a removal re-reads
+  `before-1` · removing the SELECTED body answers `inspector: null` while `selected` still names it, which is
+  v197's two-record rule consumed from the SUBSCRIBER side · a restore moves the leg exactly once · a refused
+  removal (unknown body, unknown scene — `removeEntity` returns false at 1513/1516, before any emit) calls the
+  watcher ZERO times and the case then lands a real removal to prove the silence was the refusal's · body news
+  moves the body leg alone and `setEntityName` is not body news · the unsubscribe drops the body leg only and a
+  double unwatch does not throw.
+- **The wiring pin moved from a pair to a triple.** `surface.test.ts`'s component case (count unchanged at 16,
+  6 lines replaced): joined names in mount order exactly `['watchComponents','watchEntities','watchBodies']`,
+  leaves exactly `['unwatchComponents','unwatchEntities','unwatchBodies']`, and the count of
+  `=> setReport(surface.report())` pulls must EQUAL the count of joined legs — DERIVED from the file, so it
+  rose to 3 by itself and a leg subscribed some other way is the red rather than a number to widen. v212 made
+  this the suite's only reader of the wiring; v216 is the first increment to test it as a three-leg claim.
+- **Arms.** A0 control: 0 reds over the 138 cases these three files collect. A1 `entityRemoved` dropped from
+  the pair: predicted 5, got 6 — the extra was the pure cross-leg case, whose second emit IS an
+  `entityRemoved`, so dropping the name silences its second half too; re-predicted 6 from the mechanism and the
+  arm re-run alone, 6 predicted 6 hit MATCHED. The miss is on record, not smoothed. A2 host-honest guard
+  deleted: predicted 1, got 1. A3 a per-event wrapper instead of one shared listener: predicted 2, got 2 — the
+  identity pin and the unsubscribe case, exactly the failure mode a wrapper creates, since `indexOf` never
+  finds a fresh arrow and an "unsubscribed" watcher keeps firing. A4 the REFUSED design, `entityRestored` added
+  to the set: predicted 4, got 4 (the exact-set pin, the three-leg DISJOINT pin, the not-a-watched-name pin,
+  and the restore case, which stops being exactly once). A5 `unwatchBodies();` deleted from the cleanup:
+  predicted 1, got 1 — the widened source pin, and A5 is what proves that pin is not decorative. **14 reds
+  across 5 arms, 14 attributed, 0 unexplained**; each arm re-based from the bytes on disk at its own top,
+  verified its needle hit exactly once and that the mutant text was present before running, then restored to a
+  sha-equal file (`scene3d.ts` 9812f6a53742 before and after A1-A4, `Scene3D.tsx` bc1e03cb98c4 after A5).
+- **Measured** on 2026-10-10: Studio `tsc --noEmit` exit 0 and Studio suite **437/437** (31 files; 425 → +12);
+  three-runtime **498/498** (19 files), re-run against the same shipped dist because no runtime source moved.
+  The §7 ledger-vs-records door was red BEFORE this record was written, refusing `unrecordedNewest:215` — grant
+  215 has a heading and no record TITLE in the 113-file corpus. That is the repo-hygiene lane's debt, and this
+  cycle does not write it (amendment 90's rule against inventing a record for a grant it did not perform);
+  this amendment's own grant is titled by `docs/evidence/studio/README.md`, which is what the newest-grant
+  refusal asks of the cycle that holds the bytes.
+- **Bounds (§60).** The source pin grades TEXT, not behaviour: it cannot see that the subscription lives in the
+  mount effect with empty deps, and an `unwatchBodies();` anywhere in the file satisfies it — closing that needs
+  a React render harness, which still does not exist for `Scene3D.tsx`. `watchBodies` carries no payload, like
+  its siblings, so a body event from ANOTHER scene also re-reads; the report then names the ACTIVE scene
+  (`buildSceneReport`, scene3d.ts:587-595, reads `graph.activeSceneId`), so the cost is a redundant render and
+  no wrong value — derived from the reader's code, and no cross-scene case measures it yet.
+  `activeSceneChanged` still has no subscriber, so an out-of-band scene switch does not move the panel. The
+  component `data` bag is still unread by the inspector: v199 counts names, v212 and v216 read none of their
+  values.

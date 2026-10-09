@@ -272,6 +272,10 @@ export default function Scene3D() {
     // v212 — the entity leg: an out-of-band rename or hide now moves the panel too. Two separate
     // subscriptions, not one wider watch: each family's name set is pinned by its own witnesses.
     const unwatchEntities = surface.watchEntities(() => setReport(surface.report()));
+    // v216 — the body leg: a body added or taken away by anyone moves the roster AND the inspector, since
+    // a name whose body left has nothing to inspect. The third leg of the same seam, with its own name set:
+    // a restore counts here, because the runtime's insert emits `entityCreated` for a restore too.
+    const unwatchBodies = surface.watchBodies(() => setReport(surface.report()));
     // v161: the controls live OUTSIDE this effect (they are React handlers), so the surface has to be
     // reachable from them. A ref rather than state, because the surface is not a value React should
     // re-render on — it is a handle to a running loop.
@@ -304,6 +308,7 @@ export default function Scene3D() {
       window.removeEventListener('resize', onResize);
       unwatchComponents();
       unwatchEntities();
+      unwatchBodies();
       // `dispose()` stops the loop it owns, drops every entity/record registry and disposes the
       // backend — so a teardown needs no second call here, and the next mount starts clean.
       runtime.dispose();

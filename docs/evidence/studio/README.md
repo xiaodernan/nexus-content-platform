@@ -1482,6 +1482,92 @@ still does not move the panel — the census of `this.emit(` shows those names c
 runtime; the component `data` bag is still unread by the inspector (v199 counts names, v212 reads none of
 their values). The ADR 0016 amendment record for this grant is owed.
 
+## The surface watches the body pair: an out-of-band add, removal or restore moves the roster (M5 v216)
+
+v212's bounds named this grant: "`entityCreated`/`entityRemoved` still have no subscriber (a body added by
+console does not move the panel)". The runtime has announced both names ever since the bus existed, and
+nothing above it listened — so a console command or an agent writing through the runtime could add a body to,
+or take one out of, the scene the Studio is reporting, and the roster would keep naming the scene as it was
+when the component mounted. This is the third leg of the seam v210 opened and v212 widened.
+
+**What landed.**
+- `SceneSurface.watchBodies(listener): () => void` (declared `apps/studio/src/lib/scene3d.ts:847`, the census
+  comment 834-846, implemented 1030-1037) — one listener joined to exactly `entityCreated` and
+  `entityRemoved`, an idempotent unsubscribe that drops both, and the same host-honest guard as its two
+  siblings: a host without `addEventListener`/`removeEventListener` answers a no-op unsubscribe rather than
+  crashing. No three-runtime source changed, so the package this runs against is still the one v211 shipped.
+- `Scene3D.tsx` subscribes all THREE legs in its mount effect (271 components, 274 entities, 278 bodies), each
+  with the same pull the rAF loop uses — `() => setReport(surface.report())` — and leaves all three in the
+  cleanup (309, 310, 311).
+- The source pin that reads that file is widened from a pair to a triple (`surface.test.ts`: 6 lines replaced,
+  case count unchanged at 16). The joined names in mount order must be exactly
+  `['watchComponents','watchEntities','watchBodies']`, the leaves exactly
+  `['unwatchComponents','unwatchEntities','unwatchBodies']`, and the count of
+  `=> setReport(surface.report())` pulls must EQUAL the count of joined legs. That last clause is derived from
+  the file rather than hand-typed, so it rose to 3 on its own: a leg subscribed by some other expression is
+  the red rather than a number to widen.
+
+**The name set came from an emit census, not from the family's size** — recorded because the obvious drafting
+was wrong. `createEntity` (threeRuntime.ts:1290) and `restoreEntity` (1759) both build their body through the
+same private `insertEntity` (1319), which emits `entityCreated` UNCONDITIONALLY (1387) before `restoreEntity`
+emits `entityRestored` (1799). So there is no input where a restore news a body without the pair already
+newing it: watching the third name would add a subscription and no information — a belt with no input that
+only it reaches. Adding it is not conservatism; it is a claim that a restore can happen unheard. The refused
+shape is MEASURED below (A4), not merely argued away.
+`activeSceneChanged` (1286) is likewise absent on purpose: it does move `report.scene`, but it changes WHICH
+scene is reported rather than what is in it — a different fact, therefore a different leg. Bounds names it.
+
+**New cases (12).** `scene3d.test.ts` 81 → 86, against a local bus: a no-verbs host answers a no-op
+unsubscribe · the joined set is exactly the two names with ONE shared listener (identity is load-bearing,
+because the runtime unsubscribes by `indexOf`) · the THREE legs join pairwise DISJOINT name sets with no name
+joined twice · `entityCreated` and `entityRemoved` each fire the body leg · and `entityRestored` is pinned as
+NOT a watched name — 0 fires, followed by a real `entityCreated` that fires 1, so the silence is the name
+set's and not a dead watch's. `scene3dSurface.test.ts` 29 → 36, against the shipped package with every write
+going through the RUNTIME and none through the surface: an add re-reads the roster `before+1` with the new
+name in `entityNames` · a removal re-reads `before-1` · removing the SELECTED body answers `inspector: null`
+while `selected` still names it, which is v197's two-record rule consumed from the SUBSCRIBER side · a
+snapshot→remove→restore cycle moves the leg EXACTLY ONCE, so the census above is a measured behaviour rather
+than a sentence about code · a refused removal (unknown body, unknown scene — `removeEntity` returns false at
+1513/1516, before any emit) calls the watcher ZERO times and the case then lands a real removal to prove the
+silence was the refusal's and not a dead watch's · body news moves the body leg alone and `setEntityName` is
+not body news · the unsubscribe drops the body leg only, the entity leg keeps hearing, and a double unwatch
+does not throw.
+
+**Mutation probes (arms measured, not asserted).** A0 control (no mutation): 0 reds over the 138 cases these
+three files collect. A1 — `entityRemoved` dropped from the pair: first predicted 5, got 6. The extra was the
+pure cross-leg case, whose second emit IS an `entityRemoved`, so dropping the name silences its second half
+too; the prediction is re-derived from the mechanism and the arm re-run alone: 6 predicted, 6 hit, MATCHED
+(`A1-repredict.log`). The miss is on record rather than smoothed. A2 — host-honest guard deleted: predicted
+1, got 1 (the no-verbs case). A3 — a per-event wrapper (`() => listener()`) instead of one shared listener:
+predicted 2, got 2 — the identity pin and the unsubscribe case, exactly the failure mode a wrapper creates,
+since `indexOf` never finds a fresh arrow and an "unsubscribed" watcher keeps firing. A4 — the REFUSED
+design, `entityRestored` added to the watched set: predicted 4, got 4 (the exact-set pin, the three-leg
+DISJOINT pin, the not-a-watched-name pin, and the restore-exactly-once case, which is the one that stops
+being once). A5 — `unwatchBodies();` deleted from the component cleanup: predicted 1, got 1 — the widened
+source pin, the suite's only reader of the wiring, so A5 is what proves that pin is not decorative. **14 reds
+across 5 arms, 14 attributed, 0 unexplained.** Every arm re-based from the bytes on disk at its own top,
+verified that its needle hit exactly once and that the mutant text is present before running vitest, and
+restored to a sha-equal file afterwards (`scene3d.ts` 9812f6a53742 before and after A1-A4, `Scene3D.tsx`
+bc1e03cb98c4 before and after A5).
+
+Measured on this host 2026-10-10: Studio `tsc --noEmit` exit 0, Studio suite **437/437** (31 files; 425 →
++12). No three-runtime source was touched, so no rebuild was needed and its suite re-ran at **498/498**
+(19 files) against the package v211 shipped. The §7 ledger-vs-records door was red BEFORE this section was
+written, refusing `unrecordedNewest:215`: grant 215 has a ledger heading and no record TITLE anywhere in the
+113-file corpus, which is that lane's debt and not something this cycle may write for it (amendment 90's
+rule). This section titles 216, so the newest-grant refusal is satisfied by the cycle that owes it; 215 stays
+in the door's `hole` list, named on the console, exactly as the older holes are.
+
+Bounds, stated: the source pin grades TEXT, not behaviour — it cannot see that the subscription lives in the
+mount effect with empty deps, and an `unwatchBodies();` anywhere in the file satisfies it; closing that needs
+a React render harness, which still does not exist for `Scene3D.tsx`. `watchBodies` takes no payload, like its
+siblings, so a body event from ANOTHER scene also re-reads: the report then names the ACTIVE scene
+(`buildSceneReport`, scene3d.ts:587-595, reads `graph.activeSceneId`), so the cost is a redundant render and
+no wrong value — derived from the reader's code, and no cross-scene case exists yet to measure it.
+`activeSceneChanged` still has no subscriber, so an out-of-band scene switch does not move the panel. The
+component `data` bag is still unread by the inspector (v199 counts names, v212 and v216 read none of their
+values). The ADR 0016 amendment record for this grant is written in the same commit as this section.
+
 ## The dock's BUILD face (M6 v174 — ADR 0016 amendment 174)
 
 The first product consumer of the build arc (amendment 173), and the section this increment never had: the

@@ -877,3 +877,161 @@ describe('watchEntities — an out-of-band rename or hide moves the report (M5 v
     expect(() => unwatch()).not.toThrow();
   });
 });
+
+// M5 v216 — the BODY leg, against the SHIPPED package. Every write here goes through the RUNTIME: a body
+// added or taken away by anyone (a console command, an agent, a restore) must move the roster the report
+// reads, because `scene.entities` and `scene.entityNames` are read off the LIVE active scene and
+// `inspector` is that scene's answer about the selected id. The listener RECORDS and the case asserts
+// OUTSIDE — the runtime's emit try/CATCHES each listener (v211's rule).
+describe('watchBodies — an out-of-band add or removal moves the roster (M5 v216)', () => {
+  let runtime: ThreeRuntime | null = null;
+  afterEach(() => {
+    runtime?.dispose();
+    runtime = null;
+  });
+
+  function surfaceOnHeadless() {
+    const headless = headlessRuntime();
+    runtime = headless.runtime;
+    const adapter: SceneAdapterLike = {
+      placeCamera(sceneId: string, cameraId: string, position: SceneVec3, lookAt: SceneVec3) {
+        const found = headless.runtime.getScene(toSceneId(sceneId))?.cameras.get(toCameraId(cameraId));
+        if (!found) return false;
+        found.threeCamera.position.set(position.x, position.y, position.z);
+        found.threeCamera.lookAt(new THREE.Vector3(lookAt.x, lookAt.y, lookAt.z));
+        found.threeCamera.updateMatrixWorld(true);
+        return true;
+      },
+      pickAt(sceneId: string, nx: number, ny: number) {
+        return headless.runtime.pickAt(toSceneId(sceneId), nx, ny);
+      },
+    };
+    const surface = createStudioScene(headless.runtime, () => {}, adapter);
+    headless.runtime.resize(800, 600);
+    surface.pickAt(400, 300);
+    const scene = headless.runtime.getScene(toSceneId(surface.sceneId))!;
+    const entity = scene.entities.get(toEntityId(surface.bodyIds[2]!))!;
+    return { headless, surface, scene, entity };
+  }
+
+  it('a body created outside the surface re-reads the roster WITH it — the news arrives after the insert', () => {
+    const { surface, scene } = surfaceOnHeadless();
+    const before = surface.report().scene!.entities;
+    expect(surface.report().scene!.entityNames).not.toContain('Intruder');
+    const seen: Array<{ count: number; names: string[] }> = [];
+    surface.watchBodies(() => {
+      const r = surface.report().scene!;
+      seen.push({ count: r.entities, names: r.entityNames });
+    });
+
+    runtime!.createEntity(scene.id, 'Intruder', 'mesh');
+    // Read AT EMIT TIME, so a bus that announced before inserting would record the OLD count here and the
+    // panel would be one body short until something else re-read.
+    expect(seen.length).toBe(1);
+    expect(seen[0]!.count).toBe(before + 1);
+    expect(seen[0]!.names).toContain('Intruder');
+  });
+
+  it('a body removed outside the surface re-reads the roster WITHOUT it', () => {
+    const { surface, scene, entity } = surfaceOnHeadless();
+    const before = surface.report().scene!.entities;
+    const counts: number[] = [];
+    surface.watchBodies(() => counts.push(surface.report().scene!.entities));
+
+    expect(runtime!.removeEntity(scene.id, entity.id)).toBe(true);
+    expect(counts).toEqual([before - 1]);
+    expect(surface.report().scene!.entityNames).not.toContain(entity.name);
+  });
+
+  it('removing the SELECTED body answers `inspector: null` — the name stays, its facts are gone', () => {
+    const { surface, scene, entity } = surfaceOnHeadless();
+    const selectedBefore = surface.report().selected?.name;
+    expect(selectedBefore).toBe(entity.name);
+    const inspectorAtNews: (string | null)[] = [];
+    surface.watchBodies(() => inspectorAtNews.push(surface.report().inspector?.name ?? null));
+
+    runtime!.removeEntity(scene.id, entity.id);
+    // TWO records, deliberately different answers: `selected` is this surface's pick, held until the next
+    // pick replaces or clears it; `inspector` is the LIVE scene's answer about that id, and a body that
+    // left the scene has no facts. A report that kept showing them would be inspecting a ghost.
+    expect(inspectorAtNews).toEqual([null]);
+    expect(surface.report().inspector).toBeNull();
+    expect(surface.report().selected?.name).toBe(entity.name);
+  });
+
+  it('a restore moves this leg exactly once — through entityCreated, which the insert path emits for it', () => {
+    const { surface, scene, entity } = surfaceOnHeadless();
+    const snapshot = runtime!.snapshotEntity(scene.id, entity.id);
+    expect(runtime!.removeEntity(scene.id, entity.id)).toBe(true);
+
+    const heard: string[] = [];
+    surface.watchBodies(() => heard.push('news'));
+    // The name the leg does NOT subscribe to, and the fact it still announces: the restore emits
+    // entityRestored (threeRuntime.ts:1799) AFTER its shared insert emitted entityCreated (1387), so
+    // watching the third name would add a subscription and no information.
+    const restored = runtime!.restoreEntity(scene.id, snapshot);
+    expect(heard).toEqual(['news']);
+    expect(surface.report().scene!.entityNames).toContain(restored.name);
+  });
+
+  it('a refused removal is no news: an unknown body and an unknown scene call the watcher zero times', () => {
+    const { surface, scene, entity } = surfaceOnHeadless();
+    const heard: string[] = [];
+    surface.watchBodies(() => heard.push('news'));
+
+    expect(runtime!.removeEntity(scene.id, toEntityId('no-such-body'))).toBe(false);
+    expect(runtime!.removeEntity(toSceneId('no-such-scene'), entity.id)).toBe(false);
+    expect(heard).toEqual([]);
+
+    // And the subscription is ALIVE — the silence above was the refusals', not a dead watch.
+    runtime!.removeEntity(scene.id, entity.id);
+    expect(heard).toEqual(['news']);
+  });
+
+  it('body news moves the body leg alone on the real bus — the other two legs stay silent', () => {
+    const { surface, scene } = surfaceOnHeadless();
+    const body: number[] = [];
+    const entity: number[] = [];
+    const component: number[] = [];
+    surface.watchBodies(() => body.push(body.length));
+    surface.watchEntities(() => entity.push(entity.length));
+    surface.watchComponents(() => component.push(component.length));
+
+    runtime!.createEntity(scene.id, 'Intruder', 'mesh');
+    expect({ body: body.length, entity: entity.length, component: component.length }).toEqual({
+      body: 1,
+      entity: 0,
+      component: 0,
+    });
+
+    // And the reverse crossing: an entity rename is not body news, so the body leg does not re-read for it.
+    const other = scene.entities.get(toEntityId(surface.bodyIds[0]!))!;
+    runtime!.setEntityName(scene.id, other.id, 'Renamed');
+    expect({ body: body.length, entity: entity.length, component: component.length }).toEqual({
+      body: 1,
+      entity: 1,
+      component: 0,
+    });
+  });
+
+  it('the unsubscribe drops the body leg only — the entity and component legs keep hearing', () => {
+    const { surface, scene } = surfaceOnHeadless();
+    const body: string[] = [];
+    const entityNews: string[] = [];
+    const unwatch = surface.watchBodies(() => body.push('news'));
+    surface.watchEntities(() => entityNews.push('news'));
+
+    runtime!.createEntity(scene.id, 'First', 'mesh');
+    expect({ body: body.length, entity: entityNews.length }).toEqual({ body: 1, entity: 0 });
+
+    unwatch();
+    runtime!.createEntity(scene.id, 'Second', 'mesh');
+    expect(body).toEqual(['news']);
+
+    // The leg that stayed is proof the unsubscribe was the body leg's, not a dropped bus listener.
+    const other = scene.entities.get(toEntityId(surface.bodyIds[0]!))!;
+    runtime!.setEntityName(scene.id, other.id, 'Renamed');
+    expect(entityNews).toEqual(['news']);
+    expect(() => unwatch()).not.toThrow();
+  });
+});
