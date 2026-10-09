@@ -644,14 +644,17 @@ test('@smoke studio slice: AI command bar runs in DEMO MODE as one undoable tran
 
   await page.fill('[data-ai-input]', 'Add a section: 三档定价卡片');
   // §68：上下文由服务端从库里那份装配。故意在防抖（1.8s）之内改一个属性就提交 ——
-  // 命令栏要先把它落库，所以网络顺序必须是"先 PUT 文档，再 POST AI"。
+  // 命令栏要先把它落库，所以网络顺序必须是"先落库，再 POST AI"。
+  // #62② 之后自动保存的主路是 PATCH …/design（发 ops 不发全量），全量 PUT 只是兜底，
+  // 两条路都算"落库"——这条测试钉的是顺序，不是动词。
   const headlineId = await layerId(page, 'Headline');
   await page.click(`[data-node-id="${headlineId}"]`);
   await page.fill('[data-prop="typography.fontSize"]', '64');
   const writes: string[] = [];
   const onRequest = (req: Request): void => {
     const path = new URL(req.url()).pathname;
-    if (req.method() === 'PUT' && path.startsWith('/api/projects/')) writes.push('put');
+    if (req.method() === 'PATCH' && path.endsWith('/design')) writes.push('save');
+    if (req.method() === 'PUT' && path.startsWith('/api/projects/')) writes.push('save');
     if (req.method() === 'POST' && path === '/api/ai/run') writes.push('ai');
   };
   page.on('request', onRequest);
@@ -660,7 +663,7 @@ test('@smoke studio slice: AI command bar runs in DEMO MODE as one undoable tran
   await expect(page.locator('[data-ai-result]')).toBeVisible({ timeout: 20_000 });
   page.off('request', onRequest);
   expect(writes).toContain('ai');
-  expect(writes.slice(0, writes.indexOf('ai'))).toContain('put');
+  expect(writes.slice(0, writes.indexOf('ai'))).toContain('save');
   // 客户端这一侧：只发 id。整份文档、"选中了什么"的描述、设计系统摘要都不在上传里，
   // 全部由服务端按库里那份权威文档回答（§68）。起手项目的整份文档本身就有约 9,900 字符，
   // 所以"请求体比文档还小"是"没带文档"的直接证据

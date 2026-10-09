@@ -1,5 +1,6 @@
 import { and, asc, desc, eq, inArray, isNotNull, isNull, sql } from 'drizzle-orm';
 import {
+  applyPatch,
   clone,
   createDocument,
   createPage,
@@ -7,10 +8,12 @@ import {
   type ComponentDefinition,
   type DesignDocument,
   type DesignNode,
+  type DesignPatch,
   type Page,
   type ProjectType,
   type Token,
 } from '@nexus/design-model';
+import { parseDocument } from '../validation';
 import { recordAudit } from './audit';
 import { syncDesignKnowledge } from './knowledge';
 import { stableKey } from './stable-key';
@@ -163,8 +166,9 @@ export async function lockProjectWrites(tx: Tx, projectId: string): Promise<void
  * 所以这里只把 id 读回 JS，内容差异让库自己算——写 1 行而不是 10000 行，代价也不再随文档大小线性涨在 JS 侧。
  *
  * 已知限度：仍然要把整份文档（3.5MB）序列化成一个 jsonb 参数发给库，而 `saveDocument` 之后的
- * §49 语料同步是全量重切（4000 节点 146ms）。要落到 docs/TESTING.md 那条「属性写入 <50ms」还得让客户端
- * 发补丁而不是发全量文档（§150 的 Command 已经在客户端存在），那是下一格。
+ * §49 语料同步是全量重切（4000 节点 146ms）。**2026-10-09 补上**：客户端自动保存已经改成
+ * 发补丁（`patchProjectDocument`，`PATCH /api/projects/<id>/design`），全量 PUT 只留给
+ * 补丁词汇表表达不了的改动（setMode / 快照恢复…）与兜底——见 ADR-0033。
  */
 async function writeDocument(tx: Tx, projectId: string, document: DesignDocument): Promise<void> {
   // 写与写之间串行（形状与成因见 lockProjectWrites 那段注释：2026-09-26 生产日志里的 pages_pkey 冲突）
@@ -617,6 +621,54 @@ export async function saveDocument(projectId: string, document: DesignDocument):
   // 不会跟着外层回滚——文档没存成而语料里已经是新句子，检索就会回答一份不存在的设计。
   // 只删/插 `design` 这一类，别动世界/角色/分镜那些（它们各自的写入方负责）。
   await syncDesignKnowledge(projectId, document);
+}
+
+export type PatchProjectOutcome =
+  | { ok: true; document: DesignDocument }
+  | { ok: false; code: 'not_found' }
+  | { ok: false; code: 'ops_skipped'; skipped: { index: number; reason: string }[] }
+  | { ok: false; code: 'document_rejected'; issues: string[] };
+
+/**
+ * #62② 自动保存的补丁路径：客户端发 §150 的 Command 补丁而不是整份文档。
+ *
+ * 与 `saveDocument`（整份替换、缺失即删）的分工：补丁是**合并**语义——锁内读到的
+ * 最新版上逐条 apply，库里没被 op 提到的行一个字不动；整批补丁里任何一条 op 打空
+ * （`skipped`，§159）就整批一条不写，调用方拿 409 去走全量兜底，不写半截。
+ * 打完补丁的文档仍要过同一道 `parseDocument` 规模门，落库走同一个
+ * `writeProjectDocument`（文档行 + 项目摘要列只有一处实现），语料同步与
+ * `saveDocument` 同一条纪律：在事务外面、按打完补丁的整份文档重切。
+ * 并发口径不变（ADR-0016）：先 `lockProjectWrites` 再读，最后完成的事务整体胜出。
+ */
+export async function patchProjectDocument(
+  projectId: string,
+  patches: readonly DesignPatch[],
+): Promise<PatchProjectOutcome> {
+  const db = getDb();
+  const written = await db.transaction(async (tx) => {
+    await lockProjectWrites(tx, projectId);
+    const current = await loadDocument(projectId, tx);
+    if (!current) return { kind: 'not_found' } as const;
+    let document = current;
+    const skipped: { index: number; reason: string }[] = [];
+    for (const patch of patches) {
+      const applied = applyPatch(document, patch);
+      document = applied.document;
+      skipped.push(...applied.skipped);
+    }
+    if (skipped.length) return { kind: 'ops_skipped', skipped } as const;
+    const gate = parseDocument(document);
+    if (!gate.ok) return { kind: 'rejected_by_gate', issues: gate.issues } as const;
+    await writeProjectDocument(tx, projectId, gate.document);
+    return { kind: 'ok', document: gate.document } as const;
+  });
+  if (written.kind === 'not_found') return { ok: false, code: 'not_found' };
+  if (written.kind === 'ops_skipped') return { ok: false, code: 'ops_skipped', skipped: written.skipped };
+  if (written.kind === 'rejected_by_gate') {
+    return { ok: false, code: 'document_rejected', issues: written.issues };
+  }
+  await syncDesignKnowledge(projectId, written.document);
+  return { ok: true, document: written.document };
 }
 
 export interface ProjectSummary {

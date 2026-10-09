@@ -118,6 +118,13 @@ export interface StudioSnapshot {
 
 const EMPTY_DOCUMENT_KEY = 'empty';
 
+/**
+ * #62②：一次补丁保存的 ops 总数超过它就退回整份 PUT。契约上单个补丁 ops ≤4000
+ * （`DesignPatchSchema`），这里留一倍余量——攒到这种量级说明命令栈之外出了大事，
+ * 全量替换反而是更诚实的一条路（缺失即删的语义把两边拉齐）。
+ */
+const AUTOSAVE_PATCH_MAX_OPS = 2000;
+
 function emptyDocument(): DesignDocument {
   return {
     id: EMPTY_DOCUMENT_KEY,
@@ -168,6 +175,15 @@ export class StudioStore {
   } | null = null;
   private saveTimer: ReturnType<typeof setTimeout> | null = null;
   private inflight: Promise<void> | null = null;
+  /**
+   * #62② 自动保存的补丁队列：自上次成功落库以来还没送到服务端的命令补丁（按时间序）。
+   * 空 = 当前改动用全量 PUT 就能表达；非空 = 下一次保存走 `PATCH …/design` 只发这些 ops。
+   */
+  private pendingPatches: DesignPatch[] = [];
+  /** 每次 markDirty 递增：保存在途时又有编辑，靠它判"能不能清 dirty"（补丁路径没有文档身份可比） */
+  private editSeq = 0;
+  /** 有补丁词汇表表达不了的文档改动（setMode / setPage / jumpTo…）：下一次保存必须整份 PUT */
+  private forceFullSave = false;
   private loadedFor: string | null = null;
   private snapshotList: SnapshotMeta[] = [];
   private snapshotBusyValue = false;
@@ -331,6 +347,8 @@ export class StudioStore {
     this.design.reset(document);
     this.selection = [];
     this.dirty = false;
+    this.pendingPatches = [];
+    this.forceFullSave = false;
     this.saveStateValue = 'idle';
     this.saveError = null;
     this.loadError = null;
@@ -361,6 +379,8 @@ export class StudioStore {
       this.design.reset(body.document);
       this.selection = [];
       this.dirty = false;
+      this.pendingPatches = [];
+      this.forceFullSave = false;
       this.saveStateValue = 'idle';
       this.ready = true;
       this.commit();
@@ -376,6 +396,7 @@ export class StudioStore {
 
   markDirty(): void {
     this.dirty = true;
+    this.editSeq += 1;
     this.saveStateValue = 'idle';
     this.commit();
     this.scheduleSave();
@@ -389,20 +410,47 @@ export class StudioStore {
     }, 1800);
   }
 
+  /**
+   * #62②：自动保存优先发补丁（§150 的 Command ops）而不是整份文档。
+   * - `pendingPatches` 非空且没有补丁词汇表表达不了的改动 → `PATCH …/design` 只发 ops；
+   * - 否则（首存、setMode/快照恢复后的整份替换、ops 超上限）→ 旧的整份 PUT 原样兜底；
+   * - 补丁被门挡下（409 ops_skipped / 400 document_rejected）→ 当场换全量 PUT 再试一次：
+   *   全量发的是同一个人的同一份内存状态，是换一条路而不是把用户卡在 error 上。
+   * 在途期间的新编辑累进新的队列，这一轮送走的那份在成功后才作废、失败则放回队头。
+   */
   async save(): Promise<void> {
     if (!this.projectId || !this.ready) return;
     if (this.inflight) await this.inflight;
+    // 取走这一轮要送的补丁：在途期间的新编辑累进新的队列，成功后不会被误清
+    const sentPatches = this.pendingPatches;
+    this.pendingPatches = [];
+    const seqAtSend = this.editSeq;
+    const opCount = sentPatches.reduce((sum, patch) => sum + patch.ops.length, 0);
+    // 报文上限（`ProjectDesignPatchRequestSchema`：patches ≤200、每个补丁 ops ≤4000）
+    // 之内才走补丁；攒过头就整份 PUT——两顶帽子都按契约来，不靠服务端拒了再兜
+    const usePatch =
+      !this.forceFullSave && sentPatches.length > 0 && sentPatches.length <= 200 && opCount <= AUTOSAVE_PATCH_MAX_OPS;
     const document = this.design.getDocument();
     this.saveStateValue = 'saving';
     this.saveError = null;
     this.commit();
     const run = (async () => {
       try {
-        const res = await fetch(`/api/projects/${this.projectId}`, {
-          method: 'PUT',
-          headers: { 'content-type': 'application/json', ...csrfHeaders() },
-          body: JSON.stringify(document),
-        });
+        const putBody = async (): Promise<Response> =>
+          fetch(`/api/projects/${this.projectId}`, {
+            method: 'PUT',
+            headers: { 'content-type': 'application/json', ...csrfHeaders() },
+            body: JSON.stringify(document),
+          });
+        let res: Response | null = usePatch
+          ? await fetch(`/api/projects/${this.projectId}/design`, {
+              method: 'PATCH',
+              headers: { 'content-type': 'application/json', ...csrfHeaders() },
+              body: JSON.stringify({ patches: sentPatches }),
+            })
+          : null;
+        if (res && (res.status === 409 || res.status === 400)) res = await putBody();
+        if (!res) res = await putBody();
         const body = (await res.json().catch(() => null)) as {
           ok?: boolean;
           issues?: string[];
@@ -412,17 +460,22 @@ export class StudioStore {
         } | null;
         if (!res.ok || !body?.ok) {
           const detail = body?.issues?.join('；') ?? body?.message ?? body?.error ?? `HTTP ${res.status}`;
+          // 没送上去的补丁放回队头：下一轮还得带着它们再试（§159 不静默丢编辑）
+          this.pendingPatches = [...sentPatches, ...this.pendingPatches];
           this.saveStateValue = 'error';
           this.saveError = detail;
           this.commit();
           return;
         }
-        // 保存期间又有编辑时不能清 dirty：用文档引用比对（补丁总是产生新文档对象）
-        if (this.design.getDocument() === document) this.dirty = false;
+        if (!usePatch) this.forceFullSave = false;
+        // 清 dirty 的判据：这一轮送出后没有新编辑、队列也空了。
+        // 全量 PUT 以前用文档对象身份，补丁路径没有"发出时的那份文档"可比，统一按 editSeq。
+        if (this.editSeq === seqAtSend && this.pendingPatches.length === 0) this.dirty = false;
         this.saveStateValue = 'saved';
         this.savedAt = body.savedAt ?? new Date().toISOString();
         this.commit();
       } catch (error) {
+        this.pendingPatches = [...sentPatches, ...this.pendingPatches];
         this.saveStateValue = 'error';
         this.saveError = error instanceof Error ? error.message : String(error);
         this.commit();
@@ -549,6 +602,9 @@ export class StudioStore {
       this.design.reset(body.document);
       this.selection = [];
       this.dirty = false;
+      // 换上来的文档是服务端那一版：之前攒的补丁属于旧工作区，一条都不能再送
+      this.pendingPatches = [];
+      this.forceFullSave = false;
       this.saveStateValue = 'saved';
       this.savedAt = new Date().toISOString();
       // 恢复之后当前文档已经变了，之前的比较结果不再对应任何东西
@@ -664,6 +720,9 @@ export class StudioStore {
       this.design.reset(body.document);
       this.selection = [];
       this.dirty = false;
+      // 换上来的文档是服务端那一版：之前攒的补丁属于旧工作区，一条都不能再送
+      this.pendingPatches = [];
+      this.forceFullSave = false;
       this.saveStateValue = 'saved';
       this.savedAt = new Date().toISOString();
       this.compareValue = null;
@@ -986,6 +1045,7 @@ export class StudioStore {
     const document = clone(this.design.getDocument());
     document.activeMode = mode;
     this.design.reset(document, true);
+    this.forceFullSave = true;
     this.markDirty();
   }
 
@@ -995,6 +1055,7 @@ export class StudioStore {
     const document = clone(current);
     document.activePageId = pageId;
     this.design.reset(document, true);
+    this.forceFullSave = true;
     this.selection = [];
     this.markDirty();
   }
@@ -1057,7 +1118,9 @@ export class StudioStore {
   execute(label: string, ops: PatchOp[]): void {
     if (!ops.length) return;
     const document = this.design.getDocument();
-    this.design.execute(manualCommand(label, { pageId: document.activePageId, ops }));
+    const entry = this.design.execute(manualCommand(label, { pageId: document.activePageId, ops }));
+    // #62②：这次命令的补丁进待发队列，自动保存从此发 ops 而不是整份文档
+    this.pendingPatches.push(...entry.applied);
     this.markDirty();
   }
 
@@ -1488,17 +1551,25 @@ export class StudioStore {
   }
 
   undo(): void {
-    if (!this.design.undo()) return;
+    const entry = this.design.undo();
+    if (!entry) return;
+    // 撤销在服务端也是补丁（逆补丁），不是"把旧文档再发一遍"
+    this.pendingPatches.push(...entry.inverse);
     this.markDirty();
   }
 
   redo(): void {
-    if (!this.design.redo()) return;
+    const entry = this.design.redo();
+    if (!entry) return;
+    this.pendingPatches.push(...entry.applied);
     this.markDirty();
   }
 
   jumpTo(entryId: string): void {
     if (!this.design.jumpTo(entryId)) return;
+    // 跳转可能一次跨多条历史（每条各有正/逆补丁集），补丁词汇表不追这种批量：
+    // 如实走整份替换
+    this.forceFullSave = true;
     this.markDirty();
   }
 
@@ -1515,6 +1586,8 @@ export class StudioStore {
       this.design.applyWithinTransaction({ ...patch, pageId: patch.pageId ?? document.activePageId });
     }
     const entry = this.design.commitTransaction();
+    // #62②：AI 事务的补丁与手工命令同一条待发队列——服务端看到的动词词汇完全一致
+    if (entry) this.pendingPatches.push(...entry.applied);
     this.markDirty();
     return entry;
   }

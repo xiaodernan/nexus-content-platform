@@ -9,12 +9,14 @@
  * 三个读数各自钉一件事：
  *  - 「首存」= 全部行都是 INSERT（项目刚建出来）；
  *  - 「改一个节点」= 增量保存的主战场：只该写一行，其余的行连 UPDATE 都不该发；
+ *  - 「改一个节点（补丁路径）」= #62②：客户端发 set op，服务端锁内读-打-写——
+ *    自动保存的现行主路，与上面那条全量 PUT 对照着看省下了哪一段；
  *  - 「无改动」= 保存一份原样文档：应当只有读 + 比对的代价。
  */
 import { performance } from 'node:perf_hooks';
 import { eq } from 'drizzle-orm';
 import { createNode } from '@nexus/design-model';
-import { createProject, loadDocument, saveDocument } from '../apps/web/src/server/domain/projects';
+import { createProject, loadDocument, patchProjectDocument, saveDocument } from '../apps/web/src/server/domain/projects';
 import { getDb } from '../apps/web/src/server/db/client';
 import { projects, users } from '../apps/web/src/server/db/schema';
 
@@ -74,6 +76,19 @@ async function main(): Promise<void> {
 
     const fresh = (await loadDocument(project.id))!;
     await timed('无改动保存', () => saveDocument(project.id, fresh));
+
+    // #62② 补丁路径：锁内读最新版 → 打一条 set op → 同一个写入者落库（自动保存的现行主路）
+    const patchDoc = (await loadDocument(project.id))!;
+    const patchNode = Object.values(patchDoc.pages[0]!.nodes).find((node) => node.name === targetName)!;
+    await timed(
+      '改一个节点（补丁路径 set op）',
+      async () => {
+        const outcome = await patchProjectDocument(project.id, [
+          { ops: [{ op: 'set', nodeId: patchNode.id, path: 'text', value: `patched ${Date.now()}` }] },
+        ]);
+        if (!outcome.ok) throw new Error(`补丁路径没落库：${outcome.code}`);
+      },
+    );
   } finally {
     await db.delete(projects).where(eq(projects.ownerId, owner.id));
     await db.delete(users).where(eq(users.id, owner.id));

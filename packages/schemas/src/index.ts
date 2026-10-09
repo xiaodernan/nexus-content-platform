@@ -678,6 +678,18 @@ export const ProjectPatchRequestSchema = z
 export type ProjectPatchRequest = z.infer<typeof ProjectPatchRequestSchema>;
 
 /**
+ * #62② Studio 自动保存的补丁报文（`PATCH /api/projects/<id>/design`）。
+ * 与项目简介那个 PATCH（`ProjectPatchRequestSchema`，资源是项目元信息）不是同一条路：
+ * 这里的资源是设计文档，动词词汇与 §150 的 Command / §188 公开 API 的补丁完全一致。
+ * patches 是**按时间序**的命令补丁列表——一条命令一个补丁，顺序就是执行顺序，
+ * 服务端逐条 apply，整批要么整批落、要么一条都不落（ops 打空即整体 409，不写半截）。
+ */
+export const ProjectDesignPatchRequestSchema = z.object({
+  patches: z.array(DesignPatchSchema).min(1).max(200),
+});
+export type ProjectDesignPatchRequest = z.infer<typeof ProjectDesignPatchRequestSchema>;
+
+/**
  * §74 删除项目的审批报文。`confirm` 必须逐字等于项目名，空串不行——
  * "什么都不填就把一个项目删掉"正是这一条要挡住的一键操作，所以这里不收默认值、
  * 也不接受 clientId / id 之类"反正能证明是本人"的替身（审批要证明的是*你真的想删这个*，

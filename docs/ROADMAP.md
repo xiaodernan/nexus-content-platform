@@ -3143,8 +3143,38 @@ JS 只读回 `id + page_id`。把 4008 行读回 JS 逐字段比是「957.6ms �
 再往下走只有「客户端发补丁」（§150 的 Command 已经在客户端存在）——那是单独一片。
 10000 档这一版没量到（HEAD 是 1433.9ms），下次补。**2026-10-09 已补**：同一会话两遍，
 改一个节点 477.6–503.3ms（中位）/ 最小 447.6–457.0，约为旧口径的 2.9 倍快——写放大在顶档同样关掉了，
-读数与三条纪律在 `docs/PERFORMANCE.md` 文末「10000 档补测」那一节。**#62 现在只剩"客户端发补丁"那一片**
-（属性写入真进 50ms 的前提，单独一片，红线是数字不是感觉）。
+读数与三条纪律在 `docs/PERFORMANCE.md` 文末「10000 档补测」那一节。**#62 的两格至此都落地了：
+① 读数（2026-10-09，本节上文）与 ②「客户端发补丁」（同日落地，`docs/adr/0033-autosave-sends-patch-not-document.md`）**——
+属性写入 → 画布更新在 1000 档进了 <50ms（42.8ms，dev 口径），10000 档仍红（181.9ms），
+红的是 §147 的画布/选中渲染路径，不再是保存报文。
+
+## #62② 自动保存改发补丁：写 1 条 op，而不是 3.4MB（2026-10-09）
+
+`docs/adr/0033-autosave-sends-patch-not-document.md`。`store.save()` 从整份 PUT 改成优先发
+§150 的 Command 补丁：`PATCH /api/projects/<id>/design`，报文 `{ patches }` 按时间序
+（一条命令一个补丁，撤销发逆补丁，AI 事务同一条队列——服务端看到的动词词汇与手工编辑完全一致）。
+
+- **服务端**：`patchProjectDocument`（`server/domain/projects.ts`）= `lockProjectWrites` →
+  `loadDocument(tx)`（锁内读最新版）→ 逐条 `applyPatch` → `parseDocument` 形状门 →
+  同一个 `writeProjectDocument`（文档行 + 项目摘要列仍只有一处实现）→ 事务外
+  `syncDesignKnowledge`（与 `saveDocument` 同一条纪律）。三种拒绝都**整批一条不写**：
+  任何一条 op 打空 → `ops_skipped`（409）；打完的文档过不了门 → `document_rejected`（400）；
+  库里没文档 → 404。这一条路刻意没有审批门：报文来自作者本人（requireUser + 归属），
+  与 PUT 同一信任级，§74 的门拦的是 AI 与公开 API。
+- **客户端**：待发队列 `pendingPatches`（execute/undo/redo/AI 事务四处入队），
+  `editSeq` 判"在途期间又有编辑"，`forceFullSave` 给 `setMode` / `setPage` / `jumpTo` / 快照恢复
+  这类"补丁词汇表达不了的整份替换"显式逃生门；补丁请求被门挡下（409/400）当场换全量 PUT 兜底
+  （同一个人的同一份内存状态，换一条路，不卡 error）；网络失败把补丁放回队头，下一轮再发。
+  离线期间的 `flushBeforeAi` / publish / snapshot 全部经同一条 `save()`，不用各自记得换报文。
+- **契约**：`ProjectDesignPatchRequestSchema` 进 `packages/schemas`（跨端报文只走 schemas，
+  与公开 API 的 `ApiDesignPatchRequestSchema` 同词汇不同上限——那边 ops ≤200，这边 patches ≤200）。
+- 验证：`document-patch-save.integration.test.ts` **7 条**真库 + `studio-patch-save.test.ts` **6 条**
+  客户端；变异四次各红一处（execute 入队、skipped 判定、409 兜底、形状门），都还原后对照全绿；
+  e2e `@smoke AI command bar` 的"落库先于 AI"断言从"PUT"改成"落库"（钉顺序不钉动词），
+  `studio slice: select, edit a property, undo, autosave`、§162、#10 连跑绿。全量 vitest + lint 绿。
+- 账（`docs/PERFORMANCE.md` 同日两节全表）：服务端**更慢**（@10000 799.6ms vs 全量 450.5ms——
+  loadDocument 是补丁路径新增的一段，明账不藏）；省下的是客户端 3.4/8.4MB 主线程序列化与上行字节。
+  浏览器门：1000 档属性写入 → 画布更新 **42.8ms 进 <50ms**；10000 档 181.9ms 仍红（§147 渲染路径的账）。
 
 ## §41 第一片：时间线从「读数」变成编辑面（拖 trim / 拖 reorder / 点转场）
 
@@ -3236,16 +3266,24 @@ image-safety / image-studio / ai-jobs / studio-flush，不是全量回归）；�
 但**门禁是共用的**：pre-commit 钩子跑的是整棵树的 `npm run lint`，一边留着语法半成品时另一边就提交不了。
 所以：动手前先 `git status` 看清在途文件，提交时只 `git add` 自己改过的路径，别用 `--no-verify` / `SKIP_HOOKS=1` 绕。
 
-下一格（不依赖外部授权，可自主推进，按优先级二选一）：
+推进队列（不依赖外部授权，按顺序取下一格；2026-10-09 重排）：
 
-1. ~~**#10 §162/§163 作业队列的 web 侧实时进度**~~ **2026-10-09 已落地**，见前面
-   「[x] #10 账本实时」那一条：任务状态的六处写出都发 `generation.progress`，
-   账本页订阅这条事件重读（`/api/projects/[id]/tasks` 那条读接口一并复活），
-   见证按当天的惯例齐了——`@smoke #10` 走「提交作业 → 不刷新看见状态自己变 → 终态与库一致」，
-   外加两个探针（摘掉组件里的 `schedule()` → e2e 红；摘掉 `holdForApproval` 的发出 → 集成测试红），
-   读取失败在页面上如实写「读不到」。
-2. **#62 剩下的一格**：属性写入要真正进 50ms，得让客户端发补丁而不是发全量文档（§150 的 Command 已在客户端），那是单独一片。
-   先量再改——这一格的红线是数字，不是感觉。（2026-10-09：① 10000 档的读数已补，见 `docs/PERFORMANCE.md` 文末。）
+1. ~~**#10 账本实时**~~ **已落地**（2026-10-09，见「[x] #10 账本实时」那一条）。
+2. ~~**#62② 客户端发补丁**~~ **已落地**（2026-10-09，`docs/adr/0033-*`）。
+3. **§147 选中响应（<16ms）与 10000 档渲染**：本日实测选中响应 1000 档 44ms / 10000 档 45.3ms、
+   属性写入 10000 档 181.9ms，两门都还红，且红的不再是保存报文（#62② 之后省掉的正是那一段）。
+   入口：`store.ts` 的 `__studioPerf` 分段诊断（快照次数 / tokens / 求解 / 资产 / 整段）与
+   `scripts/perf-browser.mts` 的会话内对照（红线是数字不是感觉；`docs/TESTING.md` 性能一节四条口径纪律照旧）。
+4. **§146 的 100 档读数补齐**：TESTING.md 的档位基线写着 100/1000/10000，100 档本轮没跑
+   （不拿起手 8 节点冒充）。补一组同口径数，顺带把"每档都要三遍去预热"的纪律沿用。
+5. **实时通道 Redis 后端（ADR-0010 留的第二驱动）**：今天默认进程内（单实例），
+   `NEXUS_REDIS_URL` 已在报文里注明但没有实现。多实例部署与 e2e 的重连场景都等这一格；
+   本机 Redis 在跑，不需要外部授权。落地后把 #10 欠的「onReconnect 补读没有探针」一起补。
+6. **§113 handoff 链与多 Agent 调度的第一片**：`docs/AGENTS.md` §24 写着"今天解析只有一个负责人，
+   handoff 链还没有实现"。先做一次可审计的 handoff（谁把什么交给谁，落在 Activity 与任务行上），
+   别急着做调度器。
+7. 其余 `[~]` 长线按 ROADMAP 正文顺序推进（§54 游戏设计系统、§140 3D World Runtime、Marketplace、
+   Credits 的后续），每片照旧：Run→Test→Screenshot→Inspect→Fix→Retest→Commit，变异探针与证据齐了再落。
 
 需要用户才能推进的（不要绕过）：真实 provider key。有了它才能落地的是 §49 的向量与 rerank、
 §38 的图像那半截像素、§40-42 的镜头视频、§39 的角色一致性像素。这四格今天全部按 §159 留白，
@@ -4219,3 +4257,74 @@ M2 清单里最后那条"未动"的箭头接上了。链路是：资产库面板
 
 
 
+
+## §127/§134：买与分成这两条路**从 0024/0025 落地起就一行都写不进去**，以及并发下的重复扣款（2026-10-09）
+
+起因是给 marketplace 的钱那一半补测试——它此前**一条用例都没有**。三条用例一跑全红，
+红在 `credit_ledger` 的三个 CHECK 上。**那不是用例写错了，是这条路本身是坏的。**
+
+### 一、三道闸全都没打开（迁移 0024/0025 的"换约束"写错了旧名字）
+
+那两条迁移想"把 `marketplace` 加进取值域"，写法是：
+
+```sql
+ALTER TABLE credit_ledger DROP CONSTRAINT IF EXISTS credit_ledger_kind_check;   -- 名字多了一个 _check
+ALTER TABLE credit_ledger ADD CONSTRAINT credit_ledger_kind_check CHECK (kind IN (..., 'marketplace'));
+```
+
+0016 建的约束叫 `credit_ledger_kind`（**没有** `_check` 后缀），所以 `IF EXISTS` **静默地什么都没删**，
+ADD 又建了一条新名字的。两条同时生效，取值域是它们的**交集**——旧那条把 `'marketplace'` 挡死。
+0025 对 `source` 犯了**同一个错**（`credit_ledger_source` vs `credit_ledger_source_check`）。
+
+第三道不是名字问题，是形状表：`credit_ledger_source_shape` 按 source 逐个列举分支
+（`plan_grant` / `generation` / `adjust`），0025 只改了成员表没动它，所以 marketplace 那两个来源
+落进这个 CHECK 时三个分支全不匹配。
+
+**修法**：0029 摘掉 `credit_ledger_kind`、0030 摘掉 `credit_ledger_source`、
+0031 给 `source_shape` 补上两支（买 → `delta < 0`、分账 → `delta > 0`，沿用"钱的方向由 source 决定"）。
+**三条是一组，修任何一条都不够**——kind 过了 source 拦，source 过了 shape 还拦。
+
+### 二、schema 里两列的名字与迁移对不上（`now()` 把列名写死成 `created_at`）
+
+第四关：`marketplace_purchases` 插入报 `column "created_at" does not exist`。
+根因是 schema 里 `purchasedAt: now()`——`now()` 是 `timestamp('created_at', ...)`，**列名是写死的**，
+而迁移建的是 `purchased_at`。`marketplaceSplits.splitAt` 同样。
+改成显式 `timestamp('purchased_at', { withTimezone: true })`。
+全仓扫了一遍 `At: now()`：只有这两处属性名不是 `createdAt`，其余都正确。
+
+### 三、并发下会重复扣款 / 重复分账（钱在事务外）
+
+两条写钱的路是同一种形状：查重 → 写 `credit_ledger`（钱）→ 写被唯一索引保护的那一行。
+**三步之间没有事务**。并发时两个请求都能过查重，于是各写一行钱，第三步才被唯一索引拦下——
+拦下的是记录行，**不是已经动过的钱**。实测（`marketplace-settle.integration.test.ts`）：
+
+```text
+一笔购买却分了 2 次账：钱在事务外，唯一索引拦不住它: expected 2 to be 1
+```
+
+**修法**（两处同改，缺一不可）：① 整个写路径进 `db.transaction`；② 把**被唯一索引保护的那一行挪到钱前面**，
+让并发的第二个请求在写第一行时就被挡下、事务立刻回滚，一个字节的钱都还没写。
+唯一索引的 `23505` 翻译回 `Already purchased` / `Already settled`（调用方按消息文本区分正常重复与故障，
+直接把驱动错误抛出去会让它记一条假错误日志）。
+
+### 四、补的守卫：这一片坏了两周没人知道，是因为**没有守卫**
+
+`api_tokens` 的 scope 名单有同形状的守卫（常量 / 迁移里生效的 CHECK / 端点真执行它），
+所以那一次 scope 变更被抓住了；`credit_ledger` 没有，于是它坏了两周。
+新增 `credit-ledger-kind.integration.test.ts`：**从 `pg_constraint` 读回库里真正生效的约束**，
+与 `CREDIT_LEDGER_KINDS` / `CREDIT_LEDGER_SOURCES` 逐条对齐，并断言"管 kind 的约束**只有一条**"
+（多条同时生效正是这次事故的形状），外加"账本上的只追加触发器还在"。
+**变异探针**：往库里加回一条多余的 kind 约束 → 预测红在"只有一条"那一条，**实测红在那一行**。
+
+### 凭证
+
+- `marketplace-settle.integration.test.ts` 3 条（串行购买只扣一次 / 并发购买记录行唯一 / **并发分账只分一次**）。
+  这一条故意**不清理账本与用户**：`credit_ledger` 是只追加的（触发器挡 DELETE），
+  而 `user_id` 是 `onDelete: cascade`，所以"造了一个有流水的人"之后就删不掉他——
+  每个用例用自己的买家，断言按 userId 划范围。
+- `credit-ledger-kind.integration.test.ts` 4 条。
+- 迁移 0029 / 0030 / 0031。
+- `apps/web/src/app/api/marketplace/earnings/route.ts` 顺手改掉一处同类的形状问题：
+  401 原来是 `{ error: 'Unauthorized' }`（那个字段装英文人话），改成 `jsonError(401,'unauthenticated',…)`。
+  **这一格仍然没有用例**，且它是把该创作者**所有**分成行拉回来在 JS 里聚合的——
+  行数一多就是一次全表扫。这两点照实记在这里，没有假装已经解决。

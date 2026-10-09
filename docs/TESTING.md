@@ -104,7 +104,12 @@ e2e 断言面板把"未运行的检查"列出来，而不是显示全绿。
   脚本在每档内已经丢掉第一次预热（`record()` 取后两次的中位数），那治的是**档内**；
   跨调用（换了构建、换了机器负载）必须在同一会话里把基线重量一遍，不能引用另一会话的数。
 - **写进文档的每个性能数都要注明**是 `next dev` 还是 `npm run build` + `next start`、哪一档节点数。
-  没有口径的两个数放在一起，比只有一个数更误导人。
+   没有口径的两个数放在一起，比只有一个数更误导人。
+- **2026-10-09 #62② 的档位实况**（口径 dev-patch-20261009，`scripts/perf-browser.mts`，详见 `docs/PERFORMANCE.md`）：
+   **属性写入 → 画布更新**：起手 8 节点 21.2ms ✅、**1000 档 42.8ms ✅（进了 <50ms）**、
+   4000 档 73.2ms ❌、10000 档 181.9ms ❌（比 prod-adr0015 的 583–763ms 好 3–4 倍，但口径不同不相减）；
+   **选中响应**：1000 档 44ms ❌（<16ms 的旧账仍在，归 §147 的画布渲染/虚拟化，不再是保存报文）。
+   100 档本轮没单独跑（起手 8 节点与 1000 档之间没有第二档读数，不拿中间数冒充）。
 - **这两个目标以前只是写着，没人量**（2026-09-26 补进 `perf-browser.mts`）：选中响应现在用真实鼠标点击
   打到节点包围盒中心、等 `[data-resize-handle]` 出现，生产构建实测 起手 8 节点 **12.5ms** / 4000 节点 **13.8ms**
   （目标 <16ms，且随规模几乎不涨——选择框只跟视口内渲染的东西有关）；JS 堆 19MB / 67MB，
@@ -502,7 +507,19 @@ vitest 直接崩了而我却把 stdout 丢进了 `/dev/null`，于是"5 遍"其�
   第二个标签页开 `/tasks/<projectId>` + 预热一次读 + 计数 + 提交异步 + 不刷新看见 `在跑`→`完成`
   + 4 秒稳态 + 库里 succeeded 数与 DOM 对账 + 陌生人 404；截图 `screenshots/tasks-ledger-live.png`
   （芯片 `实时：已连接`、摘要、一行 succeeded）。全量 vitest 137 个文件绿；`npm run lint` 绿。
-  **仍然没有测到**：`onReconnect` 的补读（重连本身没有探针）；真 provider 下的进度。
+  **仍然没有测到**：`onReconnect` 的补读（重断连本身没有探针）；真 provider 下的进度。
+- #62② 自动保存改发补丁（2026-10-09，ADR-0033）：服务端 `patchProjectDocument` 锁内读-打-写，
+  客户端 `store.save()` 优先发 `PATCH /api/projects/<id>/design`（§150 Command 补丁），全量 PUT 退居兜底。
+  `apps/web/test/document-patch-save.integration.test.ts` **7 条**打真库：set 只改点名节点（未提到的行不动）、
+  insert+remove 一轮落库、任何一条 op 打空整批一条不写（`ops_skipped`，打得中的那条也不许落）、
+  addPage 带超限 width 过形状门被整批拒（`document_rejected`）、摘要列跟着补丁活（activePageId）、
+  锁内读最新版（另一路全量写入后 b 的改动还在）、补丁合并 vs 整份 PUT 缺失即删的对照。
+  `apps/web/test/studio-patch-save.test.ts` **6 条**客户端（stub fetch）：手工命令走 PATCH 只带 ops、
+  撤销发逆补丁、setMode 强制全量 PUT、409 兜底换全量兜底不卡 error、网络失败补丁放回队头下一轮再发、
+  在途期间又有编辑成功也不清 dirty。变异四次各红一处都还原（execute 的入队 → 5/6 红；skipped 判定 → 第 3 条红；
+  409 兜底 → 第 4 条红；形状门 → gate 那条红）。e2e：`@smoke AI command bar` 的"落库先于 AI 请求"
+  断言从"PUT"改成"落库（PUT/PATCH 都算）"——钉的是顺序不是动词；`studio slice: select, edit a property, undo, autosave`
+  与 §162/#10 连跑绿。数：客户端侧省的是 3.4/8.4MB 主线程序列化与上行，服务端慢在 loadDocument（ADR-0033 有全表）。
 - Agent 名册与 @提及（§112/§113 第一片 + §73 第一格）：三份 TS + 一份 Python。
   `agents.test.ts` 17 条**纯单测**（名册手写三份，不连库）——这里能测的都是解析规则本身：
   `@design` / `@Design Agent` / `design` / `" design "` 是同一个 key；`a@b.com` 与 `someone@design.com`
