@@ -34,7 +34,7 @@ function host() {
     existsSync: (p) => tree.has(p) || p === 'saves/root',
     unlinkSync: (p) => { ops.push(`unlink:${p}`); tree.delete(p); },
     renameSync: (from, to) => { ops.push(`rename:${from}->${to}`); tree.set(to, tree.get(from) ?? ''); tree.delete(from); },
-    readdirSync: (p) => [...new Set([...tree.keys()].filter((k) => k.startsWith(`${p}/`)).map((k) => k.slice(p.length + 1).split('/')[0]))],
+    readdirSync: (p) => [...new Set([...tree.keys()].filter((k) => k.startsWith(`${p}/`)).map((k) => k.slice(p.length + 1).split('/')[0]!))],
     statSync: (p) => ({ isDirectory: () => p === 'saves/root' || [...tree.keys()].some((k) => k.startsWith(`${p}/`)), isFile: () => tree.has(p) }),
   };
   return { fs, tree, ops, store: createFsSaveStore(fs, 'saves/root') };

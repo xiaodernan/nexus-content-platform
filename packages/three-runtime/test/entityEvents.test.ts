@@ -15,10 +15,12 @@ import {
 
 const CONFIG = {
   renderer: { antialias: false, alpha: false, preserveDrawingBuffer: false, powerPreference: 'default' as const, stencil: false, depth: false, logarithmicDepthBuffer: false },
-  shadowMap: { enabled: false, type: 0, autoUpdate: false },
-  toneMapping: 0,
+  shadowMap: { enabled: false, type: THREE.BasicShadowMap, autoUpdate: false },
+  toneMapping: THREE.NoToneMapping,
   toneMappingExposure: 1,
   colorSpace: 'srgb' as const,
+  maxLights: 100,
+  frustumCulling: true,
   sortObjects: true,
 };
 
@@ -118,7 +120,7 @@ describe('M5 v211 — the entity rename/visibility verbs announce themselves', (
     const recordsAtEmit: Array<[boolean, boolean]> = [];
     runtime.addEventListener('entityVisibilityChanged', (data?: unknown) => {
       const d = data as VisibilityData;
-      const live = runtime.getSceneGraph().scenes.get(d.sceneId)!.entities.get(d.entityId)!;
+      const live = runtime.getSceneGraph().scenes.get(brandSceneId(d.sceneId))!.entities.get(brandEntityId(d.entityId))!;
       recordsAtEmit.push([live.visible, live.threeObject.visible]);
     });
     expect(runtime.setEntityVisible(scene.id, entity.id, false)).toBe(true);

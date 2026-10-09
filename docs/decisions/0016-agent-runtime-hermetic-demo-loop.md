@@ -9173,3 +9173,46 @@ found. Gate: **48 → 0**, suite **540/540** in 36 files._
 - **Bounds (§60).** No runtime source changed — this closes the package's TESTS being unread. The `MemDisk`
   duplication (eight copies, two behaviours) is now VISIBLE and still there: consolidating them into one helper
   is a real piece of work, and doing it inside a gate repair would have changed what several suites mean.
+
+### Amendment 214 (v214, three-runtime) — the type-gate coverage, package 6 of 6: 118 errors, and the repair's own total is now closed at 249
+
+_Numbering: 214 was free (`grep -ao "^### Amendment 2[0-9][0-9]"` topped out at 213). Item 16 of the priority
+queue, and the LAST package: with it, every package in the monorepo type-checks its own tests. Gate:
+**118 → 0**, suite **498/498** in 19 files._
+
+- **The count had GROWN, and that is worth stating.** v204 measured this package at 102; by v214 it was **118**,
+  because the M5 line's v206–v212 added tests to it. A number measured once and quoted later is a number about
+  a tree that no longer exists.
+- **Three root causes dominated 118 errors.** (1) `ThreeRuntimeConfig` REQUIRES `maxLights` and `frustumCulling`
+  and **nothing in the package reads either** — they are declared, defaulted in the package's own
+  `DEFAULT_THREE_CONFIG` (`maxLights: 100`, `frustumCulling: true`) and consulted nowhere — so six fixtures
+  omitted them and every caller is forced to state a value the runtime ignores. They were added at the
+  package's own defaults, so behaviour is unchanged; the fields themselves are filed as their own item, because
+  wiring them or making them optional is a runtime decision, not a test repair. (2) `shadowMap.type` is
+  `THREE.ShadowMapType` and `toneMapping` is `THREE.ToneMapping`; the fixtures wrote raw `0`s (`BasicShadowMap`
+  and `NoToneMapping` are both 0, so the named constants are the same values). (3) Event listeners have no
+  contextual parameter type, so ~20 handlers were implicitly `any`; they are annotated — `unknown` where the
+  body casts, and the array's own element type where it does not.
+- **`SaveStore` grew two members and two mocks did not.** `savePathRefusal` (v169) and `rename` (v186) were
+  added to the interface and the two deliberately-partial mocks in `saveSnapshot.test.ts` were never updated,
+  because no gate read the file. Both are completed with stubs that THROW — nothing on those paths calls either,
+  and a stub that answered would be inventing behaviour the case does not exercise. This is the THIRD instance
+  of the same shape (the `MemDisk` mocks, amendment 213; the `FsLike` mocks before them), which is what an
+  unread test corpus looks like from the inside.
+- **A gate that audits the package's export face had never been type-checked.** `packageFace.test.ts` reads the
+  barrel's own bytes and checks that every module's declared names appear on the face; eight of its errors were
+  in its own scanning helpers (`m[1]`, `clause[1]`, `bits[0]`, `clause[2]` — all possibly undefined under
+  `noUncheckedIndexedAccess`). A gate that grades others and is graded by nobody is the exact shape this whole
+  repair exists to remove.
+- **The repair's total, closed.** v204 measured **249** errors across six packages and the seven increments that
+  followed fixed them all: design-model 4 · ai-providers 22 · world-engine 14 · exec-host 27 · agents/runtime 48
+  · three-runtime 118 (the last three as v205/v213/v214). Every one of the six `typecheck` scripts now runs a
+  `tsconfig.test.json` that includes `test/`, and `build` still emits the dist layout it needs.
+- **Evidence.** `tsc -p <pkg>/tsconfig.test.json` returns **0** for all six packages; suites re-run at
+  **32/32 · 20/20 · 43/43 · 498/498 · 540/540 · 309/309**. The studio's own gate was already 0 with **407/407**.
+- **Bounds (§60).** No runtime source changed in any of the seven increments — this closes TESTS being unread,
+  not behaviour. What it found is now VISIBLE and filed rather than silently absorbed: the eight drifted
+  `MemDisk` mocks (item 19), the two required-and-unread config fields, and `InstanceNode['overrides']`
+  (item 17). And it found no shortage of the thing it was built for: a mock missing two methods in six of eight
+  suites, an assertion whose second half had never run, four messages passed to a one-argument matcher, a test
+  importing a type from a package that does not export it, and an annotation TypeScript cannot parse.

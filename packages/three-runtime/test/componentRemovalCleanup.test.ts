@@ -5,15 +5,18 @@ import {
   ThreeRuntime,
   createHeadlessBackend,
   manualFrameScheduler,
+  animationId,
   type HeadlessBackend,
 } from '../src/index.js';
 
 const CONFIG = {
   renderer: { antialias: false, alpha: false, preserveDrawingBuffer: false, powerPreference: 'default' as const, stencil: false, depth: false, logarithmicDepthBuffer: false },
-  shadowMap: { enabled: false, type: 0, autoUpdate: false },
-  toneMapping: 0,
+  shadowMap: { enabled: false, type: THREE.BasicShadowMap, autoUpdate: false },
+  toneMapping: THREE.NoToneMapping,
   toneMappingExposure: 1,
   colorSpace: 'srgb' as const,
+  maxLights: 100,
+  frustumCulling: true,
   sortObjects: true,
 };
 
@@ -134,7 +137,7 @@ describe('M5 v205 — component removal cleanup', () => {
       type: 'effect',
       data: {},
       enabled: true,
-      animationIds: ['non-existent-anim'],
+      animationIds: [animationId('non-existent-anim')],
     });
 
     // Removal should succeed (animation just won't be found)

@@ -299,7 +299,7 @@ describe('the audit and the declared type are the same set (read from types.ts)'
     for (const line of lines) {
       if (line.startsWith('}')) break;
       const field = /^\s*([A-Za-z_$][\w$]*)\??:\s/.exec(line);
-      if (field && !line.trimStart().startsWith('*') && !line.trimStart().startsWith('//')) fields.push(field[1]);
+      if (field && !line.trimStart().startsWith('*') && !line.trimStart().startsWith('//')) fields.push(field[1]!);
     }
     return fields;
   }

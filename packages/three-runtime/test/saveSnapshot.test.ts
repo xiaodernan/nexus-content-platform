@@ -90,7 +90,7 @@ function declaredFields(name: string): string[] {
     const trimmed = line.trim();
     if (depth === 0 && trimmed && !trimmed.startsWith('//') && !trimmed.startsWith('*') && !trimmed.startsWith('/*')) {
       const field = /^\s*([A-Za-z_$][\w$]*)\??:\s/.exec(line);
-      if (field) fields.push(field[1]);
+      if (field) fields.push(field[1]!);
     }
     for (const character of line) {
       if (character === '{') depth += 1;
@@ -373,8 +373,8 @@ describe('restoreEntity — a load hands back the entity the save described', ()
     reload(saved);
 
     expect(seen).toHaveLength(1);
-    expect(seen[0].sceneId).toBe(scene);
-    expect(seen[0].entityId).toBe(saved.id);
+    expect(seen[0]!.sceneId).toBe(scene);
+    expect(seen[0]!.entityId).toBe(saved.id);
     runtime.removeEventListener('entityRestored', listener);
   });
 
@@ -647,7 +647,7 @@ describe('a save FILE: it survives the disk, and the loader refuses what it cann
 
   it('carries the five fields it can fill and names the two it leaves out', () => {
     const events: { entityCount: number; npcCount: number; sequenceCount: number }[] = [];
-    runtime.addEventListener('saveFileBuilt', (data) => events.push(data as { entityCount: number; npcCount: number; sequenceCount: number }));
+    runtime.addEventListener('saveFileBuilt', (data: unknown) => events.push(data as { entityCount: number; npcCount: number; sequenceCount: number }));
     const { file } = fileWithContent();
     expect(file.format).toBe('nexus-three-runtime-save');
     expect(file.version).toBe(1);
@@ -681,12 +681,12 @@ describe('a save FILE: it survives the disk, and the loader refuses what it cann
     expect(offenders(bytes)).toEqual([]);
 
     const other = freshWorld();
-    other.createScene('World again', bytes.cinematic.sequences[0][1].sceneId);
-    other.setActiveScene(bytes.cinematic.sequences[0][1].sceneId);
-    other.createCamera(bytes.cinematic.sequences[0][1].sceneId, 'Cam again', 'perspective', {}, cam);
-    const report = other.loadSaveFile(bytes, bytes.cinematic.sequences[0][1].sceneId);
+    other.createScene('World again', bytes.cinematic.sequences[0]![1].sceneId);
+    other.setActiveScene(bytes.cinematic.sequences[0]![1].sceneId);
+    other.createCamera(bytes.cinematic.sequences[0]![1].sceneId, 'Cam again', 'perspective', {}, cam);
+    const report = other.loadSaveFile(bytes, bytes.cinematic.sequences[0]![1].sceneId);
     expect(report).toEqual({
-      sceneId: bytes.cinematic.sequences[0][1].sceneId,
+      sceneId: bytes.cinematic.sequences[0]![1].sceneId,
       entities: bytes.entities.map(([id]) => id),
       npcs: [],
       sequences: ['seq'],
@@ -695,7 +695,7 @@ describe('a save FILE: it survives the disk, and the loader refuses what it cann
       carries: ['entities', 'cinematic', 'npcs', 'worldState', 'player'],
     });
     // The position a file carried, and the camera position the restored curve puts the player at.
-    const loaded = other.getEntity(report.sceneId, bytes.entities[0][0])!;
+    const loaded = other.getEntity(report.sceneId, bytes.entities[0]![0])!;
     expect([loaded.threeObject.position.x, loaded.threeObject.position.y, loaded.threeObject.position.z])
       .toEqual([1.5, 2.25, -3.75]);
     expect(loaded.layers).toBe(5);
@@ -737,7 +737,7 @@ describe('a save FILE: it survives the disk, and the loader refuses what it cann
     expect(() => runtime.loadSaveFile({ ...file, entities: new Map() } as unknown as typeof file, scene))
       .toThrow(/saveFile: file\.entities holds a Map/);
     const live = structuredClone(file) as typeof file;
-    // The annotation is written as `SerializedEntity['position']` rather than `typeof live.entities[0][1].position`,
+    // The annotation is written as `SerializedEntity['position']` rather than `typeof live.entities[0]![1].position`,
     // which TypeScript CANNOT PARSE: `typeof` in a type position takes an entity name, and an indexed access
     // (`[0][1]`) is not one. It said so — `error TS1005: ';' expected` — but only to a gate that reads this
     // file, and until v204 no gate did: this package's `tsconfig.json` excludes `test/` because `rootDir: "src"`
@@ -754,22 +754,22 @@ describe('a save FILE: it survives the disk, and the loader refuses what it cann
     const target = freshWorld();
     target.createScene('Other', 'other');
     const moved = structuredClone(file) as typeof file;
-    moved.entities[0][0] = eid('dup');
-    moved.entities[0][1].id = eid('dup');
-    target.restoreEntity(sid('other'), moved.entities[0][1]);
+    moved.entities[0]![0] = eid('dup');
+    moved.entities[0]![1].id = eid('dup');
+    target.restoreEntity(sid('other'), moved.entities[0]![1]);
     expect(() => target.loadSaveFile({ ...moved, cinematic: { sequences: [], activeSequence: null, currentTime: 0 } }, sid('other')))
       .toThrow(/entity dup \(entities\[0\]\) is already in scene other/);
     // …and the pair's key is checked against the id the restore will use, because a pair with two names for
     // one entity is the same two-owners defect the envelope checks already refuse elsewhere.
     const twoNames = structuredClone(file) as typeof file;
-    twoNames.entities[0][0] = eid('key');
+    twoNames.entities[0]![0] = eid('key');
     let mismatch = '';
     try {
       target.loadSaveFile({ ...twoNames, cinematic: { sequences: [], activeSequence: null, currentTime: 0 } }, sid('other'));
     } catch (error) {
       mismatch = (error as Error).message;
     }
-    expect(mismatch).toContain(`entities[0] is keyed key but the record under it says ${twoNames.entities[0][1].id}`);
+    expect(mismatch).toContain(`entities[0] is keyed key but the record under it says ${twoNames.entities[0]![1].id}`);
     expect(target.getScene(sid('other'))!.entities.size).toBe(1);
     target.dispose();
   });
@@ -777,12 +777,12 @@ describe('a save FILE: it survives the disk, and the loader refuses what it cann
   it('rolls back BOTH halves of a load that fails partway, which v119 could not say', () => {
     const { file } = fileWithContent();
     const second = structuredClone(file) as typeof file;
-    second.entities.push([eid('bad'), { ...structuredClone(file.entities[0][1]), id: eid('bad') }]);
-    (second.entities[1][1] as unknown as { position: unknown }).position = 'not a vector';
+    second.entities.push([eid('bad'), { ...structuredClone(file.entities[0]![1]), id: eid('bad') }]);
+    (second.entities[1]![1] as unknown as { position: unknown }).position = 'not a vector';
     const loaded = freshWorld();
-    const stage = second.cinematic.sequences[0][1].sceneId;
+    const stage = second.cinematic.sequences[0]![1].sceneId;
     loaded.createScene('Stage', stage);
-    loaded.createCamera(stage, 'Cam again', 'perspective', {}, second.cinematic.sequences[0][1].shots[0].cameraId);
+    loaded.createCamera(stage, 'Cam again', 'perspective', {}, second.cinematic.sequences[0]![1].shots[0]!.cameraId);
     expect(() => loaded.loadSaveFile(second, stage))
       .toThrow(/restoreEntity: position x is undefined[\s\S]*the 1 entity\(ies\), the 0 NPC record\(s\), the 0 world-state key\(s\) and the 1 sequence\(s\) this load had registered were removed again; a load is all or nothing/);
     expect(loaded.getScene(stage)!.entities.size).toBe(0);
@@ -811,16 +811,16 @@ describe('a save FILE: it survives the disk, and the loader refuses what it cann
     writer.simulateFrame(1);
 
     const file = JSON.parse(JSON.stringify(writer.buildSaveFile(stage, 1700000000001))) as Record<string, unknown>;
-    expect((file.cinematic as { sequences: [string, { playing: boolean }][] }).sequences[0][1].playing).toBe(true);
+    expect((file.cinematic as { sequences: [string, { playing: boolean }][] }).sequences[0]![1].playing).toBe(true);
     const entities = file.entities as [string, Record<string, unknown>][];
-    entities.push(['e-bad', { ...structuredClone(entities[0][1]), id: 'e-bad', position: 'not a vector' }]);
+    entities.push(['e-bad', { ...structuredClone(entities[0]![1]), id: 'e-bad', position: 'not a vector' }]);
 
     const reader = runtimeWithStore(store);
     reader.createScene('Stage copy', stage);
     reader.setActiveScene(stage);
     reader.createCamera(stage, 'Cam copy', 'perspective', {}, cam);
     const stopped: { sequenceId: string }[] = [];
-    reader.addEventListener('cinematicStopped', (d) => stopped.push(d as { sequenceId: string }));
+    reader.addEventListener('cinematicStopped', (d: unknown) => stopped.push(d as { sequenceId: string }));
     expect(() => reader.loadSaveFile(file as never, stage))
       .toThrow(/position x is undefined[\s\S]*the 1 entity\(ies\), the 0 NPC record\(s\), the 0 world-state key\(s\) and the 1 sequence\(s\) this load had registered were removed again; a load is all or nothing/);
     expect(stopped.map((e) => e.sequenceId)).toEqual(['roll']);
@@ -876,7 +876,7 @@ describe('a save FILE: it survives the disk, and the loader refuses what it cann
 
     runtime.removeEntity(scene, hero);
     const misfiled = structuredClone(saved);
-    misfiled.components = [['vitals', misfiled.components[0][1]]];
+    misfiled.components = [['vitals', misfiled.components[0]![1]]];
     expect(() => runtime.restoreEntity(scene, misfiled))
       .toThrow(/components\[0\] is filed under "vitals" but calls itself "health"/);
 
@@ -897,7 +897,7 @@ describe('a save FILE: it survives the disk, and the loader refuses what it cann
     entity.layers = Number.NaN;
     expect(() => runtime.buildSaveFile(scene, 1)).toThrow(/saveFile: file\.entities\[0\]\[1\]\.layers holds NaN, which JSON writes as null/);
     entity.layers = 0;
-    expect(runtime.buildSaveFile(scene, 1).entities[0][1].layers).toBe(0);
+    expect(runtime.buildSaveFile(scene, 1).entities[0]![1].layers).toBe(0);
   });
 
   it('the audit sentence that used to call cinematic unimplemented now says a file names what it omits', () => {
@@ -1093,11 +1093,11 @@ describe('a save FILE: it survives the disk, and the loader refuses what it cann
     withEntityIn(writer, scene2);
     const events: { path: string; bytes: number; kind: string }[] = [];
     const brief = (d: unknown) => ({ path: (d as { path: string }).path, bytes: (d as { bytes: number }).bytes });
-    writer.addEventListener('saveFileWritten', (d) => events.push({ ...brief(d), kind: 'written' }));
+    writer.addEventListener('saveFileWritten', (d: unknown) => events.push({ ...brief(d), kind: 'written' }));
     const report = writer.writeSaveFile('saves/e.json', scene2, 1);
     const reader = runtimeWithStore(store);
     reader.createScene('Copy', scene2);
-    reader.addEventListener('saveFileRead', (d) => events.push({ ...brief(d), kind: 'read' }));
+    reader.addEventListener('saveFileRead', (d: unknown) => events.push({ ...brief(d), kind: 'read' }));
     reader.readSaveFile('saves/e.json', scene2);
     expect(events).toEqual([
       { path: 'saves/e.json', bytes: report.bytes, kind: 'written' },
@@ -1128,10 +1128,10 @@ describe('a save FILE: it survives the disk, and the loader refuses what it cann
         if (/^\s*(\/\/|\*|\/\*)/.test(line)) continue;
         const annotation = /^\s*[A-Za-z_$][\w$]*\??:\s*(.*)$/.exec(line);
         if (!annotation) continue;
-        for (const match of annotation[1].matchAll(/\b([A-Z][A-Za-z0-9_]*)\b(\[[^\]]*\])?/g)) {
+        for (const match of annotation[1]!.matchAll(/\b([A-Z][A-Za-z0-9_]*)\b(\[[^\]]*\])?/g)) {
           const [, name, subscript] = match;
           if (subscript && subscript !== '[]') continue;
-          names.add(name);
+          names.add(name!);
         }
       }
       return [...names];
@@ -1222,7 +1222,7 @@ describe('M5 v131 — an NPC record is a thing the runtime holds and files', () 
   it('a removed entity orphans its record and says so', () => {
     withNPC();
     const orphaned: { entityId: EntityId }[] = [];
-    runtime.addEventListener('npcOrphaned', (data) => orphaned.push(data as { entityId: EntityId }));
+    runtime.addEventListener('npcOrphaned', (data: unknown) => orphaned.push(data as { entityId: EntityId }));
     expect(runtime.removeEntity(scene, hero)).toBe(true);
     expect(orphaned).toEqual([{ entityId: hero }]);
     expect(runtime.getNPC(hero)).toBeUndefined();
@@ -1696,7 +1696,7 @@ describe('M5 v133 — the world-state bag is held, checked and filed', () => {
       entities: [EntityId, { position: { x?: number } }][];
       worldState: Record<string, unknown>;
     };
-    file.entities[0][1].position.x = undefined;
+    file.entities[0]![1].position.x = undefined;
 
     const reader = runtimeWithStore(store);
     reader.createScene('World again', world);
@@ -1746,7 +1746,7 @@ describe('deleteSaveFile: a save can be taken back, and a store that cannot says
     const { store, rt, path } = written();
     expect(store.exists(path)).toBe(true);
     const deleted: object[] = [];
-    rt.addEventListener('saveFileDeleted', (d) => deleted.push(d));
+    rt.addEventListener('saveFileDeleted', (d: object) => deleted.push(d));
     expect(rt.deleteSaveFile(path)).toEqual({ path, store: 'memory', removed: true });
     expect(deleted).toEqual([{ path, store: 'memory', removed: true }]);
     expect(store.exists(path)).toBe(false);
@@ -1822,7 +1822,7 @@ describe('listSaveFiles / latestSaveFile: the store says what it holds', () => {
       existsSync: (p) => tree.has(p) || dirs.has(p),
     };
     if (options.browse !== false) {
-      host.readdirSync = (p) => [...tree.keys()].filter((k) => k.startsWith(`${p}/`)).map((k) => k.slice(p.length + 1).split('/')[0]).filter((v, i, a) => a.indexOf(v) === i);
+      host.readdirSync = (p) => [...tree.keys()].filter((k) => k.startsWith(`${p}/`)).map((k) => k.slice(p.length + 1).split('/')[0]!).filter((v, i, a) => a.indexOf(v) === i);
       host.statSync = (p) => ({ isDirectory: () => dirs.has(p), isFile: () => tree.has(p) });
     }
     return { host, tree, dirs, reads };
@@ -1953,7 +1953,7 @@ describe('atomic save writes: a reader sees the old save or the new one, never a
     }
     // The browse capability, so `list()` can be asserted on the same host the rename is asserted against.
     host.readdirSync = (p) => [...new Set(
-      [...tree.keys()].filter((k) => k.startsWith(`${p}/`)).map((k) => k.slice(p.length + 1).split('/')[0]),
+      [...tree.keys()].filter((k) => k.startsWith(`${p}/`)).map((k) => k.slice(p.length + 1).split('/')[0]!),
     )];
     host.statSync = (p) => ({
       isDirectory: () => p === 'saves/root' || [...tree.keys()].some((k) => k.startsWith(`${p}/`)),
@@ -2102,7 +2102,7 @@ describe('atomic save writes: a reader sees the old save or the new one, never a
     tree.set('saves/root/x.json.tmp', 'half-written junk');
     expect(store.list()).toEqual(['x.json', 'x.json.tmp']);
     const deleted: { path: string }[] = [];
-    rt.addEventListener('saveFileDeleted', (d) => deleted.push(d as { path: string }));
+    rt.addEventListener('saveFileDeleted', (d: unknown) => deleted.push(d as { path: string }));
     expect(rt.sweepTempFiles()).toEqual({ store: 'fs', removed: ['x.json.tmp'], kept: [], refused: [] });
     expect(deleted).toEqual([{ path: 'x.json.tmp', store: 'fs', removed: true }]);
     expect(store.list()).toEqual(['x.json']);
@@ -2120,6 +2120,8 @@ describe('atomic save writes: a reader sees the old save or the new one, never a
       exists: (p) => backing.exists(p),
       writeAtomic: (p, c, d) => backing.writeAtomic(p, c, d),
       list: () => ['ghost.json.tmp'],
+      savePathRefusal: () => { throw new Error('unused by this case'); },
+      rename: () => { throw new Error('unused by this case'); },
       delete: () => false,
     };
     const rt = runtimeWithStore(racing);
@@ -2222,7 +2224,7 @@ describe('atomic save writes: a reader sees the old save or the new one, never a
     expect(report.total).toBe(report.loadable.length + report.unloadable.length + report.unreadable.length);
     expect(report.loadable.map((entry) => entry.path)).toEqual(['good.json']);
     expect(report.unloadable.map((entry) => entry.path)).toEqual(['future.json']);
-    expect(report.unloadable[0].carriedButUnreadableHere).toEqual(['quests']);
+    expect(report.unloadable[0]!.carriedButUnreadableHere).toEqual(['quests']);
     expect(report.unreadable.map((entry) => entry.path)).toEqual(['junk.json']);
     expect(report.unreadable.map((entry) => entry.reason)).toEqual(['not-json']);
     // The partition claim, checked as a claim: three names, none of them in two buckets.
@@ -2251,7 +2253,7 @@ describe('atomic save writes: a reader sees the old save or the new one, never a
       for (const line of text.slice(opener.index + opener[0].length).split('\n')) {
         if (line.startsWith('}')) break;
         const m = /^\s*[A-Za-z_$][\w$]*\??:\s*(.*)$/.exec(line);
-        if (m) found.push(m[1]);
+        if (m) found.push(m[1]!);
       }
       return found;
     };
@@ -2273,13 +2275,15 @@ describe('atomic save writes: a reader sees the old save or the new one, never a
       exists: () => false,
       delete: () => false,
       list: () => ['gone.json'],
+      savePathRefusal: () => { throw new Error('unused by this case'); },
+      rename: () => { throw new Error('unused by this case'); },
     };
     const rt = runtimeWithStore(ghost);
     const report = rt.diagnoseSaveFiles();
     expect(report.total).toBe(1);
     expect(report.unreadable).toHaveLength(1);
-    expect(report.unreadable[0].path).toBe('gone.json');
-    expect(report.unreadable[0].reason).toBe('listed-then-missing');
+    expect(report.unreadable[0]!.path).toBe('gone.json');
+    expect(report.unreadable[0]!.reason).toBe('listed-then-missing');
     expect(report.loadable).toEqual([]);
     expect(report.unloadable).toEqual([]);
     rt.dispose();
@@ -2607,7 +2611,7 @@ describe('M5 v136 — the scene has one player, and a file can carry it', () => 
     // THE gap this grant cannot close: the live record holds an `InventoryItem[]`, whose items each hold two
     // Maps, and no inventory system here fills or reads one.
     expect(audit.untouched.map((entry) => entry.field)).toEqual(['inventory']);
-    expect(audit.untouched[0].needs).toBe(runtime.refusalCensus().rows.find((row) => row.field === 'inventory')!.needs['player-record']);
+    expect(audit.untouched[0]!.needs).toBe(runtime.refusalCensus().rows.find((row) => row.field === 'inventory')!.needs['player-record']);
     // The partition is the claim: carried and untouched together name every declared field, no more and no
     // less — which is what makes a field added tomorrow a finding instead of a silent drop.
     const declared = declaredFields('Player').sort();
@@ -2653,7 +2657,7 @@ describe('M5 v136 — the scene has one player, and a file can carry it', () => 
     expect([player.position.x, player.position.y, player.position.z]).toEqual([1, 2, 3]);
     expect(player.inventory).toEqual([]);
     const restored: unknown[] = [];
-    reader.addEventListener('playerRestored', (data) => restored.push(data));
+    reader.addEventListener('playerRestored', (data: unknown) => restored.push(data));
     reader.detachPlayer(stage);
     expect(reader.attachPlayer(stage, body).entityId).toBe(body);
     expect(restored, 'a direct attach is not a restore — the two events name different happenings').toEqual([]);
@@ -2820,7 +2824,7 @@ describe('M5 v136 — the scene has one player, and a file can carry it', () => 
   it('removeEntity takes the scene’s player with the body it names, and the file then says null', () => {
     const player = withPlayer();
     const orphaned: unknown[] = [];
-    runtime.addEventListener('playerOrphaned', (data) => orphaned.push(data));
+    runtime.addEventListener('playerOrphaned', (data: unknown) => orphaned.push(data));
     const fileBefore = runtime.playerSnapshot(scene);
     expect(fileBefore).not.toBeNull();
     expect(runtime.removeEntity(scene, player.entityId)).toBe(true);
@@ -2831,7 +2835,7 @@ describe('M5 v136 — the scene has one player, and a file can carry it', () => 
     const built = runtime.buildSaveFile(scene, 1700000000000);
     expect(built.player).toBeNull();
     const events: { hasPlayer: boolean }[] = [];
-    runtime.addEventListener('saveFileBuilt', (data) => events.push(data as { hasPlayer: boolean }));
+    runtime.addEventListener('saveFileBuilt', (data: unknown) => events.push(data as { hasPlayer: boolean }));
     runtime.buildSaveFile(scene, 1700000000001);
     expect(events.map((event) => event.hasPlayer)).toEqual([false]);
   });
@@ -2887,7 +2891,7 @@ describe('M5 v137 — the player record’s declared numbers get operations', ()
   it('the death boundary is crossed once: playerDied fires on the blow that reaches zero, and not on the next', () => {
     withPlayedPlayer({ health: 5, maxHealth: 5 });
     const died: unknown[] = [];
-    runtime.addEventListener('playerDied', (data) => died.push(data));
+    runtime.addEventListener('playerDied', (data: unknown) => died.push(data));
     expect(runtime.damagePlayer(scene, 0).died, 'a zero-damage blow is not a death').toBe(false);
     expect(runtime.damagePlayer(scene, 2).died).toBe(false);
     expect(runtime.damagePlayer(scene, 3).died).toBe(true);
@@ -2982,7 +2986,7 @@ describe('M5 v137 — the player record’s declared numbers get operations', ()
     withPlayedPlayer({ health: 10, maxHealth: 10, mana: 5, maxMana: 5, level: 1 });
     const seen: [string, unknown][] = [];
     for (const name of ['playerDamaged', 'playerHealed', 'playerManaSpent', 'playerExperienceGained', 'playerLevelSet']) {
-      runtime.addEventListener(name, (data) => seen.push([name, data]));
+      runtime.addEventListener(name, (data: unknown) => seen.push([name, data]));
     }
     const damaged = runtime.damagePlayer(scene, 4);
     const healed = runtime.healPlayer(scene, 1);

@@ -21,7 +21,7 @@ const OWN_VALUE_RE = /^export\s+(?:declare\s+)?(?:async\s+)?(?:const|let|var|fun
 /** Names a module declares itself — the module owns these. */
 function ownNames(src: string, valueLayerOnly = false): string[] {
   const out = new Set<string>();
-  for (const m of src.matchAll(valueLayerOnly ? OWN_VALUE_RE : OWN_RE)) out.add(m[1]);
+  for (const m of src.matchAll(valueLayerOnly ? OWN_VALUE_RE : OWN_RE)) out.add(m[1]!);
   return [...out].sort();
 }
 
@@ -30,11 +30,11 @@ function forwardedNames(src: string): { name: string; from: string }[] {
   const owned = new Set(ownNames(src));
   const out: { name: string; from: string }[] = [];
   for (const clause of src.matchAll(/^export\s*\{([^}]*)\}(?!\s*from)/g)) {
-    for (const raw of clause[1].split(',')) {
+    for (const raw of clause[1]!.split(',')) {
       const t = raw.trim();
       if (!t) continue;
       const bits = t.split(/\s+as\s+/);
-      const name = (bits[1] ?? bits[0]).trim().replace(/^type\s+/, '');
+      const name = (bits[1] ?? bits[0] ?? '').trim().replace(/^type\s+/, '');
       if (!name || owned.has(name)) continue;
       out.push({ name, from: importSourceOf(src, name) ?? '(no import site in this file)' });
     }
@@ -45,9 +45,9 @@ function forwardedNames(src: string): { name: string; from: string }[] {
 /** Which module-level import brought `name` into this file, if any. */
 function importSourceOf(src: string, name: string): string | null {
   for (const clause of src.matchAll(/^import\s+(?:type\s+)?\{([^}]*)\}\s*from\s*'([^']+)'/gm)) {
-    for (const raw of clause[1].split(',')) {
+    for (const raw of clause[1]!.split(',')) {
       const bits = raw.trim().split(/\s+as\s+/);
-      if ((bits[1] ?? bits[0] ?? '').trim().replace(/^type\s+/, '') === name) return clause[2];
+      if ((bits[1] ?? bits[0] ?? '').trim().replace(/^type\s+/, '') === name) return clause[2] ?? null;
     }
   }
   return null;
@@ -63,10 +63,10 @@ interface Clause {
 function barrelClauses(): Clause[] {
   const out: Clause[] = [];
   for (const m of readSource('index.ts').matchAll(/^export\s*(\*|\{([\s\S]*?)\})\s*from\s*'([^']+)'/gm)) {
-    const module = m[3].replace(/^\.\//, '').replace(/\.js$/, '');
+    const module = m[3]!.replace(/^\.\//, '').replace(/\.js$/, '');
     if (!MODULES.includes(module)) continue;
     const names = m[2]
-      ? m[2].split(',').map((s) => (s.trim().split(/\s+as\s+/)[1] ?? s.trim().split(/\s+as\s+/)[0]).trim().replace(/^type\s+/, '')).filter(Boolean)
+      ? m[2]!.split(',').map((s) => (s.trim().split(/\s+as\s+/)[1] ?? s.trim().split(/\s+as\s+/)[0] ?? '').trim().replace(/^type\s+/, '')).filter(Boolean)
       : [];
     out.push({ module, star: m[1] === '*', names });
   }
@@ -80,7 +80,7 @@ function unreachable(clauses: Clause[], ownedByModule: Record<string, string[]>)
     const mine = clauses.filter((c) => c.module === module);
     const covered = mine.some((c) => c.star);
     const listed = new Set(mine.flatMap((c) => c.names));
-    for (const name of ownedByModule[module]) {
+    for (const name of ownedByModule[module]!) {
       if (!covered && !listed.has(name)) holes.push(`${module}.ts:${name}`);
     }
     if (!mine.length) holes.push(`${module}.ts:(the face never mentions this module)`);
@@ -93,8 +93,8 @@ function collisionsOf(ownedByModule: Record<string, string[]>): string[] {
   const out: string[] = [];
   for (let i = 0; i < MODULES.length; i += 1) {
     for (let j = i + 1; j < MODULES.length; j += 1) {
-      const b = new Set(ownedByModule[MODULES[j]]);
-      for (const name of ownedByModule[MODULES[i]]) if (b.has(name)) out.push(`${MODULES[i]} x ${MODULES[j]}: ${name}`);
+      const b = new Set(ownedByModule[MODULES[j]!]!);
+      for (const name of ownedByModule[MODULES[i]!]!) if (b.has(name)) out.push(`${MODULES[i]} x ${MODULES[j]}: ${name}`);
     }
   }
   return out.sort();
@@ -126,11 +126,11 @@ it('no two modules own the same exported name, which is what a wholesale barrel 
   expect(collisionsOf(ownedByModule)).toEqual([]);
 });
 
-it(`a forwarded name has exactly one owner (${MODULES.reduce((n, m) => n + forwardedByModule[m].length, 0)} forwarded)`, () => {
-  const owners = (name: string) => MODULES.filter((m) => ownedByModule[m].includes(name));
+it(`a forwarded name has exactly one owner (${MODULES.reduce((n, m) => n + forwardedByModule[m]!.length, 0)} forwarded)`, () => {
+  const owners = (name: string) => MODULES.filter((m) => ownedByModule[m]!.includes(name));
   const bad: string[] = [];
   for (const module of MODULES) {
-    for (const f of forwardedByModule[module]) {
+    for (const f of forwardedByModule[module]!) {
       const list = owners(f.name);
       if (list.length !== 1) bad.push(`${f.name} forwarded by ${module}.ts has ${list.length} owners (${list.join(', ') || 'none'})`);
     }
@@ -138,7 +138,7 @@ it(`a forwarded name has exactly one owner (${MODULES.reduce((n, m) => n + forwa
   expect(bad).toEqual([]);
   // The forward must come from the owner, or the face hands out a binding no module claims.
   for (const module of MODULES) {
-    for (const f of forwardedByModule[module]) {
+    for (const f of forwardedByModule[module]!) {
       expect(f.from, `${f.name} is forwarded by ${module}.ts from "${f.from}" but owned by ${owners(f.name).join(',')}.ts`).toBe(`./${owners(f.name)[0]}.js`);
     }
   }
@@ -146,9 +146,9 @@ it(`a forwarded name has exactly one owner (${MODULES.reduce((n, m) => n + forwa
 
 it(`the value layer the face carries is exactly the modules' own values (${Object.values(ownedValuesByModule).reduce((n, l) => n + l.length, 0)} values, ${Object.keys(face).length} on the namespace)`, () => {
   const values = MODULES.flatMap((m) => ownedValuesByModule[m]);
-  const forwardedValues = MODULES.flatMap((m) => forwardedByModule[m].map((f) => f.name));
+  const forwardedValues = MODULES.flatMap((m) => forwardedByModule[m]!.map((f) => f.name));
   expect(values.length).toBeGreaterThan(0);
-  const missing = values.filter((n) => !(n in face));
+  const missing = values.filter((n): n is string => n !== undefined && !(n in face));
   expect(missing, 'declared as a value but absent from the imported namespace').toEqual([]);
   const invented = Object.keys(face).filter((n) => !values.includes(n) && !forwardedValues.includes(n));
   expect(invented, 'the face carries a value no module owns').toEqual([]);

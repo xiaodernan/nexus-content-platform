@@ -336,7 +336,7 @@ describe('the registry, not just the math', () => {
   it('an entity removed from a scene drops its controller and says so by id', () => {
     runtime.attachController(scene, hero);
     const events: unknown[] = [];
-    runtime.addEventListener('controllerOrphaned', (e) => events.push(e));
+    runtime.addEventListener('controllerOrphaned', (e: unknown) => events.push(e));
     expect(runtime.removeEntity(scene, hero)).toBe(true);
     expect(runtime.getController(hero)).toBeUndefined();
     expect(events).toEqual([{ entityId: hero }]);
@@ -346,7 +346,7 @@ describe('the registry, not just the math', () => {
   it('dispose empties the registry without calling anything orphaned', () => {
     runtime.attachController(scene, hero);
     const events: unknown[] = [];
-    runtime.addEventListener('controllerOrphaned', (e) => events.push(e));
+    runtime.addEventListener('controllerOrphaned', (e: unknown) => events.push(e));
     runtime.dispose();
     expect(events).toEqual([]);
     expect(runtime.getController(hero)).toBeUndefined();
@@ -451,7 +451,7 @@ describe('the real frame loop reaches the controller', () => {
 
   it('a frame with no scene, no controller or no active scene is a no-op rather than a throw', () => {
     const frames: unknown[] = [];
-    runtime.addEventListener('frame', (e) => frames.push(e));
+    runtime.addEventListener('frame', (e: unknown) => frames.push(e));
     expect(() => runtime.simulateFrame(DT)).not.toThrow();
     runtime.attachController(scene, hero);
     expect(runtime.setActiveScene(sid('nope'))).toBe(false);

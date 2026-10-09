@@ -39,12 +39,12 @@ export function classMethodNames(classSource: string): string[] {
   const lines = lf(classSource).split('\n');
   const names: string[] = [];
   for (let i = 0; i < lines.length; i += 1) {
-    const m = lines[i].match(declRe);
+    const m = lines[i]!.match(declRe);
     if (!m) continue;
-    let buf = lines[i];
+    let buf = lines[i]!;
     while (parens(buf) > 0 && i + 1 < lines.length) {
       i += 1;
-      buf += `\n${lines[i]}`;
+      buf += `\n${lines[i]!}`;
     }
     const close = buf.lastIndexOf(')');
     if (close === -1) continue;

@@ -5,15 +5,18 @@ import {
   ThreeRuntime,
   createHeadlessBackend,
   manualFrameScheduler,
+  entityId as brandEntityId,
   type HeadlessBackend,
 } from '../src/index.js';
 
 const CONFIG = {
   renderer: { antialias: false, alpha: false, preserveDrawingBuffer: false, powerPreference: 'default' as const, stencil: false, depth: false, logarithmicDepthBuffer: false },
-  shadowMap: { enabled: false, type: 0, autoUpdate: false },
-  toneMapping: 0,
+  shadowMap: { enabled: false, type: THREE.BasicShadowMap, autoUpdate: false },
+  toneMapping: THREE.NoToneMapping,
   toneMappingExposure: 1,
   colorSpace: 'srgb' as const,
+  maxLights: 100,
+  frustumCulling: true,
   sortObjects: true,
 };
 
@@ -166,7 +169,7 @@ describe('M5 v206 — entity removal component cleanup', () => {
   it('removing a non-existent entity returns false', () => {
     const scene = runtime.createScene('Test Scene');
 
-    const removed = runtime.removeEntity(scene.id, 'non-existent');
+    const removed = runtime.removeEntity(scene.id, brandEntityId('non-existent'));
     expect(removed).toBe(false);
   });
 });

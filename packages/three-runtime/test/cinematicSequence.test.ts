@@ -106,7 +106,7 @@ function declaredFields(name: string): string[] {
   for (const line of lines) {
     if (line.startsWith('}')) break;
     const field = /^\s*([A-Za-z_$][\w$]*)\??:\s/.exec(line);
-    if (field && !line.trimStart().startsWith('*') && !line.trimStart().startsWith('//')) fields.push(field[1]);
+    if (field && !line.trimStart().startsWith('*') && !line.trimStart().startsWith('//')) fields.push(field[1]!);
   }
   return fields;
 }
@@ -308,7 +308,7 @@ describe('playCinematic — one sequence at a time, because activeSequence is on
 
   it('emits cinematicPlayed with the playhead it is starting from', () => {
     const seen: unknown[] = [];
-    runtime.addEventListener('cinematicPlayed', (data) => seen.push(data));
+    runtime.addEventListener('cinematicPlayed', (data: unknown) => seen.push(data));
     define();
     expect(runtime.playCinematic('seq')).toBe(true);
     expect(seen).toEqual([{ sequenceId: 'seq', time: 0, duration: 5 }]);
@@ -335,7 +335,7 @@ describe('updateCinematics — the playhead, the cut, and where the camera ends 
     expect(activeOf(camA)).toBe(true);
 
     runtime.simulateFrame(1.5); // playhead 3, inside the second shot
-    expect(changes.map((c) => c.shotIndex)).toEqual([0, 1]);
+    expect(changes.map((c) => (c as { shotIndex: number }).shotIndex)).toEqual([0, 1]);
     expect(activeOf(camB)).toBe(true);
     expect(runtime.getScene(scene)!.cameras.get(camA)!.active).toBe(false);
 
@@ -415,7 +415,7 @@ describe('updateCinematics — the playhead, the cut, and where the camera ends 
 
   it('holds the last frame at the end, stops playing, and finishes once', () => {
     const finished: unknown[] = [];
-    runtime.addEventListener('cinematicFinished', (d) => finished.push(d));
+    runtime.addEventListener('cinematicFinished', (d: unknown) => finished.push(d));
     define({ shots: [shot({ id: 's0', cameraId: camA, endTime: 1 })] });
     // v117 read the LIVE sequence out of `cinematicSnapshot` here. Since v118 the snapshot is data, so the
     // playhead's own answer comes from the audit — and the stale reading is kept on purpose as the control:
@@ -806,7 +806,7 @@ describe('the curve codec — a path is stored as points, and points are stored 
     config.passes[0]!.parameters.strength = 99; // the live bag moves; the save already written does not
     expect(sequenceOf(saved, 'seq')!.shots[0]!.postProcessing!.passes[0]!.parameters.strength).toBe(0.7);
 
-    config.passes[0]!.parameters.holder = new THREE.Object3D() as unknown as number;
+    ((config.passes[0]!.parameters as Record<string, unknown>).holder) = new THREE.Object3D();
     expect(() => runtime.cinematicSnapshot())
       .toThrow(/postProcessing\.passes\[0\]\.parameters\.holder holds a Object3D instance, not plain data/);
   });
@@ -860,7 +860,7 @@ describe('restoreCinematic — the declared save shape gets its first reader', (
 
     const rebuilt = runtimeRebuiltFrom(saved);
     const played: { sequenceId: string; time: number }[] = [];
-    rebuilt.addEventListener('cinematicPlayed', (d) => played.push(d as { sequenceId: string; time: number }));
+    rebuilt.addEventListener('cinematicPlayed', (d: unknown) => played.push(d as { sequenceId: string; time: number }));
     expect(rebuilt.restoreCinematic(saved).playheads).toEqual([{ id: 'seq', time: 3, currentShot: 0 }]);
     // `playing` came from the slot's own door, which is the only thing that emits `cinematicPlayed`.
     expect(played).toEqual([{ sequenceId: 'seq', time: 3, duration: 5 }]);
@@ -1069,8 +1069,8 @@ describe('restoreCinematic — the declared save shape gets its first reader', (
     expect(rebuilt.cinematicSnapshot()).toEqual(first);
     rebuilt.simulateFrame(0);
     expect(rebuilt.getScene(scene)!.cameras.get(camA)!.threeCamera.position.distanceTo(cameraPos(camA))).toBe(0);
-    expect(rebuilt.getScene(scene)!.cameras.get(camA)!.threeCamera.fov)
-      .toBe(runtime.getScene(scene)!.cameras.get(camA)!.threeCamera.fov);
+    expect((rebuilt.getScene(scene)!.cameras.get(camA)!.threeCamera as THREE.PerspectiveCamera).fov)
+      .toBe((runtime.getScene(scene)!.cameras.get(camA)!.threeCamera as THREE.PerspectiveCamera).fov);
   });
 
   it('a live curve does not survive a JSON write as a curve, which is what the serialized form is for', () => {
@@ -1160,7 +1160,7 @@ describe('the save split moved: cinematic has a writer AND a reader', () => {
 describe('removeCinematic / clearCinematics — the registry can give an id back', () => {
   it('un-registers a stopped sequence, says so on the bus, and frees the id for a new definition', () => {
     const removed: object[] = [];
-    runtime.addEventListener('cinematicRemoved', (d) => removed.push(d));
+    runtime.addEventListener('cinematicRemoved', (d: object) => removed.push(d));
     define();
     runtime.playCinematic('seq');
     runtime.simulateFrame(1);
@@ -1177,7 +1177,7 @@ describe('removeCinematic / clearCinematics — the registry can give an id back
 
   it('refuses to remove a playing sequence, and answers false for one that was never registered', () => {
     const stopped: object[] = [];
-    runtime.addEventListener('cinematicStopped', (d) => stopped.push(d));
+    runtime.addEventListener('cinematicStopped', (d: object) => stopped.push(d));
     define();
     runtime.playCinematic('seq');
     expect(() => runtime.removeCinematic('seq')).toThrow(/"seq" is playing; call stopCinematic first/);
@@ -1189,8 +1189,8 @@ describe('removeCinematic / clearCinematics — the registry can give an id back
   it('clearCinematics removes the idle ones and reports the playing one rather than interrupting it', () => {
     const removed: { sequenceId: string; sceneId: SceneId }[] = [];
     const stopped: object[] = [];
-    runtime.addEventListener('cinematicRemoved', (d) => removed.push(d as { sequenceId: string; sceneId: SceneId }));
-    runtime.addEventListener('cinematicStopped', (d) => stopped.push(d));
+    runtime.addEventListener('cinematicRemoved', (d: unknown) => removed.push(d as { sequenceId: string; sceneId: SceneId }));
+    runtime.addEventListener('cinematicStopped', (d: object) => stopped.push(d));
     define();
     define({ id: 'idle', shots: [shot({ id: 'i0', cameraId: camB })] });
     runtime.playCinematic('seq');

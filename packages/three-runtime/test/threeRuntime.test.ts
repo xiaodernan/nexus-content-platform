@@ -108,8 +108,8 @@ describe('ThreeRuntime', () => {
     scheduler.step();
     expect(frames).toHaveLength(2);
     expect(backend!.frames).toHaveLength(2); // the backend really received the second draw
-    expect(backend!.frames[0].camera).toBeInstanceOf(THREE.PerspectiveCamera);
-    expect(backend!.frames[0].objects).toBeGreaterThan(0); // the scene reached the backend
+    expect(backend!.frames[0]!.camera).toBeInstanceOf(THREE.PerspectiveCamera);
+    expect(backend!.frames[0]!.objects).toBeGreaterThan(0); // the scene reached the backend
 
     runtime2.stop();
     expect(scheduler.pending()).toBe(0); // stop() cancelled the outstanding frame
@@ -416,8 +416,8 @@ describe('Lighting', () => {
   it('creates default lighting', () => {
     const scene = runtime.createScene('Test');
     expect(scene.lighting.lights.length).toBe(2);
-    expect(scene.lighting.lights[0].type).toBe('ambient');
-    expect(scene.lighting.lights[1].type).toBe('directional');
+    expect(scene.lighting.lights[0]!.type).toBe('ambient');
+    expect(scene.lighting.lights[1]!.type).toBe('directional');
     expect(scene.lighting.shadows).toBe(true);
   });
 
@@ -441,7 +441,7 @@ describe('Lighting', () => {
     const second = runtime.createScene('Second');
     expect(first.threeScene.children).toHaveLength(2);
     expect(second.threeScene.children).toHaveLength(2);
-    expect(second.lighting.lights[0].threeLight).not.toBe(first.lighting.lights[0].threeLight);
+    expect(second.lighting.lights[0]!.threeLight).not.toBe(first.lighting.lights[0]!.threeLight);
   });
 
   it('the lights do not wear an entity\'s clothes: every non-light child is still a REGISTERED body', () => {

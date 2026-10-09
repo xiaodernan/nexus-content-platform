@@ -19,6 +19,7 @@ import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import { createHeadlessBackend } from '../src/renderBackend.js';
 import { createThreeRuntime, type ThreeRuntime } from '../src/threeRuntime.js';
+import { sceneId as brandSceneId } from '../src/types.js';
 import {
   createFsSaveStore,
   createMemorySaveStore,
@@ -119,7 +120,7 @@ function aRealSave(): string {
   if (cachedBytes !== null) return cachedBytes;
   const store = createMemorySaveStore();
   const { rt, scene } = runtimeWithStore(store);
-  rt.writeSaveFile('carrier.json', scene, 1700000000000);
+  rt.writeSaveFile('carrier.json', brandSceneId(scene), 1700000000000);
   const bytes = store.read('carrier.json');
   if (bytes === null) throw new Error('the writer filed nothing, so this fixture measures nothing');
   cachedBytes = bytes;
@@ -209,8 +210,8 @@ describe('a name the store chose: reported, never fatal', () => {
     expect(latest!.path).toBe('ok.json');
     expect(latest!.ties, 'the refused name is not counted beside the readable ones').toBe(1);
     expect(latest!.unreadable.map((entry) => entry.path)).toEqual([LEGACY]);
-    expect(latest!.unreadable[0].why).toMatch(/will not re-enter/);
-    expect(latest!.unreadable[0].why, 'the reason carries the door\'s own sentence, not a second opinion').toMatch(/backslash/);
+    expect(latest!.unreadable[0]!.why).toMatch(/will not re-enter/);
+    expect(latest!.unreadable[0]!.why, 'the reason carries the door\'s own sentence, not a second opinion').toMatch(/backslash/);
   });
 
   it('the diagnosis gives it a reason of its own, not not-json and not listed-then-missing', () => {
@@ -230,8 +231,8 @@ describe('a name the store chose: reported, never fatal', () => {
     const report = rt.diagnoseSaveFiles();
     expect(report.unreadable.map((entry) => entry.path)).toEqual(['a/.']);
     expect(report.unreadable.map((entry) => entry.reason)).toEqual(['name-not-reenterable']);
-    expect(report.unreadable[0].why).not.toMatch(/backslash/);
-    expect(report.unreadable[0].why).toMatch(/empty or "\." segment/);
+    expect(report.unreadable[0]!.why).not.toMatch(/backslash/);
+    expect(report.unreadable[0]!.why).toMatch(/empty or "\." segment/);
   });
 
   it('the sweep reports a refused temp, still removes the rest, and does not call it kept', () => {
@@ -242,7 +243,7 @@ describe('a name the store chose: reported, never fatal', () => {
     const swept = rt.sweepTempFiles();
     expect(swept.removed).toEqual(['gone.json.tmp']);
     expect(swept.refused.map((entry) => entry.path)).toEqual(['junk\\x.tmp']);
-    expect(swept.refused[0].why).toMatch(/backslash/);
+    expect(swept.refused[0]!.why).toMatch(/backslash/);
     expect(swept.kept, 'kept means "asked, found nothing"; this name was never asked').toEqual([]);
     expect(fs.bytes('/saves/junk\\x.tmp'), 'the host still holds it, and the record says so').toBe('debris');
   });
@@ -261,8 +262,8 @@ describe('a name the caller chose: the door, out loud', () => {
   it('write, read, delete and the single-file diagnosis all refuse it and none of them half-does the job', () => {
     const store = createMemorySaveStore();
     const { rt, scene } = runtimeWithStore(store);
-    expect(() => rt.writeSaveFile(BS, scene, 1700000000000)).toThrow(/backslash/);
-    expect(() => rt.readSaveFile(BS, scene)).toThrow(/backslash/);
+    expect(() => rt.writeSaveFile(BS, brandSceneId(scene), 1700000000000)).toThrow(/backslash/);
+    expect(() => rt.readSaveFile(BS, brandSceneId(scene))).toThrow(/backslash/);
     expect(() => rt.deleteSaveFile(BS)).toThrow(/backslash/);
     expect(() => rt.diagnoseSaveFile(BS)).toThrow(/backslash/);
     expect(rt.listSaveFiles().paths, 'the refused write filed nothing').toEqual([]);

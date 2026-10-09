@@ -7,15 +7,18 @@ import {
   ThreeRuntime,
   createHeadlessBackend,
   manualFrameScheduler,
+  animationId,
   type HeadlessBackend,
 } from '../src/index.js';
 
 const CONFIG = {
   renderer: { antialias: false, alpha: false, preserveDrawingBuffer: false, powerPreference: 'default' as const, stencil: false, depth: false, logarithmicDepthBuffer: false },
-  shadowMap: { enabled: false, type: 0, autoUpdate: false },
-  toneMapping: 0,
+  shadowMap: { enabled: false, type: THREE.BasicShadowMap, autoUpdate: false },
+  toneMapping: THREE.NoToneMapping,
   toneMappingExposure: 1,
   colorSpace: 'srgb' as const,
+  maxLights: 100,
+  frustumCulling: true,
   sortObjects: true,
 };
 
@@ -151,7 +154,7 @@ describe('M5 v209 — add-time disabled enforcement', () => {
         type: 'effect',
         data: {},
         enabled: false,
-        animationIds: ['non-existent-anim'],
+        animationIds: [animationId('non-existent-anim')],
       }),
     ).not.toThrow();
     expect(runtime.getComponent(entity, 'effect')?.enabled).toBe(false);
