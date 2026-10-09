@@ -172,7 +172,7 @@ export function SketchPad({
         </p>
       ) : (
         <p className="text-11 leading-relaxed text-fg-3">
-          落墨越重画面越暗，线越碎元素越多。边界说清：草图管**构图密度与明暗**，不管形状本身——
+          落墨越重画面越暗，线越碎元素越多。边界说清：草图管<strong>构图密度与明暗</strong>，不管形状本身——
           "照草图的轮廓画"要真 provider 的图生图，接上之前不做假变换。
         </p>
       )}
