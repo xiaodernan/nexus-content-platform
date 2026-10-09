@@ -281,6 +281,25 @@ export function StoryboardPanel() {
   };
 
   /**
+   * §41 片段级裁切的界面路：**双击**时间线上的一格，在点击处把这一镜切成两镜。
+   *
+   * 切点按格子自身的宽度换算（不是整条线），再被模型吸到 `SHOT_MS_STEP` 上——
+   * 鼠标落不到整数毫秒，2817 这种数是像素误差不是作者的意思。拒因（太短、挪一点再切）
+   * 由 store 落进 `data-storyboard-notice` 那一格，不静默。
+   * 双击前那两下 pointerdown 会先走"拖整块换位"的起手——没有位移时 `endReorder`
+   * 判"没真的换位"，不落事务，两条路互不踩。
+   */
+  const splitAtClick = (event: React.MouseEvent<HTMLElement>, shot: StoryboardShot): void => {
+    const rect = event.currentTarget.getBoundingClientRect();
+    if (rect.width <= 0) return;
+    const atMs = ((event.clientX - rect.left) / rect.width) * shot.durationMs;
+    const at = sb?.shots.findIndex((candidate) => candidate.id === shot.id) ?? -1;
+    if (storyboardStore.splitShot(shot.id, atMs, `shot-split-${crypto.randomUUID().slice(0, 8)}`)) {
+      setAnnounce(`第 ${at + 1} 镜在点击处切成两镜，已写库，可撤销`);
+    }
+  };
+
+  /**
    * §41 第二片：时间线自己也能用键盘改（`docs/DESIGN_SYSTEM.md` §90「全部交互可键盘到达」）。
    * 语义照画布那条"方向键微调"：方向键调、Enter 落库、Esc 取消。
    *
@@ -723,6 +742,17 @@ export function StoryboardPanel() {
                   >
                     ＋
                   </button>
+                  {/* §41 片段级裁切的键盘路：与时间线上的双击走同一个 store.splitShot，只是切点固定中点 */}
+                  <button
+                    type="button"
+                    onClick={() => storyboardStore.splitShot(shot.id, Math.round(shot.durationMs / 2), `shot-split-${crypto.randomUUID().slice(0, 8)}`)}
+                    disabled={shot.durationMs < MIN_SHOT_MS * 2}
+                    title={shot.durationMs < MIN_SHOT_MS * 2 ? `这一镜不足两格步长（${MIN_SHOT_MS * 2} 毫秒），切不出第二镜` : '在这一镜的中点切成两镜（可撤销）'}
+                    data-storyboard-split={shot.id}
+                    className="rounded-[var(--nexus-radius-sm)] bg-bg-3 px-1 text-11 text-fg-2 disabled:opacity-40"
+                  >
+                    ✂
+                  </button>
                   <button
                     type="button"
                     onClick={() => storyboardStore.applyOps([{ op: 'removeShot', id: shot.id }])}
@@ -788,11 +818,12 @@ export function StoryboardPanel() {
                   aria-label={`第 ${index + 1} 镜：${(shownMs / 1000).toFixed(1)} 秒，${CAMERA_LABELS[shot.camera]}，衔接${TRANSITION_LABELS[shot.transition]}`}
                   data-timeline-block={shot.id}
                   data-timeline-drop-target={dropTarget ? 'true' : undefined}
-                  title={`第 ${index + 1} 镜 · ${(shownMs / 1000).toFixed(1)} 秒 · ${CAMERA_LABELS[shot.camera]} · ${TRANSITION_LABELS[shot.transition]}`}
+                  title={`第 ${index + 1} 镜 · ${(shownMs / 1000).toFixed(1)} 秒 · ${CAMERA_LABELS[shot.camera]} · ${TRANSITION_LABELS[shot.transition]} · 双击在点击处切成两镜`}
                   onPointerDown={(event) => beginReorder(event, shot, index)}
                   onPointerMove={moveReorder}
                   onPointerUp={endReorder}
                   onPointerCancel={endReorder}
+                  onDoubleClick={(event) => splitAtClick(event, shot)}
                   className={cn(
                     'relative flex min-w-0 shrink-0 cursor-grab items-center justify-center gap-1 border-r border-[var(--nexus-color-border-subtle)] bg-bg-3 last:border-r-0',
                     moving ? 'z-10 opacity-60' : null,
@@ -857,7 +888,8 @@ export function StoryboardPanel() {
             })}
           </div>
           <p className="mt-1 text-11 text-fg-3">
-            拖右边缘改长度（吸附 {SHOT_MS_STEP} 毫秒，下限 {MIN_SHOT_MS} 毫秒）、拖整块换位、点左上角的转场标记换衔接；
+            拖右边缘改长度（吸附 {SHOT_MS_STEP} 毫秒，下限 {MIN_SHOT_MS} 毫秒）、拖整块换位、点左上角的转场标记换衔接、
+            <span data-timeline-split-hint>双击一格在点击处切成两镜</span>（两半共享同一张参考帧——切的是时间线，不是像素）；
             松手才写库，每一步都可撤销。键盘：Tab 到格子的右边缘，左右方向键调长度（Shift 一格 {SHOT_MS_COARSE_STEP} 毫秒），
             Enter 落库、Esc 取消；换位用镜头表里的 ↑ ↓，精确毫秒用那个数字框——四条路改的是同一份模型。
           </p>

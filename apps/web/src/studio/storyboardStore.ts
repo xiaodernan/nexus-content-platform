@@ -1,5 +1,5 @@
 import { useSyncExternalStore } from 'react';
-import { planStoryboard, storyboardTransaction, type Storyboard, type StoryboardOp } from '@nexus/video-model';
+import { planStoryboard, splitShotAt, storyboardTransaction, type Storyboard, type StoryboardOp } from '@nexus/video-model';
 import { csrfHeaders } from '@/lib/csrf';
 
 /**
@@ -173,6 +173,37 @@ class StoryboardStore {
     this.pushTxn(tx);
     this.setLocal(tx.applied);
     if (save) void this.commit();
+  }
+
+  /**
+   * §41 片段级裁切：一镜在 `atMs`（相对它自己左边缘）处切成两镜。
+   *
+   * 不新增补丁形状——切分就是既有的 `updateShot`（前半改短）+ `addShot`（后半插进下一位），
+   * 逆补丁由 patch.ts 现算：删掉后半、恢复前半长度，一步撤销回到切之前（§150）。
+   * 被拒时原因进 `notice` 那同一格：静默的拒绝与"点了没反应"分不开（§159）。
+   */
+  splitShot(shotId: string, atMs: number, secondId: string): boolean {
+    const sb = this.snapshotValue.storyboard;
+    if (!sb) return false;
+    const at = sb.shots.findIndex((shot) => shot.id === shotId);
+    if (at < 0) {
+      this.commit_({ notice: `镜头 ${shotId} 不在这份分镜里，没有切` });
+      return false;
+    }
+    const shot = sb.shots[at]!;
+    const split = splitShotAt(shot, atMs, secondId);
+    if (!split.ok) {
+      this.commit_({ notice: split.reason });
+      return false;
+    }
+    this.applyOps([
+      { op: 'updateShot', id: shot.id, before: { durationMs: shot.durationMs }, after: { durationMs: split.headMs } },
+      { op: 'addShot', index: at + 1, shot: split.tail },
+    ]);
+    this.commit_({
+      notice: `第 ${at + 1} 镜在 ${split.headMs} 毫秒处切成两镜（前半 ${split.headMs} + 后半 ${split.tail.durationMs} = 原 ${shot.durationMs}）。两半共享同一句描述与同一张参考帧——切的是时间线，不是像素。`,
+    });
+    return true;
   }
 
   private pushTxn(tx?: Txn): void {

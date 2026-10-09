@@ -359,6 +359,132 @@ test('@smoke §41 时间线编辑：拖边缘改长度、拖整块换位、点�
   await page.screenshot({ path: 'screenshots/storyboard-timeline-edit.png' });
 });
 
+/**
+ * 与 `serverShots` 同一只抓手，但读的是「这一镜说的是什么」那一组字段：
+ * 片段级裁切要把 `prompt` / `camera` 复制给后半，光看时长证不出"两半共享同一句描述"。
+ */
+async function serverShotDetails(page: Page): Promise<{ id: string; prompt: string; camera: string }[]> {
+  const projectId = page.url().split('/').pop() ?? '';
+  return page.evaluate(async (id) => {
+    const res = await fetch(`/api/projects/${id}/storyboard`, { cache: 'no-store' });
+    const body = (await res.json()) as { storyboard?: { shots?: { id: string; prompt: string; camera: string }[] } };
+    return body.storyboard?.shots ?? [];
+  }, projectId);
+}
+
+/**
+ * 双击某一格的"自身宽度 × fraction"处。**每一次都重量盒子**：
+ * 拒因那一行写进 notice 后换行要多占高度，整条时间线跟着上下顶动，
+ * 拿着旧坐标按第二下就落到格子外面（这一条实测红过一次，红在"点了没反应"上，
+ * 而屏幕上留的还是上一次的拒因——看上去像两句拒因说了同一句话）。
+ */
+async function dblclickBlock(page: Page, selector: string, spot: { fraction: number } | { fromLeftPx: number }): Promise<void> {
+  const block = page.locator(selector);
+  await block.scrollIntoViewIfNeeded();
+  await expect(block).toBeInViewport();
+  const box = (await block.boundingBox())!;
+  const x = 'fraction' in spot ? box.x + box.width * spot.fraction : box.x + spot.fromLeftPx;
+  await page.mouse.dblclick(x, box.y + box.height / 2);
+}
+
+/**
+ * §41 片段级裁切：一镜切两镜。
+ *
+ * 这一条要证的不是"多了一格"，而是四件只有真界面上才成立的事：
+ * ① 切点吃的是**鼠标落点**（按那一格自身的宽度换算），并且吸到 100 毫秒刻度；
+ * ② **总时长守恒**：前半 + 后半 = 原来那一镜，时间线的 `totalMs` 一格毫秒都没多没少
+ *    （后半是"减出来的余数"，不是再吸一次刻度——两次吸附会凭空多出误差）；
+ * ③ 一次双击 = **一个**可撤销事务：撤销一步就回到两镜，不是回到"三镜但长度错了"；
+ * ④ 切不出两镜时**明说**，而且两半各说一句：前半不足一格 → "往右挪一点再切"；
+ *    后半凑不成一镜 → "往左挪一点再切"。两次都**没有写库**（不是"切了一半"），
+ *    界面上也不留一个看不见的 0 毫秒方块。
+ */
+test('@smoke §41 片段级裁切：双击在点击处切、总时长守恒、一步撤销回两镜、切不出来说得清（模型 + 界面）', async ({ page }) => {
+  test.setTimeout(300_000);
+  await openStudio(page, `片段级裁切 ${Date.now().toString(36)}`);
+  await openStoryboardPanel(page);
+  // 两段、都没有运动词 → 每镜 3000 毫秒，切出来的数才是能口算的
+  await page.fill('[data-storyboard-prompt-input]', '灯塔的光扫过浮冰，她数着回来的每一条船');
+  await page.click('[data-storyboard-create]');
+  await savedState(page);
+
+  const shots = page.locator('[data-storyboard-shot]');
+  await expect(shots).toHaveCount(2);
+  const blocks = page.locator('[data-timeline-block]');
+  const firstId = (await blocks.first().getAttribute('data-timeline-block'))!;
+  const idsBefore = (await serverShots(page)).map((shot) => shot.id);
+
+  // ①② 落在大约三分之一处：3000 × 1/3 = 1000 毫秒，前半 1000 + 后半 2000
+  await dblclickBlock(page, `[data-timeline-block="${firstId}"]`, { fraction: 1 / 3 });
+  await expect(shots).toHaveCount(3);
+  await expect(page.locator('[data-storyboard-notice]')).toContainText('切成两镜');
+  await savedState(page);
+
+  const after = await serverShots(page);
+  expect(after.map((shot) => shot.durationMs)).toEqual([1000, 2000, 3000]);
+  expect(after[0]!.id).toBe(firstId);
+  // 后半是新 id；原那一镜的转场描述的是"与上一镜怎么接"，所以它留在前半，后半一律硬切
+  expect(after[1]!.id).not.toBe(firstId);
+  expect(after[1]!.transition).toBe('cut');
+  expect(after[0]!.transition).not.toBe('cut');
+  // 两半共享同一句描述与同一个机位：切的是时间线，不是像素
+  const details = await serverShotDetails(page);
+  expect(details[1]!.prompt).toBe(details[0]!.prompt);
+  expect(details[1]!.camera).toBe(details[0]!.camera);
+  // 时间线是投影：镜数变了，总长还是那 6 秒（一格毫秒都没多出来）
+  await expect(page.locator('[data-storyboard-summary]')).toContainText('3 镜 · 共 6 秒');
+
+  // ③ 撤销**一步**：回到两镜、库里那份的 id 与长度都是原样
+  await page.click('[data-storyboard-undo]');
+  await expect(shots).toHaveCount(2);
+  await expect.poll(async () => (await serverShots(page)).map((shot) => shot.id)).toEqual(idsBefore);
+  await expect.poll(async () => (await serverShots(page)).map((shot) => shot.durationMs)).toEqual([3000, 3000]);
+  await savedState(page);
+
+  // 键盘那条路：镜头表里的 ✂ 在中点切，与双击走同一个 store 动作
+  await page.click(`[data-storyboard-split="${firstId}"]`);
+  await expect(shots).toHaveCount(3);
+  await expect.poll(async () => (await serverShots(page)).map((shot) => shot.durationMs)).toEqual([1500, 1500, 3000]);
+  await page.click('[data-storyboard-undo]');
+  await expect.poll(async () => (await serverShots(page)).map((shot) => shot.id)).toEqual(idsBefore);
+
+  // ④ 切不出两镜时**明说**。两镜都手填成 150 毫秒（手填那条路的下限是 1 毫秒，界面不替作者改数），
+  //    这样"半格"在时间线上就是几十像素而不是一两个像素——贴左/贴右的两刀才落得准。
+  const duration = page.locator(`[data-storyboard-duration="${firstId}"]`);
+  const secondId = idsBefore[1]!;
+  await duration.fill('150');
+  await duration.blur();
+  await savedState(page);
+  const secondDuration = page.locator(`[data-storyboard-duration="${secondId}"]`);
+  await secondDuration.fill('150');
+  await secondDuration.blur();
+  await savedState(page);
+
+  // 键盘那条路先挡住：不足两格步长切不出第二镜，disabled 的 title 说的是为什么
+  const splitBtn = page.locator(`[data-storyboard-split="${firstId}"]`);
+  await expect(splitBtn).toBeDisabled();
+  await expect(splitBtn).toHaveAttribute('title', /不足两格步长/);
+
+  // 鼠标那条路不挡（切点由落点决定），所以拒因要读得出来：贴着左边缘那一刀前半是 0 毫秒
+  await dblclickBlock(page, `[data-timeline-block="${firstId}"]`, { fromLeftPx: 2 });
+  await expect(shots).toHaveCount(2);
+  await expect(page.locator('[data-storyboard-notice]')).toContainText('前半只有 0 毫秒');
+  await expect(page.locator('[data-storyboard-notice]')).toContainText('往右挪一点再切');
+
+  // 同一格的偏右处：前半凑得成一格、后半只剩 50 毫秒 → 说的是另一句（往左挪）
+  await dblclickBlock(page, `[data-timeline-block="${firstId}"]`, { fraction: 0.7 });
+  await expect(shots).toHaveCount(2);
+  await expect(page.locator('[data-storyboard-notice]')).toContainText('后半只剩 50 毫秒');
+  await expect(page.locator('[data-storyboard-notice]')).toContainText('往左挪一点再切');
+  // 两次被拒都没有悄悄写库：库里还是那两镜 150 毫秒
+  expect((await serverShots(page)).map((shot) => shot.durationMs)).toEqual([150, 150]);
+  // 被拒的那一刀也不能把文档标成"未保存"：一次什么都没改的点击不该留下待写的痕迹
+  // （截图里出现过"未保存"，这一条就是为它写的——双击的 pointerdown 会先走"拖整块换位"的起手）
+  await expect(page.locator('[data-storyboard-save-state]')).toHaveText('已保存');
+  await page.locator('[data-timeline-strip]').scrollIntoViewIfNeeded();
+  await page.screenshot({ path: 'screenshots/storyboard-split.png' });
+});
+
 /** 图层树里的节点 id：与 `studio.spec.ts` 同一只抓手（按名字找那一行） */
 async function layerId(page: Page, name: string): Promise<string> {
   let id = '';
@@ -457,7 +583,10 @@ test('@smoke §41 时间线键盘那条路：方向键调长度、Enter 落库�
   await page.keyboard.press('Escape');
   expect((await serverShots(page)).find((shot) => shot.id === first)?.durationMs).toBe(beforeMs);
 
-  // ⑥ 画布不能被顺带按下：先让一个节点可自由移动（Hero 切成绝对定位），选中它，再按时间线的键
+  // ⑥ 画布不能被顺带按下：先让一个节点可自由移动（Hero 切成绝对定位），选中它，再按时间线的键。
+  //    左边那一格一次只挂一个面板（图层与分镜互斥），所以这一段是"切过去选、切回来按"——
+  //    选择存在 studio store 里，换页签不会把它冲掉，右侧属性栏也就还拿着 Headline 的 X
+  await page.click('[data-panel-tab="layers"]');
   const hero = await layerId(page, 'Hero');
   await page.click(`[data-layer-id="${hero}"]`);
   await page.locator('[data-prop="模式"]').selectOption('none');
@@ -467,6 +596,8 @@ test('@smoke §41 时间线键盘那条路：方向键调长度、Enter 落库�
   await expect(xField).toBeEnabled();
   const x0 = await xField.inputValue();
 
+  await page.click('[data-panel-tab="storyboard"]');
+  await handle.scrollIntoViewIfNeeded();
   await handle.focus();
   await page.keyboard.press('ArrowRight');
   await expect(handle).toHaveAttribute('aria-valuenow', String(beforeMs + 100));

@@ -303,6 +303,43 @@ export function timelineOf(storyboard: Storyboard): Timeline {
 
 /** 空分镜：新建项目里那一格"还没有分镜"的样子，与"切完是 0 镜"共用同一个形状 */
 /**
+ * §41 片段级裁切：把一镜在 `atMs`（**相对这一镜左边缘**）处切成两镜。
+ *
+ * 切的是时间线，不是像素：两半共享同一份 `prompt` 与同一张参考帧/视频帧的引用——
+ * "按帧切开素材"要真 provider 的剪辑能力，模型层不假装有（§159）。所以：
+ * - 前半**原样保留 id**（引用它的地方不断链），只换 `durationMs`；
+ * - 后半拿调用方给的 `secondId`，`transition` 固定 `cut`——中间切出来的是硬切，
+ *   原来那个转场描述的是这一镜与**前一镜**的衔接，它跟着前半走；
+ * - 两半各自不得低于 `MIN_SHOT_MS`：切出个 0 毫秒的格子，时间线上就留下一块看不见的方块。
+ *
+ * 毫秒吸附到 `SHOT_MS_STEP`（与拖动同一步进），但**总时长守恒**：后半拿的是
+ * `durationMs − headMs` 的余数，不是再吸一次——手填允许 1ms 粒度，两次吸附会让
+ * 两半之和与原来那一镜差出半格，撤销栈对不上账。
+ */
+export type ShotSplitOutcome =
+  | { ok: true; headMs: number; tail: StoryboardShot }
+  | { ok: false; reason: string };
+
+export function splitShotAt(shot: StoryboardShot, atMs: number, secondId: string): ShotSplitOutcome {
+  if (!secondId || secondId === shot.id) {
+    return { ok: false, reason: `后半的 id 必须非空且不等于原镜头 id（收到「${secondId}」）` };
+  }
+  if (!Number.isFinite(atMs)) {
+    return { ok: false, reason: `切点要落在有限的毫秒上，收到 ${atMs}` };
+  }
+  const headMs = Math.round(atMs / SHOT_MS_STEP) * SHOT_MS_STEP;
+  if (headMs < MIN_SHOT_MS) {
+    return { ok: false, reason: `前半只有 ${headMs} 毫秒，短于一格步长（${MIN_SHOT_MS} 毫秒）——切点往右挪一点再切` };
+  }
+  const tailMs = shot.durationMs - headMs;
+  if (tailMs < MIN_SHOT_MS) {
+    return { ok: false, reason: `后半只剩 ${tailMs} 毫秒，凑不成一镜（最短 ${MIN_SHOT_MS} 毫秒）——切点往左挪一点再切` };
+  }
+  const tail: StoryboardShot = { ...shot, id: secondId, durationMs: tailMs, transition: 'cut' };
+  return { ok: true, headMs, tail };
+}
+
+/**
  * §41 reorder：拖到哪个位置落下。
  *
  * 规则只有一条——**按其余镜头的中点分界**：拖动后这一镜的中心跨过谁的中心，就排到谁后面。
