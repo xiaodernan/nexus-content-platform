@@ -167,3 +167,34 @@ Bounds: the artifact is the document and nothing else — no author, no publish 
 navigation, no styling controls. A reader gets the drawing, not a page ABOUT the drawing. No auth: anyone who
 knows an id can open it. The page uses the preview renderer's fixed styling rather than making the document's
 own `tokens` themeable by the reader.
+
+## The leak sweep: a throwaway database a previous run left running (M7 v222 — amendment 222)
+
+`studio-publish.mjs` starts its throwaway PostgreSQL with `docker run -d --rm` and removes it in a `finally`. That
+covers every exit the proof can see — a failed assertion included — but it cannot cover a HARD KILL, and `--rm`
+only removes a container that STOPS. A run killed during teardown therefore leaves a container RUNNING forever,
+holding a port and a PostgreSQL instance. Measured 2026-10-10: `nexus-publish-e2e-db-1791461501643-9348` had been
+**Up 2 days**, from a run killed during teardown.
+
+```
+npm run verify:leak-sweep     # lists nexus-publish-e2e-db-* and retires any it owns
+```
+
+The fix is `tools/harness/leakSweep.mjs` — a name-based sweep the proof calls at its START, before it takes a
+port. The container name carries the creating pid, so the rule is by OWNER: a container whose owner is GONE is
+retired (`owner-gone`); one whose owner is still ALIVE belongs to a concurrent run and is left alone; age is a
+second gate (`MAX_AGE_MS = 6h`) for a recycled pid (`stale`). A name the pattern does not understand is left
+alone rather than guessed at.
+
+| § | what it proves |
+| --- | --- |
+| 1 | the decision table over 9 synthetic listings — owner-gone / stale are the only two reasons, a live owner is never swept, the age bound is exclusive, foreign and unmatched names are left alone |
+| 2 | purity — the listing is untouched and two identical calls agree |
+| 3 | the wiring — the proof imports and calls the sweep BEFORE it takes a port and starts the database |
+| 4 | a failed listing is reported and NOT fatal: no removal attempted, the caller decides |
+| 5 | end-to-end against a REAL staged orphan — the proof creates the exact shape of the 2-day corpse and the sweep retires it as `owner-gone`, and docker no longer lists it |
+| 6 | the decision module holds no capability — no `child_process`, no `process.exit` |
+
+Bounds: the sweep only sees containers it named via the prefix filter, removes by NAME, and never sweeps a
+container with a live owner. On this box the run also found and retired a leftover
+`nexus-publish-e2e-db-1791649277835-999999999` (owner-gone, 1s old) — the leak, observed and cleared.

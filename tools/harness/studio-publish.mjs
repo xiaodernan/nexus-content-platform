@@ -28,6 +28,7 @@ import { tmpdir } from 'node:os';
 import { join, resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { launch } from './cdp.mjs';
+import { sweepLeftoverDatabases } from './leakSweep.mjs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = resolve(__dirname, '../..');
@@ -163,6 +164,19 @@ try {
   assert.equal(javaVersion.code, 0, `java is not runnable: ${javaVersion.stderr}`);
   const dockerVersion = await run('docker', ['version', '--format', '{{.Server.Version}}']);
   assert.equal(dockerVersion.code, 0, `the docker daemon is not reachable: ${dockerVersion.stderr}`);
+
+  // ── §1a retire what a PREVIOUS run left RUNNING (M7 v222) ───────────────────────────────────────
+  // This proof's own `finally` removes its container on every exit it can see, but it cannot see a HARD KILL,
+  // and `docker run --rm` only removes a container that STOPS. Measured 2026-10-10: one had been Up 2 days,
+  // holding a published port and a PostgreSQL instance. The sweep runs BEFORE this run takes a port, so a
+  // corpse cannot make this run's port choice look busy. It retires by OWNER (the name carries the pid), so a
+  // concurrent run's container is left alone — see `leakSweep.mjs` for the decision table.
+  const sweep = await sweepLeftoverDatabases(run, { log: (line) => console.log(line) });
+  if (!sweep.listed) {
+    console.log(`[§1a] could not list leftovers (${sweep.reason}); continuing — a sweep is a courtesy, not a gate`);
+  } else {
+    console.log(`[§1a] leftovers: ${sweep.seen} named container(s), ${sweep.retired.length} retired`);
+  }
 
   const build = await runMaven(['-B', '-q', 'package', '-DskipTests'], { cwd: SERVICE_DIR, timeoutMs: 600_000 });
   assert.equal(build.code, 0, `mvn package failed:\n${build.stdout}\n${build.stderr}`);

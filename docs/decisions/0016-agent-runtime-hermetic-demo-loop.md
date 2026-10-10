@@ -9840,3 +9840,58 @@ v214 filed when the widened type gate forced six fixtures to state both fields._
   an object a caller built and handed in (there is no such path — geometry and material are the only injected
   values, and the object is always constructed here). `maxLights` remains unhonored, and the honest statement is
   the doc comment plus this record, not a silent no-op.
+
+### Amendment 222 (M7 v222, tools/harness + docs/evidence) — the publish E2E proof no longer leaks its throwaway database
+
+_Numbering: 222 was free (`grep -ao "^### Amendment 2[0-9][0-9]"` topped out at 221). Closes plan item 24, which
+the 2026-10-10 evidence run surfaced when a 2-day-old container was found still Up on this host._
+
+- **The defect.** `studio-publish.mjs` starts its throwaway PostgreSQL with `docker run -d --rm` and removes it in
+  a `finally`. That covers every exit the proof can see — a failed assertion included — but it cannot cover a
+  HARD KILL, and `--rm` only removes a container that STOPS. Measured 2026-10-10:
+  `nexus-publish-e2e-db-1791461501643-9348` had been **Up 2 days**, holding `127.0.0.1:51149` and a PostgreSQL
+  instance, from a run killed during teardown. A killed proof therefore leaves a container RUNNING forever,
+  holding a port and a database — and plausibly slowing the box (the same session's doc-gate §4 flake coincided
+  with a loaded machine).
+
+- **The fix is a name-based sweep at the START, not a trust in the exit path.** `tools/harness/leakSweep.mjs`
+  adds `sweepLeftoverDatabases(run, …)` — it lists every container by the `nexus-publish-e2e-db-` prefix, decides
+  which to retire, and removes them. `studio-publish.mjs` now calls it at §1a, **before** it takes a port (offset
+  8352) and **before** it starts the database (offset 8429) — so a corpse left by a prior run can no longer make
+  the port choice look busy or the db name collide.
+
+- **The rule is by OWNER, not by age alone.** The name carries the creating pid
+  (`nexus-publish-e2e-db-<stamp>-<pid>`). A container whose owner pid is GONE is one nobody will ever clean up →
+  `owner-gone`. A container whose owner is still ALIVE belongs to a concurrent run and is LEFT ALONE — a sweep
+  that killed it would be a worse bug than the leak it prevents. Age is the second gate (`MAX_AGE_MS = 6h`) for
+  the case where the pid has been recycled by an unrelated process → `stale`. A name the pattern does not
+  understand is LEFT ALONE rather than guessed at, because the pattern is the only thing that locates the pid;
+  removing a container on a hunch is how a sweep becomes a hazard.
+
+- **The decision layer is PURE and holds no capability.** `containersToRetire(containers, { now, isAlive,
+  maxAgeMs })` is a pure function (the caller injects `now` and `isAlive`), so the nine-row decision table is
+  testable with no docker daemon and nothing spawned; the pure layer imports no `child_process` and calls no
+  `process.exit` (§6 of the proof asserts this). `pidIsAlive` uses `process.kill(pid, 0)` — the OS's cheapest
+  liveness probe — and treats `EPERM` (the process exists but is owned by another user) as alive.
+
+- **Evidence.** `docs/evidence/m7/leak-sweep-proof.mjs`, **6 sections, ALL PASSED**: §1 the decision table over 9
+  synthetic listings (owner-gone / stale are the only two reasons, a live owner is never swept, the age bound is
+  exclusive, foreign and unmatched names are left alone) · §2 purity (the listing is untouched and two identical
+  calls agree) · §3 the wiring (the proof imports and calls the sweep BEFORE it takes a port and starts the
+  database) · §4 a failed listing is reported and NOT fatal (no removal attempted, the caller decides) · §5
+  end-to-end against a REAL staged orphan — the proof creates a container in the exact shape of the 2-day corpse
+  and the sweep retires it as `owner-gone`, and docker no longer lists it · §6 the decision module holds no
+  capability. On this box the run also found and retired a leftover
+  `nexus-publish-e2e-db-1791649277835-999999999` (owner-gone, 1s old) — the leak this increment exists to
+  prevent, observed and cleared.
+
+- **A failure-mode the proof deliberately avoids.** §5 creates a real orphan and cleans it up `finally`
+  regardless, so the proof cannot itself become the leak it tests for; §4 proves a daemon-less host still runs (a
+  failed listing is a courtesy, not a gate). The pure decision layer is why both are provable without touching
+  the real daemon's removal path except in §5's isolated case.
+
+- **Bounds (§60).** The sweep only ever sees containers it named itself via the prefix filter, so everything else
+  the host runs is none of its business. It removes by NAME (`docker rm -f`), not by a guessed pid or image, and
+  only names it recognised. A concurrent run's container (live owner) is explicitly NOT swept. `MAX_AGE_MS` is a
+  ceiling, not a floor — an old container whose owner is still alive is swept on age, not left to a recycled pid.
+  `verify:leak-sweep` is wired into the root `package.json` alongside `verify:publish` / `verify:publish-e2e`.
