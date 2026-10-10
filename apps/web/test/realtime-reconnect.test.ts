@@ -182,6 +182,7 @@ function optionValue(options: string, key: string): string | null {
 }
 
 const bellSrc = readFileSync(join(import.meta.dirname, '..', 'src', 'components', 'NotificationBell.tsx'), 'utf8');
+const ledgerSrc = readFileSync(join(import.meta.dirname, '..', 'src', 'components', 'TasksLedgerLive.tsx'), 'utf8');
 
 describe('接线：重开那个信号在铃铛上真的接到了重读上（§163 / ADR-0029）', () => {
   it('铃铛只有一个 useRealtime 调用，读得到它的选项对象', () => {
@@ -200,6 +201,34 @@ describe('接线：重开那个信号在铃铛上真的接到了重读上（§16
       );
     }
     // 只要求"指向 refresh"，不要求写成某一种箭头函数——但空函数体一定要拦住
+    expect(value).toMatch(/\brefresh\s*\(/);
+    expect(value, `接的是一段空操作：${value}`).not.toMatch(/=>\s*\{\s*\}/);
+  });
+});
+
+/**
+ * #10 落地时欠的那一条：账本页的 `onReconnect` 补读没有探针（当时如实记在 ROADMAP/TESTING
+ * 的「仍然没有测到」里）。当时空着的原因是这里没有 jsdom、真断线又造不出来
+ * （ADR-0029 的验证一节写着 CDP 离线模拟打不断已建立的 SSE）。
+ * 现在按本文件已经立好的规矩补上：账本页的断线期间一帧 `generation.progress` 都没收到，
+ * 靠事件流重读的那张表会停在旧状态——所以"重开 → 立刻重读"这一格必须有人接。
+ * 与铃铛同一组判据（接的是 refresh、不是空操作），因为两处要的是同一件事。
+ */
+describe('接线：账本页的重开补读（#10 欠的那一条，2026-10-10 补）', () => {
+  it('账本也只有一个 useRealtime 调用，读得到它的选项对象', () => {
+    const options = realtimeOptionObject(ledgerSrc, 'useRealtime(');
+    expect(options.length, '选项对象是空的').toBeGreaterThan(0);
+    expect(ledgerSrc.split('useRealtime(').length - 1, '账本上开了一条以上的实时连接').toBe(1);
+  });
+
+  it('onReconnect 存在，而且它调的就是那个读账本的 refresh', () => {
+    const options = realtimeOptionObject(ledgerSrc, 'useRealtime(');
+    const value = optionValue(options, 'onReconnect');
+    if (value === null) {
+      throw new Error(
+        'TasksLedgerLive 没把 onReconnect 接上：断线重开后那张表会停在旧状态，而断线期间的进度一帧都没收到（#10 的账本实时只靠事件加速）',
+      );
+    }
     expect(value).toMatch(/\brefresh\s*\(/);
     expect(value, `接的是一段空操作：${value}`).not.toMatch(/=>\s*\{\s*\}/);
   });

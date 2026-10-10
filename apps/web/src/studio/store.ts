@@ -1063,8 +1063,13 @@ export class StudioStore {
   // ---- 选区 ----
 
   select(ids: readonly NodeId[]): void {
+    // §147 归因用的分段标记（只 dev 打）：pointerdown → 进 select → commit 完 → 手柄画出来。
+    // 2026-10-10 的 CPU 采样证明选中窗口里 >80% 是 idle——延迟在浏览器的输入→绘制流水线，
+    // 不在界面自己的 JS。把界面这一段单独量出来，<16ms 那扇门才有一个可归因的数
+    if (process.env.NODE_ENV !== 'production') performance.mark('nexus:sel:store');
     this.selection = [...new Set(ids)];
     this.commit();
+    if (process.env.NODE_ENV !== 'production') performance.mark('nexus:sel:commit');
   }
 
   toggleSelection(id: NodeId): void {

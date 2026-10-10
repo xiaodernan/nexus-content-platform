@@ -172,6 +172,11 @@ const PROBE = `
       }, 10000);
     });
   };
+  // 选中响应的页面内起点：最早的那个 pointerdown 捕获（先于任何 React handler），
+  // 终点是手柄出现在 DOM 里。两者相减去掉 Playwright 派发与轮询那一段，剩下的才是界面自己的账
+  document.addEventListener('pointerdown', function () {
+    performance.mark('nexus:sel:t0');
+  }, { capture: true, passive: true });
 `;
 
 // 无头 Chrome 的 rAF 不锁 vsync（实测帧距能到 6ms），所以那个数不能当"帧率"读。
@@ -447,6 +452,7 @@ async function propToCanvasLatency(scope: string): Promise<void> {
   // 选中响应量的是"点一个节点 → 选择框与手柄画出来"，内存量的是 Chrome 的 JS 堆（近似值，见下）。
   try {
     const sel: number[] = [];
+    const selInPage: number[] = [];
     for (let attempt = 0; attempt < 3; attempt += 1) {
       await page.click('[data-canvas-surface]');
       const clear = await page.locator('[data-resize-handle]').count();
@@ -457,6 +463,8 @@ async function propToCanvasLatency(scope: string): Promise<void> {
       if (!box) throw new Error('目标节点没有包围盒（不在视口里？），不能用真实点击去量');
       await page.evaluate(() => {
         (window as unknown as { __selT0: number }).__selT0 = performance.now();
+        performance.clearMarks();
+        performance.clearMeasures();
       });
       await page.mouse.click(Math.round(box.x + box.width / 2), Math.round(box.y + box.height / 2));
       sel.push(
@@ -476,8 +484,46 @@ async function propToCanvasLatency(scope: string): Promise<void> {
           });
         }),
       );
+      // 页面内的同一段（输入事件 → 手柄出现），并拆成三段：派发与命中测试、界面自己的提交、
+      // React 渲染与绘制。后两段的标记只在开发构建里打（store.ts 里 NODE_ENV 守卫）。
+      // 注意：这个 page.evaluate 不能写返回类型标注——esbuild 会给带标注的箭头套 __name
+      // 包装函数，页内没有那个符号（本文件头部 §147 那段注释说的同一个坑）
+      const segments = (await page.evaluate(() => {
+        const mark = (name: string): number | undefined =>
+          performance.getEntriesByName(name, 'mark').at(-1)?.startTime;
+        const t0 = mark('nexus:sel:t0');
+        if (t0 === undefined) return new Promise((r) => r({ total: NaN, dispatch: NaN, store: NaN, paint: NaN }));
+        return new Promise((resolve: (v: { total: number; dispatch: number; store: number; paint: number }) => void) => {
+          const timer = window.setInterval(() => {
+            if (document.querySelectorAll('[data-resize-handle]').length > 0) {
+              window.clearInterval(timer);
+              const t1 = performance.now();
+              const store0 = mark('nexus:sel:store');
+              const commit = mark('nexus:sel:commit');
+              resolve({
+                total: t1 - t0,
+                dispatch: store0 !== undefined ? store0 - t0 : NaN,
+                store: store0 !== undefined && commit !== undefined ? commit - store0 : NaN,
+                paint: commit !== undefined ? t1 - commit : NaN,
+              });
+            }
+          }, 2);
+          window.setTimeout(() => {
+            window.clearInterval(timer);
+            resolve({ total: NaN, dispatch: NaN, store: NaN, paint: NaN });
+          }, 3000);
+        });
+      })) as { total: number; dispatch: number; store: number; paint: number };
+      selInPage.push(segments.total);
+      const seg = (v: number): string => (Number.isNaN(v) ? '量不到' : `${Math.round(v)}ms`);
+      console.log(
+        `  ${scope} 选中 第 ${attempt + 1} 次：驱动器全程 ${Math.round(sel.at(-1)!)}ms · ` +
+          `页面内输入→手柄 ${seg(segments.total)}` +
+          `（派发+命中 ${seg(segments.dispatch)} · 界面提交 ${seg(segments.store)} · 渲染+绘制 ${seg(segments.paint)}）`,
+      );
     }
     record(`选中响应${scope}`, 'ms', sel);
+    record(`选中响应（页面内）${scope}`, 'ms', selInPage);
   } catch (error) {
     // 量不到就说量不到与为什么，不拿一个编出来的数顶上（§159）
     console.log(`  选中响应${scope}：没量到 —— ${error instanceof Error ? error.message : String(error)}`);
@@ -547,6 +593,52 @@ console.log(
       console.log(`    ${((item.self / Math.max(1, samples)) * 100).toFixed(1)}%  ${item.name}`);
     }
     await cdp.detach();
+    // 选中响应同款归因：先取消选中，再点同一个节点——窗口里就是一次完整的选择提交。
+    // 起点复用 init 脚本里那个 pointerdown 捕获标记（nexus:sel:t0），终点是手柄出现在 DOM
+    const cdp2 = await page.context().newCDPSession(page);
+    await cdp2.send('Profiler.enable');
+    await cdp2.send('Profiler.setSamplingInterval', { interval: 200 });
+    await page.click('[data-canvas-surface]');
+    await page.waitForFunction(() => document.querySelectorAll('[data-resize-handle]').length === 0);
+    const selBox = await page.locator(`[data-canvas-frame] [data-node-id="${headline}"]`).boundingBox();
+    if (!selBox) throw new Error('profile selection: 目标节点没有包围盒');
+    await cdp2.send('Profiler.start');
+    const selPending = page.evaluate(
+      () =>
+        new Promise<number>((resolve) => {
+          const t0 = performance.getEntriesByName('nexus:sel:t0', 'mark').at(-1)?.startTime;
+          const timer = window.setInterval(() => {
+            if (document.querySelectorAll('[data-resize-handle]').length > 0) {
+              window.clearInterval(timer);
+              resolve(performance.now() - (t0 ?? performance.now()));
+            }
+          }, 1);
+          window.setTimeout(() => {
+            window.clearInterval(timer);
+            resolve(NaN);
+          }, 3000);
+        }),
+    );
+    await page.mouse.click(Math.round(selBox.x + selBox.width / 2), Math.round(selBox.y + selBox.height / 2));
+    const profiledSel = await selPending;
+    const stoppedSel = await cdp2.send('Profiler.stop');
+    const selNodes = (stoppedSel.profile as unknown as { nodes: { id: number; hitCount?: number; callFrame: { functionName?: string; url?: string; lineNumber?: number } }[] }).nodes;
+    const selSamples = selNodes.reduce((sum, n) => sum + (n.hitCount ?? 0), 0);
+    console.log(
+      `  CPU 采样（选中响应）：这一次选择 ${Number.isNaN(profiledSel) ? '量不到' : `${Math.round(profiledSel)}ms`}，` +
+        `窗口内命中 ${selSamples} 个样本，自时长最多的几段：`,
+    );
+    for (const item of selNodes
+      .filter((n) => (n.hitCount ?? 0) > 0)
+      .map((n) => ({
+        self: n.hitCount ?? 0,
+        name: `${n.callFrame.functionName || '(anonymous)'} @ ${(n.callFrame.url || '').split('/').pop()}:${n.callFrame.lineNumber ?? 0}`,
+      }))
+      .sort((a, b) => b.self - a.self)
+      .slice(0, 12)) {
+      console.log(`    ${((item.self / Math.max(1, selSamples)) * 100).toFixed(1)}%  ${item.name}`);
+    }
+    await cdp2.detach();
   }
   await page.screenshot({ path: `${OUT}perf-canvas.png` });
 }

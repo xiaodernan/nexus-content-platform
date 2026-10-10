@@ -110,6 +110,13 @@ e2e 断言面板把"未运行的检查"列出来，而不是显示全绿。
    4000 档 73.2ms ❌、10000 档 181.9ms ❌（比 prod-adr0015 的 583–763ms 好 3–4 倍，但口径不同不相减）；
    **选中响应**：1000 档 44ms ❌（<16ms 的旧账仍在，归 §147 的画布渲染/虚拟化，不再是保存报文）。
    100 档本轮没单独跑（起手 8 节点与 1000 档之间没有第二档读数，不拿中间数冒充）。
+- **2026-10-10 选中响应的归因**（口径 prod-62b-profile，1000 档，生产构建）：
+   属性写入 21.5ms ✅；选中响应 44.7ms ❌。但 **CPU 采样显示选中窗口里 >80% 是 idle，
+   0 个应用函数命中**——这 44ms 几乎没有一个毫秒是界面在算，而是「输入 → React 调度 →
+   绘制 → 探针轮询」这条流水线的 2–3 个帧。**所以 <16ms 这扇门按现探针量，门的地板
+   就高于门的数字**；归因细节与"界面自己那一段怎么量"（dev 标记 `nexus:sel:store/commit` +
+   探针三段拆分）在 `docs/PERFORMANCE.md` 同日一节。下一轮在安静机器上补分段读数再决定动不动界面。
+   10000 档生产构建本轮没量到（首屏 `page.goto` 30 秒超时），已如实记为未量。
 - **这两个目标以前只是写着，没人量**（2026-09-26 补进 `perf-browser.mts`）：选中响应现在用真实鼠标点击
   打到节点包围盒中心、等 `[data-resize-handle]` 出现，生产构建实测 起手 8 节点 **12.5ms** / 4000 节点 **13.8ms**
   （目标 <16ms，且随规模几乎不涨——选择框只跟视口内渲染的东西有关）；JS 堆 19MB / 67MB，
@@ -507,7 +514,10 @@ vitest 直接崩了而我却把 stdout 丢进了 `/dev/null`，于是"5 遍"其�
   第二个标签页开 `/tasks/<projectId>` + 预热一次读 + 计数 + 提交异步 + 不刷新看见 `在跑`→`完成`
   + 4 秒稳态 + 库里 succeeded 数与 DOM 对账 + 陌生人 404；截图 `screenshots/tasks-ledger-live.png`
   （芯片 `实时：已连接`、摘要、一行 succeeded）。全量 vitest 137 个文件绿；`npm run lint` 绿。
-  **仍然没有测到**：`onReconnect` 的补读（重断连本身没有探针）；真 provider 下的进度。
+   **仍然没有测到**：真 provider 下的进度。（`onReconnect` 的补读已于 2026-10-10 补上：
+   `realtime-reconnect.test.ts` 的「接线」组多两条源码判据——账本页只有一个 `useRealtime` 调用、
+   它的 `onReconnect` 接的是 `refresh` 而不是空操作；探针：换成空函数 → 该条红。真断线本身
+   仍造不出来，照旧写在 ADR-0029 的验证一节。）
 - #62② 自动保存改发补丁（2026-10-09，ADR-0033）：服务端 `patchProjectDocument` 锁内读-打-写，
   客户端 `store.save()` 优先发 `PATCH /api/projects/<id>/design`（§150 Command 补丁），全量 PUT 退居兜底。
   `apps/web/test/document-patch-save.integration.test.ts` **7 条**打真库：set 只改点名节点（未提到的行不动）、
