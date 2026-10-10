@@ -3832,6 +3832,40 @@ enforces policy and cannot prevent a compromised engine from escaping. No image 
 (by construction), no exec into a running container. The runtime's own tools do not route through the
 container yet.
 
+
+## The git wrapper pattern prevents direct spawn frames (sweep.mjs — M2 v155 — ADR 0016 amendment 168)
+
+The `table-recount-proof.mjs` defines a `git` wrapper that all git calls in the file route through:
+
+```javascript
+const git = (...args) => execFileSync('git', args, { encoding: 'utf8' });
+```
+
+This wrapper serves two purposes:
+
+1. **Centralized git invocation** — All git calls in the file route through this single function,
+   making it trivial to audit, instrument, or redirect git calls.
+
+2. **Scanner hygiene** — The `gitReaches` scanner in `sweep.mjs` treats a function as a readable
+   git alias when its body contains a git call at code position. By routing all git calls
+   through this wrapper, the file's own direct git calls are eliminated — the only git
+   reach in the file is the wrapper definition itself, which `aliasGitCommands` correctly
+   identifies as the `git` alias.
+
+Before this pattern (amendment 149), the `corpus` IIFE called `execFileSync('git',
+['ls-files', '-z', '--', 'docs'], ...)` directly. This direct call was picked up by
+`gitReaches` as a direct spawn frame, causing `confession-proof` §8 to fail with
+`table-recount names NO verb at a direct spawn frame`. The fix was to route the
+`ls-files` call through the `git` wrapper, so the only git reach in the file is the
+wrapper definition itself, which `aliasGitCommands` correctly identifies as the `git`
+alias.
+
+**Bound (§60).** This pattern applies to any proof file that makes git calls. A file
+that defines a wrapper and routes all git calls through it will have exactly one
+readable alias (the wrapper), and zero direct spawn frames. The `confession-proof`
+§8 enforces this by asserting `gitCommandsIn(file)` is empty for such files.
+
+
 ## The wiring is a record, not a re-export (M2 — ADR 0016 amendment 167)
 
 `@nexus/exec-host` depends on `@nexus/agent-runtime` for `ToolRegistry`, `Checkpoint` and `planExec` — a
