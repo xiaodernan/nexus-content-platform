@@ -9800,3 +9800,43 @@ _Numbering: `5d68198` cites "ADR 0016 amendment 205", which is exec-host's share
   and 208 (`addComponent`'s same-type replace), which is why 208's heading calls itself "the third eviction
   door". The release rule is per-door and each door has its own case, rather than one shared path assumed to
   cover all three.
+
+### Amendment 221 (M5 v221, three-runtime) — two config fields nothing read: one is now APPLIED, the other is honestly OPTIONAL
+
+_Numbering: 221 was free (`grep -ao "^### Amendment 2[0-9][0-9]"` topped out at 220). Closes plan item 20, which
+v214 filed when the widened type gate forced six fixtures to state both fields._
+
+- **The defect.** `ThreeRuntimeConfig` REQUIRED `maxLights` and `frustumCulling`, and **neither name appeared
+  anywhere in `packages/`, `apps/` or `agents/` outside `types.ts`** — declared, defaulted in
+  `DEFAULT_THREE_CONFIG`, consulted nowhere. Every caller therefore had to state two values that changed
+  nothing, and the type read like a promise the runtime never kept.
+- **`frustumCulling` is now APPLIED, at the one funnel.** `threeObject.frustumCulled = this.config.frustumCulling`
+  is set in `insertEntity` — the single path both `createEntity` and `restoreEntity` pass through — so a restored
+  body carries the SAME value as a created one rather than whatever the object arrived with. **THREE's own
+  default is `true`**, so the default config is behaviour-unchanged; `false` now genuinely disables culling for
+  every authored body. The three-runtime suite going **505 → 510** with no existing case moving is the evidence
+  that the default path did not shift.
+- **`maxLights` is now OPTIONAL and documented as UNHONORED, with the reason.** There is no light-creation API in
+  this package: `createScene` builds exactly two lights (`ambient`, `directional`) and `setLightState` only
+  toggles or dims them — so there is nothing for a cap to cap. A required field that cannot be honored is worse
+  than an optional one that says so; it becomes meaningful the day an `addLight` exists, and the doc comment
+  names that condition rather than leaving a reader to guess.
+- **The flag is re-DERIVED on restore, not carried in the file.** `SerializedEntity` has `visible`, `castShadow`,
+  `receiveShadow` and `layers`, and **no field for `frustumCulled`** — a case asserts exactly that, because it is
+  WHY a restore has to take the value from the config. A rendering flag is a runtime setting, not entity state.
+- **Evidence.** `packages/three-runtime/test/frustumCulling.test.ts` — 5 cases (the default leaves bodies at
+  THREE's own default · `false` reaches a created body while its neighbours are untouched · a RESTORED body
+  carries the runtime's config · the save shape has no field for it, so the value must be re-derived · a config
+  omitting `maxLights` builds and runs). three-runtime **505 → 510** (21 files), `tsc` **0**.
+- **Mutation probe, 2 arms, 2/2 MATCHED** (async spawn — `execFileSync` answers EBUSY on this host): **A1** the
+  assignment removed → two cases red with `expected true to be false`, i.e. the flag back to decorative ·
+  **A2** the value hard-coded `true` → the same two cases red, i.e. the config no longer read. Source restored
+  byte-identical and the suite green afterwards.
+- **A defect the first draft of this increment's own test found.** The restore case originally restored into the
+  SAME scene and was refused — *"restoreEntity: entity … is already in scene …; a restore never overwrites live
+  state"*. That is the runtime's own rule doing its job, and the case now restores into a second scene; the
+  refusal is worth keeping in the record because it is the kind of thing a reader would otherwise try.
+- **Bounds (§60).** `frustumCulling` reaches the objects the runtime CREATES; it does not retroactively apply to
+  an object a caller built and handed in (there is no such path — geometry and material are the only injected
+  values, and the object is always constructed here). `maxLights` remains unhonored, and the honest statement is
+  the doc comment plus this record, not a silent no-op.

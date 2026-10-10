@@ -825,7 +825,19 @@ export interface ThreeRuntimeConfig {
   toneMapping: THREE.ToneMapping;
   toneMappingExposure: number;
   colorSpace: THREE.ColorSpace;
-  maxLights: number;
+  /**
+   * v221 — UNHONORED, and OPTIONAL so a caller is not forced to state it. There is no light-creation API in
+   * this package: `createScene` builds exactly two lights and `setLightState` only toggles or dims them, so
+   * there is nothing for a cap to cap. It becomes meaningful the day an `addLight` exists; until then the
+   * honest shape is an optional field whose documentation says what it does NOT do, rather than a required one
+   * that reads like a promise the runtime never keeps.
+   */
+  maxLights?: number;
+  /**
+   * v221 — APPLIED. Every entity's `threeObject.frustumCulled` is set from this at the one funnel both
+   * `createEntity` and a restore pass through. THREE's own default is `true`, so the default config is
+   * behaviour-unchanged; `false` disables culling for every authored body.
+   */
   frustumCulling: boolean;
   sortObjects: boolean;
 }

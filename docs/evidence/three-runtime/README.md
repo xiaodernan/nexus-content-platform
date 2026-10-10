@@ -2913,3 +2913,38 @@ Bounds (§60): this is the FIRST of three eviction doors. The other two are amen
 amendment 208 (`addComponent`'s same-type replace) — which is why 208's heading calls itself "the third eviction
 door". The release rule is per-door and each door carries its own case, rather than one shared path assumed to
 cover all three.
+
+## v221 — two config fields nothing read: `frustumCulling` is APPLIED, `maxLights` is honestly OPTIONAL (ADR 0016 amendment 221)
+
+`ThreeRuntimeConfig` REQUIRED `maxLights` and `frustumCulling`, and **neither name appeared anywhere in
+`packages/`, `apps/` or `agents/` outside `types.ts`** — declared, defaulted in `DEFAULT_THREE_CONFIG`, consulted
+nowhere. Every caller had to state two values that changed nothing, and the type read like a promise the runtime
+never kept. The widened type gate is what made it visible: it forced six fixtures to state both.
+
+**`frustumCulling` is now applied at the one funnel.** `threeObject.frustumCulled = this.config.frustumCulling`
+is set in `insertEntity` — the single path both `createEntity` and `restoreEntity` pass through — so a restored
+body carries the SAME value as a created one rather than whatever the object arrived with. THREE's own default is
+`true`, so the default config is behaviour-unchanged; `false` now genuinely disables culling.
+
+**`maxLights` is optional and documented as unhonored, with the reason.** There is no light-creation API here:
+`createScene` builds exactly two lights (`ambient`, `directional`) and `setLightState` only toggles or dims them,
+so there is nothing for a cap to cap. It becomes meaningful the day an `addLight` exists.
+
+**The flag is re-derived on restore, not carried in the file.** `SerializedEntity` has `visible`, `castShadow`,
+`receiveShadow` and `layers`, and no field for `frustumCulled` — a case asserts exactly that, because it is WHY
+the restore has to take the value from the config. A rendering flag is a runtime setting, not entity state.
+
+| layer | what it proves |
+| --- | --- |
+| `test/frustumCulling.test.ts` (5) | the default leaves bodies at THREE's own default · `false` reaches a created body while its neighbours are untouched · a RESTORED body carries the runtime's config (into a SECOND scene, because this runtime refuses to overwrite live state) · the save shape has no field for the flag · a config omitting `maxLights` builds and runs |
+
+**Mutation probe, 2 arms, 2/2 MATCHED**: the assignment removed → two cases red with
+`expected true to be false` (the flag back to decorative) · the value hard-coded `true` → the same two cases red
+(the config no longer read).
+
+Measured: three-runtime **505 → 510** (21 files), `tsc` 0. No existing case moved, which is the evidence that
+wiring the default path changed nothing.
+
+Bounds: `frustumCulling` reaches the objects the runtime CREATES — geometry and material are the only injected
+values, and the object is always constructed here, so there is no caller-built object to retro-fit. `maxLights`
+remains unhonored; the honest statement is the doc comment plus this record, not a silent no-op.

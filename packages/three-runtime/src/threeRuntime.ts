@@ -1364,6 +1364,13 @@ export class ThreeRuntime {
     if (rotation) threeObject.rotation.copy(rotation);
     if (scale) threeObject.scale.copy(scale);
 
+    // v221 — `frustumCulling` was a required field of the config that NOTHING read: `frustumCulled` was set
+    // nowhere in this package, so the flag was a promise the runtime never kept. It is applied HERE, at the one
+    // funnel both `createEntity` and a restore pass through, so a restored entity carries the same value as a
+    // created one rather than whatever the previous session left on the object. THREE's own default is `true`,
+    // so the default config is behaviour-unchanged; `false` disables culling for every authored body.
+    threeObject.frustumCulled = this.config.frustumCulling;
+
     threeObject.updateMatrix();
     threeObject.updateMatrixWorld(true);
 
