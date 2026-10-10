@@ -55,11 +55,18 @@ export async function loadGame(projectId: string): Promise<GameResult | null> {
 /**
  * 整份换掉。projectId 由路径决定；文档自己声明的 projectId 必须与之一致，
  * 否则就是一份从别的项目复制来的文档冒充本地真值。
+ *
+ * `createOnly`（§52 的接受入口用）：**只在项目还没有游戏文档时写**。
+ * 为什么要有这个模式：Agent 的草稿是"多给了一份东西"，不是"顶掉你已经有的那份"。
+ * 用户点「接受」的时候如果项目里已经有一份在编辑的设计，静默覆盖等于把别人的工作冲掉——
+ * 那种事一旦发生一次，用户就不敢再点任何"接受"按钮了。
+ * 所以这里拒绝，并把"已经有哪一份"说清楚（不返回旧文档，因为那一步不该改它）。
  */
 export async function saveGame(
   projectId: string,
   ownerId: string,
   input: unknown,
+  options?: { createOnly?: boolean },
 ): Promise<GameResult> {
   const parsed = GameDocumentSchema.safeParse(input);
   if (!parsed.success) {
@@ -84,6 +91,14 @@ export async function saveGame(
   const stamped: GameDocument = { ...document, projectId };
   const existing = await currentRow(projectId);
   if (existing) {
+    // 这一条要在"更旧的写"那道判断之前：草稿的时间戳本来就是跑那一刻的，
+    // 拿它去比一份被用户改过的设计只会得到"这次写入被拒（旧版本）"那种误导的原因
+    if (options?.createOnly) {
+      return {
+        ok: false,
+        reason: `这个项目已经有一份游戏设计（「${existing.name}」），接受草稿不会覆盖它——要换掉请先在 Game Studio 里删掉或改那一份。`,
+      };
+    }
     const stored = GameDocumentSchema.safeParse(existing.document);
     // 拒绝"更旧的写"：两个 PUT 乱序到达时不能让旧版本赢
     if (stored.success && stored.data.updatedAt > stamped.updatedAt) {

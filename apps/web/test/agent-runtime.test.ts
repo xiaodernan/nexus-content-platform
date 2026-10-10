@@ -45,7 +45,7 @@ const planWith = (tasks: AgentPlan['tasks']): AgentPlan => ({ ...buildReadinessP
 describe('计划配方（§25）', () => {
   const plan = buildReadinessPlan('上架前把这些东西都过一遍');
 
-  it('四步都有真执行方，产物不重复，且每一步要求的能力都在名册里声明过', () => {
+  it('每一种步骤都有真执行方，产物不重复，且每一步要求的能力都在名册里声明过', () => {
     expect(plan.tasks.map((task) => task.id)).toEqual([...STEP_KINDS]);
     for (const task of plan.tasks) {
       const spec = stepSpec(task.id);

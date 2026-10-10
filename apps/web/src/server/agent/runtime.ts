@@ -1,7 +1,8 @@
 import { and, eq, isNull } from 'drizzle-orm';
 import { AgentPlanSchema, type AgentActivity, type AgentPlan, type RealtimeEvent } from '@nexus/schemas';
 import { analyzeHealth, type DesignDocument, type HealthReport } from '@nexus/design-model';
-import { compileRpg, type GameDocument, type GameKind } from '@nexus/game-model';
+import { compileRpg, playtestRpg, type GameDocument } from '@nexus/game-model';
+import { GAME_DRAFT_NOT_LANDED_NOTE, gameDraft } from '@/lib/agent-game-draft';
 import {
   GOAL_MAX,
   buildReadinessPlan,
@@ -42,8 +43,10 @@ import { loadDocument } from '../domain/projects';
  *    剩下的几步也在做。
  * 2. **名册说了算**（§73 同一个口径）。每一步声明它要求的能力，开跑前拿名册核对；名册里没有这个
  *    Agent、或它没声明这条能力，整份作业拒收并说清缺什么。
- * 3. **这一轮只读**。今天这四种步骤都不改设计文档、不发布、不生成像素——所以没有 §150 的可撤销
- *    事务要记，也不可能把工作区改坏。将来加会改模型的步骤时，那一步必须自己走 Command（§150）
+ * 3. **这一轮只读**。今天这五步都不改设计文档、不发布、不生成像素，也不往游戏库写东西——
+ *    §52 那一步编出来的草稿只存在这一条作业里（`result.steps[].draft`），要进项目得由用户在
+ *    接受入口点那一下（ADR-0034）。所以这里没有 §150 的可撤销事务要记，也不可能把工作区改坏。
+ *    将来加会改模型的步骤时，那一步必须自己走 Command（§150）
  *    并把撤销凭证带回来，不许在这里直接写库。
  * 4. **失败往下传**。某一步失败之后，依赖它的步骤是 `skipped` 并写着"被谁牵连"——不是 failed：
  *    它们根本没跑过。
@@ -107,6 +110,11 @@ interface StepOutcome {
   notes: string[];
   /** 只有汇总那一步会返回它：作业的终态结论。别的步骤的产物已经在 counts / notes 里 */
   data?: ReadinessReport;
+  /**
+   * 只有 §52 那一步会返回它：一份**还没写进项目**的游戏草稿。
+   * 它跟着步骤结论进任务行，接受入口才有东西可接（ADR-0034）。
+   */
+  draft?: GameDocument;
 }
 
 type Runner = (ctx: StepContext) => Promise<StepOutcome>;
@@ -231,7 +239,9 @@ const reportStep: Runner = async (ctx) => {
     upstream: upstream.map((step) => ({ id: step.id, status: step.status, summary: step.summary, artifact: step.artifact })),
   });
   return {
-    summary: actionable ? `读出 ${actionable} 条待办：上架前该动的东西都在这儿` : '四步全绿：结构、语料、元信息、门禁都没读出待办',
+    summary: actionable
+      ? `读出 ${actionable} 条待办：上架前该动的东西都在这儿`
+      : '检查那几步全绿：结构、语料、元信息、门禁都没读出待办（这一步只做汇总，不含 §52 那份草稿）',
     counts: { upstream: upstream.length, actionable },
     notes: top,
     data,
@@ -243,44 +253,48 @@ const reportStep: Runner = async (ctx) => {
  * 这里不加一个真实现就过不了类型检查——"计划里有、跑的时候没人做"因此不会发生。
  */
 /**
- * §52 Game Agent：把自然语言需求编译成可玩的游戏设计文档（GameDocument）。
- * 这是一个独立的步骤种类，不依赖上游步骤，直接读取目标描述生成 GameDocument。
- * 输出是一份完整的 GameDocument，可直接在 Game Studio 里试玩或继续编辑。
+ * §52 Game Agent：编一份**确定性配方给的** RPG 原型草稿，并把它随这一步的结论存进任务行。
+ *
+ * 三件事必须分开，这一片的全部道理都在这个分开里：
+ * - **编草稿**：这一步做的，纯函数，不碰库；
+ * - **草稿存在哪**：任务行的 `result.steps[].draft`，所以刷新之后还在、别的实例也读得到；
+ * - **谁把它变成项目里的真值**：用户在 Agent 面板点那一下「接受进项目」，走 `/agent/draft` 那个入口——
+ *   只有那里才写库。上一版在这里写着"该文档已可在 Game Studio 试玩"而库里一行没写，
+ *   那就是 §159 禁止的假交付（措辞与真相反对不上）。
+ *
+ * 画面上说的数是跑出来的：`compileRpg` 与 `playtestRpg` 就是试玩页与 HUD 用的那两个函数，
+ * 所以"四种脚本走法里有几种通关"是 §53 那份报告的读数，不是估的。
+ * 报告自带的限度也一起带上来——只报"2 种通关"会被读成"这设计好上手"。
  */
-const gameStep: Runner = async (_ctx) => {
-  const goal = _ctx.goal;
-
-  // 从目标文本提取关键信息（简化版：实际生产环境会调用 LLM）
-  // 这里用确定性配方生成可玩的游戏骨架，作为 DEMO MODE 的演示
-  const gameDoc: GameDocument = {
-    id: `game_${Date.now().toString(36)}`,
-    projectId: null,
-    name: `Generated: ${goal.slice(0, 50)}`,
-    summary: `由 Game Agent 根据目标「${goal}」生成`,
-    kind: 'rpg-prototype' as GameKind,
-    entities: [
-      { id: `ent_${Date.now()}_player`, kind: 'player', name: '主角', notes: '', tags: [], stats: { health: 100, speed: 5, damage: 10 }, refs: [], updatedAt: new Date().toISOString() },
-      { id: `ent_${Date.now()}_enemy1`, kind: 'enemy', name: '杂兵', notes: '', tags: [], stats: { health: 30, damage: 5 }, refs: [], updatedAt: new Date().toISOString() },
-      { id: `ent_${Date.now()}_weapon1`, kind: 'weapon', name: '新手剑', notes: '', tags: [], stats: { damage: 8 }, refs: [], updatedAt: new Date().toISOString() },
-    ],
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-  };
-
-  // 直接调上面那个静态导入。原来这里写的是 `await import('@nexus/game-model').then(...)`，
-  // 但同一个模块在文件头已经静态导入过了（为了 GameDocument / GameKind 两个类型），
-  // 所以那次动态导入**一个字节都没推迟**——模块早就在包里了，它只剩一个误导人的形状。
-  // 两处并存的结果是静态那个成了"未使用的导入"，HEAD 上的 lint 因此是红的。
-  const plan = compileRpg(gameDoc);
-
+const gameStep: Runner = async (ctx) => {
+  const document = gameDraft({ goal: ctx.goal, at: new Date().toISOString(), seed: ctx.taskId });
+  const plan = compileRpg(document);
+  const playtest = playtestRpg(plan);
+  const enemies = plan.enemyXp.length;
+  const authored = plan.enemyXp.filter((enemy) => enemy.from === 'design').length;
+  const player = plan.base.player;
   return {
-    summary: `已生成 RPG 原型：${plan.enemyXp.length} 种敌人、${plan.quests.length} 条任务，可直接试玩`,
-    counts: { enemies: plan.enemyXp.length, quests: plan.quests.length },
+    summary: `编出 ${document.entities.length} 个实体的 RPG 原型草稿（${enemies} 个敌人 / ${plan.quests.length} 条任务）；四种脚本走法里 ${playtest.winnableBy} 种通关`,
+    counts: {
+      entities: document.entities.length,
+      enemies,
+      quests: plan.quests.length,
+      triggers: plan.base.triggers.length,
+      xpFromDesign: authored,
+      policies: playtest.runs.length,
+      won: playtest.winnableBy,
+      lost: playtest.diedFrom,
+    },
     notes: [
-      `已生成 RPG 原型文档，包含 ${gameDoc.entities.length} 个实体`,
-      `敌人经验值来源：${plan.enemyXp.filter(e => e.from === 'design').length} 个作者自定、${plan.enemyXp.filter(e => e.from === 'default').length} 个兜底`,
-      '该文档已可在 Game Studio 试玩（/game/<projectId>）',
+      GAME_DRAFT_NOT_LANDED_NOTE,
+      `配方表决定数值，目标文本只改了标题（现在是「${document.name}」）——这一轮没有真 provider 参与（§160）。`,
+      `玩家伤害 ${player?.damage ?? 0}（来源是引用到玩家的那把武器，provenance=${player?.provenance.damage ?? '无'}）、触及 ${player?.reach ?? 0} 像素；` +
+        `经验来源 ${authored}/${enemies} 个敌人写了 xpReward。`,
+      `四种脚本走法（定种子 7，跑的是 rpgStep）：${playtest.runs.map((run) => `${run.label} ${run.seconds} 秒→${run.status === 'won' ? '通关' : run.status === 'lost' ? '倒下' : '没结束'}`).join('、')}`,
+      `这份报告的限度：${playtest.limits[0] ?? ''}`,
+      '接受进项目之后它是项目里的一份普通游戏文档：能改、能试玩、进 §49 语料；撤销走 §150 那套 Command，不靠这一步。',
     ],
+    draft: document,
   };
 };
 
@@ -526,6 +540,8 @@ export async function runReadinessCheck(input: {
         counts: outcome.counts,
         notes: outcome.notes,
         durationMs: Date.now() - startedAt,
+        // 草稿只在这一步有：它是"这一步跑完留下的东西"，不是项目里的真值（§52 × ADR-0034）
+        ...(outcome.draft ? { draft: outcome.draft } : {}),
       });
       plan = withStatus(plan, id, 'done');
       publish(input.projectId, { type: 'agent.step', projectId: input.projectId, taskId, stepId: id, status: 'completed', summary: outcome.summary });

@@ -1,6 +1,8 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { eq, sql as rawSql } from 'drizzle-orm';
 import { addEntity, createGame, linkEntities, removeEntity, setStat } from '@nexus/game-model';
+import { gameDraft } from '../src/lib/agent-game-draft';
+import { retrieveProjectKnowledge } from '../src/server/domain/knowledge';
 import { countGames, loadGame, saveGame } from '../src/server/domain/games';
 import { createProject } from '../src/server/domain/projects';
 import { getDb } from '../src/server/db/client';
@@ -157,5 +159,78 @@ describe('游戏文档读写（真实数据库）', () => {
     const after = await loadGame(id);
     if (!after?.ok) throw new Error('删完之后读不回来了');
     expect(after.document.entities.flatMap((e) => e.refs)).toEqual([]);
+  });
+});
+
+/**
+ * §52 接受入口的写模式（`createOnly`）。这一片的主张只有一句：
+ * **接受是"多给一份东西"，不是"顶掉你已经有的那份"**。
+ * 所以两道门都要真跑过：没有时写得进，已有时写不进、且原来那份逐字节没动。
+ */
+describe('createOnly：只在项目还没有游戏文档时写（§52 接受入口）', () => {
+  const draft = (projectId: string | null) =>
+    gameDraft({ goal: '接受入口测试', at: '2026-10-10T00:00:00.000Z', seed: 'games-integration', projectId });
+
+  it('项目没有游戏时写进去，读回来的是草稿那一份内容', async () => {
+    const id = await newProject('接受空档');
+    const result = await saveGame(id, ownerId, draft(null), { createOnly: true });
+    expect(result.ok).toBe(true);
+    if (!result.ok) throw new Error(result.reason);
+    const loaded = await loadGame(id);
+    if (!loaded?.ok) throw new Error('读不出来');
+    expect(loaded.document.entities).toEqual(draft(null).entities);
+    // 草稿自己声明的 projectId 是 null（它还不属于任何项目），落库后由路径决定
+    expect(loaded.document.projectId).toBe(id);
+  });
+
+  it('项目已有游戏时拒绝，并且原来那份逐字节没动', async () => {
+    const id = await newProject('接受不覆盖');
+    const mine = addEntity(createGame('我自己的游戏', id), { kind: 'enemy', name: '我的敌人' });
+    expect((await saveGame(id, ownerId, mine)).ok).toBe(true);
+    const before = await getDb()
+      .select({ document: games.document })
+      .from(games)
+      .where(eq(games.projectId, id));
+
+    const refused = await saveGame(id, ownerId, draft(null), { createOnly: true });
+    expect(refused.ok).toBe(false);
+    if (refused.ok) throw new Error('已经有游戏，接受却写进去了');
+    // 拒绝的话要说清"已经有哪一份"，否则用户只看到一个"失败"
+    expect(refused.reason).toContain('我自己的游戏');
+    expect(refused.reason).toContain('不会覆盖');
+
+    const after = await getDb()
+      .select({ document: games.document })
+      .from(games)
+      .where(eq(games.projectId, id));
+    expect(JSON.stringify(after)).toBe(JSON.stringify(before));
+    expect(await countGames(id)).toBe(1);
+    const loaded = await loadGame(id);
+    expect(loaded?.ok && loaded.document.name).toBe('我自己的游戏');
+  });
+
+  it('反向控制：同一份草稿不带 createOnly 时会覆盖——拒绝确实来自这一道门，不是文档本身有问题', async () => {
+    const id = await newProject('接受门对照');
+    expect((await saveGame(id, ownerId, createGame('原样', id))).ok).toBe(true);
+    // 这一句是关键：草稿过不了的是 createOnly 那道门，契约与结构校验它全都过。
+    // 少了这条对照，"refused" 就可能只是"这份文档本来就写不进去"的同义反复。
+    // 覆盖用的那份草稿必须用"当前时刻"的时间戳：`saveGame` 里那道"更旧的写"守卫
+    // （两个 PUT 乱序到达时不能让旧版本赢）会拿 updatedAt 比大小，而 `draft()` 的
+    // 固定过去时间戳会被它当成过期写入拒掉——那会让这条对照假绿（证明的是守卫而非 createOnly）。
+    const freshDraft = gameDraft({ goal: '接受入口测试', at: new Date().toISOString(), seed: 'games-integration', projectId: null });
+    expect((await saveGame(id, ownerId, freshDraft)).ok).toBe(true);
+    const loaded = await loadGame(id);
+    expect(loaded?.ok && loaded.document.entities.length).toBe(freshDraft.entities.length);
+  });
+
+  it('接受写进去的草稿进得了语料库（AI 事后读得到它，§49 那条链不断）', async () => {
+    const id = await newProject('接受进语料');
+    expect((await saveGame(id, ownerId, draft(null), { createOnly: true })).ok).toBe(true);
+    // 找一个只存在于配方表里的词：命中它就说明块体来自这份草稿，而不是项目自己的东西
+    const found = await retrieveProjectKnowledge(id, '巡逻兵');
+    expect(found.totalChunks, '写进库的草稿没有重建语料').toBeGreaterThan(0);
+    const fromGame = found.items.filter((item) => item.sourceType === 'game');
+    expect(fromGame.length, '检索结果里没有一条来自游戏文档').toBeGreaterThan(0);
+    expect(fromGame.some((item) => item.snippet.includes('巡逻兵')), '游戏块里没有草稿的那句说明').toBe(true);
   });
 });

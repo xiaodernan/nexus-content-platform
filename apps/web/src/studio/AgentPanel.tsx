@@ -1,10 +1,11 @@
 'use client';
 
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { AgentRunResponseSchema, type AgentRunView, type StepReport } from '@/lib/agent-runtime';
+import { AgentDraftAcceptResponseSchema, AgentRunResponseSchema, type AgentRunView, type StepReport } from '@/lib/agent-runtime';
 import { cn } from '@/lib/cn';
 import { csrfHeaders } from '@/lib/csrf';
 import { useRealtime } from '@/lib/useRealtime';
+import { gameStore } from './gameStore';
 import { useStudioReady } from './store';
 
 /**
@@ -57,6 +58,9 @@ export function AgentPanel() {
   const [busy, setBusy] = useState(false);
   const [note, setNote] = useState<string | null>(null);
   const [events, setEvents] = useState(0);
+  /** §52 的接受回执挂在具体那一步上，所以与 `note`（这一栏整体的话）分开存 */
+  const [accepting, setAccepting] = useState(false);
+  const [acceptNote, setAcceptNote] = useState<{ ok: boolean; text: string } | null>(null);
 
   /** 组件卸载后不许再 setState（长连接的事件可能还在路上） */
   const alive = useRef(true);
@@ -138,6 +142,52 @@ export function AgentPanel() {
     }
   };
 
+  /**
+   * §52：把这一条作业里那份 RPG 草稿接受进项目。请求体只带任务号——
+   * 草稿由服务端从任务行读出来，界面上这一栏本来也读不到"能贴回去的整份文档"。
+   */
+  const acceptDraft = async (): Promise<void> => {
+    if (!run) return;
+    setAccepting(true);
+    setAcceptNote(null);
+    try {
+      const res = await fetch(`/api/projects/${projectId}/agent/draft`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json', ...csrfHeaders() },
+        body: JSON.stringify({ taskId: run.taskId }),
+      });
+      const body: unknown = await res.json().catch(() => null);
+      if (!alive.current) return;
+      // 真 HTTP 状态码 + 服务端那句原因：409「已经有游戏」与 404「这一步读不回来」是两句不同的话，
+      // 界面不能把它们都收成"失败了"
+      if (!res.ok) {
+        setAcceptNote({ ok: false, text: `没接受成（HTTP ${res.status}）：${messageOf(body) ?? '服务端没给出原因'}` });
+        return;
+      }
+      const parsed = AgentDraftAcceptResponseSchema.safeParse(body);
+      if (!parsed.success) {
+        setAcceptNote({
+          ok: false,
+          text: '写着了，但返回的报文不合契约（HTTP 200）：先刷新看游戏面板里有没有这一份，别重复点。',
+        });
+        return;
+      }
+      setAcceptNote({
+        ok: true,
+        text:
+          `已写进项目：「${parsed.data.document.name}」${parsed.data.document.entities.length} 个实体。` +
+          '切到「游戏」面板接着改，撤销走那边的 Command（§150），不是这一栏。',
+      });
+      gameStore.reload();
+    } catch (error) {
+      if (alive.current) {
+        setAcceptNote({ ok: false, text: `没接受成：${error instanceof Error ? error.message : String(error)}` });
+      }
+    } finally {
+      if (alive.current) setAccepting(false);
+    }
+  };
+
   const steps = run?.steps ?? [];
   const plan = run?.plan ?? null;
   const done = steps.filter((step) => step.status === 'done').length;
@@ -156,7 +206,9 @@ export function AgentPanel() {
 
       <div className="min-h-0 flex-1 overflow-auto p-[var(--nexus-space-2)]">
         <p className="text-11 text-fg-3">
-          上架前检查：四步只读作业（结构盘点 / 上架元信息 / 发布门禁 / 汇总）。这一轮不改设计、不发布、不生成像素。
+          上架前检查：五步作业（结构盘点 / 上架元信息 / 发布门禁 / 汇总 / RPG 草稿）。前四步只读，
+          第五步编出一份游戏草稿——它存在这一条作业里，点那一步上的「接受进项目」才会写进 Game Studio。
+          这一轮不改设计、不发布、不生成像素。
         </p>
         {run?.capability === 'demo' ? (
           <p className="mt-1 rounded-[var(--nexus-radius-sm)] bg-bg-2 px-2 py-1 text-11 text-warn" data-agent-planner="demo">
@@ -233,7 +285,13 @@ export function AgentPanel() {
 
             <ol className="flex flex-col gap-[6px]">
               {steps.map((step) => (
-                <StepRow key={step.id} step={step} />
+                <StepRow
+                  key={step.id}
+                  step={step}
+                  accepting={accepting}
+                  acceptNote={acceptNote}
+                  onAccept={() => void acceptDraft()}
+                />
               ))}
             </ol>
 
@@ -253,7 +311,17 @@ export function AgentPanel() {
   );
 }
 
-function StepRow({ step }: { step: StepReport }) {
+function StepRow({
+  step,
+  accepting,
+  acceptNote,
+  onAccept,
+}: {
+  step: StepReport;
+  accepting: boolean;
+  acceptNote: { ok: boolean; text: string } | null;
+  onAccept: () => void;
+}) {
   const [open, setOpen] = useState(false);
   return (
     <li className="rounded-[var(--nexus-radius-sm)] bg-bg-2 px-2 py-1" data-agent-step={step.id} data-agent-step-status={step.status}>
@@ -267,6 +335,35 @@ function StepRow({ step }: { step: StepReport }) {
       <p className="mt-[2px] text-11 text-fg-3" data-agent-step-summary={step.id}>
         {step.summary}
       </p>
+      {step.draft ? (
+        <div className="mt-1 flex flex-col gap-[2px]">
+          <div className="flex flex-wrap items-center gap-[6px]">
+            <button
+              type="button"
+              onClick={onAccept}
+              disabled={accepting}
+              data-agent-accept-game={step.id}
+              className={cn(
+                'rounded-[var(--nexus-radius-sm)] px-2 py-[2px] text-11',
+                accepting ? 'bg-bg-3 text-fg-3' : 'bg-accent-1 text-bg-0 hover:bg-accent-2',
+              )}
+            >
+              {accepting ? '写着…' : '接受进项目'}
+            </button>
+            <span className="font-mono text-10 text-fg-3">
+              {step.draft.name} · {step.draft.entities.length} 个实体
+            </span>
+          </div>
+          {acceptNote ? (
+            <p
+              className={cn('text-11', acceptNote.ok ? 'text-fg-2' : 'text-danger')}
+              data-agent-accept-note={acceptNote.ok ? 'ok' : 'refused'}
+            >
+              {acceptNote.text}
+            </p>
+          ) : null}
+        </div>
+      ) : null}
       {open ? (
         <div className="mt-1 flex flex-col gap-[2px]">
           {Object.entries(step.counts).map(([key, value]) => (

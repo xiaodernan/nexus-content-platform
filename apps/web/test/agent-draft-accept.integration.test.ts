@@ -1,0 +1,254 @@
+import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
+import { and, eq } from 'drizzle-orm';
+import { StepReportSchema } from '@/lib/agent-runtime';
+import { runReadinessCheck } from '../src/server/agent/runtime';
+import { POST as acceptDraft } from '../src/app/api/projects/[projectId]/agent/draft/route';
+import { CSRF_COOKIE, CSRF_HEADER } from '../src/server/security/csrf';
+import { SESSION_COOKIE } from '../src/server/domain/session';
+import { createGame } from '@nexus/game-model';
+import { countGames, loadGame, saveGame } from '../src/server/domain/games';
+import { createProject } from '../src/server/domain/projects';
+import { getDb } from '../src/server/db/client';
+import { auditEvents, games, projects, sessions, users } from '../src/server/db/schema';
+
+/**
+ * §52 的接受入口（`POST /api/projects/<projectId>/agent/draft`）打真库。
+ *
+ * 这一片要钉的是四条边界，每一条都是"少一道就会出事"的那种：
+ * - CSRF 没过就一次库都不碰（与全站写路由同一道门）；
+ * - **写入的内容来自任务行，不来自请求体**：请求体只有 `taskId`，界面上贴不进任意一份文档；
+ * - 不是你的任务 / 挂在别的项目上的任务 → 与"不存在"同一个答案（任务行里存着别人的提示词摘要与草稿）；
+ * - 项目已经有游戏设计时**拒绝覆盖**，并且拒绝之后库里那份一字未动。
+ */
+
+const jar = vi.hoisted(() => new Map<string, string>());
+vi.mock('next/headers', () => ({
+  cookies: async () => ({
+    get: (name: string) => (jar.has(name) ? { name, value: jar.get(name)! } : undefined),
+  }),
+}));
+
+const CSRF_TOKEN = 'a1b2c3d4e5f60718';
+
+/** 会话 cookie 由这里的罐子给；`requireUser` 拿这个 token 查不到会话行时会造一个 guest 用户，
+ *  所以每个身份都要自己先插一行会话，身份才由测试说了算 */
+async function identityFor(userId: string): Promise<string> {
+  const token = `tok-${userId}`;
+  await getDb()
+    .insert(sessions)
+    .values({ userId, tokenHash: await hashToken(token), expiresAt: new Date(Date.now() + 86_400_000) });
+  return token;
+}
+
+async function hashToken(token: string): Promise<string> {
+  const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(token));
+  return Array.from(new Uint8Array(digest), (b) => b.toString(16).padStart(2, '0')).join('');
+}
+
+function asUser(token: string, withCsrf = true): Record<string, string> {
+  jar.clear();
+  jar.set(SESSION_COOKIE, token);
+  if (withCsrf) jar.set(CSRF_COOKIE, CSRF_TOKEN);
+  const headers: Record<string, string> = { 'content-type': 'application/json', cookie: `${SESSION_COOKIE}=${token}` };
+  if (withCsrf) headers[CSRF_HEADER] = CSRF_TOKEN;
+  return headers;
+}
+
+function call(projectId: string, body: unknown, headers: Record<string, string>): Promise<Response> {
+  return acceptDraft(
+    new Request(`http://localhost:3100/api/projects/${projectId}/agent/draft`, {
+      method: 'POST',
+      headers,
+      body: typeof body === 'string' ? body : JSON.stringify(body),
+    }),
+    { params: Promise.resolve({ projectId }) },
+  );
+}
+
+let owner: string;
+let ownerToken: string;
+let stranger: string;
+let strangerToken: string;
+
+beforeAll(async () => {
+  const db = getDb();
+  const [me] = await db
+    .insert(users)
+    .values({ displayName: '接受房主', email: `accept+${Date.now()}@nexus.test` })
+    .returning({ id: users.id });
+  owner = me!.id;
+  ownerToken = await identityFor(owner);
+  const [other] = await db
+    .insert(users)
+    .values({ displayName: '接受路人', email: `accept2+${Date.now()}@nexus.test` })
+    .returning({ id: users.id });
+  stranger = other!.id;
+  strangerToken = await identityFor(stranger);
+});
+
+afterAll(async () => {
+  const db = getDb();
+  await db.delete(projects).where(eq(projects.ownerId, owner));
+  await db.delete(projects).where(eq(projects.ownerId, stranger));
+  await db.delete(users).where(eq(users.id, owner));
+  await db.delete(users).where(eq(users.id, stranger));
+});
+
+async function newProject(name: string): Promise<string> {
+  return (await createProject(owner, { name, kind: 'game' })).id;
+}
+
+/** 跑一次编排，返回任务行 id 与那一步的草稿 */
+async function seededRun(projectId: string) {
+  const result = await runReadinessCheck({ projectId, actorId: owner, goal: '接受入口的草稿' });
+  if (!result.ok) throw new Error(`不该拒收：${result.refusal.message}`);
+  const step = result.steps.find((item) => item.id === 'game');
+  return { taskId: result.taskId, draft: step?.draft };
+}
+
+describe('§52 接受入口', () => {
+  it('过 CSRF 之后写进项目：读回来的是任务行里那一份，且留下一条放行审计', async () => {
+    const projectId = await newProject('接受成功');
+    const { taskId, draft } = await seededRun(projectId);
+    expect(draft, '这一步没产草稿').toBeTruthy();
+    expect(await countGames(projectId)).toBe(0);
+
+    const res = await call(projectId, { taskId }, asUser(ownerToken));
+    // 报文只能读一次：`expect(res.status, await res.text())` 之后不能再 `res.json()`
+    const text = await res.text();
+    expect(res.status, text).toBe(200);
+    const body = JSON.parse(text);
+    expect(body.ok).toBe(true);
+    // 落库的那一份就是任务行里的草稿（内容相同），而 id 换成行上的 uuid（草稿自带的是临时值）
+    expect(body.document.id).not.toBe(draft!.id);
+    expect(body.document.projectId).toBe(projectId);
+    expect(body.document.entities).toEqual(draft!.entities);
+
+    const loaded = await loadGame(projectId);
+    expect(loaded?.ok && loaded.document.name).toBe(draft!.name);
+
+    // 按这一份文档查：库是共享的，`limit(1)` 不带条件会捞到上一轮留下的行，
+    // 那种读法证明的是"历史上有人接受过"，不是"这一次留下了证据"
+    const rows = await getDb()
+      .select()
+      .from(auditEvents)
+      .where(and(eq(auditEvents.action, 'agent.game.accept'), eq(auditEvents.targetId, body.document.id)))
+      .limit(2);
+    expect(rows, '一次接受只该留一条针对这份文档的审计').toHaveLength(1);
+    const audit = rows[0]!;
+    expect(audit.allowed).toBe(true);
+    expect(audit.targetType).toBe('game');
+    expect(audit.actorId).toBe(owner);
+    expect(audit.detail).toMatchObject({ taskId, projectId });
+  });
+
+  it('CSRF 没过 → 403，且一次库都没碰（游戏行还是 0）', async () => {
+    const projectId = await newProject('接受缺 CSRF');
+    const { taskId } = await seededRun(projectId);
+    jar.clear();
+    jar.set(SESSION_COOKIE, ownerToken);
+    const res = await call(projectId, { taskId }, { 'content-type': 'application/json', cookie: `${SESSION_COOKIE}=${ownerToken}` });
+    expect(res.status).toBe(403);
+    expect((await res.json()).error).toBe('csrf_failed');
+    expect(await countGames(projectId)).toBe(0);
+  });
+
+  it('请求体只认 taskId：把整份文档贴进来不会改变写进库的内容，缺 taskId 则是 400', async () => {
+    const projectId = await newProject('接受只认任务号');
+    const { taskId } = await seededRun(projectId);
+    // 多带的字段被 zod 丢掉（不是报错），所以这一条证明的是"贴进来的文档进不了库"
+    const res = await call(projectId, { taskId, document: { name: '我贴进来的', entities: [] } }, asUser(ownerToken));
+    const okText = await res.text();
+    expect(res.status, okText).toBe(200);
+    const loaded = await loadGame(projectId);
+    expect(loaded?.ok && loaded.document.name).not.toBe('我贴进来的');
+
+    const other = await newProject('接受缺字段');
+    const bad = await call(other, { somethingElse: 1 }, asUser(ownerToken));
+    expect(bad.status).toBe(400);
+    expect((await bad.json()).error).toBe('validation_failed');
+    expect(await countGames(other)).toBe(0);
+  });
+
+  it('这一步没有草稿（注入的 runner 不产草稿）→ 409 draft_missing，并留下拒绝审计', async () => {
+    const projectId = await newProject('接受无草稿');
+    const result = await runReadinessCheck({
+      projectId,
+      actorId: owner,
+      goal: '这一步故意不产东西',
+      runners: {
+        game: async () => ({ summary: '探针：这一步没有草稿', counts: { entities: 0 }, notes: [] }),
+      },
+    });
+    if (!result.ok) throw new Error(`不该拒收：${result.refusal.message}`);
+    const steps = StepReportSchema.array().safeParse(result.steps);
+    expect(steps.success && steps.data.find((step) => step.id === 'game')?.draft).toBeUndefined();
+
+    const res = await call(projectId, { taskId: result.taskId }, asUser(ownerToken));
+    expect(res.status).toBe(409);
+    const body = await res.json();
+    expect(body.error).toBe('draft_missing');
+    expect(body.message).toContain('草稿');
+    expect(await countGames(projectId)).toBe(0);
+    // 按这一条任务查：拒绝的证据要指向"这一次点错了地方"，不是历史上某次拒绝
+    const rows = await getDb()
+      .select({ allowed: auditEvents.allowed, detail: auditEvents.detail })
+      .from(auditEvents)
+      .where(and(eq(auditEvents.action, 'agent.game.accept'), eq(auditEvents.targetId, result.taskId)));
+    expect(rows, '没有草稿却来接受，这条越权尝试该留证据').toHaveLength(1);
+    expect(rows[0]!.allowed).toBe(false);
+    expect(rows[0]!.detail).toMatchObject({ reason: 'draft-missing', projectId });
+  });
+
+  it('别人的任务与不存在的任务给同一个 404；自己的任务贴到别的自有项目也是 404', async () => {
+    const projectId = await newProject('接受归属');
+    const { taskId } = await seededRun(projectId);
+
+    // 路人用自己项目走一遍路径判定：任务不是他的，答案必须与"这一行不存在"完全一致
+    const strangerProject = (await createProject(stranger, { name: '接受路人的项目', kind: 'game' })).id;
+    const notYours = await call(strangerProject, { taskId }, asUser(strangerToken));
+    expect(notYours.status).toBe(404);
+    const ghost = await call(projectId, { taskId: crypto.randomUUID() }, asUser(ownerToken));
+    expect(ghost.status).toBe(404);
+    // 三种问法的答复必须一字不差：能分辨"存在但不给看"就等于泄露了别人的任务号存不存在
+    expect((await ghost.json()).error).toBe((await notYours.json()).error);
+
+    // 同一份任务、换成**自己另一个**项目：路径上的项目是合法的、任务也是自己的，
+    // 只有"这一份草稿属于那个项目"这一道在挡。少了它，草稿就写进了一个从没跑过它的项目。
+    const ownOther = await newProject('接受归属的另一格');
+    const mismatch = await call(ownOther, { taskId }, asUser(ownerToken));
+    expect(mismatch.status).toBe(404);
+    expect((await mismatch.json()).error).toBe('not_found');
+    expect(await countGames(projectId)).toBe(0);
+    expect(await countGames(ownOther), '草稿被接受进了它不属于的项目').toBe(0);
+  });
+
+  it('项目已有游戏设计 → 409 且不覆盖，库里那份一字未动', async () => {
+    const projectId = await newProject('接受不覆盖');
+    const { taskId } = await seededRun(projectId);
+    // 先按用户正常的保存写一份自己的设计（`updatedAt` 给得很新，这样"更旧的写"那道门不会先来挡，
+    // 拒绝确实只来自 createOnly 这一道）
+    expect(await loadGame(projectId)).toBeNull();
+    const created = await saveGame(projectId, owner, {
+      ...createGame('我自己的游戏', projectId),
+      updatedAt: '2099-01-01T00:00:00.000Z',
+    });
+    expect(created.ok).toBe(true);
+    const rowOf = () => getDb().select({ document: games.document }).from(games).where(eq(games.projectId, projectId));
+    const before = await rowOf();
+
+    const res = await call(projectId, { taskId }, asUser(ownerToken));
+    expect(res.status).toBe(409);
+    const body = await res.json();
+    expect(body.error).toBe('accept_refused');
+    // 拒绝的话要说清"已经有哪一份"，而不是一个笼统的冲突码
+    expect(body.message).toContain('我自己的游戏');
+    expect(body.message).toContain('不会覆盖');
+
+    // 一字未动：整列 JSONB 原样
+    expect(JSON.stringify(await rowOf())).toBe(JSON.stringify(before));
+    const loaded = await loadGame(projectId);
+    expect(loaded?.ok && loaded.document.name).toBe('我自己的游戏');
+    expect(await countGames(projectId)).toBe(1);
+  });
+});

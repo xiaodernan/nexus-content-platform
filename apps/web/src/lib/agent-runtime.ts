@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { AgentPlanSchema, type AgentPlan } from '@nexus/schemas';
+import { AgentPlanSchema, GameDocumentSchema, type AgentPlan } from '@nexus/schemas';
 
 /**
  * §112 / §25 / §113 编排的**纯规则层**：一个计划能不能跑、下一步该轮到谁、某一步失败之后
@@ -43,8 +43,10 @@ export interface StepSpec {
  * 所以整条作业的 capability 记 `demo`（§160），界面上带 DEMO 标识，
  * 而每一步真正算出来的东西（结构、门禁、覆盖面）是真读数，不是编的。
  *
- * 四种步骤各自的真实执行方：结构盘点读本项目自己的库；SEO 检查读项目元信息与设计正文；
- * 门禁就是发布时用的同一个 `analyzeHealth`（§179 那一份，不另算一套分）；汇总是前三者的产物。
+ * 五种步骤各自的真实执行方：结构盘点读本项目自己的库；SEO 检查读项目元信息与设计正文；
+ * 门禁就是发布时用的同一个 `analyzeHealth`（§179 那一份，不另算一套分）；汇总是前三者的产物；
+ * Game Agent 那一步给的是 §52 的**确定性草稿**（`agent-game-draft.ts` 那张表），
+ * 它随步骤结论存在任务行里，**不写进项目**——要进项目得由用户点「接受」那一下（见 ADR-0034）。
  */
 export const READINESS_STEPS: readonly StepSpec[] = [
   {
@@ -87,7 +89,7 @@ export const READINESS_STEPS: readonly StepSpec[] = [
     kind: 'game',
     agentKey: 'game',
     agentName: 'Game Agent',
-    title: '生成游戏设计：从自然语言到可玩的游戏文档',
+    title: '编一份 RPG 原型草稿：确定性配方，存在这一步里（不写进项目）',
     requires: 'game.write',
     artifact: 'game_spec',
     dependsOn: [],
@@ -129,6 +131,15 @@ export const StepReportSchema = z.object({
   error: z.string().optional(),
   /** §113 交接：这一步拿了谁的东西 */
   handedOff: z.array(z.object({ from: z.string(), artifact: z.string().nullable() })).optional(),
+  /**
+   * §52 那一步的**产物本身**：一份还没写进项目的游戏草稿。
+   *
+   * 为什么要进报文而不是只留在内存：这一片的主张是"跑完留下的账对不对"（§112），
+   * 而草稿是这一步唯一说得出的账。它随 `result.steps` 存进任务行，
+   * 于是刷新之后还在、别的实例也读得到，接受入口才有东西可接。
+   * 形状直接用 `GameDocumentSchema`（同一份 zod 定义，跨端不重写一遍）。
+   */
+  draft: GameDocumentSchema.optional(),
 });
 export type StepReport = z.infer<typeof StepReportSchema>;
 
@@ -174,6 +185,20 @@ export type AgentRunView = z.infer<typeof AgentRunViewSchema>;
 /** 两个入口（GET / POST）共用的响应信封。客户端拿这一份校验，不合契约就不往界面上画 */
 export const AgentRunResponseSchema = z.object({ ok: z.literal(true), run: AgentRunViewSchema.nullable() });
 export type AgentRunResponse = z.infer<typeof AgentRunResponseSchema>;
+
+/**
+ * §52 接受入口的请求体：**只有任务 id**。
+ *
+ * 为什么草稿不在体里：那等于让客户端把任意一份游戏文档贴进来写进项目，而这一片的卖点恰恰是
+ * "接受的是这一步真跑出来的那一份"。草稿从任务行读出来（`plannedTask` → `steps[].draft`），
+ * 归属、项目、有没有这一步都由服务端判。
+ */
+export const AgentDraftAcceptRequestSchema = z.object({ taskId: z.string().min(1).max(128) });
+export type AgentDraftAcceptRequest = z.infer<typeof AgentDraftAcceptRequestSchema>;
+
+/** 接受成功后的响应：写进库的那一份原样带回去（id 是库里的行 id，不是草稿自带的临时值） */
+export const AgentDraftAcceptResponseSchema = z.object({ ok: z.literal(true), document: GameDocumentSchema });
+export type AgentDraftAcceptResponse = z.infer<typeof AgentDraftAcceptResponseSchema>;
 
 export function stepSpec(kind: string): StepSpec | null {
   return READINESS_STEPS.find((spec) => spec.kind === kind) ?? null;

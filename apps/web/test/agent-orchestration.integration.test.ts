@@ -3,6 +3,7 @@ import { eq, inArray } from 'drizzle-orm';
 import type { AgentPlan, RealtimeEvent } from '@nexus/schemas';
 import { runReadinessCheck } from '../src/server/agent/runtime';
 import { STALE_RUN_MS, convergeStaleRun, latestPlannedTask } from '../src/server/domain/agent-tasks';
+import { countGames } from '../src/server/domain/games';
 import { createProject } from '../src/server/domain/projects';
 import { channels, setRealtimeBus, type RealtimeBus } from '../src/server/realtime/bus';
 import { getDb } from '../src/server/db/client';
@@ -69,7 +70,7 @@ function notificationEvents(): RealtimeEvent[] {
 }
 
 describe('§112 多步编排的执行方', () => {
-  it('四步全绿：计划落库、任务行 succeeded、事件按顺序、一条通知、扣一次点', async () => {
+  it('五步全绿：计划落库、任务行 succeeded、事件按顺序、一条通知、扣一次点', async () => {
     const projectId = await newProject('编排全绿');
     const result = await runReadinessCheck({ projectId, actorId: owner, goal: '上架前检查一下' });
     if (!result.ok) throw new Error(`不该拒收：${result.refusal.message}`);
@@ -103,6 +104,17 @@ describe('§112 多步编排的执行方', () => {
     expect(view?.status).toBe('succeeded');
     expect(view?.capability).toBe('demo');
     expect((view?.result as { steps?: unknown[] })?.steps).toHaveLength(5);
+    /**
+     * §52：草稿随这一步落进任务行，所以刷新之后还在——接受入口才有东西可接。
+     * 同时这一句是"只读"的另一半：跑一次检查**不**等于往项目里写了一份游戏设计，
+     * 落地只能由用户点那一下（`POST /api/projects/<id>/agent/draft`）。
+     */
+    const gameRow = (view?.result as { steps?: { id: string; draft?: unknown }[] } | null)?.steps?.find(
+      (step) => step.id === 'game',
+    );
+    expect(gameRow?.draft, '草稿没随步骤结论落库，接受入口没有东西可接').toBeTruthy();
+    expect((gameRow?.draft as { entities: unknown[] }).entities.length).toBeGreaterThan(0);
+    expect(await countGames(projectId), '只读作业把草稿写进了项目').toBe(0);
 
     const events = projectEvents(projectId);
     // 计划事件只有一条，而且排在第一步开始之前（库里是权威，事件只是加速器）
@@ -211,7 +223,7 @@ describe('§112 多步编排的执行方', () => {
     const stepTrace = events
       .filter((event) => event.type === 'agent.step')
       .map((event) => `${event.stepId}:${event.status}`);
-    // 被跳过的那一步从没开始过，所以一条 agent.step 都不该有它；对照：其余四步都有
+    // 被跳过的那一步从没开始过，所以一条 agent.step 都不该有它；对照：其余几步都有
     expect(stepTrace).toEqual([
       'context:started',
       'context:completed',

@@ -38,11 +38,20 @@ async function readJson<T>(page: Page, path: string): Promise<T> {
   return page.evaluate(async (p) => (await fetch(p as string, { cache: 'no-store' })).json(), path) as Promise<T>;
 }
 
+/** 服务端那一份作业：计划里的步数与逐步结论。界面上的数必须与它说同一件事 */
+interface ServerRun {
+  run: {
+    taskId: string;
+    plan: { tasks: { id: string }[] } | null;
+    steps: { id: string; status: string }[];
+  } | null;
+}
+
 test('@smoke agent orchestration runs in the studio and lands a real notification', async ({ page }) => {
   // dev server 按需编译（studio / 通知页 / 这条新路由都是首屏现编译），所以这一条走得慢是环境的账
   test.setTimeout(300_000);
   await register(page, `agent+${RUN}@nexus.test`, 'e2e-secret-123');
-  await createProject(page, `编排 ${RUN}`);
+  const projectId = await createProject(page, `编排 ${RUN}`);
 
   await page.click('[data-panel-tab="agent"]');
   // 这条路由在 dev 下首次命中要现编译，所以第一次读给足时间（不是"面板慢"）
@@ -63,7 +72,7 @@ test('@smoke agent orchestration runs in the studio and lands a real notificatio
     };
     new MutationObserver(record).observe(document.body, { childList: true, subtree: true, characterData: true });
     // 观察者的回调会把同一批改动并成一次，所以再用 20ms 的轮询兜一层：
-    // 跑一次编排只有四步、彼此隔几百毫秒，两种读法都记不下来才算真的没推
+    // 跑一次编排只有这么几步、彼此隔几百毫秒，两种读法都记不下来才算真的没推
     window.setInterval(record, 20);
     record();
   });
@@ -75,8 +84,16 @@ test('@smoke agent orchestration runs in the studio and lands a real notificatio
   await expect(page.locator('[data-agent-read-error]')).toHaveCount(0);
   // §160：计划来自确定性配方，界面上必须写清这一点
   await expect(page.locator('[data-agent-planner="demo"]')).toBeVisible();
-  await expect(page.locator('[data-agent-step]')).toHaveCount(4);
-  await expect(page.locator('[data-agent-step-status="done"]')).toHaveCount(4);
+  // 步数不写在测试里，从服务端那一份计划读：配方加一步时这里跟着变，
+  // 而不是留下一条"界面少了一步也绿"的断言
+  const server = (await readJson<ServerRun>(page, `/api/projects/${projectId}/agent`)).run;
+  expect(server, '跑完的作业读不回来').not.toBeNull();
+  const stepCount = server!.plan!.tasks.length;
+  expect(stepCount).toBeGreaterThan(1);
+  // 服务端自己说"每步都 done"——下面的 DOM 断言才有对照物
+  expect(server!.steps.filter((step) => step.status === 'done')).toHaveLength(stepCount);
+  await expect(page.locator('[data-agent-step]')).toHaveCount(stepCount);
+  await expect(page.locator('[data-agent-step-status="done"]')).toHaveCount(stepCount);
   await expect(page.locator('[data-agent-goal-echo]')).toHaveText(`上架前检查 ${RUN}`);
 
   // 服务端数出来的页/节点与画布上那 8 个对得上（不是面板自己加的数）
@@ -99,17 +116,49 @@ test('@smoke agent orchestration runs in the studio and lands a real notificatio
   expect(percents.some((value) => value > 0 && value < 100)).toBe(true);
   // 进度条不许倒回去
   expect(percents.every((value, index) => index === 0 || value >= percents[index - 1]!)).toBe(true);
-  // 每一格说得出是哪一步，而不是只报一个百分比
-  expect(ticks.some((text) => /第 \d\/4 步：/.test(text))).toBe(true);
+  // 每一格说得出是哪一步，而不是只报一个百分比；分母与计划里的步数一致
+  expect(ticks.some((text) => new RegExp(`第 \\d/${stepCount} 步：`).test(text))).toBe(true);
   await page.screenshot({ path: 'screenshots/agent-run.png' });
 
   // 库是权威：刷新之后那一份作业还在，说的还是同一件事
   await page.reload();
   await page.click('[data-panel-tab="agent"]');
   await expect(page.locator('[data-agent-status="succeeded"]')).toBeVisible({ timeout: 30_000 });
-  await expect(page.locator('[data-agent-step-status="done"]')).toHaveCount(4);
+  await expect(page.locator('[data-agent-step-status="done"]')).toHaveCount(stepCount);
   // 刷新后不该退回空态（那意味着计划只活在内存里）
   await expect(page.locator('[data-agent-empty]')).toHaveCount(0);
+  // 刷新之后草稿还在，接受入口也还在：草稿存的是任务行，不是组件状态（ADR-0034）
+  await expect(page.locator('[data-agent-accept-game="game"]')).toBeVisible({ timeout: 30_000 });
+
+  // §52 的落地：这一点之前项目里"还没有游戏"——只读的作业不会自己把草稿写进去
+  expect((await readJson<{ game: unknown }>(page, `/api/projects/${projectId}/game`)).game).toBeNull();
+
+  await page.click('[data-agent-accept-game="game"]');
+  await expect(page.locator('[data-agent-accept-note="ok"]')).toBeVisible({ timeout: 30_000 });
+  const accepted = await readJson<{ game: { name: string; entities: unknown[] } }>(
+    page,
+    `/api/projects/${projectId}/game`,
+  );
+  const noteText = (await page.locator('[data-agent-accept-note="ok"]').textContent()) ?? '';
+  // 回执上报的名字与实体数来自库里那一份，不是面板自己数的
+  expect(accepted.game.entities.length).toBeGreaterThan(0);
+  expect(noteText).toContain(accepted.game.name);
+  expect(noteText).toContain(`${accepted.game.entities.length} 个实体`);
+  await page.screenshot({ path: 'screenshots/agent-accept.png' });
+
+  // 切到「游戏」面板：接受的这一份是项目里的普通文档，接着改的入口在那儿
+  await page.click('[data-panel-tab="game"]');
+  await expect(page.locator('[data-game-name]')).toHaveValue(accepted.game.name, { timeout: 30_000 });
+  await expect(page.locator('[data-game-entity]')).not.toHaveCount(0);
+
+  // 再点一次：项目已经有游戏设计了，接受不覆盖，界面把服务端那句原因原样说出来
+  await page.click('[data-panel-tab="agent"]');
+  await expect(page.locator('[data-agent-accept-game="game"]')).toBeVisible({ timeout: 30_000 });
+  const beforeSecond = JSON.stringify(await readJson(page, `/api/projects/${projectId}/game`));
+  await page.click('[data-agent-accept-game="game"]');
+  await expect(page.locator('[data-agent-accept-note="refused"]')).toContainText('不会覆盖', { timeout: 30_000 });
+  expect(JSON.stringify(await readJson(page, `/api/projects/${projectId}/game`))).toBe(beforeSecond);
+  await page.screenshot({ path: 'screenshots/agent-accept-refused.png' });
 
   // 收件箱里那一条与面板是同一份真值的两个投影
   await page.goto('/notifications');
@@ -117,7 +166,7 @@ test('@smoke agent orchestration runs in the studio and lands a real notificatio
   await expect(item).toBeVisible({ timeout: 20_000 });
   await expect(item.locator('[data-notification-title]')).toContainText('多步 Agent 任务完成');
   await expect(item.locator('[data-notification-title]')).toContainText('DEMO 规划');
-  await expect(item.locator('[data-notification-title]')).toContainText('4/4 步');
+  await expect(item.locator('[data-notification-title]')).toContainText(`${stepCount}/${stepCount} 步`);
   // 这一片之后"没有来源"的单子上连 Build complete 都不挂了（§144 的导出接上的是 §164 的第四类）
   await expect(page.locator('[data-notification-unbacked="Agent task complete"]')).toHaveCount(0);
   await expect(page.locator('[data-notification-unbacked="Build complete"]')).toHaveCount(0);
