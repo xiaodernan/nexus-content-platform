@@ -255,8 +255,15 @@ export class StudioStore {
     const tAssets = performance.now();
     // §147 的常驻诊断：一次"改属性 → 画布重绘"要 1.2 秒，而模型层的基准说 resolveLayout
     // 在 10000 节点只要 57ms——那 1.2 秒不在求解上。到底是哪一段、以及一次按键到底跑了几次
-    // buildSnapshot，靠猜没有意义，就在这里按段记下来（只有开发模式挂到 globalThis 上）。
-    if (process.env.NODE_ENV !== 'production') {
+    // buildSnapshot，靠猜没有意义，就在这里按段记下来。
+    // 2026-10-10：原来是 dev-only，而 10000 档的生产读数恰恰需要它（prod 下 phases 读不到，
+    // 「慢在哪一段」只能猜）——改成 opt-in：`NEXUS_PERF_SEGMENTS=1` 的生产构建也打
+    // （next.config.ts 的 env 把它内联成 NEXT_PUBLIC_NEXUS_PERF_SEGMENTS），
+    // 平时（dev 与未设变量的生产）照旧只在开发模式打。成本是 4 次 performance.now 与 4 个加法。
+    if (
+      process.env.NODE_ENV !== 'production' ||
+      process.env.NEXT_PUBLIC_NEXUS_PERF_SEGMENTS === '1'
+    ) {
       const bucket = (globalThis as unknown as { __studioPerf?: Record<string, number> }).__studioPerf ??= {};
       const add = (key: string, ms: number) => { bucket[key] = (bucket[key] ?? 0) + ms; };
       bucket.snapshots = (bucket.snapshots ?? 0) + 1;

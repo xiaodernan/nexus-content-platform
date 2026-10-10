@@ -492,6 +492,38 @@ saveDocument / syncDesignKnowledge / 历史 diff 逐段拆开，这一轮没拆�
 
 仍未量：属性写入在 10000 档的分段（生产构建不打计数）。
 
+## 2026-10-10：10000 档属性写入的段位归因——是 `resolveLayout`，占整段 80%+
+
+上一节留的「慢在哪一段」这轮量到了。两处地基：① `next.config.ts` 的 `env` 把
+`NEXUS_PERF_SEGMENTS=1` 内联成 `NEXT_PUBLIC_NEXUS_PERF_SEGMENTS`（构建期开关，
+生产构建不设就是零成本），`studio/store.ts` 的诊断门从 dev-only 改成
+「dev 或显式开关」；② 用这个开关的生产构建重跑 10000 档。
+
+口径 `prod-10k-segments`（每项 3 次去第一遍）：
+
+| 段（10000 档属性写入） | 各次 | 中位 |
+|---|---|---|
+| 输入 → 画布更新（总） | 111.4 / 99 / 84 | **91.5ms** |
+| `buildSnapshot` 整段 | 84 / 79 / 70 | 79ms |
+| ├ **求解 `resolveLayout`** | 83 / 79 / 70 | **79ms（≈100%）** |
+| ├ tokens（derivedCache） | 0 | 0ms |
+| └ 资产（derivedCache） | 0 | 0ms |
+| 一次按键跑了几次快照 | 2 / 2 / 2 | 2 |
+
+结论（三段都对上账）：**这 91.5ms 里几乎整个都是布局求解**——与模型层基准
+（`resolveLayout` 10000 节点 57ms，`design-model` 的 §147 一节）同量级。
+derivedCache 的命中是有效的（tokens/资产 0ms），ADR-0027 的 layout 复用也是
+（pan 中位帧距 6.1ms，没随求解抖）——**卡住的只有"一次编辑触发的全量重解"**：
+第二次快照与第一次同 revision（layoutCache 的键只比 revision），却仍然付了一次
+79ms——要么键没覆盖这条路径，要么同 key 的 cache 没落住（这要到 `resolveFor`
+里核，不猜）。首帧 1333.5ms 与上一轮（1213.3）同量级，堆 80MB（比上一轮
+110MB 低——分段那次跑的时候负载不同）。
+
+**下一格的动作由此确定**：让一次编辑只解算受影响的子树（增量重解），
+或先把 layoutCache 的命中做实（第二次快照不该再解）。两者都在
+`packages/design-model` 的 `resolveFor`/`resolveLayout` 一侧，纯函数可单测——
+**红线照旧是数**：改完同一口径重跑，总延迟应从 91.5ms 掉到一次求解以下。
+
 ## 2026-10-10：§146 的 100 档补齐（基线第三档，第一份读数）
 
 `docs/TESTING.md` 的规模基线写着 100 / 1000 / 10000 三档，100 档从 2026-09-26 立基线起
