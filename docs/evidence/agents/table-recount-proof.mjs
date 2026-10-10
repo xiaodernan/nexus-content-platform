@@ -353,8 +353,7 @@ try {
   };
   const adrText = norm(readFileSync(ADR, 'utf8'));
   const corpus = (() => {
-  const tracked = new Set(execFileSync('git', ['ls-files', '-z', '--', 'docs'], { encoding: 'utf8', maxBuffer: 1e8 })
-    .split('\0').filter(Boolean).map((p) => p.replace(/\\/g, '/')));
+  const tracked = new Set(git('ls-files', '-z', '--', 'docs').split('\0').filter(Boolean).map((p) => p.replace(/\\/g, '/')));
   return listFiles('docs').filter((p) => tracked.has(p) && !p.startsWith('docs/decisions/') && (p.endsWith('.md') || p.endsWith('.mjs')));
 })();
   // A .mjs TITLE is POSITIONAL: the comment line that OPENS the module, after an optional shebang. The first
