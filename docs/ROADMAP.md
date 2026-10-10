@@ -577,8 +577,9 @@ drizzle 把整个拼接结果当成**单个绑定参数**，生成的 SQL 是 `o
    一度带一个 `heightAt` 函数，而 WorldScene 是服务端组件作为 props 传给客户端 3D 组件的——
    Next 运行时报 "Functions cannot be passed directly to Client Components"，3D 页白屏；
    投影改成纯数据（查询用模块级 `terrainHeightAt`），并加一条「场景投影是纯数据」的
-   typeof 断言防 Regression。仍欠：**在地形上直接画地形的编辑器**（今天是数字输入，
-   拖拽画圆台要等世界图支持）与真正的坡地/高度场（圆台是硬边，缝怎么走写在限度里）。
+    typeof 断言防 Regression。仍欠：**在地形上直接画地形的编辑器**（今天是数字输入，
+    拖拽画圆台要等世界图支持）与真正的坡地/高度场（圆台是硬边，缝怎么走写在限度里）。
+    取舍与踩过的坑：`docs/adr/0034-world-terrain-walkable-plateaus.md`。
 - [x] Game Studio：2D / 2.5D / 3D / 探索 / Interactive Story / RPG 原型 / Puzzle / Visual Novel（§51）
   — **2026-09-25 第一片（2D 可玩）落地**：`packages/game-model` 新增 `play.ts`（编译关卡计划）与
   `sim.ts`（纯函数模拟器），`/game/<项目>` 用 canvas 把它跑起来，Studio 的「游戏」面板上有「试玩这份设计 →」。
