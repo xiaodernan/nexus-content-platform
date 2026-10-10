@@ -1,6 +1,6 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { eq, sql as rawSql } from 'drizzle-orm';
-import { addWorldNode, createWorld, removeWorldNode, setWorldNodeElevation, setWorldNodePosition } from '@nexus/world-model';
+import { addWorldNode, createWorld, removeWorldNode, setWorldNodeElevation, setWorldNodePosition, setWorldTerrain } from '@nexus/world-model';
 import { countWorlds, loadWorld, saveWorld } from '../src/server/domain/worlds';
 import { createProject } from '../src/server/domain/projects';
 import { getDb } from '../src/server/db/client';
@@ -107,6 +107,38 @@ describe('世界文档读写（真实数据库）', () => {
     const loaded = await loadWorld(id);
     if (!loaded?.ok) throw new Error('读不出来');
     expect(loaded.document.positions[node.id]).toEqual({ x: 10, y: 20 });
+  });
+
+  /**
+   * §140 第四片的真实库往返（2026-10-10）：地形是文档字段，过得了存取这一圈。
+   * 老世界（没有 terrain）读出来仍然没有地形——default 不是摆设。
+   */
+  it('地形过得了真实库：写的圆台存进去读出来还在，老世界没有地形', async () => {
+    const id = await newProject('World Terrain Roundtrip');
+    let world = createWorld('圆台世界', id);
+    world = setWorldTerrain(world, {
+      kind: 'plateaus',
+      plateaus: [{ id: 'p1', x: 12, y: 34, radius: 8, height: 3.5 }],
+    }).document;
+    const saved = await saveWorld(id, ownerId, world);
+    expect(saved.ok).toBe(true);
+    if (!saved.ok) throw new Error(saved.reason);
+    expect(saved.document.terrain).toEqual({
+      kind: 'plateaus',
+      plateaus: [{ id: 'p1', x: 12, y: 34, radius: 8, height: 3.5 }],
+    });
+
+    const loaded = await loadWorld(id);
+    if (!loaded?.ok) throw new Error('读不出来');
+    expect(loaded.document.terrain?.plateaus[0]).toEqual({ id: 'p1', x: 12, y: 34, radius: 8, height: 3.5 });
+
+    // 没有 terrain 的老世界：读回来照常是"没有地形"，不是报错也不是空白场景
+    const legacyId = await newProject('World Terrain Legacy');
+    const legacy = await saveWorld(legacyId, ownerId, createWorld('老世界', legacyId));
+    if (!legacy.ok) throw new Error(legacy.reason);
+    const legacyLoaded = await loadWorld(legacyId);
+    if (!legacyLoaded?.ok) throw new Error('读不出来');
+    expect(legacyLoaded.document.terrain).toBeUndefined();
   });
 
   it('契约外的文档进不了库，也不留半行数据', async () => {

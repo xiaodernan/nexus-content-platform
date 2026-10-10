@@ -76,6 +76,40 @@ export interface WorldPoint {
 /** 高程的上界：给一个能看见的范围，不给"随便多高" */
 export const WORLD_ELEVATION_MAX = 6;
 
+/**
+ * §140 的地形（2026-10-10 第四片）：作者画的**可走**高度场。
+ *
+ * 与 `WorldPoint.elevation` 的分工：elevation 是**条目的视觉属性**（条目浮多高、柱子是标架），
+ * 脚下的地没有坡；terrain 则是地本身的高度——走近圆台是"站在台子上"，
+ * 行走者的相机高度、点击地面的射线都读它（`scene.ts` 的 `terrainHeightAt`）。
+ * 刻意用一组**圆台**而不是网格高度场：序列化简单、`validateWorld` 能校验、
+ * 纯函数可单测（"能被单测钉住的算术不埋进组件"，与 elevation 同一条理由）。
+ * 世界文档没有 terrain = 没有地形 = 平地（老世界照常读得出）。
+ */
+export interface WorldPlateau {
+  id: string;
+  /** 世界平面坐标：x 向东、z 向南（与 §45 的 x/y 同一套，z 就是图的 y） */
+  x: number;
+  y: number;
+  /** 圆台半径（世界单位）。要 > 0：半径为 0 的台子站不上去 */
+  radius: number;
+  /** 台面高度（0–6，与 elevation 同一上界：站在台子上的"海拔"） */
+  height: number;
+}
+
+export interface WorldTerrain {
+  kind: 'plateaus';
+  plateaus: WorldPlateau[];
+}
+
+/** 地形高度的上界：与 WORLD_ELEVATION_MAX 同一边界——台子再高就出了这个世界能看见的范围 */
+export const WORLD_TERRAIN_HEIGHT_MAX = WORLD_ELEVATION_MAX;
+/** 一个世界最多多少个圆台：够用且不失控（再多就该在面板上分批画，而不是一次铺满） */
+export const WORLD_PLATEAU_LIMIT = 64;
+/** 圆台半径的边界：太小的台子（走一步就掉下去）与太大的圆（覆盖整个世界）都不是地形 */
+export const WORLD_PLATEAU_RADIUS_MIN = 1;
+export const WORLD_PLATEAU_RADIUS_MAX = 400;
+
 export interface WorldDocument {
   id: string;
   /** 世界属于哪个项目；独立世界（还没挂到项目上）时为 null */
@@ -90,6 +124,11 @@ export interface WorldDocument {
    * 换一台设备或重排一次图不该把谁写过的正文改掉。
    */
   positions: Record<string, WorldPoint>;
+  /**
+   * §140 的可走地形（2026-10-10）。缺省 = 没有 = 平地。
+   * 位置与高程分开存，地形也分开：它是世界的地，不是哪个条目的属性。
+   */
+  terrain?: WorldTerrain;
   createdAt: string;
   updatedAt: string;
 }
@@ -103,7 +142,8 @@ export interface WorldIssue {
     | "bad-timestamp"
     | "self-link"
     | "missing-endpoint"
-    | "duplicate-link";
+    | "duplicate-link"
+    | "bad-terrain";
   message: string;
   nodeId?: string;
 }
@@ -365,6 +405,96 @@ export function setWorldNodeElevation(
   };
 }
 
+/**
+ * §140 地形（第四片）的写入端。三条纪律，与 `setWorldNodeElevation` 同一边：
+ * - **不合法就不写**，原因交回调用方（面板显示），不悄悄归零也不抛异常；
+ * - **整份换掉**而不是逐台增删：地形是一次性设计，补丁式增删迟早出现"两处编辑器
+ *   同时改地形"的问题，而这个世界还没有并发地形编辑器（有的话再拆成 command）；
+ * - `null` = 把地形收掉（回到平地），不是"加一个空地形"。
+ * 归属校验不做：模型不认识任何 UI，id 对不上由调用方显示 `reason`。
+ */
+export function setWorldTerrain(
+  document: WorldDocument,
+  terrain: WorldTerrain | null,
+): { document: WorldDocument; reason: string | null } {
+  if (terrain === null) {
+    if (!document.terrain) return { document, reason: null };
+    const { terrain: _dropped, ...rest } = document;
+    return { document: { ...rest, updatedAt: stamp() }, reason: null };
+  }
+  if (!terrain || typeof terrain !== 'object') {
+    return { document, reason: '地形需要是一个地形对象（kind 与圆台清单）。' };
+  }
+  if (terrain.kind !== 'plateaus') {
+    return { document, reason: `地形类型还不认识：${String(terrain.kind)}（今天只有圆台 plateaus）。` };
+  }
+  if (!Array.isArray(terrain.plateaus)) {
+    return { document, reason: '地形的圆台清单不对。' };
+  }
+  if (terrain.plateaus.length > WORLD_PLATEAU_LIMIT) {
+    return {
+      document,
+      reason: `一个世界的圆台最多 ${WORLD_PLATEAU_LIMIT} 个（收到 ${terrain.plateaus.length} 个）。`,
+    };
+  }
+  const seen = new Set<string>();
+  for (const plateau of terrain.plateaus) {
+    if (!plateau || typeof plateau !== 'object') {
+      return { document, reason: '有一个圆台不是对象。' };
+    }
+    if (!plateau.id?.trim() || plateau.id.length > 128) {
+      return { document, reason: '圆台需要一个 id（1–128 字符）。' };
+    }
+    if (seen.has(plateau.id)) {
+      return { document, reason: `圆台 id 重复：${plateau.id}` };
+    }
+    seen.add(plateau.id);
+    for (const axis of [plateau.x, plateau.y] as const) {
+      if (typeof axis !== 'number' || !Number.isFinite(axis)) {
+        return { document, reason: `圆台的坐标要能是有限数（收到 ${String(axis)}）。` };
+      }
+      if (Math.abs(axis) > 100_000) {
+        return { document, reason: `圆台跑出了世界范围（收到 ${axis}）。` };
+      }
+    }
+    if (typeof plateau.radius !== 'number' || !Number.isFinite(plateau.radius)) {
+      return { document, reason: `圆台的半径要是一个数（收到 ${String(plateau.radius)}）。` };
+    }
+    if (plateau.radius < WORLD_PLATEAU_RADIUS_MIN || plateau.radius > WORLD_PLATEAU_RADIUS_MAX) {
+      return {
+        document,
+        reason: `圆台的半径要在 ${WORLD_PLATEAU_RADIUS_MIN} 到 ${WORLD_PLATEAU_RADIUS_MAX} 之间（收到 ${plateau.radius}）——太小的台子走一步就掉下去，太大的圆覆盖整个世界。`,
+      };
+    }
+    if (typeof plateau.height !== 'number' || !Number.isFinite(plateau.height)) {
+      return { document, reason: `圆台的高度要是一个数（收到 ${String(plateau.height)}）。` };
+    }
+    if (plateau.height < 0 || plateau.height > WORLD_TERRAIN_HEIGHT_MAX) {
+      return {
+        document,
+        reason: `圆台的高度要在 0 到 ${WORLD_TERRAIN_HEIGHT_MAX} 之间（收到 ${plateau.height}）。`,
+      };
+    }
+  }
+  return {
+    document: {
+      ...document,
+      terrain: {
+        kind: 'plateaus',
+        plateaus: terrain.plateaus.map((plateau) => ({
+          id: plateau.id,
+          x: plateau.x,
+          y: plateau.y,
+          radius: plateau.radius,
+          height: plateau.height,
+        })),
+      },
+      updatedAt: stamp(),
+    },
+    reason: null,
+  };
+}
+
 /** 图上排布的间距：一列一类，同类里往下堆 */
 export const GRAPH_COLUMN_GAP = 220;
 export const GRAPH_ROW_GAP = 96;
@@ -509,6 +639,59 @@ export function validateWorld(document: WorldDocument): WorldIssue[] {
       });
     }
     seenPair.add(pair);
+  }
+  const terrain = document.terrain;
+  if (terrain !== undefined) {
+    if (!terrain || typeof terrain !== 'object' || terrain.kind !== 'plateaus') {
+      issues.push({ code: "bad-terrain", message: "地形要么是圆台地形（kind: plateaus），要么没有地形。" });
+    } else if (!Array.isArray(terrain.plateaus)) {
+      issues.push({ code: "bad-terrain", message: "地形的圆台清单不对。" });
+    } else {
+      if (terrain.plateaus.length > WORLD_PLATEAU_LIMIT) {
+        issues.push({
+          code: "bad-terrain",
+          message: `一个世界的圆台最多 ${WORLD_PLATEAU_LIMIT} 个（收到 ${terrain.plateaus.length} 个）。`,
+        });
+      }
+      const seenPlateau = new Set<string>();
+      for (const plateau of terrain.plateaus) {
+        if (!plateau?.id?.trim()) {
+          issues.push({ code: "bad-terrain", message: "有个圆台没有 id。" });
+          continue;
+        }
+        if (seenPlateau.has(plateau.id)) {
+          issues.push({ code: "bad-terrain", message: `圆台 id 重复：${plateau.id}` });
+        }
+        seenPlateau.add(plateau.id);
+        for (const axis of [plateau.x, plateau.y] as const) {
+          if (typeof axis !== "number" || !Number.isFinite(axis) || Math.abs(axis) > 100_000) {
+            issues.push({ code: "bad-terrain", message: `圆台「${plateau.id}」的坐标不在世界范围内。` });
+          }
+        }
+        if (
+          typeof plateau.radius !== "number" ||
+          !Number.isFinite(plateau.radius) ||
+          plateau.radius < WORLD_PLATEAU_RADIUS_MIN ||
+          plateau.radius > WORLD_PLATEAU_RADIUS_MAX
+        ) {
+          issues.push({
+            code: "bad-terrain",
+            message: `圆台「${plateau.id}」的半径要在 ${WORLD_PLATEAU_RADIUS_MIN} 到 ${WORLD_PLATEAU_RADIUS_MAX} 之间。`,
+          });
+        }
+        if (
+          typeof plateau.height !== "number" ||
+          !Number.isFinite(plateau.height) ||
+          plateau.height < 0 ||
+          plateau.height > WORLD_TERRAIN_HEIGHT_MAX
+        ) {
+          issues.push({
+            code: "bad-terrain",
+            message: `圆台「${plateau.id}」的高度要在 0 到 ${WORLD_TERRAIN_HEIGHT_MAX} 之间。`,
+          });
+        }
+      }
+    }
   }
   return issues;
 }

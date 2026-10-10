@@ -1104,6 +1104,24 @@ export const WorldPointSchema = z.object({
   elevation: z.number().finite().min(0).max(6).optional(),
 });
 
+/**
+ * §140 第四片的可走地形（2026-10-10）。圆台清单：世界的地，不是哪个条目的属性。
+ * 上界与半径边界与 `world-model` 的同名常量同源——模型侧是唯一算术实现，
+ * 这里只做"能不能安全过线"的门。`default` 老世界（没有 terrain）读得出 = 没有地形 = 平地。
+ */
+export const WorldPlateauSchema = z.object({
+  id: z.string().min(1).max(128),
+  x: z.number().finite().min(-100_000).max(100_000),
+  y: z.number().finite().min(-100_000).max(100_000),
+  radius: z.number().finite().min(1).max(400),
+  height: z.number().finite().min(0).max(6),
+});
+
+export const WorldTerrainSchema = z.object({
+  kind: z.literal('plateaus'),
+  plateaus: z.array(WorldPlateauSchema).max(64),
+});
+
 export const WorldLinkSchema = z.object({
   id: z.string().min(1).max(128),
   from: z.string().min(1).max(128),
@@ -1122,6 +1140,8 @@ export const WorldDocumentSchema = z.object({
   // 而不是让老项目一打开面板就报"契约不符"。
   links: z.array(WorldLinkSchema).max(5000).default([]),
   positions: z.record(z.string(), WorldPointSchema).default({}),
+  // 老世界没有 terrain：缺字段必须仍然读得出来，而不是让老项目一打开面板就报"契约不符"
+  terrain: WorldTerrainSchema.optional(),
   createdAt: z.string().min(1),
   updatedAt: z.string().min(1),
 });

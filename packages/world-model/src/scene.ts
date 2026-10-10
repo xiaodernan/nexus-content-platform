@@ -1,4 +1,4 @@
-import { WORLD_KINDS, WORLD_KIND_LABELS, type WorldDocument, type WorldKind } from "./index";
+import { WORLD_KINDS, WORLD_KIND_LABELS, type WorldDocument, type WorldKind, type WorldTerrain } from "./index";
 
 /**
  * §140 的 3D 世界：把世界文档投影成一份"可以走进去"的场景计划。
@@ -60,6 +60,8 @@ export interface WorldScene {
   summary: string;
   entities: SceneEntity[];
   links: SceneLink[];
+  /** §140 第四片的可走地形；`authored=false` 就是平地 */
+  terrain: SceneTerrain;
   /** 场景外接框，给相机与地面网格用 */
   bounds: { radius: number };
   stats: { entities: number; authored: number; fallback: number; links: number; linksDrawn: number };
@@ -84,6 +86,7 @@ export const SCENE_LIMITS: string[] = [
   "所有条目大小一样：世界文档里没有「重要性」也没有「体积」字段，给不同大小就是编出来的等级。",
   "颜色只表示九类内容中的哪一类，不表示危险、阵营或温度。",
   "高程是图上写的条目属性（0–6）：条目浮在写的高度上，柱子是它的标架；脚下的地没有坡——走近高处的条目是它浮着，不是你在爬山。",
+  "地形是作者画的圆台（第四片）：站在圆台里就是站在台面上，相机与点击地面的射线都读同一个高度查询。圆台是硬边，没有「半个台阶」这种走法——重叠的圆台取最高的那个。",
   "条目占位会挡路（圆碰撞），点击行走是直线加碰撞滑动，不是导航网格。",
   "条目可以挂 §34 的 model 资产（.glb/.gltf）：有模型时显示模型，没有时用占位几何体。",
 ];
@@ -131,6 +134,7 @@ export function buildWorldScene(document: WorldDocument): WorldScene {
     summary: document.summary,
     entities,
     links,
+    terrain: sceneTerrain(document.terrain),
     bounds: { radius: Math.ceil((radius + 8) / 5) * 5 },
     stats: {
       entities: entities.length,
@@ -253,4 +257,56 @@ export function walkToward(
   const nx = from.x + (dx / dist) * step;
   const nz = from.z + (dz / dist) * step;
   return { ...resolveWalkCollision(scene, nx, nz), arrived: false };
+}
+
+/**
+ * §140 第四片：地形的高度查询。世界的地从这一问开始变得可走——行走者的相机高度、
+ * 点击地面的射线、圆台边上的"能不能迈上去"，全部读这里，所以它必须是纯函数（§16）。
+ *
+ * 三条设计：
+ * - **覆盖此点的圆台取最高的那个**。两个圆台重叠时不是平均也不是后者胜——
+ *   平均会把两个台子的缝填成一道斜坡，而小方块没有"半个台阶"这种走法；后者胜会让
+ *   同一块地的高度取决于作者先画哪个。取最高 → 站在任何重叠处都顾得到那个"最高的台面"。
+ * - **没有地形 = 平地 = 0**。老世界（没有 terrain 字段）照常读得出、走得动，
+ *   与"老世界没有 positions"是同一条纪律。
+ * - **确定性**。同一坐标永远同一个答案（单测能钉），不掺入网格插值那种
+ *   "半个像素差一点高度"的东西——圆台就是硬边，缝怎么走写在 `limits` 里。
+ */
+export function terrainHeightAt(
+  terrain: WorldTerrain | undefined,
+  x: number,
+  z: number,
+): number {
+  if (!terrain || terrain.kind !== 'plateaus') return 0;
+  let height = 0;
+  for (const plateau of terrain.plateaus) {
+    if (plateau.height <= height) continue; // 更高的才有可能赢；等于当前值的也跳过（先写的优先不改变结果）
+    if (Math.hypot(x - plateau.x, z - plateau.y) <= plateau.radius) height = plateau.height;
+  }
+  // 一位小数：高度是作者在输入框里写的，浮点尾数不该出现在相机位置上
+  return Math.round(height * 100) / 100;
+}
+
+/** 场景投影：地形随场景一起给（渲染层与行走层都不该自己去读文档） */
+export interface SceneTerrain {
+  plateaus: { id: string; x: number; z: number; radius: number; height: number }[];
+  heightAt(x: number, z: number): number;
+  /** 这个世界有没有作者画的地形（false = 平地，HUD 与限度都读这一格） */
+  authored: boolean;
+}
+
+/**
+ * 从世界文档取地形。没有 terrain 时就地造一份空的：行走与渲染只跟 SceneTerrain 说话，
+ * 不写第二套 `if (!terrain)`。空场面也是平的（heightAt 恒 0），这一点由单测钉着。
+ */
+export function sceneTerrain(terrain: WorldTerrain | undefined): SceneTerrain {
+  const plateaus =
+    terrain?.kind === 'plateaus'
+      ? terrain.plateaus.map((p) => ({ id: p.id, x: p.x, z: p.y, radius: p.radius, height: p.height }))
+      : [];
+  return {
+    plateaus,
+    heightAt: (x, z) => terrainHeightAt(terrain, x, z),
+    authored: plateaus.length > 0,
+  };
 }
