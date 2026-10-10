@@ -1814,3 +1814,91 @@ re-run it from a clean checkout. The battery grades the two suites it names; the
 from a separate run, not from `Z9`. And a missed prediction is a hole in a PREDICTION, not in the code: every
 red this battery measured was explained, which is the property the run lacked before the reader was fixed.
 
+## v224 — the surface's SIXTH watch leg, and the refusal that silently cleared the active camera (ADR 0016 amendment 224)
+
+`setActiveCamera` validated its argument AFTER committing the edit. It cleared every camera's `active` flag and
+only then looked the requested id up, so `setActiveCamera(scene, BOGUS)` answered `false` — the same answer its
+no-such-scene branch gives — while leaving the scene with **no active camera at all**. Measured on the shipped
+bytes before the fix: the reported active id went to `null`, no name fired on the bus (a refusal has no payload
+to news, correctly), and because `animate()` renders only when `activeCamera` is found, **the drawing stopped** —
+`backend.stats.calls` grew by 4 over the three frames before the refusal and by 0 after it. A refusal that edits
+is the worst shape of refusal: the caller is told nothing happened, and everything happened.
+
+The fix is two lines swapped: look the camera up, refuse, and only then move the flags and announce
+(`threeRuntime.ts:2545-2553`).
+
+`SceneSurface.watchCameras` joins one listener to exactly `cameraCreated` and `activeCameraChanged` — the two
+names over the three report fields no earlier leg moves (`scene.cameras`, `cameraNames`, `activeCamera`). Same
+host-honest guard, idempotent unsubscribe and payload-free contract as its five siblings. This grant's grant
+**adds no verb**: both names already existed. What did not exist was the guarantee that a refusal moves nothing.
+
+Two refusals are stated rather than omitted. Camera TRANSFORM writes (`position.copy`, `lookAt`, `fov` at
+`2854-2859`, and the surface's own `aim()` at `977`) move the live `THREE.Camera`, which the report never reads —
+it takes only `id`, `name`, `active`. A leg on those would re-read a report that cannot have changed. And
+`disposed` keeps v217's reason: the component's own teardown calls it.
+
+The census found no third name to consider because there is no third write: `cameras.delete` and `cameras.clear`
+appear nowhere in the runtime, so within a scene `cameras`/`cameraNames` only ever grow. `createScene` starts
+`cameras` at an empty Map and `setActiveScene` changes WHICH scene is read — both move this leg's fields for a
+SCENE-level reason, and both are already watched by v217's scene pair. That bookkeeping is why the
+disjointness pin exists, and the pin re-widens with each leg: **12 joins → 14 joins, 12 → 14 distinct names**,
+with the camera pair asserted absent from every earlier leg's slice.
+
+| layer | what it proves |
+| --- | --- |
+| `packages/three-runtime/test/cameraSwitch.test.ts` (11) | the refusal keeps the previously active camera ACTIVE · every flag is left as found, not only the active one · a bad scene and a bad camera are the SAME no-op · a camera belonging to another scene is refused and neither scene's account moves · a success emits once with the pair asked for · the announcement arrives AFTER both flags moved · the bus reports ASKS, not deltas · exactly one camera stays active through success+refusal+re-ask · the render loop keeps drawing through a refusal · a throwing listener cannot un-apply the switch · the first camera of a scene is active on creation |
+| studio cases (12 — 5 in `scene3d.test.ts`, 7 in `scene3dSurface.test.ts`) | the sixth leg's name set against a host WITH verbs and one without them, the pairwise-disjointness pin re-widened over six legs, `the scene pair is NOT watched by the camera leg`, the shared-listener identity and the idempotent unsubscribe, and the three claims driven through the SHIPPED runtime: an out-of-band add, an out-of-band switch, and the camera write the component itself makes |
+
+**Baseline read before the arms, at `52a1a51`, one ref for all four measurements:** three-runtime
+`npx vitest run` 22 files / 521 collected / 521 passed / 0 red (11.17s); Studio 31 files / 474 / 474 / 0 red
+(24.93s); `tsc -p tsconfig.json --noEmit` exit 0 in both packages (12.64s and 20.65s). The four ran
+**sequentially**, because this box false-reddens under concurrent heavy test load and a reddened baseline is not
+a baseline. The population the arms actually grade is narrower and is named by the runner: the four runtime files
+holding the camera-switch, pixel-ratio, runtime and character-controller cases (**108 collected**) and the three
+Studio files holding the surface, leg and wiring cases (**175 collected**), both 0 red.
+
+**Witness battery, 8 arms, 30 predictions, 30 reds, 8/8 MATCHED** at `52a1a51`. Every arm is a byte splice
+(needle → mutant on Buffers, not strings), every red attributed by full case name, every restore proven
+byte-identical, HEAD and tracked-cleanliness asserted before each mutation and after each restore.
+
+Two instrument facts, because both were found before the code was measured rather than after. A **preflight**
+runs first and refuses to let the battery start: it demands each needle hit exactly once in the file's own bytes,
+each prediction name exactly one COLLECTED case, and both groups green with a non-empty population — and its
+first run here REFUSED on `R1` with `hits=0` on a needle that is plainly on the page. The cause was the reader,
+not the file: these sources are UTF-8 with em-dashes and curly apostrophes in the very lines the census quotes,
+so a `latin1` view renders `—` as three characters and the needle cannot match. Every needle is now a `Buffer`,
+which also means the splice cannot re-encode the bytes it leaves alone. A second refusal, `S4`, was my own
+check being wrong: a **pure insertion** whose tail also sits right before it over-trims to a zero-length changed
+window (`0→22b`), which my "the splice is a no-op" clause read as void. The no-op question is a byte question —
+`Buffer.compare(pristine, mutant) !== 0` — and a dry run over all eight arms now prints each arm's changed core
+(`-` and `+`, first 120 chars) so a needle wider than its claim is visible before it runs.
+
+| arm | mutation | reds | the sentence the red says |
+| --- | --- | --- | --- |
+| `R1` | lookup-after-the-clear put back (the pre-fix order) | 7 rt + 1 studio | `expected 'Cam 1:false,Cam 2:false' to be 'Cam 1:false,Cam 2:true'` — a refusal leaves NO camera active; and `expected +0 to be 3` at the draw counter — the refusal stops the picture |
+| `R2` | the `activeCameraChanged` emit deleted | 4 rt + 3 studio | `expected [] to deeply equal [ { …(2) } ]` — the success news nothing |
+| `R3` | emit moved BEFORE the flags move | 2 rt + 1 studio | `expected [ 'Cam 1:true,Cam 2:false' ] to deeply equal [ 'Cam 1:false,Cam 2:true' ]` — a listener at news time reads the OLD active camera; the studio half shows the same lie through the shipped seam |
+| `S1` | `activeCameraChanged` dropped from the leg's pair | 5 studio | `expected [ 'cameraCreated' ] to deeply equal [ 'cameraCreated', …(1) ]`, and the six-leg disjointness pin reddens because a leg's own slice no longer names both camera names |
+| `S2` | the camera leg's host-honest guard deleted | 1 studio | `TypeError: runtime.addEventListener is not a function` — and only the camera leg's case, which is why this prediction carries its describe: that case name occurs once per leg, six times in the file |
+| `S3` | the listener wrapped per event instead of shared | 2 studio | `expected 2 to be 1` at the join (two identities handed to the bus) and `expected 1 to be +0` at the unsubscribe — `removeEventListener` matches by identity and cannot match a wrapper the caller never saw |
+| `S4` | `activeSceneChanged` added to the camera leg | 3 studio | `expected [ 'news' ] to deeply equal []` — the scene name reaches a leg that must not hear it; the disjointness pin and the leg's own name-set case both refuse the borrow |
+| `S5` | `unwatchCameras()` neutered in the component teardown | 1 studio | the wiring case's leave-list drops from six to five |
+
+**Predicted green, and proven green by not reddening.** `on the real bus a camera switch news ONLY
+activeCameraChanged: fourteen raw listeners, one name fires` attaches its listeners to the RUNTIME, not to a
+leg, so it witnesses the VERB — it stays green under every leg-only arm (`S1`, `S3`, `S4`). That is the B1
+lesson from amendment 223 applied before the run rather than discovered in it.
+
+Two design gaps were repaired before measuring rather than recorded as holes afterwards. The
+throwing-listener case used to assert only `not.toThrow()` and the FINAL account, which an emit-first mutant
+passes — its name promises an ordering it could not see, so it now reads the account INSIDE the listener, and
+`R3` reddens it. And six line citations in the new JSDoc were moved by my own inserts; every referent was
+re-verified against the final bytes (`52a1a51`), with a repo-wide grep proving no other shifted citation exists.
+
+Bounds: the leg carries no payload by design — a camera id in the announcement would be a second source of
+truth for what `report.cameraNames` already reports. The bus reports ASKS, not deltas: re-asking the camera that
+is already active still emits and still writes, so a subscriber re-reads once per call. A camera cannot be
+removed from a scene at all today, so this leg's fields only ever grow within a scene — if a `removeCamera` verb
+ever lands, it must emit, and the disjointness pin will name which leg owns it. And the battery is not
+re-runnable from a clean checkout: the runner, the needles and the predictions live in this session's Temp
+directory, transcribed above so the measurement can be rebuilt by hand.
