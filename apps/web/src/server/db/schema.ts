@@ -1144,7 +1144,13 @@ export const marketplacePurchases = pgTable(
       .references(() => users.id, { onDelete: 'cascade' }),
     /** 购买时支付的价格（credits） */
     pricePaid: integer('price_paid').notNull(),
-    purchasedAt: now(),
+    /**
+     * 列名**必须显式写**，不能用 `now()`：那个助手把列名写死成 `created_at`，
+     * 于是 `purchasedAt: now()` 生成的是 `created_at` 列，而迁移 0024 建的是 `purchased_at`——
+     * 两者对不上，插入直接报 `column "created_at" does not exist`。
+     * 这一格从 0024 落地起就是坏的（见 `marketplace-settle.integration.test.ts` 头部）。
+     */
+    purchasedAt: timestamp('purchased_at', { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [
     uniqueIndex('marketplace_purchases_item_buyer_key').on(t.itemId, t.buyerId),
@@ -1169,7 +1175,8 @@ export const marketplaceSplits = pgTable(
       .references(() => users.id, { onDelete: 'cascade' }),
     /** 分给创作者的 credits */
     amount: integer('amount').notNull(),
-    splitAt: now(),
+    /** 同上：`now()` 会把列名写成 `created_at`，而迁移 0025 建的是 `split_at` */
+    splitAt: timestamp('split_at', { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [
     uniqueIndex('marketplace_splits_purchase_key').on(t.purchaseId),

@@ -325,8 +325,10 @@ export interface PurchaseResult {
 export async function purchaseMarketplaceItem(input: PurchaseMarketplaceItemInput): Promise<PurchaseResult> {
   const db = getDb();
 
+  try {
+    return await db.transaction(async (tx) => {
   // 先查物品：必须存在、未下架、公开或免费
-  const [item] = await db
+  const [item] = await tx
     .select({
       id: marketplaceItems.id,
       creatorId: marketplaceItems.creatorId,
@@ -352,7 +354,7 @@ export async function purchaseMarketplaceItem(input: PurchaseMarketplaceItemInpu
   }
 
   // 检查是否已经买过（幂等）
-  const [existing] = await db
+  const [existing] = await tx
     .select({ id: marketplacePurchases.id })
     .from(marketplacePurchases)
     .where(
@@ -370,10 +372,26 @@ export async function purchaseMarketplaceItem(input: PurchaseMarketplaceItemInpu
   // 价格 > 0 才扣点；价格为 0 的物品直接记一笔购买记录
   const pricePaid = item.priceCredits;
 
+  // **先**记购买行：`(item_id, buyer_id)` 上有唯一索引，并发的第二个请求在这一行被挡下，
+  // 事务回滚，扣点一行都不会写。原来这里是"先扣点再记购买行"且没有事务，
+  // 并发时买家会被扣两次（与 settlePurchase 是同一个形状，见那个函数头）。
+  const [purchase] = await tx
+    .insert(marketplacePurchases)
+    .values({
+      itemId: input.itemId,
+      buyerId: input.buyerId,
+      pricePaid,
+    })
+    .returning({ id: marketplacePurchases.id });
+
+  if (!purchase) {
+    throw new Error('Failed to record purchase');
+  }
+
   if (pricePaid > 0) {
     // 扣点：往 credit_ledger 写一行负的 delta
     // 注意：这里不预查余额——负余额在流水里看得见，预扣需要把 provider 调用包进事务（今天没有）
-    const [ledgerRow] = await db
+    const [ledgerRow] = await tx
       .insert(creditLedger)
       .values({
         userId: input.buyerId,
@@ -390,21 +408,12 @@ export async function purchaseMarketplaceItem(input: PurchaseMarketplaceItemInpu
     }
   }
 
-  // 插入购买记录
-  const [purchase] = await db
-    .insert(marketplacePurchases)
-    .values({
-      itemId: input.itemId,
-      buyerId: input.buyerId,
-      pricePaid,
-    })
-    .returning({ id: marketplacePurchases.id });
-
-  if (!purchase) {
-    throw new Error('Failed to record purchase');
+      return { purchaseId: purchase.id, pricePaid };
+    });
+  } catch (error) {
+    if (isUniqueViolation(error)) throw new Error('Already purchased', { cause: error });
+    throw error;
   }
-
-  return { purchaseId: purchase.id, pricePaid };
 }
 
 /**
@@ -448,12 +457,44 @@ export interface SettleResult {
   amount: number;
 }
 
+/**
+ * Postgres 的唯一约束冲突（`23505`）。
+ *
+ * 写钱那两条路（买 / 分账）都靠"唯一索引 + 事务"做并发守卫，而唯一索引报出来的是
+ * 一个 `23505` 的驱动错误，不是业务语义。把它翻译成调用方认的那句话，
+ * 否则 `purchase/route.ts` 会把它当成"真出错"记一条日志（它按消息文本区分正常重复与故障）。
+ */
+function isUniqueViolation(error: unknown): boolean {
+  return typeof error === 'object' && error !== null && (error as { code?: string }).code === '23505';
+}
+
+/**
+ * 结算一笔购买：给创作者分账。
+ *
+ * ## 2026-10-09 修：钱必须在事务里，而且**先写被唯一索引保护的那一行**
+ * 原来这里的顺序是"查重 → 写 ledger（钱）→ 写 splits（被唯一索引保护）"，三步之间没有事务。
+ * 并发时两个请求都能过查重，于是各写一行 ledger，第二步才被唯一索引拦下——
+ * **拦下的是记录行，不是已经动过的钱**：创作者被分两次账，而 splits 只有一条，
+ * 事后对账看不出来。`marketplace-settle.integration.test.ts` 里那一条并发用例
+ * 实测复现了"一笔购买分了 2 次账"。
+ *
+ * 两处改动缺一不可：
+ * 1. **整个写路径进一个事务**——任何一步失败，钱与记录一起回滚；
+ * 2. **把 splits 挪到 ledger 前面**——并发的第二个请求在写第一行时就被唯一索引挡下，
+ *    事务立刻回滚，**一个字节的钱都还没写**。顺序反了的话，事务虽然也能回滚，
+ *    但要先把钱写进去再回滚，白白多一次写与一次锁等待。
+ *
+ * 唯一索引的冲突在这里翻译回 `Already settled`：调用方（`purchase/route.ts`）
+ * 按这句话区分"正常重复"与"真出错"，直接把 Postgres 的 23505 抛出去会让它记一条假错误日志。
+ */
 export async function settlePurchase(input: SettlePurchaseInput): Promise<SettleResult> {
   const db = getDb();
   const creatorShare = input.creatorShare ?? 0.7;
 
+  try {
+    return await db.transaction(async (tx) => {
   // 先查购买记录
-  const [purchase] = await db
+  const [purchase] = await tx
     .select({
       id: marketplacePurchases.id,
       itemId: marketplacePurchases.itemId,
@@ -469,7 +510,7 @@ export async function settlePurchase(input: SettlePurchaseInput): Promise<Settle
   }
 
   // 查物品拿创作者
-  const [item] = await db
+  const [item] = await tx
     .select({ creatorId: marketplaceItems.creatorId })
     .from(marketplaceItems)
     .where(eq(marketplaceItems.id, purchase.itemId))
@@ -479,8 +520,8 @@ export async function settlePurchase(input: SettlePurchaseInput): Promise<Settle
     throw new Error('Item not found');
   }
 
-  // 检查是否已经分过账（幂等）
-  const [existing] = await db
+  // 检查是否已经分过账（快路：把常见情况说清楚；真正的并发守卫是下面那条唯一索引）
+  const [existing] = await tx
     .select({ id: marketplaceSplits.id })
     .from(marketplaceSplits)
     .where(eq(marketplaceSplits.purchaseId, input.purchaseId))
@@ -498,8 +539,25 @@ export async function settlePurchase(input: SettlePurchaseInput): Promise<Settle
     throw new Error('No revenue to split');
   }
 
-  // 写 ledger 正 delta（创作者收入）
-  const [ledgerRow] = await db
+  // **先**记分账记录：`marketplace_splits` 上有 `purchase_id` 的唯一索引，
+  // 并发的第二个请求在这一行就被挡下（见函数头那段）。写在这里而不是写在 ledger 后面，
+  // 是为了让"挡下"发生在钱之前。
+  const [split] = await tx
+    .insert(marketplaceSplits)
+    .values({
+      purchaseId: input.purchaseId,
+      creatorId: item.creatorId,
+      amount,
+    })
+    .returning({ id: marketplaceSplits.id });
+
+  if (!split) {
+    throw new Error('Failed to record split');
+  }
+
+  // 再写 ledger 正 delta（创作者收入）。这一步失败会连上面那行 split 一起回滚——
+  // 这正是它必须在同一个事务里的原因：留着一条"分过账"的记录却没有钱，比什么都没写更糟。
+  const [ledgerRow] = await tx
     .insert(creditLedger)
     .values({
       userId: item.creatorId,
@@ -515,21 +573,13 @@ export async function settlePurchase(input: SettlePurchaseInput): Promise<Settle
     throw new Error('Failed to record income');
   }
 
-  // 记分账记录
-  const [split] = await db
-    .insert(marketplaceSplits)
-    .values({
-      purchaseId: input.purchaseId,
-      creatorId: item.creatorId,
-      amount,
-    })
-    .returning({ id: marketplaceSplits.id });
-
-  if (!split) {
-    throw new Error('Failed to record split');
+      return { splitId: split.id, amount };
+    });
+  } catch (error) {
+    // 唯一索引的冲突翻译回调用方认的那句话，别把 23505 直接抛出去
+    if (isUniqueViolation(error)) throw new Error('Already settled', { cause: error });
+    throw error;
   }
-
-  return { splitId: split.id, amount };
 }
 
 /**
