@@ -1645,7 +1645,7 @@ describe('watchPixels (M5 v218)', () => {
     surface.watchPixels(() => heard.push('news'));
 
     // Refused for a NEW reason, recorded in the declaration: no reported field keys off whether the loop
-    // runs, and `frames`/`draws` already refresh from the component's own rAF pull (Scene3D.tsx:306-310),
+    // runs, and `frames`/`draws` already refresh from the component's own rAF pull (Scene3D.tsx:310-314),
     // deliberately sampled every HUD_EVERY_FRAMES. Subscribing here would trade that throttle for a render
     // per frame and call it correctness.
     emit('frame', { delta: 0.016 });
@@ -1665,7 +1665,7 @@ describe('watchPixels (M5 v218)', () => {
     surface.watchPixels(() => heard.push('news'));
 
     // v217's refusal holds here too, and for the same reason: `dispose()` disposes the BACKEND, which is
-    // this leg's own subject, and the component calls it in the same cleanup that unwatches (325).
+    // this leg's own subject, and the component calls it in the same cleanup that unwatches (Scene3D.tsx:319-330).
     emit('disposed');
     expect(heard).toEqual([]);
 

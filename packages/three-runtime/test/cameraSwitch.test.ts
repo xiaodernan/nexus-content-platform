@@ -177,11 +177,18 @@ describe('M5 v224 — a refused camera switch moves nothing', () => {
   });
 
   it('a throwing listener cannot un-apply the switch: the flags move before the emit, and the emit catches', () => {
+    // The listener reads the SCENE at the instant it is called, so this case witnesses the ORDER as well as the
+    // catch — v211's rule again, because `emit` try/CATCHES each listener and would swallow an inline expect.
+    // Asserting only `not.toThrow()` and the final account would leave the ordering half of the name unproven:
+    // a mutant that emits first would still pass it.
+    const seen: string[] = [];
     runtime.addEventListener('activeCameraChanged', () => {
+      seen.push(activeAccount(runtime, scene.id));
       throw new Error('a listener that fails');
     });
 
     expect(() => runtime.setActiveCamera(scene.id, cam2.id)).not.toThrow();
+    expect(seen).toEqual(['Cam 1:false,Cam 2:true']);
     expect(activeAccount(runtime, scene.id)).toBe('Cam 1:false,Cam 2:true');
   });
 

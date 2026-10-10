@@ -1389,7 +1389,7 @@ describe('watchPixels — an out-of-band backend, size or ratio change moves the
   it('a drawn frame moves `draws` while the pixels leg stays DEAF — the refusal is about cadence, not a dead field', () => {
     // v218's NEW refusal, measured on the shipped bus: `frame` does move a reported field
     // (`draws.calls` is the backend's render count), so the reason not to watch it is that the component's
-    // own loop already re-reads it (Scene3D.tsx:306-310), sampled by design. Subscribing here would trade
+    // own loop already re-reads it (Scene3D.tsx:310-314), sampled by design. Subscribing here would trade
     // that throttle for a render per frame and call it correctness.
     const { headless, surface } = pixelsOnHeadless();
     let pixelsFires = 0;

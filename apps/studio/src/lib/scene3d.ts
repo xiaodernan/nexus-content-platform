@@ -874,9 +874,9 @@ export interface SceneSurface {
    *    component initializes at Scene3D.tsx:141 and subscribes at 287; the mount-time pull at 267 already
    *    reports it). The census question is not "can the listener be late" but "does any input move a
    *    reported field with no other announcer", and a re-`initialize` on a live runtime does exactly that.
-   *  - `disposed` stays refused for v217's reason (the component teardown calls it, Scene3D.tsx:325), and
+   *  - `disposed` stays refused for v217's reason (the component teardown calls it, Scene3D.tsx:330), and
    *    `started`/`stopped`/`frame` are refused for a NEW one: no field of the report keys off whether the
-   *    loop is running, and `frames`/`draws` already refresh from the loop's own pull (306-310), throttled
+   *    loop is running, and `frames`/`draws` already refresh from the loop's own pull (310-314), throttled
    *    by design. Watching the frame bus would be a rendering-cadence change dressed as a correctness fix.
    *  Same contract as its siblings: no payload, one shared listener, idempotent unsubscribe, and a host
    *  without event verbs answers a no-op unsubscribe. */
@@ -893,7 +893,7 @@ export interface SceneSurface {
    *    read — both move this leg's fields for a SCENE-level reason, and both are already watched by v217's
    *    scene pair. The disjointness pin below is what keeps that bookkeeping honest rather than implicit.
    *  - Camera TRANSFORM writes are refused, a new refusal shape for this family: the cinematic shot paths
-   *    (`position.copy`, `lookAt`, `fov` — threeRuntime.ts:2854-2857) and this surface's own `aim()` (957) move
+   *    (`position.copy`, `lookAt`, `fov` — threeRuntime.ts:2854-2859) and this surface's own `aim()` (977) move
    *    the live `THREE.Camera`, which the report never reads — it takes only `id`, `name`, `active` (613-614).
    *    A leg on those would re-read a report that cannot have changed, and they reach no bus name at all.
    *  - `disposed` keeps v217's reason (the component teardown calls it). And unlike v218's `pixelRatioChanged`,
