@@ -9710,3 +9710,48 @@ v210 opened and v212 and v216 widened, and it closes the gap v216's Bounds left 
   unread by the inspector. The lifecycle family — `initialized` (1193), `resize` (1199), `disposed` (4232) — is
   still unwatched; `started` (2614), `stopped` (2624) and `frame` (2645) are already refused there because no
   reported field moves for them, and that census is the next unit of this seam.
+
+### Amendment 218 (M5 v218, three-runtime + studio) — `setPixelRatio` wrote a REPORTED field in silence: the fifth watch leg, and the verb behind it
+
+_Numbering: 218 was free (`grep -ao "^### Amendment 2[0-9][0-9]"` topped out at 217). Full narrative in the
+commit; this is the ledger entry._
+
+- **The defect.** `ThreeRuntime.resize` has announced itself on the event bus since always and `initialize`
+  announces the backend it builds — but `setPixelRatio` wrote `backend.state.pixelRatio`, which is exactly the
+  `pixels.pixelRatio` the Studio surface REPORTS, and **no name on the bus carried the news**. An out-of-band
+  ratio change (a console command, an agent, another component) therefore left the panel showing a pixel figure
+  that was no longer in force. The verb now emits AFTER the backend has taken the value, and a call with no
+  backend — which can change no state — announces nothing rather than announcing a write that did not happen.
+- **The fifth watch leg, by the same write census as its four siblings.** `SceneSurface.watchPixels` joins one
+  listener to exactly `initialized`, `resize` and `pixelRatioChanged` — the three writes that move
+  `report.backend` or `report.pixels`, the two fields no earlier leg reads. Same host-honest guard, idempotent
+  unsubscribe and payload-free contract as `watchComponents`/`watchEntities`/`watchBodies`/`watchScenes`.
+- **Two refusals, stated rather than omitted.** `disposed` stays refused for v217's reason (this effect's own
+  teardown calls `runtime.dispose()`). `started`/`stopped`/`frame` are refused for a NEW one: no field of the
+  report keys off whether the loop is running, and `frames`/`draws` already refresh from the loop's own pull,
+  throttled by design — watching the frame bus would be a rendering-cadence change dressed as a correctness fix.
+- **The widened structural pin.** v216's four-leg case cannot see a name only a fifth leg adds, so the
+  pairwise-disjointness pin moves **9 joins → 12 joins, 12 distinct names**, and each later family's names are
+  asserted absent from every earlier leg's slice. That pin is what reddens if a name is joined twice or a family
+  starts sharing news with another.
+- **Evidence.** 7 new cases in `packages/three-runtime/test/pixelRatioEvent.test.ts` (emit exactly once with the
+  ratio asked for · the listener reads the NEW ratio from the backend at emit time · a call before `initialize()`
+  is silent · a throwing listener cannot un-apply the write · the bus reports ASKS not deltas · the two pixels
+  names do not cross · `removeEventListener` silences it), plus 13 studio cases. three-runtime **498 → 505**
+  (20 files), studio **450 → 463** (31 files), both `tsc` **0**.
+- **Mutation probe, 3 arms, 3/3 MATCHED** (async spawn — `execFileSync` answers EBUSY on this host, ADR 0016
+  amendment 152): **A1** the emit removed → five cases red, `expected [] to deeply equal [ { ratio: 2 } ]` and
+  siblings, the "exactly once" case among them · **A2** the no-backend guard removed → the "BEFORE initialize()
+  is SILENT" case red · **A3** the emit moved BEFORE the backend takes the value → the ordering case red with
+  `expected [ 1 ] to deeply equal [ 1.5 ]`, i.e. **the listener read the OLD ratio**, which is precisely the
+  claim that case makes. Every mutated file restored byte-identical; the suite is green afterwards.
+- **Two probe defects found in the probe itself, both already in this ledger.** (1) `execFileSync` answered
+  **EBUSY** on the first attempt — the synchronous spawn family is unusable here, exactly as amendment 152
+  measured, so the probe runs on async `spawn`. (2) Arm A2's anchor was a bare `if (!this.backend) return;`,
+  and `String.replace` hits the FIRST occurrence — it mutated a different method and reported NO RED for a
+  mutation that never landed on the verb it named. Anchors now carry the line that follows them.
+- **Bounds (§60).** The verb reports ASKS, not deltas: setting the ratio it already holds still announces and
+  still writes, and a subscriber therefore re-reads once per call. A dedup would be a different claim. The leg
+  has no payload by design — a listener re-reads `surface.report()`; carrying the ratio would be a second
+  source of truth for a number the report already owns. And `Scene3D`'s own `onResize` now re-reads twice (its
+  own pull plus the bus it just joined), which is a redundant render, not a wrong value.

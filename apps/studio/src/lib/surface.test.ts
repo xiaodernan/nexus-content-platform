@@ -129,19 +129,19 @@ describe('the wiring that makes the 3D surface reachable', () => {
     expect(SCENE).toMatch(/HEADLESS — this host has no GL context/);
   });
 
-  it('the 3D component joins ALL FOUR watch legs and leaves ALL FOUR on teardown (M5 v212, v216, v217)', () => {
+  it('the 3D component joins ALL FIVE watch legs and leaves ALL FIVE on teardown (M5 v212, v216, v217, v218)', () => {
     // The surface verbs are tested against a runtime; this case tests the COMPONENT — the only place
     // they are ever called in production. Pairing is counted from the file rather than hand-typed, and
     // the order is the mount's: a subscription with no matching unwatch leaks a listener into a runtime
     // that outlives the component, and a second leg added without its own leave would pass a prose test.
-    const joined = [...SCENE.matchAll(/surface\.(watchComponents|watchEntities|watchBodies|watchScenes)\(/g)].map(
+    const joined = [...SCENE.matchAll(/surface\.(watchComponents|watchEntities|watchBodies|watchScenes|watchPixels)\(/g)].map(
       (m) => m[1],
     );
-    const left = [...SCENE.matchAll(/(unwatchComponents|unwatchEntities|unwatchBodies|unwatchScenes)\(\);/g)].map(
+    const left = [...SCENE.matchAll(/(unwatchComponents|unwatchEntities|unwatchBodies|unwatchScenes|unwatchPixels)\(\);/g)].map(
       (m) => m[1],
     );
-    expect(joined).toEqual(['watchComponents', 'watchEntities', 'watchBodies', 'watchScenes']);
-    expect(left).toEqual(['unwatchComponents', 'unwatchEntities', 'unwatchBodies', 'unwatchScenes']);
+    expect(joined).toEqual(['watchComponents', 'watchEntities', 'watchBodies', 'watchScenes', 'watchPixels']);
+    expect(left).toEqual(['unwatchComponents', 'unwatchEntities', 'unwatchBodies', 'unwatchScenes', 'unwatchPixels']);
     // All four re-read the SAME way the rAF pull does: through the captured surface's own report.
     // Counted against `joined` rather than hand-typed, so a leg subscribed some other way is the red.
     const pullArrows = [...SCENE.matchAll(/=> setReport\(surface\.report\(\)\)/g)].length;

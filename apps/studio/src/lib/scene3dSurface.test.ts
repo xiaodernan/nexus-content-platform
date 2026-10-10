@@ -1242,3 +1242,192 @@ describe('watchScenes — an out-of-band scene add or switch moves the panel’s
     expect(live.getSceneGraph().scenes.size).toBe(0);
   });
 });
+
+describe('watchPixels — an out-of-band backend, size or ratio change moves the panel’s pixels rows (M5 v218)', () => {
+  let runtime: ThreeRuntime | null = null;
+  afterEach(() => {
+    runtime?.dispose();
+    runtime = null;
+  });
+
+  function pixelsOnHeadless() {
+    const headless = headlessRuntime();
+    runtime = headless.runtime;
+    const surface = createStudioScene(headless.runtime, () => {});
+    headless.runtime.resize(800, 600);
+    return { headless, surface };
+  }
+
+  it('an out-of-band setPixelRatio moves report.pixels.pixelRatio, and the leg hears it with the runtime’s OWN figure', () => {
+    // The grant in one case. Before v218 there was no name to subscribe to: `setPixelRatio` wrote
+    // `backend.state.pixelRatio`, the report reads that field, and the bus carried nothing. The listener
+    // takes NO payload — the news is "re-read" — so the figure the panel shows is the runtime's.
+    const { headless, surface } = pixelsOnHeadless();
+    const before = surface.report();
+    expect(before.pixels!.width).toBe(800);
+    expect(before.pixels!.height).toBe(600);
+    expect(before.pixels!.pixelRatio).toBe(headless.getBackend().state.pixelRatio);
+    const seen: Array<{ width: number; height: number; pixelRatio: number } | null> = [];
+    surface.watchPixels(() => seen.push(surface.report().pixels));
+
+    headless.runtime.setPixelRatio(2);
+
+    expect(seen).toHaveLength(1);
+    expect(seen[0]!.pixelRatio).toBe(2);
+    expect(seen[0]!.width).toBe(800);
+    expect(headless.getBackend().state.pixelRatio).toBe(2);
+  });
+
+  it('an out-of-band resize moves BOTH size figures the report reads and fires the leg exactly once', () => {
+    const { headless, surface } = pixelsOnHeadless();
+    const fires: number[] = [];
+    surface.watchPixels(() => {
+      const r = surface.report();
+      fires.push(r.pixels!.width * 1000 + r.pixels!.height);
+    });
+
+    headless.runtime.resize(640, 480);
+
+    expect(fires).toEqual([640480]);
+    expect(surface.report().pixels!.width).toBe(640);
+    expect(surface.report().pixels!.height).toBe(480);
+  });
+
+  it('on the real bus a ratio change news ONLY pixelRatioChanged: twelve raw listeners, one name fires', () => {
+    // The census claim measured off the SHIPPED package rather than off my own reading of it. If the
+    // runtime announced a ratio change on some other name too — or on none — this is the case that says so.
+    const { headless } = pixelsOnHeadless();
+    const names = [
+      'componentAdded',
+      'componentRemoved',
+      'componentStateChanged',
+      'entityRenamed',
+      'entityVisibilityChanged',
+      'entityCreated',
+      'entityRemoved',
+      'sceneCreated',
+      'activeSceneChanged',
+      'initialized',
+      'resize',
+      'pixelRatioChanged',
+    ];
+    const fired: string[] = [];
+    for (const name of names) headless.runtime.addEventListener(name, () => fired.push(name));
+
+    headless.runtime.setPixelRatio(3);
+    expect(fired).toEqual(['pixelRatioChanged']);
+
+    fired.length = 0;
+    headless.runtime.resize(1024, 768);
+    expect(fired).toEqual(['resize']);
+  });
+
+  it('a re-initialize OUTSIDE the component moves the backend and resets the pixels, and only `initialized` says so', () => {
+    // Why `initialized` is in this leg even though the Studio's own init happens before it subscribes: a
+    // caller that rebuilds the backend moves `report.backend` and every pixel figure at once, and no other
+    // name on the bus news that. The claim is measured, not asserted — the size the resize just set is gone.
+    const { headless, surface } = pixelsOnHeadless();
+    headless.runtime.resize(640, 480);
+    const fires: Array<{ backend: string | null; pixels: { width: number; height: number } | null }> = [];
+    surface.watchPixels(() => {
+      const r = surface.report();
+      fires.push({ backend: r.backend, pixels: r.pixels && { width: r.pixels.width, height: r.pixels.height } });
+    });
+
+    headless.runtime.initialize(mockCanvas);
+
+    expect(fires).toHaveLength(1);
+    const live = headless.getBackend().state;
+    expect(fires[0]!.backend).toBe('headless');
+    expect(fires[0]!.pixels).toEqual({ width: live.width, height: live.height });
+    expect(fires[0]!.pixels!.width).not.toBe(640);
+  });
+
+  it('pixels news wakes no other leg, and a body event wakes no pixels leg (the real bus, all five legs)', () => {
+    const { headless, surface } = pixelsOnHeadless();
+    let pixelsFires = 0;
+    let sceneFires = 0;
+    let bodyFires = 0;
+    surface.watchPixels(() => {
+      pixelsFires += 1;
+    });
+    surface.watchScenes(() => {
+      sceneFires += 1;
+    });
+    surface.watchBodies(() => {
+      bodyFires += 1;
+    });
+
+    headless.runtime.setPixelRatio(1.5);
+    expect({ pixelsFires, sceneFires, bodyFires }).toEqual({ pixelsFires: 1, sceneFires: 0, bodyFires: 0 });
+
+    headless.runtime.createEntity(toSceneId(surface.sceneId), 'Stray', 'mesh');
+    expect({ pixelsFires, sceneFires, bodyFires }).toEqual({ pixelsFires: 1, sceneFires: 0, bodyFires: 1 });
+  });
+
+  it('unsubscribing drops the pixels leg only, and a second unwatch does not throw', () => {
+    const { headless, surface } = pixelsOnHeadless();
+    let pixelsFires = 0;
+    let bodyFires = 0;
+    const unwatchPixels = surface.watchPixels(() => {
+      pixelsFires += 1;
+    });
+    surface.watchBodies(() => {
+      bodyFires += 1;
+    });
+
+    unwatchPixels();
+    unwatchPixels();
+    headless.runtime.setPixelRatio(2);
+    expect(pixelsFires).toBe(0);
+
+    // The other leg is untouched by this leg's leave: identity, not name, is what was dropped.
+    headless.runtime.createEntity(toSceneId(surface.sceneId), 'Stray', 'mesh');
+    expect(bodyFires).toBe(1);
+  });
+
+  it('a drawn frame moves `draws` while the pixels leg stays DEAF — the refusal is about cadence, not a dead field', () => {
+    // v218's NEW refusal, measured on the shipped bus: `frame` does move a reported field
+    // (`draws.calls` is the backend's render count), so the reason not to watch it is that the component's
+    // own loop already re-reads it (Scene3D.tsx:306-310), sampled by design. Subscribing here would trade
+    // that throttle for a render per frame and call it correctness.
+    const { headless, surface } = pixelsOnHeadless();
+    let pixelsFires = 0;
+    surface.watchPixels(() => {
+      pixelsFires += 1;
+    });
+
+    headless.runtime.start();
+    const due = headless.scheduler.step();
+    expect(due).toBeGreaterThan(0);
+
+    const stepped = surface.step(0.016);
+    expect(stepped.draws.calls).toBeGreaterThan(0);
+    expect(pixelsFires).toBe(0);
+
+    // And the leg is alive: the silence is the frame bus's, not a dead subscription.
+    headless.runtime.resize(1280, 720);
+    expect(pixelsFires).toBe(1);
+  });
+
+  it('after dispose() there is no backend to change, so a ratio write is SILENT and changes nothing', () => {
+    const { headless, surface } = pixelsOnHeadless();
+    headless.runtime.resize(640, 480);
+    let pixelsFires = 0;
+    surface.watchPixels(() => {
+      pixelsFires += 1;
+    });
+
+    // Alive first, so the silence below is the name's and not a dead subscription.
+    headless.runtime.setPixelRatio(2);
+    expect(pixelsFires).toBe(1);
+
+    runtime = null; // the runtime is gone; afterEach must not dispose it a second time
+    headless.runtime.dispose();
+    expect(headless.runtime.getBackend()).toBeNull();
+
+    headless.runtime.setPixelRatio(4);
+    expect(pixelsFires).toBe(1);
+    expect(headless.runtime.getBackend()).toBeNull();
+  });
+});

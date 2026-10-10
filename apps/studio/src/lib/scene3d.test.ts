@@ -1448,7 +1448,7 @@ describe('watchScenes (M5 v217)', () => {
     for (const entry of off) expect(entry.listener).toBe(listener);
   });
 
-  it('ALL FOUR legs join pairwise DISJOINT name sets — the scene family borrows no name from the other three', () => {
+  it('ALL FIVE legs join pairwise DISJOINT name sets — the pixels family borrows no name from the other four', () => {
     const on: string[] = [];
     const { runtime } = fakeRuntime({
       addEventListener: (event) => {
@@ -1466,25 +1466,29 @@ describe('watchScenes (M5 v217)', () => {
     const bodyNames = on.slice(afterEntities.length);
     surface.watchScenes(() => {});
     const sceneNames = on.slice(on.length - 2);
+    surface.watchPixels(() => {});
+    const pixelNames = on.slice(on.length - 3);
 
     expect(componentNames).toEqual(['componentAdded', 'componentRemoved', 'componentStateChanged']);
     expect(entityNames).toEqual(['entityRenamed', 'entityVisibilityChanged']);
     expect(bodyNames).toEqual(['entityCreated', 'entityRemoved']);
     expect(sceneNames).toEqual(['sceneCreated', 'activeSceneChanged']);
+    expect(pixelNames).toEqual(['initialized', 'resize', 'pixelRatioChanged']);
 
-    // The whole seam, not one leg: 9 joins, 9 distinct names. v216's three-leg case cannot see a name
-    // that only the fourth leg adds, so this is the pin that reddens if `sceneCreated` is ever joined
-    // twice or the scene family starts sharing news with the body family.
-    const joined = [...componentNames, ...entityNames, ...bodyNames, ...sceneNames];
-    expect(on.length).toBe(9);
-    expect(joined.length).toBe(9);
+    // The whole seam, not one leg: 12 joins, 12 distinct names. Each new leg re-widens this pin, because
+    // the earlier leg's case cannot see a name only the newest one adds — so a name joined twice, or a
+    // family that starts sharing news with another, reddens HERE.
+    const joined = [...componentNames, ...entityNames, ...bodyNames, ...sceneNames, ...pixelNames];
+    expect(on.length).toBe(12);
+    expect(joined.length).toBe(12);
     expect(new Set(joined).size).toBe(joined.length);
-    // And the scene names appear in NO earlier leg's slice.
-    for (const name of sceneNames) {
+    // And each later family's names appear in NO earlier leg's slice.
+    for (const name of [...sceneNames, ...pixelNames]) {
       expect(componentNames).not.toContain(name);
       expect(entityNames).not.toContain(name);
       expect(bodyNames).not.toContain(name);
     }
+    for (const name of pixelNames) expect(sceneNames).not.toContain(name);
   });
 
   it('sceneCreated and activeSceneChanged each fire the scene leg and none of the other three', () => {
@@ -1532,6 +1536,136 @@ describe('watchScenes (M5 v217)', () => {
 
     // The silence is this name's, not a dead subscription.
     emit('activeSceneChanged', { sceneId: 'other' });
+    expect(heard).toEqual(['news']);
+  });
+});
+
+// v218 — the fifth leg. Its name set comes from the same write census as the four above, aimed at the two
+// fields no earlier leg reads: `report.backend` and `report.pixels`. Only three runtime writes move them —
+// `initialize`, `resize` and `setPixelRatio` — and the third of those used to write a REPORTED field with no
+// announcement at all, which is why this grant has a runtime half as well as a surface half.
+describe('watchPixels (M5 v218)', () => {
+  function withBus() {
+    const listeners = new Map<string, ((data?: unknown) => void)[]>();
+    const { runtime } = fakeRuntime({
+      addEventListener: (event, listener) => {
+        const list = listeners.get(event) ?? [];
+        list.push(listener);
+        listeners.set(event, list);
+      },
+      removeEventListener: (event, listener) => {
+        const list = listeners.get(event) ?? [];
+        const at = list.indexOf(listener);
+        if (at !== -1) list.splice(at, 1);
+      },
+    });
+    const emit = (event: string, data?: unknown) => {
+      for (const listener of listeners.get(event) ?? []) listener(data);
+    };
+    return { runtime, listeners, emit };
+  }
+
+  it('a host without event verbs answers a no-op unsubscribe instead of crashing', () => {
+    const { runtime } = fakeRuntime();
+    const surface = createStudioScene(runtime, () => {});
+    const unwatch = surface.watchPixels(() => {});
+    expect(typeof unwatch).toBe('function');
+    expect(() => unwatch()).not.toThrow();
+  });
+
+  it('a host WITH verbs joins exactly the three pixels names with one shared listener, and leaves on all three', () => {
+    const on: Array<{ event: string; listener: unknown }> = [];
+    const off: Array<{ event: string; listener: unknown }> = [];
+    const { runtime } = fakeRuntime({
+      addEventListener: (event, listener) => {
+        on.push({ event, listener });
+      },
+      removeEventListener: (event, listener) => {
+        off.push({ event, listener });
+      },
+    });
+    const surface = createStudioScene(runtime, () => {});
+    const listener = () => {};
+    const unwatch = surface.watchPixels(listener);
+
+    expect(on.map((entry) => entry.event)).toEqual(['initialized', 'resize', 'pixelRatioChanged']);
+    expect(new Set(on.map((entry) => entry.listener)).size).toBe(1);
+    expect(on[0]!.listener).toBe(listener);
+
+    unwatch();
+    expect(off.map((entry) => entry.event).sort()).toEqual(on.map((entry) => entry.event).sort());
+    for (const entry of off) expect(entry.listener).toBe(listener);
+  });
+
+  it('initialized, resize and pixelRatioChanged each fire the pixels leg and none of the other four', () => {
+    const { runtime, emit } = withBus();
+    const surface = createStudioScene(runtime, () => {});
+    let pixelsFires = 0;
+    let sceneFires = 0;
+    let bodyFires = 0;
+    let entityFires = 0;
+    let componentFires = 0;
+    surface.watchPixels(() => {
+      pixelsFires += 1;
+    });
+    surface.watchScenes(() => {
+      sceneFires += 1;
+    });
+    surface.watchBodies(() => {
+      bodyFires += 1;
+    });
+    surface.watchEntities(() => {
+      entityFires += 1;
+    });
+    surface.watchComponents(() => {
+      componentFires += 1;
+    });
+
+    const counts = () => ({ pixelsFires, sceneFires, bodyFires, entityFires, componentFires });
+
+    emit('initialized', { backend: { kind: 'headless' } });
+    expect(counts()).toEqual({ pixelsFires: 1, sceneFires: 0, bodyFires: 0, entityFires: 0, componentFires: 0 });
+
+    emit('resize', { width: 640, height: 480 });
+    expect(counts()).toEqual({ pixelsFires: 2, sceneFires: 0, bodyFires: 0, entityFires: 0, componentFires: 0 });
+
+    // The name this grant ADDED to the bus: a ratio change is pixels news and nothing else's.
+    emit('pixelRatioChanged', { ratio: 2 });
+    expect(counts()).toEqual({ pixelsFires: 3, sceneFires: 0, bodyFires: 0, entityFires: 0, componentFires: 0 });
+  });
+
+  it('frame is NOT a watched name — the loop already pulls, so the bus would only change the CADENCE', () => {
+    const { runtime, emit } = withBus();
+    const surface = createStudioScene(runtime, () => {});
+    const heard: string[] = [];
+    surface.watchPixels(() => heard.push('news'));
+
+    // Refused for a NEW reason, recorded in the declaration: no reported field keys off whether the loop
+    // runs, and `frames`/`draws` already refresh from the component's own rAF pull (Scene3D.tsx:306-310),
+    // deliberately sampled every HUD_EVERY_FRAMES. Subscribing here would trade that throttle for a render
+    // per frame and call it correctness.
+    emit('frame', { delta: 0.016 });
+    emit('started');
+    emit('stopped');
+    expect(heard).toEqual([]);
+
+    // And the leg is alive: the silence is these names', not a dead subscription.
+    emit('pixelRatioChanged', { ratio: 1 });
+    expect(heard).toEqual(['news']);
+  });
+
+  it('disposed is NOT a watched name for the pixels leg either', () => {
+    const { runtime, emit } = withBus();
+    const surface = createStudioScene(runtime, () => {});
+    const heard: string[] = [];
+    surface.watchPixels(() => heard.push('news'));
+
+    // v217's refusal holds here too, and for the same reason: `dispose()` disposes the BACKEND, which is
+    // this leg's own subject, and the component calls it in the same cleanup that unwatches (325).
+    emit('disposed');
+    expect(heard).toEqual([]);
+
+    emit('resize', { width: 800, height: 600 });
     expect(heard).toEqual(['news']);
   });
 });

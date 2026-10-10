@@ -862,6 +862,25 @@ export interface SceneSurface {
    *  Same contract as its siblings: no payload, one shared listener, idempotent unsubscribe, and a host
    *  without event verbs answers a no-op unsubscribe. */
   watchScenes(listener: () => void): () => void;
+  /** v218 — the PIXELS family: `initialized`, `resize` and `pixelRatioChanged`. The four legs above answer
+   *  what is in the scene and which scene that is; this answers what the panel would be drawing it WITH —
+   *  `report.backend` and `report.pixels`, the two fields no earlier name moves. Again a write census, not
+   *  a family list:
+   *  - Only three runtime writes touch these two fields. `initialize` builds the backend, so it sets the
+   *    kind and all three pixel figures at once (threeRuntime.ts:1191-1193); `resize` writes width/height
+   *    (1196-1199); `setPixelRatio` writes `pixelRatio` (1202-1209), and THAT announcement is this
+   *    increment's other half — the verb used to change a reported field in silence.
+   *  - `initialized` carries even though the Studio's own init happens BEFORE this leg subscribes (the
+   *    component initializes at Scene3D.tsx:141 and subscribes at 287; the mount-time pull at 267 already
+   *    reports it). The census question is not "can the listener be late" but "does any input move a
+   *    reported field with no other announcer", and a re-`initialize` on a live runtime does exactly that.
+   *  - `disposed` stays refused for v217's reason (the component teardown calls it, Scene3D.tsx:325), and
+   *    `started`/`stopped`/`frame` are refused for a NEW one: no field of the report keys off whether the
+   *    loop is running, and `frames`/`draws` already refresh from the loop's own pull (306-310), throttled
+   *    by design. Watching the frame bus would be a rendering-cadence change dressed as a correctness fix.
+   *  Same contract as its siblings: no payload, one shared listener, idempotent unsubscribe, and a host
+   *  without event verbs answers a no-op unsubscribe. */
+  watchPixels(listener: () => void): () => void;
   /** Put the camera back to the default orbit — the view the Studio opens with. */
   resetOrbit(): SceneReport;
   /** Add a body at the next free slot. Answers `null` when the runtime produced no entity. */
@@ -1058,6 +1077,17 @@ export function createStudioScene(
     watchScenes(listener) {
       if (!runtime.addEventListener || !runtime.removeEventListener) return () => {};
       const events = ['sceneCreated', 'activeSceneChanged'];
+      for (const event of events) runtime.addEventListener(event, listener);
+      return () => {
+        for (const event of events) runtime.removeEventListener?.(event, listener);
+      };
+    },
+    // v218 — the pixels family. Three names, each the ONLY announcer of a write into `report.backend` or
+    // `report.pixels`; `pixelRatioChanged` exists because the verb behind it changed a reported field in
+    // silence (see the declaration's census for the `frame`/`disposed` refusals).
+    watchPixels(listener) {
+      if (!runtime.addEventListener || !runtime.removeEventListener) return () => {};
+      const events = ['initialized', 'resize', 'pixelRatioChanged'];
       for (const event of events) runtime.addEventListener(event, listener);
       return () => {
         for (const event of events) runtime.removeEventListener?.(event, listener);

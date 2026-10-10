@@ -1200,7 +1200,13 @@ export class ThreeRuntime {
   }
 
   setPixelRatio(ratio: number): void {
-    this.backend?.setPixelRatio(ratio);
+    // M5 v218 — this verb writes `backend.state.pixelRatio`, which is the reported `pixels.pixelRatio`, so
+    // changing it moved a field the surface shows while the bus said nothing. Same shape as `resize` above:
+    // a call with no backend cannot change any state, so it returns quietly instead of announcing a write
+    // that did not happen; the emit comes AFTER the backend has taken the value.
+    if (!this.backend) return;
+    this.backend.setPixelRatio(ratio);
+    this.emit('pixelRatioChanged', { ratio });
   }
 
   createScene(name: string, id?: string): ThreeScene {

@@ -281,6 +281,10 @@ export default function Scene3D() {
     // teardown calls it, so watching it would re-read the report against a graph the same teardown has
     // just cleared.
     const unwatchScenes = surface.watchScenes(() => setReport(surface.report()));
+    // v218 — the pixels leg: a backend built, a size set or a ratio changed by ANYONE moves the two fields
+    // no earlier leg reads. This component's own `onResize` below now re-reads twice — once through its own
+    // pull, once through the bus it just joined — which is a redundant render, not a wrong value.
+    const unwatchPixels = surface.watchPixels(() => setReport(surface.report()));
     // v161: the controls live OUTSIDE this effect (they are React handlers), so the surface has to be
     // reachable from them. A ref rather than state, because the surface is not a value React should
     // re-render on — it is a handle to a running loop.
@@ -315,6 +319,7 @@ export default function Scene3D() {
       unwatchEntities();
       unwatchBodies();
       unwatchScenes();
+      unwatchPixels();
       // `dispose()` stops the loop it owns, drops every entity/record registry and disposes the
       // backend — so a teardown needs no second call here, and the next mount starts clean.
       runtime.dispose();

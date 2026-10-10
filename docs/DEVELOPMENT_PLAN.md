@@ -133,9 +133,21 @@ headless proof → product surface → real-browser verification → record the 
   counts stay uncounted on purpose: the scene graph is flat, there is no entity parent/child API, and a
   number invented from renderer internals would be the fake-fact move this lane refuses. Studio suite
   404/404 on this host.
+  **The registry becomes EDITABLE and gates behaviour (v200–v203):** `setComponentEnabled` (runtime) +
+  `toggleComponentEnabled` (surface) put a write verb over the registry the inspector reads, and the flag then
+  gates query participation, material visibility (`targetObject.visible`) and animation playback.
+  **Every eviction door releases what it evicted (v205/v206/v208):** removal, entity removal, and
+  `addComponent`'s same-type replace; a component filed DISABLED declares its gates at file time (v209).
+  **The silent verbs get voices (v210–v218):** the component events get a subscriber, `setEntityName`/
+  `setEntityVisible` announce themselves, and `setPixelRatio` — which wrote the REPORTED `pixels.pixelRatio`
+  in silence — emits after the backend takes the value. The surface watches the bus in FIVE pairwise-disjoint
+  legs (`watchComponents`/`watchEntities`/`watchBodies`/`watchScenes`/`watchPixels`), each name set decided
+  by a WRITE CENSUS of the report fields it covers, and the disjointness pin re-widens with each leg.
   Still open: the inspector reports what a host DECLARES — no materials, children or animation state
-  (children stay uncounted while the graph is flat), components are read but not editable, and there is
-  no way to edit position or any other fact.
+  (children stay uncounted while the graph is flat), and there is no way to edit position or any other
+  declared fact beyond name and visibility.
+  ⬜ **STATED GAP:** this bullet's per-increment detail stops at v199 and the ROADMAP's M5 row stops at v202,
+  while v200–v218 are committed and carry ADR records. Filed as a plan item rather than backfilled here.
 - **M7 — Community:** 🟡 **STARTED (v193)** — `services/nexus-api` is a real Spring Boot 3.5.16 service on Java 25
   (ADR 0011's stack) with one aggregate and two endpoints: publish a project, read it back. Proven against a
   throwaway PostgreSQL in Docker, including that the publication SURVIVES A SERVICE RESTART.
@@ -180,6 +192,8 @@ The cadence is deliberately small and verifiable. The current priority queue, in
 | ~~18~~ | M5 | ~~Seven M5 increments landed with NO ADR amendment (206–212)~~ | **DONE — the seven records, written from their commits as ADR 0016 amendments 206, 207, 208, 209, 210, 211 and 212** — a documentation increment with no code, the pattern v156 set for amendment 82. Each record is TITLED, quotes its suite totals as the readings taken on its own landing day (2026-10-09), and re-verifies every line citation on the tree these records land in: three had already drifted (the component emits 1625/1643/1699 → 1633/1651/1707 under v211's eight lines, v209's enforcement call 1624 → 1632, `restoreEntity`'s fresh-file line 1755 → 1790), and two records say plainly that no mutation arm was scored in them (v206, v207) rather than inventing one — invention is what amendment 90's title warns against. Measured after landing: `table-recount-proof.mjs` §7 dangling 0, and all seven grants carry a corpus TITLE. That run is still RED on `unrecordedNewest:215` — v215 is named by no title in 113 corpus files, and this lane did not perform that increment, so its own cycle has to title it |
 | 19 | M2 | **Eight `MemDisk` mocks, two behaviours** | Found by v213. Eight suites define their own in-memory disk for the runtime's `FsWriteLike` seam, and they have drifted: `memory.test.ts` answers an EMPTY directory listing, `pipeline.test.ts` answers a real one. Same name, different disk — so "the mock" means different things in different files. Consolidating them into one helper changes what several suites mean, which is why v213 did not do it inside a gate repair |
 | 20 | M5 | **`ThreeRuntimeConfig.maxLights` and `.frustumCulling` are REQUIRED and read by nothing** | Found by v214. Both are declared on the interface, both are defaulted in the package's own `DEFAULT_THREE_CONFIG` (`maxLights: 100`, `frustumCulling: true`), and neither name appears anywhere else in `packages/`, `apps/` or `agents/` outside `types.ts` — so every caller must state a value the runtime ignores. The two honest fixes are to WIRE them (a light budget and a culling toggle are real features) or to make them optional and say they are unhonored, the way the combat surface already states `cooldowns`/`statusEffects`. v214 did neither: it filled the fixtures at the package's own defaults so behaviour is unchanged, and filed the decision here |
+| 21 | M5 | **The ROADMAP's M5 row stops at v202 and the plan's M5 bullet at v199 — 19 increments are unrecorded** | `grep -o "v2[0-9][0-9]"` on the M5 row returns only v200/v201/v202, and the plan's M5 bullet ends at v199 with a `Studio suite 404/404` figure that is now 463. v200–v218 are committed and DO carry ADR records (206–212 were written after this item was first filed), so the detail exists — it is the milestone row and the status bullet that were never moved. The fix is a documentation pass over 19 commits, and the reason to do it is the one this repo keeps rediscovering: a milestone row nobody updates stops being a record of the milestone |
+| 22 | — | **`f02dac8` (M5 v204) and `5d68198` (M5 v205) cite ADR amendment 204/205, and those numbers are the TYPE-GATE records** | The two lines picked the same numbers independently. The ADR's `### Amendment 204` is "the type gate did not read TESTS" and 205 is exec-host's share of it — so a reader following either commit message lands on a record about something else. Neither M5 increment has a record of its own (v204 = the component registry gates HUD visibility; v205 = component removal releases behavioral effects). The fix is to write them under FRESH numbers that state the collision, since renumbering the type-gate amendments would break their own many citations |
 
 ## Guardrails (what "done" means here)
 
