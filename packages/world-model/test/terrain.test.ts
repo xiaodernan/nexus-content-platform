@@ -9,6 +9,7 @@ import {
   createWorld,
   setWorldNodePosition,
   setWorldTerrain,
+  terrainHeightAt,
   validateWorld,
   type WorldDocument,
   type WorldNode,
@@ -52,17 +53,17 @@ describe("terrainHeightAt：这个点站在多高", () => {
 
   it("圆台中心与台内取台面高度，台外取 0", () => {
     const scene = sceneWith([plateau("a", { x: 0, y: 0, radius: 5, height: 2 })]);
-    expect(scene.terrain.heightAt(0, 0)).toBe(2);
-    expect(scene.terrain.heightAt(4.9, 0)).toBe(2);
-    expect(scene.terrain.heightAt(5, 0)).toBe(2); // 边界含进去：走上台沿那一格就该是台面
-    expect(scene.terrain.heightAt(5.1, 0)).toBe(0);
-    expect(scene.terrain.heightAt(-3, 40)).toBe(0);
+    expect(terrainHeightAt(scene.terrain, 0, 0)).toBe(2);
+    expect(terrainHeightAt(scene.terrain, 4.9, 0)).toBe(2);
+    expect(terrainHeightAt(scene.terrain, 5, 0)).toBe(2); // 边界含进去：走上台沿那一格就该是台面
+    expect(terrainHeightAt(scene.terrain, 5.1, 0)).toBe(0);
+    expect(terrainHeightAt(scene.terrain, -3, 40)).toBe(0);
   });
 
   it("没有地形 = 平地：老世界（没有 terrain）照样走路", () => {
     const legacy = buildWorldScene(doc());
     expect(legacy.terrain.authored).toBe(false);
-    expect(legacy.terrain.heightAt(0, 0)).toBe(0);
+    expect(terrainHeightAt(legacy.terrain, 0, 0)).toBe(0);
     expect(legacy.terrain.plateaus).toEqual([]);
   });
 
@@ -73,18 +74,18 @@ describe("terrainHeightAt：这个点站在多高", () => {
       plateau("low", { x: 0, y: 0, radius: 10, height: 1 }),
       plateau("high", { x: 14, y: 0, radius: 10, height: 4 }),
     ]);
-    expect(scene.terrain.heightAt(14, 0)).toBe(4);
-    expect(scene.terrain.heightAt(6, 0)).toBe(4); // 重叠区：取最高，不是平均 2.5
-    expect(scene.terrain.heightAt(0, 0)).toBe(1); // low 独占的内圈
-    expect(scene.terrain.heightAt(20, 0)).toBe(4);
-    expect(scene.terrain.heightAt(30, 0)).toBe(0);
+    expect(terrainHeightAt(scene.terrain, 14, 0)).toBe(4);
+    expect(terrainHeightAt(scene.terrain, 6, 0)).toBe(4); // 重叠区：取最高，不是平均 2.5
+    expect(terrainHeightAt(scene.terrain, 0, 0)).toBe(1); // low 独占的内圈
+    expect(terrainHeightAt(scene.terrain, 20, 0)).toBe(4);
+    expect(terrainHeightAt(scene.terrain, 30, 0)).toBe(0);
     // 交换数组顺序，同一个点答案不变（确定性：不能"先画的赢"）
     const swapped = sceneWith([
       plateau("high", { x: 14, y: 0, radius: 10, height: 4 }),
       plateau("low", { x: 0, y: 0, radius: 10, height: 1 }),
     ]);
-    expect(swapped.terrain.heightAt(6, 0)).toBe(4);
-    expect(swapped.terrain.heightAt(0, 0)).toBe(1);
+    expect(terrainHeightAt(swapped.terrain, 6, 0)).toBe(4);
+    expect(terrainHeightAt(swapped.terrain, 0, 0)).toBe(1);
   });
 
   it("高度 0 的圆台不参与覆盖：它就在地平面上，不把别处压成 0", () => {
@@ -93,15 +94,15 @@ describe("terrainHeightAt：这个点站在多高", () => {
       plateau("flat", { x: 0, y: 0, radius: 30, height: 0 }),
       plateau("island", { x: 20, y: 0, radius: 5, height: 3 }),
     ]);
-    expect(scene.terrain.heightAt(10, 0)).toBe(0); // flat 自己就是地面
-    expect(scene.terrain.heightAt(20, 0)).toBe(3); // island 在 flat 里面照样高
+    expect(terrainHeightAt(scene.terrain, 10, 0)).toBe(0); // flat 自己就是地面
+    expect(terrainHeightAt(scene.terrain, 20, 0)).toBe(3); // island 在 flat 里面照样高
     expect(scene.terrain.authored).toBe(true);
   });
 
   it("浮点尾数不出现在高度上（相机位置不该带 1.9999999）", () => {
     const scene = sceneWith([plateau("a", { height: 2.35 })]);
-    expect(scene.terrain.heightAt(0, 0)).toBe(2.35);
-    expect(String(scene.terrain.heightAt(0, 0))).toBe("2.35");
+    expect(terrainHeightAt(scene.terrain, 0, 0)).toBe(2.35);
+    expect(String(terrainHeightAt(scene.terrain, 0, 0))).toBe("2.35");
   });
 
   it("高度查询对平面坐标负责：x/z 与 §45 图坐标同一套（z 就是图的 y）", () => {
@@ -118,7 +119,22 @@ describe("terrainHeightAt：这个点站在多高", () => {
         plateaus: [plateau("a", { x: 3, y: 4, radius: 5, height: 2 })],
       }).document,
     );
-    expect(sceneWithTerrain.terrain.heightAt(3, 4)).toBe(2);
+    expect(terrainHeightAt(sceneWithTerrain.terrain, 3, 4)).toBe(2);
+  });
+
+  it("场景投影是纯数据：terrain 上一个函数都不许有（server/client 边界的坑）", () => {
+    // 2026-10-10 真踩过：sceneTerrain 当时带一个 heightAt 函数，而 WorldScene 是
+    // 服务端组件渲染好后作为 props 传给客户端 3D 组件的——Next 在运行时报
+    // "Functions cannot be passed directly to Client Components"，整个 3D 页白屏。
+    // TS 挡不住"给数据对象加个箭头属性"，所以这里按 typeof 过一遍 + 整份 JSON 往返相等
+    const scene = sceneWith([plateau("p", { height: 2 })]);
+    expect(Object.values(scene.terrain).every((v) => typeof v !== "function")).toBe(true);
+    // terrain 自己 JSON 往返必须相等：它是要过 server/client 边界的那一份。
+    // 只比 terrain 不比整份场景——scene 里有合法的 undefined 可选键（如 modelAssetId），
+    // JSON 往返本来就会丢掉那些，那是 JSON 的语义，不是这条要管的
+    expect(JSON.parse(JSON.stringify(scene.terrain))).toEqual(scene.terrain);
+    // 查询照旧：模块级 terrainHeightAt 收这份纯数据
+    expect(terrainHeightAt(scene.terrain, 0, 0)).toBe(2);
   });
 });
 

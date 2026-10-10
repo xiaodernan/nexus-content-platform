@@ -553,8 +553,32 @@ drizzle 把整个拼接结果当成**单个绑定参数**，生成的 SQL 是 `o
    唯一投影，§16）；加载中与失败都退回**类别占位几何体**（线框盒，不再留空白）；
    `setWorldNodeModelAsset()`（world-model，null = 删键不是空串——"没挂"与"挂了空 id"
    是两种状态）+ WorldPanel 每条目一个「3D 模型」选择器（只列本项目 kind='model' 的资产，
-   归属在面板那一端保证，模型侧只管形状）。测试：`model-asset.test.ts` 5 条
-   （挂/摘/空串拒绝/不存在条目/不碰位置高程），world-model 61 条全绿。
+    归属在面板那一端保证，模型侧只管形状）。测试：`model-asset.test.ts` 5 条
+    （挂/摘/空串拒绝/不存在条目/不碰位置高程），world-model 61 条全绿。
+   **2026-10-09 同日晚：高程在 wire 上被静默剥掉的断链**（`WorldPointSchema` 没有
+   `elevation`，zod 剥未知键——面板写的高度存盘后再打开回到地面，无报错无提示）。
+   契约补上该栏 + `elevation.test.ts` 新 3 条（过得去且不被剥、越界拒、上界与
+   `WORLD_ELEVATION_MAX` 同源）+ 真实库往返 2 条（写 3.5 读回 3.5、高度 0 不落键）。
+   **2026-10-10 第四片：可走的地形（圆台高度场）**。与 elevation 的分工写进模型注释：
+   elevation 是**条目的视觉属性**（浮多高、柱子是标架），terrain 是**地本身的高度**——
+   走近圆台是站在台面上。三层全落地：① 模型 `WorldDocument.terrain?`（kind: 'plateaus'，
+   缺省 = 平地，老世界照常读得出）、`setWorldTerrain` 整份写入（不合法就不写、原因交回、
+   null = 收掉）、`validateWorld` 新 `bad-terrain`；② 场景投影 `terrainHeightAt`
+   （覆盖取**最高**，不平均不后画赢——确定性与"没有半个台阶"）、`SCENE_LIMITS` 改口；
+   契约 `WorldPlateauSchema`/`WorldTerrainSchema`，PUT 进读回来还在；③ 3D：相机高度 =
+   眼高 + 地形高度（`EYE_HEIGHT = 3.2`），**半透明盘 + 高度柱 + 台沿圈**三件套
+   （半透明是免得把台子上的条目挡成黑影），点击地面的落点改走地形感知的
+   `pickGroundPoint`（先按地平求候选再拿候选点问高度，两次迭代收敛）；
+   `data-walk-height` 进读数。WorldPanel 新增地形区（x/y/半径/高度四输入 + 加/删 +
+   收掉地形——**没有画布可以把圆台拖来拖去，位置用数字填，界面不假装有拖动**）。
+   测试：`terrain.test.ts` 18 条 + 真实库往返 1 条 + `@smoke 3D 世界` 加一段
+   （面板加 r=200 h=3 盖住出生点 → 进 3D → `data-walk-height` = '3' → 截图
+   `world3d-terrain.png`：绿色圆台与 HUD 新限度）。**踩过的真坑**：`sceneTerrain()`
+   一度带一个 `heightAt` 函数，而 WorldScene 是服务端组件作为 props 传给客户端 3D 组件的——
+   Next 运行时报 "Functions cannot be passed directly to Client Components"，3D 页白屏；
+   投影改成纯数据（查询用模块级 `terrainHeightAt`），并加一条「场景投影是纯数据」的
+   typeof 断言防 Regression。仍欠：**在地形上直接画地形的编辑器**（今天是数字输入，
+   拖拽画圆台要等世界图支持）与真正的坡地/高度场（圆台是硬边，缝怎么走写在限度里）。
 - [x] Game Studio：2D / 2.5D / 3D / 探索 / Interactive Story / RPG 原型 / Puzzle / Visual Novel（§51）
   — **2026-09-25 第一片（2D 可玩）落地**：`packages/game-model` 新增 `play.ts`（编译关卡计划）与
   `sim.ts`（纯函数模拟器），`/game/<项目>` 用 canvas 把它跑起来，Studio 的「游戏」面板上有「试玩这份设计 →」。

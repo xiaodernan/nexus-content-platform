@@ -2015,6 +2015,35 @@ test('@smoke 3D 世界：图上摆过的位置就是地面布局，走近才展�
     await page.waitForTimeout(900);
     await page.keyboard.up('d');
     await expect.poll(readAt, { timeout: 5_000 }).not.toBe(beforeWalk);
+
+    // 地形（2026-10-10 第四片）：相机贴在圆台台面上。面板加一个盖住出生点的圆台，
+    // 3D 一进去高度读数就是台面高度——"地是可走的"这句话在真浏览器里
+    // 从此有可核对的凭据（以前脚下恒 3.2，没有任何读数能证明站在哪）。
+    // 上一步结束在 /world/<项目> 页，那边没有 Studio 的面板标签——先回编辑器
+    const projectIdForTerrain = new URL(page.url()).pathname.split('/').filter(Boolean).at(-1)!;
+    await page.goto(`/studio/${projectIdForTerrain}`);
+    await page.click('[data-panel-tab="world"]');
+    await page.waitForSelector('[data-world-terrain-panel]', { timeout: 30_000 });
+    await page.locator('[data-world-plateau-input="x"]').fill('0');
+    await page.locator('[data-world-plateau-input="y"]').fill('0');
+    await page.locator('[data-world-plateau-input="radius"]').fill('200');
+    await page.locator('[data-world-plateau-input="height"]').fill('3');
+    await page.click('[data-world-plateau-add]');
+    await expect(page.locator('[data-world-plateau]')).toHaveCount(1);
+    await expect(page.locator('[data-world-state]')).toHaveText('已保存', { timeout: 20_000 });
+
+    // 「进入 3D 世界」那颗按钮在世界图视图上（WorldGraphView），不在世界面板
+    await page.click('[data-view="graph"]');
+    await page.waitForSelector('[data-graph-count]', { timeout: 30_000 });
+    await page.click('[data-enter-world3d]');
+    await page.waitForURL(/\/world\/[^/]+$/, { timeout: 30_000 });
+    const live2 = page.locator('[data-world3d="live"]');
+    await expect(live2).toBeVisible({ timeout: 30_000 });
+    // 出生点 (0, ·) 在半径 200 的圆台里：台面 = 3
+    await expect.poll(() => live2.getAttribute('data-walk-height'), { timeout: 10_000 }).toBe('3');
+    await page.screenshot({ path: 'screenshots/world3d-terrain.png' });
+    // 限度照实说：圆台是硬边，没有"半个台阶"
+    await expect(page.locator('[data-scene-limits]')).toContainText('圆台');
   }
 });
 

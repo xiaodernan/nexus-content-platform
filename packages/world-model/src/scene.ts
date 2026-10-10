@@ -263,6 +263,9 @@ export function walkToward(
  * §140 第四片：地形的高度查询。世界的地从这一问开始变得可走——行走者的相机高度、
  * 点击地面的射线、圆台边上的"能不能迈上去"，全部读这里，所以它必须是纯函数（§16）。
  *
+ * 收的是**场景投影**（SceneTerrain）而不是世界文档：这份投影要过 server/client 边界，
+ * 所以它只能是纯数据；查询也顺便只依赖纯数据。文档侧想查同一个数，先 `sceneTerrain()`。
+ *
  * 三条设计：
  * - **覆盖此点的圆台取最高的那个**。两个圆台重叠时不是平均也不是后者胜——
  *   平均会把两个台子的缝填成一道斜坡，而小方块没有"半个台阶"这种走法；后者胜会让
@@ -273,15 +276,15 @@ export function walkToward(
  *   "半个像素差一点高度"的东西——圆台就是硬边，缝怎么走写在 `limits` 里。
  */
 export function terrainHeightAt(
-  terrain: WorldTerrain | undefined,
+  terrain: SceneTerrain | undefined,
   x: number,
   z: number,
 ): number {
-  if (!terrain || terrain.kind !== 'plateaus') return 0;
+  if (!terrain) return 0;
   let height = 0;
   for (const plateau of terrain.plateaus) {
-    if (plateau.height <= height) continue; // 更高的才有可能赢；等于当前值的也跳过（先写的优先不改变结果）
-    if (Math.hypot(x - plateau.x, z - plateau.y) <= plateau.radius) height = plateau.height;
+    if (plateau.height <= height) continue; // 更高的才有可能赢；等于当前值的也跳过（不改变结果）
+    if (Math.hypot(x - plateau.x, z - plateau.z) <= plateau.radius) height = plateau.height;
   }
   // 一位小数：高度是作者在输入框里写的，浮点尾数不该出现在相机位置上
   return Math.round(height * 100) / 100;
@@ -289,15 +292,20 @@ export function terrainHeightAt(
 
 /** 场景投影：地形随场景一起给（渲染层与行走层都不该自己去读文档） */
 export interface SceneTerrain {
+  /** 圆台清单（纯数据：这份投影要过 server/client 边界，函数不能上船） */
   plateaus: { id: string; x: number; z: number; radius: number; height: number }[];
-  heightAt(x: number, z: number): number;
   /** 这个世界有没有作者画的地形（false = 平地，HUD 与限度都读这一格） */
   authored: boolean;
 }
 
 /**
  * 从世界文档取地形。没有 terrain 时就地造一份空的：行走与渲染只跟 SceneTerrain 说话，
- * 不写第二套 `if (!terrain)`。空场面也是平的（heightAt 恒 0），这一点由单测钉着。
+ * 不写第二套 `if (!terrain)`。空场面也是平的（高度查询恒 0），这一点由单测钉着。
+ *
+ * **刻意不含 heightAt 函数**：WorldScene 是服务端组件渲染好后作为 props 传给
+ * 客户端 3D 组件的，函数不能跨过 server/client 边界（Next 会在运行时报
+ * "Functions cannot be passed directly to Client Components"）。高度查询用
+ * 模块级的 `terrainHeightAt(scene.terrain, x, z)`——数据与算法分开，纯数据上船。
  */
 export function sceneTerrain(terrain: WorldTerrain | undefined): SceneTerrain {
   const plateaus =
@@ -306,7 +314,6 @@ export function sceneTerrain(terrain: WorldTerrain | undefined): SceneTerrain {
       : [];
   return {
     plateaus,
-    heightAt: (x, z) => terrainHeightAt(terrain, x, z),
     authored: plateaus.length > 0,
   };
 }

@@ -11,6 +11,7 @@ import {
   pickLabelTargets,
   resolveWalkCollision,
   sceneLegend,
+  terrainHeightAt,
   walkToward,
   type SceneEntity,
   type WorldScene,
@@ -33,13 +34,16 @@ import { apiAssetUrl } from '@/studio/assets';
  * 点地面/条目名朝那儿走（`walkToward`：直线 + 碰撞滑动）。
  * 3D 资产（2026-10-09 接通）：挂了 §34 model 资产的条目用 GLTF 渲染，URL 走 `apiAssetUrl`
  * 那条鉴权路由，加载中与失败都退回类别占位几何体（不空白、不只剩气墙）。
- * 没有做的事（也不假装）：地形/高程（模型里没有可走地形字段，脚下是平的）、
- * 导航网格（点击行走绕不过大障碍，会停在障碍前——限度写在 HUD）。
+ * 地形（2026-10-10 第四片）：作者画的圆台是**可走的地**——相机高度 = 眼高 + 圆台高度
+ * （`terrainHeightAt(scene.terrain, …)`，模型包的纯函数），点击地面的射线也读同一个高度查询。
+ * 没有做的事（也不假装）：导航网格（点击行走绕不过大障碍，会停在障碍前——限度写在 HUD）。
  * talk（§47）接的是 §46 角色档案的对话 API——目标不是场景里的世界条目。
  */
 
 const WALK_SPEED = 9; // 单位/秒：一个条目半径约 1，走起来约 9 个身位每秒
 const ENTITY_SIZE = 1.6;
+/** 观察者眼睛离脚下地面多高：地形上 = 台面 + 这个数（没地形时就是 3.2，与接地形之前一致） */
+const EYE_HEIGHT = 3.2;
 
 type Keys = Record<string, boolean>;
 
@@ -65,9 +69,39 @@ function Controls({
   const stuckFor = useRef(0);
   // 点地面 = 指针按下与抬起几乎没移动；拖动转视角共用同一对事件
   const raycaster = useRef(new THREE.Raycaster());
-  const groundPlane = useRef(new THREE.Plane(new THREE.Vector3(0, 1, 0), 0));
-  const hitPoint = useRef(new THREE.Vector3());
   const ndc = useRef(new THREE.Vector2());
+  // scene 走 ref：pointerup 那个 effect 的依赖是 [gl, camera]（不该每次输入都重挂事件），
+  // 而 scene 会随地形编辑变——闭包捕获旧的那份会让"改了地形之后点击还按旧高度落地"
+  const sceneRef = useRef(scene);
+  sceneRef.current = scene;
+  /**
+   * 点击地面的落点（第四片）。地不再是 y=0 一张平面：圆台是分段常数的高度。
+   * 逐个圆台试交点太贵（每帧点击一次也要 64 次射线-圆求交），所以这里反过来——
+   * 先按**视线与地平**求一个候选点，再拿候选点的 (x,z) 问地形高度；差得远就沿射线
+   * 再试一次（站在台子边往下看圆台里面时，地平候选点在台子外，高度对不上）。
+   * 两次迭代对分段常数的地形已经收敛：圆台高度只来自它自己的半径，射线与某个圆盘
+   * 的交点高度差不会带动下一个圆盘。这是近似，但近似方向是"站在多高就点多高的地"。
+   */
+  const pickGroundPoint = (): { x: number; z: number } | null => {
+    const ray = raycaster.current.ray;
+    const candidate = new THREE.Vector3();
+    if (!ray.intersectPlane(new THREE.Plane(new THREE.Vector3(0, 1, 0), 0), candidate)) return null;
+    for (let i = 0; i < 2; i += 1) {
+      const height = terrainHeightAt(sceneRef.current.terrain, candidate.x, candidate.z);
+      if (Math.abs(candidate.y - height) < 0.01) return { x: candidate.x, z: candidate.z };
+      // 把射线起点挪到当前候选高度上，重新求与那个水平面的交点
+      const lifted = new THREE.Vector3(ray.origin.x, ray.origin.y - height, ray.origin.z);
+      const dir = ray.direction;
+      if (Math.abs(dir.y) < 1e-6) break; // 视线几乎是水平的：没有下一层可求
+      const t = -lifted.y / dir.y;
+      if (t < 0) break;
+      const next = new THREE.Vector3(lifted.x + dir.x * t, height, lifted.z + dir.z * t);
+      const moved = Math.hypot(next.x - candidate.x, next.z - candidate.z);
+      candidate.copy(next);
+      if (moved < 0.01) break;
+    }
+    return { x: candidate.x, z: candidate.z };
+  };
 
   useEffect(() => {
     const down = (e: KeyboardEvent) => {
@@ -105,8 +139,9 @@ function Controls({
           -((e.clientY - rect.top) / rect.height) * 2 + 1,
         );
         raycaster.current.setFromCamera(ndc.current, camera);
-        if (raycaster.current.ray.intersectPlane(groundPlane.current, hitPoint.current)) {
-          target.current = { x: hitPoint.current.x, z: hitPoint.current.z };
+        const ground = pickGroundPoint();
+        if (ground) {
+          target.current = ground;
           stuckFor.current = 0;
         }
       }
@@ -164,7 +199,9 @@ function Controls({
     const resolved = resolveWalkCollision(scene, camera.position.x, camera.position.z);
     camera.position.x = resolved.x;
     camera.position.z = resolved.z;
-    camera.position.y = 3.2;
+    // 地形（第四片）：相机贴在**这一点的地面**上——眼高 + 圆台高度。
+    // 走上圆台是"地升高了"，不是"飘上去"：click 行走与键盘走都走这一行
+    camera.position.y = EYE_HEIGHT + terrainHeightAt(scene.terrain, camera.position.x, camera.position.z);
     camera.rotation.order = 'YXZ';
     camera.rotation.y = yaw.current;
     camera.rotation.x = pitch.current;
@@ -235,8 +272,46 @@ function ModelAsset({
   );
 }
 
-function EntityMesh({ entity }: { entity: SceneEntity }) {
-  const near = entity.placed === 'fallback';
+/**
+ * §140 第四片的地形渲染。圆台是**半透明盘 + 一根高度柱**，不是一个实心方块：
+ * - 半透明：站在台子外往里看要看得见台子上的条目（实心盘会把它们挡成黑影）；
+ * - 高度柱（柱心在圆盘中心，从地面穿到台面）：台面悬在空中时，这根柱子就是
+ *   "它靠什么撐着"的答案——与高程标架柱同一套语言，别让作者猜；
+ * - 台面下 0.06 处画边界圈：硬边的地回答"这里是不是台沿"。圈贴在盘面下一丁点，
+ *   是为了不被盘自己的半透明面 z-fighting 吃掉。
+ * 高度 0 的圆台不画：它就在地平面上（模型侧 `terrainHeightAt` 也跳过它），
+ * 画一个看不见的盘只会让线段数白涨。
+ */
+function TerrainPlates({ terrain }: { terrain: WorldScene['terrain'] }) {
+  if (!terrain.authored) return null;
+  return (
+    <group data-world-terrain>
+      {terrain.plateaus.map((plateau) =>
+        plateau.height <= 0 ? null : (
+          <group key={plateau.id} position={[plateau.x, 0, plateau.z]}>
+            {/* 台面盘：圆盘的圆心在地面上方 height 处 */}
+            <mesh position={[0, plateau.height, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+              <circleGeometry args={[plateau.radius, 48]} />
+              <meshBasicMaterial color="#1d5c4a" transparent opacity={0.35} side={THREE.DoubleSide} />
+            </mesh>
+            {/* 高度柱：从地面撐到台面 */}
+            <mesh position={[0, plateau.height / 2, 0]}>
+              <cylinderGeometry args={[0.06, 0.06, Math.max(0.1, plateau.height), 6]} />
+              <meshBasicMaterial color="#5a6478" />
+            </mesh>
+            {/* 台沿圈：硬边在哪一环，走在上面的人看得见 */}
+            <mesh position={[0, plateau.height - 0.06, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+              <ringGeometry args={[plateau.radius - 0.12, plateau.radius, 48]} />
+              <meshBasicMaterial color="#7ee2b8" transparent opacity={0.9} side={THREE.DoubleSide} />
+            </mesh>
+          </group>
+        ),
+      )}
+    </group>
+  );
+}
+
+function EntityMesh({ entity }: { entity: SceneEntity }) {  const near = entity.placed === 'fallback';
   // 高程（图上写的 0–6）：条目浮在写的高度上，柱子从地面把它撑起来——那是标架，不是你在爬的坡
   const base = entity.elevation;
 
@@ -425,10 +500,19 @@ export function WorldWalk({
       className="relative h-full w-full bg-bg-0"
       data-world3d="live"
       data-world-name={scene.worldName}
+      // 高度也进读数：走在圆台上时 e2e 能断言"人确实在台面上"，
+      // 不然相机贴地这件事在真浏览器里没有任何可核对的凭据
       data-walk-at={`${Math.round(at.x * 10) / 10},${Math.round(at.z * 10) / 10}`}
+      data-walk-height={Math.round(terrainHeightAt(scene.terrain, at.x, at.z) * 100) / 100}
     >
       <Canvas
-        camera={{ position: [0, 3.2, -Math.max(16, scene.bounds.radius * 0.9)], fov: 60, near: 0.1, far: 400 }}
+        // 起点也要贴着地形：圆台铺在出生点上时，写死 3.2 会让相机陷在台子里
+        camera={{
+          position: [0, EYE_HEIGHT + terrainHeightAt(scene.terrain, 0, 0), -Math.max(16, scene.bounds.radius * 0.9)],
+          fov: 60,
+          near: 0.1,
+          far: 400,
+        }}
         gl={{ antialias: true }}
         dpr={[1, 2]}
       >
@@ -437,6 +521,7 @@ export function WorldWalk({
         <hemisphereLight args={['#cdd6ff', '#101318', 0.9]} />
         <directionalLight position={[20, 30, 10]} intensity={0.7} />
         <gridHelper args={[scene.bounds.radius * 2, Math.max(8, Math.round(scene.bounds.radius / 2) * 2), '#2a3040', '#171b23']} />
+        <TerrainPlates terrain={scene.terrain} />
         {scene.entities.map((entity) => (
           <EntityMesh key={entity.id} entity={entity} />
         ))}

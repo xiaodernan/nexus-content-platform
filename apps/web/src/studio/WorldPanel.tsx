@@ -5,15 +5,21 @@ import {
   WORLD_ELEVATION_MAX,
   WORLD_KINDS,
   WORLD_KIND_LABELS,
+  WORLD_PLATEAU_LIMIT,
+  WORLD_PLATEAU_RADIUS_MAX,
+  WORLD_PLATEAU_RADIUS_MIN,
+  WORLD_TERRAIN_HEIGHT_MAX,
   addWorldNode,
   countLinksFor,
   removeWorldNode,
   setWorldNodeElevation,
   setWorldNodeModelAsset,
+  setWorldTerrain,
   updateWorldNode,
   worldCounts,
   type WorldDocument,
   type WorldKind,
+  type WorldPlateau,
 } from '@nexus/world-model';
 import { cn } from '@/lib/cn';
 import { useStudioReady } from './store';
@@ -270,6 +276,8 @@ export function WorldPanel() {
           </section>
         ))}
 
+        <TerrainSection world={world} edit={edit} />
+
         <div className="mt-1 flex items-center gap-1">
           <select
             value={newKind}
@@ -311,5 +319,132 @@ export function WorldPanel() {
         </button>
       </div>
     </div>
+  );
+}
+
+/**
+ * §140 第四片的地形编辑区。圆台清单 + 加一个 + 删一个。
+ * 写入口径与高度输入同一边：不合法就不写，原因由 `setWorldTerrain` 交回来这里显示
+ * （面板是唯一的"人看见原因"的地方，模型不认识 UI）。
+ * 加的圆台落在世界原点附近一格：没有画布可以把圆台拖来拖去，位置就用数字填——
+ * 想要拖的那种地形编辑器，等哪天世界图支持在图上画地形时再说，今天不假装有。
+ */
+function TerrainSection({
+  world,
+  edit,
+}: {
+  world: WorldDocument;
+  edit: (next: WorldDocument, save?: boolean) => void;
+}) {
+  const plateaus = world.terrain?.kind === 'plateaus' ? world.terrain.plateaus : [];
+  const [draft, setDraft] = useState<WorldPlateau>({ id: '', x: 0, y: 0, radius: 6, height: 2 });
+
+  const apply = (next: WorldPlateau[] | null) => {
+    const result = setWorldTerrain(world, next === null ? null : { kind: 'plateaus', plateaus: next });
+    if (result.reason) {
+      worldStore.showNotice(result.reason);
+      return;
+    }
+    edit(result.document, true);
+  };
+
+  return (
+    <section className="mt-4" data-world-terrain-panel>
+      <h3 className="font-mono text-11 uppercase tracking-wide text-fg-3">地形（可走的圆台）</h3>
+      <p className="mt-1 text-11 leading-relaxed text-fg-3">
+        走进圆台就是站在台面上（相机与点击地面都读同一份高度）。没画地形的世界脚下是平的。
+        高度 0–{WORLD_TERRAIN_HEIGHT_MAX}，半径 {WORLD_PLATEAU_RADIUS_MIN}–{WORLD_PLATEAU_RADIUS_MAX}；
+        重叠的圆台取最高的那个。当前 {plateaus.length}/{WORLD_PLATEAU_LIMIT} 个。
+      </p>
+      <ul className="mt-1 flex flex-col gap-1">
+        {plateaus.map((plateau) => (
+          <li key={plateau.id} className="flex items-center gap-1" data-world-plateau={plateau.id}>
+            <span className="min-w-0 flex-1 truncate font-mono text-11 text-fg-2">
+              ({plateau.x}, {plateau.y}) r={plateau.radius} h={plateau.height}
+            </span>
+            <button
+              type="button"
+              onClick={() => apply(plateaus.filter((p) => p.id !== plateau.id))}
+              aria-label={`删除圆台 ${plateau.id}`}
+              data-world-plateau-remove={plateau.id}
+              className="shrink-0 px-1 text-12 text-fg-3 hover:text-danger"
+            >
+              ×
+            </button>
+          </li>
+        ))}
+      </ul>
+      <div className="mt-1 flex flex-wrap items-center gap-1">
+        <label htmlFor="world-plateau-x" className="shrink-0 text-11 text-fg-3">
+          x
+        </label>
+        <input
+          id="world-plateau-x"
+          type="number"
+          value={draft.x}
+          onChange={(e) => setDraft((d) => ({ ...d, x: Number(e.target.value) }))}
+          data-world-plateau-input="x"
+          className="w-16 rounded-[3px] bg-bg-1 px-1 py-[2px] text-12 text-fg-1 outline-none focus:bg-bg-3"
+        />
+        <label htmlFor="world-plateau-y" className="shrink-0 text-11 text-fg-3">
+          y
+        </label>
+        <input
+          id="world-plateau-y"
+          type="number"
+          value={draft.y}
+          onChange={(e) => setDraft((d) => ({ ...d, y: Number(e.target.value) }))}
+          data-world-plateau-input="y"
+          className="w-16 rounded-[3px] bg-bg-1 px-1 py-[2px] text-12 text-fg-1 outline-none focus:bg-bg-3"
+        />
+        <label htmlFor="world-plateau-radius" className="shrink-0 text-11 text-fg-3">
+          半径
+        </label>
+        <input
+          id="world-plateau-radius"
+          type="number"
+          min={WORLD_PLATEAU_RADIUS_MIN}
+          max={WORLD_PLATEAU_RADIUS_MAX}
+          value={draft.radius}
+          onChange={(e) => setDraft((d) => ({ ...d, radius: Number(e.target.value) }))}
+          data-world-plateau-input="radius"
+          className="w-16 rounded-[3px] bg-bg-1 px-1 py-[2px] text-12 text-fg-1 outline-none focus:bg-bg-3"
+        />
+        <label htmlFor="world-plateau-height" className="shrink-0 text-11 text-fg-3">
+          高度
+        </label>
+        <input
+          id="world-plateau-height"
+          type="number"
+          min={0}
+          max={WORLD_TERRAIN_HEIGHT_MAX}
+          step={0.5}
+          value={draft.height}
+          onChange={(e) => setDraft((d) => ({ ...d, height: Number(e.target.value) }))}
+          data-world-plateau-input="height"
+          className="w-16 rounded-[3px] bg-bg-1 px-1 py-[2px] text-12 text-fg-1 outline-none focus:bg-bg-3"
+        />
+        <button
+          type="button"
+          onClick={() =>
+            apply([...plateaus, { ...draft, id: `wp_${Date.now().toString(36)}${plateaus.length}` }])
+          }
+          data-world-plateau-add
+          className="shrink-0 rounded-[var(--nexus-radius-sm)] border border-[var(--nexus-color-border-strong)] px-2 py-1 text-11 text-fg-2 hover:bg-bg-2"
+        >
+          加一个圆台
+        </button>
+        {world.terrain ? (
+          <button
+            type="button"
+            onClick={() => apply(null)}
+            data-world-terrain-clear
+            className="shrink-0 px-2 py-1 text-11 text-fg-3 hover:text-danger"
+          >
+            收掉地形
+          </button>
+        ) : null}
+      </div>
+    </section>
   );
 }
