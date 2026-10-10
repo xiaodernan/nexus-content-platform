@@ -9755,3 +9755,48 @@ commit; this is the ledger entry._
   has no payload by design — a listener re-reads `surface.report()`; carrying the ratio would be a second
   source of truth for a number the report already owns. And `Scene3D`'s own `onResize` now re-reads twice (its
   own pull plus the bus it just joined), which is a redundant render, not a wrong value.
+
+### Amendment 219 (M5 v204, studio) — the component registry gates HUD visibility — the record this grant was owed, and the number collision that delayed it
+
+_Numbering: this grant's commit (`f02dac8`) CITES "ADR 0016 amendment 204", and 204 is a DIFFERENT record — the
+type-gate repair (`d56d0bd`, "the type gate did not read TESTS in six of seven packages"). Two lines picked the
+same number independently. Renumbering the type-gate amendment would break its own many citations, so this
+record takes the next free number and STATES the collision: a reader who follows `f02dac8`'s citation lands on
+the type-gate record, and this heading is where the increment it actually describes is written down. `f02dac8`'s
+own message ends "The ADR 0016 amendment record for this grant is owed", so the debt was known._
+
+- **What landed.** v203 made `enabled` gate animation playback but left a disabled component visible in the
+  inspector. `setComponentEnabled` now also filters the component out of `entityComponentsOf()`'s result, so it
+  disappears from the HUD's inspector panel. The flag thereby gates four things: query participation (v201),
+  rendering via `targetObject` (v202), animation playback (v203), and inspector visibility (v204) — the same
+  rule the runtime already applies in `getEnabledComponents`, so the HUD shows what the query layer sees.
+- **The grant shipped with SIX RED TESTS, and that is recorded rather than smoothed over.** `f02dac8`'s own
+  measurement is *"Studio suite 401/407 (6 intentional behavior-change reds proving the filter works)"*. A suite
+  committed red is a suite whose red cannot be told from a regression, and the next increment paid for it:
+  **amendment 207** exists because "v204's filter had shut the only re-enable door" — a disabled component had
+  become invisible AND un-re-enableable, which is a functional regression, not a test that needed updating.
+- **Bounds (§60).** A disabled component is still STORED in the registry and can be re-enabled (once v207
+  restored the door); the filter applies to the reported/displayed projection, not to the underlying data. The
+  save shape stays clean: `SerializedEntityComponent` excludes both `targetObject` and `animationIds` from the
+  file format, so neither runtime-only field reaches a save.
+
+### Amendment 220 (M5 v205, three-runtime) — component removal releases the evicted component's behavioral effects — the same owed record and the same collision
+
+_Numbering: `5d68198` cites "ADR 0016 amendment 205", which is exec-host's share of the type-gate repair
+(`877cd67`). Same collision as amendment 219, same resolution: the next free number, with the collision stated._
+
+- **What landed.** v204's gate made `enabled` control visibility, but REMOVING a component entirely left its side
+  effects in place forever: a `targetObject` stayed hidden with nothing left to re-enable it, and every
+  `animationIds` entry stayed paused with no way back. `removeComponent` now releases both before deleting:
+  `targetObject.visible = true`, and each animation's `enabled = true` with `play()` called to resume.
+- **A signature change, for a stated reason.** `removeComponent(entity, componentType)` became
+  `removeComponent(sceneId, entity, componentType)`, because releasing an animation requires the scene's own
+  animation registry. The one existing caller in `threeRuntime.test.ts` was updated to match.
+- **Evidence.** `componentRemovalCleanup.test.ts` — 5 cases (targetObject cleanup · animation cleanup · plain
+  data components · a non-existent component · non-existent animationIds); measured **three-runtime 472/472** in
+  15 files, `tsc` clean, no Studio change because the surface does not call `removeComponent` — the cleanup is
+  proven at the runtime layer.
+- **Bounds (§60).** This is the FIRST of three eviction doors; the other two are amendments 206 (entity removal)
+  and 208 (`addComponent`'s same-type replace), which is why 208's heading calls itself "the third eviction
+  door". The release rule is per-door and each door has its own case, rather than one shared path assumed to
+  cover all three.
