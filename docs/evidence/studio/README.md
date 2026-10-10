@@ -1746,3 +1746,71 @@ regression.
 Bounds: a disabled component is still STORED and can be re-enabled (once v207 restored the door); the filter
 applies to the reported projection, not the data. `SerializedEntityComponent` excludes `targetObject` and
 `animationIds` from the file format, so neither runtime-only field reaches a save.
+
+## v218's own leg arms: the pixels leg measured on BOTH planes, and the reader defect its first run found (ADR 0016 amendment 223)
+
+The record that `amendment 218` left open. Its probe was **3 arms and all of them mutated
+`packages/three-runtime/src/threeRuntime.ts`** — the verb's own file — so every one of its reds came from the
+runtime unit suite. Nothing had ever reddened the 13 Studio cases that make the LEG's claims, and nothing had
+ever run a verb mutation through the shipped seam. This section reports that missing half, measured at
+`939d13d`, plus two defects found in the measuring instrument itself.
+
+**The baseline, read before any arm** (`apps/studio`, `packages/three-runtime`, full suites): Studio **463 tests
+over 31 files, 0 red**; three-runtime **505 over 20 files, 0 red** (including `distSync.test.ts`, so the built
+`dist` agreed with `src`); `tsc --noEmit -p tsconfig.json` in `apps/studio` exited **0**. The battery's own
+groups are narrower and are named by their case counts: a 3-file studio group of **164** and a 2-file runtime
+group of **58**.
+
+**The battery: 11 arms — 8 mutations + 3 controls — 28 predicted reds, 28 measured, 11/11 MATCHED.** Controls
+`A0`/`B0`/`Z9` (the last runs AFTER every restore) each produced **0 red**, so the attribution below is not a
+loaded-box artifact.
+
+| arm | mutation | plane(s) | reds, by name |
+| --- | --- | --- | --- |
+| `A1` | `pixelRatioChanged` dropped from the watched triple | studio | 7 — the three-names join, the five-leg disjointness pin (in `watchScenes (M5 v217)`), "each fire the pixels leg and none of the other four", "frame is NOT a watched name", and the shipped-bus out-of-band ratio, cross-leg and post-`dispose()` cases |
+| `A2` | the pixels leg's host-honest guard deleted | studio | 1 — `watchPixels (M5 v218) a host without event verbs answers a no-op unsubscribe instead of crashing`, `TypeError: runtime.addEventListener is not a function` |
+| `A3` | a per-event wrapper instead of one shared listener | studio | 2 — the join case (`expected 3 to be 1`: THREE distinct listener identities handed to the bus where the leg is supposed to hand one) and "unsubscribing drops the pixels leg only" (`expected 1 to be 0` — `removeEventListener` cannot match a wrapper it never saw) |
+| `A4` | the REFUSED design: `frame` added to the triple | studio | 4 — the name set, the disjointness pin, "frame is NOT a watched name", and "a drawn frame moves `draws` while the pixels leg stays DEAF" |
+| `A5` | `unwatchPixels()` deleted from the component cleanup | studio | 1 — "the 3D component joins ALL FIVE watch legs and leaves ALL FIVE on teardown" |
+| `B1` | the `emit` deleted (the verb goes back into silence) | runtime **and** studio | 5 runtime + **4** Studio, incl. the twelve-raw-listener census case — see the hole below |
+| `B2` | the `emit` moved BEFORE the write | runtime **and** studio | 1 + 1 — the runtime case reads `[ 1 ]` where it demanded `[ 1.5 ]`; the Studio surface shows **`expected 1 to be 2`**, i.e. the PANEL keeps the OLD ratio |
+| `B3` | the no-backend guard deleted | runtime **and** studio | 1 + 1 — both planes die with `TypeError: Cannot read properties of null (reading 'setPixelRatio')` |
+
+**What this adds to `amendment 218`'s claims is cross-plane, not extra.** `B2` and `B3` are the ordering claim
+and the silence claim measured through the SHIPPED seam: because `apps/studio/vitest.config.ts` aliases
+`@nexus/three-runtime` to `packages/three-runtime/src/index.ts`, a runtime mutation is graded by the Studio
+suite too, so the panel's own pixel figure is proven to depend on the emit happening AFTER the write. That is
+why each `B` arm runs both groups; the runtime group deliberately excludes `distSync.test.ts`, which grades
+`src` against the built `dist` and would redden on every runtime arm for a reason that is not this grant.
+
+**Restores, proven by hash, not by hope:** `scene3d.ts` `eb7040b97d7f`, `Scene3D.tsx` `d5284a5d89b2`,
+`threeRuntime.ts` `50ef2aaf4c3a` — each re-read after its arm and byte-identical to the pre-arm bytes, and the
+tree was checked at rest (HEAD unmoved, no foreign tracked dirt) before every mutation and after every restore.
+That check is not ceremony: this lane's v218 work was committed by a concurrent writer out of a dirty worktree,
+so a mutant sitting on disk is a mutant that can be swept into someone else's commit.
+
+**Two defects in the instrument, recorded because the first run's number was the wrong one.**
+
+- The reader's verdict line was `if (unexplained.length || missed)` — an ARRAY, which is always truthy. Every
+  arm read `DIFF` and the headline was **`attributed_arms=0/11` on 28 genuinely attributed reds**. Fixed to an
+  exactly-one matcher that separates MISSED (a prediction no red satisfied) from AMBIGUOUS (one prediction
+  satisfied by 2+ reds). A validator's first run is its first test, and this one failed.
+- Mis-pinned predictions: several were built by concatenating a describe title onto an `it` title, which is not
+  how the runner renders `fullName`, so they could match nothing. The fix is a **preflight that reads the real
+  case names out of the test files** — 28 predictions, each a substring of exactly ONE name in a population of
+  164 studio + 58 runtime cases, 0 bad. It caught a live collision: "a host without event verbs answers a no-op
+  unsubscribe instead of crashing" exists **once per leg** (five describes), so `A2` was re-pinned to its
+  leg-qualified form before the battery counted.
+
+**The one genuine hole the first run measured and my predictions did not.** `B1` reddened **four** Studio cases
+against three predictions: `on the real bus a ratio change news ONLY pixelRatioChanged: twelve raw listeners,
+one name fires` reads the VERB through the shipped bus rather than through the leg, so deleting the emit reddens
+it too. 28 reds against 27 predictions was how that surfaced; the prediction is now in the table and the run is
+11/11.
+
+Bounds: the runner and its prediction module live in this session's Temp directory, not in the repository — the
+arms, needles and expected names are transcribed above so the measurement can be rebuilt, but a reader cannot
+re-run it from a clean checkout. The battery grades the two suites it names; the full 463/505 green above came
+from a separate run, not from `Z9`. And a missed prediction is a hole in a PREDICTION, not in the code: every
+red this battery measured was explained, which is the property the run lacked before the reader was fixed.
+

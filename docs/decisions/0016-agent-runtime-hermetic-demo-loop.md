@@ -9895,3 +9895,58 @@ the 2026-10-10 evidence run surfaced when a 2-day-old container was found still 
   only names it recognised. A concurrent run's container (live owner) is explicitly NOT swept. `MAX_AGE_MS` is a
   ceiling, not a floor — an old container whose owner is still alive is swept on age, not left to a recycled pid.
   `verify:leak-sweep` is wired into the root `package.json` alongside `verify:publish` / `verify:publish-e2e`.
+
+### Amendment 223 (M5 v218 follow-on, studio + three-runtime) — the pixels leg's own witness arms, and the verb's two claims graded through the shipped seam
+
+_Numbering: 223 was free (`grep -a "^### Amendment 2[0-9][0-9]"` topped out at 222). This closes the probe half
+that amendment 218 left open; it changes no production byte._
+
+- **What was unmeasured.** `amendment 218`'s probe was 3 arms, and all three mutated
+  `packages/three-runtime/src/threeRuntime.ts`. Its reds therefore came only from the runtime unit suite: no arm
+  had ever reddened the 13 Studio cases that state the LEG's claims, and no verb mutation had ever been graded
+  through the shipped seam.
+
+- **The battery, at `939d13d`:** 11 arms — 8 mutations (`A1`–`A5` studio-side, `B1`–`B3` verb-side) and 3
+  controls (`A0`, `B0`, and `Z9`, which runs AFTER every restore). **28 predictions, 28 reds measured, 11/11
+  MATCHED**, every red attributed by full case name, every control 0 red. Baseline read before the arms: Studio
+  463 tests/31 files and three-runtime 505/20 files, both 0 red, `tsc --noEmit` exit 0.
+
+- **The cross-plane finding, which is the point.** `apps/studio/vitest.config.ts` aliases `@nexus/three-runtime`
+  to its `src`, so a runtime mutation is graded by the Studio suite as well. `B2` (emit moved BEFORE the write)
+  reddens `an out-of-band setPixelRatio moves report.pixels.pixelRatio…` with **`expected 1 to be 2`** — the
+  panel keeps the OLD ratio — and `B3` (no-backend guard deleted) dies in the Studio case with the same
+  `TypeError: Cannot read properties of null (reading 'setPixelRatio')` as in the runtime case. So the ordering
+  claim and the silence claim are load-bearing on the seam a user sees, not only in the unit file that declares
+  them.
+
+- **`A3` proved identity is load-bearing from both ends:** the per-event wrapper gives `expected 3 to be 1` at
+  the join (THREE distinct listener identities handed to the bus where the leg is supposed to hand one) and
+  `expected 1 to be 0` at the unsubscribe — `removeEventListener` is matched by identity, and it cannot match a
+  wrapper the caller never saw.
+
+- **The instrument was wrong before the code was measured, and that is recorded here.** The reader's verdict
+  line read `if (unexplained.length || missed)` — testing an ARRAY for truthiness — so all 11 arms printed DIFF
+  and the headline said `attributed_arms=0/11` over 28 genuinely attributed reds. Replaced by an exactly-one
+  matcher that keeps MISSED (no red satisfied the prediction) distinct from AMBIGUOUS (2+ reds did). A new
+  preflight reads the real `describe`/`it` names out of the test files and demands each prediction be a substring
+  of exactly one, over a population of 164 studio + 58 runtime cases; it immediately caught that "a host without
+  event verbs answers a no-op unsubscribe instead of crashing" exists once PER LEG (five describes), so `A2` was
+  re-pinned to its leg-qualified form.
+
+- **The one genuine prediction hole:** `B1` reddened four Studio cases against three predictions. The fourth,
+  `on the real bus a ratio change news ONLY pixelRatioChanged: twelve raw listeners, one name fires`, reads the
+  verb through the bus rather than through the leg — so the twelve-listener census case is a witness of the
+  VERB, and the landed record never said so.
+
+- **Restores proven by hash:** `scene3d.ts` `eb7040b97d7f`, `Scene3D.tsx` `d5284a5d89b2`, `threeRuntime.ts`
+  `50ef2aaf4c3a`, each re-read after its arm and byte-identical. HEAD and tracked-cleanliness are asserted
+  before every mutation and after every restore, because this lane's v218 work was committed by a concurrent
+  writer out of a dirty worktree — a mutant on disk is a mutant that can be swept into someone else's commit.
+
+- **Bounds.** The runner and its prediction module live in this session's Temp directory, not in the repository:
+  the arms, needles and expected names are transcribed in the evidence record so the measurement can be rebuilt,
+  but nothing here is re-runnable from a clean checkout. The runtime group excludes `distSync.test.ts` by design
+  — it grades `src` against the built `dist`, so it would redden on every verb arm for a reason outside this
+  grant. A missed prediction is a hole in a prediction, not in the code: after the reader was fixed, every red
+  this battery measured was explained by name.
+
