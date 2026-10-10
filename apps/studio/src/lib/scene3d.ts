@@ -881,6 +881,28 @@ export interface SceneSurface {
    *  Same contract as its siblings: no payload, one shared listener, idempotent unsubscribe, and a host
    *  without event verbs answers a no-op unsubscribe. */
   watchPixels(listener: () => void): () => void;
+  /** v224 — the CAMERA pair: `cameraCreated` and `activeCameraChanged`, the two names over the three report
+   *  fields no earlier leg moves — `scene.cameras`, `cameraNames` and `activeCamera`. The census again:
+   *  - Two methods write those fields and each announces once, after the write. `createCamera` inserts into
+   *    `scene.cameras` (threeRuntime.ts:2527) and, when that insert is the scene's FIRST camera, flips
+   *    `active` itself (2529-2531); one `cameraCreated` follows both (2533). `setActiveCamera` is the only other
+   *    writer of `active` (clears the others at 2549, sets the asked one at 2552) and emits afterwards (2553).
+   *  - There is no third name to consider, because there is no third write: `cameras.delete` and
+   *    `cameras.clear` appear nowhere in the runtime, so within a scene `cameras`/`cameraNames` only ever grow.
+   *    `createScene` does start `cameras` at an empty Map (1238) and `setActiveScene` changes WHICH scene is
+   *    read — both move this leg's fields for a SCENE-level reason, and both are already watched by v217's
+   *    scene pair. The disjointness pin below is what keeps that bookkeeping honest rather than implicit.
+   *  - Camera TRANSFORM writes are refused, a new refusal shape for this family: the cinematic shot paths
+   *    (`position.copy`, `lookAt`, `fov` — threeRuntime.ts:2854-2857) and this surface's own `aim()` (957) move
+   *    the live `THREE.Camera`, which the report never reads — it takes only `id`, `name`, `active` (613-614).
+   *    A leg on those would re-read a report that cannot have changed, and they reach no bus name at all.
+   *  - `disposed` keeps v217's reason (the component teardown calls it). And unlike v218's `pixelRatioChanged`,
+   *    this grant ADDS NO VERB: both names already existed. What did not exist was the guarantee that a
+   *    refusal moves nothing — a failed `setActiveCamera` used to clear every camera and answer `false` in
+   *    silence, which no subscription could have repaired. See the runtime's v224 cases.
+   *  Same contract as its siblings: no payload, one shared listener, idempotent unsubscribe, and a host
+   *  without event verbs answers a no-op unsubscribe. */
+  watchCameras(listener: () => void): () => void;
   /** Put the camera back to the default orbit — the view the Studio opens with. */
   resetOrbit(): SceneReport;
   /** Add a body at the next free slot. Answers `null` when the runtime produced no entity. */
@@ -1088,6 +1110,17 @@ export function createStudioScene(
     watchPixels(listener) {
       if (!runtime.addEventListener || !runtime.removeEventListener) return () => {};
       const events = ['initialized', 'resize', 'pixelRatioChanged'];
+      for (const event of events) runtime.addEventListener(event, listener);
+      return () => {
+        for (const event of events) runtime.removeEventListener?.(event, listener);
+      };
+    },
+    // v224 — the camera pair. Both names already existed on the bus; what was missing is on the runtime side
+    // (a refused `setActiveCamera` used to clear every camera while answering `false`), and v224 fixed that
+    // so this leg has a truthful account to re-read. One listener joins both names, as in the other five.
+    watchCameras(listener) {
+      if (!runtime.addEventListener || !runtime.removeEventListener) return () => {};
+      const events = ['cameraCreated', 'activeCameraChanged'];
       for (const event of events) runtime.addEventListener(event, listener);
       return () => {
         for (const event of events) runtime.removeEventListener?.(event, listener);

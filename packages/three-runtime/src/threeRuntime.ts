@@ -2538,12 +2538,16 @@ export class ThreeRuntime {
     const scene = this.sceneGraph.scenes.get(sceneId);
     if (!scene) return false;
 
-    for (const camera of scene.cameras.values()) {
-      camera.active = false;
-    }
-
+    // v224 — the requested camera is looked up BEFORE any `active` flag is touched. The old order cleared
+    // every camera in the scene and only then refused an id the scene does not hold, so a `false` answer
+    // came with the scene left having NO active camera — a silent edit behind a refusal. The refusal is the
+    // same answer as the one above it, so it must be the same no-op.
     const camera = scene.cameras.get(cameraId);
     if (!camera) return false;
+
+    for (const other of scene.cameras.values()) {
+      other.active = false;
+    }
 
     camera.active = true;
     this.emit('activeCameraChanged', { sceneId, cameraId });

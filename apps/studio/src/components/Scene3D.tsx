@@ -285,6 +285,10 @@ export default function Scene3D() {
     // no earlier leg reads. This component's own `onResize` below now re-reads twice — once through its own
     // pull, once through the bus it just joined — which is a redundant render, not a wrong value.
     const unwatchPixels = surface.watchPixels(() => setReport(surface.report()));
+    // v224 — the camera leg: a camera created or switched to by ANYONE moves the camera rows (how many,
+    // which one the panel says is live). The runtime's refusal to switch is now a true no-op (v224), so the
+    // leg has nothing to hear on a failed ask — deaf there is correct, not a gap.
+    const unwatchCameras = surface.watchCameras(() => setReport(surface.report()));
     // v161: the controls live OUTSIDE this effect (they are React handlers), so the surface has to be
     // reachable from them. A ref rather than state, because the surface is not a value React should
     // re-render on — it is a handle to a running loop.
@@ -320,6 +324,7 @@ export default function Scene3D() {
       unwatchBodies();
       unwatchScenes();
       unwatchPixels();
+      unwatchCameras();
       // `dispose()` stops the loop it owns, drops every entity/record registry and disposes the
       // backend — so a teardown needs no second call here, and the next mount starts clean.
       runtime.dispose();

@@ -1448,7 +1448,7 @@ describe('watchScenes (M5 v217)', () => {
     for (const entry of off) expect(entry.listener).toBe(listener);
   });
 
-  it('ALL FIVE legs join pairwise DISJOINT name sets — the pixels family borrows no name from the other four', () => {
+  it('ALL SIX legs join pairwise DISJOINT name sets — the camera pair borrows no name from the other five', () => {
     const on: string[] = [];
     const { runtime } = fakeRuntime({
       addEventListener: (event) => {
@@ -1468,27 +1468,31 @@ describe('watchScenes (M5 v217)', () => {
     const sceneNames = on.slice(on.length - 2);
     surface.watchPixels(() => {});
     const pixelNames = on.slice(on.length - 3);
+    surface.watchCameras(() => {});
+    const cameraNames = on.slice(on.length - 2);
 
     expect(componentNames).toEqual(['componentAdded', 'componentRemoved', 'componentStateChanged']);
     expect(entityNames).toEqual(['entityRenamed', 'entityVisibilityChanged']);
     expect(bodyNames).toEqual(['entityCreated', 'entityRemoved']);
     expect(sceneNames).toEqual(['sceneCreated', 'activeSceneChanged']);
     expect(pixelNames).toEqual(['initialized', 'resize', 'pixelRatioChanged']);
+    expect(cameraNames).toEqual(['cameraCreated', 'activeCameraChanged']);
 
-    // The whole seam, not one leg: 12 joins, 12 distinct names. Each new leg re-widens this pin, because
+    // The whole seam, not one leg: 14 joins, 14 distinct names. Each new leg re-widens this pin, because
     // the earlier leg's case cannot see a name only the newest one adds — so a name joined twice, or a
     // family that starts sharing news with another, reddens HERE.
-    const joined = [...componentNames, ...entityNames, ...bodyNames, ...sceneNames, ...pixelNames];
-    expect(on.length).toBe(12);
-    expect(joined.length).toBe(12);
+    const joined = [...componentNames, ...entityNames, ...bodyNames, ...sceneNames, ...pixelNames, ...cameraNames];
+    expect(on.length).toBe(14);
+    expect(joined.length).toBe(14);
     expect(new Set(joined).size).toBe(joined.length);
     // And each later family's names appear in NO earlier leg's slice.
-    for (const name of [...sceneNames, ...pixelNames]) {
+    for (const name of [...sceneNames, ...pixelNames, ...cameraNames]) {
       expect(componentNames).not.toContain(name);
       expect(entityNames).not.toContain(name);
       expect(bodyNames).not.toContain(name);
     }
-    for (const name of pixelNames) expect(sceneNames).not.toContain(name);
+    for (const name of [...pixelNames, ...cameraNames]) expect(sceneNames).not.toContain(name);
+    for (const name of cameraNames) expect(pixelNames).not.toContain(name);
   });
 
   it('sceneCreated and activeSceneChanged each fire the scene leg and none of the other three', () => {
@@ -1666,6 +1670,118 @@ describe('watchPixels (M5 v218)', () => {
     expect(heard).toEqual([]);
 
     emit('resize', { width: 800, height: 600 });
+    expect(heard).toEqual(['news']);
+  });
+});
+
+describe('watchCameras (M5 v224)', () => {
+  function withBus() {
+    const listeners = new Map<string, ((data?: unknown) => void)[]>();
+    const { runtime } = fakeRuntime({
+      addEventListener: (event, listener) => {
+        const list = listeners.get(event) ?? [];
+        list.push(listener);
+        listeners.set(event, list);
+      },
+      removeEventListener: (event, listener) => {
+        const list = listeners.get(event) ?? [];
+        const at = list.indexOf(listener);
+        if (at !== -1) list.splice(at, 1);
+      },
+    });
+    const emit = (event: string, data?: unknown) => {
+      for (const listener of listeners.get(event) ?? []) listener(data);
+    };
+    return { runtime, listeners, emit };
+  }
+
+  it('a host without event verbs answers a no-op unsubscribe instead of crashing', () => {
+    const { runtime } = fakeRuntime();
+    const surface = createStudioScene(runtime, () => {});
+    const unwatch = surface.watchCameras(() => {});
+    expect(typeof unwatch).toBe('function');
+    expect(() => unwatch()).not.toThrow();
+  });
+
+  it('a host WITH verbs joins exactly the two camera names with one shared listener, and leaves on both', () => {
+    const on: Array<{ event: string; listener: unknown }> = [];
+    const off: Array<{ event: string; listener: unknown }> = [];
+    const { runtime } = fakeRuntime({
+      addEventListener: (event, listener) => {
+        on.push({ event, listener });
+      },
+      removeEventListener: (event, listener) => {
+        off.push({ event, listener });
+      },
+    });
+    const surface = createStudioScene(runtime, () => {});
+    const listener = () => {};
+    const unwatch = surface.watchCameras(listener);
+
+    expect(on.map((entry) => entry.event)).toEqual(['cameraCreated', 'activeCameraChanged']);
+    expect(new Set(on.map((entry) => entry.listener)).size).toBe(1);
+    expect(on[0]!.listener).toBe(listener);
+
+    unwatch();
+    expect(off.map((entry) => entry.event).sort()).toEqual(on.map((entry) => entry.event).sort());
+    for (const entry of off) expect(entry.listener).toBe(listener);
+  });
+
+  it('cameraCreated and activeCameraChanged each fire the camera leg and none of the other five', () => {
+    const { runtime, emit } = withBus();
+    const surface = createStudioScene(runtime, () => {});
+    let cameraFires = 0;
+    let pixelsFires = 0;
+    let sceneFires = 0;
+    let bodyFires = 0;
+    let entityFires = 0;
+    let componentFires = 0;
+    surface.watchCameras(() => {
+      cameraFires += 1;
+    });
+    surface.watchPixels(() => {
+      pixelsFires += 1;
+    });
+    surface.watchScenes(() => {
+      sceneFires += 1;
+    });
+    surface.watchBodies(() => {
+      bodyFires += 1;
+    });
+    surface.watchEntities(() => {
+      entityFires += 1;
+    });
+    surface.watchComponents(() => {
+      componentFires += 1;
+    });
+
+    const counts = () => ({ cameraFires, pixelsFires, sceneFires, bodyFires, entityFires, componentFires });
+
+    emit('cameraCreated', { sceneId: 'studio', camera: { id: 'c2', name: 'Review Cam' } });
+    expect(counts()).toEqual({ cameraFires: 1, pixelsFires: 0, sceneFires: 0, bodyFires: 0, entityFires: 0, componentFires: 0 });
+
+    emit('activeCameraChanged', { sceneId: 'studio', cameraId: 'c2' });
+    expect(counts()).toEqual({ cameraFires: 2, pixelsFires: 0, sceneFires: 0, bodyFires: 0, entityFires: 0, componentFires: 0 });
+  });
+
+  it('the scene pair is NOT watched by the camera leg, even though a scene switch moves the camera rows', () => {
+    const { runtime, emit } = withBus();
+    const surface = createStudioScene(runtime, () => {});
+    const heard: string[] = [];
+    surface.watchCameras(() => heard.push('news'));
+
+    // The boundary v224 declares and v217 already owns: `activeSceneChanged` and `sceneCreated` change WHICH
+    // camera list the report reads (and, for a new scene, empty it), but they are the scene leg's names and the
+    // component subscribes BOTH legs. Keeping them out of this pair is what makes the disjointness pin above
+    // mean something; a camera leg that also joined them would re-read twice and hide a missing scene leg.
+    emit('activeSceneChanged', { sceneId: 'second' });
+    emit('sceneCreated', { scene: { id: 'second' } });
+    // `disposed` keeps v217's and v218's reason: the component teardown calls it, beside this leg's unwatch.
+    emit('disposed');
+    expect(heard).toEqual([]);
+
+    // And the leg is alive: the silence is these names', not a dead subscription.
+    emit('cameraCreated', { sceneId: 'studio', camera: { id: 'c2' } });
     expect(heard).toEqual(['news']);
   });
 });

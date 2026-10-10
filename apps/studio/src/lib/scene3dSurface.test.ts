@@ -1431,3 +1431,167 @@ describe('watchPixels — an out-of-band backend, size or ratio change moves the
     expect(headless.runtime.getBackend()).toBeNull();
   });
 });
+
+describe('watchCameras — an out-of-band camera add or switch moves the panel’s camera rows (M5 v224)', () => {
+  let runtime: ThreeRuntime | null = null;
+  afterEach(() => {
+    runtime?.dispose();
+    runtime = null;
+  });
+
+  function camerasOnHeadless() {
+    const headless = headlessRuntime();
+    runtime = headless.runtime;
+    const surface = createStudioScene(headless.runtime, () => {});
+    return { headless, surface };
+  }
+
+  /** The three rows this leg exists for, as one value a case can compare whole. */
+  const cameraRows = (surface: ReturnType<typeof createStudioScene>) => {
+    const scene = surface.report().scene;
+    return scene ? { cameras: scene.cameras, names: scene.cameraNames, active: scene.activeCamera } : null;
+  };
+
+  it('an out-of-band createCamera grows the rows the panel reads, and the leg re-reads the runtime’s OWN answer', () => {
+    const { headless, surface } = camerasOnHeadless();
+    expect(cameraRows(surface)).toEqual({ cameras: 1, names: ['Studio Camera'], active: surface.cameraId });
+    const seen: Array<ReturnType<typeof cameraRows>> = [];
+    surface.watchCameras(() => seen.push(cameraRows(surface)));
+
+    const extra = headless.runtime.createCamera(toSceneId(surface.sceneId), 'Review Cam');
+
+    expect(seen).toHaveLength(1);
+    expect(seen[0]).toEqual({ cameras: 2, names: ['Studio Camera', 'Review Cam'], active: surface.cameraId });
+    // Only a scene's FIRST camera is activated by the insert, so the row the leg re-reads still names the
+    // original as the one driving the picture — the report is the runtime's answer, not a guess about it.
+    expect(extra.active).toBe(false);
+  });
+
+  it('an out-of-band setActiveCamera moves `activeCamera` and leaves the name list standing', () => {
+    const { headless, surface } = camerasOnHeadless();
+    const extra = headless.runtime.createCamera(toSceneId(surface.sceneId), 'Review Cam');
+    const fires: Array<string | null> = [];
+    surface.watchCameras(() => fires.push(surface.report().scene!.activeCamera));
+    fires.length = 0; // drop the insert's news: this case is about the switch alone
+
+    const answer = headless.runtime.setActiveCamera(toSceneId(surface.sceneId), extra.id);
+
+    expect(answer).toBe(true);
+    expect(fires).toEqual([extra.id]);
+    expect(surface.report().scene!.cameraNames).toEqual(['Studio Camera', 'Review Cam']);
+    expect(surface.report().scene!.cameras).toBe(2);
+  });
+
+  it('a REFUSED switch moves nothing and fires nothing, so the leg’s silence is the correct answer', () => {
+    // v224's runtime half, read through the SHIPPED seam. Before the fix this very call left `activeCamera`
+    // at `null` behind a `false`, while emitting nothing — a report edit no subscription could repair, because
+    // the refusal had no news to carry. Now the refusal moves no field, so nothing needs saying.
+    const { headless, surface } = camerasOnHeadless();
+    const extra = headless.runtime.createCamera(toSceneId(surface.sceneId), 'Review Cam');
+    const fires: string[] = [];
+    surface.watchCameras(() => fires.push('news'));
+
+    const rowsBefore = cameraRows(surface);
+    const refused = headless.runtime.setActiveCamera(toSceneId(surface.sceneId), toCameraId('camera-that-does-not-exist'));
+
+    expect(refused).toBe(false);
+    expect(fires).toEqual([]);
+    expect(cameraRows(surface)).toEqual(rowsBefore);
+    expect(rowsBefore!.active).toBe(surface.cameraId);
+
+    // And the leg is alive: the silence is this call's, not a dead subscription.
+    headless.runtime.setActiveCamera(toSceneId(surface.sceneId), extra.id);
+    expect(fires).toEqual(['news']);
+  });
+
+  it('on the real bus a camera switch news ONLY activeCameraChanged: fourteen raw listeners, one name fires', () => {
+    const { headless, surface } = camerasOnHeadless();
+    const names = [
+      'componentAdded',
+      'componentRemoved',
+      'componentStateChanged',
+      'entityRenamed',
+      'entityVisibilityChanged',
+      'entityCreated',
+      'entityRemoved',
+      'sceneCreated',
+      'activeSceneChanged',
+      'initialized',
+      'resize',
+      'pixelRatioChanged',
+      'cameraCreated',
+      'activeCameraChanged',
+    ];
+    const fired: string[] = [];
+    for (const name of names) headless.runtime.addEventListener(name, () => fired.push(name));
+
+    headless.runtime.setActiveCamera(toSceneId(surface.sceneId), toCameraId(surface.cameraId));
+    expect(fired).toEqual(['activeCameraChanged']);
+
+    fired.length = 0;
+    headless.runtime.createCamera(toSceneId(surface.sceneId), 'Third Cam');
+    expect(fired).toEqual(['cameraCreated']);
+  });
+
+  it('camera news wakes no other leg, and a body event wakes no camera leg (the real bus, all six legs)', () => {
+    const { headless, surface } = camerasOnHeadless();
+    let cameraFires = 0;
+    let pixelsFires = 0;
+    let bodyFires = 0;
+    surface.watchCameras(() => {
+      cameraFires += 1;
+    });
+    surface.watchPixels(() => {
+      pixelsFires += 1;
+    });
+    surface.watchBodies(() => {
+      bodyFires += 1;
+    });
+
+    headless.runtime.createCamera(toSceneId(surface.sceneId), 'Review Cam');
+    expect({ cameraFires, pixelsFires, bodyFires }).toEqual({ cameraFires: 1, pixelsFires: 0, bodyFires: 0 });
+
+    headless.runtime.createEntity(toSceneId(surface.sceneId), 'Stray', 'mesh');
+    expect({ cameraFires, pixelsFires, bodyFires }).toEqual({ cameraFires: 1, pixelsFires: 0, bodyFires: 1 });
+  });
+
+  it('the camera WRITE the component makes — position and lookAt — moves no reported row and fires no leg', () => {
+    // The refusal this grant had to measure rather than assume: `aim()` moves the live THREE.Camera on every
+    // orbit drag, and the report reads only `id`, `name` and `active`. A leg there would re-read a report that
+    // cannot have changed. The write below is the component's own adapter, and it is real — that is the point.
+    const { headless, surface } = camerasOnHeadless();
+    let fires = 0;
+    surface.watchCameras(() => {
+      fires += 1;
+    });
+    const rowsBefore = cameraRows(surface);
+
+    aimCamera(headless.runtime, surface.sceneId, surface.cameraId);
+
+    expect(fires).toBe(0);
+    expect(cameraRows(surface)).toEqual(rowsBefore);
+    const live = headless.runtime.getScene(toSceneId(surface.sceneId))!.cameras.get(toCameraId(surface.cameraId))!;
+    expect(live.threeCamera.position.x).toBe(STUDIO_CAMERA_POSITION.x);
+  });
+
+  it('unsubscribing drops the camera leg only, and a second unwatch does not throw', () => {
+    const { headless, surface } = camerasOnHeadless();
+    let cameraFires = 0;
+    let bodyFires = 0;
+    const unwatchCameras = surface.watchCameras(() => {
+      cameraFires += 1;
+    });
+    surface.watchBodies(() => {
+      bodyFires += 1;
+    });
+
+    unwatchCameras();
+    unwatchCameras();
+    headless.runtime.createCamera(toSceneId(surface.sceneId), 'Review Cam');
+    expect(cameraFires).toBe(0);
+
+    // The other leg is untouched by this leg's leave: identity, not name, is what was dropped.
+    headless.runtime.createEntity(toSceneId(surface.sceneId), 'Stray', 'mesh');
+    expect(bodyFires).toBe(1);
+  });
+});
