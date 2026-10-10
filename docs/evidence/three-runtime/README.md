@@ -2886,3 +2886,30 @@ landed write is still raw — that path has its own story and gets none of this 
 no quota meter: the user learns the origin is full only when the refusal arrives. The v179 bounds' "no
 delete in the browse UI" clause is retired — the browse has had delete since v169/v171; this record
 corrects the ledger, not the code.
+
+## v205 — component removal releases the evicted component's effects: the record this grant was owed (ADR 0016 amendment 220)
+
+`5d68198` cites "ADR 0016 amendment 205", and that number is exec-host's share of the type-gate repair. Same
+collision as amendment 219, same resolution: the record takes the next free number and states it. This section is
+where the increment is described.
+
+v204's gate made `enabled` control visibility, but REMOVING a component entirely left its side effects in place
+forever: a `targetObject` stayed hidden with nothing left to re-enable it, and every `animationIds` entry stayed
+paused with no way back. `removeComponent` now releases both before deleting — `targetObject.visible = true`, and
+each animation's `enabled = true` with `play()` called to resume.
+
+**A signature change, for a stated reason.** `removeComponent(entity, componentType)` became
+`removeComponent(sceneId, entity, componentType)`, because releasing an animation requires the scene's own
+animation registry. The one existing caller in `threeRuntime.test.ts` was updated to match.
+
+| layer | what it proves |
+| --- | --- |
+| `test/componentRemovalCleanup.test.ts` (5) | `targetObject` cleanup · animation cleanup · plain data components · a non-existent component · non-existent `animationIds` |
+
+Measured **472/472** in 15 files, `tsc` clean, and no Studio change — the surface does not call
+`removeComponent`, so the cleanup is proven at the runtime layer.
+
+Bounds (§60): this is the FIRST of three eviction doors. The other two are amendment 206 (entity removal) and
+amendment 208 (`addComponent`'s same-type replace) — which is why 208's heading calls itself "the third eviction
+door". The release rule is per-door and each door carries its own case, rather than one shared path assumed to
+cover all three.

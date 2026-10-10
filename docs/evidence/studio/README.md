@@ -1690,3 +1690,59 @@ flags with receipts and the red walk), harness 7 → **8/8**.
 
 Bounds, stated: the arc is two pinned steps over one `build.verify` door, and the deploy leg is a LATER
 increment (v176/v177). Nothing here publishes, pushes or releases — the walk records what it verified.
+
+## v218 — the surface's FIFTH watch leg, and the verb that was writing a reported field in silence (ADR 0016 amendment 218)
+
+`ThreeRuntime.resize` has announced itself on the event bus since always and `initialize` announces the backend
+it builds — but `setPixelRatio` wrote `backend.state.pixelRatio`, which is exactly the `pixels.pixelRatio` the
+surface REPORTS, and no name on the bus carried the news. An out-of-band ratio change (a console command, an
+agent, another component) left the panel showing a pixel figure no longer in force.
+
+The verb now emits AFTER the backend has taken the value, and a call with no backend — which can change no state
+— returns quietly instead of announcing a write that did not happen.
+
+`SceneSurface.watchPixels` joins one listener to exactly `initialized`, `resize` and `pixelRatioChanged`: the
+three writes that move `report.backend` or `report.pixels`, the two fields no earlier leg reads. Same
+host-honest guard, idempotent unsubscribe and payload-free contract as its four siblings. Two refusals are
+stated rather than omitted — `disposed` (this effect's own teardown calls `runtime.dispose()`) and
+`started`/`stopped`/`frame` (no report field keys off whether the loop is running, and `frames`/`draws` already
+refresh from the loop's own pull, throttled by design).
+
+The pairwise-disjointness pin re-widens with each leg, so v216's four-leg case cannot hide a name only a fifth
+leg adds: **9 joins → 12 joins, 12 distinct names**, with each later family's names asserted absent from every
+earlier leg's slice.
+
+| layer | what it proves |
+| --- | --- |
+| `packages/three-runtime/test/pixelRatioEvent.test.ts` (7) | emit exactly once with the ratio asked for · the listener reads the NEW ratio from the backend at emit time · a call before `initialize()` is silent · a throwing listener cannot un-apply the write · the bus reports ASKS not deltas · the two pixels names do not cross · `removeEventListener` silences it |
+| studio cases (13) | the fifth leg's name set, the disjointness pin, and the wiring through `Scene3D` |
+
+**Mutation probe, 3 arms, 3/3 MATCHED** (async spawn — `execFileSync` answers EBUSY on this host, amendment 152):
+the emit removed → five cases red; the no-backend guard removed → the "BEFORE initialize() is SILENT" case red;
+the emit moved BEFORE the write → `expected [ 1 ] to deeply equal [ 1.5 ]`, i.e. **the listener read the OLD
+ratio**, which is precisely the claim that case makes.
+
+Bounds: the verb reports ASKS, not deltas (setting the ratio it already holds still announces and still writes,
+so a subscriber re-reads once per call); the leg carries no payload by design, because carrying the ratio would
+be a second source of truth for a number the report already owns; and `Scene3D`'s own `onResize` now re-reads
+twice — a redundant render, not a wrong value.
+
+## v204 — the component registry gates HUD visibility: the record this grant was owed (ADR 0016 amendment 219)
+
+`f02dac8`'s commit message ends "The ADR 0016 amendment record for this grant is owed", and it cites "amendment
+204" — a number that belongs to the type-gate repair. The record is written under the next free number and states
+the collision; this section is where the increment is described.
+
+`setComponentEnabled` also filters the component out of `entityComponentsOf()`'s result, so the `enabled` flag
+gates four things under one rule: query participation (v201), rendering via `targetObject` (v202), animation
+playback (v203), and inspector visibility (v204) — the same rule `getEnabledComponents` already applies, so the
+HUD shows what the query layer sees.
+
+**Recorded as it shipped: SIX RED TESTS** (`Studio suite 401/407`, the commit's own words). That matters beyond
+bookkeeping — **amendment 207** exists because v204's filter had shut the only re-enable door, leaving a disabled
+component both invisible and un-re-enableable. A suite committed red is a suite whose red cannot be told from a
+regression.
+
+Bounds: a disabled component is still STORED and can be re-enabled (once v207 restored the door); the filter
+applies to the reported projection, not the data. `SerializedEntityComponent` excludes `targetObject` and
+`animationIds` from the file format, so neither runtime-only field reaches a save.
