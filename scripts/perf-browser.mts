@@ -486,20 +486,20 @@ async function propToCanvasLatency(scope: string): Promise<void> {
       );
       // 页面内的同一段（输入事件 → 手柄出现），并拆成三段：派发与命中测试、界面自己的提交、
       // React 渲染与绘制。后两段的标记只在开发构建里打（store.ts 里 NODE_ENV 守卫）。
-      // 注意：这个 page.evaluate 不能写返回类型标注——esbuild 会给带标注的箭头套 __name
-      // 包装函数，页内没有那个符号（本文件头部 §147 那段注释说的同一个坑）
+      // 两个坑都别再踩（本文件头部的同一段警告）：① page.evaluate 的回调不能写返回类型标注；
+      // ② 回调**内部**不要再定义具名箭头函数——esbuild 给它们补的 __name 助手在页面里不存在
+      //    （2026-10-10 实测：ReferenceError: __name is not defined，10000 档整段量不到）。
+      //    所以下面全部内联成匿名函数表达式。
       const segments = (await page.evaluate(() => {
-        const mark = (name: string): number | undefined =>
-          performance.getEntriesByName(name, 'mark').at(-1)?.startTime;
-        const t0 = mark('nexus:sel:t0');
+        const t0 = performance.getEntriesByName('nexus:sel:t0', 'mark').at(-1)?.startTime;
         if (t0 === undefined) return new Promise((r) => r({ total: NaN, dispatch: NaN, store: NaN, paint: NaN }));
-        return new Promise((resolve: (v: { total: number; dispatch: number; store: number; paint: number }) => void) => {
+        return new Promise((resolve) => {
           const timer = window.setInterval(() => {
             if (document.querySelectorAll('[data-resize-handle]').length > 0) {
               window.clearInterval(timer);
               const t1 = performance.now();
-              const store0 = mark('nexus:sel:store');
-              const commit = mark('nexus:sel:commit');
+              const store0 = performance.getEntriesByName('nexus:sel:store', 'mark').at(-1)?.startTime;
+              const commit = performance.getEntriesByName('nexus:sel:commit', 'mark').at(-1)?.startTime;
               resolve({
                 total: t1 - t0,
                 dispatch: store0 !== undefined ? store0 - t0 : NaN,
