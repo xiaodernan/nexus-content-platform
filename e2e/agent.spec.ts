@@ -127,7 +127,7 @@ test('@smoke agent orchestration runs in the studio and lands a real notificatio
   await expect(page.locator('[data-agent-step-status="done"]')).toHaveCount(stepCount);
   // 刷新后不该退回空态（那意味着计划只活在内存里）
   await expect(page.locator('[data-agent-empty]')).toHaveCount(0);
-  // 刷新之后草稿还在，接受入口也还在：草稿存的是任务行，不是组件状态（ADR-0034）
+  // 刷新之后草稿还在，接受入口也还在：草稿存的是任务行，不是组件状态（ADR-0035）
   await expect(page.locator('[data-agent-accept-game="game"]')).toBeVisible({ timeout: 30_000 });
 
   // §52 的落地：这一点之前项目里"还没有游戏"——只读的作业不会自己把草稿写进去

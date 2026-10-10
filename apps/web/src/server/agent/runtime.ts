@@ -45,7 +45,7 @@ import { loadDocument } from '../domain/projects';
  *    Agent、或它没声明这条能力，整份作业拒收并说清缺什么。
  * 3. **这一轮只读**。今天这五步都不改设计文档、不发布、不生成像素，也不往游戏库写东西——
  *    §52 那一步编出来的草稿只存在这一条作业里（`result.steps[].draft`），要进项目得由用户在
- *    接受入口点那一下（ADR-0034）。所以这里没有 §150 的可撤销事务要记，也不可能把工作区改坏。
+ *    接受入口点那一下（ADR-0035）。所以这里没有 §150 的可撤销事务要记，也不可能把工作区改坏。
  *    将来加会改模型的步骤时，那一步必须自己走 Command（§150）
  *    并把撤销凭证带回来，不许在这里直接写库。
  * 4. **失败往下传**。某一步失败之后，依赖它的步骤是 `skipped` 并写着"被谁牵连"——不是 failed：
@@ -112,7 +112,7 @@ interface StepOutcome {
   data?: ReadinessReport;
   /**
    * 只有 §52 那一步会返回它：一份**还没写进项目**的游戏草稿。
-   * 它跟着步骤结论进任务行，接受入口才有东西可接（ADR-0034）。
+   * 它跟着步骤结论进任务行，接受入口才有东西可接（ADR-0035）。
    */
   draft?: GameDocument;
 }
@@ -540,7 +540,7 @@ export async function runReadinessCheck(input: {
         counts: outcome.counts,
         notes: outcome.notes,
         durationMs: Date.now() - startedAt,
-        // 草稿只在这一步有：它是"这一步跑完留下的东西"，不是项目里的真值（§52 × ADR-0034）
+        // 草稿只在这一步有：它是"这一步跑完留下的东西"，不是项目里的真值（§52 × ADR-0035）
         ...(outcome.draft ? { draft: outcome.draft } : {}),
       });
       plan = withStatus(plan, id, 'done');

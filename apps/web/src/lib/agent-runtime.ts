@@ -46,7 +46,7 @@ export interface StepSpec {
  * 五种步骤各自的真实执行方：结构盘点读本项目自己的库；SEO 检查读项目元信息与设计正文；
  * 门禁就是发布时用的同一个 `analyzeHealth`（§179 那一份，不另算一套分）；汇总是前三者的产物；
  * Game Agent 那一步给的是 §52 的**确定性草稿**（`agent-game-draft.ts` 那张表），
- * 它随步骤结论存在任务行里，**不写进项目**——要进项目得由用户点「接受」那一下（见 ADR-0034）。
+ * 它随步骤结论存在任务行里，**不写进项目**——要进项目得由用户点「接受」那一下（见 ADR-0035）。
  */
 export const READINESS_STEPS: readonly StepSpec[] = [
   {

@@ -728,8 +728,35 @@ drizzle 把整个拼接结果当成**单个绑定参数**，生成的 SQL 是 `o
      停点与空正文、成环、跑不起来）；game-model 120 条全绿；`@smoke §51` 多两格
      （对话页查可达性 2/2 + 截图 `story-play-playtest.png`；RPG 页跑四种走法 + 限度含 rpgStep
      + 截图 `story-play-rpg-playtest.png`；真浏览器 26s 通过）。
+  **2026-10-11 §52 第一片（Game Agent 有真产物，产物有一个真去处）**：`game` 成为编排的第五种步骤
+  （`STEP_KINDS` / `READINESS_STEPS` 各加一条，名册里 `game` 那位声明的 `game.write` 就是这一步的要求）。
+  - **草稿来自确定性配方而不是模型**：`lib/agent-game-draft.ts` 那张表编出一份 RPG 原型
+    （8 个实体 / 2 个敌人 / 1 条任务），id 只从 seed 派生（换时间戳不动 id，换种子才换 id），
+    目标文本只改标题不动任何数值。界面上"四种脚本走法里有几种通关"是 `playtestRpg` 跑出来的读数，
+    报告自带的限度与它同屏显示（只报"2 种通关"会被读成"这设计好上手"）。
+  - **草稿存在任务行里**（`result.steps[].draft`，形状直接用 `GameDocumentSchema`），所以刷新之后还在、
+    别的实例也读得到；编排那五步**仍然只读**——跑完之后 `countGames` 还是 0，集成测试钉着这一条。
+  - **落地只由用户点那一下**：`POST /api/projects/<id>/agent/draft`，请求体只有 `taskId`——
+    那份文档由服务端从任务行读出来，所以调用方贴不进任意一份设计；
+    `saveGame(..., { createOnly: true })` 在项目已有游戏设计时**拒绝覆盖**（409 + 说清已有哪一份），
+    拒绝之后库里那份整列 JSONB 一字未动。两种落地形状（审批门补丁 vs 显式接受整份文档）
+    的取舍见 `docs/adr/0035-agent-artifact-landing-shapes.md`。
+  - 测试：`agent-game-draft.test.ts` 19 条（纯层：配方≠理解、确定性、可玩性、经验跨等级门）；
+    `agent-draft-accept.integration.test.ts` 7 条打真库（CSRF 前不碰库 / 三种问法同一个 404 /
+    无草稿 409 + 拒绝审计 / 只认 taskId / 不覆盖且字节相同 / 放行审计按本次那份文档查）；
+    `games.integration.test.ts` 的 createOnly 五道含**两条对照**（同一份草稿不带 createOnly 就写得进去，
+    证明拒绝来自这道门而不是文档本身；项目里那份是 2020 年存的而草稿是刚刚跑的，
+    证明挡着覆盖的**只有**这道门——前一种排布下"更旧的写"那道守卫会顺手替它挡下来）；
+    `agent-orchestration.integration.test.ts` 五步全绿 +
+    草稿落任务行 + `countGames===0`。e2e `@smoke`：跑 → 刷新草稿还在 → 点接受写库 →
+    游戏面板读得到同一份 → 再点不覆盖，截图 `agent-accept.png` / `agent-accept-refused.png`；
+    步数断言全部改成从服务端计划里读（原来写死 4，配方加一步就会假绿）。
+    七条变异臂（摘门 / 丢草稿 / 掺随机 / 换顺序 / 收请求体文档 / 归属改 409 / 措辞兑现承诺）
+    各自点名哪几条红，读数在 `docs/TESTING.md`；**摘门那一条第一轮只红在措辞上**，
+    于是补了上面那道"旧设计 + 新草稿"的对照——守卫的独证是量出来的，不是想出来的。
    **仍欠**：§53 的 Capture screenshots / Fix 两格（要接浏览器与模型）、§52 那条
-   Game Design → Combat → Level → … → Code 的编排链。
+   Game Design → Combat → Level → … → Code 的编排链（上面那片只到"编出草稿 + 接受进项目"，
+   没有自动改设计模型，也没有生成代码）。
    前置条件已经好了：`sim.ts` 是无头、定步长、可复现的（同一份计划 + 同一段输入 = 同一个状态，有测试钉住）。
 - [~] 游戏设计系统：Player/Enemy/Weapon/Item/Quest/Dialogue/Trigger/NPC/Camera/Animation/Particle（§54）
   — **2026-09-24 落地模型层**：新开 `packages/game-model`（与 design-model / world-model 同一条纪律：

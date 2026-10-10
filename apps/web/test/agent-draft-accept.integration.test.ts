@@ -223,6 +223,26 @@ describe('§52 接受入口', () => {
     expect(await countGames(ownOther), '草稿被接受进了它不属于的项目').toBe(0);
   });
 
+  it('旧设计 + 刚跑出来的草稿：409 只可能来自 createOnly 这一道门', async () => {
+    // 上一条把已有那份的 updatedAt 写成 2099，于是"更旧的写"那道守卫也挡得住这次写——
+    // 那条红证明不了红的是 createOnly。真实情形是反的：项目里那份是用户很久以前存的，
+    // 草稿的时间戳是刚刚，守卫不发声，唯一挡着覆盖的就是 createOnly。
+    const projectId = await newProject('接受不覆盖旧设计');
+    const { taskId } = await seededRun(projectId);
+    expect((await saveGame(projectId, owner, { ...createGame('三年前的设计', projectId), updatedAt: '2020-01-01T00:00:00.000Z' })).ok).toBe(true);
+    const rowOf = () => getDb().select({ document: games.document }).from(games).where(eq(games.projectId, projectId));
+    const before = await rowOf();
+
+    const res = await call(projectId, { taskId }, asUser(ownerToken));
+    expect(res.status).toBe(409);
+    const body = await res.json();
+    expect(body.error).toBe('accept_refused');
+    expect(body.message, '拒绝的原因说的是"已经有这一份"，不是"这次写的是旧版本"').toContain('三年前的设计');
+
+    expect(JSON.stringify(await rowOf()), '拒绝之后库里那份被改过').toBe(JSON.stringify(before));
+    expect(await countGames(projectId)).toBe(1);
+  });
+
   it('项目已有游戏设计 → 409 且不覆盖，库里那份一字未动', async () => {
     const projectId = await newProject('接受不覆盖');
     const { taskId } = await seededRun(projectId);

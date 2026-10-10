@@ -209,6 +209,27 @@ describe('createOnly：只在项目还没有游戏文档时写（§52 接受入�
     expect(loaded?.ok && loaded.document.name).toBe('我自己的游戏');
   });
 
+  it('旧设计遇到新草稿：挡住覆盖的只有 createOnly 这一道门', async () => {
+    // 上一条里用户那份的 updatedAt 比草稿**新**，所以"更旧的写"那道守卫也会挡下这次写——
+    // 于是那条红并不能证明红的是 createOnly。这里把两边反过来：项目里那份是三年前的，
+    // 草稿的时间戳是此刻，守卫站不出声，**唯一**还挡着的是 createOnly。
+    // 少了这一条，把 createOnly 摘掉仍可能全绿（覆盖被另一道门顺手挡住了）。
+    const id = await newProject('接受门独证');
+    expect((await saveGame(id, ownerId, { ...createGame('去年那份', id), updatedAt: '2020-01-01T00:00:00.000Z' })).ok).toBe(true);
+    const rowOf = () => getDb().select({ document: games.document }).from(games).where(eq(games.projectId, id));
+    const before = await rowOf();
+
+    const fresh = gameDraft({ goal: '接受入口测试', at: new Date().toISOString(), seed: 'games-integration', projectId: null });
+    const refused = await saveGame(id, ownerId, fresh, { createOnly: true });
+    expect(refused.ok).toBe(false);
+    if (refused.ok) throw new Error('项目里那份旧设计被草稿盖掉了——挡住它的不是 createOnly');
+    expect(refused.reason).toContain('去年那份');
+    expect(refused.reason).toContain('不会覆盖');
+    expect(JSON.stringify(await rowOf()), '拒绝之后库里那份被改过').toBe(JSON.stringify(before));
+    const loaded = await loadGame(id);
+    expect(loaded?.ok && loaded.document.name).toBe('去年那份');
+  });
+
   it('反向控制：同一份草稿不带 createOnly 时会覆盖——拒绝确实来自这一道门，不是文档本身有问题', async () => {
     const id = await newProject('接受门对照');
     expect((await saveGame(id, ownerId, createGame('原样', id))).ok).toBe(true);
