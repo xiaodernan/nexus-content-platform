@@ -1,6 +1,6 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { eq, sql as rawSql } from 'drizzle-orm';
-import { addWorldNode, createWorld, removeWorldNode } from '@nexus/world-model';
+import { addWorldNode, createWorld, removeWorldNode, setWorldNodeElevation, setWorldNodePosition } from '@nexus/world-model';
 import { countWorlds, loadWorld, saveWorld } from '../src/server/domain/worlds';
 import { createProject } from '../src/server/domain/projects';
 import { getDb } from '../src/server/db/client';
@@ -65,6 +65,48 @@ describe('世界文档读写（真实数据库）', () => {
     expect(await countWorlds(id)).toBe(1);
     const again = await loadWorld(id);
     expect(again?.ok && again.document.nodes.some((n) => n.id === world.nodes[0]!.id)).toBe(false);
+  });
+
+  /**
+   * §140 高程的真实库往返（2026-10-10）：面板上写的高度必须**存得进、读得出**。
+   * 断链的来龙去脉在 `packages/schemas/test/world-contract.test.ts` 的同名一节——
+   * `WorldPointSchema` 以前没有 `elevation`，zod 静默剥键，于是面板显示的高度
+   * 存盘后再打开回到地面。这条用例走的是同一条真实路径（saveWorld → loadWorld），
+   * 契约那一层归契约测试钉，这里钉"真库 jsonb 里确实留着那一位小数"。
+   */
+  it('高程过得了真实库：写 3.5 米，存进去读回来还是 3.5 米', async () => {
+    const id = await newProject('World Elevation Roundtrip');
+    let world = createWorld('高程世界', id);
+    const node = world.nodes[0]!;
+    world = setWorldNodePosition(world, node.id, { x: 120, y: 240 });
+    world = setWorldNodeElevation(world, node.id, 3.5).document;
+
+    const saved = await saveWorld(id, ownerId, world);
+    expect(saved.ok).toBe(true);
+    if (!saved.ok) throw new Error(saved.reason);
+    expect(saved.document.positions[node.id]).toEqual({ x: 120, y: 240, elevation: 3.5 });
+
+    const loaded = await loadWorld(id);
+    expect(loaded?.ok).toBe(true);
+    if (!loaded?.ok) throw new Error(loaded && !loaded.ok ? loaded.reason : '读不出来');
+    // 读回来这一圈也要有：剥键曾发生在读路径的 safeParse 上，不只是写路径
+    expect(loaded.document.positions[node.id]).toEqual({ x: 120, y: 240, elevation: 3.5 });
+  });
+
+  it('高度 0 不落键：贴地就是没写过，库里不留显式的缺省值', async () => {
+    const id = await newProject('World Elevation Zero');
+    let world = createWorld('贴地世界', id);
+    const node = world.nodes[0]!;
+    world = setWorldNodePosition(world, node.id, { x: 10, y: 20 });
+    world = setWorldNodeElevation(world, node.id, 0).document;
+    const saved = await saveWorld(id, ownerId, world);
+    expect(saved.ok).toBe(true);
+    if (!saved.ok) throw new Error(saved.reason);
+    expect(saved.document.positions[node.id]).toEqual({ x: 10, y: 20 });
+
+    const loaded = await loadWorld(id);
+    if (!loaded?.ok) throw new Error('读不出来');
+    expect(loaded.document.positions[node.id]).toEqual({ x: 10, y: 20 });
   });
 
   it('契约外的文档进不了库，也不留半行数据', async () => {

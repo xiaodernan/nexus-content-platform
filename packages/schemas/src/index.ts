@@ -1093,6 +1093,15 @@ export type WorldNodePayload = z.infer<typeof WorldNodeSchema>;
 export const WorldPointSchema = z.object({
   x: z.number().finite().min(-100_000).max(100_000),
   y: z.number().finite().min(-100_000).max(100_000),
+  /**
+   * §140 的高程（0–6）。**这一栏以前不在契约里**：`world-model` 的 `setWorldNodeElevation`
+   * 写得进去、面板显示得出来，而 PUT → `WorldDocumentSchema` → 读回来这一圈把它静默剥掉
+   * （zod 对象默认剥未知键）——面板上写的高度存盘后再打开就回到地面，没有报错、没有提示。
+   * 2026-10-10 实测（elevation:3 → `{"x":1,"y":2}`）确认后补上。缺省可省：0 = 贴地就是没写过。
+   * 6 这个上界与 `world-model` 的 `WORLD_ELEVATION_MAX` 同源——schemas 刻意不依赖 model 包
+   * （跨端契约自己站得住），改上界时两边一起改，`world-terrain.test.ts` 钉着这一条。
+   */
+  elevation: z.number().finite().min(0).max(6).optional(),
 });
 
 export const WorldLinkSchema = z.object({

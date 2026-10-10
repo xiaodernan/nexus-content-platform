@@ -7,7 +7,7 @@ import {
   WorldKindSchema,
   WorldSaveRequestSchema,
 } from '../src/index';
-import { WORLD_KINDS, addWorldNode, createWorld, removeWorldNode } from '@nexus/world-model';
+import { WORLD_ELEVATION_MAX, WORLD_KINDS, addWorldNode, createWorld, removeWorldNode, setWorldNodeElevation, setWorldNodePosition } from '@nexus/world-model';
 
 /**
  * 世界文档的 zod 契约与 @nexus/world-model 不许漂移。
@@ -51,6 +51,64 @@ describe('世界文档契约（§44）', () => {
       document: { ...world, nodes: [{ ...world.nodes[0]!, body: 'x'.repeat(20_001) }] },
     }).success).toBe(false);
     expect(WorldSaveRequestSchema.safeParse({ document: { ...world, name: '' } }).success).toBe(false);
+  });
+});
+
+/**
+ * §140 高程的 wire 往返（2026-10-10 修的一条断链）。
+ *
+ * 断链是什么：`world-model` 的 `setWorldNodeElevation` 写得进去、面板显示得出来，
+ * 而 `WorldPointSchema` 以前没有 `elevation` 这一栏——zod 对象默认剥未知键，
+ * 于是 PUT → 契约 → 读回来这一圈把它静默剥掉。面板上写的高度存盘后再打开回到地面，
+ * **没有报错也没有提示**（最难查的那类不一致，§16 的设计模型漂移）。
+ *
+ * 所以这里钉三件事：模型写的高程过得了契约、契约剥不掉它、越界的高程进不来。
+ * 配套的单测（模型侧不变量与面板输入）在 `world-model/test/elevation.test.ts`。
+ */
+describe('世界条目高程能存进契约（§140 × wire，2026-10-10）', () => {
+  it('模型写的高程过得了契约，且契约不再剥它', () => {
+    const world = createWorld('高程往返', 'proj-1');
+    const node = world.nodes[0]!;
+    // 模型侧的写入函数先证明这一栏真的写进去了（不是测试自己补的字面量）
+    const positioned = setWorldNodePosition(world, node.id, { x: 12, y: 34 });
+    expect(positioned.positions[node.id]).toEqual({ x: 12, y: 34 });
+    const lifted = setWorldNodeElevation(positioned, node.id, 3);
+    expect(lifted.document.positions[node.id]).toEqual({ x: 12, y: 34, elevation: 3 });
+    expect(lifted.reason).toBeNull();
+
+    const parsed = WorldDocumentSchema.safeParse(lifted.document);
+    expect(parsed.success).toBe(true);
+    // 剥键曾经发生在这里：读回来 `{"x":12,"y":34}`，高程静默消失
+    expect(parsed.success ? parsed.data.positions[node.id] : null).toEqual({ x: 12, y: 34, elevation: 3 });
+    // 走完整条保存请求的包装再过一次：PUT 的报文也不剥
+    const viaPut = WorldSaveRequestSchema.safeParse({ document: lifted.document });
+    expect(viaPut.success).toBe(true);
+    expect(viaPut.success ? viaPut.data.document.positions[node.id] : null).toEqual({ x: 12, y: 34, elevation: 3 });
+  });
+
+  it('越界的高程进不了库（与 WORLD_ELEVATION_MAX 同一边界）', () => {
+    const world = createWorld('高程越界');
+    const node = world.nodes[0]!;
+    const base = { ...world, positions: { [node.id]: { x: 1, y: 2 } } };
+    expect(WorldSaveRequestSchema.safeParse({
+      document: { ...base, positions: { [node.id]: { x: 1, y: 2, elevation: 6.5 } } },
+    }).success).toBe(false);
+    expect(WorldSaveRequestSchema.safeParse({
+      document: { ...base, positions: { [node.id]: { x: 1, y: 2, elevation: -1 } } },
+    }).success).toBe(false);
+    expect(WorldSaveRequestSchema.safeParse({
+      document: { ...base, positions: { [node.id]: { x: 1, y: 2, elevation: 6 } } },
+    }).success).toBe(true);
+  });
+
+  it('契约的上界与模型常量是同一个数（改一边忘一边就红）', () => {
+    const world = createWorld('上界对齐');
+    const node = world.nodes[0]!;
+    const atMax = {
+      ...world,
+      positions: { [node.id]: { x: 0, y: 0, elevation: WORLD_ELEVATION_MAX } },
+    };
+    expect(WorldDocumentSchema.safeParse(atMax).success).toBe(true);
   });
 });
 
