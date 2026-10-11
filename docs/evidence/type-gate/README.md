@@ -129,6 +129,28 @@ STALE COPY of a real suite. Two failures were already happening:
 Fixed both halves: `.scratch/` is in `.gitignore`, and the root `vitest.config.ts` is committed with the reason
 written in it.
 
+## Amendment 226 — `.workbuddy-ai/` was not ignored, and it holds another tool's memory files (v226)
+
+Not a milestone feature: the same mechanism amendment 215 closed one directory up, found again while the v225
+cycle was cleaning the tree for a commit.
+
+`.workbuddy-ai/` is another tool's OWN long-term memory directory, sitting untracked in the working tree — eight
+`memory/*.md` files dated 2026-09-28 through 2026-10-10 plus a `MEMORY.md` index, none of it part of this
+project's build, tests or docs. The hazard is the one amendment 215 already recorded, one `git add -A` wide: an
+untracked foreign tree in the working directory is one careless add from landing inside an unrelated commit, which
+is how amendment 196's record ended up inside an M5 commit describing an artifact page the tree did not have.
+
+It was found by needing it gone. v225's own commit staged five NAMED files rather than `-A` precisely because
+`git status --short` showed the directory alongside the increment's changes.
+
+**Evidence.** `git check-ignore -v .workbuddy-ai/` answers `.gitignore:58:.workbuddy-ai/`; `git status --short`
+no longer lists the eight files; measured after the change, `table-recount-proof.mjs` §2's dirty-tree
+precondition still reads 0 modified and §7 still titles the newest grant.
+
+**Bounds (§60).** This stops the directory REACHING a commit; it does not delete it — it is another tool's
+working state, and destroying it would be worse than ignoring it. It also teaches nothing to whoever runs
+`git add -A`: the next foreign directory will need the same line, which is the argument for staging by name.
+
 ## The closure
 
 `tsc -p <pkg>/tsconfig.test.json` is **0** for all six packages, and every suite was re-run:
