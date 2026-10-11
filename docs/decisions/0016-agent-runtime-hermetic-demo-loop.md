@@ -10103,3 +10103,29 @@ and tests: this grant (2 files, +97/−4) — `threeRuntime.ts` and the new `tes
   still requires the caller to create the scene first (a loader that invented one would be inventing the
   world the file was meant to describe); and the id is still honoured as the MAP KEY, so a refused restore is
   told by name rather than silently re-keyed.
+
+### Amendment 226 (v226, repo hygiene) — `.workbuddy-ai/` was not ignored, and it holds another tool's memory files
+
+_Numbering: 226 was free (`grep -ao "^### Amendment [0-9]*"` topped out at 225). Not a milestone feature: the
+same mechanism amendment 215 closed for `.scratch/`, found again during the v225 cycle while the tree was being
+cleaned for a commit._
+
+- **What `.workbuddy-ai/` is.** Another tool's OWN long-term memory directory, sitting untracked in the working
+  tree: eight `memory/*.md` files dated 2026-09-28 through 2026-10-10 plus a `MEMORY.md` index. None of it is part
+  of this project's build, its tests or its docs — it is a second agent's notebook ABOUT this repository.
+- **The hazard is the one amendment 215 already recorded, one `git add -A` wide.** An untracked foreign tree in
+  the working directory is one careless add from landing inside an unrelated commit: `.scratch/` did exactly that
+  to **amendment 196's record** (`8ebdd75`), which spent a while describing an artifact page the tree did not
+  have. It is ignored here for the same reason and at the same one-line cost.
+- **It was found by needing it gone.** The v225 cycle's own commit staged five NAMED files rather than `-A`
+  precisely because `git status --short` showed `.workbuddy-ai/` as untracked alongside the increment's changes;
+  the doc gate's dirty-tree precondition (`table-recount-proof.mjs` §2) also asserts on the tree, so a foreign
+  tree that could be swept is worth naming in `.gitignore` rather than avoided by hand each time.
+- **Evidence.** `git check-ignore -v .workbuddy-ai/` answers `.gitignore:58:.workbuddy-ai/`; `git status --short`
+  no longer lists the eight memory files as untracked. Measured after the change: `table-recount-proof.mjs` §2's
+  precondition still reads 0 modified and §7 still reads "the newest grant 225 IS titled", so the hygiene line
+  moved nothing the gate counts.
+- **Bounds (§60).** This stops the directory REACHING a commit; it does not delete it (it is another tool's
+  working state, and destroying it would be worse than ignoring it). It also teaches nothing to whoever runs
+  `git add -A` — the next foreign directory will need the same line, which is the argument for staging by name
+  rather than by glob, recorded here rather than repeated.
