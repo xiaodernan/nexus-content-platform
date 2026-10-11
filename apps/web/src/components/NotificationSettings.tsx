@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { csrfHeaders } from '@/lib/csrf';
 import type { NotificationKind } from '@/lib/notify-plan';
 import { NOTIFICATION_KINDS } from '@/lib/notify-plan';
 
@@ -32,7 +33,9 @@ export function NotificationSettings() {
     setSaving(true);
     void fetch('/api/notifications/settings', {
       method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
+      // 服务端这道写端点校验 CSRF（§80 双提交 cookie）；客户端必须把 CSRF 头带上，
+      // 否则服务端返回 403、这里读到的 data.settings 是 undefined，界面会"看着没反应"
+      headers: { 'Content-Type': 'application/json', ...csrfHeaders() },
       body: JSON.stringify({ kind, enabled }),
     })
       .then((r) => r.json())
