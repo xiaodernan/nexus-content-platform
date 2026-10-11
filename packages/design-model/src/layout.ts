@@ -170,7 +170,7 @@ export const heuristicMeasure: MeasureTextFn = (
         if (widthOf(token) > availableWidth) {
           if (line.trimEnd() !== "") flushLine();
           let chunk = "";
-          for (const ch of token) {
+      for (const ch of token) {
             if (chunk !== "" && widthOf(chunk + ch) > availableWidth) {
               lines += 1;
               maxLineWidth = Math.max(maxLineWidth, widthOf(chunk));
@@ -211,9 +211,22 @@ function toNumber(value: unknown, fallback: number): number {
 }
 
 /**
+ * 获取可见子节点（过滤不可见、应用响应式）。
+ */
+function visibleChildren(
+  page: Page,
+  node: DesignNode,
+  breakpoint?: BreakpointName,
+): DesignNode[] {
+  return childrenOf(page, node)
+    .filter((c) => c.visible)
+    .map((c) => applyResponsive(c, breakpoint));
+}
+
+/**
  * Auto-layout 求解器：hug / fill / fixed × padding / gap / justify / items / grid / wrap / stack。
  * 画布、代码生成、预览共用同一份几何，避免三处漂移（§16）。
- * 三趟：measure（自底向上，带缓存）→ place（自顶向下分配 + 定位）。
+ * 三趟：measure（自底向上，带缓存） → place（自顶向下分配 + 定位）。
  */
 export function resolveLayout(
   page: Page,
@@ -1220,16 +1233,32 @@ export function resolveLayoutIncremental(
       }
       return;
     }
-    // vertical / horizontal
+    // vertical / horizontal（与全量版同一套 crossOffset 口径：items 的 center/end/baseline 决定横向落点）
     const horizontal = node.layout.mode === "horizontal";
+    const crossTotal = horizontal ? innerH : innerW;
+    let widestCross = 0;
+    for (const child of children) {
+      const probe = measure(child, childAvail(node, child, innerW, innerH), depth + 1);
+      const probeCross = horizontal ? probe.height : probe.width;
+      if (probeCross > widestCross) widestCross = probeCross;
+    }
     let cursor = horizontal ? x + pad.left : y + pad.top;
     let maxCross = 0;
     for (const child of children) {
       const measured = measure(child, childAvail(node, child, innerW, innerH), depth + 1);
       const childMain = horizontal ? measured.width : measured.height;
       const childCross = horizontal ? measured.height : measured.width;
-      const childX = horizontal ? cursor : x + pad.left + child.position.x;
-      const childY = horizontal ? y + pad.top + child.position.y : cursor;
+      const intrinsicCross = horizontal ? measured.height : measured.width;
+      const crossOffset =
+        node.layout.items === "center"
+          ? Math.max(0, (crossTotal - intrinsicCross) / 2)
+          : node.layout.items === "end"
+            ? Math.max(0, crossTotal - intrinsicCross)
+            : node.layout.items === "baseline"
+              ? Math.max(0, widestCross - intrinsicCross)
+              : 0;
+      const childX = horizontal ? cursor : x + pad.left + crossOffset;
+      const childY = horizontal ? y + pad.top + crossOffset : y + pad.top + cursor;
       place(child, childX, childY, { width: measured.width, height: measured.height }, depth + 1);
       if (horizontal) cursor += childMain + gap; else cursor += childMain + gap;
       maxCross = Math.max(maxCross, childCross);
@@ -1261,16 +1290,6 @@ export function resolveLayoutIncremental(
     nodes: resolved,
     paintOrder: paintOrder.filter((id) => resolved[id]?.node.visible !== false),
   };
-}
-
-function visibleChildren(
-  page: Page,
-  node: DesignNode,
-  breakpoint?: BreakpointName,
-): DesignNode[] {
-  return childrenOf(page, node)
-    .filter((c) => c.visible)
-    .map((c) => applyResponsive(c, breakpoint));
 }
 
 /** 命中测试：画布坐标 → 最深可见非锁定节点（§8 selection） */
