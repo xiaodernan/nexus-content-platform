@@ -2619,6 +2619,16 @@ export class ThreeRuntime {
     clips: THREE.AnimationClip[],
     name: string
   ): ThreeAnimation {
+    // M5 v228 — the one create* verb that did not refuse a scene the graph does not hold. The scene was
+    // looked up AFTER the animation was built and the registration was guarded with `if (scene)`, so a
+    // bogus scene id produced a live `ThreeAnimation` registered NOWHERE, announced with
+    // `animationCreated`, and unreachable under the id it was handed back — `playAnimation` searches the
+    // scenes' maps and could never find it. Measured on the shipped bytes: `scenesHoldingTheGhost: 0`,
+    // `reachableById: "no"`, `animationCreated` firing once per call, while `createCamera` and
+    // `createEntity` on the same bogus scene both answer `Scene X not found`. The guard is now the FIRST
+    // thing, so nothing is built for a scene that does not exist.
+    const scene = this.sceneGraph.scenes.get(sceneId);
+    if (!scene) throw new Error(`Scene ${sceneId} not found`);
     // An animation with no clips has no action to play, so it is refused here rather than handed back
     // in a state where `play()` silently does nothing (the type says `threeAnimation` is present, and
     // it must be true — M5 v108).
@@ -2648,10 +2658,7 @@ export class ThreeRuntime {
       timeScale: 1,
     };
 
-    const scene = this.sceneGraph.scenes.get(sceneId);
-    if (scene) {
-      scene.animations.set(animationIdValue, animation);
-    }
+    scene.animations.set(animationIdValue, animation);
 
     this.emit('animationCreated', { sceneId, animation });
     return animation;

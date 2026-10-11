@@ -3040,3 +3040,47 @@ Both source files restored byte-identical after every arm.
 
 Measured: three-runtime **531 → 535** (23 files), Studio **474 → 483** (31 files), `tsc --noEmit` exit 0 in both.
 No existing case moved — the re-point only ADDS a target that previously could not be named.
+
+## v228 — `createAnimation` was the one `create*` verb that did not refuse a scene the graph does not hold (ADR 0016 amendment 228)
+
+After v225 taught `createScene` and `createCamera` to refuse a taken id, the same family was surveyed for its
+other member: a verb that answers a bad argument with a silent no-op dressed as a success. `attachNPC`,
+`attachPlayer`, `attachController` and `attachCombatant` all refuse a taken slot; `addComponent` replaces by
+design with a documented eviction cleanup (v208). The one hole was `createAnimation`: the scene was looked up
+AFTER the animation was built, and the registration was guarded with `if (scene)`.
+
+**Measured on the shipped bytes before the fix**, by a probe that called it twice on one bogus scene id:
+
+| what the probe printed | what it means |
+| --- | --- |
+| `returned: "anim-…/Ghost/clips=1"` | a live animation object, handed back as success |
+| `scenesHoldingTheGhost: 0` | registered NOWHERE |
+| `realSceneAnimationCount: 0` | and not in the real scene either |
+| `scenesInGraph: 1` | the graph did not grow |
+| `animationCreatedFired: 2` | news about a record no scene holds |
+| `reachableById: "no"` | `playAnimation` could never find it again |
+| `PROBE SIBLINGS { cameraOutcome: "Scene … not found", entityOutcome: "Scene … not found" }` | both siblings already refuse it |
+
+**The fix is the guard moved to the top**, the order `createEntity` and `createCamera` already use. Two orderings
+are pinned because they are separate claims:
+
+- **The SCENE is asked before the CLIPS.** A bogus scene with no clips reports the scene — the wider claim
+  first, because everything after it is about a scene that does not exist.
+- **The emit follows the registration.** A listener reading `scene.animations` from inside `animationCreated`
+  finds the record the news is about — the rule v211 established for the entity verbs and v218 for
+  `setPixelRatio`.
+
+| layer | what it proves |
+| --- | --- |
+| `test/animationSceneGuard.test.ts` (8) | the bogus scene refused by name · the refusal announces nothing (`animationCreated` silent) · nothing half-built (no mixer bound, no registry entry) · the guard is the FIRST thing (the entity's object untouched) · a real scene still works and is reachable by id · the two siblings agree on the same bogus scene · scene named before clips · the announcement follows the registration |
+
+**Arms: 3 predicted, 3 red, 3/3 MATCHED**, after one re-derivation recorded rather than smoothed: the first A1
+was mis-armed — it deleted the guard but left the registration unconditional, which threw a `TypeError` on
+`undefined.animations` instead of restoring the pre-fix lenient path, and two cases that should have reddened
+went green for the wrong reason. Rebuilt to the exact pre-fix shape (`if (scene)` around the registration),
+re-derived to 5, re-run alone 5/5. `A2` clip check before the scene guard → 1 · `A3` announce before the
+registration → 1. Source restored byte-identical after every arm.
+
+Measured: three-runtime **535 → 541** (23 → 24 files), `tsc --noEmit` exit 0, Studio **484/484** unchanged. No
+existing case moved — every caller in the corpus passes a real `scene.id`, which is why the hole could sit
+there since v108 introduced the verb.

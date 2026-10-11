@@ -10191,3 +10191,48 @@ _Numbering: 227 was free (`grep -ao "^### Amendment [0-9]*"` topped out at 226).
 
 - **Measured:** three-runtime **531 → 535** (23 files), Studio **474 → 483** (31 files), `tsc --noEmit` exit 0
   in both. No existing case moved — the re-point only ADDS a target that previously could not be named.
+
+### Amendment 228 (M5 v228, three-runtime) — `createAnimation` was the one `create*` verb that did not refuse a scene the graph does not hold
+
+_Numbering: 228 was free (`grep -ao "^### Amendment [0-9]*"` topped out at 227). Code and tests:
+`threeRuntime.ts` and the new `test/animationSceneGuard.test.ts` (2 files)._
+
+- **The defect, measured on the shipped bytes before the fix.** A survey of the registry seams after v225
+  (which taught `createScene` and `createCamera` to refuse a taken id) went looking for the same family —
+  a verb that answers a bad argument with a silent no-op dressed as a success. `attachNPC`, `attachPlayer`,
+  `attachController` and `attachCombatant` all refuse a taken slot; `addComponent` replaces by design with a
+  documented eviction cleanup (v208). The one hole was `createAnimation`: the scene was looked up AFTER the
+  animation was built, and the registration was guarded with `if (scene)`. A probe called it twice on one
+  bogus scene id and printed:
+
+      returned: "anim-…/Ghost/clips=1"      — a live animation object, handed back as success
+      scenesHoldingTheGhost: 0              — registered NOWHERE
+      realSceneAnimationCount: 0            — and not in the real scene either
+      scenesInGraph: 1                      — the graph did not grow
+      animationCreatedFired: 2              — news about a record no scene holds
+      reachableById: "no"                   — `playAnimation` could never find it again
+      PROBE SIBLINGS { cameraOutcome: "Scene scene-that-does-not-exist not found",
+                       entityOutcome: "Scene scene-that-does-not-exist not found" }
+
+  So the caller was handed a success for work that did not happen, announced on the bus, under an id no
+  scene's map holds.
+
+- **The fix is the guard moved to the top**, which is also the order the siblings already use: `createEntity`
+  and `createCamera` both answer `Scene X not found` before building anything. Two orderings are pinned
+  because they are separate claims: the SCENE is asked before the CLIPS (a bogus scene with no clips reports
+  the scene — the wider claim first), and the emit follows the registration (a listener reading
+  `scene.animations` from inside `animationCreated` finds the record the news is about — the same rule v211
+  established for the entity verbs and v218 for `setPixelRatio`).
+
+- **The battery: 3 arms, 3 predictions, 3 reds, 3/3 MATCHED — after one re-derivation, recorded rather than
+  smoothed.** The first A1 was mis-armed: it deleted the guard but left the registration unconditional, which
+  produced a `TypeError` on `undefined.animations` instead of the pre-fix lenient path — and two cases that
+  should have reddened went green for the wrong reason. The arm was rebuilt to restore the exact pre-fix shape
+  (`if (scene)` around the registration) and its prediction re-derived to 5; re-run alone, 5/5. `A2` clip
+  check before the scene guard → 1 · `A3` announce before the registration → 1. Source restored byte-identical
+  after every arm, HEAD unchanged throughout.
+
+- **Measured:** three-runtime **535 → 541** (23 → 24 files), `tsc --noEmit` exit 0, Studio **484/484**
+  unchanged (no studio source moved, and no studio case calls `createAnimation`). No existing case moved:
+  every caller in the corpus passes a real `scene.id`, which is why the hole could sit there for nine
+  increments since v108 introduced the verb.
