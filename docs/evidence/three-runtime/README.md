@@ -2948,3 +2948,51 @@ wiring the default path changed nothing.
 Bounds: `frustumCulling` reaches the objects the runtime CREATES — geometry and material are the only injected
 values, and the object is always constructed here, so there is no caller-built object to retro-fit. `maxLights`
 remains unhonored; the honest statement is the doc comment plus this record, not a silent no-op.
+
+## v225 — the two `create*` seams refused nothing: a taken id silently evicted the live record, and the camera one left the scene with no active camera (ADR 0016 amendment 225)
+
+`createCamera(sceneId, name, type, params, id?)` and `createScene(name, id?)` both take an optional id, and both
+used to answer a TAKEN one with `Map.set` — the live record was evicted and replaced with nothing said. The id is
+the restore wedge in both cases (`defineCinematic` refuses a shot naming a camera the scene lacks; `loadSaveFile`
+refuses to invent the scene a file describes, so the caller re-issues the saved id first), so "the id is already in
+use" is a state a legitimate restore can arrive in, and the answer used to be silence.
+
+**Measured on the shipped bytes before the fix.** Two cameras, `Cam A` active, then
+`createCamera(scene, 'Cam A REPLACED', 'perspective', {}, a.id)`:
+
+| what the probe printed | what it means |
+| --- | --- |
+| `threw=null` | the substitution was not refused |
+| `size 2 -> 2` | the map did not grow — the entry was REPLACED |
+| `account Cam A:true,Cam B:false -> Cam A REPLACED:false,Cam B:false` | the evicted camera's `active` flag died with it |
+| `activeNow=NULL` | the scene was left with **no active camera** — nothing for `animate()` to draw from |
+| `cameraCreated fired 1x`, `activeCameraChanged fired 0x` | the bus announced a create and never mentioned the vacated seat |
+
+The solo probe — the overwritten id is the ONLY camera — came back `active=true`, because the `size === 1` branch
+fires on the replacement. So the bug bites exactly in the state a cinematic restore arrives in: a scene that
+already has a camera. `createScene` had the same hole one level up, and when the evicted scene held the active
+seat the graph's `activeSceneId` went on naming an id whose contents had been swapped underneath it.
+
+**The fix is the rule this runtime already states four times**, applied where it was missing: "a restore never
+overwrites live state" (`restoreEntity:1792`, `loadSaveFile:1963`, `restoreNPC:3168`, `restorePlayer:3357`). Both
+verbs now refuse a taken id and throw, which is the answer shape every other refusal in this class gives.
+
+| layer | what it proves |
+| --- | --- |
+| `test/cameraIdCollision.test.ts` (10) | the probe case inverted (active seat survives, account byte-identical) · the refused camera is the SAME object, untouched (identity, `threeCamera`, `fov`) · the refusal moves no name on the bus (`cameraCreated`/`activeCameraChanged` both silent) · the refusal does not wedge the scene (a fresh id still works) · the same id in a SECOND scene is allowed — camera ids address one scene's camera set · `createScene` refuses a taken id naming both id and rule · the live scene is not evicted (bodies, camera identity, active seat) · no `sceneCreated` from a refusal · the restore wedge the loader depends on still works in a FRESH graph · an id held by another runtime is not a collision — the graph is per-instance |
+
+**Arms: 4 predicted, 4 red, 4/4 MATCHED**, zero re-predictions. `A1` camera guard deleted → 4 red (the four cases
+that expect the throw) · `A2` scene guard deleted → 3 red (and NOT the restore-wedge case, which was never the
+bug) · `A3` camera guard widened to every scene in the graph → 1 red (camera ids are per-scene) · `A4` both guards
+answering `null` instead of throwing → 7 red. Source restored byte-identical after each arm; HEAD unchanged
+throughout. The runner and needles live in this session's ignored `.scratch/`.
+
+**Measured:** three-runtime **521 → 531** (22 → 23 files), `tsc --noEmit` exit 0. All 521 existing cases pass with
+both guards in place — the evidence that nothing in the corpus relied on the overwrite, because every legitimate
+use of the seam already restores into a graph that does not hold the id. Studio **474/474** unchanged, graded
+through the `@nexus/three-runtime` → `src` alias so the change is measured on the seam the panel reads too.
+
+Bounds: a caller passing NO id can never be refused (the generated id is unique per call), so the guard fires only
+on the restore wedge. What this grant does NOT do: there is still no `removeCamera`/`removeScene` verb, so a camera
+leaves a scene only by disposal; `loadSaveFile` still requires the caller to create the scene first; and the id is
+still honoured as the map key, so a refused restore is told by name rather than silently re-keyed.

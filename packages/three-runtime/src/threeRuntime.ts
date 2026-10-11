@@ -1211,6 +1211,21 @@ export class ThreeRuntime {
 
   createScene(name: string, id?: string): ThreeScene {
     const sceneIdValue = id ? sceneId(id) : sceneId(`scene-${Date.now()}-${Math.random().toString(36).slice(2)}`);
+
+    // M5 v225 — an explicit id is the RESTORE wedge: `loadSaveFile` refuses to invent the scene a file
+    // describes ("a loader that created one would be inventing the world the file was meant to describe",
+    // threeRuntime.ts:1916), so the caller re-issues the saved id here first. A taken id used to be answered
+    // by `Map.set` alone — the live scene, its entities, cameras, animations and lighting were EVICTED with
+    // nothing said, `sceneCreated` announced the replacement as if it were news, and when the evicted scene
+    // held the active seat the graph's `activeSceneId` went on naming an id whose contents had just been
+    // swapped underneath it. The rule every other restore seam already follows ("a restore never overwrites
+    // live state", restoreEntity at 1792, loadSaveFile at 1963, restoreNPC at 3168, restorePlayer at 3357) is
+    // now followed here: the id is REFUSED, and the answer throws because every create* verb in this class
+    // throws rather than handing back a record built around a lie.
+    if (this.sceneGraph.scenes.has(sceneIdValue)) {
+      throw new Error(`createScene: scene ${sceneIdValue} is already in this graph; a restore never overwrites live state`);
+    }
+
     const threeScene = new THREE.Scene();
     const lighting = this.createDefaultLighting();
 
@@ -2483,6 +2498,12 @@ export class ThreeRuntime {
    * `defineCinematic` refuses a shot naming a camera the scene does not have — so a `SerializedCinematic`
    * could only ever be restored inside the process that wrote it. `createScene(name, id?)` has taken a name
    * since v108; this is the same seam one level down.
+   *
+   * A taken id is REFUSED (M5 v225). It used to be answered by `Map.set`: the camera already under that id was
+   * evicted with nothing said, and the evicted one's `active` flag died with it — so a restore naming the
+   * scene's ACTIVE camera left the scene holding cameras and NO active camera, with only `cameraCreated` on
+   * the bus and no `activeCameraChanged` to name the seat that had just been vacated. Same rule, same
+   * sentence as `restoreEntity`, `createScene` and the rest: a restore never overwrites live state.
    */
   createCamera(
     sceneId: SceneId,
@@ -2495,6 +2516,15 @@ export class ThreeRuntime {
     if (!scene) throw new Error(`Scene ${sceneId} not found`);
 
     const cameraIdValue = id ? cameraId(id) : cameraId(`camera-${Date.now()}-${Math.random().toString(36).slice(2)}`);
+    // M5 v225 — the id is the restore wedge (a shot's `cameraId` addresses one scene's camera set, and
+    // `defineCinematic` refuses a shot naming a camera the scene lacks), and a taken one used to be answered
+    // by `Map.set`. The evicted camera's `active` flag died with it: measured before the fix, overwriting the
+    // ACTIVE camera left the scene with two cameras and `active=false` on both, and the bus carried only
+    // `cameraCreated` — a graph where nothing is drawn from, announced as a create. The overwritten id is
+    // refused instead, so a restore that names a live camera is told rather than silently substituted.
+    if (scene.cameras.has(cameraIdValue)) {
+      throw new Error(`createCamera: camera ${cameraIdValue} is already in scene ${sceneId}; a restore never overwrites live state`);
+    }
 
     let threeCamera: THREE.Camera;
     if (type === 'perspective') {

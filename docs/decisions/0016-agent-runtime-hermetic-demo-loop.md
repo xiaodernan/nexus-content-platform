@@ -10034,3 +10034,72 @@ script re-scans them before it writes and refuses if the number is taken. Code a
   in this session's Temp directory and are transcribed in the evidence record — and the runtime group excludes
   `distSync.test.ts` by design, because it grades `src` against the built `dist` and would redden on every verb
   arm for a reason outside this grant.
+
+### Amendment 225 (M5 v225, three-runtime) — the two `create*` seams refused nothing: a taken id silently evicted the live record, and the camera one left the scene with no active camera
+
+_Numbering: 225 was free — the ledger's `### Amendment` headings were scanned (max 224) before writing. Code
+and tests: this grant (2 files, +97/−4) — `threeRuntime.ts` and the new `test/cameraIdCollision.test.ts`._
+
+- **The defect, measured on the shipped bytes before the fix.** `createCamera`'s optional `id` is the restore
+  wedge (`defineCinematic` refuses a shot naming a camera the scene lacks, so a saved cinematic could only be
+  read back by re-issuing the ids), and a TAKEN id was answered by `Map.set` alone. A probe run against the
+  unmodified runtime — two cameras, `Cam A` active, then
+  `createCamera(scene, 'Cam A REPLACED', 'perspective', {}, a.id)` — printed:
+
+      threw=null
+     returned=camera-…/Cam A REPLACED/active=false
+     size 2 -> 2
+     account Cam A:true,Cam B:false -> Cam A REPLACED:false,Cam B:false
+     activeNow=NULL
+     cameraCreated fired 1x
+     activeCameraChanged fired 0x
+
+  So a restore that named the scene's ACTIVE camera left the scene holding two cameras with `active=false` on
+  BOTH — nothing for `animate()` to draw from — while the bus announced a create and never mentioned the seat
+  that had just been vacated. The solo probe (the overwritten id is the ONLY camera) came back `active=true`,
+  because the `size === 1` branch fires on the replacement — so the bug bites exactly in the state a cinematic
+  restore arrives in, a scene that already has a camera.
+
+- **`createScene` has the same hole, one level up.** Its `id` is the wedge `loadSaveFile` depends on — the
+  loader refuses to invent the scene a file describes, so the caller re-issues the saved id first — and a
+  taken one evicted the live scene with its entities, cameras, animations and lighting, announcing the
+  replacement with a plain `sceneCreated`. When the evicted scene held the active seat, the graph's
+  `activeSceneId` went on naming an id whose contents had been swapped underneath it.
+
+- **The fix is the rule this runtime already states four times, applied where it was missing:** "a restore
+  never overwrites live state" (`restoreEntity:1792`, `loadSaveFile:1963`, `restoreNPC:3168`,
+  `restorePlayer:3357`). Both create* verbs now REFUSE a taken id, and they throw rather than answering a
+  record built around a substitution — the same answer shape every other refusal in this class gives.
+
+- **Nothing in the corpus relied on the overwrite, which is the measurement that makes the rule safe:** all
+  521 existing three-runtime cases pass with both guards in place, because every legitimate use of the seam
+  already restores into a graph that does not hold the id (the `saveSnapshot` round-trips name a saved id in
+  a SECOND runtime, exactly as the loader's protocol requires). The Studio's 474 cases pass unchanged, graded
+  through the `@nexus/three-runtime` → `src` alias (`apps/studio/vitest.config.ts`), so the change is measured
+  on the seam a user's panel reads too.
+
+- **The battery: 4 arms, 4 predictions, 4 reds, 4/4 MATCHED, zero re-predictions.** Graded against the
+  increment's own file (`test/cameraIdCollision.test.ts`, 10 cases) after the increment suite was green, the
+  source snapshotted, mutated, re-read and restored for each arm. `A1` camera guard deleted → 4 red (the four
+  cases that expect the throw); `A2` scene guard deleted → 3 red (the three `createScene` throwing cases, and
+  NOT the restore-wedge case, which was never the bug); `A3` camera guard widened to every scene in the graph
+  → 1 red (camera ids address ONE scene's camera set, so a second scene holding the same id is a different
+  camera); `A4` both guards answering `null` instead of throwing → 7 red. Restore verified by content
+  comparison, byte-identical, and HEAD unchanged throughout. The runner, needles and predictions live in this
+  session's ignored `.scratch/`; the four arms are transcribed here and in the evidence record, so a clean
+  checkout cannot re-run them.
+
+- **The probe that measured the defect is named because it was an untracked artifact in the tree.** A
+  previous session left `test/zzPreFixProbe.test.ts` — its own header says "TEMPORARY pre-fix measurement
+  probe — deleted before any gate or full-suite run" — and stopped before deleting it. It was run once to
+  harvest the figures above (2 of its 3 cases printing; the third was mis-armed against `defineCinematic`'s
+  two-argument signature and threw `scene [object Object] does not exist`, which is the runtime's own arg
+  check working) and then deleted, before any gate or full-suite run.
+
+- **Bounds.** A caller passing NO id can never be refused: the generated id is unique per call, so the guard
+  fires only on the restore wedge. The collision is scoped the way the ids are scoped — scenes per graph,
+  cameras per scene — and both scopes have a case. What this grant does NOT do: there is still no
+  `removeCamera`/`removeScene` verb, so the only way a camera leaves a scene is disposal; `loadSaveFile`
+  still requires the caller to create the scene first (a loader that invented one would be inventing the
+  world the file was meant to describe); and the id is still honoured as the MAP KEY, so a refused restore is
+  told by name rather than silently re-keyed.
