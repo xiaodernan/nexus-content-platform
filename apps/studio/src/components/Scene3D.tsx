@@ -558,8 +558,15 @@ export default function Scene3D() {
       }
       const result = surface.load(fileToLoad);
       setReport(surface.report());
+      // v227 — the surface answers what the restore had to RE-ISSUE (the format carries no camera objects,
+      // so a shot's camera is re-created under its own id with a name spelled from it). Said out loud here
+      // rather than showing a camera row whose name the save never carried.
+      const reissuedCameras = result.reissued.cameraIds.length;
       setSaveNote(
-        `restored ${result.report.entities.length} bodies into a fresh scene — the runtime now holds ${surface.report().scenes} scenes, and the demo scene is untouched`,
+        `restored ${result.report.entities.length} bodies into a fresh scene — the runtime now holds ${surface.report().scenes} scenes, and the demo scene is untouched`
+        + (result.report.sequences.length > 0 ? ` · ${result.report.sequences.length} cutscene(s) restored` : '')
+        + (reissuedCameras > 0 ? ` · ${reissuedCameras} camera(s) re-issued by id (the format holds no camera objects)` : '')
+        + (result.reissued.activated ? ' · the restored scene is now the active one, so a running cutscene resumes' : ''),
       );
     } catch (error) {
       setSaveNote(`load refused: ${(error as Error).message}`);
@@ -718,8 +725,13 @@ export default function Scene3D() {
       try {
         const result = surface.load(answer.file as SceneSaveFile);
         setReport(surface.report());
+        // v227 — the same answer as the in-memory load above: what the restore had to re-issue is said out loud.
+        const reissuedCameras = result.reissued.cameraIds.length;
         setSaveNote(
-          `restored ${result.report.entities.length} bodies from the server's disk (${path}) into a fresh scene — the demo scene is untouched`,
+          `restored ${result.report.entities.length} bodies from the server's disk (${path}) into a fresh scene — the demo scene is untouched`
+          + (result.report.sequences.length > 0 ? ` · ${result.report.sequences.length} cutscene(s) restored` : '')
+          + (reissuedCameras > 0 ? ` · ${reissuedCameras} camera(s) re-issued by id (the format holds no camera objects)` : '')
+          + (result.reissued.activated ? ' · the restored scene is now the active one, so a running cutscene resumes' : ''),
         );
       } catch (error) {
         setSaveNote(`load refused: ${(error as Error).message}`);

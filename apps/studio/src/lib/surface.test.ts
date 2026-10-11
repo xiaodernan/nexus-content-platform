@@ -154,6 +154,19 @@ describe('the wiring that makes the 3D surface reachable', () => {
     const persist = read('./persist.ts');
     expect(persist).not.toMatch(/scene3d|SceneReport|surface3d/i);
   });
+
+  it('the load note SAYS what the restore re-issued (M5 v227)', () => {
+    // v227 made `load()` answer what it had to re-create (the save format holds no camera objects, so a
+    // shot's camera comes back under its own id with a name spelled from it). The component reads that
+    // answer into the note rather than showing a camera row whose name the save never carried — pinned
+    // from the file because the note is prose nobody types twice.
+    expect(SCENE).toMatch(/result\.reissued\.cameraIds\.length/);
+    // Both load paths (the in-memory file and the server's disk) carry it: a disk restore that re-issued
+    // cameras quietly would be the same silence one level over.
+    expect([...SCENE.matchAll(/re-issued by id \(the format holds no camera objects\)/g)]).toHaveLength(2);
+    expect(SCENE).toMatch(/cutscene\(s\) restored/);
+    expect(SCENE).toMatch(/so a running cutscene resumes/);
+  });
 });
 
 describe('the wiring that makes the WORLD surface reachable (M4 v148)', () => {
