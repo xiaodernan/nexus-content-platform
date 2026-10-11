@@ -51,3 +51,8 @@ __pycache__/
 # M5 commit and described a tree that did not exist), and a root-level vitest run would have graded those
 # stale copies. `vitest.config.ts` excludes them; this keeps them out of commits too.
 .scratch/
+
+# another tool's own memory directory, which holds no part of this project's build. Ignored for the same
+# reason .scratch/ is: an untracked foreign tree in the working directory is one `git add -A` away from being
+# swept into an unrelated commit, and amendment 215 records that happening once already.
+.workbuddy-ai/
