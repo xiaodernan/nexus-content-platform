@@ -913,8 +913,9 @@ Chrome 153 — 61/61 PASS.
 Bounds, stated: name and visibility are the only editable facts — components, materials, children and
 animation state remain declared-only, and the inspector still has no opinion about them. The rename is a
 prompt ask, so it is human-initiated by construction; the toggle is a boolean, and the runtime refuses
-everything else. The ADR 0016 amendment record for this grant is OWED: the shared decisions file carries
-another lane's uncommitted amendment, and the record lands after that lane's commit closes the gap.
+everything else. The ADR 0016 amendment record for this grant is **amendment 197** — the debt this section
+recorded was paid on 2026-10-11, once the shared decisions file's other lane had committed and the record could
+land (the backfill's own numbering note says so).
 
 ## The shipped dist must know what src declares (M5 v198)
 
@@ -963,7 +964,7 @@ here. The finder is shape-based: a src method whose wrapped signature loses its 
 first line, or a dist that carries a method through a shape the per-name regex cannot see, escapes this
 gate (case 2's exact-list assertion pins the extraction of the shapes v197 actually introduced). The gate
 reads the dist that exists at test time; it does not build one. The ADR 0016 amendment record for this
-grant is OWED behind v196/v197.
+grant is **amendment 198** (written 2026-10-11).
 
 ## The inspector reads the component registry (M5 v199)
 
@@ -1000,7 +1001,7 @@ Bounds, stated: the face is read-only — the HUD states the registry, it does n
 (that is the runtime's verbs, and the proof layer drives them directly); a component's `data` payload is
 not surfaced (amounts and shapes are the registry's business, the inspector names the parts); materials,
 light state beyond v192's, and animation state remain unread. The ADR 0016 amendment record for this
-grant is OWED behind v196/v197/v198.
+grant is **amendment 199** (written 2026-10-11).
 
 ## The component registry becomes EDITABLE (M5 v200)
 
@@ -1029,7 +1030,8 @@ proven at the surface-suite and proof layers), proof ALL ASSERTIONS PASSED with 
 Bounds, stated: the face is write-only for the enabled flag — materials, animation, light state beyond
 v192's, and child counts remain unread (v199's bounds still hold); the `data` payload is not editable (the
 registry owns it); there is no add/remove verb here (that is the runtime's own `addComponent`/`removeComponent`).
-The ADR 0016 amendment record for this grant is owed.
+The ADR 0016 amendment record for this grant is **amendment 200** (written 2026-10-11; the v200 commit had
+miscited it as "201", which is v201's own grant).
 
 ## The component registry queries by enabled (M5 v201)
 
@@ -1049,7 +1051,7 @@ is proven at the surface-suite and proof layers), proof ALL ASSERTIONS PASSED wi
 Bounds, stated: the filter applies only to iteration — save/restore still carries all components regardless of
 enabled state; the HUD still reports all components (v199's read remains unchanged); `data` payloads remain
 uneditable; there is no bulk enable/disable verb (each toggle is individual). The ADR 0016 amendment record
-for this grant is owed.
+for this grant is **amendment 201** (written 2026-10-11).
 
 ## The component registry gates material visibility (M5 v202)
 
@@ -1068,7 +1070,7 @@ three-runtime tsc clean, proof pending (will verify through shipped dist after c
 Bounds, stated: only components WITH a targetObject affect rendering; pure data components (health, stamina,
 shield without visual targets) remain invisible to the renderer regardless of enabled state; the flag does not
 gate animation playback, physics simulation, or other non-visual behaviors. The ADR 0016 amendment record for
-this grant is owed.
+this grant is **amendment 202** (written 2026-10-11).
 
 ## The component registry gates animation playback (M5 v203)
 
@@ -1096,7 +1098,7 @@ layers).
 Bounds, stated: only components WITH animationIds affect playback; pure data components remain unaffected;
 the flag gates AnimationAction playback via the `enabled` property (not `stop()`, which would reset time);
 animations paused this way preserve their current time and resume from that point when re-enabled. The ADR 0016
-amendment record for this grant is owed.
+amendment record for this grant is **amendment 203** (written 2026-10-11).
 
 ## The component registry gates HUD visibility (M5 v204)
 

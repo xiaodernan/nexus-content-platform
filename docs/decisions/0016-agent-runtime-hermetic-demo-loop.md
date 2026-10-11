@@ -9040,6 +9040,173 @@ Stated plainly, because the numbers above are deltas from when they were written
   sweeps it, not to the increment it describes.** Commit the code and its record together, or the record will
   describe a tree that does not exist.
 
+### Amendment 197 (M5 v197, studio) — the inspector's facts become EDITABLE, and the resolution plane a green suite could not see
+
+_Numbering: 197 was free (`grep -ao "^### Amendment 19[7-9]"` matched nothing). The grant's own commit
+(`d9976cb`) ends "ADR 0016 amendment 197 is OWED: the shared decisions file carries another lane's uncommitted
+amendment draft; the record lands after that lane commits." This record pays that debt, written after the tree
+had moved on — so its deltas are quoted as the readings taken on its landing day (2026-10-08), not as numbers a
+later tree would answer._
+
+- **The defect.** v192's inspector could READ a picked body's facts but not change them — its closing bound said
+  "there is no setter and the HUD renders the facts as text". Two of the four declared facts become writable:
+  the NAME and the VISIBILITY.
+- **What landed.** `setEntityName(sceneId, entityId, name)` writes `entity.name` AS GIVEN (trimming is the
+  surface's folding half, so the host stores what it was asked to store) and refuses a blank/whitespace/
+  non-string ask WHOLE; `setEntityVisible(sceneId, entityId, visible)` refuses a non-boolean and, on acceptance,
+  moves BOTH records (`entity.visible` in the registry — what `pickAt` reads, so a hidden body stops answering
+  picks — and `entity.threeObject.visible` in the renderer). The surface folds before the gate sees the ask
+  (`clampEntityName` turns blank into a NO-ASK) and re-points the pick record ONLY on an ACCEPTED rename; the
+  HUD gains rename and hide/show buttons whose labels state the ACTION while the data attribute states the
+  STATE.
+- **The resolution-plane incident, which only the harness could see.** Every unit suite was green (runtime
+  **459/459**) while the REAL browser had neither gate: the first harness run failed at the hide-click check
+  with no error, no exception and a live report (the bob still animating). The cause: vitest aliases
+  `@nexus/three-runtime` to `src/`, but the Studio's production build resolves the package's `main:
+  ./dist/index.js` — and `dist/` was last compiled at v192, so the served bundle carried the surface's
+  `setEntityVisible?.(` CALL but not the runtime's METHOD, and the optional call no-op'd silently behind a green
+  suite. Rebuilding the package (`tsc -p tsconfig.json`) before the Studio build turned the same assertions
+  green. The unit seam proves the code; the harness proves the SHIPPED thing — and "shipped" means the compiled
+  dist, not the source the suites read. (v198 makes this permanent.)
+- **Evidence.** three-runtime 45 → **51** cases (459/459) · `scene3d` 65 → **72** · `scene3dSurface` 12 → **13**
+  · harness 55 → **61/61** on next-start + headless Chrome (hide both records, reversible, a blank prompt counts
+  its ask, rename reaches registry/pick record/inspector, a fresh pick answers the NEW name). Measured
+  2026-10-08.
+- **Bounds (§60).** Name and visibility are the only editable facts; components, materials, children and
+  animation state remain declared-only. The rename is a prompt ask (human-initiated by construction); the
+  toggle is a boolean and the runtime refuses everything else.
+
+### Amendment 198 (M5 v198, three-runtime) — the shipped dist must know what src declares: a dist-sync gate over the resolution plane
+
+_Numbering: 198 was free. The grant's commit (`eea4f51`) says "ADR record owed behind v196/v197". This pays it._
+
+- **The defect.** v197's incident ended with a rebuilt dist and a lesson, but nothing in the repository FORCED
+  the dist to stay in sync — the next stale dist would ship another silent no-op behind green suites.
+- **What landed.** `packages/three-runtime/test/distSync.test.ts`. `classMethodNames(classSource)` extracts the
+  methods the src `ThreeRuntime` class declares (declaration shape `  [modifiers]name(`, with paren balancing so
+  a signature wrapped across lines still extracts; `get`/`async`/static modifiers read; an OVERLOAD SIGNATURE —
+  a `;` where a body would be — is not a method the dist must carry and is skipped). `distMissing(srcNames,
+  distSource)` answers, per name, whether the dist carries it, tolerant of the compiled shapes tsc emits. Case 4
+  reads `dist/threeRuntime.js` and refuses any gap with the incident's own sentence and the rebuild command
+  (`npm run build -w @nexus/three-runtime`); a plane that never built the package skips and is NAMED.
+- **A defect the section found in its own first draft.** Case 2 (the in-sync control) originally passed the
+  WHOLE class's extracted names (~100 methods) against a THREE-method synthetic dist fixture, so every real
+  method counted as "missing" and the case could only ever fail. Restructured so the synthetic text is the SRC
+  side (asserting the exact three names) and a small dist fixture carrying all three answers `[]`.
+- **Witness arm.** The dist's `setEntityVisible` declaration line was renamed (`setEntityViz`) with hits
+  asserted `=== 1` first; the gate reddened with exactly `['setEntityVisible']` as the missing list and the
+  other three cases green; the backup restored byte-identically (sha256 `73f72b3a…` before and after) and the
+  file returned to 4/4.
+- **Evidence.** package suite 459 → **463** (13 files, +4); the gate's own scan reads **154** names from
+  `threeRuntime.ts` (the class's own **113** within its slice, plus the rest of the module's 2-space
+  declarations; overload signatures excluded), 0 missing. Measured 2026-10-08.
+- **Bounds (§60).** Case 4's population is the WHOLE src file's 2-space declarations; exports of OTHER files
+  (`saveStore`, `renderBackend`) are unguarded here. The finder is shape-based: a src method whose wrapped
+  signature loses its name-and-`(` from the first line escapes this gate. The gate reads the dist that exists at
+  test time; it does not build one.
+
+### Amendment 199 (M5 v199, studio) — the inspector reads the component registry
+
+_Numbering: 199 was free. The README section says the record is "OWED behind v196/v197/v198". This pays it._
+
+- **The defect.** v197's inspector made the picked body's facts editable but still read only position and
+  visibility — the runtime has a REAL component subsystem (`addComponent`/`removeComponent`/`getComponent` over
+  a `Map` keyed by `component.type`, saved in the entry-array shape since v119) that the Studio never surfaced.
+- **What landed.** The inspector reports each component's name and enabled state, and the HUD appends a
+  `components:` segment ONLY when the registry is non-empty, naming a disabled component with an `(off)`
+  suffix. The reader is a LOOSE one because the registry reaches the report through three spellings (the live
+  `Map`, the entry array, a stringify object), all decoding to the same facts in their own order; `enabled !==
+  false` follows the default-visible rule v192 set for bodies; a value with no readable `type` answers its key.
+- **An honest negative recorded first.** Child counts stay uncounted: the runtime scene graph is FLAT (no
+  entity parent/child API; children exist only on the renderer-level `threeObject.children`, which no runtime
+  method exposes or counts). Inventing a `children` number from the renderer's internals would be exactly the
+  fake-fact move this lane refuses.
+- **Evidence.** Studio **404/404** (31 files; `scene3d` 72 → **74**, `scene3dSurface` 13 → **16** over the REAL
+  runtime — `addComponent` answered in registry order, `removeComponent` followed) · three-runtime 463/463
+  unchanged · harness 61 → **62/62** (the frozen read-only bridge cannot attach components, so the non-empty
+  population is proven at the surface-suite and proof layers) · `scene-surface-proof.mjs` §7 drives both verbs
+  through the shipped dist runtime. Measured 2026-10-08.
+- **Bounds (§60).** The face is read-only — the HUD states the registry, it does not add or remove components (the
+  proof layer drives the runtime's verbs directly); a component's `data` payload is not surfaced; materials,
+  light state beyond v192's, and animation state remain unread.
+
+### Amendment 200 (M5 v200, studio) — the component registry becomes EDITABLE
+
+_Numbering: 200 was free. The v200 commit (`1eb6db7`) listed "ADR 0016 amendment 201" among its files but wrote
+no record — and 201 is a DIFFERENT grant (v201's own). Neither 200 nor 201 was ever written. This record takes
+200, the number its version names; 201 is written separately below._
+
+- **The defect.** v199's inspector read the component registry but could not change it — `enabled` was a
+  declared field that gated no behavior, carried through save/restore and reported by the HUD as text only.
+- **What landed.** `setComponentEnabled(sceneId, entityId, componentType, enabled)` on the runtime, surfaced
+  through the Studio as `toggleComponentEnabled(componentType)`, which flips the flag and re-reads the live
+  registry for the report. It follows the host-gate pattern v197 set for rename/visibility: an optional method
+  on the runtime the surface calls through; absent gate = unchanged report. The signature takes `(sceneId,
+  entityId, ...)` like `setEntityName`/`setEntityVisible`. The runtime emits `'componentStateChanged'` when the
+  flag changes (v200 does not invent a consumer). The HUD renders each component row as an interactive toggle
+  button instead of text.
+- **Evidence.** Studio **405/405** (31 files; `scene3dSurface` 16 → **17**) · three-runtime 463/463 unchanged ·
+  harness **62/62** unchanged (the bridge is read-only, so the toggle is proven at the surface-suite and proof
+  layers) · `scene-surface-proof.mjs` §7 toggles through the shipped dist (health on→off, shield off→on, a ghost
+  component refused silently). Measured 2026-10-08.
+- **Bounds (§60).** The face is write-only for the enabled flag — materials, animation, light state beyond
+  v192's, and child counts remain unread (v199's bounds hold); the `data` payload is not editable; there is no
+  add/remove verb here (the runtime owns `addComponent`/`removeComponent`).
+
+### Amendment 201 (M5 v201, three-runtime) — `enabled` gates query participation
+
+_Numbering: 201 was free. The grant's commit (`8ebdd75`) ends "The ADR 0016 amendment record for this grant is
+owed." This pays it._
+
+- **The defect.** v200 added the write verb (`setComponentEnabled`) but `enabled` was still just a stored field
+  that gated no behavior.
+- **What landed.** `getEnabledComponents(entity)` returns only components where `enabled !== false`, so disabled
+  components are stored but invisible to iteration. The method follows the host-gate pattern: optional on the
+  runtime, exposed through the surface interface as `getEnabledComponents?(entity): Array<{type, enabled}>`.
+  This gives `enabled` behavioral meaning without coupling to rendering or game logic — components are purely
+  data records (health, shield, stamina) and the flag gates whether they participate in active queries.
+- **Evidence.** Studio **406/406** (31 files; `scene3dSurface` 17 → **18**) · three-runtime 463/463 unchanged ·
+  harness **62/62** unchanged · `scene-surface-proof.mjs` §7 exercises `getEnabledComponents` through the
+  shipped dist runtime (a stamina disable/re-enable cycle). Measured 2026-10-08.
+- **Bounds (§60).** The filter applies only to iteration — save/restore still carries all components regardless
+  of enabled state; the HUD still reports all components (v199's read is unchanged); `data` payloads remain
+  uneditable; there is no bulk enable/disable verb (each toggle is individual).
+
+### Amendment 202 (M5 v202, three-runtime) — `enabled` gates material visibility via `targetObject`
+
+_Numbering: 202 was free. The grant's commit (`35ac5a1`) ends "The ADR 0016 amendment record for this grant is
+owed." This pays it._
+
+- **The defect.** v201 made `enabled` gate query participation but left rendering untouched.
+- **What landed.** `EntityComponent` gains an optional `targetObject?: THREE.Object3D` field. When a component
+  has a `targetObject`, disabling it via `setComponentEnabled` sets `targetObject.visible = false`; re-enabling
+  restores visibility. Components without a `targetObject` behave as before — the flag updates but nothing
+  visual changes, so backward compatibility holds.
+- **Evidence.** Studio **407/407** (31 files; `scene3dSurface` 18 → **19**) · three-runtime `tsc` clean · the
+  proof was pending at commit time and verified through the shipped dist after the build. Measured 2026-10-08.
+- **Bounds (§60).** Only components WITH a `targetObject` affect rendering; pure data components (health,
+  stamina, shield without visual targets) remain invisible to the renderer regardless of `enabled`; the flag
+  does not gate animation playback (that is v203), physics, or other non-visual behaviors.
+
+### Amendment 203 (M5 v203, three-runtime) — `enabled` gates animation playback
+
+_Numbering: 203 was free. The README section says the record is "owed". This pays it._
+
+- **The defect.** v202 made `enabled` gate material visibility but left animations running.
+- **What landed.** `EntityComponent` gains an optional `animationIds?: AnimationId[]` field. Disabling a
+  component sets each referenced `AnimationAction.enabled = false` (which prevents updates while preserving
+  current time); re-enabling sets `enabled = true` and calls `play()` to resume from where it stopped.
+  Components without `animationIds` behave as before. A new `SerializedEntityComponent` type excludes both
+  `targetObject` and `animationIds` from the file format, so these runtime-only THREE references cannot leak
+  into saves; the snapshot writes only `{type, data, enabled}` and the shape gate asserts no THREE classes reach
+  the serialized output.
+- **Evidence.** three-runtime **467/467** (14 files; added `componentAnimationGate.test.ts` with 3 cases) ·
+  Studio **407/407** unchanged · `tsc` clean · harness **62/62** unchanged (the animation gate is proven at the
+  surface-suite and proof layers). Measured 2026-10-08.
+- **Bounds (§60).** Only components WITH `animationIds` affect playback; the flag gates playback through the
+  `enabled` property (NOT `stop()`, which would reset time); animations paused this way preserve their current
+  time and resume from that point when re-enabled.
+
 ### Amendment 204 (M0/v204, repo-wide) — the type gate did not read TESTS in six of seven packages, and the one that did was RED: 249 errors were hiding, measured rather than guessed
 
 _Numbering: 204 was free (`grep -ao "^### Amendment 2[0-9][0-9]"` matched nothing). This is item 13 of the
