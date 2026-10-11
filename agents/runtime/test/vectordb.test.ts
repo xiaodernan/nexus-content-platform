@@ -9,32 +9,7 @@ import {
   saveVectors,
   serializeVectors,
 } from '../src/vectordb.js';
-
-class MemDisk {
-  files = new Map<string, string>();
-  readFileSync(p: string): string {
-    const c = this.files.get(p);
-    if (c === undefined) throw new Error(`no such file: ${p}`);
-    return c;
-  }
-  /**
-   * v206: `FsWriteLike` extends `FsLike`, which requires these two — and this mock had NEITHER, in six of
-   * the eight suites that define one, until the type gate learned to read `test/`. Nothing on these paths
-   * reads a directory or stats a file, so every suite stayed green while the mock was incomplete against its
-   * own interface. They THROW rather than answering an empty listing: a mock that reports "no entries" for a
-   * disk that HAS entries is the kind of lie a future test would pass against.
-   */
-  readdirSync(): never {
-    throw new Error('MemDisk.readdirSync is not implemented for this suite — nothing here needs it');
-  }
-  statSync(): never {
-    throw new Error('MemDisk.statSync is not implemented for this suite — nothing here needs it');
-  }
-  mkdirSync(): void {}
-  writeFileSync(p: string, d: string): void {
-    this.files.set(p, d);
-  }
-}
+import { createMemDisk } from './memDisk.js';
 
 const SEED = [
   { id: 'b', text: 'widget rotation baking explanation', meta: { path: 'docs/rotate.md' } },
@@ -51,7 +26,7 @@ describe('vectordb (v18 local exact-scan store)', () => {
   });
 
   it('persist → cold reload ranks IDENTICALLY to inline hybridScore', () => {
-    const disk = new MemDisk();
+    const disk = createMemDisk({ listing: 'refuse' });
     const db = buildVectorDb(SEED);
     saveVectors(disk, 'state/vectors.json', db);
     const loaded = loadVectors(disk, 'state/vectors.json');
@@ -80,6 +55,6 @@ describe('vectordb (v18 local exact-scan store)', () => {
     const db = buildVectorDb(SEED);
     const wrongDim = { ...db, dim: 8 };
     expect(deserializeVectors(serializeVectors(wrongDim)).ok).toBe(false);
-    expect(loadVectors(new MemDisk(), 'none.json')).toEqual({ ok: false, reason: 'no such file: none.json' });
+    expect(loadVectors(createMemDisk({ listing: 'refuse' }), 'none.json')).toEqual({ ok: false, reason: 'no such file: none.json' });
   });
 });

@@ -1,32 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { appendEvaluation, loadEvaluations, scoreRun } from '../src/evaluate.js';
 import type { RunOutcome } from '../src/types.js';
-
-class MemDisk {
-  files = new Map<string, string>();
-  readFileSync(p: string): string {
-    const c = this.files.get(p);
-    if (c === undefined) throw new Error(`no such file: ${p}`);
-    return c;
-  }
-  /**
-   * v206: `FsWriteLike` extends `FsLike`, which requires these two — and this mock had NEITHER, in six of
-   * the eight suites that define one, until the type gate learned to read `test/`. Nothing on these paths
-   * reads a directory or stats a file, so every suite stayed green while the mock was incomplete against its
-   * own interface. They THROW rather than answering an empty listing: a mock that reports "no entries" for a
-   * disk that HAS entries is the kind of lie a future test would pass against.
-   */
-  readdirSync(): never {
-    throw new Error('MemDisk.readdirSync is not implemented for this suite — nothing here needs it');
-  }
-  statSync(): never {
-    throw new Error('MemDisk.statSync is not implemented for this suite — nothing here needs it');
-  }
-  mkdirSync(): void {}
-  writeFileSync(p: string, data: string): void {
-    this.files.set(p, data);
-  }
-}
+import { createMemDisk } from './memDisk.js';
 
 function outcome(over: Partial<RunOutcome> = {}): RunOutcome {
   const base: RunOutcome = {
@@ -92,7 +67,7 @@ describe('scoreRun (v8 deterministic rubric)', () => {
 
 describe('evaluation persistence', () => {
   it('append + reload keeps order and rejects corrupt files with reasons', () => {
-    const disk = new MemDisk();
+    const disk = createMemDisk({ listing: 'refuse' });
     appendEvaluation(disk, 'state/eval.jsonl', scoreRun(outcome()));
     appendEvaluation(disk, 'state/eval.jsonl', scoreRun(outcome({ task: { id: 'e2', goal: 'g' } })));
     const loaded = loadEvaluations(disk, 'state/eval.jsonl');

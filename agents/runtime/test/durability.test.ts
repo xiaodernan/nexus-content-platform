@@ -6,62 +6,10 @@ import {
   registerDiskTools,
   saveMemory,
   serializeMemory,
-  type FsWriteLike,
 } from '../src/durability.js';
 import { MemoryStore } from '../src/memory.js';
 import { ToolRegistry } from '../src/registry.js';
-import type { FsDirentLike } from '../src/realfs.js';
-
-/** Writable fake disk so every v3 code path is proven without touching the host fs. */
-class FakeDisk implements FsWriteLike {
-  files = new Map<string, string>();
-  dirs = new Set<string>();
-
-  constructor(seed: Record<string, string> = {}) {
-    for (const [p, c] of Object.entries(seed)) {
-      this.files.set(p, c);
-      const parts = p.split('/');
-      for (let i = 1; i < parts.length; i++) this.dirs.add(parts.slice(0, i).join('/'));
-    }
-  }
-
-  readdirSync(dir: string, _opts: { withFileTypes: true }): FsDirentLike[] {
-    const prefix = dir === '' ? '' : `${dir}/`;
-    const names = new Map<string, FsDirentLike>();
-    for (const p of [...this.dirs, ...this.files.keys()]) {
-      if (!p.startsWith(prefix) || p === prefix) continue;
-      const rest = p.slice(prefix.length);
-      if (rest.includes('/')) continue;
-      names.set(rest, {
-        name: rest,
-        isDirectory: () => this.dirs.has(`${prefix}${rest}`),
-        isFile: () => this.files.has(`${prefix}${rest}`),
-      });
-    }
-    return [...names.values()].sort((a, b) => a.name.localeCompare(b.name));
-  }
-
-  statSync(p: string): { size: number } {
-    const c = this.files.get(p);
-    if (c === undefined) throw new Error(`no such file: ${p}`);
-    return { size: c.length };
-  }
-
-  readFileSync(p: string): string {
-    const c = this.files.get(p);
-    if (c === undefined) throw new Error(`no such file: ${p}`);
-    return c;
-  }
-
-  mkdirSync(dir: string): void {
-    const parts = dir.split('/');
-    for (let i = 1; i <= parts.length; i++) this.dirs.add(parts.slice(0, i).join('/'));
-  }
-
-  writeFileSync(p: string, data: string): void {
-    this.files.set(p, data);
-  }
-}
+import { createMemDisk } from './memDisk.js';
 
 function sampleStore(): MemoryStore {
   const m = new MemoryStore();
@@ -98,7 +46,7 @@ describe('memory serialize/deserialize', () => {
 
 describe('saveMemory / loadMemoryStore through the injected fs', () => {
   it('writes under a fresh directory and reloads into a cold store', () => {
-    const disk = new FakeDisk();
+    const disk = createMemDisk({ listing: 'real' });
     saveMemory(sampleStore(), disk, 'state/nexus/memory.json');
     expect(disk.files.get('state/nexus/memory.json')).toContain('"schemaVersion": 1');
     const cold = new MemoryStore();
@@ -109,7 +57,7 @@ describe('saveMemory / loadMemoryStore through the injected fs', () => {
   });
 
   it('missing file reports honestly instead of throwing', () => {
-    const res = loadMemoryStore(new MemoryStore(), new FakeDisk(), 'nope.json');
+    const res = loadMemoryStore(new MemoryStore(), createMemDisk({ listing: 'real' }), 'nope.json');
     expect(res).toEqual({ ok: false, reason: 'no such file: nope.json' });
   });
 });
@@ -127,7 +75,7 @@ describe('guardedJoin + disk tools (allowlisted root, §28)', () => {
   const allow = () => true;
 
   it('disk.write is checkpoint-gated; approved write lands inside the root only', async () => {
-    const disk = new FakeDisk();
+    const disk = createMemDisk({ listing: 'real' });
     const registry = registerDiskTools(new ToolRegistry(), { root: 'out', fsLike: disk });
     const denied = await registry.invoke({ callId: 'c1', tool: 'disk.write', args: { path: 'notes.md', content: 'hi' } }, {});
     expect(denied.ok).toBe(false);
@@ -142,7 +90,7 @@ describe('guardedJoin + disk tools (allowlisted root, §28)', () => {
   });
 
   it('disk.read returns jailed content, disk.list enumerates ingestible paths', async () => {
-    const disk = new FakeDisk({ 'out/a/x.md': '# hi\n', 'out/a/y.bin': 'zz' });
+    const disk = createMemDisk({ listing: 'real', seed: { 'out/a/x.md': '# hi\n', 'out/a/y.bin': 'zz' } });
     const registry = registerDiskTools(new ToolRegistry(), { root: 'out', fsLike: disk });
     const read = await registry.invoke({ callId: 'c1', tool: 'disk.read', args: { path: 'a/x.md' } }, {});
     expect(read.output).toEqual({ content: '# hi\n' });

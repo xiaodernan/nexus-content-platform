@@ -2,32 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { appendLedger, formatLedgerLine, isArcRecord, loadLedger, parseLedgerLine } from '../src/ledger.js';
 import type { GitArcLedgerRecord, GitArcOutcome, GitArcTool } from '../src/index.js';
 import type { RunOutcome } from '../src/types.js';
-
-class MemDisk {
-  files = new Map<string, string>();
-  readFileSync(p: string): string {
-    const c = this.files.get(p);
-    if (c === undefined) throw new Error(`no such file: ${p}`);
-    return c;
-  }
-  /**
-   * v206: `FsWriteLike` extends `FsLike`, which requires these two — and this mock had NEITHER, in six of
-   * the eight suites that define one, until the type gate learned to read `test/`. Nothing on these paths
-   * reads a directory or stats a file, so every suite stayed green while the mock was incomplete against its
-   * own interface. They THROW rather than answering an empty listing: a mock that reports "no entries" for a
-   * disk that HAS entries is the kind of lie a future test would pass against.
-   */
-  readdirSync(): never {
-    throw new Error('MemDisk.readdirSync is not implemented for this suite — nothing here needs it');
-  }
-  statSync(): never {
-    throw new Error('MemDisk.statSync is not implemented for this suite — nothing here needs it');
-  }
-  mkdirSync(): void {}
-  writeFileSync(p: string, data: string): void {
-    this.files.set(p, data);
-  }
-}
+import { createMemDisk } from './memDisk.js';
 
 /** A run that gated something of its own: `annotate` is a write, so §28 disposed of it, and v54
  *  holds this line answerable for exactly that call — and for no git door (§60 anti-fold). */
@@ -104,7 +79,7 @@ describe('ledger (v7 run audit trail)', () => {
   });
 
   it('append is additive, newline-safe and creates parents', () => {
-    const disk = new MemDisk();
+    const disk = createMemDisk({ listing: 'refuse' });
     appendLedger(disk, 'state/ledger.jsonl', outcome('a'));
     appendLedger(disk, 'state/ledger.jsonl', outcome('b'));
     const read = loadLedger(disk, 'state/ledger.jsonl');
@@ -113,7 +88,7 @@ describe('ledger (v7 run audit trail)', () => {
   });
 
   it('loadLedger keeps order, counts malformed lines, and `last` trims from the tail', () => {
-    const disk = new MemDisk();
+    const disk = createMemDisk({ listing: 'refuse' });
     disk.writeFileSync(
       'l.jsonl',
       [formatLedgerLine(outcome('a')), 'garbage', formatLedgerLine(outcome('b')), formatLedgerLine(outcome('c')), ''].join('\n'),
@@ -158,7 +133,7 @@ describe('ledger × git-arc records (v49)', () => {
   });
 
   it('one stream, two kinds: append order, `last` across kinds, malformed arcs counted', () => {
-    const disk = new MemDisk();
+    const disk = createMemDisk({ listing: 'refuse' });
     appendLedger(disk, 'l.jsonl', outcome('a'));
     appendLedger(disk, 'l.jsonl', arcRecord('a'));
     disk.writeFileSync('l.jsonl', disk.readFileSync('l.jsonl') + '{"kind":"git-arc","runId":"b"}\n');
@@ -177,7 +152,7 @@ describe('ledger × git-arc records (v49)', () => {
   });
 
   it('the durable arc is joined to its run line by runId, and says who walked it', () => {
-    const disk = new MemDisk();
+    const disk = createMemDisk({ listing: 'refuse' });
     const rec = arcRecord('chain-7');
     appendLedger(disk, 'l.jsonl', outcome('chain-7'));
     appendLedger(disk, 'l.jsonl', rec);
@@ -232,7 +207,7 @@ describe('ledger × §28 receipts (v50)', () => {
   });
 
   it('a refused door survives the file: the veto\'s reason is readable by a cold reader', () => {
-    const disk = new MemDisk();
+    const disk = createMemDisk({ listing: 'refuse' });
     const vetoed = receipt({ call: { callId: 'c1:release:inspect', tool: 'git.show', args: { path: 'docs/a.md' } }, granted: false, matched: 'git.show', reason: 'only the human reads HEAD\'s contents' });
     appendLedger(disk, 'l.jsonl', { ...arcRecord(), arc: { ...arc('stopped'), decisions: [receipt(), vetoed] } });
     const read = loadLedger(disk, 'l.jsonl');
@@ -313,7 +288,7 @@ describe('ledger run-line receipts (v54)', () => {
   });
 
   it('a chain writes a run line and an arc line that each answer for their own calls, read cold', () => {
-    const disk = new MemDisk();
+    const disk = createMemDisk({ listing: 'refuse' });
     appendLedger(disk, 'l.jsonl', { ...outcome('r9'), decisions: [runReceipt('r9')] });
     appendLedger(disk, 'l.jsonl', { ...arcRecord('r9'), arc: { ...arc('completed', 'r9'), decisions: [receipt({ call: { callId: 'r9:release:commit', tool: 'git.commit', args: { message: 'm' } } })] } });
     const read = loadLedger(disk, 'l.jsonl');

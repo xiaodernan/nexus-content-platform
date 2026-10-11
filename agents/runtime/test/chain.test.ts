@@ -325,31 +325,7 @@ describe('runRoleChain release stage (v47)', () => {
 
 /* ---- v49: the arc's own walk is durable, not just returned ---- */
 
-class MemDisk {
-  files = new Map<string, string>();
-  readFileSync(p: string): string {
-    const c = this.files.get(p);
-    if (c === undefined) throw new Error(`no such file: ${p}`);
-    return c;
-  }
-  /**
-   * v206: `FsWriteLike` extends `FsLike`, which requires these two — and this mock had NEITHER, in six of
-   * the eight suites that define one, until the type gate learned to read `test/`. Nothing on these paths
-   * reads a directory or stats a file, so every suite stayed green while the mock was incomplete against its
-   * own interface. They THROW rather than answering an empty listing: a mock that reports "no entries" for a
-   * disk that HAS entries is the kind of lie a future test would pass against.
-   */
-  readdirSync(): never {
-    throw new Error('MemDisk.readdirSync is not implemented for this suite — nothing here needs it');
-  }
-  statSync(): never {
-    throw new Error('MemDisk.statSync is not implemented for this suite — nothing here needs it');
-  }
-  mkdirSync(): void {}
-  writeFileSync(p: string, data: string): void {
-    this.files.set(p, data);
-  }
-}
+import { createMemDisk, type MemDisk } from './memDisk.js';
 
 const LEDGER = 'state/chain-ledger.jsonl';
 
@@ -360,7 +336,7 @@ function durableOptions(h: ReturnType<typeof arcHost>, disk: MemDisk, checkpoint
 describe('runRoleChain ledger records (v49)', () => {
   it('a green chain writes its run line AND an arc line, in that order, joined by runId', async () => {
     const h = arcHost();
-    const disk = new MemDisk();
+    const disk = createMemDisk({ listing: 'refuse' });
     const res = await runRoleChain(task, durableOptions(h, disk));
     expect(res.ok).toBe(true);
     // `ChainResult` is a discriminated union and `release` is optional even on the green branch, so the
@@ -388,7 +364,7 @@ describe('runRoleChain ledger records (v49)', () => {
 
   it('§60 anti-fold on disk: the run line still holds no git step, so neither record lies about its stage', async () => {
     const h = arcHost();
-    const disk = new MemDisk();
+    const disk = createMemDisk({ listing: 'refuse' });
     await runRoleChain(task, durableOptions(h, disk));
     const { runs, arcs } = loadLedger(disk, LEDGER);
     expect(runs[0]!.plan.steps.some((s) => s.tool.startsWith('git.'))).toBe(false);
@@ -400,7 +376,7 @@ describe('runRoleChain ledger records (v49)', () => {
 
   it('a stopped arc is durable AS stopped: the doors that passed and the refusal both survive', async () => {
     const h = arcHost();
-    const disk = new MemDisk();
+    const disk = createMemDisk({ listing: 'refuse' });
     const res = await runRoleChain(task, durableOptions(h, disk, (req) => req.call.tool !== 'git.log'));
     expect(res.ok).toBe(true);
     if (!res.ok) return;
@@ -414,7 +390,7 @@ describe('runRoleChain ledger records (v49)', () => {
 
   it('a red chain journals the release it was REFUSED — an absent arc line would hide the ask', async () => {
     const h = arcHost({ green: false });
-    const disk = new MemDisk();
+    const disk = createMemDisk({ listing: 'refuse' });
     const res = await runRoleChain(task, durableOptions(h, disk));
     expect(res.ok).toBe(true);
     // `ChainResult` is a discriminated union and `release` is optional even on the green branch, so the
@@ -433,7 +409,7 @@ describe('runRoleChain ledger records (v49)', () => {
 
   it('without `release` the ledger keeps exactly the v14 shape: one run line, no arc line', async () => {
     const h = arcHost();
-    const disk = new MemDisk();
+    const disk = createMemDisk({ listing: 'refuse' });
     const res = await runRoleChain(task, { roles: h.roles, registry: h.registry, store: h.store, scope: 'chain', checkpoint: () => true, fsLike: disk, ledgerFile: LEDGER });
     expect(res.ok).toBe(true);
     const { runs, arcs } = loadLedger(disk, LEDGER);
@@ -442,7 +418,7 @@ describe('runRoleChain ledger records (v49)', () => {
   });
 
   it('append-only across runs: two chains, four lines, each arc joins its own run', async () => {
-    const disk = new MemDisk();
+    const disk = createMemDisk({ listing: 'refuse' });
     const h1 = arcHost();
     const h2 = arcHost();
     await runRoleChain(task, durableOptions(h1, disk));
@@ -481,7 +457,7 @@ const arcCallIds = ['staged', 'commit', 'confirm', 'inspect'].map((s) => `${task
 describe('runRoleChain arc receipts on the ledger (v50)', () => {
   it('a policy face\'s verdicts ride on the durable line: one receipt per door, rule and reason verbatim', async () => {
     const h = arcHost();
-    const disk = new MemDisk();
+    const disk = createMemDisk({ listing: 'refuse' });
     const cp = openArc();
     const res = await runRoleChain(task, durableOptions(h, disk, cp));
     expect(res.ok).toBe(true);
@@ -505,7 +481,7 @@ describe('runRoleChain arc receipts on the ledger (v50)', () => {
 
   it('the veto\'s REASON sits beside the commit it could not undo — the file answers who said no', async () => {
     const h = arcHost();
-    const disk = new MemDisk();
+    const disk = createMemDisk({ listing: 'refuse' });
     const res = await runRoleChain(task, durableOptions(h, disk, vetoInspect()));
     expect(res.ok).toBe(true);
     if (!res.ok) return;
@@ -535,7 +511,7 @@ describe('runRoleChain arc receipts on the ledger (v50)', () => {
 
   it('a face that keeps no list states that on the durable line instead of leaving a gap to interpret', async () => {
     const h = arcHost();
-    const disk = new MemDisk();
+    const disk = createMemDisk({ listing: 'refuse' });
     await runRoleChain(task, durableOptions(h, disk));
     const durable = loadLedger(disk, LEDGER).arcs[0]!.arc;
     expect(durable.decisions).toEqual([]);
@@ -551,7 +527,7 @@ describe('runRoleChain arc receipts on the ledger (v50)', () => {
 
   it('a red chain gated NOTHING, so its durable no-arc line carries an empty list and no note', async () => {
     const h = arcHost({ green: false });
-    const disk = new MemDisk();
+    const disk = createMemDisk({ listing: 'refuse' });
     const res = await runRoleChain(task, durableOptions(h, disk));
     expect(res.ok).toBe(true);
     // `ChainResult` is a discriminated union and `release` is optional even on the green branch, so the
@@ -575,7 +551,7 @@ const openRun = () => policyCheckpoint({ rules: [...STAGE_RULES, { tool: 'git.*'
 describe('runRoleChain run-line receipts (v54)', () => {
   it('the durable run line carries its OWN two gates, naming the row that decided each', async () => {
     const h = arcHost();
-    const disk = new MemDisk();
+    const disk = createMemDisk({ listing: 'refuse' });
     const cp = openRun();
     const res = await runRoleChain(task, durableOptions(h, disk, cp));
     expect(res.ok).toBe(true);
@@ -598,7 +574,7 @@ describe('runRoleChain run-line receipts (v54)', () => {
 
   it('the arithmetic of one chain: every gate lands on the record that owns it, and the brief on none', async () => {
     const h = arcHost();
-    const disk = new MemDisk();
+    const disk = createMemDisk({ listing: 'refuse' });
     const cp = openRun();
     const res = await runRoleChain(task, durableOptions(h, disk, cp));
     expect(res.ok).toBe(true);
@@ -615,7 +591,7 @@ describe('runRoleChain run-line receipts (v54)', () => {
 
   it('a veto of the run\'s OWN verification is recorded with its reason, beside a grant it cannot erase', async () => {
     const h = arcHost();
-    const disk = new MemDisk();
+    const disk = createMemDisk({ listing: 'refuse' });
     // The veto REPLACES the `test.run` row rather than shadowing it — v40's validator refuses a
     // duplicate pattern precisely because a shadowed rule is dead code nobody can see.
     const vetoVerify = policyCheckpoint({
@@ -657,7 +633,7 @@ describe('runRoleChain run-line receipts (v54)', () => {
 
   it('a face with no audit list says so on BOTH kinds of line, in the same sentence', async () => {
     const h = arcHost();
-    const disk = new MemDisk();
+    const disk = createMemDisk({ listing: 'refuse' });
     const res = await runRoleChain(task, durableOptions(h, disk));
     expect(res.ok).toBe(true);
     // `ChainResult` is a discriminated union and `release` is optional even on the green branch, so the

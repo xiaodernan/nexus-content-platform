@@ -3889,3 +3889,25 @@ silent failure cannot masquerade as an answer. The container subsystem's 26 case
 `agents/exec-host/test/containerExec.test.ts` under their own structure (the five-row test table first
 published here matched no real suite). Bounds: this is a record, not a feature — no new code, and the
 runtime's own tools do not route through the container yet.
+
+## Eleven MemDisk mocks become one disk with a named listing policy (M2 v229 — ADR 0016 amendment 229)
+
+Every suite in `agents/runtime/test` that needed the `FsWriteLike` seam defined its own `MemDisk`/`FakeDisk`,
+and under one name they answered `readdirSync` three ways: **five threw**, **two answered `[]`**, and **three
+answered a real listing** (byte-identical to each other), with `durability` a fourth shape (a `dirs` set and
+`withFileTypes`). Same name, different disk.
+
+`agents/runtime/test/memDisk.ts` is that disk once: `createMemDisk({ listing, seed })`, where the listing
+policy is a NAMED per-suite choice — `'refuse'` (throws; a directory read here is a bug in the test, the
+answer v206 argued for), `'empty'` (the honest answer for this suite is "nothing"), `'real'` (a true flat
+listing, directories a `mkdirSync` recorded included). Eleven suites migrated: **refuse** = testRunner,
+ledger, vectordb, chain, evaluate · **empty** = memory, vectorStore · **real** = durability, indexVectors,
+indexStore, pipeline.
+
+The migration found a real defect in the helper: its seed wrote via `writeFileSync` (which does not derive
+parent dirs) while `durability`'s constructor did — so a seeded `out/a/x.md` could not be reached by a walk
+that reads `readdirSync('out')`. The seed now derives the parents. `realfs`'s `FakeFs` is deliberately NOT
+migrated: it implements `FsLike` with a `root`-prefix `strip`, a different seam.
+
+Measured: `agents/runtime` **540/540** (36 files) green, `tsc -p tsconfig.test.json --noEmit` exit 0, no test
+added or removed (the unchanged count is the proof the migrations are behaviour-preserving).

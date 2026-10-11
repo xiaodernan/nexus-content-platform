@@ -12,33 +12,7 @@ import { createIndexProvider, type IndexProvider } from '../src/indexStore.js';
 import { loadVectors } from '../src/vectordb.js';
 import { InMemoryWorkspace, registerWorkspaceTools } from '../src/workspace.js';
 import { ToolRegistry } from '../src/registry.js';
-import type { FsWriteLike } from '../src/durability.js';
-import type { FsDirentLike } from '../src/realfs.js';
-
-class FakeDisk implements FsWriteLike {
-  files = new Map<string, string>();
-  readdirSync(dir: string): FsDirentLike[] {
-    return [...this.files.keys()].filter((p) => p.startsWith(`${dir}/`) && !p.slice(dir.length + 1).includes('/')).map((p) => ({
-      name: p.slice(dir.length + 1),
-      isDirectory: () => false,
-      isFile: () => true,
-    }));
-  }
-  statSync(p: string): { size: number } {
-    const c = this.files.get(p);
-    if (c === undefined) throw new Error(`no such file: ${p}`);
-    return { size: c.length };
-  }
-  readFileSync(p: string): string {
-    const c = this.files.get(p);
-    if (c === undefined) throw new Error(`no such file: ${p}`);
-    return c;
-  }
-  mkdirSync(): void {}
-  writeFileSync(p: string, data: string): void {
-    this.files.set(p, data);
-  }
-}
+import { createMemDisk, type MemDisk } from './memDisk.js';
 
 const FILES: Record<string, string> = {
   'src/a.ts': 'export function alpha() {\n  return 1;\n}\n',
@@ -124,11 +98,11 @@ describe('indexVectors: drift falls back honestly', () => {
 });
 
 describe('indexVectors: persisted provider path', () => {
-  const makeProvider = (files: Record<string, string>, disk: FakeDisk): IndexProvider =>
+  const makeProvider = (files: Record<string, string>, disk: MemDisk): IndexProvider =>
     createIndexProvider({ files, snapshotFile: 'state/index.json', vectorsFile: 'state/vectors.json', fsLike: disk });
 
   it('first refresh persists a loadable vectors file; vectors() exposes it', () => {
-    const disk = new FakeDisk();
+    const disk = createMemDisk({ listing: 'real' });
     const p = makeProvider(FILES, disk);
     expect(p.vectors()).not.toBeNull(); // lazy refresh through vectors()
     const loaded = loadVectors(disk, 'state/vectors.json');
@@ -137,7 +111,7 @@ describe('indexVectors: persisted provider path', () => {
   });
 
   it('a second cold provider reuses the persisted vectors byte-for-byte (0 re-embeds)', () => {
-    const disk = new FakeDisk();
+    const disk = createMemDisk({ listing: 'real' });
     makeProvider(FILES, disk).refresh();
     const written = disk.files.get('state/vectors.json')!;
     const second = makeProvider(FILES, disk);
@@ -147,7 +121,7 @@ describe('indexVectors: persisted provider path', () => {
   });
 
   it('corrupt vectors file rebuilds and self-repairs; queries still report engine "vectors"', () => {
-    const disk = new FakeDisk();
+    const disk = createMemDisk({ listing: 'real' });
     disk.writeFileSync('state/vectors.json', 'not json at all');
     const p = makeProvider(FILES, disk);
     const index = p.refresh();
@@ -158,7 +132,7 @@ describe('indexVectors: persisted provider path', () => {
   });
 
   it('registered fs.index answers with engine "vectors" when the provider is vector-backed', async () => {
-    const disk = new FakeDisk();
+    const disk = createMemDisk({ listing: 'real' });
     const ws = new InMemoryWorkspace(FILES);
     const p = createIndexProvider({ files: { ...FILES }, snapshotFile: 'state/index.json', vectorsFile: 'state/vectors.json', fsLike: disk });
     const registry = registerWorkspaceTools(new ToolRegistry(), ws, { indexProvider: p });
@@ -174,7 +148,7 @@ describe('indexVectors: persisted provider path', () => {
   });
 
   it('vector-backed queries track file edits through the provider lifecycle', () => {
-    const disk = new FakeDisk();
+    const disk = createMemDisk({ listing: 'real' });
     const files = { ...FILES };
     const p = makeProvider(files, disk);
     p.refresh();

@@ -8,30 +8,7 @@ import { NO_RECEIPTS_NOTE, policyCheckpoint } from '../src/checkpointPolicy.js';
 import { loadMemoryStore } from '../src/durability.js';
 import { loadLedger } from '../src/ledger.js';
 import { loadEvaluations } from '../src/evaluate.js';
-import type { FsDirentLike } from '../src/realfs.js';
-
-class MemDisk {
-  files = new Map<string, string>();
-  readdirSync(dir: string): FsDirentLike[] {
-    return [...this.files.keys()]
-      .filter((p) => p.startsWith(`${dir}/`) && !p.slice(dir.length + 1).includes('/'))
-      .map((p) => ({ name: p.slice(dir.length + 1), isDirectory: () => false, isFile: () => true }));
-  }
-  statSync(p: string): { size: number } {
-    const c = this.files.get(p);
-    if (c === undefined) throw new Error(`no such file: ${p}`);
-    return { size: c.length };
-  }
-  readFileSync(p: string): string {
-    const c = this.files.get(p);
-    if (c === undefined) throw new Error(`no such file: ${p}`);
-    return c;
-  }
-  mkdirSync(): void {}
-  writeFileSync(p: string, data: string): void {
-    this.files.set(p, data);
-  }
-}
+import { createMemDisk } from './memDisk.js';
 
 const SEED = { 'docs/widget.md': '# Widget\n\nwidget rotation notes\n', 'docs/x.md': '# X\n\nunrelated\n' };
 
@@ -75,7 +52,7 @@ describe('runRolePipeline (§25 handoff as data)', () => {
   });
 
   it('durable mode: memory + ledger + evaluations files written through the injected fs, reload proves survival', async () => {
-    const disk = new MemDisk();
+    const disk = createMemDisk({ listing: 'real' });
     const h = host();
     const res = await runRolePipeline(task, {
       roles: h.roles, registry: h.registry, store: h.store, checkpoint: () => true, fsLike: disk,
@@ -125,7 +102,7 @@ describe('runRolePipeline run-line receipts (v54)', () => {
     });
 
   it('the durable run line names the rule behind each of its own two gates', async () => {
-    const disk = new MemDisk();
+    const disk = createMemDisk({ listing: 'real' });
     const h = host();
     const res = await runRolePipeline(task, { roles: h.roles, registry: h.registry, store: h.store, checkpoint: policy(), fsLike: disk, ledgerFile: 'state/ledger.jsonl' });
     expect(res.ok).toBe(true);
@@ -143,7 +120,7 @@ describe('runRolePipeline run-line receipts (v54)', () => {
   });
 
   it('a bare closure answers for nothing on a stored line, and says so in the same sentence the arc uses', async () => {
-    const disk = new MemDisk();
+    const disk = createMemDisk({ listing: 'real' });
     const h = host();
     await runRolePipeline(task, { roles: h.roles, registry: h.registry, store: h.store, checkpoint: () => true, fsLike: disk, ledgerFile: 'state/ledger.jsonl' });
     const run = loadLedger(disk, 'state/ledger.jsonl').runs[0]!;

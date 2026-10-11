@@ -10403,3 +10403,43 @@ _Numbering: 228 was free (`grep -ao "^### Amendment [0-9]*"` topped out at 227).
   unchanged (no studio source moved, and no studio case calls `createAnimation`). No existing case moved:
   every caller in the corpus passes a real `scene.id`, which is why the hole could sit there for nine
   increments since v108 introduced the verb.
+
+### Amendment 229 (M2 v229, agents/runtime tests) — the `FsWriteLike` disk every suite defined for itself, made ONE disk with a named listing policy
+
+_Numbering: 229 was free (`grep -ao "^### Amendment 22[0-9]"` topped out at 228). Test-only: the new
+`agents/runtime/test/memDisk.ts` and eleven migrated suites. No `src/` byte moved._
+
+- **The defect.** Eleven suites in `agents/runtime/test` each defined their own `MemDisk`/`FakeDisk` for the
+  runtime's `FsWriteLike` seam — and under that one name they answered `readdirSync` THREE different ways:
+  **five threw** ("not implemented for this suite"), **two answered an empty listing**, and **three answered a
+  real one** (byte-identical to each other), while `durability`'s `FakeDisk` carried a fourth shape (a `dirs`
+  set, `withFileTypes`, a real directory listing). Same name, different disk — so "the mock" meant something
+  different in every file, and a suite that NEEDED a listing had no way to say so. The bodies were otherwise
+  identical (`readFileSync`/`statSync`/`mkdirSync`/`writeFileSync`), so only the LISTING was a real choice.
+- **What landed.** `agents/runtime/test/memDisk.ts` — one `createMemDisk({ listing, seed })`. The listing
+  policy is NAMED at each call site, never inferred:
+  - `'refuse'` — this suite never lists, and a directory read here is a bug in the TEST; it THROWS, which is
+    the answer v206 argued for ("a mock that reports 'no entries' for a disk that HAS entries is the kind of
+    lie a future test would pass against"). Taken by **testRunner, ledger, vectordb, chain, evaluate**.
+  - `'empty'` — the code path under test may ask and the honest answer for THIS suite is that it holds nothing.
+    Deliberately the dangerous one; taken only where a case measured it. **memory, vectorStore**.
+  - `'real'` — a true flat listing of the files (and any `dirs` a `mkdirSync` recorded). **durability,
+    indexVectors, indexStore, pipeline**.
+- **A defect the migration found in the helper's own first draft.** The seed loop wrote each seed path with
+  `writeFileSync`, which does NOT derive parent directories — but `durability`'s `FakeDisk` CONSTRUCTOR did, and
+  `disk.list` walks via `collectTextFiles`, which reads directories. So a migrated `durability` case that
+  seeded `out/a/x.md` and listed would have found NOTHING: the walk reads `readdirSync('out')`, and with no
+  `out` directory recorded it returns `[]`. The seed loop now derives the parent dirs (`out`, `out/a`); a later
+  `writeFileSync` still does not, because a listing that reported a directory a later write never made would be
+  inventing structure. This is the kind of thing a green suite cannot see — the case went red, and it did,
+  before the fix.
+- **Evidence.** `agents/runtime` **540/540** (36 files) green, `tsc -p tsconfig.test.json --noEmit` exit 0. No
+  test added or removed — the count is unchanged, which is the proof the eleven migrations are
+  behaviour-preserving (a suite that meant something different would have moved a case). `realfs`'s `FakeFs` is
+  NOT migrated: it implements `FsLike` (not `FsWriteLike`) and carries a `root`-prefix `strip`, so it is a
+  different seam with root-relative path handling, not the same disk under another name.
+- **Bounds (§60).** The helper is test-only (`agents/runtime/test/`), so nothing in the shipped package moved.
+  The listing policy is a per-suite DECLARATION, not an inference — a suite that needs a listing must now say
+  which kind, which is the point. `mkdirSync` records directories (so a listing can report them) while
+  `writeFileSync` does not; only the seed derives them. Two `MemDisk` type annotations (`chain`, `indexVectors`)
+  now name the exported `MemDisk` interface rather than a local class.

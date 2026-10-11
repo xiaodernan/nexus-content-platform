@@ -11,33 +11,7 @@ import {
   saveIndex,
   serializeIndex,
 } from '../src/indexStore.js';
-import type { FsWriteLike } from '../src/durability.js';
-import type { FsDirentLike } from '../src/realfs.js';
-
-class FakeDisk implements FsWriteLike {
-  files = new Map<string, string>();
-  readdirSync(dir: string): FsDirentLike[] {
-    return [...this.files.keys()].filter((p) => p.startsWith(`${dir}/`) && !p.slice(dir.length + 1).includes('/')).map((p) => ({
-      name: p.slice(dir.length + 1),
-      isDirectory: () => false,
-      isFile: () => true,
-    }));
-  }
-  statSync(p: string): { size: number } {
-    const c = this.files.get(p);
-    if (c === undefined) throw new Error(`no such file: ${p}`);
-    return { size: c.length };
-  }
-  readFileSync(p: string): string {
-    const c = this.files.get(p);
-    if (c === undefined) throw new Error(`no such file: ${p}`);
-    return c;
-  }
-  mkdirSync(): void {}
-  writeFileSync(p: string, data: string): void {
-    this.files.set(p, data);
-  }
-}
+import { createMemDisk } from './memDisk.js';
 
 const FILES: Record<string, string> = {
   'src/a.ts': 'export function alpha() {\n  return 1;\n}\n',
@@ -64,7 +38,7 @@ describe('indexStore: snapshot round-trip', () => {
   });
 
   it('save/load through the injected writable fs; missing file fails honestly', () => {
-    const disk = new FakeDisk();
+    const disk = createMemDisk({ listing: 'real' });
     const index = buildIndex(FILES);
     saveIndex(disk, 'state/index.json', index, fingerprintFiles(FILES));
     const loaded = loadIndex(disk, 'state/index.json');
@@ -123,7 +97,7 @@ describe('indexStore: createIndexProvider (v5)', () => {
   });
 
   it('a fresh provider restores from the persisted snapshot (0 re-chunked) via injected fs', () => {
-    const disk = new FakeDisk();
+    const disk = createMemDisk({ listing: 'real' });
     const first = createIndexProvider({ files: FILES, snapshotFile: 'state/index.json', fsLike: disk });
     first.refresh();
     expect(disk.files.has('state/index.json')).toBe(true);
@@ -136,7 +110,7 @@ describe('indexStore: createIndexProvider (v5)', () => {
   });
 
   it('corrupt snapshot falls back to a cold build without crashing', () => {
-    const disk = new FakeDisk();
+    const disk = createMemDisk({ listing: 'real' });
     disk.writeFileSync('state/index.json', 'nope');
     const p = createIndexProvider({ files: FILES, snapshotFile: 'state/index.json', fsLike: disk });
     p.refresh();
@@ -179,7 +153,7 @@ describe('cold build → persist → reload is identity (v79)', () => {
   });
 
   it('round-trips through a disk too, so the proof path is the one tested', () => {
-    const disk = new FakeDisk();
+    const disk = createMemDisk({ listing: 'real' });
     const files = { 'notes.md': 'no heading in this file at all\nsecond line\n' };
     const cold = buildIndex(files);
     saveIndex(disk, 'state/index.json', cold, fingerprintFiles(files));

@@ -4,28 +4,7 @@ import { embedTokens } from '../src/embedding.js';
 import { buildVectorDb, queryVectors } from '../src/vectordb.js';
 import { MemoryStore } from '../src/memory.js';
 import { createVectorStore, syncMemoryToVectorStore } from '../src/vectorStore.js';
-import type { FsDirentLike } from '../src/realfs.js';
-
-class MemDisk {
-  files = new Map<string, string>();
-  readdirSync(): FsDirentLike[] {
-    return [];
-  }
-  statSync(p: string): { size: number } {
-    const c = this.files.get(p);
-    if (c === undefined) throw new Error(`no such file: ${p}`);
-    return { size: c.length };
-  }
-  readFileSync(p: string): string {
-    const c = this.files.get(p);
-    if (c === undefined) throw new Error(`no such file: ${p}`);
-    return c;
-  }
-  mkdirSync(): void {}
-  writeFileSync(p: string, d: string): void {
-    this.files.set(p, d);
-  }
-}
+import { createMemDisk } from './memDisk.js';
 
 const SEED = [
   { id: 'b', text: 'widget rotation baking explanation', meta: { path: 'docs/rotate.md' } },
@@ -92,7 +71,7 @@ describe('vectorStore facade (v91 — the ESM seam)', () => {
   });
 
   it('the local store writes NOTHING until flush, then a COLD second store reads the same rows', async () => {
-    const disk = new MemDisk();
+    const disk = createMemDisk({ listing: 'empty' });
     const first = createVectorStore({ type: 'local', localPath: 'state/vectors.json' }, disk);
     expect(first.engine).toBe('local-json-exact-scan');
     expect(await first.initialize()).toEqual({ ok: true, engine: 'local-json-exact-scan', entries: 0, loadedFrom: null });
@@ -109,7 +88,7 @@ describe('vectorStore facade (v91 — the ESM seam)', () => {
   });
 
   it('a file that EXISTS but cannot be read is refused, not silently replaced by an empty store', async () => {
-    const disk = new MemDisk();
+    const disk = createMemDisk({ listing: 'empty' });
     disk.files.set('state/vectors.json', '{oops');
     const store = createVectorStore({ type: 'local', localPath: 'state/vectors.json' }, disk);
 
@@ -126,7 +105,7 @@ describe('vectorStore facade (v91 — the ESM seam)', () => {
   });
 
   it('syncMemoryToVectorStore names one row per ref, stably, and is idempotent under upsert', async () => {
-    const disk = new MemDisk();
+    const disk = createMemDisk({ listing: 'empty' });
     const store = createVectorStore({ type: 'local', localPath: 'state/v.json' }, disk);
     await store.initialize();
     const memory = new MemoryStore();
