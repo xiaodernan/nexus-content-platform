@@ -2996,3 +2996,47 @@ Bounds: a caller passing NO id can never be refused (the generated id is unique 
 on the restore wedge. What this grant does NOT do: there is still no `removeCamera`/`removeScene` verb, so a camera
 leaves a scene only by disposal; `loadSaveFile` still requires the caller to create the scene first; and the id is
 still honoured as the map key, so a refused restore is told by name rather than silently re-keyed.
+
+## v227 — a save file's cinematic half was the only half that named an ABSOLUTE scene id (ADR 0016 amendment 227)
+
+A save file is a set of contents about ONE scene, and every half of it is restored against the scene the CALLER
+names: `entities`, `npcs`, `worldState` and `player` all take `loadSaveFile`'s `sceneId` argument. The cinematic
+half was the one exception — a sequence's `sceneId` records where the save was taken (`types.ts:754-761`), and the
+loader demanded that exact scene exist. A file carrying a cutscene could therefore only be loaded into the very
+scene it was saved from: the one half of the format no host could restore anywhere else.
+
+**Measured on the shipped bytes before the fix**, loading the Studio's own save back through the Studio's own
+surface (whose whole design is a sibling restore — "the demo scene and its frame loop stay exactly what they were"):
+
+| what the probe printed | what it means |
+| --- | --- |
+| `REFUSED restoreCinematic: "seq" belongs to scene stage, which is not the active scene (studio-scene)` | the cinematic half named a scene the sibling did not have |
+| `…the restore rolled back: nothing had been registered` | the rollback is honest — the panel met a refusal, not a broken world |
+| `PROBE PROTOCOL PATH OK {"sceneId":"stage",…,"sequences":["seq"],…}` | the only loadable protocol is the one a sibling-restoring host cannot perform |
+
+So the format declares cinematic SAVABLE (`saveFeasibilityAudit` lists it), the Studio's save claims to carry it,
+and the Studio's own load could not read one back.
+
+**The fix is one line plus a helper.** `loadSaveFile` restores the cinematic half against the caller's scene:
+`retargetCinematic(file.cinematic, sceneId)` returns a COPY with every sequence's `sceneId` set to the target.
+`restoreCinematic` keeps its own contract (restore the snapshot into the scenes it names); the field is still
+WRITTEN by `buildSaveFile` and still VALIDATED on the way in. A COPY, because the file is the caller's value.
+
+**The camera half stays the caller's, and now it is the only thing left.** The format carries no camera objects —
+a shot names a `cameraId`, and the name/type/FOV behind it is not in the file — so the loader refuses a shot naming
+a camera the target scene lacks, BY NAME. The Studio's `load()` now re-issues them (see the studio record for that
+half), and answers what it re-issued.
+
+| layer | what it proves |
+| --- | --- |
+| `test/saveSnapshot.test.ts` (+4) | the scene half is the loader's now, and the CAMERA half is the caller's — its absence is refused by name · the caller re-issues the shot camera under its own id and the load completes · the caller's file is not rewritten (the cinematic half keeps the scene the save was taken from) · a RUNNING sequence resumes on the target scene once the caller looks at it |
+
+**Arms: 5 predicted, 5 red, 5/5 MATCHED**, after one re-derivation recorded rather than smoothed: the first
+derivation under-counted every arm, because the studio suite runs the real runtime through the `src` alias (so a
+runtime mutation reddens studio cases too) and the stopped-sequence case names a camera exactly as much as the
+running one. `R1` loader stops re-pointing → 8 · `R2` re-point mutates the caller's file → 2 · `S1` surface stops
+re-issuing cameras → 4 · `S2` surface stops activating → 3 · `S3` surface reports ids it never re-issued → 4.
+Both source files restored byte-identical after every arm.
+
+Measured: three-runtime **531 → 535** (23 files), Studio **474 → 483** (31 files), `tsc --noEmit` exit 0 in both.
+No existing case moved — the re-point only ADDS a target that previously could not be named.

@@ -1785,3 +1785,78 @@ describe('watchCameras (M5 v224)', () => {
     expect(heard).toEqual(['news']);
   });
 });
+
+  /**
+   * M5 v227 — what the surface's `load()` answers about the restore, over the FAKE saver.
+   *
+   * The real-runtime cases live in `scene3dSurface.test.ts`; these are the surface's OWN contract: that it
+   * reports the cameras it re-issued rather than doing it silently, and that a host which cannot make a scene
+   * active is told so in the surface's voice instead of meeting the runtime's scene-id-shaped refusal.
+   */
+  describe('load() reports the re-issue rather than doing it silently (M5 v227)', () => {
+    it('a cinematic-free file answers an empty re-issue and still lands in a fresh sibling', () => {
+      const { runtime, scenes } = fakeRuntime();
+      const { saver } = fakeSaver();
+      const surface = createStudioScene(runtime, () => {}, undefined, 0, saver);
+      const file = surface.save(1);
+      // The fake saver's file carries no cinematic, so there is nothing to re-issue and nothing to activate.
+      expect((file.cinematic as { sequences: unknown[] }).sequences).toEqual([]);
+
+      const loaded = surface.load(file);
+
+      expect(loaded.reissued).toEqual({ cameraIds: [], activated: false });
+      expect(loaded.sceneId).not.toBe(surface.sceneId);
+      expect(scenes.size).toBe(2);
+    });
+
+    it('a file naming cameras answers each id, in first-appearance order', () => {
+      const { runtime } = fakeRuntime();
+      const { saver } = fakeSaver();
+      const surface = createStudioScene(runtime, () => {}, undefined, 0, saver);
+      const file = {
+        ...surface.save(1),
+        cinematic: {
+          sequences: [
+            ['a', { id: 'a', sceneId: 'x', shots: [{ id: 's', cameraId: 'cam-1' }, { id: 't', cameraId: 'cam-2' }] }],
+            ['b', { id: 'b', sceneId: 'x', shots: [{ id: 'u', cameraId: 'cam-1' }] }],
+          ],
+          activeSequence: null,
+          currentTime: 0,
+        },
+      };
+
+      const loaded = surface.load(file);
+
+      // Deduped, and in the order the file names them: a host rendering "restored 2 cameras" must not count
+      // one twice because two shots address it.
+      expect(loaded.reissued.cameraIds).toEqual(['cam-1', 'cam-2']);
+      expect(loaded.reissued.activated).toBe(false);
+    });
+
+    it('a file describing a RUNNING cutscene is refused on a host with no setActiveScene', () => {
+      const { runtime } = fakeRuntime();
+      // The fake runtime has no `setActiveScene`, which is a legitimate host — the verb is optional on the
+      // seam — so a file describing a running cutscene cannot be resumed here.
+      const { saver } = fakeSaver();
+      const surface = createStudioScene(runtime, () => {}, undefined, 0, saver);
+      const file = {
+        ...surface.save(1),
+        cinematic: { sequences: [], activeSequence: 'seq', currentTime: 0.5 },
+      };
+
+      expect(() => surface.load(file)).toThrow(/a cutscene that was RUNNING.*no setActiveScene verb/);
+    });
+
+    it('a malformed cinematic is the loader\u2019s to refuse, not a crash in the surface', () => {
+      const { runtime } = fakeRuntime();
+      const { saver } = fakeSaver();
+      const surface = createStudioScene(runtime, () => {}, undefined, 0, saver);
+      // Untrusted JSON reaching the surface's own reads first: `sequences` is a number here. The surface must
+      // find nothing to re-issue and let the loader answer in its own voice.
+      const file = { ...surface.save(1), cinematic: { sequences: 7, activeSequence: null, currentTime: 0 } };
+
+      const loaded = surface.load(file);
+
+      expect(loaded.reissued).toEqual({ cameraIds: [], activated: false });
+    });
+  });

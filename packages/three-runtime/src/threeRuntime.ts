@@ -560,6 +560,35 @@ function shotFromData(saved: SerializedCinematicShot, where: string): CinematicS
  * owns its own key): a pair whose key disagrees with the record under it, an `id` that is not a name
  * `activeSequence` can address, a scene the shots do not belong to, a `currentShot` no shot answers to.
  */
+/**
+ * M5 v227 — the same cinematic snapshot with every sequence's `sceneId` set to the scene being loaded into.
+ *
+ * WHY THIS EXISTS. A save file is a set of contents about ONE scene, and every half of it is restored against
+ * the scene the CALLER names: `entities`, `npcs`, `worldState` and `player` all take `loadSaveFile`'s
+ * `sceneId` argument. The cinematic half was the one exception — a sequence's `sceneId` records where the save
+ * was taken (`types.ts:754-761`: it was added because a shot's `cameraId` addresses one scene's camera set and
+ * nothing else), and the loader demanded that exact scene exist. So a file carrying a cutscene could only be
+ * loaded into the very scene it was saved from, which is the half of the format no host could restore ANYWHERE
+ * ELSE. Measured on the shipped bytes: the Studio's own save→load, which restores into a SIBLING scene so the
+ * live one is untouched, was refused — `restoreCinematic: "seq" belongs to scene stage, which is not the active
+ * scene (…); … nothing had been registered`.
+ *
+ * The field is still WRITTEN by `buildSaveFile` and still VALIDATED on the way in; what changes is that the
+ * restore reads the caller's target scene for it, so the half is relative like the rest. `restoreCinematic`
+ * keeps its own contract — restore the snapshot into the scenes it names — and this is the loader handing it a
+ * snapshot that names the scene the caller asked for.
+ *
+ * A COPY is made because the file is the CALLER's value: rewriting `file.cinematic.sequences[i][1].sceneId` in
+ * place would silently edit something this method did not own, and the caller's file would come back describing
+ * a different scene than it did before the load.
+ */
+function retargetCinematic(snapshot: SerializedCinematic, sceneId: SceneId): SerializedCinematic {
+  return {
+    ...snapshot,
+    sequences: snapshot.sequences.map(([key, entry]) => [key, { ...entry, sceneId }]),
+  };
+}
+
 function savedSequences(snapshot: SerializedCinematic): SerializedCinematicSequence[] {
   const pairs = snapshot.sequences as unknown;
   if (pairs instanceof Map) {
@@ -2052,7 +2081,7 @@ export class ThreeRuntime {
       }
     }
 
-    const loadedSequences = this.restoreCinematic(file.cinematic);
+    const loadedSequences = this.restoreCinematic(retargetCinematic(file.cinematic, sceneId));
     const restored: EntityId[] = [];
     const restoredNpcs: EntityId[] = [];
     let restoredWorldState: string[] = [];

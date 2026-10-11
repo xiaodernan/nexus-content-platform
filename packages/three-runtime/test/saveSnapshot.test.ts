@@ -708,6 +708,80 @@ describe('a save FILE: it survives the disk, and the loader refuses what it cann
     other.dispose();
   });
 
+  /**
+   * M5 v227 — the cinematic half is restored against the CALLER's scene, like every other half.
+   *
+   * Before this grant a sequence's `sceneId` was the one absolute reference in a file of relative ones:
+   * `entities`, `npcs`, `worldState` and `player` are all restored into the `sceneId` ARGUMENT, while the
+   * loader demanded that the scene a file's sequences NAME exist. A file carrying a cutscene could therefore
+   * only be loaded into the very scene it was saved from — which is why the Studio's sibling restore, whose
+   * whole design is "the live scene stays untouched", was refused with
+   * `restoreCinematic: "seq" belongs to scene stage, which is not the active scene (…)`.
+   */
+  describe('the cinematic half answers to the scene the caller names (M5 v227)', () => {
+    it('the SCENE half is the loader\u2019s now; the CAMERA half is the caller\u2019s, and its absence is refused by name', () => {
+      const { file } = fileWithContent();
+      const other = freshWorld();
+      // A sibling under a GENERATED id: not the saved scene's name, and not empty either.
+      const sibling = other.createScene('Sibling');
+      other.createEntity(sibling.id, 'Body', 'mesh');
+
+      // Before v227 this load was refused for the SCENE — `belongs to scene …, which is not the active
+      // scene` — because the cinematic half named an absolute scene id. What is left is the half ONLY a
+      // caller can do: the shot names a camera the sibling does not have, and the loader refuses it by name
+      // rather than inventing one (the format carries no camera objects at all).
+      expect(() => other.loadSaveFile(file, sibling.id))
+        .toThrow(/shot s0 names camera .*, which is not in scene .*\. A sequence is registered against ONE scene/);
+    });
+
+    it('the caller re-issues the shot camera under its own id, and the load completes', () => {
+      const { file, cam } = fileWithContent();
+      const other = freshWorld();
+      const sibling = other.createScene('Sibling');
+
+      other.createCamera(sibling.id, 'Cam again', 'perspective', {}, cam);
+
+      const report = other.loadSaveFile(file, sibling.id);
+
+      expect(report.sequences).toEqual(['seq']);
+      // The camera the shot addresses is the SIBLING's, under the file's id — not the writer's object.
+      expect(other.getScene(sibling.id)!.cameras.get(cam)!.name).toBe('Cam again');
+    });
+
+    it('the caller\u2019s file is not rewritten: the cinematic half keeps the scene the save was taken from', () => {
+      const { file } = fileWithContent();
+      const before = JSON.stringify(file.cinematic);
+      const other = freshWorld();
+      const sibling = other.createScene('Sibling');
+      other.createCamera(sibling.id, 'Cam again', 'perspective', {}, file.cinematic.sequences[0]![1].shots[0]!.cameraId);
+
+      other.loadSaveFile(file, sibling.id);
+
+      expect(JSON.stringify(file.cinematic)).toBe(before);
+      expect(file.cinematic.sequences[0]![1].sceneId).toBe(scene);
+    });
+
+    it('a RUNNING sequence resumes on the target scene once the caller looks at it', () => {
+      // The same file with the cutscene actually PLAYING: `activeSequence` is set and the save's
+      // `currentTime` is mid-shot. Restoring it into a sibling and looking at that sibling resumes it — the
+      // runtime's own condition is that a sequence plays only on the active scene.
+      const { cam } = fileWithContent();
+      runtime.playCinematic('seq');
+      runtime.simulateFrame(0.5);
+      const file = runtime.buildSaveFile(scene, 1700000000000);
+      expect(file.cinematic.activeSequence).toBe('seq');
+      const other = freshWorld();
+      const sibling = other.createScene('Sibling');
+      other.createCamera(sibling.id, 'Cam again', 'perspective', {}, cam);
+      other.setActiveScene(sibling.id);
+
+      const report = other.loadSaveFile(file, sibling.id);
+
+      expect(report.sequences).toEqual(['seq']);
+      expect(other.cinematicSnapshot().activeSequence).toBe('seq');
+    });
+  });
+
   it('refuses a file whose format or version is not this one’s, printing every problem at once', () => {
     const { file } = fileWithContent();
     expect(() => runtime.loadSaveFile({ ...file, format: 'nexus-save' as typeof file.format, version: 2 }, scene))

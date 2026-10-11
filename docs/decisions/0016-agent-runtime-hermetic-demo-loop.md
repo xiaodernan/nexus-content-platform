@@ -10129,3 +10129,65 @@ cleaned for a commit._
   working state, and destroying it would be worse than ignoring it). It also teaches nothing to whoever runs
   `git add -A` — the next foreign directory will need the same line, which is the argument for staging by name
   rather than by glob, recorded here rather than repeated.
+
+### Amendment 227 (M5 v227, three-runtime + studio) — a save file's cinematic half was the only half that named an ABSOLUTE scene id, so a file carrying a cutscene could only be loaded into the very scene it was saved from
+
+_Numbering: 227 was free (`grep -ao "^### Amendment [0-9]*"` topped out at 226). Code and tests: `threeRuntime.ts`,
+`scene3d.ts`, `saveSnapshot.test.ts`, `scene3d.test.ts`, `scene3dSurface.test.ts` (5 files)._
+
+- **The defect, measured on the shipped bytes before the fix.** A save file is a set of contents about ONE scene,
+  and every half of it is restored against the scene the CALLER names: `entities`, `npcs`, `worldState` and
+  `player` all take `loadSaveFile`'s `sceneId` argument. The cinematic half was the one exception. A sequence's
+  `sceneId` records where the save was taken (`types.ts:754-761` — it exists because a shot's `cameraId`
+  addresses one scene's camera set and nothing else), and the loader demanded that exact scene exist. A file
+  carrying a cutscene could therefore only be loaded into the very scene it was saved from — the one half of
+  the format no host could restore anywhere else. A probe against the unmodified runtime, loading the
+  Studio's own save back through the Studio's own surface, printed:
+
+      PROBE STUDIO PATH REFUSED restoreCinematic: "seq" belongs to scene stage, which is not the active
+      scene (studio-scene); … the restore rolled back: nothing had been registered
+      PROBE STUDIO PATH scenes 2 · cameras in fresh 0
+      PROBE PROTOCOL PATH OK {"sceneId":"stage", …,"sequences":["seq"], …}
+
+  So the format declares cinematic SAVABLE (`saveFeasibilityAudit` lists it), the Studio's save claims to carry
+  it, and the Studio's own load could not read one back — because the Studio's whole design is a SIBLING
+  restore: "the demo scene and its frame loop stay exactly what they were". The documented protocol
+  (createScene under the saved id, re-issue the shot's camera) is exactly what a sibling-restoring host cannot
+  do.
+
+- **The fix is one line plus a helper.** `loadSaveFile` now restores the cinematic half against the scene the
+  caller names: `retargetCinematic(file.cinematic, sceneId)` returns a COPY with every sequence's `sceneId` set
+  to the target, and `restoreCinematic` keeps its own contract untouched (restore the snapshot into the scenes
+  it names). The field is still WRITTEN by `buildSaveFile` and still VALIDATED on the way in; what changes is
+  that the restore reads the caller's scene for it. A COPY, because the file is the caller's value and
+  rewriting it in place would silently edit something the loader did not own — a case pins that, and arm R2
+  grades it.
+
+- **The camera half stays the caller's, and now it is the only thing left.** The format carries no camera
+  objects — a shot names a `cameraId` and the name, type and FOV behind it are not in the file — so the loader
+  refuses a shot naming a camera the target scene lacks, by name. The Studio's `load()` previously did none of
+  this; it now re-issues every camera the file's shots name (under the file's id, with a name SPELLED from the
+  id, since the save cannot say what it was), and makes the sibling the ACTIVE scene when the file describes a
+  cutscene that was RUNNING — `playCinematic` plays only on the active scene. It ANSWERS what it re-issued
+  (`SceneLoadReissued`), so a host can say "2 cameras re-issued by id" rather than showing a camera whose
+  name is invented.
+
+- **Two honest bounds the tests pin rather than hide.** (1) The surface's OWN save is still refused, by name,
+  when its cutscene is still live: a sequence is registry state in ONE runtime, `defineCinematic` refuses a
+  taken id, and "a restore never overwrites live state" is the rule this runtime states five times now. The
+  round-trip that works is the one a host can actually perform — a file from ANOTHER runtime. (2) A host with
+  no `setActiveScene` verb cannot resume a running cutscene at all, so the surface refuses that file in its
+  own voice rather than meeting the runtime's scene-id-shaped refusal three calls later.
+
+- **The battery: 5 arms, 5 predictions, 5 reds, 5/5 MATCHED — after one re-derivation, recorded rather than
+  smoothed.** The first derivation under-counted every arm for two reasons the mechanism then made plain: the
+  studio suite runs the REAL runtime through the `@nexus/three-runtime` → `src` alias
+  (`apps/studio/vitest.config.ts`), so a runtime mutation reddens studio cases too; and the STOPPED-sequence
+  case names a camera exactly as much as the running one. Re-derived: `R1` loader stops re-pointing → **8** red
+  (4 runtime + 4 studio) · `R2` re-point mutates the caller's file → **2** (the case exists in both suites)
+  · `S1` surface stops re-issuing cameras → **4** · `S2` surface stops activating → **3** (without it the
+  running load is REFUSED, so the camera-identity case reddens too) · `S3` surface reports ids it never
+  re-issued → **4**. Both files restored byte-identical after every arm.
+
+- **Measured:** three-runtime **531 → 535** (23 files), Studio **474 → 483** (31 files), `tsc --noEmit` exit 0
+  in both. No existing case moved — the re-point only ADDS a target that previously could not be named.

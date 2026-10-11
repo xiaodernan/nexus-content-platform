@@ -1902,3 +1902,49 @@ removed from a scene at all today, so this leg's fields only ever grow within a 
 ever lands, it must emit, and the disjointness pin will name which leg owns it. And the battery is not
 re-runnable from a clean checkout: the runner, the needles and the predictions live in this session's Temp
 directory, transcribed above so the measurement can be rebuilt by hand.
+
+## v227 鈥?the Studio's load() completed the caller's half of the restore protocol, and a save carrying a cutscene became readable (ADR 0016 amendment 227)
+
+The Studio restores into a SIBLING scene by design: "a restore never overwrites live state 鈥?the demo scene and
+its frame loop stay exactly what they were". That design could not read a cutscene back, because the runtime's
+cinematic half named an ABSOLUTE scene id (fixed in the runtime at v227), and because the two things a caller
+still owes a file were never done here at all.
+
+`SceneSurface.load()` now does both halves, and ANSWERS what it did:
+
+- **Every camera the file's shots name is re-issued into the sibling, under the file's own id.** The save format
+  carries no camera objects 鈥?a shot names a `cameraId`, and the name, type and FOV behind it are not in the file
+  鈥?so the loader refuses a shot naming a camera the target scene lacks. The name is therefore SPELLED from the
+  id (`Restored shotcam`) rather than borrowed from a camera the save cannot describe.
+- **A file describing a cutscene that was RUNNING makes the sibling the ACTIVE scene.** `playCinematic` plays
+  only on the active scene ("a save that resumes a cutscene nobody is looking at is a save that is already
+  interrupted"), so without it a running sequence could not resume anywhere. A STOPPED sequence restores without
+  touching which scene the panel reads.
+- **The re-issue is reported, not done silently.** `SceneLoadReissued` answers `{ cameraIds, activated }`, so a
+  host can say "restored 4 bodies, re-issued 2 cameras by id" instead of showing a camera whose name is invented.
+
+**Two bounds the tests pin rather than hide.**
+
+1. **The surface's OWN save is still refused, by name, when its cutscene is still live.** A sequence is registry
+   state in ONE runtime and `defineCinematic` refuses a taken id 鈥?"a restore never overwrites live state", the
+   rule this runtime now states five times. The round-trip that works is the one a host can actually perform: a
+   file from ANOTHER runtime, measured on the shipped package end to end.
+2. **A host with no `setActiveScene` verb cannot resume a running cutscene at all**, so the surface refuses that
+   file in its own voice rather than meeting the runtime's scene-id-shaped refusal three calls later.
+
+The reads are DEFENSIVE and structural: the file is untrusted JSON that has not been through the loader yet, so a
+malformed `cinematic` produces "names no camera" and lets `loadSaveFile` refuse it in its own voice 鈥?never a
+TypeError from a property read on a non-object.
+
+| layer | what it proves |
+| --- | --- |
+| `scene3dSurface.test.ts` (+5) | the round-trip on the REAL runtime: loads instead of refused, sequence registered, camera re-issued under its id, sibling active for a RUNNING file and not for a STOPPED one 路 the surface's own save refused by name 路 the caller's file not rewritten |
+| `scene3d.test.ts` (+4) | a cinematic-free file answers an empty re-issue 路 camera ids deduped in first-appearance order 路 a RUNNING file refused on a host with no `setActiveScene` 路 a malformed cinematic is the loader's to refuse |
+
+**Arms: 5 predicted, 5 red, 5/5 MATCHED** over both files (the studio suite runs the real runtime through the
+`src` alias, so a runtime mutation is graded here too). The first derivation under-counted every arm and was
+re-derived from the mechanism rather than smoothed 鈥?recorded in the ADR.
+
+Measured: Studio **474 鈫?483** (31 files), three-runtime **531 鈫?535** (23 files), `tsc --noEmit` exit 0 in both.
+No existing case moved.
+

@@ -73,9 +73,25 @@ export interface SceneVec3 {
 
 /** The same narrow surface, plus the write calls `buildDemoScene` needs. */
 export interface SceneComposerLike extends SceneRuntimeLike {
-  createScene(name: string): SceneLike;
+  /** v227 — the optional `id` is the RESTORE seam: a save file's sequences name their scene, and a restore
+   *  has to create it under that name for the shots to address anything. A taken id is REFUSED by the real
+   *  runtime (v225 — "a restore never overwrites live state"), which is the honest answer for a file loaded
+   *  twice into one graph. */
+  createScene(name: string, id?: string): SceneLike;
   createEntity(sceneId: string, name: string, type: string, geometry?: unknown, material?: unknown, position?: SceneVec3): { id: string };
-  createCamera(sceneId: string, name: string): { id: string; name: string };
+  /** v227 — widened for the same restore reason: a shot names a camera by its `CameraId`, and the save
+   *  carries no camera objects, so the caller re-issues one under the id the file names. */
+  createCamera(
+    sceneId: string,
+    name: string,
+    type?: 'perspective' | 'orthographic',
+    params?: { fov?: number; aspect?: number; near?: number; far?: number; left?: number; right?: number; top?: number; bottom?: number },
+    id?: string,
+  ): { id: string; name: string };
+  /** v227 — make one scene the active one. Optional the way the gates below are: a host without it is
+   *  legitimate, and the surface refuses a file describing a RUNNING cutscene rather than pretending to
+   *  resume it (`playCinematic` plays only on the active scene). */
+  setActiveScene?(sceneId: string): boolean;
   /** `false` when the runtime holds no such entity. Added in v161 with the remove-body control — the
    *  runtime has always had it; nothing in the Studio had ever called it. */
   removeEntity(sceneId: string, entityId: string): boolean;
@@ -170,6 +186,20 @@ export interface SceneLoadReport {
   worldState: string[];
   player: string | null;
   carries: string[];
+}
+
+/** M5 v227 — what a restore had to re-issue to be loadable at all.
+ *
+ *  A save file carries no camera objects: a shot names a `cameraId`, and the camera it addressed — its name,
+ *  its type, its FOV — is simply not in the format. The runtime's loader therefore refuses a shot naming a
+ *  camera the target scene lacks, and puts the re-creation in the CALLER's hands. This is what the surface
+ *  did about it, so a host can say so instead of showing a camera whose name is invented. */
+export interface SceneLoadReissued {
+  /** Camera ids the file's shots name, each created under its own id in the restored scene. */
+  cameraIds: string[];
+  /** True when the restore was made the ACTIVE scene, which happens only for a file describing a cutscene
+   *  that was RUNNING — `playCinematic` refuses to resume one nobody is looking at. */
+  activated: boolean;
 }
 
 export interface SceneSaverLike {
@@ -915,8 +945,15 @@ export interface SceneSurface {
   save(savedAt: number): SceneSaveFile;
   /** M5 v163 — read a save file back. A restore never overwrites live state (the saver's own rule), so
    *  the file lands in a FRESH sibling scene the runtime composes for exactly that, and this surface's
-   *  scene — and its frame loop — are untouched. Answers the new scene's id and the saver's report. */
-  load(file: SceneSaveFile): { sceneId: string; report: SceneLoadReport };
+   *  own scene and loop stay untouched.
+   *
+   *  M5 v227 — and "fresh" is only two thirds of the protocol. A file that carries a cinematic names its
+   *  scene in every sequence and its cameras in every shot, so the sibling is created UNDER THE SAVED ID
+   *  and the named cameras are re-issued into it; a file describing a cutscene that was RUNNING also makes
+   *  that scene the active one, because a sequence plays nowhere else. What was re-issued is ANSWERED
+   *  rather than done silently — the format carries no camera objects, so a restored camera's name is
+   *  spelled from its id and a host deserves to know that. */
+  load(file: SceneSaveFile): { sceneId: string; report: SceneLoadReport; reissued: SceneLoadReissued };
 }
 
 /**
@@ -949,6 +986,40 @@ export function nextBodyPlacement(index: number): SceneVec3 {
  * that cannot (the pure suite's fakes) still builds a legal surface; `save()`/`load()` refuse honestly
  * instead of pretending.
  */
+/** M5 v227 — the camera ids a file's shots name, in first-appearance order.
+ *
+ *  Read DEFENSIVELY and only for structure: the file is untrusted JSON that has not been through the loader
+ *  yet, so a malformed `cinematic` must produce "names no camera" and let `loadSaveFile` refuse it in its own
+ *  voice — never a TypeError from a property read on a non-object. A save carries no camera objects, so these
+ *  are the ids the restore has to RE-ISSUE into the target scene before the loader can accept the shots that
+ *  address them. */
+function cameraIdsNamedBy(file: SceneSaveFile): string[] {
+  const sequences = (file.cinematic as { sequences?: unknown } | null | undefined)?.sequences;
+  if (!Array.isArray(sequences)) return [];
+  const ids: string[] = [];
+  for (const entry of sequences) {
+    const shots = Array.isArray(entry) ? (entry[1] as { shots?: unknown } | undefined)?.shots : undefined;
+    if (!Array.isArray(shots)) continue;
+    for (const shot of shots) {
+      const cameraId = (shot as { cameraId?: unknown } | null | undefined)?.cameraId;
+      if (typeof cameraId !== 'string' || cameraId.length === 0) continue;
+      if (!ids.includes(cameraId)) ids.push(cameraId);
+    }
+  }
+  return ids;
+}
+
+/** M5 v227 — true when the file describes a cutscene that was RUNNING when it was written.
+ *
+ *  `activeSequence` is the save's own word for it, and it is the one case that needs more than cameras: the
+ *  runtime refuses to resume a sequence whose scene is not the active one, because "a save that resumes a
+ *  cutscene nobody is looking at is a save that is already interrupted". A file whose sequences are all
+ *  stopped restores without touching which scene the panel reads. */
+function describesRunningSequence(file: SceneSaveFile): boolean {
+  const active = (file.cinematic as { activeSequence?: unknown } | null | undefined)?.activeSequence;
+  return typeof active === 'string' && active.length > 0;
+}
+
 export function createStudioScene(
   runtime: SceneComposerLike,
   writeFrame: (bodyIds: string[], motion: { y: number; bob: number }) => void,
@@ -1176,9 +1247,37 @@ export function createStudioScene(
       // A restore never overwrites live state — that is the saver's own rule, and this surface obeys it
       // by giving the restore a FRESH scene instead of its own: the demo scene and its frame loop stay
       // exactly what they were, and the restored world is there to be inspected.
+      //
+      // M5 v227 — and "fresh" used to be the whole protocol, which made a file carrying a cinematic
+      // unwritable-then-unreadable: the runtime's save says it carries 'cinematic', and loading such a file
+      // back through this surface was REFUSED — `restoreCinematic: "seq" belongs to scene stage, which is not
+      // the active scene (…)` — because the cinematic half of a file named an ABSOLUTE scene id and the
+      // sibling had a generated one. The runtime now restores that half against the caller's target scene
+      // like every other half (v227), so all a caller owes its file is the part only a caller can do:
+      // re-issue the cameras its shots NAME, because the format carries no camera objects at all, and make
+      // the sibling the ACTIVE scene when the file describes a cutscene that was RUNNING — a sequence plays
+      // nowhere else. What was re-issued is ANSWERED rather than done silently.
+      const running = describesRunningSequence(file);
+      // A running cutscene can only resume on the ACTIVE scene — the runtime's own condition — so a host
+      // with no such verb cannot resume one at all. Said HERE, in the surface's own voice, rather than as
+      // the runtime's scene-id-shaped refusal three calls later.
+      if (running && !runtime.setActiveScene) {
+        refused("the file describes a cutscene that was RUNNING, and this host has no setActiveScene verb to resume it on; a sequence plays only on the active scene");
+      }
       const fresh = runtime.createScene('Restored Scene');
+      // No rollback lives here, and none is owed: the scene was created one line up and the ids below are
+      // deduped from the file, so neither verb can refuse what it is asked for.
+      const reissued: string[] = [];
+      for (const cameraId of cameraIdsNamedBy(file)) {
+        // The id is the file's own; the name is NOT — the format never carried one, so it is spelled from the
+        // id rather than borrowed from a camera the save cannot describe. `SceneLoadReissued` is how a host
+        // says that out loud.
+        runtime.createCamera(fresh.id, `Restored ${cameraId}`, 'perspective', {}, cameraId);
+        reissued.push(cameraId);
+      }
+      if (running) runtime.setActiveScene?.(fresh.id);
       const report = saver.loadSaveFile(file, fresh.id);
-      return { sceneId: fresh.id, report };
+      return { sceneId: fresh.id, report, reissued: { cameraIds: reissued, activated: running } };
     },
   };
 }
