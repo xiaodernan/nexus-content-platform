@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react';
 import { renderPreviewHtml } from '@/lib/preview';
 import { exportCanvasPng, exportHtml, exportJson, slug } from '@/lib/export';
 import { listPublished, probePublish, publishProject, unpublish, type PublishLaneListing, type PublishLaneProbe } from '@/lib/publishLane';
+import { remixProject } from '@/lib/remixLane';
 import { useStudio, type Tool } from '@/lib/store';
 
 const TOOLS: { id: Tool; label: string; icon: string; key: string }[] = [
@@ -24,6 +25,7 @@ export default function Toolbar() {
   const redo = useStudio((s) => s.redo);
   const setPreview = useStudio((s) => s.setPreview);
   const newProject = useStudio((s) => s.newProject);
+  const remixDocument = useStudio((s) => s.remixDocument);
   const surface = useStudio((s) => s.surface);
   const setSurface = useStudio((s) => s.setSurface);
 
@@ -96,6 +98,23 @@ export default function Toolbar() {
     setPublishNote(answer.ok ? (answer.removed ? `took down ${projectId}` : `${projectId} was already down`) : `not taken down: ${answer.reason}`);
     // Re-probed rather than hand-edited: the rows are the service's answer, so they are asked for again.
     await refreshPublished();
+  };
+
+  /**
+   * v233 — remix: read SOMEONE ELSE'S publication back in as a NEW project. The lane validates the document
+   * and names the field that is wrong when it cannot be used (a service that is down is a different answer
+   * from a publication with no document); the store FORKS it, so the copy's id is fresh and re-publishing it
+   * can never overwrite the source. The panel closes because the editor behind it is now a different project.
+   */
+  const onRemix = async (projectId: string) => {
+    const answer = await remixProject(projectId);
+    if (!answer.ok) {
+      setPublishNote(`not remixed: ${answer.reason}`);
+      return;
+    }
+    remixDocument(answer.document, projectId);
+    setPublishNote(`remixed ${projectId} into a new project`);
+    setShowPublished(false);
   };
 
   return (
@@ -286,6 +305,17 @@ export default function Toolbar() {
                     >
                       open
                     </a>
+                    {/* v233 — remix: read this publication back in as a NEW project. The first control that
+                        lets a Studio user take someone else's published work and make it their own. */}
+                    <button
+                      className="btn"
+                      data-published-remix={row.projectId}
+                      style={{ fontSize: 10, padding: '1px 6px' }}
+                      onClick={() => void onRemix(row.projectId)}
+                      title="read this publication back in as a new project you can edit and re-publish"
+                    >
+                      remix
+                    </button>
                     <button
                       className="btn"
                       data-published-unpublish={row.projectId}

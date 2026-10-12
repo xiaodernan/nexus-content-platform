@@ -7,6 +7,7 @@ import type {
   DocumentNode,
   ImageNode,
   InstanceNode,
+  NexusId,
   NodeBase,
   Paint,
   PathNode,
@@ -175,4 +176,28 @@ export function createEmptyDocument(name = 'Untitled Project'): DesignDocument {
     assets: {},
     activePageId: page.id,
   };
+}
+
+/**
+ * M7 v233 (ADR 0016 amendment 233) — fork a document into a NEW project: a fresh DOCUMENT id, the same node
+ * graph, and a name that says where it came from.
+ *
+ * The distinction that makes this a remix and not a copy is WHERE the new id goes. `doc.id` IS the publish
+ * service's projectId (the Studio publishes `doc.id`), so a fork that kept the source's id would re-publish
+ * OVER the source's record — a remix would silently become an edit of someone else's publication. Only the
+ * DOCUMENT's own identity moves: `id`, `rootId`, and the `nodes` key that holds the root node. Node ids stay
+ * as they are — they are document-scoped, so reusing them across documents collides with nothing, and
+ * rewriting every node id would rewrite every `parentId`/`childIds` reference for no gain.
+ *
+ * Pure and total: it never mutates its input, and it THROWS (rather than inventing a root) when the document
+ * names a `rootId` its own `nodes` do not hold — a document that cannot be forked is a fact, not a blank.
+ */
+export function forkDocument(doc: DesignDocument, name?: string): DesignDocument {
+  const root = doc.nodes[doc.rootId];
+  if (!root) throw new Error(`forkDocument: the document names rootId ${doc.rootId}, which is not in its nodes`);
+  const rootId = newId('doc');
+  const nodes: Record<NexusId, DesignNode> = { ...doc.nodes };
+  delete nodes[doc.rootId];
+  nodes[rootId] = { ...root, id: rootId };
+  return { ...doc, id: rootId, rootId, nodes, name: name ?? `${doc.name} (remix)` };
 }

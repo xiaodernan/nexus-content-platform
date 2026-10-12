@@ -6,6 +6,7 @@ import {
   createEmptyDocument,
   diffFromBatch,
   expandComponentInstances,
+  forkDocument,
   layoutPage,
   ops,
   subtreeIds,
@@ -167,6 +168,8 @@ interface StudioState {
   setStatus: (s: string) => void;
 
   loadDocument: (doc: DesignDocument) => void;
+  /** M7 v233 — open a REMIX: a publication's document becomes a NEW project (re-id'd, so publishing it never overwrites the source). */
+  remixDocument: (doc: DesignDocument, source: string) => void;
   generate: (prompt: string) => Promise<void>;
   editSelection: (instruction: string) => Promise<void>;
   newProject: () => void;
@@ -690,6 +693,15 @@ export const useStudio = create<StudioState>((set, get) => ({
   loadDocument: (doc) => {
     history = new History(doc);
     set({ doc, activePageId: safePage(doc, doc.activePageId), selection: [], editingId: null, focusedInstanceId: null, lastDiff: null, lastBefore: null, lastPageId: null, historyLog: [], historyCursor: 0, status: 'Restored from local snapshot' });
+  },
+
+  remixDocument: (doc, source) => {
+    // v233: a remix is a FORK, not a load. `forkDocument` gives the document a fresh id (the publish
+    // service's projectId IS `doc.id`), so editing and re-publishing this copy can never overwrite the
+    // publication it came from — the whole point of a remix. The name says where it came from.
+    const forked = forkDocument(doc);
+    history = new History(forked);
+    set({ doc: forked, activePageId: safePage(forked, forked.activePageId), selection: [], editingId: null, focusedInstanceId: null, lastDiff: null, lastBefore: null, lastPageId: null, historyLog: [], historyCursor: 0, status: `Remixed ${source} — this is now your project` });
   },
 
   generate: async (prompt) => {

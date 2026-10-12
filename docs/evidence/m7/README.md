@@ -198,3 +198,27 @@ alone rather than guessed at.
 Bounds: the sweep only sees containers it named via the prefix filter, removes by NAME, and never sweeps a
 container with a live owner. On this box the run also found and retired a leftover
 `nexus-publish-e2e-db-1791649277835-999999999` (owner-gone, 1s old) — the leak, observed and cleared.
+
+## A publication can be REMIXED (M7 v233 — amendment 233)
+
+v196's record ends with the bound this increment closes: *"the Studio never reads a publication back in its
+own UI."* `readPublished` had existed since v194 with ZERO consumers. Remix is the community's first
+cross-user primitive — it reads someone else's published document back into the Studio as a NEW project.
+
+**A remix is a FORK, not a load.** `doc.id` IS the publish service's projectId, so a remix that kept the
+source's id would re-publish OVER the source's record. `forkDocument(doc, name?)` (new, in the canonical
+model) gives the document a fresh DOCUMENT id — `id`, `rootId` and the root's `nodes` key move together —
+while the node graph is preserved (node ids are document-scoped, so reusing them collides with nothing).
+`apps/studio/src/lib/remixLane.ts` adds a PURE `extractRemixDocument(answer)` that returns the document or
+NAMES the field that makes it unusable; a service that is DOWN and a publication with NO document are
+reported as different facts. The Published panel gains a `remix` control per row, and the store's new
+`remixDocument(doc, source)` forks before it loads.
+
+`remix-proof.mjs` grades five sections, ALL PASSED: §1 the validator (well-formed passes; service-down ≠
+no-document; 4 malformed fields each refused by name); §2 the lane over a STUBBED transport (a
+`{action:"read"}` request, the document passed through, a down service and a throwing transport both answer
+`ok:false`); §3 the fork (fresh document id, same graph, source unmutated); §4 the wiring (a remix control
+per row; the store forks before load); §5 the §60 dependency audit (the lane holds no service address and no
+server import; the model import is type-only). Measured: design-model 34 → 40, Studio 484 → 492 (32 files),
+both `tsc` 0. Bounds: a remix is a plain copy under a new id — no lineage is recorded back to the source, no
+attribution, and remixing needs no account (M7 still has no auth, accounts or ownership).
