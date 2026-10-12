@@ -193,6 +193,7 @@ const runs = [];
 const foreign = [];
 for (const pkg of PKGS) {
   const out = join(scratch, `${pkg.label}.json`);
+  const start = Date.now();
   let status = 0;
   try {
     execFileSync(
@@ -216,7 +217,8 @@ for (const pkg of PKGS) {
     // rule for the test bridge, applied to a doc gate): the JSON is written either way.
     status = typeof e.status === 'number' ? e.status : -1;
   }
-  assert.ok(existsSync(out), `vitest wrote no JSON for ${pkg.label} (exit ${status})`);
+  const durationMs = Date.now() - start;
+  assert.ok(existsSync(out), `vitest wrote no JSON for ${pkg.label} (exit ${status} after ${durationMs}ms)`);
   const cases = casesOf(out);
   // Which test files does the graded state OWN? git answers on the GIT plane. On a checkout with no
   // repository there is no index and no HEAD to ask — but the tree there is EXACTLY the ref's files (v81's
@@ -235,10 +237,10 @@ for (const pkg of PKGS) {
   const dirty = gitPlane === 'GIT' ? git('diff', '--name-only', 'HEAD', '--', pkg.testDir).split('\n').filter(Boolean) : null;
   // The doc's sentence is about the COMMITTED state, so the files it counts must be that state's bytes.
   if (dirty) assert.deepEqual(dirty, [], `${pkg.label}: a MODIFIED test file would be graded as if it were HEAD's — recount against a clean tree, not a mid-edit one${dirty.length ? ` (${dirty.join(', ')})` : ''}`);
-  runs.push({ pkg, cases, owned });
+  runs.push({ pkg, cases, owned, status, durationMs });
   const extra = [...cases.byFile.keys()].filter((f) => !owned.has(f));
   for (const f of cases.failed) if (!owned.has(f.split(':')[0])) foreign.push(`${pkg.label}/${f}`);
-  console.log(`[§2] ${pkg.label}: vitest exit ${status} · ${gitPlane === 'GIT' ? 'HEAD' : 'the checkout'} owns ${owned.size} test files · the run produced ${cases.byFile.size}${extra.length ? ` (unowned by the graded state, not counted: ${extra.join(', ')})` : ' (none extra)'} · dirty-tree precondition: ${dirty ? `asked, ${dirty.length} modified` : 'asked and answered: NOT ASKABLE on a checkout (no index), so the §6 before/after digest substitutes'}`);
+  console.log(`[§2] ${pkg.label}: vitest exit ${status} · ${durationMs}ms · ${gitPlane === 'GIT' ? 'HEAD' : 'the checkout'} owns ${owned.size} test files · the run produced ${cases.byFile.size}${extra.length ? ` (unowned by the graded state, not counted: ${extra.join(', ')})` : ' (none extra)'}${status !== 0 ? ' · ⚠ INCOMPLETE (vitest exited non-zero)' : ''} · dirty-tree precondition: ${dirty ? `asked, ${dirty.length} modified` : 'asked and answered: NOT ASKABLE on a checkout (no index), so the §6 before/after digest substitutes'}`);
 }
 
 // ---------------------------------------------------------------- §3 the claim itself
@@ -257,11 +259,62 @@ for (const pkg of PKGS) {
 }
 
 // ---------------------------------------------------------------- §4 HEAD's suite is green
-for (const { pkg, cases, owned } of runs) {
+// Item 23: a red §4 has TWO possible causes and the gate used to name neither — a real code regression, or a
+// loaded box that made a spawn-heavy case time out. Measured 2026-10-10: `execHost.test.ts > the process tree
+// (v55)` is ~3.7s alone, and a loaded box pushed an arm past the 240s budget (`runtime: vitest exit -1`) while
+// the same file is 39/39 green standalone on a quiet box. So §4 states the wall-clock it measured per arm and,
+// when a run did not COMPLETE (a non-zero vitest exit, or fewer owned files than HEAD owns), says so in the
+// failure itself — a red whose cause cannot be told from the host's noise is the failure mode amendment 152
+// warned about, one layer up. Box-SAFE by construction: on a healthy box every arm exits 0 and produces exactly
+// its owned files, so neither guarded arm below is ever taken.
+// The verdict is a PURE function so it can be witnessed (§4b), not a stack of inline branches. It answers
+// exactly one question per arm — did this arm run to completion, and if so did it hold a failing owned case? —
+// and its `kind` is the answer a reader needs: `ok` (green), `regression` (a real failing case, no sibling
+// trouble), `incomplete` (a non-zero vitest exit or fewer owned files than HEAD owns → a timeout / loaded box).
+const classifyArm = (run, allRuns) => {
+  const { pkg, cases, owned, status, durationMs } = run;
   const mine = cases.failed.filter((f) => owned.has(f.split(':')[0]));
-  assert.deepEqual(mine, [], `${pkg.label}: a FAILING tracked case makes every count in the table a count of a broken suite${mine.length ? `\n  ${mine.join('\n  ')}` : ''}`);
+  const incomplete = status !== 0 || cases.byFile.size < owned.size;
+  const timedOutSibling = allRuns.some((r) => r !== run && r.status !== 0);
+  if (incomplete) {
+    // Any "failing" case here is UNTRUSTED — a timeout can strand a case mid-flight and report it failed — so
+    // the message leads with the incomplete fact and quotes the cases only as suspects, never as the verdict.
+    return { kind: 'incomplete', mine, message: `${pkg.label}: the suite DID NOT COMPLETE — vitest exited ${status} in ${durationMs}ms and reported ${cases.byFile.size}/${owned.size} owned test files (a timeout / loaded box, NOT a code regression); re-run on a quiet box before treating this as a failure${mine.length ? `\n  suspects the timeout may have stranded: ${mine.join('; ')}` : ''}` };
+  }
+  if (mine.length) {
+    return { kind: 'regression', mine, message: `${pkg.label}: a FAILING tracked case makes every count in the table a count of a broken suite\n  ${mine.join('\n  ')}${timedOutSibling ? `\n  ⚠ this red coincides with a non-zero vitest exit on another arm — likely host load, not this code; re-run on a quiet box before treating it as a regression` : ''}` };
+  }
+  return { kind: 'ok', mine: [], message: '' };
+};
+for (const run of runs) {
+  const v = classifyArm(run, runs);
+  assert.equal(v.kind, 'ok', v.message);
 }
-console.log(`[§4] failing TRACKED cases: 0${foreign.length ? ` · failing cases in files NO commit owns, named and not graded: ${foreign.length} (${foreign.map((f) => f.split(':')[0]).join(', ')})` : ' · and nothing else in the tree is red either'}`);
+console.log(`[§4] failing TRACKED cases: 0 · arms: ${runs.map((r) => `${r.pkg.label} ${r.durationMs}ms exit ${r.status} ${r.cases.byFile.size}/${r.owned.size} files`).join(' · ')}${foreign.length ? ` · failing cases in files NO commit owns, named and not graded: ${foreign.length} (${foreign.map((f) => f.split(':')[0]).join(', ')})` : ' · and nothing else in the tree is red either'}`);
+
+// ---------------------------------------------------------------- §4b the §4 verdict is witnessed
+// A gate that gained a new verdict must be shown to produce it, or the arm is a claim with no witness (§32).
+// Synthetic arms — no vitest, no host — pin all four answers the classifier can give, including the one item
+// 23 exists for: a red that coincides with a timed-out sibling NAMES the coincidence.
+{
+  const arm = (over = {}) => ({ pkg: { label: 'pkg' }, cases: { failed: [], byFile: new Map([['a.test.ts', 1]]) }, owned: new Set(['a.test.ts']), status: 0, durationMs: 100, ...over });
+  const healthy = arm();
+  assert.equal(classifyArm(healthy, [healthy]).kind, 'ok', 'a green arm must classify ok');
+  const regression = arm({ cases: { failed: ['a.test.ts: boom'], byFile: new Map([['a.test.ts', 1]]) } });
+  const rv = classifyArm(regression, [regression]);
+  assert.equal(rv.kind, 'regression', 'a failing owned case with a clean sibling must be a regression');
+  assert.ok(/FAILING tracked case/.test(rv.message), 'a regression message must say so');
+  assert.ok(!/coincides/.test(rv.message), 'a regression with NO troubled sibling must not cry host noise');
+  const timeout = arm({ status: -1, cases: { failed: [], byFile: new Map() } });
+  const tv = classifyArm(timeout, [timeout]);
+  assert.equal(tv.kind, 'incomplete', 'a non-zero exit with no owned files must be incomplete, not a regression');
+  assert.ok(/DID NOT COMPLETE/.test(tv.message) && /NOT a code regression/.test(tv.message), 'an incomplete arm must name the timeout cause');
+  const dropped = arm({ cases: { failed: [], byFile: new Map() } }); // exit 0 but a file produced no results
+  assert.equal(classifyArm(dropped, [dropped]).kind, 'incomplete', 'a missing owned file at exit 0 is still incomplete');
+  const coincidence = classifyArm(regression, [regression, timeout]).message;
+  assert.ok(/coincides with a non-zero vitest exit/.test(coincidence), 'a regression beside a timed-out arm must name the coincidence');
+  console.log('[§4b] classifier witnessed: ok · regression · incomplete (non-zero exit) · incomplete (dropped file) · timed-out-sibling coincidence');
+}
 
 // ---------------------------------------------------------------- §5 can this checker be red?
 {

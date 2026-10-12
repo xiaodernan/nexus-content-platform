@@ -3957,3 +3957,20 @@ listing policy is a per-suite DECLARATION, not an inference — a suite that nee
 which kind, which is the point. `mkdirSync` records directories (so a listing can report them) while
 `writeFileSync` does not; only the seed derives them. The `'empty'` policy was strictly dominated: an
 empty directory answers `[]` truthfully under `'real'`, and a disk with entries must not answer `[]` at all.
+
+## The doc gate's §4 measures each arm and names a loaded box (gate v232 — ADR 0016 amendment 232)
+
+`table-recount-proof.mjs` §4 asserts HEAD's suite is green. A red there had TWO possible causes and named
+neither: a real regression, or a loaded box that made a spawn-heavy case time out (measured 2026-10-10 —
+`execHost.test.ts > the process tree (v55)` is ~3.7 s alone and 39/39 green standalone, yet a loaded run
+pushed an arm past its 240 s budget and reddened §4 on it). §4 now times every arm (`Date.now()` around the
+vitest spawn) and prints the wall-clock per arm; routes each arm through a PURE `classifyArm` answering
+`ok` / `regression` / `incomplete` (a non-zero vitest exit, or fewer owned files reported than HEAD owns);
+and, when a regression coincides with a non-zero vitest exit on a sibling arm, NAMES the coincidence and says
+to re-run on a quiet box. An `incomplete` arm's failing cases are quoted only as suspects the timeout may
+have stranded. Box-safe: on a healthy box every arm exits 0 and reports exactly its owned files, so neither
+guarded arm is taken. Witnessed by §4b on five synthetic arms (no vitest, no host): ok · regression ·
+incomplete (non-zero exit) · incomplete (dropped file) · timed-out-sibling coincidence. Measured this run
+(gate exit 0): `runtime 106102ms exit 0 37/34 files · exec-host 27946ms exit 0 10/9 files` (the extra files
+are untracked in-flight suites another lane owns, named and not graded); the table is unchanged (816 cases,
+43 files, 4/4 mutations caught).
