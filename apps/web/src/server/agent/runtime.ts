@@ -5,7 +5,11 @@ import {
   COMBAT_DESIGN_LIMITS,
   COMBAT_GOAL_ORDER,
   COMBAT_LEVERS,
+  LEVEL_DESIGN_LIMITS,
+  LEVEL_GOAL_ORDER,
+  LEVEL_LEVERS,
   compileRpg,
+  designLevel,
   playtestRpg,
   tuneCombat,
   type CombatGoalId,
@@ -366,6 +370,50 @@ const combatStep: Runner = async (ctx) => {
   };
 };
 
+/**
+ * §52 链的第三格 Level Design：拿 combat 那一步调过的草稿，把投影排好的位置**写成设计值**，
+ * 再按写死的四条几何目标摆开。与上两格同一条纪律：产物仍是草稿、存在这一步自己的结论里、不写项目（ADR-0035）。
+ *
+ * 纯函数：`designLevel` 在 game-model 里，四条几何目标的阈值与杠杆全部写死在 LEVEL_RULES / LEVEL_LEVERS；
+ * 投影兜底排出来的位置（provenance 标 default）在这一步被写成作者值（design）——这件事点名在结论里。
+ * 拿不到上游草稿就直接失败，不自己编一份设计来摆。
+ */
+const levelStep: Runner = async (ctx) => {
+  const source = ctx.upstream.find((step) => step.id === 'combat')?.draft;
+  if (!source) {
+    throw new Error('level 这一步没拿到上游草稿（combat 那一步没留下 draft）：没有可摆位置的设计，这一格不另编一份');
+  }
+  const design = designLevel(source, { at: new Date().toISOString() });
+  const met = design.goals.filter((goal) => goal.achieved).length;
+  const authored = design.goals.find((goal) => goal.id === 'layout-authored')?.metric ?? 0;
+  return {
+    summary:
+      `按写死的规则摆过 ${design.rounds.length} 轮、保留 ${design.moves.length} 处位置改动：` +
+      `${met}/${design.goals.length} 条几何目标达标（作者写过的位置 ${authored} 个；` +
+      `战斗目标 ${design.combatMetBefore}→${design.combatMetAfter} / ${design.combatGoalsTotal} 条）`,
+    counts: {
+      entities: design.document.entities.length,
+      rounds: design.rounds.length,
+      kept: design.moves.length,
+      goalsMet: met,
+      goalsTotal: design.goals.length,
+      layoutAuthored: authored,
+      combatMetBefore: design.combatMetBefore,
+      combatMetAfter: design.combatMetAfter,
+      combatGoalsTotal: design.combatGoalsTotal,
+    },
+    notes: [
+      GAME_DRAFT_NOT_LANDED_NOTE,
+      `这一步没有真 provider：四条几何目标（${LEVEL_GOAL_ORDER.length} 条）与杠杆（${LEVEL_LEVERS.length} 条）` +
+        `全部是 game-model 里写死的常量（LEVEL_RULES / LEVEL_LEVERS），改的是坐标不是规则（§160）。`,
+      ...design.notes,
+      LEVEL_DESIGN_LIMITS[2] ?? '',
+      '接受进来的可以是这一份（摆过位置的），也可以是上面两步留下的草稿——三个按钮各接各的，点了才会写进项目。',
+    ].filter(Boolean),
+    draft: design.document,
+  };
+};
+
 const RUNNERS: Record<StepKind, Runner> = {
   context: contextStep,
   'seo-audit': seoStep,
@@ -373,6 +421,7 @@ const RUNNERS: Record<StepKind, Runner> = {
   report: reportStep,
   game: gameStep,
   combat: combatStep,
+  level: levelStep,
 };
 
 function publish(projectId: string, event: RealtimeEvent): void {

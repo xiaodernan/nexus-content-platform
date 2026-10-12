@@ -12,8 +12,13 @@ import { AgentPlanSchema, GameDocumentSchema, type AgentPlan } from '@nexus/sche
  *    （`server/agent/runtime.ts`）。"计划里有、跑的时候跳过"就是 §159 禁止的那种空话，
  *    所以计划在**开跑之前**按注册表校验（`validatePlan`），未知步骤整份拒收，
  *    而不是跑到一半才发现没人做。
+ *    注册表那侧是 `Record<StepKind, Runner>`：**"加一个种类忘了加执行方"是编译错误**，
+ *    不靠这里的校验兜——校验只在运行时兜住"计划被人手改过"那种情况。
  * 2. **失败要往下传，不能装作还能跑**。依赖里有失败/跳过，这一步是 `skipped` 并带上被谁牵连——
  *    不是 `failed`：它自己根本没跑过，说它失败是另一种谎。
+ *    反过来说：**一条有依赖的步骤必须真的用上那个依赖**。§52 那条链后两格（combat / level）
+ *    拿的是上一步留在结论里的草稿，拿不到就整步失败，绝不自己编一份"差不多的"设计来改——
+ *    那样这一步跑出来的数值与上一步就没关系了，计划里的依赖箭头成了一句装饰。
  * 3. **状态只有一个真值**。每一步的 `status` 只由这里改，界面与实时事件都读它；
  *    不存在"事件里说完成、计划里还写着 pending"的第二份状态。
  * 4. **计划是给用户看的**（§25）：标题写的是这件事做什么，不是内部函数名。
@@ -22,7 +27,7 @@ import { AgentPlanSchema, GameDocumentSchema, type AgentPlan } from '@nexus/sche
 export type PlanTask = AgentPlan['tasks'][number];
 
 /** 今天真的有执行方的步骤种类。加一种就必须同时加一个真执行方，否则 UI 会列出跑不了的步骤 */
-export const STEP_KINDS = ['context', 'seo-audit', 'qa-audit', 'report', 'game', 'combat'] as const;
+export const STEP_KINDS = ['context', 'seo-audit', 'qa-audit', 'report', 'game', 'combat', 'level'] as const;
 export type StepKind = (typeof STEP_KINDS)[number];
 
 export interface StepSpec {
@@ -43,11 +48,12 @@ export interface StepSpec {
  * 所以整条作业的 capability 记 `demo`（§160），界面上带 DEMO 标识，
  * 而每一步真正算出来的东西（结构、门禁、覆盖面）是真读数，不是编的。
  *
- * 六种步骤各自的真实执行方：结构盘点读本项目自己的库；SEO 检查读项目元信息与设计正文；
+ * 七种步骤各自的真实执行方：结构盘点读本项目自己的库；SEO 检查读项目元信息与设计正文；
  * 门禁就是发布时用的同一个 `analyzeHealth`（§179 那一份，不另算一套分）；汇总是前三者的产物；
  * Game Agent 那一步给的是 §52 的**确定性草稿**（`agent-game-draft.ts` 那张表），
  * 紧跟其后的 combat 那一步（§52 链的第二格）拿上一步的草稿跑 `tuneCombat`，产出**调过数值的那一份草稿**；
- * 两者都随步骤结论存在任务行里，**不写进项目**——要进项目得由用户点「接受」那一下（见 ADR-0035）。
+ * 再后面的 level 那一步（§52 链的第三格）拿 combat 的草稿跑 `designLevel`，产出**位置已写成设计值的那一份草稿**。
+ * 三份都随步骤结论存在任务行里，**都不写进项目**——要进项目得由用户点「接受」那一下（见 ADR-0035）。
  */
 export const READINESS_STEPS: readonly StepSpec[] = [
   {
@@ -105,6 +111,18 @@ export const READINESS_STEPS: readonly StepSpec[] = [
     requires: 'game.write',
     artifact: 'combat_spec',
     dependsOn: ['game'],
+  },
+  {
+    // §52 那条链的第三格：吃第二格那份**调过数值的**草稿，把布局写成文档里的坐标。
+    // 依赖写 combat 而不是 game：这一格要改的是"数值已经落进目标带"的那一份位置，
+    // 接错了源头就等于把中间一格的成果丢掉——所以拿不到 combat 的草稿时这一步直接失败。
+    kind: 'level',
+    agentKey: 'game',
+    agentName: 'Game Agent',
+    title: '把草稿的位置写成设计值并按四条几何目标摆开：只改坐标，产物仍是草稿',
+    requires: 'game.write',
+    artifact: 'level_layout',
+    dependsOn: ['combat'],
   },
 ];
 
@@ -205,9 +223,10 @@ export type AgentRunResponse = z.infer<typeof AgentRunResponseSchema>;
  * "接受的是这一步真跑出来的那一份"。草稿从任务行读出来（`plannedTask` → `steps[].draft`），
  * 归属、项目、有没有这一步都由服务端判。
  *
- * 为什么要 `stepId`：§52 那条链现在有两步会留草稿（game 的原始草稿、combat 调过数值的那一份），
- * 界面必须说得清用户接的是哪一步。缺省不传 = **取这份任务里最后一份留了草稿的步骤**，
- * 那是链条的末端产物（调过的版本），与"用户看到面板最下面那份就点它"读到的东西一致。
+ * 为什么要 `stepId`：§52 那条链现在有三步会留草稿（game 的原始草稿、combat 调过数值的那一份、
+ * level 把位置写成设计值的那一份），界面必须说得清用户接的是哪一步。缺省不传 =
+ * **取这份任务里最后一份留了草稿的步骤**，那是链条的末端产物（数值调过、位置也摆好了的那一份），
+ * 与"用户看到面板最下面那份就点它"读到的东西一致。
  * 传了就必须是这一步真跑过并留下草稿，否则拒收——不猜、不退回别的步骤去拿一份"差不多的"。
  */
 export const AgentDraftAcceptRequestSchema = z.object({

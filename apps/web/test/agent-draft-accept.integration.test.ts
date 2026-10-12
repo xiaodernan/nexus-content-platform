@@ -155,7 +155,7 @@ describe('§52 接受入口', () => {
     // 否则界面上写着 combat、库里进的是 game，用户看到的和他拿到的不是同一样东西。
     const a = await newProject('接受指定 combat');
     const runA = await seededRun(a);
-    expect([...runA.drafts.keys()], '两步都该留草稿').toEqual(['game', 'combat']);
+    expect([...runA.drafts.keys()], '三步都该留草稿').toEqual(['game', 'combat', 'level']);
     expect(runA.drafts.get('game')!.entities).not.toEqual(runA.drafts.get('combat')!.entities);
 
     const resCombat = await call(a, { taskId: runA.taskId, stepId: 'combat' }, asUser(ownerToken));
@@ -192,7 +192,7 @@ describe('§52 接受入口', () => {
     expect(rows).toHaveLength(1);
     expect(rows[0]!.allowed).toBe(false);
     // 拒绝的证据要带上他点的那一步，以及当时真能接受的清单
-    expect(rows[0]!.detail).toMatchObject({ reason: 'draft-missing', projectId, stepId: 'context', available: ['game', 'combat'] });
+    expect(rows[0]!.detail).toMatchObject({ reason: 'draft-missing', projectId, stepId: 'context', available: ['game', 'combat', 'level'] });
     expect(await countGames(projectId)).toBe(0);
   });
 

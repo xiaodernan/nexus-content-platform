@@ -77,7 +77,7 @@ function notificationEvents(): RealtimeEvent[] {
 }
 
 describe('§112 多步编排的执行方', () => {
-  it('六步全绿：计划落库、任务行 succeeded、事件按顺序、一条通知、扣一次点', async () => {
+  it('七步全绿：计划落库、任务行 succeeded、事件按顺序、一条通知、扣一次点', async () => {
     const projectId = await newProject('编排全绿');
     const result = await runReadinessCheck({ projectId, actorId: owner, goal: '上架前检查一下' });
     if (!result.ok) throw new Error(`不该拒收：${result.refusal.message}`);
@@ -93,6 +93,8 @@ describe('§112 多步编排的执行方', () => {
       ['report', 'done'],
       // combat（§52 链第二格）依赖 game：与 report 同批就绪，按声明序排在 report 之后
       ['combat', 'done'],
+      // level（第三格）依赖 combat：上一批落定后才就绪，排在最后
+      ['level', 'done'],
     ]);
     // 汇总那一步真的产出了结论（形状由 ReadinessReportSchema 管）
     expect(result.report).not.toBeNull();
@@ -105,14 +107,14 @@ describe('§112 多步编排的执行方', () => {
     expect(row?.error).toBeNull();
     expect(row?.finishedAt).not.toBeNull();
     const planned = row!.plan as AgentPlan;
-    expect(planned.tasks.map((task) => task.status)).toEqual(['done', 'done', 'done', 'done', 'done', 'done']);
+    expect(planned.tasks.map((task) => task.status)).toEqual(['done', 'done', 'done', 'done', 'done', 'done', 'done']);
 
     // 刷新后读到的是库里那一份，不是内存里的
     const view = await latestPlannedTask(projectId, owner);
     expect(view?.taskId).toBe(result.taskId);
     expect(view?.status).toBe('succeeded');
     expect(view?.capability).toBe('demo');
-    expect((view?.result as { steps?: unknown[] })?.steps).toHaveLength(6);
+    expect((view?.result as { steps?: unknown[] })?.steps).toHaveLength(7);
     /**
      * §52：草稿随这一步落进任务行，所以刷新之后还在——接受入口才有东西可接。
      * 同时这一句是"只读"的另一半：跑一次检查**不**等于往项目里写了一份游戏设计，
@@ -177,9 +179,11 @@ describe('§112 多步编排的执行方', () => {
       'report:completed',
       'combat:started',
       'combat:completed',
+      'level:started',
+      'level:completed',
     ]);
-    // 计划一条 + 每步开始/完成各一条（现在是六步）
-    expect(events.filter((event) => event.type === 'agent.activity')).toHaveLength(13);
+    // 计划一条 + 每步开始/完成各一条（现在是七步）
+    expect(events.filter((event) => event.type === 'agent.activity')).toHaveLength(15);
 
     // §163 + §112：起点 0、每步一格（已到终态的步数 / 总步数）、收尾 1。
     // 中间那几格不是插值——每一步跑完都真的推一次，所以这里能逐格数出来。
@@ -251,6 +255,8 @@ describe('§112 多步编排的执行方', () => {
       ['game', 'done'],
       // combat 只依赖 game，所以 qa-audit 炸了它也照跑：失败没有横向扩散的第二处证据
       ['combat', 'done'],
+      // level 只依赖 combat，同样照跑
+      ['level', 'done'],
       ['report', 'skipped'],
     ]);
     const skipped = result.steps.find((step) => step.id === 'report')!;
@@ -264,7 +270,7 @@ describe('§112 多步编排的执行方', () => {
     const planned = row!.plan as AgentPlan;
     // 这一份是**计划里的顺序**（声明序），与上面 steps 的执行序不同：
     // 计划里 game 排在 report 之后，执行时它和那三份检查一批跑完
-    expect(planned.tasks.map((task) => task.status)).toEqual(['done', 'done', 'failed', 'skipped', 'done', 'done']);
+    expect(planned.tasks.map((task) => task.status)).toEqual(['done', 'done', 'failed', 'skipped', 'done', 'done', 'done']);
 
     const events = projectEvents(projectId);
     const stepTrace = events
@@ -284,6 +290,8 @@ describe('§112 多步编排的执行方', () => {
       // combat 只依赖 game，同样照跑完；只有 report 被牵连跳过
       'combat:started',
       'combat:completed',
+      'level:started',
+      'level:completed',
     ]);
     expect(stepTrace.some((line) => line.startsWith('report:'))).toBe(false);
     // 跳过只发一条活动说明，说明"被谁牵连"
