@@ -137,7 +137,7 @@ describe('vector-backed recall (v19)', () => {
   it('memory.recall reports the engine and vector path survives a fresh store', async () => {
     const store = new MemoryStore();
     store.save({ scope: 'default', runId: 'r', query: 'embed tokens', summary: 'hit embedding.ts', refs: [{ path: 'embedding.ts', startLine: 1 }] });
-    const disk = createMemDisk({ listing: 'empty' });
+    const disk = createMemDisk({ listing: 'refuse' });
     disk.writeFileSync('vectors.json', serializeVectors(store.toVectorDb()));
     const registry = registerMemoryTools(new ToolRegistry(), store, { vectorsFile: 'vectors.json', fsLike: disk });
     const viaVectors = await registry.invoke({ callId: 'c1', tool: 'memory.recall', args: { query: 'embed tokens' } }, {});

@@ -14,11 +14,12 @@
  *  - `'refuse'` — this suite never lists, and a directory read here is a bug in the TEST. It throws, which is
  *    the answer v206 argued for: "a mock that reports 'no entries' for a disk that HAS entries is the kind of
  *    lie a future test would pass against."
- *  - `'empty'` — the code path under test may ask, and the honest answer for THIS suite is that it holds
- *    nothing. Deliberately the dangerous one: it is indistinguishable from "the listing is broken", so it
- *    exists only where a case measured that it is what the suite means.
- *  - `'real'` — a true flat listing of `files`, directories included, which is what `loadMemoryStore`,
- *    `rescanIndex` and the vector store actually need.
+ *  - `'real'` — a true flat listing of `files` and `mkdirSync`'s directories, which is what `loadMemoryStore`,
+ *    `rescanIndex` and the vector store actually need. An empty directory answers an empty listing, because
+ *    it HOLDS nothing — which is why the `'empty'` policy the eleven had was removed: it answered the same
+ *    thing for a disk that had entries, so every use of it was either a lie or a case of `'real'` on an empty
+ *    disk. Measured when it was tightened away (v229): both suites carrying it stayed green, so it was never
+ *    load-bearing.
  *
  * What each suite takes is a POLICY, not a copy: the three byte-identical 'real' disks became one call, and
  * the five byte-identical 'refuse' disks became one call, so a fix to the listing is a fix in one place.
@@ -26,7 +27,7 @@
 import type { FsDirentLike } from '../src/realfs.js';
 
 /** What this disk answers when a caller reads a directory. */
-export type MemDiskListing = 'refuse' | 'empty' | 'real';
+export type MemDiskListing = 'refuse' | 'real';
 
 export interface MemDiskOptions {
   /** The listing policy. Defaults to `'refuse'` — the safe one. */
@@ -77,7 +78,6 @@ export function createMemDisk(options: MemDiskOptions = {}): MemDisk {
       if (listing === 'refuse') {
         throw new Error(`MemDisk.readdirSync is not implemented for this suite — this disk was built with the 'refuse' listing policy and nothing here lists (asked for ${JSON.stringify(dir)})`);
       }
-      if (listing === 'empty') return [];
       return listingOf(disk, dir);
     },
     statSync(p: string): { size: number } {
@@ -94,7 +94,6 @@ export function createMemDisk(options: MemDiskOptions = {}): MemDisk {
       // `durability`'s FakeDisk is the only one of the eleven that records a directory at all, and a case
       // that makes one and then lists its parent expects to SEE it — so this is the shared answer rather
       // than the no-op the 'real' suites carried. A no-op here would make `mkdirSync` a lie.
-      for (const p of dir.split('/')) void p;
       const parts = dir.split('/');
       for (let i = 1; i <= parts.length; i++) disk.dirs.add(parts.slice(0, i).join('/'));
     },

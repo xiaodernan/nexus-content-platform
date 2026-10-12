@@ -10443,3 +10443,40 @@ _Numbering: 229 was free (`grep -ao "^### Amendment 22[0-9]"` topped out at 228)
   which kind, which is the point. `mkdirSync` records directories (so a listing can report them) while
   `writeFileSync` does not; only the seed derives them. Two `MemDisk` type annotations (`chain`, `indexVectors`)
   now name the exported `MemDisk` interface rather than a local class.
+
+### Amendment 230 (M2 v229 follow-on, agents/runtime tests) — the `'empty'` listing policy is REMOVED, and the shared disk gets its own cases
+
+_Numbering: 230 was free (`grep -ao "^### Amendment [0-9]*"` topped out at 229). Test-only: `memDisk.ts`,
+`memDisk.test.ts`, and the two suites that carried the policy._
+
+- **What amendment 229 left open.** It made the eleven mocks one disk with a NAMED listing policy, which is the
+  fix plan item 19 asked for. But two of the eleven still declared `'empty'` — `memory.test.ts` and
+  `vectorStore.test.ts` — and `'empty'` answers `[]` for a disk that HAS entries. It was kept as "the
+  dangerous one, deliberately, taken only where a case measured it", and no case had measured it: the two
+  suites never reached a listing at all.
+- **Measured, not assumed.** With the disk's own suite in place, the arms graded exactly that. `A1` (`'refuse'`
+  answers `[]` instead of throwing) reddens **only the disk's own cases** and none of the five `'refuse'`
+  suites — which is the measurement of v206's claim, stated in five copies of a comment and never once
+  checked. `A2` reddens only the disk's own case, and tightening both `'empty'` suites to `'refuse'` moves
+  **nothing**: 549/549 before and after.
+- **So the policy is removed rather than kept for symmetry.** `'empty'` was strictly dominated: a disk that
+  holds nothing answers `[]` truthfully under `'real'`, and a disk that holds something must not answer `[]` at
+  all. `MemDiskListing` is now `'refuse' | 'real'`, the two policies that are actually about something.
+  `memory.test.ts` and `vectorStore.test.ts` now say `'refuse'`, which is the true statement about them.
+- **The disk gets cases of its own** (`test/memDisk.test.ts`, 9). A shared helper whose behaviour is nobody's
+  assertion is the same hazard in a new place: the three policies were eleven unsynchronised copies, and one
+  unpinned helper would have been a twelfth. The cases pin each policy, the difference between a SEED
+  (which derives its directories, because it is a whole tree) and a WRITE (which does not, because a listing
+  that reported a directory nobody made would be inventing structure), `mkdirSync`'s recording, and that the
+  listing is sorted and deterministic so no case depends on `Map` order.
+- **The battery: 5 arms, 5 predictions, 5 reds, 5/5 MATCHED — after two re-derivations, recorded rather than
+  smoothed.** The first A1 predicted 10 and measured 2, because it assumed the ported suites would redden;
+  the measurement said otherwise and the finding replaced the prediction. A2 was then re-armed to the lie the
+  removal prevents (`'real'` answering `[]` for a directory that has entries), first predicted 7 and measured
+  5, and corrected. Final: `A1` `'refuse'`→`[]` → 2 · `A2` `'real'`→`[]` → 5 · `A3` files-only listing → 3 ·
+  `A4` `mkdirSync` stops recording → 1 · `A5` a write derives its parents again → 1. Each arm is graded on the
+  disk's own suite AND on the whole package, and the second reading is what proved no other suite reaches a
+  listing under `'refuse'`. The disk is restored byte-identical after every arm.
+- **Measured:** `agents/runtime` **540 → 549** (36 → 37 files), `tsc -p tsconfig.test.json --noEmit` exit 0.
+  The 9 new cases are the disk's own; the 540 existing ones did not move, which is the proof the policy
+  removal changes nothing the corpus relies on.

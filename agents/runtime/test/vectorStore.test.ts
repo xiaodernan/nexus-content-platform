@@ -71,7 +71,7 @@ describe('vectorStore facade (v91 — the ESM seam)', () => {
   });
 
   it('the local store writes NOTHING until flush, then a COLD second store reads the same rows', async () => {
-    const disk = createMemDisk({ listing: 'empty' });
+    const disk = createMemDisk({ listing: 'refuse' });
     const first = createVectorStore({ type: 'local', localPath: 'state/vectors.json' }, disk);
     expect(first.engine).toBe('local-json-exact-scan');
     expect(await first.initialize()).toEqual({ ok: true, engine: 'local-json-exact-scan', entries: 0, loadedFrom: null });
@@ -88,7 +88,7 @@ describe('vectorStore facade (v91 — the ESM seam)', () => {
   });
 
   it('a file that EXISTS but cannot be read is refused, not silently replaced by an empty store', async () => {
-    const disk = createMemDisk({ listing: 'empty' });
+    const disk = createMemDisk({ listing: 'refuse' });
     disk.files.set('state/vectors.json', '{oops');
     const store = createVectorStore({ type: 'local', localPath: 'state/vectors.json' }, disk);
 
@@ -105,7 +105,7 @@ describe('vectorStore facade (v91 — the ESM seam)', () => {
   });
 
   it('syncMemoryToVectorStore names one row per ref, stably, and is idempotent under upsert', async () => {
-    const disk = createMemDisk({ listing: 'empty' });
+    const disk = createMemDisk({ listing: 'refuse' });
     const store = createVectorStore({ type: 'local', localPath: 'state/v.json' }, disk);
     await store.initialize();
     const memory = new MemoryStore();
