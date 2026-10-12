@@ -1120,7 +1120,7 @@ prove the filter is working by failing old expectations that included disabled c
 Bounds, stated: disabled components remain stored in the registry and can be re-enabled through the toggle; the
 filter applies uniformly across all component spellings (Map, entry array, plain object); the save shape is
 unaffected (SerializedEntityComponent still excludes runtime-only fields). The ADR 0016 amendment record for
-this grant is owed.
+this grant is amendment 219 — filed under that next-free number because v204's own commit collided with another lane's type-gate grant, so its record was written as 219 rather than 204.
 
 **Corrected by v207:** the re-enable bound above did not hold as shipped — filtering disabled components out of
 the report removed the toggle that could re-enable them, and the "6 tests updated, 401/407" measurement was
@@ -1148,7 +1148,7 @@ does not call `removeComponent`, so the cleanup is proven at the runtime layer.
 Bounds, stated: cleanup only affects runtime-only fields (`targetObject`, `animationIds`); the component's `data`
 and `type` are simply discarded as before; if the scene is missing, animation cleanup is skipped gracefully;
 removing a component without runtime-only fields succeeds with no side effects. The ADR 0016 amendment record
-for this grant is owed.
+for this grant is amendment 220 — filed under that next-free number alongside v204's 219 for the same collision.
 
 ## Entity removal cleans up all component effects (M5 v206)
 
@@ -1171,7 +1171,7 @@ changes — the surface does not call `removeEntity`, so the cleanup is proven a
 
 Bounds, stated: cleanup applies to ALL components on the entity uniformly; if the scene is missing, animation
 cleanup is skipped gracefully (same as v205); entities without components succeed with no side effects. The
-ADR 0016 amendment record for this grant is owed.
+ADR 0016 amendment record for this grant is amendment 206.
 
 ## The HUD's gate stops stranding: the report carries the disabled half (M5 v207)
 
@@ -1215,7 +1215,7 @@ Bounds, stated: the split is a REPORT change only — nothing about v201's query
 v203's playback gate moves; `entityComponentsOf` stays loose (garbage and undeclared hosts still answer `[]`,
 which lands in `components`, never in `disabledComponents`); the save shape is untouched; a registry where all
 components are disabled shows an empty active list and a full disabled half — the toggle for every one of them
-is on screen. The ADR 0016 amendment record for this grant is owed.
+is on screen. The ADR 0016 amendment record for this grant is amendment 207.
 
 ## addComponent's replace path releases the evicted component's effects (M5 v208)
 
@@ -1258,7 +1258,7 @@ helper resolves the scene from the registry itself; a FIRST add performs no effe
 added with `enabled: false` and a `targetObject` does NOT hide its target until the toggle moves (the add-time
 enforcement of v202/v203 semantics is a separate grant); `restoreEntity` files freshly built components that
 carry no runtime-only fields (`threeRuntime.ts:1755`), so the replace path cannot strand through a load. The
-ADR 0016 amendment record for this grant is owed.
+ADR 0016 amendment record for this grant is amendment 208.
 
 ## A component filed DISABLED declares its gates at file time (M5 v209)
 
@@ -1309,7 +1309,7 @@ the toggle also owns the enable leg that has no add-time counterpart; `restoreEn
 that carry no runtime-only fields at all (v119: the save shape excludes them), so there is nothing for
 add-time enforcement to apply through a load — a restored disabled component gates nothing until the
 save round-trip is given runtime re-attachment, a different grant. The ADR 0016 amendment record for
-this grant is owed.
+this grant is amendment 209.
 
 ## The surface watches the registry: component events get their first subscriber (M5 v210)
 
@@ -1365,7 +1365,7 @@ The rename/visibility verbs (`setEntityName`, `setEntityVisible`, v197) emit NOT
 out-of-band rename is still invisible to the surface, and closing that needs an emit added to the
 runtime, not a subscription. The subscription lives in the mount effect with empty deps and reads the
 captured `surface`, matching the pull pattern of the rAF loop it joins. The ADR 0016 amendment record
-for this grant is owed.
+for this grant is amendment 210.
 
 ## The silent verbs announce themselves: entityRenamed and entityVisibilityChanged join the bus (M5 v211)
 
@@ -1420,7 +1420,7 @@ family's; the Studio side does not yet SUBSCRIBE to these two names — v210's `
 still exactly three, and joining the entity pair (moving the v210 pins honestly, with the watch renamed
 or split) is a separate grant; `setLightState` and `removeEntity` already emit, and the remaining silent
 registry verbs (none in the component family) were censused from the same `this.emit(` walk. The ADR
-0016 amendment record for this grant is owed.
+0016 amendment record for this grant is amendment 211.
 
 ## The surface watches the entity pair: an out-of-band rename or hide moves the panel (M5 v212)
 
@@ -1482,7 +1482,7 @@ render test would be the reader that closes this, and no such harness exists for
 `entityCreated`/`entityRemoved` still have NO Studio subscriber, so a body added or removed out-of-band
 still does not move the panel — the census of `this.emit(` shows those names carrying no listener above the
 runtime; the component `data` bag is still unread by the inspector (v199 counts names, v212 reads none of
-their values). The ADR 0016 amendment record for this grant is owed.
+their values). The ADR 0016 amendment record for this grant is amendment 212.
 
 ## The surface watches the body pair: an out-of-band add, removal or restore moves the roster (M5 v216)
 
