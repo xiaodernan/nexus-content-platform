@@ -323,6 +323,14 @@ export class StudioStore {
     const key = `${this.design.getState().revision}|${document.id}|${page.id}|${this.viewport}|${mode}`;
     // doc 身份一并判：事务内文档会变而 revision 不跳，只比 key 会拿到上一版文档的布局
     if (this.layoutCache?.key === key && this.layoutCache.doc === document) return this.layoutCache.value;
+    // §147 增量解：这里**接过** `resolveLayoutIncremental`（2026-10-10），又把它撤回了（2026-10-12）——
+    // 实测它与全量**不等**：`paintOrder` 不同（渲染次序会变，肉眼可见），而且没碰到的分支
+    // 也没被复用（对象身份都不一样，"省下计算"这件事根本没发生）。证据是
+    // `packages/design-model/test/layout-incremental.test.ts` 里那两条**真量相等**的用例
+    // （不是之前那条只查"函数存在"的占位——占位守卫永远为真，typecheck/eslint 都看不见）。
+    // 根因在 design-model：增量版没有共用全量的 place/measure 核心，自己复制了一套。
+    // 正确的修法是把核心抽成两路共用的模块级函数——那是独立一片（ROADMAP #133）。
+    // 在那之前这里继续走全量：全量是唯一的真值，一个错的增量比慢的全量更贵（§159 不假装）。
     let layout: ResolvedLayout | null;
     try {
       layout = resolveLayout(page, {
@@ -336,6 +344,14 @@ export class StudioStore {
       layout = null;
     }
     this.layoutCache = { key, doc: document, value: layout };
+    // 诊断：解算次数与命中次数分开记。一次编辑该解一次；两次说明复用没兜住
+    if (
+      process.env.NODE_ENV !== 'production' ||
+      process.env.NEXT_PUBLIC_NEXUS_PERF_SEGMENTS === '1'
+    ) {
+      const bucket = (globalThis as unknown as { __studioPerf?: Record<string, number> }).__studioPerf ??= {};
+      bucket.layoutSolves = (bucket.layoutSolves ?? 0) + 1;
+    }
     return layout;
   }
 

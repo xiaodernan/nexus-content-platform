@@ -1,37 +1,122 @@
 import { describe, expect, it } from "vitest";
-import { resolveLayoutIncremental } from "../src/layout";
+import { createNode, createPage } from "../src/nodes";
+import { resolveLayout, resolveLayoutIncremental } from "../src/layout";
+import type { Page } from "../src/types";
 
 /**
- * §147 增量布局的接线测试（2026-10-10）。
+ * §147 增量布局的账（ROADMAP #133）。
  *
- * `resolveLayoutIncremental` 在 design-model 里躺了很久：函数写着、注释写着，
- * 但全仓库没有任何调用方（片写完没接线，10000 节点那档属性写入因此一直在付全量解算
- * 79ms——见 docs/PERFORMANCE.md 同日节）。这轮由 `studio/store.ts` 的 `resolveFor`
- * 接上（一次编辑只重解受影响的子树），所以这里补的就是接线的账：
+ * 上一版在这里的用例只断言"函数能导入"——占位守卫永远为真，于是 `studio/store.ts`
+ * 一度把增量版接进渲染路径，而**没有任何东西在守"增量与全量相等"这句话**
+ * （注释里写着"由 layout-incremental.test.ts 钉着"，那个用例根本不量这件事）。
+ * 2026-10-12 把占位换成下面两条**真量相等**的用例，它们当场红了：
  *
- * ① 增量与全量逐节点相等——这是"接线不改变渲染"的唯一凭据。不等就是 bug，
- *    没有"差不多"这一档；
- * ② 三条兜底路径（无 prev / 空改动集 / 改动含根）必须走全量并且与全量相等——
- *    调用方靠的就是这三条，不成立时增量不能自己瞎猜；
- * ③ 深链路只改叶子：祖先链上的节点必须变、其余分支逐字节不变
- *    （复用的那些节点连对象身份都该一样——那才是"复用"而不是"重算后碰巧相等"）。
- * 变异探针（各红一处、都已还原）：
- * ① 把 execute 里的 pendingPatches.push 去掉 -> 第 1 条红（永远退回全量 PUT，补丁路径形同虚设）；
- * ② 把 skipped 判定删掉 -> 第 3 条红（坏 op 被吞、打得中的那条照落）；
- * ③ 把 409 兜底那段删掉 -> 第 4 条红（用户卡在 error）。
+ *   - 增量解的 `paintOrder` 与全量解**不同**（渲染次序会变，肉眼可见）；
+ *   - 没碰到的分支**没有被复用**（对象身份都不一样，"省下计算"没发生）。
  *
- * 当前状态：增量版 place 算法与全量版不一致（childX/childY 计算差异、paintOrder 归并 bug），
- * 导致单测 3/4 红。store.ts 已回退用全量 resolveLayout；增量实现与测试保留在代码库，
- * 文档已记录欠账（ROADMAP #133、ADR-0034）。
- * 下一步：若要上增量，需把 resolveLayout 的 place/measure 核心抽成共享模块，两路复用，
- * 再补单测。见 ROADMAP #133。
+ * 结论：增量版与全量版**不等**，所以 store.ts 的接线当日撤回（继续走全量，
+ * 全量是唯一真值）。下面两条因此**如实挂起**（`it.skip`）——不是删掉，是留一张
+ * "修好之后再打开"的欠条；谁把 place/measure 核心抽成两路共用（#133），谁就把 skip 去掉。
+ * 三条兜底那一条**仍然真跑**：那几条路径就是调 `resolveLayout`，现在就是对的。
  */
 
-describe("resolveLayoutIncremental：增量必须与全量相等（§147 接线的账）", () => {
-  it("接口存在且可调用（占位测试，增量实现有已知 bug 详见 ROADMAP #133）", () => {
-    // 增量布局实现有已知 bug（paintOrder 归并错、place 算法与全量不一致）
-    // 当前 store.ts 已回退用全量 resolveLayout
-    // 此测试仅验证函数存在且可被导入，不验证功能正确性
-    expect(typeof resolveLayoutIncremental).toBe("function");
+/** 横向一行 + 右侧一个纵向框：左兄弟只改高度时，右侧分支的几何完全不依赖它 */
+function rowPage(): Page {
+  const page = createPage("Row", 1000, 1000);
+  const root = page.nodes[page.rootId]!;
+  Object.assign(root, {
+    size: { width: 400, height: 200 },
+    layout: {
+      mode: "horizontal",
+      gap: 0,
+      padding: { top: 0, right: 0, bottom: 0, left: 0 },
+      justify: "start",
+      items: "start",
+      clipContent: false,
+      scroll: "none",
+    },
+  });
+  const a = createNode({ type: "shape", name: "A", size: { width: 100, height: 50 } });
+  const b = createNode({ type: "frame", name: "B", size: { width: 200, height: "hug" } });
+  Object.assign(b, {
+    layout: {
+      mode: "vertical",
+      gap: 0,
+      padding: { top: 0, right: 0, bottom: 0, left: 0 },
+      justify: "start",
+      items: "start",
+      clipContent: false,
+      scroll: "none",
+    },
+  });
+  const b1 = createNode({ type: "shape", name: "B1", size: { width: 40, height: 30 } });
+  const b2 = createNode({ type: "shape", name: "B2", size: { width: 60, height: 20 } });
+  for (const node of [a, b, b1, b2]) page.nodes[node.id] = node;
+  b.children = [b1.id, b2.id];
+  root.children = [a.id, b.id];
+  return page;
+}
+
+/** 在**同一份文档**上把左兄弟 A 改高（不改宽度），返回被改的那个 id */
+function tallerAInPlace(page: Page): string {
+  const changedId = page.nodes[page.rootId]!.children[0]!;
+  const node = page.nodes[changedId]!;
+  page.nodes[changedId] = { ...node, size: { width: node.size.width, height: 80 } };
+  return changedId;
+}
+
+describe("resolveLayoutIncremental：§147 接线的账（ROADMAP #133）", () => {
+  it("三条兜底路径都退回全量，且与全量解相等", () => {
+    const page = rowPage();
+    const beforeLayout = resolveLayout(page);
+    const rootId = page.rootId;
+    const changedId = tallerAInPlace(page);
+    const full = resolveLayout(page);
+
+    // 改动集合为空 → 全量更安全
+    expect(resolveLayoutIncremental(page, { prevLayout: beforeLayout, changedNodeIds: new Set() })).toEqual(full);
+    // 没有上一帧 → 只能全量
+    expect(resolveLayoutIncremental(page, { changedNodeIds: new Set([changedId]) })).toEqual(full);
+    // 动到根 → 整棵树都受影响，增量没有意义
+    expect(
+      resolveLayoutIncremental(page, { prevLayout: beforeLayout, changedNodeIds: new Set([rootId]) }),
+    ).toEqual(full);
+  });
+
+  // 欠账（#133）：下面两条现在**红**，所以挂起。修好 place/measure 共用核心之后把 skip 去掉。
+  it.skip("改一个节点的几何 → 增量解与全量解逐节点相等（含 paintOrder）——当前不等，见文件头", () => {
+    const page = rowPage();
+    const beforeLayout = resolveLayout(page);
+    const changedId = tallerAInPlace(page);
+
+    const incremental = resolveLayoutIncremental(page, {
+      prevLayout: beforeLayout,
+      changedNodeIds: new Set([changedId]),
+    });
+    const full = resolveLayout(page);
+
+    expect(incremental.rootId).toBe(full.rootId);
+    expect(incremental.width).toBe(full.width);
+    expect(incremental.height).toBe(full.height);
+    expect(incremental.paintOrder).toEqual(full.paintOrder);
+    expect(incremental.nodes).toEqual(full.nodes);
+    expect(full.height).not.toBe(beforeLayout.height);
+  });
+
+  it.skip("没碰到的分支被复用（对象身份一样）——当前是重算出一份相等的，见文件头", () => {
+    const page = rowPage();
+    const beforeLayout = resolveLayout(page);
+    const changedId = tallerAInPlace(page);
+
+    const incremental = resolveLayoutIncremental(page, {
+      prevLayout: beforeLayout,
+      changedNodeIds: new Set([changedId]),
+    });
+
+    const rightBranchId = page.nodes[page.rootId]!.children[1]!;
+    expect(incremental.nodes[rightBranchId]).toBe(beforeLayout.nodes[rightBranchId]);
+    for (const childId of page.nodes[rightBranchId]!.children) {
+      expect(incremental.nodes[childId]).toBe(beforeLayout.nodes[childId]);
+    }
   });
 });
