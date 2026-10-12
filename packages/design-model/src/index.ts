@@ -36,6 +36,7 @@ export { layoutPage, hitTest, boundsOfSubtree, containsRotated, rotatePointAbout
 export {
   expandComponentInstances,
   ownerInstanceId,
+  normalizeInstanceOverrides,
   type InstanceMeta,
   type ExpandedInstances,
 } from './instances.js';

@@ -119,15 +119,16 @@ describe('store: instance overrides', () => {
     expect(inst(instId).overrides[a]).toEqual({ width: 250, visible: false });
   });
 
-  it('a text override lands in the text map and reverses on undo', () => {
+  it('a text override lands ON THE PATCH and reverses on undo', () => {
     const { a, textId, instId } = madeOneComponent();
     st().setInstanceOverride(instId, textId, { characters: 'Hello' });
-    expect(inst(instId).overrides.text?.[textId]).toBe('Hello');
+    // v230: the text override is a field of the per-child patch, not a reserved `text` sibling of the map.
+    expect(inst(instId).overrides[textId]?.text).toBe('Hello');
     const { doc: view } = instanceView(st().doc);
     expect((view.nodes[`${instId}::${textId}`] as { characters?: string }).characters).toBe('Hello');
     st().undo();
     expect(inst(instId).overrides[a]).toBeUndefined();
-    expect(inst(instId).overrides.text?.[textId]).toBeUndefined();
+    expect(inst(instId).overrides[textId]).toBeUndefined();
   });
 
   it('a fill and a radius override land on the patch, project onto the clone, and leave the master alone', () => {

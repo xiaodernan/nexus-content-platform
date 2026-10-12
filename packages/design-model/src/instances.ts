@@ -1,4 +1,4 @@
-import type { ContainerNode, DesignDocument, DesignNode, InstanceNode, NexusId, Paint, Point } from './types.js';
+import type { ContainerNode, DesignDocument, DesignNode, InstanceChildOverride, InstanceNode, NexusId, Point } from './types.js';
 import { childIdList } from './selectors.js';
 import { rotatePointAbout } from './geometry.js';
 
@@ -31,45 +31,51 @@ export interface ExpandedInstances {
 }
 
 /**
- * One master child's patch. Named `ChildOverride` rather than `GeometryOverride` because v132 made `fills`
- * and `cornerRadius` overridable: a name that says geometry while holding a paint is the kind of stale
- * sentence this lane keeps retiring (v118's `duration`, v119's loader that "ignored what it could not read").
+ * Decode an instance's overrides into the canonical per-child patches, keyed by master child id.
+ *
+ * A snapshot written before v230 carries the text overrides in a reserved `text` SIBLING
+ * (`overrides.text = { [masterId]: 'words' }`) — the encoding whose type forced a cast on every writer and
+ * made a child literally named `text` unreachable (plan item 17). It is a lossless encoding of the SAME
+ * canonical fact, so it is FOLDED here rather than orphaned by a schema bump: `persist.deserializeApp`
+ * refuses an unknown `schemaVersion` instead of migrating, so bumping it would strand every snapshot already
+ * on disk. A map whose every value is a string is the legacy sibling; anything else is a child patch. (The
+ * one genuinely ambiguous shape — a master child literally named `text` carrying a text-only patch — folds
+ * to the SAME answer either way, so the rule cannot be fooled into a wrong result.)
  */
-interface ChildOverride {
-  width?: number;
-  height?: number;
-  visible?: boolean;
-  /** Position deltas relative to the master child's authored x/y. */
-  x?: number;
-  y?: number;
-  /** Absolute rotation in degrees, replacing the master child's authored rotation. */
-  rotation?: number;
-  /** The master child's corner radius, replaced. */
-  cornerRadius?: number;
-  /** The master child's fills, replaced whole. */
-  fills?: Paint[];
-}
-
-function readOverrides(inst: InstanceNode): {
-  byId: Record<NexusId, ChildOverride>;
-  text: Record<NexusId, string>;
-} {
-  const o = inst.overrides ?? {};
-  const text = (o.text ?? {}) as Record<NexusId, string>;
-  const byId: Record<NexusId, ChildOverride> = {};
+export function normalizeInstanceOverrides(overrides: InstanceNode['overrides']): Record<NexusId, InstanceChildOverride> {
+  const o = (overrides ?? {}) as Record<NexusId, unknown>;
+  const byId: Record<NexusId, InstanceChildOverride> = {};
+  const legacyText: Record<string, string> = {};
   for (const [key, val] of Object.entries(o)) {
-    if (key === 'text') continue;
-    if (val && typeof val === 'object') byId[key] = val as ChildOverride;
+    if (!val || typeof val !== 'object') continue;
+    if (key === 'text' && isLegacyTextMap(val)) {
+      Object.assign(legacyText, val as Record<string, string>);
+      continue;
+    }
+    byId[key] = val as InstanceChildOverride;
   }
-  return { byId, text };
+  for (const [id, words] of Object.entries(legacyText)) {
+    const existing = byId[id];
+    if (!existing || existing.text === undefined) byId[id] = { ...(existing ?? {}), text: words };
+  }
+  return byId;
 }
 
-function applyOverrides(
-  clone: DesignNode,
-  masterId: NexusId,
-  byId: Record<NexusId, ChildOverride>,
-  text: Record<NexusId, string>,
-): void {
+/**
+ * A legacy `text` sibling: a non-empty map whose every value is a string. A new-shape patch for a child
+ * whose id happens to BE `text` answers with its own field values (numbers, booleans, arrays), so it is
+ * read as a patch instead.
+ */
+function isLegacyTextMap(val: object): boolean {
+  const values = Object.values(val);
+  return values.length > 0 && values.every((v) => typeof v === 'string');
+}
+
+function readOverrides(inst: InstanceNode): Record<NexusId, InstanceChildOverride> {
+  return normalizeInstanceOverrides(inst.overrides);
+}
+
+function applyOverrides(clone: DesignNode, masterId: NexusId, byId: Record<NexusId, InstanceChildOverride>): void {
   const geom = byId[masterId];
   if (geom) {
     if (geom.width !== undefined) clone.width = geom.width;
@@ -84,9 +90,10 @@ function applyOverrides(
     // the authored document. The paints inside stay shared by reference: nothing in this lane mutates a paint
     // in place, and a deep clone here is the honest fix the day something does.
     if (geom.fills !== undefined) clone.fills = [...geom.fills];
+    // `text` is just another field of the patch (v230), so a text-only override lives here too — there is no
+    // separate map to consult, which is what made the old shape untypable and its cast load-bearing.
+    if (geom.text !== undefined && clone.type === 'text') clone.characters = geom.text;
   }
-  const t = text[masterId];
-  if (t !== undefined && clone.type === 'text') clone.characters = t;
 }
 
 /**
@@ -128,13 +135,12 @@ export function expandComponentInstances(doc: DesignDocument): ExpandedInstances
     parentCloneId: NexusId,
     ns: NexusId,
     topId: NexusId,
-    byId: Record<NexusId, ChildOverride>,
-    text: Record<NexusId, string>,
+    byId: Record<NexusId, InstanceChildOverride>,
     stack: NexusId[],
   ): NexusId {
     const cloneId = `${ns}::${src.id}`;
     const clone: DesignNode = { ...src, id: cloneId, parentId: parentCloneId, childIds: [] };
-    applyOverrides(clone, src.id, byId, text);
+    applyOverrides(clone, src.id, byId);
     projected[cloneId] = clone;
     meta[cloneId] = { instanceId: topId, masterId: src.id };
 
@@ -144,7 +150,7 @@ export function expandComponentInstances(doc: DesignDocument): ExpandedInstances
       for (const mid of childIdList(src)) {
         const child = doc.nodes[mid];
         if (!child) continue;
-        clone.childIds.push(cloneTree(child, cloneId, ns, topId, byId, text, stack));
+        clone.childIds.push(cloneTree(child, cloneId, ns, topId, byId, stack));
       }
     }
     return cloneId;
@@ -158,12 +164,12 @@ export function expandComponentInstances(doc: DesignDocument): ExpandedInstances
     const master = doc.nodes[cid];
     if (!master) return;
     const nextStack = [...stack, cid];
-    const { byId, text } = readOverrides(inst);
+    const byId = readOverrides(inst);
     const childIds: NexusId[] = [];
     for (const mid of childIdList(master)) {
       const src = doc.nodes[mid];
       if (!src) continue;
-      childIds.push(cloneTree(src, instId, instId, topId, byId, text, nextStack));
+      childIds.push(cloneTree(src, instId, instId, topId, byId, nextStack));
     }
     inst.childIds = childIds;
   }

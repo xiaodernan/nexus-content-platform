@@ -123,15 +123,45 @@ export interface ImageNode extends NodeBase {
   fit: 'cover' | 'contain' | 'stretch';
 }
 
+/**
+ * One master child's override patch. Named `ChildOverride` rather than `GeometryOverride` because v132 made
+ * `fills` and `cornerRadius` overridable: a name that says geometry while holding a paint is the kind of
+ * stale sentence this lane keeps retiring (v118's `duration`, v119's loader that "ignored what it could not
+ * read").
+ *
+ * `text` is ONE MORE patchable field rather than a reserved sibling of the map. The pre-v230 shape
+ * (`Record<NexusId, Partial<Pick<NodeBase, …>>> & { text?: Record<NexusId, string> }`) had two defects the
+ * widened type gate found (plan item 17): an object literal's `text` key had to satisfy the map's OWN index
+ * signature, so no correctly-typed code could write a text override at all (`readOverrides` and its callers
+ * carried casts around it); and a master child whose id was literally `text` was UNREACHABLE for geometry
+ * patches, because the reader skipped that key. A patch is a patch: with no reserved key both defects are
+ * gone by construction rather than by a rule that has to be enforced.
+ */
+export interface InstanceChildOverride {
+  width?: number;
+  height?: number;
+  visible?: boolean;
+  /** Position deltas relative to the master child's authored x/y. */
+  x?: number;
+  y?: number;
+  /** Absolute rotation in degrees, replacing the master child's authored rotation. */
+  rotation?: number;
+  /** The master child's corner radius, replaced. */
+  cornerRadius?: number;
+  /** The master child's fills, replaced whole. */
+  fills?: Paint[];
+  /** The master child's text, replaced (meaningful only when the master child is a text node). */
+  text?: string;
+}
+
 /** Instance references a component; `overrides` patch specific properties. `x`/`y` are deltas relative to
 the master's authored position; `rotation`, `fills` and `cornerRadius` REPLACE the master child's own value, and
 `fills` is the whole array — the same rule the Properties panel uses for a fill edit (`fills[0]` written, tail kept). */
 export interface InstanceNode extends NodeBase {
   type: 'instance';
   componentId: NexusId;
-  overrides: Record<NexusId, Partial<Pick<NodeBase, 'width' | 'height' | 'visible' | 'x' | 'y' | 'rotation' | 'fills' | 'cornerRadius'>>> & {
-    text?: Record<NexusId, string>;
-  };
+  /** One patch per master child id, decoded by `readOverrides` in `instances.ts`. */
+  overrides: Record<NexusId, InstanceChildOverride>;
 }
 
 export interface DocumentNode extends NodeBase {

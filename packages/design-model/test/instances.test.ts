@@ -115,23 +115,60 @@ describe('instances: multiple + overrides', () => {
     const { cmp, r, t } = buttonMaster();
     doc = seed(doc, doc.rootId, cmp, r, t);
     const inst = instanceNode('B', 'cmp', { id: 'i2' });
-    // The cast is the SAME ONE `readOverrides` makes in `src/instances.ts`, and it is here for a real reason:
-    // `InstanceNode['overrides']` is `Record<NexusId, Partial<Pick<NodeBase, …>>> & { text?: Record<NexusId, string> }`,
-    // so an object literal's `text` key has to satisfy the INDEX SIGNATURE as well as the named field — and
-    // `{ 'cmp::label': 'Clicked' }` cannot. No correctly-typed code can write a text override. Found by v204's
-    // widened gate; NOT fixed here, because the fix is a canonical-model decision (the format also lets a master
-    // child whose id is literally `text` be unreachable for geometry patches, since `readOverrides` skips that
-    // key). Filed as its own increment in `docs/DEVELOPMENT_PLAN.md`.
-    inst.overrides = {
-      'cmp::rect': { width: 300 },
-      text: { 'cmp::label': 'Clicked' },
-    } as InstanceNode['overrides'];
+    // NO CAST (v230, plan item 17): `text` is a field of the PATCH, not a reserved sibling of the map, so
+    // this object literal type-checks. The old shape (`… & { text?: Record<NexusId, string> }`) forced the
+    // literal's `text` key to satisfy the map's own index signature — and `{ 'cmp::label': 'Clicked' }`
+    // cannot, which is why the cast used to sit here and `readOverrides` carried the same one in `src/`.
+    inst.overrides = { 'cmp::rect': { width: 300 }, 'cmp::label': { text: 'Clicked' } };
     doc = seed(doc, doc.activePageId, inst);
     const { doc: out } = expandComponentInstances(doc);
     expect(out.nodes['i2::cmp::rect']?.width).toBe(300);
     expect((out.nodes['i2::cmp::label'] as TextNode | undefined)?.characters).toBe('Clicked');
     // untouched master stays as authored
     expect((doc.nodes['cmp::label'] as TextNode | undefined)?.characters).toBe('Save');
+  });
+
+  it('a master child whose id is literally `text` is patched, not skipped (the other half of item 17)', () => {
+    // The old reader did `if (key === 'text') continue`, so a child NAMED `text` could never be reached for a
+    // geometry patch while the reserved sibling occupied that key. No reserved key exists any more, so the
+    // reader cannot tell this patch from any other — which is the whole point of the shape change.
+    let doc = createEmptyDocument();
+    const cmp = componentNode('Cmp', { id: 'cmp' });
+    const named = rectNode('bg', { id: 'text' });
+    named.width = 50;
+    named.height = 50;
+    named.parentId = 'cmp';
+    const label = textNode('label', 'Save', style, { id: 'label' });
+    label.parentId = 'cmp';
+    cmp.childIds = [named.id, label.id];
+    doc = seed(doc, doc.rootId, cmp, named, label);
+    const inst = instanceNode('B', 'cmp', { id: 'i2' });
+    inst.overrides = { text: { width: 90 }, label: { text: 'Clicked' } };
+    doc = seed(doc, doc.activePageId, inst);
+    const { doc: out } = expandComponentInstances(doc);
+    expect(out.nodes['i2::text']?.width).toBe(90);
+    expect((out.nodes['i2::label'] as TextNode | undefined)?.characters).toBe('Clicked');
+    expect(doc.nodes['text']!.width).toBe(50); // master untouched
+  });
+
+  it('a pre-v230 snapshot\'s reserved `text` sibling is FOLDED into the patch it belongs to', () => {
+    // The old on-disk encoding, parsed rather than typed: `persist.deserializeApp` REFUSES an unknown
+    // `schemaVersion` instead of migrating, so bumping it would strand every snapshot already on disk. This
+    // encoding is a lossless spelling of the same canonical fact, so it is DECODED rather than orphaned.
+    let doc = createEmptyDocument();
+    const { cmp, r, t } = buttonMaster();
+    doc = seed(doc, doc.rootId, cmp, r, t);
+    const inst = instanceNode('B', 'cmp', { id: 'i2' });
+    inst.overrides = JSON.parse('{"cmp::rect":{"width":300},"text":{"cmp::label":"Clicked"}}') as InstanceNode['overrides'];
+    doc = seed(doc, doc.activePageId, inst);
+    const { doc: out } = expandComponentInstances(doc);
+    expect(out.nodes['i2::cmp::rect']?.width).toBe(300);
+    expect((out.nodes['i2::cmp::label'] as TextNode | undefined)?.characters).toBe('Clicked');
+    // the fold COMPOSES with a patch that is already there rather than replacing it
+    inst.overrides = JSON.parse('{"cmp::label":{"rotation":30},"text":{"cmp::label":"Clicked"}}') as InstanceNode['overrides'];
+    const out2 = expandComponentInstances(seed(doc, doc.activePageId, inst)).doc;
+    expect(out2.nodes['i2::cmp::label']?.rotation).toBe(30);
+    expect((out2.nodes['i2::cmp::label'] as TextNode | undefined)?.characters).toBe('Clicked');
   });
 
   it('applies x/y overrides as deltas off the master authored position', () => {

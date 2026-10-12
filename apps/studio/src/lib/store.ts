@@ -19,6 +19,7 @@ import {
   textNode,
   componentNode,
   instanceNode,
+  normalizeInstanceOverrides,
   type DesignDocument,
   type DesignNode,
   type DiffSummary,
@@ -389,7 +390,7 @@ export const useStudio = create<StudioState>((set, get) => ({
     for (const [instanceId, byMaster] of cloneDeltas) {
       const inst = doc.nodes[instanceId];
       if (!inst || inst.type !== 'instance' || inst.locked) continue;
-      const next: InstanceNode['overrides'] = { ...inst.overrides };
+      const next: InstanceNode['overrides'] = normalizeInstanceOverrides(inst.overrides);
       for (const [masterId, d] of byMaster) {
         const geom = { ...(next[masterId] ?? {}) };
         geom.x = Math.round((geom.x ?? 0) + d.x);
@@ -413,7 +414,7 @@ export const useStudio = create<StudioState>((set, get) => ({
       const layout = layoutPage(view, activePageId);
       const cur = layout[id];
       if (!inst || inst.type !== 'instance' || inst.locked || !clone || !cur) return;
-      const next: InstanceNode['overrides'] = { ...inst.overrides };
+      const next: InstanceNode['overrides'] = normalizeInstanceOverrides(inst.overrides);
       const geom = { ...(next[m.masterId] ?? {}) };
       geom.x = Math.round((geom.x ?? 0) + (g.x - cur.x));
       geom.y = Math.round((geom.y ?? 0) + (g.y - cur.y));
@@ -651,8 +652,8 @@ export const useStudio = create<StudioState>((set, get) => ({
     const { doc } = get();
     const n = doc.nodes[instanceId];
     if (!n || n.type !== 'instance') return;
-    const next: InstanceNode['overrides'] = { ...n.overrides };
-    const geom: { x?: number; y?: number; width?: number; height?: number; visible?: boolean; rotation?: number; cornerRadius?: number; fills?: Paint[] } = { ...(next[masterId] ?? {}) };
+    const next: InstanceNode['overrides'] = normalizeInstanceOverrides(n.overrides);
+    const geom: { x?: number; y?: number; width?: number; height?: number; visible?: boolean; rotation?: number; cornerRadius?: number; fills?: Paint[]; text?: string } = { ...(next[masterId] ?? {}) };
     let touched = false;
     if (patch.x !== undefined) { geom.x = Math.round(patch.x); touched = true; }
     if (patch.y !== undefined) { geom.y = Math.round(patch.y); touched = true; }
@@ -663,13 +664,16 @@ export const useStudio = create<StudioState>((set, get) => ({
     // Radius clamps at 0 rather than 1: a square corner is a value, not an absence (unlike width).
     if (patch.cornerRadius !== undefined) { geom.cornerRadius = Math.round(Math.max(0, patch.cornerRadius)); touched = true; }
     if (patch.fills !== undefined) { geom.fills = [...patch.fills]; touched = true; }
+    // v230: the text override is a field OF THE PATCH, not a reserved `text` sibling of the map. The old line
+    // wrote `next.text = { …(next.text ?? {}), [masterId]: patch.characters }` — the reserved key that made
+    // the whole shape untypable and a master child literally named `text` unreachable (plan item 17).
+    if (patch.characters !== undefined) { geom.text = patch.characters; touched = true; }
     if (!touched) {
-      const isEmpty = geom.x === undefined && geom.y === undefined && geom.width === undefined && geom.height === undefined && geom.visible === undefined && geom.rotation === undefined && geom.cornerRadius === undefined && geom.fills === undefined;
+      const isEmpty = geom.x === undefined && geom.y === undefined && geom.width === undefined && geom.height === undefined && geom.visible === undefined && geom.rotation === undefined && geom.cornerRadius === undefined && geom.fills === undefined && geom.text === undefined;
       if (isEmpty) delete next[masterId];
     } else {
       next[masterId] = geom;
     }
-    if (patch.characters !== undefined) next.text = { ...(next.text ?? {}), [masterId]: patch.characters };
     get().commitOps([ops.updateNode(instanceId, { overrides: next })], 'Set instance override');
   },
 
