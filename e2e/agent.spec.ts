@@ -12,8 +12,9 @@ import { expect, test, type Page } from '@playwright/test';
  * 通知那一格在真浏览器上量的是"面板与收件箱是同一份真值的两个投影"：
  * 标题里的步数必须与面板上的一致，而不是各写各的。
  *
- * §52 那条链有了第二格之后，这里多了一条只有浏览器能证的断言：**点的是哪一格，进库的就是那一份**。
- * 服务端集成测能证"两份草稿内容不同"，但"界面把 stepId 传对了"这一段发生在点击上。
+ * §52 那条链走到第三格，这里把"点的是哪一格，进库的就是那一份"钉在最小的差别上：
+ * level 那份与 combat 那份只差坐标，服务端集成测能证"两份内容不同"，但"界面把 stepId 传对了"
+ * 这一段发生在点击上——而"坐标写进了库"只有真浏览器读回来的那一份能证明它一路没被换掉。
  */
 
 const RUN = Date.now().toString(36);
@@ -39,6 +40,18 @@ async function createProject(page: Page, name: string): Promise<string> {
 
 async function readJson<T>(page: Page, path: string): Promise<T> {
   return page.evaluate(async (p) => (await fetch(p as string, { cache: 'no-store' })).json(), path) as Promise<T>;
+}
+
+/**
+ * 写了作者坐标（x 与 y 都是有限数）的实体数。
+ * §52 链第三格（level）自称"只改坐标"，所以它与上一格（combat）那份的**全部**差别就在这一个数上——
+ * 拿它当判别证据，等于把"点的是哪一格"这件事压到这一片能给出的最细的刻度上。
+ */
+function authoredPositions(entities: unknown[]): number {
+  return entities.filter((entity) => {
+    const stats = (entity as { stats?: Record<string, unknown> }).stats ?? {};
+    return Number.isFinite(stats.x) && Number.isFinite(stats.y);
+  }).length;
 }
 
 /** 服务端那一份作业：计划里的步数与逐步结论。界面上的数必须与它说同一件事 */
@@ -97,6 +110,9 @@ test('@smoke agent orchestration runs in the studio and lands a real notificatio
   expect(server!.steps.filter((step) => step.status === 'done')).toHaveLength(stepCount);
   await expect(page.locator('[data-agent-step]')).toHaveCount(stepCount);
   await expect(page.locator('[data-agent-step-status="done"]')).toHaveCount(stepCount);
+  // 那句作业介绍里的步数必须与服务端计划里的步数是同一个数。这一条不是修辞：
+  // 那句话在第二片之后就一直写着"五步"而配方有七步——手抄的数没有对照物就会漂（§159）
+  await expect(page.locator('[data-agent-panel]')).toContainText(`${stepCount} 步作业`);
   await expect(page.locator('[data-agent-goal-echo]')).toHaveText(`上架前检查 ${RUN}`);
 
   // 服务端数出来的页/节点与画布上那 8 个对得上（不是面板自己加的数）
@@ -131,21 +147,31 @@ test('@smoke agent orchestration runs in the studio and lands a real notificatio
   // 刷新后不该退回空态（那意味着计划只活在内存里）
   await expect(page.locator('[data-agent-empty]')).toHaveCount(0);
   // 刷新之后草稿还在，接受入口也还在：草稿存的是任务行，不是组件状态（ADR-0035）
-  // §52 那条链现在有两份草稿：game 的原始那份与 combat 调过数值的那份，两个入口各管各的那一份
+  // §52 那条链现在有三份草稿：game 的原始那份、combat 调过数值的那份、level 把位置写成设计值的那份，
+  // 三个入口各管各的那一份
   await expect(page.locator('[data-agent-accept-step="game"]')).toBeVisible({ timeout: 30_000 });
   await expect(page.locator('[data-agent-accept-step="combat"]')).toBeVisible();
+  await expect(page.locator('[data-agent-accept-step="level"]')).toBeVisible();
+  // 第三格在站内说的是几何目标，不是战斗目标——它摆的是位置，读数的单位也得跟着换
+  await expect(page.locator('[data-agent-step-summary="level"]')).toContainText('条几何目标达标');
 
   // §52 的落地：这一点之前项目里"还没有游戏"——只读的作业不会自己把草稿写进去
   expect((await readJson<{ game: unknown }>(page, `/api/projects/${projectId}/game`)).game).toBeNull();
 
-  // 先点链末那一步（调过数值的那份）：界面上点的是 combat，库里就必须是 combat 那一份。
+  // 先点链末那一步（level 那份：把位置写成设计值的）：界面上点的是 level，库里就必须是 level 那一份。
   // 这一句是"按 stepId 选"在真浏览器里的证据——缺省取链末对不对，服务端集成测里证不了"点的是谁"。
-  await page.click('[data-agent-accept-step="combat"]');
+  // 判别证据用这一片给得出的最细的刻度：level 与 combat 那两份**只差坐标**，
+  // 所以"库里那一份带着作者摆的位置、combat 那份一个都没有"就排除了"传错 stepId 也照样绿"。
+  await page.click('[data-agent-accept-step="level"]');
   await expect(page.locator('[data-agent-accept-note="ok"]')).toBeVisible({ timeout: 30_000 });
   const accepted = await readJson<{ game: { name: string; entities: unknown[] } }>(
     page,
     `/api/projects/${projectId}/game`,
   );
+  const levelDraft = server!.steps.find((step) => step.id === 'level')?.draft as
+    | { name: string; entities: unknown[] }
+    | undefined;
+  expect(levelDraft, 'level 那一步在库里没留草稿').toBeTruthy();
   const combatDraft = server!.steps.find((step) => step.id === 'combat')?.draft as
     | { name: string; entities: unknown[] }
     | undefined;
@@ -153,10 +179,12 @@ test('@smoke agent orchestration runs in the studio and lands a real notificatio
   const noteText = (await page.locator('[data-agent-accept-note="ok"]').textContent()) ?? '';
   // 回执上报的名字与实体数来自库里那一份，不是面板自己数的
   expect(accepted.game.entities.length).toBeGreaterThan(0);
-  expect(accepted.game.entities).toEqual(combatDraft!.entities);
+  expect(accepted.game.entities).toEqual(levelDraft!.entities);
+  expect(authoredPositions(accepted.game.entities), '接进来的那一份该带 level 摆好的位置').toBeGreaterThan(0);
+  expect(authoredPositions(combatDraft!.entities), '上一格那份不该有作者坐标').toBe(0);
   expect(noteText).toContain(accepted.game.name);
   expect(noteText).toContain(`${accepted.game.entities.length} 个实体`);
-  expect(noteText).toContain('「combat」这一步留下的那一份草稿');
+  expect(noteText).toContain('「level」这一步留下的那一份草稿');
   await page.screenshot({ path: 'screenshots/agent-accept.png' });
 
   // 切到「游戏」面板：接受的这一份是项目里的普通文档，接着改的入口在那儿
@@ -164,14 +192,17 @@ test('@smoke agent orchestration runs in the studio and lands a real notificatio
   await expect(page.locator('[data-game-name]')).toHaveValue(accepted.game.name, { timeout: 30_000 });
   await expect(page.locator('[data-game-entity]')).not.toHaveCount(0);
 
-  // 再点另一格（game 那份原始草稿）：项目已经有游戏设计了，接受不覆盖，
-  // 界面把服务端那句原因原样说出来，而库里那份一字未动
+  // 再点另外两格（game 的原始草稿、combat 那份没坐标的）：项目已经有游戏设计了，接受不覆盖，
+  // 界面把服务端那句原因原样说出来，而库里那份一字未动。
+  // 第二格这一击才有分量：上一格的草稿位置比已接受那份**少**，覆盖了就等于把刚摆好的布局抹掉。
   await page.click('[data-panel-tab="agent"]');
   await expect(page.locator('[data-agent-accept-step="game"]')).toBeVisible({ timeout: 30_000 });
-  const beforeSecond = JSON.stringify(await readJson(page, `/api/projects/${projectId}/game`));
-  await page.click('[data-agent-accept-step="game"]');
-  await expect(page.locator('[data-agent-accept-note="refused"]')).toContainText('不会覆盖', { timeout: 30_000 });
-  expect(JSON.stringify(await readJson(page, `/api/projects/${projectId}/game`))).toBe(beforeSecond);
+  const landed = JSON.stringify(await readJson(page, `/api/projects/${projectId}/game`));
+  for (const stepId of ['game', 'combat'] as const) {
+    await page.click(`[data-agent-accept-step="${stepId}"]`);
+    await expect(page.locator('[data-agent-accept-note="refused"]')).toContainText('不会覆盖', { timeout: 30_000 });
+    expect(JSON.stringify(await readJson(page, `/api/projects/${projectId}/game`)), `${stepId} 那一格不该覆盖已接受的那份`).toBe(landed);
+  }
   await page.screenshot({ path: 'screenshots/agent-accept-refused.png' });
 
   // 收件箱里那一条与面板是同一份真值的两个投影

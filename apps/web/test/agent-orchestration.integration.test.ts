@@ -1,6 +1,13 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { eq, inArray } from 'drizzle-orm';
-import { combatGoals, compileRpg, playtestRpg, type GameDocument } from '@nexus/game-model';
+import {
+  combatGoals,
+  compileRpg,
+  levelGoals,
+  playtestRpg,
+  POSITION_STAT_KEYS,
+  type GameDocument,
+} from '@nexus/game-model';
 import type { AgentPlan, RealtimeEvent } from '@nexus/schemas';
 import { runReadinessCheck } from '../src/server/agent/runtime';
 import { gameDraft } from '../src/lib/agent-game-draft';
@@ -21,10 +28,12 @@ import { agentTasks, agents, creditLedger, notifications, projects, users } from
  * 三条纪律照着 §165/§166/§168：每条"没有"都要配一条"换个状态就有"的对照——
  * "报告步没有发 agent.step"要配"另外三步发了"，否则那条断言只是"什么都没建起来"的同义反复。
  *
- * §52 那条链的两格在这层各有自己的用例：combat 拿不到上游草稿时**明说**（不另编一份设计），
+ * §52 那条链的三格在这层各有自己的用例：combat 与 level 拿不到上游草稿时**明说**（不另编一份设计），
  * 拿到了一份但那份**开不了场**（没有玩家）时**一轮没调**、达标条数按那份文档重跑一遍算出来。
  * 后一条的用意是"这一步不许自己给自己打分"：全绿那份的达标条数恰好等于总条数，
  * 于是"把总数当成达标的条数"那种谎在那条用例里是隐形的——只有跑不起来的那份能看见它。
+ * level 还多一条只属于它的用例：**除了坐标与时间戳，它交回来的那份必须与 combat 那份逐键相等**，
+ * 因为这一格的限度写的正是"数值一个都不动"，而这句话只有拿上一格当分母才测得出来。
  */
 
 interface Captured {
@@ -74,6 +83,32 @@ function projectEvents(projectId: string): RealtimeEvent[] {
 
 function notificationEvents(): RealtimeEvent[] {
   return captured.filter((item) => item.channel === channels.user(owner)).map((item) => item.event);
+}
+
+/**
+ * 归一化掉「这一格允许改的东西」：x / y 两个数值键，以及写值时被盖上的时间戳。
+ * §52 链第三格（level）自称"只改坐标"，所以比对两份草稿时把坐标与时间戳摘掉，
+ * 剩下的必须逐键相等——留着坐标比就测不到它有没有顺手改数值，留着时间戳比就永远不相等。
+ */
+function withoutPositions(document: GameDocument) {
+  return {
+    ...document,
+    updatedAt: '',
+    entities: document.entities.map((entity) => ({
+      ...entity,
+      updatedAt: '',
+      stats: Object.fromEntries(
+        Object.entries(entity.stats ?? {}).filter(([key]) => key !== POSITION_STAT_KEYS.x && key !== POSITION_STAT_KEYS.y),
+      ),
+    })),
+  };
+}
+
+/** 文档里写了完整一对坐标的实体数：这一格的产物就是这个数，所以它必须由投影自己判，不能靠步骤自己报 */
+function authoredPositions(document: GameDocument): number {
+  return document.entities.filter((entity) =>
+    [POSITION_STAT_KEYS.x, POSITION_STAT_KEYS.y].every((key) => Number.isFinite(entity.stats?.[key])),
+  ).length;
 }
 
 describe('§112 多步编排的执行方', () => {
@@ -407,6 +442,173 @@ describe('§112 多步编排的执行方', () => {
     expect(combat.notes.join('')).toContain('玩家');
     // 文档原样交回：这一步没偷偷改数值（两份都比的是库里读回来的那一份，键序归一化同一套）
     expect(JSON.stringify(combat.draft)).toBe(JSON.stringify(result.steps.find((step) => step.id === 'game')!.draft));
+    expect(await countGames(projectId)).toBe(0);
+  });
+
+  it('第三格的守卫：combat 完成了但没留草稿，level 失败并点名"没拿到 combat 的草稿"', async () => {
+    // 这一格的底线和上一格同一条：没有要摆的设计就不摆——绝不"照着配方现编一份再来这一步"。
+    // 注入的 combat 返回一份**合法但没有 draft** 的结论，所以依赖是满足的（combat 是 done），
+    // level 真的被调度起来，然后撞在守卫上。上面那条已经钉过"上游失败所以它没跑"那种形状，
+    // 这一条钉的是守卫本身。
+    const projectId = await newProject('编排第三格缺上游');
+    const result = await runReadinessCheck({
+      projectId,
+      actorId: owner,
+      goal: '这一格没有草稿可摆',
+      runners: {
+        combat: async () => ({ summary: '探针：这一步不产草稿', counts: { entities: 0 }, notes: [] }),
+      },
+    });
+    if (!result.ok) throw new Error(`不该拒收：${result.refusal.message}`);
+
+    const level = result.steps.find((step) => step.id === 'level')!;
+    expect(level.status).toBe('failed');
+    // 缺的是谁的东西要说清：只写"跑不起来"，用户分不清是这一格坏了还是上游坏了
+    expect(level.error).toContain('上游草稿');
+    expect(level.error).toContain('combat');
+    // 守卫不是"崩之前已经写好了半份"：这一步既没留草稿，也没留下任何自报的读数
+    expect(level.draft).toBeUndefined();
+    expect(level.counts).toEqual({});
+    expect(level.notes).toEqual([]);
+    // 链上其余各步不受牵连：game 那份草稿照在，汇总照跑（这一格失败是这一格自己的事）
+    expect(result.steps.find((step) => step.id === 'game')?.draft).toBeDefined();
+    expect(result.steps.find((step) => step.id === 'report')?.status).toBe('done');
+    expect(result.status).toBe('failed');
+    expect(await countGames(projectId)).toBe(0);
+  });
+
+  it('第三格吃的真是上一格那份：除了坐标与时间戳，两份草稿逐键相等', async () => {
+    // 「只改坐标」这句声明只有拿 combat 那份当分母才测得出来：
+    // 和最初那份比就看不见数值格与布局格各自动过什么，而这一格的限度写的正是"数值一个都不动"。
+    const projectId = await newProject('编排第三格只改坐标');
+    const result = await runReadinessCheck({ projectId, actorId: owner, goal: '把位置摆开' });
+    if (!result.ok) throw new Error(`不该拒收：${result.refusal.message}`);
+
+    const combat = result.steps.find((step) => step.id === 'combat')!;
+    const level = result.steps.find((step) => step.id === 'level')!;
+    expect(combat.status).toBe('done');
+    expect(level.status).toBe('done');
+    const combatDoc = combat.draft as GameDocument;
+    const levelDoc = level.draft as GameDocument;
+    // 摘掉 x/y 与时间戳之后两份必须完全相同：这一格不许顺手改生命、伤害、冷却或引用图
+    expect(withoutPositions(levelDoc)).toEqual(withoutPositions(combatDoc));
+    expect(levelDoc.entities.length, '实体增减不是这一格的事').toBe(combatDoc.entities.length);
+    // 分母也得证明这份草稿原本真没坐标：否则"逐键相等"会因为两边都没坐标而空转
+    expect(authoredPositions(combatDoc), '上游那份本来不该有作者写的坐标').toBe(0);
+    expect(authoredPositions(levelDoc)).toBe(level.counts.layoutAuthored);
+    expect(level.counts.layoutAuthored).toBeGreaterThan(0);
+    // 站内说的是"场上几个位置写在文档里"，那个数来自这一步真跑出来的产物，不是配方里的常数
+    expect(level.summary).toContain(`${level.counts.layoutAuthored}`);
+    expect(await countGames(projectId)).toBe(0);
+  });
+
+  it('第三格的达标条数按存进任务行的那份重算：跑不起来时一轮没摆、条数照实说', async () => {
+    // 与上一格同一条纪律：这一步不许自己给自己打分。全绿那份的达标条数恰好等于总条数，
+    // 于是"把总数当成达标的条数"那种谎在那条用例里隐形——只有跑不起来的那份能看见它。
+    const projectId = await newProject('编排第三格上游跑不起来');
+    const source = gameDraft({ goal: '把玩家那一格拿掉', at: '2020-01-01T00:00:00.000Z', seed: 'task-level-no-player' });
+    const playerless: GameDocument = { ...source, entities: source.entities.filter((entity) => entity.kind !== 'player') };
+    const result = await runReadinessCheck({
+      projectId,
+      actorId: owner,
+      goal: '这份设计没有出生点',
+      runners: {
+        game: async () => ({
+          summary: '探针：交一份跑不起来的草稿',
+          counts: { entities: playerless.entities.length },
+          notes: [],
+          draft: playerless,
+        }),
+      },
+    });
+    if (!result.ok) throw new Error(`不该拒收：${result.refusal.message}`);
+
+    const level = result.steps.find((step) => step.id === 'level')!;
+    // 没有玩家就没有出生点，"离敌人多远""脚下压着什么"全部失去意义——但这一格不该崩
+    expect(level.status).toBe('done');
+    const recomputed = levelGoals(compileRpg(level.draft as GameDocument).base, level.draft as GameDocument);
+    const met = recomputed.filter((goal) => goal.achieved).length;
+    expect(met, '这条用例的 fixture 必须真的达不到全部布局目标，否则它什么也测不到').toBeLessThan(recomputed.length);
+    expect(level.counts.goalsMet).toBe(met);
+    expect(level.counts.goalsTotal).toBe(recomputed.length);
+    expect(level.summary).toContain(`${met}/${recomputed.length}`);
+    // 没摆过要说成没摆过：写成"摆过 3 轮、保留 5 处"就是把没做的事报成做了
+    expect(level.counts.rounds).toBe(0);
+    expect(level.counts.kept).toBe(0);
+    expect(level.counts.authoredMoves).toBe(0);
+    expect(level.counts.shiftedMoves).toBe(0);
+    expect(authoredPositions(level.draft as GameDocument)).toBe(0);
+    // 为什么没摆要写在结论里，点名的是那份文档的毛病，不是这一格自己的
+    expect(level.notes.join('')).toContain('玩家');
+    // 文档原样交回：这一格没偷偷给谁补一个出生点
+    expect(JSON.stringify(level.draft)).toBe(JSON.stringify(result.steps.find((step) => step.id === 'combat')!.draft));
+    // 上一格的成绩没被弄坏，也没被冒领：进来的与结束时达标条数相等，且按这份文档重算一遍对得上
+    expect(level.counts.combatMetBefore).toBe(level.counts.combatMetAfter);
+    expect(level.counts.combatMetAfter).toBe(
+      combatGoals(playtestRpg(compileRpg(level.draft as GameDocument))).filter((goal) => goal.achieved).length,
+    );
+    expect(await countGames(projectId)).toBe(0);
+  });
+
+  it('第三格分开报"原样写成坐标"与"真挪了个体"：上游摆过的位置不冒领、不抹掉', async () => {
+    // 真链跑出来的是 5 处 author、0 处 shift、场上 5 个带坐标的——三个数两两相等，
+    // 于是"把 kept 当成 author 数""把 author 数当成场上带坐标的数""把 shift 印成 author"这三种谎
+    // 在那份上都没有可观测后果。这里给上游一份**已经带两个坐标**的草稿：
+    // 一个摆在玩家脚下（必须被真挪，shift 才有独证），一个按投影此刻的位置原样写下
+    // （这一格不该再动它，于是"场上带坐标的"比"本格动过的"多，kept 与 metric 分得开）。
+    const projectId = await newProject('编排第三格分开报数');
+    const source = gameDraft({ goal: '把一件东西摆到玩家脚下', at: '2020-01-01T00:00:00.000Z', seed: 'task-level-mixed' });
+    const base = compileRpg(source).base;
+    expect(base.player, '这份 fixture 要有玩家才有出生点').not.toBeNull();
+    const movable = [...base.enemies, ...base.items, ...base.npcs];
+    expect(movable.length, '这份 fixture 至少要有两个可摆位置的个体').toBeGreaterThanOrEqual(2);
+    const [piled, already] = [movable[0]!, movable[1]!];
+    const seeded: GameDocument = {
+      ...source,
+      entities: source.entities.map((entity) => {
+        if (entity.id === piled.id) {
+          return { ...entity, stats: { ...entity.stats, [POSITION_STAT_KEYS.x]: base.player!.x, [POSITION_STAT_KEYS.y]: base.player!.y } };
+        }
+        if (entity.id === already.id) {
+          return { ...entity, stats: { ...entity.stats, [POSITION_STAT_KEYS.x]: already.x, [POSITION_STAT_KEYS.y]: already.y } };
+        }
+        return entity;
+      }),
+    };
+    const result = await runReadinessCheck({
+      projectId,
+      actorId: owner,
+      goal: '把位置摆开',
+      runners: {
+        game: async () => ({
+          summary: '探针：交一份已经摆过两个位置、其中一个压着出生点的草稿',
+          counts: { entities: seeded.entities.length },
+          notes: [],
+          draft: seeded,
+        }),
+      },
+    });
+    if (!result.ok) throw new Error(`不该拒收：${result.refusal.message}`);
+
+    const level = result.steps.find((step) => step.id === 'level')!;
+    expect(level.status).toBe('done');
+    // counts 是按名字取的读数表：这里要做算术，所以每一格都取成"必然是数"，
+    // 少了哪一格就直接点名，而不是拿 undefined 参加运算
+    const count = (key: string): number => {
+      const value = level.counts[key];
+      if (typeof value !== 'number') throw new Error(`这一步的 counts 里没有 ${key}：${JSON.stringify(level.counts)}`);
+      return value;
+    };
+    // 压着出生点那一个必须被真挪：否则 shift 这一栏永远是 0，这条 fixture 什么也没测到
+    expect(count('shiftedMoves'), '压着出生点那一个必须被真挪').toBeGreaterThan(0);
+    // 上游摆过的那两个不算本格的 author 数（其中一个还被真挪了），所以 author 严格小于 kept
+    expect(count('authoredMoves'), '上游摆过的位置不该被冒领成本格写的').toBeLessThan(count('kept'));
+    expect(count('authoredMoves') + count('shiftedMoves')).toBe(count('kept'));
+    // 场上带坐标的比本格动过的多：那一个是原样写下来的，这一格既没重算它也没抹掉它
+    expect(count('layoutAuthored')).toBeGreaterThan(count('kept'));
+    expect(authoredPositions(level.draft as GameDocument)).toBe(count('layoutAuthored'));
+    // 界面上那两个数各自读自己的 counts，不是模板里抄了同一个变量
+    expect(level.summary).toContain(`${count('authoredMoves')} 处原样写成坐标、${count('shiftedMoves')} 处真挪`);
     expect(await countGames(projectId)).toBe(0);
   });
 

@@ -1,7 +1,13 @@
 'use client';
 
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { AgentDraftAcceptResponseSchema, AgentRunResponseSchema, type AgentRunView, type StepReport } from '@/lib/agent-runtime';
+import {
+  AgentDraftAcceptResponseSchema,
+  AgentRunResponseSchema,
+  READINESS_STEPS,
+  type AgentRunView,
+  type StepReport,
+} from '@/lib/agent-runtime';
 import { cn } from '@/lib/cn';
 import { csrfHeaders } from '@/lib/csrf';
 import { useRealtime } from '@/lib/useRealtime';
@@ -212,8 +218,10 @@ export function AgentPanel() {
 
       <div className="min-h-0 flex-1 overflow-auto p-[var(--nexus-space-2)]">
         <p className="text-11 text-fg-3">
-          上架前检查：五步作业（结构盘点 / 上架元信息 / 发布门禁 / 汇总 / RPG 草稿）。前四步只读，
-          第五步编出一份游戏草稿——它存在这一条作业里，点那一步上的「接受进项目」才会写进 Game Studio。
+          上架前检查：{READINESS_STEPS.length} 步作业，逐步列在下面。步数取自配方本身（`READINESS_STEPS`），
+          不是这里手抄的——抄一份就会和配方漂。
+          其中跑完留下游戏草稿的那几步（§52 那条链：草稿 → 调战斗数值 → 摆关卡位置），每一步上各有一个
+          「接受进项目」按钮：点了才会写进 Game Studio，没点就只存在这一条作业里。
           这一轮不改设计、不发布、不生成像素。
         </p>
         {run?.capability === 'demo' ? (

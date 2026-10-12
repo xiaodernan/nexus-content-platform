@@ -3,10 +3,17 @@ import {
   ACTOR_RADIUS,
   ARENA,
   PLAY_DEFAULTS,
+  PLAY_PROVENANCE_FALLBACK_TEXT,
+  PLAY_PROVENANCE_LABELS,
+  PLAY_PROVENANCE_SLOTS,
+  POSITION_STAT_KEYS,
   addEntity,
+  authoredPosition,
+  clampToArena,
   compileGame,
   createGame,
   entitiesOfKind,
+  hasAuthoredPosition,
   linkEntities,
   setStat,
   updateEntity,
@@ -31,6 +38,16 @@ function link(document: GameDocument, from: string, to: string, role: string): G
   const result = linkEntities(document, from, to, role);
   if (result.reason) throw new Error(`前置引用失败：${result.reason}`);
   return result.document;
+}
+
+/**
+ * 读回**这份文档此刻**的实体。`entitiesOfKind` 拿到的对象是写入之前的快照，
+ * 拿快照去问「写没写坐标」会永远得到否答案——谓词的输入必须是最终文档里的那一个。
+ */
+function entityOf(document: GameDocument, id: string) {
+  const found = document.entities.find((entity) => entity.id === id);
+  if (!found) throw new Error(`测试底稿里没有实体 ${id}`);
+  return found;
 }
 
 describe('compileGame 的确定性', () => {
@@ -208,5 +225,130 @@ describe('触发器', () => {
     expect(other.radius).toBe(PLAY_DEFAULTS.triggerRadius);
     expect(other.radiusIsDesign).toBe(false);
     expect(other.affects).toBe(null);
+  });
+});
+
+/**
+ * §52 链第三格（Level Design）的地基：位置可以是**文档里写着的值**。
+ * 这里钉的是投影会不会说谎，四条都要有反方向对照：
+ * 认作者摆的位置、场外钳回、半套坐标不算摆过、没写坐标时行为逐字节不变。
+ */
+describe('位置从哪来（作者摆的 x / y vs 同心环）', () => {
+  it('写了 x 与 y 就用作者的位置并标成 design；只写一个键整体退回同心环', () => {
+    let doc = createGame('位置');
+    const [placed] = entitiesOfKind(doc, 'enemy');
+    doc = addEntity(doc, { kind: 'enemy', name: '没摆过的敌人' });
+    const [untouched] = entitiesOfKind(doc, 'enemy').slice(1);
+    const halfOnly = entitiesOfKind(doc, 'item')[0]!;
+    // 先量一份「谁都没摆过」的：后面拿它当同心环的基准，而不是凭公式猜
+    const before = compileGame(doc);
+    doc = write(doc, placed!.id, POSITION_STAT_KEYS.x, 233);
+    doc = write(doc, placed!.id, POSITION_STAT_KEYS.y, 97);
+    doc = write(doc, halfOnly.id, POSITION_STAT_KEYS.x, 480);
+    const plan = compileGame(doc);
+
+    const a = plan.enemies.find((e) => e.id === placed!.id)!;
+    expect({ x: a.x, y: a.y }).toEqual({ x: 233, y: 97 });
+    expect(a.provenance.position).toBe('design');
+    const b = plan.enemies.find((e) => e.id === untouched!.id)!;
+    const bBefore = before.enemies.find((e) => e.id === untouched!.id)!;
+    expect(b.provenance.position).toBe('default');
+    // 反向对照一：没写坐标的那个仍然在投影排的环位置上（不是被作者的数带着走）
+    expect({ x: b.x, y: b.y }).toEqual({ x: bBefore.x, y: bBefore.y });
+    expect([a.x, a.y]).not.toEqual([bBefore.x, bBefore.y]);
+
+    // 反向对照二：半套坐标与「什么都没写」那一份逐字节同位置——认半个作者值就是说谎
+    const c = plan.items.find((i) => i.id === halfOnly.id)!;
+    const cBefore = before.items.find((i) => i.id === halfOnly.id)!;
+    expect(c.provenance.position).toBe('default');
+    expect({ x: c.x, y: c.y }).toEqual({ x: cBefore.x, y: cBefore.y });
+
+    // 判据只有一把尺：投影认的位置与导出的那两个谓词必须一致，否则布局格与投影会有两种读数
+    // 输入取最终文档里的实体快照，而不是写入之前抓的那一份
+    expect(hasAuthoredPosition(entityOf(doc, placed!.id))).toBe(true);
+    expect(hasAuthoredPosition(entityOf(doc, halfOnly.id))).toBe(false);
+    expect(hasAuthoredPosition(entityOf(doc, untouched!.id))).toBe(false);
+    expect(authoredPosition(entityOf(doc, placed!.id))).toEqual({ x: 233, y: 97, clamped: false });
+    expect(authoredPosition(entityOf(doc, halfOnly.id))).toBe(null);
+    expect(authoredPosition(entityOf(doc, untouched!.id))).toBe(null);
+  });
+
+  it('场外的坐标钳回场地内并写进 notes；场内的那份不该出现这句话', () => {
+    // 两份对照都从同一个 base 派生：createGame 每次给新 id，拿另一份的 id 去写会写空
+    const base = createGame('场外');
+    const [enemy] = entitiesOfKind(base, 'enemy');
+    const outside = write(write(base, enemy!.id, POSITION_STAT_KEYS.x, ARENA.width + 500), enemy!.id, POSITION_STAT_KEYS.y, -900);
+    const plan = compileGame(outside);
+    const a = plan.enemies.find((e) => e.id === enemy!.id)!;
+    expect({ x: a.x, y: a.y }).toEqual({ x: ARENA.width - ACTOR_RADIUS, y: ACTOR_RADIUS });
+    // 钳过之后仍然是「作者摆的」：来路问的是文档写没写，不是写的是不是合法位置
+    expect(a.provenance.position).toBe('design');
+    expect(plan.notes.join(' ')).toContain('钳回了场地内');
+    expect(authoredPosition(entityOf(outside, enemy!.id))).toEqual({ x: ARENA.width - ACTOR_RADIUS, y: ACTOR_RADIUS, clamped: true });
+    // 反向对照：同一个体把坐标挪进场内，那条 note 就不该在
+    const inside = write(write(base, enemy!.id, POSITION_STAT_KEYS.x, 300), enemy!.id, POSITION_STAT_KEYS.y, 200);
+    expect(compileGame(inside).notes.join(' ')).not.toContain('钳回了场地内');
+    expect(authoredPosition(entityOf(inside, enemy!.id))).toEqual({ x: 300, y: 200, clamped: false });
+  });
+
+  it('notes 说清这一版有几个位置来自文档，没写坐标时保持老那句话', () => {
+    const plain = compileGame(createGame('都没摆过'));
+    expect(plain.notes.join(' ')).toContain('位置是投影按类别排在同心环上的');
+    let doc = createGame('摆了一个');
+    const [enemy] = entitiesOfKind(doc, 'enemy');
+    doc = write(doc, enemy!.id, POSITION_STAT_KEYS.x, 300);
+    doc = write(doc, enemy!.id, POSITION_STAT_KEYS.y, 200);
+    const plan = compileGame(doc);
+    expect(plan.notes.join(' ')).toContain('来自文档里写的');
+    expect(plan.notes.join(' ')).not.toContain('位置是投影按类别排在同心环上的');
+    // 计数读得出来：一个摆过、其余仍走环
+    expect(plan.notes.find((n) => n.includes('来自文档里写的'))).toMatch(/有 1 个来自文档里写的/);
+  });
+
+  it('玩家写坐标就站在那儿，没写站场地正中；机关写了坐标就不再跟着引用的东西', () => {
+    const base = createGame('玩家与机关');
+    const player = entitiesOfKind(base, 'player')[0]!;
+    const [trigger] = entitiesOfKind(base, 'trigger');
+    const [item] = entitiesOfKind(base, 'item');
+    let doc = link(base, trigger!.id, item!.id, '触发后播放');
+    doc = write(doc, player.id, POSITION_STAT_KEYS.x, 140);
+    doc = write(doc, player.id, POSITION_STAT_KEYS.y, 660);
+    doc = write(doc, trigger!.id, POSITION_STAT_KEYS.x, 900);
+    doc = write(doc, trigger!.id, POSITION_STAT_KEYS.y, 120);
+    const plan = compileGame(doc);
+    expect({ x: plan.player!.x, y: plan.player!.y }).toEqual({ x: 140, y: 660 });
+    const anchored = plan.triggers.find((t) => t.id === trigger!.id)!;
+    const placedItem = plan.items.find((i) => i.id === item!.id)!;
+    // 作者给机关摆了位置：它不再锚到物品上，但引用关系照旧报得出影响谁
+    expect({ x: anchored.x, y: anchored.y }).toEqual({ x: 900, y: 120 });
+    expect(anchored.positionIsDesign).toBe(true);
+    expect(anchored.affects).toEqual({ id: item!.id, name: item!.name });
+    expect({ x: placedItem.x, y: placedItem.y }).not.toEqual({ x: 900, y: 120 });
+    // 反向对照：没写坐标的那一份，机关跟着物品、玩家站正中
+    const before = compileGame(link(base, trigger!.id, item!.id, '触发后播放'));
+    const loose = before.triggers.find((t) => t.id === trigger!.id)!;
+    const looseItem = before.items.find((i) => i.id === item!.id)!;
+    expect({ x: loose.x, y: loose.y }).toEqual({ x: looseItem.x, y: looseItem.y });
+    expect(loose.positionIsDesign).toBe(false);
+    expect({ x: before.player!.x, y: before.player!.y }).toEqual({ x: ARENA.width / 2, y: ARENA.height / 2 });
+  });
+
+  it('钳位函数按半径钳：贴边的个体不会有一半画在屏幕外', () => {
+    expect(clampToArena(-50, ARENA.width, ACTOR_RADIUS)).toBe(ACTOR_RADIUS);
+    expect(clampToArena(ARENA.width + 50, ARENA.width, ACTOR_RADIUS)).toBe(ARENA.width - ACTOR_RADIUS);
+    expect(clampToArena(600, ARENA.width, ACTOR_RADIUS)).toBe(600);
+  });
+
+  it('provenance 的槽位表每个槽都有中文名与兜底读数，且包含 position', () => {
+    expect(PLAY_PROVENANCE_SLOTS).toContain('position');
+    for (const slot of PLAY_PROVENANCE_SLOTS) {
+      expect(PLAY_PROVENANCE_LABELS[slot].length).toBeGreaterThan(0);
+      expect(PLAY_PROVENANCE_FALLBACK_TEXT[slot].length).toBeGreaterThan(0);
+    }
+    // 位置那格的兜底不是一个数而是「排在同心环上」：界面照 this 说，不用另写一套
+    expect(PLAY_PROVENANCE_FALLBACK_TEXT.position).toContain('同心环');
+    // 反向对照：槽表不是空表，也不是靠手写清单——每个 actor 的 provenance 键与槽表逐字相同
+    const plan = compileGame(createGame('槽位'));
+    expect(Object.keys(plan.player!.provenance).sort()).toEqual([...PLAY_PROVENANCE_SLOTS].sort());
   });
 });

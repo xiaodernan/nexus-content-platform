@@ -28,7 +28,7 @@ import {
   type SimState,
 } from '@nexus/game-model';
 import { KIND_COLORS } from './palette';
-import { PLAY_DEFAULTS } from '@nexus/game-model';
+import { PLAY_PROVENANCE_FALLBACK_TEXT, PLAY_PROVENANCE_LABELS, PLAY_PROVENANCE_SLOTS, type PlayProvenanceSlot } from '@nexus/game-model';
 import { GameCanvas3D } from './GameCanvas3D';
 
 /**
@@ -405,9 +405,10 @@ export function GamePlay({ plan, view = 'topdown' }: { plan: GamePlan; view?: Ga
     const actors = [plan.player, ...plan.enemies, ...plan.items, ...plan.npcs].filter(
       (actor): actor is NonNullable<typeof actor> => actor !== null,
     );
-    const keys = ['health', 'damage', 'speed', 'senseRadius'] as const;
-    const counts = Object.fromEntries(keys.map((key) => [key, 0])) as Record<(typeof keys)[number], number>;
-    for (const actor of actors) for (const key of keys) if (actor.provenance[key] === 'default') counts[key] += 1;
+    // 槽位清单来自投影自己（PLAY_PROVENANCE_SLOTS）：那边加一个兜底旋钮，这里不加代码就编译不过，
+    // 而不是像以前那样写死四键——写死的那四键会让新旋钮静默地不被披露。
+    const counts = Object.fromEntries(PLAY_PROVENANCE_SLOTS.map((slot) => [slot, 0])) as Record<PlayProvenanceSlot, number>;
+    for (const actor of actors) for (const slot of PLAY_PROVENANCE_SLOTS) if (actor.provenance[slot] === 'default') counts[slot] += 1;
     return { total: actors.length, counts };
   }, [plan]);
 
@@ -582,10 +583,8 @@ export function GamePlay({ plan, view = 'topdown' }: { plan: GamePlan; view?: Ga
       <section className="rounded bg-bg-1 p-3">
         <h3 className="text-12 font-semibold text-fg-1">这份"可玩"是从哪些数算出来的</h3>
         <p className="mt-1 text-11 text-fg-3" data-game-provenance>
-          {fallbackStats.counts.health} 个实体的生命、{fallbackStats.counts.damage} 个的伤害、
-          {fallbackStats.counts.speed} 个的速度、{fallbackStats.counts.senseRadius} 个的察觉/交互半径
-          是投影兜底的（作者没填，默认值 {PLAY_DEFAULTS.health} / {PLAY_DEFAULTS.damage} / {PLAY_DEFAULTS.speed} /{' '}
-          {PLAY_DEFAULTS.senseRadius}）；场上共 {fallbackStats.total} 个可显示个体。
+          场上共 {fallbackStats.total} 个可显示个体，其中
+          {PLAY_PROVENANCE_SLOTS.map((slot) => ` ${fallbackStats.counts[slot]} 个的${PLAY_PROVENANCE_LABELS[slot]}（兜底 ${PLAY_PROVENANCE_FALLBACK_TEXT[slot]}）`).join('、')} 用的是投影兜底值（作者没填），不是设计的数。
         </p>
         <ul className="mt-2 flex flex-col gap-1">
           {[

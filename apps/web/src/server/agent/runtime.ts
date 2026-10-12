@@ -12,8 +12,6 @@ import {
   designLevel,
   playtestRpg,
   tuneCombat,
-  type CombatGoalId,
-  type CombatGoalReading,
   type GameDocument,
 } from '@nexus/game-model';
 import { GAME_DRAFT_NOT_LANDED_NOTE, gameDraft } from '@/lib/agent-game-draft';
@@ -57,8 +55,9 @@ import { loadDocument } from '../domain/projects';
  *    剩下的几步也在做。
  * 2. **名册说了算**（§73 同一个口径）。每一步声明它要求的能力，开跑前拿名册核对；名册里没有这个
  *    Agent、或它没声明这条能力，整份作业拒收并说清缺什么。
- * 3. **这一轮只读**。今天这五步都不改设计文档、不发布、不生成像素，也不往游戏库写东西——
- *    §52 那一步编出来的草稿只存在这一条作业里（`result.steps[].draft`），要进项目得由用户在
+ * 3. **这一轮只读**。今天这七步都不改设计文档、不发布、不生成像素，也不往游戏库写东西——
+ *    §52 链那三步（game / combat / level）各自编出的草稿只存在这一条作业里（`result.steps[].draft`），
+ *    要进项目得由用户在
  *    接受入口点那一下（ADR-0035）。所以这里没有 §150 的可撤销事务要记，也不可能把工作区改坏。
  *    将来加会改模型的步骤时，那一步必须自己走 Command（§150）
  *    并把撤销凭证带回来，不许在这里直接写库。
@@ -312,8 +311,12 @@ const gameStep: Runner = async (ctx) => {
   };
 };
 
-/** 一条目标的读数：目标清单由 game-model 给，这里只按 id 取，不自己再算一份指标 */
-function readingOf(goals: CombatGoalReading[], id: CombatGoalId): CombatGoalReading | null {
+/**
+ * 一条目标的读数：目标清单由 game-model 给，这里只按 id 取，不自己再算一份指标。
+ * `id` 的类型从传进来的那份清单推（战斗格是 `CombatGoalId`、布局格是 `LevelGoalId`），
+ * 所以写错一个字母是编译错误，而不是拿 null 兜成 0 印到界面上。
+ */
+function readingOf<G extends { id: string }>(goals: readonly G[], id: G['id']): G | null {
   return goals.find((goal) => goal.id === id) ?? null;
 }
 
@@ -364,7 +367,7 @@ const combatStep: Runner = async (ctx) => {
         `上下界全部是 game-model 里写死的常量（COMBAT_RULES / COMBAT_LEVERS），改的是数值不是规则（§160）。`,
       ...tuning.notes,
       COMBAT_DESIGN_LIMITS[2] ?? '',
-      '接受进来的可以是这一份（调过的），也可以是上面那一步那份原始草稿——两个按钮各接各的，点了才会写进项目。',
+      '接受进来的可以是这一份（调过数值的），也可以是上面那一步那份原始草稿，或下面那一步摆过位置的草稿——三个按钮各接各的，点了才会写进项目。',
     ].filter(Boolean),
     draft: tuning.document,
   };
@@ -385,16 +388,23 @@ const levelStep: Runner = async (ctx) => {
   }
   const design = designLevel(source, { at: new Date().toISOString() });
   const met = design.goals.filter((goal) => goal.achieved).length;
-  const authored = design.goals.find((goal) => goal.id === 'layout-authored')?.metric ?? 0;
+  // 「原样把同心环写成坐标」与「真的挪了个体」是两件事，界面上必须分开显示：
+  // 前者一个像素都没动，四种走法的读数因此完全不变。清单里的 kind 由 game-model 给，这里只数。
+  const authoredOnly = design.moves.filter((move) => move.kind === 'author').length;
+  const shifted = design.moves.filter((move) => move.kind === 'shift').length;
+  const authored = readingOf(design.goals, 'layout-authored')?.metric ?? 0;
   return {
     summary:
-      `按写死的规则摆过 ${design.rounds.length} 轮、保留 ${design.moves.length} 处位置改动：` +
-      `${met}/${design.goals.length} 条几何目标达标（作者写过的位置 ${authored} 个；` +
+      `按写死的规则摆过 ${design.rounds.length} 轮、保留 ${design.moves.length} 处位置改动` +
+      `（${authoredOnly} 处原样写成坐标、${shifted} 处真挪）：` +
+      `${met}/${design.goals.length} 条几何目标达标（场上 ${authored} 个位置写在文档里；` +
       `战斗目标 ${design.combatMetBefore}→${design.combatMetAfter} / ${design.combatGoalsTotal} 条）`,
     counts: {
       entities: design.document.entities.length,
       rounds: design.rounds.length,
       kept: design.moves.length,
+      authoredMoves: authoredOnly,
+      shiftedMoves: shifted,
       goalsMet: met,
       goalsTotal: design.goals.length,
       layoutAuthored: authored,

@@ -15,8 +15,10 @@ import {
  * 能被单测钉住，而不是埋在组件里靠肉眼看。
  *
  * 四条刻意的克制（都在 `notes` 里对使用者讲明白，不只写在注释里）：
- * - **位置是投影排的**，不是作者摆的：§54 的模型里没有坐标，也没有地形/关卡布局。
- *   按类别排在同心环上只是为了"可走"，界面必须标出来它是规则摆的（与 §140 的 fallback 同一口径）。
+ * - **位置优先认文档里写的 `x` / `y`**（作者摆的，或 §52 链的 Level Design 那一格摆的）；
+ *   两个键没同时写才退回"按类别排在同心环上"。§54 的模型刻意没有专门的坐标字段，
+ *   位置因此走开放数值键（`stats`），投影只认这一对键名。越出场地的坐标钳进场地并在 notes 里说。
+ *   界面必须按 `provenance.position` 标出哪个位置是谁给的（与 §140 的 authored/fallback 同一口径）。
  * - **大小一律相同**：模型里没有"重要性"或尺寸字段，按名字长短给大小就是编出来的等级。
  * - **数值只有作者写了才算作者设计的**：每个用到的旋钮都带 `provenance`（`design` / `default`），
  *   兜底值在 HUD 上明说。给一个看不见的默认伤害，等于让"玩家攻击 1"这种数字被当真（§159）。
@@ -30,6 +32,39 @@ export const ARENA = { width: 1200, height: 760 } as const;
 /** 所有可动个体的半径：见上「大小一律相同」 */
 export const ACTOR_RADIUS = 16;
 
+/**
+ * §52 链第三格（Level Design）写的就是这一对键。§54 的模型刻意不写死属性表
+ * （`stats` 是开放的数值键，见 index.ts 文件头），所以位置**没有专门的字段**，投影只认这两个键名。
+ * 两个都写成有限数才算摆过：只有 x 没有 y 是半套坐标，那种按"没摆过"处理、整体退回同心环——
+ * 认半个作者值就会得到"这个位置是作者摆的"这句谎。
+ */
+export const POSITION_STAT_KEYS = { x: "x", y: "y" } as const;
+
+/**
+ * provenance 的槽位清单：界面按这张表显示"这个数是谁给的"，加一个槽就必须同时加进这里
+ * （漏一个槽 = 那个兜底值不被披露，§159）。
+ */
+export const PLAY_PROVENANCE_SLOTS = ["health", "damage", "speed", "senseRadius", "position"] as const;
+export type PlayProvenanceSlot = (typeof PLAY_PROVENANCE_SLOTS)[number];
+
+/**
+ * 每个槽位的中文名：界面照这张表写"哪个旋钮是投影兜底的"。
+ * 类型是 `Record<PlayProvenanceSlot, string>`，漏一个槽就编译不过——
+ * 加一个兜底旋钮而不披露它，等于让那个数被当成作者设计的数（§159）。
+ */
+export const PLAY_PROVENANCE_LABELS: Record<PlayProvenanceSlot, string> = {
+  health: "生命",
+  damage: "伤害",
+  speed: "速度",
+  senseRadius: "察觉/交互半径",
+  position: "位置",
+};
+
+/** 摆回场地内：贴边的个体会有一半画在屏幕外，所以按半径钳，不是按 0 钳 */
+export function clampToArena(value: number, span: number, radius: number): number {
+  return Math.min(Math.max(value, radius), span - radius);
+}
+
 /** 兜底旋钮。每一个都必须在界面上被标成"投影兜底"而不是作者的数 */
 export const PLAY_DEFAULTS = {
   health: 3,
@@ -41,6 +76,18 @@ export const PLAY_DEFAULTS = {
   /** 触发器没写 radius 时的判定半径 */
   triggerRadius: 60,
 } as const;
+
+/**
+ * 每个槽位的兜底读数，界面照这张表说"这个数没写时投影给了什么"。
+ * `position` 的兜底不是一个数而是"按类别排在同心环上"，所以这里给的是字符串而不是数字。
+ */
+export const PLAY_PROVENANCE_FALLBACK_TEXT: Record<PlayProvenanceSlot, string> = {
+  health: String(PLAY_DEFAULTS.health),
+  damage: String(PLAY_DEFAULTS.damage),
+  speed: `${PLAY_DEFAULTS.speed} 像素/秒`,
+  senseRadius: `${PLAY_DEFAULTS.senseRadius} 像素`,
+  position: '按类别排在同心环上',
+};
 
 export type StatSource = "design" | "default";
 
@@ -68,7 +115,7 @@ export interface PlayActor {
    * 所以"场上有个敌人"不等于"作者设计过这个敌人"。界面按这个标记写"未设计的模板"。
    */
   template: boolean;
-  provenance: Record<"health" | "damage" | "speed" | "senseRadius", StatSource>;
+  provenance: Record<PlayProvenanceSlot, StatSource>;
   /** 作者写下的全部数值，原样带上：HUD 要能说出"这个数来自哪一行设计" */
   stats: Record<string, number>;
 }
@@ -80,6 +127,8 @@ export interface PlayTrigger {
   y: number;
   radius: number;
   radiusIsDesign: boolean;
+  /** 位置来自文档写的 `x` / `y`（作者或 §52 链 Level Design 那一格摆的）还是锚点/同心环兜底 */
+  positionIsDesign: boolean;
   /** 秒：进入前要多久才生效 / 触发后多久能再次生效。没有就是 0 */
   delay: number;
   cooldown: number;
@@ -172,9 +221,36 @@ function ringPosition(index: number, count: number, radius: number): { x: number
   return { x: Math.min(Math.max(x, ACTOR_RADIUS), ARENA.width - ACTOR_RADIUS), y: Math.min(Math.max(y, ACTOR_RADIUS), ARENA.height - ACTOR_RADIUS) };
 }
 
+/**
+ * 这一对键在文档里算不算「作者摆过一个位置」：**两个都写成有限数**才算。
+ * 只有 x 没有 y 是半套坐标——按「没摆过」处理：认半个作者值就会得到
+ * 「这个位置是作者摆的」那句谎。
+ *
+ * 单独导出是给 §52 链第三格（`level.ts`）用的：那一格判断「这个个体摆过没有」必须和投影同一个判据，
+ * 各写一遍就会出现「投影说没摆过、布局格说摆过」两种读数。
+ */
+export function hasAuthoredPosition(entity: GameEntity | undefined): boolean {
+  if (!entity) return false;
+  return [POSITION_STAT_KEYS.x, POSITION_STAT_KEYS.y].every((key) => {
+    const value = entity.stats?.[key];
+    return typeof value === "number" && Number.isFinite(value);
+  });
+}
+
+/** 作者摆过的位置（钳进场内后的结果）；没摆过就是 null，调用方退回同心环 */
+export function authoredPosition(entity: GameEntity): { x: number; y: number; clamped: boolean } | null {
+  const rawX = stat(entity, POSITION_STAT_KEYS.x);
+  const rawY = stat(entity, POSITION_STAT_KEYS.y);
+  if (rawX === null || rawY === null) return null;
+  const x = clampToArena(rawX, ARENA.width, ACTOR_RADIUS);
+  const y = clampToArena(rawY, ARENA.height, ACTOR_RADIUS);
+  return { x, y, clamped: x !== rawX || y !== rawY };
+}
+
 function toActor(entity: GameEntity, hostile: boolean, index: number, count: number, damageOverride?: { value: number; from: StatSource }): PlayActor {
   const ring = hostile ? 300 : entity.kind === "item" ? 180 : 360;
-  const at = ringPosition(index, count, ring);
+  const authored = authoredPosition(entity);
+  const at = authored ?? ringPosition(index, count, ring);
   const health = pick(entity, "health", PLAY_DEFAULTS.health);
   const damage = damageOverride ?? pick(entity, "damage", PLAY_DEFAULTS.damage);
   const speed = pick(entity, "speed", PLAY_DEFAULTS.speed);
@@ -194,7 +270,13 @@ function toActor(entity: GameEntity, hostile: boolean, index: number, count: num
     reach: 0,
     reachIsDesign: false,
     template: Object.keys(entity.stats ?? {}).length === 0 && !entity.notes.trim(),
-    provenance: { health: health.from, damage: damage.from, speed: speed.from, senseRadius: sense.from },
+    provenance: {
+      health: health.from,
+      damage: damage.from,
+      speed: speed.from,
+      senseRadius: sense.from,
+      position: authored ? "design" : "default",
+    },
     stats: { ...(entity.stats ?? {}) },
   };
 }
@@ -208,38 +290,62 @@ function ofKind(document: GameDocument, kind: GameEntityKind): GameEntity[] {
  * 因为"刷新一下位置就变了"会让上面所有断言失去意义。
  */
 export function compileGame(document: GameDocument): GamePlan {
+  const playerEnts = ofKind(document, "player");
+  const player = playerEnts[0] ?? null;
+  const enemyEnts = ofKind(document, "enemy");
+  const itemEnts = ofKind(document, "item");
+  const npcEnts = ofKind(document, "npc");
+  const triggerEnts = ofKind(document, "trigger");
+
+  // 位置的来路要按文档里真的有谁来写：一句无条件的"位置是投影排的"在摆过坐标的文档里就是谎
+  const placeables = [player, ...enemyEnts, ...itemEnts, ...npcEnts, ...triggerEnts].filter((entity): entity is GameEntity => Boolean(entity));
+  const authoredPlacements = placeables.map((entity) => authoredPosition(entity));
+  const authoredCount = authoredPlacements.filter((at) => at !== null).length;
+  const clampedCount = authoredPlacements.filter((at) => at?.clamped).length;
+  const fallbackCount = placeables.length - authoredCount;
+  const placementNote = authoredCount
+    ? `场上 ${placeables.length} 个位置里有 ${authoredCount} 个来自文档里写的 ${POSITION_STAT_KEYS.x} / ${POSITION_STAT_KEYS.y}（作者摆的，或 §52 链 Level Design 那一格摆的）` +
+      (fallbackCount ? `，其余 ${fallbackCount} 个没写坐标、仍由投影按类别排在同心环上` : "，这一版没有一个位置是投影排的") +
+      "。"
+    : "位置是投影按类别排在同心环上的，不是作者摆过的关卡布局——§54 的模型里没有坐标与地形。";
+
   const notes: string[] = [
-    "位置是投影按类别排在同心环上的，不是作者摆过的关卡布局——§54 的模型里没有坐标与地形。",
+    placementNote,
     "所有个体一样大：模型里没有尺寸或重要性字段。",
     "形状（方块/圆/三角）只用来区分类别，不代表美术资产；§34 的 3D 模型与 §43 的动画在这里都没有。",
   ];
+  if (clampedCount) {
+    notes.push(
+      `有 ${clampedCount} 个写好的坐标在场外，投影把它们钳回了场地内（离每条边至少留 ${ACTOR_RADIUS} 像素，个体才不会有一半画在屏幕外）：设计里想表达"站在场外"就得换个说法。`,
+    );
+  }
 
-  const players = ofKind(document, "player");
-  const player = players[0] ?? null;
-  if (players.length > 1) {
-    notes.push(`文档里有 ${players.length} 个玩家实体，这一版只用第一个（${player?.name ?? ""}）：多玩家不是模型能表达的，是网络同步的事。`);
+  if (playerEnts.length > 1) {
+    notes.push(`文档里有 ${playerEnts.length} 个玩家实体，这一版只用第一个（${player?.name ?? ""}）：多玩家不是模型能表达的，是网络同步的事。`);
   }
 
   const blockers: string[] = [];
   if (!player) blockers.push("没有玩家实体：没有可操作的对象，这一版开不了场。");
 
-  const enemies = ofKind(document, "enemy").map((entity, i, all) => toActor(entity, true, i, all.length));
-  const items = ofKind(document, "item").map((entity, i, all) => toActor(entity, false, i, all.length));
-  const npcs = ofKind(document, "npc").map((entity, i, all) => toActor(entity, false, i, all.length));
+  const enemies = enemyEnts.map((entity, i, all) => toActor(entity, true, i, all.length));
+  const items = itemEnts.map((entity, i, all) => toActor(entity, false, i, all.length));
+  const npcs = npcEnts.map((entity, i, all) => toActor(entity, false, i, all.length));
 
   let playerDamageNote: string | null = null;
   let playActor: PlayActor | null = null;
   if (player) {
     const offense = playerOffense(document, player);
     playerDamageNote = offense.note;
-    // 玩家站在场地正中：他是参照物，环都绕着他排（toActor 给的环位对玩家没意义）
+    const placed = toActor(player, false, 0, 1);
+    // 玩家没摆过位置就站在场地正中：他是参照物，环都绕着他排（toActor 给的环位对玩家没意义）；
+    // 摆过就用他摆的那个——Level Design 那一格把玩家挪出中心是关卡布局的一部分。
     playActor = {
-      ...toActor(player, false, 0, 1),
+      ...placed,
       damage: offense.damage,
       reach: offense.reach,
       reachIsDesign: offense.reachIsDesign,
-      x: ARENA.width / 2,
-      y: ARENA.height / 2,
+      x: placed.provenance.position === "design" ? placed.x : ARENA.width / 2,
+      y: placed.provenance.position === "design" ? placed.y : ARENA.height / 2,
     };
     playActor.provenance = { ...playActor.provenance, damage: offense.from };
   }
@@ -251,18 +357,21 @@ export function compileGame(document: GameDocument): GamePlan {
     if (actor) placedById.set(actor.id, { x: actor.x, y: actor.y });
   }
 
-  const triggers = ofKind(document, "trigger").map((entity, index, all) => {
+  const triggers = triggerEnts.map((entity, index, all) => {
     const radius = pick(entity, "radius", PLAY_DEFAULTS.triggerRadius);
     const refTarget = (entity.refs ?? []).map((ref) => byId.get(ref.to)).find((target): target is GameEntity => Boolean(target));
     const anchor = refTarget ? placedById.get(refTarget.id) : null;
-    const at = anchor ?? ringPosition(index, all.length, 240);
+    // 作者摆过就听作者的，没摆才锚到引用对象、再没才排环
+    const authored = authoredPosition(entity);
+    const at = authored ?? anchor ?? ringPosition(index, all.length, 240);
     return {
       id: entity.id,
       name: entity.name,
-      x: Math.min(Math.max(at.x, ACTOR_RADIUS), ARENA.width - ACTOR_RADIUS),
-      y: Math.min(Math.max(at.y, ACTOR_RADIUS), ARENA.height - ACTOR_RADIUS),
+      x: clampToArena(at.x, ARENA.width, ACTOR_RADIUS),
+      y: clampToArena(at.y, ARENA.height, ACTOR_RADIUS),
       radius: Math.max(0, radius.value),
       radiusIsDesign: radius.from === "design",
+      positionIsDesign: authored !== null,
       delay: Math.max(0, stat(entity, "delay") ?? 0),
       cooldown: Math.max(0, stat(entity, "cooldown") ?? 0),
       affects: refTarget ? { id: refTarget.id, name: refTarget.name } : null,
