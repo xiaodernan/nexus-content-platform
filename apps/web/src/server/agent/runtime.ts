@@ -1,7 +1,17 @@
 import { and, eq, isNull } from 'drizzle-orm';
 import { AgentPlanSchema, type AgentActivity, type AgentPlan, type RealtimeEvent } from '@nexus/schemas';
 import { analyzeHealth, type DesignDocument, type HealthReport } from '@nexus/design-model';
-import { compileRpg, playtestRpg, type GameDocument } from '@nexus/game-model';
+import {
+  COMBAT_DESIGN_LIMITS,
+  COMBAT_GOAL_ORDER,
+  COMBAT_LEVERS,
+  compileRpg,
+  playtestRpg,
+  tuneCombat,
+  type CombatGoalId,
+  type CombatGoalReading,
+  type GameDocument,
+} from '@nexus/game-model';
 import { GAME_DRAFT_NOT_LANDED_NOTE, gameDraft } from '@/lib/agent-game-draft';
 import {
   GOAL_MAX,
@@ -298,12 +308,71 @@ const gameStep: Runner = async (ctx) => {
   };
 };
 
+/** 一条目标的读数：目标清单由 game-model 给，这里只按 id 取，不自己再算一份指标 */
+function readingOf(goals: CombatGoalReading[], id: CombatGoalId): CombatGoalReading | null {
+  return goals.find((goal) => goal.id === id) ?? null;
+}
+
+/**
+ * §52 链的第二格 Combat Design：拿上一步（game）留下的那份草稿，按**写死的规则**把战斗数值调进目标带。
+ *
+ * 与第一格同一条纪律：产物**还是草稿**，存在这一步自己的结论里，不写项目（ADR-0035）。
+ * 为什么这一步里没有"AI 判断"：`tuneCombat` 是 game-model 里的纯函数，五条目标的阈值、
+ * 七条杠杆与上下界全部写死在 `COMBAT_RULES` / `COMBAT_LEVERS`（那边不读时钟、不碰库），
+ * 所以 `at` 由这一层给——同一份草稿两次跑出来的数值表逐键相同，只有时间戳跟着这一次跑动走。
+ * 读数也不是估的：每一轮改完都重跑 §53 那份定种子报告（四种走法、rpgStep）。
+ *
+ * 拿不到上游草稿就直接失败，**不自己编一份设计来"调"**：那一步没跑成，这一步就没东西可改，
+ * 计划里它会标 failed、下游标 skipped（纪律第 4 条）。
+ */
+const combatStep: Runner = async (ctx) => {
+  const source = ctx.upstream.find((step) => step.id === 'game')?.draft;
+  if (!source) {
+    throw new Error('combat 这一步没拿到上游草稿（game 那一步没留下 draft）：没有可调的设计，这一格不另编一份');
+  }
+  const tuning = tuneCombat(source, { at: new Date().toISOString() });
+  const reverted = tuning.rounds.filter((round) => !round.kept);
+  const met = tuning.goals.filter((goal) => goal.achieved).length;
+  const fastestBefore = readingOf(tuning.beforeGoals, 'fight-length')?.metric ?? 0;
+  const fastestAfter = readingOf(tuning.goals, 'fight-length')?.metric ?? 0;
+  const costBefore = readingOf(tuning.beforeGoals, 'winner-pays')?.metric ?? 0;
+  const costAfter = readingOf(tuning.goals, 'winner-pays')?.metric ?? 0;
+  return {
+    summary:
+      `按写死的规则调过 ${tuning.rounds.length} 轮、保留 ${tuning.adjustments.length} 处数值改动：` +
+      `${met}/${tuning.goals.length} 条目标达标（最快通关 ${fastestBefore}→${fastestAfter} 秒，` +
+      `赢家最少挨的从 ${costBefore}→${costAfter} 点）`,
+    counts: {
+      entities: tuning.document.entities.length,
+      rounds: tuning.rounds.length,
+      kept: tuning.adjustments.length,
+      reverted: reverted.length,
+      goalsMet: met,
+      goalsTotal: tuning.goals.length,
+      fastestSecondsBefore: fastestBefore,
+      fastestSeconds: fastestAfter,
+      winnerCostBefore: costBefore,
+      winnerCost: costAfter,
+    },
+    notes: [
+      GAME_DRAFT_NOT_LANDED_NOTE,
+      `这一步没有真 provider：目标带（${COMBAT_GOAL_ORDER.length} 条）与杠杆（${COMBAT_LEVERS.length} 条）、` +
+        `上下界全部是 game-model 里写死的常量（COMBAT_RULES / COMBAT_LEVERS），改的是数值不是规则（§160）。`,
+      ...tuning.notes,
+      COMBAT_DESIGN_LIMITS[2] ?? '',
+      '接受进来的可以是这一份（调过的），也可以是上面那一步那份原始草稿——两个按钮各接各的，点了才会写进项目。',
+    ].filter(Boolean),
+    draft: tuning.document,
+  };
+};
+
 const RUNNERS: Record<StepKind, Runner> = {
   context: contextStep,
   'seo-audit': seoStep,
   'qa-audit': qaStep,
   report: reportStep,
   game: gameStep,
+  combat: combatStep,
 };
 
 function publish(projectId: string, event: RealtimeEvent): void {

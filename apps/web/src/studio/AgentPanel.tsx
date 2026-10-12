@@ -60,7 +60,8 @@ export function AgentPanel() {
   const [events, setEvents] = useState(0);
   /** §52 的接受回执挂在具体那一步上，所以与 `note`（这一栏整体的话）分开存 */
   const [accepting, setAccepting] = useState(false);
-  const [acceptNote, setAcceptNote] = useState<{ ok: boolean; text: string } | null>(null);
+  // 那句回话属于**点掉的那一步**：链上有两份草稿时，另一行不能跟着显示"已写进项目"
+  const [acceptNote, setAcceptNote] = useState<{ stepId: string; ok: boolean; text: string } | null>(null);
 
   /** 组件卸载后不许再 setState（长连接的事件可能还在路上） */
   const alive = useRef(true);
@@ -143,10 +144,12 @@ export function AgentPanel() {
   };
 
   /**
-   * §52：把这一条作业里那份 RPG 草稿接受进项目。请求体只带任务号——
+   * §52：把这一条作业里**某一步**留下的游戏草稿接受进项目。请求体只带任务号与步骤号——
    * 草稿由服务端从任务行读出来，界面上这一栏本来也读不到"能贴回去的整份文档"。
+   * 为什么要步骤号：链上现在有两份草稿（game 的原始那份、combat 调过数值的那份），
+   * 点的是哪一步就得说清接的是哪一份，不能让界面替用户猜。
    */
-  const acceptDraft = async (): Promise<void> => {
+  const acceptDraft = async (stepId: string): Promise<void> => {
     if (!run) return;
     setAccepting(true);
     setAcceptNote(null);
@@ -154,34 +157,37 @@ export function AgentPanel() {
       const res = await fetch(`/api/projects/${projectId}/agent/draft`, {
         method: 'POST',
         headers: { 'content-type': 'application/json', ...csrfHeaders() },
-        body: JSON.stringify({ taskId: run.taskId }),
+        body: JSON.stringify({ taskId: run.taskId, stepId }),
       });
       const body: unknown = await res.json().catch(() => null);
       if (!alive.current) return;
       // 真 HTTP 状态码 + 服务端那句原因：409「已经有游戏」与 404「这一步读不回来」是两句不同的话，
       // 界面不能把它们都收成"失败了"
       if (!res.ok) {
-        setAcceptNote({ ok: false, text: `没接受成（HTTP ${res.status}）：${messageOf(body) ?? '服务端没给出原因'}` });
+        setAcceptNote({ stepId, ok: false, text: `没接受成（HTTP ${res.status}）：${messageOf(body) ?? '服务端没给出原因'}` });
         return;
       }
       const parsed = AgentDraftAcceptResponseSchema.safeParse(body);
       if (!parsed.success) {
         setAcceptNote({
+          stepId,
           ok: false,
-          text: '写着了，但返回的报文不合契约（HTTP 200）：先刷新看游戏面板里有没有这一份，别重复点。',
+          text: '写进去了，但返回的报文不合契约（HTTP 200）：先刷新看游戏面板里有没有这一份，别重复点。',
         });
         return;
       }
       setAcceptNote({
+        stepId,
         ok: true,
         text:
-          `已写进项目：「${parsed.data.document.name}」${parsed.data.document.entities.length} 个实体。` +
+          `已写进项目：「${parsed.data.document.name}」${parsed.data.document.entities.length} 个实体` +
+          `（接受的是「${stepId}」这一步留下的那一份草稿）。` +
           '切到「游戏」面板接着改，撤销走那边的 Command（§150），不是这一栏。',
       });
       gameStore.reload();
     } catch (error) {
       if (alive.current) {
-        setAcceptNote({ ok: false, text: `没接受成：${error instanceof Error ? error.message : String(error)}` });
+        setAcceptNote({ stepId, ok: false, text: `没接受成：${error instanceof Error ? error.message : String(error)}` });
       }
     } finally {
       if (alive.current) setAccepting(false);
@@ -289,8 +295,8 @@ export function AgentPanel() {
                   key={step.id}
                   step={step}
                   accepting={accepting}
-                  acceptNote={acceptNote}
-                  onAccept={() => void acceptDraft()}
+                  acceptNote={acceptNote && acceptNote.stepId === step.id ? acceptNote : null}
+                  onAccept={() => void acceptDraft(step.id)}
                 />
               ))}
             </ol>
@@ -342,7 +348,7 @@ function StepRow({
               type="button"
               onClick={onAccept}
               disabled={accepting}
-              data-agent-accept-game={step.id}
+              data-agent-accept-step={step.id}
               className={cn(
                 'rounded-[var(--nexus-radius-sm)] px-2 py-[2px] text-11',
                 accepting ? 'bg-bg-3 text-fg-3' : 'bg-accent-1 text-bg-0 hover:bg-accent-2',

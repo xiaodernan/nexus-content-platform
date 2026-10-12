@@ -11,6 +11,9 @@ import { expect, test, type Page } from '@playwright/test';
  *
  * 通知那一格在真浏览器上量的是"面板与收件箱是同一份真值的两个投影"：
  * 标题里的步数必须与面板上的一致，而不是各写各的。
+ *
+ * §52 那条链有了第二格之后，这里多了一条只有浏览器能证的断言：**点的是哪一格，进库的就是那一份**。
+ * 服务端集成测能证"两份草稿内容不同"，但"界面把 stepId 传对了"这一段发生在点击上。
  */
 
 const RUN = Date.now().toString(36);
@@ -43,7 +46,7 @@ interface ServerRun {
   run: {
     taskId: string;
     plan: { tasks: { id: string }[] } | null;
-    steps: { id: string; status: string }[];
+    steps: { id: string; status: string; draft?: { name: string; entities: unknown[] } }[];
   } | null;
 }
 
@@ -128,22 +131,32 @@ test('@smoke agent orchestration runs in the studio and lands a real notificatio
   // 刷新后不该退回空态（那意味着计划只活在内存里）
   await expect(page.locator('[data-agent-empty]')).toHaveCount(0);
   // 刷新之后草稿还在，接受入口也还在：草稿存的是任务行，不是组件状态（ADR-0035）
-  await expect(page.locator('[data-agent-accept-game="game"]')).toBeVisible({ timeout: 30_000 });
+  // §52 那条链现在有两份草稿：game 的原始那份与 combat 调过数值的那份，两个入口各管各的那一份
+  await expect(page.locator('[data-agent-accept-step="game"]')).toBeVisible({ timeout: 30_000 });
+  await expect(page.locator('[data-agent-accept-step="combat"]')).toBeVisible();
 
   // §52 的落地：这一点之前项目里"还没有游戏"——只读的作业不会自己把草稿写进去
   expect((await readJson<{ game: unknown }>(page, `/api/projects/${projectId}/game`)).game).toBeNull();
 
-  await page.click('[data-agent-accept-game="game"]');
+  // 先点链末那一步（调过数值的那份）：界面上点的是 combat，库里就必须是 combat 那一份。
+  // 这一句是"按 stepId 选"在真浏览器里的证据——缺省取链末对不对，服务端集成测里证不了"点的是谁"。
+  await page.click('[data-agent-accept-step="combat"]');
   await expect(page.locator('[data-agent-accept-note="ok"]')).toBeVisible({ timeout: 30_000 });
   const accepted = await readJson<{ game: { name: string; entities: unknown[] } }>(
     page,
     `/api/projects/${projectId}/game`,
   );
+  const combatDraft = server!.steps.find((step) => step.id === 'combat')?.draft as
+    | { name: string; entities: unknown[] }
+    | undefined;
+  expect(combatDraft, 'combat 那一步在库里没留草稿').toBeTruthy();
   const noteText = (await page.locator('[data-agent-accept-note="ok"]').textContent()) ?? '';
   // 回执上报的名字与实体数来自库里那一份，不是面板自己数的
   expect(accepted.game.entities.length).toBeGreaterThan(0);
+  expect(accepted.game.entities).toEqual(combatDraft!.entities);
   expect(noteText).toContain(accepted.game.name);
   expect(noteText).toContain(`${accepted.game.entities.length} 个实体`);
+  expect(noteText).toContain('「combat」这一步留下的那一份草稿');
   await page.screenshot({ path: 'screenshots/agent-accept.png' });
 
   // 切到「游戏」面板：接受的这一份是项目里的普通文档，接着改的入口在那儿
@@ -151,11 +164,12 @@ test('@smoke agent orchestration runs in the studio and lands a real notificatio
   await expect(page.locator('[data-game-name]')).toHaveValue(accepted.game.name, { timeout: 30_000 });
   await expect(page.locator('[data-game-entity]')).not.toHaveCount(0);
 
-  // 再点一次：项目已经有游戏设计了，接受不覆盖，界面把服务端那句原因原样说出来
+  // 再点另一格（game 那份原始草稿）：项目已经有游戏设计了，接受不覆盖，
+  // 界面把服务端那句原因原样说出来，而库里那份一字未动
   await page.click('[data-panel-tab="agent"]');
-  await expect(page.locator('[data-agent-accept-game="game"]')).toBeVisible({ timeout: 30_000 });
+  await expect(page.locator('[data-agent-accept-step="game"]')).toBeVisible({ timeout: 30_000 });
   const beforeSecond = JSON.stringify(await readJson(page, `/api/projects/${projectId}/game`));
-  await page.click('[data-agent-accept-game="game"]');
+  await page.click('[data-agent-accept-step="game"]');
   await expect(page.locator('[data-agent-accept-note="refused"]')).toContainText('不会覆盖', { timeout: 30_000 });
   expect(JSON.stringify(await readJson(page, `/api/projects/${projectId}/game`))).toBe(beforeSecond);
   await page.screenshot({ path: 'screenshots/agent-accept-refused.png' });

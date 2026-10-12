@@ -69,9 +69,14 @@ describe('计划配方（§25）', () => {
     expect(plan.dependencies).toEqual(flat);
   });
 
-  it('只有汇总那一步依赖别人：三份检查各自独立，才能各查各的', () => {
+  it('三份检查与两份草稿互不依赖，只有汇总和调数那两步吃别人', () => {
     const deps = Object.fromEntries(plan.tasks.map((task) => [task.id, task.dependsOn]));
-    expect(deps).toEqual({ context: [], 'seo-audit': [], 'qa-audit': [], report: ['context', 'seo-audit', 'qa-audit'], game: [] });
+    // 汇总要三份检查；Combat Design 要 Game Agent 的那份草稿——它不自己编一份设计。
+    // 从配方读出来写回去，不是抄一份字面量：加了步骤时这一条会跟着要新的形状，而不是悄悄放行。
+    const fromSpec = Object.fromEntries(READINESS_STEPS.map((spec) => [spec.kind, [...spec.dependsOn]]));
+    expect(deps).toEqual(fromSpec);
+    expect(deps['combat']).toEqual(['game']);
+    expect(Object.entries(deps).filter(([, list]) => list.length > 0).map(([id]) => id).sort()).toEqual(['combat', 'report']);
   });
 
   it('goal 进计划标题：空白有兜底，超长截到上限', () => {
@@ -125,13 +130,26 @@ describe('开跑之前的自检（validatePlan）', () => {
 });
 
 describe('就绪与失败传播（§112 的调度）', () => {
-  it('先跑三个互不依赖的检查，全部完成了才有汇总', () => {
+  it('先跑三个互不依赖的检查，全部完成了才有汇总；两份草稿也是串起来的', () => {
     let plan = buildReadinessPlan('检查');
+    // combat 吃 game 的草稿，所以一开始不能就绪——这一行同时钉住"这一格不自己编一份设计"
     expect(readyIds(plan)).toEqual(['context', 'seo-audit', 'qa-audit', 'game']);
     plan = withStatus(plan, 'context', 'done');
     expect(readyIds(plan)).toEqual(['seo-audit', 'qa-audit', 'game']);
     plan = withStatus(withStatus(plan, 'seo-audit', 'done'), 'qa-audit', 'done');
     expect(readyIds(plan)).toEqual(['report', 'game']);
+    plan = withStatus(plan, 'game', 'done');
+    expect(readyIds(plan)).toEqual(['report', 'combat']);
+  });
+
+  it('上游那份草稿没留成：只有吃它的 combat 被牵连，三份检查照旧各跑各的', () => {
+    let plan = buildReadinessPlan('检查');
+    plan = withStatus(withStatus(withStatus(withStatus(plan, 'context', 'done'), 'seo-audit', 'done'), 'qa-audit', 'done'), 'game', 'failed');
+    // game 自己失败不牵连三份检查（它们互不依赖），只带走 combat
+    expect(blockedIds(plan)).toEqual([{ id: 'combat', because: ['game'] }]);
+    expect(readyIds(plan)).toEqual(['report']);
+    plan = withStatus(withStatus(plan, 'report', 'done'), 'combat', 'skipped');
+    expect(verdictOf(plan)).toEqual({ finished: true, ok: false, reason: '1 步失败，1 步因上游失败被跳过' });
   });
 
   it('改状态返回新计划：旧的那一份不动（计划是 jsonb，就地改会让读到的历史跟着变）', () => {
@@ -153,14 +171,15 @@ describe('就绪与失败传播（§112 的调度）', () => {
     // 所以 seo-audit 失败**不会**把它带走——它还是 pending。
     // 这一行原本假设"把 report 标成 skipped 之后全都落定了"，那是四步时代的事；
     // 要断言"全部落定之后的账"，就得把这一步也推到终态，而不是把 pending 改成 0 硬凑。
-    plan = withStatus(plan, 'game', 'done');
-    expect(progressOf(plan)).toEqual({ total: 5, pending: 0, running: 0, done: 3, failed: 1, skipped: 1 });
+    // combat（§52 链第二格）依赖 game、不依赖那三份检查，所以它同样落成 done。
+    plan = withStatus(withStatus(plan, 'game', 'done'), 'combat', 'done');
+    expect(progressOf(plan)).toEqual({ total: 6, pending: 0, running: 0, done: 4, failed: 1, skipped: 1 });
   });
 
   it('终态判定：有跳过就不算成功，原因里失败与跳过都要说', () => {
     let plan = buildReadinessPlan('检查');
     expect(verdictOf(plan)).toEqual({ finished: false, ok: false, reason: null });
-    for (const id of ['context', 'seo-audit', 'qa-audit', 'report', 'game']) plan = withStatus(plan, id, 'done');
+    for (const id of ['context', 'seo-audit', 'qa-audit', 'report', 'game', 'combat']) plan = withStatus(plan, id, 'done');
     expect(verdictOf(plan)).toEqual({ finished: true, ok: true, reason: null });
 
     // 终态才谈得上"为什么不成"：还有步骤没跑完之前，reason 必须是 null
@@ -169,21 +188,16 @@ describe('就绪与失败传播（§112 的调度）', () => {
 
     // 只有被跳过、没有一步真的失败：跑起来今天到不了这个形状（跳过一定是被失败牵连的），
     // 但"不会把 skipped 说成成功"是这一层的承诺，所以手工造一份来钉住它。
-    const onlySkipped = withStatus(
-      withStatus(withStatus(withStatus(withStatus(buildReadinessPlan('检查'), 'context', 'done'), 'seo-audit', 'done'),
-        'qa-audit',
-        'done',
-      ),
-      'report',
-      'skipped',
-    ),
-      'game',
-      'skipped',
-    );
+    let onlySkipped = buildReadinessPlan('检查');
+    for (const id of ['context', 'seo-audit', 'qa-audit']) onlySkipped = withStatus(onlySkipped, id, 'done');
+    // report 与 game 没有真的失败上游却标成 skipped，是手工造的终态；combat 依赖 game，跟着被牵连跳过
+    onlySkipped = withStatus(onlySkipped, 'report', 'skipped');
+    onlySkipped = withStatus(onlySkipped, 'game', 'skipped');
+    onlySkipped = withStatus(onlySkipped, 'combat', 'skipped');
     expect(verdictOf(onlySkipped)).toEqual({
       finished: true,
       ok: false,
-      reason: '2 步因上游失败被跳过',
+      reason: '3 步因上游失败被跳过',
     });
   });
 });
@@ -198,6 +212,8 @@ describe('§113 Agent Handoff', () => {
     ]);
     expect(handoffOf(plan, 'context')).toEqual([]);
     expect(handoffOf(plan, '不存在的步骤')).toEqual([]);
+    // §52 那条链的第二格：它拿的是上一格那份草稿，交接单上只该有这一条
+    expect(handoffOf(plan, 'combat')).toEqual([{ from: 'game', artifact: 'game_spec' }]);
   });
 });
 

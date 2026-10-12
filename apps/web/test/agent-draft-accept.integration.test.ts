@@ -14,9 +14,10 @@ import { auditEvents, games, projects, sessions, users } from '../src/server/db/
 /**
  * §52 的接受入口（`POST /api/projects/<projectId>/agent/draft`）打真库。
  *
- * 这一片要钉的是四条边界，每一条都是"少一道就会出事"的那种：
+ * 这一片要钉的是五条边界，每一条都是"少一道就会出事"的那种：
  * - CSRF 没过就一次库都不碰（与全站写路由同一道门）；
- * - **写入的内容来自任务行，不来自请求体**：请求体只有 `taskId`，界面上贴不进任意一份文档；
+ * - **写入的内容来自任务行，不来自请求体**：请求体只有 `taskId` 与可选的 `stepId`，界面上贴不进任意一份文档；
+ * - **要哪一步的那一份就由 `stepId` 说了算**（§52 那条链有两份草稿时，"默认取链末"不能变成唯一答案）；
  * - 不是你的任务 / 挂在别的项目上的任务 → 与"不存在"同一个答案（任务行里存着别人的提示词摘要与草稿）；
  * - 项目已经有游戏设计时**拒绝覆盖**，并且拒绝之后库里那份一字未动。
  */
@@ -98,12 +99,18 @@ async function newProject(name: string): Promise<string> {
   return (await createProject(owner, { name, kind: 'game' })).id;
 }
 
-/** 跑一次编排，返回任务行 id 与那一步的草稿 */
+/**
+ * 跑一次编排，返回任务行 id 与**最后一份草稿**（不带 stepId 时接受入口取的就是它）。
+ *
+ * §52 那条链现在有两步会留草稿：game 的原始那份与 combat 调过数值的那份。
+ * 缺省不传 `stepId` 时服务端取链末（combat），所以这里对齐到那一份，别拿 game 那份来比。
+ */
 async function seededRun(projectId: string) {
   const result = await runReadinessCheck({ projectId, actorId: owner, goal: '接受入口的草稿' });
   if (!result.ok) throw new Error(`不该拒收：${result.refusal.message}`);
-  const step = result.steps.find((item) => item.id === 'game');
-  return { taskId: result.taskId, draft: step?.draft };
+  const withDraft = result.steps.filter((item) => item.draft);
+  const step = withDraft[withDraft.length - 1];
+  return { taskId: result.taskId, draft: step?.draft, drafts: new Map(withDraft.map((item) => [item.id, item.draft])) };
 }
 
 describe('§52 接受入口', () => {
@@ -140,6 +147,53 @@ describe('§52 接受入口', () => {
     expect(audit.targetType).toBe('game');
     expect(audit.actorId).toBe(owner);
     expect(audit.detail).toMatchObject({ taskId, projectId });
+  });
+
+  it('点名要哪一步的那一份：stepId 给的就是那一步，不是"最后一份"', async () => {
+    // §52 链现在有两步留草稿（game 原始那份 + combat 调过数值的那份）。
+    // 缺省取链末是便利，但"接受的是哪一份"必须由点下去的那一步说了算——
+    // 否则界面上写着 combat、库里进的是 game，用户看到的和他拿到的不是同一样东西。
+    const a = await newProject('接受指定 combat');
+    const runA = await seededRun(a);
+    expect([...runA.drafts.keys()], '两步都该留草稿').toEqual(['game', 'combat']);
+    expect(runA.drafts.get('game')!.entities).not.toEqual(runA.drafts.get('combat')!.entities);
+
+    const resCombat = await call(a, { taskId: runA.taskId, stepId: 'combat' }, asUser(ownerToken));
+    const textCombat = await resCombat.text();
+    expect(resCombat.status, textCombat).toBe(200);
+    expect(JSON.parse(textCombat).document.entities).toEqual(runA.drafts.get('combat')!.entities);
+
+    // 换一个干净项目只给 game：写进库的必须是原始那份，与上面那份不同
+    const b = await newProject('接受指定 game');
+    const runB = await seededRun(b);
+    const resGame = await call(b, { taskId: runB.taskId, stepId: 'game' }, asUser(ownerToken));
+    const textGame = await resGame.text();
+    expect(resGame.status, textGame).toBe(200);
+    const body = JSON.parse(textGame);
+    expect(body.document.entities).toEqual(runB.drafts.get('game')!.entities);
+    expect(body.document.entities).not.toEqual(runB.drafts.get('combat')!.entities);
+  });
+
+  it('点了一份没留草稿的步骤：409 的话点名哪几步真有草稿', async () => {
+    const projectId = await newProject('接受点了空步骤');
+    const { taskId, drafts } = await seededRun(projectId);
+    const res = await call(projectId, { taskId, stepId: 'context' }, asUser(ownerToken));
+    expect(res.status).toBe(409);
+    const body = await res.json();
+    expect(body.error).toBe('draft_missing');
+    // 话要说清"这一步没有"和"哪几步有"，否则用户只知道失败，不知道怎么才能成功
+    expect(body.message).toContain('context');
+    for (const id of drafts.keys()) expect(body.message).toContain(id);
+
+    const rows = await getDb()
+      .select({ allowed: auditEvents.allowed, detail: auditEvents.detail })
+      .from(auditEvents)
+      .where(and(eq(auditEvents.action, 'agent.game.accept'), eq(auditEvents.targetId, taskId)));
+    expect(rows).toHaveLength(1);
+    expect(rows[0]!.allowed).toBe(false);
+    // 拒绝的证据要带上他点的那一步，以及当时真能接受的清单
+    expect(rows[0]!.detail).toMatchObject({ reason: 'draft-missing', projectId, stepId: 'context', available: ['game', 'combat'] });
+    expect(await countGames(projectId)).toBe(0);
   });
 
   it('CSRF 没过 → 403，且一次库都没碰（游戏行还是 0）', async () => {

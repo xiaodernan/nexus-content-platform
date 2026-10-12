@@ -22,7 +22,7 @@ import { AgentPlanSchema, GameDocumentSchema, type AgentPlan } from '@nexus/sche
 export type PlanTask = AgentPlan['tasks'][number];
 
 /** 今天真的有执行方的步骤种类。加一种就必须同时加一个真执行方，否则 UI 会列出跑不了的步骤 */
-export const STEP_KINDS = ['context', 'seo-audit', 'qa-audit', 'report', 'game'] as const;
+export const STEP_KINDS = ['context', 'seo-audit', 'qa-audit', 'report', 'game', 'combat'] as const;
 export type StepKind = (typeof STEP_KINDS)[number];
 
 export interface StepSpec {
@@ -43,10 +43,11 @@ export interface StepSpec {
  * 所以整条作业的 capability 记 `demo`（§160），界面上带 DEMO 标识，
  * 而每一步真正算出来的东西（结构、门禁、覆盖面）是真读数，不是编的。
  *
- * 五种步骤各自的真实执行方：结构盘点读本项目自己的库；SEO 检查读项目元信息与设计正文；
+ * 六种步骤各自的真实执行方：结构盘点读本项目自己的库；SEO 检查读项目元信息与设计正文；
  * 门禁就是发布时用的同一个 `analyzeHealth`（§179 那一份，不另算一套分）；汇总是前三者的产物；
  * Game Agent 那一步给的是 §52 的**确定性草稿**（`agent-game-draft.ts` 那张表），
- * 它随步骤结论存在任务行里，**不写进项目**——要进项目得由用户点「接受」那一下（见 ADR-0035）。
+ * 紧跟其后的 combat 那一步（§52 链的第二格）拿上一步的草稿跑 `tuneCombat`，产出**调过数值的那一份草稿**；
+ * 两者都随步骤结论存在任务行里，**不写进项目**——要进项目得由用户点「接受」那一下（见 ADR-0035）。
  */
 export const READINESS_STEPS: readonly StepSpec[] = [
   {
@@ -93,6 +94,17 @@ export const READINESS_STEPS: readonly StepSpec[] = [
     requires: 'game.write',
     artifact: 'game_spec',
     dependsOn: [],
+  },
+  {
+    // §52 那条链的第二格：吃上一步的草稿，产出**另一份草稿**（调过数值的那一份）。
+    // 依赖必须有：没有草稿就没有可调的设计，而这一格不自己编一份草稿。
+    kind: 'combat',
+    agentKey: 'game',
+    agentName: 'Game Agent',
+    title: '把草稿的战斗数值调进目标带：写死的规则与阈值，产物仍是草稿',
+    requires: 'game.write',
+    artifact: 'combat_spec',
+    dependsOn: ['game'],
   },
 ];
 
@@ -187,13 +199,22 @@ export const AgentRunResponseSchema = z.object({ ok: z.literal(true), run: Agent
 export type AgentRunResponse = z.infer<typeof AgentRunResponseSchema>;
 
 /**
- * §52 接受入口的请求体：**只有任务 id**。
+ * §52 接受入口的请求体：**只有任务 id，最多加一个步骤 id**。
  *
  * 为什么草稿不在体里：那等于让客户端把任意一份游戏文档贴进来写进项目，而这一片的卖点恰恰是
  * "接受的是这一步真跑出来的那一份"。草稿从任务行读出来（`plannedTask` → `steps[].draft`），
  * 归属、项目、有没有这一步都由服务端判。
+ *
+ * 为什么要 `stepId`：§52 那条链现在有两步会留草稿（game 的原始草稿、combat 调过数值的那一份），
+ * 界面必须说得清用户接的是哪一步。缺省不传 = **取这份任务里最后一份留了草稿的步骤**，
+ * 那是链条的末端产物（调过的版本），与"用户看到面板最下面那份就点它"读到的东西一致。
+ * 传了就必须是这一步真跑过并留下草稿，否则拒收——不猜、不退回别的步骤去拿一份"差不多的"。
  */
-export const AgentDraftAcceptRequestSchema = z.object({ taskId: z.string().min(1).max(128) });
+export const AgentDraftAcceptRequestSchema = z.object({
+  taskId: z.string().min(1).max(128),
+  /** 想接受哪一步留下的草稿；缺省取最后一个留草稿的步骤。上限与步骤 id 的来源（STEP_KINDS）同宽 */
+  stepId: z.string().min(1).max(64).optional(),
+});
 export type AgentDraftAcceptRequest = z.infer<typeof AgentDraftAcceptRequestSchema>;
 
 /** 接受成功后的响应：写进库的那一份原样带回去（id 是库里的行 id，不是草稿自带的临时值） */
