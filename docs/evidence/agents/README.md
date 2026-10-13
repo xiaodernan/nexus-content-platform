@@ -3913,7 +3913,7 @@ migrated: it implements `FsLike` with a `root`-prefix `strip`, a different seam.
 Measured: `agents/runtime` **540/540** (36 files) green, `tsc -p tsconfig.test.json --noEmit` exit 0, no test
 added or removed (the unchanged count is the proof the migrations are behaviour-preserving).
 
-## The `'empty'` listing policy is REMOVED — the dangerous answer was never load-bearing (M2 v230 — ADR 0016 amendment 230)
+## The empty listing policy is removed — the dangerous answer was never load-bearing (M2 v230 — ADR 0016 amendment 230)
 
 Amendment 229 made the eleven `MemDisk` mocks one disk with a named listing policy, which is the fix plan
 item 19 asked for. But two of the eleven still declared `'empty'` (`memory.test.ts` and `vectorStore.test.ts`),
