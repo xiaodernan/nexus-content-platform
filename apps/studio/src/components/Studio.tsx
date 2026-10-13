@@ -17,6 +17,7 @@ import Scene3D from './Scene3D';
 import WorldPanel from './WorldPanel';
 import AssetPanel from './AssetPanel';
 import { useStudio } from '@/lib/store';
+import { remixIdFromSearch, remixProject } from '@/lib/remixLane';
 import { deserializeApp, serializeApp } from '@/lib/persist';
 import { browserStorage, STUDIO_DOC_KEY } from '@/lib/storage';
 import { installBridge } from '@/lib/observability';
@@ -59,6 +60,29 @@ export default function Studio() {
     return () => {
       unsubscribe();
       if (timer) clearTimeout(timer);
+    };
+  }, []);
+
+  // M7 v234 — a REMIX link: the artifact page (`/p/{id}`) sends a visitor here as `/?remix={id}`. Read the
+  // intent once on mount, fetch the publication through the client lane, and open it as a NEW project. It is
+  // declared AFTER the hydrate effect above so an explicit remix wins over a stale local snapshot, and the
+  // query is dropped afterwards — the URL was a one-time intent, and a reload must not silently discard the
+  // edits the visitor then makes.
+  useEffect(() => {
+    const id = remixIdFromSearch(window.location.search);
+    if (!id) return;
+    let live = true;
+    void remixProject(id).then((answer) => {
+      if (!live) return;
+      if (answer.ok) {
+        useStudio.getState().remixDocument(answer.document, id);
+        window.history.replaceState(null, '', '/');
+      } else {
+        useStudio.getState().setStatus(`Could not remix ${id}: ${answer.reason}`);
+      }
+    });
+    return () => {
+      live = false;
     };
   }, []);
 

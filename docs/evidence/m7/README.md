@@ -222,3 +222,22 @@ per row; the store forks before load); §5 the §60 dependency audit (the lane h
 server import; the model import is type-only). Measured: design-model 34 → 40, Studio 484 → 492 (32 files),
 both `tsc` 0. Bounds: a remix is a plain copy under a new id — no lineage is recorded back to the source, no
 attribution, and remixing needs no account (M7 still has no auth, accounts or ownership).
+
+## A VISITOR can remix — the artifact page carries the link (M7 v234 — amendment 234)
+
+v233 put remix in the Studio's own Published panel, a control only the PUBLISHER sees. That is not a
+community primitive until the other half exists: someone who has only the ARTIFACT URL must be able to take
+the work. The artifact page (`/p/{id}`) now injects a **remix bar** — an `<a href="/?remix=<id>">` before
+`</body>`, the id encoded and the href escaped — while the drawing itself is untouched. `injectRemixBar` is
+pure and total (a preview with no `</body>` is returned unchanged; no project id → no bar). The Studio reads
+the intent with the pure `remixIdFromSearch` (a bare `?remix=` is `null`) in a mount effect declared AFTER
+the persistence-hydrate effect, so an explicit remix wins over a stale local snapshot; it fetches through the
+v233 lane, forks via `remixDocument`, then drops the query (`history.replaceState`) so a reload cannot
+silently discard the visitor's edits.
+
+`remix-proof.mjs` §5 grades this against the SHIPPED artifact module (type-stripped with its `./preview` and
+`./paint` dependencies): the real `renderArtifactHtml` output carries an encoded remix link and the stage,
+no project id means no bar, and a body-less string is returned unchanged. Studio 492 → 499 (32 files),
+`tsc` 0, proof 6/6. Bounds: the bar is a fixed overlay with no author/date/attribution, and a remix leaves no
+lineage back to its source — M7 still has no accounts, so the loop is open to anyone who can reach the
+service.

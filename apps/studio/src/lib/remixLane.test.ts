@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 import { createEmptyDocument } from '@nexus/design-model';
-import { extractRemixDocument } from './remixLane';
+import { extractRemixDocument, remixIdFromSearch } from './remixLane';
 import { useStudio } from './store';
 
 const st = () => useStudio.getState();
@@ -42,6 +42,26 @@ describe('extractRemixDocument (M7 v233)', () => {
     expect(extractRemixDocument({ ok: true, document: { ...base, rootId: 7 } })).toEqual({ ok: false, reason: 'the document has no string rootId' });
     expect(extractRemixDocument({ ok: true, document: { ...base, nodes: undefined } })).toEqual({ ok: false, reason: 'the document has no nodes object' });
     expect(extractRemixDocument({ ok: true, document: { ...base, activePageId: '' } })).toEqual({ ok: false, reason: 'the document has no string activePageId' });
+  });
+});
+
+describe('remixIdFromSearch (M7 v234)', () => {
+  it('reads the remix target from a query string, with or without the leading "?"', () => {
+    expect(remixIdFromSearch('?remix=pub-1')).toBe('pub-1');
+    expect(remixIdFromSearch('remix=pub-1')).toBe('pub-1');
+    expect(remixIdFromSearch('?a=1&remix=pub-2&b=2')).toBe('pub-2');
+  });
+
+  it('decodes an encoded id', () => {
+    expect(remixIdFromSearch('?remix=' + encodeURIComponent('my pub/id'))).toBe('my pub/id');
+  });
+
+  it('answers null for absence — a bare ?remix= is not a project named ""', () => {
+    expect(remixIdFromSearch('')).toBeNull();
+    expect(remixIdFromSearch('?')).toBeNull();
+    expect(remixIdFromSearch('?remix=')).toBeNull();
+    expect(remixIdFromSearch('?remix=%20')).toBeNull();
+    expect(remixIdFromSearch('?other=1')).toBeNull();
   });
 });
 

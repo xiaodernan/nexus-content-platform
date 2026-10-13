@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { createEmptyDocument } from '@nexus/design-model';
-import { renderArtifactHtml, renderArtifactMissing, renderArtifactUnavailable } from './artifact';
+import { injectRemixBar, renderArtifactHtml, renderArtifactMissing, renderArtifactUnavailable } from './artifact';
 
 /**
  * M7 v196 — the artifact page's rendering rules.
@@ -64,5 +64,33 @@ describe('artifact — the two failure pages say DIFFERENT things', () => {
     expect(html).toContain('&lt;b&gt;boom&lt;/b&gt;');
     // The distinction the status codes carry is also carried in the words.
     expect(html).not.toContain('Nothing published here');
+  });
+});
+
+describe('artifact — the REMIX bar lets a VISITOR take the work (M7 v234)', () => {
+  it('injects a remix link naming the project, with the id encoded', () => {
+    const doc = createEmptyDocument('Harbour');
+    const html = renderArtifactHtml({ projectId: 'my pub/1', document: doc });
+    expect(html).toContain('Remix in NEXUS Studio');
+    expect(html).toContain('href="/?remix=my%20pub%2F1"');
+    // The drawing is untouched: the bar is injected before </body>, after the stage.
+    expect(html).toContain('class="stage"');
+    expect(html.indexOf('nexus-remix')).toBeLessThan(html.indexOf('</body>'));
+  });
+
+  it('adds NO bar when the caller names no project', () => {
+    const doc = createEmptyDocument('Harbour');
+    const html = renderArtifactHtml({ title: 'Harbour', document: doc });
+    expect(html).not.toContain('nexus-remix');
+  });
+
+  it('returns the html unchanged when there is no </body> to inject before', () => {
+    expect(injectRemixBar('<div>no body tag</div>', 'p1')).toBe('<div>no body tag</div>');
+  });
+
+  it('encodes the id so a quote cannot break out of the attribute', () => {
+    const out = injectRemixBar('<body></body>', 'a"b');
+    expect(out).toContain('href="/?remix=a%22b"');
+    expect(out).not.toContain('a"b');
   });
 });

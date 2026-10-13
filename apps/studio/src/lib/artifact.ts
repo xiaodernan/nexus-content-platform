@@ -48,7 +48,7 @@ code{background:#12151b;border:1px solid #262b34;border-radius:4px;padding:1px 5
  * The document is passed through `renderPreviewHtml` UNCHANGED — the artifact is not a paraphrase of the
  * document, it IS the document, drawn by the renderer the author already looked at.
  */
-export function renderArtifactHtml(publication: { title?: string; version?: number; publishedAt?: string; document: unknown }): string {
+export function renderArtifactHtml(publication: { title?: string; version?: number; publishedAt?: string; document: unknown; projectId?: string }): string {
   const doc = publication.document as DesignDocument | null;
   if (!doc || typeof doc !== 'object') {
     return shell('Artifact unavailable', '<h1>Artifact unavailable</h1><p>The publication exists but its document is not an object, so there is nothing to draw.</p>');
@@ -59,7 +59,25 @@ export function renderArtifactHtml(publication: { title?: string; version?: numb
   if (!pageId) {
     return shell('Artifact unavailable', '<h1>Artifact unavailable</h1><p>The publication exists but names no page to draw, so there is nothing to show.</p>');
   }
-  return renderPreviewHtml(doc, pageId);
+  const html = renderPreviewHtml(doc, pageId);
+  // v234 — a VISITOR (not just the publisher, whose Published panel already carries a remix control) can take
+  // the work and make it their own. The link names the Studio root with `?remix=<id>`, which the Studio reads
+  // on mount. Injection is a single string surgery on the preview's own bytes, so the drawing is untouched.
+  return publication.projectId ? injectRemixBar(html, publication.projectId) : html;
+}
+
+/**
+ * v234 — insert the remix bar before `</body>`. PURE and testable: it asserts nothing about the document, only
+ * that the preview renderer's output ends the way it always does (`…</div></body></html>`), and it ESCAPES the
+ * href it builds. A preview that does not contain `</body>` is returned unchanged rather than corrupted — the
+ * artifact is still the artifact, and a missing bar is better than a broken page.
+ */
+export function injectRemixBar(html: string, projectId: string): string {
+  if (!html.includes('</body>')) return html;
+  const href = `/?remix=${encodeURIComponent(projectId)}`;
+  const bar = `<a class="nexus-remix" href="${escapeHtml(href)}" rel="noreferrer">Remix in NEXUS Studio</a>
+<style>.nexus-remix{position:fixed;right:16px;bottom:16px;z-index:10;background:#3b82f6;color:#fff;font:600 12px Inter,system-ui,sans-serif;text-decoration:none;padding:8px 12px;border-radius:6px;box-shadow:0 8px 24px rgba(0,0,0,.4)}</style>`;
+  return html.replace('</body>', `${bar}</body>`);
 }
 
 /** Nothing is published under this id. 404 — the id may simply never have been published. */

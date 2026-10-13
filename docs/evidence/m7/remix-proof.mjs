@@ -1,5 +1,6 @@
-// NEXUS M7 v233 — a publication can be REMIXED: someone else's published document becomes a NEW project
-// (ADR 0016 amendment 233, DEVELOPMENT_PLAN item filed this cycle).
+// NEXUS M7 v233–v234 — a publication can be REMIXED: someone else's published document becomes a NEW project
+// (ADR 0016 amendments 233 and 234). v233 wired remix into the Studio's own Published panel; v234 lets a
+// VISITOR reach it from the artifact page, so the community loop is complete: publish → open → remix.
 //
 // Until v233 the Studio could PUBLISH but never read a publication back in its own UI — a stated M7 bound.
 // `readPublished` existed in `publishLane.ts` and had NO consumer. This proof grades the four pieces that
@@ -19,7 +20,9 @@
 //      which is what stops a remix from re-publishing OVER the publication it came from;
 //   §4 the WIRING is present: the Published panel carries a remix control per row, and the store action
 //      forks before it loads;
-//   §5 §60 dependency audit: the CLIENT lane imports nothing from the server half (`publishServer`) and the
+//   §5 the VISITOR loop: the artifact page (`/p/{id}`) carries an encoded `?remix=` link (v234), the route
+//      names the project, and the Studio reads the intent, forks, and drops it;
+//   §6 §60 dependency audit: the CLIENT lane imports nothing from the server half (`publishServer`) and the
 //      panel imports the lane, not the server — the same one-way rule every lane in this repo follows.
 //
 // Run after `npm run build`:  node docs/evidence/m7/remix-proof.mjs
@@ -142,7 +145,32 @@ try {
     console.log('[§4] wiring: remix control per row · panel imports the lane · store forks before load');
   }
 
-  // ── §5 §60 dependency audit ───────────────────────────────────────────────────────────────────────
+  // ── §5 the visitor loop: the artifact page links a visitor back into the Studio ────────────────────
+  {
+    await strip('apps/studio/src/lib/paint.ts', box);
+    await strip('apps/studio/src/lib/preview.ts', box);
+    const artifact = await strip('apps/studio/src/lib/artifact.ts', box);
+    const { injectRemixBar, renderArtifactHtml } = artifact;
+    const doc = createEmptyDocument('Harbour');
+    const withBar = renderArtifactHtml({ projectId: 'my pub/1', document: doc });
+    assert.ok(withBar.includes('Remix in NEXUS Studio'), 'the artifact carries a remix link');
+    assert.ok(withBar.includes('href="/?remix=my%20pub%2F1"'), 'the link names the project, encoded');
+    assert.ok(withBar.includes('class="stage"'), 'the drawing is still there');
+    assert.ok(withBar.indexOf('nexus-remix') < withBar.indexOf('</body>'), 'the bar is injected before </body>');
+    assert.ok(!renderArtifactHtml({ document: doc }).includes('nexus-remix'), 'no project named → no bar');
+    assert.equal(injectRemixBar('<div>x</div>', 'p1'), '<div>x</div>', 'no </body> → returned unchanged');
+
+    const route = readFileSync('apps/studio/src/app/p/[projectId]/route.ts', 'utf8');
+    assert.ok(/projectId: decodeURIComponent\(projectId\)/.test(route), 'the route passes the projectId to the renderer');
+    const studio = readFileSync('apps/studio/src/components/Studio.tsx', 'utf8');
+    assert.ok(/remixIdFromSearch\(window\.location\.search\)/.test(studio), 'the Studio reads the remix intent from the URL');
+    assert.ok(/remixProject\(id\)/.test(studio), 'the Studio fetches the publication');
+    assert.ok(/remixDocument\(answer\.document, id\)/.test(studio), 'the Studio forks it into a new project');
+    assert.ok(/history\.replaceState\(null, '', '\/'\)/.test(studio), 'the one-time intent is dropped once honoured');
+    console.log('[§5] visitor loop: artifact carries an encoded remix link · no id → no bar · route names the project · Studio reads the intent, forks, and drops it');
+  }
+
+  // ── §6 §60 dependency audit ───────────────────────────────────────────────────────────────────────
   {
     const lane = readFileSync('apps/studio/src/lib/remixLane.ts', 'utf8');
     assert.ok(!/from '\.\/publishServer'/.test(lane), 'the CLIENT lane imports nothing from the server half');
@@ -150,7 +178,7 @@ try {
     assert.ok(/import type \{ DesignDocument \}/.test(lane), 'the model import is TYPE-ONLY (erased at compile)');
     const toolbar = readFileSync('apps/studio/src/components/Toolbar.tsx', 'utf8');
     assert.ok(!/from '@\/lib\/publishServer'/.test(toolbar), 'the panel never imports the server half directly');
-    console.log('[§5] audit: lane holds no service address and no server import · model import is type-only · panel speaks only to the lane');
+    console.log('[§6] audit: lane holds no service address and no server import · model import is type-only · panel speaks only to the lane');
   }
 
   console.log('[remix-proof] ALL SECTIONS PASSED');

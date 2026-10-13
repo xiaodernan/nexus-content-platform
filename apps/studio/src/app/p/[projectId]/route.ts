@@ -27,7 +27,7 @@ export async function GET(_request: Request, { params }: { params: Promise<{ pro
   const answer = await readPublication(decodeURIComponent(projectId));
 
   if (answer.ok) {
-    return new Response(renderArtifactHtml({ title: answer.title, version: answer.version, publishedAt: answer.publishedAt, document: answer.document }), {
+    return new Response(renderArtifactHtml({ projectId: decodeURIComponent(projectId), title: answer.title, version: answer.version, publishedAt: answer.publishedAt, document: answer.document }), {
       status: 200,
       headers: { 'content-type': 'text/html; charset=utf-8', 'cache-control': 'no-store' },
     });

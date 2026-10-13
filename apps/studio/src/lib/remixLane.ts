@@ -45,3 +45,14 @@ export function extractRemixDocument(answer: unknown): RemixExtraction {
 export async function remixProject(projectId: string): Promise<RemixExtraction> {
   return extractRemixDocument(await readPublished(projectId));
 }
+
+/**
+ * v234 — PURE: the remix target named by a URL query string, or `null`. The artifact page links a visitor to
+ * `/?remix=<id>`, so the Studio reads this on mount. A bare `?remix=` (or whitespace) is `null`, not a project
+ * named the empty string — the same "absence has one representation" rule the model follows.
+ */
+export function remixIdFromSearch(search: string): string | null {
+  const query = search.startsWith('?') ? search.slice(1) : search;
+  const id = new URLSearchParams(query).get('remix');
+  return id && id.trim() ? id : null;
+}
