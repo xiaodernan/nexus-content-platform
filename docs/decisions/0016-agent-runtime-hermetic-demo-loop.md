@@ -10538,3 +10538,40 @@ _Numbering: 235 was free (the ADR topped out at 234). Full decision record in `d
 - **The fix — one word.** `timeoutMs: 240_000` → `timeout: 300_000`, with the measurement recorded in the comment so the next reader does not "restore" it. 300 s gives the now-REAL budget headroom over the runtime suite's ~100–122 s and exec-host's (measured this run) **162 s** — both of which the old no-op would have let the host kill.
 - **Measured (gate exit 0 once 235 was titled):** `[§2] runtime: vitest exit 0 · 100907ms` · `exec-host: vitest exit 0 · 162040ms`; `[§4] arms: runtime 100907ms exit 0 37/34 files · exec-host 162040ms exit 0 10/9 files`. The 162 s exec-host arm is the witness: it would have been killed at 120 s under the old option, and now it completes and is REPORTED. `§4b` still witnesses the classifier; the table is unchanged (816 cases, 43 files).
 - **Bounds (§60).** A real `timeout` makes the gate FAIL LOUDLY where it used to be killed silently — but a host whose own limit sits below 300 s will still kill the child first, and the gate will report that as `incomplete` (§4's new verdict) rather than as a regression, which is the honest answer: the budget is the gate's, the kill is the host's, and §4 now distinguishes them.
+
+### Amendment 237 (M2/v237, docs/evidence/agents) — the mojibake repair gets an integrity gate: a writer model, a flank rule that protects real Chinese, and a 116-line digest ledger
+
+- **The gap this closes.** Amendment 236 landed the 24 derived fixes over the 116 record
+  lines the writer corrupted, and nothing in the repository could say whether the tree still carried that class
+  of damage, or whether one of those repairs had been undone. The gate now answers both on every sweep.
+- **The model is data, and its structural claims are measured.** Four writer mechanisms are declared as
+  functions, not as prose, so the gate can ask them what they would produce. From that: M1 eats all 96
+  printable ASCII followers of a 3-byte punctuation character while only 33 of them spell `?` — the rest
+  are silently rewritten as CJK, which is why the repair had to append a character rather than replace one. The
+  render registry (898 spellings) is DERIVED from the model rather than hand-listed, so a spelling cannot
+  be added to charge a line without also being producible by the writer.
+- **The rule, stated as a rule.** Chargeability is decided by the two tight neighbours, not by the character:
+  the middle dot before a letter is rendered by M1 as the first character of `路径`, which is also the word for
+  road. U+FFFD and C0 controls are chargeable unconditionally because no bilingual text explains them. Measured
+  both ways at rest: a planted render charges, a planted CR charges, a planted `路径` line does NOT charge and
+  moves the rejected count from 5 to 6.
+- **The ledger keys on line bytes, and that choice is a witness.** A repaired-line digest pairs the rows; the
+  arm that flips a digest reddens the pairing ("0 found at nothing"), while the arm that moves a recorded line
+  number leaves the tree side green and reddens only the ref side — the tree must survive a record that grows,
+  the pinned ref is positional by construction. The digest is a MULTISET: one damaged line occurs twice in
+  `scene3dSurface.test.ts` and is repaired identically, so rows pair onto distinct tree lines and a row cannot
+  claim the same line twice.
+- **A repair must be earned.** For each of the 24 fixed sites the gate runs the UNFIXED producer and asks
+  what it explains at the ref: measured 19 explain nothing, 5 explain the site only by consuming
+  exactly the character the fix supplies, 0 are free. The alternative — a fix that restates a character the
+  writer left in place — is named as a failure clause, not tolerated.
+- **Files:** `docs/evidence/agents/record-encoding-proof.mjs` (new row, its own budget and repository
+  confessions in the first column). No runtime module changed; no test case added.
+- **Measured:** Studio 33 files / 509 tests, exit 0, three-runtime 24 files / 543 tests, exit 0, `tsc --noEmit` exit 0 in both; census 0 chargeable over
+  464 graded files; ledger 116 rows / 58 sites / 24 fixes (17 GLUE +
+  7 CONTROL) split 93-13-10; walk 116/116 image-exactly by M1/M2/M3/M4; arms
+  9/9 HIT with the clause names predicted first.
+- **Bounds (§60).** The gate grades tracked text plus its own file, and an untracked proof is invisible to
+  `git ls-files` — SELF is added and disclosed. It cannot distinguish a corrupted CJK character whose neighbours
+  are also CJK, which is the price of the flank rule that keeps `路径` legal; the ref-pinned ledger is the
+  backstop for exactly those lines. On a NO-GIT plane the ref half is UNGRADED and the row says so.

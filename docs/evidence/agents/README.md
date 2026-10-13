@@ -3987,3 +3987,66 @@ The fix is one word — `timeout: 300_000` — with the measurement in the comme
 100907ms exit 0` · `exec-host 162040ms exit 0` (the 162 s arm is the witness: it would have been killed at
 120 s before). Bounds: a real timeout makes the gate fail loudly where it used to be killed silently; a host
 limit below 300 s still wins, and §4 reports that as `incomplete` (a host kill) rather than a regression.
+
+## The record-encoding integrity gate: a writer model, a flank rule, and a 116-line digest ledger — M2 v237 — ADR 0016 amendment 237
+
+- **What the defect was.** A writer read UTF-8 bytes as GBK. A 3-byte punctuation character becomes one CJK
+  character from its first two bytes and a SECOND character from its third byte paired with the following byte,
+  which that byte therefore loses. Three further spellings of the same corruption are declared in the model
+  (M2 GBK-read-as-UTF-8, one U+FFFD per unreadable byte; M3 a fold of M1; M4 one codepoint substituted in place
+  by a C0 control).
+- **The part that could pass for prose.** Measured over all 11 three-byte punctuation characters and all
+  96 printable ASCII followers: M1 eats EVERY one of the 96, contiguously — and only 33 of
+  them (0x20-0x3F and 0x7F, the bytes that cannot be a GBK trail byte) leave a visible `?`. The other
+  63 are rewritten as a plausible CJK character. A repair that only put the punctuation back would
+  therefore leave the record one character short and read like English, which is why 17 of the 24
+  ledger fixes are GLUE fixes that append the eaten follower.
+- **The rule that decides what is damage.** A render site is chargeable only when NEITHER tight neighbour (the
+  nearest non-space within one space) is CJK; U+FFFD and C0 controls are chargeable unconditionally, because no
+  writer of a real Chinese word produces them. That rule is what protects `路径`: the writer's own render of a
+  middle dot before a letter is that first character, and it is a legitimate word.
+- **The census the gate keeps at zero.** Over the tracked tree plus its own file: 469 names, 5
+  binary skipped, 464 graded — 0 chargeable lines, 5 form-only hits and
+  5 flank-rejected render sites in 4 files. At the pinned ref the same rule charges
+  116 lines, and those 116 are the ledger.
+- **The ledger, as data generated from the bytes.** 116 rows keyed by the SHA-16 of the damaged line
+  AND of the repaired line (81 LINE rows, 35 SPAN rows carrying 58 sites), split
+  93-13-10 across the three record files, carrying 24 derived fixes: 17 GLUE + 7 CONTROL,
+  each naming the channel that decided it (ATTESTED, bytes, CENSUS-FILE). A digest is a MULTISET, not a unique
+  key — measured: `scene3dSurface.test.ts` holds the same damaged line twice (ref 862 and 986) and repaired
+  identically, so rows pair one-for-one onto distinct tree lines instead of looking each other up.
+- **The repair is refuted-or-explained, never assumed.** Walking the pinned ref into the tree reproduces
+  116/116 lines image-exactly through the four declared mechanisms (all four are seen), and for
+  each of the 24 fixed sites the UNFIXED producer is asked what it explains on its own: 19 are refuted
+  outright, 5 fit only by consuming exactly the character the fix supplies, and 0 are free. A site the
+  producer already explained would be a repair that restates what the writer left in place, and the gate names
+  that as a failure.
+- **Witness arms at rest: 9/9 matched their predicted clause.** B0 unmutated copy exit 0 (the
+  harness control); B1 M4 undeclared -> `S4b` walk, 6 rows naming "no declared mechanism reproduces"; B2 a
+  repaired digest flipped -> `S4` "(0 found at nothing)", proving the ledger keys on line bytes; B3 a row
+  re-keyed by position (line 23 to 30) -> the tree side stays green and reports 116 minus one at
+  position, and the first red is the REF side "is not the line the ledger pinned at 420f910" — the tree pairs by
+  digest, the ref is positional by construction; B4 the glue-eaten branch destroyed -> `S4b` 4 rows naming "the
+  UNFIXED producer already explains the site with nothing supplied"; B5 an unreadable ref -> exit 0 WITH the
+  "[4b] ref side: UNGRADED" banner, so the skipped half is disclosed rather than counted; A1 a planted em-dash
+  render in the shipped file -> `S2` chargeable, naming the file and line; A2 a planted lone CR -> `S2`
+  (unconditional); A3 a planted bilingual `路径` line -> `S2` stays GREEN and the rejected count rises
+  5 to 6, so the flank rule is seen protecting a real word on the shipped tree, and the
+  only red is `S6`, the gate's own ASCII claim about a different file. Group A mutated the shipped file in place
+  and restored it byte-exact (ca9730f42130338e) after each arm.
+- **Files:** `docs/evidence/agents/record-encoding-proof.mjs` (513 lines, 46278 bytes: the gate
+  carries the writer model as data, the derived 898-spelling render registry indexed by head codepoint,
+  the census, the ledger, the ref-side walk, and the row's own self-claims). It adds no test case and touches no
+  runtime code. Its sweep row joins the committed proofs with THIS commit: measured at the parent,
+  `sweep.mjs --only record` reached 1 of 80 committed rows (`record-window-proof.mjs`, exit 0) and
+  an untracked file cannot be a row yet — which is the same index blindness the bounds below name.
+- **Measured:** Studio 33 files / 509 tests, exit 0 (`npm test -w @nexus/studio`), three-runtime 24 files / 543 tests, exit 0 (`npm test -w @nexus/three-runtime`),
+  `tsc --noEmit` exit 0 in both; the gate itself 14.4 s against a budget declared from its own
+  `// sweep-budget-ms: 120000` row comment (~10x the measured run, so it cannot redden for being slow — the
+  rule amendment 85 established). No existing case moved.
+- **Bounds (§60), stated.** The gate grades LINE TEXT in the tracked tree plus itself; it does not grade a
+  file a commit has not made yet, and `git ls-files` cannot see an untracked proof — which is why SELF is added
+  and disclosed rather than trusted to the index. It cannot prove a record line that reads like prose is
+  correct: a bilingual look-alike is deliberately NOT charged, so a genuinely damaged CJK neighbour can hide a
+  render, and the only backstop for that is the 116-line ledger pinned at the ref. On a plane with no
+  git the ref-side half is ungraded, not passed (B5).
