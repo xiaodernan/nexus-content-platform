@@ -78,7 +78,7 @@ function Row({ item }: { item: InboxItem }): ReactElement {
  * 
  * 支持分页：默认第 1 页、每页 50 条；超过一页时显示"另有 N 条未列出"并给出翻页按钮。
  */
-export default async function NotificationsPage({ searchParams }: { searchParams?: { page?: string } }) {
+export default async function NotificationsPage({ searchParams }: { searchParams?: Promise<{ page?: string }> }) {
   const user = await currentUserOrNull();
   if (!user) {
     return (
@@ -92,7 +92,10 @@ export default async function NotificationsPage({ searchParams }: { searchParams
     );
   }
 
-  const currentPage = Math.max(1, parseInt(searchParams?.page ?? '1', 10) || 1);
+  // searchParams 在这一版 Next 里是 Promise：不同步 await 就永远是 undefined，
+  // 于是 `?page=N` 被静默吞掉、翻页按钮点了也停在第一页（本页其余各处都已是 await 写法）。
+  const params = (await searchParams) ?? {};
+  const currentPage = Math.max(1, parseInt(params.page ?? '1', 10) || 1);
   const page = await inbox(user.id, { page: currentPage, limit: 50 });
   const unreadIds = page.items.filter((item) => !item.read).map((item) => item.id);
 
