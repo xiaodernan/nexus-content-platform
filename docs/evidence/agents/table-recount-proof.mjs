@@ -210,7 +210,12 @@ for (const pkg of PKGS) {
         '--no-file-parallelism',
         '--reporter=json', `--outputFile=${out}`,
       ],
-      { encoding: 'utf8', timeoutMs: 240_000, maxBuffer: 64 * 1024 * 1024 },
+      // The option is `timeout`, NOT `timeoutMs` — measured 2026-10-14: `execFileSync` IGNORES an unknown
+      // `timeoutMs` (a 4 s child ran its full 4.8 s under `timeoutMs: 1000`) while `timeout: 1000` throws
+      // ETIMEDOUT at 1.14 s. This call carried `timeoutMs: 240_000` since v141, so the "240 s arm budget"
+      // never existed and the arm was killed at whatever the host imposed (~120 s here). 300 s gives the
+      // now-real budget headroom over the runtime suite's ~122 s.
+      { encoding: 'utf8', timeout: 300_000, maxBuffer: 64 * 1024 * 1024 },
     );
   } catch (e) {
     // A non-zero vitest exit is DATA about which cases failed, not a reason to lose the report (§60's

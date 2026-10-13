@@ -241,3 +241,35 @@ no project id means no bar, and a body-less string is returned unchanged. Studio
 `tsc` 0, proof 6/6. Bounds: the bar is a fixed overlay with no author/date/attribution, and a remix leaves no
 lineage back to its source — M7 still has no accounts, so the loop is open to anyone who can reach the
 service.
+
+## The account model lands — an unsigned local CLAIM, not a login (M7 v235 — amendment 235)
+
+_Titled here by a later cycle: the v235 commit wrote its ledger entry (amendment 235) and its decision record
+(`docs/decisions/0018-accounts-ownership-and-publication-identity.md`) but left the newest grant with no
+corpus title, so the doc gate refused the whole run (`unrecordedNewest:235`). The record below is written from
+that amendment's own text, not invented._
+
+The bound every M7 grant since v194 carried — "no accounts; every publication is anonymous and anybody's to
+take down; a remix records no lineage" — gets its canonical decision. **ADR 0018** weighs four options and
+chooses **C: a local, unsigned identity that produces a CLAIM**, over OAuth (needs an IdP and a token store; a
+half-wired one that never validates produces a badge), passwords (a security surface this repo is not ready to
+own, with ADR 0013 still Proposed), and doing nothing (which is the bound). The honesty is structural:
+`apps/studio/src/lib/accounts.ts` contains **no password, no token, no session, no signature and no
+cryptography**, and its suite asserts that by reading its own source.
+
+The pure core: `normalizeHandle` returns a VERDICT (a handle is data a person typed, so the caller shows what
+is wrong rather than catching an exception) — TRIM → LOWERCASE, 3–24 chars, `[a-z0-9_-]`, alphanumeric ends,
+the pattern deliberately not length-aware so a 2-char handle is a LENGTH failure not a character one;
+`createAccountId(handle, deviceSeed)` is deterministic FNV-1a per device and **refuses a whitespace-only
+seed** (a first-draft defect the suite caught — `!deviceSeed` accepted `'   '`); `AccountRegistry` refuses a
+second registration of any handle that normalizes to one it holds, lists in handle order, and hands out
+COPIES. Every `AccountRecord` carries `assurance: 'unsigned-local'`, and `ownerClaim(account, at)` names
+itself `kind: 'owner-claim'`, so a service can tell a claim from a verified identity without pattern-matching
+prose; `isOwnerClaim` refuses every near-miss. The module reserves no names (a client-only reserved list is a
+refusal nobody agreed to — recorded as a bound).
+
+Measured: Studio 499 → 509 (32 → 33 files), `tsc` 0, `accounts.test.ts` 10/10. Bounds: a claim is forgeable
+by anyone who can call the API (that is why `assurance` exists); the device seed is per-browser, so one human
+on two devices gets two ids until the service merges them; **no publication carries a claim yet** —
+`publishDocument`, `readPublication` and `DELETE /projects/{id}` are unchanged, and the service-side work (an
+owner field, an owner-checked unpublish, a remix that records lineage) is the next increment.

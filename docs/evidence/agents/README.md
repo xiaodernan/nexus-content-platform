@@ -3974,3 +3974,16 @@ incomplete (non-zero exit) · incomplete (dropped file) · timed-out-sibling coi
 (gate exit 0): `runtime 106102ms exit 0 37/34 files · exec-host 27946ms exit 0 10/9 files` (the extra files
 are untracked in-flight suites another lane owns, named and not graded); the table is unchanged (816 cases,
 43 files, 4/4 mutations caught).
+
+## The doc gate's arm budget was a NO-OP — `timeoutMs` is not a `child_process` option (gate v236 — ADR 0016 amendment 236)
+
+The gate's vitest spawn carried `{ timeoutMs: 240_000 }` since v141, and v232 even quoted "its 240 s arm
+budget" as a thing to name. But `execFileSync` takes **`timeout`**, not `timeoutMs`, and an unknown option is
+silently ignored. Measured 2026-10-14: a 4 s child spawned with `timeoutMs: 1000` ran its full **4798 ms** (no
+throw); the same child with `timeout: 1000` threw **ETIMEDOUT at 1144 ms**. So the arm had NO budget — it was
+killed only by whatever the host imposed, here **~120 s** (the gate died with `vitest wrote no JSON for
+runtime (exit -1 after 120072ms)` while the same suite run directly took **121.66 s** and finished green).
+The fix is one word — `timeout: 300_000` — with the measurement in the comment. Measured after: `runtime
+100907ms exit 0` · `exec-host 162040ms exit 0` (the 162 s arm is the witness: it would have been killed at
+120 s before). Bounds: a real timeout makes the gate fail loudly where it used to be killed silently; a host
+limit below 300 s still wins, and §4 reports that as `incomplete` (a host kill) rather than a regression.
