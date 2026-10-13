@@ -20,11 +20,11 @@ import {
 } from './scene3d';
 
 /**
- * M5 v142 鈥?the ADAPTER half of the Studio's 3D surface, run against the SHIPPED package.
+ * M5 v142 — the ADAPTER half of the Studio's 3D surface, run against the SHIPPED package.
  *
  * The pure suite (`scene3d.test.ts`) proves the model over a fake, and a fake agrees with whatever its
  * author believed. That is exactly how this increment's real defect was hiding: a scene whose two
- * declared lights were never attached to it, so every mesh in it rendered black 鈥?invisible above the
+ * declared lights were never attached to it, so every mesh in it rendered black — invisible above the
  * renderer seam, because every earlier case asserted the CONFIG (`lights.length === 2`) and none looked
  * at the SCENE.
  *
@@ -72,14 +72,14 @@ function aimCamera(runtime: ThreeRuntime, scene: string, camera: string): THREE.
   return target.threeCamera;
 }
 
-describe('the Studio鈥檚 scene, composed on the REAL runtime', () => {
+describe('the Studio’s scene, composed on the REAL runtime', () => {
   let runtime: ThreeRuntime | null = null;
   afterEach(() => {
     runtime?.dispose();
     runtime = null;
   });
 
-  it('buildDemoScene composes what the report then describes 鈥?one runtime, no second source', () => {
+  it('buildDemoScene composes what the report then describes — one runtime, no second source', () => {
     const headless = headlessRuntime();
     runtime = headless.runtime;
 
@@ -94,14 +94,14 @@ describe('the Studio鈥檚 scene, composed on the REAL runtime', () => {
     expect(report.scene!.entityNames).toEqual(['Ground', 'Cube A', 'Cube B', 'Cube C']);
     expect(report.scene!.cameraNames).toEqual(['Studio Camera']);
     expect(report.scene!.activeCamera).toBe(surface.cameraId);
-    // The graph and the surface agree about which bodies exist 鈥?the ids are the runtime's own.
+    // The graph and the surface agree about which bodies exist — the ids are the runtime's own.
     const composed = headless.runtime.getScene(toSceneId(surface.sceneId))!;
     for (const id of surface.bodyIds) {
       expect(composed.entities.has(toEntityId(id))).toBe(true);
     }
   });
 
-  it('a click at the view center names the body the real ray finds 鈥?Cube B (v182)', () => {
+  it('a click at the view center names the body the real ray finds — Cube B (v182)', () => {
     const headless = headlessRuntime();
     runtime = headless.runtime;
     // The component's adapter, written the same way here: aim + pick both go through the real package.
@@ -120,8 +120,8 @@ describe('the Studio鈥檚 scene, composed on the REAL runtime', () => {
     };
     const surface = createStudioScene(headless.runtime, () => {}, adapter);
 
-    // The component resizes its backend on mount; the headless state starts at 0脳0, and a pick with no
-    // dimensions to convert with is an honest no-op 鈥?so resize FIRST, exactly like the product does.
+    // The component resizes its backend on mount; the headless state starts at 0×0, and a pick with no
+    // dimensions to convert with is an honest no-op — so resize FIRST, exactly like the product does.
     headless.runtime.resize(800, 600);
     // The aimed-at point sits INSIDE Cube B (the probe measured it), so the pixel at the exact center
     // converts to NDC (0, 0) and names Cube B.
@@ -131,7 +131,7 @@ describe('the Studio鈥檚 scene, composed on the REAL runtime', () => {
     expect(surface.pickAt(40, 30).selected).toBeNull();
   });
 
-  it('the pick gains INSPECTOR facts read from the live scene 鈥?kind, position, visibility (v192)', () => {
+  it('the pick gains INSPECTOR facts read from the live scene — kind, position, visibility (v192)', () => {
     const headless = headlessRuntime();
     runtime = headless.runtime;
     const adapter: SceneAdapterLike = {
@@ -150,7 +150,7 @@ describe('the Studio鈥檚 scene, composed on the REAL runtime', () => {
     const surface = createStudioScene(headless.runtime, () => {}, adapter);
     headless.runtime.resize(800, 600);
 
-    // The writeFrame here is a no-op, so Cube B still stands where the demo composed it 鈥?the one
+    // The writeFrame here is a no-op, so Cube B still stands where the demo composed it — the one
     // place an EXACT position assertion is honest. (The product's frame loop bobs bodies; the
     // browser harness asserts the fact shape, never the number.)
     const picked = surface.pickAt(400, 300);
@@ -165,7 +165,7 @@ describe('the Studio鈥檚 scene, composed on the REAL runtime', () => {
       disabledComponents: [],
     });
 
-    // Remove the SELECTED body and the selection STAYS a name while the inspector answers null 鈥?
+    // Remove the SELECTED body and the selection STAYS a name while the inspector answers null —
     // the facts are the live scene's, and a scene that no longer holds the body has none.
     const bodyId = surface.bodyIds[2]!;
     surface.removeBody(bodyId);
@@ -178,7 +178,7 @@ describe('the Studio鈥檚 scene, composed on the REAL runtime', () => {
     expect(surface.report().selected).toBeNull();
   });
 
-  it('the declared lighting is IN the scene 鈥?the v142 defect, measured on the shipped runtime', () => {
+  it('the declared lighting is IN the scene — the v142 defect, measured on the shipped runtime', () => {
     const headless = headlessRuntime();
     runtime = headless.runtime;
     const surface = createStudioScene(headless.runtime, () => {});
@@ -195,10 +195,10 @@ describe('the Studio鈥檚 scene, composed on the REAL runtime', () => {
     expect(lights.length).toBeGreaterThan(0);
   });
 
-  // M5 v183 鈥?the full lighting chain on the shipped runtime: the surface folds the ask, the runtime's
+  // M5 v183 — the full lighting chain on the shipped runtime: the surface folds the ask, the runtime's
   // gate writes the LIVE three.js light (attaching and detaching it, per v142's rule), and the report
-  // re-reads the scene 鈥?so the HUD states what the renderer will actually shade with.
-  it('the lighting is CONTROLLABLE end to end 鈥?surface ask, runtime gate, live light, honest report', () => {
+  // re-reads the scene — so the HUD states what the renderer will actually shade with.
+  it('the lighting is CONTROLLABLE end to end — surface ask, runtime gate, live light, honest report', () => {
     const headless = headlessRuntime();
     runtime = headless.runtime;
     const surface = createStudioScene(headless.runtime, () => {});
@@ -220,7 +220,7 @@ describe('the Studio鈥檚 scene, composed on the REAL runtime', () => {
     surface.setLight('ambient', { intensity: 99 });
     expect(scene.lighting.lights.find((l) => l.id === 'ambient')!.threeLight.intensity).toBe(2);
 
-    // Disabling through the surface DETACHES the real light 鈥?v142's rule through the whole chain.
+    // Disabling through the surface DETACHES the real light — v142's rule through the whole chain.
     surface.setLight('directional', { enabled: false });
     expect(scene.threeScene.children).not.toContain(directional.threeLight);
     expect(surface.report().scene?.lighting.find((l) => l.id === 'directional')).toEqual({
@@ -234,10 +234,10 @@ describe('the Studio鈥檚 scene, composed on the REAL runtime', () => {
     expect(scene.threeScene.children).toContain(directional.threeLight);
   });
 
-  // M5 v197 鈥?the inspector's edit chain on the shipped runtime: the surface folds the ask, the
+  // M5 v197 — the inspector's edit chain on the shipped runtime: the surface folds the ask, the
   // runtime's gate writes the LIVE records (BOTH of them, for visibility), and the report re-reads the
-  // scene 鈥?so the HUD states the body's state, never the button's opinion.
-  it('the inspector is EDITABLE end to end 鈥?surface ask, runtime gate, both records, honest report', () => {
+  // scene — so the HUD states the body's state, never the button's opinion.
+  it('the inspector is EDITABLE end to end — surface ask, runtime gate, both records, honest report', () => {
     const headless = headlessRuntime();
     runtime = headless.runtime;
     const adapter: SceneAdapterLike = {
@@ -268,7 +268,7 @@ describe('the Studio鈥檚 scene, composed on the REAL runtime', () => {
     expect(renamed.inspector?.name).toBe('Hero');
     expect(scene.entities.get(toEntityId(selectedId))!.name).toBe('Hero');
 
-    // Hide through the surface: BOTH records move together 鈥?and the runtime's own picker then skips
+    // Hide through the surface: BOTH records move together — and the runtime's own picker then skips
     // the hidden body, so the registry and the ray agree about what is on screen.
     const hidden = surface.setSelectedVisible(false);
     const entity = scene.entities.get(toEntityId(selectedId))!;
@@ -284,10 +284,10 @@ describe('the Studio鈥檚 scene, composed on the REAL runtime', () => {
     expect(shown.inspector?.visible).toBe(true);
   });
 
-  // M5 v199 鈥?the components half, on the SHIPPED runtime: components enter through the runtime's own
-  // `addComponent`, and the inspector reads the live registry 鈥?so what the report states is what the
+  // M5 v199 — the components half, on the SHIPPED runtime: components enter through the runtime's own
+  // `addComponent`, and the inspector reads the live registry — so what the report states is what the
   // registry holds, in the order it holds it, not a shadow the surface keeps.
-  it('the inspector reads the component registry the runtime owns 鈥?added, disabled, removed, live', () => {
+  it('the inspector reads the component registry the runtime owns — added, disabled, removed, live', () => {
     const headless = headlessRuntime();
     runtime = headless.runtime;
     const adapter: SceneAdapterLike = {
@@ -310,7 +310,7 @@ describe('the Studio鈥檚 scene, composed on the REAL runtime', () => {
     const scene = headless.runtime.getScene(toSceneId(surface.sceneId))!;
     const entity = scene.entities.get(toEntityId(surface.bodyIds[2]!))!;
 
-    // The Studio builds no components, so the honest baseline is an empty fact 鈥?stated, not missing.
+    // The Studio builds no components, so the honest baseline is an empty fact — stated, not missing.
     expect(surface.report().inspector?.components).toEqual([]);
     expect(surface.report().inspector?.disabledComponents).toEqual([]);
 
@@ -318,7 +318,7 @@ describe('the Studio鈥檚 scene, composed on the REAL runtime', () => {
     const added = surface.report().inspector;
     expect(added?.components).toEqual([{ name: 'health', enabled: true }]);
 
-    // v207 鈥?the disabled half is REPORTED, in `disabledComponents`: the registry order is kept across
+    // v207 — the disabled half is REPORTED, in `disabledComponents`: the registry order is kept across
     // the two halves (health was filed first), and nothing is dropped from either.
     headless.runtime.addComponent(entity, { type: 'shield', data: {}, enabled: false });
     expect(surface.report().inspector?.components).toEqual([{ name: 'health', enabled: true }]);
@@ -330,9 +330,9 @@ describe('the Studio鈥檚 scene, composed on the REAL runtime', () => {
     expect(surface.report().inspector?.disabledComponents).toEqual([{ name: 'shield', enabled: false }]);
   });
 
-  // M5 v200 鈥?the component toggle verb: the surface flips a component's enabled flag through the host
+  // M5 v200 — the component toggle verb: the surface flips a component's enabled flag through the host
   // gate and the inspector re-reads the live registry at once.
-  it('the component toggle flips the enabled flag through the host gate 鈥?the report follows the live registry', () => {
+  it('the component toggle flips the enabled flag through the host gate — the report follows the live registry', () => {
     const headless = headlessRuntime();
     runtime = headless.runtime;
     const adapter: SceneAdapterLike = {
@@ -355,14 +355,14 @@ describe('the Studio鈥檚 scene, composed on the REAL runtime', () => {
     const scene = headless.runtime.getScene(toSceneId(surface.sceneId))!;
     const entity = scene.entities.get(toEntityId(surface.bodyIds[2]!))!;
 
-    // Add two components: one enabled, one disabled. v207 鈥?the report splits them: the active list
+    // Add two components: one enabled, one disabled. v207 — the report splits them: the active list
     // carries only the enabled row, and the disabled one lands in `disabledComponents`, still reachable.
     headless.runtime.addComponent(entity, { type: 'health', data: { amount: 100 }, enabled: true });
     headless.runtime.addComponent(entity, { type: 'shield', data: {}, enabled: false });
     expect(surface.report().inspector?.components).toEqual([{ name: 'health', enabled: true }]);
     expect(surface.report().inspector?.disabledComponents).toEqual([{ name: 'shield', enabled: false }]);
 
-    // Toggle health OFF through the surface: it MOVES between the halves 鈥?registry order kept, since
+    // Toggle health OFF through the surface: it MOVES between the halves — registry order kept, since
     // health was filed before shield.
     const afterHealthOff = surface.toggleComponentEnabled('health');
     expect(afterHealthOff.inspector?.components).toEqual([]);
@@ -382,9 +382,9 @@ describe('the Studio鈥檚 scene, composed on the REAL runtime', () => {
     expect(noChange.inspector?.disabledComponents).toEqual([{ name: 'health', enabled: false }]);
   });
 
-  // M5 v201 鈥?enabled gates query participation: getEnabledComponents returns only enabled components,
+  // M5 v201 — enabled gates query participation: getEnabledComponents returns only enabled components,
   // disabled ones are stored but invisible to iteration.
-  it('getEnabledComponents filters out disabled components 鈥?the enabled flag gates queries, not storage', () => {
+  it('getEnabledComponents filters out disabled components — the enabled flag gates queries, not storage', () => {
     const headless = headlessRuntime();
     runtime = headless.runtime;
     const adapter: SceneAdapterLike = {
@@ -419,23 +419,23 @@ describe('the Studio鈥檚 scene, composed on the REAL runtime', () => {
     expect(enabled!.length).toBe(2);
     expect(enabled!.map((c) => c.type)).toEqual(['health', 'stamina']);
 
-    // Disable health 鈥?now only stamina is queryable.
+    // Disable health — now only stamina is queryable.
     runtime.setComponentEnabled?.(toSceneId(surface.sceneId), entity.id, 'health', false);
     const afterHealthOff = runtime.getEnabledComponents?.(entity);
     expect(afterHealthOff?.length).toBe(1);
     expect(afterHealthOff?.[0]?.type).toBe('stamina');
 
-    // Re-enable shield 鈥?back to two queryable.
+    // Re-enable shield — back to two queryable.
     runtime.setComponentEnabled?.(toSceneId(surface.sceneId), entity.id, 'shield', true);
     const afterShieldOn = runtime.getEnabledComponents?.(entity);
     expect(afterShieldOn?.length).toBe(2);
-    // Order follows Map insertion order: health(first), shield(second), stamina(third) 鈫?after health disabled: [shield, stamina]
+    // Order follows Map insertion order: health(first), shield(second), stamina(third) → after health disabled: [shield, stamina]
     expect(afterShieldOn?.map((c) => c.type)).toEqual(['shield', 'stamina']);
   });
 
-  // M5 v202 鈥?enabled gates material visibility: when a component with a targetObject is disabled,
+  // M5 v202 — enabled gates material visibility: when a component with a targetObject is disabled,
   // its visual target is hidden in the scene. The flag now controls rendering, not just queries.
-  it('setComponentEnabled hides the component鈥檚 targetObject 鈥?enabled gates rendering, not just storage', () => {
+  it('setComponentEnabled hides the component’s targetObject — enabled gates rendering, not just storage', () => {
     const headless = headlessRuntime();
     runtime = headless.runtime;
     const adapter: SceneAdapterLike = {
@@ -462,18 +462,18 @@ describe('the Studio鈥檚 scene, composed on the REAL runtime', () => {
     // The target starts visible.
     expect(entity.threeObject.visible).toBe(true);
 
-    // Disable the component 鈥?the target should be hidden.
+    // Disable the component — the target should be hidden.
     runtime.setComponentEnabled?.(toSceneId(surface.sceneId), entity.id, 'health', false);
     expect(entity.threeObject.visible).toBe(false);
 
-    // Re-enable 鈥?the target becomes visible again.
+    // Re-enable — the target becomes visible again.
     runtime.setComponentEnabled?.(toSceneId(surface.sceneId), entity.id, 'health', true);
     expect(entity.threeObject.visible).toBe(true);
 
     // A component without a targetObject does nothing when toggled (no crash, no change).
     runtime.addComponent(entity, { type: 'shield', data: {}, enabled: true });
     runtime.setComponentEnabled?.(toSceneId(surface.sceneId), entity.id, 'shield', false);
-    // No targetObject means no visible property to change 鈥?the flag still updates.
+    // No targetObject means no visible property to change — the flag still updates.
     const comp = entity.components.get('shield');
     expect(comp?.enabled).toBe(false);
   });
@@ -522,14 +522,14 @@ describe('the Studio鈥檚 scene, composed on the REAL runtime', () => {
       STUDIO_CAMERA_POSITION.y,
       STUDIO_CAMERA_POSITION.z,
     ]);
-    // An aimed camera has a finite, non-degenerate world matrix 鈥?a camera left at the origin looking
+    // An aimed camera has a finite, non-degenerate world matrix — a camera left at the origin looking
     // down -Z is still a camera, which is why "it exists" was never the interesting claim.
     expect(aimed!.matrixWorld.determinant()).not.toBe(0);
     const scene = headless.runtime.getScene(toSceneId(built.sceneId))!;
     expect(scene.cameras.get(toCameraId(built.cameraId))!.active).toBe(true);
   });
 
-  it('a frame reaches the backend with the camera the Studio aimed, and the count is the loop鈥檚', () => {
+  it('a frame reaches the backend with the camera the Studio aimed, and the count is the loop’s', () => {
     const headless = headlessRuntime();
     runtime = headless.runtime;
     const surface = createStudioScene(headless.runtime, () => {});
@@ -545,7 +545,7 @@ describe('the Studio鈥檚 scene, composed on the REAL runtime', () => {
     const scene = headless.runtime.getScene(toSceneId(surface.sceneId))!;
     expect(drawn.camera).toBe(aimed);
     expect(drawn.scene).toBe(scene.threeScene);
-    // The backend counted what the runtime handed it, lights included 鈥?the number a consumer reads.
+    // The backend counted what the runtime handed it, lights included — the number a consumer reads.
     expect(drawn.objects).toBeGreaterThanOrEqual(4);
     // The surface's own counter is NOT the backend's `calls`: it counts calls to `step`, which is the
     // loop a reader can ask about with no GPU present.
@@ -554,7 +554,7 @@ describe('the Studio鈥檚 scene, composed on the REAL runtime', () => {
   });
 });
 
-describe('the selection facts are the LIVE scene鈥檚 answer, not the pick鈥檚 echo (v192)', () => {
+describe('the selection facts are the LIVE scene’s answer, not the pick’s echo (v192)', () => {
   const SELECTED = { id: 'e1', name: 'Cube A' };
 
   /** A minimal structural scene: only id/name are required, exactly like the interface says. */
@@ -601,7 +601,7 @@ describe('the selection facts are the LIVE scene鈥檚 answer, not the pick鈥�
     expect(drifted?.position).toBeNull();
   });
 
-  it('the position comes from wherever the host keeps it 鈥?top-level or transform.position', () => {
+  it('the position comes from wherever the host keeps it — top-level or transform.position', () => {
     const top = selectionFactsOf(sceneWith({ id: 'e1', name: 'Cube A', position: { x: 1, y: 2, z: 3 } }), SELECTED);
     expect(top?.position).toEqual({ x: 1, y: 2, z: 3 });
     const nested = selectionFactsOf(
@@ -613,12 +613,12 @@ describe('the selection facts are the LIVE scene鈥檚 answer, not the pick鈥�
     expect(declared?.kind).toBe('mesh');
   });
 
-  // v199 鈥?the components half of the bounds, read LOOSELY: the live runtime keeps a Map, the save
+  // v199 — the components half of the bounds, read LOOSELY: the live runtime keeps a Map, the save
   // shape is an entry array (v119: a Map is not JSON), and a stringify accident arrives as an object.
   // All three spellings are one registry; the reader answers all three, in the registry's own order.
-  // v207 鈥?the answer SPLITS across two fields by the enabled flag; the registry's own order is kept
+  // v207 — the answer SPLITS across two fields by the enabled flag; the registry's own order is kept
   // within each half, and the union of the halves is the registry.
-  it('components read from the live registry in the host鈥檚 own order, enabled by the default rule', () => {
+  it('components read from the live registry in the host’s own order, enabled by the default rule', () => {
     const mapHost = new Map<string, { type: string; enabled: boolean }>([
       ['health', { type: 'health', enabled: true }],
       ['mana', { type: 'mana', enabled: false }],
@@ -657,21 +657,21 @@ describe('the selection facts are the LIVE scene鈥檚 answer, not the pick鈥�
       sceneWith({ id: 'e1', name: 'Cube A', components: [['filed-as', { enabled: false }]] }),
       SELECTED,
     );
-    // v207 鈥?the nameless value is DISABLED, so it lives in the second half, still named by its key.
+    // v207 — the nameless value is DISABLED, so it lives in the second half, still named by its key.
     expect(nameless?.components).toEqual([]);
     expect(nameless?.disabledComponents).toEqual([{ name: 'filed-as', enabled: false }]);
-    // A registry the host never declared 鈥?or one holding garbage 鈥?answers none, not an invented row.
+    // A registry the host never declared — or one holding garbage — answers none, not an invented row.
     expect(selectionFactsOf(sceneWith({ id: 'e1', name: 'Cube A' }), SELECTED)?.components).toEqual([]);
     const garbage = selectionFactsOf(sceneWith({ id: 'e1', name: 'Cube A', components: 42 }), SELECTED);
     expect(garbage?.components).toEqual([]);
   });
 });
 
-// M5 v210 鈥?the surface's WATCH leg: the runtime emits componentAdded/componentRemoved/
+// M5 v210 — the surface's WATCH leg: the runtime emits componentAdded/componentRemoved/
 // componentStateChanged from EVERY write path, and watchComponents is the Studio's first subscriber.
-// The cases call the runtime DIRECTLY (nothing through the surface's own verbs) 鈥?that is the whole
+// The cases call the runtime DIRECTLY (nothing through the surface's own verbs) — that is the whole
 // point: a registry change made by anyone must reach a watcher.
-describe('watchComponents 鈥?the registry tells the surface when it changed (M5 v210)', () => {
+describe('watchComponents — the registry tells the surface when it changed (M5 v210)', () => {
   let runtime: ThreeRuntime | null = null;
   afterEach(() => {
     runtime?.dispose();
@@ -713,7 +713,7 @@ describe('watchComponents 鈥?the registry tells the surface when it changed (M5
     expect(calls).toEqual(['added']);
   });
 
-  it('componentRemoved and componentStateChanged call the watcher too 鈥?all three names are watched', () => {
+  it('componentRemoved and componentStateChanged call the watcher too — all three names are watched', () => {
     const { surface, scene, entity } = surfaceOnHeadless();
     const events: string[] = [];
     surface.watchComponents(() => events.push('change'));
@@ -773,12 +773,12 @@ describe('watchComponents 鈥?the registry tells the surface when it changed (M5
   });
 });
 
-// M5 v212 鈥?the ENTITY leg of the watch, against the SHIPPED package. v211 gave the runtime's two silent
+// M5 v212 — the ENTITY leg of the watch, against the SHIPPED package. v211 gave the runtime's two silent
 // verbs a voice; this is the subscriber that turns that news into a moved panel. Every write here goes
-// through the RUNTIME, never through the surface's own verbs 鈥?the whole claim is that a change made by
+// through the RUNTIME, never through the surface's own verbs — the whole claim is that a change made by
 // anyone reaches the watcher. The listener RECORDS and the case asserts OUTSIDE: the runtime's emit
 // try/CATCHES each listener, so an expect inside one would be swallowed and certify nothing.
-describe('watchEntities 鈥?an out-of-band rename or hide moves the report (M5 v212)', () => {
+describe('watchEntities — an out-of-band rename or hide moves the report (M5 v212)', () => {
   let runtime: ThreeRuntime | null = null;
   afterEach(() => {
     runtime?.dispose();
@@ -809,7 +809,7 @@ describe('watchEntities 鈥?an out-of-band rename or hide moves the report (M5 v
     return { headless, surface, scene, entity };
   }
 
-  it('a rename made outside the surface re-reads to the NEW name 鈥?the news arrives after the mutation', () => {
+  it('a rename made outside the surface re-reads to the NEW name — the news arrives after the mutation', () => {
     const { surface, scene, entity } = surfaceOnHeadless();
     const before = surface.report().inspector?.name ?? null;
     const names: (string | null)[] = [];
@@ -834,7 +834,7 @@ describe('watchEntities 鈥?an out-of-band rename or hide moves the report (M5 v
     expect(seen).toEqual([false, true]);
   });
 
-  it('the two legs hear DISJOINT news on the real bus 鈥?component events do not move the entity watcher', () => {
+  it('the two legs hear DISJOINT news on the real bus — component events do not move the entity watcher', () => {
     const { surface, scene, entity } = surfaceOnHeadless();
     const componentCalls: number[] = [];
     const entityCalls: number[] = [];
@@ -859,7 +859,7 @@ describe('watchEntities 鈥?an out-of-band rename or hide moves the report (M5 v
     expect(runtime!.setEntityName(scene.id, toEntityId('no-such-entity'), 'Ghost')).toBe(false);
     expect(news).toEqual([]);
 
-    // And the subscription is ALIVE 鈥?the silence above was the refusals', not a dead watch.
+    // And the subscription is ALIVE — the silence above was the refusals', not a dead watch.
     runtime!.setEntityName(scene.id, entity.id, 'Villain');
     expect(news).toEqual(['change']);
   });
@@ -878,12 +878,12 @@ describe('watchEntities 鈥?an out-of-band rename or hide moves the report (M5 v
   });
 });
 
-// M5 v216 鈥?the BODY leg, against the SHIPPED package. Every write here goes through the RUNTIME: a body
+// M5 v216 — the BODY leg, against the SHIPPED package. Every write here goes through the RUNTIME: a body
 // added or taken away by anyone (a console command, an agent, a restore) must move the roster the report
 // reads, because `scene.entities` and `scene.entityNames` are read off the LIVE active scene and
 // `inspector` is that scene's answer about the selected id. The listener RECORDS and the case asserts
-// OUTSIDE 鈥?the runtime's emit try/CATCHES each listener (v211's rule).
-describe('watchBodies 鈥?an out-of-band add or removal moves the roster (M5 v216)', () => {
+// OUTSIDE — the runtime's emit try/CATCHES each listener (v211's rule).
+describe('watchBodies — an out-of-band add or removal moves the roster (M5 v216)', () => {
   let runtime: ThreeRuntime | null = null;
   afterEach(() => {
     runtime?.dispose();
@@ -914,7 +914,7 @@ describe('watchBodies 鈥?an out-of-band add or removal moves the roster (M5 v21
     return { headless, surface, scene, entity };
   }
 
-  it('a body created outside the surface re-reads the roster WITH it 鈥?the news arrives after the insert', () => {
+  it('a body created outside the surface re-reads the roster WITH it — the news arrives after the insert', () => {
     const { surface, scene } = surfaceOnHeadless();
     const before = surface.report().scene!.entities;
     expect(surface.report().scene!.entityNames).not.toContain('Intruder');
@@ -943,7 +943,7 @@ describe('watchBodies 鈥?an out-of-band add or removal moves the roster (M5 v21
     expect(surface.report().scene!.entityNames).not.toContain(entity.name);
   });
 
-  it('removing the SELECTED body answers `inspector: null` 鈥?the name stays, its facts are gone', () => {
+  it('removing the SELECTED body answers `inspector: null` — the name stays, its facts are gone', () => {
     const { surface, scene, entity } = surfaceOnHeadless();
     const selectedBefore = surface.report().selected?.name;
     expect(selectedBefore).toBe(entity.name);
@@ -959,7 +959,7 @@ describe('watchBodies 鈥?an out-of-band add or removal moves the roster (M5 v21
     expect(surface.report().selected?.name).toBe(entity.name);
   });
 
-  it('a restore moves this leg exactly once 鈥?through entityCreated, which the insert path emits for it', () => {
+  it('a restore moves this leg exactly once — through entityCreated, which the insert path emits for it', () => {
     const { surface, scene, entity } = surfaceOnHeadless();
     const snapshot = runtime!.snapshotEntity(scene.id, entity.id);
     expect(runtime!.removeEntity(scene.id, entity.id)).toBe(true);
@@ -983,12 +983,12 @@ describe('watchBodies 鈥?an out-of-band add or removal moves the roster (M5 v21
     expect(runtime!.removeEntity(toSceneId('no-such-scene'), entity.id)).toBe(false);
     expect(heard).toEqual([]);
 
-    // And the subscription is ALIVE 鈥?the silence above was the refusals', not a dead watch.
+    // And the subscription is ALIVE — the silence above was the refusals', not a dead watch.
     runtime!.removeEntity(scene.id, entity.id);
     expect(heard).toEqual(['news']);
   });
 
-  it('body news moves the body leg alone on the real bus 鈥?the other two legs stay silent', () => {
+  it('body news moves the body leg alone on the real bus — the other two legs stay silent', () => {
     const { surface, scene } = surfaceOnHeadless();
     const body: number[] = [];
     const entity: number[] = [];
@@ -1014,7 +1014,7 @@ describe('watchBodies 鈥?an out-of-band add or removal moves the roster (M5 v21
     });
   });
 
-  it('the unsubscribe drops the body leg only 鈥?the entity and component legs keep hearing', () => {
+  it('the unsubscribe drops the body leg only — the entity and component legs keep hearing', () => {
     const { surface, scene } = surfaceOnHeadless();
     const body: string[] = [];
     const entityNews: string[] = [];
@@ -1037,13 +1037,13 @@ describe('watchBodies 鈥?an out-of-band add or removal moves the roster (M5 v21
 });
 
 
-// M5 v217 鈥?the SCENE leg, against the SHIPPED package. The body leg says what is IN the reported scene;
+// M5 v217 — the SCENE leg, against the SHIPPED package. The body leg says what is IN the reported scene;
 // this leg says WHICH scene is reported and how many exist, so the witnesses below read `scenes`,
-// `activeSceneId` and `scene` 鈥?all read off the LIVE graph inside `buildSceneReport` (scene3d.ts:593-622),
+// `activeSceneId` and `scene` — all read off the LIVE graph inside `buildSceneReport` (scene3d.ts:593-622),
 // never copied by the surface. Two claims need real-package evidence that a fake cannot give: the FIRST
 // scene on an empty graph activates WITHOUT emitting `activeSceneChanged` (threeRuntime.ts:1240-1241), and
 // `dispose()` clears the graph (4212) without announcing it on either watched name.
-describe('watchScenes 鈥?an out-of-band scene add or switch moves the panel鈥檚 scene rows (M5 v217)', () => {
+describe('watchScenes — an out-of-band scene add or switch moves the panel’s scene rows (M5 v217)', () => {
   let runtime: ThreeRuntime | null = null;
   afterEach(() => {
     runtime?.dispose();
@@ -1074,7 +1074,7 @@ describe('watchScenes 鈥?an out-of-band scene add or switch moves the panel鈥�
     return { headless, surface, scene, entity };
   }
 
-  it('a second scene created outside the surface re-reads the COUNT, and the reported scene stays this surface鈥檚', () => {
+  it('a second scene created outside the surface re-reads the COUNT, and the reported scene stays this surface’s', () => {
     const { surface } = surfaceOnHeadless();
     const before = surface.report();
     expect(before.scene?.name).toBe('Studio Scene');
@@ -1086,7 +1086,7 @@ describe('watchScenes 鈥?an out-of-band scene add or switch moves the panel鈥�
 
     runtime!.createScene('Backlot', 'backlot');
     // Creating a scene ADDS one; it does not take the camera's seat. So this leg's news moves `scenes`
-    // ALONE 鈥?the same field no other leg can move, which is what makes the name load-bearing.
+    // ALONE — the same field no other leg can move, which is what makes the name load-bearing.
     expect(seen).toEqual([{ scenes: before.scenes + 1, activeSceneId: surface.sceneId, name: 'Studio Scene' }]);
   });
 
@@ -1104,7 +1104,7 @@ describe('watchScenes 鈥?an out-of-band scene add or switch moves the panel鈥�
 
     expect(runtime!.setActiveScene(other.id)).toBe(true);
     // The panel now reports a scene the surface never built and a body it never added. `scenes` did NOT
-    // move 鈥?that is the OTHER name's news 鈥?so the two names differ in which field they carry.
+    // move — that is the OTHER name's news — so the two names differ in which field they carry.
     expect(seen).toEqual([{ name: 'Backlot', names: ['Alien'], scenes: 2 }]);
     // And the surface's OWN handle is not a view of the active scene: it still names the scene whose frame
     // loop and bodies it owns, so a switch does not silently re-target the panel's write verbs.
@@ -1122,7 +1122,7 @@ describe('watchScenes 鈥?an out-of-band scene add or switch moves the panel鈥�
 
     expect(fresh.runtime.getSceneGraph().activeSceneId).toBeNull();
     const first = fresh.runtime.createScene('First', 'first');
-    // The graph is no longer empty and the report would now read a scene 鈥?but only ONE of the two names
+    // The graph is no longer empty and the report would now read a scene — but only ONE of the two names
     // spoke. A switch-only leg would show a panel that names no scene after one appeared, so `sceneCreated`
     // is load-bearing, which is the opposite verdict to v216's `entityRestored`.
     expect(fresh.runtime.getSceneGraph().activeSceneId).toBe(first.id);
@@ -1167,12 +1167,12 @@ describe('watchScenes 鈥?an out-of-band scene add or switch moves the panel鈥�
     expect(runtime!.setActiveScene(toSceneId('no-such-scene'))).toBe(false);
     expect(heard).toEqual([]);
 
-    // And the subscription is ALIVE 鈥?the silence above was the refusal's, not a dead watch.
+    // And the subscription is ALIVE — the silence above was the refusal's, not a dead watch.
     runtime!.createScene('Backlot', 'backlot');
     expect(heard).toEqual(['news']);
   });
 
-  it('scene news moves the scene leg alone on the real bus 鈥?and a body add is not scene news', () => {
+  it('scene news moves the scene leg alone on the real bus — and a body add is not scene news', () => {
     const { surface, scene } = surfaceOnHeadless();
     const sceneNews: number[] = [];
     const body: number[] = [];
@@ -1202,7 +1202,7 @@ describe('watchScenes 鈥?an out-of-band scene add or switch moves the panel鈥�
     });
   });
 
-  it('the unsubscribe drops the scene leg only 鈥?the body leg keeps hearing', () => {
+  it('the unsubscribe drops the scene leg only — the body leg keeps hearing', () => {
     const { surface, scene } = surfaceOnHeadless();
     const sceneNews: string[] = [];
     const body: string[] = [];
@@ -1222,7 +1222,7 @@ describe('watchScenes 鈥?an out-of-band scene add or switch moves the panel鈥�
     expect(() => unwatch()).not.toThrow();
   });
 
-  it('dispose() clears every scene and is NOT watched 鈥?the leg was alive before it, and quiet through it', () => {
+  it('dispose() clears every scene and is NOT watched — the leg was alive before it, and quiet through it', () => {
     const { surface } = surfaceOnHeadless();
     const heard: string[] = [];
     surface.watchScenes(() => heard.push('news'));
@@ -1232,7 +1232,7 @@ describe('watchScenes 鈥?an out-of-band scene add or switch moves the panel鈥�
     expect(heard).toEqual(['news']);
 
     // Then the refusal, measured against the runtime's own end. `dispose()` empties the graph (4212) and
-    // emits `disposed` (4232) 鈥?a name this leg deliberately does not hold, because Scene3D.tsx calls
+    // emits `disposed` (4232) — a name this leg deliberately does not hold, because Scene3D.tsx calls
     // dispose from the same teardown that unwatches, so a `disposed` leg would re-read a report off a
     // graph being cleared.
     const live = runtime!;
@@ -1243,7 +1243,7 @@ describe('watchScenes 鈥?an out-of-band scene add or switch moves the panel鈥�
   });
 });
 
-describe('watchPixels 鈥?an out-of-band backend, size or ratio change moves the panel鈥檚 pixels rows (M5 v218)', () => {
+describe('watchPixels — an out-of-band backend, size or ratio change moves the panel’s pixels rows (M5 v218)', () => {
   let runtime: ThreeRuntime | null = null;
   afterEach(() => {
     runtime?.dispose();
@@ -1258,10 +1258,10 @@ describe('watchPixels 鈥?an out-of-band backend, size or ratio change moves the
     return { headless, surface };
   }
 
-  it('an out-of-band setPixelRatio moves report.pixels.pixelRatio, and the leg hears it with the runtime鈥檚 OWN figure', () => {
+  it('an out-of-band setPixelRatio moves report.pixels.pixelRatio, and the leg hears it with the runtime’s OWN figure', () => {
     // The grant in one case. Before v218 there was no name to subscribe to: `setPixelRatio` wrote
     // `backend.state.pixelRatio`, the report reads that field, and the bus carried nothing. The listener
-    // takes NO payload 鈥?the news is "re-read" 鈥?so the figure the panel shows is the runtime's.
+    // takes NO payload — the news is "re-read" — so the figure the panel shows is the runtime's.
     const { headless, surface } = pixelsOnHeadless();
     const before = surface.report();
     expect(before.pixels!.width).toBe(800);
@@ -1295,7 +1295,7 @@ describe('watchPixels 鈥?an out-of-band backend, size or ratio change moves the
 
   it('on the real bus a ratio change news ONLY pixelRatioChanged: twelve raw listeners, one name fires', () => {
     // The census claim measured off the SHIPPED package rather than off my own reading of it. If the
-    // runtime announced a ratio change on some other name too 鈥?or on none 鈥?this is the case that says so.
+    // runtime announced a ratio change on some other name too — or on none — this is the case that says so.
     const { headless } = pixelsOnHeadless();
     const names = [
       'componentAdded',
@@ -1325,7 +1325,7 @@ describe('watchPixels 鈥?an out-of-band backend, size or ratio change moves the
   it('a re-initialize OUTSIDE the component moves the backend and resets the pixels, and only `initialized` says so', () => {
     // Why `initialized` is in this leg even though the Studio's own init happens before it subscribes: a
     // caller that rebuilds the backend moves `report.backend` and every pixel figure at once, and no other
-    // name on the bus news that. The claim is measured, not asserted 鈥?the size the resize just set is gone.
+    // name on the bus news that. The claim is measured, not asserted — the size the resize just set is gone.
     const { headless, surface } = pixelsOnHeadless();
     headless.runtime.resize(640, 480);
     const fires: Array<{ backend: string | null; pixels: { width: number; height: number } | null }> = [];
@@ -1386,7 +1386,7 @@ describe('watchPixels 鈥?an out-of-band backend, size or ratio change moves the
     expect(bodyFires).toBe(1);
   });
 
-  it('a drawn frame moves `draws` while the pixels leg stays DEAF 鈥?the refusal is about cadence, not a dead field', () => {
+  it('a drawn frame moves `draws` while the pixels leg stays DEAF — the refusal is about cadence, not a dead field', () => {
     // v218's NEW refusal, measured on the shipped bus: `frame` does move a reported field
     // (`draws.calls` is the backend's render count), so the reason not to watch it is that the component's
     // own loop already re-reads it (Scene3D.tsx:310-314), sampled by design. Subscribing here would trade
@@ -1432,7 +1432,7 @@ describe('watchPixels 鈥?an out-of-band backend, size or ratio change moves the
   });
 });
 
-describe('watchCameras 鈥?an out-of-band camera add or switch moves the panel鈥檚 camera rows (M5 v224)', () => {
+describe('watchCameras — an out-of-band camera add or switch moves the panel’s camera rows (M5 v224)', () => {
   let runtime: ThreeRuntime | null = null;
   afterEach(() => {
     runtime?.dispose();
@@ -1452,7 +1452,7 @@ describe('watchCameras 鈥?an out-of-band camera add or switch moves the panel�
     return scene ? { cameras: scene.cameras, names: scene.cameraNames, active: scene.activeCamera } : null;
   };
 
-  it('an out-of-band createCamera grows the rows the panel reads, and the leg re-reads the runtime鈥檚 OWN answer', () => {
+  it('an out-of-band createCamera grows the rows the panel reads, and the leg re-reads the runtime’s OWN answer', () => {
     const { headless, surface } = camerasOnHeadless();
     expect(cameraRows(surface)).toEqual({ cameras: 1, names: ['Studio Camera'], active: surface.cameraId });
     const seen: Array<ReturnType<typeof cameraRows>> = [];
@@ -1463,7 +1463,7 @@ describe('watchCameras 鈥?an out-of-band camera add or switch moves the panel�
     expect(seen).toHaveLength(1);
     expect(seen[0]).toEqual({ cameras: 2, names: ['Studio Camera', 'Review Cam'], active: surface.cameraId });
     // Only a scene's FIRST camera is activated by the insert, so the row the leg re-reads still names the
-    // original as the one driving the picture 鈥?the report is the runtime's answer, not a guess about it.
+    // original as the one driving the picture — the report is the runtime's answer, not a guess about it.
     expect(extra.active).toBe(false);
   });
 
@@ -1482,9 +1482,9 @@ describe('watchCameras 鈥?an out-of-band camera add or switch moves the panel�
     expect(surface.report().scene!.cameras).toBe(2);
   });
 
-  it('a REFUSED switch moves nothing and fires nothing, so the leg鈥檚 silence is the correct answer', () => {
+  it('a REFUSED switch moves nothing and fires nothing, so the leg’s silence is the correct answer', () => {
     // v224's runtime half, read through the SHIPPED seam. Before the fix this very call left `activeCamera`
-    // at `null` behind a `false`, while emitting nothing 鈥?a report edit no subscription could repair, because
+    // at `null` behind a `false`, while emitting nothing — a report edit no subscription could repair, because
     // the refusal had no news to carry. Now the refusal moves no field, so nothing needs saying.
     const { headless, surface } = camerasOnHeadless();
     const extra = headless.runtime.createCamera(toSceneId(surface.sceneId), 'Review Cam');
@@ -1555,10 +1555,10 @@ describe('watchCameras 鈥?an out-of-band camera add or switch moves the panel�
     expect({ cameraFires, pixelsFires, bodyFires }).toEqual({ cameraFires: 1, pixelsFires: 0, bodyFires: 1 });
   });
 
-  it('the camera WRITE the component makes 鈥?position and lookAt 鈥?moves no reported row and fires no leg', () => {
+  it('the camera WRITE the component makes — position and lookAt — moves no reported row and fires no leg', () => {
     // The refusal this grant had to measure rather than assume: `aim()` moves the live THREE.Camera on every
     // orbit drag, and the report reads only `id`, `name` and `active`. A leg there would re-read a report that
-    // cannot have changed. The write below is the component's own adapter, and it is real 鈥?that is the point.
+    // cannot have changed. The write below is the component's own adapter, and it is real — that is the point.
     const { headless, surface } = camerasOnHeadless();
     let fires = 0;
     surface.watchCameras(() => {
