@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// NEXUS M2 v237 (docs/evidence) -- RECORD-ENCODING INTEGRITY: the writer model that explains every mojibake
+// NEXUS M2 v238 (docs/evidence) -- RECORD-ENCODING INTEGRITY: the writer model that explains every mojibake
 // image this repository has carried, the flank rule that decides which look-alikes are NOT damage, and the
 // pinned repair ledger at ref 420f910 (116 lines, 58 sites, 24 derived fixes) that the tree must satisfy.
 // Run from the repository root, after nothing in particular (no build, no daemon):
@@ -320,7 +320,7 @@ for (const f of graded) {
     const sites = chargeable(cps(l));
     if (!sites.length) return;
     formNow++;
-    for (const s of sites) if (!isCharged(s)) rejected.push({ rel: f.rel, line: i + 1, img: s.img, why: s.why });
+    for (const s of sites) if (!isCharged(s)) rejected.push({ rel: f.rel, line: i + 1, img: s.img, why: s.why, text: l });
     if (sites.some(isCharged)) { chargeNow++; charged.push(`${f.rel}:${i + 1}`); }
   });
 }
@@ -483,6 +483,51 @@ if (onRef && refLines[FILES[0]]) {
 } else {
   console.log(`[4b] ref side: UNGRADED -- plane ${plane} cannot read ${REF}; the 116-line ledger was pinned there and the tree side above is the half this plane can answer`);
 }
+
+// -- S2b the half S2 is blind to: the look-alikes the flank rule RESCUES are a pinned population ------
+// v237's bounds named the gap out loud: a render site next to real Chinese is NOT charged, because U+8DEF is
+// both what M1 makes of a middle dot and the word for road. So damage that lands inside a bilingual line walks
+// past S2 -- and this clause makes the rescued half auditable instead of merely invisible. Every line the census
+// sees a registered spelling in is pinned by file and by the digest of its OWN BYTES, together with the reason
+// it was spared. A line joining that population is then a finding either way: sheltered damage, or a deliberate
+// new bilingual word -- and a deliberate one is exactly what an amendment has to record, which is the same
+// discipline the 116-line ledger already runs one level up.
+// The pin is a MULTISET over (file, line digest), not a set: two identical bilingual lines in one file are two
+// findings, and a key that ignored multiplicity would let the second one in for free -- the same shape the
+// ledger's duplicated scene3dSurface row already rules out.
+const LOOKALIKE = [{"f":"docs/decisions/0016-agent-runtime-hermetic-demo-loop.md","d":"7151e4bdbb778c70","i":[36335],"w":"REJECTED flanks punct|cjk"},{"f":"docs/decisions/0016-agent-runtime-hermetic-demo-loop.md","d":"f335297c0f7b649c","i":[36335],"w":"REJECTED flanks punct|cjk"},{"f":"docs/decisions/0016-agent-runtime-hermetic-demo-loop.md","d":"12925a29282cc7fe","i":[36335],"w":"REJECTED flanks punct|cjk"},{"f":"docs/evidence/agents/README.md","d":"c1adaf5fe3b481d1","i":[36335],"w":"REJECTED flanks punct|cjk"},{"f":"docs/evidence/agents/README.md","d":"13fd93ec59ec0d1a","i":[36335],"w":"REJECTED flanks punct|cjk"},{"f":"docs/evidence/agents/color-proof.mjs","d":"4fcdac9c04d765f7","i":[36335],"w":"REJECTED flanks alpha|cjk"},{"f":"docs/evidence/agents/drive-axis-proof.mjs","d":"dddfe8c8d320a3c0","i":[36335],"w":"REJECTED flanks cjk|cjk"},{"f":"docs/evidence/agents/drive-axis-proof.mjs","d":"910f2301f6783a51","i":[36335],"w":"REJECTED flanks cjk|cjk"},{"f":"docs/evidence/agents/provenance-proof.mjs","d":"3961d879652945ed","i":[36335],"w":"REJECTED flanks cjk|cjk"},{"f":"docs/evidence/agents/tree-axis-proof.mjs","d":"688d1d98a5331d23","i":[36335],"w":"REJECTED flanks alpha|cjk"}];
+const laKey = (e) => `${e.f}\u0000${e.d}`;
+const liveLA = rejected.map((r) => ({ f: r.rel, d: sha16(r.text), i: cps(r.img).map((c) => c.codePointAt(0)), w: r.why }));
+const mult = (arr) => { const m = new Map(); for (const k of arr) m.set(k, (m.get(k) || 0) + 1); return m; };
+const pinM = mult(LOOKALIKE.map(laKey));
+const liveM = mult(liveLA.map(laKey));
+const laName = (k, n) => `${k.split('\u0000').join(' @ ')} x${n}`;
+const extra = [...liveM].filter(([k, n]) => (pinM.get(k) || 0) < n).map(([k, n]) => laName(k, n));
+const vanished = [...pinM].filter(([k, n]) => (liveM.get(k) || 0) < n).map(([k, n]) => laName(k, n));
+assert.ok(LOOKALIKE.length >= 5, `S2b the pin must cover a real population, not an empty one (${LOOKALIKE.length} pinned against ${liveLA.length} live) -- a pin emptied of rows makes every clause below it green by having nothing to say`);
+assert.deepEqual(extra, [], `S2b no render-bearing line may join the tree unnamed by this pin (${extra.length} new: ${extra.slice(0, 3).join(' | ')}) -- the flank rule hides bilingual-context damage from S2, so THIS clause is where that shape has to surface`);
+assert.deepEqual(vanished, [], `S2b every pinned look-alike must still be in the tree (${vanished.length} gone: ${vanished.slice(0, 3).join(' | ')}) -- the pin keys on the bytes of the line, so a record that rewrites a bilingual line must say so in its amendment`);
+const bothFlanks = liveLA.filter((e) => e.w === 'REJECTED flanks cjk|cjk');
+assert.ok(bothFlanks.length >= 1, `S2b the pin must carry the BLINDEST shape -- a render rescued on BOTH flanks (measured ${bothFlanks.length} of ${liveLA.length}) -- otherwise it pins only the population S2 could half see`);
+const spellings = new Set(liveLA.map((e) => e.i.join('+')));
+assert.equal(spellings.size, 1, `S2b the pinned population is ONE spelling today, so a second one is a finding the amendment carries and not a surprise (${[...spellings].join(' / ')})`);
+for (const e of LOOKALIKE) {
+  assert.ok(RENDER.has(str(e.i)), `S2b the pinned image U+${e.i.map((c) => c.toString(16)).join('/')} at ${e.f} must be a render the WRITER MODEL produces (${e.d}) -- the registry is derived, so a hand-typed image cannot add a line to this pin`);
+  assert.ok(e.w.startsWith('REJECTED'), `S2b a pinned look-alike is the RESCUED half only (${e.w}) -- chargeable lines belong to S2, which runs and reports before this clause`);
+}
+for (const e of liveLA) {
+  const p = LOOKALIKE.find((x) => laKey(x) === laKey(e));
+  assert.deepEqual(e.i, p.i, `S2b ${e.f} @ ${e.d} carries image ${e.i.join('+')} in the tree but ${p.i.join('+')} in the pin -- the digest pins the line's bytes, and this pins which render those bytes are`);
+  assert.equal(e.w, p.w, `S2b the REASON a line is spared is part of its pin: ${e.f} @ ${e.d} pinned "${p.w}", measured "${e.w}"`);
+}
+const roadImg = str([0x8def]);
+const roadProducers = RENDER.get(roadImg);
+assert.ok(roadProducers && roadProducers.length >= 1, `S2b the road glyph must be reachable from the model or the plant below proves nothing (${roadProducers ? roadProducers.length : 0} producer(s))`);
+const hidden = str([0x4e2d]) + roadImg + str([0x6587]);
+assert.ok(!chargedLine(hidden), 'S2b a plant with CJK on BOTH flanks stays uncharged by S2 -- this is the gap, named rather than papered over');
+assert.ok(chargeable(cps(hidden)).some((s) => s.why === 'REJECTED flanks cjk|cjk'), 'S2b and the same plant IS a registered render site, so the population clause sees it while the charge clause does not');
+assert.ok(!LOOKALIKE.some((p) => p.d === sha16(hidden)), `S2b and its line digest (${sha16(hidden)}) is not in the pin, which is exactly the shape a bilingual plant turns into a red on the shipped tree -- S2 cannot see it, S2b can`);
+console.log(`[2b] look-alike pin ${liveLA.length}/${LOOKALIKE.length} lines over ${new Set(liveLA.map((e) => e.f)).size} file(s), one spelling U+${liveLA[0].i[0].toString(16)}, ${bothFlanks.length} rescued on both flanks; the CJK-road-CJK plant is spared by S2 and unnamed by the pin, which is what this clause reddens on`);
 
 // -- S5 the shape the ledger door reads: a v-heading needs the dash and a space after it --------------
 const readme = treeLines[FILES[2]];

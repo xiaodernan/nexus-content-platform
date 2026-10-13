@@ -4050,3 +4050,49 @@ limit below 300 s still wins, and §4 reports that as `incomplete` (a host kill)
   correct: a bilingual look-alike is deliberately NOT charged, so a genuinely damaged CJK neighbour can hide a
   render, and the only backstop for that is the 116-line ledger pinned at the ref. On a plane with no
   git the ref-side half is ungraded, not passed (B5).
+
+## The look-alike pin: the half the flank rule rescues becomes a population the gate has to name — M2 v238 — ADR 0016 amendment 238
+
+- **The gap this closes.** Amendment 237 shipped the census and its flank rule, and its own Bounds section
+  said what the rule must let through: a render site next to real Chinese is NOT charged, because the road glyph
+  is both what the writer makes of a middle dot and a legitimate word. The gate SAW those sites and reported
+  only that it rejected them — 10 of them in 6 files — and nothing said which lines they
+  were. A new damage of that shape could therefore land and move nothing but a total.
+- **What landed.** Section S2b pins every render-bearing line as a row of `{file, sha16(line bytes), image
+  codepoints, rescue reason}`, and it pins it as a MULTISET, so two identical bilingual lines in one file are
+  two rows. A line joining that population reddens `extra`; a pinned line that leaves reddens `vanished`; the
+  census now hands S2b the line bytes it previously threw away.
+- **The population, as measured.** 10 pinned rows against 10 live ones, over 6
+  files, and the whole set is ONE image spelling (U+8def) — which the clause asserts, so a second
+  spelling is a finding an amendment has to carry rather than a surprise. 3 rows are rescued on BOTH
+  flanks, and S2b refuses a pin that carries none of that shape, because otherwise it would only be naming the
+  lines S2 could half see anyway.
+- **Every pinned image must be producible.** The registry is derived from the writer model, so a pinned spelling
+  that the model cannot produce is refused (`S2b the pinned image U+…`), and a pinned reason that is not
+  `REJECTED` is refused — the chargeable lines belong to S2, which runs first and reports its own count.
+- **The plant that decides the grant.** v237's A3 arm put a bilingual road-word line into the shipped file and
+  the only thing it reddened was the gate's own ASCII self-claim: the census class was invisible. The same plant
+  now goes red at AssertionError [ERR_ASSERTION]: S2b no render-bearing line may join the tree unnamed by this pin, and the failure names the file and the digest of the planted line — the gap
+  closed with the same bytes that exposed it.
+- **Witness arms at rest: 8/8 matched their predicted clause.** D1 the unmutated copy, exit 0. D2
+  the bilingual plant above, first red AssertionError [ERR_ASSERTION]: S2b no render-bearing line may join the tree unnamed by this pin. D3 a pinned digest changed by one hex digit: the tree side
+  goes red first (AssertionError [ERR_ASSERTION]: S2b no render-bearing line may join the tree unnamed by this pin), because the corrupt key is both a join and a loss and the join is checked
+  first. D3b a pinned row naming a digest the tree does not carry: AssertionError [ERR_ASSERTION]: S2b every pinned look-alike must still be in the tree — the vanished half, seen on
+  its own. D4 a pinned row deleted: the tree side again, naming the file whose line lost its pin. D5 a pinned
+  image replaced by a spelling the model cannot produce: AssertionError [ERR_ASSERTION]: S2b the pinned image U+1f600 at docs/evidence/agents/provenance-proof.mjs must be a render the WRITER MODEL produces. D6 a pinned rescue reason replaced by a
+  charge: AssertionError [ERR_ASSERTION]: S2b a pinned look-alike is the RESCUED half only. D7 an ASCII-flanked writer render planted: AssertionError [ERR_ASSERTION]: S2 the tree must carry NO chargeable damage — the ordering proof that S2b
+  takes nothing from S2, which still catches what it always caught.
+- **Files:** `docs/evidence/agents/record-encoding-proof.mjs` (558 lines, 52668 bytes, sha256
+  prefix `eb8afa5492532d5a`): the section, plus the census carrying line bytes. No runtime module changed and no test
+  case was added.
+- **Measured:** Studio 33 files / 509 tests, exit 0 (`npm test -w @nexus/studio`), three-runtime 24 files / 543 tests, exit 0 (`npm test -w @nexus/three-runtime`),
+  `tsc --noEmit` exit 0 in both; the gate itself 37.0 s against its declared `sweep-budget-ms: 120000`
+  row budget. Census unchanged at rest: 0 chargeable over 464 graded files, 10 form-only
+  lines, 10 flank-rejected sites.
+- **Bounds (§60), stated.** The pin records which lines the flank rule rescued, not that they are correct: a
+  reader still has to decide whether a pinned line is a real Chinese word or sheltered damage, which is why the
+  reason string is part of the row and why growth is a red rather than a stat. A later record that rewrites a
+  pinned bilingual line must update the pin in its own amendment — the clause refuses the difference. The pin
+  needs no git ref, so unlike the ledger's ref side it still grades on a plane with no repository. It is bounded
+  to what the registry can produce: an image invented by hand cannot enter, which also means a damage spelling
+  the model does not declare is invisible to both clauses.

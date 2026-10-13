@@ -10575,3 +10575,30 @@ _Numbering: 235 was free (the ADR topped out at 234). Full decision record in `d
   `git ls-files` — SELF is added and disclosed. It cannot distinguish a corrupted CJK character whose neighbours
   are also CJK, which is the price of the flank rule that keeps `路径` legal; the ref-pinned ledger is the
   backstop for exactly those lines. On a NO-GIT plane the ref half is UNGRADED and the row says so.
+
+### Amendment 238 (M2/v238, docs/evidence/agents) — the flank rule's rescued half becomes a pinned population: 10 bilingual-context lines named by file and line digest, with the writer model as their admission ticket
+
+- **The gap this closes.** Amendment 237 kept the census at zero chargeable lines and disclosed
+  10 render sites it refused to charge. The disclosure was a count. Nothing could say WHICH lines, so
+  a new render that happened to sit next to real Chinese would have raised the count and changed no verdict —
+  exactly the shape the flank rule exists to allow, and the shape this amendment makes auditable.
+- **The rule, stated as a rule.** Every line the census sees a registered spelling in is pinned as
+  (file, sha16 of the line's bytes, image codepoints, rescue reason), as a MULTISET. Joining the population and
+  leaving it are both findings. A pinned image must be producible by the declared writer model, and a pinned
+  reason must be a rescue — `REJECTED` — because charges are S2's to report.
+- **Measured at rest.** 10 rows over 6 files, one image spelling (U+8def),
+  3 of them rescued on both flanks; 0 chargeable lines stay at zero over 464 graded
+  files, and the ledger's 116 rows and 17 GLUE + 7 CONTROL fixes are untouched by this change.
+- **Why the plant is the witness.** v237's own arms planted this line and observed S2 stay green; the only red
+  was the gate's ASCII self-claim. Re-running that plant against S2b turns the first red into
+  AssertionError [ERR_ASSERTION]: S2b no render-bearing line may join the tree unnamed by this pin, naming file and digest. The same battery keeps the old clause honest: an ASCII-flanked writer
+  render still reddens S2 first (AssertionError [ERR_ASSERTION]: S2 the tree must carry NO chargeable damage), so the new clause narrows nothing.
+- **Files:** `docs/evidence/agents/record-encoding-proof.mjs` (the S2b section and the census carrying line
+  bytes). No runtime module changed; no test case added; the sweep's row count is unchanged.
+- **Measured:** Studio 33 files / 509 tests, exit 0, three-runtime 24 files / 543 tests, exit 0, `tsc --noEmit` exit 0 in both; arms 8/8 HIT with the
+  clause names read from the battery log.
+- **Bounds (§60).** The pin names the rescued lines; it does not judge them. A record that rewrites a pinned
+  bilingual line must amend the pin in the same grant, and the gate refuses the difference rather than accepting
+  a silent rewrite of a line whose bytes are the evidence. Because the pin admits only registry spellings, a
+  damage class outside the four declared mechanisms stays invisible to both S2 and S2b — that ceiling belongs to
+  the model, and amendment 237 states it.
