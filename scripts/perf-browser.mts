@@ -437,7 +437,8 @@ async function propToCanvasLatency(scope: string): Promise<void> {
         `input 之后到第一帧 ${Math.round(split.firstFrame)}ms · ` +
         `长任务 ${split.longTasks === null ? '量不到（浏览器不支持 longtask）' : split.longTasks.join('/') || '无'} · ` +
         (split.phases
-          ? `快照 ${split.phases.snapshots ?? 0} 次，其中求解 ${Math.round(split.phases.layoutMs ?? 0)}ms / ` +
+          ? `快照 ${split.phases.snapshots ?? 0} 次（解算 ${split.phases.layoutSolves ?? 0} 次），` +
+            `其中求解 ${Math.round(split.phases.layoutMs ?? 0)}ms / ` +
             `token ${Math.round(split.phases.tokensMs ?? 0)}ms / 资产 ${Math.round(split.phases.assetsMs ?? 0)}ms / ` +
             `整段 ${Math.round(split.phases.snapshotMs ?? 0)}ms`
           : '分段量不到（这份构建里没有计数）'),
