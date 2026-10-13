@@ -18,6 +18,16 @@ import type { GamePlan, PlayActor } from "./index";
 export const CONTACT_COOLDOWN = 1;
 /** 玩家挥击冷却（秒） */
 export const PLAYER_ATTACK_COOLDOWN = 0.5;
+/**
+ * 一帧最多推进多少秒：切走标签页再回来，不该一次跳几秒把敌人一次性放到玩家面前。
+ * 导出而不是留在 `step` 的字面量里：§52 最后一格（Code）转写这份引擎时要**插**这个数，
+ * 在它自己的模板里重打一遍就等于给了两处会分叉的真值（§16）。
+ */
+export const MAX_FRAME_SECONDS = 0.1;
+/** 事件流保留上限（条）：一次长跑模拟不该攒下无界的事件 */
+export const EVENT_CAP = 40;
+/** 没有玩家时 `initialState` 说的那句话。同上：产物要念的是这一句，不是抄出来的一句 */
+export const SIM_NO_PLAYER_OUTCOME = "没有玩家实体，跑不起来。";
 
 export const SIM_RULE_NOTES = [
   `没有地形与墙：开阔场地，走到边界就停（模型里没有关卡布局）。`,
@@ -79,7 +89,7 @@ export function initialState(plan: GamePlan): SimState {
     questDone: {},
     activated: {},
     status: player ? "playing" : "lost",
-    outcome: player ? null : "没有玩家实体，跑不起来。",
+    outcome: player ? null : SIM_NO_PLAYER_OUTCOME,
     events: [],
     counters: { damageTaken: 0, damageDealt: 0, pickups: 0, triggersFired: 0, attacks: 0 },
   };
@@ -98,8 +108,8 @@ function dist(ax: number, ay: number, bx: number, by: number): number {
 
 function push(events: { t: number; text: string }[], t: number, text: string): void {
   events.push({ t: Math.round(t * 10) / 10, text });
-  // 只留最近 40 条：一次长跑模拟不该攒下无界的事件流
-  if (events.length > 40) events.shift();
+  // 只留最近 EVENT_CAP 条：一次长跑模拟不该攒下无界的事件流
+  if (events.length > EVENT_CAP) events.shift();
 }
 
 /**
@@ -108,7 +118,7 @@ function push(events: { t: number; text: string }[], t: number, text: string): v
  */
 export function step(plan: GamePlan, state: SimState, input: SimInput, dt: number): SimState {
   if (state.status !== "playing") return state;
-  const frame = Math.min(Math.max(dt, 0), 0.1); // 定步长上限：切标签页回来不该一次跳几秒
+  const frame = Math.min(Math.max(dt, 0), MAX_FRAME_SECONDS); // 定步长上限：切标签页回来不该一次跳几秒
   const next: SimState = {
     ...state,
     t: state.t + frame,
