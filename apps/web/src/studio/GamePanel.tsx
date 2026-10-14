@@ -26,6 +26,7 @@ import {
 import { cn } from '@/lib/cn';
 import { useStudioReady } from './store';
 import { useGame, gameStore } from './gameStore';
+import { GameCodeExport } from './GameCodeExport';
 
 /**
  * §54 Game Design System 的填写界面：11 类实体、每类的开放数值、实体之间的有向引用。
@@ -247,6 +248,7 @@ export function GamePanel() {
         >
           保存到库
         </button>
+        <GameCodeExport projectId={studio.projectId} />
       </div>
     </div>
   );

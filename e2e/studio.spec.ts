@@ -3703,3 +3703,64 @@ test('@smoke §144 导出：顶栏点一下就下载，回执说的和包里的�
   await expect(page.locator('[data-notification-unbacked="Build complete"]')).toHaveCount(0);
   await page.screenshot({ path: 'screenshots/project-export.png' });
 });
+
+/**
+ * §52 最后一格（Code）的界面出口：把库里那份设计投影成一份拿得走的产物。
+ *
+ * 断言只挑用户可见的：库里那份没跟上屏上这份时按钮点不动、写完了它自己松开、
+ * 产物文件列得出来、点一个文件真的落盘、限度那几句原样出现在界面上且真的在视口里——
+ * 只报"成功"而不报限度，界面就在替产品撒谎。
+ */
+test('@smoke 游戏：生成可玩产物，点一个文件真的落盘（§52 Code）', async ({ page }) => {
+  test.setTimeout(180_000);
+  await createProject(page, `可玩产物 ${Date.now().toString(36)}`);
+
+  await page.click('[data-panel-tab="game"]');
+  await expect(page.locator('[data-game-empty]')).toBeVisible({ timeout: 40_000 });
+  await page.click('[data-game-create]');
+  await expect(page.locator('[data-game-entity]')).toHaveCount(11);
+  // 「创建游戏骨架」把 PUT 发出去就返回，界面先画出 11 个实体——这一段库里还没有那一份。
+  // 第一版没拦这件事：紧接着点「生成可玩产物」会收到"这份项目还没有游戏设计"，
+  // 那是对着屏上明明存在的设计撒谎。所以先量这一格：欠着写的时候按钮必须点不动。
+  // 用改名来稳定地制造"欠着写"（fill 不失焦，失焦才会保存），比抓 PUT 在飞那几十毫秒可靠。
+  await page.fill('[data-game-name]', '可玩产物 待写库');
+  await expect(page.locator('[data-game-code-run]')).toBeDisabled();
+  await expect(page.locator('[data-game-code-behind]')).toBeVisible();
+  // 写进库之后按钮自己松开：挡太久就成了"这格坏了"，两头都要量
+  await page.click('[data-game-save]');
+  await expect(page.locator('[data-game-code-run]')).toBeEnabled({ timeout: 90_000 });
+  await expect(page.locator('[data-game-code-behind]')).toHaveCount(0);
+
+  // 这一格没有 AI：点了立刻出文件列表
+  await page.click('[data-game-code-run]');
+  await expect(page.locator('[data-game-code-file]').first()).toBeVisible({ timeout: 30_000 });
+  // 自包含的入口、计划与引擎都在：少一件就不是"拿得走的产物"
+  await expect(page.locator('[data-game-code-file="index.html"]')).toBeVisible();
+  await expect(page.locator('[data-game-code-file="plan.json"]')).toBeVisible();
+  await expect(page.locator('[data-game-code-file="engine.js"]')).toBeVisible();
+  await expect(page.locator('[data-game-code-bytes]')).toContainText('字节');
+
+  // 限度随产物一起念出来（转写 / 不联网 / 不执行）——少一句就是界面在替产品撒谎
+  const limits = page.locator('[data-game-code-limits] li');
+  await expect(limits.filter({ hasText: '转写' })).toHaveCount(1);
+  await expect(limits.filter({ hasText: 'connect-src' })).toHaveCount(1);
+  await expect(limits.filter({ hasText: '不执行' })).toHaveCount(1);
+  // 断言"看得见"不等于有人看过：这一段在面板底部，视口外也能过 toBeVisible。
+  // 先滚进视口、按 toBeInViewport 量一遍，再截那一张真正包含限度那几句的图。
+  await page.locator('[data-game-code-limits]').scrollIntoViewIfNeeded();
+  await expect(page.locator('[data-game-code-limits]')).toBeInViewport();
+  await expect(limits.filter({ hasText: '不执行' })).toBeInViewport();
+  await page.screenshot({ path: 'screenshots/game-code.png' });
+
+  // 点一个文件真的落盘（Blob 下载，不是跳到别处）
+  const download = page.waitForEvent('download');
+  await page.click('[data-game-code-file="index.html"]');
+  const saved = await download;
+  expect(saved.suggestedFilename()).toBe('index.html');
+  const path = await saved.path();
+  if (!path) throw new Error('产物没落到磁盘');
+  const html = (await readFile(path)).toString('utf8');
+  // 落盘的那一份就是产物本身：自包含页面 + CSP 把它按在本地（doctype 大小写按生成器的写法来）
+  expect(html.toLowerCase()).toContain('<!doctype html>');
+  expect(html).toContain('connect-src');
+});

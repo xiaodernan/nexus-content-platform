@@ -22,7 +22,7 @@ import {
 /**
  * §52 链最后一格（Code）的规则层测试：一份设计投出来的**产物字节**能撒的谎，
  * 与前三格不一样——前三格谎在"做了什么"，这一格谎在"拿到的东西是不是真的跑得起来的那一份"。
- * 所以断言全部围着四类谎：
+ * 所以断言全部围着五类谎：
  *
  * 1. **两份计划各写一遍**：`plan.json` 与 `plan.js` 必须是同一次 `compileGame` 的序列化结果。
  *    分开生成就会出现"下载的那份是旧的、浏览器里跑的是新的"，而两边都自称来自同一份设计。
@@ -33,6 +33,10 @@ import {
  *    少一个文件不是"少一份代码"，是作者解压出来打不开。
  * 4. **产物里不许有宿主入口**：`require(` / `eval(` / `child_process` / `fetch(` 之类一个都不许有，
  *    而且这条扫描自己要有反向控制——一段种进去的坏字节必须被它抓到，否则"没扫到"就是"没在扫"。
+ * 5. **转写不许漏字段**：`sim.ts` 的初始态是自己点活（`active: true` / `readyAt: 0`）的，
+ *    计划里并没有这两个字段。产物若从计划里抄，敌人开局就是死的——页面照样"进行中"，谁也看不出。
+ *    这一类缺陷是浏览器那条见证第一次跑抓到的（`scripts/game-code-parity.mts`，读数见 `docs/TESTING.md`），
+ *    下面那道读结构的闸就是它留下的疤。
  *
  * 底稿的每一串预期（七个文件、几个未投影的实体、几个模板实体）都是先把这份文档跑一遍量出来的，
  * 不是猜的；能由投影算出来的数都从投影算，不手写。
@@ -101,6 +105,34 @@ function templateOnly(): GameDocument {
     ],
     true,
   );
+}
+
+/**
+ * 开局那三张名单必须自己把 `active` / `readyAt` 点活。
+ * 返回缺陷清单；空数组 = 这一处是干净的。
+ */
+function startActorDefects(engine: string): string[] {
+  const start = engine.indexOf("initialState: function (plan)");
+  const end = engine.indexOf("step: function (plan, state", start);
+  if (start < 0 || end < 0) throw new Error(`引擎里找不到 initialState 那一段（start=${start}、end=${end}）`);
+  const region = engine.slice(start, end);
+  const defects: string[] = [];
+  for (const list of ["enemies", "items", "triggers"]) {
+    const line = region.split("\n").find((row) => row.trim().startsWith(`${list}:`));
+    if (!line) {
+      defects.push(`${list}：初始态里没有这一行，转写漏了`);
+      continue;
+    }
+    if (line.includes("cloneActors(plan.")) {
+      defects.push(`${list}：用 cloneActors 起头，而计划里没有 active / readyAt 这两个字段，开局就是死的`);
+    }
+    if (!line.includes("startActors(plan.")) defects.push(`${list}：没走 startActors（点活开局的那一处）`);
+  }
+  const starter = /function startActors\(list, healthOf\) \{([\s\S]*?)\n\}/.exec(engine)?.[1] ?? "";
+  if (!starter.includes("active: true") || !starter.includes("readyAt: 0")) {
+    defects.push("startActors 没把 active / readyAt 写成 true / 0");
+  }
+  return defects;
 }
 
 function file(output: { files: GeneratedGameFile[] }, path: string): GeneratedGameFile {
@@ -336,5 +368,25 @@ describe("§52 最后一格：把设计投影成一份拿得走的产物", () =>
     // 字节数不是判别证据：300→120、200→640 都是三位数，两遍一样长（量出来的，不是我推的）。
     // 比的是那串数据本身变没变。
     expect(file(after, "plan.json").contents).not.toBe(file(before, "plan.json").contents);
+  });
+
+  /**
+   * 这一条不是我想出来的形状：它是真浏览器那条见证（`scripts/game-code-parity.mts`）
+   * **第一次跑就抓到**的缺陷。第一版的 `initialState` 用 `cloneActors(plan.enemies)` 起头，
+   * 而 `compileGame` 排出来的计划里根本没有 `active` / `readyAt` 这两个字段，
+   * 于是产物里所有敌人开局就是"死的"：不追、不打、物品也捡不起来，页面却照样显示"进行中"。
+   * 上面那几条比对常量的静态闸全绿，缺陷照跑——所以补一道读结构的闸，并给它反向控制。
+   */
+  it("初始态不许从计划里抄它没有的字段（浏览器见证抓到的那一类缺陷）", () => {
+    const engine = file(generateGameCode(levelDraft()), "engine.js").contents;
+    expect(startActorDefects(engine)).toEqual([]);
+
+    // 反向控制：把 enemies 那一行退回第一版的写法，闸必须只点名 enemies 这一处
+    // （两处理由：既抄了不存在的字段，也没走点活那一条——同一行的两个说法，不是别处被牵连）
+    const bad = engine.replace("enemies: startActors(plan.enemies", "enemies: cloneActors(plan.enemies");
+    expect(bad, "替换没命中，反向控制测的是空气").not.toBe(engine);
+    const hits = startActorDefects(bad);
+    expect([...new Set(hits.map((hit) => hit.split("：")[0]))]).toEqual(["enemies"]);
+    expect(hits.some((hit) => hit.includes("cloneActors"))).toBe(true);
   });
 });

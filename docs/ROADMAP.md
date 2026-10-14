@@ -807,6 +807,29 @@ drizzle 把整个拼接结果当成**单个绑定参数**，生成的 SQL 是 `o
    最后一格 Code（产物要能下载、**不得在主机执行**，§81）——Level 这格今天落地了，
    但它只把投影排好的位置写成设计值并按写死的几何目标摆开，摆出来的布局不是美术成品。
    前置条件已经好了：`sim.ts` 是无头、定步长、可复现的（同一份计划 + 同一段输入 = 同一个状态，有测试钉住）。
+
+   **2026-10-14 §52 最后一片（Code：产物能下载，而且真的能玩）**：链子的最后一格落地，
+   见 `docs/adr/0038-code-cell-transcription-and-browser-parity.md`。
+   - **转写而不是复用**：产物里的引擎是 `sim.ts` 的转写（同一段推进逻辑，ES5 形状、能独立打开），
+     四个规则数与那句拒绝**由 `sim.ts` 的导出插进模板**——模板里不许出现对应的字面量，
+     否则就是两处各写一遍，改一处另一处不会跟着红。
+   - **§81 的守法形状**：生成侧只有字符串拼接（不 eval、不起子进程、不读写文件、不联网）；
+     产物自带 CSP `connect-src 'none'`；见证把字节交给 **loopback 上另一个源的浏览器**跑，
+     主机自己从不执行它（`scripts/game-code-parity.mts`，`npm run parity:game-code`）。
+   - **"转写等价"这句话第一次被结账**：那条见证 13 条判决首跑就报出**产物里所有敌人开局就是死的**
+     （`initialState` 用了 `cloneActors(plan.*)`，而计划里没有 `active` / `readyAt`）——
+     不追、不打、物品捡不起来，页面摘要却照样写"进行中"。当时那 17 条比对常量与键名的静态闸**全绿**。
+     补了与 `sim.ts` 的 `actor()` 同形的 `startActors`，并留下一道读结构的闸 + 反向控制。
+     修完之后：**979 帧、980 个状态、1 771 994 字节的轨迹与平台引擎逐字符相同**，
+     末态摘要逐字相同，五条分支各自跑到（伤害 2 / 挥击 3 / 输出 4 / 拾取 1 / 机关 52、事件流停在 40 条上限）。
+   - **出口是只读的**：`GET /api/projects/<id>/game/code` 从库里那份设计现算，归属先判、响应体有上限（超了 413 并报字节数）；
+     界面（`GameCodeExport`）把 `CODEGEN_LIMITS` 那四句原样念出来，一个文件一个文件用 Blob 落盘。
+   - **e2e 又抓到一格界面在撒谎**：这一格读库里那份，而 PUT 还在飞时屏上已经有 11 个实体了——
+     第一版按钮照样能点，于是"刚建完骨架就生成"回一句「这份项目还没有游戏设计」。
+     现在库里没跟上屏上（`dirty` / `saving`）时它点不动并写着原因；变异臂（把 `behindLibrary` 摘掉）
+     红在 `expect(locator).toBeDisabled()` / `Received: enabled`。
+   **仍欠**：ZIP 那一格（现在是一个文件一个文件下，界面上明说）、编排链上的 `code` 那一步
+   （产物照 ADR-0035 停在草稿层）、§53 的 Capture screenshots / Fix 两格（要接浏览器与模型）。
 - [~] 游戏设计系统：Player/Enemy/Weapon/Item/Quest/Dialogue/Trigger/NPC/Camera/Animation/Particle（§54）
   — **2026-09-24 落地模型层**：新开 `packages/game-model`（与 design-model / world-model 同一条纪律：
   无 React、无 IO，两端跑同一份校验）。11 类实体 + 数值旋钮 + 实体间引用 + 引用完整性校验 + 确定性投影，

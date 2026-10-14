@@ -17,6 +17,7 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "perf:browser": "tsx scripts/perf-browser.mts",
+    "parity:game-code": "tsx scripts/game-code-parity.mts",
     "test:ai-service": "apps\\ai-service\\.venv\\Scripts\\python.exe -m pytest apps/ai-service/tests -q",
     "contract:export": "tsx scripts/export-ai-contract.mts",
     "mcp:serve": "npm run start -w @nexus/mcp-server",
