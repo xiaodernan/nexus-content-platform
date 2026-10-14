@@ -2887,6 +2887,32 @@ no quota meter: the user learns the origin is full only when the refusal arrives
 delete in the browse UI" clause is retired — the browse has had delete since v169/v171; this record
 corrects the ledger, not the code.
 
+## v181 — the 3D surface PANS: shift-drag and WASD/arrows slide the orbit target (M5 v181 — ADR 0016 amendment 181)
+
+_Backfilled: this grant and the five below landed with a ledger entry but no corpus title, so the doc gate named them as holes; the records are written from each amendment's own heading and the ROADMAP's M5 row, not invented._
+
+`OrbitState` gained `panX`/`panZ` — the orbit TARGET slides along the ground plane. `applyPan` converts CAMERA-relative input (`forward`/`right`) with the orbit's own azimuth so `W` means "into the screen"; each axis clamps at `±ORBIT_PAN_LIMIT`; `applyOrbit` rides the offsets through untouched (turning never moves what the camera looks at); `orbitToPlacement` slides the whole rig (the lookAt moves WITH the camera, the reach unchanged). The surface grows `panBy`, wired to shift-drag (the world follows the cursor) and WASD/arrows (a key aimed at a text field is ignored). Studio **256 → 263**, harness **25 → 30/30**. Bounds: pan is horizontal-only, the key map is page-wide (input-guard scoped), no inertia.
+
+## v182 — the surface PICKS: a click names the body it touches (M5 v182 — ADR 0016 amendment 182)
+
+The runtime grows `pickAt(sceneId, nx, ny)` — a real `Raycaster` into the LIVE scene (the world matrix refreshed first, invisible bodies skipped, nearest hit wins) answering `ScenePick {entityId, name, distance}`. The surface converts a click's pixel through `ndcFromPixel`; a release within 4 px of its press is a CLICK (a longer travel was a drag); the hit lands in the report as `selected`, empty sky clears it, and the HUD answers `picked: <name>`. Studio **263 → 274**, three-runtime **440 → 448**, harness **30 → 33/33** (two pinned clicks name DIFFERENT bodies — spatial, not a constant; empty sky clears).
+
+## v183 — the lighting is CONTROLLABLE (M5 v183 — ADR 0016 amendment 183)
+
+The runtime grows `setLightState(sceneId, lightId, {enabled?, intensity?})` — toggling `enabled` attaches/detaches the real `THREE.Light` (v142's rule through the gate), an illegal intensity refuses the WHOLE change, and light ids are SCENE-LOCAL names. The surface folds every brightness ask into 0..2 (`clampLightIntensity`) before the host sees it, the report re-reads the live scene as `scene.lighting`, and the HUD gives each declared light an on/off toggle and −/+ brightness at 0.1 a press. Studio **274 → 283**, three-runtime **448 → 453**, harness **33 → 37/37** (toggle, dim 1.00 → 0.90, re-enable read back through the bridge). Bounds: no light creation/deletion, no colour or position control, lighting is not persisted.
+
+## v184 — the save REALLY persists: store AND disk (M5 v184 — ADR 0016 amendment 184)
+
+v163–v180's note claimed localStorage persistence while nothing ever called `writeSaveFile` — the store stayed empty through every green run and the harness never looked. The panel's save now writes the store for real and reports the write report's own byte count, and the runtime's fs-backed `SaveStore` (v120) gains its **first product consumer** — a `save-fs` route over the runtime's own `createFsSaveStore` with `node:fs` injected as its `FsLike` (the naming rules stay the store's; saves land in gitignored `.nexus/scene-saves`), a fetch-only lane, and `save to disk`/`browse disk` HUD controls whose rows load a disk save into a fresh scene. The harness reads the file back off disk with `node:fs` (2307 bytes, 5 bodies), and the HUD panel gets a max width so it stops swallowing drags aimed at the canvas. Studio **283 → 297**, harness **37 → 42/42**.
+
+## v185 — the save area METERS what it holds (M5 v185 — ADR 0016 amendment 185)
+
+The save area measures what it holds — a store line summing the chars the decorated listing measured (a JS string's length, the unit localStorage quotas are counted in; the store's `list()` still reads no bytes — the meter is the caller that pays that cost on purpose), the browser's own `storage.estimate()` on the origin line labelled `browser estimate, all storage APIs`, a missing estimate NAMED rather than invented, a percent bar that renders only when both halves are numeric, and every store mutation re-measuring. Studio **297 → 318**, harness **42 → 46/46**.
+
+## v186 — the disk rows are MANAGEABLE: delete and rename reach the server's real file (M5 v186 — ADR 0016 amendment 186)
+
+The disk rows carry delete and rename (`data-scene3d-disk-delete` / `data-scene3d-disk-rename`, `stopPropagation` so the row's click-to-load never fires beneath them) through the route's `delete | rename` actions — the server refuses only non-string paths itself and hands everything else to the store's own words (`delete` answers its boolean, "already gone" is `ok: true, deleted: false`; a rename's NEW name is a server-side creation under the store's creation rule, a missing OLD name refused by name), and the rows are re-probed after each verb, never hand-edited. Studio **318 → 327**, harness **46 → 53/53**.
+
 ## v205 — component removal releases the evicted component's effects: the record this grant was owed (ADR 0016 amendment 220)
 
 `5d68198` cites "ADR 0016 amendment 205", and that number is exec-host's share of the type-gate repair. Same
@@ -3084,3 +3110,9 @@ registration → 1. Source restored byte-identical after every arm.
 Measured: three-runtime **535 → 541** (23 → 24 files), `tsc --noEmit` exit 0, Studio **484/484** unchanged. No
 existing case moved — every caller in the corpus passes a real `scene.id`, which is why the hole could sit
 there since v108 introduced the verb.
+
+## v239 — camera REMOVAL, and the Studio camera leg's event names and count corrected (M5 v239 — ADR 0016 amendment 239)
+
+_Backfilled pointer-record: the commit (`e7106c8`, "v239 follow-on") carried a ledger entry but no corpus title AND no message body, so this section states what the diff shows and claims no suite total it did not measure._
+
+`packages/three-runtime/test/cameraRemoval.test.ts` is NEW (505 lines) — the suite for a camera-REMOVAL verb; `threeRuntime.ts` gained 35 lines (the verb); `apps/studio/src/lib/scene3d.ts` (48) and `scene3d.test.ts` (24) were corrected — the subject names the defect: the Studio camera leg listened for the wrong EVENT NAMES and asserted the wrong COUNT. 577 insertions / 35 deletions across four files. Bounds: a pointer, not a reconstruction — no measured total is quoted because the commit measured none.

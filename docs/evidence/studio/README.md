@@ -1950,3 +1950,31 @@ re-derived from the mechanism rather than smoothed — recorded in the ADR.
 Measured: Studio **474 → 483** (31 files), three-runtime **531 → 535** (23 files), `tsc --noEmit` exit 0 in both.
 No existing case moved.
 
+## v178 — the deploy records READ BACK: append-only becomes reviewable (M6 v178 — ADR 0016 amendment 178)
+
+_Backfilled: this grant and the four below (v188–v191) carried a ledger entry but no corpus title, so the doc gate named them as holes; the records are written from each amendment's own heading and the ROADMAP rows, not invented._
+
+The deploy lane had been append-only: it WROTE a history nobody could read. `readStudioDeployRecords` and the probe carry the records NEWEST FIRST (display-capped, malformed lines COUNTED and never hidden), and the panel renders the history — so a record is reviewable, not merely durable. Studio **256/256**, `deploy-lane-proof.mjs` §1–§7, harness **10/10**.
+
+## v188 — the board is EDITABLE: remove and reorder reach the storyboard manager (M3 v188 — ADR 0016 amendment 188)
+
+The storyboard manager's `removeFrame`/`reorderFrames` gained product doors — each frame row carries `↑`/`↓`/`remove` (edges disabled), a reorder hands the manager the FULL id sequence (not a swap of two), and a removal leaves the survivors' order intact.
+
+## v189 — characters are ANCHORED and DERIVABLE (M3 v189 — ADR 0016 amendment 189)
+
+The consistency trio's product doors: `register` anchors a character to an asset the library ACTUALLY holds (id + anchor select + optional strength), and the report reads what the register HOLDS (`null` where none was declared) — `apply` answers a REQUEST and never an asset, so the door cannot imply a derivation the manager did not perform.
+
+## v190 — the library is EDITABLE: `updateMetadata`'s product door lands (M3 v190 — ADR 0016 amendment 190)
+
+`updateMetadata`'s product door reaches the asset library, and with it **M3's open list is EMPTY** — every manager verb the assets surface declared is now reachable from a product door rather than only from the suite.
+
+## v191 — the world REALLY persists: the engine's own save()/load() gain a disk lane (M4 v191 — ADR 0016 amendment 191)
+
+The engine's own `save()`/`load()` gain a disk lane — `worldSaveServer` rides the SAME tested fs store the scene lane uses (`createFsSaveStore` over the real `node:fs`, root `.nexus/world-saves`), the route is the only door and the browser holds a fetch-only adapter, a file that carries no object `world` is refused by NAME before bytes move or reach the loader, the panel's Persist row saves the engine's own file (the note reports the byte count) and loading hands the file to the engine's own `load()` — the live world becomes the saved one. Harness **25 → 34/34** (the file read off the REAL disk at the tick the bridge reported), studio **349 → 364**, `@nexus/world-engine` untouched.
+
+## v240 — four world-engine `create*` verbs now refuse taken ids (M4 v240 — ADR 0016 amendment 240)
+
+_Backfilled pointer-record: the commit (`57ca15e`) carried a ledger entry but no corpus title AND no message body, so this section states what the diff shows and claims no suite total it did not measure. It is the world lane's, and this README documents the world surface._
+
+`packages/world-engine/src/worldEngine.ts` gained 17 lines (one removed) — FOUR `create*` verbs now REFUSE an id already taken, joining the same family as v225 (`createCamera`/`createScene`), v228 (`createAnimation`) and v239 (camera removal): a verb that answers a taken id with a silent overwrite is the defect this family retires. Bounds: a pointer, not a reconstruction.
+

@@ -10603,6 +10603,20 @@ _Numbering: 235 was free (the ADR topped out at 234). Full decision record in `d
   damage class outside the four declared mechanisms stays invisible to both S2 and S2b — that ceiling belongs to
   the model, and amendment 237 states it.
 
+### Amendment 239 (M5/v239, packages/three-runtime + apps/studio) — camera REMOVAL, and the Studio camera leg's event names and count corrected
+
+_Numbering: this commit (`e7106c8`, subject "v239 follow-on") landed with **no ledger entry**. The record below is written from the BYTES the commit moved (`git show --stat`), because the commit carried no message body and no measured totals — the diff is the only witness, and this record says so rather than inventing a suite count or a mutation arm it did not measure (invention is what amendment 90's title warns against)._
+
+- **What it moved.** `packages/three-runtime/test/cameraRemoval.test.ts` is NEW (505 lines) — the suite for a camera-REMOVAL verb; `packages/three-runtime/src/threeRuntime.ts` gained 35 lines (the verb); `apps/studio/src/lib/scene3d.ts` (48 lines changed) and `scene3d.test.ts` (24) were corrected — the subject names the defect: the Studio camera leg's EVENT NAMES and its COUNT were wrong, so the surface was listening for the wrong names and asserting the wrong number. 577 insertions / 35 deletions across four files.
+- **Bounds (§60).** A POINTER, not a reconstruction: no suite total and no mutation result is claimed, because the commit measured neither in a form a later reader can quote.
+
+### Amendment 240 (M4/v240, packages/world-engine) — four `create*` verbs now refuse taken ids (the v225/v228/v239 family)
+
+_Numbering: this commit (`57ca15e`) landed with **no ledger entry**; the record is written from its subject and the bytes it moved, not from a body it never carried._
+
+- **What it moved.** `packages/world-engine/src/worldEngine.ts` gained 17 lines (one removed) — FOUR `create*` verbs now REFUSE an id already taken, joining the same family as v225 (`createCamera`/`createScene`), v228 (`createAnimation`) and v239 (camera removal): a verb that answers a taken id with a silent overwrite is exactly the defect this family retires.
+- **Bounds (§60).** As with 239, a POINTER: the commit carried no body and no measured totals, so no suite count is claimed.
+
 ### Amendment 241 (M7/v241, apps/studio) — the EXPLORE page: what is published, at a URL a person can browse
 
 _Numbering: the ledger topped out at 238. **239 and 240 are owed** — the v239 commit (a cameraRemoval test fix) and the v240 commit (four world-engine `create*` verbs refusing taken ids) landed with no amendment, recorded here rather than invented (their own commits are the only witness). This increment is v241 and takes 241._

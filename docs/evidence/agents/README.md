@@ -3988,6 +3988,16 @@ The fix is one word — `timeout: 300_000` — with the measurement in the comme
 120 s before). Bounds: a real timeout makes the gate fail loudly where it used to be killed silently; a host
 limit below 300 s still wins, and §4 reports that as `incomplete` (a host kill) rather than a regression.
 
+## v21 — host-verified UI runs and ledger journaling (M2 v21 — ADR 0016 amendment 21)
+
+_Backfilled: this grant and v164 below carried a ledger entry but no corpus title, so the doc gate named them as holes; the records are written from each amendment's own text._
+
+`UiDriver.layerCount?()` is optional: when the host can report a REAL artifact count (the dock passes the Design Model node count — §8 canonical, not DOM scraping), the Studio's `runUiTask` registers a host `test.run`, so the SAME demo planner grows a fourth `verify` step whose completion means the design model actually CHANGED, not that buttons were clicked. Without a state reporter, NO verify step is invented (asserted). And every UI run is JOURNALED to the ledger — a `{goal: 'ui-task: …', approved, score, …}` line, so a host-verified run is durable rather than merely observed.
+
+## v164 — the prose totals followed the suites late, so the evidence tables were re-pinned (M2 v164 — ADR 0016 amendment 164)
+
+The evidence tables' prose totals had drifted behind the suites they claim to sum, so they were re-pinned to what the suites ACTUALLY answer. Numbering note from the record itself: the number was CLAIMED in `7241a28`'s message (2026-10-06) without a ledger entry; the ledger grants the number, and this is the grant (am. 111 — the ledger grants numbers).
+
 ## The record-encoding integrity gate: a writer model, a flank rule, and a 116-line digest ledger — M2 v237 — ADR 0016 amendment 237
 
 - **What the defect was.** A writer read UTF-8 bytes as GBK. A 3-byte punctuation character becomes one CJK
