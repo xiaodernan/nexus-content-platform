@@ -244,6 +244,19 @@ export default function Toolbar() {
         >
           Published
         </button>
+        {/* v241 — the explore page is the PUBLIC door to what is published; the panel above is the author's
+            own list. A link, not a fetch: the page is server-rendered and reachable by anyone. */}
+        <a
+          className="btn"
+          data-toolbar-explore
+          href="/explore"
+          target="_blank"
+          rel="noreferrer"
+          style={{ textDecoration: 'none' }}
+          title="browse everything that is published"
+        >
+          Explore
+        </a>
         <button className="btn" onClick={newProject}>New</button>
         <button className="btn btn-primary" onClick={() => setPreview(true)}>Preview</button>
       </div>

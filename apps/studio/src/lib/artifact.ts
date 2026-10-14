@@ -1,4 +1,5 @@
 import { renderPreviewHtml } from './preview';
+import { escapeHtml } from './pageShell';
 import type { DesignDocument } from '@nexus/design-model';
 
 /**
@@ -17,16 +18,6 @@ import type { DesignDocument } from '@nexus/design-model';
  * choose which of these to answer with. Keeping them pure is what lets the suite assert the rendering rules
  * without starting a server — and what lets the route stay small enough to read.
  */
-
-/** The escape used in the two failure pages. Titles and ids are caller-controlled, so they are escaped. */
-function escapeHtml(value: string): string {
-  return value
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#39;');
-}
 
 /** The shell the two failure pages share. Deliberately plain: a page that cannot show the artifact should
  *  not look like the artifact. */

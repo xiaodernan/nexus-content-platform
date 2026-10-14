@@ -273,3 +273,26 @@ by anyone who can call the API (that is why `assurance` exists); the device seed
 on two devices gets two ids until the service merges them; **no publication carries a claim yet** —
 `publishDocument`, `readPublication` and `DELETE /projects/{id}` are unchanged, and the service-side work (an
 owner field, an owner-checked unpublish, a remix that records lineage) is the next increment.
+
+## EXPLORE — the gallery of published work (M7 v241 — amendment 241)
+
+The artifact page (`/p/{id}`) answers "what is THIS one" but needs the id. The service could LIST
+publications since v195, and until v241 nothing but the Studio's own Published panel consumed it — a visitor
+had no door showing what EXISTS. `/explore` is that door: a gallery where each publication is a card with a
+**thumbnail drawn from the canonical model** (`docToSvg` → `svgToDataUri`, the SHIPPED renderer), its receipt
+facts, and the two doors the community loop needs — `open` (`/p/{id}`) and `remix` (`/?remix={id}`).
+
+`apps/studio/src/lib/explore.ts` is a PURE string renderer (`renderExploreHtml` / `renderExploreUnavailable`);
+`app/explore/route.ts` is the Node-runtime handler that lists, reads each row for its document (the listing
+carries none), draws, and renders. The id is encoded in both links, caller text is escaped, and `count` AND
+`limit` are both shown so "24" is never read as "there are only 24". An empty listing is its own state, and a
+DOWN service is a different page (503) from an empty gallery (200). The HTML escaper moved to a shared
+`pageShell.ts` used by BOTH this page and `artifact.ts` — one rule, not two.
+
+`explore-proof.mjs` grades four sections, ALL PASSED: §1 the gallery (one card per item; open + remix doors;
+id encoded; text escaped; cap stated; empty and down are distinct pages), §2 the thumbnail is REAL (`docToSvg`
+→ 251 B SVG → `svgToDataUri` → the data URI in the card), §3 the wiring (Node runtime; list → read each row →
+draw → render; the Studio links `/explore`), §4 the §60 audit (the renderer is pure; the escaper is shared
+with `artifact.ts`). Studio 509 → 516 (33 → 34 files), `tsc` 0. Bounds: one thumbnail per row from a SECOND
+read (the listing has no documents), so the page costs `1 + N` calls and caps at 24; no paging, no search, no
+sort but the service's newest-first, and no byline (M7 still has no accounts on a publication).
