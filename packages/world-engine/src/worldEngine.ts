@@ -237,7 +237,7 @@ export class WorldEngine {
     }
   }
 
-  createCharacter(
+createCharacter(
     name: string,
     description: string,
     archetype: string,
@@ -247,6 +247,10 @@ export class WorldEngine {
   ): Character {
     const id = characterId(`char-${Date.now()}-${Math.random().toString(36).slice(2)}`);
     const now = Date.now();
+ 
+    if (this.world.characters.has(id)) {
+      throw new Error(`createCharacter: character ${id} already exists in this world; a restore never overwrites live state`);
+    }
 
     const character: Character = {
       id,
@@ -332,6 +336,10 @@ export class WorldEngine {
   ): Location {
     const id = locationId(`loc-${Date.now()}-${Math.random().toString(36).slice(2)}`);
 
+    if (this.world.locations.has(id)) {
+      throw new Error(`createLocation: location ${id} already exists in this world; a restore never overwrites live state`);
+    }
+
     const location: Location = {
       id,
       name,
@@ -400,6 +408,10 @@ export class WorldEngine {
     const id = factionId(`fac-${Date.now()}-${Math.random().toString(36).slice(2)}`);
     const now = Date.now();
 
+    if (this.world.factions.has(id)) {
+      throw new Error(`createFaction: faction ${id} already exists in this world; a restore never overwrites live state`);
+    }
+
     const faction: Faction = {
       id,
       name,
@@ -455,6 +467,10 @@ export class WorldEngine {
   ): LoreEntry {
     const id = loreId(`lore-${Date.now()}-${Math.random().toString(36).slice(2)}`);
     const now = Date.now();
+
+    if (this.world.lore.has(id)) {
+      throw new Error(`createLore: lore ${id} already exists in this world; a restore never overwrites live state`);
+    }
 
     const lore: LoreEntry = {
       id,
