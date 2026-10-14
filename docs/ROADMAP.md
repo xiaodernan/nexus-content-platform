@@ -3427,7 +3427,12 @@ image-safety / image-studio / ai-jobs / studio-flush，不是全量回归）；�
    3D 页白屏——改成纯数据 + 一条 typeof 断言防 Regression）；
    ④ 3D 与面板（相机贴地、半透明盘 + 高度柱 + 台沿圈、`data-walk-height`、
    WorldPanel 地形区数字输入、`@smoke 3D 世界` 加一段 + 截图 `world3d-terrain.png`）。
-   仍欠：在地形上直接画圆台的编辑器（今天是数字输入）与真正的坡地/高度场。
+   图上画圆台的编辑器**也已补上**（2026-10-13）：世界图工具栏「画地形」按住拖圆、
+   点中圆台两步删（`WorldGraphView.tsx` + `terrainDraw.ts` 纯函数，13 条单测 +
+   `@smoke …（§140 图上画地形）` 走查拖画/删/刷新仍在）；起笔点先用 `elementFromPoint`
+   验空白，候选位夹在**可见区域**——图比视口宽（这版骨架 2146px），按整宽取比例
+   会点到视口外（`elementFromPoint` 返回 null）。
+   仍欠：真正的坡地/高度场（今天只有均匀圆台）。
 7. **任务 #132（并发会话登记的 §113 真欠账那一半）**：`game` 那一步编出来的 GameDocument
    只留在内存里，界面上却写着"已生成…可直接在 Game Studio 试玩"，而库里一行没写。
    三件事：措辞收口 + 草稿随结论存下来 + 一个用户点出来的"写进项目"

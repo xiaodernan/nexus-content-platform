@@ -1018,6 +1018,91 @@ test('@smoke 世界：建骨架、填一条、加一条、刷新仍在（§44）
 });
 
 /**
+ * §140 地形编辑器（图上画的那个）：「画地形」模式里在空白处拖一个圆，
+ * 圆台写进世界文档；选中与删除是两步（点一下只是选中，点按钮才真删）；
+ * 刷新之后还在——落的是库，不是内存。半径/高度的边界与夹取在 terrain-draw.test.ts 里钉。
+ */
+test('@smoke 世界图：拖一个圆画出台子，选中两步删，刷新仍在（§140 图上画地形）', async ({ page }) => {
+  test.setTimeout(180_000);
+  await createProject(page, `画地形 ${Date.now().toString(36)}`);
+
+  await page.click('[data-view="graph"]');
+  await expect(page.locator('[data-graph-create]')).toBeVisible({ timeout: 40_000 });
+  await page.click('[data-graph-create]');
+  await expect(page.locator('[data-graph-node]').first()).toBeVisible({ timeout: 30_000 });
+
+  // 进模式：按钮要自己报 aria-pressed，计数提示要出现（x/64 的上限在 world-model）
+  await page.click('[data-world-terrain-mode]');
+  await expect(page.locator('[data-world-terrain-mode]')).toHaveAttribute('aria-pressed', 'true');
+  await expect(page.locator('[data-world-terrain-hint]')).toContainText('/64');
+
+  // 起笔点必须真的是空白：点在节点/关系/已有圆台上不算画。
+  // 候选位要夹在**可见**区域里：图比视口宽（这版骨架 2146px），按整宽取比例
+  // 会点到视口外（elementFromPoint 返回 null），三条全废——所以先算可见右边界。
+  const svg = page.locator('[data-graph-canvas]');
+  await svg.scrollIntoViewIfNeeded();
+  const box = await svg.boundingBox();
+  const viewport = page.viewportSize();
+  if (!box || !viewport) throw new Error('svg 包围盒或视口不存在');
+  const visX1 = Math.min(box.x + box.width, viewport.width - 24);
+  const visY1 = Math.min(box.y + box.height, viewport.height - 24);
+  let start: { x: number; y: number } | null = null;
+  outer: for (const fy of [0.85, 0.7, 0.6]) {
+    for (const fx of [0.7, 0.5, 0.3, 0.15]) {
+      const x = box.x + (visX1 - box.x) * fx;
+      const y = box.y + (visY1 - box.y) * fy;
+      // 用对象传参不用数组解构：noUncheckedIndexedAccess 下元组展开会变成
+      // number | undefined（跟 probe 脚本里同款写法，e2e 的 tsc 链不放过它）
+      const blank = await page.evaluate(
+        (pt: { px: number; py: number }) => {
+          const el = document.elementFromPoint(pt.px, pt.py);
+          if (!el) return false;
+          if (el.closest('[data-graph-node], [data-graph-edge], [data-world-plateau-graph]')) return false;
+          return Boolean(el.closest('[data-graph-canvas]'));
+        },
+        { px: x, py: y },
+      );
+      if (blank) {
+        start = { x, y };
+        break outer;
+      }
+    }
+  }
+  expect(start, '可见区域里没有一块空白——骨架排布变了就要换候选位').not.toBeNull();
+  if (!start) return;
+
+  // 拖一个圆：预览跟手出现，松手正好落一个圆台，计数 1/64
+  await page.mouse.move(start.x, start.y);
+  await page.mouse.down();
+  await page.mouse.move(start.x + 80, start.y + 10, { steps: 8 });
+  await expect(page.locator('[data-world-terrain-preview]')).toHaveCount(1);
+  await page.mouse.up();
+  await expect(page.locator('[data-world-plateau-graph]')).toHaveCount(1);
+  await expect(page.locator('[data-world-terrain-hint]')).toContainText('1/64');
+  await page.screenshot({ path: 'screenshots/world-terrain-draw.png' });
+
+  // 选中是选中、删除是删除：点中出按钮，点按钮才少
+  await page.click('[data-world-plateau-graph]');
+  await expect(page.locator('[data-world-terrain-remove-selected]')).toBeVisible();
+  await expect(page.locator('[data-world-plateau-graph]')).toHaveCount(1);
+  await page.screenshot({ path: 'screenshots/world-terrain-delete.png' });
+  await page.click('[data-world-terrain-remove-selected]');
+  await expect(page.locator('[data-world-plateau-graph]')).toHaveCount(0, { timeout: 10_000 });
+
+  // 再画一个，等「已保存」，刷新后还在——刷掉的只会是内存里那份
+  await page.mouse.move(start.x, start.y);
+  await page.mouse.down();
+  await page.mouse.move(start.x + 80, start.y + 10, { steps: 8 });
+  await page.mouse.up();
+  await expect(page.locator('[data-world-plateau-graph]')).toHaveCount(1);
+  await expect(page.locator('[data-graph-state]')).toHaveText('已保存', { timeout: 30_000 });
+  await page.reload();
+  await page.click('[data-view="graph"]');
+  await expect(page.locator('[data-world-plateau-graph]')).toHaveCount(1, { timeout: 30_000 });
+  await page.screenshot({ path: 'screenshots/world-terrain-persisted.png' });
+});
+
+/**
  * §54 Game Design System：11 类实体、开放数值、实体之间的有向引用。
  * 断言全部在 reload 之后重读一遍——刷新能把面板清成"库里那份"，
  * 所以"刷新仍在"就是这条用例的正向对照：只活在内存里的编辑到这里一定会红。

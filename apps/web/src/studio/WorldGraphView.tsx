@@ -4,12 +4,16 @@ import { useEffect, useRef, useState } from 'react';
 import {
   WORLD_KINDS,
   WORLD_KIND_LABELS,
+  WORLD_PLATEAU_LIMIT,
+  WORLD_TERRAIN_HEIGHT_MAX,
   linkWorldNodes,
   removeWorldLink,
   setWorldNodePosition,
+  setWorldTerrain,
   worldGraph,
   type WorldKind,
 } from '@nexus/world-model';
+import { clampHeight, clampRadius, plateauFromDrag } from './terrainDraw';
 import { cn } from '@/lib/cn';
 import { useStudioReady } from './store';
 import { useWorld, worldStore } from './worldStore';
@@ -22,6 +26,9 @@ import { useWorld, worldStore } from './worldStore';
  * 否则"刷新之后图乱跑了"会被当成 bug，其实只是随机数。
  *
  * 这一版不做自动避障、不做缩放、不做多选：能连线、能拖、能删、刷新还在，就是 §45 要的闭环。
+ *
+ * §140 补的「画地形」模式：在空白处按下拖一个圆，直接把可走的圆台写进世界文档
+ * （与面板的数字入口同一个写入口径 `setWorldTerrain`，不合法同样只显示原因不写）。
  */
 
 const NODE_W = 176;
@@ -56,6 +63,11 @@ export function WorldGraphView() {
   } | null>(null);
   /** 拖完那一下也会触发 click：不吞掉它，节点就会被顺手选中（拖 ≠ 选） */
   const suppressClick = useRef(false);
+  /** §140 图上画地形：模式开关、新圆台的台面高度、被选中的圆台、正在拖的那笔预览 */
+  const [terrainMode, setTerrainMode] = useState(false);
+  const [terrainHeight, setTerrainHeight] = useState(2);
+  const [pickedPlateau, setPickedPlateau] = useState<string | null>(null);
+  const [draftDraw, setDraftDraw] = useState<{ x0: number; y0: number; x1: number; y1: number } | null>(null);
 
   useEffect(() => {
     worldStore.ensure(studio.projectId);
@@ -88,13 +100,87 @@ export function WorldGraphView() {
   }
 
   const { nodes, edges } = worldGraph(world);
-  const width = Math.max(900, ...nodes.map((n) => n.x + NODE_W + 120));
-  const height = Math.max(520, ...nodes.map((n) => n.y + NODE_H + 120));
+  const plateaus = world.terrain?.kind === 'plateaus' ? world.terrain.plateaus : [];
+  // 画布尺寸要把已画的圆台包进去：只按节点算，画在边缘的圆会被 svg 裁掉半边（看着像 bug）
+  const width = Math.max(
+    900,
+    ...nodes.map((n) => n.x + NODE_W + 120),
+    ...plateaus.map((p) => p.x + p.radius + 120),
+  );
+  const height = Math.max(
+    520,
+    ...nodes.map((n) => n.y + NODE_H + 120),
+    ...plateaus.map((p) => p.y + p.radius + 120),
+  );
   const center = (x: number, y: number) => ({ cx: x + NODE_W / 2, cy: y + NODE_H / 2 });
   const byId = new Map(nodes.map((n) => [n.id, n]));
   const picked = snapshot.picked;
 
+  const svgPoint = (event: React.PointerEvent<SVGSVGElement>) => {
+    const rect = event.currentTarget.getBoundingClientRect();
+    return { x: Math.round(event.clientX - rect.left), y: Math.round(event.clientY - rect.top) };
+  };
+
+  const startTerrainDraw = (event: React.PointerEvent<SVGSVGElement>) => {
+    if (!terrainMode) return;
+    const target = event.target as Element;
+    // 点在节点/关系/已有圆台上不算画：各自的点击归各自，地形只从空白起笔
+    if (target.closest('[data-graph-node], [data-graph-edge], [data-world-plateau-graph]')) return;
+    const point = svgPoint(event);
+    event.currentTarget.setPointerCapture?.(event.pointerId);
+    setDraftDraw({ x0: point.x, y0: point.y, x1: point.x, y1: point.y });
+  };
+
+  const moveTerrainDraw = (event: React.PointerEvent<SVGSVGElement>) => {
+    if (!draftDraw) return;
+    const point = svgPoint(event);
+    setDraftDraw((draft) => (draft ? { ...draft, x1: point.x, y1: point.y } : draft));
+  };
+
+  const endTerrainDraw = () => {
+    const draft = draftDraw;
+    setDraftDraw(null);
+    if (!draft) return;
+    // 按下没拖：不是画，别在点选的时候顺手造一个 1 半径的台子
+    if (Math.hypot(draft.x1 - draft.x0, draft.y1 - draft.y0) < 3) return;
+    const plateau = plateauFromDrag({ x: draft.x0, y: draft.y0 }, { x: draft.x1, y: draft.y1 }, terrainHeight);
+    const result = setWorldTerrain(world, { kind: 'plateaus', plateaus: [...plateaus, plateau] });
+    if (result.reason) {
+      worldStore.showNotice(result.reason);
+      return;
+    }
+    worldStore.clearNotice();
+    worldStore.setLocal(result.document);
+    void worldStore.commit();
+  };
+
+  const toggleTerrainMode = () => {
+    const next = !terrainMode;
+    setTerrainMode(next);
+    setDraftDraw(null);
+    setPickedPlateau(null);
+    // 两种模式不叠着用：进地形就把连关系的选择清掉，出地形时选中的圆台也不留
+    if (next) worldStore.clearPick();
+  };
+
+  const removePickedPlateau = () => {
+    if (!pickedPlateau) return;
+    const result = setWorldTerrain(world, {
+      kind: 'plateaus',
+      plateaus: plateaus.filter((p) => p.id !== pickedPlateau),
+    });
+    if (result.reason) {
+      worldStore.showNotice(result.reason);
+      return;
+    }
+    setPickedPlateau(null);
+    worldStore.clearNotice();
+    worldStore.setLocal(result.document);
+    void worldStore.commit();
+  };
+
   const startDrag = (event: React.PointerEvent<SVGGElement>, id: string) => {
+    if (terrainMode) return;
     const node = byId.get(id);
     if (!node) return;
     (event.target as Element).setPointerCapture?.(event.pointerId);
@@ -172,6 +258,52 @@ export function WorldGraphView() {
         >
           走进这个世界（3D）
         </a>
+        <button
+          type="button"
+          onClick={toggleTerrainMode}
+          aria-pressed={terrainMode}
+          data-world-terrain-mode
+          className={cn(
+            'rounded bg-bg-2 px-2 py-1 text-11',
+            terrainMode ? 'bg-accent-2 text-fg-1' : 'text-fg-2 hover:bg-bg-3',
+          )}
+        >
+          画地形
+        </button>
+        {terrainMode ? (
+          <>
+            <label htmlFor="world-graph-terrain-height" className="flex items-center gap-1 text-11 text-fg-3">
+              台面高度
+              <input
+                id="world-graph-terrain-height"
+                type="number"
+                min={0}
+                max={WORLD_TERRAIN_HEIGHT_MAX}
+                step={1}
+                value={terrainHeight}
+                onChange={(event) => setTerrainHeight(clampHeight(event.target.value))}
+                data-world-terrain-height-input
+                className="w-14 rounded-[var(--nexus-radius-sm)] bg-bg-2 px-1 py-1 text-12 text-fg-1 outline-none"
+              />
+            </label>
+            <span className="text-11 text-fg-3" data-world-terrain-hint>
+              {pickedPlateau
+                ? '点「删除这个圆台」确认删掉选中的台子'
+                : '在空白处按下拖一个圆 = 画一个台子；点台子选中可删'}
+              （{plateaus.length}/{WORLD_PLATEAU_LIMIT}）
+            </span>
+            {pickedPlateau ? (
+              <button
+                type="button"
+                onClick={removePickedPlateau}
+                data-world-terrain-remove-selected
+                className="rounded-[var(--nexus-radius-sm)] border border-[var(--nexus-color-border-strong)] px-2 py-1 text-11 text-danger"
+              >
+                删除这个圆台
+              </button>
+            ) : null}
+          </>
+        ) : null}
         <span className="text-11 text-fg-3">
           {picked.length === 2 ? `已选 ${byId.get(picked[0]!)?.title} → ${byId.get(picked[1]!)?.title}` : '点两个节点就能连一条关系'}
         </span>
@@ -253,7 +385,15 @@ export function WorldGraphView() {
       ) : null}
 
       <div className="min-h-0 flex-1 overflow-auto">
-        <svg width={width} height={height} className="block" data-graph-canvas>
+        <svg
+          width={width}
+          height={height}
+          className={cn('block', terrainMode && 'cursor-crosshair')}
+          data-graph-canvas
+          onPointerDown={startTerrainDraw}
+          onPointerMove={moveTerrainDraw}
+          onPointerUp={endTerrainDraw}
+        >
         <defs>
           <marker id="world-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
             <path d="M 0 0 L 10 5 L 0 10 z" fill="var(--nexus-color-border-strong)" />
@@ -284,7 +424,10 @@ export function WorldGraphView() {
                 stroke="transparent"
                 strokeWidth={16}
                 className="cursor-pointer"
-                onClick={() => setPickedEdge(active ? null : edge.id)}
+                onClick={() => {
+                  if (terrainMode) return;
+                  setPickedEdge(active ? null : edge.id);
+                }}
               />
               {edge.label ? (
                 <text x={mid.x} y={mid.y - 6} textAnchor="middle" className="fill-fg-3 text-[11px]">
@@ -294,6 +437,45 @@ export function WorldGraphView() {
             </g>
           );
         })}
+        {/* §140：已画的圆台在图上就是地（平常只看不可点，「画地形」模式里点中可删） */}
+        {plateaus.map((plateau) => {
+          const active = pickedPlateau === plateau.id;
+          return (
+            <circle
+              key={plateau.id}
+              cx={plateau.x}
+              cy={plateau.y}
+              r={plateau.radius}
+              fill="rgba(36, 84, 70, 0.28)"
+              stroke={active ? 'var(--nexus-color-accent-2)' : 'rgba(96, 168, 138, 0.85)'}
+              strokeWidth={active ? 2.5 : 1.5}
+              className={cn(terrainMode && 'cursor-pointer')}
+              style={{ pointerEvents: terrainMode ? undefined : 'none' }}
+              data-world-plateau-graph={plateau.id}
+              data-graph-plateau-picked={active ? 'true' : 'false'}
+              onClick={() => {
+                if (!terrainMode) return;
+                setPickedPlateau(active ? null : plateau.id);
+              }}
+            >
+              <title>{`圆台 (${plateau.x}, ${plateau.y}) r=${plateau.radius} h=${plateau.height}`}</title>
+            </circle>
+          );
+        })}
+        {/* 正在拖的那一笔：预览圆的半径与落库走同一个夹取，所见即所存 */}
+        {draftDraw ? (
+          <circle
+            cx={draftDraw.x0}
+            cy={draftDraw.y0}
+            r={clampRadius(Math.hypot(draftDraw.x1 - draftDraw.x0, draftDraw.y1 - draftDraw.y0))}
+            fill="rgba(36, 84, 70, 0.14)"
+            stroke="var(--nexus-color-accent-2)"
+            strokeWidth={1.5}
+            strokeDasharray="4 3"
+            pointerEvents="none"
+            data-world-terrain-preview
+          />
+        ) : null}
         {nodes.map((node) => {
           const isPicked = picked.includes(node.id);
           return (
@@ -312,6 +494,7 @@ export function WorldGraphView() {
                   suppressClick.current = false;
                   return;
                 }
+                if (terrainMode) return;
                 worldStore.togglePick(node.id);
               }}
             >
