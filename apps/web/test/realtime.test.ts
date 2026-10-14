@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it } from 'vitest';
 import type { RealtimeEvent } from '@nexus/schemas';
 import { channels, getRealtimeBus, setRealtimeBus, type RealtimeBus } from '@/server/realtime/bus';
+import { MemoryRealtimeBus } from '@/server/realtime/localBus';
 import {
   activeConnections,
   acquireConnection,
@@ -169,10 +170,37 @@ describe('RealtimeBus', () => {
       subscribe: () => () => undefined,
       closeChannel: () => undefined,
       subscriberCount: () => 0,
+      stats: () => ({ driver: 'in-process', instance: 'test-double', subscriberCount: 0, wireReady: null, wireErrorCount: null }),
     };
     setRealtimeBus(fake);
     getRealtimeBus().publish(channels.project('p1'), note('走的是替换后的驱动'));
     expect(seen).toHaveLength(1);
+  });
+
+  it('stats() 自报家门：进程内驱动的线路两格是 null 不是 0（没帧可断）', () => {
+    const bus = new MemoryRealtimeBus();
+    expect(bus.stats()).toEqual({
+      driver: 'in-process',
+      instance: `pid:${process.pid}`,
+      subscriberCount: 0,
+      wireReady: null,
+      wireErrorCount: null,
+    });
+    bus.subscribe(channels.project('p1'), () => undefined);
+    bus.subscribe(channels.user('u1'), () => undefined);
+    expect(bus.stats().subscriberCount).toBe(2);
+  });
+
+  it('stats() 读的是单例——替换总线后诊断拿到的是替换后那份', () => {
+    setRealtimeBus({
+      publish: () => undefined,
+      subscribe: () => () => undefined,
+      closeChannel: () => undefined,
+      subscriberCount: () => 3,
+      stats: () => ({ driver: 'in-process', instance: 'test-double', subscriberCount: 3, wireReady: null, wireErrorCount: null }),
+    });
+    expect(getRealtimeBus().stats().instance).toBe('test-double');
+    expect(getRealtimeBus().stats().subscriberCount).toBe(3);
   });
 });
 

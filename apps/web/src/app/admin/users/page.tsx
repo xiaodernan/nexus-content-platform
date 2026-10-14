@@ -50,9 +50,14 @@ export default async function AdminUsersPage() {
             审核员 {admins} 人
           </p>
         </div>
-        <Link href="/admin/audit" className="text-11 text-accent-2 underline" data-users-audit>
-          看审计事件
-        </Link>
+        <nav className="flex gap-3 text-11">
+          <Link href="/admin/audit" className="text-accent-2 underline" data-users-audit>
+            看审计事件
+          </Link>
+          <Link href="/admin/realtime" className="text-accent-2 underline" data-users-realtime>
+            实时总线
+          </Link>
+        </nav>
       </header>
 
       <p className="text-11 text-fg-3" data-users-rules>

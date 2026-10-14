@@ -57,6 +57,9 @@ export default async function AdminModerationPage() {
           <Link href="/admin/audit" className="text-accent-2 underline" data-queue-audit>
             审计事件
           </Link>
+          <Link href="/admin/realtime" className="text-accent-2 underline" data-queue-realtime>
+            实时总线
+          </Link>
         </nav>
       </header>
 

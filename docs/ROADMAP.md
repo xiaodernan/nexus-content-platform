@@ -4587,3 +4587,42 @@ ADD 又建了一条新名字的。两条同时生效，取值域是它们的**�
   （把中间一段挖掉并可还原）要的是 `removeShot` + `restoreShot` 那一对带内容的补丁，
   模型层已经有这个能力，缺的是界面上"拖一个选区"这个交互——那是另一片。
 - **不做多段选区 / ripple 删除**：一次一刀、双击落点即切点，是当前这一片的边界。
+
+## §163 诊断入口：`wireErrorCount` / `ready` 从 stderr 走进界面 —— 2026-10-13
+
+ADR-0028 那一片"明确不做的第三件"清账（补发与真跨机仍欠，见那节）。起因一句话：
+线路坏了只有一行日志，"这台实例掉了几帧"在界面上根本看不见。
+
+- **落了什么**：`RealtimeBus` 接口多一个 `stats()`（两个驱动各自自报家门），回执
+  `RealtimeBusStats`：`driver` / `instance` / `subscriberCount` / `wireReady` / `wireErrorCount`。
+  **两个 `null` 是这一片的骨架**：进程内驱动没有线路，那两格报 `null`（不适用）而不是 0——
+  0 是"跑着一台从没断过帧的 Redis"，报出去就是假话。`wireReady` 同步读已落定值
+  （`ready` 永不 reject 但可能永不落定，诊断页不该被一次吊着的连接拖住），
+  没落定时也报 `null`（"还没落定"不是"没接上"）。
+- **门**：`GET /api/admin/realtime` 与复核台同一句口径（401/403，`role=admin`）；
+  `/admin/realtime` 页面本身也走同样的拒绝样式（`data-admin-denied`）。
+  端点**不做二次加工**——加工一层就多一处把 `null` 改成 `0` 的机会。
+- **界面**：`/admin/realtime` 每 4 秒轮询（`StatsPanel.tsx`），五格各带限度话：
+  "本进程订阅者 N 人（不是全平台的数——线路查不到远端有谁在订）"、失败累计 >0 时补一句
+  "失败的帧不补发，权威状态永远在库里"、页脚写死"只回答这台实例（多实例部署下每台各算各的）"。
+  拉取失败显示 HTTP 状态而不是画成 0（与 api-tokens 那本账同一口径）。
+  另外三个 admin 页的导航都加了入口。
+- **踩到的环境陷阱（判据记下来）**：第一轮浏览器里端点 500、vitest 却全绿——
+  `getRealtimeBus()` 的单例挂在 `globalThis` 上，dev server 是改代码**之前**起的，
+  手里那份总线还是旧模块图里的对象，`stats is not a function`。
+  判据：**改了 `server/realtime/*` 之后 dev 下先重启 next dev 再下结论**（重启即愈，不是代码坏）。
+- **另一条被断言反咬的**：死端点那条用例里我先断言 `subscriberCount` 为 1，
+  实际是 0——因为同一条用例前面刚 `closeChannel` 过，本机那份订阅按 ADR-0025 已被摘掉。
+  改成钉 0（如实报关门前的现场），这条反而是多出来的一格见证。
+- **凭证**：`realtime.test.ts` 17 条（新增：进程内 `stats` 的 null 语义、订阅者计数、
+  换单例后诊断跟着换）+ `realtime.redis.integration.test.ts` 7 条（新增：真 Redis 上
+  落定前 `null` → 就绪后 `true` 且零错误；死端点 `false` 且失败累计 ≥1、`closeChannel` 后订阅者 0）
+  + `admin-realtime.integration.test.ts` 4 条打真库（401 / 403 连一个字段都不给 /
+  admin 200 且 `null` 不被抹成 0 / 换单例回执跟着换）——三个 realtime 文件合计 **38 绿**。
+  e2e `@smoke 发布机检与公开页举报` 尾部加了 `/admin/realtime` 拒绝断言与截图（**1 passed，55.3s**）。
+  真浏览器走完整条：注册 → 运维改库提权 → 表盘 `ready`（driver=redis、wire=up、0 错误）→
+  等一拍更新时间真的变 → 降权后接口 403 → 删临时账号；截图 `screenshots/admin-realtime-panel.png`
+  与 `admin-realtime-denied.png` 都看过。
+- **明确不做**：**补发**（§163 剩的那一件，要另立 ADR 选 Redis Streams）；fleet 视图
+  （这页只回答一台实例，多实例的"每台都来看一眼"没有聚合层）；`stats` 不进
+  `CONTRACT_EXPORTS`（web 自己的 admin 端点，与 `RealtimeWireFrameSchema` 同理）。

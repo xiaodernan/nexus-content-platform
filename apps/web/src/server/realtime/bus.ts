@@ -39,6 +39,31 @@ export interface RealtimeBus {
    * Redis 驱动下这是**本进程**的人数：pub/sub 线路查不到远端有谁在订，别拿它当全平台的数。
    */
   subscriberCount(channel?: string): number;
+  /**
+   * 给 `/admin/realtime` 的自报家门（§163 诊断入口）：驱动是谁、线路接上没有、
+   * 断过几帧、本进程有几个人在听。同步返回——`wireReady` 是**已落定的答案或"还没落定"**，
+   * 不现场 await：诊断页不该被一次吊死的连接拖住（`ready` 永不 reject，但可能永不落定）。
+   */
+  stats(): RealtimeBusStats;
+}
+
+/**
+ * 诊断报文（web 自己的 admin 端点，不跨进程——所以与 `RealtimeWireFrameSchema` 同理，
+ * 不进 `CONTRACT_EXPORTS`）。两个 `null` 各是一句诚实话，不是"0"的别名：
+ * 进程内驱动**没有线路**，`wireReady` / `wireErrorCount` 不适用（报 0 会被读成
+ * "没断过帧的 Redis"，而它根本没有帧可断）。
+ */
+export interface RealtimeBusStats {
+  /** 装的是哪个驱动。决定跨实例那半边在不在 */
+  driver: 'in-process' | 'redis';
+  /** 这台实例的身份（redis=origin，进程内=pid 标记）。多实例部署下每台各算各的 */
+  instance: string;
+  /** 本进程的订阅者总数——不是全平台的数（线路查不到远端有谁在订） */
+  subscriberCount: number;
+  /** 跨实例那半边接上没有；还没落定或没有这半边都是 null（含义由 driver 分） */
+  wireReady: boolean | null;
+  /** 线路失败累计（投递不出去 / 坏帧 / 订阅建不起来）；进程内驱动为 null */
+  wireErrorCount: number | null;
 }
 
 /**

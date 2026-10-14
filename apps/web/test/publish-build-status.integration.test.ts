@@ -32,6 +32,7 @@ const bus: RealtimeBus = {
   subscribe: () => () => undefined,
   closeChannel: () => undefined,
   subscriberCount: () => 0,
+  stats: () => ({ driver: 'in-process', instance: 'test-double', subscriberCount: 0, wireReady: null, wireErrorCount: null }),
 };
 
 let ownerId: string;

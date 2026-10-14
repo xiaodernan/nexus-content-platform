@@ -1,5 +1,5 @@
 import type { RealtimeEvent } from '@nexus/schemas';
-import type { RealtimeBus } from './bus';
+import type { RealtimeBus, RealtimeBusStats } from './bus';
 
 /**
  * 进程内驱动（§163）：默认驱动，单实例正确。
@@ -62,5 +62,19 @@ export class MemoryRealtimeBus implements RealtimeBus {
     let total = 0;
     for (const set of this.listeners.values()) total += set.size;
     return total;
+  }
+
+  /**
+   * 诊断自报（§163）：这个驱动没有线路，所以 `wireReady` / `wireErrorCount` 都是 `null`
+   * ——不是 0。报 0 会被读成"跑着一台从没断过帧的 Redis"，而它根本没有帧可断。
+   */
+  stats(): RealtimeBusStats {
+    return {
+      driver: 'in-process',
+      instance: `pid:${process.pid}`,
+      subscriberCount: this.subscriberCount(),
+      wireReady: null,
+      wireErrorCount: null,
+    };
   }
 }

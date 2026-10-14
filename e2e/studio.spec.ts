@@ -1835,6 +1835,12 @@ test('@smoke 发布机检与公开页举报：挡下要说清凭什么，举报�
   await expect(page.locator('[data-admin-queue]')).toHaveCount(0);
   await expect(page.locator('[data-queue-case]')).toHaveCount(0);
   await page.screenshot({ path: 'screenshots/admin-queue-denied.png' });
+
+  // §163 诊断入口同一句口径：实时总线状态也只对 role=admin 开，表盘一个格子都不给
+  await page.goto('/admin/realtime');
+  await expect(page.locator('[data-admin-denied]')).toHaveAttribute('data-admin-denied', 'not-admin');
+  await expect(page.locator('[data-realtime-stats]')).toHaveCount(0);
+  await page.screenshot({ path: 'screenshots/admin-realtime-denied.png' });
 });
 
 test('@smoke 社区：公开页能点赞、评论、改编；发现页只排排得出来的排序（§59/§61）', async ({ page }) => {

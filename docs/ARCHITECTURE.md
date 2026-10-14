@@ -239,7 +239,10 @@ Postgres 为领域库 + pgvector 为检索；Redis 做队列/缓存/限流/实�
 线路只有一条 `nexus:realtime:v1`，每帧自带目标逻辑频道与 `origin`（本机回环那一帧靠它摘掉），
 帧的格式是 `packages/schemas` 的 `RealtimeWireFrameSchema`：收到先 `safeParse` 再落到本机订阅者，
 线路上的字节与浏览器发来的一样是不可信输入。连接坏了不拖业务：`publish` 永不抛，只让
-`wireErrorCount` 与一行日志出声，`ready` 回答"这台实例的跨实例那半边接上了没有"。
+`wireErrorCount` 与一行日志出声，`ready` 回答"这台实例的跨实例那半边接上了没有"——
+这两个数 2026-10-13 起**有了界面**：`GET /api/admin/realtime`（`role=admin`）读总线自报的
+`stats()`（驱动 / 实例身份 / 线路状态 / 失败累计 / 本进程订阅者，`null` 表示"这个驱动没有这一格"，
+不是 0），`/admin/realtime` 每 4 秒轮询画出来，页脚写死"只回答这台实例"的口径。
 报文只用 `packages/schemas` 的 `RealtimeEventSchema`：`agent.plan` `agent.step` `agent.activity`
 `generation.progress` `build.status` `preview.status` `notification`。
 **七种事件现在全部有生产者**（2026-09-30 补齐最后一对）：`generation.progress`（任务开始、每跑完一步、终态各推一格——

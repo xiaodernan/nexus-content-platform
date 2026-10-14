@@ -174,6 +174,39 @@ describe('RedisRealtimeBus 跨实例投递', () => {
     // ready 说的是不是"这条总线接上线了"，用假不了的反证钉一次：
     // 端点连不上时它必须落定为 false，而不是吊在"订阅命令已经发出去了"这种半路上
     await expect(dead.ready).resolves.toBe(false);
+    // stats() 是同一件事的自报家门版（§163 诊断入口）：答案一致、错误累计没被吞、
+    // 本机那半边照常报（订阅者还在，坏的只有线路）
+    const stats = dead.stats();
+    expect(stats.driver).toBe('redis');
+    expect(stats.instance).toBe(dead.origin);
+    expect(stats.wireReady).toBe(false);
+    expect(stats.wireErrorCount).toBeGreaterThanOrEqual(1);
+    // 上一步刚 closeChannel 过：本机那份订阅已按 ADR-0025 摘掉，stats 如实报 0——
+    // 不是把关门前的旧数留在表盘上
+    expect(stats.subscriberCount).toBe(0);
+  });
+
+  it('stats()：真 Redis 接上后 wireReady=true、零错误；落定前先报 null（还没落定不是没接上）', async () => {
+    const bus = makeBus(REDIS_URL, 'stats-origin');
+    // 构造函数返回的那一刻 ready 还在飞：stats 不 await 它，同步读到的必须是 null——
+    // 把"还没落定"报成 false 会让诊断页把每一次刚启动都画成"线路没接上"
+    expect(bus.stats()).toEqual({
+      driver: 'redis',
+      instance: 'stats-origin',
+      subscriberCount: 0,
+      wireReady: null,
+      wireErrorCount: 0,
+    });
+    await wireIsUp(bus);
+    expect(bus.stats()).toEqual({
+      driver: 'redis',
+      instance: 'stats-origin',
+      subscriberCount: 0,
+      wireReady: true,
+      wireErrorCount: 0,
+    });
+    bus.subscribe(channels.project('stats-view'), () => undefined);
+    expect(bus.stats().subscriberCount).toBe(1);
   });
 });
 

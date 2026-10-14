@@ -1,7 +1,7 @@
 import { Redis } from 'ioredis';
 import { RealtimeWireFrameSchema, type RealtimeEvent, type RealtimeWireFrame } from '@nexus/schemas';
 import { MemoryRealtimeBus } from './localBus';
-import type { RealtimeBus } from './bus';
+import type { RealtimeBus, RealtimeBusStats } from './bus';
 
 /**
  * 跨实例驱动（§163 欠的那一格）。取舍见 `docs/adr/0028-realtime-redis-fanout.md`。
@@ -88,6 +88,13 @@ export class RedisRealtimeBus implements RealtimeBus {
   private disposed = false;
 
   /**
+   * `ready` 的**已落定答案**，`null` = 还没落定。`stats()` 读它而不去 await `ready`——
+   * 诊断页不该被一次吊着的连接拖住（`ready` 永不 reject，但连不上的端口可能要等
+   * ioredis 的第一轮重试才落定）。落定后不再变，与 `ready` 自己的语义一致。
+   */
+  private wireReadyValue: boolean | null = null;
+
+  /**
    * 这台总线的**跨实例那一半边**是否已经接上线：订阅在服务器那边登记成功了，
    * 而且发布连接也真的 ready（不是"命令发出去了"，那是另一回事）。
    *
@@ -128,6 +135,10 @@ export class RedisRealtimeBus implements RealtimeBus {
     // await 它的人只能等到超时——把一个本来能说清楚的"没接上"变成一次吊死的等待。
     const subscribed = this.subscribeWire();
     this.ready = this.publishReady().then(async (publishUp) => (publishUp ? subscribed : false));
+    // 落定值给 stats() 用：.then 里永不 reject（上面的注释就是这句话的出处），void 掉浮动的 Promise
+    void this.ready.then((value) => {
+      this.wireReadyValue = value;
+    });
   }
 
   private async subscribeWire(): Promise<boolean> {
@@ -181,6 +192,20 @@ export class RedisRealtimeBus implements RealtimeBus {
    */
   subscriberCount(channel?: string): number {
     return this.local.subscriberCount(channel);
+  }
+
+  /**
+   * 诊断自报（§163）：`wireErrorCount` 就是"这台实例断过几帧"那句话的全部依据——
+   * 在这之前它只进 stderr 与测试，界面上看不见。`wireReady` 见字段注释（同步读，不 await）。
+   */
+  stats(): RealtimeBusStats {
+    return {
+      driver: 'redis',
+      instance: this.origin,
+      subscriberCount: this.local.subscriberCount(),
+      wireReady: this.wireReadyValue,
+      wireErrorCount: this.wireErrorCount,
+    };
   }
 
   /**
