@@ -27,7 +27,7 @@ import { AgentPlanSchema, GameDocumentSchema, type AgentPlan } from '@nexus/sche
 export type PlanTask = AgentPlan['tasks'][number];
 
 /** 今天真的有执行方的步骤种类。加一种就必须同时加一个真执行方，否则 UI 会列出跑不了的步骤 */
-export const STEP_KINDS = ['context', 'seo-audit', 'qa-audit', 'report', 'game', 'combat', 'level'] as const;
+export const STEP_KINDS = ['context', 'seo-audit', 'qa-audit', 'report', 'game', 'combat', 'level', 'code'] as const;
 export type StepKind = (typeof STEP_KINDS)[number];
 
 export interface StepSpec {
@@ -48,12 +48,15 @@ export interface StepSpec {
  * 所以整条作业的 capability 记 `demo`（§160），界面上带 DEMO 标识，
  * 而每一步真正算出来的东西（结构、门禁、覆盖面）是真读数，不是编的。
  *
- * 七种步骤各自的真实执行方：结构盘点读本项目自己的库；SEO 检查读项目元信息与设计正文；
+ * 八种步骤各自的真实执行方：结构盘点读本项目自己的库；SEO 检查读项目元信息与设计正文；
  * 门禁就是发布时用的同一个 `analyzeHealth`（§179 那一份，不另算一套分）；汇总是前三者的产物；
  * Game Agent 那一步给的是 §52 的**确定性草稿**（`agent-game-draft.ts` 那张表），
  * 紧跟其后的 combat 那一步（§52 链的第二格）拿上一步的草稿跑 `tuneCombat`，产出**调过数值的那一份草稿**；
- * 再后面的 level 那一步（§52 链的第三格）拿 combat 的草稿跑 `designLevel`，产出**位置已写成设计值的那一份草稿**。
- * 三份都随步骤结论存在任务行里，**都不写进项目**——要进项目得由用户点「接受」那一下（见 ADR-0035）。
+ * 再后面的 level 那一步（§52 链的第三格）拿 combat 的草稿跑 `designLevel`，产出**位置已写成设计值的那一份草稿**；
+ * 最后一格 code 拿 level 那份草稿跑 `generateGameCode`，产出的**不是草稿而是投影**：
+ * 它只把"这份设计投影出来是几份文件、多少字节、哪几条限度"报进这一步的结论里，
+ * 既不落库也不在这里下载（下载走游戏面板那一格，那里吃的是库里那一份设计）。
+ * 前三份草稿都随步骤结论存在任务行里，**都不写进项目**——要进项目得由用户点「接受」那一下（见 ADR-0035）。
  */
 export const READINESS_STEPS: readonly StepSpec[] = [
   {
@@ -123,6 +126,19 @@ export const READINESS_STEPS: readonly StepSpec[] = [
     requires: 'game.write',
     artifact: 'level_layout',
     dependsOn: ['combat'],
+  },
+  {
+    // §52 那条链的最后一格：吃 level 那份摆过位置的草稿，把它投影成一份拿得走的产物。
+    // 这一格的产物**不是草稿**（它不改设计，只是同一份设计的另一个样子），所以它不留 `draft`：
+    // 接受入口因此仍然只有三个按钮，缺省那一份仍是链条末端那份草稿。
+    // 依赖写 level 而不是 game：投影的要害是"位置与数值都落定了之后这份产物长什么样"。
+    kind: 'code',
+    agentKey: 'game',
+    agentName: 'Game Agent',
+    title: '把摆过位置的草稿投影成一份自包含产物：只报几份文件与多少字节，产物不落库',
+    requires: 'game.write',
+    artifact: 'game_code',
+    dependsOn: ['level'],
   },
 ];
 

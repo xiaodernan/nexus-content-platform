@@ -4,7 +4,10 @@ import { GET as generateCode } from '../src/app/api/projects/[projectId]/game/co
 import { GET as generateZip } from '../src/app/api/projects/[projectId]/game/code/zip/route';
 import { SESSION_COOKIE } from '../src/server/domain/session';
 import { gameDraft } from '../src/lib/agent-game-draft';
-import type { GameDocument } from '@nexus/game-model';
+import { addEntity, generateGameCode, type GameDocument } from '@nexus/game-model';
+import { GameDocumentSchema } from '@nexus/schemas';
+import { MAX_CODE_JSON_BYTES, MAX_CODE_ZIP_BYTES } from '../src/server/domain/gameCode';
+import { readZip } from '../src/lib/zip-read';
 import { saveGame } from '../src/server/domain/games';
 import { createProject } from '../src/server/domain/projects';
 import { getDb } from '../src/server/db/client';
@@ -248,4 +251,102 @@ describe('§52 Code 下载出口：zip 与 JSON 共用同一道闸口', () => {
     expect(zipRes.status).toBe(404);
     expect((await zipRes.json()).error).toBe('not_found');
   });
+});
+
+/**
+ * 两道字节上限的**可达性**（头注释里第 ③ 件）。
+ *
+ * 为什么这一片值得慢这十几秒：`413` 那两条是这一格里唯一"平时看不见"的分支——
+ * 一份正常设计永远撞不到它，于是它很容易退化成一句装饰（写了上限、没人证明它能被超过）。
+ * 这三条把它钉成事实：
+ * ① 1MB 与 4MB **是两个不同的数**：一份中等大的设计在 JSON 那一路被拒、在 zip 那一路拿得到包；
+ *    要是两处共用一个上限，这一条就红——那也正是"下载那一档存在的意义"被抹掉的时刻。
+ * ② 4MB 也撞得开，用的是 schema 允许的最大一份设计（`packages/schemas` 的 entities 上限）。
+ *    上限如果大到合法范围内永远撞不开，这一条会红在前提那句上，而不是悄悄绿着。
+ * ③ 拒的时候**不把产物一起吐回来**：413 的意义就是"这一次不发这份字节"，
+ *    一份带着 `files` 的 413 等于把上限保护自己拆了。
+ *
+ * 每实体在产物里约 980 字节（`scripts/game-code-parity.mts` 与本地探针量的），
+ * 所以下面按"档"挑实体数，而**不写死字节数**——真正的字节判断来自响应里报的那个数字。
+ */
+const ENTITY_CEILING = 5000;
+
+/** 从真草稿往上铺量到 count 个实体：起点用 §52 那份配方表，不另造一个"差不多"的文档 */
+function paddedGame(projectId: string, count: number): GameDocument {
+  let doc = sampleGame(projectId);
+  for (let i = doc.entities.length; i < count; i += 1) {
+    doc = addEntity(doc, { kind: i % 3 === 0 ? 'item' : 'enemy', name: `铺量 ${i}` });
+  }
+  return doc;
+}
+
+describe('§52 Code 的字节上限：1MB 与 4MB 是两档，而且都撞得开', () => {
+  let midProject: string;
+  let midDoc: GameDocument;
+  let bigProject: string;
+  let bigDoc: GameDocument;
+
+  beforeAll(async () => {
+    // 中等那一份：要落在"JSON 装不下、zip 还装得下"那一档里，中间那条前提会验它
+    midProject = await newProject('大到 JSON 装不下');
+    midDoc = paddedGame(midProject, 1500);
+    expect((await saveGame(midProject, owner, midDoc)).ok, 'fixture 自己得先合法').toBe(true);
+    // 最大那一份：schema 允许的上限，用来撞 4MB 那一档
+    bigProject = await newProject('大到 zip 也装不下');
+    bigDoc = paddedGame(bigProject, ENTITY_CEILING);
+    expect((await saveGame(bigProject, owner, bigDoc)).ok, 'fixture 自己得先合法').toBe(true);
+  }, 120_000);
+
+  it('前提：中等那份正好落在两档之间，最大那份是 schema 允许的上限（再多一个实体就不合法）', () => {
+    const mid = generateGameCode(midDoc);
+    expect(mid.bytes, `中等 fixture 没落在两档之间（${mid.bytes} 字节）：这一条要按 ${MAX_CODE_JSON_BYTES}/${MAX_CODE_ZIP_BYTES} 重挑实体数`).toBeGreaterThan(
+      MAX_CODE_JSON_BYTES,
+    );
+    expect(mid.bytes, '中等 fixture 已经大到 zip 那一档也拒：那"两个出口两个数"这件事就没被量过').toBeLessThan(MAX_CODE_ZIP_BYTES);
+    expect(GameDocumentSchema.safeParse(bigDoc).success, '最大那份 fixture 不合法，下面那条 413 测的就不是"合法范围内的最大一份"').toBe(true);
+    expect(
+      GameDocumentSchema.safeParse({ ...bigDoc, entities: [...bigDoc.entities, bigDoc.entities[0]!] }).success,
+      `schema 的实体上限不在 ${ENTITY_CEILING} 这一档了：上限改了，这一片的 fixture 要跟着改`,
+    ).toBe(false);
+  });
+
+  it('JSON 出口拒、zip 出口放行：同一份设计，两个出口的答复不一样，而且各自报出自己的数字', async () => {
+    const res = await call(midProject, asUser(ownerToken));
+    expect(res.status).toBe(413);
+    const body = await res.json();
+    expect(body.error).toBe('code_too_large');
+    // 拒绝里的数字与它自己判的那一条同源（不是手抄一个字节数）
+    expect(body.bytes, '拒的那条得把自己量到的字节数念出来').toBe(generateGameCode(midDoc).bytes);
+    expect(body.limit).toBe(MAX_CODE_JSON_BYTES);
+    expect(body.files, '413 不能顺手把整份产物也塞回响应里').toBeUndefined();
+    // 这一句指向下载那一档，而那一档确实更大——上面那条前提已经量过它够得着
+    expect(body.message).toContain('打包');
+    expect(body.message).toContain(String(MAX_CODE_ZIP_BYTES));
+
+    const zipRes = await callZip(midProject, asUser(ownerToken));
+    const zip = Buffer.from(await zipRes.arrayBuffer());
+    expect(zipRes.status, zip.subarray(0, 200).toString()).toBe(200);
+    expect(zipRes.headers.get('content-type')).toBe('application/zip');
+    // JSON 那一路拒了 1.5MB，这一路要**原样**给出这 1.5MB：头里的长度与体同源
+    expect(Number(zipRes.headers.get('content-length'))).toBe(zip.byteLength);
+    const entries = readZip(new Uint8Array(zip));
+    expect(entries.map((entry) => entry.path).sort()).toEqual(
+      generateGameCode(midDoc).files.map((file) => file.path).sort(),
+    );
+  }, 120_000);
+
+  it('zip 那一档也撞得开：用合法范围内的最大一份设计，拒答里给的是"拆小"而不是"换个出口"', async () => {
+    const res = await callZip(bigProject, asUser(ownerToken));
+    expect(res.status).toBe(413);
+    // 拒答必须是 JSON，不能是一份只写了半个头的 zip
+    expect(res.headers.get('content-type')).toContain('application/json');
+    const body = await res.json();
+    expect(body.error).toBe('code_too_large');
+    expect(body.bytes).toBeGreaterThan(MAX_CODE_ZIP_BYTES);
+    expect(body.limit).toBe(MAX_CODE_ZIP_BYTES);
+    expect(body.files, '413 不能顺手把整份产物也塞回响应里').toBeUndefined();
+    // 下载这一路已经是最后一档了：它不能再把用户指向"另一个更大的出口"
+    expect(body.message).toContain('拆');
+    expect(body.message).not.toContain('打包');
+  }, 120_000);
 });

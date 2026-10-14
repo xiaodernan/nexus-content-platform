@@ -3798,11 +3798,12 @@ test('@smoke §144 导出：顶栏点一下就下载，回执说的和包里的�
 /**
  * §52 最后一格（Code）的界面出口：把库里那份设计投影成一份拿得走的产物。
  *
- * 断言只挑用户可见的：库里那份没跟上屏上这份时按钮点不动、写完了它自己松开、
- * 产物文件列得出来、点一个文件真的落盘、限度那几句原样出现在界面上且真的在视口里——
+ * 断言只挑用户可见的：库里那份没跟上屏上这份时按钮点不动（两颗都点不动）、写完了它自己松开、
+ * 产物文件列得出来、点一个文件真的落盘、限度那几句原样出现在界面上且真的在视口里、
+ * 整份打包拿到的是真 zip 且界面回执那三个数与磁盘上这份对得上——
  * 只报"成功"而不报限度，界面就在替产品撒谎。
  */
-test('@smoke 游戏：生成可玩产物，点一个文件真的落盘（§52 Code）', async ({ page }) => {
+test('@smoke 游戏：生成可玩产物，点一个文件真的落盘，整份打包也拿得走（§52 Code）', async ({ page }) => {
   test.setTimeout(180_000);
   await createProject(page, `可玩产物 ${Date.now().toString(36)}`);
 
@@ -3816,10 +3817,14 @@ test('@smoke 游戏：生成可玩产物，点一个文件真的落盘（§52 Co
   // 用改名来稳定地制造"欠着写"（fill 不失焦，失焦才会保存），比抓 PUT 在飞那几十毫秒可靠。
   await page.fill('[data-game-name]', '可玩产物 待写库');
   await expect(page.locator('[data-game-code-run]')).toBeDisabled();
+  // 打包那一路读的也是库里那一份，所以它跟「生成可玩产物」共用同一只手：
+  // 少拦这一颗，界面就能在屏上那份还没写进库时打出一个包着旧设计的 zip。
+  await expect(page.locator('[data-game-code-zip]')).toBeDisabled();
   await expect(page.locator('[data-game-code-behind]')).toBeVisible();
   // 写进库之后按钮自己松开：挡太久就成了"这格坏了"，两头都要量
   await page.click('[data-game-save]');
   await expect(page.locator('[data-game-code-run]')).toBeEnabled({ timeout: 90_000 });
+  await expect(page.locator('[data-game-code-zip]')).toBeEnabled();
   await expect(page.locator('[data-game-code-behind]')).toHaveCount(0);
 
   // 这一格没有 AI：点了立刻出文件列表
@@ -3854,4 +3859,47 @@ test('@smoke 游戏：生成可玩产物，点一个文件真的落盘（§52 Co
   // 落盘的那一份就是产物本身：自包含页面 + CSP 把它按在本地（doctype 大小写按生成器的写法来）
   expect(html.toLowerCase()).toContain('<!doctype html>');
   expect(html).toContain('connect-src');
+
+  // 「打包成一个 zip 下载」：整份拿走的那一路，读的仍是库里这一份设计。
+  // 包名走 content-disposition 的 filename*：设计名是中文，ASCII 兜底那一份会被压成
+  // `nexus-game-.zip`（一个没有名字的空格包），所以下载到的文件名里必须还带着设计名。
+  const zipEvent = page.waitForEvent('download');
+  await page.click('[data-game-code-zip]');
+  const zipDownload = await zipEvent;
+  const zipName = zipDownload.suggestedFilename();
+  expect(zipName, `包名不对：${zipName}`).toMatch(/^nexus-game-.*\.zip$/);
+  expect(zipName, `包名丢了中文设计名（走了 ASCII 兜底）：${zipName}`).toContain('可玩产物');
+  const zipPath = await zipDownload.path();
+  if (!zipPath) throw new Error('zip 没落到磁盘');
+  const zipBytes = await readFile(zipPath);
+  // 到手真的是 zip：store 包的头四个字节
+  expect(zipBytes.subarray(0, 2).toString('latin1')).toBe('PK');
+  expect(zipBytes[2]).toBe(0x03);
+  expect(zipBytes[3]).toBe(0x04);
+  // store 不压缩，所以包里的路径与正文在字节里就是明文：直接数得出这几样，
+  // 也就证明了包里装着产物本身（CSP 那句在 index.html 里）而不是一份占位清单
+  const pack = zipBytes.toString('latin1');
+  for (const name of ['README.txt', 'index.html', 'plan.json', 'engine.js']) {
+    expect(pack, `包里少了 ${name}`).toContain(name);
+  }
+  expect(pack).toContain('connect-src');
+
+  // 界面上那句回执是服务端数出来的（§159：报出去的数要能和到手的东西对上）：
+  // zip 字节数 = 磁盘上这份的长度，包内文件数 = 屏上列出的文件数，产物字节数 = 屏上那格报的数。
+  await expect(page.locator('[data-game-code-packaged]')).toBeVisible({ timeout: 30_000 });
+  const receipt = (await page.locator('[data-game-code-packaged]').textContent()) ?? '';
+  const zipCount = Number(/zip (\d+) 字节/.exec(receipt)?.[1]);
+  const filesCount = Number(/包里 (\d+) 个文件/.exec(receipt)?.[1]);
+  const artifactCount = Number(/产物 (\d+) 字节/.exec(receipt)?.[1]);
+  expect(receipt).toContain('可玩产物');
+  expect(Number.isFinite(zipCount) && Number.isFinite(filesCount) && Number.isFinite(artifactCount), `回执没报出三个数：${receipt}`).toBe(true);
+  expect(zipCount, `回执说 zip ${zipCount} 字节，磁盘上这份是 ${zipBytes.length} 字节`).toBe(zipBytes.length);
+  expect(filesCount).toBe(await page.locator('[data-game-code-file]').count());
+  expect(String(artifactCount)).toBe(await page.locator('[data-game-code-bytes]').getAttribute('data-game-code-bytes'));
+
+  // 打完了它自己松开：一直转着就成了"这格坏了"
+  await expect(page.locator('[data-game-code-zip]')).toBeEnabled({ timeout: 30_000 });
+  await page.locator('[data-game-code-packaged]').scrollIntoViewIfNeeded();
+  await expect(page.locator('[data-game-code-packaged]')).toBeInViewport();
+  await page.screenshot({ path: 'screenshots/game-code-zip.png' });
 });

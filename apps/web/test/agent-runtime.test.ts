@@ -78,7 +78,14 @@ describe('计划配方（§25）', () => {
     expect(deps).toEqual(fromSpec);
     expect(deps['combat']).toEqual(['game']);
     expect(deps['level']).toEqual(['combat']);
-    expect(Object.entries(deps).filter(([, list]) => list.length > 0).map(([id]) => id).sort()).toEqual(['combat', 'level', 'report']);
+    // 最后一格（code）接的是链条末端那份：位置与数值都落定了之后才谈"投影出来是多少字节"
+    expect(deps['code']).toEqual(['level']);
+    expect(Object.entries(deps).filter(([, list]) => list.length > 0).map(([id]) => id).sort()).toEqual([
+      'code',
+      'combat',
+      'level',
+      'report',
+    ]);
   });
 
   it('goal 进计划标题：空白有兜底，超长截到上限', () => {
@@ -144,7 +151,7 @@ describe('就绪与失败传播（§112 的调度）', () => {
     expect(readyIds(plan)).toEqual(['report', 'combat']);
   });
 
-  it('上游那份草稿没留成：只有吃它的 combat/level 被牵连，三份检查照旧各跑各的', () => {
+  it('上游那份草稿没留成：吃它的 combat/level/code 一格一格被牵连，三份检查照旧各跑各的', () => {
     let plan = buildReadinessPlan('检查');
     plan = withStatus(withStatus(withStatus(withStatus(plan, 'context', 'done'), 'seo-audit', 'done'), 'qa-audit', 'done'), 'game', 'failed');
     // game 自己失败不牵连三份检查（它们互不依赖），只带走吃它草稿的 combat
@@ -152,7 +159,10 @@ describe('就绪与失败传播（§112 的调度）', () => {
     expect(readyIds(plan)).toEqual(['report']);
     // combat 被牵连跳过之后，吃 combat 草稿的 level 也跟着被牵连
     plan = withStatus(withStatus(withStatus(plan, 'report', 'done'), 'combat', 'skipped'), 'level', 'skipped');
-    expect(verdictOf(plan)).toEqual({ finished: true, ok: false, reason: '1 步失败，2 步因上游失败被跳过' });
+    // 再往下还有第三格：level 没跑成，吃它草稿的 code 也不能装作"我可以凭空投影一份"
+    expect(blockedIds(plan)).toEqual([{ id: 'code', because: ['level'] }]);
+    plan = withStatus(plan, 'code', 'skipped');
+    expect(verdictOf(plan)).toEqual({ finished: true, ok: false, reason: '1 步失败，3 步因上游失败被跳过' });
   });
 
   it('改状态返回新计划：旧的那一份不动（计划是 jsonb，就地改会让读到的历史跟着变）', () => {
@@ -175,15 +185,19 @@ describe('就绪与失败传播（§112 的调度）', () => {
     // 这一行原本假设"把 report 标成 skipped 之后全都落定了"，那是四步时代的事；
     // 要断言"全部落定之后的账"，就得把这一步也推到终态，而不是把 pending 改成 0 硬凑。
     // combat（§52 链第二格）依赖 game、不依赖那三份检查，所以它同样落成 done；
-    // level（第三格）依赖 combat，跟着落成 done。
-    plan = withStatus(withStatus(withStatus(plan, 'game', 'done'), 'combat', 'done'), 'level', 'done');
-    expect(progressOf(plan)).toEqual({ total: 7, pending: 0, running: 0, done: 5, failed: 1, skipped: 1 });
+    // level（第三格）依赖 combat，跟着落成 done；code（最后一格）依赖 level，也落成 done。
+    plan = withStatus(
+      withStatus(withStatus(withStatus(plan, 'game', 'done'), 'combat', 'done'), 'level', 'done'),
+      'code',
+      'done',
+    );
+    expect(progressOf(plan)).toEqual({ total: 8, pending: 0, running: 0, done: 6, failed: 1, skipped: 1 });
   });
 
   it('终态判定：有跳过就不算成功，原因里失败与跳过都要说', () => {
     let plan = buildReadinessPlan('检查');
     expect(verdictOf(plan)).toEqual({ finished: false, ok: false, reason: null });
-    for (const id of ['context', 'seo-audit', 'qa-audit', 'report', 'game', 'combat', 'level']) plan = withStatus(plan, id, 'done');
+    for (const id of ['context', 'seo-audit', 'qa-audit', 'report', 'game', 'combat', 'level', 'code']) plan = withStatus(plan, id, 'done');
     expect(verdictOf(plan)).toEqual({ finished: true, ok: true, reason: null });
 
     // 终态才谈得上"为什么不成"：还有步骤没跑完之前，reason 必须是 null
@@ -199,10 +213,11 @@ describe('就绪与失败传播（§112 的调度）', () => {
     onlySkipped = withStatus(onlySkipped, 'game', 'skipped');
     onlySkipped = withStatus(onlySkipped, 'combat', 'skipped');
     onlySkipped = withStatus(onlySkipped, 'level', 'skipped');
+    onlySkipped = withStatus(onlySkipped, 'code', 'skipped');
     expect(verdictOf(onlySkipped)).toEqual({
       finished: true,
       ok: false,
-      reason: '4 步因上游失败被跳过',
+      reason: '5 步因上游失败被跳过',
     });
   });
 });
@@ -219,6 +234,9 @@ describe('§113 Agent Handoff', () => {
     expect(handoffOf(plan, '不存在的步骤')).toEqual([]);
     // §52 那条链的第二格：它拿的是上一格那份草稿，交接单上只该有这一条
     expect(handoffOf(plan, 'combat')).toEqual([{ from: 'game', artifact: 'game_spec' }]);
+    // 最后一格接的是链条末端：交接单上写的是"我从 level 拿 level_layout"，
+    // 而不是把整条链的产物都塞过来（那等于没有交接）
+    expect(handoffOf(plan, 'code')).toEqual([{ from: 'level', artifact: 'level_layout' }]);
   });
 });
 

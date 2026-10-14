@@ -3,6 +3,8 @@ import { eq, inArray } from 'drizzle-orm';
 import {
   combatGoals,
   compileRpg,
+  CODEGEN_LIMITS,
+  generateGameCode,
   levelGoals,
   playtestRpg,
   POSITION_STAT_KEYS,
@@ -28,12 +30,16 @@ import { agentTasks, agents, creditLedger, notifications, projects, users } from
  * 三条纪律照着 §165/§166/§168：每条"没有"都要配一条"换个状态就有"的对照——
  * "报告步没有发 agent.step"要配"另外三步发了"，否则那条断言只是"什么都没建起来"的同义反复。
  *
- * §52 那条链的三格在这层各有自己的用例：combat 与 level 拿不到上游草稿时**明说**（不另编一份设计），
+ * §52 那条链的四格在这层各有自己的用例：combat 与 level 拿不到上游草稿时**明说**（不另编一份设计），
  * 拿到了一份但那份**开不了场**（没有玩家）时**一轮没调**、达标条数按那份文档重跑一遍算出来。
  * 后一条的用意是"这一步不许自己给自己打分"：全绿那份的达标条数恰好等于总条数，
  * 于是"把总数当成达标的条数"那种谎在那条用例里是隐形的——只有跑不起来的那份能看见它。
  * level 还多一条只属于它的用例：**除了坐标与时间戳，它交回来的那份必须与 combat 那份逐键相等**，
  * 因为这一格的限度写的正是"数值一个都不动"，而这句话只有拿上一格当分母才测得出来。
+ *
+ * 第四格（code）在这一层要钉住的是三件只有真跑一遍才看得到的事：它报的字节数与文件数**由测试自己
+ * 重新投影一遍来对**（否则"投影出 8 个文件"这种话在任务行里自证自成）；它**不产草稿**（产了就会出现
+ * 第四份可接受的东西，而接受入口的缺省值会变成这一格）；它**不写库**（整条链跑完项目里仍是零份游戏）。
  */
 
 interface Captured {
@@ -113,7 +119,7 @@ function authoredPositions(document: GameDocument): number {
 }
 
 describe('§112 多步编排的执行方', () => {
-  it('七步全绿：计划落库、任务行 succeeded、事件按顺序、一条通知、扣一次点', async () => {
+  it('八步全绿：计划落库、任务行 succeeded、事件按顺序、一条通知、扣一次点', async () => {
     const projectId = await newProject('编排全绿');
     const result = await runReadinessCheck({ projectId, actorId: owner, goal: '上架前检查一下' });
     if (!result.ok) throw new Error(`不该拒收：${result.refusal.message}`);
@@ -129,8 +135,10 @@ describe('§112 多步编排的执行方', () => {
       ['report', 'done'],
       // combat（§52 链第二格）依赖 game：与 report 同批就绪，按声明序排在 report 之后
       ['combat', 'done'],
-      // level（第三格）依赖 combat：上一批落定后才就绪，排在最后
+      // level（第三格）依赖 combat：上一批落定后才就绪
       ['level', 'done'],
+      // code（第四格）依赖 level：链的末端，跑在最后
+      ['code', 'done'],
     ]);
     // 汇总那一步真的产出了结论（形状由 ReadinessReportSchema 管）
     expect(result.report).not.toBeNull();
@@ -143,14 +151,28 @@ describe('§112 多步编排的执行方', () => {
     expect(row?.error).toBeNull();
     expect(row?.finishedAt).not.toBeNull();
     const planned = row!.plan as AgentPlan;
-    expect(planned.tasks.map((task) => task.status)).toEqual(['done', 'done', 'done', 'done', 'done', 'done', 'done']);
+    expect(planned.tasks.map((task) => task.status)).toEqual([
+      'done',
+      'done',
+      'done',
+      'done',
+      'done',
+      'done',
+      'done',
+      'done',
+    ]);
 
     // 刷新后读到的是库里那一份，不是内存里的
     const view = await latestPlannedTask(projectId, owner);
     expect(view?.taskId).toBe(result.taskId);
     expect(view?.status).toBe('succeeded');
     expect(view?.capability).toBe('demo');
-    expect((view?.result as { steps?: unknown[] })?.steps).toHaveLength(7);
+    /**
+     * 库里那一步的份数钉的是配方的步数，与计划里那份的行数互为对照：
+     * 只钉其中一个的话，"计划少一步、结论照着计划数"那种错就没人接住。
+     */
+    expect((view?.result as { steps?: unknown[] })?.steps).toHaveLength(8);
+    expect((view?.result as { steps?: unknown[] })?.steps).toHaveLength(planned.tasks.length);
     /**
      * §52：草稿随这一步落进任务行，所以刷新之后还在——接受入口才有东西可接。
      * 同时这一句是"只读"的另一半：跑一次检查**不**等于往项目里写了一份游戏设计，
@@ -217,9 +239,12 @@ describe('§112 多步编排的执行方', () => {
       'combat:completed',
       'level:started',
       'level:completed',
+      'code:started',
+      'code:completed',
     ]);
-    // 计划一条 + 每步开始/完成各一条（现在是七步）
-    expect(events.filter((event) => event.type === 'agent.activity')).toHaveLength(15);
+    // 计划一条 + 每步开始/完成各一条。总数从这一步真跑出来的步数数，不把 17 写死：
+    // 写死的版本在配方加一步时会红得没有信息量，而这一条要钉的是"每一步都被说了两次"。
+    expect(events.filter((event) => event.type === 'agent.activity')).toHaveLength(1 + 2 * result.steps.length);
 
     // §163 + §112：起点 0、每步一格（已到终态的步数 / 总步数）、收尾 1。
     // 中间那几格不是插值——每一步跑完都真的推一次，所以这里能逐格数出来。
@@ -293,6 +318,8 @@ describe('§112 多步编排的执行方', () => {
       ['combat', 'done'],
       // level 只依赖 combat，同样照跑
       ['level', 'done'],
+      // code 只依赖 level，也照跑：失败到 report 为止，链上那三格与它都不沾
+      ['code', 'done'],
       ['report', 'skipped'],
     ]);
     const skipped = result.steps.find((step) => step.id === 'report')!;
@@ -306,7 +333,16 @@ describe('§112 多步编排的执行方', () => {
     const planned = row!.plan as AgentPlan;
     // 这一份是**计划里的顺序**（声明序），与上面 steps 的执行序不同：
     // 计划里 game 排在 report 之后，执行时它和那三份检查一批跑完
-    expect(planned.tasks.map((task) => task.status)).toEqual(['done', 'done', 'failed', 'skipped', 'done', 'done', 'done']);
+    expect(planned.tasks.map((task) => task.status)).toEqual([
+      'done',
+      'done',
+      'failed',
+      'skipped',
+      'done',
+      'done',
+      'done',
+      'done',
+    ]);
 
     const events = projectEvents(projectId);
     const stepTrace = events
@@ -328,6 +364,8 @@ describe('§112 多步编排的执行方', () => {
       'combat:completed',
       'level:started',
       'level:completed',
+      'code:started',
+      'code:completed',
     ]);
     expect(stepTrace.some((line) => line.startsWith('report:'))).toBe(false);
     // 跳过只发一条活动说明，说明"被谁牵连"
@@ -611,6 +649,153 @@ describe('§112 多步编排的执行方', () => {
     // 界面上那两个数各自读自己的 counts，不是模板里抄了同一个变量
     expect(level.summary).toContain(`${count('authoredMoves')} 处原样写成坐标、${count('shiftedMoves')} 处真挪`);
     expect(await countGames(projectId)).toBe(0);
+  });
+
+  it('第四格投影的是链末端那份：读数由测试自己重跑一遍生成器对出来，而且这一格不留草稿', async () => {
+    // 这一格的账只有两句"投影出几份文件、多少字节"，而那两个数最容易自证自成：
+    // summary 与 counts 同出 `generateGameCode` 的**同一次调用**，报什么都是自洽的。
+    // 所以这里把库里那份 level 草稿拿来**再投影一遍**，用另一次调用的结果当分母。
+    const projectId = await newProject('编排第四格投影');
+    const result = await runReadinessCheck({ projectId, actorId: owner, goal: '把这份设计变成能拿走的东西' });
+    if (!result.ok) throw new Error(`不该拒收：${result.refusal.message}`);
+
+    const level = result.steps.find((step) => step.id === 'level')!;
+    const code = result.steps.find((step) => step.id === 'code')!;
+    expect(level.status).toBe('done');
+    expect(code.status).toBe('done');
+    const projection = generateGameCode(level.draft as GameDocument);
+    expect(code.counts.files).toBe(projection.files.length);
+    expect(code.counts.bytes).toBe(projection.bytes);
+    expect(code.counts.entities).toBe((level.draft as GameDocument).entities.length);
+    expect(code.counts.findings).toBe(projection.notes.length);
+    expect(code.counts.limits).toBe(CODEGEN_LIMITS.length);
+    // 自报的那句话里那两个数与 counts 同源，而界面读的是这句话——对不上就是面板在编
+    expect(code.summary).toContain(`${projection.files.length} 份`);
+    expect(code.summary).toContain(`${projection.bytes} 字节`);
+    // 同一份设计两次投影字节相同：这一格不需要真 provider，也不带时钟
+    expect(JSON.stringify(generateGameCode(level.draft as GameDocument).files)).toBe(JSON.stringify(projection.files));
+    // 限度是**随产物一起念出来**的那四句，不是这一步自己新写的；少一句界面上就少一句实话
+    expect(code.notes.filter((note) => CODEGEN_LIMITS.includes(note))).toHaveLength(CODEGEN_LIMITS.length);
+    expect(code.notes.join('')).toContain('没有真 provider');
+    expect(code.notes.join('')).toContain('不写库');
+    /**
+     * 这一格**不产草稿**：它是投影，不是链上又一份"可接受的设计"。
+     * 产了就会出现第四份可接的东西，而接受入口的缺省档位（最后一个留草稿的步骤）会悄悄从 level 挪到投影上。
+     */
+    expect(code.draft, 'code 这一步不该留草稿：接受入口会把缺省档位挪到投影上').toBeUndefined();
+    expect(await countGames(projectId), '投影把产物写进了项目').toBe(0);
+  });
+
+  it('第四格的守卫：level 完成了但没留草稿，code 失败并点名"没拿到上游草稿"', async () => {
+    // 与链上前两格同一条底线：没有可投影的设计就明说，绝不现编一份再投影——
+    // 现编的那一份与 level 的成果没关系，计划里那条依赖箭头就成了装饰。
+    // 注入的 level 返回一份**合法但没有 draft** 的结论，所以依赖是满足的（level 是 done），
+    // code 真的被调度起来，然后撞在守卫上；上面那条已经钉过"上游失败所以它没跑"那种形状。
+    const projectId = await newProject('编排第四格缺上游');
+    const result = await runReadinessCheck({
+      projectId,
+      actorId: owner,
+      goal: '这一格没有东西可投影',
+      runners: {
+        level: async () => ({ summary: '探针：这一步不产草稿', counts: { entities: 0 }, notes: [] }),
+      },
+    });
+    if (!result.ok) throw new Error(`不该拒收：${result.refusal.message}`);
+
+    const code = result.steps.find((step) => step.id === 'code')!;
+    expect(code.status).toBe('failed');
+    expect(code.error).toContain('上游草稿');
+    expect(code.error).toContain('level');
+    // 守卫不是"崩之前已经投影好了一半"：这一格既没留草稿，也没留下任何自报的读数
+    expect(code.draft).toBeUndefined();
+    expect(code.counts).toEqual({});
+    expect(code.notes).toEqual([]);
+    // 链上其余各步不受牵连：combat 那份草稿照在，汇总照跑（这一格失败是这一格自己的事）
+    expect(result.steps.find((step) => step.id === 'combat')?.draft).toBeDefined();
+    expect(result.steps.find((step) => step.id === 'report')?.status).toBe('done');
+    expect(result.status).toBe('failed');
+    expect(await countGames(projectId)).toBe(0);
+  });
+
+  it('第三格炸了：第四格是 skipped 不是 failed，牵连点名的正是 level', async () => {
+    // 纯层（`agent-runtime.test.ts`）算得出 `blockedIds`，但**主循环真的**按它把这一格标成 skipped、
+    // 一条 `agent.step` 都不发、进度分子少算它一格——只有打真库才看得见。
+    // 形状也不能只看"有没有"：skipped 的 code 与 failed 的 level 是两种话，混着说就是谎。
+    const projectId = await newProject('编排第四格被牵连');
+    const result = await runReadinessCheck({
+      projectId,
+      actorId: owner,
+      goal: '第三格故意炸，看第四格怎么说',
+      runners: {
+        level: async () => {
+          throw new Error('探针：第三格故意炸了');
+        },
+      },
+    });
+    if (!result.ok) throw new Error(`不该拒收：${result.refusal.message}`);
+
+    expect(result.status).toBe('failed');
+    expect(result.error).toContain('探针：第三格故意炸了');
+    const code = result.steps.find((step) => step.id === 'code')!;
+    expect(code.status).toBe('skipped');
+    expect(code.because).toEqual(['level']);
+    expect(code.summary).toContain('没有跑');
+    expect(code.error, '被牵连的那一步自己根本没跑过，说它失败是另一种谎').toBeUndefined();
+
+    const [row] = await getDb().select().from(agentTasks).where(eq(agentTasks.id, result.taskId)).limit(1);
+    const planned = row!.plan as AgentPlan;
+    expect(planned.tasks.map((task) => [task.id, task.status])).toEqual([
+      ['context', 'done'],
+      ['seo-audit', 'done'],
+      ['qa-audit', 'done'],
+      ['report', 'done'],
+      ['game', 'done'],
+      ['combat', 'done'],
+      ['level', 'failed'],
+      ['code', 'skipped'],
+    ]);
+
+    const events = projectEvents(projectId);
+    const stepTrace = events
+      .filter((event) => event.type === 'agent.step')
+      .map((event) => `${event.stepId}:${event.status}`);
+    // 被牵连的那一步从没开始过，所以一条 agent.step 都不该有它；
+    // 对照：其余七步都发了 started（level 那条后面还跟着 failed，不是只有 started）
+    expect(stepTrace.filter((line) => line.startsWith('code:'))).toHaveLength(0);
+    expect(stepTrace.filter((line) => line.endsWith(':started'))).toHaveLength(7);
+    expect(stepTrace).toContain('level:failed');
+
+    // 跳过只发一条活动说明，而且说的是被谁牵连——只写"跳过了"用户会以为是我们不想做
+    const skipActivity = events.filter(
+      (event): event is Extract<RealtimeEvent, { type: 'agent.activity' }> =>
+        event.type === 'agent.activity' && event.activity.stage === 'code',
+    );
+    expect(skipActivity).toHaveLength(1);
+    expect(skipActivity[0]!.activity.summary).toContain('level');
+
+    // §163：skipped 那一档不推进度——分子只有真跑到终态的那七步，分母仍是计划里的八步
+    const progress = events.filter((event) => event.type === 'generation.progress');
+    const settledTasks = planned.tasks.filter((task) => task.status !== 'skipped');
+    expect(settledTasks, '被牵连的那一步不该算进分子').toHaveLength(7);
+    expect(progress.map((event) => event.progress)).toEqual([
+      0,
+      ...settledTasks.map((_, index) => (index + 1) / planned.tasks.length),
+      1,
+    ]);
+    // 对照：被跳过的那一步的名字，一条进度里都没出现
+    const skippedTitle = planned.tasks.find((task) => task.id === 'code')!.title;
+    expect(progress.some((event) => (event.message ?? '').includes(skippedTitle))).toBe(false);
+
+    const [note] = await getDb()
+      .select()
+      .from(notifications)
+      .where(eq(notifications.dedupeKey, `agent:${result.taskId}`));
+    expect(note?.title).toContain('多步 Agent 任务失败');
+    expect(note?.title).toContain('1 步失败');
+    expect(note?.title).toContain('1 步被跳过');
+    // 失败不扣点：链断在末端也一样，产物没交出去就不能收钱
+    const ledger = await getDb().select().from(creditLedger).where(eq(creditLedger.taskId, result.taskId));
+    expect(ledger).toHaveLength(0);
   });
 
   it('项目读不到就整份拒收（404），账本里不留行', async () => {

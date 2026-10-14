@@ -43,7 +43,7 @@ export interface ExportOutcome {
 }
 
 /** 文件名里只留安全字符：HTTP 头的编码比 zip 内部路径挑剔得多 */
-function slug(name: string): string {
+export function slug(name: string): string {
   const cleaned = name
     .normalize('NFKC')
     .replace(/[^\p{L}\p{N}_-]+/gu, '-')

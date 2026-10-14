@@ -996,7 +996,7 @@ vitest 直接崩了而我却把 stdout 丢进了 `/dev/null`，于是"5 遍"其�
      表现是敌人不追、不打、物品捡不起来，页面摘要却照样显示"进行中"；而当时那 17 条比对常量与键名的静态闸**全绿**。
      修法是补一个与 `sim.ts` 的 `actor()` 同形的 `startActors`。结论进纪律：
      **"转写等价"这类主张只能由把产物跑起来的那条见证结账**，静态闸只挡得住"同一个数字抄了两遍"。
-  3. **界面层**（e2e `@smoke 游戏：生成可玩产物，点一个文件真的落盘` **1 passed（2.1m）**）：
+  3. **界面层**（e2e `@smoke 游戏：生成可玩产物，点一个文件真的落盘，整份打包也拿得走` **1 passed（47.1 秒，用例本体 13.1 秒）**）：
      文件列表、字节数、限度那几句要**真的在视口里**——`toBeVisible` 挡不住"在面板底部但在视口外"，
      所以先 `scrollIntoViewIfNeeded` 再 `toBeInViewport`；点 `index.html` 真的落盘，
      且到手那份字节里有 `<!doctype html>` 与 `connect-src`。截图 `game-code.png` 看过（四句限度在画面里）。
@@ -1007,7 +1007,59 @@ vitest 直接崩了而我却把 stdout 丢进了 `/dev/null`，于是"5 遍"其�
      变异臂：把 `disabled={busy || behindLibrary}` 改回 `disabled={busy}` → **1 failed**，
      红的形状是 `expect(locator).toBeDisabled()` / `Received: enabled`（`e2e/studio.spec.ts:3727`），
      还原后绿。**这条臂不在纯层**：`saveState` 与那次在飞的 PUT 只有真浏览器点得出来。
-  **仍然没测到**：ZIP 打包那一格（界面上明说"现在一个个下"）、编排链上的 `code` 那一步。
+     **ZIP 那一路在界面层量的三件事**（截图 `game-code-zip.png` 看过回执那一行在视口里）：
+     ① 那颗按钮与「生成可玩产物」**共用同一只手**（欠着写时两条 `toBeDisabled` 都量）；
+     ② 到手真的是 zip——头四字节 `PK` + `03 04`，store 不压缩所以包里的路径与 `connect-src` 那句直接数得出明文，
+     少一件（README / index.html / plan.json / engine.js）就不是"拿得走的产物"；
+     ③ **界面回执那三个数与磁盘上这份对账**：`zip N 字节` == 落盘文件的长度、
+     `包里 N 个文件` == 屏上列出的文件数、`产物 N 字节` == `data-game-code-bytes` 那格的属性值。
+     回执不是界面自己解包数出来的，是服务端数完写进 `x-nexus-code-receipt` 的（§159）——
+     这句话没有对账就是空的，所以三个数分别跟一个独立来源比。
+     包名还钉着中文设计名（`filename*=UTF-8''` 那一份）：设计名是 `可玩产物 待写库`，
+     走 ASCII 兜底会压成 `nexus-game-.zip`（一个没有名字的包），用例点名要含"可玩产物"。
+  4. **端点层**（`apps/web/test/game-code.integration.test.ts`，打真库 **10 条全绿 / 15.20 秒**）：
+     除归属、只读投影、`game_missing` 那句"去哪建一份"之外，2026-10-15 补上**两档字节上限**那四条——
+     这是这一片之前唯一"写在代码里但从没被红过"的闸口：
+     前提那条当场量两份 fixture（1500 实体 → 1 686 178 字节，**大于 1MB 且小于 4MB**；
+     5000 实体 → 5 590 780 字节，**大于 4MB**；并且 5000 那份 `GameDocumentSchema` 判合法、
+     再加一个实体就判不合法，免得日后上限漂移了这条还在假装绿）；
+     中等那份 JSON 出口回 413 且 `body.files` **必须是 undefined**（把整份产物塞进拒答就等于上限自己不存在），
+     拒答里要点名"打包"那一条路和 zip 那档的字节数；同一份走 zip 出口回 200、
+     `content-length` 与到手字节数相等、`readZip` 解出来的路径与生成器列出的**逐条相同**；
+     满档那份 zip 回 413 且回的是 JSON（`content-type` 含 `application/json`）、
+     那句要说"拆成几份设计"而**不许**再提"打包"。
+     **四臂变异电池**（`.scratch` 里跑，逐臂还原后核对字节相同）：
+     对照臂（什么都不改）**10 passed**——这一条不绿，另外三臂的"没红"就不算证据；
+     A 把 `MAX_CODE_ZIP_BYTES` 降到与 JSON 同一档 → **2 failed | 8 passed**（前提 + 中等那份 zip 应 200）；
+     C 把整份 files 塞进 zip 的 413 拒答 → **1 failed | 9 passed**；
+     D 把闸口里的归属判定那一行删掉 → **3 failed | 7 passed**，红的正是三条归属见证，
+     413 那几条一动不动。
+     （第一版电池有两处自己的洞，都已修：`spawnSync('npx', …)` 在 Windows 上根本起不来，
+     于是"三条臂一条都没红"其实是"一次都没跑"——改成直接喂 `node_modules/vitest/vitest.mjs` 并硬性要求
+     输出里有 `RUN v` 横幅；还原只写在 `finally` 里，臂与臂会叠加，改成每臂开头先还原。）
+  **同日补上编排链上那一格**（`code` 成为第八种步骤，作业里终于有点它的人了）：
+  `agent-orchestration.integration.test.ts` 从 11 条长到 **14 条**（打真库），三条新用例各钉一件事——
+  ① 读数不自证：把库里 `level` 那份草稿**再投影一遍**，用另一次调用的 `files` / `bytes` / `notes` 对账，
+  并断"同一份设计两次投影字节相同"（没有时钟）、限度四句逐字在里面、**这一格不留 `draft`**、`countGames===0`；
+  ② 守卫点名：注入一个"合法但没留草稿"的 level，`code` 是 failed 且 `error` 里同时有「上游草稿」与 `level`，
+  `counts` 与 `notes` 都是空（守卫不是"崩之前已经投影好了一半"）；
+  ③ 牵连在执行层：注入 level 抛错 → `code` 是 **skipped 不是 failed**、`because` 是 `['level']`、
+  一条 `agent.step` 都不发（其余七步都有 started，这一条是 0）、只有一条 skip activity 且写着被谁牵连、
+  进度分子只有七格而分母仍是八格、通知说"1 步失败 1 步被跳过"、不扣点。
+  另外把两条写死的数改成派生：`agent.activity` 从 `toHaveLength(15)` 改成 `1 + 2 * result.steps.length`，
+  库里结论份数除了钉 8 还要等于计划里的行数（配方加一步时不会假绿）。
+  e2e（`e2e/agent.spec.ts`，2 passed / 1.0 分钟）多两寸：面板上 `code` 那句 summary 与服务端读回来的
+  **逐字相同**（`toHaveText(codeSummary)`，且先断那句里真有"份自包含文件"，免得拿空串匹配空 DOM），
+  而 `[data-agent-accept-step="code"]` 数为 **0**——同屏 `="level"` 可见，这是"没有"配"换个步骤就有"。
+  **六臂变异电池**（三份套件：纯层 18 + 编排 14 + 接受入口 9；对照臂 **41/41 全绿**）：
+  A 拆掉守卫 → **1 红**（正是守卫那条）；B 让 `code` 也留一份草稿 → **3 红**，
+  其中两条在**接受入口**身上（缺省档位与"哪几步真有草稿"那份清单）；
+  C 依赖从 `level` 改成 `game` → **14 红**（这一格真的拿不到上游草稿，作业整体 failed，下游六条接受入口一起红）；
+  D 从配方里整条删掉 → **11 红**（八步全绿 + 三条新用例 + 纯层的依赖表/终态判定/交接）；
+  E `counts.bytes` 报 0 → **1 红**（重投影对账那条）；F notes 丢掉限度四句 → **1 红**（同一处）。
+  B 与 C 的红落在**别人**身上，这正是"接受入口的缺省档位"与"有依赖就必须真用上那个依赖"被钉住的证据。
+  （D 臂第一轮白跑一次，原因在电池自己：那句"删完还在"的自查读的是**内存快照**而不是磁盘，于是永远成立。
+  改成读磁盘，并给每一臂加一句"写完至少有一份文件真的与快照不同"——**"没红"与"没改"必须分得开**。）
   整仓基线：`npx vitest run --maxWorkers=1/2` 这一次 **151 文件 / 1745 条**，跑完 4055 秒（记录里的安静基线是 503 秒，
   慢到 8 倍），报 **4 个文件红**：三条 `Test timed out in 30000ms`（`account-deletion` / `agent-draft-accept` /
   `variants`）加一条计时断言（`document-write-read-contention` 读到 `3510.5383 < 2000` 红），

@@ -59,7 +59,7 @@ interface ServerRun {
   run: {
     taskId: string;
     plan: { tasks: { id: string }[] } | null;
-    steps: { id: string; status: string; draft?: { name: string; entities: unknown[] } }[];
+    steps: { id: string; status: string; summary: string; draft?: { name: string; entities: unknown[] } }[];
   } | null;
 }
 
@@ -154,6 +154,16 @@ test('@smoke agent orchestration runs in the studio and lands a real notificatio
   await expect(page.locator('[data-agent-accept-step="level"]')).toBeVisible();
   // 第三格在站内说的是几何目标，不是战斗目标——它摆的是位置，读数的单位也得跟着换
   await expect(page.locator('[data-agent-step-summary="level"]')).toContainText('条几何目标达标');
+
+  /**
+   * 第四格（code）在这一层要看得见两件事：它报的是**投影的读数**（几份文件、多少字节），
+   * 而且它**没有接受按钮**——它是投影不是第四份"可接受的设计"，缺省档位才会仍落在链末的 level 上。
+   * 面板上那句与服务端那一份逐字相同：这一步的数字不是界面自己数的。
+   */
+  const codeSummary = server!.steps.find((step) => step.id === 'code')?.summary ?? '';
+  expect(codeSummary, '服务端那一份里没有 code 的结论').toContain('份自包含文件');
+  await expect(page.locator('[data-agent-step-summary="code"]')).toHaveText(codeSummary);
+  await expect(page.locator('[data-agent-accept-step="code"]')).toHaveCount(0);
 
   // §52 的落地：这一点之前项目里"还没有游戏"——只读的作业不会自己把草稿写进去
   expect((await readJson<{ game: unknown }>(page, `/api/projects/${projectId}/game`)).game).toBeNull();

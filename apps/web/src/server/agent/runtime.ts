@@ -2,6 +2,7 @@ import { and, eq, isNull } from 'drizzle-orm';
 import { AgentPlanSchema, type AgentActivity, type AgentPlan, type RealtimeEvent } from '@nexus/schemas';
 import { analyzeHealth, type DesignDocument, type HealthReport } from '@nexus/design-model';
 import {
+  CODEGEN_LIMITS,
   COMBAT_DESIGN_LIMITS,
   COMBAT_GOAL_ORDER,
   COMBAT_LEVERS,
@@ -10,6 +11,7 @@ import {
   LEVEL_LEVERS,
   compileRpg,
   designLevel,
+  generateGameCode,
   playtestRpg,
   tuneCombat,
   type GameDocument,
@@ -55,8 +57,9 @@ import { loadDocument } from '../domain/projects';
  *    剩下的几步也在做。
  * 2. **名册说了算**（§73 同一个口径）。每一步声明它要求的能力，开跑前拿名册核对；名册里没有这个
  *    Agent、或它没声明这条能力，整份作业拒收并说清缺什么。
- * 3. **这一轮只读**。今天这七步都不改设计文档、不发布、不生成像素，也不往游戏库写东西——
+ * 3. **这一轮只读**。今天这八步都不改设计文档、不发布、不生成像素，也不往游戏库写东西——
  *    §52 链那三步（game / combat / level）各自编出的草稿只存在这一条作业里（`result.steps[].draft`），
+ *    最后一格（code）更是只报投影的读数，连草稿都不留（产物是同一份设计的另一个样子），
  *    要进项目得由用户在
  *    接受入口点那一下（ADR-0035）。所以这里没有 §150 的可撤销事务要记，也不可能把工作区改坏。
  *    将来加会改模型的步骤时，那一步必须自己走 Command（§150）
@@ -424,6 +427,45 @@ const levelStep: Runner = async (ctx) => {
   };
 };
 
+/**
+ * §52 链的最后一格 Code：拿 level 那一步摆过位置的草稿，把它投影成一份拿得走的产物（§16：设计是真值，产物是投影）。
+ *
+ * 这一格与前两格有一处刻意的不同：**它不留下草稿**。投影不改设计——同一份设计、另一个样子，
+ * 所以接受入口仍然是三个按钮、缺省那一份仍然是链条末端（level）的草稿。
+ * 这里也不下载：下载那一格吃的是**库里**那份设计（`/game/code` 与 `/game/code/zip`），
+ * 而作业里的草稿还没进库（ADR-0035）。这一步能诚实说出的只有读数：几份文件、多少字节、几条发现、哪四句限度。
+ *
+ * §81 在这一格是**守法**的而不是被绕过的：`generateGameCode` 只做字符串拼接——
+ * 不 eval、不起子进程、不读写文件、不联网，所以它可以待在服务端进程里。
+ * 产物本身要在浏览器沙箱里才跑，这一点由 `CODEGEN_LIMITS` 那四句随结论一起念出来。
+ */
+const codeStep: Runner = async (ctx) => {
+  const source = ctx.upstream.find((step) => step.id === 'level')?.draft;
+  if (!source) {
+    throw new Error('code 这一步没拿到上游草稿（level 那一步没留下 draft）：没有可投影的设计，这一格不另编一份再投影');
+  }
+  const output = generateGameCode(source);
+  return {
+    summary:
+      `投影出 ${output.files.length} 份自包含文件、共 ${output.bytes} 字节` +
+      `（设计里 ${source.entities.length} 个实体，生成器报出 ${output.notes.length} 条发现）`,
+    counts: {
+      files: output.files.length,
+      bytes: output.bytes,
+      entities: source.entities.length,
+      findings: output.notes.length,
+      limits: CODEGEN_LIMITS.length,
+    },
+    notes: [
+      '这一步不下载、也不写库：它报的是投影的读数。要真拿走文件，先把上面那一步摆过位置的草稿接受进项目，' +
+        '再在「游戏」面板那格生成并下载——那一路吃的是库里这一份设计。',
+      `这一步没有真 provider，也不需要：生成就是字符串拼接（§81 不 eval、不起子进程、不联网），` +
+        `同一份设计两次投影出来的字节相同。`,
+      ...CODEGEN_LIMITS,
+    ],
+  };
+};
+
 const RUNNERS: Record<StepKind, Runner> = {
   context: contextStep,
   'seo-audit': seoStep,
@@ -432,6 +474,7 @@ const RUNNERS: Record<StepKind, Runner> = {
   game: gameStep,
   combat: combatStep,
   level: levelStep,
+  code: codeStep,
 };
 
 function publish(projectId: string, event: RealtimeEvent): void {
