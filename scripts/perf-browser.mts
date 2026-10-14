@@ -26,7 +26,7 @@ const base = process.argv[2] ?? 'http://localhost:3100';
  */
 const measuredUnder = process.env.PERF_LABEL
   ?? '未标口径（跑时带 PERF_LABEL=dev / prod-<commit>，否则这组数不能与别组比）';
-const scales = (process.argv[3] ?? '1000')
+const scales = (process.argv[3] ?? '100,1000')
   .split(',')
   .map((n) => Number.parseInt(n, 10))
   .filter((n) => Number.isFinite(n) && n > 0);
