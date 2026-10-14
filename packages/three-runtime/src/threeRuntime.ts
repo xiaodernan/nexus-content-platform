@@ -2613,6 +2613,41 @@ export class ThreeRuntime {
     return true;
   }
 
+  /**
+   * M5 v239 — take ONE camera out of a scene. Until this verb the camera registry only ever grew:
+   * `cameras.delete` appeared nowhere in the runtime, so the only way a camera left a scene was `dispose()`,
+   * and the surface's camera leg could honestly say "there is no third name to consider, because there is no
+   * third write". This is that third write, so it ships with the third name and with the two refusals that
+   * keep the invariants the rest of the family already guards: a scene that holds cameras holds exactly one
+   * ACTIVE camera (v225 refused a `Map.set` that emptied that seat), and a shot addresses a camera by id for
+   * the life of its sequence (v118), so a camera a registered sequence names cannot vanish underneath the
+   * player, which reads `scene.cameras.get(shot.cameraId)` every frame.
+   */
+  removeCamera(sceneId: SceneId, cameraId: CameraId): boolean {
+    const scene = this.sceneGraph.scenes.get(sceneId);
+    if (!scene) return false;
+
+    // Same order as v224's `setActiveCamera`: look the subject up before anything is touched, so a `false`
+    // answer is a no-op and never a partial edit.
+    const camera = scene.cameras.get(cameraId);
+    if (!camera) return false;
+
+    if (camera.active) {
+      throw new Error(`removeCamera: camera ${cameraId} is the ACTIVE camera of scene ${sceneId}; call setActiveCamera first — this method will not leave a scene holding cameras and nothing to draw from`);
+    }
+
+    const naming = [...this.cinematics.values()]
+      .filter((entry) => entry.sceneId === sceneId)
+      .flatMap((entry) => entry.sequence.shots.filter((shot) => shot.cameraId === cameraId).map((shot) => `"${entry.sequence.id}" shot ${shot.id}`));
+    if (naming.length) {
+      throw new Error(`removeCamera: camera ${cameraId} is named by ${naming.length} shot(s) of registered sequence(s) ${naming.join(', ')}; call removeCinematic first — a shot addresses a camera by id and the player reads it every frame`);
+    }
+
+    scene.cameras.delete(cameraId);
+    this.emit('cameraRemoved', { sceneId, cameraId });
+    return true;
+  }
+
   createAnimation(
     sceneId: SceneId,
     entity: ThreeEntity,

@@ -911,25 +911,27 @@ export interface SceneSurface {
    *  Same contract as its siblings: no payload, one shared listener, idempotent unsubscribe, and a host
    *  without event verbs answers a no-op unsubscribe. */
   watchPixels(listener: () => void): () => void;
-  /** v224 — the CAMERA pair: `cameraCreated` and `activeCameraChanged`, the two names over the three report
-   *  fields no earlier leg moves — `scene.cameras`, `cameraNames` and `activeCamera`. The census again:
-   *  - Two methods write those fields and each announces once, after the write. `createCamera` inserts into
-   *    `scene.cameras` (threeRuntime.ts:2527) and, when that insert is the scene's FIRST camera, flips
-   *    `active` itself (2529-2531); one `cameraCreated` follows both (2533). `setActiveCamera` is the only other
-   *    writer of `active` (clears the others at 2549, sets the asked one at 2552) and emits afterwards (2553).
-   *  - There is no third name to consider, because there is no third write: `cameras.delete` and
-   *    `cameras.clear` appear nowhere in the runtime, so within a scene `cameras`/`cameraNames` only ever grow.
-   *    `createScene` does start `cameras` at an empty Map (1238) and `setActiveScene` changes WHICH scene is
-   *    read — both move this leg's fields for a SCENE-level reason, and both are already watched by v217's
-   *    scene pair. The disjointness pin below is what keeps that bookkeeping honest rather than implicit.
-   *  - Camera TRANSFORM writes are refused, a new refusal shape for this family: the cinematic shot paths
-   *    (`position.copy`, `lookAt`, `fov` — threeRuntime.ts:2854-2859) and this surface's own `aim()` (977) move
-   *    the live `THREE.Camera`, which the report never reads — it takes only `id`, `name`, `active` (613-614).
-   *    A leg on those would re-read a report that cannot have changed, and they reach no bus name at all.
-   *  - `disposed` keeps v217's reason (the component teardown calls it). And unlike v218's `pixelRatioChanged`,
-   *    this grant ADDS NO VERB: both names already existed. What did not exist was the guarantee that a
-   *    refusal moves nothing — a failed `setActiveCamera` used to clear every camera and answer `false` in
-   *    silence, which no subscription could have repaired. See the runtime's v224 cases.
+  /** v224 — the CAMERA leg, widened to a TRIPLE by v239: `cameraCreated`, `activeCameraChanged` and
+   *  `cameraRemoved` are the three names over the three report fields no earlier leg moves — `scene.cameras`,
+   *  `cameraNames` and `activeCamera`. The census again:
+   *  - Three methods write those fields and each announces once, AFTER the write. `createCamera` inserts into
+   *    `scene.cameras` (threeRuntime.ts:2586) and, when that insert is the scene's FIRST camera, flips
+   *    `active` itself; one `cameraCreated` follows both (2592). `setActiveCamera` looks the camera up before
+   *    touching any flag (2604-2605, v224), clears the others, sets the asked one and emits (2612).
+   *    `removeCamera` (v239) deletes (2646) and emits `cameraRemoved` (2647) — and refuses BEFORE it deletes
+   *    when asked for the ACTIVE camera or for one a registered sequence's shot names, so neither refusal can
+   *    move a reported field.
+   *  - v224 could write "there is no third name, because there is no third write": `cameras.delete` appeared
+   *    nowhere in the runtime. v239 is the third write, which is why this leg has a third name and why the
+   *    fifteen-listener census and the six-way disjointness pin both widened with it. `createScene` still
+   *    starts `cameras` at an empty Map and `setActiveScene` still changes WHICH scene is read — both move
+   *    this leg's fields for a SCENE-level reason, and both are already watched by v217's scene pair.
+   *  - Camera TRANSFORM writes are refused, a refusal shape this family has kept since v224: the cinematic shot
+   *    paths (`position.copy`, `lookAt`, `fov`) and this surface's own `aim()` move the live `THREE.Camera`,
+   *    which the report never reads — it takes only `id`, `name`, `active`. A leg on those would re-read a
+   *    report that cannot have changed, and they reach no bus name at all.
+   *  - `disposed` keeps v217's reason (the component teardown calls it). `cameraRemoved` is the one name this
+   *    grant had to ADD: unlike v224's two, no bus carried it before the verb existed.
    *  Same contract as its siblings: no payload, one shared listener, idempotent unsubscribe, and a host
    *  without event verbs answers a no-op unsubscribe. */
   watchCameras(listener: () => void): () => void;
@@ -1186,12 +1188,12 @@ export function createStudioScene(
         for (const event of events) runtime.removeEventListener?.(event, listener);
       };
     },
-    // v224 — the camera pair. Both names already existed on the bus; what was missing is on the runtime side
-    // (a refused `setActiveCamera` used to clear every camera while answering `false`), and v224 fixed that
-    // so this leg has a truthful account to re-read. One listener joins both names, as in the other five.
+    // v224 joined the camera pair; v239 adds the third name, because the runtime grew the third write
+    // (`removeCamera`) and a leg that only watched creates and switches would keep a stale camera count after
+    // a removal. One listener joins all three, as in the other five legs.
     watchCameras(listener) {
       if (!runtime.addEventListener || !runtime.removeEventListener) return () => {};
-      const events = ['cameraCreated', 'activeCameraChanged'];
+      const events = ['cameraCreated', 'activeCameraChanged', 'cameraRemoved'];
       for (const event of events) runtime.addEventListener(event, listener);
       return () => {
         for (const event of events) runtime.removeEventListener?.(event, listener);

@@ -1467,24 +1467,24 @@ describe('watchScenes (M5 v217)', () => {
     surface.watchScenes(() => {});
     const sceneNames = on.slice(on.length - 2);
     surface.watchPixels(() => {});
-    const pixelNames = on.slice(on.length - 3);
+const pixelNames = on.slice(on.length - 3);
     surface.watchCameras(() => {});
-    const cameraNames = on.slice(on.length - 2);
+    const cameraNames = on.slice(on.length - 3);
 
     expect(componentNames).toEqual(['componentAdded', 'componentRemoved', 'componentStateChanged']);
     expect(entityNames).toEqual(['entityRenamed', 'entityVisibilityChanged']);
     expect(bodyNames).toEqual(['entityCreated', 'entityRemoved']);
     expect(sceneNames).toEqual(['sceneCreated', 'activeSceneChanged']);
     expect(pixelNames).toEqual(['initialized', 'resize', 'pixelRatioChanged']);
-    expect(cameraNames).toEqual(['cameraCreated', 'activeCameraChanged']);
+    expect(cameraNames).toEqual(['cameraCreated', 'activeCameraChanged', 'cameraRemoved']);
 
-    // The whole seam, not one leg: 14 joins, 14 distinct names. Each new leg re-widens this pin, because
-    // the earlier leg's case cannot see a name only the newest one adds — so a name joined twice, or a
-    // family that starts sharing news with another, reddens HERE.
-    const joined = [...componentNames, ...entityNames, ...bodyNames, ...sceneNames, ...pixelNames, ...cameraNames];
-    expect(on.length).toBe(14);
-    expect(joined.length).toBe(14);
-    expect(new Set(joined).size).toBe(joined.length);
+// The whole seam, not one leg: 15 joins, 15 distinct names. Each new leg re-widens this pin, because
+// the earlier leg's case cannot see a name only the newest one adds — so a name joined twice, or a
+// family that starts sharing news with another, reddens HERE.
+const joined = [...componentNames, ...entityNames, ...bodyNames, ...sceneNames, ...pixelNames, ...cameraNames];
+expect(on.length).toBe(15);
+expect(joined.length).toBe(15);
+expect(new Set(joined).size).toBe(joined.length);
     // And each later family's names appear in NO earlier leg's slice.
     for (const name of [...sceneNames, ...pixelNames, ...cameraNames]) {
       expect(componentNames).not.toContain(name);
@@ -1718,7 +1718,7 @@ describe('watchCameras (M5 v224)', () => {
     const listener = () => {};
     const unwatch = surface.watchCameras(listener);
 
-    expect(on.map((entry) => entry.event)).toEqual(['cameraCreated', 'activeCameraChanged']);
+    expect(on.map((entry) => entry.event)).toEqual(['cameraCreated', 'activeCameraChanged', 'cameraRemoved']);
     expect(new Set(on.map((entry) => entry.listener)).size).toBe(1);
     expect(on[0]!.listener).toBe(listener);
 
