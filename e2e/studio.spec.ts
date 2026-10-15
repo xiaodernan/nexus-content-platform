@@ -1100,6 +1100,55 @@ test('@smoke 世界图：拖一个圆画出台子，选中两步删，刷新仍�
   await page.click('[data-view="graph"]');
   await expect(page.locator('[data-world-plateau-graph]')).toHaveCount(1, { timeout: 30_000 });
   await page.screenshot({ path: 'screenshots/world-terrain-persisted.png' });
+
+  // 第五片（2026-10-15）：剖面开关画一座坡。切换到「坡」，再拖一笔——
+  // 落下的圆要自己报 cone、画虚线（与台面的实线肉眼可分），刷新后两种剖面都在。
+  // 刷新把模式弹回了默认（剖面开关只在「画地形」模式的工具条里），先重新进模式
+  await page.click('[data-world-terrain-mode]');
+  await page.click('[data-world-terrain-profile="cone"]');
+  await expect(page.locator('[data-world-terrain-profile="cone"]')).toHaveAttribute('aria-pressed', 'true');
+  await expect(page.locator('[data-world-terrain-hint]')).toContainText('圆锥坡');
+  let start2: { x: number; y: number } | null = null;
+  outer2: for (const fy of [0.45, 0.3, 0.5]) {
+    for (const fx of [0.15, 0.3, 0.5, 0.7]) {
+      const x = box.x + (visX1 - box.x) * fx;
+      const y = box.y + (visY1 - box.y) * fy;
+      const blank = await page.evaluate(
+        (pt: { px: number; py: number }) => {
+          const el = document.elementFromPoint(pt.px, pt.py);
+          if (!el) return false;
+          if (el.closest('[data-graph-node], [data-graph-edge], [data-world-plateau-graph]')) return false;
+          return Boolean(el.closest('[data-graph-canvas]'));
+        },
+        { px: x, py: y },
+      );
+      if (blank) {
+        start2 = { x, y };
+        break outer2;
+      }
+    }
+  }
+  expect(start2, '可见区域里没有第二块空白——骨架排布变了就要换候选位').not.toBeNull();
+  if (!start2) return;
+  await page.mouse.move(start2.x, start2.y);
+  await page.mouse.down();
+  await page.mouse.move(start2.x + 80, start2.y + 10, { steps: 8 });
+  await page.mouse.up();
+  await expect(page.locator('[data-world-plateau-graph]')).toHaveCount(2);
+  const coneCircle = page.locator('[data-world-plateau-graph][data-world-plateau-profile="cone"]');
+  await expect(coneCircle).toHaveCount(1);
+  await expect(coneCircle).toHaveAttribute('stroke-dasharray', /.+/); // 坡画虚线，台面保持实线
+  // 台面那一笔自报 mesa（scene 投影把缺省补成 mesa，属性在两个圆上都有，按值区分）
+  await expect(page.locator('[data-world-plateau-graph][data-world-plateau-profile="mesa"]')).toHaveCount(1);
+  // 面板列表把这一个标成坡（面板不在图视图的默认标签上，切到「世界」再等地形面板出现）
+  await page.click('[data-panel-tab="world"]');
+  await page.waitForSelector('[data-world-terrain-panel]', { timeout: 30_000 });
+  await expect(page.locator('[data-world-plateau]').filter({ hasText: '坡' })).toHaveCount(1);
+  await expect(page.locator('[data-graph-state]')).toHaveText('已保存', { timeout: 30_000 });
+  await page.reload();
+  await page.click('[data-view="graph"]');
+  await expect(page.locator('[data-world-plateau-graph][data-world-plateau-profile="cone"]')).toHaveCount(1, { timeout: 30_000 });
+  await page.screenshot({ path: 'screenshots/world-terrain-cone.png' });
 });
 
 /**
@@ -2142,6 +2191,40 @@ test('@smoke 3D 世界：图上摆过的位置就是地面布局，走近才展�
     await page.screenshot({ path: 'screenshots/world3d-terrain.png' });
     // 限度照实说：圆台是硬边，没有"半个台阶"
     await expect(page.locator('[data-scene-limits]')).toContainText('圆台');
+
+    // 第五片（2026-10-15）：圆锥坡参与行走高度。把坡放在相机**当前脚下**——
+    // 读 data-walk-at 的坐标，回编辑器在那点加一座坡顶 4 的 cone（半径 200 盖住
+    // 脚下 ±0.05 的取整误差：线性坡在 d≪r 处 ≈ 台心，二位小数后就是 4）。
+    // 单测钉线性数学，这里钉"坡参与 data-walk-height 且在重叠处取最高"这条端到端连续性
+    const atMatch = /^(-?\d+(?:\.\d+)?),(-?\d+(?:\.\d+)?)$/.exec(
+      (await live2.getAttribute('data-walk-at')) ?? '',
+    );
+    if (!atMatch) throw new Error('data-walk-at 不再是 "x,z" 格式——格式变了断言要跟着改');
+    const footX = Number(atMatch[1]);
+    const footZ = Number(atMatch[2]);
+    await page.goto(`/studio/${projectIdForTerrain}`);
+    await page.click('[data-panel-tab="world"]');
+    await page.waitForSelector('[data-world-terrain-panel]', { timeout: 30_000 });
+    await page.locator('[data-world-plateau-input="x"]').fill(String(footX));
+    await page.locator('[data-world-plateau-input="y"]').fill(String(footZ));
+    await page.locator('[data-world-plateau-input="radius"]').fill('200');
+    await page.locator('[data-world-plateau-input="height"]').fill('4');
+    await page.selectOption('[data-world-plateau-input="profile"]', 'cone');
+    await page.click('[data-world-plateau-add]');
+    await expect(page.locator('[data-world-plateau]')).toHaveCount(2);
+    await expect(page.locator('[data-world-plateau]').filter({ hasText: '坡' })).toHaveCount(1);
+    await expect(page.locator('[data-world-state]')).toHaveText('已保存', { timeout: 20_000 });
+    await page.click('[data-view="graph"]');
+    await page.waitForSelector('[data-graph-count]', { timeout: 30_000 });
+    await page.click('[data-enter-world3d]');
+    await page.waitForURL(/\/world\/[^/]+$/, { timeout: 30_000 });
+    const live3 = page.locator('[data-world3d="live"]');
+    await expect(live3).toBeVisible({ timeout: 30_000 });
+    // 脚下就是坡心：cone 4 赢过台面 3（重叠取最高）
+    await expect.poll(() => live3.getAttribute('data-walk-height'), { timeout: 10_000 }).toBe('4');
+    await page.screenshot({ path: 'screenshots/world3d-terrain-cone.png' });
+    // 限度照实说：坡是台心到边缘线性降到 0 的斜面
+    await expect(page.locator('[data-scene-limits]')).toContainText('圆锥坡');
   }
 });
 

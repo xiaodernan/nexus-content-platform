@@ -1175,6 +1175,19 @@ vitest 直接崩了而我却把 stdout 丢进了 `/dev/null`，于是"5 遍"其�
 - 降权推论改增量（顺带，2026-10-15）：`admin-role.integration.test.ts` 那条"全局还剩 2 个 admin"
   被 9 个 `mod+admin+…@nexus.test` 的 e2e 残留顶红——改成"少一个 + 动手的自己还在"，
   推论的两半都在且不挑库；残留用 `.scratch/cleanup-mod-admins.mjs` 清掉。
+- 坡地/圆锥坡（§140 第五片，2026-10-15）：`packages/world-model/test/terrain.test.ts` 第五片组
+  6 条——cone 线性取值三点钉（台心=height、半高在半径一半处、边缘与之外=0）、mesa×cone 混画
+  重叠取最高、scene 投影把缺省补成 `'mesa'`、`setWorldTerrain` 只写 cone（mesa 不进 JSON）、
+  坏剖面拒收且 `validateWorld` 同口径（文档一个字不动）、契约不剥 profile；`terrain-draw.test.ts`
+  剖面组 2 条（不传 profile = 与第四片逐字节相同 / cone 落库往返）。两条 e2e 都加了坡：
+  `@smoke 世界图：拖一个圆画出台子…（§140 图上画地形）` 切剖面开关再拖一笔——虚线圆 +
+  `data-world-plateau-profile="cone"` + 台面那笔自报 mesa（scene 投影把属性补全了，
+  按值区分不按有无——第一轮就是按有无断言红的）+ 面板标"坡"（要先切到「世界」面板标签）+
+  刷新仍在，截图 `world-terrain-cone.png`；`@smoke 3D 世界：图上摆过的位置就是地面布局…`
+  在相机脚下加坡顶 4 的 cone（读 `data-walk-at` 回编辑器加，半径 200 盖住取整误差），
+  `data-walk-height` 从台面 3 变 4，截图 `world3d-terrain-cone.png`。
+  **踩过的两格**：刷新把「画地形」模式弹回默认，剖面开关只在模式工具条里（先重新进模式）；
+  `data-walk-at` 是 `"x,z"` 带 0.1 取整的串，正则取组再 Number，别用元组解构（noUncheckedIndexedAccess）
   教训：全局计数断言（谁都在库里数一遍）换任何一次残留就红，增量断言才是那条推论本身
 - 画布视口裁剪（§147）：`packages/design-model/test/viewport.test.ts` 6 条，每条都对着一种"会让用户误判"的失败——
   小文档不裁（DOM 有没有节点是可观察行为）、过阈值才裁且**根框永远留着**（裁了页面背景就没了）、

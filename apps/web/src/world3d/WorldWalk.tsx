@@ -273,21 +273,37 @@ function ModelAsset({
 }
 
 /**
- * §140 第四片的地形渲染。圆台是**半透明盘 + 一根高度柱**，不是一个实心方块：
- * - 半透明：站在台子外往里看要看得见台子上的条目（实心盘会把它们挡成黑影）；
- * - 高度柱（柱心在圆盘中心，从地面穿到台面）：台面悬在空中时，这根柱子就是
- *   "它靠什么撐着"的答案——与高程标架柱同一套语言，别让作者猜；
- * - 台面下 0.06 处画边界圈：硬边的地回答"这里是不是台沿"。圈贴在盘面下一丁点，
- *   是为了不被盘自己的半透明面 z-fighting 吃掉。
- * 高度 0 的圆台不画：它就在地平面上（模型侧 `terrainHeightAt` 也跳过它），
- * 画一个看不见的盘只会让线段数白涨。
+ * §140 第四/五片的地形渲染。剖面两种，各有各的画法：
+ * - **mesa（圆台）**：半透明盘 + 一根高度柱——半透明是站在台子外往里看要看得见台子上的条目
+ *   （实心盘会把它们挡成黑影）；高度柱是"台面悬在空中时它靠什么撐着"的答案，与高程标架柱同一套语言。
+ *   台面下 0.06 处画边界圈：硬边的地回答"这里是不是台沿"。
+ * - **cone（圆锥坡）**：一个半透明圆锥，底在地面、顶尖在台心高度——坡本身就是地，
+ *   没有"撐着"这回事，所以不画柱子；底沿那一圈贴在地面，圈出坡脚在哪。
+ * 高度 0 的不画（模型侧 `terrainHeightAt` 也跳过它），画一个看不见的形状只会让线段数白涨。
  */
 function TerrainPlates({ terrain }: { terrain: WorldScene['terrain'] }) {
   if (!terrain.authored) return null;
   return (
     <group data-world-terrain>
-      {terrain.plateaus.map((plateau) =>
-        plateau.height <= 0 ? null : (
+      {terrain.plateaus.map((plateau) => {
+        if (plateau.height <= 0) return null;
+        if (plateau.profile === 'cone') {
+          return (
+            <group key={plateau.id} position={[plateau.x, 0, plateau.z]} data-terrain-cone={plateau.id}>
+              {/* 圆锥：底在地面（y=0），顶尖在 height；three 的 cone 原点在几何中心 */}
+              <mesh position={[0, plateau.height / 2, 0]}>
+                <coneGeometry args={[plateau.radius, plateau.height, 48]} />
+                <meshBasicMaterial color="#1d5c4a" transparent opacity={0.35} side={THREE.DoubleSide} />
+              </mesh>
+              {/* 坡脚圈：坡从哪一圈开始升起，站在平地上看得见 */}
+              <mesh position={[0, 0.02, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+                <ringGeometry args={[Math.max(0.1, plateau.radius - 0.12), plateau.radius, 48]} />
+                <meshBasicMaterial color="#7ee2b8" transparent opacity={0.9} side={THREE.DoubleSide} />
+              </mesh>
+            </group>
+          );
+        }
+        return (
           <group key={plateau.id} position={[plateau.x, 0, plateau.z]}>
             {/* 台面盘：圆盘的圆心在地面上方 height 处 */}
             <mesh position={[0, plateau.height, 0]} rotation={[-Math.PI / 2, 0, 0]}>
@@ -305,8 +321,8 @@ function TerrainPlates({ terrain }: { terrain: WorldScene['terrain'] }) {
               <meshBasicMaterial color="#7ee2b8" transparent opacity={0.9} side={THREE.DoubleSide} />
             </mesh>
           </group>
-        ),
-      )}
+        );
+      })}
     </group>
   );
 }

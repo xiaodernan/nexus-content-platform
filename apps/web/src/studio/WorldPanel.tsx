@@ -351,17 +351,19 @@ function TerrainSection({
 
   return (
     <section className="mt-4" data-world-terrain-panel>
-      <h3 className="font-mono text-11 uppercase tracking-wide text-fg-3">地形（可走的圆台）</h3>
+      <h3 className="font-mono text-11 uppercase tracking-wide text-fg-3">地形（可走的圆台与坡）</h3>
       <p className="mt-1 text-11 leading-relaxed text-fg-3">
-        走进圆台就是站在台面上（相机与点击地面都读同一份高度）。没画地形的世界脚下是平的。
+        站在地形特征上就是站在它的高度上（相机与点击地面都读同一份高度）。剖面两种：台面（硬边）
+        与坡（台心到边缘线性降到 0，可走）。没画地形的世界脚下是平的。
         高度 0–{WORLD_TERRAIN_HEIGHT_MAX}，半径 {WORLD_PLATEAU_RADIUS_MIN}–{WORLD_PLATEAU_RADIUS_MAX}；
-        重叠的圆台取最高的那个。当前 {plateaus.length}/{WORLD_PLATEAU_LIMIT} 个。
+        重叠的地形取最高的那个。当前 {plateaus.length}/{WORLD_PLATEAU_LIMIT} 个。
       </p>
       <ul className="mt-1 flex flex-col gap-1">
         {plateaus.map((plateau) => (
           <li key={plateau.id} className="flex items-center gap-1" data-world-plateau={plateau.id}>
             <span className="min-w-0 flex-1 truncate font-mono text-11 text-fg-2">
               ({plateau.x}, {plateau.y}) r={plateau.radius} h={plateau.height}
+              {plateau.profile === 'cone' ? ' 坡' : ''}
             </span>
             <button
               type="button"
@@ -425,15 +427,32 @@ function TerrainSection({
           data-world-plateau-input="height"
           className="w-16 rounded-[3px] bg-bg-1 px-1 py-[2px] text-12 text-fg-1 outline-none focus:bg-bg-3"
         />
+        <label htmlFor="world-plateau-profile" className="shrink-0 text-11 text-fg-3">
+          剖面
+        </label>
+        <select
+          id="world-plateau-profile"
+          value={draft.profile ?? 'mesa'}
+          onChange={(e) =>
+            setDraft((d) => ({ ...d, profile: e.target.value === 'cone' ? 'cone' : undefined }))
+          }
+          data-world-plateau-input="profile"
+          className="rounded-[3px] bg-bg-1 px-1 py-[2px] text-12 text-fg-1 outline-none focus:bg-bg-3"
+        >
+          <option value="mesa">台面（硬边）</option>
+          <option value="cone">坡（线性降到 0）</option>
+        </select>
         <button
           type="button"
-          onClick={() =>
-            apply([...plateaus, { ...draft, id: `wp_${Date.now().toString(36)}${plateaus.length}` }])
-          }
+          onClick={() => {
+            // 只写 cone：mesa 是缺省，写进文档等于让每个存盘都多一栏没人读的默认值
+            const { profile, ...rest } = draft;
+            apply([...plateaus, { ...rest, id: `wp_${Date.now().toString(36)}${plateaus.length}`, ...(profile === 'cone' ? { profile: 'cone' as const } : {}) }]);
+          }}
           data-world-plateau-add
           className="shrink-0 rounded-[var(--nexus-radius-sm)] border border-[var(--nexus-color-border-strong)] px-2 py-1 text-11 text-fg-2 hover:bg-bg-2"
         >
-          加一个圆台
+          加上去
         </button>
         {world.terrain ? (
           <button

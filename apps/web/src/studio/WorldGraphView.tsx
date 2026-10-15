@@ -14,6 +14,7 @@ import {
   type WorldKind,
 } from '@nexus/world-model';
 import { clampHeight, clampRadius, plateauFromDrag } from './terrainDraw';
+import type { WorldPlateauProfile } from '@nexus/world-model';
 import { cn } from '@/lib/cn';
 import { useStudioReady } from './store';
 import { useWorld, worldStore } from './worldStore';
@@ -63,9 +64,10 @@ export function WorldGraphView() {
   } | null>(null);
   /** 拖完那一下也会触发 click：不吞掉它，节点就会被顺手选中（拖 ≠ 选） */
   const suppressClick = useRef(false);
-  /** §140 图上画地形：模式开关、新圆台的台面高度、被选中的圆台、正在拖的那笔预览 */
+  /** §140 图上画地形：模式开关、新圆台的台面高度与剖面、被选中的圆台、正在拖的那笔预览 */
   const [terrainMode, setTerrainMode] = useState(false);
   const [terrainHeight, setTerrainHeight] = useState(2);
+  const [terrainProfile, setTerrainProfile] = useState<WorldPlateauProfile>('mesa');
   const [pickedPlateau, setPickedPlateau] = useState<string | null>(null);
   const [draftDraw, setDraftDraw] = useState<{ x0: number; y0: number; x1: number; y1: number } | null>(null);
 
@@ -143,7 +145,12 @@ export function WorldGraphView() {
     if (!draft) return;
     // 按下没拖：不是画，别在点选的时候顺手造一个 1 半径的台子
     if (Math.hypot(draft.x1 - draft.x0, draft.y1 - draft.y0) < 3) return;
-    const plateau = plateauFromDrag({ x: draft.x0, y: draft.y0 }, { x: draft.x1, y: draft.y1 }, terrainHeight);
+    const plateau = plateauFromDrag(
+      { x: draft.x0, y: draft.y0 },
+      { x: draft.x1, y: draft.y1 },
+      terrainHeight,
+      terrainProfile,
+    );
     const result = setWorldTerrain(world, { kind: 'plateaus', plateaus: [...plateaus, plateau] });
     if (result.reason) {
       worldStore.showNotice(result.reason);
@@ -273,7 +280,7 @@ export function WorldGraphView() {
         {terrainMode ? (
           <>
             <label htmlFor="world-graph-terrain-height" className="flex items-center gap-1 text-11 text-fg-3">
-              台面高度
+              {terrainProfile === 'cone' ? '坡顶高度' : '台面高度'}
               <input
                 id="world-graph-terrain-height"
                 type="number"
@@ -286,10 +293,30 @@ export function WorldGraphView() {
                 className="w-14 rounded-[var(--nexus-radius-sm)] bg-bg-2 px-1 py-1 text-12 text-fg-1 outline-none"
               />
             </label>
+            {/* 剖面开关：台面（mesa，硬边）/ 坡（cone，台心到边缘线性降到 0）。画下一笔用哪个 */}
+            <span className="flex items-center gap-1 text-11 text-fg-3" role="group" aria-label="地形剖面">
+              {(['mesa', 'cone'] as const).map((option) => (
+                <button
+                  key={option}
+                  type="button"
+                  onClick={() => setTerrainProfile(option)}
+                  aria-pressed={terrainProfile === option}
+                  data-world-terrain-profile={option}
+                  className={cn(
+                    'rounded px-2 py-1 text-11',
+                    terrainProfile === option ? 'bg-accent-2 text-fg-1' : 'bg-bg-2 text-fg-2 hover:bg-bg-3',
+                  )}
+                >
+                  {option === 'mesa' ? '台面' : '坡'}
+                </button>
+              ))}
+            </span>
             <span className="text-11 text-fg-3" data-world-terrain-hint>
               {pickedPlateau
                 ? '点「删除这个圆台」确认删掉选中的台子'
-                : '在空白处按下拖一个圆 = 画一个台子；点台子选中可删'}
+                : terrainProfile === 'cone'
+                  ? '在空白处按下拖一个圆 = 画一座圆锥坡（台心到边缘线性降到 0，可走）；点它选中可删'
+                  : '在空白处按下拖一个圆 = 画一个硬边台子；点台子选中可删'}
               （{plateaus.length}/{WORLD_PLATEAU_LIMIT}）
             </span>
             {pickedPlateau ? (
@@ -437,43 +464,52 @@ export function WorldGraphView() {
             </g>
           );
         })}
-        {/* §140：已画的圆台在图上就是地（平常只看不可点，「画地形」模式里点中可删） */}
+        {/* §140：已画的地形在图上就是地（平常只看不可点，「画地形」模式里点中可删）。
+            剖面用形状说话：台面是实线圈，坡是虚线圈——2D 图上没有高度可以画，线型是唯一不编的区分 */}
         {plateaus.map((plateau) => {
           const active = pickedPlateau === plateau.id;
+          const cone = plateau.profile === 'cone';
           return (
             <circle
               key={plateau.id}
               cx={plateau.x}
               cy={plateau.y}
               r={plateau.radius}
-              fill="rgba(36, 84, 70, 0.28)"
+              fill={cone ? 'rgba(36, 84, 70, 0.14)' : 'rgba(36, 84, 70, 0.28)'}
               stroke={active ? 'var(--nexus-color-accent-2)' : 'rgba(96, 168, 138, 0.85)'}
               strokeWidth={active ? 2.5 : 1.5}
+              strokeDasharray={cone ? '5 3' : undefined}
               className={cn(terrainMode && 'cursor-pointer')}
               style={{ pointerEvents: terrainMode ? undefined : 'none' }}
               data-world-plateau-graph={plateau.id}
+              data-world-plateau-profile={plateau.profile ?? 'mesa'}
               data-graph-plateau-picked={active ? 'true' : 'false'}
               onClick={() => {
                 if (!terrainMode) return;
                 setPickedPlateau(active ? null : plateau.id);
               }}
             >
-              <title>{`圆台 (${plateau.x}, ${plateau.y}) r=${plateau.radius} h=${plateau.height}`}</title>
+              <title>
+                {cone
+                  ? `圆锥坡 (${plateau.x}, ${plateau.y}) r=${plateau.radius} 顶 h=${plateau.height}——台心到边缘线性降到 0`
+                  : `圆台 (${plateau.x}, ${plateau.y}) r=${plateau.radius} h=${plateau.height}`}
+              </title>
             </circle>
           );
         })}
-        {/* 正在拖的那一笔：预览圆的半径与落库走同一个夹取，所见即所存 */}
+        {/* 正在拖的那一笔：预览圆的半径与落库走同一个夹取，所见即所存；线型跟当前剖面 */}
         {draftDraw ? (
           <circle
             cx={draftDraw.x0}
             cy={draftDraw.y0}
             r={clampRadius(Math.hypot(draftDraw.x1 - draftDraw.x0, draftDraw.y1 - draftDraw.y0))}
-            fill="rgba(36, 84, 70, 0.14)"
+            fill={terrainProfile === 'cone' ? 'rgba(36, 84, 70, 0.07)' : 'rgba(36, 84, 70, 0.14)'}
             stroke="var(--nexus-color-accent-2)"
             strokeWidth={1.5}
-            strokeDasharray="4 3"
+            strokeDasharray={terrainProfile === 'cone' ? '4 3' : undefined}
             pointerEvents="none"
             data-world-terrain-preview
+            data-world-terrain-preview-profile={terrainProfile}
           />
         ) : null}
         {nodes.map((node) => {

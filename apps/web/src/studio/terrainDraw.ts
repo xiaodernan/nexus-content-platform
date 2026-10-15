@@ -3,6 +3,7 @@ import {
   WORLD_PLATEAU_RADIUS_MIN,
   WORLD_TERRAIN_HEIGHT_MAX,
   type WorldPlateau,
+  type WorldPlateauProfile,
 } from '@nexus/world-model';
 
 /**
@@ -33,11 +34,13 @@ export function clampHeight(raw: number | string): number {
 /**
  * 图上按下那一点是圆心、松手那一点定半径。
  * 坐标取整：世界图的网格是整数（节点位置同此），小数坐标在 3D 里没有对应的一格。
+ * `profile` 缺省 mesa：老调用点（与没有这一栏的存盘）行为不变；cone 是第五片的坡。
  */
 export function plateauFromDrag(
   center: { x: number; y: number },
   edge: { x: number; y: number },
   height: number,
+  profile: WorldPlateauProfile = 'mesa',
 ): WorldPlateau {
   return {
     id: newPlateauId(),
@@ -45,5 +48,7 @@ export function plateauFromDrag(
     y: Math.round(center.y),
     radius: clampRadius(Math.hypot(edge.x - center.x, edge.y - center.y)),
     height: clampHeight(height),
+    // 只写 cone：mesa 是缺省，写进文档等于让每个存盘都多一栏没人读的默认值
+    ...(profile === 'cone' ? { profile: 'cone' as const } : {}),
   };
 }

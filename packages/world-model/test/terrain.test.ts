@@ -232,3 +232,93 @@ describe("地形过得了 wire 契约（§140 × schemas）", () => {
     expect(viaPut.success ? viaPut.data.document.terrain : null).toBeDefined();
   });
 });
+
+/**
+ * §140 第五片（2026-10-15）：圆锥坡（cone）。钉的四件会骗人的事：
+ *  ① 高度沿半径**线性**降到 0（台心 = height，半高在半径一半处，边缘 = 0）——
+ *     "坡"必须是能被算术钉住的那一条线性，不是"大概斜一点"；
+ *  ② 老文档没有 profile = mesa，投影里补成 'mesa'（渲染层不必写第二套默认）；
+ *  ③ 写入端只认 mesa/cone，其余拒收且文档一个字不动；normalize 只写 cone，
+ *     不给 mesa 存一栏没人读的默认值；
+ *  ④ 契约不剥 profile，坏 profile 进不了库。
+ */
+describe("圆锥坡（cone）：台心到边缘线性降到 0", () => {
+  function sceneWith(plateaus: WorldPlateau[]) {
+    return buildWorldScene({ ...doc(), terrain: { kind: "plateaus", plateaus } });
+  }
+
+  it("台心 = 高度，半高在半径一半处，边缘与之外 = 0", () => {
+    const scene = sceneWith([plateau("hill", { x: 0, y: 0, radius: 10, height: 4, profile: "cone" })]);
+    expect(terrainHeightAt(scene.terrain, 0, 0)).toBe(4);
+    expect(terrainHeightAt(scene.terrain, 5, 0)).toBe(2); // 线性：d=radius/2 → height/2
+    expect(terrainHeightAt(scene.terrain, 2.5, 0)).toBe(3);
+    expect(terrainHeightAt(scene.terrain, 10, 0)).toBe(0); // 边缘上就是 0（与半径外一致）
+    expect(terrainHeightAt(scene.terrain, 12, 0)).toBe(0);
+  });
+
+  it("mesa 与 cone 重叠取最高的那个；mesa 的边缘语义（含进去）不变", () => {
+    const scene = sceneWith([
+      plateau("mesa", { x: 0, y: 0, radius: 5, height: 2 }), // 缺省剖面 = mesa
+      plateau("hill", { x: 0, y: 0, radius: 10, height: 4, profile: "cone" }),
+    ]);
+    expect(terrainHeightAt(scene.terrain, 0, 0)).toBe(4); // 台心：cone 4 > mesa 2
+    expect(terrainHeightAt(scene.terrain, 3, 0)).toBe(2.8); // d=3: cone 4*(1-0.3)=2.8；mesa 2 输了
+    expect(terrainHeightAt(scene.terrain, 5, 0)).toBe(2); // mesa 边缘仍算台面；cone 此处只有 2，平
+    expect(terrainHeightAt(scene.terrain, 8, 0)).toBe(0.8); // mesa 外、cone 内
+  });
+
+  it("老文档（没有 profile）投影里补成 mesa；cone 原样带过去", () => {
+    const scene = sceneWith([
+      plateau("old"),
+      plateau("new", { profile: "cone" }),
+    ]);
+    expect(scene.terrain.plateaus.map((p) => p.profile)).toEqual(["mesa", "cone"]);
+  });
+
+  it("setWorldTerrain 只写 cone：mesa 不往 JSON 里塞默认值", () => {
+    const cone = setWorldTerrain(doc(), {
+      kind: "plateaus",
+      plateaus: [plateau("p", { profile: "cone" })],
+    });
+    expect(cone.reason).toBeNull();
+    expect(cone.document.terrain?.plateaus[0]).toEqual({
+      id: "p", x: 0, y: 0, radius: 5, height: 2, profile: "cone",
+    });
+    const mesa = setWorldTerrain(doc(), { kind: "plateaus", plateaus: [plateau("p")] });
+    expect(mesa.reason).toBeNull();
+    expect(mesa.document.terrain?.plateaus[0]).not.toHaveProperty("profile");
+  });
+
+  it("坏 profile 拒收，文档一个字没动；validateWorld 同一句口径", () => {
+    const base = doc();
+    const before = JSON.stringify(base);
+    const bad = setWorldTerrain(base, {
+      kind: "plateaus",
+      plateaus: [plateau("p", { profile: "hill" as never })],
+    });
+    expect(bad.reason).toContain("剖面");
+    expect(JSON.stringify(bad.document)).toBe(before);
+
+    const broken = {
+      ...base,
+      terrain: { kind: "plateaus", plateaus: [plateau("p", { profile: "hill" as never })] },
+    } as WorldDocument;
+    expect(validateWorld(broken).some((i) => i.code === "bad-terrain" && i.message.includes("剖面"))).toBe(true);
+  });
+
+  it("契约：cone 进得了库也读得回来，坏 profile 被挡在门口", () => {
+    const world = setWorldTerrain(doc(), {
+      kind: "plateaus",
+      plateaus: [plateau("p", { profile: "cone" })],
+    }).document;
+    const parsed = WorldDocumentSchema.safeParse(world);
+    expect(parsed.success).toBe(true);
+    expect(parsed.success ? parsed.data.terrain?.plateaus[0]?.profile : null).toBe("cone");
+    expect(
+      WorldTerrainSchema.safeParse({
+        kind: "plateaus",
+        plateaus: [plateau("p", { profile: "hill" as never })],
+      }).success,
+    ).toBe(false);
+  });
+});

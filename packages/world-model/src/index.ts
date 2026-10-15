@@ -95,6 +95,13 @@ export interface WorldPlateau {
   radius: number;
   /** 台面高度（0–6，与 elevation 同一上界：站在台子上的"海拔"） */
   height: number;
+  /**
+   * 剖面（§140 第五片，2026-10-15）：这个圆台是硬边台面还是圆锥坡。
+   * - 缺省（undefined / 'mesa'）：半径内恒为 height，半径外 0——第四片的行为，一个字节不变。
+   * - 'cone'：台心 height、边缘 0，中间线性（`height * (1 - d/radius)`）——可走的坡。
+   * 老文档没有这一栏 = mesa：可选字段 + 缺省即旧语义，与"没有 terrain = 平地"同一条纪律。
+   */
+  profile?: 'mesa' | 'cone';
 }
 
 export interface WorldTerrain {
@@ -109,6 +116,14 @@ export const WORLD_PLATEAU_LIMIT = 64;
 /** 圆台半径的边界：太小的台子（走一步就掉下去）与太大的圆（覆盖整个世界）都不是地形 */
 export const WORLD_PLATEAU_RADIUS_MIN = 1;
 export const WORLD_PLATEAU_RADIUS_MAX = 400;
+/** 圆台的两种剖面。名字进契约（`WorldPlateauSchema.profile`），这里是模型侧读得懂的那一份 */
+export const WORLD_PLATEAU_PROFILES = ['mesa', 'cone'] as const;
+export type WorldPlateauProfile = (typeof WORLD_PLATEAU_PROFILES)[number];
+
+/** 收到的剖面是不是这两种之一。缺省算 mesa——写成函数是为了让两处校验和投影共用同一句话 */
+export function isWorldPlateauProfile(value: unknown): value is WorldPlateauProfile {
+  return value === undefined || (WORLD_PLATEAU_PROFILES as readonly unknown[]).includes(value);
+}
 
 export interface WorldDocument {
   id: string;
@@ -475,6 +490,12 @@ export function setWorldTerrain(
         reason: `圆台的高度要在 0 到 ${WORLD_TERRAIN_HEIGHT_MAX} 之间（收到 ${plateau.height}）。`,
       };
     }
+    if (!isWorldPlateauProfile(plateau.profile)) {
+      return {
+        document,
+        reason: `圆台的剖面只有 mesa（硬边台面）和 cone（圆锥坡）两种（收到 ${String(plateau.profile)}）。`,
+      };
+    }
   }
   return {
     document: {
@@ -487,6 +508,8 @@ export function setWorldTerrain(
           y: plateau.y,
           radius: plateau.radius,
           height: plateau.height,
+          // 只写 cone：mesa 是缺省，写进 JSON 等于让每个老世界的存盘都多一栏没人读的默认值
+          ...(plateau.profile === 'cone' ? { profile: 'cone' as const } : {}),
         })),
       },
       updatedAt: stamp(),
@@ -688,6 +711,12 @@ export function validateWorld(document: WorldDocument): WorldIssue[] {
           issues.push({
             code: "bad-terrain",
             message: `圆台「${plateau.id}」的高度要在 0 到 ${WORLD_TERRAIN_HEIGHT_MAX} 之间。`,
+          });
+        }
+        if (!isWorldPlateauProfile(plateau.profile)) {
+          issues.push({
+            code: "bad-terrain",
+            message: `圆台「${plateau.id}」的剖面只有 mesa 和 cone 两种（收到 ${String(plateau.profile)}）。`,
           });
         }
       }

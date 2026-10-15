@@ -1115,6 +1115,8 @@ export const WorldPlateauSchema = z.object({
   y: z.number().finite().min(-100_000).max(100_000),
   radius: z.number().finite().min(1).max(400),
   height: z.number().finite().min(0).max(6),
+  /** 剖面：缺省 = mesa（硬边圆台，今天的行为）；cone = 从台心线性降到边缘 0 的圆锥坡（§140 第五片） */
+  profile: z.enum(['mesa', 'cone']).optional(),
 });
 
 export const WorldTerrainSchema = z.object({

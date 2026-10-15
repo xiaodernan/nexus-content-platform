@@ -85,8 +85,8 @@ export const SCENE_LIMITS: string[] = [
   "位置来自 §45 那张世界图上摆过的坐标；没摆过的按文档顺序排在同心环上——那不是作者设计过的地形。",
   "所有条目大小一样：世界文档里没有「重要性」也没有「体积」字段，给不同大小就是编出来的等级。",
   "颜色只表示九类内容中的哪一类，不表示危险、阵营或温度。",
-  "高程是图上写的条目属性（0–6）：条目浮在写的高度上，柱子是它的标架；脚下的地没有坡——走近高处的条目是它浮着，不是你在爬山。",
-  "地形是作者画的圆台（第四片）：站在圆台里就是站在台面上，相机与点击地面的射线都读同一个高度查询。圆台是硬边，没有「半个台阶」这种走法——重叠的圆台取最高的那个。",
+  "高程是图上写的条目属性（0–6）：条目浮在写的高度上，柱子是它的标架。elevation 本身不是地板——地有没有坡由 terrain 说（见下一条）。",
+  "地形是作者画的（第四片）：站在地形特征里就是站在它的高度上，相机与点击地面的射线都读同一个高度查询。剖面两种：mesa 硬边圆台（没有「半个台阶」这种走法）、cone 圆锥坡（台心到边缘线性降到 0，可走的斜面）。重叠的地形取最高的那个。",
   "条目占位会挡路（圆碰撞），点击行走是直线加碰撞滑动，不是导航网格。",
   "条目可以挂 §34 的 model 资产（.glb/.gltf）：有模型时显示模型，没有时用占位几何体。",
 ];
@@ -267,13 +267,16 @@ export function walkToward(
  * 所以它只能是纯数据；查询也顺便只依赖纯数据。文档侧想查同一个数，先 `sceneTerrain()`。
  *
  * 三条设计：
- * - **覆盖此点的圆台取最高的那个**。两个圆台重叠时不是平均也不是后者胜——
+ * - **覆盖此点的取最高的那个**。两个地形特征重叠时不是平均也不是后者胜——
  *   平均会把两个台子的缝填成一道斜坡，而小方块没有"半个台阶"这种走法；后者胜会让
- *   同一块地的高度取决于作者先画哪个。取最高 → 站在任何重叠处都顾得到那个"最高的台面"。
+ *   同一块地的高度取决于作者先画哪个。取最高 → 站在任何重叠处都顾得到那个"最高的地"。
+ * - **剖面分两种（§140 第五片）**：`mesa` 半径内恒为 height（硬边，第四片的行为）；
+ *   `cone` 台心 height、边缘 0、中间线性——可走的坡。cone 在半径内是连续的
+ *   （Lipschitz 常数 = height/radius），点击地面的两次迭代在它上面同样收敛。
  * - **没有地形 = 平地 = 0**。老世界（没有 terrain 字段）照常读得出、走得动，
  *   与"老世界没有 positions"是同一条纪律。
  * - **确定性**。同一坐标永远同一个答案（单测能钉），不掺入网格插值那种
- *   "半个像素差一点高度"的东西——圆台就是硬边，缝怎么走写在 `limits` 里。
+ *   "半个像素差一点高度"的东西。
  */
 export function terrainHeightAt(
   terrain: SceneTerrain | undefined,
@@ -282,18 +285,39 @@ export function terrainHeightAt(
 ): number {
   if (!terrain) return 0;
   let height = 0;
-  for (const plateau of terrain.plateaus) {
-    if (plateau.height <= height) continue; // 更高的才有可能赢；等于当前值的也跳过（不改变结果）
-    if (Math.hypot(x - plateau.x, z - plateau.z) <= plateau.radius) height = plateau.height;
+  for (const feature of terrain.plateaus) {
+    if (feature.height <= 0) continue; // 0 高的特征谁都赢不了（cone 也只会更低）
+    const distance = Math.hypot(x - feature.x, z - feature.z);
+    let candidate: number;
+    if (feature.profile === 'cone') {
+      // 边缘上取 0（与半径外一致）：`>=` 而不是 `>`，免得把边缘那一点算成 height 的跳变
+      if (distance >= feature.radius) continue;
+      candidate = feature.height * (1 - distance / feature.radius);
+    } else {
+      // mesa 保留第四片的语义：边缘（distance === radius）算在台面上
+      if (distance > feature.radius) continue;
+      candidate = feature.height;
+    }
+    if (candidate > height) height = candidate;
   }
-  // 一位小数：高度是作者在输入框里写的，浮点尾数不该出现在相机位置上
+  // 两位小数：高度是作者在输入框里写的，浮点尾数不该出现在相机位置上
   return Math.round(height * 100) / 100;
 }
 
 /** 场景投影：地形随场景一起给（渲染层与行走层都不该自己去读文档） */
 export interface SceneTerrain {
-  /** 圆台清单（纯数据：这份投影要过 server/client 边界，函数不能上船） */
-  plateaus: { id: string; x: number; z: number; radius: number; height: number }[];
+  /**
+   * 地形特征清单（纯数据：这份投影要过 server/client 边界，函数不能上船）。
+   * `profile` 在投影里**总是有值**（缺省补成 mesa）：渲染层不必再写第二套默认。
+   */
+  plateaus: {
+    id: string;
+    x: number;
+    z: number;
+    radius: number;
+    height: number;
+    profile: 'mesa' | 'cone';
+  }[];
   /** 这个世界有没有作者画的地形（false = 平地，HUD 与限度都读这一格） */
   authored: boolean;
 }
@@ -310,7 +334,14 @@ export interface SceneTerrain {
 export function sceneTerrain(terrain: WorldTerrain | undefined): SceneTerrain {
   const plateaus =
     terrain?.kind === 'plateaus'
-      ? terrain.plateaus.map((p) => ({ id: p.id, x: p.x, z: p.y, radius: p.radius, height: p.height }))
+      ? terrain.plateaus.map((p) => ({
+          id: p.id,
+          x: p.x,
+          z: p.y,
+          radius: p.radius,
+          height: p.height,
+          profile: p.profile === 'cone' ? ('cone' as const) : ('mesa' as const),
+        }))
       : [];
   return {
     plateaus,

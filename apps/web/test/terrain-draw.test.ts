@@ -101,3 +101,18 @@ describe('画出来的圆台能过模型的写入口径（setWorldTerrain 照收
     expect(result.document.terrain?.plateaus[0]?.height).toBe(WORLD_TERRAIN_HEIGHT_MAX);
   });
 });
+
+describe('剖面（第五片）：台面是缺省，坡要写出来', () => {
+  it('不传 profile = 与第四片逐字节相同（没有这一栏）', () => {
+    const dragged = plateauFromDrag({ x: 0, y: 0 }, { x: 10, y: 0 }, 2);
+    expect(dragged).not.toHaveProperty('profile');
+  });
+
+  it("传 'cone' 落库就是 cone，模型照收且往返不变", () => {
+    const dragged = plateauFromDrag({ x: 0, y: 0 }, { x: 10, y: 0 }, 4, 'cone');
+    expect(dragged.profile).toBe('cone');
+    const result = setWorldTerrain(createWorld('坡'), { kind: 'plateaus', plateaus: [dragged] });
+    expect(result.reason).toBeNull();
+    expect(result.document.terrain?.plateaus).toEqual([dragged]);
+  });
+});
