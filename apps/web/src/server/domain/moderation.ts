@@ -310,8 +310,11 @@ export async function resolveCase(
       .where(eq(publishedProjects.id, existing.publicationId));
     hidden = actor.resolution === 'rejected';
   }
-  if (actor.resolution === 'rejected') {
-    await db.update(abuseReports).set({ status: 'closed' }).where(eq(abuseReports.publicationId, existing.publicationId ?? ''));
+  if (actor.resolution === 'rejected' && existing.publicationId) {
+    // 只在真挂了发布行时才有举报可关：`?? ''` 那种写法会把空串塞进 uuid 列，
+    // 于是"被机检当场挡下、根本没有 publication 行"的案子一旦 rejected 就整条请求 500，
+    // 而案子的结案已经写在前面了——账（下面的审计）反而落在失败之后，永远不写。
+    await db.update(abuseReports).set({ status: 'closed' }).where(eq(abuseReports.publicationId, existing.publicationId));
   }
   // §80 / §84：这是全平台权力最大的一个按钮——一句话就能把一页公开内容撤下来。
   // 谁在什么时候对哪个案子说了什么，必须留在库里，而不是留在当时那个浏览器的控制台里

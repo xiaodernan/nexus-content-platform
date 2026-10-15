@@ -59,7 +59,17 @@ export async function POST(req: Request, ctx: { params: Promise<{ caseId: string
   if (!result.ok) return jsonError(409, 'cannot_resolve', { message: result.reason });
   return NextResponse.json({
     ...result,
-    // rejected 会把这一版从公网撤下来；approved 只说明"人看过了、放行"，不代表机检查过什么
-    message: result.hidden ? '已拒绝：该公开页面现在不可访问' : '已放行：裁决记在案子上',
+    /**
+     * 话要按**裁决**说，不是按"有没有公开页可撤"说：`hidden` 只表示这一版挂了发布行，
+     * 而"被机检当场挡下、根本没有 publication 行"的案子同样可以被拒绝。
+     * 早先这里用 `hidden ? 已拒绝 : 已放行`，于是拒绝一个没有公开页的案子时，
+     * 界面说的是"已放行"——那一句是反的（§159：不许让界面替产品说反话）。
+     */
+    message:
+      result.resolution === 'rejected'
+        ? result.hidden
+          ? '已拒绝：该公开页面现在不可访问'
+          : '已拒绝：裁决记在案子上（这一版没有公开页可撤）'
+        : '已放行：裁决记在案子上',
   });
 }

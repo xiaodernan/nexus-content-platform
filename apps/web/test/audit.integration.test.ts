@@ -1,7 +1,7 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { and, eq, gte, inArray, isNull, sql as rawSql } from 'drizzle-orm';
 import { listAudit, recordAudit } from '../src/server/domain/audit';
-import { countAdmins, listAccounts, setUserRole } from '../src/server/domain/roles';
+import { listAccounts, setUserRole } from '../src/server/domain/roles';
 import { getDb } from '../src/server/db/client';
 import { auditEvents, users } from '../src/server/db/schema';
 
@@ -50,6 +50,29 @@ const mine = async () =>
       .from(auditEvents)
       .where(and(inArray(auditEvents.actorId, [adminId, secondAdminId, creatorId]), gte(auditEvents.createdAt, new Date(Date.now() - 60_000))))
   ).map((r) => r.id);
+
+/**
+ * 只数**本文件这三个账号**里的 admin，不用 `countAdmins()`（那个是全局的）。
+ *
+ * 为什么必须圈住：别的测试文件同时在造 admin（提权/改档位那两片的 beforeAll 就各建两个）。
+ * 全局计数会让这一节的断言变成**顺序依赖**——谁先跑完谁把数留给别人，
+ * 于是"最后一个审核员降不下去"这条会在别人并发建 admin 时假红，
+ * 也会在别人恰好清理干净时假绿。这里要证的是"从 self_change 这条路走不到 0 个 admin"，
+ * 圈在本文件的账号上照样证得动，而且不再看别人的脸色。
+ */
+const myAdmins = async () => {
+  const [row] = await getDb()
+    .select({ n: rawSql<number>`count(*)::int` })
+    .from(users)
+    .where(
+      and(
+        eq(users.role, 'admin'),
+        isNull(users.deletedAt),
+        inArray(users.handle, [`auda${stamp}`, `audb${stamp}`, `audc${stamp}`]),
+      ),
+    );
+  return row?.n ?? 0;
+};
 
 describe('审计的写入方', () => {
   it('写一行读得回来，最新的在前面；actor 为空读成"没有身份"', async () => {
@@ -105,17 +128,17 @@ describe('角色变更的判定（§131 的自助提权）', () => {
   it('不能改自己；最后一个审核员不能被降下去', async () => {
     expect(await setUserRole(adminId, adminId, 'creator')).toMatchObject({ ok: false, code: 'self_change' });
     // 现在有两个 admin：降一个是允许的（反向对照，否则"永远拒绝"也能通过上一条）
-    expect(await countAdmins()).toBe(2);
+    expect(await myAdmins()).toBe(2);
     const down = await setUserRole(adminId, secondAdminId, 'creator');
     expect(down).toMatchObject({ ok: true, previous: 'admin', role: 'creator' });
-    expect(await countAdmins()).toBe(1);
+    expect(await myAdmins()).toBe(1);
     expect(await setUserRole(adminId, adminId, 'creator')).toMatchObject({ ok: false, code: 'self_change' });
     // 造出"只剩一个 admin 且不是自己"的局面：把它降下去必须被拒
     const [creator] = await getDb().select({ id: users.id }).from(users).where(eq(users.handle, `audc${stamp}`)).limit(1);
     await getDb().update(users).set({ role: 'admin' }).where(eq(users.id, creator!.id));
     // 现在 adminId 与 creator 都是 admin；把 creator 降下去允许，再把自己降下去仍被 self_change 挡住
     expect(await setUserRole(adminId, creator!.id, 'creator')).toMatchObject({ ok: true });
-    expect(await countAdmins()).toBe(1);
+    expect(await myAdmins()).toBe(1);
     await getDb().delete(auditEvents).where(inArray(auditEvents.id, await mine()));
   });
 
@@ -124,18 +147,18 @@ describe('角色变更的判定（§131 的自助提权）', () => {
     // 而 admin 改自己被 self_change 挡住。这条用例守的是那个**推论**（0 个 admin 不可达），
     // 不是守一条不存在的代码分支（把名字写成"last_admin 规则"会让人去源码里找它）。
     // 上一个用例结束时只剩 adminId 一个 admin
-    expect(await countAdmins()).toBe(1);
+    expect(await myAdmins()).toBe(1);
     const [creator] = await getDb().select({ id: users.id }).from(users).where(eq(users.handle, `audc${stamp}`)).limit(1);
     // 反向对照：还有第二个 admin 时，降其中一个是可以的（否则"恒拒绝"也能通过下面的断言）
     expect(await setUserRole(adminId, creator!.id, 'admin')).toMatchObject({ ok: true });
     expect(await setUserRole(adminId, creator!.id, 'creator')).toMatchObject({ ok: true });
     await getDb().update(users).set({ role: 'creator' }).where(eq(users.id, secondAdminId));
-    expect(await countAdmins()).toBe(1);
+    expect(await myAdmins()).toBe(1);
     // 想把最后一个降下去，从这条路只能改自己
     expect(await setUserRole(adminId, adminId, 'creator')).toMatchObject({ ok: false, code: 'self_change' });
     // 换个非 admin 来降它：403，而且角色不动
     expect(await setUserRole(creator!.id, adminId, 'creator')).toMatchObject({ ok: false, code: 'forbidden' });
-    expect(await countAdmins()).toBe(1);
+    expect(await myAdmins()).toBe(1);
     await getDb().delete(auditEvents).where(inArray(auditEvents.id, await mine()));
   });
 
