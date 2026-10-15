@@ -32,7 +32,8 @@
     "verify:publish-e2e": "node tools/harness/studio-publish.mjs",
     "verify:leak-sweep": "node docs/evidence/m7/leak-sweep-proof.mjs",
     "verify:remix": "node docs/evidence/m7/remix-proof.mjs",
-    "verify:explore": "node docs/evidence/m7/explore-proof.mjs"
+    "verify:explore": "node docs/evidence/m7/explore-proof.mjs",
+    "verify:validate": "node docs/evidence/design-model/validate-proof.mjs"
   },
   "devDependencies": {
     "turbo": "^2.3.3",

@@ -41,3 +41,4 @@ export {
   type ExpandedInstances,
 } from './instances.js';
 export { resolveToken, flattenTokens, parseDimension, colorToCss } from './tokens.js';
+export { validateDocument, type DocumentProblem, type DocumentVerdict } from './validate.js';

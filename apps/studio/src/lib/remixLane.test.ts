@@ -43,6 +43,15 @@ describe('extractRemixDocument (M7 v233)', () => {
     expect(extractRemixDocument({ ok: true, document: { ...base, nodes: undefined } })).toEqual({ ok: false, reason: 'the document has no nodes object' });
     expect(extractRemixDocument({ ok: true, document: { ...base, activePageId: '' } })).toEqual({ ok: false, reason: 'the document has no string activePageId' });
   });
+
+  it('refuses a document whose GRAPH is inconsistent, naming the problem (v243)', () => {
+    // The SHAPE is fine (every field is a non-empty string / object), but the root names no node.
+    const broken = JSON.parse(JSON.stringify(createEmptyDocument('X'))) as Record<string, unknown>;
+    broken.rootId = 'ghost';
+    const out = extractRemixDocument({ ok: true, document: broken });
+    expect(out.ok).toBe(false);
+    if (!out.ok) expect(out.reason).toContain('not a consistent graph');
+  });
 });
 
 describe('remixIdFromSearch (M7 v234)', () => {

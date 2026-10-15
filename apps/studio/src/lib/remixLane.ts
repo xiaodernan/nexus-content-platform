@@ -8,7 +8,7 @@
  * Studio as a new project. Until v233 the Studio could publish but never read a publication back in its own
  * UI (a stated M7 bound); `readPublished` existed and had NO consumer.
  */
-import type { DesignDocument } from '@nexus/design-model';
+import { validateDocument, type DesignDocument } from '@nexus/design-model';
 
 import { readPublished } from './publishLane';
 
@@ -38,6 +38,15 @@ export function extractRemixDocument(answer: unknown): RemixExtraction {
   if (typeof doc.rootId !== 'string' || !doc.rootId) return { ok: false, reason: 'the document has no string rootId' };
   if (!doc.nodes || typeof doc.nodes !== 'object') return { ok: false, reason: 'the document has no nodes object' };
   if (typeof doc.activePageId !== 'string' || !doc.activePageId) return { ok: false, reason: 'the document has no string activePageId' };
+  // v243 — the shallow shape is NOT enough. A document whose graph is internally inconsistent (a childId
+  // naming no node, a parent that disagrees with its child, a cycle) passes the checks above and then loads
+  // into the store and draws something subtly wrong, which is worse than refusing it. The deep check names
+  // the problem; the shallow reasons above stay first so a malformed SHAPE is still reported as such.
+  const verdict = validateDocument(d);
+  if (!verdict.ok) {
+    const [first, ...rest] = verdict.problems;
+    return { ok: false, reason: `the document is not a consistent graph: ${first!.detail}${rest.length ? ` (+${rest.length} more)` : ''}` };
+  }
   return { ok: true, document: d as DesignDocument };
 }
 
