@@ -60,6 +60,9 @@ export default async function AdminModerationPage() {
           <Link href="/admin/realtime" className="text-accent-2 underline" data-queue-realtime>
             实时总线
           </Link>
+          <Link href="/admin/access" className="text-accent-2 underline" data-queue-access>
+            访问账
+          </Link>
         </nav>
       </header>
 

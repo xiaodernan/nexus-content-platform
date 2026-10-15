@@ -13,7 +13,7 @@ import type {
 import { API_ACCESS_RETENTION_DAYS, API_TOKEN_RATE_LIMITS_PER_MINUTE } from '@nexus/schemas';
 import type { DesignDocument } from '@nexus/design-model';
 import { getDb } from '../db/client';
-import { apiAccessBuckets, apiTokens, projects } from '../db/schema';
+import { apiAccessBuckets, apiTokens, projects, users } from '../db/schema';
 import { parseDocument } from '../validation';
 import { destructiveActions, nodeNamer, WEB_APPROVAL_POLICY } from '../ai/approvals';
 import { loadDocument, lockProjectWrites, projectBelongsTo, writeProjectDocument } from './projects';
@@ -615,5 +615,194 @@ export async function listApiAccessSummary(userId: string, perToken = 3): Promis
     });
   }
   return out;
+}
+
+/* ---------- 全局视图与导出（§188 M8 第三片欠的那格：谁在扫库、哪一枚凭据是热点） ----------
+ *
+ * 与 `listApiAccessSummary` 的分工：那一格是"我自己名下最近读过什么"（按人 / 按枚），
+ * 这一组是**跨全部用户**的同一本账——同一张 `api_access_buckets`、同一个 30 天保留、
+ * 同一句"分钟合并，不假装逐次流水"。聚合在 SQL 里做（不是先扫进内存再分组）：
+ * 桶行数被读限流封顶，但 30 天 × 全部凭据的乘积不该整批过一次 Node。
+ *
+ * 报文不进 `packages/schemas`：与 `/api/admin/*` 其余端点同一先例（复核台、用户管理、
+ * 实时诊断都只回 plain JSON）——这是同源 admin 面的内部报文，不是跨进程契约。
+ */
+
+/** 全局视图可选的窗口（天）。写死这三个数：界面只发它们，端点也只认它们 */
+export const API_ACCESS_GLOBAL_WINDOWS_DAYS = [1, 7, 30] as const;
+export type ApiAccessWindowDays = (typeof API_ACCESS_GLOBAL_WINDOWS_DAYS)[number];
+/** 榜单截断：界面如实写"前 N / 共 M"，不让人以为这就是全部 */
+export const API_ACCESS_GLOBAL_TOP_N = 20;
+
+/**
+ * 窗口参数：没给是 7 天；给了但不在这份名单里回 null（调用方回 400 并说清可选值）。
+ * 不把任意整数收进库里再截断——"411 天"这种值应该在门口就出声，而不是悄悄按 30 天算。
+ */
+export function parseApiAccessWindowDays(raw: string | null): ApiAccessWindowDays | null {
+  if (raw === null) return 7;
+  const asNumber = Number(raw);
+  return (API_ACCESS_GLOBAL_WINDOWS_DAYS as readonly number[]).includes(asNumber)
+    ? (asNumber as ApiAccessWindowDays)
+    : null;
+}
+
+export interface ApiAccessGlobalTokenRow {
+  tokenId: string;
+  tokenName: string;
+  tokenHint: string;
+  ownerName: string;
+  calls: number;
+  /** 窗口内打过的**不同端点**个数（"扫库"的形状：多端点 × 多项目） */
+  endpoints: number;
+  /** 窗口内打过的**不同项目**个数（空串的集合类端点不算一个项目） */
+  projects: number;
+  lastSeen: string;
+}
+
+export interface ApiAccessGlobalEndpointRow {
+  endpoint: string;
+  calls: number;
+  /** 打过这个端点的不同凭据数（"全平台都在读这个"与"一枚凭据读了两百遍"是两回事） */
+  tokens: number;
+}
+
+export interface ApiAccessGlobalSummary {
+  windowDays: number;
+  totalCalls: number;
+  activeTokens: number;
+  activeOwners: number;
+  tokens: ApiAccessGlobalTokenRow[];
+  endpoints: ApiAccessGlobalEndpointRow[];
+}
+
+function windowCutoff(days: ApiAccessWindowDays): Date {
+  return new Date(Date.now() - days * DAY_MS);
+}
+
+function isoOf(value: Date | string): string {
+  return (value instanceof Date ? value : new Date(value)).toISOString();
+}
+
+/** 凭据榜。`limit` 省略 = 全量（导出用——导出被静默截断比页面少列几行更难查） */
+async function globalTokenRows(cutoff: Date, limit?: number): Promise<ApiAccessGlobalTokenRow[]> {
+  const query = getDb()
+    .select({
+      tokenId: apiTokens.id,
+      tokenName: apiTokens.name,
+      tokenHint: apiTokens.hint,
+      ownerName: users.displayName,
+      calls: sql<number>`sum(${apiAccessBuckets.calls})::int`,
+      endpoints: sql<number>`count(distinct ${apiAccessBuckets.endpoint})::int`,
+      // filter 子句：'' 是集合类端点的合法值，数它进来"扫过 3 个项目"就变成"扫过 1 个 + 两个空气项目"
+      projects: sql<number>`count(distinct ${apiAccessBuckets.projectId}) filter (where ${apiAccessBuckets.projectId} <> '')::int`,
+      lastSeen: sql<Date>`max(${apiAccessBuckets.lastSeen})`,
+    })
+    .from(apiAccessBuckets)
+    .innerJoin(apiTokens, eq(apiTokens.id, apiAccessBuckets.tokenId))
+    // 内连接就够：凭据被吊销/删除时账行跟着级联走（迁移 0020 的 FK），到不了"有账没有主人"
+    .innerJoin(users, eq(users.id, apiTokens.userId))
+    .where(gte(apiAccessBuckets.lastSeen, cutoff))
+    .groupBy(apiTokens.id, apiTokens.name, apiTokens.hint, users.displayName)
+    .orderBy(desc(sql`sum(${apiAccessBuckets.calls})`), desc(sql`max(${apiAccessBuckets.lastSeen})`));
+  // 有 limit 才补一刀：builder 的类型在 .limit 之后就不再接受"不带 limit"的那条分支了
+  const rows = await (limit === undefined ? query : query.limit(limit));
+  return rows.map((row) => ({
+    tokenId: row.tokenId,
+    tokenName: row.tokenName,
+    tokenHint: row.tokenHint,
+    ownerName: row.ownerName,
+    calls: Number(row.calls),
+    endpoints: Number(row.endpoints),
+    projects: Number(row.projects),
+    lastSeen: isoOf(row.lastSeen),
+  }));
+}
+
+/** 端点榜。同上：`limit` 省略 = 全量 */
+async function globalEndpointRows(cutoff: Date, limit?: number): Promise<ApiAccessGlobalEndpointRow[]> {
+  const query = getDb()
+    .select({
+      endpoint: apiAccessBuckets.endpoint,
+      calls: sql<number>`sum(${apiAccessBuckets.calls})::int`,
+      tokens: sql<number>`count(distinct ${apiAccessBuckets.tokenId})::int`,
+    })
+    .from(apiAccessBuckets)
+    .where(gte(apiAccessBuckets.lastSeen, cutoff))
+    .groupBy(apiAccessBuckets.endpoint)
+    .orderBy(desc(sql`sum(${apiAccessBuckets.calls})`), desc(sql`count(distinct ${apiAccessBuckets.tokenId})`));
+  const rows = await (limit === undefined ? query : query.limit(limit));
+  return rows.map((row) => ({
+    endpoint: row.endpoint,
+    calls: Number(row.calls),
+    tokens: Number(row.tokens),
+  }));
+}
+
+/** `/admin/access` 那一屏：总数三格 + 两张各前 N 的榜 */
+export async function listApiAccessGlobal(days: ApiAccessWindowDays): Promise<ApiAccessGlobalSummary> {
+  const cutoff = windowCutoff(days);
+  const [totals] = await getDb()
+    .select({
+      totalCalls: sql<number>`coalesce(sum(${apiAccessBuckets.calls}), 0)::int`,
+      activeTokens: sql<number>`count(distinct ${apiAccessBuckets.tokenId})::int`,
+      activeOwners: sql<number>`count(distinct ${apiTokens.userId})::int`,
+    })
+    .from(apiAccessBuckets)
+    .innerJoin(apiTokens, eq(apiTokens.id, apiAccessBuckets.tokenId))
+    .where(gte(apiAccessBuckets.lastSeen, cutoff));
+  const [tokens, endpoints] = await Promise.all([
+    globalTokenRows(cutoff, API_ACCESS_GLOBAL_TOP_N),
+    globalEndpointRows(cutoff, API_ACCESS_GLOBAL_TOP_N),
+  ]);
+  return {
+    windowDays: days,
+    totalCalls: Number(totals?.totalCalls ?? 0),
+    activeTokens: Number(totals?.activeTokens ?? 0),
+    activeOwners: Number(totals?.activeOwners ?? 0),
+    tokens,
+    endpoints,
+  };
+}
+
+/** 导出：与视图同一本账、同一窗口，但**不截断**（只给前 N 的导出等于让人拿着残账对账） */
+export async function exportApiAccessGlobal(days: ApiAccessWindowDays, kind: 'tokens' | 'endpoints'): Promise<string> {
+  const cutoff = windowCutoff(days);
+  if (kind === 'tokens') {
+    return apiAccessTokensCsv(await globalTokenRows(cutoff));
+  }
+  return apiAccessEndpointsCsv(await globalEndpointRows(cutoff));
+}
+
+/** CSV 单元格：含逗号/引号/换行就加引号，内部引号翻倍（RFC 4180，端点名里合法地有方括号和空格） */
+function csvCell(value: string | number): string {
+  const text = String(value);
+  return /[",\r\n]/.test(text) ? `"${text.replace(/"/g, '""')}"` : text;
+}
+
+const csvLine = (cells: Array<string | number>): string => cells.map(csvCell).join(',');
+
+/**
+ * 凭据榜 CSV。两处口径直接编进文件，免得拿到文件的人还要回来找这句话：
+ * 表头是英文（机器读），**第一行数据之前没有说明行**——说明进文件名里的窗口天数与页面脚注。
+ * 行首 BOM：Excel 双击打开中文不乱码；常见 CSV 解析器都容忍它。
+ * 注意 `Response.text()` 按 fetch 规范会剥掉 BOM——BOM 是发出去的字节，测试要走 arrayBuffer 看它。
+ */
+export function apiAccessTokensCsv(rows: ApiAccessGlobalTokenRow[]): string {
+  const lines = [
+    csvLine(['token_id', 'token_name', 'hint', 'owner', 'calls', 'endpoints', 'projects', 'last_seen']),
+    ...rows.map((row) =>
+      csvLine([row.tokenId, row.tokenName, row.tokenHint, row.ownerName, row.calls, row.endpoints, row.projects, row.lastSeen]),
+    ),
+  ];
+  return `\uFEFF${lines.join('\r\n')}\r\n`;
+}
+
+/** 端点榜 CSV（同上：BOM + CRLF + 表头在第一行） */
+export function apiAccessEndpointsCsv(rows: ApiAccessGlobalEndpointRow[]): string {
+  const lines = [
+    csvLine(['endpoint', 'calls', 'tokens']),
+    ...rows.map((row) => csvLine([row.endpoint, row.calls, row.tokens])),
+  ];
+  return `\uFEFF${lines.join('\r\n')}\r\n`;
 }
 

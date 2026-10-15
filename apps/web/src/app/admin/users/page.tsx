@@ -57,6 +57,9 @@ export default async function AdminUsersPage() {
           <Link href="/admin/realtime" className="text-accent-2 underline" data-users-realtime>
             实时总线
           </Link>
+          <Link href="/admin/access" className="text-accent-2 underline" data-users-access>
+            访问账
+          </Link>
         </nav>
       </header>
 

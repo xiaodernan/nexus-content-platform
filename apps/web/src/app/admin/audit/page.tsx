@@ -54,6 +54,9 @@ export default async function AdminAuditPage() {
           <Link href="/admin/realtime" className="text-accent-2 underline" data-audit-realtime>
             实时总线
           </Link>
+          <Link href="/admin/access" className="text-accent-2 underline" data-audit-access>
+            访问账
+          </Link>
         </nav>
       </header>
 

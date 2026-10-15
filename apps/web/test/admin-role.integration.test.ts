@@ -224,9 +224,14 @@ describe('§131 提权/降权入口：路由层的门序、报文与提权路径
   });
 
   it('admin 降权另一个 admin → 200（"一个 admin 都不剩"从这条路径进不来：改自己被挡住）', async () => {
+    // 增量而不是全局计数：库里可能住着别人的审核员（e2e 残留、人工账号），
+    // 那不归这条用例说——它守的推论只需要"少了一个，而动手的那个还在"。
+    // 2026-10-15 就是这么红的：9 个 mod+admin+ 残留把全局断言顶掉了。
+    const before = await countAdmins();
     const res = await call(secondAdmin, { role: 'creator' }, asUser(adminToken));
     expect(res.status).toBe(200);
     expect(await roleOf(secondAdmin)).toBe('creator');
-    expect(await countAdmins(), '两个 admin 里降掉一个，还剩一个（这一条本身在守那条推论）').toBe(2);
+    expect(await countAdmins(), '降掉一个，总数少一个').toBe(before - 1);
+    expect(await roleOf(admin), '动手的审核员自己还在（推论的另一半）').toBe('admin');
   });
 });

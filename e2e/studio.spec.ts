@@ -1841,6 +1841,13 @@ test('@smoke 发布机检与公开页举报：挡下要说清凭什么，举报�
   await expect(page.locator('[data-admin-denied]')).toHaveAttribute('data-admin-denied', 'not-admin');
   await expect(page.locator('[data-realtime-stats]')).toHaveCount(0);
   await page.screenshot({ path: 'screenshots/admin-realtime-denied.png' });
+
+  // §188 M8 第三片全局访问账同一句口径：谁在扫库这张表也只对 role=admin 开，一行账都不给
+  await page.goto('/admin/access');
+  await expect(page.locator('[data-admin-denied]')).toHaveAttribute('data-admin-denied', 'not-admin');
+  await expect(page.locator('[data-access-admin-root]')).toHaveCount(0);
+  await expect(page.locator('[data-access-token]')).toHaveCount(0);
+  await page.screenshot({ path: 'screenshots/admin-access-denied.png' });
 });
 
 test('@smoke 社区：公开页能点赞、评论、改编；发现页只排排得出来的排序（§59/§61）', async ({ page }) => {
