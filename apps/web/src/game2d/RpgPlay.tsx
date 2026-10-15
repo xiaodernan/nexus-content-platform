@@ -5,6 +5,9 @@ import {
   ARENA,
   initialRpgState,
   playtestRpg,
+  PLAYTEST_DEFAULT_SEED,
+  PLAYTEST_POLICIES,
+  playtestSeedNote,
   rpgStep,
   rpgSummary,
   xpToNext,
@@ -33,6 +36,8 @@ export function RpgPlay({ plan }: { plan: RpgPlan }) {
   const [hud, setHud] = useState<RpgState>(() => stateRef.current);
   // §53：与 2D 同一个"跑四种走法"，但跑的是 rpgStep——经验、等级门参与判定（报告里的等级列就是它）
   const [report, setReport] = useState<RpgPlaytestReport | null>(null);
+  // 随机游走那条走法的抽样起点。界面上显示的永远是 `report.seed`（这次真跑了的那个），不是这个控件里的数
+  const [seed, setSeed] = useState<number>(PLAYTEST_DEFAULT_SEED);
 
   const restart = useCallback(() => {
     stateRef.current = initialRpgState(plan);
@@ -201,12 +206,24 @@ export function RpgPlay({ plan }: { plan: RpgPlan }) {
           <h3 className="text-12 font-semibold text-fg-1">自动跑一遍（Playtest）</h3>
           <button
             type="button"
-            onClick={() => setReport(playtestRpg(plan))}
+            onClick={() => setReport(playtestRpg(plan, PLAYTEST_POLICIES, seed))}
             className="rounded bg-bg-2 px-2 py-1 text-11"
             data-playtest-run
           >
             跑四种走法
           </button>
+          <label className="flex items-center gap-[6px] text-11 text-fg-3">
+            随机种子
+            <input
+              type="number"
+              value={Number.isFinite(seed) ? seed : ''}
+              // 清空 = 「没有明示种子」，不是 0：`Number('')` 是 0，而 0 是一个真的种子
+              onChange={(event) => setSeed(event.target.value === '' ? Number.NaN : Number(event.target.value))}
+              className="w-[92px] rounded border border-[var(--nexus-color-border-subtle)] bg-bg-2 px-1 py-[2px] text-11"
+              data-playtest-seed
+              title="只有「定种子随机游走」那一条用它：换种子=换一次抽样，规则与数值一个字都不动"
+            />
+          </label>
         </div>
         {report ? (
           <>
@@ -246,6 +263,9 @@ export function RpgPlay({ plan }: { plan: RpgPlan }) {
             </table>
             <p className="mt-1 text-11 text-fg-3" data-playtest-max-level={report.maxLevel}>
               这几种走法到达过的最高等级：{report.maxLevel}
+            </p>
+            <p className="mt-1 text-11 text-fg-3" data-playtest-seed-used={report.seed}>
+              {playtestSeedNote(report.seed)}
             </p>
             <ul className="mt-2 flex flex-col gap-1">
               {report.findings.map((line) => (

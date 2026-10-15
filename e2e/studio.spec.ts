@@ -2748,6 +2748,27 @@ test('@smoke §50 试玩：§54 那份设计文档真的跑成一关，能走动
   await expect(game.locator('[data-playtest-limits]')).toContainText('不是穷举');
   await game.screenshot({ path: 'screenshots/game-playtest-report.png' });
 
+  // 限度里那句"换种子就是换一次抽样"要在这页面上做得出来。这里盯的是**界面会不会说谎**：
+  // 印出来的数字只许来自报告实际跑过的那一次，清空输入框也不许偷偷换成种子 0（0 是真种子）
+  const seedUsed = game.locator('[data-playtest-seed-used]');
+  await expect(game.locator('[data-playtest-seed]')).toHaveValue('7');
+  await expect(seedUsed).toHaveAttribute('data-playtest-seed-used', '7');
+  await expect(seedUsed).toContainText('就是默认那一个');
+  await expect(seedUsed).not.toContainText('换一次抽样');
+  await game.fill('[data-playtest-seed]', '11');
+  await game.click('[data-playtest-run]');
+  await expect(seedUsed).toHaveAttribute('data-playtest-seed-used', '11');
+  await expect(seedUsed).toContainText('不是默认的 7');
+  await expect(seedUsed).toContainText('换一次抽样');
+  await expect(seedUsed).not.toContainText('就是默认那一个');
+  await game.screenshot({ path: 'screenshots/game-playtest-seed-11.png' });
+  // 清空 = 没有明示种子，回到默认那一份抽样，而不是把 0 当成"没填"
+  await game.fill('[data-playtest-seed]', '');
+  await game.click('[data-playtest-run]');
+  await expect(game.locator('[data-playtest-seed]')).toHaveValue('');
+  await expect(seedUsed).toHaveAttribute('data-playtest-seed-used', '7');
+  await expect(seedUsed).toContainText('就是默认那一个');
+
   // 重新开始：回到初始状态，读数是设计里那两个数而不是上一次跑完的残留
   await game.click('[data-game-restart]');
   await expect(game.locator('[data-game-status]')).toHaveText('进行中');
@@ -3668,6 +3689,10 @@ test('@smoke §51 类型分派：标互动故事就出对话播放器，标 2.5D
   await expect(game.locator('[data-playtest-run-row="beeline"]')).toBeVisible({ timeout: 30_000 });
   await expect(game.locator('[data-playtest-run-row="idle"] [data-playtest-level]')).toBeVisible();
   await expect(game.locator('[data-playtest-limits]')).toContainText('rpgStep');
+  // 同一个种子控件在这边也在：报告带回的数字与界面印的必须是同一个（2D 那条腿测换了会怎样，
+  // 这里只钉"这一页没有另一套说法"）
+  await expect(game.locator('[data-playtest-seed]')).toHaveValue('7');
+  await expect(game.locator('[data-playtest-seed-used]')).toHaveAttribute('data-playtest-seed-used', '7');
   await game.screenshot({ path: 'screenshots/story-play-rpg-playtest.png' });
   await game.screenshot({ path: 'screenshots/story-play-rpg.png' });
 });

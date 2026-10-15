@@ -15,6 +15,9 @@ import {
   isoProject,
   isoView,
   playtest,
+  PLAYTEST_DEFAULT_SEED,
+  PLAYTEST_POLICIES,
+  playtestSeedNote,
   puzzleLinks,
   revealedNow,
   simSummary,
@@ -332,6 +335,8 @@ export function GamePlay({ plan, view = 'topdown' }: { plan: GamePlan; view?: Ga
   // §53：报告是点出来的，不是每次进页面就自动跑——四种走法各 60 秒定步长，
   // 一进来就占住主线程的话，第一个画面反而出不来
   const [report, setReport] = useState<PlaytestReport | null>(null);
+  // 随机游走那条走法的抽样起点。界面上显示的永远是 `report.seed`（这次真跑了的那个），不是这个控件里的数
+  const [seed, setSeed] = useState<number>(PLAYTEST_DEFAULT_SEED);
 
   const restart = useCallback(() => {
     stateRef.current = initialState(plan);
@@ -527,12 +532,24 @@ export function GamePlay({ plan, view = 'topdown' }: { plan: GamePlan; view?: Ga
           <h3 className="text-12 font-semibold text-fg-1">自动跑一遍（Playtest）</h3>
           <button
             type="button"
-            onClick={() => setReport(playtest(plan))}
+            onClick={() => setReport(playtest(plan, PLAYTEST_POLICIES, seed))}
             className="rounded bg-bg-2 px-2 py-1 text-11"
             data-playtest-run
           >
             跑四种走法
           </button>
+          <label className="flex items-center gap-[6px] text-11 text-fg-3">
+            随机种子
+            <input
+              type="number"
+              value={Number.isFinite(seed) ? seed : ''}
+              // 清空 = 「没有明示种子」，不是 0：`Number('')` 是 0，而 0 是一个真的种子
+              onChange={(event) => setSeed(event.target.value === '' ? Number.NaN : Number(event.target.value))}
+              className="w-[92px] rounded border border-[var(--nexus-color-border-subtle)] bg-bg-2 px-1 py-[2px] text-11"
+              data-playtest-seed
+              title="只有「定种子随机游走」那一条用它：换种子=换一次抽样，规则与数值一个字都不动"
+            />
+          </label>
         </div>
         {report ? (
           <>
@@ -564,6 +581,9 @@ export function GamePlay({ plan, view = 'topdown' }: { plan: GamePlan; view?: Ga
                 ))}
               </tbody>
             </table>
+            <p className="mt-1 text-11 text-fg-3" data-playtest-seed-used={report.seed}>
+              {playtestSeedNote(report.seed)}
+            </p>
             <ul className="mt-2 flex flex-col gap-1">
               {report.findings.map((line) => (
                 <li key={line} className="text-11 text-fg-2" data-playtest-finding>

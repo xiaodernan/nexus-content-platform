@@ -23,7 +23,8 @@ import type { StoryPlan } from "./story";
  * - 策略是**有限的几种走法**，不是穷举。"这些走法都通不了"不等于"没人能通"，
  *   报告里就是这么写的；反过来"有一条通了"也不等于"好上手"。
  * - 带随机性的游走用**定种子**的线性同余：同一份计划两次跑出来的报告逐字节相同，
- *   否则一次红无从复现。
+ *   否则一次红无从复现。种子是**入参**（默认 `PLAYTEST_DEFAULT_SEED`），而每一份报告都把自己
+ *   实际用的那个数带在 `seed` 字段里——界面上"跑的种子"与"显示的种子"因此不可能各说一套。
  * - 只读 `step` 的结果，不改规则。这里若出现"为了让报告好看而调整判定"，
  *   整份报告就失去意义。
  */
@@ -36,6 +37,25 @@ export const POLICY_LABELS: Record<PolicyKey, string> = {
   flee: "一直躲开最近的敌人",
   wander: "定种子随机游走",
 };
+
+/**
+ * 随机游走的那条抽样从哪个数起。它是**默认值**而不是常量：`playtest` / `playtestRpg` 收 seed 入参，
+ * 换种子=换一次抽样（规则与数值都不动，所以两份报告可以并排放），而这个默认值保证
+ * "谁都没填种子"的那一路（试玩页第一次打开、编排链的每一格、combat/level 那两格的自评级）逐次可比。
+ */
+export const PLAYTEST_DEFAULT_SEED = 7;
+
+/** 四种走法的固定清单：界面要用同一份清单时读这里，不在面板里再抄一遍数组 */
+export const PLAYTEST_POLICIES: readonly PolicyKey[] = ["idle", "beeline", "flee", "wander"];
+
+/**
+ * 传进来的种子先取整再用。`lcg` 对 0 与负数有回落，但对 NaN 没有：NaN 会一路染到坐标上，
+ * 那份报告就成了一份读数全 NaN 的谎。落回默认值而不是报错，是因为这个入参来自输入框——
+ * 清空输入框拿到的是 NaN，而用户看到的应当是"这一次跑的是默认种子"，不是白屏。
+ */
+export function effectiveSeed(seed: number): number {
+  return Number.isFinite(seed) ? Math.trunc(seed) : PLAYTEST_DEFAULT_SEED;
+}
 
 export interface PlaytestRun {
   policy: PolicyKey;
@@ -62,6 +82,11 @@ export interface PlaytestReport {
   findings: string[];
   /** 报告本身的限度，界面要一起显示 */
   limits: string[];
+  /**
+   * 这一份报告**实际用的**种子（不是输入框里那个数）：NaN 之类的输入在这一步已经落回默认值，
+   * 所以界面显示的是这里的数，而不是自己再去读一遍控件。
+   */
+  seed: number;
 }
 
 /** 定种子线性同余：只用来决定游走方向，不碰任何判定 */
@@ -108,7 +133,10 @@ function makePolicySource(policy: PolicyKey, plan: GamePlan, rand: () => number)
   };
 }
 
-export function runPolicy(plan: GamePlan, policy: PolicyKey, seconds = 60, seed = 7): PlaytestRun {
+/** 一次跑法的时间上限（秒）：到点没结束就是 timedOut，不是失败。限度那句话从这个数拼出来 */
+export const PLAYTEST_SECONDS = 60;
+
+export function runPolicy(plan: GamePlan, policy: PolicyKey, seconds = PLAYTEST_SECONDS, seed = PLAYTEST_DEFAULT_SEED): PlaytestRun {
   const tick = 1 / 60;
   const inputOf = makePolicySource(policy, plan, lcg(seed));
   let state = initialState(plan);
@@ -139,11 +167,9 @@ export function runPolicy(plan: GamePlan, policy: PolicyKey, seconds = 60, seed 
 /** 每份报告都自带的限度：RPG 的报告也从这三条起算（界面不用另写一套解释） */
 export const PLAYTEST_BASE_LIMITS = [
   "策略是有限的四种走法，不是穷举：0 种通关不等于不可能，1 种通关也不等于好上手。",
-  "随机游走用的是定种子（默认 7），所以同一份设计两次报告逐字段相同；换种子就是换一次抽样，不是换一套规则。",
-  "时间上限 60 秒：到点没结束只记「跑到时间上限」，不写成失败。",
+  `随机游走用的是定种子（默认 ${PLAYTEST_DEFAULT_SEED}），所以同一份设计两次报告逐字段相同；换种子就是换一次抽样，不是换一套规则。`,
+  `时间上限 ${PLAYTEST_SECONDS} 秒：到点没结束只记「跑到时间上限」，不写成失败。`,
 ] as const;
-
-const DEFAULT_POLICIES: readonly PolicyKey[] = ["idle", "beeline", "flee", "wander"];
 
 /** 基础总结：四种走法跑完之后"通没通、有什么毛病"——2D 与 RPG 共用这一份口径 */
 function summarize(plan: GamePlan, runs: PlaytestRun[]): {
@@ -173,8 +199,24 @@ function summarize(plan: GamePlan, runs: PlaytestRun[]): {
   return { winnableBy, diedFrom, findings };
 }
 
-export function playtest(plan: GamePlan, policies: readonly PolicyKey[] = DEFAULT_POLICIES): PlaytestReport {
-  const runs = policies.map((policy) => runPolicy(plan, policy));
+/**
+ * 界面旁边那句"这次用的是哪个种子"。它住在模型层而不是两个面板里各写一遍，
+ * 是因为这句话的**真值来源必须是报告**：跑完之后输入框还能改，
+ * 拿控件里的数当结论就会显示一个没跑过的种子（同一句话在 2D 与 RPG 两个面板上还得各对一次账）。
+ */
+export function playtestSeedNote(seed: number): string {
+  return seed === PLAYTEST_DEFAULT_SEED
+    ? `本次用的种子 ${seed}，就是默认那一个：同一份设计再点一次，每个字段都一样。`
+    : `本次用的种子 ${seed}，不是默认的 ${PLAYTEST_DEFAULT_SEED}：换种子就是换一次抽样，规则与数值一个字都没动。`;
+}
+
+export function playtest(
+  plan: GamePlan,
+  policies: readonly PolicyKey[] = PLAYTEST_POLICIES,
+  seed = PLAYTEST_DEFAULT_SEED,
+): PlaytestReport {
+  const used = effectiveSeed(seed);
+  const runs = policies.map((policy) => runPolicy(plan, policy, PLAYTEST_SECONDS, used));
   const { winnableBy, diedFrom, findings } = summarize(plan, runs);
   return {
     runs,
@@ -182,6 +224,7 @@ export function playtest(plan: GamePlan, policies: readonly PolicyKey[] = DEFAUL
     diedFrom,
     findings,
     limits: [...PLAYTEST_BASE_LIMITS],
+    seed: used,
   };
 }
 
@@ -200,7 +243,7 @@ export interface RpgPlaytestReport extends PlaytestReport {
 }
 
 /** 一条带等级门的任务在这一帧之前怎么都不该出现在这里：gate 由 rpgStep 扣，这里只读结果 */
-function runPolicyRpg(plan: RpgPlan, policy: PolicyKey, seconds = 60, seed = 7): RpgPlaytestRun {
+function runPolicyRpg(plan: RpgPlan, policy: PolicyKey, seconds = PLAYTEST_SECONDS, seed = PLAYTEST_DEFAULT_SEED): RpgPlaytestRun {
   const tick = 1 / 60;
   const inputOf = makePolicySource(policy, plan.base, lcg(seed));
   const gated = plan.quests.filter((quest) => quest.requiredLevel > 1);
@@ -232,8 +275,13 @@ function runPolicyRpg(plan: RpgPlan, policy: PolicyKey, seconds = 60, seed = 7):
   };
 }
 
-export function playtestRpg(plan: RpgPlan, policies: readonly PolicyKey[] = DEFAULT_POLICIES): RpgPlaytestReport {
-  const runs = policies.map((policy) => runPolicyRpg(plan, policy));
+export function playtestRpg(
+  plan: RpgPlan,
+  policies: readonly PolicyKey[] = PLAYTEST_POLICIES,
+  seed = PLAYTEST_DEFAULT_SEED,
+): RpgPlaytestReport {
+  const used = effectiveSeed(seed);
+  const runs = policies.map((policy) => runPolicyRpg(plan, policy, PLAYTEST_SECONDS, used));
   const { winnableBy, diedFrom, findings } = summarize(plan.base, runs);
   const maxLevel = Math.max(...runs.map((run) => run.level));
 
@@ -262,6 +310,7 @@ export function playtestRpg(plan: RpgPlan, policies: readonly PolicyKey[] = DEFA
     diedFrom,
     findings,
     maxLevel,
+    seed: used,
     limits: [
       ...PLAYTEST_BASE_LIMITS,
       `跑的是 rpgStep——与 HUD、手动试玩同一个函数：经验、升级与等级门都参与判定，不是只跑底层战斗。`,

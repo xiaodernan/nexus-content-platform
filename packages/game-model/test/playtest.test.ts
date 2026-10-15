@@ -8,7 +8,10 @@ import {
   entitiesOfKind,
   linkEntities,
   playtest,
+  PLAYTEST_DEFAULT_SEED,
+  PLAYTEST_POLICIES,
   playtestRpg,
+  playtestSeedNote,
   playtestStory,
   removeEntity,
   runPolicy,
@@ -68,6 +71,86 @@ describe('报告的确定性', () => {
     expect([seeded.endX, seeded.endY]).not.toEqual([otherSeed.endX, otherSeed.endY]);
     // 同一个种子两次跑，连终点都逐位相同：可复现不是"大概一样"
     expect(runPolicy(compileGame(doc), "wander", 20, 11)).toEqual(seeded);
+  });
+});
+
+describe('种子是入参，也是报告的一部分', () => {
+  /**
+   * 这一片把"换种子才是换一次抽样"从限度那句话变成界面上做得到的事：`playtest` / `playtestRpg`
+   * 收 seed，而**报告把自己实际用的那个数带回来**。测试因此一律拿 `report.seed` 说话，
+   * 不拿传进去的那个数说话——传 NaN 也能问出"到底跑了哪个种子"。
+   */
+  const doc = () => compileGame(winnable(createGame("种子")));
+  const rpgDoc = () => compileRpg(fightDoc("种子 RPG"));
+
+  it('不传种子就是默认那一个，而限度里写的那个数字就是行为用的那个数字', () => {
+    const report = playtest(doc());
+    expect(report.seed).toBe(PLAYTEST_DEFAULT_SEED);
+    expect(playtestRpg(rpgDoc()).seed).toBe(PLAYTEST_DEFAULT_SEED);
+    // 非自指的对照：把限度那句话里的数字抠出来，与真的跑出来的种子比。
+    // 谁把文案改回硬编码 7 而把默认值挪走，这一条就红——文案与行为各说一套正是这份报告最怕的谎。
+    const limitLine = report.limits[1] ?? '';
+    const printed = Number(/默认 (\d+)）/.exec(limitLine)?.[1]);
+    expect(printed, `限度第二句里没抠出数字：${limitLine}`).toBe(report.seed);
+  });
+
+  it('换种子只换掉随机游走那一条：三条脚本走法逐字段不动', () => {
+    const seven = playtest(doc(), PLAYTEST_POLICIES, 7);
+    const eleven = playtest(doc(), PLAYTEST_POLICIES, 11);
+    expect(eleven.seed).toBe(11);
+    // 站着不动 / 直冲 / 一直躲：这三种走法一个随机数都不取，所以换种子必须一条字节都不差
+    for (const policy of ["idle", "beeline", "flee"] as const) {
+      expect(
+        eleven.runs.find((run) => run.policy === policy),
+        `${policy} 这条走法不该跟着种子变`,
+      ).toEqual(seven.runs.find((run) => run.policy === policy));
+    }
+    // 反向对照：随机游走那条确实换了地方——不然上面三条的相同什么都没证明
+    const wanderSeven = seven.runs.find((run) => run.policy === "wander")!;
+    const wanderEleven = eleven.runs.find((run) => run.policy === "wander")!;
+    expect([wanderEleven.endX, wanderEleven.endY]).not.toEqual([wanderSeven.endX, wanderSeven.endY]);
+    // RPG 走同一扇门：种子进得去，成长读数也照样只由那一条走法变
+    const rpgSeven = playtestRpg(rpgDoc(), PLAYTEST_POLICIES, 7);
+    const rpgEleven = playtestRpg(rpgDoc(), PLAYTEST_POLICIES, 11);
+    expect(rpgEleven.seed).toBe(11);
+    expect(rpgEleven.runs.filter((run) => run.policy !== "wander")).toEqual(
+      rpgSeven.runs.filter((run) => run.policy !== "wander"),
+    );
+    expect(
+      [rpgEleven.runs.find((run) => run.policy === "wander")!.endX,
+       rpgEleven.runs.find((run) => run.policy === "wander")!.endY],
+    ).not.toEqual([
+      rpgSeven.runs.find((run) => run.policy === "wander")!.endX,
+      rpgSeven.runs.find((run) => run.policy === "wander")!.endY,
+    ]);
+  });
+
+  it('非有限值落回默认种子，而报告说的是真的跑了哪个', () => {
+    const report = playtest(doc(), PLAYTEST_POLICIES, Number.NaN);
+    // 说的是"实际用的"，不是"传进来的"：输入框清空拿到 NaN，界面上不能显示一个没跑过的种子
+    expect(report.seed).toBe(PLAYTEST_DEFAULT_SEED);
+    expect(report).toEqual(playtest(doc()));
+    expect(playtest(doc(), PLAYTEST_POLICIES, Number.POSITIVE_INFINITY).seed).toBe(PLAYTEST_DEFAULT_SEED);
+    // 取整而不是四舍五入：12.7 用的是 12 那条抽样，与 13 是两份不同的抽样
+    expect(playtest(doc(), PLAYTEST_POLICIES, 12.7).seed).toBe(12);
+    expect(playtest(doc(), PLAYTEST_POLICIES, 12.7)).toEqual(playtest(doc(), PLAYTEST_POLICIES, 12));
+    // 反向对照：0 是一个**真种子**，不是"没填"的暗号。界面上清空输入框要送 NaN 而不是 0，
+    // 因为把 0 当成回落值就会让"清空"悄悄换成另一份抽样
+    expect(playtest(doc(), PLAYTEST_POLICIES, 0).seed).toBe(0);
+    expect(playtest(doc(), PLAYTEST_POLICIES, 0)).not.toEqual(playtest(doc()));
+  });
+
+  it('面板那句种子说明分得开"默认"与"换了抽样"，两句不会互相冒充', () => {
+    const defaults = playtestSeedNote(PLAYTEST_DEFAULT_SEED);
+    const other = playtestSeedNote(11);
+    expect(defaults).toContain(`种子 ${PLAYTEST_DEFAULT_SEED}`);
+    expect(defaults).toContain("就是默认那一个");
+    expect(other).toContain("种子 11");
+    expect(other).toContain(`不是默认的 ${PLAYTEST_DEFAULT_SEED}`);
+    expect(other).toContain("换一次抽样");
+    // 反向对照：默认那句不许自称"换了抽样"，非默认那句不许自称"就是默认"
+    expect(defaults).not.toContain("换一次抽样");
+    expect(other).not.toContain("就是默认那一个");
   });
 });
 
