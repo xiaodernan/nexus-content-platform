@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import type { AccountId } from './community';
 import {
+  auditEntriesForTarget,
+  auditEntriesSince,
   isReportClosed,
   reportStatusText,
 } from './ops';
@@ -54,5 +56,41 @@ describe('ops — AuditEntry shape', () => {
     expect(entry.targetId).toBe('pub-1');
     expect(entry.createdAt).toBe(1_700_000_000_000);
     expect(entry.assurance).toBe('unsigned-local');
+  });
+});
+
+describe('ops — auditEntriesForTarget', () => {
+  const entries: AuditEntry[] = [
+    { ...entry, id: 'a-1', targetId: 'pub-1', createdAt: 1_700_000_000_000 },
+    { ...entry, id: 'a-2', targetId: 'pub-2', createdAt: 1_700_001_000_000 },
+    { ...entry, id: 'a-3', targetId: 'pub-1', createdAt: 1_700_002_000_000 },
+  ];
+
+  it('filters by targetId and sorts newest first, without mutating input', () => {
+    const result = auditEntriesForTarget(entries, 'pub-1');
+    expect(result.map((e) => e.id)).toEqual(['a-3', 'a-1']);
+    expect(entries.length).toBe(3);
+  });
+
+  it('empty when no match', () => {
+    expect(auditEntriesForTarget(entries, 'pub-999')).toEqual([]);
+  });
+});
+
+describe('ops — auditEntriesSince', () => {
+  const entries: AuditEntry[] = [
+    { ...entry, id: 'b-1', createdAt: 1_700_000_000_000 },
+    { ...entry, id: 'b-2', createdAt: 1_700_001_000_000 },
+    { ...entry, id: 'b-3', createdAt: 1_700_002_000_000 },
+  ];
+
+  it('filters by since and sorts newest first', () => {
+    const result = auditEntriesSince(entries, 1_700_001_000_000);
+    expect(result.map((e) => e.id)).toEqual(['b-3', 'b-2']);
+  });
+
+  it('all when since is 0', () => {
+    const result = auditEntriesSince(entries, 0);
+    expect(result.map((e) => e.id)).toEqual(['b-3', 'b-2', 'b-1']);
   });
 });

@@ -59,3 +59,23 @@ export function reportStatusText(status: Report['status']): string {
 export function isReportClosed(report: Report): boolean {
   return report.status === 'resolved' || report.status === 'rejected';
 }
+
+/** 把审计条目按目标过滤，并按 createdAt 降序（新→旧）返回。不改原数组。 */
+export function auditEntriesForTarget(
+  entries: ReadonlyArray<AuditEntry>,
+  targetId: string,
+): AuditEntry[] {
+  return entries
+    .filter((e) => e.targetId === targetId)
+    .sort((a, b) => b.createdAt - a.createdAt);
+}
+
+/** 把审计条目按 since（epoch ms）过滤，只保留 createdAt >= since 的，按 createdAt 降序返回。不改原数组。 */
+export function auditEntriesSince(
+  entries: ReadonlyArray<AuditEntry>,
+  since: number,
+): AuditEntry[] {
+  return entries
+    .filter((e) => e.createdAt >= since)
+    .sort((a, b) => b.createdAt - a.createdAt);
+}
