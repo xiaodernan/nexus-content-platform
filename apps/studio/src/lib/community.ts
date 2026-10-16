@@ -1,0 +1,125 @@
+/**
+ * M7 Stage C — 社区面数据模型（预设计，受 ADR 0018 阻塞）。
+ *
+ * 纯前端类型与纯函数，不引入 fetch、localStorage、session 或任何服务端依赖。
+ * 一旦 ADR 0018 落地（有服务端 accounts），这些模型即可被路由与 API 层消费；
+ * 在那之前只做类型定义和纯逻辑测试，不写任何网络代码。
+ *
+ * 设计原则（与 ADR 0018 §60 一致）：
+ *  - 无 signedIn 徽章、无会话、无 cookie
+ *  - 客户端不生成身份，只携带服务端或 localStorage 下发的 accountId
+ *  - 每条记录都带 accountId，服务端在写入时校验归属
+ */
+
+export type AccountId = string;
+
+/** 一个账号的公开简介（只读，来自服务端或本地缓存）。 */
+export interface Profile {
+  accountId: AccountId;
+  handle: string;
+  /** 头像 URL，可为空。 */
+  avatarUrl?: string | null;
+  /** 注册/创建时刻（epoch ms）。 */
+  createdAt: number;
+}
+
+/** “A 关注 B”的关系记录。 */
+export interface Follow {
+  followerId: AccountId;
+  followeeId: AccountId;
+  /** 建立关注的时刻（epoch ms）。 */
+  createdAt: number;
+}
+
+/** 对一篇 publication 的点赞。 */
+export interface Like {
+  accountId: AccountId;
+  projectId: string;
+  /** 点赞时刻（epoch ms）。 */
+  createdAt: number;
+}
+
+/** 对一篇 publication 的评论。 */
+export interface Comment {
+  id: string;
+  accountId: AccountId;
+  projectId: string;
+  /** 评论正文，已经过 HTML 转义（见 escapeHtml）。 */
+  body: string;
+  /** 发表时刻（epoch ms）。 */
+  createdAt: number;
+  /** 可被作者删除；deleted === true 时正文不再展示。 */
+  deleted: boolean;
+}
+
+/** 把一组 Follow 压成“谁关注了谁”的查询索引：followeeId → Set<followerId>。 */
+export function buildFollowersIndex(follows: Follow[]): Map<AccountId, Set<AccountId>> {
+  const index = new Map<AccountId, Set<AccountId>>();
+  for (const f of follows) {
+    let set = index.get(f.followeeId);
+    if (!set) {
+      set = new Set();
+      index.set(f.followeeId, set);
+    }
+    set.add(f.followerId);
+  }
+  return index;
+}
+
+/** 把一组 Follow 压成“谁在关注谁”的查询索引：followerId → Set<followeeId>。 */
+export function buildFollowingIndex(follows: Follow[]): Map<AccountId, Set<AccountId>> {
+  const index = new Map<AccountId, Set<AccountId>>();
+  for (const f of follows) {
+    let set = index.get(f.followerId);
+    if (!set) {
+      set = new Set();
+      index.set(f.followerId, set);
+    }
+    set.add(f.followeeId);
+  }
+  return index;
+}
+
+/** 给定项目的点赞数（去重：同一 account 对同一 project 只算一次，以最新 createdAt 为准）。 */
+export function likeCountFor(projectId: string, likes: Like[]): number {
+  const seen = new Set<AccountId>();
+  let count = 0;
+  for (const like of likes) {
+    if (like.projectId !== projectId) continue;
+    if (seen.has(like.accountId)) continue;
+    seen.add(like.accountId);
+    count += 1;
+  }
+  return count;
+}
+
+/** 给定项目的未删除评论，按 createdAt 升序（旧→新）。 */
+export function commentsFor(projectId: string, comments: Comment[]): Comment[] {
+  return comments
+    .filter((c) => c.projectId === projectId && !c.deleted)
+    .sort((a, b) => a.createdAt - b.createdAt);
+}
+
+/** 判断当前账号是否已关注某账号。 */
+export function isFollowing(followerId: AccountId, followeeId: AccountId, follows: Follow[]): boolean {
+  return follows.some((f) => f.followerId === followerId && f.followeeId === followeeId);
+}
+
+/** 把一组 Profile 按 accountId 索引，方便在卡片/作者行里 O(1) 查 handle。 */
+export function buildProfileIndex(profiles: Profile[]): Map<AccountId, Profile> {
+  const index = new Map<AccountId, Profile>();
+  for (const p of profiles) {
+    index.set(p.accountId, p);
+  }
+  return index;
+}
+
+/** HTML 转义（与 explore/artifact 复用同一套：caller-controlled text 不得原样插入）。 */
+export function escapeHtml(text: string): string {
+  return text
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
+}
