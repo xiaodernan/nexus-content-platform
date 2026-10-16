@@ -4,6 +4,8 @@ import {
   auditEntriesForTarget,
   auditEntriesSince,
   isReportClosed,
+  reportOpenCount,
+  reportResolvedCount,
   reportStatsText,
   reportStatusText,
 } from './ops';
@@ -109,5 +111,24 @@ describe('ops — reportStatsText', () => {
 
   it('No reports for empty list', () => {
     expect(reportStatsText([])).toBe('No reports');
+  });
+});
+
+describe('ops — reportOpenCount / reportResolvedCount', () => {
+  const reports: Report[] = [
+    { ...report, id: 'r-1', status: 'open' },
+    { ...report, id: 'r-2', status: 'reviewed' },
+    { ...report, id: 'r-3', status: 'resolved' },
+    { ...report, id: 'r-4', status: 'rejected' },
+  ];
+
+  it('counts open + reviewed as open', () => {
+    expect(reportOpenCount(reports)).toBe(2);
+    expect(reportResolvedCount(reports)).toBe(2);
+  });
+
+  it('zero for empty list', () => {
+    expect(reportOpenCount([])).toBe(0);
+    expect(reportResolvedCount([])).toBe(0);
   });
 });

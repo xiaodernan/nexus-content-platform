@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   agentGrantExpiryText,
+  grantsByAgentId,
   grantsByScope,
   grantScopeLabel,
   isGrantActive,
@@ -72,5 +73,21 @@ describe('agentGrant — grantsByScope', () => {
     expect(byScope.read.map((g) => g.id)).toEqual(['g-2']);
     expect(byScope.remix.map((g) => g.id)).toEqual(['g-4']);
     expect(grants.length).toBe(4);
+  });
+});
+
+describe('agentGrant — grantsByAgentId', () => {
+  const grants: AgentGrant[] = [
+    { ...grant, id: 'a-1', agentId: 'agent-a' },
+    { ...grant, id: 'a-2', agentId: 'agent-b' },
+    { ...grant, id: 'a-3', agentId: 'agent-a' },
+  ];
+
+  it('groups grants by agentId without mutating input', () => {
+    const byAgent = grantsByAgentId(grants);
+    expect((byAgent['agent-a'] ?? []).map((g) => g.id)).toEqual(['a-1', 'a-3']);
+    expect((byAgent['agent-b'] ?? []).map((g) => g.id)).toEqual(['a-2']);
+    expect(byAgent['agent-c']).toBeUndefined();
+    expect(grants.length).toBe(3);
   });
 });

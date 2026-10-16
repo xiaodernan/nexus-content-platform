@@ -5,6 +5,7 @@ import {
   priceText,
   subscriptionDaysLeftText,
   subscriptionStatusText,
+  tipAmountText,
   tipText,
   tipsTotal,
 } from './monetization';
@@ -132,6 +133,12 @@ describe('monetization — tipsTotal', () => {
 
   it('zero for empty list', () => {
     expect(tipsTotal([])).toBe(0 as PriceCentsBrand);
+  });
+});
+
+describe('monetization — tipAmountText', () => {
+  it('renders amount with CNY symbol', () => {
+    expect(tipAmountText(tip)).toBe('¥5.00');
   });
 });
 

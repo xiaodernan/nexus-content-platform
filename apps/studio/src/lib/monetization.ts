@@ -50,6 +50,11 @@ export function tipText(tip: Tip, escape: (text: string) => string): string {
   return `${who} tipped ${amount}${msg}`;
 }
 
+/** 把一个 Tip 的金额渲为展示文本（tips 当前仅 CNY，后续按货币字段扩展）。 */
+export function tipAmountText(tip: Tip): string {
+  return priceText(tip.amountCents, 'CNY');
+}
+
 /** 判断一条 Subscription 对当前 viewer 是否有效（active 且已订阅），纯判断，不改状态。 */
 export function isSubscribed(sub: Subscription | null, viewerId: AccountId | null): boolean {
   if (!viewerId || !sub) return false;

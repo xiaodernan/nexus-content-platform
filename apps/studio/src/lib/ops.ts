@@ -94,3 +94,13 @@ export function reportStatsText(reports: ReadonlyArray<Report>): string {
     .map(([s, c]) => `${s}: ${c}`);
   return parts.length ? parts.join(', ') : 'No reports';
 }
+
+/** 未处理举报数量（open/reviewed），供客户端摘要栏展示。 */
+export function reportOpenCount(reports: ReadonlyArray<Report>): number {
+  return reports.filter((r) => r.status === 'open' || r.status === 'reviewed').length;
+}
+
+/** 已处理举报数量（resolved/rejected），供客户端摘要栏展示。 */
+export function reportResolvedCount(reports: ReadonlyArray<Report>): number {
+  return reports.filter((r) => r.status === 'resolved' || r.status === 'rejected').length;
+}

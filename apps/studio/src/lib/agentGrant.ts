@@ -60,3 +60,17 @@ export function grantsByScope(
   for (const g of grants) out[g.scope].push(g);
   return out;
 }
+
+/** 把授权条目按 agentId 分组，供客户端按代理分栏展示。不改原数组。 */
+export function grantsByAgentId(grants: ReadonlyArray<AgentGrant>): Record<string, AgentGrant[]> {
+  const out: Record<string, AgentGrant[]> = {};
+  for (const g of grants) {
+    const bucket = out[g.agentId];
+    if (bucket) {
+      bucket.push(g);
+    } else {
+      out[g.agentId] = [g];
+    }
+  }
+  return out;
+}
