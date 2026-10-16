@@ -518,4 +518,58 @@ class PublishServiceTest {
         assertThat(remixed.get().isOwnedBy("acct-ada")).isTrue();
         assertThat(remixed.get().isOwnedBy("acct-anyone-else")).isTrue();
     }
+
+    // === M7 v242: re-publish owner consistency ===
+
+    @Test
+    void aRepublishWithTheSameAccountIdKeepsTheOwnerAndIncrementsTheVersion() {
+        PublishedProject existing = new PublishedProject("doc-1", "First", VALID_DOCUMENT, 1, PUBLISHED_AT);
+        existing.claimOwner("acct-ada", "ada", "unsigned-local", CLAIMED_AT);
+        when(repository.findById("doc-1")).thenReturn(Optional.of(existing));
+        when(repository.save(any(PublishedProject.class))).thenAnswer(i -> i.getArgument(0));
+
+        PublishedProject saved = service.publish("doc-1", "Second", "{\"pages\":[]}", claim("acct-ada"));
+
+        assertThat(saved).isSameAs(existing);
+        assertThat(saved.getVersion()).isEqualTo(2);
+        assertThat(saved.hasOwner()).isTrue();
+        assertThat(saved.getOwnerAccountId()).isEqualTo("acct-ada");
+    }
+
+    @Test
+    void aRepublishNamingADifferentAccountIsRefusedAndNothingIsSaved() {
+        PublishedProject existing = new PublishedProject("doc-1", "First", VALID_DOCUMENT, 1, PUBLISHED_AT);
+        existing.claimOwner("acct-ada", "ada", "unsigned-local", CLAIMED_AT);
+        when(repository.findById("doc-1")).thenReturn(Optional.of(existing));
+
+        assertThatThrownBy(() -> service.publish("doc-1", "Second", "{\"pages\":[]}", claim("acct-other")))
+                .isInstanceOf(OwnerTaken.class);
+        verify(repository, never()).save(any(PublishedProject.class));
+    }
+
+    @Test
+    void aRepublishNamingNobodyKeepsTheExistingOwner() {
+        PublishedProject existing = new PublishedProject("doc-1", "First", VALID_DOCUMENT, 1, PUBLISHED_AT);
+        existing.claimOwner("acct-ada", "ada", "unsigned-local", CLAIMED_AT);
+        when(repository.findById("doc-1")).thenReturn(Optional.of(existing));
+        when(repository.save(any(PublishedProject.class))).thenAnswer(i -> i.getArgument(0));
+
+        PublishedProject saved = service.publish("doc-1", "Second", "{\"pages\":[]}", null);
+
+        assertThat(saved.getVersion()).isEqualTo(2);
+        assertThat(saved.hasOwner()).isTrue();
+        assertThat(saved.getOwnerAccountId()).isEqualTo("acct-ada");
+    }
+
+    @Test
+    void aRepublishOfAnOwnerlessRowWithAClaimerSetsTheOwner() {
+        PublishedProject existing = new PublishedProject("doc-1", "First", VALID_DOCUMENT, 1, PUBLISHED_AT);
+        when(repository.findById("doc-1")).thenReturn(Optional.of(existing));
+        when(repository.save(any(PublishedProject.class))).thenAnswer(i -> i.getArgument(0));
+
+        PublishedProject saved = service.publish("doc-1", "Second", "{\"pages\":[]}", claim("acct-ada"));
+
+        assertThat(saved.hasOwner()).isTrue();
+        assertThat(saved.getOwnerAccountId()).isEqualTo("acct-ada");
+    }
 }
