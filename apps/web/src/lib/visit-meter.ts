@@ -74,3 +74,40 @@ export function validVisitorKey(value: unknown): string | null {
 export function utcDay(at: Date): string {
   return at.toISOString().slice(0, 10);
 }
+
+/**
+ * §168 第三片：疑似爬虫/自动化的 UA 名单。**保守**：宁可漏掉一个可疑的，也不错杀一个真人——
+ * 被错杀的真人会从"访客 / 时长 / 完成度"里消失，创作者看到的是一份凭空变小的账。
+ * 所以这里只放两种东西：公认的产品名（Googlebot / scrapy / okhttp…）与脚本客户端的固定串
+ * （curl / python-requests…）；不放 "headless"——新版无头 Chrome 的 UA 与真人相同，
+ * 而 e2e 也要跑在这台"无头 Chrome"里扮演真人（自动化标记走 navigator.webdriver 那一路）。
+ */
+const BOT_UA_MARKERS = [
+  'bot',
+  'crawl',
+  'spider',
+  'slurp',
+  'curl',
+  'wget',
+  'python',
+  'okhttp',
+  'go-http-client',
+  'scrapy',
+  'phantomjs',
+  'facebookexternalhit',
+] as const;
+
+/**
+ * 一次访客现场算不算疑似爬虫/自动化。两条信号，任一命中即算：
+ * - 客户端自报的 `navigator.webdriver`（Playwright / Puppeteer / Selenium 都是 true）；
+ * - UA 命中名单。UA 为空也算：浏览器一定带 UA，不带的多半是脚本。
+ *
+ * 这是**疑似不是定罪**：挑出来的行另计、不进访客/时长/完成度，但打开次数照存——
+ * 把可疑的行删掉或不写，等于让"被爬过"这件事在库里无迹可查。
+ */
+export function classifyVisit(ua: string | null | undefined, webdriverFlag: unknown): boolean {
+  if (webdriverFlag === true) return true;
+  const normalized = typeof ua === 'string' ? ua.trim().toLowerCase() : '';
+  if (!normalized) return true;
+  return BOT_UA_MARKERS.some((marker) => normalized.includes(marker));
+}

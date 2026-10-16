@@ -4,6 +4,7 @@ import {
   MAX_FLUSH_MS,
   MAX_SAMPLE_MS,
   addVisibleMs,
+  classifyVisit,
   clampReportedMs,
   completionPct,
   mergeVisit,
@@ -131,5 +132,46 @@ describe('访客身份与归属日', () => {
     // UTC 已过午夜：这一刻在东八区是"第二天早上"，在服务端口径里仍算新的一天
     expect(utcDay(new Date('2026-09-25T00:30:00.000Z'))).toBe('2026-09-25');
     expect(utcDay(new Date('2026-09-25T00:30:00.000+08:00'))).toBe('2026-09-24');
+  });
+});
+
+describe('classifyVisit：疑似爬虫与真人（§168 第三片）', () => {
+  const CHROME =
+    'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36';
+  const SAFARI = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 14_0) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Safari/605.1.15';
+  const FIREFOX = 'Mozilla/5.0 (X11; Linux x86_64; rv:132.0) Gecko/20100101 Firefox/132.0';
+
+  it('真人的 UA 不命中：名单是保守的，宁可漏掉一个可疑的，也不错杀一个真人', () => {
+    expect(classifyVisit(CHROME, false)).toBe(false);
+    expect(classifyVisit(SAFARI, false)).toBe(false);
+    expect(classifyVisit(FIREFOX, false)).toBe(false);
+    // UA 大小写混写也一样（真实 UA 就是混的）
+    expect(classifyVisit('Mozilla/5.0 (compatible; Something)', false)).toBe(false);
+  });
+
+  it('自报 navigator.webdriver = true 直接算自动化（Playwright / Puppeteer / Selenium）', () => {
+    expect(classifyVisit(CHROME, true)).toBe(true);
+    // 自报之外 UA 干净也照算：标记本身就是那条信号
+    expect(classifyVisit(SAFARI, true)).toBe(true);
+    // 谎报 false 只能骗到自己——UA 名单还在兜底
+    expect(classifyVisit('Mozilla/5.0 (compatible; Googlebot/2.1)', false)).toBe(true);
+  });
+
+  it('公认的产品名与脚本客户端串命中；空 UA 也算（浏览器一定带 UA）', () => {
+    expect(classifyVisit('Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)', false)).toBe(true);
+    expect(classifyVisit('curl/8.5.0', false)).toBe(true);
+    expect(classifyVisit('python-requests/2.31.0', false)).toBe(true);
+    expect(classifyVisit('Scrapy/2.11 (+https://scrapy.org)', false)).toBe(true);
+    expect(classifyVisit('okhttp/4.12.0', false)).toBe(true);
+    expect(classifyVisit('', false)).toBe(true);
+    expect(classifyVisit(null, false)).toBe(true);
+    expect(classifyVisit(undefined, false)).toBe(true);
+  });
+
+  it('不放 "headless" 进名单：新版无头 Chrome 的 UA 与真人相同，e2e 也跑在无头 Chrome 里', () => {
+    const headless = CHROME.replace('Chrome/131.0.0.0', 'HeadlessChrome/131.0.0.0');
+    expect(classifyVisit(headless, false)).toBe(false);
+    // 真正的自动化标记是 webdriver——VisitMeter 会自报它
+    expect(classifyVisit(headless, true)).toBe(true);
   });
 });

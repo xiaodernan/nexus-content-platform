@@ -70,6 +70,9 @@ export function VisitMeter({ path }: { path: string }) {
         open,
         visibleMs: report.visibleMs,
         completionPct: report.completionPct,
+        // §168 第三片：自报自动化标记（Playwright/Puppeteer 里是 true）。
+        // 说谎没有收益——服务端还看 UA，而自报只是让"这是个工具"这件事少绕一圈
+        webdriver: navigator.webdriver === true,
       });
       void fetch('/api/published/visit', {
         method: 'POST',

@@ -24,6 +24,8 @@ export interface VisitInput {
   open: boolean;
   visibleMs: unknown;
   completionPct: unknown;
+  /** §168 第三片：疑似爬虫/自动化（判定在 classifyVisit；缺省当真人——老调用方不带这一栏） */
+  suspectedBot?: boolean;
   at?: Date;
 }
 
@@ -36,6 +38,7 @@ export async function recordVisit(input: VisitInput): Promise<'recorded' | 'reje
   const capped = Number.isFinite(rawMs) && rawMs > MAX_FLUSH_MS ? 1 : 0;
   const rawPct = typeof input.completionPct === 'number' ? input.completionPct : Number.NaN;
   const completionPct = Number.isFinite(rawPct) ? Math.max(0, Math.min(100, Math.floor(rawPct))) : 0;
+  const suspectedBot = input.suspectedBot === true;
   const day = utcDay(input.at ?? new Date());
   const db = getDb();
   await db
@@ -49,6 +52,7 @@ export async function recordVisit(input: VisitInput): Promise<'recorded' | 'reje
       visibleMs,
       completionPct,
       cappedReports: capped,
+      suspectedBot,
     })
     .onConflictDoUpdate({
       target: [publicationVisits.publicationId, publicationVisits.visitorKey, publicationVisits.day],
@@ -59,6 +63,9 @@ export async function recordVisit(input: VisitInput): Promise<'recorded' | 'reje
         cappedReports: sql`${publicationVisits.cappedReports} + ${capped}`,
         // 同一行里"先匿名后登录"要能补上账号，反过来不覆盖已有归属
         userId: sql`COALESCE(${publicationVisits.userId}, ${input.userId})`,
+        // §168 第三片：判定是**粘**的——同一个 key 当天有过一次像爬虫的现场，整行按爬虫读。
+        // 反过来（先爬后人）不洗白：拿 UA 名单当开关刷回真人的数，正是这一栏要挡的事
+        suspectedBot: sql`${publicationVisits.suspectedBot} or ${suspectedBot}`,
         updatedAt: sql`now()`,
       },
     });
@@ -88,6 +95,10 @@ export interface AnalyticsNumbers {
   cappedReports: number;
   /** 看过的人只有作者自己：这串数字不能当"有人在看"的证据 */
   selfOnly: boolean;
+  /** §168 第三片：疑似爬虫/自动化的打开次数——另计，不进上面任何一格 */
+  botOpens: number;
+  /** 疑似爬虫/自动化的访客数（按 key 去重） */
+  botVisitors: number;
 }
 
 export interface PublicationAnalyticsRow {
@@ -109,7 +120,10 @@ interface VisitRollup {
   completionAvgPct: number | null;
   completionOver: number;
   cappedReports: number;
-  selfOnly: boolean;
+  selfOnly: boolean | null;
+  botOpens: number;
+  botVisitors: number;
+  humanRows: number;
 }
 
 function int(value: unknown): number {
@@ -125,15 +139,21 @@ async function rollupVisits(publicationIds: string[], ownerId: string): Promise<
   const rows = await db
     .select({
       publicationId: publicationVisits.publicationId,
-      visitors: sql<string>`count(distinct ${publicationVisits.visitorKey})`,
-      visitorsToday: sql<string>`count(distinct case when ${publicationVisits.day} = ${today} then ${publicationVisits.visitorKey} end)`,
-      opensToday: sql<string>`coalesce(sum(case when ${publicationVisits.day} = ${today} then ${publicationVisits.opens} else 0 end), 0)`,
-      playTimeMs: sql<string>`coalesce(sum(${publicationVisits.visibleMs}), 0)`,
-      completionAvgPct: sql<string | null>`avg(${publicationVisits.completionPct}) filter (where ${publicationVisits.completionPct} > 0)`,
-      completionOver: sql<string>`count(${publicationVisits.completionPct}) filter (where ${publicationVisits.completionPct} > 0)`,
-      cappedReports: sql<string>`coalesce(sum(${publicationVisits.cappedReports}), 0)`,
-      // 有行、且每一行都是作者本人：这条作品的"数据"目前只证明作者自己打开过
-      selfOnly: sql<boolean>`bool_and(${publicationVisits.userId} is not null and ${publicationVisits.userId} = ${ownerId})`,
+      // §168 第三片：真人的数逐格 filter（where not suspected_bot），爬虫的另起两格——
+      // 混在一起数，"访客 1 人"就可能是刚爬过去的那一下
+      visitors: sql<string>`count(distinct ${publicationVisits.visitorKey}) filter (where not ${publicationVisits.suspectedBot})`,
+      visitorsToday: sql<string>`count(distinct case when ${publicationVisits.day} = ${today} and not ${publicationVisits.suspectedBot} then ${publicationVisits.visitorKey} end)`,
+      opensToday: sql<string>`coalesce(sum(case when ${publicationVisits.day} = ${today} and not ${publicationVisits.suspectedBot} then ${publicationVisits.opens} else 0 end), 0)`,
+      playTimeMs: sql<string>`coalesce(sum(${publicationVisits.visibleMs}) filter (where not ${publicationVisits.suspectedBot}), 0)`,
+      completionAvgPct: sql<string | null>`avg(${publicationVisits.completionPct}) filter (where not ${publicationVisits.suspectedBot} and ${publicationVisits.completionPct} > 0)`,
+      completionOver: sql<string>`count(${publicationVisits.completionPct}) filter (where not ${publicationVisits.suspectedBot} and ${publicationVisits.completionPct} > 0)`,
+      cappedReports: sql<string>`coalesce(sum(${publicationVisits.cappedReports}) filter (where not ${publicationVisits.suspectedBot}), 0)`,
+      // 有行、且每一行都是作者本人：这条作品的"数据"目前只证明作者自己打开过。
+      // 爬虫行不参与——"只有你自己看过"说的是人，机器人不是"你自己"也不是"别人"
+      selfOnly: sql<boolean | null>`bool_and(${publicationVisits.userId} is not null and ${publicationVisits.userId} = ${ownerId}) filter (where not ${publicationVisits.suspectedBot})`,
+      botOpens: sql<string>`coalesce(sum(${publicationVisits.opens}) filter (where ${publicationVisits.suspectedBot}), 0)`,
+      botVisitors: sql<string>`count(distinct ${publicationVisits.visitorKey}) filter (where ${publicationVisits.suspectedBot})`,
+      humanRows: sql<string>`count(*) filter (where not ${publicationVisits.suspectedBot})`,
     })
     .from(publicationVisits)
     .where(inArray(publicationVisits.publicationId, publicationIds))
@@ -149,7 +169,11 @@ async function rollupVisits(publicationIds: string[], ownerId: string): Promise<
         completionAvgPct: row.completionAvgPct === null ? null : Math.round(int(row.completionAvgPct)),
         completionOver: int(row.completionOver),
         cappedReports: int(row.cappedReports),
+        // filter 掉爬虫后一行都没有时 bool_and 是 NULL——那不是"全是作者"，是"一个人（真人）都没有"
         selfOnly: row.selfOnly,
+        botOpens: int(row.botOpens),
+        botVisitors: int(row.botVisitors),
+        humanRows: int(row.humanRows),
       },
     ]),
   );
@@ -203,21 +227,30 @@ function assemble(
           rollup && rollup.completionAvgPct !== null
             ? { avgPct: rollup.completionAvgPct, over: rollup.completionOver }
             : null,
-        // 有行就报数（哪怕加出来是 0 秒）：只在一条心跳都没有时才 null，
+        // 有**真人**的行就报数（哪怕加出来是 0 秒）：只在一条真人心跳都没有时才 null，
         // 否则"访客来了但没攒够时长"会被显示成"没采到"，那是另一种谎。
-        playTimeMs: rollup ? rollup.playTimeMs : null,
+        // 只有爬虫来过 = 没采到真人时长 = null（爬虫的时长另计，不拿来顶）
+        playTimeMs: rollup && rollup.humanRows > 0 ? rollup.playTimeMs : null,
         cappedReports: rollup?.cappedReports ?? 0,
+        // filter 掉爬虫后没有真人行时 selfOnly 是 NULL：那不是"只有你自己"，是"没有真人来过"
         selfOnly: rollup?.selfOnly ?? false,
+        botOpens: rollup?.botOpens ?? 0,
+        botVisitors: rollup?.botVisitors ?? 0,
       },
     };
   });
 }
+
+/** 形状不对的 id 不进 SQL：让 Postgres 报 22P02 会变成 500，而它该给的是"读不到"那个同一个答案 */
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 /**
  * 作者名下的发布版本 + 六个数。所有权在 where 里，不在调用方：
  * 传别人的 publicationId 只会拿到空列表，所以"存在但看不到"这种含糊状态没有藏身处。
  */
 async function analyticsFor(ownerId: string, onlyPublicationId?: string): Promise<PublicationAnalyticsRow[]> {
+  // 与 buildCreatorFact 同一道门禁：非法 UUID 直接是空结果，不是 500（"读不到"与"不存在"同答）
+  if (onlyPublicationId !== undefined && !UUID.test(onlyPublicationId)) return [];
   const db = getDb();
   const publications = await db
     .select({
@@ -294,13 +327,13 @@ export interface DayWindow {
 /** 曲线上的一个点。日期密集、升序——`days` 的长度就是窗口的天数 */
 export interface DailyPoint {
   day: string;
-  /** 这一天累计的打开次数（含作者自己与爬虫，与六个数里那个 `views` 同口径） */
+  /** 这一天累计的打开次数（真人那部分；爬虫的另计在 totals.botOpens，不画进曲线） */
   opens: number;
-  /** 这一天来过几个不同的访客 key（同一人同一天只算一个） */
+  /** 这一天来过几个不同的真人访客 key（同一人同一天只算一个；爬虫不数） */
   visitors: number;
-  /** 这一天累计的可见时长；这一天一条心跳都没有时是 null */
+  /** 这一天累计的可见时长；这一天一条真人心跳都没有时是 null */
   playTimeMs: number | null;
-  /** 这一天各访客"最远到达比例"的平均值；这一天没人上报过完成度时 null */
+  /** 这一天各真人访客"最远到达比例"的平均值；这一天没人上报过完成度时 null */
   completionPct: number | null;
 }
 
@@ -309,14 +342,16 @@ export interface VisitTotals {
   opens: number;
   /** 窗口内出现过的人（跨天去重），不是把每天的人数相加 */
   visitors: number;
-  /** 窗口内累计可见时长；整个窗口一条心跳都没有时 null */
+  /** 窗口内累计可见时长；整个窗口一条真人心跳都没有时 null */
   playTimeMs: number | null;
   /** 窗口内有完成度上报的那些行的平均值 */
   completionPct: number | null;
   /** 上面那个平均是几行算出来的 */
   completionOver: number;
-  /** 窗口内有访客活动的天数（那天至少有一行心跳） */
+  /** 窗口内有访客活动的天数（那天至少有一条真人心跳） */
   activeDays: number;
+  /** §168 第三片：窗口内疑似爬虫/自动化的打开次数——不进上面任何一格，也不画进曲线 */
+  botOpens: number;
 }
 
 interface VisitDayRow {
@@ -325,6 +360,7 @@ interface VisitDayRow {
   opens: number;
   visibleMs: number;
   completionPct: number;
+  suspectedBot: boolean;
 }
 
 /** `YYYY-MM-DD` → UTC 当日零点的毫秒。库里 `day` 列就是这种字符串，两边同一套换算 */
@@ -356,6 +392,7 @@ async function visitDayRows(publicationIds: string[], window: DayWindow): Promis
       opens: publicationVisits.opens,
       visibleMs: publicationVisits.visibleMs,
       completionPct: publicationVisits.completionPct,
+      suspectedBot: publicationVisits.suspectedBot,
     })
     .from(publicationVisits)
     .where(
@@ -371,37 +408,54 @@ async function visitDayRows(publicationIds: string[], window: DayWindow): Promis
     opens: int(row.opens),
     visibleMs: int(row.visibleMs),
     completionPct: int(row.completionPct),
+    suspectedBot: row.suspectedBot,
   }));
 }
 
 /** 一行都没采到时每一项都是 0 / null：`playTimeMs` 与 `completionPct` 是 null，不是 0 */
 function emptyTotals(): VisitTotals {
-  return { opens: 0, visitors: 0, playTimeMs: null, completionPct: null, completionOver: 0, activeDays: 0 };
+  return {
+    opens: 0,
+    visitors: 0,
+    playTimeMs: null,
+    completionPct: null,
+    completionOver: 0,
+    activeDays: 0,
+    botOpens: 0,
+  };
 }
 
+/**
+ * §168 第三片：窗口的数按真人/爬虫分开算——曲线与汇总只数真人，
+ * 爬虫的打开次数单独给一格（totals.botOpens），不混进"有没有人在来"这个问题的答案里。
+ */
 function totalsOf(rows: readonly VisitDayRow[]): VisitTotals {
-  if (!rows.length) return emptyTotals();
+  const humans = rows.filter((row) => !row.suspectedBot);
+  const botOpens = rows.reduce((sum, row) => (row.suspectedBot ? sum + row.opens : sum), 0);
+  if (!humans.length) return { ...emptyTotals(), botOpens };
   // 跨天去重必须在窗口这一层做：交给 SQL 的 count(*) 会把同一个人数成三天
-  const visitors = new Set(rows.map((row) => row.visitorKey)).size;
-  const activeDays = new Set(rows.map((row) => row.day)).size;
-  const completed = rows.filter((row) => row.completionPct > 0);
+  const visitors = new Set(humans.map((row) => row.visitorKey)).size;
+  const activeDays = new Set(humans.map((row) => row.day)).size;
+  const completed = humans.filter((row) => row.completionPct > 0);
   return {
-    opens: rows.reduce((sum, row) => sum + row.opens, 0),
+    opens: humans.reduce((sum, row) => sum + row.opens, 0),
     visitors,
-    // 有行就报数（哪怕加出来是 0 秒）；一条心跳都没有时才 null
-    playTimeMs: rows.reduce((sum, row) => sum + row.visibleMs, 0),
+    // 有行就报数（哪怕加出来是 0 秒）；一条真人心跳都没有时才 null
+    playTimeMs: humans.reduce((sum, row) => sum + row.visibleMs, 0),
     completionPct: completed.length
       ? Math.round(completed.reduce((sum, row) => sum + row.completionPct, 0) / completed.length)
       : null,
     completionOver: completed.length,
     activeDays,
+    botOpens,
   };
 }
 
-/** 把窗口里缺的那些天补成 0，得到日期密集的一条曲线 */
+/** 把窗口里缺的那些天补成 0，得到日期密集的一条曲线（只数真人，爬虫不画） */
 function dailySeries(rows: readonly VisitDayRow[], window: DayWindow): DailyPoint[] {
   const byDay = new Map<string, VisitDayRow[]>();
   for (const row of rows) {
+    if (row.suspectedBot) continue; // 曲线回答"有没有人在来"，爬虫不是"人来"
     const bucket = byDay.get(row.day);
     if (bucket) bucket.push(row);
     else byDay.set(row.day, [row]);

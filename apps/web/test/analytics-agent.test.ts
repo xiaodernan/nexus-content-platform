@@ -23,6 +23,8 @@ function numbers(over: Partial<CreatorFact['numbers']> = {}): CreatorFact['numbe
     playTimeMs: 640_000,
     cappedReports: 0,
     selfOnly: false,
+    botOpens: 0,
+    botVisitors: 0,
     ...over,
   };
 }

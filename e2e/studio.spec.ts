@@ -2394,10 +2394,16 @@ test('@smoke §168 创作数据：访客真的来过，作者那一页才有真�
   // 口径写在页面上，不是只写在代码注释里
   await expect(page.locator('[data-analytics-page]')).toContainText('这台浏览器 × 这一天');
 
-  // 一个不带任何登录态的访客：新 context，同一个 browser context 会带着这个 guest 的会话
+  // 一个不带任何登录态的访客：新 context，同一个 browser context 会带着这个 guest 的会话。
+  // §168 第三片：这条用例**扮演真人**——Playwright 的 navigator.webdriver 恒为 true，
+  // 不盖掉的话它会把自己上报成爬虫，"真人访客 1 / 时长 15 秒"那一组断言就没了。
+  // 自动化标记的真身由下面 webdriver:true 那一笔扮演（那条才是被分类器抓住的样子）
   const browser = page.context().browser();
   if (!browser) throw new Error('这条用例需要一个可派生上下文的浏览器');
   const anonContext = await browser.newContext();
+  await anonContext.addInitScript(() => {
+    Object.defineProperty(Object.getPrototypeOf(navigator), 'webdriver', { get: () => undefined });
+  });
   const visitor = await anonContext.newPage();
   const opened = visitor.waitForResponse((res) => visitApi.test(new URL(res.url()).pathname) && res.status() === 200);
   await visitor.goto(new URL(path, page.url()).href);
@@ -2419,11 +2425,14 @@ test('@smoke §168 创作数据：访客真的来过，作者那一页才有真�
     open: boolean;
     visibleMs: number;
     completionPct: number;
+    webdriver: boolean;
   };
   expect(reported.path).toBe(path);
   expect(reported.visitorKey).toMatch(/^[0-9a-f]{32}$/);
   expect(reported.open).toBe(false);
   expect(reported.completionPct).toBeGreaterThan(50);
+  // 扮演真人的那一笔自报 webdriver: false——分类器靠这一栏把自动化挑出来
+  expect(reported.webdriver).toBe(false);
 
   await page.goto('/analytics');
   await expect(cell('visitors')).toHaveText('1');
@@ -2485,6 +2494,25 @@ test('@smoke §168 创作数据：访客真的来过，作者那一页才有真�
   // 同一个人当天再来一次：访客数还是 1，只有"今天打开"加了一次
   await expect(cell('opens_today')).toHaveText('2');
   await expect(cell('visitors')).toHaveText('1');
+
+  // §168 第三片：一笔自报 webdriver:true 的爬虫上报（新 key，同一个访客上下文）。
+  // 它必须**只**进 botOpens 那一格：真人的访客数、今日打开、时长、完成度一个都不动，
+  // 行里另起一行标注"1 次打开来自爬虫/自动化（未计入）"——被爬过的痕迹留在库里，
+  // 但不许混进"有人在看"的数里
+  const botKey = 'b'.repeat(32);
+  const botReport = await visitor.request.post(visitUrl, {
+    data: payload({ visitorKey: botKey, visibleMs: 0, completionPct: 0, webdriver: true }),
+    headers: csrf,
+  });
+  expect(botReport.status()).toBe(200);
+  await page.reload();
+  await expect(cell('visitors')).toHaveText('1');
+  await expect(cell('opens_today')).toHaveText('2');
+  await expect(cell('play_time')).toHaveText(/\d+ 秒/);
+  await expect(page.locator(`[data-analytics-row="${path}"] [data-analytics-bots]`)).toHaveText(
+    '1 次打开来自爬虫/自动化（未计入）',
+  );
+  await page.screenshot({ path: 'screenshots/creator-analytics-bots.png' });
 
   // 一个不存在的公开路径：404，并且不会往任何一行上写数据。
   // 这里只看"次数"类指标：访客页面还在每 15 秒心跳一次，时长本来就在动

@@ -373,6 +373,48 @@ vitest 直接崩了而我却把 stdout 丢进了 `/dev/null`，于是"5 遍"其�
   e2e 那一条（`@smoke 发布机检与公开页举报`）在真浏览器里走完"发布 → 面板显示机检结论与 limits →
   访客在公开页举报并看到'不会立刻撤下内容' → 改成红线文案再发布 → 面板说清被挡下并列出命中证据"，
   截图在 `screenshots/publish-scan-*.png` 与 `published-report.png`
+- 人工裁决的**路由层**（§131）：`apps/web/test/admin-moderation.integration.test.ts` 9 条，补的是上面那一片
+  没覆盖的门/判序/状态码翻译（域函数 `resolveCase` 有自己的单测，路由层此前零覆盖）。钉的三件事：
+  ① 判序是**登录 → 限流 → admin(+写审计) → CSRF → 报文 → 域**——CSRF 判在 admin 之后，与别处相反
+  （被拒的越权尝试也要写审计，那条路任何登录用户都能走；先限流再判权限，防非审核员刷满审计表）；
+  ② 非 admin 尝试裁决**留一行审计**（`allowed:false` + `reason:'not_admin'`），案子上什么都没发生；
+  ③ 两次真洞的修复各有断言：`publicationId ?? ''` 把空串塞进 uuid 列导致"被机检当场挡下、无 publication 行"
+  的案子 rejected 时整条 500（结案已落库、审计永远不写）——修复后 rejected 200 且审计在场；
+  拒绝一个没有公开页可撤的案子时界面说"已放行"（§159 的假信号）——修复后按裁决说"已拒绝"。
+  变异探针：把 `isPlanKey` 判定提到权限检查之前，order 那条红在预测行。
+- Marketplace 路由层横审（§123/§127/§128）：五个套件共 90 条，钉的全是"别的端点干净、这里裸奔"的
+  局部不一致（横向对比法：把同族端点摆一起看，局部不一致就是探针）：
+  ① **审计与举报查询**（`admin-marketplace.integration.test.ts` 23 条）：两个 GET + POST 的门用
+  `requireUser()`（无 cookie 抛错 → 500，别处 `currentUserOrNull` → 401）；GET 的查询参数原样进 SQL
+  （`?limit=abc` 的 NaN 进 `.limit()`、`?itemId=not-a-uuid` 撞 22P02、垃圾日期，全部 500；
+  `?action`/`?status` 名单外静默兜底成空数组）；POST 的 `reason`（CHECK 列）与 `itemId`（UUID 外键列）
+  原样进库（23514/22P02/23503 全 500）。修复后一律 400/404，断言按修复后的行为写。
+  ② **列表与创建**（`marketplace-entry.integration.test.ts` 22 条）：GET 是**公开端点**，五个原始参数
+  500（NaN 与非 UUID）；POST 的 `priceCredits: -100` 能建负价商品——`purchaseMarketplaceItem` 对
+  `pricePaid > 0` 才写扣点流水（买家白拿），`settlePurchase` 仍按 `floor(price*0.7)` 给创作者记
+  负分成（一次购买两头都错）；UUID 字段/tags/坏 JSON 的 500 与 Postgres 报错原文回显（§26）。
+  ③ **私有草稿的可见性**（`marketplace-visibility.integration.test.ts` 7 条）：`purchaseMarketplaceItem`
+  完全不看 visibility——草稿默认价 0，`pricePaid=0` 免费成交，之后 content 路由的 `hasPurchased`
+  就为任何人放行未公开草稿的完整导出包（预览路由对 private 只放创作者，购买没跟上这条口径）；
+  详情路由对 private 零门控（匿名拿到含 sourceProjectId 的内部行）。
+  ④ **更新与删除**（`marketplace-update.integration.test.ts` 12 条）：PATCH 裸 cast 正文——
+  负价能从这扇门直写（库里的 `price_paid >= 0` CHECK 拦不住更新路径）、坏 tags/previewAssetId 500、
+  坏 itemId 400 但带着 Postgres 报错原文。
+  ⑤ 既有行为的正对照全部保留：机检红线、归属校验、CSRF、幂等边界（settle 8 + download 5 两条老套件
+  与三片新套件一起 50/50 绿）。
+- id 形状校验（横切，`domain/ids.ts` 的 `isUuid`）：`apps/web/test/id-shape.integration.test.ts` 18 条。
+  钉的不是"某个端点不 500"，是**一条横切纪律**：从路由进来的 id 大多是路径参数，Next 只保证它们是
+  字符串；非 UUID 的 id 一律按"不存在"处理（域函数返回 null/false，路由只剩 404/409 一种说法），
+  与 v1 项目详情同一口径（"不在你名下或已被删除——两者给同一个答案"，没有"存在但不给你看"的
+  可分辨差别，§159）。覆盖九个家族：projects（`projectBelongsTo` 等四个助手，32 条路由走这道门）、
+  moderation（`resolveCase`——这也是 8a6528c 那片留下的缺口）、memories、branches、characters、
+  snapshots、agent-tasks（`plannedTask`：`/agent/draft` 的请求体只校验 taskId 是"非空串"）、
+  api-tokens、annotations。两处本地正则（assets.ts 的 UUID_SHAPE、agent-tasks.ts 的 UUID_LIKE）
+  统一到共享助手——"两处词表迟早一份严一份松"。zod 的 RFC 4122 形状比手抄正则严一点
+  （版本位/变体位），"像 UUID 但不是"的输入也按不存在处理；真实 id（`defaultRandom`）不受影响。
+  核对过**安全**的入口也写进注释：interact（publicationId 从 `publicRefByPath` 的库行来）、
+  notifications/read（`z.array(z.string().uuid())`）、knowledge/block（sourceId 是 text 键）、
+  ai-jobs 的 jobId（`providerJobId` 是 text 列，垃圾值只查不到不抛错）。
 - 审计与角色（§80 授权 / §84 审计 / §131 提权收口）：`apps/web/test/audit.integration.test.ts` 8 条 +
   `publish.integration.test.ts` 里那条取消发布的留痕断言。测的不是"能不能写进表"，是三条纪律有没有被守住：
   ① **写失败不改变请求结果**——故意用一个不存在的 actorId 触发外键失败，`recordAudit` 必须返回 `false`
@@ -1079,6 +1121,30 @@ vitest 直接崩了而我却把 stdout 丢进了 `/dev/null`，于是"5 遍"其�
   其中那条 11 秒的用例（`草稿多于界面那一截时数仍是全量`）单独跑根本撞不到 30 秒线，计时那条单独读到 3473 毫秒。
   这一格自己动过的只有 `codegen.ts` / `codegen.test.ts` / `GameCodeExport.tsx` / `e2e`，与这四条没有交集；
   **但归因靠的是重跑，不是"看着不像我改的"**。
+- **2026-10-16 §53 的四种走法接进链（`playtest` 成为第九种步骤，与 `code` 并列）**：三套各司其职，
+  加一步该红的地方全红、派生的地方一条不红。
+  **纯层 `agent-runtime.test.ts` 18 → 19 条**：依赖表多一行 `playtest: ['level']`、`code` 那行
+  **显式断不含 `playtest`**；就绪顺序（level 完成 → `['playtest','code']`）；正向牵连（level 炸 → 两格都 skipped）；
+  进度分母从 8 到 9；交接（playtest 这一格只从 level 拿 `level_layout`）。
+  **新增的那一条是反方向的**：`playtest` 自己炸 → `blockedIds` 为空、`readyIds` 仍是 `['code']`、通知只说"1 步失败"。
+  为什么必须有它：前向牵连那条用例**分辨不出谁依赖谁**（串成 `code → playtest` 它照样绿），
+  只有"这一格炸了隔壁那格照跑"能证明那条边真的没画出来（ADR-0042 的选定接法）。
+  **打真库两套**：`agent-orchestration.integration.test.ts` **15 条**、`agent-draft-accept.integration.test.ts`
+  **9 条一字未改继续绿**——后者是"这一格不留草稿"的**外部差分**（`draftSteps` 仍是 game / combat / level 三步），
+  比在新测试里自说自话"我没有草稿"有力。新那条对账用例不许这一步自己给自己打分：
+  它把库里 `level` 那份草稿**再跑一遍** `playtestRpg`，用另一次调用的走法清单 / 三档 / 最高等级 / 种子 /
+  findings / limits 逐字段比，并要求 notes 里**逐字**含每一条限度与发现。
+  守卫那一条从"code 一格失败"改成"两格各自失败"，且 `counts` 必须是空对象——
+  "没跑"渲染成"0/4 种通关"是这一格最容易犯的谎。
+  **e2e `e2e/agent.spec.ts` 2 passed**（多的是只有浏览器量得到的一寸）：`counts` 与 `notes` 只在**展开那一格**
+  才进 DOM，集成测证得了服务端算出五句限度，证不了那五句**画得出来**。现在按 `Object.entries(counts)`
+  逐行要求 `{key} {value}` 可见、notes 每一句原文可读、`[data-agent-accept-step="playtest"]` 数为 0
+  而同屏 `="level"` 那颗按钮在（"没有"配着"换个步骤就有"），并截展开态图 `screenshots/agent-playtest-expanded.png`。
+  **这一片红过一次，红的是测试**：限度那句我手抄成"不穷举"，产品里说的是"不是穷举"，于是断言
+  `toContain('不穷举')` 失败——手抄的句子没有对照物就会漂（§159）。改成从服务端 notes 派生
+  （`定种子（默认 ${counts.seed}）`：限度里那个数必须等于这一格**实际用的**种子）之后，e2e 里不再有一个抄来的数。
+  起点与终点都量过：`npm run lint`（九个项目 tsc + 全仓 eslint）**exit 0**，
+  `packages/game-model/test` + 纯层合跑 **220 条全绿（12.3 秒）**，DB 侧 15 + 9 全绿。
 - 额度账本（§133 / §134 / ADR-0014）：分三层，每层各挡一种只有它会挡的谎。
   `credits.test.ts`（纯规则 10 条）钉的是**表格与实现对齐**：`PLAN_MONTHLY_GRANTS` 每一档必须四类都有数、
   `GENERATION_COST` 四类都得有单价、"已生效 + 还没拦截方"两列加起来必须精确等于 §133 那五件事——
@@ -1189,6 +1255,22 @@ vitest 直接崩了而我却把 stdout 丢进了 `/dev/null`，于是"5 遍"其�
   **踩过的两格**：刷新把「画地形」模式弹回默认，剖面开关只在模式工具条里（先重新进模式）；
   `data-walk-at` 是 `"x,z"` 带 0.1 取整的串，正则取组再 Number，别用元组解构（noUncheckedIndexedAccess）
   教训：全局计数断言（谁都在库里数一遍）换任何一次残留就红，增量断言才是那条推论本身
+- 爬虫与真人区分（§168 第三片，2026-10-16）：`visit-meter.test.ts` 4 条钉 `classifyVisit`——
+  真人 UA（Chrome/Safari/Firefox）不命中、`navigator.webdriver` 自报直接算、产品名与空 UA 命中、
+  不放 `headless` 进名单（新版无头 Chrome 的 UA 与真人相同，e2e 也跑在无头 Chrome 里）。
+  `analytics.integration.test.ts` 第三片组 3 条打真库——只有爬虫时真人格子全不涨且
+  `playTimeMs` 是 null（没采到真人时长）不是 0 秒、`selfOnly` 是 false（爬虫不是"你自己"）；
+  人爬混合各归各（爬虫的 12 万毫秒一滴没混进真人的时长）；**判定是粘的**——同一 key
+  先人后爬整行翻成爬虫、先爬后人不洗白。`analytics-trend.integration.test.ts` 1 条：
+  爬虫不进曲线不续连续天数，`botOpens` 另计。e2e `@smoke §168` 加两段：anon context 用
+  `addInitScript` 盖掉 `navigator.webdriver` **扮演真人**（不盖的话它把自己上报成爬虫，
+  "真人访客 1 / 时长 15 秒"那组断言就没了），断言上报 body 里 `webdriver:false`；
+  再发一笔 `webdriver:true` 的爬虫上报——真人的访客数/今日打开/时长一个不动，
+  行内出现"1 次打开来自爬虫/自动化（未计入）"，截图 `creator-analytics-bots.png`。
+  **顺带修的既有 bug**：`analyticsFor` 对非法 UUID 直接进 SQL → Postgres 22P02 → 500，
+  `?project=not-a-uuid` 该给"读不到"；补上与 `buildCreatorFact` 同一道 UUID 门禁。
+  **踩过的一格**：Windows 把 55433 收进保留端口范围（Docker 报 socket forbidden），
+  nexus-postgres 容器重建在 55100，测试与 dev server 用 `NEXUS_DATABASE_URL` 指向它
 - 画布视口裁剪（§147）：`packages/design-model/test/viewport.test.ts` 6 条，每条都对着一种"会让用户误判"的失败——
   小文档不裁（DOM 有没有节点是可观察行为）、过阈值才裁且**根框永远留着**（裁了页面背景就没了）、
   视口外扩一圈余量、视口还没量到时宁可不裁（否则首帧一片空白）、paintOrder 里有幽灵 id 要丢掉而不是抛、

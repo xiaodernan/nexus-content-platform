@@ -28,11 +28,20 @@ function duration(ms: number): string {
 /** 六个数各自数的是什么——写在页面上，不留在代码注释里 */
 const DEFINITIONS: { label: string; meaning: string }[] = [
   { label: '打开次数', meaning: '页面被服务端渲染的次数，含作者自己的刷新与爬虫（§56 就有的累计计数器）' },
-  { label: '今天 / 访客', meaning: '按"这台浏览器 × 这一天"聚合的匿名 key，不是账号数；隐私模式下每次打开算一个新访客' },
+  {
+    label: '今天 / 访客',
+    meaning:
+      '按"这台浏览器 × 这一天"聚合的匿名 key，不是账号数；隐私模式下每次打开算一个新访客。疑似爬虫与自动化的访问挑出来另计（见行内标注），不进这两个数',
+  },
   { label: '点赞 / 改编', meaning: '挂在项目上，不是这一版：重新发布不会把它们清零' },
   { label: '粉丝', meaning: '作者级：关注的是这个人，不是这份作品' },
   { label: '完成度', meaning: '每个访客"最远滚到页面几成"的平均值。内容比视口短时它就是 100%（没有可滚的地方=整页都在眼前）' },
   { label: '浏览时长', meaning: '只在标签页可见时累计；单次上报最多带走 60 秒，被截断过几次会另行标出' },
+  {
+    label: '疑似爬虫',
+    meaning:
+      '按 User-Agent 名单与自动化标记（navigator.webdriver）挑出来的打开：照存、另计，不进访客 / 时长 / 完成度——挑的是疑似不是定罪，被爬过的痕迹留在这一栏里',
+  },
   {
     label: '窗口口径',
     meaning: '「最近 N 天」那一节只看窗口内的行，与上面那一排累计数不是同一个数、也不能互推',
@@ -43,7 +52,7 @@ const DEFINITIONS: { label: string; meaning: string }[] = [
   },
   {
     label: '连续有人来',
-    meaning: '从窗口最后一天往回数，连续每天至少有一条心跳的天数；0 = 今天一个人都没来',
+    meaning: '从窗口最后一天往回数，连续每天至少有一条真人心跳的天数；0 = 今天一个人都没来',
   },
 ];
 
@@ -268,6 +277,13 @@ export default async function AnalyticsPage(props: {
                 </span>
               )}
             </li>
+            {overview.totals.botOpens > 0 ? (
+              <li data-analytics-window="bot_opens">
+                其中爬虫/自动化打开{' '}
+                <span className="font-mono text-fg-1">{overview.totals.botOpens.toLocaleString('zh-CN')}</span>{' '}
+                次（未计入上面的访客与时长）
+              </li>
+            ) : null}
           </ul>
 
           <TrendChart
@@ -333,6 +349,11 @@ export default async function AnalyticsPage(props: {
                         {row.analytics.cappedReports} 次上报被截断
                       </span>
                     ) : null}
+                    {row.analytics.botOpens > 0 ? (
+                      <span className="ml-1 text-11 text-fg-3" data-analytics-bots>
+                        {row.analytics.botOpens} 次打开来自爬虫/自动化（未计入）
+                      </span>
+                    ) : null}
                   </td>
                   <td className="px-2 py-1 text-11 text-fg-3">
                     {row.visibility === 'public' ? '公开' : row.visibility === 'unlisted' ? '仅链接' : '已停'}
@@ -362,9 +383,11 @@ export default async function AnalyticsPage(props: {
       )}
 
       <p className="mt-4 text-11 text-fg-3">
-        还能往下做的三件事：区分爬虫与真人（现在只有一句"含爬虫"）、把窗口粒度做到小时
+        还能往下做的两件事：把窗口粒度做到小时
         （库里就是一天一行，按小时画等于编一个不存在的分辨率）、以及游戏与互动作品的 completion
         （要等 §50-§53 的运行时事件，现在这一列对它们是未采集）。
+        爬虫与真人的区分已按"疑似另计"落地（见上面的口径）——UA 名单是保守的，漏掉的爬虫仍会混进真人的数里，
+        这一条限度不假装已经解决。
       </p>
       <Link href="/" className="mt-3 inline-block text-12 text-accent-2 underline">
         回到我的项目

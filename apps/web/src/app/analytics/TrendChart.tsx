@@ -138,7 +138,7 @@ export function TrendChart({ days, emptyNote }: { days: readonly DailyPoint[]; e
         showAxis={false}
         spec={{
           key: 'opens',
-          title: '每天打开次数（含作者自己的刷新与爬虫，与表格里累计那一列同口径）',
+          title: '每天打开次数（只数真人；爬虫/自动化的打开另计在窗口汇总里，不画进这条曲线）',
           formatMax: (value) => `${value} 次`,
           pick: (point) => point.opens,
           missing: () => false,

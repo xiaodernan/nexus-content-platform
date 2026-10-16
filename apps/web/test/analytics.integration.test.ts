@@ -77,6 +77,7 @@ async function visit(
     open?: boolean;
     visibleMs?: number;
     completionPct?: number;
+    suspectedBot?: boolean;
     at?: Date;
   } = {},
 ) {
@@ -88,6 +89,7 @@ async function visit(
     open: over.open ?? true,
     visibleMs: over.visibleMs ?? 1000,
     completionPct: over.completionPct ?? 10,
+    suspectedBot: over.suspectedBot,
     at: over.at,
   });
 }
@@ -253,6 +255,51 @@ describe('六个数的口径（真实数据库）', () => {
     const { analytics } = (await publicationAnalytics(ownerId, publicationId))!;
     expect(analytics.cappedReports).toBe(2);
     expect(analytics.playTimeMs).toBe(121_000);
+  });
+});
+
+describe('爬虫与真人区分（§168 第三片）', () => {
+  it('只有爬虫来过：真人的格子一个都不涨，botOpens 另计；时长是 null 不是 0', async () => {
+    const { publicationId } = await publish(`分析 纯爬虫${RUN}`);
+    await visit(publicationId, { key: KEY(30), suspectedBot: true, visibleMs: 5_000, completionPct: 100 });
+    const { analytics } = (await publicationAnalytics(ownerId, publicationId))!;
+    expect(analytics.visitors).toBe(0);
+    expect(analytics.opensToday).toBe(0);
+    expect(analytics.playTimeMs).toBeNull(); // 没有真人的心跳 = 没采到，不是 0 秒
+    expect(analytics.completion).toBeNull();
+    expect(analytics.selfOnly).toBe(false); // 爬虫不是"你自己"
+    expect(analytics.botOpens).toBe(1);
+    expect(analytics.botVisitors).toBe(1);
+  });
+
+  it('真人和爬虫混着来：人的数是人的，爬虫的只进 botOpens', async () => {
+    const { publicationId } = await publish(`分析 人爬混合${RUN}`);
+    await visit(publicationId, { key: KEY(31), visibleMs: 1_000, completionPct: 40 });
+    await visit(publicationId, { key: KEY(32), suspectedBot: true, visibleMs: 60_000, completionPct: 100 });
+    await visit(publicationId, { key: KEY(33), suspectedBot: true, open: false, visibleMs: 60_000 });
+    const { analytics } = (await publicationAnalytics(ownerId, publicationId))!;
+    expect(analytics.visitors).toBe(1);
+    expect(analytics.opensToday).toBe(1);
+    expect(analytics.playTimeMs).toBe(1_000); // 爬虫那 12 万毫秒一滴都没混进来
+    expect(analytics.completion).toEqual({ avgPct: 40, over: 1 });
+    expect(analytics.botOpens).toBe(1); // KEY(32) 那次 open=true；KEY(33) 是心跳不算打开
+    expect(analytics.botVisitors).toBe(2);
+  });
+
+  it('判定是粘的：同一个 key 先人后爬，整行按爬虫读——不给"刷成真人"留门', async () => {
+    const { publicationId } = await publish(`分析 粘判定${RUN}`);
+    await visit(publicationId, { key: KEY(34), visibleMs: 2_000, completionPct: 60 });
+    expect((await publicationAnalytics(ownerId, publicationId))!.analytics.visitors).toBe(1);
+
+    // 同一个 key 当天又来了，这次像爬虫：整行翻过去，人的数清零
+    await visit(publicationId, { key: KEY(34), suspectedBot: true, open: false });
+    const { analytics } = (await publicationAnalytics(ownerId, publicationId))!;
+    expect(analytics.visitors).toBe(0);
+    expect(analytics.playTimeMs).toBeNull();
+    expect(analytics.botVisitors).toBe(1);
+    // 反过来（先爬后人）不洗白——这一条由 SQL 的 or 保证，用例钉的是结果
+    await visit(publicationId, { key: KEY(34), suspectedBot: false, open: false });
+    expect((await publicationAnalytics(ownerId, publicationId))!.analytics.visitors).toBe(0);
   });
 });
 

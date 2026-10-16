@@ -646,6 +646,12 @@ export const PublishedVisitRequestSchema = z.object({
   open: z.boolean(),
   visibleMs: z.number().int().min(0).max(600_000),
   completionPct: z.number().int().min(0).max(100),
+  /**
+   * §168 第三片：客户端自报的 `navigator.webdriver`（自动化工具里恒为 true）。
+   * 可选——老客户端不会带这一栏，缺省当真人（UA 名单还在兜底）；
+   * 自报是诚实工具的用法，谎报只能骗到自己（服务端还看 UA）。
+   */
+  webdriver: z.boolean().optional(),
 });
 export type PublishedVisitRequest = z.infer<typeof PublishedVisitRequestSchema>;
 

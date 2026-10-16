@@ -880,6 +880,8 @@ export const publicationVisits = pgTable(
     completionPct: integer('completion_pct').notNull().default(0),
     /** 被上限截断过几次：被动过的痕迹要留得下来，不然"累计时长"看着像原样 */
     cappedReports: integer('capped_reports').notNull().default(0),
+    /** §168 第三片：疑似爬虫/自动化（判定在 classifyVisit，这里只存结论，历史行不补判） */
+    suspectedBot: boolean('suspected_bot').notNull().default(false),
     createdAt: now(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
   },

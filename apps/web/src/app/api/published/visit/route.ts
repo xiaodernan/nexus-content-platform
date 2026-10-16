@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { PublishedVisitRequestSchema } from '@nexus/schemas';
 import { findPublicPath } from '@/server/domain/moderation';
 import { recordVisit } from '@/server/domain/analytics';
+import { classifyVisit } from '@/lib/visit-meter';
 import { currentUserOrNull } from '@/server/domain/session';
 import { csrfOk } from '@/server/security/csrf';
 import { clientIp, getRateLimiter, rateKey } from '@/server/security/rateLimit';
@@ -18,6 +19,8 @@ import { badRequest, jsonError } from '@/server/http';
  *
  * 数字本身不在这里判断真假——上限与截断在 `src/lib/visit-meter.ts`，
  * 被截断过几次会一并入库，创作者页面上要看得见。
+ * 疑似爬虫/自动化的判定也在那边（`classifyVisit`：UA 名单 + 客户端自报的 webdriver），
+ * 这里只把结论随行入库——可疑的照收，另计不进真人的数。
  */
 export async function POST(req: Request): Promise<NextResponse> {
   if (!(await csrfOk(req))) return jsonError(403, 'csrf_failed', { message: 'CSRF 校验未通过' });
@@ -25,7 +28,7 @@ export async function POST(req: Request): Promise<NextResponse> {
   if (!parsed.success) {
     return badRequest(parsed.error.issues.map((i) => `${i.path.join('.') || 'body'}: ${i.message}`));
   }
-  const { path, visitorKey, open, visibleMs, completionPct } = parsed.data;
+  const { path, visitorKey, open, visibleMs, completionPct, webdriver } = parsed.data;
 
   const rl = getRateLimiter().hit(rateKey('published/visit', clientIp(req), visitorKey), 240, 60 * 60 * 1000);
   if (!rl.allowed) return jsonError(429, 'rate_limited', { message: '上报太频繁', retryAfterMs: rl.retryAfterMs });
@@ -41,6 +44,7 @@ export async function POST(req: Request): Promise<NextResponse> {
     open,
     visibleMs,
     completionPct,
+    suspectedBot: classifyVisit(req.headers.get('user-agent'), webdriver),
   });
   if (result === 'rejected') return badRequest(['visitorKey 不合法']);
   return NextResponse.json({ ok: true });

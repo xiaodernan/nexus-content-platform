@@ -884,7 +884,42 @@ drizzle 把整个拼接结果当成**单个绑定参数**，生成的 SQL 是 `o
    - 顺带把一条写死的读数改成派生：`agent.activity` 原来钉 `toHaveLength(15)`（"现在是七步"），
      现在是 `1 + 2 * result.steps.length`——写死的版本加一步时只会红得没有信息量。
    **仍欠**：§53 的 Capture screenshots / Fix 两格（要接浏览器与模型）。
-   链上再加一格 Playtest（四种走法的报告，同样确定性、同样不留草稿）是下一片的事。
+   **2026-10-16 §53 的四种走法接进链（`playtest` 成为第九种步骤，与 `code` 并列而不是排在它后面）**：
+   - **接法本身是这一片的新决策**（ADR-0042）：这一格与 `code` **都只依赖 `level`**，不是串成
+     `level → code → playtest`。理由是仓库那条比"看起来完整"更硬的规矩——**计划里那条依赖箭头必须有数据可交接**，
+     而 `generateGameCode` 从头到尾不读试玩报告。串起来的唯一后果是"这份设计太难"变成"这份产物拿不走"。
+   - **两个方向各有一条纯层用例**：正向（level 炸 → `playtest` 与 `code` **两格**都是 skipped、
+     `because` 各是 `['level']`、通知说"1 步失败，2 步被跳过"）分辨不出谁依赖谁，
+     所以补了反方向那一条——**`playtest` 自己炸时 `code` 照跑**（`blockedIds` 为空、`readyIds` 仍是 `['code']`、
+     通知只说"1 步失败"）。那条边没画出来，这条才会绿。
+   - **形状与 `code` 那格同律**：拿不到 level 留下的草稿就**整步失败**并点名缺的是谁，
+     守卫失败时 `counts` 是空对象、`notes` 是空数组——"没跑"不许渲染成"0/4 种通关"；
+     它**不留 `draft`、不写库**，所以接受入口仍是 game / combat / level 三颗，缺省那份仍是链末的 level。
+   - **跑的是 RPG 那条管线**（`playtestRpg(compileRpg(草稿))`，与试玩页、HUD 同一个 `rpgStep`）：
+     用底层 `step` 跑这份草稿会得出"任务过了"而等级门其实扣着的假报告。种子**固定用默认值**——
+     作业里每一步要逐次可比，换种子是试玩页那一格的事，notes 里那句话写着去哪儿换。
+   - **三档读数各自报数且能加回去**：`won + lost + unfinished === policies`。只报"几种通关"
+     会把"跑到时间上限一直没结束"混进"通不了"里，而那是 §53 文件头写明的限度。
+     限度五句（三条基础 + 跑的是 `rpgStep` + 升级曲线是投影常量）与 findings 一起进 notes，条数从报告读不写死。
+   - **凭证**：纯层 `agent-runtime.test.ts` 18 → **19 条**（依赖表、就绪顺序、双向牵连、终态、交接、进度分母）；
+     打真库的 `agent-orchestration.integration.test.ts` **15 条**，其中新的一条把库里 level 那份草稿
+     **再跑一遍** `playtestRpg` 对账（走法数 / 三档 / 最高等级 / 种子 / findings / limits 逐字段），
+     所以这一步不许自己给自己打分；`agent-draft-accept.integration.test.ts` **9 条**一字未改就继续绿——
+     它是"这一格不留草稿"的**外部差分**（`draftSteps` 仍是那三步）。
+   - **e2e 多出一寸只有浏览器量得到的**：`counts` 与 `notes` 只在展开那一格时才渲染，集成测证得了
+     服务端算出五句限度，证不了那五句**画得出来**。现在逐条要求 `[data-agent-step="playtest"]` 里读到
+     服务端 notes 的每一句原文、`{key} {value}` 那几行逐行可见，并截展开态的图
+     （`screenshots/agent-playtest-expanded.png`：`won 1 / lost 0 / unfinished 3 / policies 4 / seed 7 / limits 5`，
+     同屏上一格 level 有「接受进项目」而这一格没有）。`e2e/agent.spec.ts` **2 passed**。
+   - **这一片被自己那条钉红过一次**：限度那句我手抄成"不穷举"，真话是"不是穷举"——红的是测试不是产品，
+     而这正是手抄的句子没有对照物的下场（§159）。改成从服务端 notes 派生后，e2e 里不再有一个抄来的数。
+   - 步数从八到九：`agent.activity` 条数、库里结论份数、面板那句"N 步作业"三处**都是派生的**，
+     加一步一条没红；红的是真该红的东西（依赖表、终态判定、交接清单、牵连清单）。
+   - 起点是绿的才动手：`npm run lint`（typecheck 九个项目 + 全仓 eslint）**exit 0**，
+     game-model 与纯层合跑 **220 条全绿**，DB 侧两套 15 + 9 全绿。
+   **仍欠**：链上这一格只跑 RPG 那条管线——2D 那五种类型与对话管线在链上还没有各自的一格
+   （要接得先让链上的草稿带上 kind，而不是像今天这样默认 RPG）；§53 的 Capture screenshots /
+   Detect bugs / Fix 三格要浏览器与模型，本机不假生成（§159）。
 - [~] 游戏设计系统：Player/Enemy/Weapon/Item/Quest/Dialogue/Trigger/NPC/Camera/Animation/Particle（§54）
   — **2026-09-24 落地模型层**：新开 `packages/game-model`（与 design-model / world-model 同一条纪律：
   无 React、无 IO，两端跑同一份校验）。11 类实体 + 数值旋钮 + 实体间引用 + 引用完整性校验 + 确定性投影，
@@ -1232,7 +1267,9 @@ drizzle 把整个拼接结果当成**单个绑定参数**，生成的 SQL 是 `o
   另外一条**证伪**记在这里：`contentHeight <= viewportHeight → 100` 那个提前返回是死分支
   （下面的 100 上限本来就给出同样答案），删掉之后测试仍然全绿，所以留着它只是假装钉住了规则。
 
-  **按天曲线已在 2026-09-30 落地**（见文末「§168 第二片」）；爬虫与真人区分、游戏侧 completion 事件仍欠。
+  **按天曲线已在 2026-09-30 落地**（见文末「§168 第二片」）；游戏侧 completion 事件仍欠。
+  **爬虫与真人区分已在 2026-10-16 落地**（第三片：`classifyVisit` 疑似另计，真人的数逐格
+  filter 掉爬虫，`botOpens` 另给一格；详见文末「§168 第三片」与 ADR-0043）。
   **取消发布会把这一版的统计一起删掉**——`unpublishProject` 删 `published_projects` 行，
   `publication_visits` 跟着 `ON DELETE CASCADE`（`views` 本来就是这个行为，新表继承了它），
   要留历史得把粒度改成挂 project_id 或让下架只改 visibility；没有导出；没有跨作品的汇总视图。
@@ -1883,8 +1920,9 @@ drizzle 把整个拼接结果当成**单个绑定参数**，生成的 SQL 是 `o
   revert 后 20 条全绿。
   限度如实记下：`hasCoverImage` 两条路径都测过（真被画到 → 算封面；资产在库里但这一版没画到 → 不算，
   与 §57/§166 同一口径）；
-  ~~按天曲线~~、爬虫与真人区分、游戏侧 completion 事件这三件仍是 §168 记着的欠账，这一片没有替它们说话；
-  **按天曲线已在 2026-09-30 落地**（见文末「§168 第二片」）；爬虫与真人区分、游戏侧 completion 事件仍欠。
+  ~~按天曲线~~、游戏侧 completion 事件这两件仍是 §168 记着的欠账，这一片没有替它们说话；
+  **按天曲线已在 2026-09-30 落地**（见文末「§168 第二片」）；**爬虫与真人区分已在 2026-10-16 落地**
+  （第三片，见文末「§168 第三片」与 ADR-0043）；游戏侧 completion 事件仍欠。
   建议全部限于平台今天真支持的动作（改标题/写简介/放封面/改可见性/把链接发出去），没有"投放""买流量"。
 
 
@@ -3848,7 +3886,7 @@ M8 整格仍是 `[~]`：MCP 与外部 Agent 那一格还没动，项目的创建
 窗口内访客跨天去重（曲线上是三个"人·天"、访客数仍是 1）、有行但加出来 0 秒报 0 不报"未采集"、
 完成度按行加权（一行 100% 加三行 20% 是 40% 不是 60%）、只数自己的作品（别人的访问与软删项目都不进）。
 `@smoke §168 曲线`在真浏览器里核对"窗口是密集的、缺的那天在图上看得出来"。
-**仍欠**：爬虫与真人区分、游戏侧 completion 事件（这两件不在这一片里）。
+**仍欠**：游戏侧 completion 事件（这一件不在这一片里；爬虫与真人区分已在 2026-10-16 第三片落地）。
 
 ## §147 选中响应第三片：记忆化先要"身份稳定"，否则它是个摆设
 
@@ -4756,3 +4794,38 @@ M8 第三片（2026-09-29）欠的那格清账："这本账只有按人 / 按枚
 - **明确不做**（ADR-0041 记了理由）：网格高度场；`profile: 'cylinder'` 之类的新剖面；
   坡度上限校验（"太陡走不上去"是行走规则，不是地形形状——那属于 `resolveWalkCollision`
   的另一片语义）；2D 等高线渲染（虚线是剖面的记号，等高线是另一张图）。
+
+---
+
+## §168 第三片：爬虫与真人区分——疑似另计，不是定罪也不是删除 —— 2026-10-16
+
+第一片欠的"爬虫与真人区分"。结论：**判定照收照存，真人的数逐格 filter 掉疑似爬虫，
+爬虫的打开次数另给一格**——理由与三条路在 ADR-0043。
+
+- **落了什么**：`classifyVisit(ua, webdriverFlag)`（`src/lib/visit-meter.ts` 纯函数）两条信号：
+  客户端自报的 `navigator.webdriver`（VisitMeter 随心跳上报）+ UA 保守名单
+  （`bot`/`crawl`/`spider`/`curl`/`python`/`okhttp` 等产品名与脚本串；**不放 `headless`**——
+  新版无头 Chrome 的 UA 与真人相同，e2e 也跑在无头 Chrome 里扮演真人）。UA 为空也算疑似。
+  迁移 0032 给 `publication_visits` 加 `suspected_bot` 列；upsert 用 `or` 合并——
+  **判定是粘的**：同一个 (发布, key, 天) 行里有过一次疑似，整行按疑似读，反过来不洗白。
+- **真人的数逐格 filter**：`rollupVisits` 的访客 / 今日打开 / 时长 / 完成度 / 截断 /
+  selfOnly / 曲线 / 连续天数全部 `filter (where not suspected_bot)`；`botOpens` / `botVisitors`
+  另起两格。只有爬虫来过时 `playTimeMs` 是 `null`（没采到真人时长）不是 0 秒；
+  `selfOnly` 是 false（爬虫不是"你自己"）。`views` 不动——§56 的 SSR 计数器历史口径含爬虫。
+- **界面**：口径列表加"疑似爬虫"一条；行内 `data-analytics-bots` 标注
+  "N 次打开来自爬虫/自动化（未计入）"；窗口汇总加 `data-analytics-window="bot_opens"`；
+  曲线图标题改口"只数真人"；页脚"还能往下做的三件事"改口——爬虫那件已按疑似另计落地，
+  但**漏网的爬虫仍混在真人的数里**，这条限度照实写。
+- **顺带修的既有 bug**：`analyticsFor` 对非法 UUID 直接进 SQL，Postgres 报 22P02 → 500；
+  `?project=not-a-uuid` 该给"读不到"却给了 500。补上与 `buildCreatorFact` 同一道 UUID 门禁。
+- **凭证**：`visit-meter.test.ts` 4 条（真人 UA 不命中 / webdriver 自报 / 产品名与空 UA /
+  不放 headless 的理由）；`analytics.integration.test.ts` 第三片组 3 条（只有爬虫时真人格子
+  不涨且时长 null / 人爬混合各归各 / 判定粘——先人后爬整行翻、先爬后人不洗白）；
+  `analytics-trend.integration.test.ts` 1 条（爬虫不进曲线不续连续天数，botOpens 另计）。
+  e2e `@smoke §168` 加两段：anon context 用 `addInitScript` 盖掉 `navigator.webdriver`
+  **扮演真人**（自动化标记由另一笔 `webdriver:true` 扮演），断言上报 body 里 `webdriver:false`；
+  再发一笔自报爬虫的上报——真人的访客数/今日打开/时长一个不动，行内出现
+  "1 次打开来自爬虫/自动化（未计入）"（截图 `screenshots/creator-analytics-bots.png`，
+  窗口汇总里"其中爬虫/自动化打开 1 次"同屏可见）。**1 passed，1.4m**。
+- **明确不做**（ADR-0043 记了理由）：IP/行为限速挡在写入前（被挡的行在库里无迹可查）；
+  删掉疑似行（"被爬过"会消失）；改 `views` 的历史口径；把名单放宽到"宁可错杀"。

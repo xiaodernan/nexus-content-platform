@@ -57,7 +57,15 @@ async function publishFor(userId: string, name: string): Promise<{ projectId: st
 /** `at` 只给"哪一天"：这一片论的是 UTC 日，同一天几点几分不影响任何断言 */
 async function visit(
   publicationId: string,
-  over: { day: string; key?: string; open?: boolean; visibleMs?: number; completionPct?: number; userId?: string | null },
+  over: {
+    day: string;
+    key?: string;
+    open?: boolean;
+    visibleMs?: number;
+    completionPct?: number;
+    userId?: string | null;
+    suspectedBot?: boolean;
+  },
 ): Promise<void> {
   const result = await recordVisit({
     publicationId,
@@ -66,6 +74,7 @@ async function visit(
     open: over.open ?? true,
     visibleMs: over.visibleMs ?? 1000,
     completionPct: over.completionPct ?? 50,
+    suspectedBot: over.suspectedBot,
     at: new Date(`${over.day}T09:00:00.000Z`),
   });
   // key 不合法会被静默丢掉（那是写入侧另一条用例的事），这里必须确认数据真的进去了
@@ -189,6 +198,28 @@ describe('按天曲线（真库）', () => {
     const endingTomorrow = await creatorOverview(ownerId, dayWindow('2026-09-06', 5));
     expect(endingTomorrow.streakDays).toBe(0);
     expect(endingTomorrow.totals.opens).toBe(2);
+  });
+
+  it('爬虫不进曲线也不续连续天数：窗口里的 botOpens 另计（§168 第三片）', async () => {
+    const { publicationId } = await publishFor(ownerId, `曲线 爬虫${RUN}`);
+    const window = dayWindow('2026-12-03', 3); // 2026-12-01 .. 2026-12-03
+    // 窗口最后一天真人来过；前一天只有爬虫
+    await visit(publicationId, { day: '2026-12-02', key: KEY(41), suspectedBot: true, visibleMs: 60_000 });
+    await visit(publicationId, { day: '2026-12-03', key: KEY(40), suspectedBot: false });
+
+    const overview = await creatorOverview(ownerId, window);
+    // 曲线：2 号那天是空的（0），不是被爬虫撑起来的"有人来"
+    expect(pointOf(overview.days, '2026-12-02')).toMatchObject({ opens: 0, visitors: 0, playTimeMs: null });
+    // 连续天数止于真人来的那天——爬虫不算"有人来"
+    expect(overview.streakDays).toBe(1);
+    // 人的汇总不含爬虫；爬虫的打开次数在自己的格子里
+    expect(overview.totals.opens).toBe(1);
+    expect(overview.totals.visitors).toBe(1);
+    expect(overview.totals.botOpens).toBe(1);
+    // 单件曲线同一口径
+    const trend = (await publicationTrend(ownerId, publicationId, window))!;
+    expect(trend.totals.botOpens).toBe(1);
+    expect(trend.totals.opens).toBe(1);
   });
 });
 
