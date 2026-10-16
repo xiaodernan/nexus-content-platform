@@ -2,6 +2,7 @@ import { and, desc, eq, isNull } from 'drizzle-orm';
 import type { DesignDocument } from '@nexus/design-model';
 import { getDb } from '../db/client';
 import { branches, projects, snapshots } from '../db/schema';
+import { isUuid } from './ids';
 import { loadDocument, saveDocument } from './projects';
 import { stableKey } from './stable-key';
 
@@ -139,6 +140,8 @@ export async function readSnapshot(
   projectId: string,
   snapshotId: string,
 ): Promise<SnapshotEntry | null> {
+  // 两个 id 都是路由路径参数：形状不对按"没有这份快照"处理（domain/ids.ts）
+  if (!isUuid(projectId) || !isUuid(snapshotId)) return null;
   const db = getDb();
   const [row] = await db
     .select()

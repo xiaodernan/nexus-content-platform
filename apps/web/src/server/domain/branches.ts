@@ -2,6 +2,7 @@ import { and, asc, desc, eq, isNull } from 'drizzle-orm';
 import { duplicateDocument, remapAssetIds, diffDocuments, type DesignDocument } from '@nexus/design-model';
 import { getDb } from '../db/client';
 import { branches, projects, snapshots } from '../db/schema';
+import { isUuid } from './ids';
 import { createProject, loadDocument, saveDocument } from './projects';
 import { copyProjectAssets } from './assets';
 import {
@@ -228,6 +229,8 @@ export async function switchBranch(
   branchId: string,
   actor: { createdById?: string | null } = {},
 ): Promise<SwitchResult | null> {
+  // 两个 id 都是路由路径参数：形状不对按"没有这条分支"处理（domain/ids.ts）
+  if (!isUuid(projectId) || !isUuid(branchId)) return null;
   const db = getDb();
   const [target] = await db
     .select()

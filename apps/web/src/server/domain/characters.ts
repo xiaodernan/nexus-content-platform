@@ -6,6 +6,7 @@ import {
   type Character,
   type CharacterProfile,
 } from '@nexus/world-model';
+import { isUuid } from './ids';
 import { syncProjectKnowledge } from './knowledge';
 import { getDb } from '../db/client';
 import { characters, worlds } from '../db/schema';
@@ -109,6 +110,10 @@ export async function updateCharacterProfile(
   projectId: string,
   profile: CharacterProfile,
 ): Promise<CharacterResult> {
+  // 形状不对的 id 按"这个项目里没有这个角色"处理：eq(characters.id, …) 会撞 22P02 变 500（domain/ids.ts）
+  if (!isUuid(characterId) || !isUuid(projectId)) {
+    return { ok: false, reason: '这个项目里没有这个角色。' };
+  }
   const parsedProfile = CharacterProfileSchema.safeParse(profile);
   if (!parsedProfile.success) {
     return {
@@ -150,6 +155,8 @@ export async function updateCharacterProfile(
 }
 
 export async function deleteCharacter(characterId: string, projectId: string): Promise<boolean> {
+  // 形状不对的 id 按"没有这个角色"处理（domain/ids.ts）
+  if (!isUuid(characterId) || !isUuid(projectId)) return false;
   const db = getDb();
   const deleted = await db
     .delete(characters)

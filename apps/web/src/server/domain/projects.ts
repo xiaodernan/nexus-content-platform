@@ -15,6 +15,7 @@ import {
 } from '@nexus/design-model';
 import { parseDocument } from '../validation';
 import { recordAudit } from './audit';
+import { isUuid } from './ids';
 import { syncDesignKnowledge } from './knowledge';
 import { stableKey } from './stable-key';
 import { getDb } from '../db/client';
@@ -426,6 +427,8 @@ async function writeNodes(tx: Tx, page: Page): Promise<void> {
  * 所以这一格得现查一次；查不到返回 null，调用方按"没有归属就不做配额判断"处理。
  */
 export async function projectOwnerId(projectId: string): Promise<string | null> {
+  // 形状不对的 id 按"查不到"处理：eq() 会把 22P02 抛成 500（见 domain/ids.ts）
+  if (!isUuid(projectId)) return null;
   const [row] = await getDb()
     .select({ ownerId: projects.ownerId })
     .from(projects)
@@ -443,6 +446,7 @@ export async function projectOwnerId(projectId: string): Promise<string | null> 
 export async function loadProjectIdentity(
   projectId: string,
 ): Promise<{ name: string; kind: string } | null> {
+  if (!isUuid(projectId)) return null;
   const [row] = await getDb()
     .select({ name: projects.name, kind: projects.kind })
     .from(projects)
@@ -452,6 +456,9 @@ export async function loadProjectIdentity(
 }
 
 export async function projectBelongsTo(projectId: string, ownerId: string): Promise<boolean> {
+  // 32 条路由走这一道门：形状不对的 projectId 一律 false（404），
+  // 不再让 22P02 变成 500——"不在你名下"与"不存在"给同一个答案
+  if (!isUuid(projectId)) return false;
   const db = getDb();
   const rows = await db
     .select({ id: projects.id })
@@ -500,6 +507,8 @@ export function assetRowToRef(row: typeof assets.$inferSelect): AssetRef {
 }
 
 export async function loadDocument(projectId: string, reader: DocumentReader = getDb()): Promise<DesignDocument | null> {
+  // 形状不对的 id 按"没有这个项目"处理（见 domain/ids.ts）
+  if (!isUuid(projectId)) return null;
   // 传事务进来时，这次读就落在同一把 advisory lock 后面（§188 公开 API 的读—改—写要的就是这个）
   const db = reader;
   const [project] = await db.select().from(projects).where(and(eq(projects.id, projectId), isNull(projects.deletedAt))).limit(1);

@@ -3,6 +3,7 @@ import { and, desc, eq, isNull, sql } from 'drizzle-orm';
 import type { ModerationScan } from '@nexus/schemas';
 import { getDb } from '../db/client';
 import { recordAudit } from './audit';
+import { isUuid } from './ids';
 import { abuseReports, moderationCases, projects, publishedProjects, users } from '../db/schema';
 import { emit } from './notifications';
 
@@ -277,6 +278,9 @@ export async function resolveCase(
   actor: { adminId: string; resolution: 'approved' | 'rejected'; note?: string },
 ): Promise<ResolveOutcome> {
   const db = getDb();
+  // 形状不对的案号：eq(moderationCases.id, caseId) 会撞 22P02 变 500——
+  // "没有这个案号"对调用方就是 409 那一句，不该因为形状不对就变成服务器故障（domain/ids.ts）
+  if (!isUuid(caseId)) return { ok: false, reason: '没有这个案号' };
   const [existing] = await db.select().from(moderationCases).where(eq(moderationCases.id, caseId)).limit(1);
   if (!existing) return { ok: false, reason: '没有这个案号' };
   if (existing.resolvedAt) {

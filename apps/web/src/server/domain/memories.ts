@@ -1,4 +1,5 @@
 import { and, desc, eq, inArray, isNull, or } from 'drizzle-orm';
+import { isUuid } from './ids';
 import { syncProjectKnowledge } from './knowledge';
 import { getDb } from '../db/client';
 import { memories } from '../db/schema';
@@ -152,6 +153,8 @@ export async function addMemory(input: {
 }
 
 export async function deleteMemory(id: string, ownerId: string): Promise<boolean> {
+  // 形状不对的 id 按"没有这条记忆"处理：eq(memories.id, id) 会撞 22P02 变 500（domain/ids.ts）
+  if (!isUuid(id)) return false;
   const db = getDb();
   const deleted = await db
     .delete(memories)
