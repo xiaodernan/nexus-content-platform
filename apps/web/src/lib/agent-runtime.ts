@@ -27,7 +27,7 @@ import { AgentPlanSchema, GameDocumentSchema, type AgentPlan } from '@nexus/sche
 export type PlanTask = AgentPlan['tasks'][number];
 
 /** 今天真的有执行方的步骤种类。加一种就必须同时加一个真执行方，否则 UI 会列出跑不了的步骤 */
-export const STEP_KINDS = ['context', 'seo-audit', 'qa-audit', 'report', 'game', 'combat', 'level', 'code'] as const;
+export const STEP_KINDS = ['context', 'seo-audit', 'qa-audit', 'report', 'game', 'combat', 'level', 'playtest', 'code'] as const;
 export type StepKind = (typeof STEP_KINDS)[number];
 
 export interface StepSpec {
@@ -48,11 +48,13 @@ export interface StepSpec {
  * 所以整条作业的 capability 记 `demo`（§160），界面上带 DEMO 标识，
  * 而每一步真正算出来的东西（结构、门禁、覆盖面）是真读数，不是编的。
  *
- * 八种步骤各自的真实执行方：结构盘点读本项目自己的库；SEO 检查读项目元信息与设计正文；
+ * 九种步骤各自的真实执行方：结构盘点读本项目自己的库；SEO 检查读项目元信息与设计正文；
  * 门禁就是发布时用的同一个 `analyzeHealth`（§179 那一份，不另算一套分）；汇总是前三者的产物；
  * Game Agent 那一步给的是 §52 的**确定性草稿**（`agent-game-draft.ts` 那张表），
  * 紧跟其后的 combat 那一步（§52 链的第二格）拿上一步的草稿跑 `tuneCombat`，产出**调过数值的那一份草稿**；
  * 再后面的 level 那一步（§52 链的第三格）拿 combat 的草稿跑 `designLevel`，产出**位置已写成设计值的那一份草稿**；
+ * playtest（第四格）拿 level 那份草稿跑 §53 的 `playtestRpg`——四种固定走法、定种子，
+ * 报的是"几种通关、几种中途倒下、几种跑到时间上限"，**它不改设计也不产草稿**（所以接受入口仍是三个按钮）；
  * 最后一格 code 拿 level 那份草稿跑 `generateGameCode`，产出的**不是草稿而是投影**：
  * 它只把"这份设计投影出来是几份文件、多少字节、哪几条限度"报进这一步的结论里，
  * 既不落库也不在这里下载（下载走游戏面板那一格，那里吃的是库里那一份设计）。
@@ -128,10 +130,27 @@ export const READINESS_STEPS: readonly StepSpec[] = [
     dependsOn: ['combat'],
   },
   {
+    // §52 链的第四格（§53 的那四种走法接到这里）：吃 level 那份**数值调过、位置也摆好了**的草稿，
+    // 用四种固定走法各跑一遍，只把读数报进这一步的结论。
+    // 为什么交给 QA Agent 而不是 Game Agent：这一格不产设计、不改设计，它做的是"跑一遍看结果"，
+    // 名册里 QA 声明的能力就是 `test.run`（§73：能力由名册说了算，所以这一步要的能力必须是名册里真有的那一条）。
+    // 依赖写 level：试玩要说的是"链条末端那份玩起来怎么样"，拿第一格那份原始草稿跑出来的数
+    // 与上面 game 那一步就重复了，而重复的是一份**已经不是最终形态**的设计。
+    kind: 'playtest',
+    agentKey: 'qa',
+    agentName: 'QA Agent',
+    title: '把链条末端那份草稿用四种固定走法各跑一遍：只报能不能通关与在哪倒下，不改设计、不产草稿',
+    requires: 'test.run',
+    artifact: 'playtest_report',
+    dependsOn: ['level'],
+  },
+  {
     // §52 那条链的最后一格：吃 level 那份摆过位置的草稿，把它投影成一份拿得走的产物。
     // 这一格的产物**不是草稿**（它不改设计，只是同一份设计的另一个样子），所以它不留 `draft`：
     // 接受入口因此仍然只有三个按钮，缺省那一份仍是链条末端那份草稿。
     // 依赖写 level 而不是 game：投影的要害是"位置与数值都落定了之后这份产物长什么样"。
+    // 它与 playtest 是**同一批就绪的兄弟**（都只依赖 level），不是串在一起的：
+    // 投影不读试玩报告，所以试玩这一步失败不该把这份产物也带走——那条依赖箭头没有数据可交接。
     kind: 'code',
     agentKey: 'game',
     agentName: 'Game Agent',

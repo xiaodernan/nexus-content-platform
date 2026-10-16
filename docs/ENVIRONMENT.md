@@ -123,6 +123,24 @@ npm run contract:export   # 改了 packages/schemas 后必须重跑，导出 con
 **不要**用 `wsl --shutdown` / 删 distro 去硬复位：同一台机上有别的项目的容器与卷（见上"已有容器"），
 那是别人在跑的东西，复位属于要人来做决定的动作。
 
+**2026-10-16 另一条同族坑：引擎回来了，端口却不给绑了。** 当天 `docker version` 29.8.2 正常、
+容器 `Up`，但 `nexus-postgres` 起来以后 `docker port` 是**空的**——55433 根本没转发出来。
+`npm run infra:up` 报 "Container nexus-postgres Running"（它没重建容器，所以不觉得有问题），
+`--force-recreate` 才把真原因吐出来：`ports are not available: exposing port TCP 0.0.0.0:55433 -> …
+bind: An attempt was made to access a socket in a way forbidden by its access permissions`。
+根因量出来了：`netsh int ipv4 show excludedportrange protocol=tcp` 当天列出 55245–55344、55345–55444、
+55445–55544、55545–55644、55645–55744 —— **Windows 这次开机把 55433 整段保留了**（Hyper-V/WinNAT 的随机保留段，
+每次开机不同）。两条当时走过的弯路记下来免得再走：
+① 用 compose `override` 换端口（`ports: !reset ['55100:5432']`，compose v5.6.0 支持 `!reset`）
+   → 结果是**一个绑定都没有**（`{"5432/tcp": null}`），比原样更糟；
+② 换端口要绕开 compose 直接 `docker run -d --name nexus-postgres -p 127.0.0.1:55100:5432 …`
+   **复用同一个具名卷 `nexus-pgdata`**，数据一字未动，`TCP 55100 OPEN`。
+   `infra/docker-compose.yml` 里那行 55433 **故意不改**：那是本机这次开机的临时状态，
+   不是仓库的约定（写进受版本控制的配置等于把一次 WinNAT 抽签固化成所有人的默认值）。
+需要打库的那一套（集成测试、dev server）当天一律带 `NEXUS_DATABASE_URL=postgres://nexus:nexus_dev_only@localhost:55100/nexus`
+——`server/db/client.ts` 读的就是这个变量，默认值仍是 55433。判据一句话：**容器 Up 不等于端口在，
+`docker port` 与一次真 `select 1` 才算数**。
+
 顺带一条同源坑：dev server 被中途杀掉会把生成物写坏 —— `apps/web/.next/dev/types/routes.d.ts`
 留下半截 JSDoc 拼进代码，`npm run lint` 报 `TS1109` × 5 + `TS1160 Unterminated template literal`，
 全部指向这个 gitignore 掉的缓存文件（`git check-ignore -v` 能确认）。把 `apps/web/.next/dev/types`

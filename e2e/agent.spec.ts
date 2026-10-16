@@ -15,6 +15,10 @@ import { expect, test, type Page } from '@playwright/test';
  * §52 那条链走到第三格，这里把"点的是哪一格，进库的就是那一份"钉在最小的差别上：
  * level 那份与 combat 那份只差坐标，服务端集成测能证"两份内容不同"，但"界面把 stepId 传对了"
  * 这一段发生在点击上——而"坐标写进了库"只有真浏览器读回来的那一份能证明它一路没被换掉。
+ *
+ * 第四格（playtest）与第五格（code）在这一层证的是另一件事：**展开来的那几句限度真的到了 DOM**。
+ * 集成测能证服务端算出了 findings 与 limits，但"只在展开时才渲染的那几行"有没有真被画出来、
+ * 是不是逐字那一份，只有真浏览器量得到——读数的另一半解释藏在不渲染的字符串里等于没说。
  */
 
 const RUN = Date.now().toString(36);
@@ -59,7 +63,14 @@ interface ServerRun {
   run: {
     taskId: string;
     plan: { tasks: { id: string }[] } | null;
-    steps: { id: string; status: string; summary: string; draft?: { name: string; entities: unknown[] } }[];
+    steps: {
+      id: string;
+      status: string;
+      summary: string;
+      counts?: Record<string, number>;
+      notes?: string[];
+      draft?: { name: string; entities: unknown[] };
+    }[];
   } | null;
 }
 
@@ -156,8 +167,41 @@ test('@smoke agent orchestration runs in the studio and lands a real notificatio
   await expect(page.locator('[data-agent-step-summary="level"]')).toContainText('条几何目标达标');
 
   /**
-   * 第四格（code）在这一层要看得见两件事：它报的是**投影的读数**（几份文件、多少字节），
-   * 而且它**没有接受按钮**——它是投影不是第四份"可接受的设计"，缺省档位才会仍落在链末的 level 上。
+   * 第四格（playtest）：这一格报的是**试玩读数**，不产草稿。
+   * 三件事要在真浏览器里各钉一次，而且句子里的每个数都从服务端那一份 counts 拼出来（手抄的数没有对照物就会漂，§159）：
+   * 1. 面板上那句结论与服务端逐字相同，且其中的「x/y 种通关」「定种子 n」与 counts 里的同一个数对得上；
+   * 2. 它没有接受按钮——试玩是投影不是又一份「可接受的设计」，缺省档位才会仍落在链末的 level 上；
+   * 3. 展开它，findings 与 limits 那几句逐字出现在 DOM 里。限度只在服务端算出来而画不出来，等于只报了一半。
+   */
+  const playtest = server!.steps.find((step) => step.id === 'playtest');
+  expect(playtest, '服务端那一份里没有 playtest 这一步').toBeTruthy();
+  const pt = playtest!.counts!;
+  // counts 是 Record<string, number>：索引访问在 noUncheckedIndexedAccess 下是 number | undefined，
+  // 三个非空断言钉的是"这一步的 counts 里必须有这三档"——缺了就该在加法里变成 NaN 让断言失败
+  expect(pt.won! + pt.lost! + pt.unfinished!, '四种走法各自归一档，三档加起来必须是跑过的走法数').toBe(pt.policies);
+  expect(playtest!.summary).toContain(`${pt.won}/${pt.policies} 种通关`);
+  expect(playtest!.summary).toContain(`${pt.lost} 种中途倒下`);
+  expect(playtest!.summary).toContain(`定种子 ${pt.seed}`);
+  await expect(page.locator('[data-agent-step-summary="playtest"]')).toHaveText(playtest!.summary);
+  await expect(page.locator('[data-agent-accept-step="playtest"]')).toHaveCount(0);
+
+  // 展开：那几句解释只有在这里才看得见，所以要一张一张对——少渲染一条也是少
+  await page.locator('[data-agent-step="playtest"] button').first().click();
+  // counts 那一叠是 `{key} {value}` 一行行的，所以拿服务端的数拼出该出现的行，再逐行要求它可见
+  for (const [key, value] of Object.entries(pt)) {
+    await expect(page.locator('[data-agent-step="playtest"]').getByText(`${key} ${value}`, { exact: true })).toBeVisible();
+  }
+  for (const line of playtest!.notes ?? []) {
+    await expect(page.locator('[data-agent-step="playtest"]')).toContainText(line);
+  }
+  // 限度里那句"默认 N"与这一格**实际用的**种子必须是同一个数：这一格不接收种子入参，
+  // 两处一旦漂了，就说明界面上念了一个没跑过的数（§53 的那条老规矩）
+  expect(playtest!.notes!.join('\n')).toContain(`定种子（默认 ${pt.seed}）`);
+  await page.screenshot({ path: 'screenshots/agent-playtest-expanded.png' });
+
+  /**
+   * 第五格（code）在这一层要看得见两件事：它报的是**投影的读数**（几份文件、多少字节），
+   * 而且它**没有接受按钮**——它是投影不是又一份「可接受的设计」，缺省档位才会仍落在链末的 level 上。
    * 面板上那句与服务端那一份逐字相同：这一步的数字不是界面自己数的。
    */
   const codeSummary = server!.steps.find((step) => step.id === 'code')?.summary ?? '';

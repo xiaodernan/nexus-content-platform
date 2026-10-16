@@ -78,14 +78,20 @@ describe('计划配方（§25）', () => {
     expect(deps).toEqual(fromSpec);
     expect(deps['combat']).toEqual(['game']);
     expect(deps['level']).toEqual(['combat']);
-    // 最后一格（code）接的是链条末端那份：位置与数值都落定了之后才谈"投影出来是多少字节"
+    // 试玩与投影接的是同一份：链条末端那份（数值调过、位置也摆好了）
+    expect(deps['playtest']).toEqual(['level']);
     expect(deps['code']).toEqual(['level']);
     expect(Object.entries(deps).filter(([, list]) => list.length > 0).map(([id]) => id).sort()).toEqual([
       'code',
       'combat',
       'level',
+      'playtest',
       'report',
     ]);
+    // playtest 与 code 是**兄弟**而不是串起来的：投影不读试玩报告，
+    // 所以配方里不能让 code 依赖 playtest——那条箭头没有数据可交接（依赖必须真的用上）。
+    expect(deps['code']).not.toContain('playtest');
+    expect(deps['playtest']).not.toContain('code');
   });
 
   it('goal 进计划标题：空白有兜底，超长截到上限', () => {
@@ -149,9 +155,16 @@ describe('就绪与失败传播（§112 的调度）', () => {
     expect(readyIds(plan)).toEqual(['report', 'game']);
     plan = withStatus(plan, 'game', 'done');
     expect(readyIds(plan)).toEqual(['report', 'combat']);
+    plan = withStatus(withStatus(plan, 'report', 'done'), 'combat', 'done');
+    expect(readyIds(plan)).toEqual(['level']);
+    // level 落定之后一次就绪两格：试玩与投影都只依赖它，所以是同一批。
+    // 批内的顺序跟的是**配方里的声明序**（playtest 写在 code 前面），不是执行完再排——
+    // 界面与事件读的都是这个顺序，"顺序稳定才能重跑一次结果一样"说的就是这一行。
+    plan = withStatus(plan, 'level', 'done');
+    expect(readyIds(plan)).toEqual(['playtest', 'code']);
   });
 
-  it('上游那份草稿没留成：吃它的 combat/level/code 一格一格被牵连，三份检查照旧各跑各的', () => {
+  it('上游那份草稿没留成：吃它的 combat/level/playtest/code 一格一格被牵连，三份检查照旧各跑各的', () => {
     let plan = buildReadinessPlan('检查');
     plan = withStatus(withStatus(withStatus(withStatus(plan, 'context', 'done'), 'seo-audit', 'done'), 'qa-audit', 'done'), 'game', 'failed');
     // game 自己失败不牵连三份检查（它们互不依赖），只带走吃它草稿的 combat
@@ -159,10 +172,28 @@ describe('就绪与失败传播（§112 的调度）', () => {
     expect(readyIds(plan)).toEqual(['report']);
     // combat 被牵连跳过之后，吃 combat 草稿的 level 也跟着被牵连
     plan = withStatus(withStatus(withStatus(plan, 'report', 'done'), 'combat', 'skipped'), 'level', 'skipped');
-    // 再往下还有第三格：level 没跑成，吃它草稿的 code 也不能装作"我可以凭空投影一份"
-    expect(blockedIds(plan)).toEqual([{ id: 'code', because: ['level'] }]);
-    plan = withStatus(plan, 'code', 'skipped');
-    expect(verdictOf(plan)).toEqual({ finished: true, ok: false, reason: '1 步失败，3 步因上游失败被跳过' });
+    // 再往下还有两格：level 没跑成，吃它草稿的 playtest 与 code 都不能装作"我可以凭空跑一份/投影一份"。
+    // 两格在同一轮被点名，因为它们是兄弟而不是串起来的——这一行钉的就是那个形状。
+    expect(blockedIds(plan)).toEqual([
+      { id: 'playtest', because: ['level'] },
+      { id: 'code', because: ['level'] },
+    ]);
+    plan = withStatus(withStatus(plan, 'playtest', 'skipped'), 'code', 'skipped');
+    expect(verdictOf(plan)).toEqual({ finished: true, ok: false, reason: '1 步失败，4 步因上游失败被跳过' });
+  });
+
+  it('试玩那一格自己炸了：投影不该被它带走（它们只共享 level 那份草稿）', () => {
+    // 这一条是上一节的反向对照。`code` 依赖的是 level 而不是 playtest，
+    // 所以试玩失败只带走它自己——少了这一条，"把 playtest 也串进链尾"那种改法
+    // 在上面的用例里同样是绿的（那里 level 失败会把两格一起带走，分不清谁依赖谁）。
+    let plan = buildReadinessPlan('检查');
+    for (const id of ['context', 'seo-audit', 'qa-audit', 'report', 'game', 'combat', 'level']) plan = withStatus(plan, id, 'done');
+    plan = withStatus(plan, 'playtest', 'failed');
+    // playtest 失败没牵连任何人：剩下的 code 依赖的 level 是 done
+    expect(blockedIds(plan)).toEqual([]);
+    expect(readyIds(plan)).toEqual(['code']);
+    plan = withStatus(plan, 'code', 'done');
+    expect(verdictOf(plan)).toEqual({ finished: true, ok: false, reason: '1 步失败' });
   });
 
   it('改状态返回新计划：旧的那一份不动（计划是 jsonb，就地改会让读到的历史跟着变）', () => {
@@ -185,19 +216,15 @@ describe('就绪与失败传播（§112 的调度）', () => {
     // 这一行原本假设"把 report 标成 skipped 之后全都落定了"，那是四步时代的事；
     // 要断言"全部落定之后的账"，就得把这一步也推到终态，而不是把 pending 改成 0 硬凑。
     // combat（§52 链第二格）依赖 game、不依赖那三份检查，所以它同样落成 done；
-    // level（第三格）依赖 combat，跟着落成 done；code（最后一格）依赖 level，也落成 done。
-    plan = withStatus(
-      withStatus(withStatus(withStatus(plan, 'game', 'done'), 'combat', 'done'), 'level', 'done'),
-      'code',
-      'done',
-    );
-    expect(progressOf(plan)).toEqual({ total: 8, pending: 0, running: 0, done: 6, failed: 1, skipped: 1 });
+    // level（第三格）依赖 combat，跟着落成 done；playtest 与 code（第四、五格）都只依赖 level，也落成 done。
+    for (const id of ['game', 'combat', 'level', 'playtest', 'code']) plan = withStatus(plan, id, 'done');
+    expect(progressOf(plan)).toEqual({ total: 9, pending: 0, running: 0, done: 7, failed: 1, skipped: 1 });
   });
 
   it('终态判定：有跳过就不算成功，原因里失败与跳过都要说', () => {
     let plan = buildReadinessPlan('检查');
     expect(verdictOf(plan)).toEqual({ finished: false, ok: false, reason: null });
-    for (const id of ['context', 'seo-audit', 'qa-audit', 'report', 'game', 'combat', 'level', 'code']) plan = withStatus(plan, id, 'done');
+    for (const id of ['context', 'seo-audit', 'qa-audit', 'report', 'game', 'combat', 'level', 'playtest', 'code']) plan = withStatus(plan, id, 'done');
     expect(verdictOf(plan)).toEqual({ finished: true, ok: true, reason: null });
 
     // 终态才谈得上"为什么不成"：还有步骤没跑完之前，reason 必须是 null
@@ -209,15 +236,11 @@ describe('就绪与失败传播（§112 的调度）', () => {
     let onlySkipped = buildReadinessPlan('检查');
     for (const id of ['context', 'seo-audit', 'qa-audit']) onlySkipped = withStatus(onlySkipped, id, 'done');
     // report 与 game 没有真的失败上游却标成 skipped，是手工造的终态；combat 依赖 game，跟着被牵连跳过
-    onlySkipped = withStatus(onlySkipped, 'report', 'skipped');
-    onlySkipped = withStatus(onlySkipped, 'game', 'skipped');
-    onlySkipped = withStatus(onlySkipped, 'combat', 'skipped');
-    onlySkipped = withStatus(onlySkipped, 'level', 'skipped');
-    onlySkipped = withStatus(onlySkipped, 'code', 'skipped');
+    for (const id of ['report', 'game', 'combat', 'level', 'playtest', 'code']) onlySkipped = withStatus(onlySkipped, id, 'skipped');
     expect(verdictOf(onlySkipped)).toEqual({
       finished: true,
       ok: false,
-      reason: '5 步因上游失败被跳过',
+      reason: '6 步因上游失败被跳过',
     });
   });
 });
@@ -237,6 +260,9 @@ describe('§113 Agent Handoff', () => {
     // 最后一格接的是链条末端：交接单上写的是"我从 level 拿 level_layout"，
     // 而不是把整条链的产物都塞过来（那等于没有交接）
     expect(handoffOf(plan, 'code')).toEqual([{ from: 'level', artifact: 'level_layout' }]);
+    // 试玩那一格拿的是同一份东西：两兄弟各自的交接单都只有一条，且都指向 level——
+    // 交接单上出现的名字就是这一步真能读到的那一份，多一条都没有（那等于没有交接）
+    expect(handoffOf(plan, 'playtest')).toEqual([{ from: 'level', artifact: 'level_layout' }]);
   });
 });
 

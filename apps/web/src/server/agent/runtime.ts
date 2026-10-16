@@ -13,6 +13,7 @@ import {
   designLevel,
   generateGameCode,
   playtestRpg,
+  playtestSeedNote,
   tuneCombat,
   type GameDocument,
 } from '@nexus/game-model';
@@ -57,9 +58,10 @@ import { loadDocument } from '../domain/projects';
  *    剩下的几步也在做。
  * 2. **名册说了算**（§73 同一个口径）。每一步声明它要求的能力，开跑前拿名册核对；名册里没有这个
  *    Agent、或它没声明这条能力，整份作业拒收并说清缺什么。
- * 3. **这一轮只读**。今天这八步都不改设计文档、不发布、不生成像素，也不往游戏库写东西——
+ * 3. **这一轮只读**。今天这九步都不改设计文档、不发布、不生成像素，也不往游戏库写东西——
  *    §52 链那三步（game / combat / level）各自编出的草稿只存在这一条作业里（`result.steps[].draft`），
- *    最后一格（code）更是只报投影的读数，连草稿都不留（产物是同一份设计的另一个样子），
+ *    后两格（playtest 报试玩读数、code 报投影读数）连草稿都不留：一个不改设计，
+ *    另一个是同一份设计的另一个样子，
  *    要进项目得由用户在
  *    接受入口点那一下（ADR-0035）。所以这里没有 §150 的可撤销事务要记，也不可能把工作区改坏。
  *    将来加会改模型的步骤时，那一步必须自己走 Command（§150）
@@ -306,7 +308,7 @@ const gameStep: Runner = async (ctx) => {
       `配方表决定数值，目标文本只改了标题（现在是「${document.name}」）——这一轮没有真 provider 参与（§160）。`,
       `玩家伤害 ${player?.damage ?? 0}（来源是引用到玩家的那把武器，provenance=${player?.provenance.damage ?? '无'}）、触及 ${player?.reach ?? 0} 像素；` +
         `经验来源 ${authored}/${enemies} 个敌人写了 xpReward。`,
-      `四种脚本走法（定种子 7，跑的是 rpgStep）：${playtest.runs.map((run) => `${run.label} ${run.seconds} 秒→${run.status === 'won' ? '通关' : run.status === 'lost' ? '倒下' : '没结束'}`).join('、')}`,
+      `四种脚本走法（定种子 ${playtest.seed}，跑的是 rpgStep）：${playtest.runs.map((run) => `${run.label} ${run.seconds} 秒→${run.status === 'won' ? '通关' : run.status === 'lost' ? '倒下' : '没结束'}`).join('、')}`,
       `这份报告的限度：${playtest.limits[0] ?? ''}`,
       '接受进项目之后它是项目里的一份普通游戏文档：能改、能试玩、进 §49 语料；撤销走 §150 那套 Command，不靠这一步。',
     ],
@@ -428,6 +430,60 @@ const levelStep: Runner = async (ctx) => {
 };
 
 /**
+ * §52 链的第四格 Playtest：拿 level 那一步摆过位置的草稿，用 §53 那**四种固定走法**各跑一遍。
+ *
+ * 这一格与前两格的相同点是**不产草稿**（它一个字都不改设计），与最后一格 code 的相同点是
+ * **读数由测试自己重算一遍来对**（见集成用例）：`summary` 与 `counts` 同出一次 `playtestRpg` 的调用，
+ * 只比这两处的话"四种走法里 2 种通关"是自证自成的。
+ *
+ * 为什么这一格值得单开：上面 game 那一步也跑了一次试玩，但那份跑的是**原始草稿**——
+ * 数值还没调、位置还没摆。这一格跑的是链条末端那份，也就是用户点「接受」之后真会进项目的那一份。
+ * 同一份报告的两个时刻，读数是可能不同的，而"最终形态玩起来怎么样"才是该出现在作业结论里的数。
+ *
+ * 交接的口径与 `qa-audit` 那一步一致：这里**只报读数与限度**，不另写一套判定。
+ * 四句限度（`playtestRpg` 自己带的 `limits`）逐句原样带进 notes——少了它们，
+ * "0 种通关"会被读成"这设计没人能通"（§53 文件头那条，也是 §159 禁止的那种谎）。
+ * 种子用的是默认值（`PLAYTEST_DEFAULT_SEED`）：这一格要的是可比，不是抽样花样，
+ * 所以界面上要换种子的事仍留在试玩页那一格。
+ */
+const playtestStep: Runner = async (ctx) => {
+  const source = ctx.upstream.find((step) => step.id === 'level')?.draft;
+  if (!source) {
+    throw new Error('playtest 这一步没拿到上游草稿（level 那一步没留下 draft）：没有可试玩的布局，这一格不另编一份再跑');
+  }
+  const report = playtestRpg(compileRpg(source));
+  const unfinished = report.runs.filter((run) => run.status === 'playing').length;
+  return {
+    summary:
+      `四种固定走法跑完（定种子 ${report.seed}）：${report.winnableBy}/${report.runs.length} 种通关、` +
+      `${report.diedFrom} 种中途倒下、${unfinished} 种跑到时间上限（最高 ${report.maxLevel} 级）`,
+    counts: {
+      entities: source.entities.length,
+      policies: report.runs.length,
+      won: report.winnableBy,
+      lost: report.diedFrom,
+      unfinished,
+      maxLevel: report.maxLevel,
+      seed: report.seed,
+      findings: report.findings.length,
+      limits: report.limits.length,
+    },
+    notes: [
+      '这一步不改设计、也不产草稿：它跑的是上面那一步摆过位置的那一份，也就是点「接受」之后真会进项目的那一份。',
+      '这一步没有真 provider，也不需要：走法是四种写死的脚本（站着不动 / 冲向最近的敌人 / 一直躲开 / 定种子随机游走），' +
+        '推进用的是 rpgStep——与试玩页、HUD 同一个函数（§160）。',
+      `四种走法（定种子 ${report.seed}）：${report.runs
+        .map((run) => `${run.label} ${run.seconds} 秒→${run.status === 'won' ? '通关' : run.status === 'lost' ? '倒下' : '没结束'}`)
+        .join('、')}`,
+      ...report.findings,
+      ...report.limits,
+      playtestSeedNote(report.seed),
+      '想换一次抽样去看另一种走法，去「游戏」面板那一格的试玩报告：那里种子是入参，这一格的种子固定用默认值。',
+    ],
+  };
+};
+
+/**
  * §52 链的最后一格 Code：拿 level 那一步摆过位置的草稿，把它投影成一份拿得走的产物（§16：设计是真值，产物是投影）。
  *
  * 这一格与前两格有一处刻意的不同：**它不留下草稿**。投影不改设计——同一份设计、另一个样子，
@@ -474,6 +530,7 @@ const RUNNERS: Record<StepKind, Runner> = {
   game: gameStep,
   combat: combatStep,
   level: levelStep,
+  playtest: playtestStep,
   code: codeStep,
 };
 
