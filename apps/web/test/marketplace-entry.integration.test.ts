@@ -50,12 +50,12 @@ async function identityFor(userId: string): Promise<string> {
   return token;
 }
 
-/** 设上作者会话（可选 CSRF 双提交）并返回请求头 */
-function authHeaders(withCsrf: boolean): Record<string, string> {
+/** 设上作者会话（可选 CSRF 双提交）并返回请求头；token 可换人（限流桶按 user.id 计） */
+function authHeaders(token: string, withCsrf = false): Record<string, string> {
   jar.clear();
   const headers: Record<string, string> = { 'content-type': 'application/json' };
-  jar.set(SESSION_COOKIE, creatorToken);
-  headers.cookie = `${SESSION_COOKIE}=${creatorToken}`;
+  jar.set(SESSION_COOKIE, token);
+  headers.cookie = `${SESSION_COOKIE}=${token}`;
   if (withCsrf) {
     jar.set(CSRF_COOKIE, CSRF_TOKEN);
     headers[CSRF_HEADER] = CSRF_TOKEN;
@@ -66,12 +66,14 @@ function authHeaders(withCsrf: boolean): Record<string, string> {
 const listUrl = (query = ''): string => `http://test.local/api/marketplace${query}`;
 const createUrl = 'http://test.local/api/marketplace';
 
-const post = (body: unknown, withCsrf = true): Promise<Response> =>
-  createItem(new Request(createUrl, { method: 'POST', headers: authHeaders(withCsrf), body: JSON.stringify(body) }));
+const post = (body: unknown, withCsrf = true, token = creatorToken): Promise<Response> =>
+  createItem(new Request(createUrl, { method: 'POST', headers: authHeaders(token, withCsrf), body: JSON.stringify(body) }));
 
 let creator: { id: string };
 let stranger: { id: string };
 let creatorToken: string;
+/** 限流用例现场造的专用身份（它的限流桶是满的），清理时一起带走 */
+const extraUserIds: string[] = [];
 let projectId: string;
 let strangerProjectId: string;
 let publicItemId: string;
@@ -108,8 +110,8 @@ afterAll(async () => {
   const db = getDb();
   // 顺序有讲究：projects.owner_id → users 的外键**不是**级联（只有 sessions 与物品是），
   // 先删项目再删用户；物品的 creator_id 级联到用户，跟着用户一起走
-  await db.delete(projects).where(inArray(projects.ownerId, [creator.id, stranger.id]));
-  await db.delete(users).where(inArray(users.id, [creator.id, stranger.id]));
+  await db.delete(projects).where(inArray(projects.ownerId, [creator.id, stranger.id, ...extraUserIds]));
+  await db.delete(users).where(inArray(users.id, [creator.id, stranger.id, ...extraUserIds]));
 });
 
 describe('§127 市场列表（GET /api/marketplace，公开端点）', () => {
@@ -180,7 +182,7 @@ describe('§127 市场创建（POST /api/marketplace）', () => {
   });
 
   it('非 JSON 正文 → 400（修前 await req.json() 在 try 之外，直接把请求带崩成 500）', async () => {
-    const res = await createItem(new Request(createUrl, { method: 'POST', headers: authHeaders(true), body: '这不是 json' }));
+    const res = await createItem(new Request(createUrl, { method: 'POST', headers: authHeaders(creatorToken, true), body: '这不是 json' }));
     expect(res.status).toBe(400);
     expect((await res.json()).error).toBe('validation_failed');
   });
@@ -249,5 +251,30 @@ describe('§127 市场创建（POST /api/marketplace）', () => {
     expect(res.status).toBe(400);
     const body = (await res.json()) as { error: string };
     expect(body.error).toContain('Only project owner');
+  });
+
+  it('同一身份 10 分钟内第 21 次创建 → 429 rate_limited（guest 轮换 cookie 造行的口子堵上）', async () => {
+    // 限流桶按 user.id + IP 双键：本文件别的用例已经用掉 creator 的一部分额度，
+    // 所以这条用**专用新身份**——它的桶是满的：前 20 次必须放行，第 21 次必须 429。
+    // 没有限流时这一条是 201：guest 会话每次未知 token 都会新建 guest 用户，
+    // 等于"换 cookie 就能无限造行"，物品行与用户行一起涨
+    const db = getDb();
+    const stamp = Date.now();
+    const [spammer] = await db
+      .insert(users)
+      .values({ displayName: '市场-限流探针', email: `mktlist+spam+${stamp}@nexus.test`, role: 'creator' })
+      .returning({ id: users.id });
+    extraUserIds.push(spammer!.id);
+    const spammerToken = await identityFor(spammer!.id);
+
+    for (let i = 0; i < 20; i++) {
+      const res = await post({ itemType: 'component', title: `限流探针 ${i}` }, true, spammerToken);
+      expect(res.status, `第 ${i + 1} 次应当放行`).toBe(201);
+    }
+    const blocked = await post({ itemType: 'component', title: '限流探针 21' }, true, spammerToken);
+    expect(blocked.status).toBe(429);
+    const body = (await blocked.json()) as { error: string; retryAfterMs?: number };
+    expect(body.error).toBe('rate_limited');
+    expect(body.retryAfterMs).toBeGreaterThan(0);
   });
 });

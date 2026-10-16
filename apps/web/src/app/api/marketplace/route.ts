@@ -8,6 +8,7 @@ import {
 import { MARKETPLACE_ITEM_TYPES, MARKETPLACE_VISIBILITY } from '@/server/db/schema';
 import { scanTextForRedlines } from '@/server/domain/moderation';
 import { csrfOk } from '@/server/security/csrf';
+import { clientIp, getRateLimiter, rateKey } from '@/server/security/rateLimit';
 import { badRequest, jsonError } from '@/server/http';
 
 /**
@@ -89,6 +90,14 @@ export async function GET(req: Request): Promise<NextResponse> {
 export async function POST(req: Request): Promise<NextResponse> {
   if (!(await csrfOk(req))) return jsonError(403, 'csrf_failed', { message: 'CSRF 校验未通过' });
   const user = await requireUser();
+  // 限流：创建是任何登录身份（含 guest）都能走的公开写入口。guest 会话每次未知 token
+  // 都会新建一个 guest 用户，不限流就等于"换 cookie 就能无限造行"——物品行 + 用户行
+  // 一起涨。与 follow（30/分）/ 举报（10/小时）/ 草稿接受（20/10 分）同一口径。
+  // 额度用 `user.id` + IP 双键：同一身份多个出口共享一份，同一出口多个身份各自计数。
+  const rl = getRateLimiter().hit(rateKey('marketplace/create', clientIp(req), user.id), 20, 10 * 60_000);
+  if (!rl.allowed) {
+    return jsonError(429, 'rate_limited', { message: '上架太频繁了，稍后再试', retryAfterMs: rl.retryAfterMs });
+  }
   // 坏 JSON 也走 400：此前 `await req.json()` 在 try 之外，非 JSON 正文直接把请求带崩成 500
   const body = await req.json().catch(() => null);
   const parsed = CreateItemSchema.safeParse(body);
