@@ -12,6 +12,8 @@ import {
   tipsTotal,
   tipsTotalByAgent,
   tipCount,
+  tipPercentShare,
+  tipsByRecipient,
   subscriptionActiveText,
 } from './monetization';
 import type { Subscription, Tip } from './monetization';
@@ -215,3 +217,34 @@ describe('monetization — subscriptionActiveText', () => {
 
 // Branded type helper used only in tests.
 type PriceCentsBrand = number & { __brand: 'PriceCents' };
+
+describe('monetization — tipPercentShare', () => {
+  const tip: Tip = { recipientId: 'acct-a', amountCents: 300 as PriceCentsBrand, message: 'nice', anonymous: false };
+
+  it('returns floor percentage of total', () => {
+    expect(tipPercentShare(tip, 1000)).toBe(30); // 300/1000 = 30%
+  });
+
+  it('returns 0 for zero or negative total', () => {
+    expect(tipPercentShare(tip, 0)).toBe(0);
+    expect(tipPercentShare(tip, -100)).toBe(0);
+  });
+});
+
+describe('monetization — tipsByRecipient', () => {
+  const t1: Tip = { recipientId: 'acct-a', amountCents: 100 as PriceCentsBrand, message: 'a', anonymous: false };
+  const t2: Tip = { recipientId: 'acct-b', amountCents: 200 as PriceCentsBrand, message: 'b', anonymous: false };
+  const t3: Tip = { recipientId: 'acct-a', amountCents: 300 as PriceCentsBrand, message: 'c', anonymous: false };
+  const tips = [t1, t2, t3];
+
+  it('returns only matching recipient tips as a new array', () => {
+    const out = tipsByRecipient(tips, 'acct-a');
+    expect(out.map((t) => t.amountCents)).toEqual([100, 300]);
+    expect(out.length).toBe(2);
+    expect(tips.length).toBe(3); // input untouched
+  });
+
+  it('empty for no match', () => {
+    expect(tipsByRecipient(tips, 'acct-z')).toEqual([]);
+  });
+});

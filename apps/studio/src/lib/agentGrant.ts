@@ -102,3 +102,16 @@ export function grantsExpiringWithin(
 ): AgentGrant[] {
   return grants.filter((g) => isGrantExpiringSoon(g, now, thresholdDays));
 }
+
+/** 把授权条目按目标筛选，供客户端在项目页展示“该项目的授权”。不改原数组。 */
+export function grantsForTarget(
+  grants: ReadonlyArray<AgentGrant>,
+  targetId: string,
+): AgentGrant[] {
+  return grants.filter((g) => g.targetId === targetId);
+}
+
+/** 筛选出在 now 时刻当前有效的授权（未过期或永久），供客户端展示可用权限。不改原数组。 */
+export function activeGrants(grants: ReadonlyArray<AgentGrant>, now: number): AgentGrant[] {
+  return grants.filter((g) => isGrantActive(g, now));
+}

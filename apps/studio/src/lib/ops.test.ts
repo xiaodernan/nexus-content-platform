@@ -11,6 +11,8 @@ import {
   reportResolvedCount,
   reportStatsText,
   reportStatusText,
+  auditEntriesByAction,
+  reportsByReason,
 } from './ops';
 import type { AuditEntry, Report } from './ops';
 
@@ -182,5 +184,56 @@ describe('ops — auditEntriesByActor', () => {
 
   it('empty for empty list', () => {
     expect(auditEntriesByActor([])).toEqual({});
+  });
+});
+
+describe('ops — auditEntriesByAction', () => {
+  const entry: AuditEntry = {
+    id: 'e-1',
+    actorId: 'u-1',
+    action: 'publish',
+    targetId: 'art-1',
+    createdAt: 100,
+    assurance: 'unsigned-local',
+  };
+  const entries: AuditEntry[] = [
+    { ...entry, id: 'e-1', action: 'publish', createdAt: 100 },
+    { ...entry, id: 'e-2', action: 'like', createdAt: 200 },
+    { ...entry, id: 'e-3', action: 'publish', createdAt: 300 },
+  ];
+
+  it('filters by action and sorts desc by createdAt', () => {
+    const out = auditEntriesByAction(entries, 'publish');
+    expect(out.map((e) => e.id)).toEqual(['e-3', 'e-1']);
+    expect(entries.length).toBe(3);
+  });
+
+  it('empty for no match', () => {
+    expect(auditEntriesByAction(entries, 'tip')).toEqual([]);
+  });
+});
+
+describe('ops — reportsByReason', () => {
+  const report: Report = {
+    id: 'r-1',
+    reporterId: 'u-1',
+    targetId: 'art-1',
+    reason: 'spam',
+    detail: 'd',
+    status: 'open',
+    createdAt: 1700000000000,
+  };
+  const reports: Report[] = [
+    { ...report, id: 'r-1', reason: 'spam' },
+    { ...report, id: 'r-2', reason: 'harassment' },
+    { ...report, id: 'r-3', reason: 'spam' },
+  ];
+
+  it('groups reports by reason without mutating input', () => {
+    const byReason = reportsByReason(reports);
+    expect((byReason.spam ?? []).map((r) => r.id)).toEqual(['r-1', 'r-3']);
+    expect((byReason.harassment ?? []).map((r) => r.id)).toEqual(['r-2']);
+    expect((byReason.illegal ?? []).length).toBe(0);
+    expect(reports.length).toBe(3);
   });
 });

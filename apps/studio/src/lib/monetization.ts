@@ -110,3 +110,14 @@ export function subscriptionDaysLeftText(sub: Subscription | null, now: number):
   if (sub.expiresAt <= now) return 'Expired';
   return `${Math.ceil((sub.expiresAt - now) / (1000 * 60 * 60 * 24))} d left`;
 }
+
+/** 单条打赏占全部打赏总额的百分比（整数，0–100）。totalCents <= 0 时返回 0，避免除零。 */
+export function tipPercentShare(tip: Tip, totalCents: number): number {
+  if (!totalCents || totalCents <= 0) return 0;
+  return Math.floor((tip.amountCents / totalCents) * 100);
+}
+
+/** 筛选出给定受打赏方的全部打赏，返回新数组，不改原数组。 */
+export function tipsByRecipient(tips: ReadonlyArray<Tip>, recipientId: AccountId): Tip[] {
+  return tips.filter((t) => t.recipientId === recipientId);
+}

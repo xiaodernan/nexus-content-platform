@@ -146,3 +146,25 @@ export function auditEntriesByActor(entries: ReadonlyArray<AuditEntry>): Record<
   }
   return out;
 }
+
+/** 把审计条目按动作类型筛选，并按 createdAt 降序（新→旧）返回。不改原数组。 */
+export function auditEntriesByAction(
+  entries: ReadonlyArray<AuditEntry>,
+  action: AuditEntry['action'],
+): AuditEntry[] {
+  return entries
+    .filter((e) => e.action === action)
+    .sort((a, b) => b.createdAt - a.createdAt);
+}
+
+/** 把举报按原因分组，供客户端按原因分栏展示。不改原数组。 */
+export function reportsByReason(reports: ReadonlyArray<Report>): Record<Report['reason'], Report[]> {
+  const out: Record<Report['reason'], Report[]> = {
+    spam: [],
+    harassment: [],
+    illegal: [],
+    other: [],
+  };
+  for (const r of reports) out[r.reason].push(r);
+  return out;
+}

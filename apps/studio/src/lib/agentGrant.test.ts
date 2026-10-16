@@ -5,6 +5,8 @@ import {
   grantsByAgentId,
   grantsByScope,
   grantsExpiringWithin,
+  grantsForTarget,
+  activeGrants,
   grantScopeLabel,
   isGrantActive,
   isGrantExpiringSoon,
@@ -150,5 +152,39 @@ describe('agentGrant — grantsExpiringWithin', () => {
     const out = grantsExpiringWithin(grants, now, 7);
     expect(out.map((g) => g.id)).toEqual(['x-3']);
     expect(grants.length).toBe(4);
+  });
+});
+
+describe('agentGrant — grantsForTarget', () => {
+  const now = 1_700_000_000_000;
+  const grants: AgentGrant[] = [
+    { ...grant, id: 'g-1', targetId: 'pub-1' },
+    { ...grant, id: 'g-2', targetId: 'pub-2' },
+    { ...grant, id: 'g-3', targetId: 'pub-1', expiresAt: null },
+  ];
+
+  it('returns grants for the given targetId', () => {
+    const out = grantsForTarget(grants, 'pub-1');
+    expect(out.map((g) => g.id)).toEqual(['g-1', 'g-3']);
+    expect(grants.length).toBe(3);
+  });
+
+  it('empty for no match', () => {
+    expect(grantsForTarget(grants, 'pub-z')).toEqual([]);
+  });
+});
+
+describe('agentGrant — activeGrants', () => {
+  const now = 1_700_000_000_000;
+  const grants: AgentGrant[] = [
+    { ...grant, id: 'g-1', expiresAt: null }, // permanent
+    { ...grant, id: 'g-2', expiresAt: now - 1 }, // expired
+    { ...grant, id: 'g-3', expiresAt: now + 86_400_000 }, // active
+  ];
+
+  it('returns only active grants', () => {
+    const out = activeGrants(grants, now);
+    expect(out.map((g) => g.id)).toEqual(['g-1', 'g-3']);
+    expect(grants.length).toBe(3);
   });
 });
