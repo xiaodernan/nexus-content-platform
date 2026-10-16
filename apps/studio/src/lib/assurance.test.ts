@@ -5,6 +5,8 @@ import {
   KNOWN_ASSURANCES,
   renderOwnerLine,
   renderOwnerLineWithBadge,
+  assuranceLabel,
+  badgeTextFor,
 } from './assurance';
 
 describe('assurance — known values', () => {
@@ -70,5 +72,17 @@ describe('assurance — renderOwnerLineWithBadge', () => {
 
   it('returns null when there is no owner', () => {
     expect(renderOwnerLineWithBadge(null, escape)).toBeNull();
+  });
+});
+
+describe('assurance — assuranceLabel / badgeTextFor', () => {
+  it('assuranceLabel maps each assurance to a label', () => {
+    expect(assuranceLabel('unsigned-local')).toBe('未验证');
+    expect(assuranceLabel('verified')).toBe('已认证');
+  });
+
+  it('badgeTextFor returns badge only for verified', () => {
+    expect(badgeTextFor('verified')).toBe(' (已认证)');
+    expect(badgeTextFor('unsigned-local')).toBeNull();
   });
 });

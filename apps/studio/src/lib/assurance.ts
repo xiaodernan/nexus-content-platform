@@ -39,3 +39,20 @@ export function renderOwnerLineWithBadge(
   const badge = owner.assurance === 'verified' ? ' (verified)' : '';
   return `by ${escape(owner.handle)} · ${owner.assurance}${badge}`;
 }
+
+/** 把 assurance 值渲为人类可读的中文标签，供客户端徽章/悬浮提示复用。 */
+export function assuranceLabel(assurance: Assurance): string {
+  switch (assurance) {
+    case 'unsigned-local':
+      return '未验证';
+    case 'verified':
+      return '已认证';
+    default:
+      return assurance;
+  }
+}
+
+/** 把 assurance 渲为徽章文本：verified 时返回 '(已认证)'，否则返回 null（不渲徽章）。 */
+export function badgeTextFor(assurance: Assurance): string | null {
+  return assurance === 'verified' ? ' (已认证)' : null;
+}
