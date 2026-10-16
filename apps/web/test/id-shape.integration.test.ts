@@ -3,11 +3,15 @@ import { eq } from 'drizzle-orm';
 import { GET as getMemories } from '../src/app/api/projects/[projectId]/memories/route';
 import { POST as acceptDraft } from '../src/app/api/projects/[projectId]/agent/draft/route';
 import { POST as resolveModeration } from '../src/app/api/admin/moderation/[caseId]/route';
+import { POST as revokeToken } from '../src/app/api/account/api-tokens/[tokenId]/revoke/route';
+import { DELETE as removeAnnotation } from '../src/app/api/annotations/[annotationId]/route';
 import { CSRF_COOKIE, CSRF_HEADER } from '../src/server/security/csrf';
 import { SESSION_COOKIE } from '../src/server/domain/session';
 import { isUuid } from '../src/server/domain/ids';
 import { createProject, projectBelongsTo } from '../src/server/domain/projects';
 import { plannedTask } from '../src/server/domain/agent-tasks';
+import { revokeApiToken } from '../src/server/domain/api-tokens';
+import { deleteAnnotation } from '../src/server/domain/annotations';
 import { resolveCase } from '../src/server/domain/moderation';
 import { getDb } from '../src/server/db/client';
 import { projects, sessions, users } from '../src/server/db/schema';
@@ -17,10 +21,10 @@ import { projects, sessions, users } from '../src/server/db/schema';
  * 22P02（invalid input syntax for type uuid）在界面上变成 500。
  *
  * 从路由进来的 id 大多是路径参数（[projectId]、[caseId]…），Next 只保证它们是字符串。
- * 横向审计发现七个家族的域助手曾经是裸 eq(id, …)：projects / moderation / memories /
+ * 横向审计发现九个家族的域助手曾经是裸 eq(id, …)：projects / moderation / memories /
  * branches / characters / snapshots（688a515 那片）+ agent-tasks 的 plannedTask
- * （/agent/draft 入口，本片补上）——`/api/projects/not-a-uuid/memories` 这类请求
- * 此前整条 500。资产域（assets.ts）与 agent-tasks.ts 原先各自抄了一份正则
+ * （/agent/draft 入口）+ api-tokens 的吊销与 annotations 的删除（本片收尾）——
+ * 这类请求此前整条 500。资产域（assets.ts）与 agent-tasks.ts 原先各自抄了一份正则
  * （UUID_SHAPE / UUID_LIKE），现在统一到 `domain/ids.ts` 的 isUuid，
  * 现在统一到 `domain/ids.ts` 的 isUuid，那句"不存在"的说法只剩一种：
  * 与 v1 项目详情同一口径（"不在你名下或已被删除——两者都给同一个答案"）。
@@ -220,5 +224,50 @@ describe('域层：plannedTask（/agent/draft 的入口，688a515 没覆盖到�
       { params: Promise.resolve({ projectId: realProjectId }) },
     );
     expect(res.status).toBe(404);
+  });
+});
+
+/**
+ * 收尾两个家族：api-tokens 的吊销与 annotations 的删除。两个路由都把 id 当路径参数
+ * 原样传进域函数——`/api/account/api-tokens/not-a-uuid/revoke` 与
+ * `DELETE /api/annotations/not-a-uuid` 此前整条 500。至此 id 形状校验的全家：
+ * projects / moderation / memories / branches / characters / snapshots /
+ * agent-tasks / api-tokens / annotations 九个家族，加上 assets.ts 与
+ * agent-tasks.ts 两份本地正则统一到 domain/ids.ts。
+ */
+describe('域层与路由层：api-tokens 吊销与 annotations 删除（id 形状审计的最后两个入口）', () => {
+  it('revokeApiToken 对非 UUID → not-found，不抛', async () => {
+    await expect(revokeApiToken('not-a-uuid', creator.id)).resolves.toMatchObject({ ok: false, reason: 'not-found' });
+  });
+
+  it('deleteAnnotation 对非 UUID → false，不抛', async () => {
+    await expect(deleteAnnotation(creator.id, 'not-a-uuid')).resolves.toBe(false);
+  });
+
+  it('POST /api/account/api-tokens/not-a-uuid/revoke → 404（修复前 eq(apiTokens.id, …) 撞 22P02 变 500）', async () => {
+    const res = await revokeToken(
+      new Request('http://test.local/api/account/api-tokens/not-a-uuid/revoke', {
+        method: 'POST',
+        headers: asUser(creatorToken, true),
+      }),
+      { params: Promise.resolve({ tokenId: 'not-a-uuid' }) },
+    );
+    expect(res.status).toBe(404);
+  });
+
+  it('DELETE /api/annotations/not-a-uuid → 404（修复前 eq(comments.id, …) 撞 22P02 变 500）', async () => {
+    const res = await removeAnnotation(
+      new Request('http://test.local/api/annotations/not-a-uuid', {
+        method: 'DELETE',
+        headers: asUser(creatorToken, true),
+      }),
+      { params: Promise.resolve({ annotationId: 'not-a-uuid' }) },
+    );
+    expect(res.status).toBe(404);
+  });
+
+  it('正对照：合法 UUID 但不存在 → 同样的 not-found / false（形状合法的那条路照旧走到数据库再答"没有"）', async () => {
+    await expect(revokeApiToken('00000000-0000-4000-8000-000000000009', creator.id)).resolves.toMatchObject({ ok: false, reason: 'not-found' });
+    await expect(deleteAnnotation(creator.id, '00000000-0000-4000-8000-000000000009')).resolves.toBe(false);
   });
 });

@@ -20,6 +20,7 @@ import { loadDocument, lockProjectWrites, projectBelongsTo, writeProjectDocument
 import { createSnapshot } from './snapshots';
 import { currentBranchId } from './branches';
 import { recordAudit } from './audit';
+import { isUuid } from './ids';
 import { syncDesignKnowledge } from './knowledge';
 import { clientIp, getRateLimiter, rateKey } from '../security/rateLimit';
 
@@ -156,6 +157,9 @@ export type RevokeResult = { ok: true; record: ApiTokenRecord; note?: string } |
 
 /** 吊销。幂等：第二次同样返回"已吊销"，但带一句为什么没有变化——界面上那行本来就是吊销状态 */
 export async function revokeApiToken(tokenId: string, userId: string): Promise<RevokeResult> {
+  // 形状不对的 id 按"没有这一枚"处理：eq(apiTokens.id, …) 会撞 22P02 变 500（domain/ids.ts）。
+  // 路由侧（/api/account/api-tokens/[tokenId]/revoke）对 not-found 本来就有 404 分支
+  if (!isUuid(tokenId)) return { ok: false, reason: 'not-found' };
   const db = getDb();
   const [row] = await db.select().from(apiTokens).where(and(eq(apiTokens.id, tokenId), eq(apiTokens.userId, userId))).limit(1);
   if (!row) return { ok: false, reason: 'not-found' };

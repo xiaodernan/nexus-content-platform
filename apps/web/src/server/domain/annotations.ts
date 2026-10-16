@@ -3,6 +3,7 @@ import type { DesignDocument } from '@nexus/design-model';
 import { getDb } from '../db/client';
 import { comments, users } from '../db/schema';
 import { loadDocument, projectBelongsTo } from './projects';
+import { isUuid } from './ids';
 
 /**
  * §111 画布批注：点击元素 → 写一条评论，Agent 拿得到它挂在哪个节点上。
@@ -116,6 +117,9 @@ export async function addAnnotation(actorId: string, projectId: string, nodeId: 
 }
 
 export async function deleteAnnotation(actorId: string, annotationId: string): Promise<boolean> {
+  // 形状不对的 id 按"没有这条批注"处理：eq(comments.id, …) 会撞 22P02 变 500（domain/ids.ts）。
+  // 路由侧（DELETE /api/annotations/[annotationId]）对 false 本来就有 404 分支
+  if (!isUuid(annotationId)) return false;
   const db = getDb();
   const [row] = await db.select({ projectId: comments.projectId }).from(comments).where(eq(comments.id, annotationId)).limit(1);
   if (!row) return false;
