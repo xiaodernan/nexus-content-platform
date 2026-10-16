@@ -87,6 +87,18 @@ describe('explore — the gallery of published work (M7 v241)', () => {
     expect(html).toContain('v2 · 2026-10-01T00:00:00Z');
   });
 
+  it('makes `remixed from <source>` a link to the source artifact page, id encoded', () => {
+    const html = renderExploreHtml([item({ remixedFrom: 'pub/a b' })], { count: 1, limit: 24 });
+    expect(html).toContain('href="/p/pub%2Fa%20b"');
+    expect(html).toContain('remixed from pub/a b');
+  });
+
+  it('escapes caller-controlled remixed-from text', () => {
+    const html = renderExploreHtml([item({ remixedFrom: '<script>z</script>' })], { count: 1, limit: 24 });
+    expect(html).toContain('remixed from &lt;script&gt;z&lt;/script&gt;');
+    expect(html).not.toContain('<script>');
+  });
+
   it('escapes caller-controlled lineage source', () => {
     const html = renderExploreHtml([item({ remixedFrom: '<script>y</script>' })], { count: 1, limit: 24 });
     expect(html).toContain('remixed from &lt;script&gt;y&lt;/script&gt;');

@@ -70,7 +70,7 @@ export function renderExploreHtml(items: ExploreItem[], opts: { count: number; l
       const href = `/p/${encodeURIComponent(it.projectId)}`;
       const remix = `/?remix=${encodeURIComponent(it.projectId)}`;
       return `<li class="card" data-explore-card="${escapeHtml(it.projectId)}">${thumb}
-<div class="meta"><strong>${escapeHtml(it.title)}</strong>${it.owner ? `<span class="by">by ${escapeHtml(it.owner.handle)} · ${escapeHtml(it.owner.assurance)}</span>` : ''}${it.remixedFrom ? `<span class="remixed">remixed from ${escapeHtml(it.remixedFrom)}</span>` : ''}<span>v${it.version} · ${escapeHtml(it.publishedAt)}</span></div>
+<div class="meta"><strong>${escapeHtml(it.title)}</strong>${it.owner ? `<span class="by">by ${escapeHtml(it.owner.handle)} · ${escapeHtml(it.owner.assurance)}</span>` : ''}${it.remixedFrom ? `<a class="remixed" href="/p/${encodeURIComponent(it.remixedFrom)}">remixed from ${escapeHtml(it.remixedFrom)}</a>` : ''}<span>v${it.version} · ${escapeHtml(it.publishedAt)}</span></div>
 <div class="acts"><a href="${escapeHtml(href)}">open</a><a class="remix" href="${escapeHtml(remix)}">remix</a></div>
 </li>`;
     })
