@@ -3,6 +3,7 @@ import { getDb } from '../db/client';
 import { marketplaceItems, assets, projects, snapshots, users, marketplacePurchases, creditLedger, marketplaceSplits, marketplaceAuditLog, marketplaceReports } from '../db/schema';
 import type { MarketplaceItemType, MarketplaceVisibility } from '../db/schema';
 import { monthPeriod } from './credits';
+import { isUuid } from './ids';
 
 /**
  * §127-128 Marketplace 系统：组件 / 模板 / 设计系统 / 资产 / 世界 / 游戏 / AI 角色的交易与分享。
@@ -213,6 +214,8 @@ export async function createMarketplaceItem(input: CreateMarketplaceItemInput) {
 }
 
 export async function updateMarketplaceItem(itemId: string, userId: string, input: UpdateMarketplaceItemInput) {
+  // 形状不对的 id 按"没有这个物品"处理：eq(marketplaceItems.id, …) 会撞 22P02 变 500（domain/ids.ts）
+  if (!isUuid(itemId)) throw new Error('Item not found or deleted');
   const db = getDb();
 
   // 先检查所有权
@@ -261,6 +264,8 @@ export async function updateMarketplaceItem(itemId: string, userId: string, inpu
 }
 
 export async function deleteMarketplaceItem(itemId: string, userId: string) {
+  // 形状不对的 id 按"没有这个物品"处理：eq(marketplaceItems.id, …) 会撞 22P02 变 500（domain/ids.ts）
+  if (!isUuid(itemId)) throw new Error('Item not found or deleted');
   const db = getDb();
 
   // 先检查所有权

@@ -1,10 +1,11 @@
 import { NextResponse } from 'next/server';
+import { z } from 'zod';
 import { requireUser, currentUserOrNull } from '@/server/domain/session';
 import { getMarketplaceItem, updateMarketplaceItem, deleteMarketplaceItem } from '@/server/domain/marketplace';
 import { MARKETPLACE_VISIBILITY } from '@/server/db/schema';
 import { scanTextForRedlines } from '@/server/domain/moderation';
 import { csrfOk } from '@/server/security/csrf';
-import { jsonError } from '@/server/http';
+import { badRequest, jsonError } from '@/server/http';
 
 /**
  * §127-128 Marketplace 单个物品的查询、更新与删除。
@@ -37,6 +38,22 @@ export async function GET(
   return NextResponse.json({ item }, { headers: { 'cache-control': 'no-store' } });
 }
 
+/**
+ * PATCH 的正文：与创建入口同一份口径（eb068ec 那片）——正文过 zod，
+ * priceCredits 非负+上限、tags 是字符串数组、previewAssetId 是 UUID、可见性在名单内。
+ * 此前这里是裸 cast（`as { ... }`）：`priceCredits: -100` 能直写负价（与 POST 同一个洞）、
+ * tags 非数组撞 TEXT[]、previewAssetId 非 UUID 在域层的 eq() 撞 22P02 变 500，
+ * 而 Postgres 的报错原文还会被 catch 成 400 回给客户端（§26）。
+ */
+const UpdateItemSchema = z.object({
+  title: z.string().min(1).max(200).optional(),
+  description: z.string().max(5000).optional(),
+  tags: z.array(z.string().max(50)).max(20).optional(),
+  previewAssetId: z.string().uuid().optional(),
+  priceCredits: z.number().int().nonnegative().max(1_000_000).optional(),
+  visibility: z.enum(MARKETPLACE_VISIBILITY).optional(),
+});
+
 export async function PATCH(
   req: Request,
   { params }: { params: Promise<{ id: string }> },
@@ -44,21 +61,14 @@ export async function PATCH(
   if (!(await csrfOk(req))) return jsonError(403, 'csrf_failed', { message: 'CSRF 校验未通过' });
   const user = await requireUser();
   const { id } = await params;
-  const body = (await req.json()) as {
-    title?: string;
-    description?: string;
-    tags?: string[];
-    previewAssetId?: string;
-    priceCredits?: number;
-    visibility?: 'public' | 'free' | 'private';
-  };
-
-  if (body.visibility && !MARKETPLACE_VISIBILITY.includes(body.visibility)) {
-    return NextResponse.json({ error: `Invalid visibility: ${body.visibility}` }, { status: 400 });
+  const body = await req.json().catch(() => null);
+  const parsed = UpdateItemSchema.safeParse(body);
+  if (!parsed.success) {
+    return badRequest(parsed.error.issues.map((issue) => `${issue.path.join('.') || 'body'}: ${issue.message}`));
   }
 
   // 内容安全：如果更新了标题/描述/标签，过发布机检同一份红线词表
-  const textsToCheck = [body.title ?? '', body.description ?? '', ...(body.tags ?? [])].join(' ');
+  const textsToCheck = [parsed.data.title ?? '', parsed.data.description ?? '', ...(parsed.data.tags ?? [])].join(' ');
 
   if (textsToCheck.trim()) {
     const redlines = scanTextForRedlines(textsToCheck);
@@ -68,14 +78,7 @@ export async function PATCH(
   }
 
   try {
-    const updated = await updateMarketplaceItem(id, user.id, {
-      title: body.title,
-      description: body.description,
-      tags: body.tags,
-      previewAssetId: body.previewAssetId,
-      priceCredits: body.priceCredits,
-      visibility: body.visibility,
-    });
+    const updated = await updateMarketplaceItem(id, user.id, parsed.data);
 
     return NextResponse.json({ item: updated });
   } catch (error) {
