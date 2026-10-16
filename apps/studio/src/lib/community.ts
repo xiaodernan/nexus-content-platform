@@ -163,3 +163,30 @@ export function formatSince(createdAt: number, now: number): string {
   const days = Math.floor(hours / 24);
   return `${days} d ago`;
 }
+
+/** Stage C Like：不可变集合操作。点赞/取消点赞返回一个新集合，不改原集合（host 自己决定何时写回）。 */
+export function toggleLike(likes: ReadonlySet<AccountId>, accountId: AccountId): Set<AccountId> {
+  const next = new Set(likes);
+  if (next.has(accountId)) next.delete(accountId);
+  else next.add(accountId);
+  return next;
+}
+
+/** Stage C Like：给定账号是否已点赞。 */
+export function isLiked(likes: ReadonlySet<AccountId>, accountId: AccountId): boolean {
+  return likes.has(accountId);
+}
+
+/** Stage C Follow：不可变集合操作。关注/取消关注返回一个新集合，不改原集合（host 自己决定何时写回）。 */
+export function toggleFollow(following: ReadonlySet<AccountId>, targetId: AccountId): Set<AccountId> {
+  const next = new Set(following);
+  if (next.has(targetId)) next.delete(targetId);
+  else next.add(targetId);
+  return next;
+}
+
+/** Stage C Follow：查询某账号正在关注的集合（接口预留：ADR 0018 落地后由服务端/持久层提供真实实现，
+ *  这里只做纯内存占位，供客户端先写 UI 与测试）。 */
+export function followingOf(viewerId: AccountId): Set<AccountId> {
+  return new Set();
+}

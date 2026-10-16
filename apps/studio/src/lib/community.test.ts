@@ -5,6 +5,7 @@ import type {
   Like,
   Profile,
 } from './community';
+import type { AccountId } from './community';
 import {
   buildFollowersIndex,
   buildFollowingIndex,
@@ -15,9 +16,12 @@ import {
   escapeHtml,
   followButtonText,
   formatSince,
+  isLiked,
   likeCountFor,
   likeCountText,
   isFollowing,
+  toggleFollow,
+  toggleLike,
 } from './community';
 
 const now = 1_700_000_000_000;
@@ -212,5 +216,46 @@ describe('community — display: formatSince', () => {
 
   it('future clock clamps to just now', () => {
     expect(formatSince(now + 1_000_000, now)).toBe('just now');
+  });
+});
+
+describe('community — like: toggleLike / isLiked', () => {
+  const likes = new Set<AccountId>(['acct-a', 'acct-b']);
+
+  it('isLiked reports membership', () => {
+    expect(isLiked(likes, 'acct-a')).toBe(true);
+    expect(isLiked(likes, 'acct-z')).toBe(false);
+  });
+
+  it('toggleLike adds a missing like and does not mutate the input', () => {
+    const next = toggleLike(likes, 'acct-z');
+    expect(isLiked(next, 'acct-z')).toBe(true);
+    expect(isLiked(likes, 'acct-z')).toBe(false); // input untouched
+    expect(next.size).toBe(3);
+    expect(likes.size).toBe(2);
+  });
+
+  it('toggleLike removes an existing like', () => {
+    const next = toggleLike(likes, 'acct-a');
+    expect(isLiked(next, 'acct-a')).toBe(false);
+    expect(next.size).toBe(1);
+    expect(isLiked(likes, 'acct-a')).toBe(true); // input untouched
+  });
+});
+
+describe('community — follow: toggleFollow', () => {
+  const following = new Set<AccountId>(['acct-target']);
+
+  it('toggleFollow adds a missing follow and does not mutate the input', () => {
+    const next = toggleFollow(following, 'acct-new');
+    expect(next.has('acct-new')).toBe(true);
+    expect(following.has('acct-new')).toBe(false); // input untouched
+    expect(next.size).toBe(2);
+  });
+
+  it('toggleFollow removes an existing follow', () => {
+    const next = toggleFollow(following, 'acct-target');
+    expect(next.has('acct-target')).toBe(false);
+    expect(next.size).toBe(0);
   });
 });
