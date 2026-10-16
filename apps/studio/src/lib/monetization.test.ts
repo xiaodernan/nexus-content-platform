@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { AccountId } from './community';
 import {
+  currencySymbol,
   isFreePrice,
   isSubscribed,
   priceText,
@@ -151,6 +152,13 @@ describe('monetization — isFreePrice', () => {
 
   it('false when positive', () => {
     expect(isFreePrice(1500 as PriceCentsBrand)).toBe(false);
+  });
+});
+
+describe('monetization — currencySymbol', () => {
+  it('USD -> $, CNY -> ¥', () => {
+    expect(currencySymbol('USD')).toBe('$');
+    expect(currencySymbol('CNY')).toBe('¥');
   });
 });
 

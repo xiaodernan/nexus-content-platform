@@ -85,3 +85,11 @@ export function isGrantExpiringSoon(
   const msLeft = grant.expiresAt - now;
   return msLeft > 0 && msLeft <= thresholdDays * 24 * 60 * 60 * 1000;
 }
+
+/** 授权还剩多少天（整数，向下取整）；永久授权返回 null；已过期返回 0。 */
+export function grantRemainingDays(grant: AgentGrant, now: number): number | null {
+  if (grant.expiresAt === null) return null;
+  const msLeft = grant.expiresAt - now;
+  if (msLeft <= 0) return 0;
+  return Math.floor(msLeft / (24 * 60 * 60 * 1000));
+}

@@ -4,6 +4,7 @@ import {
   auditEntriesForTarget,
   auditEntriesSince,
   auditEntryLabel,
+  isAuditEntryOwnedBy,
   isReportClosed,
   reportOpenCount,
   reportResolvedCount,
@@ -143,5 +144,22 @@ describe('ops — auditEntryLabel', () => {
     expect(auditEntryLabel('like')).toBe('点赞');
     expect(auditEntryLabel('comment')).toBe('评论');
     expect(auditEntryLabel('tip')).toBe('打赏');
+  });
+});
+
+describe('ops — isAuditEntryOwnedBy', () => {
+  const entry: AuditEntry = {
+    id: 'e-1',
+    actorId: 'user-1',
+    action: 'publish',
+    targetId: 'art-1',
+    createdAt: 1700000000000,
+    assurance: 'unsigned-local',
+  };
+
+  it('true when actor matches, false when null or mismatch', () => {
+    expect(isAuditEntryOwnedBy(entry, 'user-1')).toBe(true);
+    expect(isAuditEntryOwnedBy(entry, 'user-2')).toBe(false);
+    expect(isAuditEntryOwnedBy(entry, null)).toBe(false);
   });
 });

@@ -126,3 +126,9 @@ export function auditEntryLabel(action: AuditEntry['action']): string {
       return action;
   }
 }
+
+/** 判断审计条目是否由给定账号产生，供客户端决定是否显示“撤销/申诉”入口。 */
+export function isAuditEntryOwnedBy(entry: AuditEntry, actorId: AccountId | null): boolean {
+  if (!actorId) return false;
+  return entry.actorId === actorId;
+}

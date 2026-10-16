@@ -60,6 +60,11 @@ export function isFreePrice(priceCents: PriceCents): boolean {
   return !priceCents || priceCents <= 0;
 }
 
+/** 货币的展示符号。供客户端价格行复用。 */
+export function currencySymbol(currency: Currency): string {
+  return currency === 'USD' ? '$' : '¥';
+}
+
 /** 判断一条 Subscription 对当前 viewer 是否有效（active 且已订阅），纯判断，不改状态。 */
 export function isSubscribed(sub: Subscription | null, viewerId: AccountId | null): boolean {
   if (!viewerId || !sub) return false;

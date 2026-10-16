@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   agentGrantExpiryText,
+  grantRemainingDays,
   grantsByAgentId,
   grantsByScope,
   grantScopeLabel,
@@ -114,5 +115,23 @@ describe('agentGrant — isGrantExpiringSoon', () => {
   it('false when beyond threshold', () => {
     const far: AgentGrant = { ...grant, expiresAt: now + 10 * 24 * 60 * 60 * 1000 };
     expect(isGrantExpiringSoon(far, now)).toBe(false);
+  });
+});
+
+describe('agentGrant — grantRemainingDays', () => {
+  const now = 1_700_000_000_000;
+
+  it('null when permanent', () => {
+    expect(grantRemainingDays({ ...grant, expiresAt: null }, now)).toBe(null);
+  });
+
+  it('0 when already expired', () => {
+    expect(grantRemainingDays({ ...grant, expiresAt: now - 1 }, now)).toBe(0);
+    expect(grantRemainingDays({ ...grant, expiresAt: now }, now)).toBe(0);
+  });
+
+  it('whole days when future', () => {
+    expect(grantRemainingDays({ ...grant, expiresAt: now + 2 * 24 * 60 * 60 * 1000 }, now)).toBe(2);
+    expect(grantRemainingDays({ ...grant, expiresAt: now + 2 * 24 * 60 * 60 * 1000 + 5 * 60 * 60 * 1000 }, now)).toBe(2);
   });
 });
