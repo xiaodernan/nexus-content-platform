@@ -16,6 +16,7 @@ import {
   escapeHtml,
   followButtonText,
   formatSince,
+  followingOf,
   isLiked,
   likeCountFor,
   likeCountText,
@@ -257,5 +258,14 @@ describe('community — follow: toggleFollow', () => {
     const next = toggleFollow(following, 'acct-target');
     expect(next.has('acct-target')).toBe(false);
     expect(next.size).toBe(0);
+  });
+});
+
+describe('community — followingOf', () => {
+  it('returns an empty set (in-memory placeholder; server-side later)', () => {
+    const result = followingOf('acct-ada' as AccountId);
+    expect(result).toBeInstanceOf(Set);
+    expect(result.size).toBe(0);
+    expect(result.has('acct-bob')).toBe(false);
   });
 });
