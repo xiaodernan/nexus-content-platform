@@ -3,6 +3,7 @@ import type { AccountId } from './community';
 import {
   isSubscribed,
   priceText,
+  subscriptionDaysLeftText,
   subscriptionStatusText,
   tipText,
   tipsTotal,
@@ -16,6 +17,7 @@ const sub: Subscription = {
   currency: 'CNY',
   active: true,
   subscribedAt: 1_700_000_000_000,
+  expiresAt: null,
 };
 
 const tip: Tip = {
@@ -96,6 +98,25 @@ describe('monetization — subscriptionStatusText', () => {
     expect(subscriptionStatusText(sub)).toBe('Active');
     expect(subscriptionStatusText({ ...sub, active: false })).toBe('Inactive');
     expect(subscriptionStatusText(null)).toBe('Never subscribed');
+  });
+});
+
+describe('monetization — subscriptionDaysLeftText', () => {
+  const now = 1_700_000_000_000;
+
+  it('N/A when null sub or null expiresAt', () => {
+    expect(subscriptionDaysLeftText(null, now)).toBe('N/A');
+    expect(subscriptionDaysLeftText(sub, now)).toBe('N/A');
+  });
+
+  it('Expired when past expiresAt', () => {
+    const expired: Subscription = { ...sub, expiresAt: now - 1 };
+    expect(subscriptionDaysLeftText(expired, now)).toBe('Expired');
+  });
+
+  it('N d left when not expired', () => {
+    const active: Subscription = { ...sub, expiresAt: now + 1_700_000_000 };
+    expect(subscriptionDaysLeftText(active, now)).toBe('20 d left');
   });
 });
 

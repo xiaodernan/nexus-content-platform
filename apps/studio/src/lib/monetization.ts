@@ -15,7 +15,7 @@ export type PriceCents = number & { __brand: 'PriceCents' };
 
 export type Currency = 'CNY' | 'USD' | 'JPY';
 
-/** 订阅：active 与 subscribedAt 由服务端下发，客户端只读、只展示。 */
+/** 订阅：active 与 subscribedAt 由服务端下发，客户端只读、只展示。expiresAt 为 null 表示不过期。 */
 export interface Subscription {
   creatorId: AccountId;
   planId: string;
@@ -23,6 +23,7 @@ export interface Subscription {
   currency: Currency;
   active: boolean;
   subscribedAt: number | null;
+  expiresAt: number | null;
 }
 
 /** 打赏：message 由发送者填写，客户端展示前必须 escape；anonymous 决定是否显示发送方 handle。 */
@@ -64,4 +65,11 @@ export function subscriptionStatusText(sub: Subscription | null): string {
 /** 打赏列表的总金额（分），用于展示“累计打赏”。 */
 export function tipsTotal(tips: ReadonlyArray<Tip>): PriceCents {
   return tips.reduce((sum, t) => sum + t.amountCents, 0) as unknown as PriceCents;
+}
+
+/** 订阅剩余天数展示文本。expiresAt 为 null → "N/A"；已过期 → "Expired"；否则 "N d left"。 */
+export function subscriptionDaysLeftText(sub: Subscription | null, now: number): string {
+  if (!sub || sub.expiresAt === null) return 'N/A';
+  if (sub.expiresAt <= now) return 'Expired';
+  return `${Math.ceil((sub.expiresAt - now) / (1000 * 60 * 60 * 24))} d left`;
 }

@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   agentGrantExpiryText,
+  grantsByScope,
   grantScopeLabel,
   isGrantActive,
 } from './agentGrant';
@@ -54,5 +55,22 @@ describe('agentGrant — grantScopeLabel', () => {
     expect(grantScopeLabel('publish')).toBe('发布权限');
     expect(grantScopeLabel('remix')).toBe('混改权限');
     expect(grantScopeLabel('read')).toBe('读取权限');
+  });
+});
+
+describe('agentGrant — grantsByScope', () => {
+  const grants: AgentGrant[] = [
+    { ...grant, id: 'g-1', scope: 'publish' },
+    { ...grant, id: 'g-2', scope: 'read' },
+    { ...grant, id: 'g-3', scope: 'publish' },
+    { ...grant, id: 'g-4', scope: 'remix' },
+  ];
+
+  it('groups grants by scope without mutating input', () => {
+    const byScope = grantsByScope(grants);
+    expect(byScope.publish.map((g) => g.id)).toEqual(['g-1', 'g-3']);
+    expect(byScope.read.map((g) => g.id)).toEqual(['g-2']);
+    expect(byScope.remix.map((g) => g.id)).toEqual(['g-4']);
+    expect(grants.length).toBe(4);
   });
 });

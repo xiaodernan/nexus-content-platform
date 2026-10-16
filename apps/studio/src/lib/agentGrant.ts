@@ -47,3 +47,16 @@ export function grantScopeLabel(scope: AgentGrant['scope']): string {
       return scope;
   }
 }
+
+/** 把授权条目按 scope 分组，供客户端按权限分栏展示。不改原数组。 */
+export function grantsByScope(
+  grants: ReadonlyArray<AgentGrant>,
+): Record<AgentGrant['scope'], AgentGrant[]> {
+  const out: Record<AgentGrant['scope'], AgentGrant[]> = {
+    publish: [],
+    remix: [],
+    read: [],
+  };
+  for (const g of grants) out[g.scope].push(g);
+  return out;
+}

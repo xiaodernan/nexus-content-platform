@@ -4,6 +4,7 @@ import {
   auditEntriesForTarget,
   auditEntriesSince,
   isReportClosed,
+  reportStatsText,
   reportStatusText,
 } from './ops';
 import type { AuditEntry, Report } from './ops';
@@ -92,5 +93,21 @@ describe('ops — auditEntriesSince', () => {
   it('all when since is 0', () => {
     const result = auditEntriesSince(entries, 0);
     expect(result.map((e) => e.id)).toEqual(['b-3', 'b-2', 'b-1']);
+  });
+});
+
+describe('ops — reportStatsText', () => {
+  it('summarizes statuses in open, reviewed, resolved, rejected order', () => {
+    const reports: Report[] = [
+      { ...report, id: 'r-1', status: 'open' },
+      { ...report, id: 'r-2', status: 'resolved' },
+      { ...report, id: 'r-3', status: 'open' },
+      { ...report, id: 'r-4', status: 'rejected' },
+    ];
+    expect(reportStatsText(reports)).toBe('open: 2, resolved: 1, rejected: 1');
+  });
+
+  it('No reports for empty list', () => {
+    expect(reportStatsText([])).toBe('No reports');
   });
 });

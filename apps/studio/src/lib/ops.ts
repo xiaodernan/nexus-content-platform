@@ -79,3 +79,18 @@ export function auditEntriesSince(
     .filter((e) => e.createdAt >= since)
     .sort((a, b) => b.createdAt - a.createdAt);
 }
+
+/** 按状态统计举报，例如 "Open: 2, Resolved: 1, Rejected: 1"，供客户端摘要栏展示。 */
+export function reportStatsText(reports: ReadonlyArray<Report>): string {
+  const counts: Record<Report['status'], number> = {
+    open: 0,
+    reviewed: 0,
+    resolved: 0,
+    rejected: 0,
+  };
+  for (const r of reports) counts[r.status] += 1;
+  const parts = Object.entries(counts)
+    .filter(([, c]) => c > 0)
+    .map(([s, c]) => `${s}: ${c}`);
+  return parts.length ? parts.join(', ') : 'No reports';
+}
