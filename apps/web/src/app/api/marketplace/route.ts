@@ -1,44 +1,86 @@
 import { NextResponse } from 'next/server';
+import { z } from 'zod';
 import { requireUser } from '@/server/domain/session';
 import {
   listMarketplaceItems,
   createMarketplaceItem,
-  type CreateMarketplaceItemInput,
 } from '@/server/domain/marketplace';
-import { MARKETPLACE_ITEM_TYPES, MARKETPLACE_VISIBILITY, type MarketplaceItemType } from '@/server/db/schema';
+import { MARKETPLACE_ITEM_TYPES, MARKETPLACE_VISIBILITY } from '@/server/db/schema';
 import { scanTextForRedlines } from '@/server/domain/moderation';
 import { csrfOk } from '@/server/security/csrf';
-import { jsonError } from '@/server/http';
+import { badRequest, jsonError } from '@/server/http';
 
 /**
  * §127-128 Marketplace 列表与创建。
  *
  * GET：列出公开物品，支持按类型/价格/创作者过滤与搜索。
  * POST：创建新物品（需要登录 + CSRF 门），标题/描述/标签过发布机检同一份红线词表。
+ *
+ * ## 2026-10-16 横向审计：两个入口的参数与正文此前都是"取到就塞进 SQL"
+ *
+ * GET 是**公开端点**（没有门）：`?limit=abc` 被 parseInt 成 NaN 后 `.limit(NaN)`、
+ * `?minPrice=abc` 成 NaN 后进 `gte()`、`?creatorId=not-a-uuid` 直进 `eq()`——
+ * Postgres 报 invalid input / 22P02，任何匿名访客一行查询参数就能把列表打成 500。
+ * POST 的正文只校验了 itemType/title 的存在性：`priceCredits: -100` 能建出负价商品
+ * （买家白拿、创作者账被 settle 的负分成抽干），UUID 字段与 tags 原样进库时
+ * 22P02 / TEXT[] 错误被 catch 成 400，还把 Postgres 的报错原文回给了客户端。
+ *
+ * 修法与 §123 审计/举报入口同一口径：全部参数与正文过 zod，名单外/非整数/非 UUID
+ * 一律 400（`validation_failed`），坏值永远到不了数据库；priceCredits 补上非负与上限。
+ * 名字与枚举从 schema 常量派生（`z.enum(MARKETPLACE_ITEM_TYPES)`），不另抄一份名单。
  */
+
+/** GET 列表查询：itemType/visibility 名单来自 schema 常量，数字是非负整数，id 是 UUID */
+const ListQuerySchema = z.object({
+  itemType: z.enum(MARKETPLACE_ITEM_TYPES).optional(),
+  minPrice: z.coerce.number().int().nonnegative().optional(),
+  maxPrice: z.coerce.number().int().nonnegative().optional(),
+  creatorId: z.string().uuid().optional(),
+  search: z.string().max(200).optional(),
+  limit: z.coerce.number().int().nonnegative().optional(),
+  offset: z.coerce.number().int().nonnegative().optional(),
+});
+
+/**
+ * POST 创建正文。`priceCredits` 必须有下限也有上限：
+ * 负数价格让 `purchaseMarketplaceItem` 跳过扣点（`pricePaid > 0` 才写流水），
+ * 买家白拿商品，而 `settlePurchase` 仍按 `floor(price * 0.7)` 给创作者记一条**负**分成——
+ * 一次购买两头都错。上限挡住 int4 溢出（那会把 Postgres 的越界报错回给客户端）。
+ */
+const CreateItemSchema = z.object({
+  itemType: z.enum(MARKETPLACE_ITEM_TYPES),
+  title: z.string().min(1).max(200),
+  description: z.string().max(5000).optional(),
+  tags: z.array(z.string().max(50)).max(20).optional(),
+  previewAssetId: z.string().uuid().optional(),
+  sourceProjectId: z.string().uuid().optional(),
+  snapshotId: z.string().uuid().optional(),
+  documentId: z.string().uuid().optional(),
+  priceCredits: z.number().int().nonnegative().max(1_000_000).optional(),
+  visibility: z.enum(MARKETPLACE_VISIBILITY).optional(),
+});
 
 export async function GET(req: Request): Promise<NextResponse> {
   const url = new URL(req.url);
-  const itemType = url.searchParams.get('itemType');
-  const minPrice = url.searchParams.get('minPrice');
-  const maxPrice = url.searchParams.get('maxPrice');
-  const creatorId = url.searchParams.get('creatorId');
-  const search = url.searchParams.get('search');
-  const limit = parseInt(url.searchParams.get('limit') ?? '20', 10);
-  const offset = parseInt(url.searchParams.get('offset') ?? '0', 10);
-
-  if (itemType && !(MARKETPLACE_ITEM_TYPES as readonly string[]).includes(itemType)) {
-    return NextResponse.json({ error: `Invalid item type: ${itemType}` }, { status: 400 });
+  const parsed = ListQuerySchema.safeParse({
+    itemType: url.searchParams.get('itemType') ?? undefined,
+    minPrice: url.searchParams.get('minPrice') ?? undefined,
+    maxPrice: url.searchParams.get('maxPrice') ?? undefined,
+    creatorId: url.searchParams.get('creatorId') ?? undefined,
+    search: url.searchParams.get('search') ?? undefined,
+    limit: url.searchParams.get('limit') ?? undefined,
+    offset: url.searchParams.get('offset') ?? undefined,
+  });
+  if (!parsed.success) {
+    return badRequest(parsed.error.issues.map((i) => `${i.path.join('.') || 'query'}: ${i.message}`));
   }
 
   const items = await listMarketplaceItems({
-    itemType: (itemType as MarketplaceItemType) || undefined,
-    minPrice: minPrice ? parseInt(minPrice, 10) : undefined,
-    maxPrice: maxPrice ? parseInt(maxPrice, 10) : undefined,
-    creatorId: creatorId || undefined,
-    search: search || undefined,
-    limit: Math.min(limit, 100),
-    offset: Math.max(offset, 0),
+    ...parsed.data,
+    // limit 的上限照旧在域层截断（100）， zod 只保证它是非负整数：
+    // "要 101 条"是合法请求（截断到 100），"要 abc 条"是坏请求（400）
+    limit: Math.min(parsed.data.limit ?? 20, 100),
+    offset: parsed.data.offset ?? 0,
   });
 
   return NextResponse.json({ items }, { headers: { 'cache-control': 'no-store' } });
@@ -47,22 +89,15 @@ export async function GET(req: Request): Promise<NextResponse> {
 export async function POST(req: Request): Promise<NextResponse> {
   if (!(await csrfOk(req))) return jsonError(403, 'csrf_failed', { message: 'CSRF 校验未通过' });
   const user = await requireUser();
-  const body = (await req.json()) as Partial<CreateMarketplaceItemInput>;
-
-  if (!body.itemType || !body.title) {
-    return NextResponse.json({ error: 'itemType and title are required' }, { status: 400 });
-  }
-
-  if (!MARKETPLACE_ITEM_TYPES.includes(body.itemType)) {
-    return NextResponse.json({ error: `Invalid item type: ${body.itemType}` }, { status: 400 });
-  }
-
-  if (body.visibility && !MARKETPLACE_VISIBILITY.includes(body.visibility)) {
-    return NextResponse.json({ error: `Invalid visibility: ${body.visibility}` }, { status: 400 });
+  // 坏 JSON 也走 400：此前 `await req.json()` 在 try 之外，非 JSON 正文直接把请求带崩成 500
+  const body = await req.json().catch(() => null);
+  const parsed = CreateItemSchema.safeParse(body);
+  if (!parsed.success) {
+    return badRequest(parsed.error.issues.map((i) => `${i.path.join('.') || 'body'}: ${i.message}`));
   }
 
   // 内容安全：标题、描述、标签过发布机检同一份红线词表
-  const textsToCheck = [body.title, body.description ?? '', ...(body.tags ?? [])].join(' ');
+  const textsToCheck = [parsed.data.title, parsed.data.description ?? '', ...(parsed.data.tags ?? [])].join(' ');
 
   if (textsToCheck.trim()) {
     const redlines = scanTextForRedlines(textsToCheck);
@@ -74,20 +109,15 @@ export async function POST(req: Request): Promise<NextResponse> {
   try {
     const item = await createMarketplaceItem({
       creatorId: user.id,
-      itemType: body.itemType,
-      title: body.title,
-      description: body.description,
-      tags: body.tags,
-      previewAssetId: body.previewAssetId,
-      sourceProjectId: body.sourceProjectId,
-      snapshotId: body.snapshotId,
-      documentId: body.documentId,
-      priceCredits: body.priceCredits ?? 0,
-      visibility: body.visibility ?? 'private',
+      ...parsed.data,
+      priceCredits: parsed.data.priceCredits ?? 0,
+      visibility: parsed.data.visibility ?? 'private',
     });
 
     return NextResponse.json({ item }, { status: 201 });
   } catch (error) {
+    // 到这里只剩域层的业务错误（素材/项目/快照不存在、非项目所有者）——那些消息本身是安全的；
+    // 22P02 / CHECK / int4 越界那一类数据库内部报错已在 zod 那关被挡掉，不再原样回给客户端
     return NextResponse.json({ error: error instanceof Error ? error.message : '创建失败' }, { status: 400 });
   }
 }
