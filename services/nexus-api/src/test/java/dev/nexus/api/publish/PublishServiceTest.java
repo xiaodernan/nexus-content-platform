@@ -8,6 +8,7 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import dev.nexus.api.publish.PublishDtos.OwnerClaim;
 import java.time.Clock;
@@ -451,5 +452,70 @@ class PublishServiceTest {
         assertThatThrownBy(() -> service.publish("doc-1", "T", VALID_DOCUMENT, new OwnerClaim("acct-ada", "ada", null, CLAIMED_AT)), null)
                 .isInstanceOf(InvalidPublication.class)
                 .hasMessageContaining("is nothing");
+    }
+
+    // === M7 v243: a REMIX forks a publication into a NEW, OWNERLESS project ====
+    // The remix does NOT inherit the owner claim: the remixed row names nobody
+    // (pre-v242 rule), so anyone may take it down, and the source is recorded in _lineage.
+
+    @Test
+    void aRemixOfAnExistingPublicationCreatesANewOwnerlessPublication() throws Exception {
+        PublishedProject source = new PublishedProject("doc-1", "First", VALID_DOCUMENT, 1, PUBLISHED_AT);
+        source.claimOwner("acct-ada", "ada", "unsigned-local", CLAIMED_AT);
+        when(repository.findById("doc-1")).thenReturn(Optional.of(source));
+        when(repository.existsById("doc-2")).thenReturn(false);
+        when(repository.save(any(PublishedProject.class))).thenAnswer(i -> i.getArgument(0));
+
+        Optional<PublishedProject> remixed = service.remix("doc-1", "doc-2");
+
+        assertThat(remixed).isPresent();
+        PublishedProject created = remixed.get();
+        assertThat(created.getProjectId()).isEqualTo("doc-2");
+        assertThat(created.getVersion()).isEqualTo(1);
+        assertThat(created.getTitle()).isEqualTo("First (remix)");
+        // The remix does NOT inherit the owner claim: the remixed row names nobody.
+        assertThat(created.hasOwner()).isFalse();
+        assertThat(created.getOwnerAccountId()).isNull();
+        assertThat(created.getOwnerHandle()).isNull();
+        // Lineage travels with the document.
+        JsonNode lineage = new ObjectMapper().readTree(created.getDocumentJson()).get("_lineage");
+        assertThat(lineage.get("sourceProjectId").asText()).isEqualTo("doc-1");
+        assertThat(lineage.get("remixedAt")).isNotNull();
+    }
+
+    @Test
+    void aRemixOfAMissingPublicationReturnsEmpty() {
+        when(repository.findById("missing")).thenReturn(Optional.empty());
+
+        assertThat(service.remix("missing", "doc-2")).isEmpty();
+    }
+
+    @Test
+    void aRemixToAnExistingTargetIdIsRefused() {
+        PublishedProject source = new PublishedProject("doc-1", "First", VALID_DOCUMENT, 1, PUBLISHED_AT);
+        when(repository.findById("doc-1")).thenReturn(Optional.of(source));
+        when(repository.existsById("doc-2")).thenReturn(true);
+
+        assertThatThrownBy(() -> service.remix("doc-1", "doc-2"))
+                .isInstanceOf(InvalidPublication.class)
+                .hasMessageContaining("remix target project id already exists: doc-2");
+        verify(repository, never()).save(any(PublishedProject.class));
+    }
+
+    @Test
+    void aRemixDoesNotInheritTheSourceOwnerClaim() {
+        PublishedProject source = new PublishedProject("doc-1", "First", VALID_DOCUMENT, 1, PUBLISHED_AT);
+        source.claimOwner("acct-ada", "ada", "unsigned-local", CLAIMED_AT);
+        when(repository.findById("doc-1")).thenReturn(Optional.of(source));
+        when(repository.existsById("doc-2")).thenReturn(false);
+        when(repository.save(any(PublishedProject.class))).thenAnswer(i -> i.getArgument(0));
+
+        Optional<PublishedProject> remixed = service.remix("doc-1", "doc-2");
+
+        assertThat(remixed).isPresent();
+        assertThat(remixed.get().hasOwner()).isFalse();
+        // ownerless → anyone may act (pre-v242 rule kept on purpose).
+        assertThat(remixed.get().isOwnedBy("acct-ada")).isTrue();
+        assertThat(remixed.get().isOwnedBy("acct-anyone-else")).isTrue();
     }
 }

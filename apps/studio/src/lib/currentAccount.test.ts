@@ -1,0 +1,119 @@
+import { afterEach, describe, expect, it } from 'vitest';
+import { currentAccountStore, type KeyValueStore } from './currentAccount';
+import { AccountRegistry, isOwnerClaim, type AccountRecord } from './accounts';
+
+function fakeStore(): KeyValueStore & { calls: string[]; data: string } {
+  let data = '';
+  const calls: string[] = [];
+  return {
+    getItem: () => data,
+    setItem: (key: string, value: string) => {
+      calls.push(`set:${key}`);
+      data = value;
+    },
+    removeItem: () => {
+      calls.push('remove');
+      data = '';
+    },
+    calls,
+    get data(): string {
+      return data;
+    },
+    set data(value: string) {
+      data = value;
+    },
+  };
+}
+
+function aRecord(overrides: Partial<AccountRecord> = {}): AccountRecord {
+  const registry = new AccountRegistry();
+  const now = 1_700_000_000_000;
+  return registry.register('nexus-user', 'Nexus User', { deviceSeed: 'seed-1', now });
+}
+
+describe('currentAccount — store boundary', () => {
+  it('getCurrentAccount is null when nothing is stored', () => {
+    const store = fakeStore();
+    const acct = currentAccountStore(store);
+    expect(acct.getCurrentAccount()).toBeNull();
+    expect(acct.hasCurrentAccount()).toBe(false);
+  });
+
+  it('setCurrentAccount then getCurrentAccount round-trips', () => {
+    const store = fakeStore();
+    const acct = currentAccountStore(store);
+    const account = aRecord();
+    acct.setCurrentAccount(account);
+    expect(acct.getCurrentAccount()).toEqual(account);
+    expect(acct.hasCurrentAccount()).toBe(true);
+    expect(store.calls).toContain('set:nexus-current-account');
+  });
+
+  it('clearCurrentAccount forgets the account', () => {
+    const store = fakeStore();
+    const acct = currentAccountStore(store);
+    acct.setCurrentAccount(aRecord());
+    acct.clearCurrentAccount();
+    expect(acct.getCurrentAccount()).toBeNull();
+    expect(acct.hasCurrentAccount()).toBe(false);
+    expect(store.calls).toContain('remove');
+  });
+
+  it('setCurrentAccount replaces an earlier account', () => {
+    const store = fakeStore();
+    const acct = currentAccountStore(store);
+    acct.setCurrentAccount(aRecord());
+    const registry = new AccountRegistry();
+    const now = 1_700_000_000_000;
+    const second = registry.register('other-user', 'Other', { deviceSeed: 'seed-2', now });
+    acct.setCurrentAccount(second);
+    expect(acct.getCurrentAccount()?.handle).toBe('other-user');
+    expect(store.calls.filter((c) => c.startsWith('set:'))).toHaveLength(2);
+  });
+
+  it('corrupt stored JSON is treated as no account, not a crash', () => {
+    const store = fakeStore();
+    (store as { data: string }).data = 'not-json{{';
+    const acct = currentAccountStore(store);
+    expect(acct.getCurrentAccount()).toBeNull();
+    expect(acct.hasCurrentAccount()).toBe(false);
+  });
+
+  it('stored JSON missing id or handle is treated as no account', () => {
+    const store = fakeStore();
+    (store as { data: string }).data = JSON.stringify({ handle: 'no-id' });
+    const acct = currentAccountStore(store);
+    expect(acct.getCurrentAccount()).toBeNull();
+  });
+});
+
+describe('currentAccount — owner claim', () => {
+  it('currentOwnerClaim returns null when no account is set', () => {
+    const store = fakeStore();
+    const acct = currentAccountStore(store);
+    expect(acct.currentOwnerClaim(1_700_000_000_000)).toBeNull();
+  });
+
+  it('currentOwnerClaim carries the account id, handle, assurance and claimedAt', () => {
+    const store = fakeStore();
+    const acct = currentAccountStore(store);
+    const now = 1_700_000_000_000;
+    acct.setCurrentAccount(aRecord());
+    const claim = acct.currentOwnerClaim(now);
+    expect(claim).not.toBeNull();
+    expect(claim!.kind).toBe('owner-claim');
+    expect(claim!.assurance).toBe('unsigned-local');
+    expect(claim!.claimedAt).toBe(now);
+    expect(typeof claim!.accountId).toBe('string');
+    expect(claim!.accountId.startsWith('acct-')).toBe(true);
+    expect(claim!.handle).toBe('nexus-user');
+  });
+
+  it('currentOwnerClaim is shaped like what the service accepts', () => {
+    const store = fakeStore();
+    const acct = currentAccountStore(store);
+    acct.setCurrentAccount(aRecord());
+    const claim = acct.currentOwnerClaim(1_700_000_000_000)!;
+    expect(isOwnerClaim(claim)).toBe(true);
+  });
+});

@@ -9,6 +9,8 @@
  * says so — rather than rendering a failure the user would read as their own mistake.
  */
 
+import type { OwnerClaim } from './accounts';
+
 /** The route's GET answer (shape owned by publishServer.ts; re-stated here, not imported). */
 export interface PublishLaneProbe {
   available: boolean;
@@ -40,14 +42,21 @@ export async function probePublish(): Promise<PublishLaneProbe> {
 
 /**
  * Publish a document. The caller names the project, the title and the document; the version, the instant and
- * the URL come back from the service.
+ * the URL come back from the service. `owner` is the Studio's claim of who published this — attached, never
+ * enforced by the client (ADR 0018). When omitted the service answers under the pre-v242 rule.
  */
-export async function publishProject(projectId: string, title: string, document: unknown): Promise<PublishLaneAnswer> {
+export async function publishProject(
+  projectId: string,
+  title: string,
+  document: unknown,
+  /** The Studio's claim of who published this (attach-only; the service decides what it is worth). */
+  owner?: OwnerClaim,
+): Promise<PublishLaneAnswer> {
   try {
     const res = await fetch('/api/publish', {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ action: 'publish', projectId, title, document }),
+      body: JSON.stringify({ action: 'publish', projectId, title, document, ...(owner ? { owner } : {}) }),
     });
     const parsed: unknown = await res.json().catch(() => null);
     if (parsed && typeof parsed === 'object') return parsed as PublishLaneAnswer;
@@ -115,13 +124,18 @@ export async function listPublished(limit: number): Promise<PublishLaneListing> 
   }
 }
 
-/** Take a publication down. */
-export async function unpublish(projectId: string): Promise<PublishLaneRemoval> {
+/** Take a publication down. `claimer` is the account id asking to take it down; required by the service
+ *  when the row has an owner (ADR 0018). When omitted the service answers under the pre-v242 rule. */
+export async function unpublish(
+  projectId: string,
+  /** The account id asking to take the publication down. */
+  claimer?: string,
+): Promise<PublishLaneRemoval> {
   try {
     const res = await fetch('/api/publish', {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ action: 'unpublish', projectId }),
+      body: JSON.stringify({ action: 'unpublish', projectId, ...(claimer ? { claimer } : {}) }),
     });
     const parsed: unknown = await res.json().catch(() => null);
     if (parsed && typeof parsed === 'object') return parsed as PublishLaneRemoval;
