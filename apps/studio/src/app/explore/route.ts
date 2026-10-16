@@ -47,6 +47,8 @@ export async function GET(): Promise<Response> {
       thumbnail,
       /** The service's recorded owner, when a claim was attached — shown as `by <handle> · <assurance>`. */
       owner: row.owner ? { handle: row.owner.handle, assurance: row.owner.assurance } : null,
+      /** Where this publication was remixed from — the service wrote `_lineage.sourceProjectId` into the document; read it back so the card names its source. */
+      remixedFrom: doc && typeof doc === 'object' && doc._lineage && typeof doc._lineage === 'object' && doc._lineage.sourceProjectId ? String(doc._lineage.sourceProjectId) : null,
       note: thumbnail ? undefined : read.ok ? 'nothing to draw' : (read.reason ?? 'preview unavailable'),
     });
   }

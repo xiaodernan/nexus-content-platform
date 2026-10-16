@@ -23,6 +23,8 @@ export interface ExploreItem {
   thumbnail?: string;
   /** Who the service recorded as publisher, when a claim was attached (v243). Shown as `by <handle> · <assurance>`; absent for pre-claim rows. */
   owner?: { handle: string; assurance: string } | null;
+  /** The project this was remixed from, when the document carries a `_lineage` entry the service wrote. Shown as `remixed from <id>`; absent for non-remixes. */
+  remixedFrom?: string | null;
   /** Why the thumbnail is absent, when it is — SHOWN on the card, never hidden (a blank card lies). */
   note?: string;
 }
@@ -43,6 +45,7 @@ h1{font-size:20px;letter-spacing:.4px;margin-bottom:4px}
 .meta{padding:10px 12px;display:flex;flex-direction:column;gap:2px}
 .meta strong{font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .meta span{color:#9aa3b2;font-size:11px}
+.meta .remixed{color:#3b82f6;font-weight:600}
 .acts{display:flex;gap:8px;padding:0 12px 12px}
 .acts a{flex:1;text-align:center;font-size:11px;text-decoration:none;padding:5px 8px;border-radius:5px;background:#1b2230;color:#cfd6e4}
 .acts a.remix{background:#3b82f6;color:#fff;font-weight:600}
@@ -67,7 +70,7 @@ export function renderExploreHtml(items: ExploreItem[], opts: { count: number; l
       const href = `/p/${encodeURIComponent(it.projectId)}`;
       const remix = `/?remix=${encodeURIComponent(it.projectId)}`;
       return `<li class="card" data-explore-card="${escapeHtml(it.projectId)}">${thumb}
-<div class="meta"><strong>${escapeHtml(it.title)}</strong>${it.owner ? `<span class="by">by ${escapeHtml(it.owner.handle)} · ${escapeHtml(it.owner.assurance)}</span>` : ''}<span>v${it.version} · ${escapeHtml(it.publishedAt)}</span></div>
+<div class="meta"><strong>${escapeHtml(it.title)}</strong>${it.owner ? `<span class="by">by ${escapeHtml(it.owner.handle)} · ${escapeHtml(it.owner.assurance)}</span>` : ''}${it.remixedFrom ? `<span class="remixed">remixed from ${escapeHtml(it.remixedFrom)}</span>` : ''}<span>v${it.version} · ${escapeHtml(it.publishedAt)}</span></div>
 <div class="acts"><a href="${escapeHtml(href)}">open</a><a class="remix" href="${escapeHtml(remix)}">remix</a></div>
 </li>`;
     })

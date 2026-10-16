@@ -80,4 +80,22 @@ describe('explore — the gallery of published work (M7 v241)', () => {
     expect(html).not.toContain('by ');
     expect(html).toContain('v2 · 2026-10-01T00:00:00Z');
   });
+
+  it('shows `remixed from <source>` when the document carries a lineage', () => {
+    const html = renderExploreHtml([item({ remixedFrom: 'pub-alpha' })], { count: 1, limit: 24 });
+    expect(html).toContain('remixed from pub-alpha');
+    expect(html).toContain('v2 · 2026-10-01T00:00:00Z');
+  });
+
+  it('escapes caller-controlled lineage source', () => {
+    const html = renderExploreHtml([item({ remixedFrom: '<script>y</script>' })], { count: 1, limit: 24 });
+    expect(html).toContain('remixed from &lt;script&gt;y&lt;/script&gt;');
+    expect(html).not.toContain('<script>');
+  });
+
+  it('shows no lineage line when there is none', () => {
+    const html = renderExploreHtml([item({ remixedFrom: null })], { count: 1, limit: 24 });
+    expect(html).not.toContain('remixed from');
+    expect(html).toContain('v2 · 2026-10-01T00:00:00Z');
+  });
 });
