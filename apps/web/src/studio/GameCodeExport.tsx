@@ -6,7 +6,7 @@ import { useGame } from './gameStore';
 /**
  * §52 最后一格（Code）的界面出口：把**库里那份游戏设计**投影成一份拿得走的产物。
  *
- * 四件事刻意这么做：
+ * 五件事刻意这么做：
  * 1. **只读**：这个按钮只调 `GET /api/projects/<id>/game/code`，不写库——产物是设计的投影（§16），
  *    设计改一个数重新生成就是新的字节，所以没有"保存产物"这一步，也没有"覆盖你上一份"的问题。
  * 2. **限度随产物一起念出来**（CODEGEN_LIMITS 原样显示）：产物是引擎的**转写**、不是"平台正在跑的那一套"；
@@ -17,6 +17,10 @@ import { useGame } from './gameStore';
  * 4. **屏上欠着写的时候不让点**：这一格读的是库里那一份，不是组件里那份。
  *    刚点完「创建游戏骨架」时 PUT 还在飞，这时候生成要么拿到旧设计，要么把已经在屏上的设计
  *    说成"还没有游戏设计"——那句谎就是这么产生的（e2e 里第一次命中它就是这么来的）。
+ * 5. **这一型与产物那条链对不上时把它说出来**（`kindNote`）：产物只有一条链（`compileGame` 排的 2D 俯视计划），
+ *    而 §51 的八型里视觉小说/互动故事/RPG 原型在平台上跑的是别的管线。那句话来自 `codeKindReadings()`
+ *    读 `compileForKind` 与状态表，界面不自己判断——面板判断一遍就会和分派点说两套话。
+ *    对得上时它是 `null`，界面上就一个字都不印：恒真的警告和恒无的警告一样没人信。
  */
 
 interface GeneratedFile {
@@ -32,6 +36,10 @@ interface CodeOutput {
   notes: string[];
   bytes: number;
   limits: string[];
+  /** 这份设计标的那一型在平台上走哪条管线（`compileForKind` 的读数，不是界面猜的） */
+  kindPipeline: string | null;
+  /** 与产物那条链不一致时才有话；一致时是 null，界面上就不许印一句空警告 */
+  kindNote: string | null;
 }
 
 /** 浏览器里落盘一份字节（Blob + 一次性 <a download>） */
@@ -179,6 +187,12 @@ export function GameCodeExport({ projectId }: { projectId: string }) {
           <p className="text-11 text-fg-2" data-game-code-bytes={output.bytes}>
             {output.files.length} 个文件 · 共 {output.bytes} 字节
           </p>
+
+          {output.kindNote ? (
+            <p className="mt-1 rounded border border-amber-400/30 bg-amber-500/10 px-2 py-1 text-11 leading-relaxed text-amber-100" data-game-code-kind>
+              {output.kindNote}
+            </p>
+          ) : null}
 
           {output.notes.length > 0 ? (
             <ul className="mt-1 list-disc pl-4 text-11 leading-relaxed text-fg-3" data-game-code-findings>

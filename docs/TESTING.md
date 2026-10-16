@@ -1271,6 +1271,38 @@ vitest 直接崩了而我却把 stdout 丢进了 `/dev/null`，于是"5 遍"其�
   `?project=not-a-uuid` 该给"读不到"；补上与 `buildCreatorFact` 同一道 UUID 门禁。
   **踩过的一格**：Windows 把 55433 收进保留端口范围（Docker 报 socket forbidden），
   nexus-postgres 容器重建在 55100，测试与 dev server 用 `NEXUS_DATABASE_URL` 指向它
+- **2026-10-17 产物与类型的错位说实话（§52 Code × §51，ADR-0044）**：先量再改，两份 `tsx` 探针
+  （`node node_modules/tsx/dist/cli.mjs`，`@nexus/game-model` 是 workspace 软链所以能直接跑 TS）——
+  `kind:'rpg-prototype'` 的 11 实体底稿：`compileForKind` 报 `rpg`，`generateGameCode` 交 7 个文件 /
+  **27276 字节**，README 里那句"界面上的画布读的就是这一份"在这一型是假的（产物没有成长循环）；
+  `kind:'visual-novel'` 的两条对话实体：`compileForKind` 报 `story`，`compileGame` 自己给出
+  "没有玩家实体……开不了场"，产物照样 7 个文件 / **19088 字节**，`index.html` 读不到那两条对话正文。
+  改完的凭证：`codegen.test.ts` 23 条（本片前 18）——八型表驱动钉"`kindNote` 为空 **当且仅当** 这一型
+  读的就是产物那条链"（两侧各给非空种群下限，否则那条比对空转）、同一句在 README 与 `index.html`
+  里逐字节相同、对话型同时说出错位与"这个场子开不了"、两型两句话而文件清单仍是那七份、
+  **哨兵串**那条在跑之前把 `GAME_KIND_STATUS['visual-novel'].note` 换成哨兵、跑完还原后再量一遍
+  不含哨兵（只断言"这句话含表格里那句"挡不住手抄，抄的那份今天也相等）。
+  `game-code.integration.test.ts` 拿第二次 `codeKindReadings(design)` 调用当分母比对响应字段，
+  外加一条 `kind:'2d'` 的正向对照（`kindNote === null`、`index.html` 里没有 `kind-note`、
+  README 那句真话留着）；`agent-orchestration.integration.test.ts` 16 条里两条新的：链上第五格念这句
+  且 `counts.kindMismatch === 1`、注入一份 `kind:'2d'` 的 level 草稿后这句话与该计数一起消失
+  （后者是 `kindMismatch` 写死成 1 那一臂唯一的抓网）。
+  e2e `@smoke 游戏：生成可玩产物…（§52 Code）` 尾部加四段，**47.7 秒 1 passed**：2D 时
+  `[data-game-code-kind]` 数为 0 → 下拉换视觉小说（`selectOption` 立刻写库，所以先等
+  `[data-game-code-behind]` 自己消失再点生成）→ 那句出现、含三个可判别片段、`toBeInViewport()`、
+  下载 README 里**含有屏上这一整句**（`textContent()` 与字节比对，不是各写一遍）且不含那句只在
+  对得上时才成立的老文案 → 换回 2D 那句自己消失、老文案回来。截图 `game-code-kind-mismatch.png`
+  （面板里那句连同上方的"游戏类型：视觉小说"与状态表那句一起入镜）。
+  **7 臂变异电池**（`.scratch/arms-140.mjs`，起点 50/50 绿，三份文件收尾逐字节还原）：
+  A 绕过分派点 9 红 / B README 不分叉 4 红 / C 页面少那句 2 红 / D 链上不念 1 红 /
+  E 路由丢字段 2 红 / F 计数写死 1 红 / G 摘要管线名写死 1 红。
+  **踩过的两格**：① G 那一臂第一版把拼串写在**双引号**里，`${'$'}` 只在反引号中展开，
+  于是命中 0 次判 `INTERFERED`——那一臂什么都没跑，"0 红"不是"没红"；改反引号重跑才作数。
+  ② 界面上那句 `not.toContainText('界面上的画布读的就是这一份')` 是一条永远不会红的断言
+  （那句话只存在于 README 字节里，面板那个 `<p>` 从来没有它），已挪到落盘的 README 上量、
+  并且配上"换回 2D 它必须回来"的另一头。
+  教训：一处供给拆掉后**只有它自己那条**红，才算那句是这一处供给的；
+  而"改文案跟着表格变"这种派生性，只能靠改表格本体（哨兵）来证，不能靠比对当前值
 - 画布视口裁剪（§147）：`packages/design-model/test/viewport.test.ts` 6 条，每条都对着一种"会让用户误判"的失败——
   小文档不裁（DOM 有没有节点是可观察行为）、过阈值才裁且**根框永远留着**（裁了页面背景就没了）、
   视口外扩一圈余量、视口还没量到时宁可不裁（否则首帧一片空白）、paintOrder 里有幽灵 id 要丢掉而不是抛、

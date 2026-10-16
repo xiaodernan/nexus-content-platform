@@ -1,9 +1,12 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { eq, inArray } from 'drizzle-orm';
 import {
+  codeKindReadings,
   combatGoals,
   compileRpg,
   CODEGEN_LIMITS,
+  GAME_KINDS,
+  GAME_KIND_STATUS,
   generateGameCode,
   levelGoals,
   PLAYTEST_DEFAULT_SEED,
@@ -695,11 +698,57 @@ describe('§112 多步编排的执行方', () => {
     expect(code.notes.join('')).toContain('没有真 provider');
     expect(code.notes.join('')).toContain('不写库');
     /**
+     * 链上那份草稿标的是 `rpg-prototype`，而产物今天只跑 `compileGame` 那条 2D 俯视链。
+     * 这句话必须由生成器供给、原样进 notes（上一版这里只报"投影出 N 份文件"，读起来像拿走的
+     * 就是试玩页那一份，而它没有成长循环——§159）。这里用**另一次调用**的读数当分母，
+     * 所以"抄了一份乐观文案"与"这一步自己新写一句"两种做法都红。
+     */
+    expect(projection.kindPipeline).not.toBe('topdown');
+    expect(projection.kindNote, '底稿这一型本该有错位那句话').toBeTruthy();
+    expect(code.notes).toContain(projection.kindNote);
+    expect(code.counts.kindMismatch).toBe(1);
+    expect(code.summary).toContain(`这份设计标的是 ${projection.kindPipeline}`);
+    // 正向对照：同一份草稿若读的就是产物那条链，这句话与这个计数都要消失
+    expect(codeKindReadings({ ...(level.draft as GameDocument), kind: '2d' }).kindNote).toBeNull();
+    /**
      * 这一格**不产草稿**：它是投影，不是链上又一份"可接受的设计"。
      * 产了就会出现第四份可接的东西，而接受入口的缺省档位（最后一个留草稿的步骤）会悄悄从 level 挪到投影上。
      */
     expect(code.draft, 'code 这一步不该留草稿：接受入口会把缺省档位挪到投影上').toBeUndefined();
     expect(await countGames(projectId), '投影把产物写进了项目').toBe(0);
+  });
+
+  it('上游那份若标的就是产物那条链：这句话与这个计数都要消失', async () => {
+    // 上面那条钉的是"有错位要说"，这一条钉它的另一半：**没错位时不许硬说一句**。
+    // 注入一份 `kind: '2d'` 的 level 草稿（其余字节与配方那份相同），投影那条链正好是它读的那条。
+    // 少了这一条，`kindMismatch` 写死成 1、notes 无条件塞一句话这种实现都能全绿。
+    const projectId = await newProject('编排第五格无错位');
+    const flat = { ...gameDraft({ goal: '为这一格造一份 2D 设计', at: '2026-01-01T00:00:00.000Z', seed: 'flat-2d' }), kind: '2d' } as GameDocument;
+    const result = await runReadinessCheck({
+      projectId,
+      actorId: owner,
+      goal: '这一份标的就是 2D',
+      runners: { level: async () => ({ summary: '探针：交一份 2D 草稿', counts: { entities: flat.entities.length }, notes: [], draft: flat }) },
+    });
+    if (!result.ok) throw new Error(`不该拒收：${result.refusal.message}`);
+
+    const code = result.steps.find((step) => step.id === 'code')!;
+    expect(code.status).toBe('done');
+    const projection = generateGameCode(flat);
+    expect(projection.kindPipeline).toBe('topdown');
+    expect(projection.kindNote).toBeNull();
+    expect(code.counts.kindMismatch).toBe(0);
+    expect(code.summary).toContain('这份设计标的是 topdown');
+    // 不许有错位那句话：判据从状态表取（八个类型的那八句里，一句都不许出现在 notes 里），
+    // 而不是手抄生成器那句文案——抄的那一份明天就跟着表格一起烂
+    const tableSentences = GAME_KINDS.map((kind) => GAME_KIND_STATUS[kind].note);
+    expect(code.notes.filter((note) => tableSentences.some((sentence) => note.includes(sentence)))).toEqual([]);
+    // 限度那四句仍要在：这一条改的是"错位那句话有没有"，不是把整串 notes 清空
+    expect(code.notes.filter((note) => CODEGEN_LIMITS.includes(note))).toHaveLength(CODEGEN_LIMITS.length);
+    // 正向对照：同一份字节只把 `kind` 换回 rpg-prototype，那句话就又有了（计数跟着变 1）
+    const shifted = codeKindReadings({ ...flat, kind: 'rpg-prototype' });
+    expect(shifted.kindNote).not.toBeNull();
+    expect(await countGames(projectId)).toBe(0);
   });
 
   it('level 完成了但没留草稿：试玩格与投影格各自失败，点名"没拿到上游草稿"且不带任何读数', async () => {

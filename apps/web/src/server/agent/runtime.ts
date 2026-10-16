@@ -494,6 +494,10 @@ const playtestStep: Runner = async (ctx) => {
  * §81 在这一格是**守法**的而不是被绕过的：`generateGameCode` 只做字符串拼接——
  * 不 eval、不起子进程、不读写文件、不联网，所以它可以待在服务端进程里。
  * 产物本身要在浏览器沙箱里才跑，这一点由 `CODEGEN_LIMITS` 那四句随结论一起念出来。
+ *
+ * 还有一句必须由生成器说而不是这一格猜：链上那份草稿标的是 `rpg-prototype`，而产物今天只会跑
+ * `compileGame` 那条 2D 俯视链（没有成长循环）。`output.kindNote` 就是这句话，原样进 notes——
+ * 上一版这里只报"投影出 N 份文件"，读起来像"这就是试玩页那一份拿走了"，而它不是（§159）。
  */
 const codeStep: Runner = async (ctx) => {
   const source = ctx.upstream.find((step) => step.id === 'level')?.draft;
@@ -504,17 +508,21 @@ const codeStep: Runner = async (ctx) => {
   return {
     summary:
       `投影出 ${output.files.length} 份自包含文件、共 ${output.bytes} 字节` +
-      `（设计里 ${source.entities.length} 个实体，生成器报出 ${output.notes.length} 条发现）`,
+      `（设计里 ${source.entities.length} 个实体，生成器报出 ${output.notes.length} 条发现；` +
+      `产物跑的永远是 2D 俯视那条链，这份设计标的是 ${output.kindPipeline ?? '没有管线'}）`,
     counts: {
       files: output.files.length,
       bytes: output.bytes,
       entities: source.entities.length,
       findings: output.notes.length,
       limits: CODEGEN_LIMITS.length,
+      kindMismatch: output.kindNote ? 1 : 0,
     },
     notes: [
       '这一步不下载、也不写库：它报的是投影的读数。要真拿走文件，先把上面那一步摆过位置的草稿接受进项目，' +
         '再在「游戏」面板那格生成并下载——那一路吃的是库里这一份设计。',
+      // 错位由生成器自己报，这一格不复述、也不猜：链上那份草稿标的是 rpg-prototype，而产物只会跑 2D 俯视那条链
+      ...(output.kindNote ? [output.kindNote] : []),
       `这一步没有真 provider，也不需要：生成就是字符串拼接（§81 不 eval、不起子进程、不联网），` +
         `同一份设计两次投影出来的字节相同。`,
       ...CODEGEN_LIMITS,

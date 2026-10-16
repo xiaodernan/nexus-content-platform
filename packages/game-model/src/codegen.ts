@@ -1,5 +1,12 @@
-import { GAME_ENTITY_LABELS, type GameDocument, type GameEntityKind } from "./index";
+import {
+  GAME_ENTITY_LABELS,
+  GAME_KIND_LABELS,
+  GAME_KIND_STATUS,
+  type GameDocument,
+  type GameEntityKind,
+} from "./index";
 import { PLAY_KIND_SHAPES, compileGame, type GamePlan, type PlayActor } from "./play";
+import { compileForKind, type GameProjection } from "./story";
 import {
   CONTACT_COOLDOWN,
   EVENT_CAP,
@@ -18,9 +25,14 @@ import {
  *
  * 三条纪律，每一条都有对应的见证（见 `test/codegen.test.ts`）：
  *
- * 1. **只有一条投影链**。产物吃的是 `compileGame(document)` 排出来的那份 `GamePlan`，
- *    与 `GamePlay.tsx` 今天吃的同一个对象。所以 `plan.json` 与 `plan.js` 里必须是
- *    **同一次 `JSON.stringify` 的结果**——两处各写一遍就是两份真值。
+ * 1. **只有一条投影链**。产物吃的是 `compileGame(document)` 排出来的那份 `GamePlan`。
+ *    这条链与 §51 的类型表有一个已知的错位：`GAME_KIND_STATUS` 里只有
+ *    `2d / 2.5d / 3d / 探索 / 解谜` 五种读的是这份计划，RPG 原型与对话两型各有另一条管线
+ *    （`compileRpg` / `compileStory`），而产物里没有它们的引擎。所以这一格不许说"产物就是页面上跑的那一份"，
+ *    只许由 `codeKindReadings()` 把错位说出来（README、index.html、界面三处念同一句）；
+ *    把那句话写回"同一个对象"就是 §159 级的谎，2026-10-17 那次实测（`.scratch/kind-probe*.ts`）量到的就是它：
+ *    RPG 草稿投影出来的产物没有成长循环，视觉小说投影出来是一个开不了场的空场子。
+ *    所以 `plan.json` 与 `plan.js` 里必须是**同一次 `JSON.stringify` 的结果**——两处各写一遍就是两份真值。
  * 2. **规则的数字不许重打**。引擎是 `sim.ts` 的转写，冷却、定步长上限、事件条数上限、
  *    没有玩家那句拒绝，全部由生成时从 `sim.ts` 的导出插进产物。转写这件事本身是这一格的限度：
  *    `sim.ts` 改了逻辑而产物没重新生成，两者就会分叉，所以界面上不许说"产物就是平台跑的那一套"，
@@ -74,10 +86,40 @@ export interface GameCodeOutput {
   notes: string[];
   /** 全产物的字节数：编排那一格用它当读数，别让界面自己再数一遍 */
   bytes: number;
+  /**
+   * 这份设计标的那一型，在平台上由哪条管线跑（照 `compileForKind` 的读数，不是这一格自己判断的）。
+   * 产物永远是 `"topdown"` 那一条，所以这个字段与它不同时，界面上必须把话说明。
+   */
+  kindPipeline: "topdown" | "story" | "rpg" | null;
+  /** 两条管线不一致时那句话说清"下载的不是页面上试玩的那一种"；一致时为 null（没有就不许印一句空话） */
+  kindNote: string | null;
 }
 
 const GENERATED_BANNER =
   "由 NEXUS 从游戏设计模型生成（§16：设计文档是唯一真值，这份产物只是它的一个投影；改设计要重新生成，不要手改这里）";
+
+/**
+ * 「下载拿走的那一份」与「平台上试玩的那一份」是不是同一条管线——这句话只能由 `compileForKind`
+ * 那一处分派点回答，不能在这一格里再写一遍 `if (kind === ...)`（§16：同一份模型的投影不许各说各话）。
+ *
+ * 为什么产物侧只有一条链：`main.js` 是 `sim.step` 的转写，它只会跑 `GamePlan`；
+ * 对话管线与 RPG 的成长循环在产物里**没有对应的引擎**。这一格今天能给的是那份 2D 俯视投影，
+ * 所以非 `topdown` 的类型必须被说出来，而不是靠 README 里那句"界面上的画布读的就是这一份"蒙过去——
+ * 那句话说的是 `2d / 2.5d / 3d / 探索 / 解谜` 这五种共用同一条计划的事实，
+ * 对 RPG 原型（少了成长循环）与对话两型（打开就是一个跑不起来的场子）是假的。
+ */
+export function codeKindReadings(document: GameDocument): { kindPipeline: GameProjection["pipeline"]; kindNote: string | null } {
+  const kindPipeline = compileForKind(document).pipeline;
+  if (kindPipeline === "topdown") return { kindPipeline, kindNote: null };
+  const status = GAME_KIND_STATUS[document.kind];
+  return {
+    kindPipeline,
+    kindNote:
+      `这一格只有一条投影链：产物跑的永远是 compileGame() 排出来的 2D 俯视计划（${GAME_KIND_LABELS[document.kind]} 在平台上不是这一条）。` +
+      `状态表对「${GAME_KIND_LABELS[document.kind]}」的那句是「${status.note}」——那句里的东西不在这份产物里：` +
+      `RPG 的成长循环与对话管线都没有对应的引擎，所以下载解压后打开的，不是这个类型在试玩页跑的那一种。`,
+  };
+}
 
 /** 文件的稳定顺序：zip 里的清单、界面上的计数都按这一处排，别按 Map 的插入顺序赌运气 */
 const FILE_ORDER: readonly string[] = ["README.txt", "index.html", "style.css", "plan.json", "plan.js", "engine.js", "main.js"];
@@ -400,7 +442,7 @@ function mainSource(): string {
   ]);
 }
 
-function htmlSource(document: GameDocument, plan: GamePlan): string {
+function htmlSource(document: GameDocument, plan: GamePlan, kindNote: string | null): string {
   const title = `${escapeHtml(document.name || "未命名游戏")} · NEXUS 导出的可玩产物`;
   return [
     "<!doctype html>",
@@ -415,6 +457,8 @@ function htmlSource(document: GameDocument, plan: GamePlan): string {
     "<body>",
     `<h1>${escapeHtml(document.name || "未命名游戏")}</h1>`,
     `<p>${escapeHtml(document.summary || "")}</p>`,
+    // 打开的就是这一页，不是 README：类型不对上的那句话要印在页面上，不然作者看到的就是"我的 RPG 没有成长"
+    ...(kindNote ? [`<p id="kind-note">${escapeHtml(kindNote)}</p>`] : []),
     `<canvas id="arena" width="${plan.arena.width}" height="${plan.arena.height}"></canvas>`,
     '<pre id="hud"></pre>',
     "<noscript>这一份产物要有 JavaScript 才动得起来：规则在 engine.js 里，设计数据在 plan.js 里。</noscript>",
@@ -434,6 +478,7 @@ function cssSource(): string {
     "h1 { font-size: 18px; margin: 0 0 4px; }",
     "canvas { display: block; background: #0b0d12; border: 1px solid #1f2937; max-width: 100%; height: auto; }",
     "pre { white-space: pre-wrap; margin-top: 12px; }",
+    "#kind-note { max-width: 70ch; color: #fbbf24; }",
     "",
   ].join("\n");
 }
@@ -486,7 +531,7 @@ function documentNotes(document: GameDocument, plan: GamePlan): string[] {
   return notes;
 }
 
-function readmeSource(document: GameDocument, plan: GamePlan, notes: readonly string[]): string {
+function readmeSource(document: GameDocument, plan: GamePlan, notes: readonly string[], kindNote: string | null): string {
   const lines = [
     banner("#"),
     "",
@@ -500,7 +545,9 @@ function readmeSource(document: GameDocument, plan: GamePlan, notes: readonly st
     "index.html 里的 CSP 也把 connect-src 设成 none，产物自己打不出去。",
     "",
     "按什么生成的（每一条都不是我编的）：",
-    "- 数据：plan.json 与 plan.js 是同一次 compileGame() 序列化的结果，界面上的画布读的就是这一份。",
+    ...(kindNote
+      ? [`- 数据：plan.json 与 plan.js 是同一次 compileGame() 序列化的结果。${kindNote}`]
+      : ["- 数据：plan.json 与 plan.js 是同一次 compileGame() 序列化的结果，界面上的画布读的就是这一份。"]),
     "- 规则：engine.js 是 packages/game-model/src/sim.ts 的转写，冷却与定步长这些数字由生成时从 sim.ts 的导出插进来。",
     `- 规则限度：${SIM_RULE_NOTES.join(" ")}`,
     "",
@@ -527,12 +574,13 @@ function readmeSource(document: GameDocument, plan: GamePlan, notes: readonly st
  */
 export function generateGameCode(document: GameDocument): GameCodeOutput {
   const plan = compileGame(document);
+  const { kindPipeline, kindNote } = codeKindReadings(document);
   const json = planJson(plan);
   const notes = documentNotes(document, plan);
 
   const bodies: Record<string, string> = {
-    "README.txt": readmeSource(document, plan, notes),
-    "index.html": htmlSource(document, plan),
+    "README.txt": readmeSource(document, plan, notes, kindNote),
+    "index.html": htmlSource(document, plan, kindNote),
     "style.css": cssSource(),
     "plan.json": json,
     "plan.js": `// ${GENERATED_BANNER}\n// 这一份与 plan.json 是同一次序列化的结果，不是各写一遍的两份计划。\nwindow.NEXUS_PLAN = ${json};\n`,
@@ -553,5 +601,5 @@ export function generateGameCode(document: GameDocument): GameCodeOutput {
   }));
 
   const bytes = files.reduce((sum, file) => sum + new TextEncoder().encode(file.contents).length, 0);
-  return { files, notes, bytes };
+  return { files, notes, bytes, kindPipeline, kindNote };
 }

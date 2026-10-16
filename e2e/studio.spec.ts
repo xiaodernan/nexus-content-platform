@@ -3943,11 +3943,12 @@ test('@smoke §144 导出：顶栏点一下就下载，回执说的和包里的�
  *
  * 断言只挑用户可见的：库里那份没跟上屏上这份时按钮点不动（两颗都点不动）、写完了它自己松开、
  * 产物文件列得出来、点一个文件真的落盘、限度那几句原样出现在界面上且真的在视口里、
- * 整份打包拿到的是真 zip 且界面回执那三个数与磁盘上这份对得上——
+ * 整份打包拿到的是真 zip 且界面回执那三个数与磁盘上这份对得上、
+ * 这一型与产物那条链对不上时界面上说出那一句（对得上时不许印一句空警告，屏上这句要和落盘的字节是同一句）——
  * 只报"成功"而不报限度，界面就在替产品撒谎。
  */
 test('@smoke 游戏：生成可玩产物，点一个文件真的落盘，整份打包也拿得走（§52 Code）', async ({ page }) => {
-  test.setTimeout(180_000);
+  test.setTimeout(240_000);
   await createProject(page, `可玩产物 ${Date.now().toString(36)}`);
 
   await page.click('[data-panel-tab="game"]');
@@ -4045,4 +4046,52 @@ test('@smoke 游戏：生成可玩产物，点一个文件真的落盘，整份�
   await page.locator('[data-game-code-packaged]').scrollIntoViewIfNeeded();
   await expect(page.locator('[data-game-code-packaged]')).toBeInViewport();
   await page.screenshot({ path: 'screenshots/game-code-zip.png' });
+
+  // §52 与 §51 之间那条错位，要在真浏览器里当着用户说出来，而不是只写在单元测试里。
+  // 骨架默认是 2D——它走的正是产物那一条链，所以这一段第一句量的是**没有警告**：
+  // 界面要是每次都印一句"这一型和产物对不上"，那句警告就成了噪音，真的错位没人看见。
+  await expect(page.locator('[data-game-code-kind]')).toHaveCount(0);
+
+  // 换成视觉小说：对话管线在平台上是真的（试玩页跑得动），但产物那条链只排得出 2D 俯视计划。
+  // 换类型会立刻写库，所以先等"库里正在写"那格自己消失，再点生成——不然点的是旧设计。
+  await page.selectOption('[data-game-kind]', 'visual-novel');
+  await expect(page.locator('[data-game-code-behind]')).toHaveCount(0, { timeout: 90_000 });
+  await expect(page.locator('[data-game-code-run]')).toBeEnabled();
+  await page.click('[data-game-code-run]');
+  const kindNote = page.locator('[data-game-code-kind]');
+  await expect(kindNote).toBeVisible({ timeout: 30_000 });
+  // 那句话要点得出这三样：产物跑的是哪条链、这一型在表里是哪一句、所以对不上。
+  // 少了任何一样，界面报的就是一句"可能不太一样"式的空话（§159）。
+  await expect(kindNote).toContainText('这一格只有一条投影链');
+  await expect(kindNote).toContainText('视觉小说');
+  await expect(kindNote).toContainText('那句里的东西不在这份产物里');
+  await kindNote.scrollIntoViewIfNeeded();
+  await expect(kindNote).toBeInViewport();
+  await page.screenshot({ path: 'screenshots/game-code-kind-mismatch.png' });
+
+  // 屏上这句与拿走的字节是同一句：下载 README 对一遍。
+  // 只在界面上说清楚而产物文件里那句是旧的（或反过来），用户转述时就两头都对不上。
+  const readmeEvent = page.waitForEvent('download');
+  await page.click('[data-game-code-file="README.txt"]');
+  const readmePath = await (await readmeEvent).path();
+  if (!readmePath) throw new Error('README 没落到磁盘');
+  const readme = (await readFile(readmePath)).toString('utf8');
+  const onScreen = (await kindNote.textContent()) ?? '';
+  expect(onScreen.length, '界面上那句话是空的').toBeGreaterThan(20);
+  expect(readme, '屏上那句与产物里那句不是同一份').toContain(onScreen);
+  // 那句只有对得上时才成立的旧文案，不能在这一型的产物里还留着
+  expect(readme).not.toContain('界面上的画布读的就是这一份');
+
+  // 换回 2D：这句话是派生出来的，不是粘上去的，所以类型对得上时它必须自己消失。
+  // 只量"错位时出现"挡不住一个恒真的实现（变异电池里 A 那一臂就是这么被抓出来的）。
+  await page.selectOption('[data-game-kind]', '2d');
+  await expect(page.locator('[data-game-code-behind]')).toHaveCount(0, { timeout: 90_000 });
+  await page.click('[data-game-code-run]');
+  await expect(page.locator('[data-game-code-file]').first()).toBeVisible({ timeout: 30_000 });
+  await expect(page.locator('[data-game-code-kind]')).toHaveCount(0);
+  const backEvent = page.waitForEvent('download');
+  await page.click('[data-game-code-file="README.txt"]');
+  const backPath = await (await backEvent).path();
+  if (!backPath) throw new Error('换回 2D 后 README 没落到磁盘');
+  expect((await readFile(backPath)).toString('utf8')).toContain('界面上的画布读的就是这一份');
 });

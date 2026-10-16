@@ -49,6 +49,8 @@ export async function GET(_req: Request, ctx: RouteContext): Promise<NextRespons
       notes: output.notes,
       bytes: output.bytes,
       limits: CODEGEN_LIMITS,
+      kindPipeline: output.kindPipeline,
+      kindNote: output.kindNote,
     });
   } catch (error) {
     return failure(error, `GET /api/projects/${projectId}/game/code`);

@@ -4,11 +4,15 @@ import {
   CODEGEN_LIMITS,
   CONTACT_COOLDOWN,
   EVENT_CAP,
+  GAME_KINDS,
+  GAME_KIND_LABELS,
+  GAME_KIND_STATUS,
   MAX_FRAME_SECONDS,
   PLAY_KIND_SHAPES,
   PLAYER_ATTACK_COOLDOWN,
   SIM_NO_PLAYER_OUTCOME,
   SIM_RULE_NOTES,
+  codeKindReadings,
   compileGame,
   generateGameCode,
   initialState,
@@ -16,13 +20,14 @@ import {
   validateGame,
   type GameDocument,
   type GameEntityKind,
+  type GameKind,
   type GeneratedGameFile,
 } from "../src/index";
 
 /**
  * §52 链最后一格（Code）的规则层测试：一份设计投出来的**产物字节**能撒的谎，
  * 与前三格不一样——前三格谎在"做了什么"，这一格谎在"拿到的东西是不是真的跑得起来的那一份"。
- * 所以断言全部围着五类谎：
+ * 所以断言全部围着六类谎：
  *
  * 1. **两份计划各写一遍**：`plan.json` 与 `plan.js` 必须是同一次 `compileGame` 的序列化结果。
  *    分开生成就会出现"下载的那份是旧的、浏览器里跑的是新的"，而两边都自称来自同一份设计。
@@ -37,6 +42,9 @@ import {
  *    计划里并没有这两个字段。产物若从计划里抄，敌人开局就是死的——页面照样"进行中"，谁也看不出。
  *    这一类缺陷是浏览器那条见证第一次跑抓到的（`scripts/game-code-parity.mts`，读数见 `docs/TESTING.md`），
  *    下面那道读结构的闸就是它留下的疤。
+ * 6. **拿走的不是试玩的那一种**：这一格只有一条投影链（`compileGame` 的 2D 俯视计划），而 §51 的类型表
+ *    里有三型读的是别的管线。那句话现在由 `codeKindReadings()` 从 `compileForKind` 派生，
+ *    README、index.html 与响应里必须是同一个字符串——最后一节钉的就是这一类谎。
  *
  * 底稿的每一串预期（七个文件、几个未投影的实体、几个模板实体）都是先把这份文档跑一遍量出来的，
  * 不是猜的；能由投影算出来的数都从投影算，不手写。
@@ -388,5 +396,114 @@ describe("§52 最后一格：把设计投影成一份拿得走的产物", () =>
     const hits = startActorDefects(bad);
     expect([...new Set(hits.map((hit) => hit.split("：")[0]))]).toEqual(["enemies"]);
     expect(hits.some((hit) => hit.includes("cloneActors"))).toBe(true);
+  });
+});
+
+/**
+ * 「下载拿走的那一份」与「平台上试玩的那一份」是不是同一条管线。
+ *
+ * 这一格今天只有一条投影链（`compileGame` 的 2D 俯视计划），而 §51 的类型表里有三种类型读的是别的管线。
+ * 上一版 README 那句"界面上的画布读的就是这一份"对这三种是假的——实测读数记在
+ * `docs/TESTING.md` 2026-10-17 那一条：RPG 原型投出来的产物没有成长循环，视觉小说投出来是一个开不了场的空场子。
+ * 下面这几条钉的是**那句话现在由分派点派生**，不是有人在某一处手抄了一份乐观版本。
+ */
+describe("产物的管线与这份设计标的那一型：错位要说出来，不许各写一遍", () => {
+  /** 把底稿换成某一型：只改 `kind`，其余字节不动，这样两型之间的差别只可能是那句话 */
+  const asKind = (document: GameDocument, kind: GameKind): GameDocument => ({ ...document, kind });
+
+  it("八型全过一遍：kindNote 为空当且仅当这一型读的就是产物那条链", () => {
+    const rows = GAME_KINDS.map((kind) => {
+      const reading = codeKindReadings(asKind(levelDraft(), kind));
+      return { kind, noteEmpty: reading.kindNote === null, pipeline: reading.kindPipeline };
+    });
+    // 与状态表逐型对齐：这一格不许自己再判断一次"这个类型走哪条管线"
+    for (const row of rows) {
+      expect(row.pipeline, `${row.kind} 的管线读数与状态表不一致`).toBe(GAME_KIND_STATUS[row.kind].pipeline);
+    }
+    const topdown = GAME_KINDS.filter((kind) => GAME_KIND_STATUS[kind].pipeline === "topdown");
+    expect(rows.filter((row) => row.noteEmpty).map((row) => row.kind).sort()).toEqual([...topdown].sort());
+    // 群体不许是空的：全为 null 或全非 null 都会让上面那条比对变成空转
+    expect(topdown.length).toBeGreaterThan(0);
+    expect(rows.length - topdown.length).toBeGreaterThan(0);
+  });
+
+  it("那一句话说清「错位」，而且三处念的是同一份字节", () => {
+    const document = asKind(levelDraft(), "rpg-prototype");
+    const output = generateGameCode(document);
+    expect(output.kindPipeline, "这一型在平台上读的不是产物那条链").not.toBe("topdown");
+    const note = output.kindNote!;
+    // 话内容由状态表那一行供给：改了表格这句话要跟着变，不能是一段抄死的文案
+    expect(note).toContain(GAME_KIND_STATUS["rpg-prototype"].note);
+    expect(note).toContain(GAME_KIND_LABELS["rpg-prototype"]);
+    // README 与 index.html 不许再抄一份：两处都必须是 output.kindNote 这一个字符串
+    expect(file(output, "README.txt").contents).toContain(note);
+    expect(file(output, "index.html").contents).toContain(note);
+
+    // 正向对照：同一份底稿换成 2d，那句话整句消失，README 回到"画布读的就是这一份"
+    const flat = generateGameCode(asKind(levelDraft(), "2d"));
+    expect(flat.kindNote).toBeNull();
+    expect(flat.kindPipeline).toBe("topdown");
+    expect(file(flat, "README.txt").contents).toContain("界面上的画布读的就是这一份");
+    expect(file(flat, "index.html").contents).not.toContain("kind-note");
+    expect(file(output, "README.txt").contents, "非这条链的产物不许再宣称画布读的是这一份").not.toContain(
+      "界面上的画布读的就是这一份",
+    );
+  });
+
+  it("对话那一型也不骗：既说出错位，也照实说出这个场子开不了", () => {
+    const story = asKind(
+      build("只有对话", [{ id: "d1", kind: "dialogue", name: "开场", stats: {} }]),
+      "visual-novel",
+    );
+    const output = generateGameCode(story);
+    expect(output.kindPipeline).toBe("story");
+    expect(output.kindNote).toContain(GAME_KIND_LABELS["visual-novel"]);
+    const readme = file(output, "README.txt").contents;
+    expect(readme).toContain(output.kindNote!);
+    // 这条链跑不起来那句仍要在（blockers 来自投影自己，不是这一格编的）
+    const blockers = compileGame(story).blockers;
+    expect(blockers.length).toBeGreaterThan(0);
+    for (const blocker of blockers) expect(readme, `这条拒绝没进 README：${blocker}`).toContain(blocker);
+  });
+
+  it("换个类型就换一句话，而产物的文件清单还是那七份", () => {
+    // 判别证据取自表格自己的两个字段：把某一型的读数换成另一型的，README/页面必须跟着变
+    const rpg = generateGameCode(asKind(levelDraft(), "rpg-prototype"));
+    const vn = generateGameCode(asKind(levelDraft(), "visual-novel"));
+    expect(rpg.kindNote).not.toBe(vn.kindNote);
+    expect(vn.kindNote).toContain(GAME_KIND_STATUS["visual-novel"].note);
+    expect(vn.kindNote).not.toContain(GAME_KIND_STATUS["rpg-prototype"].note);
+    // 但产物的字节仍只有那七份：说出来不等于改行为
+    expect(vn.files.map((f) => f.path)).toEqual(rpg.files.map((f) => f.path));
+  });
+});
+
+describe("那句话是从状态表算出来的，不是抄下来的", () => {
+  /**
+   * 判别证据：改表格里的一个字，这句话必须跟着变。
+   * 只断言"这句话里含表格里那句话"挡不住手抄——抄的那一份今天也相等。
+   * 所以这里在跑之前把 visual-novel 的 note 换成哨兵串，跑完立刻还原（还原失败也要报出来）。
+   */
+  it("状态表改了，产物的那句话跟着改（哨兵串）", () => {
+    const original = GAME_KIND_STATUS["visual-novel"];
+    const sentinel = "哨兵：这一型的说明被测试改过了";
+    const asVn = (): GameDocument => ({ ...levelDraft(), kind: "visual-novel" }) as GameDocument;
+    try {
+      (GAME_KIND_STATUS as Record<GameKind, { pipeline: string | null; view?: string; note: string }>)["visual-novel"] = {
+        ...original,
+        note: sentinel,
+      };
+      const output = generateGameCode(asVn());
+      expect(output.kindNote, "表格改了而这句话没跟着改 = 某处抄了一份").toContain(sentinel);
+      expect(output.kindNote).not.toContain(original.note);
+      expect(file(output, "README.txt").contents).toContain(sentinel);
+    } finally {
+      (GAME_KIND_STATUS as Record<GameKind, typeof original>)["visual-novel"] = original;
+    }
+    // 还原的证据同时是派生的第二遍证据：换回原句，这句话里就不许再留着哨兵
+    expect(GAME_KIND_STATUS["visual-novel"].note).toBe(original.note);
+    const after = codeKindReadings(asVn()).kindNote!;
+    expect(after).toContain(original.note);
+    expect(after, "哨兵没还原就写回表格：这条自己先红").not.toContain(sentinel);
   });
 });

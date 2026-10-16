@@ -4829,3 +4829,34 @@ M8 第三片（2026-09-29）欠的那格清账："这本账只有按人 / 按枚
   窗口汇总里"其中爬虫/自动化打开 1 次"同屏可见）。**1 passed，1.4m**。
 - **明确不做**（ADR-0043 记了理由）：IP/行为限速挡在写入前（被挡的行在库里无迹可查）；
   删掉疑似行（"被爬过"会消失）；改 `views` 的历史口径；把名单放宽到"宁可错杀"。
+
+## §52 × §51 那一格错位：产物只有一条链，而三型读的是别的 —— 2026-10-17
+
+`generateGameCode()` 永远投的是 `compileGame()` 那条 **2D 俯视**链，而 §51 八型里
+`rpg-prototype`（成长循环）、`interactive-story` / `visual-novel`（对话管线）在试玩页跑的不是这一条。
+README 那句"界面上的画布读的就是这一份"在这三型上是**假的**——2026-10-17 用两份 `tsx` 探针量过：
+RPG 那份 7 文件 / 27276 字节里没有成长循环，视觉小说那份 7 文件 / 19088 字节里读不到对话正文，
+`compileGame` 自己给的阻塞项是"没有玩家实体……开不了场"。
+
+- **决定**（ADR-0044）：**说出来，而不是把下载关掉**。三条路里拒绝生成会让链上第五格每次都红
+  （`gameDraft` 写死 `rpg-prototype`）、还会顺手拿掉那五型**真的**产物；补一条 RPG/对话引擎是另一格能力，
+  在这一片里写半条就是 §159 的假生成。所以选第三条：那句话由分派点派生，五处共用同一句。
+- **落了什么**：`codeKindReadings(document)`（`packages/game-model/src/codegen.ts`）读
+  `compileForKind(document).pipeline` 与 `GAME_KIND_STATUS[kind].note` 拼出 `kindNote`，
+  `topdown` 时是 `null`；`GameCodeOutput` 多带 `kindPipeline` / `kindNote` 两个字段。
+  供给点五个：README 那一行分叉、`index.html` 里 `#kind-note` 段落、`GET .../game/code` 响应字段、
+  Studio 面板 `<p data-game-code-kind>`、链上第五格的 `notes` + `summary` + `counts.kindMismatch`。
+  **对得上时一个字都不印**——恒真的警告和恒无的警告一样没人信。
+- **凭证**：`codegen.test.ts` 18→23 条（八型"为空当且仅当"表驱动 + 非空种群下限、
+  三处同一份字节、对话型同时说出错位与开不了场、**哨兵串**证明那句话跟着状态表动）；
+  两份集成测试各加/各扩一条（响应字段与第二次 `codeKindReadings` 调用比对、注入 `kind:'2d'` 草稿后
+  那句话与 `kindMismatch` 一起消失）；e2e 那支在真浏览器里换型再换回来，屏上那句与落盘的 README
+  **含同一整句**，47.7 秒 1 passed，截图 `screenshots/game-code-kind-mismatch.png`。
+  7 臂变异电池：A 绕过分派点 9 红 / B README 不分叉 4 / C 页面少那句 2 / D 链上不念 1 /
+  E 路由丢字段 2 / F 计数写死 1 / G 摘要管线名写死 1（G 第一版拼串写在双引号里，
+  `${'$'}` 不展开 → 命中 0 次判 INTERFERED，什么都没跑；改反引号重跑才作数）。
+- **仍然欠的（下一格）**：错位只是被说出来，**没有被修掉**——产物还没有 RPG 的成长循环与对话管线引擎。
+  那格落地时这一句 `kindNote` 会随 `compileForKind` 自己变空，不用改文案。
+  #139（链上草稿带 `kind`）本片后**要重新划范围**：它原先的一条理由（`pipeline: null` 走不到）今天不成立，
+  八型全接了，该挑的是可达接缝——`playtest` 那格今天恒跑 `playtestRpg`，一份 2D 草稿的
+  "四种走法"读数其实是 RPG 成长循环的读数。

@@ -4,7 +4,7 @@ import { GET as generateCode } from '../src/app/api/projects/[projectId]/game/co
 import { GET as generateZip } from '../src/app/api/projects/[projectId]/game/code/zip/route';
 import { SESSION_COOKIE } from '../src/server/domain/session';
 import { gameDraft } from '../src/lib/agent-game-draft';
-import { addEntity, generateGameCode, type GameDocument } from '@nexus/game-model';
+import { addEntity, codeKindReadings, generateGameCode, type GameDocument } from '@nexus/game-model';
 import { GameDocumentSchema } from '@nexus/schemas';
 import { MAX_CODE_JSON_BYTES, MAX_CODE_ZIP_BYTES } from '../src/server/domain/gameCode';
 import { readZip } from '../src/lib/zip-read';
@@ -16,12 +16,14 @@ import { projects, sessions, users } from '../src/server/db/schema';
 /**
  * §52 最后一格（Code）的出口 `GET /api/projects/<id>/game/code` 打真库。
  *
- * 这一片要钉的是四件事，每件都是"少一条就会出事"的那种：
+ * 这一片要钉的是五件事，每件都是"少一条就会出事"的那种：
  * ① 没有游戏设计时说清"去哪建一份"，而不是回一个空产物让人以为生成成功；
  * ② 产物吃的是库里那份设计（不是请求体贴进来的任意文档）——**写接口与读投影分开**：
  *    这个端点只读、不需要 CSRF， Admission 走会话 cookie 与项目归属；
  * ③ 产物字节数如实报出来，超过上限回 413 而不是塞一份无界 JSON；
- * ④ 别人的项目与"不存在"同一个答案（项目归属判定，404）。
+ * ④ 别人的项目与"不存在"同一个答案（项目归属判定，404）；
+ * ⑤ 库里那份设计标的类型走的不是产物那条链时，那句话要随响应一起出来，
+ *    且与 README / index.html 里的是同一个字符串（界面上那三处不许各写一遍）。
  */
 
 const jar = vi.hoisted(() => new Map<string, string>());
@@ -123,6 +125,8 @@ describe('§52 Code 出口：把库里那份设计投影成拿得走的产物', 
       notes: string[];
       bytes: number;
       limits: string[];
+      kindPipeline: string | null;
+      kindNote: string | null;
     };
     expect(parsed.ok).toBe(true);
     // HTML 入口与 plan.json 都在：少一件就不是"拿得走的产物"
@@ -160,6 +164,40 @@ describe('§52 Code 出口：把库里那份设计投影成拿得走的产物', 
     // 限度随产物一起念出来（转写、不执行、CSP）
     expect(parsed.limits.length).toBeGreaterThan(0);
     expect(parsed.limits.join('')).toContain('connect-src');
+
+    /**
+     * 这份底稿标的是 `rpg-prototype`（`gameDraft` 的配方就是这一型），而产物只会跑 `compileGame`
+     * 那条 2D 俯视链。响应必须把错位说出来，而且说的就是生成器那一份字节——
+     * 路由自己新写一句、或者面板自己拼一句，都会在这一条红（三处同一句是 §16 的要求）。
+     */
+    const reading = codeKindReadings(design);
+    expect(reading.kindPipeline, '这份底稿的类型本该不是产物那条链').not.toBe('topdown');
+    expect(parsed.kindPipeline).toBe(reading.kindPipeline);
+    expect(parsed.kindNote).toBe(reading.kindNote);
+    for (const path of ['README.txt', 'index.html']) {
+      const body = parsed.files.find((f) => f.path === path)!.contents;
+      expect(body, `${path} 里没有那句错位说明`).toContain(parsed.kindNote!);
+    }
+  });
+
+  it('这一型读的就是产物那条链：响应里不许留一句空的警告', async () => {
+    const projectId = await newProject('有游戏-2d');
+    const flat: GameDocument = { ...sampleGame(projectId), kind: '2d' };
+    await saveGame(projectId, owner, flat);
+
+    const res = await call(projectId, asUser(ownerToken));
+    const text = await res.text();
+    expect(res.status, text).toBe(200);
+    const parsed = JSON.parse(text) as { files: { path: string; contents: string }[]; kindPipeline: string | null; kindNote: string | null };
+    expect(parsed.kindPipeline).toBe('topdown');
+    expect(parsed.kindNote).toBeNull();
+    // 没有警告不等于没有话可说：README 回到那句真话，页面里也不许有一个空的下架位
+    const readme = parsed.files.find((f) => f.path === 'README.txt')!.contents;
+    expect(readme).toContain('界面上的画布读的就是这一份');
+    expect(parsed.files.find((f) => f.path === 'index.html')!.contents).not.toContain('kind-note');
+    // 反向对照：同一份文档只改 `kind` 这一格，警告就该出现——证明上面那句 null 不是恒为 null
+    const shifted = codeKindReadings({ ...flat, kind: 'rpg-prototype' });
+    expect(shifted.kindNote).not.toBeNull();
   });
 
   it('别人的项目 → 404（与"不存在"同一个答案）——项目里必须真的有游戏，否则 404 来自"没有设计"而不是归属', async () => {
