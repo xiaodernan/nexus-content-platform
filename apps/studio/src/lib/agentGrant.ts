@@ -33,3 +33,17 @@ export function isGrantActive(grant: AgentGrant, now: number): boolean {
   if (grant.expiresAt === null) return true;
   return grant.expiresAt > now;
 }
+
+/** 授权 scope 的客户端展示标签，供客户端卡片直接使用。 */
+export function grantScopeLabel(scope: AgentGrant['scope']): string {
+  switch (scope) {
+    case 'publish':
+      return '发布权限';
+    case 'remix':
+      return '混改权限';
+    case 'read':
+      return '读取权限';
+    default:
+      return scope;
+  }
+}

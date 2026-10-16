@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   agentGrantExpiryText,
+  grantScopeLabel,
   isGrantActive,
 } from './agentGrant';
 import type { AgentGrant } from './agentGrant';
@@ -45,5 +46,13 @@ describe('agentGrant — isGrantActive', () => {
   it('true when permanent', () => {
     const permanent: AgentGrant = { ...grant, expiresAt: null };
     expect(isGrantActive(permanent, now)).toBe(true);
+  });
+});
+
+describe('agentGrant — grantScopeLabel', () => {
+  it('maps each scope to a label', () => {
+    expect(grantScopeLabel('publish')).toBe('发布权限');
+    expect(grantScopeLabel('remix')).toBe('混改权限');
+    expect(grantScopeLabel('read')).toBe('读取权限');
   });
 });
