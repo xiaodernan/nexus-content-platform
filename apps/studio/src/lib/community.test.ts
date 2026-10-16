@@ -9,9 +9,12 @@ import {
   buildFollowersIndex,
   buildFollowingIndex,
   buildProfileIndex,
+  commentBodyText,
   commentsFor,
   escapeHtml,
+  followButtonText,
   likeCountFor,
+  likeCountText,
   isFollowing,
 } from './community';
 
@@ -140,5 +143,23 @@ describe('community — escapeHtml', () => {
   it('leaves plain text unchanged', () => {
     expect(escapeHtml('nice comment')).toBe('nice comment');
     expect(escapeHtml('')).toBe('');
+  });
+});
+
+describe('community — UI helpers', () => {
+  it('followButtonText toggles with the follow state', () => {
+    expect(followButtonText(false)).toBe('Follow');
+    expect(followButtonText(true)).toBe('Unfollow');
+  });
+
+  it('likeCountText hides zero', () => {
+    expect(likeCountText(0)).toBe('');
+    expect(likeCountText(1)).toBe('1');
+    expect(likeCountText(42)).toBe('42');
+  });
+
+  it('commentBodyText shows [deleted] for deleted comments', () => {
+    expect(commentBodyText(comment({ deleted: true, body: 'secret' }))).toBe('[deleted]');
+    expect(commentBodyText(comment({ deleted: false, body: 'nice' }))).toBe('nice');
   });
 });

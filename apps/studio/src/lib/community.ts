@@ -123,3 +123,19 @@ export function escapeHtml(text: string): string {
     .replace(/"/g, '&quot;')
     .replace(/'/g, '&#039;');
 }
+
+/** Stage C UI 辅助：把关注关系渲染成按钮文本。纯函数，不触网络、不写状态。 */
+export function followButtonText(isFollowingNow: boolean): 'Follow' | 'Unfollow' {
+  return isFollowingNow ? 'Unfollow' : 'Follow';
+}
+
+/** Stage C UI 辅助：点赞数的显示文本。0 条时不展示数字（与 explore 卡片保持一致的极简风格）。 */
+export function likeCountText(count: number): string {
+  return count === 0 ? '' : String(count);
+}
+
+/** Stage C UI 辅助：评论正文的展示文本，deleted 时显示占位而非原文。 */
+export function commentBodyText(comment: Comment): string {
+  if (comment.deleted) return '[deleted]';
+  return comment.body;
+}
