@@ -4,6 +4,7 @@ import { ttlLabel } from '@/lib/notify-plan';
 import { channels, getRealtimeBus } from '../realtime/bus';
 import { recordAudit } from './audit';
 import { chargeGeneration } from './credit-ledger';
+import { isUuid } from './ids';
 import { emit } from './notifications';
 import { getDb } from '../db/client';
 import { agentTasks, projects } from '../db/schema';
@@ -199,7 +200,7 @@ export async function cancelTask(taskId: string, reason: string): Promise<boolea
  * 与 `readApprovalTask` 同一口径：这行里存着提示词摘要，"别人的行存在"本身就是信息。
  */
 export async function readOwnTask(taskId: string, actorId: string): Promise<typeof agentTasks.$inferSelect | null> {
-  if (!UUID_LIKE.test(taskId)) return null;
+  if (!isUuid(taskId)) return null;
   const [row] = await getDb()
     .select({ task: agentTasks })
     .from(agentTasks)
@@ -336,6 +337,10 @@ export async function latestPlannedTask(projectId: string, actorId: string): Pro
 
 /** 一条编排作业（按归属判；别人的与不存在给同一个答案） */
 export async function plannedTask(taskId: string, actorId: string): Promise<PlannedTaskView | null> {
+  // 形状不对的 id 按"没有这一行"处理：eq(agentTasks.id, …) 会撞 22P02 变 500（domain/ids.ts）。
+  // /agent/draft 那个入口的请求体只校验了 taskId 是非空串（AgentDraftAcceptRequestSchema 在
+  // lib/agent-runtime.ts），于是 "not-a-uuid" 能一路走到这里——这是 688a515 那片没覆盖到的入口
+  if (!isUuid(taskId)) return null;
   const [row] = await getDb()
     .select({ task: agentTasks, projectName: projects.name })
     .from(agentTasks)
@@ -466,7 +471,7 @@ export function approvalExpiresAt(task: { status: string; awaitingSince: Date | 
  * 后到的那一次返回 false，行上的 `finishedAt` 不会被刷成第二个时间。
  */
 export async function convergeExpiredApproval(taskId: string, now: Date = new Date()): Promise<boolean> {
-  if (!UUID_LIKE.test(taskId)) return false;
+  if (!isUuid(taskId)) return false;
   const db = getDb();
   const [row] = await db
     .select({
@@ -542,11 +547,6 @@ export type ApprovalOutcome =
   /** 任务号是别人的，或者根本不存在：与 §162 一样，不区分两种情况以免枚举 */
   | { ok: false; code: 'not_found'; message: string };
 
-/**
- * 任务号长得不像 uuid 时不去打库：Postgres 会为语法不合法的 uuid 抛错，
- * 那条错在界面上是一条 500，而它该有的答案是"没这条任务"。
- */
-const UUID_LIKE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const NOT_FOUND = '这条任务不存在，或者不属于你。';
 
 /**
@@ -564,7 +564,7 @@ export async function decideApproval(
   decision: ApprovalDecision,
   ip?: string | null,
 ): Promise<ApprovalOutcome> {
-  if (!UUID_LIKE.test(taskId)) return { ok: false, code: 'not_found', message: NOT_FOUND };
+  if (!isUuid(taskId)) return { ok: false, code: 'not_found', message: NOT_FOUND };
   const db = getDb();
   const [row] = await db
     .select()
@@ -732,7 +732,7 @@ export type ApprovalTaskView = ReturnType<typeof approvalShape>;
  * 而不是发一张"还等着"的卡片、等用户按下批准再告诉他不作数。
  */
 export async function listPendingApprovals(projectId: string, actorId: string, limit = 10): Promise<ApprovalTaskView[]> {
-  if (!UUID_LIKE.test(projectId)) return [];
+  if (!isUuid(projectId)) return [];
   const take = Math.min(Math.max(Math.trunc(limit) || 1, 1), 50);
   const rows = await getDb()
     .select({ task: agentTasks })
@@ -755,7 +755,7 @@ export async function listPendingApprovals(projectId: string, actorId: string, l
 }
 
 export async function readApprovalTask(taskId: string, actorId: string): Promise<ApprovalTaskView | null> {
-  if (!UUID_LIKE.test(taskId)) return null;
+  if (!isUuid(taskId)) return null;
   const [row] = await getDb()
     .select({ task: agentTasks })
     .from(agentTasks)

@@ -1,11 +1,13 @@
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import { eq } from 'drizzle-orm';
 import { GET as getMemories } from '../src/app/api/projects/[projectId]/memories/route';
+import { POST as acceptDraft } from '../src/app/api/projects/[projectId]/agent/draft/route';
 import { POST as resolveModeration } from '../src/app/api/admin/moderation/[caseId]/route';
 import { CSRF_COOKIE, CSRF_HEADER } from '../src/server/security/csrf';
 import { SESSION_COOKIE } from '../src/server/domain/session';
 import { isUuid } from '../src/server/domain/ids';
 import { createProject, projectBelongsTo } from '../src/server/domain/projects';
+import { plannedTask } from '../src/server/domain/agent-tasks';
 import { resolveCase } from '../src/server/domain/moderation';
 import { getDb } from '../src/server/db/client';
 import { projects, sessions, users } from '../src/server/db/schema';
@@ -15,9 +17,11 @@ import { projects, sessions, users } from '../src/server/db/schema';
  * 22P02（invalid input syntax for type uuid）在界面上变成 500。
  *
  * 从路由进来的 id 大多是路径参数（[projectId]、[caseId]…），Next 只保证它们是字符串。
- * 横向审计发现六个家族的域助手（projects / moderation / memories / branches /
- * characters / snapshots）都是裸 eq(id, …)——`/api/projects/not-a-uuid/memories`
- * 这类请求此前整条 500。资产域（assets.ts）此前自己抄了一份正则挡这一格，
+ * 横向审计发现七个家族的域助手曾经是裸 eq(id, …)：projects / moderation / memories /
+ * branches / characters / snapshots（688a515 那片）+ agent-tasks 的 plannedTask
+ * （/agent/draft 入口，本片补上）——`/api/projects/not-a-uuid/memories` 这类请求
+ * 此前整条 500。资产域（assets.ts）与 agent-tasks.ts 原先各自抄了一份正则
+ * （UUID_SHAPE / UUID_LIKE），现在统一到 `domain/ids.ts` 的 isUuid，
  * 现在统一到 `domain/ids.ts` 的 isUuid，那句"不存在"的说法只剩一种：
  * 与 v1 项目详情同一口径（"不在你名下或已被删除——两者都给同一个答案"）。
  *
@@ -175,5 +179,46 @@ describe('路由层：非 UUID 的路径参数回 404 / 409，不再 500', () =>
       { params: Promise.resolve({ caseId: '00000000-0000-4000-8000-000000000009' }) },
     );
     expect(res.status).toBe(409);
+  });
+});
+
+/**
+ * 第七个家族：agent-tasks 的 `plannedTask`。这是 688a515 那片没覆盖到的入口——
+ * `/agent/draft` 的请求体 schema（lib/agent-runtime.ts 的 AgentDraftAcceptRequestSchema）
+ * 只校验 taskId 是"非空串"，于是一个 `not-a-uuid` 能一路走到裸 eq()。
+ * agent-tasks.ts 里原先的 6 处 UUID_LIKE 本地正则也统一到了 domain/ids.ts 的 isUuid。
+ */
+describe('域层：plannedTask（/agent/draft 的入口，688a515 没覆盖到的那一个）', () => {
+  const draftUrl = (projectId: string): string => `http://test.local/api/projects/${projectId}/agent/draft`;
+
+  it('plannedTask 对非 UUID → null，不抛', async () => {
+    await expect(plannedTask('not-a-uuid', creator.id)).resolves.toBeNull();
+  });
+
+  it('POST /api/projects/<真项目>/agent/draft 带 taskId=not-a-uuid → 404（修复前 plannedTask 的 eq() 撞 22P02 变 500）', async () => {
+    const res = await acceptDraft(
+      new Request(draftUrl(realProjectId), {
+        method: 'POST',
+        headers: asUser(creatorToken, true),
+        body: JSON.stringify({ taskId: 'not-a-uuid' }),
+      }),
+      { params: Promise.resolve({ projectId: realProjectId }) },
+    );
+    expect(res.status).toBe(404);
+    // 路由对"没有这一行"只有这一种说法：任务不存在、不属于你、不属于这个项目，同一个答案
+    expect((await res.json()).error).toBe('not_found');
+  });
+
+  it('正对照：合法 UUID 但任务不存在 → 404（形状合法的那条路照旧走到数据库再答"没有"）', async () => {
+    await expect(plannedTask('00000000-0000-4000-8000-000000000009', creator.id)).resolves.toBeNull();
+    const res = await acceptDraft(
+      new Request(draftUrl(realProjectId), {
+        method: 'POST',
+        headers: asUser(creatorToken, true),
+        body: JSON.stringify({ taskId: '00000000-0000-4000-8000-000000000009' }),
+      }),
+      { params: Promise.resolve({ projectId: realProjectId }) },
+    );
+    expect(res.status).toBe(404);
   });
 });
