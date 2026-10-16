@@ -5,6 +5,7 @@ import {
   grantsByScope,
   grantScopeLabel,
   isGrantActive,
+  isGrantExpiringSoon,
 } from './agentGrant';
 import type { AgentGrant } from './agentGrant';
 
@@ -89,5 +90,29 @@ describe('agentGrant — grantsByAgentId', () => {
     expect((byAgent['agent-b'] ?? []).map((g) => g.id)).toEqual(['a-2']);
     expect(byAgent['agent-c']).toBeUndefined();
     expect(grants.length).toBe(3);
+  });
+});
+
+describe('agentGrant — isGrantExpiringSoon', () => {
+  const now = 1_700_000_000_000;
+
+  it('false when permanent', () => {
+    const permanent: AgentGrant = { ...grant, expiresAt: null };
+    expect(isGrantExpiringSoon(permanent, now)).toBe(false);
+  });
+
+  it('false when already expired', () => {
+    const expired: AgentGrant = { ...grant, expiresAt: now - 1 };
+    expect(isGrantExpiringSoon(expired, now)).toBe(false);
+  });
+
+  it('true when within threshold (default 7 days)', () => {
+    const soon: AgentGrant = { ...grant, expiresAt: now + 3 * 24 * 60 * 60 * 1000 };
+    expect(isGrantExpiringSoon(soon, now)).toBe(true);
+  });
+
+  it('false when beyond threshold', () => {
+    const far: AgentGrant = { ...grant, expiresAt: now + 10 * 24 * 60 * 60 * 1000 };
+    expect(isGrantExpiringSoon(far, now)).toBe(false);
   });
 });

@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { AccountId } from './community';
 import {
+  isFreePrice,
   isSubscribed,
   priceText,
   subscriptionDaysLeftText,
@@ -139,6 +140,17 @@ describe('monetization — tipsTotal', () => {
 describe('monetization — tipAmountText', () => {
   it('renders amount with CNY symbol', () => {
     expect(tipAmountText(tip)).toBe('¥5.00');
+  });
+});
+
+describe('monetization — isFreePrice', () => {
+  it('true when 0 or negative', () => {
+    expect(isFreePrice(0 as PriceCentsBrand)).toBe(true);
+    expect(isFreePrice(-100 as PriceCentsBrand)).toBe(true);
+  });
+
+  it('false when positive', () => {
+    expect(isFreePrice(1500 as PriceCentsBrand)).toBe(false);
   });
 });
 

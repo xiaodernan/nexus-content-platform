@@ -3,6 +3,7 @@ import type { AccountId } from './community';
 import {
   auditEntriesForTarget,
   auditEntriesSince,
+  auditEntryLabel,
   isReportClosed,
   reportOpenCount,
   reportResolvedCount,
@@ -130,5 +131,17 @@ describe('ops — reportOpenCount / reportResolvedCount', () => {
   it('zero for empty list', () => {
     expect(reportOpenCount([])).toBe(0);
     expect(reportResolvedCount([])).toBe(0);
+  });
+});
+
+describe('ops — auditEntryLabel', () => {
+  it('maps each action to a label', () => {
+    expect(auditEntryLabel('publish')).toBe('发布');
+    expect(auditEntryLabel('unpublish')).toBe('下架');
+    expect(auditEntryLabel('remix')).toBe('混改');
+    expect(auditEntryLabel('follow')).toBe('关注');
+    expect(auditEntryLabel('like')).toBe('点赞');
+    expect(auditEntryLabel('comment')).toBe('评论');
+    expect(auditEntryLabel('tip')).toBe('打赏');
   });
 });

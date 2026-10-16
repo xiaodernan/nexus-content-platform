@@ -74,3 +74,14 @@ export function grantsByAgentId(grants: ReadonlyArray<AgentGrant>): Record<strin
   }
   return out;
 }
+
+/** 判断授权是否即将过期（在 thresholdDays 天内且非永久），供客户端展示提醒。默认阈值 7 天。 */
+export function isGrantExpiringSoon(
+  grant: AgentGrant,
+  now: number,
+  thresholdDays: number = 7,
+): boolean {
+  if (grant.expiresAt === null) return false;
+  const msLeft = grant.expiresAt - now;
+  return msLeft > 0 && msLeft <= thresholdDays * 24 * 60 * 60 * 1000;
+}

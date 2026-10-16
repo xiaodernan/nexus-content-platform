@@ -55,6 +55,11 @@ export function tipAmountText(tip: Tip): string {
   return priceText(tip.amountCents, 'CNY');
 }
 
+/** 判断价格是否为免费（0 分），供客户端卡片决定是否展示价格行。 */
+export function isFreePrice(priceCents: PriceCents): boolean {
+  return !priceCents || priceCents <= 0;
+}
+
 /** 判断一条 Subscription 对当前 viewer 是否有效（active 且已订阅），纯判断，不改状态。 */
 export function isSubscribed(sub: Subscription | null, viewerId: AccountId | null): boolean {
   if (!viewerId || !sub) return false;

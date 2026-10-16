@@ -104,3 +104,25 @@ export function reportOpenCount(reports: ReadonlyArray<Report>): number {
 export function reportResolvedCount(reports: ReadonlyArray<Report>): number {
   return reports.filter((r) => r.status === 'resolved' || r.status === 'rejected').length;
 }
+
+/** 把审计动作映射为中文展示标签，供客户端卡片/列表直接使用。 */
+export function auditEntryLabel(action: AuditEntry['action']): string {
+  switch (action) {
+    case 'publish':
+      return '发布';
+    case 'unpublish':
+      return '下架';
+    case 'remix':
+      return '混改';
+    case 'follow':
+      return '关注';
+    case 'like':
+      return '点赞';
+    case 'comment':
+      return '评论';
+    case 'tip':
+      return '打赏';
+    default:
+      return action;
+  }
+}
