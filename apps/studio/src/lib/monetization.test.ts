@@ -3,7 +3,9 @@ import type { AccountId } from './community';
 import {
   isSubscribed,
   priceText,
+  subscriptionStatusText,
   tipText,
+  tipsTotal,
 } from './monetization';
 import type { Subscription, Tip } from './monetization';
 
@@ -86,6 +88,29 @@ describe('monetization — isSubscribed', () => {
   it('false when null or no viewer', () => {
     expect(isSubscribed(null, 'acct-creator' as AccountId)).toBe(false);
     expect(isSubscribed(sub, null)).toBe(false);
+  });
+});
+
+describe('monetization — subscriptionStatusText', () => {
+  it('Active / Inactive / Never subscribed', () => {
+    expect(subscriptionStatusText(sub)).toBe('Active');
+    expect(subscriptionStatusText({ ...sub, active: false })).toBe('Inactive');
+    expect(subscriptionStatusText(null)).toBe('Never subscribed');
+  });
+});
+
+describe('monetization — tipsTotal', () => {
+  it('sums all tip amounts', () => {
+    const tips: Tip[] = [
+      { ...tip, amountCents: 500 as PriceCentsBrand },
+      { ...tip, amountCents: 1200 as PriceCentsBrand },
+      { ...tip, amountCents: 300 as PriceCentsBrand },
+    ];
+    expect(tipsTotal(tips)).toBe(2000 as PriceCentsBrand);
+  });
+
+  it('zero for empty list', () => {
+    expect(tipsTotal([])).toBe(0 as PriceCentsBrand);
   });
 });
 

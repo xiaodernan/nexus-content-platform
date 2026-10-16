@@ -54,3 +54,14 @@ export function isSubscribed(sub: Subscription | null, viewerId: AccountId | nul
   if (!viewerId || !sub) return false;
   return sub.active && sub.creatorId === viewerId;
 }
+
+/** 订阅状态展示文本。active 且 subscribedAt 已设 → "Active"；否则 "Inactive"；null → "Never subscribed"。 */
+export function subscriptionStatusText(sub: Subscription | null): string {
+  if (!sub) return 'Never subscribed';
+  return sub.active ? 'Active' : 'Inactive';
+}
+
+/** 打赏列表的总金额（分），用于展示“累计打赏”。 */
+export function tipsTotal(tips: ReadonlyArray<Tip>): PriceCents {
+  return tips.reduce((sum, t) => sum + t.amountCents, 0) as unknown as PriceCents;
+}
