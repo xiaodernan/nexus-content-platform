@@ -4,6 +4,7 @@ import {
   grantRemainingDays,
   grantsByAgentId,
   grantsByScope,
+  grantsExpiringWithin,
   grantScopeLabel,
   isGrantActive,
   isGrantExpiringSoon,
@@ -133,5 +134,21 @@ describe('agentGrant — grantRemainingDays', () => {
   it('whole days when future', () => {
     expect(grantRemainingDays({ ...grant, expiresAt: now + 2 * 24 * 60 * 60 * 1000 }, now)).toBe(2);
     expect(grantRemainingDays({ ...grant, expiresAt: now + 2 * 24 * 60 * 60 * 1000 + 5 * 60 * 60 * 1000 }, now)).toBe(2);
+  });
+});
+
+describe('agentGrant — grantsExpiringWithin', () => {
+  const now = 1_700_000_000_000;
+  const grants: AgentGrant[] = [
+    { ...grant, id: 'x-1', expiresAt: null },
+    { ...grant, id: 'x-2', expiresAt: now - 1 },
+    { ...grant, id: 'x-3', expiresAt: now + 3 * 24 * 60 * 60 * 1000 },
+    { ...grant, id: 'x-4', expiresAt: now + 10 * 24 * 60 * 60 * 1000 },
+  ];
+
+  it('returns only expiring-within-threshold grants', () => {
+    const out = grantsExpiringWithin(grants, now, 7);
+    expect(out.map((g) => g.id)).toEqual(['x-3']);
+    expect(grants.length).toBe(4);
   });
 });

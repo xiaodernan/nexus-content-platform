@@ -10,6 +10,7 @@ import {
   tipAmountText,
   tipText,
   tipsTotal,
+  tipsTotalByAgent,
 } from './monetization';
 import type { Subscription, Tip } from './monetization';
 
@@ -159,6 +160,25 @@ describe('monetization — currencySymbol', () => {
   it('USD -> $, CNY -> ¥', () => {
     expect(currencySymbol('USD')).toBe('$');
     expect(currencySymbol('CNY')).toBe('¥');
+  });
+});
+
+describe('monetization — tipsTotalByAgent', () => {
+  it('sums tips by recipient without mutating input', () => {
+    const tips: Tip[] = [
+      { ...tip, recipientId: 'r-1' as AccountId, amountCents: 500 as PriceCentsBrand },
+      { ...tip, recipientId: 'r-2' as AccountId, amountCents: 700 as PriceCentsBrand },
+      { ...tip, recipientId: 'r-1' as AccountId, amountCents: 300 as PriceCentsBrand },
+    ];
+    const byAgent = tipsTotalByAgent(tips);
+    expect(byAgent['r-1']).toBe(800 as PriceCentsBrand);
+    expect(byAgent['r-2']).toBe(700 as PriceCentsBrand);
+    expect(byAgent['r-3']).toBeUndefined();
+    expect(tips.length).toBe(3);
+  });
+
+  it('empty for empty list', () => {
+    expect(tipsTotalByAgent([])).toEqual({});
   });
 });
 

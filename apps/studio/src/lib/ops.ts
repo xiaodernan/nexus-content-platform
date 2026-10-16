@@ -132,3 +132,17 @@ export function isAuditEntryOwnedBy(entry: AuditEntry, actorId: AccountId | null
   if (!actorId) return false;
   return entry.actorId === actorId;
 }
+
+/** 把审计条目按发起人分组，供客户端按代理/用户分栏展示。不改原数组。 */
+export function auditEntriesByActor(entries: ReadonlyArray<AuditEntry>): Record<AccountId, AuditEntry[]> {
+  const out: Record<AccountId, AuditEntry[]> = {};
+  for (const e of entries) {
+    const bucket = out[e.actorId];
+    if (bucket) {
+      bucket.push(e);
+    } else {
+      out[e.actorId] = [e];
+    }
+  }
+  return out;
+}

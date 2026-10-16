@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { AccountId } from './community';
 import {
+  auditEntriesByActor,
   auditEntriesForTarget,
   auditEntriesSince,
   auditEntryLabel,
@@ -161,5 +162,25 @@ describe('ops — isAuditEntryOwnedBy', () => {
     expect(isAuditEntryOwnedBy(entry, 'user-1')).toBe(true);
     expect(isAuditEntryOwnedBy(entry, 'user-2')).toBe(false);
     expect(isAuditEntryOwnedBy(entry, null)).toBe(false);
+  });
+});
+
+describe('ops — auditEntriesByActor', () => {
+  const entries: AuditEntry[] = [
+    { ...entry, id: 'e-1', actorId: 'u-1', action: 'publish' },
+    { ...entry, id: 'e-2', actorId: 'u-2', action: 'like' },
+    { ...entry, id: 'e-3', actorId: 'u-1', action: 'comment' },
+  ];
+
+  it('groups entries by actorId without mutating input', () => {
+    const byActor = auditEntriesByActor(entries);
+    expect((byActor['u-1'] ?? []).map((e) => e.id)).toEqual(['e-1', 'e-3']);
+    expect((byActor['u-2'] ?? []).map((e) => e.id)).toEqual(['e-2']);
+    expect(byActor['u-3']).toBeUndefined();
+    expect(entries.length).toBe(3);
+  });
+
+  it('empty for empty list', () => {
+    expect(auditEntriesByActor([])).toEqual({});
   });
 });

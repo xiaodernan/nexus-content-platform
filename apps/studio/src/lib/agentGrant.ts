@@ -93,3 +93,12 @@ export function grantRemainingDays(grant: AgentGrant, now: number): number | nul
   if (msLeft <= 0) return 0;
   return Math.floor(msLeft / (24 * 60 * 60 * 1000));
 }
+
+/** 筛选出在 thresholdDays 天内即将过期的授权（非永久、未过期），供客户端批量提醒。 */
+export function grantsExpiringWithin(
+  grants: ReadonlyArray<AgentGrant>,
+  now: number,
+  thresholdDays: number,
+): AgentGrant[] {
+  return grants.filter((g) => isGrantExpiringSoon(g, now, thresholdDays));
+}

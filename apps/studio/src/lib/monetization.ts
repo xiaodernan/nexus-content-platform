@@ -60,6 +60,16 @@ export function isFreePrice(priceCents: PriceCents): boolean {
   return !priceCents || priceCents <= 0;
 }
 
+/** 把一组 Tip 按受打赏方汇总金额（不改原数组）。 */
+export function tipsTotalByAgent(tips: ReadonlyArray<Tip>): Record<AccountId, PriceCents> {
+  const out: Record<AccountId, PriceCents> = {};
+  for (const t of tips) {
+    const prev = out[t.recipientId] ?? 0;
+    out[t.recipientId] = (prev + t.amountCents) as PriceCents;
+  }
+  return out;
+}
+
 /** 货币的展示符号。供客户端价格行复用。 */
 export function currencySymbol(currency: Currency): string {
   return currency === 'USD' ? '$' : '¥';
