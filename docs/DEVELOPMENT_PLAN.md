@@ -203,6 +203,31 @@ The cadence is deliberately small and verifiable. The current priority queue, in
 | ~~30~~ | M7 | ~~**The service half of ADR 0018: a publication has an OWNER**~~ | **DONE — v242** (ADR 0016 amendment 242). The half item 27's record named as "the next increment": `PublishedProject` gains four NULLABLE owner columns (so every pre-existing row is `hasOwner() == false` and stays under the pre-v242 rule — locking an anonymous publication to nobody would make everything unpublishable by anybody); `OwnerClaim` rides in on `PublishRequest` and out on `Receipt`/`Publication`/`ListingEntry` through ONE `claimOf` mapper; `unpublish(id, claimer)` requires the matching account id for an owned row (`NotTheOwner`, 403) and accepts anyone for an ownerless one; a re-publish naming a DIFFERENT account is refused (`OwnerTaken`, 403) with **the row not saved**, and one naming nobody **keeps the owner** rather than orphaning the publication; `requireClaimable` refuses every field by name and accepts exactly ONE assurance (`unsigned-local`), because widening that set is what "the service now verifies claims" would MEAN. The suite found a real defect before landing: `Set.of(...).contains(null)` throws NPE instead of returning false, so a null assurance CRASHED rather than refusing — the null check now comes first and the case stays. Measured: `mvn -o test` **37/37** (21 existing + 16 new; the 4 new cases pin that a remix forks into an ownerless, anyone-may-takedown publication and records `_lineage`), BUILD SUCCESS. **Bounds:** a claim is forgeable by anyone who can call the API (the check is id equality, not identity — `assurance` says so on every answer); no accounts/sessions/tokens exist server-side and ADR 0018 stays Proposed; **the Studio now SENDS a claim on publish/unpublish** (v244: `publishDocument` attaches `OwnerClaim`, `unpublishProject` sends `?claimer=`, the route passes them through); the public gallery (`/explore`, v245) and the artifact page (`/p/{id}`, v246) show `by <handle> · <assurance>` and a clickable `remixed from <id>`; remix lineage is recorded by `service.remix` and read back (v245/v246). **Item 31 DONE — v244/v245/v246/v247 (Studio sends + displays the claim). The client half now also carries a current-device account module (`currentAccount.ts`, localStorage-persisted, `unsigned-local` assurance) and `publishLane`/`unpublish` accept optional `owner`/`claimer` so a real device account can be attached.** |
 
 
+## Blocked / forthcoming increments (long-term cadence continues)
+
+The M7 ownership core is landed (items 27/30/31). What remains is blocked on the ADR 0018 account
+decision — there are no server-side accounts, sessions or tokens yet, and a `signedIn` badge would
+violate §60. Once ADR 0018 merges (option A or B), the cadence resumes one verified increment at a
+time, each with a gate, each recorded in the ADR 0016 ledger and here:
+
+### Stage B — verified assurance (blocked: ADR 0018 Proposed, no server-side accounts)
+- Widen `KNOWN_ASSURANCES` beyond `unsigned-local` to include `verified`, backed by a minimal
+  server-side account/credential store. This is what "the service now verifies claims" means — it is
+  a security decision, not a UI feature, so it lands only with the account decision.
+- Studio shows a `verified` marker on /explore and /p/{id} when `assurance === 'verified'`.
+
+### Stage C — M7 community surface (blocked: same account dependency)
+- Profiles: an account's page and the publications it owns.
+- Follow: follow / unfollow another account, and a following feed.
+- Likes: like / unlike a publication, and a like count per row.
+- Comments: comment on a publication (author can delete), shown under the artifact page.
+
+### Stage D — M8–M10 (not yet scheduled)
+- Creator economy, ops, external agents — per the milestones, untouched.
+
+Rule carried from ADR 0016: one deep, verified increment at a time. No `signedIn` badge, no session,
+no cookie, and no half-wired OAuth that produces a badge the service never validates.
+
 ## Guardrails (what "done" means here)
 
 - Every feature lands with a runnable check: unit tests, a headless proof against the SHIPPED module,
