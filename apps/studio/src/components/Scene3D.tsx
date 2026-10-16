@@ -106,6 +106,9 @@ export default function Scene3D() {
   const downRef = useRef<{ id: number; x: number; y: number } | null>(null);
   const [report, setReport] = useState<SceneReport | null>(null);
   const [note, setNote] = useState('');
+  // M5 v244: what the last camera ask answered — the removal's refusal sentence, or empty. Held as state
+  // because it is text the panel shows, and cleared by the next ask rather than by a timer.
+  const [cameraNote, setCameraNote] = useState('');
   // v163: the last file this surface saved, and what the last save/load/send answered — the harness
   // reads the note through its data attribute, so it carries counts rather than moods.
   const [lastFile, setLastFile] = useState<SceneSaveFile | null>(null);
@@ -285,9 +288,11 @@ export default function Scene3D() {
     // no earlier leg reads. This component's own `onResize` below now re-reads twice — once through its own
     // pull, once through the bus it just joined — which is a redundant render, not a wrong value.
     const unwatchPixels = surface.watchPixels(() => setReport(surface.report()));
-    // v224 — the camera leg: a camera created or switched to by ANYONE moves the camera rows (how many,
-    // which one the panel says is live). The runtime's refusal to switch is now a true no-op (v224), so the
-    // leg has nothing to hear on a failed ask — deaf there is correct, not a gap.
+    // v224 joined the camera pair and v239 the third name: a camera created, switched to OR TAKEN OUT by
+    // ANYONE moves the camera rows (how many, which one the panel says is live). v244 is the shipped caller of
+    // that third name — the panel's own `remove` button goes through `surface.removeCamera`, so the row that
+    // disappears can disappear through the leg as well as through the verb. The runtime's refusal to switch is
+    // a true no-op (v224), so the leg has nothing to hear on a failed ask — deaf there is correct, not a gap.
     const unwatchCameras = surface.watchCameras(() => setReport(surface.report()));
     // v161: the controls live OUTSIDE this effect (they are React handlers), so the surface has to be
     // reachable from them. A ref rather than state, because the surface is not a value React should
@@ -481,6 +486,39 @@ export default function Scene3D() {
     const surface = surfaceRef.current;
     if (!surface) return;
     setReport(surface.resetOrbit());
+  }, []);
+
+  /**
+   * M5 v244 — the camera pair, over the surface's own `addCamera`/`removeCamera`.
+   *
+   * The name is GENERATED (`Camera 1`, `Camera 2`, …) rather than typed, and the counter is per-mount and
+   * never decremented — the same rule `onAddBody` holds, so an add/remove cycle cannot put two rows called
+   * `Camera 2` in one scene, and a read of a row never depends on what somebody typed.
+   *
+   * A refusal is shown AS THE RUNTIME SAID IT. v239 wrote those two sentences to name the call that unlocks
+   * the removal (`setActiveCamera`, `removeCinematic`), so the panel repeats the fact instead of inventing a
+   * hint that could disagree with it.
+   */
+  const cameraCounterRef = useRef(0);
+  const onAddCamera = useCallback(() => {
+    const surface = surfaceRef.current;
+    if (!surface) return;
+    cameraCounterRef.current += 1;
+    const added = surface.addCamera(`Camera ${cameraCounterRef.current}`);
+    if (!added) {
+      setCameraNote('the runtime produced no camera for this host');
+      return;
+    }
+    setCameraNote('');
+    setReport(surface.report());
+  }, []);
+
+  const onRemoveCamera = useCallback((cameraId: string) => {
+    const surface = surfaceRef.current;
+    if (!surface) return;
+    const answer = surface.removeCamera(cameraId);
+    setCameraNote(answer.ok ? '' : `${answer.why}: ${answer.reason}`);
+    setReport(surface.report());
   }, []);
 
   /**
@@ -854,6 +892,33 @@ export default function Scene3D() {
               frames: <strong data-scene3d-frames>{report.frames}</strong> · draw calls: {report.draws.calls}
             </div>
             <div>active camera: {activeName}</div>
+            {/* M5 v244 — the camera rows become a CONTROL. Every earlier camera figure in this panel was a
+                readout of a set that could only grow from the UI's side; the rows now come from
+                `cameraRows` (ONE walk of the runtime's camera Map, which `cameras`, `cameraNames` and
+                `activeCamera` are also read from), so the button and the count beside it are the same answer
+                about the same scene — and a row that cannot be removed says why in the runtime's words. */}
+            {s && s.cameraRows.length > 0 && (
+              <div data-scene3d-cameras style={{ marginTop: 4, pointerEvents: 'auto' }}>
+                {s.cameraRows.map((c) => (
+                  <div key={c.id} data-scene3d-camera={c.id} style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
+                    <span style={{ minWidth: 96 }}>
+                      {c.name ? c.name : '(unnamed)'}
+                      {c.active ? ' · active' : ''}
+                    </span>
+                    <button
+                      type="button"
+                      className="btn"
+                      data-scene3d-camera-remove={c.id}
+                      onClick={() => onRemoveCamera(c.id)}
+                      style={{ fontSize: '0.85em', padding: '1px 6px' }}
+                    >
+                      remove
+                    </button>
+                  </div>
+                ))}
+                {cameraNote && <div data-scene3d-camera-note>{cameraNote}</div>}
+              </div>
+            )}
             {/* The orbit is reported as the surface holds it, not as a counter this component keeps. */}
             <div data-scene3d-orbit>
               orbit: az {report.orbit.azimuth.toFixed(3)} · el {report.orbit.elevation.toFixed(3)} · d{' '}
@@ -970,6 +1035,10 @@ export default function Scene3D() {
           </button>
           <button type="button" className="btn" data-scene-remove-body onClick={onRemoveBody}>
             − body
+          </button>
+          {/* M5 v244 — the camera pair beside the body pair. */}
+          <button type="button" className="btn" data-scene-add-camera onClick={onAddCamera}>
+            + camera
           </button>
           <button type="button" className="btn" data-scene-reset-view onClick={onResetOrbit}>
             reset view

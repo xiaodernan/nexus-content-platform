@@ -1504,7 +1504,7 @@ describe('watchCameras — an out-of-band camera add or switch moves the panel�
     expect(fires).toEqual(['news']);
   });
 
-  it('on the real bus a camera switch news ONLY activeCameraChanged: fourteen raw listeners, one name fires', () => {
+  it('on the real bus a camera add, switch and removal each news ONE of fifteen raw listeners (M5 v244)', () => {
     const { headless, surface } = camerasOnHeadless();
     const names = [
       'componentAdded',
@@ -1521,6 +1521,7 @@ describe('watchCameras — an out-of-band camera add or switch moves the panel�
       'pixelRatioChanged',
       'cameraCreated',
       'activeCameraChanged',
+      'cameraRemoved',
     ];
     const fired: string[] = [];
     for (const name of names) headless.runtime.addEventListener(name, () => fired.push(name));
@@ -1529,8 +1530,14 @@ describe('watchCameras — an out-of-band camera add or switch moves the panel�
     expect(fired).toEqual(['activeCameraChanged']);
 
     fired.length = 0;
-    headless.runtime.createCamera(toSceneId(surface.sceneId), 'Third Cam');
+    const third = headless.runtime.createCamera(toSceneId(surface.sceneId), 'Third Cam');
     expect(fired).toEqual(['cameraCreated']);
+
+    fired.length = 0;
+    // v244 — `cameraRemoved` is the name v239 put on the bus with NO caller, so a census could list it but
+    // nothing could fire it. The surface is now the shipped caller, and the removal moves one name only.
+    expect(surface.removeCamera(third.id)).toMatchObject({ ok: true });
+    expect(fired).toEqual(['cameraRemoved']);
   });
 
   it('camera news wakes no other leg, and a body event wakes no camera leg (the real bus, all six legs)', () => {
@@ -1548,11 +1555,16 @@ describe('watchCameras — an out-of-band camera add or switch moves the panel�
       bodyFires += 1;
     });
 
-    headless.runtime.createCamera(toSceneId(surface.sceneId), 'Review Cam');
+    const review = headless.runtime.createCamera(toSceneId(surface.sceneId), 'Review Cam');
     expect({ cameraFires, pixelsFires, bodyFires }).toEqual({ cameraFires: 1, pixelsFires: 0, bodyFires: 0 });
 
+    // v244 — the removal is this leg’s third name, and the surface now reaches it without touching the
+    // runtime by hand, so the pin asks it the same question: does a camera write wake only the camera leg?
+    expect(surface.removeCamera(review.id)).toEqual({ ok: true, cameraId: review.id, count: 1 });
+    expect({ cameraFires, pixelsFires, bodyFires }).toEqual({ cameraFires: 2, pixelsFires: 0, bodyFires: 0 });
+
     headless.runtime.createEntity(toSceneId(surface.sceneId), 'Stray', 'mesh');
-    expect({ cameraFires, pixelsFires, bodyFires }).toEqual({ cameraFires: 1, pixelsFires: 0, bodyFires: 1 });
+    expect({ cameraFires, pixelsFires, bodyFires }).toEqual({ cameraFires: 2, pixelsFires: 0, bodyFires: 1 });
   });
 
   it('the camera WRITE the component makes — position and lookAt — moves no reported row and fires no leg', () => {
@@ -1732,5 +1744,125 @@ describe('M5 v227 — a save that carries a cinematic restores into the surface\
     // v227 re-points the sequences at the target scene for the restore, in a COPY. The caller's value still
     // says where it came from, so a second host reading the same file sees the same scene it was saved from.
     expect(JSON.stringify((file as { cinematic: unknown }).cinematic)).toBe(before);
+  });
+});
+
+/**
+ * M5 v244 — the surface AUTHORS the camera set, over the SHIPPED package.
+ *
+ * Two gaps met here. `removeCamera` shipped in v239 with no caller anywhere, so its bus name could only
+ * ever be emitted by a hand-written test; and the report carried camera `name` plus the active id but no id
+ * per row — and a name alone cannot address a removal, because a scene can hold two cameras called the same
+ * thing. These cases run the surface's own `addCamera`/`removeCamera` against the real `ThreeRuntime` and
+ * pin what only the real package can answer: the runtime's own refusal sentences, carried to the panel
+ * paraphrased by nobody.
+ */
+describe('M5 v244 — addCamera / removeCamera through the shipped seam (the real runtime owns the refusals)', () => {
+  let runtime: ThreeRuntime | null = null;
+  afterEach(() => {
+    runtime?.dispose();
+    runtime = null;
+  });
+
+  function camerasOnHeadless() {
+    const headless = headlessRuntime();
+    runtime = headless.runtime;
+    return { headless, surface: createStudioScene(headless.runtime, () => {}) };
+  }
+
+  it('addCamera answers with an IDENTITY the report then carries: id, name and seat, one row per camera', () => {
+    const { headless, surface } = camerasOnHeadless();
+    const added = surface.addCamera('Review Cam');
+    expect(added).not.toBeNull();
+    expect(added!.count).toBe(2);
+
+    // The rows are the runtime's own answer in the runtime's own order, and the new camera's id is the
+    // handle the panel needs to take it out again.
+    expect(surface.report().scene!.cameraRows).toEqual([
+      { id: surface.cameraId, name: 'Studio Camera', active: true },
+      { id: added!.cameraId, name: 'Review Cam', active: false },
+    ]);
+    const live = headless.runtime.getScene(toSceneId(surface.sceneId))!;
+    expect(live.cameras.get(toCameraId(added!.cameraId))!.name).toBe('Review Cam');
+    // Adding does not steal the picture: only a scene's FIRST camera is activated by the insert.
+    expect(surface.report().scene!.activeCamera).toBe(surface.cameraId);
+  });
+
+  it('removeCamera takes the row out of the report AND out of the runtime, and says what is left', () => {
+    const { headless, surface } = camerasOnHeadless();
+    const added = surface.addCamera('Review Cam')!;
+
+    expect(surface.removeCamera(added.cameraId)).toEqual({ ok: true, cameraId: added.cameraId, count: 1 });
+
+    expect(surface.report().scene!.cameraRows).toEqual([{ id: surface.cameraId, name: 'Studio Camera', active: true }]);
+    expect(surface.report().scene!.cameras).toBe(1);
+    expect(headless.runtime.getScene(toSceneId(surface.sceneId))!.cameras.has(toCameraId(added.cameraId))).toBe(false);
+  });
+
+  it('a camera the scene does not hold is answered BEFORE the runtime is asked', () => {
+    const { headless, surface } = camerasOnHeadless();
+    const asked: string[] = [];
+    const real = headless.runtime.removeCamera;
+    // A contract-faithful wrapper: it records, then delegates. An id this surface never saw in a row must
+    // not reach the verb at all — the pre-lookup is this grant's own rule, and this is the only shape that
+    // can measure it on the real package.
+    headless.runtime.removeCamera = (sceneId, cameraId) => {
+      asked.push(String(cameraId));
+      return real.call(headless.runtime, sceneId, cameraId);
+    };
+
+    const refused = surface.removeCamera('cam-no-such-row');
+    expect(refused.ok).toBe(false);
+    expect(refused.why).toBe('absent');
+    expect(asked).toEqual([]);
+    expect(surface.report().scene!.cameras).toBe(1);
+  });
+
+  it('the ACTIVE camera comes back blocked with the runtime’s OWN sentence, not a paraphrase', () => {
+    const { headless, surface } = camerasOnHeadless();
+
+    const refused = surface.removeCamera(surface.cameraId);
+    expect(refused.ok).toBe(false);
+    expect(refused.why).toBe('blocked');
+    // Substrings that stop at the em dash the runtime itself uses as the sentence's boundary: the panel
+    // shows these words, so they must be the runtime's, checked where they are longest and still clean.
+    expect(refused.reason).toContain('is the ACTIVE camera of scene');
+    expect(refused.reason).toContain('call setActiveCamera first');
+    expect(headless.runtime.getScene(toSceneId(surface.sceneId))!.cameras.size).toBe(1);
+    expect(surface.report().scene!.cameraRows).toHaveLength(1);
+  });
+
+  it('a camera a registered shot names cannot vanish, and the same call lands once the cinematic is retired', () => {
+    const { headless, surface } = camerasOnHeadless();
+    const added = surface.addCamera('Flyby Cam')!;
+    headless.runtime.defineCinematic(toSceneId(surface.sceneId), {
+      id: 'v244-flyby',
+      name: 'V244 Flyby',
+      shots: [{ id: 's1', cameraId: toCameraId(added.cameraId), startTime: 0, endTime: 1, transition: 'cut', transitionDuration: 0 }],
+    });
+
+    const refused = surface.removeCamera(added.cameraId);
+    expect(refused.ok).toBe(false);
+    expect(refused.why).toBe('blocked');
+    expect(refused.reason).toContain('"v244-flyby" shot s1');
+    expect(refused.reason).toContain('call removeCinematic first');
+    expect(surface.report().scene!.cameras).toBe(2);
+
+    headless.runtime.removeCinematic('v244-flyby');
+    expect(surface.removeCamera(added.cameraId).ok).toBe(true);
+    expect(surface.report().scene!.cameraRows.map((row) => row.name)).toEqual(['Studio Camera']);
+  });
+
+  it('a refusal that moves nothing announces nothing, and the camera rows stand exactly where they were', () => {
+    const { headless, surface } = camerasOnHeadless();
+    const rowsBefore = surface.report().scene!.cameraRows;
+    const fired: string[] = [];
+    for (const name of ['cameraCreated', 'activeCameraChanged', 'cameraRemoved']) {
+      headless.runtime.addEventListener(name, () => fired.push(name));
+    }
+
+    expect(surface.removeCamera(surface.cameraId).why).toBe('blocked');
+    expect(fired).toEqual([]);
+    expect(surface.report().scene!.cameraRows).toEqual(rowsBefore);
   });
 });

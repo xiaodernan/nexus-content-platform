@@ -33,6 +33,7 @@ import {
   type SceneLike,
   type SceneSaveFile,
   type SceneSaverLike,
+  type SceneSurface,
   type SceneVec3,
 } from './scene3d';
 import { applyOp, createEmptyDocument, invertOp } from '@nexus/design-model';
@@ -94,6 +95,20 @@ function fakeRuntime(over: Partial<SceneComposerLike> = {}) {
       // what it says after a removal.
       const at = created.findIndex((c) => c.scene === sceneId && c.name === entity.name);
       if (at !== -1) created.splice(at, 1);
+      return true;
+    },
+    // M5 v244 — the fake obeys v239's contract: the subject is looked up before anything is touched, an
+    // unknown one answers `false`, the ACTIVE one is refused by THROWING, and only then does the delete
+    // happen. The refusal sentence is the FAKE'S OWN words on purpose: the surface promises to carry the
+    // host's reason through untouched, and a host that says what the production runtime says would prove
+    // nothing about that promise. `scene3dSurface.test.ts` pins the production sentence.
+    removeCamera(sceneId, camId) {
+      const scene = scenes.get(sceneId);
+      if (!scene) return false;
+      const camera = scene.cameras.get(camId);
+      if (!camera) return false;
+      if (camera.active) throw new Error(`host refuses: ${camId} holds the active seat in ${sceneId}`);
+      scene.cameras.delete(camId);
       return true;
     },
     getScene(sceneId) {
@@ -1448,7 +1463,7 @@ describe('watchScenes (M5 v217)', () => {
     for (const entry of off) expect(entry.listener).toBe(listener);
   });
 
-  it('ALL SIX legs join pairwise DISJOINT name sets — the camera pair borrows no name from the other five', () => {
+  it('ALL SIX legs join pairwise DISJOINT name sets — the camera triple borrows no name from the other five', () => {
     const on: string[] = [];
     const { runtime } = fakeRuntime({
       addEventListener: (event) => {
@@ -1703,7 +1718,7 @@ describe('watchCameras (M5 v224)', () => {
     expect(() => unwatch()).not.toThrow();
   });
 
-  it('a host WITH verbs joins exactly the two camera names with one shared listener, and leaves on both', () => {
+  it('a host WITH verbs joins exactly the three camera names with one shared listener, and leaves on all three', () => {
     const on: Array<{ event: string; listener: unknown }> = [];
     const off: Array<{ event: string; listener: unknown }> = [];
     const { runtime } = fakeRuntime({
@@ -1727,7 +1742,7 @@ describe('watchCameras (M5 v224)', () => {
     for (const entry of off) expect(entry.listener).toBe(listener);
   });
 
-  it('cameraCreated and activeCameraChanged each fire the camera leg and none of the other five', () => {
+  it('the THREE camera names each fire the camera leg and none of the other five', () => {
     const { runtime, emit } = withBus();
     const surface = createStudioScene(runtime, () => {});
     let cameraFires = 0;
@@ -1762,6 +1777,11 @@ describe('watchCameras (M5 v224)', () => {
 
     emit('activeCameraChanged', { sceneId: 'studio', cameraId: 'c2' });
     expect(counts()).toEqual({ cameraFires: 2, pixelsFires: 0, sceneFires: 0, bodyFires: 0, entityFires: 0, componentFires: 0 });
+
+    // v244 — the third name joins the pin. v239 put it on the leg, and the real-bus census fires it, but on
+    // this plane nothing emitted it through the fake bus until the surface grew a caller that reaches it.
+    emit('cameraRemoved', { sceneId: 'studio', cameraId: 'c2' });
+    expect(counts()).toEqual({ cameraFires: 3, pixelsFires: 0, sceneFires: 0, bodyFires: 0, entityFires: 0, componentFires: 0 });
   });
 
   it('the scene pair is NOT watched by the camera leg, even though a scene switch moves the camera rows', () => {
@@ -1860,3 +1880,179 @@ describe('watchCameras (M5 v224)', () => {
       expect(loaded.reissued).toEqual({ cameraIds: [], activated: false });
     });
   });
+
+/**
+ * M5 v244 — the camera pair on the SURFACE, and the one camera walk the report reads off.
+ *
+ * v239 gave the runtime a camera-removal verb and the camera leg a third name, and nothing shipped called
+ * either: the leg was a subscription to a silence, and the panel's camera figures were a readout of a set
+ * that could only ever grow. These are the surface's own answers over a fake whose refusal words are
+ * deliberately NOT the production runtime's — so the carry-through claim can only be proved by the host's
+ * sentence arriving intact. The production sentences are pinned in `scene3dSurface.test.ts`.
+ */
+describe('addCamera / removeCamera — the surface authors the camera set (M5 v244)', () => {
+  it('every camera figure in the report is a projection of the ONE cameraRows walk', () => {
+    const { runtime } = fakeRuntime();
+    const built = buildDemoScene(runtime);
+    const second = runtime.createCamera(built.sceneId, 'Second Cam');
+    // Put the live seat on the SECOND row: a report that read `activeCamera` from a walk of its own could
+    // still get this right by accident, and a projection of the rows cannot.
+    const rows = runtime.getScene(built.sceneId)!.cameras;
+    rows.get(built.cameraId)!.active = false;
+    rows.get(second.id)!.active = true;
+
+    const scene = buildSceneReport(runtime, 0).scene!;
+
+    expect(scene.cameraRows).toEqual([
+      { id: built.cameraId, name: 'Studio Camera', active: false },
+      { id: second.id, name: 'Second Cam', active: true },
+    ]);
+    expect(scene.cameras).toBe(scene.cameraRows.length);
+    expect(scene.cameraNames).toEqual(scene.cameraRows.map((row) => row.name));
+    expect(scene.activeCamera).toBe(scene.cameraRows.find((row) => row.active)?.id ?? null);
+    // And the VALUES, not only their agreement — three empty rows would satisfy the three lines above.
+    expect(scene.cameras).toBe(2);
+    expect(scene.cameraNames).toEqual(['Studio Camera', 'Second Cam']);
+    expect(scene.activeCamera).toBe(second.id);
+  });
+
+  it('addCamera answers the id and the count the LIVE scene now holds, and does not move the active seat', () => {
+    const { runtime } = fakeRuntime();
+    const surface = createStudioScene(runtime, () => {});
+    expect(surface.report().scene!.cameras).toBe(1);
+
+    const added = surface.addCamera('Review Cam');
+
+    expect(added).not.toBeNull();
+    expect(added!.count).toBe(2);
+    const scene = surface.report().scene!;
+    // Only a scene's FIRST camera is activated by the insert, and the seat is what this surface's orbit aims,
+    // so adding a camera leaves the picture exactly where it was.
+    expect(scene.cameraRows.find((row) => row.id === added!.cameraId)).toEqual({
+      id: added!.cameraId,
+      name: 'Review Cam',
+      active: false,
+    });
+    expect(scene.activeCamera).toBe(surface.cameraId);
+    expect(scene.cameraNames).toEqual(['Studio Camera', 'Review Cam']);
+  });
+
+  it('addCamera answers null when the host produces a camera with no id', () => {
+    const { runtime } = fakeRuntime({ createCamera: () => ({ id: '', name: 'Nothing' }) });
+    const surface = createStudioScene(runtime, () => {});
+
+    expect(surface.addCamera('Nothing')).toBeNull();
+  });
+
+  it('removeCamera takes a non-active row out and answers the count the report now reads', () => {
+    const { runtime } = fakeRuntime();
+    const surface = createStudioScene(runtime, () => {});
+    const added = surface.addCamera('Review Cam')!;
+
+    expect(surface.removeCamera(added.cameraId)).toEqual({ ok: true, cameraId: added.cameraId, count: 1 });
+    const scene = surface.report().scene!;
+    expect(scene.cameras).toBe(1);
+    expect(scene.cameraRows.map((row) => row.name)).toEqual(['Studio Camera']);
+    expect(scene.activeCamera).toBe(surface.cameraId);
+  });
+
+  it('an id this surface never showed the panel is answered absent, and the host is never asked', () => {
+    const asked: string[] = [];
+    const { runtime } = fakeRuntime({
+      removeCamera: (sceneId, cameraId) => {
+        asked.push(`${sceneId}/${cameraId}`);
+        return true;
+      },
+    });
+    const surface = createStudioScene(runtime, () => {});
+
+    const answer = surface.removeCamera('camera-never-created');
+
+    expect(asked).toEqual([]);
+    expect(answer).toEqual({
+      ok: false,
+      cameraId: 'camera-never-created',
+      why: 'absent',
+      reason: `camera camera-never-created is not in scene ${surface.sceneId}, so this surface has nothing to take out`,
+    });
+    expect(surface.report().scene!.cameras).toBe(1);
+  });
+
+  it('the row that holds the active seat comes back blocked with the hosts refusal, and stays in the report', () => {
+    const { runtime } = fakeRuntime();
+    const surface = createStudioScene(runtime, () => {});
+
+    expect(surface.removeCamera(surface.cameraId)).toEqual({
+      ok: false,
+      cameraId: surface.cameraId,
+      why: 'blocked',
+      reason: `host refuses: ${surface.cameraId} holds the active seat in ${surface.sceneId}`,
+    });
+    expect(surface.report().scene!.cameraRows.map((row) => row.id)).toEqual([surface.cameraId]);
+  });
+
+  it('a host that refuses by throwing is answered blocked with ITS OWN sentence, paraphrased by nobody', () => {
+    // The fake's words are not the production runtime's on purpose: this case can only pass by carrying the
+    // host's reason through untouched. A surface that re-worded the refusal would show its own phrasing here.
+    const { runtime } = fakeRuntime({
+      removeCamera: (_sceneId, cameraId) => {
+        throw new Error(`host-sentence: ${cameraId} stays where it is`);
+      },
+    });
+    const surface = createStudioScene(runtime, () => {});
+    const added = surface.addCamera('Review Cam')!;
+
+    expect(surface.removeCamera(added.cameraId)).toEqual({
+      ok: false,
+      cameraId: added.cameraId,
+      why: 'blocked',
+      reason: `host-sentence: ${added.cameraId} stays where it is`,
+    });
+    expect(surface.report().scene!.cameraRows.map((row) => row.id)).toContain(added.cameraId);
+  });
+
+  it('a host that throws something that is not an Error is still answered in data, not in a crash', () => {
+    const { runtime } = fakeRuntime({
+      removeCamera: () => {
+        throw 'a bare string';
+      },
+    });
+    const surface = createStudioScene(runtime, () => {});
+    const added = surface.addCamera('Review Cam')!;
+
+    let answer: ReturnType<SceneSurface['removeCamera']> | null = null;
+    expect(() => {
+      answer = surface.removeCamera(added.cameraId);
+    }).not.toThrow();
+    expect(answer).toEqual({ ok: false, cameraId: added.cameraId, why: 'blocked', reason: 'a bare string' });
+  });
+
+  it('a host that answers false about a row the surface just saw is told back as absent', () => {
+    const { runtime } = fakeRuntime({ removeCamera: () => false });
+    const surface = createStudioScene(runtime, () => {});
+    const added = surface.addCamera('Review Cam')!;
+
+    expect(surface.removeCamera(added.cameraId)).toEqual({
+      ok: false,
+      cameraId: added.cameraId,
+      why: 'absent',
+      reason: `the runtime no longer holds camera ${added.cameraId} in scene ${surface.sceneId}`,
+    });
+    expect(surface.report().scene!.cameras).toBe(2);
+  });
+
+  it('a host with no removal verb at all is answered unsupported, and deletes nothing itself', () => {
+    const { runtime } = fakeRuntime();
+    delete (runtime as { removeCamera?: unknown }).removeCamera;
+    const surface = createStudioScene(runtime, () => {});
+    const added = surface.addCamera('Review Cam')!;
+
+    expect(surface.removeCamera(added.cameraId)).toEqual({
+      ok: false,
+      cameraId: added.cameraId,
+      why: 'unsupported',
+      reason: 'this host has no camera-removal verb; the surface will not delete a camera it cannot ask the runtime to drop',
+    });
+    expect(surface.report().scene!.cameras).toBe(2);
+  });
+});

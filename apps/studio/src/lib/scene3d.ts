@@ -100,6 +100,13 @@ export interface SceneComposerLike extends SceneRuntimeLike {
    *  fake without a lighting gate is a legitimate host, and `setLight` on the surface answers honestly
    *  (the unchanged report) when absent. */
   setLightState?(sceneId: string, lightId: string, change: { enabled?: boolean; intensity?: number }): boolean;
+  /** M5 v244 — take one camera out of a scene, which is the runtime's own v239 verb arriving on this seam.
+   *  OPTIONAL the way `setLightState` is: a host without a removal verb is a legitimate host, and the
+   *  surface answers `why: 'unsupported'` rather than deleting a camera it cannot ask anyone to drop.
+   *  The real runtime answers `false` for a subject it does not hold and THROWS for the ACTIVE seat and for
+   *  a camera a registered sequence's shot names; `SceneSurface.removeCamera` is what a panel calls, because
+   *  a panel needs the refusal as data. */
+  removeCamera?(sceneId: string, cameraId: string): boolean;
   /** v197 — rename one body. `false` when the host holds no such scene/entity or the name is blank.
    *  Optional like `setLightState`: a host without the gate is legitimate, and `renameSelected` on the
    *  surface answers the unchanged report. */
@@ -187,6 +194,30 @@ export interface SceneLoadReport {
   player: string | null;
   carries: string[];
 }
+
+/** M5 v244 — one camera of the reported scene, as the panel's row needs it.
+ *
+ *  The report has always carried the camera set twice over — a count and a name list, plus the active id —
+ *  and that is exactly what a READOUT needs and what a CONTROL cannot use: to take a camera out you have to
+ *  say WHICH one, and a name is not an address (two cameras may be called the same thing, and `createCamera`
+ *  happily makes a second one). This record is the address, the label and the state in one row, read off the
+ *  Map once, so a button and the figure beside it can never disagree about the scene they describe. */
+export interface SceneCameraRow {
+  id: string;
+  name: string;
+  active: boolean;
+}
+
+/** M5 v244 — what asking this surface to take a camera out answers.
+ *
+ *  The runtime's own `removeCamera` (v239) answers `false` for a subject it does not hold and THROWS for the
+ *  two refusals that are facts rather than bugs — the camera holds the ACTIVE seat, or a registered
+ *  sequence's shot names it. A panel cannot render a thrown Error, and the reason is the useful half of the
+ *  refusal (it names the call that unlocks the removal), so the surface turns all three into data: the
+ *  runtime's sentence rides along in `reason`, paraphrased by nobody. */
+export type SceneCameraRemoval =
+  | { ok: true; cameraId: string; count: number }
+  | { ok: false; cameraId: string; why: 'absent' | 'blocked' | 'unsupported'; reason: string };
 
 /** M5 v227 — what a restore had to re-issue to be loadable at all.
  *
@@ -545,6 +576,12 @@ export interface SceneReport {
     cameras: number;
     animations: number;
     entityNames: string[];
+    /** M5 v244 — the camera registry as the panel needs it: ONE derivation (`cameraRows`) that the two
+     *  figures this report has always carried are read FROM, so a row can be clicked. `cameraNames` and
+     *  `activeCamera` stay for every existing reader, and they are now projections of the same list built
+     *  on the line below rather than a second walk of the Map — two walks would be two answers to
+     *  "what cameras does this scene hold", and only one of them could go stale. */
+    cameraRows: SceneCameraRow[];
     cameraNames: string[];
     activeCamera: string | null;
     /** v183 — the scene's declared lights, read from the LIVE scene (never a shadow the surface keeps):
@@ -625,6 +662,13 @@ export function buildSceneReport(
   const scene = activeSceneId ? runtime.getScene(activeSceneId) : undefined;
   const backend = runtime.getBackend();
   const stats = graph.stats ?? EMPTY_STATS;
+  // M5 v244 — the camera set is walked ONCE, and every camera figure in the report is read off that walk:
+  // the count from its length, the name list and the active id as projections of the same rows the panel
+  // puts a button on. Before this there were two walks and no address, which is why a row could be shown
+  // but not taken away.
+  const cameraRows: SceneCameraRow[] = scene
+    ? [...scene.cameras.values()].map((c) => ({ id: c.id, name: c.name, active: c.active }))
+    : [];
 
   return {
     schema: 1,
@@ -637,11 +681,12 @@ export function buildSceneReport(
           id: scene.id,
           name: scene.name,
           entities: scene.entities.size,
-          cameras: scene.cameras.size,
+          cameras: cameraRows.length,
           animations: scene.animations.size,
           entityNames: [...scene.entities.values()].map((e) => e.name),
-          cameraNames: [...scene.cameras.values()].map((c) => c.name),
-          activeCamera: [...scene.cameras.values()].find((c) => c.active)?.id ?? null,
+          cameraRows,
+          cameraNames: cameraRows.map((c) => c.name),
+          activeCamera: cameraRows.find((c) => c.active)?.id ?? null,
           lighting: (scene.lighting?.lights ?? []).map((l) => ({
             id: l.id,
             type: l.type,
@@ -942,6 +987,25 @@ export interface SceneSurface {
   /** Remove a body. Answers `false` when this surface does not hold it — the same answer `disk.write` gives
    *  for a path it was never given. */
   removeBody(bodyId: string): boolean;
+  /** M5 v244 — add a CAMERA to the scene this surface draws, through the runtime's own `createCamera`.
+   *  Answers `null` when the runtime produced no camera, the same shape `addBody` uses.
+   *
+   *  Two things deliberately do NOT happen, and both are the reason this verb is small. A second camera is
+   *  not made ACTIVE: the runtime activates only a scene's FIRST camera, and the active seat is the one this
+   *  surface's orbit aims — moving it would point the panel's picture at a camera nobody aimed. And the new
+   *  camera is not aimed: `aim()` keeps driving `cameraId`, the report reads only `id`/`name`/`active`, so a
+   *  position for the added camera is not something this seam has an answer to yet. It is a row a person can
+   *  look at, and now — with `removeCamera` beside it — take back out. */
+  addCamera(name: string): { cameraId: string; count: number } | null;
+  /** M5 v244 — take a camera out, and ANSWER why when the runtime will not. This is the shipped caller v239's
+   *  third bus name has been waiting for: `cameraRemoved` could only ever be emitted by a runtime call nobody
+   *  in the product made, so the camera leg's third name was a subscription to a silence.
+   *
+   *  The subject is looked up in THIS surface's scene before the runtime is asked, so an id the panel never
+   *  showed is answered `absent` and never reaches a refusal path. A refusal that is a fact — the ACTIVE seat,
+   *  or a registered shot — is answered `blocked` with the runtime's own sentence, which is the one that names
+   *  the unlocking call. */
+  removeCamera(cameraId: string): SceneCameraRemoval;
   /** M5 v163 — serialise THIS surface's scene into the runtime's own save file. `savedAt` is the caller's
    *  instant; the runtime owns a frame clock, not a wall clock. Refuses when the host supplied no saver. */
   save(savedAt: number): SceneSaveFile;
@@ -1229,6 +1293,58 @@ export function createStudioScene(
       const authoredAt = authoredIds.indexOf(bodyId);
       if (authoredAt !== -1) authoredIds.splice(authoredAt, 1);
       return true;
+    },
+    // M5 v244 — the camera AUTHORING pair. Both answer the LIVE scene's camera count rather than a list this
+    // surface keeps, which is the difference from the body pair above: `bodyIds` exists because the frame
+    // writer moves those bodies, while the report walks the runtime's camera Map (see `cameraRows`) and a
+    // camera this surface added is not something the frame loop touches.
+    addCamera(name) {
+      const camera = runtime.createCamera(built.sceneId, name);
+      if (!camera?.id) return null;
+      return { cameraId: camera.id, count: runtime.getScene(built.sceneId)?.cameras.size ?? 0 };
+    },
+    removeCamera(cameraId) {
+      if (!runtime.removeCamera) {
+        return {
+          ok: false,
+          cameraId,
+          why: 'unsupported',
+          reason: 'this host has no camera-removal verb; the surface will not delete a camera it cannot ask the runtime to drop',
+        };
+      }
+      const live = runtime.getScene(built.sceneId);
+      // The subject is looked up in THIS surface's scene first, so an id the panel never showed — another
+      // scene's camera, a row already taken out, a typo — is answered as the fact it is and never reaches the
+      // runtime's refusal path. The runtime gives the same `false` for the same subject; this is the surface
+      // describing the scene it owns, in its own voice, the way `removeBody` describes the bodies it holds.
+      if (!live?.cameras.has(cameraId)) {
+        return {
+          ok: false,
+          cameraId,
+          why: 'absent',
+          reason: `camera ${cameraId} is not in scene ${built.sceneId}, so this surface has nothing to take out`,
+        };
+      }
+      let removed: boolean;
+      try {
+        removed = runtime.removeCamera(built.sceneId, cameraId);
+      } catch (error) {
+        // v239's two refusals arrive as throws, and each names the call that unlocks it. The surface carries
+        // that sentence instead of paraphrasing it: only the runtime knows which sequence and shot hold a
+        // camera, and a re-worded reason would be a second answer to "why can't I delete this".
+        return { ok: false, cameraId, why: 'blocked', reason: error instanceof Error ? error.message : String(error) };
+      }
+      // The host can still answer `false` about a subject this surface just saw — the scene left the graph
+      // between the two reads. Same fact as the refusal above, told by the host rather than by the surface.
+      if (!removed) {
+        return {
+          ok: false,
+          cameraId,
+          why: 'absent',
+          reason: `the runtime no longer holds camera ${cameraId} in scene ${built.sceneId}`,
+        };
+      }
+      return { ok: true, cameraId, count: runtime.getScene(built.sceneId)?.cameras.size ?? 0 };
     },
     save(savedAt) {
       if (!saver) {
