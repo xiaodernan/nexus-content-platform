@@ -10697,6 +10697,38 @@ recorded its own remaining half verbatim: _"No publication carries a claim yet:
   `KNOWN_ASSURANCES`) is the step this record exists to make honest when it arrives.
 
 
+### Amendment 248 (M7/v244, apps/studio lane) — the STUDIO SENDS an OWNER CLAIM on publish and unpublish
+
+_Numbering: this studio-lane increment was committed as git v244, but ledger number 244 is already taken by the camera lane's committed entry (Amendment 244 immediately below), so this record uses 248 to keep ledger numbers unique. Git commit 179b6ef._
+
+- **The gap this closes.** v242 made the service hold an owner claim and enforce consistency; the Studio's publish/unpublish lane still sent nothing, so the owner column was test-only. This increment wires the lane: `publishDocument` attaches an `OwnerClaim` (`accountId`, `handle`, `assurance`, `claimedAt` — `unsigned-local` today) to the POST body, and `unpublishProject` sends `?claimer=` so an owned row can only be taken down by its account. The `app/api/publish` route passes both through unchanged — one hop, no auth fabric yet. The Studio ATTACHES a claim and never enforces one (ADR 0018): the service decides what a claim is worth.
+- **Files:** `apps/studio/src/lib/publishServer.ts` (`publishDocument` gains `owner`, `unpublishProject` gains `claimer`, `ListingEntry` carries `owner`), `apps/studio/src/app/api/publish/route.ts` (transparent pass-through), `apps/studio/src/lib/publishServer.test.ts`.
+- **Measured:** `publishServer` vitest **19/19** (2 new: owner rides in the body; claimer sent as `?claimer=`).
+
+### Amendment 249 (M7/v245, apps/studio lane) — EXPLORE names a publication's AUTHOR and its REMIX source
+
+_Numbering: committed as git v245; ledger uses 249 to stay unique. Git commit 83ddb1d._
+
+- **The gap this closes.** `/explore` listed publications but named no one. v244's listing now carries `owner`, and each row's read returns the document; this increment reads both back and renders `by <handle> · <assurance>` (escaped) and `remixed from <id>` (from the `_lineage` the service wrote on remix) on each card, with no author line for pre-claim rows.
+- **Files:** `apps/studio/src/lib/explore.ts` (`ExploreItem` gains `owner`/`remixedFrom`; card renders both, escaped), `apps/studio/src/lib/explore.test.ts`, `apps/studio/src/app/explore/route.ts` (reads `row.owner` and `doc._lineage.sourceProjectId`).
+- **Measured:** `explore` vitest **10/10 → 13/13** (6 new), `explore-proof.mjs` **all sections PASSED**.
+
+### Amendment 250 (M7/v246, apps/studio lane) — the ARTIFACT PAGE names a publication's AUTHOR and REMIX source
+
+_Numbering: committed as git v246; ledger uses 250 to stay unique. Git commit 6ab88a2._
+
+- **The gap this closes.** `/p/{id}` rendered the document but said nothing about who published it or where a remix came from. `readPublication` now returns `owner` (shape: handle + assurance), and `renderArtifactHtml` stitches a meta bar (`by <handle> · <assurance>` / `remixed from <id>`) into the preview `</body>` — the same pure string surgery as the remix bar, the drawing itself untouched, every fragment escaped.
+- **Files:** `apps/studio/src/lib/publishServer.ts` (`PublicationAnswer` gains `owner`, `readPublication` reads it back), `apps/studio/src/lib/artifact.ts` (`renderArtifactHtml` gains `owner`/`remixedFrom` + `injectMetaBar`), `apps/studio/src/lib/artifact.test.ts`, `apps/studio/src/app/p/[projectId]/route.ts` (reads `answer.owner` and `doc._lineage.sourceProjectId`, passes them through).
+- **Measured:** `artifact` vitest **16/16** (8 new).
+
+### Amendment 251 (M7/v247, apps/studio lane) — EXPLORE's `remixed from <source>` is now a LINK to the source artifact
+
+_Numbering: committed as git v247; ledger uses 251 to stay unique. Git commit 49bd0db._
+
+- **The gap this closes.** `remixed from <id>` was plain text; now it links to `/p/<id>` (id encoded), so the remix loop is traversable from the gallery: publish → explore → open source → remix.
+- **Files:** `apps/studio/src/lib/explore.ts` (`remixedFrom` renders as `<a class="remixed" href="/p/<encoded>">`), `apps/studio/src/lib/explore.test.ts`.
+- **Measured:** `explore` vitest **13/15 → 15/15** (2 new: link href encoded, text escaped), `explore-proof.mjs` **all sections PASSED**.
+
 ### Amendment 244 (M5/v244, apps/studio) — the camera set becomes a CONTROL: `addCamera`/`removeCamera` on the surface, and ONE walk behind every figure
 
 _Numbering: the ledger's last committed entry is 241 and the working copy carries **another lane's** entry after it, uncommitted; `v242`/`v243` were taken by those lanes' commits, and the newest of them deliberately deferred its ledger entry. This increment is v244 and takes 244 — version and ledger number agree, and this record claims nothing about entries it is not writing._
