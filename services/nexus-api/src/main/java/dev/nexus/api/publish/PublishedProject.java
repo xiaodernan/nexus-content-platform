@@ -41,6 +41,35 @@ public class PublishedProject {
     @Column(name = "published_at", nullable = false)
     private Instant publishedAt;
 
+    // === M7 v242: the OWNER CLAIM (ADR 0018) ===
+
+    /**
+     * The account id this publication claims to belong to. NULLABLE, and that is the whole
+     * compatibility story: every row written before v242 has no owner, and a row with no owner is
+     * answered under the pre-v242 rule (anyone may take it down) rather than being locked to nobody.
+     *
+     * <p>It is a CLAIM. This service does not verify it — nothing here can — and ADR 0018 records why
+     * recording an unverified claim is still worth doing: it makes the CONSISTENCY rules below possible,
+     * and it puts the author's name on the row a remix will later be able to read. It does not stop an
+     * attacker, and the receipt says so in the assurance field rather than in a sentence a reader must
+     * find.
+     */
+    @Column(name = "owner_account_id", length = 200)
+    private String ownerAccountId;
+
+    /** The handle the claim carried. Stored beside the id because a remix wants a NAME, and an id is not one. */
+    @Column(name = "owner_handle", length = 24)
+    private String ownerHandle;
+
+    /** What the claim was worth when it arrived. `unsigned-local` in this build; the field is where a
+     *  verified claim will say something different. */
+    @Column(name = "owner_assurance", length = 32)
+    private String ownerAssurance;
+
+    /** When the claim was made by its author — not when this row was written. */
+    @Column(name = "owner_claimed_at")
+    private Instant ownerClaimedAt;
+
     protected PublishedProject() {
         // JPA needs it; the service never builds one without values.
     }
@@ -71,6 +100,54 @@ public class PublishedProject {
 
     public Instant getPublishedAt() {
         return publishedAt;
+    }
+
+    public String getOwnerAccountId() {
+        return ownerAccountId;
+    }
+
+    public String getOwnerHandle() {
+        return ownerHandle;
+    }
+
+    public String getOwnerAssurance() {
+        return ownerAssurance;
+    }
+
+    public Instant getOwnerClaimedAt() {
+        return ownerClaimedAt;
+    }
+
+    /** Whether this row names an owner at all. A pre-v242 row answers false, and false means "anyone". */
+    public boolean hasOwner() {
+        return ownerAccountId != null && !ownerAccountId.isBlank();
+    }
+
+    /**
+     * Whether {@code accountId} may act on this publication as its owner.
+     *
+     * <p>A row with NO owner answers true for everyone — the pre-v242 rule, kept deliberately: locking an
+     * anonymous publication to nobody would make every publication ever made unpublishable by anybody,
+     * which is a worse fault than the one this increment fixes.
+     *
+     * <p>A row WITH an owner answers true only for that owner. The comparison is exact and
+     * case-sensitive, because an account id is a derived value and not a name a person typed: two
+     * spellings of one id would be two accounts, and the Studio's own {@code createAccountId} is what
+     * makes that so.
+     */
+    public boolean isOwnedBy(String accountId) {
+        if (!hasOwner()) {
+            return true;
+        }
+        return ownerAccountId.equals(accountId);
+    }
+
+    /** Attach an owner claim. Replaces any claim the row already held — see the takeover rule. */
+    void claimOwner(String accountId, String handle, String assurance, Instant claimedAt) {
+        this.ownerAccountId = accountId;
+        this.ownerHandle = handle;
+        this.ownerAssurance = assurance;
+        this.ownerClaimedAt = claimedAt;
     }
 
     /** Replace this publication with a newer one. The id never moves; the version always does. */

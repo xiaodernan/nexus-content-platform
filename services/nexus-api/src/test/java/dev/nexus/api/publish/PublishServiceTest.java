@@ -4,10 +4,12 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import dev.nexus.api.publish.PublishDtos.OwnerClaim;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneOffset;
@@ -57,7 +59,7 @@ class PublishServiceTest {
         when(repository.findById("doc-1")).thenReturn(Optional.empty());
         when(repository.save(any(PublishedProject.class))).thenAnswer(i -> i.getArgument(0));
 
-        PublishedProject saved = service.publish("doc-1", "Harbour at dusk", VALID_DOCUMENT);
+        PublishedProject saved = service.publish("doc-1", "Harbour at dusk", VALID_DOCUMENT, null);
 
         assertThat(saved.getProjectId()).isEqualTo("doc-1");
         assertThat(saved.getVersion()).isEqualTo(1);
@@ -71,7 +73,7 @@ class PublishServiceTest {
         when(repository.findById("doc-1")).thenReturn(Optional.of(existing));
         when(repository.save(any(PublishedProject.class))).thenAnswer(i -> i.getArgument(0));
 
-        PublishedProject saved = service.publish("doc-1", "Second", "{\"pages\":[]}");
+        PublishedProject saved = service.publish("doc-1", "Second", "{\"pages\":[]}", null);
 
         // The SAME object, so the row identity never moved; only its contents did.
         assertThat(saved).isSameAs(existing);
@@ -86,7 +88,7 @@ class PublishServiceTest {
         when(repository.save(any(PublishedProject.class))).thenAnswer(i -> i.getArgument(0));
         String spacedDocument = "{ \"pages\" : [ ] }";
 
-        PublishedProject saved = service.publish("doc-1", "  Harbour at dusk  ", spacedDocument);
+        PublishedProject saved = service.publish("doc-1", "  Harbour at dusk  ", spacedDocument, null);
 
         assertThat(saved.getTitle()).isEqualTo("Harbour at dusk");
         // Byte-for-byte: this service is a record, not a formatter.
@@ -97,7 +99,7 @@ class PublishServiceTest {
 
     @Test
     void aBlankProjectIdIsRefused() {
-        assertThatThrownBy(() -> service.publish("  ", "t", VALID_DOCUMENT))
+        assertThatThrownBy(() -> service.publish("  ", "t", VALID_DOCUMENT, null))
                 .isInstanceOf(InvalidPublication.class)
                 .hasMessageContaining("project id must not be blank");
         verify(repository, never()).save(any());
@@ -107,7 +109,7 @@ class PublishServiceTest {
     void anOverlongProjectIdIsRefusedWithBothNumbers() {
         String tooLong = "x".repeat(PublishService.MAX_PROJECT_ID_LENGTH + 1);
 
-        assertThatThrownBy(() -> service.publish(tooLong, "t", VALID_DOCUMENT))
+        assertThatThrownBy(() -> service.publish(tooLong, "t", VALID_DOCUMENT, null))
                 .isInstanceOf(InvalidPublication.class)
                 .hasMessageContaining("at most " + PublishService.MAX_PROJECT_ID_LENGTH)
                 .hasMessageContaining("got " + tooLong.length());
@@ -116,7 +118,7 @@ class PublishServiceTest {
 
     @Test
     void aProjectIdWithAControlCharacterIsRefused() {
-        assertThatThrownBy(() -> service.publish("doc\u00001", "t", VALID_DOCUMENT))
+        assertThatThrownBy(() -> service.publish("doc\u00001", "t", VALID_DOCUMENT, null))
                 .isInstanceOf(InvalidPublication.class)
                 .hasMessageContaining("control characters");
         verify(repository, never()).save(any());
@@ -126,7 +128,7 @@ class PublishServiceTest {
 
     @Test
     void aBlankTitleIsRefused() {
-        assertThatThrownBy(() -> service.publish("doc-1", "   ", VALID_DOCUMENT))
+        assertThatThrownBy(() -> service.publish("doc-1", "   ", VALID_DOCUMENT, null))
                 .isInstanceOf(InvalidPublication.class)
                 .hasMessageContaining("title must not be blank");
         verify(repository, never()).save(any());
@@ -134,7 +136,7 @@ class PublishServiceTest {
 
     @Test
     void aMissingTitleIsRefused() {
-        assertThatThrownBy(() -> service.publish("doc-1", null, VALID_DOCUMENT))
+        assertThatThrownBy(() -> service.publish("doc-1", null, VALID_DOCUMENT, null))
                 .isInstanceOf(InvalidPublication.class)
                 .hasMessageContaining("title must not be blank");
     }
@@ -143,7 +145,7 @@ class PublishServiceTest {
 
     @Test
     void malformedJsonIsRefusedAndTheParsersOwnMessageIsKept() {
-        assertThatThrownBy(() -> service.publish("doc-1", "t", "{\"pages\":"))
+        assertThatThrownBy(() -> service.publish("doc-1", "t", "{\"pages\":", null))
                 .isInstanceOf(InvalidPublication.class)
                 .hasMessageContaining("document must be valid JSON");
         verify(repository, never()).save(any());
@@ -152,23 +154,23 @@ class PublishServiceTest {
     @Test
     void validJsonThatIsNotAnObjectIsRefusedAndNamedByItsOwnType() {
         // `42` parses. It is still not a design document, and the refusal says WHICH shape arrived.
-        assertThatThrownBy(() -> service.publish("doc-1", "t", "42"))
+        assertThatThrownBy(() -> service.publish("doc-1", "t", "42", null))
                 .isInstanceOf(InvalidPublication.class)
                 .hasMessageContaining("must be a JSON object")
                 .hasMessageContaining("number");
 
-        assertThatThrownBy(() -> service.publish("doc-1", "t", "[1,2]"))
+        assertThatThrownBy(() -> service.publish("doc-1", "t", "[1,2]", null))
                 .isInstanceOf(InvalidPublication.class)
                 .hasMessageContaining("array");
 
-        assertThatThrownBy(() -> service.publish("doc-1", "t", "\"a string\""))
+        assertThatThrownBy(() -> service.publish("doc-1", "t", "\"a string\"", null))
                 .isInstanceOf(InvalidPublication.class)
                 .hasMessageContaining("string");
     }
 
     @Test
     void aBlankDocumentIsRefused() {
-        assertThatThrownBy(() -> service.publish("doc-1", "t", "   "))
+        assertThatThrownBy(() -> service.publish("doc-1", "t", "   ", null))
                 .isInstanceOf(InvalidPublication.class)
                 .hasMessageContaining("document must not be blank");
     }
@@ -179,7 +181,7 @@ class PublishServiceTest {
         when(repository.findById("doc-1")).thenReturn(Optional.empty());
         when(repository.save(any(PublishedProject.class))).thenAnswer(i -> i.getArgument(0));
 
-        assertThat(service.publish("doc-1", "t", "{}").getDocumentJson()).isEqualTo("{}");
+        assertThat(service.publish("doc-1", "t", "{}", null).getDocumentJson()).isEqualTo("{}");
     }
 
     // ── reading ─────────────────────────────────────────────────────────────────────────────────────
@@ -203,7 +205,7 @@ class PublishServiceTest {
         when(repository.findById("doc-1")).thenReturn(Optional.empty());
         when(repository.save(any(PublishedProject.class))).thenAnswer(i -> i.getArgument(0));
 
-        PublishedProject saved = nanoService.publish("doc-1", "t", VALID_DOCUMENT);
+        PublishedProject saved = nanoService.publish("doc-1", "t", VALID_DOCUMENT, null);
 
         assertThat(saved.getPublishedAt()).isEqualTo(Instant.parse("2026-10-07T15:19:01.824829Z"));
         // And the truncated value is the one a PostgreSQL round-trip returns unchanged.
@@ -261,9 +263,11 @@ class PublishServiceTest {
 
     @Test
     void unpublishingARowThatExistsDeletesItAndAnswersTrue() {
-        when(repository.existsById("doc-1")).thenReturn(true);
+        // v242: `unpublish` reads the ROW now rather than asking whether it exists, because the owner rule
+        // needs the row's own answer about who owns it.
+        when(repository.findById("doc-1")).thenReturn(Optional.of(new PublishedProject("doc-1", "T", VALID_DOCUMENT, 1, PUBLISHED_AT)));
 
-        assertThat(service.unpublish("doc-1")).isTrue();
+        assertThat(service.unpublish("doc-1", "acct-self")).isTrue();
 
         verify(repository).deleteById("doc-1");
     }
@@ -272,18 +276,180 @@ class PublishServiceTest {
     void unpublishingSomethingAlreadyDownAnswersFalseRatherThanThrowing() {
         // Taking down what is already down is a caller's mistake, not a corrupt store — the same rule the
         // Studio's own disk lane uses for a delete of a name that is not there.
-        when(repository.existsById("gone")).thenReturn(false);
+        when(repository.findById("gone")).thenReturn(Optional.empty());
 
-        assertThat(service.unpublish("gone")).isFalse();
+        assertThat(service.unpublish("gone", "acct-self")).isFalse();
 
         verify(repository, never()).deleteById(any());
     }
 
     @Test
     void unpublishingAnUnusableIdIsRefusedBeforeTheRepositoryIsAsked() {
-        assertThatThrownBy(() -> service.unpublish("  "))
+        assertThatThrownBy(() -> service.unpublish("  ", "acct-self"))
                 .isInstanceOf(InvalidPublication.class)
                 .hasMessageContaining("project id must not be blank");
-        verify(repository, never()).existsById(any());
+        verify(repository, never()).findById(any());
+    }
+    // === M7 v242: the OWNER CLAIM (ADR 0018) ===
+
+    private static final Instant CLAIMED_AT = Instant.parse("2026-10-07T11:59:00Z");
+
+    private static OwnerClaim claim(String accountId) {
+        return claim(accountId, "ada");
+    }
+
+    private static OwnerClaim claim(String accountId, String handle) {
+        return new OwnerClaim(accountId, handle, "unsigned-local", CLAIMED_AT);
+    }
+
+    @Test
+    void aPublishWithAClaimRecordsTheClaimOnTheRow() {
+        when(repository.findById("doc-1")).thenReturn(Optional.empty());
+        when(repository.save(any(PublishedProject.class))).thenAnswer(i -> i.getArgument(0));
+
+        PublishedProject saved = service.publish("doc-1", "Harbour at dusk", VALID_DOCUMENT, claim("acct-ada"));
+
+        assertThat(saved.hasOwner()).isTrue();
+        assertThat(saved.getOwnerAccountId()).isEqualTo("acct-ada");
+        assertThat(saved.getOwnerHandle()).isEqualTo("ada");
+        assertThat(saved.getOwnerAssurance()).isEqualTo("unsigned-local");
+        // The claim carries the AUTHOR's instant, not the publish instant: they are different facts.
+        assertThat(saved.getOwnerClaimedAt()).isEqualTo(CLAIMED_AT);
+        assertThat(saved.getPublishedAt()).isEqualTo(PUBLISHED_AT);
+    }
+
+    @Test
+    void aPublishWithNoClaimRecordsNoOwnerAndThatIsNotAnError() {
+        when(repository.findById("doc-1")).thenReturn(Optional.empty());
+        when(repository.save(any(PublishedProject.class))).thenAnswer(i -> i.getArgument(0));
+
+        PublishedProject saved = service.publish("doc-1", "Harbour at dusk", VALID_DOCUMENT, null);
+
+        assertThat(saved.hasOwner()).isFalse();
+        assertThat(saved.getOwnerAccountId()).isNull();
+    }
+
+    @Test
+    void republishingUnderTheSameAccountKeepsTheOwnerAndBumpsTheVersion() {
+        PublishedProject existing = new PublishedProject("doc-1", "First", VALID_DOCUMENT, 1, PUBLISHED_AT.minusSeconds(60));
+        existing.claimOwner("acct-ada", "ada", "unsigned-local", CLAIMED_AT);
+        when(repository.findById("doc-1")).thenReturn(Optional.of(existing));
+        when(repository.save(any(PublishedProject.class))).thenAnswer(i -> i.getArgument(0));
+
+        PublishedProject saved = service.publish("doc-1", "Second", VALID_DOCUMENT, claim("acct-ada"));
+
+        assertThat(saved.getVersion()).isEqualTo(2);
+        assertThat(saved.getOwnerAccountId()).isEqualTo("acct-ada");
+    }
+
+    @Test
+    void aRePublishUnderADifferentAccountIsRefusedAndTheRowIsNotSaved() {
+        PublishedProject existing = new PublishedProject("doc-1", "First", VALID_DOCUMENT, 1, PUBLISHED_AT.minusSeconds(60));
+        existing.claimOwner("acct-ada", "ada", "unsigned-local", CLAIMED_AT);
+        when(repository.findById("doc-1")).thenReturn(Optional.of(existing));
+
+        assertThatThrownBy(() -> service.publish("doc-1", "Takeover", VALID_DOCUMENT, claim("acct-mallory")))
+                .isInstanceOf(OwnerTaken.class)
+                .hasMessageContaining("acct-ada")
+                .hasMessageContaining("acct-mallory");
+        verify(repository, never()).save(any(PublishedProject.class));
+    }
+
+    @Test
+    void aRePublishThatNamesNobodyKeepsTheOwnerTheRowAlreadyHas() {
+        PublishedProject existing = new PublishedProject("doc-1", "First", VALID_DOCUMENT, 1, PUBLISHED_AT.minusSeconds(60));
+        existing.claimOwner("acct-ada", "ada", "unsigned-local", CLAIMED_AT);
+        when(repository.findById("doc-1")).thenReturn(Optional.of(existing));
+        when(repository.save(any(PublishedProject.class))).thenAnswer(i -> i.getArgument(0));
+
+        // A client that stopped naming its author must not silently ORPHAN a publication.
+        PublishedProject saved = service.publish("doc-1", "Second", VALID_DOCUMENT, null);
+
+        assertThat(saved.getOwnerAccountId()).isEqualTo("acct-ada");
+        assertThat(saved.getVersion()).isEqualTo(2);
+    }
+
+
+    @Test
+    void theOwnerMayUnpublish() {
+        PublishedProject existing = new PublishedProject("doc-1", "First", VALID_DOCUMENT, 1, PUBLISHED_AT);
+        existing.claimOwner("acct-ada", "ada", "unsigned-local", CLAIMED_AT);
+        when(repository.findById("doc-1")).thenReturn(Optional.of(existing));
+
+        assertThat(service.unpublish("doc-1", "acct-ada")).isTrue();
+        verify(repository).deleteById("doc-1");
+    }
+
+    @Test
+    void aStrangerMayNotUnpublishAnOwnedPublicationAndNothingIsDeleted() {
+        PublishedProject existing = new PublishedProject("doc-1", "First", VALID_DOCUMENT, 1, PUBLISHED_AT);
+        existing.claimOwner("acct-ada", "ada", "unsigned-local", CLAIMED_AT);
+        when(repository.findById("doc-1")).thenReturn(Optional.of(existing));
+
+        assertThatThrownBy(() -> service.unpublish("doc-1", "acct-mallory"))
+                .isInstanceOf(NotTheOwner.class)
+                .hasMessageContaining("acct-ada");
+        verify(repository, never()).deleteById(any());
+    }
+
+    @Test
+    void aCallerWhoNamesNobodyMayNotUnpublishAnOwnedPublication() {
+        PublishedProject existing = new PublishedProject("doc-1", "First", VALID_DOCUMENT, 1, PUBLISHED_AT);
+        existing.claimOwner("acct-ada", "ada", "unsigned-local", CLAIMED_AT);
+        when(repository.findById("doc-1")).thenReturn(Optional.of(existing));
+
+        assertThatThrownBy(() -> service.unpublish("doc-1", null)).isInstanceOf(NotTheOwner.class);
+        verify(repository, never()).deleteById(any());
+    }
+
+    @Test
+    void anOwnerlessPublicationMayBeUnpublishedByAnyoneIncludingNobody() {
+        PublishedProject anonymous = new PublishedProject("doc-1", "First", VALID_DOCUMENT, 1, PUBLISHED_AT);
+        when(repository.findById("doc-1")).thenReturn(Optional.of(anonymous));
+
+        // The pre-v242 rule, kept on purpose: locking an anonymous publication to nobody would make
+        // every publication ever written unpublishable by anybody.
+        assertThat(service.unpublish("doc-1", null)).isTrue();
+        assertThat(service.unpublish("doc-1", "acct-anyone")).isTrue();
+        verify(repository, times(2)).deleteById("doc-1");
+    }
+
+    @Test
+    void anUnpublishOfAPublicationThatDoesNotExistStillAnswersFalse() {
+        when(repository.findById("doc-1")).thenReturn(Optional.empty());
+
+        assertThat(service.unpublish("doc-1", "acct-ada")).isFalse();
+        verify(repository, never()).deleteById(any());
+    }
+
+    @Test
+    void aMalformedClaimIsRefusedByNameRatherThanRecordedHalf() {
+        when(repository.findById("doc-1")).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> service.publish("doc-1", "T", VALID_DOCUMENT, new OwnerClaim("", "ada", "unsigned-local", CLAIMED_AT)), null)
+                .isInstanceOf(InvalidPublication.class)
+                .hasMessageContaining("must name an account id");
+        assertThatThrownBy(() -> service.publish("doc-1", "T", VALID_DOCUMENT, new OwnerClaim("acct-ada", "  ", "unsigned-local", CLAIMED_AT)), null)
+                .isInstanceOf(InvalidPublication.class)
+                .hasMessageContaining("must name a handle");
+        assertThatThrownBy(() -> service.publish("doc-1", "T", VALID_DOCUMENT, new OwnerClaim("acct-ada", "ada", "unsigned-local", null)))
+                .isInstanceOf(InvalidPublication.class)
+                .hasMessageContaining("must name when it was made");
+        assertThatThrownBy(() -> service.publish("doc-1", "T", VALID_DOCUMENT, new OwnerClaim("acct-ada", "a".repeat(25), "unsigned-local", CLAIMED_AT)), null)
+                .isInstanceOf(InvalidPublication.class)
+                .hasMessageContaining("at most 24");
+        verify(repository, never()).save(any(PublishedProject.class));
+    }
+
+    @Test
+    void aClaimThatSaysItIsVerifiedIsRefusedBecauseNothingVerifiedIt() {
+        when(repository.findById("doc-1")).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> service.publish("doc-1", "T", VALID_DOCUMENT, new OwnerClaim("acct-ada", "ada", "verified", CLAIMED_AT)), null)
+                .isInstanceOf(InvalidPublication.class)
+                .hasMessageContaining("this service records claims and verifies nothing");
+        assertThatThrownBy(() -> service.publish("doc-1", "T", VALID_DOCUMENT, new OwnerClaim("acct-ada", "ada", null, CLAIMED_AT)), null)
+                .isInstanceOf(InvalidPublication.class)
+                .hasMessageContaining("is nothing");
     }
 }

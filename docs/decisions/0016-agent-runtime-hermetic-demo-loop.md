@@ -10628,3 +10628,87 @@ _Numbering: the ledger topped out at 238. **239 and 240 are owed** — the v239 
 - **Files:** `apps/studio/src/lib/pageShell.ts` (new, shared escaper), `apps/studio/src/lib/explore.ts` (new, pure renderer), `apps/studio/src/app/explore/route.ts` (new, Node runtime, list → read each row → draw → render), `apps/studio/src/lib/artifact.ts` (uses the shared escaper), `apps/studio/src/components/Toolbar.tsx` (an `Explore` link — the panel is the author's own list, the page is the public door), `apps/studio/src/lib/explore.test.ts` (7 cases), `docs/evidence/m7/explore-proof.mjs` (new, 4 sections), `package.json` (`verify:explore`).
 - **Measured:** `apps/studio` **509 → 516** (33 → 34 files, accurate under `--no-file-parallelism`), `tsc -p tsconfig.json` exit 0. `docs/evidence/m7/explore-proof.mjs` **4/4 sections PASSED**: §1 the gallery (one card per item; open + remix doors; id encoded; text escaped; cap stated; empty and down are distinct pages), §2 the thumbnail is REAL (`docToSvg` → 251 B SVG → `svgToDataUri` → the data URI in the card), §3 the wiring (Node runtime; list → read each row → draw → render; Studio links `/explore`), §4 the §60 audit (the renderer is pure; the escaper is shared with `artifact.ts`).
 - **Bounds (§60).** The gallery shows a thumbnail of each publication's ACTIVE page only, drawn from a SECOND read per row (the listing carries no documents), so the page costs `1 + N` service calls and is capped at 24; there is no paging beyond that cap, no search, no sort other than the service's newest-first, and no author/date-byline (M7 still has no accounts on a publication). A service that is down shows a 503 page, not an empty gallery.
+
+### Amendment 242 (M7/v242, services/nexus-api) — the PUBLICATION gets an OWNER, and the service enforces CONSISTENCY of a claim without ever claiming to verify it
+
+_Numbering: 242 was free (the ledger topped out at 241). v235 landed the account model and ADR 0018 and
+recorded its own remaining half verbatim: _"No publication carries a claim yet:
+`publishDocument`/`readPublication`/`DELETE` unchanged."_ This is that half. Full narrative in
+`docs/DEVELOPMENT_PLAN.md`; this is the ledger entry._
+
+- **The gap this closes.** Every publication was anonymous, so `DELETE /projects/{id}` checked nothing and
+  a remix recorded no lineage. v235 gave the Studio a pure account core (`accounts.ts`) and decided what
+  an identity is worth (ADR 0018: option C, an UNSIGNED identity producing a CLAIM). This increment makes
+  the service the thing that can finally hold one — as a claim, with the consistency rules a claim can
+  support, and with no pretence of verification anywhere.
+- **The column is NULLABLE, and that is the whole compatibility story.** `owner_account_id`,
+  `owner_handle`, `owner_assurance`, `owner_claimed_at`. Every row written before v242 has no owner, and
+  `hasOwner()` answering false is not a special case — it is the pre-v242 rule, deliberately kept:
+  *locking an anonymous publication to nobody would make every publication ever written unpublishable by
+  anybody*, which is a worse fault than the one this increment fixes. Two new cases pin both directions.
+- **Four rules, and the takeover one is the point.** (1) A publish carrying a claim records it, and the
+  claim's own instant — `ownerClaimedAt` is the AUTHOR's, not the publish's, and a case asserts they
+  differ. (2) A re-publish under the SAME account is the ordinary path: owner kept, version bumped. (3) A
+  re-publish under a DIFFERENT account is refused (`OwnerTaken`, 403) and **the row is not saved** — "the
+  publication of project X" must have exactly one owner, exactly as it has one row and one current
+  version, and letting a second caller quietly become the author of somebody else's work is the fault the
+  whole bound was describing. (4) A re-publish naming NOBODY keeps the owner the row already has, because
+  a client that stopped naming its author must not silently orphan a publication.
+- **The unpublish rule is a comparison, and says so.** `unpublish(projectId, claimerAccountId)`: an owned
+  row requires the matching account id (`NotTheOwner`, 403, nothing deleted); an ownerless row may be taken
+  down by anyone including a caller who names nobody. `claimerAccountId == null` is the same as naming the
+  wrong person for an owned publication. The claim arrives as a **query parameter** — a DELETE with no
+  body is the conventional shape.
+- **403, not 400, and deliberately not a subtype of `InvalidPublication`.** The request was well-formed, so
+  a 400 would tell the caller to fix a field that is fine. `@ExceptionHandler({NotTheOwner.class,
+  OwnerTaken.class})` answers 403 with an `error` code of `not-the-owner` or `owner-taken`, so a Studio can
+  tell "you may not" from "you would move it" without matching on a sentence.
+
+- **The claim's shape rule, and the ONE assurance this build accepts.** `requireClaimable` refuses by name:
+  a blank account id, a blank handle, a handle over 24 characters (the Studio's `HANDLE_RULES.maxLength`),
+  a null `claimedAt`, and — the load-bearing one — an assurance outside `{unsigned-local}`. A claim carrying
+  `"verified"` would be a claim the client cannot honestly make, because **nothing verified it**, and
+  recording it would let a future reader believe something that never happened. `KNOWN_ASSURANCES` is one
+  constant: widening that set is what "the service now verifies claims" would MEAN.
+- **A defect the suite found before landing.** `requireClaimable` first read
+  `!KNOWN_ASSURANCES.contains(claim.assurance())`. `Set.of(...).contains(null)` **throws NPE** rather than
+  answering false, so a null assurance crashed the request instead of refusing it — the test expected
+  `InvalidPublication` and got `NullPointerException`. The null check now comes first, and the case that
+  caught it stays. (The lesson is the repo's own: a membership test is not a null-safe test, and the
+  sentence you wrote is not the behaviour you get.)
+- **Files:** `PublishedProject.java` (4 nullable columns, `hasOwner`, `isOwnedBy`, package-private
+  `claimOwner`), `PublishDtos.java` (`OwnerClaim` record; `Receipt`/`Publication`/`ListingEntry` each carry
+  `owner`; `PublishRequest` gains `owner`), `PublishService.java` (`publish(…, OwnerClaim)`,
+  `unpublish(…, String claimerAccountId)`, `requireClaimable`, `OwnerTaken`/`NotTheOwner`),
+  `PublishController.java` (one `claimOf` mapper for all three answers — three copies would drift, and the
+  field that must never drift is `assurance`), `NotTheOwner.java` + `OwnerTaken.java` (new).
+
+- **Measured:** `mvn -o test` → **Tests run: 33, Failures: 0, Errors: 0** (21 existing + 12 new: claim
+  recorded, no-claim ownerless, same-account re-publish, different-account refused with nothing saved,
+  no-claim keeps the owner, owner may unpublish, stranger refused with nothing deleted, a caller naming
+  nobody refused, ownerless unpublishable by anyone and by nobody, an absent project still `false`, every
+  malformed-claim field refused by name, and the `"verified"`/null-assurance pair), **BUILD SUCCESS**.
+- **Bounds (§60), stated.** A claim is forgeable by anyone who can call the API — the check is the equality
+  of two ids, not an identity, and `assurance: 'unsigned-local'` is the field that says so on every answer.
+  There are no accounts, sessions, tokens or credentials on the server, and ADR 0018 stays **Proposed**.
+  The Studio does not yet SEND a claim: `publishDocument`/`unpublishProject` and the Published panel are
+  unchanged in this increment, so the owner column is exercised by tests only until the next one wires the
+  lane. Remix lineage is still not recorded. A service-side verification (what would widen
+  `KNOWN_ASSURANCES`) is the step this record exists to make honest when it arrives.
+
+
+### Amendment 244 (M5/v244, apps/studio) — the camera set becomes a CONTROL: `addCamera`/`removeCamera` on the surface, and ONE walk behind every figure
+
+_Numbering: the ledger's last committed entry is 241 and the working copy carries **another lane's** entry after it, uncommitted; `v242`/`v243` were taken by those lanes' commits, and the newest of them deliberately deferred its ledger entry. This increment is v244 and takes 244 — version and ledger number agree, and this record claims nothing about entries it is not writing._
+
+- **The gap.** Every camera figure the report carried was a READOUT. `scene.cameras` was walked three separate times to make a count, a name list and an active id, and none of the three is an ADDRESS: to take a camera out of a scene you must say WHICH one, and a name is not one (two cameras can be called the same thing, and `createCamera` happily makes a second). Meanwhile v239 had shipped a runtime `removeCamera` verb with no product caller, so the camera leg's third bus name — `cameraRemoved` — was a subscription to a silence.
+- **One walk behind every figure.** `SceneCameraRow { id, name, active }` is the address, the label and the state in one row, and `buildSceneReport` now walks the camera `Map` **once**: `scene.cameraRows` is that walk and `cameras` / `cameraNames` / `activeCamera` are projections read off it. Two walks would be two answers to "what cameras does this scene hold", and only one of them could go stale — the arm that drops `active` from the walk now reddens eleven cases instead of hiding behind a second pass.
+- **The authoring pair.** `SceneSurface` gained `addCamera(name)` and `removeCamera(cameraId)`. `addCamera` answers the id and the count the LIVE scene holds, and takes neither the active seat nor an aim: the runtime activates only a scene's FIRST camera, and that seat is what this surface's orbit aims. `removeCamera` answers `SceneCameraRemoval`, a union over `why: 'absent' | 'blocked' | 'unsupported'`.
+- **The refusals are ordered, and the common one carries the host's own words.** `unsupported` when the registered host has no removal verb at all (the surface never deletes anything itself), `absent` when the subject is not in the scene the surface last read — decided BEFORE the runtime is asked — `blocked` when the runtime refuses, and `absent` again if a host answers `false` about a row the surface just saw. The runtime's two refusals arrive as THROWS (the active seat; a camera a registered sequence's shot names), so the seam catches and returns `error instanceof Error ? error.message : String(error)`: v239 wrote those sentences to name the call that unlocks the removal (`setActiveCamera`, `removeCinematic`), and a friendlier paraphrase would be a second, possibly wrong, answer to "why can't I delete this".
+- **The product door.** `Scene3D.tsx` renders one row per camera with a `remove` control, a `+ camera` beside `− body`, and the refusal verbatim in `data-scene3d-camera-note` — the panel repeats the runtime's fact instead of inventing a hint.
+- **Two cross-reading repairs, found by reading the shipped tests against production.** (1) The real-bus census subscribed to FOURTEEN raw names while production cites fifteen listeners, and the name it never listed was exactly `cameraRemoved` — so the census could not have caught a removal that newsed a second listener; it now lists fifteen and fires the removal through the shipped seam. (2) Three pure-suite case titles still described the camera leg as a PAIR after v239 widened it to a triple, and the fire-each-name pin never emitted the third name at all; the titles now say triple/three and the pin emits all three.
+- **Files:** `apps/studio/src/lib/scene3d.ts` (+119/−4: `SceneCameraRow`, `SceneCameraRemoval`, `SceneComposerLike.removeCamera?`, the single walk, `addCamera`/`removeCamera`, the `events` triple), `Scene3D.tsx` (+72/−3: rows, the two controls, the note), `scene3d.test.ts` (+199/−3, 104 → 114 cases), `scene3dSurface.test.ts` (+136/−4, 64 → 70 cases).
+- **Measured:** `apps/studio` **517 → 533 passed / 0 failed** (34 files; the +16 is exactly this grant's two files, derived by counting `it(`/`test(` call sites across all 34 tracked studio test files at HEAD and on disk). `@nexus/three-runtime` **572/572** (25 files) — no runtime line changed, re-measured because the refusal sentences are the runtime's. Both totals recounted from the JSON reporter at rest, under a 7-path probe over the foreign in-flight files that stayed unchanged. `tsc --noEmit -p apps/studio/tsconfig.json` exit 2, 6 errors, ALL in the foreign `src/components/Toolbar.tsx` and ZERO in the four paths touched; `tsc -p packages/three-runtime/tsconfig.test.json` exit 0. `npm run build` exit 1 — `@nexus/studio#build` dies on that same foreign file (`x Expected '</', got ')'` at `Toolbar.tsx:358`) after 6 of 7 turbo tasks, so no shipped-studio-dist claim is made by this record. `docs/evidence/agents/record-encoding-proof.mjs` exit 0.
+- **Witness arms:** nine arms on the shipped `scene3d.ts`, each re-based on the pristine bytes, at-rest probe unchanged across the battery, restored byte-identical (`c9ea9475c9f4f9d6`), with the two camera files at 184/184 before any arm. A1 walk drops `active` → 11 red; A2 seat projected from row zero → 2; A3 no `try`/`catch` → 6/6 predicted; A4 absent pre-lookup never taken → 2/2; A5 stale count answered → 2/2; A6 host `false` believed → 1/1; A7 sentence paraphrased → 5; A8 watch list loses `cameraRemoved` → 4; A9 no-verb host believed → 1/1. Three verdicts were not exact and all three are the battery's predictor, not the suite: a two-space-indented case parser hid four deeper-indented cases, two hand-lists each omitted one case that did redden, and A8's fifteen-listener census subscribes through raw `addEventListener` so it is immune BY DESIGN to a mutation of the surface's watch list (the leg is pinned by the other four A8 cases, which reddened). No arm failed to redden; no tolerance was widened.
+- **A shipped gate red BEFORE this grant, proven so and not quieted.** `npm run verify:scene-surface` is RED at this ref at §7's v199 clause "the inspector reads the live registry in the order the runtime holds it, disabled named as disabled" — the proof expects `components` to carry both the enabled and the disabled row, while production answers `components` as the enabled half and `disabledComponents` as the rest. Executed against HEAD's `scene3d.ts` (blob `a171ac405e99f666`) and this grant's (`c9ea9475c9f4f9d6`) it fails with the IDENTICAL assertion on both planes, so it is not this increment's doing; the clause's last edit is v201 (`8ebdd75`) and the split that outran it is v207 (`e0b0a86`), 56 commits ago, which means every later grant that cited this proof layer read a run that stopped before §7's remaining sections. Repairing the clause to pin BOTH halves, and auditing what else in `docs/evidence` has been silently red, is the next grant's first job.
+- **Bounds (§60).** An added camera is a row, not a view: `aim()` still drives only the camera the surface opened with, so a second camera has no position or look-from until the panel can point one. The panel has NO door that moves the active seat, so the commonest refusal it can print — "…is the ACTIVE camera… call setActiveCamera first" — is a sentence a user can read but not answer from this UI; that is the next grant, and it is why `removeCamera` carries the runtime's words instead of a paraphrase. `tools/harness/studio-scene3d.mjs` still has no camera-row step, so the click path is proven at the surface seam and in `Scene3D.tsx`'s attributes rather than in a live browser run — and the harness could not exercise a rebuilt bundle anyway while the foreign `Toolbar.tsx` breaks the studio build. Nothing here deletes a camera the runtime will not delete, and no refusal moves a byte or news a listener.

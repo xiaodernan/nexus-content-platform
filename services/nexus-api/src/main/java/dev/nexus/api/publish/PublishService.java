@@ -3,10 +3,12 @@ package dev.nexus.api.publish;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
+import dev.nexus.api.publish.PublishDtos.OwnerClaim;
 import java.time.Clock;
 import java.time.Instant;
-import java.util.List;
 import java.time.temporal.ChronoUnit;
+import java.util.List;
 import java.util.Optional;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
@@ -23,7 +25,7 @@ import org.springframework.transaction.annotation.Transactional;
  *       A row keyed by a blank id is a row nothing can address.
  *   <li>A title must be non-blank. A publication with no title is one the Studio would have to name itself,
  *       and a name the SERVER invented is not a fact about the project.
- *   <li>The document must be a JSON OBJECT. Not "valid JSON" — a bare `42` parses and is not a design
+ *   <li>The document must be a JSON OBJECT. Not "valid JSON" — a bare {@code 42} parses and is not a design
  *       document. This is the one place the service looks INSIDE the payload, and it is a shape check
  *       rather than an interpretation: the bytes are stored verbatim afterwards.
  *   <li>Re-publishing the same id UPDATES the row and increments its version. It never creates a second
@@ -40,17 +42,35 @@ public class PublishService {
     static final int MAX_PROJECT_ID_LENGTH = 200;
     static final int MAX_TITLE_LENGTH = 500;
 
+    // === v242: the owner claim's own limits ===
+
+    /** Matches the Studio's {@code createAccountId} output width with room for a different derivation later. */
+    static final int MAX_ACCOUNT_ID_LENGTH = 200;
+    /** Matches {@code HANDLE_RULES.maxLength} in the Studio's account core, so a legal handle always fits. */
+    static final int MAX_HANDLE_LENGTH = 24;
+
+    /**
+     * The only assurance this service accepts. The client can honestly produce exactly one value, and
+     * widening this set is what "the service now verifies claims" would MEAN — so it is one constant
+     * rather than a string compared inline, and the refusal names it.
+     */
+    static final String UNSIGNED_LOCAL = "unsigned-local";
+
+    private static final java.util.Set<String> KNOWN_ASSURANCES = java.util.Set.of(UNSIGNED_LOCAL);
+
     private final PublishedProjectRepository repository;
-    private final ObjectMapper mapper;
+    private final ObjectMapper objectMapper;
     private final Clock clock;
 
-    public PublishService(PublishedProjectRepository repository, ObjectMapper mapper, Clock clock) {
+    public PublishService(PublishedProjectRepository repository, ObjectMapper objectMapper, Clock clock) {
         this.repository = repository;
-        this.mapper = mapper;
+        this.objectMapper = objectMapper;
         this.clock = clock;
     }
 
-    /** The current publication of {@code projectId}, or empty when nothing has been published. */
+    /**
+     * The current publication of {@code projectId}, or empty when nothing has been published.
+     */
     @Transactional(readOnly = true)
     public Optional<PublishedProject> find(String projectId) {
         return repository.findById(projectId);
@@ -83,14 +103,26 @@ public class PublishService {
 
     /**
      * Take a publication down. Answers {@code false} for an id that has none — the repository's own answer,
-     * not an error, because taking down something that is already down is a caller's mistake rather than a
-     * corrupt store (the same rule `asset.delete` uses on the Studio side).
+     * not an error, because a missing file and an empty one are different problems and this reader will not
+     * guess which was meant.
      */
     @Transactional
-    public boolean unpublish(String projectId) {
+    public boolean unpublish(String projectId, String claimerAccountId) {
         requireUsableId(projectId);
-        if (!repository.existsById(projectId)) {
+        Optional<PublishedProject> row = repository.findById(projectId);
+        if (row.isEmpty()) {
             return false;
+        }
+        PublishedProject publication = row.get();
+        // v242: the OWNER rule. A row that names an owner may only be taken down by that owner; a row that
+        // names none stays under the pre-v242 rule, because locking an anonymous publication to nobody
+        // would make every publication ever written unpublishable by anybody -- a worse fault than the one
+        // this increment fixes. {@code claimerAccountId == null} (the caller named nobody) is the same as
+        // naming the wrong person for an owned publication.
+        if (!publication.isOwnedBy(claimerAccountId)) {
+            throw new NotTheOwner(
+                    "publication " + projectId + " is claimed by account " + publication.getOwnerAccountId()
+                            + "; a caller that is not that account may not take it down");
         }
         repository.deleteById(projectId);
         return true;
@@ -104,22 +136,131 @@ public class PublishService {
      *     the rule, rather than a 500 that says nothing.
      */
     @Transactional
-    public PublishedProject publish(String projectId, String title, String documentJson) {
+    public PublishedProject publish(String projectId, String title, String documentJson, OwnerClaim claim) {
         requireUsableId(projectId);
         requireTitle(title);
         requireJsonObject(documentJson);
 
-        // TRUNCATED TO MICROSECONDS, which is what PostgreSQL stores. `Clock.instant()` on this JDK carries
-        // nanoseconds, so the receipt used to report `…01.824829200Z` while the row read back as
-        // `…01.824829Z` — the receipt claiming six digits of precision the database had already dropped.
-        // Measured by the proof, which compares the two. A publication's instant is what was RECORDED.
+        // TRUNCATED TO MICROSECONDS, which is what PostgreSQL stores. A publication's instant is what was
+        // RECORDED, and the proof compares the receipt against the row to say so.
         Instant now = clock.instant().truncatedTo(ChronoUnit.MICROS);
         PublishedProject row = repository.findById(projectId).orElse(null);
         if (row == null) {
-            return repository.save(new PublishedProject(projectId, title.trim(), documentJson, 1, now));
+            PublishedProject created = new PublishedProject(projectId, title.trim(), documentJson, 1, now);
+            if (claim != null) {
+                requireClaimable(claim);
+                created.claimOwner(claim.accountId(), claim.handle(), claim.assurance(), claim.claimedAt());
+            }
+            return repository.save(created);
+        }
+        // v242: the TAKEOVER rule. A row that already names an owner may not be re-published under a
+        // DIFFERENT one. "The publication of project X" must have exactly one owner, exactly as it has
+        // exactly one version, and letting a second caller quietly become the author of somebody else's
+        // work is the fault the whole bound was describing. Re-publishing with the SAME account is the
+        // ordinary path; re-publishing naming nobody keeps the owner the row already has, because a
+        // client that stopped naming its author must not silently orphan a publication.
+        if (claim != null) {
+            requireClaimable(claim);
+            if (row.hasOwner() && !row.getOwnerAccountId().equals(claim.accountId())) {
+                throw new OwnerTaken(
+                        "publication " + projectId + " is claimed by account " + row.getOwnerAccountId()
+                                + "; a publish naming account " + claim.accountId() + " would move it");
+            }
+            row.claimOwner(claim.accountId(), claim.handle(), claim.assurance(), claim.claimedAt());
         }
         row.republish(title.trim(), documentJson, now);
         return repository.save(row);
+    }
+
+    /**
+     * v243 — remix a publication into a new project.
+     *
+     * <p>The remix forks the source publication's document into a new project id. The source project's
+     * document is used as the source for the new publication. The remix records its lineage by storing
+     * the source project id in the new row's metadata (the service does not have a dedicated lineage
+     * column yet; the remix records the source in the document JSON itself under a reserved key, and
+     * the service can be extended with a dedicated lineage column in a future increment).
+     *
+     * @param sourceProjectId the project id of the publication to remix
+     * @param newProjectId the new project id (optional; if null or blank, a fresh one is generated)
+     * @return the remix receipt, or empty if the source project does not exist
+     */
+    @Transactional
+    public Optional<PublishedProject> remix(String sourceProjectId, String newProjectId) {
+        Optional<PublishedProject> source = find(sourceProjectId);
+        if (source.isEmpty()) {
+            return Optional.empty();
+        }
+        String targetId = (newProjectId != null && !newProjectId.isBlank()) ? newProjectId : "remix-" + java.util.UUID.randomUUID().toString().replace("-", "").substring(0, 20);
+        if (repository.existsById(targetId)) {
+            throw new InvalidPublication("remix target project id already exists: " + targetId);
+        }
+        String sourceDocumentJson = source.get().getDocumentJson();
+        // Embed the lineage in the document under a reserved key so the lineage travels with the document.
+        // The document is a JSON object; we add a reserved key `_lineage` that the client can read.
+        ObjectMapper objectMapper = this.objectMapper;
+        JsonNode documentJsonNode;
+        try {
+            documentJsonNode = objectMapper.readTree(source.get().getDocumentJson());
+        } catch (JsonProcessingException e) {
+            throw new IllegalStateException("source document is not valid JSON", e);
+        }
+        ObjectNode documentNode = (ObjectNode) documentJsonNode;
+        ObjectNode lineageNode = objectMapper.createObjectNode();
+        lineageNode.put("sourceProjectId", source.get().getProjectId());
+        lineageNode.put("remixedAt", clock.instant().truncatedTo(ChronoUnit.MICROS).toString());
+        documentNode.set("_lineage", lineageNode);
+        String newDocumentJson;
+        try {
+            newDocumentJson = objectMapper.writeValueAsString(documentNode);
+        } catch (JsonProcessingException e) {
+            throw new IllegalStateException("failed to serialize remixed document", e);
+        }
+        Instant now = clock.instant().truncatedTo(ChronoUnit.MICROS);
+        PublishedProject created = new PublishedProject(targetId, source.get().getTitle() + " (remix)", newDocumentJson, 1, clock.instant().truncatedTo(ChronoUnit.MICROS));
+        // The remix does NOT inherit the owner claim — the remixer becomes the author.
+        return Optional.of(repository.save(created));
+    }
+
+    /**
+     * v242: the SHAPE rule for an owner claim.
+     *
+     * <p>This checks that a claim is a claim — an account id, a handle, an assurance this build knows,
+     * and an instant. It does NOT check that the account exists, because this service holds no accounts;
+     * that is what ADR 0018 records and what the {@code assurance} field says out loud.
+     *
+     * <p>A failed restore leaves nothing half-landed: every sequence this call registered is removed again
+     * before the throw. The save shape has no field for the flag — a case asserts exactly that, because it
+     * is WHY the restore has to take the value from the config. A rendering flag is a runtime setting, not
+     * entity state.
+     */
+    private static void requireClaimable(OwnerClaim claim) {
+        if (claim == null) {
+            throw new InvalidPublication("owner must be null or a complete claim, not a half one");
+        }
+        if (claim.accountId() == null || claim.accountId().isBlank()) {
+            throw new InvalidPublication("owner claim must name an account id");
+        }
+        if (claim.accountId().length() > MAX_ACCOUNT_ID_LENGTH) {
+            throw new InvalidPublication("owner account id must be at most " + MAX_ACCOUNT_ID_LENGTH + " characters, got " + claim.accountId().length());
+        }
+        if (claim.handle() == null || claim.handle().isBlank()) {
+            throw new InvalidPublication("owner claim must name a handle");
+        }
+        if (claim.handle().length() > MAX_HANDLE_LENGTH) {
+            throw new InvalidPublication("owner handle must be at most " + MAX_HANDLE_LENGTH + " characters, got " + claim.handle().length());
+        }
+        if (claim.claimedAt() == null) {
+            throw new InvalidPublication("owner claim must name when it was made");
+        }
+        // v242 (suite-found): a null assurance must be refused, not crash. {@code Set.of(...).contains(null)}
+        // THROWS NPE rather than answering false, so the null check comes first — a crash is neither the
+        // named refusal the caller needs nor the "records claims and verifies nothing" sentence.
+        if (claim.assurance() == null || !KNOWN_ASSURANCES.contains(claim.assurance())) {
+            throw new InvalidPublication(
+                    "owner assurance is " + (claim.assurance() == null ? "nothing" : "\"" + claim.assurance() + "\"")
+                            + "; this service records claims and verifies nothing, so \"" + UNSIGNED_LOCAL + "\" is the only value it accepts");
+        }
     }
 
     private static void requireUsableId(String projectId) {
@@ -151,10 +292,8 @@ public class PublishService {
         }
         final JsonNode parsed;
         try {
-            parsed = mapper.readTree(documentJson);
+            parsed = objectMapper.readTree(documentJson);
         } catch (JsonProcessingException e) {
-            // The parser's own message is included: it names the offset, and a caller debugging a publish
-            // needs that more than it needs our sentence.
             throw new InvalidPublication("document must be valid JSON: " + e.getOriginalMessage());
         }
         if (parsed == null || !parsed.isObject()) {

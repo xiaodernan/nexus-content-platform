@@ -4,12 +4,16 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import dev.nexus.api.publish.PublishDtos.Listing;
 import dev.nexus.api.publish.PublishDtos.ListingEntry;
+import dev.nexus.api.publish.PublishDtos.OwnerClaim;
 import dev.nexus.api.publish.PublishDtos.Publication;
 import dev.nexus.api.publish.PublishDtos.PublishRequest;
 import dev.nexus.api.publish.PublishDtos.Receipt;
 import dev.nexus.api.publish.PublishDtos.Removal;
+import dev.nexus.api.publish.PublishDtos.RemixRequest;
+import dev.nexus.api.publish.PublishDtos.RemixReceipt;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -58,16 +62,16 @@ public class PublishController {
         String documentJson = request == null || request.document() == null || request.document().isNull()
                 ? null
                 : request.document().toString();
-        PublishedProject saved = service.publish(projectId, request == null ? null : request.title(), documentJson);
+        PublishedProject saved = service.publish(projectId, request == null ? null : request.title(), documentJson, request == null ? null : request.owner());
 
-        Receipt receipt = new Receipt(saved.getProjectId(), saved.getTitle(), saved.getVersion(), saved.getPublishedAt(), urlFor(saved.getProjectId()));
+        Receipt receipt = new Receipt(saved.getProjectId(), saved.getTitle(), saved.getVersion(), saved.getPublishedAt(), urlFor(saved.getProjectId()), claimOf(saved));
         return ResponseEntity.status(alreadyPublished ? HttpStatus.OK : HttpStatus.CREATED).body(receipt);
     }
 
     @GetMapping("/{projectId}")
     public ResponseEntity<Publication> read(@PathVariable String projectId) {
         return service.find(projectId)
-                .map(row -> ResponseEntity.ok(new Publication(row.getProjectId(), row.getTitle(), row.getVersion(), row.getPublishedAt(), urlFor(row.getProjectId()), parseDocument(row.getDocumentJson()))))
+                .map(row -> ResponseEntity.ok(new Publication(row.getProjectId(), row.getTitle(), row.getVersion(), row.getPublishedAt(), urlFor(row.getProjectId()), parseDocument(row.getDocumentJson()), claimOf(row))))
                 .orElseGet(() -> ResponseEntity.notFound().build());
     }
 
@@ -82,7 +86,7 @@ public class PublishController {
     public ResponseEntity<Listing> list(@RequestParam(name = "limit", required = false) Integer limit) {
         int asked = limit == null ? PublishService.DEFAULT_LIST_LIMIT : limit;
         List<ListingEntry> entries = service.list(asked).stream()
-                .map(row -> new ListingEntry(row.getProjectId(), row.getTitle(), row.getVersion(), row.getPublishedAt(), urlFor(row.getProjectId())))
+                .map(row -> new ListingEntry(row.getProjectId(), row.getTitle(), row.getVersion(), row.getPublishedAt(), urlFor(row.getProjectId()), claimOf(row)))
                 .toList();
         return ResponseEntity.ok(new Listing(entries, entries.size(), Math.min(Math.max(asked, 0), PublishService.MAX_LIST_LIMIT)));
     }
@@ -93,14 +97,50 @@ public class PublishController {
      * when a row was deleted. There is no 404: the URL names a project, not a resource that must exist.
      */
     @DeleteMapping("/{projectId}")
-    public ResponseEntity<Removal> unpublish(@PathVariable String projectId) {
-        return ResponseEntity.ok(new Removal(projectId, service.unpublish(projectId)));
+    public ResponseEntity<Removal> unpublish(
+            @PathVariable String projectId,
+            @RequestParam(name = "claimer", required = false) String claimerAccountId) {
+        // v242: the claim arrives as a QUERY PARAMETER, not a body — a DELETE with no body is the
+        // conventional shape, and the parameter can be omitted entirely (which for a publication that
+        // names nobody is exactly the answer it deserves).
+        return ResponseEntity.ok(new Removal(projectId, service.unpublish(projectId, claimerAccountId)));
     }
 
-    /** A rule the caller broke is a 400 that NAMES it. Anything else is a 500 and says nothing. */
+    /**
+     * A rule the caller broke is a 400 that NAMES it. Anything else is a 500 and says nothing.
+     */
     @ExceptionHandler(InvalidPublication.class)
     public ResponseEntity<Map<String, String>> invalid(InvalidPublication e) {
         return ResponseEntity.badRequest().body(Map.of("error", "invalid-publication", "message", e.getMessage()));
+    }
+    /**
+     * v242: a caller who is not the owner, and a re-publish that would move the owner (ADR 0018).
+     *
+     * <p>403 rather than 400, and deliberately not a subtype of {@link InvalidPublication}: the request
+     * was well-formed, so a 400 would tell the caller to fix a field that is fine. 403 means
+     * <em>understood, and no</em>, which is exactly what this service can honestly say — it knows two
+     * account ids are not equal, and it does NOT know whether either of them is real. The `error` code
+     * names which of the two refusals it was, so a Studio can tell "you may not" from "you would move it"
+     * without matching on a sentence.
+     */
+    @ExceptionHandler({ NotTheOwner.class, OwnerTaken.class })
+    public ResponseEntity<Map<String, String>> notTheOwner(RuntimeException e) {
+        String error = e instanceof OwnerTaken ? "owner-taken" : "not-the-owner";
+        return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of("error", error, "message", e.getMessage()));
+    }
+
+
+    /**
+     * The row's claim as the wire shape, or {@code null} when the row names nobody.
+     *
+     * <p>One mapper for all three answers (receipt, read, listing), because three copies would drift the
+     * day a field is added — and the field that must never drift is {@code assurance}.
+     */
+    private static OwnerClaim claimOf(PublishedProject row) {
+        if (!row.hasOwner()) {
+            return null;
+        }
+        return new OwnerClaim(row.getOwnerAccountId(), row.getOwnerHandle(), row.getOwnerAssurance(), row.getOwnerClaimedAt());
     }
 
     private String urlFor(String projectId) {
@@ -121,5 +161,38 @@ public class PublishController {
         } catch (JsonProcessingException e) {
             throw new IllegalStateException("a stored publication is not valid JSON; the row was not written by this service", e);
         }
+    }
+
+    /**
+     * v243 — remix a publication into a new project.
+     *
+     * <p>The remix forks a publication's document into a new project id. The source publication's
+     * document is used as the source for the new publication. The remix records its lineage by
+     * storing the source project id in the new row's document (under a reserved key `_lineage`).
+     *
+     * <p>The request body may optionally provide a new project id; if omitted, a fresh one is generated.
+     * The remix records its lineage by storing the source project id in the document JSON under
+     * a reserved key `_lineage` (which the client can read back).
+     */
+    @PostMapping("/{projectId}/remix")
+    public ResponseEntity<RemixReceipt> remix(
+            @PathVariable String projectId,
+            @RequestBody(required = false) RemixRequest request) {
+        String targetId = (request != null && request.newProjectId() != null && !request.newProjectId().isBlank())
+                ? request.newProjectId()
+                : "remix-" + java.util.UUID.randomUUID().toString().replace("-", "").substring(0, 20);
+        Optional<PublishedProject> remixed = service.remix(projectId, targetId);
+        if (remixed.isEmpty()) {
+            return ResponseEntity.notFound().build();
+        }
+        PublishedProject remixedProject = remixed.get();
+        RemixReceipt receipt = new RemixReceipt(
+                remixedProject.getProjectId(),
+                remixedProject.getTitle(),
+                remixedProject.getVersion(),
+                remixedProject.getPublishedAt(),
+                urlFor(remixedProject.getProjectId()),
+                projectId);
+        return ResponseEntity.status(HttpStatus.CREATED).body(receipt);
     }
 }
