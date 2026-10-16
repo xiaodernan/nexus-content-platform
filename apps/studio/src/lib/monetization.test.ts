@@ -11,6 +11,8 @@ import {
   tipText,
   tipsTotal,
   tipsTotalByAgent,
+  tipCount,
+  subscriptionActiveText,
 } from './monetization';
 import type { Subscription, Tip } from './monetization';
 
@@ -179,6 +181,35 @@ describe('monetization — tipsTotalByAgent', () => {
 
   it('empty for empty list', () => {
     expect(tipsTotalByAgent([])).toEqual({});
+  });
+});
+
+describe('monetization — tipCount', () => {
+  it('counts all tips', () => {
+    expect(tipCount([tip, tip, tip])).toBe(3);
+    expect(tipCount([])).toBe(0);
+  });
+});
+
+describe('monetization — subscriptionActiveText', () => {
+  const now = 1_700_000_000_000;
+
+  it('Active when active and not expired', () => {
+    expect(subscriptionActiveText({ ...sub, active: true, expiresAt: now + 86_400_000 }, now)).toBe(
+      'Active',
+    );
+    expect(subscriptionActiveText({ ...sub, active: true, expiresAt: null }, now)).toBe('Active');
+  });
+
+  it('Expired when active but expired', () => {
+    expect(subscriptionActiveText({ ...sub, active: true, expiresAt: now - 1 }, now)).toBe(
+      'Expired',
+    );
+  });
+
+  it('Never when null or inactive', () => {
+    expect(subscriptionActiveText(null, now)).toBe('Never');
+    expect(subscriptionActiveText({ ...sub, active: false, expiresAt: null }, now)).toBe('Never');
   });
 });
 

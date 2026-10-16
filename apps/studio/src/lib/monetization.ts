@@ -70,6 +70,18 @@ export function tipsTotalByAgent(tips: ReadonlyArray<Tip>): Record<AccountId, Pr
   return out;
 }
 
+/** 打赏总笔数，供客户端展示“已收 N 笔打赏”。 */
+export function tipCount(tips: ReadonlyArray<Tip>): number {
+  return tips.length;
+}
+
+/** 订阅状态短文本：active 且未过期 → 'Active'；expiresAt 已过 → 'Expired'；从未订阅/已取消 → 'Never'。 */
+export function subscriptionActiveText(sub: Subscription | null, now: number): string {
+  if (!sub || !sub.active) return 'Never';
+  if (sub.expiresAt !== null && sub.expiresAt <= now) return 'Expired';
+  return 'Active';
+}
+
 /** 货币的展示符号。供客户端价格行复用。 */
 export function currencySymbol(currency: Currency): string {
   return currency === 'USD' ? '$' : '¥';
