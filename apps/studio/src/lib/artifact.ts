@@ -39,7 +39,13 @@ code{background:#12151b;border:1px solid #262b34;border-radius:4px;padding:1px 5
  * The document is passed through `renderPreviewHtml` UNCHANGED — the artifact is not a paraphrase of the
  * document, it IS the document, drawn by the renderer the author already looked at.
  */
-export function renderArtifactHtml(publication: { title?: string; version?: number; publishedAt?: string; document: unknown; projectId?: string }): string {
+export function renderArtifactHtml(
+  publication: { title?: string; version?: number; publishedAt?: string; document: unknown; projectId?: string },
+  /** Who the service recorded as publisher, when a claim was attached — shown as `by <handle> · <assurance>`. */
+  owner?: { handle: string; assurance: string } | null,
+  /** Where this publication was remixed from, when `_lineage` is present — shown as `remixed from <id>`. */
+  remixedFrom?: string | null,
+): string {
   const doc = publication.document as DesignDocument | null;
   if (!doc || typeof doc !== 'object') {
     return shell('Artifact unavailable', '<h1>Artifact unavailable</h1><p>The publication exists but its document is not an object, so there is nothing to draw.</p>');
@@ -51,10 +57,11 @@ export function renderArtifactHtml(publication: { title?: string; version?: numb
     return shell('Artifact unavailable', '<h1>Artifact unavailable</h1><p>The publication exists but names no page to draw, so there is nothing to show.</p>');
   }
   const html = renderPreviewHtml(doc, pageId);
+  const withMeta = owner || remixedFrom ? injectMetaBar(html, owner ?? null, remixedFrom ?? null) : html;
   // v234 — a VISITOR (not just the publisher, whose Published panel already carries a remix control) can take
   // the work and make it their own. The link names the Studio root with `?remix=<id>`, which the Studio reads
   // on mount. Injection is a single string surgery on the preview's own bytes, so the drawing is untouched.
-  return publication.projectId ? injectRemixBar(html, publication.projectId) : html;
+  return publication.projectId ? injectRemixBar(withMeta, publication.projectId) : withMeta;
 }
 
 /**
@@ -91,4 +98,23 @@ export function renderArtifactUnavailable(reason: string): string {
     'The publication service is not answering',
     `<h1>The publication service is not answering</h1><p>${escapeHtml(reason)}</p><p>This is the service that holds publications, not this page — the artifact itself may be perfectly fine.</p>`,
   );
+}
+
+/**
+ * v245 — insert an author/lineage meta bar before `</body>`. PURE and testable: asserts nothing about the
+ * document, only that the preview renderer's output ends the way it always does (`…</div></body></html>`),
+ * and ESCAPES every caller-controlled fragment. A preview without `</body>` is returned unchanged.
+ */
+export function injectMetaBar(
+  html: string,
+  owner: { handle: string; assurance: string } | null,
+  remixedFrom: string | null,
+): string {
+  if (!html.includes('</body>')) return html;
+  const parts: string[] = [];
+  if (owner) parts.push(`by ${escapeHtml(owner.handle)} · ${escapeHtml(owner.assurance)}`);
+  if (remixedFrom) parts.push(`remixed from ${escapeHtml(remixedFrom)}`);
+  if (parts.length === 0) return html;
+  const bar = `<div class="nexus-meta"><span>${parts.join(' · ')}</span></div><style>.nexus-meta{position:fixed;right:16px;top:16px;z-index:10;background:#12151b;border:1px solid #262b34;border-radius:6px;padding:8px 12px;color:#9aa3b2;font:600 11px Inter,system-ui,sans-serif}</style>`;
+  return html.replace('</body>', `${bar}</body>`);
 }

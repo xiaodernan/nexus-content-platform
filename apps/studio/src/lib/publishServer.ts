@@ -66,6 +66,8 @@ export interface PublicationAnswer {
    */
   notFound?: boolean;
   reason?: string;
+  /** Who the service recorded as publisher, when a claim was attached (v244). `null` when the row names nobody. */
+  owner?: { handle: string; assurance: string } | null;
 }
 
 /** A `fetch` shaped narrowly enough to inject in a test and to stand in for the global one. */
@@ -159,6 +161,14 @@ export async function readPublication(projectId: string, fetchImpl: FetchLike = 
         publishedAt: typeof body.publishedAt === 'string' ? body.publishedAt : undefined,
         url: typeof body.url === 'string' ? body.url : undefined,
         document: body.document,
+        /** Who the service recorded as publisher — read back as shape, not trusted beyond handle + assurance. */
+        owner: (() => {
+          const raw = body.owner as { handle?: unknown; assurance?: unknown } | null | undefined;
+          if (raw && typeof raw.handle === 'string' && typeof raw.assurance === 'string') {
+            return { handle: raw.handle, assurance: raw.assurance };
+          }
+          return null;
+        })(),
       };
     }
     return { ok: false, reason: `nexus-api answered ${res.status} with a non-JSON body` };

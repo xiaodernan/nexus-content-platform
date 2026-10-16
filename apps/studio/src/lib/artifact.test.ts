@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { createEmptyDocument } from '@nexus/design-model';
-import { injectRemixBar, renderArtifactHtml, renderArtifactMissing, renderArtifactUnavailable } from './artifact';
+import { injectRemixBar, injectMetaBar, renderArtifactHtml, renderArtifactMissing, renderArtifactUnavailable } from './artifact';
 
 /**
  * M7 v196 — the artifact page's rendering rules.
@@ -92,5 +92,70 @@ describe('artifact — the REMIX bar lets a VISITOR take the work (M7 v234)', ()
     const out = injectRemixBar('<body></body>', 'a"b');
     expect(out).toContain('href="/?remix=a%22b"');
     expect(out).not.toContain('a"b');
+  });
+});
+
+describe('artifact — the META bar shows author and remix source (M7 v245)', () => {
+  const doc = createEmptyDocument('Harbour at dusk');
+
+  it('injects `by <handle> · <assurance>` and `remixed from <id>` when both are recorded', () => {
+    const html = renderArtifactHtml(
+      { projectId: 'pub-1', title: 'Harbour at dusk', version: 2, document: doc },
+      { handle: 'ada', assurance: 'unsigned-local' },
+      'pub-alpha',
+    );
+    expect(html).toContain('by ada · unsigned-local');
+    expect(html).toContain('remixed from pub-alpha');
+    expect(html).toContain('class="stage"');
+    expect(html.indexOf('nexus-meta')).toBeLessThan(html.indexOf('</body>'));
+  });
+
+  it('injects ONLY the author line when there is no lineage', () => {
+    const html = renderArtifactHtml(
+      { projectId: 'pub-1', title: 'Harbour at dusk', document: doc },
+      { handle: 'ada', assurance: 'unsigned-local' },
+      null,
+    );
+    expect(html).toContain('by ada · unsigned-local');
+    expect(html).not.toContain('remixed from');
+  });
+
+  it('injects ONLY the lineage line when there is no claim', () => {
+    const html = renderArtifactHtml(
+      { projectId: 'pub-1', title: 'Harbour at dusk', document: doc },
+      null,
+      'pub-alpha',
+    );
+    expect(html).toContain('remixed from pub-alpha');
+    expect(html).not.toContain('by ');
+  });
+
+  it('injects NO meta bar when neither is recorded', () => {
+    const html = renderArtifactHtml(
+      { projectId: 'pub-1', title: 'Harbour at dusk', document: doc },
+      null,
+      null,
+    );
+    expect(html).not.toContain('nexus-meta');
+    expect(html).toContain('class="stage"');
+  });
+
+  it('escapes caller-controlled meta text', () => {
+    const html = renderArtifactHtml(
+      { projectId: 'pub-1', title: 'Harbour at dusk', document: doc },
+      { handle: '<script>x</script>', assurance: 'unsigned-local' },
+      '<script>y</script>',
+    );
+    expect(html).toContain('by &lt;script&gt;x&lt;/script&gt; · unsigned-local');
+    expect(html).toContain('remixed from &lt;script&gt;y&lt;/script&gt;');
+    expect(html).not.toContain('<script>');
+  });
+
+  it('returns the html unchanged when there is no </body> to inject before', () => {
+    expect(injectMetaBar('<div>no body tag</div>', { handle: 'ada', assurance: 'unsigned-local' }, 'pub-alpha')).toBe('<div>no body tag</div>');
+  });
+
+  it('injectMetaBar adds nothing when both owner and lineage are absent', () => {
+    expect(injectMetaBar('<body></body>', null, null)).toBe('<body></body>');
   });
 });
