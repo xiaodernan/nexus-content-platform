@@ -190,3 +190,18 @@ export function toggleFollow(following: ReadonlySet<AccountId>, targetId: Accoun
 export function followingOf(viewerId: AccountId): Set<AccountId> {
   return new Set();
 }
+
+/** Stage C UI 辅助：屏蔽按钮文本。纯函数，不触网络、不写状态。 */
+export function blockButtonText(isBlocked: boolean): 'Block' | 'Unblock' {
+  return isBlocked ? 'Unblock' : 'Block';
+}
+
+/** Stage C UI 辅助：静音开关按钮文本。纯函数，不触网络、不写状态。 */
+export function muteToggleButtonText(isMutedNow: boolean): 'Mute' | 'Unmute' {
+  return isMutedNow ? 'Unmute' : 'Mute';
+}
+
+/** Stage C 静音：给定账号是否在 viewer 的静音集合中。纯判断，不改状态。 */
+export function isMutedBy(muted: ReadonlySet<AccountId>, viewerId: AccountId): boolean {
+  return muted.has(viewerId);
+}

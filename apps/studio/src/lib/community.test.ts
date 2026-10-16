@@ -10,6 +10,7 @@ import {
   buildFollowersIndex,
   buildFollowingIndex,
   buildProfileIndex,
+  blockButtonText,
   canDeleteComment,
   commentBodyText,
   commentsFor,
@@ -18,8 +19,10 @@ import {
   formatSince,
   followingOf,
   isLiked,
+  isMutedBy,
   likeCountFor,
   likeCountText,
+  muteToggleButtonText,
   isFollowing,
   toggleFollow,
   toggleLike,
@@ -267,5 +270,30 @@ describe('community — followingOf', () => {
     expect(result).toBeInstanceOf(Set);
     expect(result.size).toBe(0);
     expect(result.has('acct-bob')).toBe(false);
+  });
+});
+
+describe('community — blockButtonText / muteToggleButtonText', () => {
+  it('blockButtonText: Block when not blocked, Unblock when blocked', () => {
+    expect(blockButtonText(false)).toBe('Block');
+    expect(blockButtonText(true)).toBe('Unblock');
+  });
+
+  it('muteToggleButtonText: Mute when not muted, Unmute when muted', () => {
+    expect(muteToggleButtonText(false)).toBe('Mute');
+    expect(muteToggleButtonText(true)).toBe('Unmute');
+  });
+});
+
+describe('community — isMutedBy', () => {
+  const muted = new Set<AccountId>(['acct-spammer', 'acct-bot']);
+
+  it('reports membership in muted set', () => {
+    expect(isMutedBy(muted, 'acct-spammer')).toBe(true);
+    expect(isMutedBy(muted, 'acct-normal')).toBe(false);
+  });
+
+  it('empty set reports nothing muted', () => {
+    expect(isMutedBy(new Set(), 'acct-any')).toBe(false);
   });
 });
