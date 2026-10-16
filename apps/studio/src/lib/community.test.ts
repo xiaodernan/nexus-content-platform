@@ -9,10 +9,12 @@ import {
   buildFollowersIndex,
   buildFollowingIndex,
   buildProfileIndex,
+  canDeleteComment,
   commentBodyText,
   commentsFor,
   escapeHtml,
   followButtonText,
+  formatSince,
   likeCountFor,
   likeCountText,
   isFollowing,
@@ -161,5 +163,54 @@ describe('community — UI helpers', () => {
   it('commentBodyText shows [deleted] for deleted comments', () => {
     expect(commentBodyText(comment({ deleted: true, body: 'secret' }))).toBe('[deleted]');
     expect(commentBodyText(comment({ deleted: false, body: 'nice' }))).toBe('nice');
+  });
+});
+
+describe('community — permission: canDeleteComment', () => {
+  const c = comment({ accountId: 'acct-author', id: 'c-1' });
+  const pubOwner = 'acct-pub';
+
+  it('comment author can delete their own comment', () => {
+    expect(canDeleteComment(c, 'acct-author', pubOwner)).toBe(true);
+  });
+
+  it('publication owner can delete any comment', () => {
+    expect(canDeleteComment(c, pubOwner, pubOwner)).toBe(true);
+  });
+
+  it('random viewer cannot delete', () => {
+    expect(canDeleteComment(c, 'acct-stranger', pubOwner)).toBe(false);
+  });
+
+  it('no viewer (signed out) cannot delete', () => {
+    expect(canDeleteComment(c, null, pubOwner)).toBe(false);
+  });
+});
+
+describe('community — display: formatSince', () => {
+  const now = 1_700_000_000_000;
+
+  it('sub-minute shows just now', () => {
+    expect(formatSince(now - 30_000, now)).toBe('just now');
+    expect(formatSince(now - 59_999, now)).toBe('just now');
+  });
+
+  it('minutes ago', () => {
+    expect(formatSince(now - 60_000, now)).toBe('1 m ago');
+    expect(formatSince(now - 3_599_999, now)).toBe('59 m ago');
+  });
+
+  it('hours ago', () => {
+    expect(formatSince(now - 3_600_000, now)).toBe('1 h ago');
+    expect(formatSince(now - 86_399_999, now)).toBe('23 h ago');
+  });
+
+  it('days ago', () => {
+    expect(formatSince(now - 86_400_000, now)).toBe('1 d ago');
+    expect(formatSince(now - 200_000_000, now)).toBe('2 d ago');
+  });
+
+  it('future clock clamps to just now', () => {
+    expect(formatSince(now + 1_000_000, now)).toBe('just now');
   });
 });

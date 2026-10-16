@@ -139,3 +139,27 @@ export function commentBodyText(comment: Comment): string {
   if (comment.deleted) return '[deleted]';
   return comment.body;
 }
+
+/** Stage C 权限：谁能删除一条评论。评论作者本人，或该 publication 的作者，可以删除。
+ *  纯判断，不改状态；服务端在写入前会再校验一次（ADR 0018 落地后）。 */
+export function canDeleteComment(
+  comment: Comment,
+  viewerId: AccountId | null,
+  publicationOwnerId: AccountId | null,
+): boolean {
+  if (!viewerId) return false;
+  return viewerId === comment.accountId || viewerId === publicationOwnerId;
+}
+
+/** Stage C 显示：把 epoch ms 渲染成人类可读的相对时间（纯函数，host-supplied now 便于测试）。
+ *  阈值：< 1 分钟 → "just now"；< 1 小时 → "N m ago"；< 24 小时 → "N h ago"；否则 "N d ago"。 */
+export function formatSince(createdAt: number, now: number): string {
+  const diffSec = Math.max(0, now - createdAt) / 1000;
+  if (diffSec < 60) return 'just now';
+  const minutes = Math.floor(diffSec / 60);
+  if (minutes < 60) return `${minutes} m ago`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `${hours} h ago`;
+  const days = Math.floor(hours / 24);
+  return `${days} d ago`;
+}
