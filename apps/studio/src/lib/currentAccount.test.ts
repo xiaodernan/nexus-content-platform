@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it } from 'vitest';
-import { currentAccountStore, type KeyValueStore } from './currentAccount';
+import { currentAccountStore, currentAccount, type KeyValueStore } from './currentAccount';
 import { AccountRegistry, isOwnerClaim, type AccountRecord } from './accounts';
 
 function fakeStore(): KeyValueStore & { calls: string[]; data: string } {
@@ -115,5 +115,45 @@ describe('currentAccount — owner claim', () => {
     acct.setCurrentAccount(aRecord());
     const claim = acct.currentOwnerClaim(1_700_000_000_000)!;
     expect(isOwnerClaim(claim)).toBe(true);
+  });
+
+  it('currentOwnerClaim uses the supplied now, so the same account yields different claimedAt across calls', () => {
+    const store = fakeStore();
+    const acct = currentAccountStore(store);
+    acct.setCurrentAccount(aRecord());
+    const first = acct.currentOwnerClaim(1_700_000_000_000)!;
+    const second = acct.currentOwnerClaim(1_700_000_001_000)!;
+    expect(first.claimedAt).toBe(1_700_000_000_000);
+    expect(second.claimedAt).toBe(1_700_000_001_000);
+    expect(first.accountId).toBe(second.accountId);
+    expect(first.handle).toBe(second.handle);
+  });
+
+  it('the exported singleton answers like a constructed store', () => {
+    expect(typeof currentAccount.getCurrentAccount).toBe('function');
+    expect(typeof currentAccount.setCurrentAccount).toBe('function');
+    expect(typeof currentAccount.clearCurrentAccount).toBe('function');
+    expect(typeof currentAccount.hasCurrentAccount).toBe('function');
+    expect(typeof currentAccount.currentOwnerClaim).toBe('function');
+  });
+
+  it('stored JSON with non-string id or handle is treated as no account', () => {
+    const store = fakeStore();
+    (store as { data: string }).data = JSON.stringify({ id: 123, handle: 'ada' });
+    expect(currentAccountStore(store).getCurrentAccount()).toBeNull();
+    (store as { data: string }).data = JSON.stringify({ id: 'acct-ada', handle: 456 });
+    expect(currentAccountStore(store).getCurrentAccount()).toBeNull();
+  });
+
+  it('stored JSON with extra unknown fields still round-trips (forward compatible)', () => {
+    const store = fakeStore();
+    const acct = currentAccountStore(store);
+    const account = aRecord();
+    const enriched = { ...account, extra: { notes: 'later schema' } };
+    acct.setCurrentAccount(enriched);
+    const back = acct.getCurrentAccount();
+    expect(back?.id).toBe(account.id);
+    expect(back?.handle).toBe(account.handle);
+    expect((back as { extra?: unknown }).extra).toEqual({ notes: 'later schema' });
   });
 });
