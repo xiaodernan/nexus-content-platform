@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { requireUser } from '@/server/domain/session';
+import { requireUser, currentUserOrNull } from '@/server/domain/session';
 import { getMarketplaceItem, updateMarketplaceItem, deleteMarketplaceItem } from '@/server/domain/marketplace';
 import { MARKETPLACE_VISIBILITY } from '@/server/db/schema';
 import { scanTextForRedlines } from '@/server/domain/moderation';
@@ -23,6 +23,15 @@ export async function GET(
 
   if (!item) {
     return NextResponse.json({ error: 'Item not found' }, { status: 404 });
+  }
+
+  // 私有草稿只有创作者本人能看：与预览路由同一口径（[id]/preview 对 private 只放创作者）。
+  // 详情里带着 sourceProjectId / documentId 这些内部 id，不该随一个 UUID 外泄
+  if (item.visibility === 'private') {
+    const viewer = await currentUserOrNull();
+    if (!viewer || viewer.id !== item.creatorId) {
+      return NextResponse.json({ error: 'Item not found' }, { status: 404 });
+    }
   }
 
   return NextResponse.json({ item }, { headers: { 'cache-control': 'no-store' } });

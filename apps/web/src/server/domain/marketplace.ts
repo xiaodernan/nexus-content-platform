@@ -348,6 +348,16 @@ export async function purchaseMarketplaceItem(input: PurchaseMarketplaceItemInpu
     throw new Error('Free items do not require purchase');
   }
 
+  // 私有草稿不在市面上：凭 id 直接买一份没上架的商品，等于把作者还没决定公开的
+  // 东西卖出去（预览路由对 private 只放创作者，购买与它同一口径，见 [id]/preview）。
+  // 默认价格是 0 的草稿尤其致命：pricePaid=0 时不写扣点流水，购买"免费成交"，
+  // 之后 content 路由的 hasPurchased 就为任何人放行未公开草稿的完整导出包。
+  // 复用"不存在或已下架"这一句：对买家来说"没上架"与"不存在"是同一个答案，
+  // 不留下"存在但不给你买"那种可分辨的差别
+  if (item.visibility === 'private') {
+    throw new Error('Item not found or deleted');
+  }
+
   // 不能买自己的东西
   if (item.creatorId === input.buyerId) {
     throw new Error('Cannot purchase your own item');
