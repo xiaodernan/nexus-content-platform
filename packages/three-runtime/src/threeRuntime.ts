@@ -1165,6 +1165,26 @@ function reputationFromData(list: SerializedNPC['reputation']): [string, number]
   });
 }
 
+/**
+ * M5 v256 — the width of the creation stamp inside a minted entity id.
+ *
+ * `buildSaveFile` orders an entity row by SORTING the scene's entity ids, so the string a minter writes is
+ * the file's row order. Until v256 that string was `entity-<ms>-<random>`, which made the sort a coin flip
+ * among bodies minted in one millisecond — measured at the shipped build: 200 bodies created in one loop put
+ * 183 of 199 adjacent pairs in the SAME millisecond, and 177 of 200 rows landed somewhere other than their
+ * creation position.
+ *
+ * The repair keeps the sort and fixes its key: the id spells `<ms>-<stamp>-<random>`, so comparing two ids
+ * compares when each body was made (millisecond, then this runtime's own counter) and the random tail is
+ * reached only when a body from ANOTHER runtime was minted in the same millisecond and the same slot — where
+ * it does what a tail is for, which is preventing a collision, not choosing a row.
+ *
+ * The width is a property of the ORDER, not of the id's looks: an unpadded counter would sort `10` before `9`
+ * as soon as one runtime mints ten bodies in a millisecond. At width 8 a runtime may mint 100,000,000 bodies
+ * before a stamp outgrows its padding and the ordering claim lapses; the test suite mints hundreds.
+ */
+const ID_CREATION_STAMP_WIDTH = 8;
+
 export class ThreeRuntime {
   private config: ThreeRuntimeConfig;
   private sceneGraph: SceneGraph;
@@ -1195,6 +1215,10 @@ export class ThreeRuntime {
   private readonly cinematics = new Map<string, CinematicEntry>();
   /** Where save files go. `null` when the runtime was built without a store, which the file methods refuse. */
   private readonly storage: SaveStore | null;
+  /** How many entity ids this runtime has minted, which is the stamp inside each of them (v256). A restore
+   *  does not consume it: a loaded body keeps the stamp it was born with, so a file's rows stay ordered by
+   *  when its bodies were MADE even after they arrive in a different process. */
+  private entityMints = 0;
 
   constructor(config: Partial<ThreeRuntimeConfig> = {}, options: ThreeRuntimeOptions = {}) {
     this.config = { ...DEFAULT_THREE_CONFIG, ...config };
@@ -1337,6 +1361,17 @@ export class ThreeRuntime {
     return true;
   }
 
+  /**
+   * M5 v256 — mint one entity id whose lexicographic order IS its creation order: the millisecond, then this
+   * runtime's own counter at a fixed width, then a random tail. See `ID_CREATION_STAMP_WIDTH` for why the
+   * fields are in that order and why the tail may never be the part that decides a row.
+   */
+  private mintEntityId(): EntityId {
+    const stamp = String(this.entityMints).padStart(ID_CREATION_STAMP_WIDTH, '0');
+    this.entityMints += 1;
+    return entityId(`entity-${Date.now()}-${stamp}-${Math.random().toString(36).slice(2)}`);
+  }
+
   createEntity(
     sceneId: SceneId,
     name: string,
@@ -1349,7 +1384,7 @@ export class ThreeRuntime {
   ): ThreeEntity {
     return this.insertEntity(
       sceneId,
-      entityId(`entity-${Date.now()}-${Math.random().toString(36).slice(2)}`),
+      this.mintEntityId(),
       name,
       type,
       geometry,
@@ -1866,6 +1901,14 @@ export class ThreeRuntime {
    * they belonged on the way back. `npcs` inherits that scoping for the same reason and one more: a record
    * names an entity, so a file carrying records for bodies it does not carry would restore records about
    * nothing. Sequences carry their own `sceneId` (v118), so the whole registry fits.
+   *
+   * Both id-keyed halves are ROW-ORDERED BY CREATION, and since v256 the sort that does it has a key that
+   * means something: entity ids minted by this runtime spell their own birth order (see
+   * `ID_CREATION_STAMP_WIDTH`). Sorting by the id is the mechanism, creation order is the claim, and
+   * `test/saveSnapshot.test.ts` holds both halves — including the case where a body ARRIVES late but was
+   * MADE early, where insertion order and id order are different answers and the file takes the second.
+   * The cinematic half is not id-sorted: `cinematicSnapshot` walks its registry as stored, so sequence rows
+   * are in registration order, which is a different claim and is stated rather than quietly unified.
    *
    * `assertDiskSafe` runs on the way OUT, over the finished file: a producer that cannot name a shape its
    * reader would refuse has no business writing one, and a silent `Map` in this file would be three

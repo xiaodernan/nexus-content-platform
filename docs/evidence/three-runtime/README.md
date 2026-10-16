@@ -3116,3 +3116,78 @@ there since v108 introduced the verb.
 _Backfilled pointer-record: the commit (`e7106c8`, "v239 follow-on") carried a ledger entry but no corpus title AND no message body, so this section states what the diff shows and claims no suite total it did not measure._
 
 `packages/three-runtime/test/cameraRemoval.test.ts` is NEW (505 lines) — the suite for a camera-REMOVAL verb; `threeRuntime.ts` gained 35 lines (the verb); `apps/studio/src/lib/scene3d.ts` (48) and `scene3d.test.ts` (24) were corrected — the subject names the defect: the Studio camera leg listened for the wrong EVENT NAMES and asserted the wrong COUNT. 577 insertions / 35 deletions across four files. Bounds: a pointer, not a reconstruction — no measured total is quoted because the commit measured none.
+
+## v256 — a save file's ROWS are ordered by CREATION: the sort stays, the random key goes (M5 v256 — ADR 0016 amendment 256)
+
+v255's audit found this defect in its own lane's runtime and named the next grant, so this section states the
+finding, the decision, the correction of one sentence v255 wrote, and the measurement on both sides.
+
+**The defect, measured on the shipped bytes before the fix.** `buildSaveFile` ordered its entity rows by
+`[...scene.entities.keys()].sort()` (`packages/three-runtime/src/threeRuntime.ts:1925`) while `createEntity`
+minted `entity-${Date.now()}-${Math.random()…}`. A probe built the way the proofs build it (same
+`createThreeRuntime({}, { backend })` seam, same headless backend) made 200 bodies in one loop and printed:
+
+| what the probe printed | what it means |
+| --- | --- |
+| `same-millisecond adjacent pairs out of 199: 183` | for 92% of neighbours the sort key's deciding segment was a coin flip |
+| `rows whose position differs from creation position: 177 / 200` | the file's rows were a shuffle, not a sequence |
+| `run-vs-run NAME order identical: false` | the same construction in two processes produced two different files |
+| `two saves of an unchanged scene in ONE process are byte-identical: true` | the sentence below had to be narrowed |
+
+**The correction v255 owes.** Its record said "a save file for an UNCHANGED scene is not byte-stable across
+saves". Measured, that is FALSE inside one process — the map and the sort answer the same question twice and
+agree twice. The instability is ACROSS RUNS: same construction, two processes, two orders. A claim about
+stability that does not name its axis reads as a bigger defect than the one it describes.
+
+**The decision: the SORT is the claim, so the KEY was wrong.** Two shapes were on the table. Filing creation
+order as a `SerializedEntity` field moves every file reader, the `Serialized*` name census and
+`SAVE_FILE_VERSION`, and pre-v256 files still arrive random-ordered, so the schema would carry two rules at
+once. Making the minted id's sort key carry the order changes no schema, keeps every old file's rows meaning
+what they already said, and is one sentence about one string. The id now spells
+`entity-<ms>-<8-digit per-runtime stamp>-<random tail>`: lexicographic order IS creation order, the tail
+exists only so that two runtimes minting in the same millisecond do not produce the same id, and the tail may
+never be the segment that decides a row. A restore does not consume the counter — a loaded body keeps the
+stamp it was born with, which is what makes case 4 below a claim rather than a tautology.
+
+**Why the cinematic half says something else.** `cinematicSnapshot` walks its registry as stored, so sequence
+rows are in REGISTRATION order. That is a different claim from the two id-sorted halves and is stated rather
+than quietly unified with them.
+
+| layer | what it proves |
+| --- | --- |
+| `test/saveSnapshot.test.ts` (+112 lines, 5 cases, 161 → 166) | (1) every minted id spells `<ms>-<8 digits>-<tail>`, stamps strictly rise, at least one same-millisecond pair crosses the 9→10 padding boundary (a derived floor: a zero census would grade no padding at all), and sorting the ids reproduces the mints · (2) 200 bodies written in one loop come out of the file in creation order by id AND by name · (3) two runtimes that never spoke produce the SAME row order for the same construction · (4) a body MADE first but RESTORED last is filed FIRST, while the live map holds it last — the only case that separates "sorted by creation" from "left in map order" · (5) the NPC half is ordered by the same rule as the body half, over the same made-early/arrived-late move |
+
+**Witness arms: 7 predicted, 7 reddened, 3 MATCHED, 4 WIDER — and the four misses are one fact, not four.**
+Predictions were written before any arm ran. Cases 4 and 5 compare a body made early with bodies made late,
+and whether "early" and "late" fall in different milliseconds is decided by the machine, so an arm that
+destroys the stamp reddens them at a RATE; my predictions called them green. A1/A3/A6/A7 were therefore
+re-run three extra times each (4 observations apiece) rather than reported as single readings:
+`A1 1,2,3,4 4/4 and 5 3/4 · A6 1,2,3,4 4/4 and 5 0/4 · A3 case 4 4/4 and nothing else · A7 case 1 4/4 and
+nothing else`. A6 and A1 differ only in the padding segment they leave behind, so the case-5 pair is one
+event sampled 8 times with 3 hits — reported as a rate, not reconciled. `A2` (unpadded counter) reddened
+1,2,3 — my prediction forgot case 3 mints 50 bodies, which cross 9→10. `A5` (fields swapped) reddened 1-5.
+`A7`'s one collateral red was a v136 case that compares ids minted by two runtimes, and it appeared in 1 of
+4 observations — a cross-runtime collision, which is exactly the event the tail exists for; the runner
+elided the refusal's own sentence, so this record does not name which pair collided. No arm failed to
+redden, no needle hit anywhere but once, and `threeRuntime.ts` returned to digest `0bed37cffdd313a6` after
+every arm.
+
+Measured: three-runtime **572 → 577** passed / 0 failed (25 files), `tsc -p tsconfig.test.json` exit 0,
+Studio **718/718** (43 files) with `tsc --noEmit` exit 0, dist rebuilt (20 files, digest `92f5c57d7e25bf6a`)
+and `scene-surface` / `world-surface` / `asset-surface` green. The flip rate that started this: **5 red / 10
+runs before**, **0 red / 12 runs after** on the rebuilt dist. `docs/evidence/agents/scene-tools-proof.mjs`
+was NOT edited — its `entities[0]` pin asks for the first-created body and now deterministically gets one.
+`threeRuntime.ts` is +44/−1; eslint over both changed files reports 4 errors, all
+`@typescript-eslint/no-unsafe-function-type` on pre-existing `Function` annotations, and the diff adds zero
+`Function` tokens.
+
+**Bounds (§60).** The stamp is PER RUNTIME, so ordering is only guaranteed within one runtime's mintings: a
+scene that mixes bodies made by two runtimes in the same millisecond falls back to the tail, and this grant's
+case 3 pins the two-runtimes-same-construction case, not the two-runtimes-interleaved one. Both sort fields
+are fixed-width today — `Date.now()` at 13 digits holds until 2286, and width 8 lets one runtime mint
+100,000,000 bodies before a stamp outgrows its padding — but neither bound is enforced, only documented; a
+reader that outlives either must re-derive the key. Nothing here changes what a file CARRIES: the rows of the
+entity and NPC halves are ordered, the cinematic half is registration-ordered, and `SaveData.sceneGraph`
+stays blocked, so a file still cannot say which scene a body belongs to except by the `sceneId` it was built
+for. Carried from v244 unchanged: `setActiveCamera` is still a sentence the Studio panel prints but cannot
+answer from its own UI, and `tools/harness/studio-scene3d.mjs` still has no camera-row step.

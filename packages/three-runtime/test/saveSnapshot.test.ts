@@ -3086,3 +3086,115 @@ describe('M5 v137 — the player record’s declared numbers get operations', ()
     expect(runtime.playerFieldAudit(scene)!.untouched.map((entry) => entry.field)).toEqual(['inventory']);
   });
 });
+
+/**
+ * M5 v256 — the save file's row ORDER, and the key that makes it mean something.
+ *
+ * `buildSaveFile` lays its rows out by SORTING the scene's entity ids, and until this grant an id was spelled
+ * `entity-<millisecond>-<random>`. Two bodies minted in one millisecond therefore arrived in the file in an
+ * order decided by a coin flip: measured at the shipped build, a loop of 200 creations put 183 of its 199
+ * adjacent pairs inside a single millisecond and left 177 of the 200 rows in a position that was not their
+ * creation position, and two runtimes built the same way wrote different name orders. A reader that takes
+ * `entities[0]` to be "the first body" is reading that race — which is what
+ * `docs/evidence/agents/scene-tools-proof.mjs` does at its §6, measured 5 red out of 10 runs at rest.
+ *
+ * The decision (ADR 0016 amendment 256) keeps the sort and fixes its key: an id now spells
+ * `<millisecond>-<this runtime's own counter, fixed width>-<random tail>`. Sorting ids therefore sorts
+ * creation order, and the tail only separates two runtimes that minted the same body number in the same
+ * millisecond — where it does what a tail is for, which is preventing a collision, not choosing a row.
+ * These cases hold both halves: the arithmetic of the key, and the rows the key produces. The load-bearing
+ * pair is the one where a body ARRIVES late but was MADE early, because that is the only state in which
+ * "sorted by id" and "left in map order" give different answers.
+ */
+describe('M5 v256 — a save file’s rows are ordered by CREATION, not by a coin flip', () => {
+  const ID_SHAPE = /^entity-(?<ms>\d{13})-(?<stamp>\d{8})-(?<tail>[a-z0-9]+)$/;
+
+  /** `count` mesh bodies in one tight loop, named in creation order and returned in it. */
+  function mint(rt: ThreeRuntime, scene: SceneId, count: number): EntityId[] {
+    const ids: EntityId[] = [];
+    for (let i = 0; i < count; i += 1) ids.push(rt.createEntity(scene, `b${i}`, 'mesh').id);
+    return ids;
+  }
+
+  /** The three fields of a minted id, or a crash naming the id whose spelling this grant no longer mints. */
+  function fieldsOf(id: EntityId): { ms: string; stamp: string; tail: string } {
+    const found = ID_SHAPE.exec(id);
+    if (!found?.groups) throw new Error(`id ${id} is not spelled entity-<13-digit ms>-<8-digit stamp>-<tail>`);
+    return found.groups as { ms: string; stamp: string; tail: string };
+  }
+
+  it('mints a stamp that is fixed-width and strictly increasing, so the sort key IS the creation order', () => {
+    const ids = mint(runtime, scene, 200);
+    const malformed = ids.filter((id) => !ID_SHAPE.test(id));
+    expect(malformed.slice(0, 3), `${malformed.length} of ${ids.length} minted ids do not spell <ms>-<8-digit stamp>-<tail>: ${malformed.slice(0, 3).join(', ')}`).toEqual([]);
+
+    const stamps = ids.map((id) => Number(fieldsOf(id).stamp));
+    const notRising = stamps.filter((value, index) => index > 0 && value <= stamps[index - 1]!);
+    expect(notRising, `the stamp must strictly increase with every mint; it did not at ${notRising.join(', ')}`).toEqual([]);
+
+    // The arithmetic the padding buys, measured from the SAME ids rather than asserted about them: a
+    // millisecond that holds both stamp 9 and stamp 10 is the state where an UNPADDED counter would sort
+    // `10` before `9`. Zero of these means this case graded no padding at all, so it is a red, not a green.
+    const nineToTen = ids.filter((id, index) => {
+      if (index === 0) return false;
+      const here = fieldsOf(id);
+      const before = fieldsOf(ids[index - 1]!);
+      return here.ms === before.ms && Number(here.stamp) === 10 && Number(before.stamp) === 9;
+    }).length;
+    expect(nineToTen, 'no two mints crossed stamp 9 into 10 inside one millisecond, so no row here needed a fixed-width key').toBeGreaterThan(0);
+
+    // And the claim the file acts on: sorting the ids answers with the order the bodies were made.
+    expect([...ids].sort(), 'sorting minted ids must answer with creation order').toEqual(ids);
+  });
+
+  it('writes every entity row in creation order, including the ones minted in the same millisecond', () => {
+    const ids = mint(runtime, scene, 200);
+    const file = runtime.buildSaveFile(scene, 1700000000000);
+    expect(file.entities.length).toBe(200);
+    expect(file.entities.map(([id]) => id), 'row ids follow creation').toEqual(ids);
+    expect(file.entities.map(([, row]) => row.name), 'and so do the names the rows carry')
+      .toEqual(ids.map((_id, index) => `b${index}`));
+  });
+
+  it('writes the same row order for the same construction, in two runtimes that never spoke to each other', () => {
+    const other = freshWorld();
+    const twin = other.createScene('Twin').id;
+    const mine = mint(runtime, scene, 50).map((_id, index) => `b${index}`);
+    const theirs = mint(other, twin, 50).map((_id, index) => `b${index}`);
+    const from = (rt: ThreeRuntime, id: SceneId) => rt.buildSaveFile(id, 1).entities.map(([, row]) => row.name);
+    expect(from(runtime, scene), 'the first runtime orders its rows by creation').toEqual(mine);
+    expect(from(other, twin), 'so does the second').toEqual(theirs);
+    expect(from(other, twin), 'and the two answers are the same sequence').toEqual(from(runtime, scene));
+    other.dispose();
+  });
+
+  it('orders rows by when a body was MADE, not by when it arrived in this process', () => {
+    const early = runtime.createEntity(scene, 'Early', 'mesh').id;
+    const snapshot = runtime.snapshotEntity(scene, early);
+    runtime.removeEntity(scene, early);
+    const late = mint(runtime, scene, 5);
+    const restored = runtime.restoreEntity(scene, snapshot);
+
+    // The scene's own insertion order now says the opposite: five bodies that were made LATER arrived FIRST.
+    expect([...runtime.getScene(scene)!.entities.keys()], 'insertion order would have put the late bodies first')
+      .toEqual([...late, restored.id]);
+    expect(runtime.buildSaveFile(scene, 1).entities.map(([id]) => id), 'the file says otherwise: the body made first is row 0')
+      .toEqual([restored.id, ...late]);
+  });
+
+  it('orders the NPC rows by the same rule as the body rows', () => {
+    const early = runtime.createEntity(scene, 'Early', 'mesh').id;
+    const snapshot = runtime.snapshotEntity(scene, early);
+    runtime.removeEntity(scene, early);
+    const late = runtime.createEntity(scene, 'Late', 'mesh').id;
+    const restored = runtime.restoreEntity(scene, snapshot);
+    runtime.attachNPC(scene, restored.id);
+    runtime.attachNPC(scene, late);
+
+    const file = runtime.buildSaveFile(scene, 1);
+    expect(file.npcs.map(([id]) => id), 'the record about the earlier-made body is the earlier row')
+      .toEqual([restored.id, late]);
+    expect([...runtime.getScene(scene)!.entities.keys()], 'and that is not what arrival order said')
+      .toEqual([late, restored.id]);
+  });
+});

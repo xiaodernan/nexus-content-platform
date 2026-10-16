@@ -10785,3 +10785,79 @@ _Numbering: measured at HEAD `7f4c0a7` over 266 tracked files in `docs`, `apps/s
 - **The real defect, in this lane's runtime.** `buildSaveFile` orders entity rows by `[...scene.entities.keys()].sort()` (`packages/three-runtime/src/threeRuntime.ts:1882`) while `createEntity` mints `entity-${Date.now()}-${Math.random()…}` (`:1352`), so two bodies created in the SAME millisecond are ordered by a coin-flip: a save file for an UNCHANGED scene is not byte-stable across saves, and a proof reading `entities[0]` as "the first-created body" is pinned to a race. **Amendment 256 is named by this finding**: decide whether the sort is the claim (then the key must stop being a random id, or creation order must be a filed field) or the pin is wrong, and pin the flip rate either way — 3/6 measured ONCE is not a baseline.
 - **Measured.** `apps/studio` vitest **718/718 passed, 0 failed, exit 0** (238 files) and `@nexus/three-runtime` **572/572, exit 0** (109 files) at HEAD `7f4c0a7`; `tsc --noEmit -p apps/studio/tsconfig.json` **exit 0 / 0 errors**, `tsc -p packages/three-runtime/tsconfig.test.json` **exit 0**. `node --check` on the changed proof exit 0 and eslint on the studio flat config (the repository's only eslint config) reports **0 errors, 4 warnings**. The tree is dirty in 15 paths, all of them other lanes' in-flight files and none a path this grant touched; NO production file was modified — `scene3d.ts` moved only inside the witness battery and returned to its own digest. The changed proof is `+87 / -47` lines.
 - **Bounds (§60).** One file repaired; the other 92 gates are graded, not fixed, and no green is claimed for the reds this grant did not cause. The audit is a SNAPSHOT — the agents corpus at `d1c0f49`, the hand-run gates at `7f4c0a7`, with the commands stated so a later reader re-runs instead of trusting counts. The `.scratch/` hole stays open: nothing here proves an ignored directory stays out of a proof's population, only that a file inside one reached a top-5. Carried forward from v244 unchanged: `setActiveCamera` is still a sentence the panel prints but cannot answer from its own UI, and `tools/harness/studio-scene3d.mjs` still has no camera-row step. And the §7 door's title arm still carries the landmine v244 named, now measured where it bites: its precondition requires the mention grammar to REFUSE the ledger's own heading style, which holds for 116 of the 247 granted headings and is FALSE for 131 (lowest 84, newest 255) — v244 measured 123 of 239 and the census includes the counter, so every record any lane writes moves the pair and a later reader must recount from the door's own two grammars (`table-recount-proof.mjs:394-395`). All eight numbers on today's hole list are in the FALSE set, so the arm's subject is always a heading it cannot use and the door now THROWS instead of refusing: cured at one clause, blocked at the next, and the repair belongs to the lane that owns the door — records are not written in a dead house style to satisfy a witness.
+
+### Amendment 256 (M5/v256, three-runtime lane) — the SAVE FILE'S ROWS are ordered by CREATION: the SORT was the claim, the random KEY was the defect
+
+_Numbering: measured at HEAD `43f70ef` — this ledger carries 164 `### Amendment` headings with the highest at 255, `git log` over the last 400 subjects puts the highest committed grant LABEL at v255, and `docs/evidence` holds 89 `## v…` sections with the highest at v255, over 278 tracked files in `docs`, `apps/studio/src` and `tools`. So 256 was free in both spaces and this increment takes v256 AND 256 so the git label and the ledger number agree._
+
+- **The job.** Amendment 255's own audit found the defect in this lane's runtime and wrote the mandate into its
+  record: "decide whether the sort is the claim (then the key must stop being a random id, or creation order
+  must be a filed field) or the pin is wrong, and pin the flip rate either way — 3/6 measured ONCE is not a
+  baseline." This grant does all three: re-measures the rate, decides, and pins the rule where a user of the
+  runtime is graded by it.
+- **The flip rate, re-measured rather than inherited.** Ten runs of `docs/evidence/agents/scene-tools-proof.mjs`
+  at rest on identical bytes: **5 red / 10**, one distinct first-red clause, `under the name the file carried`.
+  v255 had quoted 3/6 from a single sitting; the two readings agree that the gate is a coin flip and disagree
+  about the odds, which is exactly the reason a rate needs more than one sitting.
+- **The defect, on the shipped bytes before the fix.** A probe built through the same seam the proofs use
+  created 200 bodies in one loop: **183 of 199 adjacent pairs shared a millisecond**, **177 of 200 rows landed
+  somewhere other than their creation position**, and the same construction in two processes produced two
+  different row orders (`run-vs-run NAME order identical: false`).
+- **The correction 255 owes, taken.** Its sentence "a save file for an UNCHANGED scene is not byte-stable
+  across saves" is FALSE inside one process — measured, two saves of an unchanged scene from one runtime are
+  byte-identical. The instability is ACROSS RUNS. The claim was the right shape with the wrong axis, and a
+  later reader of this ledger should not have to discover that by probe.
+- **The decision.** The sort IS the claim: a file whose rows arrive in mint order is a file a reader can cite
+  as "the first body the author made". Filing creation order as a `SerializedEntity` field would move every
+  file reader, the `Serialized*` name census and `SAVE_FILE_VERSION`, and pre-v256 files would still arrive
+  random-ordered, so the schema would carry two rules at once. Instead the minted key now carries the order:
+  `entity-<ms>-<8-digit per-runtime stamp>-<random tail>`, so lexicographic order IS creation order and the
+  tail may never be the segment that decides a row. No schema, no version bump, no name-census churn, and old
+  files keep the meaning their rows already had.
+- **The shape of the mint.** The counter is per runtime and a restore does not consume it — a loaded body keeps
+  the stamp it was born with, which is what makes a made-vs-arrived claim possible at all. Width 8 gives one
+  runtime 100,000,000 mints before a stamp outgrows its padding; `Date.now()` at 13 digits holds until 2286;
+  both bounds are documented, neither is enforced, and the Bounds row says so rather than leaving the reader
+  to find the cliff.
+- **The five cases** (`test/saveSnapshot.test.ts`, +112 lines, 161 → 166 in the file): the minted spelling,
+  monotonic stamps and a DERIVED padding floor (`at least one same-millisecond pair crosses 9→10` — a zero
+  census would grade no padding); 200 bodies filed in creation order by id and by name; two runtimes that
+  never spoke producing the same row order; a body MADE first but RESTORED last still filed FIRST while the
+  live map holds it last; and the NPC half ordered by the same rule over the same move. The fourth is the only
+  case in the repository that separates "ordered by creation" from "left in map order", so the arms that
+  delete the `.sort()` land on it and nothing else.
+- **Witness arms: 7 predicted, 7 reddened, 3 MATCHED, 4 WIDER.** Every arm re-based from pristine bytes, every
+  needle hit exactly once, `threeRuntime.ts` restored to digest `0bed37cffdd313a6` after each. A3/A4 (drop one
+  `.sort()`) matched their single predicted case 4/4 and reddened nothing else. A7 (drop the tail) matched case
+  1 4/4 — and its one collateral red, a v136 case that compares ids minted by two different runtimes, appeared
+  in 1 of 4 observations, which is the collision the tail exists to prevent; the runner elided the refusal's
+  own sentence, so this record does not claim which pair collided. **Four predictions missed, all WIDER, all
+  from one fact the predictions got wrong:** cases 4 and 5 compare a body made early with bodies made late,
+  and whether early and late fall in different milliseconds is decided by the machine, so a
+  stamp-destroying arm reddens them at a rate. A1/A3/A6/A7 were therefore re-run three extra times each:
+  `A1 1,2,3,4 at 4/4 and 5 at 3/4 · A6 1,2,3,4 at 4/4 and 5 at 0/4`. A1 and A6 differ only in the padding
+  segment they leave behind, so the pair is one event sampled 8 times with 3 hits, reported as a rate and not
+  reconciled. A2 (unpadded) reddened 1,2,3 — the prediction forgot case 3 mints 50 bodies and so crosses 9→10.
+  No arm failed to redden and no tolerance was widened.
+- **Measured.** `@nexus/three-runtime` **572 → 577 passed / 0 failed** (25 files), `tsc -p tsconfig.test.json`
+  exit 0, Studio **718/718** (43 files) with `tsc --noEmit -p tsconfig.json` exit 0, dist rebuilt from the
+  fixed src (20 files, digest `92f5c57d7e25bf6a`), and `scene-surface` / `world-surface` / `asset-surface`
+  green. The flip rate on that rebuilt dist: **0 red / 12 runs**. eslint over both changed files reports 4
+  errors, all `@typescript-eslint/no-unsafe-function-type` on pre-existing `Function` annotations, and this
+  diff adds zero `Function` tokens. `threeRuntime.ts` +44/−1, `saveSnapshot.test.ts` +112/−0; NO other lane's
+  file was touched, and `docs/evidence/agents/scene-tools-proof.mjs` was NOT edited — the other lane's gate
+  becomes deterministically true instead of being re-pinned.
+- **Bounds (§60).** The stamp is per runtime, so ordering is guaranteed within one runtime's mintings; a scene
+  mixing bodies made by two runtimes in the same millisecond falls back to the tail, and case 3 pins
+  two-runtimes-same-construction, not two-runtimes-interleaved. Nothing here changes what a file CARRIES: the
+  entity and NPC halves are row-ordered, `cinematicSnapshot` walks its registry as stored so sequence rows stay
+  in REGISTRATION order — a different claim, stated rather than unified — and `SaveData.sceneGraph` remains
+  blocked, so a file still cannot say which scene a body belongs to except the `sceneId` it was built for.
+  Carried from v244 unchanged: `setActiveCamera` is still a sentence the Studio panel prints but cannot answer
+  from its own UI, and `tools/harness/studio-scene3d.mjs` still has no camera-row step. The §7 door's title-arm
+  defect at `table-recount-proof.mjs:535` is the door lane's to repair and is reported, not quieted; this
+  amendment is TITLED, as that door asks.
+
+_Landing note (v256): written into a worktree whose HEAD is `43f70ef`, dirty only in other lanes' in-flight
+paths apart from the two this grant owns; the numbers above were measured in that tree, so a reader who lands
+a later commit must re-run the flip loop and the two suites rather than inherit them._
