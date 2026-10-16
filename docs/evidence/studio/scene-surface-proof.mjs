@@ -409,24 +409,42 @@ surface.pickAt(400, 300);
 // nothing invents a position for a body that is gone.
 // (the v199 components block below re-picks first, so the removed body here is asserted before it)
 
+// v255 — every registry state below is graded through THIS one helper. Production answers a selected body's
+// components with TWO fields derived from ONE ordered registry (`selectionFactsOf` returns `components` = the
+// enabled rows and `disabledComponents` = the rest, both in the order the runtime holds them), and the clauses
+// this file carried before v255 pinned NEITHER half: they expected `components` to CONTAIN a disabled row,
+// which stopped being true the day v207 added the second field, and nothing re-ran this proof, so it died at
+// its first registry assertion while everything below it went unmeasured. Deriving both expectations from the
+// registry the caller believes it is keeps the pair honest together: the clause goes red the day production's
+// split changes, which is exactly the day the sentence about the split has to change too.
+const gradedRegistries = [];
+const registryFacts = (inspector, where, registry) => {
+  gradedRegistries.push(registry);
+  assert.ok(inspector, `${where}: the report carries an inspector to read`);
+  assert.deepEqual(inspector.components, registry.filter((c) => c.enabled), `${where}: components is the ENABLED half, in the order the runtime holds it`);
+  assert.deepEqual(inspector.disabledComponents, registry.filter((c) => !c.enabled), `${where}: disabledComponents is the DISABLED half, in the same order`);
+};
+
 // v199 — the components half: components enter through the RUNTIME'S OWN registry (addComponent), and
 // the inspector reads that registry live. The Studio composes none, so the empty fact comes first, then
 // a real population, then the removal — each answered by the report, never by the HUD's opinion.
-assert.deepEqual(surface.report().inspector.components, [], 'a Studio-composed body has an empty components FACT (present, not missing)');
+registryFacts(surface.report().inspector, 'state 1 (a body the Studio composed has no components)', []);
 runtime.addComponent(cubeA, { type: 'health', data: { amount: 100 }, enabled: true });
 runtime.addComponent(cubeA, { type: 'shield', data: {}, enabled: false });
-const withComponents = surface.report().inspector;
-assert.deepEqual(
-  withComponents.components,
-  [
-    { name: 'health', enabled: true },
-    { name: 'shield', enabled: false },
-  ],
-  'the inspector reads the live registry in the order the runtime holds it, disabled named as disabled',
-);
-assert.equal(runtime.removeComponent(cubeA, 'health'), true, 'the runtime owns removal');
-assert.deepEqual(surface.report().inspector.components, [{ name: 'shield', enabled: false }], 'and the next report follows the registry, not a shadow');
-console.log('[§7] and it reads the COMPONENT registry the runtime owns: empty fact stated for a body with none, two components added through addComponent answered in registry order (shield disabled), then removeComponent moved the next report — the report re-reads the live registry');
+registryFacts(surface.report().inspector, 'state 2 (health enabled, then shield disabled, on Cube A)', [
+  { name: 'health', enabled: true },
+  { name: 'shield', enabled: false },
+]);
+// v255 — the SECOND stale defect in this section: `ThreeRuntime.removeComponent` takes
+// `(sceneId, entity, componentType)`, and this call passed the entity where the id belongs and the type where
+// the entity belongs. It threw `Cannot read properties of undefined (reading 'get')` inside the runtime — a
+// crash, not a red assertion — which is why nobody noticed: the file had already died three lines above it,
+// so this line was never reached, and a proof that dies early looks like a proof that is merely late.
+assert.equal(runtime.removeComponent(surface.sceneId, cubeA, 'health'), true, 'the runtime owns removal');
+registryFacts(surface.report().inspector, 'state 3 (the next report follows the registry, not a shadow)', [
+  { name: 'shield', enabled: false },
+]);
+console.log('[§7] and it reads the COMPONENT registry the runtime owns: an empty fact stated for a body with none, two components added through addComponent answered in registry order (shield disabled), then removeComponent moved the next report — both halves derived, never hand-pinned');
 
 // v200 — the component registry becomes EDITABLE: `setComponentEnabled` is a write verb over the same
 // registry the inspector reads. The surface's `toggleComponentEnabled` calls through this gate; what
@@ -438,48 +456,32 @@ assert.ok(cubeB, 'the real runtime holds Cube B');
 runtime.addComponent(cubeB, { type: 'health', data: { amount: 100 }, enabled: true });
 runtime.addComponent(cubeB, { type: 'shield', data: {}, enabled: false });
 const beforeToggle = surface.report().inspector;
-assert.deepEqual(
-  beforeToggle.components,
-  [
-    { name: 'health', enabled: true },
-    { name: 'shield', enabled: false },
-  ],
-  'two components added through the runtime are reported in registry order',
-);
+registryFacts(beforeToggle, 'state 4 (Cube B holds health enabled and shield disabled)', [
+  { name: 'health', enabled: true },
+  { name: 'shield', enabled: false },
+]);
 
 // Toggle health off through the surface's own verb.
 const afterHealthOff = surface.toggleComponentEnabled('health');
-assert.deepEqual(
-  afterHealthOff.inspector.components,
-  [
-    { name: 'health', enabled: false },
-    { name: 'shield', enabled: false },
-  ],
-  'toggling health flipped its enabled flag through the host gate',
-);
+registryFacts(afterHealthOff.inspector, 'state 5 (the surface\'s own verb flipped health off)', [
+  { name: 'health', enabled: false },
+  { name: 'shield', enabled: false },
+]);
 
 // Toggle shield on.
 const afterShieldOn = surface.toggleComponentEnabled('shield');
-assert.deepEqual(
-  afterShieldOn.inspector.components,
-  [
-    { name: 'health', enabled: false },
-    { name: 'shield', enabled: true },
-  ],
-  'toggling shield flipped it from disabled to enabled',
-);
+registryFacts(afterShieldOn.inspector, 'state 6 (and flipped shield on)', [
+  { name: 'health', enabled: false },
+  { name: 'shield', enabled: true },
+]);
 
 // A ghost component does nothing.
 const noChange = surface.toggleComponentEnabled('ghost');
-assert.deepEqual(
-  noChange.inspector.components,
-  [
-    { name: 'health', enabled: false },
-    { name: 'shield', enabled: true },
-  ],
-  'a component that does not exist leaves the report unchanged',
-);
-console.log('[§7] and the component registry is EDITABLE: setComponentEnabled flips the enabled flag through the host gate (health on→off, shield off→on), the report follows the live registry, and a ghost component is refused silently');
+registryFacts(noChange.inspector, 'state 7 (a component that does not exist leaves the report unchanged)', [
+  { name: 'health', enabled: false },
+  { name: 'shield', enabled: true },
+]);
+console.log('[§7] and the component registry is EDITABLE: setComponentEnabled flips the enabled flag through the host gate (health on→off, shield off→on), both halves of the report follow the live registry, and a ghost component is refused silently');
 
 // v201 — enabled gates query participation: `getEnabledComponents` returns only enabled components.
 // Disabled ones are stored but invisible to iteration — the flag gates queries, not storage or rendering.
@@ -499,11 +501,28 @@ assert.deepEqual(
   'enabled components returned in registry order',
 );
 
+// v255 — the SAME registry read back through the inspector, in the three states this block already creates.
+// Two of them are states this proof had never visited: a body whose ENABLED half holds more than one row.
+// That is the only thing that can pin the ORDER of `components`, and before v255 no graded state had two
+// enabled rows to order, which is the hole the arms of this grant measured.
+pickTarget = 'Cube A';
+surface.pickAt(400, 300);
+registryFacts(surface.report().inspector, 'state 8 (Cube A holds three rows, two of them enabled)', [
+  { name: 'shield', enabled: false },
+  { name: 'health', enabled: true },
+  { name: 'stamina', enabled: true },
+]);
+
 // Disable stamina — now only health is queryable.
 runtime.setComponentEnabled?.(surface.sceneId, cubeA.id, 'stamina', false);
 const afterStaminaOff = runtime.getEnabledComponents?.(entity);
 assert.equal(afterStaminaOff.length, 1, 'disabling stamina leaves one queryable');
 assert.equal(afterStaminaOff[0].type, 'health', 'and it is health');
+registryFacts(surface.report().inspector, 'state 9 (one enabled row, TWO disabled rows to order)', [
+  { name: 'shield', enabled: false },
+  { name: 'health', enabled: true },
+  { name: 'stamina', enabled: false },
+]);
 
 // Re-enable shield — back to two queryable.
 runtime.setComponentEnabled?.(surface.sceneId, cubeA.id, 'shield', true);
@@ -514,7 +533,16 @@ assert.deepEqual(
   ['shield', 'health'],
   'registry order preserved: shield(first), health(second) — stamina disabled',
 );
-console.log('[§7] and enabled gates query participation: getEnabledComponents filters out disabled components (3 stored → 2 queryable → disable stamina → 1 → re-enable shield → 2), the flag gates queries not storage');
+registryFacts(surface.report().inspector, 'state 10 (a row re-enabled at the head of the registry leads the enabled half)', [
+  { name: 'shield', enabled: true },
+  { name: 'health', enabled: true },
+  { name: 'stamina', enabled: false },
+]);
+console.log('[§7] and enabled gates query participation: getEnabledComponents filters out disabled components (3 stored → 2 queryable → disable stamina → 1 → re-enable shield → 2), the flag gates queries not storage, and the inspector reports the same three states as two halves in the runtime\'s own order');
+
+// The selection goes back to Cube B, which is the body the removal below takes out of the scene.
+pickTarget = 'Cube B';
+surface.pickAt(400, 300);
 
 // A body that LEAVES the scene has nothing to inspect: the selection stays a name, the facts go null, and
 // nothing invents a position for a body that is gone. Remove the CURRENTLY SELECTED body (Cube B).
@@ -523,6 +551,18 @@ const goneReport = surface.report();
 assert.equal(goneReport.inspector, null, 'a removed body has no facts');
 assert.ok(goneReport.selected, 'while the selection is still the name it was — the two are separate state');
 console.log('[§7] and a body that LEAVES the scene has nothing to inspect: the selection stays a name, the inspector answers null, and no position is invented for a body that is gone');
+
+// The population the helper walked is itself a claim, so it is read from what the helper RECORDED rather than
+// from a sentence about it. `deepEqual` over an array is order-sensitive, but order is only witnessed where a
+// half has two rows to put in an order: measured over the ten states above, the widest enabled half is 2 and
+// the widest disabled half is 2, and a mutation that reverses either half is caught by a named state. Before
+// v255 the widest enabled half was 1 (no graded state had two enabled rows), so reversing the enabled half in
+// production survived every clause in this file — the hole these two assertions are the floor for.
+const widest = (rows, keep) => Math.max(...rows.map((r) => r.filter(keep).length));
+assert.ok(widest(gradedRegistries, (c) => c.enabled) >= 2, `${gradedRegistries.length} registry states graded and the widest ENABLED half holds ${widest(gradedRegistries, (c) => c.enabled)} row(s), so the order of \`components\` is pinned by nothing — a state with two enabled rows is the only thing that can name which one comes first`);
+assert.ok(widest(gradedRegistries, (c) => !c.enabled) >= 2, `${gradedRegistries.length} registry states graded and the widest DISABLED half holds ${widest(gradedRegistries, (c) => !c.enabled)} row(s), so the order of \`disabledComponents\` is pinned by nothing`);
+assert.equal(gradedRegistries.length, 10, 'ten registry states are graded through registryFacts — one empty, two from Cube A\'s first pair, three from the surface\'s own toggle verb, three from the query-participation block; a red here means a state stopped walking the one derivation, which is how this section lost its meaning once already');
+console.log(`[§7] population of graded registry states: ${gradedRegistries.length} · widest enabled half ${widest(gradedRegistries, (c) => c.enabled)} rows · widest disabled half ${widest(gradedRegistries, (c) => !c.enabled)} rows — each half's ORDER is witnessed by a state that has two of them to order`);
 
 // ── §8 the home repository never moved ───────────────────────────────────────────────────────────────
 rmSync(box, { recursive: true, force: true });
