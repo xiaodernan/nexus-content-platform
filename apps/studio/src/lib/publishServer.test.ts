@@ -94,6 +94,24 @@ describe('publishServer — publishing', () => {
     expect(calls[0]!.body).toEqual({ title: 'Harbour at dusk', document: { pages: [] } });
   });
 
+  it('attaches the owner claim when the Studio names one — the claim rides in the body, not in the URL', async () => {
+    const calls: { url: string; body: unknown }[] = [];
+    const fetchImpl = (async (url: string, init?: { body?: string }) => {
+      calls.push({ url, body: init?.body ? JSON.parse(init.body) : undefined });
+      return response(201, { ...RECEIPT, owner: { accountId: 'acct-ada', handle: 'ada', assurance: 'unsigned-local', claimedAt: 1_700_000_000_000 } });
+    }) as unknown as FetchLike;
+
+    const owner = { accountId: 'acct-ada', handle: 'ada', assurance: 'unsigned-local' as const, claimedAt: 1_700_000_000_000 };
+    const answer = await publishDocument('doc-1', 'Harbour at dusk', { pages: [] }, fetchImpl, owner as any);
+
+    expect(answer.ok).toBe(true);
+    expect(calls[0]!.body).toEqual({
+      title: 'Harbour at dusk',
+      document: { pages: [] },
+      owner: { accountId: 'acct-ada', handle: 'ada', assurance: 'unsigned-local', claimedAt: 1_700_000_000_000 },
+    });
+  });
+
   it('URL-encodes the project id so a document id with a slash cannot change the path', async () => {
     const urls: string[] = [];
     const fetchImpl = (async (url: string) => {
@@ -221,6 +239,19 @@ describe('publishServer — unpublish (v195)', () => {
     const answer = await unpublishProject('doc-1', fetchImpl);
 
     expect(calls[0]).toEqual({ url: 'http://127.0.0.1:8080/projects/doc-1', method: 'DELETE' });
+    expect(answer).toEqual({ ok: true, projectId: 'doc-1', removed: true });
+  });
+
+  it('sends the claimer as ?claimer= when the row has an owner to defend', async () => {
+    const calls: { url: string; method?: string }[] = [];
+    const fetchImpl = (async (url: string, init?: { method?: string }) => {
+      calls.push({ url, method: init?.method });
+      return response(200, { projectId: 'doc-1', removed: true });
+    }) as unknown as FetchLike;
+
+    const answer = await unpublishProject('doc-1', fetchImpl, 'acct-ada');
+
+    expect(calls[0]).toEqual({ url: 'http://127.0.0.1:8080/projects/doc-1?claimer=acct-ada', method: 'DELETE' });
     expect(answer).toEqual({ ok: true, projectId: 'doc-1', removed: true });
   });
 

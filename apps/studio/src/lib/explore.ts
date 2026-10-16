@@ -21,6 +21,8 @@ export interface ExploreItem {
   publishedAt: string;
   /** A self-contained data-URI image of the publication's first page, or undefined when it could not be drawn. */
   thumbnail?: string;
+  /** Who the service recorded as publisher, when a claim was attached (v243). Shown as `by <handle> · <assurance>`; absent for pre-claim rows. */
+  owner?: { handle: string; assurance: string } | null;
   /** Why the thumbnail is absent, when it is — SHOWN on the card, never hidden (a blank card lies). */
   note?: string;
 }
@@ -65,7 +67,7 @@ export function renderExploreHtml(items: ExploreItem[], opts: { count: number; l
       const href = `/p/${encodeURIComponent(it.projectId)}`;
       const remix = `/?remix=${encodeURIComponent(it.projectId)}`;
       return `<li class="card" data-explore-card="${escapeHtml(it.projectId)}">${thumb}
-<div class="meta"><strong>${escapeHtml(it.title)}</strong><span>v${it.version} · ${escapeHtml(it.publishedAt)}</span></div>
+<div class="meta"><strong>${escapeHtml(it.title)}</strong>${it.owner ? `<span class="by">by ${escapeHtml(it.owner.handle)} · ${escapeHtml(it.owner.assurance)}</span>` : ''}<span>v${it.version} · ${escapeHtml(it.publishedAt)}</span></div>
 <div class="acts"><a href="${escapeHtml(href)}">open</a><a class="remix" href="${escapeHtml(remix)}">remix</a></div>
 </li>`;
     })

@@ -45,6 +45,8 @@ export async function GET(): Promise<Response> {
       version: row.version,
       publishedAt: row.publishedAt,
       thumbnail,
+      /** The service's recorded owner, when a claim was attached — shown as `by <handle> · <assurance>`. */
+      owner: row.owner ? { handle: row.owner.handle, assurance: row.owner.assurance } : null,
       note: thumbnail ? undefined : read.ok ? 'nothing to draw' : (read.reason ?? 'preview unavailable'),
     });
   }

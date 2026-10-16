@@ -62,4 +62,22 @@ describe('explore — the gallery of published work (M7 v241)', () => {
     expect(html).toContain('nexus-api unreachable');
     expect(html).not.toContain('Nothing is published yet');
   });
+
+  it('shows the recorded owner as `by <handle> · <assurance>` when a claim was attached', () => {
+    const html = renderExploreHtml([item({ owner: { handle: 'ada', assurance: 'unsigned-local' } })], { count: 1, limit: 24 });
+    expect(html).toContain('by ada · unsigned-local');
+    expect(html).toContain('v2 · 2026-10-01T00:00:00Z');
+  });
+
+  it('escapes caller-controlled owner text', () => {
+    const html = renderExploreHtml([item({ owner: { handle: '<script>x</script>', assurance: 'unsigned-local' } })], { count: 1, limit: 24 });
+    expect(html).toContain('by &lt;script&gt;x&lt;/script&gt; · unsigned-local');
+    expect(html).not.toContain('<script>');
+  });
+
+  it('shows no author line when the row names nobody (pre-claim row)', () => {
+    const html = renderExploreHtml([item({ owner: null })], { count: 1, limit: 24 });
+    expect(html).not.toContain('by ');
+    expect(html).toContain('v2 · 2026-10-01T00:00:00Z');
+  });
 });

@@ -14,6 +14,8 @@
  * which is exactly the answer that proves it is alive and speaking HTTP.
  */
 
+import type { OwnerClaim } from './accounts';
+
 /** Where the service lives. One variable, so a deployment can point the Studio at another host. */
 const DEFAULT_API_BASE = 'http://127.0.0.1:8080';
 
@@ -105,13 +107,15 @@ export async function publishDocument(
   title: string,
   document: unknown,
   fetchImpl: FetchLike = fetch as FetchLike,
+  /** The Studio's claim of who published this — attached, never enforced by the client (ADR 0018). */
+  owner?: OwnerClaim,
 ): Promise<PublishAnswer> {
   const apiBase = nexusApiBase();
   try {
     const res = await fetchImpl(`${apiBase}/projects/${encodeURIComponent(projectId)}/publish`, {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ title, document }),
+      body: JSON.stringify({ title, document, ...(owner ? { owner } : {}) }),
       signal: callSignal(),
     });
     const parsed: unknown = await res.json().catch(() => null);
@@ -170,6 +174,8 @@ export interface ListingEntry {
   version: number;
   publishedAt: string;
   url: string;
+  /** Who the service recorded as owner, or `undefined` when the row names nobody (pre-v242 rows). */
+  owner?: OwnerClaim | null;
 }
 
 /** A listing as the service states it. `count` is what this answer carries; `limit` is the cap applied. */
@@ -222,10 +228,17 @@ export async function listPublications(limit: number, fetchImpl: FetchLike = fet
  * reported as a success with `removed: false` — the same rule the Studio's disk lane uses for a delete of a
  * name that is not there.
  */
-export async function unpublishProject(projectId: string, fetchImpl: FetchLike = fetch as FetchLike): Promise<RemovalAnswer> {
+export async function unpublishProject(
+  projectId: string,
+  fetchImpl: FetchLike = fetch as FetchLike,
+  /** The account id asking to take it down. Required by the service when the row has an owner (ADR 0018). */
+  claimer?: string,
+): Promise<RemovalAnswer> {
   const apiBase = nexusApiBase();
+  const url = new URL(`${apiBase}/projects/${encodeURIComponent(projectId)}`);
+  if (claimer) url.searchParams.set('claimer', claimer);
   try {
-    const res = await fetchImpl(`${apiBase}/projects/${encodeURIComponent(projectId)}`, { method: 'DELETE', signal: callSignal() });
+    const res = await fetchImpl(url.toString(), { method: 'DELETE', signal: callSignal() });
     const parsed: unknown = await res.json().catch(() => null);
     if (parsed && typeof parsed === 'object') {
       const body = parsed as Record<string, unknown>;

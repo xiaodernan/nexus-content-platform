@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import type { OwnerClaim } from '@/lib/accounts';
 
 import { DEFAULT_LIST_LIMIT as LIST_DEFAULT, listPublications, publishDocument, publishState, readPublication, unpublishProject } from '@/lib/publishServer';
 
@@ -34,7 +35,17 @@ export async function POST(request: Request): Promise<NextResponse> {
     return NextResponse.json({ ok: false, reason: 'the body is not an object; this route answers { action: "publish" | "read", projectId, … }' }, { status: 400 });
   }
 
-  const { action, projectId, title, document, limit } = body as { action?: unknown; projectId?: unknown; title?: unknown; document?: unknown; limit?: unknown };
+  const { action, projectId, title, document, limit, owner, claimer } = body as {
+    action?: unknown;
+    projectId?: unknown;
+    title?: unknown;
+    document?: unknown;
+    limit?: unknown;
+    /** The Studio's claim of who published this (attach-only; the service decides what it is worth). */
+    owner?: unknown;
+    /** The account id asking to take the publication down. */
+    claimer?: unknown;
+  };
 
   // `list` is the one action that names no project — it asks what is published, so it is answered before the
   // projectId guard rather than being given a sentinel id to satisfy it.
@@ -51,13 +62,13 @@ export async function POST(request: Request): Promise<NextResponse> {
     if (typeof title !== 'string' || !title.trim()) {
       return NextResponse.json({ ok: false, reason: 'title is required and must be a non-empty string' }, { status: 400 });
     }
-    return NextResponse.json(await publishDocument(projectId, title, document));
+    return NextResponse.json(await publishDocument(projectId, title, document, undefined, owner as OwnerClaim | undefined));
   }
   if (action === 'read') {
     return NextResponse.json(await readPublication(projectId));
   }
   if (action === 'unpublish') {
-    return NextResponse.json(await unpublishProject(projectId));
+    return NextResponse.json(await unpublishProject(projectId, undefined, claimer as string | undefined));
   }
   return NextResponse.json(
     { ok: false, reason: `action is ${typeof action === 'string' ? `"${action}"` : String(action)}; this route speaks "publish", "read" and "unpublish" only` },
