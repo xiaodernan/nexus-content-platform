@@ -1,22 +1,15 @@
-import { desc, eq } from 'drizzle-orm';
-import { getDb } from '@/server/db/client';
-import { marketplaceSplits } from '@/server/db/schema';
-import { currentUserOrNull } from '@/server/domain/session';
-import { jsonError } from '@/server/http';
 import { NextResponse } from 'next/server';
+import { getCreatorEarnings } from '@/server/domain/marketplace';
+import { currentUserOrNull } from '@/server/domain/session';
+import { failure, jsonError } from '@/server/http';
 
-interface DailyEarnings {
-  date: string;
-  totalAmount: number;
-  salesCount: number;
-}
-
-interface CreatorEarningsSummary {
-  totalEarned: number;
-  totalSales: number;
-  dailyBreakdown: DailyEarnings[];
-}
-
+/**
+ * §128 创作者收益明细：一次购买后创作者分成（`marketplace_splits`）的聚合视图。
+ *
+ * 聚合逻辑在 domain 的 `getCreatorEarnings`（按天分组、降序、支持日期范围）——
+ * 这里此前自己内联重算了一遍同样的聚合。"同一件事只有一处实现"：
+ * 两处迟早漂（一处改了分组口径另一处没改），而收益数是创作者真会看的钱。
+ */
 export async function GET() {
   const user = await currentUserOrNull();
   if (!user) {
@@ -26,42 +19,10 @@ export async function GET() {
     return jsonError(401, 'unauthenticated', { message: '需要先登录' });
   }
 
-  const db = getDb();
-
-  // 获取该创作者的所有分成记录
-  const splits = await db
-    .select({
-      amount: marketplaceSplits.amount,
-      splitAt: marketplaceSplits.splitAt,
-    })
-    .from(marketplaceSplits)
-    .where(eq(marketplaceSplits.creatorId, user.id))
-    .orderBy(desc(marketplaceSplits.splitAt));
-
-  // 按日期聚合
-  const dailyMap = new Map<string, DailyEarnings>();
-  let totalEarned = 0;
-  let totalSales = 0;
-
-  for (const split of splits) {
-    const date = split.splitAt.toISOString().slice(0, 10); // YYYY-MM-DD
-    const existing = dailyMap.get(date) || { date, totalAmount: 0, salesCount: 0 };
-    existing.totalAmount += split.amount;
-    existing.salesCount += 1;
-    dailyMap.set(date, existing);
-
-    totalEarned += split.amount;
-    totalSales += 1;
+  try {
+    const summary = await getCreatorEarnings({ creatorId: user.id });
+    return NextResponse.json(summary);
+  } catch (error) {
+    return failure(error, 'GET /api/marketplace/earnings');
   }
-
-  // 转为数组并按日期降序排列
-  const dailyBreakdown = Array.from(dailyMap.values()).sort((a, b) => b.date.localeCompare(a.date));
-
-  const summary: CreatorEarningsSummary = {
-    totalEarned,
-    totalSales,
-    dailyBreakdown,
-  };
-
-  return NextResponse.json(summary);
 }

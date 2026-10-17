@@ -1,4 +1,4 @@
-import { and, desc, eq, gte, isNull, sql } from 'drizzle-orm';
+import { and, desc, eq, gte, isNull, lte, sql } from 'drizzle-orm';
 import { getDb } from '../db/client';
 import { marketplaceItems, assets, projects, snapshots, users, marketplacePurchases, creditLedger, marketplaceSplits, marketplaceAuditLog, marketplaceReports } from '../db/schema';
 import type { MarketplaceItemType, MarketplaceVisibility } from '../db/schema';
@@ -625,12 +625,15 @@ export async function getCreatorEarnings(input: CreatorEarningsInput): Promise<C
   // 基础查询条件
   const conditions = [eq(marketplaceSplits.creatorId, input.creatorId)];
 
+  // 日期范围用 drizzle 的 gte/lte 算子而不是裸 sql 模板：裸模板把 Date 当字符串传，
+  // postgres.js 对 timestamptz 参数抛 ERR_INVALID_ARG_TYPE——任何带日期的调用都会 500
+  // （路由不传日期所以一直是潜伏的；marketplace-earnings 集成测试钉住了这一条）
   if (input.startDate) {
-    conditions.push(sql`${marketplaceSplits.splitAt} >= ${input.startDate}`);
+    conditions.push(gte(marketplaceSplits.splitAt, input.startDate));
   }
 
   if (input.endDate) {
-    conditions.push(sql`${marketplaceSplits.splitAt} <= ${input.endDate}`);
+    conditions.push(lte(marketplaceSplits.splitAt, input.endDate));
   }
 
   // 查分账记录
