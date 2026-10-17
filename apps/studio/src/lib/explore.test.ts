@@ -110,4 +110,15 @@ describe('explore — the gallery of published work (M7 v241)', () => {
     expect(html).not.toContain('remixed from');
     expect(html).toContain('v2 · 2026-10-01T00:00:00Z');
   });
+
+  it('falls back to the default no-preview note when neither thumbnail nor note is present', () => {
+    const html = renderExploreHtml([item({ thumbnail: undefined })], { count: 1, limit: 24 });
+    expect(html).toContain('no preview');
+    expect(html).not.toContain('<img');
+  });
+
+  it('the header states how many are SHOWN, not just how many exist', () => {
+    const html = renderExploreHtml([item(), item({ projectId: 'pub-2' })], { count: 5, limit: 24 });
+    expect(html).toContain('2 publication(s) shown');
+  });
 });

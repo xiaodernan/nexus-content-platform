@@ -150,4 +150,33 @@ describe('subtreeRotatePlan (rigid rotation)', () => {
     const layout = layoutPage(doc, doc.activePageId);
     expect(subtreeRotatePlan(doc, layout, frame.id, 0)).toEqual({});
   });
+
+  it('is empty for an unknown root or a root with no layout entry', () => {
+    const { doc, frame } = fixture();
+    const layout = layoutPage(doc, doc.activePageId);
+    expect(subtreeRotatePlan(doc, layout, 'ghost-root', 90)).toEqual({});
+    expect(subtreeRotatePlan(doc, {}, frame.id, 90)).toEqual({});
+  });
+});
+
+describe('rotate — angle and hit edges', () => {
+  it('snapAngleDeg honours a custom step', () => {
+    expect(snapAngleDeg(30, 45)).toBe(45);
+    expect(snapAngleDeg(20, 45)).toBe(0);
+    expect(snapAngleDeg(210, 45)).toBe(225);
+  });
+
+  it('rotationFromDrag composes the start rotation and wraps the other way', () => {
+    const c = { x: 100, y: 50 };
+    const up = { x: 100, y: -24 };
+    const right = { x: 174, y: 50 };
+    const left = { x: 26, y: 50 };
+    expect(rotationFromDrag(c, up, right, 90)).toBeCloseTo(180, 4);
+    expect(rotationFromDrag(c, up, left, 0)).toBeCloseTo(270, 4);
+  });
+
+  it('handleHitTest misses just outside the tolerance, hits just inside', () => {
+    expect(handleHitTest(R, 0, { x: 2, y: 2 }, 1)).toBeNull();
+    expect(handleHitTest(R, 0, { x: 2, y: 2 }, 5)?.[2]).toBe('nw');
+  });
 });
