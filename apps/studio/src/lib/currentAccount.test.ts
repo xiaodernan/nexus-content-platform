@@ -156,4 +156,21 @@ describe('currentAccount — owner claim', () => {
     expect(back?.handle).toBe(account.handle);
     expect((back as { extra?: unknown }).extra).toEqual({ notes: 'later schema' });
   });
+
+  it("literal 'null', an array, and JSON primitives are all treated as no account", () => {
+    const store = fakeStore();
+    for (const raw of ['null', '[]', '5', '"a string"']) {
+      (store as { data: string }).data = raw;
+      expect(currentAccountStore(store).getCurrentAccount()).toBeNull();
+    }
+  });
+
+  it('clearCurrentAccount also drops the owner claim', () => {
+    const store = fakeStore();
+    const acct = currentAccountStore(store);
+    acct.setCurrentAccount(aRecord());
+    expect(acct.currentOwnerClaim(1_700_000_000_000)).not.toBeNull();
+    acct.clearCurrentAccount();
+    expect(acct.currentOwnerClaim(1_700_000_000_000)).toBeNull();
+  });
 });
