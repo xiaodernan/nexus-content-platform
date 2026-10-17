@@ -402,6 +402,15 @@ vitest 直接崩了而我却把 stdout 丢进了 `/dev/null`，于是"5 遍"其�
   坏 itemId 400 但带着 Postgres 报错原文。
   ⑤ 既有行为的正对照全部保留：机检红线、归属校验、CSRF、幂等边界（settle 8 + download 5 两条老套件
   与三片新套件一起 50/50 绿）。
+  ⑥ **收益明细**（`marketplace-earnings.integration.test.ts` 5 条，2026-10-17）：路由此前自己内联重算了
+  一遍按天聚合，收敛到 domain 的 `getCreatorEarnings`（"同一件事只有一处实现"，收益数是创作者真会看的钱）
+  ——第一份覆盖当场抓出一个真 bug：日期过滤用裸 sql 模板传 Date，postgres.js 对 timestamptz 参数抛
+  ERR_INVALID_ARG_TYPE，**任何带 startDate/endDate 的调用都会 500**（路由不传日期所以一直潜伏，谁调谁炸）；
+  修法是换 drizzle 的 gte/lte 算子（它们按列类型正确序列化 Date）。测试钉住分成金额（100×70%=70）、
+  归属（买家的收益视图一分没有）、路由与域同源、日期范围过滤。
+  ⑦ **创建入口的限流**（同套件 23 条里那条，2026-10-17）：guest 会话每个未知 token 都会新建 guest 用户，
+  没有限流等于"换 cookie 就能无限造行"（物品行与用户行一起涨）；user.id+IP 双键 20 次/10 分钟，
+  超限 429 带 retryAfterMs。限流桶按 user.id 计，用例用**专用新身份**（别的用例已用掉一部分额度）。
 - id 形状校验（横切，`domain/ids.ts` 的 `isUuid`）：`apps/web/test/id-shape.integration.test.ts` 18 条。
   钉的不是"某个端点不 500"，是**一条横切纪律**：从路由进来的 id 大多是路径参数，Next 只保证它们是
   字符串；非 UUID 的 id 一律按"不存在"处理（域函数返回 null/false，路由只剩 404/409 一种说法），
@@ -721,8 +730,15 @@ vitest 直接崩了而我却把 stdout 丢进了 `/dev/null`，于是"5 遍"其�
   所以 dedupe 那条既能证"同一件事反复发生只留一条"，也能证"换个作品就是两条"（否则唯一键写错也全绿）。
   收件箱不互相漏是两个人各自有一份才测得出来；标已读用别人的 id 返回 0 **且对方未读数不变**（只断言前者，
   一个恒返回 0 的实现也能过）；取消发布后通知行还在、只是改口"这一版已经不公开了"，
-  这条同时钉住了 `publication_id` 为什么是 `SET NULL` 而不是 CASCADE。手工插一条 `kind='abuse_report'`
+  这条同时钉住了 `publication_id` 为什么是 `SET NULL` 而不是 CASCADE。  手工插一条 `kind='abuse_report'`
   读回 `other`：未知类型不许回落到某个已知类型显示。
+  **静音门**（`notifications-mute.integration.test.ts` 6 条，2026-10-17）：写端（settings 端点）只证"开关落库"，
+  生效这一路此前零覆盖——唯一的 suppressed 断言是"自己对自己做的事"，而"关掉之后真的不发"
+  恰是设置端点存在的全部理由（**写进去 ≠ 生效**，两件事分开才看得见）。钉住：默认全开（无行=默认）；
+  关掉 like → `emit` 返回 `suppressed` 且 like 零行、收件箱不长大（suppressed 是"连库都不写"，
+  不是"写了再过滤"）；不误伤别类（同一时刻未静音的 follow 照发）；静音的那一类不推实时事件、
+  照发的那一类才推（订阅用户频道数事件，follow 换第二个路人绕开 dedupe——dedupe 是"同一件事只留一条"，
+  不是"这一类只能有一条"）；解除静音照发（upsert 的"有就改"）；显式写过的才有一行。
   e2e `@smoke §164` 用**两个 context**（同一个 context 的多个 page 共用那份 guest 会话，
   拿它自赞自评只会测出"自己给自己发通知"这条规则没生效）：访客真点赞/评论/关注 → 作者铃铛 1 变 4 →
   逐条标已读只动一条 → 全部标完未读归零而总数仍是 4（标的是"读过"不是删行）。
