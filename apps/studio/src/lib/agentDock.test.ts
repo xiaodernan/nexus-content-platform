@@ -357,3 +357,45 @@ describe('agentDock container ledger line (v172)', () => {
     if (e.exec !== undefined) throw new Error('exec must be absent on a denial');
   });
 });
+
+describe('agentDock build/deploy ledger lines (v174/v177)', () => {
+  it('buildArcLedgerLine lands a parseable entry naming the arc, engine and door', async () => {
+    const { buildArcLedgerLine } = await import('./agentDock');
+    const e = JSON.parse(buildArcLedgerLine('studio-build-arc', 'container:node:22-alpine', 'completed', true, '2/2 green')) as {
+      goal: string; target: string; via: string; approved: boolean; exec?: string;
+    };
+    expect(e.goal).toBe('build arc: studio-build-arc');
+    expect(e.target).toBe('container:node:22-alpine');
+    expect(e.via).toBe('build.verify');
+    expect(e.approved).toBe(true);
+    expect(e.exec).toContain('2/2 green');
+  });
+
+  it('buildArcLedgerLine records a denial with a reason and no exec detail', async () => {
+    const { buildArcLedgerLine } = await import('./agentDock');
+    const e = JSON.parse(buildArcLedgerLine('studio-build-arc', 'container:node:22-alpine', 'denied', false, undefined, 'denied at human checkpoint')) as { approved: boolean; reason?: string; exec?: string };
+    expect(e.approved).toBe(false);
+    expect(e.reason).toBe('denied at human checkpoint');
+    expect(e.exec).toBeUndefined();
+  });
+
+  it('deployLedgerLine lands a parseable entry naming the arc and the WRITE door', async () => {
+    const { deployLedgerLine } = await import('./agentDock');
+    const e = JSON.parse(deployLedgerLine('studio-deploy-arc', 'completed', true, 'deployed v3')) as {
+      goal: string; target: string; via: string; approved: boolean; exec?: string;
+    };
+    expect(e.goal).toBe('deploy arc: studio-deploy-arc');
+    expect(e.target).toBe('deploy.record');
+    expect(e.via).toBe('deploy.record');
+    expect(e.approved).toBe(true);
+    expect(e.exec).toContain('deployed v3');
+  });
+
+  it('deployLedgerLine records a denial with a reason and no exec detail', async () => {
+    const { deployLedgerLine } = await import('./agentDock');
+    const e = JSON.parse(deployLedgerLine('studio-deploy-arc', 'denied', false, undefined, 'denied at human checkpoint')) as { approved: boolean; reason?: string; exec?: string };
+    expect(e.approved).toBe(false);
+    expect(e.reason).toBe('denied at human checkpoint');
+    expect(e.exec).toBeUndefined();
+  });
+});

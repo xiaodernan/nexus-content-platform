@@ -8,7 +8,7 @@ import {
   textNode,
   type DesignDocument,
 } from '@nexus/design-model';
-import { buildSnapshot, installBridge, installSceneBridge, type ObservableState } from './observability';
+import { buildSnapshot, installBridge, installSceneBridge, installWorldBridge, installAssetBridge, type ObservableState } from './observability';
 
 const pageOf = (doc: DesignDocument): string => childIdList(doc.nodes[doc.rootId]!)[0]!;
 
@@ -201,5 +201,40 @@ describe('installSceneBridge (M5 v142)', () => {
       'use strict';
       (bridge as unknown as Record<string, unknown>).scene3d = () => null;
     }).toThrow();
+  });
+});
+
+describe('observability — remaining surface readers (v148/v153)', () => {
+  it('installWorldBridge reads live, answers null when no world is mounted, and is frozen', () => {
+    const target: Record<string, unknown> = {};
+    let report: unknown = null;
+    const bridge = installWorldBridge(() => report, target);
+    expect(target.__nexusWorld).toBe(bridge);
+    expect(bridge.version).toBe('nexus-studio-world/1');
+    expect(bridge.world()).toBeNull();
+    report = { schema: 1, frames: 3 };
+    expect(bridge.world()).toEqual({ schema: 1, frames: 3 });
+    expect(Object.isFrozen(bridge)).toBe(true);
+  });
+
+  it('installAssetBridge reads live, answers null when no asset surface is mounted, and is frozen', () => {
+    const target: Record<string, unknown> = {};
+    let report: unknown = { bytes: 0, items: 0 };
+    const bridge = installAssetBridge(() => report, target);
+    expect(target.__nexusAssets).toBe(bridge);
+    expect(bridge.version).toBe('nexus-studio-assets/1');
+    expect(bridge.assets()).toEqual({ bytes: 0, items: 0 });
+    report = null;
+    expect(bridge.assets()).toBeNull();
+    expect(Object.isFrozen(bridge)).toBe(true);
+  });
+
+  it('buildSnapshot carries focusedInstanceId and aiBusy through verbatim', () => {
+    const state = baseState();
+    state.focusedInstanceId = 'inst-7';
+    state.aiBusy = true;
+    const snap = buildSnapshot(state);
+    expect(snap.focusedInstanceId).toBe('inst-7');
+    expect(snap.aiBusy).toBe(true);
   });
 });
