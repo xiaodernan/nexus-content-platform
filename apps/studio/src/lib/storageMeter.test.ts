@@ -146,3 +146,20 @@ describe('formatOriginEstimate — every branch names what the browser said', ()
     );
   });
 });
+
+describe('storageMeter — unit ladder and honesty edges', () => {
+  it('caps the ladder at TB for astronomically large numbers', () => {
+    expect(formatBytes(1024 ** 4)).toBe('1.0 TB');
+    const huge = formatBytes(1024 ** 6);
+    expect(huge.endsWith(' TB')).toBe(true);
+    expect(huge).not.toContain('undefined');
+  });
+
+  it('quotaPct clamps a negative usage into 0, never a negative bar', () => {
+    expect(quotaPct({ kind: 'estimate', usage: -500, quota: 1000 })).toBe(0);
+  });
+
+  it('footprintOf ignores infinite chars but keeps the save counted', () => {
+    expect(footprintOf([{ chars: Number.POSITIVE_INFINITY }, { chars: 10 }])).toEqual({ saves: 2, chars: 10 });
+  });
+});

@@ -245,4 +245,11 @@ describe('the wiring that makes the ASSET surface reachable (M3 v153)', () => {
     const persist = read('./persist.ts');
     expect(persist).not.toMatch(/assetLibrary|AssetReport|multimodal/i);
   });
+
+  it('every declared surface beyond the default canvas has a render branch in Studio (derived)', () => {
+    for (const surface of DECLARED_SURFACES) {
+      if (surface === '2d') continue; // the canvas is the base layer, not a named branch
+      expect(STUDIO).toContain(`surface === '${surface}'`);
+    }
+  });
 });
