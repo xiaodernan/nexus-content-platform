@@ -60,3 +60,52 @@ describe('webfs (v13: localStorage FsWriteLike)', () => {
     expect(kv.getItem(WEBFS_NS + '__keys')).toBeNull();
   });
 });
+
+describe('webfs — fs edges', () => {
+  it('root readdir lists only top-level entries, dirs flagged', () => {
+    const kv = new MapKv();
+    const webFs = createWebFs(kv);
+    webFs.writeFileSync('top.txt', 't', 'utf8');
+    webFs.writeFileSync('a/b.txt', 'b', 'utf8');
+    const root = webFs.readdirSync('', { withFileTypes: true });
+    expect(root.map((e) => [e.name, e.isDirectory()])).toEqual([
+      ['a', true],
+      ['top.txt', false],
+    ]);
+  });
+
+  it('readdir of an entry-less dir answers empty; statSync of a missing file throws', () => {
+    const kv = new MapKv();
+    const webFs = createWebFs(kv);
+    webFs.writeFileSync('keep.txt', 'k', 'utf8');
+    expect(webFs.readdirSync('nothing-here', { withFileTypes: true })).toEqual([]);
+    expect(() => webFs.statSync('missing.txt')).toThrow('no such file');
+  });
+
+  it('normalizes backslashes so win\\dir writes read back under slash paths', () => {
+    const kv = new MapKv();
+    const webFs = createWebFs(kv);
+    webFs.writeFileSync('win\\dir\\f.txt', 'data', 'utf8');
+    expect(webFs.readFileSync('win/dir/f.txt', 'utf8')).toBe('data');
+    expect(webFs.readdirSync('win/dir', { withFileTypes: true }).map((e) => e.name)).toEqual(['f.txt']);
+  });
+
+  it('clearWebFs blanks values when kv has no removeItem', () => {
+    class NoRemoveKv {
+      map = new Map<string, string>();
+      getItem(k: string): string | null {
+        return this.map.get(k) ?? null;
+      }
+      setItem(k: string, v: string): void {
+        this.map.set(k, v);
+      }
+    }
+    const kv = new NoRemoveKv();
+    const webFs = createWebFs(kv);
+    webFs.writeFileSync('x.json', '{}', 'utf8');
+    webFs.writeFileSync('y.json', '{}', 'utf8');
+    expect(clearWebFs(kv)).toBe(2);
+    expect(kv.getItem(WEBFS_NS + 'x.json')).toBe('');
+    expect(kv.getItem(WEBFS_NS + '__keys')).toBe('');
+  });
+});

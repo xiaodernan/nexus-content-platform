@@ -72,3 +72,27 @@ describe('minimap: viewport maths', () => {
     expect(zoomed.x).toBe(400 - 200);
   });
 });
+
+describe('minimap: degenerate inputs', () => {
+  it('survives a zero-size page without dividing by zero', () => {
+    const t = fitPage({ x: 0, y: 0, width: 0, height: 0 }, box, 8);
+    expect(Number.isFinite(t.scale)).toBe(true);
+    expect(t.scale).toBeGreaterThan(0);
+    const p = projectRect(t, { x: 0, y: 0, width: 0, height: 0 });
+    expect(Number.isFinite(p.x)).toBe(true);
+    expect(Number.isFinite(p.y)).toBe(true);
+  });
+
+  it('treats rects that only touch at an edge as no intersection', () => {
+    expect(intersectRects(page, { x: 800, y: 0, width: 100, height: 100 })).toBeNull();
+    expect(intersectRects(page, { x: 0, y: 600, width: 100, height: 100 })).toBeNull();
+  });
+
+  it('unproject inverts projectRect at rect corners too', () => {
+    const t = fitPage(page, box, 8);
+    const corner = projectRect(t, { x: 10, y: 20, width: 0, height: 0 });
+    const back = unprojectPoint(t, { x: corner.x, y: corner.y });
+    expect(back.x).toBeCloseTo(10, 8);
+    expect(back.y).toBeCloseTo(20, 8);
+  });
+});
