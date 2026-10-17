@@ -53,3 +53,35 @@ describe('computeResizeSnap', () => {
     expect(computeResizeSnap('x', 260, [200, 250], 6)).toBeNull();
   });
 });
+
+describe('computeSnap — edges', () => {
+  const page = { x: 0, y: 0, width: 1440, height: 900 };
+
+  it('threshold 0 only snaps on exact anchor match', () => {
+    const sibling = { x: 200, y: 100, width: 120, height: 80 };
+    const moving = { x: 200, y: 400, width: 100, height: 50 };
+    const r = computeSnap([moving], [sibling], page, 0);
+    expect(r.dx).toBe(0);
+    expect(r.xs).toEqual([200]);
+  });
+
+  it('no siblings falls back to page center anchors only', () => {
+    const moving = { x: 700, y: 450, width: 100, height: 40 };
+    const r = computeSnap([moving], [], page, 6);
+    expect(r.dy).toBe(0);
+    expect(r.ys).toEqual([450]);
+  });
+});
+
+describe('computeResizeSnap — edges', () => {
+  it('empty candidates returns null', () => {
+    expect(computeResizeSnap('x', 250, [], 6)).toBeNull();
+  });
+
+  it('exact match returns delta 0', () => {
+    const r = computeResizeSnap('x', 250, [200, 250, 300], 6);
+    expect(r).not.toBeNull();
+    expect(r!.delta).toBe(0);
+    expect(r!.line).toBe(250);
+  });
+});

@@ -71,3 +71,34 @@ describe('computeDistribute', () => {
     expect(d.a!.dx).toBe(0);
   });
 });
+
+describe('computeAlign — more modes', () => {
+  const page = { x: 0, y: 0, width: 1440, height: 900 };
+
+  it('aligns to top edge', () => {
+    const d = computeAlign([item('a', 100, 200, 100, 100)], page, 'top');
+    expect(d.a!.dy).toBe(-200);
+    expect(d.a!.dx).toBe(0);
+  });
+
+  it('aligns to vertical center', () => {
+    const d = computeAlign([item('a', 100, 100, 100, 100)], page, 'vcenter');
+    expect(d.a!.dy).toBeCloseTo(300);
+    expect(d.a!.dx).toBe(0);
+  });
+});
+
+describe('computeDistribute — edges', () => {
+  it('single item is a no-op', () => {
+    const d = computeDistribute([item('a', 100, 100, 50, 50)], 'x');
+    expect(d.a!).toEqual({ dx: 0, dy: 0 });
+  });
+
+  it('distributes along y with three items', () => {
+    const items = [item('a', 0, 0, 50, 100), item('b', 0, 200, 50, 100), item('c', 0, 500, 50, 100)];
+    const d = computeDistribute(items, 'y');
+    expect(d.b!.dy).toBeCloseTo(50);
+    expect(d.a!.dy).toBe(0);
+    expect(d.c!.dy).toBe(0);
+  });
+});
