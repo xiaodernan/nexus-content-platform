@@ -65,4 +65,32 @@ describe('buildLane run (v174)', () => {
     expect(a.ok).toBe(false);
     expect(a.reason).toContain('studio server unreachable');
   });
+
+  it('POSTs a JSON body naming the goal when one is given', async () => {
+    let captured: string | undefined;
+    globalThis.fetch = vi.fn(async (_url: string | URL | Request, init?: RequestInit) => {
+      captured = init?.body as string | undefined;
+      return new Response(JSON.stringify({ ok: true, goal: 'ship it', steps: [] }), { status: 200 });
+    }) as typeof fetch;
+    const a = await requestBuildArcRun('ship it');
+    expect(captured).toBe(JSON.stringify({ goal: 'ship it' }));
+    expect(a.ok).toBe(true);
+    expect(a.goal).toBe('ship it');
+  });
+
+  it('answers a non-JSON body with ok:false and the route status', async () => {
+    globalThis.fetch = vi.fn(async () => new Response('oops', { status: 502 })) as typeof fetch;
+    const a = await requestBuildArcRun();
+    expect(a.ok).toBe(false);
+    expect(a.reason).toContain('non-JSON body');
+    expect(a.reason).toContain('502');
+  });
+
+  it('probe treats an unreadable 200 body as unreachable, not as a pass-through', async () => {
+    globalThis.fetch = vi.fn(async () => new Response('not-json', { status: 200 })) as typeof fetch;
+    const p = await probeBuildLane();
+    expect(p.available).toBe(false);
+    expect(p.reason).toContain('studio server unreachable');
+    expect(p.steps).toEqual([]);
+  });
 });

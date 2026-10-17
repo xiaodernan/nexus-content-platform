@@ -60,4 +60,22 @@ describe('containerLane exec (v172)', () => {
     expect(a.ok).toBe(false);
     expect(a.reason).toContain('studio server unreachable');
   });
+
+  it('serializes cwd alongside argv when one is given', async () => {
+    let captured = '';
+    globalThis.fetch = vi.fn(async (_url: string | URL | Request, init?: RequestInit) => {
+      captured = String(init?.body ?? '');
+      return new Response(JSON.stringify({ ok: true, ran: true, detail: 'ok' }), { status: 200 });
+    }) as typeof fetch;
+    await requestContainerExec({ argv: ['ls'], cwd: '/workspace' });
+    expect(JSON.parse(captured)).toEqual({ argv: ['ls'], cwd: '/workspace' });
+  });
+
+  it('answers a non-JSON body with ok:false and the route status', async () => {
+    globalThis.fetch = vi.fn(async () => new Response('oops', { status: 503 })) as typeof fetch;
+    const a = await requestContainerExec({ argv: ['ls'] });
+    expect(a.ok).toBe(false);
+    expect(a.reason).toContain('non-JSON body');
+    expect(a.reason).toContain('503');
+  });
 });
