@@ -56,4 +56,27 @@ describe('thumbnail: svgToDataUri', () => {
     expect(uri.startsWith('data:image/svg+xml,')).toBe(true);
     expect(decodeURIComponent(uri.slice('data:image/svg+xml,'.length))).toBe(svg);
   });
+
+  it('yields just the prefix for an empty svg', () => {
+    expect(svgToDataUri('')).toBe('data:image/svg+xml,');
+  });
+});
+
+describe('thumbnail: docToSvg edges', () => {
+  it('truncates long text content to 80 characters', () => {
+    const doc = createEmptyDocument('LongText');
+    const page = doc.activePageId;
+    const t = textNode('Long', 'A'.repeat(100), {
+      fontFamilyToken: 'font.family.body',
+      sizeToken: 'font.size.xl',
+      weight: 700,
+      lineHeight: 1.2,
+      letterSpacing: 0,
+      align: 'left',
+    }, { x: 10, y: 90, width: 300, height: 40 });
+    const d2 = applyBatch(doc, { id: 'b1', ops: [ops.addSubtree(page, 0, [t])], provenance: { mode: 'user' }, timestamp: 0 });
+    const svg = docToSvg(d2, d2.activePageId);
+    expect(svg).toContain('A'.repeat(80));
+    expect(svg).not.toContain('A'.repeat(81));
+  });
 });

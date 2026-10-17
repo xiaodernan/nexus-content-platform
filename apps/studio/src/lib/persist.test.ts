@@ -55,6 +55,17 @@ describe('persist round-trip', () => {
     expect(res.ok).toBe(false);
   });
 
+  it('rejects a snapshot whose GRAPH is inconsistent (v257)', () => {
+    // The SHAPE is fine (root present, a page resolvable), but a childId names no node — the shallow checks
+    // pass and the deep one must refuse it, by name.
+    const doc = sampleDoc();
+    const nodes = doc.nodes as unknown as Record<string, { childIds: string[] }>;
+    nodes[doc.activePageId]!.childIds.push('ghost');
+    const res = deserializeApp(JSON.stringify({ app: 'nexus-studio', version: APP_STORAGE_VERSION, doc }));
+    expect(res.ok).toBe(false);
+    if (!res.ok) expect(res.reason).toMatch(/graph is inconsistent/);
+  });
+
   it('persists through an injected KvStore and reads back', () => {
     const store = memoryStore();
     const doc = sampleDoc();
@@ -62,5 +73,61 @@ describe('persist round-trip', () => {
     const res = deserializeApp(store.getItem('nexus.studio.doc.v1') ?? '');
     expect(res.ok).toBe(true);
     if (res.ok) expect(res.doc.name).toBe('Round Trip');
+  });
+});
+
+describe('deserializeApp — payload shape guards', () => {
+  const wrap = (doc: unknown) =>
+    JSON.stringify({ app: 'nexus-studio', version: APP_STORAGE_VERSION, doc });
+
+  it('rejects JSON that parses to a non-object', () => {
+    for (const bad of ['42', 'null', '"a string"']) {
+      const res = deserializeApp(bad);
+      expect(res.ok).toBe(false);
+      if (!res.ok) expect(res.reason).toBe('payload is not an object');
+    }
+  });
+
+  it('rejects an envelope with no doc or no node store', () => {
+    const res1 = deserializeApp(JSON.stringify({ app: 'nexus-studio', version: APP_STORAGE_VERSION }));
+    expect(res1.ok).toBe(false);
+    if (!res1.ok) expect(res1.reason).toBe('snapshot has no node store');
+
+    const res2 = deserializeApp(wrap({ name: 'X', nodes: null }));
+    expect(res2.ok).toBe(false);
+    if (!res2.ok) expect(res2.reason).toBe('snapshot has no node store');
+  });
+
+  it('rejects an envelope with a missing version', () => {
+    const res = deserializeApp(JSON.stringify({ app: 'nexus-studio' }));
+    expect(res.ok).toBe(false);
+    if (!res.ok) expect(res.reason).toMatch(/version/);
+  });
+
+  it('rejects a document whose rootId points nowhere', () => {
+    const res = deserializeApp(
+      wrap({
+        name: 'X',
+        nodes: { only: { type: 'group' } },
+        schemaVersion: SCHEMA_VERSION,
+        rootId: 'missing-root',
+      }),
+    );
+    expect(res.ok).toBe(false);
+    if (!res.ok) expect(res.reason).toBe('root node is missing');
+  });
+
+  it('rejects a document with no page node to display', () => {
+    const res = deserializeApp(
+      wrap({
+        name: 'X',
+        nodes: { root: { type: 'group' } },
+        schemaVersion: SCHEMA_VERSION,
+        rootId: 'root',
+        activePageId: '',
+      }),
+    );
+    expect(res.ok).toBe(false);
+    if (!res.ok) expect(res.reason).toBe('no page node to display');
   });
 });
