@@ -206,4 +206,40 @@ describe('studio world save lane facts (v191)', () => {
       rmSync(dir, { recursive: true, force: true });
     }
   });
+
+  describe('path-shape edges (a save name is a non-empty string)', () => {
+    it('write refuses a non-string path with the store\'s own sentence', () => {
+      const { fs, files } = memFs();
+      const options = { fs, root: 'studio-world-saves' };
+      const n = writeWorldSave({ path: 42, file: WORLD_SAVE_FILE }, options);
+      expect(n.ok).toBe(false);
+      expect(n.reason).toContain('a world save needs a save path (a non-empty string), got 42');
+      expect(files.size).toBe(0);
+    });
+
+    it('write refuses an empty path', () => {
+      const { fs } = memFs();
+      const options = { fs, root: 'studio-world-saves' };
+      const n = writeWorldSave({ path: '', file: WORLD_SAVE_FILE }, options);
+      expect(n.ok).toBe(false);
+      expect(n.reason).toContain('a world save needs a save path (a non-empty string), got ""');
+    });
+
+    it('read refuses a non-string path with the lane\'s own sentence', () => {
+      const { fs } = memFs();
+      const options = { fs, root: 'studio-world-saves' };
+      const n = readWorldSave({ path: null as unknown as string }, options);
+      expect(n.ok).toBe(false);
+      expect(n.reason).toContain('a world read needs a save path (a non-empty string), got null');
+      expect(n.path).toBeUndefined();
+    });
+
+    it('read refuses an empty path', () => {
+      const { fs } = memFs();
+      const options = { fs, root: 'studio-world-saves' };
+      const n = readWorldSave({ path: '' }, options);
+      expect(n.ok).toBe(false);
+      expect(n.reason).toContain('a world read needs a save path (a non-empty string), got ""');
+    });
+  });
 });
