@@ -139,3 +139,32 @@ describe('saveFsLane delete/rename (v186)', () => {
     expect(b.reason).toContain('studio server unreachable');
   });
 });
+
+describe('saveFsLane — answer-shape edges (v184/v186)', () => {
+  it('a WRITE whose route answers a non-JSON body gets ok:false with the status', async () => {
+    globalThis.fetch = vi.fn(async () => new Response('nope', { status: 502 })) as typeof fetch;
+    const a = await writeSaveToDisk('last-saved', { format: 'x' });
+    expect(a.ok).toBe(false);
+    expect(a.reason).toContain('non-JSON body');
+    expect(a.reason).toContain('502');
+  });
+
+  it('an unreachable server is ok:false for write and read, not a throw', async () => {
+    globalThis.fetch = vi.fn(async () => {
+      throw new Error('ECONNREFUSED');
+    }) as typeof fetch;
+    const w = await writeSaveToDisk('last-saved', {});
+    expect(w.ok).toBe(false);
+    expect(w.reason).toContain('studio server unreachable');
+    const r = await readSaveFromDisk('last-saved');
+    expect(r.ok).toBe(false);
+    expect(r.reason).toContain('studio server unreachable');
+  });
+
+  it('probe treats an unreadable 200 body as unreachable, not as a pass-through', async () => {
+    globalThis.fetch = vi.fn(async () => new Response('not-json', { status: 200 })) as typeof fetch;
+    const p = await probeSaveFs();
+    expect(p.available).toBe(false);
+    expect(p.reason).toContain('studio server unreachable');
+  });
+});

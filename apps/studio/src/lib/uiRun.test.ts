@@ -120,3 +120,27 @@ describe('runUiTask v21 (host-verified + ledger)', () => {
     expect(r.outcome.plan.steps.map((s) => s.tool)).toEqual(['ui.observe', 'ui.type', 'ui.click']);
   });
 });
+
+describe('uiRun — script shape and step edges', () => {
+  it('uiScript is the canonical type→click pair', () => {
+    expect(uiScript('ship the dashboard')).toEqual([
+      { tool: 'ui.type', label: 'analytics dashboard', text: 'ship the dashboard' },
+      { tool: 'ui.click', label: 'Compose' },
+    ]);
+  });
+
+  it('an empty step list succeeds with no actions', async () => {
+    const d = new FakeDriver(PAGE);
+    const res = await runUiDrive(d, [], async () => true);
+    expect(res).toEqual({ ok: true, actions: [] });
+  });
+
+  it("a step whose label matches the wrong kind fails with the tool's own reason", async () => {
+    const d = new FakeDriver(PAGE);
+    const res = await runUiDrive(d, [{ tool: 'ui.type', label: 'Compose', text: 'x' }], async () => true);
+    expect(res.ok).toBe(false);
+    expect(res.stoppedAt).toBe('Compose');
+    expect(res.reason).toContain('is a button, cannot type');
+    expect(d.calls).toEqual([]);
+  });
+});
