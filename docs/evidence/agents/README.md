@@ -4106,3 +4106,9 @@ The evidence tables' prose totals had drifted behind the suites they claim to su
   needs no git ref, so unlike the ledger's ref side it still grades on a plane with no repository. It is bounded
   to what the registry can produce: an image invented by hand cannot enter, which also means a damage spelling
   the model does not declare is invisible to both clauses.
+
+## v258 — the §7 title arm assumed a heading STYLE and threw on a true statement; it now asserts the credit (v258 — ADR 0016 amendment 258)
+
+§7's title arm picks the first record HOLE, builds a house-style title from that hole's own ledger heading, and asserted `!EXPLICIT.has(t4)` — that the EXPLICIT mention grammar REFUSES the phrase. That is true only for the old house style `## Amendment N — vN: …`, whose em dash the grammar's lookahead refuses. Newer headings are parenthesised (`### Amendment 242 (M7/v242, …)`), which EXPLICIT **accepts**, so when the hole's heading was 242 the assertion threw on a TRUE statement about a different door — the landmine the studio README's v255 section had already measured ("the door now throws deterministically at line 535").
+
+The arm's real claim is that a house-style title **credits** the number (closing the hole). WHICH reader credits it depends on the heading's style, so it now asserts `credited.has(t4)` (version label OR amendment phrase — always true) and pins the dash rule only when the heading is dash-ended; otherwise it prints `DASH axis is UNVERIFIED this run`. Measured: gate **exit 0**, `[§7] ledger headings 250 · dangling 0 · newest grant 257 IS titled`, and `caught … credited through the amendment phrase (this heading is parenthesised, so the DASH axis is UNVERIFIED this run)`. Bounds: the dash rule is unverified while every hole is parenthesised — the arm says so rather than inventing a subject; a future dash-ended hole re-verifies it automatically.

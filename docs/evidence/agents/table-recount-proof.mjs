@@ -532,13 +532,26 @@ try {
     const t4 = c.hole[0];
     assert.ok(t4 !== undefined, 'no title hole to mutate — the axis is unverifiable rather than passing');
     const houseTitle = '## ' + c.headings.get(t4) + ' (title added in memory only, never written to disk)';
-    assert.ok(!nums(houseTitle, EXPLICIT).has(t4), `this arm's meaning depends on the mention grammar refusing the house-style dash after ${t4}; if that changes, this witness is testing a different door`);
+    // The arm's CLAIM is that a house-style title CREDITS the number (and so closes the hole). WHICH reader
+    // credits it depends on the heading's style, and the arm now asserts the right mechanism instead of
+    // assuming the old one: a dash-ended heading ("## Amendment N — vN: …") is REFUSED by the EXPLICIT grammar
+    // (its negative lookahead), so its version label is the only credit; a parenthesised heading
+    // ("### Amendment N (M7/vN, …)") is ACCEPTED by EXPLICIT, so the amendment phrase credits it too. Measured
+    // 2026-10-17: every hole on this corpus is parenthesised (242, 248–254), so the old unconditional
+    // `!EXPLICIT.has(t4)` threw on a TRUE statement about a different door — the dash axis is UNVERIFIED for
+    // such a heading and this run says so rather than pretending it measured it.
+    const dashEnded = !nums(houseTitle, EXPLICIT).has(t4);
+    const credited = new Set([...nums(houseTitle, EXPLICIT), ...nums(houseTitle, RECORD)]);
+    assert.ok(credited.has(t4), `the house-style title for ${t4} must CREDIT it — through its version label when the heading is dash-ended, or through the amendment phrase when it is parenthesised — or the door would keep calling it unrecorded`);
+    if (dashEnded) {
+      assert.ok(nums(houseTitle, RECORD).has(t4), `a dash-ended heading must be credited by its VERSION LABEL (${t4}); EXPLICIT refuses "amendment N —", so RECORD is the only reader that can see it`);
+    }
     const four = census(adrText, (_p, t) => t + '\n' + houseTitle + '\n');
     assert.deepEqual(four.hole, c.hole.filter((n) => n !== t4), `adding a house-style record title for ${t4} must shrink the hole by exactly that entry, got [${four.hole.join(', ')}]`);
     assert.deepEqual(four.nowhere, c.nowhere, 'a title line must not move the any-mention reading');
     assert.deepEqual(four.dangling, c.dangling, 'a title for a granted amendment cannot create a dangling citation');
     checkContainment(four, 'a title added in memory');
-    console.log(`  caught  the ledger's own house-style title for ${t4} appears in the README → the title hole shrinks by exactly one, credited through its version label while the dash-ended phrase stays refused`);
+    console.log(`  caught  the ledger's own house-style title for ${t4} appears in the README → the title hole shrinks by exactly one, credited through ${dashEnded ? 'its version label while the dash-ended phrase stays refused' : 'the amendment phrase (this heading is parenthesised, so the DASH axis is UNVERIFIED this run)'}`);
     // The same number in a SENTENCE must not close it: that is the defect this amendment exists for.
     const prose = census(adrText, (_p, t) => t + `\nSee ADR 0016 amendment ${t4} for the rule that is still unrecorded.\n`);
     assert.deepEqual(prose.hole, c.hole, `MUTATION SURVIVED: a prose sentence naming ${t4} closed the title hole — the door is satisfiable by its own report again`);
