@@ -1,9 +1,15 @@
-import { beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { createEmptyDocument } from '@nexus/design-model';
-import { extractRemixDocument, remixIdFromSearch } from './remixLane';
+import { extractRemixDocument, remixIdFromSearch, remixProject } from './remixLane';
 import { useStudio } from './store';
 
 const st = () => useStudio.getState();
+
+const realFetch = globalThis.fetch;
+
+afterEach(() => {
+  globalThis.fetch = realFetch;
+});
 
 beforeEach(() => {
   st().newProject();
@@ -93,5 +99,24 @@ describe('store: remixDocument (M7 v233)', () => {
     const before = JSON.stringify(source);
     st().remixDocument(source, 'pub-2');
     expect(JSON.stringify(source)).toBe(before);
+  });
+});
+
+describe('remixProject (M7 v233) — the read it wraps', () => {
+  it('hands back the document the read carried', async () => {
+    const doc = createEmptyDocument('FromService');
+    globalThis.fetch = vi.fn(async () =>
+      new Response(JSON.stringify({ ok: true, document: doc }), { status: 200 }),
+    ) as typeof fetch;
+    const out = await remixProject('pub-9');
+    expect(out.ok).toBe(true);
+    if (out.ok) expect(out.document.id).toBe(doc.id);
+  });
+
+  it('propagates the lane failure as the extraction reason (service down ≠ no document)', async () => {
+    globalThis.fetch = vi.fn(async () => new Response('<html>', { status: 500 })) as typeof fetch;
+    const out = await remixProject('pub-9');
+    expect(out.ok).toBe(false);
+    if (!out.ok) expect(out.reason).toContain('non-JSON body');
   });
 });

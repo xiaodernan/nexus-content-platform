@@ -85,4 +85,24 @@ describe('worldSaveLane write/read (v191)', () => {
     expect(a.ok).toBe(false);
     expect(a.reason).toContain('non-JSON body');
   });
+
+  it('a WRITE whose route answers a non-JSON body gets ok:false with the status', async () => {
+    globalThis.fetch = vi.fn(async () => new Response('nope', { status: 502 })) as typeof fetch;
+    const a = await writeWorldSaveToDisk('world-saved', { world: {} });
+    expect(a.ok).toBe(false);
+    expect(a.reason).toContain('non-JSON body');
+    expect(a.reason).toContain('502');
+  });
+
+  it('an unreachable server is ok:false for both write and read, not a throw', async () => {
+    globalThis.fetch = vi.fn(async () => {
+      throw new Error('ECONNREFUSED');
+    }) as typeof fetch;
+    const w = await writeWorldSaveToDisk('world-saved', { world: {} });
+    expect(w.ok).toBe(false);
+    expect(w.reason).toContain('studio server unreachable');
+    const r = await readWorldSaveFromDisk('world-saved');
+    expect(r.ok).toBe(false);
+    expect(r.reason).toContain('studio server unreachable');
+  });
 });
