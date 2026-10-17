@@ -167,6 +167,77 @@ describe('the wiring that makes the 3D surface reachable', () => {
     expect(SCENE).toMatch(/cutscene\(s\) restored/);
     expect(SCENE).toMatch(/so a running cutscene resumes/);
   });
+
+  it('every camera verb the SURFACE declares is a control the panel RENDERS (M5 v260)', () => {
+    // The population is DERIVED from `SceneSurface`, so a camera verb added to the surface that the panel
+    // cannot reach fails here rather than shipping as a capability with no UI. The set is counted first:
+    // an empty derivation would satisfy every `every()` below.
+    const lib = read('./scene3d.ts');
+    const block = lib.match(/export interface SceneSurface \{[\s\S]*?\n\}/);
+    if (!block) throw new Error('scene3d.ts no longer declares `export interface SceneSurface { … }`');
+    const verbs = [...block[0].matchAll(/^  (\w*Camera\w*)\(/gm)].map((m) => m[1] ?? '');
+    expect(verbs).toEqual(['watchCameras', 'addCamera', 'removeCamera', 'activateCamera']);
+
+    // `watch*` is the subscription leg, pinned by its own case above; the rest are CONTROLS, and each gets
+    // a handler named `on<Verb>` that the file both DEFINES and RENDERS.
+    const controls = verbs.filter((verb) => !verb.startsWith('watch'));
+    expect(controls.length).toBe(3);
+    for (const verb of controls) {
+      const handler = `on${verb.replace(/^./, (first) => first.toUpperCase())}`;
+      const body = SCENE.match(new RegExp(`const ${handler} = useCallback[\\s\\S]*?\\}, \\[\\]\\);`));
+      expect(body, `${handler} is not a useCallback in Scene3D.tsx`).not.toBeNull();
+      // The handler reaches the runtime THROUGH the surface — the panel does not re-implement the verb.
+      expect(body![0], `${handler} never asks the surface`).toMatch(new RegExp(`surface\\.${verb}\\(`));
+      const rendered =
+        new RegExp(`onClick=\\{\\(\\) => ${handler}\\(c\\.id\\)\\}`).test(SCENE) || new RegExp(`onClick=\\{${handler}\\}`).test(SCENE);
+      expect(rendered, `${handler} is defined but no button calls it — a control nobody can click`).toBe(true);
+    }
+  });
+
+  it('the seat control is offered on the row that does NOT hold it, and its refusal is shown in the surfaces words (M5 v260)', () => {
+    // v244's refusal told the user to `call setActiveCamera first` with no such button; v260 added the button.
+    // This case pins the two things that make it honest rather than merely present: WHERE it appears, and
+    // what the panel does with the answer.
+    const guard = SCENE.match(/\{!c\.active && \(/);
+    expect(guard, 'the activate control is no longer gated on the row being inactive').not.toBeNull();
+    expect([...SCENE.matchAll(/!c\.active/g)].length).toBe(1);
+    // The guard wraps exactly ONE button, and that button is the seat control — so `remove` stays available
+    // on every row (the runtime refuses the live one itself) while `make live` cannot offer a no-op.
+    const from = guard!.index!;
+    const activateAttr = SCENE.indexOf('data-scene3d-camera-activate');
+    expect(activateAttr, 'the activate control has no data attribute a harness can click').toBeGreaterThan(from);
+    expect([...SCENE.slice(from, activateAttr).matchAll(/<button/g)]).toHaveLength(1);
+    expect(SCENE.slice(activateAttr, SCENE.indexOf('</button>', activateAttr))).toMatch(/make live/);
+    const guardClose = SCENE.indexOf(')}', SCENE.indexOf('make live'));
+    expect(guardClose).toBeGreaterThan(-1);
+    // The remove control's own tag opens AFTER the guard closes: it is not gated, and taking the seat is
+    // what makes the formerly-refused row removable.
+    const removeAttr = SCENE.indexOf('data-scene3d-camera-remove');
+    expect(SCENE.lastIndexOf('<button', removeAttr)).toBeGreaterThan(guardClose);
+    // The row still says which one is live, so the absence of the button is explainable on screen.
+    expect(SCENE).toMatch(/\{c\.active \? ' · active' : ''\}/);
+
+    // Both row handlers answer a refusal by quoting the surface's own `why`/`reason` — the same template in
+    // each, counted rather than described, because a note that said "failed" would pass a prose-only case.
+    for (const handler of ['onRemoveCamera', 'onActivateCamera']) {
+      const body = SCENE.match(new RegExp(`const ${handler} = useCallback[\\s\\S]*?\\}, \\[\\]\\);`))!;
+      expect(body[0]).toContain("setCameraNote(answer.ok ? '' : `${answer.why}: ${answer.reason}`)");
+      expect(body[0]).toContain('setReport(surface.report())');
+    }
+    expect(SCENE).toMatch(/\{cameraNote && <div data-scene3d-camera-note>\{cameraNote\}<\/div>\}/);
+  });
+
+  it('the panel moves the seat ONLY through the surface, never by reaching past it (M5 v260)', () => {
+    // A component that called `runtime.setActiveCamera` itself would hold the seat in two places at once —
+    // the registry row and the surface's aim — which is exactly the split v260 removed. Code only: the file's
+    // own prose names the verb (v244 told the user to call it), so a raw scan would match the comment.
+    const code = stripComments(SCENE);
+    expect(code).toMatch(/surface\.activateCamera\(/);
+    expect(code).not.toMatch(/\.setActiveCamera\(/);
+    // And the aim stays the surface's business too: the panel supplies the adapter, it never aims a camera.
+    expect(code).toMatch(/placeCamera\(sceneId, cameraId, position, lookAt\)/);
+    expect(code).not.toMatch(/orbitToPlacement\(/);
+  });
 });
 
 describe('the wiring that makes the WORLD surface reachable (M4 v148)', () => {

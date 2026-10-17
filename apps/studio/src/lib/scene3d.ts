@@ -100,6 +100,14 @@ export interface SceneComposerLike extends SceneRuntimeLike {
    *  fake without a lighting gate is a legitimate host, and `setLight` on the surface answers honestly
    *  (the unchanged report) when absent. */
   setLightState?(sceneId: string, lightId: string, change: { enabled?: boolean; intensity?: number }): boolean;
+  /** M5 v260 — move a scene's ACTIVE camera seat, the runtime's own v224 verb arriving on this seam.
+   *  Optional like the gates beside it: a host without a switch is a legitimate host, and the surface answers
+   *  `why: 'unsupported'` rather than claiming a seat it cannot ask anyone to hold.
+   *
+   *  The seat is not a label: the runtime renders from it (`animate`), picks from it (`pickAt`) and walks the
+   *  player relative to it (`activeCameraYaw`), so this is the one write that decides which camera the person
+   *  using the panel is looking THROUGH. */
+  setActiveCamera?(sceneId: string, cameraId: string): boolean;
   /** M5 v244 — take one camera out of a scene, which is the runtime's own v239 verb arriving on this seam.
    *  OPTIONAL the way `setLightState` is: a host without a removal verb is a legitimate host, and the
    *  surface answers `why: 'unsupported'` rather than deleting a camera it cannot ask anyone to drop.
@@ -218,6 +226,17 @@ export interface SceneCameraRow {
 export type SceneCameraRemoval =
   | { ok: true; cameraId: string; count: number }
   | { ok: false; cameraId: string; why: 'absent' | 'blocked' | 'unsupported'; reason: string };
+
+/** M5 v260 — what asking this surface to move the active seat answers.
+ *
+ *  There is no `blocked` arm: a switch has nothing that makes it a fact rather than a bug — any camera the
+ *  scene holds may take the seat, and the seat cannot be left empty, because the asked-for camera is made
+ *  active by the same write. `activeCamera` is the seat the LIVE scene names after the ask, read from the
+ *  registry rather than echoed from the argument, so a host that answers `true` and moves nothing is told
+ *  back as `null` instead of being quoted a seat it does not have. */
+export type SceneCameraActivation =
+  | { ok: true; cameraId: string; activeCamera: string | null }
+  | { ok: false; cameraId: string; why: 'absent' | 'unsupported'; reason: string };
 
 /** M5 v227 — what a restore had to re-issue to be loadable at all.
  *
@@ -844,6 +863,9 @@ export function composeDocumentOps(input: SceneDocumentInput): Op[] {
  */
 export interface SceneSurface {
   readonly sceneId: string;
+  /** The camera this surface COMPOSED — an address for `placeCamera`, not the seat. Since v260 the orbit aims
+   *  whichever row the live scene names as active (`report().scene.activeCamera`), which is this one until a
+   *  person moves the seat. */
   readonly cameraId: string;
   /**
    * The bodies the surface currently holds. **LIVE**: `addBody`/`removeBody` mutate this array in place, so
@@ -991,11 +1013,15 @@ export interface SceneSurface {
    *  Answers `null` when the runtime produced no camera, the same shape `addBody` uses.
    *
    *  Two things deliberately do NOT happen, and both are the reason this verb is small. A second camera is
-   *  not made ACTIVE: the runtime activates only a scene's FIRST camera, and the active seat is the one this
-   *  surface's orbit aims — moving it would point the panel's picture at a camera nobody aimed. And the new
-   *  camera is not aimed: `aim()` keeps driving `cameraId`, the report reads only `id`/`name`/`active`, so a
-   *  position for the added camera is not something this seam has an answer to yet. It is a row a person can
-   *  look at, and now — with `removeCamera` beside it — take back out. */
+   *  not made ACTIVE: the runtime activates only a scene's FIRST camera, so adding one leaves the picture
+   *  exactly where the user had it. (M5 v260 corrects v244's REASON for that sentence: it claimed the orbit
+   *  aims the seat, so moving it would strand the picture on an unaimed camera. What is actually true is that
+   *  the seat is the camera the renderer draws from and `aim()` now follows it — so the reason a second
+   *  camera is not activated is that adding is not a request to SWITCH, not that switching would break.)
+   *  And the new camera is not aimed: `createCamera` leaves it at the origin looking down -Z, the report reads
+   *  only `id`/`name`/`active`, and a position for it is not something this seam has an answer to until the
+   *  person points at it — which `activateCamera` now does, by aiming the seat with the orbit already held.
+   *  It is a row a person can look at, take back out with `removeCamera`, or give the seat to. */
   addCamera(name: string): { cameraId: string; count: number } | null;
   /** M5 v244 — take a camera out, and ANSWER why when the runtime will not. This is the shipped caller v239's
    *  third bus name has been waiting for: `cameraRemoved` could only ever be emitted by a runtime call nobody
@@ -1006,6 +1032,16 @@ export interface SceneSurface {
    *  or a registered shot — is answered `blocked` with the runtime's own sentence, which is the one that names
    *  the unlocking call. */
   removeCamera(cameraId: string): SceneCameraRemoval;
+  /** M5 v260 — give the seat to one of this surface's cameras, and aim the new one with the orbit the person
+   *  already has.
+   *
+   *  v244's refusal sentence told the user to `call setActiveCamera first` and the panel had no such control,
+   *  so the instruction was a dead end: the row holding the seat could not be taken out, and nothing else
+   *  could move the seat either. This is that control — and because the seat is the camera the runtime
+   *  DRAWS FROM, the handover is part of the verb: the newly active camera is aimed at once with the current
+   *  orbit, so switching seats keeps the view the user set instead of pointing the picture at the origin a
+   *  fresh `createCamera` leaves it at. */
+  activateCamera(cameraId: string): SceneCameraActivation;
   /** M5 v163 — serialise THIS surface's scene into the runtime's own save file. `savedAt` is the caller's
    *  instant; the runtime owns a frame clock, not a wall clock. Refuses when the host supplied no saver. */
   save(savedAt: number): SceneSaveFile;
@@ -1109,11 +1145,29 @@ export function createStudioScene(
   const authoredIds: string[] = [];
   let added = 0;
 
-  /** Aim the camera at the current orbit. A no-op when there is no adapter — a fake without cameras is a
-   *  legitimate host, and the report is what says whether the aim happened. */
+  /** Which camera the panel is looking THROUGH: the row the live scene names as active.
+   *
+   *  The runtime has one source of truth for this and reads it in three places — `animate` renders from it
+   *  (threeRuntime.ts:2799), `pickAt` casts its ray from it (:1497) and `activeCameraYaw` walks the player
+   *  relative to it (:2895). It falls back to the camera this surface composed only when the scene names no
+   *  seat at all (every camera taken out, or a host whose rows carry no active flag), which is the same
+   *  camera the pre-v260 code aimed, so a single-camera scene changes behaviour by nothing. */
+  const seatOf = (): string | null => {
+    const live = runtime.getScene(built.sceneId);
+    const active = live ? [...live.cameras.values()].find((c) => c.active) : undefined;
+    return active?.id ?? null;
+  };
+
+  /** Aim the camera the renderer draws from, at the current orbit. A no-op when there is no adapter — a fake
+   *  without cameras is a legitimate host, and the report is what says whether the aim happened.
+   *
+   *  M5 v260 — this resolved `built.cameraId` before the seat was a control. Measured on the shipped bytes:
+   *  with the seat moved out-of-band to a second camera, one drag wrote the FIRST camera (probe: aimed
+   *  `camera-6`, drawn `camera-7`), so every orbit, wheel and pan landed on a camera nobody renders and the
+   *  picture stopped answering the mouse. */
   const aim = () => {
     const placement = orbitToPlacement(orbit, STUDIO_CAMERA_LOOK_AT);
-    adapter?.placeCamera(built.sceneId, built.cameraId, placement.position, placement.lookAt);
+    adapter?.placeCamera(built.sceneId, seatOf() ?? built.cameraId, placement.position, placement.lookAt);
   };
 
   return {
@@ -1345,6 +1399,41 @@ export function createStudioScene(
         };
       }
       return { ok: true, cameraId, count: runtime.getScene(built.sceneId)?.cameras.size ?? 0 };
+    },
+    // M5 v260 — the seat becomes a control, and the orbit follows it. Same lookup-before-asking shape as
+    // `removeCamera` above: an id this surface never showed the panel is answered by the surface, in its own
+    // voice, and the host is not asked at all.
+    activateCamera(cameraId) {
+      if (!runtime.setActiveCamera) {
+        return {
+          ok: false,
+          cameraId,
+          why: 'unsupported',
+          reason: 'this host has no camera-switch verb; the surface will not claim a seat it cannot ask the runtime to hold',
+        };
+      }
+      const live = runtime.getScene(built.sceneId);
+      if (!live?.cameras.has(cameraId)) {
+        return {
+          ok: false,
+          cameraId,
+          why: 'absent',
+          reason: `camera ${cameraId} is not in scene ${built.sceneId}, so this surface has no seat to give it`,
+        };
+      }
+      if (!runtime.setActiveCamera(built.sceneId, cameraId)) {
+        return {
+          ok: false,
+          cameraId,
+          why: 'absent',
+          reason: `the runtime no longer holds camera ${cameraId} in scene ${built.sceneId}`,
+        };
+      }
+      // The handover, and the reason this verb is not a flag write: the seat is what the renderer draws from,
+      // so an unaimed camera would replace the user's view with whatever the origin looking down -Z sees.
+      // Aimed from the LIVE registry, the same read `aim()` uses, so the two cannot disagree about the seat.
+      aim();
+      return { ok: true, cameraId, activeCamera: seatOf() };
     },
     save(savedAt) {
       if (!saver) {

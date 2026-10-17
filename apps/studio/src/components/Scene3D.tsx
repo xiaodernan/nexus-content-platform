@@ -522,6 +522,23 @@ export default function Scene3D() {
   }, []);
 
   /**
+   * M5 v260 — the third camera control, and the reason v244's refusal sentence stopped being a dead end. A person
+   * told to `call setActiveCamera first` had no such button; now the row that is not live has one, and taking the
+   * seat is what makes that row removable.
+   *
+   * Offered ONLY on a row that is not active: a button that cannot change anything is a button that lies about
+   * itself, and the row already carries its `· active` label. The surface aims the new seat as part of the same
+   * ask, so the picture keeps the view the person had rather than jumping to the origin a fresh camera stands at.
+   */
+  const onActivateCamera = useCallback((cameraId: string) => {
+    const surface = surfaceRef.current;
+    if (!surface) return;
+    const answer = surface.activateCamera(cameraId);
+    setCameraNote(answer.ok ? '' : `${answer.why}: ${answer.reason}`);
+    setReport(surface.report());
+  }, []);
+
+  /**
    * v185 — the quota meter's refresh. The footprint is measured from the decorated listing (the same
    * read a browse makes), and the origin estimate is the browser's own. Both are re-measured after
    * every store mutation — a meter that kept a stale reading would be a counter with a dial on it.
@@ -905,6 +922,18 @@ export default function Scene3D() {
                       {c.name ? c.name : '(unnamed)'}
                       {c.active ? ' · active' : ''}
                     </span>
+                    {/* M5 v260 — the seat is a control on the row that does not hold it, and on that row only. */}
+                    {!c.active && (
+                      <button
+                        type="button"
+                        className="btn"
+                        data-scene3d-camera-activate={c.id}
+                        onClick={() => onActivateCamera(c.id)}
+                        style={{ fontSize: '0.85em', padding: '1px 6px' }}
+                      >
+                        make live
+                      </button>
+                    )}
                     <button
                       type="button"
                       className="btn"

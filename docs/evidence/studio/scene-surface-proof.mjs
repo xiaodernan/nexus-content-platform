@@ -26,12 +26,16 @@
 //   §4 the frame count is the SURFACE's, not the renderer's — the loop can draw without the surface
 //      counting, and a `step()` counts without a draw (the two are different questions);
 //   §5 the surface is CONTROLLABLE, over the REAL runtime and a REAL THREE.Camera (v161);
+//   §5b the ACTIVE SEAT is one of those controls, and the aim follows the camera the frame DRAWS (v260);
 //   §6 (v163) the scene survives the process and enters the document: surface.save serialises the
 //      runtime's own save file (with the AUTHORED bodies counted apart from the composed demo), a load
 //      restores it into a fresh sibling scene under the SAME ids, and `composeDocumentOps` turns the
 //      authored bodies into ONE ordinary design-model op that a REAL document accepts, renders as a
 //      frame + spec text, and undoes cleanly;
-//   §7 this repository's HEAD is byte-identical: everything here ran in memory.
+//   §7 (v192) the selected body's INSPECTOR over the REAL runtime: what a pick names is read from the LIVE
+//      scene at report time, so the section checks both halves — that a pick produces facts, and that the
+//      facts FOLLOW the scene instead of being cached at the moment of the pick;
+//   §8 this repository's HEAD is byte-identical: everything here ran in memory.
 //
 // Run after `npm run build`:  node docs/evidence/studio/scene-surface-proof.mjs
 import assert from 'node:assert/strict';
@@ -286,6 +290,98 @@ assert.equal(runtime.getScene(surface.sceneId).entities.size, graphBefore, 'the 
 assert.equal(runtime.getEntity(surface.sceneId, added.bodyId), undefined, 'and the entity is gone from the runtime too');
 assert.equal(surface.removeBody(added.bodyId), false, 'removing it twice answers false');
 console.log(`[§5] the controls over the REAL runtime: orbiting moved the THREE.Camera's world matrix (x ${positionBefore.x.toFixed(3)} → ${orbitedX.toFixed(3)} orbited → ${surfaceCamera.threeCamera.position.x.toFixed(3)} after reset) without changing its distance · the frame count did not move · add/remove moved the runtime's own graph ${graphBefore} → ${graphBefore + 1} → ${graphBefore}`);
+
+// ── §5b the SEAT is a control, and the aim follows the camera that DRAWS (M5 v260) ──────────────────
+// v161 turned the camera into an orbit; v244 let the surface author cameras; neither made the ACTIVE row —
+// the one `animate` renders from (threeRuntime.ts:2799), `pickAt` casts its ray from (:1497) and
+// `activeCameraYaw` walks the player against (:2895) — controllable. Measured on the shipped bytes before
+// this leg existed: with the seat moved out-of-band to a second camera, one drag wrote the FIRST one (the
+// probe's `aimed camera-6, drawn camera-7`), so every orbit, wheel and pan landed on a camera nobody
+// renders; and the only row the panel could not take out was the one holding the seat, because v244's
+// refusal told the user to `call setActiveCamera first` — a call the UI could not make.
+//
+// Everything below is over the REAL runtime and REAL `THREE.Camera` objects, and it restores the scene to
+// the one §5 left: one camera, the composed row holding the seat.
+const aims = [];
+const aimForReal = adapter.placeCamera;
+adapter.placeCamera = (sid, camId, position, lookAt) => {
+  aims.push(camId);
+  return aimForReal(sid, camId, position, lookAt);
+};
+
+const seatScene = runtime.getScene(surface.sceneId);
+const seatStart = [...seatScene.cameras.values()].find((c) => c.active);
+assert.equal(seatStart.id, surface.cameraId, 'going in, the composed camera holds the seat');
+
+const second = surface.addCamera('Proof Cam');
+assert.ok(second, 'the surface authored a second camera');
+assert.equal(seatScene.cameras.size, 2, 'the RUNTIME holds two cameras');
+const freshCam = seatScene.cameras.get(second.cameraId);
+assert.equal(freshCam.active, false, 'adding a camera does not grab the seat');
+assert.deepEqual(freshCam.threeCamera.position.toArray(), [0, 0, 0], 'and does not aim it: createCamera leaves it at the origin looking down -Z');
+
+surface.orbitBy({ azimuth: 0.5 });
+assert.deepEqual(aims, [surface.cameraId], 'with the seat still on the composed row, the aim names the composed row');
+assert.notDeepEqual(seatStart.threeCamera.position.toArray(), [0, 0, 0], 'the row being looked through moved with the drag');
+assert.deepEqual(freshCam.threeCamera.position.toArray(), [0, 0, 0], 'the row nobody looks through stayed at the origin');
+surface.resetOrbit();
+
+const handed = surface.activateCamera(second.cameraId);
+assert.equal(handed.ok, true, 'the surface handed the seat over');
+assert.equal(handed.activeCamera, second.cameraId, 'and answered the seat the RUNTIME now names, not its own guess');
+assert.deepEqual([...seatScene.cameras.values()].filter((c) => c.active).map((c) => c.id), [second.cameraId], 'exactly one row is active — v225 invariant held');
+// The handover is part of the verb: the camera that was at the origin two lines ago now carries the SAME
+// view the old seat held — same position, same orientation — so switching seats does not jump the picture.
+const viewBefore = { position: seatStart.threeCamera.position.toArray(), quaternion: seatStart.threeCamera.quaternion.toArray() };
+assert.deepEqual(freshCam.threeCamera.position.toArray(), viewBefore.position, 'the new seat was aimed with the orbit the user already held');
+assert.deepEqual(freshCam.threeCamera.quaternion.toArray(), viewBefore.quaternion, 'and pointed the same way, not down -Z from the origin');
+assert.deepEqual(aims.slice(-1), [second.cameraId], 'the aim that handover performed names the SEAT');
+// PRE-FIX RED: before v260 the last aim was `surface.cameraId` whatever the seat was, and `seatStart` is
+// `surface.cameraId`, so this line is the defect stated as data rather than as prose.
+assert.notEqual(aims[aims.length - 1], surface.cameraId, 'the surface no longer aims a camera nobody draws from');
+
+runtime.start();
+assert.equal(scheduler.step(), 1, 'the manual scheduler ran one frame');
+runtime.stop();
+const drawnSeat = backend.frames[backend.frames.length - 1];
+const drawnId = [...seatScene.cameras.values()].find((c) => c.threeCamera === drawnSeat.camera)?.id;
+assert.equal(drawnId, second.cameraId, 'the frame was RENDERED from the camera the surface just aimed');
+assert.equal(drawnId, aims[aims.length - 1], 'aimed === drawn: the same id is the last thing pointed at and the thing that drew');
+
+// And the drag AFTER the handover moves the seat, leaving the displaced row alone.
+aims.length = 0;
+const displaced = seatStart.threeCamera.position.toArray();
+const seatWasAt = freshCam.threeCamera.position.toArray();
+surface.orbitBy({ azimuth: 0.4 });
+assert.deepEqual(aims, [second.cameraId], 'one drag, one aim, aimed at the seat');
+assert.notDeepEqual(freshCam.threeCamera.position.toArray(), seatWasAt, 'the seat moved');
+assert.deepEqual(seatStart.threeCamera.position.toArray(), displaced, 'the camera that lost the seat is not being aimed any more');
+
+// v244's refusal, over the production runtime, in the runtime's OWN words — and the unlock it names is a
+// control the panel now has, so the sentence is an instruction rather than a dead end.
+const blocked = surface.removeCamera(second.cameraId);
+assert.equal(blocked.ok, false, 'the live seat refuses removal');
+assert.equal(blocked.why, 'blocked', 'and the surface says so in data');
+assert.match(blocked.reason, /call setActiveCamera first/, 'the refusal is the runtime\'s own sentence, unparaphrased');
+assert.ok(blocked.reason.includes(second.cameraId), 'it names the camera it refused');
+assert.equal(seatScene.cameras.size, 2, 'the refusal edited nothing');
+
+const third = surface.addCamera('Third Cam');
+assert.ok(surface.activateCamera(third.cameraId).ok, 'the seat moved again — the verb the refusal names');
+assert.equal(surface.removeCamera(second.cameraId).ok, true, 'the row that LOST the seat is now removable: the instruction is reachable');
+
+// Restore the scene §5 handed over: the composed camera holds the seat and nothing else is in the registry.
+assert.ok(surface.activateCamera(seatStart.id).ok, 'the seat came back to the composed camera');
+// The claim belongs HERE, not beside the paragraph above: `third` held the seat until that hand-back, and a
+// row holding it is refused. Removing it after the seat moved off is the same reachability proof with no
+// false claim attached to it.
+assert.equal(surface.removeCamera(third.cameraId).ok, true, 'a row that only ever lost the seat is removable');
+assert.equal(seatScene.cameras.size, 1, 'the runtime is back to one camera');
+assert.equal([...seatScene.cameras.values()][0].active, true, 'and that row holds the seat');
+surface.resetOrbit();
+assert.equal(seatScene.cameras.has(second.cameraId), false, 'the authored rows are gone from the registry the report reads');
+assert.equal(surface.report().scene.activeCamera, seatStart.id, 'the SURFACE agrees: the report reads the seat it restored');
+console.log(`[§5b] the seat is a control over the REAL runtime: authored row ${second.cameraId} took the seat, the handover aimed it from ${viewBefore.position.map((n) => n.toFixed(3)).join(',')} (the displaced camera's own opening position, so the view did not jump) and the very next frame DREW it · every aim after the handover named the seat and never fell back to ${surface.cameraId} · the runtime's refusal of the live seat carries "call setActiveCamera first" and switching seats is what makes that row removable · scene restored to 1 camera, ${seatStart.id} active`);
 
 // ── §6 the scene survives the process, and enters the document (M5 v163) ─────────────────────────────
 // The file is the runtime's OWN save format, reached through the surface; the bodies it carries are

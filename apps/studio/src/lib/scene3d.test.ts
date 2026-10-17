@@ -111,6 +111,19 @@ function fakeRuntime(over: Partial<SceneComposerLike> = {}) {
       scene.cameras.delete(camId);
       return true;
     },
+    // M5 v260 — the fake obeys v224's ORDER, not production's words: the requested camera is looked up
+    // BEFORE any `active` flag is touched, so a `false` answer leaves the seat where it was. The surface's
+    // `activateCamera` claims to answer the LIVE seat after the handover, which is only testable against a
+    // host that moves the flags the way the real registry does.
+    setActiveCamera(sceneId, camId) {
+      const scene = scenes.get(sceneId);
+      if (!scene) return false;
+      const camera = scene.cameras.get(camId);
+      if (!camera) return false;
+      for (const other of scene.cameras.values()) other.active = false;
+      camera.active = true;
+      return true;
+    },
     getScene(sceneId) {
       return scenes.get(sceneId);
     },
@@ -2054,5 +2067,224 @@ describe('addCamera / removeCamera — the surface authors the camera set (M5 v2
       reason: 'this host has no camera-removal verb; the surface will not delete a camera it cannot ask the runtime to drop',
     });
     expect(surface.report().scene!.cameras).toBe(2);
+  });
+});
+
+/**
+ * M5 v260 — the ACTIVE seat becomes a control, and every aim follows it.
+ *
+ * Measured on the shipped bytes before this file changed: with the seat moved to a second camera, one drag
+ * wrote the FIRST one (`aimed camera-6, drawn camera-7`), because `aim()` resolved the camera the surface
+ * COMPOSED while the runtime renders, picks and walks the player off the row flagged active. So the panel
+ * aimed a camera nobody draws from, and the only row it could not take out was the one holding the seat —
+ * v244's refusal told the user to `call setActiveCamera first` and there was no such control. These cases run
+ * over a fake whose `setActiveCamera` obeys v224's ORDER (look up, then touch flags) but not the production
+ * words; the shipped `ThreeRuntime` legs are in `docs/evidence/studio/scene-surface-proof.mjs`.
+ */
+describe('activateCamera — the seat is a control and the orbit aims the drawn camera (M5 v260)', () => {
+  it('activateCamera answers the LIVE seat, the report reads the same row, and a handover is not a frame', () => {
+    const { runtime } = fakeRuntime();
+    const surface = createStudioScene(runtime, () => {}, undefined, 3);
+    const composed = surface.report().scene!.cameraRows.find((row) => row.name === 'Studio Camera')!.id;
+    const added = surface.addCamera('Review Cam')!;
+    expect(surface.report().scene!.activeCamera).toBe(composed);
+
+    const answer = surface.activateCamera(added.cameraId);
+
+    expect(answer).toEqual({ ok: true, cameraId: added.cameraId, activeCamera: added.cameraId });
+    const scene = surface.report().scene!;
+    expect(scene.activeCamera).toBe(added.cameraId);
+    expect(scene.cameraRows).toEqual([
+      { id: composed, name: 'Studio Camera', active: false },
+      { id: added.cameraId, name: 'Review Cam', active: true },
+    ]);
+    // The surface's own `cameraId` is the address it was COMPOSED under, not the seat. Rewriting it here
+    // would report a camera nobody built and silently re-point `placeCamera`'s first argument.
+    expect(surface.cameraId).toBe(composed);
+    expect(surface.frames).toBe(3);
+  });
+
+  it('one drag writes the camera the renderer DRAWS FROM, not the one the surface composed', () => {
+    const { runtime } = fakeRuntime();
+    const adapter = fakeAdapter();
+    const surface = createStudioScene(runtime, () => {}, adapter);
+    const added = surface.addCamera('Review Cam')!;
+    // Out of band, through the host's own verb — the seat move the panel's button performs.
+    expect(runtime.setActiveCamera!(surface.sceneId, added.cameraId)).toBe(true);
+    const writes = adapter.placed.length;
+
+    surface.orbitBy({ azimuth: 0.4 });
+
+    expect(adapter.placed).toHaveLength(writes + 1);
+    const last = adapter.placed[adapter.placed.length - 1]!;
+    expect(last.cameraId).toBe(added.cameraId);
+    // PRE-FIX RED: this line read `surface.cameraId`, because `aim()` resolved the composed row while the
+    // renderer drew the seat. The two are different cameras, so the assertion is the defect.
+    expect(last.cameraId).not.toBe(surface.cameraId);
+    expect(last.position).toEqual(orbitToPlacement(surface.orbit, STUDIO_CAMERA_LOOK_AT).position);
+  });
+
+  it('orbit, pan AND reset all aim the seat — one shared read, no call site re-resolving the composed id', () => {
+    const { runtime } = fakeRuntime();
+    const adapter = fakeAdapter();
+    const surface = createStudioScene(runtime, () => {}, adapter);
+    const added = surface.addCamera('Review Cam')!;
+    runtime.setActiveCamera!(surface.sceneId, added.cameraId);
+
+    surface.orbitBy({ azimuth: 0.4 });
+    surface.panBy({ forward: 0.5, right: -0.25 });
+    surface.resetOrbit();
+
+    // Every aim path in the surface goes through `aim()`, so all three writes name the seat. A fourth call
+    // site added beside them that spells `built.cameraId` would show up as a different id in this array.
+    expect(adapter.placed.slice(1).map((p) => p.cameraId)).toEqual([added.cameraId, added.cameraId, added.cameraId]);
+  });
+
+  it('the handover aims the new seat with the orbit ALREADY held, so switching keeps the view', () => {
+    const { runtime } = fakeRuntime();
+    const adapter = fakeAdapter();
+    const surface = createStudioScene(runtime, () => {}, adapter);
+    surface.orbitBy({ azimuth: 0.9, elevation: 0.3, distance: 1.5 });
+    const held = { ...surface.orbit };
+    const added = surface.addCamera('Review Cam')!;
+
+    expect(surface.activateCamera(added.cameraId).ok).toBe(true);
+
+    const placement = orbitToPlacement(held, STUDIO_CAMERA_LOOK_AT);
+    const last = adapter.placed[adapter.placed.length - 1]!;
+    expect(last).toEqual({ sceneId: surface.sceneId, cameraId: added.cameraId, ...placement });
+    // The whole point of the handover: a fresh `createCamera` leaves its camera at the origin looking down
+    // -Z, so an unaimed seat would replace the user's view with that. The written placement is the orbit's,
+    // and it is provably not the opening one.
+    expect(placement.position).not.toEqual(STUDIO_CAMERA_POSITION);
+    expect(surface.orbit).toEqual(held);
+  });
+
+  it('an id this surface never showed the panel is answered absent, and the host is never asked', () => {
+    const asked: string[] = [];
+    const { runtime } = fakeRuntime({
+      setActiveCamera: (sceneId, cameraId) => {
+        asked.push(`${sceneId}/${cameraId}`);
+        return true;
+      },
+    });
+    const adapter = fakeAdapter();
+    const surface = createStudioScene(runtime, () => {}, adapter);
+    const writes = adapter.placed.length;
+
+    const answer = surface.activateCamera('camera-never-created');
+
+    expect(asked).toEqual([]);
+    expect(answer).toEqual({
+      ok: false,
+      cameraId: 'camera-never-created',
+      why: 'absent',
+      reason: `camera camera-never-created is not in scene ${surface.sceneId}, so this surface has no seat to give it`,
+    });
+    expect(adapter.placed).toHaveLength(writes);
+    expect(surface.report().scene!.activeCamera).toBe(surface.cameraId);
+  });
+
+  it('a host that answers false about a row the surface just saw is told back as absent, and nothing is aimed', () => {
+    const { runtime } = fakeRuntime({ setActiveCamera: () => false });
+    const adapter = fakeAdapter();
+    const surface = createStudioScene(runtime, () => {}, adapter);
+    const added = surface.addCamera('Review Cam')!;
+    const writes = adapter.placed.length;
+
+    expect(surface.activateCamera(added.cameraId)).toEqual({
+      ok: false,
+      cameraId: added.cameraId,
+      why: 'absent',
+      reason: `the runtime no longer holds camera ${added.cameraId} in scene ${surface.sceneId}`,
+    });
+    expect(adapter.placed).toHaveLength(writes);
+    expect(surface.report().scene!.activeCamera).toBe(surface.cameraId);
+  });
+
+  it('a host with no camera-switch verb is answered unsupported, and the surface claims no seat', () => {
+    const { runtime } = fakeRuntime();
+    delete (runtime as { setActiveCamera?: unknown }).setActiveCamera;
+    const adapter = fakeAdapter();
+    const surface = createStudioScene(runtime, () => {}, adapter);
+    const added = surface.addCamera('Review Cam')!;
+    const writes = adapter.placed.length;
+
+    expect(surface.activateCamera(added.cameraId)).toEqual({
+      ok: false,
+      cameraId: added.cameraId,
+      why: 'unsupported',
+      reason: 'this host has no camera-switch verb; the surface will not claim a seat it cannot ask the runtime to hold',
+    });
+    expect(adapter.placed).toHaveLength(writes);
+    expect(surface.report().scene!.cameraRows.map((row) => row.active)).toEqual([true, false]);
+  });
+
+  it('a host that accepts the seat but leaves the scene naming none answers activeCamera: null, and the aim falls back', () => {
+    // v224 keeps a scene that holds cameras holding exactly ONE active row, so this is a host that broke the
+    // invariant, not one the product ships. The surface's answer must still be the scene's own truth (no seat)
+    // and its aim must still land on SOMETHING — the camera it composed, which is what pre-v260 always aimed.
+    const { runtime, scenes } = fakeRuntime({
+      setActiveCamera: (sceneId) => {
+        for (const camera of scenes.get(sceneId)!.cameras.values()) camera.active = false;
+        return true;
+      },
+    });
+    const adapter = fakeAdapter();
+    const surface = createStudioScene(runtime, () => {}, adapter);
+    const added = surface.addCamera('Review Cam')!;
+
+    expect(surface.activateCamera(added.cameraId)).toEqual({ ok: true, cameraId: added.cameraId, activeCamera: null });
+    expect(surface.report().scene!.activeCamera).toBeNull();
+    expect(adapter.placed[adapter.placed.length - 1]!.cameraId).toBe(surface.cameraId);
+  });
+
+  it('the dead end v244 left open: once the seat moves, the row that held it is removable', () => {
+    const { runtime } = fakeRuntime();
+    const surface = createStudioScene(runtime, () => {});
+    expect(surface.removeCamera(surface.cameraId)).toMatchObject({ ok: false, why: 'blocked' });
+    const added = surface.addCamera('Review Cam')!;
+
+    expect(surface.activateCamera(added.cameraId).ok).toBe(true);
+
+    expect(surface.removeCamera(surface.cameraId)).toEqual({ ok: true, cameraId: surface.cameraId, count: 1 });
+    const scene = surface.report().scene!;
+    expect(scene.cameraRows.map((row) => row.id)).toEqual([added.cameraId]);
+    expect(scene.activeCamera).toBe(added.cameraId);
+  });
+
+  it('the row that already holds the seat answers ok and moves nothing the user can see', () => {
+    const { runtime } = fakeRuntime();
+    const adapter = fakeAdapter();
+    const surface = createStudioScene(runtime, () => {}, adapter);
+    const added = surface.addCamera('Review Cam')!;
+    surface.activateCamera(added.cameraId);
+    surface.orbitBy({ azimuth: 0.7 });
+    const held = { ...surface.orbit };
+    const writes = adapter.placed.length;
+
+    expect(surface.activateCamera(added.cameraId)).toEqual({ ok: true, cameraId: added.cameraId, activeCamera: added.cameraId });
+
+    expect(surface.orbit).toEqual(held);
+    expect(surface.report().scene!.activeCamera).toBe(added.cameraId);
+    // It DOES write — the same numbers, to the same camera. Idempotent in the view, not silent in the adapter:
+    // a click that quietly did nothing would be indistinguishable from a host that refused.
+    const written = adapter.placed.slice(writes);
+    expect(written).toHaveLength(1);
+    expect(written[0]).toEqual({ sceneId: surface.sceneId, cameraId: added.cameraId, ...orbitToPlacement(held, STUDIO_CAMERA_LOOK_AT) });
+  });
+
+  it('a one-camera scene aims exactly what it aimed before the seat was a control', () => {
+    // The seat and the composed row are the same camera in a single-camera scene, which is the case every
+    // existing proof runs. Without this line, 'the orbit aims the seat' could be satisfied only by scenes
+    // that already have two rows.
+    const { runtime } = fakeRuntime();
+    const adapter = fakeAdapter();
+    const surface = createStudioScene(runtime, () => {}, adapter);
+
+    surface.orbitBy({ azimuth: 0.5 });
+
+    expect(surface.report().scene!.cameras).toBe(1);
+    expect(adapter.placed[1]!.cameraId).toBe(surface.cameraId);
   });
 });
