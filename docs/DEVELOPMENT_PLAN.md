@@ -227,6 +227,7 @@ time, each with a gate, each recorded in the ADR 0016 ledger and here:
 
 Rule carried from ADR 0016: one deep, verified increment at a time. No `signedIn` badge, no session,
 no cookie, and no half-wired OAuth that produces a badge the service never validates.
+| ~~31~~ | M1 | ~~**The normalized graph's invariants were CLAIMED (ADR 0004) and checked by nothing**~~ | **DONE — v243** (ADR 0016 amendment 243): `validateDocument(doc: unknown)` in the canonical model answers a VERDICT — every problem listed by a stable code, never a throw — over shape, the root, both directions of every child link, the active page, cycles and reachability. It PINS three conventions (a document's children live on the root NODE's `pageIds`, not `doc.pageIds` — the probe caught that in the first draft; a document's `childIds` is REQUIRED-but-DEAD and must stay empty; `pageIds` is MISNAMED and holds PAGES **and component masters**, recorded as a bound not repaired). Wired into the remix lane: a graph-inconsistent publication is refused by name. design-model 40 → 51, Studio 516 → 517, both `tsc` 0, `validate-proof.mjs` 4/4. **Still open:** `persist.ts`'s snapshot hydrate does not validate yet — the natural next consumer |
 
 ## Guardrails (what "done" means here)
 

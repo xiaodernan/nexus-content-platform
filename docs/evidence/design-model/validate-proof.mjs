@@ -1,8 +1,5 @@
-// NEXUS v243 — `validateDocument`: the internal-consistency check the normalized graph always claimed.
-//
-// _Ledger note: this increment's ADR entry and corpus title are DEFERRED — the ledger file currently holds
-// another lane's uncommitted amendment, so appending here would stage their work. The code, proof and tests
-// below are complete and green; the record lands when that entry commits._
+// NEXUS v243 — `validateDocument`: the internal-consistency check the normalized graph always claimed
+// (ADR 0016 amendment 243).
 //
 // Every path that brings a document into the model from outside (a remix, a snapshot, an AI batch, edited
 // JSON) handed it straight to the store and the renderer; a malformed graph draws something subtly wrong

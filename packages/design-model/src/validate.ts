@@ -1,7 +1,6 @@
 /**
- * M7 v243 — `validateDocument`: the internal-consistency check the normalized graph (ADR 0004) always
- * CLAIMED but nothing checked. (The ADR 0016 ledger entry for this increment is deferred — see the note in
- * `docs/evidence/design-model/README.md`; the record lands when the uncommitted entry ahead of it commits.)
+ * v243 — `validateDocument`: the internal-consistency check the normalized graph (ADR 0004) always CLAIMED
+ * but nothing checked (ADR 0016 amendment 243).
  *
  * Every path that brings a document INTO the model from outside — a remix (v233), a local snapshot
  * (`persist.ts`), an AI batch, a hand-edited JSON — handed it straight to the store and the renderer. A
