@@ -1,4 +1,4 @@
-import { SCHEMA_VERSION, type DesignDocument } from '@nexus/design-model';
+import { SCHEMA_VERSION, validateDocument, type DesignDocument } from '@nexus/design-model';
 
 export const APP_STORAGE_VERSION = 1;
 
@@ -46,6 +46,16 @@ export function deserializeApp(json: string): DeserializeResult {
     (doc.activePageId && doc.nodes[doc.activePageId]?.type === 'page') ||
     Object.values(doc.nodes).some((n) => n.type === 'page');
   if (!pageResolvable) return { ok: false, reason: 'no page node to display' };
+
+  // v257 — the checks above prove the snapshot has a root and a page; they say nothing about whether its
+  // GRAPH is consistent. A snapshot whose `childIds` name nodes it does not hold, or whose parent disagrees
+  // with its child, would otherwise load and draw something subtly wrong — the v243 `validateDocument` answers
+  // that. The shallow reasons stay FIRST so a missing root/page is still reported in its friendlier words.
+  const verdict = validateDocument(doc);
+  if (!verdict.ok) {
+    const [first, ...rest] = verdict.problems;
+    return { ok: false, reason: `snapshot graph is inconsistent: ${first!.detail}${rest.length ? ` (+${rest.length} more)` : ''}` };
+  }
 
   return { ok: true, doc };
 }
