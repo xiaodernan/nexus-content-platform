@@ -399,3 +399,22 @@ describe('agentDock build/deploy ledger lines (v174/v177)', () => {
     expect(e.exec).toBeUndefined();
   });
 });
+
+describe('agentDock — memory overview with corrupt storage', () => {
+  it('answers an empty overview when the memory file is corrupt', () => {
+    class CorruptKv {
+      getItem(k: string): string | null {
+        return k === STUDIO_MEMORY_FILE ? 'not json at all' : null;
+      }
+      setItem(_k: string, _v: string): void {
+        // no-op for tests
+      }
+      removeItem(_k: string): void {
+        // no-op for tests
+      }
+    }
+    const ov = studioMemoryOverview(new CorruptKv() as never);
+    expect(ov.total).toBe(0);
+    expect(ov.records).toEqual([]);
+  });
+});
