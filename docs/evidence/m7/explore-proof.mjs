@@ -37,8 +37,11 @@ const strip = (rel, box) => {
 const box = mkdtempSync(join('apps/studio', 'nexus-explore-proof-'));
 try {
   await strip('apps/studio/src/lib/pageShell.ts', box);
+  // v265 — explore.ts now imports the lineage reader, so that module is stripped into the box too: a
+  // missing sibling would be an unresolved import, not a graded failure.
+  await strip('apps/studio/src/lib/lineage.ts', box);
   const explore = await strip('apps/studio/src/lib/explore.ts', box);
-  const { renderExploreHtml, renderExploreUnavailable } = explore;
+  const { renderExploreHtml, renderExploreUnavailable, toExploreItem } = explore;
   assert.equal(typeof renderExploreHtml, 'function', 'the renderer was really imported, not re-implemented');
 
   const item = (over = {}) => ({ projectId: 'pub-1', title: 'Harbour', version: 2, publishedAt: '2026-10-01T00:00:00Z', thumbnail: 'data:image/svg+xml,%3Csvg%2F%3E', ...over });
@@ -101,9 +104,43 @@ try {
     assert.ok(/renderExploreHtml\(items/.test(route), 'the route renders the pure gallery');
     assert.ok(/renderExploreUnavailable\(listing\.reason/.test(route), 'a down service gets its own page');
     assert.ok(/status, headers: \{ 'content-type': 'text\/html/.test(route), 'the answer is HTML');
+    // v265 — the route must CALL the pure mapping, not write its own. The owner was dropped once on its way
+    // to a page (v263 found the publish lane discarding the listing's owner), and a mapping written in the
+    // route is a mapping nothing can assert.
+    assert.ok(/toExploreItem\(row, read, thumbnail\)/.test(route), 'the route BUILDS each card with the pure mapping (toExploreItem)');
+    assert.ok(!/owner:\s*row\.owner/.test(route), 'and it does not map the owner itself — a second mapping is a second chance to drop it');
     const toolbar = readFileSync('apps/studio/src/components/Toolbar.tsx', 'utf8');
     assert.ok(/data-toolbar-explore/.test(toolbar) && /href="\/explore"/.test(toolbar), 'the Studio links the public explore page (the panel is the author\'s own list)');
-    console.log('[§3] wiring: node runtime · list → read each row → draw → render · down service is its own page · Studio links /explore');
+    console.log('[§3] wiring: node runtime · list → read each row → draw → render (through the PURE mapping) · down service is its own page · Studio links /explore');
+  }
+
+  // ── §5 v265: the BYLINE reaches the page ───────────────────────────────────────────────────────────
+  {
+    // The renderer could always draw a byline; what was never proven is that the page RECEIVES an owner to
+    // draw. The whole path is exercised here: the service's OWN answer shape in, the page's HTML out.
+    const { toExploreItem } = explore;
+    const ownedRow = {
+      projectId: 'pub-owned',
+      title: 'Harbour',
+      version: 2,
+      publishedAt: '2026-10-01T00:00:00Z',
+      // The service sends the WHOLE claim; the card shows two fields of it.
+      owner: { accountId: 'acct-ada', handle: 'ada', assurance: 'unsigned-local', claimedAt: 1_700_000_000_000 },
+    };
+    const card = toExploreItem(ownedRow, { ok: true, document: { pages: [] } }, 'data:image/svg+xml,%3Csvg%2F%3E');
+    const html = renderExploreHtml([card], { count: 1, limit: 24 });
+    assert.ok(html.includes('by ada · unsigned-local'), 'an owned publication reaches the page with its byline');
+    assert.ok(html.includes('data-explore-card="pub-owned"'), 'and it is the right card');
+
+    const anonymous = toExploreItem({ ...ownedRow, owner: null }, { ok: true }, 'data:image/svg+xml,%3Csvg%2F%3E');
+    assert.ok(!renderExploreHtml([anonymous], { count: 1, limit: 24 }).includes('by '), 'a publication the service recorded NO owner for shows no byline');
+
+    const malformed = toExploreItem({ ...ownedRow, owner: { handle: 'ada', assurance: null } }, { ok: true }, 'data:image/svg+xml,%3Csvg%2F%3E');
+    assert.ok(!renderExploreHtml([malformed], { count: 1, limit: 24 }).includes('undefined'), 'a malformed owner shows NO byline rather than a broken one');
+
+    const remixed = toExploreItem(ownedRow, { ok: true, document: { _lineage: { sourceProjectId: 'pub-alpha' } } }, 'data:image/svg+xml,%3Csvg%2F%3E');
+    assert.ok(renderExploreHtml([remixed], { count: 1, limit: 24 }).includes('remixed from pub-alpha'), 'a remixed publication still names its source');
+    console.log('[§5] the BYLINE reaches the page: the service\'s own answer shape in, the page\'s HTML out — an owned row shows `by ada · unsigned-local`, an unowned row shows no byline, a malformed owner shows none rather than a broken one, and a remix still names its source');
   }
 
   // ── §4 §60 audit ──────────────────────────────────────────────────────────────────────────────────

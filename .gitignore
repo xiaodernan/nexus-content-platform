@@ -52,6 +52,13 @@ __pycache__/
 # stale copies. `vitest.config.ts` excludes them; this keeps them out of commits too.
 .scratch/
 
+# vitest's config loader writes a TIMESTAMPED bundle next to the config it compiles
+# (`apps/studio/vitest.config.ts.timestamp-<ms>-<hash>.mjs`) and does not remove it. Measured 2026-10-20:
+# one such file sat untracked in the studio package — a `git add -A` away from a commit that carries a
+# build artefact. It is regenerated on every run, so ignoring the pattern is the durable fix; the file
+# itself could not be removed by the agent (the local launcher for recoverable deletion is unavailable).
+vitest.config.ts.timestamp-*.mjs
+
 # another tool's own memory directory, which holds no part of this project's build. Ignored for the same
 # reason .scratch/ is: an untracked foreign tree in the working directory is one `git add -A` away from being
 # swept into an unrelated commit, and amendment 215 records that happening once already.

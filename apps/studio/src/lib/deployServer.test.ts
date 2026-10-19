@@ -19,14 +19,25 @@ import { STUDIO_BUILD_ARC_ID, STUDIO_BUILD_GOAL } from './buildServer';
  * Minimal SpawnLike fake — the host never knows it is not docker. Unlike v174's, the
  * stdout is derived from the argv, so the facts the sink receives are distinguishable:
  * `--version` answers v22.11.0, the compute step answers arc ok:5.
+ *
+ * M5 v263 — the EXIT CODE is the first argument, and the stdout may be overridden.
+ *
+ * This file's red-verdict case used to read `fakeSpawn('', 0)` — a call shaped like
+ * `buildServer.test.ts`'s fake, which takes the STDOUT first. This fake has always taken the
+ * exit code first, so both arguments landed the empty string WHERE THE EXIT CODE GOES and the
+ * case went red because `'' !== 0`, not because of anything the stdout did. The verdict the
+ * shipped code computes is `exitCode === 0 && !result.killedByBudget`
+ * (agents/exec-host/src/containerVerifier.ts) — the STDOUT IS NOT PART OF IT, so an empty
+ * stdout with a zero exit code is GREEN. The stdout override below exists so a case can say
+ * that out loud instead of by accident.
  */
-function fakeSpawn(code: number | null = 0) {
+function fakeSpawn(code: number | null = 0, stdout?: string) {
   const calls: Array<{ cmd: string; args: string[] }> = [];
   const spawnLike = (cmd: string, args: string[]) => {
     calls.push({ cmd, args });
-    const stdout = args.includes('--version') ? 'v22.11.0\n' : 'arc ok:5\n';
+    const out = stdout ?? (args.includes('--version') ? 'v22.11.0\n' : 'arc ok:5\n');
     return {
-      onData: (l: (s: 'stdout' | 'stderr', c: Buffer | string) => void) => l('stdout', Buffer.from(stdout)),
+      onData: (l: (s: 'stdout' | 'stderr', c: Buffer | string) => void) => l('stdout', Buffer.from(out)),
       onEnd: (l: (e: { code: number | null; signal: string | null; error?: string }) => void) => {
         setImmediate(() => l({ code, signal: null }));
       },
@@ -278,9 +289,15 @@ describe('studio deploy records read-back (v178)', () => {
 
   describe('runStudioDeployArc — build-outcome branches', () => {
     it('returns not-green when the build arc fails (red verdict), recording nothing', async () => {
-      const { spawnLike } = fakeSpawn('', 0); // empty stdout → verify not ok → build fails
+      // A RED VERDICT IS AN EXIT CODE, not an empty stdout: the verify door's own words are
+      // `ok = result.exitCode === 0 && !result.killedByBudget`
+      // (agents/exec-host/src/containerVerifier.ts), so exit 1 is what fails the build. The old call
+      // `fakeSpawn('', 0)` put an empty string where the exit code goes, so the case went red by
+      // that accident and the mechanism its comment named was never the one under test.
+      const { spawnLike } = fakeSpawn(1);
       const s = await runStudioDeployArc({ spawnLike });
       expect(s.ok).toBe(true);
+      if (!s.ok) throw new Error(`the deploy arc refused instead of answering: ${s.reason}`);
       expect(s.status).toBe('not-green');
       expect(s.facts).toEqual([]);
       expect(s.deployReceipts).toEqual([]);
@@ -290,6 +307,7 @@ describe('studio deploy records read-back (v178)', () => {
       const { spawnLike } = fakeSpawn();
       const s = await runStudioDeployArc({ spawnLike, goal: 'zzz qqq nonsense' });
       expect(s.ok).toBe(true);
+      if (!s.ok) throw new Error(`the deploy arc refused instead of answering: ${s.reason}`);
       expect(s.status).toBe('unplanned');
       expect(s.facts).toEqual([]);
     });

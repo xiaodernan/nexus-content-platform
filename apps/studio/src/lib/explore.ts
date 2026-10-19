@@ -12,6 +12,7 @@
  * without starting a server or a service.
  */
 import { escapeHtml } from './pageShell';
+import { readRemixedFrom } from './lineage';
 
 /** One publication as a card: the service's receipt facts, plus a thumbnail the route has already drawn. */
 export interface ExploreItem {
@@ -27,6 +28,62 @@ export interface ExploreItem {
   remixedFrom?: string | null;
   /** Why the thumbnail is absent, when it is — SHOWN on the card, never hidden (a blank card lies). */
   note?: string;
+}
+
+/**
+ * v265 — the service's listing row, in the shape the pure half reads.
+ *
+ * The owner is stated as the service SENDS it (an account id, a handle, an assurance and an instant), not as
+ * the two fields the card shows, because the reduction is the thing that can go wrong: a mapping that drops
+ * the owner makes every publication look anonymous, and the owner was already dropped once on its way to a
+ * page (v263 found the publish lane discarding the listing's owner).
+ */
+export interface ExploreRow {
+  projectId: string;
+  title: string;
+  version: number;
+  publishedAt: string;
+  owner?: { handle?: unknown; assurance?: unknown } | null;
+}
+
+/** What the route learned when it read a row's document. The listing carries none, so this is a second read. */
+export interface ExploreDocumentRead {
+  ok: boolean;
+  document?: unknown;
+  reason?: string;
+}
+
+/**
+ * v265 — the WHOLE service-answer → card mapping, in one pure function.
+ *
+ * It lived in the route, which meant nothing could assert it: the renderer had byline cases, and no test
+ * could say that the page actually RECEIVES an owner to render. A renderer that can render a byline and a
+ * page that never gets one look identical from the outside, and the byline is the whole point of the
+ * ownership story (v263 made publications owned; this is what shows it).
+ *
+ * Every field is taken from the service's own answer, and the two that can be absent are stated as absent:
+ * an owner the service did not record, and a lineage the document does not carry.
+ */
+export function toExploreItem(row: ExploreRow, read: ExploreDocumentRead, thumbnail?: string): ExploreItem {
+  return {
+    projectId: row.projectId,
+    title: row.title,
+    version: row.version,
+    publishedAt: row.publishedAt,
+    thumbnail,
+    /** The service's recorded owner, when a claim was attached — shown as `by <handle> · <assurance>`. A
+     *  malformed owner is shown as NO owner rather than as a broken byline: a card that says `by undefined`
+     *  is worse than a card that says nothing, and both are true. */
+    owner:
+      row.owner && typeof row.owner.handle === 'string' && typeof row.owner.assurance === 'string'
+        ? { handle: row.owner.handle, assurance: row.owner.assurance }
+        : null,
+    /** Where this publication was remixed from — the service wrote `_lineage.sourceProjectId` into the
+     *  document; read it back so the card names its source. */
+    remixedFrom: readRemixedFrom(read.document),
+    /** Why the thumbnail is absent, when it is — SHOWN, never hidden. */
+    note: thumbnail ? undefined : read.ok ? 'nothing to draw' : (read.reason ?? 'preview unavailable'),
+  };
 }
 
 function pageShell(title: string, bodyHtml: string): string {

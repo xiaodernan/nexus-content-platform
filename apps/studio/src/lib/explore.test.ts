@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { renderExploreHtml, renderExploreUnavailable, type ExploreItem } from './explore';
+import { renderExploreHtml, renderExploreUnavailable, toExploreItem, type ExploreItem } from './explore';
 
 const item = (over: Partial<ExploreItem> = {}): ExploreItem => ({
   projectId: 'pub-1',
@@ -126,5 +126,69 @@ describe('explore — the gallery of published work (M7 v241)', () => {
     const html = renderExploreUnavailable('<script>alert(1)</script>');
     expect(html).not.toContain('<script>alert(1)</script>');
     expect(html).toContain('&lt;script&gt;alert(1)&lt;/script&gt;');
+  });
+});
+
+/**
+ * M7 v265 — the service-answer → card mapping, in the pure half.
+ *
+ * The renderer had byline cases, and the mapping that FEEDS it had none: it lived in the route, where a
+ * dropped owner would make every publication look anonymous and nothing would say so. These cases grade the
+ * whole path — the service's own answer shape in, the page's HTML out — so the byline is proven to ARRIVE
+ * and not merely to be renderable.
+ */
+describe('explore — the service answer becomes a card (M7 v265)', () => {
+  /** A listing row exactly as the SERVICE sends it: the owner carries the whole claim. */
+  const row = (over: Partial<Parameters<typeof toExploreItem>[0]> = {}) => ({
+    projectId: 'pub-1',
+    title: 'Harbour',
+    version: 2,
+    publishedAt: '2026-10-01T00:00:00Z',
+    owner: { accountId: 'acct-ada', handle: 'ada', assurance: 'unsigned-local', claimedAt: 1_700_000_000_000 },
+    ...over,
+  });
+
+  it('an owned row reaches the PAGE as a byline — the whole path, not just the renderer', () => {
+    const card = toExploreItem(row(), { ok: true, document: { pages: [] } }, 'data:image/svg+xml,%3Csvg%2F%3E');
+    expect(card.owner).toEqual({ handle: 'ada', assurance: 'unsigned-local' });
+    const html = renderExploreHtml([card], { count: 1, limit: 24 });
+    expect(html).toContain('by ada · unsigned-local');
+  });
+
+  it('a row the service recorded NO owner for reaches the page as NO byline', () => {
+    const card = toExploreItem(row({ owner: null }), { ok: true }, 'data:image/svg+xml,%3Csvg%2F%3E');
+    expect(card.owner).toBeNull();
+    expect(renderExploreHtml([card], { count: 1, limit: 24 })).not.toContain('by ');
+  });
+
+  it('a MALFORMED owner is shown as no owner, never as a broken byline', () => {
+    // The service refuses a blank handle, but the client is the only party that can meet a shape it did not
+    // expect — and a card that says `by undefined` is worse than a card that says nothing.
+    const halfBroken = toExploreItem(row({ owner: { handle: 'ada', assurance: null } }), { ok: true });
+    expect(halfBroken.owner).toBeNull();
+    const noHandle = toExploreItem(row({ owner: { handle: null, assurance: 'unsigned-local' } }), { ok: true });
+    expect(noHandle.owner).toBeNull();
+    expect(renderExploreHtml([noHandle], { count: 1, limit: 24 })).not.toContain('undefined');
+  });
+
+  it('a document carrying a lineage reaches the card as its source', () => {
+    const card = toExploreItem(row(), { ok: true, document: { _lineage: { sourceProjectId: 'pub-alpha' } } });
+    expect(card.remixedFrom).toBe('pub-alpha');
+    expect(renderExploreHtml([card], { count: 1, limit: 24 })).toContain('remixed from pub-alpha');
+  });
+
+  it('a document with NO lineage reaches the card as no source', () => {
+    expect(toExploreItem(row(), { ok: true, document: { pages: [] } }).remixedFrom).toBeNull();
+  });
+
+  it('a row that could not be drawn says WHY, and never renders an empty image', () => {
+    const failed = toExploreItem(row(), { ok: false, reason: 'the service is down' });
+    expect(failed.note).toBe('the service is down');
+    expect(failed.thumbnail).toBeUndefined();
+    const unreadable = toExploreItem(row(), { ok: true });
+    expect(unreadable.note).toBe('nothing to draw');
+    const html = renderExploreHtml([failed], { count: 1, limit: 24 });
+    expect(html).not.toContain('<img');
+    expect(html).toContain('the service is down');
   });
 });

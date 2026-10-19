@@ -101,6 +101,27 @@ describe('studio build lane walk (v175, planned, fake spawn)', () => {
     expect(calls).toHaveLength(0);
   });
 
+  it('the verify verdict is the EXIT CODE, not the stdout: empty stdout with a zero exit is still green', async () => {
+    // This case pins a CORRECTION, and it is here because this file's fake already takes the stdout
+    // first, so the shapes below are the ones the shipped code is read against.
+    //
+    // `containerVerifier.ts` computes `ok = result.exitCode === 0 && !result.killedByBudget` — the
+    // stdout is NOT part of the verdict. A case in `deployServer.test.ts` used to name an empty stdout
+    // as the thing that fails a build, and its fake put the empty string where the EXIT CODE goes, so
+    // the case went red by accident and the comment was never true. Here the stdout really is empty
+    // (the fake emits no data at all) and the exit code really is zero, and the build is GREEN.
+    const { spawnLike } = fakeSpawn('', 0);
+    const a = await runStudioBuildArc({ spawnLike });
+    expect(a.ok).toBe(true);
+    if (!a.ok) throw new Error(`the build arc refused instead of answering: ${a.reason}`);
+    expect(a.status).toBe('completed');
+    expect(a.steps).toHaveLength(2);
+    expect(a.steps.every((s) => s.ok)).toBe(true);
+    // The stdout really was empty — the verifier OMITS an empty stdout rather than reporting it — so
+    // this is not the green case above wearing a different hat.
+    expect(a.steps.every((s) => s.stdout === undefined)).toBe(true);
+  });
+
   it('a red verdict stops the walk with the engine\'s own words and one receipt', async () => {
     const { spawnLike, calls } = fakeSpawn('', 3);
     const a = await runStudioBuildArc({ spawnLike });

@@ -1,6 +1,6 @@
 'use client';
 import { useEffect, useState } from 'react';
-import { session } from '@/lib/accountSession';
+import { session } from '../lib/accountSession';
 import type { AccountRecord } from '@/lib/accounts';
 
 /**

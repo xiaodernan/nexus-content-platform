@@ -30,7 +30,7 @@ import {
 import { memoryStore } from './storage';
 import { createWebFs } from './webfs';
 import { loadVectors, queryVectors } from '@nexus/agent-runtime';
-import { STUDIO_VECTORS_FILE } from './agentDock';
+import { STUDIO_MEMORY_FILE, STUDIO_VECTORS_FILE } from './agentDock';
 
 const STYLE: TextStyle = { fontFamilyToken: 'font.family.body', sizeToken: 'font.size.base', weight: 400, lineHeight: 1.35, letterSpacing: 0, align: 'left' };
 
