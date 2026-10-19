@@ -30,6 +30,7 @@
     "verify:publish": "node docs/evidence/m7/publish-proof.mjs",
     "verify:api-tests": "mvn -B test -f services/nexus-api/pom.xml",
     "verify:publish-e2e": "node tools/harness/studio-publish.mjs",
+    "verify:account": "node tools/harness/studio-account.mjs",
     "verify:leak-sweep": "node docs/evidence/m7/leak-sweep-proof.mjs",
     "verify:remix": "node docs/evidence/m7/remix-proof.mjs",
     "verify:explore": "node docs/evidence/m7/explore-proof.mjs",
