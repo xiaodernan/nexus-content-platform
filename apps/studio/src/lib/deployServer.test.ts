@@ -275,4 +275,23 @@ describe('studio deploy records read-back (v178)', () => {
     expect(s.records[STUDIO_DEPLOY_RECORDS_SHOWN - 1]!.stepId).toBe(`s${9 - (STUDIO_DEPLOY_RECORDS_SHOWN - 1)}`);
     expect(readStudioDeployRecords({ fs, recordsPath: STUDIO_DEPLOY_RECORDS_PATH }).total).toBe(10);
   });
+
+  describe('runStudioDeployArc — build-outcome branches', () => {
+    it('returns not-green when the build arc fails (red verdict), recording nothing', async () => {
+      const { spawnLike } = fakeSpawn('', 0); // empty stdout → verify not ok → build fails
+      const s = await runStudioDeployArc({ spawnLike });
+      expect(s.ok).toBe(true);
+      expect(s.status).toBe('not-green');
+      expect(s.facts).toEqual([]);
+      expect(s.deployReceipts).toEqual([]);
+    });
+
+    it('returns unplanned when the goal summons no steps', async () => {
+      const { spawnLike } = fakeSpawn();
+      const s = await runStudioDeployArc({ spawnLike, goal: 'zzz qqq nonsense' });
+      expect(s.ok).toBe(true);
+      expect(s.status).toBe('unplanned');
+      expect(s.facts).toEqual([]);
+    });
+  });
 });
