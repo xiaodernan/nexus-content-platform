@@ -339,3 +339,38 @@ describe('community — formatSince', () => {
     expect(formatSince(now - 86_400_000, now)).toBe('1 d ago');
   });
 });
+
+describe('community — buildFollowersIndex / buildFollowingIndex', () => {
+  it('buildFollowersIndex maps followeeId -> followers, empty input is empty Map', () => {
+    expect(buildFollowersIndex([])).toEqual(new Map());
+  });
+
+  it('buildFollowersIndex indexes followers per followee', () => {
+    const follows: Follow[] = [
+      { followerId: 'acct-a', followeeId: 'acct-b', createdAt: 0 },
+      { followerId: 'acct-c', followeeId: 'acct-b', createdAt: 0 },
+      { followerId: 'acct-a', followeeId: 'acct-d', createdAt: 0 },
+    ];
+    const index = buildFollowersIndex(follows);
+    expect(index.get('acct-b')?.size).toBe(2);
+    expect(index.get('acct-b')?.has('acct-a')).toBe(true);
+    expect(index.get('acct-d')?.has('acct-a')).toBe(true);
+    expect(index.has('acct-a')).toBe(false);
+  });
+
+  it('buildFollowingIndex is the reverse projection: followerId -> followees', () => {
+    const follows: Follow[] = [
+      { followerId: 'acct-a', followeeId: 'acct-b', createdAt: 0 },
+      { followerId: 'acct-c', followeeId: 'acct-b', createdAt: 0 },
+    ];
+    const index = buildFollowingIndex(follows);
+    expect(index.get('acct-a')?.size).toBe(1);
+    expect(index.get('acct-b')).toBeUndefined();
+    expect(index.has('acct-c') && index.get('acct-c')?.size).toBe(1);
+  });
+
+  it('both answer empty Map for empty input without mutating', () => {
+    expect(buildFollowersIndex([])).toBeInstanceOf(Map);
+    expect(buildFollowingIndex([])).toBeInstanceOf(Map);
+  });
+});
