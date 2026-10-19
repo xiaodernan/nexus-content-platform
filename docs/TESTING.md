@@ -1468,3 +1468,10 @@ vitest 直接崩了而我却把 stdout 丢进了 `/dev/null`，于是"5 遍"其�
   拿到的却是正常 200 与那一行"初始版本"——**说明服务端没坏**。把负载错开重跑：44/44（14.6 分钟）。
   这一笔留下的可执行口径：**@smoke 不要跟大套件前后脚跑**；红一片且形状是"元素不存在"时，
   先证明同一件事在低成本通道（curl / 单跑）里是绿的，再动代码。
+
+
+2026-10-20 四片提交：
+- test(origin): 第一声测试补全 33条全覆盖 x-forwarded 成对采信 config 优先 bad-origin warn latch
+- feat(game-model): ADR-0045 产物第二条链 RPG 补写，ARTIFACT_CHAINS 改带引擎标识；codegen/test/parity 同步
+- perf(studio): §147 分段标记 opt-in store.ts mark 与 PERFORMANCE.md 同步生产构建
+- feat(test): §144/§163/§164 导出路由覆盖——401/404/build.status 两帧/§164 build 通知 打真库

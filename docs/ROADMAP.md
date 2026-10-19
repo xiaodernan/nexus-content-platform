@@ -4855,7 +4855,7 @@ RPG 那份 7 文件 / 27276 字节里没有成长循环，视觉小说那份 7 �
   7 臂变异电池：A 绕过分派点 9 红 / B README 不分叉 4 / C 页面少那句 2 / D 链上不念 1 /
   E 路由丢字段 2 / F 计数写死 1 / G 摘要管线名写死 1（G 第一版拼串写在双引号里，
   `${'$'}` 不展开 → 命中 0 次判 INTERFERED，什么都没跑；改反引号重跑才作数）。
-- **仍然欠的（下一格）**：错位只是被说出来，**没有被修掉**——产物还没有 RPG 的成长循环与对话管线引擎。
+- **已完成（ADR-0045）**：产物第二条链现在带 `artifactChainSentence`/`RPG_LAYER_NOT_DECORATIVE`/`RPG_GATE_HELD` 三条判决，codegen/test/parity 24 条全绿；对话两型（interactive-story/visual-novel）仍只披露不修，只在 `rpg-prototype` 产物里多转写一段 `NexusRpg`（语义从 `rpg.ts` 导出插值，`plan.growth` 承载数值），对应 `ARTIFACT_CHAINS` 表成为"这一份带不带引擎"的唯一分派点。
   那格落地时这一句 `kindNote` 会随 `compileForKind` 自己变空，不用改文案。
   #139（链上草稿带 `kind`）本片后**要重新划范围**：它原先的一条理由（`pipeline: null` 走不到）今天不成立，
   八型全接了，该挑的是可达接缝——`playtest` 那格今天恒跑 `playtestRpg`，一份 2D 草稿的
