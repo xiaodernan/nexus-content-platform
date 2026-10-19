@@ -16,6 +16,8 @@ import {
   tipsByRecipient,
   subscriptionActiveText,
 } from './monetization';
+
+import type { Currency } from './monetization';
 import type { Subscription, Tip } from './monetization';
 
 const sub: Subscription = {
@@ -246,5 +248,17 @@ describe('monetization — tipsByRecipient', () => {
 
   it('empty for no match', () => {
     expect(tipsByRecipient(tips, 'acct-z')).toEqual([]);
+  });
+});
+
+describe('monetization — currencySymbol', () => {
+  it('returns $ for USD', () => {
+    expect(currencySymbol('USD')).toBe('$');
+  });
+
+  it('returns the symbol for every supported currency', () => {
+    expect(currencySymbol('USD')).toBe('$');
+    expect(currencySymbol('CNY')).toBe('\u00A5');
+    expect(currencySymbol('JPY')).toBe('\u00A5');
   });
 });
