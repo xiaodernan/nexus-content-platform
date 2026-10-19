@@ -151,6 +151,16 @@ precondition still reads 0 modified and §7 still titles the newest grant.
 working state, and destroying it would be worse than ignoring it. It also teaches nothing to whoever runs
 `git add -A`: the next foreign directory will need the same line, which is the argument for staging by name.
 
+## Amendment 262 — the reserved `_lineage` key reads through ONE guarded reader, and the studio tsc red is closed (v262, apps/studio)
+
+What the gate did not cover, and this record states it first: the type-gate closure above measured the **six packages**, and `apps/studio` "keeps its own config" — so nothing in this directory was grading `apps/studio` when v245 and v247 taught two route handlers to read `_lineage.sourceProjectId` off a fetched document. Both reads were `TS2339` at HEAD: the key is not a member of `DesignDocument`, and `typeof x === 'object'` narrows `unknown` to `object`. Four more errors were in the same commit range (`scene3dSurface.test.ts` read `refused.why` on a union that an `expect(...).toBe(false)` asserts about but does not narrow). `tsc -p apps/studio/tsconfig.json --noEmit` stood at **exit 2, 14 errors**.
+
+The repair is ONE reader — `apps/studio/src/lib/lineage.ts`'s `readRemixedFrom(document: unknown): string | null` — called by BOTH routes so the guard chain exists once, plus four narrowing guards in the test. After it: **exit 0, 0 errors**; `lineage.test.ts` **7/7**; `apps/studio` **817/817** (43 files).
+
+**Why this record is numbered 262 and not 258.** The grant's own first draft was headed `### Amendment 258`, which the gate's own plan item 35 had already flagged: `350e0ca` committed **amendment 258** for the §7 title arm, so a second heading of that number would grant 258 twice — and the gate cannot see it, because its `headings` census is a `Map` keyed by number and the second heading would silently overwrite the first. 259 and 260 were already taken in HEAD (the account face and the camera seat), 261 is this lane's scene grant, so **262 is the first free number at the moment this record lands**. The rule the plan item states is "no two grants share one number", and that is what the renumbering buys.
+
+The honest bound stands: this gate grades the six packages and the doc gate; a red `apps/studio` `tsc` is caught by whoever runs it, not by a door in this directory — which is exactly how these 14 errors reached a green suite.
+
 ## The closure
 
 `tsc -p <pkg>/tsconfig.test.json` is **0** for all six packages, and every suite was re-run:

@@ -2,6 +2,7 @@ import type { DesignDocument } from '@nexus/design-model';
 import { listPublications, readPublication } from '@/lib/publishServer';
 import { docToSvg, svgToDataUri } from '@/lib/thumbnail';
 import { renderExploreHtml, renderExploreUnavailable, type ExploreItem } from '@/lib/explore';
+import { readRemixedFrom } from '@/lib/lineage';
 
 /**
  * M7 v241 (ADR 0016 amendment 241): `/explore` — what is published, at a URL a person can browse.
@@ -48,7 +49,7 @@ export async function GET(): Promise<Response> {
       /** The service's recorded owner, when a claim was attached — shown as `by <handle> · <assurance>`. */
       owner: row.owner ? { handle: row.owner.handle, assurance: row.owner.assurance } : null,
       /** Where this publication was remixed from — the service wrote `_lineage.sourceProjectId` into the document; read it back so the card names its source. */
-      remixedFrom: doc && typeof doc === 'object' && doc._lineage && typeof doc._lineage === 'object' && doc._lineage.sourceProjectId ? String(doc._lineage.sourceProjectId) : null,
+      remixedFrom: readRemixedFrom(doc),
       note: thumbnail ? undefined : read.ok ? 'nothing to draw' : (read.reason ?? 'preview unavailable'),
     });
   }

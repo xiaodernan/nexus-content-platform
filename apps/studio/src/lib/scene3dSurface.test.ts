@@ -1812,7 +1812,9 @@ describe('M5 v244 — addCamera / removeCamera through the shipped seam (the rea
     };
 
     const refused = surface.removeCamera('cam-no-such-row');
-    expect(refused.ok).toBe(false);
+    // A guard, not an assertion, so the union NARROWS and `why`/`reason` are readable below —
+    // `expect(refused.ok).toBe(false)` proves the same fact but leaves the type as the full union.
+    if (refused.ok) throw new Error('expected a camera the scene does not hold to be refused');
     expect(refused.why).toBe('absent');
     expect(asked).toEqual([]);
     expect(surface.report().scene!.cameras).toBe(1);
@@ -1822,7 +1824,7 @@ describe('M5 v244 — addCamera / removeCamera through the shipped seam (the rea
     const { headless, surface } = camerasOnHeadless();
 
     const refused = surface.removeCamera(surface.cameraId);
-    expect(refused.ok).toBe(false);
+    if (refused.ok) throw new Error('expected the ACTIVE camera removal to be blocked');
     expect(refused.why).toBe('blocked');
     // Substrings that stop at the em dash the runtime itself uses as the sentence's boundary: the panel
     // shows these words, so they must be the runtime's, checked where they are longest and still clean.
@@ -1842,7 +1844,7 @@ describe('M5 v244 — addCamera / removeCamera through the shipped seam (the rea
     });
 
     const refused = surface.removeCamera(added.cameraId);
-    expect(refused.ok).toBe(false);
+    if (refused.ok) throw new Error('expected a shot-registered camera removal to be blocked');
     expect(refused.why).toBe('blocked');
     expect(refused.reason).toContain('"v244-flyby" shot s1');
     expect(refused.reason).toContain('call removeCinematic first');
@@ -1861,7 +1863,9 @@ describe('M5 v244 — addCamera / removeCamera through the shipped seam (the rea
       headless.runtime.addEventListener(name, () => fired.push(name));
     }
 
-    expect(surface.removeCamera(surface.cameraId).why).toBe('blocked');
+    const refusedNoop = surface.removeCamera(surface.cameraId);
+    if (refusedNoop.ok) throw new Error('expected the refusal that moves nothing');
+    expect(refusedNoop.why).toBe('blocked');
     expect(fired).toEqual([]);
     expect(surface.report().scene!.cameraRows).toEqual(rowsBefore);
   });

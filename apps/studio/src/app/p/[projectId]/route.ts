@@ -1,5 +1,6 @@
 import { readPublication } from '@/lib/publishServer';
 import { renderArtifactHtml, renderArtifactMissing, renderArtifactUnavailable } from '@/lib/artifact';
+import { readRemixedFrom } from '@/lib/lineage';
 
 /**
  * M7 v196 (ADR 0016 amendment 196): `/p/{projectId}` — a published project at a URL a PERSON can open.
@@ -28,8 +29,7 @@ export async function GET(_request: Request, { params }: { params: Promise<{ pro
 
   if (answer.ok) {
     const doc = answer.document as Record<string, unknown> | null | undefined;
-    const lineage = doc && typeof doc === 'object' && doc._lineage && typeof doc._lineage === 'object' ? doc._lineage : null;
-    const remixedFrom = lineage && typeof lineage.sourceProjectId === 'string' ? lineage.sourceProjectId : null;
+    const remixedFrom = readRemixedFrom(doc);
     return new Response(renderArtifactHtml(
       { projectId: decodeURIComponent(projectId), title: answer.title, version: answer.version, publishedAt: answer.publishedAt, document: answer.document },
       answer.owner ?? null,
