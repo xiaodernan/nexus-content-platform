@@ -167,12 +167,14 @@ export interface PublishLaneRemoval {
 }
 
 /** What is published, newest first. The service caps it; nothing is trimmed here. */
-export async function listPublished(limit: number): Promise<PublishLaneListing> {
+export async function listPublished(limit: number, owner?: string): Promise<PublishLaneListing> {
   try {
     const res = await fetch('/api/publish', {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ action: 'list', limit }),
+      // v270 — an owner narrows the listing to ONE account's publications (a profile). A blank owner is
+      // the ABSENCE of one, so it is not sent: "the publications of nobody" is not the whole table.
+      body: JSON.stringify({ action: 'list', limit, ...(owner && owner.trim() ? { owner: owner.trim() } : {}) }),
     });
     const parsed: unknown = await res.json().catch(() => null);
     if (parsed && typeof parsed === 'object') return parsed as PublishLaneListing;

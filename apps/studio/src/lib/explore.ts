@@ -22,8 +22,10 @@ export interface ExploreItem {
   publishedAt: string;
   /** A self-contained data-URI image of the publication's first page, or undefined when it could not be drawn. */
   thumbnail?: string;
-  /** Who the service recorded as publisher, when a claim was attached (v243). Shown as `by <handle> · <assurance>`; absent for pre-claim rows. */
-  owner?: { handle: string; assurance: string } | null;
+  /** Who the service recorded as publisher, when a claim was attached (v243). Shown as `by <handle> · <assurance>`;
+   *  absent for pre-claim rows. v270 adds the ACCOUNT ID, because the byline is a link to that account's
+   *  profile and a link needs an address, not a name. */
+  owner?: { accountId: string; handle: string; assurance: string } | null;
   /** The project this was remixed from, when the document carries a `_lineage` entry the service wrote. Shown as `remixed from <id>`; absent for non-remixes. */
   remixedFrom?: string | null;
   /** Why the thumbnail is absent, when it is — SHOWN on the card, never hidden (a blank card lies). */
@@ -43,7 +45,7 @@ export interface ExploreRow {
   title: string;
   version: number;
   publishedAt: string;
-  owner?: { handle?: unknown; assurance?: unknown } | null;
+  owner?: { accountId?: unknown; handle?: unknown; assurance?: unknown } | null;
 }
 
 /** What the route learned when it read a row's document. The listing carries none, so this is a second read. */
@@ -75,8 +77,12 @@ export function toExploreItem(row: ExploreRow, read: ExploreDocumentRead, thumbn
      *  malformed owner is shown as NO owner rather than as a broken byline: a card that says `by undefined`
      *  is worse than a card that says nothing, and both are true. */
     owner:
-      row.owner && typeof row.owner.handle === 'string' && typeof row.owner.assurance === 'string'
-        ? { handle: row.owner.handle, assurance: row.owner.assurance }
+      row.owner
+        && typeof row.owner.accountId === 'string'
+        && row.owner.accountId.length > 0
+        && typeof row.owner.handle === 'string'
+        && typeof row.owner.assurance === 'string'
+        ? { accountId: row.owner.accountId, handle: row.owner.handle, assurance: row.owner.assurance }
         : null,
     /** Where this publication was remixed from — the service wrote `_lineage.sourceProjectId` into the
      *  document; read it back so the card names its source. */
@@ -102,6 +108,8 @@ h1{font-size:20px;letter-spacing:.4px;margin-bottom:4px}
 .meta{padding:10px 12px;display:flex;flex-direction:column;gap:2px}
 .meta strong{font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .meta span{color:#9aa3b2;font-size:11px}
+.meta .by{color:#9aa3b2;font-size:11px;text-decoration:none}
+.meta .by:hover{color:#cfd6e4;text-decoration:underline}
 .meta .remixed{color:#3b82f6;font-weight:600}
 .acts{display:flex;gap:8px;padding:0 12px 12px}
 .acts a{flex:1;text-align:center;font-size:11px;text-decoration:none;padding:5px 8px;border-radius:5px;background:#1b2230;color:#cfd6e4}
@@ -119,6 +127,17 @@ export function renderExploreHtml(items: ExploreItem[], opts: { count: number; l
   if (items.length === 0) {
     return pageShell('Explore — nothing published yet', `${header}<div class="empty-state">Nothing is published yet. Publish a project from the Studio and it will appear here.</div>`);
   }
+  return pageShell('Explore — published projects', `${header}${renderExploreCards(items)}`);
+}
+
+/**
+ * v270 — the CARD GRID, exported so the PROFILE page renders the same cards.
+ *
+ * Two pages that draw the same card must draw it with the same code, or they drift — and the drift shows up
+ * as a card that looks right on the gallery and wrong on a profile. The byline is a LINK to the author's
+ * profile, which is what turns a name into an address.
+ */
+export function renderExploreCards(items: ExploreItem[]): string {
   const cards = items
     .map((it) => {
       const thumb = it.thumbnail
@@ -127,12 +146,12 @@ export function renderExploreHtml(items: ExploreItem[], opts: { count: number; l
       const href = `/p/${encodeURIComponent(it.projectId)}`;
       const remix = `/?remix=${encodeURIComponent(it.projectId)}`;
       return `<li class="card" data-explore-card="${escapeHtml(it.projectId)}">${thumb}
-<div class="meta"><strong>${escapeHtml(it.title)}</strong>${it.owner ? `<span class="by">by ${escapeHtml(it.owner.handle)} · ${escapeHtml(it.owner.assurance)}</span>` : ''}${it.remixedFrom ? `<a class="remixed" href="/p/${encodeURIComponent(it.remixedFrom)}">remixed from ${escapeHtml(it.remixedFrom)}</a>` : ''}<span>v${it.version} · ${escapeHtml(it.publishedAt)}</span></div>
+<div class="meta"><strong>${escapeHtml(it.title)}</strong>${it.owner ? `<a class="by" href="/u/${encodeURIComponent(it.owner.accountId)}">by ${escapeHtml(it.owner.handle)} · ${escapeHtml(it.owner.assurance)}</a>` : ''}${it.remixedFrom ? `<a class="remixed" href="/p/${encodeURIComponent(it.remixedFrom)}">remixed from ${escapeHtml(it.remixedFrom)}</a>` : ''}<span>v${it.version} · ${escapeHtml(it.publishedAt)}</span></div>
 <div class="acts"><a href="${escapeHtml(href)}">open</a><a class="remix" href="${escapeHtml(remix)}">remix</a></div>
 </li>`;
     })
     .join('\n');
-  return pageShell('Explore — published projects', `${header}<ul class="grid">${cards}</ul>`);
+  return `<ul class="grid">${cards}</ul>`;
 }
 
 /** The service could not be reached or answered unusably. A DIFFERENT page from "nothing is published". */

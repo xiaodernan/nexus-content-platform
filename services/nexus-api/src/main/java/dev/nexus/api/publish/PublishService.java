@@ -94,11 +94,35 @@ public class PublishService {
      */
     @Transactional(readOnly = true)
     public List<PublishedProject> list(int limit) {
+        return list(limit, null);
+    }
+
+    /**
+     * v270 — the listing, narrowed to one OWNER when the caller names one.
+     *
+     * <p>A PROFILE is "what has this account published", and the service is the only party that can answer it:
+     * the owner is a COLUMN on the row, and the client holds no index of what anybody published. The same
+     * rules apply as for the unfiltered listing — the limit is clamped rather than refused, and a non-positive
+     * one is refused by name.
+     *
+     * <p>A blank owner is NOT an owner: it is the absence of one, and asking for "the publications of nobody"
+     * is answered with an EMPTY list rather than with the whole table. That distinction is the difference
+     * between a profile and a leak.
+     */
+    @Transactional(readOnly = true)
+    public List<PublishedProject> list(int limit, String ownerAccountId) {
         if (limit <= 0) {
             throw new InvalidPublication("limit must be a positive number, got " + limit);
         }
         int effective = Math.min(limit, MAX_LIST_LIMIT);
-        return repository.findAllByOrderByPublishedAtDesc(PageRequest.of(0, effective));
+        if (ownerAccountId == null) {
+            return repository.findAllByOrderByPublishedAtDesc(PageRequest.of(0, effective));
+        }
+        String owner = ownerAccountId.trim();
+        if (owner.isEmpty()) {
+            return List.of();
+        }
+        return repository.findByOwnerAccountIdOrderByPublishedAtDesc(owner, PageRequest.of(0, effective));
     }
 
     /**

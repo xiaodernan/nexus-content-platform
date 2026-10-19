@@ -451,6 +451,28 @@ try {
     exploreHtml.includes(`by ${accountHandle} · unsigned-local`),
     `the gallery mentions "by ${accountHandle} · unsigned-local": ${exploreHtml.includes(`by ${accountHandle} · unsigned-local`)}`,
   );
+  // v270 — the byline is an ADDRESS: it links to that account's profile, and the profile lists what
+  // that account published. A name that leads nowhere is a name, not an address.
+  check(
+    'the byline is a LINK to the author\'s profile',
+    exploreHtml.includes(`href="/u/${encodeURIComponent(accountRecord?.id ?? '')}"`),
+    `the gallery links /u/${accountRecord?.id}: ${exploreHtml.includes(`href="/u/${encodeURIComponent(accountRecord?.id ?? '')}"`)}`,
+  );
+
+  const profileUrl = `${studioBase}/u/${encodeURIComponent(accountRecord?.id ?? '')}`;
+  const profilePage = await fetch(profileUrl);
+  const profileHtml = await profilePage.text();
+  check(
+    'the PROFILE page answers 200 and lists that account\'s publications',
+    profilePage.status === 200 && profileHtml.includes(`data-explore-card="${projectId}"`),
+    `status ${profilePage.status} · the profile carries this publication: ${profileHtml.includes(`data-explore-card="${projectId}"`)}`,
+  );
+  check(
+    'and it names the account and the assurance its claims carry',
+    profileHtml.includes(`@${accountHandle}`) && profileHtml.includes('unsigned-local'),
+    `the profile names @${accountHandle} · unsigned-local: ${profileHtml.includes(`@${accountHandle}`) && profileHtml.includes('unsigned-local')}`,
+  );
+
   check(
     'and the card is the right one — the gallery names this project',
     exploreHtml.includes(`data-explore-card="${projectId}"`),

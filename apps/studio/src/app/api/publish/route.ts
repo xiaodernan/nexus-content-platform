@@ -51,7 +51,10 @@ export async function POST(request: Request): Promise<NextResponse> {
   // projectId guard rather than being given a sentinel id to satisfy it.
   if (action === 'list') {
     const asked = typeof limit === 'number' && Number.isFinite(limit) ? Math.floor(limit) : LIST_DEFAULT;
-    return NextResponse.json(await listPublications(asked));
+    // v270 — an OWNER narrows the listing to one account's publications (a profile). A blank or non-string
+    // owner is the ABSENCE of one, and it is not forwarded: the service answers "everybody" for it.
+    const narrowed = typeof owner === 'string' && owner.trim() ? owner.trim() : undefined;
+    return NextResponse.json(await listPublications(asked, undefined, narrowed));
   }
 
   if (typeof projectId !== 'string' || !projectId.trim()) {

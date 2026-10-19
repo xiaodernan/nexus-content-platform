@@ -64,13 +64,18 @@ describe('explore — the gallery of published work (M7 v241)', () => {
   });
 
   it('shows the recorded owner as `by <handle> · <assurance>` when a claim was attached', () => {
-    const html = renderExploreHtml([item({ owner: { handle: 'ada', assurance: 'unsigned-local' } })], { count: 1, limit: 24 });
+    const html = renderExploreHtml([item({ owner: { accountId: 'acct-ada', handle: 'ada', assurance: 'unsigned-local' } })], { count: 1, limit: 24 });
     expect(html).toContain('by ada · unsigned-local');
     expect(html).toContain('v2 · 2026-10-01T00:00:00Z');
   });
 
+  it('v270 — the byline is a LINK to that account\'s profile, because a name is not an address', () => {
+    const html = renderExploreHtml([item({ owner: { accountId: 'acct-ada', handle: 'ada', assurance: 'unsigned-local' } })], { count: 1, limit: 24 });
+    expect(html).toContain('href="/u/acct-ada"');
+  });
+
   it('escapes caller-controlled owner text', () => {
-    const html = renderExploreHtml([item({ owner: { handle: '<script>x</script>', assurance: 'unsigned-local' } })], { count: 1, limit: 24 });
+    const html = renderExploreHtml([item({ owner: { accountId: 'acct-ada', handle: '<script>x</script>', assurance: 'unsigned-local' } })], { count: 1, limit: 24 });
     expect(html).toContain('by &lt;script&gt;x&lt;/script&gt; · unsigned-local');
     expect(html).not.toContain('<script>');
   });
@@ -150,7 +155,9 @@ describe('explore — the service answer becomes a card (M7 v265)', () => {
 
   it('an owned row reaches the PAGE as a byline — the whole path, not just the renderer', () => {
     const card = toExploreItem(row(), { ok: true, document: { pages: [] } }, 'data:image/svg+xml,%3Csvg%2F%3E');
-    expect(card.owner).toEqual({ handle: 'ada', assurance: 'unsigned-local' });
+    // v270 — the owner carries the ACCOUNT ID as well: the byline is a link to that account's profile, and a
+    // link needs an address, not a name.
+    expect(card.owner).toEqual({ accountId: 'acct-ada', handle: 'ada', assurance: 'unsigned-local' });
     const html = renderExploreHtml([card], { count: 1, limit: 24 });
     expect(html).toContain('by ada · unsigned-local');
   });

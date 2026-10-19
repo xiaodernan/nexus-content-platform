@@ -1,7 +1,7 @@
-import type { DesignDocument } from '@nexus/design-model';
 import { listPublications, readPublication } from '@/lib/publishServer';
 import { docToSvg, svgToDataUri } from '@/lib/thumbnail';
-import { renderExploreHtml, renderExploreUnavailable, toExploreItem, type ExploreItem } from '@/lib/explore';
+import { renderExploreHtml, renderExploreUnavailable } from '@/lib/explore';
+import { buildGalleryItems } from '@/lib/gallery';
 
 /**
  * M7 v241 (ADR 0016 amendment 241): `/explore` — what is published, at a URL a person can browse.
@@ -33,17 +33,16 @@ export async function GET(): Promise<Response> {
   if (!listing.ok) return html(renderExploreUnavailable(listing.reason ?? 'no reason given'), 503);
 
   const rows = listing.publications ?? [];
-  const items: ExploreItem[] = [];
-  for (const row of rows) {
-    const read = await readPublication(row.projectId);
-    const doc = read.ok ? (read.document as DesignDocument | null) : null;
-    const pageId = doc && typeof doc === 'object' && doc.activePageId && doc.nodes && doc.nodes[doc.activePageId] ? doc.activePageId : null;
-    const thumbnail = doc && pageId ? svgToDataUri(docToSvg(doc, pageId)) : undefined;
-    // v265 — the service-answer → card mapping is the PURE half's job (`toExploreItem`), not the route's. It
-    // used to be written here, where nothing could assert it: the renderer had byline cases and no test could
-    // say the page actually RECEIVES an owner to render.
-    items.push(toExploreItem(row, read, thumbnail));
-  }
+  // v265 — the service-answer → card mapping is the PURE half's job (`toExploreItem`), not the route's. It
+  // used to be written here, where nothing could assert it: the renderer had byline cases and no test could
+  // say the page actually RECEIVES an owner to render.
+  // v270 — and the per-row read-and-draw is the SHARED builder's, because the profile page needs the same
+  // fan-out and two copies of it would drift.
+  const items = await buildGalleryItems(
+    rows,
+    (projectId) => readPublication(projectId),
+    (doc, pageId) => svgToDataUri(docToSvg(doc, pageId)),
+  );
 
   return html(renderExploreHtml(items, { count: listing.count ?? rows.length, limit: listing.limit ?? EXPLORE_LIMIT }), 200);
 }

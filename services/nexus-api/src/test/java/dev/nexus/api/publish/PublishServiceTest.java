@@ -3,6 +3,7 @@ package dev.nexus.api.publish;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -261,6 +262,58 @@ class PublishServiceTest {
     }
 
     // ── v195: unpublish ──────────────────────────────────────────────────────────────────────────────
+
+    // === v270: the PROFILE half — the listing narrowed to one OWNER ===
+
+    /**
+     * v270 — a profile is "what has this account published", and the service is the only party that can answer
+     * it: the owner is a COLUMN on the row, and the client holds no index of what anybody published.
+     */
+    @Test
+    void theListingCanBeNarrowedToOneOwner() {
+        when(repository.findByOwnerAccountIdOrderByPublishedAtDesc(eq("acct-ada"), any(PageRequest.class)))
+                .thenReturn(List.of(new PublishedProject("doc-a", "Ada's", "{}", 1, PUBLISHED_AT)));
+
+        List<PublishedProject> rows = service.list(10, "acct-ada");
+
+        assertThat(rows).hasSize(1);
+        assertThat(rows.get(0).getProjectId()).isEqualTo("doc-a");
+        verify(repository, never()).findAllByOrderByPublishedAtDesc(any(PageRequest.class));
+    }
+
+    @Test
+    void aBlankOwnerIsNOTAnOwnerItIsTheAbsenceOfOneAndAnswersAnEmptyList() {
+        // "the publications of nobody" is not the whole table. That distinction is the difference between a
+        // profile and a leak, so it is pinned rather than left to the caller.
+        assertThat(service.list(10, "   ")).isEmpty();
+        assertThat(service.list(10, "")).isEmpty();
+        verify(repository, never()).findAllByOrderByPublishedAtDesc(any(PageRequest.class));
+        verify(repository, never()).findByOwnerAccountIdOrderByPublishedAtDesc(any(String.class), any(PageRequest.class));
+    }
+
+    @Test
+    void theOwnerIsTRIMMEDBeforeItIsAskedFor() {
+        when(repository.findByOwnerAccountIdOrderByPublishedAtDesc(any(String.class), any(PageRequest.class)))
+                .thenReturn(List.of());
+
+        service.list(10, "  acct-ada  ");
+
+        verify(repository).findByOwnerAccountIdOrderByPublishedAtDesc(eq("acct-ada"), any(PageRequest.class));
+    }
+
+    @Test
+    void theOwnerNarrowingKeepsTheSameLimitRules() {
+        assertThatThrownBy(() -> service.list(0, "acct-ada"), null)
+                .isInstanceOf(InvalidPublication.class)
+                .hasMessageContaining("limit must be a positive number");
+
+        when(repository.findByOwnerAccountIdOrderByPublishedAtDesc(any(String.class), any(PageRequest.class)))
+                .thenReturn(List.of());
+        service.list(10_000, "acct-ada");
+        ArgumentCaptor<PageRequest> asked = ArgumentCaptor.forClass(PageRequest.class);
+        verify(repository).findByOwnerAccountIdOrderByPublishedAtDesc(any(String.class), asked.capture());
+        assertThat(asked.getValue().getPageSize()).isEqualTo(PublishService.MAX_LIST_LIMIT);
+    }
 
     @Test
     void unpublishingARowThatExistsDeletesItAndAnswersTrue() {

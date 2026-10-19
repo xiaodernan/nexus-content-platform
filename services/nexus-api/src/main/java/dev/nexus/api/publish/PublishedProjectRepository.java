@@ -20,4 +20,17 @@ public interface PublishedProjectRepository extends JpaRepository<PublishedProje
 
     /** Newest first, capped by the caller's `Pageable`. */
     List<PublishedProject> findAllByOrderByPublishedAtDesc(Pageable pageable);
+
+    /**
+     * v270 — the SAME listing, narrowed to one OWNER.
+     *
+     * <p>This is the service half of a PROFILE: "what has this account published". It is a finder here for
+     * the same reason the newest-first one is — the cap has to reach the database, and a profile that read
+     * every publication and filtered in memory would be a table scan on every page load.
+     *
+     * <p>It matches the OWNER COLUMN, not the handle: the handle is a name the account chose and the owner
+     * is the identity the claim carries, and the service is careful about which of the two it treats as the
+     * key. A row with no owner is NOT this account's, which is why there is no "or owner is null" arm here.
+     */
+    List<PublishedProject> findByOwnerAccountIdOrderByPublishedAtDesc(String ownerAccountId, Pageable pageable);
 }

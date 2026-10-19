@@ -40,7 +40,12 @@ try {
   // v265 — explore.ts now imports the lineage reader, so that module is stripped into the box too: a
   // missing sibling would be an unresolved import, not a graded failure.
   await strip('apps/studio/src/lib/lineage.ts', box);
+  // v270 — the PROFILE module joins the box: it draws the SAME cards as the gallery, and two pages that
+  // draw the same card must draw it with the same code or they drift.
   const explore = await strip('apps/studio/src/lib/explore.ts', box);
+  // v270 — the PROFILE module joins the box AFTER explore, because it imports the gallery's renderer, and
+  // `strip` writes a module and IMPORTS it in the same step: a module's own siblings must already be there.
+  const profile = await strip('apps/studio/src/lib/profile.ts', box);
   const { renderExploreHtml, renderExploreUnavailable, toExploreItem } = explore;
   assert.equal(typeof renderExploreHtml, 'function', 'the renderer was really imported, not re-implemented');
 
@@ -99,7 +104,13 @@ try {
     const route = readFileSync('apps/studio/src/app/explore/route.ts', 'utf8');
     assert.ok(/export const runtime = 'nodejs'/.test(route), 'the route declares the Node runtime (the service address stays server-side)');
     assert.ok(/await listPublications\(EXPLORE_LIMIT\)/.test(route), 'the route LISTS publications');
-    assert.ok(/await readPublication\(row\.projectId\)/.test(route), 'the route reads each row for its document');
+    // v270 — the per-row read-and-draw is the SHARED builder's, because the profile page needs the same
+    // fan-out and two copies of it would drift. The route CALLS the builder; the builder does the reading.
+    assert.ok(/buildGalleryItems\(/.test(route), 'the route builds its cards with the SHARED builder');
+    const gallery = readFileSync('apps/studio/src/lib/gallery.ts', 'utf8');
+    assert.ok(/await read\(row\.projectId\)/.test(gallery), 'and the builder reads each row for its document');
+    const profileRoute = readFileSync('apps/studio/src/app/u/[accountId]/route.ts', 'utf8');
+    assert.ok(/buildGalleryItems\(/.test(profileRoute), 'the PROFILE route builds its cards with the SAME builder');
     assert.ok(/svgToDataUri\(docToSvg\(doc, pageId\)\)/.test(route), 'the route draws the real thumbnail');
     assert.ok(/renderExploreHtml\(items/.test(route), 'the route renders the pure gallery');
     assert.ok(/renderExploreUnavailable\(listing\.reason/.test(route), 'a down service gets its own page');
@@ -107,7 +118,9 @@ try {
     // v265 — the route must CALL the pure mapping, not write its own. The owner was dropped once on its way
     // to a page (v263 found the publish lane discarding the listing's owner), and a mapping written in the
     // route is a mapping nothing can assert.
-    assert.ok(/toExploreItem\(row, read, thumbnail\)/.test(route), 'the route BUILDS each card with the pure mapping (toExploreItem)');
+    // v270 — the route delegates to the shared builder, and the BUILDER is the one that calls the pure
+    // mapping. The mapping still exists once, in the pure half; it is simply reached through the builder now.
+    assert.ok(/toExploreItem\(row, answer, thumbnail\)/.test(gallery), 'the shared builder BUILDS each card with the pure mapping (toExploreItem)');
     assert.ok(!/owner:\s*row\.owner/.test(route), 'and it does not map the owner itself — a second mapping is a second chance to drop it');
     const toolbar = readFileSync('apps/studio/src/components/Toolbar.tsx', 'utf8');
     assert.ok(/data-toolbar-explore/.test(toolbar) && /href="\/explore"/.test(toolbar), 'the Studio links the public explore page (the panel is the author\'s own list)');
@@ -141,6 +154,34 @@ try {
     const remixed = toExploreItem(ownedRow, { ok: true, document: { _lineage: { sourceProjectId: 'pub-alpha' } } }, 'data:image/svg+xml,%3Csvg%2F%3E');
     assert.ok(renderExploreHtml([remixed], { count: 1, limit: 24 }).includes('remixed from pub-alpha'), 'a remixed publication still names its source');
     console.log('[§5] the BYLINE reaches the page: the service\'s own answer shape in, the page\'s HTML out — an owned row shows `by ada · unsigned-local`, an unowned row shows no byline, a malformed owner shows none rather than a broken one, and a remix still names its source');
+  }
+
+  // ── §5b v270: the BYLINE is an ADDRESS, and the PROFILE page draws the same cards ─────────────
+  {
+    const owned = toExploreItem(
+      { projectId: 'pub-owned', title: 'Harbour', version: 2, publishedAt: '2026-10-01T00:00:00Z',
+        owner: { accountId: 'acct-ada', handle: 'ada', assurance: 'unsigned-local', claimedAt: 1_700_000_000_000 } },
+      { ok: true, document: { pages: [] } },
+      'data:image/svg+xml,%3Csvg%2F%3E',
+    );
+    const gallery = renderExploreHtml([owned], { count: 1, limit: 24 });
+    assert.ok(gallery.includes('href="/u/acct-ada"'), 'the byline is a LINK to that account\'s profile — a name is not an address');
+    assert.ok(gallery.includes('by ada · unsigned-local'), 'and it still says who published it');
+
+    // The profile page draws the SAME card.
+    const facts = profile.profileFactsOf('acct-ada', [{ owner: { accountId: 'acct-ada', handle: 'ada', assurance: 'unsigned-local' } }], 1, 24);
+    assert.equal(facts.handle, 'ada', 'the profile reads the handle off the claims the publications carry');
+    assert.equal(facts.assurance, 'unsigned-local', 'and the assurance with it');
+    const page = profile.renderProfileHtml(facts, [owned]);
+    assert.ok(page.includes('data-explore-card="pub-owned"'), 'the profile draws the same card as the gallery');
+    assert.ok(page.includes('@ada'), 'and names the account');
+    assert.ok(page.includes('caps at 24'), 'and states the cap');
+
+    // What the service CANNOT know is said on the page rather than left to be discovered.
+    const empty = profile.renderProfileHtml(profile.profileFactsOf('acct-ghost', [], 0, 24), []);
+    assert.ok(empty.includes('cannot tell an account that has published nothing from one that does not exist'), 'an empty profile says what the service cannot tell');
+    assert.ok(!empty.includes('data-explore-card='), 'and shows no card');
+    console.log('[§5b] the byline is a LINK to the profile · the profile draws the same cards · it names the account and its assurance · and it says what the service cannot know');
   }
 
   // ── §4 §60 audit ──────────────────────────────────────────────────────────────────────────────────

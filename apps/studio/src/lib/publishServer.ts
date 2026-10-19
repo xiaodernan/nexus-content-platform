@@ -209,10 +209,16 @@ export interface RemovalAnswer {
  * What is published, newest first. The SERVICE caps the answer and says which cap it used, so this function
  * passes the limit through and reports what came back rather than trimming anything itself.
  */
-export async function listPublications(limit: number, fetchImpl: FetchLike = fetch as FetchLike): Promise<ListingAnswer> {
+export async function listPublications(
+  limit: number,
+  fetchImpl: FetchLike = fetch as FetchLike,
+  /** v270 — narrow the listing to ONE OWNER: "what has this account published", which is a profile. */
+  owner?: string,
+): Promise<ListingAnswer> {
   const apiBase = nexusApiBase();
+  const ownerParam = owner && owner.trim() ? `&owner=${encodeURIComponent(owner.trim())}` : '';
   try {
-    const res = await fetchImpl(`${apiBase}/projects?limit=${encodeURIComponent(String(limit))}`, { signal: callSignal() });
+    const res = await fetchImpl(`${apiBase}/projects?limit=${encodeURIComponent(String(limit))}${ownerParam}`, { signal: callSignal() });
     const parsed: unknown = await res.json().catch(() => null);
     if (parsed && typeof parsed === 'object') {
       const body = parsed as Record<string, unknown>;

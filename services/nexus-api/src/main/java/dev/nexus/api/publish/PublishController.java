@@ -83,9 +83,11 @@ public class PublishController {
      * carries `count` AND `limit` so a caller can tell "there are twenty" from "there are at least twenty".
      */
     @GetMapping
-    public ResponseEntity<Listing> list(@RequestParam(name = "limit", required = false) Integer limit) {
+    public ResponseEntity<Listing> list(
+            @RequestParam(name = "limit", required = false) Integer limit,
+            @RequestParam(name = "owner", required = false) String owner) {
         int asked = limit == null ? PublishService.DEFAULT_LIST_LIMIT : limit;
-        List<ListingEntry> entries = service.list(asked).stream()
+        List<ListingEntry> entries = service.list(asked, owner).stream()
                 .map(row -> new ListingEntry(row.getProjectId(), row.getTitle(), row.getVersion(), row.getPublishedAt(), urlFor(row.getProjectId()), claimOf(row)))
                 .toList();
         return ResponseEntity.ok(new Listing(entries, entries.size(), Math.min(Math.max(asked, 0), PublishService.MAX_LIST_LIMIT)));
