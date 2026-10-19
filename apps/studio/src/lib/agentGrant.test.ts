@@ -7,6 +7,8 @@ import {
   grantsExpiringWithin,
   grantsForTarget,
   activeGrants,
+  permanentGrants,
+  expiredGrants,
   grantScopeLabel,
   isGrantActive,
   isGrantExpiringSoon,
@@ -186,5 +188,31 @@ describe('agentGrant — activeGrants', () => {
     const out = activeGrants(grants, now);
     expect(out.map((g) => g.id)).toEqual(['g-1', 'g-3']);
     expect(grants.length).toBe(3);
+  });
+});
+
+describe('agentGrant — permanentGrants / expiredGrants', () => {
+  const now = 1_700_000_000_000;
+  const grants: AgentGrant[] = [
+    { ...grant, id: 'g-1', expiresAt: null }, // permanent
+    { ...grant, id: 'g-2', expiresAt: now - 1 }, // expired
+    { ...grant, id: 'g-3', expiresAt: now }, // expires exactly now → expired
+    { ...grant, id: 'g-4', expiresAt: now + 86_400_000 }, // active
+  ];
+
+  it('permanentGrants picks only the null-expiry grants', () => {
+    const out = permanentGrants(grants);
+    expect(out.map((g) => g.id)).toEqual(['g-1']);
+    expect(grants.length).toBe(4);
+  });
+
+  it('expiredGrants picks grants whose expiresAt is at or before now', () => {
+    const out = expiredGrants(grants, now);
+    expect(out.map((g) => g.id)).toEqual(['g-2', 'g-3']);
+  });
+
+  it('both answer empty for an empty list', () => {
+    expect(permanentGrants([])).toEqual([]);
+    expect(expiredGrants([], now)).toEqual([]);
   });
 });

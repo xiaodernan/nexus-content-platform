@@ -115,3 +115,13 @@ export function grantsForTarget(
 export function activeGrants(grants: ReadonlyArray<AgentGrant>, now: number): AgentGrant[] {
   return grants.filter((g) => isGrantActive(g, now));
 }
+
+/** 筛选出永不过期的授权（expiresAt === null），供客户端展示"永久授权"栏。不改原数组。 */
+export function permanentGrants(grants: ReadonlyArray<AgentGrant>): AgentGrant[] {
+  return grants.filter((g) => g.expiresAt === null);
+}
+
+/** 筛选出在 now 时刻已过期的授权，供客户端展示"已过期"栏。不改原数组。 */
+export function expiredGrants(grants: ReadonlyArray<AgentGrant>, now: number): AgentGrant[] {
+  return grants.filter((g) => g.expiresAt !== null && g.expiresAt <= now);
+}
