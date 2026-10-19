@@ -568,6 +568,56 @@ try {
       `the gallery carries the fork's card: ${exploreAfter.includes(`data-explore-card="${remixProjectId}"`)}`);
   }
 
+
+  // ── §8.6 v269: the VISITOR's remix — a URL, not a button ────────────────────────────────────────
+  // v234 gave the artifact page a remix bar so someone who has only the URL can take the work, and the
+  // Studio reads that intent on mount. It had never been driven in a REAL browser: the remix proof grades
+  // the lane and the WIRING by reading the shipped source, and a source can be perfectly correct while
+  // the mount effect does nothing.
+  {
+    const visitorPage = await session.newPage('about:blank');
+    await visitorPage.navigate(`${studioBase}/?remix=${encodeURIComponent(projectId)}`, { waitForSelector: '#nexus-canvas', waitMs: 1500 });
+
+    // The intent is read on MOUNT and dropped once honoured: a URL that kept its query would remix again
+    // on every reload, which is a remix nobody asked for twice.
+    const dropped = await until(
+      async () => (await visitorPage.evaluate('window.location.search')) === '',
+      { tries: 40, gapMs: 500, label: 'the one-time remix intent to be dropped' },
+    );
+    check('the visitor remix DROPS the query once it has been honoured', dropped, 'the URL is clean again');
+
+    // And the fork really happened — with NO button pressed. The status is the Studio's own word for it.
+    const visitorStatus = await until(
+      async () => {
+        const s = await visitorPage.evaluate("document.querySelector('[data-toolbar-status]')?.textContent ?? ''");
+        return s.includes('Remixed') ? s : false;
+      },
+      { tries: 40, gapMs: 500, label: 'the visitor remix to land in the editor' },
+    );
+    check('the visitor remix forked the publication into a new project, with no button pressed', visitorStatus !== false, `status: ${JSON.stringify(visitorStatus)}`);
+
+    // Publish what the visitor was given, and check the service stored the lineage — the same proof the
+    // panel path gets, on the path a person with only a URL takes.
+    await visitorPage.evaluate("document.querySelector('[data-toolbar-publish]').click()");
+    const visitorPublished = await until(
+      async () => {
+        const note = await visitorPage.evaluate("document.querySelector('[data-toolbar-publish-note]')?.textContent ?? ''");
+        return note.startsWith('published') ? note : false;
+      },
+      { tries: 40, gapMs: 500, label: 'the visitor fork to be published' },
+    );
+    const visitorUrl = /→\s*(\S+\/projects\/[^\s]+)$/.exec(String(visitorPublished));
+    const visitorId = visitorUrl ? decodeURIComponent(visitorUrl[1].slice(visitorUrl[1].lastIndexOf('/projects/') + '/projects/'.length)) : null;
+    check('the visitor publishes their own NEW publication, under a new id', visitorId && visitorId !== projectId, `visitor id: ${JSON.stringify(visitorId)}`);
+
+    const visitorRead = visitorId ? await fetch(`${apiBase}/projects/${encodeURIComponent(visitorId)}`) : null;
+    const visitorBody = visitorRead && visitorRead.status === 200 ? await visitorRead.json() : null;
+    check('and the SERVICE stored the LINEAGE for the visitor\'s remix too',
+      visitorBody?.document?._lineage?.sourceProjectId === projectId,
+      `lineage: ${JSON.stringify(visitorBody?.document?._lineage)}`);
+    await visitorPage.close();
+  }
+
   // ── §9 the published LIST, and taking one down (v195) ───────────────────────────────────────────
   await page.evaluate("document.querySelector('[data-toolbar-published-toggle]').click()");
   // Wait for the ROWS, not for the panel: the panel renders immediately with "asking the service…" and a
