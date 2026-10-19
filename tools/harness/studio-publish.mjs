@@ -307,6 +307,41 @@ try {
   );
   check('the document has something in it before it is published', nodesAfter !== null, `nodes ${nodesBefore} → ${nodesAfter}`);
 
+  // ── §3.5 v266: set an ACCOUNT first, so the publication can be OWNED ─────────────────────────────
+  // The account is set BEFORE the publish, because the claim rides on the publish: a publication made with
+  // no account is ownerless, and an ownerless publication cannot show a byline, cannot refuse a take-down,
+  // and cannot be taken over — the whole ownership story is only reachable with an account in place.
+  const accountHandle = 'ada';
+  // The account record is read in §4.5 too, so it is declared out here rather than inside the block below.
+  let accountRecord = null;
+  {
+    await page.evaluate("document.querySelector('button[title=\"Account\"]').click()");
+    const panelUp = await until(
+      async () => (await page.evaluate("document.querySelectorAll('[data-toolbar-account]').length")) === 1,
+      { tries: 20, gapMs: 200, label: 'the account panel to open' },
+    );
+    check('the account panel opens on the toolbar control', panelUp, 'the account face is reachable from the product');
+    await page.type('[data-account-handle-input]', accountHandle);
+    await page.evaluate("document.querySelector('[data-account-create]').click()");
+    const record = await until(
+      async () => {
+        const raw = await page.evaluate("localStorage.getItem('nexus-current-account')");
+        if (!raw) return null;
+        try { return JSON.parse(raw); } catch { return null; }
+      },
+      { tries: 20, gapMs: 200, label: 'the account record to land in storage' },
+    );
+    accountRecord = record;
+    check(
+      'the account is set on this device — unsigned-local, no signed-in badge anywhere',
+      record?.handle === accountHandle && record?.assurance === 'unsigned-local' && typeof record?.id === 'string',
+      `record: ${JSON.stringify(record)}`,
+    );
+    const badgeish = /signed\s*in/i.test(await page.evaluate('document.body.innerText'));
+    check('and the page carries no "signed in" badge (ADR 0018)', !badgeish, badgeish ? 'the page says "signed in"' : 'no badge');
+    await page.evaluate("document.querySelector('[data-account-close]').click()");
+  }
+
   // ── §4 pressing Publish puts a ROW in the database ──────────────────────────────────────────────
   // The project id is taken from the URL the SERVICE returned, not from the bridge: `window.__nexus` is a
   // frozen read-only snapshot and deliberately exposes no document id, and the URL is the authoritative
@@ -330,6 +365,31 @@ try {
     'the publication is in the SERVICE — read back independently of the browser',
     readBack?.status === 200 && publication?.projectId === projectId && publication?.version === 1,
     `status ${readBack?.status} · version ${publication?.version}`,
+  );
+
+  // ── §4.5 v266: the publication is OWNED — the service recorded the claim ───────────────────────
+  // This is the whole point of the account: the publish carried this device's claim, so the row names an
+  // owner. Read through the SERVICE, independently of the browser, so the claim is a fact about the row
+  // and not about what the panel said.
+  check(
+    'the SERVICE recorded the OWNER of the publication — the claim rode on the publish',
+    publication?.owner?.accountId === accountRecord?.id
+      && publication?.owner?.handle === accountHandle
+      && publication?.owner?.assurance === 'unsigned-local',
+    `owner: ${JSON.stringify(publication?.owner)}`,
+  );
+  // The claim's instant is the moment of the PUBLISH, not the moment the account was created — the first
+  // version of this assertion compared the two and was wrong. What matters is the UNIT: the value must be a
+  // number in the client's milliseconds, and it must read as a real instant. Read as epoch SECONDS it would
+  // be the same digits but the year 55840, and a service that answered an ISO string would fail the type.
+  const claimedAt = publication?.owner?.claimedAt;
+  const claimedAsDate = typeof claimedAt === 'number' ? new Date(claimedAt) : null;
+  check(
+    "and the claim's INSTANT is the client's own millisecond value — a real instant, not the same number read as seconds",
+    typeof claimedAt === 'number'
+      && claimedAsDate.getUTCFullYear() >= 2020
+      && Math.abs(Date.now() - claimedAt) < 60 * 60 * 1000,
+    `claimedAt ${JSON.stringify(claimedAt)} reads as ${claimedAsDate ? claimedAsDate.toISOString() : 'not a number'}`,
   );
 
   // ── §5 the URL the Studio shows is the SERVICE's ────────────────────────────────────────────────
@@ -372,6 +432,29 @@ try {
     'and it is a JSON OBJECT, which is what the service requires a design document to be',
     final.document !== null && typeof final.document === 'object' && !Array.isArray(final.document),
     `typeof document: ${Array.isArray(final.document) ? 'array' : typeof final.document}`,
+  );
+
+  // ── §7.5 v266: the BYLINE is on the public page ────────────────────────────────────────────────
+  // The byline is the whole point of an owned publication: it is what tells a VISITOR who made the thing.
+  // It is read here over HTTP from the Studio's own `/explore` route, which lists the service and renders
+  // the cards — the same page a person opens, reached through the same route, with the same mapping.
+  const exploreUrl = `${studioBase}/explore`;
+  const explore = await fetch(exploreUrl);
+  const exploreHtml = await explore.text();
+  check(
+    'the public gallery answers 200 with HTML',
+    explore.status === 200 && (explore.headers.get('content-type') ?? '').includes('text/html'),
+    `status ${explore.status} · content-type ${explore.headers.get('content-type')}`,
+  );
+  check(
+    'and the card for this publication carries its BYLINE — `by <handle> · <assurance>`',
+    exploreHtml.includes(`by ${accountHandle} · unsigned-local`),
+    `the gallery mentions "by ${accountHandle} · unsigned-local": ${exploreHtml.includes(`by ${accountHandle} · unsigned-local`)}`,
+  );
+  check(
+    'and the card is the right one — the gallery names this project',
+    exploreHtml.includes(`data-explore-card="${projectId}"`),
+    `the gallery carries this project: ${exploreHtml.includes(`data-explore-card="${projectId}"`)}`,
   );
 
   // ── §8 the ARTIFACT PAGE — a URL a PERSON can open (v196) ───────────────────────────────────────
@@ -420,6 +503,7 @@ try {
   await artifactPage.close();
 
 
+
   // ── §9 the published LIST, and taking one down (v195) ───────────────────────────────────────────
   await page.evaluate("document.querySelector('[data-toolbar-published-toggle]').click()");
   // Wait for the ROWS, not for the panel: the panel renders immediately with "asking the service…" and a
@@ -433,6 +517,55 @@ try {
 
   const rowIds = await page.evaluate("[...document.querySelectorAll('[data-published-row]')].map((el) => el.getAttribute('data-published-row'))");
   check('the published row for this project is in the list', rowIds.includes(projectId), `rows: ${JSON.stringify(rowIds)}`);
+
+  // v266 — the row says WHO owns it, because the service will REFUSE a take-down by anybody else and a
+  // refusal the user cannot explain is a refusal the user cannot act on.
+  const ownerLine = await page.evaluate(`document.querySelector('[data-published-owner="${projectId}"]')?.textContent ?? null`);
+  check(
+    'the row names its owner, and says it is yours',
+    typeof ownerLine === 'string' && ownerLine.includes(`by ${accountHandle}`) && ownerLine.includes('yours'),
+    `owner line: ${JSON.stringify(ownerLine)}`,
+  );
+
+  // v266 — SIGN OUT, and the take-down is REFUSED: the publication is owned, and a device with no account
+  // is nobody, and "named nobody" is the same as "named the wrong person" to the service's owner rule.
+  await page.evaluate("document.querySelector('button[title=\"Account\"]').click()");
+  await page.evaluate("document.querySelector('[data-account-signout]').click()");
+  await page.evaluate("document.querySelector('[data-account-close]').click()");
+  const signedOut = await until(
+    async () => (await page.evaluate("localStorage.getItem('nexus-current-account')")) === null,
+    { tries: 20, gapMs: 200, label: 'the account record to be gone' },
+  );
+  check('the device signed out — no account, so no claimer', signedOut, 'the account record is gone');
+
+  await page.evaluate(`document.querySelector('[data-published-unpublish="${projectId}"]').click()`);
+  const refused = await until(
+    async () => {
+      const note = await page.evaluate("document.querySelector('[data-toolbar-publish-note]')?.textContent ?? ''");
+      return note.includes('not taken down') ? note : false;
+    },
+    { tries: 30, gapMs: 300, label: 'the take-down to be refused' },
+  );
+  check(
+    // The panel shows the service's OWN WORDS: the route keeps the service's `message`, so the rule reaches
+    // the user as prose ("a caller that is not that account may not take it down") rather than as the
+    // service's error code. The rule is named either way, and the prose is the more useful of the two.
+    'a signed-out device CANNOT take down an owned publication — the service refuses it by name',
+    refused !== false && String(refused).includes('not taken down') && String(refused).includes('may not take it down'),
+    `note: ${JSON.stringify(refused)}`,
+  );
+  const stillThere = await fetch(`${apiBase}/projects/${encodeURIComponent(projectId)}`);
+  check('and the refused take-down took NOTHING down', stillThere.status === 200, `GET answered ${stillThere.status}`);
+
+  // Sign back in, and the OWNER can take their own publication down.
+  await page.evaluate("document.querySelector('button[title=\"Account\"]').click()");
+  await page.type('[data-account-handle-input]', accountHandle);
+  await page.evaluate("document.querySelector('[data-account-create]').click()");
+  const backIn = await until(
+    async () => (await page.evaluate("localStorage.getItem('nexus-current-account')")) !== null,
+    { tries: 20, gapMs: 200, label: 'the account to be set again' },
+  );
+  check('the device signs back in — the SAME handle yields the SAME account', backIn, 'the account record is back');
 
   await page.evaluate(`document.querySelector('[data-published-unpublish="${projectId}"]').click()`);
   const rowGone = await page.waitForFunction(
