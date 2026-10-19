@@ -504,6 +504,70 @@ try {
 
 
 
+
+  // ── §8.5 v268: a REMIX records its LINEAGE, end to end ───────────────────────────────────────────
+  // v267 gave the remix a lineage: the fork is stamped with the reserved `_lineage`, and the key is part
+  // of the canonical model. What was still missing is the WHOLE path — a person remixing a publication in
+  // the real Studio, the fork published, the SERVICE storing the lineage, and the public gallery naming
+  // the source. Half a story being proven is not the story being proven: the seam is where the owner was
+  // already dropped once (v263), and where the lineage was never written at all (v267).
+  let remixProjectId = null;
+  {
+    await page.evaluate("document.querySelector('[data-toolbar-published-toggle]').click()");
+    const remixRow = await until(
+      async () => (await page.evaluate("document.querySelectorAll('[data-published-remix]').length")) > 0,
+      { tries: 40, gapMs: 500, label: 'the published list to render its remix controls' },
+    );
+    check('the published row offers a remix control', remixRow, 'the community loop has its second door');
+
+    await page.evaluate(`document.querySelector('[data-published-remix="${projectId}"]').click()`);
+    const remixed = await until(
+      async () => {
+        const note = await page.evaluate("document.querySelector('[data-toolbar-publish-note]')?.textContent ?? ''");
+        return note.includes('remixed') ? note : false;
+      },
+      { tries: 30, gapMs: 300, label: 'the remix to land' },
+    );
+    check('remixing it in the Studio forks it into a NEW project', remixed !== false, `note: ${JSON.stringify(remixed)}`);
+
+    // Publish the FORK. Its project id is read from the note the SERVICE's URL put there — the same way
+    // the source's was — because `window.__nexus` deliberately exposes no document id.
+    await page.evaluate("document.querySelector('[data-toolbar-publish]').click()");
+    const forkPublished = await until(
+      async () => {
+        const note = await page.evaluate("document.querySelector('[data-toolbar-publish-note]')?.textContent ?? ''");
+        return note.startsWith('published') ? note : false;
+      },
+      { tries: 40, gapMs: 500, label: 'the fork to be published' },
+    );
+    const forkUrl = /→\s*(\S+\/projects\/[^\s]+)$/.exec(String(forkPublished));
+    remixProjectId = forkUrl ? decodeURIComponent(forkUrl[1].slice(forkUrl[1].lastIndexOf('/projects/') + '/projects/'.length)) : null;
+    check('publishing the fork creates a NEW publication under a NEW id', remixProjectId && remixProjectId !== projectId, `fork id: ${JSON.stringify(remixProjectId)} (the source was ${projectId})`);
+
+    // Read the fork back through the SERVICE: the lineage is a fact about the STORED DOCUMENT, not about
+    // what the editor happened to hold.
+    const forkRead = await fetch(`${apiBase}/projects/${encodeURIComponent(remixProjectId)}`);
+    const forkBody = forkRead.status === 200 ? await forkRead.json() : null;
+    check('the SERVICE stored the LINEAGE — the fork names the publication it was remixed from',
+      forkBody?.document?._lineage?.sourceProjectId === projectId,
+      `lineage: ${JSON.stringify(forkBody?.document?._lineage)}`);
+    check('and the fork is OWNED by this device — the claim rode on its publish too',
+      forkBody?.owner?.accountId === accountRecord?.id && forkBody?.owner?.handle === accountHandle,
+      `owner: ${JSON.stringify(forkBody?.owner)}`);
+
+    // And the public gallery names the source, with a link to it — the thing v251 made clickable and the
+    // thing a remix published the way a PERSON makes one could never show.
+    const exploreAfter = await (await fetch(`${studioBase}/explore`)).text();
+    check(
+      'the public gallery names the SOURCE — the remix card links back to the publication it came from',
+      exploreAfter.includes(`remixed from ${projectId}`) && exploreAfter.includes(`href="/p/${encodeURIComponent(projectId)}"`),
+      `the gallery says "remixed from ${projectId}": ${exploreAfter.includes(`remixed from ${projectId}`)}`);
+    check(
+      'and the remix has its OWN card — the gallery is not showing somebody else\'s byline',
+      exploreAfter.includes(`data-explore-card="${remixProjectId}"`),
+      `the gallery carries the fork's card: ${exploreAfter.includes(`data-explore-card="${remixProjectId}"`)}`);
+  }
+
   // ── §9 the published LIST, and taking one down (v195) ───────────────────────────────────────────
   await page.evaluate("document.querySelector('[data-toolbar-published-toggle]').click()");
   // Wait for the ROWS, not for the panel: the panel renders immediately with "asking the service…" and a
