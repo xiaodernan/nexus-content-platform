@@ -159,3 +159,20 @@ describe('artifact — the META bar shows author and remix source (M7 v245)', ()
     expect(injectMetaBar('<body></body>', null, null)).toBe('<body></body>');
   });
 });
+
+describe('artifact — missing and unavailable pages', () => {
+  it('renderArtifactMissing names the id (escaped) and states the not-published fact', () => {
+    const html = renderArtifactMissing('<script>x</script>');
+    expect(html).toContain('Nothing published here');
+    expect(html).toContain('&lt;script&gt;x&lt;/script&gt;');
+    expect(html).not.toContain('<script>x</script>');
+    expect(html).toContain('taken down');
+  });
+
+  it('renderArtifactUnavailable states the reason (escaped) and the service fact', () => {
+    const html = renderArtifactUnavailable('<img src=x onerror=alert(1)>');
+    expect(html).toContain('The publication service is not answering');
+    expect(html).toContain('&lt;img src=x onerror=alert(1)&gt;');
+    expect(html).not.toContain('<img');
+  });
+});
