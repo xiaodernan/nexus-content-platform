@@ -61,6 +61,12 @@ describe('faceCheckpoint (v41 — two §28 faces, one receipt trail)', () => {
     expect(gateLineFor([v('ui.type', 'policy', true), v('ui.click', 'policy', false)])).toBe('policy: ui.type granted · ui.click VETO');
     expect(gateLineFor([v('ui.type', 'human', true), v('ui.click', 'policy', true)])).toBe('mixed: ui.type granted · ui.click granted');
   });
+
+  it('a single human face reads as human: <tool> <granted|VETO>', () => {
+    const v = (tool: string, by: 'human' | 'policy', granted: boolean) => ({ tool, by, granted, reason: 'r' });
+    expect(gateLineFor([v('ui.type', 'human', true)])).toBe('human: ui.type granted');
+    expect(gateLineFor([v('ui.click', 'human', false)])).toBe('human: ui.click VETO');
+  });
 });
 
 describe('runUiTask through the policy face (v41)', () => {
