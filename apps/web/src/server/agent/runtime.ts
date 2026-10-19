@@ -9,6 +9,7 @@ import {
   LEVEL_DESIGN_LIMITS,
   LEVEL_GOAL_ORDER,
   LEVEL_LEVERS,
+  artifactChainSentence,
   compileRpg,
   designLevel,
   generateGameCode,
@@ -495,9 +496,11 @@ const playtestStep: Runner = async (ctx) => {
  * 不 eval、不起子进程、不读写文件、不联网，所以它可以待在服务端进程里。
  * 产物本身要在浏览器沙箱里才跑，这一点由 `CODEGEN_LIMITS` 那四句随结论一起念出来。
  *
- * 还有一句必须由生成器说而不是这一格猜：链上那份草稿标的是 `rpg-prototype`，而产物今天只会跑
- * `compileGame` 那条 2D 俯视链（没有成长循环）。`output.kindNote` 就是这句话，原样进 notes——
- * 上一版这里只报"投影出 N 份文件"，读起来像"这就是试玩页那一份拿走了"，而它不是（§159）。
+ * 还有一句必须由生成器说而不是这一格猜：链上那份草稿标的是哪一型、产物这一格真的带了哪几条链的引擎。
+ * 读数取自 `output.artifactChain`（`ARTIFACT_CHAINS` 里的一个键），错位那句话取自 `output.kindNote`，
+ * 原样进 notes——这一格不再自己判断"这一型走哪条管线"，也不许只报"投影出 N 份文件"，
+ * 那读起来像"这就是试玩页那一份拿走了"（§159）。§52 第二链之后 `rpg-prototype` 归入"带引擎"那一边，
+ * 所以这里对它是念链名而不是念错位；对话那一类仍念错位，因为产物里确实没有它的引擎。
  */
 const codeStep: Runner = async (ctx) => {
   const source = ctx.upstream.find((step) => step.id === 'level')?.draft;
@@ -509,7 +512,7 @@ const codeStep: Runner = async (ctx) => {
     summary:
       `投影出 ${output.files.length} 份自包含文件、共 ${output.bytes} 字节` +
       `（设计里 ${source.entities.length} 个实体，生成器报出 ${output.notes.length} 条发现；` +
-      `产物跑的永远是 2D 俯视那条链，这份设计标的是 ${output.kindPipeline ?? '没有管线'}）`,
+      `这份产物跑的是 ${output.artifactChain}，这份设计标的是 ${output.kindPipeline ?? '没有管线'}）`,
     counts: {
       files: output.files.length,
       bytes: output.bytes,
@@ -521,7 +524,8 @@ const codeStep: Runner = async (ctx) => {
     notes: [
       '这一步不下载、也不写库：它报的是投影的读数。要真拿走文件，先把上面那一步摆过位置的草稿接受进项目，' +
         '再在「游戏」面板那格生成并下载——那一路吃的是库里这一份设计。',
-      // 错位由生成器自己报，这一格不复述、也不猜：链上那份草稿标的是 rpg-prototype，而产物只会跑 2D 俯视那条链
+      // 链名与错位都由生成器那一处派生：这一格只负责念，念的还是同一句字节
+      artifactChainSentence(output.artifactChain),
       ...(output.kindNote ? [output.kindNote] : []),
       `这一步没有真 provider，也不需要：生成就是字符串拼接（§81 不 eval、不起子进程、不联网），` +
         `同一份设计两次投影出来的字节相同。`,

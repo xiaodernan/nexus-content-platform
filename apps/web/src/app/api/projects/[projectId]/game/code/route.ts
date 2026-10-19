@@ -50,6 +50,7 @@ export async function GET(_req: Request, ctx: RouteContext): Promise<NextRespons
       bytes: output.bytes,
       limits: CODEGEN_LIMITS,
       kindPipeline: output.kindPipeline,
+      artifactChain: output.artifactChain,
       kindNote: output.kindNote,
     });
   } catch (error) {

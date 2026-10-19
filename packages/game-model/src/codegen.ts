@@ -5,8 +5,9 @@ import {
   type GameDocument,
   type GameEntityKind,
 } from "./index";
-import { PLAY_KIND_SHAPES, compileGame, type GamePlan, type PlayActor } from "./play";
+import { PLAY_KIND_SHAPES, compileGame, type GamePlan, type PlayActor, type StatSource } from "./play";
 import { compileForKind, type GameProjection } from "./story";
+import { compileRpg } from "./rpg";
 import {
   CONTACT_COOLDOWN,
   EVENT_CAP,
@@ -25,18 +26,25 @@ import {
  *
  * 三条纪律，每一条都有对应的见证（见 `test/codegen.test.ts`）：
  *
- * 1. **只有一条投影链**。产物吃的是 `compileGame(document)` 排出来的那份 `GamePlan`。
- *    这条链与 §51 的类型表有一个已知的错位：`GAME_KIND_STATUS` 里只有
- *    `2d / 2.5d / 3d / 探索 / 解谜` 五种读的是这份计划，RPG 原型与对话两型各有另一条管线
- *    （`compileRpg` / `compileStory`），而产物里没有它们的引擎。所以这一格不许说"产物就是页面上跑的那一份"，
- *    只许由 `codeKindReadings()` 把错位说出来（README、index.html、界面三处念同一句）；
- *    把那句话写回"同一个对象"就是 §159 级的谎，2026-10-17 那次实测（`.scratch/kind-probe*.ts`）量到的就是它：
+ * 1. **产物跑哪一条链，由 `compileForKind` 那一处分派点决定，不在这一格再判断一次类型**。
+ *    §51 的类型表里 `2d / 2.5d / 3d / 探索 / 解谜` 五种读 `compileGame` 排的 2D 俯视计划，
+ *    `rpg-prototype` 在**同一份计划**外面套一层成长循环（`compileRpg` / `rpgStep`），对话两型读 `compileStory`。
+ *    产物里带了引擎的链记在 `ARTIFACT_CHAINS` 这一处（就是产物侧的分派表）：今天有 `topdown` 与 `rpg` 两条，
+ *    所以 `engine.js` 永远是 `sim.ts` 的转写，而标了 RPG 原型的那一份再多一段 `rpg.ts` 的转写（`NexusRpg`），
+ *    `plan.json` 里随之多出一次 `compileRpg` 算出来的 `growth`。对话管线**还没有引擎**，那一型必须由
+ *    `codeKindReadings()` 把错位说出来（README、index.html、界面三处念同一句）；
+ *    把"拿走的就是页面上跑的那一种"写回对不上的那一型就是 §159 级的谎，2026-10-17 那次实测
+ *    （`.scratch/kind-probe*.ts`，读数记在 `docs/TESTING.md`）量到的就是它：
  *    RPG 草稿投影出来的产物没有成长循环，视觉小说投影出来是一个开不了场的空场子。
- *    所以 `plan.json` 与 `plan.js` 里必须是**同一次 `JSON.stringify` 的结果**——两处各写一遍就是两份真值。
+ *    前者已经在 `d8b8a3c` 之后由这一格补上（补的是引擎，不是文案：那句 `kindNote` 随分派表自己变空），
+ *    后者还在。**为什么 `plan.json` 与 `plan.js` 必须是同一次 `JSON.stringify` 的结果**：
+ *    两处各写一遍就是两份真值，一份旧一份新时浏览器跑的是后者，而作者看到的是前者。
  * 2. **规则的数字不许重打**。引擎是 `sim.ts` 的转写，冷却、定步长上限、事件条数上限、
- *    没有玩家那句拒绝，全部由生成时从 `sim.ts` 的导出插进产物。转写这件事本身是这一格的限度：
- *    `sim.ts` 改了逻辑而产物没重新生成，两者就会分叉，所以界面上不许说"产物就是平台跑的那一套"，
- *    只能说"产物是它的转写，数字由同一处供给"。浏览器里的一致性见证记在 `docs/TESTING.md`。
+ *    没有玩家那句拒绝，全部由生成时从 `sim.ts` 的导出插进产物；成长层更直接——升级曲线、每级加成与
+ *    兜底经验是 `compileRpg` 算进那份 `growth` 数据的，源头是 `rpg.ts` 的导出，产物侧一个数都不新打。
+ *    转写这件事本身是这一格的限度：`sim.ts` 或 `rpg.ts` 改了逻辑而产物没重新生成，两者就会分叉，
+ *    所以界面上不许说"产物就是平台跑的那一套"，只能说"产物是它的转写，数字由同一处供给"。
+ *    浏览器里的一致性见证记在 `docs/TESTING.md`（两条链各一段 scripted 输入，逐字节比 trace）。
  * 3. **不在主机执行（§81）**。这一格里没有 `eval`、没有子进程、不读写文件、不联网：
  *    生成 = 纯字符串投影，运行 = 浏览器沙箱。产物自己也带一道 CSP，`connect-src 'none'`
  *    把它按在本地：一份下载的关卡不该在玩家机器上打洞。
@@ -59,15 +67,110 @@ export const CODEGEN_COLORS: Record<string, string> = {
  * 各写一遍就会一处比一处乐观（§159）。
  */
 export const CODEGEN_LIMITS: readonly string[] = [
-  "产物里的引擎是 sim.ts 的转写：数字由生成时从 sim.ts 的导出插进来，逻辑不在这里重打一遍。",
+  "产物里的引擎是平台规则模块的转写：2D 那条链转写 sim.ts，标了 RPG 原型的那一份再多转一段 rpg.ts；数字由生成时从导出插进来，逻辑不在这里重打一遍。",
   "产物没有 Studio 的界面：没有数值来历面板、没有等轴测与 3D 画法、没有 Playtest 报告。",
   "产物不联网：CSP 里 connect-src 是 none，键盘只有方向键与 WASD，没有手柄。",
   "这一格不执行任何东西：生成只是拼字符串（§81），要跑就在浏览器沙箱里打开。",
 ];
 
+/**
+ * 产物侧的分派表：**哪几条链在这份产物里真的带了引擎**。
+ *
+ * 这一处就是唯一答案：`engine.js` 带不带那段转写、README 那条"按什么生成的"多不多一行、
+ * `codeKindReadings()` 那句话说不说出来，三处都读这张表。加一条链 = 在这里加一项 + 写它的转写，
+ * 文案自己跟着变——如果"有没有引擎"在代码里有第二个答案，它就会在某次改动后开始说谎。
+ */
+export const ARTIFACT_CHAINS = {
+  topdown: {
+    label: "2D 俯视那条链（engine.js 里 NexusSim 是 sim.ts 的转写）",
+    /** 画布上跑的东西：这一句要能指回数据是从哪一次投影来的 */
+    dataNote: "界面上的画布读的就是这一份",
+  },
+  rpg: {
+    label: "RPG 那条链（NexusSim 之外再多一段 NexusRpg，转写的是 rpg.ts：经验、升级与等级门）",
+    dataNote: "画布读的是同一份 2D 计划，等级/经验读的是同一次序列化里多出来的那一份 growth",
+  },
+} as const satisfies Record<Exclude<NonNullable<GameProjection["pipeline"]>, "story">, { label: string; dataNote: string }>;
+
+export type ArtifactChain = keyof typeof ARTIFACT_CHAINS;
+
+/** 平台侧三条管线各自那句话里要用的名字：从 `compileForKind` 的读数派生，不另起一套叫法 */
+const PIPELINE_NAMES: Record<NonNullable<GameProjection["pipeline"]>, string> = {
+  topdown: "2D 俯视（compileGame + sim.step）",
+  story: "对话管线（compileStory：正文与选择，没有场地与判定）",
+  rpg: "RPG 成长循环（compileRpg + rpgStep）",
+};
+
+/** 平台上这一型走哪条管线，在产物里有没有对应的引擎——答案只有这一处（`ARTIFACT_CHAINS` 的键）。 */
+export function hasArtifactEngine(pipeline: GameProjection["pipeline"]): pipeline is ArtifactChain {
+  return pipeline !== null && pipeline in ARTIFACT_CHAINS;
+}
+
+/**
+ * 这一份设计在产物里跑哪条链。分派读的是 `compileForKind`（平台上那一处），不是这一格自己的判断：
+ * 带了引擎的链按类型走，还没接进产物的管线（对话）落到 `topdown`——
+ * 那一型拿到的就是一份开不了场的 2D 投影，而 `codeKindReadings()` 会把这件事说出来。
+ */
+export function artifactChainOf(document: GameDocument): ArtifactChain {
+  const pipeline = compileForKind(document).pipeline;
+  return hasArtifactEngine(pipeline) ? pipeline : "topdown";
+}
+
+/**
+ * "这一份产物跑的是哪条链"那一句只有一个写法：产物页面（`index.html`）与界面上那一格都调这里，
+ * 而不是各拼一遍 `${label}。`——拼第二遍的那一处会先过时。
+ */
+export function artifactChainSentence(chain: ArtifactChain): string {
+  return `这条产物跑的是${ARTIFACT_CHAINS[chain].label}。`;
+}
+
+/** 成长层带进产物的那些数：全部来自 `compileRpg`，一个都不是这一格新打的 */
+export interface ArtifactGrowth {
+  enemyXp: { id: string; name: string; xp: number; from: StatSource }[];
+  quests: { id: string; name: string; xpReward: number; hasXpReward: boolean; requiredLevel: number }[];
+  xpBase: number;
+  xpStep: number;
+  levelBonus: { maxHealth: number; damage: number };
+}
+
+/** 产物吃的那份计划：`GamePlan` 加上（只有 RPG 那条链才有的）成长层 */
+export type ArtifactPlan = GamePlan & { growth?: ArtifactGrowth };
+
+/**
+ * 那一次序列化的**产物侧计划**：`plan.json` 与 `plan.js` 都写它，`main.js` 与见证脚本也读它。
+ *
+ * 单独导出是为了"供给点只有一处"：测试与浏览器见证要比的就是这一份字节，
+ * 让它们各自再拼一次 `{...compileGame(doc), growth}`，拼错的那一份照样能自证一致。
+ *
+ * 成长那一层的限度清单走的是 `notes`（`compileRpg` 在底层清单后面追加的那几条）：
+ * 平台 RPG 页面上列的就是这一份，产物里再抄一份 `RPG_RULE_NOTES` 就是第二个供给点。
+ */
+export function artifactPayload(document: GameDocument): ArtifactPlan {
+  const chain = artifactChainOf(document);
+  if (chain === "topdown") return compileGame(document);
+  const plan = compileRpg(document);
+  return {
+    ...plan.base,
+    notes: plan.notes,
+    growth: {
+      enemyXp: plan.enemyXp.map((enemy) => ({ id: enemy.id, name: enemy.name, xp: enemy.xp, from: enemy.from })),
+      quests: plan.quests.map((quest) => ({
+        id: quest.id,
+        name: quest.name,
+        xpReward: quest.xpReward,
+        hasXpReward: quest.hasXpReward,
+        requiredLevel: quest.requiredLevel,
+      })),
+      xpBase: plan.xpBase,
+      xpStep: plan.xpStep,
+      levelBonus: { ...plan.levelBonus },
+    },
+  };
+}
+
 export type GameCodeOrigin =
-  | { kind: "plan"; from: "compileGame" }
-  | { kind: "engine"; from: "sim.step" }
+  | { kind: "plan"; from: "compileGame" | "compileRpg" }
+  | { kind: "engine"; from: "sim.step" | "sim.step+rpg.step" }
   | { kind: "shell"; from: "codegen" }
   | { kind: "readme"; from: "codegen" };
 
@@ -88,10 +191,12 @@ export interface GameCodeOutput {
   bytes: number;
   /**
    * 这份设计标的那一型，在平台上由哪条管线跑（照 `compileForKind` 的读数，不是这一格自己判断的）。
-   * 产物永远是 `"topdown"` 那一条，所以这个字段与它不同时，界面上必须把话说明。
+   * 与 `artifactChain` 不是同一个数：前者是"这一型在平台上该跑什么"，后者是"这份产物真的跑什么"。
    */
   kindPipeline: "topdown" | "story" | "rpg" | null;
-  /** 两条管线不一致时那句话说清"下载的不是页面上试玩的那一种"；一致时为 null（没有就不许印一句空话） */
+  /** 这一份产物跑的那条链（`ARTIFACT_CHAINS` 里的一个键），界面上那句"产物跑的是哪条链"读它 */
+  artifactChain: ArtifactChain;
+  /** 该跑的管线在产物里没有引擎时那句话说清"下载的不是页面上试玩的那一种"；对得上时为 null（没有就不许印一句空话） */
   kindNote: string | null;
 }
 
@@ -102,22 +207,32 @@ const GENERATED_BANNER =
  * 「下载拿走的那一份」与「平台上试玩的那一份」是不是同一条管线——这句话只能由 `compileForKind`
  * 那一处分派点回答，不能在这一格里再写一遍 `if (kind === ...)`（§16：同一份模型的投影不许各说各话）。
  *
- * 为什么产物侧只有一条链：`main.js` 是 `sim.step` 的转写，它只会跑 `GamePlan`；
- * 对话管线与 RPG 的成长循环在产物里**没有对应的引擎**。这一格今天能给的是那份 2D 俯视投影，
- * 所以非 `topdown` 的类型必须被说出来，而不是靠 README 里那句"界面上的画布读的就是这一份"蒙过去——
- * 那句话说的是 `2d / 2.5d / 3d / 探索 / 解谜` 这五种共用同一条计划的事实，
- * 对 RPG 原型（少了成长循环）与对话两型（打开就是一个跑不起来的场子）是假的。
+ * 有没有引擎读的是 `ARTIFACT_CHAINS` 那一张表，而那张表就是生成时的分派点本身：
+ * `engine.js` 带不带 `NexusRpg`、README 多不多那一行、这里说不说话，是同一个答案的三个出口。
+ * 所以"补一条链"这件事改的是引擎与投影，**不是这句文案**——RPG 那条链落地后，
+ * 这一型自动没有话（`kindNote === null`），而对话两型仍然说出来，因为产物里确实没有它的引擎。
  */
-export function codeKindReadings(document: GameDocument): { kindPipeline: GameProjection["pipeline"]; kindNote: string | null } {
+export function codeKindReadings(document: GameDocument): {
+  kindPipeline: GameProjection["pipeline"];
+  artifactChain: ArtifactChain;
+  kindNote: string | null;
+} {
   const kindPipeline = compileForKind(document).pipeline;
-  if (kindPipeline === "topdown") return { kindPipeline, kindNote: null };
-  const status = GAME_KIND_STATUS[document.kind];
+  const artifactChain = artifactChainOf(document);
+  const label = GAME_KIND_LABELS[document.kind];
+  if (hasArtifactEngine(kindPipeline)) return { kindPipeline, artifactChain, kindNote: null };
+  const missing = kindPipeline === null ? "这条链（状态表说这个类型今天没接）" : PIPELINE_NAMES[kindPipeline];
+  const carried = Object.values(ARTIFACT_CHAINS)
+    .map((chain) => chain.label)
+    .join("；");
   return {
     kindPipeline,
+    artifactChain,
     kindNote:
-      `这一格只有一条投影链：产物跑的永远是 compileGame() 排出来的 2D 俯视计划（${GAME_KIND_LABELS[document.kind]} 在平台上不是这一条）。` +
-      `状态表对「${GAME_KIND_LABELS[document.kind]}」的那句是「${status.note}」——那句里的东西不在这份产物里：` +
-      `RPG 的成长循环与对话管线都没有对应的引擎，所以下载解压后打开的，不是这个类型在试玩页跑的那一种。`,
+      `这份产物跑的是${ARTIFACT_CHAINS[artifactChain].label}，而 ${label} 在平台上该跑的是「${missing}」——那条链在这份产物里没有引擎。` +
+      `产物里带了引擎的链是：${carried}。` +
+      `状态表对「${label}」的那句是「${GAME_KIND_STATUS[document.kind].note}」——那句里的东西不在这份产物里：` +
+      `下载解压后打开的是 ${label} 在平台上不走的那一条，不是这个类型在试玩页跑的那一种。`,
   };
 }
 
@@ -163,16 +278,19 @@ function planJson(plan: GamePlan): string {
   return JSON.stringify(plan, null, 2);
 }
 
-function engineSource(): string {
+function engineSource(chain: ArtifactChain): string {
   const rules = [
     `  contactCooldown: ${CONTACT_COOLDOWN},`,
     `  playerAttackCooldown: ${PLAYER_ATTACK_COOLDOWN},`,
     `  maxFrameSeconds: ${MAX_FRAME_SECONDS},`,
     `  eventCap: ${EVENT_CAP},`,
   ].join("\n");
-  return js([
+  const lines = [
     banner("//"),
     "// 规则的数字来自 sim.ts 的导出（下面 RULES / TEXT 两块），不是在这里重打一遍的。",
+    ...(chain === "rpg"
+      ? ["// 成长层的数不在这里：NexusRpg 读的是 plan.growth，那一份由 compileRpg 从 rpg.ts 的导出算进同一次序列化。"]
+      : []),
     "// §81：这份产物不在主机执行，只在浏览器沙箱里打开。",
     '"use strict";',
     "var RULES = {",
@@ -333,7 +451,9 @@ function engineSource(): string {
     "    }",
     "    return next;",
     "  },",
-    "  summary: function (state) {",
+    // summary 多收一个 plan 参数（这一份用不到）：两条链要能被 main.js 用同一个调用形状驱动，
+    // 分支留在数据那一边（plan.growth 有没有），不留在这里再判断一次类型。
+    "  summary: function (plan, state) {",
     "    return [",
     "      \"跑了 \" + (Math.round(state.t * 10) / 10) + \" 秒\",",
     "      \"生命 \" + Math.max(0, state.health),",
@@ -345,7 +465,97 @@ function engineSource(): string {
     "    ].join(\" · \");",
     "  },",
     "};",
-  ]);
+  ];
+
+  // RPG 那条链：rpg.ts 的转写，包在 NexusSim 外面一层。成长层的数一个都不在这里重打——
+  // 升级曲线与每级加成读的是 plan.growth，那一份数据由 compileRpg 从 rpg.ts 的导出算进同一次序列化里。
+  if (chain === "rpg") {
+    lines.push(
+      "function find(list, id) {",
+      "  for (var i = 0; i < list.length; i += 1) if (list[i].id === id) return list[i];",
+      "  return undefined;",
+      "}",
+      "function xpToNext(plan, level) {",
+      "  return plan.growth.xpBase + (Math.max(1, level) - 1) * plan.growth.xpStep;",
+      "}",
+      "var NexusRpg = {",
+      "  initialState: function (plan) {",
+      "    return { base: NexusSim.initialState(plan), level: 1, xp: 0, levelUps: 0 };",
+      "  },",
+      "  step: function (plan, state, input, dt) {",
+      "    if (state.base.status !== \"playing\") return state;",
+      "    var growth = plan.growth;",
+      "    // 升过级之后伤害是派生出来的：计划本身是常量，所以喂给底层的是这一份当级的影子",
+      "    var combatPlan = plan;",
+      "    if (state.levelUps && plan.player) {",
+      "      combatPlan = Object.assign({}, plan, {",
+      "        player: Object.assign({}, plan.player, { damage: plan.player.damage + growth.levelBonus.damage * state.levelUps }),",
+      "      });",
+      "    }",
+      "    var base = NexusSim.step(combatPlan, state.base, input, dt);",
+      "    var next = { base: base, level: state.level, xp: state.xp, levelUps: state.levelUps };",
+      "    var gained = 0;",
+      "    var gatedThisFrame = false;",
+      "    var i, quest, enemy, before, after;",
+      "    for (i = 0; i < growth.quests.length; i += 1) {",
+      "      quest = growth.quests[i];",
+      "      if (quest.requiredLevel <= next.level) continue;",
+      "      if (next.base.questDone[quest.id] === undefined) continue;",
+      "      delete next.base.questDone[quest.id];",
+      "      gatedThisFrame = true;",
+      "      push(next.base.events, next.base.t,",
+      "        \"任务「\" + quest.name + \"」条件满足了，但要 \" + quest.requiredLevel + \" 级才能交（现在 \" + next.level + \" 级）——完成先扣住\");",
+      "    }",
+      "    if (gatedThisFrame && next.base.status === \"won\") {",
+      "      next.base.status = \"playing\";",
+      "      next.base.outcome = null;",
+      "    }",
+      "    for (i = 0; i < growth.enemyXp.length; i += 1) {",
+      "      enemy = growth.enemyXp[i];",
+      "      before = find(state.base.enemies, enemy.id);",
+      "      after = find(next.base.enemies, enemy.id);",
+      "      if (before && before.active && after && !after.active) {",
+      "        gained += enemy.xp;",
+      "        push(next.base.events, next.base.t,",
+      "          \"打倒 \" + enemy.name + \" +\" + enemy.xp + \" 经验\" + (enemy.from === \"default\" ? \"（兜底值）\" : \"\"));",
+      "      }",
+      "    }",
+      "    for (i = 0; i < growth.quests.length; i += 1) {",
+      "      quest = growth.quests[i];",
+      "      if (state.base.questDone[quest.id] !== undefined) continue;",
+      "      if (next.base.questDone[quest.id] === undefined) continue;",
+      "      if (!quest.hasXpReward || quest.xpReward <= 0) continue;",
+      "      gained += quest.xpReward;",
+      "      push(next.base.events, next.base.t, \"完成任务「\" + quest.name + \"」 +\" + quest.xpReward + \" 经验\");",
+      "    }",
+      "    next.xp += gained;",
+      "    while (next.xp >= xpToNext(plan, next.level)) {",
+      "      next.xp -= xpToNext(plan, next.level);",
+      "      next.level += 1;",
+      "      next.levelUps += 1;",
+      "      next.base.health += growth.levelBonus.maxHealth;",
+      "      push(next.base.events, next.base.t,",
+      "        \"升到 \" + next.level + \" 级：生命上限 +\" + growth.levelBonus.maxHealth + \"，伤害 +\" + growth.levelBonus.damage +",
+      "          \"（曲线来自投影，不是设计）\");",
+      "    }",
+      "    return next;",
+      "  },",
+      "  summary: function (plan, state) {",
+      "    var v = state.base;",
+      "    return [",
+      "      \"等级 \" + state.level,",
+      "      \"经验 \" + state.xp + \"/\" + xpToNext(plan, state.level),",
+      "      \"生命 \" + Math.max(0, v.health),",
+      "      \"伤害 \" + (plan.player ? plan.player.damage + plan.growth.levelBonus.damage * state.levelUps : 0),",
+      "      \"敌人剩 \" + v.enemies.filter(function (e) { return e.active; }).length + \"/\" + v.enemies.length,",
+      "      \"任务完成 \" + Object.keys(v.questDone).length,",
+      "      v.status === \"playing\" ? \"进行中\" : v.status === \"won\" ? \"通关\" : \"失败\",",
+      "    ].join(\" · \");",
+      "  },",
+      "};",
+    );
+  }
+  return js(lines);
 }
 
 /**
@@ -353,9 +563,17 @@ function engineSource(): string {
  *
  * `plan.js` 只给 canvas 的宽高从计划里读，不在 HTML 里另写一遍数字：
  * 场地改一次尺寸，界面上的画布就该跟着变，写两处就有一处会说谎。
+ *
+ * 跑哪条引擎读的是**数据**（`plan.growth` 有没有），不是这一格再判断一次类型：
+ * 同一份 `plan.json` 换给别的引擎，读出来的就不是那一份数据了。
+ * 两条链的三个调用形状（initialState / step / summary）刻意做成同一个 arity，
+ * 于是这里只有一处分支，而不是每个调用点各分支一次。
+ *
+ * 界面上那几行限度读的也是数据（`plan.notes`）：成长那条链的几条由 `compileRpg` 追加进同一份清单，
+ * 这里不为它单加一个常量——多一处供给就多一处理所当然的抄写。
  */
 function mainSource(): string {
-  return js([
+  const lines = [
     banner("//"),
     '"use strict";',
     "(function () {",
@@ -368,7 +586,10 @@ function mainSource(): string {
     "  var hud = document.getElementById(\"hud\");",
     "  canvas.width = plan.arena.width;",
     "  canvas.height = plan.arena.height;",
-    "  var state = NexusSim.initialState(plan);",
+    "  var engine = plan.growth ? NexusRpg : NexusSim;",
+    // 成长态把 2D 态包在 base 里；画布只认 2D 那一层，所以取一次就行，不在绘制代码里到处分支
+    "  function view(st) { return st.base ? st.base : st; }",
+    "  var state = engine.initialState(plan);",
     "  var keys = {};",
     "  var last = 0;",
     "  function readInput() {",
@@ -390,12 +611,13 @@ function mainSource(): string {
     "  }",
     "  function actor(a) { if (a) shape(a.kind, a.x, a.y, a.radius, colors[a.kind] || \"#ffffff\"); }",
     "  function draw() {",
+    "    var v = view(state);",
     "    ctx.clearRect(0, 0, canvas.width, canvas.height);",
     "    ctx.fillStyle = \"#0b0d12\";",
     "    ctx.fillRect(0, 0, canvas.width, canvas.height);",
     "    var i;",
-    "    for (i = 0; i < state.triggers.length; i += 1) {",
-    "      var trigger = state.triggers[i];",
+    "    for (i = 0; i < v.triggers.length; i += 1) {",
+    "      var trigger = v.triggers[i];",
     "      var design = plan.triggers.filter(function (t) { return t.id === trigger.id; })[0];",
     "      ctx.strokeStyle = trigger.active ? colors.trigger : \"rgba(148,163,184,0.35)\";",
     "      ctx.lineWidth = 1;",
@@ -403,19 +625,20 @@ function mainSource(): string {
     "      ctx.arc(trigger.x, trigger.y, design ? design.radius : 0, 0, Math.PI * 2);",
     "      ctx.stroke();",
     "    }",
-    "    for (i = 0; i < state.items.length; i += 1) {",
-    "      if (state.items[i].active) actor(plan.items.filter(function (x) { return x.id === state.items[i].id; })[0]);",
+    "    for (i = 0; i < v.items.length; i += 1) {",
+    "      if (v.items[i].active) actor(plan.items.filter(function (x) { return x.id === v.items[i].id; })[0]);",
     "    }",
-    "    for (i = 0; i < state.enemies.length; i += 1) {",
-    "      if (state.enemies[i].active) actor(plan.enemies.filter(function (x) { return x.id === state.enemies[i].id; })[0]);",
+    "    for (i = 0; i < v.enemies.length; i += 1) {",
+    "      if (v.enemies[i].active) actor(plan.enemies.filter(function (x) { return x.id === v.enemies[i].id; })[0]);",
     "    }",
     "    actor(plan.player);",
-    "    if (plan.player) shape(\"player\", state.px, state.py, plan.player.radius, colors.player);",
+    "    if (plan.player) shape(\"player\", v.px, v.py, plan.player.radius, colors.player);",
     "    hud.textContent = lines().join(\"\\n\");",
     "  }",
     "  function lines() {",
-    "    var out = [NexusSim.summary(state)];",
-    "    if (state.outcome) out.push(state.outcome);",
+    "    var v = view(state);",
+    "    var out = [engine.summary(plan, state)];",
+    "    if (v.outcome) out.push(v.outcome);",
     "    for (var i = 0; i < plan.notes.length; i += 1) out.push(\"限度：\" + plan.notes[i]);",
     "    for (var j = 0; j < SIM_RULE_NOTES.length; j += 1) out.push(\"规则：\" + SIM_RULE_NOTES[j]);",
     "    out.push(\"操作：方向键或 WASD 移动，空格挥击，R 重开。\");",
@@ -424,25 +647,26 @@ function mainSource(): string {
     "  function frame(now) {",
     "    var dt = last ? (now - last) / 1000 : 0;",
     "    last = now;",
-    "    state = NexusSim.step(plan, state, readInput(), dt);",
+    "    state = engine.step(plan, state, readInput(), dt);",
     "    draw();",
-    "    if (state.status === \"playing\") requestAnimationFrame(frame);",
+    "    if (view(state).status === \"playing\") requestAnimationFrame(frame);",
     "    else requestAnimationFrame(function () { draw(); });",
     "  }",
     "  window.addEventListener(\"keydown\", function (e) {",
     "    var k = e.key.toLowerCase();",
     "    keys[k] = true;",
-    "    if (k === \"r\") { state = NexusSim.initialState(plan); last = 0; }",
+    "    if (k === \"r\") { state = engine.initialState(plan); last = 0; }",
     "    if (k === \" \" || k.indexOf(\"arrow\") === 0) e.preventDefault();",
     "  });",
     "  window.addEventListener(\"keyup\", function (e) { keys[e.key.toLowerCase()] = false; });",
     "  draw();",
-    "  if (state.status === \"playing\") requestAnimationFrame(frame);",
+    "  if (view(state).status === \"playing\") requestAnimationFrame(frame);",
     "})();",
-  ]);
+  ];
+  return js(lines);
 }
 
-function htmlSource(document: GameDocument, plan: GamePlan, kindNote: string | null): string {
+function htmlSource(document: GameDocument, plan: GamePlan, chain: ArtifactChain, kindNote: string | null): string {
   const title = `${escapeHtml(document.name || "未命名游戏")} · NEXUS 导出的可玩产物`;
   return [
     "<!doctype html>",
@@ -457,7 +681,9 @@ function htmlSource(document: GameDocument, plan: GamePlan, kindNote: string | n
     "<body>",
     `<h1>${escapeHtml(document.name || "未命名游戏")}</h1>`,
     `<p>${escapeHtml(document.summary || "")}</p>`,
-    // 打开的就是这一页，不是 README：类型不对上的那句话要印在页面上，不然作者看到的就是"我的 RPG 没有成长"
+    // 打开的就是这一页，不是 README：跑的是哪条链印在页面上，作者不必去翻包里的说明文件
+    `<p id="chain-note">${escapeHtml(artifactChainSentence(chain))}</p>`,
+    // 类型不对上的那句话也要印在页面上，不然作者看到的就是"我的 RPG 没有成长"
     ...(kindNote ? [`<p id="kind-note">${escapeHtml(kindNote)}</p>`] : []),
     `<canvas id="arena" width="${plan.arena.width}" height="${plan.arena.height}"></canvas>`,
     '<pre id="hud"></pre>',
@@ -479,12 +705,13 @@ function cssSource(): string {
     "canvas { display: block; background: #0b0d12; border: 1px solid #1f2937; max-width: 100%; height: auto; }",
     "pre { white-space: pre-wrap; margin-top: 12px; }",
     "#kind-note { max-width: 70ch; color: #fbbf24; }",
+    "#chain-note { max-width: 70ch; color: #94a3b8; }",
     "",
   ].join("\n");
 }
 
 /** 针对这一份文档的发现：投影已经说了的（plan.notes / blockers）不重写一遍，只补产物这一侧才看得见的 */
-function documentNotes(document: GameDocument, plan: GamePlan): string[] {
+function documentNotes(document: GameDocument, plan: ArtifactPlan, chain: ArtifactChain): string[] {
   const notes: string[] = [];
   const inPlan = new Set<string>();
   const collect = (actor: PlayActor | null): void => {
@@ -523,6 +750,20 @@ function documentNotes(document: GameDocument, plan: GamePlan): string[] {
     notes.push(`有 ${unjudgeable} 条任务不可判定：产物里它们永远不推动"赢"，通关条件只剩生命值与能判定的那几条。`);
   }
 
+  // 成长层的读数只在 rpg 那条链上存在；数与曲线全部从 plan.growth 里读，不在这里重打
+  if (chain === "rpg" && plan.growth) {
+    const growth = plan.growth;
+    const defaulted = growth.enemyXp.filter((enemy) => enemy.from === "default").length;
+    const withXp = growth.quests.filter((quest) => quest.hasXpReward && quest.xpReward > 0).length;
+    const gated = growth.quests.filter((quest) => quest.requiredLevel > 1).length;
+    notes.push(
+      `这一份带成长层（NexusRpg）：${growth.enemyXp.length} 个敌人发经验（${defaulted} 个用的是投影兜底）、` +
+        `${withXp} 条任务完成发经验、${gated} 条任务带等级门；` +
+        `升级曲线是下一级要 ${growth.xpBase} + (等级-1)×${growth.xpStep} 点，每级生命上限 +${growth.levelBonus.maxHealth}、` +
+        `伤害 +${growth.levelBonus.damage}——这几个数写在 plan.json 的 growth 里，源头是 rpg.ts 的导出。`,
+    );
+  }
+
   if (!plan.playable) {
     notes.push(
       `这一份跑不起来（${plan.blockers.join("；")}）：文件还是全部生成，打开就是失败态——不为了看起来能玩而补一个玩家。`,
@@ -531,7 +772,14 @@ function documentNotes(document: GameDocument, plan: GamePlan): string[] {
   return notes;
 }
 
-function readmeSource(document: GameDocument, plan: GamePlan, notes: readonly string[], kindNote: string | null): string {
+function readmeSource(
+  document: GameDocument,
+  plan: ArtifactPlan,
+  notes: readonly string[],
+  chain: ArtifactChain,
+  kindNote: string | null,
+): string {
+  const growth = chain === "rpg" ? plan.growth : undefined;
   const lines = [
     banner("#"),
     "",
@@ -545,11 +793,21 @@ function readmeSource(document: GameDocument, plan: GamePlan, notes: readonly st
     "index.html 里的 CSP 也把 connect-src 设成 none，产物自己打不出去。",
     "",
     "按什么生成的（每一条都不是我编的）：",
-    ...(kindNote
-      ? [`- 数据：plan.json 与 plan.js 是同一次 compileGame() 序列化的结果。${kindNote}`]
-      : ["- 数据：plan.json 与 plan.js 是同一次 compileGame() 序列化的结果，界面上的画布读的就是这一份。"]),
+    `- 这一条链：${ARTIFACT_CHAINS[chain].label}。`,
+    `- 数据：plan.json 与 plan.js 是同一次 ${chain === "rpg" ? "compileRpg()" : "compileGame()"} 序列化的结果，` +
+      // 那句"画布读的就是这一份"讲的是**平台上这一型的界面**：链对不上时它就不成立，不许顺手宣称
+      (kindNote === null ? ARTIFACT_CHAINS[chain].dataNote : "而这一型在平台上跑的不是这一条链，所以这句只到产物自己为止") +
+      `。`,
     "- 规则：engine.js 是 packages/game-model/src/sim.ts 的转写，冷却与定步长这些数字由生成时从 sim.ts 的导出插进来。",
+    ...(growth
+      ? [
+          "- 成长：NexusRpg 那一段是 packages/game-model/src/rpg.ts 的转写（打倒与交任务发经验、攒够升级、没到级的任务扣住）；" +
+            `升级曲线与每级加成的数写在 plan.json 的 growth 里（${growth.xpBase} + (等级-1)×${growth.xpStep}，` +
+            `每级生命上限 +${growth.levelBonus.maxHealth}、伤害 +${growth.levelBonus.damage}），源头是 rpg.ts 的导出。`,
+        ]
+      : []),
     `- 规则限度：${SIM_RULE_NOTES.join(" ")}`,
+    ...(kindNote ? [`- 这一型在平台上跑的不是这一条链：${kindNote}`] : []),
     "",
     "这一格的限度：",
     ...CODEGEN_LIMITS.map((line) => `- ${line}`),
@@ -573,18 +831,19 @@ function readmeSource(document: GameDocument, plan: GamePlan, notes: readonly st
  * 作者拿到的那份就和界面上看到的那份对不上了。
  */
 export function generateGameCode(document: GameDocument): GameCodeOutput {
-  const plan = compileGame(document);
+  const chain = artifactChainOf(document);
+  const plan = artifactPayload(document);
   const { kindPipeline, kindNote } = codeKindReadings(document);
   const json = planJson(plan);
-  const notes = documentNotes(document, plan);
+  const notes = documentNotes(document, plan, chain);
 
   const bodies: Record<string, string> = {
-    "README.txt": readmeSource(document, plan, notes, kindNote),
-    "index.html": htmlSource(document, plan, kindNote),
+    "README.txt": readmeSource(document, plan, notes, chain, kindNote),
+    "index.html": htmlSource(document, plan, chain, kindNote),
     "style.css": cssSource(),
     "plan.json": json,
     "plan.js": `// ${GENERATED_BANNER}\n// 这一份与 plan.json 是同一次序列化的结果，不是各写一遍的两份计划。\nwindow.NEXUS_PLAN = ${json};\n`,
-    "engine.js": engineSource(),
+    "engine.js": engineSource(chain),
     "main.js": mainSource(),
   };
 
@@ -594,12 +853,12 @@ export function generateGameCode(document: GameDocument): GameCodeOutput {
     mime: mimeFor(path),
     origin:
       path === "plan.json" || path === "plan.js"
-        ? { kind: "plan", from: "compileGame" }
+        ? { kind: "plan", from: chain === "rpg" ? "compileRpg" : "compileGame" }
         : path === "engine.js" || path === "main.js"
-          ? { kind: "engine", from: "sim.step" }
+          ? { kind: "engine", from: chain === "rpg" ? "sim.step+rpg.step" : "sim.step" }
           : { kind: path === "README.txt" ? "readme" : "shell", from: "codegen" },
   }));
 
   const bytes = files.reduce((sum, file) => sum + new TextEncoder().encode(file.contents).length, 0);
-  return { files, notes, bytes, kindPipeline, kindNote };
+  return { files, notes, bytes, kindPipeline, artifactChain: chain, kindNote };
 }

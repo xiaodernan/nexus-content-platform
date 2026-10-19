@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { artifactChainSentence, type ArtifactChain } from '@nexus/game-model';
 import { useGame } from './gameStore';
 
 /**
@@ -17,10 +18,12 @@ import { useGame } from './gameStore';
  * 4. **屏上欠着写的时候不让点**：这一格读的是库里那一份，不是组件里那份。
  *    刚点完「创建游戏骨架」时 PUT 还在飞，这时候生成要么拿到旧设计，要么把已经在屏上的设计
  *    说成"还没有游戏设计"——那句谎就是这么产生的（e2e 里第一次命中它就是这么来的）。
- * 5. **这一型与产物那条链对不上时把它说出来**（`kindNote`）：产物只有一条链（`compileGame` 排的 2D 俯视计划），
- *    而 §51 的八型里视觉小说/互动故事/RPG 原型在平台上跑的是别的管线。那句话来自 `codeKindReadings()`
- *    读 `compileForKind` 与状态表，界面不自己判断——面板判断一遍就会和分派点说两套话。
- *    对得上时它是 `null`，界面上就一个字都不印：恒真的警告和恒无的警告一样没人信。
+ * 5. **这一型在产物里有没有对应的引擎，由服务端那一格说**（`kindNote` 与 `artifactChain`）：
+ *    产物里带了引擎的链记在 `ARTIFACT_CHAINS`（今天两条：2D 俯视与 RPG 成长），对话两型还没有，
+ *    那句话来自 `codeKindReadings()` 读 `compileForKind` 与状态表，界面不自己判断——面板判断一遍
+ *    就会和分派点说两套话。对得上时它是 `null`，界面上就一个字都不印：恒真的警告和恒无的警告一样没人信；
+ *    但"跑的是哪条链"这一句恒在（`artifactChain`），因为它是读数不是警告——而这一句的写法也不在面板里拼，
+ *    用的是产物页面同一个 `artifactChainSentence()`：一个句子两个写法，迟早有一处先过时。
  */
 
 interface GeneratedFile {
@@ -38,6 +41,8 @@ interface CodeOutput {
   limits: string[];
   /** 这份设计标的那一型在平台上走哪条管线（`compileForKind` 的读数，不是界面猜的） */
   kindPipeline: string | null;
+  /** 这一份产物实际带的是哪条链的引擎（`ARTIFACT_CHAINS` 的一个键，恒有值） */
+  artifactChain: ArtifactChain;
   /** 与产物那条链不一致时才有话；一致时是 null，界面上就不许印一句空警告 */
   kindNote: string | null;
 }
@@ -186,6 +191,11 @@ export function GameCodeExport({ projectId }: { projectId: string }) {
         <div className="mt-2" data-game-code-output>
           <p className="text-11 text-fg-2" data-game-code-bytes={output.bytes}>
             {output.files.length} 个文件 · 共 {output.bytes} 字节
+          </p>
+
+          {/* 恒在的那一句是读数不是警告：产物带的引擎是哪条链，由服务端那一格派生、这里只念 */}
+          <p className="mt-1 text-11 leading-relaxed text-fg-3" data-game-code-chain={output.artifactChain}>
+            {artifactChainSentence(output.artifactChain)}
           </p>
 
           {output.kindNote ? (

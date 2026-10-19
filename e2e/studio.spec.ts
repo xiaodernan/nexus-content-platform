@@ -3944,7 +3944,8 @@ test('@smoke §144 导出：顶栏点一下就下载，回执说的和包里的�
  * 断言只挑用户可见的：库里那份没跟上屏上这份时按钮点不动（两颗都点不动）、写完了它自己松开、
  * 产物文件列得出来、点一个文件真的落盘、限度那几句原样出现在界面上且真的在视口里、
  * 整份打包拿到的是真 zip 且界面回执那三个数与磁盘上这份对得上、
- * 这一型与产物那条链对不上时界面上说出那一句（对得上时不许印一句空警告，屏上这句要和落盘的字节是同一句）——
+ * 这一型与产物那条链对不上时界面上说出那一句（对得上时不许印一句空警告，屏上这句要和落盘的字节是同一句）、
+ * 产物带的是哪一条链恒常说得出，两条接进产物的链（2D 与 RPG）各自在真浏览器里拿走一份对得上号的文件——
  * 只报"成功"而不报限度，界面就在替产品撒谎。
  */
 test('@smoke 游戏：生成可玩产物，点一个文件真的落盘，整份打包也拿得走（§52 Code）', async ({ page }) => {
@@ -3980,6 +3981,15 @@ test('@smoke 游戏：生成可玩产物，点一个文件真的落盘，整份�
   await expect(page.locator('[data-game-code-file="engine.js"]')).toBeVisible();
   await expect(page.locator('[data-game-code-bytes]')).toContainText('字节');
 
+  /**
+   * 恒在的那一句是**读数**不是警告：这一型在产物里带的是哪条链的引擎，界面每一趟都得说出来。
+   * 骨架默认是 2D，所以这里先钉 `topdown`；钉的是属性（服务端派生的那个键）加上屏上那半句 label——
+   * 只钉文字会把"面板自己拼了一句"也算过关。
+   */
+  const chainLine = page.locator('[data-game-code-chain]');
+  await expect(chainLine).toHaveAttribute('data-game-code-chain', 'topdown');
+  await expect(chainLine).toContainText('2D 俯视那条链');
+
   // 限度随产物一起念出来（转写 / 不联网 / 不执行）——少一句就是界面在替产品撒谎
   const limits = page.locator('[data-game-code-limits] li');
   await expect(limits.filter({ hasText: '转写' })).toHaveCount(1);
@@ -4003,6 +4013,10 @@ test('@smoke 游戏：生成可玩产物，点一个文件真的落盘，整份�
   // 落盘的那一份就是产物本身：自包含页面 + CSP 把它按在本地（doctype 大小写按生成器的写法来）
   expect(html.toLowerCase()).toContain('<!doctype html>');
   expect(html).toContain('connect-src');
+  // 屏上那句链名不是面板自己拼的：打开的那一页里印着同一串字节（一处拼两遍，迟早有一处先过时）
+  const chainOnScreen = (await chainLine.textContent()) ?? '';
+  expect(chainOnScreen.length, '界面上那句链名是空的').toBeGreaterThan(10);
+  expect(html, '屏上那句与产物页面里那句不是同一份').toContain(chainOnScreen);
 
   // 「打包成一个 zip 下载」：整份拿走的那一路，读的仍是库里这一份设计。
   // 包名走 content-disposition 的 filename*：设计名是中文，ASCII 兜底那一份会被压成
@@ -4060,11 +4074,15 @@ test('@smoke 游戏：生成可玩产物，点一个文件真的落盘，整份�
   await page.click('[data-game-code-run]');
   const kindNote = page.locator('[data-game-code-kind]');
   await expect(kindNote).toBeVisible({ timeout: 30_000 });
-  // 那句话要点得出这三样：产物跑的是哪条链、这一型在表里是哪一句、所以对不上。
-  // 少了任何一样，界面报的就是一句"可能不太一样"式的空话（§159）。
-  await expect(kindNote).toContainText('这一格只有一条投影链');
+  // 那句话要点得出这四样：产物跑的是哪条链、这一型在平台上该跑哪条、产物里带了引擎的是哪几条、
+  // 状态表这一型的原话是哪一句。少了任何一样，界面报的就是一句"可能不太一样"式的空话（§159）。
+  await expect(kindNote).toContainText('那条链在这份产物里没有引擎');
   await expect(kindNote).toContainText('视觉小说');
   await expect(kindNote).toContainText('那句里的东西不在这份产物里');
+  // 第二条链落地后这一栏列出的是两条：把它写全，界面才不是"只有一条链"那句旧话
+  await expect(kindNote).toContainText('RPG 那条链');
+  // 错位那一型拿到的仍是一份 2D 投影：读数照旧说，不许因为有警告就把读数省掉
+  await expect(chainLine).toHaveAttribute('data-game-code-chain', 'topdown');
   await kindNote.scrollIntoViewIfNeeded();
   await expect(kindNote).toBeInViewport();
   await page.screenshot({ path: 'screenshots/game-code-kind-mismatch.png' });
@@ -4094,4 +4112,35 @@ test('@smoke 游戏：生成可玩产物，点一个文件真的落盘，整份�
   const backPath = await (await backEvent).path();
   if (!backPath) throw new Error('换回 2D 后 README 没落到磁盘');
   expect((await readFile(backPath)).toString('utf8')).toContain('界面上的画布读的就是这一份');
+
+  /**
+   * 第二条链也要在真浏览器里走通：换成 RPG 原型那一型，产物里就必须真的多一段成长循环的转写。
+   * 上一版这一型只能说出"对不上"，§52 第二条链之后它要说的是"带上了"，所以钉四样：
+   * 界面上那句读数换成 rpg、错位警告自己消失、落盘的 engine.js 里有 `NexusRpg` 那一段、
+   * README 多出的那条是成长那条。单元测试只钉拼接的形状，这里量的是用户拿走的那一份字节。
+   */
+  await page.selectOption('[data-game-kind]', 'rpg-prototype');
+  await expect(page.locator('[data-game-code-behind]')).toHaveCount(0, { timeout: 90_000 });
+  await page.click('[data-game-code-run]');
+  await expect(page.locator('[data-game-code-file]').first()).toBeVisible({ timeout: 30_000 });
+  await expect(chainLine).toHaveAttribute('data-game-code-chain', 'rpg');
+  await expect(chainLine).toContainText('RPG 那条链');
+  await expect(page.locator('[data-game-code-kind]')).toHaveCount(0);
+  const engineEvent = page.waitForEvent('download');
+  await page.click('[data-game-code-file="engine.js"]');
+  const enginePath = await (await engineEvent).path();
+  if (!enginePath) throw new Error('engine.js 没落到磁盘');
+  const engine = (await readFile(enginePath)).toString('utf8');
+  expect(engine, '标了 RPG 的那一份产物里没有成长循环那一段转写').toContain('var NexusRpg = {');
+  expect(engine, '成长那一段的曲线数没读 plan.growth，是在模板里重打的').toContain('plan.growth.xpBase');
+  const rpgReadmeEvent = page.waitForEvent('download');
+  await page.click('[data-game-code-file="README.txt"]');
+  const rpgReadmePath = await (await rpgReadmeEvent).path();
+  if (!rpgReadmePath) throw new Error('RPG 那份 README 没落到磁盘');
+  const rpgReadme = (await readFile(rpgReadmePath)).toString('utf8');
+  expect(rpgReadme).toContain('画布读的是同一份 2D 计划');
+  expect(rpgReadme).toContain('- 成长：NexusRpg');
+  await chainLine.scrollIntoViewIfNeeded();
+  await expect(chainLine).toBeInViewport();
+  await page.screenshot({ path: 'screenshots/game-code-rpg-chain.png' });
 });

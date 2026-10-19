@@ -4,7 +4,7 @@ import { GET as generateCode } from '../src/app/api/projects/[projectId]/game/co
 import { GET as generateZip } from '../src/app/api/projects/[projectId]/game/code/zip/route';
 import { SESSION_COOKIE } from '../src/server/domain/session';
 import { gameDraft } from '../src/lib/agent-game-draft';
-import { addEntity, codeKindReadings, generateGameCode, type GameDocument } from '@nexus/game-model';
+import { addEntity, ARTIFACT_CHAINS, codeKindReadings, generateGameCode, type GameDocument } from '@nexus/game-model';
 import { GameDocumentSchema } from '@nexus/schemas';
 import { MAX_CODE_JSON_BYTES, MAX_CODE_ZIP_BYTES } from '../src/server/domain/gameCode';
 import { readZip } from '../src/lib/zip-read';
@@ -22,8 +22,10 @@ import { projects, sessions, users } from '../src/server/db/schema';
  *    这个端点只读、不需要 CSRF， Admission 走会话 cookie 与项目归属；
  * ③ 产物字节数如实报出来，超过上限回 413 而不是塞一份无界 JSON；
  * ④ 别人的项目与"不存在"同一个答案（项目归属判定，404）；
- * ⑤ 库里那份设计标的类型走的不是产物那条链时，那句话要随响应一起出来，
- *    且与 README / index.html 里的是同一个字符串（界面上那三处不许各写一遍）。
+ * ⑤ 库里那份设计标的类型**在产物里有没有对应的引擎**：有（2D 五种、RPG 原型）时不许留一句空警告，
+ *    没有（对话两型）时那句话要随响应一起出来，且与 README / index.html 里的是同一个字符串
+ *    （界面上那三处不许各写一遍）。§52 第二链落地后，`rpg-prototype` 归入"有引擎"那一边，
+ *    见证同时要求 `plan.json` 里的 growth 与 `engine.js` 里那段转写都在——只改文案不改字节也算谎。
  */
 
 const jar = vi.hoisted(() => new Map<string, string>());
@@ -126,6 +128,7 @@ describe('§52 Code 出口：把库里那份设计投影成拿得走的产物', 
       bytes: number;
       limits: string[];
       kindPipeline: string | null;
+      artifactChain: string;
       kindNote: string | null;
     };
     expect(parsed.ok).toBe(true);
@@ -166,18 +169,50 @@ describe('§52 Code 出口：把库里那份设计投影成拿得走的产物', 
     expect(parsed.limits.join('')).toContain('connect-src');
 
     /**
-     * 这份底稿标的是 `rpg-prototype`（`gameDraft` 的配方就是这一型），而产物只会跑 `compileGame`
-     * 那条 2D 俯视链。响应必须把错位说出来，而且说的就是生成器那一份字节——
-     * 路由自己新写一句、或者面板自己拼一句，都会在这一条红（三处同一句是 §16 的要求）。
+     * 这份底稿标的是 `rpg-prototype`（`gameDraft` 的配方就是这一型），而 §52 第二链之后
+     * 产物**真的带了那条引擎**：`artifactChain` 是 rpg、`kindNote` 是 null、plan.json 里多出 growth。
+     * 这一条钉的是"补齐之后不许还留着一句错位话"，也不许只在响应里改一句文案——
+     * 数据（growth）与代码（NexusRpg 那段转写）都得真的在包里，界面上那句才是有对应用语境的。
      */
     const reading = codeKindReadings(design);
-    expect(reading.kindPipeline, '这份底稿的类型本该不是产物那条链').not.toBe('topdown');
+    expect(reading.kindPipeline, '这一型在平台上读的是成长那条链').toBe('rpg');
     expect(parsed.kindPipeline).toBe(reading.kindPipeline);
+    expect(parsed.artifactChain).toBe(reading.artifactChain);
+    expect(parsed.kindNote, '链对上了还说话就是谎').toBeNull();
     expect(parsed.kindNote).toBe(reading.kindNote);
+    const growth = (plan as { growth?: { xpBase: number; enemyXp: unknown[] } }).growth;
+    expect(growth, '产物里没有成长层那份数：下载的这份跑不出等级与经验').toBeTruthy();
+    expect(growth!.enemyXp.length).toBe(plan.enemies.length);
+    const engine = parsed.files.find((f) => f.path === 'engine.js')!.contents;
+    expect(engine, 'engine.js 少了那段转写，growth 那份数就没有读它的代码').toContain('NexusRpg');
+    expect(parsed.files.find((f) => f.path === 'README.txt')!.contents).toContain(ARTIFACT_CHAINS.rpg.dataNote);
+  });
+
+  it('没接进产物的那一型（对话）：错位那句话随响应一起出来，三处同一句', async () => {
+    const projectId = await newProject('有游戏-对话');
+    const story: GameDocument = { ...sampleGame(projectId), kind: 'visual-novel' };
+    await saveGame(projectId, owner, story);
+
+    const res = await call(projectId, asUser(ownerToken));
+    const text = await res.text();
+    expect(res.status, text).toBe(200);
+    const parsed = JSON.parse(text) as {
+      files: { path: string; contents: string }[];
+      kindPipeline: string | null;
+      artifactChain: string;
+      kindNote: string | null;
+    };
+    const reading = codeKindReadings(story);
+    expect(parsed.kindPipeline).toBe(reading.kindPipeline);
+    // 链没落上的类型落回 topdown 那份投影，而这件事由 kindNote 说出，不由界面猜
+    expect(parsed.artifactChain).toBe('topdown');
+    expect(parsed.kindNote, '这一型在产物里没有引擎，必须说出来').toBe(reading.kindNote);
     for (const path of ['README.txt', 'index.html']) {
       const body = parsed.files.find((f) => f.path === path)!.contents;
       expect(body, `${path} 里没有那句错位说明`).toContain(parsed.kindNote!);
     }
+    // 那句"画布读的就是这一份"讲的是平台界面，对这一型不成立，不许留在 README 里
+    expect(parsed.files.find((f) => f.path === 'README.txt')!.contents).not.toContain(ARTIFACT_CHAINS.topdown.dataNote);
   });
 
   it('这一型读的就是产物那条链：响应里不许留一句空的警告', async () => {
@@ -188,15 +223,26 @@ describe('§52 Code 出口：把库里那份设计投影成拿得走的产物', 
     const res = await call(projectId, asUser(ownerToken));
     const text = await res.text();
     expect(res.status, text).toBe(200);
-    const parsed = JSON.parse(text) as { files: { path: string; contents: string }[]; kindPipeline: string | null; kindNote: string | null };
+    const parsed = JSON.parse(text) as {
+      files: { path: string; contents: string }[];
+      kindPipeline: string | null;
+      artifactChain: string;
+      kindNote: string | null;
+    };
     expect(parsed.kindPipeline).toBe('topdown');
+    expect(parsed.artifactChain).toBe('topdown');
     expect(parsed.kindNote).toBeNull();
     // 没有警告不等于没有话可说：README 回到那句真话，页面里也不许有一个空的下架位
     const readme = parsed.files.find((f) => f.path === 'README.txt')!.contents;
-    expect(readme).toContain('界面上的画布读的就是这一份');
+    expect(readme).toContain(ARTIFACT_CHAINS.topdown.dataNote);
     expect(parsed.files.find((f) => f.path === 'index.html')!.contents).not.toContain('kind-note');
-    // 反向对照：同一份文档只改 `kind` 这一格，警告就该出现——证明上面那句 null 不是恒为 null
-    const shifted = codeKindReadings({ ...flat, kind: 'rpg-prototype' });
+    expect(parsed.files.find((f) => f.path === 'engine.js')!.contents).not.toContain('NexusRpg');
+    // 反向对照一：同一份文档只改 `kind` 那一格换成 rpg，警告仍不该有，但引擎该多一段
+    const asRpg = generateGameCode({ ...flat, kind: 'rpg-prototype' });
+    expect(asRpg.kindNote).toBeNull();
+    expect(asRpg.files.find((f) => f.path === 'engine.js')!.contents).toContain('NexusRpg');
+    // 反向对照二：换成对话那一型（产物里没它的引擎），警告就该出现——证明上面那句 null 不是恒为 null
+    const shifted = codeKindReadings({ ...flat, kind: 'visual-novel' });
     expect(shifted.kindNote).not.toBeNull();
   });
 

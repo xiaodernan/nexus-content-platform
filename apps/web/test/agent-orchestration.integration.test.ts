@@ -1,6 +1,7 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { eq, inArray } from 'drizzle-orm';
 import {
+  artifactChainSentence,
   codeKindReadings,
   combatGoals,
   compileRpg,
@@ -698,18 +699,28 @@ describe('§112 多步编排的执行方', () => {
     expect(code.notes.join('')).toContain('没有真 provider');
     expect(code.notes.join('')).toContain('不写库');
     /**
-     * 链上那份草稿标的是 `rpg-prototype`，而产物今天只跑 `compileGame` 那条 2D 俯视链。
-     * 这句话必须由生成器供给、原样进 notes（上一版这里只报"投影出 N 份文件"，读起来像拿走的
-     * 就是试玩页那一份，而它没有成长循环——§159）。这里用**另一次调用**的读数当分母，
-     * 所以"抄了一份乐观文案"与"这一步自己新写一句"两种做法都红。
+     * 链上那份草稿标的是 `rpg-prototype`。§52 第二条链落地后，产物里**就有**这一型的引擎（`NexusRpg`），
+     * 所以这一格念的是链名而不是错位：`kindNote` 为 null、`kindMismatch` 为 0，
+     * 而那一句恒在的读数必须与生成器同一次调用给出的 `artifactChain` 一致——上一版这里钉的是"有错位要说"，
+     * 那一半现在由下面那条注入对话型的用例来钉（§16：同一份模型的两个出口不许各说各话）。
      */
-    expect(projection.kindPipeline).not.toBe('topdown');
-    expect(projection.kindNote, '底稿这一型本该有错位那句话').toBeTruthy();
-    expect(code.notes).toContain(projection.kindNote);
-    expect(code.counts.kindMismatch).toBe(1);
+    expect(projection.kindPipeline, '配方那份标的就是 RPG 那一型').toBe('rpg');
+    expect(projection.artifactChain).toBe('rpg');
+    expect(projection.kindNote, '这一型今天有引擎了：不许再念一句错位').toBeNull();
+    expect(code.counts.kindMismatch, '没有错位却记一笔，界面上那句话就是编的').toBe(0);
+    expect(code.notes).toContain(artifactChainSentence(projection.artifactChain));
+    expect(code.summary).toContain(`这份产物跑的是 ${projection.artifactChain}`);
     expect(code.summary).toContain(`这份设计标的是 ${projection.kindPipeline}`);
-    // 正向对照：同一份草稿若读的就是产物那条链，这句话与这个计数都要消失
-    expect(codeKindReadings({ ...(level.draft as GameDocument), kind: '2d' }).kindNote).toBeNull();
+    // "没错位时不许硬说一句"的判据从状态表取（八句里一句都不许出现在 notes 里），不手抄生成器那句文案
+    const tableSentences = GAME_KINDS.map((kind) => GAME_KIND_STATUS[kind].note);
+    expect(code.notes.filter((note) => tableSentences.some((sentence) => note.includes(sentence)))).toEqual([]);
+    /**
+     * 反向对照：同一份字节只把 `kind` 换成对话那一型，那句话就又回来了——
+     * 证明上面那个 `null` 是这一型真的有引擎，不是 `kindNote` 恒为 null。
+     */
+    const shifted = codeKindReadings({ ...(level.draft as GameDocument), kind: 'visual-novel' });
+    expect(shifted.kindNote, '对话那一型在产物里仍没有引擎：这句话必须说得出').not.toBeNull();
+    expect(shifted.artifactChain, '没有引擎的那一型拿到的是一份 2D 投影').toBe('topdown');
     /**
      * 这一格**不产草稿**：它是投影，不是链上又一份"可接受的设计"。
      * 产了就会出现第四份可接的东西，而接受入口的缺省档位（最后一个留草稿的步骤）会悄悄从 level 挪到投影上。
@@ -718,10 +729,9 @@ describe('§112 多步编排的执行方', () => {
     expect(await countGames(projectId), '投影把产物写进了项目').toBe(0);
   });
 
-  it('上游那份若标的就是产物那条链：这句话与这个计数都要消失', async () => {
-    // 上面那条钉的是"有错位要说"，这一条钉它的另一半：**没错位时不许硬说一句**。
-    // 注入一份 `kind: '2d'` 的 level 草稿（其余字节与配方那份相同），投影那条链正好是它读的那条。
-    // 少了这一条，`kindMismatch` 写死成 1、notes 无条件塞一句话这种实现都能全绿。
+  it('另一条带了引擎的链（2D）也不许念错位：念的那一句是链名，两型各读各的', async () => {
+    // 上面那条钉的是配方那份（RPG），这一条钉产物里另一条链：注入一份 `kind: '2d'` 的 level 草稿
+    // （其余字节与配方那份相同）。少了这一条，"只有 rpg-prototype 硬编码成有引擎"那种实现也能全绿。
     const projectId = await newProject('编排第五格无错位');
     const flat = { ...gameDraft({ goal: '为这一格造一份 2D 设计', at: '2026-01-01T00:00:00.000Z', seed: 'flat-2d' }), kind: '2d' } as GameDocument;
     const result = await runReadinessCheck({
@@ -736,18 +746,56 @@ describe('§112 多步编排的执行方', () => {
     expect(code.status).toBe('done');
     const projection = generateGameCode(flat);
     expect(projection.kindPipeline).toBe('topdown');
+    expect(projection.artifactChain).toBe('topdown');
     expect(projection.kindNote).toBeNull();
     expect(code.counts.kindMismatch).toBe(0);
     expect(code.summary).toContain('这份设计标的是 topdown');
+    expect(code.summary).toContain('这份产物跑的是 topdown');
+    expect(code.notes).toContain(artifactChainSentence('topdown'));
     // 不许有错位那句话：判据从状态表取（八个类型的那八句里，一句都不许出现在 notes 里），
     // 而不是手抄生成器那句文案——抄的那一份明天就跟着表格一起烂
     const tableSentences = GAME_KINDS.map((kind) => GAME_KIND_STATUS[kind].note);
     expect(code.notes.filter((note) => tableSentences.some((sentence) => note.includes(sentence)))).toEqual([]);
     // 限度那四句仍要在：这一条改的是"错位那句话有没有"，不是把整串 notes 清空
     expect(code.notes.filter((note) => CODEGEN_LIMITS.includes(note))).toHaveLength(CODEGEN_LIMITS.length);
-    // 正向对照：同一份字节只把 `kind` 换回 rpg-prototype，那句话就又有了（计数跟着变 1）
-    const shifted = codeKindReadings({ ...flat, kind: 'rpg-prototype' });
+    // 反向对照：同一份字节只把 `kind` 换成对话那一型，那句话就又有了（计数跟着变 1）
+    const shifted = codeKindReadings({ ...flat, kind: 'visual-novel' });
     expect(shifted.kindNote).not.toBeNull();
+    expect(await countGames(projectId)).toBe(0);
+  });
+
+  it('链上那份标的真是产物没接的那一型：错位那句话原样进 notes，计数跟着变 1', async () => {
+    // 这一条钉的是上面两条的另一半：**有错位时必须说得出**，而且说的还是生成器那一份字节。
+    // 对话那一型今天没有产物引擎（`ARTIFACT_CHAINS` 里只有 topdown 与 rpg），
+    // 所以拿一份 `kind: 'interactive-story'` 的草稿投进这一格，notes 里必须出现那句、计数必须是 1。
+    // 少了这一条，`kindMismatch` 写死成 0、notes 恒不塞那句话的实现也能全绿。
+    const projectId = await newProject('编排第五格有错位');
+    const story = {
+      ...gameDraft({ goal: '为这一格造一份对话设计', at: '2026-01-01T00:00:00.000Z', seed: 'flat-story' }),
+      kind: 'interactive-story',
+    } as GameDocument;
+    const result = await runReadinessCheck({
+      projectId,
+      actorId: owner,
+      goal: '这一份标的就是对话',
+      runners: { level: async () => ({ summary: '探针：交一份对话草稿', counts: { entities: story.entities.length }, notes: [], draft: story }) },
+    });
+    if (!result.ok) throw new Error(`不该拒收：${result.refusal.message}`);
+
+    const code = result.steps.find((step) => step.id === 'code')!;
+    expect(code.status).toBe('done');
+    const projection = generateGameCode(story);
+    expect(projection.kindPipeline).toBe('story');
+    expect(projection.artifactChain, '没有引擎的那一型拿到的是一份 2D 投影').toBe('topdown');
+    expect(projection.kindNote, '这一型在产物里确实没有引擎：那句话必须说得出').not.toBeNull();
+    // 原样进 notes，不是这一格另写一句乐观文案；用另一次调用的读数当分母
+    expect(code.notes).toContain(projection.kindNote);
+    expect(code.counts.kindMismatch).toBe(1);
+    expect(code.summary).toContain('这份设计标的是 story');
+    // 链名那一句仍然要说：错位不等于没有读数，作者得知道拿走的那一份跑的是什么
+    expect(code.notes).toContain(artifactChainSentence(projection.artifactChain));
+    // 那句里带着状态表对这一型的原话（三处共用同一句，不是这一格重打的）
+    expect(projection.kindNote).toContain(GAME_KIND_STATUS['interactive-story'].note);
     expect(await countGames(projectId)).toBe(0);
   });
 
