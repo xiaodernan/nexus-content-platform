@@ -471,7 +471,20 @@ try {
       : recSite.has(n)
         ? `${n} carried only by the version label in ${recSite.get(n)}`
         : `${n} carried by no file outside the ledger`);
-    return { headings, explicit, recorded, dangling, nowhere, onlyCode, site, recSite, hole, titled, titleSites, multiTitle, credit, window };
+    // A number GRANTED twice is a ledger defect the `headings` Map cannot see: `set` overwrites, so a collision
+    // leaves 253 entries for 254 granting headings and every reader downstream believes there is one grant.
+    // Measured 2026-10-20: 254 granting headings, 253 unique numbers, exactly one collision (258 — this lane's
+    // gate grant and another lane's lineage grant). Named, not refused, for the same reason the older holes are
+    // named: the current cycle may not own the duplicate, and a refusal it cannot satisfy is a blocked door.
+    const grantCounts = new Map();
+    for (const line of adrCopy.split('\n')) {
+      const m = /^#{2,3} Amendment (\d+)(?![\d.])(.*)$/.exec(line);
+      if (!m || ADDENDUM_TAIL.test(m[2])) continue;
+      const n = Number(m[1]);
+      grantCounts.set(n, (grantCounts.get(n) ?? 0) + 1);
+    }
+    const collisions = [...grantCounts].filter(([, c2]) => c2 > 1).map(([n]) => n).sort((a, b) => a - b);
+    return { headings, explicit, recorded, dangling, nowhere, onlyCode, site, recSite, hole, titled, titleSites, multiTitle, credit, window, collisions };
   };
   // The containment is a property of the two readers, so every census this section produces is checked with
   // it — including the mutants. An assertion that is only ever run on the baseline is vacuous the day the
@@ -488,8 +501,22 @@ try {
   checkContainment(c, 'the measured baseline');
   assert.deepEqual(c.dangling, [], `${c.dangling.length} tracked file(s) cite an amendment number ADR 0016 never granted, so the reader is sent to a record that does not exist:\n${c.dangling.map((n) => `  amendment ${n} cited by ${c.site.get(n)}`).join('\n')}`);
   assert.equal(refusal(c), null, `this run is refused: the newest grant ${newestGrant(c)} is named by no record TITLE in ${corpus.length} corpus files, so an amendment entered the ledger and no README section or proof header carries it. Write its record — do not delete this assertion, which is the whole point of the door.`);
-  console.log(`[§7] ledger headings ${c.headings.size} · record corpus ${corpus.length} files (docs/evidence + ROADMAP; other ADRs excluded) · titles read POSITIONALLY (a doc heading, or the line that opens a module) · dangling explicit citations 0 · the newest grant ${newestGrant(c)} IS titled, which the refusal below proves is a real condition and not a free pass · one-sided read TWO ways: no mention at all ${c.nowhere.length}, no record TITLE ${c.hole.length} [${c.hole.join(', ')}] — the older holes are NAMED here and left to a cycle that can write their records honestly, and what each one has now is: ${c.hole.map((n) => c.credit(n)).join(' · ') || 'none'} · explicit citations kept only in code, never in a doc: ${c.onlyCode.join(', ') || 'none'}`);
+  console.log(`[§7] ledger headings ${c.headings.size} · record corpus ${corpus.length} files (docs/evidence + ROADMAP; other ADRs excluded) · titles read POSITIONALLY (a doc heading, or the line that opens a module) · dangling explicit citations 0 · the newest grant ${newestGrant(c)} IS titled, which the refusal below proves is a real condition and not a free pass · one-sided read TWO ways: no mention at all ${c.nowhere.length}, no record TITLE ${c.hole.length} [${c.hole.join(', ')}] — the older holes are NAMED here and left to a cycle that can write their records honestly, and what each one has now is: ${c.hole.map((n) => c.credit(n)).join(' · ') || 'none'} · explicit citations kept only in code, never in a doc: ${c.onlyCode.join(', ') || 'none'} · numbers GRANTED TWICE (a Map-keyed census would hide this): ${c.collisions.join(', ') || 'none'}`);
   {
+    // A duplicated GRANTING heading must be NAMED — the Map silently overwrites, so without this arm a collision
+    // is invisible to every reader of this census (measured: 254 granting headings, 253 unique numbers).
+    //
+    // The mutation has to reach the LEDGER, not the corpus: the collision census counts the GRANTING headings of
+    // the ADR copy this census was handed, while the `edit` hook reaches the CORPUS files (that is what makes
+    // the dangling arm able to plant a citation in any file). The first version of this arm planted the second
+    // heading through the corpus hook, so the census it asked never saw it and the arm reported
+    // "MUTATION SURVIVED" for a mutation it had not actually performed.
+    const dupNum = Math.max(...c.headings.keys());
+    assert.ok(!c.collisions.includes(dupNum), `${dupNum} is already a collision in the baseline, so this arm cannot show the reader found the one it adds`);
+    const dupCensus = census(`${adrText}\n### Amendment ${dupNum} — a SECOND grant of the same number (in memory only)\n`, null);
+    assert.ok(dupCensus.collisions.includes(dupNum), `MUTATION SURVIVED: a second GRANTING heading for ${dupNum} is not named as a collision`);
+    assert.ok(dupCensus.collisions.length === 1, `the planted collision is the ONLY one the census names, so the reader is not flagging every heading it can see — got [${dupCensus.collisions.join(', ')}]`);
+    console.log(`  caught  a second GRANTING heading for ${dupNum} in memory → named as a collision (the headings Map would have overwritten it silently)`);
     const fresh = Math.max(...c.headings.keys()) + 700;
     const one = census(adrText, (_p, t) => t + `\nSee ADR 0016 amendment ${fresh} for the rule.\n`);
     assert.ok(one.dangling.includes(fresh), `MUTATION SURVIVED: a doc citing amendment ${fresh}, which no heading grants, is not named as dangling`);
