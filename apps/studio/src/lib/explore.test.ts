@@ -121,4 +121,10 @@ describe('explore — the gallery of published work (M7 v241)', () => {
     const html = renderExploreHtml([item(), item({ projectId: 'pub-2' })], { count: 5, limit: 24 });
     expect(html).toContain('2 publication(s) shown');
   });
+
+  it('escapes caller-controlled reason in the unavailable page', () => {
+    const html = renderExploreUnavailable('<script>alert(1)</script>');
+    expect(html).not.toContain('<script>alert(1)</script>');
+    expect(html).toContain('&lt;script&gt;alert(1)&lt;/script&gt;');
+  });
 });
