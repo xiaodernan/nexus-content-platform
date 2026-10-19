@@ -296,3 +296,12 @@ draw → render; the Studio links `/explore`), §4 the §60 audit (the renderer 
 with `artifact.ts`). Studio 509 → 516 (33 → 34 files), `tsc` 0. Bounds: one thumbnail per row from a SECOND
 read (the listing has no documents), so the page costs `1 + N` calls and caps at 24; no paging, no search, no
 sort but the service's newest-first, and no byline (M7 still has no accounts on a publication).
+
+## The ACCOUNT FACE — the panel that finally sets the current-device account (M7 v259 — ADR 0016 amendment 259)
+
+Amendment 252 gave this device a persisted `AccountRecord` and the publish lane learned to send it as an owner CLAIM — but nothing in the product could SET one (`setCurrentAccount` had no caller), so the claim could only ever be built for an account no user could create.
+
+`apps/studio/src/lib/accountSession.ts` composes `accounts.ts`'s pure rules with `currentAccount.ts`'s storage boundary into four verbs — `register`, `rename`, `signOut`, `current` — with the clock, randomness and store injected. `register` REFUSES when an account is already set (`sign out first`) rather than silently replacing it; `rename` pins id/handle/`createdAt`/`assurance`; the device SEED is kept across `signOut`, so re-registering the same handle yields the SAME id. `AccountPanel.tsx` holds no storage logic — every verb is a session call and every refusal is shown verbatim — and renders `assurance: 'unsigned-local'` from the record, because ADR 0018 says a "signed in" badge would be a lie. `Toolbar.tsx` gains the account control (👤).
+
+Measured: `accountSession.test.ts` **13/13**; `apps/studio` **817/817** (43 files); `tsc` exit 0. The suite had been committed **before** the module it imports, so HEAD did not typecheck and could not collect it — the grant is only real once `accountSession.ts` is in the tree, and it is. Bound: no DOM harness, so the wiring `Toolbar → AccountPanel → accountSession` is type-checked only; the exercised boundary is the storage one behind the session.
+

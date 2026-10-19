@@ -5,6 +5,7 @@ import { exportCanvasPng, exportHtml, exportJson, slug } from '@/lib/export';
 import { listPublished, probePublish, publishProject, unpublish, type PublishLaneListing, type PublishLaneProbe } from '@/lib/publishLane';
 import { remixProject } from '@/lib/remixLane';
 import { useStudio, type Tool } from '@/lib/store';
+import { AccountPanel } from './AccountPanel';
 
 const TOOLS: { id: Tool; label: string; icon: string; key: string }[] = [
   { id: 'select', label: 'Move', icon: '↖', key: 'V' },
@@ -45,6 +46,7 @@ export default function Toolbar() {
   const [service, setService] = useState<PublishLaneProbe | null>(null);
   const [publishNote, setPublishNote] = useState('');
   const [publishing, setPublishing] = useState(false);
+  const [showAccount, setShowAccount] = useState(false);
 
   useEffect(() => {
     let live = true;
@@ -258,6 +260,9 @@ export default function Toolbar() {
           Explore
         </a>
         <button className="btn" onClick={newProject}>New</button>
+        <button className="btn" onClick={() => setShowAccount(!showAccount)} title="Account">
+          👤
+        </button>
         <button className="btn btn-primary" onClick={() => setPreview(true)}>Preview</button>
       </div>
 
@@ -347,6 +352,23 @@ export default function Toolbar() {
               </div>
             </>
           )}
+        </div>
+      )}
+      {showAccount && (
+        <div
+          data-toolbar-account
+          style={{
+            position: 'fixed',
+            top: 54,
+            right: 16,
+            zIndex: 41,
+            background: 'var(--nexus-panel, #12151b)',
+            border: '1px solid var(--nexus-border, #262b34)',
+            borderRadius: 6,
+            boxShadow: '0 8px 24px rgba(0,0,0,0.35)',
+          }}
+        >
+          <AccountPanel onClose={() => setShowAccount(false)} />
         </div>
       )}
     </header>
