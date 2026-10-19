@@ -168,3 +168,15 @@ export function reportsByReason(reports: ReadonlyArray<Report>): Record<Report['
   for (const r of reports) out[r.reason].push(r);
   return out;
 }
+
+/** 把举报按状态分组，供客户端按状态分栏展示（与 reportsByReason 对称）。不改原数组。 */
+export function reportsByStatus(reports: ReadonlyArray<Report>): Record<Report['status'], Report[]> {
+  const out: Record<Report['status'], Report[]> = {
+    open: [],
+    reviewed: [],
+    resolved: [],
+    rejected: [],
+  };
+  for (const r of reports) out[r.status].push(r);
+  return out;
+}

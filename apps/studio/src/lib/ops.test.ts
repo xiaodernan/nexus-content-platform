@@ -13,6 +13,7 @@ import {
   reportStatusText,
   auditEntriesByAction,
   reportsByReason,
+  reportsByStatus,
 } from './ops';
 import type { AuditEntry, Report } from './ops';
 
@@ -235,5 +236,39 @@ describe('ops — reportsByReason', () => {
     expect((byReason.harassment ?? []).map((r) => r.id)).toEqual(['r-2']);
     expect((byReason.illegal ?? []).length).toBe(0);
     expect(reports.length).toBe(3);
+  });
+});
+
+describe('ops — reportsByStatus', () => {
+  const report: Report = {
+    id: 'r-1',
+    reporterId: 'u-1',
+    targetId: 'art-1',
+    reason: 'spam',
+    detail: 'd',
+    status: 'open',
+    createdAt: 1_700_000_000_000,
+  };
+  const reports: Report[] = [
+    { ...report, id: 'r-1', status: 'open' },
+    { ...report, id: 'r-2', status: 'reviewed' },
+    { ...report, id: 'r-3', status: 'open' },
+    { ...report, id: 'r-4', status: 'resolved' },
+    { ...report, id: 'r-5', status: 'rejected' },
+  ];
+
+  it('buckets every report by status without mutating input', () => {
+    const byStatus = reportsByStatus(reports);
+    expect(byStatus.open.map((r) => r.id)).toEqual(['r-1', 'r-3']);
+    expect(byStatus.reviewed.map((r) => r.id)).toEqual(['r-2']);
+    expect(byStatus.resolved.map((r) => r.id)).toEqual(['r-4']);
+    expect(byStatus.rejected.map((r) => r.id)).toEqual(['r-5']);
+    expect(reports.length).toBe(5);
+  });
+
+  it('every status key exists even for an empty list', () => {
+    const byStatus = reportsByStatus([]);
+    expect(Object.keys(byStatus).sort()).toEqual(['open', 'rejected', 'resolved', 'reviewed']);
+    expect(byStatus.open).toEqual([]);
   });
 });
