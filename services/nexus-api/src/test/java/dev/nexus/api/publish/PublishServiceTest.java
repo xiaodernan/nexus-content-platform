@@ -46,12 +46,17 @@ class PublishServiceTest {
     @Mock
     private PublishedProjectRepository repository;
 
+    /** v271 — the AUDIT TRAIL the service writes into. A mock, because these cases grade the publication
+     *  rules; the trail's own rules are graded in {@code AuditServiceTest}. */
+    @Mock
+    private dev.nexus.api.ops.AuditService audit;
+
     private PublishService service;
 
     @BeforeEach
     void setUp() {
         Clock clock = Clock.fixed(PUBLISHED_AT, ZoneOffset.UTC);
-        service = new PublishService(repository, new ObjectMapper(), clock);
+        service = new PublishService(repository, new ObjectMapper(), clock, audit);
     }
 
     // ── rule 4: create once, then update ────────────────────────────────────────────────────────────
@@ -203,7 +208,7 @@ class PublishServiceTest {
         // digits of precision the database had already dropped. A publication's instant is what was
         // RECORDED, so it is truncated before it is stored.
         Instant nanosecondPrecise = Instant.parse("2026-10-07T15:19:01.824829200Z");
-        PublishService nanoService = new PublishService(repository, new ObjectMapper(), Clock.fixed(nanosecondPrecise, ZoneOffset.UTC));
+        PublishService nanoService = new PublishService(repository, new ObjectMapper(), Clock.fixed(nanosecondPrecise, ZoneOffset.UTC), audit);
         when(repository.findById("doc-1")).thenReturn(Optional.empty());
         when(repository.save(any(PublishedProject.class))).thenAnswer(i -> i.getArgument(0));
 
@@ -666,5 +671,71 @@ class PublishServiceTest {
 
         assertThat(saved.hasOwner()).isTrue();
         assertThat(saved.getOwnerAccountId()).isEqualTo("acct-ada");
+    }
+
+    // === v271: the AUDIT TRAIL — what the publication verbs DID ===
+
+    /**
+     * v271 — the trail records what happened, and it records the actor exactly as it was received: a claim
+     * carries an account id, a handle and an assurance, and an ANONYMOUS publish carries none.
+     */
+    @Test
+    void publishingRecordsAnAuditEntryWithTheClaimAsItsActor() {
+        when(repository.findById("doc-1")).thenReturn(Optional.empty());
+        when(repository.save(any(PublishedProject.class))).thenAnswer(i -> i.getArgument(0));
+
+        service.publish("doc-1", "T", VALID_DOCUMENT, new OwnerClaim("acct-ada", "ada", "unsigned-local", CLAIMED_AT_MS));
+
+        verify(audit).record("publish", "acct-ada", "ada", "unsigned-local", "doc-1");
+    }
+
+    @Test
+    void anAnonymousPublishRecordsAnEntryWithNOActorRatherThanNoEntry() {
+        when(repository.findById("doc-1")).thenReturn(Optional.empty());
+        when(repository.save(any(PublishedProject.class))).thenAnswer(i -> i.getArgument(0));
+
+        service.publish("doc-1", "T", VALID_DOCUMENT, null);
+
+        // the entry EXISTS and says nobody did it: an audit trail that could not say "nobody" would have to
+        // invent an actor.
+        verify(audit).record("publish", null, null, null, "doc-1");
+    }
+
+    @Test
+    void aRepublishIsAnEventToo() {
+        PublishedProject existing = new PublishedProject("doc-1", "T", "{}", 1, PUBLISHED_AT);
+        when(repository.findById("doc-1")).thenReturn(Optional.of(existing));
+        when(repository.save(any(PublishedProject.class))).thenAnswer(i -> i.getArgument(0));
+
+        service.publish("doc-1", "T2", VALID_DOCUMENT, new OwnerClaim("acct-ada", "ada", "unsigned-local", CLAIMED_AT_MS));
+
+        verify(audit).record("publish", "acct-ada", "ada", "unsigned-local", "doc-1");
+    }
+
+    @Test
+    void aTakeDownRecordsAnEntryNamingOnlyTheAccountIdItWasGiven() {
+        when(repository.findById("doc-1")).thenReturn(Optional.of(new PublishedProject("doc-1", "T", "{}", 1, PUBLISHED_AT)));
+
+        service.unpublish("doc-1", "acct-ada");
+
+        // the request carried a CLAIMER, not a claim: the service never saw a handle or an assurance for it
+        // and records none rather than borrowing the publication's.
+        verify(audit).record("unpublish", "acct-ada", null, null, "doc-1");
+    }
+
+    @Test
+    void aREFUSEDTakeDownRecordsNothing() {
+        // the owner rule throws before anything is written, and the refusal is already in the response the
+        // caller received. The trail says what HAPPENED, not what was attempted.
+        // The row must be OWNED for the rule to bite: an ownerless row is open to anybody, and a take-down of
+        // one SUCCEEDS — which is the pre-v242 rule, and it is a different case (an earlier one).
+        PublishedProject owned = new PublishedProject("doc-1", "T", "{}", 1, PUBLISHED_AT);
+        owned.claimOwner("acct-ada", "ada", "unsigned-local", CLAIMED_AT);
+        when(repository.findById("doc-1")).thenReturn(Optional.of(owned));
+
+        assertThatThrownBy(() -> service.unpublish("doc-1", "acct-someone-else"), null)
+                .isInstanceOf(NotTheOwner.class);
+
+        verify(audit, never()).record(any(), any(), any(), any(), any());
     }
 }

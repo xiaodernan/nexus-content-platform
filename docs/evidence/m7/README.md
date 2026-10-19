@@ -413,3 +413,25 @@ Measured: `apps/studio` **857/857** (44 files); `@nexus/design-model` **51/51**;
 Measured: `services/nexus-api` **47/47** (43 + 4), BUILD SUCCESS; `apps/studio` **870/870** (45 files); `tsc` **exit 0**; the explore proof **ALL SECTIONS PASSED** (with a new §5b).
 
 **Bounds.** A profile is a **public list of what an account published** — not an identity page, and it carries no account of its own: no display name, no bio, no followers, no joined date, and no way to tell an unknown account from a silent one. The service **verifies nothing**, so the assurance beside the name says what the claim is worth and no more. The listing still **caps** at 24 rows with no paging and no search, and the page states the cap rather than implying the list is complete. There is no way to REMIX from a profile: the two doors a card carries are still `open` and `remix`.
+
+## v271 — the AUDIT TRAIL: the service records what the publication verbs DID (M9/v271 — ADR 0016 amendment 271)
+
+**The milestone this opens.** The ROADMAP has carried **M9 — NEXUS Ops** as "⬜ planned" since the project began, and its first words are "observability". An audit trail is the piece of observability that needs no agent, no incident and no patch: a record of what each publication verb did, in the order it did it. This is M9's **server-side** beginning.
+
+**A second table, and the reason it is a second table.** The publication row says what **IS**; the audit row says what **WAS DONE**. They change for different reasons: a publication is **REPLACED** on every re-publish, so it cannot hold a history, while an audit entry is **APPENDED** and never replaced.
+
+**Two rules.** (1) **Only SUCCESSFUL mutations are recorded** — a refused take-down throws before anything is written, and the refusal is already in the response the caller received. (2) **An entry with no actor is a real entry, not a missing one** — an anonymous publish names nobody, and a trail that could not say "nobody" would have to invent an actor.
+
+**The write JOINS the caller's transaction, and that is what makes rule (1) true.** The first draft used `REQUIRES_NEW` so an entry would survive a rolled-back publish — which is exactly wrong for a trail that claims to record what happened: an entry in its own transaction would record a publication that **never happened**.
+
+**The take-down names an account id and nothing else.** The request carried a **claimer**, not a claim, so the service never saw a handle or an assurance for it — and records none rather than borrowing the publication's.
+
+**The wire shape is the client's own `AuditEntry`, field for field** — the instant is epoch **MILLISECONDS** (the same unit the claim's instant travels in, per v263), and the assurance travels with the actor. **One honest difference:** the client's type says `actorId` and `assurance` are non-null, while the service sends **null** for an anonymous action. The service will not fake an actor to fit a type; the client's model will have to widen, and it belongs to a concurrent lane.
+
+**The door.** `GET /audit` — newest first, capped (20 by default, 100 the most), the count and the cap both reported.
+
+**What the suite found in ITSELF.** The first version of "a REFUSED take-down records nothing" built a row with **no owner** — and an ownerless row is open to anybody, so the take-down **succeeded** and the case went red. The refusal needs an **OWNED** row: that is the pre-v242 rule, and the case now says which row it meant.
+
+Measured: `services/nexus-api` **52/52** (47 + 5), BUILD SUCCESS; the publish proof **exit 0** with a new §11 that reads the trail back over HTTP from the real service and the real database — **10 entries**, the owned publication with exactly one publish and one unpublish entry (so the two **refused** take-downs recorded **nothing**), the anonymous publication with an entry that names **NOBODY**, the assurance travelling with the actor, the instant a real instant, and the trail newest first.
+
+**Bounds.** The trail records what **happened**, not what was attempted. The service verifies nothing, so the assurance beside an actor is the entry's own statement of what the claim was worth. Only **`publish` and `unpublish`** are recorded: the service's remix endpoint is unreachable from the Studio, and `follow` / `like` / `comment` / `tip` do not exist server-side at all. There is **no Studio surface for the trail yet** — the door exists and the client's model already matches its shape, and the panel that reads it is the next increment. The trail is append-only with no way to truncate it, and it will grow forever.

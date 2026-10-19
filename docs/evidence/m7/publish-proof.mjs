@@ -585,6 +585,42 @@ console.log('[§7] unpublish took the row out of the DATABASE (404 afterwards, 0
 
   console.log(`[§10] the OWNER CHAIN over the real service: a publish carrying a claim is OWNED (receipt and listing both name ${ownerAccountId}, assurance ${ownedBody.owner.assurance}, instant ${recordedRaw} — the client's own millisecond value); a take-down by another account is 403 not-the-owner, a take-down naming nobody is 403 too, and the OWNER's take-down is 200; a re-publish under a different account is 403 owner-taken while the same account's re-publish is 200/version 2; and a publish naming nobody stays ownerless and open to anybody, the pre-v242 rule intact`);
 
+
+  // ── §11 v271: the AUDIT TRAIL — what the publication verbs DID ──────────────────────────────────────
+  // The service now records an entry for every SUCCESSFUL publication verb. This section reads that trail
+  // back over HTTP, the same way every other claim in this proof is checked: against the real service, over
+  // a real database, not against a mock.
+  {
+    const trailResponse = await fetch(`${base}/audit`);
+    assert.equal(trailResponse.status, 200, `the audit door must answer 200, got ${trailResponse.status}`);
+    const trail = await trailResponse.json();
+    assert.ok(Array.isArray(trail.entries), 'the trail answers with entries');
+    const forOwned = trail.entries.filter((e) => e.targetId === ownedId);
+    assert.equal(forOwned.filter((e) => e.action === 'publish').length, 1, `the owned publication has exactly ONE publish entry, got ${forOwned.filter((e) => e.action === 'publish').length}`);
+    const ownerEntry = forOwned.find((e) => e.action === 'publish');
+    assert.equal(ownerEntry.actorId, ownerAccountId, 'the entry names the account the claim carried');
+    assert.equal(ownerEntry.assurance, 'unsigned-local', 'and the assurance travelled with it — a reader is told what the entry is worth');
+    assert.equal(forOwned.filter((e) => e.action === 'unpublish').length, 1, `the owned publication has exactly ONE unpublish entry: the two REFUSED take-downs recorded nothing, got ${forOwned.filter((e) => e.action === 'unpublish').length}`);
+    assert.equal(forOwned.find((e) => e.action === 'unpublish').actorId, ownerAccountId, 'and the take-down names the account that did it');
+
+    // An ANONYMOUS publish is a real event with NO actor — the trail says so rather than inventing one.
+    const anonymousEntry = trail.entries.find((e) => e.targetId === anonymousId && e.action === 'publish');
+    assert.ok(anonymousEntry, 'the anonymous publication has an entry');
+    assert.equal(anonymousEntry.actorId, null, 'and it names NOBODY — an audit trail that could not say "nobody" would have to invent an actor');
+    assert.equal(anonymousEntry.assurance, null, 'and no assurance, because no claim came with it');
+
+    // The instant is the client's own unit — epoch MILLISECONDS — and it is a real instant.
+    const now = Date.now();
+    assert.ok(Math.abs(now - ownerEntry.createdAt) < 60 * 60 * 1000, `the entry's instant ${ownerEntry.createdAt} is within an hour of now (${now})`);
+    assert.equal(typeof ownerEntry.id, 'string', 'the entry carries a string id');
+
+    // Newest first: the trail's head is the most recent event.
+    const stamps = trail.entries.map((e) => e.createdAt);
+    assert.deepEqual(stamps, [...stamps].sort((a, b) => b - a), 'the trail reads newest first');
+
+    console.log(`[§11] the AUDIT TRAIL over the real service: ${trail.entries.length} entr(y/ies) · the owned publication has one publish and one unpublish entry (the two REFUSED take-downs recorded NOTHING) · the anonymous publication has an entry that names NOBODY · the assurance travels with the actor · the instant is the client's own millisecond value · newest first`);
+  }
+
   // ── §9 teardown ─────────────────────────────────────────────────────────────────────────────────
   await stopService(serviceProcess);
   const rm = await run('docker', ['rm', '-f', DB_CONTAINER]);

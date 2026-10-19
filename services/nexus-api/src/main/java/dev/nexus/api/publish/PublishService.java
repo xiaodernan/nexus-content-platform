@@ -61,11 +61,17 @@ public class PublishService {
     private final PublishedProjectRepository repository;
     private final ObjectMapper objectMapper;
     private final Clock clock;
+    private final dev.nexus.api.ops.AuditService audit;
 
-    public PublishService(PublishedProjectRepository repository, ObjectMapper objectMapper, Clock clock) {
+    public PublishService(
+            PublishedProjectRepository repository,
+            ObjectMapper objectMapper,
+            Clock clock,
+            dev.nexus.api.ops.AuditService audit) {
         this.repository = repository;
         this.objectMapper = objectMapper;
         this.clock = clock;
+        this.audit = audit;
     }
 
     /**
@@ -149,6 +155,10 @@ public class PublishService {
                             + "; a caller that is not that account may not take it down");
         }
         repository.deleteById(projectId);
+        // v271 — the take-down names an account id and NOTHING else: the request carried a CLAIMER, not a
+        // claim, so the service never saw a handle or an assurance for it and records none rather than
+        // borrowing the publication's.
+        audit.record("unpublish", claimerAccountId, null, null, projectId);
         return true;
     }
 
@@ -175,7 +185,17 @@ public class PublishService {
                 requireClaimable(claim);
                 created.claimOwner(claim.accountId(), claim.handle(), claim.assurance(), claimedInstantOf(claim));
             }
-            return repository.save(created);
+            PublishedProject saved = repository.save(created);
+            // v271 — the AUDIT TRAIL. The actor is recorded exactly as it was received: a claim carries an
+            // account id, a handle and an assurance, and an anonymous publish carries none — and an entry
+            // with no actor is a real entry, not a missing one.
+            audit.record(
+                    "publish",
+                    claim == null ? null : claim.accountId(),
+                    claim == null ? null : claim.handle(),
+                    claim == null ? null : claim.assurance(),
+                    projectId);
+            return saved;
         }
         // v242: the TAKEOVER rule. A row that already names an owner may not be re-published under a
         // DIFFERENT one. "The publication of project X" must have exactly one owner, exactly as it has
@@ -193,7 +213,16 @@ public class PublishService {
             row.claimOwner(claim.accountId(), claim.handle(), claim.assurance(), claimedInstantOf(claim));
         }
         row.republish(title.trim(), documentJson, now);
-        return repository.save(row);
+        PublishedProject saved = repository.save(row);
+        // v271 — a re-publish is an event too: the publication CHANGED, and a trail that only remembered
+        // creations would not say so.
+        audit.record(
+                "publish",
+                claim == null ? null : claim.accountId(),
+                claim == null ? null : claim.handle(),
+                claim == null ? null : claim.assurance(),
+                projectId);
+        return saved;
     }
 
     /**
