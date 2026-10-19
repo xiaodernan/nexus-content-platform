@@ -216,3 +216,26 @@ describe('agentGrant — permanentGrants / expiredGrants', () => {
     expect(expiredGrants([], now)).toEqual([]);
   });
 });
+
+describe('agentGrant — grantRemainingDays', () => {
+  const now = 1_700_000_000_000;
+  const baseGrant: AgentGrant = {
+    id: 'g-9',
+    agentId: 'acct-a',
+    scope: 'publish',
+    targetId: 'art-1',
+    grantedAt: now,
+    expiresAt: now + 2 * 24 * 60 * 60 * 1000,
+  };
+
+  it('returns whole days left (floor)', () => {
+    expect(grantRemainingDays(baseGrant, now)).toBe(2);
+  });
+
+  it('returns 0 after expiry and null for a permanent grant', () => {
+    const expiredGrant = { ...baseGrant, expiresAt: now - 1 };
+    const permanentGrant = { ...baseGrant, expiresAt: null };
+    expect(grantRemainingDays(expiredGrant, now)).toBe(0);
+    expect(grantRemainingDays(permanentGrant, now)).toBeNull();
+  });
+});
