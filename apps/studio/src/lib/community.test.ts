@@ -317,3 +317,25 @@ describe('community — escapeHtml', () => {
     expect(escapeHtml('')).toBe('');
   });
 });
+
+describe('community — formatSince', () => {
+  const now = 1_700_000_000_000;
+
+  it('reports just now in the same second', () => {
+    expect(formatSince(now, now)).toBe('just now');
+    expect(formatSince(now - 1, now)).toBe('just now');
+  });
+
+  it('reports minutes ago at the 60s boundary', () => {
+    expect(formatSince(now - 59_000, now)).toBe('just now');
+    expect(formatSince(now - 60_000, now)).toBe('1 m ago');
+  });
+
+  it('reports hours ago at the 3600s boundary', () => {
+    expect(formatSince(now - 3_600_000, now)).toBe('1 h ago');
+  });
+
+  it('reports days ago at the 86400s boundary', () => {
+    expect(formatSince(now - 86_400_000, now)).toBe('1 d ago');
+  });
+});
