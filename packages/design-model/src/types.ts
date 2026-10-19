@@ -213,6 +213,23 @@ export interface TokenGroup {
   [key: string]: TokenValue | TokenGroup;
 }
 
+/**
+ * v267 — the RESERVED lineage entry: where a remixed publication came from.
+ *
+ * The key is a reservation ON TOP of the canonical graph, and it is deliberately not a node: the lineage is
+ * a fact about the PUBLICATION (this copy descends from that one), not about the drawing. The service has
+ * always written it into the document JSON on a remix, and two Studio routes read it back — but the Studio's
+ * OWN remix path (fork in the editor, publish the fork) never wrote one, so a remix made the way a person
+ * actually makes one published with no source at all. Declaring it here makes the reservation part of the
+ * format rather than a convention three parties kept separately.
+ */
+export interface DocumentLineage {
+  /** The project id of the publication this one was remixed FROM. */
+  sourceProjectId: string;
+  /** When the remix was made, as an ISO-8601 instant. */
+  remixedAt: string;
+}
+
 /** The root canonical artifact. */
 export interface DesignDocument {
   schemaVersion: number;
@@ -224,6 +241,8 @@ export interface DesignDocument {
   tokens: TokenGroup;
   assets: Record<NexusId, Asset>;
   activePageId: NexusId;
+  /** v267 — the reserved remix lineage. Absent on a first publish; present on a remix. */
+  _lineage?: DocumentLineage;
 }
 
 export interface Rect {

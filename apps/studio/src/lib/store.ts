@@ -33,6 +33,7 @@ import {
 } from '@nexus/design-model';
 import { ModelRouter } from '@nexus/ai-providers';
 import { boundsOf, computeAlign, computeDistribute, type AlignMode, type DistributeAxis } from './align';
+import { stampLineage } from './lineage';
 import { subtreeRotatePlan } from './rotate';
 
 export type Tool = 'select' | 'frame' | 'rectangle' | 'ellipse' | 'text';
@@ -169,7 +170,7 @@ interface StudioState {
 
   loadDocument: (doc: DesignDocument) => void;
   /** M7 v233 — open a REMIX: a publication's document becomes a NEW project (re-id'd, so publishing it never overwrites the source). */
-  remixDocument: (doc: DesignDocument, source: string) => void;
+  remixDocument: (doc: DesignDocument, source: string, remixedAt: string) => void;
   generate: (prompt: string) => Promise<void>;
   editSelection: (instruction: string) => Promise<void>;
   newProject: () => void;
@@ -695,11 +696,18 @@ export const useStudio = create<StudioState>((set, get) => ({
     set({ doc, activePageId: safePage(doc, doc.activePageId), selection: [], editingId: null, focusedInstanceId: null, lastDiff: null, lastBefore: null, lastPageId: null, historyLog: [], historyCursor: 0, status: 'Restored from local snapshot' });
   },
 
-  remixDocument: (doc, source) => {
+  remixDocument: (doc, source, remixedAt) => {
     // v233: a remix is a FORK, not a load. `forkDocument` gives the document a fresh id (the publish
     // service's projectId IS `doc.id`), so editing and re-publishing this copy can never overwrite the
     // publication it came from — the whole point of a remix. The name says where it came from.
-    const forked = forkDocument(doc);
+    //
+    // v267: the fork also carries the LINEAGE — the reserved `_lineage` the service writes on a remix and
+    // the pages read back. The Studio's remix never wrote one (it never called the service's remix
+    // endpoint; it forks in the editor), so a publication made the way a person actually remixes had no
+    // source at all and the "remixed from" link could never appear on it. The stamp OVERWRITES any lineage
+    // the fork inherited, because this copy descends from the copy it was made from — not from what that
+    // copy descended from.
+    const forked = stampLineage(forkDocument(doc), source, remixedAt);
     history = new History(forked);
     set({ doc: forked, activePageId: safePage(forked, forked.activePageId), selection: [], editingId: null, focusedInstanceId: null, lastDiff: null, lastBefore: null, lastPageId: null, historyLog: [], historyCursor: 0, status: `Remixed ${source} — this is now your project` });
   },

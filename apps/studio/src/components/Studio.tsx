@@ -75,7 +75,9 @@ export default function Studio() {
     void remixProject(id).then((answer) => {
       if (!live) return;
       if (answer.ok) {
-        useStudio.getState().remixDocument(answer.document, id);
+        // v267 — the caller names the instant (the store owns no clock), and the fork records the lineage
+        // so the published copy can name the source it was made from.
+        useStudio.getState().remixDocument(answer.document, id, new Date().toISOString());
         window.history.replaceState(null, '', '/');
       } else {
         useStudio.getState().setStatus(`Could not remix ${id}: ${answer.reason}`);

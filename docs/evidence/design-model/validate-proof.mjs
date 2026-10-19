@@ -98,7 +98,17 @@ const withRect = () => {
   };
   const box = mkdtempSync(join('apps/studio', 'nexus-validate-proof-'));
   try {
+    // v263 — publishLane.ts has a VALUE import of accounts.ts (it builds the claim), so the box needs it
+    // beside it. The ORDER matters: `strip` writes a module and IMPORTS it in the same step, so a
+    // module's own siblings must already be in the box — an unresolved import is not a graded failure.
+    // v263 — publishLane.ts gained a VALUE import of accounts.ts (it builds the claim) and of
+    // currentAccount.ts (it reads the device's account), so the box needs both. The ORDER matters:
+    // `strip` writes a module and IMPORTS it in the same step, so a module's own siblings must
+    // already be in the box — an unresolved import is not a graded failure.
+    await strip('apps/studio/src/lib/accounts.ts', box);
+    await strip('apps/studio/src/lib/currentAccount.ts', box);
     await strip('apps/studio/src/lib/publishLane.ts', box);
+    // v263 — publishLane.ts has a VALUE import of accounts.ts (it builds the claim), so the box needs it too.
     const remixLane = await strip('apps/studio/src/lib/remixLane.ts', box);
     const { extractRemixDocument } = remixLane;
     // a valid document passes

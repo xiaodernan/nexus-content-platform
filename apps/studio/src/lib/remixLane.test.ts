@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { createEmptyDocument } from '@nexus/design-model';
 import { extractRemixDocument, remixIdFromSearch, remixProject } from './remixLane';
+import { readRemixedFrom } from './lineage';
 import { useStudio } from './store';
 
 const st = () => useStudio.getState();
@@ -80,11 +81,13 @@ describe('remixIdFromSearch (M7 v234)', () => {
   });
 });
 
-describe('store: remixDocument (M7 v233)', () => {
+describe('store: remixDocument (M7 v233, lineage v267)', () => {
+  const AT = '2026-10-20T00:00:00.000Z';
+
   it('opens a publication as a FORK, so its id is fresh and re-publishing cannot overwrite the source', () => {
     const source = st().doc;
     const sourceId = source.id;
-    st().remixDocument(source, 'pub-1');
+    st().remixDocument(source, 'pub-1', AT);
     const after = st().doc;
     expect(after.id).not.toBe(sourceId);
     expect(after.rootId).toBe(after.id);
@@ -97,8 +100,26 @@ describe('store: remixDocument (M7 v233)', () => {
   it('does not mutate the source document it was handed', () => {
     const source = st().doc;
     const before = JSON.stringify(source);
-    st().remixDocument(source, 'pub-2');
+    st().remixDocument(source, 'pub-2', AT);
     expect(JSON.stringify(source)).toBe(before);
+  });
+
+  it('v267 — the fork carries the LINEAGE, so the published copy can name its source', () => {
+    const source = st().doc;
+    st().remixDocument(source, 'pub-3', AT);
+    expect(st().doc._lineage).toEqual({ sourceProjectId: 'pub-3', remixedAt: AT });
+    // and the reader the pages use reads it back
+    expect(readRemixedFrom(st().doc)).toBe('pub-3');
+  });
+
+  it('v267 — a remix of a remix names ITS OWN source, not the one further back', () => {
+    const original = st().doc;
+    st().remixDocument(original, 'pub-original', AT);
+    const middle = st().doc;
+    st().remixDocument(middle, 'pub-middle', '2026-10-21T00:00:00.000Z');
+    expect(readRemixedFrom(st().doc)).toBe('pub-middle');
+    // the copy it was made from keeps its own source
+    expect(readRemixedFrom(middle)).toBe('pub-original');
   });
 });
 

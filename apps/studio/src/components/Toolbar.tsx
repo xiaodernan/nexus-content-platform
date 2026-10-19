@@ -119,7 +119,9 @@ export default function Toolbar() {
       setPublishNote(`not remixed: ${answer.reason}`);
       return;
     }
-    remixDocument(answer.document, projectId);
+    // v267 — the caller names the instant, and the fork records the lineage so the published copy names
+    // the source it was made from.
+    remixDocument(answer.document, projectId, new Date().toISOString());
     setPublishNote(`remixed ${projectId} into a new project`);
     setShowPublished(false);
   };

@@ -45,7 +45,19 @@ const strip = (rel, box) => {
 };
 const box = mkdtempSync(join('apps/studio', 'nexus-remix-proof-'));
 try {
+  // v263 — publishLane.ts has a VALUE import of accounts.ts (it builds the claim), so the box needs it
+  // beside it. The ORDER matters: `strip` writes a module and IMPORTS it in the same step, so a
+  // module's own siblings must already be in the box — an unresolved import is not a graded failure.
+  // v263 — publishLane.ts gained a VALUE import of accounts.ts (it builds the claim) and of
+  // currentAccount.ts (it reads the device's account), so the box needs both. The ORDER matters:
+  // `strip` writes a module and IMPORTS it in the same step, so a module's own siblings must
+  // already be in the box — an unresolved import is not a graded failure.
+  await strip('apps/studio/src/lib/accounts.ts', box);
+  await strip('apps/studio/src/lib/currentAccount.ts', box);
   await strip('apps/studio/src/lib/publishLane.ts', box); // remixLane's relative import lands here
+  // v263 — publishLane.ts has a VALUE import of accounts.ts (it builds the claim), so the box needs it
+  // beside it: a module that imports a sibling the box does not hold is an unresolved import, not a
+  // graded failure, which is why the loader is part of the record.
   const remixLane = await strip('apps/studio/src/lib/remixLane.ts', box);
   const { extractRemixDocument, remixProject } = remixLane;
   assert.equal(typeof extractRemixDocument, 'function', 'the validator was really imported, not re-implemented');
@@ -132,6 +144,32 @@ try {
     console.log('[§3] fork: fresh document id · same node graph · source unmutated · name suffixed "(remix)"');
   }
 
+  // ── §3b v267: the LINEAGE is written, and it names the source ─────────────────────────────────────
+  // The service's remix endpoint has always recorded the lineage; the Studio's OWN remix (fork in the
+  // editor, publish the fork) never did — so a publication made the way a person actually remixes carried
+  // no source at all, and the "remixed from" link the pages draw could never appear on it.
+  {
+    const lineage = await strip('apps/studio/src/lib/lineage.ts', box);
+    const src = createEmptyDocument('Source');
+    const stamped = lineage.stampLineage(src, 'pub-source', '2026-10-20T00:00:00.000Z');
+    assert.equal(stamped._lineage.sourceProjectId, 'pub-source', 'the stamp names the source');
+    assert.equal(stamped._lineage.remixedAt, '2026-10-20T00:00:00.000Z', 'and the instant it was made');
+    assert.equal(src._lineage, undefined, 'the source document was NOT mutated');
+    assert.equal(lineage.readRemixedFrom(stamped), 'pub-source', 'and the reader the pages use reads it back');
+
+    // A remix of a remix: the fork SPREADS the document, so the copy inherits the lineage it was made
+    // from — and that inherited value names the WRONG source. The stamp must replace it.
+    const middle = { ...stamped, id: 'doc-middle' };
+    const second = lineage.stampLineage(middle, 'pub-middle', '2026-10-21T00:00:00.000Z');
+    assert.equal(lineage.readRemixedFrom(second), 'pub-middle', 'a remix of a remix names its OWN source');
+    assert.equal(lineage.readRemixedFrom(middle), 'pub-source', 'and the copy it was made from keeps its own');
+
+    // A lineage that names nothing is a claim about a provenance that does not exist.
+    assert.throws(() => lineage.stampLineage(src, '', 'now'), /source project id/, 'a blank source is refused by name');
+    assert.throws(() => lineage.stampLineage(src, 'pub-source', ''), /instant/, 'a blank instant is refused by name');
+    console.log('[§3b] lineage: the stamp names the source and the instant · the source document is unmutated · a remix of a remix names its OWN source · a blank source or instant is refused by name');
+  }
+
   // ── §4 the wiring is present in the shipped sources ───────────────────────────────────────────────
   {
     const toolbar = readFileSync('apps/studio/src/components/Toolbar.tsx', 'utf8');
@@ -139,17 +177,25 @@ try {
     assert.ok(/data-published-remix=\{row\.projectId\}/.test(toolbar), 'the Published panel carries a remix control per row');
     assert.ok(/import \{ remixProject \} from '@\/lib\/remixLane'/.test(toolbar), 'the panel imports the remix LANE, not the server half');
     assert.ok(/const onRemix = async/.test(toolbar), 'the panel has a remix handler');
-    assert.ok(/remixDocument: \(doc, source\) => \{/.test(store), 'the store has a remixDocument action');
-    assert.ok(/const forked = forkDocument\(doc\)/.test(store), 'the store action FORKS before it loads');
-    assert.ok(/remixDocument: \(doc: DesignDocument, source: string\) => void/.test(store), 'the store action is on the interface');
-    console.log('[§4] wiring: remix control per row · panel imports the lane · store forks before load');
+    assert.ok(/remixDocument: \(doc, source, remixedAt\) => \{/.test(store), 'the store has a remixDocument action');
+    assert.ok(/const forked = stampLineage\(forkDocument\(doc\), source, remixedAt\)/.test(store), 'the store action FORKS before it loads — and stamps the lineage onto the fork');
+    assert.ok(/remixDocument: \(doc: DesignDocument, source: string, remixedAt: string\) => void/.test(store), 'the store action is on the interface');
+    // v267 — the store STAMPS the lineage onto the fork, and the CALLER names the instant (the store owns no clock).
+    assert.ok(/stampLineage\(forkDocument\(doc\), source, remixedAt\)/.test(store), 'the store action STAMPS the lineage onto the fork');
+    assert.ok(/import \{ stampLineage \} from '\.\/lineage'/.test(store), 'and it stamps through the one module that owns the reserved key');
+    assert.ok(/remixDocument\(answer\.document, projectId, new Date\(\)\.toISOString\(\)\)/.test(toolbar), 'the panel names the instant');
+    assert.ok(/remixDocument\(answer\.document, id, new Date\(\)\.toISOString\(\)\)/.test(readFileSync('apps/studio/src/components/Studio.tsx', 'utf8')), 'and so does the visitor path');
+    console.log('[§4] wiring: remix control per row · panel imports the lane · store forks before load AND stamps the lineage · the caller names the instant');
   }
 
   // ── §5 the visitor loop: the artifact page links a visitor back into the Studio ────────────────────
   {
     await strip('apps/studio/src/lib/paint.ts', box);
     await strip('apps/studio/src/lib/preview.ts', box);
-    const artifact = await strip('apps/studio/src/lib/artifact.ts', box);
+    // artifact.ts imports the SHARED escaper, so the box needs it first — `strip` writes a module and
+// IMPORTS it in the same step, so a module's own siblings must already be in the box.
+await strip('apps/studio/src/lib/pageShell.ts', box);
+const artifact = await strip('apps/studio/src/lib/artifact.ts', box);
     const { injectRemixBar, renderArtifactHtml } = artifact;
     const doc = createEmptyDocument('Harbour');
     const withBar = renderArtifactHtml({ projectId: 'my pub/1', document: doc });
@@ -165,7 +211,7 @@ try {
     const studio = readFileSync('apps/studio/src/components/Studio.tsx', 'utf8');
     assert.ok(/remixIdFromSearch\(window\.location\.search\)/.test(studio), 'the Studio reads the remix intent from the URL');
     assert.ok(/remixProject\(id\)/.test(studio), 'the Studio fetches the publication');
-    assert.ok(/remixDocument\(answer\.document, id\)/.test(studio), 'the Studio forks it into a new project');
+    assert.ok(/remixDocument\(answer\.document, id, new Date\(\)\.toISOString\(\)\)/.test(studio), 'the Studio forks it into a new project — and names the instant the remix happened');
     assert.ok(/history\.replaceState\(null, '', '\/'\)/.test(studio), 'the one-time intent is dropped once honoured');
     console.log('[§5] visitor loop: artifact carries an encoded remix link · no id → no bar · route names the project · Studio reads the intent, forks, and drops it');
   }
@@ -175,10 +221,15 @@ try {
     const lane = readFileSync('apps/studio/src/lib/remixLane.ts', 'utf8');
     assert.ok(!/from '\.\/publishServer'/.test(lane), 'the CLIENT lane imports nothing from the server half');
     assert.ok(!/NEXUS_API_URL|process\.env/.test(lane), 'the CLIENT lane holds no service address');
-    assert.ok(/import type \{ DesignDocument \}/.test(lane), 'the model import is TYPE-ONLY (erased at compile)');
+    // v267 — this arm used to assert that the lane's WHOLE model import was `import type`, which was
+    // never true: the lane calls `validateDocument` (v243's deep graph check) as a VALUE. The TYPE is the
+    // part that must be erased — `DesignDocument` is a type, and importing it as one keeps it out of the
+    // bundle's value layer. The assertion now says that, instead of a thing that was never true.
+    assert.ok(/type DesignDocument/.test(lane), 'the DesignDocument TYPE is imported type-only (erased at compile)');
+    assert.ok(/validateDocument/.test(lane), 'and the lane calls validateDocument as a VALUE — the deep graph check is real');
     const toolbar = readFileSync('apps/studio/src/components/Toolbar.tsx', 'utf8');
     assert.ok(!/from '@\/lib\/publishServer'/.test(toolbar), 'the panel never imports the server half directly');
-    console.log('[§6] audit: lane holds no service address and no server import · model import is type-only · panel speaks only to the lane');
+    console.log('[§6] audit: lane holds no service address and no server import · the DesignDocument TYPE is type-only · the panel speaks only to the lane');
   }
 
   console.log('[remix-proof] ALL SECTIONS PASSED');
