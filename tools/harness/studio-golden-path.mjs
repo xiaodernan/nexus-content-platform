@@ -13,7 +13,8 @@
  * Usage: node tools/harness/studio-golden-path.mjs [--url http://127.0.0.1:3210] [--out DIR]
  */
 import { launch } from "./cdp.mjs";
-import { mkdirSync, writeFileSync } from "node:fs";
+import { decodePng, diffPixels } from "./png.mjs";
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
 const argv = process.argv.slice(2);
@@ -171,6 +172,23 @@ try {
     png.length > 5000,
     `${png.length} bytes → ${shotPath}`,
   );
+
+  // ── 4b. the capture is READ, not just written ─────────────────────────────
+  // `docs/KNOWN_ISSUES.md` has carried the sentence "the harness does not yet compare screenshots against a
+  // baseline" since the harness existed: it wrote this PNG and never looked at it, so a visual regression was
+  // invisible to every gate. This arm is GUARDED — it asserts only when a baseline exists beside the capture,
+  // and says so when there is none — so it can never turn a first run red for the absence of a file.
+  const baselinePath = join(OUT_DIR, "studio-after-compose.baseline.png");
+  if (existsSync(baselinePath)) {
+    const d = diffPixels(decodePng(readFileSync(baselinePath)), decodePng(png), { tolerance: 8 });
+    check(
+      "screenshot matches its BASELINE within 2% of pixels (tolerance 8/channel)",
+      d.ratio <= 0.02,
+      `${d.differing}/${d.total} px differ (${(d.ratio * 100).toFixed(3)}%) · maxDelta ${d.maxDelta}${d.firstAt ? ` · first at ${d.firstAt.x},${d.firstAt.y}` : ""}`,
+    );
+  } else {
+    console.log(`[golden-path] no baseline at ${baselinePath} — pixel comparison SKIPPED (write one to arm it)`);
+  }
 
   const canvasPixels = await page.canvasStats("#nexus-canvas");
   check(

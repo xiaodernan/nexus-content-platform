@@ -103,9 +103,13 @@ Live list. Nothing here is hidden behind marketing copy.
   `1418×802` **visible** viewport, a running rAF loop, `482900/482900` painted canvas pixels and
   an accepted 100 KB full-page PNG. Run `npm run verify:harness` (proves the harness) and
   `npm run verify:studio` (19/19 golden-path assertions against the unmodified Studio bundle).
-  Remaining honest limits: the harness does not yet *compare* screenshots against a baseline
-  (it proves paint + captures the PNG for human/§30 inspection), and it is a local verification
-  tool, not the §28/ADR 0013 untrusted-code sandbox.
+  **Screenshots can now be COMPARED to a baseline** (`tools/harness/png.mjs`: a zero-dependency PNG decoder
+  — 8-bit RGB/RGBA, non-interlaced, everything else refused by name — plus a pixel diff; the golden-path
+  harness diffs its capture against `studio-after-compose.baseline.png` when that file exists, within 2% of
+  pixels at an 8-per-channel tolerance, and says so when there is none). Remaining honest limits: **no
+  baseline is committed yet**, so the comparison arm is armed but unexercised in CI; the decoder does not
+  verify chunk CRCs (a corrupted file decodes to garbage rather than being refused); and the harness is a
+  local verification tool, not the §28/ADR 0013 untrusted-code sandbox.
 
 ## Studio 3D surface (M5 v142, interactive v161, persistent v163 — ADR 0016 amendments 142, 161 and 163)
 - The Studio has a second surface: a **3D scene** mounted from `components/Scene3D.tsx` over
