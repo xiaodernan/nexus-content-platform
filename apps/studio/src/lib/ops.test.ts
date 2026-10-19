@@ -1,5 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import type { AccountId } from './community';
+import type { Assurance } from './assurance';
+
+import type { AuditEntry, Report } from './ops';
 import {
   auditEntriesByActor,
   auditEntriesForTarget,
@@ -15,8 +18,6 @@ import {
   reportsByReason,
   reportsByStatus,
 } from './ops';
-import type { AuditEntry, Report } from './ops';
-
 const entry: AuditEntry = {
   id: 'audit-1',
   action: 'publish',
@@ -270,5 +271,25 @@ describe('ops — reportsByStatus', () => {
     const byStatus = reportsByStatus([]);
     expect(Object.keys(byStatus).sort()).toEqual(['open', 'rejected', 'resolved', 'reviewed']);
     expect(byStatus.open).toEqual([]);
+  });
+});
+
+describe('ops — isAuditEntryOwnedBy', () => {
+  const entry: AuditEntry = {
+    id: 'e-1',
+    action: 'follow',
+    actorId: 'acct-a',
+    targetId: 'art-1',
+    createdAt: 1_700_000_000_000,
+    assurance: 'unsigned-local' as Assurance,
+  };
+
+  it('returns false when the actor is null', () => {
+    expect(isAuditEntryOwnedBy(entry, null)).toBe(false);
+  });
+
+  it('reports true only for the entry owner', () => {
+    expect(isAuditEntryOwnedBy(entry, 'acct-a')).toBe(true);
+    expect(isAuditEntryOwnedBy(entry, 'acct-b')).toBe(false);
   });
 });
