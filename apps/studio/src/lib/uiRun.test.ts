@@ -143,4 +143,25 @@ describe('uiRun — script shape and step edges', () => {
     expect(res.reason).toContain('is a button, cannot type');
     expect(d.calls).toEqual([]);
   });
+
+  it('journals onto an existing ledger without clobbering earlier lines', async () => {
+    let layers = 0;
+    const d = {
+      elements: () => PAGE,
+      click: (i: number) => { layers = 5; return `click:${PAGE[i]!.label}`; },
+      type: (i: number, t: string) => `type:${PAGE[i]!.label}=${t}`,
+      layerCount: () => layers,
+    };
+    const kv = {
+      map: new Map<string, string>(),
+      getItem(k: string) { return this.map.get(k) ?? null; },
+      setItem(k: string, v: string) { this.map.set(k, v); },
+    };
+    kv.map.set('nexus.agentLedger.v1', JSON.stringify({ goal: 'ui-task: older entry', target: 'X', via: 'ui', score: 1, approved: true, reason: 'status=completed planner=demo', gate: 'human: x granted', at: 1 }) + '\n');
+    await runUiTask(d, 'an analytics dashboard', async () => true, undefined, kv as never);
+    const lines = (kv.getItem('nexus.agentLedger.v1') ?? '').trim().split('\n');
+    expect(lines).toHaveLength(2);
+    expect(JSON.parse(lines[0]!).goal).toBe('ui-task: older entry');
+    expect(JSON.parse(lines[1]!).goal).toBe('ui-task: an analytics dashboard');
+  });
 });
