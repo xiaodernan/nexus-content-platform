@@ -57,6 +57,12 @@ import { applyOp, createEmptyDocument, invertOp } from '@nexus/design-model';
 function fakeRuntime(over: Partial<SceneComposerLike> = {}) {
   const scenes = new Map<string, SceneLike>();
   const created: { scene: string; name: string; type: string; position: unknown }[] = [];
+  // M5 v261 — the fake now HOLDS the seat instead of deriving it from insertion order. The old expression
+  // (`[...scenes.keys()][0]`) agreed with production only while nobody moved the seat, which is exactly the
+  // input v261 exists for: a surface that composes one world and reads another. Production's rule is
+  // threeRuntime.ts:1238-1241 (the FIRST scene on an empty graph takes the seat, from inside `createScene`)
+  // plus :1356 (`setActiveScene` moves it and refuses an id the graph lacks), so the fake obeys both.
+  let activeSceneId: string | null = null;
   let seq = 0;
   const id = (p: string) => `${p}-${++seq}`;
 
@@ -70,6 +76,7 @@ function fakeRuntime(over: Partial<SceneComposerLike> = {}) {
         animations: new Map(),
       };
       scenes.set(scene.id, scene);
+      if (scenes.size === 1) activeSceneId = scene.id;
       return scene;
     },
     createEntity(sceneId, name, type, _geometry, _material, position) {
@@ -124,11 +131,20 @@ function fakeRuntime(over: Partial<SceneComposerLike> = {}) {
       camera.active = true;
       return true;
     },
+    // M5 v261 — the fake holds the SCENE seat the way production does: the id is looked up first, so a `false`
+    // answer leaves the world the panel is reading exactly where it was. The surface's `activateScene` claims to
+    // answer the graph's OWN active id after the ask and to re-aim inside the new world, and neither claim is
+    // testable against a fake whose active row is an insertion order.
+    setActiveScene(sceneId) {
+      if (!scenes.has(sceneId)) return false;
+      activeSceneId = sceneId;
+      return true;
+    },
     getScene(sceneId) {
       return scenes.get(sceneId);
     },
     getSceneGraph() {
-      return { scenes, activeSceneId: [...scenes.keys()][0] ?? null, stats: { drawCalls: 0, triangles: 0, points: 0, lines: 0 } };
+      return { scenes, activeSceneId, stats: { drawCalls: 0, triangles: 0, points: 0, lines: 0 } };
     },
     getBackend() {
       return { kind: 'headless', state: { width: 800, height: 600, pixelRatio: 1 } };
@@ -1868,8 +1884,11 @@ describe('watchCameras (M5 v224)', () => {
 
     it('a file describing a RUNNING cutscene is refused on a host with no setActiveScene', () => {
       const { runtime } = fakeRuntime();
-      // The fake runtime has no `setActiveScene`, which is a legitimate host — the verb is optional on the
-      // seam — so a file describing a running cutscene cannot be resumed here.
+      // M5 v261 — the fake's `base` now HAS this verb, because the scene seat became a control and a fake that
+      // lacked it could not prove that one. So this case says its own premise instead of inheriting it from the
+      // fixture's history: the verb is optional on the seam, and a host without it is legitimate — it simply
+      // cannot resume a file describing a running cutscene.
+      delete runtime.setActiveScene;
       const { saver } = fakeSaver();
       const surface = createStudioScene(runtime, () => {}, undefined, 0, saver);
       const file = {
@@ -2286,5 +2305,287 @@ describe('activateCamera — the seat is a control and the orbit aims the drawn 
 
     expect(surface.report().scene!.cameras).toBe(1);
     expect(adapter.placed[1]!.cameraId).toBe(surface.cameraId);
+  });
+});
+
+/**
+ * M5 v261 — the SCENE seat becomes a control, one level above v260's camera seat.
+ *
+ * The shape of the defect is the same and so is the discipline for proving the fix: build a graph whose active
+ * row is NOT the scene this surface composed, then ask the surface to do the things the panel offers and check
+ * which world each ask touched. Every case below is written so it CANNOT pass when a verb still names the
+ * composed scene — the assertion names the other scene, not just "something changed".
+ */
+describe('activateScene — the world the panel reads is the world it writes (M5 v261)', () => {
+  /** A second scene with one body and one camera — the situation `load()` has produced since v163, reached
+   *  here without the save format so the cases below stay about the seat, not about the file. */
+  function twoScenes() {
+    const { runtime, scenes, created } = fakeRuntime();
+    const adapter = fakeAdapter();
+    const surface = createStudioScene(runtime, () => {}, adapter);
+    const second = runtime.createScene('Second World');
+    runtime.createEntity(second.id, 'Solo Body', 'mesh');
+    const secondCamera = runtime.createCamera(second.id, 'Second Cam');
+    return { runtime, scenes, created, adapter, surface, second, secondCamera };
+  }
+
+  it('the rows, the count and the active address are one walk, and the switch moves all three', () => {
+    const { surface, second } = twoScenes();
+    const before = surface.report();
+    expect(before.scenes).toBe(2);
+    expect(before.activeSceneId).toBe(surface.sceneId);
+    // Two rows, each saying how much is in that world — the figure that makes the rows distinguishable.
+    expect(before.sceneRows).toEqual([
+      { id: surface.sceneId, name: 'Studio Scene', entities: 4, active: true },
+      { id: second.id, name: 'Second World', entities: 1, active: false },
+    ]);
+
+    const answer = surface.activateScene(second.id);
+    expect(answer).toEqual({ ok: true, sceneId: second.id, activeSceneId: second.id, aimed: true });
+
+    const after = surface.report();
+    expect(after.activeSceneId).toBe(second.id);
+    expect(after.scene!.name).toBe('Second World');
+    // The summary is the SAME row the list walks: `scenes` did not become a third answer.
+    expect(after.scenes).toBe(after.sceneRows.length);
+    expect(after.sceneRows.map((row) => row.active)).toEqual([false, true]);
+    // The camera figures follow the world, because they were always read from `report.scene`.
+    expect(after.scene!.cameraRows.map((row) => row.name)).toEqual(['Second Cam']);
+  });
+
+  it('a seat naming a world the graph does not hold answers null, not an address no row lists (M5 v261)', () => {
+    // The ONE state in which this grant's two reads could disagree, and therefore the only witness the
+    // one-walk refactor has: pre-v261 `scenes` came from `scenes.size` and `activeSceneId` was copied from
+    // `graph.activeSceneId`, so a host whose graph names a world it does not hold produced a report that
+    // claimed an active scene ABSENT from the rows printed beside it — the panel would point at an (N+1)-th
+    // world while drawing N. The shipped runtime cannot reach this state (it has no scene-deletion verb), but
+    // `SceneGraph` is plain data a host builds, so the derivation has to answer it anyway.
+    const { runtime, surface, second } = twoScenes();
+    const graph = runtime.getSceneGraph!();
+    const ghost = {
+      ...runtime,
+      getSceneGraph: () => ({ ...graph, activeSceneId: 'a-world-the-graph-never-held' }),
+    } as SceneComposerLike;
+
+    const report = buildSceneReport(ghost, 0);
+    // The walk is unchanged — it lists what exists and marks nothing active, because the address is read FROM
+    // the rows rather than handed to them.
+    expect(report.sceneRows.map((row) => row.id)).toEqual([surface.sceneId, second.id]);
+    expect(report.sceneRows.map((row) => row.active)).toEqual([false, false]);
+    expect(report.scenes).toBe(report.sceneRows.length);
+    expect(report.activeSceneId).toBeNull();
+    expect(report.scene).toBeNull();
+  });
+
+  it('after the switch, an orbit aims the camera of the scene being READ', () => {
+    // The measured pre-fix half of this grant's defect: the report listed the second world's camera while the
+    // drag wrote the composed scene's, so the picture answered the mouse in a world nobody was looking at.
+    const { surface, adapter, second, secondCamera } = twoScenes();
+    surface.activateScene(second.id);
+    const writes = adapter.placed.length;
+
+    surface.orbitBy({ azimuth: 0.6 });
+
+    const last = adapter.placed[writes]!;
+    expect(last).toEqual({
+      sceneId: second.id,
+      cameraId: secondCamera.id,
+      ...orbitToPlacement(surface.orbit, STUDIO_CAMERA_LOOK_AT),
+    });
+    // The composed scene's camera was NOT touched by this drag.
+    expect(adapter.placed.slice(writes).some((w) => w.cameraId === surface.cameraId)).toBe(false);
+  });
+
+  it('the handover aims with the orbit the person ALREADY holds, not with the default', () => {
+    // A switch that re-aimed from `STUDIO_ORBIT_DEFAULT` would snap the view back every time a row was clicked,
+    // which is a change the user did not ask for; the write must carry the held numbers.
+    const { surface, adapter, second, secondCamera } = twoScenes();
+    surface.orbitBy({ azimuth: 1.1, elevation: 0.2 });
+    const held = { ...surface.orbit };
+    const writes = adapter.placed.length;
+
+    expect(surface.activateScene(second.id)).toMatchObject({ ok: true, aimed: true });
+
+    expect(adapter.placed).toHaveLength(writes + 1);
+    expect(adapter.placed[writes]).toEqual({
+      sceneId: second.id,
+      cameraId: secondCamera.id,
+      ...orbitToPlacement(held, STUDIO_CAMERA_LOOK_AT),
+    });
+    expect(surface.orbit).toEqual(held);
+  });
+
+  it('a world with no camera of its own answers aimed: false and aims nothing', () => {
+    // `createScene` starts an empty camera Map, so switching into one is a real input — and the composed
+    // camera is a camera of a DIFFERENT scene, so falling back to it here would be the cross-scene bug this
+    // grant exists to close, one line deeper.
+    const { runtime, surface, adapter } = twoScenes();
+    const empty = runtime.createScene('World With Nothing In It');
+    const writes = adapter.placed.length;
+
+    expect(surface.activateScene(empty.id)).toMatchObject({ ok: true, activeSceneId: empty.id, aimed: false });
+
+    expect(adapter.placed).toHaveLength(writes);
+    expect(surface.report().scene!.cameras).toBe(0);
+  });
+
+  it('the switch clears the pick, because a selection is a body in a scene', () => {
+    const { runtime, adapter, second } = twoScenes();
+    const withPick = { ...adapter, pickAt: () => ({ entityId: 'entity-1', name: 'Ground', distance: 1 }) };
+    const picking = createStudioScene(runtime, () => {}, withPick, 0);
+    picking.pickAt(100, 100);
+    expect(picking.report().selected).toEqual({ id: 'entity-1', name: 'Ground' });
+
+    picking.activateScene(second.id);
+
+    expect(picking.report().selected).toBeNull();
+    expect(picking.report().inspector).toBeNull();
+  });
+
+  it('a scene the graph does not hold is answered absent, and the seat does not move', () => {
+    const { surface, adapter } = twoScenes();
+    const writes = adapter.placed.length;
+
+    expect(surface.activateScene('scene-does-not-exist')).toEqual({
+      ok: false,
+      sceneId: 'scene-does-not-exist',
+      why: 'absent',
+      reason: "scene scene-does-not-exist is not in the runtime's graph, so this surface has no world to switch to",
+    });
+    expect(surface.report().activeSceneId).toBe(surface.sceneId);
+    // Lookup BEFORE asking: a refused switch may not write a camera anywhere.
+    expect(adapter.placed).toHaveLength(writes);
+  });
+
+  it('a host with no scene-switch verb answers unsupported and changes nothing', () => {
+    const { runtime, surface } = twoScenes();
+    delete runtime.setActiveScene;
+
+    expect(surface.activateScene('any')).toEqual({
+      ok: false,
+      sceneId: 'any',
+      why: 'unsupported',
+      reason: 'this host has no scene-switch verb; the surface will not claim a world it cannot ask the runtime to make live',
+    });
+    expect(surface.report().activeSceneId).toBe(surface.sceneId);
+  });
+
+  it('the camera authoring pair follows the switch, so the rows the panel shows are its own', () => {
+    // This is the user-visible refusal the probe measured: the report listed ["Second Cam"] while `addCamera`
+    // answered count 2 — the composed scene's rows — and `removeCamera` refused a row the panel had just drawn
+    // with "camera … is not in scene <composed>, so this surface has nothing to take out".
+    const { scenes, surface, second, secondCamera } = twoScenes();
+    surface.activateScene(second.id);
+
+    const added = surface.addCamera('Third Cam')!;
+    expect(scenes.get(second.id)!.cameras.has(added.cameraId)).toBe(true);
+    expect(added.count).toBe(2);
+
+    // A non-seat row in the NEW world is removable, and the count comes back from the NEW world.
+    expect(surface.removeCamera(added.cameraId)).toEqual({ ok: true, cameraId: added.cameraId, count: 1 });
+    // The seat's refusal still arrives, and its sentence names the world being looked at — pre-v261 it named
+    // the composed one, which is the half of the lie a user reads.
+    const refused = surface.removeCamera(secondCamera.id);
+    expect(refused).toMatchObject({ ok: false, why: 'blocked' });
+    expect(refused.ok === false && refused.reason).toContain(second.id);
+    // An id the panel never drew is answered by the surface, in the live world's address.
+    const absent = surface.removeCamera('camera-never-listed');
+    expect(absent).toMatchObject({ ok: false, why: 'absent' });
+    expect(absent.ok === false && absent.reason).toContain(second.id);
+  });
+
+  it('save() files the world being looked at', () => {
+    const { runtime, second } = twoScenes();
+    const { saver, saved } = fakeSaver();
+    const withSaver = createStudioScene(runtime, () => {}, undefined, 0, saver);
+    withSaver.activateScene(second.id);
+
+    withSaver.save(7);
+
+    expect(saved).toEqual([{ sceneId: second.id, savedAt: 7 }]);
+  });
+
+  it('the light, rename, hide and component asks reach the live world', () => {
+    const writes: string[] = [];
+    // ONE host for the whole case: a second `fakeRuntime()` would be a second graph, and switching to a scene
+    // it does not hold is a refusal, not a write.
+    const { runtime } = fakeRuntime({
+      setLightState: (sceneId) => {
+        writes.push(`light:${sceneId}`);
+        return true;
+      },
+      setEntityName: (sceneId, entityId, name) => {
+        writes.push(`name:${sceneId}:${entityId}:${name}`);
+        return true;
+      },
+      setEntityVisible: (sceneId, entityId, visible) => {
+        writes.push(`visible:${sceneId}:${entityId}:${String(visible)}`);
+        return true;
+      },
+      getEntity: (_sceneId: string, entityId: string) => ({ id: entityId, name: 'Solo Body' }),
+      setComponentEnabled: (sceneId, entityId, type, enabled) => {
+        writes.push(`component:${sceneId}:${entityId}:${type}:${String(enabled)}`);
+        return true;
+      },
+    });
+    const surface = createStudioScene(
+      runtime,
+      () => {},
+      { ...fakeAdapter(), pickAt: () => ({ entityId: 'entity-9', name: 'Solo Body', distance: 1 }) },
+      0,
+    );
+    const second = runtime.createScene('Second World');
+    surface.activateScene(second.id);
+    surface.pickAt(10, 10);
+    surface.setLight('light-1', { intensity: 2 });
+    surface.renameSelected('Renamed in B');
+    surface.setSelectedVisible(false);
+    surface.toggleComponentEnabled('mesh');
+
+    expect(writes).toEqual([
+      `light:${second.id}`,
+      `name:${second.id}:entity-9:Renamed in B`,
+      `visible:${second.id}:entity-9:false`,
+      `component:${second.id}:entity-9:mesh:true`,
+    ]);
+  });
+
+  it('a pick casts its ray in the world being looked at', () => {
+    const { runtime, surface, second } = twoScenes();
+    const scenes: string[] = [];
+    const picking = createStudioScene(
+      runtime,
+      () => {},
+      {
+        ...fakeAdapter(),
+        pickAt: (sceneId) => {
+          scenes.push(sceneId);
+          return null;
+        },
+      },
+      0,
+    );
+    picking.pickAt(10, 10);
+    picking.activateScene(second.id);
+    picking.pickAt(10, 10);
+
+    expect(scenes).toEqual([surface.sceneId, second.id]);
+  });
+
+  it('THE BOUND: a body still lands in the scene whose frame loop this surface drives', () => {
+    // Deliberate, and written down so a future change is a decision rather than drift. The host resolves the
+    // frame writer against `surface.sceneId` (Scene3D.tsx:238) and the document send against the same address
+    // (:807), so a body filed into whatever world is live would join `bodyIds` and never be drawn.
+    const { scenes, surface, second } = twoScenes();
+    surface.activateScene(second.id);
+
+    const added = surface.addBody('Authored Body', 'mesh')!;
+
+    expect(scenes.get(surface.sceneId)!.entities.has(added.bodyId)).toBe(true);
+    expect(scenes.get(second.id)!.entities.has(added.bodyId)).toBe(false);
+    expect(surface.bodyIds).toContain(added.bodyId);
+    // And the removal takes it back out of the same world it went into.
+    expect(surface.removeBody(added.bodyId)).toBe(true);
+    expect(scenes.get(surface.sceneId)!.entities.has(added.bodyId)).toBe(false);
   });
 });

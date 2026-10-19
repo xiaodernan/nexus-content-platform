@@ -1,5 +1,5 @@
 // NEXUS M5 v142 — the Studio's 3D surface, the FIRST PRODUCT consumer of @nexus/three-runtime
-// (ADR 0016 amendment 142); v163 added §6.
+// (ADR 0016 amendment 142); v163 added §6, v260 added §5b and v261 added §9.
 //
 // Every M5 grant before this one ended with the same bound, and it was written down every time:
 // "nothing in the Studio imports `@nexus/three-runtime`; the roadmap's M5 entry is still a runtime with
@@ -35,6 +35,10 @@
 //   §7 (v192) the selected body's INSPECTOR over the REAL runtime: what a pick names is read from the LIVE
 //      scene at report time, so the section checks both halves — that a pick produces facts, and that the
 //      facts FOLLOW the scene instead of being cached at the moment of the pick;
+//   §9 (v261) the SCENE seat is one of those controls, one level above v260's camera seat: the world the
+//      panel reads is the world it writes. Every scene row is walked once, switching re-aims the new world's
+//      own camera and the next frame carries THAT scene, and pick/camera/light/save all address it — while
+//      the body pair stays on the composed scene as the recorded bound;
 //   §8 this repository's HEAD is byte-identical: everything here ran in memory.
 //
 // Run after `npm run build`:  node docs/evidence/studio/scene-surface-proof.mjs
@@ -58,6 +62,10 @@ const { stripTypeScriptTypes } = await import('node:module');
 const STUDIO_MODULE = './apps/studio/src/lib/scene3d.ts';
 const stripped = stripTypeScriptTypes(readFileSync(STUDIO_MODULE, 'utf8'), { mode: 'strip' });
 const box = mkdtempSync(join('apps/studio', 'nexus-scene-surface-'));
+// §8's `rmSync` runs only on a green walk. A red run aborts mid-file and leaves its stripped copy of
+// `scene3d.mjs` inside `apps/studio`, where every file-walking census in this repository counts it as shipped
+// code — so cleanup is bound to EXIT, not to the last section.
+process.on('exit', () => rmSync(box, { recursive: true, force: true }));
 const modulePath = join(box, 'scene3d.mjs');
 writeFileSync(modulePath, stripped, 'utf8');
 const studio = await import(pathToFileURL(modulePath).href);
@@ -659,6 +667,178 @@ assert.ok(widest(gradedRegistries, (c) => c.enabled) >= 2, `${gradedRegistries.l
 assert.ok(widest(gradedRegistries, (c) => !c.enabled) >= 2, `${gradedRegistries.length} registry states graded and the widest DISABLED half holds ${widest(gradedRegistries, (c) => !c.enabled)} row(s), so the order of \`disabledComponents\` is pinned by nothing`);
 assert.equal(gradedRegistries.length, 10, 'ten registry states are graded through registryFacts — one empty, two from Cube A\'s first pair, three from the surface\'s own toggle verb, three from the query-participation block; a red here means a state stopped walking the one derivation, which is how this section lost its meaning once already');
 console.log(`[§7] population of graded registry states: ${gradedRegistries.length} · widest enabled half ${widest(gradedRegistries, (c) => c.enabled)} rows · widest disabled half ${widest(gradedRegistries, (c) => !c.enabled)} rows — each half's ORDER is witnessed by a state that has two of them to order`);
+
+// ── §9 the SCENE seat is a control, and every write follows the world on screen (M5 v261) ────────────
+// v260 made the camera the renderer draws from a control; one level up, the SCENE it draws was still fixed.
+// `buildSceneReport` has read the graph's active row since v142 and `animate` renders that row
+// (threeRuntime.ts:2799), while every WRITE this surface performed named `built.sceneId`. The two agree only
+// while nobody moves the seat — which is why 60 grants of green never saw the disagreement. Measured on the
+// shipped bytes before this leg existed: with a second scene made active out-of-band, one drag aimed the
+// COMPOSED scene's camera while the frame drew a camera in a different scene, the panel's camera buttons
+// refused the rows that very panel had just listed, `save()` wrote the demo bodies while the person was
+// looking at a world of one, and `setLight` changed a light no report was reading.
+//
+// The graph now holds THREE worlds: the composed demo, the sibling §6's load created, and a fresh one
+// authored below. This section is LAST because the runtime has no scene-deletion verb (neither `removeScene`
+// nor `deleteScene` exists in threeRuntime.ts), so a world added here stays in the graph for the rest of the
+// run — and §6 pins `scenes.size === 2`, which an earlier world would break. The seat goes back to the
+// composed scene before §8.
+const sibling = runtime.createScene('Sibling World');
+assert.equal(runtime.getSceneGraph().activeSceneId, surface.sceneId, 'creating a world does NOT move the seat: only the first scene of an empty graph takes it (threeRuntime.ts:1240)');
+assert.equal(surface.report().activeSceneId, surface.sceneId, 'and the surface\'s own walk agrees — a new row appears while the active row stays put');
+
+const worldRows = surface.report().sceneRows;
+assert.deepEqual(worldRows.map((r) => r.id), [surface.sceneId, restored.sceneId, sibling.id], 'the walk visits every scene the graph holds, in the graph\'s own order — the population is named, not assumed');
+assert.equal(surface.report().scenes, worldRows.length, 'scenes === sceneRows.length: the count the panel prints is read off the list the panel draws');
+assert.deepEqual(worldRows.filter((r) => r.active).map((r) => r.id), [surface.sceneId], 'exactly one row is marked active, and it is the row the graph names');
+for (const row of worldRows) assert.equal(row.entities, runtime.getScene(row.id).entities.size, `the row "${row.name}" counts the bodies its OWN scene holds`);
+assert.equal(worldRows.find((r) => r.id === sibling.id).entities, 0, 'the new world holds nothing yet — switching to it shows an empty scene, which is an honest answer rather than an error');
+
+const siblingBody = runtime.createEntity(sibling.id, 'Sibling Body', 'mesh');
+const freshWorldCam = runtime.createCamera(sibling.id, 'Sibling Cam');
+assert.equal(freshWorldCam.active, true, 'a scene\'s FIRST camera takes that scene\'s own seat (threeRuntime.ts:2630), so the new world has a view of its own');
+assert.deepEqual(freshWorldCam.threeCamera.position.toArray(), [0, 0, 0], 'and nothing has aimed it: createCamera leaves it at the origin looking down -Z');
+
+// The two refusals come first, because each must be a NO-OP — the defect this grant replaces was a silent
+// action on the wrong subject, and a refusal that edits is the same failure wearing a red message.
+aims.length = 0;
+const noWorld = surface.activateScene('scene-not-in-the-graph');
+assert.equal(noWorld.ok, false, 'a world the graph does not hold is refused');
+assert.equal(noWorld.why, 'absent', 'and the refusal is data, not only prose');
+assert.match(noWorld.reason, /scene-not-in-the-graph/, 'it names the world it could not find');
+assert.deepEqual(aims, [], 'a refusal performs no aim');
+assert.equal(runtime.getSceneGraph().activeSceneId, surface.sceneId, 'and moves nothing');
+
+runtime.setActiveScene = undefined;
+const blindHost = surface.activateScene(sibling.id);
+assert.equal(blindHost.ok, false, 'a host with no scene-switch verb is refused rather than claimed');
+assert.equal(blindHost.why, 'unsupported', 'and says which half it is missing — the runtime here is a host WITHOUT the verb, and the surface will not pretend');
+assert.match(blindHost.reason, /no scene-switch verb/);
+assert.deepEqual(aims, [], 'the refusal is a no-op here too');
+assert.equal(runtime.getSceneGraph().activeSceneId, surface.sceneId, 'the seat never moved while the surface was saying it could not move it');
+delete runtime.setActiveScene;
+assert.equal(typeof runtime.setActiveScene, 'function', 'the shadow was this leg\'s fixture — the host\'s own verb answers again');
+
+// THE HANDOVER. While the composed world is on screen, the person holds a view; switching worlds re-aims the
+// NEW world's seat with it, so the picture does not jump to the origin a fresh `createCamera` left it at.
+const homeCam = runtime.getScene(surface.sceneId).cameras.get(surface.cameraId);
+assert.equal(homeCam.active, true, 'going in, the composed camera holds the composed scene\'s seat — the state §5b restored');
+surface.resetOrbit();
+surface.orbitBy({ azimuth: 0.7, elevation: 0.2 });
+const heldView = { position: homeCam.threeCamera.position.toArray(), quaternion: homeCam.threeCamera.quaternion.toArray() };
+aims.length = 0;
+
+const toSibling = surface.activateScene(sibling.id);
+assert.equal(toSibling.ok, true, 'the surface switched the world it reads AND the world it writes');
+assert.equal(toSibling.activeSceneId, sibling.id, 'and answered from the graph, not from the scene it happens to have been composed under');
+assert.equal(toSibling.aimed, true, 'the new world has a camera, so the handover had something to point');
+assert.deepEqual(aims, [freshWorldCam.id], 'one aim, and it names the camera the NEW world draws from');
+assert.notEqual(aims[0], surface.cameraId, `PRE-FIX: before v261 this was ${surface.cameraId} — the composed scene's camera — while the frame drew ${freshWorldCam.id} in another world`);
+assert.deepEqual(freshWorldCam.threeCamera.position.toArray(), heldView.position, 'the handover aimed the new seat with the view the person already held');
+assert.deepEqual(freshWorldCam.threeCamera.quaternion.toArray(), heldView.quaternion, 'and pointed it the same way, not down -Z from the origin');
+assert.deepEqual(homeCam.threeCamera.position.toArray(), heldView.position, 'the displaced camera keeps its own transform — switching worlds does not dispose of them');
+
+// aimed === drawn, one level up: the frame the LOOP produces carries the OTHER world and its seat.
+runtime.start();
+assert.equal(scheduler.step(), 1, 'the manual scheduler ran one frame');
+runtime.stop();
+const drawnWorld = backend.frames[backend.frames.length - 1];
+assert.equal(drawnWorld.scene, runtime.getScene(sibling.id).threeScene, 'the backend was handed the world the surface switched to, not the one it was composed under');
+assert.equal(drawnWorld.camera, freshWorldCam.threeCamera, 'and the camera inside it is the one the handover aimed');
+assert.equal(aims[aims.length - 1], freshWorldCam.id, 'aimed === drawn: the last thing pointed at is the thing that drew');
+
+// A pick casts a ray in the world on screen. `Cube A` exists in the demo scene and NOWHERE in this one, so
+// while the sibling is live it must MISS — before v261 it hit, and the inspector reported a body of a scene
+// the panel was not showing.
+pickTarget = 'Cube A';
+surface.pickAt(400, 300);
+assert.equal(surface.report().selected, null, 'a pick in the sibling misses the demo scene\'s bodies: the ray is cast in the world on screen');
+assert.equal(surface.report().inspector, null, 'and leaves no inspector behind for a body it cannot see');
+pickTarget = 'Sibling Body';
+surface.pickAt(400, 300);
+const worldPick = surface.report();
+assert.equal(worldPick.selected.name, 'Sibling Body', 'while the body this world does hold is named');
+assert.equal(worldPick.inspector.name, 'Sibling Body', 'and the inspector reads the same live scene the pick was cast in');
+assert.deepEqual(worldPick.inspector.position, {
+  x: siblingBody.threeObject.position.x,
+  y: siblingBody.threeObject.position.y,
+  z: siblingBody.threeObject.position.z,
+}, 'from that scene\'s own object — the numbers are the runtime\'s, not a copy of a body in another world');
+
+// The camera pair follows the switch, and so does the refusal sentence.
+const worldRow = surface.addCamera('World Row');
+assert.ok(worldRow, 'the panel\'s add-camera control authored a row while another world was live');
+assert.equal(runtime.getScene(sibling.id).cameras.has(worldRow.cameraId), true, 'it landed in the world on screen');
+assert.equal(runtime.getScene(surface.sceneId).cameras.has(worldRow.cameraId), false, 'not in the demo scene every camera verb used to name');
+assert.equal(worldRow.count, 2, 'and the answer counts the LIVE world\'s rows');
+const awayRow = surface.removeCamera(surface.cameraId);
+assert.equal(awayRow.ok, false, 'the demo scene\'s camera is not a row this surface can take out while it is looking elsewhere');
+assert.equal(awayRow.why, 'absent', 'refused as absent rather than edited — the pre-v261 bug was this call reaching into another scene');
+assert.ok(awayRow.reason.includes(sibling.id), 'and the refusal names the world the surface is acting on, which is the sentence a user needs');
+assert.equal(runtime.getScene(surface.sceneId).cameras.size, 1, 'the refusal edited nothing');
+assert.equal(surface.removeCamera(worldRow.cameraId).ok, true, 'a row in the world on screen is removable');
+assert.equal(runtime.getScene(sibling.id).cameras.size, 1, 'and the sibling is back to its own one camera');
+
+// Lighting, too: the write and the report must agree about WHICH world's light they changed.
+const homeAmbientBefore = runtime.getScene(surface.sceneId).lighting.lights.find((l) => l.id === 'ambient').threeLight.intensity;
+const litReport = surface.setLight('ambient', { intensity: 0.4 });
+assert.equal(litReport.scene.lighting.find((l) => l.id === 'ambient').intensity, 0.4, 'the report reads the light it just changed');
+assert.equal(runtime.getScene(sibling.id).lighting.lights.find((l) => l.id === 'ambient').threeLight.intensity, 0.4, 'and the change landed in the world on screen');
+assert.equal(runtime.getScene(surface.sceneId).lighting.lights.find((l) => l.id === 'ambient').threeLight.intensity, homeAmbientBefore, `the demo scene's light still answers ${homeAmbientBefore} — before v261 the write went there and the report read here`);
+
+// The file a save button writes is the world the person is looking at.
+const worldFile = surface.save(1234);
+assert.equal(worldFile.entities.length, runtime.getScene(sibling.id).entities.size, 'the file carries the world on screen, body for body');
+assert.deepEqual(worldFile.entities.map(([, record]) => record.name), ['Sibling Body'], `PRE-FIX: before v261 this filed the demo scene's ${runtime.getScene(surface.sceneId).entities.size} bodies while the panel showed one body nobody could name`);
+
+// THE BOUND, measured rather than promised. `addBody`/`removeBody` stay on the COMPOSED scene, because
+// Scene3D.tsx resolves its frame writer (:238) and its document send (:807) against `surface.sceneId`;
+// moving the body pair without moving those two would put the loop and the document out of step with the
+// scene the runtime is drawing. It is recorded here so the next grant cannot read it as an oversight.
+const boundAdded = surface.addBody('Bound Probe', 'mesh');
+assert.ok(boundAdded, 'the body pair still answers while another world is live');
+assert.equal(runtime.getScene(surface.sceneId).entities.has(boundAdded.bodyId), true, 'and lands in the composed scene — the deliberate bound');
+assert.equal(runtime.getScene(sibling.id).entities.has(boundAdded.bodyId), false, 'not in the world the panel is showing');
+assert.equal(surface.report().scene.entities, 1, 'so the report keeps showing the live world, and the body it just authored is not in it');
+assert.equal(surface.removeBody(boundAdded.bodyId), true, 'taking it back out names the same scene it landed in');
+assert.equal(runtime.getScene(surface.sceneId).entities.has(boundAdded.bodyId), false, 'and it is gone from that scene');
+
+// The seat comes home, and everything §9 added to the graph stays there — the runtime cannot take a world
+// back out, which is why this section is last.
+aims.length = 0;
+const backHome = surface.activateScene(surface.sceneId);
+assert.equal(backHome.ok, true, 'the seat comes back to the composed scene');
+assert.equal(backHome.activeSceneId, surface.sceneId, 'answered from the graph again');
+assert.equal(backHome.aimed, true, 'and the composed world has a camera to aim');
+assert.deepEqual(aims, [surface.cameraId], 'the aim follows the seat home: the composed world\'s own active row');
+const homeReport = surface.report();
+assert.equal(homeReport.activeSceneId, surface.sceneId, 'the report reads the demo scene again');
+assert.deepEqual(homeReport.sceneRows.filter((r) => r.active).map((r) => r.id), [surface.sceneId], 'one row is marked active, and it is this one');
+assert.equal(homeReport.scenes, worldRows.length, `the population is the same ${worldRows.length} worlds — switching adds and removes nothing, because there is no scene-deletion verb`);
+assert.equal(homeReport.selected, null, 'the pick made in the sibling did not survive the switch: a selection is a body in a scene, and this scene does not hold it');
+assert.equal(runtime.getScene(sibling.id).cameras.size, 1, 'the sibling keeps its own aimed camera, unused');
+assert.equal(runtime.getScene(sibling.id).entities.size, 1, 'and its own one body');
+
+// THE DERIVATION, on the one state where this grant's two reads could disagree — and the shipped runtime
+// cannot itself reach it, because it has no scene-deletion verb: a graph whose active id names a world the
+// map does not hold. `SceneGraph` is plain data a HOST builds (`getSceneGraph` hands out the runtime's own
+// object, threeRuntime.ts:4359), so the derivation has to answer it. Pre-v261, `scenes` came from
+// `scenes.size` and `activeSceneId` was copied from `graph.activeSceneId`, which printed an active world and
+// a list beside it that did not contain it — an address the panel could draw no row for.
+const realGraph = runtime.getSceneGraph();
+assert.equal(realGraph, runtime.getSceneGraph(), 'the runtime hands out its OWN graph object — this injection is a host editing its own data, not a copy of one');
+const seatBeforeGhost = realGraph.activeSceneId;
+realGraph.activeSceneId = 'a-world-the-runtime-never-held';
+const ghostReport = buildSceneReport(runtime, 0);
+assert.equal(ghostReport.sceneRows.filter((r) => r.active).length, 0, 'the walk lists what exists and marks NONE active: the address is read FROM the rows, never handed to them');
+assert.equal(ghostReport.activeSceneId, null, 'PRE-FIX: two reads named a world the same report\'s own list did not hold');
+assert.equal(ghostReport.scene, null, 'and a world that is not in the graph has no summary to invent');
+assert.equal(ghostReport.scenes, ghostReport.sceneRows.length, 'the count is still the list it shows');
+realGraph.activeSceneId = seatBeforeGhost;
+assert.equal(runtime.getSceneGraph().activeSceneId, surface.sceneId, 'the seat is exactly where the injection found it');
+surface.resetOrbit();
+pickTarget = null;
+console.log(`[§9] the scene seat is a control over the REAL runtime: ${worldRows.length} worlds in the graph, walked once, each row counting its own ${worldRows.map((r) => r.entities).join('/')} bodies · an unknown world and a host without the verb are both refused as no-ops (0 aims, seat unmoved) · switching aimed ${freshWorldCam.id} with the held view (${heldView.position.map((n) => n.toFixed(3)).join(',')}) and the very next frame carried THAT scene and THAT camera to the backend · a pick in the sibling missed ${worldRows[0].name}'s Cube A and hit Sibling Body · the camera and light writes and the saved file (${worldFile.entities.length} body) all landed in the world on screen · the body pair stayed on the composed scene as the recorded bound · a graph naming a world it does not hold answers activeSceneId null rather than an address its own ${ghostReport.sceneRows.length} rows do not list · seat restored to ${surface.sceneId}, ${homeReport.scene.entities} bodies still drawn`);
 
 // ── §8 the home repository never moved ───────────────────────────────────────────────────────────────
 rmSync(box, { recursive: true, force: true });

@@ -109,6 +109,9 @@ export default function Scene3D() {
   // M5 v244: what the last camera ask answered — the removal's refusal sentence, or empty. Held as state
   // because it is text the panel shows, and cleared by the next ask rather than by a timer.
   const [cameraNote, setCameraNote] = useState('');
+  // M5 v261: the same for the SCENE seat — what the last world-switch ask answered. Its own note because a
+  // scene refusal and a camera refusal can be on screen about different rows at the same time.
+  const [sceneNote, setSceneNote] = useState('');
   // v163: the last file this surface saved, and what the last save/load/send answered — the harness
   // reads the note through its data attribute, so it carries counts rather than moods.
   const [lastFile, setLastFile] = useState<SceneSaveFile | null>(null);
@@ -539,6 +542,26 @@ export default function Scene3D() {
   }, []);
 
   /**
+   * M5 v261 — the scene seat becomes a control, one level above v260's camera seat.
+   *
+   * Until this ask existed the panel READ whichever world the graph named active and WROTE the one it composed,
+   * which is the same disagreement v260 closed for cameras, measured on the shipped bytes: a drag aimed a camera
+   * in a scene the frame was not drawing, the camera rows listed by this panel were refused by its own remove
+   * button as "not in scene …", and `save()` filed four bodies from a world nobody was looking at.
+   *
+   * Offered only on a row that is not the live one, for the same reason as v260's button — a control that cannot
+   * change anything misreports itself. The surface re-aims the new world's camera with the orbit already held and
+   * clears the pick, so the person keeps the view and does not keep a selection the new scene cannot hold.
+   */
+  const onActivateScene = useCallback((sceneId: string) => {
+    const surface = surfaceRef.current;
+    if (!surface) return;
+    const answer = surface.activateScene(sceneId);
+    setSceneNote(answer.ok ? '' : `${answer.why}: ${answer.reason}`);
+    setReport(surface.report());
+  }, []);
+
+  /**
    * v185 — the quota meter's refresh. The footprint is measured from the decorated listing (the same
    * read a browse makes), and the origin estimate is the browser's own. Both are re-measured after
    * every store mutation — a meter that kept a stale reading would be a counter with a dial on it.
@@ -946,6 +969,34 @@ export default function Scene3D() {
                   </div>
                 ))}
                 {cameraNote && <div data-scene3d-camera-note>{cameraNote}</div>}
+              </div>
+            )}
+            {/* M5 v261 — the SCENE rows, one level above the camera rows, from the same single walk the count and
+                the active address come from (`sceneRows`). Each row says how much is in that world, because two
+                scenes otherwise differ on screen only by a name; the live one is labelled and every other row is
+                offered a button that makes it live. */}
+            {report.sceneRows.length > 0 && (
+              <div data-scene3d-scenes style={{ marginTop: 4, pointerEvents: 'auto' }}>
+                {report.sceneRows.map((r) => (
+                  <div key={r.id} data-scene3d-scene={r.id} style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
+                    <span style={{ minWidth: 120 }}>
+                      {r.name ? r.name : '(unnamed)'} · {r.entities} bodies
+                      {r.active ? ' · active' : ''}
+                    </span>
+                    {!r.active && (
+                      <button
+                        type="button"
+                        className="btn"
+                        data-scene3d-scene-activate={r.id}
+                        onClick={() => onActivateScene(r.id)}
+                        style={{ fontSize: '0.85em', padding: '1px 6px' }}
+                      >
+                        look at
+                      </button>
+                    )}
+                  </div>
+                ))}
+                {sceneNote && <div data-scene3d-scene-note>{sceneNote}</div>}
               </div>
             )}
             {/* The orbit is reported as the surface holds it, not as a counter this component keeps. */}

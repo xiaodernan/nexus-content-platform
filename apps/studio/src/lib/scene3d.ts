@@ -238,6 +238,31 @@ export type SceneCameraActivation =
   | { ok: true; cameraId: string; activeCamera: string | null }
   | { ok: false; cameraId: string; why: 'absent' | 'unsupported'; reason: string };
 
+/** M5 v261 — one SCENE of this runtime, as the panel's row needs it.
+ *
+ *  The same reason v244 wrote down for cameras: the report carried a COUNT (`scenes`) and an ADDRESS
+ *  (`activeSceneId`) and nothing in between, so a person could see that the runtime held two worlds and had no
+ *  way to say WHICH one to look at. `entities` is on the row because that is the only way two scenes tell each
+ *  other apart on screen — a restored sibling and the composed demo have different names, and a panel that
+ *  lists names alone cannot show which one has anything in it. */
+export interface SceneSceneRow {
+  id: string;
+  name: string;
+  entities: number;
+  active: boolean;
+}
+
+/** M5 v261 — what asking this surface to move the LIVE SCENE answers.
+ *
+ *  There is no `blocked` arm, and the reason is stronger than it was for v260's seat: the runtime's
+ *  `setActiveScene` (threeRuntime.ts:1356) looks the scene up and answers `false` for a subject it does not
+ *  hold — it refuses nothing that exists, because a scene switch has no invariant to protect the way a camera
+ *  seat has "exactly one active row". `activeSceneId` is therefore the graph's own answer after the ask, read
+ *  from the registry rather than echoed from the argument. */
+export type SceneSceneActivation =
+  | { ok: true; sceneId: string; activeSceneId: string | null; aimed: boolean }
+  | { ok: false; sceneId: string; why: 'absent' | 'unsupported'; reason: string };
+
 /** M5 v227 — what a restore had to re-issue to be loadable at all.
  *
  *  A save file carries no camera objects: a shot names a `cameraId`, and the camera it addressed — its name,
@@ -588,6 +613,11 @@ export interface SceneReport {
   pixels: { width: number; height: number; pixelRatio: number } | null;
   scenes: number;
   activeSceneId: string | null;
+  /** M5 v261 — every scene the runtime holds, as the panel's row needs it. `scenes` and `activeSceneId` are
+   *  read off THIS walk, the way v244 made `cameraRows` the single source behind `cameras`/`cameraNames`/
+   *  `activeCamera`: a count and an address that come from different reads can disagree, and the disagreement
+   *  is invisible to the person who is being shown both. */
+  sceneRows: SceneSceneRow[];
   scene: {
     id: string;
     name: string;
@@ -667,8 +697,11 @@ export function buildDemoScene(
 /**
  * Read the runtime's state back as a plain report.
  *
- * `activeSceneId` is the graph's own answer, and the scene summary is read from the scene the graph
- * points at — so a report can never describe a scene the runtime is not actually holding as active.
+ * M5 v261 — the SCENE walk is now the single read behind three fields: `sceneRows` is built from the graph's
+ * own Map, and `scenes` is its length while `activeSceneId` is the row it marks active. Before this the count
+ * came from `scenes.size` and the address from `graph.activeSceneId` — two reads of one Map, which is what let
+ * a panel show "2 scenes" and name an active one that was not in the list it drew. The summary (`scene`) is
+ * the SAME walked object, so a row and the figures beside it describe one scene rather than two answers.
  */
 export function buildSceneReport(
   runtime: SceneRuntimeLike,
@@ -677,8 +710,14 @@ export function buildSceneReport(
   selected: { id: string; name: string } | null = null,
 ): SceneReport {
   const graph = runtime.getSceneGraph();
-  const activeSceneId = graph.activeSceneId;
-  const scene = activeSceneId ? runtime.getScene(activeSceneId) : undefined;
+  const sceneRows: SceneSceneRow[] = [...graph.scenes.values()].map((s) => ({
+    id: s.id,
+    name: s.name,
+    entities: s.entities.size,
+    active: s.id === graph.activeSceneId,
+  }));
+  const activeSceneId = sceneRows.find((r) => r.active)?.id ?? null;
+  const scene = activeSceneId ? graph.scenes.get(activeSceneId) : undefined;
   const backend = runtime.getBackend();
   const stats = graph.stats ?? EMPTY_STATS;
   // M5 v244 — the camera set is walked ONCE, and every camera figure in the report is read off that walk:
@@ -693,8 +732,9 @@ export function buildSceneReport(
     schema: 1,
     backend: backend?.kind ?? null,
     pixels: backend ? { ...backend.state } : null,
-    scenes: graph.scenes.size,
-    activeSceneId: activeSceneId ?? null,
+    scenes: sceneRows.length,
+    activeSceneId,
+    sceneRows,
     scene: scene
       ? {
           id: scene.id,
@@ -862,6 +902,10 @@ export function composeDocumentOps(input: SceneDocumentInput): Op[] {
  * cannot control, and it is out of the path this function asserts on.
  */
 export interface SceneSurface {
+  /** The scene this surface COMPOSED and animates — the address its body list and its document send are filed
+   *  under, not the scene the panel is currently looking at. M5 v261: the VIEW follows the runtime's active
+   *  row (`report().activeSceneId`), and this stays the composed one, exactly as `cameraId` stayed the
+   *  composed camera when v260 made the orbit aim the seat. */
   readonly sceneId: string;
   /** The camera this surface COMPOSED — an address for `placeCamera`, not the seat. Since v260 the orbit aims
    *  whichever row the live scene names as active (`report().scene.activeCamera`), which is this one until a
@@ -1042,8 +1086,27 @@ export interface SceneSurface {
    *  orbit, so switching seats keeps the view the user set instead of pointing the picture at the origin a
    *  fresh `createCamera` leaves it at. */
   activateCamera(cameraId: string): SceneCameraActivation;
-  /** M5 v163 — serialise THIS surface's scene into the runtime's own save file. `savedAt` is the caller's
-   *  instant; the runtime owns a frame clock, not a wall clock. Refuses when the host supplied no saver. */
+  /** M5 v261 — move the LIVE SCENE, the seat one level up: the row the report reads and the renderer draws
+   *  from. The same lookup-before-asking shape as `activateCamera`, and the same reason for it — until this
+   *  verb existed the surface could only ever ACT on the scene it was composed under, while it REPORTED
+   *  whichever scene the graph named. Measured on the shipped bytes (the proof's §9 grades the repaired shape
+   *  and marks the pre-fix line where each of these was the defect): with the active row
+   *  moved out-of-band, one drag aimed the composed scene's camera and the frame drew a different scene
+   *  entirely, the camera rows the panel listed were refused by that panel's own buttons as "not in scene …",
+   *  `save()` wrote the four demo bodies while the person was looking at one other body, and `setLight`
+   *  changed a light no report was reading.
+   *
+   *  The handover does two things beyond the runtime's write: it re-aims with the orbit the person already
+   *  holds, so the view does not jump, and it CLEARS the pick, because a selection is a body in a scene and
+   *  the new scene does not hold it. */
+  activateScene(sceneId: string): SceneSceneActivation;
+  /** M5 v163 — serialise the scene this surface READS into the runtime's own save file. `savedAt` is the
+   *  caller's instant; the runtime owns a frame clock, not a wall clock. Refuses when the host supplied no
+   *  saver.
+   *
+   *  M5 v261 — the address moved from `built.sceneId` to the live one. Measured on the shipped bytes: with a
+   *  second scene active, `save()` filed the four demo bodies while the panel listed the one world the person
+   *  was looking at, so the button wrote a file about a scene nobody could see. */
   save(savedAt: number): SceneSaveFile;
   /** M5 v163 — read a save file back. A restore never overwrites live state (the saver's own rule), so
    *  the file lands in a FRESH sibling scene the runtime composes for exactly that, and this surface's
@@ -1145,6 +1208,15 @@ export function createStudioScene(
   const authoredIds: string[] = [];
   let added = 0;
 
+  /** Which scene the panel is looking AT: the row the graph names as active, falling back to the one this
+   *  surface composed when the graph names none.
+   *
+   *  M5 v261 — the same correction v260 made for the camera seat, one level up. `buildSceneReport` has always
+   *  read the graph's active row, and `animate` renders it (threeRuntime.ts:2799); every WRITE this surface
+   *  performed named `built.sceneId`. Those are the same scene only while nobody moves the seat, which is why
+   *  the disagreement was invisible for 60 grants — and why the verbs below now resolve through HERE. */
+  const liveSceneId = (): string => runtime.getSceneGraph().activeSceneId ?? built.sceneId;
+
   /** Which camera the panel is looking THROUGH: the row the live scene names as active.
    *
    *  The runtime has one source of truth for this and reads it in three places — `animate` renders from it
@@ -1153,7 +1225,7 @@ export function createStudioScene(
    *  seat at all (every camera taken out, or a host whose rows carry no active flag), which is the same
    *  camera the pre-v260 code aimed, so a single-camera scene changes behaviour by nothing. */
   const seatOf = (): string | null => {
-    const live = runtime.getScene(built.sceneId);
+    const live = runtime.getScene(liveSceneId());
     const active = live ? [...live.cameras.values()].find((c) => c.active) : undefined;
     return active?.id ?? null;
   };
@@ -1164,10 +1236,18 @@ export function createStudioScene(
    *  M5 v260 — this resolved `built.cameraId` before the seat was a control. Measured on the shipped bytes:
    *  with the seat moved out-of-band to a second camera, one drag wrote the FIRST camera (probe: aimed
    *  `camera-6`, drawn `camera-7`), so every orbit, wheel and pan landed on a camera nobody renders and the
-   *  picture stopped answering the mouse. */
+   *  picture stopped answering the mouse.
+   *
+   *  M5 v261 — the composed-camera fallback is now SCENE-conditional. `built.cameraId` is a camera of the
+   *  composed scene, so aiming it while looking at another scene is the same cross-scene id bug this grant
+   *  exists to fix, one line deeper: an orbit on a scene with no camera of its own does nothing rather than
+   *  moving a camera nobody is drawing from. */
   const aim = () => {
+    const subject = liveSceneId();
+    const target = seatOf() ?? (subject === built.sceneId ? built.cameraId : null);
+    if (!target) return;
     const placement = orbitToPlacement(orbit, STUDIO_CAMERA_LOOK_AT);
-    adapter?.placeCamera(built.sceneId, seatOf() ?? built.cameraId, placement.position, placement.lookAt);
+    adapter?.placeCamera(subject, target, placement.position, placement.lookAt);
   };
 
   return {
@@ -1206,7 +1286,7 @@ export function createStudioScene(
       const size = runtime.getBackend()?.state;
       if (adapter?.pickAt && size && size.width > 0 && size.height > 0) {
         const ndc = ndcFromPixel(px, py, size.width, size.height);
-        const hit = adapter.pickAt(built.sceneId, ndc.x, ndc.y);
+        const hit = adapter.pickAt(liveSceneId(), ndc.x, ndc.y);
         selected = hit ? { id: hit.entityId, name: hit.name } : null;
       }
       return buildSceneReport(runtime, counted, orbit, selected);
@@ -1217,7 +1297,7 @@ export function createStudioScene(
       // to give — the report that follows reads the live scene either way, which is what keeps the HUD
       // honest about a host that has no lighting gate at all.
       const asked = change.intensity !== undefined ? { ...change, intensity: clampLightIntensity(change.intensity) } : change;
-      runtime.setLightState?.(built.sceneId, lightId, asked);
+      runtime.setLightState?.(liveSceneId(), lightId, asked);
       return buildSceneReport(runtime, counted, orbit, selected);
     },
     renameSelected(name) {
@@ -1226,7 +1306,7 @@ export function createStudioScene(
       // A blank ask is a no-ask and no selection is nothing to rename — both answer the unchanged report
       // rather than a refusal the host would have to phrase for a call that carried no question.
       if (next === null || !target) return buildSceneReport(runtime, counted, orbit, selected);
-      if (runtime.setEntityName?.(built.sceneId, target.id, next) === true) {
+      if (runtime.setEntityName?.(liveSceneId(), target.id, next) === true) {
         // The pick record carries the name the pick SAW; an accepted rename makes that record stale, so
         // it moves WITH the body (the runtime's restore rule). A host without the gate — or one that
         // refused — leaves it as it was, and the report reads whichever name the live scene holds.
@@ -1237,18 +1317,18 @@ export function createStudioScene(
     setSelectedVisible(visible) {
       const target = selected;
       if (!target) return buildSceneReport(runtime, counted, orbit, selected);
-      runtime.setEntityVisible?.(built.sceneId, target.id, visible);
+      runtime.setEntityVisible?.(liveSceneId(), target.id, visible);
       return buildSceneReport(runtime, counted, orbit, selected);
     },
     toggleComponentEnabled(componentType) {
       const target = selected;
       if (!target) return buildSceneReport(runtime, counted, orbit, selected);
       // Read the current enabled state from the live registry, then flip it through the host gate.
-      const entity = runtime.getEntity?.(built.sceneId, target.id);
+      const entity = runtime.getEntity?.(liveSceneId(), target.id);
       if (!entity) return buildSceneReport(runtime, counted, orbit, selected);
       const comp = runtime.getComponent?.(entity, componentType);
       const next = comp ? !comp.enabled : true;
-      runtime.setComponentEnabled?.(built.sceneId, target.id, componentType, next);
+      runtime.setComponentEnabled?.(liveSceneId(), target.id, componentType, next);
       return buildSceneReport(runtime, counted, orbit, selected);
     },
     // v210 — the three component events the runtime emits from EVERY write path (its own emit is
@@ -1322,6 +1402,12 @@ export function createStudioScene(
       aim();
       return buildSceneReport(runtime, counted, orbit, selected);
     },
+    // M5 v261 — the body pair stays on the scene this surface COMPOSED, and that is a deliberate bound, not
+    // an oversight: `writeFrame` is resolved by the host against `surface.sceneId` (Scene3D.tsx:238) and the
+    // document send against the same address (:807), so a body filed into whatever scene happens to be live
+    // would join `bodyIds` and never be drawn — the frame writer would be handed an id in a scene it does not
+    // own. Adding a body to a world the panel is not looking at is a different feature from reading a world it
+    // is, and this grant does not pretend to be it.
     addBody(name, kind) {
       const entity = runtime.createEntity(
         built.sceneId,
@@ -1353,9 +1439,10 @@ export function createStudioScene(
     // writer moves those bodies, while the report walks the runtime's camera Map (see `cameraRows`) and a
     // camera this surface added is not something the frame loop touches.
     addCamera(name) {
-      const camera = runtime.createCamera(built.sceneId, name);
+      const subject = liveSceneId();
+      const camera = runtime.createCamera(subject, name);
       if (!camera?.id) return null;
-      return { cameraId: camera.id, count: runtime.getScene(built.sceneId)?.cameras.size ?? 0 };
+      return { cameraId: camera.id, count: runtime.getScene(subject)?.cameras.size ?? 0 };
     },
     removeCamera(cameraId) {
       if (!runtime.removeCamera) {
@@ -1366,22 +1453,23 @@ export function createStudioScene(
           reason: 'this host has no camera-removal verb; the surface will not delete a camera it cannot ask the runtime to drop',
         };
       }
-      const live = runtime.getScene(built.sceneId);
-      // The subject is looked up in THIS surface's scene first, so an id the panel never showed — another
+      const subject = liveSceneId();
+      const live = runtime.getScene(subject);
+      // The subject is looked up in the scene the panel is READING first, so an id it never showed — another
       // scene's camera, a row already taken out, a typo — is answered as the fact it is and never reaches the
       // runtime's refusal path. The runtime gives the same `false` for the same subject; this is the surface
-      // describing the scene it owns, in its own voice, the way `removeBody` describes the bodies it holds.
+      // describing the scene it looks at, in its own voice, the way `removeBody` describes the bodies it holds.
       if (!live?.cameras.has(cameraId)) {
         return {
           ok: false,
           cameraId,
           why: 'absent',
-          reason: `camera ${cameraId} is not in scene ${built.sceneId}, so this surface has nothing to take out`,
+          reason: `camera ${cameraId} is not in scene ${subject}, so this surface has nothing to take out`,
         };
       }
       let removed: boolean;
       try {
-        removed = runtime.removeCamera(built.sceneId, cameraId);
+        removed = runtime.removeCamera(subject, cameraId);
       } catch (error) {
         // v239's two refusals arrive as throws, and each names the call that unlocks it. The surface carries
         // that sentence instead of paraphrasing it: only the runtime knows which sequence and shot hold a
@@ -1395,10 +1483,10 @@ export function createStudioScene(
           ok: false,
           cameraId,
           why: 'absent',
-          reason: `the runtime no longer holds camera ${cameraId} in scene ${built.sceneId}`,
+          reason: `the runtime no longer holds camera ${cameraId} in scene ${subject}`,
         };
       }
-      return { ok: true, cameraId, count: runtime.getScene(built.sceneId)?.cameras.size ?? 0 };
+      return { ok: true, cameraId, count: runtime.getScene(subject)?.cameras.size ?? 0 };
     },
     // M5 v260 — the seat becomes a control, and the orbit follows it. Same lookup-before-asking shape as
     // `removeCamera` above: an id this surface never showed the panel is answered by the surface, in its own
@@ -1412,21 +1500,22 @@ export function createStudioScene(
           reason: 'this host has no camera-switch verb; the surface will not claim a seat it cannot ask the runtime to hold',
         };
       }
-      const live = runtime.getScene(built.sceneId);
+      const subject = liveSceneId();
+      const live = runtime.getScene(subject);
       if (!live?.cameras.has(cameraId)) {
         return {
           ok: false,
           cameraId,
           why: 'absent',
-          reason: `camera ${cameraId} is not in scene ${built.sceneId}, so this surface has no seat to give it`,
+          reason: `camera ${cameraId} is not in scene ${subject}, so this surface has no seat to give it`,
         };
       }
-      if (!runtime.setActiveCamera(built.sceneId, cameraId)) {
+      if (!runtime.setActiveCamera(subject, cameraId)) {
         return {
           ok: false,
           cameraId,
           why: 'absent',
-          reason: `the runtime no longer holds camera ${cameraId} in scene ${built.sceneId}`,
+          reason: `the runtime no longer holds camera ${cameraId} in scene ${subject}`,
         };
       }
       // The handover, and the reason this verb is not a flag write: the seat is what the renderer draws from,
@@ -1435,6 +1524,45 @@ export function createStudioScene(
       aim();
       return { ok: true, cameraId, activeCamera: seatOf() };
     },
+    // M5 v261 — the scene seat, one level above v260's camera seat, with the same two handover duties and one
+    // more: re-aim the new scene's camera at the orbit the user is holding, CLEAR the pick (a body chosen in
+    // the old world is not in the new one, and the inspector would name an entity the report cannot find), and
+    // report the live id read back FROM THE GRAPH rather than the id that was asked for.
+    //
+    // There is no `blocked` arm, unlike `removeCamera`: `setActiveScene` (threeRuntime.ts:1356) refuses nothing
+    // that exists — it answers `false` only for an id outside `graph.scenes`, the same fact the lookup below
+    // already caught, told by the host instead of by the surface.
+    activateScene(sceneId) {
+      if (!runtime.setActiveScene) {
+        return {
+          ok: false,
+          sceneId,
+          why: 'unsupported',
+          reason: 'this host has no scene-switch verb; the surface will not claim a world it cannot ask the runtime to make live',
+        };
+      }
+      // Lookup before asking, in the graph's own walk — the same population `buildSceneReport` lists, so the
+      // rows the panel shows and the ids this verb accepts cannot drift apart.
+      if (!runtime.getSceneGraph().scenes.has(sceneId)) {
+        return {
+          ok: false,
+          sceneId,
+          why: 'absent',
+          reason: `scene ${sceneId} is not in the runtime's graph, so this surface has no world to switch to`,
+        };
+      }
+      if (!runtime.setActiveScene(sceneId)) {
+        return {
+          ok: false,
+          sceneId,
+          why: 'absent',
+          reason: `the runtime no longer holds scene ${sceneId} in its graph`,
+        };
+      }
+      aim();
+      selected = null;
+      return { ok: true, sceneId, activeSceneId: liveSceneId(), aimed: seatOf() !== null };
+    },
     save(savedAt) {
       if (!saver) {
         refused('this surface was built without a saver; the host that composed it must pass one to save');
@@ -1442,7 +1570,7 @@ export function createStudioScene(
       if (typeof savedAt !== 'number' || !Number.isFinite(savedAt) || savedAt < 0) {
         refused(`savedAt is ${String(savedAt)}; the caller names the instant and it has to be a finite non-negative number`);
       }
-      return saver.buildSaveFile(built.sceneId, savedAt);
+      return saver.buildSaveFile(liveSceneId(), savedAt);
     },
     load(file) {
       if (!saver) {
