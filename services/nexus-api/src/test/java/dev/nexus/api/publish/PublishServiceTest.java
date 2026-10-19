@@ -293,14 +293,16 @@ class PublishServiceTest {
     }
     // === M7 v242: the OWNER CLAIM (ADR 0018) ===
 
-    private static final Instant CLAIMED_AT = Instant.parse("2026-10-07T11:59:00Z");
+    private static final long CLAIMED_AT_MS = Instant.parse("2026-10-07T11:59:00Z").toEpochMilli();
+    /** The same claim in the CLIENT's unit — milliseconds since the epoch, which is what the wire carries. */
+    private static final Instant CLAIMED_AT = Instant.ofEpochMilli(CLAIMED_AT_MS);
 
     private static OwnerClaim claim(String accountId) {
         return claim(accountId, "ada");
     }
 
     private static OwnerClaim claim(String accountId, String handle) {
-        return new OwnerClaim(accountId, handle, "unsigned-local", CLAIMED_AT);
+        return new OwnerClaim(accountId, handle, "unsigned-local", CLAIMED_AT_MS);
     }
 
     @Test
@@ -427,16 +429,16 @@ class PublishServiceTest {
     void aMalformedClaimIsRefusedByNameRatherThanRecordedHalf() {
         when(repository.findById("doc-1")).thenReturn(Optional.empty());
 
-        assertThatThrownBy(() -> service.publish("doc-1", "T", VALID_DOCUMENT, new OwnerClaim("", "ada", "unsigned-local", CLAIMED_AT)), null)
+        assertThatThrownBy(() -> service.publish("doc-1", "T", VALID_DOCUMENT, new OwnerClaim("", "ada", "unsigned-local", CLAIMED_AT_MS)), null)
                 .isInstanceOf(InvalidPublication.class)
                 .hasMessageContaining("must name an account id");
-        assertThatThrownBy(() -> service.publish("doc-1", "T", VALID_DOCUMENT, new OwnerClaim("acct-ada", "  ", "unsigned-local", CLAIMED_AT)), null)
+        assertThatThrownBy(() -> service.publish("doc-1", "T", VALID_DOCUMENT, new OwnerClaim("acct-ada", "  ", "unsigned-local", CLAIMED_AT_MS)), null)
                 .isInstanceOf(InvalidPublication.class)
                 .hasMessageContaining("must name a handle");
         assertThatThrownBy(() -> service.publish("doc-1", "T", VALID_DOCUMENT, new OwnerClaim("acct-ada", "ada", "unsigned-local", null)))
                 .isInstanceOf(InvalidPublication.class)
                 .hasMessageContaining("must name when it was made");
-        assertThatThrownBy(() -> service.publish("doc-1", "T", VALID_DOCUMENT, new OwnerClaim("acct-ada", "a".repeat(25), "unsigned-local", CLAIMED_AT)), null)
+        assertThatThrownBy(() -> service.publish("doc-1", "T", VALID_DOCUMENT, new OwnerClaim("acct-ada", "a".repeat(25), "unsigned-local", CLAIMED_AT_MS)), null)
                 .isInstanceOf(InvalidPublication.class)
                 .hasMessageContaining("at most 24");
         verify(repository, never()).save(any(PublishedProject.class));
@@ -446,12 +448,52 @@ class PublishServiceTest {
     void aClaimThatSaysItIsVerifiedIsRefusedBecauseNothingVerifiedIt() {
         when(repository.findById("doc-1")).thenReturn(Optional.empty());
 
-        assertThatThrownBy(() -> service.publish("doc-1", "T", VALID_DOCUMENT, new OwnerClaim("acct-ada", "ada", "verified", CLAIMED_AT)), null)
+        assertThatThrownBy(() -> service.publish("doc-1", "T", VALID_DOCUMENT, new OwnerClaim("acct-ada", "ada", "verified", CLAIMED_AT_MS)), null)
                 .isInstanceOf(InvalidPublication.class)
                 .hasMessageContaining("this service records claims and verifies nothing");
-        assertThatThrownBy(() -> service.publish("doc-1", "T", VALID_DOCUMENT, new OwnerClaim("acct-ada", "ada", null, CLAIMED_AT)), null)
+        assertThatThrownBy(() -> service.publish("doc-1", "T", VALID_DOCUMENT, new OwnerClaim("acct-ada", "ada", null, CLAIMED_AT_MS)), null)
                 .isInstanceOf(InvalidPublication.class)
                 .hasMessageContaining("is nothing");
+    }
+
+    // === M7 v263: the claim's INSTANT is read in the CLIENT's unit ====
+
+    /**
+     * v263 — the claim's instant crosses the wire as MILLISECONDS since the epoch, because that is what the
+     * Studio's own {@code ownerClaim} produces, and this service's record said it mirrored that shape. It did
+     * not: it declared the field an {@link Instant} while the client sent a number, and Jackson reads a bare
+     * number as epoch SECONDS — so {@code 1700000000000} (2023-11-14) was stored as the year 55840. The unit
+     * is now the client's, and this case pins the conversion at the storage boundary.
+     */
+    @Test
+    void theClaimsInstantIsStoredInTheClientsOwnUnit() {
+        when(repository.findById("doc-1")).thenReturn(Optional.empty());
+        when(repository.save(any(PublishedProject.class))).thenAnswer(i -> i.getArgument(0));
+
+        long clientMillis = 1_700_000_000_000L;
+        PublishedProject saved = service.publish("doc-1", "T", VALID_DOCUMENT,
+                new OwnerClaim("acct-ada", "ada", "unsigned-local", clientMillis));
+
+        assertThat(saved.getOwnerClaimedAt())
+                .isEqualTo(Instant.ofEpochMilli(clientMillis));
+        assertThat(saved.getOwnerClaimedAt().getEpochSecond())
+                .as("the stored instant is the client's MILLISECONDS, not the same number read as seconds")
+                .isEqualTo(1_700_000_000L);
+    }
+
+    @Test
+    void anInstantTheServiceCannotCheckIsStillRecordedBecauseAClaimIsAClaim() {
+        when(repository.findById("doc-1")).thenReturn(Optional.empty());
+        when(repository.save(any(PublishedProject.class))).thenAnswer(i -> i.getArgument(0));
+
+        // The service does NOT compare the claimed instant against its own clock, and this case says so
+        // rather than leaving it implied: every `long` of milliseconds is inside Instant's range, so a
+        // range guard could never fire, and a clock comparison would be a verification this service does
+        // not claim to do. The instant is recorded AS STATED, exactly like the rest of the claim.
+        PublishedProject saved = service.publish("doc-1", "T", VALID_DOCUMENT,
+                new OwnerClaim("acct-ada", "ada", "unsigned-local", Long.MAX_VALUE));
+
+        assertThat(saved.getOwnerClaimedAt()).isEqualTo(Instant.ofEpochMilli(Long.MAX_VALUE));
     }
 
     // === M7 v243: a REMIX forks a publication into a NEW, OWNERLESS project ====

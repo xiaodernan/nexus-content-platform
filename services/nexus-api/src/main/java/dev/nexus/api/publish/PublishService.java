@@ -149,7 +149,7 @@ public class PublishService {
             PublishedProject created = new PublishedProject(projectId, title.trim(), documentJson, 1, now);
             if (claim != null) {
                 requireClaimable(claim);
-                created.claimOwner(claim.accountId(), claim.handle(), claim.assurance(), claim.claimedAt());
+                created.claimOwner(claim.accountId(), claim.handle(), claim.assurance(), claimedInstantOf(claim));
             }
             return repository.save(created);
         }
@@ -166,7 +166,7 @@ public class PublishService {
                         "publication " + projectId + " is claimed by account " + row.getOwnerAccountId()
                                 + "; a publish naming account " + claim.accountId() + " would move it");
             }
-            row.claimOwner(claim.accountId(), claim.handle(), claim.assurance(), claim.claimedAt());
+            row.claimOwner(claim.accountId(), claim.handle(), claim.assurance(), claimedInstantOf(claim));
         }
         row.republish(title.trim(), documentJson, now);
         return repository.save(row);
@@ -261,6 +261,21 @@ public class PublishService {
                     "owner assurance is " + (claim.assurance() == null ? "nothing" : "\"" + claim.assurance() + "\"")
                             + "; this service records claims and verifies nothing, so \"" + UNSIGNED_LOCAL + "\" is the only value it accepts");
         }
+    }
+
+    /**
+     * The claim's instant as the row stores it. The claim states MILLISECONDS since the epoch (the client's
+     * own unit, and the one `PublishDtos.OwnerClaim` documents); the row stores an {@link Instant}.
+     *
+     * <p>No range check, and the reason is worth stating rather than leaving to a reader: every
+     * {@code long} number of milliseconds is inside {@link Instant}'s range (a {@code long} of milliseconds
+     * is at most ±292 million years, and an {@code Instant} reaches ±1 billion), so a "is this a real
+     * instant" guard could never fire — a rule that cannot fire is not a rule, it is a comment. What the
+     * service does NOT do is compare the claimed instant against its own clock: the assurance rule says this
+     * service records claims and verifies nothing, and the instant is part of the claim.
+     */
+    private static Instant claimedInstantOf(OwnerClaim claim) {
+        return Instant.ofEpochMilli(claim.claimedAt());
     }
 
     private static void requireUsableId(String projectId) {

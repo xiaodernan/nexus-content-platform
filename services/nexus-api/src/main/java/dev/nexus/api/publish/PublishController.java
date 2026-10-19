@@ -140,7 +140,14 @@ public class PublishController {
         if (!row.hasOwner()) {
             return null;
         }
-        return new OwnerClaim(row.getOwnerAccountId(), row.getOwnerHandle(), row.getOwnerAssurance(), row.getOwnerClaimedAt());
+        // v263 — the claim goes back out in the CLIENT's unit (milliseconds since the epoch), the same one it
+        // came in on, so the claim that comes back is the claim that went in. The row stores an Instant, and
+        // the two are one fact in the two units the wire uses.
+        return new OwnerClaim(
+                row.getOwnerAccountId(),
+                row.getOwnerHandle(),
+                row.getOwnerAssurance(),
+                row.getOwnerClaimedAt().toEpochMilli());
     }
 
     private String urlFor(String projectId) {

@@ -5,6 +5,7 @@ import { exportCanvasPng, exportHtml, exportJson, slug } from '@/lib/export';
 import { listPublished, probePublish, publishProject, unpublish, type PublishLaneListing, type PublishLaneProbe } from '@/lib/publishLane';
 import { remixProject } from '@/lib/remixLane';
 import { useStudio, type Tool } from '@/lib/store';
+import { session } from '@/lib/accountSession';
 import { AccountPanel } from './AccountPanel';
 
 const TOOLS: { id: Tool; label: string; icon: string; key: string }[] = [
@@ -47,6 +48,10 @@ export default function Toolbar() {
   const [publishNote, setPublishNote] = useState('');
   const [publishing, setPublishing] = useState(false);
   const [showAccount, setShowAccount] = useState(false);
+  // v263 — the account THIS device publishes as, so a listed row can say whether it is yours. Read once per
+  // render of the panel; the account changes through the account panel, and the Published panel re-reads its
+  // rows after every verb, so the two never disagree for long.
+  const myAccountId = session.current()?.id ?? null;
 
   useEffect(() => {
     let live = true;
@@ -309,6 +314,18 @@ export default function Toolbar() {
                     <strong>{row.title}</strong>
                     <span style={{ color: 'var(--nexus-muted)' }}>
                       v{row.version} · {row.projectId}
+                    </span>
+                    {/* v263 — WHO owns this row, and whether it is yours. The service now records the claim the
+                        account panel set, and it REFUSES a take-down by anybody else — so a refusal the user
+                        cannot explain is a refusal the user cannot act on. The row names its owner, and says
+                        "yours" when that owner is this device's account. A row that names nobody says so. */}
+                    <span
+                      data-published-owner={row.projectId}
+                      style={{ color: 'var(--nexus-muted)', fontSize: 10 }}
+                    >
+                      {row.owner
+                        ? `by ${row.owner.handle} · ${row.owner.assurance}${row.owner.accountId === myAccountId ? ' · yours' : ''}`
+                        : 'by nobody'}
                     </span>
                     {/* v196 — the artifact page is THIS Studio's route, so the link is one the Studio is the
                         author of. (The service's own `url` names its JSON endpoint and is shown in the note

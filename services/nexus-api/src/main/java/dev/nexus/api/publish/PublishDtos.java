@@ -132,7 +132,15 @@ public final class PublishDtos {
      * <p>The shape is deliberately the one the Studio's own {@code ownerClaim} produces, so a service-side
      * check is the only thing that can ever widen {@code assurance}: the client puts this on the wire, and
      * the value it puts there is the only one it has.
+     *
+     * <p>{@code claimedAt} is therefore MILLISECONDS since the epoch, because that is what the client's own
+     * {@code OwnerClaim} carries — and this record used to declare it an {@link Instant} while claiming to
+     * mirror the client. Jackson reads a bare JSON number as epoch SECONDS by default, so the Studio's
+     * {@code 1700000000000} (2023-11-14) was deserialized as the year 55840 and STORED that way: a fact the
+     * system of record held about when a claim was made, wrong by 53817 years, silently, because nothing had
+     * ever sent a claim to be wrong. The unit is now the client's, stated here, and the same value goes out
+     * again on a receipt, so the claim that comes back is the claim that went in.
      */
-    public record OwnerClaim(String accountId, String handle, String assurance, Instant claimedAt) {
+    public record OwnerClaim(String accountId, String handle, String assurance, Long claimedAt) {
     }
 }

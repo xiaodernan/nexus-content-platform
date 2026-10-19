@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { AccountId } from './community';
+import type { Subscription, Currency, PriceCents, Tip } from './monetization';
 import {
   currencySymbol,
   isFreePrice,
@@ -17,8 +18,7 @@ import {
   subscriptionActiveText,
 } from './monetization';
 
-import type { Currency } from './monetization';
-import type { Subscription, Tip } from './monetization';
+
 
 const sub: Subscription = {
   creatorId: 'acct-creator' as AccountId,
@@ -248,6 +248,41 @@ describe('monetization — tipsByRecipient', () => {
 
   it('empty for no match', () => {
     expect(tipsByRecipient(tips, 'acct-z')).toEqual([]);
+  });
+});
+
+describe('monetization — subscriptionDaysLeftText', () => {
+  const now = 1_700_000_000_000;
+  const sub = (expiresAt: number): Subscription => ({
+    creatorId: 'acct-a' as AccountId,
+    planId: 'p-1',
+    priceCents: 100 as PriceCents,
+    currency: 'USD',
+    active: true,
+    subscribedAt: now,
+    expiresAt,
+  });
+
+  it('answers N/A for a subscription with no expiry', () => {
+    const neverExpires: Subscription = {
+      creatorId: 'acct-a' as AccountId,
+      planId: 'p-1',
+      priceCents: 100 as PriceCents,
+      currency: 'USD',
+      active: true,
+      subscribedAt: now,
+      expiresAt: null,
+    };
+    expect(subscriptionDaysLeftText(neverExpires, now)).toBe('N/A');
+    expect(subscriptionDaysLeftText(null, now)).toBe('N/A');
+  });
+
+  it('answers Expired when the expiry is at or before now', () => {
+    expect(subscriptionDaysLeftText(sub(now - 1), now)).toBe('Expired');
+  });
+
+  it('shows whole days left for a future expiry', () => {
+    expect(subscriptionDaysLeftText(sub(now + 86_400_000), now)).toBe('1 d left');
   });
 });
 

@@ -471,6 +471,120 @@ console.log('[§7] unpublish took the row out of the DATABASE (404 afterwards, 0
   assert.equal(survivedBody.publishedAt, secondBody.publishedAt, 'and the instant that re-publish recorded');
   console.log(`[§8] the publication SURVIVED A RESTART: process ${beforeRestartPid} was killed, a new process served version ${survivedBody.version} from the same database — this is a system of record, not a cache`);
 
+  // ── §10 v263: the OWNER CHAIN — a claim attached, recorded, and enforced ─────────────────────────
+  // The Studio's OWN claim shape, exactly as `accounts.ts` builds it: `kind`, the account id, the handle,
+  // the assurance, and the instant as a NUMBER of milliseconds since the epoch.
+  const ownerAccountId = 'acct-ada-000000000000000000';
+  const otherAccountId = 'acct-grace-000000000000000000';
+  const claimedAtMs = 1_700_000_000_000;
+  const adaClaim = {
+    kind: 'owner-claim',
+    accountId: ownerAccountId,
+    handle: 'ada',
+    assurance: 'unsigned-local',
+    claimedAt: claimedAtMs,
+  };
+  const ownedId = `doc-owned-${STAMP}`;
+
+  // 1. A publish carrying a claim is OWNED, and the receipt names the owner.
+  const owned = await fetch(`${base}/projects/${ownedId}/publish`, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ title: 'Owned by Ada', document, owner: adaClaim }),
+  });
+  const ownedBody = await owned.json();
+  assert.equal(owned.status, 201, `a publish carrying a claim must be 201, got ${owned.status}: ${JSON.stringify(ownedBody)}`);
+  assert.ok(ownedBody.owner, 'the receipt must name the owner the claim carried');
+  assert.equal(ownedBody.owner.accountId, ownerAccountId, 'and it must be the account the CLAIM named');
+  assert.equal(ownedBody.owner.handle, 'ada', 'and the handle that came with it');
+  assert.equal(ownedBody.owner.assurance, 'unsigned-local', 'and the assurance travels WITH the name, so a reader is told what it is worth');
+
+  // 2. The claim's INSTANT — the half nobody had ever exercised, because the Studio had never sent a
+  //    claim. The client states it as epoch MILLISECONDS; the service's own field is an Instant. What the
+  //    service RECORDED is measured here, not assumed: a number read as seconds is off by three orders of
+  //    magnitude, and a stored fact that is wrong is worse than a stored fact that is absent.
+  const sentInstant = new Date(claimedAtMs).toISOString();
+  const recordedRaw = ownedBody.owner.claimedAt;
+  console.log(`[§10] MEASURED the claim's instant: the client sent ${claimedAtMs} (${sentInstant}) and the service answered ${JSON.stringify(recordedRaw)} (typeof ${typeof recordedRaw})`);
+  const recordedInstant = (() => {
+    try {
+      return new Date(recordedRaw).toISOString();
+    } catch {
+      return `NOT A DATE (${typeof recordedRaw})`;
+    }
+  })();
+  assert.equal(
+    recordedInstant,
+    sentInstant,
+    `the service recorded the claim's instant as ${JSON.stringify(recordedRaw)} (${recordedInstant}), but the client sent ${claimedAtMs} (${sentInstant}) — the two sides of the wire do not agree on the unit`,
+  );
+
+  // 3. The LISTING carries the owner, so a panel can say whose row it is without a GET per row.
+  const ownedListing = await (await fetch(`${base}/projects?limit=100`)).json();
+  const ownedRow = ownedListing.publications.find((p) => p.projectId === ownedId);
+  assert.ok(ownedRow, 'the owned publication is in the listing');
+  assert.ok(ownedRow.owner, 'and the listing entry carries its owner');
+  assert.equal(ownedRow.owner.accountId, ownerAccountId, 'the same account the claim named');
+
+  // 4. A TAKE-DOWN by somebody else is refused, and the refusal names the rule.
+  const byOther = await fetch(`${base}/projects/${ownedId}?claimer=${otherAccountId}`, { method: 'DELETE' });
+  assert.equal(byOther.status, 403, `a take-down by a non-owner must be 403, got ${byOther.status}`);
+  const byOtherBody = await byOther.json();
+  assert.equal(byOtherBody.error, 'not-the-owner', 'and the refusal says which rule was broken');
+  assert.match(byOtherBody.message, /may not take it down/, 'in the service\'s own words');
+  assert.equal((await fetch(`${base}/projects/${ownedId}`)).status, 200, 'and the publication is STILL there — a refused take-down takes nothing down');
+
+  // 5. A take-down by NOBODY is refused too, for an owned row: "named nobody" is the same as "named the
+  //    wrong person" here, and a device with no account is exactly that case.
+  const byNobody = await fetch(`${base}/projects/${ownedId}`, { method: 'DELETE' });
+  assert.equal(byNobody.status, 403, `a take-down naming nobody must be 403 on an owned row, got ${byNobody.status}`);
+
+  // 6. A take-down by the OWNER works.
+  const byOwner = await fetch(`${base}/projects/${ownedId}?claimer=${ownerAccountId}`, { method: 'DELETE' });
+  assert.equal(byOwner.status, 200, `the owner must be able to take their own publication down, got ${byOwner.status}`);
+  assert.equal((await byOwner.json()).removed, true, 'and the row is removed');
+
+  // 7. The TAKEOVER rule: a second account may not take a publication over, and the same account may.
+  const takeoverId = `doc-takeover-${STAMP}`;
+  const firstOwner = await fetch(`${base}/projects/${takeoverId}/publish`, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ title: 'Ada\'s', document, owner: adaClaim }),
+  });
+  assert.equal(firstOwner.status, 201, 'the first publish of the takeover row is 201');
+  const stolen = await fetch(`${base}/projects/${takeoverId}/publish`, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ title: 'Grace\'s', document, owner: { ...adaClaim, accountId: otherAccountId, handle: 'grace' } }),
+  });
+  assert.equal(stolen.status, 403, `a re-publish under a different account must be 403, got ${stolen.status}`);
+  assert.equal((await stolen.json()).error, 'owner-taken', 'and it says the owner was taken');
+  const againByAda = await fetch(`${base}/projects/${takeoverId}/publish`, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ title: 'Ada\'s, again', document, owner: adaClaim }),
+  });
+  assert.equal(againByAda.status, 200, `a re-publish by the SAME account is the ordinary path and must be 200, got ${againByAda.status}`);
+  assert.equal((await againByAda.json()).version, 2, 'and it increments the version rather than creating a second row');
+
+  // 8. A publish naming NOBODY stays ownerless, and an ownerless row stays open to anybody — the
+  //    pre-v242 rule, which this section must not quietly break.
+  const anonymousId = `doc-anon-${STAMP}`;
+  const anonymous = await fetch(`${base}/projects/${anonymousId}/publish`, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ title: 'Anonymous', document }),
+  });
+  assert.equal(anonymous.status, 201, 'a publish naming nobody is still a publish');
+  assert.equal((await anonymous.json()).owner, null, 'and the receipt names NO owner');
+  const anonRow = (await (await fetch(`${base}/projects?limit=100`)).json()).publications.find((p) => p.projectId === anonymousId);
+  assert.equal(anonRow.owner, null, 'and the listing says the same');
+  const anonRemoved = await fetch(`${base}/projects/${anonymousId}`, { method: 'DELETE' });
+  assert.equal(anonRemoved.status, 200, 'an ownerless row is still open to anybody, exactly as before');
+  assert.equal((await anonRemoved.json()).removed, true, 'and it is removed');
+
+  console.log(`[§10] the OWNER CHAIN over the real service: a publish carrying a claim is OWNED (receipt and listing both name ${ownerAccountId}, assurance ${ownedBody.owner.assurance}, instant ${recordedRaw} — the client's own millisecond value); a take-down by another account is 403 not-the-owner, a take-down naming nobody is 403 too, and the OWNER's take-down is 200; a re-publish under a different account is 403 owner-taken while the same account's re-publish is 200/version 2; and a publish naming nobody stays ownerless and open to anybody, the pre-v242 rule intact`);
+
   // ── §9 teardown ─────────────────────────────────────────────────────────────────────────────────
   await stopService(serviceProcess);
   const rm = await run('docker', ['rm', '-f', DB_CONTAINER]);
