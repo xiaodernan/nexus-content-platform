@@ -497,6 +497,48 @@ export async function hasPurchased(itemId: string, userId: string): Promise<bool
   return !!row;
 }
 
+export interface BuyerPurchaseRow {
+  itemId: string;
+  title: string;
+  itemType: MarketplaceItemType;
+  visibility: MarketplaceVisibility;
+  pricePaid: number;
+  purchasedAt: Date;
+  creatorId: string;
+  creatorName: string | null;
+  creatorHandle: string | null;
+  /** 软删除时间；非空表示条目已下架——购买记录仍在，但交付门现在不给（页面上要说清） */
+  delistedAt: Date | null;
+}
+
+/**
+ * 买家侧的「我买过什么」。购买行不随软删除消失，所以这里是**唯一**会把已下架条目
+ * 读出来的地方：店面列表过滤 deletedAt，交付门对已下架也回 404。
+ * 状态口径由调用方按 `delistedAt` / `visibility` 翻成人话，域里不再造第二套枚举。
+ */
+export async function listBuyerPurchases(buyerId: string, limit = 100): Promise<BuyerPurchaseRow[]> {
+  const db = getDb();
+  return db
+    .select({
+      itemId: marketplaceItems.id,
+      title: marketplaceItems.title,
+      itemType: marketplaceItems.itemType,
+      visibility: marketplaceItems.visibility,
+      pricePaid: marketplacePurchases.pricePaid,
+      purchasedAt: marketplacePurchases.purchasedAt,
+      creatorId: marketplaceItems.creatorId,
+      creatorName: users.displayName,
+      creatorHandle: users.handle,
+      delistedAt: marketplaceItems.deletedAt,
+    })
+    .from(marketplacePurchases)
+    .innerJoin(marketplaceItems, eq(marketplacePurchases.itemId, marketplaceItems.id))
+    .leftJoin(users, eq(marketplaceItems.creatorId, users.id))
+    .where(eq(marketplacePurchases.buyerId, buyerId))
+    .orderBy(desc(marketplacePurchases.purchasedAt))
+    .limit(limit);
+}
+
 /**
  * §128 Marketplace 创作者分成：一次购买后，把价格的一部分记成创作者收入。
  *

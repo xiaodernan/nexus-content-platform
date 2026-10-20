@@ -5010,3 +5010,13 @@ RPG 那份 7 文件 / 27276 字节里没有成长循环，视觉小说那份 7 �
   403 等于告诉陌生人"这个 id 存在"。见证：`id-shape` 家族 27 → 30 条（update/delete 的形状门 + 两条路由 404），
   `marketplace-update` 由 12 → 14 条（新增私有别人的 PATCH/DELETE 404），三份套件 59/59、市场六套件（含 update）66/66 绿；
   tsc / eslint 0。
+- **2026-10-21 第四片（#150）：买家侧的「我的购买」**。此前的读路只有店面、我的物品与创作者收益，
+  **买过的人没有自己的单子**：买了什么、条目还在不在卖，页面上无处可看。域层加 `listBuyerPurchases`
+  （从购买行出发 join 条目与作者，**包括已软删的条目**；按购买时间倒序），路由
+  `GET /api/marketplace/purchases` 只读自己的（匿名 401，`cache-control: no-store`），页面
+  `/marketplace/purchases` 三态如实显示：在售 / 已转私密（已购仍可下载）/ 已下架（不再交付，
+  不渲染下载按钮）。**不替产品拍板**"买过的权利是否随下架终止"——交付门对下架条目仍是 404，
+  这一片只把这条事实写进页面与用例。见证：`marketplace-purchases.integration.test.ts` 8 条全绿
+  （三态各一行、陌生人只看到自己那一笔、登录未买过 → 200 空列表、下架条目交付 404）；
+  真浏览器里三条购买同屏、状态与按钮有无都对、点下载收到交付门那句话，截图
+  `screenshots/marketplace-purchases-150.png`；tsc / eslint 0。

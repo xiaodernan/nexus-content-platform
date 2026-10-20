@@ -143,3 +143,23 @@
 - 仍未动：详情 GET 与预览图对别人的私有条目本来就答 404（这一片把它们与 PATCH/DELETE 对齐了），
   **列表**的可见性规则不在这一片；`purchaseMarketplaceItem` 仍以句子 throw（购买路由比对句子翻码）——
   那是下一条可收的口径。
+
+## 2026-10-21 补记（#150）：买家侧的「我的购买」——买了的东西在哪儿、下架之后长什么样
+
+这一片不碰计数（计数的唯一写入方仍是交付门），补的是**买家的读路**：此前只有店面、「我的物品」
+与创作者收益，买过的人看不到自己的单子。
+
+- 域层 `listBuyerPurchases(buyerId)`：从 `marketplace_purchases` 出发 join 条目与作者，
+  **不按 `deletedAt` 过滤**——下架是条目的事，购买记录仍在；返回 `delistedAt` 让界面自己说状态。
+  按 `purchasedAt` 倒序（最近买的在最上），上限 100。
+- `GET /api/marketplace/purchases`：只读当前用户的（匿名 401）；`cache-control: no-store`——
+  这张单子随购买变化，被中间层缓存一夜就会少一行。
+- 页面 `/marketplace/purchases` 三态都从记录本身推出来，不新造枚举：
+  `delistedAt` 非空 → 「已下架（不再交付）」且**不渲染下载按钮**；`visibility === 'private'` →
+  「已转私密（已购仍可下载）」（交付门对已购者仍放行）；其余 → 「在售」。
+- **一个不替产品拍板的决定**：买过的权利是否随下架终止，是商业/product 决定。本片不选，
+  只把现在的事实（交付门对已下架条目 404）写进页面文案与用例，让选择摆到明面上。
+- 见证：`marketplace-purchases.integration.test.ts` 8 条（三态各一行、陌生人只看到自己那一笔、
+  登录未买过 → 200 空列表、下架条目交付仍 404、匿名 401 且 `no-store`）；真浏览器里种三笔购买后
+  同屏显示、状态文案与按钮有无都对、点下载在无源项目时收到交付门那句「该物品没有可导出的源项目」，
+  截图 `screenshots/marketplace-purchases-150.png`；tsc / eslint 0。

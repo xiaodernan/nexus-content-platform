@@ -65,6 +65,11 @@ export default async function MarketplacePage({
               我的收入
             </Link>
           ) : null}
+          {user ? (
+            <Link href="/marketplace/purchases" className="text-accent-2 underline" data-marketplace-purchases>
+              我的购买
+            </Link>
+          ) : null}
           <Link href="/" className="text-accent-2 underline" data-marketplace-back>
             回首页
           </Link>
