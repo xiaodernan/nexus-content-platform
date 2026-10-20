@@ -44,6 +44,21 @@
 |------|------|------|
 | v271 | **审计轨迹（服务端）**：`GET /audit`，记发生过的事，不记尝试过的事 | ✅ 52/52 |
 | v272 | **审计轨迹的 Studio 面板**（并行 lane）：`trail.ts` 纯函数 → `auditLane.ts` → `/api/audit` → 工具栏面板 | ✅ 887/887 |
+| v273 | **客户端 `ops.ts` 放宽**（并行 lane）：`actorId`/`assurance` 可空 + 契约 proof | ✅ 900/900 · proof exit 0 |
+| v274 | **创作者经济第一界面**：`economy.ts` 纯映射 → `economyLane.ts` → `/api/economy` → 工具栏面板 | studio **930/930** |
+| v275 | **gallery 分页**：`?offset=` → `OffsetPageRequest`（并行 lane） | studio **931/931** |
+| v276 | **profile 页分页** | studio **932/932** |
+| v277 | **body lane 随座位动**（并行 lane） | studio 编译期 seat-binding |
+| v278 | **explore 搜索（客户端）** | studio **932/932** |
+| v279 | **profile 搜索（客户端）** | studio **932/932** |
+| v280 | **artifact 页自己的历史**：`history.ts` 纯函数 → `auditServer.ts` → 页面 HISTORY 段 | studio **951/951** |
+| v281 | **审计轨迹的筛选与计数**：`trailSummaryOf` + `filterTrailRows` | studio **957/957** |
+| v282 | **E2E 证明 artifact 历史 + 构建隔离** | E2E 75/75 · jar 锁不再阻塞构建 |
+| v283 | **点赞（服务端）**：`dev.nexus.api.social` 新包，三条规则 | LikeServiceTest **14/14** |
+| v284 | **点赞的界面**：artifact 页 ♥ 计数条 → `/?like=` → Studio 执行 | studio **983/983** · E2E 75/75 |
+| v285 | **评论（服务端）**：四张表里的第二张，四条规则 | social 包 **31/31** |
+| v286 | **评论的界面**：artifact 页列出 → `/?comment=` → Studio 的 composer | studio **998/998** |
+| v287 | **关注（服务端）**：社交图的一条边，四个方向分开的 finder | social 包 **43/43** |
 | **v273** | **客户端 `ops.ts` 与线格式对齐**：`actorId`/`assurance` 变可空；`AuditAction` 对未知动词开放；匿名条目单独成桶（`__anonymous__`）；**新增契约 proof**（读 Java record + 用 tsc 编译探针） | ✅ 900/900 · proof exit 0 · 3 处 mutation 分别被 §3/§5 抓住 |
 
 ## 本次会话已落地的增量

@@ -1,0 +1,53 @@
+package dev.nexus.api.social;
+
+import java.util.List;
+
+/**
+ * M7 v287 — the wire shapes for FOLLOWS.
+ *
+ * <p>The follow itself is the client's own declared shape, field for field: {@code followerId},
+ * {@code followeeId} and {@code createdAt} in epoch MILLISECONDS. The service sends the assurance
+ * beside the follower as well — the same rule the like, the comment and the audit trail follow: the
+ * assurance travels with the actor so a reader is TOLD what the follow is worth instead of having to
+ * infer it from the presence of a name.
+ */
+public final class FollowDtos {
+
+    private FollowDtos() {
+    }
+
+    /**
+     * WHO is following.
+     *
+     * <p>The shape is deliberately the one the Studio’s own {@code ownerClaim} produces, so the same
+     * claim-building code can be used for every social verb. {@code claimedAt} is MILLISECONDS since the
+     * epoch, for the reason v263 recorded.
+     */
+    public record FollowClaim(String accountId, String handle, String assurance, Long claimedAt) {
+    }
+
+    /** A follow request: which account, and who is doing the following. */
+    public record FollowRequest(String accountId, FollowClaim claim) {
+    }
+
+    /**
+     * One follow. The client’s own {@code Follow} shape, plus the assurance the service knows.
+     */
+    public record Follow(String followerId, String followeeId, long createdAt, String assurance) {
+    }
+
+    /**
+     * The answer to a follow question.
+     *
+     * <p>{@code following} is whether THIS account follows the one named — a fact about the VIEWER, not
+     * about the followee. {@code followerCount} and {@code followingCount} are asked for, never
+     * incremented, so a lost update cannot inflate either.
+     */
+    public record FollowAnswer(
+            String accountId,
+            boolean following,
+            long followerCount,
+            long followingCount,
+            List<Follow> followers) {
+    }
+}
