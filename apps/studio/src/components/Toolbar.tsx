@@ -6,7 +6,7 @@ import { readTrail, type TrailAnswer } from '@/lib/auditLane';
 import { filterTrailRows, trailSummaryOf, trailSummaryText } from '@/lib/trail';
 import { readMyTips } from '@/lib/tipLane';
 import { acknowledgeReport, readDesk, type DeskLaneAnswer } from '@/lib/moderationLane';
-import { readMyReports, type FiledReportsLaneAnswer } from '@/lib/reportLane';
+import { readMyReports, withdrawReport, type FiledReportsLaneAnswer } from '@/lib/reportLane';
 import { priceText } from '@/lib/economy';
 import type { PriceCents } from '@/lib/monetization';
 import { listPublished, probePublish, publishProject, unpublish, type PublishLaneListing, type PublishLaneProbe } from '@/lib/publishLane';
@@ -225,6 +225,30 @@ export default function Toolbar() {
       // v305 — the panel has TWO halves: what came to you, and what you sent.
       await refreshFiled();
     }
+  };
+
+  /**
+   * v306 — the REPORTER's own power over their complaint: to withdraw it.
+   *
+   * <p>The service has had the door since v295 and the panel had no button until now, so a reporter could
+   * file a complaint and never take it back. Withdrawing is not deleting: the row STAYS and its status
+   * becomes `rejected`, because a report that was withdrawn is a fact that happened.
+   */
+  const onWithdrawReport = async (reportId: string) => {
+    const account = session.current();
+    if (!account) {
+      setDeskNote('the reports you filed belong to an account, and this device has none');
+      return;
+    }
+    const answer = await withdrawReport(reportId, account.id);
+    setDeskNote(
+      answer.ok
+        ? answer.withdrawn
+          ? `withdrew ${reportId}`
+          : `${reportId} was already withdrawn`
+        : `not withdrawn: ${answer.reason}`,
+    );
+    await refreshFiled();
   };
 
   /**
@@ -859,6 +883,18 @@ export default function Toolbar() {
                     <span style={{ color: 'var(--nexus-muted)' }}>{report.statusText}</span>
                   </div>
                   <div style={{ color: 'var(--nexus-muted)', fontSize: 10 }}>{report.targetId}</div>
+                  {/* v306 — a reporter can take a complaint back while it is still open. The row STAYS: a
+                      report that was withdrawn is a fact that happened. */}
+                  {report.status === 'open' && (
+                    <button
+                      className="btn"
+                      data-filed-withdraw={report.id}
+                      onClick={() => void onWithdrawReport(report.id)}
+                      title="withdraw this report: you no longer stand by it"
+                    >
+                      Withdraw
+                    </button>
+                  )}
                 </li>
               ))}
             </ul>

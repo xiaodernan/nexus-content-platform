@@ -74,6 +74,50 @@ export async function readMyReports(
   }
 }
 
+/** What one withdrawal answered — the reporter's own report. */
+export interface WithdrawLaneAnswer {
+  ok: boolean;
+  /** Whether the report actually moved. */
+  withdrawn: boolean;
+  reason?: string;
+}
+
+/**
+ * WITHDRAW a report — the reporter's own, and only theirs.
+ *
+ * <p>The claimer is the account id, and only that: the service compares it with the row and refuses a
+ * withdrawal of somebody else’s report by name.
+ */
+export async function withdrawReport(
+  reportId: string,
+  claimerAccountId: string,
+  fetchImpl: FetchLike = fetch,
+): Promise<WithdrawLaneAnswer> {
+  try {
+    const res = await fetchImpl(
+      `/api/reports?reportId=${encodeURIComponent(reportId)}&claimer=${encodeURIComponent(claimerAccountId)}`,
+      { method: 'DELETE', headers: { accept: 'application/json' } },
+    );
+    const parsed: unknown = await res.json().catch(() => null);
+    if (typeof parsed !== 'object' || parsed === null) {
+      return { ok: false, withdrawn: false, reason: `the reports answered HTTP ${res.status} with something that is not JSON` };
+    }
+    const body = parsed as { ok?: unknown; withdrawn?: unknown; reason?: unknown; message?: unknown };
+    if (body.ok === false || !res.ok) {
+      const why =
+        typeof body.reason === 'string'
+          ? body.reason
+          : typeof body.message === 'string'
+            ? body.message
+            : `the reports answered HTTP ${res.status}`;
+      return { ok: false, withdrawn: false, reason: why };
+    }
+    return { ok: true, withdrawn: body.withdrawn === true };
+  } catch (error) {
+    return { ok: false, withdrawn: false, reason: error instanceof Error ? error.message : String(error) };
+  }
+}
+
 /** File a report. */
 export async function fileReport(
   projectId: string,

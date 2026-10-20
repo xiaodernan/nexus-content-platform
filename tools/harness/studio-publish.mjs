@@ -2055,6 +2055,58 @@ try {
     await filedPage.close();
   }
 
+  // ── §22 v306: the REPORTER can take a complaint back ──────────────────────────────────────────
+  // The service has had the withdrawal since v295 and the panel had no button until now: a reporter could
+  // file a complaint and never take it back. Withdrawing is not deleting — the row STAYS and its status
+  // becomes `rejected`, because a report that was withdrawn is a fact that happened.
+  {
+    const withdrawPage = await session.newPage('about:blank');
+    await withdrawPage.navigate(studioBase, { waitForSelector: '#nexus-canvas', waitMs: 2000 });
+    await waitForHydration(withdrawPage, 'the withdraw page to hydrate');
+
+    await signInAs(withdrawPage, 'bob', 'the reporter withdrawing');
+    await withdrawPage.evaluate("document.querySelector('[data-toolbar-desk-toggle]').click()");
+    const withdrawButton = await until(
+      async () => (await withdrawPage.evaluate("!!document.querySelector('[data-filed-status=\"open\"] [data-filed-withdraw]')")) === true,
+      { tries: 120, gapMs: 500, label: 'the open report to offer its withdrawal' },
+    );
+    check('the reporter is offered the withdrawal on a report that is still OPEN', withdrawButton !== null, 'the button is on the open row');
+
+    const openReportId = await withdrawPage.evaluate("document.querySelector('[data-filed-status=\"open\"]')?.getAttribute('data-filed-report') ?? ''");
+    await withdrawPage.evaluate("document.querySelector('[data-filed-withdraw]').click()");
+    const withdrawn = await until(
+      async () => {
+        const statuses = await withdrawPage.evaluate("Array.from(document.querySelectorAll('[data-filed-status]')).map((n) => n.getAttribute('data-filed-status'))");
+        return Array.isArray(statuses) && statuses.includes('rejected') ? statuses : false;
+      },
+      { tries: 120, gapMs: 500, label: 'the withdrawal to land' },
+    );
+    check('and the withdrawal lands, in the panel\u2019s own words', withdrawn !== null, `statuses: ${JSON.stringify(withdrawn)}`);
+
+    // And the SERVICE recorded it — read independently of the browser.
+    const withdrawRaw = await withdrawPage.evaluate("localStorage.getItem('nexus-current-account')");
+    const withdrawerId = JSON.parse(String(withdrawRaw)).id;
+    const withdrawRead = await fetch(`${apiBase}/reports?reporter=${encodeURIComponent(withdrawerId)}`);
+    const withdrawBody = await withdrawRead.json();
+    const withdrawnRow = (withdrawBody.reports ?? []).find((r) => r.id === openReportId);
+    check(
+      'the SERVICE recorded the withdrawal \u2014 read back independently of the browser',
+      withdrawRead.status === 200 && withdrawnRow?.status === 'rejected',
+      `the report: ${JSON.stringify(withdrawnRow)}`,
+    );
+
+    // And the row STAYS: a withdrawn report is a fact that happened, exactly as a taken-down publication
+    // is a fact that happened.
+    const targetRead = await fetch(`${apiBase}/reports?target=${encodeURIComponent(withdrawnRow?.targetId ?? '')}`);
+    const targetBody = await targetRead.json();
+    check(
+      'and the row STAYS \u2014 a withdrawn report is a fact that happened',
+      targetRead.status === 200 && (targetBody.reports ?? []).some((r) => r.id === openReportId && r.status === 'rejected'),
+      `the target\u2019s reports: ${JSON.stringify(targetBody.reports)}`,
+    );
+    await withdrawPage.close();
+  }
+
   // ── §10 teardown ─────────────────────────────────────────────────────────────────────────────────
   await page.close();
   await session.close();

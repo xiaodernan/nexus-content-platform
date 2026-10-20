@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 
-import { readFiledReports, reportOnService } from '@/lib/reportServer';
+import { readFiledReports, reportOnService, withdrawReport } from '@/lib/reportServer';
 
 /**
  * M7 v296 (ADR 0016 amendment 296): `/api/reports` — this Studio's door onto the service's reports.
@@ -85,4 +85,27 @@ export async function POST(request: Request): Promise<NextResponse> {
     },
   );
   return NextResponse.json(answer, { status: answer.ok ? 201 : 503 });
+}
+
+/**
+ * WITHDRAW a report — the reporter's own, and only theirs.
+ *
+ * <p>The service answers 403 for somebody else's report, and this route passes the refusal's own words
+ * through: a panel that turned it into a generic error would be hiding the rule that was broken.
+ */
+export async function DELETE(request: Request): Promise<NextResponse> {
+  const url = new URL(request.url);
+  const reportId = url.searchParams.get('reportId');
+  const claimer = url.searchParams.get('claimer');
+  if (!reportId || reportId.trim() === '') {
+    return NextResponse.json({ ok: false, reason: 'the report needs an id to be withdrawn' }, { status: 400 });
+  }
+  if (!claimer || claimer.trim() === '') {
+    return NextResponse.json(
+      { ok: false, reason: 'a withdrawal needs an account: a report can only be withdrawn by the account that filed it' },
+      { status: 400 },
+    );
+  }
+  const answer = await withdrawReport(reportId.trim(), claimer.trim());
+  return NextResponse.json(answer, { status: answer.ok ? 200 : 502 });
 }

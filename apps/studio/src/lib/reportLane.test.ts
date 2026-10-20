@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 
-import { readMyReports } from './reportLane';
+import { readMyReports, withdrawReport } from './reportLane';
 
 /**
  * M7 v305 — the browser half of the REPORTER’s view.
@@ -61,4 +61,40 @@ describe('reportLane — readMyReports (client half)', () => {
     expect(answer.ok).toBe(false);
     expect(answer.reason).toContain('the server went away');
   });
+
+describe('reportLane — withdrawReport (client half)', () => {
+  it('asks the Studio’s own door, naming the report and the claimer', async () => {
+    const fetchImpl = makeFetch((url, init) => {
+      expect(url).toBe('/api/reports?reportId=rep-1&claimer=acct-bob');
+      expect(init?.method).toBe('DELETE');
+      return new Response(JSON.stringify({ ok: true, reportId: 'rep-1', withdrawn: true }), { status: 200 });
+    });
+    const answer = await withdrawReport('rep-1', 'acct-bob', fetchImpl);
+    expect(answer.ok).toBe(true);
+    expect(answer.withdrawn).toBe(true);
+  });
+
+  it('a REFUSAL carries the reason and does NOT claim the report moved', async () => {
+    const answer = await withdrawReport(
+      'rep-1',
+      'acct-bob',
+      makeFetch(() =>
+        new Response(JSON.stringify({ ok: false, message: 'report rep-1 was filed by another account' }), { status: 502 }),
+      ),
+    );
+    expect(answer.ok).toBe(false);
+    expect(answer.reason).toContain('another account');
+    expect(answer.withdrawn).toBe(false);
+  });
+
+  it('an answer that says the report did not move is not a withdrawal', async () => {
+    const answer = await withdrawReport(
+      'rep-1',
+      'acct-bob',
+      makeFetch(() => new Response(JSON.stringify({ ok: true, reportId: 'rep-1', withdrawn: false }), { status: 200 })),
+    );
+    expect(answer.ok).toBe(true);
+    expect(answer.withdrawn).toBe(false);
+  });
+});
 });

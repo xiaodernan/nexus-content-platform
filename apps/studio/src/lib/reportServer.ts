@@ -144,6 +144,50 @@ export async function readFiledReports(
   }
 }
 
+/** What one withdrawal answered. */
+export interface WithdrawAnswer {
+  ok: boolean;
+  /** Whether the report actually moved. A report that was already withdrawn is "already withdrawn", not an error. */
+  withdrawn: boolean;
+  reason?: string;
+}
+
+/**
+ * WITHDRAW a report on the service — and only the reporter's own.
+ *
+ * <p>The service answers 200 either way and says whether the report MOVED, so a client is never told a
+ * report was withdrawn when it was not.
+ */
+export async function withdrawReport(
+  reportId: string,
+  claimerAccountId: string,
+  fetchImpl: FetchLike = fetch as FetchLike,
+): Promise<WithdrawAnswer> {
+  const apiBase = nexusApiBase();
+  try {
+    const res = await fetchImpl(
+      `${apiBase}/reports/${encodeURIComponent(reportId)}?claimer=${encodeURIComponent(claimerAccountId)}`,
+      { method: 'DELETE', headers: { accept: 'application/json' } },
+    );
+    const parsed: unknown = await res.json().catch(() => null);
+    if (typeof parsed !== 'object' || parsed === null) {
+      return { ok: false, withdrawn: false, reason: `the service's reports door answered HTTP ${res.status} with something that is not JSON` };
+    }
+    const body = parsed as { withdrawn?: unknown; message?: unknown };
+    if (!res.ok) {
+      const why = typeof body.message === 'string' ? body.message : `the service's reports door answered HTTP ${res.status}`;
+      return { ok: false, withdrawn: false, reason: why };
+    }
+    return { ok: true, withdrawn: body.withdrawn === true };
+  } catch (error) {
+    return {
+      ok: false,
+      withdrawn: false,
+      reason: `nexus-api unreachable at ${apiBase}: ${error instanceof Error ? error.message : String(error)}`,
+    };
+  }
+}
+
 /** FILE a report, on the service. The claim travels exactly as the browser built it. */
 export async function reportOnService(
   projectId: string,
