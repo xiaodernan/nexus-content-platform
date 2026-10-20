@@ -53,16 +53,3 @@ export async function POST(request: Request): Promise<NextResponse> {
   return NextResponse.json(answer, { status: answer.ok ? 200 : 503 });
 }
 
-export async function DELETE(request: Request, { params }: { params: Promise<{ accountId: string }> }): Promise<NextResponse> {
-  const { accountId } = await params;
-  const url = new URL(request.url);
-  const claimer = url.searchParams.get('claimer');
-  if (!claimer) {
-    return NextResponse.json(
-      { ok: false, reason: 'a follow needs an account: a follow with no follower has no edge to draw' },
-      { status: 400 },
-    );
-  }
-  const answer = await unfollowOnService(decodeURIComponent(accountId), claimer);
-  return NextResponse.json(answer, { status: answer.ok ? 200 : 503 });
-}

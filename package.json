@@ -35,6 +35,7 @@
     "verify:remix": "node docs/evidence/m7/remix-proof.mjs",
     "verify:explore": "node docs/evidence/m7/explore-proof.mjs",
     "verify:trail-contract": "node docs/evidence/m9/trail-contract-proof.mjs",
+    "verify:social-contract": "node docs/evidence/m9/social-contract-proof.mjs",
     "verify:validate": "node docs/evidence/design-model/validate-proof.mjs",
     "verify:png": "node docs/evidence/studio/png-baseline-proof.mjs"
   },

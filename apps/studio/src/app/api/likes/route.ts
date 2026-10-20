@@ -86,16 +86,3 @@ export async function POST(request: Request): Promise<NextResponse> {
   return NextResponse.json(answer, { status: answer.ok ? 200 : 503 });
 }
 
-export async function DELETE(request: Request, { params }: { params: Promise<{ projectId: string }> }): Promise<NextResponse> {
-  const { projectId } = await params;
-  const url = new URL(request.url);
-  const claimer = url.searchParams.get('claimer');
-  if (!claimer) {
-    return NextResponse.json(
-      { ok: false, reason: 'a like needs an account: the service cannot tell one anonymous like from the same one twice' },
-      { status: 400 },
-    );
-  }
-  const answer = await unlikeOnService(decodeURIComponent(projectId), claimer);
-  return NextResponse.json(answer, { status: answer.ok ? 200 : 503 });
-}

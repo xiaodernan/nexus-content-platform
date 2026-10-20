@@ -32,12 +32,12 @@
 
 ### 下一批（按优先级）
 
-1. **v292 — 关注者名单**：profile 现在只有计数，没有名单（服务端的 finder 已就绪）。
-2. **v293 — 搜索的相关度排序**：搜索结果现在按最新优先，没有相关度排序。
-3. **v294 — 社交动词的契约 proof**：like/comment/follow 的线格式也还没有被 proof 覆盖。
-4. **v295 — Stage B/C 服务端接线**（仍被 ADR 0018 阻塞：无服务端账号/会话/令牌不做）。
+1. **v295 — 举报（reports）**：M8 的另一项，`community.ts` 里有 Report 的类型。
+2. **v296 — 搜索的相关度排序**：搜索结果现在按最新优先，没有相关度排序。
+3. **v297 — 关注关系页**：谁关注了谁（服务端 finder 已有）。
+4. **v298 — Stage B/C 服务端接线**（仍被 ADR 0018 阻塞：无服务端账号/会话/令牌不做）。
 
-### M9 审计轨迹（服务端 → 面板 → 契约）（服务端 → 面板 → 契约）（服务端 → 面板 → 契约）（服务端 → 面板 → 契约）（服务端 → 面板 → 契约）（服务端 → 面板 → 契约）（服务端 → 面板 → 契约）
+### M9 审计轨迹（服务端 → 面板 → 契约）（服务端 → 面板 → 契约）（服务端 → 面板 → 契约）（服务端 → 面板 → 契约）（服务端 → 面板 → 契约）（服务端 → 面板 → 契约）（服务端 → 面板 → 契约）（服务端 → 面板 → 契约）（服务端 → 面板 → 契约）
 
 | 步骤 | 内容 | 状态 |
 |------|------|------|
@@ -62,6 +62,9 @@
 | v289 | **社交动词进审计轨迹**：like/unlike/comment/uncomment 写进 trail | studio **1019/1019**；social 包 **48/48** |
 | v290 | **服务端搜索（新包 `dev.nexus.api.search`）**：`/search?q=` 真正生效 | search 包 **8/8**；studio **1019/1019**；E2E §14 |
 | v291 | **trail 的契约 proof**：读 wire 的形状与 wire 对齐，mutation 被抓 | `verify:trail-contract` exit 0；doc gate 0 |
+| v292 | **关注者名单**：profile 列出关注者，每个都是通往其 profile 的链接 | studio **1028/1028**；social 包 **48/48** |
+| v293 | **社交动词的契约 proof**（共享 reader） | `verify:social-contract` exit 0；mutation 被抓 |
+| v294 | **un-verb 的路由修正**（type checker 抓到 404） | `next typegen` + `tsc` exit 0；E2E §15 |
 | **v273** | **客户端 `ops.ts` 与线格式对齐**：`actorId`/`assurance` 变可空；`AuditAction` 对未知动词开放；匿名条目单独成桶（`__anonymous__`）；**新增契约 proof**（读 Java record + 用 tsc 编译探针） | ✅ 900/900 · proof exit 0 · 3 处 mutation 分别被 §3/§5 抓住 |
 
 ## 本次会话已落地的增量

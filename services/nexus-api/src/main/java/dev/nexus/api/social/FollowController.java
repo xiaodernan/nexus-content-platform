@@ -78,7 +78,8 @@ public class FollowController {
                         row.getFollowerAccountId(),
                         row.getFolloweeAccountId(),
                         row.getCreatedAt().toEpochMilli(),
-                        null))
+                        row.getFollowerHandle(),
+                        row.getFollowerAssurance()))
                 .toList();
         return new FollowAnswer(
                 result.accountId(),

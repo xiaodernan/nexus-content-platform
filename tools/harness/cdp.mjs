@@ -97,7 +97,12 @@ export async function launch(opts = {}) {
   child.stdio[3] = pipeIn;
   child.stdio[4] = pipeOut;
 
-  const session = new CdpSession(child, opts.timeout ?? 30000);
+  // v294 — the default timeout is 90 seconds, not 30. A `next dev` server compiles the app on
+  // demand, and the FIRST page load after a change to the app pays that compile: the browser's
+  // `Runtime.evaluate` sits waiting for the bundle while the server builds it, and a 30-second timeout
+  // kills the run with a message about the BROWSER when the truth is that the SERVER was still building.
+  // A timeout that is shorter than the work it waits for reports the wrong fault.
+  const session = new CdpSession(child, opts.timeout ?? 90000);
   session._profile = profile;
   await session.ready();
   return session;
@@ -356,7 +361,7 @@ class CdpPage {
     }
   }
 
-  async waitForFunction(expr, { timeout = 10000, arg } = {}) {
+  async waitForFunction(expr, { timeout = 60000, arg } = {}) {
     const deadline = Date.now() + timeout;
     for (;;) {
       const value = await this.evaluate(expr, { arg }).catch(() => undefined);

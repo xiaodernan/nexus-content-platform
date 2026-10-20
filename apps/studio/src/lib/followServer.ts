@@ -10,11 +10,22 @@
  */
 import { nexusApiBase } from './publishServer';
 
+/** One follower, in the service's own wire shape. */
+export interface FollowerEntry {
+  followerId: string;
+  followeeId: string;
+  createdAt: number;
+  handle?: string | null;
+  assurance?: string | null;
+}
+
 /** What one read of the followers answered. */
 export interface FollowersAnswer {
   ok: boolean;
   /** How many accounts follow the account. */
   followerCount: number;
+  /** The followers themselves, newest first. */
+  followers: FollowerEntry[];
   /** Whether the VIEWER follows it, when the service was asked. */
   following?: boolean;
   reason?: string;
@@ -47,25 +58,27 @@ export async function readFollowers(
       { headers: { accept: 'application/json' } },
     );
     if (!res.ok) {
-      return { ok: false, followerCount: 0, reason: `the service's follows door answered HTTP ${res.status}` };
+      return { ok: false, followerCount: 0, followers: [], reason: `the service's follows door answered HTTP ${res.status}` };
     }
     const parsed: unknown = await res.json().catch(() => null);
     if (!parsed || typeof parsed !== 'object') {
-      return { ok: false, followerCount: 0, reason: 'the service answered its follows door with something that is not JSON' };
+      return { ok: false, followerCount: 0, followers: [], reason: 'the service answered its follows door with something that is not JSON' };
     }
-    const body = parsed as { followerCount?: unknown; following?: unknown };
-    if (typeof body.followerCount !== 'number') {
-      return { ok: false, followerCount: 0, reason: 'the service answered its follows door with no count' };
+    const body = parsed as { followerCount?: unknown; followers?: unknown; following?: unknown };
+    if (typeof body.followerCount !== 'number' || !Array.isArray(body.followers)) {
+      return { ok: false, followerCount: 0, followers: [], reason: 'the service answered its follows door with no count' };
     }
     return {
       ok: true,
       followerCount: body.followerCount,
+      followers: body.followers as FollowerEntry[],
       following: body.following === true,
     };
   } catch (error) {
     return {
       ok: false,
       followerCount: 0,
+      followers: [],
       reason: `nexus-api unreachable at ${apiBase}: ${error instanceof Error ? error.message : String(error)}`,
     };
   }

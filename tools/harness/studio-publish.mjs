@@ -297,7 +297,7 @@ try {
       const note = await page.evaluate("document.querySelector('[data-toolbar-publish-note]')?.textContent ?? null");
       return note && note.includes('service ready') ? note : false;
     },
-    { tries: 60, gapMs: 500, label: 'the Studio to report the service ready' },
+    { tries: 200, gapMs: 500, label: 'the Studio to report the service ready' },
   );
   const noteNow = await page.evaluate("document.querySelector('[data-toolbar-publish-note]')?.textContent ?? null");
   check('the Studio probes the service on mount and reports it ready', ready !== null, `note: ${JSON.stringify(noteNow)}`);
@@ -371,7 +371,7 @@ try {
   await page.evaluate("document.querySelector('[data-toolbar-publish]').click()");
   const published = await page.waitForFunction(
     "(() => { const n = document.querySelector('[data-toolbar-publish-note]')?.textContent ?? ''; return n.startsWith('published') ? n : null; })()",
-    { timeout: 20000 },
+    { timeout: 60000 },
   );
   check('pressing Publish reports a publication', published !== null, `note: ${JSON.stringify(published)}`);
 
@@ -425,7 +425,7 @@ try {
   await page.evaluate("document.querySelector('[data-toolbar-publish]').click()");
   const republished = await page.waitForFunction(
     "(() => { const n = document.querySelector('[data-toolbar-publish-note]')?.textContent ?? ''; return n.includes('published v2') ? n : null; })()",
-    { timeout: 20000 },
+    { timeout: 60000 },
   );
   check('pressing Publish again reports version 2', republished !== null, `note: ${JSON.stringify(republished)}`);
 
@@ -582,7 +582,7 @@ try {
         const note = await page.evaluate("document.querySelector('[data-toolbar-publish-note]')?.textContent ?? ''");
         return note.startsWith('published') ? note : false;
       },
-      { tries: 40, gapMs: 500, label: 'the fork to be published' },
+      { tries: 120, gapMs: 500, label: 'the fork to be published' },
     );
     const forkUrl = /→\s*(\S+\/projects\/[^\s]+)$/.exec(String(forkPublished));
     remixProjectId = forkUrl ? decodeURIComponent(forkUrl[1].slice(forkUrl[1].lastIndexOf('/projects/') + '/projects/'.length)) : null;
@@ -728,7 +728,7 @@ try {
   await page.evaluate(`document.querySelector('[data-published-unpublish="${projectId}"]').click()`);
   const rowGone = await page.waitForFunction(
     `(() => { const el = document.querySelector('[data-toolbar-published]'); return el && !el.querySelector('[data-published-row="${projectId}"]') ? true : null; })()`,
-    { timeout: 20000 },
+    { timeout: 60000 },
   );
   check('pressing “take down” removes the row from the list', rowGone === true, 'the row is no longer rendered');
 
@@ -1232,6 +1232,13 @@ try {
       profileAfter.includes('data-followers="1"'),
       `the bar says: ${/data-followers="(\d+)"/.exec(profileAfter)?.[0] ?? 'no count'}`,
     );
+    // v292 — and it LISTS the follower, by the name the claim carried, as a LINK to their own profile:
+    // an account id is an address, and a list of addresses with no links is a list nobody can act on.
+    check(
+      'and it LISTS the follower, by name, as a link to their profile',
+      profileAfter.includes(`data-follower="${bob?.id}"`) && profileAfter.includes(`href="/u/${bob?.id}"`) && profileAfter.includes('@bob'),
+      `the follower is on the page: ${profileAfter.includes(`data-follower="${bob?.id}"`)}`,
+    );
 
     // LAST, because it clears the device’s account: a follow with no follower has no edge to draw, and
     // the client does NOT invent one.
@@ -1335,6 +1342,84 @@ try {
     );
   }
 
+  // ── §15 v294: the UN-VERBS — the paths the typed-routes check found broken, and no proof exercised ──
+  // The un-like and the un-follow were wired to flat routes that read a path parameter, so the URLs the
+  // client calls matched nothing. The TYPE CHECKER found it; a proof had not, because nothing un-liked.
+  // This section un-does both, for real.
+  {
+    // The targets are recomputed HERE: `likeTarget` and `followedId` are block-scoped in their own
+    // sections, and a section that reached across a block boundary would be reading a name that is not
+    // there. (The browser says so: `ReferenceError: likeTarget is not defined`.)
+    const likeTarget = remixProjectId ?? projectId;
+    const followedId = accountRecord?.id;
+    // The un-LIKE: the device that liked it takes the like back.
+    const undoPage = await session.newPage('about:blank');
+    await undoPage.navigate(studioBase, { waitForSelector: '#nexus-canvas', waitMs: 2000 });
+    await undoPage.evaluate(`document.querySelector('button[title="Account"]').click()`);
+    await until(
+      async () => (await undoPage.evaluate("document.querySelectorAll('[data-toolbar-account]').length")) === 1,
+      { tries: 30, gapMs: 300, label: 'the account panel to open' },
+    );
+    await undoPage.type('[data-account-handle-input]', 'ada');
+    await undoPage.evaluate("document.querySelector('[data-account-create]').click()");
+    await until(
+      async () => (await undoPage.evaluate("localStorage.getItem('nexus-current-account')")) !== null,
+      { tries: 30, gapMs: 300, label: 'the account to be set again' },
+    );
+    await undoPage.navigate(`${studioBase}/?unlike=${encodeURIComponent(likeTarget)}`, { waitForSelector: '#nexus-canvas', waitMs: 2000 });
+    const unlikeStatus = await until(
+      async () => {
+        const s = await undoPage.evaluate("document.querySelector('[data-toolbar-status]')?.textContent ?? ''");
+        return s.includes('took the like back') ? s : false;
+      },
+      { tries: 120, gapMs: 500, label: 'the un-like to land' },
+    );
+    check(
+      'the Studio takes the LIKE back when the URL asks it to',
+      unlikeStatus !== null,
+      `status: ${JSON.stringify(unlikeStatus)}`,
+    );
+    const likesAfter = await (await fetch(`${apiBase}/likes?projectId=${encodeURIComponent(likeTarget)}`)).json();
+    check(
+      'and the SERVICE recorded it — the like is gone',
+      likesAfter.count === 0,
+      `count: ${likesAfter.count}`,
+    );
+
+    // The un-FOLLOW: the SECOND account (the one that followed) takes the edge back.
+    await undoPage.evaluate(`document.querySelector('button[title="Account"]').click()`);
+    await until(
+      async () => (await undoPage.evaluate("document.querySelectorAll('[data-toolbar-account]').length")) === 1,
+      { tries: 30, gapMs: 300, label: 'the account panel to open again' },
+    );
+    await undoPage.type('[data-account-handle-input]', 'bob');
+    await undoPage.evaluate("document.querySelector('[data-account-create]').click()");
+    await until(
+      async () => (await undoPage.evaluate("localStorage.getItem('nexus-current-account')")) !== null,
+      { tries: 30, gapMs: 300, label: 'the second account to be set again' },
+    );
+    await undoPage.navigate(`${studioBase}/?unfollow=${encodeURIComponent(followedId)}`, { waitForSelector: '#nexus-canvas', waitMs: 2000 });
+    const unfollowStatus = await until(
+      async () => {
+        const s = await undoPage.evaluate("document.querySelector('[data-toolbar-status]')?.textContent ?? ''");
+        return s.includes('took the follow back') ? s : false;
+      },
+      { tries: 120, gapMs: 500, label: 'the un-follow to land' },
+    );
+    check(
+      'the Studio takes the FOLLOW back when the URL asks it to',
+      unfollowStatus !== null,
+      `status: ${JSON.stringify(unfollowStatus)}`,
+    );
+    const followsAfter = await (await fetch(`${apiBase}/follows?accountId=${encodeURIComponent(followedId)}`)).json();
+    check(
+      'and the SERVICE recorded it — the edge is gone',
+      followsAfter.followerCount === 0,
+      `followerCount: ${followsAfter.followerCount}`,
+    );
+    await undoPage.close();
+  }
+
   // ── §10 teardown ─────────────────────────────────────────────────────────────────────────────────
   await page.close();
   await session.close();
@@ -1352,6 +1437,12 @@ try {
   rmSync(BUILD_DIR, { recursive: true, force: true });
   console.log('[§10] teardown: Studio, service, the throwaway database and the build copy are all gone');
 } finally {
+  // v294 — a CRASHED run says what the servers said too, not only a run that reached its summary. The
+  // harness's own failures (a null element, a timeout) are symptoms; the cause is usually in the Studio's
+  // own output, and a harness that swallows it makes the reader go and guess.
+  if (typeof studioLog === 'string' && studioLog.length > 0 && !results.some((r) => !r.ok)) {
+    console.log('\n[e2e] the Studio own output (the tail):\n' + studioLog.slice(-3000));
+  }
   if (page) await page.close().catch(() => {});
   if (session) await session.close().catch(() => {});
   if (studioProcess) await stop(studioProcess);
@@ -1363,6 +1454,16 @@ try {
 const failed = results.filter((r) => !r.ok);
 console.log(`\n[summary] ${results.length - failed.length}/${results.length} end-to-end assertions passed`);
 if (failed.length) {
+  // v294 — a failing run says what the SERVERS said. A check that fails because the Studio threw a
+  // TypeError is a check whose cause is in the Studio own output, and a harness that swallows that
+  // output makes the reader go and guess. The tail is short on purpose: enough to see the error, not so
+  // much that the failure drowns in it.
+  if (typeof studioLog === 'string' && studioLog.length > 0) {
+    console.log('\n[e2e] the Studio own output (the tail):\n' + studioLog.slice(-4000));
+  }
+  if (typeof serviceLog === 'string' && serviceLog.length > 0) {
+    console.log('\n[e2e] the service own output (the tail):\n' + serviceLog.slice(-2000));
+  }
   console.log('[studio-publish-e2e] FAILED');
   process.exit(1);
 }

@@ -83,7 +83,7 @@ class FollowServiceTest {
 
     @Test
     void aSecondFollowFromTheSameAccountDoesNOTMoveTheCounts() {
-        FollowEntry existing = new FollowEntry("acct-ada", "acct-bob", AT);
+        FollowEntry existing = new FollowEntry("acct-ada", "ada", "unsigned-local", "acct-bob", AT);
         when(repository.findByFollowerAccountIdAndFolloweeAccountId("acct-ada", "acct-bob")).thenReturn(Optional.of(existing));
         when(repository.countByFolloweeAccountId("acct-bob")).thenReturn(1L);
         when(repository.countByFollowerAccountId("acct-ada")).thenReturn(1L);
@@ -145,7 +145,7 @@ class FollowServiceTest {
 
     @Test
     void takingBackYourOwnEdgeRemovesItAndLowersTheCount() {
-        FollowEntry existing = new FollowEntry("acct-ada", "acct-bob", AT);
+        FollowEntry existing = new FollowEntry("acct-ada", "ada", "unsigned-local", "acct-bob", AT);
         when(repository.findByFollowerAccountIdAndFolloweeAccountId("acct-ada", "acct-bob")).thenReturn(Optional.of(existing));
         when(repository.countByFolloweeAccountId("acct-bob")).thenReturn(0L);
 
@@ -165,7 +165,7 @@ class FollowServiceTest {
 
     @Test
     void theFollowersOfAnAccountCarryTheCountsAndWhetherTheViewerIsAmongThem() {
-        FollowEntry one = new FollowEntry("acct-ada", "acct-bob", AT);
+        FollowEntry one = new FollowEntry("acct-ada", "ada", "unsigned-local", "acct-bob", AT);
         when(repository.findByFolloweeAccountIdOrderByCreatedAtDesc(eq("acct-bob"), any(Pageable.class)))
                 .thenReturn(List.of(one));
         when(repository.countByFolloweeAccountId("acct-bob")).thenReturn(1L);

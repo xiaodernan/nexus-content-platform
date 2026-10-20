@@ -48,7 +48,16 @@ public class FollowEntry {
     @Column(name = "followee_account_id", nullable = false, length = 200)
     private String followeeAccountId;
 
-    /** When the follow happened \u2014 the service's own instant, not the client's. */
+    /** The handle the follower's claim carried, when it carried one. A name beside the id: an id is an
+     *  address, and a reader looking at a follower list wants the name. */
+    @Column(name = "follower_handle", length = 24)
+    private String followerHandle;
+
+    /** What the follower's claim was worth when it arrived. `unsigned-local` in this build. */
+    @Column(name = "follower_assurance", length = 32)
+    private String followerAssurance;
+
+    /** When the follow happened — the service's own instant, not the client's. */
     @Column(name = "created_at", nullable = false)
     private Instant createdAt;
 
@@ -56,8 +65,15 @@ public class FollowEntry {
         // JPA needs it; the service never builds one without values.
     }
 
-    public FollowEntry(String followerAccountId, String followeeAccountId, Instant createdAt) {
+    public FollowEntry(
+            String followerAccountId,
+            String followerHandle,
+            String followerAssurance,
+            String followeeAccountId,
+            Instant createdAt) {
         this.followerAccountId = followerAccountId;
+        this.followerHandle = followerHandle;
+        this.followerAssurance = followerAssurance;
         this.followeeAccountId = followeeAccountId;
         this.createdAt = createdAt;
     }
@@ -72,6 +88,14 @@ public class FollowEntry {
 
     public String getFolloweeAccountId() {
         return followeeAccountId;
+    }
+
+    public String getFollowerHandle() {
+        return followerHandle;
+    }
+
+    public String getFollowerAssurance() {
+        return followerAssurance;
     }
 
     public Instant getCreatedAt() {

@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { followIdFromSearch, unfollowIdFromSearch } from './followIntent';
-import { injectFollowBar, renderFollowBar } from './followBar';
+import { injectFollowBar, renderFollowBar, toFollowerRow, toFollowerRows } from './followBar';
 import { claimOf } from './socialClaim';
 
 /**
@@ -112,5 +112,50 @@ describe('followBar — the bar on the profile page (M7 v288)', () => {
     expect(injectFollowBar(page, '')).toBe(page);
     const noBody = '<html><div>profile</div></html>';
     expect(injectFollowBar(noBody, '<div></div>')).toBe(noBody);
+  });
+});
+
+describe('followBar — the follower LIST (M9 v292)', () => {
+  it('names the follower by its handle, with the assurance its claim carried', () => {
+    const row = toFollowerRow({ followerId: 'acct-bob', handle: 'bob', assurance: 'unsigned-local' })!;
+    expect(row.accountId).toBe('acct-bob');
+    expect(row.nameText).toBe('@bob');
+    expect(row.assurance).toBe('unsigned-local');
+  });
+
+  it('falls back to the ACCOUNT id when the claim carried no handle', () => {
+    const row = toFollowerRow({ followerId: 'acct-bob' })!;
+    expect(row.nameText).toBe('acct-bob');
+    expect(row.assurance).toBeNull();
+  });
+
+  it('a follower with no id is DROPPED — an address nobody could reach is not a follower to show', () => {
+    expect(toFollowerRow({ handle: 'bob' })).toBeNull();
+    expect(toFollowerRow({ followerId: '' })).toBeNull();
+    expect(toFollowerRow(null)).toBeNull();
+  });
+
+  it('the list keeps the service\u2019s order and drops what it cannot show', () => {
+    const rows = toFollowerRows([
+      { followerId: 'acct-bob', handle: 'bob' },
+      { handle: 'nobody' },
+      { followerId: 'acct-ada', handle: 'ada' },
+    ]);
+    expect(rows.map((r) => r.accountId)).toEqual(['acct-bob', 'acct-ada']);
+  });
+
+  it('the bar renders the followers as LINKS to their own profiles', () => {
+    const rows = toFollowerRows([{ followerId: 'acct-bob', handle: 'bob', assurance: 'unsigned-local' }]);
+    const html = renderFollowBar({ accountId: 'acct-ada', followerCount: 1, followers: rows });
+    expect(html).toContain('data-follower="acct-bob"');
+    expect(html).toContain('href="/u/acct-bob"');
+    expect(html).toContain('@bob · unsigned-local');
+  });
+
+  it('escapes caller-controlled text in the follower\u2019s name', () => {
+    const rows = toFollowerRows([{ followerId: 'acct-x', handle: '<script>y</script>' }]);
+    const html = renderFollowBar({ accountId: 'acct-ada', followerCount: 1, followers: rows });
+    expect(html).not.toContain('<script>');
+    expect(html).toContain('&lt;script&gt;');
   });
 });

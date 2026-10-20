@@ -33,7 +33,12 @@ public final class FollowDtos {
     /**
      * One follow. The client’s own {@code Follow} shape, plus the assurance the service knows.
      */
-    public record Follow(String followerId, String followeeId, long createdAt, String assurance) {
+    public record Follow(
+            String followerId,
+            String followeeId,
+            long createdAt,
+            String handle,
+            String assurance) {
     }
 
     /**

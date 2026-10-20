@@ -96,7 +96,12 @@ public class FollowService {
             return result(followee, follower, true, List.of(existing.get()));
         }
         Instant when = clock.instant().truncatedTo(ChronoUnit.MILLIS);
-        FollowEntry row = new FollowEntry(follower, followee, when);
+        FollowEntry row = new FollowEntry(
+                follower,
+                claim == null ? null : claim.handle(),
+                claim == null ? null : claim.assurance(),
+                followee,
+                when);
         FollowEntry saved = repository.save(row);
         return result(followee, follower, true, List.of(saved));
     }

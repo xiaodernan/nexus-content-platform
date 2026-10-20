@@ -4,7 +4,7 @@ import { renderExploreUnavailable } from '@/lib/explore';
 import { buildGalleryItems } from '@/lib/gallery';
 import { profileFactsOf, renderProfileHtml } from '@/lib/profile';
 import { readFollowers } from '@/lib/followServer';
-import { FOLLOW_BAR_STYLES, injectFollowBar, renderFollowBar } from '@/lib/followBar';
+import { FOLLOW_BAR_STYLES, injectFollowBar, renderFollowBar, toFollowerRows } from '@/lib/followBar';
 
 /**
  * M7 v270 (ADR 0016 amendment 270): `/u/{accountId}` — the PROFILE page, what ONE account has published.
@@ -57,7 +57,14 @@ export async function GET(request: Request, { params }: { params: Promise<{ acco
   // watching.
   const followers = await readFollowers(accountId, null);
   const bar = followers.ok
-    ? renderFollowBar({ accountId, followerCount: followers.followerCount, handle: facts.handle }) + FOLLOW_BAR_STYLES
+    ? renderFollowBar({
+        accountId,
+        followerCount: followers.followerCount,
+        handle: facts.handle,
+        // v292 — the LIST, not just the count: a follower is a LINK to their own profile, because an
+        // account id is an address and a list of addresses with no links is a list nobody can act on.
+        followers: toFollowerRows(followers.followers),
+      }) + FOLLOW_BAR_STYLES
     : '';
   return html(injectFollowBar(renderProfileHtml(facts, items, offset, query), bar), 200);
 }
