@@ -235,9 +235,13 @@ export async function listPublications(
   const ownerParam = owner && owner.trim() ? `&owner=${encodeURIComponent(owner.trim())}` : '';
   const offsetParam = offset === undefined ? '' : `&offset=${encodeURIComponent(String(offset))}`;
   const queryParam = query && query.trim() ? `&q=${encodeURIComponent(query.trim())}` : '';
+  // v290 — a query goes to the SEARCH door, and a plain listing to the listing door. The service's own
+  // comment says why they are two doors: "a search is a different feature with different rules". The two
+  // answer the SAME shape, so the parsing below is shared.
+  const path = query && query.trim() ? 'search' : 'projects';
   try {
     const res = await fetchImpl(
-      `${apiBase}/projects?limit=${encodeURIComponent(String(limit))}${ownerParam}${offsetParam}${queryParam}`,
+      `${apiBase}/${path}?limit=${encodeURIComponent(String(limit))}${ownerParam}${offsetParam}${queryParam}`,
       { signal: callSignal() },
     );
     const parsed: unknown = await res.json().catch(() => null);

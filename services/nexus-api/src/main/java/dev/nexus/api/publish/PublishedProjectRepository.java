@@ -3,6 +3,8 @@ package dev.nexus.api.publish;
 import java.util.List;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
 /**
  * The repository for the one aggregate this service owns.
@@ -33,4 +35,32 @@ public interface PublishedProjectRepository extends JpaRepository<PublishedProje
      * key. A row with no owner is NOT this account's, which is why there is no "or owner is null" arm here.
      */
     List<PublishedProject> findByOwnerAccountIdOrderByPublishedAtDesc(String ownerAccountId, Pageable pageable);
+
+    /**
+     * v290 — the SEARCH finder: the publications whose TITLE or DOCUMENT mentions a word.
+     *
+     * <p>The query is written as a JPQL expression rather than a derived method name because the two
+     * fields and the case-insensitive comparison do not fit the derived-name grammar, and because the
+     * ORDER is carried by the window (the search package's own `SearchWindow`) rather than by the name.
+     *
+     * <p><b>The cost, stated rather than hidden:</b> a `LIKE` over a text column cannot use an index, so
+     * this is a SEQUENTIAL SCAN. At this table's size that is the price of searching what is actually IN
+     * the work; a table big enough for that to matter wants an index (or a full-text one), and the service
+     * does not pretend otherwise.
+     */
+    @Query("SELECT p FROM PublishedProject p WHERE LOWER(p.title) LIKE LOWER(CONCAT('%', :term, '%')) OR LOWER(p.documentJson) LIKE LOWER(CONCAT('%', :term, '%'))")
+    List<PublishedProject> findByTextContaining(@Param("term") String term, Pageable pageable);
+
+    /**
+     * v290 — the SAME search, narrowed to ONE owner.
+     *
+     * <p>It matches the OWNER COLUMN, not the handle, for the same reason the profile's listing does: the
+     * handle is a name the account chose and the owner is the identity the claim carries.
+     */
+    @Query("SELECT p FROM PublishedProject p WHERE p.ownerAccountId = :owner AND (LOWER(p.title) LIKE LOWER(CONCAT('%', :term, '%')) OR LOWER(p.documentJson) LIKE LOWER(CONCAT('%', :term, '%')))")
+    List<PublishedProject> findByOwnerAndTextContaining(
+            @Param("owner") String ownerAccountId,
+            @Param("term") String term,
+            Pageable pageable);
 }
+

@@ -1310,6 +1310,31 @@ try {
     );
   }
 
+  // ── §14 v290: the SEARCH door — a term that is only in the DOCUMENT finds the forks ──────────────
+  // The search reaches into the document as well as the title, and the forks carry the SOURCE\u2019s id in
+  // their lineage. So a term that appears in NO title finds exactly the publications whose documents
+  // mention it — which is the sharp check: a title-only search would find nothing at all.
+  {
+    const term = projectId; // the source\u2019s own id — it is in the forks\u2019 lineage and in no title
+    const found = await (await fetch(`${studioBase}/explore?q=${encodeURIComponent(term)}`)).text();
+    check(
+      'the SEARCH finds the forks by a term that is only in the DOCUMENT',
+      found.includes(`data-explore-card="${remixProjectId}"`),
+      `the gallery carries the fork: ${found.includes(`data-explore-card="${remixProjectId}"`)}`,
+    );
+    check(
+      'and it EXCLUDES the publication that does not mention the term — the filter really filters',
+      !found.includes(`data-explore-card="${projectId}"`),
+      `the gallery carries the source: ${found.includes(`data-explore-card="${projectId}"`)}`,
+    );
+    const none = await (await fetch(`${studioBase}/explore?q=zzz-nothing-mentions-this`)).text();
+    check(
+      'a term that matches NOTHING gives an EMPTY gallery, not the whole one',
+      !none.includes('data-explore-card='),
+      `the gallery carries ${(none.match(/data-explore-card=/g) ?? []).length} card(s)`,
+    );
+  }
+
   // ── §10 teardown ─────────────────────────────────────────────────────────────────────────────────
   await page.close();
   await session.close();
