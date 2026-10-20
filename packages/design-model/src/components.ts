@@ -36,7 +36,6 @@ export function applyInstanceOverrides(
   instance: DesignNode,
   component?: ComponentDefinition,
 ): ResolvedInstance {
-  const subtreeIds = instance.children;
   const nodes: Record<string, DesignNode> = {};
   const collect = (id: string) => {
     const node = page.nodes[id];
@@ -44,7 +43,8 @@ export function applyInstanceOverrides(
     nodes[id] = clone(node);
     for (const child of node.children) collect(child);
   };
-  for (const id of subtreeIds) collect(id);
+  // 从实例本体开始收：rootId 指它，nodes 表若不含它就自洽不了（重映射的 instance.id 特判等的就是它）
+  collect(instance.id);
 
   const variant =
     component && matchVariant(component, instance.variantProps ?? {});
