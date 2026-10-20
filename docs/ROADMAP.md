@@ -3539,6 +3539,20 @@ image-safety / image-studio / ai-jobs / studio-flush，不是全量回归）；�
    **别把计数当收益报**——浏览器的 measureText 是启发式估算，每次很便宜。
    正确性由单测 3 条 + 真浏览器那支（`@smoke studio slice: select, edit a property, undo, autosave`，1 passed 21.4s）守着。
    细节见 `docs/PERFORMANCE.md`「2026-10-21」那两节。
+   **自审自己当天写的代码时查出一个真缺口（2026-10-21 凌晨，已修）**：
+   测量缓存的键只看「节点 id + 约束」，而**测量用的字号、间距、字体名都来自 token 解析**
+   （`resolveNum` 与 `fontFamily` 都走 `tokens.resolveValue`）——
+   token 一变而键没变，就会拿回旧尺寸（"改了字号，高度却还是老的"）。
+   这与"改了节点内容却沿用旧测量"是同一个坑，只是内容不在节点上、在 token 表里；
+   **库自己的注释早就写着"签名包括 tokens"，实现里却没有** → 契约与实现不符。
+   **触发条件要说准**（别把它说成"改 token 就画错"）：单独改 token 时改动集合是空的 → 走全量 → 缓存整份清空 → **没事**；
+   出事的是**同一个事务里既改 token 又改别的节点**（AI 的一次操作就是这样）：
+   改动集合非空 → 走增量 → 缓存没作废 → 受 token 影响的节点拿回旧尺寸 → **画布高度是错的**。
+   **修法**：token 表的指纹进测量签名（`tokensSignature`，按 key 排序的 JSON）；
+   token 一变 → 签名对不上 → 整份作废。**代价明写**：指纹覆盖**整张** token 表，
+   所以改一次品牌色也会让缓存整份作废（下一帧重量一遍）——宁可多量一次，不拿说不清的复用去赌尺寸（§159）。
+   **补测 3 条**（`packages/design-model/test/measure-cache.test.ts`），且验证过**摘掉修复后三条全红**
+   （"受 token 影响的节点沿用了旧高度 expected 24 to be greater than 24"）——是真守卫，不是摆设。
 4. ~~**§146 的 100 档读数补齐**~~ **已落地**（2026-10-10，`docs/PERFORMANCE.md` 同日节）：
    首帧 426.3ms / 属性写入 61.3ms（两遍 31.8–90.7，抖动 2.8×）/ pan 6.1ms / 堆 98MB /
    画布 DOM 100 个（小文档视口裁剪未开）；**选中响应这一档没量到**（3 秒内手柄没出现），

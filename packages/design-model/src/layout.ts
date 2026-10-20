@@ -66,6 +66,9 @@ export interface LayoutOptions {
    * defaultFontSize）。参数一变，旧的结果就不再可信（同一个 measureText 换成另一个，
    * 量出来的文字宽度会不同）——所以签名对不上就整份作废，而不是"碰巧也没用上"。
    * 签名是库自己算、自己比，调用方不用管。
+   *
+   * **token 也在签名里**（2026-10-21 补上）：测量用的字号、间距、字体名都来自 token 解析，
+   * token 一变而键没变，就会拿回旧尺寸。指纹覆盖整张 token 表（保守，见 tokensSignature）。
    */
   measureCache?: MeasureCache;
 }
@@ -94,6 +97,40 @@ function measureFnId(fn: unknown): string {
     measureFnIds.set(key, id);
   }
   return `fn${id}`;
+}
+
+/**
+ * token 表的指纹。
+ *
+ * 为什么它必须在签名里：测量结果取决于 **token 解析出来的值**（字号、间距、字体名），
+ * 而缓存的键只看「节点 id + 约束」——token 变了而键没变，就会拿回旧尺寸
+ * （"改了字号，高度却还是老的"）。这与"改了节点内容却沿用旧测量"是同一个坑，
+ * 只是内容不在节点上、在 token 表里。
+ *
+ * 保守的地方（明写出来，别当成 bug）：指纹覆盖**整张** token 表，
+ * 包括只影响颜色、并不影响测量的那些——改一次品牌色也会让缓存整份作废（下一帧重量一遍）。
+ * 宁可多量一次，也不拿一个说不清的复用去赌尺寸是对的（§159）。
+ * 要更细的话得先知道"哪个 token 被哪个样式字段引用"，那是另一件事。
+ */
+let tokenSigSeq = 0;
+function tokensSignature(tokens: TokenStore | undefined): string {
+  if (!tokens) return '-';
+  const list = tokens.list();
+  if (!list.length) return '-';
+  try {
+    // 按 key 排序：token 表的**顺序**不该影响"内容变了没有"
+    const rows: Array<[string, unknown, unknown]> = list.map((token) => [
+      token.key,
+      token.value ?? null,
+      token.modes ?? null,
+    ]);
+    rows.sort((a, b) => (a[0] < b[0] ? -1 : a[0] > b[0] ? 1 : 0));
+    return JSON.stringify(rows);
+  } catch {
+    // 量不出指纹（值里有循环引用之类）就当每一帧都不一样 → 整份作废（慢一次总比算错一次强）
+    tokenSigSeq += 1;
+    return `unstable:${tokenSigSeq}`;
+  }
 }
 
 interface Box {
@@ -408,13 +445,17 @@ function runLayout(
   // 量出来的文字宽度会不同，旧结果留着就是错的。
   // **签名比的是函数的"身份"不是它的源码**——两个内容相同但不是同一个函数的 measureText
   // （比如测试里现造的两个计数器）量出来的结果未必一样，按源码比就分不出来。
-  const measureSignature = `${measureFnId(measureText)}|${mode ?? '-'}|${breakpoint ?? '-'}|${defaultFontSize}`;
-  const cache: MeasureCache = options.measureCache ?? { entries: new Map(), signature: '' };
-  if (cache.signature !== measureSignature) {
-    cache.entries.clear();
-    cache.signature = measureSignature;
+  // **签名只在真有缓存时才算**：纯全量求解（没传缓存）不该为 token 指纹付钱。
+  const cache = options.measureCache;
+  if (cache) {
+    const measureSignature = `${measureFnId(measureText)}|${mode ?? '-'}|${breakpoint ?? '-'}|${defaultFontSize}|${tokensSignature(tokens)}`;
+    if (cache.signature !== measureSignature) {
+      cache.entries.clear();
+      cache.signature = measureSignature;
+    }
   }
-  const cacheEntries = cache.entries;
+  // 没有缓存时用一份一次性的表：量完就丢，不跨帧留着
+  const cacheEntries = cache?.entries ?? new Map<string, Map<string, Box>>();
 
   /**
    * 子节点的测量约束。measure 与 place 必须用同一个函数求几何，
