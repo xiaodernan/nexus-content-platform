@@ -1,3 +1,5 @@
+import { claimOf } from './socialClaim';
+
 /**
  * M7 v284 — the LIKE intent, read out of a URL.
  *
@@ -25,24 +27,12 @@ export function unlikeIdFromSearch(search: string): string | null {
 /**
  * The CLAIM the like travels with, read from the device's own account.
  *
- * The account lives in the browser's storage, and the service is one hop behind the Studio's own route,
- * so the claim is attached on THIS side of the wire: the server cannot read a browser's localStorage.
- *
- * A device with no account has NO claim, and the like is then refused by the service \u2014 which is the
+ * A device with no account has NO claim, and the like is then refused by the service — which is the
  * right answer (an anonymous like cannot be counted honestly), and NOT a reason for the client to
  * invent an actor.
+ *
+ * v288 — the builder itself moved to `socialClaim.ts`, because all three social verbs (like, comment,
+ * follow) must build the SAME claim shape: a claim that three modules each build slightly differently is
+ * a claim whose three shapes disagree about the same account.
  */
-export function likeClaimOf(accountId: string | null, handle: string | null, assurance: string | null): {
-  accountId: string;
-  handle: string | null;
-  assurance: string | null;
-  claimedAt: number | null;
-} | null {
-  if (!accountId || !accountId.trim()) return null;
-  return {
-    accountId: accountId.trim(),
-    handle: handle && handle.trim() ? handle.trim() : null,
-    assurance: assurance && assurance.trim() ? assurance.trim() : null,
-    claimedAt: null,
-  };
-}
+export const likeClaimOf = claimOf;

@@ -3,6 +3,8 @@ import { docToSvg, svgToDataUri } from '@/lib/thumbnail';
 import { renderExploreUnavailable } from '@/lib/explore';
 import { buildGalleryItems } from '@/lib/gallery';
 import { profileFactsOf, renderProfileHtml } from '@/lib/profile';
+import { readFollowers } from '@/lib/followServer';
+import { FOLLOW_BAR_STYLES, injectFollowBar, renderFollowBar } from '@/lib/followBar';
 
 /**
  * M7 v270 (ADR 0016 amendment 270): `/u/{accountId}` — the PROFILE page, what ONE account has published.
@@ -49,5 +51,13 @@ export async function GET(request: Request, { params }: { params: Promise<{ acco
     (doc, pageId) => svgToDataUri(docToSvg(doc, pageId)),
   );
   const facts = profileFactsOf(accountId, rows, listing.count ?? rows.length, listing.limit ?? PROFILE_LIMIT, offset, query);
-  return html(renderProfileHtml(facts, items, offset, query), 200);
+  // v288 — the FOLLOWERS. Read independently of the publications: a followers door that could not be read
+  // leaves the bar out ENTIRELY, because "0 followers" and "the followers could not be read" are different
+  // facts and a page that showed the first when it knew the second would make a reader conclude nobody is
+  // watching.
+  const followers = await readFollowers(accountId, null);
+  const bar = followers.ok
+    ? renderFollowBar({ accountId, followerCount: followers.followerCount, handle: facts.handle }) + FOLLOW_BAR_STYLES
+    : '';
+  return html(injectFollowBar(renderProfileHtml(facts, items, offset, query), bar), 200);
 }

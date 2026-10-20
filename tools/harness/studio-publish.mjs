@@ -1143,6 +1143,121 @@ try {
     await commentPage.close();
   }
 
+  // ── §12 v288: FOLLOWS — the profile page’s bar, and a SECOND account behind it ───────────────────
+  // A follow is the one social act that needs TWO accounts: the service refuses a self-follow by name
+  // (a self-follow is a no-op dressed as a relation), so the device signs in as a second account before
+  // following the one that published. That is the shape of the feature, not a trick of the proof.
+  {
+    const followedId = accountRecord?.id;
+    const profilePage = await fetch(`${studioBase}/u/${encodeURIComponent(followedId)}`);
+    const profileHtml = await profilePage.text();
+    check(
+      'the profile page carries a FOLLOWERS bar',
+      profilePage.status === 200 && profileHtml.includes('data-followers='),
+      `status ${profilePage.status}; carries the bar: ${profileHtml.includes('data-followers=')}`,
+    );
+    check(
+      'and it states a count of ZERO for an account nobody follows — a fact, not a failure',
+      profileHtml.includes('data-followers="0"'),
+      `the bar says: ${/data-followers="(\d+)"/.exec(profileHtml)?.[0] ?? 'no count'}`,
+    );
+    check(
+      'and it offers the follow, as a link to the Studio',
+      profileHtml.includes(`href="/?follow=${encodeURIComponent(followedId)}"`),
+      'the bar links to /?follow=<id>',
+    );
+
+    // A SECOND account on the device: the follow has to come from somebody else.
+    const followPage = await session.newPage('about:blank');
+    await followPage.navigate(studioBase, { waitForSelector: '#nexus-canvas', waitMs: 2000 });
+    await followPage.evaluate(`document.querySelector('button[title="Account"]').click()`);
+    await until(
+      async () => (await followPage.evaluate("document.querySelectorAll('[data-toolbar-account]').length")) === 1,
+      { tries: 30, gapMs: 300, label: 'the account panel to open' },
+    );
+    await followPage.type('[data-account-handle-input]', 'bob');
+    await followPage.evaluate("document.querySelector('[data-account-create]').click()");
+    const bob = await until(
+      async () => {
+        const raw = await followPage.evaluate("localStorage.getItem('nexus-current-account')");
+        if (!raw) return null;
+        try { return JSON.parse(raw); } catch { return null; }
+      },
+      { tries: 30, gapMs: 300, label: 'the second account record to land' },
+    );
+    check(
+      'a SECOND account is set on the device — a self-follow is a no-op the service refuses',
+      bob !== null && bob.id !== followedId,
+      `the second account: ${JSON.stringify(bob)}`,
+    );
+
+    // Now the follow.
+    await followPage.navigate(`${studioBase}/?follow=${encodeURIComponent(followedId)}`, { waitForSelector: '#nexus-canvas', waitMs: 2000 });
+    const followStatus = await until(
+      async () => {
+        const s = await followPage.evaluate("document.querySelector('[data-toolbar-status]')?.textContent ?? ''");
+        return s.includes('followed') ? s : false;
+      },
+      { tries: 120, gapMs: 500, label: 'the follow to land' },
+    );
+    check(
+      'the Studio follows the account when the URL asks it to',
+      followStatus !== null,
+      `status: ${JSON.stringify(followStatus)}`,
+    );
+    check(
+      'and it says so in the Studio’s own words, with the count',
+      typeof followStatus === 'string' && /followed .+ — \d+ follower\(s\)/.test(followStatus),
+      `status: ${JSON.stringify(followStatus)}`,
+    );
+
+    // And the SERVICE recorded it — read independently of the browser, from the real database.
+    const followRead = await fetch(`${apiBase}/follows?accountId=${encodeURIComponent(followedId)}&viewer=${encodeURIComponent(bob?.id ?? "")}`);
+    const followBody = await followRead.json();
+    check(
+      'the SERVICE recorded the follow — read back independently of the browser',
+      followRead.status === 200 && followBody.followerCount === 1,
+      `followerCount: ${followBody.followerCount} · following: ${followBody.following}`,
+    );
+    check(
+      'and it says the VIEWER is among the followers',
+      followBody.following === true,
+      `following: ${followBody.following}`,
+    );
+
+    // And the profile page now says one follower.
+    const profileAfter = await (await fetch(`${studioBase}/u/${encodeURIComponent(followedId)}`)).text();
+    check(
+      'and the profile page now says ONE follower',
+      profileAfter.includes('data-followers="1"'),
+      `the bar says: ${/data-followers="(\d+)"/.exec(profileAfter)?.[0] ?? 'no count'}`,
+    );
+
+    // LAST, because it clears the device’s account: a follow with no follower has no edge to draw, and
+    // the client does NOT invent one.
+    await followPage.evaluate("localStorage.removeItem('nexus-current-account')");
+    await followPage.navigate(`${studioBase}/?follow=${encodeURIComponent(followedId)}`, { waitForSelector: '#nexus-canvas', waitMs: 2000 });
+    const noAccount = await until(
+      async () => {
+        const s = await followPage.evaluate("document.querySelector('[data-toolbar-status]')?.textContent ?? ''");
+        return s.includes('no account') ? s : false;
+      },
+      { tries: 40, gapMs: 500, label: 'the accountless follow to be refused' },
+    );
+    check(
+      'a device with NO account is refused — the client does not invent a follower',
+      noAccount !== null,
+      `status: ${JSON.stringify(noAccount)}`,
+    );
+    const followAfterRefusal = await (await fetch(`${apiBase}/follows?accountId=${encodeURIComponent(followedId)}`)).json();
+    check(
+      'and the refused follow changed NOTHING — there is still exactly one follower',
+      followAfterRefusal.followerCount === 1,
+      `followerCount: ${followAfterRefusal.followerCount}`,
+    );
+    await followPage.close();
+  }
+
   // ── §10 teardown ─────────────────────────────────────────────────────────────────────────────────
   await page.close();
   await session.close();

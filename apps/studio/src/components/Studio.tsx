@@ -20,6 +20,9 @@ import { useStudio } from '@/lib/store';
 import { remixIdFromSearch, remixProject } from '@/lib/remixLane';
 import { likeIdFromSearch, unlikeIdFromSearch, likeClaimOf } from '@/lib/likeIntent';
 import { commentIdFromSearch } from '@/lib/commentIntent';
+import { followIdFromSearch, unfollowIdFromSearch } from '@/lib/followIntent';
+import { followAccount, unfollowAccount } from '@/lib/followLane';
+import { claimOf } from '@/lib/socialClaim';
 import { CommentComposer } from './CommentComposer';
 import { likePublication, unlikePublication } from '@/lib/likeLane';
 import { session } from '@/lib/accountSession';
@@ -138,6 +141,60 @@ export default function Studio() {
             finish(`took the like back on ${unlikeId} — ${answer.count ?? 0} like(s)`);
           } else {
             finish(`Could not take the like back: ${answer.reason}`);
+          }
+        });
+      }
+    }
+    return () => {
+      live = false;
+    };
+  }, []);
+
+  // M7 v288 — a FOLLOW link: the profile page sends a reader here as `/?follow={accountId}` (and
+  // `/?unfollow={accountId}`). The page is server-rendered and cannot act — it does not know who the
+  // device is (ADR 0018) — so the Studio is where the follow happens, exactly as the like and the comment
+  // are.
+  //
+  // The claim is built from the device's OWN account: a device with no account has no claim, and the
+  // service refuses an accountless follow by name. The client does NOT invent an actor.
+  //
+  // The query is NOT dropped: a follow is not a one-time intent like a remix, and a reader who reloads
+  // should still find the account they asked to follow named in the URL.
+  useEffect(() => {
+    const search = window.location.search;
+    const followId = followIdFromSearch(search);
+    const unfollowId = unfollowIdFromSearch(search);
+    if (!followId && !unfollowId) return;
+    let live = true;
+    const account = session.current();
+    const claim = claimOf(account?.id ?? null, account?.handle ?? null, account?.assurance ?? null);
+    const finish = (message: string) => {
+      if (!live) return;
+      useStudio.getState().setStatus(message);
+    };
+    if (followId) {
+      if (!claim) {
+        finish(`Could not follow ${followId}: this device has no account, and a follow needs one`);
+      } else {
+        void followAccount(followId, claim).then((answer) => {
+          if (!live) return;
+          if (answer.ok) {
+            finish(`followed ${followId} — ${answer.followerCount ?? 0} follower(s)`);
+          } else {
+            finish(`Could not follow ${followId}: ${answer.reason}`);
+          }
+        });
+      }
+    } else if (unfollowId) {
+      if (!claim) {
+        finish(`Could not take the follow back: this device has no account, and a follow needs one`);
+      } else {
+        void unfollowAccount(unfollowId, claim.accountId).then((answer) => {
+          if (!live) return;
+          if (answer.ok) {
+            finish(`took the follow back on ${unfollowId} — ${answer.followerCount ?? 0} follower(s)`);
+          } else {
+            finish(`Could not take the follow back: ${answer.reason}`);
           }
         });
       }

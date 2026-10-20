@@ -32,13 +32,12 @@
 
 ### 下一批（按优先级）
 
-1. **v288 — 关注的界面**：profile 页显示关注者数量 → `/?follow=<accountId>` → Studio 关注。
-2. **v289 — 服务端搜索（新包 `dev.nexus.api.search`）**：`/search?q=` 真正生效（客户端 v278/v279 已就位）。
-   走**新包**而不是改 `publish` 包——并行 lane 的 `PublishService`/`PublishController` 仍在他们手里。
-3. **v290 — 审计轨迹收录社交动词**：trail 现在只记 publication 动词，like/comment/follow 是社交动词。
-4. **v291 — Stage B/C 服务端接线**（仍被 ADR 0018 阻塞：无服务端账号/会话/令牌不做）。
+1. **v289 — 社交动词进审计轨迹**：trail 现在只记 publication 动词，like/comment/follow 是社交动词。
+2. **v290 — 服务端搜索（新包 `dev.nexus.api.search`）**：`/search?q=` 真正生效（客户端 v278/v279 已就位）。
+3. **v291 — 关注者列表**：profile 现在只有计数，没有名单（服务端的 finder 已就绪）。
+4. **v292 — Stage B/C 服务端接线**（仍被 ADR 0018 阻塞：无服务端账号/会话/令牌不做）。
 
-### M9 审计轨迹（服务端 → 面板 → 契约）（服务端 → 面板 → 契约）（服务端 → 面板 → 契约）
+### M9 审计轨迹（服务端 → 面板 → 契约）（服务端 → 面板 → 契约）（服务端 → 面板 → 契约）（服务端 → 面板 → 契约）
 
 | 步骤 | 内容 | 状态 |
 |------|------|------|
@@ -59,6 +58,7 @@
 | v285 | **评论（服务端）**：四张表里的第二张，四条规则 | social 包 **31/31** |
 | v286 | **评论的界面**：artifact 页列出 → `/?comment=` → Studio 的 composer | studio **998/998** |
 | v287 | **关注（服务端）**：社交图的一条边，四个方向分开的 finder | social 包 **43/43** |
+| v288 | **关注的界面**：profile 页的关注者计数条 → `/?follow=` → Studio 关注 | studio **1015/1015**；E2E **98/98** |
 | **v273** | **客户端 `ops.ts` 与线格式对齐**：`actorId`/`assurance` 变可空；`AuditAction` 对未知动词开放；匿名条目单独成桶（`__anonymous__`）；**新增契约 proof**（读 Java record + 用 tsc 编译探针） | ✅ 900/900 · proof exit 0 · 3 处 mutation 分别被 §3/§5 抓住 |
 
 ## 本次会话已落地的增量
