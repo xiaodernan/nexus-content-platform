@@ -1258,6 +1258,58 @@ try {
     await followPage.close();
   }
 
+  // ── §13 v289: the SOCIAL verbs in the AUDIT TRAIL ───────────────────────────────────────────────
+  // The trail is the service’s record of what happened to the PUBLICATIONS, and a like and a comment are
+  // things that happen to a publication. The section re-opens the panel (so it RE-READS the service) and
+  // grades that the trail now carries the social verbs, that the tally names them, and that the filters
+  // narrow to them.
+  {
+    const wasOpen = await page.evaluate("!!document.querySelector('[data-toolbar-trail]')");
+    if (wasOpen) await page.evaluate("document.querySelector('[data-toolbar-trail-toggle]').click()");
+    await page.evaluate("document.querySelector('[data-toolbar-trail-toggle]').click()");
+    const socialSummary = await until(
+      async () => {
+        const s = await page.evaluate("document.querySelector('[data-trail-summary]')?.textContent ?? ''");
+        return s.includes('liked') ? s : false;
+      },
+      { tries: 60, gapMs: 500, label: 'the trail to carry the social verbs' },
+    );
+    check(
+      'the trail now carries the LIKES and the COMMENTS',
+      socialSummary !== null,
+      `summary: ${JSON.stringify(socialSummary)}`,
+    );
+    check(
+      'and the tally names them — a like is not \u2018other\u2019',
+      typeof socialSummary === 'string' && socialSummary.includes('liked') && socialSummary.includes('commented'),
+      `summary: ${JSON.stringify(socialSummary)}`,
+    );
+
+    // The rows themselves: the trail’s rows carry the social actions, with the service’s own words.
+    const socialActions = await page.evaluate("Array.from(document.querySelectorAll('[data-trail-row]')).map(n => n.getAttribute('data-trail-action'))");
+    check(
+      'and the rows carry the social actions',
+      socialActions.includes('like') && socialActions.includes('comment'),
+      `actions: ${JSON.stringify(socialActions)}`,
+    );
+
+    // And the filters narrow to them, like they do for the publication verbs.
+    await page.evaluate("document.querySelector('[data-trail-filter=\"like\"]').click()");
+    const likedOnly = await until(
+      async () => {
+        const actions = await page.evaluate("Array.from(document.querySelectorAll('[data-trail-row]')).map(n => n.getAttribute('data-trail-action'))");
+        return actions.length > 0 ? actions : false;
+      },
+      { tries: 20, gapMs: 300, label: 'the like filter to narrow the rows' },
+    );
+    const likeActions = likedOnly === null ? [] : likedOnly;
+    check(
+      'the Liked filter shows ONLY likes',
+      likeActions.length > 0 && likeActions.every((a) => a === 'like'),
+      `actions: ${JSON.stringify(likeActions)}`,
+    );
+  }
+
   // ── §10 teardown ─────────────────────────────────────────────────────────────────────────────────
   await page.close();
   await session.close();

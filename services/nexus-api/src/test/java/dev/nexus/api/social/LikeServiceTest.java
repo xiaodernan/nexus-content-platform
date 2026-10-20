@@ -9,6 +9,7 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import dev.nexus.api.ops.AuditService;
 import dev.nexus.api.social.LikeDtos.LikeClaim;
 import java.time.Clock;
 import java.time.Instant;
@@ -42,12 +43,17 @@ class LikeServiceTest {
     @Mock
     private LikeRepository repository;
 
+    /** v289 — the TRAIL the social verbs write into. A mock, because these cases grade the social rules;
+     *  the trail's own rules are graded in {@code AuditServiceTest}. */
+    @Mock
+    private AuditService audit;
+
     private LikeService service;
 
     @BeforeEach
     void setUp() {
         Clock clock = Clock.fixed(LIKED_AT, ZoneOffset.UTC);
-        service = new LikeService(repository, clock);
+        service = new LikeService(repository, clock, audit);
     }
 
     private static LikeClaim claim(String accountId) {
@@ -234,4 +240,38 @@ class LikeServiceTest {
         verify(repository).findByTargetProjectIdOrderByCreatedAtDesc(eq("pub-1"), window.capture());
         assertThat(window.getValue().getPageSize()).isEqualTo(LikeService.DEFAULT_LIKE_LIMIT);
     }
+    // ── v289: the trail ───────────────────────────────────────────────────────────────────────────
+
+    @Test
+    void aNEWLikeIsWRITTENToTheTrail() {
+        when(repository.findByTargetProjectIdAndActorAccountId("pub-1", "acct-ada")).thenReturn(Optional.empty());
+        when(repository.save(any(LikeEntry.class))).thenAnswer(i -> i.getArgument(0));
+        when(repository.countByTargetProjectId("pub-1")).thenReturn(1L);
+
+        service.like("pub-1", claim("acct-ada"));
+
+        // A like is something that happened to a publication, so the trail says it happened.
+        verify(audit).record("like", "acct-ada", "ada", "unsigned-local", "pub-1");
+    }
+
+    @Test
+    void aSECONDLikeIsNOTWrittenToTheTrail() {
+        LikeEntry existing = row("pub-1", "acct-ada");
+        when(repository.findByTargetProjectIdAndActorAccountId("pub-1", "acct-ada")).thenReturn(Optional.of(existing));
+        when(repository.countByTargetProjectId("pub-1")).thenReturn(1L);
+
+        service.like("pub-1", claim("acct-ada"));
+
+        // Nothing changed, so nothing is written: the trail records what HAPPENED, not what was attempted.
+        verify(audit, never()).record(any(), any(), any(), any(), any());
+    }
+
+    @Test
+    void aREFUSEDLikeIsNOTWrittenToTheTrail() {
+        assertThatThrownBy(() -> service.like("pub-1", null)).isInstanceOf(InvalidLike.class);
+
+        // A refused mutation changed nothing, so the trail says nothing about it.
+        verify(audit, never()).record(any(), any(), any(), any(), any());
+    }
 }
+

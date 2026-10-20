@@ -1,5 +1,6 @@
 package dev.nexus.api.social;
 
+import dev.nexus.api.ops.AuditService;
 import dev.nexus.api.social.CommentDtos.CommentClaim;
 import java.time.Clock;
 import java.time.Instant;
@@ -66,10 +67,13 @@ public class CommentService {
 
     private final CommentRepository repository;
     private final Clock clock;
+    /** v289 — the TRAIL. The comment is something that happened to a publication, so it is written down. */
+    private final AuditService audit;
 
-    public CommentService(CommentRepository repository, Clock clock) {
+    public CommentService(CommentRepository repository, Clock clock, AuditService audit) {
         this.repository = repository;
         this.clock = clock;
+        this.audit = audit;
     }
 
     /**
@@ -102,7 +106,11 @@ public class CommentService {
                 claim == null ? null : claim.assurance(),
                 text,
                 when);
-        return repository.save(row);
+        CommentEntry saved = repository.save(row);
+        // v289 — the trail, INSIDE this transaction: a rolled-back comment leaves no entry claiming a
+        // comment was made.
+        audit.record("comment", account, claim == null ? null : claim.handle(), claim == null ? null : claim.assurance(), target);
+        return saved;
     }
 
     /**
@@ -131,6 +139,8 @@ public class CommentService {
         }
         row.markDeleted();
         repository.save(row);
+        // v289 — the trail says the comment was removed by its author.
+        audit.record("uncomment", account, claim == null ? null : claim.handle(), claim == null ? null : claim.assurance(), row.getTargetProjectId());
         return true;
     }
 

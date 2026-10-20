@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react';
 import { renderPreviewHtml } from '@/lib/preview';
 import { exportCanvasPng, exportHtml, exportJson, slug } from '@/lib/export';
 import { readTrail, type TrailAnswer } from '@/lib/auditLane';
-import { filterTrailRows, trailSummaryOf } from '@/lib/trail';
+import { filterTrailRows, trailSummaryOf, trailSummaryText } from '@/lib/trail';
 import { readEconomy, type EconomyAnswer } from '@/lib/economyLane';
 import { listPublished, probePublish, publishProject, unpublish, type PublishLaneListing, type PublishLaneProbe } from '@/lib/publishLane';
 import { remixProject } from '@/lib/remixLane';
@@ -520,10 +520,28 @@ export default function Toolbar() {
                 >
                   Taken down
                 </button>
+                {/* v289 — the SOCIAL verbs have their own filters, because the service records them and
+                    a reader asking "what did people DO with this?" deserves the same narrowing the
+                    publication verbs have. */}
+                <button
+                  className={`btn ${trailFilter === 'like' ? 'tool-active' : ''}`}
+                  data-trail-filter="like"
+                  onClick={() => setTrailFilter('like')}
+                  title="only the likes"
+                >
+                  Liked
+                </button>
+                <button
+                  className={`btn ${trailFilter === 'comment' ? 'tool-active' : ''}`}
+                  data-trail-filter="comment"
+                  onClick={() => setTrailFilter('comment')}
+                  title="only the comments"
+                >
+                  Commented
+                </button>
                 {trailSummary && (
                   <span data-trail-summary style={{ marginLeft: 'auto', color: 'var(--nexus-muted)' }}>
-                    {trailSummary.published} published · {trailSummary.tookDown} took down
-                    {trailSummary.other > 0 ? ` · ${trailSummary.other} other` : ''}
+                    {trailSummaryText(trailSummary)}
                   </span>
                 )}
               </div>

@@ -1,5 +1,6 @@
 package dev.nexus.api.social;
 
+import dev.nexus.api.ops.AuditService;
 import dev.nexus.api.social.LikeDtos.LikeClaim;
 import java.time.Clock;
 import java.time.Instant;
@@ -59,10 +60,13 @@ public class LikeService {
 
     private final LikeRepository repository;
     private final Clock clock;
+    /** v289 — the TRAIL. The like is something that happened to a publication, so it is written down. */
+    private final AuditService audit;
 
-    public LikeService(LikeRepository repository, Clock clock) {
+    public LikeService(LikeRepository repository, Clock clock, AuditService audit) {
         this.repository = repository;
         this.clock = clock;
+        this.audit = audit;
     }
 
     /**
@@ -101,6 +105,10 @@ public class LikeService {
                 claim == null ? null : claim.assurance(),
                 when);
         LikeEntry saved = repository.save(row);
+        // v289 — the trail, INSIDE this transaction: a rolled-back like leaves no entry claiming a like
+        // happened. And only for a like that was NEW — a second like changes nothing, and a trail that
+        // recorded it would be recording an attempt rather than a fact.
+        audit.record("like", account, claim == null ? null : claim.handle(), claim == null ? null : claim.assurance(), target);
         return new LikeResult(target, true, repository.countByTargetProjectId(target), List.of(saved));
     }
 
@@ -121,6 +129,8 @@ public class LikeService {
             return new LikeResult(target, false, repository.countByTargetProjectId(target), List.of());
         }
         repository.delete(existing.get());
+        // v289 — the trail says the like was taken back, because that is something that happened too.
+        audit.record("unlike", account, claim == null ? null : claim.handle(), claim == null ? null : claim.assurance(), target);
         return new LikeResult(target, false, repository.countByTargetProjectId(target), List.of());
     }
 

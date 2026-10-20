@@ -9,6 +9,7 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import dev.nexus.api.ops.AuditService;
 import dev.nexus.api.social.CommentDtos.CommentClaim;
 import java.time.Clock;
 import java.time.Instant;
@@ -39,12 +40,17 @@ class CommentServiceTest {
     @Mock
     private CommentRepository repository;
 
+    /** v289 — the TRAIL the social verbs write into. A mock, because these cases grade the social rules;
+     *  the trail's own rules are graded in {@code AuditServiceTest}. */
+    @Mock
+    private AuditService audit;
+
     private CommentService service;
 
     @BeforeEach
     void setUp() {
         Clock clock = Clock.fixed(AT, ZoneOffset.UTC);
-        service = new CommentService(repository, clock);
+        service = new CommentService(repository, clock, audit);
     }
 
     private static CommentClaim claim(String accountId) {
@@ -219,4 +225,23 @@ class CommentServiceTest {
         verify(repository).findByTargetProjectIdOrderByCreatedAtDesc(eq("pub-1"), window.capture());
         assertThat(window.getValue().getPageSize()).isEqualTo(CommentService.DEFAULT_COMMENT_LIMIT);
     }
+    // ── v289: the trail ───────────────────────────────────────────────────────────────────────────
+
+    @Test
+    void aNEWCommentIsWRITTENToTheTrail() {
+        when(repository.save(any(CommentEntry.class))).thenAnswer(i -> i.getArgument(0));
+
+        service.comment("pub-1", claim("acct-ada"), "nice work");
+
+        // A comment is something that happened to a publication, so the trail says it happened.
+        verify(audit).record("comment", "acct-ada", "ada", "unsigned-local", "pub-1");
+    }
+
+    @Test
+    void aREFUSEDCommentIsNOTWrittenToTheTrail() {
+        assertThatThrownBy(() -> service.comment("pub-1", claim("acct-ada"), "   ")).isInstanceOf(InvalidComment.class);
+
+        verify(audit, never()).record(any(), any(), any(), any(), any());
+    }
 }
+

@@ -63,6 +63,17 @@ export function trailActionText(action: string): string {
       return 'published';
     case 'unpublish':
       return 'took down';
+    // v289 — the SOCIAL verbs (the service records them since v289). Each has its own word, and the un-verbs
+    // are NOT folded into the verbs: "liked" and "took the like back" are different facts, and a trail that
+    // merged them would be losing one of them.
+    case 'like':
+      return 'liked';
+    case 'unlike':
+      return 'took the like back';
+    case 'comment':
+      return 'commented';
+    case 'uncomment':
+      return 'removed the comment';
     default:
       return action;
   }
@@ -133,31 +144,79 @@ export function toTrailRows(entries: readonly unknown[]): TrailRow[] {
  * purpose: the service counts everything in the answer, and this counts what could be displayed. A reader
  * comparing them can see a drop.
  *
- * The categories are the ones the trail actually records today — `publish` and `unpublish` — and anything
- * else is counted as `other` rather than being folded into one of them: a verb this build does not know
- * must not be counted as a verb it does.
+ * The categories are the ones the trail actually records today, and anything else is counted as `other`
+ * rather than being folded into one of them: a verb this build does not know must not be counted as a
+ * verb it does.
+ *
+ * v289 — the SOCIAL verbs have their own buckets (`liked`, `commented`) rather than falling into
+ * `other`: they are the product's own verbs, the trail records them, and a tally that called a like
+ * "other" would be hiding the very thing the panel is for.
  */
 export interface TrailSummary {
   /** How many rows were published. */
   published: number;
   /** How many rows were taken down. */
   tookDown: number;
+  /** How many rows were likes (v289). */
+  liked: number;
+  /** How many rows were likes taken back (v289). */
+  unliked: number;
+  /** How many rows were comments (v289). */
+  commented: number;
+  /** How many rows were comments removed by their author (v289). */
+  uncommented: number;
   /** How many rows carry an action this build does not know. */
   other: number;
-  /** The total: the three above, added up. */
+  /** The total: the buckets above, added up. */
   total: number;
 }
 
 export function trailSummaryOf(rows: readonly TrailRow[]): TrailSummary {
   let published = 0;
   let tookDown = 0;
+  let liked = 0;
+  let unliked = 0;
+  let commented = 0;
+  let uncommented = 0;
   let other = 0;
   for (const row of rows) {
     if (row.action === 'publish') published += 1;
     else if (row.action === 'unpublish') tookDown += 1;
+    else if (row.action === 'like') liked += 1;
+    else if (row.action === 'unlike') unliked += 1;
+    else if (row.action === 'comment') commented += 1;
+    else if (row.action === 'uncomment') uncommented += 1;
     else other += 1;
   }
-  return { published, tookDown, other, total: published + tookDown + other };
+  return {
+    published,
+    tookDown,
+    liked,
+    unliked,
+    commented,
+    uncommented,
+    other,
+    total: published + tookDown + liked + unliked + commented + uncommented + other,
+  };
+}
+
+/**
+ * v281 — the tally, as the panel says it.
+ *
+ * Only the buckets that are NOT ZERO are said: a line that always carried every bucket would grow a
+ * dozen "0 took down"s as the social verbs arrived, and a reader would learn to skip it. A tally that
+ * shows what happened is worth reading; a tally padded with zeroes is noise.
+ */
+export function trailSummaryText(summary: TrailSummary): string {
+  const parts: string[] = [];
+  if (summary.published > 0) parts.push(`${summary.published} published`);
+  if (summary.tookDown > 0) parts.push(`${summary.tookDown} took down`);
+  if (summary.liked > 0) parts.push(`${summary.liked} liked`);
+  if (summary.unliked > 0) parts.push(`${summary.unliked} unliked`);
+  if (summary.commented > 0) parts.push(`${summary.commented} commented`);
+  if (summary.uncommented > 0) parts.push(`${summary.uncommented} uncommented`);
+  if (summary.other > 0) parts.push(`${summary.other} other`);
+  return parts.length === 0 ? 'nothing yet' : parts.join(' · ');
 }
 
 /**

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { toTrailRow, toTrailRows, trailActionText, trailActorText, trailSummaryOf, filterTrailRows } from './trail';
+import { toTrailRow, toTrailRows, trailActionText, trailActorText, trailSummaryOf, trailSummaryText, filterTrailRows } from './trail';
 
 /**
  * M9 v272 — the AUDIT TRAIL's reading half.
@@ -101,18 +101,75 @@ describe('trail — the tally and the filter (M9 v281)', () => {
   ]);
 
   it('counts what the rows carry, and nothing else', () => {
-    expect(trailSummaryOf(rows)).toEqual({ published: 2, tookDown: 1, other: 0, total: 3 });
+    expect(trailSummaryOf(rows)).toEqual({
+      published: 2,
+      tookDown: 1,
+      liked: 0,
+      unliked: 0,
+      commented: 0,
+      uncommented: 0,
+      other: 0,
+      total: 3,
+    });
   });
 
   it('an action this build does NOT know is counted as OTHER, never folded into a verb it does', () => {
     // `follow` is in the client's model but does not exist server-side yet. If one ever arrives, the tally
     // must not call it a publish — a summary that said "3 published" when one was a follow would be a lie.
     const withFollow = toTrailRows([entry({ id: '1', action: 'publish' }), entry({ id: '2', action: 'follow' })]);
-    expect(trailSummaryOf(withFollow)).toEqual({ published: 1, tookDown: 0, other: 1, total: 2 });
+    const summary = trailSummaryOf(withFollow);
+    expect(summary.published).toBe(1);
+    expect(summary.other).toBe(1);
+    expect(summary.total).toBe(2);
+  });
+
+  it('v289 — the SOCIAL verbs have their OWN buckets, not the other one', () => {
+    // A like is the product's own verb and the service records it: a tally that called a like "other"
+    // would be hiding the very thing the panel is for.
+    const social = toTrailRows([
+      entry({ id: '1', action: 'like' }),
+      entry({ id: '2', action: 'unlike' }),
+      entry({ id: '3', action: 'comment' }),
+      entry({ id: '4', action: 'uncomment' }),
+    ]);
+    const summary = trailSummaryOf(social);
+    expect(summary.liked).toBe(1);
+    expect(summary.unliked).toBe(1);
+    expect(summary.commented).toBe(1);
+    expect(summary.uncommented).toBe(1);
+    expect(summary.other).toBe(0);
+    expect(summary.total).toBe(4);
+  });
+
+  it('v289 — the un-verbs are NOT folded into the verbs: liked and unliked are different facts', () => {
+    const social = toTrailRows([entry({ id: '1', action: 'like' }), entry({ id: '2', action: 'unlike' })]);
+    const summary = trailSummaryOf(social);
+    expect(summary.liked).toBe(1);
+    expect(summary.unliked).toBe(1);
+    expect(summary.total).toBe(2);
   });
 
   it('an empty trail sums to zero, not to undefined', () => {
-    expect(trailSummaryOf([])).toEqual({ published: 0, tookDown: 0, other: 0, total: 0 });
+    const summary = trailSummaryOf([]);
+    expect(summary.total).toBe(0);
+    expect(summary.other).toBe(0);
+  });
+
+  it('v289 — the tally says only the buckets that are NOT zero', () => {
+    // A line that always carried every bucket would grow a dozen "0 took down"s and a reader would learn
+    // to skip it.
+    const social = toTrailRows([entry({ id: '1', action: 'like' }), entry({ id: '2', action: 'comment' })]);
+    expect(trailSummaryText(trailSummaryOf(social))).toBe('1 liked · 1 commented');
+    expect(trailSummaryText(trailSummaryOf([]))).toBe('nothing yet');
+    const both = toTrailRows([entry({ id: '1', action: 'publish' }), entry({ id: '2', action: 'like' })]);
+    expect(trailSummaryText(trailSummaryOf(both))).toBe('1 published · 1 liked');
+  });
+
+  it('v289 — the social verbs have their own WORDS', () => {
+    expect(trailActionText('like')).toBe('liked');
+    expect(trailActionText('unlike')).toBe('took the like back');
+    expect(trailActionText('comment')).toBe('commented');
+    expect(trailActionText('uncomment')).toBe('removed the comment');
   });
 
   it('the filter asks the trail in the TRAIL’S language, not the display verb', () => {
