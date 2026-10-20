@@ -67,7 +67,7 @@ export const CODEGEN_COLORS: Record<string, string> = {
  * 各写一遍就会一处比一处乐观（§159）。
  */
 export const CODEGEN_LIMITS: readonly string[] = [
-  "产物里的引擎是平台规则模块的转写：2D 那条链转写 sim.ts，标了 RPG 原型的那一份再多转一段 rpg.ts；数字由生成时从导出插进来，逻辑不在这里重打一遍。",
+  "产物里的引擎是平台规则模块的转写：2D 那条链转写 sim.ts，标了 RPG 原型的那一份再多转一段 rpg.ts，标了互动故事/视觉小说的那一份换成 story.ts 的正文与分支；数字由生成时从导出插进来，逻辑不在这里重打一遍。",
   "产物没有 Studio 的界面：没有数值来历面板、没有等轴测与 3D 画法、没有 Playtest 报告。",
   "产物不联网：CSP 里 connect-src 是 none，键盘只有方向键与 WASD，没有手柄。",
   "这一格不执行任何东西：生成只是拼字符串（§81），要跑就在浏览器沙箱里打开。",
@@ -966,7 +966,7 @@ function readmeSource(
     ...(plan.chain === "story"
       ? [
           "- 规则：engine.js 里是 packages/game-model/src/story.ts 的转写（正文、选择与分支；" +
-            "起点、正文、悬空引用这些判定都在生成时算进 plan.json 的 story 段，产物里只负责播放）。",
+            "起点、正文、悬空引用这些判定都在生成时算进同一份计划，产物里只负责播放）。",
         ]
       : [
           "- 规则：engine.js 是 packages/game-model/src/sim.ts 的转写，冷却与定步长这些数字由生成时从 sim.ts 的导出插进来。",

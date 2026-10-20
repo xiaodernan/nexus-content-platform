@@ -3949,7 +3949,10 @@ test('@smoke §144 导出：顶栏点一下就下载，回执说的和包里的�
  * 只报"成功"而不报限度，界面就在替产品撒谎。
  */
 test('@smoke 游戏：生成可玩产物，点一个文件真的落盘，整份打包也拿得走（§52 Code）', async ({ page }) => {
-  test.setTimeout(240_000);
+  // 这一支现在要走**四型**（2D → 对话 → 2D → RPG → 互动故事）与多次生成、多次下载，
+  // 而本机跑它常常只有 2~3GB 空闲内存（dev server 编译 + Chromium + Postgres 同场）——
+  // 240s 那条默认上限今天撞了两次（一次撞在 zip 下载、一次撞在总时长）。给够它。
+  test.setTimeout(600_000);
   await createProject(page, `可玩产物 ${Date.now().toString(36)}`);
 
   await page.click('[data-panel-tab="game"]');
@@ -4061,30 +4064,27 @@ test('@smoke 游戏：生成可玩产物，点一个文件真的落盘，整份�
   await expect(page.locator('[data-game-code-packaged]')).toBeInViewport();
   await page.screenshot({ path: 'screenshots/game-code-zip.png' });
 
-  // §52 与 §51 之间那条错位，要在真浏览器里当着用户说出来，而不是只写在单元测试里。
+  // §52 与 §51 之间那条错位，**在 ADR-0046 之后没有型会触发了**：八型全接上了引擎。
   // 骨架默认是 2D——它走的正是产物那一条链，所以这一段第一句量的是**没有警告**：
   // 界面要是每次都印一句"这一型和产物对不上"，那句警告就成了噪音，真的错位没人看见。
   await expect(page.locator('[data-game-code-kind]')).toHaveCount(0);
 
-  // 换成视觉小说：对话管线在平台上是真的（试玩页跑得动），但产物那条链只排得出 2D 俯视计划。
+  // 换成视觉小说：这一型现在**真的带了对话引擎**（产物那一条链就是对话那条链），
+  // 所以它不再念错位——那句话自己变空了（它是派生的：错位与否由分派点那张表决定，
+  // 不是被藏起来了）。"机制还在"由模型层那条反向控制钉着：临时把状态表某一型的管线改成
+  // null，那句话必须出来——八型全接上之后，这里已经没有"没引擎的型"可换了。
   // 换类型会立刻写库，所以先等"库里正在写"那格自己消失，再点生成——不然点的是旧设计。
   await page.selectOption('[data-game-kind]', 'visual-novel');
   await expect(page.locator('[data-game-code-behind]')).toHaveCount(0, { timeout: 90_000 });
   await expect(page.locator('[data-game-code-run]')).toBeEnabled();
   await page.click('[data-game-code-run]');
   const kindNote = page.locator('[data-game-code-kind]');
-  await expect(kindNote).toBeVisible({ timeout: 30_000 });
-  // 那句话要点得出这四样：产物跑的是哪条链、这一型在平台上该跑哪条、产物里带了引擎的是哪几条、
-  // 状态表这一型的原话是哪一句。少了任何一样，界面报的就是一句"可能不太一样"式的空话（§159）。
-  await expect(kindNote).toContainText('那条链在这份产物里没有引擎');
-  await expect(kindNote).toContainText('视觉小说');
-  await expect(kindNote).toContainText('那句里的东西不在这份产物里');
-  // 第二条链落地后这一栏列出的是两条：把它写全，界面才不是"只有一条链"那句旧话
-  await expect(kindNote).toContainText('RPG 那条链');
-  // 错位那一型拿到的仍是一份 2D 投影：读数照旧说，不许因为有警告就把读数省掉
-  await expect(chainLine).toHaveAttribute('data-game-code-chain', 'topdown');
-  await kindNote.scrollIntoViewIfNeeded();
-  await expect(kindNote).toBeInViewport();
+  await expect(kindNote, '这一型真的带了引擎，还念错位就是谎').toHaveCount(0, { timeout: 30_000 });
+  // 恒在的那一句是链名：作者得知道拿走的那一份跑的是什么
+  await expect(chainLine).toHaveAttribute('data-game-code-chain', 'story');
+  await expect(chainLine).toContainText('对话那条链');
+  await chainLine.scrollIntoViewIfNeeded();
+  await expect(chainLine).toBeInViewport();
   await page.screenshot({ path: 'screenshots/game-code-kind-mismatch.png' });
 
   // 屏上这句与拿走的字节是同一句：下载 README 对一遍。
@@ -4094,7 +4094,7 @@ test('@smoke 游戏：生成可玩产物，点一个文件真的落盘，整份�
   const readmePath = await (await readmeEvent).path();
   if (!readmePath) throw new Error('README 没落到磁盘');
   const readme = (await readFile(readmePath)).toString('utf8');
-  const onScreen = (await kindNote.textContent()) ?? '';
+  const onScreen = (await chainLine.textContent()) ?? '';
   expect(onScreen.length, '界面上那句话是空的').toBeGreaterThan(20);
   expect(readme, '屏上那句与产物里那句不是同一份').toContain(onScreen);
   // 那句只有对得上时才成立的旧文案，不能在这一型的产物里还留着
@@ -4107,6 +4107,9 @@ test('@smoke 游戏：生成可玩产物，点一个文件真的落盘，整份�
   await page.click('[data-game-code-run]');
   await expect(page.locator('[data-game-code-file]').first()).toBeVisible({ timeout: 30_000 });
   await expect(page.locator('[data-game-code-kind]')).toHaveCount(0);
+  // **等链读数真的换过来**：换类型是写库动作，有防抖；不等它落定就下载，拿到的是上一型的字节
+  // （今天这一格就是这么红的：换回 2D 后下载到的还是对话那一份的 README）。
+  await expect(chainLine).toHaveAttribute('data-game-code-chain', 'topdown');
   const backEvent = page.waitForEvent('download');
   await page.click('[data-game-code-file="README.txt"]');
   const backPath = await (await backEvent).path();
@@ -4143,4 +4146,38 @@ test('@smoke 游戏：生成可玩产物，点一个文件真的落盘，整份�
   await chainLine.scrollIntoViewIfNeeded();
   await expect(chainLine).toBeInViewport();
   await page.screenshot({ path: 'screenshots/game-code-rpg-chain.png' });
+
+  /**
+   * 第三条链也要在真浏览器里走通：换成互动故事那一型，产物里就必须真的多一段对话引擎的转写。
+   * ADR-0046 之后这一型不再说"对不上"，它要说的是"带上了"，所以钉四样：
+   * 界面上那句读数换成 story、错位警告自己消失、落盘的 engine.js 里有 `NexusStory` 那一段、
+   * README 念的是同一句链名（页面与 README 不许各拼一遍——那句话只有一个写法）。
+   */
+  await page.selectOption('[data-game-kind]', 'interactive-story');
+  await expect(page.locator('[data-game-code-behind]')).toHaveCount(0, { timeout: 90_000 });
+  // 换类型是写库动作（带防抖），生成读的是**库里那一份**：写库没落定时先生成，
+  // 拿到的还是上一型的字节。所以这里点一次生成、读链读数，不对就再点一次——
+  // 写出来的是"最终库里那一份"的字节，而不是"点下去那一刻"的字节。
+  await expect(async () => {
+    await page.click('[data-game-code-run]');
+    await expect(chainLine).toHaveAttribute('data-game-code-chain', 'story', { timeout: 5_000 });
+  }).toPass({ timeout: 60_000 });
+  await expect(page.locator('[data-game-code-file]').first()).toBeVisible({ timeout: 30_000 });
+  await expect(chainLine).toContainText('对话那条链');
+  await expect(page.locator('[data-game-code-kind]')).toHaveCount(0);
+  const storyEngineEvent = page.waitForEvent('download');
+  await page.click('[data-game-code-file="engine.js"]');
+  const storyEnginePath = await (await storyEngineEvent).path();
+  if (!storyEnginePath) throw new Error('对话那一份的 engine.js 没落到磁盘');
+  const storyEngine = (await readFile(storyEnginePath)).toString('utf8');
+  expect(storyEngine, '标了互动故事的那一份产物里没有对话引擎那一段转写').toContain('var NexusStory = {');
+  const storyReadmeEvent = page.waitForEvent('download');
+  await page.click('[data-game-code-file="README.txt"]');
+  const storyReadmePath = await (await storyReadmeEvent).path();
+  if (!storyReadmePath) throw new Error('对话那一份的 README 没落到磁盘');
+  const storyReadme = (await readFile(storyReadmePath)).toString('utf8');
+  expect(storyReadme, 'README 与页面念的链名不是同一句').toContain('这条产物跑的是对话那条链');
+  await chainLine.scrollIntoViewIfNeeded();
+  await expect(chainLine).toBeInViewport();
+  await page.screenshot({ path: 'screenshots/game-code-story-chain.png' });
 });
