@@ -10,6 +10,7 @@ import {
   XP_BASE,
   XP_STEP,
   artifactChainSentence,
+  type ArtifactPlan,
   artifactPayload,
   compileGame,
   compileRpg,
@@ -229,15 +230,32 @@ const legs: Leg[] = [
   { slug: 'rpg', chain: 'rpg', doc: growthDoc, output: generateGameCode(growthDoc) },
 ];
 
-const topPlan = artifactPayload(battleDoc);
-const growthPlan = artifactPayload(growthDoc);
+/**
+ * 取**那条链的**载荷。
+ *
+ * 产物载荷现在是一个判别联合（`{chain:'topdown'} & GamePlan` / `{chain:'rpg'} & ...` /
+ * `{chain:'story'} & StoryPlan`）——三条链各一种形状，硬当成一种用就会拿到别的链的字段。
+ * 所以这里既做**类型收窄**，也做**运行时的同一句断言**：拿到的不是那条链，就是这一格跑错了地方。
+ */
+function planOf<T extends ArtifactChain>(
+  chain: T,
+  plan: ArtifactPlan,
+): Extract<ArtifactPlan, { chain: T }> {
+  if (plan.chain !== chain) {
+    throw new Error(`这份载荷不是 ${chain} 那条链的（实际是 ${plan.chain}）`);
+  }
+  return plan as Extract<ArtifactPlan, { chain: T }>;
+}
+
+const topPlan = planOf('topdown', artifactPayload(battleDoc));
+const growthPlan = planOf('rpg', artifactPayload(growthDoc));
 if (!topPlan.player) throw new Error('底稿没有玩家投影，见证无从跑起');
 const frames = scriptFor(topPlan);
 const reference = runReference(topPlan, frames);
 const referenceJson = JSON.stringify(reference);
 const rpgFramesJson = JSON.stringify(frames);
 
-const gatePlan = artifactPayload(gateDoc);
+const gatePlan = planOf('rpg', artifactPayload(gateDoc));
 const gateFrames = gateScript(gatePlan);
 const gateReference = runRpgReference(gateDoc, gateFrames);
 
@@ -504,7 +522,7 @@ try {
   verdict(
     'RPG_PLAN_CARRIES_GROWTH',
     rpgPlanEqual && rpgGlobals.growth !== null,
-    `页里 NEXUS_PLAN 与 artifactPayload(${growthDoc.name}) 逐字节${rpgPlanEqual ? '相同' : '不同'}，其中 growth ${rpgGlobals.growth === null ? '不在' : '在'}（${growthPlan.growth?.enemyXp.length ?? 0} 个敌人发经验、曲线 ${growthPlan.growth?.xpBase}+${growthPlan.growth?.xpStep}）`,
+    `页里 NEXUS_PLAN 与 artifactPayload(${growthDoc.name}) 逐字节${rpgPlanEqual ? '相同' : '不同'}，其中 growth ${rpgGlobals.growth === null ? '不在' : '在'}（${growthPlan.growth.enemyXp.length} 个敌人发经验、曲线 ${growthPlan.growth.xpBase}+${growthPlan.growth.xpStep}）`,
   );
 
   const rpgPlayed = await runInPage(rpgPage, 'NexusRpg', growthPlan, JSON.parse(rpgFramesJson) as Frame[]);
@@ -589,11 +607,15 @@ try {
     `等级门 trace 与 rpg.ts ${gatePlayed.traceJson === gateReferenceJson ? '逐字符相同' : '不同'}；末态等级 ${lastGate.level}（要 3 级）、任务完成标记 ${lastGate.base.questDone['q1'] === undefined ? '仍被扣住' : '已放出'}、状态 ${lastGate.base.status}、扣住事件 ${heldEvents.length} 条、事件流停在 ${lastGate.base.events.length} 条`,
   );
 
+
   // 截图是证据不是判决：这一片被它咬过一次——2026-10-20 电池里的基线在 `page.screenshot`
   // 超时上抛穿，于是最后一条 NO_EGRESS 压根没跑到，而那一趟 23 条判决全绿。
   // NO_EGRESS 读的是请求清单，与像素无关，不该被渲染 I/O 拖走；落不成就在日志里点名。
   const shots: string[] = [];
-  for (const [target, file] of [[page, 'screenshots/game-code-parity.png'], [rpgPage, 'screenshots/game-code-parity-rpg.png']] as const) {
+  for (const [target, file] of [
+    [page, 'screenshots/game-code-parity.png'],
+    [rpgPage, 'screenshots/game-code-parity-rpg.png'],
+  ] as const) {
     try {
       await target.screenshot({ path: file, timeout: 120_000 });
       shots.push(file);

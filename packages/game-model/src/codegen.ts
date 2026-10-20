@@ -6,7 +6,7 @@ import {
   type GameEntityKind,
 } from "./index";
 import { PLAY_KIND_SHAPES, compileGame, type GamePlan, type PlayActor, type StatSource } from "./play";
-import { compileForKind, type GameProjection } from "./story";
+import { compileForKind, compileStory, type GameProjection, type StoryPlan } from "./story";
 import { compileRpg } from "./rpg";
 import {
   CONTACT_COOLDOWN,
@@ -90,7 +90,11 @@ export const ARTIFACT_CHAINS = {
     label: "RPG 那条链（NexusSim 之外再多一段 NexusRpg，转写的是 rpg.ts：经验、升级与等级门）",
     dataNote: "画布读的是同一份 2D 计划，等级/经验读的是同一次序列化里多出来的那一份 growth",
   },
-} as const satisfies Record<Exclude<NonNullable<GameProjection["pipeline"]>, "story">, { label: string; dataNote: string }>;
+  story: {
+    label: "对话那条链（engine.js 里是 NexusStory，转写的是 story.ts：正文、选择与分支）",
+    dataNote: "这一份读的是 dialogue 实体（正文=设计说明，选择=指向其它对话的引用），别的实体不读",
+  },
+} as const satisfies Record<NonNullable<GameProjection["pipeline"]>, { label: string; dataNote: string }>;
 
 export type ArtifactChain = keyof typeof ARTIFACT_CHAINS;
 
@@ -133,8 +137,21 @@ export interface ArtifactGrowth {
   levelBonus: { maxHealth: number; damage: number };
 }
 
-/** 产物吃的那份计划：`GamePlan` 加上（只有 RPG 那条链才有的）成长层 */
-export type ArtifactPlan = GamePlan & { growth?: ArtifactGrowth };
+/**
+ * 产物吃的那份计划：**按链分形状**的判别联合（`chain` 是那个 tag）。
+ *
+ * 为什么不是从前那种 `GamePlan & { growth? }`：对话那条链的载荷**没有** `arena / player / enemies /
+ * triggers / quests`（它有的是 `startId / beats / playable / blockers`），
+ * 硬塞进 `GamePlan` 就要造一堆假字段（§159）。于是三条链各是一种形状，用 `chain` 区分。
+ *
+ * 那个 tag 顺带解决两件事：产物自己知道跑哪条链（`main.js` 的分派不再靠"有没有 `growth` 字段"猜），
+ * 而凡是读 2D 字段的地方（`documentNotes` / `htmlSource` / `mainSource`）**必须按链分支**——
+ * 漏掉一处就是 TypeScript 报错，不是运行时白屏。
+ */
+export type ArtifactPlan =
+  | ({ chain: "topdown" } & GamePlan)
+  | ({ chain: "rpg" } & GamePlan & { growth: ArtifactGrowth })
+  | ({ chain: "story" } & StoryPlan);
 
 /**
  * 那一次序列化的**产物侧计划**：`plan.json` 与 `plan.js` 都写它，`main.js` 与见证脚本也读它。
@@ -147,30 +164,34 @@ export type ArtifactPlan = GamePlan & { growth?: ArtifactGrowth };
  */
 export function artifactPayload(document: GameDocument): ArtifactPlan {
   const chain = artifactChainOf(document);
-  if (chain === "topdown") return compileGame(document);
-  const plan = compileRpg(document);
-  return {
-    ...plan.base,
-    notes: plan.notes,
-    growth: {
-      enemyXp: plan.enemyXp.map((enemy) => ({ id: enemy.id, name: enemy.name, xp: enemy.xp, from: enemy.from })),
-      quests: plan.quests.map((quest) => ({
-        id: quest.id,
-        name: quest.name,
-        xpReward: quest.xpReward,
-        hasXpReward: quest.hasXpReward,
-        requiredLevel: quest.requiredLevel,
-      })),
-      xpBase: plan.xpBase,
-      xpStep: plan.xpStep,
-      levelBonus: { ...plan.levelBonus },
-    },
-  };
+  if (chain === "story") return { ...compileStory(document), chain: "story" };
+  if (chain === "rpg") {
+    const plan = compileRpg(document);
+    return {
+      ...plan.base,
+      chain: "rpg",
+      notes: plan.notes,
+      growth: {
+        enemyXp: plan.enemyXp.map((enemy) => ({ id: enemy.id, name: enemy.name, xp: enemy.xp, from: enemy.from })),
+        quests: plan.quests.map((quest) => ({
+          id: quest.id,
+          name: quest.name,
+          xpReward: quest.xpReward,
+          hasXpReward: quest.hasXpReward,
+          requiredLevel: quest.requiredLevel,
+        })),
+        xpBase: plan.xpBase,
+        xpStep: plan.xpStep,
+        levelBonus: { ...plan.levelBonus },
+      },
+    };
+  }
+  return { ...compileGame(document), chain: "topdown" };
 }
 
 export type GameCodeOrigin =
-  | { kind: "plan"; from: "compileGame" | "compileRpg" }
-  | { kind: "engine"; from: "sim.step" | "sim.step+rpg.step" }
+  | { kind: "plan"; from: "compileGame" | "compileRpg" | "compileStory" }
+  | { kind: "engine"; from: "sim.step" | "sim.step+rpg.step" | "story.step" }
   | { kind: "shell"; from: "codegen" }
   | { kind: "readme"; from: "codegen" };
 
@@ -274,7 +295,7 @@ function js(lines: readonly string[]): string {
  * 而分叉之后 `plan.json` 可以是旧的、`plan.js` 可以是新的，浏览器里跑的却是后者——
  * 那份"能下载的关卡"就和作者看到的对不上了。
  */
-function planJson(plan: GamePlan): string {
+function planJson(plan: ArtifactPlan): string {
   return JSON.stringify(plan, null, 2);
 }
 
@@ -555,6 +576,75 @@ function engineSource(chain: ArtifactChain): string {
       "};",
     );
   }
+  // 对话那条链：story.ts 的转写。**判定全在编译期**（起点、悬空引用、指向非对话的引用、
+  // 空正文、终点、成环提示都已经在 compileStory 里判完并写进 plan.story），
+  // 产物里只做"播放"：显示当前 beat 的正文、列出选项、选一个跳到目标、标出走过的段落。
+  // 重做其中任何一条判定就是第二个供给点（ADR-0045 否掉的同一件事）。
+  if (chain === "story") {
+    lines.push(
+      "function beatById(story, id) {",
+      "  for (var i = 0; i < story.beats.length; i += 1) if (story.beats[i].id === id) return story.beats[i];",
+      "  return null;",
+      "}",
+      "var NexusStory = {",
+      "  initialState: function (plan) {",
+      "    var story = plan.story;",
+      "    return {",
+      "      beatId: story.startId,",
+      "      visited: {},",
+      "      steps: 0,",
+      "      loop: false,",
+      "      status: story.playable ? \"playing\" : \"ended\",",
+      "      outcome: story.playable ? null : \"这份设计里没有可读的对白，故事开不了场。\",",
+      "      events: [],",
+      "    };",
+      "  },",
+      "  // choiceId 打不中就状态不动——不给\"点下去没反应\"的假动作",
+      "  step: function (plan, state, choiceId) {",
+      "    var story = plan.story;",
+      "    var next = {",
+      "      beatId: state.beatId,",
+      "      visited: copy(state.visited),",
+      "      steps: state.steps,",
+      "      loop: state.loop,",
+      "      status: state.status,",
+      "      outcome: state.outcome,",
+      "      events: state.events.slice(),",
+      "    };",
+      "    if (state.status !== \"playing\") return next;",
+      "    var beat = beatById(story, state.beatId);",
+      "    if (!beat) return next;",
+      "    var choice = null;",
+      "    for (var i = 0; i < beat.choices.length; i += 1) {",
+      "      if (beat.choices[i].id === choiceId) { choice = beat.choices[i]; break; }",
+      "    }",
+      "    if (!choice) return next;",
+      "    var target = beatById(story, choice.to);",
+      "    if (!target) return next;",
+      "    next.beatId = target.id;",
+      "    next.steps += 1;",
+      "    // 模型里允许成环，播放器负责标出来（不是禁止）",
+      "    if (next.visited[target.id]) {",
+      "      next.loop = true;",
+      "      push(next.events, next.steps, \"又回到「\" + target.name + \"」（这段对话成环了）\");",
+      "    }",
+      "    next.visited[target.id] = true;",
+      "    return next;",
+      "  },",
+      "  summary: function (plan, state) {",
+      "    var story = plan.story;",
+      "    var beat = beatById(story, state.beatId);",
+      "    var out = [",
+      "      \"当前段落：\" + (beat ? beat.name : \"（没有）\"),",
+      "      \"已走 \" + state.steps + \" 步\",",
+      "    ];",
+      "    if (state.loop) out.push(\"这段对话成环了：有一处你走过不止一遍（模型里允许成环，这里只标出来）\");",
+      "    if (beat && beat.ending) out.push(\"这一段没有出边：走到这里就结束了\");",
+      "    return out.join(\" · \");",
+      "  },",
+      "};",
+    );
+  }
   return js(lines);
 }
 
@@ -581,12 +671,65 @@ function mainSource(): string {
     "  var shapes = " + JSON.stringify(PLAY_KIND_SHAPES) + ";",
     "  var colors = " + JSON.stringify(CODEGEN_COLORS) + ";",
     "  var SIM_RULE_NOTES = " + JSON.stringify(SIM_RULE_NOTES) + ";",
+    "  var hud = document.getElementById(\"hud\");",
+    // 对话那条链**先分流**：它的页面里根本没有 <canvas id="arena">，
+    // getElementById 拿到 null，null.getContext 会抛 TypeError——所以分流必须在碰画布之前。
+    "  if (plan.chain === \"story\") { storyMain(plan, hud); return; }",
+    "  function storyMain(plan, hud) {",
+    "    var story = plan.story;",
+    "    var root = document.getElementById(\"story\");",
+    "    var engine = NexusStory;",
+    "    var state = engine.initialState(plan);",
+    "    function beatById(id) {",
+    "      for (var i = 0; i < story.beats.length; i += 1) if (story.beats[i].id === id) return story.beats[i];",
+    "      return null;",
+    "    }",
+    "    function render() {",
+    "      root.textContent = \"\";",
+    "      var beat = beatById(state.beatId);",
+    "      if (!beat) {",
+    "        var none = document.createElement(\"p\");",
+    "        none.textContent = \"这段对话开不了场（起点不在计划里）。\";",
+    "        root.appendChild(none);",
+    "        return;",
+    "      }",
+    "      var title = document.createElement(\"h2\");",
+    "      title.textContent = beat.name;",
+    "      root.appendChild(title);",
+    "      var body = document.createElement(\"p\");",
+    "      // 正文是空的就说\"作者没写正文\"——留一片白会让人以为是加载中（与 story.ts 同一口径）",
+    "      body.textContent = beat.textEmpty ? \"（作者没给这一段写正文）\" : beat.text;",
+    "      root.appendChild(body);",
+    "      var choices = document.createElement(\"div\");",
+    "      choices.id = \"story-choices\";",
+    "      for (var i = 0; i < beat.choices.length; i += 1) {",
+    "        var choice = beat.choices[i];",
+    "        var button = document.createElement(\"button\");",
+    "        button.type = \"button\";",
+    "        button.textContent = choice.label;",
+    "        button.setAttribute(\"data-story-choice\", choice.id);",
+    "        button.addEventListener(\"click\", (function (id) {",
+    "          return function () { state = engine.step(plan, state, id); render(); };",
+    "        })(choice.id));",
+    "        choices.appendChild(button);",
+    "      }",
+    "      root.appendChild(choices);",
+    "      if (!beat.choices.length) {",
+    "        var end = document.createElement(\"p\");",
+    "        end.textContent = \"这一段没有出边：走到这里就结束了。\";",
+    "        root.appendChild(end);",
+    "      }",
+    "      var out = [engine.summary(plan, state)];",
+    "      for (var k = 0; k < story.notes.length; k += 1) out.push(\"限度：\" + story.notes[k]);",
+    "      hud.textContent = out.join(\"\\n\");",
+    "    }",
+    "    render();",
+    "  }",
     "  var canvas = document.getElementById(\"arena\");",
     "  var ctx = canvas.getContext(\"2d\");",
-    "  var hud = document.getElementById(\"hud\");",
     "  canvas.width = plan.arena.width;",
     "  canvas.height = plan.arena.height;",
-    "  var engine = plan.growth ? NexusRpg : NexusSim;",
+    "  var engine = plan.chain === \"rpg\" ? NexusRpg : NexusSim;",
     // 成长态把 2D 态包在 base 里；画布只认 2D 那一层，所以取一次就行，不在绘制代码里到处分支
     "  function view(st) { return st.base ? st.base : st; }",
     "  var state = engine.initialState(plan);",
@@ -666,7 +809,7 @@ function mainSource(): string {
   return js(lines);
 }
 
-function htmlSource(document: GameDocument, plan: GamePlan, chain: ArtifactChain, kindNote: string | null): string {
+function htmlSource(document: GameDocument, plan: ArtifactPlan, chain: ArtifactChain, kindNote: string | null): string {
   const title = `${escapeHtml(document.name || "未命名游戏")} · NEXUS 导出的可玩产物`;
   return [
     "<!doctype html>",
@@ -685,7 +828,10 @@ function htmlSource(document: GameDocument, plan: GamePlan, chain: ArtifactChain
     `<p id="chain-note">${escapeHtml(artifactChainSentence(chain))}</p>`,
     // 类型不对上的那句话也要印在页面上，不然作者看到的就是"我的 RPG 没有成长"
     ...(kindNote ? [`<p id="kind-note">${escapeHtml(kindNote)}</p>`] : []),
-    `<canvas id="arena" width="${plan.arena.width}" height="${plan.arena.height}"></canvas>`,
+    // 对话那条链**没有场地**：画一块空画布只会让人以为产物坏了，所以那条链给的是正文容器
+    ...(plan.chain === "story"
+      ? ['<div id="story"></div>']
+      : [`<canvas id="arena" width="${plan.arena.width}" height="${plan.arena.height}"></canvas>`]),
     '<pre id="hud"></pre>',
     "<noscript>这一份产物要有 JavaScript 才动得起来：规则在 engine.js 里，设计数据在 plan.js 里。</noscript>",
     '<script src="plan.js"></script>',
@@ -711,8 +857,11 @@ function cssSource(): string {
 }
 
 /** 针对这一份文档的发现：投影已经说了的（plan.notes / blockers）不重写一遍，只补产物这一侧才看得见的 */
-function documentNotes(document: GameDocument, plan: ArtifactPlan, chain: ArtifactChain): string[] {
+function documentNotes(document: GameDocument, plan: ArtifactPlan, _chain: ArtifactChain): string[] {
   const notes: string[] = [];
+  // 对话那条链没有"可显示个体"与"任务"这些读数：它读的是 dialogue 实体，
+  // 而这一型读不读别的实体、漏了多少个，compileStory 已经写进 plan.story.notes 了（不重写一遍）。
+  if (plan.chain === "story") return notes;
   const inPlan = new Set<string>();
   const collect = (actor: PlayActor | null): void => {
     if (actor) inPlan.add(actor.id);
@@ -751,7 +900,7 @@ function documentNotes(document: GameDocument, plan: ArtifactPlan, chain: Artifa
   }
 
   // 成长层的读数只在 rpg 那条链上存在；数与曲线全部从 plan.growth 里读，不在这里重打
-  if (chain === "rpg" && plan.growth) {
+  if (plan.chain === "rpg") {
     const growth = plan.growth;
     const defaulted = growth.enemyXp.filter((enemy) => enemy.from === "default").length;
     const withXp = growth.quests.filter((quest) => quest.hasXpReward && quest.xpReward > 0).length;
@@ -779,26 +928,44 @@ function readmeSource(
   chain: ArtifactChain,
   kindNote: string | null,
 ): string {
-  const growth = chain === "rpg" ? plan.growth : undefined;
+  const growth = plan.chain === "rpg" ? plan.growth : undefined;
   const lines = [
     banner("#"),
     "",
     `这是什么：「${document.name || "未命名游戏"}」的一份可玩产物。`,
-    `设计文档里有 ${document.entities.length} 个实体；投影排出来的场上有 ` +
-      `${[plan.player, ...plan.enemies, ...plan.items, ...plan.npcs].filter(Boolean).length} 个可显示个体、` +
-      `${plan.triggers.length} 个机关、${plan.quests.length} 条任务。`,
+    ...(plan.chain === "story"
+      ? [
+          `设计文档里有 ${document.entities.length} 个实体；这一份读的是 dialogue 实体` +
+            `（正文=设计说明，选择=指向其它对话的引用），别的实体一个都不读。`,
+        ]
+      : [
+          `设计文档里有 ${document.entities.length} 个实体；投影排出来的场上有 ` +
+            `${[plan.player, ...plan.enemies, ...plan.items, ...plan.npcs].filter(Boolean).length} 个可显示个体、` +
+            `${plan.triggers.length} 个机关、${plan.quests.length} 条任务。`,
+        ]),
     "",
     "怎么打开：在浏览器里打开 index.html（下载解压后双击即可，文件之间用相对路径引用，不联网）。",
     "不要在主机上执行它：这是从别人的设计里生成的一份东西（§81）。浏览器沙箱是唯一允许的执行路径，",
     "index.html 里的 CSP 也把 connect-src 设成 none，产物自己打不出去。",
     "",
     "按什么生成的（每一条都不是我编的）：",
-    `- 这一条链：${ARTIFACT_CHAINS[chain].label}。`,
-    `- 数据：plan.json 与 plan.js 是同一次 ${chain === "rpg" ? "compileRpg()" : "compileGame()"} 序列化的结果，` +
+    // 链名那一句**用同一个函数**（`artifactChainSentence`）：产物页面（index.html 的 #chain-note）、
+    // README、界面上那一格三处念的是同一句话，各拼一遍迟早有一处先过时。
+    `- ${artifactChainSentence(chain)}`,
+    `- 数据：plan.json 与 plan.js 是同一次 ${
+      plan.chain === "rpg" ? "compileRpg()" : plan.chain === "story" ? "compileStory()" : "compileGame()"
+    } 序列化的结果，` +
       // 那句"画布读的就是这一份"讲的是**平台上这一型的界面**：链对不上时它就不成立，不许顺手宣称
       (kindNote === null ? ARTIFACT_CHAINS[chain].dataNote : "而这一型在平台上跑的不是这一条链，所以这句只到产物自己为止") +
       `。`,
-    "- 规则：engine.js 是 packages/game-model/src/sim.ts 的转写，冷却与定步长这些数字由生成时从 sim.ts 的导出插进来。",
+    ...(plan.chain === "story"
+      ? [
+          "- 规则：engine.js 里是 packages/game-model/src/story.ts 的转写（正文、选择与分支；" +
+            "起点、正文、悬空引用这些判定都在生成时算进 plan.json 的 story 段，产物里只负责播放）。",
+        ]
+      : [
+          "- 规则：engine.js 是 packages/game-model/src/sim.ts 的转写，冷却与定步长这些数字由生成时从 sim.ts 的导出插进来。",
+        ]),
     ...(growth
       ? [
           "- 成长：NexusRpg 那一段是 packages/game-model/src/rpg.ts 的转写（打倒与交任务发经验、攒够升级、没到级的任务扣住）；" +
@@ -853,9 +1020,15 @@ export function generateGameCode(document: GameDocument): GameCodeOutput {
     mime: mimeFor(path),
     origin:
       path === "plan.json" || path === "plan.js"
-        ? { kind: "plan", from: chain === "rpg" ? "compileRpg" : "compileGame" }
+        ? {
+            kind: "plan",
+            from: chain === "rpg" ? "compileRpg" : chain === "story" ? "compileStory" : "compileGame",
+          }
         : path === "engine.js" || path === "main.js"
-          ? { kind: "engine", from: chain === "rpg" ? "sim.step+rpg.step" : "sim.step" }
+          ? {
+              kind: "engine",
+              from: chain === "rpg" ? "sim.step+rpg.step" : chain === "story" ? "story.step" : "sim.step",
+            }
           : { kind: path === "README.txt" ? "readme" : "shell", from: "codegen" },
   }));
 

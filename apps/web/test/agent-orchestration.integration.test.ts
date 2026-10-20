@@ -1,6 +1,7 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { eq, inArray } from 'drizzle-orm';
 import {
+  ARTIFACT_CHAINS,
   artifactChainSentence,
   codeKindReadings,
   combatGoals,
@@ -715,12 +716,14 @@ describe('§112 多步编排的执行方', () => {
     const tableSentences = GAME_KINDS.map((kind) => GAME_KIND_STATUS[kind].note);
     expect(code.notes.filter((note) => tableSentences.some((sentence) => note.includes(sentence)))).toEqual([]);
     /**
-     * 反向对照：同一份字节只把 `kind` 换成对话那一型，那句话就又回来了——
-     * 证明上面那个 `null` 是这一型真的有引擎，不是 `kindNote` 恒为 null。
+     * 反向对照：同一份字节只把 `kind` 换成对话那一型。
+     * ADR-0046 之后**对话那一型也带引擎了**，所以它落到 story 那条链、错位话同样为空。
+     * （"错位披露机制还在"这件事由模型层的单元测试用反向控制钉着：临时把状态表某一型的管线
+     * 改成 null，那句话必须出来。八型全接上之后，这里已经没有"没引擎的型"可换了。）
      */
     const shifted = codeKindReadings({ ...(level.draft as GameDocument), kind: 'visual-novel' });
-    expect(shifted.kindNote, '对话那一型在产物里仍没有引擎：这句话必须说得出').not.toBeNull();
-    expect(shifted.artifactChain, '没有引擎的那一型拿到的是一份 2D 投影').toBe('topdown');
+    expect(shifted.artifactChain, '对话那一型现在走它自己那条链').toBe('story');
+    expect(shifted.kindNote, '这一型真的带了引擎，还念错位就是谎').toBeNull();
     /**
      * 这一格**不产草稿**：它是投影，不是链上又一份"可接受的设计"。
      * 产了就会出现第四份可接的东西，而接受入口的缺省档位（最后一个留草稿的步骤）会悄悄从 level 挪到投影上。
@@ -758,17 +761,25 @@ describe('§112 多步编排的执行方', () => {
     expect(code.notes.filter((note) => tableSentences.some((sentence) => note.includes(sentence)))).toEqual([]);
     // 限度那四句仍要在：这一条改的是"错位那句话有没有"，不是把整串 notes 清空
     expect(code.notes.filter((note) => CODEGEN_LIMITS.includes(note))).toHaveLength(CODEGEN_LIMITS.length);
-    // 反向对照：同一份字节只把 `kind` 换成对话那一型，那句话就又有了（计数跟着变 1）
+    // 反向对照：同一份字节只把 `kind` 换成对话那一型，它落到自己那条链（错位话仍然为空——
+    // 八型今天全带上了引擎；"机制还在"由模型层的反向控制单独钉着）
     const shifted = codeKindReadings({ ...flat, kind: 'visual-novel' });
-    expect(shifted.kindNote).not.toBeNull();
+    expect(shifted.artifactChain).toBe('story');
+    expect(shifted.kindNote).toBeNull();
     expect(await countGames(projectId)).toBe(0);
   });
 
-  it('链上那份标的真是产物没接的那一型：错位那句话原样进 notes，计数跟着变 1', async () => {
-    // 这一条钉的是上面两条的另一半：**有错位时必须说得出**，而且说的还是生成器那一份字节。
-    // 对话那一型今天没有产物引擎（`ARTIFACT_CHAINS` 里只有 topdown 与 rpg），
-    // 所以拿一份 `kind: 'interactive-story'` 的草稿投进这一格，notes 里必须出现那句、计数必须是 1。
-    // 少了这一条，`kindMismatch` 写死成 0、notes 恒不塞那句话的实现也能全绿。
+  it('链上那份标的是对话那一型：它走对话那条链，错位计数是 0，链名那句照旧要说', async () => {
+    /**
+     * ADR-0046 之后这一条的前提变了：对话那一型**也带引擎了**（`ARTIFACT_CHAINS` 三键），
+     * 所以它不再有错位，`kindMismatch` 是 0，notes 里也不再有那句错位披露。
+     * 这一条现在钉的是**三件事**：
+     * ① 链由生成器说了算（story），这一格不许自己判断；
+     * ② 计数是 0（没有错位却记一笔，界面上那句话就是编的）；
+     * ③ 链名那句照旧要说——作者得知道拿走的那一份跑的是什么。
+     * （"错位披露机制还在"由模型层的单元测试用反向控制钉着：临时把状态表某一型的管线改成 null，
+     * 那句话必须出来。这里已经没有"没引擎的型"可换了。）
+     */
     const projectId = await newProject('编排第五格有错位');
     const story = {
       ...gameDraft({ goal: '为这一格造一份对话设计', at: '2026-01-01T00:00:00.000Z', seed: 'flat-story' }),
@@ -786,16 +797,14 @@ describe('§112 多步编排的执行方', () => {
     expect(code.status).toBe('done');
     const projection = generateGameCode(story);
     expect(projection.kindPipeline).toBe('story');
-    expect(projection.artifactChain, '没有引擎的那一型拿到的是一份 2D 投影').toBe('topdown');
-    expect(projection.kindNote, '这一型在产物里确实没有引擎：那句话必须说得出').not.toBeNull();
-    // 原样进 notes，不是这一格另写一句乐观文案；用另一次调用的读数当分母
-    expect(code.notes).toContain(projection.kindNote);
-    expect(code.counts.kindMismatch).toBe(1);
+    expect(projection.artifactChain, '对话那一型走它自己那条链').toBe('story');
+    expect(projection.kindNote, '这一型真的带了引擎：那句错位披露自己变空').toBeNull();
+    expect(code.counts.kindMismatch, '没有错位却记一笔，界面上那句话就是编的').toBe(0);
     expect(code.summary).toContain('这份设计标的是 story');
-    // 链名那一句仍然要说：错位不等于没有读数，作者得知道拿走的那一份跑的是什么
+    // 链名那一句仍然要说：作者得知道拿走的那一份跑的是什么
     expect(code.notes).toContain(artifactChainSentence(projection.artifactChain));
-    // 那句里带着状态表对这一型的原话（三处共用同一句，不是这一格重打的）
-    expect(projection.kindNote).toContain(GAME_KIND_STATUS['interactive-story'].note);
+    // 链名那句里带着状态表对这一型的原话（三处共用同一句，不是这一格重打的）
+    expect(artifactChainSentence(projection.artifactChain)).toContain(ARTIFACT_CHAINS.story.label);
     expect(await countGames(projectId)).toBe(0);
   });
 

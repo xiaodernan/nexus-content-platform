@@ -24,6 +24,7 @@ import {
   codeKindReadings,
   compileGame,
   compileRpg,
+  compileStory,
   generateGameCode,
   hasArtifactEngine,
   initialState,
@@ -235,7 +236,8 @@ describe("§52 最后一格：把设计投影成一份拿得走的产物", () =>
       engine: { kind: "engine", from: "sim.step" },
     });
     // 没接进产物的那条管线（对话）落的仍是 topdown 那一份，而 `kindNote` 会说出这件事（下一节）
-    expect(origins(asKind("visual-novel")).chain).toBe("topdown");
+    // 对话两型今天各自走对话那条链（ADR-0046 之后）：不再是"落回 topdown"
+    expect(origins(asKind("visual-novel")).chain).toBe("story");
   });
 
   it("同一份文档跑两遍逐字节相同——作者拿到的那份必须和界面上那份一样", () => {
@@ -469,18 +471,24 @@ describe("产物的管线与这份设计标的那一型：错位要说出来，�
     }
     const carried = GAME_KINDS.filter((kind) => hasArtifactEngine(GAME_KIND_STATUS[kind].pipeline));
     expect(rows.filter((row) => row.noteEmpty).map((row) => row.kind).sort()).toEqual([...carried].sort());
-    // 两条链都必须在 carried 里出现过：只有一条链时这条比对与上一版等价，那就什么也没新增
-    expect([...new Set(carried.map((kind) => GAME_KIND_STATUS[kind].pipeline))].sort()).toEqual(["rpg", "topdown"]);
-    // 没接进产物的管线只能是对话那一类（今天两型）
-    expect(GAME_KINDS.filter((kind) => !carried.includes(kind)).sort()).toEqual(["interactive-story", "visual-novel"].sort());
+    // 三条链都必须出现在 carried 里：只有两条时这条比对与上一版等价，那就什么也没新增
+    expect([...new Set(carried.map((kind) => GAME_KIND_STATUS[kind].pipeline))].sort()).toEqual([
+      "rpg",
+      "story",
+      "topdown",
+    ]);
+    // 八型全接上之后**没有**落回 topdown 的型了（ADR-0046 之前是那两型对话）
+    expect(GAME_KINDS.filter((kind) => !carried.includes(kind)).sort()).toEqual([]);
     // 落了链的类型，artifactChain 必须就是那条链；没落的落 topdown 且由 kindNote 说明
     for (const row of rows) {
       const expected = hasArtifactEngine(row.pipeline) ? row.pipeline : "topdown";
       expect(row.chain, `${row.kind} 落到了另一条链`).toBe(expected);
     }
-    // 群体不许是空的：全为 null 或全非 null 都会让上面那条比对变成空转
-    expect(carried.length).toBeGreaterThan(0);
-    expect(rows.length - carried.length).toBeGreaterThan(0);
+    // 群体不许是空的：全为 null 或全非 null 都会让上面那条比对变成空转。
+    // 今天八型全带上了引擎（rpg + story + topdown 三条链都有产物侧的引擎），
+    // 所以"没带引擎的型"这一群是空的——**这是结果，不是空转**：上面那条逐型比对仍在跑。
+    expect(carried.length).toBe(GAME_KINDS.length);
+    expect(rows.length - carried.length).toBe(0);
   });
 
   it("页面上那句链名只有一个写法：八型各生成一遍，那一格都出自 artifactChainSentence", () => {
@@ -498,19 +506,36 @@ describe("产物的管线与这份设计标的那一型：错位要说出来，�
     }
   });
 
-  it("那一句话说清「错位」，而且三处念的是同一份字节", () => {
-    const document = asKind(levelDraft(), "visual-novel");
-    const output = generateGameCode(document);
-    expect(output.kindPipeline, "这一型在平台上读的不是产物带的两条链").toBe("story");
-    const note = output.kindNote!;
-    // 话内容由状态表那一行供给：改了表格这句话要跟着变，不能是一段抄死的文案
-    expect(note).toContain(GAME_KIND_STATUS["visual-novel"].note);
-    expect(note).toContain(GAME_KIND_LABELS["visual-novel"]);
-    // 还要说清产物里到底带了哪几条链的引擎：那句话从表来，不在这里重打
-    for (const chain of Object.values(ARTIFACT_CHAINS)) expect(note).toContain(chain.label);
-    // README 与 index.html 不许再抄一份：两处都必须是 output.kindNote 这一个字符串
-    expect(file(output, "README.txt").contents).toContain(note);
-    expect(file(output, "index.html").contents).toContain(note);
+  it("披露机制还在：把某一型的管线改成「今天没接」，那句话要出来，而且三处念的是同一份字节", () => {
+    /**
+     * ADR-0046 之后八型全带上了引擎，所以**今天没有型会触发那句错位披露**。
+     * 但机制不能因为"今天没触发"就被删掉——将来加一个 `pipeline: null` 的类型，它就是唯一的说法。
+     * 所以这里用**反向控制**证明它还在：临时把 visual-novel 的管线改成 null，
+     * 那句话必须出来、内容必须由状态表那一行供给、且三处念的是同一个字符串。
+     */
+    const original = GAME_KIND_STATUS["visual-novel"];
+    // 产物必须在**改表之后**生成（那句话由状态表供给），所以它出了 try 块——用 let 承接
+    let offsetOutput: ReturnType<typeof generateGameCode> | undefined;
+    try {
+      (GAME_KIND_STATUS as Record<GameKind, { pipeline: string | null; view?: string; note: string }>)[
+        "visual-novel"
+      ] = { ...original, pipeline: null };
+      const document = asKind(levelDraft(), "visual-novel");
+      const output = generateGameCode(document);
+      offsetOutput = output;
+      expect(output.kindPipeline, "状态表说没接，读数就得是 null").toBeNull();
+      const note = output.kindNote!;
+      // 话内容由状态表那一行供给：改了表格这句话要跟着变，不能是一段抄死的文案
+      expect(note).toContain(GAME_KIND_STATUS["visual-novel"].note);
+      expect(note).toContain(GAME_KIND_LABELS["visual-novel"]);
+      // 还要说清产物里到底带了哪几条链的引擎：那句话从表来，不在这里重打
+      for (const chain of Object.values(ARTIFACT_CHAINS)) expect(note).toContain(chain.label);
+      // README 与 index.html 不许再抄一份：两处都必须是 output.kindNote 这一个字符串
+      expect(file(output, "README.txt").contents).toContain(note);
+      expect(file(output, "index.html").contents).toContain(note);
+    } finally {
+      (GAME_KIND_STATUS as Record<GameKind, typeof original>)["visual-novel"] = original;
+    }
 
     // 正向对照一：换成 2d，那句话整句消失，README 回到"画布读的就是这一份"
     const flat = generateGameCode(asKind(levelDraft(), "2d"));
@@ -519,9 +544,10 @@ describe("产物的管线与这份设计标的那一型：错位要说出来，�
     expect(flat.artifactChain).toBe("topdown");
     expect(file(flat, "README.txt").contents).toContain(ARTIFACT_CHAINS.topdown.dataNote);
     expect(file(flat, "index.html").contents).not.toContain("kind-note");
-    expect(file(output, "README.txt").contents, "没带引擎的那一型不许再宣称画布读的是这一份").not.toContain(
-      ARTIFACT_CHAINS.topdown.dataNote,
-    );
+    expect(
+      file(offsetOutput!, "README.txt").contents,
+      "没带引擎的那一型不许再宣称画布读的是这一份",
+    ).not.toContain(ARTIFACT_CHAINS.topdown.dataNote);
 
     // 正向对照二：这一片要钉的那件事——同一份底稿标 rpg 现在有引擎了，那句错位话随之消失，
     // 而 README 那句 dataNote 换成长那一条（不是"某处把 rpg 硬编码成对上了"）
@@ -532,29 +558,35 @@ describe("产物的管线与这份设计标的那一型：错位要说出来，�
     expect(file(rpgOut, "README.txt").contents).not.toContain(ARTIFACT_CHAINS.topdown.dataNote);
   });
 
-  it("对话那一型也不骗：既说出错位，也照实说出这个场子开不了", () => {
+  it("对话那一型现在照实说自己那条链：不再说错位，因为它真的带了引擎", () => {
     const story = asKind(
       build("只有对话", [{ id: "d1", kind: "dialogue", name: "开场", stats: {} }]),
       "visual-novel",
     );
     const output = generateGameCode(story);
     expect(output.kindPipeline).toBe("story");
-    expect(output.kindNote).toContain(GAME_KIND_LABELS["visual-novel"]);
+    // ADR-0046 之后这一型真的带了对应对话引擎，所以"错位"那句话自己变空了（它是派生的）
+    expect(output.kindNote, "这一型真的带了引擎，还说错位就是谎").toBeNull();
+    expect(output.artifactChain).toBe("story");
     const readme = file(output, "README.txt").contents;
-    expect(readme).toContain(output.kindNote!);
-    // 这条链跑不起来那句仍要在（blockers 来自投影自己，不是这一格编的）
-    const blockers = compileGame(story).blockers;
-    expect(blockers.length).toBeGreaterThan(0);
-    for (const blocker of blockers) expect(readme, `这条拒绝没进 README：${blocker}`).toContain(blocker);
+    expect(readme).toContain(ARTIFACT_CHAINS.story.label);
+    expect(readme, "没带 2D 那条链就不许宣称画布读的是这一份").not.toContain(ARTIFACT_CHAINS.topdown.dataNote);
+    // 对话那份投影自己说的限度（读了几条对话、忽略了几个别的实体）要进 README
+    for (const note of output.notes) expect(readme, `这条限度没进 README：${note}`).toContain(note);
   });
 
   it("换个类型就换一句话，而产物的文件清单还是那七份", () => {
     // 判别证据取自表格自己的两个字段：把某一型的读数换成另一型的，README/页面必须跟着变
     const vn = generateGameCode(asKind(levelDraft(), "visual-novel"));
     const story = generateGameCode(asKind(levelDraft(), "interactive-story"));
-    expect(vn.kindNote).not.toBe(story.kindNote);
-    expect(story.kindNote).toContain(GAME_KIND_STATUS["interactive-story"].note);
-    expect(story.kindNote).not.toContain(GAME_KIND_STATUS["visual-novel"].note);
+    // 今天八型全带引擎，所以错位话恒空；判别证据改用**链名**与**字节**：
+    // 同样是对话两型，但产物里那一句链名与 engine.js 的转写都得跟着链走
+    expect(vn.kindNote).toBeNull();
+    expect(story.kindNote).toBeNull();
+    expect(vn.artifactChain).toBe("story");
+    expect(story.artifactChain).toBe("story");
+    expect(file(vn, "index.html").contents).toContain(ARTIFACT_CHAINS.story.label);
+    expect(file(vn, "engine.js").contents).toContain("var NexusStory = {");
     // 第三条链对上了：话没了，但字节仍只有那七份——补引擎改的是内容，不改清单
     const rpg = generateGameCode(asKind(levelDraft(), "rpg-prototype"));
     expect(rpg.kindNote).toBeNull();
@@ -604,7 +636,7 @@ function rpgChainDefects(engine: string, main: string): string[] {
   const summaries = engine.match(/summary: function \(plan, state\)/g) ?? [];
   if (summaries.length !== 2) defects.push(`arity：两条链的 summary 各收 (plan, state)，实际数到 ${summaries.length} 处`);
   for (const needle of [
-    "var engine = plan.growth ? NexusRpg : NexusSim;",
+    "var engine = plan.chain === \"rpg\" ? NexusRpg : NexusSim;",
     "engine.summary(plan, state)",
     "function view(st) { return st.base ? st.base : st; }",
   ]) {
@@ -641,7 +673,10 @@ describe("第二条链：标了 RPG 原型的那份产物真的带成长循环",
     expect([...new Set(rpgChainDefects(ungated, main).map((hit) => hit.split("：")[0]))]).toEqual(["等级门"]);
 
     // 反向控制三：main.js 改成按类型分支（把链的决定从数据搬回类型），闸必须抓到
-    const typedMain = main.replace("var engine = plan.growth ? NexusRpg : NexusSim;", "var engine = rpg ? NexusRpg : NexusSim; /* rpg-prototype */");
+    const typedMain = main.replace(
+      "var engine = plan.chain === \"rpg\" ? NexusRpg : NexusSim;",
+      "var engine = rpg ? NexusRpg : NexusSim; /* rpg-prototype */",
+    );
     expect(typedMain).not.toBe(main);
     expect(rpgChainDefects(engine, typedMain).some((hit) => hit.startsWith("main.js：那里按类型分支"))).toBe(true);
   });
@@ -652,11 +687,13 @@ describe("第二条链：标了 RPG 原型的那份产物真的带成长循环",
     const plan = JSON.parse(file(output, "plan.json").contents) as ReturnType<typeof artifactPayload>;
     const rpg = compileRpg(document);
     // 与投影自己算的那一份逐字段相同（不是与手抄的数相同）
-    expect(plan.growth?.enemyXp).toEqual(rpg.enemyXp);
-    expect(plan.growth?.quests).toEqual(rpg.quests);
-    expect(plan.growth?.xpBase).toBe(XP_BASE);
-    expect(plan.growth?.xpStep).toBe(XP_STEP);
-    expect(plan.growth?.levelBonus).toEqual({ ...LEVEL_BONUS });
+    expect(plan.chain).toBe("rpg");
+    const growth = plan.chain === "rpg" ? plan.growth : undefined;
+    expect(growth?.enemyXp).toEqual(rpg.enemyXp);
+    expect(growth?.quests).toEqual(rpg.quests);
+    expect(growth?.xpBase).toBe(XP_BASE);
+    expect(growth?.xpStep).toBe(XP_STEP);
+    expect(growth?.levelBonus).toEqual({ ...LEVEL_BONUS });
     expect(file(output, "engine.js").contents).not.toMatch(/xpBase:/);
   });
 
@@ -704,14 +741,16 @@ describe("第二条链：标了 RPG 原型的那份产物真的带成长循环",
     try {
       (LEVEL_BONUS as { maxHealth: number; damage: number }).damage = sentinel;
       const after = read();
-      expect(after.plan.growth?.levelBonus.damage, "plan.json 里那份 growth 没跟着导出走").toBe(sentinel);
+      const afterGrowth = after.plan.chain === "rpg" ? after.plan.growth : undefined;
+      expect(afterGrowth?.levelBonus.damage, "plan.json 里那份 growth 没跟着导出走").toBe(sentinel);
       expect(growthBullet(after.readme), "README 那句成长是抄死的数").toContain(`伤害 +${sentinel}`);
       expect(growthBullet(after.readme)).not.toContain(`伤害 +${original}`);
     } finally {
       (LEVEL_BONUS as { maxHealth: number; damage: number }).damage = original;
     }
     const restored = read();
-    expect(restored.plan.growth?.levelBonus.damage).toBe(original);
+    const restoredGrowth = restored.plan.chain === "rpg" ? restored.plan.growth : undefined;
+    expect(restoredGrowth?.levelBonus.damage).toBe(original);
     expect(growthBullet(restored.readme)).toContain(`伤害 +${original}`);
     expect(growthBullet(restored.readme)).not.toContain(`伤害 +${sentinel}`);
   });
@@ -723,26 +762,113 @@ describe("那句话是从状态表算出来的，不是抄下来的", () => {
    * 只断言"这句话里含表格里那句话"挡不住手抄——抄的那一份今天也相等。
    * 所以这里在跑之前把 visual-novel 的 note 换成哨兵串，跑完立刻还原（还原失败也要报出来）。
    */
-  it("状态表改了，产物的那句话跟着改（哨兵串）", () => {
-    const original = GAME_KIND_STATUS["visual-novel"];
-    const sentinel = "哨兵：这一型的说明被测试改过了";
-    const asVn = (): GameDocument => ({ ...levelDraft(), kind: "visual-novel" }) as GameDocument;
+  it("链名那句是从表算出来的，不是抄下来的（哨兵串）", () => {
+    /**
+     * 判别证据：改表格里的一个字，这句话必须跟着变。
+     * 只断言"这句话里含表格里那句话"挡不住手抄——抄的那一份今天也相等。
+     * 所以这里在跑之前把 `ARTIFACT_CHAINS` 里那一条的 label 换成哨兵串，跑完立刻还原（还原失败也要报出来）。
+     *
+     * **为什么挂在链名上而不是错位那句**：ADR-0046 之后八型全带上了引擎，
+     * 错位披露今天恒为空（机制还在，只是没有型触发它——那一条用反向控制单独钉着）。
+     * 而"跑的是哪条链"这句话**恒在**，它才是各处最容易各拼一遍的那一句。
+     */
+    const original = ARTIFACT_CHAINS.topdown.label;
+    const sentinel = "哨兵：这一条链的名字被测试改过了";
+    const as2d = (): GameDocument => ({ ...levelDraft(), kind: "2d" }) as GameDocument;
     try {
-      (GAME_KIND_STATUS as Record<GameKind, { pipeline: string | null; view?: string; note: string }>)["visual-novel"] = {
-        ...original,
-        note: sentinel,
-      };
-      const output = generateGameCode(asVn());
-      expect(output.kindNote, "表格改了而这句话没跟着改 = 某处抄了一份").toContain(sentinel);
-      expect(output.kindNote).not.toContain(original.note);
+      (ARTIFACT_CHAINS.topdown as { label: string }).label = sentinel;
+      const output = generateGameCode(as2d());
+      const sentence = artifactChainSentence(output.artifactChain);
+      expect(sentence, "表改了而这句话没跟着改 = 某处抄了一份").toContain(sentinel);
+      expect(sentence).not.toContain(original);
       expect(file(output, "README.txt").contents).toContain(sentinel);
+      expect(file(output, "index.html").contents).toContain(sentinel);
     } finally {
-      (GAME_KIND_STATUS as Record<GameKind, typeof original>)["visual-novel"] = original;
+      (ARTIFACT_CHAINS.topdown as { label: string }).label = original;
     }
     // 还原的证据同时是派生的第二遍证据：换回原句，这句话里就不许再留着哨兵
-    expect(GAME_KIND_STATUS["visual-novel"].note).toBe(original.note);
-    const after = codeKindReadings(asVn()).kindNote!;
-    expect(after).toContain(original.note);
+    expect(ARTIFACT_CHAINS.topdown.label).toBe(original);
+    const after = artifactChainSentence("topdown");
+    expect(after).toContain(original);
     expect(after, "哨兵没还原就写回表格：这条自己先红").not.toContain(sentinel);
+  });
+});
+
+/**
+ * 第三条链（对话管线）：`interactive-story` / `visual-novel` 这两型今天真的带对话引擎（ADR-0046）。
+ *
+ * 这一格钉的是**八型全对上**这件事的后果：分派点那张表多了第三个键之后，
+ * ① 分派仍只有一张表（`ARTIFACT_CHAINS` 三键），② 那两型落到 story 链、错位那句话自己变空，
+ * ③ 产物里那段转写与 `compileStory` 的结果逐字段相同（判定只在编译期，产物只播放），
+ * ④ 画法是 DOM 而不是画布（对话没有场地，画一块空画布只会让人以为坏了），
+ * ⑤ 别的链**不带**那段转写（表驱动，不是按类型写死）。
+ */
+describe("第三条链：对话两型真的带对话引擎（ADR-0046）", () => {
+  const storyKinds: GameKind[] = ["interactive-story", "visual-novel"];
+  /**
+   * 一份**真有选项**的对话底稿：两段对话互指（甲→乙、乙→甲）。
+   * 用它而不是战场底稿，是因为对话链的转写要验的就是"选一个跳到另一个"——
+   * 战场底稿里那一条 dialogue 没有出边，只验得到"起手那一段"。
+   */
+  const dialogueDoc = (kind: GameKind): GameDocument => ({
+    ...build(
+      "两个人的对话",
+      [
+        { id: "d1", kind: "dialogue", name: "开场", stats: {}, refs: [{ to: "d2", role: "点头" }] },
+        { id: "d2", kind: "dialogue", name: "回应", stats: {}, refs: [{ to: "d1", role: "回头" }] },
+        { id: "e1", kind: "enemy", name: "巡逻兵", stats: { health: 4, damage: 1, speed: 150, detectionRange: 140, x: 300, y: 200 } },
+      ],
+    ),
+    kind,
+  });
+
+  it("ARTIFACT_CHAINS 三键齐全——'有没有引擎'的答案仍然只有这一张表", () => {
+    expect(Object.keys(ARTIFACT_CHAINS).sort()).toEqual(["rpg", "story", "topdown"]);
+  });
+
+  it("对话两型分派到 story 那条链，而那句错位披露自己变空了", () => {
+    for (const kind of storyKinds) {
+      const output = generateGameCode(dialogueDoc(kind));
+      expect(output.artifactChain, `${kind} 落到了另一条链`).toBe("story");
+      expect(output.kindNote, `${kind} 真的带了引擎，还说错位就是谎`).toBeNull();
+      expect(file(output, "engine.js").contents).toContain("var NexusStory = {");
+      expect(file(output, "README.txt").contents).toContain(ARTIFACT_CHAINS.story.label);
+    }
+  });
+
+  it("对话那一份没有画布（对话没有场地），有正文容器", () => {
+    const output = generateGameCode(dialogueDoc("visual-novel"));
+    const html = file(output, "index.html").contents;
+    expect(html).toContain('<div id="story">');
+    expect(html, "对话那一型不该有画布").not.toContain('id="arena"');
+  });
+
+  it("载荷里那段 story 与 compileStory 的结果逐字段相同（判定只在编译期，产物只播放）", () => {
+    const document = dialogueDoc("visual-novel");
+    const output = generateGameCode(document);
+    const plan = JSON.parse(file(output, "plan.json").contents) as ReturnType<typeof artifactPayload>;
+    expect(plan.chain).toBe("story");
+    const story = plan.chain === "story" ? plan : undefined;
+    const projected = compileStory(document);
+    expect(story?.beats).toEqual(projected.beats);
+    expect(story?.startId).toBe(projected.startId);
+    expect(story?.playable).toBe(projected.playable);
+    expect(story?.notes).toEqual(projected.notes);
+  });
+
+  it("别的链不带那段对话转写（表驱动，不是按类型写死）", () => {
+    for (const kind of ["2d", "rpg-prototype"] as GameKind[]) {
+      const output = generateGameCode(dialogueDoc(kind));
+      expect(file(output, "engine.js").contents, `${kind} 那份不该带对话转写`).not.toContain("NexusStory");
+    }
+  });
+
+  it("main.js 先分流到对话那一路：碰画布之前就分（对话的页面里没有 canvas）", () => {
+    const main = file(generateGameCode(dialogueDoc("visual-novel")), "main.js").contents;
+    const branch = main.indexOf('plan.chain === "story"');
+    const canvas = main.indexOf('getElementById("arena")');
+    expect(branch, "main.js 里没有对话那一路的分流").toBeGreaterThan(-1);
+    expect(canvas, "main.js 里没有画布那一路").toBeGreaterThan(-1);
+    expect(branch, "分流必须排在碰画布之前：null.getContext 会抛 TypeError").toBeLessThan(canvas);
   });
 });
