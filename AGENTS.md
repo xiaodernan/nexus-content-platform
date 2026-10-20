@@ -39,7 +39,7 @@
 
 - 每个可验证的里程碑一次 commit；commit message 用 `type(scope): 做了什么 / 为什么`，中文正文可
 - 本机 git 无全局身份，提交用：`git -c user.name="NEXUS Dev" -c user.email="dev@nexus.local" commit ...`
-- 不 push（无远端）；除非用户要求
+- 远端：`origin` = GitHub 私有仓库 `xiaodernan/nexus-content-platform`（2026-10-20 建）。默认不 push，除非用户要求
 - 不删容器/卷/文件前先确认是自己的产物；本机有其它项目的 `careeros-*` / `nexus-seed-verify` 容器，**不要动**
 
 ## 环境事实（详见 `docs/ENVIRONMENT.md`）
