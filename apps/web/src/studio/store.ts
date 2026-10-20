@@ -13,6 +13,7 @@ import {
   isDescendant,
   manualCommand,
   resolveLayout,
+  resolveLayoutIncremental,
   type AssetRef,
   type BreakpointName,
   type DesignDocument,
@@ -157,7 +158,15 @@ export class StudioStore {
   private projectId = '';
   private listeners = new Set<() => void>();
   private snapshot!: StudioSnapshot;
-  private layoutCache: { key: string; doc: DesignDocument; value: ResolvedLayout | null } | null = null;
+  private layoutCache: { key: string; doc: DesignDocument; pageId: string; value: ResolvedLayout | null } | null = null;
+  /**
+   * §147 增量解：自上一次布局求解以来，改动碰到过哪些节点。
+   *
+   * 收集得**保守**（op 里提到的每个 id 都算）：多收几个只是那几条路径少复用一点，
+   * 不会算错——而少收一个（漏了真正被改的那个）会让它被当成"没动过"而沿用上一帧，
+   * 那才是错的。所以宁可多收，不可漏收。
+   */
+  private layoutChangedNodeIds = new Set<NodeId>();
   /**
    * §147 选中响应：TokenStore / 资产上下文 / 撤销栈都只随文档变，以前每次 commit
    * （包括纯选中）都重建 → 身份每次都变 → CanvasStage 的 Node memo 比较 `tokens` /
@@ -329,21 +338,40 @@ export class StudioStore {
     // `packages/design-model/test/layout-incremental.test.ts` 里那两条**真量相等**的用例
     // （不是之前那条只查"函数存在"的占位——占位守卫永远为真，typecheck/eslint 都看不见）。
     // 根因在 design-model：增量版没有共用全量的 place/measure 核心，自己复制了一套。
-    // 正确的修法是把核心抽成两路共用的模块级函数——那是独立一片（ROADMAP #133）。
-    // 在那之前这里继续走全量：全量是唯一的真值，一个错的增量比慢的全量更贵（§159 不假装）。
+    // 2026-10-20（ROADMAP #133）：那份复制删掉了——两路现在共用同一份实现，
+    // 于是"相等"由构造保证（不再靠两份实现碰巧一致），没碰到的分支也真的沿用同一个对象。
+    // **红线是数**：同一口径（生产构建 / 10000 档）重跑，属性写入的总延迟要掉下来；
+    // 掉不下来就说明"省下计算"没有发生，那时该看的是这一段而不是继续优化 10000 档。
     let layout: ResolvedLayout | null;
+    const changed = this.layoutChangedNodeIds;
+    // 上一帧那份解当增量基准的前提：**同一份文档、同一页**。
+    // 换了项目、导入了文档、切了页，缓存里那份是**别的**文档/别的页的解，拿它当基准就是错的
+    // （增量会以为那些节点没动过而沿用一份不相干的布局）。所以身份不符时基准为 null → 走全量。
+    const cache = this.layoutCache;
+    const prev = cache && cache.doc === document && cache.pageId === page.id ? cache.value : null;
     try {
-      layout = resolveLayout(page, {
-        tokens,
-        mode,
-        breakpoint: this.viewport === 'design' ? undefined : this.viewport,
-      });
+      layout =
+        changed.size > 0 && prev
+          ? resolveLayoutIncremental(page, {
+              tokens,
+              mode,
+              breakpoint: this.viewport === 'design' ? undefined : this.viewport,
+              prevLayout: prev,
+              changedNodeIds: changed,
+            })
+          : resolveLayout(page, {
+              tokens,
+              mode,
+              breakpoint: this.viewport === 'design' ? undefined : this.viewport,
+            });
     } catch (error) {
       // 布局求解失败（模型被改坏）：不渲染半成品，面板显示原因
       console.error('[studio] resolveLayout failed', error);
       layout = null;
     }
-    this.layoutCache = { key, doc: document, value: layout };
+    this.layoutCache = { key, doc: document, pageId: page.id, value: layout };
+    // 这一轮的改动已经算进这一份布局了：清空，下一轮从新的起点开始
+    this.layoutChangedNodeIds = new Set<NodeId>();
     // 诊断：解算次数与命中次数分开记。一次编辑该解一次；两次说明复用没兜住
     if (
       process.env.NODE_ENV !== 'production' ||
@@ -1157,6 +1185,8 @@ export class StudioStore {
     const entry = this.design.execute(manualCommand(label, { pageId: document.activePageId, ops }));
     // #62②：这次命令的补丁进待发队列，自动保存从此发 ops 而不是整份文档
     this.pendingPatches.push(...entry.applied);
+    // §147 增量解：记下这次改动碰到了哪些节点（下一轮布局求解拿它当"改动集合"）
+    this.noteLayoutOps(ops);
     this.markDirty();
   }
 
@@ -1591,6 +1621,9 @@ export class StudioStore {
     if (!entry) return;
     // 撤销在服务端也是补丁（逆补丁），不是"把旧文档再发一遍"
     this.pendingPatches.push(...entry.inverse);
+    // §147 增量解：撤销动过的节点也要进"改动集合"——撤销不走 execute()，
+    // 不登记的话，下一轮增量会以为那些节点"没动过"而沿用撤销前那一份几何（错的）。
+    this.noteLayoutChanges(entry.inverse);
     this.markDirty();
   }
 
@@ -1598,7 +1631,27 @@ export class StudioStore {
     const entry = this.design.redo();
     if (!entry) return;
     this.pendingPatches.push(...entry.applied);
+    this.noteLayoutChanges(entry.applied);
     this.markDirty();
+  }
+
+  /**
+   * 记下这批补丁动过哪些节点（增量的"改动集合"）。
+   *
+   * 保守收集：op 里提到的每个 id 都算上——多收几条只是那几条路径少复用一点，
+   * 少收一条（漏了真正被改的那个）会让它被当成"没动过"而沿用上一帧，那才是错的。
+   */
+  private noteLayoutOps(ops: readonly PatchOp[]): void {
+    for (const op of ops) {
+      if ('nodeId' in op && op.nodeId) this.layoutChangedNodeIds.add(op.nodeId);
+      if ('node' in op && op.node?.id) this.layoutChangedNodeIds.add(op.node.id);
+      if ('parentId' in op && op.parentId) this.layoutChangedNodeIds.add(op.parentId);
+    }
+  }
+
+  /** 同上，但收的是一批补丁（撤销/重做给的是补丁列表，每条补丁各有自己的 ops） */
+  private noteLayoutChanges(patches: readonly DesignPatch[]): void {
+    for (const patch of patches) this.noteLayoutOps(patch.ops);
   }
 
   jumpTo(entryId: string): void {

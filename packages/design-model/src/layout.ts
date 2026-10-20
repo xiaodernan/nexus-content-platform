@@ -228,9 +228,24 @@ function visibleChildren(
  * 画布、代码生成、预览共用同一份几何，避免三处漂移（§16）。
  * 三趟：measure（自底向上，带缓存） → place（自顶向下分配 + 定位）。
  */
-export function resolveLayout(
+/**
+ * 布局求解的**唯一一份实现**（§147 / ROADMAP #133）。
+ *
+ * 此前这里有两份：`resolveLayout` 与 `resolveLayoutIncremental` —— 后者把前者的
+ * `measure` / `place` **整个复制了一遍**（约 400 行）。两份实现必然漂移，于是：
+ * ① 增量解的 `paintOrder` 与全量解不同（渲染次序会变，肉眼可见）；
+ * ② 没碰到的分支没有被复用（对象身份都不一样，"省下计算"根本没发生）。
+ * 2026-10-13 接线因此撤回（`f61d0af`），只留下两条 `it.skip` 欠条。
+ *
+ * 现在**只有这一份**：全量路与增量路都调它，所以"增量与全量相等"这句话**由构造保证**，
+ * 不再靠两份实现碰巧一致。`prev` 与 `changed` 是增量路要用的两份现场（上一帧的解、改动到的节点）；
+ * 传 `null` 就是全量。
+ */
+function runLayout(
   page: Page,
-  options: LayoutOptions = {},
+  options: LayoutOptions,
+  prev: ResolvedLayout | null,
+  changed: Set<string> | null,
 ): ResolvedLayout {
   const { tokens, mode = null, breakpoint, maxDepth = 60 } = options;
   const defaultFontSize = options.defaultFontSize ?? 16;
@@ -634,13 +649,98 @@ export function resolveLayout(
   const resolved: Record<string, ResolvedNode> = {};
   const paintOrder: string[] = [];
 
-  const place = (
+  // ———— §147 增量路：能沿用的分支就不重算（ROADMAP #133 的第二片）————
+  //
+  // 「相等」由片 1 保证（两路共用同一份 measure/place）；这一片要的是**省下计算**：
+  // 没被改到的分支，沿用上一帧那个**同一个对象**，而不是重算出一份相等的。
+  //
+  // 什么时候能沿用？三个条件缺一不可：
+  // ① 上一帧有它；
+  // ② 它的**绝对位置与尺寸**没变（变了就得重算——那是它被移动或被改了尺寸）；
+  // ③ 它的子树里没有受影响的节点（子树里有改动，内部就要重算）。
+  //
+  // 三个条件都用**上一帧那份解**来判，所以这一片不引入第二个真值：
+  // 复用与否的判据只有 prev.nodes 这一处。
+  const affected = new Set<string>();
+  if (prev && changed) {
+    const collectAffected = (id: string): void => {
+      if (affected.has(id)) return;
+      affected.add(id);
+      const node = page.nodes[id] ?? prev.nodes[id]?.node;
+      if (!node) return;
+      // 顺着**文档里**的子节点走（不是 prev.nodes[id].children —— 那套是按 parentId 建的，
+      // 与文档的 children 数组不是一回事；文档里的孩子常常没有 parentId）
+      for (const child of visibleChildren(page, node, breakpoint)) collectAffected(child.id);
+    };
+    for (const id of changed) collectAffected(id);
+  }
+
+  /** 这棵子树里有没有被改到的节点（有就不能沿用） */
+  const subtreeHasChanged = (id: string): boolean => {
+    if (!affected.size) return false;
+    if (affected.has(id)) return true;
+    const entry = prev?.nodes[id];
+    if (!entry) return true;
+    const node = page.nodes[id] ?? entry.node;
+    for (const child of visibleChildren(page, node, breakpoint)) {
+      if (subtreeHasChanged(child.id)) return true;
+    }
+    return false;
+  };
+
+  /** 能不能沿用上一帧那个对象？三个条件见上面的注释 */
+  const canReuse = (id: string, x: number, y: number, w: number, h: number): boolean => {
+    if (!prev) return false;
+    const entry = prev.nodes[id];
+    if (!entry) return false;
+    if (entry.x !== x || entry.y !== y) return false;
+    if (Math.abs(entry.width - w) > 1e-9 || Math.abs(entry.height - h) > 1e-9) return false;
+    return !subtreeHasChanged(id);
+  };
+
+  /**
+   * 沿用上一帧那棵子树：**同一个对象**（不是重算出一份相等的），
+   * 绘制次序按上一帧的 children 顺序补回去——结构没变时它与全量的顺序逐项相同。
+   * 注意这里**不**往 entry.children 里 push：那是上一帧的数组，推进去就污染了上一帧。
+   */
+  const reuseSubtree = (id: string): void => {
+    const entry = prev!.nodes[id]!;
+    resolved[id] = entry;
+    paintOrder.push(id);
+    const node = page.nodes[id] ?? entry.node;
+    for (const child of visibleChildren(page, node, breakpoint)) reuseSubtree(child.id);
+  };
+
+  /**
+   * place 的入口：能沿用就沿用（省掉 measure + place），否则照常算。
+   *
+   * 沿用时**不**往上一帧那个 entry.children 里 push（那是上一帧的数组）——
+   * 新的父的 children 数组是这一轮新建的，由这里 push 进去。
+   */
+  function placeChild(
+    child: DesignNode,
+    x: number,
+    y: number,
+    box: Box,
+    depth: number,
+  ): void {
+    if (canReuse(child.id, x, y, box.width, box.height)) {
+      reuseSubtree(child.id);
+      if (child.parentId && resolved[child.parentId]) {
+        resolved[child.parentId]!.children.push(child.id);
+      }
+      return;
+    }
+    place(child, x, y, box, depth);
+  }
+
+  function place(
     rawNode: DesignNode,
     x: number,
     y: number,
     box: Box,
     depth: number,
-  ): void => {
+  ): void {
     const node = applyResponsive(rawNode, breakpoint);
     const entry: ResolvedNode = {
       id: node.id,
@@ -662,6 +762,17 @@ export function resolveLayout(
     const pad = paddingOf(node);
     const gap = resolveNum(node.layout.gap, 0);
     const children = visibleChildren(page, node, breakpoint);
+    // 子节点**增删**了 → 这一支的形状变了，上一帧那份不能沿用（否则会留下已经删掉的子节点）。
+    // 所以把它标进 affected：它自己与它的子树都要重算。
+    if (prev) {
+      const prevEntry = prev.nodes[node.id];
+      if (prevEntry) {
+        const sameShape =
+          prevEntry.children.length === children.length &&
+          children.every((c) => prevEntry.children.includes(c.id));
+        if (!sameShape) affected.add(node.id);
+      }
+    }
     if (!children.length) return;
 
     const innerW = Math.max(0, box.width - pad.left - pad.right);
@@ -678,7 +789,7 @@ export function resolveLayout(
           axisSize(child.size.width) === "fill" ? innerW : measured.width;
         const h =
           axisSize(child.size.height) === "fill" ? innerH : measured.height;
-        place(
+        placeChild(
           child,
           x + pad.left + child.position.x,
           y + pad.top + child.position.y,
@@ -727,7 +838,7 @@ export function resolveLayout(
         col += 1;
       }
       for (const p of placements)
-        place(p.child, p.x, p.y, { width: p.w, height: p.h }, depth + 1);
+        placeChild(p.child, p.x, p.y, { width: p.w, height: p.h }, depth + 1);
       return;
     }
 
@@ -749,7 +860,7 @@ export function resolveLayout(
           cursorY += lineH + gap;
           lineH = 0;
         }
-        place(
+        placeChild(
           child,
           cursorX,
           cursorY,
@@ -841,7 +952,7 @@ export function resolveLayout(
       const childY = horizontal
         ? y + pad.top + crossOffset
         : y + pad.top + cursor;
-      place(
+      placeChild(
         item.child,
         childX,
         childY,
@@ -891,408 +1002,47 @@ export function resolveLayout(
 }
 
 /**
- * §147 增量布局：只重新计算受影响的子树。
- * 当节点的 size/position/padding/layout 改变时，只有该节点的祖先链（到根）与后代需要重算；
- * 其余分支直接复用上一帧的 resolved 节点与 paintOrder 位置。
- * 调用方负责传入上一帧的 ResolvedLayout 与本次改动涉及的 nodeId 集合。
+ * 全量布局求解（公开入口）。
+ *
+ * 与增量路共用 `runLayout` 里的同一份 `measure` / `place`——两份实现各写一遍时，
+ * 它们迟早在某次改动后分家（#133 记的就是这件事）。
  */
+export function resolveLayout(
+  page: Page,
+  options: LayoutOptions = {},
+): ResolvedLayout {
+  return runLayout(page, options, null, null);
+}
+
+/** §147 增量布局的入参：上一帧的解 + 本次改动直接涉及的节点 */
 export interface IncrementalLayoutOptions extends LayoutOptions {
   prevLayout?: ResolvedLayout | null;
   /** 本次改动直接涉及的节点（如拖拽改 size 的节点、改 padding 的容器等） */
   changedNodeIds?: Set<string>;
 }
 
+/**
+ * §147 增量布局：与全量**同一份实现**（`runLayout`），所以结果逐项相等。
+ *
+ * 三条兜底仍然照旧：无上一帧 / 改动集合为空 / 动到了根 → 走全量
+ * （前两种没有"上一帧"可复用，第三种整棵树都受影响，增量没有意义）。
+ *
+ * 复用（"没碰到的分支不重算"）是下一片的事：它要求在 `runLayout` 里按"父的盒没变"来决定
+ * 能不能直接沿用上一帧那个对象——**那是性能，红线是数**（同一口径重跑，总延迟要掉下来）。
+ * 这一片先只保证**相等**：两份实现合并成一份，"相等"就不再是一件要靠人盯着的事。
+ */
 export function resolveLayoutIncremental(
   page: Page,
   options: IncrementalLayoutOptions = {},
 ): ResolvedLayout {
-  const { prevLayout, changedNodeIds = new Set(), ...layoutOpts } = options;
-
-  // 无旧布局、或根节点变了、或改动集合为空（全量更安全） → 走全量
-  if (!prevLayout || changedNodeIds.size === 0 || changedNodeIds.has(prevLayout.rootId)) {
-    return resolveLayout(page, layoutOpts);
+  const { prevLayout, changedNodeIds, ...layoutOpts } = options;
+  const changed = changedNodeIds ?? new Set<string>();
+  if (!prevLayout || changed.size === 0 || changed.has(prevLayout.rootId)) {
+    return runLayout(page, layoutOpts, null, null);
   }
-
-  const { tokens, mode = null, breakpoint, maxDepth = 60 } = layoutOpts;
-  const defaultFontSize = layoutOpts.defaultFontSize ?? 16;
-  const measureText = layoutOpts.measureText ?? heuristicMeasure;
-
-  // --- 复用上一帧的辅助函数/缓存（measure 缓存、resolvedTypography 等） ---
-  // 为避免把 resolveLayout 全抽成类，这里复制关键纯函数与常量（体积小、不随节点数增长）
-  const resolveNum = (value: unknown, fallback: number): number => {
-    if (value === undefined || value === null) return fallback;
-    if (typeof value === "number") return toNumber(value, fallback);
-    const raw = tokens?.resolveValue(value, mode) ?? value;
-    if (typeof raw === "number") return raw;
-    if (typeof raw !== "string") return fallback;
-    const parsed = Number.parseFloat(raw);
-    return Number.isFinite(parsed) ? parsed : fallback;
-  };
-
-  const axisSize = (
-    value: DesignNode["size"]["width"],
-  ): number | "hug" | "fill" =>
-    value === "hug" || value === "fill" ? value : resolveNum(value, 0);
-
-  const resolvedTypography = (node: DesignNode): ResolvedTypography => {
-    const t = node.typography;
-    return {
-      fontFamily: (() => {
-        const raw = tokens?.resolveValue(t?.fontFamily ?? "{font.body}", mode);
-        return typeof raw === "string" ? raw : "Inter, sans-serif";
-      })(),
-      fontSize: resolveNum(t?.fontSize ?? defaultFontSize, defaultFontSize),
-      fontWeight: toNumber(t?.fontWeight, 400),
-      lineHeight: t?.lineHeight ?? 1.5,
-      letterSpacing: resolveNum(t?.letterSpacing, 0),
-      align: t?.align ?? "left",
-      verticalAlign: t?.verticalAlign ?? "top",
-      decoration: t?.decoration ?? "none",
-      textCase: t?.textCase ?? "original",
-      runs: t?.runs,
-      nowrap: node.style.textWrap === "nowrap",
-    };
-  };
-
-  const paddingOf = (node: DesignNode) => ({
-    top: resolveNum(node.layout?.padding?.top, 0),
-    right: resolveNum(node.layout?.padding?.right, 0),
-    bottom: resolveNum(node.layout?.padding?.bottom, 0),
-    left: resolveNum(node.layout?.padding?.left, 0),
-  });
-
-  const RASTER_TYPES = new Set(["image", "video", "svg", "shape", "three", "webgl"]);
-  const TEXT_LIKE_TYPES = new Set(["text", "button", "input"]);
-
-  const intrinsicRaster = (node: DesignNode, avail: Box2): Box => {
-    const fallback = node.type === "svg" ? 24 : 120;
-    const w = axisSize(node.size.width);
-    const h = axisSize(node.size.height);
-    const baseW = w === "hug" ? fallback : w === "fill" ? (avail.width ?? fallback) : w;
-    const baseH = h === "hug" ? fallback : h === "fill" ? (avail.height ?? fallback) : h;
-    if (node.style.aspectRatio) return { width: baseW, height: baseW / node.style.aspectRatio };
-    return { width: baseW, height: baseH };
-  };
-
-  interface Box2 { width: number | null; height: number | null; }
-
-  const measureTextNode = (node: DesignNode, availWidth: number | null): Box => {
-    const typography = resolvedTypography(node);
-    const wrapMode = node.style.textWrap ?? "wrap";
-    const constrained = wrapMode === "nowrap" ? null : availWidth;
-    const result = measureText(node.text ?? "", typography, constrained);
-    const lineHeight = typography.lineHeight === "auto" ? 1.2 : Number(typography.lineHeight) || 1.2;
-    const leading = lineHeight > 3 ? lineHeight : lineHeight * typography.fontSize;
-    const maxLines = wrapMode === "truncate" ? 1 : wrapMode === "truncate-2" ? 2 : wrapMode === "truncate-3" ? 3 : Infinity;
-    const height = Math.min(result.height, leading * Math.min(result.lines ?? 1, maxLines));
-    const width = constrained !== null && wrapMode !== "wrap" ? Math.min(result.width, constrained) : result.width;
-    return { width, height: Math.max(leading, height) };
-  };
-
-  const cache = new Map<string, Box>();
-
-  const childAvail = (
-    parent: DesignNode,
-    child: DesignNode,
-    innerW: number | null,
-    innerH: number | null,
-  ): Box2 => {
-    const layoutMode = parent.layout.mode;
-    if (layoutMode === "none" || layoutMode === "stack") return { width: null, height: null };
-    const gap = resolveNum(parent.layout.gap, 0);
-    if (layoutMode === "grid") {
-      const columns = Math.max(1, parent.layout.columns ?? 1);
-      return { width: innerW === null ? null : Math.max(0, (innerW - gap * (columns - 1)) / columns), height: null };
-    }
-    if (layoutMode === "wrap") return { width: innerW, height: null };
-    const horizontal = layoutMode === "horizontal";
-    const mainSize = child.size[horizontal ? "width" : "height"];
-    const crossSize = child.size[horizontal ? "height" : "width"];
-    const crossAvail = horizontal ? innerH : innerW;
-    const mainConstraint = typeof mainSize === "number" ? mainSize : null;
-    const crossConstraint = typeof crossSize === "number" ? crossSize : crossAvail;
-    return horizontal ? { width: mainConstraint, height: crossConstraint } : { width: crossConstraint, height: mainConstraint };
-  };
-
-  // ---- 计算受影响的节点集合：changedNodeIds 的所有祖先 + 所有后代 ----
-  const affected = new Set<string>();
-  const collectAncestors = (id: string) => {
-    let cur = id;
-    while (cur) {
-      if (affected.has(cur)) break;
-      affected.add(cur);
-      const node = page.nodes[cur];
-      cur = node?.parentId ?? "";
-    }
-  };
-  const collectDescendants = (id: string) => {
-    const stack = [id];
-    while (stack.length) {
-      const cur = stack.pop()!;
-      if (affected.has(cur)) continue;
-      affected.add(cur);
-      const node = page.nodes[cur];
-      if (node) {
-        const kids = childrenOf(page, node);
-        for (const k of kids) if (k.visible) stack.push(k.id);
-      }
-    }
-  };
-  for (const id of changedNodeIds) {
-    collectAncestors(id);
-    collectDescendants(id);
-  }
-
-  // ---- 复用上一帧的 resolved 节点：未受影响的直接拷贝 ----
-  const prevResolved = prevLayout.nodes;
-  const resolved: Record<string, ResolvedNode> = {};
-  const paintOrder: string[] = [];
-
-  // 预先把未受影响的节点直接拷过来（保持 paintOrder 相对顺序）
-  for (const id of prevLayout.paintOrder) {
-    if (!affected.has(id)) {
-      const prev = prevResolved[id];
-      if (prev) {
-        resolved[id] = { ...prev, children: [...prev.children] };
-        paintOrder.push(id);
-      }
-    }
-  }
-
-  // ---- measure / place：只对受影响节点跑，其余复用缓存/结果 ----
-  // measure 缓存键同全量版；受影响节点会重算，未受影响的不会被查到
-  const measure = (rawNode: DesignNode, avail: Box2, depth = 0): Box => {
-    const node = applyResponsive(rawNode, breakpoint);
-    if (!affected.has(node.id)) {
-      // 未受影响：若旧布局里有该节点且几何没变，直接返回旧盒（不入缓存也行，反正不再查）
-      const old = prevResolved[node.id];
-      if (old) return { width: old.width, height: old.height };
-    }
-    const key = `${node.id}|${avail.width ?? "-"}|${avail.height ?? "-"}|${depth}`;
-    const cached = cache.get(key);
-    if (cached) return cached;
-    const box = measureUncached(node, avail, depth);
-    cache.set(key, box);
-    return box;
-  };
-
-  const measureUncached = (node: DesignNode, avail: Box2, depth: number): Box => {
-    const width = axisSize(node.size.width);
-    const height = axisSize(node.size.height);
-    const pad = paddingOf(node);
-    const gap = resolveNum(node.layout.gap, 0);
-    const crossPadX = pad.left + pad.right;
-    const crossPadY = pad.top + pad.bottom;
-
-    if (TEXT_LIKE_TYPES.has(node.type)) {
-      const wrapWidth = typeof width === "number" ? Math.max(0, width - crossPadX) : avail.width === null ? null : Math.max(0, (avail.width ?? 0) - crossPadX);
-      const measured = measureTextNode(node, wrapWidth);
-      const w = width === "hug" ? measured.width + crossPadX : width === "fill" ? (avail.width ?? measured.width + crossPadX) : (width as number);
-      const h = height === "hug" ? measured.height + crossPadY : height === "fill" ? (avail.height ?? measured.height + crossPadY) : (height as number);
-      return { width: w, height: h };
-    }
-    if (RASTER_TYPES.has(node.type)) {
-      const raster = intrinsicRaster(node, { width: avail.width, height: avail.height });
-      const w = width === "hug" ? raster.width : width === "fill" ? (avail.width ?? raster.width) : (width as number);
-      const h = node.style.aspectRatio ? w / node.style.aspectRatio : height === "hug" ? raster.height : height === "fill" ? (avail.height ?? raster.height) : (height as number);
-      return { width: w, height: h };
-    }
-
-    const children = visibleChildren(page, node, breakpoint);
-    if (!children.length) {
-      const w = width === "hug" ? crossPadX : width === "fill" ? (avail.width ?? crossPadX) : (width as number);
-      const h = height === "hug" ? crossPadY : height === "fill" ? (avail.height ?? crossPadY) : (height as number);
-      return { width: w, height: h };
-    }
-
-    const layoutMode = node.layout.mode;
-    if (layoutMode === "none" || layoutMode === "stack") {
-      let maxW = 0, maxH = 0;
-      for (const child of children) {
-        const box = measure(child, childAvail(node, child, avail.width, avail.height), depth + 1);
-        maxW = Math.max(maxW, box.width);
-        maxH = Math.max(maxH, box.height);
-      }
-      const w = width === "hug" ? maxW + crossPadX : width === "fill" ? (avail.width ?? maxW + crossPadX) : (width as number);
-      const h = height === "hug" ? maxH + crossPadY : height === "fill" ? (avail.height ?? maxH + crossPadY) : (height as number);
-      return { width: w, height: h };
-    }
-    if (layoutMode === "grid") {
-      const columns = Math.max(1, node.layout.columns ?? 1);
-      let row = 0, col = 0, rowH = 0, maxW = 0;
-      for (const child of children) {
-        const box = measure(child, childAvail(node, child, avail.width, avail.height), depth + 1);
-        maxW = Math.max(maxW, box.width);
-        rowH = Math.max(rowH, box.height);
-        col++;
-        if (col === columns) { col = 0; row++; rowH = 0; }
-      }
-      const totalH = (row + (col > 0 ? 1 : 0)) * rowH + gap * Math.max(0, row + (col > 0 ? 1 : 0) - 1);
-      const w = width === "hug" ? maxW * columns + gap * (columns - 1) + crossPadX : width === "fill" ? (avail.width ?? maxW * columns + gap * (columns - 1) + crossPadX) : (width as number);
-      const h = height === "hug" ? totalH + crossPadY : height === "fill" ? (avail.height ?? totalH + crossPadY) : (height as number);
-      return { width: w, height: h };
-    }
-    if (layoutMode === "wrap") {
-      let lineW = 0, lineH = 0, maxLineW = 0, totalH = 0;
-      for (const child of children) {
-        const box = measure(child, childAvail(node, child, avail.width, avail.height), depth + 1);
-        if (avail.width !== null && lineW > 0 && lineW + box.width > avail.width) {
-          maxLineW = Math.max(maxLineW, lineW - gap);
-          totalH += lineH + gap;
-          lineW = 0; lineH = 0;
-        }
-        lineW += box.width + gap;
-        lineH = Math.max(lineH, box.height);
-      }
-      maxLineW = Math.max(maxLineW, Math.max(0, lineW - gap));
-      totalH += lineH;
-      const w = width === "hug" ? maxLineW + crossPadX : width === "fill" ? (avail.width ?? maxLineW + crossPadX) : (width as number);
-      const h = height === "hug" ? totalH + crossPadY : height === "fill" ? (avail.height ?? totalH + crossPadY) : (height as number);
-      return { width: w, height: h };
-    }
-    // vertical / horizontal
-    const horizontal = layoutMode === "horizontal";
-    let intrinsicMain = 0, maxCross = 0;
-    for (const child of children) {
-      const childMainSize = child.size[horizontal ? "width" : "height"];
-      const box = measure(child, childAvail(node, child, avail.width, avail.height), depth + 1);
-      if (childMainSize !== "fill") intrinsicMain += horizontal ? box.width : box.height;
-      maxCross = Math.max(maxCross, horizontal ? box.height : box.width);
-    }
-    intrinsicMain += gap * Math.max(0, children.length - 1);
-    const mainIntrinsic = intrinsicMain + (horizontal ? crossPadX : crossPadY);
-    const crossIntrinsic = maxCross + (horizontal ? crossPadY : crossPadX);
-    const w = horizontal
-      ? width === "hug" ? mainIntrinsic : width === "fill" ? (avail.width ?? mainIntrinsic) : (width as number)
-      : width === "hug" ? crossIntrinsic : width === "fill" ? (avail.width ?? crossIntrinsic) : (width as number);
-    const h = horizontal
-      ? height === "hug" ? crossIntrinsic : height === "fill" ? (avail.height ?? crossIntrinsic) : (height as number)
-      : height === "hug" ? mainIntrinsic : height === "fill" ? (avail.height ?? mainIntrinsic) : (height as number);
-    return { width: w, height: h };
-  };
-
-  // place：受影响节点重新放置，并把 paintOrder 重建（受影响段插入到原位置）
-  // 为简化实现：受影响的子树整体重新 place，paintOrder 从旧的过滤掉受影响再插新
-  const place = (rawNode: DesignNode, x: number, y: number, box: Box, depth: number): void => {
-    const node = applyResponsive(rawNode, breakpoint);
-    const entry: ResolvedNode = {
-      id: node.id,
-      node,
-      x, y,
-      width: Math.max(0, box.width),
-      height: Math.max(0, box.height),
-      depth,
-      parentId: node.parentId,
-      children: [],
-    };
-    resolved[node.id] = entry;
-    if (node.parentId && resolved[node.parentId]) resolved[node.parentId]!.children.push(node.id);
-    paintOrder.push(node.id);
-    if (depth >= maxDepth) return;
-
-    const pad = paddingOf(node);
-    const gap = resolveNum(node.layout.gap, 0);
-    const children = visibleChildren(page, node, breakpoint);
-    if (!children.length) return;
-
-    const innerW = Math.max(0, box.width - pad.left - pad.right);
-    const innerH = Math.max(0, box.height - pad.top - pad.bottom);
-
-    if (node.layout.mode === "none" || node.layout.mode === "stack") {
-      for (const child of children) {
-        const measured = measure(child, childAvail(node, child, innerW, innerH), depth + 1);
-        const w = axisSize(child.size.width) === "fill" ? innerW : measured.width;
-        const h = axisSize(child.size.height) === "fill" ? innerH : measured.height;
-        place(child, x + pad.left + child.position.x, y + pad.top + child.position.y, { width: w, height: h }, depth + 1);
-      }
-      return;
-    }
-    if (node.layout.mode === "grid") {
-      const columns = Math.max(1, node.layout.columns ?? 1);
-      const cellW = Math.max(0, (innerW - gap * (columns - 1)) / columns);
-      let cursorX = x + pad.left, cursorY = y + pad.top, rowH = 0, col = 0;
-      const placements: { child: DesignNode; x: number; y: number; w: number; h: number }[] = [];
-      for (const child of children) {
-        const measured = measure(child, childAvail(node, child, innerW, innerH), depth + 1);
-        if (col === columns) { col = 0; cursorX = x + pad.left; cursorY += rowH + gap; rowH = 0; }
-        placements.push({ child, x: cursorX, y: cursorY, w: cellW, h: measured.height });
-        cursorX += cellW + gap; rowH = Math.max(rowH, measured.height); col++;
-      }
-      for (const p of placements) place(p.child, p.x, p.y, { width: p.w, height: p.h }, depth + 1);
-      return;
-    }
-    if (node.layout.mode === "wrap") {
-      let cursorX = x + pad.left, cursorY = y + pad.top, lineH = 0;
-      for (const child of children) {
-        const measured = measure(child, childAvail(node, child, innerW, innerH), depth + 1);
-        if (innerW !== null && cursorX > x + pad.left && cursorX + measured.width > x + pad.left + innerW) {
-          cursorX = x + pad.left; cursorY += lineH + gap; lineH = 0;
-        }
-        place(child, cursorX, cursorY, { width: measured.width, height: measured.height }, depth + 1);
-        cursorX += measured.width + gap; lineH = Math.max(lineH, measured.height);
-      }
-      return;
-    }
-    // vertical / horizontal（与全量版同一套 crossOffset 口径：items 的 center/end/baseline 决定横向落点）
-    const horizontal = node.layout.mode === "horizontal";
-    const crossTotal = horizontal ? innerH : innerW;
-    let widestCross = 0;
-    for (const child of children) {
-      const probe = measure(child, childAvail(node, child, innerW, innerH), depth + 1);
-      const probeCross = horizontal ? probe.height : probe.width;
-      if (probeCross > widestCross) widestCross = probeCross;
-    }
-    let cursor = horizontal ? x + pad.left : y + pad.top;
-    let maxCross = 0;
-    for (const child of children) {
-      const measured = measure(child, childAvail(node, child, innerW, innerH), depth + 1);
-      const childMain = horizontal ? measured.width : measured.height;
-      const childCross = horizontal ? measured.height : measured.width;
-      const intrinsicCross = horizontal ? measured.height : measured.width;
-      const crossOffset =
-        node.layout.items === "center"
-          ? Math.max(0, (crossTotal - intrinsicCross) / 2)
-          : node.layout.items === "end"
-            ? Math.max(0, crossTotal - intrinsicCross)
-            : node.layout.items === "baseline"
-              ? Math.max(0, widestCross - intrinsicCross)
-              : 0;
-      const childX = horizontal ? cursor : x + pad.left + crossOffset;
-      const childY = horizontal ? y + pad.top + crossOffset : y + pad.top + cursor;
-      place(child, childX, childY, { width: measured.width, height: measured.height }, depth + 1);
-      if (horizontal) cursor += childMain + gap; else cursor += childMain + gap;
-      maxCross = Math.max(maxCross, childCross);
-    }
-  };
-
-  const root = requireNode(page, page.rootId);
-  const rootAvail: Box2 = breakpoint
-    ? { width: BREAKPOINT_WIDTH[breakpoint], height: null }
-    : { width: null, height: null };
-  const rootBox = measure(root, rootAvail, 0);
-  const viewportWidth = breakpoint ? BREAKPOINT_WIDTH[breakpoint] : null;
-  const modelRoot: Box = {
-    width: axisSize(root.size.width) === "hug" ? rootBox.width : (axisSize(root.size.width) as number) || rootBox.width || page.width,
-    height: axisSize(root.size.height) === "hug" ? rootBox.height : (axisSize(root.size.height) as number) || rootBox.height || page.height,
-  };
-  const finalRoot: Box = {
-    width: viewportWidth ?? modelRoot.width,
-    height: root.layout.clipContent ? modelRoot.height : Math.max(modelRoot.height, rootBox.height),
-  };
-  place(root, 0, 0, finalRoot, 0);
-
-  // paintOrder：把旧的未受影响节点保持相对顺序，受影响段按新 place 顺序追加
-  // （旧 paintOrder 已在开头拷贝了未受影响节点；place 已把受影响节点按新顺序追加到 paintOrder）
-  return {
-    rootId: root.id,
-    width: finalRoot.width,
-    height: finalRoot.height,
-    nodes: resolved,
-    paintOrder: paintOrder.filter((id) => resolved[id]?.node.visible !== false),
-  };
+  return runLayout(page, layoutOpts, prevLayout, changed);
 }
 
-/** 命中测试：画布坐标 → 最深可见非锁定节点（§8 selection） */
 export function hitTest(
   layout: ResolvedLayout,
   canvasX: number,

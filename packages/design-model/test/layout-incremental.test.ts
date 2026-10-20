@@ -84,7 +84,9 @@ describe("resolveLayoutIncremental：§147 接线的账（ROADMAP #133）", () =
   });
 
   // 欠账（#133）：下面两条现在**红**，所以挂起。修好 place/measure 共用核心之后把 skip 去掉。
-  it.skip("改一个节点的几何 → 增量解与全量解逐节点相等（含 paintOrder）——当前不等，见文件头", () => {
+  // 2026-10-20：两份实现合并成 `runLayout` 之后，**第一条已经不红了**（相等由构造保证）——
+  // 增量路与全量路现在跑的是同一份 measure/place，"相等"不再靠两份实现碰巧一致。
+  it("改一个节点的几何 → 增量解与全量解逐节点相等（含 paintOrder）——两份实现合并后由构造保证", () => {
     const page = rowPage();
     const beforeLayout = resolveLayout(page);
     const changedId = tallerAInPlace(page);
@@ -100,10 +102,17 @@ describe("resolveLayoutIncremental：§147 接线的账（ROADMAP #133）", () =
     expect(incremental.height).toBe(full.height);
     expect(incremental.paintOrder).toEqual(full.paintOrder);
     expect(incremental.nodes).toEqual(full.nodes);
-    expect(full.height).not.toBe(beforeLayout.height);
+    // 这一份改动**改的是谁**：A 的高度（50 → 80）。
+    // （原来这条断言写的是"整份文档的高度要变"——但 root 是固定尺寸 400×200 的 horizontal 布局，
+    // 改左兄弟的高度**本来就不改 root 的高度**（200 → 200）。这条断言从 2026-10-12 挂起至今，
+    // 没人跑过它，所以那个错一直藏着：它量的是 root，而该量的是 A。）
+    expect(full.nodes[changedId]!.height).toBe(80);
+    expect(full.nodes[changedId]!.height).not.toBe(beforeLayout.nodes[changedId]!.height);
+    // 根的高度不变（固定尺寸）——写清楚，免得下一个读代码的人以为这里该变
+    expect(full.height).toBe(beforeLayout.height);
   });
 
-  it.skip("没碰到的分支被复用（对象身份一样）——当前是重算出一份相等的，见文件头", () => {
+  it("没碰到的分支被复用（对象身份一样）——2026-10-20 起真的复用了", () => {
     const page = rowPage();
     const beforeLayout = resolveLayout(page);
     const changedId = tallerAInPlace(page);
