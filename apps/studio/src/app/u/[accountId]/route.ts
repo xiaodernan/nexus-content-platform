@@ -5,6 +5,8 @@ import { buildGalleryItems } from '@/lib/gallery';
 import { profileFactsOf, renderProfileHtml } from '@/lib/profile';
 import { readFollowers } from '@/lib/followServer';
 import { FOLLOW_BAR_STYLES, injectFollowBar, renderFollowBar, toFollowerRows } from '@/lib/followBar';
+import { readTips } from '@/lib/tipServer';
+import { injectTipBar, renderTipBar, toTipRows, TIP_BAR_STYLES } from '@/lib/tipBar';
 
 /**
  * M7 v270 (ADR 0016 amendment 270): `/u/{accountId}` — the PROFILE page, what ONE account has published.
@@ -26,6 +28,12 @@ export const dynamic = 'force-dynamic';
 
 /** The profile's fan-out cap. Each row costs one extra read, so this is the price of the page. */
 const PROFILE_LIMIT = 24;
+
+/**
+ * v298 — how many tips the profile page reads. The service caps at 100; the page asks for the cap,
+ * because an account can be given many tips and the page states what it carried.
+ */
+const TIP_LIMIT = 100;
 
 function html(body: string, status: number): Response {
   return new Response(body, { status, headers: { 'content-type': 'text/html; charset=utf-8', 'cache-control': 'no-store' } });
@@ -55,6 +63,21 @@ export async function GET(request: Request, { params }: { params: Promise<{ acco
   // leaves the bar out ENTIRELY, because "0 followers" and "the followers could not be read" are different
   // facts and a page that showed the first when it knew the second would make a reader conclude nobody is
   // watching.
+  // v298 — the TIPS. A tip is for an ACCOUNT, so the bar belongs on the profile — the page a reader
+  // lands on when they want to know about a person. Read independently: a tips door that could not be read
+  // leaves the bar out entirely, because "no tips" and "the tips could not be read" are different facts
+  // and a creator's page must not say the first when it knows the second.
+  const tips = await readTips(accountId, TIP_LIMIT);
+  const tipBar = tips.ok
+    ? renderTipBar({
+        accountId,
+        count: tips.count,
+        totalCents: tips.totalCents,
+        // The amounts and the messages, WITHOUT the payers: a page that listed who gave what would turn
+        // a small gesture into a public list of who supports whom.
+        tips: toTipRows(tips.tips),
+      }) + TIP_BAR_STYLES
+    : '';
   const followers = await readFollowers(accountId, null);
   const bar = followers.ok
     ? renderFollowBar({
@@ -66,5 +89,5 @@ export async function GET(request: Request, { params }: { params: Promise<{ acco
         followers: toFollowerRows(followers.followers),
       }) + FOLLOW_BAR_STYLES
     : '';
-  return html(injectFollowBar(renderProfileHtml(facts, items, offset, query), bar), 200);
+  return html(injectTipBar(injectFollowBar(renderProfileHtml(facts, items, offset, query), bar), tipBar), 200);
 }

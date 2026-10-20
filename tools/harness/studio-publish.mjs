@@ -242,6 +242,11 @@ let studioProcess = null;
 let session = null;
 let page = null;
 
+// v294 — the servers' own output, declared OUTSIDE the try so the failure path (which lives after it)
+// can print it. Declared inside, they were scoped away and the feature printed nothing.
+let serviceLog = '';
+let studioLog = '';
+
 try {
   // ── §1 stand up all three layers ────────────────────────────────────────────────────────────────
   const javaVersion = await run('java', ['-version']);
@@ -304,7 +309,6 @@ try {
     `--spring.datasource.password=${DB_PASSWORD}`,
     `--nexus.port-file=${PORT_FILE}`,
   ], { cwd: BUILD_DIR, stdio: ['ignore', 'pipe', 'pipe'] });
-  let serviceLog = '';
   serviceProcess.stdout.on('data', (d) => { serviceLog += String(d); });
   serviceProcess.stderr.on('data', (d) => { serviceLog += String(d); });
 
@@ -335,7 +339,6 @@ try {
     },
     stdio: ['ignore', 'pipe', 'pipe'],
   });
-  let studioLog = '';
   studioProcess.stdout.on('data', (d) => { studioLog += String(d); });
   studioProcess.stderr.on('data', (d) => { studioLog += String(d); });
   const studioBase = `http://127.0.0.1:${studioPort}`;
@@ -1590,6 +1593,120 @@ try {
       `reports: ${reportsAfterRefusal.reports?.length}`,
     );
     await reportComposerPage.close();
+  }
+
+  // ── §17 v298: TIPS — a tip is for an ACCOUNT, so the bar is on the profile ───────────────────────
+  // The device is signed in as the SECOND account (the previous section left it there), and it tips the
+  // PUBLISHER’s profile — so the tip goes from one account to another, which is the shape of the feature.
+  {
+    const tipTo = accountRecord?.id;
+    const profileForTips = await fetch(`${studioBase}/u/${encodeURIComponent(tipTo)}`);
+    const profileHtml = await profileForTips.text();
+    check(
+      'the profile page carries a TIPS bar',
+      profileForTips.status === 200 && profileHtml.includes('data-tips='),
+      `status ${profileForTips.status}; carries the bar: ${profileHtml.includes('data-tips=')}`,
+    );
+    check(
+      'and it states a count of ZERO for an account nobody has tipped',
+      profileHtml.includes('data-tips="0"'),
+      `the bar says: ${/data-tips="(\d+)"/.exec(profileHtml)?.[0] ?? 'no count'}`,
+    );
+    check(
+      'and it offers the tip, as a link to the Studio',
+      profileHtml.includes(`href="/?tip=${encodeURIComponent(tipTo)}"`),
+      'the bar links to /?tip=<id>',
+    );
+
+    const tipPage = await session.newPage('about:blank');
+    // The device signs in FIRST: the previous section ended by clearing the account (its own
+    // accountless check), and a tip with no payer is refused by name — so a tipper that has no account
+    // would be testing the refusal instead of the tip.
+    await tipPage.navigate(studioBase, { waitForSelector: '#nexus-canvas', waitMs: 2000 });
+    await waitForHydration(tipPage, 'the tipper page to hydrate');
+    await signInAs(tipPage, 'bob', 'the tipper');
+    await tipPage.navigate(`${studioBase}/?tip=${encodeURIComponent(tipTo)}`, { waitForSelector: '[data-tip-composer]', waitMs: 2000 });
+    await waitForHydration(tipPage, 'the tip page to hydrate');
+    check(
+      'the Studio opens a TIP composer over the intent',
+      (await tipPage.evaluate("!!document.querySelector('[data-tip-composer]')")) === true,
+      'the composer is on the page',
+    );
+
+    await tipPage.evaluate("(() => { const el = document.querySelector('[data-tip-amount]'); const setter = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype,'value')?.set; if (setter) setter.call(el, '5'); el.dispatchEvent(new Event('input', { bubbles: true })); })()");
+    await tipPage.type('[data-tip-message]', 'the harness tips you');
+    await tipPage.evaluate("document.querySelector('[data-tip-post]').click()");
+    const tipNote = await until(
+      async () => {
+        const n = await tipPage.evaluate("document.querySelector('[data-tip-note]')?.textContent ?? ''");
+        return n.includes('tipped') ? n : false;
+      },
+      { tries: 120, gapMs: 500, label: 'the tip to land' },
+    );
+    check(
+      'and posting a tip says so in the Studio’s own words, with the amount',
+      typeof tipNote === 'string' && tipNote.includes('500'),
+      // v294 — the composer’s OWN note, not only the wait’s verdict: a lane that refused says WHY, and
+      // the reason is the fact worth printing.
+      `note: ${JSON.stringify(tipNote ?? (await tipPage.evaluate("document.querySelector('[data-tip-note]')?.textContent ?? null")))}`,
+    );
+
+    // And the SERVICE recorded it — read independently of the browser, from the real database.
+    const tipsRead = await fetch(`${apiBase}/tips?recipient=${encodeURIComponent(tipTo)}`);
+    const tipsBody = await tipsRead.json();
+    check(
+      'the SERVICE recorded the tip — read back independently of the browser',
+      tipsRead.status === 200 && Array.isArray(tipsBody.tips) && tipsBody.tips.length === 1,
+      `tips: ${JSON.stringify(tipsBody.tips)}`,
+    );
+    check(
+      'and the tip names the amount, the message and the account that gave it',
+      tipsBody.tips?.[0]?.amountCents === 500 && tipsBody.tips?.[0]?.message === 'the harness tips you' && tipsBody.tips?.[0]?.payerId !== tipTo,
+      `the tip: ${JSON.stringify(tipsBody.tips?.[0])}`,
+    );
+    check(
+      'and the total is what the DATABASE summed',
+      tipsBody.totalCents === 500,
+      `totalCents: ${tipsBody.totalCents}`,
+    );
+
+    // And the profile now says one tip — and it does NOT name the payer.
+    const profileAfter = await (await fetch(`${studioBase}/u/${encodeURIComponent(tipTo)}`)).text();
+    check(
+      'and the profile page now says ONE tip',
+      profileAfter.includes('data-tips="1"'),
+      `the bar says: ${/data-tips="(\d+)"/.exec(profileAfter)?.[0] ?? 'no count'}`,
+    );
+    check(
+      'and the total is on the page — ¥5.00',
+      profileAfter.includes('¥5.00'),
+      `the bar carries the total: ${profileAfter.includes('¥5.00')}`,
+    );
+
+    // LAST, because it clears the device’s account: a tip with no payer is not a fact anyone can act on.
+    await tipPage.evaluate("localStorage.removeItem('nexus-current-account')");
+    await tipPage.navigate(`${studioBase}/?tip=${encodeURIComponent(tipTo)}`, { waitForSelector: '[data-tip-composer]', waitMs: 2000 });
+    await waitForHydration(tipPage, 'the accountless tip page to hydrate');
+    await tipPage.evaluate("document.querySelector('[data-tip-post]').click()");
+    const noAccount = await until(
+      async () => {
+        const n = await tipPage.evaluate("document.querySelector('[data-tip-note]')?.textContent ?? ''");
+        return n.includes('no account') ? n : false;
+      },
+      { tries: 40, gapMs: 500, label: 'the accountless tip to be refused' },
+    );
+    check(
+      'a device with NO account is refused — the client does not invent a payer',
+      noAccount !== null,
+      `note: ${JSON.stringify(noAccount)}`,
+    );
+    const tipsAfterRefusal = await (await fetch(`${apiBase}/tips?recipient=${encodeURIComponent(tipTo)}`)).json();
+    check(
+      'and the refused tip changed NOTHING — there is still exactly one',
+      tipsAfterRefusal.tips?.length === 1,
+      `tips: ${tipsAfterRefusal.tips?.length}`,
+    );
+    await tipPage.close();
   }
 
   // ── §10 teardown ─────────────────────────────────────────────────────────────────────────────────

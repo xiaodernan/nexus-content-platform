@@ -1,0 +1,156 @@
+/**
+ * M7 v298 — the server-side half of the TIPS reader and writer.
+ *
+ * The service's address is server-side, and both the profile page (server-rendered) and the Studio's own
+ * route (server-side) read and write through here.
+ *
+ * A failed call answers with a REASON rather than a thrown error: a profile page that says "the tips could
+ * not be read" is an honest page, and one that throws into a route handler is a 500 for a page whose
+ * PUBLICATIONS are perfectly fine.
+ */
+import { nexusApiBase } from './publishServer';
+
+/** One tip, in the service's own wire shape. */
+export interface TipEntry {
+  id: string;
+  recipientId: string;
+  payerId: string;
+  amountCents: number;
+  currency: string;
+  message: string;
+  anonymous: boolean;
+  createdAt: number;
+  handle?: string | null;
+  assurance?: string | null;
+}
+
+/** What one read of the tips answered. */
+export interface TipsAnswer {
+  ok: boolean;
+  tips: TipEntry[];
+  /** How much the account was given, in cents, as the DATABASE summed it. */
+  totalCents: number;
+  /** How many tips the answer carried. */
+  count: number;
+  reason?: string;
+}
+
+/** What one write answered. */
+export interface TipWriteAnswer {
+  ok: boolean;
+  tip?: TipEntry;
+  reason?: string;
+}
+
+export type FetchLike = (
+  input: string,
+  init?: { method?: string; headers?: Record<string, string>; body?: string; signal?: AbortSignal },
+) => Promise<Response>;
+
+/** Read the tips one account received. */
+export async function readTips(
+  recipientAccountId: string,
+  limit: number,
+  fetchImpl: FetchLike = fetch as FetchLike,
+): Promise<TipsAnswer> {
+  const apiBase = nexusApiBase();
+  try {
+    const res = await fetchImpl(
+      `${apiBase}/tips?recipient=${encodeURIComponent(recipientAccountId)}&limit=${encodeURIComponent(String(limit))}`,
+      { headers: { accept: 'application/json' } },
+    );
+    if (!res.ok) {
+      return { ok: false, tips: [], totalCents: 0, count: 0, reason: `the service's tips door answered HTTP ${res.status}` };
+    }
+    const parsed: unknown = await res.json().catch(() => null);
+    if (!parsed || typeof parsed !== 'object') {
+      return { ok: false, tips: [], totalCents: 0, count: 0, reason: 'the service answered its tips door with something that is not JSON' };
+    }
+    const body = parsed as { tips?: unknown; totalCents?: unknown; count?: unknown };
+    if (!Array.isArray(body.tips)) {
+      return { ok: false, tips: [], totalCents: 0, count: 0, reason: 'the service answered its tips door with no tips' };
+    }
+    return {
+      ok: true,
+      tips: body.tips as TipEntry[],
+      totalCents: typeof body.totalCents === 'number' ? body.totalCents : 0,
+      count: typeof body.count === 'number' ? body.count : body.tips.length,
+    };
+  } catch (error) {
+    return {
+      ok: false,
+      tips: [],
+      totalCents: 0,
+      count: 0,
+      reason: `nexus-api unreachable at ${apiBase}: ${error instanceof Error ? error.message : String(error)}`,
+    };
+  }
+}
+
+/** GIVE a tip, on the service. The claim travels exactly as the browser built it. */
+export async function tipOnService(
+  recipientAccountId: string,
+  amountCents: number,
+  message: string,
+  anonymous: boolean,
+  claim: { accountId: string; handle?: string | null; assurance?: string | null; claimedAt?: number | null },
+  fetchImpl: FetchLike = fetch as FetchLike,
+): Promise<TipWriteAnswer> {
+  const apiBase = nexusApiBase();
+  try {
+    const res = await fetchImpl(`${apiBase}/tips`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json', accept: 'application/json' },
+      body: JSON.stringify({
+        recipientAccountId,
+        amountCents,
+        message,
+        anonymous,
+        claim: {
+          accountId: claim.accountId,
+          handle: claim.handle ?? null,
+          assurance: claim.assurance ?? null,
+          claimedAt: claim.claimedAt ?? null,
+        },
+      }),
+    });
+    return readWriteAnswer(res, await safeJson(res));
+  } catch (error) {
+    return { ok: false, reason: `nexus-api unreachable at ${apiBase}: ${error instanceof Error ? error.message : String(error)}` };
+  }
+}
+
+async function safeJson(res: Response): Promise<unknown> {
+  try {
+    return await res.json();
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * A write's answer.
+ *
+ * The tip is read ONLY when the answer says `ok`: a refusal carries a reason and no numbers, and a lane
+ * that filled in a count of zero on a refusal would make a refused tip look like a tip that found nobody.
+ */
+function readWriteAnswer(res: Response, body: unknown): TipWriteAnswer {
+  if (typeof body !== 'object' || body === null) {
+    return { ok: false, reason: `the tips answered HTTP ${res.status} with something that is not JSON` };
+  }
+  const answer = body as { ok?: unknown; tips?: unknown; reason?: unknown; message?: unknown };
+  if (answer.ok === false) {
+    const reason =
+      typeof answer.reason === 'string'
+        ? answer.reason
+        : typeof answer.message === 'string'
+          ? answer.message
+          : `the tips answered HTTP ${res.status}`;
+    return { ok: false, reason };
+  }
+  if (!res.ok) {
+    return { ok: false, reason: `the tips answered HTTP ${res.status}` };
+  }
+  const tips = Array.isArray(answer.tips) ? (answer.tips as TipEntry[]) : [];
+  return { ok: true, tip: tips[0] };
+}

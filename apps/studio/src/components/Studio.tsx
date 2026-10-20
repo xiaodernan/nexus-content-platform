@@ -21,6 +21,8 @@ import { remixIdFromSearch, remixProject } from '@/lib/remixLane';
 import { likeIdFromSearch, unlikeIdFromSearch, likeClaimOf } from '@/lib/likeIntent';
 import { commentIdFromSearch } from '@/lib/commentIntent';
 import { reportIdFromSearch } from '@/lib/reportIntent';
+import { tipIdFromSearch } from '@/lib/tipIntent';
+import { TipComposer } from './TipComposer';
 import { ReportComposer } from './ReportComposer';
 import { followIdFromSearch, unfollowIdFromSearch } from '@/lib/followIntent';
 import { followAccount, unfollowAccount } from '@/lib/followLane';
@@ -41,6 +43,8 @@ export default function Studio() {
   const [commentTarget, setCommentTarget] = useState<string | null>(null);
   // M7 v296 — the publication the REPORT composer is for, or null when no composer is open.
   const [reportTarget, setReportTarget] = useState<string | null>(null);
+  // M7 v298 — the account the TIP composer is for, or null when no composer is open.
+  const [tipTarget, setTipTarget] = useState<string | null>(null);
 
   // Read-only observability bridge (§56/§57/§32): exposes editor state on `window.__nexus`
   // so verification and evaluation assert against the canonical model, not scraped markup.
@@ -218,6 +222,13 @@ export default function Studio() {
     if (id) setReportTarget(id);
   }, []);
 
+  // M7 v298 — a TIP link: the profile page sends a reader here as `/?tip={accountId}`, and the Studio
+  // opens a composer over it. A tip is for an ACCOUNT, so the bar it comes from is on the profile.
+  useEffect(() => {
+    const id = tipIdFromSearch(window.location.search);
+    if (id) setTipTarget(id);
+  }, []);
+
   // M7 v286 — a COMMENT link: the artifact page sends a reader here as `/?comment={id}`, and the
   // Studio opens a composer over it. The page is server-rendered and cannot know who the device is
   // (ADR 0018), so the writing happens HERE — the same arrangement the like and the remix use.
@@ -237,6 +248,9 @@ export default function Studio() {
       )}
       {reportTarget && (
         <ReportComposer projectId={reportTarget} onClose={() => setReportTarget(null)} />
+      )}
+      {tipTarget && (
+        <TipComposer accountId={tipTarget} onClose={() => setTipTarget(null)} />
       )}
       <div style={{ display: 'flex', flex: 1, minHeight: 0 }}>
         <aside className="panel" style={{ width: 240, borderLeft: 'none', borderBottom: 'none', borderTop: 'none', display: 'flex', flexDirection: 'column', minHeight: 0 }}>
