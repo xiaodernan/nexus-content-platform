@@ -3529,15 +3529,17 @@ image-safety / image-studio / ai-jobs / studio-flush，不是全量回归）；�
     `WorldPlateau.profile?: 'mesa' | 'cone'`（缺省 mesa，老文档逐字节不变），cone 台心到
     边缘线性降到 0、可走；两条 e2e 都加了坡（图上虚线圆 + 3D 脚下 `data-walk-height` 4）。
     详见文末「§140 第五片」一节与 ADR-0041（高度场明确不做的理由）。
-7. **任务 #132（并发会话登记的 §113 真欠账那一半）**：`game` 那一步编出来的 GameDocument
-   只留在内存里，界面上却写着"已生成…可直接在 Game Studio 试玩"，而库里一行没写。
-   三件事：措辞收口 + 草稿随结论存下来 + 一个用户点出来的"写进项目"
-   （已有游戏设计时拒绝覆盖，不静默覆盖）。
-   **动手前先 `git status`**：§52 的接受入口一片正在并行会话手里，
-   两边半成品会互相卡死 pre-commit 的整树 lint（今晚已经发生过一次）。
+7. ~~**任务 #132（并发会话登记的 §113 真欠账那一半）**~~ **已落地（2026-10-12 起，`268bd8d` + `d44bbcc`，
+   ADR-0034 / ADR-0035；本行 2026-10-20 核对时发现它早已过期）**：`game` 那一步编出来的 GameDocument
+   只留在内存里、界面上却写着"已生成…可直接在 Game Studio 试玩"、而库里一行没写——**三件事都做完了**：
+   措辞收口（`GAME_DRAFT_NOT_LANDED_NOTE`：草稿存在任务行的这一步里，**没写进项目**）、
+   草稿随结论存下来（`draft?: GameDocument` 存在任务行里，不在响应体里，客户端贴不进来）、
+   一个用户点出来的"写进项目"（点「接受进项目」才写；已有游戏设计时拒绝覆盖，不静默覆盖）。
+   **别照这一行重新发明**：核对方式是 `git log --grep='ADR-0035'` + `apps/web/src/lib/agent-game-draft.ts`。
 8. **其余 `[~]` 长线**（RAG 向量、图像/视频/角色一致性像素、§54 游戏设计系统）
    **全部卡在真实 provider key 上**——按 §159 留白，不假造。**拿到 key 之前，
-   自主推进的格子就是上面的 1–7；做完就停下来，不要再发明已完成的东西。**
+   自主推进的格子就是上面的 1–6（1–4 已落地，3 是 §147 的复测窗口）；
+   没有自主格子时就去核对 `[~]` 行是否过期，别照着已经做完的事再做一遍。**
 
 需要用户才能推进的（不要绕过）：真实 provider key。有了它才能落地的是 §49 的向量与 rerank、
 §38 的图像那半截像素、§40-42 的镜头视频、§39 的角色一致性像素。这四格今天全部按 §159 留白，
@@ -4856,6 +4858,13 @@ RPG 那份 7 文件 / 27276 字节里没有成长循环，视觉小说那份 7 �
   E 路由丢字段 2 / F 计数写死 1 / G 摘要管线名写死 1（G 第一版拼串写在双引号里，
   `${'$'}` 不展开 → 命中 0 次判 INTERFERED，什么都没跑；改反引号重跑才作数）。
 - **已完成（ADR-0045）**：产物第二条链现在带 `artifactChainSentence`/`RPG_LAYER_NOT_DECORATIVE`/`RPG_GATE_HELD` 三条判决，codegen/test/parity 24 条全绿；对话两型（interactive-story/visual-novel）仍只披露不修，只在 `rpg-prototype` 产物里多转写一段 `NexusRpg`（语义从 `rpg.ts` 导出插值，`plan.growth` 承载数值），对应 `ARTIFACT_CHAINS` 表成为"这一份带不带引擎"的唯一分派点。
+  **真浏览器那一格（2026-10-20 补上，§158 的 Run→Test→Screenshot→Inspect 走完）**：
+  `npx playwright test -g '§52 Code'` **1 passed（3.3 分钟）**——那一支在真浏览器里换型再换回来，
+  2D 那份量 `data-game-code-chain=topdown`、RPG 那份量 `data-game-code-chain=rpg`，
+  并把屏上那句与**下载到的** `index.html`/`README.txt` 里那句对账（两处各量一遍，量的是"过没过时"）；
+  截图 `screenshots/game-code-rpg-chain.png` 已看过：左栏游戏类型写着「RPG 原型」，
+  下面明写「这条产物跑的是RPG 那条链（NexusSim 之外再多一段 NexusRpg，转写的是 rpg.ts：经验、升级与等级门）」，
+  右上角 DEMO MODE 标识在位（§160）。
   那格落地时这一句 `kindNote` 会随 `compileForKind` 自己变空，不用改文案。
   #139（链上草稿带 `kind`）本片后**要重新划范围**：它原先的一条理由（`pipeline: null` 走不到）今天不成立，
   八型全接了，该挑的是可达接缝——`playtest` 那格今天恒跑 `playtestRpg`，一份 2D 草稿的
