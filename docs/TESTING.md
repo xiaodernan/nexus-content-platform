@@ -1475,3 +1475,28 @@ vitest 直接崩了而我却把 stdout 丢进了 `/dev/null`，于是"5 遍"其�
 - feat(game-model): ADR-0045 产物第二条链 RPG 补写，ARTIFACT_CHAINS 改带引擎标识；codegen/test/parity 同步
 - perf(studio): §147 分段标记 opt-in store.ts mark 与 PERFORMANCE.md 同步生产构建
 - feat(test): §144/§163/§164 导出路由覆盖——401/404/build.status 两帧/§164 build 通知 打真库
+
+### 第二条产物链的电池怎么修的（#141，2026-10-20）
+
+这一节记的是**见证自己**的四条缺陷：全部由电池量出来，实现那一片（`0d1d2f6`）当时已经绿了。
+读数在 `.scratch/arms-141-parity4.log`、`.scratch/arms-141-vitest*.log`、`.scratch/arms-141-e2e*.log`。
+
+1. **靶面清单只能有一处。** 第一轮的 preflight 拿的是一张手抄的靶表，抄的那份还留着上一片删掉的臂名，
+   于是"preflight 全 OK"与"臂什么都没打到"同时成立。现在 `needles-141.mjs` 是唯一的靶表：
+   preflight 遍历它、`splice()` 只接受靶名、快照与还原的文件清单也由它派生。
+2. **反向控制要比"作用"，不能比"形状"（两次才算对）。** `RPG_LAYER_NOT_DECORATIVE` 第一版比整串 `RpgState`，
+   第二版剥掉 `level` / `xp` 只比 `base`：把升级曲线换成一次都升不了级的天文数字，两版都照样绿——
+   两边形状不同就够了。第三版只投出**成长唯一能碰到的那几只字段**（位置 / 生命 / 三类 actor / 累计计数），
+   于是同一臂把它红了下来：基线读"904 帧与 2D 那份不同"，变异臂读"战斗逐帧与 2D 那份相同"。
+   口径：**"键的个数"不是作用的证据**，做反向控制时先问"这个效应的唯一因果路径是哪几个字段"。
+3. **分母不许由一趟运行给。** 最后一处 `page.screenshot` 超时把抛穿带进 `finally`，第 24 条 `NO_EGRESS`
+   压根没跑到，而"23/23 全绿"被当成完整基线，后面每一臂都少问一条。现在判决名清单从脚本源码里的
+   `verdict('NAME'` 派生（24 条）并与脚本自报的"合计 N 条判决"对账，不一致就判采集作废；
+   脚本半路退出按名字补 `未跑到 <名字>` 的红（0 红不等于没红）；截图改成失败只点名、不抛穿。
+4. **每一层探针都要自己带环境。** `runE2e` 原先不带 `NEXUS_DATABASE_URL`：3100 上有人起好的 dev server 时
+   `reuseExistingServer` 让它一直绿，那台一关，Playwright 自起的 dev server 首页 500，采集读不出成败、
+   基线直接作废。**"复用现成服务"的绿会把"我这条命令自己起不来"藏起来**——起服务那一侧的环境与测试
+   一样属于测量协议。顺带把 `npx.cmd` + `shell:true` 换成直传 argv（那句中文 `-g` 用例名不该经过 shell）。
+5. **预测要写全。** E 臂（`ARTIFACT_CHAINS` 还在但分派只认 topdown）实测 vitest 红 12/59、parity 红 10/24：
+   单测那 9 条与 parity 那三条（`RPG_PAGE_LOADS`、`RPG_CHAIN_NOTE_ON_PAGE`、`RPG_PLAN_CARRIES_GROWTH`）
+   原先算"预测外的红"。现在按名字登记全——预测清单的作用是"以后少红一条能露出来"，不是好看。

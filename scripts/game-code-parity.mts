@@ -544,14 +544,33 @@ try {
     `末态等级 ${lastRpg.level}（升级 ${lastRpg.levelUps} 次）、残余经验 ${lastRpg.xp}、曲线第 2 级要 ${xpToNext(growthPlan.growth!, 2)} 点、每级生命上限 +${growthPlan.growth?.levelBonus.maxHealth}、事件流里${levelEvent ? '有' : '没有'}那句升级——曲线与加成读的是 plan.growth，源头是 rpg.ts 的导出（${XP_BASE}+${XP_STEP}、生命 +${LEVEL_BONUS.maxHealth}）`,
   );
 
-  // 反向控制：同几何、同输入，2D 那份与 RPG 那份的 trace 必须**不同**（升级后的伤害进了底层战斗）。
-  // 若这一段跑出同一串状态，成长层就是挂在旁边的一段死代码，上面那些"逐字节相同"也就没证明任何东西。
+  // 反向控制：同几何、同输入，2D 那份与 RPG 那份的**战斗本身**必须真的分叉（升级后的伤害进了 sim）。
+  // 比分叉的必须是战斗那几只字段，不是整份状态：
+  // - 第一版比整串 `RpgState`，2026-10-20 的变异臂把升级曲线换成一个够不着的数（一次都升不了级、
+  //   成长层整层失效）时它照样绿——RPG 那份多带 `level` / `xp` 那几个键，形状不同就够了。
+  // - 第二版剥掉那几个键只比 `base`，同一臂仍然绿：`base.events` 与 `base.questDone` 是成长层写的
+  //   （"击杀 X 得 20 经验"这类句子），两边天然不同，量的还是"有没有成长那一段"，不是"成长改到了战斗"。
+  // 所以这里只取伤害能碰到的那些：位置、生命、三类 actor、累计计数。
+  const combatOf = (state: SimState) =>
+    JSON.stringify({
+      px: state.px,
+      py: state.py,
+      health: state.health,
+      enemies: state.enemies,
+      items: state.items,
+      triggers: state.triggers,
+      counters: state.counters,
+    });
+  const rpgCombat = rpgStates.map((state) => combatOf(state.base));
+  const diverging = rpgCombat.filter((json, i) => json !== combatOf(browserTrace[i]!)).length;
   verdict(
     'RPG_LAYER_NOT_DECORATIVE',
-    rpgPlayed.traceJson !== played.traceJson,
-    rpgPlayed.traceJson !== played.traceJson
-      ? `两份 trace 确实分叉（2D ${played.traceJson.length} 字节 / RPG ${rpgPlayed.traceJson.length} 字节）：成长层改到了战斗`
-      : '同几何同输入却跑出同一串状态：NexusRpg 没参与运算',
+    rpgCombat.length === browserTrace.length && diverging > 0,
+    rpgCombat.length !== browserTrace.length
+      ? `帧数就对不上：RPG ${rpgCombat.length} / 2D ${browserTrace.length}`
+      : diverging > 0
+        ? `只比战斗那几只字段（位置 / 生命 / 三类 actor / 累计计数）：${diverging} 帧与 2D 那份不同，成长确实改到了伤害；两边各 ${rpgPlayed.traceJson.length} / ${played.traceJson.length} 字节`
+        : '战斗逐帧与 2D 那份相同：NexusRpg 只是多带了几个键与几句事件，伤害没被成长改过',
   );
 
   // 等级门：条件每帧满足、等级每帧不够，于是每帧都扣住，won 每帧被撤回，事件流一路顶到上限
@@ -570,11 +589,21 @@ try {
     `等级门 trace 与 rpg.ts ${gatePlayed.traceJson === gateReferenceJson ? '逐字符相同' : '不同'}；末态等级 ${lastGate.level}（要 3 级）、任务完成标记 ${lastGate.base.questDone['q1'] === undefined ? '仍被扣住' : '已放出'}、状态 ${lastGate.base.status}、扣住事件 ${heldEvents.length} 条、事件流停在 ${lastGate.base.events.length} 条`,
   );
 
-  await page.screenshot({ path: 'screenshots/game-code-parity.png' });
-  await rpgPage.screenshot({ path: 'screenshots/game-code-parity-rpg.png' });
+  // 截图是证据不是判决：这一片被它咬过一次——2026-10-20 电池里的基线在 `page.screenshot`
+  // 超时上抛穿，于是最后一条 NO_EGRESS 压根没跑到，而那一趟 23 条判决全绿。
+  // NO_EGRESS 读的是请求清单，与像素无关，不该被渲染 I/O 拖走；落不成就在日志里点名。
+  const shots: string[] = [];
+  for (const [target, file] of [[page, 'screenshots/game-code-parity.png'], [rpgPage, 'screenshots/game-code-parity-rpg.png']] as const) {
+    try {
+      await target.screenshot({ path: file, timeout: 120_000 });
+      shots.push(file);
+    } catch (error) {
+      shots.push(`${file} 没落成（${String(error).split('\n')[0]}）`);
+    }
+  }
   const foreign = requests.filter((url) => !url.startsWith(origin));
   verdict('NO_EGRESS', foreign.length === 0, `${requests.length} 次请求（两条链各一份页面），离开产物源的 ${foreign.length} 次${foreign.length ? `：${foreign.join('、')}` : ''}`);
-  console.log(`截图：screenshots/game-code-parity.png 与 game-code-parity-rpg.png（console error ${consoleErrors.length} 条${consoleErrors.length ? `，第一条：${consoleErrors[0]}` : ''}）`);
+  console.log(`截图：${shots.join(' 与 ')}（console error ${consoleErrors.length} 条${consoleErrors.length ? `，第一条：${consoleErrors[0]}` : ''}）`);
 } finally {
   await browser.close();
   server.close();
