@@ -435,6 +435,14 @@ vitest 直接崩了而我却把 stdout 丢进了 `/dev/null`，于是"5 遍"其�
   **买过的权利是否随下架终止是产品决定，这一片只如实披露、不替它拍板**。
   真浏览器见证（2026-10-21）：三条购买同屏、状态文案与下载按钮的有无都对，点下载在无源项目时
   收到交付门那句「该物品没有可导出的源项目」；截图 `screenshots/marketplace-purchases-150.png`。
+  ⑩ **购买判定的判别式结果**（2026-10-21，§127/#151）：`purchaseMarketplaceItem` 不再以句子 throw，
+  域层回 `{ok:true,…}` / `{ok:false,reason:'not_found'|'free_item'|'own_item'|'already_purchased'}`，
+  购买路由按 reason 翻码（404/400），未知异常才 500。旧契约的破绽在**并发重复购买**：`isUniqueViolation`
+  只读顶层 `error.code`，而 Drizzle 把驱动错误包进 `DrizzleQueryError`（`23505` 在 cause 链上）——
+  函数从未命中，输家一路抛到路由变 500；旧 settle 并发用例只数"恰好 1 个 fulfilled"、不看输家的形状，
+  把它盖住了。修复后 settle 并发用例断言两种结局都 fulfilled（`ok:true` / `ok:false:already_purchased`，
+  不再有 rejected），visibility 7 → 9 条（自己的公开条目 400 `own_item`、路由层重复购买 400
+  `already_purchased`），id-shape 30 条改按结果形状断言；市场九套件 + id-shape **129/129** 绿。
 - id 形状校验（横切，`domain/ids.ts` 的 `isUuid`）：`apps/web/test/id-shape.integration.test.ts` 30 条。
   钉的不是"某个端点不 500"，是**一条横切纪律**：从路由进来的 id 大多是路径参数，Next 只保证它们是
   字符串；非 UUID 的 id 一律按"不存在"处理（域函数返回 null/false，路由只剩 404/409 一种说法），
@@ -1738,3 +1746,15 @@ vitest 直接崩了而我却把 stdout 丢进了 `/dev/null`，于是"5 遍"其�
   **记这一条是因为它连着两个教训**：① 别把负载当成果（今天已经吃过两次这种亏）；
   ② **首屏那一格还欠一次干净的测量**（安静机器 + 同一构建 + 至少两遍），
   在那之前"首屏慢在哪里"没有答案，别拿任何一版数去论证优化。已同步更正 PERFORMANCE.md / ROADMAP / ADR-0047。
+
+- **2026-10-21 凌晨：e2e 全量里那条"§168 曲线"的存量红已经修了**（根因查清，不是玄学）：
+  用例里的"真访客"是 Playwright 的 Chromium，而 **`navigator.webdriver` 恒为 `true`**
+  → 服务端 `classifyVisit`（`src/lib/visit-meter.ts`）按 §168 第三片把它判成**疑似爬虫**
+  → 那一行进 `suspected_bot`，被真人曲线过滤掉 → "今天"那格的 `playTimeMs` 成了 `null`
+  → 图上被画成"缺数据"（`missing`），于是 `missing` 数到 30 而期望 29。
+  **修法与 `e2e/studio.spec.ts` 的 §168 用例同款**：访客上下文 `addInitScript` 把 `navigator.webdriver`
+  盖成 `undefined`——**这条用例扮演真人**（自动化标记的真身由那支 webdriver:true 的笔扮演）。
+  组件与服务的口径都没错（`missing: (point) => point.playTimeMs === null` 是对的，爬虫行不进真人数也是对的），
+  **错的是用例没跟上 §168 第三片**。
+  **记这一条的教训**：同一件事的两条用例要**一起长**——爬虫分类那一片改了采集口径，
+  就得回头看所有"造一个访客"的地方（`e2e` 里共 12 处 `newContext()`）。

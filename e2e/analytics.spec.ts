@@ -32,6 +32,14 @@ test('@smoke §168 曲线：窗口是密集的，缺的那天在图上看得出�
 
   // 一个真访客打开公开页：页面自己上报一次"打开"，于是"今天"这一格有数
   const visitorContext = await browser.newContext();
+  // §168 第三片：这条用例**扮演真人**——Playwright 的 navigator.webdriver 恒为 true，
+  // 不盖掉的话这个访客会把自己上报成疑似爬虫（服务端把爬虫行排除在"真人曲线"之外），
+  // 于是"今天"那格的时长变成 null、被画成"缺数据"——正好与这条用例要证的
+  // "缺的那天与有行但为 0 的那天长得不一样"相反。
+  // 自动化标记的真身由 studio.spec.ts 的 §168 用例扮演（那一笔 webdriver:true 才是被分类器抓住的样子）。
+  await visitorContext.addInitScript(() => {
+    Object.defineProperty(Object.getPrototypeOf(navigator), 'webdriver', { get: () => undefined });
+  });
   const visitor = await visitorContext.newPage();
   const opened = visitor.waitForResponse(
     (res) => /\/api\/published\/visit$/.test(new URL(res.url()).pathname) && res.status() === 200,
