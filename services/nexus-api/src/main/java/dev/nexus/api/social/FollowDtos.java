@@ -55,4 +55,14 @@ public final class FollowDtos {
             long followingCount,
             List<Follow> followers) {
     }
+
+    /**
+     * v303 — the OTHER direction of the edge: the accounts an account follows.
+     *
+     * <p>The rows are called {@code following} and not {@code followers}, because a list of the accounts
+     * somebody watches is not a list of their followers, and a wire field with the wrong name is a small lie
+     * that grows.
+     */
+    public record FollowingAnswer(String accountId, long followingCount, List<Follow> following) {
+    }
 }

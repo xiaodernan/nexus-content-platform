@@ -115,6 +115,40 @@ describe('followBar — the bar on the profile page (M7 v288)', () => {
   });
 });
 
+describe('followBar — the OTHER direction of the edge (M9 v303)', () => {
+  it('the bar carries the accounts the account FOLLOWS, in the SAME bar', () => {
+    // Two floating panels saying "followers" and "following" would be two panels a person has to read
+    // together to learn one thing: the shape of this account's social life.
+    const html = renderFollowBar({
+      accountId: 'acct-ada',
+      followerCount: 2,
+      following: toFollowerRows([{ followerId: 'acct-bob', handle: 'bob', assurance: 'unsigned-local' }]),
+      followingCount: 1,
+    });
+    expect(html).toContain('data-following="1"');
+    expect(html).toContain('data-following="acct-bob"');
+    expect(html).toContain('href="/u/acct-bob"');
+    expect(html).toContain('1 following');
+  });
+
+  it('the two lists are told apart \u2014 a follower is not a following', () => {
+    const html = renderFollowBar({
+      accountId: 'acct-ada',
+      followerCount: 1,
+      followers: toFollowerRows([{ followerId: 'acct-carol', handle: 'carol', assurance: 'unsigned-local' }]),
+      following: toFollowerRows([{ followerId: 'acct-bob', handle: 'bob', assurance: 'unsigned-local' }]),
+      followingCount: 1,
+    });
+    expect(html).toContain('data-follower="acct-carol"');
+    expect(html).toContain('data-following="acct-bob"');
+  });
+
+  it('an account that follows nobody says so, in the count', () => {
+    const html = renderFollowBar({ accountId: 'acct-ada', followerCount: 1, following: [], followingCount: 0 });
+    expect(html).toContain('data-following="0"');
+  });
+});
+
 describe('followBar — the follower LIST (M9 v292)', () => {
   it('names the follower by its handle, with the assurance its claim carried', () => {
     const row = toFollowerRow({ followerId: 'acct-bob', handle: 'bob', assurance: 'unsigned-local' })!;

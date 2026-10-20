@@ -56,6 +56,27 @@ export function toFollowerRow(entry: unknown): FollowerRow | null {
   };
 }
 
+/**
+ * v303 — one account of the OTHER direction: the account this one FOLLOWS.
+ *
+ * <p>The mapping is the other way round from `toFollowerRow`, and that is not a detail: a follow row
+ * carries BOTH ends of the edge, and the list of "who I follow" shows the FOLLOWEE while the list of
+ * "who follows me" shows the FOLLOWER. Using one mapping for both would render a list of the accounts
+ * somebody watches with the wrong names on them.
+ */
+export function toFollowingRow(entry: unknown): FollowerRow | null {
+  if (typeof entry !== 'object' || entry === null) return null;
+  const f = entry as { followerId?: unknown; followeeId?: unknown; handle?: unknown; assurance?: unknown };
+  if (typeof f.followeeId !== 'string' || f.followeeId.length === 0) return null;
+  const handle = typeof f.handle === 'string' && f.handle.length > 0 ? f.handle : null;
+  const assurance = typeof f.assurance === 'string' && f.assurance.length > 0 ? f.assurance : null;
+  return {
+    accountId: f.followeeId,
+    nameText: handle ? `@${handle}` : f.followeeId,
+    assurance,
+  };
+}
+
 /** The followers, in the order the service gave them. */
 export function toFollowerRows(entries: readonly unknown[]): FollowerRow[] {
   const rows: FollowerRow[] = [];
@@ -78,6 +99,15 @@ export interface FollowBarFacts {
   handle?: string | null;
   /** The followers themselves \u2014 the list, not just the count (v292). */
   followers?: FollowerRow[];
+  /**
+   * v303 \u2014 the accounts THIS account follows, and how many in all. The other direction of the edge.
+   *
+   * <p>It lives in the SAME bar as the followers, because two floating panels saying \u201cfollowers\u201d and
+   * \u201cfollowing\u201d side by side would be two panels a person has to read together to learn one thing: the
+   * shape of this account\u2019s social life.
+   */
+  following?: FollowerRow[];
+  followingCount?: number | null;
 }
 
 /**
@@ -103,10 +133,24 @@ export function renderFollowBar(facts: FollowBarFacts): string {
   const list = followers
     ? `<ul class="nexus-followers-list">\n${followers}\n</ul>`
     : '';
-  return `<div class="nexus-followers" data-followers="${count}">
+  // v303 — the other direction, in the SAME bar: the two lists answer ONE question (the shape of this
+  // account's social life) and two panels would make the reader assemble it themselves.
+  const following = (facts.following ?? [])
+    .map((f) => {
+      const text = f.assurance ? `${f.nameText} · ${f.assurance}` : f.nameText;
+      return `<li data-following="${escapeHtml(f.accountId)}"><a href="/u/${encodeURIComponent(f.accountId)}">${escapeHtml(text)}</a></li>`;
+    })
+    .join('\n');
+  const followingCount = facts.followingCount ?? (facts.following ?? []).length;
+  const followingLabel = followingCount === 1 ? '1 following' : `${followingCount} following`;
+  const followingList = following
+    ? `<div class="nexus-followers-sub">${escapeHtml(followingLabel)}</div><ul class="nexus-followers-list">\n${following}\n</ul>`
+    : '';
+  return `<div class="nexus-followers" data-followers="${count}" data-following="${followingCount}">
 <span class="nexus-followers-count">${escapeHtml(label)}</span>
 <a class="nexus-followers-action" href="${escapeHtml(href)}" title="follow this account from the Studio">Follow ${escapeHtml(who)}</a>
 ${list}
+${followingList}
 </div>`;
 }
 
@@ -129,6 +173,8 @@ export const FOLLOW_BAR_STYLES = `<style>
 .nexus-followers-action{color:#3b82f6;font-weight:600;text-decoration:none}
 .nexus-followers-action:hover{text-decoration:underline}
 .nexus-followers-list{list-style:none;margin:0;padding:0;flex-basis:100%;display:flex;flex-direction:column;gap:2px;max-height:120px;overflow:auto}
+.nexus-followers-sub{color:#9aa3b2;margin-top:4px}
+.nexus-followers-sub{color:#9aa3b2;margin-top:4px}
 .nexus-followers-list a{color:#cfd6e4;text-decoration:none}
 .nexus-followers-list a:hover{text-decoration:underline;color:#3b82f6}
 </style>`;

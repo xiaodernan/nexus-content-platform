@@ -1836,6 +1836,85 @@ try {
     await planPage.close();
   }
 
+  // ── §19 v303: the OTHER direction of the edge — who an account follows ───────────────────────────
+  // A follow is an edge with two ends, and “who watches me” and “who do I watch” are different questions —
+  // one query cannot answer both. The section makes BOTH ends exist and checks that the profile tells
+  // them apart.
+  {
+    const graphPage = await session.newPage('about:blank');
+    await graphPage.navigate(studioBase, { waitForSelector: '#nexus-canvas', waitMs: 2000 });
+    await waitForHydration(graphPage, 'the graph page to hydrate');
+
+    // The SECOND account’s id, read from the device rather than guessed.
+    await signInAs(graphPage, 'bob', 'the second account');
+    const bobRaw = await graphPage.evaluate("localStorage.getItem('nexus-current-account')");
+    const bobId = JSON.parse(String(bobRaw)).id;
+
+    // The FIRST account follows the SECOND — the other end of the edge. The sign-out happens through
+    // the account PANEL (the product's own way): clearing the record behind the panel's back leaves the
+    // panel showing the ACCOUNT state, and its create form never appears.
+    await signInAs(graphPage, 'ada', 'the first account');
+    await graphPage.navigate(`${studioBase}/?follow=${encodeURIComponent(bobId)}`, { waitForSelector: '#nexus-canvas', waitMs: 2000 });
+    await waitForHydration(graphPage, 'the follow page to hydrate');
+    const followed = await until(
+      async () => {
+        const s = await graphPage.evaluate("document.querySelector('[data-toolbar-status]')?.textContent ?? ''");
+        return s.includes('followed') ? s : false;
+      },
+      { tries: 120, gapMs: 500, label: 'the follow to land' },
+    );
+    check(
+      'the FIRST account follows the SECOND — the other end of the edge',
+      followed !== null,
+      `status: ${JSON.stringify(followed)}`,
+    );
+
+    // And the SECOND account follows the FIRST — so ONE account has both ends, and its page can carry
+    // both lists. (The earlier follow of the first account was UNDONE by §15, which proves the
+    // un-follow path — so at this point the first account really had no follower, and the PAGE was right
+    // and the CHECK was wrong. A proof that fails because it expected a state the run had deliberately
+    // undone is a proof that has to be fixed, not a product that does.)
+    await signInAs(graphPage, 'bob', 'the second account again');
+    await graphPage.navigate(`${studioBase}/?follow=${encodeURIComponent(accountRecord?.id ?? '')}`, { waitForSelector: '#nexus-canvas', waitMs: 2000 });
+    await waitForHydration(graphPage, 'the second follow page to hydrate');
+    const followedBack = await until(
+      async () => {
+        const s = await graphPage.evaluate("document.querySelector('[data-toolbar-status]')?.textContent ?? ''");
+        return s.includes('followed') ? s : false;
+      },
+      { tries: 120, gapMs: 500, label: 'the follow back to land' },
+    );
+    check(
+      'and the SECOND follows the FIRST — so one account has BOTH ends of the edge',
+      followedBack !== null,
+      `status: ${JSON.stringify(followedBack)}`,
+    );
+
+    // The second account’s profile: it has a FOLLOWER now.
+    const bobProfile = await (await fetch(`${studioBase}/u/${encodeURIComponent(bobId)}`)).text();
+    check(
+      'the followed account’s profile says it has ONE follower, and names them',
+      bobProfile.includes('data-followers="1"') && bobProfile.includes(`data-follower="${accountRecord?.id}"`),
+      `the profile carries it: ${bobProfile.includes('data-followers="1"')}`,
+    );
+
+    // And the first account’s profile: it FOLLOWS one.
+    const adaProfile = await (await fetch(`${studioBase}/u/${encodeURIComponent(accountRecord?.id)}`)).text();
+    check(
+      'and the following account’s profile says it FOLLOWS one, and names it',
+      adaProfile.includes('data-following="1"') && adaProfile.includes(`data-following="${bobId}"`),
+      `the profile carries it: ${adaProfile.includes('data-following="1"')}`,
+    );
+    check(
+      'and the two directions are told APART on the page',
+      adaProfile.includes('data-follower=') && adaProfile.includes('data-following='),
+      // v303 — the bar's own HTML, because "the page carries both lists" says nothing about WHICH
+      // list is missing.
+      `followers: ${(adaProfile.match(/data-follower=/g) ?? []).length} · following: ${(adaProfile.match(/data-following=/g) ?? []).length} · bar: ${(adaProfile.match(/<div class="nexus-followers"[^>]*>/) ?? ['none'])[0]}`,
+    );
+    await graphPage.close();
+  }
+
   // ── §10 teardown ─────────────────────────────────────────────────────────────────────────────────
   await page.close();
   await session.close();

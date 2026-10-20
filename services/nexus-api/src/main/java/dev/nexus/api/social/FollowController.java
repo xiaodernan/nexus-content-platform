@@ -1,6 +1,7 @@
 package dev.nexus.api.social;
 
 import dev.nexus.api.social.FollowDtos.Follow;
+import dev.nexus.api.social.FollowDtos.FollowingAnswer;
 import dev.nexus.api.social.FollowDtos.FollowAnswer;
 import dev.nexus.api.social.FollowDtos.FollowClaim;
 import dev.nexus.api.social.FollowDtos.FollowRequest;
@@ -61,13 +62,40 @@ public class FollowController {
         return ResponseEntity.ok(toWire(service.unfollow(accountId, claim)));
     }
 
-    /** Who follows that account, and whether the viewer is among them. */
+    /**
+     * Who follows that account, and whether the viewer is among them.
+     *
+     * <p>v303 — and the OTHER direction of the edge, with `follower=`: the accounts an account FOLLOWS.
+     * The two directions are different questions ("who watches me" and "who do I watch"), and one query
+     * cannot answer both — which is why the finder has one name per direction.
+     */
     @GetMapping
-    public ResponseEntity<FollowAnswer> list(
-            @RequestParam(name = "accountId") String accountId,
+    public ResponseEntity<?> list(
+            @RequestParam(name = "accountId", required = false) String accountId,
+            @RequestParam(name = "follower", required = false) String followerAccountId,
             @RequestParam(name = "viewer", required = false) String viewerAccountId,
             @RequestParam(name = "limit", required = false) Integer limit) {
         int asked = limit == null ? FollowService.DEFAULT_FOLLOW_LIMIT : limit;
+        if (followerAccountId != null && !followerAccountId.isBlank()) {
+            FollowService.FollowingResult result = service.followingOf(followerAccountId, asked);
+            List<Follow> following = result.following().stream()
+                    .map(row -> new Follow(
+                            row.getFollowerAccountId(),
+                            row.getFolloweeAccountId(),
+                            row.getCreatedAt().toEpochMilli(),
+                            row.getFollowerHandle(),
+                            row.getFollowerAssurance()))
+                    .toList();
+            return ResponseEntity.ok(new FollowingAnswer(
+                    result.accountId(),
+                    result.followingCount(),
+                    following));
+        }
+        if (accountId == null || accountId.isBlank()) {
+            return ResponseEntity.badRequest().body(Map.of(
+                    "error", "invalid-follow",
+                    "message", "the accountId parameter is missing (or the follower parameter, for the other direction)"));
+        }
         return ResponseEntity.ok(toWire(service.followersOf(accountId, viewerAccountId, asked)));
     }
 

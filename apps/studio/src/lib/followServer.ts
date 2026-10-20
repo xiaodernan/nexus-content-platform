@@ -19,6 +19,19 @@ export interface FollowerEntry {
   assurance?: string | null;
 }
 
+/**
+ * What one read of the FOLLOWING list answered — the accounts an account follows, the other
+ * direction of the edge.
+ */
+export interface FollowingAnswer {
+  ok: boolean;
+  /** The accounts the account follows, newest first. */
+  following: FollowerEntry[];
+  /** How many in all — the service's count, which can be larger than the window. */
+  count: number;
+  reason?: string;
+}
+
 /** What one read of the followers answered. */
 export interface FollowersAnswer {
   ok: boolean;
@@ -79,6 +92,47 @@ export async function readFollowers(
       ok: false,
       followerCount: 0,
       followers: [],
+      reason: `nexus-api unreachable at ${apiBase}: ${error instanceof Error ? error.message : String(error)}`,
+    };
+  }
+}
+
+/**
+ * READ the accounts an account follows — the other direction of the edge.
+ *
+ * <p>The two directions are different questions ("who watches me" and "who do I watch"), and the service
+ * answers them with different finders — one query cannot answer both.
+ */
+export async function readFollowing(
+  accountId: string,
+  fetchImpl: FetchLike = fetch as FetchLike,
+): Promise<FollowingAnswer> {
+  const apiBase = nexusApiBase();
+  try {
+    const res = await fetchImpl(`${apiBase}/follows?follower=${encodeURIComponent(accountId)}`, {
+      headers: { accept: 'application/json' },
+    });
+    if (!res.ok) {
+      return { ok: false, following: [], count: 0, reason: `the service's follows door answered HTTP ${res.status}` };
+    }
+    const parsed: unknown = await res.json().catch(() => null);
+    if (!parsed || typeof parsed !== 'object') {
+      return { ok: false, following: [], count: 0, reason: 'the service answered its follows door with something that is not JSON' };
+    }
+    const body = parsed as { following?: unknown; followingCount?: unknown };
+    if (!Array.isArray(body.following)) {
+      return { ok: false, following: [], count: 0, reason: 'the service answered its follows door with no list' };
+    }
+    return {
+      ok: true,
+      following: body.following as FollowerEntry[],
+      count: typeof body.followingCount === 'number' ? body.followingCount : body.following.length,
+    };
+  } catch (error) {
+    return {
+      ok: false,
+      following: [],
+      count: 0,
       reason: `nexus-api unreachable at ${apiBase}: ${error instanceof Error ? error.message : String(error)}`,
     };
   }

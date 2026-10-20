@@ -3,8 +3,8 @@ import { docToSvg, svgToDataUri } from '@/lib/thumbnail';
 import { renderExploreUnavailable } from '@/lib/explore';
 import { buildGalleryItems } from '@/lib/gallery';
 import { profileFactsOf, renderProfileHtml } from '@/lib/profile';
-import { readFollowers } from '@/lib/followServer';
-import { FOLLOW_BAR_STYLES, injectFollowBar, renderFollowBar, toFollowerRows } from '@/lib/followBar';
+import { readFollowers, readFollowing } from '@/lib/followServer';
+import { FOLLOW_BAR_STYLES, injectFollowBar, renderFollowBar, toFollowerRows, toFollowingRow } from '@/lib/followBar';
 import { readTips } from '@/lib/tipServer';
 import { readPlans } from '@/lib/planServer';
 import { injectPlanBar, renderPlanBar, toPlanRows, PLAN_BAR_STYLES } from '@/lib/planBar';
@@ -87,6 +87,10 @@ export async function GET(request: Request, { params }: { params: Promise<{ acco
       }) + TIP_BAR_STYLES
     : '';
   const followers = await readFollowers(accountId, null);
+  // v303 — the OTHER direction of the edge: the accounts THIS account follows. It is read independently,
+  // and a list that could not be read leaves its half of the bar out — the same rule the followers list
+  // keeps.
+  const following = await readFollowing(accountId);
   const bar = followers.ok
     ? renderFollowBar({
         accountId,
@@ -95,6 +99,11 @@ export async function GET(request: Request, { params }: { params: Promise<{ acco
         // v292 — the LIST, not just the count: a follower is a LINK to their own profile, because an
         // account id is an address and a list of addresses with no links is a list nobody can act on.
         followers: toFollowerRows(followers.followers),
+        // v303 — and the other direction, in the same bar.
+        // v303 — the OTHER mapping: this list names the accounts the account FOLLOWS, and a follow row
+        // carries both ends of the edge — so the list shows the FOLLOWEE, not the follower.
+        following: following.ok ? following.following.map(toFollowingRow).filter((r): r is NonNullable<typeof r> => r !== null) : [],
+        followingCount: following.ok ? following.count : null,
       }) + FOLLOW_BAR_STYLES
     : '';
   return html(

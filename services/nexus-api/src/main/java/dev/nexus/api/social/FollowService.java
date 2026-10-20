@@ -126,6 +126,28 @@ public class FollowService {
     }
 
     /**
+     * v303 — the accounts an account FOLLOWS, newest first, and how many in all.
+     *
+     * <p>The other direction of the edge, and a DIFFERENT question from "who follows this one": the
+     * repository has one finder per direction, because one query cannot answer both. The rows are called
+     * `following` and not `followers` here, because a list of the accounts somebody watches is not a list
+     * of their followers, and a wire field with the wrong name is a small lie that grows.
+     */
+    @Transactional(readOnly = true)
+    public FollowingResult followingOf(String followerAccountId, int limit) {
+        String follower = requireAccount(followerAccountId, "a follow needs an account");
+        int asked = limit <= 0 ? DEFAULT_FOLLOW_LIMIT : Math.min(limit, MAX_FOLLOW_LIMIT);
+        List<FollowEntry> rows = repository.findByFollowerAccountIdOrderByCreatedAtDesc(follower, PageRequest.of(0, asked));
+        return new FollowingResult(follower, repository.countByFollowerAccountId(follower), rows);
+    }
+
+    /**
+     * v303 — the service's own result for the OTHER direction of the edge.
+     */
+    public record FollowingResult(String accountId, long followingCount, List<FollowEntry> following) {
+    }
+
+    /**
      * WHO follows an account, and whether the VIEWER is among them.
      *
      * <p>{@code viewerAccountId} may be null: a reader who is nobody is a reader, and the counts do not
