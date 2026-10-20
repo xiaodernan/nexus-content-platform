@@ -9,7 +9,6 @@ import {
 import { currentUserOrNull } from '@/server/domain/session';
 import { buildProjectExport } from '@/server/domain/export';
 import { clientIp, getRateLimiter, rateKey } from '@/server/security/rateLimit';
-import { isUuid } from '@/server/domain/ids';
 import { jsonError } from '@/server/http';
 
 /**
@@ -49,13 +48,10 @@ export async function GET(
     return jsonError(429, 'rate_limited', { message: '下载太频繁', retryAfterMs: rl.retryAfterMs });
   }
 
-  // 形状不对的 id 在读库之前就按"没有这个条目"处理：`eq(marketplace_items.id, …)` 撞 22P02
-  // 会翻成 500。同一口径写在 domain/ids.ts（`updateMarketplaceItem` / `deleteMarketplaceItem`
-  // 已经在域函数里挡，缺的是 `getMarketplaceItem` 这条读路径——挡在路由是这一片的临时位置）
-  if (!isUuid(id)) return jsonError(404, 'not_found', { message: '没有这个条目，或它已经下架' });
-
   const item = await getMarketplaceItem(id);
-  // 不存在与已下架给同一个答案（404）：403 会泄露"这个 id 存在但你看不到"
+  // 不存在、已下架、以及**形状根本不对的 id** 给同一个答案（404）：403 会泄露"这个 id 存在但你看不到"。
+  // 形状那道门在 `getMarketplaceItem` 里（domain/ids.ts）——这里曾经临时挡过一道，收进域层后
+  // 详情、预览图、交付三条读路共用同一处，不必每条路由各抄一遍
   if (!item) return jsonError(404, 'not_found', { message: '没有这个条目，或它已经下架' });
   const user = await currentUserOrNull();
   const isCreator = !!user && item.creatorId === user.id;

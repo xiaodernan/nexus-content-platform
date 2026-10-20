@@ -426,14 +426,17 @@ vitest 直接崩了而我却把 stdout 丢进了 `/dev/null`，于是"5 遍"其�
   装配的 `beforeAll` 与清理的 `afterAll` 各写自己的时限（120s / 60s）：默认 30s 在机器忙时会把装配判死，
   而 hook 超时**不取消**那段异步装配——它继续插行，清理撞在半套 `projects` 外键上（23503），
   14 条全成 skipped：那是"没跑"，不是"跑红了"。
-- id 形状校验（横切，`domain/ids.ts` 的 `isUuid`）：`apps/web/test/id-shape.integration.test.ts` 18 条。
+- id 形状校验（横切，`domain/ids.ts` 的 `isUuid`）：`apps/web/test/id-shape.integration.test.ts` 27 条。
   钉的不是"某个端点不 500"，是**一条横切纪律**：从路由进来的 id 大多是路径参数，Next 只保证它们是
   字符串；非 UUID 的 id 一律按"不存在"处理（域函数返回 null/false，路由只剩 404/409 一种说法），
   与 v1 项目详情同一口径（"不在你名下或已被删除——两者给同一个答案"，没有"存在但不给你看"的
-  可分辨差别，§159）。覆盖九个家族：projects（`projectBelongsTo` 等四个助手，32 条路由走这道门）、
+  可分辨差别，§159）。覆盖十个家族：projects（`projectBelongsTo` 等四个助手，32 条路由走这道门）、
   moderation（`resolveCase`——这也是 8a6528c 那片留下的缺口）、memories、branches、characters、
   snapshots、agent-tasks（`plannedTask`：`/agent/draft` 的请求体只校验 taskId 是"非空串"）、
-  api-tokens、annotations。两处本地正则（assets.ts 的 UUID_SHAPE、agent-tasks.ts 的 UUID_LIKE）
+  api-tokens、annotations、marketplace（2026-10-21 补的第十个：`getMarketplaceItem` 挡在域层，
+  详情 GET / 预览图 / 交付三条读路共用；`purchaseMarketplaceItem` 与 `hasPurchased`、
+  `incrementDownloadCount` 同理。修前实测 7 条红——四个域助手 + 详情 + 预览各以 22P02 抛，
+  购买 POST 是 500；交付门当初那道临时**路由级** `isUuid` 随之删掉）。两处本地正则（assets.ts 的 UUID_SHAPE、agent-tasks.ts 的 UUID_LIKE）
   统一到共享助手——"两处词表迟早一份严一份松"。zod 的 RFC 4122 形状比手抄正则严一点
   （版本位/变体位），"像 UUID 但不是"的输入也按不存在处理；真实 id（`defaultRandom`）不受影响。
   核对过**安全**的入口也写进注释：interact（publicationId 从 `publicRefByPath` 的库行来）、

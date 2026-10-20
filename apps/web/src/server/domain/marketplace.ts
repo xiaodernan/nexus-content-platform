@@ -110,6 +110,9 @@ export async function listMarketplaceItems(filter: MarketplaceItemFilter) {
 }
 
 export async function getMarketplaceItem(itemId: string) {
+  // 形状不对的 id 按"没有这个物品"处理：eq(marketplaceItems.id, …) 会撞 22P02 变 500（domain/ids.ts）。
+  // 详情、预览图、内容交付三条读路共用这一处——此前交付门在路由里各挡了一道，另外两条直接 500
+  if (!isUuid(itemId)) return null;
   const db = getDb();
 
   const [item] = await db
@@ -307,6 +310,8 @@ export const MARKETPLACE_DOWNLOAD_LIMIT_PER_HOUR = 60;
  * 那让"数字"与"交付过的次数"变成两回事，已随 #120 之后界面改走交付门一并删掉。
  */
 export async function incrementDownloadCount(itemId: string) {
+  // 形状不对的 id 当作"没有行被改"：返回 0 与"条目不存在/已下架"同义（domain/ids.ts）
+  if (!isUuid(itemId)) return 0;
   const db = getDb();
 
   const [updated] = await db
@@ -341,6 +346,8 @@ export interface PurchaseResult {
 }
 
 export async function purchaseMarketplaceItem(input: PurchaseMarketplaceItemInput): Promise<PurchaseResult> {
+  // 形状不对的 id 与"不存在或已下架"同一句：事务都不用开，路由照旧翻成 404（domain/ids.ts）
+  if (!isUuid(input.itemId)) throw new Error('Item not found or deleted');
   const db = getDb();
 
   try {
@@ -448,6 +455,9 @@ export async function purchaseMarketplaceItem(input: PurchaseMarketplaceItemInpu
  * 检查某个用户是否已经购买了某件物品（用于下载端点的鉴权）。
  */
 export async function hasPurchased(itemId: string, userId: string): Promise<boolean> {
+  // 形状不对的 id 按"没买过"处理（domain/ids.ts）：交付门只会因此走"未购买"那条路，
+  // 而不是把整个请求变成 500
+  if (!isUuid(itemId)) return false;
   const db = getDb();
 
   const [row] = await db

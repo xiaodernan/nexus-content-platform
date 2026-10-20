@@ -5,6 +5,9 @@ import { POST as acceptDraft } from '../src/app/api/projects/[projectId]/agent/d
 import { POST as resolveModeration } from '../src/app/api/admin/moderation/[caseId]/route';
 import { POST as revokeToken } from '../src/app/api/account/api-tokens/[tokenId]/revoke/route';
 import { DELETE as removeAnnotation } from '../src/app/api/annotations/[annotationId]/route';
+import { GET as getMarketItem } from '../src/app/api/marketplace/[id]/route';
+import { GET as getMarketPreview } from '../src/app/api/marketplace/[id]/preview/route';
+import { POST as purchaseMarketItem } from '../src/app/api/marketplace/[id]/purchase/route';
 import { CSRF_COOKIE, CSRF_HEADER } from '../src/server/security/csrf';
 import { SESSION_COOKIE } from '../src/server/domain/session';
 import { isUuid } from '../src/server/domain/ids';
@@ -13,20 +16,29 @@ import { plannedTask } from '../src/server/domain/agent-tasks';
 import { revokeApiToken } from '../src/server/domain/api-tokens';
 import { deleteAnnotation } from '../src/server/domain/annotations';
 import { resolveCase } from '../src/server/domain/moderation';
+import {
+  createMarketplaceItem,
+  getMarketplaceItem,
+  hasPurchased,
+  incrementDownloadCount,
+  purchaseMarketplaceItem,
+} from '../src/server/domain/marketplace';
 import { getDb } from '../src/server/db/client';
-import { projects, sessions, users } from '../src/server/db/schema';
+import { marketplaceItems, projects, sessions, users } from '../src/server/db/schema';
 
 /**
  * 域层的 id 形状校验：非 UUID 的 id 一律按"不存在"处理，不再让 Postgres 的
  * 22P02（invalid input syntax for type uuid）在界面上变成 500。
  *
  * 从路由进来的 id 大多是路径参数（[projectId]、[caseId]…），Next 只保证它们是字符串。
- * 横向审计发现九个家族的域助手曾经是裸 eq(id, …)：projects / moderation / memories /
+ * 横向审计发现十个家族的域助手曾经是裸 eq(id, …)：projects / moderation / memories /
  * branches / characters / snapshots（688a515 那片）+ agent-tasks 的 plannedTask
- * （/agent/draft 入口）+ api-tokens 的吊销与 annotations 的删除（本片收尾）——
+ * （/agent/draft 入口）+ api-tokens 的吊销与 annotations 的删除 + marketplace 的读与买
+ * （2026-10-21 这片：`getMarketplaceItem` / `hasPurchased` / `purchaseMarketplaceItem` /
+ * `incrementDownloadCount` 四个，交付门当初是在路由里临时挡的，现在收进域层）——
  * 这类请求此前整条 500。资产域（assets.ts）与 agent-tasks.ts 原先各自抄了一份正则
  * （UUID_SHAPE / UUID_LIKE），现在统一到 `domain/ids.ts` 的 isUuid，
- * 现在统一到 `domain/ids.ts` 的 isUuid，那句"不存在"的说法只剩一种：
+ * 那句"不存在"的说法只剩一种：
  * 与 v1 项目详情同一口径（"不在你名下或已被删除——两者都给同一个答案"）。
  *
  * 断言全部按**修好后**的行为写：域层直调返回 false / { ok: false }，
@@ -74,9 +86,12 @@ const resolveUrl = (caseId: string): string => `http://test.local/api/admin/mode
 
 let admin: { id: string };
 let creator: { id: string };
+let buyer: { id: string };
 let adminToken: string;
 let creatorToken: string;
+let buyerToken: string;
 let realProjectId: string;
+let realItemId: string;
 
 beforeAll(async () => {
   const db = getDb();
@@ -86,21 +101,41 @@ beforeAll(async () => {
     .values([
       { displayName: '形状-审核员', email: `idshape+admin+${stamp}@nexus.test`, role: 'admin' },
       { displayName: '形状-作者', email: `idshape+creator+${stamp}@nexus.test`, role: 'creator' },
+      { displayName: '形状-买家', email: `idshape+buyer+${stamp}@nexus.test`, role: 'creator' },
     ])
     .returning({ id: users.id });
   admin = rows[0]!;
   creator = rows[1]!;
+  buyer = rows[2]!;
   adminToken = await identityFor(admin.id);
   creatorToken = await identityFor(creator.id);
+  buyerToken = await identityFor(buyer.id);
   realProjectId = (await createProject(creator.id, { name: `形状-真项目 ${stamp}`, kind: 'website' })).id;
-});
+  // 市场那一家要有真条目：正对照（形状合法的 id 一路走到数据库）与"守卫没挡住正常路径"
+  // 都打在这条上。价格 0——`purchaseMarketplaceItem` 只对 pricePaid>0 写扣点流水，
+  // 而账本只追加（DELETE 被触发器挡），留一行扣点就没法在 afterAll 里删掉买家。
+  realItemId = (
+    await createMarketplaceItem({
+      creatorId: creator.id,
+      itemType: 'template',
+      title: `形状-真条目 ${stamp}`,
+      visibility: 'public',
+      priceCredits: 0,
+      sourceProjectId: realProjectId,
+    })
+  ).id;
+}, 120_000);
 
 afterAll(async () => {
   const db = getDb();
+  // 条目外键（购买、分成、审计）cascade 到条目自己，先摘条目再摘人；
+  // projects 对 owner 是 restrict，得先删项目
+  await db.delete(marketplaceItems).where(eq(marketplaceItems.creatorId, creator.id));
   await db.delete(projects).where(eq(projects.ownerId, creator.id));
+  await db.delete(users).where(eq(users.id, buyer.id));
   await db.delete(users).where(eq(users.id, creator.id));
   await db.delete(users).where(eq(users.id, admin.id));
-});
+}, 60_000);
 
 describe('isUuid：形状校验只此一处', () => {
   it('真形状的 UUID 都认（含大写与 nil）', () => {
@@ -269,5 +304,98 @@ describe('域层与路由层：api-tokens 吊销与 annotations 删除（id 形�
   it('正对照：合法 UUID 但不存在 → 同样的 not-found / false（形状合法的那条路照旧走到数据库再答"没有"）', async () => {
     await expect(revokeApiToken('00000000-0000-4000-8000-000000000009', creator.id)).resolves.toMatchObject({ ok: false, reason: 'not-found' });
     await expect(deleteAnnotation(creator.id, '00000000-0000-4000-8000-000000000009')).resolves.toBe(false);
+  });
+});
+
+/**
+ * 第十个家族：marketplace 的**读与买**。`[id]` 是路径参数，四条门（详情、预览图、购买、交付）
+ * 都把它原样交给域函数，而域里只有 `updateMarketplaceItem` / `deleteMarketplaceItem` 挡了形状——
+ * 读路径全是裸 `eq(marketplace_items.id, …)`。2026-10-21 实测的三种走法：
+ * - `GET /api/marketplace/not-a-uuid/preview` → 500 空报文（浏览器里预览图就是一个碎图标）；
+ * - `GET /api/marketplace/not-a-uuid` 与 `POST …/purchase` → 处理函数直接抛 PostgresError；
+ * - 交付门 `GET …/content` 当时在**路由里**临时挡了一道（ADR-0047 记了"挡错位置"这句欠账）。
+ *
+ * 这一片把门收进域层：四个域助手按"查不到"回答（null / false / 0 / 与不存在同一句 throw），
+ * 交付门那道临时 `isUuid` 随之删掉——同一件事只剩一处实现，路由侧就只剩 404 一种说法。
+ * （`update`/`delete` 那两条仍然 throw、路由仍然回 400，是另一处还没收敛的口径差别，
+ * 已被 `marketplace-update.integration.test.ts` 钉住，另作一片再动。）
+ */
+const marketUrl = (id: string, suffix = ''): string =>
+  `http://test.local/api/marketplace/${id}${suffix}`;
+
+describe('域层与路由层：marketplace 的读与买（门收进域层，交付门那道临时 isUuid 同时删掉）', () => {
+  it('getMarketplaceItem 对非 UUID → null，不抛（详情、预览、交付三条读路共用它）', async () => {
+    await expect(getMarketplaceItem('not-a-uuid')).resolves.toBeNull();
+  });
+
+  it('hasPurchased 对非 UUID → false，不抛', async () => {
+    await expect(hasPurchased('not-a-uuid', buyer.id)).resolves.toBe(false);
+  });
+
+  it('incrementDownloadCount 对非 UUID → 0（没有行被 +1），不抛', async () => {
+    await expect(incrementDownloadCount('not-a-uuid')).resolves.toBe(0);
+  });
+
+  it('purchaseMarketplaceItem 对非 UUID → 与"不存在或已下架"同一句，不是 Postgres 报错', async () => {
+    await expect(purchaseMarketplaceItem({ buyerId: buyer.id, itemId: 'not-a-uuid' })).rejects.toThrow(
+      'Item not found or deleted',
+    );
+  });
+
+  it('GET /api/marketplace/not-a-uuid → 404（修复前处理函数直接抛 22P02）', async () => {
+    const res = await getMarketItem(
+      new Request(marketUrl('not-a-uuid')),
+      { params: Promise.resolve({ id: 'not-a-uuid' }) },
+    );
+    expect(res.status).toBe(404);
+  });
+
+  it('GET /api/marketplace/not-a-uuid/preview → 404（修复前实测 500 空报文：界面上是个碎图标）', async () => {
+    const res = await getMarketPreview(
+      new Request(marketUrl('not-a-uuid', '/preview')),
+      { params: Promise.resolve({ id: 'not-a-uuid' }) },
+    );
+    expect(res.status).toBe(404);
+  });
+
+  it('POST /api/marketplace/not-a-uuid/purchase → 404（修复前 purchase 的裸 eq() 撞 22P02 变 500）', async () => {
+    const res = await purchaseMarketItem(
+      new Request(marketUrl('not-a-uuid', '/purchase'), {
+        method: 'POST',
+        headers: asUser(buyerToken, true),
+      }),
+      { params: Promise.resolve({ id: 'not-a-uuid' }) },
+    );
+    expect(res.status).toBe(404);
+    expect((await res.json()).error).toBe('not_found');
+  });
+
+  it('正对照：形状合法的条目照旧读得到、买得成、数得上（守卫没挡住正常路径）', async () => {
+    expect(await getMarketplaceItem(realItemId)).not.toBeNull();
+    const res = await getMarketItem(
+      new Request(marketUrl(realItemId)),
+      { params: Promise.resolve({ id: realItemId }) },
+    );
+    expect(res.status).toBe(200);
+
+    expect(await hasPurchased(realItemId, buyer.id)).toBe(false);
+    const purchase = await purchaseMarketplaceItem({ buyerId: buyer.id, itemId: realItemId });
+    expect(purchase.pricePaid).toBe(0);
+    expect(await hasPurchased(realItemId, buyer.id)).toBe(true);
+
+    expect(await incrementDownloadCount(realItemId)).toBe(1);
+  });
+
+  it('正对照：合法 UUID 但条目不存在 → 与形状不对的同一个答案', async () => {
+    const missing = '00000000-0000-4000-8000-000000000009';
+    expect(await getMarketplaceItem(missing)).toBeNull();
+    await expect(purchaseMarketplaceItem({ buyerId: buyer.id, itemId: missing })).rejects.toThrow(
+      'Item not found or deleted',
+    );
+    const res = await getMarketItem(
+      new Request(marketUrl(missing)),
+      { params: Promise.resolve({ id: missing }) },
+    );
+    expect(res.status).toBe(404);
   });
 });

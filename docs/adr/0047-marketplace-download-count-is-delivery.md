@@ -100,3 +100,20 @@
   3. `MarketplaceItemRow` 的下载走 `URL.createObjectURL` + 延迟 60s 回收（与 `ExportPanel` 同一寸）；
      同期发现 `apps/web/src/studio/GameCodeExport.tsx:50-58` 在 click 之后**立即**回收对象 URL，
      疑似拿到 0 字节文件。那是另一条链的界面，需要自己的见证，不在这里顺手改。
+
+## 2026-10-21 补记（#147）：欠账 2 已还——形状门收进域层，路由那道临时门删掉
+
+同一天的第二片，落到域层而不是三条路由各抄一遍：
+
+- `getMarketplaceItem` 形状不对 → `null`（详情 GET、预览图、交付三条读路共用这一处）；
+  `hasPurchased` → `false`；`incrementDownloadCount` → `0`（没有行被 +1）；
+  `purchaseMarketplaceItem` → 与"不存在或已下架"**同一句** throw（路由照旧翻成 404，不新造一句）。
+- 交付门里那道临时 `isUuid` 与它的 import 一并删掉：`getMarketplaceItem` 返回 null 之后，
+  下面那句 `if (!item) return 404` 已经把形状不对的 id 和其它"没有"收进同一个答案。
+- 见证补进 `id-shape.integration.test.ts`（第十个家族，18 → 27 条）：**修前先跑，7 条红**——
+  四个域助手与详情 GET、预览 GET 各以 `PostgresError 22P02` 失败，购买 POST 断言 `expected 500 to be 404`；
+  修后 27/27 绿，市场七套件回归 87/87 绿。正对照钉住"真条目照旧读得到、买得成（价格 0 不写扣点流水，
+  买家因此删得掉——账本只追加）、数得上"，防的是守卫把正常路径一起挡了。
+- 仍不干净的一处：`PATCH` / `DELETE` 在域函数里 throw、路由 catch 成 **400**（"不存在"被报成正文错误，
+  且回显的是内部那句话）。`marketplace-update.integration.test.ts` 已按 400 钉住，改口径要连同那两条一起动，
+  另作一片。
