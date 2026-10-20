@@ -1,6 +1,8 @@
 import { readPublication } from '@/lib/publishServer';
 import { renderArtifactHtml, renderArtifactMissing, renderArtifactUnavailable } from '@/lib/artifact';
 import { readRemixedFrom } from '@/lib/lineage';
+import { readAuditTrail } from '@/lib/auditServer';
+import { historyRowsOf, injectHistory, renderHistoryHtml } from '@/lib/history';
 
 /**
  * M7 v196 (ADR 0016 amendment 196): `/p/{projectId}` — a published project at a URL a PERSON can open.
@@ -23,18 +25,34 @@ import { readRemixedFrom } from '@/lib/lineage';
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
+/**
+ * v280 — how many trail entries the artifact page reads. The service caps at 100; the page asks for the
+ * cap, because a publication's own history can be anywhere in a trail that only ever grows.
+ */
+const HISTORY_LIMIT = 100;
+
 export async function GET(_request: Request, { params }: { params: Promise<{ projectId: string }> }): Promise<Response> {
   const { projectId } = await params;
-  const answer = await readPublication(decodeURIComponent(projectId));
+  const decoded = decodeURIComponent(projectId);
+  const answer = await readPublication(decoded);
 
   if (answer.ok) {
     const doc = answer.document as Record<string, unknown> | null | undefined;
     const remixedFrom = readRemixedFrom(doc);
-    return new Response(renderArtifactHtml(
-      { projectId: decodeURIComponent(projectId), title: answer.title, version: answer.version, publishedAt: answer.publishedAt, document: answer.document },
+    const page = renderArtifactHtml(
+      { projectId: decoded, title: answer.title, version: answer.version, publishedAt: answer.publishedAt, document: answer.document },
       answer.owner ?? null,
       remixedFrom,
-    ), {
+    );
+    // v280 — the publication's OWN history. The trail is read server-side (the same hop the publication
+    // itself was read through), and a FAILED read does NOT take the page down: an artifact that cannot show
+    // its history is still an artifact, and a page that 500s because the trail was unreachable would make
+    // the publication unreachable for a reason that has nothing to do with it.
+    const trail = await readAuditTrail(HISTORY_LIMIT);
+    const history = trail.ok
+      ? renderHistoryHtml(historyRowsOf(trail.entries ?? [], decoded), trail.carried)
+      : '';
+    return new Response(injectHistory(page, history), {
       status: 200,
       headers: { 'content-type': 'text/html; charset=utf-8', 'cache-control': 'no-store' },
     });
