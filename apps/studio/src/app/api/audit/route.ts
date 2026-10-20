@@ -1,0 +1,60 @@
+import { NextResponse } from 'next/server';
+
+import { nexusApiBase } from '@/lib/publishServer';
+
+/**
+ * M9 v272 (ADR 0016 amendment 272): `/api/audit` — this Studio's door onto the service's audit trail.
+ *
+ * The service's address is server-side (the same hop `/api/publish` performs), so the browser never learns
+ * where `services/nexus-api` lives. What crosses the door is the SERVICE'S OWN answer — `{ ok, entries,
+ * count, limit }` — not a re-shaping of it: the trail's order, its count and its cap are all the service's
+ * facts, and a route that re-sorted or re-counted them would be reporting something the service never said.
+ *
+ * The route is `force-dynamic` because the answer is a database read; caching it would be storing a
+ * system of record's contents in a place that cannot be invalidated by the next write.
+ */
+export const runtime = 'nodejs';
+export const dynamic = 'force-dynamic';
+
+/** The default number of entries the panel asks for. */
+const DEFAULT_LIMIT = 20;
+
+/** The most the panel asks for. The service clamps to its own 100; the route refuses a silly ask up front. */
+const MAX_LIMIT = 100;
+
+/** How long the service may take. The trail is a small read; a hung one should not hang the panel. */
+const CALL_TIMEOUT_MS = 5000;
+
+function html(reason: string, status: number): NextResponse {
+  return NextResponse.json({ ok: false, reason }, { status });
+}
+
+export async function GET(request: Request): Promise<NextResponse> {
+  const raw = new URL(request.url).searchParams.get('limit');
+  const parsed = raw === null ? DEFAULT_LIMIT : Number.parseInt(raw, 10);
+  const asked = Number.isFinite(parsed) ? Math.min(Math.max(parsed, 1), MAX_LIMIT) : DEFAULT_LIMIT;
+
+  try {
+    const res = await fetch(`${nexusApiBase()}/audit?limit=${encodeURIComponent(String(asked))}`, {
+      headers: { accept: 'application/json' },
+      signal: AbortSignal.timeout(CALL_TIMEOUT_MS),
+    });
+    if (!res.ok) {
+      return html(`the service's audit door answered HTTP ${res.status}`, 503);
+    }
+    let body: unknown;
+    try {
+      body = await res.json();
+    } catch {
+      return html('the service answered its audit door with something that is not JSON', 503);
+    }
+    if (typeof body !== 'object' || body === null || !Array.isArray((body as { entries?: unknown }).entries)) {
+      return html('the service answered its audit door with no entries at all', 503);
+    }
+    const { entries, count, limit } = body as { entries: unknown; count?: unknown; limit?: unknown };
+    return NextResponse.json({ ok: true, entries, count, limit });
+  } catch (error) {
+    const reason = error instanceof Error ? error.message : String(error);
+    return html(reason, 503);
+  }
+}

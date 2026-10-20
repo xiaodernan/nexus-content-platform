@@ -2,6 +2,7 @@
 import { useEffect, useState } from 'react';
 import { renderPreviewHtml } from '@/lib/preview';
 import { exportCanvasPng, exportHtml, exportJson, slug } from '@/lib/export';
+import { readTrail, type TrailAnswer } from '@/lib/auditLane';
 import { listPublished, probePublish, publishProject, unpublish, type PublishLaneListing, type PublishLaneProbe } from '@/lib/publishLane';
 import { remixProject } from '@/lib/remixLane';
 import { useStudio, type Tool } from '@/lib/store';
@@ -75,6 +76,9 @@ export default function Toolbar() {
       // A publish can also be the first thing that discovers the service went away.
       if (!answer.ok) setService(await probePublish());
       else if (showPublished) await refreshPublished();
+      // v272 — and an open trail re-reads too: the publish just wrote an entry, and a panel that showed the
+      // trail from before it would be a panel that did not know what just happened.
+      if (showTrail) await refreshTrail();
     } finally {
       setPublishing(false);
     }
@@ -90,6 +94,28 @@ export default function Toolbar() {
   const [showPublished, setShowPublished] = useState(false);
   const [published, setPublished] = useState<PublishLaneListing | null>(null);
 
+  /**
+   * v272 — the AUDIT TRAIL panel. The Published panel is what IS; this is what WAS DONE, in the service's
+   * own order. They are different facts with different shapes: a publication is REPLACED on re-publish while
+   * an audit entry is APPENDED and never replaced — which is why this is a second panel and not another
+   * column of the first one.
+   *
+   * The answer keeps BOTH numbers: the rows that could be displayed and the count the service reported. A
+   * row the reading half cannot display honestly is dropped, and the two numbers must then disagree out loud
+   * rather than quietly.
+   */
+  const [showTrail, setShowTrail] = useState(false);
+  const [trail, setTrail] = useState<TrailAnswer | null>(null);
+
+  const refreshTrail = async () => setTrail(await readTrail(20));
+
+  const onToggleTrail = async () => {
+    const next = !showTrail;
+    setShowTrail(next);
+    if (next) setShowPublished(false);
+    if (next) await refreshTrail();
+  };
+
   const refreshPublished = async () => {
     setPublished(await listPublished(20));
   };
@@ -97,6 +123,7 @@ export default function Toolbar() {
   const onTogglePublished = async () => {
     const next = !showPublished;
     setShowPublished(next);
+    if (next) setShowTrail(false);
     if (next) await refreshPublished();
   };
 
@@ -105,6 +132,8 @@ export default function Toolbar() {
     setPublishNote(answer.ok ? (answer.removed ? `took down ${projectId}` : `${projectId} was already down`) : `not taken down: ${answer.reason}`);
     // Re-probed rather than hand-edited: the rows are the service's answer, so they are asked for again.
     await refreshPublished();
+    // v272 — the take-down wrote an entry too, and an open trail must not be a step behind the verb.
+    if (showTrail) await refreshTrail();
   };
 
   /**
@@ -256,6 +285,18 @@ export default function Toolbar() {
         >
           Published
         </button>
+        {/* v272 — the AUDIT TRAIL: what the service recorded HAPPENING, newest first. The Published panel
+            answers "what exists"; this answers "what was done to it and who said so". A trail nobody can
+            read is a table nobody audits, and this is the reading half of that. */}
+        <button
+          className={`btn ${showTrail ? 'tool-active' : ''}`}
+          data-toolbar-trail-toggle
+          onClick={() => void onToggleTrail()}
+          disabled={service?.available === false}
+          title="what the service recorded happening: publishes and take-downs, newest first"
+        >
+          Trail
+        </button>
         {/* v241 — the explore page is the PUBLIC door to what is published; the panel above is the author's
             own list. A link, not a fetch: the page is server-rendered and reachable by anyone. */}
         <a
@@ -371,6 +412,81 @@ export default function Toolbar() {
                   "there are only 20". */}
               <div style={{ marginTop: 6, color: 'var(--nexus-muted)' }}>
                 {published.count} row(s) at limit {published.limit}
+              </div>
+            </>
+          )}
+        </div>
+      )}
+      {/* v272 — the AUDIT TRAIL panel. Fixed-positioned like the Published panel above it, and the rows
+          are the SERVICE's own answer in the service's own order — newest first — because an audit trail's
+          order is part of what it asserts. Nothing here is hand-edited; the panel re-reads after every verb. */}
+      {showTrail && (
+        <div
+          data-toolbar-trail
+          style={{
+            position: 'fixed',
+            top: 54,
+            right: 16,
+            zIndex: 41,
+            width: 520,
+            maxHeight: 340,
+            overflow: 'auto',
+            background: 'var(--nexus-panel, #12151b)',
+            border: '1px solid var(--nexus-border, #262b34)',
+            borderRadius: 6,
+            padding: 10,
+            fontSize: 11,
+            boxShadow: '0 8px 24px rgba(0,0,0,0.35)',
+          }}
+        >
+          <div style={{ fontWeight: 700, letterSpacing: 0.4, marginBottom: 6 }}>AUDIT TRAIL</div>
+          {trail === null ? (
+            <div style={{ color: 'var(--nexus-muted)' }}>asking the service…</div>
+          ) : !trail.ok ? (
+            <div style={{ color: 'var(--nexus-muted)' }}>could not read: {trail.reason}</div>
+          ) : (trail.rows ?? []).length === 0 ? (
+            <div style={{ color: 'var(--nexus-muted)' }}>nothing has happened yet</div>
+          ) : (
+            <>
+              <ul style={{ listStyle: 'none', margin: 0, padding: 0 }}>
+                {(trail.rows ?? []).map((row) => (
+                  <li
+                    key={row.id}
+                    data-trail-row={row.id}
+                    style={{ display: 'flex', alignItems: 'baseline', gap: 8, padding: '3px 0' }}
+                  >
+                    <strong style={{ color: row.action === 'unpublish' ? 'var(--nexus-muted)' : 'var(--nexus-brand)' }}>
+                      {row.actionText}
+                    </strong>
+                    {/* The target is a LINK, because the thing the entry happened to is a publication a person
+                        can open — an audit row that named a project nobody could reach would be a row you could
+                        only take on trust. */}
+                    <a
+                      href={`/p/${encodeURIComponent(row.targetId)}`}
+                      target="_blank"
+                      rel="noreferrer"
+                      style={{ color: 'var(--nexus-muted)', textDecoration: 'none' }}
+                    >
+                      {row.targetId}
+                    </a>
+                    {/* v272 — the trail names ACCOUNT IDS, not handles: the service has no account table to
+                        resolve them with (v270's finding), and the actor of a take-down never published
+                        anything, so no row anywhere carries a handle for it. An anonymous action says
+                        NOBODY — the service refuses to fake an actor, and so does the panel. */}
+                    <span
+                      data-trail-actor={row.id}
+                      style={{ color: row.anonymous ? 'var(--nexus-muted)' : 'inherit', fontSize: 10 }}
+                    >
+                      {row.actorText}
+                    </span>
+                    <span style={{ marginLeft: 'auto', color: 'var(--nexus-muted)', fontSize: 10 }}>{row.timeText}</span>
+                  </li>
+                ))}
+              </ul>
+              {/* The service's OWN count beside what was rendered: a row the reading half could not display
+                  honestly is dropped, and these two numbers must then disagree OUT LOUD. */}
+              <div style={{ marginTop: 6, color: 'var(--nexus-muted)' }}>
+                {(trail.rows ?? []).length} of {trail.count} entry(ies) shown · the service caps at {trail.limit}
               </div>
             </>
           )}

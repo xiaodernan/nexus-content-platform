@@ -1,0 +1,127 @@
+/**
+ * M9 v272 (ADR 0016 amendment 272) — the AUDIT TRAIL's READING half.
+ *
+ * v271 gave the service a trail: an entry for every publication verb that SUCCEEDED, in order, with the
+ * actor exactly as the request named it. The door exists (`GET /audit`) and the client's own `ops.ts`
+ * `AuditEntry` already declares the same wire shape. What did not exist is a way for anyone to SEE it —
+ * and an audit trail nobody can read is a table nobody audits.
+ *
+ * PURE and string-returning, like `explore.ts`, `artifact.ts` and `profile.ts`: the lane fetches, the panel
+ * renders, and everything in between is here — where the suite can assert it without a server, a service or
+ * a browser.
+ *
+ * **Two limits this module keeps visible instead of papering over:**
+ *
+ * - **The trail names ACCOUNT IDS, not handles.** The service holds no account table (v270's finding): an
+ *   account exists in it only as far as publications NAME it. The trail's actor for a take-down never
+ *   published anything, so there is no row anywhere that carries a handle for it — and borrowing the
+ *   publication's owner as the actor's name would attribute an action to somebody who did not do it.
+ * - **A row that cannot be displayed honestly is DROPPED, not faked.** The panel states the service's own
+ *   count next to what it rendered, so a drop is visible as a discrepancy rather than invisible.
+ */
+
+/** The wire shape `GET /audit` answers with — the client's own `AuditEntry`, field for field. */
+export interface TrailEntry {
+  id?: unknown;
+  action?: unknown;
+  actorId?: unknown;
+  targetId?: unknown;
+  createdAt?: unknown;
+  assurance?: unknown;
+}
+
+/** One entry, reduced to the facts a person can act on. */
+export interface TrailRow {
+  /** The entry's own id. */
+  id: string;
+  /** The service's own word for what happened — never replaced with something better-sounding. */
+  action: string;
+  /** The display verb, or the raw action when this build does not know the word. */
+  actionText: string;
+  /** `acct-ada · unsigned-local`, or `nobody (anonymous)` when the request named no one. */
+  actorText: string;
+  /** True when the entry names no actor at all — an anonymous action, not a missing one. */
+  anonymous: boolean;
+  /** The project the entry happened to. */
+  targetId: string;
+  /** The instant, in epoch milliseconds as the service sent it. */
+  createdAt: number;
+  /** The instant as UTC text, second precision. */
+  timeText: string;
+}
+
+/**
+ * The display verb for an action.
+ *
+ * A KNOWN action is spelled the way a person would say it; an action this build has never seen is passed
+ * through as it arrived, because a panel that cannot recognise an action must not invent one for it — a
+ * trail that silently mislabelled `follow` as `published` would be worse than no trail.
+ */
+export function trailActionText(action: string): string {
+  switch (action) {
+    case 'publish':
+      return 'published';
+    case 'unpublish':
+      return 'took down';
+    default:
+      return action;
+  }
+}
+
+/**
+ * The actor, as the service recorded it.
+ *
+ * `actorId` is NULLABLE in the service's own record — an anonymous publish names nobody — and this is the
+ * one place the client's `ops.ts` type disagrees: it declares `actorId: AccountId`, non-null. The service
+ * will not fake an actor to fit a type (v271), so the reading half says `nobody` here.
+ */
+export function trailActorText(actorId: string, assurance: string | null): string {
+  if (assurance) return `${actorId} · ${assurance}`;
+  return actorId;
+}
+
+/**
+ * ONE entry, or `null` when it cannot be shown honestly.
+ *
+ * A row needs an id (so the panel can key it), an action (so it can say what happened), a target (so it can
+ * say what it happened to) and a finite instant (so it can say when). Missing any of those is not a row with
+ * a blank column — it is a row this build would have to invent values for, so it is dropped instead.
+ */
+export function toTrailRow(entry: unknown): TrailRow | null {
+  if (typeof entry !== 'object' || entry === null) return null;
+  const e = entry as TrailEntry;
+  if (typeof e.id !== 'string' || e.id.length === 0) return null;
+  if (typeof e.action !== 'string' || e.action.length === 0) return null;
+  if (typeof e.targetId !== 'string' || e.targetId.length === 0) return null;
+  if (typeof e.createdAt !== 'number' || !Number.isFinite(e.createdAt)) return null;
+
+  const actorId = typeof e.actorId === 'string' && e.actorId.length > 0 ? e.actorId : null;
+  const assurance = typeof e.assurance === 'string' && e.assurance.length > 0 ? e.assurance : null;
+
+  return {
+    id: e.id,
+    action: e.action,
+    actionText: trailActionText(e.action),
+    actorText: actorId ? trailActorText(actorId, assurance) : 'nobody (anonymous)',
+    anonymous: actorId === null,
+    targetId: e.targetId,
+    createdAt: e.createdAt,
+    timeText: new Date(e.createdAt).toISOString().replace('.000Z', 'Z'),
+  };
+}
+
+/**
+ * The whole trail, in order.
+ *
+ * The service answers NEWEST FIRST, and the order is preserved rather than re-sorted: an audit trail's
+ * order is part of what it asserts, and a panel that re-sorted by action or by target would be telling a
+ * different story than the one that happened.
+ */
+export function toTrailRows(entries: readonly unknown[]): TrailRow[] {
+  const rows: TrailRow[] = [];
+  for (const entry of entries) {
+    const row = toTrailRow(entry);
+    if (row) rows.push(row);
+  }
+  return rows;
+}

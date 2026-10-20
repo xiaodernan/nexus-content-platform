@@ -722,6 +722,70 @@ try {
   writeFileSync(shotPath, png);
   check('a pixel screenshot of the published Studio was captured (§30)', png.length > 5000, `${png.length} bytes → ${shotPath}`);
 
+  // ── §9.5 v272: the AUDIT TRAIL — what the service recorded HAPPENING ───────────────────────────────
+  // v271 gave the service a trail; this is the first time anyone can SEE it. The point of the section is
+  // the last two checks: the publication was taken down in §9 and the SERVICE answers 404 for it — but its
+  // entries are still there, because the trail is a table that is APPENDED while a publication is a table
+  // that is REPLACED. A trail that lost the row it witnessed would witness nothing.
+  {
+    const toggle = await page.evaluate("!!document.querySelector('[data-toolbar-trail-toggle]')");
+    check('the toolbar carries a TRAIL control — a trail nobody can read is a table nobody audits', toggle, 'the reading half has a door');
+
+    await page.evaluate("document.querySelector('[data-toolbar-trail-toggle]').click()");
+    const trailRows = await until(
+      async () => {
+        const rows = await page.evaluate(
+          "Array.from(document.querySelectorAll('[data-trail-row]')).map(n => ({ id: n.getAttribute('data-trail-row'), text: n.textContent ?? '', href: n.querySelector('a')?.getAttribute('href') ?? null, actor: n.querySelector('[data-trail-actor]')?.textContent ?? null }))",
+        );
+        return rows.length > 0 ? rows : false;
+      },
+      { tries: 40, gapMs: 500, label: 'the audit trail to render its rows' },
+    );
+    check('opening it asks the service and renders what it recorded', trailRows !== false, `${trailRows === false ? 0 : trailRows.length} entr(y/ies)`);
+    // A failed read leaves the marker FALSE above; every later check then sees an EMPTY trail rather than a thrown
+    // TypeError, so the section reports its failures instead of killing the run.
+    const rows = trailRows === false ? [] : trailRows;
+
+    // The publication §9 took down answers 404 on the service right now (asserted above). Its ENTRIES are
+    // still here — the trail outlives the row.
+    const gone = rows.filter((r) => r.href === `/p/${encodeURIComponent(projectId)}`);
+    check(
+      'the trail still names the publication that is no longer on the service',
+      gone.length >= 2,
+      `${gone.length} entr(y/ies) for a row that answers 404`,
+    );
+    check(
+      'and the take-down is one of them',
+      gone.some((r) => r.text.includes('took down')),
+      `actions for it: ${JSON.stringify(gone.map((r) => r.text.slice(0, 40)))}`,
+    );
+    check(
+      'naming the ACCOUNT that did it, with the assurance its claim carried',
+      gone.some((r) => r.actor === `${accountRecord?.id} · unsigned-local`),
+      `actors: ${JSON.stringify(gone.map((r) => r.actor))}`,
+    );
+
+    // The target is a LINK: an audit row that named a publication nobody could reach would be a row you
+    // could only take on trust.
+    check(
+      'every row links to the thing its entry happened to',
+      rows.every((r) => typeof r.href === 'string' && r.href.startsWith('/p/')),
+      `hrefs: ${JSON.stringify(rows.slice(0, 3).map((r) => r.href))}`,
+    );
+
+    // The service's OWN count beside what was rendered — so a row the reading half dropped is visible as a
+    // discrepancy rather than invisible.
+    const footer = await page.evaluate("document.querySelector('[data-toolbar-trail]')?.textContent ?? ''");
+    const stated = /(\d+) of (\d+) entry\(ies\) shown · the service caps at (\d+)/.exec(footer);
+    check(
+      'the trail states the service’s count beside what it rendered',
+      // group 1 = rows rendered, group 2 = the count the SERVICE reported: rendered can never exceed it,
+      // and a smaller number is exactly the discrepancy the two-number footer exists to expose.
+      stated !== null && Number(stated[1]) <= Number(stated[2]) && Number(stated[3]) >= 1,
+      `${stated ? stated[0] : JSON.stringify(footer.slice(-120))}`,
+    );
+  }
+
   // ── §10 teardown ─────────────────────────────────────────────────────────────────────────────────
   await page.close();
   await session.close();
