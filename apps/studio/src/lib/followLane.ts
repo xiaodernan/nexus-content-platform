@@ -6,8 +6,15 @@
  * lane here keeps.
  */
 
-/** How long a write may take. A hung request is worse than a refused one: the panel would say nothing. */
-const WRITE_TIMEOUT_MS = 10_000;
+/**
+ * How long a write may take. A hung request is worse than a refused one: the panel would say nothing.
+ *
+ * v294 — and it is 45 seconds, not 10. The Studio's own door is a `next dev` server in this repository,
+ * and the FIRST call to a route pays that route's compile: a ten-second timeout was killing requests
+ * that were about to be answered, and the lane reported a timeout where the truth was "the server was
+ * still building it".
+ */
+const WRITE_TIMEOUT_MS = 45_000;
 
 /** A signal that aborts the request when it takes too long. */
 function callSignal(): AbortSignal {

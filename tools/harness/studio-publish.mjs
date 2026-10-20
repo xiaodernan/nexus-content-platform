@@ -76,6 +76,73 @@ function canConnect(port, timeoutMs = 1000) {
   });
 }
 
+/**
+ * v294 — wait until a page has HYDRATED.
+ *
+ * The server-rendered HTML is on the page long before React has attached its handlers, and a click on a
+ * button whose handler does not exist yet does NOTHING — silently, with no error and no event. A harness
+ * that clicks into a half-hydrated page is testing a page that is not there.
+ *
+ * The Studio installs its bridge (`window.__nexus`) from a mount effect, so the bridge’s presence is the
+ * honest signal that the app is alive — not the presence of the canvas, which is in the server-rendered
+ * HTML from the first byte.
+ */
+async function waitForHydration(page, label) {
+  const ready = await until(
+    async () => (await page.evaluate('!!window.__nexus')) === true,
+    { tries: 120, gapMs: 500, label: label ?? 'the page to hydrate' },
+  );
+  assert.ok(ready, `the page never hydrated (${label ?? 'the page'}) — its handlers were never attached`);
+}
+
+/**
+ * v294 — open the account panel, IF it is not already open.
+ *
+ * The account panel TOGGLES: the toolbar button flips `showAccount`, and creating an account LEAVES the
+ * panel open. So a harness that always clicks the button closes a panel that was already open, and the
+ * next step then looks for an input that is not on the page. The state is read first, and the button is
+ * only clicked when the panel needs opening.
+ */
+async function openAccountPanel(page, label) {
+  const open = await page.evaluate("document.querySelectorAll('[data-toolbar-account]').length");
+  if (open > 0) return;
+  await page.evaluate(`document.querySelector('button[title="Account"]').click()`);
+  const ready = await until(
+    async () => (await page.evaluate("document.querySelectorAll('[data-toolbar-account]').length")) === 1,
+    { tries: 30, gapMs: 300, label: label ?? 'the account panel to open' },
+  );
+  assert.ok(ready, `the account panel did not open (${label ?? 'the account panel'})`);
+}
+
+/**
+ * v294 — set the device’s account, the way a person would.
+ *
+ * The account panel shows ONE of two forms: the ACCOUNT state (with a sign-out button) when an account is
+ * set, and the CREATE form when it is not. So a harness that wants a different account has to sign the
+ * old one out first — otherwise it looks for a create button that the panel is not showing, and clicks
+ * null.
+ */
+async function signInAs(page, handle, label) {
+  const hasAccount = await page.evaluate("!!localStorage.getItem('nexus-current-account')");
+  if (hasAccount) {
+    await openAccountPanel(page, `${label}: the account panel`);
+    await page.evaluate("document.querySelector('[data-account-signout]')?.click()");
+    const out = await until(
+      async () => (await page.evaluate("localStorage.getItem('nexus-current-account')")) === null,
+      { tries: 20, gapMs: 200, label: `${label}: the account to be signed out` },
+    );
+    assert.ok(out, `the account was not signed out (${label})`);
+  }
+  await openAccountPanel(page, `${label}: the account panel`);
+  await page.type('[data-account-handle-input]', handle);
+  await page.evaluate("document.querySelector('[data-account-create]').click()");
+  const set = await until(
+    async () => (await page.evaluate("localStorage.getItem('nexus-current-account')")) !== null,
+    { tries: 20, gapMs: 200, label: `${label}: the account to be set` },
+  );
+  assert.ok(set, `the account was not set (${label})`);
+}
+
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
 /**
@@ -286,6 +353,7 @@ try {
   session = await launch({ width: 1600, height: 900 });
   page = await session.newPage('about:blank');
   await page.navigate(`${studioBase}/`, { waitForSelector: '#nexus-canvas', waitMs: 1200 });
+  await waitForHydration(page, 'the Studio to hydrate');
 
   // ── §2 the Studio reports the service as ready ──────────────────────────────────────────────────
   // Waited for with a REPORTING failure rather than `waitForFunction`, whose timeout says only that a
@@ -337,12 +405,8 @@ try {
   // The account record is read in §4.5 too, so it is declared out here rather than inside the block below.
   let accountRecord = null;
   {
-    await page.evaluate("document.querySelector('button[title=\"Account\"]').click()");
-    const panelUp = await until(
-      async () => (await page.evaluate("document.querySelectorAll('[data-toolbar-account]').length")) === 1,
-      { tries: 20, gapMs: 200, label: 'the account panel to open' },
-    );
-    check('the account panel opens on the toolbar control', panelUp, 'the account face is reachable from the product');
+    await openAccountPanel(page, 'the account panel to open');
+    check('the account panel opens on the toolbar control', true, 'the account face is reachable from the product');
     await page.type('[data-account-handle-input]', accountHandle);
     await page.evaluate("document.querySelector('[data-account-create]').click()");
     const record = await until(
@@ -621,6 +685,7 @@ try {
   {
     const visitorPage = await session.newPage('about:blank');
     await visitorPage.navigate(`${studioBase}/?remix=${encodeURIComponent(projectId)}`, { waitForSelector: '#nexus-canvas', waitMs: 1500 });
+    await waitForHydration(visitorPage, 'the visitor page to hydrate');
 
     // The intent is read on MOUNT and dropped once honoured: a URL that kept its query would remix again
     // on every reload, which is a remix nobody asked for twice.
@@ -939,6 +1004,7 @@ try {
     // Now the Studio does it. A NEW page, so the main page’s state is untouched.
     const likePage = await session.newPage('about:blank');
     await likePage.navigate(`${studioBase}/?like=${encodeURIComponent(likeTarget)}`, { waitForSelector: '#nexus-canvas', waitMs: 1500 });
+    await waitForHydration(likePage, 'the like page to hydrate');
     const likeStatus = await until(
       async () => {
         const s = await likePage.evaluate("document.querySelector('[data-toolbar-status]')?.textContent ?? ''");
@@ -949,7 +1015,9 @@ try {
     check(
       'the Studio likes the publication when the URL asks it to',
       likeStatus !== null,
-      `status: ${JSON.stringify(likeStatus)}`,
+      // v294 — the page's OWN status, not only the wait's verdict: a lane that refused says WHY, and
+      // the reason is the fact worth printing.
+      `status: ${JSON.stringify(likeStatus ?? (await likePage.evaluate("document.querySelector('[data-toolbar-status]')?.textContent ?? null")))}`,
     );
     check(
       'and it says so in the Studio’s own words, with the count',
@@ -989,6 +1057,7 @@ try {
     // service refuses an accountless like by name. The client does NOT invent an actor to make it work.
     await likePage.evaluate("localStorage.removeItem('nexus-current-account')");
     await likePage.navigate(`${studioBase}/?like=${encodeURIComponent(likeTarget)}`, { waitForSelector: '#nexus-canvas', waitMs: 1500 });
+    await waitForHydration(likePage, 'the like page to hydrate');
     const noAccount = await until(
       async () => {
         const s = await likePage.evaluate("document.querySelector('[data-toolbar-status]')?.textContent ?? ''");
@@ -1058,6 +1127,7 @@ try {
     // The Studio opens a composer over the intent.
     const commentPage = await session.newPage('about:blank');
     await commentPage.navigate(`${studioBase}/?comment=${encodeURIComponent(commentTarget)}`, { waitForSelector: '[data-comment-composer]', waitMs: 2000 });
+    await waitForHydration(commentPage, 'the comment page to hydrate');
     check(
       'the Studio opens a COMMENT composer over the intent',
       (await commentPage.evaluate("!!document.querySelector('[data-comment-composer]')")) === true,
@@ -1120,6 +1190,7 @@ try {
     // client does NOT invent one.
     await commentPage.evaluate("localStorage.removeItem('nexus-current-account')");
     await commentPage.navigate(`${studioBase}/?comment=${encodeURIComponent(commentTarget)}`, { waitForSelector: '[data-comment-composer]', waitMs: 2000 });
+    await waitForHydration(commentPage, 'the comment page to hydrate');
     await commentPage.type('[data-comment-body]', 'a comment with no account');
     await commentPage.evaluate("document.querySelector('[data-comment-post]').click()");
     const noAccountNote = await until(
@@ -1170,13 +1241,9 @@ try {
     // A SECOND account on the device: the follow has to come from somebody else.
     const followPage = await session.newPage('about:blank');
     await followPage.navigate(studioBase, { waitForSelector: '#nexus-canvas', waitMs: 2000 });
-    await followPage.evaluate(`document.querySelector('button[title="Account"]').click()`);
-    await until(
-      async () => (await followPage.evaluate("document.querySelectorAll('[data-toolbar-account]').length")) === 1,
-      { tries: 30, gapMs: 300, label: 'the account panel to open' },
-    );
-    await followPage.type('[data-account-handle-input]', 'bob');
-    await followPage.evaluate("document.querySelector('[data-account-create]').click()");
+    await waitForHydration(followPage, 'the follow page to hydrate');
+    await openAccountPanel(followPage, 'the account panel to open');
+    await signInAs(followPage, 'bob', 'the second account');
     const bob = await until(
       async () => {
         const raw = await followPage.evaluate("localStorage.getItem('nexus-current-account')");
@@ -1193,6 +1260,7 @@ try {
 
     // Now the follow.
     await followPage.navigate(`${studioBase}/?follow=${encodeURIComponent(followedId)}`, { waitForSelector: '#nexus-canvas', waitMs: 2000 });
+    await waitForHydration(followPage, 'the follow page to hydrate');
     const followStatus = await until(
       async () => {
         const s = await followPage.evaluate("document.querySelector('[data-toolbar-status]')?.textContent ?? ''");
@@ -1244,6 +1312,7 @@ try {
     // the client does NOT invent one.
     await followPage.evaluate("localStorage.removeItem('nexus-current-account')");
     await followPage.navigate(`${studioBase}/?follow=${encodeURIComponent(followedId)}`, { waitForSelector: '#nexus-canvas', waitMs: 2000 });
+    await waitForHydration(followPage, 'the follow page to hydrate');
     const noAccount = await until(
       async () => {
         const s = await followPage.evaluate("document.querySelector('[data-toolbar-status]')?.textContent ?? ''");
@@ -1355,18 +1424,11 @@ try {
     // The un-LIKE: the device that liked it takes the like back.
     const undoPage = await session.newPage('about:blank');
     await undoPage.navigate(studioBase, { waitForSelector: '#nexus-canvas', waitMs: 2000 });
-    await undoPage.evaluate(`document.querySelector('button[title="Account"]').click()`);
-    await until(
-      async () => (await undoPage.evaluate("document.querySelectorAll('[data-toolbar-account]').length")) === 1,
-      { tries: 30, gapMs: 300, label: 'the account panel to open' },
-    );
-    await undoPage.type('[data-account-handle-input]', 'ada');
-    await undoPage.evaluate("document.querySelector('[data-account-create]').click()");
-    await until(
-      async () => (await undoPage.evaluate("localStorage.getItem('nexus-current-account')")) !== null,
-      { tries: 30, gapMs: 300, label: 'the account to be set again' },
-    );
+    await waitForHydration(undoPage, 'the undo page to hydrate');
+    await openAccountPanel(undoPage, 'the account panel to open');
+    await signInAs(undoPage, 'ada', 'the account for the un-like');
     await undoPage.navigate(`${studioBase}/?unlike=${encodeURIComponent(likeTarget)}`, { waitForSelector: '#nexus-canvas', waitMs: 2000 });
+    await waitForHydration(undoPage, 'the un-like page to hydrate');
     const unlikeStatus = await until(
       async () => {
         const s = await undoPage.evaluate("document.querySelector('[data-toolbar-status]')?.textContent ?? ''");
@@ -1387,18 +1449,10 @@ try {
     );
 
     // The un-FOLLOW: the SECOND account (the one that followed) takes the edge back.
-    await undoPage.evaluate(`document.querySelector('button[title="Account"]').click()`);
-    await until(
-      async () => (await undoPage.evaluate("document.querySelectorAll('[data-toolbar-account]').length")) === 1,
-      { tries: 30, gapMs: 300, label: 'the account panel to open again' },
-    );
-    await undoPage.type('[data-account-handle-input]', 'bob');
-    await undoPage.evaluate("document.querySelector('[data-account-create]').click()");
-    await until(
-      async () => (await undoPage.evaluate("localStorage.getItem('nexus-current-account')")) !== null,
-      { tries: 30, gapMs: 300, label: 'the second account to be set again' },
-    );
+    await openAccountPanel(undoPage, 'the account panel to open again');
+    await signInAs(undoPage, 'bob', 'the second account for the un-follow');
     await undoPage.navigate(`${studioBase}/?unfollow=${encodeURIComponent(followedId)}`, { waitForSelector: '#nexus-canvas', waitMs: 2000 });
+    await waitForHydration(undoPage, 'the un-follow page to hydrate');
     const unfollowStatus = await until(
       async () => {
         const s = await undoPage.evaluate("document.querySelector('[data-toolbar-status]')?.textContent ?? ''");
