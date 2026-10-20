@@ -40,6 +40,16 @@ ADR-0045 把"这一份带不带引擎"从一句判断变成一张表（`ARTIFACT
   - `step(plan, state, choiceId)`：选一项就跳到目标 beat，并把走过的段落记进 `visited`；
   - `summary(plan, state)`：已走段落、成环的段落标出来（模型允许成环，播放器负责标，不是禁止）。
 - `artifactPayload("story")` 交 `{...compileStory(doc), notes}`，形状与产物里的其它两段载荷平级。
+- **载荷类型改成判别联合**（这一条是实现时最容易被忽略的连锁点）：
+  今天 `ArtifactPlan = GamePlan & { growth? }`，而 `compileStory` 的结果**没有** `arena / player / enemies /
+  triggers / quests` 这些字段（有的是 `startId / beats / playable / blockers`）——
+  硬塞进 `GamePlan` 就要造一堆假字段（§159），所以改成带 tag 的联合：
+  `{ chain: "topdown" } & GamePlan` / `{ chain: "rpg" } & GamePlan & { growth }` / `{ chain: "story" } & StoryPlan`。
+  **那个 `chain` tag 顺带解决两件事**：产物自己知道跑哪条链（`main.js` 的分派不再靠"有没有 `growth` 字段"猜），
+  而 `documentNotes` / `htmlSource` / `mainSource` 那几处**必须按链分支**的地方，类型会逼着它们显式分支，
+  不会漏掉一处（漏了就是 TS 报错，不是运行时白屏）。
+  产物字节因此变一次（`plan.json` 多一个 `chain` 字段）——产物没有稳定字节契约，
+  变的只是"同一份文档两次编译仍然逐字节相同"这条（仍然成立）。
 - **画法是三套，不是一套**：2D 与 RPG 走同一张 canvas（HUD 不同），对话那两型没有场地也没有判定，
   用 DOM 呈现（正文一段 + 选项若干）。产物页面的模板要能按链选渲染器——
   **同一个 `index.html` 走三套画法，不另出一个 `story.html`**（另出一个文件就是"产物有两种形状"，
