@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { MARKETPLACE_ITEM_TYPES, type MarketplaceItemType } from '@/server/db/schema';
-import { listMarketplaceItems } from '@/server/domain/marketplace';
+import { MARKETPLACE_DOWNLOAD_LIMIT_PER_HOUR, listMarketplaceItems } from '@/server/domain/marketplace';
 import { currentUserOrNull } from '@/server/domain/session';
 import { listProjects } from '@/server/domain/projects';
 import { MarketplaceCreateForm } from '@/marketplace/MarketplaceCreateForm';
@@ -10,9 +10,9 @@ import { MarketplaceItemRow } from '@/marketplace/MarketplaceItemRow';
  * §127/§128 创作者市场（M7）的店面。
  *
  * 列表只出 public / free 两类（domain 层同一个谓词），private 的只属于创作者自己
- * （在「我的物品」里可见、可删）。这一片**没有**接的是：工程文件本体的交付——
- * 「下载」按钮目前只记一次下载计数，条目引用的工程内容（§144 的项目导出包）怎么
- * 走到买家手里还没定，页面上照实说，不装作已经能买到文件。
+ * （在「我的物品」里可见、可删）。工程文件本体的交付**已经接上了**（#120）：
+ * 「下载」走 `GET /api/marketplace/<id>/content`，拿到的就是条目源项目的那一份导出包，
+ * 页面上那句限度念的是这一格今天真实的边界（交付哪两档、数字怎么来的、匿名不留审计）。
  */
 
 const TYPE_LABELS: Record<MarketplaceItemType, string> = {
@@ -161,8 +161,11 @@ export default async function MarketplacePage({
       )}
 
       <p className="text-11 text-fg-3" data-marketplace-limits>
-        这一片还没接的：工程文件本体的交付——「下载」当前只记一次下载计数，条目内容怎么走到买家手里
-        （项目导出包、credits 结算）是下一片。预览图走的是市场自己的公开路由，与私有素材的取图路径分开。
+        交付已经接上了，这一格的边界是这些：下载拿到的是条目源项目的<strong>设计文档 + 代码</strong>两档
+        （§144 导出包的形状），不含素材字节；条目没挂源项目就下不出来。「下载（N）」里的 N 是
+        <strong>成功交付的次数</strong>——包没建成不计数，同一个人对同一个条目一小时最多拿
+        {MARKETPLACE_DOWNLOAD_LIMIT_PER_HOUR} 份；匿名下载免费物品不留审计行（那一格记的是身份）。
+        预览图走的是市场自己的公开路由，与私有素材的取图路径分开。
       </p>
     </main>
   );

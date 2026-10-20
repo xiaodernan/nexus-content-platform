@@ -33,13 +33,13 @@ export function MarketplaceItemRow({
   visibilityLabel: string;
 }) {
   const router = useRouter();
-  const [downloads] = useState(item.downloadCount);
   const [message, setMessage] = useState<string | null>(null);
   const [editing, setEditing] = useState(false);
   const [price, setPrice] = useState(item.priceCredits);
   const [visibility, setVisibility] = useState(item.visibility);
   const [purchased, setPurchased] = useState(false);
   const [purchasing, setPurchasing] = useState(false);
+  const [downloading, setDownloading] = useState(false);
 
   const purchase = async () => {
     if (item.priceCredits === 0) {
@@ -71,17 +71,32 @@ export function MarketplaceItemRow({
       setMessage('请先完成购买再下载');
       return;
     }
-
-    // 触发浏览器下载
-    const url = `/api/marketplace/${item.id}/content`;
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `${item.title}.zip`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-
-    setMessage('正在下载...');
+    if (downloading) return;
+    setDownloading(true);
+    try {
+      // 走 fetch 而不是直接把 <a> 挂到那道门上：交付失败时门回的是机器可读的 JSON
+      // （没有源项目 / 还没买 / 太频繁），一条 <a> 点击看不见状态码，界面就只能假装成功。
+      // 服务端记的那个数字才是"交付了几次"，所以点完要重读权威（§159：数字不许自己攒）
+      const res = await fetch(`/api/marketplace/${item.id}/content`, { credentials: 'same-origin' });
+      if (!res.ok) {
+        const json = (await res.json().catch(() => null)) as { message?: string; error?: string } | null;
+        setMessage(json?.message ?? json?.error ?? `下载失败（${res.status}）`);
+        return;
+      }
+      const url = URL.createObjectURL(await res.blob());
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${item.title}.zip`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      // 与 ExportPanel 同一寸：浏览器把下载接走之前收回地址，会停在一个 0 字节的文件上
+      setTimeout(() => URL.revokeObjectURL(url), 60_000);
+      setMessage('包已交付（设计文档 + 代码）。');
+    } finally {
+      setDownloading(false);
+      router.refresh();
+    }
   };
 
   const remove = async () => {
@@ -169,10 +184,11 @@ export function MarketplaceItemRow({
         <button
           type="button"
           onClick={() => void download()}
+          disabled={downloading}
           data-marketplace-download={item.id}
           className="rounded bg-bg-3 px-2 py-1 text-11 text-fg-2 hover:bg-bg-1"
         >
-          下载（{downloads}）
+          {downloading ? '取包中...' : `下载（${item.downloadCount}）`}
         </button>
         {mine ? (
           <button

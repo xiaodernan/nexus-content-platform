@@ -293,6 +293,19 @@ export async function deleteMarketplaceItem(itemId: string, userId: string) {
   return deleted!;
 }
 
+/**
+ * 「下载（N）」那个数字一小时能涨几次——按一个人正常用是个位数定的，给到 60 已经很宽松。
+ *
+ * 写成一处常量（不是路由里那个字面量）：交付门要拿它挡人，界面那句限度要念它，
+ * 见证测试要按它算第 61 次必然被拒——各写一遍就会有一处先过时。
+ */
+export const MARKETPLACE_DOWNLOAD_LIMIT_PER_HOUR = 60;
+
+/**
+ * `downloadCount` 唯一的写入方是内容交付那一道门（`GET /api/marketplace/[id]/content`），
+ * 而且只在 ZIP 真建出来之后调这里。曾经还有第二条只记数不交付的路由（`POST /[id]/download`），
+ * 那让"数字"与"交付过的次数"变成两回事，已随 #120 之后界面改走交付门一并删掉。
+ */
 export async function incrementDownloadCount(itemId: string) {
   const db = getDb();
 

@@ -3137,10 +3137,33 @@ test('@smoke §127 创作者市场：上架、出现在店面、下载计数、�
   const mine = page.locator('[data-marketplace-mine] [data-marketplace-item]').filter({ hasText: title });
   await expect(mine).toHaveCount(1, { timeout: 30_000 });
 
-  // 下载：只记计数，并诚实说明内容交付还没接（计数从 0 变 1 是接口回的真实数字）
+  // 下载：这条条目没挂来源项目，交付门回 404 no_source —— 界面把那句实话念出来，
+  // 而「下载（N）」印的是**真交付过的次数**：一次包都没递出去，数字就该停在 0。
+  // （改之前这里是「交付还没接」+ 下载（1）：只记数不交付的那条门已经被删掉了）
   await mine.locator('[data-marketplace-download]').first().click();
-  await expect(mine.locator('[data-marketplace-item-message]').first()).toContainText('交付还没接', { timeout: 15_000 });
-  await expect(mine.locator('[data-marketplace-download]').first()).toContainText('下载（1）');
+  await expect(mine.locator('[data-marketplace-item-message]').first()).toContainText('没有可导出的源项目', { timeout: 60_000 });
+  await expect(mine.locator('[data-marketplace-download]').first()).toContainText('下载（0）');
+
+  // 正对照：挂上来源项目的条目走的是**真交付**——浏览器拿到一个 zip（前两字节 PK），
+  // 「下载（N）」跟着那一次成功走。上面那条停在 0、这条走到 1，两条放在一起才是
+  // "数字 = 交付次数"的完整凭证（只有一条的话，任何一边写错都能自洽）
+  const withSource = `浮岛组件包-带源 ${Date.now().toString(36)}`;
+  await page.fill('[data-marketplace-create-title]', withSource);
+  await page.fill('[data-marketplace-create-description]', '挂上来源项目的条目。');
+  await page.selectOption('[data-marketplace-create-visibility]', 'free');
+  await page.selectOption('[data-marketplace-create-project]', { index: 1 });
+  await page.click('[data-marketplace-create-submit]');
+  await expect(page.locator('[data-marketplace-create-message]')).toContainText('已上架', { timeout: 30_000 });
+
+  const delivery = page.locator('[data-marketplace-mine] [data-marketplace-item]').filter({ hasText: withSource });
+  const arriving = page.waitForEvent('download');
+  await delivery.locator('[data-marketplace-download]').first().click();
+  const zip = await arriving;
+  expect(zip.suggestedFilename(), '浏览器收到的文件名').toBe(`${withSource}.zip`);
+  const bytes = await readFile(await zip.path());
+  expect(bytes.subarray(0, 2).toString('latin1'), '交付的字节不是 zip').toBe('PK');
+  await expect(delivery.locator('[data-marketplace-item-message]').first()).toContainText('包已交付', { timeout: 30_000 });
+  await expect(delivery.locator('[data-marketplace-download]').first()).toContainText('下载（1）', { timeout: 30_000 });
 
   // 改价格/可见性：PATCH 走创作者自己的门，保存后卡片上的数就是改过的那个
   await mine.locator('[data-marketplace-edit]').first().click();

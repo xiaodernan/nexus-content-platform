@@ -382,8 +382,9 @@ vitest 直接崩了而我却把 stdout 丢进了 `/dev/null`，于是"5 遍"其�
   的案子 rejected 时整条 500（结案已落库、审计永远不写）——修复后 rejected 200 且审计在场；
   拒绝一个没有公开页可撤的案子时界面说"已放行"（§159 的假信号）——修复后按裁决说"已拒绝"。
   变异探针：把 `isPlanKey` 判定提到权限检查之前，order 那条红在预测行。
-- Marketplace 路由层横审（§123/§127/§128）：五个套件共 90 条，钉的全是"别的端点干净、这里裸奔"的
-  局部不一致（横向对比法：把同族端点摆一起看，局部不一致就是探针）：
+- Marketplace 路由层横审（§123/§127/§128）：**七个套件共 87 条**（2026-10-21 一次跑完量的：
+  admin-marketplace 23 + entry 23 + visibility 7 + update 12 + settle 3 + earnings 5 + content 14）。
+  钉的全是"别的端点干净、这里裸奔"的局部不一致（横向对比法：把同族端点摆一起看，局部不一致就是探针）：
   ① **审计与举报查询**（`admin-marketplace.integration.test.ts` 23 条）：两个 GET + POST 的门用
   `requireUser()`（无 cookie 抛错 → 500，别处 `currentUserOrNull` → 401）；GET 的查询参数原样进 SQL
   （`?limit=abc` 的 NaN 进 `.limit()`、`?itemId=not-a-uuid` 撞 22P02、垃圾日期，全部 500；
@@ -400,8 +401,8 @@ vitest 直接崩了而我却把 stdout 丢进了 `/dev/null`，于是"5 遍"其�
   ④ **更新与删除**（`marketplace-update.integration.test.ts` 12 条）：PATCH 裸 cast 正文——
   负价能从这扇门直写（库里的 `price_paid >= 0` CHECK 拦不住更新路径）、坏 tags/previewAssetId 500、
   坏 itemId 400 但带着 Postgres 报错原文。
-  ⑤ 既有行为的正对照全部保留：机检红线、归属校验、CSRF、幂等边界（settle 8 + download 5 两条老套件
-  与三片新套件一起 50/50 绿）。
+  ⑤ 既有行为的正对照全部保留：机检红线、归属校验、CSRF、幂等边界（settle 那 3 条老套件与三片新套件一起绿；
+  ~~download 5 条~~ 随那道只记数不交付的门于 2026-10-21 一起删掉，见 ⑧）。
   ⑥ **收益明细**（`marketplace-earnings.integration.test.ts` 5 条，2026-10-17）：路由此前自己内联重算了
   一遍按天聚合，收敛到 domain 的 `getCreatorEarnings`（"同一件事只有一处实现"，收益数是创作者真会看的钱）
   ——第一份覆盖当场抓出一个真 bug：日期过滤用裸 sql 模板传 Date，postgres.js 对 timestamptz 参数抛
@@ -411,6 +412,20 @@ vitest 直接崩了而我却把 stdout 丢进了 `/dev/null`，于是"5 遍"其�
   ⑦ **创建入口的限流**（同套件 23 条里那条，2026-10-17）：guest 会话每个未知 token 都会新建 guest 用户，
   没有限流等于"换 cookie 就能无限造行"（物品行与用户行一起涨）；user.id+IP 双键 20 次/10 分钟，
   超限 429 带 retryAfterMs。限流桶按 user.id 计，用例用**专用新身份**（别的用例已用掉一部分额度）。
+  ⑧ **内容交付门**（`marketplace-content.integration.test.ts` 14 条，2026-10-21，§127/§144，ADR-0047）：
+  界面上「下载（N）」那个数字**此前一条用例都没有**，而它是唯一对用户可见的交付读数。
+  四条真洞各有断言：建包用下载者身份 → 买过的人拿 404（断言文案直接写"买过的人拿不到包，这一格就没存在过"）；
+  中文标题原样进 `Content-Disposition` → 构造响应时抛（修复后 ASCII `filename` + RFC 5987 `filename*`；
+  一条用例把两种写法都钉住：中文那一条回落到 `nexus-marketplace.zip`、真名从 `filename*` 解码回来，
+  并**逐字符**断言整个头没有非 ASCII；含空格与引号的英文名消毒成 `Delivery_Kit_v2.zip`）；先 `+1` 再建包 → 三条失败路径也涨数（现在 `no_source`、
+  源项目软删、限流超额各断一次"计数与审计都不动"）；第二道只记数的门能把数灌满 → 删掉，并留两条**机检**：
+  生产代码里 `incrementDownloadCount(` 的调用点恰好两处（定义 + 交付门；排除 `*.test|spec` 的理由写在测试里），
+  以及 `…/[id]/download/route.ts` 不再存在。限流两条按 `MARKETPLACE_DOWNLOAD_LIMIT_PER_HOUR` 常量算
+  （打满 N 次全 200、第 N+1 次 429 且计数恰好等于常量；另一条证明未登录的 401 也吃配额、换 IP 不受影响）。
+  变异探针四只各改坏一条律，红 7 / 2 / 2 / 5 条，跑完逐只还原成字节相同的原文件。
+  装配的 `beforeAll` 与清理的 `afterAll` 各写自己的时限（120s / 60s）：默认 30s 在机器忙时会把装配判死，
+  而 hook 超时**不取消**那段异步装配——它继续插行，清理撞在半套 `projects` 外键上（23503），
+  14 条全成 skipped：那是"没跑"，不是"跑红了"。
 - id 形状校验（横切，`domain/ids.ts` 的 `isUuid`）：`apps/web/test/id-shape.integration.test.ts` 18 条。
   钉的不是"某个端点不 500"，是**一条横切纪律**：从路由进来的 id 大多是路径参数，Next 只保证它们是
   字符串；非 UUID 的 id 一律按"不存在"处理（域函数返回 null/false，路由只剩 404/409 一种说法），
