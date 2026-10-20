@@ -15,7 +15,11 @@
  *   facts, and a panel that showed the first when it knew the second would tell an owner that nobody had
  *   complained — which is the one thing an owner must not be misled about.
  */
-import { reportReasonText } from './reportBar';
+import { reportReasonText, reportStatusText } from './reportBar';
+
+// The vocabulary is the REPORT's, and the desk speaks the report's language — re-exported so a caller of
+// the desk does not have to know where the word came from.
+export { reportStatusText };
 
 /** One report, in the service's desk shape. */
 export interface DeskEntry {
@@ -48,32 +52,6 @@ export interface DeskRow {
   statusText: string;
   /** Whether the report is still waiting to be acknowledged. */
   open: boolean;
-}
-
-/**
- * The status in a reader's words.
- *
- * A KNOWN status is spelled the way a person would say it; an unknown one is passed through as it arrived
- * — a panel that labelled an unknown status as "acknowledged" would be claiming a disposition the service
- * never made.
- */
-export function reportStatusText(status: string): string {
-  switch (status) {
-    case 'open':
-      return 'not acknowledged yet';
-    case 'acknowledged':
-      return 'acknowledged';
-    case 'rejected':
-      return 'withdrawn by the reporter';
-    case 'reviewed':
-    case 'resolved':
-      // These are a MODERATOR's statuses. This build has no moderator, so the service never sets them —
-      // and if one ever arrived it would be shown in the service's own word rather than translated into
-      // something this panel could not vouch for.
-      return status;
-    default:
-      return status;
-  }
 }
 
 /**

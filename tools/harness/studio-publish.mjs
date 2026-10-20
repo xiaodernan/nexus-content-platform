@@ -2001,6 +2001,60 @@ try {
     await deskPage.close();
   }
 
+  // ── §21 v305: the REPORTER’s own view — where the complaint stands ────────────────────────────
+  // A reporter is owed an answer. The owner’s desk says that a complaint came; this says what became of
+  // theirs — and it is the ONLY place a reporter sees a disposition, because the desk deliberately does
+  // not name them.
+  {
+    const filedPage = await session.newPage('about:blank');
+    await filedPage.navigate(studioBase, { waitForSelector: '#nexus-canvas', waitMs: 2000 });
+    await waitForHydration(filedPage, 'the filed page to hydrate');
+
+    // The REPORTER — the second account — opens the panel.
+    await signInAs(filedPage, 'bob', 'the reporter');
+    await filedPage.evaluate("document.querySelector('[data-toolbar-desk-toggle]').click()");
+    const filedRows = await until(
+      async () => (await filedPage.evaluate("document.querySelectorAll('[data-filed-report]').length")) > 0,
+      { tries: 120, gapMs: 500, label: 'the filed list to show the report' },
+    );
+    check('the reporter sees the complaint they filed', filedRows !== null, 'the filed list carries it');
+
+    const filedStatus = await filedPage.evaluate("document.querySelector('[data-filed-report]')?.getAttribute('data-filed-status') ?? ''");
+    check('and it says where it stands — the owner acknowledged it', filedStatus === 'acknowledged', `status: ${JSON.stringify(filedStatus)}`);
+
+    // And the SERVICE agrees, read independently of the browser.
+    const reporterRaw = await filedPage.evaluate("localStorage.getItem('nexus-current-account')");
+    const reporterId = JSON.parse(String(reporterRaw)).id;
+    const filedRead = await fetch(`${apiBase}/reports?reporter=${encodeURIComponent(reporterId)}`);
+    const filedBody = await filedRead.json();
+    check(
+      'the SERVICE agrees — read back independently of the browser',
+      filedRead.status === 200 && Array.isArray(filedBody.reports) && filedBody.reports.length >= 1
+        && filedBody.reports.some((r) => r.status === 'acknowledged')
+        && filedBody.reports.every((r) => typeof r.targetId === 'string' && r.targetId.length > 0),
+      `reports: ${JSON.stringify(filedBody.reports)}`,
+    );
+
+    // And the wire carries NO identity: the reader of this list IS the reporter, so a field naming them
+    // would say nothing they did not know — while saying something to a caller who merely knew the
+    // account id. The name is the one thing a report cannot afford to leak.
+    check(
+      'and the wire carries NO identity — the reader of this list is the reporter',
+      !(filedBody.reports ?? []).some((r) => 'reporterId' in r || 'handle' in r || 'assurance' in r),
+      `the rows carry: ${JSON.stringify((filedBody.reports ?? []).map((r) => Object.keys(r)))}`,
+    );
+
+    // And the OWNER’s desk still names nobody — the reporter’s own list is the only place the identity is.
+    const ownerDesk = await fetch(`${apiBase}/moderation/reports?owner=${encodeURIComponent(accountRecord?.id ?? '')}`);
+    const ownerBody = await ownerDesk.json();
+    check(
+      'and the owner’s desk still names nobody',
+      !(ownerBody.reports ?? []).some((r) => 'reporterId' in r || 'handle' in r || 'reporterAccountId' in r),
+      `the desk rows carry no identity: ${JSON.stringify((ownerBody.reports ?? []).map((r) => Object.keys(r)))}`,
+    );
+    await filedPage.close();
+  }
+
   // ── §10 teardown ─────────────────────────────────────────────────────────────────────────────────
   await page.close();
   await session.close();

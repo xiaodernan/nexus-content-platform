@@ -6,6 +6,7 @@ import { readTrail, type TrailAnswer } from '@/lib/auditLane';
 import { filterTrailRows, trailSummaryOf, trailSummaryText } from '@/lib/trail';
 import { readMyTips } from '@/lib/tipLane';
 import { acknowledgeReport, readDesk, type DeskLaneAnswer } from '@/lib/moderationLane';
+import { readMyReports, type FiledReportsLaneAnswer } from '@/lib/reportLane';
 import { priceText } from '@/lib/economy';
 import type { PriceCents } from '@/lib/monetization';
 import { listPublished, probePublish, publishProject, unpublish, type PublishLaneListing, type PublishLaneProbe } from '@/lib/publishLane';
@@ -184,6 +185,25 @@ export default function Toolbar() {
   const [desk, setDesk] = useState<DeskLaneAnswer | null>(null);
   const [deskNote, setDeskNote] = useState('');
 
+  /**
+   * v305 — the REPORTER's half of the panel: the complaints THIS account filed, and where each one
+   * stands now.
+   *
+   * <p>A reporter is owed an answer. The owner’s desk tells the owner that a complaint came; this half
+   * tells the reporter what became of theirs — and it is the only place a reporter sees a disposition,
+   * because the desk deliberately does not name them.
+   */
+  const [filed, setFiled] = useState<FiledReportsLaneAnswer | null>(null);
+
+  const refreshFiled = async () => {
+    const account = session.current();
+    if (!account) {
+      setFiled({ ok: false, reports: [], reason: 'the reports you filed belong to an account, and this device has none' });
+      return;
+    }
+    setFiled(await readMyReports(account.id));
+  };
+
   const refreshDesk = async () => {
     const account = session.current();
     if (!account) {
@@ -199,7 +219,12 @@ export default function Toolbar() {
     const next = !showDesk;
     setShowDesk(next);
     if (next) { setShowPublished(false); setShowTrail(false); setShowEconomy(false); }
-    if (next) { setDeskNote(''); await refreshDesk(); }
+    if (next) {
+      setDeskNote('');
+      await refreshDesk();
+      // v305 — the panel has TWO halves: what came to you, and what you sent.
+      await refreshFiled();
+    }
   };
 
   /**
@@ -810,6 +835,33 @@ export default function Toolbar() {
                 ))}
               </ul>
             </>
+          )}
+          {/* v305 — the REPORTER's half: the complaints YOU filed, and where each one stands. The
+              owner’s desk says that a complaint came; this says what became of it. */}
+          <div style={{ fontWeight: 700, letterSpacing: 0.4, marginTop: 10, marginBottom: 4 }}>YOU FILED</div>
+          {filed === null ? (
+            <div style={{ color: 'var(--nexus-muted)' }}>asking the service…</div>
+          ) : !filed.ok ? (
+            <div style={{ color: 'var(--nexus-muted)' }}>could not read: {filed.reason}</div>
+          ) : filed.reports.length === 0 ? (
+            <div style={{ color: 'var(--nexus-muted)' }}>you have filed no report</div>
+          ) : (
+            <ul style={{ listStyle: 'none', margin: 0, padding: 0 }}>
+              {filed.reports.map((report) => (
+                <li
+                  key={report.id}
+                  data-filed-report={report.id}
+                  data-filed-status={report.status}
+                  style={{ display: 'flex', flexDirection: 'column', gap: 2, padding: '3px 0' }}
+                >
+                  <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8 }}>
+                    <span>{report.reasonText}</span>
+                    <span style={{ color: 'var(--nexus-muted)' }}>{report.statusText}</span>
+                  </div>
+                  <div style={{ color: 'var(--nexus-muted)', fontSize: 10 }}>{report.targetId}</div>
+                </li>
+              ))}
+            </ul>
           )}
           {deskNote && <div style={{ marginTop: 6, color: 'var(--nexus-muted)' }}>{deskNote}</div>}
         </div>

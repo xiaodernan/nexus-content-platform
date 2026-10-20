@@ -45,6 +45,41 @@ public final class ReportDtos {
     public record ReportClaim(String accountId, String handle, String assurance, Long claimedAt) {
     }
 
+    /**
+     * v305 — the reports ONE ACCOUNT filed.
+     *
+     * <p>The rows are named {@code reports} and not {@code targets}, because a list of the complaints an
+     * account made is not a list of the works it complained about — and a wire field with the wrong name is
+     * a small lie that grows. The rows are the SAME report shape as the other direction: a reporter reading
+     * their own complaint sees their own identity in it, which is theirs to see.
+     */
+    public record FiledReportsAnswer(
+            String reporterAccountId,
+            List<FiledReport> reports,
+            int count,
+            int limit) {
+    }
+
+    /**
+     * v305 — one report, as the REPORTER sees it.
+     *
+     * <p><b>It carries no identity, and that is the point.</b> The reader of this list IS the reporter, so
+     * a field saying who filed it would tell them something they already know — while telling a caller who
+     * merely knew the account id that this account filed a complaint about that work. The name is the one
+     * thing a report cannot afford to leak (v304's desk refuses to carry it for the same reason), and the
+     * reader does not need it.
+     *
+     * <p>The field names are the report's own, so a client reads one shape whichever door it came through.
+     */
+    public record FiledReport(
+            String id,
+            String targetId,
+            String reason,
+            String detail,
+            String status,
+            long createdAt) {
+    }
+
     /** A report request: which publication, who is reporting, why, and what they say about it. */
     public record ReportRequest(String projectId, ReportClaim claim, String reason, String detail) {
     }

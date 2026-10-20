@@ -82,6 +82,68 @@ export async function readReports(
   }
 }
 
+/**
+ * What one read of the FILED reports answered — the reports ONE ACCOUNT filed.
+ */
+export interface FiledReportsAnswer {
+  ok: boolean;
+  reports: ReportEntry[];
+  /** How many the answer carried. */
+  count: number;
+  /** The cap the service applied. */
+  limit: number;
+  reason?: string;
+}
+
+/**
+ * READ the reports one account filed — the reporter's own view of their complaints.
+ *
+ * <p>A reporter is owed an answer, and the only way they can learn where their complaint stands is to ask
+ * for it. The rows are the reporter's OWN reports, so the identity in them is theirs.
+ */
+export async function readFiledReports(
+  reporterAccountId: string,
+  limit: number,
+  fetchImpl: FetchLike = fetch as FetchLike,
+): Promise<FiledReportsAnswer> {
+  const apiBase = nexusApiBase();
+  try {
+    const res = await fetchImpl(
+      `${apiBase}/reports?reporter=${encodeURIComponent(reporterAccountId)}&limit=${encodeURIComponent(String(limit))}`,
+      { headers: { accept: 'application/json' } },
+    );
+    const parsed: unknown = await res.json().catch(() => null);
+    if (typeof parsed !== 'object' || parsed === null) {
+      return {
+        ok: false,
+        reports: [],
+        count: 0,
+        limit,
+        reason: `the service's reports door answered HTTP ${res.status} with something that is not JSON`,
+      };
+    }
+    const body = parsed as { reports?: unknown; count?: unknown; message?: unknown };
+    if (!Array.isArray(body.reports)) {
+      const why = typeof body.message === 'string' ? body.message : `the service's reports door answered HTTP ${res.status}`;
+      return { ok: false, reports: [], count: 0, limit, reason: why };
+    }
+    return {
+      ok: true,
+      reports: body.reports as ReportEntry[],
+      count: typeof body.count === 'number' ? body.count : body.reports.length,
+      limit,
+    };
+  } catch (error) {
+    return {
+      ok: false,
+      reports: [],
+      count: 0,
+      limit,
+      reason: `nexus-api unreachable at ${apiBase}: ${error instanceof Error ? error.message : String(error)}`,
+    };
+  }
+}
+
 /** FILE a report, on the service. The claim travels exactly as the browser built it. */
 export async function reportOnService(
   projectId: string,

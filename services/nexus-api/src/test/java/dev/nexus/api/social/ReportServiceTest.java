@@ -231,4 +231,38 @@ class ReportServiceTest {
         verify(repository).findByTargetProjectIdOrderByCreatedAtDesc(eq("pub-1"), window.capture());
         assertThat(window.getValue().getPageSize()).isEqualTo(ReportService.MAX_REPORT_LIMIT);
     }
+
+    // ── v305: the reports ONE ACCOUNT filed — the other direction of the report ────────────────────
+
+    @Test
+    void theReportsAnAccountFiledAreReadThroughTheRepositorysOwnFinder() {
+        when(repository.findByReporterAccountIdOrderByCreatedAtDesc(eq("acct-bob"), any(Pageable.class)))
+                .thenReturn(List.of());
+
+        service.reportsFiledBy("acct-bob", 20);
+
+        verify(repository).findByReporterAccountIdOrderByCreatedAtDesc(eq("acct-bob"), any(Pageable.class));
+    }
+
+    @Test
+    void aReadWithNoAccountIsREFUSEDByName() {
+        assertThatThrownBy(() -> service.reportsFiledBy(null, 20))
+                .isInstanceOf(InvalidReport.class)
+                .hasMessageContaining("need that account to be named");
+        assertThatThrownBy(() -> service.reportsFiledBy("   ", 20))
+                .isInstanceOf(InvalidReport.class)
+                .hasMessageContaining("need that account to be named");
+    }
+
+    @Test
+    void theFiledListIsCapped() {
+        when(repository.findByReporterAccountIdOrderByCreatedAtDesc(eq("acct-bob"), any(Pageable.class)))
+                .thenReturn(List.of());
+
+        service.reportsFiledBy("acct-bob", 10_000);
+
+        ArgumentCaptor<Pageable> window = ArgumentCaptor.forClass(Pageable.class);
+        verify(repository).findByReporterAccountIdOrderByCreatedAtDesc(eq("acct-bob"), window.capture());
+        assertThat(window.getValue().getPageSize()).isEqualTo(ReportService.MAX_REPORT_LIMIT);
+    }
 }

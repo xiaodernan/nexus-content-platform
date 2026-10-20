@@ -27,7 +27,52 @@ export interface ReportLaneAnswer {
   reason?: string;
 }
 
+import { toReportRows, type ReportRow } from './reportBar';
+
 export type FetchLike = (input: string, init?: RequestInit) => Promise<Response>;
+
+/** What one read of the FILED reports answered — the reporter's own view. */
+export interface FiledReportsLaneAnswer {
+  ok: boolean;
+  /** The reports this account filed, mapped. */
+  reports: ReportRow[];
+  reason?: string;
+}
+
+/**
+ * READ the reports this account filed.
+ *
+ * <p>A failed read is NOT an empty list: "you have filed no report" and "the reports could not be read"
+ * are different facts, and a panel that showed the first when it knew the second would tell a reporter
+ * their complaint had vanished.
+ */
+export async function readMyReports(
+  accountId: string,
+  fetchImpl: FetchLike = fetch,
+): Promise<FiledReportsLaneAnswer> {
+  try {
+    const res = await fetchImpl(`/api/reports?reporter=${encodeURIComponent(accountId)}`, {
+      headers: { accept: 'application/json' },
+    });
+    const parsed: unknown = await res.json().catch(() => null);
+    if (typeof parsed !== 'object' || parsed === null) {
+      return { ok: false, reports: [], reason: `the reports answered HTTP ${res.status} with something that is not JSON` };
+    }
+    const body = parsed as { ok?: unknown; reports?: unknown; reason?: unknown; message?: unknown };
+    if (body.ok === false || !res.ok) {
+      const why =
+        typeof body.reason === 'string'
+          ? body.reason
+          : typeof body.message === 'string'
+            ? body.message
+            : `the reports answered HTTP ${res.status}`;
+      return { ok: false, reports: [], reason: why };
+    }
+    return { ok: true, reports: toReportRows(Array.isArray(body.reports) ? body.reports : []) };
+  } catch (error) {
+    return { ok: false, reports: [], reason: error instanceof Error ? error.message : String(error) };
+  }
+}
 
 /** File a report. */
 export async function fileReport(

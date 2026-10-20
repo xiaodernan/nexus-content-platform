@@ -1,5 +1,7 @@
 package dev.nexus.api.social;
 
+import dev.nexus.api.social.ReportDtos.FiledReport;
+import dev.nexus.api.social.ReportDtos.FiledReportsAnswer;
 import dev.nexus.api.social.ReportDtos.Report;
 import dev.nexus.api.social.ReportDtos.ReportAnswer;
 import dev.nexus.api.social.ReportDtos.ReportClaim;
@@ -63,12 +65,33 @@ public class ReportController {
         return ResponseEntity.ok(Map.of("ok", true, "reportId", reportId, "withdrawn", withdrawn));
     }
 
-    /** The reports about one publication, and how many there are. */
+    /**
+     * The reports about one publication, and how many there are.
+     *
+     * <p>v305 — and the OTHER direction, with `reporter=`: the reports ONE ACCOUNT filed. A reporter is
+     * owed an answer, and the only way they can learn where their complaint stands is to ask for it. The
+     * two directions are different questions, so they get different answers — and the filed one names the
+     * REPORTER in its own field, because a list of somebody's own complaints is a list of their own.
+     */
     @GetMapping
-    public ResponseEntity<ReportAnswer> list(
-            @RequestParam(name = "target") String targetProjectId,
+    public ResponseEntity<?> list(
+            @RequestParam(name = "target", required = false) String targetProjectId,
+            @RequestParam(name = "reporter", required = false) String reporterAccountId,
             @RequestParam(name = "limit", required = false) Integer limit) {
         int asked = limit == null ? ReportService.DEFAULT_REPORT_LIMIT : limit;
+        if (reporterAccountId != null && !reporterAccountId.isBlank()) {
+            List<ReportEntry> filed = service.reportsFiledBy(reporterAccountId, asked);
+            return ResponseEntity.ok(new FiledReportsAnswer(
+                    reporterAccountId.trim(),
+                    filed.stream().map(ReportController::toFiledWire).toList(),
+                    filed.size(),
+                    asked));
+        }
+        if (targetProjectId == null || targetProjectId.isBlank()) {
+            return ResponseEntity.badRequest().body(Map.of(
+                    "error", "invalid-report",
+                    "message", "the target parameter is missing (or the reporter parameter, for the other direction)"));
+        }
         List<ReportEntry> rows = service.reportsOf(targetProjectId, asked);
         List<Report> reports = rows.stream().map(ReportController::toWire).toList();
         return ResponseEntity.ok(new ReportAnswer(
@@ -90,6 +113,22 @@ public class ReportController {
                 row.getCreatedAt().toEpochMilli(),
                 row.getReporterHandle(),
                 row.getReporterAssurance());
+    }
+
+    /**
+     * The report as the REPORTER sees it: the same fields, without the identity.
+     *
+     * <p>The reader is the reporter, so a field naming them would say nothing they did not know — while
+     * saying something to a caller who merely knew the account id.
+     */
+    private static FiledReport toFiledWire(ReportEntry row) {
+        return new FiledReport(
+                row.getReportId(),
+                row.getTargetProjectId(),
+                row.getReason(),
+                row.getDetail(),
+                row.getStatus(),
+                row.getCreatedAt().toEpochMilli());
     }
 
     /**

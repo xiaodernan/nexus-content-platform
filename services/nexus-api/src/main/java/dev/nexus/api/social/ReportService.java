@@ -136,6 +136,21 @@ public class ReportService {
         return repository.findByTargetProjectIdOrderByCreatedAtDesc(target, PageRequest.of(0, asked));
     }
 
+    /**
+     * v305 — the reports ONE ACCOUNT filed, newest first.
+     *
+     * <p>The other direction of the report, and a different question from "what has been reported about
+     * this publication": a reporter is owed an answer, and the only way they can learn where their
+     * complaint stands is to ask for it. The repository has had the finder since v295; what was missing was
+     * the door.
+     */
+    @Transactional(readOnly = true)
+    public List<ReportEntry> reportsFiledBy(String reporterAccountId, int limit) {
+        String reporter = requireReporter(reporterAccountId);
+        int asked = limit <= 0 ? DEFAULT_REPORT_LIMIT : Math.min(limit, MAX_REPORT_LIMIT);
+        return repository.findByReporterAccountIdOrderByCreatedAtDesc(reporter, PageRequest.of(0, asked));
+    }
+
     /** How many reports a publication has. */
     @Transactional(readOnly = true)
     public long countOf(String targetProjectId) {
@@ -161,6 +176,19 @@ public class ReportService {
         String trimmed = accountId.trim();
         if (trimmed.length() > MAX_ACCOUNT_ID_LENGTH) {
             throw new InvalidReport("accountId must be at most " + MAX_ACCOUNT_ID_LENGTH + " characters, got " + trimmed.length());
+        }
+        return trimmed;
+    }
+
+    /** The account whose reports are being read. A reader must name one. */
+    private static String requireReporter(String reporterAccountId) {
+        if (reporterAccountId == null || reporterAccountId.isBlank()) {
+            throw new InvalidReport("the reports an account filed need that account to be named");
+        }
+        String trimmed = reporterAccountId.trim();
+        if (trimmed.length() > MAX_ACCOUNT_ID_LENGTH) {
+            throw new InvalidReport(
+                    "reporterAccountId must be at most " + MAX_ACCOUNT_ID_LENGTH + " characters, got " + trimmed.length());
         }
         return trimmed;
     }

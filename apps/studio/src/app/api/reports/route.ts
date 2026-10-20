@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 
-import { reportOnService } from '@/lib/reportServer';
+import { readFiledReports, reportOnService } from '@/lib/reportServer';
 
 /**
  * M7 v296 (ADR 0016 amendment 296): `/api/reports` — this Studio's door onto the service's reports.
@@ -13,6 +13,26 @@ import { reportOnService } from '@/lib/reportServer';
  */
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
+
+/**
+ * READ the reports this account filed — the reporter's own view of their complaints.
+ *
+ * <p>The account is named in the query: this build has no session (ADR 0018), so the account the device
+ * holds is the claim the service compares — the same claim the take-down and the withdrawal name.
+ */
+export async function GET(request: Request): Promise<NextResponse> {
+  const reporter = new URL(request.url).searchParams.get('reporter');
+  if (!reporter || reporter.trim() === '') {
+    return NextResponse.json(
+      { ok: false, reason: 'the reports an account filed need that account to be named' },
+      { status: 400 },
+    );
+  }
+  const asked = Number(new URL(request.url).searchParams.get('limit') ?? '20');
+  const limit = Number.isFinite(asked) && asked > 0 ? Math.trunc(asked) : 20;
+  const answer = await readFiledReports(reporter.trim(), limit);
+  return NextResponse.json(answer, { status: answer.ok ? 200 : 502 });
+}
 
 export async function POST(request: Request): Promise<NextResponse> {
   let body: unknown;

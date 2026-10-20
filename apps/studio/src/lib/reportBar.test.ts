@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { reportIdFromSearch } from './reportIntent';
-import { injectReportBar, renderReportBar, reportReasonText, toReportRow, toReportRows } from './reportBar';
+import { injectReportBar, renderReportBar, reportReasonText, reportStatusText, toReportRow, toReportRows } from './reportBar';
 
 /**
  * M7 v296 — the REPORTS bar on the artifact page.
@@ -127,4 +127,33 @@ describe('reportBar — the bar on the page (M7 v296)', () => {
     const noBody = '<html><div>artifact</div></html>';
     expect(injectReportBar(noBody, '<div></div>')).toBe(noBody);
   });
+
+describe('reportBar — the report’s STATUS and its TARGET (M7 v305)', () => {
+  it('the row carries the status the service gave and the work it is about', () => {
+    const row = toReportRow(entry({ status: 'acknowledged', targetId: 'pub-9' }));
+    expect(row?.status).toBe('acknowledged');
+    expect(row?.statusText).toBe('acknowledged');
+    expect(row?.targetId).toBe('pub-9');
+    expect(row?.withdrawn).toBe(false);
+  });
+
+  it('a withdrawn report says so in the status too', () => {
+    const row = toReportRow(entry({ status: 'rejected' }));
+    expect(row?.withdrawn).toBe(true);
+    expect(row?.statusText).toBe('withdrawn by the reporter');
+  });
+
+  it('an UNKNOWN status is passed through, not translated into a claim the service never made', () => {
+    expect(reportStatusText('escalated')).toBe('escalated');
+    const row = toReportRow(entry({ status: 'escalated' }));
+    expect(row?.status).toBe('escalated');
+    expect(row?.statusText).toBe('escalated');
+  });
+
+  it('a report with NO status is treated as open — the service’s own first state', () => {
+    const row = toReportRow(entry({ status: '' }));
+    expect(row?.status).toBe('open');
+    expect(row?.statusText).toBe('not acknowledged yet');
+  });
+});
 });

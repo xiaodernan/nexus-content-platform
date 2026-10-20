@@ -41,6 +41,17 @@ export interface ReportRow {
   reasonText: string;
   /** Whether the reporter withdrew the report. */
   withdrawn: boolean;
+  /**
+   * v305 — the report's STATUS, as the service's own word.
+   *
+   * <p>The bar on the artifact page only ever needed "withdrawn or not". The REPORTER's view needs the
+   * whole vocabulary, because the thing a reporter wants to know is where their complaint stands now.
+   */
+  status: string;
+  /** The status in a reader's words. */
+  statusText: string;
+  /** The publication the report is about — a reporter with several complaints needs to tell them apart. */
+  targetId: string;
 }
 
 /** The reasons a report may carry \u2014 the client's own four, and no others. */
@@ -68,6 +79,30 @@ export function reportReasonText(reason: string): string {
 }
 
 /**
+ * The report's STATUS in a reader's words.
+ *
+ * A KNOWN status is spelled the way a person would say it; an unknown one is passed through as it arrived
+ * — a row that labelled an unknown status as "acknowledged" would be claiming a disposition the service
+ * never made.
+ *
+ * `reviewed` and `resolved` are a MODERATOR's vocabulary: this build has no moderator, so the service
+ * never sets them. They are spelled in the service's own word rather than translated, because a panel that
+ * turned them into "not acknowledged yet" would be quietly rewriting a status it does not have.
+ */
+export function reportStatusText(status: string): string {
+  switch (status) {
+    case 'open':
+      return 'not acknowledged yet';
+    case 'acknowledged':
+      return 'acknowledged';
+    case 'rejected':
+      return 'withdrawn by the reporter';
+    default:
+      return status;
+  }
+}
+
+/**
  * One report, or `null` when it cannot be shown honestly.
  *
  * A report needs an id and a reason: the id is what the row is keyed by, and a report with no reason
@@ -78,11 +113,15 @@ export function toReportRow(entry: unknown): ReportRow | null {
   const r = entry as ReportEntry;
   if (typeof r.id !== 'string' || r.id.length === 0) return null;
   if (typeof r.reason !== 'string' || r.reason.length === 0) return null;
+  const status = typeof r.status === 'string' && r.status.length > 0 ? r.status : 'open';
   return {
     id: r.id,
     reason: r.reason,
     reasonText: reportReasonText(r.reason),
-    withdrawn: r.status === 'rejected',
+    withdrawn: status === 'rejected',
+    status,
+    statusText: reportStatusText(status),
+    targetId: typeof r.targetId === 'string' ? r.targetId : '',
   };
 }
 
