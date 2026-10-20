@@ -902,25 +902,34 @@ export function composeDocumentOps(input: SceneDocumentInput): Op[] {
  * cannot control, and it is out of the path this function asserts on.
  */
 export interface SceneSurface {
-  /** The scene this surface COMPOSED and animates — the address its body list and its document send are filed
-   *  under, not the scene the panel is currently looking at. M5 v261: the VIEW follows the runtime's active
-   *  row (`report().activeSceneId`), and this stays the composed one, exactly as `cameraId` stayed the
-   *  composed camera when v260 made the orbit aim the seat. */
+  /** The scene this surface COMPOSED — an address, not the view. M5 v261 kept the VIEW on the runtime's active
+   *  row and this on the composed one; M5 v277 removed the last thing that NEEDED it to be the composed one, so
+   *  nothing in the panel files a write under this id any more. It is the id the surface was built under, and
+   *  the one a reader compares `liveSceneId` against to know whether the person has moved. */
   readonly sceneId: string;
+  /** The world the panel is looking AT, and therefore the world every write and every body list of this surface
+   *  belongs to: `report().activeSceneId` answered the same way, read from the graph rather than copied.
+   *  M5 v277 — a host that persists or files a scene must address THIS id, not `sceneId`: before it, one Save
+   *  press filed the world on screen in `save()`'s file and the composed world in the store's bytes, under the
+   *  same path and in the same note. Falls back to `sceneId` when the graph names no active row. */
+  readonly liveSceneId: string;
   /** The camera this surface COMPOSED — an address for `placeCamera`, not the seat. Since v260 the orbit aims
    *  whichever row the live scene names as active (`report().scene.activeCamera`), which is this one until a
    *  person moves the seat. */
   readonly cameraId: string;
   /**
-   * The bodies the surface currently holds. **LIVE**: `addBody`/`removeBody` mutate this array in place, so
-   * the frame writer the component passed in always sees the current set rather than the mount-time one.
+   * The bodies this surface holds IN THE WORLD ON SCREEN, and the set `step()` hands the frame writer.
+   * **LIVE** twice over: the array is the live scene's own list, mutated in place by `addBody`/`removeBody`,
+   * and the list it reads moves with the seat (M5 v277 — pre-fix this was one list for every world, so a
+   * switch showed a still picture while an off-screen world kept spinning). A world this surface never wrote
+   * to — a sibling a load created — has no bodies here: the surface animates and takes back only what it made.
    */
   readonly bodyIds: string[];
   /**
-   * The bodies a person AUTHORED through this surface — **LIVE** the same way. The four composed demo
-   * bodies are absent by definition: they are the demo the other proofs assert, not user content. This
-   * is the list `composeDocumentOps` files, and after a load it is deliberately untouched — a restored
-   * scene is a sibling the runtime holds, not content this surface authored.
+   * The bodies a person AUTHORED through this surface **in the world on screen** — **LIVE** the same way. The
+   * four composed demo bodies are absent by definition: they are the demo the other proofs assert, not user
+   * content. This is the list `composeDocumentOps` files, so the document gets the scene the person was
+   * looking at, and after a load it is deliberately empty for the restored sibling.
    */
   readonly authoredBodyIds: string[];
   /** Frames this surface has advanced. Reported, never estimated by a reader. */
@@ -1048,10 +1057,13 @@ export interface SceneSurface {
   watchCameras(listener: () => void): () => void;
   /** Put the camera back to the default orbit — the view the Studio opens with. */
   resetOrbit(): SceneReport;
-  /** Add a body at the next free slot. Answers `null` when the runtime produced no entity. */
+  /** Add a body to the world on screen, at the next free slot. Answers `null` when the runtime produced no entity. */
   addBody(name: string, kind: string): { bodyId: string; count: number } | null;
-  /** Remove a body. Answers `false` when this surface does not hold it — the same answer `disk.write` gives
-   *  for a path it was never given. */
+  /** Take a body back out of the world on screen. Answers `false` when THAT WORLD does not hold the id — a body
+   *  of another world is not a row this button owns (M5 v277; pre-fix the domain was one list for every world, so
+   *  the same call removed a body the panel was not showing and refused the one it was). A body the host put into
+   *  the live world without this surface IS removable: the seat is the domain, and `bodyIds` only records what
+   *  this surface animated. */
   removeBody(bodyId: string): boolean;
   /** M5 v244 — add a CAMERA to the scene this surface draws, through the runtime's own `createCamera`.
    *  Answers `null` when the runtime produced no camera, the same shape `addBody` uses.
@@ -1142,6 +1154,12 @@ export function nextBodyPlacement(index: number): SceneVec3 {
  * rotations, a test passes a recorder. Everything above it (which bodies, how many frames, what the
  * runtime then says) is this module's, which is why the pure suite can assert the whole surface.
  *
+ * M5 v277 — the callback is handed the SCENE the write belongs to, as its first argument. The surface keeps
+ * its body lists per world, so a host that resolves an object out of a scene has to be told WHICH one; before
+ * it, the component's own writer looked bodies up under `surface.sceneId` while the loop handed it ids from
+ * whatever world was live, and the measurement of that disagreement is this grant (the frame write named a
+ * body the runtime holds only off-screen — a still picture on screen and an invisible spin behind it).
+ *
  * The adapter stays a SEPARATE argument rather than being merged into the runtime: the real
  * `ThreeRuntime` carries its methods on the prototype, so spreading it into an object literal silently
  * drops `getScene` and every other method behind it. Measured the hard way — `Object.assign(runtime,
@@ -1187,7 +1205,7 @@ function describesRunningSequence(file: SceneSaveFile): boolean {
 
 export function createStudioScene(
   runtime: SceneComposerLike,
-  writeFrame: (bodyIds: string[], motion: { y: number; bob: number }) => void,
+  writeFrame: (sceneId: string, bodyIds: string[], motion: { y: number; bob: number }) => void,
   adapter?: SceneAdapterLike,
   frames = 0,
   saver?: SceneSaverLike,
@@ -1199,13 +1217,25 @@ export function createStudioScene(
   // only another pick replaces or clears it.
   let selected: { id: string; name: string } | null = null;
 
-  // A copy, not the array `buildDemoScene` returned: the surface owns its body list from here on, and the
-  // builder's array is a construction detail. Mutated in place so the frame writer sees the current set.
-  const bodyIds = [...built.bodyIds];
-  // What the person using this surface AUTHORED (v163). Starts empty — the four composed bodies are the
-  // demo, not user content — and is maintained by exactly the two controls below, so the list a document
-  // button files can never quietly include a body nobody authored.
-  const authoredIds: string[] = [];
+  // M5 v277 — ONE LIST PER WORLD, keyed by scene id. A copy of what `buildDemoScene` returned, not the
+  // builder's own array: the surface owns its bodies from here on and the builder's list is a construction
+  // detail. Mutated in place so a reader that held `surface.bodyIds` a frame ago still sees the current set.
+  //
+  // This replaced one global array, and the probe measured what global meant: with the seat moved to a second
+  // world, `report()` named the world on screen and `bodyIds` named the composed one, so `step()` spent every
+  // frame spinning bodies nobody could see while the world the person was looking at stood perfectly still —
+  // and `removeBody` could take out an off-screen body and refused the one under the cursor.
+  const bodiesByScene = new Map<string, string[]>([[built.sceneId, [...built.bodyIds]]]);
+  // What the person using this surface AUTHORED (v163), per world for the same reason. Starts empty — the four
+  // composed bodies are the demo, not user content — and is maintained by exactly the two verbs below, so the
+  // list a document button files can never quietly include a body nobody authored, in this or any other world.
+  const authoredByScene = new Map<string, string[]>();
+  const bodiesOf = (sceneId: string): string[] => bodiesByScene.get(sceneId) ?? [];
+  const hold = (map: Map<string, string[]>, sceneId: string, bodyId: string): void => {
+    const list = map.get(sceneId);
+    if (list) list.push(bodyId);
+    else map.set(sceneId, [bodyId]);
+  };
   let added = 0;
 
   /** Which scene the panel is looking AT: the row the graph names as active, falling back to the one this
@@ -1252,9 +1282,16 @@ export function createStudioScene(
 
   return {
     sceneId: built.sceneId,
+    get liveSceneId() {
+      return liveSceneId();
+    },
     cameraId: built.cameraId,
-    bodyIds,
-    authoredBodyIds: authoredIds,
+    get bodyIds() {
+      return bodiesOf(liveSceneId());
+    },
+    get authoredBodyIds() {
+      return authoredByScene.get(liveSceneId()) ?? [];
+    },
     get frames() {
       return counted;
     },
@@ -1266,7 +1303,8 @@ export function createStudioScene(
     },
     step(elapsedSeconds) {
       counted += 1;
-      writeFrame(bodyIds, spinAt(elapsedSeconds));
+      const subject = liveSceneId();
+      writeFrame(subject, bodiesOf(subject), spinAt(elapsedSeconds));
       return buildSceneReport(runtime, counted, orbit, selected);
     },
     orbitBy(delta) {
@@ -1402,15 +1440,20 @@ export function createStudioScene(
       aim();
       return buildSceneReport(runtime, counted, orbit, selected);
     },
-    // M5 v261 — the body pair stays on the scene this surface COMPOSED, and that is a deliberate bound, not
-    // an oversight: `writeFrame` is resolved by the host against `surface.sceneId` (Scene3D.tsx:238) and the
-    // document send against the same address (:807), so a body filed into whatever scene happens to be live
-    // would join `bodyIds` and never be drawn — the frame writer would be handed an id in a scene it does not
-    // own. Adding a body to a world the panel is not looking at is a different feature from reading a world it
-    // is, and this grant does not pretend to be it.
+    // M5 v277 — the body pair follows the seat, which is the BOUND v261 recorded and this grant closes. v261
+    // left it in place because the host resolved its frame writer (Scene3D.tsx:238) and its document send
+    // (:830) against `surface.sceneId`: a body filed into the live world would have joined `bodyIds` and never
+    // been drawn, since the writer was looking in another scene. Both of those now name the LIVE world — and the
+    // frame writer is handed the address rather than resolving one itself, so a write into a world the loop is
+    // not drawing is no longer something a host can express by accident.
     addBody(name, kind) {
+      const subject = liveSceneId();
+      // Look the world up before asking, the same order `removeCamera` and `activateScene` keep: an active row
+      // that names a world the runtime does not hold is a broken seat, and the runtime's answer to authoring
+      // into it is a THROW (`Scene … not found`, threeRuntime.ts:1416). A control that throws is not a refusal.
+      if (!runtime.getScene(subject)) return null;
       const entity = runtime.createEntity(
-        built.sceneId,
+        subject,
         name,
         kind,
         undefined,
@@ -1419,19 +1462,32 @@ export function createStudioScene(
       );
       if (!entity?.id) return null;
       added += 1;
-      bodyIds.push(entity.id);
-      authoredIds.push(entity.id);
-      return { bodyId: entity.id, count: bodyIds.length };
+      hold(bodiesByScene, subject, entity.id);
+      hold(authoredByScene, subject, entity.id);
+      return { bodyId: entity.id, count: bodiesOf(subject).length };
     },
     removeBody(bodyId) {
-      const at = bodyIds.indexOf(bodyId);
-      if (at === -1) return false;
-      bodyIds.splice(at, 1);
-      // The runtime owns the entity; this surface only stops tracking it. Both must move, or the report
-      // would count a body the loop no longer writes.
-      runtime.removeEntity(built.sceneId, bodyId);
-      const authoredAt = authoredIds.indexOf(bodyId);
-      if (authoredAt !== -1) authoredIds.splice(authoredAt, 1);
+      // The WORLD ON SCREEN is the domain, looked up before the runtime is asked — the same order `removeCamera`
+      // keeps, for the same reason: an id the panel never showed is answered by the surface rather than by a
+      // host refusal three calls later. Pre-v277 the domain was one list for every world, so this button took
+      // out a body the person was not looking at and answered `false` about the one under the cursor.
+      const subject = liveSceneId();
+      const live = runtime.getScene(subject);
+      if (!live?.entities.has(bodyId)) return false;
+      runtime.removeEntity(subject, bodyId);
+      // Both records move: the loop must stop writing a body that is gone, and a document must stop filing one
+      // nobody authored any more. A body the host put in this world without this surface is in neither list, and
+      // removing it still succeeds — the seat is the domain, the lists are only what this surface made.
+      const held = bodiesByScene.get(subject);
+      if (held) {
+        const at = held.indexOf(bodyId);
+        if (at !== -1) held.splice(at, 1);
+      }
+      const authored = authoredByScene.get(subject);
+      if (authored) {
+        const authoredAt = authored.indexOf(bodyId);
+        if (authoredAt !== -1) authored.splice(authoredAt, 1);
+      }
       return true;
     },
     // M5 v244 — the camera AUTHORING pair. Both answer the LIVE scene's camera count rather than a list this

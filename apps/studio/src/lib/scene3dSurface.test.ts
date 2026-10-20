@@ -483,8 +483,11 @@ describe('the Studio’s scene, composed on the REAL runtime', () => {
     runtime = headless.runtime;
     const writes: { ids: string[]; moved: number }[] = [];
 
-    const surface = createStudioScene(headless.runtime, (ids) => {
-      const scene = headless.runtime.getScene(toSceneId(surface.sceneId))!;
+    const surface = createStudioScene(headless.runtime, (sceneId, ids) => {
+      // v277 — the world is read off the address the write is HANDED, not off `surface.sceneId`: this is the
+      // shape the Studio component uses, and a writer that resolved the composed scene while the loop handed it
+      // another world's ids would move nothing and still report a green frame.
+      const scene = headless.runtime.getScene(toSceneId(sceneId))!;
       let moved = 0;
       for (const id of ids) {
         const entity = scene.entities.get(toEntityId(id));

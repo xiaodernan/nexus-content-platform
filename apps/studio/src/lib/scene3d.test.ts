@@ -327,7 +327,7 @@ describe("createStudioScene — the loop's arithmetic, owned by the model", () =
   it('counts its OWN frames, one per step, starting from the count it was handed', () => {
     const { runtime } = fakeRuntime();
     const writes: number[] = [];
-    const surface = createStudioScene(runtime, (_ids, motion) => writes.push(motion.y), undefined, 5);
+    const surface = createStudioScene(runtime, (_sceneId, _ids, motion) => writes.push(motion.y), undefined, 5);
 
     expect(surface.frames).toBe(5);
     expect(surface.report().frames).toBe(5);
@@ -337,18 +337,22 @@ describe("createStudioScene — the loop's arithmetic, owned by the model", () =
     expect(writes).toHaveLength(2);
   });
 
-  it('hands the frame write the composed BODY ids and the motion for the instant it was given', () => {
+  it('hands the frame write the world it is animating, that world\u2019s BODY ids and the motion for the instant it was given', () => {
     const { runtime } = fakeRuntime();
-    const seen: { ids: string[]; motion: { y: number; bob: number } }[] = [];
-    const surface = createStudioScene(runtime, (ids, motion) => seen.push({ ids, motion }));
+    const seen: { sceneId: string; ids: string[]; motion: { y: number; bob: number } }[] = [];
+    const surface = createStudioScene(runtime, (sceneId, ids, motion) => seen.push({ sceneId, ids, motion }));
 
     surface.step(2.5);
-    expect(seen[0]!.ids).toEqual(surface.bodyIds);
+    // v277 — the address is the FIRST thing a write is handed, and it is the live one: a host that resolves an
+    // object out of a scene has to be told which world the ids came from, or it reads the composed one for an
+    // off-screen list, which is what the pre-v277 two-argument shape made unavoidable.
+    expect(seen[0]!.sceneId).toBe(surface.sceneId);
+    expect(seen[0]!.ids).toBe(surface.bodyIds);
     expect(seen[0]!.motion).toEqual(spinAt(2.5));
     // The write is the ONLY place a body moves, so two surfaces stepped to the same instant agree —
     // which is what makes the harness able to predict a frame it never saw.
     const otherMotions: { y: number; bob: number }[] = [];
-    const other = createStudioScene(fakeRuntime().runtime, (_ids, motion) => otherMotions.push(motion));
+    const other = createStudioScene(fakeRuntime().runtime, (_sceneId, _ids, motion) => otherMotions.push(motion));
     other.step(2.5);
     expect(otherMotions[0]).toEqual(seen[0]!.motion);
   });
@@ -621,7 +625,7 @@ describe('the surface is CONTROLLABLE — orbit, zoom, and add/remove a body (M5
     // the loop writing it would be caught here.
     const written: string[][] = [];
     const { runtime } = fakeRuntime();
-    const surface = createStudioScene(runtime, (ids) => written.push([...ids]));
+    const surface = createStudioScene(runtime, (_sceneId, ids) => written.push([...ids]));
     const added = surface.addBody('Cube D', 'mesh')!;
     surface.step(1);
     expect(written[0]).toContain(added.bodyId);
@@ -689,8 +693,13 @@ describe('save / load — the scene survives the process (M5 v163)', () => {
     expect(runtime.getScene(surface.sceneId)!.entities.size).toBe(before.scene!.entities);
     expect(surface.report().scene!.id).toBe(before.scene!.id);
     const written: string[][] = [];
-    const loop = createStudioScene(runtime, (ids) => written.push([...ids]));
-    expect(loop.bodyIds).toHaveLength(4); // the loop still writes the demo bodies, not the restored ones
+    const loop = createStudioScene(runtime, (_sceneId, ids) => written.push([...ids]));
+    // v277 — a surface built while a DIFFERENT world holds the seat holds no bodies in the world on screen. The
+    // four bodies this one composed are in the world it built, which the panel is not looking at; pre-v277 this
+    // line counted them as the loop's own, so a second surface would have spun a world nobody draws from.
+    expect(loop.bodyIds).toHaveLength(0);
+    loop.step(1);
+    expect(written[0]).toEqual([]);
   });
 
   it('load refuses a file that is not an object, rather than asking the saver about it', () => {
@@ -2572,20 +2581,132 @@ describe('activateScene — the world the panel reads is the world it writes (M5
     expect(scenes).toEqual([surface.sceneId, second.id]);
   });
 
-  it('THE BOUND: a body still lands in the scene whose frame loop this surface drives', () => {
-    // Deliberate, and written down so a future change is a decision rather than drift. The host resolves the
-    // frame writer against `surface.sceneId` (Scene3D.tsx:238) and the document send against the same address
-    // (:807), so a body filed into whatever world is live would join `bodyIds` and never be drawn.
+  it('a body lands in the world on screen, and the removal answers for THAT world (M5 v277 closes v261\u2019s bound)', () => {
+    // v261 left the body pair on the composed scene because the host resolved its frame writer and its document
+    // send against `surface.sceneId`; both now name the live world and the frame writer is HANDED the address, so
+    // the reason is gone. The probe measured the cost of keeping it: one Save press filed the world on screen in
+    // `save()`'s file and the composed world in the store's bytes, `step()` spun bodies nobody could see, and
+    // `removeBody` took out the off-screen body while refusing the one under the cursor.
     const { scenes, surface, second } = twoScenes();
     surface.activateScene(second.id);
 
     const added = surface.addBody('Authored Body', 'mesh')!;
 
-    expect(scenes.get(surface.sceneId)!.entities.has(added.bodyId)).toBe(true);
-    expect(scenes.get(second.id)!.entities.has(added.bodyId)).toBe(false);
-    expect(surface.bodyIds).toContain(added.bodyId);
-    // And the removal takes it back out of the same world it went into.
-    expect(surface.removeBody(added.bodyId)).toBe(true);
+    expect(scenes.get(second.id)!.entities.has(added.bodyId)).toBe(true);
     expect(scenes.get(surface.sceneId)!.entities.has(added.bodyId)).toBe(false);
+    // The answer counts the world it wrote into, and only the bodies of that world this surface holds: the host's
+    // own `Solo Body` is in the scene but not in this surface's list, which is why the count is one, not two.
+    expect(added.count).toBe(1);
+    expect(surface.bodyIds).toEqual([added.bodyId]);
+    expect(surface.authoredBodyIds).toEqual([added.bodyId]);
+    // The composed world's list never saw it — the four demo bodies are still all it holds.
+    surface.activateScene(surface.sceneId);
+    expect(surface.bodyIds).toHaveLength(4);
+    expect(surface.authoredBodyIds).toEqual([]);
+    // And the removal takes it back out of the same world it went into.
+    surface.activateScene(second.id);
+    expect(surface.removeBody(added.bodyId)).toBe(true);
+    expect(scenes.get(second.id)!.entities.has(added.bodyId)).toBe(false);
+  });
+
+  it('the body lists move WITH the seat: two worlds, two lists, one surface', () => {
+    const { scenes, surface, second } = twoScenes();
+    const home = surface.bodyIds;
+    expect(home).toHaveLength(4);
+    expect(surface.authoredBodyIds).toHaveLength(0);
+    expect(surface.liveSceneId).toBe(surface.sceneId);
+
+    surface.activateScene(second.id);
+    // The world on screen holds a body the HOST put there: the report says so, and this surface's animation list
+    // stays empty, because it never made that body (v277's recorded bound — a surface spins what it composed or
+    // authored). The pre-fix list was one array for every world, so this read named five bodies in a world of one.
+    const solo = [...scenes.get(second.id)!.entities.keys()];
+    expect(solo).toHaveLength(1);
+    expect(surface.bodyIds).toEqual([]);
+    expect(surface.report().scene!.entityNames).toEqual(['Solo Body']);
+    expect(surface.authoredBodyIds).toEqual([]);
+    expect(surface.liveSceneId).toBe(second.id);
+
+    const added = surface.addBody('Authored in B', 'mesh')!;
+    expect(surface.bodyIds).toEqual([added.bodyId]);
+    expect(surface.authoredBodyIds).toEqual([added.bodyId]);
+
+    // Back home, the lists are the ones this surface left, not the one it extended while away.
+    surface.activateScene(surface.sceneId);
+    expect(surface.bodyIds).toBe(home);
+    expect(surface.bodyIds).toHaveLength(4);
+    expect(surface.authoredBodyIds).toEqual([]);
+  });
+
+  it('a body of another world is not a row this surface owns — removal refuses it and edits nothing', () => {
+    const { scenes, surface, second } = twoScenes();
+    const solo = [...scenes.get(second.id)!.entities.keys()][0]!;
+
+    // At home, `Solo Body` is in a world the panel is not showing: refused, and still there.
+    expect(surface.removeBody(solo)).toBe(false);
+    expect(scenes.get(second.id)!.entities.has(solo)).toBe(true);
+
+    // Move the seat and the same id is a row this surface holds.
+    surface.activateScene(second.id);
+    expect(surface.removeBody(solo)).toBe(true);
+    expect(scenes.get(second.id)!.entities.has(solo)).toBe(false);
+    expect(surface.bodyIds).toEqual([]);
+    // The composed world kept every body it had: the removal reached only the world on screen.
+    expect(scenes.get(surface.sceneId)!.entities.size).toBe(4);
+  });
+
+  it('step hands the frame writer the live world and only that world\u2019s bodies', () => {
+    const { runtime } = fakeRuntime();
+    const writes: { sceneId: string; ids: string[] }[] = [];
+    const surface = createStudioScene(runtime, (sceneId, ids) => writes.push({ sceneId, ids: [...ids] }));
+    const second = runtime.createScene('Second World');
+    const solo = runtime.createEntity(second.id, 'Solo Body', 'mesh');
+    runtime.createCamera(second.id, 'Second Cam');
+
+    surface.step(1);
+    expect(writes[0]!.sceneId).toBe(surface.sceneId);
+    expect(writes[0]!.ids).toEqual(surface.bodyIds);
+
+    surface.activateScene(second.id);
+    surface.step(2);
+    // The address travels WITH the ids, and the list is the world on screen's own — which this surface never
+    // wrote, so it is empty. The four composed bodies stop being spun the moment the seat leaves them, and
+    // `Solo Body` is not spun either: a surface animates what it composed or authored, not whatever a host put
+    // down in front of it. That is v277's recorded bound, and it is the frame-write half of the pre-fix defect
+    // (the probe measured five off-screen bodies written every frame while the world on screen stood still).
+    expect(writes[1]!.sceneId).toBe(second.id);
+    expect(writes[1]!.ids).toEqual([]);
+    expect(writes[1]!.ids).not.toContain(solo.id);
+
+    const added = surface.addBody('Authored in B', 'mesh')!;
+    surface.step(3);
+    expect(writes[2]!.sceneId).toBe(second.id);
+    expect(writes[2]!.ids).toEqual([added.bodyId]);
+
+    surface.activateScene(surface.sceneId);
+    surface.step(4);
+    expect(writes[3]!.sceneId).toBe(surface.sceneId);
+    expect(writes[3]!.ids).toHaveLength(4);
+    expect(writes[3]!.ids).not.toContain(added.bodyId);
+  });
+
+  it('a seat that names a world the runtime does not hold authors nothing, and does not throw', () => {
+    // The runtime's `insertEntity` throws `Scene … not found` for an unknown scene (threeRuntime.ts:1416), so a
+    // broken seat used to be a button that crashes. v261 made the same shape impossible to report (activeSceneId
+    // null, no scene summary); v277 makes it impossible to write into.
+    const { runtime, scenes } = fakeRuntime();
+    const ghost = {
+      ...runtime,
+      getSceneGraph: () => ({ ...runtime.getSceneGraph(), activeSceneId: 'a-world-the-runtime-never-held' }),
+    };
+    const broken = createStudioScene(ghost, () => {});
+    expect(broken.liveSceneId).toBe('a-world-the-runtime-never-held');
+    expect(broken.bodyIds).toEqual([]);
+    expect(() => broken.addBody('Ghost Author', 'mesh')).not.toThrow();
+    expect(broken.addBody('Ghost Author', 'mesh')).toBeNull();
+    expect(broken.removeBody('entity-never-existed')).toBe(false);
+    // The only bodies anywhere are the four this surface's own builder composed — the authoring did nothing.
+    const total = [...scenes.values()].reduce((n, s) => n + s.entities.size, 0);
+    expect(total).toBe(4);
   });
 });

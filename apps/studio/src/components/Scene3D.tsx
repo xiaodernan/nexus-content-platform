@@ -237,8 +237,11 @@ export default function Scene3D() {
 
     const surface: SceneSurface = createStudioScene(
       runtime,
-      (bodyIds, motion) => {
-        const scene = sceneOf(surface.sceneId);
+      (sceneId, bodyIds, motion) => {
+        // v277 — the surface HANDS the address of the world it is animating. Resolving `surface.sceneId` here
+        // (as this line did until now) meant the loop asked the composed world for ids that came from the live
+        // one, so the on-screen picture stood still while an off-screen world spun.
+        const scene = sceneOf(sceneId);
         for (const id of bodyIds) {
           const entity = scene?.entities.get(id as never);
           if (!entity) continue;
@@ -591,9 +594,12 @@ export default function Scene3D() {
       // React state — nothing ever called writeSaveFile, so the store (and every browse after a
       // reload) stayed empty while the note said "persisted". The store receives the bytes now, and
       // the note carries the write report's OWN byte count.
+      // v277 — the store is addressed with `liveSceneId`, the same world `surface.save()` just filed: until
+      // here it named `surface.sceneId`, so one press wrote the world on screen into the file and the composed
+      // world into localStorage, and the note's body count described the file while the bytes described the other.
       const report = runtime.writeSaveFile(
         'last-saved',
-        surface.sceneId as Parameters<typeof runtime.writeSaveFile>[1],
+        surface.liveSceneId as Parameters<typeof runtime.writeSaveFile>[1],
         savedAt,
       );
       setSaveNote(
@@ -718,7 +724,7 @@ export default function Scene3D() {
         setLastFile(file);
         const storeReport = runtime.writeSaveFile(
           SAVE_FS_LANE_DISK_SAVE_PATH,
-          surface.sceneId as Parameters<typeof runtime.writeSaveFile>[1],
+          surface.liveSceneId as Parameters<typeof runtime.writeSaveFile>[1],
           savedAt,
         );
         const answer = await writeSaveToDisk(SAVE_FS_LANE_DISK_SAVE_PATH, file);
@@ -827,7 +833,11 @@ export default function Scene3D() {
       setSaveNote('nothing authored to send — add a body first');
       return;
     }
-    const scene = runtime.getScene(surface.sceneId as Parameters<typeof runtime.getScene>[0]);
+    // v277 — THIS is the line v261's bound named: `authored` is the world on screen's authored list, so the
+    // bodies it just promised to file had to be looked up in that same world. Against `surface.sceneId` an
+    // authored body in another world resolved to nothing and the send answered "add a body first" while the
+    // panel was showing one the person had added.
+    const scene = runtime.getScene(surface.liveSceneId as Parameters<typeof runtime.getScene>[0]);
     if (!scene) return;
     const { doc, activePageId, commitOps } = useStudio.getState();
     const page = doc.nodes[activePageId];

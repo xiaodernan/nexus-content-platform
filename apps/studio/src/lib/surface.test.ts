@@ -261,6 +261,38 @@ describe('the wiring that makes the 3D surface reachable', () => {
     expect(code).not.toMatch(/\.setActiveScene\(/);
   });
 
+  it('the world the component WRITES is the world it was handed (M5 v277)', () => {
+    // v261 moved the report's READ onto the active row and left the WRITES where they were, recording that as a
+    // bound. Measured before this grant: `surface.save()` filed the world on screen while the store write beside
+    // it named the composed one — one press wrote two worlds — and the frame writer resolved the composed scene
+    // for ids that came from the live one, so the picture on screen stood still while an off-screen world spun.
+    // v277 moved the body lane onto the live world and handed the writer its address; this pins that the shipped
+    // component has no composed-scene address left for it to write into.
+    const code = stripComments(SCENE);
+    expect(code, 'the component names `surface.sceneId` again — every world address it writes has to be the live one')
+      .not.toMatch(/surface\.sceneId/);
+
+    // The frame writer takes the address as its FIRST parameter and resolves the scene from that parameter. A
+    // writer that ignored the argument and resolved its own scene still compiles, so the parameter alone is not
+    // the claim: exactly one scene lookup happens inside it, and it is the one keyed on what was handed.
+    const writer = code.match(/createStudioScene\(\s*runtime,\s*\(sceneId, bodyIds, motion\) => \{[\s\S]*?\n {6}\},/);
+    expect(writer, 'the frame writer no longer takes (sceneId, bodyIds, motion)').not.toBeNull();
+    expect([...writer![0].matchAll(/sceneOf\(/g)]).toHaveLength(1);
+    expect(writer![0]).toMatch(/sceneOf\(sceneId\)/);
+
+    // The three host reads outside the writer, each named through the same accessor the surface exposes: the
+    // localStorage store write, the disk store write, and the document send's entity lookup. Counted, because a
+    // case that matched only one of them leaves the other two free to drift back.
+    expect([...code.matchAll(/surface\.liveSceneId/g)]).toHaveLength(3);
+    expect([...code.matchAll(/runtime\.writeSaveFile\(\s*[^,\n]+,\s*surface\.liveSceneId/g)]).toHaveLength(2);
+    expect(code).toMatch(/const scene = runtime\.getScene\(surface\.liveSceneId/);
+
+    // The panel's Remove button takes the last body of the world ON SCREEN — `bodyIds` is a getter over the live
+    // list now, so this line is where the button would silently point back at the composed scene.
+    expect(code).toMatch(/const last = surface\.bodyIds\[surface\.bodyIds\.length - 1\];/);
+    expect(code).toMatch(/surface\.removeBody\(last\)/);
+  });
+
   it('the seat control is offered on the row that does NOT hold it, and its refusal is shown in the surfaces words (M5 v260)', () => {
     // v244's refusal told the user to `call setActiveCamera first` with no such button; v260 added the button.
     // This case pins the two things that make it honest rather than merely present: WHERE it appears, and
