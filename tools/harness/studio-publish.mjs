@@ -773,17 +773,85 @@ try {
       `hrefs: ${JSON.stringify(rows.slice(0, 3).map((r) => r.href))}`,
     );
 
-    // The service's OWN count beside what was rendered — so a row the reading half dropped is visible as a
-    // discrepancy rather than invisible.
+    // v281 — THREE numbers, because there are three different questions: what is SHOWN (the filter
+    // admits), what could be RENDERED (the reading half accepted), and what the SERVICE says it carried.
     const footer = await page.evaluate("document.querySelector('[data-toolbar-trail]')?.textContent ?? ''");
-    const stated = /(\d+) of (\d+) entry\(ies\) shown · the service caps at (\d+)/.exec(footer);
+    const stated = /(\d+) shown · (\d+) renderable · the service carried (\d+) · the service caps at (\d+)/.exec(footer);
     check(
       'the trail states the service’s count beside what it rendered',
-      // group 1 = rows rendered, group 2 = the count the SERVICE reported: rendered can never exceed it,
-      // and a smaller number is exactly the discrepancy the two-number footer exists to expose.
-      stated !== null && Number(stated[1]) <= Number(stated[2]) && Number(stated[3]) >= 1,
-      `${stated ? stated[0] : JSON.stringify(footer.slice(-120))}`,
+      // group 2 = rows the reading half accepted, group 3 = the count the SERVICE reported: renderable can
+      // never exceed it, and a smaller number is exactly the discrepancy this footer exists to expose.
+      stated !== null && Number(stated[2]) <= Number(stated[3]) && Number(stated[4]) >= 1,
+      `${stated ? stated[0] : JSON.stringify(footer.slice(-140))}`,
     );
+
+    // §9.6 v281 — the trail’s FILTERS and its TALLY.
+    {
+      const summary = await page.evaluate("document.querySelector('[data-trail-summary]')?.textContent ?? ''");
+      check(
+        'the panel states the tally of the whole answer',
+        /\d+ published · \d+ took down/.test(summary),
+        `summary: ${JSON.stringify(summary)}`,
+      );
+
+      // The take-down filter must narrow the list to the take-downs — and NOTHING else.
+      await page.evaluate("document.querySelector('[data-trail-filter=\"unpublish\"]').click()");
+      const downOnly = await until(
+        async () => {
+          const actions = await page.evaluate(
+            "Array.from(document.querySelectorAll('[data-trail-row]')).map(n => n.getAttribute('data-trail-action'))",
+          );
+          return actions.length > 0 ? actions : false;
+        },
+        { tries: 20, gapMs: 300, label: 'the take-down filter to narrow the rows' },
+      );
+      const downActions = downOnly === false ? [] : downOnly;
+      check(
+        'the take-down filter shows ONLY take-downs',
+        downActions.length > 0 && downActions.every((a) => a === 'unpublish'),
+        `actions: ${JSON.stringify(downActions)}`,
+      );
+      check(
+        'and it shows FEWER rows than the whole trail did — a filter that shows everything is not a filter',
+        downActions.length < rows.length,
+        `${downActions.length} of ${rows.length}`,
+      );
+
+      // The publish filter is the other half of the same rule.
+      await page.evaluate("document.querySelector('[data-trail-filter=\"publish\"]').click()");
+      const pubOnly = await until(
+        async () => {
+          const actions = await page.evaluate(
+            "Array.from(document.querySelectorAll('[data-trail-row]')).map(n => n.getAttribute('data-trail-action'))",
+          );
+          return actions.length > 0 ? actions : false;
+        },
+        { tries: 20, gapMs: 300, label: 'the publish filter to narrow the rows' },
+      );
+      const pubActions = pubOnly === false ? [] : pubOnly;
+      check(
+        'the publish filter shows ONLY publishes',
+        pubActions.length > 0 && pubActions.every((a) => a === 'publish'),
+        `actions: ${JSON.stringify(pubActions)}`,
+      );
+
+      // And ‘All’ puts every row back: a filter that could not be undone would be a trap.
+      await page.evaluate("document.querySelector('[data-trail-filter=\"all\"]').click()");
+      const allBack = await until(
+        async () => {
+          const actions = await page.evaluate(
+            "Array.from(document.querySelectorAll('[data-trail-row]')).map(n => n.getAttribute('data-trail-action'))",
+          );
+          return actions.length === rows.length ? actions : false;
+        },
+        { tries: 20, gapMs: 300, label: 'the ‘All’ filter to restore every row' },
+      );
+      check(
+        '‘All’ puts every row back — a filter that could not be undone would be a trap',
+        allBack !== false,
+        `${allBack === false ? 0 : allBack.length} row(s) vs ${rows.length}`,
+      );
+    }
   }
 
   // ── §10 teardown ─────────────────────────────────────────────────────────────────────────────────

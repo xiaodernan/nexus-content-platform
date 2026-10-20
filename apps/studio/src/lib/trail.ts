@@ -125,3 +125,49 @@ export function toTrailRows(entries: readonly unknown[]): TrailRow[] {
   }
   return rows;
 }
+
+/**
+ * v281 — the trail's own tally, from the rows the answer carried.
+ *
+ * The panel states the SERVICE'S count and this tally side by side, and the two are different numbers on
+ * purpose: the service counts everything in the answer, and this counts what could be displayed. A reader
+ * comparing them can see a drop.
+ *
+ * The categories are the ones the trail actually records today — `publish` and `unpublish` — and anything
+ * else is counted as `other` rather than being folded into one of them: a verb this build does not know
+ * must not be counted as a verb it does.
+ */
+export interface TrailSummary {
+  /** How many rows were published. */
+  published: number;
+  /** How many rows were taken down. */
+  tookDown: number;
+  /** How many rows carry an action this build does not know. */
+  other: number;
+  /** The total: the three above, added up. */
+  total: number;
+}
+
+export function trailSummaryOf(rows: readonly TrailRow[]): TrailSummary {
+  let published = 0;
+  let tookDown = 0;
+  let other = 0;
+  for (const row of rows) {
+    if (row.action === 'publish') published += 1;
+    else if (row.action === 'unpublish') tookDown += 1;
+    else other += 1;
+  }
+  return { published, tookDown, other, total: published + tookDown + other };
+}
+
+/**
+ * v281 — the rows of ONE action, or all of them.
+ *
+ * `action` is the service's own word, not the display verb: the panel's filter asks the trail in the
+ * trail's language, and the mapping to "published" / "took down" happens when the row is RENDERED. A
+ * filter that matched on the display verb would break the moment the display verb changed.
+ */
+export function filterTrailRows(rows: readonly TrailRow[], action: string | null): TrailRow[] {
+  if (action === null || action === '') return [...rows];
+  return rows.filter((row) => row.action === action);
+}

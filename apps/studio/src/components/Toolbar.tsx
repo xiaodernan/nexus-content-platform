@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react';
 import { renderPreviewHtml } from '@/lib/preview';
 import { exportCanvasPng, exportHtml, exportJson, slug } from '@/lib/export';
 import { readTrail, type TrailAnswer } from '@/lib/auditLane';
+import { filterTrailRows, trailSummaryOf } from '@/lib/trail';
 import { readEconomy, type EconomyAnswer } from '@/lib/economyLane';
 import { listPublished, probePublish, publishProject, unpublish, type PublishLaneListing, type PublishLaneProbe } from '@/lib/publishLane';
 import { remixProject } from '@/lib/remixLane';
@@ -107,6 +108,21 @@ export default function Toolbar() {
    */
   const [showTrail, setShowTrail] = useState(false);
   const [trail, setTrail] = useState<TrailAnswer | null>(null);
+  /**
+   * v281 — which ACTION the panel is showing. \'null\' is every action, and the filter asks the trail in the
+   * trail's own language (\'publish\' / \'unpublish\'), not in the display verb — a filter that matched on
+   * the display verb would break the moment the display verb changed.
+   */
+  const [trailFilter, setTrailFilter] = useState<string | null>(null);
+
+  /**
+   * v281 — the DERIVED view of the trail: the rows the current filter admits, and the tally of what the
+   * answer carried in all. The tally is over ALL the rows, not the filtered ones: the panel says "the
+   * service said 3 published and 1 take-down" and the filter narrows the LIST, so a reader can always see
+   * what the filter is hiding.
+   */
+  const trailRows = trail?.ok ? filterTrailRows(trail.rows ?? [], trailFilter) : [];
+  const trailSummary = trail?.ok ? trailSummaryOf(trail.rows ?? []) : null;
 
   const refreshTrail = async () => setTrail(await readTrail(20));
 
@@ -476,11 +492,50 @@ export default function Toolbar() {
             <div style={{ color: 'var(--nexus-muted)' }}>nothing has happened yet</div>
           ) : (
             <>
+              {/* v281 — the FILTERS and the TALLY. The tally counts the whole answer; the filter narrows
+                  the list. Both are shown, so a reader can always see what the filter is hiding — a panel
+                  that showed only the filtered count would let a filter silently hide an action. */}
+              <div data-trail-filters style={{ display: 'flex', gap: 6, alignItems: 'center', marginBottom: 6 }}>
+                <button
+                  className={`btn ${trailFilter === null ? 'tool-active' : ''}`}
+                  data-trail-filter="all"
+                  onClick={() => setTrailFilter(null)}
+                  title="every action"
+                >
+                  All
+                </button>
+                <button
+                  className={`btn ${trailFilter === 'publish' ? 'tool-active' : ''}`}
+                  data-trail-filter="publish"
+                  onClick={() => setTrailFilter('publish')}
+                  title="only the publishes"
+                >
+                  Published
+                </button>
+                <button
+                  className={`btn ${trailFilter === 'unpublish' ? 'tool-active' : ''}`}
+                  data-trail-filter="unpublish"
+                  onClick={() => setTrailFilter('unpublish')}
+                  title="only the take-downs"
+                >
+                  Taken down
+                </button>
+                {trailSummary && (
+                  <span data-trail-summary style={{ marginLeft: 'auto', color: 'var(--nexus-muted)' }}>
+                    {trailSummary.published} published · {trailSummary.tookDown} took down
+                    {trailSummary.other > 0 ? ` · ${trailSummary.other} other` : ''}
+                  </span>
+                )}
+              </div>
+              {trailRows.length === 0 ? (
+                <div style={{ color: 'var(--nexus-muted)' }}>no entries of that action</div>
+              ) : null}
               <ul style={{ listStyle: 'none', margin: 0, padding: 0 }}>
-                {(trail.rows ?? []).map((row) => (
+                {trailRows.map((row) => (
                   <li
                     key={row.id}
                     data-trail-row={row.id}
+                    data-trail-action={row.action}
                     style={{ display: 'flex', alignItems: 'baseline', gap: 8, padding: '3px 0' }}
                   >
                     <strong style={{ color: row.action === 'unpublish' ? 'var(--nexus-muted)' : 'var(--nexus-brand)' }}>
@@ -511,10 +566,13 @@ export default function Toolbar() {
                   </li>
                 ))}
               </ul>
-              {/* The service's OWN count beside what was rendered: a row the reading half could not display
-                  honestly is dropped, and these two numbers must then disagree OUT LOUD. */}
+              {/* THREE numbers, because there are three different questions. What is SHOWN is what the
+                  filter admits. What could be RENDERED is what the reading half accepted. What the SERVICE
+                  says it carried is its own count. The last two must disagree OUT LOUD when the reading half
+                  dropped a row it could not display honestly — and the first two differ whenever a filter
+                  is on, which is the filter working, not a discrepancy. */}
               <div style={{ marginTop: 6, color: 'var(--nexus-muted)' }}>
-                {(trail.rows ?? []).length} of {trail.count} entry(ies) shown · the service caps at {trail.limit}
+                {trailRows.length} shown · {(trail.rows ?? []).length} renderable · the service carried {trail.count} · the service caps at {trail.limit}
               </div>
             </>
           )}

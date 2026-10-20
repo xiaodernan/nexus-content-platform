@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { toTrailRow, toTrailRows, trailActionText, trailActorText } from './trail';
+import { toTrailRow, toTrailRows, trailActionText, trailActorText, trailSummaryOf, filterTrailRows } from './trail';
 
 /**
  * M9 v272 — the AUDIT TRAIL's reading half.
@@ -90,5 +90,42 @@ describe('trail — the whole trail (M9 v272)', () => {
 
   it('an empty trail is an empty answer, not an error', () => {
     expect(toTrailRows([])).toEqual([]);
+  });
+});
+
+describe('trail — the tally and the filter (M9 v281)', () => {
+  const rows = toTrailRows([
+    entry({ id: '1', action: 'publish' }),
+    entry({ id: '2', action: 'unpublish' }),
+    entry({ id: '3', action: 'publish' }),
+  ]);
+
+  it('counts what the rows carry, and nothing else', () => {
+    expect(trailSummaryOf(rows)).toEqual({ published: 2, tookDown: 1, other: 0, total: 3 });
+  });
+
+  it('an action this build does NOT know is counted as OTHER, never folded into a verb it does', () => {
+    // `follow` is in the client's model but does not exist server-side yet. If one ever arrives, the tally
+    // must not call it a publish — a summary that said "3 published" when one was a follow would be a lie.
+    const withFollow = toTrailRows([entry({ id: '1', action: 'publish' }), entry({ id: '2', action: 'follow' })]);
+    expect(trailSummaryOf(withFollow)).toEqual({ published: 1, tookDown: 0, other: 1, total: 2 });
+  });
+
+  it('an empty trail sums to zero, not to undefined', () => {
+    expect(trailSummaryOf([])).toEqual({ published: 0, tookDown: 0, other: 0, total: 0 });
+  });
+
+  it('the filter asks the trail in the TRAIL’S language, not the display verb', () => {
+    expect(filterTrailRows(rows, 'publish').map((r) => r.id)).toEqual(['1', '3']);
+    expect(filterTrailRows(rows, 'unpublish').map((r) => r.id)).toEqual(['2']);
+  });
+
+  it('no filter is every row, in order', () => {
+    expect(filterTrailRows(rows, null).map((r) => r.id)).toEqual(['1', '2', '3']);
+    expect(filterTrailRows(rows, '').map((r) => r.id)).toEqual(['1', '2', '3']);
+  });
+
+  it('a filter that matches nothing is an empty list — never the whole trail', () => {
+    expect(filterTrailRows(rows, 'follow')).toEqual([]);
   });
 });
