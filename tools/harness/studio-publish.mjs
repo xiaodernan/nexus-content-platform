@@ -1548,9 +1548,24 @@ try {
       reporter = null;
     }
     check(
-      'and the report names the REASON and the body, and the account that filed it',
-      reportsBody.reports?.[0]?.reason === 'harassment' && reportsBody.reports?.[0]?.detail === 'the harness says this is a problem' && reportsBody.reports?.[0]?.reporterId === reporter?.id,
-      `the report: ${JSON.stringify(reportsBody.reports?.[0])} · the device: ${JSON.stringify(reporter)}`,
+      'and the report names the REASON and the body',
+      reportsBody.reports?.[0]?.reason === 'harassment' && reportsBody.reports?.[0]?.detail === 'the harness says this is a problem',
+      `the report: ${JSON.stringify(reportsBody.reports?.[0])}`,
+    );
+    // v307 — the PUBLIC direction carries no identity, so the attribution is proved a different way: the
+    // SERVICE FOUND the report by the reporter's own account id, which is the reporter's own door. The name
+    // is the one thing a report cannot afford to leak, and the wire no longer carries it.
+    const attributionRead = await fetch(`${apiBase}/reports?reporter=${encodeURIComponent(reporter?.id ?? '')}`);
+    const attributionBody = await attributionRead.json();
+    check(
+      'and the SERVICE found it by the account that filed it — read through the reporter\u2019s own door',
+      attributionRead.status === 200 && (attributionBody.reports ?? []).some((r) => r.id === reportsBody.reports?.[0]?.id),
+      `the reporter\u2019s own list: ${JSON.stringify(attributionBody.reports)}`,
+    );
+    check(
+      'and the PUBLIC direction carries NO identity — the name is the one thing a report cannot afford to leak',
+      !(reportsBody.reports ?? []).some((r) => 'reporterId' in r || 'handle' in r || 'assurance' in r),
+      `the rows carry: ${JSON.stringify((reportsBody.reports ?? []).map((r) => Object.keys(r)))}`,
     );
 
     // And the page now says one report — and it does NOT name the reporter.

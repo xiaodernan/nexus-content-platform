@@ -22,14 +22,11 @@ import { escapeHtml } from './pageShell';
 /** One report, in the service's own wire shape. */
 export interface ReportEntry {
   id?: unknown;
-  reporterId?: unknown;
   targetId?: unknown;
   reason?: unknown;
   detail?: unknown;
   status?: unknown;
   createdAt?: unknown;
-  handle?: unknown;
-  assurance?: unknown;
 }
 
 /** A report reduced to the facts a reader can act on. */

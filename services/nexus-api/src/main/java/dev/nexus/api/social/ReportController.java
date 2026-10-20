@@ -1,6 +1,5 @@
 package dev.nexus.api.social;
 
-import dev.nexus.api.social.ReportDtos.FiledReport;
 import dev.nexus.api.social.ReportDtos.FiledReportsAnswer;
 import dev.nexus.api.social.ReportDtos.Report;
 import dev.nexus.api.social.ReportDtos.ReportAnswer;
@@ -83,7 +82,7 @@ public class ReportController {
             List<ReportEntry> filed = service.reportsFiledBy(reporterAccountId, asked);
             return ResponseEntity.ok(new FiledReportsAnswer(
                     reporterAccountId.trim(),
-                    filed.stream().map(ReportController::toFiledWire).toList(),
+                    filed.stream().map(ReportController::toWire).toList(),
                     filed.size(),
                     asked));
         }
@@ -101,28 +100,15 @@ public class ReportController {
                 asked));
     }
 
-    /** The service's row, as the wire's shape. */
+    /**
+     * The service's row, as the wire's shape.
+     *
+     * <p>v307 — and the reporter's identity is NOT in it. The service stores it (the withdrawal compares it
+     * with the row), but the wire does not carry it: a report is a complaint, not an accusation with the
+     * complainant's name on it.
+     */
     private static Report toWire(ReportEntry row) {
         return new Report(
-                row.getReportId(),
-                row.getReporterAccountId(),
-                row.getTargetProjectId(),
-                row.getReason(),
-                row.getDetail(),
-                row.getStatus(),
-                row.getCreatedAt().toEpochMilli(),
-                row.getReporterHandle(),
-                row.getReporterAssurance());
-    }
-
-    /**
-     * The report as the REPORTER sees it: the same fields, without the identity.
-     *
-     * <p>The reader is the reporter, so a field naming them would say nothing they did not know — while
-     * saying something to a caller who merely knew the account id.
-     */
-    private static FiledReport toFiledWire(ReportEntry row) {
-        return new FiledReport(
                 row.getReportId(),
                 row.getTargetProjectId(),
                 row.getReason(),

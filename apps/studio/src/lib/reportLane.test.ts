@@ -16,14 +16,11 @@ function makeFetch(handler: (url: string, init?: RequestInit) => Response) {
 
 const A_REPORT = {
   id: 'rep-1',
-  reporterId: 'acct-bob',
   targetId: 'pub-1',
   reason: 'harassment',
   detail: 'the words the reporter wrote',
   status: 'acknowledged',
   createdAt: 1_776_000_000_000,
-  handle: 'bob',
-  assurance: 'unsigned-local',
 };
 
 describe('reportLane — readMyReports (client half)', () => {

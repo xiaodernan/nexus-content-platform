@@ -10,17 +10,21 @@
  */
 import { nexusApiBase } from './publishServer';
 
-/** One report, in the service's own wire shape. */
+/**
+ * One report, in the service's own wire shape.
+ *
+ * <p>v307 — and it carries NO identity. The service stores the reporter's account id (the withdrawal
+ * compares it with the row), but the wire does not carry it: a report is a complaint, not an accusation
+ * with the complainant's name on it, and the page that reads these has never shown a name. A client that
+ * expected one would find it undefined — which is the honest answer.
+ */
 export interface ReportEntry {
   id: string;
-  reporterId: string;
   targetId: string;
   reason: string;
   detail: string;
   status: string;
   createdAt: number;
-  handle?: string | null;
-  assurance?: string | null;
 }
 
 /** What one read of the reports answered. */

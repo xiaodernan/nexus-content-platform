@@ -50,51 +50,44 @@ public final class ReportDtos {
      *
      * <p>The rows are named {@code reports} and not {@code targets}, because a list of the complaints an
      * account made is not a list of the works it complained about — and a wire field with the wrong name is
-     * a small lie that grows. The rows are the SAME report shape as the other direction: a reporter reading
-     * their own complaint sees their own identity in it, which is theirs to see.
+     * a small lie that grows. The rows are the SAME shape the other direction carries (v307), so a client
+     * reads one report shape whichever door the answer came through.
      */
     public record FiledReportsAnswer(
             String reporterAccountId,
-            List<FiledReport> reports,
+            List<Report> reports,
             int count,
             int limit) {
-    }
-
-    /**
-     * v305 — one report, as the REPORTER sees it.
-     *
-     * <p><b>It carries no identity, and that is the point.</b> The reader of this list IS the reporter, so
-     * a field saying who filed it would tell them something they already know — while telling a caller who
-     * merely knew the account id that this account filed a complaint about that work. The name is the one
-     * thing a report cannot afford to leak (v304's desk refuses to carry it for the same reason), and the
-     * reader does not need it.
-     *
-     * <p>The field names are the report's own, so a client reads one shape whichever door it came through.
-     */
-    public record FiledReport(
-            String id,
-            String targetId,
-            String reason,
-            String detail,
-            String status,
-            long createdAt) {
     }
 
     /** A report request: which publication, who is reporting, why, and what they say about it. */
     public record ReportRequest(String projectId, ReportClaim claim, String reason, String detail) {
     }
 
-    /** One report. The client's own `Report` shape, plus the two fields the service knows. */
+    /**
+     * One report, as the wire carries it.
+     *
+     * <p><b>v307 — it carries NO identity, and that is the point.</b> v295 made this record the client's own
+     * declared `Report` shape field for field, plus the reporter's handle and assurance — and the page
+     * then declined to show them (v296). The PAGE was careful and the WIRE was not: the identity sat in
+     * every answer about a publication, on a door anybody can call.
+     *
+     * <p>The name is the one thing a report cannot afford to leak. It is the reporter's, the reporter did
+     * not ask for it to be published, and a report is a complaint — not an accusation with the complainant's
+     * name on it. The service still STORES the reporter's account id (it has to: the withdrawal compares
+     * it with the row), and the reporter's own view still names them (v305), because the reader of THAT
+     * list IS the reporter.
+     *
+     * <p>So the wire is now NARROWER than the client's declared model (`ops.ts`), on purpose, and the
+     * fields it does carry are the report's own: what it is about, why, what was said, and where it stands.
+     */
     public record Report(
             String id,
-            String reporterId,
             String targetId,
             String reason,
             String detail,
             String status,
-            long createdAt,
-            String handle,
-            String assurance) {
+            long createdAt) {
     }
 
     /**
