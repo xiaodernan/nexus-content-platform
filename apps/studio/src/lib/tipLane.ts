@@ -29,6 +29,48 @@ export interface TipLaneAnswer {
 
 export type FetchLike = (input: string, init?: RequestInit) => Promise<Response>;
 
+/**
+ * READ the tips an account received — the creator's own view of what people gave them.
+ *
+ * <p>The count and the total are the SERVICE's facts (the total is the DATABASE's sum), and the lane
+ * reports them unchanged: a panel that added to the count would be showing a number the service never
+ * said.
+ */
+export async function readMyTips(
+  recipientAccountId: string,
+  fetchImpl: FetchLike = fetch,
+): Promise<{ ok: boolean; tips: { amountCents: number; message: string; anonymous: boolean }[]; totalCents: number; count: number; reason?: string }> {
+  try {
+    const res = await fetchImpl(`/api/tips?recipient=${encodeURIComponent(recipientAccountId)}`, {
+      headers: { accept: 'application/json' },
+    });
+    const parsed: unknown = await res.json().catch(() => null);
+    if (typeof parsed !== 'object' || parsed === null) {
+      return { ok: false, tips: [], totalCents: 0, count: 0, reason: `the tips answered HTTP ${res.status} with something that is not JSON` };
+    }
+    const answer = parsed as { ok?: unknown; tips?: unknown; totalCents?: unknown; count?: unknown; reason?: unknown; message?: unknown };
+    if (answer.ok === false || !res.ok) {
+      const reason =
+        typeof answer.reason === 'string'
+          ? answer.reason
+          : typeof answer.message === 'string'
+            ? answer.message
+            : `the tips answered HTTP ${res.status}`;
+      return { ok: false, tips: [], totalCents: 0, count: 0, reason };
+    }
+    return {
+      ok: true,
+      tips: Array.isArray(answer.tips)
+        ? (answer.tips as { amountCents: number; message: string; anonymous: boolean }[])
+        : [],
+      totalCents: typeof answer.totalCents === 'number' ? answer.totalCents : 0,
+      count: typeof answer.count === 'number' ? answer.count : 0,
+    };
+  } catch (error) {
+    return { ok: false, tips: [], totalCents: 0, count: 0, reason: error instanceof Error ? error.message : String(error) };
+  }
+}
+
 /** Give a tip. */
 export async function giveTip(
   recipientAccountId: string,

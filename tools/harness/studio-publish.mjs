@@ -1683,6 +1683,32 @@ try {
       `the bar carries the total: ${profileAfter.includes('¥5.00')}`,
     );
 
+    // And the CREATOR’s own view: the device signs in as the PUBLISHER (the one who was tipped) and opens
+    // the Studio’s Economy panel — which used to say ‘the economy door is not built’ and now says what was
+    // given.
+    await tipPage.evaluate("localStorage.removeItem('nexus-current-account')");
+    await tipPage.navigate(studioBase, { waitForSelector: '#nexus-canvas', waitMs: 2000 });
+    await waitForHydration(tipPage, 'the creator page to hydrate');
+    await signInAs(tipPage, 'ada', 'the creator');
+    await tipPage.evaluate("document.querySelector('[data-toolbar-economy-toggle]').click()");
+    const economyNote = await until(
+      async () => {
+        const n = await tipPage.evaluate("document.querySelector('[data-toolbar-economy]')?.textContent ?? ''");
+        return n.includes('¥5.00') ? n : false;
+      },
+      { tries: 60, gapMs: 500, label: 'the economy panel to show the tip' },
+    );
+    check(
+      'the Studio’s Economy panel shows the tip the account was given',
+      economyNote !== null,
+      `the panel says: ${JSON.stringify(economyNote)}`,
+    );
+    check(
+      'and it says what has NOT been built — the subscriptions need a plan catalog',
+      (await tipPage.evaluate("document.querySelector('[data-toolbar-economy]')?.textContent ?? ''")).includes('subscriptions are not built'),
+      'the panel names the gap instead of faking an empty feature',
+    );
+
     // LAST, because it clears the device’s account: a tip with no payer is not a fact anyone can act on.
     await tipPage.evaluate("localStorage.removeItem('nexus-current-account')");
     await tipPage.navigate(`${studioBase}/?tip=${encodeURIComponent(tipTo)}`, { waitForSelector: '[data-tip-composer]', waitMs: 2000 });

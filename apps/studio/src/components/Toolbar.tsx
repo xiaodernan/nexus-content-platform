@@ -4,7 +4,9 @@ import { renderPreviewHtml } from '@/lib/preview';
 import { exportCanvasPng, exportHtml, exportJson, slug } from '@/lib/export';
 import { readTrail, type TrailAnswer } from '@/lib/auditLane';
 import { filterTrailRows, trailSummaryOf, trailSummaryText } from '@/lib/trail';
-import { readEconomy, type EconomyAnswer } from '@/lib/economyLane';
+import { readMyTips } from '@/lib/tipLane';
+import { priceText } from '@/lib/economy';
+import type { PriceCents } from '@/lib/monetization';
 import { listPublished, probePublish, publishProject, unpublish, type PublishLaneListing, type PublishLaneProbe } from '@/lib/publishLane';
 import { remixProject } from '@/lib/remixLane';
 import { useStudio, type Tool } from '@/lib/store';
@@ -127,13 +129,41 @@ export default function Toolbar() {
   const refreshTrail = async () => setTrail(await readTrail(20));
 
   /**
-   * v274 — the CREATOR ECONOMY panel. No server endpoints exist yet (ADR 0018),
-   * so the panel states that honestly rather than showing mock data.
+   * v299 — the creator's OWN economy: the tips this device's account was given, and how much they came to.
+   *
+   * v274 left this panel honest but EMPTY: there were no economy endpoints, so it said so. v297 gave the
+   * service a tips table and v298 gave the page its bar, so the panel now shows something REAL — and the
+   * total is the SERVICE's number (the DATABASE's sum), reported unchanged: a panel that added to the
+   * count would be showing a number the service never said.
    */
   const [showEconomy, setShowEconomy] = useState(false);
-  const [economy, setEconomy] = useState<EconomyAnswer | null>(null);
+  const [economy, setEconomy] = useState<{
+    ok: boolean;
+    tips: { amountCents: number; message: string; anonymous: boolean }[];
+    totalCents: number;
+    count: number;
+    reason?: string;
+  } | null>(null);
 
-  const refreshEconomy = async () => setEconomy(await readEconomy());
+  const refreshEconomy = async () => {
+    // WHO the device is, read NOW and not at render time: the account can be set (or changed) after the
+    // toolbar last rendered, and a panel that asked "who am I" when it mounted would answer for an
+    // account that no longer exists.
+    const account = session.current();
+    // A device with NO account has no economy to read — and the panel says so rather than showing zeros
+    // for an account that does not exist.
+    if (!account) {
+      setEconomy({
+        ok: false,
+        tips: [],
+        totalCents: 0,
+        count: 0,
+        reason: 'this device has no account, and the economy is per account',
+      });
+      return;
+    }
+    setEconomy(await readMyTips(account.id));
+  };
 
   const onToggleEconomy = async () => {
     const next = !showEconomy;
@@ -337,7 +367,7 @@ export default function Toolbar() {
           data-toolbar-economy-toggle
           onClick={() => void onToggleEconomy()}
           disabled={service?.available === false}
-          title="subscriptions and tips — the economy door is not built yet"
+          title="the tips this account was given — and what has not been built yet"
         >
           Economy
         </button>
@@ -622,42 +652,33 @@ export default function Toolbar() {
             <div style={{ color: 'var(--nexus-muted)' }}>asking the service…</div>
           ) : !economy.ok ? (
             <div style={{ color: 'var(--nexus-muted)' }}>could not read: {economy.reason}</div>
-          ) : (economy.subscriptions?.length === 0 && economy.tips?.length === 0) ? (
-            <div style={{ color: 'var(--nexus-muted)' }}>no subscriptions or tips yet — the economy door is not built</div>
+          ) : economy.count === 0 ? (
+            <div style={{ color: 'var(--nexus-muted)' }}>no tips yet — nobody has given this account anything</div>
           ) : (
             <>
-              {economy.subscriptions && economy.subscriptions.length > 0 && (
-                <>
-                  <div style={{ fontWeight: 600, marginBottom: 4, marginTop: 6 }}>Subscriptions</div>
-                  <ul style={{ listStyle: 'none', margin: 0, padding: 0 }}>
-                    {economy.subscriptions.map((sub) => (
-                      <li key={sub.planId} style={{ display: 'flex', justifyContent: 'space-between', padding: '3px 0' }}>
-                        <span>{sub.planId} — {sub.priceText}</span>
-                        <span style={{ color: sub.isActive ? 'var(--nexus-brand)' : 'var(--nexus-muted)', fontSize: 10 }}>
-                          {sub.statusText} · {sub.daysLeftText}
-                        </span>
-                      </li>
-                    ))}
-                  </ul>
-                </>
-              )}
-              {economy.tips && economy.tips.length > 0 && (
-                <>
-                  <div style={{ fontWeight: 600, marginBottom: 4, marginTop: 6 }}>Tips</div>
-                  <ul style={{ listStyle: 'none', margin: 0, padding: 0 }}>
-                    {economy.tips.map((tip) => (
-                      <li key={tip.recipientId + tip.amountText} style={{ display: 'flex', flexDirection: 'column', gap: 2, padding: '3px 0' }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                          <span>{tip.anonymous ? 'Anonymous' : tip.recipientId} — {tip.amountText}</span>
-                        </div>
-                        {tip.messageText && (
-                          <div style={{ color: 'var(--nexus-muted)', fontSize: 10, whiteSpace: 'pre-wrap' }}>{tip.messageText}</div>
-                        )}
-                      </li>
-                    ))}
-                  </ul>
-                </>
-              )}
+              <div style={{ fontWeight: 600, marginBottom: 4, marginTop: 6 }}>Tips</div>
+              <div style={{ color: 'var(--nexus-muted)', marginBottom: 4 }}>
+                {economy.count} tip(s) · {priceText(economy.totalCents as PriceCents, 'CNY')} received
+              </div>
+              <ul style={{ listStyle: 'none', margin: 0, padding: 0 }}>
+                {economy.tips.map((tip, i) => (
+                  <li key={i} data-economy-tip={tip.amountCents} style={{ display: 'flex', flexDirection: 'column', gap: 2, padding: '3px 0' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                      <span>{tip.anonymous ? 'Anonymous' : 'a supporter'} — {priceText(tip.amountCents as PriceCents, 'CNY')}</span>
+                    </div>
+                    {tip.message && (
+                      <div style={{ color: 'var(--nexus-muted)', fontSize: 10, whiteSpace: 'pre-wrap' }}>{tip.message}</div>
+                    )}
+                  </li>
+                ))}
+              </ul>
+              {/* v299 — the SUBSCRIPTIONS are still not built, and the panel says so: a subscription needs a
+                  PLAN CATALOG (who sets the price and the period), and that is a product decision this
+                  build has not made. The panel does not show a fake ‘no subscriptions’ as though the
+                  feature were there and empty. */}
+              <div style={{ marginTop: 6, color: 'var(--nexus-muted)' }}>
+                subscriptions are not built yet — a subscription needs a plan catalog, and that is a product decision
+              </div>
             </>
           )}
         </div>

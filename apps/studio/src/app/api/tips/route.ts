@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 
-import { tipOnService } from '@/lib/tipServer';
+import { readTips, tipOnService } from '@/lib/tipServer';
 
 /**
  * M7 v298 (ADR 0016 amendment 298): `/api/tips` — this Studio's door onto the service's tips.
@@ -13,6 +13,31 @@ import { tipOnService } from '@/lib/tipServer';
  */
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
+
+/**
+ * READ the tips an account received — the creator's own view of what people gave them.
+ *
+ * <p>The same door serves both directions: the query names the RECIPIENT, and the answer carries the
+ * count, the total the DATABASE summed, and the tips themselves.
+ */
+export async function GET(request: Request): Promise<NextResponse> {
+  const url = new URL(request.url);
+  const recipient = url.searchParams.get('recipient');
+  if (!recipient) {
+    return NextResponse.json({ ok: false, reason: 'the recipient parameter is missing' }, { status: 400 });
+  }
+  const limit = Number.parseInt(url.searchParams.get('limit') ?? '20', 10);
+  const answer = await readTips(recipient, Number.isFinite(limit) ? limit : 20);
+  if (!answer.ok) {
+    return NextResponse.json({ ok: false, reason: answer.reason }, { status: 503 });
+  }
+  return NextResponse.json({
+    ok: true,
+    tips: answer.tips,
+    totalCents: answer.totalCents,
+    count: answer.count,
+  });
+}
 
 export async function POST(request: Request): Promise<NextResponse> {
   let body: unknown;
