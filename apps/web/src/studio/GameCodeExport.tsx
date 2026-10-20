@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { artifactChainSentence, type ArtifactChain } from '@nexus/game-model';
+import { saveBlob } from '@/lib/download';
 import { useGame } from './gameStore';
 
 /**
@@ -47,18 +48,7 @@ interface CodeOutput {
   kindNote: string | null;
 }
 
-/** 浏览器里落盘一份字节（Blob + 一次性 <a download>） */
-function saveBlob(name: string, blob: Blob): void {
-  const url = URL.createObjectURL(blob);
-  const anchor = document.createElement('a');
-  anchor.href = url;
-  anchor.download = name;
-  document.body.appendChild(anchor);
-  anchor.click();
-  anchor.remove();
-  URL.revokeObjectURL(url);
-}
-
+/** 单个产物文件 → 一份 Blob；回收时机与其它两处下载共用 `@/lib/download` 的那一处 */
 function saveOne(path: string, contents: string, mime: string): void {
   saveBlob(path, new Blob([contents], { type: mime }));
 }

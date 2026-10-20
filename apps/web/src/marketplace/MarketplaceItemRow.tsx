@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { csrfHeaders } from '@/lib/csrf';
+import { saveBlob } from '@/lib/download';
 
 /**
  * 市场物品的一行：卡片信息 + （自己的）删除 + 下载计数。
@@ -83,15 +84,9 @@ export function MarketplaceItemRow({
         setMessage(json?.message ?? json?.error ?? `下载失败（${res.status}）`);
         return;
       }
-      const url = URL.createObjectURL(await res.blob());
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `${item.title}.zip`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      // 与 ExportPanel 同一寸：浏览器把下载接走之前收回地址，会停在一个 0 字节的文件上
-      setTimeout(() => URL.revokeObjectURL(url), 60_000);
+      const blob = await res.blob();
+      // 回收对象 URL 的时机只写在 @/lib/download 那一处（三处下载共用一份实现）
+      saveBlob(`${item.title}.zip`, blob);
       setMessage('包已交付（设计文档 + 代码）。');
     } finally {
       setDownloading(false);

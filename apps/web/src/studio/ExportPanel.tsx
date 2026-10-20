@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { cn } from '@/lib/cn';
+import { saveBlob } from '@/lib/download';
 import { useStudioReady } from './store';
 
 /**
@@ -95,15 +96,8 @@ export function ExportPanel() {
       }
       const bytes = new Uint8Array(await res.arrayBuffer());
       const filename = downloadName(res.headers.get('content-disposition'));
-      const url = URL.createObjectURL(new Blob([bytes], { type: 'application/zip' }));
-      const anchor = document.createElement('a');
-      anchor.href = url;
-      anchor.download = filename;
-      document.body.appendChild(anchor);
-      anchor.click();
-      anchor.remove();
-      // 浏览器把下载接走之后才能收回这个地址；急着重收会让下载停在 0 字节
-      setTimeout(() => URL.revokeObjectURL(url), 60_000);
+      // 回收对象 URL 的时机只写在 @/lib/download 那一处（三处下载共用一份实现）
+      saveBlob(filename, new Blob([bytes], { type: 'application/zip' }));
       setReceipt({ bytes: bytes.byteLength, filename, ...parseReceipt(res.headers.get('x-nexus-export-receipt')) });
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : '导出失败');
