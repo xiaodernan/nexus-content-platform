@@ -412,8 +412,11 @@ class CdpPage {
       await this.evaluate(
         `(() => { const el = document.querySelector(${JSON.stringify(selector)});
           if (!el) return false; el.focus();
-          const setter = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype,'value')?.set
-            ?? Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype,'value')?.set;
+          // The setter must come from the ELEMENT'S OWN prototype: HTMLInputElement's value setter
+          // throws "Illegal invocation" when it is called on a <textarea>. Picking the input's setter
+          // first (as this did) made typing into a textarea crash the run.
+          const proto = el instanceof HTMLTextAreaElement ? HTMLTextAreaElement.prototype : HTMLInputElement.prototype;
+          const setter = Object.getOwnPropertyDescriptor(proto,'value')?.set;
           if (setter) setter.call(el, ''); else el.value = '';
           el.dispatchEvent(new Event('input', { bubbles: true }));
           return true; })()`,

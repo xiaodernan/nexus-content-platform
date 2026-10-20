@@ -21,6 +21,20 @@ export interface LikeLaneAnswer {
 
 export type FetchLike = (input: string, init?: RequestInit) => Promise<Response>;
 
+/**
+ * How long a write to the Studio's own door may take.
+ *
+ * A hung request is worse than a refused one: the panel would sit there saying nothing, and a person
+ * would wait for an answer that is never coming. The timeout turns a hang into a reason, which is the
+ * only shape this lane knows how to show.
+ */
+const WRITE_TIMEOUT_MS = 10_000;
+
+/** A signal that aborts the request when it takes too long. */
+function callSignal(): AbortSignal {
+  return AbortSignal.timeout(WRITE_TIMEOUT_MS);
+}
+
 /** Like a publication. */
 export async function likePublication(
   projectId: string,
@@ -32,6 +46,7 @@ export async function likePublication(
       method: 'POST',
       headers: { 'content-type': 'application/json', accept: 'application/json' },
       body: JSON.stringify({ projectId, claim }),
+      signal: callSignal(),
     });
     return readAnswer(res, await safeJson(res));
   } catch (error) {

@@ -32,12 +32,13 @@
 
 ### 下一批（按优先级）
 
-1. **v285 — 评论（comments）**：M7 的第三个社交动作。like 已落地，follow 与 comment 还没有。
-2. **v286 — 服务端搜索 finder**：`GET /projects?q=` 真正生效（客户端 v278/v279 已就位，服务端 finder 仍缺）。
-3. **v287 — 审计轨迹收录点赞**：trail 现在只记 publication 动词，like 是社交动词。
-4. **v288 — Stage B/C 服务端接线**（仍被 ADR 0018 阻塞：无服务端账号/会话/令牌不做）。
+1. **v288 — 关注的界面**：profile 页显示关注者数量 → `/?follow=<accountId>` → Studio 关注。
+2. **v289 — 服务端搜索（新包 `dev.nexus.api.search`）**：`/search?q=` 真正生效（客户端 v278/v279 已就位）。
+   走**新包**而不是改 `publish` 包——并行 lane 的 `PublishService`/`PublishController` 仍在他们手里。
+3. **v290 — 审计轨迹收录社交动词**：trail 现在只记 publication 动词，like/comment/follow 是社交动词。
+4. **v291 — Stage B/C 服务端接线**（仍被 ADR 0018 阻塞：无服务端账号/会话/令牌不做）。
 
-### M9 审计轨迹（服务端 → 面板 → 契约）
+### M9 审计轨迹（服务端 → 面板 → 契约）（服务端 → 面板 → 契约）（服务端 → 面板 → 契约）
 
 | 步骤 | 内容 | 状态 |
 |------|------|------|

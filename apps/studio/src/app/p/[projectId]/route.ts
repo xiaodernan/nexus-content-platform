@@ -5,6 +5,8 @@ import { readAuditTrail } from '@/lib/auditServer';
 import { historyRowsOf, injectHistory, renderHistoryHtml } from '@/lib/history';
 import { readLikes } from '@/lib/likeServer';
 import { injectLikeBar, renderLikeBar, LIKE_BAR_STYLES } from '@/lib/likeBar';
+import { readComments } from '@/lib/commentServer';
+import { COMMENT_STYLES, renderCommentsHtml, toCommentRows } from '@/lib/commentBar';
 
 /**
  * M7 v196 (ADR 0016 amendment 196): `/p/{projectId}` — a published project at a URL a PERSON can open.
@@ -33,6 +35,22 @@ export const dynamic = 'force-dynamic';
  */
 const HISTORY_LIMIT = 100;
 
+/**
+ * v286 — how many comments the artifact page reads. The service caps at 100; the page asks for the cap,
+ * because a thread can be long and the page states what it carried.
+ */
+const COMMENT_LIMIT = 100;
+
+/**
+ * v286 — insert the comments section before the closing body tag. PURE and testable, like the other
+ * injections here: a preview with no closing body tag is returned unchanged rather than corrupted.
+ */
+function injectComments(html: string, section: string): string {
+  if (!section) return html;
+  if (!html.includes('</body>')) return html;
+  return html.replace('</body>', `${section}</body>`);
+}
+
 export async function GET(_request: Request, { params }: { params: Promise<{ projectId: string }> }): Promise<Response> {
   const { projectId } = await params;
   const decoded = decodeURIComponent(projectId);
@@ -60,10 +78,22 @@ export async function GET(_request: Request, { params }: { params: Promise<{ pro
     // that matters most — a reader would conclude nobody cared.
     const likes = await readLikes(decoded);
     const bar = likes.ok ? renderLikeBar({ projectId: decoded, count: likes.count }) : '';
-    return new Response(injectLikeBar(injectHistory(page, history), bar ? bar + LIKE_BAR_STYLES : ''), {
+    // v286 — the COMMENTS. Read independently again: a comments door that could not be read leaves the
+    // section out rather than claiming the publication has no comments.
+    const comments = await readComments(decoded, COMMENT_LIMIT);
+    const commentSection = comments.ok
+      ? renderCommentsHtml(toCommentRows(comments.comments), comments.visible, decoded) + COMMENT_STYLES
+      : '';
+    return new Response(
+      injectComments(
+        injectLikeBar(injectHistory(page, history), bar ? bar + LIKE_BAR_STYLES : ''),
+        commentSection,
+      ),
+      {
       status: 200,
-      headers: { 'content-type': 'text/html; charset=utf-8', 'cache-control': 'no-store' },
-    });
+        headers: { 'content-type': 'text/html; charset=utf-8', 'cache-control': 'no-store' },
+      },
+    );
   }
 
   // The lane reports a 404 STRUCTURALLY (`notFound`), rather than this route pattern-matching its sentence:

@@ -300,7 +300,7 @@ try {
     { tries: 60, gapMs: 500, label: 'the Studio to report the service ready' },
   );
   const noteNow = await page.evaluate("document.querySelector('[data-toolbar-publish-note]')?.textContent ?? null");
-  check('the Studio probes the service on mount and reports it ready', ready !== false && ready !== null, `note: ${JSON.stringify(noteNow)}`);
+  check('the Studio probes the service on mount and reports it ready', ready !== null, `note: ${JSON.stringify(noteNow)}`);
   const probe = await page.evaluate("fetch('/api/publish').then((r) => r.json())");
   check(
     'the Studio’s own route answers for the service',
@@ -572,7 +572,7 @@ try {
       },
       { tries: 30, gapMs: 300, label: 'the remix to land' },
     );
-    check('remixing it in the Studio forks it into a NEW project', remixed !== false, `note: ${JSON.stringify(remixed)}`);
+    check('remixing it in the Studio forks it into a NEW project', remixed !== null, `note: ${JSON.stringify(remixed)}`);
 
     // Publish the FORK. Its project id is read from the note the SERVICE's URL put there — the same way
     // the source's was — because `window.__nexus` deliberately exposes no document id.
@@ -638,7 +638,7 @@ try {
       },
       { tries: 40, gapMs: 500, label: 'the visitor remix to land in the editor' },
     );
-    check('the visitor remix forked the publication into a new project, with no button pressed', visitorStatus !== false, `status: ${JSON.stringify(visitorStatus)}`);
+    check('the visitor remix forked the publication into a new project, with no button pressed', visitorStatus !== null, `status: ${JSON.stringify(visitorStatus)}`);
 
     // Publish what the visitor was given, and check the service stored the lineage — the same proof the
     // panel path gets, on the path a person with only a URL takes.
@@ -709,7 +709,7 @@ try {
     // the user as prose ("a caller that is not that account may not take it down") rather than as the
     // service's error code. The rule is named either way, and the prose is the more useful of the two.
     'a signed-out device CANNOT take down an owned publication — the service refuses it by name',
-    refused !== false && String(refused).includes('not taken down') && String(refused).includes('may not take it down'),
+    refused !== null && String(refused).includes('not taken down') && String(refused).includes('may not take it down'),
     `note: ${JSON.stringify(refused)}`,
   );
   const stillThere = await fetch(`${apiBase}/projects/${encodeURIComponent(projectId)}`);
@@ -762,10 +762,10 @@ try {
       },
       { tries: 40, gapMs: 500, label: 'the audit trail to render its rows' },
     );
-    check('opening it asks the service and renders what it recorded', trailRows !== false, `${trailRows === false ? 0 : trailRows.length} entr(y/ies)`);
+    check('opening it asks the service and renders what it recorded', trailRows !== null, `${trailRows === null ? 0 : trailRows.length} entr(y/ies)`);
     // A failed read leaves the marker FALSE above; every later check then sees an EMPTY trail rather than a thrown
     // TypeError, so the section reports its failures instead of killing the run.
-    const rows = trailRows === false ? [] : trailRows;
+    const rows = trailRows === null ? [] : trailRows;
 
     // The publication §9 took down answers 404 on the service right now (asserted above). Its ENTRIES are
     // still here — the trail outlives the row.
@@ -869,8 +869,8 @@ try {
       );
       check(
         '‘All’ puts every row back — a filter that could not be undone would be a trap',
-        allBack !== false,
-        `${allBack === false ? 0 : allBack.length} row(s) vs ${rows.length}`,
+        allBack !== null,
+        `${allBack === null ? 0 : allBack.length} row(s) vs ${rows.length}`,
       );
     }
   }
@@ -948,7 +948,7 @@ try {
     );
     check(
       'the Studio likes the publication when the URL asks it to',
-      likeStatus !== false,
+      likeStatus !== null,
       `status: ${JSON.stringify(likeStatus)}`,
     );
     check(
@@ -998,7 +998,7 @@ try {
     );
     check(
       'a device with NO account is refused — the client does not invent an actor to make the like work',
-      noAccount !== false,
+      noAccount !== null,
       `status: ${JSON.stringify(noAccount)}`,
     );
     const likeAfterRefusal = await (await fetch(`${apiBase}/likes?projectId=${encodeURIComponent(likeTarget)}`)).json();
@@ -1007,7 +1007,140 @@ try {
       likeAfterRefusal.count === 1,
       `count: ${likeAfterRefusal.count}`,
     );
+
+    // The accountless check above CLEARED the device's account, and the sections that follow need a
+    // device that HAS one: a section that ran without an account would be proving the refusal instead
+    // of the thing it is named after. So the account goes back — the same handle yields the same
+    // account, which is the rule §3.5 established.
+    await likePage.evaluate("document.querySelector('button[title=\"Account\"]').click()");
+    await until(
+      async () => (await likePage.evaluate("document.querySelectorAll('[data-toolbar-account]').length")) === 1,
+      { tries: 20, gapMs: 200, label: 'the account panel to open' },
+    );
+    await likePage.type('[data-account-handle-input]', accountHandle);
+    await likePage.evaluate("document.querySelector('[data-account-create]').click()");
+    const backIn = await until(
+      async () => (await likePage.evaluate("localStorage.getItem('nexus-current-account')")) !== null,
+      { tries: 20, gapMs: 200, label: 'the account to be set again' },
+    );
+    check(
+      'the account is BACK on the device — the sections that follow need one',
+      backIn !== null,
+      'the account record is back',
+    );
     await likePage.close();
+  }
+
+  // ── §11 v286: COMMENTS — the page lists them, the Studio writes them ─────────────────────────
+  // The artifact page is SERVER-RENDERED and cannot act (ADR 0018: the account lives in the browser),
+  // so the page LISTS the comments and links to the Studio, which opens a composer over it. The proof
+  // drives the whole loop: the section, the composer, the row, and the accountless refusal.
+  {
+    const commentTarget = remixProjectId ?? projectId;
+    const commentsPage = await fetch(`${studioBase}/p/${encodeURIComponent(commentTarget)}`);
+    const commentsHtml = await commentsPage.text();
+    check(
+      'the artifact page carries a COMMENTS section',
+      commentsPage.status === 200 && commentsHtml.includes('data-comments='),
+      `status ${commentsPage.status}; carries the section: ${commentsHtml.includes('data-comments=')}`,
+    );
+    check(
+      'and it says the thread is empty, and why it is not a one-click thing',
+      commentsHtml.includes('No comments yet') && commentsHtml.includes('needs an account'),
+      'the empty state explains itself',
+    );
+    check(
+      'and it offers the composer, as a link to the Studio',
+      commentsHtml.includes(`href="/?comment=${encodeURIComponent(commentTarget)}"`),
+      'the section links to /?comment=<id>',
+    );
+
+    // The Studio opens a composer over the intent.
+    const commentPage = await session.newPage('about:blank');
+    await commentPage.navigate(`${studioBase}/?comment=${encodeURIComponent(commentTarget)}`, { waitForSelector: '[data-comment-composer]', waitMs: 2000 });
+    check(
+      'the Studio opens a COMMENT composer over the intent',
+      (await commentPage.evaluate("!!document.querySelector('[data-comment-composer]')")) === true,
+      'the composer is on the page',
+    );
+
+    await commentPage.type('[data-comment-body]', 'this is a comment from the harness');
+    await commentPage.evaluate("document.querySelector('[data-comment-post]').click()");
+    // The FIRST request to a brand-new route in `next dev` pays the route's compile, and a wait that is
+    // too short reads as a failure that is not one. The budget here is deliberately generous, and the
+    // diagnostic below says what the page held when the wait gave up — a timeout that says nothing is a
+    // timeout that teaches nothing.
+    const commentNote = await until(
+      async () => {
+        const n = await commentPage.evaluate("document.querySelector('[data-comment-note]')?.textContent ?? ''");
+        return n.includes('commented') ? n : false;
+      },
+      { tries: 120, gapMs: 500, label: 'the comment to land' },
+    );
+    if (commentNote === null) {
+      const why = await commentPage.evaluate(
+        "({ note: document.querySelector('[data-comment-note]')?.textContent ?? null, value: document.querySelector('[data-comment-body]')?.value ?? null, status: document.querySelector('[data-toolbar-status]')?.textContent ?? null })",
+      );
+      console.log('[e2e] the comment did not land; the page held:', JSON.stringify(why));
+    }
+    check(
+      'and posting a comment says so in the Studio’s own words',
+      commentNote !== null,
+      `note: ${JSON.stringify(commentNote)}`,
+    );
+
+    // And the SERVICE recorded it — read independently of the browser, from the real database.
+    const commentsRead = await fetch(`${apiBase}/comments?projectId=${encodeURIComponent(commentTarget)}`);
+    const commentsBody = await commentsRead.json();
+    check(
+      'the SERVICE recorded the comment — read back independently of the browser',
+      commentsRead.status === 200 && Array.isArray(commentsBody.comments) && commentsBody.comments.length === 1,
+      `comments: ${JSON.stringify(commentsBody.comments)}`,
+    );
+    check(
+      'and the comment names the ACCOUNT that wrote it, with the assurance its claim carried',
+      commentsBody.comments?.[0]?.accountId === accountRecord?.id && commentsBody.comments?.[0]?.assurance === 'unsigned-local',
+      `the comment: ${JSON.stringify(commentsBody.comments?.[0])}`,
+    );
+    check(
+      'and the body is what was typed',
+      commentsBody.comments?.[0]?.body === 'this is a comment from the harness',
+      `body: ${JSON.stringify(commentsBody.comments?.[0]?.body)}`,
+    );
+
+    // And the page now shows it.
+    const commentsAfter = await (await fetch(`${studioBase}/p/${encodeURIComponent(commentTarget)}`)).text();
+    check(
+      'and the artifact page now lists the comment, with its author',
+      commentsAfter.includes('data-comments="1"') && commentsAfter.includes('this is a comment from the harness') && commentsAfter.includes(`@` + accountRecord?.handle),
+      `the page carries it: ${commentsAfter.includes('this is a comment from the harness')}`,
+    );
+
+    // LAST, because it clears the device’s account: a comment with no author is unattributable, and the
+    // client does NOT invent one.
+    await commentPage.evaluate("localStorage.removeItem('nexus-current-account')");
+    await commentPage.navigate(`${studioBase}/?comment=${encodeURIComponent(commentTarget)}`, { waitForSelector: '[data-comment-composer]', waitMs: 2000 });
+    await commentPage.type('[data-comment-body]', 'a comment with no account');
+    await commentPage.evaluate("document.querySelector('[data-comment-post]').click()");
+    const noAccountNote = await until(
+      async () => {
+        const n = await commentPage.evaluate("document.querySelector('[data-comment-note]')?.textContent ?? ''");
+        return n.includes('no account') ? n : false;
+      },
+      { tries: 30, gapMs: 500, label: 'the accountless comment to be refused' },
+    );
+    check(
+      'a device with NO account is refused — the client does not invent an author',
+      noAccountNote !== null,
+      `note: ${JSON.stringify(noAccountNote)}`,
+    );
+    const commentsAfterRefusal = await (await fetch(`${apiBase}/comments?projectId=${encodeURIComponent(commentTarget)}`)).json();
+    check(
+      'and the refused comment changed NOTHING — there is still exactly one',
+      commentsAfterRefusal.comments?.length === 1,
+      `comments: ${commentsAfterRefusal.comments?.length}`,
+    );
+    await commentPage.close();
   }
 
   // ── §10 teardown ─────────────────────────────────────────────────────────────────────────────────
