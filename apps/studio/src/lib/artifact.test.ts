@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { createEmptyDocument } from '@nexus/design-model';
+import { applyBatch, createEmptyDocument, ops, solid, textNode } from '@nexus/design-model';
 import { injectRemixBar, injectMetaBar, renderArtifactHtml, renderArtifactMissing, renderArtifactUnavailable } from './artifact';
 
 /**
@@ -21,6 +21,43 @@ describe('artifact — a publication renders as the DOCUMENT', () => {
     expect(html).toContain('class="stage"');
     // The document's name reaches the page through the renderer, not through this module.
     expect(html).toContain('</html>');
+  });
+
+  it('the stage is the PAGE’s size, so the drawing is not clipped into a 100px chip', () => {
+    // A new document's page used to be sized by the generic node default (100×100) while the Studio's
+    // "+" makes 1440×900 pages: a published drawing kept its own coordinates but the stage clipped it.
+    const doc = createEmptyDocument('Harbour');
+    const html = renderArtifactHtml({ title: 'Harbour', document: doc });
+    expect(html).toContain('width:1440px;height:900px');
+    expect(html).not.toContain('width:100px;height:100px');
+  });
+
+  it('draws a text node’s fill as the LETTER colour, not as a box behind it', () => {
+    // styleFor used to paint every node's first fill as a background. A text node's fill is already its
+    // letter colour, so the words sat behind a bar of their own colour: readable in the Studio canvas,
+    // a solid block in the artifact.
+    let doc = createEmptyDocument('Harbour');
+    const t = textNode('Headline', 'Harbour at dusk', {
+      fontFamilyToken: 'font.family.body',
+      sizeToken: 'font.size.xl',
+      weight: 700,
+      lineHeight: 1.2,
+      letterSpacing: 0,
+      align: 'left',
+    }, { x: 10, y: 20, width: 300, height: 60 });
+    t.fills = [solid({ r: 1, g: 1, b: 1, a: 1 })];
+    doc = applyBatch(doc, {
+      id: 'b',
+      ops: [ops.addSubtree(doc.activePageId, 0, [t])],
+      provenance: { mode: 'user' },
+      timestamp: 0,
+      summary: 'test',
+    });
+
+    const html = renderArtifactHtml({ document: doc });
+    const div = html.match(/<div style="[^"]*">Harbour at dusk<\/div>/)?.[0] ?? '';
+    expect(div).toContain('color:rgba(255, 255, 255, 1)');
+    expect(div).not.toContain('background:rgba(255, 255, 255, 1)');
   });
 
   it('a document that is not an object gets the UNAVAILABLE page, not an empty stage', () => {

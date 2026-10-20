@@ -20,6 +20,10 @@ import type {
 
 type NodeOverrides = Partial<NodeBase>;
 
+/** The canvas a page is born at. The empty document and the Studio's Add Page both read it, so a new
+ *  document's page cannot be a different size from the one the "+" button makes. */
+export const DEFAULT_PAGE_SIZE = { width: 1440, height: 900 } as const;
+
 function base(type: DesignNode['type'], name: string, o: NodeOverrides = {}): NodeBase {
   return {
     id: o.id ?? newId(type.slice(0, 2)),
@@ -163,7 +167,7 @@ export function createEmptyDocument(name = 'Untitled Project'): DesignDocument {
     strokes: [],
     pageIds: [],
   };
-  const page = pageNode('Page 1', { id: newId('pg'), parentId: docNode.id });
+  const page = pageNode('Page 1', { id: newId('pg'), parentId: docNode.id, ...DEFAULT_PAGE_SIZE });
   docNode.pageIds = [page.id];
 
   return {

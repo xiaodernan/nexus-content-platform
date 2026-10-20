@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   applyBatch,
   createEmptyDocument,
+  DEFAULT_PAGE_SIZE,
   diffFromBatch,
   ellipseNode,
   frameNode,
@@ -37,6 +38,16 @@ describe('design model: creation', () => {
     expect(doc.nodes[doc.rootId]?.type).toBe('document');
     expect(doc.nodes[pageId(doc)]?.type).toBe('page');
     expect(doc.schemaVersion).toBe(1);
+  });
+
+  it('the empty page is a full canvas, not the generic 100×100 node default', () => {
+    // The bug this pins: `base()` sizes every node 100×100, so a page that takes no explicit size is a
+    // 100px chip. Everything that renders a page (preview, export, the published artifact) would collapse
+    // the drawing into that chip while the Studio's own "+" makes 1440×900 pages.
+    const doc = createEmptyDocument('Test');
+    const page = doc.nodes[pageId(doc)]!;
+    expect([page.width, page.height]).toEqual([DEFAULT_PAGE_SIZE.width, DEFAULT_PAGE_SIZE.height]);
+    expect([page.width, page.height]).toEqual([1440, 900]);
   });
 });
 

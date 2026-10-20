@@ -24,7 +24,9 @@ function styleFor(node: DesignNode, doc: DesignDocument, rect: { x: number; y: n
     `border-radius:${'cornerRadius' in node ? node.cornerRadius : 0}px`,
   ];
   if (node.type === 'ellipse') parts.push('border-radius:50%');
-  if (node.fills.length) parts.push(`background:${paintToCss(node.fills[0]!, doc)}`);
+  // A text node's fill is its LETTER colour (nodeToHtml reads it as `color`); painting it as a background too
+  // would hide the words behind a solid bar of their own colour.
+  if (node.type !== 'text' && node.fills.length) parts.push(`background:${paintToCss(node.fills[0]!, doc)}`);
   if (node.strokes.length) {
     const s = node.strokes[0]!;
     parts.push(`border:${s.weight}px solid ${strokeToCss(s)}`);

@@ -21,6 +21,7 @@ import {
   componentNode,
   instanceNode,
   normalizeInstanceOverrides,
+  DEFAULT_PAGE_SIZE,
   type DesignDocument,
   type DesignNode,
   type DiffSummary,
@@ -532,7 +533,7 @@ export const useStudio = create<StudioState>((set, get) => ({
     const { doc } = get();
     const rootKids = childIdList(doc.nodes[doc.rootId]!);
     const pageCount = rootKids.filter((id) => doc.nodes[id]?.type === 'page').length;
-    const page = pageNode(`Page ${pageCount + 1}`, { x: 0, y: 0, width: 1440, height: 900 });
+    const page = pageNode(`Page ${pageCount + 1}`, { x: 0, y: 0, ...DEFAULT_PAGE_SIZE });
     get().commitOps([ops.addSubtree(doc.rootId, rootKids.length, [page])], `Add ${page.name}`);
     set({ activePageId: page.id, selection: [] });
   },
