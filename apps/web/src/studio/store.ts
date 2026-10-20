@@ -349,9 +349,15 @@ export class StudioStore {
     // （增量会以为那些节点没动过而沿用一份不相干的布局）。所以身份不符时基准为 null → 走全量。
     const cache = this.layoutCache;
     const prev = cache && cache.doc === document && cache.pageId === page.id ? cache.value : null;
+    // 增量是**默认开的**，但留一个构建期开关能一键回退到全量（全量是唯一真值，§159 不假装）：
+    // `NEXT_PUBLIC_NEXUS_INCREMENTAL_LAYOUT=0` 的生产构建走全量。设成别的值（含不设）都走增量。
+    // 这个开关也是**量同一台机器上的 A/B**用的：同一个构建量两次（开/关），
+    // 比"量两次不同的构建"可靠得多——后者的数会被机器当时的负载带偏（今天就吃过这个亏：
+    // 接线前后两轮之间整台机器慢了 2.5 倍，属性写入 95.8 → 140ms 的差全在负载上）。
+    const incrementalOn = process.env.NEXT_PUBLIC_NEXUS_INCREMENTAL_LAYOUT !== '0';
     try {
       layout =
-        changed.size > 0 && prev
+        incrementalOn && changed.size > 0 && prev
           ? resolveLayoutIncremental(page, {
               tokens,
               mode,
