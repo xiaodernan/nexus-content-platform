@@ -59,6 +59,41 @@ export interface LayoutOptions {
   measureText?: MeasureTextFn;
   defaultFontSize?: number;
   maxDepth?: number;
+  /**
+   * 测量缓存：节点 id → 约束键 → 尺寸。
+   *
+   * 带一个**签名**：缓存是在什么参数下算出来的（measureText / tokens / mode / breakpoint /
+   * defaultFontSize）。参数一变，旧的结果就不再可信（同一个 measureText 换成另一个，
+   * 量出来的文字宽度会不同）——所以签名对不上就整份作废，而不是"碰巧也没用上"。
+   * 签名是库自己算、自己比，调用方不用管。
+   */
+  measureCache?: MeasureCache;
+}
+
+/** 测量缓存：条目 + 生成它时的参数签名 */
+export interface MeasureCache {
+  entries: Map<string, Map<string, Box>>;
+  signature: string;
+}
+
+/**
+ * 给测量函数发一个**身份号**（同一个函数永远同一个号，不同的函数不同号）。
+ *
+ * 为什么不能比源码：两个内容相同但不是同一个函数的 measureText（比如测试里现造的两个计数器）
+ * 源码一模一样，但它们量出来的东西未必一样——按源码比就分不出来，缓存会拿着旧结果继续用。
+ */
+const measureFnIds = new WeakMap<object, number>();
+let measureFnSeq = 0;
+function measureFnId(fn: unknown): string {
+  if (typeof fn !== 'function') return 'none';
+  const key = fn as object;
+  let id = measureFnIds.get(key);
+  if (id === undefined) {
+    measureFnSeq += 1;
+    id = measureFnSeq;
+    measureFnIds.set(key, id);
+  }
+  return `fn${id}`;
 }
 
 interface Box {
@@ -366,7 +401,20 @@ function runLayout(
     return { width, height: Math.max(leading, height) };
   };
 
-  const cache = new Map<string, Box>();
+  // 测量缓存：节点 id → 约束键 → 尺寸。**可跨帧持有**（由调用方注入，见 LayoutOptions.measureCache）：
+  // 增量重解要省下的正是"重新量文字"这一截，而它跟"位置变没变"无关。
+  //
+  // 签名对不上（换了一套测量参数）→ 整份作废：同一个 measureText 换成另一个，
+  // 量出来的文字宽度会不同，旧结果留着就是错的。
+  // **签名比的是函数的"身份"不是它的源码**——两个内容相同但不是同一个函数的 measureText
+  // （比如测试里现造的两个计数器）量出来的结果未必一样，按源码比就分不出来。
+  const measureSignature = `${measureFnId(measureText)}|${mode ?? '-'}|${breakpoint ?? '-'}|${defaultFontSize}`;
+  const cache: MeasureCache = options.measureCache ?? { entries: new Map(), signature: '' };
+  if (cache.signature !== measureSignature) {
+    cache.entries.clear();
+    cache.signature = measureSignature;
+  }
+  const cacheEntries = cache.entries;
 
   /**
    * 子节点的测量约束。measure 与 place 必须用同一个函数求几何，
@@ -409,11 +457,14 @@ function runLayout(
   /** 自底向上测量：avail 为父级给定的约束（null 表示无约束） */
   const measure = (rawNode: DesignNode, avail: Box2, depth = 0): Box => {
     const node = applyResponsive(rawNode, breakpoint);
-    const key = `${node.id}|${avail.width ?? "-"}|${avail.height ?? "-"}|${depth}`;
-    const cached = cache.get(key);
+    // 键分两层：节点 id 一层（作废时整组删），约束（可用宽高 + 深度）一层
+    const constraint = `${avail.width ?? "-"}|${avail.height ?? "-"}|${depth}`;
+    const byConstraint = cacheEntries.get(node.id);
+    const cached = byConstraint?.get(constraint);
     if (cached) return cached;
     const box = measureUncached(node, avail, depth);
-    cache.set(key, box);
+    if (byConstraint) byConstraint.set(constraint, box);
+    else cacheEntries.set(node.id, new Map([[constraint, box]]));
     return box;
   };
 
@@ -673,6 +724,14 @@ function runLayout(
       for (const child of visibleChildren(page, node, breakpoint)) collectAffected(child.id);
     };
     for (const id of changed) collectAffected(id);
+    // **被改到的那些，旧的测量结果作废**（就地删，调用方持有这份缓存）。
+    // 为什么必须作废：测量结果取决于节点**内容**（文字、字号、样式），
+    // 而缓存的键只看「节点 id + 约束」——内容变了而键没变的话，会拿回旧尺寸，
+    // 于是「改完字却还是旧高度」。被改的节点与它的后代都在 affected 里 → 一起清掉。
+    // 其余节点的测量结果继续有效：内容没变，约束没变（约束变了键会变 → 自动不命中）。
+    if (options.measureCache) {
+      for (const id of affected) options.measureCache.entries.delete(id);
+    }
   }
 
   /** 这棵子树里有没有被改到的节点（有就不能沿用） */

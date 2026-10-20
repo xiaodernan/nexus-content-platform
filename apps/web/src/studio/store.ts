@@ -14,6 +14,7 @@ import {
   manualCommand,
   resolveLayout,
   resolveLayoutIncremental,
+  type MeasureCache,
   type AssetRef,
   type BreakpointName,
   type DesignDocument,
@@ -167,6 +168,15 @@ export class StudioStore {
    * 那才是错的。所以宁可多收，不可漏收。
    */
   private layoutChangedNodeIds = new Set<NodeId>();
+  /**
+   * §147 增量解：**跨帧**的测量缓存（"量文字"是布局里最贵的一截，而它与位置变没变无关）。
+   *
+   * 扁平的一万节点文档里改一个节点，其余 9999 个兄弟会全部移位（位置变了 → 上一帧的
+   * resolved 沿用不上），但它们的**尺寸没变** → 测量结果可以留着，只重算坐标。
+   * 这份缓存归这里持有：增量路把它传进去（并把**被改到的**那些条目作废），
+   * 全量路走之前整份清空（内容可能整体换过，旧的测量不再可信）。
+   */
+  private layoutMeasureCache: MeasureCache = { entries: new Map(), signature: '' };
   /**
    * §147 选中响应：TokenStore / 资产上下文 / 撤销栈都只随文档变，以前每次 commit
    * （包括纯选中）都重建 → 身份每次都变 → CanvasStage 的 Node memo 比较 `tokens` /
@@ -355,21 +365,28 @@ export class StudioStore {
     // 比"量两次不同的构建"可靠得多——后者的数会被机器当时的负载带偏（今天就吃过这个亏：
     // 接线前后两轮之间整台机器慢了 2.5 倍，属性写入 95.8 → 140ms 的差全在负载上）。
     const incrementalOn = process.env.NEXT_PUBLIC_NEXUS_INCREMENTAL_LAYOUT !== '0';
+    // 跨帧的测量缓存：增量路复用它（被改到的条目由增量路自己作废），
+    // 全量路走之前整份清空——内容可能整体换过（导入/恢复），旧的测量不再可信。
+    const measureCache = this.layoutMeasureCache;
     try {
-      layout =
-        incrementalOn && changed.size > 0 && prev
-          ? resolveLayoutIncremental(page, {
-              tokens,
-              mode,
-              breakpoint: this.viewport === 'design' ? undefined : this.viewport,
-              prevLayout: prev,
-              changedNodeIds: changed,
-            })
-          : resolveLayout(page, {
-              tokens,
-              mode,
-              breakpoint: this.viewport === 'design' ? undefined : this.viewport,
-            });
+      if (incrementalOn && changed.size > 0 && prev) {
+        layout = resolveLayoutIncremental(page, {
+          tokens,
+          mode,
+          breakpoint: this.viewport === 'design' ? undefined : this.viewport,
+          prevLayout: prev,
+          changedNodeIds: changed,
+          measureCache,
+        });
+      } else {
+        measureCache.entries.clear();
+        layout = resolveLayout(page, {
+          tokens,
+          mode,
+          breakpoint: this.viewport === 'design' ? undefined : this.viewport,
+          measureCache,
+        });
+      }
     } catch (error) {
       // 布局求解失败（模型被改坏）：不渲染半成品，面板显示原因
       console.error('[studio] resolveLayout failed', error);
